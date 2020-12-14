@@ -279,6 +279,8 @@ class ChipMappingMFT
   // info on chips info within the zone (RU)
   std::array<ChipOnRUInfo, NChipsInfo> mChipsInfo;
   Int_t mChipInfoEntryRU[NRUTypes];
+  
+  std::array<int, NRUTypes> mCablesOnRUType = {0}; //For correct active lanes pattern
 
   /// info per zone (RU)
   std::array<RUInfo, NRUs> mRUInfo;
