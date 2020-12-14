@@ -14,11 +14,11 @@
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/program_options/variables_map.hpp>
-#include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include <vector>
 #include <string>
+#include <regex>
 
 namespace o2::framework
 {
@@ -98,10 +98,11 @@ std::vector<T> toVector(std::string const& input)
   std::vector<T> result;
   //check if the array string has correct array type symbol
   assert(input[0] == variant_array_symbol<T>::symbol);
-  //strip type symbol and parentheses
-  boost::tokenizer<> tokenizer(input.substr(2, input.size() - 3));
-  for (auto it = tokenizer.begin(); it != tokenizer.end(); ++it) {
-    result.push_back(boost::lexical_cast<T>(*it));
+  std::regex nmatch(R"((?:(?!=,)|(?!=\[))[+-]?\d+\.?\d*(?:[eE][+-]?\d+)?(?=,|\]))", std::regex_constants::ECMAScript);
+  auto end = std::sregex_iterator();
+  auto values = std::sregex_iterator(input.begin(), input.end(), nmatch);
+  for (auto v = values; v != end; ++v) {
+    result.push_back(boost::lexical_cast<T>(v->str()));
   }
   return result;
 }
