@@ -39,12 +39,21 @@ Tracker::Tracker(o2::its::TrackerTraits* traits)
   /// Initialise standard configuration with 1 iteration
   mTrkParams.resize(1);
   mMemParams.resize(1);
-  assert(traits != nullptr);
+  assert(mTracks != nullptr);
   mTraits = traits;
   mPrimaryVertexContext = mTraits->getPrimaryVertexContext();
+#ifdef CA_DEBUG
+  mDebugger = new StandaloneDebugger("dbg_ITSTrackerCPU.root");
+#endif
 }
-
+#ifdef CA_DEBUG
+Tracker::~Tracker()
+{
+  delete mDebugger;
+}
+#else
 Tracker::~Tracker() = default;
+#endif
 
 void Tracker::clustersToTracks(const ROframe& event, std::ostream& timeBenchmarkOutputStream)
 {
@@ -293,6 +302,9 @@ void Tracker::findTracks(const ROframe& event)
     temporaryTrack.getParamOut() = temporaryTrack;
     temporaryTrack.resetCovariance();
     fitSuccess = fitTrack(event, temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].FitIterationMaxChi2[1]);
+#ifdef CA_DEBUG
+    mDebugger->dumpTrackToBranchWithInfo(event, temporaryTrack, "testBranch");
+#endif
     if (!fitSuccess) {
       continue;
     }
