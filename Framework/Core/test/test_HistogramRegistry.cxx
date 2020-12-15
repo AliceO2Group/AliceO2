@@ -13,6 +13,7 @@
 
 #include "Framework/HistogramRegistry.h"
 #include <boost/test/unit_test.hpp>
+#include <iostream>
 
 using namespace o2;
 using namespace o2::framework;
@@ -55,6 +56,21 @@ BOOST_AUTO_TEST_CASE(HistogramRegistryLookup)
   auto r = foo();
   auto histo2 = r.get<TH1>(HIST("histo")).get();
   BOOST_REQUIRE_EQUAL(histo2->GetNbinsX(), 100);
+
+  registry.print();
+
+  // check that registry behaves correctly when two different names have equal hash:
+  /*
+  auto str1 = "Maria has nine red beds.";
+  auto str2 = "Steven has fifteen white tables.";
+  BOOST_REQUIRE_EQUAL(compile_time_hash(str1), compile_time_hash(str2));
+  try {
+    registry.add(str1, "", kTH1F, {{20, 0.0f, 10.01f}});
+    registry.add(str2, "", kTH1F, {{20, 0.0f, 10.01f}});
+  } catch (...) {
+    std::cout << "Hash collision was detected correctly!" << std::endl;
+  }
+  */
 }
 
 BOOST_AUTO_TEST_CASE(HistogramRegistryExpressionFill)

@@ -37,19 +37,31 @@ const std::map<HistType, std::function<HistPtr(const HistogramSpec&)>> HistFacto
 // create histogram from specification and insert it into the registry
 void HistogramRegistry::insert(const HistogramSpec& histSpec)
 {
-  const uint32_t i = imask(histSpec.hash);
-  for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
+  validateHash(histSpec.hash, histSpec.name.data());
+  const uint32_t idx = imask(histSpec.hash);
+  for (auto i = 0u; i < MAX_REGISTRY_SIZE; ++i) {
     TObject* rawPtr = nullptr;
-    std::visit([&](const auto& sharedPtr) { rawPtr = sharedPtr.get(); }, mRegistryValue[imask(j + i)]);
+    std::visit([&](const auto& sharedPtr) { rawPtr = sharedPtr.get(); }, mRegistryValue[imask(idx + i)]);
     if (!rawPtr) {
       registerName(histSpec.name);
-      mRegistryKey[imask(j + i)] = histSpec.hash;
-      mRegistryValue[imask(j + i)] = HistFactory::createHistVariant(histSpec);
-      lookup += j;
+      mRegistryKey[imask(idx + i)] = histSpec.hash;
+      mRegistryValue[imask(idx + i)] = HistFactory::createHistVariant(histSpec);
+      lookup += i;
       return;
     }
   }
   LOGF(FATAL, R"(Internal array of HistogramRegistry "%s" is full.)", mName);
+}
+
+void HistogramRegistry::validateHash(const uint32_t hash, const char* name)
+{
+  auto it = std::find(mRegistryKey.begin(), mRegistryKey.end(), hash);
+  if (it != mRegistryKey.end()) {
+    auto idx = it - mRegistryKey.begin();
+    std::string collidingName{};
+    std::visit([&](const auto& hist) { collidingName = hist->GetName(); }, mRegistryValue[idx]);
+    LOGF(FATAL, R"(Hash collision in HistogramRegistry "%s"! Please rename histogram "%s" or "%s".)", mName, name, collidingName);
+  }
 }
 
 void HistogramRegistry::add(const HistogramSpec& histSpec)
@@ -201,6 +213,9 @@ void HistogramRegistry::print(bool showAxisDetails)
   }
   LOGF(INFO, "%s", std::string(titleString.size(), '='), titleString);
   LOGF(INFO, "Total: %d histograms, ca. %s", nHistos, totalSizeInfo);
+  if (lookup) {
+    LOGF(INFO, "Due to index collisions, histograms were shifted by %d registry slots in total.", lookup);
+  }
   LOGF(INFO, "%s", std::string(titleString.size(), '='), titleString);
   LOGF(INFO, "");
 }
@@ -211,9 +226,9 @@ TList* HistogramRegistry::operator*()
   TList* list = new TList();
   list->SetName(mName.data());
 
-  for (auto j = 0u; j < MAX_REGISTRY_SIZE; ++j) {
+  for (auto i = 0u; i < MAX_REGISTRY_SIZE; ++i) {
     TNamed* rawPtr = nullptr;
-    std::visit([&](const auto& sharedPtr) { rawPtr = (TNamed*)sharedPtr.get(); }, mRegistryValue[j]);
+    std::visit([&](const auto& sharedPtr) { rawPtr = (TNamed*)sharedPtr.get(); }, mRegistryValue[i]);
     if (rawPtr) {
       std::deque<std::string> path = splitPath(rawPtr->GetName());
       std::string name = path.back();
