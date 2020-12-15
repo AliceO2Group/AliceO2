@@ -23,7 +23,9 @@ o2::mft::TrackerConfig::TrackerConfig()
     mMinTrackStationsLTF{4},
     mMinTrackStationsCA{4},
     mLTFclsRCut{0.0100},
+    mLTFclsR2Cut{0.0100 * 0.0100},
     mROADclsRCut{0.0400},
+    mROADclsR2Cut{0.0400 * 0.0400},
     mLTFseed2BinWin{3},
     mLTFinterBinWin{3},
     mRBins{50},
@@ -47,7 +49,9 @@ void o2::mft::TrackerConfig::initialize(const MFTTrackingParam& trkParam)
   mMinTrackStationsLTF = trkParam.MinTrackStationsLTF;
   mMinTrackStationsCA = trkParam.MinTrackStationsCA;
   mLTFclsRCut = trkParam.LTFclsRCut;
+  mLTFclsR2Cut = mLTFclsRCut * mLTFclsRCut;
   mROADclsRCut = trkParam.ROADclsRCut;
+  mROADclsR2Cut = mROADclsRCut * mROADclsRCut;
   mLTFseed2BinWin = trkParam.LTFseed2BinWin;
   mLTFinterBinWin = trkParam.LTFinterBinWin;
 

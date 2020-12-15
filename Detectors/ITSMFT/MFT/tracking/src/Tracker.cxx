@@ -188,7 +188,7 @@ void Tracker::findTracksLTF(ROframe& event)
   Int_t binR_proj, binPhi_proj, bin;
   Int_t binIndex, clsMinIndex, clsMaxIndex, clsMinIndexS, clsMaxIndexS;
   Int_t extClsIndex;
-  Float_t dR, dRmin, dRcut = mLTFclsRCut;
+  Float_t dR2, dR2min, dR2cut = mLTFclsR2Cut;
   Bool_t hasDisk[constants::mft::DisksNumber], newPoint, seed;
 
   Int_t clsInLayer1, clsInLayer2, clsInLayer;
@@ -247,7 +247,7 @@ void Tracker::findTracksLTF(ROframe& event)
             newPoint = kTRUE;
 
             // loop over the bins in the search window
-            dRmin = dRcut;
+            dR2min = dR2cut;
             for (auto& bin : mBins[layer1][layer - 1][cluster1.indexTableBin]) {
 
               getBinClusterRange(event, layer, bin, clsMinIndex, clsMaxIndex);
@@ -259,12 +259,12 @@ void Tracker::findTracksLTF(ROframe& event)
                 }
                 clsInLayer = it - event.getClustersInLayer(layer).begin();
 
-                dR = getDistanceToSeed(cluster1, cluster2, cluster);
-                // retain the closest point within a radius dRcut
-                if (dR >= dRmin) {
+                dR2 = getDistanceToSeed(cluster1, cluster2, cluster);
+                // retain the closest point within a radius dR2cut
+                if (dR2 >= dR2min) {
                   continue;
                 }
-                dRmin = dR;
+                dR2min = dR2;
 
                 if (newPoint) {
                   trackPoints[nPoints].layer = layer;
@@ -339,7 +339,7 @@ void Tracker::findTracksCA(ROframe& event)
   Int_t roadId, nPointDisks;
   Int_t binR_proj, binPhi_proj, bin;
   Int_t binIndex, clsMinIndex, clsMaxIndex, clsMinIndexS, clsMaxIndexS;
-  Float_t dR, dRcut = mROADclsRCut;
+  Float_t dR2, dR2cut = mROADclsR2Cut;
   Bool_t hasDisk[constants::mft::DisksNumber];
 
   Int_t clsInLayer1, clsInLayer2, clsInLayer;
@@ -392,9 +392,9 @@ void Tracker::findTracksCA(ROframe& event)
                   }
                   clsInLayer = it - event.getClustersInLayer(layer).begin();
 
-                  dR = getDistanceToSeed(cluster1, cluster2, cluster);
-                  // add all points within a radius dRcut
-                  if (dR >= dRcut) {
+                  dR2 = getDistanceToSeed(cluster1, cluster2, cluster);
+                  // add all points within a radius dR2cut
+                  if (dR2 >= dR2cut) {
                     continue;
                   }
 

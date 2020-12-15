@@ -41,7 +41,9 @@ class TrackerConfig
   Int_t mMinTrackStationsLTF = 4;
   Int_t mMinTrackStationsCA = 4;
   Float_t mLTFclsRCut = 0.0100;
+  Float_t mLTFclsR2Cut = 0.0100 * 0.0100;
   Float_t mROADclsRCut = 0.0400;
+  Float_t mROADclsR2Cut = 0.0400 * 0.0400;
   Int_t mLTFseed2BinWin = 3;
   Int_t mLTFinterBinWin = 3;
   Int_t mRBins = 50;
