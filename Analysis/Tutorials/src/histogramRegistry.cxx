@@ -162,8 +162,6 @@ struct DTask {
     spectra.add("before_cuts/hist1", "asdf", defaultParticleHist);
     spectra.add("before_cuts/hist2", "asdf", defaultParticleHist);
     spectra.add("before_cuts/hist3", "asdf", defaultParticleHist);
-    spectra.add("before_cuts/hist4", "asdf", defaultParticleHist);
-    spectra.add("before_cuts/hist5", "asdf", defaultParticleHist);
 
     // clone whole category / group
     spectra.addClone("before_cuts/", "after_cuts/");
@@ -171,6 +169,16 @@ struct DTask {
     // clone single histograms
     spectra.addClone("sigmas", "cascades");
     spectra.addClone("neutral/pions", "strange/funny/particles");
+  }
+
+  template <bool mode, typename T>
+  void fillHistos(const T& track)
+  {
+    static constexpr std::string_view subDir[] = {"before_cuts/", "after_cuts/"};
+
+    spectra.fill(HIST(subDir[mode]) + HIST("hist1"), track.pt(), track.eta(), 50., 0.);
+    spectra.fill(HIST(subDir[mode]) + HIST("hist2"), track.pt(), track.eta(), 50., 0.);
+    spectra.fill(HIST(subDir[mode]) + HIST("hist3"), track.pt(), track.eta(), 50., 0.);
   }
 
   void process(aod::Tracks const& tracks)
@@ -189,10 +197,11 @@ struct DTask {
       spectra.fill(HIST("sigmas"), track.pt(), track.eta(), 50., 0.);
       spectra.fill(HIST("lambdas"), track.pt(), track.eta(), 50., 0.);
 
-      spectra.fill(HIST("before_cuts/hist2"), track.pt(), track.eta(), 50., 0.);
-      spectra.fill(HIST("before_cuts/hist2"), track.pt(), track.eta(), 50., 0.);
-
-      spectra.fill(HIST("after_cuts/hist2"), track.pt(), track.eta(), 50., 0.);
+      // fill histograms before and after cuts
+      fillHistos<false>(track);
+      if (std::rand() > (RAND_MAX / 2)) {
+        fillHistos<true>(track);
+      }
 
       spectra.fill(HIST("cascades"), track.pt(), track.eta(), 50., 0.);
       spectra.fill(HIST("strange/funny/particles"), track.pt(), track.eta(), 50., 0.);
