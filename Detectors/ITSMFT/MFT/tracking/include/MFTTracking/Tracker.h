@@ -117,7 +117,7 @@ inline const Float_t Tracker::getDistanceToSeed(const Cluster& cluster1, const C
 {
   // the seed is between "cluster1" and "cluster2" and cuts the plane
   // of the "cluster" at a distance dR from it
-  Float_t dxSeed, dySeed, dzSeed, invdzSeed, dz, dR, xSeed, ySeed;
+  Float_t dxSeed, dySeed, dzSeed, invdzSeed, dz, dR2, xSeed, ySeed;
   dxSeed = cluster2.getX() - cluster1.getX();
   dySeed = cluster2.getY() - cluster1.getY();
   dzSeed = cluster2.getZ() - cluster1.getZ();
@@ -125,8 +125,8 @@ inline const Float_t Tracker::getDistanceToSeed(const Cluster& cluster1, const C
   invdzSeed = dz / dzSeed;
   xSeed = cluster1.getX() + dxSeed * invdzSeed;
   ySeed = cluster1.getY() + dySeed * invdzSeed;
-  dR = std::sqrt((cluster.getX() - xSeed) * (cluster.getX() - xSeed) + (cluster.getY() - ySeed) * (cluster.getY() - ySeed));
-  return dR;
+  dR2 = (cluster.getX() - xSeed) * (cluster.getX() - xSeed) + (cluster.getY() - ySeed) * (cluster.getY() - ySeed);
+  return dR2;
 }
 
 //_________________________________________________________________________________________________
@@ -165,9 +165,9 @@ inline const Bool_t Tracker::getCellsConnect(const Cell& cell1, const Cell& cell
   Float_t cell2y1 = cell2.getY1();
   Float_t dx = cell1x2 - cell2x1;
   Float_t dy = cell1y2 - cell2y1;
-  Float_t dr = std::sqrt(dx * dx + dy * dy);
+  Float_t dr2 = dx * dx + dy * dy;
 
-  if (dr > constants::mft::Resolution) {
+  if (dr2 > (constants::mft::Resolution * constants::mft::Resolution)) {
     return kFALSE;
   }
   return kTRUE;
