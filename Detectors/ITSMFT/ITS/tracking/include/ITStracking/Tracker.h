@@ -38,6 +38,10 @@
 
 #include "Framework/Logger.h"
 
+#ifdef CA_DEBUG
+#include "ITStracking/StandaloneDebugger.h"
+#endif
+
 namespace o2
 {
 namespace gpu
@@ -108,6 +112,10 @@ class Tracker
   std::vector<MCCompLabel> mTrackLabels;
   o2::base::MatLayerCylSet* mMatLayerCylSet = nullptr;
   o2::gpu::GPUChainITS* mRecoChain = nullptr;
+
+#ifdef CA_DEBUG
+  StandaloneDebugger* mDebugger;
+#endif
 };
 
 inline void Tracker::setParameters(const std::vector<MemoryParameters>& memPars, const std::vector<TrackingParameters>& trkPars)

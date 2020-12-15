@@ -12,14 +12,15 @@
 /// \brief
 /// \author matteo.concas@cern.ch
 
-#include <string>
-#include <iterator>
+
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/ClusterLines.h"
 #include "CommonUtils/TreeStreamRedirector.h"
-#include "ITStracking/ROframe.h"
 #include "ITStracking/StandaloneDebugger.h"
+
+
+
 #include "TH1I.h"
 #include "TMath.h"
 
@@ -257,5 +258,21 @@ int StandaloneDebugger::getBinIndex(const float value, const int size, const flo
   return std::distance(divisions.begin(), TMath::BinarySearch(divisions.begin(), divisions.end(), value));
 }
 
+// Tracker
+void StandaloneDebugger::dumpTrackToBranchWithInfo(ROframe event, o2::its::TrackITSExt track,
+                                                   std::string branchName)
+{
+  // FakeTrackInfo t{event, track};
+
+  (*mTreeStream)
+    << branchName.data()
+    << track
+    << "\n";
+  
+  // (*mTreeStream)
+  //   << "TracksInfo" 
+  //   << tInfo
+  //   << "\n";
+}
 } // namespace its
 } // namespace o2
