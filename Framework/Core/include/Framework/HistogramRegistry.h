@@ -615,7 +615,7 @@ class HistogramRegistry
   template <typename T>
   void insertClone(const HistName& histName, const std::shared_ptr<T>& originalHist)
   {
-    validateHash(histName.hash, histName.str);
+    validateHistName(histName.str, histName.hash);
     for (auto i = 0u; i < MAX_REGISTRY_SIZE; ++i) {
       TObject* rawPtr = nullptr;
       std::visit([&](const auto& sharedPtr) { rawPtr = sharedPtr.get(); }, mRegistryValue[imask(histName.idx + i)]);
@@ -627,10 +627,11 @@ class HistogramRegistry
         return;
       }
     }
-    LOGF(FATAL, "Internal array of HistogramRegistry %s is full.", mName);
+    LOGF(FATAL, R"(Internal array of HistogramRegistry "%s" is full.)", mName);
   }
 
-  void validateHash(const uint32_t hash, const char* name);
+  // helper function that checks if histogram name can be used in registry
+  void validateHistName(const char* name, const uint32_t hash);
 
   // helper function to find the histogram position in the registry
   template <typename T>
