@@ -12,5 +12,6 @@
 # Drop this once we move to GCC 8.2+
 o2_add_library(FrameworkAnalysisSupport
                SOURCES src/Plugin.cxx
+                       src/AODJAlienReaderHelpers.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
                PUBLIC_LINK_LIBRARIES O2::Framework)
