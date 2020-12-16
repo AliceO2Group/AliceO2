@@ -1921,8 +1921,9 @@ void TrapSimulator::fitTracklet()
 
   // calculated in fitred.asm
   int padrow = ((mRobPos >> 1) << 2) | (mMcmPos >> 2);
-  int yoffs = (((((mRobPos & 0x1) << 2) + (mMcmPos & 0x3)) * 18) << 8) -
-              ((18 * 4 * 2 - 18 * 2 - 1) << 7);
+  //int yoffs = (((((mRobPos & 0x1) << 2) + (mMcmPos & 0x3)) * 18) << 8) -
+  //            ((18 * 4 * 2 - 18 * 2 - 1) << 7);
+  int yoffs = 0; // we do the shift to the MCM center in the tracklet transformer
   // TODO we dont need the stuff calculated in fitred.asm because we are now all relative to the mcm ?? check this statement
   LOG(debug) << "padrow:" << padrow << " yoffs:" << yoffs << " and rndAdd:" << rndAdd;
 
@@ -1934,8 +1935,9 @@ void TrapSimulator::fitTracklet()
 
   yoffs = yoffs << decPlaces; // holds position of ADC channel 1
   int layer = mDetector % 6;
-  unsigned int scaleY = 1; //(unsigned int)((0.635 + 0.03 * layer) / (256.0 * 160.0e-4) * shift);
-  unsigned int scaleD = 1; //(unsigned int)((0.635 + 0.03 * layer) / (256.0 * 140.0e-4) * shift);
+  // we need to scale the offset since we want to store it in units of 1/75 pad and the calculation is done in 1/256 pad width granularity
+  unsigned int scaleY = (unsigned int)(256. / 75 * shift);
+  unsigned int scaleD = (unsigned int)(256. / 1000 * shift); // TODO: is this correct?
   LOG(debug) << "scaleY : " << scaleY << "  scaleD=" << scaleD << " shift:" << std::hex << shift << std::dec;
   int deflCorr = (int)mTrapConfig->getDmemUnsigned(mgkDmemAddrDeflCorr, mDetector, mRobPos, mMcmPos);
   int ndrift = (int)mTrapConfig->getDmemUnsigned(mgkDmemAddrNdrift, mDetector, mRobPos, mMcmPos);
@@ -2064,7 +2066,7 @@ void TrapSimulator::fitTracklet()
       if (rejected && getApplyCut()) {
         mMCMT[cpu] = 0x10001000; //??? FeeParam::getTrackletEndmarker();
       } else {
-        if (slope > 127 || slope < -127) { // wrapping in TRAP!
+        if (slope > 127 || slope < -128) { // wrapping in TRAP!
           LOG(debug) << "Overflow in slope: " << slope << ", tracklet discarded!";
           mMCMT[cpu] = 0x10001000;
           continue;
@@ -2072,31 +2074,6 @@ void TrapSimulator::fitTracklet()
 
         slope = slope & 0xff; // 8 bit
 
-        yoffs = yoffs << decPlaces; // holds position of ADC channel 1
-        int layer = mDetector % 6;
-        unsigned int scaleY = (unsigned int)((0.635 + 0.03 * layer) / (256.0 * 160.0e-4) * shift);
-        unsigned int scaleD = (unsigned int)((0.635 + 0.03 * layer) / (256.0 * 140.0e-4) * shift);
-        LOG(debug) << "scaleY : " << scaleY << "  scaleD=" << scaleD << " shift:" << std::hex << shift << std::dec;
-        int deflCorr = (int)mTrapConfig->getDmemUnsigned(mgkDmemAddrDeflCorr, mDetector, mRobPos, mMcmPos);
-        int ndrift = (int)mTrapConfig->getDmemUnsigned(mgkDmemAddrNdrift, mDetector, mRobPos, mMcmPos);
-
-        // local variables for calculation
-        long mult, temp, denom;
-        unsigned int q0, q1, q2 = 23, pid; // charges in the two windows and total charge
-        float rawpid, rawz, rawy, rawslope, rawposition;
-        float rawslope4trackletword, rawoffset4trackletword;
-        //             unsigned short nHits;         // number of hits
-        int slope, position;          // slope and position of the tracklet
-        int sumX, sumY, sumXY, sumX2; // fit sums from fit registers
-        int sumY2;                    // not used in the current TRAP program, used for error calculation (simulation only)
-        float fitError, fitSlope, fitOffset;
-        FitReg *fit0, *fit1; // pointers to relevant fit registers
-
-        //  const uint32_t OneDivN[32] = {  // 2**31/N : exactly like in the TRAP, the simple division here gives the same result!
-        //      0x00000000, 0x80000000, 0x40000000, 0x2AAAAAA0, 0x20000000, 0x19999990, 0x15555550, 0x12492490,
-        //      0x10000000, 0x0E38E380, 0x0CCCCCC0, 0x0BA2E8B0, 0x0AAAAAA0, 0x09D89D80, 0x09249240, 0x08888880,
-        //      0x08000000, 0x07878780, 0x071C71C0, 0x06BCA1A0, 0x06666660, 0x06186180, 0x05D17450, 0x0590B210,
-        //      0x05555550, 0x051EB850, 0x04EC4EC0, 0x04BDA120, 0x04924920, 0x0469EE50, 0x04444440, 0x04210840};
 
         if (position > 0x7ff || position < -0x7ff) { // 11 bits.
           LOG(warning) << "Overflow in position with position of " << position << " in hex 0x" << std::hex << position;
@@ -2172,7 +2149,7 @@ void TrapSimulator::fitTracklet()
         uint32_t format = 0;
         uint32_t hcid = mDetector * 2 + mRobPos % 2;
         uint32_t padrow = ((mRobPos >> 1) << 2) | (mMcmPos >> 2);
-        uint32_t col = mFeeParam->getPadColFromADC(mRobPos, mMcmPos, 1);
+        uint32_t col = mMcmPos % NMCMROBINCOL;
         //defined above uint32_t position = ;
         //uint32_t s
         mTrackletArray64.emplace_back(format, hcid, padrow, col, position, slope, q0, q1, q2);
