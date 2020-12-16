@@ -9,12 +9,12 @@
 // or submit itself to any jurisdiction.
 #include "Framework/Plugins.h"
 #include "Framework/AlgorithmSpec.h"
-#include "Framework/AODReaderHelpers.h"
+#include "AODJAlienReaderHelpers.h"
 
 struct ROOTFileReader : o2::framework::AlgorithmPlugin {
   o2::framework::AlgorithmSpec create() override
   {
-    return o2::framework::readers::AODReaderHelpers::rootFileReaderCallback();
+    return o2::framework::readers::AODJAlienReaderHelpers::rootFileReaderCallback();
   }
 };
 

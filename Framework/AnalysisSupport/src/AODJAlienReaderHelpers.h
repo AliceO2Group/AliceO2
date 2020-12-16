@@ -7,14 +7,22 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef O2_FRAMEWORK_ANALYSISDATAMODELHELPERS_H_
-#define O2_FRAMEWORK_ANALYSISDATAMODELHELPERS_H_
 
-#include "Framework/AnalysisDataModel.h"
-#include "Headers/DataHeader.h"
+#ifndef O2_FRAMEWORK_AODJALIENREADERHELPERS_H_
+#define O2_FRAMEWORK_AODJALIENREADERHELPERS_H_
 
-namespace o2::aod::datamodel
+#include "Framework/TableBuilder.h"
+#include "Framework/AlgorithmSpec.h"
+#include "Framework/Logger.h"
+#include <uv.h>
+
+namespace o2::framework::readers
 {
-std::string getTreeName(header::DataHeader dh);
-} // namespace o2::aod::datamodel
-#endif // O2_FRAMEWORK_ANALYSISDATAMODELHELPERS_H_
+
+struct AODJAlienReaderHelpers {
+  static AlgorithmSpec rootFileReaderCallback();
+};
+
+} // namespace o2::framework::readers
+
+#endif // O2_FRAMEWORK_AODREADERHELPERS_H_

@@ -40,31 +40,5 @@ std::string getTreeName(header::DataHeader dh)
   return treeName;
 }
 
-template <typename... C>
-static constexpr auto columnNamesTrait(framework::pack<C...>)
-{
-  return std::vector<std::string>{C::columnLabel()...};
-}
-
-std::vector<std::string> getColumnNames(header::DataHeader dh)
-{
-  auto description = std::string(dh.dataDescription.str);
-  auto origin = std::string(dh.dataOrigin.str);
-
-  // get column names
-  // AOD / RN2
-  if (origin == "AOD") {
-    if (description == "TRACK:PAR") {
-      return columnNamesTrait(typename StoredTracksMetadata::table_t::persistent_columns_t{});
-    } else if (description == "TRACK:PARCOV") {
-      return columnNamesTrait(typename StoredTracksCovMetadata::table_t::persistent_columns_t{});
-    } else if (description == "TRACK:EXTRA") {
-      return columnNamesTrait(typename TracksExtraMetadata::table_t::persistent_columns_t{});
-    }
-  }
-
-  // default: column names = {}
-  return std::vector<std::string>({});
-}
 
 } // namespace o2::aod::datamodel
