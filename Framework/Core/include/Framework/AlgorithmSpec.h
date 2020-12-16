@@ -18,9 +18,7 @@
 
 #include <functional>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// This is the class holding the actual algorithm to be used. Notice that the
@@ -86,6 +84,11 @@ struct AlgorithmSpec {
   InitCallback onInit = nullptr;
   ProcessCallback onProcess = nullptr;
   ErrorCallback onError = nullptr;
+};
+
+/// Helper class for an algorithm which is loaded as a plugin.
+struct AlgorithmPlugin {
+  virtual AlgorithmSpec create() = 0;
 };
 
 template <typename T>
@@ -180,7 +183,6 @@ AlgorithmSpec::InitCallback adaptStateful(LAMBDA l)
   return adaptStatefulF(FFL(l));
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif // FRAMEWORK_ALGORITHMSPEC_H
