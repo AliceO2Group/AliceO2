@@ -10,8 +10,13 @@
 
 # Given GCC 7.3 does not provide std::filesystem we use Boost instead
 # Drop this once we move to GCC 8.2+
+
+if(TARGET XRootD::Client)
+  set(EXTRA_TARGETS XRootD::Client JAliEn::JAliEn)
+endif()
+
 o2_add_library(FrameworkAnalysisSupport
                SOURCES src/Plugin.cxx
                        src/AODJAlienReaderHelpers.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
-               PUBLIC_LINK_LIBRARIES O2::Framework)
+               PUBLIC_LINK_LIBRARIES O2::Framework ${EXTRA_TARGETS})
