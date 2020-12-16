@@ -103,6 +103,12 @@ set_package_properties(RapidJSON PROPERTIES TYPE REQUIRED)
 find_package(CURL)
 set_package_properties(CURL PROPERTIES TYPE REQUIRED)
 
+find_package(JAliEnROOT MODULE)
+set_package_properties(JAliEnROOT PROPERTIES TYPE RECOMMENDED)
+
+find_package(XRootD MODULE)
+set_package_properties(XRootD PROPERTIES TYPE RECOMMENDED)
+
 # MC specific packages
 message(STATUS "Input BUILD_SIMULATION=${BUILD_SIMULATION}")
 include("${CMAKE_CURRENT_LIST_DIR}/O2SimulationDependencies.cmake")
