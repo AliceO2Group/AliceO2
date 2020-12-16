@@ -19,6 +19,7 @@
 #include <array>
 #endif
 
+#include "GPUCommonRtypes.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/MathUtils.h"
 
@@ -43,6 +44,8 @@ struct Cluster final {
   float rCoordinate;      // = -999.f;
   int clusterId;          // = -1;
   int indexTableBinIndex; // = -1;
+
+  ClassDefNV(Cluster, 1);
 };
 
 struct TrackingFrameInfo {

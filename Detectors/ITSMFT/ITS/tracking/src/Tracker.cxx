@@ -303,7 +303,7 @@ void Tracker::findTracks(const ROframe& event)
     temporaryTrack.resetCovariance();
     fitSuccess = fitTrack(event, temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].FitIterationMaxChi2[1]);
 #ifdef CA_DEBUG
-    mDebugger->dumpTrackToBranchWithInfo(event, temporaryTrack, "testBranch");
+    mDebugger->dumpTrackToBranchWithInfo("testBranch", temporaryTrack, event, mPrimaryVertexContext, true);
 #endif
     if (!fitSuccess) {
       continue;
