@@ -28,6 +28,9 @@
 #include <Monitoring/Monitoring.h>
 
 #include <ROOT/RDataFrame.hxx>
+#if __has_include(<TJAlienFile.h>)
+#include <TJAlienFile.h>
+#endif
 #include <TGrid.h>
 #include <TFile.h>
 #include <TTreeCache.h>
@@ -237,9 +240,6 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
         // create a TreeToTable object
         auto info = didir->getFileFolder(dh, fcnt, ntf);
         size_t before = 0;
-        if (info.file) {
-          info.file->GetReadCalls();
-        }
         tr = didir->getDataTree(dh, fcnt, ntf);
         if (!tr) {
           if (first) {
@@ -299,6 +299,12 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
           std::string nextFileRead = info.file->GetPath();
           if (currentFileRead != nextFileRead) {
             currentFileRead = nextFileRead;
+#if __has_include(<TJAlienFile.h>)
+            auto alienFile = dynamic_cast<TJAlienFile*>(info.file);
+            if (alienFile) {
+              /// FIXME: get the JAlien stats
+            }
+#endif
             monitoring.send(Metric{currentFileRead, "aod-file-read-path"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
           }
         }
