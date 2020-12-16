@@ -12,7 +12,7 @@
 #include "Framework/AODReaderHelpers.h"
 
 struct ROOTFileReader : o2::framework::AlgorithmPlugin {
-  o2::framework::AlgorithmSpec create()
+  o2::framework::AlgorithmSpec create() override
   {
     return o2::framework::readers::AODReaderHelpers::rootFileReaderCallback();
   }
