@@ -59,6 +59,8 @@ struct TrackingFrameInfo {
   float alphaTrackingFrame;
   GPUArray<float, 2> positionTrackingFrame = {-1., -1.};
   GPUArray<float, 3> covarianceTrackingFrame = {999., 999., 999.};
+
+  ClassDefNV(TrackingFrameInfo, 1);
 };
 } // namespace its
 } // namespace o2

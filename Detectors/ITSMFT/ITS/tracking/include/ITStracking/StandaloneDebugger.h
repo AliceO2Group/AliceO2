@@ -70,7 +70,7 @@ struct FakeTrackInfo {
         occurrences.emplace_back(mcLabel, 1);
       }
     }
-    // LOG(WARN) << "Qui 1";
+
     if (occurrences.size() > 1) {
       isFake = true;
     }
@@ -78,14 +78,14 @@ struct FakeTrackInfo {
       return e1.second > e2.second;
     });
     mainLabel = occurrences[0].first;
-    // LOG(WARN) << "Qui 2";
+
     for (size_t iOcc{1}; iOcc < occurrences.size(); ++iOcc) {
       if (occurrences[iOcc].second == occurrences[0].second) {
         isAmbiguousId = true;
         break;
       }
     }
-    // LOG(WARN) << "Qui 3";
+
     for (size_t iCluster{0}; iCluster < numClusters; ++iCluster) {
       int extIndex = track.getClusterIndex(iCluster);
       if (extIndex == -1) {
@@ -99,20 +99,15 @@ struct FakeTrackInfo {
         ++nFakeClusters;
       }
     }
-    // LOG(WARN) << "Qui 3.5";
     if (storeClusters) {
       for (auto iCluster{0}; iCluster < numClusters; ++iCluster) {
         const int index = track.getClusterIndex(iCluster);
         if (index != constants::its::UnusedIndex) {
-          clusters[iCluster] = pvc->getClusters()[iCluster][track.getClusterIndex(iCluster)];
+          clusters[iCluster] = pvc->getClusters()[iCluster][index];
+          trackingFrameInfos[iCluster] = event.getTrackingFrameInfoOnLayer(iCluster).at(index);
         }
-        // LOG(WARN) << "Qui 3.5.1";
-        // LOG(WARN) << "\t iCLuster " << iCluster;
-        // LOG(WARN) << "\t getClusterIndex(iCluster) " << track.getClusterIndex(iCluster);
-        // LOG(WARN) << "\t externalIndex " << event.getClusterExternalIndex(iCluster, track.getClusterIndex(iCluster));
       }
     }
-    // LOG(WARN) << "Qui 4";
   }
 
   // Data
@@ -121,6 +116,8 @@ struct FakeTrackInfo {
   MCCompLabel mainLabel;
   std::array<int, numClusters> clusStatuses;
   std::array<o2::its::Cluster, numClusters> clusters;
+  std::array<o2::its::TrackingFrameInfo, numClusters> trackingFrameInfos;
+
   bool isFake;
   bool isAmbiguousId;
   int nFakeClusters = 0;
