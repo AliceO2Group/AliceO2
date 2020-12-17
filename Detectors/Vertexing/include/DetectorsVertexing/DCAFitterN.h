@@ -126,6 +126,12 @@ class DCAFitterN
     return mCandTr[mOrder[cand]][i];
   }
 
+  ///< create parent track param with errors for decay vertex
+  o2::track::TrackParCov createParentTrackParCov(int cand = 0, bool sectorAlpha = true) const;
+
+  ///< create parent track param w/o errors for decay vertex
+  o2::track::TrackPar createParentTrackPar(int cand = 0, bool sectorAlpha = true) const;
+
   ///< calculate on the fly track param (no cov mat) at candidate, check isValid to make sure propagation was successful
   o2::track::TrackPar getTrackParamAtPCA(int i, int cand = 0) const;
 
@@ -876,6 +882,64 @@ void DCAFitterN<N, Args...>::print() const
   LOG(INFO) << "Bz: " << mBz << " MaxIter: " << mMaxIter << " MaxChi2: " << mMaxChi2;
   LOG(INFO) << "Stopping condition: Max.param change < " << mMinParamChange << " Rel.Chi2 change > " << mMinRelChi2Change;
   LOG(INFO) << "Discard candidates for : Rvtx > " << getMaxR() << " DZ between tracks > " << mMaxDZIni;
+}
+
+//___________________________________________________________________
+template <int N, typename... Args>
+o2::track::TrackParCov DCAFitterN<N, Args...>::createParentTrackParCov(int cand, bool sectorAlpha) const
+{
+  const auto& trP = getTrack(0, cand);
+  const auto& trN = getTrack(1, cand);
+  const auto& wvtx = getPCACandidate(cand);
+  std::array<float, 21> covV = {0.};
+  std::array<float, 3> pvecV = {0.};
+  int q = 0;
+  for (int it = 0; it < N; it++) {
+    const auto& trc = getTrack(it, cand);
+    std::array<float, 3> pvecT = {0.};
+    std::array<float, 21> covT = {0.};
+    trc.getPxPyPzGlo(pvecT);
+    trc.getCovXYZPxPyPzGlo(covT);
+    constexpr int MomInd[6] = {9, 13, 14, 18, 19, 20}; // cov matrix elements for momentum component
+    for (int i = 0; i < 6; i++) {
+      covV[MomInd[i]] += covT[MomInd[i]];
+    }
+    for (int i = 0; i < 3; i++) {
+      pvecV[i] += pvecT[i];
+    }
+    q += trc.getCharge();
+  }
+  auto covVtxV = calcPCACovMatrix(cand);
+  covV[0] = covVtxV(0, 0);
+  covV[1] = covVtxV(1, 0);
+  covV[2] = covVtxV(1, 1);
+  covV[3] = covVtxV(2, 0);
+  covV[4] = covVtxV(2, 1);
+  covV[5] = covVtxV(2, 2);
+  const std::array<float, 3> vertex = {(float)wvtx[0], (float)wvtx[1], (float)wvtx[2]};
+  return std::move(o2::track::TrackParCov(vertex, pvecV, covV, q, sectorAlpha));
+}
+
+//___________________________________________________________________
+template <int N, typename... Args>
+o2::track::TrackPar DCAFitterN<N, Args...>::createParentTrackPar(int cand, bool sectorAlpha) const
+{
+  const auto& trP = getTrack(0, cand);
+  const auto& trN = getTrack(1, cand);
+  const auto& wvtx = getPCACandidate(cand);
+  std::array<float, 3> pvecV = {0.};
+  int q = 0;
+  for (int it = 0; it < N; it++) {
+    const auto& trc = getTrack(it, cand);
+    std::array<float, 3> pvecT = {0.};
+    trc.getPxPyPzGlo(pvecT);
+    for (int i = 0; i < 3; i++) {
+      pvecV[i] += pvecT[i];
+    }
+    q += trc.getCharge();
+  }
+  const std::array<float, 3> vertex = {(float)wvtx[0], (float)wvtx[1], (float)wvtx[2]};
+  return std::move(o2::track::TrackPar(vertex, pvecV, q, sectorAlpha));
 }
 
 using DCAFitter2 = DCAFitterN<2, o2::track::TrackParCov>;
