@@ -377,9 +377,11 @@ GPUd() TrackParametrizationWithError<value_T>::TrackParametrizationWithError(con
     double m24 = pt * (cs - this->getSnp() * sn / r), m44 = -pt * pt * (r * sn + this->getSnp() * cs);
     double m35 = pt, m45 = -pt * pt * this->getTgl();
     //
-    m43 *= charge;
-    m44 *= charge;
-    m45 *= charge;
+    if (charge) { // RS: this is a hack, proper treatment to be implemented
+      m43 *= charge;
+      m44 *= charge;
+      m45 *= charge;
+    }
     //
     double a1 = cv[13] - cv[9] * (m23 * m44 + m43 * m24) / m23 / m43;
     double a2 = m23 * m24 - m23 * (m23 * m44 + m43 * m24) / m43;
