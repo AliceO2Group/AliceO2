@@ -16,7 +16,9 @@ namespace o2
 namespace its
 {
 static auto& sVertexerParamITS = o2::its::VertexerParamConfig::Instance();
+static auto& sCATrackerParamITS = o2::its::TrackerParamConfig::Instance();
 
-O2ParamImpl(o2::its::VertexerParamConfig)
+O2ParamImpl(o2::its::VertexerParamConfig);
+O2ParamImpl(o2::its::TrackerParamConfig);
 } // namespace its
 } // namespace o2

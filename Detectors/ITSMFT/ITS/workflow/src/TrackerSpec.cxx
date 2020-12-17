@@ -79,7 +79,9 @@ void TrackerDPL::init(InitContext& ic)
       LOG(INFO) << "Initializing tracker in async. phase reconstruction with " << trackParams.size() << " passes";
     }
     mVertexer->getGlobalConfiguration();
-    // mVertexer->dumpTraits();
+    mTracker->getGlobalConfiguration();
+    LOG(INFO) << Form("%ssing lookup table for material budget approximation", (mTracker->isMatLUT() ? "U" : "Not u"));
+
     double origD[3] = {0., 0., 0.};
     mTracker->setBz(field->getBz(origD));
   } else {
