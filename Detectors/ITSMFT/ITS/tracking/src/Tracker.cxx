@@ -20,6 +20,7 @@
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/TrackerTraits.h"
 #include "ITStracking/TrackerTraitsCPU.h"
+#include "ITStracking/TrackingConfigParam.h"
 
 #include "ReconstructionDataFormats/Track.h"
 #include <cassert>
@@ -651,6 +652,15 @@ track::TrackParCov Tracker::buildTrackSeed(const Cluster& cluster1, const Cluste
                                                                               : crv / (getBz() * o2::constants::math::B2C)},
                             {s2, 0.f, s2, s2 * fy, 0.f, s2 * fy * fy, 0.f, s2 * tz, 0.f, s2 * tz * tz, s2 * cy, 0.f,
                              s2 * fy * cy, 0.f, s2 * cy * cy});
+}
+
+void Tracker::getGlobalConfiguration()
+{
+  auto& tc = o2::its::TrackerParamConfig::Instance();
+
+  if (tc.useMatBudLUT) {
+    initMatBudLUTFromFile();
+  }
 }
 
 } // namespace its
