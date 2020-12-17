@@ -173,7 +173,7 @@ struct EmcalCorrectionTask {
     for (const auto& cluster : mAnalysisClusters) {
       // Determine the cluster eta, phi, correcting for the vertex position.
       auto pos = cluster.getGlobalPosition();
-      pos = pos - Point3D<float>{collision.posX(), collision.posY(), collision.posZ()};
+      pos = pos - math_utils::Point3D<float>{collision.posX(), collision.posY(), collision.posZ()};
       // Normalize the vector and rescale by energy.
       pos /= (cluster.E() / std::sqrt(pos.Mag2()));
 
