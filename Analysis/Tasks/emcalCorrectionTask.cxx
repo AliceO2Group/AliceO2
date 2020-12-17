@@ -21,7 +21,7 @@
 
 #include "DetectorsBase/GeometryManager.h"
 
-#include "Analysis/EMCALClusters.h"
+#include "AnalysisDataModel/EMCALClusters.h"
 
 #include "DataFormatsEMCAL/Cell.h"
 #include "DataFormatsEMCAL/Constants.h"
