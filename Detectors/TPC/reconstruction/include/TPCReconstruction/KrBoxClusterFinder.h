@@ -72,6 +72,8 @@
 #include "TPCReconstruction/KrCluster.h"
 #include "TPCBase/Mapper.h"
 
+#include "TFile.h"
+
 #include <tuple>
 #include <vector>
 #include <array>
@@ -93,7 +95,12 @@ class KrBoxClusterFinder
 {
  public:
   /// Constructor:
-  explicit KrBoxClusterFinder(std::vector<o2::tpc::Digit>& eventSector); ///< Creates a 3D Map
+  explicit KrBoxClusterFinder(const std::string_view calDetFileName = "", const bool correctWithGainMap = false); ///< Creates a 3D Map
+
+  /// Function used in macro to fill the map with all recorded digits
+  /// If a gain map exists, the map can be corrected with this function
+  /// The function expects a CaldDet file which has a "relGain" entry for each pad.
+  void fillAndCorrectMap(std::vector<o2::tpc::Digit>& eventSector, const int sector);
 
   /// After the map is created, we look for local maxima with this function:
   std::vector<std::tuple<int, int, int>> findLocalMaxima();
@@ -106,20 +113,25 @@ class KrBoxClusterFinder
   // These variables can be varied
   // They were choses such that the box in each readout chamber is approx. the same size
   int mMaxClusterSizeTime = 3; ///< The "radius" of a cluster in time direction
+  int mMaxClusterSizeRow;      ///< The "radius" of a cluster in row direction
+  int mMaxClusterSizePad;      ///< The "radius" of a cluster in pad direction
 
   int mMaxClusterSizeRowIROC = 3;  ///< The "radius" of a cluster in row direction in IROC
   int mMaxClusterSizeRowOROC1 = 2; ///< The "radius" of a cluster in row direction in OROC1
   int mMaxClusterSizeRowOROC2 = 2; ///< The "radius" of a cluster in row direction in OROC2
   int mMaxClusterSizeRowOROC3 = 1; ///< The "radius" of a cluster in row direction in OROC3
 
-  int mMaxClusterSizePadIROC = 3;  ///< The "radius" of a cluster in pad direction in IROC
-  int mMaxClusterSizePadOROC1 = 2; ///< The "radius" of a cluster in pad direction in OROC1
-  int mMaxClusterSizePadOROC2 = 2; ///< The "radius" of a cluster in pad direction in OROC2
-  int mMaxClusterSizePadOROC3 = 2; ///< The "radius" of a cluster in pad direction in OROC3
+  int mMaxClusterSizePadIROC = 5;  ///< The "radius" of a cluster in pad direction in IROC
+  int mMaxClusterSizePadOROC1 = 3; ///< The "radius" of a cluster in pad direction in OROC1
+  int mMaxClusterSizePadOROC2 = 3; ///< The "radius" of a cluster in pad direction in OROC2
+  int mMaxClusterSizePadOROC3 = 3; ///< The "radius" of a cluster in pad direction in OROC3
 
   float mQThresholdMax = 10.0;    ///< the Maximum charge in a cluster must exceed this value or it is discarded
   float mQThreshold = 1.0;        ///< every charge which is added to a cluster must exceed this value or it is discarded
   int mMinNumberOfNeighbours = 1; ///< amount of direct neighbours required for a cluster maximum
+
+  TFile* mCalDetFile = nullptr; ///< Holds the filename of the CalDet File
+  bool mCorrectWithGainMap;     ///< To specify if correction with an existing gain map should be performed
 
   /// Maximum Map Dimensions
   /// Here is room for improvements
@@ -141,6 +153,9 @@ class KrBoxClusterFinder
   /// Here the map is defined where all digits are temporarily stored
   std::array<std::array<std::array<float, MaxPads>, MaxRows>, MaxTimes> mMapOfAllDigits{};
 
+  /// For each ROC, the maximum cluster size has to be chosen
+  void setMaxClusterSize(int row);
+
   /// To update the temporary cluster, i.e. all digits are added here
   void updateTempCluster(float tempCharge, int tempPad, int tempRow, int tempTime);
   /// After all digits are assigned to the cluster, the mean and sigmas are calculated here
@@ -149,7 +164,7 @@ class KrBoxClusterFinder
   /// Returns sign of val (in a crazy way)
   int signnum(int val) { return (0 < val) - (val < 0); }
 
-  ClassDefNV(KrBoxClusterFinder, 1);
+  ClassDefNV(KrBoxClusterFinder, 0);
 };
 
 } // namespace tpc

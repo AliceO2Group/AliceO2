@@ -22,18 +22,18 @@ namespace tpc
 
 struct KrCluster {
  public:
-  unsigned char size = 0;         ///< Size of the cluster (TPCDigits)
-  unsigned char sector = 0;       ///< Sector number
-  unsigned char maxChargePad = 0; ///< Pad with max. charge in cluster (for leader pad method)
-  unsigned char maxChargeRow = 0; ///< Row with max. charge in cluster (for leader pad method)
-  float totCharge = 0;            ///< Total charge of the cluster (ADC counts)
-  float maxCharge = 0;            ///< Maximum charge of the cluster (ADC counts)
-  float meanPad = 0;              ///< Center of gravity (Pad number)
-  float meanRow = 0;              ///< Center of gravity (Row number)
-  float meanTime = 0;             ///< Center of gravity (Time)
-  float sigmaPad = 0;             ///< RMS of cluster in pad direction
-  float sigmaRow = 0;             ///< RMS of cluster in row direction
-  float sigmaTime = 0;            ///< RMS of cluster in time direction
+  int size = 0;         ///< Size of the cluster (TPCDigits)
+  int sector = 0;       ///< Sector number
+  int maxChargePad = 0; ///< Pad with max. charge in cluster (for leader pad method)
+  int maxChargeRow = 0; ///< Row with max. charge in cluster (for leader pad method)
+  float totCharge = 0;  ///< Total charge of the cluster (ADC counts)
+  float maxCharge = 0;  ///< Maximum charge of the cluster (ADC counts)
+  float meanPad = 0;    ///< Center of gravity (Pad number)
+  float meanRow = 0;    ///< Center of gravity (Row number)
+  float meanTime = 0;   ///< Center of gravity (Time)
+  float sigmaPad = 0;   ///< RMS of cluster in pad direction
+  float sigmaRow = 0;   ///< RMS of cluster in row direction
+  float sigmaTime = 0;  ///< RMS of cluster in time direction
 
   /// Used to set all Cluster variables to zero.
   void reset()

@@ -51,6 +51,11 @@ void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1)
     tree->SetBranchAddress(Form("TPCDigit_%zu", iSec), &digitizedSignal[iSec]);
   }
 
+  // Create KrBoxClusterFinder object, memory is only allocated once
+  auto clFinder = std::make_unique<o2::tpc::KrBoxClusterFinder>();
+  // Or if correcting with a gainmap:
+  // auto clFinder = std::make_unique<o2::tpc::KrBoxClusterFinder>("/path/to/caldetfile.root", true);
+
   // Now everything can get processed
   // Loop over all events
   for (int iEvent = 0; iEvent < nEntries; ++iEvent) {
@@ -64,7 +69,7 @@ void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1)
       }
       // Create ClusterFinder Object on Heap since creation on stack fails
       // Probably due to too much memory consumption
-      auto clFinder = std::make_unique<o2::tpc::KrBoxClusterFinder>(*sector);
+      clFinder->fillAndCorrectMap(*sector, i);
       std::vector<std::tuple<int, int, int>> localMaxima = clFinder->findLocalMaxima();
       // Loop over cluster centers
       for (const std::tuple<int, int, int>& coords : localMaxima) {
@@ -90,3 +95,11 @@ void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1)
   fOut->Close();
   return;
 }
+
+int main()
+{
+  findKrBoxCluster();
+  return 0;
+}
+
+// g++ -o test $(root-config --cflags) $(root-config --libs) -I$O2_ROOT/include -I$O2_ROOT/include/GPU -L$O2_ROOT/lib -l O2TPCBase -l O2TPCReconstruction $O2_SRC/Detectors/TPC/reconstruction/macro/findKrBoxCluster.C -g -Og
