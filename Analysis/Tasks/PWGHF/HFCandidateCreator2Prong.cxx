@@ -50,6 +50,7 @@ struct HFCandidateCreator2Prong {
 
   double massPi = RecoDecay::getMassPDG(kPiPlus);
   double massK = RecoDecay::getMassPDG(kKPlus);
+  double massE = RecoDecay::getMassPDG(kElectron); 
   double massPiK{0.};
   double massKPi{0.};
 
@@ -159,6 +160,11 @@ struct HFCandidateCreator2ProngMC {
         particlesMC, array{candidate.index0_as<aod::BigTracksMC>(), candidate.index1_as<aod::BigTracksMC>()},
         421, array{+kPiPlus, -kKPlus}, true, &sign);
       result += sign * D0ToPiK * int8_t(indexRecD0 > -1);
+      // Jpsi → e+e-
+      auto indexRecJpsi = RecoDecay::getMatchedMCRec(
+        particlesMC, array{candidate.index0_as<aod::BigTracksMC>(), candidate.index1_as<aod::BigTracksMC>()},
+        443, array{+kElectron, -kElectron}, true, &sign);
+      result += sign * JpsiToEE * int8_t(indexRecJpsi > -1);
 
       rowMCMatchRec(result);
     }
@@ -172,7 +178,10 @@ struct HFCandidateCreator2ProngMC {
       //Printf("Checking D0(bar) → π± K∓");
       auto isMatchedGenD0 = RecoDecay::isMatchedMCGen(particlesMC, particle, 421, array{+kPiPlus, -kKPlus}, true, &sign);
       result += sign * D0ToPiK * int8_t(isMatchedGenD0);
-
+      // Jpsi → e+e-
+      auto isMatchedGenJpsi = RecoDecay::isMatchedMCGen(particlesMC, particle, 443, array{+kElectron, -kElectron}, true, &sign);
+      result += sign * JpsiToEE * int8_t(isMatchedGenJpsi);
+		
       rowMCMatchGen(result);
     }
   }
