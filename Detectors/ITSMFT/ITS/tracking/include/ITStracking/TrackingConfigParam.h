@@ -19,7 +19,6 @@ namespace o2
 namespace its
 {
 
-class VertexingParameters;
 struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerParamConfig> {
 
   // geometrical cuts
@@ -36,7 +35,14 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
   O2ParamDef(VertexerParamConfig, "ITSVertexerParam");
 };
 
-// VertexerParamConfig VertexerParamConfig::sInstance;
+struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerParamConfig> {
+
+  // Use lookup table for mat. budget
+  bool useMatBudLUT = false;
+
+  O2ParamDef(TrackerParamConfig, "ITSCATrackerParam");
+};
+
 } // namespace its
 } // namespace o2
 #endif

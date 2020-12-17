@@ -65,12 +65,15 @@ class Tracker
 
   std::vector<TrackITSExt>& getTracks();
   auto& getTrackLabels() { return mTrackLabels; }
+  bool isMatLUT();
 
   void clustersToTracks(const ROframe&, std::ostream& = std::cout);
 
   void setROFrame(std::uint32_t f) { mROFrame = f; }
   std::uint32_t getROFrame() const { return mROFrame; }
   void setParameters(const std::vector<MemoryParameters>&, const std::vector<TrackingParameters>&);
+  void initMatBudLUTFromFile();
+  void getGlobalConfiguration();
 
  private:
   track::TrackParCov buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3,
@@ -111,9 +114,6 @@ inline void Tracker::setParameters(const std::vector<MemoryParameters>& memPars,
 {
   mMemParams = memPars;
   mTrkParams = trkPars;
-  if (mTrkParams[0].UseMatBudLUT) {
-    mMatLayerCylSet = o2::base::MatLayerCylSet::loadFromFile();
-  }
 }
 
 inline float Tracker::getBz() const
@@ -124,6 +124,16 @@ inline float Tracker::getBz() const
 inline void Tracker::setBz(float bz)
 {
   mBz = bz;
+}
+
+inline void Tracker::initMatBudLUTFromFile()
+{
+  mMatLayerCylSet = o2::base::MatLayerCylSet::loadFromFile();
+}
+
+inline bool Tracker::isMatLUT()
+{
+  return mMatLayerCylSet;
 }
 
 template <typename... T>
