@@ -228,7 +228,6 @@ void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, st
 
         int ruID = nRUtot++;
         bool accept = !(ruSW < m2r.getRUSWMin() || ruSW > m2r.getRUSWMax()); // ignored RUs ?
-        int accL = 0;
         if (accept) {
           m2r.getCreateRUDecode(ruSW); // create RU container
           nRU++;
@@ -237,12 +236,11 @@ void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, st
           uint32_t lanes = mp.getCablesOnRUType(ru.ruInfo->ruType); // lanes patter of this RU
           ru.links[0] = m2r.addGBTLink();
           auto link = m2r.getGBTLink(ru.links[0]);
-          link->lanes = lanes & ((0x1 << lnkAs) - 1) << (accL);
+          link->lanes = lanes;
           link->idInCRU = linkID;
           link->cruID = cruIDtmp * 100 + o2::detectors::DetID::MFT;
           link->feeID = mp.RUSW2FEEId(ruSW);
           link->endPointID = 0; // 0 or 1
-          accL += lnkAs;
           // register the link in the writer, if not done here, its data will be dumped to common default file
           //printf("Register link: FeeID 0x%02x , CRU ID 0x%x , link ID %2d \n", link->feeID, link->cruID, link->idInCRU);
           //printf("RU SW: %2d   HW: 0x%02x   Type: %2d   %s \n", ruSW, ruHW, ruType, outFileLink.data());

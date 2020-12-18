@@ -172,6 +172,9 @@ class ChipMappingITS
   ///< convert HW cable ID to SW ID for given RU type (see ChipOnRUInfo.cableSW explanation)
   uint8_t cableHW2SW(uint8_t ruType, uint8_t hwid) const { return mCableHW2SW[ruType][hwid]; }
 
+  ///< convert cable iterator ID to the position on the ActiveLanes word in the GBT.header for given RU type; MFT lanes position compatible
+  uint8_t cablePos(uint8_t ruType, uint8_t id) const { return id; }
+
   ///< get number of chips served by single cable on given RU type
   int getNChipsPerCable(int ruType) { return NChipsPerCableSB[ruType]; }
 
