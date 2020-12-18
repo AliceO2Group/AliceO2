@@ -240,6 +240,8 @@ class RawFileWriter
     return it->first;
   }
 
+  OutputFile& getOutputFileForLink(const LinkData& lnk) { return mFName2File[lnk.fileName]; }
+
   int getSuperPageSize() const { return mSuperPageSize; }
   void setSuperPageSize(int nbytes);
 

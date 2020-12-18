@@ -613,8 +613,7 @@ void RawFileWriter::LinkData::fillEmptyHBHs(const IR& ir, bool dataAdded)
 std::string RawFileWriter::LinkData::describe() const
 {
   std::stringstream ss;
-  ss << "Link SubSpec=0x" << std::hex << std::setw(8) << std::setfill('0')
-     << RDHUtils::getSubSpec(rdhCopy) << std::dec
+  ss << "Link SubSpec=0x" << std::hex << std::setw(8) << std::setfill('0') << subspec << std::dec
      << '(' << std::setw(3) << int(RDHUtils::getCRUID(rdhCopy)) << ':' << std::setw(2) << int(RDHUtils::getLinkID(rdhCopy)) << ':'
      << int(RDHUtils::getEndPointID(rdhCopy)) << ") feeID=0x" << std::hex << std::setw(4) << std::setfill('0') << RDHUtils::getFEEID(rdhCopy);
   return ss.str();

@@ -35,11 +35,17 @@ o2_add_executable(file-check
                   PUBLIC_LINK_LIBRARIES O2::DetectorsRaw
                   Boost::program_options)
 
+o2_add_executable(file-split
+                  COMPONENT_NAME raw
+                  SOURCES src/rawfileSplit.cxx
+                  PUBLIC_LINK_LIBRARIES O2::DetectorsRaw)
+
 o2_add_executable(file-reader-workflow
                   COMPONENT_NAME raw
                   SOURCES src/rawfile-reader-workflow.cxx
                   src/RawFileReaderWorkflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::DetectorsRaw)
+
 
 o2_add_test(HBFUtils
             PUBLIC_LINK_LIBRARIES O2::DetectorsRaw
