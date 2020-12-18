@@ -11,7 +11,7 @@
 # Given GCC 7.3 does not provide std::filesystem we use Boost instead
 # Drop this once we move to GCC 8.2+
 
-if(TARGET XRootD::Client)
+if(TARGET JAliEn::JAliEn)
   set(EXTRA_TARGETS XRootD::Client JAliEn::JAliEn)
 endif()
 
