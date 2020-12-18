@@ -43,7 +43,7 @@ struct HFJpsiCandidateSelector {
   Produces<aod::HFSelJpsiCandidate> hfSelJpsiCandidate;
 
   Configurable<double> d_pTCandMin{"d_pTCandMin", 0., "Lower bound of candidate pT"};
-  Configurable<double> d_pTCandMax{"d_pTCandMax", 10., "Upper bound of candidate pT"};
+  Configurable<double> d_pTCandMax{"d_pTCandMax", 50., "Upper bound of candidate pT"};
 
   Configurable<double> d_pidTPCMinpT{"d_pidTPCMinpT", 0.15, "Lower bound of track pT for TPC PID"};
   Configurable<double> d_pidTPCMaxpT{"d_pidTPCMaxpT", 10., "Upper bound of track pT for TPC PID"};
@@ -260,7 +260,8 @@ struct HFJpsiCandidateSelector {
         continue;
       }
 
-      if (pidJpsi  && topolJpsi) {
+      if ((pidJpsi == -1 || pidJpsi==1) && topolJpsi)
+ {
         statusJpsi = 1; //identified as Jpsi
       }
 

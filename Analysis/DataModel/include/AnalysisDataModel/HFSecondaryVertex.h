@@ -207,19 +207,19 @@ auto CosThetaStarD0bar(const T& candidate)
 template <typename T>
 auto CtJpsi(const T& candidate)
 {
-  return candidate.ct(RecoDecay::getMassPDG(11));
+  return candidate.ct(RecoDecay::getMassPDG(443));
 }
 
 template <typename T>
 auto YJpsi(const T& candidate)
 {
-  return candidate.y(RecoDecay::getMassPDG(11));
+  return candidate.y(RecoDecay::getMassPDG(443));
 }
 
 template <typename T>
 auto EJpsi(const T& candidate)
 {
-  return candidate.e(RecoDecay::getMassPDG(11));
+  return candidate.e(RecoDecay::getMassPDG(443));
 }
 
 template <typename T>
