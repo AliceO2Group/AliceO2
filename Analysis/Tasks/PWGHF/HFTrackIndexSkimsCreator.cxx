@@ -53,7 +53,7 @@ struct SelectTracks {
 
   HistogramRegistry registry{
     "registry",
-    {{"hpt_nocuts", "all tracks;#it{p}_{T}^{track} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
+    {{"hpt_nocuts", "all tracks;#it{p}_{T}^{track} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 100.}}}},
      // 2-prong histograms
      {"hpt_cuts_2prong", "tracks selected for 2-prong vertexing;#it{p}_{T}^{track} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 100.}}}},
      {"hdcatoprimxy_cuts_2prong", "tracks selected for 2-prong vertexing;DCAxy to prim. vtx. (cm);entries", {HistType::kTH1F, {{static_cast<int>(1.2 * dcatoprimxymax_2prong * 100), -1.2 * dcatoprimxymax_2prong, 1.2 * dcatoprimxymax_2prong}}}},
