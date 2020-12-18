@@ -10,7 +10,7 @@
 
 /// \file HFJpsiCandidateSelector.cxx
 /// \brief Jpsi selection task.
-///
+/// \author Biao Zhang <biao.zhang@cern.ch>, CERN
 /// \author Nima Zardoshti <nima.zardoshti@cern.ch>, CERN
 
 #include "Framework/runDataProcessing.h"
@@ -215,13 +215,13 @@ struct HFJpsiCandidateSelector {
       pidJpsi = -1;
       electronPlus = -1;
       electronMinus = -1;
-      int JpsiFlag = hfCandProng2.hfflag();
+      /*int JpsiFlag = hfCandProng2.hfflag();
 
       if (!(JpsiFlag & 1 << 1)) {
         hfSelJpsiCandidate(statusJpsi);
         continue;
       }
-
+*/
       // daughter track validity selection
       if (!daughterSelection(trackPos) || !daughterSelection(trackNeg)) {
         hfSelJpsiCandidate(statusJpsi);
