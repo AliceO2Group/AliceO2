@@ -155,9 +155,14 @@ DECLARE_SOA_COLUMN(FlagMCMatchRec, flagMCMatchRec, int8_t); // reconstruction le
 DECLARE_SOA_COLUMN(FlagMCMatchGen, flagMCMatchGen, int8_t); // generator level
 
 // mapping of decay types
+<<<<<<< HEAD
 enum DecayType { D0ToPiK = 0,
                  JpsiToEE,
                  N2ProngDecays }; //always keep N2ProngDecays at the end
+=======
+enum DecayType { D0ToPiK = 1,
+                 JpsiToEE };
+>>>>>>> Jpsi task and candidate selection for HF
 
 // functions for specific particles
 
@@ -203,6 +208,31 @@ template <typename T>
 auto CosThetaStarD0bar(const T& candidate)
 {
   return candidate.cosThetaStar(array{RecoDecay::getMassPDG(kKPlus), RecoDecay::getMassPDG(kPiPlus)}, RecoDecay::getMassPDG(421), 0);
+}
+
+// Jpsi → e+e-
+template <typename T>
+auto CtJpsi(const T& candidate)
+{
+  return candidate.ct(RecoDecay::getMassPDG(443));
+}
+
+template <typename T>
+auto YJpsi(const T& candidate)
+{
+  return candidate.y(RecoDecay::getMassPDG(443));
+}
+
+template <typename T>
+auto EJpsi(const T& candidate)
+{
+  return candidate.e(RecoDecay::getMassPDG(443));
+}
+
+template <typename T>
+auto InvMassJpsi(const T& candidate)
+{
+  return candidate.m(array{RecoDecay::getMassPDG(kElectron), RecoDecay::getMassPDG(kElectron)});
 }
 } // namespace hf_cand_prong2
 

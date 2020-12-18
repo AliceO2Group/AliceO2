@@ -31,4 +31,12 @@ DECLARE_SOA_COLUMN(IsSelLcpiKp, isSelLcpiKp, int);
 DECLARE_SOA_TABLE(HFSelLcCandidate, "AOD", "HFSELLCCAND", hf_selcandidate_lc::IsSelLcpKpi, hf_selcandidate_lc::IsSelLcpiKp);
 } // namespace o2::aod
 
+namespace o2::aod
+{
+namespace hf_selcandidate_jpsi
+{
+DECLARE_SOA_COLUMN(IsSelJpsi, isSelJpsi, int);
+} // namespace hf_selcandidate_jpsi
+DECLARE_SOA_TABLE(HFSelJpsiCandidate, "AOD", "HFSELJPSICAND", hf_selcandidate_jpsi::IsSelJpsi);
+} // namespace o2::aod
 #endif // O2_ANALYSIS_HFCANDIDATESELECTIONTABLES_H_
