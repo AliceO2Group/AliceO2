@@ -13,7 +13,6 @@
 #include <fmt/core.h>
 #include <gsl/span>
 #include <TSystem.h>
-#include "PHOSBase/RCUTrailer.h"
 #include "PHOSSimulation/RawWriter.h"
 #include "PHOSBase/PHOSSimParams.h"
 #include "CCDB/CcdbApi.h"
@@ -23,12 +22,12 @@ using namespace o2::phos;
 void RawWriter::init()
 {
   mRawWriter = std::make_unique<o2::raw::RawFileWriter>(o2::header::gDataOriginPHS, false);
-  mRawWriter->setCarryOverCallBack(this);
-  mRawWriter->setApplyCarryOverToLastPage(true);
+  //  mRawWriter->setCarryOverCallBack(this);
+  mRawWriter->setApplyCarryOverToLastPage(false);
 
   // initialize mapping
   if (!mMapping) {
-    mMapping = std::unique_ptr<o2::phos::Mapping>(new o2::phos::Mapping());
+    mMapping = new o2::phos::Mapping();
     if (!mMapping) {
       LOG(ERROR) << "Failed to initialize mapping";
     }
@@ -115,7 +114,7 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
   }
 
   // Create and fill DMA pages for each channel
-  std::vector<int> rawbunches;
+  std::vector<uint32_t> rawbunches;
   std::vector<char> payload;
   std::vector<AltroBunch> rawbunchesHG, rawbunchesLG;
 
@@ -125,15 +124,13 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
 
     for (auto ch = srucont->mChannels.cbegin(); ch != srucont->mChannels.cend(); ch++) {
       // Find out hardware address of the channel
-
       bool isLGfilled = 0;
-      createRawBunches(ch->second, rawbunchesHG, rawbunchesLG, isLGfilled);
+      createRawBunches(ch->first, ch->second, rawbunchesHG, rawbunchesLG, isLGfilled);
 
       short hwAddrHG; //High gain always filled
       if (mMapping->absIdTohw(ch->first, 0, ddl, hwAddrHG) != o2::phos::Mapping::kOK) {
         LOG(ERROR) << "Wrong AbsId" << ch->first;
       }
-
       rawbunches.clear();
       for (auto& bunch : rawbunchesHG) {
         rawbunches.push_back(bunch.mADCs.size() + 2);
@@ -142,17 +139,19 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
           rawbunches.push_back(adc);
         }
       }
-      if (!rawbunches.size()) {
+      if (rawbunches.size() == 0) {
         continue;
       }
-
       auto encodedbunches = encodeBunchData(rawbunches);
-      auto chanhead = createChannelHeader(hwAddrHG, rawbunches.size());
-      char* chanheadwords = reinterpret_cast<char*>(&chanhead);
-
+      ChannelHeader chanhead = {0};
+      chanhead.mHardwareAddress = hwAddrHG;
+      chanhead.mPayloadSize = rawbunches.size();
+      chanhead.mMark = 1; //mark channel header
+      char* chanheadwords = reinterpret_cast<char*>(&chanhead.mDataWord);
       for (int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
         payload.emplace_back(chanheadwords[iword]);
       }
+
       char* channelwords = reinterpret_cast<char*>(encodedbunches.data());
       for (auto iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
         payload.emplace_back(channelwords[iword]);
@@ -165,7 +164,7 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
         }
 
         rawbunches.clear();
-        for (auto& bunch : rawbunchesHG) {
+        for (auto& bunch : rawbunchesLG) {
           rawbunches.push_back(bunch.mADCs.size() + 2);
           rawbunches.push_back(bunch.mStarttime);
           for (auto adc : bunch.mADCs) {
@@ -174,8 +173,12 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
         }
 
         encodedbunches = encodeBunchData(rawbunches);
-        chanhead = createChannelHeader(hwAddrLG, encodedbunches.size() * 3 - 2);
-        chanheadwords = reinterpret_cast<char*>(&chanhead);
+        ChannelHeader chanheadLG = {0};
+        chanheadLG.mHardwareAddress = hwAddrLG;
+        chanheadLG.mPayloadSize = rawbunches.size();
+        chanheadLG.mMark = 1; //mark channel header
+
+        chanheadwords = reinterpret_cast<char*>(&chanheadLG.mDataWord);
         for (int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
           payload.emplace_back(chanheadwords[iword]);
         }
@@ -202,28 +205,21 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
   return true;
 }
 
-void RawWriter::createRawBunches(const std::vector<o2::phos::Digit*>& channelDigits, std::vector<o2::phos::AltroBunch>& bunchHG,
+void RawWriter::createRawBunches(short absId, const std::vector<o2::phos::Digit*>& channelDigits, std::vector<o2::phos::AltroBunch>& bunchHG,
                                  std::vector<o2::phos::AltroBunch>& bunchLG, bool& isLGFilled)
 {
 
   isLGFilled = false;
   short samples[kNPHOSSAMPLES] = {0};
-  float hglgratio = 16.;
+  float hglgratio = mCalibParams->getHGLGRatio(absId);
   for (auto dig : channelDigits) {
     //Convert energy and time to ADC counts and time ticks
-    float ampADC = dig->getAmplitude() / mCalibParams->getGain(dig->getAbsId());
-    if (ampADC > kOVERFLOW) { //High Gain in saturation, fill also Low Gain
+    float ampADC = dig->getAmplitude();                             // Digits amplitude already in ADC channels
+    if (ampADC > o2::phos::PHOSSimParams::Instance().mMCOverflow) { //High Gain in saturation, fill also Low Gain
       isLGFilled = true;
     }
-    float timeTicks = dig->getTimeStamp();
-    //If LowGain will be used, apply LG time decalibration (HG will be omitted in this case in rec.)
-    if (isLGFilled) {
-      timeTicks += mCalibParams->getLGTimeCalib(dig->getAbsId());
-      hglgratio = mCalibParams->getHGLGRatio(dig->getAbsId());
-    } else {
-      timeTicks += mCalibParams->getHGTimeCalib(dig->getAbsId());
-    }
-    timeTicks /= kPHOSTIMETICK;
+    float timeTicks = dig->getTime();
+    timeTicks /= o2::phos::PHOSSimParams::Instance().mTimeTick;
     //Add to current sample contribution from digit
     fillGamma2(ampADC, timeTicks, samples);
   }
@@ -233,9 +229,9 @@ void RawWriter::createRawBunches(const std::vector<o2::phos::Digit*>& channelDig
   bunchHG.clear();
   AltroBunch currentBunch;
   //Note reverse time order
-  for (int i = kNPHOSSAMPLES - 1; i--;) {
+  for (int i = kNPHOSSAMPLES; i--;) {
     if (samples[i] > zs) {
-      currentBunch.mADCs.emplace_back(std::min(kOVERFLOW, samples[i]));
+      currentBunch.mADCs.emplace_back(std::min(o2::phos::PHOSSimParams::Instance().mMCOverflow, samples[i]));
     } else { //end of sample?
       if (currentBunch.mADCs.size()) {
         currentBunch.mStarttime = i + 1;
@@ -244,12 +240,16 @@ void RawWriter::createRawBunches(const std::vector<o2::phos::Digit*>& channelDig
       }
     }
   }
+  if (currentBunch.mADCs.size()) {
+    bunchHG.push_back(currentBunch);
+    currentBunch.mADCs.clear();
+  }
   if (isLGFilled) {
     bunchLG.clear();
     currentBunch.mADCs.clear();
     for (int i = kNPHOSSAMPLES - 1; i--;) {
       if (samples[i] > zs * hglgratio) {
-        currentBunch.mADCs.emplace_back(std::min(kOVERFLOW, short(samples[i] / hglgratio)));
+        currentBunch.mADCs.emplace_back(std::min(o2::phos::PHOSSimParams::Instance().mMCOverflow, short(samples[i] / hglgratio)));
       } else { //end of sample?
         if (currentBunch.mADCs.size()) {
           currentBunch.mStarttime = i + 1;
@@ -258,6 +258,9 @@ void RawWriter::createRawBunches(const std::vector<o2::phos::Digit*>& channelDig
         }
       }
     }
+    if (currentBunch.mADCs.size()) {
+      bunchLG.push_back(currentBunch);
+    }
   }
 }
 
@@ -265,17 +268,20 @@ void RawWriter::fillGamma2(float amp, float time, short* samples)
 {
   //Simulate Gamma2 signal added to current sample in PHOS
   float alpha = o2::phos::PHOSSimParams::Instance().mSampleDecayTime;
-
+  amp += 0.5; //rounding err
   for (int i = 0; i < kNPHOSSAMPLES; i++) {
-    float x = alpha * (i - time);
+    if (i - o2::phos::PHOSSimParams::Instance().mPreSamples < time) {
+      continue;
+    }
+    float x = alpha * (i - o2::phos::PHOSSimParams::Instance().mPreSamples - time);
     float y = 0.25 * amp * x * x * std::exp(2. - x); //0.25*exp(-2) normalization to unity
     samples[i] += short(y);
   }
 }
 
-std::vector<int> RawWriter::encodeBunchData(const std::vector<int>& data)
+std::vector<uint32_t> RawWriter::encodeBunchData(const std::vector<uint32_t>& data)
 {
-  std::vector<int> encoded;
+  std::vector<uint32_t> encoded;
   CaloBunchWord currentword;
   currentword.mDataWord = 0;
   int wordnumber = 0;
@@ -305,16 +311,6 @@ std::vector<int> RawWriter::encodeBunchData(const std::vector<int>& data)
   return encoded;
 }
 
-ChannelHeader RawWriter::createChannelHeader(int hardwareAddress, int payloadSize)
-{
-  ChannelHeader header;
-  header.mDataWord = 0;
-  header.mHardwareAddress = hardwareAddress;
-  header.mPayloadSize = payloadSize;
-  header.mZero2 = 1; //mark channel header
-  return header;
-}
-
 std::vector<char> RawWriter::createRCUTrailer(int payloadsize, int feca, int fecb, double timesample, double l1phase)
 {
   RCUTrailer trailer;
@@ -333,32 +329,41 @@ int RawWriter::carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> 
                                const char* ptr, int maxSize, int splitID,
                                std::vector<char>& trailer, std::vector<char>& header) const
 {
+  //Method not used;
   int offs = ptr - &data[0]; // offset wrt the head of the payload
   // make sure ptr and end of the suggested block are within the payload
-  assert(offs >= 0 && size_t(offs + maxSize) <= data.size());
 
-  // Read trailer template from the end of payload
-  gsl::span<const uint32_t> payloadwords(reinterpret_cast<const uint32_t*>(data.data()), data.size() / sizeof(uint32_t));
-  auto rcutrailer = RCUTrailer::constructFromPayloadWords(payloadwords);
+  RCUTrailer rcutrailer;
+  rcutrailer.setActiveFECsA(16); //feca
+  rcutrailer.setActiveFECsB(16); //fecb
+  rcutrailer.setL1Phase(0);
+  rcutrailer.setTimeSample(100.);
+  const short encodedTrailerSize = 36;
+  int sizeNoTrailer = maxSize - encodedTrailerSize;
+  int actualSize = sizeNoTrailer;
+  if (size_t(offs + maxSize) >= data.size()) { //last page
+    actualSize = data.size() - offs;           //should not include trailer as it will be overwritten
+  }
 
-  int sizeNoTrailer = maxSize - rcutrailer.getTrailerSize() * sizeof(uint32_t);
   // calculate payload size for RCU trailer:
   // assume actualsize is in byte
   // Payload size is defined as the number of 32-bit payload words
   // -> actualSize to be converted to size of 32 bit words
-  auto payloadsize = sizeNoTrailer / sizeof(uint32_t);
-  rcutrailer.setPayloadSize(payloadsize);
+  rcutrailer.setPayloadSize(sizeNoTrailer / sizeof(uint32_t));
   auto trailerwords = rcutrailer.encode();
   trailer.resize(trailerwords.size() * sizeof(uint32_t));
   memcpy(trailer.data(), trailerwords.data(), trailer.size());
-  // Size to return differs between intermediate pages and last page
-  // - intermediate page: Size of the trailer needs to be removed as the trailer gets appended
-  // - last page: Size of the trailer needs to be included as the trailer gets replaced
-  int bytesLeft = data.size() - (ptr - &data[0]);
-  bool lastPage = bytesLeft <= maxSize;
-  int actualSize = maxSize;
-  if (!lastPage) {
-    actualSize = sizeNoTrailer;
-  }
   return actualSize;
+  //   // Size to return differs between intermediate pages and last page
+  //   // - intermediate page: Size of the trailer needs to be removed as the trailer gets appended
+  //   // - last page: Size of the trailer needs to be included as the trailer gets replaced
+  //   int bytesLeft = data.size() - (ptr - &data[0]);
+  //   bool lastPage = bytesLeft <= maxSize;
+
+  //   int actualSize = maxSize;
+  //   if (!lastPage) {
+  //     actualSize = sizeNoTrailer;
+  //   }
+  // printf("actualSize=%d, sizeNoTrailer=%d \n",actualSize,sizeNoTrailer) ;  actualSize=1;
+  //   return actualSize;
 }

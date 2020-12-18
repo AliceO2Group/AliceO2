@@ -183,14 +183,18 @@ void Digitizer::process(const std::vector<Hit>* hitsBg, const std::vector<Hit>* 
 
       energy = uncalibrate(energy, absId);
 
-      if (energy < o2::phos::PHOSSimParams::Instance().mZSthreshold) {
+      if (energy <= o2::phos::PHOSSimParams::Instance().mDigitThreshold) {
         continue;
       }
-      digit.setAmplitude(energy);
-      digit.setHighGain(energy < 1024); //10bit ADC
-
+      digit.setHighGain(energy < o2::phos::PHOSSimParams::Instance().mMCOverflow); //10bit ADC
+      if (digit.isHighGain()) {
+        digit.setAmplitude(energy);
+      } else {
+        float hglgratio = mCalibParams->getHGLGRatio(absId);
+        digit.setAmplitude(energy / hglgratio);
+      }
       if (o2::phos::PHOSSimParams::Instance().mApplyTimeResolution) {
-        digit.setTimeStamp(uncalibrateT(timeResolution(digit.getTimeStamp(), energy), absId, digit.isHighGain()));
+        digit.setTime(uncalibrateT(timeResolution(digit.getTime(), energy), absId, digit.isHighGain()));
       }
 
       digits.push_back(digit);
@@ -201,8 +205,8 @@ void Digitizer::process(const std::vector<Hit>* hitsBg, const std::vector<Hit>* 
       // Simulate noise
       float energy = simulateNoiseEnergy(absId);
       energy = uncalibrate(energy, absId);
-      float time = simulateNoiseTime();
-      if (energy > o2::phos::PHOSSimParams::Instance().mZSthreshold) {
+      if (energy > o2::phos::PHOSSimParams::Instance().mDigitThreshold) {
+        float time = simulateNoiseTime();
         digits.emplace_back(absId, energy, time, -1); // current AbsId, energy, random time, no primary
       }
     }
@@ -225,7 +229,7 @@ float Digitizer::uncalibrate(const float e, const int absId)
   if (calib > 0) {
     return floor(e / calib);
   } else {
-    return 0; // TODO apply de-calibration from OCDB
+    return 0;
   }
 }
 //_______________________________________________________________________

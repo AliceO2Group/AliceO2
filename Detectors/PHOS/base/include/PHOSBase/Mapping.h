@@ -38,9 +38,10 @@ class Mapping
                      kWrongAbsId,
                      kWrongCaloFlag,
                      kNotInitialized };
-  static constexpr short NCHANNELS = 14337; ///< Number of channels starting from 1
-  static constexpr short NHWPERDDL = 2048;  ///< Number of HW addressed per DDL
-  static constexpr short NDDL = 14;         ///< Total number of DDLs
+  static constexpr short NCHANNELS = 14337;    ///< Number of channels starting from 1
+  static constexpr short NHWPERDDL = 2048;     ///< Number of HW addressed per DDL
+  static constexpr short NMaxHWAddress = 3929; ///< Maximal HW address (size of array)
+  static constexpr short NDDL = 14;            ///< Total number of DDLs
 
   enum CaloFlag { kHighGain,
                   kLowGain,
@@ -69,12 +70,12 @@ class Mapping
   ErrorStatus constructAbsToHWMatrix();
 
  private:
-  std::string mPath = "";                       ///< path to mapping files
-  bool mInitialized = false;                    ///< If conversion tables created
-  bool mInvInitialized = false;                 ///< If inverse conversion tables created
-  short mAbsId[NDDL][NHWPERDDL] = {0};          ///< Conversion table (ddl,branch,fec,chip,channel) to absId
-  CaloFlag mCaloFlag[NDDL][NHWPERDDL] = {kTRU}; ///< Conversion table (ddl,branch,fec,chip,channel) to absId
-  short mAbsToHW[NCHANNELS][3][2] = {0};        ///< Conversion table (AbsId,caloFlag) to pair (ddl, hw address)
+  std::string mPath = "";                           ///< path to mapping files
+  bool mInitialized = false;                        ///< If conversion tables created
+  bool mInvInitialized = false;                     ///< If inverse conversion tables created
+  short mAbsId[NDDL][NMaxHWAddress] = {0};          ///< Conversion table (ddl,branch,fec,chip,channel) to absId
+  CaloFlag mCaloFlag[NDDL][NMaxHWAddress] = {kTRU}; ///< Conversion table (ddl,branch,fec,chip,channel) to absId
+  short mAbsToHW[NCHANNELS][3][2] = {0};            ///< Conversion table (AbsId,caloFlag) to pair (ddl, hw address)
 
   ClassDefNV(Mapping, 1);
 }; // End of Mapping

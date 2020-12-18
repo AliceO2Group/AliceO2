@@ -47,7 +47,7 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
   auto digitsTR = ctx.inputs().get<std::vector<o2::phos::TriggerRecord>>("digitTriggerRecords");
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::phos::MCLabel>> truthcont(nullptr);
   if (mPropagateMC) {
-    truthcont = ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>*>("digitsmctr") ;
+    truthcont = ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>*>("digitsmctr");
     mOutputTruthCont.clear();
     mOutputTruthMap.clear();
   }
@@ -106,11 +106,12 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
           labelIndex++;
         }
       }
-      icell++;      
+      icell++;
     }
     mOutputCellTrigRecs.emplace_back(tr.getBCData(), indexStart, mOutputCells.size());
   }
-  LOG(INFO) << "[PHOSCellConverter - run] Writing " << mOutputCells.size() << " cells, " << mOutputCellTrigRecs.size() << " Trig Records " << mOutputTruthCont.getNElements() << " PHOS labels "; ;
+  LOG(INFO) << "[PHOSCellConverter - run] Writing " << mOutputCells.size() << " cells, " << mOutputCellTrigRecs.size() << " Trig Records " << mOutputTruthCont.getNElements() << " PHOS labels ";
+  ;
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", 0, o2::framework::Lifetime::Timeframe}, mOutputCells);
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputCellTrigRecs);
   if (mPropagateMC) {
