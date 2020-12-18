@@ -65,7 +65,7 @@ struct pidTPCTask {
     }
   }
 
-  void process(Coll const& collision, Trks const& tracks)
+  void process(Trks const& tracks)
   {
     constexpr tpc::ELoss<Coll, Trks::iterator, PID::Electron> resp_Electron = tpc::ELoss<Coll, Trks::iterator, PID::Electron>();
     constexpr tpc::ELoss<Coll, Trks::iterator, PID::Muon> resp_Muon = tpc::ELoss<Coll, Trks::iterator, PID::Muon>();
@@ -79,34 +79,24 @@ struct pidTPCTask {
 
     tpcpid.reserve(tracks.size());
     for (auto const& trk : tracks) {
-      tpcpid(
-        resp_Electron.GetExpectedSignal(resp, collision, trk),
-        resp_Muon.GetExpectedSignal(resp, collision, trk),
-        resp_Pion.GetExpectedSignal(resp, collision, trk),
-        resp_Kaon.GetExpectedSignal(resp, collision, trk),
-        resp_Proton.GetExpectedSignal(resp, collision, trk),
-        resp_Deuteron.GetExpectedSignal(resp, collision, trk),
-        resp_Triton.GetExpectedSignal(resp, collision, trk),
-        resp_Helium3.GetExpectedSignal(resp, collision, trk),
-        resp_Alpha.GetExpectedSignal(resp, collision, trk),
-        resp_Electron.GetExpectedSigma(resp, collision, trk),
-        resp_Muon.GetExpectedSigma(resp, collision, trk),
-        resp_Pion.GetExpectedSigma(resp, collision, trk),
-        resp_Kaon.GetExpectedSigma(resp, collision, trk),
-        resp_Proton.GetExpectedSigma(resp, collision, trk),
-        resp_Deuteron.GetExpectedSigma(resp, collision, trk),
-        resp_Triton.GetExpectedSigma(resp, collision, trk),
-        resp_Helium3.GetExpectedSigma(resp, collision, trk),
-        resp_Alpha.GetExpectedSigma(resp, collision, trk),
-        resp_Electron.GetSeparation(resp, collision, trk),
-        resp_Muon.GetSeparation(resp, collision, trk),
-        resp_Pion.GetSeparation(resp, collision, trk),
-        resp_Kaon.GetSeparation(resp, collision, trk),
-        resp_Proton.GetSeparation(resp, collision, trk),
-        resp_Deuteron.GetSeparation(resp, collision, trk),
-        resp_Triton.GetSeparation(resp, collision, trk),
-        resp_Helium3.GetSeparation(resp, collision, trk),
-        resp_Alpha.GetSeparation(resp, collision, trk));
+      tpcpid(resp_Electron.GetExpectedSigma(resp, trk.collision(), trk),
+             resp_Muon.GetExpectedSigma(resp, trk.collision(), trk),
+             resp_Pion.GetExpectedSigma(resp, trk.collision(), trk),
+             resp_Kaon.GetExpectedSigma(resp, trk.collision(), trk),
+             resp_Proton.GetExpectedSigma(resp, trk.collision(), trk),
+             resp_Deuteron.GetExpectedSigma(resp, trk.collision(), trk),
+             resp_Triton.GetExpectedSigma(resp, trk.collision(), trk),
+             resp_Helium3.GetExpectedSigma(resp, trk.collision(), trk),
+             resp_Alpha.GetExpectedSigma(resp, trk.collision(), trk),
+             resp_Electron.GetSeparation(resp, trk.collision(), trk),
+             resp_Muon.GetSeparation(resp, trk.collision(), trk),
+             resp_Pion.GetSeparation(resp, trk.collision(), trk),
+             resp_Kaon.GetSeparation(resp, trk.collision(), trk),
+             resp_Proton.GetSeparation(resp, trk.collision(), trk),
+             resp_Deuteron.GetSeparation(resp, trk.collision(), trk),
+             resp_Triton.GetSeparation(resp, trk.collision(), trk),
+             resp_Helium3.GetSeparation(resp, trk.collision(), trk),
+             resp_Alpha.GetSeparation(resp, trk.collision(), trk));
     }
   }
 };
@@ -183,11 +173,11 @@ struct pidTPCTaskQA {
   }
 
   template <uint8_t i, typename T>
-  void fillParticleHistos(const T& t, const float mom, const float exp[], const float nsigma[])
+  void fillParticleHistos(const T& t, const float mom, const float exp_diff, const float nsigma)
   {
-    histos.fill(HIST(hexpected[i]), mom, exp[i]);
-    histos.fill(HIST(hexpected_diff[i]), mom, t.tpcSignal() - exp[i]);
-    histos.fill(HIST(hnsigma[i]), t.p(), nsigma[i]);
+    histos.fill(HIST(hexpected[i]), mom, t.tpcSignal() - exp_diff);
+    histos.fill(HIST(hexpected_diff[i]), mom, exp_diff);
+    histos.fill(HIST(hnsigma[i]), t.p(), nsigma);
   }
 
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC> const& tracks)
@@ -199,23 +189,15 @@ struct pidTPCTaskQA {
       const float mom = t.tpcInnerParam();
       histos.fill(HIST("event/tpcsignal"), mom, t.tpcSignal());
       //
-      const float exp[Np] = {t.tpcExpSignalEl(), t.tpcExpSignalMu(), t.tpcExpSignalPi(),
-                             t.tpcExpSignalKa(), t.tpcExpSignalPr(), t.tpcExpSignalDe(),
-                             t.tpcExpSignalTr(), t.tpcExpSignalHe(), t.tpcExpSignalAl()};
-      //
-      const float nsigma[Np] = {t.tpcNSigmaEl(), t.tpcNSigmaMu(), t.tpcNSigmaPi(),
-                                t.tpcNSigmaKa(), t.tpcNSigmaPr(), t.tpcNSigmaDe(),
-                                t.tpcNSigmaTr(), t.tpcNSigmaHe(), t.tpcNSigmaAl()};
-      //
-      fillParticleHistos<0>(t, mom, exp, nsigma);
-      fillParticleHistos<1>(t, mom, exp, nsigma);
-      fillParticleHistos<2>(t, mom, exp, nsigma);
-      fillParticleHistos<3>(t, mom, exp, nsigma);
-      fillParticleHistos<4>(t, mom, exp, nsigma);
-      fillParticleHistos<5>(t, mom, exp, nsigma);
-      fillParticleHistos<6>(t, mom, exp, nsigma);
-      fillParticleHistos<7>(t, mom, exp, nsigma);
-      fillParticleHistos<8>(t, mom, exp, nsigma);
+      fillParticleHistos<0>(t, mom, t.tpcExpSignalDiffEl(), t.tpcNSigmaEl());
+      fillParticleHistos<1>(t, mom, t.tpcExpSignalDiffMu(), t.tpcNSigmaMu());
+      fillParticleHistos<2>(t, mom, t.tpcExpSignalDiffPi(), t.tpcNSigmaPi());
+      fillParticleHistos<3>(t, mom, t.tpcExpSignalDiffKa(), t.tpcNSigmaKa());
+      fillParticleHistos<4>(t, mom, t.tpcExpSignalDiffPr(), t.tpcNSigmaPr());
+      fillParticleHistos<5>(t, mom, t.tpcExpSignalDiffDe(), t.tpcNSigmaDe());
+      fillParticleHistos<6>(t, mom, t.tpcExpSignalDiffTr(), t.tpcNSigmaTr());
+      fillParticleHistos<7>(t, mom, t.tpcExpSignalDiffHe(), t.tpcNSigmaHe());
+      fillParticleHistos<8>(t, mom, t.tpcExpSignalDiffAl(), t.tpcNSigmaAl());
     }
   }
 };
