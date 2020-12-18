@@ -167,6 +167,10 @@ class SyncPosition
   /// return half word position
   uint32_t getHalfWordPosition() const { return mHalfWordPos; };
 
+  uint32_t getFrameNumber() const { return mFrameNum; }
+
+  uint32_t getPacketNumber() const { return mPacketNum; }
+
   /// return if sync was found
   bool synched() const { return mSyncFound; };
 
@@ -209,7 +213,7 @@ class GBTFrame
 
   /// set syncronisation found for stream
   /// \param stream stream
-  bool mSyncFound(int stream) { return mSyncPos[stream].synched(); };
+  bool syncFound(int stream) { return mSyncPos[stream].synched(); };
 
   /// get the syncronisation array
   const SyncArray& getSyncArray() const { return mSyncPos; }
@@ -629,8 +633,17 @@ class RawReaderCRU
   /// copy single events to another file
   void copyEvents(const std::vector<uint32_t>& eventNumbers, std::string outputDirectory, std::ios_base::openmode mode = std::ios_base::openmode(0));
 
+  /// write GBT data into separate files per link
+  void writeGBTDataPerLink(std::string_view outputDirectory, int maxEvents = -1);
+
   /// run a data filling callback function
   void runADCDataCallback(const ADCRawData& rawData);
+
+  /// set output file prefix
+  void setOutputFilePrefix(std::string_view prefix) { mOutputFilePrefix = prefix; }
+
+  /// output file prefix
+  const std::string& getOutputFilePrefix() const { return mOutputFilePrefix; }
 
   //===========================================================================
   //===| Nested helper classes |===============================================
@@ -764,10 +777,10 @@ inline void GBTFrame::updateSyncCheck(SyncArray& syncArray)
       // shift in a 1 if the halfword is 0x15
       if (mFrameHalfWords[s][hPos] == 0x15) {
         mSyncCheckRegister[s] = (mSyncCheckRegister[s] << 1) | 1;
-      // shift in a 0 if the halfword is 0xA
+        // shift in a 0 if the halfword is 0xA
       } else if (mFrameHalfWords[s][hPos] == 0xA) {
         mSyncCheckRegister[s] = (mSyncCheckRegister[s] << 1);
-      // otherwise reset the register to 0
+        // otherwise reset the register to 0
       } else {
         mSyncCheckRegister[s] = 0;
       }
@@ -792,10 +805,10 @@ inline void GBTFrame::updateSyncCheck(bool verbose)
       // shift in a 1 if the halfword is 0x15
       if (mFrameHalfWords[s][hPos] == 0x15) {
         mSyncCheckRegister[s] = (mSyncCheckRegister[s] << 1) | 1;
-      // shift in a 0 if the halfword is 0xA
+        // shift in a 0 if the halfword is 0xA
       } else if (mFrameHalfWords[s][hPos] == 0xA) {
         mSyncCheckRegister[s] = (mSyncCheckRegister[s] << 1);
-      // otherwise reset the register to 0
+        // otherwise reset the register to 0
       } else {
         mSyncCheckRegister[s] = 0;
       }
@@ -967,6 +980,12 @@ class RawReaderCRUManager
 
   /// copy single events from raw input files to another file
   static void copyEvents(const std::string_view inputFileNames, const std::vector<uint32_t> eventNumbers, std::string_view outputDirectory, std::ios_base::openmode mode = std::ios_base::openmode(0));
+
+  /// copy single events from raw input files to another file
+  void writeGBTDataPerLink(std::string_view outputDirectory, int maxEvents = -1);
+
+  /// copy single events from raw input files to another file
+  static void writeGBTDataPerLink(const std::string_view inputFileNames, std::string_view outputDirectory, int maxEvents = -1);
 
   /// set a callback function
   void setADCDataCallback(ADCDataCallback function) { mADCDataCallback = function; }

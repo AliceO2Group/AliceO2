@@ -14,13 +14,13 @@
 
 #include "ITStracking/Tracker.h"
 
-#include "CommonConstants/MathConstants.h"
 #include "ITStracking/Cell.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/TrackerTraits.h"
 #include "ITStracking/TrackerTraitsCPU.h"
+#include "ITStracking/TrackingConfigParam.h"
 
 #include "ReconstructionDataFormats/Track.h"
 #include <cassert>
@@ -285,14 +285,14 @@ void Tracker::findTracks(const ROframe& event)
     }
     CA_DEBUGGER(fitCounters[nClusters - 4]++);
     temporaryTrack.resetCovariance();
-    fitSuccess = fitTrack(event, temporaryTrack, 0, mTrkParams[0].NLayers, 1);
+    fitSuccess = fitTrack(event, temporaryTrack, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].FitIterationMaxChi2[0]);
     if (!fitSuccess) {
       continue;
     }
     CA_DEBUGGER(backpropagatedCounters[nClusters - 4]++);
     temporaryTrack.getParamOut() = temporaryTrack;
     temporaryTrack.resetCovariance();
-    fitSuccess = fitTrack(event, temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1);
+    fitSuccess = fitTrack(event, temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].FitIterationMaxChi2[1]);
     if (!fitSuccess) {
       continue;
     }
@@ -396,7 +396,7 @@ void Tracker::findTracks(const ROframe& event)
 #endif
 }
 
-bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step)
+bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step, const float chi2cut)
 {
   track.setChi2(0);
   for (int iLayer{start}; iLayer != end; iLayer += step) {
@@ -412,17 +412,35 @@ bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int 
     if (!track.propagateTo(trackingHit.xTrackingFrame, getBz())) {
       return false;
     }
-
-    track.setChi2(track.getChi2() +
-                  track.getPredictedChi2(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame));
+    auto predChi2{track.getPredictedChi2(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)};
+    if (predChi2 > chi2cut) {
+      return false;
+    }
+    track.setChi2(track.getChi2() + predChi2);
     if (!track.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
       return false;
     }
 
-    const float xx0 = (iLayer > 2) ? 0.008f : 0.003f; // Rough layer thickness
-    constexpr float radiationLength = 9.36f;          // Radiation length of Si [cm]
-    constexpr float density = 2.33f;                  // Density of Si [g/cm^3]
-    if (!track.correctForMaterial(xx0, xx0 * radiationLength * density, true)) {
+    float xx0 = ((iLayer > 2) ? 0.008f : 0.003f); // Rough layer thickness
+    float radiationLength = 9.36f;                // Radiation length of Si [cm]
+    float density = 2.33f;                        // Density of Si [g/cm^3]
+    float distance = xx0;                         // Default thickness
+
+    if (mMatLayerCylSet) {
+      if ((iLayer + step) != end) {
+        const auto cl_0 = mPrimaryVertexContext->getClusters()[iLayer][track.getClusterIndex(iLayer)];
+        const auto cl_1 = mPrimaryVertexContext->getClusters()[iLayer + step][track.getClusterIndex(iLayer + step)];
+
+        auto matbud = mMatLayerCylSet->getMatBudget(cl_0.xCoordinate, cl_0.yCoordinate, cl_0.zCoordinate, cl_1.xCoordinate, cl_1.yCoordinate, cl_1.zCoordinate);
+        xx0 = matbud.meanX2X0;
+        density = matbud.meanRho;
+        distance = matbud.length;
+      }
+    }
+    // The correctForMaterial should be called with anglecorr==true if the material budget is the "mean budget in vertical direction" and with false if the the estimated budget already accounts for the track inclination.
+    // Here using !mMatLayerCylSet as its presence triggers update of parameters
+
+    if (!track.correctForMaterial(xx0, ((start < end) ? -1. : 1.) * distance * density, !mMatLayerCylSet)) { // ~0.14 GeV: mass of charged pion is used by default
       return false;
     }
   }
@@ -634,6 +652,15 @@ track::TrackParCov Tracker::buildTrackSeed(const Cluster& cluster1, const Cluste
                                                                               : crv / (getBz() * o2::constants::math::B2C)},
                             {s2, 0.f, s2, s2 * fy, 0.f, s2 * fy * fy, 0.f, s2 * tz, 0.f, s2 * tz * tz, s2 * cy, 0.f,
                              s2 * fy * cy, 0.f, s2 * cy * cy});
+}
+
+void Tracker::getGlobalConfiguration()
+{
+  auto& tc = o2::its::TrackerParamConfig::Instance();
+
+  if (tc.useMatBudLUT) {
+    initMatBudLUTFromFile();
+  }
 }
 
 } // namespace its

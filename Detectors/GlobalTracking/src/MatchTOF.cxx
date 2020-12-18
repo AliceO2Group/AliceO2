@@ -885,7 +885,7 @@ void MatchTOF::doMatching(int sec)
     double reachedPoint = mXRef + istep * step;
 
     while (propagateToRefX(trefTrk, reachedPoint, step, intLT) && nStripsCrossedInPropagation <= 2 && reachedPoint < Geo::RMAX) {
-      // while (o2::base::Propagator::Instance()->PropagateToXBxByBz(trefTrk,  mXRef + istep * step, o2::constants::physics::MassPionCharged, MAXSNP, step, 1, &intLT) && nStripsCrossedInPropagation <= 2 && mXRef + istep * step < Geo::RMAX) {
+      // while (o2::base::Propagator::Instance()->PropagateToXBxByBz(trefTrk,  mXRef + istep * step, MAXSNP, step, 1, &intLT) && nStripsCrossedInPropagation <= 2 && mXRef + istep * step < Geo::RMAX) {
 
       trefTrk.getXYZGlo(pos);
       for (int ii = 0; ii < 3; ii++) { // we need to change the type...
@@ -1258,7 +1258,7 @@ void MatchTOF::doMatchingForTPC(int sec)
       }
     }
     while (propagateToRefX(trefTrk, reachedPoint, step, intLT) && reachedPoint < Geo::RMAX) {
-      // while (o2::base::Propagator::Instance()->PropagateToXBxByBz(trefTrk,  mXRef + istep * step, o2::constants::physics::MassPionCharged, MAXSNP, step, 1, &intLT) && nStripsCrossedInPropagation <= 2 && mXRef + istep * step < Geo::RMAX) {
+      // while (o2::base::Propagator::Instance()->PropagateToXBxByBz(trefTrk,  mXRef + istep * step, MAXSNP, step, 1, &intLT) && nStripsCrossedInPropagation <= 2 && mXRef + istep * step < Geo::RMAX) {
 
       trefTrk.getXYZGlo(pos);
       for (int ii = 0; ii < 3; ii++) { // we need to change the type...
@@ -1550,7 +1550,7 @@ bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float st
     xStart = 50.;
   }
   int istep = 1;
-  bool hasPropagated = o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, xStart + istep * stepInCm, o2::constants::physics::MassPionCharged, MAXSNP, stepInCm, matCorr, &intLT);
+  bool hasPropagated = o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, xStart + istep * stepInCm, MAXSNP, stepInCm, matCorr, &intLT);
   while (hasPropagated) {
     if (trc.getX() > xRef) {
       refReached = true; // we reached the 371cm reference
@@ -1568,7 +1568,7 @@ bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float st
     if (refReached) {
       break;
     }
-    hasPropagated = o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, xStart + istep * stepInCm, o2::constants::physics::MassPionCharged, MAXSNP, stepInCm, matCorr, &intLT);
+    hasPropagated = o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, xStart + istep * stepInCm, MAXSNP, stepInCm, matCorr, &intLT);
   }
 
   //  if (std::abs(trc.getSnp()) > MAXSNP) Printf("propagateToRefX: condition on snp not ok, returning false");

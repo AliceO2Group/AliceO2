@@ -50,6 +50,7 @@ struct ConfigurableObjectDemo {
   {
     LOGF(INFO, "Cut1: %.3f; Cut2: %.3f", cut, mutable_cut);
     LOGF(INFO, "Cut1 bins: %s; Cut2 bins: %s", printArray(cut->getBins()), printArray(mutable_cut->getBins()));
+    LOGF(INFO, "Cut1 labels: %s; Cut2 labels: %s", printArray(cut->getLabels()), printArray(mutable_cut->getLabels()));
     auto vec = (std::vector<int>)array;
     LOGF(INFO, "Array: %s", printArray(vec).c_str());
     for (auto& track : tracks) {

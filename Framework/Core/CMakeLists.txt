@@ -98,6 +98,7 @@ o2_add_library(Framework
                        src/Task.cxx
                        src/TextControlService.cxx
                        src/Variant.cxx
+                       src/WorkflowCustomizationHelpers.cxx
                        src/WorkflowHelpers.cxx
                        src/WorkflowSerializationHelpers.cxx
                        src/WorkflowSpec.cxx
@@ -257,11 +258,13 @@ endforeach()
 # #####################################################@
 
 if (TARGET AliceO2::DebugGUI)
+if (NOT APPLE)
 set (DEBUG_GUI_TESTS_WORKFLOW
      CustomGUIGL
      CustomGUISokol
      SimpleTracksED
      )
+endif()
 endif()
 
 foreach(w
@@ -306,9 +309,11 @@ if (TARGET AliceO2::DebugGUI)
 # environment assertion fired X11: The DISPLAY environment variable is missing
 # glfw-3.2.1/src/window.c:579: glfwGetFramebufferSize: Assertion `window !=
 # ((void *)0)' failed.
+if(NOT APPLE)
 set_property(TEST test_Framework_test_SimpleTracksED PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_CustomGUIGL PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_CustomGUISokol PROPERTY DISABLED TRUE)
+endif()
 endif()
 
 # TODO: investigate the problem and re-enable

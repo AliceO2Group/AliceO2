@@ -147,6 +147,7 @@ include_directories(${CMAKE_SOURCE_DIR}/TPCClusterFinder
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Headers/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/MemoryResources/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Reconstruction/include
+                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/Reconstruction/src
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/simulation/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/Base/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/Base/src
@@ -183,6 +184,8 @@ if(CONFIG_O2_EXTENSIONS)
                ../../../DataFormats/Reconstruction/src/TrackParametrizationWithError.cxx
                ../../../DataFormats/Reconstruction/src/Vertex.cxx
                ../../../DataFormats/Reconstruction/src/TrackLTIntegral.cxx
+               ../../../DataFormats/Reconstruction/src/TrackParametrization.cxx
+               ../../../DataFormats/Reconstruction/src/TrackParametrizationWithError.cxx
                ../../../Detectors/TRD/base/src/GeometryBase.cxx
                ../../../Detectors/Base/src/MatLayerCylSet.cxx
                ../../../Detectors/Base/src/MatLayerCyl.cxx

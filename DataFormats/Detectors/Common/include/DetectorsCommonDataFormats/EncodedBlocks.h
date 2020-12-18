@@ -775,7 +775,7 @@ void EncodedBlocks<H, N, W>::encode(const S_IT srcBegin,     // iterator begin o
   // case 3: message where entropy coding should be applied
   if (opt == Metadata::OptStore::EENCODE) {
     // build symbol statistics
-    constexpr size_t SizeEstMargin = 1024;
+    constexpr size_t SizeEstMargin = 10 * 1024;
     const o2::rans::LiteralEncoder64<STYP>* encoder = reinterpret_cast<const o2::rans::LiteralEncoder64<STYP>*>(encoderExt);
     std::unique_ptr<o2::rans::LiteralEncoder64<STYP>> encoderLoc;
     std::unique_ptr<o2::rans::FrequencyTable> frequencies = nullptr;

@@ -1,0 +1,29 @@
+GLOBAL        50000.                           4.0
+DEFAULTS                                                              NEW-DEFA
+OPEN              1.                                                  OLD
+random.dat
+GEOBEGIN                                                              COMBINAT
+GEOEND
+*
+*...+....1....+....2....+....3....+....4....+....5....+....6....+....7....+ 
+*
+EVENTYPE                             1.0
+BEAM          7000.0                                                  MUON-
+MGNFIELD        10.0     0.001
+SOURCE
+*...+....1....+....2....+....3....+....4....+....5....+....6....+....7....+ 
+USERDUMP        200.      37.0      -2.0       1.0                    TRAKFILE
+START         42000.99999999.0       2.0               
+STOP                                                                           
+
+
+
+
+
+
+
+
+
+
+
+

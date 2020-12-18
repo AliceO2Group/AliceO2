@@ -44,12 +44,13 @@ statisticsType=0
 verbosity=0
 debugLevel=0
 writeDebug=0
+skipIncomplete=0
 
 adcMin=0
 adcMax=1100
 
 # ===| parse command line options |=============================================
-OPTIONS=$(getopt -l "fileInfo:,outputFile:,firstTimeBin:,lastTimeBin:,nevents:,adcMin:,adcMax:,statType:,verbosity:,debugLevel:,writeDebug,help" -o "i:o:t:f:l:n:m:x:s:v:d:wh" -n "runPedestal.sh" -- "$@")
+OPTIONS=$(getopt -l "fileInfo:,outputFile:,firstTimeBin:,lastTimeBin:,nevents:,skipIncomplete,adcMin:,adcMax:,statType:,verbosity:,debugLevel:,writeDebug,help" -o "i:o:t:f:l:n:km:x:s:v:d:wh" -n "runPedestal.sh" -- "$@")
 
 if [ $? != 0 ] ; then
   usageAndExit
@@ -65,6 +66,7 @@ while true; do
     -f|--firstTimeBin) firstTimeBin=$2; shift 2;;
     -l|--lastTimeBin) lastTimeBin=$2; shift 2;;
     -n|--nevents) nevents=$2; shift 2;;
+    -k|--skipIncomplete) skipIncomplete=1; shift;;
     -m|--adcMin) adcMin=$2; shift 2;;
     -x|--adcMax) adcMax=$2; shift 2;;
     -s|--statType) statisticsType=$2; shift 2;;
@@ -96,6 +98,6 @@ fileInfo=$(echo $fileInfo | sed "s|^|{\"|;s|,|:$lastTimeBin\",\"|g;s|$|\"}|")
 cmd=""
 #cmd="valgrind --tool=callgrind --dump-instr=yes --dump-instr=yes"
 #cmd="perf record -g -o perf.log"
-cmd="$cmd root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/runPedestal.C'($fileInfo,\"$outputFile\", $nevents, $adcMin, $adcMax, $firstTimeBin, $lastTimeBin, $statisticsType, $verbosity, $debugLevel, 0, $writeDebug)'"
+cmd="$cmd root.exe -b -q -l -n -x $O2_SRC/Detectors/TPC/calibration/macro/runPedestal.C'($fileInfo,\"$outputFile\", $nevents, $adcMin, $adcMax, $firstTimeBin, $lastTimeBin, $statisticsType, $verbosity, $debugLevel, 0, $writeDebug, $skipIncomplete)'"
 echo "running: $cmd"
 eval $cmd

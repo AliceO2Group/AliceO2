@@ -48,7 +48,10 @@ struct InputChannelSpec {
   std::string hostname;
   unsigned short port;
   ChannelProtocol protocol = ChannelProtocol::Network;
-  size_t rateLogging = 60;
+  size_t rateLogging = 0;
+  size_t recvBufferSize = 1000;
+  size_t sendBufferSize = 1000;
+  std::string ipcPrefix = ".";
 };
 
 /// This describes an output channel. Output channels are semantically
@@ -64,7 +67,10 @@ struct OutputChannelSpec {
   unsigned short port;
   size_t listeners;
   ChannelProtocol protocol = ChannelProtocol::Network;
-  size_t rateLogging = 60;
+  size_t rateLogging = 0;
+  size_t recvBufferSize = 1000;
+  size_t sendBufferSize = 1000;
+  std::string ipcPrefix = ".";
 };
 
 } // namespace o2::framework

@@ -41,6 +41,9 @@ ChannelConfigurationPolicyHelpers::InputChannelModifier ChannelConfigurationPoli
     channel.method = ChannelMethod::Connect;
     channel.type = ChannelType::Sub;
     channel.rateLogging = spec.rateLogging;
+    channel.recvBufferSize = spec.recvBufferSize;
+    channel.recvBufferSize = spec.sendBufferSize;
+    channel.ipcPrefix = spec.ipcPrefix;
   };
 }
 
@@ -50,6 +53,9 @@ ChannelConfigurationPolicyHelpers::OutputChannelModifier ChannelConfigurationPol
     channel.method = ChannelMethod::Bind;
     channel.type = ChannelType::Pub;
     channel.rateLogging = spec.rateLogging;
+    channel.recvBufferSize = spec.recvBufferSize;
+    channel.recvBufferSize = spec.sendBufferSize;
+    channel.ipcPrefix = spec.ipcPrefix;
   };
 }
 
@@ -59,6 +65,9 @@ ChannelConfigurationPolicyHelpers::InputChannelModifier ChannelConfigurationPoli
     channel.method = ChannelMethod::Connect;
     channel.type = ChannelType::Pull;
     channel.rateLogging = spec.rateLogging;
+    channel.recvBufferSize = spec.recvBufferSize;
+    channel.recvBufferSize = spec.sendBufferSize;
+    channel.ipcPrefix = spec.ipcPrefix;
   };
 }
 
@@ -68,6 +77,9 @@ ChannelConfigurationPolicyHelpers::OutputChannelModifier ChannelConfigurationPol
     channel.method = ChannelMethod::Bind;
     channel.type = ChannelType::Push;
     channel.rateLogging = spec.rateLogging;
+    channel.recvBufferSize = spec.recvBufferSize;
+    channel.recvBufferSize = spec.sendBufferSize;
+    channel.ipcPrefix = spec.ipcPrefix;
   };
 }
 
@@ -77,6 +89,9 @@ ChannelConfigurationPolicyHelpers::InputChannelModifier ChannelConfigurationPoli
     channel.method = ChannelMethod::Connect;
     channel.type = ChannelType::Pair;
     channel.rateLogging = spec.rateLogging;
+    channel.recvBufferSize = spec.recvBufferSize;
+    channel.recvBufferSize = spec.sendBufferSize;
+    channel.ipcPrefix = spec.ipcPrefix;
   };
 }
 
@@ -86,6 +101,9 @@ ChannelConfigurationPolicyHelpers::OutputChannelModifier ChannelConfigurationPol
     channel.method = ChannelMethod::Bind;
     channel.type = ChannelType::Pair;
     channel.rateLogging = spec.rateLogging;
+    channel.recvBufferSize = spec.recvBufferSize;
+    channel.recvBufferSize = spec.sendBufferSize;
+    channel.ipcPrefix = spec.ipcPrefix;
   };
 }
 

@@ -219,20 +219,27 @@ void CalibTreeDump::addCalDetObjects(TTree* tree)
     std::string meanName = fmt::format("{}_mean", name);
     std::string stdDevName = fmt::format("{}_stdDev", name);
     std::string medianName = fmt::format("{}_median", name);
+    std::string median1Name = fmt::format("{}_median1", name);
+    std::string median2Name = fmt::format("{}_median2", name);
+    std::string median3Name = fmt::format("{}_median3", name);
 
     // ===| branch variables |===
     std::vector<float>* data = nullptr;
     float mean{};
     float stdDev{};
-    float median{};
+    float median[4]{};
 
     // ===| branch definitions |===
     TBranch* brMean = tree->Branch(meanName.data(), &mean);
     TBranch* brStdDev = tree->Branch(stdDevName.data(), &stdDev);
-    TBranch* brMedian = tree->Branch(medianName.data(), &median);
+    TBranch* brMedian = tree->Branch(medianName.data(), &median[0]);
+    TBranch* brMedian1 = tree->Branch(median1Name.data(), &median[1]);
+    TBranch* brMedian2 = tree->Branch(median2Name.data(), &median[2]);
+    TBranch* brMedian3 = tree->Branch(median3Name.data(), &median[3]);
     TBranch* brData = tree->Branch(name.data(), &data);
 
     // ===| loop over ROCs and fill |===
+    int roc = 0;
     for (auto& calArray : calDet.getData()) {
       // ---| set data |---
       data = &calArray.getData();
@@ -240,13 +247,22 @@ void CalibTreeDump::addCalDetObjects(TTree* tree)
       // ---| statistics |---
       mean = TMath::Mean(data->begin(), data->end());
       stdDev = TMath::StdDev(data->begin(), data->end());
-      median = TMath::Median(data->size(), data->data());
+      median[0] = median[1] = median[2] = median[3] = TMath::Median(data->size(), data->data());
+      if (roc > 35) {
+        median[1] = TMath::Median(Mapper::getPadsInOROC1(), data->data());
+        median[2] = TMath::Median(Mapper::getPadsInOROC2(), data->data() + Mapper::getPadsInOROC1());
+        median[3] = TMath::Median(Mapper::getPadsInOROC3(), data->data() + Mapper::getPadsInOROC1() + Mapper::getPadsInOROC2());
+      }
 
       // ---| filling |---
       brData->Fill();
       brMean->Fill();
       brStdDev->Fill();
       brMedian->Fill();
+      brMedian1->Fill();
+      brMedian2->Fill();
+      brMedian3->Fill();
+      ++roc;
     }
   }
 }
@@ -316,6 +332,8 @@ void CalibTreeDump::setTraceLengths(std::string_view inputFile, std::vector<floa
 void CalibTreeDump::setDefaultAliases(TTree* tree)
 {
   tree->SetAlias("sector", "roc%36");
+  tree->SetAlias("padsPerRow", "2*(pad-cpad)");
+  tree->SetAlias("isEdgePad", "(pad==0) || (pad==padsPerRow-1)");
   tree->SetAlias("rowInSector", "row + (roc>35)*63");
   tree->SetAlias("padWidth", "0.4 + (roc > 35) * 0.2");
   tree->SetAlias("padHeight", "0.75 + (rowInSector > 62) * 0.25 + (rowInSector > 96) * 0.2 + (rowInSector > 126) * 0.3");

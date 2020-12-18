@@ -60,3 +60,13 @@ std::vector<float> configurableCut::getBins() const
 {
   return bins;
 };
+
+void configurableCut::setLabels(std::vector<std::string> labels_)
+{
+  labels = labels_;
+}
+
+std::vector<std::string> configurableCut::getLabels() const
+{
+  return labels;
+}
