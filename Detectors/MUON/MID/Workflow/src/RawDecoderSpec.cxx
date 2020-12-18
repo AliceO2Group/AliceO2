@@ -59,6 +59,7 @@ class RawDecoderDeviceDPL
     }
 
     mDecoder->clear();
+    o2::header::DataHeader const* dh = nullptr;
     for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
       auto const* rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
       gsl::span<const uint8_t> payload(it.data(), it.size());
@@ -88,13 +89,19 @@ class RawDecoderDeviceDPL
 
 of::DataProcessorSpec getRawDecoderSpec(bool isDebugMode)
 {
-  return getRawDecoderSpec(isDebugMode, FEEIdConfig(), CrateMasks(), ElectronicsDelay(), 0);
+  return getRawDecoderSpec(isDebugMode, FEEIdConfig(), CrateMasks(), ElectronicsDelay());
 }
 
-of::DataProcessorSpec getRawDecoderSpec(bool isDebugMode, const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks, const ElectronicsDelay& electronicsDelay, size_t subSpec)
+of::DataProcessorSpec getRawDecoderSpec(bool isDebugMode, const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks, const ElectronicsDelay& electronicsDelay, long int subSpec)
 {
-  header::DataHeader::SubSpecificationType subSpecType(subSpec);
-  std::vector<of::InputSpec> inputSpecs{of::InputSpec{"mid_raw", of::ConcreteDataTypeMatcher{header::gDataOriginMID, header::gDataDescriptionRawData}, of::Lifetime::Timeframe}};
+  header::DataHeader::SubSpecificationType subSpecType(subSpec < 0 ? 0 : subSpec);
+  std::vector<of::InputSpec> inputSpecs;
+  if (subSpec < 0) {
+    // Match all
+    inputSpecs.push_back({"mid_raw", of::ConcreteDataTypeMatcher{header::gDataOriginMID, header::gDataDescriptionRawData}, of::Lifetime::Timeframe});
+  } else {
+    inputSpecs.push_back({"mid_raw", header::gDataOriginMID, header::gDataDescriptionRawData, subSpecType, o2::framework::Lifetime::Timeframe});
+  }
   std::vector<of::OutputSpec> outputSpecs{of::OutputSpec{header::gDataOriginMID, "DECODED", subSpecType, of::Lifetime::Timeframe}, of::OutputSpec{header::gDataOriginMID, "DECODEDROF", subSpecType, of::Lifetime::Timeframe}};
 
   return of::DataProcessorSpec{
