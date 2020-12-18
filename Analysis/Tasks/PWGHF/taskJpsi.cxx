@@ -48,8 +48,7 @@ struct TaskJpsi {
      {"hEta", "2-prong candidates;candidate #it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}},
      {"hImpParErr", "2-prong candidates;impact parameter error (cm);entries", {HistType::kTH1F, {{100, -1., 1.}}}},
      {"hDecLenErr", "2-prong candidates;decay length error (cm);entries", {HistType::kTH1F, {{100, 0., 1.}}}},
-        {"hDecLenXYErr", "2-prong candidates;decay length xy error (cm);entries", {HistType::kTH1F, {{100, 0., 1.}}}}}};
-   
+     {"hDecLenXYErr", "2-prong candidates;decay length xy error (cm);entries", {HistType::kTH1F, {{100, 0., 1.}}}}}};
 
   Configurable<int> d_selectionFlagJpsi{"d_selectionFlagJpsi", 1, "Selection Flag for Jpsi"};
   Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
@@ -57,7 +56,7 @@ struct TaskJpsi {
   Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsi >= d_selectionFlagJpsi);
 
   void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiCandidate>> const& candidates)
-//  void process(aod::HfCandProng2 const& candidates)
+  //  void process(aod::HfCandProng2 const& candidates)
   {
     //Printf("Candidates: %d", candidates.size());
     for (auto& candidate : candidates) {
@@ -65,10 +64,8 @@ struct TaskJpsi {
         //Printf("Candidate: eta rejection: %g", candidate.eta());
         continue;
       }
-      if (candidate.isSelJpsi() >= d_selectionFlagJpsi) {
-        registry.get<TH1>(HIST("hmass"))->Fill(InvMassJpsi(candidate));
-      }
-      
+
+      registry.get<TH1>(HIST("hmass"))->Fill(InvMassJpsi(candidate));
       registry.get<TH1>(HIST("hptcand"))->Fill(candidate.pt());
       registry.get<TH1>(HIST("hptprong0"))->Fill(candidate.ptProng0());
       registry.get<TH1>(HIST("hptprong1"))->Fill(candidate.ptProng1());
@@ -100,9 +97,9 @@ struct TaskJpsiMC {
      {"hEtaRecBg", "2-prong candidates (rec. unmatched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}},
      {"hEtaGen", "2-prong candidates (gen. matched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}}}};
 
-    Configurable<int> d_selectionFlagJpsi{"d_selectionFlagJpsi", 1, "Selection Flag for Jpsi"};
-    Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
-    Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsi >= d_selectionFlagJpsi);
+  Configurable<int> d_selectionFlagJpsi{"d_selectionFlagJpsi", 1, "Selection Flag for Jpsi"};
+  Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
+  Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsi >= d_selectionFlagJpsi);
 
   void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiCandidate, aod::HfCandProng2MCRec>> const& candidates,
                soa::Join<aod::McParticles, aod::HfCandProng2MCGen> const& particlesMC)

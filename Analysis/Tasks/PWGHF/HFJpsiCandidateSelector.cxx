@@ -26,15 +26,15 @@ static const int nCutVars = 4;
 //temporary until 2D array in configurable is solved - then move to json
 //    mass  dcaxy dcaz  pt_e
 constexpr double cuts[npTBins][nCutVars] =
-    {{0.5, 0.2, 0.4, 1},  /* pt<0.5   */
-    {0.5, 0.2, 0.4,  1},  /* 0.5<pt<1 */
-    {0.5, 0.2, 0.4,  1},  /* 1<pt<2   */
-    {0.5, 0.2, 0.4,  1},  /* 2<pt<3   */
-    {0.5, 0.2, 0.4,  1},  /* 3<pt<4   */
-    {0.5, 0.2, 0.4,  1},  /* 4<pt<5   */
-    {0.5, 0.2, 0.4,  1},  /* 5<pt<7   */
-    {0.5, 0.2, 0.4,  1},  /* 7<pt<10  */
-    {0.5, 0.2, 0.4,  1}}; /* 10<pt<15 */
+  {{0.5, 0.2, 0.4, 1},  /* pt<0.5   */
+   {0.5, 0.2, 0.4, 1},  /* 0.5<pt<1 */
+   {0.5, 0.2, 0.4, 1},  /* 1<pt<2   */
+   {0.5, 0.2, 0.4, 1},  /* 2<pt<3   */
+   {0.5, 0.2, 0.4, 1},  /* 3<pt<4   */
+   {0.5, 0.2, 0.4, 1},  /* 4<pt<5   */
+   {0.5, 0.2, 0.4, 1},  /* 5<pt<7   */
+   {0.5, 0.2, 0.4, 1},  /* 7<pt<10  */
+   {0.5, 0.2, 0.4, 1}}; /* 10<pt<15 */
 
 /// Struct for applying Jpsi selection cuts
 
@@ -47,7 +47,6 @@ struct HFJpsiCandidateSelector {
 
   Configurable<double> d_pidTPCMinpT{"d_pidTPCMinpT", 0.15, "Lower bound of track pT for TPC PID"};
   Configurable<double> d_pidTPCMaxpT{"d_pidTPCMaxpT", 10., "Upper bound of track pT for TPC PID"};
- 
 
   Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 70., "Lower bound of TPC findable clusters for good PID"};
   Configurable<double> d_nSigmaTPC{"d_nSigmaTPC", 3., "Nsigma cut on TPC only"};
@@ -101,7 +100,7 @@ struct HFJpsiCandidateSelector {
     if (candpT < d_pTCandMin || candpT >= d_pTCandMax) {
       return false; //check that the candidate pT is within the analysis range
     }
-  
+
     return true;
   }
 
@@ -110,7 +109,7 @@ struct HFJpsiCandidateSelector {
   /// \param trackPositron is the track with the positron hypothesis
   /// \return true if candidate passes all cuts for the given Conjugate
   template <typename T1, typename T2>
-  bool selectionTopolConjugate(const T1& hfCandProng2, const T2& trackPositron,const T2& trackElectron)
+  bool selectionTopolConjugate(const T1& hfCandProng2, const T2& trackPositron, const T2& trackElectron)
   {
 
     auto candpT = hfCandProng2.pt();
@@ -119,19 +118,19 @@ struct HFJpsiCandidateSelector {
       return false;
     }
 
-      if (TMath::Abs(InvMassJpsi(hfCandProng2) - RecoDecay::getMassPDG(443)) > cuts[pTBin][0]) {
-        return false;
-      }
-      
-    if ((TMath::Abs(trackElectron.pt()) < TMath::Abs(cuts[pTBin][3]))|| (TMath::Abs(trackPositron.pt()) < TMath::Abs(cuts[pTBin][3]))) {
+    if (TMath::Abs(InvMassJpsi(hfCandProng2) - RecoDecay::getMassPDG(443)) > cuts[pTBin][0]) {
+      return false;
+    }
+
+    if ((trackElectron.pt() < cuts[pTBin][3]) || (trackPositron.pt() < cuts[pTBin][3])) {
       return false; //cut on daughter pT
     }
-      if (TMath::Abs(trackElectron.dcaPrim0()) > cuts[pTBin][1] || TMath::Abs(trackPositron.dcaPrim0()) > cuts[pTBin][1]) {
-       return false; //cut on daughter dca - need to add secondary vertex constraint here
-      }
-      if (TMath::Abs(trackElectron.dcaPrim1()) > cuts[pTBin][2]||TMath::Abs(trackPositron.dcaPrim1()) > cuts[pTBin][2]) {
-       return false; //cut on daughter dca - need to add secondary vertex constraint here
-      }
+    if (TMath::Abs(trackElectron.dcaPrim0()) > cuts[pTBin][1] || TMath::Abs(trackPositron.dcaPrim0()) > cuts[pTBin][1]) {
+      return false; //cut on daughter dca - need to add secondary vertex constraint here
+    }
+    if (TMath::Abs(trackElectron.dcaPrim1()) > cuts[pTBin][2] || TMath::Abs(trackPositron.dcaPrim1()) > cuts[pTBin][2]) {
+      return false; //cut on daughter dca - need to add secondary vertex constraint here
+    }
 
     return true;
   }
@@ -154,7 +153,7 @@ struct HFJpsiCandidateSelector {
   /// \param track is the track
   /// \param nPDG is the flavour hypothesis PDG number
   /// \param nSigmaCut is the nsigma threshold to test against
-  /// \note nPDG=11 electron  
+  /// \note nPDG=11 electron
   /// \return true if track satisfies TPC PID hypothesis for given Nsigma cut
   template <typename T>
   bool selectionPIDTPC(const T& track, int nPDG, int nSigmaCut)
@@ -169,7 +168,6 @@ struct HFJpsiCandidateSelector {
     return nSigma < nSigmaCut;
   }
 
-
   /// PID selection on daughter track
   /// \param track is the daughter track
   /// \param nPDG is the PDG code of the flavour hypothesis
@@ -179,23 +177,22 @@ struct HFJpsiCandidateSelector {
   int selectionPID(const T& track, int nPDG)
   {
     int statusTPC = -1;
-   // int statusTOF = -1;
+    // int statusTOF = -1;
 
     if (validTPCPID(track)) {
       if (!selectionPIDTPC(track, nPDG, d_nSigmaTPC)) {
-       
-          statusTPC = 0; //rejected by PID
-         }else {
-          statusTPC = 1; //positive PID
-        }
-      }  else {
+
+        statusTPC = 0; //rejected by PID
+      } else {
+        statusTPC = 1; //positive PID
+      }
+    } else {
       statusTPC = -1; //no PID info
     }
 
     if (statusTPC == 1) {
       return 1; //what if we have 2 && 0 ?
-    }
-     else if (statusTPC == 0) {
+    } else if (statusTPC == 0) {
       return 0;
     } else {
       return -1;
@@ -218,7 +215,12 @@ struct HFJpsiCandidateSelector {
       pidJpsi = -1;
       electronPlus = -1;
       electronMinus = -1;
-     
+      int JpsiFlag = hfCandProng2.hfflag();
+
+      if (!(JpsiFlag & 1 << 1)) {
+        hfSelJpsiCandidate(statusJpsi);
+        continue;
+      }
 
       // daughter track validity selection
       if (!daughterSelection(trackPos) || !daughterSelection(trackNeg)) {
@@ -245,23 +247,20 @@ struct HFJpsiCandidateSelector {
 
       electronPlus = selectionPID(trackPos, 11);
       electronMinus = selectionPID(trackNeg, 11);
-      
 
-      if (electronPlus == 0 || electronMinus == 0 ) {
+      if (electronPlus == 0 || electronMinus == 0) {
         pidJpsi = 0; //exclude Jpsi
       }
       if (electronPlus == 1 && electronMinus == 1) {
         pidJpsi = 1; //accept Jpsi
       }
-      
 
       if (pidJpsi == 0) {
         hfSelJpsiCandidate(statusJpsi);
         continue;
       }
 
-      if ((pidJpsi == -1 || pidJpsi==1) && topolJpsi)
- {
+      if ((pidJpsi == -1 || pidJpsi == 1) && topolJpsi) {
         statusJpsi = 1; //identified as Jpsi
       }
 

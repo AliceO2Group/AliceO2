@@ -155,7 +155,8 @@ DECLARE_SOA_COLUMN(FlagMCMatchRec, flagMCMatchRec, int8_t); // reconstruction le
 DECLARE_SOA_COLUMN(FlagMCMatchGen, flagMCMatchGen, int8_t); // generator level
 
 // mapping of decay types
-enum DecayType { D0ToPiK = 1,JpsiToEE = 1 };
+enum DecayType { D0ToPiK = 1,
+                 JpsiToEE = 1 };
 
 // functions for specific particles
 

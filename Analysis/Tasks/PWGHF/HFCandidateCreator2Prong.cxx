@@ -50,7 +50,7 @@ struct HFCandidateCreator2Prong {
 
   double massPi = RecoDecay::getMassPDG(kPiPlus);
   double massK = RecoDecay::getMassPDG(kKPlus);
-  double massE = RecoDecay::getMassPDG(kElectron); 
+  double massE = RecoDecay::getMassPDG(kElectron);
   double massPiK{0.};
   double massKPi{0.};
 
@@ -181,7 +181,7 @@ struct HFCandidateCreator2ProngMC {
       // Jpsi → e+e-
       auto isMatchedGenJpsi = RecoDecay::isMatchedMCGen(particlesMC, particle, 443, array{+kElectron, -kElectron}, true, &sign);
       result += sign * JpsiToEE * int8_t(isMatchedGenJpsi);
-		
+
       rowMCMatchGen(result);
     }
   }
