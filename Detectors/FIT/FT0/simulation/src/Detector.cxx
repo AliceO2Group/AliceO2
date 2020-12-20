@@ -211,14 +211,6 @@ void Detector::ConstructGeometry()
     TGeoHMatrix* ph = new TGeoHMatrix(hm);
     stlinC->AddNode(ins, itr, ph);
   }
-  for (int ic = 0; ic < 28; ic++) {
-    std::cout << xc2[ic] << ", ";
-  }
-  std::cout << std::endl;
-  for (int ic = 0; ic < 28; ic++) {
-    std::cout << yc2[ic] << ", ";
-  }
-  std::cout << std::endl;
   TGeoVolume* alice = gGeoManager->GetVolume("barrel");
   alice->AddNode(stlinA, 1, new TGeoTranslation(0, 30., zdetA));
   TGeoRotation* rotC = new TGeoRotation("rotC", 90., 0., 90., 90., 180., 0.);
@@ -669,7 +661,7 @@ void Detector::DefineSim2LUTindex()
     LOG(ERROR) << "Error opening ascii file (it is probably a folder!): " << indPath.c_str();
   }
   int fromfile;
-  for (int iind = 0; iind < 208; iind++) {
+  for (int iind = 0; iind < Geometry::Nchannels; iind++) {
     infile >> fromfile;
     mSim2LUT[iind] = fromfile;
   }

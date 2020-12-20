@@ -22,7 +22,6 @@
 #include "CCDB/BasicCCDBManager.h"
 
 #include <Rtypes.h>
-#include <bits/stdint-uintn.h>
 #include <cassert>
 #include <exception>
 #include <iostream>
@@ -133,18 +132,16 @@ class LookUpTable
 
   int getLink(int channel) const
   {
-    std::cout << " getLink for " << channel << " link " << mTopoVector[channel].mPM << std::endl;
     return mTopoVector[channel].mPM;
   }
   int getMCP(int channel) const
   {
-    std::cout << " getLink " << channel << " mcp " << mTopoVector[channel].mMCP << std::endl;
     return mTopoVector[channel].mMCP;
   }
 
   static o2::ft0::LookUpTable linear()
   {
-    std::vector<o2::ft0::Topo> lut_data(NUMBER_OF_MCPs * NUMBER_OF_PMs - 8);
+    std::vector<o2::ft0::Topo> lut_data(NUMBER_OF_MCPs * NUMBER_OF_PMs);
     for (int link = 0; link < NUMBER_OF_PMs; ++link) {
       for (int mcp = 0; mcp < NUMBER_OF_MCPs; ++mcp) {
         lut_data[link * NUMBER_OF_MCPs + mcp] = o2::ft0::Topo{link, mcp};
@@ -185,21 +182,17 @@ class LookUpTable
   static o2::ft0::LookUpTable readTable()
   {
 
-    std::vector<o2::ft0::Topo> lut_data; //(NUMBER_OF_MCPs * NUMBER_OF_PMs - 8);
+    std::vector<o2::ft0::Topo> lut_data;
     auto& mgr = o2::ccdb::BasicCCDBManager::instance();
     mgr.setURL("http://ccdb-test.cern.ch:8080");
     auto hvch = mgr.get<std::vector<o2::ft0::HVchannel>>("FT0/LookUpTable");
-    std::cout << hvch->size() << std::endl;
     size_t max = 0;
     for (auto const& chan : *hvch)
       if (max < chan.channel)
         max = chan.channel;
     lut_data.resize(max + 1);
     for (auto const& chan : *hvch) {
-      /* for (int i = 0; i < hvch->size(); i++) { */
-      /* assert(i == (*hvch)[i].channel); */
       o2::ft0::Topo topo = chan.pm;
-      std::cout << int(chan.channel) << " " << topo.mPM << " mcp " << topo.mMCP << std::endl;
       lut_data[chan.channel] = topo;
     }
     return o2::ft0::LookUpTable{lut_data};

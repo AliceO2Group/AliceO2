@@ -154,7 +154,7 @@ class Detector : public o2::base::DetImpl<Detector>
   int mTrackIdTop;
   int mTrackIdMCPtop; //TEMPORARY
 
-  int mSim2LUT[208];
+  int mSim2LUT[Geometry::Nchannels];
 
   ClassDefOverride(Detector, 3);
 };
