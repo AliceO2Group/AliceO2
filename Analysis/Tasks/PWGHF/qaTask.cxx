@@ -18,6 +18,7 @@
 #include "Framework/HistogramRegistry.h"
 #include "AnalysisCore/trackUtilities.h"
 #include "ReconstructionDataFormats/DCA.h"
+#include "AnalysisDataModel/TrackSelectionTables.h"
 #include "AnalysisCore/MC.h"
 #include "TPDGCode.h"
 
@@ -257,7 +258,7 @@ struct QAGlobalObservables {
     histograms.fill(HIST("collision/collisionZ"), collision.posZ());
 
     histograms.fill(HIST("collision/numberOfContributors"), collision.numContrib());
-    histograms.fill("collision/vertexChi2", collision.chi2());
+    histograms.fill(HIST("collision/vertexChi2"), collision.chi2());
 
     histograms.fill(HIST("covariance/xx"), collision.covXX());
     histograms.fill(HIST("covariance/xy"), collision.covXY());
