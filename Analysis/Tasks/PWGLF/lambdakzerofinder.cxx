@@ -194,6 +194,7 @@ struct lambdakzerofinder {
 
         lNCand++;
         v0data(t0.globalIndex(), t1.globalIndex(), t0.collisionId(),
+               fitter.getTrack(0).getX(), fitter.getTrack(1).getX(),
                pos[0], pos[1], pos[2],
                pvec0[0], pvec0[1], pvec0[2],
                pvec1[0], pvec1[1], pvec1[2],

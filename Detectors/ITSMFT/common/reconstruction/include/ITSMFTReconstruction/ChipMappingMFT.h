@@ -108,6 +108,9 @@ class ChipMappingMFT
   ///< convert HW cable ID to SW ID for give RU type
   uint8_t cableHW2SW(uint8_t ruType, uint8_t hwid) const { return mCableHW2SW[ruType][hwid]; }
 
+  ///< convert cable iterator ID to its position on the ActiveLanes word in the GBT.header for given RU type
+  uint8_t cablePos(uint8_t ruType, uint8_t id) const { return mCablePos[ruType][id]; }
+
   ///< get chip global SW ID from chipID on module, cable SW ID and stave (RU) info
   uint16_t getGlobalChipID(uint16_t chOnModuleHW, int cableHW, const RUInfo& ruInfo) const
   {
@@ -198,8 +201,14 @@ class ChipMappingMFT
 
   static constexpr std::int16_t getRUDetectorField() { return 0x0; }
 
-  ///< get pattern of lanes on the RU served by a given RU type
-  Int_t getCablesOnRUType(Int_t ruType) const { return (0x1 << NChipsOnRUType[ruType]) - 1; }
+  uint32_t getCablesOnRUType(Int_t ruType) const
+  {
+    uint32_t pattern = 0;
+    for (Int_t i = 0; i < NRUCables; i++) {
+      pattern |= (0x1 << mCableHW2Pos[ruType][i]);
+    }
+    return pattern;
+  }
 
   ///< get info on sw RU
   const RUInfo* getRUInfoSW(int ruSW) const { return &mRUInfo[ruSW]; }
@@ -277,6 +286,7 @@ class ChipMappingMFT
 
   std::vector<uint8_t> mCableHW2SW[NRUs];       ///< table of cables HW to SW conversion for each RU type
   std::vector<uint8_t> mCableHW2Pos[NRUs];      ///< table of cables positions in the ActiveLanes mask for each RU type
+  std::vector<uint8_t> mCablePos[NRUs];         ///< reverse table of cables positions in the ActiveLanes mask for each RU type
   std::vector<uint8_t> mCableHWFirstChip[NRUs]; ///< 1st chip of module (relative to the 1st chip of the stave) served by each cable
 
   std::array<std::vector<uint16_t>, NRUs> mRUGlobalChipID;
