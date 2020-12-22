@@ -43,6 +43,8 @@
 #pragma link C++ class o2::ft0::EventHeader + ;
 #pragma link C++ class o2::ft0::EventData + ;
 #pragma link C++ class o2::ft0::Topo + ;
+#pragma link C++ class o2::ft0::HVchannel + ;
+#pragma link C++ class vector < o2::ft0::HVchannel> + ;
 
 #pragma link C++ class o2::ft0::CTFHeader + ;
 #pragma link C++ class o2::ft0::CompressedDigits + ;

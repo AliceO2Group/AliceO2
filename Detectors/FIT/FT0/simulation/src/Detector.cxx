@@ -183,6 +183,8 @@ void Detector::ConstructGeometry()
     tr[itr] = new TGeoTranslation(nameTr.Data(), xa[itr], ya[itr], z);
     tr[itr]->RegisterYourself();
     stlinA->AddNode(ins, itr, tr[itr]);
+    LOG(INFO) << " detID "
+              << " " << itr << " x " << xa[itr] << " y " << ya[itr];
   }
 
   TGeoRotation* rot[Geometry::NCellsC];
@@ -205,12 +207,10 @@ void Detector::ConstructGeometry()
 
     //   com[itr-Geometry::NCellsA] = new TGeoCombiTrans(tr[itr],rot[itr-Geometry::NCellsA]);
     com[ic] = new TGeoCombiTrans(xc2[ic], yc2[ic], (zc2[ic] - 80), rot[ic]);
-    std::cout << ic << " " << xc2[ic] << " " << yc2[ic] << std::endl;
     TGeoHMatrix hm = *com[ic];
     TGeoHMatrix* ph = new TGeoHMatrix(hm);
     stlinC->AddNode(ins, itr, ph);
   }
-
   TGeoVolume* alice = gGeoManager->GetVolume("barrel");
   alice->AddNode(stlinA, 1, new TGeoTranslation(0, 30., zdetA));
   TGeoRotation* rotC = new TGeoRotation("rotC", 90., 0., 90., 90., 180., 0.);
@@ -225,6 +225,7 @@ void Detector::ConstructOpGeometry()
   LOG(DEBUG) << "Creating FIT optical geometry properties";
 
   DefineOpticalProperties();
+  DefineSim2LUTindex();
 }
 
 //_________________________________________
@@ -273,13 +274,10 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   topref->AddNode(top, 1, new TGeoTranslation(0, 0, 0));
   float xinv = -ptop[0] - prfv[0];
   topref->AddNode(rfv, 1, new TGeoTranslation(xinv, 0, 0));
-  printf(" GEOGEO  refv %f ,  0,0 \n", xinv);
   xinv = ptop[0] + prfv[0];
   topref->AddNode(rfv, 2, new TGeoTranslation(xinv, 0, 0));
-  printf(" GEOGEO  refv %f ,  0,0 \n", xinv);
   float yinv = -ptop[1] - prfh[1];
   topref->AddNode(rfh, 1, new TGeoTranslation(0, yinv, 0));
-  printf(" GEOGEO  refh  ,  0, %f, 0 \n", yinv);
   yinv = ptop[1] + prfh[1];
   topref->AddNode(rfh, 2, new TGeoTranslation(0, yinv, 0));
   //  zin = -ptop[2] - ptopblack[2];
@@ -296,6 +294,7 @@ void Detector::SetOneMCP(TGeoVolume* ins)
       ins->AddNode(topref, ntops, new TGeoTranslation(xin, yin, z));
       z += ptopref[2] + 2. * pmcptopglass[2] + preg[2];
       ins->AddNode(cat, ntops, new TGeoTranslation(xin, yin, z));
+      LOG(INFO) << " n " << ntops << " x " << xin << " y " << yin;
     }
   }
   //Al top
@@ -351,7 +350,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     fMC->CurrentVolOffID(1, mcp);
     float time = fMC->TrackTime() * 1.0e9; //time from seconds to ns
     int trackID = stack->GetCurrentTrackNumber();
-    int detID = 4 * mcp + quadrant - 1;
+    int detID = mSim2LUT[4 * mcp + quadrant - 1];
     float etot = fMC->Etot();
     int iPart = fMC->TrackPid();
     float enDep = fMC->Edep();
@@ -639,4 +638,31 @@ Int_t Detector::ReadOptProperties(const std::string filePath)
 
   LOG(INFO) << "Optical properties taken from the file: " << filePath.c_str() << " Number of lines read: " << iLine;
   return 0;
+}
+
+void Detector::DefineSim2LUTindex()
+{
+  // Path of the LookUp table
+  std::string inputDir;
+  const char* aliceO2env = std::getenv("O2_ROOT");
+  if (aliceO2env) {
+    inputDir = aliceO2env;
+  }
+  inputDir += "/share/Detectors/FT0/files/";
+
+  std::string indPath = inputDir + "Sim2DataChannels.txt";
+  indPath = gSystem->ExpandPathName(indPath.data()); // Expand $(ALICE_ROOT) into real system path
+
+  std::ifstream infile;
+  infile.open(indPath.data());
+  LOG(INFO) << " file  open " << indPath.data();
+  // Check if file is opened correctly
+  if (infile.fail() == true) {
+    LOG(ERROR) << "Error opening ascii file (it is probably a folder!): " << indPath.c_str();
+  }
+  int fromfile;
+  for (int iind = 0; iind < Geometry::Nchannels; iind++) {
+    infile >> fromfile;
+    mSim2LUT[iind] = fromfile;
+  }
 }

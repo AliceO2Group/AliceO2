@@ -73,7 +73,7 @@ ReadRaw::ReadRaw(const std::string fileRaw, std::string fileDataOut)
             << "file to read " << fileRaw.data() << " file to write " << fileDataOut.data();
   mFileDest.exceptions(std::ios_base::failbit | std::ios_base::badbit);
   mFileDest.open(fileRaw, std::fstream::in | std::fstream::binary);
-  o2::ft0::LookUpTable lut{o2::ft0::ReadRaw::linear()};
+  o2::ft0::LookUpTable lut{LookUpTable::readTable()};
   ReadRaw::readData(fileRaw.c_str(), lut);
   ReadRaw::writeDigits(fileDataOut.data());
 }
@@ -131,7 +131,7 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
           digit.setInteractionRecord(intrec);
         }
         chDgDataArr = &digitIter->second.getChDgData(); //&mDigitsTemp.getChDgData();
-        if (link == 18) {
+        if (link == LinkTCM) {
           mFileDest.read(reinterpret_cast<char*>(&mTCMdata), sizeof(mTCMdata));
           pos += sizeof(mTCMdata);
           digitIter->second.setTriggers(Bool_t(mTCMdata.orA), Bool_t(mTCMdata.orC), Bool_t(mTCMdata.vertex), Bool_t(mTCMdata.sCen), Bool_t(mTCMdata.cen), uint8_t(mTCMdata.nChanA), uint8_t(mTCMdata.nChanC), int32_t(mTCMdata.amplA), int32_t(mTCMdata.amplC), int16_t(mTCMdata.timeA), int16_t(mTCMdata.timeC));

@@ -32,7 +32,7 @@ namespace ft0
 {
 constexpr int Nchannels_FT0 = 208;
 constexpr int Nchannels_PM = 12;
-constexpr int NPMs = 19;
+constexpr int NPMs = 20;
 constexpr size_t sizeWord = 16;
 
 struct EventHeader {
