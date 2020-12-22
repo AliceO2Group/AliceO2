@@ -42,8 +42,8 @@ class ReadRaw
 {
   static constexpr int Nchannels_FT0 = 208;
   static constexpr int Nchannels_PM = 12;
-  static constexpr int NPMs = 19;
-  static constexpr int LinkTCM = 18;
+  static constexpr int NPMs = 20;
+  static constexpr int LinkTCM = 19;
   static constexpr float MV_2_Nchannels = 2.2857143;     //7 mV ->16channels
   static constexpr float CFD_NS_2_Nchannels = 76.804916; //1000.(ps)/13.02(channel);
   //static constexpr int GBTWORDSIZE = 80;            //real size
@@ -57,17 +57,6 @@ class ReadRaw
   void readData(const std::string fileRaw, const o2::ft0::LookUpTable& lut);
   void writeDigits(const std::string fileDecodeData);
   void close();
-  static o2::ft0::LookUpTable linear()
-  {
-    std::vector<o2::ft0::Topo> lut_data(Nchannels_PM * NPMs);
-    for (int link = 0; link < NPMs; ++link) {
-      for (int mcp = 0; mcp < Nchannels_PM; ++mcp) {
-        lut_data[link * Nchannels_PM + mcp] = o2::ft0::Topo{link, mcp};
-      }
-    }
-
-    return o2::ft0::LookUpTable{lut_data};
-  }
 
  private:
   std::ifstream mFileDest;

@@ -109,6 +109,8 @@ class Detector : public o2::base::DetImpl<Detector>
   /// \param istream *is The input stream
   void Read(std::istream* is);
 
+  void DefineSim2LUTindex();
+
  private:
   /// copy constructor (used in MT)
   Detector(const Detector& rhs);
@@ -152,7 +154,9 @@ class Detector : public o2::base::DetImpl<Detector>
   int mTrackIdTop;
   int mTrackIdMCPtop; //TEMPORARY
 
-  ClassDefOverride(Detector, 2);
+  int mSim2LUT[Geometry::Nchannels];
+
+  ClassDefOverride(Detector, 3);
 };
 
 // Input and output function for standard C++ input/output.
