@@ -86,7 +86,6 @@ union EventChData {
   void reset();
 };
 
-
 struct EventData {
   EventChData data[NModules][NChPerModule] = {0};
   void print() const;
