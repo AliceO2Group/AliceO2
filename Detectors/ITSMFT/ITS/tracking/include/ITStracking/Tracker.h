@@ -102,6 +102,7 @@ class Tracker
   bool initializeSmootherTracks(const ROframe& event, o2::its::TrackITSExt& outwT,
                                 o2::its::TrackITSExt& inwT, const int startIt = 0, const int startOt = 6);
   bool kalmanPropagateOutwardsTrack(const ROframe& event, o2::its::TrackITSExt& track, const int first, const int last);
+  void smoothTracks(const ROframe& event, std::vector<TrackITSExt>& tracks);
 
   template <typename... T>
   float evaluateTask(void (Tracker::*)(T...), const char*, std::ostream& ostream, T&&... args);
