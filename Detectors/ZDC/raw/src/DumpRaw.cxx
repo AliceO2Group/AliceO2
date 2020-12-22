@@ -14,7 +14,7 @@ void DumpRaw::setStat(TH1 *h){
   h->Draw();
   gPad->Update();
   TPaveStats *st=(TPaveStats*)h->GetListOfFunctions()->FindObject("stats");
-  st->SetFillStyle(0);
+  st->SetFillStyle(1001);
   st->SetBorderSize(1);
   if(hn.BeginsWith("hp")){
     st->SetOptStat(111111);
