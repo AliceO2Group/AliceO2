@@ -26,12 +26,12 @@ class DumpRaw
   int getVerbosity() const { return mVerbosity; }
 
  private:
-  void setStat(TH1 *h);
+  void setStat(TH1* h);
   int mVerbosity = 1;
-  TH1 *mBaseline[NDigiChannels]={0};
-  TH1 *mCounts[NDigiChannels]={0};
-  TH2 *mSignal[NDigiChannels]={0};
-  TH2 *mBunch[NDigiChannels]={0};
+  TH1* mBaseline[NDigiChannels] = {0};
+  TH1* mCounts[NDigiChannels] = {0};
+  TH2* mSignal[NDigiChannels] = {0};
+  TH2* mBunch[NDigiChannels] = {0};
   EventChData mCh;
   ClassDefNV(DumpRaw, 1);
 };
