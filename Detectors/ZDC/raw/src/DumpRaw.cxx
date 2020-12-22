@@ -87,6 +87,10 @@ void DumpRaw::init()
 void DumpRaw::write()
 {
   TFile* f = new TFile("ZDCDumpRaw.root", "recreate");
+  if (f->IsZombie()) {
+    LOG(FATAL) << "Cannot write to file " << f->GetName();
+    return;
+  }
   for (UInt_t i = 0; i < NDigiChannels; i++) {
     if (mBunch[i] && mBunch[i]->GetEntries() > 0) {
       setStat(mBunch[i]);
@@ -161,7 +165,9 @@ int DumpRaw::processWord(const UInt_t* word)
   } else {
     // Word not present in payload
     LOG(FATAL) << "Event format error";
+    return 1;
   }
+  return 0;
 }
 
 int DumpRaw::process(const EventChData ch)
@@ -221,6 +227,7 @@ int DumpRaw::process(const EventChData ch)
     mBaseline[ih]->Fill(foffset);
     mCounts[ih]->Fill(f.hits);
   }
+  return 0;
 }
 
 int DumpRaw::process(const EventData ev)
@@ -236,4 +243,5 @@ int DumpRaw::process(const EventData ev)
       }
     }
   }
+  return 0;
 }
