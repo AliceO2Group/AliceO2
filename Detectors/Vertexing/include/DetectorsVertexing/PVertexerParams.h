@@ -25,8 +25,19 @@ namespace vertexing
 struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParams> {
   static constexpr float kDefTukey = 5.0f; ///< def.value for tukey constant
 
+  // DBSCAN clustering settings
+  float dbscanMaxDist2 = 9.;   ///< distance^2 cut (eps^2).
+  float dbscanDeltaT = 10.;    ///< abs. time difference cut
+  float dbscanAdaptCoef = 0.1; ///< adapt dbscan minPts for each cluster as minPts=max(minPts, currentSize*dbscanAdaptCoef).
+
+  int maxVerticesPerCluster = 1; ///< max vertices per time-z cluster to look for
+  int maxTrialsPerCluster = 3;   ///< max unsucessful trials for vertex search per vertex
+
+  // track selection
+  float dcaTolerance = 1.3; ///< consider tracks within this abs DCA to mean vertex
+  float pullIniCut = 9;     ///< cut on pull (n^2 sigma) on dca to mean vertex
+
   // parameters
-  float minZSeedRange = 0.5;         ///< min proximity of Zseed which should be covered by 1st iteration
   float zHistoRange = 20.;           ///< +-range of the Zseed histo
   float zHistoBinSize = 0.5;         ///< size of the Zseed histo bin
   float tukey = kDefTukey;           ///< 1./[Tukey parameter]^2

@@ -116,6 +116,23 @@ struct TrackVF {
     return z + tgL * (vx * cosAlp + vy * sinAlp - x);
   }
 
+  // weighted distance^2 to other track (accounting for own errors only)
+  float getDist2(const TrackVF& o) const
+  {
+    auto dtnorm2 = (timeEst.getTimeStamp() - o.timeEst.getTimeStamp()) / timeEst.getTimeStampError();
+    auto dz = z - o.z;
+    return dtnorm2 + dz * dz * sig2ZI;
+  }
+
+  // weighted distance^2 to other track (accounting for both track errors errors only)
+  float getDist2Sym(const TrackVF& o) const
+  {
+    auto dt = timeEst.getTimeStamp() - o.timeEst.getTimeStamp();
+    auto dz = z - o.z;
+    float dte2 = o.timeEst.getTimeStampError() * o.timeEst.getTimeStampError() + timeEst.getTimeStampError() * timeEst.getTimeStampError();
+    return dt / dte2 + dz * dz / (1. / sig2ZI + 1. / o.sig2ZI);
+  }
+
   float getResiduals(const PVertex& vtx, float& dy, float& dz) const
   {
     // get residuals (Y and Z DCA in track frame) and calculate chi2
@@ -139,7 +156,6 @@ struct TrackVF {
 };
 
 struct VertexingInput {
-  gsl::span<TrackVF> tracks;
   gsl::span<int> idRange;
   TimeEst timeEst{0, -1.}; // negative error means don't use time info
   float scaleSigma2 = 10;
@@ -227,7 +243,7 @@ struct SeedHisto {
   }
 };
 
-struct TimeCluster {
+struct TimeZCluster {
   TimeEst timeEst;
   int first = -1;
   int last = -1;
@@ -275,7 +291,7 @@ struct TimeCluster {
     }
   }
 
-  void merge(TimeCluster& c)
+  void merge(TimeZCluster& c)
   {
     if (c.first < last) {
       first = c.first;

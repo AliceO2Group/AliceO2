@@ -80,7 +80,7 @@ class PVertexer
   bool getValidateWithFT0() const { return mValidateWithFT0; }
 
   auto& getTracksPool() const { return mTracksPool; }
-  auto& getTimeClusters() const { return mTimesClusters; }
+  auto& getTimeZClusters() const { return mTimeZClusters; }
   auto& getSortedTrackIndices() const { return mSortedTrackID; }
 
   auto& getMeanVertex() const { return mMeanVertex; }
@@ -92,7 +92,6 @@ class PVertexer
 
   float estimateScale2()
   {
-    float minrange = std::min(mPVParams->zHistoBinSize, mPVParams->minZSeedRange);
     auto sc = mPVParams->zHistoBinSize * mPVParams->zHistoBinSize * mTukey2I / (mStatZErr.getMean() * mStatZErr.getMean());
     return sc;
   }
@@ -108,10 +107,11 @@ class PVertexer
   void applyConstraint(VertexSeed& vtxSeed) const;
   bool upscaleSigma(VertexSeed& vtxSeed) const;
   void createTracksPool(gsl::span<const o2d::TrackTPCITS> tracksITSTPC);
-  void clusterizeTimeBruteForce(float margin = 0.1, float cut = 25);
-  void clusterizeTime(float binSize = 0.1, float maxTDist = 0.6);
   int findVertices(const VertexingInput& input, std::vector<PVertex>& vertices, std::vector<int>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs);
   std::pair<int, int> getBestFT0Trigger(const PVertex& vtx, gsl::span<const o2::ft0::RecPoints> ft0Data, int& currEntry) const;
+
+  int dbscan_RangeQuery(int idxs, std::vector<int>& cand, const std::vector<int>& status);
+  void dbscan_clusterize();
 
   o2::BunchFilling mBunchFilling;
   std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchAbove; // closest filled bunch from above
@@ -123,7 +123,9 @@ class PVertexer
   o2::math_utils::StatAccumulator mStatTErr;
   std::vector<TrackVF> mTracksPool;        ///< tracks in internal representation used for vertexing
   std::vector<int> mSortedTrackID;         ///< indices of tracks sorted in time
-  std::vector<TimeCluster> mTimesClusters; ///< set of time clusters
+  std::vector<TimeZCluster> mTimeZClusters; ///< set of time clusters
+  std::vector<int> mClusterTrackIDs;        ///< IDs of tracks making the clusters
+
   float mBz = 0.;                          ///< mag.field at beam line
   bool mValidateWithFT0 = false;           ///< require vertex validation with FT0 (if available)
 

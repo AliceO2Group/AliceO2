@@ -19,6 +19,7 @@
 #include "Math/SVector.h"
 #include <numeric>
 #include <unordered_map>
+#include <TStopwatch.h>
 
 using namespace o2::vertexing;
 
@@ -31,18 +32,17 @@ int PVertexer::process(gsl::span<const o2d::TrackTPCITS> tracksITSTPC, gsl::span
                        std::vector<PVertex>& vertices, std::vector<GIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs)
 {
   createTracksPool(tracksITSTPC);
-
-  //clusterizeTimeBruteForce();
-  clusterizeTime();
+  dbscan_clusterize();
 
   std::vector<PVertex> verticesLoc;
   std::vector<int> vertexTrackIDsLoc;
   std::vector<V2TRef> v2tRefsLoc;
   std::vector<float> validationTimes;
 
-  for (auto tc : mTimesClusters) {
+  for (auto tc : mTimeZClusters) {
     VertexingInput inp;
-    inp.idRange = gsl::span<int>((int*)&mSortedTrackID[tc.first], tc.count);
+    //    inp.idRange = gsl::span<int>((int*)&mSortedTrackID[tc.first], tc.count);
+    inp.idRange = gsl::span<int>((int*)&mClusterTrackIDs[tc.first], tc.count);
     inp.scaleSigma2 = 3. * estimateScale2();
     inp.timeEst = tc.timeEst;
     findVertices(inp, verticesLoc, vertexTrackIDsLoc, v2tRefsLoc);
@@ -131,20 +131,22 @@ int PVertexer::findVertices(const VertexingInput& input, std::vector<PVertex>& v
   if (seedHisto.nFilled < mPVParams->minTracksPerVtx) {
     return nfound;
   }
-
-  while (1) {
+  LOG(DEBUG) << "New cluster: times: " << mTracksPool[input.idRange[0]].timeEst.getTimeStamp() << " : " << mTracksPool[input.idRange[ntr - 1]].timeEst.getTimeStamp() << " nfound " << nfound << " of " << ntr; // RSTMP
+  int nTrials = 0;
+  while (nfound < mPVParams->maxVerticesPerCluster && nTrials < mPVParams->maxTrialsPerCluster) {
     int peakBin = seedHisto.findHighestPeakBin(); // find next seed
     if (!seedHisto.isValidBin(peakBin)) {
       break;
     }
     float zv = seedHisto.getBinCenter(peakBin);
-    LOG(DEBUG) << "Seeding with Z=" << zv << " bin " << peakBin;
+    LOG(DEBUG) << "Seeding with Z=" << zv << " bin " << peakBin << " on trial " << nTrials << " for vertex " << nfound;
     PVertex vtx;
     vtx.setXYZ(mMeanVertex.getX(), mMeanVertex.getY(), zv);
     vtx.setTimeStamp(input.timeEst);
     if (findVertex(input, vtx)) {
       finalizeVertex(input, vtx, vertices, v2tRefs, vertexTrackIDs, seedHisto);
       nfound++;
+      nTrials = 0;
     } else {                                                                    // suppress failed seeding bin and its proximities
       auto delta = std::sqrt(vtx.getChi2()) * mStatZErr.getMean() * getTukey(); // largest scale used will be transferred as chi2
       int proximity = delta * seedHisto.binSizeInv;
@@ -154,6 +156,7 @@ int PVertexer::findVertices(const VertexingInput& input, std::vector<PVertex>& v
       for (int i = bmin; i < bmax; i++) {
         seedHisto.discardBin(i);
       }
+      nTrials++;
     }
   }
   return nfound;
@@ -324,7 +327,6 @@ bool PVertexer::solveVertex(VertexSeed& vtxSeed) const
   vtxSeed.setChi2((vtxSeed.getNContributors() - vtxSeed.wghSum) / vtxSeed.scaleSig2ITuk2I); // calculate chi^2
   auto newScale = vtxSeed.wghChi2 / vtxSeed.wghSum;
   LOG(DEBUG) << "Solve: wghChi2=" << vtxSeed.wghChi2 << " wghSum=" << vtxSeed.wghSum << " -> scale= " << newScale << " old scale " << vtxSeed.scaleSigma2 << " prevScale: " << vtxSeed.scaleSigma2Prev;
-  //vtxSeed.print();
   vtxSeed.setScale(newScale < mPVParams->minScale2 ? mPVParams->minScale2 : newScale, mTukey2I);
   return true;
 }
@@ -466,14 +468,13 @@ void PVertexer::createTracksPool(gsl::span<const o2d::TrackTPCITS> tracksITSTPC)
   mTracksPool.reserve(ntGlo);
   // check all containers
   float vtxErr2 = 0.5 * (mMeanVertex.getSigmaX2() + mMeanVertex.getSigmaY2());
-  float dcaToler = 1.0 + 3. * std::sqrt(vtxErr2); // RS FIXME  tolerance should be a parameter
   float pullIniCut = 9.;                          // RS FIXME  pullIniCut should be a parameter
   o2d::DCA dca;
 
   for (uint32_t i = 0; i < ntGlo; i++) {
     o2::track::TrackParCov trc = tracksITSTPC[i];
-    if (!trc.propagateToDCA(mMeanVertex, mBz, &dca, dcaToler) ||
-        dca.getY() * dca.getY() / (dca.getSigmaY2() + vtxErr2) > pullIniCut) {
+    if (!trc.propagateToDCA(mMeanVertex, mBz, &dca, mPVParams->dcaTolerance) ||
+        dca.getY() * dca.getY() / (dca.getSigmaY2() + vtxErr2) > mPVParams->pullIniCut) {
       continue;
     }
     auto& tvf = mTracksPool.emplace_back(trc, tracksITSTPC[i].getTimeMUS(), i, 0);
@@ -498,115 +499,6 @@ void PVertexer::createTracksPool(gsl::span<const o2d::TrackTPCITS> tracksITSTPC)
 
   auto tMin = mTracksPool[mSortedTrackID.front()].timeEst.getTimeStamp();
   auto tMax = mTracksPool[mSortedTrackID.back()].timeEst.getTimeStamp();
-}
-
-//___________________________________________________________________
-void PVertexer::clusterizeTimeBruteForce(float margin, float cut)
-{
-  std::vector<TimeCluster> tclist;
-  mTimesClusters.clear();
-  auto* vtxT = &tclist.emplace_back();
-  int ntr = mSortedTrackID.size();
-  for (int i = 0; i < ntr; i++) {
-    int icur = mSortedTrackID[i];
-    const auto& trc = mTracksPool[icur];
-    if (!vtxT->isCompatible(trc.timeEst, margin, cut)) {
-      if (vtxT->count < mPVParams->minTracksPerVtx) {
-        vtxT->clear();
-      } else {
-        vtxT = &tclist.emplace_back();
-      }
-    }
-    vtxT->addTrack(i, trc.timeEst);
-  }
-  if (tclist.back().count < mPVParams->minTracksPerVtx) {
-    tclist.pop_back();
-  }
-  // final sort in decreasing multiplicity
-  std::vector<int> tcselSort(tclist.size());
-  std::iota(tcselSort.begin(), tcselSort.end(), 0);
-
-  std::sort(tcselSort.begin(), tcselSort.end(), [&tclist](int i, int j) { return tclist[i].count > tclist[j].count; });
-  mTimesClusters.reserve(tcselSort.size());
-  for (auto i : tcselSort) {
-    if (tclist[i].count >= mPVParams->minTracksPerVtx) {
-      mTimesClusters.push_back(tclist[i]);
-      auto& tc = mTimesClusters.back();
-      //      tc.print();
-    }
-  }
-}
-
-//___________________________________________________________________
-void PVertexer::clusterizeTime(float binSize, float maxTDist)
-{
-  // moving average density
-  std::vector<int> tclistIdx, tcselSort;
-  std::vector<TimeCluster> tclist;
-  mTimesClusters.clear();
-
-  int ntr = mTracksPool.size(), first = 0, last = 0, count = 1;
-  float tfirst = mTracksPool[mSortedTrackID[first]].timeEst.getTimeStamp(), tlast = tfirst, tMean = tfirst;
-  for (int i = 1; i < ntr; i++) {
-    if (mTracksPool[mSortedTrackID[i]].timeEst.getTimeStamp() - tfirst < binSize) {
-      last = i;
-      tlast = mTracksPool[mSortedTrackID[last]].timeEst.getTimeStamp();
-      tMean += tlast;
-      count++;
-    } else {
-      tclist.emplace_back(TimeCluster{{tMean / count, 0.}, first, last, count});
-      first = last = i;
-      tMean = tfirst = mTracksPool[mSortedTrackID[last]].timeEst.getTimeStamp();
-      count = 1;
-    }
-  }
-  tMean += mTracksPool[mSortedTrackID[last]].timeEst.getTimeStamp();
-  tclist.emplace_back(TimeCluster{{tMean / count, 0.}, first, last, count});
-
-  int ncl = tclist.size();
-  tclistIdx.resize(ncl);
-  tcselSort.reserve(ncl);
-  std::iota(tclistIdx.begin(), tclistIdx.end(), 0);
-  std::sort(tclistIdx.begin(), tclistIdx.end(), [&tclist](int i, int j) { return tclist[i].count > tclist[j].count; });
-
-  for (auto it : tclistIdx) {
-    auto& best = tclist[it];
-    if (!best.count) {
-      continue; // already merged
-    }
-    // check if it can absorm neighbours
-    int iBef = it, iAft = it;
-    bool merged;
-    do {
-      merged = false;
-      if (--iBef >= 0) {
-        if (tclist[iBef].count && best.isCompatible(tclist[iBef].timeEst, 0, maxTDist)) {
-          best.merge(tclist[iBef]);
-          merged = true;
-        } else {
-          iBef = -1; // don't check those before
-        }
-      }
-      if (++iAft < ncl) {
-        if (tclist[iAft].count && best.isCompatible(tclist[iAft].timeEst, 0, maxTDist)) {
-          best.merge(tclist[iAft]);
-          merged = true;
-        } else {
-          iAft = ncl; // don't check those after
-        }
-      }
-    } while (merged);
-    if (best.count > 1) { // RS FIXME
-      tcselSort.push_back(it);
-    }
-  }
-  // final sort in decreasing multiplicity
-  std::sort(tcselSort.begin(), tcselSort.end(), [&tclist](int i, int j) { return tclist[i].count > tclist[j].count; });
-  mTimesClusters.reserve(tcselSort.size());
-  for (auto i : tcselSort) {
-    mTimesClusters.push_back(tclist[i]);
-    // mTimesClusters.back().print();
-  }
 }
 
 //___________________________________________________________________
@@ -649,7 +541,7 @@ void PVertexer::createMCLabels(gsl::span<const o2::MCCompLabel> lblITS, gsl::spa
       if (!lITS.isSet() || !lTPC.isSet()) {
         break;
       }
-      if (lITS.getTrackID() == lITS.getTrackID() && lITS.getEventID() == lTPC.getEventID() && lITS.getSourceID() == lTPC.getSourceID()) {
+      if (lITS.getTrackID() == lTPC.getTrackID() && lITS.getEventID() == lTPC.getEventID() && lITS.getSourceID() == lTPC.getSourceID()) {
         labelOccurenceCorr[{lITS.getEventID(), lITS.getSourceID(), 0.}]++;
       } else {
         labelOccurenceITS[{lITS.getEventID(), lITS.getSourceID(), 0.}]++;
@@ -747,4 +639,118 @@ bool PVertexer::setCompatibleIR(PVertex& vtx)
   vtx.setIRMin(irMin);
   vtx.setIRMax(irMax);
   return irMax >= irMin;
+}
+
+//___________________________________________________________________
+int PVertexer::dbscan_RangeQuery(int id, std::vector<int>& cand, const std::vector<int>& status)
+{
+  // find neighbours for dbscan cluster core point candidate
+  // Since we use asymmetric distance definition, is it bit more complex than simple search within chi2 proximity
+  int nFound = 0;
+  const auto& tI = mTracksPool[mSortedTrackID[id]];
+  int ntr = mTracksPool.size();
+
+  auto procPnt = [this, &tI, &status, &cand, &nFound, id](int idN) {
+    const auto& tL = this->mTracksPool[this->mSortedTrackID[idN]];
+    if (std::abs(tI.timeEst.getTimeStamp() - tL.timeEst.getTimeStamp()) > this->mPVParams->dbscanDeltaT) {
+      return -1;
+    }
+    auto statN = status[idN], stat = status[id];
+    if (statN >= 0 && (stat < 0 || (stat >= 0 && statN != stat))) { // do not consider as a neighbour if already added to other cluster
+      return 0;
+    }
+    auto dist2 = tL.getDist2(tI);
+    if (dist2 < this->mPVParams->dbscanMaxDist2) {
+      nFound++;
+      if (statN < 0) {
+        cand.push_back(idN); // no point in adding for check already assigned point
+      }
+    }
+    return 1;
+  };
+  int idL = id;
+  while (--idL >= 0) { // index in time decreasing direction
+    if (procPnt(idL) < 0) {
+      break;
+    }
+  }
+  int idU = id;
+  while (++idU < ntr) { // index in time increasing direction
+    if (procPnt(idU) < 0) {
+      break;
+    }
+  }
+  return nFound;
+}
+
+//_____________________________________________________
+void PVertexer::dbscan_clusterize()
+{
+  const int UNDEF = -2, NOISE = -1;
+  int ntr = mSortedTrackID.size();
+  std::vector<std::vector<int>> clusters;
+  std::vector<int> status(ntr, UNDEF);
+  TStopwatch timer;
+  int clID = -1;
+
+  std::vector<int> nbVec;
+  for (int it = 0; it < ntr; it++) {
+    if (status[it] != UNDEF) {
+      continue;
+    }
+    nbVec.clear();
+    auto nnb0 = dbscan_RangeQuery(it, nbVec, status);
+    int minNeighbours = mPVParams->minTracksPerVtx - 1;
+    if (nnb0 < minNeighbours) {
+      status[it] = NOISE; // noise
+      continue;
+    }
+    if (nnb0 > minNeighbours) {
+      minNeighbours = std::max(minNeighbours, int(nnb0 * mPVParams->dbscanAdaptCoef));
+    }
+    status[it] = ++clID;
+    auto& clusVec = clusters.emplace_back(1, it); // new cluster
+
+    for (int j = 0; j < nnb0; j++) {
+      int jt = nbVec[j];
+      auto statjt = status[jt];
+      if (statjt >= 0) {
+        continue;
+      }
+      status[jt] = clID;
+      clusVec.push_back(jt);
+      if (statjt == NOISE) { // was border point, no check for being core point is needed
+        continue;
+      }
+      int ncurr = nbVec.size();
+      if (clusVec.size() > minNeighbours) {
+        minNeighbours = std::max(minNeighbours, int(clusVec.size() * mPVParams->dbscanAdaptCoef));
+      }
+      auto nnb1 = dbscan_RangeQuery(jt, nbVec, status);
+      if (nnb1 < minNeighbours) {
+        nbVec.resize(ncurr); // not a core point, reset the seeds pool to the state before RangeQuery
+      } else {
+        nnb0 = ncurr; // core point, its neighbours need to be checked
+      }
+    }
+  }
+
+  mTimeZClusters.clear();
+  mClusterTrackIDs.reserve(ntr);
+  for (const auto& clus : clusters) {
+    if (clus.size() < mPVParams->minTracksPerVtx) {
+      continue;
+    }
+    int first = mClusterTrackIDs.size();
+    float tMean = 0;
+    for (const auto tid : clus) {
+      mClusterTrackIDs.push_back(mSortedTrackID[tid]);
+      tMean += mTracksPool[mClusterTrackIDs.back()].timeEst.getTimeStamp();
+    }
+    int last = int(mClusterTrackIDs.size());
+    int count = last - first;
+    mTimeZClusters.emplace_back(TimeZCluster{{tMean / count, 0.}, first, --last, count});
+  }
+  timer.Stop();
+  LOG(INFO) << "Found " << mTimeZClusters.size() << " clusters from DBSCAN out of " << clusters.size() << " seeds in " << timer.CpuTime() << " CPU s";
 }
