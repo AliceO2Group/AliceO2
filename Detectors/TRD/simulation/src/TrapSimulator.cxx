@@ -1822,7 +1822,7 @@ void TrapSimulator::trackletSelection()
   for (i = 0; i < ntracks; i++) {
     LOG(debug) << "TRACKS: " << i << " " << trackletCandch[i] << " " << trackletCandhits[i];
   }
-  if (ntracks > 3) {
+  if (ntracks > 4) {
     // primitive sorting according to the number of hits
     for (j = 0; j < (ntracks - 1); j++) {
       for (i = j + 1; i < ntracks; i++) {
@@ -1838,7 +1838,7 @@ void TrapSimulator::trackletSelection()
         }
       }
     }
-    ntracks = 3; // cut the rest, 3 is the max
+    ntracks = 4; // cut the rest, 3 is the max
   }
   // else is not necessary to sort
 
@@ -1918,9 +1918,9 @@ void TrapSimulator::fitTracklet()
 
   // calculated in fitred.asm
   int padrow = ((mRobPos >> 1) << 2) | (mMcmPos >> 2);
-  //int yoffs = (((((mRobPos & 0x1) << 2) + (mMcmPos & 0x3)) * 18) << 8) -
-  //            ((18 * 4 * 2 - 18 * 2 - 1) << 7);
-  int yoffs = 0; // we do the shift to the MCM center in the tracklet transformer
+  int yoffs = (((((mRobPos & 0x1) << 2) + (mMcmPos & 0x3)) * 18) << 8) -
+              ((18 * 4 * 2 - 18 * 2 - 1) << 7);
+  //int yoffs = 0; // we do the shift to the MCM center in the tracklet transformer
   // TODO we dont need the stuff calculated in fitred.asm because we are now all relative to the mcm ?? check this statement
   LOG(debug) << "padrow:" << padrow << " yoffs:" << yoffs << " and rndAdd:" << rndAdd;
 
@@ -1933,8 +1933,8 @@ void TrapSimulator::fitTracklet()
   yoffs = yoffs << decPlaces; // holds position of ADC channel 1
   int layer = mDetector % 6;
   // we need to scale the offset since we want to store it in units of 1/75 pad and the calculation is done in 1/256 pad width granularity
-  unsigned int scaleY = (unsigned int)(256. / 75 * shift);
-  unsigned int scaleD = (unsigned int)(256. / 1000 * shift); // TODO: is this correct?
+  unsigned int scaleY = (UInt_t)((0.635 + 0.03 * layer) / (256.0 * 160.0e-4) * shift);
+  unsigned int scaleD = (UInt_t)((0.635 + 0.03 * layer) / (256.0 * 140.0e-4) * shift);
   LOG(debug) << "scaleY : " << scaleY << "  scaleD=" << scaleD << " shift:" << std::hex << shift << std::dec;
   int deflCorr = (int)mTrapConfig->getDmemUnsigned(mgkDmemAddrDeflCorr, mDetector, mRobPos, mMcmPos);
   int ndrift = (int)mTrapConfig->getDmemUnsigned(mgkDmemAddrNdrift, mDetector, mRobPos, mMcmPos);
@@ -2006,8 +2006,12 @@ void TrapSimulator::fitTracklet()
       slope = -slope;
       temp = mult * position;
       position = temp >> 32; // take the upper 32 bits
+
+      position += yoffs;
+
       LOG(debug) << "slope = " << slope;
       //slope = slope;//this is here as a reference for what was done in run2 //* ndrift) >> ndriftDp) + deflCorr;
+      slope = ((slope * ndrift) >> ndriftDp) + deflCorr;
       auto oldpos = position;
       LOG(debug) << "position = position - (mFitPtr[cpu] << (8 + decPlaces));";
       position = position - (mFitPtr[cpu] << (8 + decPlaces));
@@ -2063,19 +2067,18 @@ void TrapSimulator::fitTracklet()
       if (rejected && getApplyCut()) {
         mMCMT[cpu] = 0x10001000; //??? FeeParam::getTrackletEndmarker();
       } else {
-        if (slope > 127 || slope < -128) { // wrapping in TRAP!
+        if (slope > 63 || slope < -64) { // wrapping in TRAP!
           LOG(debug) << "Overflow in slope: " << slope << ", tracklet discarded!";
           mMCMT[cpu] = 0x10001000;
           continue;
         }
 
-        slope = slope & 0xff; // 8 bit
+        slope = slope & 0x7f; // 8 bit
 
-
-        if (position > 0x7ff || position < -0x7ff) { // 11 bits.
+        if (position > 0xfff || position < -0xfff) { // 11 bits.
           LOG(warning) << "Overflow in position with position of " << position << " in hex 0x" << std::hex << position;
         }
-        position = position & 0x7ff; // 11 bits
+        position = position & 0x1fff; // 11 bits
 
         // assemble and store the tracklet word
         TrackletMCMData trackletword;

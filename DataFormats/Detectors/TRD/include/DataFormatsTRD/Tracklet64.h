@@ -128,9 +128,9 @@ class Tracklet64
   static constexpr uint64_t formatmask = 0xf000000000000000;
   static constexpr uint64_t hcidmask = 0x0ffe000000000000;
   static constexpr uint64_t padrowmask = 0x0001e00000000000;
-  static constexpr uint64_t colmask = 0x0000180000000000;
-  static constexpr uint64_t posmask = 0x000007ff00000000;
-  static constexpr uint64_t slopemask = 0x00000000ff000000;
+  static constexpr uint64_t colmask = 0x0000000000000000;
+  static constexpr uint64_t posmask = 0x00001fff00000000;
+  static constexpr uint64_t slopemask = 0x000000007f000000;
   static constexpr uint64_t Q2mask = 0x0000000000ff0000;
   static constexpr uint64_t Q1mask = 0x000000000000ff00;
   static constexpr uint64_t Q0mask = 0x00000000000000ff;
@@ -139,7 +139,7 @@ class Tracklet64
   static constexpr uint64_t formatbs = 60;
   static constexpr uint64_t hcidbs = 49;
   static constexpr uint64_t padrowbs = 45;
-  static constexpr uint64_t colbs = 43;
+  static constexpr uint64_t colbs = 45;
   static constexpr uint64_t posbs = 32;
   static constexpr uint64_t slopebs = 24;
   static constexpr uint64_t PIDbs = 0;
