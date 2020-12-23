@@ -61,6 +61,8 @@ using namespace GPUCA_NAMESPACE::gpu;
 // O2 track model
 #include "TrackParametrization.cxx"
 #include "TrackParametrizationWithError.cxx"
+#include "Propagator.cxx"
+#include "TrackLTIntegral.cxx"
 
 // Files for GPU dEdx
 #include "GPUdEdx.cxx"
