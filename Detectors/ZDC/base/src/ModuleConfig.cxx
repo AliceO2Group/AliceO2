@@ -14,6 +14,7 @@
 
 using namespace o2::zdc;
 
+//______________________________________________________________________________
 void Module::printCh() const
 {
   printf("Module %d [ChID/FEEID R:T ]", id);
@@ -23,6 +24,7 @@ void Module::printCh() const
   printf("\n");
 }
 
+//______________________________________________________________________________
 void Module::printTrig() const
 {
   printf("Trigger conf %d: ", id);
@@ -37,6 +39,7 @@ void Module::printTrig() const
   printf("\n");
 }
 
+//______________________________________________________________________________
 void Module::print() const
 {
   printCh();
@@ -58,6 +61,7 @@ void ModuleConfig::print() const
   }
 }
 
+//______________________________________________________________________________
 void ModuleConfig::check() const
 {
   for (const auto& md : modules) {
@@ -65,6 +69,7 @@ void ModuleConfig::check() const
   }
 }
 
+//______________________________________________________________________________
 void Module::check() const
 {
   // make sure that the channel has <= 2 triggers
@@ -78,6 +83,7 @@ void Module::check() const
   }
 }
 
+//______________________________________________________________________________
 void Module::setChannel(int slot, int8_t chID, int16_t fID, bool read, bool trig, int tF, int tL, int tS, int tT)
 {
   if (slot < 0 || slot >= MaxChannels || chID < 0 || chID > NChannels) {
