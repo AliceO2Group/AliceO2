@@ -14,8 +14,8 @@ class DumpRaw
  public:
   DumpRaw() = default;
   void init();
-  int process(const EventData ev);
-  int process(const EventChData ch);
+  int process(const EventData &ev);
+  int process(const EventChData &ch);
   int processWord(const UInt_t* word);
   int getHPos(uint32_t board, uint32_t ch);
   void write();
@@ -33,7 +33,6 @@ class DumpRaw
   TH2* mSignal[NDigiChannels] = {0};
   TH2* mBunch[NDigiChannels] = {0};
   EventChData mCh;
-  ClassDefNV(DumpRaw, 1);
 };
 } // namespace zdc
 } // namespace o2
