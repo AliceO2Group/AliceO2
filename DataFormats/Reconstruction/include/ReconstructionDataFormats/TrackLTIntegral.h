@@ -15,7 +15,8 @@
 #ifndef ALICEO2_TRACK_LTINTEGRAL_H_
 #define ALICEO2_TRACK_LTINTEGRAL_H_
 
-#include <Rtypes.h>
+#include "GPUCommonRtypes.h"
+#include "GPUCommonDef.h"
 #include "ReconstructionDataFormats/PID.h"
 #include "ReconstructionDataFormats/Track.h"
 
@@ -27,17 +28,17 @@ namespace track
 class TrackLTIntegral
 {
  public:
-  TrackLTIntegral() = default;
-  TrackLTIntegral(const TrackLTIntegral& stc) = default;
-  ~TrackLTIntegral() = default;
+  GPUdDefault() TrackLTIntegral() = default;
+  GPUdDefault() TrackLTIntegral(const TrackLTIntegral& stc) = default;
+  GPUdDefault() ~TrackLTIntegral() = default;
 
-  static constexpr int getNTOFs() { return o2::track::PID::NIDs; }
+  GPUd() static constexpr int getNTOFs() { return o2::track::PID::NIDs; }
 
-  float getL() const { return mL; }
-  float getX2X0() const { return mX2X0; }
-  float getTOF(int id) const { return mT[id]; }
+  GPUd() float getL() const { return mL; }
+  GPUd() float getX2X0() const { return mX2X0; }
+  GPUd() float getTOF(int id) const { return mT[id]; }
 
-  void clear()
+  GPUd() void clear()
   {
     mL = 0.f;
     mX2X0 = 0.f;
@@ -46,14 +47,14 @@ class TrackLTIntegral
     }
   }
 
-  void addStep(float dL, const TrackPar& track);
-  void addX2X0(float d) { mX2X0 += d; }
+  GPUd() void addStep(float dL, const TrackPar& track);
+  GPUd() void addX2X0(float d) { mX2X0 += d; }
 
-  void setL(float l) { mL = l; }
-  void setX2X0(float x) { mX2X0 = x; }
-  void setTOF(float t, int id) { mT[id] = t; }
+  GPUd() void setL(float l) { mL = l; }
+  GPUd() void setX2X0(float x) { mX2X0 = x; }
+  GPUd() void setTOF(float t, int id) { mT[id] = t; }
 
-  void print() const;
+  GPUd() void print() const;
 
  private:
   float mL = 0.;                         // length in cm
