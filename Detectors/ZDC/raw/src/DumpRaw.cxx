@@ -171,9 +171,9 @@ int DumpRaw::processWord(const UInt_t* word)
   return 0;
 }
 
-int DumpRaw::process(const EventChData &ch)
+int DumpRaw::process(const EventChData& ch)
 {
-  static constexpr int last_bc=o2::constants::lhc::LHCMaxBunches-1;
+  static constexpr int last_bc = o2::constants::lhc::LHCMaxBunches - 1;
   // Not empty event
   auto f = ch.f;
   int ih = getHPos(f.board, f.ch);
@@ -232,7 +232,7 @@ int DumpRaw::process(const EventChData &ch)
   return 0;
 }
 
-int DumpRaw::process(const EventData &ev)
+int DumpRaw::process(const EventData& ev)
 {
   for (Int_t im = 0; im < NModules; im++) {
     for (Int_t ic = 0; ic < NChPerModule; ic++) {
