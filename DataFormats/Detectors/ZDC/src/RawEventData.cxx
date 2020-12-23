@@ -15,6 +15,13 @@ using namespace o2::zdc;
 //ClassImp(EventData);
 
 //______________________________________________________________________________
+void EventChData::reset()
+{
+  static constexpr int payloadSize = NWPerGBTW * sizeof(UInt_t);
+  memset((void*)&w[0][0], 0, payloadSize);
+}
+
+//______________________________________________________________________________
 void EventData::print() const
 {
   for (Int_t im = 0; im < o2::zdc::NModules; im++) {

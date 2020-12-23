@@ -11,3 +11,4 @@
 add_subdirectory(base)
 add_subdirectory(simulation)
 add_subdirectory(macro)
+add_subdirectory(raw)

@@ -471,7 +471,7 @@ void Digitizer::refreshCCDB()
             }
           }
           if (md.feeID[ic] < 0 || md.feeID[ic] >= NLinks) {
-            LOG(ERROR) << "FEEID " << md.feeID[ic] << " not in allowed range [0:" << NLinks << ")";
+            LOG(FATAL) << "FEEID " << md.feeID[ic] << " not in allowed range [0:" << NLinks << ")";
           }
         }
       } else {
