@@ -24,12 +24,14 @@
 // O2
 #include "TRDBase/Digit.h"
 #include "DataFormatsTRD/TriggerRecord.h"
+#include "TRDBase/MCLabel.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 
 // other
 #include <iostream>
 
 #endif
-
 
 using namespace std;
 
@@ -44,6 +46,7 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
 {
   vector<o2::trd::Digit> run3Digits;
   vector<o2::trd::TriggerRecord> triggerRecords;
+  o2::dataformats::MCTruthContainer<o2::trd::MCLabel> mcLabels;
 
   TH1F* hAdc = new TH1F("hADC", "ADC spectrum", 1024, -0.5, 1023.5);
   TH1F* hTBsum = new TH1F("hTBsum", "TBsum", 3000, -0.5, 2999.5);
@@ -242,6 +245,7 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
     std::vector<o2::trd::Digit>* run3pdigits = &run3Digits;
     digitTree->Branch("TRDDigit", &run3pdigits);
     digitTree->Branch("TriggerRecord", &triggerRecords);
+    digitTree->Branch("TRDMCLabels", &mcLabels);
     digitTree->Fill();
     cout << run3Digits.size() << " run3 digits written to: " << run3DigitsOutPath << endl;
     digitTree->Write();
