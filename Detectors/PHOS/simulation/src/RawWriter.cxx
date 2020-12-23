@@ -23,7 +23,7 @@ void RawWriter::init()
 {
   mRawWriter = std::make_unique<o2::raw::RawFileWriter>(o2::header::gDataOriginPHS, false);
   //  mRawWriter->setCarryOverCallBack(this);
-  mRawWriter->setApplyCarryOverToLastPage(false);
+  //  mRawWriter->setApplyCarryOverToLastPage(false);
 
   // initialize mapping
   if (!mMapping) {
@@ -247,7 +247,7 @@ void RawWriter::createRawBunches(short absId, const std::vector<o2::phos::Digit*
   if (isLGFilled) {
     bunchLG.clear();
     currentBunch.mADCs.clear();
-    for (int i = kNPHOSSAMPLES - 1; i--;) {
+    for (int i = kNPHOSSAMPLES; i--;) {
       if (samples[i] > zs * hglgratio) {
         currentBunch.mADCs.emplace_back(std::min(o2::phos::PHOSSimParams::Instance().mMCOverflow, short(samples[i] / hglgratio)));
       } else { //end of sample?
