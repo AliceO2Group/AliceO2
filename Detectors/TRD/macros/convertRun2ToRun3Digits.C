@@ -1,26 +1,36 @@
 #if !defined(__CINT__) || defined(__MAKECINT__)
-#include <TClonesArray.h>
 
+// ROOT
+#include "TClonesArray.h"
+#include "TH1F.h"
+#include "TCanvas.h"
+#include "TFile.h"
+
+// AliRoot
 #include <AliRunLoader.h>
 #include <AliLoader.h>
 #include <AliDataLoader.h>
 #include <AliTreeLoader.h>
 #include <AliTRDarrayADC.h>
-
-#include <iostream>
-
-#include "TH1F.h"
-#include "TRDBase/Digit.h"
-#include "TRDBase/Tracklet.h"
-
 #include <AliRawReaderRoot.h>
 #include <AliRawReaderDateOnline.h>
 #include <AliTRDrawStream.h>
 #include <AliRawReader.h>
+#include <AliTRDdigitsManager.h>
+#include <AliTRDCommonParam.h>
+#include <AliTRDSignalIndex.h>
+#include <AliTRDfeeParam.h>
+
+// O2
+#include "TRDBase/Digit.h"
+#include "DataFormatsTRD/TriggerRecord.h"
+
+// other
+#include <iostream>
+
 #endif
 
-using namespace o2;
-using namespace trd;
+
 using namespace std;
 
 // qa.root
@@ -97,7 +107,7 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
         int row, col;
         while (idx->NextRCIndex(row, col)) {
           int tbsum = 0;
-          ArrayADC adctimes;
+          o2::trd::ArrayADC adctimes;
           for (int timebin = 0; timebin < digitMan->GetDigits(det)->GetNtime(); timebin++) {
             int adc = digitMan->GetDigits(det)->GetData(row, col, timebin);
             hAdc->Fill(adc);
@@ -169,7 +179,7 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
         for (int row = 0; row < nrows; row++) {
           for (int col = 0; col < AliTRDfeeParam::GetNcol(); col++) {
             int tbsum = 0;
-            ArrayADC adctimes;
+            o2::trd::ArrayADC adctimes;
 
             for (int timebin = 0; timebin < digitMan->GetDigits(det)->GetNtime(); timebin++) {
 
