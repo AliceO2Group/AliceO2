@@ -10,22 +10,27 @@
 
 #include "ReconstructionDataFormats/TrackLTIntegral.h"
 #include "CommonConstants/PhysicsConstants.h"
+
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <cmath>
+#endif
 
 using namespace o2::track;
 
 //_____________________________________________________
-void TrackLTIntegral::print() const
+GPUd() void TrackLTIntegral::print() const
 {
+#ifndef GPUCA_GPUCODE_DEVICE
   printf("L(cm): %6.2f, X2X0: %5.3f TOF(ps): ", getL(), getX2X0());
   for (int i = 0; i < getNTOFs(); i++) {
     printf(" %7.1f |", getTOF(i));
   }
   printf("\n");
+#endif
 }
 
 //_____________________________________________________
-void TrackLTIntegral::addStep(float dL, const TrackPar& track)
+GPUd() void TrackLTIntegral::addStep(float dL, const TrackPar& track)
 {
   ///< add step in cm to integrals
   mL += dL;

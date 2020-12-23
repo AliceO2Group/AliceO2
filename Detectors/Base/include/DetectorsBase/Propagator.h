@@ -15,12 +15,17 @@
 #ifndef ALICEO2_BASE_PROPAGATOR_
 #define ALICEO2_BASE_PROPAGATOR_
 
-#include <string>
+#include "GPUCommonRtypes.h"
+#include "GPUCommonArray.h"
 #include "CommonConstants/PhysicsConstants.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/DCA.h"
 #include "ReconstructionDataFormats/TrackLTIntegral.h"
 #include "DetectorsBase/MatLayerCylSet.h"
+
+#ifndef GPUCA_GPUCODE
+#include <string>
+#endif
 
 namespace o2
 {
@@ -50,50 +55,44 @@ class Propagator
     USEMatCorrLUT
   }; // flag to use LUT for material queries (user must provide a pointer
 
-  static Propagator* Instance()
-  {
-    static Propagator instance;
-    return &instance;
-  }
-
   static constexpr float MAX_SIN_PHI = 0.85f;
   static constexpr float MAX_STEP = 2.0f;
 
-  bool PropagateToXBxByBz(o2::track::TrackParCov& track, float x,
-                          float maxSnp = MAX_SIN_PHI, float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
-                          o2::track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
+  GPUd() bool PropagateToXBxByBz(o2::track::TrackParCov& track, float x,
+                                 float maxSnp = MAX_SIN_PHI, float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
+                                 o2::track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
 
-  bool PropagateToXBxByBz(o2::track::TrackPar& track, float x,
-                          float maxSnp = MAX_SIN_PHI, float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
-                          o2::track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
+  GPUd() bool PropagateToXBxByBz(o2::track::TrackPar& track, float x,
+                                 float maxSnp = MAX_SIN_PHI, float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
+                                 o2::track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
 
-  bool propagateToX(o2::track::TrackParCov& track, float x, float bZ,
-                    float maxSnp = MAX_SIN_PHI, float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
-                    o2::track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
+  GPUd() bool propagateToX(o2::track::TrackParCov& track, float x, float bZ,
+                           float maxSnp = MAX_SIN_PHI, float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
+                           o2::track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
 
-  bool propagateToX(o2::track::TrackPar& track, float x, float bZ,
-                    float maxSnp = MAX_SIN_PHI, float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
-                    o2::track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
+  GPUd() bool propagateToX(o2::track::TrackPar& track, float x, float bZ,
+                           float maxSnp = MAX_SIN_PHI, float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
+                           o2::track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
 
-  bool propagateToDCA(const o2::dataformats::VertexBase& vtx, o2::track::TrackParCov& track, float bZ,
-                      float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
-                      o2::dataformats::DCA* dcaInfo = nullptr, o2::track::TrackLTIntegral* tofInfo = nullptr,
-                      int signCorr = 0, float maxD = 999.f) const;
+  GPUd() bool propagateToDCA(const o2::dataformats::VertexBase& vtx, o2::track::TrackParCov& track, float bZ,
+                             float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
+                             o2::dataformats::DCA* dcaInfo = nullptr, o2::track::TrackLTIntegral* tofInfo = nullptr,
+                             int signCorr = 0, float maxD = 999.f) const;
 
-  bool propagateToDCABxByBz(const o2::dataformats::VertexBase& vtx, o2::track::TrackParCov& track,
-                            float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
-                            o2::dataformats::DCA* dcaInfo = nullptr, o2::track::TrackLTIntegral* tofInfo = nullptr,
-                            int signCorr = 0, float maxD = 999.f) const;
+  GPUd() bool propagateToDCABxByBz(const o2::dataformats::VertexBase& vtx, o2::track::TrackParCov& track,
+                                   float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
+                                   o2::dataformats::DCA* dcaInfo = nullptr, o2::track::TrackLTIntegral* tofInfo = nullptr,
+                                   int signCorr = 0, float maxD = 999.f) const;
 
-  bool propagateToDCA(const o2::math_utils::Point3D<float>& vtx, o2::track::TrackPar& track, float bZ,
-                      float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
-                      std::array<float, 2>* dca = nullptr, o2::track::TrackLTIntegral* tofInfo = nullptr,
-                      int signCorr = 0, float maxD = 999.f) const;
+  GPUd() bool propagateToDCA(const o2::math_utils::Point3D<float>& vtx, o2::track::TrackPar& track, float bZ,
+                             float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
+                             gpu::gpustd::array<float, 2>* dca = nullptr, o2::track::TrackLTIntegral* tofInfo = nullptr,
+                             int signCorr = 0, float maxD = 999.f) const;
 
-  bool propagateToDCABxByBz(const o2::math_utils::Point3D<float>& vtx, o2::track::TrackPar& track,
-                            float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
-                            std::array<float, 2>* dca = nullptr, o2::track::TrackLTIntegral* tofInfo = nullptr,
-                            int signCorr = 0, float maxD = 999.f) const;
+  GPUd() bool propagateToDCABxByBz(const o2::math_utils::Point3D<float>& vtx, o2::track::TrackPar& track,
+                                   float maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrTGeo,
+                                   gpu::gpustd::array<float, 2>* dca = nullptr, o2::track::TrackLTIntegral* tofInfo = nullptr,
+                                   int signCorr = 0, float maxD = 999.f) const;
 
   Propagator(Propagator const&) = delete;
   Propagator(Propagator&&) = delete;
@@ -101,19 +100,29 @@ class Propagator
   Propagator& operator=(Propagator&&) = delete;
 
   // Bz at the origin
-  float getNominalBz() const { return mBz; }
+  GPUd() float getNominalBz() const { return mBz; }
 
-  void setMatLUT(const o2::base::MatLayerCylSet* lut) { mMatLUT = lut; }
-  const o2::base::MatLayerCylSet* getMatLUT() const { return mMatLUT; }
+  GPUd() void setMatLUT(const o2::base::MatLayerCylSet* lut) { mMatLUT = lut; }
+  GPUd() const o2::base::MatLayerCylSet* getMatLUT() const { return mMatLUT; }
+
+#ifndef GPUCA_GPUCODE
+  static Propagator* Instance()
+  {
+    static Propagator instance;
+    return &instance;
+  }
 
   static int initFieldFromGRP(const o2::parameters::GRPObject* grp, bool verbose = false);
   static int initFieldFromGRP(const std::string grpFileName, std::string grpName = "GRP", bool verbose = false);
+#endif
 
  private:
+#ifndef GPUCA_GPUCODE
   Propagator();
   ~Propagator() = default;
+#endif
 
-  MatBudget getMatBudget(MatCorrType corrType, const o2::math_utils::Point3D<float>& p0, const o2::math_utils::Point3D<float>& p1) const;
+  GPUd() MatBudget getMatBudget(MatCorrType corrType, const o2::math_utils::Point3D<float>& p0, const o2::math_utils::Point3D<float>& p1) const;
 
   const o2::field::MagFieldFast* mField = nullptr; ///< External fast field (barrel only for the moment)
   float mBz = 0;                                   // nominal field
