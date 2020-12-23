@@ -96,8 +96,8 @@ int Propagator::initFieldFromGRP(const o2::parameters::GRPObject* grp, bool verb
 #endif
 
 //_______________________________________________________________________
-bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, float maxSnp, float maxStep,
-                                    Propagator::MatCorrType matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr) const
+GPUd() bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, float maxSnp, float maxStep,
+                                           Propagator::MatCorrType matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr) const
 {
   //----------------------------------------------------------------
   //
@@ -117,7 +117,7 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, 
     signCorr = -dir; // sign of eloss correction is not imposed
   }
 
-  std::array<float, 3> b;
+  gpu::gpustd::array<float, 3> b;
   while (std::abs(dx) > Epsilon) {
     auto step = std::min(std::abs(dx), maxStep);
     if (dir < 0) {
@@ -125,7 +125,7 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, 
     }
     auto x = track.getX() + step;
     auto xyz0 = track.getXYZGlo();
-    mField->Field(xyz0, b.data());
+    mField->Field(xyz0, &b[0]);
 
     if (!track.propagateTo(x, b)) {
       return false;
@@ -155,8 +155,8 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, 
 }
 
 //_______________________________________________________________________
-bool Propagator::PropagateToXBxByBz(o2::track::TrackPar& track, float xToGo, float maxSnp, float maxStep,
-                                    Propagator::MatCorrType matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr) const
+GPUd() bool Propagator::PropagateToXBxByBz(o2::track::TrackPar& track, float xToGo, float maxSnp, float maxStep,
+                                           Propagator::MatCorrType matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr) const
 {
   //----------------------------------------------------------------
   //
@@ -176,7 +176,7 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackPar& track, float xToGo, flo
     signCorr = -dir; // sign of eloss correction is not imposed
   }
 
-  std::array<float, 3> b;
+  gpu::gpustd::array<float, 3> b;
   while (std::abs(dx) > Epsilon) {
     auto step = std::min(std::abs(dx), maxStep);
     if (dir < 0) {
@@ -184,7 +184,7 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackPar& track, float xToGo, flo
     }
     auto x = track.getX() + step;
     auto xyz0 = track.getXYZGlo();
-    mField->Field(xyz0, b.data());
+    mField->Field(xyz0, &b[0]);
 
     if (!track.propagateParamTo(x, b)) {
       return false;
@@ -213,8 +213,8 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackPar& track, float xToGo, flo
 }
 
 //_______________________________________________________________________
-bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float bZ, float maxSnp, float maxStep,
-                              Propagator::MatCorrType matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr) const
+GPUd() bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float bZ, float maxSnp, float maxStep,
+                                     Propagator::MatCorrType matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr) const
 {
   //----------------------------------------------------------------
   //
@@ -271,8 +271,8 @@ bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float 
 }
 
 //_______________________________________________________________________
-bool Propagator::propagateToX(o2::track::TrackPar& track, float xToGo, float bZ, float maxSnp, float maxStep,
-                              Propagator::MatCorrType matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr) const
+GPUd() bool Propagator::propagateToX(o2::track::TrackPar& track, float xToGo, float bZ, float maxSnp, float maxStep,
+                                     Propagator::MatCorrType matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr) const
 {
   //----------------------------------------------------------------
   //
@@ -329,10 +329,10 @@ bool Propagator::propagateToX(o2::track::TrackPar& track, float xToGo, float bZ,
 }
 
 //_______________________________________________________________________
-bool Propagator::propagateToDCA(const o2::dataformats::VertexBase& vtx, o2::track::TrackParCov& track, float bZ,
-                                float maxStep, Propagator::MatCorrType matCorr,
-                                o2::dataformats::DCA* dca, o2::track::TrackLTIntegral* tofInfo,
-                                int signCorr, float maxD) const
+GPUd() bool Propagator::propagateToDCA(const o2::dataformats::VertexBase& vtx, o2::track::TrackParCov& track, float bZ,
+                                       float maxStep, Propagator::MatCorrType matCorr,
+                                       o2::dataformats::DCA* dca, o2::track::TrackLTIntegral* tofInfo,
+                                       int signCorr, float maxD) const
 {
   // propagate track to DCA to the vertex
   float sn, cs, alp = track.getAlpha();
@@ -374,10 +374,10 @@ bool Propagator::propagateToDCA(const o2::dataformats::VertexBase& vtx, o2::trac
 }
 
 //_______________________________________________________________________
-bool Propagator::propagateToDCABxByBz(const o2::dataformats::VertexBase& vtx, o2::track::TrackParCov& track,
-                                      float maxStep, Propagator::MatCorrType matCorr,
-                                      o2::dataformats::DCA* dca, o2::track::TrackLTIntegral* tofInfo,
-                                      int signCorr, float maxD) const
+GPUd() bool Propagator::propagateToDCABxByBz(const o2::dataformats::VertexBase& vtx, o2::track::TrackParCov& track,
+                                             float maxStep, Propagator::MatCorrType matCorr,
+                                             o2::dataformats::DCA* dca, o2::track::TrackLTIntegral* tofInfo,
+                                             int signCorr, float maxD) const
 {
   // propagate track to DCA to the vertex
   float sn, cs, alp = track.getAlpha();
@@ -419,10 +419,10 @@ bool Propagator::propagateToDCABxByBz(const o2::dataformats::VertexBase& vtx, o2
 }
 
 //_______________________________________________________________________
-bool Propagator::propagateToDCA(const math_utils::Point3D<float>& vtx, o2::track::TrackPar& track, float bZ,
-                                float maxStep, Propagator::MatCorrType matCorr,
-                                std::array<float, 2>* dca, o2::track::TrackLTIntegral* tofInfo,
-                                int signCorr, float maxD) const
+GPUd() bool Propagator::propagateToDCA(const math_utils::Point3D<float>& vtx, o2::track::TrackPar& track, float bZ,
+                                       float maxStep, Propagator::MatCorrType matCorr,
+                                       gpu::gpustd::array<float, 2>* dca, o2::track::TrackLTIntegral* tofInfo,
+                                       int signCorr, float maxD) const
 {
   // propagate track to DCA to the vertex
   float sn, cs, alp = track.getAlpha();
@@ -463,10 +463,10 @@ bool Propagator::propagateToDCA(const math_utils::Point3D<float>& vtx, o2::track
 }
 
 //_______________________________________________________________________
-bool Propagator::propagateToDCABxByBz(const math_utils::Point3D<float>& vtx, o2::track::TrackPar& track,
-                                      float maxStep, Propagator::MatCorrType matCorr,
-                                      std::array<float, 2>* dca, o2::track::TrackLTIntegral* tofInfo,
-                                      int signCorr, float maxD) const
+GPUd() bool Propagator::propagateToDCABxByBz(const math_utils::Point3D<float>& vtx, o2::track::TrackPar& track,
+                                             float maxStep, Propagator::MatCorrType matCorr,
+                                             gpu::gpustd::array<float, 2>* dca, o2::track::TrackLTIntegral* tofInfo,
+                                             int signCorr, float maxD) const
 {
   // propagate track to DCA to the vertex
   float sn, cs, alp = track.getAlpha();
@@ -507,7 +507,7 @@ bool Propagator::propagateToDCABxByBz(const math_utils::Point3D<float>& vtx, o2:
 }
 
 //____________________________________________________________
-MatBudget Propagator::getMatBudget(Propagator::MatCorrType corrType, const math_utils::Point3D<float>& p0, const math_utils::Point3D<float>& p1) const
+GPUd() MatBudget Propagator::getMatBudget(Propagator::MatCorrType corrType, const math_utils::Point3D<float>& p0, const math_utils::Point3D<float>& p1) const
 {
 #ifndef GPUCA_STANDALONE
   if (corrType == MatCorrType::USEMatCorrTGeo) {
