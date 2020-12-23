@@ -1603,10 +1603,10 @@ void TrapSimulator::calcFitreg()
     fitreg.ClearReg();
   }
 
-  //  mFitReg.clear();
   for (int i = 0; i < mNHits; i++) {
     mHits[i].ClearHits(); // do it this way as we dont want to zero 150 members if we only used 3 ....
   }
+  mNHits = 0;
 
   for (timebin = timebin1; timebin < timebin2; timebin++) {
     // first find the hit candidates and store the total cluster charge in qTotal array
@@ -1663,7 +1663,6 @@ void TrapSimulator::calcFitreg()
     marked[4] = 19; // invalid channel
     marked[5] = 19; // invalid channel
     qTotal[19] = 0;
-    int loopcount = 0;
     while ((adcch < 16) && (found < 3)) {
       if (qTotal[adcch] > 0) {
         fromLeft = adcch;
@@ -1772,11 +1771,9 @@ void TrapSimulator::calcFitreg()
         LOG(debug) << "ypos before lut correction : " << ypos;
         ypos = ypos + mTrapConfig->getTrapReg((TrapConfig::TrapReg_t)(TrapConfig::kTPL00 + (ypos & 0x7F)),
                                               mDetector, mRobPos, mMcmPos);
+        LOG(debug) << "ypos after lut correction : " << ypos;
         if (adcLeft > adcRight) {
-          LOG(debug) << "ypos after lut correction : " << ypos;
-          if (adcLeft > adcRight) {
-            ypos = -ypos;
-          }
+          ypos = -ypos;
         }
         /*   TODO this is left in here as a ref for what was done with labels, its stored externally now figure something out.
                 */
@@ -1808,8 +1805,8 @@ void TrapSimulator::trackletSelection()
   // and assign them to the CPUs.
   LOG(debug) << "ENTERING : " << __FILE__ << ":" << __func__ << ":" << __LINE__ << " :: " << getDetector() << ":" << getRobPos() << ":" << getMcmPos();
   unsigned short adcIdx, i, j, ntracks, tmp;
-  std::array<unsigned short, 18> trackletCandch{};   // store the adcch[0] and number of hits[1] for all tracklet candidates
-  std::array<unsigned short, 18> trackletCandhits{}; // store the adcch[0] and number of hits[1] for all tracklet candidates
+  std::array<unsigned short, 18> trackletCandch{};   // store the adcch for all tracklet candidates
+  std::array<unsigned short, 18> trackletCandhits{}; // store the number of hits for all tracklet candidates
 
   ntracks = 0;
   for (adcIdx = 0; adcIdx < 18; adcIdx++) { // ADCs
