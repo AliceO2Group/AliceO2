@@ -14,7 +14,7 @@
 #ifndef GPUTPCGMPOLYNOMIALFIELD_H
 #define GPUTPCGMPOLYNOMIALFIELD_H
 
-#include "GPUTPCDef.h"
+#include "GPUCommonDef.h"
 
 namespace GPUCA_NAMESPACE
 {
