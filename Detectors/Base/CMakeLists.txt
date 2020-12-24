@@ -16,7 +16,7 @@ o2_add_library(DetectorsBase
                        src/MatLayerCyl.cxx
                        src/MatLayerCylSet.cxx
                        src/Ray.cxx
-		       src/DCAFitter.cxx
+                       src/DCAFitter.cxx
                        src/BaseDPLDigitizer.cxx
                        src/CTFCoderBase.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
@@ -29,8 +29,10 @@ o2_add_library(DetectorsBase
                                      O2::Framework
                                      FairMQ::FairMQ
                                      O2::DataFormatsParameters
-				     O2::SimConfig
-                                     ROOT::VMC)
+                                     O2::SimConfig
+                                     ROOT::VMC
+               PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger # Must not link to avoid cyclic dependency
+                             )
 
 o2_target_root_dictionary(DetectorsBase
                           HEADERS include/DetectorsBase/Detector.h

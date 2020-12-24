@@ -44,6 +44,11 @@ namespace field
 class MagFieldFast;
 }
 
+namespace gpu
+{
+class GPUTPCGMPolynomialField;
+}
+
 namespace base
 {
 class Propagator
@@ -104,6 +109,8 @@ class Propagator
 
   GPUd() void setMatLUT(const o2::base::MatLayerCylSet* lut) { mMatLUT = lut; }
   GPUd() const o2::base::MatLayerCylSet* getMatLUT() const { return mMatLUT; }
+  GPUd() void setGPUField(const o2::gpu::GPUTPCGMPolynomialField* field) { mGPUField = field; }
+  GPUd() const o2::gpu::GPUTPCGMPolynomialField* getGPUField() const { return mGPUField; }
 
 #ifndef GPUCA_GPUCODE
   static Propagator* Instance()
@@ -123,11 +130,13 @@ class Propagator
 #endif
 
   GPUd() MatBudget getMatBudget(MatCorrType corrType, const o2::math_utils::Point3D<float>& p0, const o2::math_utils::Point3D<float>& p1) const;
+  GPUd() void getFiedXYZ(const math_utils::Point3D<float> xyz, float* bxyz) const;
 
   const o2::field::MagFieldFast* mField = nullptr; ///< External fast field (barrel only for the moment)
   float mBz = 0;                                   // nominal field
 
-  const o2::base::MatLayerCylSet* mMatLUT = nullptr; // externally set LUT
+  const o2::base::MatLayerCylSet* mMatLUT = nullptr;           // externally set LUT
+  const o2::gpu::GPUTPCGMPolynomialField* mGPUField = nullptr; // externally set GPU Field
 
   ClassDef(Propagator, 0);
 };
