@@ -10,12 +10,10 @@
 
 #include "ReconstructionDataFormats/TrackLTIntegral.h"
 #include "CommonConstants/PhysicsConstants.h"
-
-#ifndef GPUCA_GPUCODE_DEVICE
-#include <cmath>
-#endif
+#include "GPUCommonMath.h"
 
 using namespace o2::track;
+using namespace o2::gpu;
 
 //_____________________________________________________
 GPUd() void TrackLTIntegral::print() const
@@ -38,7 +36,7 @@ GPUd() void TrackLTIntegral::addStep(float dL, const TrackPar& track)
   float dTns = dL * 1000.f / o2::constants::physics::LightSpeedCm2NS; // time change in ps for beta = 1 particle
   for (int id = 0; id < getNTOFs(); id++) {
     float m2z = o2::track::PID::getMass2Z(id);
-    float betaInv = std::sqrt(1.f + m2z * m2z * p2);
+    float betaInv = CAMath::Sqrt(1.f + m2z * m2z * p2);
     mT[id] += dTns * betaInv;
   }
 }
