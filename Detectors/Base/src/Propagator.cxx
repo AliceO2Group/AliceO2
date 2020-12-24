@@ -10,13 +10,17 @@
 
 #include "DetectorsBase/Propagator.h"
 #include "GPUCommonLogger.h"
-#include "Field/MagFieldFast.h"
+#include "GPUTPCGMPolynomialField.h"
 #include "MathUtils/Utils.h"
 #include "ReconstructionDataFormats/Vertex.h"
 
 using namespace o2::base;
 
-#ifndef GPUCA_STANDALONE
+#if !defined(GPUCA_GPUCODE)
+#include "Field/MagFieldFast.h" // Don't use this on the GPU
+#endif
+
+#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 #include "Field/MagneticField.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -125,7 +129,7 @@ GPUd() bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float 
     }
     auto x = track.getX() + step;
     auto xyz0 = track.getXYZGlo();
-    mField->Field(xyz0, &b[0]);
+    getFiedXYZ(xyz0, &b[0]);
 
     if (!track.propagateTo(x, b)) {
       return false;
@@ -184,7 +188,7 @@ GPUd() bool Propagator::PropagateToXBxByBz(o2::track::TrackPar& track, float xTo
     }
     auto x = track.getX() + step;
     auto xyz0 = track.getXYZGlo();
-    mField->Field(xyz0, &b[0]);
+    getFiedXYZ(xyz0, &b[0]);
 
     if (!track.propagateParamTo(x, b)) {
       return false;
@@ -515,4 +519,20 @@ GPUd() MatBudget Propagator::getMatBudget(Propagator::MatCorrType corrType, cons
   }
 #endif
   return mMatLUT->getMatBudget(p0.X(), p0.Y(), p0.Z(), p1.X(), p1.Y(), p1.Z());
+}
+
+GPUd() void Propagator::getFiedXYZ(const math_utils::Point3D<float> xyz, float* bxyz) const
+{
+  if (mGPUField) {
+#if defined(GPUCA_GPUCODE_DEVICE) && defined(GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM)
+    const auto* f = &GPUCA_CONSMEM.param.polynomialField; // Access directly from constant memory on GPU (copied here to avoid complicated header dependencies)
+#else
+    const auto* f = mGPUField;
+#endif
+    f->GetField(xyz.X(), xyz.Y(), xyz.Z(), bxyz);
+  } else {
+#ifndef GPUCA_GPUCODE
+    mField->Field(xyz, bxyz); // Must not call the host-only function in GPU compilation
+#endif
+  }
 }
