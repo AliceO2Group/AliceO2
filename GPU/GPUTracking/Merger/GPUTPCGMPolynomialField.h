@@ -44,13 +44,13 @@ class GPUTPCGMPolynomialField
 
   GPUdi() float GetNominalBz() const { return mNominalBz; }
 
-  GPUd() void GetField(float x, float y, float z, float B[3]) const;
+  GPUd() void GetField(float x, float y, float z, float* B) const;
   GPUd() float GetFieldBz(float x, float y, float z) const;
 
-  GPUd() void GetFieldTrd(float x, float y, float z, float B[3]) const;
+  GPUd() void GetFieldTrd(float x, float y, float z, float* B) const;
   GPUd() float GetFieldTrdBz(float x, float y, float z) const;
 
-  GPUd() void GetFieldIts(float x, float y, float z, float B[3]) const;
+  GPUd() void GetFieldIts(float x, float y, float z, float* B) const;
   GPUd() float GetFieldItsBz(float x, float y, float z) const;
 
   void Print() const;
@@ -164,7 +164,7 @@ GPUdi() void GPUTPCGMPolynomialField::GetPolynomsTpc(float x, float y, float z, 
   f[9] = z * z;
 }
 
-GPUdi() void GPUTPCGMPolynomialField::GetField(float x, float y, float z, float B[3]) const
+GPUdi() void GPUTPCGMPolynomialField::GetField(float x, float y, float z, float* B) const
 {
   const float* fBxS = &mTpcBx[1];
   const float* fByS = &mTpcBy[1];
@@ -220,7 +220,7 @@ GPUdi() void GPUTPCGMPolynomialField::GetPolynomsTrd(float x, float y, float z, 
   f[19] = z * zz;
 }
 
-GPUdi() void GPUTPCGMPolynomialField::GetFieldTrd(float x, float y, float z, float B[3]) const
+GPUdi() void GPUTPCGMPolynomialField::GetFieldTrd(float x, float y, float z, float* B) const
 {
   float f[NTRDM];
   GetPolynomsTrd(x, y, z, f);
@@ -266,7 +266,7 @@ GPUdi() void GPUTPCGMPolynomialField::GetPolynomsIts(float x, float y, float z, 
    */
 }
 
-GPUdi() void GPUTPCGMPolynomialField::GetFieldIts(float x, float y, float z, float B[3]) const
+GPUdi() void GPUTPCGMPolynomialField::GetFieldIts(float x, float y, float z, float* B) const
 {
   const float* fBxS = &mItsBx[1];
   const float* fByS = &mItsBy[1];
