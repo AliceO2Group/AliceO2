@@ -34,6 +34,8 @@ class MCEventLabel
   static constexpr uint32_t MaskEvID = (0x1 << nbitsEvID) - 1;
   // Mask to extract MC source ID
   static constexpr uint32_t MaskSrcID = (0x1 << nbitsSrcID) - 1;
+  // Mask to extract MC source and event ID only
+  static constexpr uint32_t MaskSrcEvID = MaskSrcID | MaskEvID;
   // Mask to extract MC correct contribution weight
   static constexpr uint32_t MaskCorrW = (0x1 << nbitsCorrW) - 1;
   static constexpr float WeightNorm = 1. / float(MaskCorrW);
@@ -53,7 +55,7 @@ class MCEventLabel
   uint32_t getRawValue() const { return mLabel; }
 
   // get only combined identifier, discarding weight info
-  uint32_t getIDOnly() const { return mLabel & (0x1 << (nbitsEvID + nbitsSrcID)); }
+  uint32_t getIDOnly() const { return mLabel & MaskSrcEvID; }
 
   // compare
   bool compare(const MCEventLabel& other, bool strict = false) const
