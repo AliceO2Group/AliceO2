@@ -45,7 +45,7 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
 
   if (!mCalibParams) {
     if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-      mCalibParams = new CalibParams(1); // test default calibration
+      mCalibParams = std::make_unique<CalibParams>(1); // test default calibration
       LOG(INFO) << "[RawToCellConverterSpec] No reading calibration from ccdb requested, set default";
     } else {
       LOG(INFO) << "[RawToCellConverterSpec] getting calibration object from ccdb";
@@ -57,7 +57,7 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
       // if(tr!=triggerbranch.end()){
       //   eventTime = (*tr).getBCData().getTimeNS() ;
       // }
-      mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, eventTime);
+      // mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, eventTime);
       if (!mCalibParams) {
         LOG(FATAL) << "[RawToCellConverterSpec] can not get calibration object from ccdb";
       }

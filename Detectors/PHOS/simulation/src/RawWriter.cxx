@@ -27,7 +27,7 @@ void RawWriter::init()
 
   // initialize mapping
   if (!mMapping) {
-    mMapping = new o2::phos::Mapping();
+    mMapping = std::make_unique<o2::phos::Mapping>();
     if (!mMapping) {
       LOG(ERROR) << "Failed to initialize mapping";
     }
@@ -63,7 +63,7 @@ void RawWriter::digitsToRaw(gsl::span<o2::phos::Digit> digitsbranch, gsl::span<o
 {
   if (!mCalibParams) {
     if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-      mCalibParams = new CalibParams(1); // test default calibration
+      mCalibParams = std::make_unique<CalibParams>(1); // test default calibration
       LOG(INFO) << "[RawWriter] No reading calibration from ccdb requested, set default";
     } else {
       LOG(INFO) << "[RawWriter] getting calibration object from ccdb";
@@ -75,7 +75,7 @@ void RawWriter::digitsToRaw(gsl::span<o2::phos::Digit> digitsbranch, gsl::span<o
       // if(tr!=triggerbranch.end()){
       //   eventTime = (*tr).getBCData().getTimeNS() ;
       // }
-      mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, eventTime);
+      // mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, eventTime);
       if (!mCalibParams) {
         LOG(FATAL) << "[RawWriter] can not get calibration object from ccdb";
       }
