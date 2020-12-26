@@ -7,19 +7,19 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "Framework/FrameworkGUIDebugger.h"
+#include "FrameworkGUIDebugger.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "DebugGUI/imgui.h"
 #include "DebugGUI/implot.h"
 #include "DebugGUI/imgui_extras.h"
-#include "DriverControl.cxx"
-#include "DriverInfo.cxx"
+#include "Framework/DriverControl.h"
+#include "Framework/DriverInfo.h"
 #include "FrameworkGUIDeviceInspector.h"
-#include "Framework/FrameworkGUIDevicesGraph.h"
-#include "Framework/FrameworkGUIDataRelayerUsage.h"
-#include "Framework/PaletteHelpers.h"
-#include "Framework/FrameworkGUIState.h"
+#include "FrameworkGUIDevicesGraph.h"
+#include "FrameworkGUIDataRelayerUsage.h"
+#include "PaletteHelpers.h"
+#include "FrameworkGUIState.h"
 
 #include <fmt/format.h>
 
