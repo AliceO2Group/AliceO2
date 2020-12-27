@@ -11,6 +11,7 @@
 #ifndef ALICEO2_TPC_TRACKTPC
 #define ALICEO2_TPC_TRACKTPC
 
+#include "GPUCommonDef.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "DataFormatsTPC/ClusterNative.h"
@@ -40,42 +41,42 @@ class TrackTPC : public o2::track::TrackParCov
   using o2::track::TrackParCov::TrackParCov; // inherit
 
   /// Default constructor
-  TrackTPC() = default;
+  GPUdDefault() TrackTPC() = default;
 
   /// Destructor
-  ~TrackTPC() = default;
+  GPUdDefault() ~TrackTPC() = default;
 
-  unsigned short getFlags() const { return mFlags; }
-  unsigned short getClustersSideInfo() const { return mFlags & HasBothSidesClusters; }
-  bool hasASideClusters() const { return mFlags & HasASideClusters; }
-  bool hasCSideClusters() const { return mFlags & HasCSideClusters; }
-  bool hasBothSidesClusters() const { return (mFlags & (HasASideClusters | HasCSideClusters)) == (HasASideClusters | HasCSideClusters); }
-  bool hasASideClustersOnly() const { return (mFlags & HasBothSidesClusters) == HasASideClusters; }
-  bool hasCSideClustersOnly() const { return (mFlags & HasBothSidesClusters) == HasCSideClusters; }
+  GPUd() unsigned short getFlags() const { return mFlags; }
+  GPUd() unsigned short getClustersSideInfo() const { return mFlags & HasBothSidesClusters; }
+  GPUd() bool hasASideClusters() const { return mFlags & HasASideClusters; }
+  GPUd() bool hasCSideClusters() const { return mFlags & HasCSideClusters; }
+  GPUd() bool hasBothSidesClusters() const { return (mFlags & (HasASideClusters | HasCSideClusters)) == (HasASideClusters | HasCSideClusters); }
+  GPUd() bool hasASideClustersOnly() const { return (mFlags & HasBothSidesClusters) == HasASideClusters; }
+  GPUd() bool hasCSideClustersOnly() const { return (mFlags & HasBothSidesClusters) == HasCSideClusters; }
 
-  void setHasASideClusters() { mFlags |= HasASideClusters; }
-  void setHasCSideClusters() { mFlags |= HasCSideClusters; }
+  GPUd() void setHasASideClusters() { mFlags |= HasASideClusters; }
+  GPUd() void setHasCSideClusters() { mFlags |= HasCSideClusters; }
 
-  float getTime0() const { return mTime0; }         ///< Reference time of the track, i.e. t-bins of a primary track with eta=0.
-  float getDeltaTBwd() const { return mDeltaTBwd; } ///< max possible decrement to getTimeVertex
-  float getDeltaTFwd() const { return mDeltaTFwd; } ///< max possible increment to getTimeVertex
-  void setDeltaTBwd(float t) { mDeltaTBwd = t; }    ///< set max possible decrement to getTimeVertex
-  void setDeltaTFwd(float t) { mDeltaTFwd = t; }    ///< set max possible increment to getTimeVertex
+  GPUd() float getTime0() const { return mTime0; }         ///< Reference time of the track, i.e. t-bins of a primary track with eta=0.
+  GPUd() float getDeltaTBwd() const { return mDeltaTBwd; } ///< max possible decrement to getTimeVertex
+  GPUd() float getDeltaTFwd() const { return mDeltaTFwd; } ///< max possible increment to getTimeVertex
+  GPUd() void setDeltaTBwd(float t) { mDeltaTBwd = t; }    ///< set max possible decrement to getTimeVertex
+  GPUd() void setDeltaTFwd(float t) { mDeltaTFwd = t; }    ///< set max possible increment to getTimeVertex
 
-  float getChi2() const { return mChi2; }
-  const o2::track::TrackParCov& getOuterParam() const { return mOuterParam; }
-  void setTime0(float v) { mTime0 = v; }
-  void setChi2(float v) { mChi2 = v; }
-  void setOuterParam(o2::track::TrackParCov&& v) { mOuterParam = v; }
-  const ClusRef& getClusterRef() const { return mClustersReference; }
-  void shiftFirstClusterRef(int dif) { mClustersReference.setFirstEntry(dif + mClustersReference.getFirstEntry()); }
-  int getNClusters() const { return mClustersReference.getEntries(); }
-  int getNClusterReferences() const { return getNClusters(); }
-  void setClusterRef(uint32_t entry, uint16_t ncl) { mClustersReference.set(entry, ncl); }
+  GPUd() float getChi2() const { return mChi2; }
+  GPUd() const o2::track::TrackParCov& getOuterParam() const { return mOuterParam; }
+  GPUd() void setTime0(float v) { mTime0 = v; }
+  GPUd() void setChi2(float v) { mChi2 = v; }
+  GPUd() void setOuterParam(o2::track::TrackParCov&& v) { mOuterParam = v; }
+  GPUd() const ClusRef& getClusterRef() const { return mClustersReference; }
+  GPUd() void shiftFirstClusterRef(int dif) { mClustersReference.setFirstEntry(dif + mClustersReference.getFirstEntry()); }
+  GPUd() int getNClusters() const { return mClustersReference.getEntries(); }
+  GPUd() int getNClusterReferences() const { return getNClusters(); }
+  GPUd() void setClusterRef(uint32_t entry, uint16_t ncl) { mClustersReference.set(entry, ncl); }
 
   template <class T>
-  static inline void getClusterReference(T& clinfo, int nCluster,
-                                         uint8_t& sectorIndex, uint8_t& rowIndex, uint32_t& clusterIndex, const ClusRef& ref)
+  GPUd() static inline void getClusterReference(T& clinfo, int nCluster,
+                                                uint8_t& sectorIndex, uint8_t& rowIndex, uint32_t& clusterIndex, const ClusRef& ref)
   {
     // data for given tracks starts at clinfo[ ref.getFirstEntry() ],
     // 1st ref.getEntries() cluster indices are stored as uint32_t
@@ -90,15 +91,15 @@ class TrackTPC : public o2::track::TrackParCov
   }
 
   template <class T>
-  inline void getClusterReference(T& clinfo, int nCluster,
-                                  uint8_t& sectorIndex, uint8_t& rowIndex, uint32_t& clusterIndex) const
+  GPUd() inline void getClusterReference(T& clinfo, int nCluster,
+                                         uint8_t& sectorIndex, uint8_t& rowIndex, uint32_t& clusterIndex) const
   {
     getClusterReference<T>(clinfo, nCluster, sectorIndex, rowIndex, clusterIndex, mClustersReference);
   }
 
   template <class T>
-  static inline const o2::tpc::ClusterNative& getCluster(T& clinfo, int nCluster,
-                                                         const o2::tpc::ClusterNativeAccess& clusters, uint8_t& sectorIndex, uint8_t& rowIndex, const ClusRef& ref)
+  GPUd() static inline const o2::tpc::ClusterNative& getCluster(T& clinfo, int nCluster,
+                                                                const o2::tpc::ClusterNativeAccess& clusters, uint8_t& sectorIndex, uint8_t& rowIndex, const ClusRef& ref)
   {
     uint32_t clusterIndex;
     getClusterReference<T>(clinfo, nCluster, sectorIndex, rowIndex, clusterIndex, ref);
@@ -106,22 +107,22 @@ class TrackTPC : public o2::track::TrackParCov
   }
 
   template <class T>
-  inline const o2::tpc::ClusterNative& getCluster(T& clinfo, int nCluster,
-                                                  const o2::tpc::ClusterNativeAccess& clusters, uint8_t& sectorIndex, uint8_t& rowIndex) const
+  GPUd() inline const o2::tpc::ClusterNative& getCluster(T& clinfo, int nCluster,
+                                                         const o2::tpc::ClusterNativeAccess& clusters, uint8_t& sectorIndex, uint8_t& rowIndex) const
   {
     return getCluster<T>(clinfo, nCluster, clusters, sectorIndex, rowIndex, mClustersReference);
   }
 
   template <class T>
-  inline const o2::tpc::ClusterNative& getCluster(T& clinfo, int nCluster,
-                                                  const o2::tpc::ClusterNativeAccess& clusters) const
+  GPUd() inline const o2::tpc::ClusterNative& getCluster(T& clinfo, int nCluster,
+                                                         const o2::tpc::ClusterNativeAccess& clusters) const
   {
     uint8_t sectorIndex, rowIndex;
     return (getCluster<T>(clinfo, nCluster, clusters, sectorIndex, rowIndex));
   }
 
-  const dEdxInfo& getdEdx() const { return mdEdx; }
-  void setdEdx(const dEdxInfo& v) { mdEdx = v; }
+  GPUd() const dEdxInfo& getdEdx() const { return mdEdx; }
+  GPUd() void setdEdx(const dEdxInfo& v) { mdEdx = v; }
 
  private:
   float mTime0 = 0.f;                 ///< Reference Z of the track assumed for the vertex, scaled with pseudo
