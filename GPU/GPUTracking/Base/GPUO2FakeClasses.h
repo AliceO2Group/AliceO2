@@ -102,6 +102,9 @@ class GPUTPCCompression
 class GPUTPCClusterFinder
 {
 };
+class GPUTrackingRefitProcessor
+{
+};
 struct GPUTPCCFChainContext {
 };
 #ifndef __OPENCL__

@@ -85,6 +85,7 @@ AddOptionRTC(loopInterpolationInExtraPass, char, -1, "", 0, "Perform loop interp
 AddOptionRTC(mergerReadFromTrackerDirectly, char, 1, "", 0, "Forward data directly from tracker to merger on GPU")
 AddOptionRTC(useMatLUT, char, 0, "", 0, "Use material lookup table for TPC refit")
 AddOptionRTC(trdStopTrkAfterNMissLy, unsigned char, 6, "", 0, "Abandon track following after N layers without a TRD match")
+AddOptionRTC(trackingRefitGPUModel, char, 1, "", 0, "Use GPU track model for the Global Track Refit")
 AddCustomCPP(void SetMinTrackPt(float v) { MaxTrackQPt = v > 0.001 ? (1. / v) : (1. / 0.001); })
 AddVariable(dummyRTC, float, 0.f) // Ensure non empty struct and proper alignment even if all normal members are constexpr
 AddHelp("help", 'h')
