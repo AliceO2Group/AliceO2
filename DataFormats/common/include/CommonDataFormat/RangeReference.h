@@ -16,6 +16,7 @@
 #define ALICEO2_RANGEREFERENCE_H
 
 #include "GPUCommonRtypes.h"
+#include "GPUCommonDef.h"
 
 namespace o2
 {
@@ -27,22 +28,22 @@ template <typename FirstEntry = int, typename NElem = int>
 class RangeReference
 {
  public:
-  RangeReference(FirstEntry ent, NElem n) { set(ent, n); }
-  RangeReference(const RangeReference<FirstEntry, NElem>& src) = default;
-  RangeReference() = default;
-  ~RangeReference() = default;
-  void set(FirstEntry ent, NElem n)
+  GPUd() RangeReference(FirstEntry ent, NElem n) { set(ent, n); }
+  GPUdDefault() RangeReference(const RangeReference<FirstEntry, NElem>& src) = default;
+  GPUdDefault() RangeReference() = default;
+  GPUdDefault() ~RangeReference() = default;
+  GPUd() void set(FirstEntry ent, NElem n)
   {
     mFirstEntry = ent;
     mEntries = n;
   }
-  void clear() { set(0, 0); }
-  FirstEntry getFirstEntry() const { return mFirstEntry; }
-  NElem getEntries() const { return mEntries; }
-  void setFirstEntry(FirstEntry ent) { mFirstEntry = ent; }
-  void setEntries(NElem n) { mEntries = n; }
-  void changeEntriesBy(NElem inc) { mEntries += inc; }
-  bool operator==(const RangeReference& other) const
+  GPUd() void clear() { set(0, 0); }
+  GPUd() FirstEntry getFirstEntry() const { return mFirstEntry; }
+  GPUd() NElem getEntries() const { return mEntries; }
+  GPUd() void setFirstEntry(FirstEntry ent) { mFirstEntry = ent; }
+  GPUd() void setEntries(NElem n) { mEntries = n; }
+  GPUd() void changeEntriesBy(NElem inc) { mEntries += inc; }
+  GPUd() bool operator==(const RangeReference& other) const
   {
     return mFirstEntry == other.mFirstEntry && mEntries == other.mEntries;
   }
@@ -58,34 +59,34 @@ class RangeReference
 template <int NBitsN>
 class RangeRefComp
 {
-  using Base = std::uint32_t;
+  using Base = unsigned int;
 
  private:
   static constexpr int NBitsTotal = sizeof(Base) * 8;
   static constexpr Base MaskN = ((0x1 << NBitsN) - 1);
   static constexpr Base MaskR = (~Base(0)) & (~MaskN);
   Base mData = 0; ///< packed 1st entry reference + N entries
-  void sanityCheck()
+  GPUd() void sanityCheck()
   {
     static_assert(NBitsN < NBitsTotal, "NBitsN too large");
   }
 
  public:
-  RangeRefComp(int ent, int n) { set(ent, n); }
-  RangeRefComp() = default;
-  RangeRefComp(const RangeRefComp& src) = default;
-  void set(int ent, int n)
+  GPUd() RangeRefComp(int ent, int n) { set(ent, n); }
+  GPUdDefault() RangeRefComp() = default;
+  GPUdDefault() RangeRefComp(const RangeRefComp& src) = default;
+  GPUd() void set(int ent, int n)
   {
     mData = (Base(ent) << NBitsN) + (Base(n) & MaskN);
   }
-  static constexpr Base getMaxFirstEntry() { return MaskR >> NBitsN; }
-  static constexpr Base getMaxEntries() { return MaskN; }
-  int getFirstEntry() const { return mData >> NBitsN; }
-  int getEntries() const { return mData & ((0x1 << NBitsN) - 1); }
-  void setFirstEntry(int ent) { mData = (Base(ent) << NBitsN) | (mData & MaskN); }
-  void setEntries(int n) { mData = (mData & MaskR) | (Base(n) & MaskN); }
-  void changeEntriesBy(int inc) { setEntries(getEntries() + inc); }
-  bool operator==(const RangeRefComp& other) const
+  GPUd() static constexpr Base getMaxFirstEntry() { return MaskR >> NBitsN; }
+  GPUd() static constexpr Base getMaxEntries() { return MaskN; }
+  GPUd() int getFirstEntry() const { return mData >> NBitsN; }
+  GPUd() int getEntries() const { return mData & ((0x1 << NBitsN) - 1); }
+  GPUd() void setFirstEntry(int ent) { mData = (Base(ent) << NBitsN) | (mData & MaskN); }
+  GPUd() void setEntries(int n) { mData = (mData & MaskR) | (Base(n) & MaskN); }
+  GPUd() void changeEntriesBy(int inc) { setEntries(getEntries() + inc); }
+  GPUd() bool operator==(const RangeRefComp& other) const
   {
     return mData == other.mData;
   }
