@@ -111,6 +111,7 @@ class Propagator
   GPUd() const o2::base::MatLayerCylSet* getMatLUT() const { return mMatLUT; }
   GPUd() void setGPUField(const o2::gpu::GPUTPCGMPolynomialField* field) { mGPUField = field; }
   GPUd() const o2::gpu::GPUTPCGMPolynomialField* getGPUField() const { return mGPUField; }
+  GPUd() void setBz(float bz) { mBz = bz; }
 
 #ifndef GPUCA_GPUCODE
   static Propagator* Instance()

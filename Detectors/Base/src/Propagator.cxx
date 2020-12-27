@@ -98,7 +98,10 @@ int Propagator::initFieldFromGRP(const o2::parameters::GRPObject* grp, bool verb
   }
   return 0;
 }
-
+#elif !defined(GPUCA_GPUCODE)
+Propagator::Propagator()
+{
+} // empty dummy constructor for standalone benchmark
 #endif
 
 //_______________________________________________________________________

@@ -21,6 +21,14 @@
 #include "GPUTPCGeometry.h"
 #include "GPUTPCGMPolynomialField.h"
 
+namespace o2
+{
+namespace base
+{
+class Propagator;
+} // namespace base
+} // namespace o2
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -63,6 +71,7 @@ struct GPUParam : public internal::GPUParam_t<GPUSettingsRec, GPUSettingsParam> 
   void SetDefaults(const GPUSettingsEvent* e, const GPUSettingsRec* r = nullptr, const GPUSettingsProcessing* p = nullptr, const GPURecoStepConfiguration* w = nullptr);
   void UpdateEventSettings(const GPUSettingsEvent* e, const GPUSettingsProcessing* p = nullptr);
   void LoadClusterErrors(bool Print = 0);
+  o2::base::Propagator* GetDefaultO2Propagator(bool useGPUField = false) const;
 #endif
 
   GPUd() float Alpha(int iSlice) const

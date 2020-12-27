@@ -97,6 +97,10 @@ using namespace GPUCA_NAMESPACE::gpu;
 // Files for ITS Track Fit
 #include "GPUITSFitterKernels.cxx"
 
+// Files for Refit
+#include "GPUTrackingRefit.cxx"
+#include "GPUTrackingRefitKernel.cxx"
+
 #if !defined(GPUCA_O2_LIB) && defined(__HIPCC__) && !defined(GPUCA_NO_ITS_TRAITS) && !defined(GPUCA_GPUCODE_GENRTC)
 #include "VertexerTraitsHIP.hip.cxx"
 #include "ContextHIP.hip.cxx"

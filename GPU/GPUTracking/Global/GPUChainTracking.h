@@ -156,6 +156,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   const TPCdEdxCalibrationSplines* GetdEdxSplines() const { return processors()->calibObjects.dEdxSplines; }
   const o2::base::MatLayerCylSet* GetMatLUT() const { return processors()->calibObjects.matLUT; }
   const GPUTRDGeometry* GetTRDGeometry() const { return (GPUTRDGeometry*)processors()->calibObjects.trdGeometry; }
+  const o2::base::Propagator* GetO2Propagator() const { return processors()->calibObjects.o2Propagator; }
   void SetTPCFastTransform(std::unique_ptr<TPCFastTransform>&& tpcFastTransform);
   void SetdEdxSplines(std::unique_ptr<TPCdEdxCalibrationSplines>&& dEdxSplines);
   void SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet>&& lut);
@@ -165,6 +166,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void SetdEdxSplines(const TPCdEdxCalibrationSplines* dEdxSplines) { processors()->calibObjects.dEdxSplines = dEdxSplines; }
   void SetMatLUT(const o2::base::MatLayerCylSet* lut) { processors()->calibObjects.matLUT = lut; }
   void SetTRDGeometry(const o2::trd::GeometryFlat* geo) { processors()->calibObjects.trdGeometry = geo; }
+  void SetO2Propagator(const o2::base::Propagator* prop) { processors()->calibObjects.o2Propagator = prop; }
+  void SetDefaultO2PropagatorForGPU();
   void LoadClusterErrors();
   void SetOutputControlCompressedClusters(GPUOutputControl* v) { mOutputCompressedClusters = v; }
   void SetOutputControlClustersNative(GPUOutputControl* v) { mOutputClustersNative = v; }

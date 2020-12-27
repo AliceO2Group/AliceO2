@@ -445,6 +445,16 @@ int SetupReconstruction()
     }
   }
 
+#ifdef HAVE_O2HEADERS
+  chainTracking->SetDefaultO2PropagatorForGPU();
+  if (configStandalone.testSyncAsync) {
+    chainTrackingAsync->SetDefaultO2PropagatorForGPU();
+  }
+  if (configStandalone.proc.doublePipeline) {
+    chainTrackingPipeline->SetDefaultO2PropagatorForGPU();
+  }
+#endif
+
   if (rec->Init()) {
     printf("Error initializing GPUReconstruction!\n");
     return 1;

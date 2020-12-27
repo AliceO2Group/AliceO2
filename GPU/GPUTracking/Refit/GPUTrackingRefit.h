@@ -16,7 +16,6 @@
 
 #include "GPUDef.h"
 #include "GPUProcessor.h"
-#include <tuple>
 
 namespace o2::dataformats
 {
@@ -55,7 +54,7 @@ class GPUTrackingRefit
 {
  public:
   void SetClusterStateArray(const unsigned char* v) { mPclusterState = v; }
-  void SetPtrsFromGPUConstantMem(const GPUConstantMem* v);
+  void SetPtrsFromGPUConstantMem(const GPUConstantMem* v, MEM_CONSTANT(GPUParam) * p = nullptr);
   void SetPropagator(const o2::base::Propagator* v) { mPpropagator = v; }
   void SetPropagatorDefault();
   void SetClusterNative(const o2::tpc::ClusterNativeAccess* v) { mPclusterNative = v; }
@@ -98,9 +97,9 @@ class GPUTrackingRefit
   template <class T, class S>
   GPUd() int RefitTrack(T& trk, bool outward, bool resetCov);
   template <class T, class S, class U>
-  void convertTrack(T& trk, const S& trkX, U& prop, float* chi2);
+  GPUd() void convertTrack(T& trk, const S& trkX, U& prop, float* chi2);
   template <class U>
-  void initProp(U& prop);
+  GPUd() void initProp(U& prop);
 };
 
 class GPUTrackingRefitProcessor : public GPUTrackingRefit, public GPUProcessor
@@ -111,6 +110,7 @@ class GPUTrackingRefitProcessor : public GPUTrackingRefit, public GPUProcessor
   void RegisterMemoryAllocation();
   void SetMaxData(const GPUTrackingInOutPointers& io);
 #endif
+  GPUTPCGMMergedTrack* mPTracks = nullptr;
 };
 
 } // namespace o2::gpu

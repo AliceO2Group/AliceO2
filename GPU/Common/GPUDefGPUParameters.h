@@ -345,6 +345,12 @@
   #ifndef GPUCA_LB_GPUTPCStartHitsSorter
     #define GPUCA_LB_GPUTPCStartHitsSorter 256
   #endif
+  #ifndef GPUCA_LB_GPUTrackingRefitKernel_mode0asGPU
+    #define GPUCA_LB_GPUTrackingRefitKernel_mode0asGPU 256
+  #endif
+  #ifndef GPUCA_LB_GPUTrackingRefitKernel_mode1asTrackParCov
+    #define GPUCA_LB_GPUTrackingRefitKernel_mode1asTrackParCov 256
+  #endif
   #define GPUCA_GET_THREAD_COUNT(...) GPUCA_M_FIRST(__VA_ARGS__)
 #else
   // The following defaults are needed to compile the host code
