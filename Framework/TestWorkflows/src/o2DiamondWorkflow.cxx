@@ -10,6 +10,8 @@
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/RawDeviceService.h"
+#include <FairMQDevice.h>
 #include <InfoLogger/InfoLogger.hxx>
 
 #include <chrono>
@@ -57,8 +59,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
      {OutputSpec{{"a1"}, "TST", "A1"},
       OutputSpec{{"a2"}, "TST", "A2"}},
      AlgorithmSpec{adaptStateless(
-       [](DataAllocator& outputs, InfoLogger& logger) {
-         std::this_thread::sleep_for(std::chrono::seconds(rand() % 2));
+       [](DataAllocator& outputs, InfoLogger& logger, RawDeviceService& device) {
+         device.device()->WaitFor(std::chrono::seconds(rand() % 2));
          auto& aData = outputs.make<int>(OutputRef{"a1"}, 1);
          auto& bData = outputs.make<int>(OutputRef{"a2"}, 1);
          logger.log("This goes to infologger");
