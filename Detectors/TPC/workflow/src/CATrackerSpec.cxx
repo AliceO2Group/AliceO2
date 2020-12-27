@@ -39,6 +39,9 @@
 #include "TPCdEdxCalibrationSplines.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "DetectorsBase/MatLayerCylSet.h"
+#include "DetectorsBase/Propagator.h"
+#include "DetectorsBase/GeometryManager.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "TPCBase/RDHUtils.h"
 #include "GPUO2InterfaceConfiguration.h"
@@ -127,7 +130,9 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       tracker = std::make_unique<GPUCATracking>();
 
       // Create configuration object and fill settings
-      const auto grp = o2::parameters::GRPObject::loadFrom("o2sim_grp.root");
+      const auto grp = o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName());
+      o2::base::GeometryManager::loadGeometry();
+      o2::base::Propagator::initFieldFromGRP(o2::base::NameConf::getGRPFileName());
       if (grp) {
         config.configEvent.solenoidBz = 5.00668f * grp->getL3Current() / 30000.;
         config.configEvent.continuousMaxTimeBin = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC) ? -1 : 0; // Number of timebins in timeframe if continuous, 0 otherwise
@@ -216,15 +221,16 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       if (config.configCalib.fastTransform == nullptr) {
         throw std::invalid_argument("GPUCATracking: initialization of the TPC transformation failed");
       }
+
       if (confParam.matLUTFile.size()) {
         config.configCalib.matLUT = o2::base::MatLayerCylSet::loadFromFile(confParam.matLUTFile.c_str(), "MatBud");
       }
+
       if (confParam.dEdxFile.size()) {
         processAttributes->dEdxSplines.reset(new TPCdEdxCalibrationSplines(confParam.dEdxFile.c_str()));
       } else {
         processAttributes->dEdxSplines.reset(new TPCdEdxCalibrationSplines);
       }
-
       config.configCalib.dEdxSplines = processAttributes->dEdxSplines.get();
 
       if (boost::filesystem::exists(confParam.gainCalibFile)) {
@@ -239,9 +245,10 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       }
       config.configCalib.tpcPadGain = processAttributes->tpcPadGainCalib.get();
 
+      config.configCalib.o2Propagator = Propagator::Instance();
+
       // Sample code what needs to be done for the TRD Geometry, when we extend this to TRD tracking.
-      /*o2::base::GeometryManager::loadGeometry();
-      o2::trd::Geometry gm;
+      /* o2::trd::Geometry gm;
       gm.createPadPlaneArray();
       gm.createClusterMatrixArray();
       std::unique_ptr<o2::trd::GeometryFlat> gf(gm);
