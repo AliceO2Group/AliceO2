@@ -51,6 +51,8 @@ class PrimaryVertexContext
   auto& getCellsLookupTable() { return mCellsLookupTable; }
   auto& getCellsNeighbours() { return mCellsNeighbours; }
   auto& getRoads() { return mRoads; }
+  auto& getRoadsIndexTable() { return mRoadsIndexTable; };
+  auto& getTracksIndexTable() { return mTracksIndexTable; };
 
   float getMinR(int layer) { return mMinR[layer]; }
   float getMaxR(int layer) { return mMaxR[layer]; }
@@ -79,6 +81,8 @@ class PrimaryVertexContext
   std::vector<std::vector<int>> mCellsLookupTable;
   std::vector<std::vector<std::vector<int>>> mCellsNeighbours;
   std::vector<Road> mRoads;
+  std::vector<std::pair<int, int>> mRoadsIndexTable;
+  std::vector<std::pair<int, int>> mTracksIndexTable;
 
   // std::array<std::array<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>,
   //            constants::its::TrackletsPerRoad>
@@ -88,7 +92,6 @@ class PrimaryVertexContext
 
   std::vector<std::pair<unsigned long long, bool>> mRoadLabels;
 };
-
 
 inline void PrimaryVertexContext::markUsedCluster(int layer, int clusterId) { mUsedClusters[layer][clusterId] = true; }
 

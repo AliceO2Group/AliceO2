@@ -114,6 +114,13 @@ class TrackITSExt : public TrackITS
     setNumberOfClusters(ncl);
   }
 
+  TrackITSExt(o2::track::TrackParCov& parCov, short ncl, float chi2, std::uint32_t rof,
+              o2::track::TrackParCov& outer, std::array<int, MaxClusters> cls)
+    : TrackITS(parCov, chi2, outer), mIndex{cls}
+  {
+    setNumberOfClusters(ncl);
+  }
+
   void setClusterIndex(int l, int i)
   {
     int ncl = getNumberOfClusters();

@@ -894,9 +894,9 @@ void Tracker::smoothTracks(const ROframe& event, std::vector<TrackITSExt>& track
             inwardsTrack.setExternalClusterIndex(smoothLevel, tracks[iCandidate].getClusterIndex(smoothLevel));
           }
           // FakeTrackInfo infoT{event, outwardsTrackCopy};
-          MCCompLabel testClusterLabel = event.getClusterLabels(smoothLevel, tracks[iCandidate].getClusterIndex(smoothLevel));
-          bool isClusFake = testClusterLabel != infoT.mainLabel;
-          mDebugger->fillSmootherClusStats(smoothLevel, localChi2, isClusFake);
+          // MCCompLabel testClusterLabel = event.getClusterLabels(smoothLevel, tracks[iCandidate].getClusterIndex// (smoothLevel));
+          // bool isClusFake = testClusterLabel != infoT.mainLabel;
+          // mDebugger->fillSmootherClusStats(smoothLevel, localChi2, isClusFake);
         }
         const TrackingFrameInfo& selectedHit = event.getTrackingFrameInfoOnLayer(smoothLevel).at(inwardsTrack.getClusterIndex(smoothLevel));
         if (!inwardsTrack.rotate(selectedHit.alphaTrackingFrame)) {
@@ -909,7 +909,7 @@ void Tracker::smoothTracks(const ROframe& event, std::vector<TrackITSExt>& track
         }
         inwardsTrack.setChi2(inwardsTrack.getChi2() +
                              inwardsTrack.getPredictedChi2(selectedHit.positionTrackingFrame, selectedHit.covarianceTrackingFrame));
-        if (!inwardsTrack.TrackParCov::update(selectedHit.positionTrackingFrame, selectedHit.covarianceTrackingFrame)) {
+        if (!inwardsTrack.o2::track::TrackParCov::update(selectedHit.positionTrackingFrame, selectedHit.covarianceTrackingFrame)) {
           LOG(INFO) << "Failed update inwards track out of shuffler";
           continue;
         }
@@ -922,21 +922,21 @@ void Tracker::smoothTracks(const ROframe& event, std::vector<TrackITSExt>& track
         outwardsTrack.propagateTo(outwHit.xTrackingFrame, getBz());
         outwardsTrack.setChi2(outwardsTrack.getChi2() +
                               outwardsTrack.getPredictedChi2(outwHit.positionTrackingFrame, outwHit.covarianceTrackingFrame));
-        outwardsTrack.TrackParCov::update(outwHit.positionTrackingFrame, outwHit.covarianceTrackingFrame);
+        outwardsTrack.o2::track::TrackParCov::update(outwHit.positionTrackingFrame, outwHit.covarianceTrackingFrame);
         float xx0_outw = (iLayer > 3) ? 0.008f : 0.003;
         outwardsTrack.correctForMaterial(xx0_outw, -xx0_outw * radiationLength * density, true); // (first < last) ? -1. : 1.)
       }
       if (tracks[iFirstTrack].getChi2() > outwardsTrack.getChi2()) {
         // FakeTrackInfo infoS{event, outwardsTrack};
         // FakeTrackInfo info{event, tracks[iFirstTrack]};
-        if (info.nFakeClusters == 0 && infoS.nFakeClusters > 0) {
-          LOG(WARN) << "smoothing:";
-          LOG(WARN) << "\tprevious: chi2=" << tracks[iFirstTrack].getChi2() << " fake=" << info.isFake << " N fake=" << info.nFakeClusters
-                    << "\n\tnew: chi2=" << outwardsTrack.getChi2() << " fake=" << infoS.isFake << " N fake=" << infoS.nFakeClusters;
-          for (auto i{0}; i < 7; ++i) {
-            LOG(WARN) << "\t\t" << event.getClusterLabels(i, tracks[iFirstTrack].getClusterIndex(i)) << " " << event.getClusterLabels(i, outwardsTrack.getClusterIndex(i));
-          }
-        }
+        // if (info.nFakeClusters == 0 && infoS.nFakeClusters > 0) {
+        //   LOG(WARN) << "smoothing:";
+        //   LOG(WARN) << "\tprevious: chi2=" << tracks[iFirstTrack].getChi2() << " fake=" << info.isFake << " N fake=" << info.nFakeClusters
+        //             << "\n\tnew: chi2=" << outwardsTrack.getChi2() << " fake=" << infoS.isFake << " N fake=" << infoS.nFakeClusters;
+        //   for (auto i{0}; i < 7; ++i) {
+        //     LOG(WARN) << "\t\t" << event.getClusterLabels(i, tracks[iFirstTrack].getClusterIndex(i)) << " " << event.getClusterLabels(i, outwardsTrack.getClusterIndex(i));
+        //   }
+        // }
         tracks[iFirstTrack] = outwardsTrack;
       }
     }
