@@ -11,8 +11,8 @@ struct CTPCRUData {
   static constexpr uint8_t NumberOfL0inputs = 30;
   static constexpr uint8_t NumberOfL1inputs = 18;
   InteractionRecord ir;
-  uint32_t InputsMask = 0;
-  uint64_t TriggerClassMask = 0;
+  uint64_t inputsMask = 0;
+  uint64_t triggerClassMask = 0;
 
   CTPRawData() = default;
 }
