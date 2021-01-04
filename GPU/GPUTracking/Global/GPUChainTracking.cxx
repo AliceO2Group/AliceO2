@@ -388,6 +388,7 @@ int GPUChainTracking::Init()
     }
 #endif
     TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, mFlatObjectsShadow.mMemoryResFlat);
+    memcpy((void*)&processorsShadow()->calibObjects, (void*)&mFlatObjectsDevice.mCalibObjects, sizeof(mFlatObjectsDevice.mCalibObjects));
     WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->calibObjects - (char*)processors(), &mFlatObjectsDevice.mCalibObjects, sizeof(mFlatObjectsDevice.mCalibObjects), -1); // First initialization, for users not using RunChain
     processorsShadow()->errorCodes.setMemory(mInputsShadow->mErrorCodes);
     WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->errorCodes - (char*)processors(), &processorsShadow()->errorCodes, sizeof(processorsShadow()->errorCodes), -1);
