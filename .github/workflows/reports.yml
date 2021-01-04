@@ -97,9 +97,9 @@ jobs:
         #        months, at least for bi-weekly releases.
         for f in doc/data/*_prs.json; do
           for x in Algorithm Analysis Common DataFormats Detectors EventVisualisation Examples Framework Generators Steer Testing Utilities; do
-            cat doc/data/o2_prs.json | jq ".repository.pullRequests.edges[].node | select(.files.edges[].node.path | test(\"$x\")) | del(.files) | select(.state == \"MERGED\" and .mergedAt >= \"${MERGED_AFTER}\")" > /tmp/$x_prs.json
+            cat $f | jq ".repository.pullRequests.edges[].node | select(.files.edges[].node.path | test(\"$x\")) | del(.files) | select(.state == \"MERGED\" and .mergedAt >= \"${MERGED_AFTER}\")" > /tmp/$x_prs.json
             if [ ! X`jq -s length /tmp/$x_prs.json` = X0 ]; then 
-              cat $f | jq -r '"- [#\(.number)](https://github.com/AliceO2Group/AliceO2/pull/\(.number)) \(.mergedAt | split("T")[0]): \(.title) by [@\(.author.login)](https://github.com/\(.author.login))"' | sort -u >> /tmp/$x_prs.md
+              cat /tmp/$x_prs.json | jq -r '"- [#\(.number)](https://github.com/AliceO2Group/AliceO2/pull/\(.number)) \(.mergedAt | split("T")[0]): \(.title) by [@\(.author.login)](https://github.com/\(.author.login))"' | sort -u >> /tmp/$x_prs.md
             fi
           done
         done
