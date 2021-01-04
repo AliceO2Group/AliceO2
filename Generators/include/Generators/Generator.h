@@ -61,6 +61,10 @@ class Generator : public FairGenerator
 	**/
   Bool_t ReadEvent(FairPrimaryGenerator* primGen) final;
 
+  /** methods to override **/
+  virtual Bool_t generateEvent() = 0;
+  virtual Bool_t importParticles() = 0;
+
   /** setters **/
   void setMomentumUnit(double val) { mMomentumUnit = val; };
   void setEnergyUnit(double val) { mEnergyUnit = val; };
@@ -71,6 +75,12 @@ class Generator : public FairGenerator
   void addTrigger(Trigger trigger) { mTriggers.push_back(trigger); };
   void addDeepTrigger(DeepTrigger trigger) { mDeepTriggers.push_back(trigger); };
 
+  /** getters **/
+  const std::vector<TParticle>& getParticles() const { return mParticles; }; //!
+
+  /** other **/
+  void clearParticles() { mParticles.clear(); };
+
   /** notification methods **/
   virtual void notifyEmbedding(const FairMCEventHeader* mcHeader){};
 
@@ -79,10 +89,6 @@ class Generator : public FairGenerator
   Generator(const Generator&);
   /** operator= **/
   Generator& operator=(const Generator&);
-
-  /** methods to override **/
-  virtual Bool_t generateEvent() = 0;
-  virtual Bool_t importParticles() = 0;
 
   /** methods that can be overridded **/
   virtual void updateHeader(FairMCEventHeader* eventHeader){};
