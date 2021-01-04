@@ -14,7 +14,6 @@
 #include "GPUTPCCompressionKernels.h"
 #include "GPUConstantMem.h"
 #include "GPUO2DataTypes.h"
-#include "GPUTPCGMMerger.h"
 #include "GPUParam.h"
 #include "GPUCommonAlgorithm.h"
 #include "GPUTPCCompressionTrackModel.h"
@@ -27,16 +26,16 @@ using namespace o2::tpc;
 template <>
 GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0attached>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors)
 {
-  const GPUTPCGMMerger& GPUrestrict() merger = processors.tpcMerger;
-  const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = processors.ioPtrs.clustersNative;
+  const GPUTrackingInOutPointers& GPUrestrict() ioPtrs = processors.ioPtrs;
+  const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = ioPtrs.clustersNative;
   GPUTPCCompression& GPUrestrict() compressor = processors.tpcCompressor;
   const GPUParam& GPUrestrict() param = processors.param;
 
   char lastLeg = 0;
   int myTrack = 0;
-  for (unsigned int i = get_global_id(0); i < (unsigned int)merger.NOutputTracks(); i += get_global_size(0)) {
+  for (unsigned int i = get_global_id(0); i < ioPtrs.nMergedTracks; i += get_global_size(0)) {
     GPUbarrierWarp();
-    const GPUTPCGMMergedTrack& GPUrestrict() trk = merger.OutputTracks()[i];
+    const GPUTPCGMMergedTrack& GPUrestrict() trk = ioPtrs.mergedTracks[i];
     if (!trk.OK()) {
       continue;
     }
@@ -47,13 +46,13 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step0at
     GPUTPCCompressionTrackModel track;
     float zOffset = 0;
     for (int k = trk.NClusters() - 1; k >= 0; k--) {
-      const GPUTPCGMMergedTrackHit& GPUrestrict() hit = merger.Clusters()[trk.FirstClusterRef() + k];
+      const GPUTPCGMMergedTrackHit& GPUrestrict() hit = ioPtrs.mergedTrackHits[trk.FirstClusterRef() + k];
       if (hit.state & GPUTPCGMMergedTrackHit::flagReject) {
         continue;
       }
 
       int hitId = hit.num;
-      int attach = merger.ClusterAttachment()[hitId];
+      int attach = ioPtrs.mergedTrackHitAttachment[hitId];
       if ((attach & gputpcgmmergertypes::attachTrackMask) != i) {
         continue; // Main attachment to different track
       }
@@ -179,8 +178,8 @@ GPUd() bool GPUTPCCompressionKernels::GPUTPCCompressionKernels_Compare<3>::opera
 template <>
 GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1unattached>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors)
 {
-  const GPUTPCGMMerger& GPUrestrict() merger = processors.tpcMerger;
-  const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = processors.ioPtrs.clustersNative;
+  const GPUTrackingInOutPointers& GPUrestrict() ioPtrs = processors.ioPtrs;
+  const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = ioPtrs.clustersNative;
   GPUTPCCompression& GPUrestrict() compressor = processors.tpcCompressor;
   GPUParam& GPUrestrict() param = processors.param;
   unsigned int* sortBuffer = smem.sortBuffer;
@@ -207,7 +206,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
         if (compressor.mClusterStatus[idx]) {
           break;
         }
-        int attach = merger.ClusterAttachment()[idx];
+        int attach = ioPtrs.mergedTrackHitAttachment[idx];
         bool unattached = attach == 0;
 
         if (unattached) {
@@ -219,7 +218,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
             break;
           }
           int id = attach & gputpcgmmergertypes::attachTrackMask;
-          auto& trk = merger.OutputTracks()[id];
+          auto& trk = ioPtrs.mergedTracks[id];
           if (CAMath::Abs(trk.GetParam().GetQPt()) > processors.param.rec.tpcRejectQPt || trk.MergedLooper()) {
             break;
           }
