@@ -2084,6 +2084,15 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   mIOPtrs.nMergedTrackHits = Merger.NOutputTrackClusters();
   mIOPtrs.mergedTrackHitAttachment = Merger.ClusterAttachment();
   mIOPtrs.mergedTrackHitStates = Merger.ClusterStateExt();
+  if (doGPU) {
+    processorsShadow()->ioPtrs.mergedTracks = MergerShadow.OutputTracks();
+    processorsShadow()->ioPtrs.nMergedTracks = Merger.NOutputTracks();
+    processorsShadow()->ioPtrs.mergedTrackHits = MergerShadow.Clusters();
+    processorsShadow()->ioPtrs.nMergedTrackHits = Merger.NOutputTrackClusters();
+    processorsShadow()->ioPtrs.mergedTrackHitAttachment = MergerShadow.ClusterAttachment();
+    processorsShadow()->ioPtrs.mergedTrackHitStates = MergerShadow.ClusterStateExt();
+    WriteToConstantMemory(RecoStep::TPCMerging, (char*)&processors()->ioPtrs - (char*)processors(), &processorsShadow()->ioPtrs, sizeof(processorsShadow()->ioPtrs), 0);
+  }
 
   if (GetProcessingSettings().debugLevel >= 2) {
     GPUInfo("TPC Merger Finished (output clusters %d / input clusters %d)", Merger.NOutputTrackClusters(), Merger.NClusters());
