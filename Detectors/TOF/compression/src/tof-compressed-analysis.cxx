@@ -24,6 +24,8 @@ using namespace o2::framework;
 // including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
+  auto inputDesc = ConfigParamSpec{"tof-compressed-analysis-input-desc", VariantType::String, "CRAWDATA", {"Input specs description string"}};
+  workflowOptions.push_back(inputDesc);
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
@@ -31,9 +33,11 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 /// This function hooks up the the workflow specifications into the DPL driver.
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
+  auto inputDesc = cfgc.options().get<std::string>("tof-compressed-analysis-input-desc");
+
   return WorkflowSpec{
     DataProcessorSpec{"compressed-analysis",
-                      select("x:TOF/CRAWDATA"),
+                      select(std::string("x:TOF/" + inputDesc).c_str()),
                       Outputs{},
                       AlgorithmSpec(adaptFromTask<o2::tof::CompressedAnalysisTask>()),
                       Options{
