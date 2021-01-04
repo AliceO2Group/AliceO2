@@ -73,6 +73,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Update Changelog
       run: |
+        set -x
         mkdir -p doc/data
         # We create new files once per month, mostly so that 
         # we can keep the query results small. It does not
