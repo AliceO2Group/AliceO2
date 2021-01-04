@@ -177,7 +177,7 @@ struct HFD0CandidateSelector {
       }
     }
 
-    if (TMath::Abs(trackPion.pt()) < TMath::Abs(cuts[pTBin][4]) || TMath::Abs(trackKaon.pt()) < TMath::Abs(cuts[pTBin][3])) {
+    if (trackPion.pt() < cuts[pTBin][4] || trackKaon.pt() < cuts[pTBin][3]) {
       return false; //cut on daughter pT
     }
     if (TMath::Abs(trackPion.dcaPrim0()) > cuts[pTBin][6] || TMath::Abs(trackKaon.dcaPrim0()) > cuts[pTBin][5]) {
