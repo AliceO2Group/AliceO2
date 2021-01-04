@@ -170,6 +170,7 @@ struct EmcalCorrectionTask {
     LOG(DEBUG) << "Converted to analysis clusters.";
 
     // Store the clusters in the table
+    clusters.reserve(mAnalysisClusters.size());
     for (const auto& cluster : mAnalysisClusters) {
       // Determine the cluster eta, phi, correcting for the vertex position.
       auto pos = cluster.getGlobalPosition();
@@ -180,11 +181,9 @@ struct EmcalCorrectionTask {
       // We have our necessary properties. Now we store outputs
       //LOG(DEBUG) << "Cluster E: " << cluster.E();
       clusters(collision, cluster.E(), pos.Eta(), pos.Phi(), cluster.getM02());
-      // TEMP
-      if (cluster.E() < 0.150) {
-        continue;
-      }
-      // ENDTEMP
+      //if (cluster.E() < 0.300) {
+      //    continue;
+      //}
       hClusterE->Fill(cluster.E());
       hClusterEtaPhi->Fill(pos.Eta(), pos.Phi());
     }
