@@ -1,0 +1,126 @@
+name: Automatically create CHANGELOG for O2 releases
+
+on:
+  push:
+  workflow_dispatch:
+  schedule:
+    - cron:  '0 0 * * *'
+
+jobs:
+  build:
+    runs-on: macOS-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - uses: actions/cache@v2
+      name: Configure pip caching
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - uses: octokit/graphql-action@v2.x
+      id: get_latest_o2_releases
+      with:
+        query: |
+              {
+                repository(name: "AliceO2", owner: "AliceO2Group") {
+                  releases(last:14) {
+                    edges {
+                      node {
+                        tagName
+                        publishedAt
+                      }
+                    }
+                  }
+                }
+              }
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - uses: octokit/graphql-action@v2.x
+      id: get_latest_o2_prs
+      with:
+        query: |
+              {
+                repository(name: "AliceO2", owner: "AliceO2Group") {
+                  pullRequests(last: 100) {
+                    edges {
+                      node {
+                        state
+                        mergedAt
+                        title
+                        number
+                        author {
+                          login
+                        }
+                        files(last: 100) {
+                          edges {
+                            node {
+                             path
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Update Changelog
+      run: |
+        mkdir -p doc/data
+        # We create new files once per month, mostly so that 
+        # we can keep the query results small. It does not
+        # matter if we get results from different months,
+        # as what matters is how we merge them.
+        CURRENT_MONTH=`date +%Y-%m`
+        cat <<\EOF > doc/data/${CURRENT_MONTH}-o2_releases.json
+        ${{ steps.get_latest_o2_releases.outputs.data }}
+        EOF
+        cat <<\EOF > doc/data/${CURRENT_MONTH}-o2_prs.json
+        ${{ steps.get_latest_o2_prs.outputs.data }}
+        EOF
+        # FIXME: this should really be one second after the last release 
+        #        being published
+        MERGED_AFTER=`date -v -14d +%Y-%m-%d`
+        
+        # Here we convert all the json files to per subsystem 
+        # logs, using the MERGED_AFTER date to further filter them. 
+        # Notice we can have duplicates in each file,
+        # as they will be removed in the next iteration.
+        # FIXME: it's probably enough to iterate on the last two
+        #        months, at least for bi-weekly releases.
+        for f in doc/data/*_prs.json; do
+          for x in Algorithm Analysis Common DataFormats Detectors EventVisualisation Examples Framework Generators Steer Testing Utilities; do
+            cat doc/data/o2_prs.json | jq ".repository.pullRequests.edges[].node | select(.files.edges[].node.path | test(\"$x\")) | del(.files) | select(.state == \"MERGED\" and .mergedAt >= \"${MERGED_AFTER}\")" > /tmp/$x_prs.json
+            if [ ! X`jq -s length /tmp/$x_prs.json` = X0 ]; then 
+              cat $f | jq -r '"- [#\(.number)](https://github.com/AliceO2Group/AliceO2/pull/\(.number)) \(.mergedAt | split("T")[0]): \(.title) by [@\(.author.login)](https://github.com/\(.author.login))"' | sort -u >> /tmp/$x_prs.md
+            fi
+          done
+        done
+        # Here we do the merging by iterating on the subsystems adding 
+        # an header for each and removing the duplicates.
+        cat << EOF > CHANGELOG.md
+        # Changes since ${MERGED_AFTER}
+
+        EOF
+        
+        for x in Algorithm Analysis Common DataFormats Detectors EventVisualisation Examples Framework Generators Steer Testing Utilities; do
+          cat << EOF >> CHANGELOG.md
+          ## Changes in $x
+          EOF
+          cat /tmp/$x_prs.md | sort -k3 | uniq >> CHANGELOG.md
+        done
+    - name: Commit and push if changed
+      run: |-
+        git add CHANGELOG.md doc/data
+        git diff
+        git config --global user.email "github-action-bot@example.com"
+        git config --global user.name "GitHub Action Bot"
+        git commit -m "Updated README" -a || echo "No changes to commit"
+        git push
