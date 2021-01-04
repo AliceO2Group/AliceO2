@@ -251,6 +251,152 @@ void GeneratorPythia8::selectFromAncestor(int ancestor, Pythia8::Event& inputEve
 }
 
 /*****************************************************************/
+
+void GeneratorPythia8::getNcoll(const Pythia8::Info& info, int& nColl)
+{
+
+  /** compute number of collisions from sub-collision information **/
+
+#if PYTHIA_VERSION_INTEGER < 8300
+  auto hiinfo = info.hiinfo;
+#else
+  auto hiinfo = info.hiInfo;
+#endif
+
+  nColl = 0;
+
+  if (!hiinfo) {
+    return;
+  }
+
+  // loop over sub-collisions
+  auto scptr = hiinfo->subCollisionsPtr();
+  for (auto sc : *scptr) {
+
+    // wounded nucleon flag in projectile/target
+    auto pW = sc.proj->status() == Pythia8::Nucleon::ABS; // according to C.Bierlich this should be == Nucleon::ABS
+    auto tW = sc.targ->status() == Pythia8::Nucleon::ABS;
+
+    // increase number of collisions if both are wounded
+    if (pW && tW) {
+      nColl++;
+    }
+  }
+}
+
+/*****************************************************************/
+
+void GeneratorPythia8::getNpart(const Pythia8::Info& info, int& nPart)
+{
+
+  /** compute number of participants as the sum of all participants nucleons **/
+
+  int nProtonProj, nNeutronProj, nProtonTarg, nNeutronTarg;
+  getNpart(info, nProtonProj, nNeutronProj, nProtonTarg, nNeutronTarg);
+  nPart = nProtonProj + nNeutronProj + nProtonTarg + nNeutronTarg;
+}
+
+/*****************************************************************/
+
+void GeneratorPythia8::getNpart(const Pythia8::Info& info, int& nProtonProj, int& nNeutronProj, int& nProtonTarg, int& nNeutronTarg)
+{
+
+  /** compute number of participants from sub-collision information **/
+
+#if PYTHIA_VERSION_INTEGER < 8300
+  auto hiinfo = info.hiinfo;
+#else
+  auto hiinfo = info.hiInfo;
+#endif
+
+  nProtonProj = nNeutronProj = nProtonTarg = nNeutronTarg = 0;
+  if (!hiinfo) {
+    return;
+  }
+
+  // keep track of wounded nucleons
+  std::vector<Pythia8::Nucleon*> projW;
+  std::vector<Pythia8::Nucleon*> targW;
+
+  // loop over sub-collisions
+  auto scptr = hiinfo->subCollisionsPtr();
+  for (auto sc : *scptr) {
+
+    // wounded nucleon flag in projectile/target
+    auto pW = sc.proj->status() == Pythia8::Nucleon::ABS || sc.proj->status() == Pythia8::Nucleon::DIFF; // according to C.Bierlich this should be == Nucleon::ABS || Nucleon::DIFF
+    auto tW = sc.targ->status() == Pythia8::Nucleon::ABS || sc.targ->status() == Pythia8::Nucleon::DIFF;
+
+    // increase number of wounded projectile nucleons if not yet in the wounded vector
+    if (pW && std::find(projW.begin(), projW.end(), sc.proj) == projW.end()) {
+      projW.push_back(sc.proj);
+      if (sc.proj->id() == 2212) {
+        nProtonProj++;
+      } else if (sc.proj->id() == 2112) {
+        nNeutronProj++;
+      }
+    }
+
+    // increase number of wounded target nucleons if not yet in the wounded vector
+    if (tW && std::find(targW.begin(), targW.end(), sc.targ) == targW.end()) {
+      targW.push_back(sc.targ);
+      if (sc.targ->id() == 2212) {
+        nProtonTarg++;
+      } else if (sc.targ->id() == 2112) {
+        nNeutronTarg++;
+      }
+    }
+  }
+}
+
+/*****************************************************************/
+
+void GeneratorPythia8::getNremn(const Pythia8::Event& event, int& nProtonProj, int& nNeutronProj, int& nProtonTarg, int& nNeutronTarg)
+{
+
+  /** compute number of spectators from the nuclear remnant of the beams **/
+
+  // reset
+  nProtonProj = nNeutronProj = nProtonTarg = nNeutronTarg = 0;
+  auto nNucRem = 0;
+
+  // particle loop
+  auto nparticles = event.size();
+  for (int ipa = 0; ipa < nparticles; ++ipa) {
+    const auto particle = event[ipa];
+    auto pdg = particle.id();
+
+    // nuclear remnants have pdg code = ±10LZZZAAA9
+    if (pdg < 1000000000)
+      continue; // must be nucleus
+    if (pdg % 10 != 9)
+      continue; // first digit must be 9
+    nNucRem++;
+
+    // extract A, Z and L from pdg code
+    pdg /= 10;
+    auto A = pdg % 1000;
+    pdg /= 1000;
+    auto Z = pdg % 1000;
+    pdg /= 1000;
+    auto L = pdg % 10;
+
+    if (particle.pz() > 0.) {
+      nProtonProj = Z;
+      nNeutronProj = A - Z;
+    }
+    if (particle.pz() < 0.) {
+      nProtonTarg = Z;
+      nNeutronTarg = A - Z;
+    }
+
+  } // end of particle loop
+
+  if (nNucRem > 2) {
+    LOG(WARNING) << " GeneratorPythia8: found more than two nuclear remnants (weird)";
+  }
+}
+
+/*****************************************************************/
 /*****************************************************************/
 
 } /* namespace eventgen */
