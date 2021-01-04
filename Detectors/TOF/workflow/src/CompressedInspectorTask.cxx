@@ -36,6 +36,9 @@ void CompressedInspectorTask<RDH>::init(InitContext& ic)
 {
   LOG(INFO) << "CompressedInspector init";
   auto filename = ic.options().get<std::string>("tof-compressed-inspector-filename");
+  auto verbose = ic.options().get<bool>("tof-compressed-inspector-decoder-verbose");
+
+  DecoderBaseT<RDH>::setDecoderVerbose(verbose);
 
   /** open file **/
   if (mFile && mFile->IsOpen()) {
@@ -62,6 +65,8 @@ void CompressedInspectorTask<RDH>::init(InitContext& ic)
   mHistos1D["errorBit"] = new TH1F("hErrorBit", ";TDC error bit", 15, 0., 15.);
   mHistos2D["error"] = new TH2F("hError", ";slot;TDC", 24, 1., 13., 15, 0., 15.);
   mHistos2D["test"] = new TH2F("hTest", ";slot;TDC", 24, 1., 13., 15, 0., 15.);
+  mHistos2D["crateBC"] = new TH2F("hCrateBC", ";crate;BC", 72, 0., 72., 4096, 0., 4096.);
+  mHistos2D["crateOrbit"] = new TH2F("hCrateOrbit", ";crate;orbit", 72, 0., 72., 4096, 0., 4096.);
 
   auto finishFunction = [this]() {
     LOG(INFO) << "CompressedInspector finish";
@@ -110,6 +115,9 @@ void CompressedInspectorTask<RDH>::run(ProcessingContext& pc)
 template <typename RDH>
 void CompressedInspectorTask<RDH>::headerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit)
 {
+  mHistos2D["crateBC"]->Fill(crateHeader->drmID, crateHeader->bunchID);
+  mHistos2D["crateOrbit"]->Fill(crateHeader->drmID, crateOrbit->orbitID % 4096);
+
   for (int ibit = 0; ibit < 11; ++ibit) {
     if (crateHeader->slotPartMask & (1 << ibit)) {
       mHistos2D["slotPartMask"]->Fill(crateHeader->drmID, ibit + 2);
