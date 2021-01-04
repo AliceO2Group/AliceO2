@@ -14,7 +14,6 @@
 #include "Framework/ChannelInfo.h"
 
 #include <cstdint>
-#include <cstdio>
 #include <memory>
 #include <cassert>
 

@@ -13,7 +13,6 @@
 #include "Headers/DataHeader.h"
 
 #include <cstdint>
-#include <cstdio>
 #include <memory>
 #include <cassert>
 #include <chrono>
