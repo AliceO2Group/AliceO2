@@ -21,10 +21,6 @@
 #include "ITStracking/Cell.h"
 #include "CommonConstants/MathConstants.h"
 
-#ifdef CA_DEBUG
-#include <cstdio>
-#endif
-
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2;
 using namespace o2::its;
