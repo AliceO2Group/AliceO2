@@ -86,12 +86,12 @@ jobs:
         cat <<\EOF > doc/data/${CURRENT_MONTH}-o2_prs.json
         ${{ steps.get_latest_o2_prs.outputs.data }}
         EOF
-        # FIXME: this should really be one second after the last release 
+        # FIXME: this should really be one second after the last release
         #        being published
         MERGED_AFTER=`date -v -14d +%Y-%m-%d`
         
-        # Here we convert all the json files to per subsystem 
-        # logs, using the MERGED_AFTER date to further filter them. 
+        # Here we convert all the json files to per subsystem
+        # logs, using the MERGED_AFTER date to further filter them.
         # Notice we can have duplicates in each file,
         # as they will be removed in the next iteration.
         # FIXME: it's probably enough to iterate on the last two
@@ -104,17 +104,12 @@ jobs:
             fi
           done
         done
-        # Here we do the merging by iterating on the subsystems adding 
+        # Here we do the merging by iterating on the subsystems adding
         # an header for each and removing the duplicates.
-        cat << EOF > CHANGELOG.md
-        # Changes since ${MERGED_AFTER}
-
-        EOF
-        
+        printf "# Changes since ${MERGED_AFTER}\n\n" > CHANGELOG.md
         for x in Algorithm Analysis Common DataFormats Detectors EventVisualisation Examples Framework Generators Steer Testing Utilities; do
-          cat << EOF >> CHANGELOG.md
-          ## Changes in $x
-          EOF
+          [ ! -f /tmp/${x}_prs.md ] && continue
+          printf "## Changes in $x\n\n" >> CHANGELOG.md
           cat /tmp/${x}_prs.md | sort -k3 | uniq >> CHANGELOG.md
         done
     - name: Commit and push if changed
