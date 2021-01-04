@@ -25,9 +25,10 @@ namespace o2::aod
 {
 namespace hf_selcandidate_lc
 {
-DECLARE_SOA_COLUMN(IsSelLc, isSelLc, int);
+DECLARE_SOA_COLUMN(IsSelLcpKpi, isSelLcpKpi, int);
+DECLARE_SOA_COLUMN(IsSelLcpiKp, isSelLcpiKp, int);
 } // namespace hf_selcandidate_lc
-DECLARE_SOA_TABLE(HFSelLcCandidate, "AOD", "HFSELLCCAND", hf_selcandidate_lc::IsSelLc);
+DECLARE_SOA_TABLE(HFSelLcCandidate, "AOD", "HFSELLCCAND", hf_selcandidate_lc::IsSelLcpKpi, hf_selcandidate_lc::IsSelLcpiKp);
 } // namespace o2::aod
 
 #endif // O2_ANALYSIS_HFCANDIDATESELECTIONTABLES_H_

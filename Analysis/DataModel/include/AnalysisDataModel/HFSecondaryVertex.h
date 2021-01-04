@@ -234,6 +234,7 @@ DECLARE_SOA_TABLE(HfCandProng2Base, "AOD", "HFCANDP2BASE",
                   hf_cand::ImpactParameter0, hf_cand::ImpactParameter1,
                   hf_cand::ErrorImpactParameter0, hf_cand::ErrorImpactParameter1,
                   hf_track_index::Index0Id, hf_track_index::Index1Id,
+                  hf_track_index::HFflag,
                   /* dynamic columns */
                   hf_cand_prong2::M<hf_cand::PxProng0, hf_cand::PyProng0, hf_cand::PzProng0, hf_cand::PxProng1, hf_cand::PyProng1, hf_cand::PzProng1>,
                   hf_cand_prong2::M2<hf_cand::PxProng0, hf_cand::PyProng0, hf_cand::PzProng0, hf_cand::PxProng1, hf_cand::PyProng1, hf_cand::PzProng1>,
@@ -340,9 +341,15 @@ auto ELc(const T& candidate)
 }
 
 template <typename T>
-auto InvMassLc(const T& candidate)
+auto InvMassLcpKpi(const T& candidate)
 {
   return candidate.m(array{RecoDecay::getMassPDG(kProton), RecoDecay::getMassPDG(kKPlus), RecoDecay::getMassPDG(kPiPlus)});
+}
+
+template <typename T>
+auto InvMassLcpiKp(const T& candidate)
+{
+  return candidate.m(array{RecoDecay::getMassPDG(kPiPlus), RecoDecay::getMassPDG(kKPlus), RecoDecay::getMassPDG(kProton)});
 }
 } // namespace hf_cand_prong3
 
@@ -357,6 +364,7 @@ DECLARE_SOA_TABLE(HfCandProng3Base, "AOD", "HFCANDP3BASE",
                   hf_cand::ImpactParameter0, hf_cand::ImpactParameter1, hf_cand::ImpactParameter2,
                   hf_cand::ErrorImpactParameter0, hf_cand::ErrorImpactParameter1, hf_cand::ErrorImpactParameter2,
                   hf_track_index::Index0Id, hf_track_index::Index1Id, hf_track_index::Index2Id,
+                  hf_track_index::HFflag,
                   /* dynamic columns */
                   hf_cand_prong3::M<hf_cand::PxProng0, hf_cand::PyProng0, hf_cand::PzProng0, hf_cand::PxProng1, hf_cand::PyProng1, hf_cand::PzProng1, hf_cand::PxProng2, hf_cand::PyProng2, hf_cand::PzProng2>,
                   hf_cand_prong3::M2<hf_cand::PxProng0, hf_cand::PyProng0, hf_cand::PzProng0, hf_cand::PxProng1, hf_cand::PyProng1, hf_cand::PzProng1, hf_cand::PxProng2, hf_cand::PyProng2, hf_cand::PzProng2>,
