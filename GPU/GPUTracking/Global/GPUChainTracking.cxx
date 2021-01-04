@@ -1536,7 +1536,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
   int streamMap[NSLICES];
 
   bool error = false;
-  GPUCA_OPENMP(parallel for if(!(doGPU || GetProcessingSettings().ompKernels)) num_threads(GetProcessingSettings().ompThreads))
+  GPUCA_OPENMP(parallel for if(!doGPU && GetProcessingSettings().ompKernels != 1) num_threads(mRec->SetAndGetNestedLoopOmpFactor(!doGPU, NSLICES)))
   for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
     if (mRec->GetDeviceType() == GPUReconstruction::DeviceType::HIP) {
       SynchronizeGPU(); // BUG: Workaround for probable bug in AMD runtime, crashes randomly if not synchronized here
@@ -1649,6 +1649,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
       DoDebugAndDump(RecoStep::TPCSliceTracking, 512, trk, &GPUTPCTracker::DumpTrackHits, *mDebugFile);
     }
   }
+  mRec->SetNestedLoopOmpFactor(1);
   if (error) {
     return (3);
   }
@@ -1813,7 +1814,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     }
   } else {
     mSliceSelectorReady = NSLICES;
-    GPUCA_OPENMP(parallel for if(!(doGPU || GetProcessingSettings().ompKernels)) num_threads(GetProcessingSettings().ompThreads))
+    GPUCA_OPENMP(parallel for if(!doGPU && GetProcessingSettings().ompKernels != 1) num_threads(mRec->SetAndGetNestedLoopOmpFactor(!doGPU, NSLICES)))
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       if (param().rec.GlobalTracking) {
         GlobalTracking(iSlice, 0);
@@ -1822,6 +1823,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
         WriteOutput(iSlice, 0);
       }
     }
+    mRec->SetNestedLoopOmpFactor(1);
   }
 
   if (param().rec.GlobalTracking && GetProcessingSettings().debugLevel >= 3) {
