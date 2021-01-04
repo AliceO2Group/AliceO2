@@ -135,13 +135,6 @@ GPUdi() void GPUProcessor::raiseError(unsigned int code, unsigned int param1, un
   GetConstantMem()->errorCodes.raiseError(code, param1, param2, param3);
 }
 
-#if defined(GPUCA_NOCOMPAT_ALLCINT) && (!defined(GPUCA_GPULIBRARY) || !defined(GPUCA_ALIROOT_LIB)) && defined(HAVE_O2HEADERS)
-GPUd() float GPUTPCClusterFinder::getGainCorrection(tpccf::Row row, tpccf::Pad pad) const
-{
-  return GetConstantMem()->calibObjects.tpcPadGain->getGainCorrection(mISlice, row, pad);
-}
-#endif
-
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
