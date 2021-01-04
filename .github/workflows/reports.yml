@@ -98,9 +98,9 @@ jobs:
         #        months, at least for bi-weekly releases.
         for f in doc/data/*_prs.json; do
           for x in Algorithm Analysis Common DataFormats Detectors EventVisualisation Examples Framework Generators Steer Testing Utilities; do
-            cat $f | jq ".repository.pullRequests.edges[].node | select(.files.edges[].node.path | test(\"$x\")) | del(.files) | select(.state == \"MERGED\" and .mergedAt >= \"${MERGED_AFTER}\")" > /tmp/$x_prs.json
-            if [ ! X`jq -s length /tmp/$x_prs.json` = X0 ]; then 
-              cat /tmp/$x_prs.json | jq -r '"- [#\(.number)](https://github.com/AliceO2Group/AliceO2/pull/\(.number)) \(.mergedAt | split("T")[0]): \(.title) by [@\(.author.login)](https://github.com/\(.author.login))"' | sort -u >> /tmp/$x_prs.md
+            cat $f | jq ".repository.pullRequests.edges[].node | select(.files.edges[].node.path | test(\"$x\")) | del(.files) | select(.state == \"MERGED\" and .mergedAt >= \"${MERGED_AFTER}\")" > /tmp/${x}_prs.json
+            if [ ! X`jq -s length /tmp/${x}_prs.json` = X0 ]; then 
+              cat /tmp/${x}_prs.json | jq -r '"- [#\(.number)](https://github.com/AliceO2Group/AliceO2/pull/\(.number)) \(.mergedAt | split("T")[0]): \(.title) by [@\(.author.login)](https://github.com/\(.author.login))"' | sort -u >> /tmp/${x}_prs.md
             fi
           done
         done
@@ -115,7 +115,7 @@ jobs:
           cat << EOF >> CHANGELOG.md
           ## Changes in $x
           EOF
-          cat /tmp/$x_prs.md | sort -k3 | uniq >> CHANGELOG.md
+          cat /tmp/${x}_prs.md | sort -k3 | uniq >> CHANGELOG.md
         done
     - name: Commit and push if changed
       run: |-
