@@ -15,14 +15,7 @@
 #include "Framework/ConfigContext.h"
 #include "Framework/DataProcessingDevice.h"
 #include "Framework/DataProcessorSpec.h"
-#if __has_include(<DebugGUI/DebugGUI.h>)
-#include <DebugGUI/DebugGUI.h>
-#else
-// the DebugGUI is in a separate package and is optional for O2,
-// we include a header implementing GUI interface dummy methods
-#pragma message "Building DPL without Debug GUI"
-#include "Framework/NoDebugGUI.h"
-#endif
+#include "Framework/Plugins.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceExecution.h"
 #include "Framework/DeviceInfo.h"
@@ -30,7 +23,7 @@
 #include "Framework/DeviceConfigInfo.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceState.h"
-#include "Framework/FrameworkGUIDebugger.h"
+#include "Framework/DebugGUI.h"
 #include "Framework/LocalRootFileService.h"
 #include "Framework/LogParsingHelpers.h"
 #include "Framework/Logger.h"
@@ -43,15 +36,15 @@
 #include "Framework/CallbackService.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Monitoring.h"
+#include "Framework/DataProcessorInfo.h"
+#include "Framework/DriverInfo.h"
+#include "Framework/DriverControl.h"
 
 #include "ComputingResourceHelpers.h"
 #include "DataProcessingStatus.h"
 #include "DDSConfigHelpers.h"
 #include "O2ControlHelpers.h"
 #include "DeviceSpecHelpers.h"
-#include "DriverControl.h"
-#include "DriverInfo.h"
-#include "DataProcessorInfo.h"
 #include "GraphvizHelpers.h"
 #include "PropertyTreeHelpers.h"
 #include "SimpleResourceManager.h"
@@ -841,6 +834,7 @@ struct GuiCallbackContext {
   uint64_t frameLast;
   float* frameLatency;
   float* frameCost;
+  DebugGUI* plugin;
   void* window;
   bool* guiQuitRequested;
   std::function<void(void)> callback;
@@ -849,9 +843,12 @@ struct GuiCallbackContext {
 void gui_callback(uv_timer_s* ctx)
 {
   GuiCallbackContext* gui = reinterpret_cast<GuiCallbackContext*>(ctx->data);
+  if (gui->plugin == nullptr) {
+    return;
+  }
   uint64_t frameStart = uv_hrtime();
   uint64_t frameLatency = frameStart - gui->frameLast;
-  *(gui->guiQuitRequested) = (pollGUI(gui->window, gui->callback) == false);
+  *(gui->guiQuitRequested) = (gui->plugin->pollGUI(gui->window, gui->callback) == false);
   uint64_t frameEnd = uv_hrtime();
   *(gui->frameCost) = (frameEnd - frameStart) / 1000000;
   *(gui->frameLatency) = frameLatency / 1000000;
@@ -892,12 +889,39 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
   auto resourceManager = std::make_unique<SimpleResourceManager>(resources);
 
+  DebugGUI* debugGUI = nullptr;
   void* window = nullptr;
-  decltype(gui::getGUIDebugger(infos, deviceSpecs, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl)) debugGUICallback;
+  decltype(debugGUI->getGUIDebugger(infos, deviceSpecs, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl)) debugGUICallback;
 
   // An empty frameworkId means this is the driver, so we initialise the GUI
   if (driverInfo.batch == false && frameworkId.empty()) {
-    window = initGUI("O2 Framework debug GUI");
+    auto initDebugGUI = []() -> DebugGUI* {
+      uv_lib_t supportLib;
+      int result = 0;
+  #ifdef __APPLE__
+      result = uv_dlopen("libO2FrameworkGUISupport.dylib", &supportLib);
+  #else
+      result = uv_dlopen("libO2FrameworkGUISupport.so", &supportLib);
+  #endif
+      if (result == -1) {
+        LOG(ERROR) << uv_dlerror(&supportLib);
+        return nullptr;
+      }
+      void* callback = nullptr;
+      DPLPluginHandle* (*dpl_plugin_callback)(DPLPluginHandle*);
+
+      result = uv_dlsym(&supportLib, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
+      if (result == -1) {
+        LOG(ERROR) << uv_dlerror(&supportLib);
+        return nullptr;
+      }
+      DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
+      return PluginManager::getByName<DebugGUI>(pluginInstance, "ImGUIDebugGUI");
+    };
+    debugGUI = initDebugGUI();
+    if (debugGUI) {
+      window = debugGUI->initGUI("O2 Framework debug GUI");
+    }
   }
   if (driverInfo.batch == false && window == nullptr && frameworkId.empty()) {
     LOG(WARN) << "Could not create GUI. Switching to batch mode. Do you have GLFW on your system?";
@@ -920,6 +944,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   }
 
   GuiCallbackContext guiContext;
+  guiContext.plugin = debugGUI;
   guiContext.frameLast = uv_hrtime();
   guiContext.frameLatency = &driverInfo.frameLatency;
   guiContext.frameCost = &driverInfo.frameCost;
@@ -1125,7 +1150,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         // because getGUIDebugger actually recreates the GUI state.
         if (window) {
           uv_timer_stop(&gui_timer);
-          guiContext.callback = gui::getGUIDebugger(infos, deviceSpecs, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl);
+          guiContext.callback = debugGUI->getGUIDebugger(infos, deviceSpecs, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl);
           guiContext.window = window;
           gui_timer.data = &guiContext;
           uv_timer_start(&gui_timer, gui_callback, 0, 20);

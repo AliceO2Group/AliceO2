@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "FrameworkGUIDeviceInspector.h"
-#include "DataProcessorInfo.h"
+#include "Framework/DataProcessorInfo.h"
 
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceSpec.h"

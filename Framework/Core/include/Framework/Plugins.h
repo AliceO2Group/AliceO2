@@ -19,7 +19,10 @@ namespace o2::framework
 enum struct DplPluginKind : int {
   // A plugin which can customise the workflow. Needs to return
   // an object of kind o2::framework::WorkflowCustomizationService
-  CustomAlgorithm
+  CustomAlgorithm,
+  // A plugin which implements a ImGUI GUI. Needs to return an
+  // object of the kind o2::framework::DebugGUIImpl
+  DebugGUIImpl
 };
 
 } // namespace o2::framework

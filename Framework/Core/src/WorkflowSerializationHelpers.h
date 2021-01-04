@@ -11,14 +11,12 @@
 #define O2_FRAMEWORK_CORE_WORKFLOWSERIALIZATIONHELPERS_H_
 
 #include "Framework/DataProcessorSpec.h"
-#include "DataProcessorInfo.h"
+#include "Framework/DataProcessorInfo.h"
 
 #include <iosfwd>
 #include <vector>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 struct WorkflowSerializationHelpers {
@@ -30,7 +28,6 @@ struct WorkflowSerializationHelpers {
                    std::vector<DataProcessorInfo> const& metadata);
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif // O2_FRAMEWORK_CORE_WORKFLOWSERIALIZATIONHELPERS_H_

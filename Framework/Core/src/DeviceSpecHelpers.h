@@ -22,8 +22,8 @@
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/OutputRoute.h"
+#include "Framework/DataProcessorInfo.h"
 #include "ResourceManager.h"
-#include "DataProcessorInfo.h"
 #include "WorkflowHelpers.h"
 #include <boost/program_options.hpp>
 

@@ -8,15 +8,6 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-if (TARGET AliceO2::DebugGUI)
-  set(GUI_SOURCES src/FrameworkGUIDebugger.cxx src/FrameworkGUIDevicesGraph.cxx
-                  src/FrameworkGUIDeviceInspector.cxx
-                  src/FrameworkGUIDataRelayerUsage.cxx src/PaletteHelpers.cxx)
-  set(DEBUGGUI_TARGET AliceO2::DebugGUI)
-else()
-  set(GUI_SOURCES src/FrameworkDummyDebugger.cxx)
-endif()
-
 # Given GCC 7.3 does not provide std::filesystem we use Boost instead
 # Drop this once we move to GCC 8.2+
 # if (NOT __APPLE__)
@@ -26,7 +17,6 @@ endif()
 o2_add_library(Framework
                SOURCES src/AODReaderHelpers.cxx
                        src/ASoA.cxx
-                       ${GUI_SOURCES}
                        src/AnalysisHelpers.cxx
                        src/AnalysisDataModelHelpers.cxx
                        src/BoostOptionsRetriever.cxx
@@ -108,8 +98,7 @@ o2_add_library(Framework
                        src/StepTHn.cxx
                        test/TestClasses.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
-               PUBLIC_LINK_LIBRARIES ${DEBUGGUI_TARGET}
-                                     AliceO2::Common
+               PUBLIC_LINK_LIBRARIES AliceO2::Common
                                      AliceO2::Configuration
                                      AliceO2::InfoLogger
                                      AliceO2::Monitoring
@@ -257,16 +246,6 @@ endforeach()
 
 # #####################################################@
 
-if (TARGET AliceO2::DebugGUI)
-if (NOT APPLE)
-set (DEBUG_GUI_TESTS_WORKFLOW
-     CustomGUIGL
-     CustomGUISokol
-     SimpleTracksED
-     )
-endif()
-endif()
-
 foreach(w
         BoostSerializedProcessing
         CallbackService
@@ -288,7 +267,6 @@ foreach(w
         SingleDataSource
         Task
         ExternalFairMQDeviceWorkflow
-        ${DEBUG_GUI_TESTS_WORKFLOW}
         )
   o2_add_test(${w} NAME test_Framework_test_${w}
               SOURCES test/test_${w}.cxx
@@ -303,18 +281,6 @@ endforeach()
 # TODO: DanglingInput test not working for the moment [ERROR] Unable to relay
 # part. [WARN] Incoming data is already obsolete, not relaying.
 set_property(TEST test_Framework_test_DanglingInputs PROPERTY DISABLED TRUE)
-
-if (TARGET AliceO2::DebugGUI)
-# TODO: investigate the problem with the two unit tests, maybe setup of the CI
-# environment assertion fired X11: The DISPLAY environment variable is missing
-# glfw-3.2.1/src/window.c:579: glfwGetFramebufferSize: Assertion `window !=
-# ((void *)0)' failed.
-if(NOT APPLE)
-set_property(TEST test_Framework_test_SimpleTracksED PROPERTY DISABLED TRUE)
-set_property(TEST test_Framework_test_CustomGUIGL PROPERTY DISABLED TRUE)
-set_property(TEST test_Framework_test_CustomGUISokol PROPERTY DISABLED TRUE)
-endif()
-endif()
 
 # TODO: investigate the problem and re-enable
 set_property(TEST test_Framework_test_BoostSerializedProcessing
