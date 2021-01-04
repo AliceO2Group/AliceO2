@@ -82,6 +82,7 @@ GPUd() void GPUTrackingRefit::initProp<GPUTPCGMPropagator>(GPUTPCGMPropagator& p
   prop.SetFitInProjections(mPparam->rec.fitInProjections != 0);
   prop.SetPropagateBzOnly(false);
   prop.SetPolynomialField(&mPparam->polynomialField);
+  prop.SetMatLUT(mPmatLUT);
 }
 
 template <>
@@ -415,6 +416,7 @@ void GPUTrackingRefit::SetPtrsFromGPUConstantMem(const GPUConstantMem* v, MEM_CO
   mPclusterNative = v->ioPtrs.clustersNative;
   mPtrackHits = v->ioPtrs.mergedTrackHits;
   mPfastTransform = v->calibObjects.fastTransform;
+  mPmatLUT = v->calibObjects.matLUT;
   mPparam = p ? p : &v->param;
 }
 

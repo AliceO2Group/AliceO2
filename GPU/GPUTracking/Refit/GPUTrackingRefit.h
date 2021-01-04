@@ -31,6 +31,7 @@ using TrackParCov = TrackParametrizationWithError<float>;
 namespace o2::base
 {
 class Propagator;
+class MatLayerCylSet;
 } // namespace o2::base
 namespace o2::tpc
 {
@@ -89,6 +90,7 @@ class GPUTrackingRefit
  private:
   const unsigned char* mPclusterState = nullptr;                 // Ptr to shared cluster state
   const o2::base::Propagator* mPpropagator = nullptr;            // Ptr to propagator for TrackParCov track model
+  const o2::base::MatLayerCylSet* mPmatLUT = nullptr;            // Ptr to material LUT
   const o2::tpc::ClusterNativeAccess* mPclusterNative = nullptr; // Ptr to cluster native access structure
   const GPUTPCGMMergedTrackHit* mPtrackHits = nullptr;           // Ptr to hits for GPUTPCGMMergedTrack tracks
   const unsigned int* mPtrackHitReferences = nullptr;            // Ptr to hits for TrackTPC tracks
