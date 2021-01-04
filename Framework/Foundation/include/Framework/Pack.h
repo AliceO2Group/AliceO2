@@ -12,7 +12,6 @@
 
 #include <cstddef>
 #include <utility>
-#include <cstdio>
 
 namespace o2::framework
 {
