@@ -54,6 +54,10 @@ class GeneratorHepMC : public Generator
   /** Initialize the generator if needed **/
   Bool_t Init() override;
 
+  /** methods to override **/
+  Bool_t generateEvent() override;
+  Bool_t importParticles() override;
+
   /** setters **/
   void setVersion(Int_t val) { mVersion = val; };
   void setFileName(std::string val) { mFileName = val; };
@@ -63,10 +67,6 @@ class GeneratorHepMC : public Generator
   GeneratorHepMC(const GeneratorHepMC&);
   /** operator= **/
   GeneratorHepMC& operator=(const GeneratorHepMC&);
-
-  /** methods to override **/
-  Bool_t generateEvent() override;
-  Bool_t importParticles() override;
 
   /** methods **/
 #ifdef GENERATORS_WITH_HEPMC3_DEPRECATED
