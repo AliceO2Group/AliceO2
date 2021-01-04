@@ -40,6 +40,9 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   // Use lookup table for mat. budget
   bool useMatBudLUT = false;
 
+  // Use Kalman Smoother
+  bool useKalmanSmoother = false;
+
   O2ParamDef(TrackerParamConfig, "ITSCATrackerParam");
 };
 

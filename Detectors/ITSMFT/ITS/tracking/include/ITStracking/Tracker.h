@@ -70,6 +70,7 @@ class Tracker
   std::vector<TrackITSExt>& getTracks();
   auto& getTrackLabels() { return mTrackLabels; }
   bool isMatLUT();
+  bool isKSmoother();
 
   void clustersToTracks(const ROframe&, std::ostream& = std::cout);
 
@@ -157,6 +158,11 @@ inline void Tracker::initMatBudLUTFromFile()
 inline bool Tracker::isMatLUT()
 {
   return mMatLayerCylSet;
+}
+
+inline bool Tracker::isKSmoother()
+{
+  return mUseSmoother;
 }
 
 template <typename... T>

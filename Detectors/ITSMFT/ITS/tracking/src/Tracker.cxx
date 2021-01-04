@@ -684,6 +684,7 @@ void Tracker::getGlobalConfiguration()
   if (tc.useMatBudLUT) {
     initMatBudLUTFromFile();
   }
+  setUseSmoother(tc.useKalmanSmoother);
 }
 
 // Smoother
