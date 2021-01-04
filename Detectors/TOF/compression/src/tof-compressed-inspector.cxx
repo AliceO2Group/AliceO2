@@ -52,7 +52,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     Outputs{},
     algoSpec,
     Options{
-      {"tof-compressed-inspector-filename", VariantType::String, "inspector.root", {"Name of the inspector output file"}}}});
+      {"tof-compressed-inspector-filename", VariantType::String, "inspector.root", {"Name of the inspector output file"}},
+      {"tof-compressed-inspector-decoder-verbose", VariantType::Bool, false, {"Decode in verbose mode"}}}});
 
   return workflow;
 }
