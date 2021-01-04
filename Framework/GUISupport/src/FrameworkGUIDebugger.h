@@ -7,32 +7,34 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "DataProcessorInfo.h"
-#include "Framework/FrameworkGUIDebugger.h"
+#ifndef O2_FRAMEWORK_FRAMEWORKGUIDEBUGGER_H_
+#define O2_FRAMEWORK_FRAMEWORKGUIDEBUGGER_H_
 
-#include <algorithm>
+#include "Framework/DataProcessorInfo.h"
+#include "Framework/DeviceControl.h"
+#include "Framework/DeviceInfo.h"
+#include "Framework/DeviceMetricsInfo.h"
+#include "Framework/DeviceSpec.h"
+
+#include <functional>
 #include <vector>
 
-namespace o2
+namespace o2::framework
 {
-namespace framework
-{
+
+class DriverInfo;
+class DriverControl;
+
 namespace gui
 {
-// Dummy function in case we want to build without debugger.
+/// Helper to get the callback to draw the debug GUI
 std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
                                          std::vector<DeviceSpec> const& devices,
                                          std::vector<DataProcessorInfo> const& metadata,
                                          std::vector<DeviceMetricsInfo> const& metricsInfos,
                                          DriverInfo const& driverInfo,
                                          std::vector<DeviceControl>& controls,
-                                         DriverControl& driverControl)
-{
-  return []() {};
-}
-
-void showNodeGraph(bool* opened) {}
-
+                                         DriverControl& driverControl);
 } // namespace gui
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
+#endif // O2_FRAMEWORK_FRAMEWORKGUIDEBUGGER_H_
