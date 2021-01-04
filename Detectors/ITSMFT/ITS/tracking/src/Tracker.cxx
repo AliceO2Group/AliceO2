@@ -322,6 +322,8 @@ void Tracker::findTracks(const ROframe& event)
     CA_DEBUGGER(assert(nClusters == temporaryTrack.getNumberOfClusters()));
   }
   //mTraits->refitTracks(event.getTrackingFrameInfo(), tracks);
+  if (mUseSmoother)
+    smoothTracks(event, tracks);
 
   std::sort(tracks.begin(), tracks.end(),
             [](TrackITSExt& track1, TrackITSExt& track2) { return track1.isBetter(track2, 1.e6f); });

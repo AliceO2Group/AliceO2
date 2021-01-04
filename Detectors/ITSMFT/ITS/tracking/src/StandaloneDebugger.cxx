@@ -30,61 +30,6 @@ namespace its
 
 using constants::its::UnusedIndex;
 
-struct FakeTrackInfo {
- public:
-  FakeTrackInfo();
-  FakeTrackInfo(const ROframe& event, TrackITSExt& track) : isFake{false}, isAmbiguousId{false}, mainLabel{UnusedIndex, UnusedIndex, UnusedIndex, false}
-  {
-    occurrences.clear();
-    for (auto iCluster{0}; iCluster < 7; ++iCluster) {
-      int extIndex = track.getClusterIndex(iCluster);
-      o2::MCCompLabel mcLabel = event.getClusterLabels(iCluster, extIndex);
-      bool found = false;
-
-      for (auto iOcc{0}; iOcc < occurrences.size(); ++iOcc) {
-        std::pair<o2::MCCompLabel, int>& occurrence = occurrences[iOcc];
-        if (mcLabel == occurrence.first) {
-          ++occurrence.second;
-          found = true;
-        }
-      }
-      if (!found) {
-        occurrences.emplace_back(mcLabel, 1);
-      }
-    }
-    if (occurrences.size() > 1) {
-      isFake = true;
-    }
-    std::sort(std::begin(occurrences), std::end(occurrences), [](auto e1, auto e2) {
-      return e1.second > e2.second;
-    });
-    mainLabel = occurrences[0].first;
-
-    for (auto iOcc{1}; iOcc < occurrences.size(); ++iOcc) {
-      if (occurrences[iOcc].second == occurrences[0].second) {
-        isAmbiguousId = true;
-        break;
-      }
-    }
-    for (auto iCluster{0}; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
-      int extIndex = track.getClusterIndex(iCluster);
-      o2::MCCompLabel lbl = event.getClusterLabels(iCluster, extIndex);
-      if (lbl == mainLabel && occurrences[0].second > 1 && !lbl.isNoise()) { // if 7 fake clusters -> occurrences[0].second = 1
-        clusStatuses[iCluster] = 1;
-      } else {
-        clusStatuses[iCluster] = 0;
-        ++nFakeClusters;
-      }
-    }
-  }
-  std::vector<std::pair<MCCompLabel, int>> occurrences;
-  MCCompLabel mainLabel;
-  std::array<int, 7> clusStatuses = {-1, -1, -1, -1, -1, -1, -1};
-  bool isFake;
-  bool isAmbiguousId;
-  int nFakeClusters = 0;
-};
-
 StandaloneDebugger::StandaloneDebugger(const std::string debugTreeFileName)
 {
   mDebugTreeFileName = debugTreeFileName;
