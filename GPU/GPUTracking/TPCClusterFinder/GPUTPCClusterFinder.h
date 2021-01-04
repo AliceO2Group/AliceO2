@@ -138,7 +138,6 @@ class GPUTPCClusterFinder : public GPUProcessor
   short mZSOffsetId = -1;
   short mOutputId = -1;
 
-  GPUdi() float getGainCorrection(tpccf::Row, tpccf::Pad) const;
   GPUdi() const GPUTPCGeometry* getGeometry() const;
 
 #ifndef GPUCA_GPUCODE
