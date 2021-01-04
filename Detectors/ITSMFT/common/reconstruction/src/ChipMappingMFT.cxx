@@ -1685,8 +1685,6 @@ ChipMappingMFT::ChipMappingMFT()
       mCableHW2Pos[iRU][chInfo.cableHW] = chInfo.cableHWPos;
       mCableHW2SW[iRU][chInfo.cableHW] = chInfo.cableSW;
       mCableHWFirstChip[iRU][chInfo.cableHW] = 0;
-      
-      mCablesOnRUType[iRU] |= 0x1 << chInfo.cableHW; //For correct active lanes pattern
 
       ++ctrChip;
       ++chipsOnRUType[iRU];
