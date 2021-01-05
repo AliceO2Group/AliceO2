@@ -125,6 +125,9 @@ void GPUChainTracking::RegisterPermanentMemoryAndProcessors()
       mRec->RegisterGPUProcessor(&processors()->tpcClusterer[i], GetRecoStepsGPU() & RecoStep::TPCClusterFinding);
     }
   }
+  if (GetRecoSteps() & RecoStep::Refit) {
+    mRec->RegisterGPUProcessor(&processors()->trackingRefit, GetRecoStepsGPU() & RecoStep::Refit);
+  }
 #endif
 #ifdef GPUCA_KERNEL_DEBUGGER_OUTPUT
   mRec->RegisterGPUProcessor(&processors()->debugOutput, true);
@@ -161,6 +164,9 @@ void GPUChainTracking::RegisterGPUProcessors()
     for (unsigned int i = 0; i < NSLICES; i++) {
       mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcClusterer[i], &processors()->tpcClusterer[i]);
     }
+  }
+  if (GetRecoStepsGPU() & RecoStep::Refit) {
+    mRec->RegisterGPUDeviceProcessor(&processorsShadow()->trackingRefit, &processors()->trackingRefit);
   }
 #endif
 #ifdef GPUCA_KERNEL_DEBUGGER_OUTPUT
@@ -257,6 +263,10 @@ bool GPUChainTracking::ValidateSteps()
   }
   if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCClusterFinding) && processors()->calibObjects.tpcPadGain == nullptr) {
     GPUError("Cannot run gain calibration without calibration object");
+    return false;
+  }
+  if ((GetRecoSteps() & GPUDataTypes::RecoStep::Refit) && !param().rec.trackingRefitGPUModel && (processors()->calibObjects.o2Propagator == nullptr || processors()->calibObjects.matLUT == nullptr)) {
+    GPUError("Cannot run refit with o2 track model without o2 propagator");
     return false;
   }
   return true;
@@ -386,8 +396,15 @@ int GPUChainTracking::Init()
     if (processors()->calibObjects.tpcPadGain) {
       memcpy((void*)mFlatObjectsShadow.mCalibObjects.tpcPadGain, (const void*)processors()->calibObjects.tpcPadGain, sizeof(*processors()->calibObjects.tpcPadGain));
     }
+    if (processors()->calibObjects.o2Propagator) {
+      memcpy((void*)mFlatObjectsShadow.mCalibObjects.o2Propagator, (const void*)processors()->calibObjects.o2Propagator, sizeof(*processors()->calibObjects.o2Propagator));
+      mFlatObjectsShadow.mCalibObjects.o2Propagator->setGPUField(&processorsDevice()->param.polynomialField);
+      mFlatObjectsShadow.mCalibObjects.o2Propagator->setBz(param().polynomialField.GetNominalBz());
+      mFlatObjectsShadow.mCalibObjects.o2Propagator->setMatLUT(mFlatObjectsShadow.mCalibObjects.matLUT);
+    }
 #endif
     TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, mFlatObjectsShadow.mMemoryResFlat);
+    memcpy((void*)&processorsShadow()->calibObjects, (void*)&mFlatObjectsDevice.mCalibObjects, sizeof(mFlatObjectsDevice.mCalibObjects));
     WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->calibObjects - (char*)processors(), &mFlatObjectsDevice.mCalibObjects, sizeof(mFlatObjectsDevice.mCalibObjects), -1); // First initialization, for users not using RunChain
     processorsShadow()->errorCodes.setMemory(mInputsShadow->mErrorCodes);
     WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->errorCodes - (char*)processors(), &processorsShadow()->errorCodes, sizeof(processorsShadow()->errorCodes), -1);
@@ -454,7 +471,9 @@ void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem
   if (mChainTracking->GetTRDGeometry()) {
     computePointerWithAlignment(mem, mCalibObjects.trdGeometry, 1);
   }
-
+  if (mChainTracking->GetO2Propagator()) {
+    computePointerWithAlignment(mem, mCalibObjects.o2Propagator, 1);
+  }
 #endif
   return mem;
 }
@@ -1517,7 +1536,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
   int streamMap[NSLICES];
 
   bool error = false;
-  GPUCA_OPENMP(parallel for if(!(doGPU || GetProcessingSettings().ompKernels)) num_threads(GetProcessingSettings().ompThreads))
+  GPUCA_OPENMP(parallel for if(!doGPU && GetProcessingSettings().ompKernels != 1) num_threads(mRec->SetAndGetNestedLoopOmpFactor(!doGPU, NSLICES)))
   for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
     if (mRec->GetDeviceType() == GPUReconstruction::DeviceType::HIP) {
       SynchronizeGPU(); // BUG: Workaround for probable bug in AMD runtime, crashes randomly if not synchronized here
@@ -1630,6 +1649,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
       DoDebugAndDump(RecoStep::TPCSliceTracking, 512, trk, &GPUTPCTracker::DumpTrackHits, *mDebugFile);
     }
   }
+  mRec->SetNestedLoopOmpFactor(1);
   if (error) {
     return (3);
   }
@@ -1794,7 +1814,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     }
   } else {
     mSliceSelectorReady = NSLICES;
-    GPUCA_OPENMP(parallel for if(!(doGPU || GetProcessingSettings().ompKernels)) num_threads(GetProcessingSettings().ompThreads))
+    GPUCA_OPENMP(parallel for if(!doGPU && GetProcessingSettings().ompKernels != 1) num_threads(mRec->SetAndGetNestedLoopOmpFactor(!doGPU, NSLICES)))
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       if (param().rec.GlobalTracking) {
         GlobalTracking(iSlice, 0);
@@ -1803,6 +1823,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
         WriteOutput(iSlice, 0);
       }
     }
+    mRec->SetNestedLoopOmpFactor(1);
   }
 
   if (param().rec.GlobalTracking && GetProcessingSettings().debugLevel >= 3) {
@@ -2084,6 +2105,15 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   mIOPtrs.nMergedTrackHits = Merger.NOutputTrackClusters();
   mIOPtrs.mergedTrackHitAttachment = Merger.ClusterAttachment();
   mIOPtrs.mergedTrackHitStates = Merger.ClusterStateExt();
+  if (doGPU) {
+    processorsShadow()->ioPtrs.mergedTracks = MergerShadow.OutputTracks();
+    processorsShadow()->ioPtrs.nMergedTracks = Merger.NOutputTracks();
+    processorsShadow()->ioPtrs.mergedTrackHits = MergerShadow.Clusters();
+    processorsShadow()->ioPtrs.nMergedTrackHits = Merger.NOutputTrackClusters();
+    processorsShadow()->ioPtrs.mergedTrackHitAttachment = MergerShadow.ClusterAttachment();
+    processorsShadow()->ioPtrs.mergedTrackHitStates = MergerShadow.ClusterStateExt();
+    WriteToConstantMemory(RecoStep::TPCMerging, (char*)&processors()->ioPtrs - (char*)processors(), &processorsShadow()->ioPtrs, sizeof(processorsShadow()->ioPtrs), 0);
+  }
 
   if (GetProcessingSettings().debugLevel >= 2) {
     GPUInfo("TPC Merger Finished (output clusters %d / input clusters %d)", Merger.NOutputTrackClusters(), Merger.NClusters());
@@ -2384,22 +2414,24 @@ int GPUChainTracking::DoTRDGPUTracking()
 int GPUChainTracking::RunRefit()
 {
 #ifdef HAVE_O2HEADERS
-  GPUTrackingRefit re;
-  re.SetPtrsFromGPUConstantMem(processorsShadow());
-  re.SetPropagatorDefault();
-  for (unsigned int i = 0; i < mIOPtrs.nMergedTracks; i++) {
-    if (mIOPtrs.mergedTracks[i].OK()) {
-      printf("\nRefitting track %d\n", i);
-      GPUTPCGMMergedTrack t = mIOPtrs.mergedTracks[i];
-      int retval = re.RefitTrackAsGPU(t, false, true);
-      printf("Refit error code: %d\n", retval);
+  bool doGPU = GetRecoStepsGPU() & RecoStep::Refit;
+  GPUTrackingRefitProcessor& Refit = processors()->trackingRefit;
+  GPUTrackingRefitProcessor& RefitShadow = doGPU ? processorsShadow()->trackingRefit : Refit;
 
-      printf("\nRefitting track TrackParCov %d\n", i);
-      t = mIOPtrs.mergedTracks[i];
-      retval = re.RefitTrackAsTrackParCov(t, false, true);
-      printf("Refit error code: %d\n", retval);
-    }
+  const auto& threadContext = GetThreadContext();
+  SetupGPUProcessor(&Refit, false);
+  RefitShadow.SetPtrsFromGPUConstantMem(processorsShadow(), doGPU ? &processorsDevice()->param : nullptr);
+  RefitShadow.SetPropagator(doGPU ? processorsShadow()->calibObjects.o2Propagator : GetO2Propagator());
+  RefitShadow.mPTracks = (doGPU ? processorsShadow() : processors())->tpcMerger.OutputTracks();
+  WriteToConstantMemory(RecoStep::Refit, (char*)&processors()->trackingRefit - (char*)processors(), &RefitShadow, sizeof(RefitShadow), 0);
+  //TransferMemoryResourcesToGPU(RecoStep::Refit, &Refit, 0);
+  if (param().rec.trackingRefitGPUModel) {
+    runKernel<GPUTrackingRefitKernel, GPUTrackingRefitKernel::mode0asGPU>(GetGrid(mIOPtrs.nMergedTracks, 0), krnlRunRangeNone);
+  } else {
+    runKernel<GPUTrackingRefitKernel, GPUTrackingRefitKernel::mode1asTrackParCov>(GetGrid(mIOPtrs.nMergedTracks, 0), krnlRunRangeNone);
   }
+  //TransferMemoryResourcesToHost(RecoStep::Refit, &Refit, 0);
+  SynchronizeStream(0);
 #endif
   return 0;
 }
@@ -2647,4 +2679,11 @@ void GPUChainTracking::ClearErrorCodes()
     WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->errorCodes - (char*)processors(), &processorsShadow()->errorCodes, sizeof(processorsShadow()->errorCodes), 0);
   }
   TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, mInputsHost->mResourceErrorCodes, 0);
+}
+
+void GPUChainTracking::SetDefaultO2PropagatorForGPU()
+{
+  o2::base::Propagator* prop = param().GetDefaultO2Propagator(true);
+  prop->setMatLUT(processors()->calibObjects.matLUT);
+  SetO2Propagator(prop);
 }

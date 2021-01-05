@@ -31,6 +31,7 @@ namespace zdc
 constexpr unsigned short Id_w0 = 0x0;
 constexpr unsigned short Id_w1 = 0x1;
 constexpr unsigned short Id_w2 = 0x2;
+constexpr unsigned short Id_wn = 0x3;
 constexpr int NWPerGBTW = 4;
 
 struct __attribute__((__packed__)) ChannelDataV0 {
@@ -79,11 +80,14 @@ struct __attribute__((__packed__)) ChannelDataV0 {
   unsigned empty_5 : 32;
 };
 
+union EventChData {
+  UInt_t w[NWPerBc][NWPerGBTW];
+  struct ChannelDataV0 f;
+  void reset();
+};
+
 struct EventData {
-  union {
-    UInt_t w[NWPerBc][NWPerGBTW];
-    struct ChannelDataV0 f;
-  } data[NModules][NChPerModule] = {0};
+  EventChData data[NModules][NChPerModule] = {0};
   void print() const;
   void reset();
   ClassDefNV(EventData, 1);

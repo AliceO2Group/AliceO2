@@ -7,24 +7,19 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "Framework/FrameworkGUIDevicesGraph.h"
-#include "Framework/FrameworkGUIDataRelayerUsage.h"
-#include "Framework/FrameworkGUIState.h"
+#include "FrameworkGUIDevicesGraph.h"
+#include "FrameworkGUIDataRelayerUsage.h"
+#include "FrameworkGUIState.h"
+#include "PaletteHelpers.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceInfo.h"
 #include "Framework/LogParsingHelpers.h"
-#include "Framework/PaletteHelpers.h"
 #include "Framework/Logger.h"
 #include "FrameworkGUIDeviceInspector.h"
 #include "Framework/Logger.h"
 #include "../src/WorkflowHelpers.h"
 #include "DebugGUI/imgui.h"
-#if __has_include("DebugGUI/icons_font_awesome.h")
-#include "DebugGUI/icons_font_awesome.h"
-#else
-#define ICON_FA_EXCLAMATION_CIRCLE "(Errors!)"
-#define ICON_FA_EXCLAMATION_TRIANGLE "(Warnings!)"
-#endif
+#include <DebugGUI/icons_font_awesome.h>
 #include <algorithm>
 #include <cmath>
 #include <vector>
@@ -232,7 +227,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       int groupId = 0;
 
       auto metadatum = std::find_if(metadata.begin(), metadata.end(),
-                                    [& name = spec.name](DataProcessorInfo const& info) { return info.name == name; });
+                                    [&name = spec.name](DataProcessorInfo const& info) { return info.name == name; });
 
       for (size_t gi = 0; gi < groupList.Size; ++gi) {
         if (metadatum == metadata.end()) {

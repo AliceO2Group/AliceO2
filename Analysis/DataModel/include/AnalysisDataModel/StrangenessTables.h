@@ -23,6 +23,8 @@ DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, FullTracks, "fNegTrackID"
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 
 //General V0 properties: position, momentum
+DECLARE_SOA_COLUMN(PosX, posX, float);
+DECLARE_SOA_COLUMN(NegX, negX, float);
 DECLARE_SOA_COLUMN(PxPos, pxpos, float);
 DECLARE_SOA_COLUMN(PyPos, pypos, float);
 DECLARE_SOA_COLUMN(PzPos, pzpos, float);
@@ -68,6 +70,7 @@ DECLARE_SOA_EXPRESSION_COLUMN(Pz, pz, float, 1.f * aod::v0data::pzpos + 1.f * ao
 
 DECLARE_SOA_TABLE(V0Data, "AOD", "V0DATA",
                   o2::soa::Index<>, v0data::PosTrackId, v0data::NegTrackId, v0data::CollisionId,
+                  v0data::PosX, v0data::NegX,
                   v0data::X, v0data::Y, v0data::Z,
                   v0data::PxPos, v0data::PyPos, v0data::PzPos,
                   v0data::PxNeg, v0data::PyNeg, v0data::PzNeg,

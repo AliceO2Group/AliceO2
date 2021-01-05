@@ -180,8 +180,8 @@ void MC2RawEncoder<Mapping>::fillGBTLinks(RUDecodeData& ru)
     // estimate real payload size in GBT words
     int nPayLoadWordsNeeded = 0;           // number of payload words filled to link buffer (RDH not included) for current IR
     for (int icab = ru.nCables; icab--;) { // calculate number of GBT words per link
-      if ((link->lanes & (0x1 << icab))) {
-        int nb = ru.cableData[icab].getSize();
+      if ((link->lanes & (0x1 << mMAP.cablePos(ru.ruInfo->ruType, icab)))) {
+        int nb = ru.cableData[mMAP.cablePos(ru.ruInfo->ruType, icab)].getSize();
         nPayLoadWordsNeeded += nb ? 1 + (nb - 1) / 9 : 0; // single GBT word carries at most 9 payload bytes
       }
     }
@@ -195,8 +195,8 @@ void MC2RawEncoder<Mapping>::fillGBTLinks(RUDecodeData& ru)
     while (hasData) {
       hasData = false;
       for (int icab = 0; icab < ru.nCables; icab++) {
-        if ((link->lanes & (0x1 << icab))) {
-          auto& cableData = ru.cableData[icab];
+        if ((link->lanes & (0x1 << mMAP.cablePos(ru.ruInfo->ruType, icab)))) {
+          auto& cableData = ru.cableData[mMAP.cablePos(ru.ruInfo->ruType, icab)];
           int nb = cableData.getUnusedSize();
           if (!nb) {
             continue; // write 80b word only if there is something to write
@@ -204,10 +204,10 @@ void MC2RawEncoder<Mapping>::fillGBTLinks(RUDecodeData& ru)
           if (nb > 9) {
             nb = 9;
           }
-          int gbtWordStart = link->data.getSize();                                                       // beginning of the current GBT word in the link
-          link->data.addFast(cableData.getPtr(), nb);                                                    // fill payload of cable
-          link->data.addFast(zero16, GBTPaddedWordLength - nb);                                          // fill the rest of the GBT word by 0
-          link->data[gbtWordStart + 9] = mMAP.getGBTHeaderRUType(ru.ruInfo->ruType, ru.cableHWID[icab]); // set cable flag
+          int gbtWordStart = link->data.getSize();                                                                                         // beginning of the current GBT word in the link
+          link->data.addFast(cableData.getPtr(), nb);                                                                                      // fill payload of cable
+          link->data.addFast(zero16, GBTPaddedWordLength - nb);                                                                            // fill the rest of the GBT word by 0
+          link->data[gbtWordStart + 9] = mMAP.getGBTHeaderRUType(ru.ruInfo->ruType, ru.cableHWID[mMAP.cablePos(ru.ruInfo->ruType, icab)]); // set cable flag
           cableData.setPtr(cableData.getPtr() + nb);
           hasData = true;
         } // storing data of single cable

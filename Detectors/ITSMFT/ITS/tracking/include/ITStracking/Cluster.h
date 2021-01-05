@@ -19,6 +19,7 @@
 #include <array>
 #endif
 
+#include "GPUCommonRtypes.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/MathUtils.h"
 
@@ -43,6 +44,8 @@ struct Cluster final {
   float rCoordinate;      // = -999.f;
   int clusterId;          // = -1;
   int indexTableBinIndex; // = -1;
+
+  ClassDefNV(Cluster, 1);
 };
 
 struct TrackingFrameInfo {
@@ -56,6 +59,8 @@ struct TrackingFrameInfo {
   float alphaTrackingFrame;
   GPUArray<float, 2> positionTrackingFrame = {-1., -1.};
   GPUArray<float, 3> covarianceTrackingFrame = {999., 999., 999.};
+
+  ClassDefNV(TrackingFrameInfo, 1);
 };
 } // namespace its
 } // namespace o2

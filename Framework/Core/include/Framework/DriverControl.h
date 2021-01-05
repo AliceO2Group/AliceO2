@@ -13,7 +13,7 @@
 #include <functional>
 #include <vector>
 
-#include "DriverInfo.h"
+#include "Framework/DriverInfo.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceExecution.h"

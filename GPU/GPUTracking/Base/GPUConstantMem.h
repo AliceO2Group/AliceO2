@@ -47,6 +47,7 @@ class GPUTRDTracker_t
 #include "GPUTPCCompression.h"
 #include "GPUITSFitter.h"
 #include "GPUTPCClusterFinder.h"
+#include "GPUTrackingRefit.h"
 #else
 #include "GPUO2FakeClasses.h"
 #endif
@@ -71,6 +72,7 @@ struct GPUConstantMem {
   GPUTRDTrackerGPU trdTracker;
   GPUTPCClusterFinder tpcClusterer[GPUCA_NSLICES];
   GPUITSFitter itsFitter;
+  GPUTrackingRefitProcessor trackingRefit;
   GPUTrackingInOutPointers ioPtrs;
   GPUCalibObjectsConst calibObjects;
   GPUErrors errorCodes;
@@ -132,13 +134,6 @@ GPUdi() void GPUProcessor::raiseError(unsigned int code, unsigned int param1, un
 {
   GetConstantMem()->errorCodes.raiseError(code, param1, param2, param3);
 }
-
-#if defined(GPUCA_NOCOMPAT_ALLCINT) && (!defined(GPUCA_GPULIBRARY) || !defined(GPUCA_ALIROOT_LIB)) && defined(HAVE_O2HEADERS)
-GPUd() float GPUTPCClusterFinder::getGainCorrection(tpccf::Row row, tpccf::Pad pad) const
-{
-  return GetConstantMem()->calibObjects.tpcPadGain->getGainCorrection(mISlice, row, pad);
-}
-#endif
 
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

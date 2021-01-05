@@ -85,6 +85,7 @@ AddOptionRTC(loopInterpolationInExtraPass, char, -1, "", 0, "Perform loop interp
 AddOptionRTC(mergerReadFromTrackerDirectly, char, 1, "", 0, "Forward data directly from tracker to merger on GPU")
 AddOptionRTC(useMatLUT, char, 0, "", 0, "Use material lookup table for TPC refit")
 AddOptionRTC(trdStopTrkAfterNMissLy, unsigned char, 6, "", 0, "Abandon track following after N layers without a TRD match")
+AddOptionRTC(trackingRefitGPUModel, char, 1, "", 0, "Use GPU track model for the Global Track Refit")
 AddCustomCPP(void SetMinTrackPt(float v) { MaxTrackQPt = v > 0.001 ? (1. / v) : (1. / 0.001); })
 AddVariable(dummyRTC, float, 0.f) // Ensure non empty struct and proper alignment even if all normal members are constexpr
 AddHelp("help", 'h')
@@ -120,7 +121,7 @@ AddOption(mergerSortTracks, int, -1, "", 0, "Sort track indizes for GPU track fi
 AddOption(tpcCompressionGatherMode, int, -1, "", 0, "TPC Compressed Clusters Gather Mode (0: DMA transfer gather gpu to host, 1: serial DMA to host and gather by copy on CPU, 2. gather via GPU kernal DMA access, 3. gather on GPU via kernel, dma afterwards")
 AddOption(tpcCompressionGatherModeKernel, int, -1, "", 0, "TPC Compressed Clusters Gather Mode Kernel (0: unbufferd, 1-3: buffered, 4: multi-block)")
 AddOption(runMC, bool, false, "", 0, "Process MC labels")
-AddOption(ompKernels, bool, true, "", 0, "Parallelize with OMP inside kernels instead of over slices")
+AddOption(ompKernels, unsigned char, 2, "", 0, "Parallelize with OMP inside kernels instead of over slices, 2 for nested parallelization over TPC sectors and inside kernels")
 AddOption(doublePipeline, bool, false, "", 0, "Double pipeline mode")
 AddOption(prefetchTPCpageScan, int, 0, "", 0, "Prefetch Data for TPC page scan in CPU cache")
 AddOption(debugLevel, int, -1, "debug", 'd', "Set debug level (-1 = silend)")

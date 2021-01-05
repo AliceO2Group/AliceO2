@@ -16,7 +16,6 @@
 
 #include "GPUDef.h"
 #include "GPUProcessor.h"
-#include <tuple>
 
 namespace o2::dataformats
 {
@@ -32,6 +31,7 @@ using TrackParCov = TrackParametrizationWithError<float>;
 namespace o2::base
 {
 class Propagator;
+class MatLayerCylSet;
 } // namespace o2::base
 namespace o2::tpc
 {
@@ -55,7 +55,7 @@ class GPUTrackingRefit
 {
  public:
   void SetClusterStateArray(const unsigned char* v) { mPclusterState = v; }
-  void SetPtrsFromGPUConstantMem(const GPUConstantMem* v);
+  void SetPtrsFromGPUConstantMem(const GPUConstantMem* v, MEM_CONSTANT(GPUParam) * p = nullptr);
   void SetPropagator(const o2::base::Propagator* v) { mPpropagator = v; }
   void SetPropagatorDefault();
   void SetClusterNative(const o2::tpc::ClusterNativeAccess* v) { mPclusterNative = v; }
@@ -90,6 +90,7 @@ class GPUTrackingRefit
  private:
   const unsigned char* mPclusterState = nullptr;                 // Ptr to shared cluster state
   const o2::base::Propagator* mPpropagator = nullptr;            // Ptr to propagator for TrackParCov track model
+  const o2::base::MatLayerCylSet* mPmatLUT = nullptr;            // Ptr to material LUT
   const o2::tpc::ClusterNativeAccess* mPclusterNative = nullptr; // Ptr to cluster native access structure
   const GPUTPCGMMergedTrackHit* mPtrackHits = nullptr;           // Ptr to hits for GPUTPCGMMergedTrack tracks
   const unsigned int* mPtrackHitReferences = nullptr;            // Ptr to hits for TrackTPC tracks
@@ -98,9 +99,9 @@ class GPUTrackingRefit
   template <class T, class S>
   GPUd() int RefitTrack(T& trk, bool outward, bool resetCov);
   template <class T, class S, class U>
-  void convertTrack(T& trk, const S& trkX, U& prop, float* chi2);
+  GPUd() void convertTrack(T& trk, const S& trkX, U& prop, float* chi2);
   template <class U>
-  void initProp(U& prop);
+  GPUd() void initProp(U& prop);
 };
 
 class GPUTrackingRefitProcessor : public GPUTrackingRefit, public GPUProcessor
@@ -111,6 +112,7 @@ class GPUTrackingRefitProcessor : public GPUTrackingRefit, public GPUProcessor
   void RegisterMemoryAllocation();
   void SetMaxData(const GPUTrackingInOutPointers& io);
 #endif
+  GPUTPCGMMergedTrack* mPTracks = nullptr;
 };
 
 } // namespace o2::gpu

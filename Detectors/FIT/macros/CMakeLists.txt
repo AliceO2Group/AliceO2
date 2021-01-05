@@ -14,6 +14,9 @@ o2_add_test_root_macro(readFT0hits.C
 o2_add_test_root_macro(readFT0digits.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsFT0
                        LABELS fit)
+o2_add_test_root_macro(uploadLookUpTable.C
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsFT0
+                       LABELS fit)
 o2_add_test_root_macro(FT0digits2raw.C
   PUBLIC_LINK_LIBRARIES O2::FT0Simulation
   O2::DataFormatsFT0
