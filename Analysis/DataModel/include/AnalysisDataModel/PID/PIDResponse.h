@@ -43,15 +43,15 @@ DECLARE_SOA_DYNAMIC_COLUMN(DiffBetaEl, diffbetael, [](float beta, float expbetae
 namespace pidtof
 {
 // Expected times
-DECLARE_SOA_COLUMN(TOFExpSignalEl, tofExpSignalEl, float);
-DECLARE_SOA_COLUMN(TOFExpSignalMu, tofExpSignalMu, float);
-DECLARE_SOA_COLUMN(TOFExpSignalPi, tofExpSignalPi, float);
-DECLARE_SOA_COLUMN(TOFExpSignalKa, tofExpSignalKa, float);
-DECLARE_SOA_COLUMN(TOFExpSignalPr, tofExpSignalPr, float);
-DECLARE_SOA_COLUMN(TOFExpSignalDe, tofExpSignalDe, float);
-DECLARE_SOA_COLUMN(TOFExpSignalTr, tofExpSignalTr, float);
-DECLARE_SOA_COLUMN(TOFExpSignalHe, tofExpSignalHe, float);
-DECLARE_SOA_COLUMN(TOFExpSignalAl, tofExpSignalAl, float);
+DECLARE_SOA_DYNAMIC_COLUMN(TOFExpSignalDiffEl, tofExpSignalDiffEl, [](float nsigma, float sigma) { return nsigma * sigma; });
+DECLARE_SOA_DYNAMIC_COLUMN(TOFExpSignalDiffMu, tofExpSignalDiffMu, [](float nsigma, float sigma) { return nsigma * sigma; });
+DECLARE_SOA_DYNAMIC_COLUMN(TOFExpSignalDiffPi, tofExpSignalDiffPi, [](float nsigma, float sigma) { return nsigma * sigma; });
+DECLARE_SOA_DYNAMIC_COLUMN(TOFExpSignalDiffKa, tofExpSignalDiffKa, [](float nsigma, float sigma) { return nsigma * sigma; });
+DECLARE_SOA_DYNAMIC_COLUMN(TOFExpSignalDiffPr, tofExpSignalDiffPr, [](float nsigma, float sigma) { return nsigma * sigma; });
+DECLARE_SOA_DYNAMIC_COLUMN(TOFExpSignalDiffDe, tofExpSignalDiffDe, [](float nsigma, float sigma) { return nsigma * sigma; });
+DECLARE_SOA_DYNAMIC_COLUMN(TOFExpSignalDiffTr, tofExpSignalDiffTr, [](float nsigma, float sigma) { return nsigma * sigma; });
+DECLARE_SOA_DYNAMIC_COLUMN(TOFExpSignalDiffHe, tofExpSignalDiffHe, [](float nsigma, float sigma) { return nsigma * sigma; });
+DECLARE_SOA_DYNAMIC_COLUMN(TOFExpSignalDiffAl, tofExpSignalDiffAl, [](float nsigma, float sigma) { return nsigma * sigma; });
 // Expected sigma
 DECLARE_SOA_COLUMN(TOFExpSigmaEl, tofExpSigmaEl, float);
 DECLARE_SOA_COLUMN(TOFExpSigmaMu, tofExpSigmaMu, float);
@@ -82,22 +82,37 @@ DECLARE_SOA_TABLE(pidRespTOFbeta, "AOD", "pidRespTOFbeta",
                   DiffBetaEl<Beta, ExpBetaEl>);
 using namespace pidtof;
 DECLARE_SOA_TABLE(pidRespTOF, "AOD", "pidRespTOF",
-                  TOFExpSignalEl, TOFExpSignalMu, TOFExpSignalPi, TOFExpSignalKa, TOFExpSignalPr, TOFExpSignalDe, TOFExpSignalTr, TOFExpSignalHe, TOFExpSignalAl,
-                  TOFExpSigmaEl, TOFExpSigmaMu, TOFExpSigmaPi, TOFExpSigmaKa, TOFExpSigmaPr, TOFExpSigmaDe, TOFExpSigmaTr, TOFExpSigmaHe, TOFExpSigmaAl,
-                  TOFNSigmaEl, TOFNSigmaMu, TOFNSigmaPi, TOFNSigmaKa, TOFNSigmaPr, TOFNSigmaDe, TOFNSigmaTr, TOFNSigmaHe, TOFNSigmaAl);
+                  // Expected signals
+                  TOFExpSignalDiffEl<TOFNSigmaEl, TOFExpSigmaEl>,
+                  TOFExpSignalDiffMu<TOFNSigmaMu, TOFExpSigmaMu>,
+                  TOFExpSignalDiffPi<TOFNSigmaPi, TOFExpSigmaPi>,
+                  TOFExpSignalDiffKa<TOFNSigmaKa, TOFExpSigmaKa>,
+                  TOFExpSignalDiffPr<TOFNSigmaPr, TOFExpSigmaPr>,
+                  TOFExpSignalDiffDe<TOFNSigmaDe, TOFExpSigmaDe>,
+                  TOFExpSignalDiffTr<TOFNSigmaTr, TOFExpSigmaTr>,
+                  TOFExpSignalDiffHe<TOFNSigmaHe, TOFExpSigmaHe>,
+                  TOFExpSignalDiffAl<TOFNSigmaAl, TOFExpSigmaAl>,
+                  // Expected sigma
+                  TOFExpSigmaEl, TOFExpSigmaMu, TOFExpSigmaPi,
+                  TOFExpSigmaKa, TOFExpSigmaPr, TOFExpSigmaDe,
+                  TOFExpSigmaTr, TOFExpSigmaHe, TOFExpSigmaAl,
+                  // NSigma
+                  TOFNSigmaEl, TOFNSigmaMu, TOFNSigmaPi,
+                  TOFNSigmaKa, TOFNSigmaPr, TOFNSigmaDe,
+                  TOFNSigmaTr, TOFNSigmaHe, TOFNSigmaAl);
 
 namespace pidtpc
 {
 // Expected signals
-DECLARE_SOA_COLUMN(TPCExpSignalEl, tpcExpSignalEl, float);
-DECLARE_SOA_COLUMN(TPCExpSignalMu, tpcExpSignalMu, float);
-DECLARE_SOA_COLUMN(TPCExpSignalPi, tpcExpSignalPi, float);
-DECLARE_SOA_COLUMN(TPCExpSignalKa, tpcExpSignalKa, float);
-DECLARE_SOA_COLUMN(TPCExpSignalPr, tpcExpSignalPr, float);
-DECLARE_SOA_COLUMN(TPCExpSignalDe, tpcExpSignalDe, float);
-DECLARE_SOA_COLUMN(TPCExpSignalTr, tpcExpSignalTr, float);
-DECLARE_SOA_COLUMN(TPCExpSignalHe, tpcExpSignalHe, float);
-DECLARE_SOA_COLUMN(TPCExpSignalAl, tpcExpSignalAl, float);
+DECLARE_SOA_DYNAMIC_COLUMN(TPCExpSignalDiffEl, tpcExpSignalDiffEl, [](float nsigma, float sigma) { return nsigma * sigma; });
+DECLARE_SOA_DYNAMIC_COLUMN(TPCExpSignalDiffMu, tpcExpSignalDiffMu, [](float nsigma, float sigma) { return nsigma * sigma; });
+DECLARE_SOA_DYNAMIC_COLUMN(TPCExpSignalDiffPi, tpcExpSignalDiffPi, [](float nsigma, float sigma) { return nsigma * sigma; });
+DECLARE_SOA_DYNAMIC_COLUMN(TPCExpSignalDiffKa, tpcExpSignalDiffKa, [](float nsigma, float sigma) { return nsigma * sigma; });
+DECLARE_SOA_DYNAMIC_COLUMN(TPCExpSignalDiffPr, tpcExpSignalDiffPr, [](float nsigma, float sigma) { return nsigma * sigma; });
+DECLARE_SOA_DYNAMIC_COLUMN(TPCExpSignalDiffDe, tpcExpSignalDiffDe, [](float nsigma, float sigma) { return nsigma * sigma; });
+DECLARE_SOA_DYNAMIC_COLUMN(TPCExpSignalDiffTr, tpcExpSignalDiffTr, [](float nsigma, float sigma) { return nsigma * sigma; });
+DECLARE_SOA_DYNAMIC_COLUMN(TPCExpSignalDiffHe, tpcExpSignalDiffHe, [](float nsigma, float sigma) { return nsigma * sigma; });
+DECLARE_SOA_DYNAMIC_COLUMN(TPCExpSignalDiffAl, tpcExpSignalDiffAl, [](float nsigma, float sigma) { return nsigma * sigma; });
 // Expected sigma
 DECLARE_SOA_COLUMN(TPCExpSigmaEl, tpcExpSigmaEl, float);
 DECLARE_SOA_COLUMN(TPCExpSigmaMu, tpcExpSigmaMu, float);
@@ -122,9 +137,24 @@ DECLARE_SOA_COLUMN(TPCNSigmaAl, tpcNSigmaAl, float);
 
 using namespace pidtpc;
 DECLARE_SOA_TABLE(pidRespTPC, "AOD", "pidRespTPC",
-                  TPCExpSignalEl, TPCExpSignalMu, TPCExpSignalPi, TPCExpSignalKa, TPCExpSignalPr, TPCExpSignalDe, TPCExpSignalTr, TPCExpSignalHe, TPCExpSignalAl,
-                  TPCExpSigmaEl, TPCExpSigmaMu, TPCExpSigmaPi, TPCExpSigmaKa, TPCExpSigmaPr, TPCExpSigmaDe, TPCExpSigmaTr, TPCExpSigmaHe, TPCExpSigmaAl,
-                  TPCNSigmaEl, TPCNSigmaMu, TPCNSigmaPi, TPCNSigmaKa, TPCNSigmaPr, TPCNSigmaDe, TPCNSigmaTr, TPCNSigmaHe, TPCNSigmaAl);
+                  // Expected signals
+                  TPCExpSignalDiffEl<TPCNSigmaEl, TPCExpSigmaEl>,
+                  TPCExpSignalDiffMu<TPCNSigmaMu, TPCExpSigmaMu>,
+                  TPCExpSignalDiffPi<TPCNSigmaPi, TPCExpSigmaPi>,
+                  TPCExpSignalDiffKa<TPCNSigmaKa, TPCExpSigmaKa>,
+                  TPCExpSignalDiffPr<TPCNSigmaPr, TPCExpSigmaPr>,
+                  TPCExpSignalDiffDe<TPCNSigmaDe, TPCExpSigmaDe>,
+                  TPCExpSignalDiffTr<TPCNSigmaTr, TPCExpSigmaTr>,
+                  TPCExpSignalDiffHe<TPCNSigmaHe, TPCExpSigmaHe>,
+                  TPCExpSignalDiffAl<TPCNSigmaAl, TPCExpSigmaAl>,
+                  // Expected sigma
+                  TPCExpSigmaEl, TPCExpSigmaMu, TPCExpSigmaPi,
+                  TPCExpSigmaKa, TPCExpSigmaPr, TPCExpSigmaDe,
+                  TPCExpSigmaTr, TPCExpSigmaHe, TPCExpSigmaAl,
+                  // NSigma
+                  TPCNSigmaEl, TPCNSigmaMu, TPCNSigmaPi,
+                  TPCNSigmaKa, TPCNSigmaPr, TPCNSigmaDe,
+                  TPCNSigmaTr, TPCNSigmaHe, TPCNSigmaAl);
 
 } // namespace o2::aod
 
