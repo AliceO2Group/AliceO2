@@ -220,15 +220,16 @@ struct pidTOFTaskQA {
 
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOF, aod::pidRespTOFbeta> const& tracks)
   {
+    const float collisionTime_ps = collision.collisionTime() * 1000.f;
     histos.fill(HIST("event/vertexz"), collision.posZ());
-    histos.fill(HIST("event/colltime"), collision.collisionTime());
+    histos.fill(HIST("event/colltime"), collisionTime_ps);
 
     for (auto t : tracks) {
       //
       if (t.tofSignal() < 0) { // Skipping tracks without TOF
         continue;
       }
-      const float tof = t.tofSignal() - collision.collisionTime();
+      const float tof = t.tofSignal() - collisionTime_ps;
       //
       histos.fill(HIST("event/tofsignal"), t.p(), t.tofSignal());
       histos.fill(HIST("event/tofbeta"), t.p(), t.beta());

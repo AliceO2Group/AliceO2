@@ -41,17 +41,17 @@ class Beta
   Beta() = default;
   ~Beta() = default;
 
-  /// Computes the beta of a track given a length, a time measurement and an event time
+  /// Computes the beta of a track given a length, a time measurement and an event time (in ps)
   static float GetBeta(const float length, const float tofSignal, const float collisionTime);
 
   /// Gets the beta for the track of interest
-  float GetBeta(const Coll& col, const Trck& trk) const { return GetBeta(trk.length(), trk.tofSignal(), col.collisionTime()); }
+  float GetBeta(const Coll& col, const Trck& trk) const { return GetBeta(trk.length(), trk.tofSignal(), col.collisionTime() * 1000.f); }
 
   /// Computes the expected uncertainty on the beta measurement
   static float GetExpectedSigma(const float& length, const float& tofSignal, const float& collisionTime, const float& time_reso);
 
   /// Gets the expected uncertainty on the beta measurement of the track of interest
-  float GetExpectedSigma(const Coll& col, const Trck& trk) const { return GetExpectedSigma(trk.length(), trk.tofSignal(), col.collisionTime(), mExpectedResolution); }
+  float GetExpectedSigma(const Coll& col, const Trck& trk) const { return GetExpectedSigma(trk.length(), trk.tofSignal(), col.collisionTime() * 1000.f, mExpectedResolution); }
 
   /// Gets the expected beta for a given mass hypothesis (no energy loss taken into account)
   static float GetExpectedSignal(const float& mom, const float& mass);
@@ -113,7 +113,7 @@ class ExpTimes
   float GetExpectedSigma(const DetectorResponse& response, const Coll& col, const Trck& trk) const;
 
   /// Gets the number of sigmas with respect the expected time
-  float GetSeparation(const DetectorResponse& response, const Coll& col, const Trck& trk) const { return (trk.tofSignal() - col.collisionTime() - GetExpectedSignal(col, trk)) / GetExpectedSigma(response, col, trk); }
+  float GetSeparation(const DetectorResponse& response, const Coll& col, const Trck& trk) const { return (trk.tofSignal() - col.collisionTime() * 1000.f - GetExpectedSignal(col, trk)) / GetExpectedSigma(response, col, trk); }
 };
 
 //_________________________________________________________________________
@@ -131,7 +131,7 @@ float ExpTimes<Coll, Trck, id>::GetExpectedSigma(const DetectorResponse& respons
   if (trk.tofSignal() <= 0) {
     return -999.f;
   }
-  const float x[4] = {trk.p(), trk.tofSignal(), col.collisionTimeRes(), o2::track::PID::getMass2Z(id)};
+  const float x[4] = {trk.p(), trk.tofSignal(), col.collisionTimeRes() * 1000.f, o2::track::PID::getMass2Z(id)};
   return response(response.kSigma, x);
   // return response(response.kSigma, const Coll& col, const Trck& trk, id);
 }
