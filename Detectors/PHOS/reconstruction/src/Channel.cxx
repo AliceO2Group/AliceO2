@@ -13,29 +13,33 @@ using namespace o2::phos;
 
 int Channel::getBranchIndex() const
 {
-  if (mHardwareAddress == -1)
+  if (mHardwareAddress == -1) {
     throw HardwareAddressError();
+  }
   return ((mHardwareAddress >> 11) & 0x1);
 }
 
 int Channel::getFECIndex() const
 {
-  if (mHardwareAddress == -1)
+  if (mHardwareAddress == -1) {
     throw HardwareAddressError();
+  }
   return ((mHardwareAddress >> 7) & 0xF);
 }
 
 Int_t Channel::getAltroIndex() const
 {
-  if (mHardwareAddress == -1)
+  if (mHardwareAddress == -1) {
     throw HardwareAddressError();
+  }
   return ((mHardwareAddress >> 4) & 0x7);
 }
 
 Int_t Channel::getChannelIndex() const
 {
-  if (mHardwareAddress == -1)
+  if (mHardwareAddress == -1) {
     throw HardwareAddressError();
+  }
   return (mHardwareAddress & 0xF);
 }
 

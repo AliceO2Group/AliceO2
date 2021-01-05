@@ -1,3 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 #include <TROOT.h>
 #include <TPad.h>
 #include <TString.h>
@@ -205,20 +215,24 @@ int DumpRaw::process(const EventChData& ch)
     //printf("%d %u %d\n",i,us[i],s[i]);
   }
   if (f.Alice_3) {
-    for (Int_t i = 0; i < 12; i++)
+    for (Int_t i = 0; i < 12; i++) {
       mSignal[ih]->Fill(i - 36., Double_t(s[i]));
+    }
   }
   if (f.Alice_2) {
-    for (Int_t i = 0; i < 12; i++)
+    for (Int_t i = 0; i < 12; i++) {
       mSignal[ih]->Fill(i - 24., Double_t(s[i]));
+    }
   }
   if (f.Alice_1 || f.Auto_1) {
-    for (Int_t i = 0; i < 12; i++)
+    for (Int_t i = 0; i < 12; i++) {
       mSignal[ih]->Fill(i - 12., Double_t(s[i]));
+    }
   }
   if (f.Alice_0 || f.Auto_0) {
-    for (Int_t i = 0; i < 12; i++)
+    for (Int_t i = 0; i < 12; i++) {
       mSignal[ih]->Fill(i + 0., Double_t(s[i]));
+    }
     Double_t bc_d = UInt_t(f.bc / 100);
     Double_t bc_m = UInt_t(f.bc % 100);
     mBunch[ih]->Fill(bc_m, -bc_d);

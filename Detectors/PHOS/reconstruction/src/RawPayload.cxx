@@ -15,14 +15,16 @@ using namespace o2::phos;
 RawPayload::RawPayload(gsl::span<const uint32_t> payloadwords, int numpages) : mPayloadWords(payloadwords.size()),
                                                                                mNumberOfPages(numpages)
 {
-  for (auto word : payloadwords)
+  for (auto word : payloadwords) {
     mPayloadWords.emplace_back(word);
+  }
 }
 
 void RawPayload::appendPayloadWords(const gsl::span<const uint32_t> payloadwords)
 {
-  for (auto word : payloadwords)
+  for (auto word : payloadwords) {
     mPayloadWords.emplace_back(word);
+  }
 }
 
 void RawPayload::reset()

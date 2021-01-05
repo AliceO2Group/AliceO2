@@ -112,8 +112,9 @@ CaloRawFitter::FitStatus CaloRawFitter::evalKLevel(const Bunch& b) //const ushor
       mMaxSample = a;
       nMax = 0;
     }
-    if (a == mMaxSample)
+    if (a == mMaxSample) {
       nMax++;
+    }
     //check if there is a spike
     if (app >= 0 && ap >= 0) {
       spike |= (2 * ap - (a + app) > 2 * kSpikeThreshold);
@@ -130,15 +131,17 @@ CaloRawFitter::FitStatus CaloRawFitter::evalKLevel(const Bunch& b) //const ushor
     return kSpike;
   }
 
-  if (mMaxSample > 900 && nMax > 2)
+  if (mMaxSample > 900 && nMax > 2) {
     overflow = true;
+  }
 
   float pedestal = 0;
   if (mPedSubtract) {
     if (nPed > 0) {
       pedRMS = (pedRMS - pedMean * pedMean / nPed) / nPed;
-      if (pedRMS > 0.)
+      if (pedRMS > 0.) {
         pedRMS = sqrt(pedRMS);
+      }
       pedestal = pedMean / nPed;
     } else {
       mAmp.push_back(0);
@@ -149,8 +152,9 @@ CaloRawFitter::FitStatus CaloRawFitter::evalKLevel(const Bunch& b) //const ushor
   }
 
   amp -= pedestal;
-  if (amp < kBaseLine)
+  if (amp < kBaseLine) {
     amp = 0;
+  }
 
   //Evaluate time
   time = b.getStartTime() - 2;
