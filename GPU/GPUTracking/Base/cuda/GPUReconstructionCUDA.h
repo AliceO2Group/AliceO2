@@ -44,7 +44,7 @@ class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
   {
    public:
     GPUThreadContextCUDA(GPUReconstructionCUDAInternals* context);
-    virtual ~GPUThreadContextCUDA();
+    ~GPUThreadContextCUDA() override;
 
    private:
     GPUReconstructionCUDAInternals* mContext = nullptr;

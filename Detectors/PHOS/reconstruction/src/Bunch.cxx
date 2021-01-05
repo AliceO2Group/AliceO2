@@ -13,6 +13,7 @@ using namespace o2::phos;
 
 void Bunch::initFromRange(gsl::span<uint16_t> adcs)
 {
-  for (auto adcval : adcs)
+  for (auto adcval : adcs) {
     mADC.emplace_back(adcval);
+  }
 }

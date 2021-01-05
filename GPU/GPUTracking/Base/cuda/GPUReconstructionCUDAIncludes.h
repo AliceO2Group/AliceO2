@@ -14,7 +14,7 @@
 #ifndef O2_GPU_GPURECONSTRUCTIONCUDAINCLUDES_H
 #define O2_GPU_GPURECONSTRUCTIONCUDAINCLUDES_H
 
-#include <stdint.h>
+#include <cstdint>
 #include <cuda_runtime.h>
 #include <cuda.h>
 #include <cooperative_groups.h>

@@ -144,10 +144,10 @@ static void increase_priority() {
 		priority--;	
 	}
 	if (priority != old_priority) {
-		if (verbose) printf("Priority changed to %d\n", priority);
+		if (verbose) { printf("Priority changed to %d\n", priority); }
 	}
 	else {
-		if (verbose) printf("Warning: Cannot change priority. Run as root or renice for best results.\n");
+		if (verbose) { printf("Warning: Cannot change priority. Run as root or renice for best results.\n"); }
 	}
 }
 
@@ -174,7 +174,7 @@ int get_pid_max()
 	//read /proc/sys/kernel/pid_max
 	static char buffer[1024];
 	FILE *fd = fopen("/proc/sys/kernel/pid_max", "r");
-	if (fd==NULL) return -1;
+	if (fd==NULL) { return -1; }
 	if (fgets(buffer, sizeof(buffer), fd)==NULL) {
 		fclose(fd);
 		return -1;
@@ -216,7 +216,7 @@ void limit_process(pid_t pid, double limit, int include_children)
 	//build the family
 	init_process_group(&pgroup, pid, include_children);
 
-	if (verbose) printf("Members in the process group owned by %d: %d\n", pgroup.target_pid, pgroup.proclist->count);
+	if (verbose) { printf("Members in the process group owned by %d: %d\n", pgroup.target_pid, pgroup.proclist->count); }
 
 	//rate at which we are keeping active the processes (range 0-1)
 	//1 means that the process are using all the twork slice
@@ -225,7 +225,7 @@ void limit_process(pid_t pid, double limit, int include_children)
 		update_process_group(&pgroup);
 
 		if (pgroup.proclist->count==0) {
-			if (verbose) printf("No more processes.\n");
+			if (verbose) { printf("No more processes.\n"); }
 			break;
 		}
 		
@@ -239,7 +239,7 @@ void limit_process(pid_t pid, double limit, int include_children)
 			if (proc->cpu_usage < 0) {
 				continue;
 			}
-			if (pcpu < 0) pcpu = 0;
+			if (pcpu < 0) { pcpu = 0; }
 			pcpu += proc->cpu_usage;
 		}
 
@@ -258,10 +258,12 @@ void limit_process(pid_t pid, double limit, int include_children)
 		tsleep.tv_nsec = TIME_SLOT * 1000 - twork.tv_nsec;
 
 		if (verbose) {
-			if (c%200==0)
+			if (c%200==0) {
 				printf("\n%%CPU\twork quantum\tsleep quantum\tactive rate\n");
-			if (c%10==0 && c>0)
+			}
+			if (c%10==0 && c>0) {
 				printf("%0.2lf%%\t%6ld us\t%6ld us\t%0.2lf%%\n", pcpu*100, twork.tv_nsec/1000, tsleep.tv_nsec/1000, workingrate*100);
+			}
 		}
 
 		//resume processes
@@ -272,7 +274,7 @@ void limit_process(pid_t pid, double limit, int include_children)
 			struct process *proc = (struct process*)(node->data);
 			if (kill(proc->pid,SIGCONT) != 0) {
 				//process is dead, remove it from family
-				if (verbose) fprintf(stderr, "SIGCONT failed. Process %d dead!\n", proc->pid);
+				if (verbose) { fprintf(stderr, "SIGCONT failed. Process %d dead!\n", proc->pid); }
 				//remove process from group
 				delete_node(pgroup.proclist, node);
 				remove_process(&pgroup, proc->pid);
@@ -301,7 +303,7 @@ void limit_process(pid_t pid, double limit, int include_children)
 				struct process *proc = (struct process*)(node->data);
 				if (kill(proc->pid,SIGSTOP)!=0) {
 					//process is dead, remove it from family
-					if (verbose) fprintf(stderr, "SIGSTOP failed. Process %d dead!\n", proc->pid);
+					if (verbose) { fprintf(stderr, "SIGSTOP failed. Process %d dead!\n", proc->pid); }
 					//remove process from group
 					delete_node(pgroup.proclist, node);
 					remove_process(&pgroup, proc->pid);
@@ -427,7 +429,7 @@ int main(int argc, char **argv) {
 	signal(SIGTERM, quit);
 
 	//print the number of available cpu
-	if (verbose) printf("%d cpu detected\n", NCPU);
+	if (verbose) { printf("%d cpu detected\n", NCPU); }
 
 	if (command_mode) {
 		int i;
@@ -435,7 +437,7 @@ int main(int argc, char **argv) {
 		const char *cmd = argv[optind];
 		//command line arguments
 		char **cmd_args = (char**)malloc((argc-optind + 1) * sizeof(char*));
-		if (cmd_args==NULL) exit(2);
+		if (cmd_args==NULL) { exit(2); }
 		for (i=0; i<argc-optind; i++) {
 			cmd_args[i] = argv[i+optind];
 		}
@@ -474,7 +476,7 @@ int main(int argc, char **argv) {
 				waitpid(child, &status_process, 0);
 				waitpid(limiter, &status_limiter, 0);
 				if (WIFEXITED(status_process)) {
-					if (verbose) printf("Process %d terminated with exit status %d\n", child, (int)WEXITSTATUS(status_process));
+					if (verbose) { printf("Process %d terminated with exit status %d\n", child, (int)WEXITSTATUS(status_process)); }
 					exit(WEXITSTATUS(status_process));
 				}
 				printf("Process %d terminated abnormally\n", child);
@@ -482,7 +484,7 @@ int main(int argc, char **argv) {
 			}
 			else {
 				//limiter code
-				if (verbose) printf("Limiting process %d\n",child);
+				if (verbose) { printf("Limiting process %d\n",child); }
 				limit_process(child, limit, include_children);
 				exit(0);
 			}
@@ -524,7 +526,7 @@ int main(int argc, char **argv) {
 			//control
 			limit_process(pid, limit, include_children);
 		}
-		if (lazy) break;
+		if (lazy) { break; }
 		sleep(2);
 	};
 	

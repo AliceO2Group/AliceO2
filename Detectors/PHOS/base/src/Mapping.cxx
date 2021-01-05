@@ -90,8 +90,9 @@ Mapping::ErrorStatus Mapping::setMapping()
 
   for (short m = 0; m < 4; m++) {   //modules
     for (short i = 0; i < 4; i++) { //RCU
-      if (m == 0 && (i < 2))
+      if (m == 0 && (i < 2)) {
         continue; //half of module: only RCU 2,3
+      }
 
       short numberOfChannels = 0;
       short maxHWAddress = 0;
