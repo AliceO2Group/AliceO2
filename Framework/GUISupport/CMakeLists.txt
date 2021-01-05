@@ -10,30 +10,22 @@
 
 # Given GCC 7.3 does not provide std::filesystem we use Boost instead
 # Drop this once we move to GCC 8.2+
-
-if (TARGET AliceO2::DebugGUI)
-  set(GUI_SOURCES src/FrameworkGUIDebugger.cxx src/FrameworkGUIDevicesGraph.cxx
-                  src/FrameworkGUIDeviceInspector.cxx
-                  src/FrameworkGUIDataRelayerUsage.cxx src/PaletteHelpers.cxx)
-  set(EXTRA_TARGETS AliceO2::DebugGUI)
-else()
-  set(GUI_SOURCES src/FrameworkDummyDebugger.cxx)
-endif()
-
 o2_add_library(FrameworkGUISupport
                SOURCES src/Plugin.cxx
-                       ${GUI_SOURCES}
+                       src/FrameworkGUIDebugger.cxx
+                       src/FrameworkGUIDevicesGraph.cxx
+                       src/FrameworkGUIDeviceInspector.cxx
+                       src/FrameworkGUIDataRelayerUsage.cxx
+                       src/PaletteHelpers.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
-               PUBLIC_LINK_LIBRARIES O2::Framework ${EXTRA_TARGETS})
+               PUBLIC_LINK_LIBRARIES O2::Framework AliceO2::DebugGUI)
 
-if (TARGET AliceO2::DebugGUI)
 if (NOT APPLE)
 set (DEBUG_GUI_TESTS_WORKFLOW
      CustomGUIGL
      CustomGUISokol
      SimpleTracksED
      )
-endif()
 endif()
 
 foreach(w
@@ -49,7 +41,6 @@ foreach(w
               COMMAND_LINE_ARGS ${DPL_WORKFLOW_TESTS_EXTRA_OPTIONS} --run --shm-segment-size 20000000)
 endforeach()
 
-if (TARGET AliceO2::DebugGUI)
 # TODO: investigate the problem with the two unit tests, maybe setup of the CI
 # environment assertion fired X11: The DISPLAY environment variable is missing
 # glfw-3.2.1/src/window.c:579: glfwGetFramebufferSize: Assertion `window !=
@@ -59,5 +50,3 @@ set_property(TEST test_Framework_test_SimpleTracksED PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_CustomGUIGL PROPERTY DISABLED TRUE)
 set_property(TEST test_Framework_test_CustomGUISokol PROPERTY DISABLED TRUE)
 endif()
-endif()
-
