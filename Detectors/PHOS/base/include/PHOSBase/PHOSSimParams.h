@@ -58,7 +58,7 @@ struct PHOSSimParams : public o2::conf::ConfigurableParamHelper<PHOSSimParams> {
   short mBaseLine = 0;         ///<
   short mPreSamples = 2;       ///< number of pre-samples readout before sample (if no pedestal subtrauction)
   short mMCOverflow = 970;     ///< Overflow level for MC simulations: 1023-(pedestal~50)
-  float mTimeTick = 100.e-9;   ///< PHOS digitization step in sec.
+  float mTimeTick = 100.;      ///< ns to PHOS digitization step conversion
 
   // bool  mSubtractPedestal = false ;    ///< subtract pedestals
   // bool  mCreateSampleQualityOutput = false ; ///< Create stream of sample quality

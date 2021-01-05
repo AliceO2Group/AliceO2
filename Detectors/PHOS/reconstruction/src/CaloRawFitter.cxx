@@ -101,7 +101,6 @@ CaloRawFitter::FitStatus CaloRawFitter::evalKLevel(const Bunch& b) //const ushor
 
   for (std::vector<uint16_t>::const_reverse_iterator it = signal.rbegin(); it != signal.rend(); ++it) {
     uint16_t a = *it;
-    printf(", %d", a);
     if (mPedSubtract) {
       if (nPed < kPreSamples) { //inverse signal time order
         nPed++;

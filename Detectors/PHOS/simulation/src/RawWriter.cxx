@@ -22,8 +22,8 @@ using namespace o2::phos;
 void RawWriter::init()
 {
   mRawWriter = std::make_unique<o2::raw::RawFileWriter>(o2::header::gDataOriginPHS, false);
-  //  mRawWriter->setCarryOverCallBack(this);
-  //  mRawWriter->setApplyCarryOverToLastPage(false);
+  mRawWriter->setCarryOverCallBack(this);
+  mRawWriter->setApplyCarryOverToLastPage(true);
 
   // initialize mapping
   if (!mMapping) {
@@ -218,8 +218,8 @@ void RawWriter::createRawBunches(short absId, const std::vector<o2::phos::Digit*
     if (ampADC > o2::phos::PHOSSimParams::Instance().mMCOverflow) { //High Gain in saturation, fill also Low Gain
       isLGFilled = true;
     }
-    float timeTicks = dig->getTime();
-    timeTicks /= o2::phos::PHOSSimParams::Instance().mTimeTick;
+    float timeTicks = dig->getTime();                           //time in ns
+    timeTicks /= o2::phos::PHOSSimParams::Instance().mTimeTick; //time in PHOS ticks
     //Add to current sample contribution from digit
     fillGamma2(ampADC, timeTicks, samples);
   }
@@ -329,41 +329,15 @@ int RawWriter::carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> 
                                const char* ptr, int maxSize, int splitID,
                                std::vector<char>& trailer, std::vector<char>& header) const
 {
-  //Method not used;
-  int offs = ptr - &data[0]; // offset wrt the head of the payload
-  // make sure ptr and end of the suggested block are within the payload
 
-  RCUTrailer rcutrailer;
-  rcutrailer.setActiveFECsA(16); //feca
-  rcutrailer.setActiveFECsB(16); //fecb
-  rcutrailer.setL1Phase(0);
-  rcutrailer.setTimeSample(100.);
-  const short encodedTrailerSize = 36;
-  int sizeNoTrailer = maxSize - encodedTrailerSize;
-  int actualSize = sizeNoTrailer;
-  if (size_t(offs + maxSize) >= data.size()) { //last page
-    actualSize = data.size() - offs;           //should not include trailer as it will be overwritten
+  constexpr int phosTrailerSize = 36;
+  int offs = ptr - &data[0];                                  // offset wrt the head of the payload
+  assert(offs >= 0 && size_t(offs + maxSize) <= data.size()); // make sure ptr and end of the suggested block are within the payload
+  int leftBefore = data.size() - offs;                        // payload left before this splitting
+  int leftAfter = leftBefore - maxSize;                       // what would be left after the suggested splitting
+  int actualSize = maxSize;
+  if (leftAfter && leftAfter <= phosTrailerSize) {   // avoid splitting the trailer or writing only it.
+    actualSize -= (phosTrailerSize - leftAfter) + 4; // (as we work with int, not char in decoding)
   }
-
-  // calculate payload size for RCU trailer:
-  // assume actualsize is in byte
-  // Payload size is defined as the number of 32-bit payload words
-  // -> actualSize to be converted to size of 32 bit words
-  rcutrailer.setPayloadSize(sizeNoTrailer / sizeof(uint32_t));
-  auto trailerwords = rcutrailer.encode();
-  trailer.resize(trailerwords.size() * sizeof(uint32_t));
-  memcpy(trailer.data(), trailerwords.data(), trailer.size());
   return actualSize;
-  //   // Size to return differs between intermediate pages and last page
-  //   // - intermediate page: Size of the trailer needs to be removed as the trailer gets appended
-  //   // - last page: Size of the trailer needs to be included as the trailer gets replaced
-  //   int bytesLeft = data.size() - (ptr - &data[0]);
-  //   bool lastPage = bytesLeft <= maxSize;
-
-  //   int actualSize = maxSize;
-  //   if (!lastPage) {
-  //     actualSize = sizeNoTrailer;
-  //   }
-  // printf("actualSize=%d, sizeNoTrailer=%d \n",actualSize,sizeNoTrailer) ;  actualSize=1;
-  //   return actualSize;
 }

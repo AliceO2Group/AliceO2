@@ -236,6 +236,7 @@ float Digitizer::uncalibrate(const float e, const int absId)
 float Digitizer::uncalibrateT(const float time, const int absId, bool isHighGain)
 {
   // Decalibrate EMC digit, i.e. transform from energy to ADC counts a factor read from CDB
+  // note time in seconds
   if (isHighGain) {
     return time + mCalibParams->getHGTimeCalib(absId);
   } else {
@@ -246,6 +247,7 @@ float Digitizer::uncalibrateT(const float time, const int absId, bool isHighGain
 float Digitizer::timeResolution(const float time, const float e)
 {
   // apply time resolution
+  // time measured in seconds
 
   float timeResolution = o2::phos::PHOSSimParams::Instance().mTimeResolutionA +
                          o2::phos::PHOSSimParams::Instance().mTimeResolutionB /
