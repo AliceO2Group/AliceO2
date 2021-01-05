@@ -102,7 +102,7 @@ struct list_node *xlocate_node(struct list *l,void *elem,int offset,int length) 
 	struct list_node *tmp;
 	tmp=l->first;
 	while(tmp!=NULL) {
-		if(!memcmp((char*)tmp->data+offset,elem,length==0?l->keysize:length)) return (tmp);
+		if(!memcmp((char*)tmp->data+offset,elem,length==0?l->keysize:length)) { return (tmp); }
 		tmp=tmp->next;
 	}
 	return EMPTYLIST;

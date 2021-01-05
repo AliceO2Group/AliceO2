@@ -46,9 +46,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
         auto loglevel = setup.options().get<int>("log-level");
         return adaptStateless([loglevel](InputRecord& inputs, DataAllocator& outputs) {
           o2::zdc::DumpRaw zdc_dr;
-	  zdc_dr.init();
-	  zdc_dr.setVerbosity(loglevel);
-	  DPLRawParser parser(inputs);
+          zdc_dr.init();
+          zdc_dr.setVerbosity(loglevel);
+          DPLRawParser parser(inputs);
           o2::header::DataHeader const* lastDataHeader = nullptr;
           std::stringstream rdhprintout;
           for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
@@ -84,19 +84,19 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
                   rdhprintout.str(std::string());
                 }
               }
-	      if(payload!=0){
- 		for(Int_t ip=0; ip<payloadSize; ip+=16){
-  		  //o2::zdc::Digits2Raw::print_gbt_word((const UInt_t*)&payload[ip]);
-		  zdc_dr.processWord((const UInt_t*)&payload[ip]);
- 		}
-	      }
+              if (payload != nullptr) {
+                for (Int_t ip = 0; ip < payloadSize; ip += 16) {
+                  //o2::zdc::Digits2Raw::print_gbt_word((const UInt_t*)&payload[ip]);
+                  zdc_dr.processWord((const UInt_t*)&payload[ip]);
+                }
+              }
             }
             lastDataHeader = dh;
           }
           if (loglevel > 0) {
             LOG(INFO) << rdhprintout.str();
           }
-	  zdc_dr.write();
+          zdc_dr.write();
         }); }},
     Options{
       {"log-level", VariantType::Int, 1, {"Logging level [0-2]"}}}});
