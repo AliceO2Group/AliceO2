@@ -87,28 +87,33 @@ class RawDecoderDeviceDPL
   unsigned int mNROFs{0};                      /// Total number of processed ROFs
 };
 
-of::DataProcessorSpec getRawDecoderSpec(bool isDebugMode)
+of::DataProcessorSpec getRawDecoderSpec(bool isDebugMode, const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks, const ElectronicsDelay& electronicsDelay, const std::vector<of::InputSpec>& inputSpecs, o2::header::DataHeader::SubSpecificationType subSpecType)
 {
-  return getRawDecoderSpec(isDebugMode, FEEIdConfig(), CrateMasks(), ElectronicsDelay());
-}
-
-of::DataProcessorSpec getRawDecoderSpec(bool isDebugMode, const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks, const ElectronicsDelay& electronicsDelay, long int subSpec)
-{
-  header::DataHeader::SubSpecificationType subSpecType(subSpec < 0 ? 0 : subSpec);
-  std::vector<of::InputSpec> inputSpecs;
-  if (subSpec < 0) {
-    // Match all
-    inputSpecs.push_back({"mid_raw", of::ConcreteDataTypeMatcher{header::gDataOriginMID, header::gDataDescriptionRawData}, of::Lifetime::Timeframe});
-  } else {
-    inputSpecs.push_back({"mid_raw", header::gDataOriginMID, header::gDataDescriptionRawData, subSpecType, o2::framework::Lifetime::Timeframe});
-  }
   std::vector<of::OutputSpec> outputSpecs{of::OutputSpec{header::gDataOriginMID, "DECODED", subSpecType, of::Lifetime::Timeframe}, of::OutputSpec{header::gDataOriginMID, "DECODEDROF", subSpecType, of::Lifetime::Timeframe}};
-
   return of::DataProcessorSpec{
     "MIDRawDecoder",
     {inputSpecs},
     {outputSpecs},
     of::adaptFromTask<o2::mid::RawDecoderDeviceDPL>(isDebugMode, feeIdConfig, crateMasks, electronicsDelay, subSpecType)};
+}
+
+of::DataProcessorSpec getRawDecoderSpec(bool isDebugMode)
+{
+  return getRawDecoderSpec(isDebugMode, FEEIdConfig(), CrateMasks(), ElectronicsDelay());
+}
+
+of::DataProcessorSpec getRawDecoderSpec(bool isDebugMode, const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks, const ElectronicsDelay& electronicsDelay)
+{
+  std::vector<of::InputSpec> inputSpecs{{"mid_raw", of::ConcreteDataTypeMatcher{header::gDataOriginMID, header::gDataDescriptionRawData}, of::Lifetime::Timeframe}};
+  header::DataHeader::SubSpecificationType subSpec{0};
+  return getRawDecoderSpec(isDebugMode, FEEIdConfig(), CrateMasks(), ElectronicsDelay(), inputSpecs, subSpec);
+}
+
+of::DataProcessorSpec getRawDecoderSpec(bool isDebugMode, const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks, const ElectronicsDelay& electronicsDelay, header::DataHeader::SubSpecificationType subSpec)
+{
+  std::vector<of::InputSpec> inputSpecs{{"mid_raw", header::gDataOriginMID, header::gDataDescriptionRawData, subSpec, o2::framework::Lifetime::Timeframe}};
+
+  return getRawDecoderSpec(isDebugMode, feeIdConfig, crateMasks, electronicsDelay, inputSpecs, subSpec);
 }
 } // namespace mid
 } // namespace o2
