@@ -3,6 +3,11 @@ name: Automatically create CHANGELOG for O2 releases
 on:
   push:
   workflow_dispatch:
+    inputs:
+      LAST_RELEASE_DATE:
+        description: 'Time of the last release'
+        required: true
+        default: ''
   schedule:
     - cron:  '0 0 * * *'
 
@@ -88,7 +93,8 @@ jobs:
         EOF
         # FIXME: this should really be one second after the last release
         #        being published
-        MERGED_AFTER=`date -v -14d +%Y-%m-%d`
+        LAST_RELEASE="${{ github.event.inputs.LAST_RELEASE_DATE }}"
+        MERGED_AFTER=${LAST_RELEASE:-$(date -v -14d +%Y-%m-%d)}
         
         # Here we convert all the json files to per subsystem
         # logs, using the MERGED_AFTER date to further filter them.
