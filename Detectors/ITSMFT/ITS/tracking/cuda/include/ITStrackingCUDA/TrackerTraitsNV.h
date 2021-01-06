@@ -30,7 +30,7 @@ class TrackerTraitsNV : public TrackerTraits
 {
  public:
   TrackerTraitsNV();
-  virtual ~TrackerTraitsNV();
+  ~TrackerTraitsNV() override;
 
   void computeLayerCells() final;
   void computeLayerTracklets() final;

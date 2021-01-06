@@ -80,7 +80,7 @@ namespace its
 namespace gpu
 {
 
-using Utils::Host::checkCUDAError;
+using utils::host::checkCUDAError;
 
 Context::Context(bool dumpDevices)
 {

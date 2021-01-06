@@ -349,8 +349,8 @@ void TrackerTraitsNV::computeLayerTracklets()
 
     const gpu::DeviceProperties& deviceProperties = gpu::Context::getInstance().getDeviceProperties();
     const int clustersNum{static_cast<int>(primaryVertexContext->getClusters()[iLayer].size())};
-    dim3 threadsPerBlock{gpu::Utils::Host::getBlockSize(clustersNum, 1, 192)};
-    dim3 blocksGrid{gpu::Utils::Host::getBlocksGrid(threadsPerBlock, clustersNum)};
+    dim3 threadsPerBlock{gpu::utils::host::getBlockSize(clustersNum, 1, 192)};
+    dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, clustersNum)};
 
     if (iLayer == 0) {
 
@@ -390,8 +390,8 @@ void TrackerTraitsNV::computeLayerTracklets()
                                   primaryVertexContext->getDeviceTrackletsLookupTable()[iLayer].get(),
                                   primaryVertexContext->getClusters()[iLayer + 1].size(), streamArray[iLayer + 1].get());
 
-    dim3 threadsPerBlock{gpu::Utils::Host::getBlockSize(trackletsNum[iLayer])};
-    dim3 blocksGrid{gpu::Utils::Host::getBlocksGrid(threadsPerBlock, trackletsNum[iLayer])};
+    dim3 threadsPerBlock{gpu::utils::host::getBlockSize(trackletsNum[iLayer])};
+    dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, trackletsNum[iLayer])};
 
     gpu::sortTrackletsKernel<<<blocksGrid, threadsPerBlock, 0, streamArray[iLayer + 1].get()>>>(primaryVertexContext->getDeviceContext(),
                                                                                                 iLayer + 1, primaryVertexContext->getTempTrackletArray()[iLayer].getWeakCopy());
@@ -442,8 +442,8 @@ void TrackerTraitsNV::computeLayerCells()
     if (trackletsSize == 0) {
       continue;
     }
-    dim3 threadsPerBlock{gpu::Utils::Host::getBlockSize(trackletsSize)};
-    dim3 blocksGrid{gpu::Utils::Host::getBlocksGrid(threadsPerBlock, trackletsSize)};
+    dim3 threadsPerBlock{gpu::utils::host::getBlockSize(trackletsSize)};
+    dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, trackletsSize)};
 
     if (iLayer == 0) {
 
@@ -482,8 +482,8 @@ void TrackerTraitsNV::computeLayerCells()
                                   primaryVertexContext->getDeviceCellsLookupTable()[iLayer].get(), trackletsNum[iLayer],
                                   streamArray[iLayer + 1].get());
 
-    dim3 threadsPerBlock{gpu::Utils::Host::getBlockSize(trackletsNum[iLayer])};
-    dim3 blocksGrid{gpu::Utils::Host::getBlocksGrid(threadsPerBlock, trackletsNum[iLayer])};
+    dim3 threadsPerBlock{gpu::utils::host::getBlockSize(trackletsNum[iLayer])};
+    dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, trackletsNum[iLayer])};
 
     gpu::sortCellsKernel<<<blocksGrid, threadsPerBlock, 0, streamArray[iLayer + 1].get()>>>(primaryVertexContext->getDeviceContext(),
                                                                                             iLayer + 1, primaryVertexContext->getTempCellArray()[iLayer].getWeakCopy());
@@ -508,13 +508,15 @@ void TrackerTraitsNV::computeLayerCells()
     if (iLayer == 0) {
 
       cellsSize = primaryVertexContext->getDeviceCells()[iLayer].getSizeFromDevice();
-      if (cellsSize == 0)
+      if (cellsSize == 0) {
         continue;
+      }
     } else {
 
       cellsSize = cellsNum[iLayer - 1];
-      if (cellsSize == 0)
+      if (cellsSize == 0) {
         continue;
+      }
       primaryVertexContext->getDeviceCellsLookupTable()[iLayer - 1].copyIntoVector(
         primaryVertexContext->getCellsLookupTable()[iLayer - 1], trackletsNum[iLayer - 1]);
     }

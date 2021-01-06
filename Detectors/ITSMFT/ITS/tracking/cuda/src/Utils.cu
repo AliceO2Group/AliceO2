@@ -73,7 +73,7 @@ namespace its
 namespace gpu
 {
 
-void Utils::Host::checkCUDAError(const cudaError_t error, const char* file, const int line)
+void utils::host::checkCUDAError(const cudaError_t error, const char* file, const int line)
 {
   if (error != cudaSuccess) {
 
@@ -86,18 +86,18 @@ void Utils::Host::checkCUDAError(const cudaError_t error, const char* file, cons
   }
 }
 
-dim3 Utils::Host::getBlockSize(const int colsNum)
+dim3 utils::host::getBlockSize(const int colsNum)
 {
   return getBlockSize(colsNum, 1);
 }
 
-dim3 Utils::Host::getBlockSize(const int colsNum, const int rowsNum)
+dim3 utils::host::getBlockSize(const int colsNum, const int rowsNum)
 {
   const DeviceProperties& deviceProperties = Context::getInstance().getDeviceProperties();
   return getBlockSize(colsNum, rowsNum, deviceProperties.cudaCores / deviceProperties.maxBlocksPerSM);
 }
 
-dim3 Utils::Host::getBlockSize(const int colsNum, const int rowsNum, const int maxThreadsPerBlock)
+dim3 utils::host::getBlockSize(const int colsNum, const int rowsNum, const int maxThreadsPerBlock)
 {
   const DeviceProperties& deviceProperties = Context::getInstance().getDeviceProperties();
   int xThreads = max(min(colsNum, deviceProperties.maxThreadsDim.x), 1);
@@ -119,59 +119,59 @@ dim3 Utils::Host::getBlockSize(const int colsNum, const int rowsNum, const int m
   return dim3{static_cast<unsigned int>(xThreads), static_cast<unsigned int>(yThreads)};
 }
 
-dim3 Utils::Host::getBlocksGrid(const dim3& threadsPerBlock, const int rowsNum)
+dim3 utils::host::getBlocksGrid(const dim3& threadsPerBlock, const int rowsNum)
 {
 
   return getBlocksGrid(threadsPerBlock, rowsNum, 1);
 }
 
-dim3 Utils::Host::getBlocksGrid(const dim3& threadsPerBlock, const int rowsNum, const int colsNum)
+dim3 utils::host::getBlocksGrid(const dim3& threadsPerBlock, const int rowsNum, const int colsNum)
 {
 
   return dim3{1 + (rowsNum - 1) / threadsPerBlock.x, 1 + (colsNum - 1) / threadsPerBlock.y};
 }
 
-void Utils::Host::gpuMalloc(void** p, const int size)
+void utils::host::gpuMalloc(void** p, const int size)
 {
   checkCUDAError(cudaMalloc(p, size), __FILE__, __LINE__);
 }
 
-void Utils::Host::gpuFree(void* p)
+void utils::host::gpuFree(void* p)
 {
   checkCUDAError(cudaFree(p), __FILE__, __LINE__);
 }
 
-void Utils::Host::gpuMemset(void* p, int value, int size)
+void utils::host::gpuMemset(void* p, int value, int size)
 {
   checkCUDAError(cudaMemset(p, value, size), __FILE__, __LINE__);
 }
 
-void Utils::Host::gpuMemcpyHostToDevice(void* dst, const void* src, int size)
+void utils::host::gpuMemcpyHostToDevice(void* dst, const void* src, int size)
 {
   checkCUDAError(cudaMemcpy(dst, src, size, cudaMemcpyHostToDevice), __FILE__, __LINE__);
 }
 
-void Utils::Host::gpuMemcpyHostToDeviceAsync(void* dst, const void* src, int size, Stream& stream)
+void utils::host::gpuMemcpyHostToDeviceAsync(void* dst, const void* src, int size, Stream& stream)
 {
   checkCUDAError(cudaMemcpyAsync(dst, src, size, cudaMemcpyHostToDevice, stream.get()), __FILE__, __LINE__);
 }
 
-void Utils::Host::gpuMemcpyDeviceToHost(void* dst, const void* src, int size)
+void utils::host::gpuMemcpyDeviceToHost(void* dst, const void* src, int size)
 {
   checkCUDAError(cudaMemcpy(dst, src, size, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
 }
 
-// void Utils::Host::gpuStartProfiler()
+// void utils::host::gpuStartProfiler()
 // {
 //   checkCUDAError(cudaProfilerStart(), __FILE__, __LINE__);
 // }
 
-// void Utils::Host::gpuStopProfiler()
+// void utils::host::gpuStopProfiler()
 // {
 //   checkCUDAError(cudaProfilerStop(), __FILE__, __LINE__);
 // }
 
-GPUd() int Utils::Device::getLaneIndex()
+GPUd() int utils::device::getLaneIndex()
 {
   uint32_t laneIndex;
   asm volatile("mov.u32 %0, %%laneid;"
@@ -179,13 +179,13 @@ GPUd() int Utils::Device::getLaneIndex()
   return static_cast<int>(laneIndex);
 }
 
-GPUd() int Utils::Device::shareToWarp(const int value, const int laneIndex)
+GPUd() int utils::device::shareToWarp(const int value, const int laneIndex)
 {
   cooperative_groups::coalesced_group threadGroup = cooperative_groups::coalesced_threads();
   return threadGroup.shfl(value, laneIndex);
 }
 
-GPUd() int Utils::Device::gpuAtomicAdd(int* p, const int incrementSize)
+GPUd() int utils::device::gpuAtomicAdd(int* p, const int incrementSize)
 {
   return atomicAdd(p, incrementSize);
 }
