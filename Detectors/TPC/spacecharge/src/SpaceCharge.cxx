@@ -613,8 +613,8 @@ void SpaceCharge<DataT, Nz, Nr, Nphi>::fillChargeDensityFromHisto(const TH3& his
     for (size_t iPhi = 0; iPhi < Nphi; ++iPhi) {
       for (size_t iR = 0; iR < Nr; ++iR) {
         for (size_t iZ = 0; iZ < Nz; ++iZ) {
-          const size_t zBin = side == Side::A ? Nz + iZ + 1 : Nz - iZ; // TODO CHECK THIS!
-          mDensity[side](iZ, iR, iPhi) = hRebin.GetBinContent(iPhi, iR, zBin);
+          const size_t zBin = side == Side::A ? Nz + iZ + 1 : Nz - iZ;
+          mDensity[side](iZ, iR, iPhi) = hRebin.GetBinContent(iPhi + 1, iR + 1, zBin);
         }
       }
     }
