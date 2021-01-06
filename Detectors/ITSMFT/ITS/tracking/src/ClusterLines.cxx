@@ -171,8 +171,8 @@ ClusterLines::ClusterLines(const int firstLabel, const Line& firstLine, const in
   computeClusterCentroid();
 
   // RMS2
-  mRMS2 = std::move(Line::getDCAComponents(firstLine, mVertex));
-  const std::array<float, 6> tmpRMS2Line2 = std::move(Line::getDCAComponents(secondLine, mVertex));
+  mRMS2 = Line::getDCAComponents(firstLine, mVertex);
+  const std::array<float, 6> tmpRMS2Line2 = Line::getDCAComponents(secondLine, mVertex);
   std::transform(mRMS2.begin(), mRMS2.end(), tmpRMS2Line2.begin(), mRMS2.begin(), [&](const float a, const float b) { return a + (b - a) / mLabels.size(); });
 
   // AvgDistance2
