@@ -45,12 +45,15 @@ class Digitizer
 
   void process(const std::vector<o2::ft0::HitType>* hits, std::vector<o2::ft0::Digit>& digitsBC,
                std::vector<o2::ft0::ChannelData>& digitsCh,
+               std::vector<o2::ft0::DetTrigInput>& digitsTrig,
                o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& label);
   void flush(std::vector<o2::ft0::Digit>& digitsBC,
              std::vector<o2::ft0::ChannelData>& digitsCh,
+             std::vector<o2::ft0::DetTrigInput>& digitsTrig,
              o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& label);
   void flush_all(std::vector<o2::ft0::Digit>& digitsBC,
                  std::vector<o2::ft0::ChannelData>& digitsCh,
+                 std::vector<o2::ft0::DetTrigInput>& digitsTrig,
                  o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& label);
   void initParameters();
   void printParameters() const;
@@ -150,6 +153,7 @@ class Digitizer
   void storeBC(BCCache& bc,
                std::vector<o2::ft0::Digit>& digitsBC,
                std::vector<o2::ft0::ChannelData>& digitsCh,
+               std::vector<o2::ft0::DetTrigInput>& digitsTrig,
                o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels);
 
   ClassDefNV(Digitizer, 1);

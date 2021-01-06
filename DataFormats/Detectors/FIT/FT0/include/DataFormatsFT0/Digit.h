@@ -83,6 +83,22 @@ struct Triggers {
   ClassDefNV(Triggers, 1);
 };
 
+struct DetTrigInput {
+  o2::InteractionRecord mIntRecord; // bc/orbit of the intpur
+  std::bitset<5> mInputs;           // pattern of inputs.
+  DetTrigInput() = default;
+  DetTrigInput(const o2::InteractionRecord& iRec, Bool_t isA, Bool_t isC, Bool_t isVrtx, Bool_t isCnt, Bool_t isSCnt)
+    : mIntRecord(iRec),
+      mInputs((isA << Triggers::bitA) |
+              (isC << Triggers::bitC) |
+              (isVrtx << Triggers::bitVertex) |
+              (isCnt << Triggers::bitCen) |
+              (isSCnt << Triggers::bitSCen))
+  {
+  }
+  ClassDefNV(DetTrigInput, 1);
+};
+
 struct Digit {
   o2::dataformats::RangeReference<int, int> ref;
   Triggers mTriggers;               // pattern of triggers  in this BC
@@ -114,6 +130,7 @@ struct Digit {
   void setStatusFlag(EEventStatus bit, bool value) { mEventStatus |= (value << bit); };
   bool getStatusFlag(EEventStatus bit) const { return bool(mEventStatus << bit); }
   uint8_t getEventStatusWord() const { return mEventStatus; }
+
   ClassDefNV(Digit, 5);
 };
 
