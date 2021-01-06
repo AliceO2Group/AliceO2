@@ -15,7 +15,7 @@
 #include <iostream>
 #include <sstream>
 #include <array>
-#include <assert.h>
+#include <cassert>
 
 #ifndef GPUCA_GPUCODE_GENRTC
 #include <cub/cub.cuh>
@@ -343,8 +343,8 @@ void VertexerTraitsGPU::computeTracklets()
     std::cout << "\t\tno clusters on layer 1. Returning.\n";
     return;
   }
-  const dim3 threadsPerBlock{gpu::Utils::Host::getBlockSize(mClusters[1].capacity())};
-  const dim3 blocksGrid{gpu::Utils::Host::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
+  const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mClusters[1].capacity())};
+  const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
 
   gpu::trackleterKernel<<<blocksGrid, threadsPerBlock>>>(
     getDeviceContext(),
@@ -374,8 +374,8 @@ void VertexerTraitsGPU::computeTrackletMatching()
     std::cout << "\t\tno clusters on layer 1. Returning.\n";
     return;
   }
-  const dim3 threadsPerBlock{gpu::Utils::Host::getBlockSize(mClusters[1].capacity())};
-  const dim3 blocksGrid{gpu::Utils::Host::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
+  const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mClusters[1].capacity())};
+  const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
   size_t bufferSize = mStoreVertexerGPU.getConfig().tmpCUBBufferSize * sizeof(int);
 
   gpu::trackletSelectionKernel<<<blocksGrid, threadsPerBlock>>>(
@@ -422,8 +422,8 @@ void VertexerTraitsGPU::computeVertices()
     std::cout << "\t\tno clusters on layer 1. Returning.\n";
     return;
   }
-  const dim3 threadsPerBlock{gpu::Utils::Host::getBlockSize(mClusters[1].capacity())};
-  const dim3 blocksGrid{gpu::Utils::Host::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
+  const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mClusters[1].capacity())};
+  const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
   size_t bufferSize = mStoreVertexerGPU.getConfig().tmpCUBBufferSize * sizeof(int);
   int nLines = mStoreVertexerGPU.getNExclusiveFoundLines().getElementFromDevice(mClusters[1].size() - 1) + mStoreVertexerGPU.getNFoundLines().getElementFromDevice(mClusters[1].size() - 1);
   int nCentroids{static_cast<int>(nLines * (nLines - 1) / 2)};

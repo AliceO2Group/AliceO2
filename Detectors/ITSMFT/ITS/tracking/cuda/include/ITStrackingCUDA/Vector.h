@@ -15,7 +15,7 @@
 #ifndef TRAKINGITSU_INCLUDE_GPU_VECTOR_H_
 #define TRAKINGITSU_INCLUDE_GPU_VECTOR_H_
 
-#include <assert.h>
+#include <cassert>
 #include <new>
 #include <type_traits>
 #include <vector>
@@ -100,17 +100,17 @@ Vector<T>::Vector(const T* const source, const int size, const int initialSize) 
   if (size > 0) {
     try {
 
-      Utils::Host::gpuMalloc(reinterpret_cast<void**>(&mArrayPointer), size * sizeof(T));
-      Utils::Host::gpuMalloc(reinterpret_cast<void**>(&mDeviceSize), sizeof(int));
+      utils::host::gpuMalloc(reinterpret_cast<void**>(&mArrayPointer), size * sizeof(T));
+      utils::host::gpuMalloc(reinterpret_cast<void**>(&mDeviceSize), sizeof(int));
 
       if (source != nullptr) {
 
-        Utils::Host::gpuMemcpyHostToDevice(mArrayPointer, source, size * sizeof(T));
-        Utils::Host::gpuMemcpyHostToDevice(mDeviceSize, &size, sizeof(int));
+        utils::host::gpuMemcpyHostToDevice(mArrayPointer, source, size * sizeof(T));
+        utils::host::gpuMemcpyHostToDevice(mDeviceSize, &size, sizeof(int));
 
       } else {
 
-        Utils::Host::gpuMemcpyHostToDevice(mDeviceSize, &initialSize, sizeof(int));
+        utils::host::gpuMemcpyHostToDevice(mDeviceSize, &initialSize, sizeof(int));
       }
 
     } catch (...) {
@@ -179,7 +179,7 @@ template <typename T>
 int Vector<T>::getSizeFromDevice() const
 {
   int size;
-  Utils::Host::gpuMemcpyDeviceToHost(&size, mDeviceSize, sizeof(int));
+  utils::host::gpuMemcpyDeviceToHost(&size, mDeviceSize, sizeof(int));
 
   return size;
 }
@@ -187,7 +187,7 @@ int Vector<T>::getSizeFromDevice() const
 template <typename T>
 void Vector<T>::resize(const int size)
 {
-  Utils::Host::gpuMemcpyHostToDevice(mDeviceSize, &size, sizeof(int));
+  utils::host::gpuMemcpyHostToDevice(mDeviceSize, &size, sizeof(int));
 }
 
 template <typename T>
@@ -201,21 +201,21 @@ void Vector<T>::reset(const T* const source, const int size, const int initialSi
 {
   if (size > mCapacity) {
     if (mArrayPointer != nullptr) {
-      Utils::Host::gpuFree(mArrayPointer);
+      utils::host::gpuFree(mArrayPointer);
     }
-    Utils::Host::gpuMalloc(reinterpret_cast<void**>(&mArrayPointer), size * sizeof(T));
+    utils::host::gpuMalloc(reinterpret_cast<void**>(&mArrayPointer), size * sizeof(T));
     mCapacity = size;
   }
 
   if (source != nullptr) {
-    Utils::Host::gpuMemcpyHostToDevice(mArrayPointer, source, size * sizeof(T));
-    Utils::Host::gpuMemcpyHostToDevice(mDeviceSize, &size, sizeof(int));
+    utils::host::gpuMemcpyHostToDevice(mArrayPointer, source, size * sizeof(T));
+    utils::host::gpuMemcpyHostToDevice(mDeviceSize, &size, sizeof(int));
 
   } else {
     if (mDeviceSize == nullptr) {
-      Utils::Host::gpuMalloc(reinterpret_cast<void**>(&mDeviceSize), sizeof(int));
+      utils::host::gpuMalloc(reinterpret_cast<void**>(&mDeviceSize), sizeof(int));
     }
-    Utils::Host::gpuMemcpyHostToDevice(mDeviceSize, &initialSize, sizeof(int));
+    utils::host::gpuMemcpyHostToDevice(mDeviceSize, &initialSize, sizeof(int));
   }
 }
 
@@ -228,7 +228,7 @@ void Vector<T>::copyIntoVector(std::vector<T>& destinationVector, const int size
   try {
 
     hostPrimitivePointer = static_cast<T*>(malloc(size * sizeof(T)));
-    Utils::Host::gpuMemcpyDeviceToHost(hostPrimitivePointer, mArrayPointer, size * sizeof(T));
+    utils::host::gpuMemcpyDeviceToHost(hostPrimitivePointer, mArrayPointer, size * sizeof(T));
 
     destinationVector = std::move(std::vector<T>(hostPrimitivePointer, hostPrimitivePointer + size));
 
@@ -246,7 +246,7 @@ void Vector<T>::copyIntoVector(std::vector<T>& destinationVector, const int size
 template <typename T>
 void Vector<T>::copyIntoSizedVector(std::vector<T>& destinationVector)
 {
-  Utils::Host::gpuMemcpyDeviceToHost(destinationVector.data(), mArrayPointer, destinationVector.size() * sizeof(T));
+  utils::host::gpuMemcpyDeviceToHost(destinationVector.data(), mArrayPointer, destinationVector.size() * sizeof(T));
 }
 
 template <typename T>
@@ -254,12 +254,12 @@ inline void Vector<T>::destroy()
 {
   if (mArrayPointer != nullptr) {
 
-    Utils::Host::gpuFree(mArrayPointer);
+    utils::host::gpuFree(mArrayPointer);
   }
 
   if (mDeviceSize != nullptr) {
 
-    Utils::Host::gpuFree(mDeviceSize);
+    utils::host::gpuFree(mDeviceSize);
   }
 }
 
@@ -291,7 +291,7 @@ template <typename T>
 GPU_HOST inline T Vector<T>::getElementFromDevice(const int index) const
 {
   T element;
-  Utils::Host::gpuMemcpyDeviceToHost(&element, mArrayPointer + index, sizeof(T));
+  utils::host::gpuMemcpyDeviceToHost(&element, mArrayPointer + index, sizeof(T));
 
   return element;
 }
@@ -305,7 +305,7 @@ GPU_DEVICE inline int Vector<T>::size() const
 template <typename T>
 GPU_DEVICE int Vector<T>::extend(const int sizeIncrement) const
 {
-  const int startIndex = Utils::Device::gpuAtomicAdd(mDeviceSize, sizeIncrement);
+  const int startIndex = utils::device::gpuAtomicAdd(mDeviceSize, sizeIncrement);
   assert(size() <= mCapacity);
 
   return startIndex;
