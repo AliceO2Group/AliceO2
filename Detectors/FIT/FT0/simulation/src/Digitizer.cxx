@@ -150,13 +150,14 @@ double Digitizer::measure_amplitude(const std::vector<float>& times) const
 void Digitizer::process(const std::vector<o2::ft0::HitType>* hits,
                         std::vector<o2::ft0::Digit>& digitsBC,
                         std::vector<o2::ft0::ChannelData>& digitsCh,
+                        std::vector<o2::ft0::DetTrigInput>& digitsTrig,
                         o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& label)
 {
   ;
   //Calculating signal time, amplitude in mean_time +- time_gate --------------
   LOG(DEBUG) << " process firstBCinDeque " << firstBCinDeque << " mIntRecord " << mIntRecord;
   if (firstBCinDeque != mIntRecord) {
-    flush(digitsBC, digitsCh, label);
+    flush(digitsBC, digitsCh, digitsTrig, label);
   }
 
   Int_t parent = -10;
@@ -189,6 +190,7 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits,
 void Digitizer::storeBC(BCCache& bc,
                         std::vector<o2::ft0::Digit>& digitsBC,
                         std::vector<o2::ft0::ChannelData>& digitsCh,
+                        std::vector<o2::ft0::DetTrigInput>& digitsTrig,
                         o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels)
 {
   if (bc.hits.empty()) {
@@ -266,8 +268,8 @@ void Digitizer::storeBC(BCCache& bc,
   if (nStored > 0) {
     triggers.setTriggers(is_A, is_C, isVertex, is_Central, is_SemiCentral, int8_t(n_hit_A), int8_t(n_hit_C),
                          amplA, amplC, timeA, timeC);
-
     digitsBC.emplace_back(first, nStored, firstBCinDeque, triggers, mEventID - 1);
+    digitsTrig.emplace_back(firstBCinDeque, is_A, is_C, isVertex, is_Central, is_SemiCentral);
     size_t const nBC = digitsBC.size();
     for (auto const& lbl : bc.labels) {
       labels.addElement(nBC - 1, lbl);
@@ -286,13 +288,14 @@ void Digitizer::storeBC(BCCache& bc,
 //------------------------------------------------------------------------
 void Digitizer::flush(std::vector<o2::ft0::Digit>& digitsBC,
                       std::vector<o2::ft0::ChannelData>& digitsCh,
+                      std::vector<o2::ft0::DetTrigInput>& digitsTrig,
                       o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels)
 {
 
   assert(firstBCinDeque <= mIntRecord);
 
   while (firstBCinDeque < mIntRecord && !mCache.empty()) {
-    storeBC(mCache.front(), digitsBC, digitsCh, labels);
+    storeBC(mCache.front(), digitsBC, digitsCh, digitsTrig, labels);
     mCache.pop_front();
     ++firstBCinDeque;
   }
@@ -301,13 +304,14 @@ void Digitizer::flush(std::vector<o2::ft0::Digit>& digitsBC,
 
 void Digitizer::flush_all(std::vector<o2::ft0::Digit>& digitsBC,
                           std::vector<o2::ft0::ChannelData>& digitsCh,
+                          std::vector<o2::ft0::DetTrigInput>& digitsTrig,
                           o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels)
 {
 
   assert(firstBCinDeque <= mIntRecord);
   ++mEventID;
   while (!mCache.empty()) {
-    storeBC(mCache.front(), digitsBC, digitsCh, labels);
+    storeBC(mCache.front(), digitsBC, digitsCh, digitsTrig, labels);
     mCache.pop_front();
     ++firstBCinDeque;
   }
