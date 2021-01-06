@@ -179,6 +179,8 @@ struct lambdakzeroproducer {
         }
         fitter.getTrack(0).getPxPyPzGlo(pvec0);
         fitter.getTrack(1).getPxPyPzGlo(pvec1);
+      } else {
+        continue;
       }
 
       //Apply selections so a skimmed table is created only
