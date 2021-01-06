@@ -132,6 +132,7 @@ RawErrorType_t RawDecoder::readChannels()
     } // in Segment
   }
   mChannelsInitialized = true;
+  return kOK;
 }
 
 const RCUTrailer& RawDecoder::getRCUTrailer() const
