@@ -44,10 +44,10 @@ class VertexerTraitsGPU : public VertexerTraits
  public:
 #ifdef _ALLOW_DEBUG_TREES_ITS_
   VertexerTraitsGPU();
-  virtual ~VertexerTraitsGPU();
+  ~VertexerTraitsGPU() override;
 #else
   VertexerTraitsGPU();
-  virtual ~VertexerTraitsGPU() = default;
+  ~VertexerTraitsGPU() = default;
 #endif
   void initialise(ROframe*) override;
   void computeTracklets() override;

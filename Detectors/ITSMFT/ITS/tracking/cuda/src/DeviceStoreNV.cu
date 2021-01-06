@@ -115,10 +115,7 @@ namespace its
 namespace gpu
 {
 
-DeviceStoreNV::DeviceStoreNV()
-{
-  // Nothing to do
-}
+DeviceStoreNV::DeviceStoreNV() = default;
 
 UniquePointer<DeviceStoreNV> DeviceStoreNV::initialise(const float3& primaryVertex,
                                                        const std::array<std::vector<Cluster>, constants::its2::LayersNumber>& clusters,
@@ -163,8 +160,8 @@ UniquePointer<DeviceStoreNV> DeviceStoreNV::initialise(const float3& primaryVert
 
     const int nextLayerClustersNum = static_cast<int>(clusters[iLayer + 1].size());
 
-    dim3 threadsPerBlock{Utils::Host::getBlockSize(nextLayerClustersNum)};
-    dim3 blocksGrid{Utils::Host::getBlocksGrid(threadsPerBlock, nextLayerClustersNum)};
+    dim3 threadsPerBlock{utils::host::getBlockSize(nextLayerClustersNum)};
+    dim3 blocksGrid{utils::host::getBlocksGrid(threadsPerBlock, nextLayerClustersNum)};
 
     fillDeviceStructures<<<blocksGrid, threadsPerBlock, 0, streamArray[iLayer].get()>>>(*gpuContextDevicePointer, iLayer);
 
