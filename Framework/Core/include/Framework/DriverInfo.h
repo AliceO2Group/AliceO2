@@ -142,6 +142,10 @@ struct DriverInfo {
   bool noSHMCleanup;
 };
 
+struct DriverInfoHelper {
+  static char const* stateToString(enum DriverState state);
+};
+
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_DRIVERINFO_H_
