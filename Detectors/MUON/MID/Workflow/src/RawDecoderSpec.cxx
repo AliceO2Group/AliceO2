@@ -59,7 +59,6 @@ class RawDecoderDeviceDPL
     }
 
     mDecoder->clear();
-    o2::header::DataHeader const* dh = nullptr;
     for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
       auto const* rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
       gsl::span<const uint8_t> payload(it.data(), it.size());
