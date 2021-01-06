@@ -45,16 +45,13 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
 
   auto digits = ctx.inputs().get<std::vector<o2::phos::Digit>>("digits");
   auto digitsTR = ctx.inputs().get<std::vector<o2::phos::TriggerRecord>>("digitTriggerRecords");
-  gsl::span<const char> labelbuffer;
+  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::phos::MCLabel>> truthcont(nullptr);
   if (mPropagateMC) {
-    labelbuffer = ctx.inputs().get<gsl::span<char>>("digitsmctr");
-    //    auto truthcont = ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>*>("digitsmctr");
-
+    truthcont = ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>*>("digitsmctr");
     mOutputTruthCont.clear();
     mOutputTruthMap.clear();
   }
-  o2::dataformats::ConstMCTruthContainerView<o2::phos::MCLabel> truthcont(labelbuffer);
-  LOG(INFO) << "[PHOSCellConverter - run]  Received " << digits.size() << " digits and " << digitsTR.size() << " TriggerRecords";
+  LOG(INFO) << "[PHOSCellConverter - run]  Received " << digits.size() << " digits and " << digitsTR.size() << " TriggerRecords" << truthcont->getNElements() << " MC labels";
 
   //Get TimeStamp from TriggerRecord
   if (!mBadMap) {
@@ -101,24 +98,25 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
       //      chantype = ChannelType_t::TRU;
 
       mOutputCells.emplace_back(dig.getAbsId(), dig.getAmplitude(), dig.getTime(), chantype);
-      icell++;
       if (mPropagateMC) { //copy MC info,
         int iLab = dig.getLabel();
         if (iLab > -1) {
-          mOutputTruthCont.addElements(labelIndex, truthcont.getLabels(iLab));
+          mOutputTruthCont.addElements(labelIndex, truthcont->getLabels(iLab));
           mOutputTruthMap.emplace_back(icell); //Relate cell index and label index
           labelIndex++;
         }
       }
+      icell++;
     }
     mOutputCellTrigRecs.emplace_back(tr.getBCData(), indexStart, mOutputCells.size());
   }
-  LOG(INFO) << "[PHOSCellConverter - run] Writing " << mOutputCells.size() << " cells and " << mOutputCellTrigRecs.size() << " Trig Records ";
+  LOG(INFO) << "[PHOSCellConverter - run] Writing " << mOutputCells.size() << " cells, " << mOutputCellTrigRecs.size() << " Trig Records " << mOutputTruthCont.getNElements() << " PHOS labels ";
+  ;
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", 0, o2::framework::Lifetime::Timeframe}, mOutputCells);
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputCellTrigRecs);
   if (mPropagateMC) {
-    //ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLSMCTR", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthCont);
-    //ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLSMCMAP", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthMap);
+    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLSMCTR", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthCont);
+    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLSMCMAP", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthMap);
   }
 }
 
@@ -132,8 +130,8 @@ o2::framework::DataProcessorSpec o2::phos::reco_workflow::getCellConverterSpec(b
   outputs.emplace_back("PHS", "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe);
   if (propagateMC) {
     inputs.emplace_back("digitsmctr", "PHS", "DIGITSMCTR", 0, o2::framework::Lifetime::Timeframe);
-    //outputs.emplace_back("PHS", "CELLSMCTR", 0, o2::framework::Lifetime::Timeframe);
-    //outputs.emplace_back("PHS", "CELLSMCMAP", 0, o2::framework::Lifetime::Timeframe);
+    outputs.emplace_back("PHS", "CELLSMCTR", 0, o2::framework::Lifetime::Timeframe);
+    outputs.emplace_back("PHS", "CELLSMCMAP", 0, o2::framework::Lifetime::Timeframe);
   }
   return o2::framework::DataProcessorSpec{"PHOSCellConverterSpec",
                                           inputs,

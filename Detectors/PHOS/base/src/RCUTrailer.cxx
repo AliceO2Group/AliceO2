@@ -16,6 +16,11 @@
 
 using namespace o2::phos;
 
+RCUTrailer::RCUTrailer(const gsl::span<const uint32_t> payloadwords)
+{
+  constructFromRawPayload(payloadwords);
+}
+
 void RCUTrailer::reset()
 {
   mRCUId = -1;

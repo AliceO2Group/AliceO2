@@ -15,6 +15,7 @@
 #include "DataFormatsPHOS/Cell.h"
 #include "DataFormatsPHOS/TriggerRecord.h"
 #include "PHOSBase/Mapping.h"
+#include "PHOSCalib/CalibParams.h"
 #include "PHOSReconstruction/CaloRawFitter.h"
 #include "PHOSReconstruction/RawReaderError.h"
 
@@ -64,8 +65,9 @@ class RawToCellConverterSpec : public framework::Task
   bool mFillChi2 = false;                                     ///< Fill output with quality of samples
   bool mCombineGHLG = true;                                   ///< Combine or not HG and LG channels (def: combine, LED runs: not combine)
   bool mPedestalRun = false;                                  ///< Analyze pedestal run (calculate pedestal mean and RMS)
-  std::unique_ptr<o2::phos::Mapping> mMapping = nullptr;      ///!<! Mapping
-  std::unique_ptr<o2::phos::CaloRawFitter> mRawFitter;        ///!<! Raw fitter
+  std::unique_ptr<Mapping> mMapping;                          ///< Mapping
+  std::unique_ptr<CalibParams> mCalibParams;                  ///!<! PHOS calibration
+  std::unique_ptr<CaloRawFitter> mRawFitter;                  ///!<! Raw fitter
   std::vector<o2::phos::Cell> mOutputCells;                   ///< Container with output cells
   std::vector<o2::phos::TriggerRecord> mOutputTriggerRecords; ///< Container with output cells
   std::vector<o2::phos::RawReaderError> mOutputHWErrors;      ///< Errors occured in reading data

@@ -39,7 +39,7 @@ class ClusterizerSpec : public framework::Task
 {
  public:
   /// \brief Constructor
-  ClusterizerSpec(bool propagateMC) : framework::Task(), mPropagateMC(propagateMC) {}
+  ClusterizerSpec(bool propagateMC, bool scanDigits) : framework::Task(), mPropagateMC(propagateMC), mUseDigits(scanDigits) {}
 
   /// \brief Destructor
   ~ClusterizerSpec() override = default;
@@ -57,7 +57,8 @@ class ClusterizerSpec : public framework::Task
   void run(framework::ProcessingContext& ctx) final;
 
  private:
-  bool mPropagateMC = false;        ///< Switch whether to process MC true labels
+  bool mPropagateMC = false; ///< Switch whether to process MC true labels
+  bool mUseDigits = false;
   o2::phos::Clusterer mClusterizer; ///< Clusterizer object
   std::vector<o2::phos::Cluster> mOutputClusters;
   std::vector<o2::phos::TriggerRecord> mOutputClusterTrigRecs;

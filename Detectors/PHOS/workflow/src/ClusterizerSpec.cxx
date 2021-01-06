@@ -27,7 +27,8 @@ void ClusterizerSpec::init(framework::InitContext& ctx)
 
 void ClusterizerSpec::run(framework::ProcessingContext& ctx)
 {
-  if (ctx.inputs().isValid("digits")) {
+  printf("CellCLusterizerSpec: Run \n");
+  if (mUseDigits) {
     LOG(DEBUG) << "PHOSClusterizer - run on digits called";
 
     auto dataref = ctx.inputs().get("digits");
@@ -42,30 +43,46 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
     // results in [7968:PHOSClusterizerSpec]: [20:51:44][ERROR] Exception caught: Inconsistent serialization method for extracting span
     auto digits = ctx.inputs().get<std::vector<o2::phos::Digit>>("digits");
     auto digitsTR = ctx.inputs().get<std::vector<o2::phos::TriggerRecord>>("digitTriggerRecords");
-
-    // auto digitsTR = ctx.inputs().get<std::vector<o2::phos::TriggerRecord>>("digitTriggerRecords");
     LOG(DEBUG) << "[PHOSClusterizer - run]  Received " << digitsTR.size() << " TR, running clusterizer ...";
-    auto truthcont = ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>*>("digitsmctr");
-    mClusterizer.process(digits, digitsTR, truthcont.get(), &mOutputClusters, &mOutputClusterTrigRecs, &mOutputTruthCont); // Find clusters on digits (pass by ref)
+    // const o2::dataformats::MCTruthContainer<MCLabel>* truthcont=nullptr;
+    // if(mPropagateMC){
+    //   truthcont = ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>*>("digitsmctr");
+    // }
+    // mClusterizer.process(digits, digitsTR, truthcont.get(), &mOutputClusters, &mOutputClusterTrigRecs, &mOutputTruthCont); // Find clusters on digits (pass by ref)
   } else {
 
     LOG(DEBUG) << "PHOSClusterizer - run run on cells called";
 
-    auto dataref = ctx.inputs().get("cells");
-    auto const* phosheader = o2::framework::DataRefUtils::getHeader<o2::phos::PHOSBlockHeader*>(dataref);
-    if (!phosheader->mHasPayload) {
-      LOG(DEBUG) << "[PHOSClusterizer - run] No more cells" << std::endl;
-      ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
-      return;
-    }
+    // auto dataref = ctx.inputs().get("cells");
+    // auto const* phosheader = o2::framework::DataRefUtils::getHeader<o2::phos::PHOSBlockHeader*>(dataref);
+    // if (!phosheader->mHasPayload) {
+    //   LOG(DEBUG) << "[PHOSClusterizer - run] No more cells" << std::endl;
+    //   ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
+    //   return;
+    // }
 
     auto cells = ctx.inputs().get<gsl::span<o2::phos::Cell>>("cells");
     LOG(DEBUG) << "[PHOSClusterizer - run]  Received " << cells.size() << " cells, running clusterizer ...";
     auto cellsTR = ctx.inputs().get<gsl::span<o2::phos::TriggerRecord>>("cellTriggerRecords");
-    auto truthcont = ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>*>("cellsmctr");
-    auto truthmap = ctx.inputs().get<gsl::span<uint>>("cellssmcmap");
 
-    mClusterizer.processCells(cells, cellsTR, truthcont.get(), truthmap, &mOutputClusters, &mOutputClusterTrigRecs, &mOutputTruthCont); // Find clusters on digits (pass by ref)
+    printf("-------------Cells------------\n");
+    for (auto cTR : cellsTR) {
+      printf("new Event \n");
+      int firstCellInEvent = cTR.getFirstEntry();
+      int lastCellInEvent = firstCellInEvent + cTR.getNumberOfObjects();
+      for (int i = firstCellInEvent; i < lastCellInEvent; i++) {
+        Cell c = cells[i];
+        printf("cell[%d]: absId=%d, amp=%f, Time=%e \n", i, c.getAbsId(), c.getEnergy(), c.getTime());
+      }
+    }
+
+    // const o2::dataformats::MCTruthContainer<MCLabel>* truthcont=nullptr;
+    // gsl::span<const unsigned int> mcmap ;
+    // if(mPropagateMC){
+    //   truthcont = ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>*>("cellsmctr");
+    //   truthmap = ctx.inputs().get<gsl::span<uint>>("cellssmcmap");
+    // }
+    // mClusterizer.processCells(cells, cellsTR, truthcont.get(), truthmap, &mOutputClusters, &mOutputClusterTrigRecs, &mOutputTruthCont); // Find clusters on digits (pass by ref)
   }
 
   LOG(DEBUG) << "[PHOSClusterizer - run] Writing " << mOutputClusters.size() << " clusters, " << mOutputClusterTrigRecs.size() << "TR and " << mOutputTruthCont.getIndexedSize() << " Labels";
@@ -96,7 +113,7 @@ o2::framework::DataProcessorSpec o2::phos::reco_workflow::getClusterizerSpec(boo
   return o2::framework::DataProcessorSpec{"PHOSClusterizerSpec",
                                           inputs,
                                           outputs,
-                                          o2::framework::adaptFromTask<o2::phos::reco_workflow::ClusterizerSpec>(propagateMC)};
+                                          o2::framework::adaptFromTask<o2::phos::reco_workflow::ClusterizerSpec>(propagateMC, true)};
 }
 
 o2::framework::DataProcessorSpec o2::phos::reco_workflow::getCellClusterizerSpec(bool propagateMC)
@@ -119,5 +136,5 @@ o2::framework::DataProcessorSpec o2::phos::reco_workflow::getCellClusterizerSpec
   return o2::framework::DataProcessorSpec{"PHOSClusterizerSpec",
                                           inputs,
                                           outputs,
-                                          o2::framework::adaptFromTask<o2::phos::reco_workflow::ClusterizerSpec>(propagateMC)};
+                                          o2::framework::adaptFromTask<o2::phos::reco_workflow::ClusterizerSpec>(propagateMC, false)};
 }

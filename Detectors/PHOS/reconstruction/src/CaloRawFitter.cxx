@@ -14,9 +14,9 @@
 #include "FairLogger.h"
 #include <gsl/span>
 
-// ROOT sytem
 #include "PHOSReconstruction/Bunch.h"
 #include "PHOSReconstruction/CaloRawFitter.h"
+#include "PHOSBase/PHOSSimParams.h"
 
 using namespace o2::phos;
 
@@ -84,9 +84,9 @@ CaloRawFitter::FitStatus CaloRawFitter::evalKLevel(const Bunch& b) //const ushor
     return kEmptyBunch;
   }
 
-  const short kSpikeThreshold = 100; //Single spike >100 ADC channels
-  const float kBaseLine = 1.0;       //TODO: set from config
-  const int kPreSamples = 10;        //TODO: set from config
+  const short kSpikeThreshold = o2::phos::PHOSSimParams::Instance().mSpikeThreshold;
+  const short kBaseLine = o2::phos::PHOSSimParams::Instance().mBaseLine;
+  const short kPreSamples = o2::phos::PHOSSimParams::Instance().mPreSamples;
 
   float pedMean = 0;
   float pedRMS = 0;
@@ -166,7 +166,7 @@ CaloRawFitter::FitStatus CaloRawFitter::evalKLevel(const Bunch& b) //const ushor
     mAmp.push_back(amp);
     mTime.push_back(time);
     mOverflow.push_back(false);
-    return kNoTime; //use estimated time
+    return kOK; //use estimated time
   }
 
   // Find index posK (kLevel is a level of "timestamp" point Tk):

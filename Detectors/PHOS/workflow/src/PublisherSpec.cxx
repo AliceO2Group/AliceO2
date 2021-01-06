@@ -163,7 +163,7 @@ o2::framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, b
     {createOutputSpecs()},
     o2::framework::AlgorithmSpec(initFunction),
     o2::framework::Options{
-      {"infile", o2::framework::VariantType::String, "", {"Name of the input file"}},
+      {"infile", o2::framework::VariantType::String, "phosdigits.root", {"Name of the input file"}},
       {"treename", o2::framework::VariantType::String, config.defaultTreeName.c_str(), {"Name of input tree"}},
       {dtb.option.c_str(), o2::framework::VariantType::String, dtb.defval.c_str(), {dtb.help.c_str()}},
       {dttrb.option.c_str(), o2::framework::VariantType::String, dttrb.defval.c_str(), {dttrb.help.c_str()}},

@@ -60,15 +60,6 @@ class RawReaderMemory
   /// it should not be called directly by the user.
   void nextPage(bool resetPayload = true);
 
-  /// \brief Read page with a given index
-  /// \param page Index of the page to be decoded
-  /// \throw RawDecodingError if the page cannot be read or header or payload cannot be deocded
-  ///
-  /// The reader will try to read the page with a certain index. In
-  /// case the page cannot be decoded (page index outside range,
-  /// decoding of header or payload failed), and excpetion is raised.
-  void readPage(int page);
-
   /// \brief access to the raw header of the current page
   /// \return Raw header of the current page
   /// \throw RawDecodingError with HEADER_INVALID if the header was not decoded

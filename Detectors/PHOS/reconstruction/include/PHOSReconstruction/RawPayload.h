@@ -74,7 +74,7 @@ class RawPayload
 
   /// \brief Get the size of the payload
   /// \return Size of the payload
-  int getPayloadSize() const { return mPayloadWords.size() * sizeof(uint32_t); }
+  int getPayloadSize() const { return mPayloadWords.size(); }
 
  private:
   std::vector<uint32_t> mPayloadWords; ///< Payload words (excluding raw header)
