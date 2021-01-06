@@ -691,25 +691,6 @@ void popWindowColorDueToStatus()
   ImGui::PopStyleVar(1);
 }
 
-struct DriverHelper {
-  static char const* stateToString(enum DriverState state)
-  {
-    static const char* names[static_cast<int>(DriverState::LAST)] = {
-      "INIT",             //
-      "SCHEDULE",         //
-      "RUNNING",          //
-      "GUI",              //
-      "REDEPLOY_GUI",     //
-      "QUIT_REQUESTED",   //
-      "HANDLE_CHILDREN",  //
-      "EXIT",             //
-      "UNKNOWN"           //
-      "PERFORM_CALLBACKS" //
-    };
-    return names[static_cast<int>(state)];
-  }
-};
-
 /// Display information window about the driver
 /// and its state.
 void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverControl)
@@ -775,7 +756,7 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
   }
 
   for (size_t i = 0; i < driverInfo.states.size(); ++i) {
-    ImGui::Text("#%lu: %s", i, DriverHelper::stateToString(driverInfo.states[i]));
+    ImGui::Text("#%lu: %s", i, DriverInfoHelper::stateToString(driverInfo.states[i]));
   }
 
   ImGui::End();
