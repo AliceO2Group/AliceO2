@@ -100,8 +100,10 @@ int main(int argc, char** argv)
         o2::phos::AltroDecoder decoder(parser);
         decoder.decode();
 
-        std::cout << decoder.getRCUTrailer() << std::endl;
-        for (auto& chan : decoder.getChannels()) {
+        auto& rcu = decoder.getRCUTrailer();
+        auto& channellist = decoder.getChannels();
+        std::cout << rcu << std::endl;
+        for (auto& chan : channellist) {
           std::cout << "Hw address: " << chan.getHardwareAddress() << std::endl;
           for (auto& bunch : chan.getBunches()) {
             std::cout << "BunchLength: " << int(bunch.getBunchLength()) << std::endl;

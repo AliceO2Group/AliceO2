@@ -17,7 +17,9 @@
 #include "DataFormatsPHOS/TriggerRecord.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "Framework/InputRecordWalker.h"
+#include "CCDB/CcdbApi.h"
 #include "PHOSBase/Mapping.h"
+#include "PHOSBase/PHOSSimParams.h"
 #include "PHOSReconstruction/Bunch.h"
 #include "PHOSReconstruction/CaloRawFitter.h"
 #include "PHOSReconstruction/AltroDecoder.h"
@@ -38,6 +40,27 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
     }
     if (mMapping->setMapping() != o2::phos::Mapping::kOK) {
       LOG(ERROR) << "Failed to construct mapping";
+    }
+  }
+
+  if (!mCalibParams) {
+    if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
+      mCalibParams = std::make_unique<CalibParams>(1); // test default calibration
+      LOG(INFO) << "[RawToCellConverterSpec] No reading calibration from ccdb requested, set default";
+    } else {
+      LOG(INFO) << "[RawToCellConverterSpec] getting calibration object from ccdb";
+      o2::ccdb::CcdbApi ccdb;
+      std::map<std::string, std::string> metadata;
+      ccdb.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a local installation
+      // auto tr = triggerbranch.begin();
+      double eventTime = -1;
+      // if(tr!=triggerbranch.end()){
+      //   eventTime = (*tr).getBCData().getTimeNS() ;
+      // }
+      // mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, eventTime);
+      if (!mCalibParams) {
+        LOG(FATAL) << "[RawToCellConverterSpec] can not get calibration object from ccdb";
+      }
     }
   }
 
@@ -70,7 +93,7 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
 void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 {
   // Cache cells from bunch crossings as the component reads timeframes from many links consecutively
-  std::map<o2::InteractionRecord, std::shared_ptr<std::vector<o2::phos::Cell>>> cellBuffer; // Internal cell buffer
+  std::map<o2::InteractionRecord, std::shared_ptr<std::vector<o2::phos::Cell>>> cellBuffer; // Internal cell buffer/
   int firstEntry = 0;
   mOutputHWErrors.clear();
   if (mFillChi2) {
@@ -80,6 +103,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   for (const auto& rawData : framework::InputRecordWalker(ctx.inputs())) {
 
     o2::phos::RawReaderMemory rawreader(o2::framework::DataRefUtils::as<const char>(rawData));
+
     // loop over all the DMA pages
     while (rawreader.hasNext()) {
       try {
@@ -126,12 +150,12 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         char e = (char)err;
         mOutputHWErrors.emplace_back(ddl, 16, e); //assign general header errors to non-existing FEE 16
       }
-      // Loop over all the channels
-      for (auto& chan : decoder.getChannels()) {
-
+      auto& rcu = decoder.getRCUTrailer();
+      auto& channellist = decoder.getChannels();
+      // Loop over all the channels for this RCU
+      for (auto& chan : channellist) {
         short absId;
         Mapping::CaloFlag caloFlag;
-
         short fee;
         char e2 = CheckHWAddress(ddl, chan.getHardwareAddress(), fee);
         if (e2) {
@@ -145,6 +169,9 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         }
         if (caloFlag != Mapping::kTRU) { //HighGain or LowGain
           CaloRawFitter::FitStatus fitResults = mRawFitter->evaluate(chan.getBunches());
+          if (fitResults == CaloRawFitter::FitStatus::kNoTime) {
+            mOutputHWErrors.emplace_back(ddl, fee, (char)5); //Time evaluation error occured
+          }
           if (mFillChi2) {
             for (int is = 0; is < mRawFitter->getNsamples(); is++) {
               if (!mRawFitter->isOverflow(is)) { //Overflow is will show wrong chi2
@@ -155,11 +182,16 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
               }
             }
           }
-          if (fitResults == CaloRawFitter::FitStatus::kOK) {
+          if (fitResults == CaloRawFitter::FitStatus::kOK || fitResults == CaloRawFitter::FitStatus::kNoTime) {
             //TODO: which results should be accepted? full configurable list
             for (int is = 0; is < mRawFitter->getNsamples(); is++) {
-              if (!mRawFitter->isOverflow(is) || caloFlag != o2::phos::Mapping::kHighGain) { //do not use HighGain if sample saturated. In LG special fitting is used
-                currentCellContainer->emplace_back(absId, mRawFitter->getAmp(is), mRawFitter->getTime(is), (ChannelType_t)caloFlag);
+              if (caloFlag == Mapping::kHighGain && !mRawFitter->isOverflow(is)) {
+                currentCellContainer->emplace_back(absId, mRawFitter->getAmp(is),
+                                                   mRawFitter->getTime(is) * o2::phos::PHOSSimParams::Instance().mTimeTick, (ChannelType_t)caloFlag);
+              }
+              if (caloFlag == Mapping::kLowGain) {
+                currentCellContainer->emplace_back(absId, mRawFitter->getAmp(is),
+                                                   mRawFitter->getTime(is) * o2::phos::PHOSSimParams::Instance().mTimeTick, (ChannelType_t)caloFlag);
               }
             }
           }

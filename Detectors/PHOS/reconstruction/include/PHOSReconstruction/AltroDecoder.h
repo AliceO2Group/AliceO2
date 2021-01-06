@@ -100,9 +100,8 @@ class AltroDecoder
   AltroDecoderError::ErrorType_t decode();
 
   /// \brief Get reference to the RCU trailer object
-  /// \return const reference to the RCU trailer
-  /// \throw AltroDecoderError with type RCU_TRAILER_ERROR if the RCU trailer was not initialized
-  const RCUTrailer& getRCUTrailer() const;
+  /// \return reference to the RCU trailers vector
+  const RCUTrailer& getRCUTrailer() const { return mRCUTrailer; }
 
   /// \brief Get the reference to the channel container
   /// \return Reference to the channel container

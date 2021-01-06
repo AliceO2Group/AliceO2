@@ -27,6 +27,7 @@
 #include "DataFormatsPHOS/Digit.h"
 #include "DataFormatsPHOS/TriggerRecord.h"
 #include "PHOSCalib/CalibParams.h"
+#include "PHOSBase/RCUTrailer.h"
 
 namespace o2
 {
@@ -34,9 +35,10 @@ namespace o2
 namespace phos
 {
 
-static constexpr short kNPHOSSAMPLES = 15;      ///< Maximal number of samples in altro
-static constexpr short kOVERFLOW = 970;         ///< Overflow level: 1023-pedestal~50
-static constexpr float kPHOSTIMETICK = 100.e-9; ///< PHOS sampling time step
+static constexpr short kNPHOSSAMPLES = 30;   ///< Maximal number of samples in altro
+static constexpr short kNPRESAMPLES = 2;     ///< Number of pre-samples in altro
+static constexpr short kOVERFLOW = 970;      ///< Overflow level: 1023-pedestal~50
+static constexpr float kPHOSTIMETICK = 100.; ///< PHOS sampling time step in ns (hits/digits keep time in ns)
 
 struct AltroBunch {
   int mStarttime;
@@ -46,27 +48,6 @@ struct AltroBunch {
 struct SRUDigitContainer {
   int mSRUid;
   std::map<short, std::vector<o2::phos::Digit*>> mChannels;
-};
-
-union ChannelHeader {
-  uint32_t mDataWord;
-  struct {
-    uint32_t mHardwareAddress : 16; ///< Bits  0 - 15: Hardware address
-    uint32_t mPayloadSize : 10;     ///< Bits 16 - 25: Payload size
-    uint32_t mZero1 : 3;            ///< Bits 26 - 28: zeroed
-    uint32_t mBadChannel : 1;       ///< Bit  29: Bad channel status
-    uint32_t mZero2 : 2;            ///< Bits 30 - 31: zeroed
-  };
-};
-
-union CaloBunchWord {
-  uint32_t mDataWord;
-  struct {
-    uint32_t mWord2 : 10; ///< Bits  0 - 9  : Word 2
-    uint32_t mWord1 : 10; ///< Bits 10 - 19 : Word 1
-    uint32_t mWord0 : 10; ///< Bits 20 - 29 : Word 0
-    uint32_t mZero : 2;   ///< Bits 30 - 31 : zeroed
-  };
 };
 
 class RawWriter
@@ -94,22 +75,21 @@ class RawWriter
                       std::vector<char>& trailer, std::vector<char>& header) const;
 
  protected:
-  void createRawBunches(const std::vector<o2::phos::Digit*>& digits, std::vector<o2::phos::AltroBunch>& bunchHG,
+  void createRawBunches(short absId, const std::vector<o2::phos::Digit*>& digits, std::vector<o2::phos::AltroBunch>& bunchHG,
                         std::vector<o2::phos::AltroBunch>& bunchLG, bool& isLGFilled);
 
-  std::vector<int> encodeBunchData(const std::vector<int>& data);
+  std::vector<uint32_t> encodeBunchData(const std::vector<uint32_t>& data);
   void fillGamma2(float amp, float time, short* samples);
   // std::tuple<int, int, int> getOnlineID(int towerID);
   // std::tuple<int, int> getLinkAssignment(int ddlID);
 
-  ChannelHeader createChannelHeader(int hardwareAddress, int payloadSize);
   std::vector<char> createRCUTrailer(int payloadsize, int feca, int fecb, double timesample, double l1phase);
 
  private:
   FileFor_t mFileFor = FileFor_t::kFullDet;           ///< Granularity of the output files
   std::string mOutputLocation = "./";                 ///< Rawfile name
-  std::unique_ptr<o2::phos::Mapping> mMapping;        ///< Mapping handler
-  const CalibParams* mCalibParams = nullptr;          ///< PHOS calibration
+  std::unique_ptr<Mapping> mMapping;                  ///< Mapping handler
+  std::unique_ptr<const CalibParams> mCalibParams;    ///< PHOS calibration
   gsl::span<o2::phos::Digit> mDigits;                 ///< Digits input vector - must be in digitized format including the time response
   std::vector<SRUDigitContainer> mSRUdata;            ///< Internal helper of digits assigned to SRUs
   std::unique_ptr<o2::raw::RawFileWriter> mRawWriter; ///< Raw writer

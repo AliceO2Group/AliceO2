@@ -23,6 +23,27 @@ namespace o2
 namespace phos
 {
 
+union ChannelHeader {
+  uint32_t mDataWord;
+  struct {
+    uint32_t mHardwareAddress : 16; ///< Bits  0 - 15: Hardware address
+    uint32_t mPayloadSize : 10;     ///< Bits 16 - 25: Payload size
+    uint32_t mZero1 : 3;            ///< Bits 26 - 28: zeroed
+    uint32_t mBadChannel : 1;       ///< Bit  29: Bad channel status
+    uint32_t mMark : 1;             ///< Bits 30 - 30: Mark header
+  };
+};
+
+union CaloBunchWord {
+  uint32_t mDataWord;
+  struct {
+    uint32_t mWord2 : 10; ///< Bits  0 - 9  : Word 2
+    uint32_t mWord1 : 10; ///< Bits 10 - 19 : Word 1
+    uint32_t mWord0 : 10; ///< Bits 20 - 29 : Word 0
+    uint32_t mZero : 2;   ///< Bits 30 - 31 : zeroed
+  };
+};
+
 /// \class RCUTrailer
 /// \brief Information stored in the RCU trailer
 /// \ingroup PHOSbase
@@ -73,6 +94,8 @@ class RCUTrailer
 
   /// \brief Constructor
   RCUTrailer() = default;
+
+  RCUTrailer(const gsl::span<const uint32_t> payloadwords);
 
   /// \brief destructor
   ~RCUTrailer() = default;
