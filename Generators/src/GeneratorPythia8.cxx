@@ -388,10 +388,12 @@ void GeneratorPythia8::getNremn(const Pythia8::Event& event, int& nProtonProj, i
     auto pdg = particle.id();
 
     // nuclear remnants have pdg code = ±10LZZZAAA9
-    if (pdg < 1000000000)
+    if (pdg < 1000000000) {
       continue; // must be nucleus
-    if (pdg % 10 != 9)
+    }
+    if (pdg % 10 != 9) {
       continue; // first digit must be 9
+    }
     nNucRem++;
 
     // extract A, Z and L from pdg code

@@ -1,0 +1,42 @@
+class Generator : public o2::eventgen::GeneratorPythia8 {
+
+public:
+  
+  Generator() = default;
+  ~Generator() = default;
+
+  /** static functions that define the information 
+      stored in the header (key and data type)
+      and provide a mean to retrieve it
+  **/
+  
+  static void setXsection(o2::dataformats::MCEventHeader* head, double val) { head->putInfo<double>("Xsection", val); };
+  static double getXsection(o2::dataformats::MCEventHeader* head, bool& isvalid) { return head->getInfo<double>("Xsection", isvalid); };
+
+  static void setXsectionErr(o2::dataformats::MCEventHeader* head, double val) { head->putInfo<double>("Xsection_err", val); };
+  static double getXsectionErr(o2::dataformats::MCEventHeader* head, bool& isvalid) { return head->getInfo<double>("Xsection_err", isvalid); };
+
+  static void setNmpi(o2::dataformats::MCEventHeader* head, int val) { head->putInfo<int>("Nmpi", val); };
+  static int getNmpi(o2::dataformats::MCEventHeader* head, bool& isvalid) { return head->getInfo<int>("Nmpi", isvalid); };
+
+private:
+
+  void updateHeader(o2::dataformats::MCEventHeader* head) final {
+
+    // call original function
+    o2::eventgen::GeneratorPythia8::updateHeader(head);
+
+    // store cross-section and Nmpi
+    setXsection(head, mPythia.info.sigmaGen());
+    setXsectionErr(head, mPythia.info.sigmaErr());
+    setNmpi(head, mPythia.info.nMPI());
+
+  };
+
+};
+
+FairGenerator*
+generator()
+{
+  return new Generator;
+}
