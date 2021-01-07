@@ -35,7 +35,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 struct pidTPCTask {
   using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
-  using Coll = aod::Collision;
+  using Coll = aod::Collisions;
   Produces<aod::pidRespTPC> tpcpid;
   DetectorResponse resp;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
@@ -65,17 +65,17 @@ struct pidTPCTask {
     }
   }
 
-  void process(Trks const& tracks)
+  void process(Coll const& collisions, Trks const& tracks)
   {
-    constexpr tpc::ELoss<Coll, Trks::iterator, PID::Electron> resp_Electron = tpc::ELoss<Coll, Trks::iterator, PID::Electron>();
-    constexpr tpc::ELoss<Coll, Trks::iterator, PID::Muon> resp_Muon = tpc::ELoss<Coll, Trks::iterator, PID::Muon>();
-    constexpr tpc::ELoss<Coll, Trks::iterator, PID::Pion> resp_Pion = tpc::ELoss<Coll, Trks::iterator, PID::Pion>();
-    constexpr tpc::ELoss<Coll, Trks::iterator, PID::Kaon> resp_Kaon = tpc::ELoss<Coll, Trks::iterator, PID::Kaon>();
-    constexpr tpc::ELoss<Coll, Trks::iterator, PID::Proton> resp_Proton = tpc::ELoss<Coll, Trks::iterator, PID::Proton>();
-    constexpr tpc::ELoss<Coll, Trks::iterator, PID::Deuteron> resp_Deuteron = tpc::ELoss<Coll, Trks::iterator, PID::Deuteron>();
-    constexpr tpc::ELoss<Coll, Trks::iterator, PID::Triton> resp_Triton = tpc::ELoss<Coll, Trks::iterator, PID::Triton>();
-    constexpr tpc::ELoss<Coll, Trks::iterator, PID::Helium3> resp_Helium3 = tpc::ELoss<Coll, Trks::iterator, PID::Helium3>();
-    constexpr tpc::ELoss<Coll, Trks::iterator, PID::Alpha> resp_Alpha = tpc::ELoss<Coll, Trks::iterator, PID::Alpha>();
+    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Electron> resp_Electron = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Electron>();
+    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Muon> resp_Muon = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Muon>();
+    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Pion> resp_Pion = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Pion>();
+    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Kaon> resp_Kaon = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Kaon>();
+    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Proton> resp_Proton = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Proton>();
+    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Deuteron> resp_Deuteron = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Deuteron>();
+    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Triton> resp_Triton = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Triton>();
+    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Helium3> resp_Helium3 = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Helium3>();
+    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Alpha> resp_Alpha = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Alpha>();
 
     tpcpid.reserve(tracks.size());
     for (auto const& trk : tracks) {
