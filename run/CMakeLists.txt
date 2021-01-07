@@ -19,6 +19,7 @@ target_link_libraries(allsim
                                 O2::SimSetup
                                 FairMQ::FairMQ
                                 O2::CPVSimulation
+                                O2::A3DetectorsPassive
                                 O2::DetectorsPassive
                                 O2::EMCALSimulation
                                 O2::FDDSimulation
