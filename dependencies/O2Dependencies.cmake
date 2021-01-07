@@ -158,4 +158,6 @@ find_package(O2GPU)
 
 find_package(FastJet)
 
+find_package(VecGeom)
+
 feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)

@@ -32,6 +32,11 @@
 #include <TChain.h>
 #include <TStopwatch.h>
 #include <string>
+#include <VecGeom/base/FlatVoxelHashMap.h>
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+#include <cassert>
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -67,6 +72,8 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     mDigitizer.setGeometry(geom);
 
     mDisableQED = ic.options().get<bool>("disable-qed");
+
+    mFilterOnSignal = ic.options().get<bool>("filter-on-signal");
 
     // init digitizer
     mDigitizer.init();
@@ -145,7 +152,8 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
       mROFRecords.clear();
     }; // and accumulate lambda
 
-    auto& eventParts = context->getEventParts(withQED);
+    auto eventParts = context->getEventParts(withQED);
+
     // loop over all composite collisions given from context (aka loop over all the interaction records)
     for (int collID = 0; collID < timesview.size(); ++collID) {
       const auto& irt = timesview[collID];
@@ -154,15 +162,48 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
       mDigitizer.resetEventROFrames(); // to estimate min/max ROF for this collID
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
-      for (auto& part : eventParts[collID]) {
 
+      // first sort eventParts so that background comes last --> makes filtering out background hits based on signal easier
+      std::sort(eventParts[collID].begin(), eventParts[collID].end(), [](o2::steer::EventPart const& a, o2::steer::EventPart const& b) { return a.sourceID > b.sourceID; });
+      if (mFilterOnSignal) {
+        mHitVoxels.clear();
+      }
+      for (auto& part : eventParts[collID]) {
         // get the hits for this event and this source
-        mHits.clear();
         context->retrieveHits(mSimChains, o2::detectors::SimTraits::DETECTORBRANCHNAMES[mID][0].c_str(), part.sourceID, part.entryID, &mHits);
 
+        // fill or use voxel map for filtering
+        // This is just a demonstration based on regular 3D voxels. Other approaches seem possible, for instance to check vicinity in terms
+        // of ALIPE-chip-ID etc.;
+        if (mFilterOnSignal) {
+          if (!steer::EventPart::isBackGround(part)) {
+            for (auto& hit : mHits) {
+              auto key = mHitVoxels.getVoxelKey(vecgeom::Vector3D<float>(hit.GetX(), hit.GetY(), hit.GetZ()));
+              assert(key >= 0);
+              assert(key < 100 * 100 * 100);
+              if (!mHitVoxels.isOccupied(key)) {
+                mHitVoxels.addPropertyForKey(key, true);
+              }
+            }
+          } else {
+            // filtering step
+            if (mHitVoxels.size() > 0) {
+              auto unfiltered = mHits;
+              mHits.clear();
+              for (auto& h : unfiltered) {
+                // check region around this hit: check voxel plus few nearest neighbours ?
+                vecgeom::Vector3D<float> p(h.GetX(), h.GetY(), h.GetZ());
+                if (mHitVoxels.isOccupied(p)) {
+                  mHits.push_back(h);
+                }
+              }
+            }
+          }
+        }
+
         if (mHits.size() > 0) {
-          LOG(DEBUG) << "For collision " << collID << " eventID " << part.entryID
-                     << " found " << mHits.size() << " hits ";
+          LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " source " << part.sourceID
+                    << " found " << mHits.size() << " hits ";
           mDigitizer.process(&mHits, part.entryID, part.sourceID); // call actual digitization procedure
         }
       }
@@ -196,11 +237,18 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
   }
 
  protected:
-  ITSMFTDPLDigitizerTask(bool mctruth = true) : BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM), mWithMCTruth(mctruth) {}
+  ITSMFTDPLDigitizerTask(bool mctruth = true) : BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM),
+                                                mWithMCTruth(mctruth),
+                                                // these coordinates are roughly the extent of the ALPIDE chips in the global frame
+                                                // TODO: choose number of voxels so that a voxel has the size on the order of an ALPIDE chip
+                                                mHitVoxels(vecgeom::Vector3D<float>(-40, -40, -75.5), vecgeom::Vector3D<float>(80, 80, 151), 100, 100, 100)
+  {
+  }
 
   bool mWithMCTruth = true;
   bool mFinished = false;
   bool mDisableQED = false;
+  bool mFilterOnSignal = false; // whether to filter out background hits not overlapping with signal
   o2::detectors::DetID mID;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
   o2::itsmft::Digitizer mDigitizer;
@@ -216,6 +264,9 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
 
   int mFixMC2ROF = 0;                                                             // 1st entry in mc2rofRecordsAccum to be fixed for ROFRecordID
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::PRESENT; // readout mode
+
+  vecgeom::FlatVoxelHashMap<bool, true> mHitVoxels; // keeps track of which voxel = (spatial regions) have a (signal) hit
+                                                    // This is used to filter out unnecessary background hits
 };
 
 //_______________________________________________
@@ -331,8 +382,10 @@ DataProcessorSpec getITSDigitizerSpec(int channel, bool mctruth)
                            makeOutChannels(detOrig, mctruth),
                            AlgorithmSpec{adaptFromTask<ITSDPLDigitizerTask>(mctruth)},
                            Options{
-                             {"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}}
+                             {"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}},
                              //  { "configKeyValues", VariantType::String, "", { parHelper.str().c_str() } }
+                             {"filter-on-signal", o2::framework::VariantType::Bool, false, {"treat only relevant background hits"}}
+
                            }};
 }
 

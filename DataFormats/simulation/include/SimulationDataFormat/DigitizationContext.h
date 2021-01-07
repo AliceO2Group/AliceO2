@@ -36,7 +36,7 @@ struct EventPart {
   // the sourceID should correspond to the chain ID
   int entryID = 0; // the event/entry ID inside the chain corresponding to sourceID
 
-  static bool isSignal(EventPart e) { return e.sourceID > 1 && e.sourceID != QEDSOURCEID; }
+  static bool isSignal(EventPart e) { return e.sourceID >= 1 && e.sourceID != QEDSOURCEID; }
   static bool isBackGround(EventPart e) { return !isSignal(e); }
   static bool isQED(EventPart e) { return e.sourceID == QEDSOURCEID; }
   ClassDefNV(EventPart, 1);
