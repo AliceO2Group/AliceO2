@@ -11,6 +11,8 @@
 #include "HMPIDSimulation/HMPIDDigitizer.h"
 #include "HMPIDBase/Digit.h"
 
+#include "Framework/Logger.h"
+
 using namespace o2::hmpid;
 
 ClassImp(HMPIDDigitizer);

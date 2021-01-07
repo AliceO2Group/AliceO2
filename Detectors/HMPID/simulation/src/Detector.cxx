@@ -32,6 +32,8 @@
 
 #include "DetectorsBase/MaterialManager.h"
 
+#include "Framework/Logger.h"
+
 namespace o2
 {
 namespace hmpid

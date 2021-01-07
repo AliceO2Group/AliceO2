@@ -12,11 +12,14 @@
 
 #include <vector>
 
-#include "../include/HMPIDWorkflow/DigitReaderSpec.h"
+#include "HMPIDWorkflow/DigitReaderSpec.h"
 #include "TTree.h"
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "DataFormatsParameters/GRPObject.h"
+#include "Framework/Logger.h"
+
 using namespace o2::framework;
 using namespace o2::hmpid;
 
