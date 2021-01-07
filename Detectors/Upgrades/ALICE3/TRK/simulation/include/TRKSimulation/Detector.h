@@ -79,7 +79,7 @@ class Detector : public o2::base::DetImpl<Detector>
     kOBModel2 = 9
   };
 
-  static constexpr Int_t sNumberLayers = 10;          ///< Number of layers in ITSU
+  static constexpr Int_t sNumberLayers = 12;          ///< Number of layers in ITSU
   static constexpr Int_t sNumberInnerLayers = 10;     ///< Number of inner layers in ITSU
   static constexpr Int_t sNumberOfWrapperVolumes = 3; ///< Number of wrapper volumes
 
