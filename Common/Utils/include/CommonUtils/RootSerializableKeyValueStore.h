@@ -107,6 +107,9 @@ class RootSerializableKeyValueStore
     mStore.clear();
   }
 
+  /// print list of keys and type information
+  void print() const;
+
  private:
   std::map<std::string, SerializedInfo*> mStore;
 
