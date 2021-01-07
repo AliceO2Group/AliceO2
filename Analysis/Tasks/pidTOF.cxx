@@ -28,7 +28,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
     {"add-qa", VariantType::Int, 0, {"Produce TOF PID QA histograms"}},
-    {"add-beta", VariantType::Int, 0, {"Produce TOF Beta table"}}};
+    {"add-beta", VariantType::Int, 1, {"Produce TOF Beta table"}}};
   std::swap(workflowOptions, options);
 }
 
@@ -36,7 +36,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 struct pidTOFTask {
   using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
-  using Coll = aod::Collision;
+  using Coll = aod::Collisions;
   Produces<aod::pidRespTOF> tofpid;
   DetectorResponse resp;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
@@ -65,17 +65,17 @@ struct pidTOFTask {
     }
   }
 
-  void process(Trks const& tracks)
+  void process(Coll const& collisions, Trks const& tracks)
   {
-    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Electron> resp_Electron = tof::ExpTimes<Coll, Trks::iterator, PID::Electron>();
-    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Muon> resp_Muon = tof::ExpTimes<Coll, Trks::iterator, PID::Muon>();
-    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Pion> resp_Pion = tof::ExpTimes<Coll, Trks::iterator, PID::Pion>();
-    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Kaon> resp_Kaon = tof::ExpTimes<Coll, Trks::iterator, PID::Kaon>();
-    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Proton> resp_Proton = tof::ExpTimes<Coll, Trks::iterator, PID::Proton>();
-    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Deuteron> resp_Deuteron = tof::ExpTimes<Coll, Trks::iterator, PID::Deuteron>();
-    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Triton> resp_Triton = tof::ExpTimes<Coll, Trks::iterator, PID::Triton>();
-    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Helium3> resp_Helium3 = tof::ExpTimes<Coll, Trks::iterator, PID::Helium3>();
-    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Alpha> resp_Alpha = tof::ExpTimes<Coll, Trks::iterator, PID::Alpha>();
+    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Electron> resp_Electron = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Electron>();
+    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Muon> resp_Muon = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Muon>();
+    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Pion> resp_Pion = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Pion>();
+    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Kaon> resp_Kaon = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Kaon>();
+    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Proton> resp_Proton = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Proton>();
+    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Deuteron> resp_Deuteron = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Deuteron>();
+    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Triton> resp_Triton = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Triton>();
+    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Helium3> resp_Helium3 = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Helium3>();
+    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Alpha> resp_Alpha = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Alpha>();
 
     tofpid.reserve(tracks.size());
     for (auto const& trk : tracks) {
