@@ -16,7 +16,7 @@ public:
 
   // update the number of events to be generated
   // according to background primaries and formula
-  void notifyEmbedding(const FairMCEventHeader *bkgHeader) override {
+  void notifyEmbedding(const o2::dataformats::MCEventHeader *bkgHeader) override {
     auto nPrimaries = bkgHeader->GetNPrim();
     mEvents = mFormula.Eval(nPrimaries);
   };

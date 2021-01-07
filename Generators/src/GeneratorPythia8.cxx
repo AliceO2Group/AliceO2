@@ -15,7 +15,7 @@
 #include "CommonUtils/ConfigurationMacroHelper.h"
 #include "FairLogger.h"
 #include "TParticle.h"
-#include "FairMCEventHeader.h"
+#include "SimulationDataFormat/MCEventHeader.h"
 #include "Pythia8/HIUserHooks.h"
 #include "TSystem.h"
 
@@ -192,7 +192,7 @@ Bool_t
 
 /*****************************************************************/
 
-void GeneratorPythia8::updateHeader(FairMCEventHeader* eventHeader)
+void GeneratorPythia8::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
 {
   /** update header **/
 
