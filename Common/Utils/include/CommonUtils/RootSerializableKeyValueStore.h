@@ -47,10 +47,23 @@ class RootSerializableKeyValueStore
   };
 
   enum class GetState {
-    kOK,
-    kNOSUCHKEY,
-    kWRONGTYPE,
-    kNOTCLASS
+    kOK = 0,
+    kNOSUCHKEY = 1,
+    kWRONGTYPE = 2,
+    kNOTCLASS = 3
+  };
+
+ private:
+  static constexpr const char* GetStateString[4] = {
+    "ok",
+    "no such key",
+    "wrong type",
+    "no TClass"};
+
+ public:
+  static const char* getStateString(GetState state)
+  {
+    return (int)state < 4 ? GetStateString[(int)state] : nullptr;
   };
 
   RootSerializableKeyValueStore() = default;
