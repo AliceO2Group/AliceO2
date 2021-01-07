@@ -15,7 +15,9 @@
 
 #include "FairMCEventHeader.h"
 #include "SimulationDataFormat/MCEventStats.h"
+#include "CommonUtils/RootSerializableKeyValueStore.h"
 #include <string>
+#include <Framework/Logger.h>
 
 namespace o2
 {
@@ -42,6 +44,36 @@ class MCEventHeader : public FairMCEventHeader
   void setEmbeddingEventIndex(Int_t value) { mEmbeddingEventIndex = value; };
   int getEmbeddedIndex() const { return mEmbeddingEventIndex; }
 
+  /** methods to handle stored information **/
+
+  void clearInfo()
+  {
+    mEventInfo.clear();
+  };
+
+  template <typename T>
+  void putInfo(std::string const& key, T const& value)
+  {
+    mEventInfo.put<T>(key, value);
+  };
+
+  bool hasInfo(std::string const& key) const
+  {
+    return mEventInfo.has(key);
+  }
+
+  template <typename T>
+  const T& getInfo(std::string const& key, bool& isvalid) const
+  {
+    o2::utils::RootSerializableKeyValueStore::GetState state;
+    auto& ref = mEventInfo.getRef<T>(key, state);
+    isvalid = (state == o2::utils::RootSerializableKeyValueStore::GetState::kOK);
+    if (!isvalid) {
+      LOG(WARNING) << "problem retrieving info '" << key << "': " << o2::utils::RootSerializableKeyValueStore::getStateString(state);
+    }
+    return ref;
+  };
+
   /** methods **/
   virtual void Reset();
 
@@ -54,6 +86,7 @@ class MCEventHeader : public FairMCEventHeader
   // store a view global properties that this event
   // had in the current simulation (which can be used quick filtering/searching)
   MCEventStats mEventStats{};
+  o2::utils::RootSerializableKeyValueStore mEventInfo;
 
   ClassDefOverride(MCEventHeader, 2);
 

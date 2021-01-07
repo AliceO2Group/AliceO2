@@ -25,9 +25,11 @@ void MCEventHeader::Reset()
 {
   /** reset **/
 
+  FairMCEventHeader::Reset();
+
+  clearInfo();
   mEmbeddingFileName.clear();
   mEmbeddingEventIndex = 0;
-  FairMCEventHeader::Reset();
 }
 
 /*****************************************************************/
