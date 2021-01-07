@@ -28,7 +28,7 @@ public:
   // for each event in case we are in embedding mode.
   // We use it to setup the number of signal events
   // to be generated and to be embedded on the background.
-  void notifyEmbedding(const FairMCEventHeader *bkgHeader) override {
+  void notifyEmbedding(const o2::dataformats::MCEventHeader *bkgHeader) override {
     mEvents = mFormula.Eval(bkgHeader->GetB());
     std::cout << " --- notify embedding: impact parameter is " << bkgHeader->GetB() << ", generating " << mEvents << " signal events " << std::endl;
   };

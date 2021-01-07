@@ -18,7 +18,13 @@
 #include "Generators/Trigger.h"
 #include <vector>
 
-class FairMCEventHeader;
+namespace o2
+{
+namespace dataformats
+{
+class MCEventHeader;
+}
+} // namespace o2
 
 namespace o2
 {
@@ -82,7 +88,7 @@ class Generator : public FairGenerator
   void clearParticles() { mParticles.clear(); };
 
   /** notification methods **/
-  virtual void notifyEmbedding(const FairMCEventHeader* mcHeader){};
+  virtual void notifyEmbedding(const o2::dataformats::MCEventHeader* eventHeader){};
 
  protected:
   /** copy constructor **/
@@ -91,7 +97,7 @@ class Generator : public FairGenerator
   Generator& operator=(const Generator&);
 
   /** methods that can be overridded **/
-  virtual void updateHeader(FairMCEventHeader* eventHeader){};
+  virtual void updateHeader(o2::dataformats::MCEventHeader* eventHeader){};
 
   /** internal methods **/
   Bool_t addTracks(FairPrimaryGenerator* primGen);

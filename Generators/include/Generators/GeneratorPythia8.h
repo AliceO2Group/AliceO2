@@ -84,7 +84,7 @@ class GeneratorPythia8 : public Generator
   GeneratorPythia8& operator=(const GeneratorPythia8&);
 
   /** methods that can be overridded **/
-  void updateHeader(FairMCEventHeader* eventHeader) override;
+  void updateHeader(o2::dataformats::MCEventHeader* eventHeader) override;
 
   /** internal methods **/
   Bool_t importParticles(Pythia8::Event& event);

@@ -13,6 +13,7 @@
 #include "Generators/Generator.h"
 #include "Generators/Trigger.h"
 #include "Generators/PrimaryGenerator.h"
+#include "SimulationDataFormat/MCEventHeader.h"
 #include "FairPrimaryGenerator.h"
 #include "FairLogger.h"
 #include <cmath>
@@ -89,7 +90,13 @@ Bool_t
   }
 
   /** update header **/
-  updateHeader(primGen->GetEvent());
+  auto header = primGen->GetEvent();
+  auto o2header = dynamic_cast<o2::dataformats::MCEventHeader*>(header);
+  if (!header) {
+    LOG(FATAL) << "MC event header is not a 'o2::dataformats::MCEventHeader' object";
+    return kFALSE;
+  }
+  updateHeader(o2header);
 
   /** success **/
   return kTRUE;

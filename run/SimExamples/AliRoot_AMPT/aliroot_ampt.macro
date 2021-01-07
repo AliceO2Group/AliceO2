@@ -76,7 +76,7 @@ public:
     return o2::eventgen::GeneratorTGenerator::generateEvent();
   }
 
-  void updateHeader(FairMCEventHeader* eventHeader) {
+  void updateHeader(o2::dataformats::MCEventHeader* eventHeader) {
     auto theAMPT = (TAmpt *)mGenAMPT->GetMC();
     auto impactB = theAMPT->GetHINT1(19);
     auto evPlane = theAMPT->GetReactionPlaneAngle();    
