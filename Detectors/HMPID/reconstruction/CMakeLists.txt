@@ -9,10 +9,13 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(HMPIDReconstruction
-               SOURCES src/Clusterer.cxx src/DataReader.cxx
+               SOURCES src/Clusterer.cxx 
                PUBLIC_LINK_LIBRARIES O2::HMPIDBase
                                      O2::HMPIDSimulation)
                        
 o2_target_root_dictionary(HMPIDReconstruction
-                          HEADERS include/HMPIDReconstruction/Clusterer.h
-                                  include/HMPIDReconstruction/DataReader.h)
+                          HEADERS include/HMPIDReconstruction/Clusterer.h)
+                                  #include/HMPIDReconstruction/HmpidDecodeRawMem.h
+                                  #include/HMPIDReconstruction/HmpidDecoder.h
+                                  #include/HMPIDReconstruction/HmpidEquipment.h)
+                                  #include/HMPIDReconstruction/DataReader.h)

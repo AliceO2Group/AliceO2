@@ -12,6 +12,7 @@
 /// \brief Implementation of the HMPID cluster finder
 #include <algorithm>
 #include "FairLogger.h" // for LOG
+#include "Framework/Logger.h"
 #include "HMPIDBase/Cluster.h"
 #include "HMPIDReconstruction/Clusterer.h"
 #include "SimulationDataFormat/MCCompLabel.h"

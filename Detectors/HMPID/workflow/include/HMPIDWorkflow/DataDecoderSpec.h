@@ -8,16 +8,26 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+///
+/// \file    DatDecoderSpec.h
+/// \author  Andrea Ferrero
+///
+/// \brief Definition of a data processor to run the raw decoding
+///
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#ifndef O2_MCH_DATADECODERSPEC_H_
+#define O2_MCH_DATADECODERSPEC_H_
 
-//#pragma link C++ class o2::hmpid::DataReader + ;
-#pragma link C++ class o2::hmpid::Clusterer + ;
-//#pragma link C++ class o2::hmpid::HmpidDecodeRawMem + ;
-//#pragma link C++ class o2::hmpid::HmpidDecoder + ;
-//#pragma link C++ class o2::hmpid::HmpidEquipment + ;
+#include "Framework/DataProcessorSpec.h"
+
+namespace o2
+{
+namespace hmpid
+{
+
+o2::framework::DataProcessorSpec getDecodingSpec(std::string inputSpec = "TF:HMP/RAWDATA");
+//o2::framework::DataProcessorSpec getDecodingSpec();
+} // end namespace hmpid
+} // end namespace o2
 
 #endif

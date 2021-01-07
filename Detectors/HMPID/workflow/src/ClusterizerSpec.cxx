@@ -14,6 +14,7 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
 #include "Framework/Task.h"
+#include "Framework/Logger.h"
 #include "Headers/DataHeader.h"
 #include "HMPIDReconstruction/Clusterer.h"
 #include "HMPIDBase/Cluster.h"
