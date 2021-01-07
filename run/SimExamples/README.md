@@ -17,4 +17,5 @@
 * \subpage refrunSimExamplesForceDecay_Lambda_Neutron_Dalitz
 * \subpage refrunSimExamplesJustPrimaryKinematics
 * \subpage refrunSimExamplesSelective_Transport
+* \subpage refrunSimExamplesCustom_EventInfo
 /doxy -->
