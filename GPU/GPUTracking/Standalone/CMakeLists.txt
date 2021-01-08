@@ -106,7 +106,7 @@ if(CONFIG_O2_EXTENSIONS)
 endif()
 
 if(CONFIG_FMT)
-  find_package(fmt REQUIRED)
+  find_package(fmt REQUIRED HINTS $ENV{FMT_ROOT})
 else()
   add_definitions(-DGPUCA_NO_FMT)
 endif()
