@@ -17,6 +17,7 @@
 #include "GPUCommonMath.h"
 #include "GPUTPCGMPolynomialFieldManager.h"
 #include "GPUDataTypes.h"
+#include "GPUConstantMem.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -247,6 +248,7 @@ std::string GPUParamRTC::generateRTCCode(const GPUParam& param, bool useConstexp
 static_assert(alignof(GPUCA_NAMESPACE::gpu::GPUParam) == alignof(GPUCA_NAMESPACE::gpu::GPUSettingsRec));
 static_assert(alignof(GPUCA_NAMESPACE::gpu::GPUParam) == alignof(GPUCA_NAMESPACE::gpu::GPUSettingsParam));
 static_assert(sizeof(GPUCA_NAMESPACE::gpu::GPUParam) - sizeof(GPUCA_NAMESPACE::gpu::GPUParamRTC) == sizeof(GPUCA_NAMESPACE::gpu::GPUSettingsRec) + sizeof(GPUCA_NAMESPACE::gpu::GPUSettingsParam) - sizeof(GPUCA_NAMESPACE::gpu::gpu_rtc::GPUSettingsRec) - sizeof(GPUCA_NAMESPACE::gpu::gpu_rtc::GPUSettingsParam));
+static_assert(sizeof(GPUParam) % alignof(GPUConstantMem) == 0 && sizeof(GPUParamRTC) % alignof(GPUConstantMem) == 0, "Size of both GPUParam and of GPUParamRTC must be a multiple of the alignmeent of GPUConstantMem");
 
 o2::base::Propagator* GPUParam::GetDefaultO2Propagator(bool useGPUField) const
 {
