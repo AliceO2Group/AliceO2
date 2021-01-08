@@ -137,6 +137,7 @@ class TrackParametrization
   GPUdDefault() TrackParametrization& operator=(TrackParametrization&& src) = default;
   GPUdDefault() ~TrackParametrization() = default;
 
+  GPUd() void set(value_t x, value_t alpha, const params_t& par, int charge = 1);
   GPUd() const value_t* getParams() const;
   GPUd() value_t getParam(int i) const;
   GPUd() value_t getX() const;
@@ -240,6 +241,18 @@ GPUdi() TrackParametrization<value_T>::TrackParametrization(value_t x, value_t a
   : mX{x}, mAlpha{alpha}, mAbsCharge{char(gpu::CAMath::Abs(charge))}
 {
   // explicit constructor
+  for (int i = 0; i < kNParams; i++) {
+    mP[i] = par[i];
+  }
+}
+
+//____________________________________________________________
+template <typename value_T>
+GPUdi() void TrackParametrization<value_T>::set(value_t x, value_t alpha, const params_t& par, int charge)
+{
+  mX = x;
+  mAlpha = alpha;
+  mAbsCharge = char(gpu::CAMath::Abs(charge));
   for (int i = 0; i < kNParams; i++) {
     mP[i] = par[i];
   }
