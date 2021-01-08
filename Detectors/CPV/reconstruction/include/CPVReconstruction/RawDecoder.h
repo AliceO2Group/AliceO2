@@ -28,7 +28,7 @@ class RawDecoderError
  public:
   RawDecoderError() = default; //Constructors for vector::emplace_back methods
   RawDecoderError(short l, short r, short d, short p, RawErrorType_t e) : Ddl(l), Row(r), Dilogic(d), Pad(p), errortype(e) {}
-  RawDecoderError(const RawDecoderError& e) = default ;
+  RawDecoderError(const RawDecoderError& e) = default;
   ~RawDecoderError() = default;
 
   short Ddl;
