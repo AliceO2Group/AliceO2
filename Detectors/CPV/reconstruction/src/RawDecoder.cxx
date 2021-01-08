@@ -145,8 +145,9 @@ const RCUTrailer& RawDecoder::getRCUTrailer() const
 
 const std::vector<uint32_t>& RawDecoder::getDigits() const
 {
-  if (!mChannelsInitialized)
+  if (!mChannelsInitialized) {
     LOG(ERROR) << "Channels not initialized";
+  }
   return mDigits;
 }
 
