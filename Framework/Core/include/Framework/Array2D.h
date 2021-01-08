@@ -7,8 +7,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_MATRIX_H
-#define FRAMEWORK_MATRIX_H
+#ifndef FRAMEWORK_ARRAY2D_H
+#define FRAMEWORK_ARRAY2D_H
 #include <cstdint>
 #include <vector>
 
@@ -109,4 +109,4 @@ struct Array2D {
 };
 } // namespace o2::framework
 
-#endif // FRAMEWORK_MATRIX_H
+#endif // FRAMEWORK_ARRAY2D_H
