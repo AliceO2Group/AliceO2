@@ -206,7 +206,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     }
   }
 
-  if (useFIT) {
+  if (useFIT && !disableRootInput) {
     specs.emplace_back(o2::ft0::getRecPointReaderSpec(useMC));
   }
 
