@@ -21,7 +21,8 @@
 #include "MFTBase/HalfDisk.h"
 #include "MFTBase/Geometry.h"
 #include "MFTBase/HalfDetector.h"
-#include "MFTBase/PowerSupplyUnit.h"
+//#include "MFTBase/PowerSupplyUnit.h"
+#include "MFTBase/MFTBaseParam.h"
 
 using namespace o2::mft;
 
@@ -30,12 +31,12 @@ ClassImp(o2::mft::HalfDetector);
 /// \brief Default constructor
 
 //_____________________________________________________________________________
-HalfDetector::HalfDetector() : TNamed(), mHalfVolume(nullptr), mSegmentation(nullptr), mPSU(nullptr) {}
+HalfDetector::HalfDetector() : TNamed(), mHalfVolume(nullptr), mSegmentation(nullptr) {}
 
 /// \brief Constructor
 
 //_____________________________________________________________________________
-HalfDetector::HalfDetector(HalfSegmentation* seg) : TNamed(), mHalfVolume(nullptr), mSegmentation(seg), mPSU(nullptr)
+HalfDetector::HalfDetector(HalfSegmentation* seg) : TNamed(), mHalfVolume(nullptr), mSegmentation(seg)
 {
 
   Geometry* mftGeom = Geometry::instance();
@@ -48,7 +49,7 @@ HalfDetector::HalfDetector(HalfSegmentation* seg) : TNamed(), mHalfVolume(nullpt
 
   mHalfVolume = new TGeoVolumeAssembly(GetName());
 
-  mPSU = new PowerSupplyUnit();
+  //mPSU = new PowerSupplyUnit();
 
   createHalfDisks();
 }
@@ -62,6 +63,7 @@ HalfDetector::~HalfDetector() = default;
 void HalfDetector::createHalfDisks()
 {
   LOG(DEBUG) << "MFT: " << Form("Creating  %d Half-Disk ", mSegmentation->getNHalfDisks());
+  auto& mftBaseParam = MFTBaseParam::Instance();
 
   for (Int_t iDisk = 0; iDisk < mSegmentation->getNHalfDisks(); iDisk++) {
     HalfDiskSegmentation* halfDiskSeg = mSegmentation->getHalfDisk(iDisk);
@@ -70,8 +72,4 @@ void HalfDetector::createHalfDisks()
     mHalfVolume->AddNode(halfDisk->getVolume(), halfDiskId, halfDiskSeg->getTransformation());
     delete halfDisk;
   }
-  TGeoVolumeAssembly* mHalfPSU = mPSU->create();
-  TGeoTranslation* tHalfPSU = new TGeoTranslation("tHalfPSU", 0, 0.4, -72.6 + 46.0);
-  tHalfPSU->RegisterYourself();
-  mHalfVolume->AddNode(mHalfPSU, 0, tHalfPSU);
 }

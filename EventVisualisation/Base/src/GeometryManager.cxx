@@ -11,10 +11,11 @@
 ///
 /// \file    GeometryManager.cxx
 /// \author  Jeremi Niedziela
+/// \author  Julian Myrcha
 
 #include "EventVisualisationBase/GeometryManager.h"
-
 #include "EventVisualisationBase/ConfigurationManager.h"
+#include "FairLogger.h"
 
 #include <TFile.h>
 #include <TGLViewer.h>
@@ -23,8 +24,6 @@
 #include <TEveManager.h>
 #include <TEveProjectionManager.h>
 #include <TSystem.h>
-
-#include <iostream>
 
 using namespace std;
 
@@ -45,30 +44,21 @@ TEveGeoShape* GeometryManager::getGeometryForDetector(string detectorName)
   ConfigurationManager::getInstance().getConfig(settings);
 
   // read geometry path from config file
-  string geomPath = settings.GetValue("simple.geom.path", "");
-
-  // TODO:
-  // we need a way to set O2 installation path here
-  //
-  const string o2basePathSpecifier = "${ALICE_ROOT}";
-  const string o2basePath = ""; //= gSystem->Getenv("ALICE_ROOT");
-  const size_t o2pos = geomPath.find(o2basePathSpecifier);
-
-  if (o2pos != string::npos) {
-    geomPath.replace(o2pos, o2pos + o2basePathSpecifier.size(), o2basePath);
-  }
+  string geomPath = settings.GetValue(this->mR2Geometry ? "simple.geom.R2.path" : "simple.geom.R3.path", "");
 
   // load ROOT file with geometry
   TFile* f = TFile::Open(Form("%s/simple_geom_%s.root", geomPath.c_str(), detectorName.c_str()));
   if (!f) {
-    cout << "GeometryManager::GetSimpleGeom -- no file with geometry found for: " << detectorName << "!" << endl;
+    LOG(ERROR) << "GeometryManager::GetSimpleGeom -- no file with geometry found for: " << detectorName << "!";
     return nullptr;
   }
+  LOG(INFO) << "GeometryManager::GetSimpleGeom for: " << detectorName << " from " << Form("%s/simple_geom_%s.root", geomPath.c_str(), detectorName.c_str());
 
   TEveGeoShapeExtract* geomShapreExtract = static_cast<TEveGeoShapeExtract*>(f->Get(detectorName.c_str()));
   TEveGeoShape* geomShape = TEveGeoShape::ImportShapeExtract(geomShapreExtract);
   f->Close();
 
+  geomShape->SetName(detectorName.c_str());
   // tricks for different R-Phi geom of TPC:
   if (detectorName == "RPH") { // use all other parameters of regular TPC geom
     detectorName = "TPC";
@@ -92,8 +82,9 @@ void GeometryManager::drawDeep(TEveGeoShape* geomShape, Color_t color, Char_t tr
 
     if (strcmp(geomShape->GetElementName(), "TPC_Drift_1") == 0) { // hack for TPC drift chamber
       geomShape->SetRnrSelf(kTRUE);
-      if (color >= 0)
+      if (color >= 0) {
         geomShape->SetMainColor(color);
+      }
       if (lineColor >= 0) {
         geomShape->SetLineColor(lineColor);
         geomShape->SetLineWidth(0.1);
@@ -111,8 +102,9 @@ void GeometryManager::drawDeep(TEveGeoShape* geomShape, Color_t color, Char_t tr
     }
   } else {
     geomShape->SetRnrSelf(true);
-    if (color >= 0)
+    if (color >= 0) {
       geomShape->SetMainColor(color);
+    }
     if (lineColor >= 0) {
       geomShape->SetLineColor(lineColor);
       geomShape->SetLineWidth(0.1);

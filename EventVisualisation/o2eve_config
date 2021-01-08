@@ -17,7 +17,9 @@ camera.3D.zoom:                         1.0
 camera.R-Phi.zoom:                      1.0
 camera.Rho-Z.zoom:                      1.0
 
-simple.geom.path:                       ${ALICE_ROOT}/EVE/resources/geometry/run2/
+simple.geom.default:                    R2
+simple.geom.R2.path:                    ${ALICE_ROOT}/EVE/resources/geometry/run2/
+simple.geom.R3.path:                    ${ALICE_ROOT}/EVE/resources/geometry/run3/
 
 tracks.width:                           2
 
@@ -97,6 +99,16 @@ AD0.line.color:                         1
 FMD.line.color:                         907
 
 OCDB.default.path:                      local:///local/cdb/
+
+
+# uncomment for 4K Displays
+Gui.DefaultFont:                        -*-helvetica-medium-r-*-*-20-*-*-*-*-*-iso8859-1
+Gui.MenuFont:                           -*-helvetica-medium-r-*-*-20-*-*-*-*-*-iso8859-1
+Gui.MenuHiFont:                         -*-helvetica-bold-r-*-*-20-*-*-*-*-*-iso8859-1
+Gui.DocFixedFont:                       -*-courier-medium-r-*-*-20-*-*-*-*-*-iso8859-1
+Gui.DocPropFont:                        -*-helvetica-medium-r-*-*-20-*-*-*-*-*-iso8859-1
+Gui.IconFont:                           -*-helvetica-medium-r-*-*-32-*-*-*-*-*-iso8859-1
+Gui.StatusFont:                         -*-helvetica-medium-r-*-*-20-*-*-*-*-*-iso8859-1
 
 #
 # EOF

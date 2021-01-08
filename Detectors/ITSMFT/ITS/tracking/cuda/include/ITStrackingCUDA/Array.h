@@ -21,7 +21,7 @@ namespace o2
 {
 namespace its
 {
-namespace GPU
+namespace gpu
 {
 
 namespace
@@ -64,7 +64,7 @@ struct Array final {
 
   T InternalArray[Size];
 };
-} // namespace GPU
+} // namespace gpu
 } // namespace its
 } // namespace o2
 

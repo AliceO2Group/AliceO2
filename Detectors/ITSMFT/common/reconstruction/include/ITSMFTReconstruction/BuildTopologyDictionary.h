@@ -27,12 +27,6 @@
 #include "DataFormatsITSMFT/ClusterTopology.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 
-#define _HISTO_ // in order to have a histogram with the ditribution of groupIDs
-
-#ifdef _HISTO_
-#include "TH1F.h"
-#endif
-
 namespace o2
 {
 namespace itsmft
@@ -62,38 +56,33 @@ struct TopoStat {
 class BuildTopologyDictionary
 {
  public:
-#ifdef _HISTO_
-  TH1F mHdist; // Distribution of groupIDs
-#endif
-
   BuildTopologyDictionary();
   static constexpr float IgnoreVal = 999.;
   void accountTopology(const ClusterTopology& cluster, float dX = IgnoreVal, float dZ = IgnoreVal);
-  void setNGroups(unsigned int ngr); // set number of groups
+  void setNCommon(unsigned int nCommon); // set number of common topologies
   void setThreshold(double thr);
   void setThresholdCumulative(double cumulative); // Considering the integral
   void groupRareTopologies();
   friend std::ostream& operator<<(std::ostream& os, const BuildTopologyDictionary& BD);
-  void printDictionary(std::string fname);
-  void printDictionaryBinary(std::string fname);
-  void saveDictionaryRoot(const char* filename);
+  void printDictionary(const std::string& fname);
+  void printDictionaryBinary(const std::string& fname);
+  void saveDictionaryRoot(const std::string& fname);
 
   int getTotClusters() const { return mTotClusters; }
-  int getNotInGroups() const { return mNotInGroups; }
-  int getNGroups() const { return mNumberOfGroups; }
+  int getNotInGroups() const { return mNCommonTopologies; }
+  TopologyDictionary getDictionary() const { return mDictionary; }
 
  private:
   TopologyDictionary mDictionary;                                          ///< Dictionary of topologies
   std::map<unsigned long, TopoStat> mTopologyMap;                          //! Temporary map of type <hash,TopStat>
   std::vector<std::pair<unsigned long, unsigned long>> mTopologyFrequency; //! <freq,hash>, needed to define threshold
   int mTotClusters;
-  int mNumberOfGroups;
-  int mNotInGroups;
+  int mNCommonTopologies;
   double mFrequencyThreshold;
 
   std::unordered_map<long unsigned, TopologyInfo> mMapInfo;
 
-  ClassDefNV(BuildTopologyDictionary, 3);
+  ClassDefNV(BuildTopologyDictionary, 4);
 };
 } // namespace itsmft
 } // namespace o2

@@ -11,78 +11,81 @@
 #ifndef O2_FRAMEWORK_KERNELS_H_
 #define O2_FRAMEWORK_KERNELS_H_
 
-#include "arrow/compute/kernel.h"
-#include "arrow/status.h"
-#include "arrow/util/visibility.h"
+#include "Framework/BasicOps.h"
+#include "Framework/TableBuilder.h"
+
+#include <arrow/compute/kernel.h>
+#include <arrow/status.h>
+#include <arrow/util/visibility.h>
 #include <arrow/util/variant.h>
 
 #include <string>
 
-namespace arrow
+namespace o2::framework
 {
-class Array;
-class DataType;
-
-namespace compute
+/// Slice a given table in a vector of tables each containing a slice.
+/// @a slices the arrow tables in which the original @a input
+/// is split into.
+/// @a offset the offset in the original table at which the corresponding
+/// slice was split.
+template <typename T>
+auto sliceByColumn(char const* key,
+                   std::shared_ptr<arrow::Table> const& input,
+                   T fullSize,
+                   std::vector<arrow::Datum>* slices,
+                   std::vector<uint64_t>* offsets = nullptr)
 {
-class FunctionContext;
-} // namespace compute
-} // namespace arrow
+  arrow::Datum value_counts;
+  auto options = arrow::compute::CountOptions::Defaults();
+  ARROW_ASSIGN_OR_RAISE(value_counts,
+                        arrow::compute::CallFunction("value_counts", {input->GetColumnByName(key)},
+                                                     &options));
+  auto pair = static_cast<arrow::StructArray>(value_counts.array());
+  auto values = static_cast<arrow::NumericArray<typename detail::ConversionTraits<T>::ArrowType>>(pair.field(0)->data());
+  auto counts = static_cast<arrow::NumericArray<arrow::Int64Type>>(pair.field(1)->data());
 
-namespace o2
-{
-namespace framework
-{
+  // create slices and offsets
+  auto offset = 0;
+  auto count = 0;
 
-struct ARROW_EXPORT HashByColumnOptions {
-  std::string columnName;
-};
+  auto size = values.length();
 
-/// A kernel which provides a unique hash based on the contents of a given
-/// column
-/// * The input datum has to be a table like object.
-/// * The output datum will be a column of integers which define the
-///   category.
-class ARROW_EXPORT HashByColumnKernel : public arrow::compute::UnaryKernel
-{
- public:
-  HashByColumnKernel(HashByColumnOptions options = {});
-  arrow::Status Call(arrow::compute::FunctionContext* ctx,
-                     arrow::compute::Datum const& table,
-                     arrow::compute::Datum* hashes) override;
+  auto makeSlice = [&](T count) {
+    slices->emplace_back(arrow::Datum{input->Slice(offset, count)});
+    if (offsets) {
+      offsets->emplace_back(offset);
+    }
+  };
 
- private:
-  HashByColumnOptions mOptions;
-};
+  auto current = 0;
+  auto v = values.Value(0);
+  while (v - current >= 1) {
+    makeSlice(0);
+    ++current;
+  }
 
-struct ARROW_EXPORT GroupByOptions {
-  std::string columnName;
-};
+  for (auto r = 0; r < size - 1; ++r) {
+    count = counts.Value(r);
+    makeSlice(count);
+    offset += count;
+    auto nextValue = values.Value(r + 1);
+    auto value = values.Value(r);
+    while (nextValue - value > 1) {
+      makeSlice(0);
+      ++value;
+    }
+  }
+  makeSlice(counts.Value(size - 1));
 
-/// Build ranges
-class ARROW_EXPORT SortedGroupByKernel : public arrow::compute::UnaryKernel
-{
- public:
-  explicit SortedGroupByKernel(GroupByOptions options = {});
-  arrow::Status Call(arrow::compute::FunctionContext* ctx,
-                     arrow::compute::Datum const& table,
-                     arrow::compute::Datum* outputRanges) override;
-  //virtual std::shared_ptr<arrow::DataType> out_type() const override {
-  //  return mType;
-  //}
+  if (values.Value(size - 1) < fullSize - 1) {
+    for (auto v = values.Value(size - 1) + 1; v < fullSize; ++v) {
+      makeSlice(0);
+    }
+  }
 
- private:
-  std::shared_ptr<arrow::DataType> mType;
-  GroupByOptions mOptions;
-};
+  return arrow::Status::OK();
+}
 
-/// Slice a given table is a vector of tables each containing a slice.
-arrow::Status sliceByColumn(arrow::compute::FunctionContext* context,
-                            std::string const& key,
-                            arrow::compute::Datum const& inputTable,
-                            std::vector<arrow::compute::Datum>* outputSlices);
-
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif // O2_FRAMEWORK_KERNELS_H_

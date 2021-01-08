@@ -13,15 +13,13 @@
 
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "ITSReconstruction/ClustererTask.h"
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "MathUtils/Utils.h"
 #include "FairLogger.h"
 #include <TFile.h>
 #include <TTree.h>
 
 using namespace o2::its;
-using namespace o2::base;
-using namespace o2::utils;
 
 //_____________________________________________________________________
 ClustererTask::ClustererTask(bool useMC, bool raw) : mRawDataMode(raw),
@@ -36,7 +34,6 @@ ClustererTask::ClustererTask(bool useMC, bool raw) : mRawDataMode(raw),
 //_____________________________________________________________________
 ClustererTask::~ClustererTask()
 {
-  mFullClus.clear();
   mCompClus.clear();
   mClsLabels.clear();
 }
@@ -59,100 +56,107 @@ void ClustererTask::Init()
     mReader = mReaderMC.get();
   }
 
-  GeometryTGeo* geom = GeometryTGeo::Instance();
-  geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L)); // make sure T2L matrices are loaded
-  mGeometry = geom;
-  mClusterer.setGeometry(geom);
-
   mClusterer.print();
 
   return;
 }
 
 //_____________________________________________________________________
-void ClustererTask::run(const std::string inpName, const std::string outName, bool entryPerROF)
+void ClustererTask::run(const std::string inpName, const std::string outName)
 {
   // standalone execution
-  setSelfManagedMode(true);
   Init(); // create reader, clusterer
 
-  std::unique_ptr<TFile> outFile(TFile::Open(outName.data(), "recreate"));
-  if (!outFile || outFile->IsZombie()) {
-    LOG(FATAL) << "Failed to open output file " << outName;
-  }
-  std::unique_ptr<TTree> outTree = std::make_unique<TTree>("o2sim", "ITS Clusters");
-  std::unique_ptr<TTree> outTreeROF = std::make_unique<TTree>("ITSClustersROF", "ROF records tree");
-
-  if (mClusterer.getWantFullClusters()) {
-    mFullClusPtr = &mFullClus;
-    outTree->Branch("ITSCluster", &mFullClusPtr);
-    LOG(INFO) << Class()->GetName() << " output of full clusters is requested";
-  } else {
-    LOG(INFO) << Class()->GetName() << " output of full clusters is not requested";
-  }
-
-  if (mClusterer.getWantCompactClusters()) {
-    mCompClusPtr = &mCompClus;
-    outTree->Branch("ITSClusterComp", &mCompClusPtr);
-    LOG(INFO) << Class()->GetName() << " output of compact clusters is requested";
-  } else {
-    LOG(INFO) << Class()->GetName() << " output of compact clusters is not requested";
-  }
-
-  mROFRecVecPtr = &mROFRecVec;
-  outTreeROF->Branch("ITSClustersROF", mROFRecVecPtr);
-
-  if (entryPerROF) {
-    mClusterer.setOutputTree(outTree.get()); // this will force flushing at every ROF
-  }
-
   if (mRawDataMode) {
+
     mReaderRaw->openInput(inpName);
-    mClusterer.process(*mReaderRaw.get(), mFullClusPtr, mCompClusPtr, nullptr, mROFRecVecPtr);
+    mClusterer.process(1, *mReaderRaw.get(), &mCompClus, &mPatterns, &mROFRecVec, nullptr);
+
+    auto basename = outName.substr(0, outName.size() - sizeof("root"));
+    auto nFiles = int(mROFRecVec.size() / maxROframe);
+    int i = 0;
+    for (; i < nFiles; i++) {
+      writeTree(basename, i);
+    }
+    writeTree(basename, i); // The remainder
+
   } else {
+
     mReaderMC->openInput(inpName, o2::detectors::DetID("ITS"));
 
-    if (mUseMCTruth && !(mClusterer.getWantFullClusters() || mClusterer.getWantCompactClusters())) {
-      mUseMCTruth = false;
-      LOG(WARNING) << "ITS clusters storage is not requested, suppressing MCTruth storage";
+    TFile outFile(outName.data(), "new");
+    if (!outFile.IsOpen()) {
+      LOG(FATAL) << "Failed to open output file " << outName;
     }
 
+    TTree outTree("o2sim", "ITS Clusters");
+
+    auto compClusPtr = &mCompClus;
+    outTree.Branch("ITSClusterComp", &compClusPtr);
+
+    auto rofRecVecPtr = &mROFRecVec;
+    outTree.Branch("ITSClustersROF", &rofRecVecPtr);
+
+    auto clsLabelsPtr = &mClsLabels;
     if (mUseMCTruth && mReaderMC->getDigitsMCTruth()) {
       // digit labels are provided directly to clusterer
-      mClsLabelsPtr = &mClsLabels;
-      outTree->Branch("ITSClusterMCTruth", &mClsLabelsPtr);
+      outTree.Branch("ITSClusterMCTruth", &clsLabelsPtr);
     } else {
       mUseMCTruth = false;
     }
     LOG(INFO) << Class()->GetName() << " | MCTruth: " << (mUseMCTruth ? "ON" : "OFF");
 
+    outTree.Branch("ITSClusterPatt", &mPatterns);
+
+    std::vector<o2::itsmft::MC2ROFRecord> mc2rof, *mc2rofPtr = &mc2rof;
+    if (mUseMCTruth) {
+      auto mc2rofOrig = mReaderMC->getMC2ROFRecords();
+      mc2rof.reserve(mc2rofOrig.size());
+      for (const auto& m2r : mc2rofOrig) { // clone from the span
+        mc2rof.push_back(m2r);
+      }
+      outTree.Branch("ITSClustersMC2ROF", mc2rofPtr);
+    }
+
     // loop over entries of the input tree
     while (mReaderMC->readNextEntry()) {
-      mClusterer.process(*mReaderMC.get(), mFullClusPtr, mCompClusPtr, mClsLabelsPtr, mROFRecVecPtr);
+      mClusterer.process(1, *mReaderMC.get(), &mCompClus, &mPatterns, &mROFRecVec, &mClsLabels);
     }
+
+    outTree.Fill();
+    outTree.Write();
   }
-
-  if (!mRawDataMode && mReaderMC->getMC2ROFRecords()) {
-    std::unique_ptr<TTree> outTreeMC2ROF = std::make_unique<TTree>("ITSClustersMC2ROF", "MC->ROF records tree");
-    auto mc2rof = *mReaderMC->getMC2ROFRecords(); // clone
-    auto* mc2rofPtr = &mc2rof;
-    outTreeMC2ROF->Branch("ITSClustersMC2ROF", &mc2rofPtr);
-    outTreeMC2ROF->Fill();
-    outTreeMC2ROF->Write();
-  }
-
-  if (!entryPerROF) { // Clustered was not managing the output, do it here
-    outTree->Fill();  // in this mode all ROF will go to single entry of the tree
-  }
-  outTreeROF->Fill(); // ROF records are stored as a single vector
-
-  outTree->Write();
-  outTreeROF->Write();
-
-  outTree.reset(); // tree should be destroyed before the file is closed
-  outTreeROF.reset();
-
-  outFile->Close();
 
   mClusterer.clear();
+}
+
+void ClustererTask::writeTree(std::string basename, int i)
+{
+  auto name = basename + std::to_string(i) + ".root";
+  TFile outFile(name.data(), "new");
+  if (!outFile.IsOpen()) {
+    LOG(FATAL) << "Failed to open output file " << name;
+  }
+  TTree outTree("o2sim", "ITS Clusters");
+
+  auto max = (i + 1) * maxROframe;
+  auto lastf = (max < mROFRecVec.size()) ? mROFRecVec.begin() + max : mROFRecVec.end();
+  std::vector<o2::itsmft::ROFRecord> rofRecBuffer(mROFRecVec.begin() + i * maxROframe, lastf);
+  std::vector<o2::itsmft::ROFRecord>* rofRecPtr = &rofRecBuffer;
+  outTree.Branch("ITSClustersROF", rofRecPtr);
+
+  auto first = rofRecBuffer[0].getFirstEntry();
+  auto last = rofRecBuffer.back().getFirstEntry() + rofRecBuffer.back().getNEntries();
+
+  std::vector<CompClusterExt> compClusBuffer, *compClusPtr = &compClusBuffer;
+  compClusBuffer.assign(&mCompClus[first], &mCompClus[last]);
+  outTree.Branch("ITSClusterComp", &compClusPtr);
+  outTree.Branch("ITSClusterPatt", &mPatterns);
+
+  for (auto& rof : rofRecBuffer) {
+    rof.setFirstEntry(rof.getFirstEntry() - first);
+  }
+
+  outTree.Fill();
+  outTree.Write();
 }

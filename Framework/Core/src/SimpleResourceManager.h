@@ -7,14 +7,12 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_SIMPLERESOURCEMANAGER_H
-#define FRAMEWORK_SIMPLERESOURCEMANAGER_H
+#ifndef O2_FRAMEWORK_SIMPLERESOURCEMANAGER_H_
+#define O2_FRAMEWORK_SIMPLERESOURCEMANAGER_H_
 
 #include "ResourceManager.h"
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// A resource manager with infinite resources at its disposal.
@@ -23,23 +21,22 @@ namespace framework
 class SimpleResourceManager : public ResourceManager
 {
  public:
-  /// @a initialPort is the first port which can be used
-  ///              by this trivial resource manager.
-  /// @a maxPorts is the maximum number of ports starting from
-  ///             initialPort that this resource manager can allocate.
-  SimpleResourceManager(unsigned short initialPort, unsigned short maxPorts = 1000)
-    : mInitialPort{initialPort},
-      mMaxPorts{maxPorts}
+  /// @a initialResources the precomputed list of available resources
+  SimpleResourceManager(std::vector<ComputingResource> intialResources)
+    : mResources{intialResources}
   {
   }
-  std::vector<ComputingResource> getAvailableResources() override;
+  /// Get the available resources for a device to run on
+  std::vector<ComputingOffer> getAvailableOffers() override;
+
+  /// Notify that we have accepted a given resource and that it
+  /// should not be reoffered
+  void notifyAcceptedOffer(ComputingOffer const& accepted) override;
 
  private:
-  int mInitialPort;
-  int mMaxPorts;
+  std::vector<ComputingResource> mResources;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // FRAMEWORK_SIMPLERESOURCEMANAGER_H
+#endif // O2_FRAMEWORK_SIMPLERESOURCEMANAGER_H_

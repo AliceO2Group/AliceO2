@@ -19,7 +19,7 @@
 #include "TPCBase/ParameterGas.h"
 
 #include "TPCBase/Mapper.h"
-#include "TPCBase/RandomRing.h"
+#include "MathUtils/RandomRing.h"
 
 namespace o2
 {
@@ -75,9 +75,9 @@ class ElectronTransport
 
   /// Circular random buffer containing random values of the Gauss distribution to take into account diffusion of the
   /// electrons
-  RandomRing<> mRandomGaus;
+  math_utils::RandomRing<> mRandomGaus;
   /// Circular random buffer containing flat random values to take into account electron attachment during drift
-  RandomRing<> mRandomFlat;
+  math_utils::RandomRing<> mRandomFlat;
 
   const ParameterDetector* mDetParam; ///< Caching of the parameter class to avoid multiple CDB calls
   const ParameterGas* mGasParam;      ///< Caching of the parameter class to avoid multiple CDB calls
@@ -87,8 +87,9 @@ inline bool ElectronTransport::isElectronAttachment(float driftTime)
 {
   if (mRandomFlat.getNextValue() < mGasParam->AttCoeff * mGasParam->OxygenCont * driftTime) {
     return true; /// electron is attached and lost
-  } else
+  } else {
     return false; /// not attached
+  }
 }
 
 inline float ElectronTransport::getDriftTime(float zPos, float signChange) const

@@ -22,6 +22,11 @@ namespace o2
 {
 namespace emcal
 {
+
+/// \class DigitizerTask
+/// \brief FairTask running EMCAL digitization
+/// \ingroup EMCALsimulation
+/// \author Anders Knospe, University of Houston
 class DigitizerTask : public FairTask
 {
  public:

@@ -18,6 +18,8 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "TStopwatch.h"
 
 namespace o2
 {
@@ -27,20 +29,23 @@ namespace mft
 class TrackerDPL : public o2::framework::Task
 {
  public:
-  TrackerDPL() = default;
+  TrackerDPL(bool useMC) : mUseMC(useMC) {}
   ~TrackerDPL() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
+  void endOfStream(framework::EndOfStreamContext& ec) final;
 
  private:
-  int mState = 0;
+  bool mUseMC = false;
+  o2::itsmft::TopologyDictionary mDict;
   std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;
   std::unique_ptr<o2::mft::Tracker> mTracker = nullptr;
+  TStopwatch mTimer;
 };
 
 /// create a processor spec
 /// run MFT CA tracker
-o2::framework::DataProcessorSpec getTrackerSpec();
+o2::framework::DataProcessorSpec getTrackerSpec(bool useMC);
 
 } // namespace mft
 } // namespace o2

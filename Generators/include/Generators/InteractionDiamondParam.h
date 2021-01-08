@@ -13,23 +13,29 @@
 #ifndef ALICEO2_EVENTGEN_INTERACTIONDIAMONDPARAM_H_
 #define ALICEO2_EVENTGEN_INTERACTIONDIAMONDPARAM_H_
 
-#include "SimConfig/ConfigurableParam.h"
-#include "SimConfig/ConfigurableParamHelper.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 
 namespace o2
 {
 namespace eventgen
 {
 
+/// enumerating the possible vertex smearing settings
+enum class EVertexDistribution {
+  kGaus = 0, /* ordinary Gaus */
+  kFlat = 1  /* flat */
+};
+
 /**
  ** a parameter class/struct to keep the settings of
  ** the interaction diamond (position and width) and 
  ** allow the user to modify them 
  **/
-
 struct InteractionDiamondParam : public o2::conf::ConfigurableParamHelper<InteractionDiamondParam> {
   double position[3] = {0., 0., 0.};
   double width[3] = {0., 0., 0.};
+  EVertexDistribution distribution = EVertexDistribution::kGaus;
   O2ParamDef(InteractionDiamondParam, "Diamond");
 };
 

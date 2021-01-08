@@ -18,8 +18,10 @@
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
-class TRDGeometry;
-class TRDPadPlane;
+#include "DataFormatsTRD/Constants.h"
+
+class Geometry;
+class PadPlane;
 
 class TH1F;
 class TH2F;
@@ -31,17 +33,13 @@ namespace trd
 class CalDet
 {
  public:
-  enum { kNplan = 6,
-         kNcham = 5,
-         kNsect = 18,
-         kNdet = 540 };
   CalDet(std::string name = "CalDet", std::string title = "CalDet") : mName(name), mTitle(title){};
   ~CalDet() = default;
   //
   float getValue(int d) const { return mData[d]; };
-  float getValue(int p, int c, int s) const { return mData[TRDGeometry::getDetector(p, c, s)]; };
+  float getValue(int p, int c, int s) const { return mData[Geometry::getDetector(p, c, s)]; };
   void setValue(int d, float value) { mData[d] = value; };
-  void setValue(int p, int c, int s, float value) { mData[TRDGeometry::getDetector(p, c, s)] = value; };
+  void setValue(int p, int c, int s, float value) { mData[Geometry::getDetector(p, c, s)] = value; };
   void setName(std::string name) { mName = name; }; // these 4 get and set methods are probably not needed (were not in the old code) but are here for completeness
   void setTitle(std::string title) { mTitle = title; };
   std::string& getName() { return mName; };
@@ -71,7 +69,7 @@ class CalDet
   void divide(const CalDet* calDet);
 
  protected:
-  std::array<float, kNdet> mData{}; // Data
+  std::array<float, constants::NSECTOR> mData{}; // Data
   std::string mName;                // name for spectra, carried over originally from inheritence from TNamed
   std::string mTitle;               // title prepend for spectra, carried over originally from inheritence from TNamed
 };

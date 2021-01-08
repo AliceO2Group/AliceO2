@@ -21,7 +21,7 @@
 using namespace o2;
 using namespace o2::framework;
 
-BOOST_AUTO_TEST_CASE(CocreteData)
+BOOST_AUTO_TEST_CASE(ConcreteData)
 {
   OutputSpec spec{
     "TEST",
@@ -125,7 +125,11 @@ BOOST_AUTO_TEST_CASE(MatchingInputs)
   BOOST_CHECK(DataSpecUtils::match(matchingInput2, concreteExample3) == false);
   BOOST_CHECK(DataSpecUtils::match(matchingInput2, concreteExample4) == false);
 
-  BOOST_CHECK_THROW(DataSpecUtils::asConcreteDataMatcher(matchingInput2), std::bad_variant_access);
+  BOOST_CHECK_THROW(DataSpecUtils::asConcreteDataMatcher(matchingInput2), std::runtime_error);
+  auto concrete2 = DataSpecUtils::asConcreteDataMatcher(matchingInput1);
+  BOOST_CHECK_EQUAL(concrete.origin.as<std::string>(), "TEST");
+  BOOST_CHECK_EQUAL(concrete.description.as<std::string>(), "FOOO");
+  BOOST_CHECK_EQUAL(concrete.subSpec, 1);
 }
 
 BOOST_AUTO_TEST_CASE(MatchingOutputs)
@@ -151,6 +155,7 @@ BOOST_AUTO_TEST_CASE(MatchingOutputs)
   InputSpec input4{
     "binding", {"TST", "A1"}, Lifetime::Timeframe};
 
+  // matching inputs to outputs
   BOOST_CHECK(DataSpecUtils::match(input1, output1) == true);
   BOOST_CHECK(DataSpecUtils::match(input1, output2) == false);
   BOOST_CHECK(DataSpecUtils::match(input1, output3) == false); // Wildcard on output!
@@ -163,6 +168,21 @@ BOOST_AUTO_TEST_CASE(MatchingOutputs)
   BOOST_CHECK(DataSpecUtils::match(input4, output1) == true);  // Wildcard in input!
   BOOST_CHECK(DataSpecUtils::match(input4, output2) == false);
   BOOST_CHECK(DataSpecUtils::match(input4, output3) == true); // Wildcard on both!
+
+  // matching outputs to output definitions
+  // ConcreteDataMatcher on both sides
+  BOOST_CHECK(DataSpecUtils::match(output1, OutputSpec{"TST", "A1", 0}) == true);
+  BOOST_CHECK(DataSpecUtils::match(output1, OutputSpec{"TST", "A1", 1}) == false);
+
+  // ConcreteDataMatcher left, ConcreteDataTypeMatcher right (subspec ignored)
+  BOOST_CHECK(DataSpecUtils::match(output1, OutputSpec{"TST", "A1"}) == true);
+
+  // ConcreteDataTypeMatcher left (subspec ignored), ConcreteDataMatcher right
+  BOOST_CHECK(DataSpecUtils::match(output3, OutputSpec{"TST", "A1", 0}) == true);
+  BOOST_CHECK(DataSpecUtils::match(output3, OutputSpec{"TST", "A1", 1}) == true);
+
+  // ConcreteDataTypeMatcher on both sides
+  BOOST_CHECK(DataSpecUtils::match(output3, OutputSpec{"TST", "A1"}) == true);
 }
 
 BOOST_AUTO_TEST_CASE(PartialMatching)
@@ -185,6 +205,12 @@ BOOST_AUTO_TEST_CASE(PartialMatching)
 
   BOOST_CHECK(DataSpecUtils::partialMatch(fullySpecifiedOutput, header::DataOrigin("FOO")) == false);
   BOOST_CHECK(DataSpecUtils::partialMatch(fullySpecifiedInput, header::DataOrigin("FOO")) == false);
+
+  BOOST_CHECK(DataSpecUtils::partialMatch(fullySpecifiedOutput, header::DataDescription("TEST")) == false);
+  BOOST_CHECK(DataSpecUtils::partialMatch(fullySpecifiedInput, header::DataDescription("TSET")) == false);
+
+  BOOST_CHECK(DataSpecUtils::partialMatch(fullySpecifiedOutput, header::DataDescription("FOOO")) == true);
+  BOOST_CHECK(DataSpecUtils::partialMatch(fullySpecifiedInput, header::DataDescription("FOOO")) == true);
 }
 
 BOOST_AUTO_TEST_CASE(GetOptionalSubSpecWithMatcher)
@@ -218,4 +244,87 @@ BOOST_AUTO_TEST_CASE(GetOptionalSubSpecWithMatcher)
   auto dataType2 = DataSpecUtils::asConcreteDataTypeMatcher(wildcardInputSpec);
   BOOST_CHECK_EQUAL(std::string(dataType2.origin.as<std::string>()), "TSET");
   BOOST_CHECK_EQUAL(std::string(dataType2.description.as<std::string>()), "FOOO");
+}
+
+BOOST_AUTO_TEST_CASE(TestMatcherFromDescription)
+{
+  auto fromQueryInputSpec = DataSpecUtils::dataDescriptorMatcherFrom(header::DataDescription{"TSET"});
+  InputSpec ddSpec{
+    "binding",
+    std::move(fromQueryInputSpec)};
+
+  BOOST_CHECK_EQUAL(DataSpecUtils::asConcreteDataDescription(ddSpec).as<std::string>(), "TSET");
+}
+
+BOOST_AUTO_TEST_CASE(FindOutputSpec)
+{
+  std::vector<OutputSpec> specs = {
+    {"TST", "DATA1", 0},
+    {"TST", "DATA2", 0}};
+
+  auto spec = DataSpecUtils::find(specs, {"TST"}, {"DATA1"}, 0);
+  BOOST_CHECK(spec == specs[0]);
+  BOOST_CHECK(DataSpecUtils::find(specs, {"TST"}, {"DATA3"}, 0) == std::nullopt);
+}
+
+BOOST_AUTO_TEST_CASE(FindInputSpec)
+{
+  std::vector<InputSpec> specs = {
+    {"x", "TST", "DATA1", 0},
+    {"y", "TST", "DATA2", 0}};
+
+  auto spec = DataSpecUtils::find(specs, {"TST"}, {"DATA1"}, 0);
+  BOOST_CHECK(spec == specs[0]);
+  BOOST_CHECK(DataSpecUtils::find(specs, {"TST"}, {"DATA3"}, 0) == std::nullopt);
+}
+
+BOOST_AUTO_TEST_CASE(GettingConcreteMembers)
+{
+  InputSpec fullySpecifiedInput{
+    "binding",
+    "TSET",
+    "FOOO",
+    1,
+    Lifetime::Timeframe};
+
+  InputSpec wildcardInputSpec{
+    "binding",
+    {"TSET", "FOOO"},
+    Lifetime::Timeframe};
+
+  auto justOriginInputSpec = DataDescriptorQueryBuilder::parse("x:TST");
+
+  BOOST_CHECK_EQUAL(DataSpecUtils::asConcreteOrigin(fullySpecifiedInput).as<std::string>(), "TSET");
+  BOOST_CHECK_EQUAL(DataSpecUtils::asConcreteDataDescription(fullySpecifiedInput).as<std::string>(), "FOOO");
+
+  BOOST_CHECK_EQUAL(DataSpecUtils::asConcreteOrigin(wildcardInputSpec).as<std::string>(), "TSET");
+  BOOST_CHECK_EQUAL(DataSpecUtils::asConcreteDataDescription(wildcardInputSpec).as<std::string>(), "FOOO");
+
+  BOOST_REQUIRE_EQUAL(justOriginInputSpec.size(), 1);
+  BOOST_CHECK_EQUAL(DataSpecUtils::asConcreteOrigin(justOriginInputSpec.at(0)).as<std::string>(), "TST");
+  BOOST_CHECK_THROW(DataSpecUtils::asConcreteDataDescription(justOriginInputSpec.at(0)).as<std::string>(), RuntimeErrorRef);
+}
+
+BOOST_AUTO_TEST_CASE(Includes)
+{
+  InputSpec concreteInput1{"binding", "TSET", "FOOO", 1, Lifetime::Timeframe};
+  InputSpec concreteInput2{"binding", "TSET", "BAAAR", 1, Lifetime::Timeframe};
+  InputSpec wildcardInput1{"binding", {"TSET", "FOOO"}, Lifetime::Timeframe};
+  InputSpec wildcardInput2{"binding", {"TSET", "BAAAR"}, Lifetime::Timeframe};
+
+  // wildcard and concrete
+  BOOST_CHECK(DataSpecUtils::includes(wildcardInput1, concreteInput1));
+  BOOST_CHECK(!DataSpecUtils::includes(wildcardInput1, concreteInput2));
+  BOOST_CHECK(!DataSpecUtils::includes(concreteInput1, wildcardInput1));
+  BOOST_CHECK(!DataSpecUtils::includes(concreteInput2, wildcardInput1));
+
+  // concrete and concrete
+  BOOST_CHECK(DataSpecUtils::includes(concreteInput1, concreteInput1));
+  BOOST_CHECK(!DataSpecUtils::includes(concreteInput1, concreteInput2));
+  BOOST_CHECK(!DataSpecUtils::includes(concreteInput2, concreteInput1));
+
+  // wildcard and wildcard
+  BOOST_CHECK(DataSpecUtils::includes(wildcardInput1, wildcardInput1));
+  BOOST_CHECK(!DataSpecUtils::includes(wildcardInput1, wildcardInput2));
+  BOOST_CHECK(!DataSpecUtils::includes(wildcardInput2, wildcardInput1));
 }

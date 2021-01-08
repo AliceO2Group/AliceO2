@@ -27,6 +27,11 @@ Detector::Detector(bool active) : o2::base::DetImpl<Detector>("MID", active),
 {
 }
 
+Detector::Detector(const Detector& rhs)
+  : o2::base::DetImpl<Detector>(rhs), mStepper()
+{
+}
+
 void Detector::defineSensitiveVolumes()
 {
   for (auto* vol : getSensitiveVolumes()) {
@@ -75,10 +80,15 @@ void Detector::EndOfEvent() { mStepper.resetHits(); }
 
 void Detector::ConstructGeometry()
 {
-  TGeoVolume* top = gGeoManager->GetTopVolume();
+
+  auto motherVolume = gGeoManager->GetVolume("YOUT2");
+
+  auto top = (motherVolume) ? motherVolume : gGeoManager->GetTopVolume();
+
   if (!top) {
     throw std::runtime_error("Cannot create MID geometry without a top volume");
   }
+
   createGeometry(*top);
 }
 

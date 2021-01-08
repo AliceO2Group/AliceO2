@@ -10,21 +10,24 @@
 #ifndef FRAMEWORK_MESSAGECONTEXT_H
 #define FRAMEWORK_MESSAGECONTEXT_H
 
+#include "Framework/DispatchControl.h"
 #include "Framework/FairMQDeviceProxy.h"
-#include "Framework/TypeTraits.h"
+#include "Framework/RuntimeError.h"
 #include "Framework/TMessageSerializer.h"
-#include "MemoryResources/MemoryResources.h"
+#include "Framework/TypeTraits.h"
+
 #include "Headers/DataHeader.h"
+#include "MemoryResources/MemoryResources.h"
 
 #include <fairmq/FairMQMessage.h>
 #include <fairmq/FairMQParts.h>
 
-#include <vector>
 #include <cassert>
+#include <functional>
 #include <string>
 #include <type_traits>
-#include <stdexcept>
-#include <functional>
+#include <unordered_map>
+#include <vector>
 
 class FairMQDevice;
 
@@ -32,11 +35,11 @@ namespace o2
 {
 namespace framework
 {
+class Output;
 
 class MessageContext
 {
  public:
-  using DispatchCallback = std::function<void(FairMQParts&& message, std::string const&, int)>;
   // so far we are only using one instance per named channel
   static constexpr int DefaultChannelIndex = 0;
 
@@ -45,21 +48,21 @@ class MessageContext
   {
   }
 
-  MessageContext(FairMQDeviceProxy proxy, DispatchCallback&& dispatcher)
-    : mProxy{proxy}, mDispatchCallback{dispatcher}
+  MessageContext(FairMQDeviceProxy proxy, DispatchControl&& dispatcher)
+    : mProxy{proxy}, mDispatchControl{dispatcher}
   {
   }
 
-  void init(DispatchCallback&& dispatcher)
+  void init(DispatchControl&& dispatcher)
   {
-    mDispatchCallback = dispatcher;
+    mDispatchControl = dispatcher;
   }
 
   // this is the virtual interface for context objects
   class ContextObject
   {
    public:
-    ContextObject() = default;
+    ContextObject() = delete;
     ContextObject(FairMQMessagePtr&& headerMsg, FairMQMessagePtr&& payloadMsg, const std::string& bindingChannel)
       : mParts{}, mChannel{bindingChannel}
     {
@@ -102,9 +105,18 @@ class MessageContext
       return mParts.Size() == 0;
     }
 
+    o2::header::DataHeader const* header()
+    {
+      // we would expect this function to be const but the FairMQParts API does not allow this
+      if (empty() || mParts.At(0) == nullptr) {
+        return nullptr;
+      }
+      return o2::header::get<o2::header::DataHeader*>(mParts.At(0)->GetData());
+    }
+
    protected:
     FairMQParts mParts;
-    std::string mChannel;
+    std::string const& mChannel;
   };
 
   /// TrivialObject handles a message object
@@ -115,14 +127,14 @@ class MessageContext
     TrivialObject() = delete;
     /// constructor consuming the header and payload messages for a given channel by move
     template <typename ContextType>
-    TrivialObject(ContextType*, FairMQMessagePtr&& headerMsg, FairMQMessagePtr&& payloadMsg, const std::string& bindingChannel)
-      : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), std::forward<FairMQMessagePtr>(payloadMsg), bindingChannel)
+    TrivialObject(ContextType* context, FairMQMessagePtr&& headerMsg, FairMQMessagePtr&& payloadMsg, const std::string& bindingChannel)
+      : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), std::forward<FairMQMessagePtr>(payloadMsg), context->getChannelRef(bindingChannel))
     {
     }
     /// constructor taking header message by move and creating the paypload message
     template <typename ContextType, typename... Args>
     TrivialObject(ContextType* context, FairMQMessagePtr&& headerMsg, const std::string& bindingChannel, int index, Args... args)
-      : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), context->createMessage(bindingChannel, index, std::forward<Args>(args)...), bindingChannel)
+      : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), context->createMessage(bindingChannel, index, std::forward<Args>(args)...), context->getChannelRef(bindingChannel))
     {
     }
     ~TrivialObject() override = default;
@@ -132,6 +144,65 @@ class MessageContext
       assert(mParts.Size() == 2);
       return mParts[1].GetData();
     }
+  };
+
+  // A memory resource which can force a minimum alignment, so that
+  // the whole polymorphic allocator business is happy...
+  class AlignedMemoryResource : public pmr::FairMQMemoryResource
+  {
+   public:
+    AlignedMemoryResource(fair::mq::FairMQMemoryResource* other)
+      : mUpstream(other)
+    {
+    }
+
+    AlignedMemoryResource(AlignedMemoryResource const& other)
+      : mUpstream(other.mUpstream)
+    {
+    }
+
+    bool isValid()
+    {
+      return mUpstream != nullptr;
+    }
+    FairMQMessagePtr getMessage(void* p) override
+    {
+      return mUpstream->getMessage(p);
+    }
+
+    void* setMessage(FairMQMessagePtr fmm) override
+    {
+      return mUpstream->setMessage(std::move(fmm));
+    }
+
+    FairMQTransportFactory* getTransportFactory() noexcept override
+    {
+      return mUpstream->getTransportFactory();
+    }
+
+    size_t getNumberOfMessages() const noexcept override
+    {
+      return mUpstream->getNumberOfMessages();
+    }
+
+   protected:
+    void* do_allocate(size_t bytes, size_t alignment) override
+    {
+      return mUpstream->allocate(bytes, alignment < 64 ? 64 : alignment);
+    }
+
+    void do_deallocate(void* p, size_t bytes, size_t alignment) override
+    {
+      return mUpstream->deallocate(p, bytes, alignment < 64 ? 64 : alignment);
+    }
+
+    bool do_is_equal(const pmr::memory_resource& other) const noexcept override
+    {
+      return this == &other;
+    }
+
+   private:
+    fair::mq::FairMQMemoryResource* mUpstream = nullptr;
   };
 
   /// ContainerRefObject handles a message object holding an instance of type T
@@ -152,21 +223,21 @@ class MessageContext
     /// constructor taking header message by move and creating the paypload message
     template <typename ContextType, typename... Args>
     ContainerRefObject(ContextType* context, FairMQMessagePtr&& headerMsg, const std::string& bindingChannel, int index, Args&&... args)
-      : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), bindingChannel),
+      : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), context->getChannelRef(bindingChannel)),
         // the transport factory
         mFactory{context->proxy().getTransport(bindingChannel, index)},
         // the memory resource takes ownership of the message
-        mResource{mFactory ? mFactory->GetMemoryResource() : nullptr},
+        mResource{mFactory ? AlignedMemoryResource(mFactory->GetMemoryResource()) : AlignedMemoryResource(nullptr)},
         // create the vector with apropriate underlying memory resource for the message
-        mData{std::forward<Args>(args)..., pmr::polymorphic_allocator<value_type>(mResource)}
+        mData{std::forward<Args>(args)..., pmr::polymorphic_allocator<value_type>(&mResource)}
     {
       // FIXME: drop this repeated check and make sure at initial setup of devices that everything is fine
       // introduce error policy
       if (mFactory == nullptr) {
-        throw std::runtime_error(std::string("failed to get transport factory for channel ") + bindingChannel);
+        throw runtime_error_f("failed to get transport factory for channel %s", bindingChannel.c_str());
       }
-      if (mResource == nullptr) {
-        throw std::runtime_error(std::string("no memory resource for channel ") + bindingChannel);
+      if (mResource.isValid() == false) {
+        throw runtime_error_f("no memory resource for channel %s", bindingChannel.c_str());
       }
     }
     ~ContainerRefObject() override = default;
@@ -201,7 +272,7 @@ class MessageContext
 
    private:
     FairMQTransportFactory* mFactory = nullptr;     /// pointer to transport factory
-    pmr::FairMQMemoryResource* mResource = nullptr; /// message resource
+    AlignedMemoryResource mResource;                /// message resource
     buffer_type mData;                              /// the data buffer
   };
 
@@ -232,14 +303,14 @@ class MessageContext
     /// constructor taking header message by move and creating the payload message for the span
     template <typename ContextType>
     SpanObject(ContextType* context, FairMQMessagePtr&& headerMsg, const std::string& bindingChannel, int index, size_t nElements)
+      : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), context->getChannelRef(bindingChannel))
     {
       // create the span object for the memory of the payload message
       // TODO: we probably also want to check consistency of the header message, i.e. payloadSize member
       auto payloadMsg = context->createMessage(bindingChannel, index, nElements * sizeof(T));
       mValue = value_type(reinterpret_cast<T*>(payloadMsg->GetData()), nElements);
-      mParts.AddPart(std::move(headerMsg));
+      assert(mParts.Size() == 1);
       mParts.AddPart(std::move(payloadMsg));
-      mChannel = bindingChannel;
     }
     ~SpanObject() override = default;
 
@@ -274,7 +345,7 @@ class MessageContext
     /// constructor taking header message by move and creating the object from variadic argument list
     template <typename ContextType, typename... Args>
     RootSerializedObject(ContextType* context, FairMQMessagePtr&& headerMsg, const std::string& bindingChannel, Args&&... args)
-      : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), bindingChannel)
+      : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), context->getChannelRef(bindingChannel))
     {
       mObject = std::make_unique<value_type>(std::forward<Args>(args)...);
       mPayloadMsg = context->proxy().createMessage();
@@ -336,7 +407,7 @@ class MessageContext
         // TODO: decide whether this is an error or not
         // can also check if the standard constructor can be dropped to make sure that
         // the ScopeHook is always set up with a context
-        throw std::runtime_error("No context available to schedule the context object");
+        throw runtime_error("No context available to schedule the context object");
         return base::operator()(ptr);
       }
       // keep the object alive and add to message list of the context
@@ -387,24 +458,42 @@ class MessageContext
 
   /// Schedule a context object for sending.
   /// The object is considered complete at this point and is sent directly through the dispatcher callback
-  /// of the context if initialized. It is added to the list of messages otherwise.
+  /// of the context if initialized.
   void schedule(Messages::value_type&& message)
   {
-    if (mDispatchCallback) {
-      mDispatchCallback(std::move(message->finalize()), message->channel(), DefaultChannelIndex);
-      return;
+    auto const* header = message->header();
+    if (header == nullptr) {
+      throw std::logic_error("No valid header message found");
     }
-    mMessages.push_back(std::move(message));
+    mScheduledMessages.emplace_back(std::move(message));
+    if (mDispatchControl.dispatch != nullptr) {
+      // send all scheduled messages if there is no trigger callback or its result is true
+      if (mDispatchControl.trigger == nullptr || mDispatchControl.trigger(*header)) {
+        std::unordered_map<std::string const*, FairMQParts> outputs;
+        for (auto& message : mScheduledMessages) {
+          FairMQParts parts = std::move(message->finalize());
+          assert(message->empty());
+          assert(parts.Size() == 2);
+          for (auto& part : parts) {
+            outputs[&(message->channel())].AddPart(std::move(part));
+          }
+        }
+        for (auto& [channel, parts] : outputs) {
+          mDispatchControl.dispatch(std::move(parts), *channel, DefaultChannelIndex);
+        }
+        mScheduledMessages.clear();
+      }
+    }
   }
 
-  Messages::iterator begin()
+  Messages getMessagesForSending()
   {
-    return mMessages.begin();
-  }
-
-  Messages::iterator end()
-  {
-    return mMessages.end();
+    // before starting iteration, message lists are merged
+    for (auto& message : mScheduledMessages) {
+      mMessages.emplace_back(std::move(message));
+    }
+    mScheduledMessages.clear();
+    return std::move(mMessages);
   }
 
   size_t size()
@@ -424,6 +513,20 @@ class MessageContext
     mMessages.clear();
   }
 
+  /// Get a reference to channel string unique within the context
+  /// The unique references are stored in context objects instead of allocating string objects.
+  /// Based on the references, messages going over the same channel are grouped together in a
+  /// multimessage.
+  std::string const& getChannelRef(std::string const& channel)
+  {
+    auto ref = mChannelRefs.find(channel);
+    if (ref != mChannelRefs.end()) {
+      return *(ref->second);
+    }
+    mChannelRefs[channel] = std::make_unique<std::string>(channel);
+    return *(mChannelRefs[channel]);
+  }
+
   FairMQDeviceProxy& proxy()
   {
     return mProxy;
@@ -436,10 +539,16 @@ class MessageContext
   FairMQMessagePtr createMessage(const std::string& channel, int index, size_t size);
   FairMQMessagePtr createMessage(const std::string& channel, int index, void* data, size_t size, fairmq_free_fn* ffn, void* hint);
 
+  /// return the header of the 1st (from the end) matching message checking first in
+  /// mMessages then in mScheduledMessages
+  o2::header::DataHeader* findMessageHeader(const Output& spec);
+
  private:
   FairMQDeviceProxy mProxy;
   Messages mMessages;
-  DispatchCallback mDispatchCallback;
+  Messages mScheduledMessages;
+  DispatchControl mDispatchControl;
+  std::unordered_map<std::string, std::unique_ptr<std::string>> mChannelRefs;
 };
 } // namespace framework
 } // namespace o2

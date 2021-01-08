@@ -1,7 +1,8 @@
+<!-- doxy
 \page refMFT MFT
+/doxy -->
 
-The Muon Forward Tracker
-========================
+# The Muon Forward Tracker
 
 #### When? 
 * After the second LHC Long Shutdown.

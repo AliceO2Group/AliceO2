@@ -15,7 +15,8 @@
 #include <FairMCEventHeader.h>
 
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -27,19 +28,24 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "ReconstructionDataFormats/Vertex.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #endif
 
+#include "ReconstructionDataFormats/PrimaryVertex.h" // hack to silence JIT compiler
 #include "ITStracking/ROframe.h"
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/Vertexer.h"
 #include "ITStracking/VertexerTraits.h"
 
 using MCLabCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+using MCLabContTr = std::vector<o2::MCCompLabel>;
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
 void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.root",
-                  std::string inputClustersITS = "o2clus_its.root", std::string inputGeom = "O2geometry.root",
-                  std::string inputGRP = "o2sim_grp.root", std::string simfilename = "o2sim.root")
+                  std::string inputClustersITS = "o2clus_its.root",
+                  std::string dictfile = "",
+                  std::string inputGeom = "",
+                  std::string inputGRP = "o2sim_grp.root")
 {
 
   FairLogger* logger = FairLogger::GetLogger();
@@ -56,55 +62,76 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   //-------- init geometry and field --------//
   const auto grp = o2::parameters::GRPObject::loadFrom(path + inputGRP);
   if (!grp) {
-    LOG(FATAL) << "Cannot run w/o GRP object" << FairLogger::endl;
+    LOG(FATAL) << "Cannot run w/o GRP object";
   }
   bool isITS = grp->isDetReadOut(o2::detectors::DetID::ITS);
   if (!isITS) {
-    LOG(WARNING) << "ITS is not in the readoute" << FairLogger::endl;
+    LOG(WARNING) << "ITS is not in the readoute";
     return;
   }
   bool isContITS = grp->isDetContinuousReadOut(o2::detectors::DetID::ITS);
-  LOG(INFO) << "ITS is in " << (isContITS ? "CONTINUOS" : "TRIGGERED") << " readout mode" << FairLogger::endl;
+  LOG(INFO) << "ITS is in " << (isContITS ? "CONTINUOS" : "TRIGGERED") << " readout mode";
 
-  o2::base::GeometryManager::loadGeometry(path + inputGeom, "FAIRGeom");
+  o2::base::GeometryManager::loadGeometry(inputGeom);
   auto gman = o2::its::GeometryTGeo::Instance();
-  gman->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2GRot)); // request cached transforms
+  gman->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2GRot)); // request cached transforms
 
   o2::base::Propagator::initFieldFromGRP(grp);
   auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
   if (!field) {
-    LOG(FATAL) << "Failed to load ma" << FairLogger::endl;
+    LOG(FATAL) << "Failed to load ma";
   }
 
   //>>>---------- attach input data --------------->>>
   TChain itsClusters("o2sim");
   itsClusters.AddFile((path + inputClustersITS).data());
 
-  if (!itsClusters.GetBranch("ITSCluster")) {
-    LOG(FATAL) << "Did not find ITS clusters branch ITSCluster in the input tree" << FairLogger::endl;
+  if (!itsClusters.GetBranch("ITSClusterComp")) {
+    LOG(FATAL) << "Did not find ITS clusters branch ITSClusterComp in the input tree";
   }
-  std::vector<o2::itsmft::Cluster>* clusters = nullptr;
-  itsClusters.SetBranchAddress("ITSCluster", &clusters);
-  std::vector<o2::itsmft::Cluster> allClusters;
+  std::vector<o2::itsmft::CompClusterExt>* cclusters = nullptr;
+  itsClusters.SetBranchAddress("ITSClusterComp", &cclusters);
+
+  if (!itsClusters.GetBranch("ITSClusterPatt")) {
+    LOG(FATAL) << "Did not find ITS cluster patterns branch ITSClusterPatt in the input tree";
+  }
+  std::vector<unsigned char>* patterns = nullptr;
+  itsClusters.SetBranchAddress("ITSClusterPatt", &patterns);
 
   MCLabCont* labels = nullptr;
   if (!itsClusters.GetBranch("ITSClusterMCTruth")) {
-    LOG(WARNING) << "Did not find ITS clusters branch ITSClusterMCTruth in the input tree" << FairLogger::endl;
+    LOG(WARNING) << "Did not find ITS clusters branch ITSClusterMCTruth in the input tree";
   } else {
     itsClusters.SetBranchAddress("ITSClusterMCTruth", &labels);
   }
-  MCLabCont allLabels;
 
-  TChain itsClustersROF("ITSClustersROF");
-  itsClustersROF.AddFile((path + inputClustersITS).data());
-
-  if (!itsClustersROF.GetBranch("ITSClustersROF")) {
-    LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree" << FairLogger::endl;
+  if (!itsClusters.GetBranch("ITSClustersROF")) {
+    LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree";
   }
+
+  std::vector<o2::itsmft::MC2ROFRecord>* mc2rofs = nullptr;
+  if (!itsClusters.GetBranch("ITSClustersMC2ROF")) {
+    LOG(FATAL) << "Did not find ITS clusters branch ITSClustersROF in the input tree";
+  }
+  itsClusters.SetBranchAddress("ITSClustersMC2ROF", &mc2rofs);
+
   std::vector<o2::itsmft::ROFRecord>* rofs = nullptr;
-  itsClustersROF.SetBranchAddress("ITSClustersROF", &rofs);
-  itsClustersROF.GetEntry(0);
+  itsClusters.SetBranchAddress("ITSClustersROF", &rofs);
+
+  itsClusters.GetEntry(0);
   //<<<---------- attach input data ---------------<<<
+
+  o2::itsmft::TopologyDictionary dict;
+  if (dictfile.empty()) {
+    dictfile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
+  }
+  std::ifstream file(dictfile.c_str());
+  if (file.good()) {
+    LOG(INFO) << "Running with dictionary: " << dictfile.c_str();
+    dict.readBinaryFile(dictfile);
+  } else {
+    LOG(INFO) << "Running without dictionary !";
+  }
 
   //>>>--------- create/attach output ------------->>>
   // create/attach output tree
@@ -112,13 +139,17 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   TTree outTree("o2sim", "Cooked ITS Tracks");
   std::vector<o2::its::TrackITS> tracksITS, *tracksITSPtr = &tracksITS;
   std::vector<int> trackClIdx, *trackClIdxPtr = &trackClIdx;
-  MCLabCont trackLabels, *trackLabelsPtr = &trackLabels;
+  std::vector<o2::itsmft::ROFRecord> vertROFvec, *vertROFvecPtr = &vertROFvec;
+  std::vector<Vertex> vertices, *verticesPtr = &vertices;
+
+  MCLabContTr trackLabels, *trackLabelsPtr = &trackLabels;
   outTree.Branch("ITSTrack", &tracksITSPtr);
   outTree.Branch("ITSTrackClusIdx", &trackClIdxPtr);
   outTree.Branch("ITSTrackMCTruth", &trackLabelsPtr);
-
-  TTree treeROF("ITSTracksROF", "ROF records tree");
-  treeROF.Branch("ITSTracksROF", &rofs);
+  outTree.Branch("ITSTracksROF", &rofs);
+  outTree.Branch("ITSTracksMC2ROF", &mc2rofs);
+  outTree.Branch("Vertices", &verticesPtr);
+  outTree.Branch("VerticesROF", &vertROFvecPtr);
   //<<<--------- create/attach output -------------<<<
 
   //=================== INIT ==================
@@ -128,54 +159,40 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   tracker.setContinuousMode(isContITS);
   tracker.setBz(field->solenoidField()); // in kG
   tracker.setGeometry(gman);
-  if (mcTruth)
-    tracker.setMCTruthContainers(&allLabels, trackLabelsPtr);
-  //===========================================
-
-  // Load all clusters into a single vector
-  int prevEntry = -1;
-  int offset = 0;
-  for (auto& rof : *rofs) {
-    int entry = rof.getROFEntry().getEvent();
-    if (entry > prevEntry) { // In principal, there should be just one entry...
-      if (itsClusters.GetEntry(entry) <= 0) {
-        LOG(ERROR) << "ITSDigitReader: empty digit entry, or read error !";
-        return;
-      }
-      prevEntry = entry;
-      offset = allClusters.size();
-
-      std::copy(clusters->begin(), clusters->end(), std::back_inserter(allClusters));
-      allLabels.mergeAtBack(*labels);
-    }
-
-    rof.getROFEntry().setEvent(0);
-    int index = rof.getROFEntry().getIndex();
-    rof.getROFEntry().setIndex(index + offset);
-
-    std::cout << "entry nclusters offset " << entry << ' ' << clusters->size() << ' ' << offset << '\n';
+  if (mcTruth) {
+    tracker.setMCTruthContainers(labels, trackLabelsPtr);
   }
+  //===========================================
 
   o2::its::VertexerTraits vertexerTraits;
   o2::its::Vertexer vertexer(&vertexerTraits);
-  o2::its::ROframe event(0);
+  o2::its::ROframe event(0, 7);
 
+  gsl::span<const unsigned char> patt(patterns->data(), patterns->size());
+  auto pattIt = patt.begin();
+  auto clSpan = gsl::span(cclusters->data(), cclusters->size());
   for (auto& rof : *rofs) {
-    o2::its::ioutils::loadROFrameData(rof, event, &allClusters, &allLabels);
+    auto it = pattIt;
+    o2::its::ioutils::loadROFrameData(rof, event, clSpan, pattIt, dict, labels);
     vertexer.clustersToVertices(event);
-    auto vertices = vertexer.exportVertices();
-    if (vertices.empty()) {
-      vertices.emplace_back();
+    auto verticesL = vertexer.exportVertices();
+
+    auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
+    vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
+    vtxROF.setNEntries(verticesL.size());
+    for (const auto& vtx : verticesL) {
+      vertices.push_back(vtx);
     }
-    tracker.setVertices(vertices);
-    tracker.process(allClusters, tracksITS, trackClIdx, rof);
+    if (verticesL.empty()) {
+      verticesL.emplace_back();
+    }
+    tracker.setVertices(verticesL);
+    tracker.process(clSpan, it, dict, tracksITS, trackClIdx, rof);
   }
   outTree.Fill();
-  treeROF.Fill();
 
   outFile.cd();
   outTree.Write();
-  treeROF.Write();
   outFile.Close();
 
   timer.Stop();

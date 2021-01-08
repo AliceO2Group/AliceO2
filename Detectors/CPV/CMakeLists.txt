@@ -9,5 +9,10 @@
 # submit itself to any jurisdiction.
 
 add_subdirectory(base)
+add_subdirectory(calib)
 add_subdirectory(simulation)
-add_subdirectory(testsimulation)
+add_subdirectory(reconstruction)
+add_subdirectory(workflow)
+if(BUILD_TESTING)
+  add_subdirectory(testsimulation)
+endif()

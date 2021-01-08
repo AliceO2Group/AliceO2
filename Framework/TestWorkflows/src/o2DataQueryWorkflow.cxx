@@ -14,7 +14,9 @@
 #include "Framework/WorkflowSpec.h"
 
 #include <chrono>
+#include <thread>
 #include <vector>
+#include <iostream>
 
 using namespace o2::framework;
 
@@ -24,7 +26,7 @@ AlgorithmSpec simplePipe(std::string const& what, o2::header::DataHeader::SubSpe
     srand(getpid());
     return [what, minDelay, subSpec](ProcessingContext& ctx) {
       std::this_thread::sleep_for(std::chrono::seconds((rand() % 5) + minDelay));
-      auto bData = ctx.outputs().make<int>(OutputRef{what, subSpec}, 1);
+      auto& bData = ctx.outputs().make<int>(OutputRef{what, subSpec}, 1);
       bData[0] = subSpec;
     };
   }};
@@ -42,8 +44,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
      AlgorithmSpec{
        [](ProcessingContext& ctx) {
          std::this_thread::sleep_for(std::chrono::seconds(rand() % 2));
-         auto aData = ctx.outputs().make<int>(OutputRef{"a1"}, 1);
-         auto bData = ctx.outputs().make<int>(OutputRef{"a2"}, 1);
+         auto& aData = ctx.outputs().make<int>(OutputRef{"a1"}, 1);
+         auto& bData = ctx.outputs().make<int>(OutputRef{"a2"}, 1);
        }}},
     {"B",
      select("x:TST/A1/0"), // This will match TST/A1/0 as <origin>/<description>/<subspec> and bind it to x

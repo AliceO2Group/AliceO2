@@ -12,7 +12,7 @@
 #define ALICEO2_TRD_PADRESPONSE_H_
 
 #include <array>
-#include "TRDBase/TRDCommonParam.h" // For kNLayer
+#include "DataFormatsTRD/Constants.h"
 
 namespace o2
 {
@@ -32,7 +32,7 @@ class PadResponse
   static constexpr float mPRFhi{1.5};             // Higher boundary of the PRF
   float mPRFwid;                                  // Bin width of the sampled PRF
   int mPRFpad;                                    // Distance to next pad in PRF
-  std::array<float, kNlayer * mPRFbin> mPRFsmp{}; // Sampled pad response
+  std::array<float, constants::NLAYER * mPRFbin> mPRFsmp{}; // Sampled pad response
 };
 } // namespace trd
 } // namespace o2

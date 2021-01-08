@@ -213,8 +213,9 @@ void TestDataReader::run(ProcessingContext& pc)
 
     int pos = mNowFolderNames[i].find_last_of("/");
 
-    if (pos != string::npos)
+    if (pos != string::npos) {
       mRunID = mNowFolderNames[i].substr(pos + 1);
+    }
 
     LOG(DEBUG) << "FileDone = " << mFileDone << endl;
 
@@ -234,8 +235,9 @@ void TestDataReader::run(ProcessingContext& pc)
       //Getting the FileID
       string FileIDS;
       pos = mDiffFileNames[i][0].find_last_of("/");
-      if (pos != string::npos)
+      if (pos != string::npos) {
         FileIDS = mDiffFileNames[i][0].substr(pos + 1);
+      }
 
       cout << "Before FileIDS = " << FileIDS << endl;
 
@@ -260,7 +262,7 @@ void TestDataReader::run(ProcessingContext& pc)
 
       if (mNewFileInj == 1) {
         cout << "New File Injected, Now Updating the Canvas and Light" << endl;
-        mDigitsTest.emplace_back(0, 0, 0, 0, 0);
+        mDigitsTest.emplace_back(0, 0, 0, 0);
         mMultiDigitsTest.push_back(mDigitsTest[0]);
         mErrorsVecTest.push_back(mErrors);
         mFileDone = 1;
@@ -274,8 +276,9 @@ void TestDataReader::run(ProcessingContext& pc)
         mErrorsVecTest.clear();
         mDigitsTest.clear();
         mMultiDigitsTest.clear();
-        if (mFolderNames.size() < mNowFolderNames.size())
+        if (mFolderNames.size() < mNowFolderNames.size()) {
           mFileNames.push_back(NewNextFold);
+        }
         cout << "Done!!! You should see the Canvas Updated " << endl;
         break;
       }
@@ -298,8 +301,9 @@ void TestDataReader::run(ProcessingContext& pc)
       auto& rawErrorReader = reinterpret_cast<RawReader&>(mRawReader);
 
       while ((mChipData = mRawReader.getNextChipData(mChips))) {
-        if (NChip < NChipMax)
+        if (NChip < NChipMax) {
           break;
+        }
         //	cout << "Pass Chip" << endl;
 
         const auto* ruInfo = rawErrorReader.getCurrRUDecodeData()->ruInfo;
@@ -342,12 +346,14 @@ void TestDataReader::run(ProcessingContext& pc)
           TimePrint = 1;
         }
 
-        if (NEvent % 100000 != 0)
+        if (NEvent % 100000 != 0) {
           TimePrint = 0;
+        }
 
         for (int i = 0; i < o2::itsmft::GBTLinkDecodingStat::NErrorsDefined; i++) {
-          if (mErrors[i] < 4294967295)
+          if (mErrors[i] < 4294967295) {
             mErrors[i] = mErrors[i] + (int)statRU->errorCounts[i];
+          }
         }
 
         if (mTrackError == 1) {
@@ -355,8 +361,9 @@ void TestDataReader::run(ProcessingContext& pc)
             ErrorDetcted = 0;
 
             for (int i = 0; i < o2::itsmft::GBTLinkDecodingStat::NErrorsDefined; i++) {
-              if ((int)statRU->errorCounts[i] > 0)
+              if ((int)statRU->errorCounts[i] > 0) {
                 ErrorDetcted = 1;
+              }
             }
 
             if (ErrorDetcted == 1) {
@@ -375,11 +382,12 @@ void TestDataReader::run(ProcessingContext& pc)
         int ChipID = mChipData->getChipID();
 
         for (auto& pixel : pixels) {
-          if (Index < IndexMax)
+          if (Index < IndexMax) {
             break;
+          }
           int col = pixel.getCol();
           int row = pixel.getRow();
-          mDigits.emplace_back(ChipID, NEvent, row, col, 0);
+          mDigits.emplace_back(ChipID, row, col, 0);
           Index = Index + 1;
         }
         NChip = NChip + 1;
@@ -390,8 +398,9 @@ void TestDataReader::run(ProcessingContext& pc)
       mNDigits.push_back(mTotalPixelSize);
       mErrorsVec.push_back(mErrors);
       LOG(DEBUG) << "Run " << mNowFolderNames[i] << " File " << mInputName << "    Integrated Raw Pixel Pushed " << mDigits.size();
-      if (mFolderNames.size() < mNowFolderNames.size())
+      if (mFolderNames.size() < mNowFolderNames.size()) {
         mFileNames.push_back(NewNextFold);
+      }
       mFileNames[i].push_back(mInputName);
       fout << " END OF ERROR REPORT " << endl;
     }
@@ -401,8 +410,9 @@ void TestDataReader::run(ProcessingContext& pc)
 
   LOG(DEBUG) << "mIndexPush Before = " << mIndexPush << "  mDigits.size() =  " << mDigits.size();
 
-  if (mDigits.size() > 0)
+  if (mDigits.size() > 0) {
     PercentDone = double(mIndexPush) / double(mDigits.size());
+  }
   cout << "Percentage Processed = " << Form("%.2f", 100. * PercentDone) << endl;
 
   if (mIndexPush < mDigits.size()) {
@@ -421,8 +431,9 @@ void TestDataReader::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{"ITS", "Error", 0, Lifetime::Timeframe}, mErrorsVec[j]);
     mIndexPushEx = mIndexPush + mNDigits[j];
     LOG(DEBUG) << "IndexPushEx = " << mIndexPushEx << "  mDigits.size() " << mDigits.size();
-    if (mIndexPushEx > mDigits.size() - 5)
+    if (mIndexPushEx > mDigits.size() - 5) {
       mFileDone = 1;
+    }
     LOG(DEBUG) << "FileDone = " << mFileDone;
     LOG(DEBUG) << "FileRemain = " << mFileRemain;
 
@@ -448,7 +459,7 @@ void TestDataReader::run(ProcessingContext& pc)
 			pc.outputs().snapshot(Output{ "ITS", "DIGITS", 0, Lifetime::Timeframe }, mDigits[mIndexPush++]);
 			if(mIndexPush%100000==0) 	LOG(DEBUG) << "mIndexPush = " << mIndexPush << "    Chip ID Pushing " << mDigits[mIndexPush].getChipIndex();
 			}
-			//pc.services().get<ControlService>().readyToQuit(true);
+			//pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
 			LOG(DEBUG) << "After:  " << "mIndexPush = " << mIndexPush << "     mDigits.size() = " <<  mDigits.size(); 
 			*/
 
@@ -514,8 +525,9 @@ std::vector<string> TestDataReader::GetFName(std::string folder)
 
       //printf("%s\n", directory->d_name);
 
-      if (!(!strcmp(directory->d_name, ".") || !strcmp(directory->d_name, "..")))
+      if (!(!strcmp(directory->d_name, ".") || !strcmp(directory->d_name, ".."))) {
         names.push_back(folder + "/" + directory->d_name);
+      }
     }
 
     closedir(dirp);

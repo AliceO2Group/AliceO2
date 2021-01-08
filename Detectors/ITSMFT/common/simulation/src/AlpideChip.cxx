@@ -66,7 +66,7 @@ TGeoVolume* AlpideChip::createChip(const Double_t ychip,
   if (ysens > ychip) {
     LOG(WARNING) << "Sensor half thickness (" << ysens
                  << ") greater than chip half thickness (" << ychip
-                 << "), setting equal" << FairLogger::endl;
+                 << "), setting equal";
     ylen = ychip;
   }
 
@@ -94,10 +94,11 @@ TGeoVolume* AlpideChip::createChip(const Double_t ychip,
 
   TGeoMedium* medChip;
 
-  if (dummy)
+  if (dummy) {
     medChip = medAir;
-  else
+  } else {
     medChip = medSi;
+  }
 
   TGeoVolume* chipVol = new TGeoVolume(chipName, chip, medChip);
   chipVol->SetVisibility(kTRUE);

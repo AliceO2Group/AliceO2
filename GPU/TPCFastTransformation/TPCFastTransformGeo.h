@@ -17,7 +17,7 @@
 #define ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_TPCFASTTRANSFORMGEO_H
 
 #include "GPUCommonDef.h"
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <memory>
 #endif
 
@@ -114,6 +114,9 @@ class TPCFastTransformGeo
 
   /// Gives Z length of the TPC, side C
   GPUd() float getTPCzLengthC() const { return mTPCzLengthC; }
+
+  /// Gives TPC alignment in Z
+  GPUd() float getTPCalignmentZ() const { return mTPCalignmentZ; }
 
   /// _______________  Conversion of coordinate systems __________
 

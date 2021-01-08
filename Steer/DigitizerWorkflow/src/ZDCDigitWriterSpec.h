@@ -14,7 +14,8 @@
 #include "Framework/DataProcessorSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
-#include "ZDCSimulation/Digit.h"
+#include "DataFormatsZDC/ChannelData.h"
+#include "DataFormatsZDC/BCData.h"
 #include "ZDCSimulation/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -27,7 +28,7 @@ namespace zdc
 template <typename T>
 using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-o2::framework::DataProcessorSpec getZDCDigitWriterSpec()
+o2::framework::DataProcessorSpec getZDCDigitWriterSpec(bool mctruth = true)
 {
   using InputSpec = framework::InputSpec;
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
@@ -35,8 +36,9 @@ o2::framework::DataProcessorSpec getZDCDigitWriterSpec()
                                 "zdcdigits.root",
                                 "o2sim",
                                 1,
-                                BranchDefinition<std::vector<o2::zdc::Digit>>{InputSpec{"digitinput", "ZDC", "DIGITS"}, "ZDCDigit"},
-                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::zdc::MCLabel>>{InputSpec{"labelinput", "ZDC", "DIGITLBL"}, "ZDCDigitLabels"})();
+                                BranchDefinition<std::vector<o2::zdc::BCData>>{InputSpec{"digitBCinput", "ZDC", "DIGITSBC"}, "ZDCDigitBC"},
+                                BranchDefinition<std::vector<o2::zdc::ChannelData>>{InputSpec{"digitChinput", "ZDC", "DIGITSCH"}, "ZDCDigitCh"},
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::zdc::MCLabel>>{InputSpec{"labelinput", "ZDC", "DIGITLBL"}, "ZDCDigitLabels", mctruth ? 1 : 0})();
 }
 
 } // end namespace zdc

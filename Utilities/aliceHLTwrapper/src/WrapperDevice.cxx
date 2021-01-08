@@ -80,8 +80,9 @@ void WrapperDevice::InitTask()
   int iResult = 0;
 
   std::unique_ptr<Component> component(new o2::alice_hlt::Component);
-  if (!component.get())
+  if (!component.get()) {
     return /*-ENOMEM*/;
+  }
 
   // loop over program options, check if the option was used and
   // add it together with the parameter to the argument vector.
@@ -192,15 +193,17 @@ void WrapperDevice::Run()
         }
       }
     }
-    if (receivedAtLeastOneMessage)
+    if (receivedAtLeastOneMessage) {
       nReadCycles++;
+    }
     if (inputsReceived < numInputs) {
       continue;
     }
     mNSamples++;
     mTotalReadCycles += nReadCycles;
-    if (mMaxReadCycles < 0 || mMaxReadCycles < nReadCycles)
+    if (mMaxReadCycles < 0 || mMaxReadCycles < nReadCycles) {
       mMaxReadCycles = nReadCycles;
+    }
     // if (nReadCycles>1) {
     //   LOG(INFO) << "------ recieved complete Msg from " << numInputs << " input(s) after " << nReadCycles << " read cycles" ;
     // }
@@ -210,10 +213,12 @@ void WrapperDevice::Run()
 
     if (mLastSampleTime >= 0) {
       int sampleTimeDiff = duration.count() - mLastSampleTime;
-      if (mMinTimeBetweenSample < 0 || sampleTimeDiff < mMinTimeBetweenSample)
+      if (mMinTimeBetweenSample < 0 || sampleTimeDiff < mMinTimeBetweenSample) {
         mMinTimeBetweenSample = sampleTimeDiff;
-      if (mMaxTimeBetweenSample < 0 || sampleTimeDiff > mMaxTimeBetweenSample)
+      }
+      if (mMaxTimeBetweenSample < 0 || sampleTimeDiff > mMaxTimeBetweenSample) {
         mMaxTimeBetweenSample = sampleTimeDiff;
+      }
     }
     mLastSampleTime = duration.count();
     if (duration.count() - mLastCalcTime > 1000) {
@@ -286,10 +291,11 @@ void WrapperDevice::Run()
               memcpy(pTarget, opayload.mP, opayload.mSize);
               mMessages.emplace_back(move(msg));
             } else {
-              if (errorCount == maxError && errorCount++ > 0)
+              if (errorCount == maxError && errorCount++ > 0) {
                 LOG(ERROR) << "persistent error, suppressing further output";
-              else if (errorCount++ < maxError)
+              } else if (errorCount++ < maxError) {
                 LOG(ERROR) << "can not get output message from framework";
+              }
               iResult = -ENOMSG;
             }
           }
@@ -309,11 +315,12 @@ void WrapperDevice::Run()
             LOG(DEBUG) << "sending multipart message with " << mMessages.size() << " parts";
           }
         } else {
-          if (errorCount == maxError && errorCount++ > 0)
+          if (errorCount == maxError && errorCount++ > 0) {
             LOG(ERROR) << "persistent error, suppressing further output";
-          else if (errorCount++ < maxError)
+          } else if (errorCount++ < maxError) {
             LOG(ERROR) << "no output slot available (" << (fChannels.find("data-out") == fChannels.end() ? "uninitialized" : "0 slots")
                        << ")";
+          }
         }
         mMessages.clear();
       }

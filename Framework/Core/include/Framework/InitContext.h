@@ -7,16 +7,14 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_INIT_CONTEXT_H
-#define FRAMEWORK_INIT_CONTEXT_H
+#ifndef O2_FRAMEWORK_INIT_CONTEXT_H_
+#define O2_FRAMEWORK_INIT_CONTEXT_H_
 
-#include "Framework/ConfigParamRegistry.h"
-#include "Framework/ServiceRegistry.h"
+namespace o2::framework
+{
 
-namespace o2
-{
-namespace framework
-{
+class ServiceRegistry;
+class ConfigParamRegistry;
 
 // This is a utility class to reduce the amount of boilerplate when defining
 // an algorithm.
@@ -36,7 +34,6 @@ class InitContext
   ServiceRegistry& mServices;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif
+#endif // O2_FRAMEWORK_INIT_CONTEXT_H_

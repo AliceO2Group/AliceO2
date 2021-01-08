@@ -20,14 +20,14 @@
 #include "FairLogger.h"
 
 #include "ITSReconstruction/TrivialVertexer.h"
-#include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsITSMFT/CompCluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 using namespace o2::itsmft;
 using namespace o2::its;
 
-using Point3Df = Point3D<float>;
+using Point3Df = o2::math_utils::Point3D<float>;
 
 TrivialVertexer::TrivialVertexer() = default;
 
@@ -46,36 +46,36 @@ Bool_t TrivialVertexer::openInputFile(const Char_t* fname)
   mFile = TFile::Open(fname, "old");
   if (!mFile) {
     LOG(ERROR) << "TrivialVertexer::openInputFile() : "
-               << "Cannot open the input file !" << FairLogger::endl;
+               << "Cannot open the input file !";
     return kFALSE;
   }
   mTree = (TTree*)mFile->Get("o2sim");
   if (!mTree) {
     LOG(ERROR) << "TrivialVertexer::openInputFile() : "
-               << "Cannot get the input tree !" << FairLogger::endl;
+               << "Cannot get the input tree !";
     return kFALSE;
   }
   Int_t rc = mTree->SetBranchAddress("MCEventHeader.", &mHeader);
   if (rc != 0) {
     LOG(ERROR) << "TrivialVertexer::openInputFile() : "
-               << "Cannot get the input branch ! rc=" << rc << FairLogger::endl;
+               << "Cannot get the input branch ! rc=" << rc;
     return kFALSE;
   }
   return kTRUE;
 }
 
-void TrivialVertexer::process(const std::vector<Cluster>& clusters, std::vector<std::array<Double_t, 3>>& vertices)
+void TrivialVertexer::process(const std::vector<CompCluster>& clusters, std::vector<std::array<Double_t, 3>>& vertices)
 {
   if (mClsLabels == nullptr) {
     LOG(INFO) << "TrivialVertexer::process() : "
-              << "No cluster labels available ! Running with a default MC vertex..." << FairLogger::endl;
+              << "No cluster labels available ! Running with a default MC vertex...";
     vertices.emplace_back(std::array<Double_t, 3>{0., 0., 0.});
     return;
   }
 
   if (mTree == nullptr) {
     LOG(INFO) << "TrivialVertexer::process() : "
-              << "No MC information available ! Running with a default MC vertex..." << FairLogger::endl;
+              << "No MC information available ! Running with a default MC vertex...";
     vertices.emplace_back(std::array<Double_t, 3>{0., 0., 0.});
     return;
   }
@@ -102,6 +102,6 @@ void TrivialVertexer::process(const std::vector<Cluster>& clusters, std::vector<
     Double_t vz = mHeader->GetZ();
     vertices.emplace_back(std::array<Double_t, 3>{vx, vy, vz});
     LOG(INFO) << "TrivialVertexer::process() : "
-              << "MC event #" << mcEv << " with vertex (" << vx << ',' << vy << ',' << vz << ')' << FairLogger::endl;
+              << "MC event #" << mcEv << " with vertex (" << vx << ',' << vy << ',' << vz << ')';
   }
 }

@@ -43,12 +43,13 @@ class GPUTRDGeometry : public AliTRDgeometry
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#elif defined(HAVE_O2HEADERS)
+#elif defined(HAVE_O2HEADERS) //&& defined(GPUCA_GPUCODE)
 
 class TObjArray;
 #include "GPUDef.h"
-#include "TRDBase/TRDGeometryFlat.h"
-#include "TRDBase/TRDPadPlane.h"
+#include "TRDBase/GeometryFlat.h"
+#include "TRDBase/PadPlane.h"
+#include "DataFormatsTRD/Constants.h"
 #include "GPUCommonTransform3D.h"
 
 namespace GPUCA_NAMESPACE
@@ -56,20 +57,23 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 
-class GPUTRDpadPlane : private o2::trd::TRDPadPlane
+class GPUTRDpadPlane : private o2::trd::PadPlane
 {
  public:
   GPUd() float GetTiltingAngle() const { return getTiltingAngle(); }
   GPUd() float GetRowSize(int row) const { return getRowSize(row); }
+  GPUd() float GetColSize(int col) const { return getColSize(col); }
   GPUd() float GetRow0() const { return getRow0(); }
+  GPUd() float GetCol0() const { return getCol0(); }
   GPUd() float GetRowEnd() const { return getRowEnd(); }
   GPUd() float GetColEnd() const { return getColEnd(); }
   GPUd() float GetRowPos(int row) const { return getRowPos(row); }
   GPUd() float GetColPos(int col) const { return getColPos(col); }
   GPUd() float GetNrows() const { return getNrows(); }
+  GPUd() float GetNcols() const { return getNcols(); }
 };
 
-class GPUTRDGeometry : private o2::trd::TRDGeometryFlat
+class GPUTRDGeometry : private o2::trd::GeometryFlat
 {
  public:
   GPUd() static bool CheckGeometryAvailable() { return true; }
@@ -80,7 +84,7 @@ class GPUTRDGeometry : private o2::trd::TRDGeometryFlat
   GPUd() float GetPadPlaneRowSize(int layer, int stack, int row) const { return getPadPlane(layer, stack)->getRowSize(row); }
   GPUd() int GetGeomManagerVolUID(int det, int modId) const { return 0; }
 
-  // Base functionality of TRDGeometry
+  // Base functionality of Geometry
   GPUd() float GetTime0(int layer) const { return getTime0(layer); }
   GPUd() float GetCol0(int layer) const { return getCol0(layer); }
   GPUd() int GetLayer(int det) const { return getLayer(det); }
@@ -98,12 +102,12 @@ class GPUTRDGeometry : private o2::trd::TRDGeometryFlat
   GPUd() int GetRowMax(int layer, int stack, int sector) const { return getRowMax(layer, stack, sector); }
   GPUd() bool ChamberInGeometry(int det) const { return chamberInGeometry(det); }
 
-  static constexpr int kNstack = o2::trd::kNstack;
+  static constexpr int kNstack = o2::trd::constants::NSTACK;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#else
+#else // below are dummy definitions to enable building the standalone version with AliRoot
 
 #include "GPUDef.h"
 
@@ -147,7 +151,7 @@ class GPUTRDGeometry
   GPUd() float GetPadPlaneRowSize(int layer, int stack, int row) const { return 0; }
   GPUd() int GetGeomManagerVolUID(int det, int modId) const { return 0; }
 
-  // Base functionality of TRDGeometry
+  // Base functionality of Geometry
   GPUd() float GetTime0(int layer) const { return 0; }
   GPUd() float GetCol0(int layer) const { return 0; }
   GPUd() int GetLayer(int det) const { return 0; }
@@ -162,7 +166,7 @@ class GPUTRDGeometry
   GPUd() int GetStack(float z, int layer) const { return 0; }
   GPUd() float GetAlpha() const { return 0; }
   GPUd() bool IsHole(int la, int st, int se) const { return false; }
-  GPUd() int GetRowMax(int layer, int stack, int /*sector*/) const { return 0; }
+  GPUd() int GetRowMax(int layer, int stack, int /* sector */) const { return 0; }
   GPUd() bool ChamberInGeometry(int det) const { return false; }
 
   static CONSTEXPR int kNstack = 0;

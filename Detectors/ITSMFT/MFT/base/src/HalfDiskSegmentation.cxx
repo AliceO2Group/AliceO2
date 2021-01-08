@@ -41,7 +41,7 @@ HalfDiskSegmentation::HalfDiskSegmentation(UInt_t uniqueID) : VSegmentation(), m
   // constructor
   SetUniqueID(uniqueID);
 
-  LOG(DEBUG1) << "Start creating half-disk UniqueID = " << GetUniqueID() << FairLogger::endl;
+  LOG(DEBUG1) << "Start creating half-disk UniqueID = " << GetUniqueID();
 
   Geometry* mftGeom = Geometry::instance();
 
@@ -60,10 +60,11 @@ HalfDiskSegmentation::HalfDiskSegmentation(const HalfDiskSegmentation& input)
 {
 
   // copy constructor
-  if (input.mLadders)
+  if (input.mLadders) {
     mLadders = new TClonesArray(*(input.mLadders));
-  else
+  } else {
     mLadders = new TClonesArray("o2::mft::LadderSegmentation");
+  }
   mLadders->SetOwner(kTRUE);
 }
 
@@ -76,8 +77,9 @@ HalfDiskSegmentation::~HalfDiskSegmentation() { Clear(""); }
 void HalfDiskSegmentation::Clear(const Option_t* /*opt*/)
 {
 
-  if (mLadders)
+  if (mLadders) {
     mLadders->Delete();
+  }
   delete mLadders;
   mLadders = nullptr;
 }
@@ -103,7 +105,7 @@ void HalfDiskSegmentation::createLadders(TXMLEngine* xml, XMLNodePointer_t node)
       if (!attrName.CompareTo("iladder")) {
         iladder = attrVal.Atoi();
         if (iladder >= getNLadders() || iladder < 0) {
-          LOG(FATAL) << "Wrong ladder number : " << iladder << FairLogger::endl;
+          LOG(FATAL) << "Wrong ladder number : " << iladder;
         }
       } else if (!attrName.CompareTo("nsensor")) {
         nsensor = attrVal.Atoi();
@@ -120,7 +122,7 @@ void HalfDiskSegmentation::createLadders(TXMLEngine* xml, XMLNodePointer_t node)
       } else if (!attrName.CompareTo("psi")) {
         ang[2] = attrVal.Atof();
       } else {
-        LOG(ERROR) << "Unknwon Attribute name " << xml->GetAttrName(attr) << FairLogger::endl;
+        LOG(ERROR) << "Unknwon Attribute name " << xml->GetAttrName(attr);
       }
       attr = xml->GetNextAttr(attr);
     }
@@ -184,7 +186,8 @@ void HalfDiskSegmentation::print(Option_t* opt)
 
   getTransformation()->Print();
   if (opt && (strstr(opt, "ladder") || strstr(opt, "l"))) {
-    for (int i = 0; i < getNLadders(); i++)
+    for (int i = 0; i < getNLadders(); i++) {
       getLadder(i)->Print(opt);
+    }
   }
 }

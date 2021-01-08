@@ -11,10 +11,12 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include "Mocking.h"
 #include <boost/test/unit_test.hpp>
 #include "../src/DDSConfigHelpers.h"
 #include "../src/DeviceSpecHelpers.h"
 #include "../src/SimpleResourceManager.h"
+#include "../src/ComputingResourceHelpers.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceSpec.h"
@@ -23,13 +25,14 @@
 
 #include <chrono>
 #include <sstream>
+#include <thread>
 
 using namespace o2::framework;
 
 AlgorithmSpec simplePipe(o2::header::DataDescription what)
 {
   return AlgorithmSpec{[what](ProcessingContext& ctx) {
-    auto bData = ctx.outputs().make<int>(Output{"TST", what, 0}, 1);
+    auto& bData = ctx.outputs().make<int>(Output{"TST", what, 0}, 1);
   }};
 }
 
@@ -41,8 +44,8 @@ WorkflowSpec defineDataProcessing()
                    OutputSpec{"TST", "A2"}},
            AlgorithmSpec{[](ProcessingContext& ctx) {
              std::this_thread::sleep_for(std::chrono::seconds(1));
-             auto aData = ctx.outputs().make<int>(Output{"TST", "A1", 0}, 1);
-             auto bData = ctx.outputs().make<int>(Output{"TST", "A2", 0}, 1);
+             auto& aData = ctx.outputs().make<int>(Output{"TST", "A1", 0}, 1);
+             auto& bData = ctx.outputs().make<int>(Output{"TST", "A2", 0}, 1);
            }}},
           {"B",
            {InputSpec{"x", "TST", "A1"}},
@@ -63,16 +66,17 @@ WorkflowSpec defineDataProcessing()
            }}};
 }
 
-BOOST_AUTO_TEST_CASE(TestGraphviz)
+BOOST_AUTO_TEST_CASE(TestDDS)
 {
   auto workflow = defineDataProcessing();
   std::ostringstream ss{""};
-  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  auto configContext = makeEmptyConfigContext();
+  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
   std::vector<DeviceSpec> devices;
-  SimpleResourceManager rm(22000, 1000);
-  auto resources = rm.getAvailableResources();
+  std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
+  SimpleResourceManager rm(resources);
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, resources);
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, rm, "workflow-id");
   std::vector<DeviceControl> controls;
   std::vector<DeviceExecution> executions;
   controls.resize(devices.size());
@@ -90,21 +94,30 @@ BOOST_AUTO_TEST_CASE(TestGraphviz)
     }};
   DeviceSpecHelpers::prepareArguments(false, false,
                                       dataProcessorInfos,
-                                      devices, executions, controls);
+                                      devices, executions, controls,
+                                      "workflow-id");
   dumpDeviceSpec2DDS(ss, devices, executions);
-  BOOST_CHECK_EQUAL(ss.str(), R"EXPECTED(<topology id="o2-dataflow">
-   <decltask id="A">
-       <exe reachable="true">foo --id A --control static --log-color false --color false --jobs 4 --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
+  BOOST_CHECK_EQUAL(ss.str(), R"EXPECTED(<topology name="o2-dataflow">
+   <decltask name="A">
+       <exe reachable="true">foo --id A --control static --shm-monitor false --log-color false --color false --jobs 4 --severity info --shm-mlock-segment false --shm-segment-id 0 --shm-throw-bad-alloc true --shm-zero-segment false --session dpl_workflow-id --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
    </decltask>
-   <decltask id="B">
-       <exe reachable="true">foo --id B --control static --log-color false --color false --jobs 4 --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
+   <decltask name="B">
+       <exe reachable="true">foo --id B --control static --shm-monitor false --log-color false --color false --jobs 4 --severity info --shm-mlock-segment false --shm-segment-id 0 --shm-throw-bad-alloc true --shm-zero-segment false --session dpl_workflow-id --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
    </decltask>
-   <decltask id="C">
-       <exe reachable="true">foo --id C --control static --log-color false --color false --jobs 4 --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
+   <decltask name="C">
+       <exe reachable="true">foo --id C --control static --shm-monitor false --log-color false --color false --jobs 4 --severity info --shm-mlock-segment false --shm-segment-id 0 --shm-throw-bad-alloc true --shm-zero-segment false --session dpl_workflow-id --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
    </decltask>
-   <decltask id="D">
-       <exe reachable="true">foo --id D --control static --log-color false --color false --jobs 4 --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
+   <decltask name="D">
+       <exe reachable="true">foo --id D --control static --shm-monitor false --log-color false --color false --jobs 4 --severity info --shm-mlock-segment false --shm-segment-id 0 --shm-throw-bad-alloc true --shm-zero-segment false --session dpl_workflow-id --plugin-search-path $FAIRMQ_ROOT/lib --plugin dds</exe>
    </decltask>
+   <declcollection name="DPL">
+       <tasks>
+          <name>A</name>
+          <name>B</name>
+          <name>C</name>
+          <name>D</name>
+       </tasks>
+   </declcollection>
 </topology>
 )EXPECTED");
 }

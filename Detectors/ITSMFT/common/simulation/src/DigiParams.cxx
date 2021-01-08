@@ -22,7 +22,6 @@ using namespace o2::itsmft;
 DigiParams::DigiParams()
 {
   // make sure the defaults are consistent
-  setROFrameLength(mROFrameLength);
   setNSimSteps(mNSimSteps);
 }
 
@@ -52,7 +51,7 @@ void DigiParams::setChargeThreshold(int v, float frac2Account)
   }
   LOG(INFO) << "Set Alpide charge threshold to " << mChargeThreshold
             << ", single hit will be accounted from " << mMinChargeToAccount
-            << " electrons" << FairLogger::endl;
+            << " electrons";
 }
 
 //______________________________________________

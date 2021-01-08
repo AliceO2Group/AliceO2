@@ -1403,8 +1403,9 @@ void MagneticWrapperChebyshev::saveData(const char* outfile) const
 
   // TPCIntegral part
   fprintf(stream, "START TPCINT\n#Number of pieces\n%d\n", mNumberOfParameterizationTPC);
-  for (int ip = 0; ip < mNumberOfParameterizationTPC; ip++)
+  for (int ip = 0; ip < mNumberOfParameterizationTPC; ip++) {
     getParameterTPCIntegral(ip)->saveData(stream);
+  }
   fprintf(stream, "#\nEND TPCINT\n");
 
   // TPCRatIntegral part

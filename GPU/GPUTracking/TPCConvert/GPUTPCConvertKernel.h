@@ -23,11 +23,9 @@ namespace gpu
 class GPUTPCConvertKernel : public GPUKernelTemplate
 {
  public:
-  GPUhdi() static GPUDataTypes::RecoStep GetRecoStep() { return GPUDataTypes::RecoStep::TPCConversion; }
-#if defined(GPUCA_BUILD_TPCCONVERT) && !defined(GPUCA_ALIROOT_LIB) && defined(HAVE_O2HEADERS)
-  template <int iKernel = 0>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& processors);
-#endif
+  GPUhdi() CONSTEXPR static GPUDataTypes::RecoStep GetRecoStep() { return GPUDataTypes::RecoStep::TPCConversion; }
+  template <int iKernel = defaultKernel>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors);
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

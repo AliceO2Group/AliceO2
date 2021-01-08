@@ -23,7 +23,7 @@
   #define GPUWarning(...)
   #define GPUError(...)
   #define GPUFatal(...)
-#elif defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE_DEVICE) && !defined(GPUCA_NO_FMT)
+#elif defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE_DEVICE) && !defined(GPUCA_NO_FMT) && !defined(__HIPCC__)
   #include <fmt/printf.h>
   #define GPUInfo(string, ...)                 \
     {                                          \
@@ -40,7 +40,7 @@
       fmt::fprintf(stderr, string "\n", ##__VA_ARGS__); \
       throw std::exception();                           \
     }
-#elif defined(GPUCA_STANDALONE) || defined(GPUCA_GPUCODE_DEVICE) || (defined(GPUCA_ALIROOT_LIB) && defined(__CUDACC__) && defined(__cplusplus) && __cplusplus < 201703L)
+#elif defined(GPUCA_STANDALONE) || defined(GPUCA_GPUCODE_DEVICE) || (defined(GPUCA_ALIROOT_LIB) && defined(GPUCA_GPUCODE) && defined(__cplusplus) && __cplusplus < 201703L) || defined(__HIPCC__)
   // For standalone / CUDA / HIP, we just use printf, which should be available
   // Temporarily, we also have to handle CUDA on AliRoot with O2 defaults due to ROOT / CUDA incompatibilities
   #define GPUInfo(string, ...)            \
@@ -48,7 +48,7 @@
       printf(string "\n", ##__VA_ARGS__); \
     }
   #define GPUImportant(...) GPUInfo(__VA_ARGS__)
-  #ifdef GPUCA_GPUCODE_DEVICE
+  #if defined(GPUCA_GPUCODE_DEVICE) || defined(__HIPCC__)
     #define GPUWarning(...) GPUInfo(__VA_ARGS__)
     #define GPUError(...) GPUInfo(__VA_ARGS__)
     #define GPUFatal(...) GPUInfo(__VA_ARGS__)
@@ -103,7 +103,7 @@
   } // namespace
   } // namespace gpu
   } // namespace AliGPU
-#elif defined(GPUCA_O2_LIB)
+#elif defined(GPUCA_O2_LIB) || defined(GPUCA_O2_INTERFACE)
   // Forward to O2 LOGF logginf for O2
   #include "GPUCommonLogger.h"
   #define GPUInfo(...) LOGF(info, __VA_ARGS__)

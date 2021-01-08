@@ -11,10 +11,11 @@
 #ifndef ALICEO2_PHOS_DIGITIZER_H
 #define ALICEO2_PHOS_DIGITIZER_H
 
-#include "PHOSBase/Digit.h"
+#include "DataFormatsPHOS/Digit.h"
 #include "PHOSBase/Geometry.h"
+#include "PHOSCalib/CalibParams.h"
 #include "PHOSBase/Hit.h"
-#include "PHOSSimulation/MCLabel.h"
+#include "DataFormatsPHOS/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 namespace o2
@@ -33,42 +34,30 @@ class Digitizer : public TObject
   void finish();
 
   /// Steer conversion of hits to digits
-  void process(const std::vector<Hit>& hits, std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::phos::MCLabel>& labels);
+  void process(const std::vector<Hit>* hitsBg, const std::vector<Hit>* hitsS, std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::phos::MCLabel>& labels);
 
   void setEventTime(double t);
   double getEventTime() const { return mEventTime; }
 
-  void setContinuous(bool v) { mContinuous = v; }
-  bool isContinuous() const { return mContinuous; }
-
-  //  void setCoeffToNanoSecond(double cf) { mCoeffToNanoSecond = cf; }
-  //  double getCoeffToNanoSecond() const { return mCoeffToNanoSecond; }
-
-  void setCurrSrcID(int v);
-  int getCurrSrcID() const { return mCurrSrcID; }
-
   void setCurrEvID(int v);
   int getCurrEvID() const { return mCurrEvID; }
 
-  void setCoeffToNanoSecond(double c) { mCoeffToNanoSecond = c; }
-
  protected:
-  double NonLinearity(double e);
-  double DigitizeEnergy(double e);
-  double Decalibrate(double e);
-  double TimeResolution(double time, double e);
-  double SimulateNoiseEnergy();
-  double SimulateNoiseTime();
+  float nonLinearity(float e);
+  float uncalibrate(float e, int absId);
+  float uncalibrateT(float t, int absId, bool isHighGain);
+  float timeResolution(float time, float e);
+  float simulateNoiseEnergy(int absId);
+  float simulateNoiseTime();
 
  private:
-  const Geometry* mGeometry = nullptr; //!  PHOS geometry
-  double mEventTime = 0;               ///< global event time
-  double mCoeffToNanoSecond = 1.0;     ///< coefficient to convert event time (Fair) to ns
-  bool mContinuous = false;            ///< flag for continuous simulation
-  uint mROFrameMin = 0;                ///< lowest RO frame of current digits
-  uint mROFrameMax = 0;                ///< highest RO frame of current digits
-  int mCurrSrcID = 0;                  ///< current MC source from the manager
-  int mCurrEvID = 0;                   ///< current event ID from the manager
+  const Geometry* mGeometry = nullptr;       //!  PHOS geometry
+  const CalibParams* mCalibParams = nullptr; //! Calibration coefficients
+  double mEventTime = 0;                     ///< global event time
+  uint mROFrameMin = 0;                      ///< lowest RO frame of current digits
+  uint mROFrameMax = 0;                      ///< highest RO frame of current digits
+  int mCurrSrcID = 0;                        ///< current MC source from the manager
+  int mCurrEvID = 0;                         ///< current event ID from the manager
 
   ClassDefOverride(Digitizer, 2);
 };

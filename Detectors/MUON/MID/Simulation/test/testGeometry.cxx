@@ -22,7 +22,7 @@
 #include <boost/test/data/test_case.hpp>
 #include <fstream>
 #include <iostream>
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "TGeoManager.h"
 #include "MIDSimulation/Geometry.h"
 #include "MIDBase/GeometryTransformer.h"
@@ -72,14 +72,17 @@ bool areEqual(double a, double b)
   return std::fabs(b - a) < 1E-4; // 1E-4 cm = 1 micron
 }
 
-bool areEqual(const Point3D<double>& p1, const Point3D<double>& p2)
+bool areEqual(const o2::math_utils::Point3D<double>& p1, const o2::math_utils::Point3D<double>& p2)
 {
-  if (!areEqual(p1.x(), p2.x()))
+  if (!areEqual(p1.x(), p2.x())) {
     return false;
-  if (!areEqual(p1.y(), p2.y()))
+  }
+  if (!areEqual(p1.y(), p2.y())) {
     return false;
-  if (!areEqual(p1.z(), p2.z()))
+  }
+  if (!areEqual(p1.z(), p2.z())) {
     return false;
+  }
   return true;
 }
 

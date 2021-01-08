@@ -13,15 +13,16 @@
 /// \author ruben.shahoyan@cern.ch
 //
 #include "Field/MagFieldFast.h"
-#include <FairLogger.h>
-#include <TString.h>
-#include <TSystem.h>
+#include <GPUCommonLogger.h>
+
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <cmath>
 #include <fstream>
 #include <sstream>
+using namespace std;
+#endif
 
 using namespace o2::field;
-using namespace std;
 
 ClassImp(o2::field::MagFieldFast);
 
@@ -30,12 +31,16 @@ const float MagFieldFast::kSolR2Max[MagFieldFast::kNSolRRanges] = {80.f * 80.f, 
 
 const float MagFieldFast::kSolZMax = 550.0f;
 
+#ifndef GPUCA_STANDALONE
+#include <TString.h>
+#include <TSystem.h>
+
 //_______________________________________________________________________
 MagFieldFast::MagFieldFast(const string inpFName) : mFactorSol(1.f)
 {
   // c-tor
   if (!inpFName.empty() && !LoadData(inpFName)) {
-    LOG(FATAL) << "Failed to initialize from " << inpFName << FairLogger::endl;
+    LOG(FATAL) << "Failed to initialize from " << inpFName;
   }
 }
 
@@ -44,12 +49,12 @@ MagFieldFast::MagFieldFast(float factor, int nomField, const string inpFmt) : mF
 {
   // c-tor
   if (nomField != 2 && nomField != 5) {
-    LOG(FATAL) << "No parametrization for nominal field of " << nomField << " kG" << FairLogger::endl;
+    LOG(FATAL) << "No parametrization for nominal field of " << nomField << " kG";
   }
   TString pth;
   pth.Form(inpFmt.data(), nomField);
   if (!LoadData(pth.Data())) {
-    LOG(FATAL) << "Failed to initialize from " << pth.Data() << FairLogger::endl;
+    LOG(FATAL) << "Failed to initialize from " << pth.Data();
   }
 }
 
@@ -60,7 +65,7 @@ bool MagFieldFast::LoadData(const string inpFName)
 
   std::ifstream in(gSystem->ExpandPathName(inpFName.data()), std::ifstream::in);
   if (in.fail()) {
-    LOG(FATAL) << "Failed to open file " << inpFName << FairLogger::endl;
+    LOG(FATAL) << "Failed to open file " << inpFName;
     return false;
   }
   std::string line;
@@ -68,25 +73,28 @@ bool MagFieldFast::LoadData(const string inpFName)
   SolParam* curParam = nullptr;
 
   while (std::getline(in, line)) {
-    if (line.empty() || line[0] == '#')
+    if (line.empty() || line[0] == '#') {
       continue; // empy or comment
+    }
     std::stringstream ss(line);
     int cnt = 0;
 
     if (component < 0) {
-      while (cnt < 4 && (ss >> header[cnt++]))
+      while (cnt < 4 && (ss >> header[cnt++])) {
         ;
+      }
       if (cnt != 4) {
-        LOG(FATAL) << "Wrong header " << line << FairLogger::endl;
+        LOG(FATAL) << "Wrong header " << line;
         return false;
       }
       curParam = &mSolPar[header[0]][header[1]][header[2]];
     } else {
-      while (cnt < header[3] && (ss >> curParam->parBxyz[component][cnt++]))
+      while (cnt < header[3] && (ss >> curParam->parBxyz[component][cnt++])) {
         ;
+      }
       if (cnt != header[3]) {
         LOG(FATAL) << "Wrong data (npar=" << cnt << ") for param " << header[0] << " " << header[1] << " " << header[2]
-                   << " " << header[3] << " " << line << FairLogger::endl;
+                   << " " << header[3] << " " << line;
         return false;
       }
     }
@@ -97,12 +105,13 @@ bool MagFieldFast::LoadData(const string inpFName)
     }
   }
   //
-  LOG(INFO) << "Loaded " << nParams << " params from " << inpFName << FairLogger::endl;
+  LOG(INFO) << "Loaded " << nParams << " params from " << inpFName;
   if (nParams != kNSolRRanges * kNSolZRanges * kNQuadrants) {
-    LOG(FATAL) << "Was expecting " << kNSolRRanges * kNSolZRanges * kNQuadrants << " params" << FairLogger::endl;
+    LOG(FATAL) << "Was expecting " << kNSolRRanges * kNSolZRanges * kNQuadrants << " params";
   }
   return true;
 }
+#endif // GPUCA_STANDALONE
 
 //_______________________________________________________________________
 bool MagFieldFast::Field(const double xyz[3], double bxyz[3]) const
@@ -135,7 +144,7 @@ bool MagFieldFast::GetBcomp(EDim comp, const double xyz[3], double& b) const
 }
 
 //_______________________________________________________________________
-bool MagFieldFast::GetBcomp(EDim comp, const Point3D<float> xyz, double& b) const
+bool MagFieldFast::GetBcomp(EDim comp, const math_utils::Point3D<float> xyz, double& b) const
 {
   // get field
   int zSeg, rSeg, quadrant;
@@ -149,7 +158,7 @@ bool MagFieldFast::GetBcomp(EDim comp, const Point3D<float> xyz, double& b) cons
 }
 
 //_______________________________________________________________________
-bool MagFieldFast::GetBcomp(EDim comp, const Point3D<float> xyz, float& b) const
+bool MagFieldFast::GetBcomp(EDim comp, const math_utils::Point3D<float> xyz, float& b) const
 {
   // get field
   int zSeg, rSeg, quadrant;
@@ -193,7 +202,7 @@ bool MagFieldFast::Field(const float xyz[3], float bxyz[3]) const
 }
 
 //_______________________________________________________________________
-bool MagFieldFast::Field(const Point3D<float> xyz, float bxyz[3]) const
+bool MagFieldFast::Field(const math_utils::Point3D<float> xyz, float bxyz[3]) const
 {
   // get field
   int zSeg, rSeg, quadrant;
@@ -215,20 +224,24 @@ bool MagFieldFast::GetSegment(float x, float y, float z, int& zSeg, int& rSeg, i
   const float zGridSpaceInv = 1.f / (kSolZMax * 2 / kNSolZRanges);
   zSeg = -1;
   if (z < kSolZMax) {
-    if (z > -kSolZMax)
+    if (z > -kSolZMax) {
       zSeg = (z + kSolZMax) * zGridSpaceInv; // solenoid params
-    else {                                   // need to check dipole params
+    } else {                                 // need to check dipole params
       return false;
     }
-  } else
+  } else {
     return false;
+  }
   // R segment
   float xx = x * x, yy = y * y, rr = xx + yy;
-  for (rSeg = 0; rSeg < kNSolRRanges; rSeg++)
-    if (rr < kSolR2Max[rSeg])
+  for (rSeg = 0; rSeg < kNSolRRanges; rSeg++) {
+    if (rr < kSolR2Max[rSeg]) {
       break;
-  if (rSeg == kNSolRRanges)
-    return kFALSE;
+    }
+  }
+  if (rSeg == kNSolRRanges) {
+    return false;
+  }
   quadrant = GetQuadrant(x, y);
   return true;
 }

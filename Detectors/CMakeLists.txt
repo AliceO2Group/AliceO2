@@ -8,7 +8,9 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-# * add_subdirectory(Base) # already done earlier in src/CMakeLists.txt
+add_subdirectory(Base)
+add_subdirectory(Raw)
+add_subdirectory(CTF)
 
 add_subdirectory(Passive) # must be first as some detector's macros use it
 
@@ -20,8 +22,8 @@ add_subdirectory(HMPID)
 add_subdirectory(TOF)
 add_subdirectory(ZDC)
 
-# already done earlier as they are required for GPU and GPU is required for
-# Detectors/TPC ... * add_subdirectory(ITSMFT) * add_subdirectory(TRD)
+add_subdirectory(ITSMFT)
+add_subdirectory(TRD)
 
 add_subdirectory(MUON)
 
@@ -29,9 +31,21 @@ add_subdirectory(TPC)
 
 add_subdirectory(GlobalTracking)
 add_subdirectory(GlobalTrackingWorkflow)
+add_subdirectory(Vertexing)
+add_subdirectory(AOD)
+
+add_subdirectory(Calibration)
+add_subdirectory(DCS)
 
 if(BUILD_SIMULATION)
   add_subdirectory(gconfig)
+  o2_data_file(COPY gconfig DESTINATION Detectors)
 endif()
 
-o2_data_file(COPY Geometry gconfig DESTINATION Detectors)
+o2_data_file(COPY Geometry DESTINATION Detectors)
+
+if(ENABLE_UPGRADES)
+  add_subdirectory(Upgrades)
+else()
+  message(STATUS "Not building detectors for upgrades")
+endif()

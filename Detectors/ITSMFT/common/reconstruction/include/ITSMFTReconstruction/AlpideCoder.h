@@ -17,22 +17,29 @@
 #include <vector>
 #include <string>
 #include <cstdint>
-#include <FairLogger.h>
-#include <iostream>
+#include "Framework/Logger.h"
 #include "PayLoadCont.h"
+#include <map>
+#include <fmt/format.h>
 
 #include "ITSMFTReconstruction/PixelData.h"
+#include "ITSMFTReconstruction/DecodingStat.h"
+#include "DataFormatsITSMFT/NoiseMap.h"
+
+#define ALPIDE_DECODING_STAT
 
 /// \file AlpideCoder.h
 /// \brief class for the ALPIDE data decoding/encoding
 /// \author Ruben Shahoyan, ruben.shahoyan@cern.ch
 
-//#define _DEBUG_ALPIDE_DECODER_ // uncomment for debug mode
-
 namespace o2
 {
 namespace itsmft
 {
+
+/// Decoder / Encoder of ALPIDE payload stream.
+/// All decoding methods are static. Only a few encoding methods are non-static but can be made so
+/// if needed (will require to make the encoding buffers external to this class)
 
 class AlpideCoder
 {
@@ -64,6 +71,7 @@ class AlpideCoder
   static constexpr uint32_t ExpectChipEmpty = 0x1 << 2;
   static constexpr uint32_t ExpectRegion = 0x1 << 3;
   static constexpr uint32_t ExpectData = 0x1 << 4;
+  static constexpr uint32_t ExpectBUSY = 0x1 << 5;
   static constexpr int NRows = 512;
   static constexpr int NCols = 1024;
   static constexpr int NRegions = 32;
@@ -76,7 +84,10 @@ class AlpideCoder
   static constexpr uint32_t MaskDColID = MaskEncoder | MaskPixID; // mask for encoder + dcolumn combination
   static constexpr uint32_t MaskRegion = 0x1f;                    // region ID takes 5 bits max (0:31)
   static constexpr uint32_t MaskChipID = 0x0f;                    // chip id in module takes 4 bit max
-  static constexpr uint32_t MaskROFlags = 0x0f;                   // RO flags in chip header takes 4 bit max
+  static constexpr uint32_t MaskROFlags = 0x0f;                   // RO flags in chip trailer takes 4 bit max
+  static constexpr uint8_t MaskErrBusyViolation = 0x1 << 3;
+  static constexpr uint8_t MaskErrDataOverrun = 0x3 << 2;
+  static constexpr uint8_t MaskErrFatal = 0x7 << 1;
   static constexpr uint32_t MaskTimeStamp = 0xff;                 // Time stamps as BUNCH_COUNTER[10:3] bits
   static constexpr uint32_t MaskReserved = 0xff;                  // mask for reserved byte
   static constexpr uint32_t MaskHitMap = 0x7f;                    // mask for hit map: at most 7 hits in bits (0:6)
@@ -88,6 +99,8 @@ class AlpideCoder
   static constexpr uint32_t CHIPEMPTY = 0xe0;   // flag for empty chip
   static constexpr uint32_t DATALONG = 0x0000;  // flag for DATALONG
   static constexpr uint32_t DATASHORT = 0x4000; // flag for DATASHORT
+  static constexpr uint32_t BUSYOFF = 0xf0;     // flag for BUSY_OFF
+  static constexpr uint32_t BUSYON = 0xf1;      // flag for BUSY_ON
 
   // true if corresponds to DATALONG or DATASHORT: highest bit must be 0
   static bool isData(uint16_t v) { return (v & (0x1 << 15)) == 0; }
@@ -98,10 +111,14 @@ class AlpideCoder
 
   AlpideCoder() = default;
   ~AlpideCoder() = default;
-  //
+
+  static bool isEmptyChip(uint8_t b) { return (b & CHIPEMPTY) == CHIPEMPTY; }
+
+  static void setNoisyPixels(const NoiseMap* noise) { mNoisyPixels = noise; }
+
   /// decode alpide data for the next non-empty chip from the buffer
-  template <class T>
-  int decodeChip(ChipPixelData& chipData, T& buffer) const
+  template <class T, typename CG>
+  static int decodeChip(ChipPixelData& chipData, T& buffer, CG cidGetter)
   {
     // read record for single non-empty chip, updating on change module and cycle.
     // return number of records filled (>0), EOFFlag or Error
@@ -122,9 +139,12 @@ class AlpideCoder
       // ---------- chip info ?
       uint8_t dataCM = dataC & (~MaskChipID);
       //
-      if ((expectInp & ExpectChipEmpty) && dataCM == CHIPEMPTY) { // chip trailer was expected
-        chipData.setChipID(dataC & MaskChipID);                   // here we set the chip ID within the module
+      if ((expectInp & ExpectChipEmpty) && dataCM == CHIPEMPTY) { // empty chip was expected
+        chipData.setChipID(cidGetter(dataC & MaskChipID));        // here we set the global chip ID
         if (!buffer.next(timestamp)) {
+#ifdef ALPIDE_DECODING_STAT
+          chipData.setError(ChipStat::TruncatedChipEmpty);
+#endif
           return unexpectedEOF("CHIP_EMPTY:Timestamp");
         }
         expectInp = ExpectChipHeader | ExpectChipEmpty;
@@ -132,8 +152,11 @@ class AlpideCoder
       }
 
       if ((expectInp & ExpectChipHeader) && dataCM == CHIPHEADER) { // chip header was expected
-        chipData.setChipID(dataC & MaskChipID);                     // here we set the chip ID within the module
+        chipData.setChipID(cidGetter(dataC & MaskChipID));          // here we set the global chip ID
         if (!buffer.next(timestamp)) {
+#ifdef ALPIDE_DECODING_STAT
+          chipData.setError(ChipStat::TruncatedChipHeader);
+#endif
           return unexpectedEOF("CHIP_HEADER");
         }
         expectInp = ExpectRegion; // now expect region info
@@ -150,12 +173,30 @@ class AlpideCoder
       if ((expectInp & ExpectChipTrailer) && dataCM == CHIPTRAILER) { // chip trailer was expected
         expectInp = ExpectChipHeader | ExpectChipEmpty;
         chipData.setROFlags(dataC & MaskROFlags);
+#ifdef ALPIDE_DECODING_STAT
+        uint8_t roErr = dataC & MaskROFlags;
+        if (roErr) {
+          if (roErr == MaskErrBusyViolation) {
+            chipData.setError(ChipStat::BusyViolation);
+          } else if (roErr == MaskErrDataOverrun) {
+            chipData.setError(ChipStat::DataOverrun);
+          } else if (roErr == MaskErrFatal) {
+            chipData.setError(ChipStat::Fatal);
+          }
+        }
+#endif
         // in case there are entries in the "right" columns buffer, add them to the container
         if (nRightCHits) {
           colDPrev++;
           for (int ihr = 0; ihr < nRightCHits; ihr++) {
-            chipData.getData().emplace_back(rightColHits[ihr], colDPrev);
+            addHit(chipData, rightColHits[ihr], colDPrev);
           }
+        }
+        if (!chipData.getData().size() && !chipData.isErrorSet()) {
+          nRightCHits = 0;
+          colDPrev = 0xffff;
+          chipData.clear();
+          continue;
         }
         break;
       }
@@ -166,6 +207,9 @@ class AlpideCoder
                              // note that here we are checking on the byte rather than the short, need complete to ushort
           dataS = dataC << 8;
           if (!buffer.next(dataC)) {
+#ifdef ALPIDE_DECODING_STAT
+            chipData.setError(ChipStat::TruncatedRegion);
+#endif
             return unexpectedEOF("CHIPDATA");
           }
           dataS |= dataC;
@@ -182,7 +226,7 @@ class AlpideCoder
           if (colD != colDPrev) {
             colDPrev++;
             for (int ihr = 0; ihr < nRightCHits; ihr++) {
-              chipData.getData().emplace_back(rightColHits[ihr], colDPrev);
+              addHit(chipData, rightColHits[ihr], colDPrev);
             }
             colDPrev = colD;
             nRightCHits = 0; // reset the buffer
@@ -196,14 +240,22 @@ class AlpideCoder
           if (rightC) {
             rightColHits[nRightCHits++] = row; // col = colD+1
           } else {
-            chipData.getData().emplace_back(row, colD); // col = colD, left column hits are added directly to the container
+            addHit(chipData, row, colD); // col = colD, left column hits are added directly to the container
           }
 
           if ((dataS & (~MaskDColID)) == DATALONG) { // multiple hits ?
             uint8_t hitsPattern = 0;
             if (!buffer.next(hitsPattern)) {
+#ifdef ALPIDE_DECODING_STAT
+              chipData.setError(ChipStat::TruncatedLondData);
+#endif
               return unexpectedEOF("CHIP_DATA_LONG:Pattern");
             }
+#ifdef ALPIDE_DECODING_STAT
+            if (hitsPattern & (~MaskHitMap)) {
+              chipData.setError(ChipStat::WrongDataLongPattern);
+            }
+#endif
             for (int ip = 0; ip < HitMapSize; ip++) {
               if (hitsPattern & (0x1 << ip)) {
                 uint16_t addr = pixID + ip + 1, rowE = addr >> 1;
@@ -212,12 +264,15 @@ class AlpideCoder
                 if (rightC) { // same as above
                   rightColHits[nRightCHits++] = rowE;
                 } else {
-                  chipData.getData().emplace_back(rowE, colD + rightC); // left column hits are added directly to the container
+                  addHit(chipData, rowE, colD + rightC); // left column hits are added directly to the container
                 }
               }
             }
           }
         } else {
+#ifdef ALPIDE_DECODING_STAT
+          chipData.setError(ChipStat::NoDataFound);
+#endif
           LOG(ERROR) << "Expected DataShort or DataLong mask, got : " << dataS;
           return Error;
         }
@@ -225,32 +280,42 @@ class AlpideCoder
         continue; // end of DATA(SHORT or LONG) processing
       }
 
+      if (dataC == BUSYON) {
+#ifdef ALPIDE_DECODING_STAT
+        chipData.setError(ChipStat::BusyOn);
+#endif
+        continue;
+      }
+      if (dataC == BUSYOFF) {
+#ifdef ALPIDE_DECODING_STAT
+        chipData.setError(ChipStat::BusyOff);
+#endif
+        continue;
+      }
+
       if (!dataC) {
         buffer.clear(); // 0 padding reached (end of the cable data), no point in continuing
         break;
       }
-      std::stringstream stream;
-      stream << "Unknown word 0x" << std::hex << int(dataC) << " [mode = 0x" << int(expectInp) << "]";
-      return unexpectedEOF(stream.str().c_str()); // error
+#ifdef ALPIDE_DECODING_STAT
+      chipData.setError(ChipStat::UnknownWord);
+#endif
+      return unexpectedEOF(fmt::format("Unknown word 0x{:x} [expectation = 0x{:x}]", int(dataC), int(expectInp))); // error
     }
 
     return chipData.getData().size();
   }
 
   /// check if the byte corresponds to chip_header or chip_empty flag
-  bool isChipHeaderOrEmpty(uint8_t v) const
+  static bool isChipHeaderOrEmpty(uint8_t v)
   {
     v &= (~MaskChipID);
     return (v == CHIPEMPTY) || (v == CHIPHEADER);
   }
-  //
-  void print() const;
-  void reset();
-  //
   // methods to use for data encoding
 
-  uint8_t bc2TimeStamp(int bc) const { return (bc >> 3) & MaskTimeStamp; }
-  uint16_t timeStamp2BC(uint8_t ts) const { return uint16_t(ts) << 3; }
+  static uint8_t bc2TimeStamp(int bc) { return (bc >> 3) & MaskTimeStamp; }
+  static uint16_t timeStamp2BC(uint8_t ts) { return uint16_t(ts) << 3; }
 
   int encodeChip(PayLoadCont& buffer, const o2::itsmft::ChipPixelData& chipData,
                  uint16_t chipInModule, uint16_t bc, uint16_t roflags = 0);
@@ -260,8 +325,24 @@ class AlpideCoder
   {
     buffer.addFast(makeChipEmpty(chipInMod, bc));
   }
+  //
+  void print() const;
+  void reset();
 
  private:
+  /// Output a non-noisy fired pixel
+  static void addHit(ChipPixelData& chipData, short row, short col)
+  {
+    if (mNoisyPixels) {
+      auto chipID = chipData.getChipID();
+      if (mNoisyPixels->isNoisy(chipID, row, col)) {
+        return;
+      }
+    }
+
+    chipData.getData().emplace_back(row, col);
+  }
+
   ///< add pixed to compressed matrix, the data must be provided sorted in row/col, no check is done
   void addPixel(short row, short col)
   {
@@ -275,64 +356,46 @@ class AlpideCoder
   }
 
   ///< prepare chip header: 1010<chip id[3:0]><BUNCH COUNTER FOR FRAME[10:3] >
-  uint16_t makeChipHeader(short chipID, short bc)
+  static uint16_t makeChipHeader(short chipID, short bc)
   {
     uint16_t v = CHIPHEADER | (MaskChipID & chipID);
     v = (v << 8) | bc2TimeStamp(bc);
-#ifdef _DEBUG_ALPIDE_DECODER_
-    printf("makeChipHeader: chip:%d framdata:%d -> 0x%x\n", chipID, framestartdata, v);
-#endif
     return v;
   }
 
   ///< prepare chip trailer: 1011<readout flags[3:0]>
-  uint8_t makeChipTrailer(short roflags)
+  static uint8_t makeChipTrailer(short roflags)
   {
     uint8_t v = CHIPTRAILER | (MaskROFlags & roflags);
-#ifdef _DEBUG_ALPIDE_DECODER_
-    printf("makeChipTrailer: ROflags:%d -> 0x%x\n", roflags, v);
-#endif
     return v;
   }
 
   ///< prepare chip empty marker: 1110<chip id[3:0]><BUNCH COUNTER FOR FRAME[10:3] >
-  uint16_t makeChipEmpty(short chipID, short bc)
+  static uint16_t makeChipEmpty(short chipID, short bc)
   {
     uint16_t v = CHIPEMPTY | (MaskChipID & chipID);
     v = (v << 8) | bc2TimeStamp(bc);
-#ifdef _DEBUG_ALPIDE_DECODER_
-    printf("makeChipEmpty: chip:%d bc:%d -> 0x%x\n", chipID, bc, v);
-#endif
     return v;
   }
 
   ///< packs the address of region
-  uint8_t makeRegion(short reg)
+  static uint8_t makeRegion(short reg)
   {
     uint8_t v = REGION | (reg & MaskRegion);
-#ifdef _DEBUG_ALPIDE_DECODER_
-    printf("makeRegion: region:%d -> 0x%x\n", reg, v);
-#endif
     return v;
   }
 
   ///< packs the address for data short
-  uint16_t makeDataShort(short encoder, short address)
+  static uint16_t makeDataShort(short encoder, short address)
   {
     uint16_t v = DATASHORT | (MaskEncoder & (encoder << 10)) | (address & MaskPixID);
-#ifdef _DEBUG_ALPIDE_DECODER_
-    printf("makeDataShort: DCol:%d address:%d -> 0x%x\n", encoder, address, v);
-#endif
     return v;
   }
 
   // packs the address for data long
-  uint16_t makeDataLong(short encoder, short address)
+  static uint16_t makeDataLong(short encoder, short address)
   {
     uint16_t v = DATALONG | (MaskEncoder & (encoder << 10)) | (address & MaskPixID);
-#ifdef _DEBUG_ALPIDE_DECODER_
-    printf("makeDataLong: DCol:%d address:%d -> 0x%x\n", encoder, address, v);
-#endif
     return v;
   }
 
@@ -352,19 +415,18 @@ class AlpideCoder
   void resetMap();
 
   ///< error message on unexpected EOF
-  int unexpectedEOF(const char* message) const
-  {
-    printf("Error: unexpected EOF on %s\n", message);
-    return Error;
-  }
+  static int unexpectedEOF(const std::string& message);
 
   // =====================================================================
   //
+
+  static const NoiseMap* mNoisyPixels;
+
   // cluster map used for the ENCODING only
-  std::vector<short> mFirstInRow;   //! entry of 1st pixel of each non-empty row in the mPix2Encode
+  std::vector<int> mFirstInRow;     //! entry of 1st pixel of each non-empty row in the mPix2Encode
   std::vector<PixLink> mPix2Encode; //! pool of links: fired pixel + index of the next one in the row
   //
-  ClassDefNV(AlpideCoder, 1);
+  ClassDefNV(AlpideCoder, 3);
 };
 
 } // namespace itsmft

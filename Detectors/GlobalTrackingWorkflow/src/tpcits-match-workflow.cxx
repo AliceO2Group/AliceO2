@@ -9,7 +9,9 @@
 // or submit itself to any jurisdiction.
 
 #include "GlobalTrackingWorkflow/MatchTPCITSWorkflow.h"
-#include "SimConfig/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "Framework/CompletionPolicy.h"
+#include "TPCWorkflow/TPCSectorCompletionPolicy.h"
 
 using namespace o2::framework;
 
@@ -19,14 +21,26 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
-  workflowOptions.push_back(ConfigParamSpec{
-    "disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}});
+  std::vector<o2::framework::ConfigParamSpec> options{
+    {"use-ft0", o2::framework::VariantType::Bool, false, {"use FT0 in matching"}},
+    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
+    {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
+    {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
+    {"produce-calibration-data", o2::framework::VariantType::Bool, false, {"produce output for TPC vdrift calibration"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 
-  workflowOptions.push_back(ConfigParamSpec{
-    "use-FIT", o2::framework::VariantType::Bool, false, {"use FIT info for matching"}});
+  std::swap(workflowOptions, options);
+}
 
-  std::string keyvaluehelp("Semicolon separated key=value strings ...");
-  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
+// the matcher process requires the TPC sector completion to trigger and data on
+// all defined routes
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // the TPC sector completion policy checks when the set of TPC/CLUSTERNATIVE data is complete
+  // in addition we require to have input from all other routes
+  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("itstpc-track-matcher",
+                                                        o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll,
+                                                        InputSpec{"cluster", o2::framework::ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}})());
 }
 
 // ------------------------------------------------------------------
@@ -37,10 +51,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  // write the configuration used for the digitizer workflow
-  o2::conf::ConfigurableParam::writeINI("o2tpcits-match-recoflow_configuration.ini");
+  // write the configuration used for the workflow
+  o2::conf::ConfigurableParam::writeINI("o2matchtpcits-workflow_configuration.ini");
 
+  auto useFT0 = configcontext.options().get<bool>("use-ft0");
   auto useMC = !configcontext.options().get<bool>("disable-mc");
-  auto useFIT = configcontext.options().get<bool>("use-FIT");
-  return std::move(o2::globaltracking::getMatchTPCITSWorkflow(useMC, useFIT));
+  auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
+  auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
+  auto calib = configcontext.options().get<bool>("produce-calibration-data");
+  return std::move(o2::globaltracking::getMatchTPCITSWorkflow(useFT0, useMC, disableRootInp, disableRootOut, calib));
 }

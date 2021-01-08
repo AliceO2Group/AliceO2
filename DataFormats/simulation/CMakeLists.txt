@@ -12,9 +12,11 @@ o2_add_library(SimulationDataFormat
                SOURCES src/Stack.cxx
                        src/MCTrack.cxx
                        src/MCCompLabel.cxx
-                       src/RunContext.cxx
+                       src/MCEventLabel.cxx
+                       src/DigitizationContext.cxx
                        src/StackParam.cxx
                        src/MCEventHeader.cxx
+                       src/CustomStreamers.cxx
                PUBLIC_LINK_LIBRARIES ms_gsl::ms_gsl
                                      O2::DetectorsCommonDataFormats
                                      O2::GPUCommon O2::DetectorsBase
@@ -28,12 +30,14 @@ o2_target_root_dictionary(
           include/SimulationDataFormat/BaseHits.h
           include/SimulationDataFormat/MCTruthContainer.h
           include/SimulationDataFormat/MCCompLabel.h
+          include/SimulationDataFormat/MCEventLabel.h
           include/SimulationDataFormat/TrackReference.h
           include/SimulationDataFormat/PrimaryChunk.h
-          include/SimulationDataFormat/RunContext.h
+          include/SimulationDataFormat/DigitizationContext.h
           include/SimulationDataFormat/LabelContainer.h
           include/SimulationDataFormat/MCEventHeader.h
           include/SimulationDataFormat/MCEventStats.h
+          include/SimulationDataFormat/IOMCTruthContainerView.h
   LINKDEF src/SimulationDataLinkDef.h)
 # note the explicit LINKDEF as the linkdef in src is
 #
@@ -52,6 +56,11 @@ o2_add_test(MCTruthContainer
 
 o2_add_test(MCCompLabel
             SOURCES test/testMCCompLabel.cxx
+            COMPONENT_NAME SimulationDataFormat
+            PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat)
+
+o2_add_test(MCEventLabel
+            SOURCES test/testMCEventLabel.cxx
             COMPONENT_NAME SimulationDataFormat
             PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat)
 

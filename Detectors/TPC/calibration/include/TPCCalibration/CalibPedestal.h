@@ -23,6 +23,9 @@
 #include "TPCBase/CalDet.h"
 #include "TPCBase/CRU.h"
 #include "TPCCalibration/CalibRawBase.h"
+#include "TPCCalibration/CalibPedestalParam.h"
+
+class TH2;
 
 namespace o2
 {
@@ -41,16 +44,19 @@ class CalibPedestal : public CalibRawBase
  public:
   using vectorType = std::vector<float>;
 
-  enum class StatisticsType {
-    GausFit,   ///< Use Gaus fit for pedestal and noise
-    MeanStdDev ///< Use mean and standard deviation
-  };
+  //enum class StatisticsType {
+  //GausFit,   ///< Use Gaus fit for pedestal and noise
+  //MeanStdDev ///< Use mean and standard deviation
+  //};
 
   /// default constructor
   CalibPedestal(PadSubset padSubset = PadSubset::ROC);
 
   /// default destructor
   ~CalibPedestal() override = default;
+
+  /// initialize the clusterer from CalibPedestalParam
+  void init();
 
   /// update function called once per digit
   ///
@@ -103,10 +109,13 @@ class CalibPedestal : public CalibRawBase
   StatisticsType getStatisticsType() const { return mStatisticsType; }
 
   /// Dump the relevant data to file
-  void dumpToFile(const std::string filename) final;
+  void dumpToFile(const std::string filename, uint32_t type = 0) final;
 
   /// Dummy end event
   void endEvent() final{};
+
+  /// generate a control histogram
+  TH2* createControlHistogram(ROC roc);
 
  private:
   int mFirstTimeBin;              ///< first time bin used in analysis

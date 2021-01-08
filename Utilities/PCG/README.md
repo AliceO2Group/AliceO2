@@ -1,4 +1,6 @@
+<!-- doxy
 \page refUtilitiesPCG PCG
+/doxy -->
 
 # PCG Random Number Generation, C++ Edition
 

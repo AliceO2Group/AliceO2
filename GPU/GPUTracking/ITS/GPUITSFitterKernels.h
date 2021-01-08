@@ -15,17 +15,12 @@
 #define GPUITSFITTERKERNELS_H
 
 #include "GPUGeneralKernels.h"
-namespace o2
-{
-namespace its
+namespace o2::its
 {
 struct TrackingFrameInfo;
-}
-} // namespace o2
+} // namespace o2::its
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 class GPUTPCGMPropagator;
 class GPUITSFitter;
@@ -34,16 +29,13 @@ class GPUITSTrack;
 class GPUITSFitterKernel : public GPUKernelTemplate
 {
  public:
-  GPUhdi() static GPUDataTypes::RecoStep GetRecoStep() { return GPUDataTypes::RecoStep::ITSTracking; }
-#if defined(GPUCA_BUILD_ITS)
-  template <int iKernel = 0>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& processors);
+  GPUhdi() CONSTEXPR static GPUDataTypes::RecoStep GetRecoStep() { return GPUDataTypes::RecoStep::ITSTracking; }
+  template <int iKernel = defaultKernel>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors);
 
  protected:
   GPUd() static bool fitTrack(GPUITSFitter& Fitter, GPUTPCGMPropagator& prop, GPUITSTrack& track, int start, int end, int step);
-#endif
 };
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

@@ -86,6 +86,8 @@ class RawBufferContext
     // payload will be cleared by the mMessages.clear()
     for (auto& m : mMessages) {
       assert(m.header == nullptr);
+      // NOTE: payloads can be empty so m.payload == nullptr should
+      //       be an actual issue.
       assert(m.payload != nullptr);
       m.destroyPayload();
       m.payload = nullptr;

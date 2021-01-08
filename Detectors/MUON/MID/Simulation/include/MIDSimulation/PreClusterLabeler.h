@@ -16,6 +16,7 @@
 #define O2_MID_PRECLUSTERLABELER_H
 
 #include <gsl/gsl>
+#include "DataFormatsMID/ROFRecord.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "MIDClustering/PreCluster.h"
@@ -28,7 +29,7 @@ namespace mid
 class PreClusterLabeler
 {
  public:
-  void process(gsl::span<const PreCluster> preClusters, const o2::dataformats::MCTruthContainer<MCLabel>& inMCContainer);
+  void process(gsl::span<const PreCluster> preClusters, const o2::dataformats::MCTruthContainer<MCLabel>& inMCContainer, gsl::span<const ROFRecord> rofRecordsPC, gsl::span<const ROFRecord> rofRecordsData);
 
   const o2::dataformats::MCTruthContainer<MCCompLabel>& getContainer() { return mMCContainer; }
 
@@ -36,7 +37,7 @@ class PreClusterLabeler
   bool isDuplicated(size_t idx, const MCLabel& label) const;
   bool addLabel(size_t idx, const MCLabel& label);
 
-  o2::dataformats::MCTruthContainer<MCCompLabel> mMCContainer; ///< Labels
+  o2::dataformats::MCTruthContainer<MCCompLabel> mMCContainer{}; ///< Labels
 };
 } // namespace mid
 } // namespace o2

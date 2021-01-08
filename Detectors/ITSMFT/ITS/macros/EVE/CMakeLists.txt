@@ -8,7 +8,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_test_root_macro(DisplayEvents.C
+o2_add_test_root_macro(DisplayEventsComp.C
                        PUBLIC_LINK_LIBRARIES O2::EventVisualisationView
                                              O2::ITSMFTReconstruction
                                              O2::ITSBase O2::DataFormatsITS

@@ -42,6 +42,7 @@ class HeatExchanger
   void createHalfDisk3(Int_t half);
   void createHalfDisk4(Int_t half);
   void createManifold(Int_t disk);
+  void createCoolingPipes(Int_t half, Int_t disk);
 
   Double_t getWaterRadius() { return mRWater; }
   void setWaterRadius(Double_t& Rwater) { mRWater = Rwater; }
@@ -60,6 +61,7 @@ class HeatExchanger
   TGeoMedium* mPipe;
   TGeoMedium* mCarbon;
   TGeoMedium* mRohacell;
+  TGeoMedium* mPeek;
 
  private:
   void initParameters();
@@ -82,7 +84,8 @@ class HeatExchanger
 
   Double_t mRohacellThickness;
 
-  Double_t mMoreLength; // additional length of water pipes outside the rohacell plate
+  Double_t mMoreLength01; // additional length of carbon plates compare to the rohacell plate, disk 0 and 1
+  Double_t mMoreLength;   // additional length of carbon plates compare to the rohacell plate
 
   // Parameters for carbon and Rohacell
   Int_t mNDisks;      // number of planes

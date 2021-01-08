@@ -10,7 +10,7 @@
 
 # Preamble
 
-cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.17 FATAL_ERROR)
 
 # it's important to specify accurately the list of languages. for instance C and
 # C++ as we _do_ have some C files to compile explicitely as C (e.g. gl3w.c)
@@ -34,6 +34,10 @@ o2_check_cxx_features()
 
 include(O2DefineOptions)
 o2_define_options()
+# see if upgrade is enabled
+if (ENABLE_UPGRADES)
+  add_definitions(-DENABLE_UPGRADES)
+endif()
 
 include(O2DefineOutputPaths)
 o2_define_output_paths()
@@ -44,6 +48,15 @@ o2_define_rpath()
 # External dependencies
 include(dependencies/CMakeLists.txt)
 
+# This is needed because CI might not have X11 or Cocoa available
+if (DPL_TESTS_BATCH_MODE)
+  set(DPL_WORKFLOW_TESTS_EXTRA_OPTIONS -b)
+endif()
+
+if (DPL_ENABLE_TRACING)
+  add_definitions(-DDPL_ENABLE_TRACING)
+endif()
+
 # include macros and functions that are used in the following subdirectories'
 # CMakeLists.txt
 include(O2AddExecutable)
@@ -51,41 +64,28 @@ include(O2AddHeaderOnlyLibrary)
 include(O2AddLibrary)
 include(O2AddTest)
 include(O2AddTestRootMacro)
+include(O2ReportNonTestedMacros)
 include(O2TargetRootDictionary)
 include(O2DataFile)
 include(O2TargetManPage)
+include(O2AddWorkflow)
+include(O2SetROOTPCMDependencies)
 
 # Main targets of the project in various subdirectories. Order matters.
-add_subdirectory(Common/Constants)
-add_subdirectory(Framework/Logger)
-add_subdirectory(GPU/Common)
-add_subdirectory(Common/MathUtils)
-add_subdirectory(DataFormats/Detectors/Common)
-add_subdirectory(DataFormats/common)
-add_subdirectory(DataFormats/Reconstruction)
 add_subdirectory(Common)
-add_subdirectory(DataFormats/MemoryResources)
-add_subdirectory(DataFormats/Headers)
-add_subdirectory(Utilities/O2Device)
+add_subdirectory(Framework)
+add_subdirectory(GPU)
+add_subdirectory(DataFormats)
+add_subdirectory(Utilities)
 add_subdirectory(CCDB)
 add_subdirectory(Algorithm)
-add_subdirectory(DataFormats/Parameters)
-add_subdirectory(Detectors/Base)
-add_subdirectory(DataFormats/simulation)
-add_subdirectory(Detectors/ITSMFT/common/base)
-add_subdirectory(DataFormats/Detectors)
-add_subdirectory(DataFormats/TimeFrame)
-add_subdirectory(Utilities/PCG)
-add_subdirectory(Framework)
+add_subdirectory(Detectors)
 add_subdirectory(EventVisualisation)
 add_subdirectory(Generators)
-add_subdirectory(Detectors/TRD)
-add_subdirectory(Detectors/ITSMFT)
-add_subdirectory(GPU)
-add_subdirectory(Detectors)
-add_subdirectory(Framework/TestWorkflows)
-add_subdirectory(Utilities)
 add_subdirectory(Steer) # consider building this only for simulation ?
+add_subdirectory(prodtests)
+add_subdirectory(Analysis)
+add_subdirectory(scripts)
 
 if(BUILD_EXAMPLES)
   add_subdirectory(Examples)
@@ -110,9 +110,9 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   endif()
   if(BUILD_TEST_ROOT_MACROS)
     add_subdirectory(macro)
-    include(O2ReportNonTestedMacros)
     o2_report_non_tested_macros()
   endif()
   add_subdirectory(packaging)
-
 endif()
+
+set_root_pcm_dependencies()

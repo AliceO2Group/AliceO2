@@ -29,18 +29,19 @@ using namespace o2::passive;
 
 Shil::~Shil() = default;
 
-Shil::Shil() : FairModule("Shil", "") {}
-Shil::Shil(const char* name, const char* Title) : FairModule(name, Title) {}
+Shil::Shil() : PassiveBase("SHIL", "") {}
+Shil::Shil(const char* name, const char* Title) : PassiveBase(name, Title) {}
 Shil::Shil(const Shil& rhs) = default;
 
 Shil& Shil::operator=(const Shil& rhs)
 {
   // self assignment
-  if (this == &rhs)
+  if (this == &rhs) {
     return *this;
+  }
 
   // base class assignment
-  FairModule::operator=(rhs);
+  PassiveBase::operator=(rhs);
 
   return *this;
 }
@@ -85,8 +86,9 @@ TGeoPcon* MakeShapeFromTemplate(const TGeoPcon* pcon, Float_t drMin, Float_t drM
   //
   Int_t nz = pcon->GetNz();
   TGeoPcon* cpcon = new TGeoPcon(0., 360., nz);
-  for (Int_t i = 0; i < nz; i++)
+  for (Int_t i = 0; i < nz; i++) {
     cpcon->DefineSection(i, pcon->GetZ(i), pcon->GetRmin(i) + drMin, pcon->GetRmax(i) + drMax);
+  }
   return cpcon;
 }
 } // namespace
@@ -182,30 +184,30 @@ void Shil::ConstructGeometry()
   //    Outer radius at the end of the tail
   Float_t rOuFaWTailE = 31.6 / 2.;
   //    Total length of the tail
-  const Float_t dzFaWTail = 70.7;
+  const Float_t dzFaWTail = 70.7 - 6.;
 
-  TGeoPcon* shFaWTail = new TGeoPcon(0., 360., 10);
+  TGeoPcon* shFaWTail = new TGeoPcon(0., 360., 8);
   z = 0.;
-  //    Flange section inside FA
-  shFaWTail->DefineSection(0, z, rInFaWTail1, rOuFaWTail1);
-  z += dzFaWTail1;
-  shFaWTail->DefineSection(1, z, rInFaWTail2, rOuFaWTail1);
-  shFaWTail->DefineSection(2, z, rInFaWTail2, rOuFaWTail2);
+  //    Flange section inside FA (moved to ABSO)
+  //  shFaWTail->DefineSection(0, z, rInFaWTail1, rOuFaWTail1);
+  //  z += dzFaWTail1;
+  //  shFaWTail->DefineSection(1, z, rInFaWTail2, rOuFaWTail1);
+  shFaWTail->DefineSection(0, z, rInFaWTail2, rOuFaWTail2);
   //    Flange section outside FA
   z += dzFaWTail2;
-  shFaWTail->DefineSection(3, z, rInFaWTail3, rOuFaWTail3);
-  shFaWTail->DefineSection(4, z, rInFaWTail3, rOuFaWTailR);
+  shFaWTail->DefineSection(1, z, rInFaWTail3, rOuFaWTail3);
+  shFaWTail->DefineSection(2, z, rInFaWTail3, rOuFaWTailR);
   //    Recess Station 1
   z += dzFaWTailR;
-  shFaWTail->DefineSection(5, z, rInFaWTail4, rOuFaWTailR);
-  shFaWTail->DefineSection(6, z, rInFaWTailS, rOuFaWTail4);
+  shFaWTail->DefineSection(3, z, rInFaWTail4, rOuFaWTailR);
+  shFaWTail->DefineSection(4, z, rInFaWTailS, rOuFaWTail4);
   //    Bulge
   z += dzFaWTailB;
-  shFaWTail->DefineSection(7, z, rInFaWTailS, rOuFaWTailB);
-  shFaWTail->DefineSection(8, z, rInFaWTailS, rOuFaWTailE);
+  shFaWTail->DefineSection(5, z, rInFaWTailS, rOuFaWTailB);
+  shFaWTail->DefineSection(6, z, rInFaWTailS, rOuFaWTailE);
   //    End
   z = dzFaWTail;
-  shFaWTail->DefineSection(9, z, rInFaWTailS, rOuFaWTailE);
+  shFaWTail->DefineSection(7, z, rInFaWTailS, rOuFaWTailE);
 
   TGeoVolume* voFaWTail = new TGeoVolume("YFaWTail", shFaWTail, kMedNiW);
   //
@@ -213,8 +215,8 @@ void Shil::ConstructGeometry()
   TGeoPcon* shFaWTailI = new TGeoPcon(0., 360., 4);
   z = 0.;
   dr = 3.5;
-  shFaWTailI->DefineSection(0, z, rInFaWTail1, rInFaWTail1 + dr);
-  z += (dzFaWTail1 + dzFaWTail2 + dzFaWTailR);
+  shFaWTailI->DefineSection(0, z, rInFaWTail2, rInFaWTail2 + dr);
+  z += (dzFaWTail2 + dzFaWTailR);
   shFaWTailI->DefineSection(1, z, rInFaWTail4, rInFaWTail4 + dr);
   shFaWTailI->DefineSection(2, z, rInFaWTailS, rInFaWTailS + dr);
   z = dzFaWTail;
@@ -1221,7 +1223,7 @@ void Shil::ConstructGeometry()
   TGeoVolumeAssembly* voSaa = new TGeoVolumeAssembly("YSAA");
   //
   //    Starting position of the FA Flange/Tail
-  const Float_t ziFaWTail = 499.0;
+  const Float_t ziFaWTail = 505.0;
   //    End of the FA Flange/Tail
   const Float_t zoFaWTail = ziFaWTail + dzFaWTail;
   //    Starting position of the FA/SAA1 Joint (2.8 cm overlap with tail)
@@ -1268,46 +1270,52 @@ void Shil::ConstructGeometry()
   // Position of the dipole
   Float_t ziDipole = 741.;
 
-  TGeoPcon* shYOUT1 = new TGeoPcon(0., 360., 24);
+  TGeoPcon* shYOUT1 = new TGeoPcon(0., 360., 22);
   Float_t eps = 1.e-2;
   // FA Tail Section
   for (Int_t iz = 1; iz < 9; iz++) {
-    z = shFaWTail->GetZ(iz + 1);
-    if (iz == 8)
+    z = shFaWTail->GetZ(iz - 1);
+    if (iz == 8) {
       z -= ozFaSaa1;
-    shYOUT1->DefineSection(iz - 1, z + ziFaWTail, shFaWTail->GetRmax(iz + 1) + eps, 150.);
+    }
+    shYOUT1->DefineSection(iz - 1, z + ziFaWTail, shFaWTail->GetRmax(iz - 1) + eps, 150.);
   }
   // FA-SAA1 Joint
   z = shYOUT1->GetZ(7);
-
-  for (Int_t iz = 9; iz < 17; iz++)
-    shYOUT1->DefineSection(iz - 1, z + shFaSaa1->GetZ(iz - 9), shFaSaa1->GetRmax(iz - 9) + eps, 150.);
-
-  z = shYOUT1->GetZ(15) - ozSaa1;
+  Int_t izc = 8;
+  for (Int_t iz = 9; iz < 17; iz++) {
+    if (iz == 11 || iz == 15) {
+      continue;
+    }
+    shYOUT1->DefineSection(izc, z + shFaSaa1->GetZ(iz - 9), shFaSaa1->GetRmax(iz - 9) + eps, 150.);
+    izc++;
+  }
+  z = shYOUT1->GetZ(13) - ozSaa1;
   // SAA1  - Dipole
-  for (Int_t iz = 17; iz < 24; iz++)
-    shYOUT1->DefineSection(iz - 1, z + shSaa1M->GetZ(iz - 13), shSaa1M->GetRmax(iz - 13) + eps, 150.);
+  for (Int_t iz = 15; iz < 22; iz++) {
+    shYOUT1->DefineSection(iz - 1, z + shSaa1M->GetZ(iz - 11), shSaa1M->GetRmax(iz - 11) + eps, 150.);
+  }
   // Distance between dipole and start of SAA1 2deg opening cone
   dz = ziDipole - (zSaa1StEnv[0] - dSt + zSaa1StEnvS + ziSaa1);
   rOut = rOuSaa1StEnv2 + dz * TMath::Tan(2. * kDegRad);
 
-  shYOUT1->DefineSection(23, ziDipole, rOut + eps, 150.);
+  shYOUT1->DefineSection(21, ziDipole, rOut + eps, 150.);
 
   InvertPcon(shYOUT1);
   TGeoVolume* voYOUT1 = new TGeoVolume("YOUT1", shYOUT1, kMedAirMu);
   voYOUT1->SetVisibility(0);
 
   voYOUT1->AddNode(asSaa1ExtraShield, 1,
-                   new TGeoCombiTrans(0., 0., -(100.7 + 62.2 + saa1ExtraShieldL / 2. + ziFaWTail), rotxz));
+                   new TGeoCombiTrans(0., 0., -(100.7 + 56.2 + saa1ExtraShieldL / 2. + ziFaWTail), rotxz));
   voYOUT1->AddNode(asFaExtraShield, 1,
-                   new TGeoCombiTrans(0., 0., -(16.41 - 1.46 + kFaWring2HWidth + ziFaWTail), rotxz));
+                   new TGeoCombiTrans(0., 0., -(16.41 - 7.46 + kFaWring2HWidth + ziFaWTail), rotxz));
   top->AddNode(voYOUT1, 1, gGeoIdentity);
   //
   //  Mother volume for muon stations 4+5 and trigger stations.
   //
   Float_t zoDipole = 1249.;
 
-  TGeoPcon* shYOUT21 = new TGeoPcon(0., 360., 14);
+  TGeoPcon* shYOUT21 = new TGeoPcon(0., 360., 12);
   z = zoDipole;
   shYOUT21->DefineSection(0, z, rOuSaa1String, 375.);
   //    Start of SAA1-SAA2
@@ -1318,23 +1326,21 @@ void Shil::ConstructGeometry()
   z = ziSaa2;
   shYOUT21->DefineSection(3, z, rOuSaa1Saa2Steel, 375.);
   //    SAA2
-  shYOUT21->DefineSection(4, z, rInSaa2StEnv1 + dSt, 375.);
   z = ziSaa2 + zSaa2PbRing;
-  shYOUT21->DefineSection(5, z, rInSaa2StEnv1 + dSt, 375.);
+  shYOUT21->DefineSection(4, z, rInSaa2StEnv1 + dSt, 375.);
   //    Pb Cone
-  shYOUT21->DefineSection(6, z, rOuSaa2PbRingF, 375.);
+  shYOUT21->DefineSection(5, z, rOuSaa2PbRingF, 375.);
   rmin = rOuSaa2PbRingF + (1380. - z) * TMath::Tan(1.6 * kDegRad);
-  shYOUT21->DefineSection(7, 1380., rmin, 375.);
-  shYOUT21->DefineSection(8, 1380., rmin, 375.);
+  shYOUT21->DefineSection(6, 1380., rmin, 375.);
   z = ziSaa2 + zSaa2PbRing + dzSaa2PbRing;
-  shYOUT21->DefineSection(9, z, rOuSaa2PbRingR, 375.);
+  shYOUT21->DefineSection(7, z, rOuSaa2PbRingR, 375.);
   //    Straight Sections
-  shYOUT21->DefineSection(10, z, rInSaa2StEnv1 + dSt, 460.);
+  shYOUT21->DefineSection(8, z, rInSaa2StEnv1 + dSt, 460.);
   z = ziSaa2 + dzSaa2StEnv1;
-  shYOUT21->DefineSection(11, z, rInSaa2StEnv1 + dSt, 460.);
-  shYOUT21->DefineSection(12, z, rInSaa2StEnv2 + dSt, 460.);
+  shYOUT21->DefineSection(9, z, rInSaa2StEnv1 + dSt, 460.);
+  shYOUT21->DefineSection(10, z, rInSaa2StEnv2 + dSt, 460.);
   z += dzSaa2StEnv2;
-  shYOUT21->DefineSection(13, z, rInSaa2StEnv2 + dSt, 460.);
+  shYOUT21->DefineSection(11, z, rInSaa2StEnv2 + dSt, 460.);
 
   InvertPcon(shYOUT21);
   shYOUT21->SetName("shYOUT21");

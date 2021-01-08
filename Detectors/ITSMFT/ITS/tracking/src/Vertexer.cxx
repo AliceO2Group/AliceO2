@@ -18,6 +18,9 @@
 #include "ITStracking/ClusterLines.h"
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/VertexerTraits.h"
+#include "ITStracking/TrackingConfigParam.h"
+
+#include <array>
 
 namespace o2
 {
@@ -35,9 +38,11 @@ float Vertexer::clustersToVertices(ROframe& event, const bool useMc, std::ostrea
   float total{0.f};
   total += evaluateTask(&Vertexer::initialiseVertexer, "Vertexer initialisation", timeBenchmarkOutputStream, eventptr);
   total += evaluateTask(&Vertexer::findTracklets, "Tracklet finding", timeBenchmarkOutputStream);
+#ifdef _ALLOW_DEBUG_TREES_ITS_
   if (useMc) {
     total += evaluateTask(&Vertexer::filterMCTracklets, "MC tracklets filtering", timeBenchmarkOutputStream);
   }
+#endif
   total += evaluateTask(&Vertexer::validateTracklets, "Adjacent tracklets validation", timeBenchmarkOutputStream);
   total += evaluateTask(&Vertexer::findVertices, "Vertex finding", timeBenchmarkOutputStream);
 
@@ -49,5 +54,26 @@ void Vertexer::findVertices()
   mTraits->computeVertices();
 }
 
+void Vertexer::findHistVertices()
+{
+  mTraits->computeHistVertices();
+}
+
+void Vertexer::getGlobalConfiguration()
+{
+  auto& vc = o2::its::VertexerParamConfig::Instance();
+
+  VertexingParameters verPar;
+  verPar.zCut = vc.zCut;
+  verPar.phiCut = vc.phiCut;
+  verPar.pairCut = vc.pairCut;
+  verPar.clusterCut = vc.clusterCut;
+  verPar.histPairCut = vc.histPairCut;
+  verPar.tanLambdaCut = vc.tanLambdaCut;
+  verPar.clusterContributorsCut = vc.clusterContributorsCut;
+  verPar.phiSpan = vc.phiSpan;
+
+  mTraits->updateVertexingParameters(verPar);
+}
 } // namespace its
 } // namespace o2

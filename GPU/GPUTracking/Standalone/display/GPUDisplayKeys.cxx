@@ -23,7 +23,7 @@ const char* HelpText[] = {
   "[l] / [k] / [J]               Draw single slice (next  / previous slice), draw related slices (same plane in phi)",
   "[;] / [:]                     Show splitting of TPC in slices by extruding volume, [:] resets",
   "[#]                           Invert colors",
-  "[y] / [Y] / ['] / [X] / [M]   Start Animation, Add / remove Animation point, Reset, Cycle mode",
+  "[y] / [Y] / ['] / [X] / [M]   Start Animation, Add / remove Animation point, Reset Points, Cycle animation camera mode (resets)",
   "[>] / [<]                     Toggle config interpolation during Animation / change Animation interval (via movement)",
   "[g]                           Draw Grid",
   "[i]                           Project onto XY-plane",
@@ -35,8 +35,8 @@ const char* HelpText[] = {
   "[L] / [K]                     Draw single collisions (next / previous)",
   "[C]                           Colorcode clusters of different collisions",
   "[v]                           Hide rejected clusters from tracks",
-  "[b]                           Hide all clusters not belonging or related to matched tracks",
   "[j]                           Show global tracks as additional segments of final tracks",
+  "[u]                           Cycle through track filter",
   "[E] / [G]                     Extrapolate tracks / loopers",
   "[t] / [T]                     Take Screenshot / Record Animation to pictures",
   "[Z]                           Change screenshot resolution (scaling factor)",
@@ -52,13 +52,14 @@ const char* HelpText[] = {
   "[e] / [f]                     Rotate",
   "[+] / [-]                     Make points thicker / fainter (Hold SHIFT for lines)",
   "[MOUSE 1]                     Look around",
-  "[MOUSE 2]                     Shift c3amera",
+  "[MOUSE 2]                     Shift camera",
   "[MOUSE 1+2]                   Zoom / Rotate",
   "[SHIFT]                       Slow Zoom / Move / Rotate",
   "[ALT] / [CTRL] / [m]          Focus camera on origin / orient y-axis upwards (combine with [SHIFT] to lock) / Cycle through modes",
   "[1] ... [8] / [N]             Enable display of clusters, preseeds, seeds, starthits, tracklets, tracks, global tracks, merged tracks / Show assigned clusters in colors"
   "[F1] / [F2]                   Enable / disable drawing of TPC / TRD"
-  // FREE: u
+  // FREE: b
+  // Test setting: # --> mHideUnmatchedClusters
 };
 
 void GPUDisplay::PrintHelp()
@@ -182,15 +183,18 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     if (mMarkAdjacentClusters == 9) {
       mMarkAdjacentClusters = 15;
     }
-    if (mMarkAdjacentClusters == 18) {
+    if (mMarkAdjacentClusters == 17) {
+      mMarkAdjacentClusters = 31;
+    }
+    if (mMarkAdjacentClusters == 34) {
       mMarkAdjacentClusters = 0;
     }
-    if (mMarkAdjacentClusters == 17) {
+    if (mMarkAdjacentClusters == 33) {
       SetInfo("Marking protected clusters (%d)", mMarkAdjacentClusters);
-    } else if (mMarkAdjacentClusters == 16) {
+    } else if (mMarkAdjacentClusters == 32) {
       SetInfo("Marking removable clusters (%d)", mMarkAdjacentClusters);
     } else {
-      SetInfo("Marking adjacent clusters (%d): rejected %s, tube %s, looper leg %s, low Pt %s", mMarkAdjacentClusters, (mMarkAdjacentClusters & 1) ? "yes" : " no", (mMarkAdjacentClusters & 2) ? "yes" : " no", (mMarkAdjacentClusters & 4) ? "yes" : " no", (mMarkAdjacentClusters & 8) ? "yes" : " no");
+      SetInfo("Marking adjacent clusters (%d): rejected %s, tube %s, looper leg %s, low Pt %s, high incl %s", mMarkAdjacentClusters, (mMarkAdjacentClusters & 1) ? "yes" : " no", (mMarkAdjacentClusters & 2) ? "yes" : " no", (mMarkAdjacentClusters & 4) ? "yes" : " no", (mMarkAdjacentClusters & 8) ? "yes" : " no", (mMarkAdjacentClusters & 16) ? "yes" : " no");
     }
     mUpdateDLList = true;
   } else if (key == 'C') {
@@ -214,10 +218,6 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     mHideRejectedClusters ^= 1;
     SetInfo("Rejected clusters are %s", mHideRejectedClusters ? "hidden" : "shown");
     mUpdateDLList = true;
-  } else if (key == 'b') {
-    mHideUnmatchedClusters ^= 1;
-    SetInfo("Unmatched clusters are %s", mHideRejectedClusters ? "hidden" : "shown");
-    mUpdateDLList = true;
   } else if (key == 'i') {
     mProjectXY ^= 1;
     SetInfo("Projection onto xy plane %s", mProjectXY ? "enabled" : "disabled");
@@ -230,8 +230,10 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     SetInfo("Smoothing of lines %s", mCfg.smoothLines ? "enabled" : "disabled");
   } else if (key == 'D') {
     mCfg.depthBuffer ^= true;
-    GLint depthBits;
+    GLint depthBits = 0;
+#ifndef GPUCA_DISPLAY_OPENGL_CORE
     glGetIntegerv(GL_DEPTH_BITS, &depthBits);
+#endif
     SetInfo("Depth buffer (z-buffer, %d bits) %s", depthBits, mCfg.depthBuffer ? "enabled" : "disabled");
     setDepthBuffer();
   } else if (key == 'W') {
@@ -353,11 +355,15 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     } else {
       SetInfo("Animation mode %d - Position: %s, Direction: %s", mCfg.animationMode, (mCfg.animationMode & 2) ? "Spherical (spherical rotation)" : (mCfg.animationMode & 4) ? "Spherical (Euler angles)" : "Cartesian", (mCfg.animationMode & 1) ? "Euler angles" : "Quaternion");
     }
+  } else if (key == 'u') {
+    mTrackFilter = (mTrackFilter + 1) % 3;
+    mUpdateDLList = true;
+    SetInfo("Track filter: %s", mTrackFilter == 2 ? "TRD Track candidates" : mTrackFilter ? "TRD Tracks only" : "None");
   } else if (key == 'o') {
     FILE* ftmp = fopen("glpos.tmp", "w+b");
     if (ftmp) {
-      int retval = fwrite(&mCurrentMatrix[0], sizeof(mCurrentMatrix[0]), 16, ftmp);
-      if (retval != 16) {
+      int retval = fwrite(&mViewMatrix, sizeof(mViewMatrix), 1, ftmp);
+      if (retval != 1) {
         GPUError("Error writing position to file");
       } else {
         GPUInfo("Position stored to file");
@@ -368,14 +374,10 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     }
     SetInfo("Camera position stored to file", 1);
   } else if (key == 'p') {
-    GLfloat tmp[16];
     FILE* ftmp = fopen("glpos.tmp", "rb");
     if (ftmp) {
-      int retval = fread(&tmp[0], sizeof(tmp[0]), 16, ftmp);
-      if (retval == 16) {
-        glMatrixMode(GL_MODELVIEW);
-        glLoadMatrixf(tmp);
-        glGetFloatv(GL_MODELVIEW_MATRIX, mCurrentMatrix);
+      int retval = fread(&mViewMatrix, 1, sizeof(mViewMatrix), ftmp);
+      if (retval == sizeof(mViewMatrix)) {
         GPUInfo("Position read from file");
       } else {
         GPUError("Error reading position from file");
@@ -423,12 +425,15 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     PrintHelp();
     SetInfo("Showing help text", 1);
   }
-  /*else if (key == '#')
-        {
-            mTestSetting++;
-            SetInfo("Debug test variable set to %d", mTestSetting);
-            mUpdateDLList = true;
-        }*/
+  /*
+  else if (key == '#')
+  {
+    mTestSetting++;
+    SetInfo("Debug test variable set to %d", mTestSetting);
+    // mHideUnmatchedClusters ^= 1;
+    mUpdateDLList = true;
+  }
+  */
 }
 
 void GPUDisplay::HandleSendKey(int key)

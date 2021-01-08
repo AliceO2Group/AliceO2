@@ -16,38 +16,28 @@
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
-#include <vector>
-#include <TObject.h>
-#include <TCollection.h>
+#include <Rtypes.h>
 
-namespace o2
-{
-namespace experimental::mergers
+namespace o2::mergers
 {
 
-/// \brief Interface allowing custom behaviour of Mergers components.
+/// \brief An interface which allows to merge custom objects.
 ///
-/// Interface allowing custom behaviour of Mergers components - unpacking the object into
-/// vector of objects, merging objects and providing timestamp of the object. Keep in mind,
-/// that you aside from implementing needed functions, one should activate them in MergerConfig.
+/// An interface which allows to merge custom objects.
+/// The custom class can inherit from TObject, but this is not an obligation.
 class MergeInterface
 {
  public:
+  // Please make sure to properly delete an object. If the inheriting class object is a container,
+  // make sure that all entries are correctly deleted as well.
   virtual ~MergeInterface() = default;
 
-  /// \brief Custom unpacking function.
-  virtual std::vector<TObject*> unpack() = 0;
-
-  /// \brief Custom merge function.
-  virtual Long64_t merge(TCollection* list) = 0;
-
-  /// \brief Timestamp getter function. It needs to return a timestamp when moving window functionality should be used.
-  virtual double getTimestamp() = 0;
+  /// \brief Custom merge function. Can return a number of merged entries/bins/etc for statistics.
+  virtual void merge(MergeInterface* const other) = 0; // const argument
 
   ClassDef(MergeInterface, 0);
 };
 
-} // namespace experimental::mergers
-} // namespace o2
+} // namespace o2::mergers
 
 #endif //ALICEO2_MERGEINTERFACE_H

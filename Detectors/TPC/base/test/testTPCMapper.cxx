@@ -59,8 +59,9 @@ BOOST_AUTO_TEST_CASE(Mapper_complex_test1)
     std::string line;
     const char* aliceO2env = std::getenv("O2_ROOT");
     std::string inputDir = " ";
-    if (aliceO2env)
+    if (aliceO2env) {
       inputDir = aliceO2env;
+    }
     inputDir += "/share/Detectors/TPC/files";
 
     std::string file = inputDir + mappingTables[i];
@@ -91,7 +92,8 @@ BOOST_AUTO_TEST_CASE(Mapper_complex_test1)
         /// \todo check CRU
         BOOST_CHECK(region == int(cru.region()));
         const PadRegionInfo& regionDigi = mapper.getPadRegionInfo(cru.region());
-        BOOST_CHECK(partion == int(regionDigi.getRegion()));
+        BOOST_CHECK(region == int(regionDigi.getRegion()));
+        BOOST_CHECK(partion == int(regionDigi.getPartition()));
 
         const int rowInSector = digi.getPadPos().getRow() + regionDigi.getGlobalRowOffset();
         BOOST_CHECK(padRow == rowInSector);

@@ -14,6 +14,7 @@
 #include "PropertyTreeHelpers.h"
 
 #include <boost/program_options.hpp>
+#include <boost/program_options/options_description.hpp>
 
 #include <string>
 #include <vector>
@@ -23,27 +24,33 @@
 using namespace o2::framework;
 namespace bpo = boost::program_options;
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
-BoostOptionsRetriever::BoostOptionsRetriever(std::vector<ConfigParamSpec> const& specs,
-                                             bool ignoreUnknown,
-                                             int& argc, char**& argv)
-  : mStore{},
-    mDescription{"ALICE O2 Framework - Available options"},
+BoostOptionsRetriever::BoostOptionsRetriever(bool ignoreUnknown,
+                                             int argc, char** argv)
+  : mDescription{std::make_unique<boost::program_options::options_description>("ALICE O2 Framework - Available options")},
+    mArgc{argc},
+    mArgv{argv},
     mIgnoreUnknown{ignoreUnknown}
 {
-  auto options = mDescription.add_options();
+}
+
+void BoostOptionsRetriever::update(std::vector<ConfigParamSpec> const& specs,
+                                   boost::property_tree::ptree& store,
+                                   boost::property_tree::ptree& provenance)
+{
+  auto options = mDescription->add_options();
   for (auto& spec : specs) {
     const char* name = spec.name.c_str();
     const char* help = spec.help.c_str();
     // FIXME: propagate default value?
     switch (spec.type) {
       case VariantType::Int:
-      case VariantType::Int64:
         options = options(name, bpo::value<int>()->default_value(spec.defaultValue.get<int>()), help);
+        break;
+      case VariantType::Int64:
+        options = options(name, bpo::value<int64_t>()->default_value(spec.defaultValue.get<int64_t>()), help);
         break;
       case VariantType::Float:
         options = options(name, bpo::value<float>()->default_value(spec.defaultValue.get<float>()), help);
@@ -57,48 +64,27 @@ BoostOptionsRetriever::BoostOptionsRetriever(std::vector<ConfigParamSpec> const&
       case VariantType::Bool:
         options = options(name, bpo::value<bool>()->zero_tokens()->default_value(spec.defaultValue.get<bool>()), help);
         break;
+      case VariantType::ArrayInt:
+      case VariantType::ArrayFloat:
+      case VariantType::ArrayDouble:
+      case VariantType::ArrayBool:
+      case VariantType::ArrayString:
+        options = options(name, bpo::value<std::string>()->default_value(spec.defaultValue.asString()), help);
+        break;
       case VariantType::Unknown:
       case VariantType::Empty:
         break;
     };
   }
 
-  auto parsed = mIgnoreUnknown ? bpo::command_line_parser(argc, argv).options(mDescription).allow_unregistered().run()
-                               : bpo::parse_command_line(argc, argv, mDescription);
+  using namespace bpo::command_line_style;
+  auto style = (allow_short | short_allow_adjacent | short_allow_next | allow_long | long_allow_adjacent | long_allow_next | allow_sticky | allow_dash_for_short);
+
+  auto parsed = mIgnoreUnknown ? bpo::command_line_parser(mArgc, mArgv).options(*mDescription).style(style).allow_unregistered().run()
+                               : bpo::parse_command_line(mArgc, mArgv, *mDescription, style);
   bpo::variables_map vmap;
   bpo::store(parsed, vmap);
-  PropertyTreeHelpers::populate(specs, mStore, vmap);
+  PropertyTreeHelpers::populate(specs, store, vmap, provenance);
 }
 
-int BoostOptionsRetriever::getInt(const char* key) const
-{
-  return mStore.get<int>(key);
-}
-
-float BoostOptionsRetriever::getFloat(const char* key) const
-{
-  return mStore.get<float>(key);
-}
-
-double BoostOptionsRetriever::getDouble(const char* key) const
-{
-  return mStore.get<double>(key);
-}
-
-bool BoostOptionsRetriever::getBool(const char* key) const
-{
-  return mStore.get<bool>(key);
-}
-
-std::string BoostOptionsRetriever::getString(const char* key) const
-{
-  return mStore.get<std::string>(key);
-}
-
-boost::property_tree::ptree BoostOptionsRetriever::getPTree(const char* key) const
-{
-  return mStore.get_child(key);
-}
-
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

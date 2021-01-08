@@ -44,15 +44,16 @@ Segmentation::Segmentation(const Char_t* nameGeomFile) : mHalves(nullptr)
   delete halfBottom;
   delete halfTop;
 
-  LOG(DEBUG1) << "MFT segmentation set!" << FairLogger::endl;
+  LOG(DEBUG1) << "MFT segmentation set!";
 }
 
 //_____________________________________________________________________________
 Segmentation::~Segmentation()
 {
 
-  if (mHalves)
+  if (mHalves) {
     mHalves->Delete();
+  }
   delete mHalves;
 }
 
@@ -95,16 +96,18 @@ Int_t Segmentation::getDetElemLocalID(Int_t half, Int_t disk, Int_t ladder, Int_
 
   Int_t localId = 0;
 
-  if (half == 1)
+  if (half == 1) {
     localId += getHalf(0)->getHalfDisk(disk)->getNChips();
+  }
 
   for (Int_t iLad = 0; iLad < getHalf(half)->getHalfDisk(disk)->getNLadders(); iLad++) {
     if (iLad < ladder) {
       localId += getHalf(half)->getHalfDisk(disk)->getLadder(iLad)->getNSensors();
     } else {
       for (Int_t iSens = 0; iSens < getHalf(half)->getHalfDisk(disk)->getLadder(iLad)->getNSensors(); iSens++) {
-        if (iSens == sensor)
+        if (iSens == sensor) {
           return localId;
+        }
         localId++;
       }
     }

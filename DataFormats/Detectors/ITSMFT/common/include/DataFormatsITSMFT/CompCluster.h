@@ -25,10 +25,11 @@ namespace itsmft
 
 class CompCluster
 {
- private:
+ public:
   static constexpr int NBitsRow = 9;     // number of bits for the row
   static constexpr int NBitsCol = 10;    // number of bits for the column
   static constexpr int NBitsPattID = 11; // number of bits for the pattern ID
+ private:
   static constexpr UInt_t RowMask = (0x1 << NBitsRow) - 1;
   static constexpr UInt_t ColMask = (0x1 << NBitsCol) - 1;
   static constexpr UInt_t PattIDMask = (0x1 << NBitsPattID) - 1;
@@ -40,6 +41,7 @@ class CompCluster
   void sanityCheck();
 
  public:
+  static constexpr unsigned short InvalidPatternID = (0x1 << NBitsPattID) - 1; // All 11 bits of pattern ID are 1
   CompCluster(UShort_t row = 0, UShort_t col = 0, UShort_t patt = 0)
   {
     set(row, col, patt);
@@ -80,34 +82,31 @@ class CompCluster
 
   void print() const;
 
-  ClassDefNV(CompCluster, 1);
+  ClassDefNV(CompCluster, 2);
 };
 
-/// Extension of the compact cluster, augmented by the chipID and ROFrame
+/// Extension of the compact cluster, augmented by the chipID
 /// This is a TEMPORARY class, until we converge to more economical container
 class CompClusterExt : public CompCluster
 {
  private:
   UShort_t mChipID;  ///< chip id
-  UShort_t mROFrame; ///< readout frame
 
  public:
-  CompClusterExt(UShort_t row = 0, UShort_t col = 0, UShort_t patt = 0, UShort_t chipID = 0, UShort_t rof = 0) : CompCluster(row, col, patt), mChipID(chipID), mROFrame(rof)
+  CompClusterExt(UShort_t row = 0, UShort_t col = 0, UShort_t patt = 0, UShort_t chipID = 0) : CompCluster(row, col, patt), mChipID(chipID)
   {
   }
 
-  void set(UShort_t row, UShort_t col, UShort_t patt, UShort_t chipID, UShort_t rof)
+  void set(UShort_t row, UShort_t col, UShort_t patt, UShort_t chipID)
   {
     CompCluster::set(row, col, patt);
     mChipID = chipID;
-    mROFrame = rof;
   }
 
   UShort_t getChipID() const { return mChipID; }
-  UShort_t getROFrame() const { return mROFrame; }
+  UShort_t getSensorID() const { return mChipID; } // to have the same signature as BaseCluster
 
   void setChipID(UShort_t c) { mChipID = c; }
-  void setROFrame(UShort_t f) { mROFrame = f; }
 
   void print() const;
 

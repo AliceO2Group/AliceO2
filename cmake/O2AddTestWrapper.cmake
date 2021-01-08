@@ -81,11 +81,11 @@ function(o2_add_test_wrapper)
     endif()
   endif()
 
-  if("${A_MAX_ATTEMPTS}" GREATER 1)
-    # Warn only for tests where retry has been requested
-    message(
-      WARNING "Test ${testName} will be retried max ${A_MAX_ATTEMPTS} times")
-  endif()
+#  if("${A_MAX_ATTEMPTS}" GREATER 1)
+#    # Warn only for tests where retry has been requested
+#    message(
+#      WARNING "Test ${testName} will be retried max ${A_MAX_ATTEMPTS} times")
+#  endif()
   if(A_NON_FATAL)
     message(WARNING "Failure of test ${testName} will not be fatal")
   endif()
@@ -106,7 +106,26 @@ function(o2_add_test_wrapper)
   else()
     set(A_NON_FATAL "")
   endif()
+
+  # For now, we enforce 3 max attempts for all tests.
+  # No need to ignore time out, since we have 3 attempts
+  set(A_MAX_ATTEMPTS 3)
+  set(A_DONT_FAIL_ON_TIMEOUT "")
+
   math(EXPR ctestTimeout "(20 + ${A_TIMEOUT}) * ${A_MAX_ATTEMPTS}")
+
+  if(NOT A_WORKING_DIRECTORY)
+    if(DEFINED DEFAULT_TEST_OUTPUT_DIRECTORY)
+      string(REPLACE "${CMAKE_BINARY_DIR}" "" reldir "${CMAKE_CURRENT_BINARY_DIR}")
+      get_filename_component(wdir ${DEFAULT_TEST_OUTPUT_DIRECTORY}/${reldir} REALPATH)
+      file(MAKE_DIRECTORY ${wdir})
+      message(
+        STATUS
+        "test ${testName} will output in ${wdir}"
+      )
+      set(A_WORKING_DIRECTORY ${wdir})
+    endif()
+  endif()
 
   add_test(NAME "${testName}"
            COMMAND "${CMAKE_BINARY_DIR}/tests-wrapper.sh"

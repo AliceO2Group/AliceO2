@@ -49,6 +49,9 @@ class CalibPulser : public CalibRawBase
   /// default destructor
   ~CalibPulser() override = default;
 
+  /// initialize the clusterer from CalibPedestalParam
+  void init();
+
   /// update function called once per digit
   ///
   /// \param roc readout chamber
@@ -116,6 +119,15 @@ class CalibPulser : public CalibRawBase
     mXmaxQtot = max;
   }
 
+  /// set minimum Qtot for the signal
+  void setMinQtot(float minQtot) { mMinimumQtot = minQtot; }
+
+  /// set minimum Qmax for the signal
+  void setMinQmax(float minQmax) { mMinimumQmax = minQmax; }
+
+  /// set time bin range around the one with the maximum number of entries
+  void setMaxTimeBinRange(int max) { mMaxTimeBinRange = max; }
+
   /// Analyse the buffered pulser information
   void analyse();
 
@@ -132,7 +144,7 @@ class CalibPulser : public CalibRawBase
   const CalPad& getQtot() const { return mQtot; }
 
   /// Dump the relevant data to file
-  void dumpToFile(const std::string filename) final;
+  void dumpToFile(const std::string filename, uint32_t type = 0) final;
 
   /// Process the end of one raw reader
   void endReader() final;
@@ -152,22 +164,26 @@ class CalibPulser : public CalibRawBase
   float mXminWidth; ///< xmin   of width reference histogram
   float mXmaxWidth; ///< xmax   of width reference histogram
 
-  int mFirstTimeBin; ///< first time bin used in analysis
-  int mLastTimeBin;  ///< first time bin used in analysis
-  int mADCMin;       ///< minimum adc value
-  int mADCMax;       ///< maximum adc value
-  int mNumberOfADCs; ///< number of adc values (mADCMax-mADCMin+1)
-  int mPeakIntMinus; ///< lower bound from maximum for the peak integration, mean and std dev. calc
-  int mPeakIntPlus;  ///< upper bound from maximum for the peak integration, mean and std dev. calc
-  int mMinimumQtot;  ///< minimal Qtot accepted as pulser signal
-  CalPad mT0;        ///< CalDet object with pulser time information
-  CalPad mWidth;     ///< CalDet object with pulser pulse width information
-  CalPad mQtot;      ///< CalDet object with pulser Qtot information
+  int mFirstTimeBin;    ///< first time bin used in analysis
+  int mLastTimeBin;     ///< first time bin used in analysis
+  int mADCMin;          ///< minimum adc value
+  int mADCMax;          ///< maximum adc value
+  int mNumberOfADCs;    ///< number of adc values (mADCMax-mADCMin+1)
+  int mPeakIntMinus;    ///< lower bound from maximum for the peak integration, mean and std dev. calc
+  int mPeakIntPlus;     ///< upper bound from maximum for the peak integration, mean and std dev. calc
+  float mMinimumQtot;   ///< minimal Qtot accepted as pulser signal
+  float mMinimumQmax;   ///< minimal Qtot accepted as pulser signal
+  int mMaxTimeBinRange; ///< number of time bins around the one with the maximum number of entries arouch which to analyse
+  CalPad mT0;           ///< CalDet object with pulser time information
+  CalPad mWidth;        ///< CalDet object with pulser pulse width information
+  CalPad mQtot;         ///< CalDet object with pulser Qtot information
 
   const CalPad* mPedestal; //!< Pedestal calibration object
   const CalPad* mNoise;    //!< Noise calibration object
 
   std::map<PadROCPos, VectorType> mPulserData; //!< ADC data to calculate pulser information
+
+  std::array<std::vector<size_t>, ROC::MaxROC> mTimeBinEntries{}; //!< entries per time bin per ROC
 
   PtrVectorType mT0Histograms;    //!< T0 histogramgs per ROC and pad
   PtrVectorType mWidthHistograms; //!< Width histogramgs per ROC and pad
@@ -178,6 +194,14 @@ class CalibPulser : public CalibRawBase
     float mT0{0.f};
     float mWidth{0.f};
     float mQtot{0.f};
+
+    bool isValid() const { return (mT0 > 0.f) || (mWidth > 0.f) || (mQtot > 0.f); }
+  };
+
+  /// element pair
+  struct ElemPair {
+    size_t first{0};
+    size_t last{0};
   };
 
   /// create or return a histogram for a specific ROC
@@ -211,7 +235,10 @@ class CalibPulser : public CalibRawBase
   /// process the adc values of one pad
   /// extract the T0, width, qmax and qtot
   /// \param adcData vector with ADC values per pad
-  PulserData processPadData(const PadROCPos& padROCPos, const VectorType& adcData);
+  PulserData processPadData(const PadROCPos& padROCPos, const VectorType& adcData, const ElemPair& range);
+
+  /// maximum time bin entries per ROC
+  std::array<ElemPair, ROC::MaxROC> getTimeRangeROCs();
 
   /// dummy reset
   void resetEvent() final {}

@@ -11,6 +11,7 @@
 include_guard()
 
 include("${CMAKE_CURRENT_LIST_DIR}/O2RecipeAdapter.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/O2TestsAdapter.cmake")
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_MODULE_PATH})
 
@@ -35,19 +36,19 @@ include(FeatureSummary)
 
 include(FindThreads)
 
-find_package(arrow CONFIG)
-set_package_properties(arrow PROPERTIES TYPE REQUIRED)
+find_package(O2arrow MODULE)
+set_package_properties(O2arrow PROPERTIES TYPE REQUIRED)
 
 find_package(Vc)
 set_package_properties(Vc PROPERTIES TYPE REQUIRED)
 
-find_package(ROOT 6.16.00 MODULE)
+find_package(ROOT 6.20.02)
 set_package_properties(ROOT PROPERTIES TYPE REQUIRED)
 
 find_package(fmt)
 set_package_properties(fmt PROPERTIES TYPE REQUIRED)
 
-find_package(Boost 1.59
+find_package(Boost 1.70
              COMPONENTS container
                         thread
                         system
@@ -102,6 +103,12 @@ set_package_properties(RapidJSON PROPERTIES TYPE REQUIRED)
 find_package(CURL)
 set_package_properties(CURL PROPERTIES TYPE REQUIRED)
 
+find_package(JAliEnROOT MODULE)
+set_package_properties(JAliEnROOT PROPERTIES TYPE RECOMMENDED)
+
+find_package(XRootD MODULE)
+set_package_properties(XRootD PROPERTIES TYPE RECOMMENDED)
+
 # MC specific packages
 message(STATUS "Input BUILD_SIMULATION=${BUILD_SIMULATION}")
 include("${CMAKE_CURRENT_LIST_DIR}/O2SimulationDependencies.cmake")
@@ -115,8 +122,18 @@ find_package(benchmark CONFIG NAMES benchmark googlebenchmark)
 set_package_properties(benchmark PROPERTIES TYPE OPTIONAL)
 find_package(OpenMP)
 set_package_properties(OpenMP PROPERTIES TYPE OPTIONAL)
-find_package(GLFW NAMES glfw3 CONFIG)
+if (NOT OpenMP_CXX_FOUND AND CMAKE_SYSTEM_NAME MATCHES Darwin)
+  message(STATUS "MacOS OpenMP not found, attempting workaround")
+  find_package(OpenMPMacOS)
+endif()
+
+find_package(LibUV MODULE)
+set_package_properties(LibUV PROPERTIES TYPE REQUIRED)
+find_package(GLFW MODULE)
 set_package_properties(GLFW PROPERTIES TYPE RECOMMENDED)
+find_package(DebugGUI CONFIG)
+set_package_properties(DebugGUI PROPERTIES TYPE RECOMMENDED)
+
 find_package(AliRoot)
 set_package_properties(AliRoot
                        PROPERTIES
@@ -139,5 +156,6 @@ endif()
 
 find_package(O2GPU)
 
-feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)
+find_package(FastJet)
 
+feature_summary(WHAT ALL FATAL_ON_MISSING_REQUIRED_PACKAGES)

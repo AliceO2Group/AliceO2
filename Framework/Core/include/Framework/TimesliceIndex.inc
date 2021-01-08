@@ -15,6 +15,18 @@ namespace framework
 inline bool TimesliceId::isValid(TimesliceId const& timeslice) { return timeslice.value != INVALID; }
 inline bool TimesliceSlot::isValid(TimesliceSlot const& slot) { return slot.index != INVALID; }
 
+inline bool TimesliceSlot::operator==(const TimesliceSlot that) const
+{
+  return index == that.index ||
+         (index == TimesliceSlot::ANY && TimesliceSlot::INVALID != that.index) ||
+         (index != TimesliceSlot::INVALID && TimesliceSlot::ANY == that.index);
+}
+
+inline bool TimesliceSlot::operator!=(const TimesliceSlot that) const
+{
+  return !(*this == that);
+}
+
 inline void TimesliceIndex::resize(size_t s)
 {
   mVariables.resize(s);
@@ -105,13 +117,13 @@ inline TimesliceId TimesliceIndex::getTimesliceForSlot(TimesliceSlot slot) const
   return TimesliceId{*pval};
 }
 
-inline data_matcher::VariableContext &TimesliceIndex::getVariablesForSlot(TimesliceSlot slot)
+inline data_matcher::VariableContext& TimesliceIndex::getVariablesForSlot(TimesliceSlot slot)
 {
   assert(mVariables.size() > slot.index);
   return mVariables[slot.index];
 }
 
-inline data_matcher::VariableContext &TimesliceIndex::getPublishedVariablesForSlot(TimesliceSlot slot)
+inline data_matcher::VariableContext& TimesliceIndex::getPublishedVariablesForSlot(TimesliceSlot slot)
 {
   assert(mPublishedVariables.size() > slot.index);
   return mPublishedVariables[slot.index];

@@ -35,7 +35,7 @@ BOOST_AUTO_TEST_CASE(TreeStream_test)
   // create the  redirector associated with file (testredirector.root)
   FairLogger* logger = FairLogger::GetLogger();
 
-  LOG(INFO) << "Testing  TreeStream creation" << FairLogger::endl;
+  LOG(INFO) << "Testing  TreeStream creation";
   std::string outFName("testTreeStream.root");
   int nit = 50;
   {
@@ -58,7 +58,7 @@ BOOST_AUTO_TEST_CASE(TreeStream_test)
     tstStream.Close();
   }
   //
-  LOG(INFO) << "Testing reading back tree maid by the TreeStream " << FairLogger::endl;
+  LOG(INFO) << "Testing reading back tree maid by the TreeStream ";
   // read back tracks
   {
     TFile inpf(outFName.data());
@@ -77,13 +77,13 @@ BOOST_AUTO_TEST_CASE(TreeStream_test)
     for (int i = 0; i < nent; i++) {
       tree->GetEntry(i);
       BOOST_CHECK(id == i);
-      LOG(INFO) << "id: " << id << " X: " << x << " Track> " << FairLogger::endl;
+      LOG(INFO) << "id: " << id << " X: " << x << " Track> ";
       trc->printParam();
       BOOST_CHECK(std::abs(x - trc->getX()) < 1e-4);
     }
   }
 
-  LOG(INFO) << "Testing loading tree via RootChain" << FairLogger::endl;
+  LOG(INFO) << "Testing loading tree via RootChain";
   //
   auto chain = RootChain::load("TrackTree", outFName);
   BOOST_CHECK(chain->GetEntries());
@@ -101,7 +101,7 @@ BOOST_AUTO_TEST_CASE(TreeStream_test)
   }
 
   // run Marian's old unit test
-  LOG(INFO) << "Doing  UnitTestSparse" << FairLogger::endl;
+  LOG(INFO) << "Doing  UnitTestSparse";
   nit = 1000;
   BOOST_CHECK(UnitTestSparse(0.5, nit));
   BOOST_CHECK(UnitTestSparse(0.1, nit));
@@ -124,16 +124,19 @@ bool UnitTestSparse(Double_t scale, Int_t testEntries)
   // Input parameter scale => downscaling of sprse element
 
   std::string outFName("testTreeStreamSparse.root");
-  if (scale <= 0)
+  if (scale <= 0) {
     scale = 1;
-  if (scale > 1)
+  }
+  if (scale > 1) {
     scale = 1;
+  }
   TreeStreamRedirector* pcstream = new TreeStreamRedirector(outFName.data(), "recreate");
   for (Int_t ientry = 0; ientry < testEntries; ientry++) {
     TVectorD vecRandom(200);
     TVectorD vecZerro(200); // zerro vector
-    for (Int_t j = 0; j < 200; j++)
+    for (Int_t j = 0; j < 200; j++) {
       vecRandom[j] = j + ientry + 0.1 * gRandom->Rndm();
+    }
     Bool_t isSelected = (gRandom->Rndm() < scale);
     TVectorD* pvecFull = &vecRandom;
     TVectorD* pvecSparse = isSelected ? &vecRandom : nullptr;
@@ -192,12 +195,15 @@ bool UnitTestSparse(Double_t scale, Int_t testEntries)
   treeSparseSkip0->SetBranchAddress("vec.", &pvecRead);
   Bool_t readOK = kTRUE;
   for (Int_t ientry = 0; ientry < testEntries; ientry++) {
-    if (!pvecRead)
+    if (!pvecRead) {
       continue;
-    if (pvecRead->GetNrows() == 0)
+    }
+    if (pvecRead->GetNrows() == 0) {
       continue;
-    if (TMath::Abs((*pvecRead)[0] - ientry) > 0.5)
+    }
+    if (TMath::Abs((*pvecRead)[0] - ientry) > 0.5) {
       readOK = kFALSE;
+    }
   }
   printf("#UnitTest:\tTestSparse(%f)\tReadOK\t%d\n", scale, readOK);
   //

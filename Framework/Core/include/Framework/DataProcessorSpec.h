@@ -7,23 +7,22 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_DATAPROCESSORSPEC_H
-#define FRAMEWORK_DATAPROCESSORSPEC_H
+#ifndef O2_FRAMEWORK_DATAPROCESSORSPEC_H_
+#define O2_FRAMEWORK_DATAPROCESSORSPEC_H_
 
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ConfigParamSpec.h"
-#include "Framework/DataAllocator.h"
 #include "Framework/DataProcessorLabel.h"
 #include "Framework/DataRef.h"
+#include "Framework/DataAllocator.h"
 #include "Framework/InputSpec.h"
 #include "Framework/OutputSpec.h"
+#include "Framework/CommonServices.h"
 
 #include <string>
 #include <vector>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 using Inputs = std::vector<InputSpec>;
@@ -40,8 +39,13 @@ struct DataProcessorSpec {
   AlgorithmSpec algorithm;
 
   Options options = {};
-  // FIXME: not used for now...
-  std::vector<std::string> requiredServices = {};
+  /// A set of services which are required to run
+  /// this data processor spec. Defaults to the old
+  /// list of hardcoded services. If you want
+  /// to override them, make sure you request at least
+  /// CommonServices::requiredServices() otherwise things
+  /// will go horribly wrong.
+  std::vector<ServiceSpec> requiredServices = CommonServices::defaultServices();
   /// Labels associated to the DataProcessor. These can
   /// be used to group different DataProcessor together
   /// and they can allow to filter different groups, e.g.
@@ -66,7 +70,6 @@ struct DataProcessorSpec {
   size_t maxInputTimeslices = 1;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // FRAMEWORK_DATAPROCESSORSPEC_H
+#endif // O2_FRAMEWORK_DATAPROCESSORSPEC_H_

@@ -36,6 +36,9 @@
 #include "AliHLTTrackMCLabel.h"
 #include "GPUTRDTrackData.h"
 #include "AliGeomManager.h"
+#include "GPUReconstruction.h"
+#include "GPUChainTracking.h"
+#include "GPUSettings.h"
 #include <map>
 #include <vector>
 #include <algorithm>
@@ -49,7 +52,7 @@ GPUTRDTrackerComponent::GPUTRDTrackerComponent()
 {
 }
 
-GPUTRDTrackerComponent::GPUTRDTrackerComponent(const GPUTRDTrackerComponent&) : fTracker(0x0), fGeo(0x0), fTrackList(0x0), AliHLTProcessor(), fDebugTrackOutput(false), fVerboseDebugOutput(false), fRequireITStrack(false), fBenchmark("TRDTracker")
+GPUTRDTrackerComponent::GPUTRDTrackerComponent(const GPUTRDTrackerComponent&) : fTracker(0x0), fGeo(0x0), fRec(0x0), fChain(0x0), fTrackList(0x0), AliHLTProcessor(), fDebugTrackOutput(false), fVerboseDebugOutput(false), fRequireITStrack(false), fBenchmark("TRDTracker")
 {
   // see header file for class documentation
   HLTFatal("copy constructor untested");
@@ -127,7 +130,7 @@ int GPUTRDTrackerComponent::ReadConfigurationString(const char* arguments)
     if (argument.CompareTo("-debugOutput") == 0) {
       fDebugTrackOutput = true;
       fVerboseDebugOutput = true;
-      HLTInfo("Tracks are dumped in the GPUTRDTrack format");
+      HLTInfo("Tracks are dumped in the GPUTRDTrackGPU format");
       continue;
     }
 
@@ -179,6 +182,18 @@ int GPUTRDTrackerComponent::DoInit(int argc, const char** argv)
 
   iResult = ReadConfigurationString(arguments.Data());
 
+  GPUSettingsEvent cfgEvent;
+  cfgEvent.solenoidBz = GetBz();
+  GPUSettingsRec cfgRec;
+  GPUSettingsProcessing cfgDeviceProcessing;
+  GPURecoStepConfiguration cfgRecoStep;
+  cfgRecoStep.steps = GPUDataTypes::RecoStep::NoRecoStep;
+  cfgRecoStep.inputs.clear();
+  cfgRecoStep.outputs.clear();
+  fRec = GPUReconstruction::CreateInstance("CPU", true);
+  fRec->SetSettings(&cfgEvent, &cfgRec, &cfgDeviceProcessing, &cfgRecoStep);
+  fChain = fRec->AddChain<GPUChainTracking>();
+
   fGeo = new GPUTRDGeometry();
   if (!fGeo) {
     return -ENOMEM;
@@ -187,14 +202,18 @@ int GPUTRDTrackerComponent::DoInit(int argc, const char** argv)
     HLTError("TRD geometry not available");
     return -EINVAL;
   }
-  fTracker = new GPUTRDTracker();
+  fTracker = new GPUTRDTrackerGPU();
   if (!fTracker) {
     return -ENOMEM;
   }
   if (fVerboseDebugOutput) {
     fTracker->EnableDebugOutput();
   }
-  fTracker->Init(fGeo);
+  fRec->RegisterGPUProcessor(fTracker, false);
+  fChain->SetTRDGeometry(reinterpret_cast<o2::trd::GeometryFlat*>(fGeo));
+  if (fRec->Init()) {
+    return -EINVAL;
+  }
 
   return iResult;
 }
@@ -233,7 +252,7 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   int iResult = 0;
 
   if (fTrackList->GetEntries() != 0) {
-    fTrackList->Clear(); // tracks are owned by GPUTRDTracker
+    fTrackList->Clear(); // tracks are owned by GPUTRDTrackerGPU
   }
 
   int nBlocks = evtData.fBlockCnt;
@@ -242,7 +261,7 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   AliHLTTracksData* itsData = nullptr;
   AliHLTTrackMCData* tpcDataMC = nullptr;
 
-  std::vector<GPUTRDTrack> tracksTPC;
+  std::vector<GPUTRDTrackGPU> tracksTPC;
   std::vector<int> tracksTPCLab;
   std::vector<int> tracksTPCId;
 
@@ -319,7 +338,7 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
     if (itsData != nullptr && !itsAvail.at(currOutTrackTPC->fTrackID)) {
       continue;
     }
-    GPUTRDTrack t(*currOutTrackTPC);
+    GPUTRDTrackGPU t(*currOutTrackTPC);
     int mcLabel = -1;
     if (tpcDataMC) {
       if (mcLabels.find(currOutTrackTPC->fTrackID) != mcLabels.end()) {
@@ -338,6 +357,11 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   }
 
   fTracker->Reset();
+  fChain->mIOPtrs.nMergedTracks = tracksTPC.size();
+  fChain->mIOPtrs.nTRDTracklets = nTrackletsTotal;
+  fChain->AllocateIOMemory();
+  fRec->PrepareEvent();
+  fRec->SetupGPUProcessor(fTracker, true);
 
   // loop over all tracklets
   for (int iTracklet = 0; iTracklet < nTrackletsTotal; ++iTracklet) {
@@ -357,12 +381,12 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   }
 
   fBenchmark.Start(1);
-  fTracker->DoTracking();
+  fTracker->DoTracking(NULL);
   fBenchmark.Stop(1);
 
-  GPUTRDTrack* trackArray = fTracker->Tracks();
+  GPUTRDTrackGPU* trackArray = fTracker->Tracks();
   int nTracks = fTracker->NTracks();
-  GPUTRDTracker::GPUTRDSpacePointInternal* spacePoints = fTracker->SpacePoints();
+  GPUTRDTrackerGPU::GPUTRDSpacePointInternal* spacePoints = fTracker->SpacePoints();
 
   // TODO delete fTrackList since it only works for TObjects (or use compiler flag after tests with GPU track type)
   // for (int iTrack=0; iTrack<nTracks; ++iTrack) {
@@ -384,12 +408,14 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 
     GPUTRDTrackData* outTracks = (GPUTRDTrackData*)(outputPtr);
     outTracks->fCount = 0;
+    int assignedTracklets = 0;
 
     for (int iTrk = 0; iTrk < nTracks; ++iTrk) {
-      GPUTRDTrack& t = trackArray[iTrk];
+      GPUTRDTrackGPU& t = trackArray[iTrk];
       if (t.GetNtracklets() == 0) {
         continue;
       }
+      assignedTracklets += t.GetNtracklets();
       GPUTRDTrackDataRecord& currOutTrack = outTracks->fTracks[outTracks->fCount];
       t.ConvertTo(currOutTrack);
       outTracks->fCount++;
@@ -432,7 +458,7 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
     }
 
     for (int i = 0; i < nTrackletsTotal; ++i) {
-      const GPUTRDTracker::GPUTRDSpacePointInternal& sp = spacePoints[i];
+      const GPUTRDTrackerGPU::GPUTRDSpacePointInternal& sp = spacePoints[i];
       int id = sp.mId;
       if (id < 0 || id >= nTrackletsTotal) {
         HLTError("Internal error: wrong space point index %d", id);
@@ -453,7 +479,7 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
     size += blockSize;
     outputPtr += resultDataSP.fSize;
 
-    HLTInfo("TRD tracker: output %d tracks and %d track points", outTracks->fCount, outTrackPoints->fCount);
+    HLTInfo("TRD tracker: output %d tracks (%d assigned tracklets) and %d track points", outTracks->fCount, assignedTracklets, outTrackPoints->fCount);
   }
 
   fBenchmark.Stop(0);

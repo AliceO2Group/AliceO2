@@ -1,0 +1,43 @@
+// Pythia8 UserHooks
+//
+//   usage: o2sim -g pythia8 --configKeyValues "GeneratorPythia8.hooksFileName=pythia8_userhooks_jets.C"
+//
+/// \author R+Preghenella - April 2020
+
+#if defined(__CLING__)
+// clang-format off
+R__LOAD_LIBRARY(libpythia8)
+R__ADD_INCLUDE_PATH($PYTHIA8/include)
+// clang-format on
+#endif
+
+#include "Pythia8/Pythia.h"
+
+/** This is an example of Pythia8 UserHooks.
+ ** The event is queried at process level
+ ** and it is inhibited unless one of the
+ ** two scattered partons is produced at 
+ ** very mid-rapidity with |y| < 0.1 **/
+
+class UserHooksJets : public Pythia8::UserHooks
+{
+ public:
+  UserHooksJets() = default;
+  ~UserHooksJets() = default;
+  bool canVetoProcessLevel() override { return true; };
+  bool doVetoProcessLevel(Pythia8::Event& event) override
+  {
+    for (int ipa = 5; ipa < event.size(); ++ipa) {
+      if (fabs(event[ipa].y()) < 0.1)
+	event.list();
+	return false;
+    }
+    return true;
+  };
+};
+
+Pythia8::UserHooks*
+  pythia8_userhooks_jets()
+{
+  return new UserHooksJets();
+}

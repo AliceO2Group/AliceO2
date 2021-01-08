@@ -28,10 +28,37 @@
 #include "TTree.h"
 #include "Framework/FreePortFinder.h"
 #include <sys/types.h>
+#include "DetectorsCommonDataFormats/NameConf.h"
 
-const char* serverlogname = "serverlog";
-const char* workerlogname = "workerlog";
-const char* mergerlogname = "mergerlog";
+#include "rapidjson/document.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/filereadstream.h"
+#include "rapidjson/filewritestream.h"
+
+std::string getServerLogName()
+{
+  auto& conf = o2::conf::SimConfig::Instance();
+  std::stringstream str;
+  str << conf.getOutPrefix() << "_serverlog";
+  return str.str();
+}
+
+std::string getWorkerLogName()
+{
+  auto& conf = o2::conf::SimConfig::Instance();
+  std::stringstream str;
+  str << conf.getOutPrefix() << "_workerlog";
+  return str.str();
+}
+
+std::string getMergerLogName()
+{
+  auto& conf = o2::conf::SimConfig::Instance();
+  std::stringstream str;
+  str << conf.getOutPrefix() << "_mergerlog";
+  return str.str();
+}
 
 void cleanup()
 {
@@ -42,21 +69,21 @@ void cleanup()
   if (getenv("ALICE_O2SIM_DUMPLOG")) {
     std::cerr << "------------- START OF EVENTSERVER LOG ----------" << std::endl;
     std::stringstream catcommand1;
-    catcommand1 << "cat " << serverlogname << ";";
+    catcommand1 << "cat " << getServerLogName() << ";";
     if (system(catcommand1.str().c_str()) != 0) {
       LOG(WARN) << "error executing system call";
     }
 
     std::cerr << "------------- START OF SIM WORKER(S) LOG --------" << std::endl;
     std::stringstream catcommand2;
-    catcommand2 << "cat " << workerlogname << "*;";
+    catcommand2 << "cat " << getWorkerLogName() << "*;";
     if (system(catcommand2.str().c_str()) != 0) {
       LOG(WARN) << "error executing system call";
     }
 
     std::cerr << "------------- START OF MERGER LOG ---------------" << std::endl;
     std::stringstream catcommand3;
-    catcommand3 << "cat " << mergerlogname << ";";
+    catcommand3 << "cat " << getMergerLogName() << ";";
     if (system(catcommand3.str().c_str()) != 0) {
       LOG(WARN) << "error executing system call";
     }
@@ -71,7 +98,7 @@ int checkresult()
   // here.
   auto& conf = o2::conf::SimConfig::Instance();
   // easy check: see if we have number of entries in output tree == number of events asked
-  std::string filename = std::string(conf.getOutPrefix()) + ".root";
+  std::string filename = o2::base::NameConf::getMCKinematicsFileName(conf.getOutPrefix().c_str());
   TFile f(filename.c_str(), "OPEN");
   auto tr = static_cast<TTree*>(f.Get("o2sim"));
   if (!tr) {
@@ -95,42 +122,6 @@ void sighandler(int signal)
     cleanup();
     exit(0);
   }
-}
-
-// updates/sets up the ports to be used in this simulation run
-// this should enable parallel instances of o2sim ... to be generalized
-// with DDS for example
-bool updatePorts(std::string configfilename)
-{
-  // original ports
-  const int SERVERPORT = 25005;
-  const int MERGERPORT = 25009;
-
-  auto pid = getpid();
-
-  int portstart = SERVERPORT + pid % 64; // somewhat randomize the port start
-  int portend = 50000;
-  int step = 2; // we need 2 ports
-  o2::framework::FreePortFinder finder(portstart, portend, step);
-  finder.setVerbose(false); // disable verbose output
-  finder.scan();
-  auto newserverport = finder.port();
-  auto newmergerport = newserverport + 1;
-
-  LOG(INFO) << "SERVER PORT " << newserverport;
-  LOG(INFO) << "MERGER PORT " << newmergerport;
-  // publish these numbers for other processes
-  setenv("ALICE_O2SIM_SERVERPORT", std::to_string(newserverport).c_str(), 1);
-  setenv("ALICE_O2SIM_MERGERPORT", std::to_string(newmergerport).c_str(), 1);
-
-  // fix ports in the configuration file template (there are for sure nicer ways of doing that
-  std::stringstream sedcmd;
-  sedcmd << "sed -i'.original' "
-         << "-e 's/:" << SERVERPORT << "/:" << newserverport << "/' "
-         << "-e 's/:" << MERGERPORT << "/:" << newmergerport << "/' "
-         << configfilename;
-  auto r = system(sedcmd.str().c_str());
-  return true;
 }
 
 // monitores a certain incoming pipe and displays new information
@@ -181,12 +172,87 @@ int main(int argc, char* argv[])
   std::stringstream configss;
   configss << rootpath << "/share/config/o2simtopology.json";
   std::string localconfig = std::string("o2simtopology_") + std::to_string(getpid()) + std::string(".json");
-  std::stringstream cpcmd;
-  cpcmd << "cp " << configss.str() << " " << localconfig;
-  if (system(cpcmd.str().c_str()) != 0) {
-    LOG(WARN) << "error executing system call";
+
+  // need to add pid to channel urls to allow simultaneous deploys!
+  // open otiginal config and read the JSON config
+  FILE* fp = fopen(configss.str().c_str(), "r");
+  constexpr unsigned short usmax = std::numeric_limits<unsigned short>::max() - 1;
+  char Buffer[usmax];
+  rapidjson::FileReadStream is(fp, Buffer, sizeof(Buffer));
+  rapidjson::Document d;
+  d.ParseStream(is);
+  fclose(fp);
+  // find and manipulate URLS
+  std::string serveraddress;
+  std::string mergeraddress;
+  std::string s;
+
+  auto& options = d["fairMQOptions"];
+  assert(options.IsObject());
+  for (auto option = options.MemberBegin(); option != options.MemberEnd();
+       ++option) {
+    s = option->name.GetString();
+    if (s == "devices") {
+      assert(option->value.IsArray());
+      auto devices = option->value.GetArray();
+      for (auto& device : devices) {
+        s = device["id"].GetString();
+        if (s == "primary-server") {
+          auto channels = device["channels"].GetArray();
+          auto sockets = (channels[0])["sockets"].GetArray();
+          auto& addressv = (sockets[0])["address"];
+          auto address = addressv.GetString();
+          serveraddress = address + std::to_string(getpid());
+          addressv.SetString(serveraddress.c_str(), d.GetAllocator());
+        }
+        if (s == "hitmerger") {
+          auto channels = device["channels"].GetArray();
+          for (auto& channel : channels) {
+            s = channel["name"].GetString();
+            // set server's address for merger
+            if (s == "primary-get") {
+              auto sockets = channel["sockets"].GetArray();
+              auto& addressv = (sockets[0])["address"];
+              addressv.SetString(serveraddress.c_str(), d.GetAllocator());
+            }
+            if (s == "simdata") {
+              auto sockets = channel["sockets"].GetArray();
+              auto& addressv = (sockets[0])["address"];
+              auto address = addressv.GetString();
+              mergeraddress = address + std::to_string(getpid());
+              addressv.SetString(mergeraddress.c_str(), d.GetAllocator());
+            }
+          }
+        }
+      }
+      //loop over devices again and set URLs for the workers
+      for (auto& device : devices) {
+        s = device["id"].GetString();
+        if (s == "worker") {
+          auto channels = device["channels"].GetArray();
+          for (auto& channel : channels) {
+            s = channel["name"].GetString();
+            if (s == "primary-get") {
+              auto sockets = channel["sockets"].GetArray();
+              auto& addressv = (sockets[0])["address"];
+              addressv.SetString(serveraddress.c_str(), d.GetAllocator());
+            }
+            if (s == "simdata") {
+              auto sockets = channel["sockets"].GetArray();
+              auto& addressv = (sockets[0])["address"];
+              addressv.SetString(mergeraddress.c_str(), d.GetAllocator());
+            }
+          }
+        }
+      }
+    }
   }
-  updatePorts(localconfig.c_str());
+  // write the config copy with new name
+  fp = fopen(localconfig.c_str(), "w");
+  rapidjson::FileWriteStream os(fp, Buffer, sizeof(Buffer));
+  rapidjson::Writer<rapidjson::FileWriteStream> writer(os);
+  d.Accept(writer);
+  fclose(fp);
 
   auto& conf = o2::conf::SimConfig::Instance();
   if (!conf.resetFromArguments(argc, argv)) {
@@ -235,7 +301,7 @@ int main(int argc, char* argv[])
   // the server
   int pid = fork();
   if (pid == 0) {
-    int fd = open(serverlogname, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+    int fd = open(getServerLogName().c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
     setenv("ALICE_O2SIMSERVERTODRIVER_PIPE", std::to_string(pipe_serverdriver_fd[1]).c_str(), 1);
 
     dup2(fd, 1); // make stdout go to file
@@ -269,6 +335,8 @@ int main(int argc, char* argv[])
     }
     std::cerr << "$$$$\n";
     auto r = execv(path.c_str(), (char* const*)arguments);
+    LOG(INFO) << "Starting the server"
+              << "\n";
     if (r != 0) {
       perror(nullptr);
     }
@@ -276,8 +344,8 @@ int main(int argc, char* argv[])
   } else {
     childpids.push_back(pid);
     close(pipe_serverdriver_fd[1]);
-    std::cout << "Spawning particle server on PID " << pid << "; Redirect output to " << serverlogname << "\n";
-    launchThreadMonitoringEvents(pipe_serverdriver_fd[0], "EVENTS DISTRIBUTED : ");
+    std::cout << "Spawning particle server on PID " << pid << "; Redirect output to " << getServerLogName() << "\n";
+    launchThreadMonitoringEvents(pipe_serverdriver_fd[0], "DISTRIBUTING EVENT : ");
   }
 
   auto internalfork = getenv("ALICE_SIMFORKINTERNAL");
@@ -288,7 +356,7 @@ int main(int argc, char* argv[])
   for (int id = 0; id < nworkers; ++id) {
     // the workers
     std::stringstream workerlogss;
-    workerlogss << workerlogname << id;
+    workerlogss << getWorkerLogName() << id;
 
     // the workers
     std::stringstream workerss;
@@ -322,7 +390,7 @@ int main(int argc, char* argv[])
 
   pid = fork();
   if (pid == 0) {
-    int fd = open(mergerlogname, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+    int fd = open(getMergerLogName().c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
     dup2(fd, 1); // make stdout go to file
     dup2(fd, 2); // make stderr go to file - you may choose to not do this
                  // or perhaps send stderr to another file
@@ -336,7 +404,7 @@ int main(int argc, char* argv[])
           (char*)nullptr);
     return 0;
   } else {
-    std::cout << "Spawning hit merger on PID " << pid << "; Redirect output to " << mergerlogname << "\n";
+    std::cout << "Spawning hit merger on PID " << pid << "; Redirect output to " << getMergerLogName() << "\n";
     childpids.push_back(pid);
     close(pipe_mergerdriver_fd[1]);
     launchThreadMonitoringEvents(pipe_mergerdriver_fd[0], "EVENT FINISHED : ");
@@ -368,7 +436,8 @@ int main(int argc, char* argv[])
   // make sure the rest shuts down
   for (auto p : childpids) {
     if (p != mergerpid) {
-      kill(p, SIGKILL);
+      LOG(DEBUG) << "SHUTTING DOWN CHILD PROCESS " << p;
+      kill(p, SIGTERM);
     }
   }
 

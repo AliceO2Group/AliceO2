@@ -10,10 +10,9 @@
 
 #include "DataFormatsEMCAL/EMCALBlockHeader.h"
 #include "EMCALWorkflow/PublisherSpec.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Headers/DataHeader.h"
-#include "DPLUtils/RootTreeReader.h"
-#include "Framework/DataSpecUtils.h"
 #include <memory>
 #include <utility>
 
@@ -23,7 +22,7 @@ namespace o2
 namespace emcal
 {
 
-o2::framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC)
+o2::framework::DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagateMC, workflow_reader::Creator creator)
 {
   struct ProcessAttributes {
     std::shared_ptr<o2::framework::RootTreeReader> reader;
@@ -32,43 +31,31 @@ o2::framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, b
     bool finished;
   };
 
-  auto initFunction = [config, propagateMC](o2::framework::InitContext& ic) {
+  auto initFunction = [config, propagateMC, creator](o2::framework::InitContext& ic) {
     // get the option from the init context
     auto filename = ic.options().get<std::string>("infile");
     auto treename = ic.options().get<std::string>("treename");
-    auto dtbrName = ic.options().get<std::string>(config.databranch.option.c_str()); // databranch name
-    auto mcbrName = ic.options().get<std::string>(config.mcbranch.option.c_str());   // mcbranch name
+    auto dtbrName = ic.options().get<std::string>(config.databranch.option.c_str());           // databranch name
+    auto trgbrName = ic.options().get<std::string>(config.triggerrecordbranch.option.c_str()); // triggerbranch name
+    auto mcbrName = ic.options().get<std::string>(config.mcbranch.option.c_str());             // mcbranch name
     auto nofEvents = ic.options().get<int>("nevents");
     auto publishingMode = nofEvents == -1 ? o2::framework::RootTreeReader::PublishingMode::Single : o2::framework::RootTreeReader::PublishingMode::Loop;
 
     auto processAttributes = std::make_shared<ProcessAttributes>();
     {
+      using Reader = o2::framework::RootTreeReader;
+      using TriggerInputType = std::vector<o2::emcal::TriggerRecord>;
       processAttributes->terminateOnEod = ic.options().get<bool>("terminate-on-eod");
       processAttributes->finished = false;
       processAttributes->datatype = config.databranch.defval;
-      auto dto = o2::framework::DataSpecUtils::asConcreteDataTypeMatcher(config.dataoutput);
-      auto mco = o2::framework::DataSpecUtils::asConcreteDataTypeMatcher(config.mcoutput);
-      constexpr auto persistency = o2::framework::Lifetime::Timeframe;
       o2::header::DataHeader::SubSpecificationType subSpec = 0;
-      if (propagateMC) {
-        processAttributes->reader = std::make_shared<o2::framework::RootTreeReader>(treename.c_str(), // tree name
-                                                                                    filename.c_str(), // input file name
-                                                                                    nofEvents,        // number of entries to publish
-                                                                                    publishingMode,
-                                                                                    o2::framework::Output{dto.origin, dto.description, subSpec, persistency},
-                                                                                    dtbrName.c_str(), // name of cluster branch
-                                                                                    o2::framework::Output{mco.origin, mco.description, subSpec, persistency},
-                                                                                    mcbrName.c_str() // name of mc label branch
-        );
-      } else {
-        processAttributes->reader = std::make_shared<o2::framework::RootTreeReader>(treename.c_str(), // tree name
-                                                                                    filename.c_str(), // input file name
-                                                                                    nofEvents,        // number of entries to publish
-                                                                                    publishingMode,
-                                                                                    o2::framework::Output{dto.origin, dto.description, subSpec, persistency},
-                                                                                    dtbrName.c_str() // name of cluster branch
-        );
-      }
+      processAttributes->reader = creator(treename.c_str(), // tree name
+                                          filename.c_str(), // input file name
+                                          nofEvents,        // number of entries to publish
+                                          publishingMode,
+                                          dtbrName.c_str(),  // databranch name
+                                          trgbrName.c_str(), // triggerbranch name
+                                          mcbrName.c_str()); // mcbranch name
     }
 
     auto processFunction = [processAttributes, propagateMC](o2::framework::ProcessingContext& pc) {
@@ -87,18 +74,9 @@ o2::framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, b
         return true;
       };
 
-      bool active(true);
       if (!publish()) {
-        active = false;
-        // Send dummy header with no payload option
-        o2::emcal::EMCALBlockHeader dummyheader(false);
-        pc.outputs().snapshot(o2::framework::OutputRef{"output", 0, {dummyheader}}, 0);
-        if (propagateMC) {
-          pc.outputs().snapshot(o2::framework::OutputRef{"outputMC", 0, {dummyheader}}, 0);
-        }
-      }
-      if ((processAttributes->finished = (active == false)) && processAttributes->terminateOnEod) {
-        pc.services().get<o2::framework::ControlService>().readyToQuit(false);
+        pc.services().get<o2::framework::ControlService>().endOfStream();
+        pc.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
       }
     };
 
@@ -108,14 +86,19 @@ o2::framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, b
   auto createOutputSpecs = [&config, propagateMC]() {
     std::vector<o2::framework::OutputSpec> outputSpecs;
     auto dto = o2::framework::DataSpecUtils::asConcreteDataTypeMatcher(config.dataoutput);
+    auto tro = o2::framework::DataSpecUtils::asConcreteDataTypeMatcher(config.triggerrecordoutput);
     auto mco = o2::framework::DataSpecUtils::asConcreteDataTypeMatcher(config.mcoutput);
     outputSpecs.emplace_back(o2::framework::OutputSpec{{"output"}, dto.origin, dto.description, 0, o2::framework::Lifetime::Timeframe});
-    outputSpecs.emplace_back(o2::framework::OutputSpec{{"outputMC"}, mco.origin, mco.description, 0, o2::framework::Lifetime::Timeframe});
+    outputSpecs.emplace_back(o2::framework::OutputSpec{{"outputTRG"}, tro.origin, tro.description, 0, o2::framework::Lifetime::Timeframe});
+    if (propagateMC) {
+      outputSpecs.emplace_back(o2::framework::OutputSpec{{"outputMC"}, mco.origin, mco.description, 0, o2::framework::Lifetime::Timeframe});
+    }
     return std::move(outputSpecs);
   };
 
   auto& dtb = config.databranch;
   auto& mcb = config.mcbranch;
+  auto& trb = config.triggerrecordbranch;
   return o2::framework::DataProcessorSpec{
     config.processName.c_str(),
     o2::framework::Inputs{}, // no inputs
@@ -125,6 +108,7 @@ o2::framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, b
       {"infile", o2::framework::VariantType::String, "", {"Name of the input file"}},
       {"treename", o2::framework::VariantType::String, config.defaultTreeName.c_str(), {"Name of input tree"}},
       {dtb.option.c_str(), o2::framework::VariantType::String, dtb.defval.c_str(), {dtb.help.c_str()}},
+      {trb.option.c_str(), o2::framework::VariantType::String, trb.defval.c_str(), {trb.help.c_str()}},
       {mcb.option.c_str(), o2::framework::VariantType::String, mcb.defval.c_str(), {mcb.help.c_str()}},
       {"nevents", o2::framework::VariantType::Int, -1, {"number of events to run"}},
       {"terminate-on-eod", o2::framework::VariantType::Bool, true, {"terminate on end-of-data"}},

@@ -11,13 +11,17 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include "Mocking.h"
 #include "test_HelperMacros.h"
+#include "Framework/ConfigContext.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/SimpleOptionsRetriever.h"
 #include "../src/WorkflowHelpers.h"
 #include <boost/test/unit_test.hpp>
 #include <boost/test/tools/detail/per_element_manip.hpp>
 #include <algorithm>
+#include <memory>
 
 using namespace o2::framework;
 
@@ -26,17 +30,17 @@ BOOST_AUTO_TEST_CASE(TestVerifyWorkflow)
   using namespace o2::framework;
   auto checkIncompleteInput = [](WorkflowSpec const& workflow) {
     // Empty workflows should be invalid.
-    BOOST_CHECK_THROW(WorkflowHelpers::verifyWorkflow(workflow), std::runtime_error);
+    BOOST_CHECK_THROW((void)WorkflowHelpers::verifyWorkflow(workflow), std::runtime_error);
   };
 
   auto checkOk = [](WorkflowSpec const& workflow) {
     // Empty workflows should be invalid.
-    BOOST_CHECK_NO_THROW(WorkflowHelpers::verifyWorkflow(workflow));
+    BOOST_CHECK_NO_THROW((void)WorkflowHelpers::verifyWorkflow(workflow));
   };
 
   auto checkNotOk = [](WorkflowSpec const& workflow) {
     // Empty workflows should be invalid.
-    BOOST_CHECK_THROW(WorkflowHelpers::verifyWorkflow(workflow), std::runtime_error);
+    BOOST_CHECK_THROW((void)WorkflowHelpers::verifyWorkflow(workflow), std::runtime_error);
   };
 
   // A non fully specified input is an error, given the result is ambiguous.
@@ -189,7 +193,7 @@ BOOST_AUTO_TEST_CASE(TestWorkflowHelpers)
 
 // Test a single connection
 //
-// A->B
+// A->B becomes Enum -> A -> B
 BOOST_AUTO_TEST_CASE(TestSimpleConnection)
 {
   std::vector<InputSpec> expectedInputs = {InputSpec{"y", "TST", "A"}};
@@ -205,8 +209,11 @@ BOOST_AUTO_TEST_CASE(TestSimpleConnection)
   std::vector<OutputSpec> outputs;
   std::vector<LogicalForwardInfo> availableForwardsInfo;
 
-  WorkflowHelpers::verifyWorkflow(workflow);
-  WorkflowHelpers::injectServiceDevices(workflow);
+  auto result = WorkflowHelpers::verifyWorkflow(workflow);
+  BOOST_REQUIRE(result == WorkflowParsingState::Valid);
+  auto context = makeEmptyConfigContext();
+  WorkflowHelpers::injectServiceDevices(workflow, *context);
+  BOOST_CHECK_EQUAL(workflow.size(), 3);
   WorkflowHelpers::constructGraph(workflow, logicalEdges,
                                   outputs,
                                   availableForwardsInfo);
@@ -244,9 +251,9 @@ BOOST_AUTO_TEST_CASE(TestSimpleForward)
   std::vector<DeviceConnectionEdge> logicalEdges;
   std::vector<OutputSpec> outputs;
   std::vector<LogicalForwardInfo> availableForwardsInfo;
-
-  WorkflowHelpers::verifyWorkflow(workflow);
-  WorkflowHelpers::injectServiceDevices(workflow);
+  BOOST_REQUIRE(WorkflowHelpers::verifyWorkflow(workflow) == WorkflowParsingState::Valid);
+  auto context = makeEmptyConfigContext();
+  WorkflowHelpers::injectServiceDevices(workflow, *context);
   WorkflowHelpers::constructGraph(workflow, logicalEdges,
                                   outputs,
                                   availableForwardsInfo);
@@ -301,15 +308,16 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction)
   // channels, so that we can construct them before assigning to a device.
   std::vector<OutputSpec> outputs;
 
-  WorkflowHelpers::verifyWorkflow(workflow);
-  WorkflowHelpers::injectServiceDevices(workflow);
+  BOOST_REQUIRE(WorkflowHelpers::verifyWorkflow(workflow) == WorkflowParsingState::Valid);
+  auto context = makeEmptyConfigContext();
+  WorkflowHelpers::injectServiceDevices(workflow, *context);
   WorkflowHelpers::constructGraph(workflow, logicalEdges,
                                   outputs,
                                   availableForwardsInfo);
   std::vector<ConcreteDataMatcher> expectedMatchers = {
     ConcreteDataMatcher{"TST", "A", 0},
     ConcreteDataMatcher{"TST", "B", 0},
-    ConcreteDataMatcher{"DPL", "ENUM", 2}, // Enums value
+    ConcreteDataMatcher{"DPL", "ENUM", compile_time_hash("A")}, // Enums value
   };
 
   std::vector<Lifetime> expectedLifetimes = {
@@ -419,14 +427,15 @@ BOOST_AUTO_TEST_CASE(TestExternalInput)
        InputSpec{"external", "TST", "A", 0, Lifetime::Timer}},
      Outputs{
        OutputSpec{"TST", "B"}}}};
-  WorkflowHelpers::verifyWorkflow(workflow);
+  BOOST_REQUIRE(WorkflowHelpers::verifyWorkflow(workflow) == WorkflowParsingState::Valid);
   std::vector<DeviceConnectionEdge> logicalEdges;
   std::vector<OutputSpec> outputs;
   std::vector<LogicalForwardInfo> availableForwardsInfo;
 
   BOOST_CHECK_EQUAL(workflow.size(), 1);
 
-  WorkflowHelpers::injectServiceDevices(workflow);
+  auto context = makeEmptyConfigContext();
+  WorkflowHelpers::injectServiceDevices(workflow, *context);
   // The added devices are the one which should connect to
   // the condition DB and the sink for the dangling outputs.
   BOOST_CHECK_EQUAL(workflow.size(), 3);
@@ -485,4 +494,92 @@ BOOST_AUTO_TEST_CASE(TEST_SELECT)
   BOOST_CHECK(res.empty());
   auto res1 = o2::framework::select("x:TST/C1/0");
   BOOST_CHECK(res1.size() == 1);
+}
+
+// Test the case in which two outputs are matched by the same generic input on B
+// A/1
+//     \
+//      B becomes Timer -> A -> B
+//     /
+// A/2
+BOOST_AUTO_TEST_CASE(TestOriginWildcard)
+{
+  std::vector<InputSpec> expectedInputs = {InputSpec{"x", DataSpecUtils::dataDescriptorMatcherFrom(o2::header::DataOrigin{"A"})}};
+  std::vector<OutputSpec> expectedOutputs = {OutputSpec{"A", "1"}, OutputSpec{"A", "2"}, OutputSpec{"DPL", "TIMER", 0, Lifetime::Timer}};
+  WorkflowSpec workflow{
+    {"A", {}, {expectedOutputs[0], expectedOutputs[1]}},
+    {"B", expectedInputs, {}},
+  };
+  std::vector<DeviceConnectionEdge> logicalEdges;
+  std::vector<OutputSpec> outputs;
+  std::vector<LogicalForwardInfo> availableForwardsInfo;
+
+  BOOST_REQUIRE(WorkflowHelpers::verifyWorkflow(workflow) == WorkflowParsingState::Valid);
+  auto context = makeEmptyConfigContext();
+  WorkflowHelpers::injectServiceDevices(workflow, *context);
+  BOOST_CHECK_EQUAL(workflow.size(), 3);
+  BOOST_REQUIRE(workflow.size() >= 3);
+  BOOST_CHECK_EQUAL(workflow[0].name, "A");
+  BOOST_CHECK_EQUAL(workflow[1].name, "B");
+  BOOST_CHECK_EQUAL(workflow[2].name, "internal-dpl-clock");
+  for (size_t wi = 3; wi < workflow.size(); ++wi) {
+    BOOST_CHECK_EQUAL(workflow[wi].name, "");
+  }
+  WorkflowHelpers::constructGraph(workflow, logicalEdges,
+                                  outputs,
+                                  availableForwardsInfo);
+
+  std::vector<DeviceConnectionEdge> expectedEdges{
+    {2, 0, 0, 0, 2, 0, false, ConnectionKind::Out},
+    {0, 1, 0, 0, 0, 0, false, ConnectionKind::Out},
+    {0, 1, 0, 0, 1, 0, false, ConnectionKind::Out},
+  };
+
+  std::vector<size_t> expectedOutEdgeIndex = {1, 2, 0};
+  std::vector<EdgeAction> expectedActions = {
+    {true, true},  // to go from timer to A (new channel and new device)
+    {true, true},  // to go from A/1 to B (new channel and new device)
+    {false, false} // to go from A/2 to B (device is the same as A/1, device is the same as B?)
+  };
+
+  // Not sure I understand...
+  std::vector<EdgeAction> expectedInActions = {
+    {true, true},
+    {true, true},
+    {false, false},
+  };
+
+  BOOST_REQUIRE_EQUAL(expectedOutputs.size(), outputs.size());
+  BOOST_REQUIRE_EQUAL(expectedEdges.size(), logicalEdges.size());
+  for (size_t ei = 0, ee = expectedEdges.size(); ei != ee; ++ei) {
+    BOOST_CHECK_EQUAL(expectedEdges[ei].consumer, logicalEdges[ei].consumer);
+    BOOST_CHECK_EQUAL(expectedEdges[ei].producer, logicalEdges[ei].producer);
+    BOOST_CHECK_EQUAL(expectedEdges[ei].outputGlobalIndex, logicalEdges[ei].outputGlobalIndex);
+    BOOST_CHECK_EQUAL(expectedEdges[ei].consumerInputIndex, logicalEdges[ei].consumerInputIndex);
+  }
+
+  std::vector<size_t> inEdgeIndex;
+  std::vector<size_t> outEdgeIndex;
+  WorkflowHelpers::sortEdges(inEdgeIndex, outEdgeIndex, logicalEdges);
+  BOOST_REQUIRE_EQUAL(inEdgeIndex.size(), 3);
+  BOOST_REQUIRE_EQUAL(outEdgeIndex.size(), 3);
+  for (size_t ei = 0; ei < outEdgeIndex.size(); ++ei) {
+    BOOST_CHECK_EQUAL(outEdgeIndex[ei], expectedOutEdgeIndex[ei]);
+  }
+
+  std::vector<EdgeAction> outActions = WorkflowHelpers::computeOutEdgeActions(logicalEdges, outEdgeIndex);
+  BOOST_REQUIRE_EQUAL(outActions.size(), expectedActions.size());
+  for (size_t ai = 0; ai < outActions.size(); ++ai) {
+    BOOST_CHECK_EQUAL(outActions[ai].requiresNewDevice, expectedActions[ai].requiresNewDevice);
+    BOOST_CHECK_EQUAL(outActions[ai].requiresNewChannel, expectedActions[ai].requiresNewChannel);
+  }
+
+  // Crete the connections on the inverse map for all of them
+  // lookup for port and add as input of the current device.
+  std::vector<EdgeAction> inActions = WorkflowHelpers::computeInEdgeActions(logicalEdges, inEdgeIndex);
+  BOOST_REQUIRE_EQUAL(inActions.size(), expectedInActions.size());
+  for (size_t ai = 0; ai < inActions.size(); ++ai) {
+    BOOST_CHECK_EQUAL(inActions[ai].requiresNewDevice, expectedInActions[ai].requiresNewDevice);
+    BOOST_CHECK_EQUAL(inActions[ai].requiresNewChannel, expectedInActions[ai].requiresNewChannel);
+  }
 }

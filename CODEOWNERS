@@ -1,3 +1,129 @@
-* @ktf @AliceO2Group/core
+# Codeowners for ALICE O2.
+#
+# Map top directories only for now.
+# Add the lower lever directories where appropriate.
+# Order is important; the last matching pattern takes the most
+# precedence.
 
-/Framework @AliceO2Group/framework-admins
+# These owners will be the default owners for everything in
+# the repo. Unless a later match takes precedence.
+# **DO NOT USE** @AliceO2Group/core for anything else. 
+* @AliceO2Group/core
+
+/Algorithm  @matthiasrichter
+
+/Analysis   @jgrosseo @iarsene
+/Analysis/Tasks/ALICE3  @ginnocen
+/Analysis/Tasks/PWGHF  @ginnocen
+
+/CCDB  @costing @Barthelemy @sawenzel @AliceO2Group/framework-admins
+
+/Common              @AliceO2Group/framework-admins
+/Common/Constants    @shahor02
+/Common/Field        @shahor02
+/Common/MathUtils    @shahor02
+/Common/SimConfig    @sawenzel
+#/Common/Topologies
+#/Common/Types
+/Common/Utils        @sawenzel
+#/Common/maps
+
+/DataFormats                                   @AliceO2Group/framework-admins
+/DataFormats/Detectors/CPV                     @peressounko @kharlov
+/DataFormats/Detectors/EMCAL                   @mfasDa
+/DataFormats/Detectors/FIT                     @AllaMaevskaya @jotwinow @mslupeck
+/DataFormats/Detectors/GlobalTracking          @shahor02
+/DataFormats/Detectors/GlobalTrackingWorkflow  @shahor02
+/DataFormats/Detectors/HMPID                   @gvolpe79
+/DataFormats/Detectors/ITSMFT                  @iouribelikov @bovulpes
+/DataFormats/Detectors/MUON                    @aphecetche
+/DataFormats/Detectors/PHOS                    @peressounko @kharlov
+/DataFormats/Detectors/Passive                 @sawenzel
+/DataFormats/Detectors/TOF                     @noferini 
+/DataFormats/Detectors/TPC                     @davidrohr @wiechula @shahor02
+/DataFormats/Detectors/TRD                     @jolopezl @bazinski @tdietel
+/DataFormats/Detectors/Upgrades                @qgp @marcovanleeuwen
+/DataFormats/Detectors/ZDC                     @coppedis
+
+#/DataFormats/Headers
+#/DataFormats/Legacy
+#/DataFormats/MemoryResources
+/DataFormats/Parameters        @shahor02
+/DataFormats/Reconstruction    @shahor02
+#/DataFormats/TimeFrame
+/DataFormats/common            @shahor02
+/DataFormats/simulation        @sawenzel
+
+/Detectors/Base                    @sawenzel @shahor02
+/Detectors/Geometry                @sawenzel @shahor02
+/Detectors/CPV                     @peressounko @kharlov
+/Detectors/EMCAL                   @mfasDa
+/Detectors/FIT                     @AllaMaevskaya @jotwinow @mslupeck
+/Detectors/GlobalTracking          @shahor02
+/Detectors/GlobalTrackingWorkflow  @shahor02
+/Detectors/HMPID                   @gvolpe79
+/Detectors/ITSMFT                  @iouribelikov @bovulpes
+/Detectors/MUON                    @aphecetche
+/Detectors/PHOS                    @peressounko @kharlov
+/Detectors/Passive                 @sawenzel
+/Detectors/TOF                     @noferini 
+/Detectors/TPC                     @davidrohr @wiechula @shahor02
+/Detectors/TRD                     @jolopezl @bazinski @tdietel
+/Detectors/Upgrades                @qgp @marcovanleeuwen
+/Detectors/ZDC                     @coppedis
+
+/EventVisualisation  @jmyrcha @AliceO2Group/framework-admins
+#/EventVisualisation/Base
+#/EventVisualisation/DataConverter
+#/EventVisualisation/Detectors
+#/EventVisualisation/View
+#/EventVisualisation/o2eve_config
+
+/Examples 
+#/Examples/Ex1
+#/Examples/Ex2
+#/Examples/Ex3
+#/Examples/Ex4
+#/Examples/Ex5
+#/Examples/flp2epn
+#/Examples/flp2epn-distributed
+
+/Framework  @AliceO2Group/framework-admins
+#/Framework/AnalysisTutorial
+#/Framework/ArrowTests
+#/Framework/CMakeLists.txt
+#/Framework/Core
+#/Framework/DebugGUI
+#/Framework/Foundation
+#/Framework/Logger
+#/Framework/README.md
+#/Framework/TestWorkflows
+#/Framework/Utils
+
+/GPU                          @davidrohr
+#/GPU/Common
+#/GPU/GPUTracking
+/GPU/GPUTracking/TRDTracking  @davidrohr @martenole
+/GPU/TPCFastTransformation    @davidrohr @sgorbuno
+/GPU/TPCSpaceChargeBase       @davidrohr @ehellbar
+
+/Generators  @sawenzel
+
+/Steer @sawenzel @shahor02 @AliceO2Group/framework-admins
+
+/Testing
+
+/Utilities  @AliceO2Group/framework-admins
+/Utilities/Mergers @Barthelemy @knopers8
+/Utilities/DataSampling @Barthelemy @knopers8
+#/Utilities/DataCompression
+#/Utilities/DataFlow
+#/Utilities/MCStepLogger
+#/Utilities/O2Device
+#/Utilities/O2MessageMonitor
+#/Utilities/PCG
+#/Utilities/Publishers
+#/Utilities/Tools
+#/Utilities/aliceHLTwrapper
+#/Utilities/hough
+/Utilities/rANS               @shahor02 @MichaelLettrich

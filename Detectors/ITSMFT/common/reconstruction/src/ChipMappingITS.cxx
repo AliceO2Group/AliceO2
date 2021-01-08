@@ -24,7 +24,6 @@ constexpr std::array<int, ChipMappingITS::NSubB> ChipMappingITS::NModulesAlongSt
 constexpr std::array<int, ChipMappingITS::NSubB> ChipMappingITS::NChipsPerModuleSB;
 constexpr std::array<int, ChipMappingITS::NSubB> ChipMappingITS::NModulesPerStaveSB;
 constexpr std::array<int, ChipMappingITS::NSubB> ChipMappingITS::NCablesPerStaveSB;
-constexpr std::array<int, ChipMappingITS::NSubB> ChipMappingITS::CablesOnStaveSB;
 
 constexpr std::array<int, ChipMappingITS::NSubB> ChipMappingITS::NStavesSB;
 constexpr std::array<int, ChipMappingITS::NSubB> ChipMappingITS::NChipsPerStaveSB;
@@ -73,6 +72,7 @@ ChipMappingITS::ChipMappingITS()
   int ctrChip = 0;
   mChipInfoEntrySB[IB] = ctrChip;
   mCableHW2SW[IB].resize(NChipsPerStaveSB[IB], 0xff);
+  mCableHW2Pos[IB].resize(NChipsPerStaveSB[IB], 0xff);
   mCableHWFirstChip[IB].resize(NChipsPerStaveSB[IB], 0xff);
   for (int i = 0; i < NChipsPerStaveSB[IB]; i++) {
     auto& cInfo = mChipsInfo[ctrChip++];
@@ -81,16 +81,24 @@ ChipMappingITS::ChipMappingITS()
     cInfo.moduleSW = 0;
     cInfo.chipOnModuleSW = i;
     cInfo.chipOnModuleHW = i;
-    cInfo.cableHW = i;
-    cInfo.cableSW = i;
+    cInfo.cableHW = i;                              //1-to-1 mapping
+    cInfo.cableHWPos = i;                           //1-to-1 mapping
+    cInfo.cableSW = i;                              //1-to-1 mapping
     cInfo.chipOnCable = 0;                          // every chip is master
-    mCableHW2SW[IB][cInfo.cableHW] = cInfo.cableSW; //1-to-1 mapping
+    mCableHW2SW[IB][cInfo.cableHW] = cInfo.cableSW;
+    mCableHW2Pos[IB][cInfo.cableHW] = cInfo.cableHWPos;
+    mCablesOnStaveSB[IB] |= 0x1 << cInfo.cableHWPos; // account in lanes pattern
     mCableHWFirstChip[IB][i] = 0;                   // stave and module are the same
   }
 
+  // [i][j] gives lane id for  lowest(i=0) and highest(i=1) 7 chips of HW module (j+1) (1-4 for ML, 1-7 for OL)
+  const int LANEID[2][7] = {{6, 5, 4, 3, 2, 1, 0}, {0, 1, 2, 3, 4, 5, 6}};
+  const int maxModulesPerStave = NModulesPerStaveSB[OB];
+  const int chipsOnCable = 7;
   for (int bid = MB; bid <= OB; bid++) { // MB and OB staves have similar layout
     mChipInfoEntrySB[bid] = ctrChip;
     mCableHW2SW[bid].resize(0xff, 0xff);
+    mCableHW2Pos[bid].resize(0xff, 0xff);
     mCableHWFirstChip[bid].resize(0xff, 0xff);
 
     for (int i = 0; i < NChipsPerStaveSB[bid]; i++) {
@@ -103,11 +111,16 @@ ChipMappingITS::ChipMappingITS()
       cInfo.chipOnModuleSW = i % NChipsPerModuleSB[bid];
       cInfo.chipOnModuleHW = ChipOBModSW2HW[cInfo.chipOnModuleSW];
 
-      uint8_t connector = (hstave << 1) + (cInfo.chipOnModuleSW < (NChipsPerModuleSB[bid] / 2) ? 0 : 1);
-      cInfo.cableHW = (connector << 3) + (cInfo.moduleHW - 1);
-      cInfo.cableSW = (cInfo.moduleHW - 1) + connector * (NModulesPerStaveSB[bid] / 2);
+      bool upper7 = cInfo.chipOnModuleSW >= (NChipsPerModuleSB[bid] / 2);
+
+      uint8_t connector = 2 * hstave + upper7;
+      cInfo.cableHW = (connector << 3) + LANEID[upper7][cInfo.moduleHW - 1];
+      cInfo.cableSW = i / chipsOnCable;
+      cInfo.cableHWPos = LANEID[upper7][cInfo.moduleHW - 1] + connector * maxModulesPerStave / 2;
+      mCablesOnStaveSB[bid] |= 0x1 << cInfo.cableHWPos;                        // account in lanes pattern
       cInfo.chipOnCable = cInfo.chipOnModuleSW % (NChipsPerModuleSB[bid] / 2); // each cable serves half module
       mCableHW2SW[bid][cInfo.cableHW] = cInfo.cableSW;
+      mCableHW2Pos[bid][cInfo.cableHW] = cInfo.cableHWPos;
       if (cInfo.chipOnCable == 0) {
         mCableHWFirstChip[bid][cInfo.cableHW] = cInfo.moduleSW * NChipsPerModuleSB[bid];
       }

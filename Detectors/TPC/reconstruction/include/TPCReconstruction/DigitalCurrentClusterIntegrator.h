@@ -44,18 +44,20 @@ class DigitalCurrentClusterIntegrator
   void integrateCluster(int sector, int row, float pad, unsigned int charge)
   {
     int ipad = ipad + 0.5;
-    if (ipad < 0)
+    if (ipad < 0) {
       ipad = 0;
+    }
     int maxPad = o2::tpc::Mapper::instance().getNumberOfPadsInRowSector(row);
-    if (ipad >= maxPad)
+    if (ipad >= maxPad) {
       ipad = maxPad - 1;
+    }
     mIntegratedCurrents[sector][row][ipad] += charge;
   }
   void clear(); //Clear all currents to 0
   void reset(); //Free all allocated current buffers
 
  private:
-  std::unique_ptr<unsigned long long int[]> mIntegratedCurrents[Constants::MAXSECTOR][Constants::MAXGLOBALPADROW];
+  std::unique_ptr<unsigned long long int[]> mIntegratedCurrents[constants::MAXSECTOR][constants::MAXGLOBALPADROW];
 };
 
 } // namespace tpc

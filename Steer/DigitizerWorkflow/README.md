@@ -1,4 +1,8 @@
+<!-- doxy
 \page refSteerDigitizerWorkflow Digitizer Workflow
+/doxy -->
+
+# Digitizer Workflow
 
 This is a short documention for the DPL-DigitizerWorkflow example
 

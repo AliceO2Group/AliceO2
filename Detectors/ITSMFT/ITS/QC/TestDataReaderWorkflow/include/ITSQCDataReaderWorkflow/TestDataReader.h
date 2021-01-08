@@ -37,7 +37,7 @@
 #include "ITSBase/GeometryTGeo.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "ITSMFTReconstruction/DigitPixelReader.h"
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSMFTReconstruction/GBTWord.h"
 #include "ITSMFTReconstruction/PayLoadCont.h"

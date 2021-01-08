@@ -10,121 +10,219 @@
 
 /// \file Utils.h
 /// \brief General auxilliary methods
-/// \author ruben.shahoyan@cern.ch
+/// \author ruben.shahoyan@cern.ch, michael.lettrich@cern.ch
 
 #ifndef ALICEO2_COMMON_MATH_UTILS_
 #define ALICEO2_COMMON_MATH_UTILS_
 
-#ifndef __OPENCL__
-#include <array>
-#include <cmath>
-#endif
-#include "GPUCommonDef.h"
-#include "GPUCommonMath.h"
-#include "CommonConstants/MathConstants.h"
+#include "MathUtils/detail/bitOps.h"
+#include "MathUtils/detail/StatAccumulator.h"
+#include "MathUtils/detail/trigonometric.h"
 
 namespace o2
 {
-// namespace common
-//{
-namespace utils
+namespace math_utils
 {
-GPUdi() void BringTo02Pi(float& phi)
+
+GPUdi() float to02Pi(float phi)
 {
-  // ensure angle in [0:2pi] for the input in [-pi:pi] or [0:pi]
-  if (phi < 0.f) {
-    phi += o2::constants::math::TwoPI;
-  }
+  return detail::to02Pi<float>(phi);
 }
 
-inline void BringTo02PiGen(float& phi)
+GPUdi() double to02Pid(double phi)
 {
-  // ensure angle in [0:2pi] for the any input angle
-  while (phi < 0.f) {
-    phi += o2::constants::math::TwoPI;
-  }
-  while (phi > o2::constants::math::TwoPI) {
-    phi -= o2::constants::math::TwoPI;
-  }
+  return detail::to02Pi<double>(phi);
 }
 
-inline void BringToPMPi(float& phi)
+GPUdi() void bringTo02Pi(float& phi)
 {
-  // ensure angle in [-pi:pi] for the input in [-pi:pi] or [0:pi]
-  if (phi > o2::constants::math::PI) {
-    phi -= o2::constants::math::TwoPI;
-  }
+  detail::bringTo02Pi<float>(phi);
 }
 
-inline void BringToPMPiGen(float& phi)
+GPUdi() void bringTo02Pid(double& phi)
 {
-  // ensure angle in [-pi:pi] for any input angle
-  while (phi < -o2::constants::math::PI) {
-    phi += o2::constants::math::TwoPI;
-  }
-  while (phi > o2::constants::math::PI) {
-    phi -= o2::constants::math::TwoPI;
-  }
+  detail::bringTo02Pi<double>(phi);
 }
 
-inline void sincosf(float ang, float& s, float& c)
+inline float toPMPiGen(float phi)
 {
-  // consider speedup for simultaneus calculation
-  s = o2::gpu::CAMath::Sin(ang);
-  c = o2::gpu::CAMath::Cos(ang);
+  return detail::toPMPiGen<float>(phi);
 }
 
+inline double toPMPiGend(double phi)
+{
+  return detail::toPMPiGen<double>(phi);
+}
+
+inline void bringToPMPiGen(float& phi)
+{
+  detail::bringToPMPiGen<float>(phi);
+}
+
+inline void bringToPMPiGend(double& phi)
+{
+  detail::bringToPMPiGen<double>(phi);
+}
+
+inline float to02PiGen(float phi)
+{
+  return detail::to02PiGen<float>(phi);
+}
+
+inline double to02PiGend(double phi)
+{
+  return detail::to02PiGen<double>(phi);
+}
+
+inline void bringTo02PiGen(float& phi)
+{
+  detail::bringTo02PiGen<float>(phi);
+}
+
+inline void bringTo02PiGend(double& phi)
+{
+  detail::bringTo02PiGen<double>(phi);
+}
+
+inline float toPMPi(float phi)
+{
+  return detail::toPMPi<float>(phi);
+}
+
+inline double toPMPid(double phi)
+{
+  return detail::toPMPi<double>(phi);
+}
+
+inline void bringToPMPi(float& phi)
+{
+  return detail::bringToPMPi<float>(phi);
+}
+
+inline void bringToPMPid(double& phi)
+{
+  return detail::bringToPMPi<double>(phi);
+}
+
+GPUdi() void sincos(float ang, float& s, float& c)
+{
+  detail::sincos<float>(ang, s, c);
+}
 #ifndef __OPENCL__
-inline void RotateZ(std::array<float, 3>& xy, float alpha)
+GPUdi() void sincosd(double ang, double& s, double& c)
 {
-  // transforms vector in tracking frame alpha to global frame
-  float sn, cs, x = xy[0];
-  sincosf(alpha, sn, cs);
-  xy[0] = x * cs - xy[1] * sn;
-  xy[1] = x * sn + xy[1] * cs;
+  detail::sincos<double>(ang, s, c);
 }
 #endif
 
-inline int Angle2Sector(float phi)
+GPUdi() void rotateZ(float xL, float yL, float& xG, float& yG, float snAlp, float csAlp)
 {
-  // convert angle to sector ID, phi can be either in 0:2pi or -pi:pi convention
-  int sect = phi * o2::constants::math::Rad2Deg / o2::constants::math::SectorSpanDeg;
-  if (phi < 0.f) {
-    sect += o2::constants::math::NSectors - 1;
-  }
-  return sect;
+  return detail::rotateZ<float>(xL, yL, xG, yG, snAlp, csAlp);
 }
 
-inline float Sector2Angle(int sect)
+GPUdi() void rotateZd(double xL, double yL, double& xG, double& yG, double snAlp, double csAlp)
 {
-  // convert sector to its angle center, in -pi:pi convention
-  float ang = o2::constants::math::SectorSpanRad * (0.5f + sect);
-  BringToPMPi(ang);
-  return ang;
+  return detail::rotateZ<double>(xL, yL, xG, yG, snAlp, csAlp);
 }
 
-inline float Angle2Alpha(float phi)
+#ifndef GPUCA_GPUCODE_DEVICE
+inline void rotateZInv(float xG, float yG, float& xL, float& yL, float snAlp, float csAlp)
 {
-  // convert angle to its sector alpha
-  return Sector2Angle(Angle2Sector(phi));
+  detail::rotateZInv<float>(xG, yG, xL, yL, snAlp, csAlp);
 }
 
-//-------------------------------------->>>
-// recursive creation of bitmask
-template <typename T>
-constexpr int bit2Mask(T v)
+inline void rotateZInvd(double xG, double yG, double& xL, double& yL, double snAlp, double csAlp)
 {
-  return 0x1 << v;
+  detail::rotateZInv<double>(xG, yG, xL, yL, snAlp, csAlp);
 }
 
-template <typename T, typename... Args>
-constexpr int bit2Mask(T first, Args... args)
+inline std::tuple<float, float> rotateZInv(float xG, float yG, float snAlp, float csAlp)
 {
-  return (0x1 << first) | bit2Mask(args...);
+  return detail::rotateZInv<float>(xG, yG, snAlp, csAlp);
 }
-//--------------------------------------<<<
-} // namespace utils
-//}
+
+inline std::tuple<double, double> rotateZInvd(double xG, double yG, double snAlp, double csAlp)
+{
+  return detail::rotateZInv<double>(xG, yG, snAlp, csAlp);
+}
+
+GPUdi() std::tuple<float, float> sincos(float ang)
+{
+  return detail::sincos<float>(ang);
+}
+
+GPUdi() std::tuple<double, double> sincosd(double ang)
+{
+  return detail::sincos<double>(ang);
+}
+
+inline std::tuple<float, float> rotateZ(float xL, float yL, float snAlp, float csAlp)
+{
+  return detail::rotateZ<float>(xL, yL, snAlp, csAlp);
+}
+
+inline std::tuple<double, double> rotateZd(double xL, double yL, double snAlp, double csAlp)
+{
+  return detail::rotateZ<double>(xL, yL, snAlp, csAlp);
+}
+
+inline void rotateZ(std::array<float, 3>& xy, float alpha)
+{
+  detail::rotateZ<float>(xy, alpha);
+}
+
+inline void rotateZd(std::array<double, 3>& xy, double alpha)
+{
+  detail::rotateZ<double>(xy, alpha);
+}
+#endif
+
+inline int angle2Sector(float phi)
+{
+  return detail::angle2Sector<float>(phi);
+}
+
+inline int angle2Sectord(double phi)
+{
+  return detail::angle2Sector<double>(phi);
+}
+
+inline float sector2Angle(int sect)
+{
+  return detail::sector2Angle<float>(sect);
+}
+
+inline double sector2Angled(int sect)
+{
+  return detail::sector2Angle<double>(sect);
+}
+
+inline float angle2Alpha(float phi)
+{
+  return detail::angle2Alpha<float>(phi);
+}
+
+inline double angle2Alphad(double phi)
+{
+  return detail::angle2Alpha<double>(phi);
+}
+
+GPUhdi() float fastATan2(float y, float x)
+{
+  return detail::fastATan2<float>(y, x);
+}
+
+GPUhdi() double fastATan2d(double y, double x)
+{
+  return detail::fastATan2<double>(y, x);
+}
+
+using detail::StatAccumulator;
+
+using detail::bit2Mask;
+using detail::numberOfBitsSet;
+
+} // namespace math_utils
 } // namespace o2
 
 #endif

@@ -14,10 +14,10 @@
 #ifndef GPUTPCGMSLICETRACK_H
 #define GPUTPCGMSLICETRACK_H
 
-#include "GPUTPCSliceOutTrack.h"
+#include "GPUTPCTrack.h"
 #include "GPUTPCGMTrackParam.h"
 #include "GPUCommonMath.h"
-//#include <algorithm>
+#include "GPUO2DataTypes.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -28,109 +28,115 @@ namespace gpu
  *
  * The class describes TPC slice tracks used in GPUTPCGMMerger
  */
+class GPUTPCGMMerger;
 class GPUTPCGMSliceTrack
 {
  public:
-  float Alpha() const { return mAlpha; }
-  char Slice() const { return (char)mSlice; }
-  char CSide() const { return mSlice >= 18; }
-  int NClusters() const { return mNClusters; }
-  int PrevNeighbour() const { return mNeighbour[0]; }
-  int NextNeighbour() const { return mNeighbour[1]; }
-  int Neighbour(int i) const { return mNeighbour[i]; }
-  int PrevSegmentNeighbour() const { return mSegmentNeighbour[0]; }
-  int NextSegmentNeighbour() const { return mSegmentNeighbour[1]; }
-  int SegmentNeighbour(int i) const { return mSegmentNeighbour[i]; }
-  const GPUTPCSliceOutTrack* OrigTrack() const { return mOrigTrack; }
-  float X() const { return mX; }
-  float Y() const { return mY; }
-  float Z() const { return mZ; }
-  float SinPhi() const { return mSinPhi; }
-  float CosPhi() const { return mCosPhi; }
-  float SecPhi() const { return mSecPhi; }
-  float DzDs() const { return mDzDs; }
-  float QPt() const { return mQPt; }
-  float ZOffset() const { return mZOffset; }
-  float Leg() const { return mLeg; }
-
-  int LocalTrackId() const { return mLocalTrackId; }
-  void SetLocalTrackId(int v) { mLocalTrackId = v; }
-  int GlobalTrackId(int n) const { return mGlobalTrackIds[n]; }
-  void SetGlobalTrackId(int n, int v) { mGlobalTrackIds[n] = v; }
-
-  float MaxClusterZ() { return CAMath::Max(mOrigTrack->Clusters()->GetZ(), (mOrigTrack->Clusters() + mOrigTrack->NClusters() - 1)->GetZ()); }
-  float MinClusterZ() { return CAMath::Min(mOrigTrack->Clusters()->GetZ(), (mOrigTrack->Clusters() + mOrigTrack->NClusters() - 1)->GetZ()); }
-
-  void Set(const GPUTPCSliceOutTrack* sliceTr, float alpha, int slice)
+  GPUd() float Alpha() const { return mAlpha; }
+  GPUd() unsigned char Slice() const { return mSlice; }
+  GPUd() char CSide() const { return mSlice >= 18; }
+  GPUd() int NClusters() const { return mNClusters; }
+  GPUd() int PrevNeighbour() const { return mNeighbour[0]; }
+  GPUd() int NextNeighbour() const { return mNeighbour[1]; }
+  GPUd() int Neighbour(int i) const { return mNeighbour[i]; }
+  GPUd() int PrevSegmentNeighbour() const { return mSegmentNeighbour[0]; }
+  GPUd() int NextSegmentNeighbour() const { return mSegmentNeighbour[1]; }
+  GPUd() int SegmentNeighbour(int i) const { return mSegmentNeighbour[i]; }
+  GPUd() int AnyNeighbour(int i) const
   {
-    const GPUTPCBaseTrackParam& t = sliceTr->Param();
-    mOrigTrack = sliceTr;
-    mX = t.GetX();
-    mY = t.GetY();
-    mZ = t.GetZ();
-    mDzDs = t.GetDzDs();
-    mSinPhi = t.GetSinPhi();
-    mQPt = t.GetQPt();
-    mCosPhi = sqrt(1.f - mSinPhi * mSinPhi);
-    mSecPhi = 1.f / mCosPhi;
-    mAlpha = alpha;
-    mSlice = slice;
-    mZOffset = t.GetZOffset();
-    mNClusters = sliceTr->NClusters();
+    return (i < 2) ? mSegmentNeighbour[i] : mNeighbour[i - 2];
+  }
+  GPUd() const GPUTPCTrack* OrigTrack() const { return mOrigTrack; }
+  GPUd() float X() const { return mParam.mX; }
+  GPUd() float Y() const { return mParam.mY; }
+  GPUd() float Z() const { return mParam.mZ; }
+  GPUd() float SinPhi() const { return mParam.mSinPhi; }
+  GPUd() float CosPhi() const { return mParam.mCosPhi; }
+  GPUd() float SecPhi() const { return mParam.mSecPhi; }
+  GPUd() float DzDs() const { return mParam.mDzDs; }
+  GPUd() float QPt() const { return mParam.mQPt; }
+  GPUd() float TZOffset() const { return mTZOffset; }
+  GPUd() unsigned char Leg() const { return mLeg; }
+
+  GPUd() int LocalTrackId() const { return mLocalTrackId; }
+  GPUd() void SetLocalTrackId(int v) { mLocalTrackId = v; }
+  GPUd() int GlobalTrackId(int n) const { return mGlobalTrackIds[n]; }
+  GPUd() void SetGlobalTrackId(int n, int v) { mGlobalTrackIds[n] = v; }
+
+  GPUd() float MaxClusterZT() const { return CAMath::Max(mClusterZT[0], mClusterZT[1]); }
+  GPUd() float MinClusterZT() const { return CAMath::Min(mClusterZT[0], mClusterZT[1]); }
+  GPUd() float ClusterZT0() const { return mClusterZT[0]; }
+  GPUd() float ClusterZTN() const { return mClusterZT[1]; }
+  GPUd() void SetClusterZT(float v1, float v2)
+  {
+    mClusterZT[0] = v1;
+    mClusterZT[1] = v2;
   }
 
-  void SetGlobalSectorTrackCov()
+  GPUd() void Set(const GPUTPCGMTrackParam& trk, const GPUTPCTrack* sliceTr, float alpha, int slice);
+  GPUd() void SetParam2(const GPUTPCGMTrackParam& trk);
+  GPUd() void Set(const GPUTPCGMMerger* merger, const GPUTPCTrack* sliceTr, float alpha, int slice);
+  GPUd() void UseParam2() { mParam = mParam2; }
+  GPUd() void SetX2(float v) { mParam2.mX = v; }
+  GPUd() float X2() const { return mParam2.mX; }
+
+  GPUd() void SetGlobalSectorTrackCov()
   {
-    mC0 = 1;
-    mC2 = 1;
-    mC3 = 0;
-    mC5 = 1;
-    mC7 = 0;
-    mC9 = 1;
-    mC10 = 0;
-    mC12 = 0;
-    mC14 = 10;
+    mParam.mC0 = 1;
+    mParam.mC2 = 1;
+    mParam.mC3 = 0;
+    mParam.mC5 = 1;
+    mParam.mC7 = 0;
+    mParam.mC9 = 1;
+    mParam.mC10 = 0;
+    mParam.mC12 = 0;
+    mParam.mC14 = 10;
   }
 
-  void SetNClusters(int v) { mNClusters = v; }
-  void SetPrevNeighbour(int v) { mNeighbour[0] = v; }
-  void SetNextNeighbour(int v) { mNeighbour[1] = v; }
-  void SetNeighbor(int v, int i) { mNeighbour[i] = v; }
-  void SetPrevSegmentNeighbour(int v) { mSegmentNeighbour[0] = v; }
-  void SetNextSegmentNeighbour(int v) { mSegmentNeighbour[1] = v; }
-  void SetLeg(unsigned char v) { mLeg = v; }
+  GPUd() void SetNClusters(int v) { mNClusters = v; }
+  GPUd() void SetPrevNeighbour(int v) { mNeighbour[0] = v; }
+  GPUd() void SetNextNeighbour(int v) { mNeighbour[1] = v; }
+  GPUd() void SetNeighbor(int v, int i) { mNeighbour[i] = v; }
+  GPUd() void SetPrevSegmentNeighbour(int v) { mSegmentNeighbour[0] = v; }
+  GPUd() void SetNextSegmentNeighbour(int v) { mSegmentNeighbour[1] = v; }
+  GPUd() void SetLeg(unsigned char v) { mLeg = v; }
 
-  void CopyParamFrom(const GPUTPCGMSliceTrack& t)
+  GPUd() void CopyParamFrom(const GPUTPCGMSliceTrack& t)
   {
-    mX = t.mX;
-    mY = t.mY;
-    mZ = t.mZ;
-    mSinPhi = t.mSinPhi;
-    mDzDs = t.mDzDs;
-    mQPt = t.mQPt;
-    mCosPhi = t.mCosPhi, mSecPhi = t.mSecPhi;
+    mParam.mX = t.mParam.mX;
+    mParam.mY = t.mParam.mY;
+    mParam.mZ = t.mParam.mZ;
+    mParam.mSinPhi = t.mParam.mSinPhi;
+    mParam.mDzDs = t.mParam.mDzDs;
+    mParam.mQPt = t.mParam.mQPt;
+    mParam.mCosPhi = t.mParam.mCosPhi;
+    mParam.mSecPhi = t.mParam.mSecPhi;
     mAlpha = t.mAlpha;
   }
 
-  bool FilterErrors(const GPUParam& param, float maxSinPhi = GPUCA_MAX_SIN_PHI, float sinPhiMargin = 0.f);
-
-  bool TransportToX(float x, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi, bool doCov = true) const;
-
-  bool TransportToXAlpha(float x, float sinAlpha, float cosAlpha, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi) const;
+  GPUd() bool FilterErrors(const GPUTPCGMMerger* merger, int iSlice, float maxSinPhi = GPUCA_MAX_SIN_PHI, float sinPhiMargin = 0.f);
+  GPUd() bool TransportToX(GPUTPCGMMerger* merger, float x, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi, bool doCov = true) const;
+  GPUd() bool TransportToXAlpha(GPUTPCGMMerger* merger, float x, float sinAlpha, float cosAlpha, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi) const;
+  GPUd() void CopyBaseTrackCov();
 
  private:
-  const GPUTPCSliceOutTrack* mOrigTrack;                    // pointer to original slice track
-  float mX, mY, mZ, mSinPhi, mDzDs, mQPt, mCosPhi, mSecPhi; // parameters
-  float mZOffset;
-  float mC0, mC2, mC3, mC5, mC7, mC9, mC10, mC12, mC14; // covariances
-  float mAlpha;                                         // alpha angle
-  int mSlice;                                           // slice of this track segment
-  int mNClusters;                                       // N clusters
-  int mNeighbour[2];                                    //
-  int mSegmentNeighbour[2];                             //
-  int mLocalTrackId;                                    // Corrected local track id in terms of GMSliceTracks array
-  int mGlobalTrackIds[2];                               // IDs of associated global tracks
-  unsigned char mLeg;                                   // Leg of this track segment
+  struct sliceTrackParam {
+    float mX, mY, mZ, mSinPhi, mDzDs, mQPt, mCosPhi, mSecPhi; // parameters
+    float mC0, mC2, mC3, mC5, mC7, mC9, mC10, mC12, mC14;     // covariances
+  };
+  const GPUTPCTrack* mOrigTrack; // pointer to original slice track
+  sliceTrackParam mParam;        // Track parameters
+  sliceTrackParam mParam2;       // Parameters at other side
+  float mTZOffset;               // Z offset with early transform, T offset otherwise
+  float mAlpha;                  // alpha angle
+  float mClusterZT[2];           // Minimum maximum cluster Z / T
+  int mNClusters;                // N clusters
+  int mNeighbour[2];             //
+  int mSegmentNeighbour[2];      //
+  int mLocalTrackId;             // Corrected local track id in terms of GMSliceTracks array
+  int mGlobalTrackIds[2];        // IDs of associated global tracks
+  unsigned char mSlice;          // slice of this track segment
+  unsigned char mLeg;            // Leg of this track segment
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

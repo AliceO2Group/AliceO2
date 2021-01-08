@@ -9,7 +9,6 @@
 // or submit itself to any jurisdiction.
 
 #include "TOFBase/Digit.h"
-#include "TOFBase/Geo.h"
 
 #include <iostream>
 
@@ -17,16 +16,21 @@ using namespace o2::tof;
 
 ClassImp(o2::tof::Digit);
 
-Digit::Digit(Int_t channel, Int_t tdc, Int_t tot, Int_t bc, Int_t label)
-  : mChannel(channel), mTDC(tdc), mTOT(tot), mBC(bc), mLabel(label), mIsUsedInCluster(kFALSE)
+Digit::Digit(Int_t channel, Int_t tdc, Int_t tot, uint64_t bc, Int_t label, uint32_t triggerorbit, uint16_t triggerbunch)
+  : mChannel(channel), mTDC(tdc), mTOT(tot), mIR(0, 0), mLabel(label), mTriggerOrbit(triggerorbit), mTriggerBunch(triggerbunch), mIsUsedInCluster(kFALSE)
+{
+  mIR.setFromLong(bc);
+}
+//______________________________________________________________________
+Digit::Digit(Int_t channel, Int_t tdc, Int_t tot, uint32_t orbit, uint16_t bc, Int_t label, uint32_t triggerorbit, uint16_t triggerbunch)
+  : mChannel(channel), mTDC(tdc), mTOT(tot), mIR(bc, orbit), mLabel(label), mTriggerOrbit(triggerorbit), mTriggerBunch(triggerbunch), mIsUsedInCluster(kFALSE)
 {
 }
-
 //______________________________________________________________________
 
 void Digit::printStream(std::ostream& stream) const
 {
-  stream << "TOF Digit: Channel " << mChannel << " TDC " << mTDC << " TOT " << mTOT << "Bunch Crossing index" << mBC << " Label " << mLabel << "\n";
+  stream << "TOF Digit: Channel " << mChannel << " TDC " << mTDC << " TOT " << mTOT << "Bunch Crossing index" << mIR.toLong() << " Label " << mLabel << "\n";
 }
 
 //______________________________________________________________________
@@ -54,7 +58,7 @@ void Digit::merge(Int_t tdc, Int_t tot)
 
 //______________________________________________________________________
 
-void Digit::getPhiAndEtaIndex(int& phi, int& eta)
+void Digit::getPhiAndEtaIndex(int& phi, int& eta) const
 {
 
   // method that returns the index in phi and eta of the digit
@@ -64,16 +68,17 @@ void Digit::getPhiAndEtaIndex(int& phi, int& eta)
   chan = getChannel();                // note that inside the strip the digits are ordered per channel number
   Geo::getVolumeIndices(chan, detId); // Get volume index from channel index
   eta = detId[2] /*strip*/ * 2 + detId[3] /*pad Z*/;
-  if (detId[1] /*module*/ == 0)
+  if (detId[1] /*module*/ == 0) {
     eta += 0;
-  else if (detId[1] == 1)
+  } else if (detId[1] == 1) {
     eta += 38;
-  else if (detId[1] == 2)
+  } else if (detId[1] == 2) {
     eta += 76;
-  else if (detId[1] == 3)
+  } else if (detId[1] == 3) {
     eta += 106;
-  else if (detId[1] == 4)
+  } else if (detId[1] == 4) {
     eta += 144;
+  }
   phi = detId[0] /*phi sector*/ * 48 + detId[4] /*pad x*/;
 
   return;

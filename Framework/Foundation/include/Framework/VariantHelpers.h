@@ -10,11 +10,13 @@
 #ifndef O2_FRAMEWORK_VARIANTHELPERS_H_
 #define O2_FRAMEWORK_VARIANTHELPERS_H_
 
+#include "Framework/CompilerBuiltins.h"
+
 namespace o2::framework
 {
 /// From https://en.cppreference.com/w/cpp/utility/variant/visit
 template <class... Ts>
-struct overloaded : Ts... {
+struct O2_VISIBILITY_HIDDEN overloaded : Ts... {
   using Ts::operator()...;
 };
 

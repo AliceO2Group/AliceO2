@@ -40,7 +40,7 @@ class FairMQDeviceProxy
 
   /// Looks like what we really need in the headers is just the transport.
   FairMQTransportFactory* getTransport();
-  FairMQTransportFactory* getTransport(const std::string& channel, int index);
+  FairMQTransportFactory* getTransport(const std::string& channel, int index = 0);
   std::unique_ptr<FairMQMessage> createMessage() const;
   std::unique_ptr<FairMQMessage> createMessage(const size_t size) const;
 

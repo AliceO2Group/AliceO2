@@ -46,6 +46,9 @@ inline int getCudaCores(const int major, const int minor)
       {0x60, 64},  // Pascal Generation (SM 6.0) GP100 class
       {0x61, 128}, // Pascal Generation (SM 6.1) GP10x class
       {0x62, 128}, // Pascal Generation (SM 6.2) GP10x class
+      {0x70, 64},  // Volta Generation (SM 7.0) GV100 class
+      {0x72, 64},  // Volta Generation (SM 7.2) GV10B class
+      {0x75, 64},  // Turing Generation (SM 7.5) TU1xx class
       {-1, -1}};
 
   int index = 0;
@@ -74,10 +77,10 @@ namespace o2
 {
 namespace its
 {
-namespace GPU
+namespace gpu
 {
 
-using Utils::Host::checkCUDAError;
+using utils::host::checkCUDAError;
 
 Context::Context(bool dumpDevices)
 {
@@ -125,6 +128,7 @@ Context::Context(bool dumpDevices)
     if (dumpDevices) {
       std::cout << "################ CUDA DEVICE " << iDevice << " ################" << std::endl;
       std::cout << "Name " << mDeviceProperties[iDevice].name << std::endl;
+      std::cout << "minor " << minor << " major " << major << std::endl;
       std::cout << "gpuProcessors " << mDeviceProperties[iDevice].gpuProcessors << std::endl;
       std::cout << "cudaCores " << mDeviceProperties[iDevice].cudaCores << std::endl;
       std::cout << "globalMemorySize " << mDeviceProperties[iDevice].globalMemorySize << std::endl;
@@ -165,6 +169,6 @@ const DeviceProperties& Context::getDeviceProperties(const int deviceIndex)
   return mDeviceProperties[deviceIndex];
 }
 
-} // namespace GPU
+} // namespace gpu
 } // namespace its
 } // namespace o2

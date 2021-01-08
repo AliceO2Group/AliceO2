@@ -35,7 +35,7 @@ void AdcClockMonitor::reset()
   mPrevSequence = 0;
   mSequencePosition = 0;
   mState = state::error;
-  LOG(INFO) << "ADC clock monitoring for SAMPA " << mSampa << " was resetted" << FairLogger::endl;
+  LOG(INFO) << "ADC clock monitoring for SAMPA " << mSampa << " was resetted";
 }
 
 int AdcClockMonitor::addSequence(const short seq)
@@ -82,14 +82,16 @@ int AdcClockMonitor::addSequence(const short seq)
         mSequencePosition == 0 ||
         mSequencePosition == 1 ||
         mSequencePosition == 2) {
-        if (seq != 0xF)
+        if (seq != 0xF) {
           mState = state::error;
+        }
         ++mSequencePosition;
         break;
       }
       if (mSequencePosition == 3) {
-        if (seq != mTransition0)
+        if (seq != mTransition0) {
           mState = state::error;
+        }
         ++mSequencePosition;
         break;
       }
@@ -97,14 +99,16 @@ int AdcClockMonitor::addSequence(const short seq)
         mSequencePosition == 4 ||
         mSequencePosition == 5 ||
         mSequencePosition == 6) {
-        if (seq != 0x0)
+        if (seq != 0x0) {
           mState = state::error;
+        }
         mSequencePosition++;
         break;
       }
       if (mSequencePosition == 7) {
-        if (seq != mTransition1)
+        if (seq != mTransition1) {
           mState = state::error;
+        }
         ++mSequencePosition;
         mSequenceCompleted = true;
         break;

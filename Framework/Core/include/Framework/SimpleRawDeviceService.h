@@ -7,23 +7,22 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_SIMPLERAWDEVICESERVICE_H
-#define FRAMEWORK_SIMPLERAWDEVICESERVICE_H
+#ifndef O2_FRAMEWORK_SIMPLERAWDEVICESERVICE_H_
+#define O2_FRAMEWORK_SIMPLERAWDEVICESERVICE_H_
 
 #include "Framework/RawDeviceService.h"
+#include "Framework/DeviceSpec.h"
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
-/// Fairly unsophisticated service which simply stores and return the
-/// requested FairMQDevice
+/// Fairly unsophisticated service which simply stores and returns the
+/// requested FairMQDevice and DeviceSpec
 class SimpleRawDeviceService : public RawDeviceService
 {
  public:
-  SimpleRawDeviceService(FairMQDevice* device)
-    : mDevice(device)
+  SimpleRawDeviceService(FairMQDevice* device, DeviceSpec const& spec)
+    : mDevice(device), mSpec(spec)
   {
   }
 
@@ -37,10 +36,17 @@ class SimpleRawDeviceService : public RawDeviceService
     mDevice = device;
   }
 
+  DeviceSpec const& spec() final
+  {
+    return mSpec;
+  }
+
+  void waitFor(unsigned int ms) final;
+
  private:
   FairMQDevice* mDevice;
+  DeviceSpec const& mSpec;
 };
 
-} // namespace framework
-} // namespace o2
-#endif // FRAMEWORK_SIMPLERAWDEVICESERVICE_H
+} // namespace o2::framework
+#endif // O2_FRAMEWORK_SIMPLERAWDEVICESERVICE_H__

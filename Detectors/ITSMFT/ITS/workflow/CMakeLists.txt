@@ -10,6 +10,7 @@
 
 o2_add_library(ITSWorkflow
                SOURCES src/RecoWorkflow.cxx
+                       src/ClusterWriterWorkflow.cxx
                        src/DigitReaderSpec.cxx
                        src/ClustererSpec.cxx
                        src/ClusterWriterSpec.cxx
@@ -17,14 +18,24 @@ o2_add_library(ITSWorkflow
                        src/CookedTrackerSpec.cxx
                        src/TrackWriterSpec.cxx
                        src/TrackReaderSpec.cxx
-               PUBLIC_LINK_LIBRARIES O2::Framework
+		       src/VertexReaderSpec.cxx
+	       PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::SimConfig
                                      O2::DataFormatsITS
                                      O2::SimulationDataFormat
                                      O2::ITStracking
-                                     O2::ITSReconstruction)
+                                     O2::ITSReconstruction
+                                     O2::ITSMFTReconstruction
+                                     O2::ITSMFTWorkflow
+                                     O2::GPUTracking)
 
 o2_add_executable(reco-workflow
                   SOURCES src/its-reco-workflow.cxx
                   COMPONENT_NAME its
                   PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
+
+o2_add_executable(cluster-writer-workflow
+                  SOURCES src/its-cluster-writer-workflow.cxx
+                  COMPONENT_NAME its
+                  PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
+

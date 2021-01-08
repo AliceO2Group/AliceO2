@@ -20,13 +20,20 @@
 #pragma link C++ class o2::tpc::ClusterHardwareContainer8kb + ;
 #pragma link C++ class o2::tpc::ClusterHardwareContainerFixedSize < 8192> + ;
 #pragma link C++ class o2::tpc::ClusterNativeContainer + ;
+#pragma link C++ class o2::tpc::Digit + ;
+#pragma link C++ class o2::tpc::ZeroSuppressedContainer8kb + ;
 #pragma link C++ class std::vector < o2::tpc::ClusterNative> + ;
 #pragma link C++ class std::vector < o2::tpc::ClusterNativeContainer> + ;
 #pragma link C++ class std::vector < o2::tpc::ClusterHardware> + ;
 #pragma link C++ class std::vector < o2::tpc::ClusterHardwareContainerFixedSize < 8192>> + ;
 #pragma link C++ class std::vector < o2::tpc::ClusterHardwareContainer8kb> + ;
+#pragma link C++ class std::vector < o2::tpc::Digit> + ;
+#pragma link C++ class std::vector < o2::tpc::ZeroSuppressedContainer8kb > +;
 #pragma link C++ class o2::tpc::TrackTPC + ;
+#pragma link C++ class o2::tpc::LaserTrack + ;
+#pragma link C++ class o2::tpc::LaserTrackContainer + ;
 #pragma link C++ class std::vector < o2::tpc::TrackTPC> + ;
+#pragma link C++ class std::vector < o2::tpc::LaserTrack > + ;
 #pragma link C++ class o2::tpc::ClusterNativeHelper + ;
 #pragma link C++ class o2::tpc::ClusterNativeHelper::Reader + ;
 #pragma link C++ class o2::tpc::ClusterNativeHelper::TreeWriter + ;
@@ -34,7 +41,13 @@
 #pragma link C++ class std::vector < o2::tpc::ClusterNativeHelper::TreeWriter::BranchData> + ;
 #pragma link C++ class o2::tpc::dEdxInfo + ;
 #pragma link C++ class o2::tpc::CompressedClustersCounters + ;
-#pragma link C++ class o2::tpc::CompressedClustersPtrs_helper < o2::tpc::CompressedClustersCounters> + ;
+#pragma link C++ class o2::tpc::CompressedClustersPtrs_x < unsigned char*, unsigned short*, unsigned int*> + ;
+#pragma link C++ class o2::tpc::CompressedClustersPtrs + ;
 #pragma link C++ class o2::tpc::CompressedClusters + ;
+#pragma link C++ class o2::tpc::CompressedClustersROOT - ;
+#pragma link C++ class o2::tpc::CTF + ;
+#pragma link C++ class o2::tpc::CTFHeader + ;
+#pragma link C++ class o2::ctf::EncodedBlocks < o2::tpc::CTFHeader, 23, uint32_t> + ;
+#pragma link C++ enum o2::tpc::StatisticsType;
 
 #endif

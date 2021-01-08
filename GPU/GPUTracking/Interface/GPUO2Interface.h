@@ -15,14 +15,14 @@
 #define GPUO2INTERFACE_H
 
 // Some defines denoting that we are compiling for O2
-#ifndef GPUCA_O2_LIB
-#define GPUCA_O2_LIB
-#endif
 #ifndef HAVE_O2HEADERS
 #define HAVE_O2HEADERS
 #endif
 #ifndef GPUCA_TPC_GEOMETRY_O2
 #define GPUCA_TPC_GEOMETRY_O2
+#endif
+#ifndef GPUCA_O2_INTERFACE
+#define GPUCA_O2_INTERFACE
 #endif
 
 #include <memory>
@@ -39,7 +39,8 @@ namespace o2::gpu
 class GPUReconstruction;
 class GPUChainTracking;
 struct GPUO2InterfaceConfiguration;
-class TPCFastTransform;
+struct GPUInterfaceOutputs;
+struct GPUOutputControl;
 
 class GPUTPCO2Interface
 {
@@ -50,23 +51,31 @@ class GPUTPCO2Interface
   int Initialize(const GPUO2InterfaceConfiguration& config);
   void Deinitialize();
 
-  int RunTracking(GPUTrackingInOutPointers* data);
+  int RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutputs* outputs = nullptr);
   void Clear(bool clearOutputs);
 
   bool GetParamContinuous() { return (mContinuous); }
-  void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const;
+  void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, short clusterState, float& ErrY2, float& ErrZ2) const;
+
+  int registerMemoryForGPU(const void* ptr, size_t size);
+  int unregisterMemoryForGPU(const void* ptr);
+
+  const GPUO2InterfaceConfiguration& getConfig() const { return *mConfig; }
 
  private:
   GPUTPCO2Interface(const GPUTPCO2Interface&);
   GPUTPCO2Interface& operator=(const GPUTPCO2Interface&);
 
   bool mInitialized = false;
-  bool mDumpEvents = false;
   bool mContinuous = false;
 
   std::unique_ptr<GPUReconstruction> mRec;
   GPUChainTracking* mChain = nullptr;
   std::unique_ptr<GPUO2InterfaceConfiguration> mConfig;
+  std::unique_ptr<GPUOutputControl> mOutputCompressedClusters;
+  std::unique_ptr<GPUOutputControl> mOutputClustersNative;
+  std::unique_ptr<GPUOutputControl> mOutputTPCTracks;
+  std::unique_ptr<GPUOutputControl> mOutputTPCClusterLabels;
 };
 } // namespace o2::gpu
 

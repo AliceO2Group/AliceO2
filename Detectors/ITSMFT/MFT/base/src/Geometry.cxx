@@ -68,6 +68,8 @@ const Double_t Geometry::sGlueRohacellCarbonThickness = 0.0025 / 2; // glue betw
 const Double_t Geometry::sKaptonOnCarbonThickness = 0.0013 / 2;     // thickness of the kapton layer on the heat exchanger carbone plate
 const Double_t Geometry::sKaptonGlueThickness = 0.0027 / 2;         // thickness of the kapton layer glue
 
+const Int_t Geometry::sGrooves = 0; // grooves or not grooves, that's the question... 0 without grooves, 1 with grooves at your own risks!
+
 // need to do this, because of the different conventions between
 // ITS and MFT in placing the chips (rows, cols) in the geometry
 // at construction time
@@ -95,8 +97,9 @@ Geometry* Geometry::sInstance = nullptr;
 Geometry* Geometry::instance()
 {
 
-  if (!sInstance)
+  if (!sInstance) {
     sInstance = new Geometry();
+  }
   return sInstance;
 }
 
@@ -123,12 +126,14 @@ void Geometry::build()
 {
 
   // load the detector segmentation
-  if (!mSegmentation)
+  if (!mSegmentation) {
     mSegmentation = new Segmentation(gSystem->ExpandPathName("$(VMCWORKDIR)/Detectors/Geometry/MFT/data/Geometry.xml"));
+  }
 
   // build the geometry
-  if (!mBuilder)
+  if (!mBuilder) {
     mBuilder = new GeometryBuilder();
+  }
   mBuilder->buildGeometry();
   delete mBuilder;
 }
@@ -160,8 +165,9 @@ Int_t Geometry::getDiskNSensors(Int_t diskId) const
   Int_t nSensors = 0;
   for (int iHalf = 0; iHalf < 2; iHalf++) {
     HalfDiskSegmentation* diskSeg = mSegmentation->getHalf(iHalf)->getHalfDisk(diskId);
-    if (diskSeg)
+    if (diskSeg) {
       nSensors += diskSeg->getNChips();
+    }
   }
   return nSensors;
 }

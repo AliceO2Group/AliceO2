@@ -38,7 +38,7 @@ class Hit : public o2::BasicXYZEHit<float>
   /// \param initialEnergy Energy of the primary particle enering the EMCAL
   /// \param tof Time of the hit
   /// \param length Length of the segment
-  Hit(int trackID, int detID, const Point3D<float>& pos, double tof, double qLoss)
+  Hit(int trackID, int detID, const math_utils::Point3D<float>& pos, double tof, double qLoss)
     : o2::BasicXYZEHit<float>(pos.X(), pos.Y(), pos.Z(), tof, qLoss, trackID, detID)
   {
   }

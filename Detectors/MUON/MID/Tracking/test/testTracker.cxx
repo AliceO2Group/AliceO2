@@ -69,12 +69,12 @@ TrackClusters getTrackClusters(const Track& track)
   MpArea area;
   Cluster2D cl;
   for (int ich = 0; ich < 4; ++ich) {
-    std::vector<std::pair<int, Point3D<float>>> pairs = helper.hitFinder.getLocalPositions(track, ich);
+    auto hits = helper.hitFinder.getLocalPositions(track, ich);
     bool isFired = false;
-    for (auto& pair : pairs) {
-      int deId = pair.first;
-      float xPos = pair.second.x();
-      float yPos = pair.second.y();
+    for (auto& hit : hits) {
+      int deId = hit.deId;
+      float xPos = hit.xCoor;
+      float yPos = hit.yCoor;
       stripIndex = helper.mapping.stripByPosition(xPos, yPos, 0, deId, false);
       if (!stripIndex.isValid()) {
         continue;

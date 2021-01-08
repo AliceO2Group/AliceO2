@@ -28,4 +28,3 @@ o2_add_executable(reco-workflow
                   SOURCES src/mft-reco-workflow.cxx
                   COMPONENT_NAME mft
                   PUBLIC_LINK_LIBRARIES O2::MFTWorkflow)
-				

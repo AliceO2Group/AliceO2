@@ -12,13 +12,14 @@
 #define STEER_DIGITIZERWORKFLOW_EMCALDIGITWRITER_H_
 
 #include "Framework/DataProcessorSpec.h"
-
 namespace o2
 {
 namespace emcal
 {
 
-o2::framework::DataProcessorSpec getEMCALDigitWriterSpec();
+/// \brief Create new digits writer spec
+/// \return digits writer spec
+o2::framework::DataProcessorSpec getEMCALDigitWriterSpec(bool mctruth = true);
 
 } // end namespace emcal
 } // end namespace o2

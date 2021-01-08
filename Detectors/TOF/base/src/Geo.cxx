@@ -45,8 +45,9 @@ void Geo::Init()
     for (Int_t iplate = 0; iplate < NPLATES; iplate++) {
       det[1] = iplate;
 
-      if (iplate == 2 && (isector == 13 || isector == 14 || isector == 15))
+      if (iplate == 2 && (isector == 13 || isector == 14 || isector == 15)) {
         continue; // PHOS HOLES
+      }
 
       for (Int_t istrip = 0; istrip < NSTRIPC; istrip++) { // maximum number of strip is 19 for plate B and C
         det[2] = istrip;
@@ -72,8 +73,9 @@ void Geo::Init()
 
   Double_t rotationAngles[6] =
     {90., 90. /*+ (isector + 0.5) * PHISEC*/, 0., 0., 90., 0 /* + (isector + 0.5) * PHISEC*/};
-  for (Int_t ii = 0; ii < 6; ii++)
+  for (Int_t ii = 0; ii < 6; ii++) {
     rotationAngles[ii] *= TMath::DegToRad();
+  }
 
   for (Int_t isector = 0; isector < NSECTORS; isector++) {
     rotationAngles[5] = ((isector + 0.5) * PHISEC) * TMath::DegToRad();
@@ -156,29 +158,36 @@ void Geo::getVolumePath(const Int_t* ind, Char_t* path)
   Int_t icopy = -1;
   icopy = sector;
 
-  snprintf(string1, kSize, "/cave_1/B077_1/BSEGMO%i_1/BTOF%i_1", icopy, icopy);
+  snprintf(string1, kSize, "/cave_1/barrel_1/B077_1/BSEGMO%i_1/BTOF%i_1", icopy, icopy);
 
   Bool_t fgHoles = kTRUE;
 
   Int_t iplate = ind[1];
   Int_t istrip = ind[2];
-  if (iplate == 0)
+  if (iplate == 0) {
     icopy = istrip;
-  if (iplate == 1)
+  }
+  if (iplate == 1) {
     icopy = istrip + NSTRIPC;
-  if (iplate == 2)
+  }
+  if (iplate == 2) {
     icopy = istrip + NSTRIPC + NSTRIPB;
-  if (iplate == 3)
+  }
+  if (iplate == 3) {
     icopy = istrip + NSTRIPC + NSTRIPB + NSTRIPA;
-  if (iplate == 4)
+  }
+  if (iplate == 4) {
     icopy = istrip + NSTRIPC + 2 * NSTRIPB + NSTRIPA;
+  }
   icopy++;
   snprintf(string2, kSize, "FTOA_0/FLTA_0/FSTR_%i", icopy);
   if (fgHoles && (sector == 13 || sector == 14 || sector == 15)) {
-    if (iplate < 2)
+    if (iplate < 2) {
       snprintf(string2, kSize, "FTOB_0/FLTB_0/FSTR_%i", icopy);
-    if (iplate > 2)
+    }
+    if (iplate > 2) {
       snprintf(string2, kSize, "FTOC_0/FLTC_0/FSTR_%i", icopy);
+    }
   }
 
   Int_t padz = ind[3] + 1;
@@ -193,10 +202,11 @@ void Geo::getPos(Int_t* det, Float_t* pos)
   // Returns space point coor (x,y,z) (cm)  for Detector
   // Indices  (iSect,iPlate,iStrip,iPadZ,iPadX)
   //
-  if (mToBeIntit)
+  if (mToBeIntit) {
     Init();
+  }
 
-  printf("TOFDBG: %d, %d, %d, %d, %d    ->    %f %f %f\n", det[0], det[1], det[2], det[3], det[4], mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][0], mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][1], mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][2]);
+  //  printf("TOFDBG: %d, %d, %d, %d, %d    ->    %f %f %f\n", det[0], det[1], det[2], det[3], det[4], mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][0], mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][1], mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][2]);
   pos[0] = mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][0];
   pos[1] = mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][1];
   pos[2] = mPadPosition[det[0]][det[1]][det[2]][det[3]][det[4]][2];
@@ -208,12 +218,14 @@ void Geo::getDetID(Float_t* pos, Int_t* det)
   // Returns Detector Indices (iSect,iPlate,iStrip,iPadZ,iPadX)
   // space point coor (x,y,z) (cm)
 
-  if (mToBeIntit)
+  if (mToBeIntit) {
     Init();
+  }
 
   Float_t posLocal[3];
-  for (Int_t ii = 0; ii < 3; ii++)
+  for (Int_t ii = 0; ii < 3; ii++) {
     posLocal[ii] = pos[ii];
+  }
 
   det[0] = getSector(posLocal);
 
@@ -305,15 +317,17 @@ Int_t Geo::getStripNumberPerSM(Int_t iplate, Int_t istrip)
                   ((iplate == 2 && (istrip < 0 || istrip >= NSTRIPA)) ||
                    (iplate != 2 && (istrip < 0 || istrip >= NSTRIPC))));
 
-  if (iplate < 0 || iplate >= NPLATES)
+  if (iplate < 0 || iplate >= NPLATES) {
     LOG(ERROR) << "getStripNumberPerSM : "
                << "Wrong plate number in TOF (" << iplate << ")!\n";
+  }
 
   if (
     (iplate == 2 && (istrip < 0 || istrip >= NSTRIPA)) ||
-    (iplate != 2 && (istrip < 0 || istrip >= NSTRIPC)))
+    (iplate != 2 && (istrip < 0 || istrip >= NSTRIPC))) {
     LOG(ERROR) << "getStripNumberPerSM : "
                << " Wrong strip number in TOF (strip=" << istrip << " in the plate= " << iplate << ")!\n";
+  }
 
   Int_t stripOffset = 0;
   switch (iplate) {
@@ -334,8 +348,9 @@ Int_t Geo::getStripNumberPerSM(Int_t iplate, Int_t istrip)
       break;
   };
 
-  if (!check)
+  if (!check) {
     index = stripOffset + istrip;
+  }
 
   return index;
 }
@@ -399,8 +414,9 @@ Int_t Geo::fromPlateToStrip(Float_t* pos, Int_t iplate)
       step[2] = -0.5 * NPADZ * ZPAD;
       translate(posLoc2, step);
 
-      for (Int_t jj = 0; jj < 3; jj++)
+      for (Int_t jj = 0; jj < 3; jj++) {
         pos[jj] = posLoc2[jj];
+      }
 
       return istrip;
     }
@@ -439,11 +455,13 @@ void Geo::getPadDxDyDz(const Float_t* pos, Int_t* det, Float_t* DeltaPos)
   //
   // Returns the x coordinate in the Pad reference frame
   //
-  if (mToBeIntit)
+  if (mToBeIntit) {
     Init();
+  }
 
-  for (Int_t ii = 0; ii < 3; ii++)
+  for (Int_t ii = 0; ii < 3; ii++) {
     DeltaPos[ii] = pos[ii];
+  }
 
   det[0] = getSector(DeltaPos);
   fromGlobalToSector(DeltaPos, det[0]);
@@ -485,41 +503,45 @@ Int_t Geo::getPlate(const Float_t* pos)
     deltaRHOmax = (RMAX - RMIN) * 0.5 - MODULEWALLTHICKNESS - 2. * LENGTHEXINMODBORDER; // old 5.35, new 4.8
 
     if (deltaRhoLoc > deltaZetaLoc * deltaRHOmax / (INTERCENTRMODBORDER2 - INTERCENTRMODBORDER1)) {
-      if (zLocal < 0)
+      if (zLocal < 0) {
         iPlate = 0;
-      else
+      } else {
         iPlate = 4;
+      }
     } else {
-      if (zLocal < 0)
+      if (zLocal < 0) {
         iPlate = 1;
-      else
+      } else {
         iPlate = 3;
+      }
     }
   } else if (TMath::Abs(zLocal) >= INTERCENTRMODBORDER1 && TMath::Abs(zLocal) <= INTERCENTRMODBORDER2) {
     deltaRhoLoc -= LENGTHINCEMODBORDERD;
     deltaZetaLoc = deltaZetaLoc - INTERCENTRMODBORDER1;
     deltaRHOmax = (RMAX - RMIN) * 0.5 - MODULEWALLTHICKNESS - 2. * LENGTHINCEMODBORDERD; // old 0.39, new 0.2
 
-    if (deltaRhoLoc > deltaZetaLoc * deltaRHOmax / (INTERCENTRMODBORDER2 - INTERCENTRMODBORDER1))
+    if (deltaRhoLoc > deltaZetaLoc * deltaRHOmax / (INTERCENTRMODBORDER2 - INTERCENTRMODBORDER1)) {
       iPlate = 2;
-    else {
-      if (zLocal < 0)
+    } else {
+      if (zLocal < 0) {
         iPlate = 1;
-      else
+      } else {
         iPlate = 3;
+      }
     }
   }
 
-  if (zLocal > -ZLENA * 0.5 && zLocal < -EXTERINTERMODBORDER2)
+  if (zLocal > -ZLENA * 0.5 && zLocal < -EXTERINTERMODBORDER2) {
     iPlate = 0;
-  else if (zLocal > -EXTERINTERMODBORDER1 && zLocal < -INTERCENTRMODBORDER2)
+  } else if (zLocal > -EXTERINTERMODBORDER1 && zLocal < -INTERCENTRMODBORDER2) {
     iPlate = 1;
-  else if (zLocal > -INTERCENTRMODBORDER1 && zLocal < INTERCENTRMODBORDER1)
+  } else if (zLocal > -INTERCENTRMODBORDER1 && zLocal < INTERCENTRMODBORDER1) {
     iPlate = 2;
-  else if (zLocal > INTERCENTRMODBORDER2 && zLocal < EXTERINTERMODBORDER1)
+  } else if (zLocal > INTERCENTRMODBORDER2 && zLocal < EXTERINTERMODBORDER1) {
     iPlate = 3;
-  else if (zLocal > EXTERINTERMODBORDER2 && zLocal < ZLENA * 0.5)
+  } else if (zLocal > EXTERINTERMODBORDER2 && zLocal < ZLENA * 0.5) {
     iPlate = 4;
+  }
 
   return iPlate;
 }
@@ -531,10 +553,11 @@ Int_t Geo::getPadZ(const Float_t* pos)
   //
 
   Int_t iPadZ = (Int_t)(pos[2] / ZPAD);
-  if (iPadZ == NPADZ)
+  if (iPadZ == NPADZ) {
     iPadZ--;
-  else if (iPadZ > NPADZ)
+  } else if (iPadZ > NPADZ) {
     iPadZ = -1;
+  }
 
   return iPadZ;
 }
@@ -546,10 +569,11 @@ Int_t Geo::getPadX(const Float_t* pos)
   //
 
   Int_t iPadX = (Int_t)(pos[0] / XPAD);
-  if (iPadX == NPADX)
+  if (iPadX == NPADX) {
     iPadX--;
-  else if (iPadX > NPADX)
+  } else if (iPadX > NPADX) {
     iPadX = -1;
+  }
 
   return iPadX;
 }
@@ -560,16 +584,48 @@ void Geo::translate(Float_t* xyz, Float_t translationVector[3])
   // Return the vector xyz translated by translationVector vector
   //
 
-  for (Int_t ii = 0; ii < 3; ii++)
+  for (Int_t ii = 0; ii < 3; ii++) {
     xyz[ii] -= translationVector[ii];
+  }
+
+  return;
+}
+void Geo::antiRotateToSector(Float_t* xyz, Int_t isector)
+{
+  if (mToBeIntit) {
+    Init();
+  }
+
+  Float_t xyzDummy[3] = {0., 0., 0.};
+
+  float matAR[3][3];
+  matAR[0][0] = -mRotationMatrixSector[isector][0][0];
+  matAR[0][1] = mRotationMatrixSector[isector][0][1];
+  matAR[0][2] = mRotationMatrixSector[isector][0][2];
+  matAR[1][0] = mRotationMatrixSector[isector][1][0];
+  matAR[1][1] = mRotationMatrixSector[isector][1][1];
+  matAR[1][2] = mRotationMatrixSector[isector][1][2];
+  matAR[2][0] = mRotationMatrixSector[isector][2][0];
+  matAR[2][1] = -mRotationMatrixSector[isector][2][1];
+  matAR[2][2] = mRotationMatrixSector[isector][2][2];
+
+  for (Int_t ii = 0; ii < 3; ii++) {
+    xyzDummy[ii] = xyz[0] * matAR[ii][0] + xyz[1] * matAR[ii][1] +
+                   xyz[2] * matAR[ii][2];
+  }
+
+  for (Int_t ii = 0; ii < 3; ii++) {
+    xyz[ii] = xyzDummy[ii];
+  }
 
   return;
 }
 
 void Geo::rotateToSector(Float_t* xyz, Int_t isector)
 {
-  if (mToBeIntit)
+  if (mToBeIntit) {
     Init();
+  }
 
   Float_t xyzDummy[3] = {0., 0., 0.};
 
@@ -578,8 +634,9 @@ void Geo::rotateToSector(Float_t* xyz, Int_t isector)
                    xyz[2] * mRotationMatrixSector[isector][ii][2];
   }
 
-  for (Int_t ii = 0; ii < 3; ii++)
+  for (Int_t ii = 0; ii < 3; ii++) {
     xyz[ii] = xyzDummy[ii];
+  }
 
   return;
 }
@@ -594,8 +651,9 @@ void Geo::rotateToStrip(Float_t* xyz, Int_t iplate, Int_t istrip)
                    xyz[2] * mRotationMatrixPlateStrip[iplate][istrip][ii][2];
   }
 
-  for (Int_t ii = 0; ii < 3; ii++)
+  for (Int_t ii = 0; ii < 3; ii++) {
     xyz[ii] = xyzDummy[ii];
+  }
 
   return;
 }
@@ -612,8 +670,9 @@ void Geo::rotate(Float_t* xyz, Double_t rotationAngles[6])
     angles[4], angles[5]);
   */
 
-  for (Int_t ii = 0; ii < 6; ii++)
+  for (Int_t ii = 0; ii < 6; ii++) {
     rotationAngles[ii] *= TMath::DegToRad();
+  }
 
   Float_t xyzDummy[3] = {0., 0., 0.};
 
@@ -623,8 +682,9 @@ void Geo::rotate(Float_t* xyz, Double_t rotationAngles[6])
                    xyz[2] * TMath::Cos(rotationAngles[2 * ii]);
   }
 
-  for (Int_t ii = 0; ii < 3; ii++)
+  for (Int_t ii = 0; ii < 3; ii++) {
     xyz[ii] = xyzDummy[ii];
+  }
 
   return;
 }
@@ -635,8 +695,9 @@ void Geo::antiRotate(Float_t* xyz, Double_t rotationAngles[6])
   // Rotates the vector xyz acordint to the rotationAngles
   //
 
-  for (Int_t ii = 0; ii < 6; ii++)
+  for (Int_t ii = 0; ii < 6; ii++) {
     rotationAngles[ii] *= TMath::DegToRad();
+  }
 
   Float_t xyzDummy[3] = {0., 0., 0.};
 
@@ -651,8 +712,9 @@ void Geo::antiRotate(Float_t* xyz, Double_t rotationAngles[6])
   xyzDummy[2] = xyz[0] * TMath::Cos(rotationAngles[0]) + xyz[1] * TMath::Cos(rotationAngles[2]) +
                 xyz[2] * TMath::Cos(rotationAngles[4]);
 
-  for (Int_t ii = 0; ii < 3; ii++)
+  for (Int_t ii = 0; ii < 3; ii++) {
     xyz[ii] = xyzDummy[ii];
+  }
 
   return;
 }
@@ -660,4 +722,33 @@ void Geo::antiRotate(Float_t* xyz, Double_t rotationAngles[6])
 Int_t Geo::getIndexFromEquipment(Int_t icrate, Int_t islot, Int_t ichain, Int_t itdc)
 {
   return 0; // to be implemented
+}
+
+void Geo::getStripAndModule(Int_t iStripPerSM, Int_t& iplate, Int_t& istrip)
+{
+  //
+  // Convert the serial number of the TOF strip number iStripPerSM [0,90]
+  // in module number iplate [0,4] and strip number istrip [0,14/18].
+  // Copied from AliRoot TOF::AliTOFGeometry
+  //
+
+  if (iStripPerSM < 0 || iStripPerSM >= NSTRIPC + NSTRIPB + NSTRIPA + NSTRIPB + NSTRIPC) {
+    iplate = -1;
+    istrip = -1;
+  } else if (iStripPerSM < NSTRIPC) {
+    iplate = 0;
+    istrip = iStripPerSM;
+  } else if (iStripPerSM >= NSTRIPC && iStripPerSM < NSTRIPC + NSTRIPB) {
+    iplate = 1;
+    istrip = iStripPerSM - NSTRIPC;
+  } else if (iStripPerSM >= NSTRIPC + NSTRIPB && iStripPerSM < NSTRIPC + NSTRIPB + NSTRIPA) {
+    iplate = 2;
+    istrip = iStripPerSM - NSTRIPC - NSTRIPB;
+  } else if (iStripPerSM >= NSTRIPC + NSTRIPB + NSTRIPA && iStripPerSM < NSTRIPC + NSTRIPB + NSTRIPA + NSTRIPB) {
+    iplate = 3;
+    istrip = iStripPerSM - NSTRIPC - NSTRIPB - NSTRIPA;
+  } else if (iStripPerSM >= NSTRIPC + NSTRIPB + NSTRIPA + NSTRIPB && iStripPerSM < NSTRIPC + NSTRIPB + NSTRIPA + NSTRIPB + NSTRIPC) {
+    iplate = 4;
+    istrip = iStripPerSM - NSTRIPC - NSTRIPB - NSTRIPA - NSTRIPB;
+  }
 }

@@ -21,7 +21,7 @@ namespace o2
 {
 namespace its
 {
-namespace GPU
+namespace gpu
 {
 
 namespace
@@ -81,8 +81,8 @@ UniquePointer<T>::UniquePointer(const T& ref)
 {
   try {
 
-    Utils::Host::gpuMalloc(reinterpret_cast<void**>(&mDevicePointer), sizeof(T));
-    Utils::Host::gpuMemcpyHostToDevice(mDevicePointer, &ref, sizeof(T));
+    utils::host::gpuMalloc(reinterpret_cast<void**>(&mDevicePointer), sizeof(T));
+    utils::host::gpuMemcpyHostToDevice(mDevicePointer, &ref, sizeof(T));
 
   } catch (...) {
 
@@ -118,7 +118,7 @@ void UniquePointer<T>::destroy()
 {
   if (mDevicePointer != nullptr) {
 
-    Utils::Host::gpuFree(mDevicePointer);
+    utils::host::gpuFree(mDevicePointer);
   }
 }
 
@@ -145,7 +145,7 @@ GPU_HOST_DEVICE const T& UniquePointer<T>::operator*() const noexcept
 {
   return PointerTraits::getReference(mDevicePointer);
 }
-} // namespace GPU
+} // namespace gpu
 } // namespace its
 } // namespace o2
 

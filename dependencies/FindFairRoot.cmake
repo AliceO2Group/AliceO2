@@ -12,11 +12,9 @@
 
 find_path(FairRoot_INC FairDetector.h
           PATH_SUFFIXES FairRoot/include
-          PATHS ${FAIRROOTPATH}/include)
-
-# if(NOT EXISTS ${FairRoot_INC}) set(FairRoot_FOUND FALSE)
-# if(FairRoot_FIND_REQUIRED) message(FATAL_ERROR "Could not find FairRoot")
-# endif() return() endif()
+          PATHS ${FAIRROOTPATH}/include
+          ${FAIRROOT_ROOT}/include
+          $ENV{FAIRROOT_ROOT}/include)
 
 get_filename_component(FairRoot_TOPDIR "${FairRoot_INC}/.." ABSOLUTE)
 
@@ -67,9 +65,11 @@ endif()
 
 if(NOT TARGET FairRoot::Base)
   add_library(FairRoot::Base IMPORTED INTERFACE)
+  get_filename_component(libdir ${FairRoot_Base} DIRECTORY)
   set_target_properties(FairRoot::Base
                         PROPERTIES INTERFACE_INCLUDE_DIRECTORIES ${FairRoot_INC}
-                                   INTERFACE_LINK_LIBRARIES ${FairRoot_Base})
+                                   INTERFACE_LINK_LIBRARIES ${FairRoot_Base}
+                                   INTERFACE_LINK_DIRECTORIES ${libdir})
   target_link_libraries(FairRoot::Base
                         INTERFACE FairRoot::Tools FairRoot::ParBase
                                   FairRoot::GeoBase ROOT::ROOTDataFrame)

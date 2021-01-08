@@ -69,7 +69,7 @@ namespace header
 /// The header uses char fields for several members. This allows to define self
 /// consistent unique identifiers. The identifiers are human readable in memory
 /// and, rather than enumerators, independent of software versions. The string
-/// is always zero terminated.
+/// is **NOT** required to be zero terminated!.
 ///
 /// This section defines constant field lengths for char fields
 /// @ingroup aliceo2_dataformats_dataheader
@@ -305,16 +305,19 @@ struct Descriptor {
   {
     char* target = str;
     char* targetEnd = target;
-    if (length >= 0 && length < (int)N)
+    if (length >= 0 && length < (int)N) {
       targetEnd += length;
-    else
+    } else {
       targetEnd += N;
+    }
     const char* source = string;
-    for (; source != nullptr && target < targetEnd && *source != 0; ++target, ++source)
+    for (; source != nullptr && target < targetEnd && *source != 0; ++target, ++source) {
       *target = *source;
+    }
     targetEnd = str + N;
-    for (; target < targetEnd; ++target)
+    for (; target < targetEnd; ++target) {
       *target = 0;
+    }
     // require the string to be not longer than the descriptor size
     if (source != nullptr && (*source == 0 || (length >= 0 && length <= (int)N))) {
     } else {
@@ -394,7 +397,7 @@ constexpr o2::header::SerializationMethod gSerializationMethodArrow{"ARROW"};
 /// @ingroup aliceo2_dataformats_dataheader
 struct BaseHeader {
   // static definitions
-  static const uint32_t sMagicString;
+  static constexpr uint32_t sMagicString{String2<uint32_t>("O2O2")};
 
   static const uint32_t sVersion;
   static const o2::header::HeaderType sHeaderType;
@@ -436,8 +439,11 @@ struct BaseHeader {
   BaseHeader() = delete;
   BaseHeader(const BaseHeader&) = default;
   /// Special ctor for initialization in derived types
-  BaseHeader(uint32_t mySize, HeaderType description,
-             SerializationMethod serialization, uint32_t version);
+  constexpr BaseHeader(uint32_t mySize, HeaderType desc,
+                       SerializationMethod ser, uint32_t version)
+    : magicStringInt(sMagicString), headerSize(mySize), flags(0), headerVersion(version), description(desc), serialization(ser)
+  {
+  }
 
   /// @brief access header in buffer
   ///
@@ -458,20 +464,33 @@ struct BaseHeader {
                                                                                : nullptr;
   }
 
-  inline uint32_t size() const noexcept { return headerSize; }
+  constexpr uint32_t size() const noexcept { return headerSize; }
   inline const o2::byte* data() const noexcept { return reinterpret_cast<const o2::byte*>(this); }
 
   /// get the next header if any (const version)
   inline const BaseHeader* next() const noexcept
   {
-    return (flagsNextHeader) ? reinterpret_cast<const BaseHeader*>(reinterpret_cast<const o2::byte*>(this) + headerSize) : nullptr;
+    // BaseHeader::get checks that next header starts with the BaseHeader information at the
+    // offset given by the size of the current header.
+    return (flagsNextHeader) ? BaseHeader::get(reinterpret_cast<const o2::byte*>(this) + headerSize) : nullptr;
   }
 
   /// get the next header if any (non-const version)
   inline BaseHeader* next() noexcept
   {
-    return (flagsNextHeader) ? reinterpret_cast<BaseHeader*>(reinterpret_cast<o2::byte*>(this) + headerSize) : nullptr;
+    return (flagsNextHeader) ? BaseHeader::get(reinterpret_cast<o2::byte*>(this) + headerSize) : nullptr;
   }
+
+  /// check if the header matches expected version
+  /// throws runtime error if not matching
+  /// we might change this behavior if we want to support multiple version of a particular header
+  /// but until we have this support we need to be strict to catch a problem early and with
+  /// meaningful error message
+  bool sanityCheck(uint32_t expectedVersion) const;
+
+  /// throw runtime error to report inconsistent header stack when the next-header flag is set
+  /// but no next header is found; implemented only once, no template overloads
+  void throwInconsistentStackError() const;
 };
 
 /// find a header of type HeaderType in a buffer
@@ -484,13 +503,34 @@ auto get(const o2::byte* buffer, size_t /*len*/ = 0)
   using HeaderValueType = typename std::remove_pointer<HeaderType>::type;
 
   const BaseHeader* current = BaseHeader::get(buffer);
-  if (!current)
+  if (!current) {
     return HeaderConstPtrType{nullptr};
-  if (current->description == HeaderValueType::sHeaderType)
-    return reinterpret_cast<HeaderConstPtrType>(current);
-  while ((current = current->next())) {
-    if (current->description == HeaderValueType::sHeaderType)
+  }
+  if (current->description == HeaderValueType::sHeaderType) {
+    // FIXME: We need to think how to handle multiple versions.
+    // For the moment we require the version to exactly match the expected version, which
+    // is part of the header definition. The check function 'sanityCheck' will throw
+    // otherwise, we keep the code related to the exception outside the header file.
+    // Note: Can not check on size because the O2 data model requires variable size headers
+    // to be supported.
+    if (current->sanityCheck(HeaderValueType::sVersion)) {
       return reinterpret_cast<HeaderConstPtrType>(current);
+    }
+  }
+  auto* prev = current;
+  while ((current = current->next())) {
+    prev = current;
+    if (current->description == HeaderValueType::sHeaderType) {
+      if (current->sanityCheck(HeaderValueType::sVersion)) {
+        return reinterpret_cast<HeaderConstPtrType>(current);
+      }
+    }
+  }
+  // if a next header was expected but not found, the header stack is inconsistent
+  // either the flag is wrongly set, or the size of the current header is wrong so
+  // that the BaseHeader information is not found at the expected offset.
+  if (prev->flagsNextHeader) {
+    prev->throwInconsistentStackError();
   }
   return HeaderConstPtrType{nullptr};
 }
@@ -569,87 +609,6 @@ struct printDataOrigin {
 using DataOrigin = Descriptor<gSizeDataOriginString, printDataOrigin>;
 
 //__________________________________________________________________________________________________
-/// @struct DataHeader
-/// @brief the main header struct
-///
-/// The main O2 data header struct. All messages should have it, preferably at the beginning
-/// of the header stack.
-/// It contains the fields that describe the buffer size, data type,
-/// origin and serialization method used to construct the buffer.
-/// The member subSpecification might be defined differently for each type/origin,
-/// interpretation of this field is up to the specific subsystem involved.
-///
-/// @ingroup aliceo2_dataformats_dataheader
-struct DataHeader : public BaseHeader {
-  // allows DataHeader::SubSpecificationType to be used as generic type in the code
-  using SubSpecificationType = uint32_t;
-  using SplitPayloadIndexType = uint32_t;
-  using SplitPayloadPartsType = uint32_t;
-  using PayloadSizeType = uint64_t;
-
-  //static data for this header type/version
-  static const uint32_t sVersion;
-  static const o2::header::HeaderType sHeaderType;
-  static const o2::header::SerializationMethod sSerializationMethod;
-
-  ///
-  /// data type descriptor
-  ///
-  DataDescription dataDescription;
-
-  ///
-  /// origin of the data (originating detector)
-  ///
-  DataOrigin dataOrigin;
-
-  ///
-  /// How many split payloads in total
-  ///
-  SplitPayloadPartsType splitPayloadParts;
-
-  ///
-  /// serialization method
-  ///
-  SerializationMethod payloadSerializationMethod = SerializationMethod(gInvalidToken64);
-
-  ///
-  /// sub specification (e.g. link number)
-  ///
-  SubSpecificationType subSpecification;
-
-  ///
-  /// index of the split payload
-  ///
-  SplitPayloadIndexType splitPayloadIndex;
-
-  ///
-  /// size of the associated data buffer
-  ///
-  PayloadSizeType payloadSize;
-
-  //___NEVER MODIFY THE ABOVE
-  //___NEW STUFF GOES BELOW
-
-  //___the functions:
-  DataHeader();                                                                                                  ///ctor
-  explicit DataHeader(DataDescription desc, DataOrigin origin, SubSpecificationType subspec, uint64_t size = 0); /// ctor
-
-  DataHeader(const DataHeader&) = default;
-  DataHeader& operator=(const DataHeader&) = default; //assignment
-
-  bool operator==(const DataHeader&) const;          //comparison
-  bool operator==(const DataOrigin&) const;          //comparison
-  bool operator==(const DataDescription&) const;     //comparison
-  bool operator==(const SerializationMethod&) const; //comparison
-  void print() const;                                ///pretty print the contents
-
-  static const DataHeader* Get(const BaseHeader* baseHeader)
-  {
-    return (baseHeader->description == DataHeader::sHeaderType) ? static_cast<const DataHeader*>(baseHeader) : nullptr;
-  }
-};
-
-//__________________________________________________________________________________________________
 /// @defgroup data_description_defines Defines for data description
 /// @ingroup aliceo2_dataformats_dataheader
 /// @{
@@ -676,6 +635,10 @@ constexpr o2::header::DataOrigin gDataOriginTOF{"TOF"};
 constexpr o2::header::DataOrigin gDataOriginTPC{"TPC"};
 constexpr o2::header::DataOrigin gDataOriginTRD{"TRD"};
 constexpr o2::header::DataOrigin gDataOriginZDC{"ZDC"};
+#ifdef ENABLE_UPGRADES
+constexpr o2::header::DataOrigin gDataOriginIT3{"IT3"};
+constexpr o2::header::DataOrigin gDataOriginTRK{"TRK"};
+#endif
 
 //possible data types
 constexpr o2::header::DataDescription gDataDescriptionAny{"***************"};
@@ -687,6 +650,150 @@ constexpr o2::header::DataDescription gDataDescriptionConfig{"CONFIGURATION"};
 constexpr o2::header::DataDescription gDataDescriptionInfo{"INFORMATION"};
 constexpr o2::header::DataDescription gDataDescriptionROOTStreamers{"ROOT STREAMERS"};
 /// @} // end of doxygen group
+
+//__________________________________________________________________________________________________
+/// @struct DataHeader
+/// @brief the main header struct
+///
+/// The main O2 data header struct. All messages should have it, preferably at the beginning
+/// of the header stack.
+/// It contains the fields that describe the buffer size, data type,
+/// origin and serialization method used to construct the buffer.
+/// The member subSpecification might be defined differently for each type/origin,
+/// interpretation of this field is up to the specific subsystem involved.
+///
+/// @ingroup aliceo2_dataformats_dataheader
+struct DataHeader : public BaseHeader {
+  // allows DataHeader::SubSpecificationType to be used as generic type in the code
+  using SubSpecificationType = uint32_t;
+  using SplitPayloadIndexType = uint32_t;
+  using SplitPayloadPartsType = uint32_t;
+  using PayloadSizeType = uint64_t;
+  using TForbitType = uint32_t;
+  using TFCounterType = uint32_t;
+  using RunNumberType = uint32_t;
+
+  //static data for this header type/version
+  static constexpr uint32_t sVersion{3};
+  static constexpr o2::header::HeaderType sHeaderType{String2<uint64_t>("DataHead")};
+  static constexpr o2::header::SerializationMethod sSerializationMethod{gSerializationMethodNone};
+
+  ///
+  /// data type descriptor
+  ///
+  DataDescription dataDescription;
+
+  ///
+  /// origin of the data (originating detector)
+  ///
+  DataOrigin dataOrigin;
+
+  ///
+  /// How many split payloads in total
+  ///
+  SplitPayloadPartsType splitPayloadParts = 0;
+
+  ///
+  /// serialization method
+  ///
+  SerializationMethod payloadSerializationMethod = SerializationMethod(gInvalidToken64);
+
+  ///
+  /// sub specification (e.g. link number)
+  ///
+  SubSpecificationType subSpecification;
+
+  ///
+  /// index of the split payload
+  ///
+  SplitPayloadIndexType splitPayloadIndex = 0;
+
+  ///
+  /// size of the associated data buffer
+  ///
+  PayloadSizeType payloadSize;
+
+  //___NEVER MODIFY THE ABOVE
+  //___NEW STUFF GOES BELOW
+
+  ///
+  /// first orbit of time frame, since v2
+  ///
+  TForbitType firstTForbit;
+
+  ///
+  /// ever incrementing TF counter, allows to disentangle even TFs with same firstTForbit in case of replay, since v3
+  ///
+  TFCounterType tfCounter;
+
+  ///
+  /// run number TF belongs to, since v3
+  ///
+  RunNumberType runNumber;
+
+  //___the functions:
+  //__________________________________________________________________________________________________
+  constexpr DataHeader()
+    : BaseHeader(sizeof(DataHeader), sHeaderType, sSerializationMethod, sVersion),
+      dataDescription(gDataDescriptionInvalid),
+      dataOrigin(gDataOriginInvalid),
+      splitPayloadParts(1),
+      payloadSerializationMethod(gSerializationMethodInvalid),
+      subSpecification(0),
+      splitPayloadIndex(0),
+      payloadSize(0),
+      firstTForbit{0},
+      tfCounter(0),
+      runNumber(0)
+  {
+  }
+
+  //__________________________________________________________________________________________________
+  constexpr explicit DataHeader(DataDescription desc, DataOrigin origin, SubSpecificationType subspec, PayloadSizeType size = 0)
+    : BaseHeader(sizeof(DataHeader), sHeaderType, sSerializationMethod, sVersion),
+      dataDescription(desc),
+      dataOrigin(origin),
+      splitPayloadParts(1),
+      payloadSerializationMethod(gSerializationMethodInvalid),
+      subSpecification(subspec),
+      splitPayloadIndex(0),
+      payloadSize(size),
+      firstTForbit{0},
+      tfCounter(0),
+      runNumber(0)
+  {
+  }
+
+  //__________________________________________________________________________________________________
+  constexpr explicit DataHeader(DataDescription desc, DataOrigin origin, SubSpecificationType subspec, PayloadSizeType size, SplitPayloadIndexType partIndex, SplitPayloadPartsType parts)
+    : BaseHeader(sizeof(DataHeader), sHeaderType, sSerializationMethod, sVersion),
+      dataDescription(desc),
+      dataOrigin(origin),
+      splitPayloadParts(parts),
+      payloadSerializationMethod(gSerializationMethodInvalid),
+      subSpecification(subspec),
+      splitPayloadIndex(partIndex),
+      payloadSize(size),
+      firstTForbit{0},
+      tfCounter(0),
+      runNumber(0)
+  {
+  }
+
+  DataHeader(const DataHeader&) = default;
+  DataHeader& operator=(const DataHeader&) = default; //assignment
+
+  bool operator==(const DataHeader&) const;          //comparison
+  bool operator==(const DataOrigin&) const;          //comparison
+  bool operator==(const DataDescription&) const;     //comparison
+  bool operator==(const SerializationMethod&) const; //comparison
+  void print() const;                                ///pretty print the contents
+
+  static const DataHeader* Get(const BaseHeader* baseHeader)
+  {
+    return (baseHeader->description == DataHeader::sHeaderType) ? static_cast<const DataHeader*>(baseHeader) : nullptr;
+  }
+};
 
 //__________________________________________________________________________________________________
 /// @struct DataIdentifier
@@ -723,8 +830,8 @@ static_assert(sizeof(BaseHeader) == 32,
               "BaseHeader struct must be of size 32");
 static_assert(sizeof(DataOrigin) == 4,
               "DataOrigin struct must be of size 4");
-static_assert(sizeof(DataHeader) == 80,
-              "DataHeader struct must be of size 80");
+static_assert(sizeof(DataHeader) == 96,
+              "DataHeader struct must be of size 96");
 static_assert(gSizeMagicString == sizeof(BaseHeader::magicStringInt),
               "Size mismatch in magic string union");
 static_assert(sizeof(BaseHeader::sMagicString) == sizeof(BaseHeader::magicStringInt),

@@ -12,7 +12,7 @@
 #define ALICEO2_CPV_DETECTOR_H_
 
 #include "DetectorsBase/Detector.h"
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "CPVBase/Hit.h"
 #include "RStringView.h"
 #include "Rtypes.h"
@@ -27,7 +27,6 @@ namespace o2
 namespace cpv
 {
 class Hit;
-class Geometry;
 class GeometryParams;
 
 ///
@@ -69,13 +68,13 @@ class Detector : public o2::base::DetImpl<Detector>
   ///
   /// Initializing detector
   ///
-  void InitializeO2Detector() final;
+  void InitializeO2Detector() override;
 
   ///
   /// Processing hit creation in the CPV crystalls
   ///
   /// \param[in] v Current sensitive volume
-  Bool_t ProcessHits(FairVolume* v = nullptr) final;
+  Bool_t ProcessHits(FairVolume* v = nullptr) override;
 
   ///
   /// Add CPV hit
@@ -87,7 +86,7 @@ class Detector : public o2::base::DetImpl<Detector>
   /// \param[in] time Time of the hit
   /// \param[in] qdep charge deposited in this pad
   ///
-  void AddHit(int trackID, int detID, const Point3D<float>& pos, Double_t time, Double_t qdep);
+  void addHit(int trackID, short detID, const math_utils::Point3D<float>& pos, double time, float qdep);
 
   ///
   /// Register vector with hits
@@ -110,23 +109,21 @@ class Detector : public o2::base::DetImpl<Detector>
   /// Reset
   /// Clean Hits collection
   ///
-  void Reset() final;
+  void Reset() override;
 
   /// Sort final hist
-  void FinishEvent() final;
+  void FinishEvent() override;
 
   ///
   /// Steps to be carried out at the end of the event
   /// For CPV cleaning the hit collection and the lookup table
   ///
-  void EndOfEvent() final;
+  void EndOfEvent() override;
 
   ///
-  /// Get the CPV geometry desciption
-  /// Will be created the first time the function is called
-  /// \return Access to the CPV Geometry description
+  /// Specifies CPV modules as alignable volumes
   ///
-  Geometry* GetGeometry();
+  void addAlignableVolumes() const override;
 
  protected:
   ///
@@ -142,9 +139,9 @@ class Detector : public o2::base::DetImpl<Detector>
   //
   // Calculate the amplitude in one CPV pad using the
   //
-  double PadResponseFunction(float qhit, float zhit, float xhit);
+  float padResponseFunction(float qhit, float zhit, float xhit);
 
-  double CPVCumulPadResponse(double x, double y);
+  float CPVCumulPadResponse(float x, float y);
 
  private:
   /// copy constructor (used in MT)
@@ -158,8 +155,7 @@ class Detector : public o2::base::DetImpl<Detector>
   Bool_t mActiveModule[6]; // list of modules to create
 
   // Simulation
-  Geometry* mGeom;         //!
-  std::vector<Hit>* mHits; //! Collection of CPV hits
+  std::vector<Hit>* mHits = nullptr; //! Collection of CPV hits
 
   template <typename Det>
   friend class o2::base::DetImpl;

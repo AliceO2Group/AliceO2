@@ -20,20 +20,22 @@ namespace o2
 {
 namespace tpc
 {
-
-class Constants
+namespace constants
 {
- public:
-  // the number of sectors
-  static constexpr int MAXSECTOR = 36;
 
-  // the number of global pad rows
+// the number of sectors
+constexpr int MAXSECTOR = 36;
+
+// the number of global pad rows
 #if defined(GPUCA_STANDALONE) && !defined(GPUCA_O2_LIB) && !defined(GPUCA_TPC_GEOMETRY_O2)
-  static constexpr int MAXGLOBALPADROW = 159; // Number of pad rows in Run 2, used for GPU TPC tests with Run 2 data
+constexpr int MAXGLOBALPADROW = 159; // Number of pad rows in Run 2, used for GPU TPC tests with Run 2 data
 #else
-  static constexpr int MAXGLOBALPADROW = 152; // Correct number of pad rows in Run 3
+constexpr int MAXGLOBALPADROW = 152; // Correct number of pad rows in Run 3
 #endif
-};
+
+// number of LHC bunch crossings per TPC time bin (40 MHz / 5 MHz)
+constexpr int LHCBCPERTIMEBIN = 8;
+} // namespace constants
 } // namespace tpc
 } // namespace o2
 

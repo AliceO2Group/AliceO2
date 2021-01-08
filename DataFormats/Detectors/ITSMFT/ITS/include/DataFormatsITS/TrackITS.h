@@ -37,13 +37,13 @@ class TrackITS : public o2::track::TrackParCov
 
  public:
   using o2::track::TrackParCov::TrackParCov; // inherit base constructors
-  static constexpr int MaxClusters = 7;
+  static constexpr int MaxClusters = 16;
 
   TrackITS() = default;
   TrackITS(const TrackITS& t) = default;
-  TrackITS(const o2::track::TrackParCov& parcov) : TrackParCov{parcov} {}
-  TrackITS(const o2::track::TrackParCov& parCov, float chi2, std::uint32_t rof, const o2::track::TrackParCov& outer)
-    : o2::track::TrackParCov{parCov}, mChi2{chi2}, mROFrame{rof}, mParamOut{outer} {}
+  TrackITS(const o2::track::TrackParCov& parcov) : o2::track::TrackParCov{parcov} {}
+  TrackITS(const o2::track::TrackParCov& parCov, float chi2, const o2::track::TrackParCov& outer)
+    : o2::track::TrackParCov{parCov}, mParamOut{outer}, mChi2{chi2} {}
   TrackITS& operator=(const TrackITS& tr) = default;
   ~TrackITS() = default;
 
@@ -82,33 +82,34 @@ class TrackITS : public o2::track::TrackParCov
 
   void setChi2(float chi2) { mChi2 = chi2; }
 
-  std::uint32_t getROFrame() const { return mROFrame; }
-  void setROFrame(std::uint32_t f) { mROFrame = f; }
   bool isBetter(const TrackITS& best, float maxChi2) const;
 
   o2::track::TrackParCov& getParamOut() { return mParamOut; }
   const o2::track::TrackParCov& getParamOut() const { return mParamOut; }
 
+  void setPattern(uint16_t p) { mPattern = p; }
+  int getPattern() const { return mPattern; }
+  bool hasHitOnLayer(int i) { return mPattern & (0x1 << i); }
+
  private:
-  float mMass = 0.139;              ///< Assumed mass for this track
-  float mChi2 = 0.;                 ///< Chi2 for this track
-  std::uint32_t mROFrame = 0;       ///< RO Frame
   o2::track::TrackParCov mParamOut; ///< parameter at largest radius
   ClusRefs mClusRef;                ///< references on clusters
+  float mChi2 = 0.;                 ///< Chi2 for this track
+  uint16_t mPattern = 0;            ///< layers pattern
 
-  ClassDefNV(TrackITS, 3);
+  ClassDefNV(TrackITS, 4);
 };
 
 class TrackITSExt : public TrackITS
 {
   ///< heavy version of TrackITS, with clusters embedded
  public:
-  static constexpr int MaxClusters = 7;
+  static constexpr int MaxClusters = 16; /// Prepare for overlaps and new detector configurations
   using TrackITS::TrackITS; // inherit base constructors
 
-  TrackITSExt(o2::track::TrackParCov&& parCov, short ncl, float chi2, std::uint32_t rof,
+  TrackITSExt(o2::track::TrackParCov&& parCov, short ncl, float chi2,
               o2::track::TrackParCov&& outer, std::array<int, MaxClusters> cls)
-    : TrackITS(parCov, chi2, rof, outer), mIndex{cls}
+    : TrackITS(parCov, chi2, outer), mIndex{cls}
   {
     setNumberOfClusters(ncl);
   }
@@ -131,8 +132,8 @@ class TrackITSExt : public TrackITS
   }
 
  private:
-  std::array<int, MaxClusters> mIndex = {-1}; ///< Indices of associated clusters
-  ClassDefNV(TrackITSExt, 1);
+  std::array<int, MaxClusters> mIndex = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; ///< Indices of associated clusters
+  ClassDefNV(TrackITSExt, 2);
 };
 } // namespace its
 } // namespace o2

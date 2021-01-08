@@ -10,6 +10,7 @@
 #include "Framework/runDataProcessing.h"
 
 #include <chrono>
+#include <thread>
 
 using namespace o2::framework;
 
@@ -22,7 +23,7 @@ AlgorithmSpec simplePipe(std::string const& what)
     return [what, delay, messageSize](ProcessingContext& ctx) {
       auto tStart = std::chrono::high_resolution_clock::now();
       auto tEnd = std::chrono::high_resolution_clock::now();
-      auto msg = ctx.outputs().make<char>(OutputRef{what}, messageSize);
+      auto& msg = ctx.outputs().make<char>(OutputRef{what}, messageSize);
       while (std::chrono::duration_cast<std::chrono::seconds>(tEnd - tStart) < std::chrono::seconds(delay)) {
         for (size_t i = 0; i < messageSize; ++i) {
           msg[i] = 0;

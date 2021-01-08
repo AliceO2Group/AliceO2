@@ -11,7 +11,7 @@
 #ifndef ALICEO2_PASSIVE_PIPE_H
 #define ALICEO2_PASSIVE_PIPE_H
 
-#include "FairModule.h" // for FairModule
+#include "DetectorsPassive/PassiveBase.h"
 #include "Rtypes.h"     // for Pipe::Class, ClassDef, Pipe::Streamer
 
 class TGeoPcon;
@@ -20,7 +20,7 @@ namespace o2
 {
 namespace passive
 {
-class Pipe : public FairModule
+class Pipe : public PassiveBase
 {
  public:
   Pipe(const char* name, const char* Title = "Alice Pipe", float rho = 0.f, float thick = 0.f);

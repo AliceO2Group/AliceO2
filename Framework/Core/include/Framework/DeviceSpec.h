@@ -11,8 +11,10 @@
 #define FRAMEWORK_DEVICESPEC_H
 
 #include "Framework/WorkflowSpec.h"
+#include "Framework/ComputingResource.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ChannelSpec.h"
+#include "Framework/ChannelInfo.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ConfigParamSpec.h"
@@ -21,6 +23,7 @@
 #include "Framework/OutputRoute.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/DispatchPolicy.h"
+#include "Framework/ServiceSpec.h"
 
 #include <vector>
 #include <string>
@@ -37,10 +40,12 @@ namespace framework
 struct DeviceSpec {
   std::string name;
   std::string id;
+  std::string channelPrefix;
   std::vector<InputChannelSpec> inputChannels;
   std::vector<OutputChannelSpec> outputChannels;
   std::vector<std::string> arguments;
   std::vector<ConfigParamSpec> options;
+  std::vector<ServiceSpec> services;
 
   AlgorithmSpec algorithm;
 
@@ -49,10 +54,15 @@ struct DeviceSpec {
   std::vector<ForwardRoute> forwards;
   size_t rank;   // Id of a parallel processing I am part of
   size_t nSlots; // Total number of parallel units I am part of
+  /// The time pipelining id of this particular device.
   size_t inputTimesliceId;
+  /// The maximum number of time pipelining for this device.
+  size_t maxInputTimeslices;
   /// The completion policy to use for this device.
   CompletionPolicy completionPolicy;
   DispatchPolicy dispatchPolicy;
+  ComputingResource resource;
+  unsigned short resourceMonitoringInterval;
 };
 
 } // namespace framework

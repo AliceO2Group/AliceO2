@@ -8,20 +8,19 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-#add_subdirectory(Logger) #Included at top level due to depency order
+add_subdirectory(Logger)
 
 add_subdirectory(Foundation)
-
-add_subdirectory(DebugGUI)
 
 add_subdirectory(Core)
 
 add_subdirectory(Utils)
 
-# add_subdirectory(TestWorkflows)
+add_subdirectory(AnalysisSupport) 
 
-add_subdirectory(AnalysisTutorial)
-
-if(arrow_FOUND)
-  add_subdirectory(ArrowTests)
+# Build the GUI support only if we have DebugGUI
+if (TARGET AliceO2::DebugGUI)
+add_subdirectory(GUISupport) 
 endif()
+
+add_subdirectory(TestWorkflows) 

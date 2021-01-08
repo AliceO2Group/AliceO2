@@ -16,9 +16,21 @@
 
 #pragma link C++ class o2::detectors::DetID + ;
 #pragma link C++ class o2::detectors::AlignParam + ;
-#pragma link C++ class o2::detectors::MatrixCache < o2::Transform3D> + ;
-#pragma link C++ class o2::detectors::MatrixCache < o2::Rotation2D> + ;
+#pragma link C++ class o2::detectors::MatrixCache < o2::math_utils::Transform3D> + ;
+#pragma link C++ class o2::detectors::MatrixCache < o2::math_utils::Rotation2Df_t> + ;
 #pragma link C++ class o2::detectors::DetMatrixCache + ;
 #pragma link C++ class o2::detectors::DetMatrixCacheIndirect + ;
+
+#pragma link C++ class o2::detectors::SimTraits + ;
+
+#pragma link C++ class o2::base::NameConf + ;
+
+#pragma link C++ class o2::ctf::CTFHeader + ;
+#pragma link C++ class o2::ctf::Registry + ;
+#pragma link C++ class o2::ctf::Block < uint32_t> + ;
+#pragma link C++ class o2::ctf::Block < uint16_t> + ;
+#pragma link C++ class o2::ctf::Block < uint8_t> + ;
+#pragma link C++ class o2::ctf::Metadata + ;
+#pragma link C++ class o2::ctf::ANSHeader + ;
 
 #endif

@@ -13,7 +13,7 @@
 ///
 /// \author Philippe Pillot, Subatech
 
-#include "TrackParam.h"
+#include "MCHTracking/TrackParam.h"
 
 #include <iomanip>
 #include <iostream>
@@ -22,7 +22,7 @@
 
 #include <FairMQLogger.h>
 
-#include "Cluster.h"
+#include "MCHTracking/Cluster.h"
 
 namespace o2
 {
@@ -30,6 +30,21 @@ namespace mch
 {
 
 using namespace std;
+
+//_________________________________________________________________________
+TrackParam::TrackParam(Double_t z, const Double_t param[5]) : mZ(z)
+{
+  /// constructor with given parameters
+  setParameters(param);
+}
+
+//_________________________________________________________________________
+TrackParam::TrackParam(Double_t z, const Double_t param[5], const Double_t cov[15]) : mZ(z)
+{
+  /// constructor with given parameters and covariances
+  setParameters(param);
+  setCovariances(cov);
+}
 
 //_________________________________________________________________________
 TrackParam::TrackParam(const TrackParam& tp)
@@ -41,78 +56,97 @@ TrackParam::TrackParam(const TrackParam& tp)
     mLocalChi2(tp.mLocalChi2)
 {
   /// Copy constructor
-  if (tp.mCovariances)
+  if (tp.mCovariances) {
     mCovariances = std::make_unique<TMatrixD>(*(tp.mCovariances));
-  if (tp.mPropagator)
+  }
+  if (tp.mPropagator) {
     mPropagator = std::make_unique<TMatrixD>(*(tp.mPropagator));
-  if (tp.mExtrapParameters)
+  }
+  if (tp.mExtrapParameters) {
     mExtrapParameters = std::make_unique<TMatrixD>(*(tp.mExtrapParameters));
-  if (tp.mExtrapCovariances)
+  }
+  if (tp.mExtrapCovariances) {
     mExtrapCovariances = std::make_unique<TMatrixD>(*(tp.mExtrapCovariances));
-  if (tp.mSmoothParameters)
+  }
+  if (tp.mSmoothParameters) {
     mSmoothParameters = std::make_unique<TMatrixD>(*(tp.mSmoothParameters));
-  if (tp.mSmoothCovariances)
+  }
+  if (tp.mSmoothCovariances) {
     mSmoothCovariances = std::make_unique<TMatrixD>(*(tp.mSmoothCovariances));
+  }
 }
 
 //_________________________________________________________________________
 TrackParam& TrackParam::operator=(const TrackParam& tp)
 {
   /// Assignment operator
-  if (this == &tp)
+  if (this == &tp) {
     return *this;
+  }
 
   mZ = tp.mZ;
 
   mParameters = tp.mParameters;
 
   if (tp.mCovariances) {
-    if (mCovariances)
+    if (mCovariances) {
       *mCovariances = *(tp.mCovariances);
-    else
+    } else {
       mCovariances = std::make_unique<TMatrixD>(*(tp.mCovariances));
-  } else
+    }
+  } else {
     mCovariances.reset();
+  }
 
   if (tp.mPropagator) {
-    if (mPropagator)
+    if (mPropagator) {
       *mPropagator = *(tp.mPropagator);
-    else
+    } else {
       mPropagator = std::make_unique<TMatrixD>(*(tp.mPropagator));
-  } else
+    }
+  } else {
     mPropagator.reset();
+  }
 
   if (tp.mExtrapParameters) {
-    if (mExtrapParameters)
+    if (mExtrapParameters) {
       *mExtrapParameters = *(tp.mExtrapParameters);
-    else
+    } else {
       mExtrapParameters = std::make_unique<TMatrixD>(*(tp.mExtrapParameters));
-  } else
+    }
+  } else {
     mExtrapParameters.reset();
+  }
 
   if (tp.mExtrapCovariances) {
-    if (mExtrapCovariances)
+    if (mExtrapCovariances) {
       *mExtrapCovariances = *(tp.mExtrapCovariances);
-    else
+    } else {
       mExtrapCovariances = std::make_unique<TMatrixD>(*(tp.mExtrapCovariances));
-  } else
+    }
+  } else {
     mExtrapCovariances.reset();
+  }
 
   if (tp.mSmoothParameters) {
-    if (mSmoothParameters)
+    if (mSmoothParameters) {
       *mSmoothParameters = *(tp.mSmoothParameters);
-    else
+    } else {
       mSmoothParameters = std::make_unique<TMatrixD>(*(tp.mSmoothParameters));
-  } else
+    }
+  } else {
     mSmoothParameters.reset();
+  }
 
   if (tp.mSmoothCovariances) {
-    if (mSmoothCovariances)
+    if (mSmoothCovariances) {
       *mSmoothCovariances = *(tp.mSmoothCovariances);
-    else
+    } else {
       mSmoothCovariances = std::make_unique<TMatrixD>(*(tp.mSmoothCovariances));
-  } else
+    }
+  } else {
     mSmoothCovariances.reset();
+  }
 
   mClusterPtr = tp.mClusterPtr;
 
@@ -142,7 +176,7 @@ Double_t TrackParam::px() const
   /// return p_x from track parameters
   Double_t pZ;
   if (TMath::Abs(mParameters(4, 0)) > 0) {
-    Double_t pYZ = (TMath::Abs(mParameters(4, 0)) > 0) ? TMath::Abs(1.0 / mParameters(4, 0)) : FLT_MAX;
+    Double_t pYZ = TMath::Abs(1.0 / mParameters(4, 0));
     pZ = -pYZ / (TMath::Sqrt(1.0 + mParameters(3, 0) * mParameters(3, 0))); // spectro. (z<0)
   } else {
     pZ = -FLT_MAX / TMath::Sqrt(1.0 + mParameters(3, 0) * mParameters(3, 0) + mParameters(1, 0) * mParameters(1, 0));
@@ -156,7 +190,7 @@ Double_t TrackParam::py() const
   /// return p_y from track parameters
   Double_t pZ;
   if (TMath::Abs(mParameters(4, 0)) > 0) {
-    Double_t pYZ = (TMath::Abs(mParameters(4, 0)) > 0) ? TMath::Abs(1.0 / mParameters(4, 0)) : FLT_MAX;
+    Double_t pYZ = TMath::Abs(1.0 / mParameters(4, 0));
     pZ = -pYZ / (TMath::Sqrt(1.0 + mParameters(3, 0) * mParameters(3, 0))); // spectro. (z<0)
   } else {
     pZ = -FLT_MAX / TMath::Sqrt(1.0 + mParameters(3, 0) * mParameters(3, 0) + mParameters(1, 0) * mParameters(1, 0));
@@ -171,8 +205,9 @@ Double_t TrackParam::pz() const
   if (TMath::Abs(mParameters(4, 0)) > 0) {
     Double_t pYZ = TMath::Abs(1.0 / mParameters(4, 0));
     return -pYZ / (TMath::Sqrt(1.0 + mParameters(3, 0) * mParameters(3, 0))); // spectro. (z<0)
-  } else
+  } else {
     return -FLT_MAX / TMath::Sqrt(1.0 + mParameters(3, 0) * mParameters(3, 0) + mParameters(1, 0) * mParameters(1, 0));
+  }
 }
 
 //__________________________________________________________________________
@@ -183,8 +218,9 @@ Double_t TrackParam::p() const
     Double_t pYZ = TMath::Abs(1.0 / mParameters(4, 0));
     Double_t pZ = -pYZ / (TMath::Sqrt(1.0 + mParameters(3, 0) * mParameters(3, 0))); // spectro. (z<0)
     return -pZ * TMath::Sqrt(1.0 + mParameters(3, 0) * mParameters(3, 0) + mParameters(1, 0) * mParameters(1, 0));
-  } else
+  } else {
     return FLT_MAX;
+  }
 }
 
 //__________________________________________________________________________
@@ -202,31 +238,49 @@ const TMatrixD& TrackParam::getCovariances() const
 void TrackParam::setCovariances(const TMatrixD& covariances)
 {
   /// Set the covariance matrix
-  if (mCovariances)
+  if (mCovariances) {
     *mCovariances = covariances;
-  else
+  } else {
     mCovariances = std::make_unique<TMatrixD>(covariances);
+  }
 }
 
 //__________________________________________________________________________
-void TrackParam::setCovariances(const Double_t matrix[5][5])
+void TrackParam::setCovariances(const Double_t covariances[15])
 {
-  /// Set the covariance matrix
-  if (mCovariances)
-    mCovariances->SetMatrixArray(&(matrix[0][0]));
-  else
-    mCovariances = std::make_unique<TMatrixD>(5, 5, &(matrix[0][0]));
-}
-
-//__________________________________________________________________________
-void TrackParam::setVariances(const Double_t matrix[5][5])
-{
-  /// Set the diagonal terms of the covariance matrix (variances)
-  if (!mCovariances)
+  /// Set the covariance matrix from the reduced matrix formated as follow: <pre>
+  /// [0] = <X,X>
+  /// [1] = <SlopeX,X>  [2] = <SlopeX,SlopeX>
+  /// [3] = <Y,X>       [4] = <Y,SlopeX>       [5] = <Y,Y>
+  /// [6] = <SlopeY,X>  [7] = <SlopeY,SlopeX>  [8] = <SlopeY,Y>  [9] = <SlopeY,SlopeY>
+  /// [10]= <q/pYZ,X>   [11]= <q/pYZ,SlopeX>   [12]= <q/pYZ,Y>   [13]= <q/pYZ,SlopeY>   [14]= <q/pYZ,q/pYZ> </pre>
+  if (!mCovariances) {
     mCovariances = std::make_unique<TMatrixD>(5, 5);
+  }
+  for (Int_t i = 0; i < 5; i++) {
+    for (Int_t j = 0; j <= i; j++) {
+      (*mCovariances)(i, j) = (*mCovariances)(j, i) = covariances[i * (i + 1) / 2 + j];
+    }
+  }
+}
+
+//__________________________________________________________________________
+void TrackParam::setVariances(const Double_t covariances[15])
+{
+  /// Set the diagonal terms of the covariance matrix (variances) from the reduced matrix formated as follow: <pre>
+  /// [0] = <X,X>
+  /// [1] = <SlopeX,X>  [2] = <SlopeX,SlopeX>
+  /// [3] = <Y,X>       [4] = <Y,SlopeX>       [5] = <Y,Y>
+  /// [6] = <SlopeY,X>  [7] = <SlopeY,SlopeX>  [8] = <SlopeY,Y>  [9] = <SlopeY,SlopeY>
+  /// [10]= <q/pYZ,X>   [11]= <q/pYZ,SlopeX>   [12]= <q/pYZ,Y>   [13]= <q/pYZ,SlopeY>   [14]= <q/pYZ,q/pYZ> </pre>
+  static constexpr int varIdx[5] = {0, 2, 5, 9, 14};
+  if (!mCovariances) {
+    mCovariances = std::make_unique<TMatrixD>(5, 5);
+  }
   mCovariances->Zero();
-  for (Int_t i = 0; i < 5; i++)
-    (*mCovariances)(i, i) = matrix[i][i];
+  for (Int_t i = 0; i < 5; i++) {
+    (*mCovariances)(i, i) = covariances[varIdx[i]];
+  }
 }
 
 //__________________________________________________________________________
@@ -251,18 +305,20 @@ const TMatrixD& TrackParam::getPropagator() const
 void TrackParam::resetPropagator()
 {
   /// Reset the propagator
-  if (mPropagator)
+  if (mPropagator) {
     mPropagator->UnitMatrix();
+  }
 }
 
 //__________________________________________________________________________
 void TrackParam::updatePropagator(const TMatrixD& propagator)
 {
   /// Update the propagator
-  if (mPropagator)
+  if (mPropagator) {
     *mPropagator = TMatrixD(propagator, TMatrixD::kMult, *mPropagator);
-  else
+  } else {
     mPropagator = std::make_unique<TMatrixD>(propagator);
+  }
 }
 
 //__________________________________________________________________________
@@ -280,10 +336,11 @@ const TMatrixD& TrackParam::getExtrapParameters() const
 void TrackParam::setExtrapParameters(const TMatrixD& extrapParameters)
 {
   /// Set extrapolated parameters
-  if (mExtrapParameters)
+  if (mExtrapParameters) {
     *mExtrapParameters = extrapParameters;
-  else
+  } else {
     mExtrapParameters = std::make_unique<TMatrixD>(extrapParameters);
+  }
 }
 
 //__________________________________________________________________________
@@ -301,10 +358,11 @@ const TMatrixD& TrackParam::getExtrapCovariances() const
 void TrackParam::setExtrapCovariances(const TMatrixD& extrapCovariances)
 {
   /// Set the extrapolated covariance matrix
-  if (mExtrapCovariances)
+  if (mExtrapCovariances) {
     *mExtrapCovariances = extrapCovariances;
-  else
+  } else {
     mExtrapCovariances = std::make_unique<TMatrixD>(extrapCovariances);
+  }
 }
 
 //__________________________________________________________________________
@@ -322,10 +380,11 @@ const TMatrixD& TrackParam::getSmoothParameters() const
 void TrackParam::setSmoothParameters(const TMatrixD& smoothParameters)
 {
   /// Set the smoothed parameters
-  if (mSmoothParameters)
+  if (mSmoothParameters) {
     *mSmoothParameters = smoothParameters;
-  else
+  } else {
     mSmoothParameters = std::make_unique<TMatrixD>(smoothParameters);
+  }
 }
 
 //__________________________________________________________________________
@@ -343,10 +402,11 @@ const TMatrixD& TrackParam::getSmoothCovariances() const
 void TrackParam::setSmoothCovariances(const TMatrixD& smoothCovariances)
 {
   /// Set the smoothed covariance matrix
-  if (mSmoothCovariances)
+  if (mSmoothCovariances) {
     *mSmoothCovariances = smoothCovariances;
-  else
+  } else {
     mSmoothCovariances = std::make_unique<TMatrixD>(smoothCovariances);
+  }
 }
 
 //__________________________________________________________________________
@@ -369,19 +429,22 @@ Bool_t TrackParam::isCompatibleTrackParam(const TrackParam& trackParam, Double_t
   Double_t maxChi2 = 5. * sigma2Cut * sigma2Cut; // 5 degrees of freedom
 
   // check Z parameters
-  if (mZ != trackParam.mZ)
+  if (mZ != trackParam.mZ) {
     LOG(WARN) << "Parameters are given at different Z position (" << mZ << " : " << trackParam.mZ
               << "): results are meaningless";
+  }
 
   // compute the parameter residuals
   TMatrixD deltaParam(mParameters, TMatrixD::kMinus, trackParam.mParameters);
 
   // build the error matrix
   TMatrixD weight(5, 5);
-  if (mCovariances)
+  if (mCovariances) {
     weight += *mCovariances;
-  if (trackParam.mCovariances)
+  }
+  if (trackParam.mCovariances) {
     weight += *(trackParam.mCovariances);
+  }
 
   // invert the error matrix to get the parameter weights if possible
   if (weight.Determinant() == 0) {
@@ -398,8 +461,9 @@ Bool_t TrackParam::isCompatibleTrackParam(const TrackParam& trackParam, Double_t
   chi2 = mChi2(0, 0);
 
   // check compatibility
-  if (chi2 > maxChi2)
+  if (chi2 > maxChi2) {
     return kFALSE;
+  }
 
   return kTRUE;
 }

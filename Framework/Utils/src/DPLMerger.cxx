@@ -27,7 +27,7 @@ namespace workflows
 // This is a possible implementation of a DPL compliant and generic gatherer
 // Every other implementation should fall back to this one, after required translations.
 o2f::DataProcessorSpec defineMerger(std::string devName, o2f::Inputs usrInputs, o2f::OutputSpec usrOutput,
-                                    std::function<void(OutputBuffer, const o2f::DataRef)> const mergerFunc)
+                                    std::function<void(OutputBuffer&, const o2f::DataRef)> const mergerFunc)
 {
   return {devName,                 // Device name from user
           usrInputs,               // User defined input as a vector of one InputSpec
@@ -36,18 +36,17 @@ o2f::DataProcessorSpec defineMerger(std::string devName, o2f::Inputs usrInputs, 
           o2f::AlgorithmSpec{[usrOutput, mergerFunc](o2f::InitContext&) {
             // Creating shared ptrs to useful parameters
             auto outputPtr = std::make_shared<o2f::Output>(getOutput(usrOutput));
-            auto mergerFuncPtr = std::make_shared<std::function<void(OutputBuffer, o2f::DataRef)> const>(mergerFunc);
+            auto mergerFuncPtr = std::make_shared<std::function<void(OutputBuffer&, o2f::DataRef)> const>(mergerFunc);
 
             // Defining the ProcessCallback as returned object of InitCallback
             return [outputPtr, mergerFuncPtr](o2f::ProcessingContext& ctx) {
-              OutputBuffer outputBuffer;
+              OutputBuffer outputBuffer = ctx.outputs().makeVector<char>(*outputPtr);
               // Iterating over the InputSpecs to aggregate msgs from the connected devices
               for (const auto& itInputs : ctx.inputs()) {
                 (*mergerFuncPtr)(outputBuffer, itInputs);
               }
               // Adopting the buffer as new chunk
-              ctx.outputs().adoptChunk((*outputPtr), &outputBuffer[0], outputBuffer.size(), &freefn,
-                                       nullptr);
+              ctx.outputs().adoptContainer((*outputPtr), std::move(outputBuffer));
             };
           }}};
 }
@@ -56,7 +55,7 @@ o2f::DataProcessorSpec defineMerger(std::string devName, o2f::Inputs usrInputs, 
 o2f::DataProcessorSpec defineMerger(std::string devName, o2f::Inputs usrInputs, o2f::OutputSpec usrOutput)
 {
   // This lambda retrieves the payload size through the API and back-inserts it on the output buffer
-  auto funcMerge = [](OutputBuffer buf, const o2f::DataRef d) {
+  auto funcMerge = [](OutputBuffer& buf, const o2f::DataRef d) {
     auto msgSize = (o2::header::get<o2::header::DataHeader*>(d.header))->payloadSize;
     buf.resize(buf.size() + msgSize);
     std::copy(&(d.payload[0]), &(d.payload[msgSize - 1]), std::back_inserter(buf));

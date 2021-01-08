@@ -90,41 +90,13 @@ class Detector : public o2::base::DetImpl<Detector>
   /// Creating materials for the detector
 
   void createMaterials();
-
-  enum EMedia {
-    Zero,
-    Air,
-    Vacuum,
-    Si,
-    Readout,
-    Support,
-    Carbon,
-    Be,
-    Alu,
-    Water,
-    SiO2,
-    Inox,
-    Kapton,
-    Epoxy,
-    CarbonFiber,
-    CarbonEpoxy,
-    Rohacell,
-    Polyimide,
-    PEEK,
-    FR4,
-    Cu,
-    X7R,
-    X7Rw,
-    CarbonFleece,
-    SE4445
-  }; // media IDs used in CreateMaterials
-
   void setDensitySupportOverSi(Double_t density)
   {
-    if (density > 1e-6)
+    if (density > 1e-6) {
       mDensitySupportOverSi = density;
-    else
+    } else {
       mDensitySupportOverSi = 1e-6;
+    }
   }
 
   void createGeometry();

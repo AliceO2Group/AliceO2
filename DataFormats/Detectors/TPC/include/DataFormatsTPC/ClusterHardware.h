@@ -69,6 +69,18 @@ struct ClusterHardware { // Draft of hardware clusters in bit-packed format.
     return (padPreInt / 16.f);
   }
 
+  /// @return Returns the pad position of the cluster.
+  /// note that the pad position is defined on the left side of the pad.
+  /// the pad position from clusters are calculated in HwClusterer::hwClusterProcessor()
+  /// around the centre of gravity around the left side of the pad.
+  /// i.e. the center of the first pad has pad position zero.
+  /// To get the corresponding local Y coordinate of the cluster:
+  /// Y = (pad_position - 0.5 * (n_pads - 1)) * padWidth
+  /// example:
+  /// the pad position is for example 12.4 (pad_position = 12.4).
+  /// there are 66 pads in the first pad row (n_pads = 66).
+  /// the pad width for pads in the first padrow is 4.16mm (padWidth = 4.16mm).
+  /// Y = (12.4 - 0.5 * (66 - 1)) * 4.16mm = -83.616mm
   float getPad() const
   {
     int padPeak = (word0 & 0xFF00000) >> 20;

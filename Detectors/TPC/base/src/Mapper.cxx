@@ -191,8 +191,9 @@ void Mapper::load(const std::string& mappingDir)
     //readMappingFile(inputDir+"/Detectors/TPC/base/files/TABLE-OROC3.txt");
 
     const char* aliceO2env = std::getenv("O2_ROOT");
-    if (aliceO2env)
+    if (aliceO2env) {
       inputDir = aliceO2env;
+    }
     inputDir += "/share/Detectors/TPC/files";
   }
   readMappingFile(inputDir + "/TABLE-IROC.txt");
@@ -208,15 +209,15 @@ void Mapper::initPadRegionsAndPartitions()
   // original values for pad widht and height and pad row position are in mm
   // the ALICE coordinate system is in cm
   mMapPadRegionInfo[0] = PadRegionInfo(0, 0, 17, 7.5 / 10., 4.16 / 10., 848.5 / 10., 0, 33.20, 0);
-  mMapPadRegionInfo[1] = PadRegionInfo(0, 1, 15, 7.5 / 10., 4.20 / 10., 976.0 / 10., 17, 33.00, 17);
-  mMapPadRegionInfo[2] = PadRegionInfo(1, 2, 16, 7.5 / 10., 4.20 / 10., 1088.5 / 10., 32, 33.08, 32);
-  mMapPadRegionInfo[3] = PadRegionInfo(1, 3, 15, 7.5 / 10., 4.36 / 10., 1208.5 / 10., 48, 31.83, 48);
-  mMapPadRegionInfo[4] = PadRegionInfo(2, 4, 18, 10 / 10., 6.00 / 10., 1347.0 / 10., 0, 38.00, 63);
-  mMapPadRegionInfo[5] = PadRegionInfo(2, 5, 16, 10 / 10., 6.00 / 10., 1527.0 / 10., 18, 38.00, 81);
-  mMapPadRegionInfo[6] = PadRegionInfo(3, 6, 16, 12 / 10., 6.08 / 10., 1708.0 / 10., 0, 47.90, 97);
-  mMapPadRegionInfo[7] = PadRegionInfo(3, 7, 14, 12 / 10., 5.88 / 10., 1900.0 / 10., 16, 49.55, 113);
-  mMapPadRegionInfo[8] = PadRegionInfo(4, 8, 13, 15 / 10., 6.04 / 10., 2089.0 / 10., 0, 59.39, 127);
-  mMapPadRegionInfo[9] = PadRegionInfo(4, 9, 12, 15 / 10., 6.07 / 10., 2284.0 / 10., 0, 64.70, 140);
+  mMapPadRegionInfo[1] = PadRegionInfo(1, 0, 15, 7.5 / 10., 4.20 / 10., 976.0 / 10., 17, 33.00, 17);
+  mMapPadRegionInfo[2] = PadRegionInfo(2, 1, 16, 7.5 / 10., 4.20 / 10., 1088.5 / 10., 32, 33.08, 32);
+  mMapPadRegionInfo[3] = PadRegionInfo(3, 1, 15, 7.5 / 10., 4.36 / 10., 1208.5 / 10., 48, 31.83, 48);
+  mMapPadRegionInfo[4] = PadRegionInfo(4, 2, 18, 10 / 10., 6.00 / 10., 1347.0 / 10., 0, 38.00, 63);
+  mMapPadRegionInfo[5] = PadRegionInfo(5, 2, 16, 10 / 10., 6.00 / 10., 1527.0 / 10., 18, 38.00, 81);
+  mMapPadRegionInfo[6] = PadRegionInfo(6, 3, 16, 12 / 10., 6.08 / 10., 1708.0 / 10., 0, 47.90, 97);
+  mMapPadRegionInfo[7] = PadRegionInfo(7, 3, 14, 12 / 10., 5.88 / 10., 1900.0 / 10., 16, 49.55, 113);
+  mMapPadRegionInfo[8] = PadRegionInfo(8, 4, 13, 15 / 10., 6.04 / 10., 2089.0 / 10., 0, 59.39, 127);
+  mMapPadRegionInfo[9] = PadRegionInfo(9, 4, 12, 15 / 10., 6.07 / 10., 2284.0 / 10., 0, 64.70, 140);
 
   mMapPartitionInfo[0] = PartitionInfo(15, 0, 32, 0, 2400);
   mMapPartitionInfo[1] = PartitionInfo(18, 15, 31, 32, 2880);

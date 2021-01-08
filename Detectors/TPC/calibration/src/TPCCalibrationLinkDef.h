@@ -16,7 +16,17 @@
 
 #pragma link C++ class o2::tpc::CalibRawBase;
 #pragma link C++ class o2::tpc::CalibPedestal;
+#pragma link C++ class o2::tpc::CalibPedestalParam +;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::CalibPedestalParam> + ;
 #pragma link C++ class o2::tpc::CalibPulser;
+#pragma link C++ class o2::tpc::CalibPulserParam +;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::CalibPulserParam> + ;
 #pragma link C++ class o2::tpc::CalibTreeDump;
+#pragma link C++ class o2::tpc::DigitDump;
+#pragma link C++ class o2::tpc::DigitDumpParam;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::DigitDumpParam> + ;
+#pragma link C++ class o2::tpc::CalibPadGainTracks;
+#pragma link C++ class o2::tpc::FastHisto<float> +;
+#pragma link C++ class o2::tpc::FastHisto<unsigned int> +;
 
 #endif

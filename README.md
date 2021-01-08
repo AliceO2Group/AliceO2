@@ -1,6 +1,6 @@
 # ALICE O2 software {#mainpage}
 
-<!--  \cond EXCLUDE_FOR_DOXYGEN -->
+<!--  /// \cond EXCLUDE_FOR_DOXYGEN -->
 
 [![codecov](https://codecov.io/gh/AliceO2Group/AliceO2/branch/dev/graph/badge.svg)](https://codecov.io/gh/AliceO2Group/AliceO2/branches/dev)
 [![JIRA](https://img.shields.io/badge/JIRA-Report%20issue-blue.svg)](https://alice.its.cern.ch/jira/secure/CreateIssue.jspa?pid=11201&issuetype=1)
@@ -9,9 +9,8 @@
 [![](http://ali-ci.cern.ch/repo/buildstatus/AliceO2Group/AliceO2/dev/build_O2_o2.svg)](https://ali-ci.cern.ch/repo/logs/AliceO2Group/AliceO2/dev/latest/build_O2_o2/fullLog.txt)
 [![](http://ali-ci.cern.ch/repo/buildstatus/AliceO2Group/AliceO2/dev/build_o2_macos.svg)](https://ali-ci.cern.ch/repo/logs/AliceO2Group/AliceO2/dev/latest/build_o2_macos/fullLog.txt)
 [![](http://ali-ci.cern.ch/repo/buildstatus/AliceO2Group/AliceO2/dev/build_o2checkcode_o2.svg)](https://ali-ci.cern.ch/repo/logs/AliceO2Group/AliceO2/dev/latest/build_o2checkcode_o2/fullLog.txt)
-[![](http://ali-ci.cern.ch/repo/buildstatus/AliceO2Group/AliceO2/dev/build_O2_o2-dev-fairroot.svg)](https://ali-ci.cern.ch/repo/logs/AliceO2Group/AliceO2/dev/latest/build_O2_o2-dev-fairroot/fullLog.txt)
 
-<!--  \endcond  -->
+<!--  /// \endcond  -->
 
 ### Scope
 
@@ -20,12 +19,16 @@ Other repositories in AliceO2Group contain a number of large common modules, for
 
 ### Website
 
-The main entry point for O2 information is [here](http://alice-o2.web.cern.ch/).
+The main entry point for O2 information is [here](https://alice-o2-project.web.cern.ch).
 A quickstart page can be found under [https://aliceo2group.github.io/](https://aliceo2group.github.io/).
 
 ### Building / Installation
 
 In order to build and install O2 with aliBuild you can follow [this tutorial](http://alisw.github.io/alibuild/o2-tutorial.html).
+
+### Discussion Forum
+
+Users can ask for support in [ALICE Talk](https://alice-talk.web.cern.ch).
 
 ### Issue tracking system
 
@@ -46,12 +49,12 @@ To access the resulting documentation, open doc/html/index.html in your
 build directory. To install the documentation when calling `cmake --build . -- install` (or `cmake --install` for CMake >= 3.15)
 turn on the variable `DOC_INSTALL`.
 
-The instruction how to add the documentation pages (README.md) are available [here](doc/DoxygenInstructions.md).
+The instruction how to add the documentation pages (README.md) are available [here](https://github.com/AliceO2Group/AliceO2/blob/dev/doc/DoxygenInstructions.md).
 
 ### Build system (cmake) and directory structure
 
-The code organisation is described [here](doc/CodeOrganization.md).
-The build system (cmake) is described [here](doc/CMakeInstructions.md).
+The code organisation is described [here](https://github.com/AliceO2Group/AliceO2/blob/dev/doc/CodeOrganization.md).
+The build system (cmake) is described [here](https://github.com/AliceO2Group/AliceO2/blob/dev/doc/CMakeInstructions.md).
 
 ### Formatting
 

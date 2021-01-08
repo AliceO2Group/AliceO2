@@ -9,9 +9,12 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/WorkflowSpec.h"
+#include "Framework/CallbackService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataAllocator.h"
+#include "Framework/RawDeviceService.h"
+#include "Framework/EndOfStreamContext.h"
 #include "Framework/InputRecord.h"
 #include "Framework/InputSpec.h"
 #include "Framework/OutputSpec.h"
@@ -20,14 +23,26 @@
 #include "Framework/Logger.h"
 #include "Framework/DispatchPolicy.h"
 #include "Framework/DeviceSpec.h"
-#include <chrono>
+#include "Framework/Output.h"
 #include <cstring>
 #include <iostream>
+#include <regex>
 
 void customize(std::vector<o2::framework::DispatchPolicy>& policies)
 {
   // we customize all devices to dispatch data immediately
-  policies.push_back({"prompt-for-all", [](auto const&) { return true; }, o2::framework::DispatchPolicy::DispatchOp::WhenReady});
+  auto producerMatcher = [](auto const& spec) {
+    return std::regex_match(spec.name.begin(), spec.name.end(), std::regex("producer.*"));
+  };
+  auto processorMatcher = [](auto const& spec) {
+    return std::regex_match(spec.name.begin(), spec.name.end(), std::regex("processor.*"));
+  };
+  auto triggerMatcher = [](auto const& query) {
+    o2::framework::Output reference{"PROD", "TRIGGER"};
+    return reference.origin == query.origin && reference.description == query.description;
+  };
+  policies.push_back({"producer-policy", producerMatcher, o2::framework::DispatchPolicy::DispatchOp::WhenReady, triggerMatcher});
+  policies.push_back({"processor-policy", processorMatcher, o2::framework::DispatchPolicy::DispatchOp::WhenReady});
 }
 
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
@@ -62,54 +77,63 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
   std::vector<OutputSpec> producerOutputs;
   for (auto const& subspec : subspecs) {
     producerOutputs.emplace_back(OutputSpec{"PROD", "CHANNEL", subspec, Lifetime::Timeframe});
+    producerOutputs.emplace_back(OutputSpec{"PROD", "TRIGGER", subspec, Lifetime::Timeframe});
   }
 
-  auto producerFct = [subspecs](ProcessingContext& pc) {
-    static bool ready = false;
-    if (ready) {
-      return;
-    }
+  auto producerFct = adaptStateless([subspecs](DataAllocator& outputs, RawDeviceService& device, ControlService& control) {
     for (auto const& subspec : subspecs) {
-      //pc.outputs().make<MyDataType>(Output{ "PROD", "CHANNEL", subspec, Lifetime::Timeframe }) = subspec;
-      pc.outputs().snapshot(Output{"PROD", "CHANNEL", subspec, Lifetime::Timeframe}, subspec);
-      std::cout << "publishing channel " << subspec << std::endl;
-      sleep(1);
+      // since the snapshot copy is ready for sending it is scheduled but held back
+      // because of the CompletionPolicy trigger matcher. This message will be
+      // sent together with the second message.
+      outputs.snapshot(Output{"PROD", "CHANNEL", subspec, Lifetime::Timeframe}, subspec);
+      device.waitFor(100);
+      outputs.snapshot(Output{"PROD", "TRIGGER", subspec, Lifetime::Timeframe}, subspec);
+      device.waitFor(100);
     }
-    ready = true;
-    pc.services().get<ControlService>().readyToQuit(false);
-  };
+    control.endOfStream();
+    control.readyToQuit(QuitRequest::Me);
+  });
+
   auto processorFct = [](ProcessingContext& pc) {
     int nActiveInputs = 0;
+    LOG(INFO) << "processing ...";
     for (auto const& input : pc.inputs()) {
       if (pc.inputs().isValid(input.spec->binding) == false) {
         // this input slot is empty
         continue;
       }
       auto& data = pc.inputs().get<MyDataType>(input.spec->binding.c_str());
-      std::cout << "processing channel " << data << std::endl;
-      pc.outputs().make<MyDataType>(Output{"PROC", "CHANNEL", data, Lifetime::Timeframe}) = data;
+      LOG(INFO) << "processing " << input.spec->binding << " " << data;
+      // check if the channel binding starts with 'trigger'
+      if (input.spec->binding.find("trigger") == 0) {
+        pc.outputs().make<MyDataType>(Output{"PROC", "CHANNEL", data, Lifetime::Timeframe}) = data;
+      }
       nActiveInputs++;
     }
-    // since we publish with delays, there should be only one active input at a time
-    ASSERT_ERROR(nActiveInputs == 1);
+    // since we publish with delays, and two channels are always sent together
+    ASSERT_ERROR(nActiveInputs == 2);
   };
   auto amendSinkInput = [subspecs](InputSpec& input, size_t index) {
     input.binding += std::to_string(subspecs[index]);
     DataSpecUtils::updateMatchingSubspec(input, subspecs[index]);
   };
-  auto sinkFct = [](ProcessingContext& pc) {
-    for (auto const& input : pc.inputs()) {
-      auto& data = pc.inputs().get<MyDataType>(input.spec->binding.c_str());
-      std::cout << "received channel " << data << std::endl;
-    }
-    sleep(2);
-    pc.services().get<ControlService>().readyToQuit(true);
-  };
+
+  auto sinkFct = adaptStateful([](CallbackService& callbacks) {
+    callbacks.set(CallbackService::Id::EndOfStream, [](EndOfStreamContext& context) {
+      context.services().get<ControlService>().readyToQuit(QuitRequest::All);
+    });
+    return adaptStateless([](InputRecord& inputs) {
+      for (auto const& input : inputs) {
+        auto& data = inputs.get<MyDataType>(input.spec->binding.c_str());
+        LOG(INFO) << "received channel " << data;
+      } });
+  });
 
   std::vector<DataProcessorSpec> workflow = parallelPipeline(
     std::vector<DataProcessorSpec>{DataProcessorSpec{
       "processor",
-      {InputSpec{"input", "PROD", "CHANNEL", 0, Lifetime::Timeframe}},
+      {InputSpec{"input", "PROD", "CHANNEL", 0, Lifetime::Timeframe},
+       InputSpec{"trigger", "PROD", "TRIGGER", 0, Lifetime::Timeframe}},
       {OutputSpec{"PROC", "CHANNEL", 0, Lifetime::Timeframe}},
       AlgorithmSpec{processorFct}}},
     nPipelines,

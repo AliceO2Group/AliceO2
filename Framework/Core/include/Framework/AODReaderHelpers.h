@@ -8,25 +8,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef o2_framework_readers_AODReaderHelpers_INCLUDED_H
-#define o2_framework_readers_AODReaderHelpers_INCLUDED_H
+#ifndef O2_FRAMEWORK_AODREADERHELPERS_H_
+#define O2_FRAMEWORK_AODREADERHELPERS_H_
 
+#include "Framework/TableBuilder.h"
 #include "Framework/AlgorithmSpec.h"
+#include "Framework/Logger.h"
+#include <uv.h>
 
-namespace o2
+namespace o2::framework::readers
 {
-namespace framework
-{
-namespace readers
-{
+
 
 struct AODReaderHelpers {
   static AlgorithmSpec rootFileReaderCallback();
-  static AlgorithmSpec run2ESDConverterCallback();
+  static AlgorithmSpec aodSpawnerCallback(std::vector<InputSpec> requested);
+  static AlgorithmSpec indexBuilderCallback(std::vector<InputSpec> requested);
 };
 
-} // namespace readers
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework::readers
 
-#endif
+#endif // O2_FRAMEWORK_AODREADERHELPERS_H_

@@ -28,9 +28,13 @@
 #pragma link C++ class o2::mft::Ladder + ;
 #pragma link C++ class o2::mft::Flex + ;
 #pragma link C++ class o2::mft::Support + ;
+#pragma link C++ class o2::mft::PCBSupport + ;
 #pragma link C++ class o2::mft::HeatExchanger + ;
 #pragma link C++ class o2::mft::HalfCone + ;
 #pragma link C++ class o2::mft::PowerSupplyUnit + ;
 #pragma link C++ class o2::mft::Barrel + ;
+#pragma link C++ class o2::mft::PatchPanel + ;
+#pragma link C++ class o2::mft::MFTBaseParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::mft::MFTBaseParam> + ;
 
 #endif

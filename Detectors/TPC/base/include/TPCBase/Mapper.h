@@ -27,6 +27,8 @@
 #include "TPCBase/PartitionInfo.h"
 #include "TPCBase/Sector.h"
 
+#include "MathUtils/Cartesian.h"
+
 // using o2::tpc::PadRegionInfo;
 // using o2::tpc::PartitionInfo;
 
@@ -59,7 +61,7 @@ class Mapper
   /// \param sec sector
   /// \param globalPad global pad number in sector
   /// \return global cru number
-  int getCRU(const Sector& sec, GlobalPadNumber globalPad)
+  int getCRU(const Sector& sec, GlobalPadNumber globalPad) const
   {
     const auto row = mMapGlobalPadToPadPos[globalPad].getRow();
     const auto nCRUPerSector = mMapPadRegionInfo.size();
@@ -146,7 +148,10 @@ class Mapper
 
   GlobalPosition2D getPadCentre(const PadSecPos& padSec) const
   {
-    const PadCentre& padcent = getPadCentre(padSec.getPadPos());
+    PadCentre padcent = getPadCentre(padSec.getPadPos());
+    if (padSec.getSector().side() == Side::A) {
+      padcent.SetY(-1.f * padcent.Y());
+    }
     return LocalToGlobal(padcent, padSec.getSector());
   }
 
@@ -216,7 +221,6 @@ class Mapper
 
   const PadPos padPosRegion(const int cruNumber, const int fecInRegion, const int sampaOnFEC,
                             const int channelOnSAMPA) const
-
   {
     const CRU cru(cruNumber);
     const PadRegionInfo& regionInfo = mMapPadRegionInfo[cru.region()];
@@ -226,6 +230,45 @@ class Mapper
     PadPos pos = padPos(padNumber);
     pos.setRow(pos.getRow() - regionInfo.getGlobalRowOffset());
     return pos;
+  }
+
+  const PadROCPos padROCPos(const CRU cru, const int fecInRegion, const int sampaOnFEC,
+                            const int channelOnSAMPA) const
+  {
+    const PartitionInfo& partInfo = mMapPartitionInfo[cru.partition()];
+    const int fecInSector = partInfo.getSectorFECOffset() + fecInRegion;
+    const GlobalPadNumber padNumber = globalPadNumber(fecInSector, sampaOnFEC, channelOnSAMPA);
+    const ROC roc = cru.roc();
+    PadROCPos pos(roc, padPos(padNumber));
+    if (roc.isOROC()) {
+      pos.getPadPos().setRow(pos.getRow() - mNumberOfPadRowsIROC);
+    }
+    return pos;
+  }
+
+  const PadSecPos padSecPos(const CRU cru, const int fecInRegion, const int sampaOnFEC,
+                            const int channelOnSAMPA) const
+  {
+    const PartitionInfo& partInfo = mMapPartitionInfo[cru.partition()];
+    const int fecInSector = partInfo.getSectorFECOffset() + fecInRegion;
+    const GlobalPadNumber padNumber = globalPadNumber(fecInSector, sampaOnFEC, channelOnSAMPA);
+    PadSecPos pos(cru.sector(), padPos(padNumber));
+    return pos;
+  }
+
+  /// sampa on FEC and channel on SAMPA from the cru and the raw FEC channel (0-79) in the half FEC
+  /// this is required for the link-based zero suppression
+  static constexpr void getSampaAndChannelOnFEC(const int cruID, const size_t rawFECChannel, int& sampaOnFEC, int& channelOnSAMPA)
+  {
+    constexpr int sampaMapping[10] = {0, 0, 1, 1, 2, 3, 3, 4, 4, 2};
+    constexpr int channelOffset[10] = {0, 16, 0, 16, 0, 0, 16, 0, 16, 16};
+
+    const int regionIter = cruID % 2;
+    const int istreamm = ((rawFECChannel % 10) / 2);
+    const int partitionStream = istreamm + regionIter * 5;
+    sampaOnFEC = sampaMapping[partitionStream];
+    const int channel = (rawFECChannel % 2) + 2 * (rawFECChannel / 10);
+    channelOnSAMPA = channel + channelOffset[partitionStream];
   }
 
   const PadCentre& padCentre(const int partition, const int fecInPartition, const int sampaOnFEC,
@@ -274,6 +317,7 @@ class Mapper
   }
 
   int getNumberOfPadsInRowSector(int row) const { return mMapNumberOfPadsPerRow[row]; }
+  int getPadOffsetInRowSector(int row) const { return mMapPadOffsetPerRow[row]; }
   int getNumberOfPadsInRowROC(int roc, int row) const
   {
     return mMapNumberOfPadsPerRow[row + (roc % 72 >= getNumberOfIROCs()) * mNumberOfPadRowsIROC];
@@ -357,6 +401,7 @@ class Mapper
         break;
       }
     }
+    return 0;
   }
 
   unsigned short getNumberOfPads(const ROC roc) const
@@ -534,10 +579,11 @@ inline const DigitPos Mapper::findDigitPosFromLocalPosition(const LocalPosition3
   PadPos pad;
   CRU cru;
   for (const PadRegionInfo& padRegion : mMapPadRegionInfo) {
-    cru = CRU(sec, padRegion.getPartition());
+    cru = CRU(sec, padRegion.getRegion());
     pad = padRegion.findPad(pos);
-    if (pad.isValid())
+    if (pad.isValid()) {
       break;
+    }
   }
 
   return DigitPos(cru, pad);
@@ -547,10 +593,11 @@ inline const DigitPos Mapper::findDigitPosFromGlobalPosition(const GlobalPositio
 {
   // ===| find sector |=========================================================
   float phi = std::atan2(pos.Y(), pos.X());
-  if (phi < 0.)
+  if (phi < 0.) {
     phi += TWOPI;
+  }
   const unsigned char secNum = std::floor(phi / SECPHIWIDTH);
-  const float secPhi = secNum * SECPHIWIDTH + SECPHIWIDTH / 2.;
+  // const float secPhi = secNum * SECPHIWIDTH + SECPHIWIDTH / 2.;
   Sector sec(secNum + (pos.Z() < 0) * SECTORSPERSIDE);
 
   // ===| rotated position |====================================================

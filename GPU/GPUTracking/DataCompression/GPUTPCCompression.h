@@ -22,50 +22,52 @@
 #ifdef HAVE_O2HEADERS
 #include "DataFormatsTPC/CompressedClusters.h"
 #else
-namespace o2
+namespace o2::tpc
 {
-namespace tpc
-{
-template <class T>
-struct CompressedClustersPtrs_helper {
+struct CompressedClustersPtrs {
 };
-struct CompressedClustersCounters {
+struct CompressedClusters {
 };
-using CompressedClusters = CompressedClustersPtrs_helper<CompressedClustersCounters>;
-struct CompressedClustersPtrsOnly {
+struct CompressedClustersFlat {
 };
-} // namespace tpc
-} // namespace o2
+} // namespace o2::tpc
 #endif
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 class GPUTPCGMMerger;
 
 class GPUTPCCompression : public GPUProcessor
 {
   friend class GPUTPCCompressionKernels;
+  friend class GPUTPCCompressionGatherKernels;
   friend class GPUChainTracking;
 
  public:
 #ifndef GPUCA_GPUCODE
   void InitializeProcessor();
   void RegisterMemoryAllocation();
-  void SetMaxData();
+  void SetMaxData(const GPUTrackingInOutPointers& io);
 
+  void* SetPointersOutputGPU(void* mem);
   void* SetPointersOutputHost(void* mem);
+  void* SetPointersOutputPtrs(void* mem);
   void* SetPointersOutput(void* mem);
   void* SetPointersScratch(void* mem);
   void* SetPointersMemory(void* mem);
 #endif
 
-  GPUd() static void truncateSignificantBitsCharge(unsigned short& charge, const GPUParam& param)
-  {
-    truncateSignificantBits(charge, param.rec.tpcSigBitsCharge);
-  }
-  GPUd() static void truncateSignificantBitsWidth(unsigned char& width, const GPUParam& param) { truncateSignificantBits(width, param.rec.tpcSigBitsWidth); }
+  static constexpr unsigned int P_MAX_QMAX = 1 << 10;
+  static constexpr unsigned int P_MAX_QTOT = 5 * 5 * P_MAX_QMAX;
+  static constexpr unsigned int P_MAX_TIME = 1 << 24;
+  static constexpr unsigned int P_MAX_PAD = 1 << 16;
+  static constexpr unsigned int P_MAX_SIGMA = 1 << 8;
+  static constexpr unsigned int P_MAX_FLAGS = 1 << 8;
+  static constexpr unsigned int P_MAX_QPT = 1 << 8;
+
+  GPUd() static void truncateSignificantBitsCharge(unsigned short& charge, const GPUParam& param) { truncateSignificantBits(charge, param.rec.tpcSigBitsCharge, P_MAX_QTOT); }
+  GPUd() static void truncateSignificantBitsChargeMax(unsigned short& charge, const GPUParam& param) { truncateSignificantBits(charge, param.rec.tpcSigBitsCharge, P_MAX_QMAX); }
+  GPUd() static void truncateSignificantBitsWidth(unsigned char& width, const GPUParam& param) { truncateSignificantBits(width, param.rec.tpcSigBitsWidth, P_MAX_SIGMA); }
 
  protected:
   struct memory {
@@ -76,34 +78,31 @@ class GPUTPCCompression : public GPUProcessor
 
   constexpr static unsigned int NSLICES = GPUCA_NSLICES;
 
-  o2::tpc::CompressedClustersPtrsOnly mPtrs;
-  o2::tpc::CompressedClusters mOutput;
-  const GPUTPCGMMerger* mMerger = nullptr;
+  o2::tpc::CompressedClustersPtrs mPtrs;
+  o2::tpc::CompressedClusters* mOutput = nullptr;
+  o2::tpc::CompressedClusters* mOutputA = nullptr; // Always points to host buffer
+  o2::tpc::CompressedClustersFlat* mOutputFlat = nullptr;
 
   memory* mMemory = nullptr;
   unsigned int* mAttachedClusterFirstIndex = nullptr;
-  unsigned int* mClusterSortBuffer = nullptr;
   unsigned char* mClusterStatus = nullptr;
 
   unsigned int mMaxTracks = 0;
   unsigned int mMaxClusters = 0;
   unsigned int mMaxTrackClusters = 0;
   unsigned int mNMaxClusterSliceRow = 0;
-  unsigned int mNGPUBlocks = 0;
 
   template <class T>
   void SetPointersCompressedClusters(void*& mem, T& c, unsigned int nClA, unsigned int nTr, unsigned int nClU, bool reducedClA);
   template <class T>
-  GPUd() static void truncateSignificantBits(T& val, unsigned int nBits);
+  GPUd() static void truncateSignificantBits(T& val, unsigned int nBits, unsigned int max);
 
-  short mMemoryResOutput = -1;
   short mMemoryResOutputHost = -1;
-  short mMemoryResMemory = -1;
-  short mMemoryResScratch = -1;
+  short mMemoryResOutputGPU = -1;
 };
 
 template <class T>
-GPUdi() void GPUTPCCompression::truncateSignificantBits(T& v, unsigned int nBits)
+GPUdi() void GPUTPCCompression::truncateSignificantBits(T& v, unsigned int nBits, unsigned int max)
 {
   if (nBits == 0) {
     return;
@@ -117,11 +116,13 @@ GPUdi() void GPUTPCCompression::truncateSignificantBits(T& v, unsigned int nBits
       ldz = sizeof(unsigned int) * 8 - CAMath::Clz(val);
     }
     val &= ((1 << ldz) - 1) ^ ((1 << (ldz - nBits)) - 1);
+    if (val >= max) {
+      val = max - 1;
+    }
     // GPUInfo("CHANGING X %x --> %x", (unsigned int) v, val);
     v = val;
   }
 }
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

@@ -13,10 +13,12 @@
 #ifndef ALICEO2_INTERACTIONRECORD_H
 #define ALICEO2_INTERACTIONRECORD_H
 
-#include <Rtypes.h>
+#include "GPUCommonRtypes.h"
+#ifndef GPUCA_ALIGPUCODE
 #include <iosfwd>
-#include <cmath>
 #include <cstdint>
+#endif
+#include <cmath>
 #include "CommonConstants/LHCConstants.h"
 
 namespace o2
@@ -40,6 +42,8 @@ struct InteractionRecord {
   InteractionRecord(uint16_t b, uint32_t orb) : bc(b), orbit(orb)
   {
   }
+
+  InteractionRecord(const InteractionRecord& src) = default;
 
   void clear()
   {
@@ -69,6 +73,11 @@ struct InteractionRecord {
     return std::round(ns / o2::constants::lhc::LHCBunchSpacingNS);
   }
 
+  double bc2ns() const
+  {
+    return bc2ns(bc, orbit);
+  }
+
   bool operator==(const InteractionRecord& other) const
   {
     return (bc == other.bc) && (orbit == other.orbit);
@@ -79,14 +88,26 @@ struct InteractionRecord {
     return (bc != other.bc) || (orbit != other.orbit);
   }
 
-  int differenceInBC(const InteractionRecord& other) const
+  int64_t differenceInBC(const InteractionRecord& other) const
   {
-    // return differenc in bunch-crossings
-    int diffBC = int(bc) - other.bc;
+    // return difference in bunch-crossings
+    int64_t diffBC = int(bc) - other.bc;
     if (orbit != other.orbit) {
-      diffBC += (int(orbit) - other.orbit) * o2::constants::lhc::LHCMaxBunches;
+      diffBC += (int64_t(orbit) - other.orbit) * o2::constants::lhc::LHCMaxBunches;
     }
     return diffBC;
+  }
+
+  float differenceInBCNS(const InteractionRecord& other) const
+  {
+    // return difference in bunch-crossings in ns
+    return differenceInBC(other) * o2::constants::lhc::LHCBunchSpacingNS;
+  }
+
+  float differenceInBCMS(const InteractionRecord& other) const
+  {
+    // return difference in bunch-crossings in ms
+    return differenceInBC(other) * o2::constants::lhc::LHCBunchSpacingMS;
   }
 
   int64_t toLong() const
@@ -95,9 +116,21 @@ struct InteractionRecord {
     return (int64_t(orbit) * o2::constants::lhc::LHCMaxBunches) + bc;
   }
 
+  void setFromLong(int64_t l)
+  {
+    // set from long BC counter
+    bc = l % o2::constants::lhc::LHCMaxBunches;
+    orbit = l / o2::constants::lhc::LHCMaxBunches;
+  }
+
   bool operator>(const InteractionRecord& other) const
   {
     return (orbit == other.orbit) ? (bc > other.bc) : (orbit > other.orbit);
+  }
+
+  bool operator>=(const InteractionRecord& other) const
+  {
+    return !((*this) < other);
   }
 
   bool operator<(const InteractionRecord& other) const
@@ -105,42 +138,197 @@ struct InteractionRecord {
     return (orbit == other.orbit) ? (bc < other.bc) : (orbit < other.orbit);
   }
 
+  bool operator<=(const InteractionRecord& other) const
+  {
+    return !((*this) > other);
+  }
+
+  InteractionRecord operator--()
+  {
+    // prefix decrement operator, no check for orbit wrap
+    if (!bc--) {
+      orbit--;
+      bc = o2::constants::lhc::LHCMaxBunches - 1;
+    }
+    return InteractionRecord(*this);
+  }
+
+  InteractionRecord operator--(int)
+  {
+    // postfix decrement operator, no check for orbit wrap
+    InteractionRecord tmp(*this);
+    if (!bc--) {
+      orbit--;
+      bc = o2::constants::lhc::LHCMaxBunches - 1;
+    }
+    return tmp;
+  }
+
+  InteractionRecord operator++()
+  {
+    // prefix increment operator,no check for orbit wrap
+    if ((++bc) == o2::constants::lhc::LHCMaxBunches) {
+      orbit++;
+      bc = 0;
+    }
+    return InteractionRecord(*this);
+  }
+
+  InteractionRecord operator++(int)
+  {
+    // postfix increment operator, no check for orbit wrap
+    InteractionRecord tmp(*this);
+    if ((++bc) == o2::constants::lhc::LHCMaxBunches) {
+      orbit++;
+      bc = 0;
+    }
+    return tmp;
+  }
+
+  InteractionRecord& operator+=(int64_t dbc)
+  {
+    // bc self-addition operator, no check for orbit wrap
+    auto l = toLong() + dbc;
+    bc = l % o2::constants::lhc::LHCMaxBunches;
+    orbit = l / o2::constants::lhc::LHCMaxBunches;
+    return *this;
+  }
+
+  InteractionRecord& operator-=(int64_t dbc)
+  {
+    // bc self-subtraction operator, no check for orbit wrap
+    return operator+=(-dbc);
+  }
+
+  InteractionRecord& operator+=(const InteractionRecord& add)
+  {
+    // InteractionRecord self-addition operator, no check for orbit wrap
+    auto l = this->toLong() + add.toLong();
+    bc = l % o2::constants::lhc::LHCMaxBunches;
+    orbit = l / o2::constants::lhc::LHCMaxBunches;
+    return *this;
+  }
+
+  InteractionRecord& operator-=(const InteractionRecord& add)
+  {
+    // InteractionRecord self-subtraction operator, no check for orbit wrap
+    auto l = this->toLong() - add.toLong();
+    bc = l % o2::constants::lhc::LHCMaxBunches;
+    orbit = l / o2::constants::lhc::LHCMaxBunches;
+    return *this;
+  }
+
+  InteractionRecord operator+(int64_t dbc) const
+  {
+    // bc addition operator, no check for orbit wrap
+    auto l = toLong() + dbc;
+    return InteractionRecord(l % o2::constants::lhc::LHCMaxBunches, l / o2::constants::lhc::LHCMaxBunches);
+  }
+
+  InteractionRecord operator-(int64_t dbc) const
+  {
+    // bc subtraction operator, no check for orbit wrap
+    auto l = toLong() - dbc;
+    return InteractionRecord(l % o2::constants::lhc::LHCMaxBunches, l / o2::constants::lhc::LHCMaxBunches);
+  }
+
+  InteractionRecord operator+(const InteractionRecord& add) const
+  {
+    // InteractionRecord addition operator, no check for orbit wrap
+    auto l = this->toLong() + add.toLong();
+    return InteractionRecord(l % o2::constants::lhc::LHCMaxBunches, l / o2::constants::lhc::LHCMaxBunches);
+  }
+
+  InteractionRecord operator-(const InteractionRecord& add) const
+  {
+    // InteractionRecord subtraction operator, no check for orbit wrap
+    auto l = this->toLong() - add.toLong();
+    return InteractionRecord(l % o2::constants::lhc::LHCMaxBunches, l / o2::constants::lhc::LHCMaxBunches);
+  }
+
+#ifndef GPUCA_ALIGPUCODE
   void print() const;
-
+  std::string asString() const;
   friend std::ostream& operator<<(std::ostream& stream, InteractionRecord const& ir);
-
+#endif
   ClassDefNV(InteractionRecord, 3);
 };
 
 struct InteractionTimeRecord : public InteractionRecord {
-  double timeNS = 0.; ///< time in NANOSECONDS from start of run (orbit=0)
+  double timeInBCNS = 0.; ///< time in NANOSECONDS relative to orbit/bc
 
   InteractionTimeRecord() = default;
 
-  InteractionTimeRecord(const InteractionRecord& ir, double tNS) : InteractionRecord(ir), timeNS(tNS)
+  /// create from the interaction record and time in the bunch (in ns)
+  InteractionTimeRecord(const InteractionRecord& ir, double t_in_bc) : InteractionRecord(ir), timeInBCNS(t_in_bc)
   {
   }
 
-  InteractionTimeRecord(double tNS)
+  /// create from the abs. (since orbit=0/bc=0) time in NS
+  InteractionTimeRecord(double tNS) : InteractionRecord(tNS)
   {
-    setFromNS(tNS);
+    timeInBCNS = tNS - bc2ns();
   }
 
-  void setFromNS(double ns)
+  /// set the from the abs. (since orbit=0/bc=0) time in NS
+  void setFromNS(double tNS)
   {
-    timeNS = ns;
-    InteractionRecord::setFromNS(ns);
+    InteractionRecord::setFromNS(tNS);
+    timeInBCNS = tNS - bc2ns();
   }
 
   void clear()
   {
     InteractionRecord::clear();
-    timeNS = 0.;
+    timeInBCNS = 0.;
   }
 
-  void print() const;
+  double getTimeOffsetWrtBC() const
+  {
+    return timeInBCNS;
+  }
 
+  /// get time in ns from orbit=0/bc=0
+  double getTimeNS() const
+  {
+    return timeInBCNS + bc2ns();
+  }
+
+  bool operator==(const InteractionTimeRecord& other) const
+  {
+    return this->InteractionRecord::operator==(other) && (timeInBCNS == other.timeInBCNS);
+  }
+
+  bool operator!=(const InteractionTimeRecord& other) const
+  {
+    return this->InteractionRecord::operator!=(other) || (timeInBCNS != other.timeInBCNS);
+  }
+
+  bool operator>(const InteractionTimeRecord& other) const
+  {
+    return (this->InteractionRecord::operator>(other)) || (this->InteractionRecord::operator==(other) && (timeInBCNS > other.timeInBCNS));
+  }
+
+  bool operator>=(const InteractionTimeRecord& other) const
+  {
+    return !((*this) < other);
+  }
+
+  bool operator<(const InteractionTimeRecord& other) const
+  {
+    return (this->InteractionRecord::operator<(other)) || (this->InteractionRecord::operator==(other) && (timeInBCNS < other.timeInBCNS));
+  }
+
+  bool operator<=(const InteractionTimeRecord& other) const
+  {
+    return !((*this) > other);
+  }
+
+#ifndef GPUCA_ALIGPUCODE
+  void print() const;
+  std::string asString() const;
   friend std::ostream& operator<<(std::ostream& stream, InteractionTimeRecord const& ir);
+#endif
 
   ClassDefNV(InteractionTimeRecord, 1);
 };

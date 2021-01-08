@@ -20,6 +20,7 @@
 #include "TOFReconstruction/DataReader.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "TOFCalibration/CalibTOFapi.h"
 
 namespace o2
 {
@@ -28,10 +29,11 @@ namespace tof
 {
 class Clusterer
 {
-  using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+  using MCLabelContainer = o2::dataformats::MCLabelContainer;
   using Cluster = o2::tof::Cluster;
   using StripData = o2::tof::DataReader::StripData;
   using Digit = o2::tof::Digit;
+  using CalibApi = o2::tof::CalibTOFapi;
 
  public:
   Clusterer() = default;
@@ -44,7 +46,16 @@ class Clusterer
 
   void setMCTruthContainer(o2::dataformats::MCTruthContainer<o2::MCCompLabel>* truth) { mClsLabels = truth; }
 
+  void setCalibApi(CalibApi* calibApi)
+  {
+    mCalibApi = calibApi;
+  }
+
+  void setFirstOrbit(uint64_t orb);
+  uint64_t getFirstOrbit() const { return mFirstOrbit; }
+
  private:
+  void calibrateStrip();
   void processStrip(std::vector<Cluster>& clusters, MCLabelContainer const* digitMCTruth);
   //void fetchMCLabels(const Digit* dig, std::array<Label, Cluster::maxLabels>& labels, int& nfilled) const;
 
@@ -56,6 +67,9 @@ class Clusterer
   int mNumberOfContributingDigits; //! number of digits contributing to the cluster; this will not be stored, it is temporary to build the final cluster
   void addContributingDigit(Digit* dig);
   void buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth);
+  CalibApi* mCalibApi = nullptr; //! calib api to handle the TOF calibration
+  uint64_t mFirstOrbit = 0;      //! 1st orbit of the TF
+  uint64_t mBCOffset = 0;        //! 1st orbit of the TF converted to BCs
 };
 
 } // namespace tof

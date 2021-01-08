@@ -18,7 +18,7 @@
 #include <random>
 #include <vector>
 #include <array>
-#include "MathUtils/Cartesian3D.h"
+#include "MathUtils/Cartesian.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "MIDBase/Mapping.h"
 #include "MIDBase/GeometryTransformer.h"
@@ -39,9 +39,6 @@ class Digitizer
   virtual ~Digitizer() = default;
 
   void process(const std::vector<Hit>& hits, std::vector<ColumnDataMC>& digitStore, o2::dataformats::MCTruthContainer<MCLabel>& mcContainer);
-
-  /// Sets the event time
-  void setEventTime(double timeNS) { mTime = timeNS; }
 
   /// Sets the event ID
   void setEventID(int entryID) { mEventID = entryID; }
@@ -66,9 +63,8 @@ class Digitizer
   bool hitToDigits(const Hit& hit);
   bool getLabelLimits(int cathode, const ColumnDataMC& col, int& firstStrip, int& lastStrip) const;
 
-  double mTime = 0.;
-  int mEventID = 0;
-  int mSrcID = 0;
+  int mEventID{0};
+  int mSrcID{0};
 
   std::default_random_engine mGenerator;          ///< Random numbers generator
   std::uniform_real_distribution<double> mRandom; ///< Uniform distribution

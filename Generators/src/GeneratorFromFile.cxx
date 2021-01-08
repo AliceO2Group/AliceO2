@@ -9,11 +9,13 @@
 // or submit itself to any jurisdiction.
 
 #include "Generators/GeneratorFromFile.h"
+#include "SimulationDataFormat/MCTrack.h"
 #include <FairLogger.h>
 #include <FairPrimaryGenerator.h>
 #include <TBranch.h>
 #include <TClonesArray.h>
 #include <TFile.h>
+#include <TMCProcess.h>
 #include <TParticle.h>
 #include <TTree.h>
 #include <sstream>
@@ -40,8 +42,9 @@ GeneratorFromFile::GeneratorFromFile(const char* name)
     // std::cout << "probing for " << eventstring << "\n";
     object = mEventFile->Get(eventstringstr.str().c_str());
     // std::cout << "got " << object << "\n";
-    if (object != nullptr)
+    if (object != nullptr) {
       mEventsAvailable++;
+    }
   } while (object != nullptr);
   LOG(INFO) << "Found " << mEventsAvailable << " events in this file \n";
 }
@@ -55,15 +58,28 @@ void GeneratorFromFile::SetStartEvent(int start)
   }
 }
 
-bool isOnMassShell(TParticle const& p)
+bool GeneratorFromFile::rejectOrFixKinematics(TParticle& p)
 {
   const auto nominalmass = p.GetMass();
-  auto calculatedmass = p.Energy() * p.Energy() - (p.Px() * p.Px() + p.Py() * p.Py() + p.Pz() * p.Pz());
+  auto mom2 = p.Px() * p.Px() + p.Py() * p.Py() + p.Pz() * p.Pz();
+  auto calculatedmass = p.Energy() * p.Energy() - mom2;
   calculatedmass = (calculatedmass >= 0.) ? std::sqrt(calculatedmass) : -std::sqrt(-calculatedmass);
   const double tol = 1.E-4;
   auto difference = std::abs(nominalmass - calculatedmass);
-  LOG(DEBUG) << "ISONMASSSHELL INFO" << difference << " " << nominalmass << " " << calculatedmass;
-  return std::abs(nominalmass - calculatedmass) < tol;
+  if (std::abs(nominalmass - calculatedmass) > tol) {
+    const auto asgmass = p.GetCalcMass();
+    bool fix = mFixOffShell && std::abs(nominalmass - asgmass) < tol;
+    LOG(WARN) << "Particle " << p.GetPdgCode() << " has off-shell mass: M_PDG= " << nominalmass << " (assigned= " << asgmass
+              << ") calculated= " << calculatedmass << " -> diff= " << difference << " | " << (fix ? "fixing" : "skipping");
+    if (fix) {
+      double e = std::sqrt(nominalmass * nominalmass + mom2);
+      p.SetMomentum(p.Px(), p.Py(), p.Pz(), e);
+      p.SetCalcMass(nominalmass);
+    } else {
+      return false;
+    }
+  }
+  return true;
 }
 
 Bool_t GeneratorFromFile::ReadEvent(FairPrimaryGenerator* primGen)
@@ -94,45 +110,36 @@ Bool_t GeneratorFromFile::ReadEvent(FairPrimaryGenerator* primGen)
     // filter the particles from Kinematics.root originally put by a generator
     // and which are trackable
     auto isFirstTrackableDescendant = [](TParticle const& p) {
-      // according to the current understanding in AliRoot, we
-      // have status code:
-      // == 0    <--->   particle is put by transportation
-      // == 1    <--->   particle is trackable
-      // != 1 but different from 0    <--->   particle is not directly trackable
-      // Note: This might have to be refined (using other information such as UniqueID)
-      if (p.GetStatusCode() == 1) {
-        return true;
+      const int kTransportBit = BIT(14);
+      // The particle should have not set kDone bit and its status should not exceed 1
+      if ((p.GetUniqueID() > 0 && p.GetUniqueID() != kPNoProcess) || !p.TestBit(kTransportBit)) {
+        return false;
       }
-      return false;
+      return true;
     };
 
     for (int i = 0; i < branch->GetEntries(); ++i) {
       auto& p = particles[i];
-
       if (!isFirstTrackableDescendant(p)) {
         continue;
       }
 
-      auto pdgid = p.GetPdgCode();
-      auto px = p.Px();
-      auto py = p.Py();
-      auto pz = p.Pz();
-      auto vx = p.Vx();
-      auto vy = p.Vy();
-      auto vz = p.Vz();
-
-      // a status of 1 means "trackable" in AliRoot kinematics
-      auto status = p.GetStatusCode();
-      bool wanttracking = status == 1;
+      bool wanttracking = true; // RS as far as I understand, if it reached this point, it is trackable
       if (wanttracking || !mSkipNonTrackable) {
+        if (!rejectOrFixKinematics(p)) {
+          continue;
+        }
+        auto pdgid = p.GetPdgCode();
+        auto px = p.Px();
+        auto py = p.Py();
+        auto pz = p.Pz();
+        auto vx = p.Vx();
+        auto vy = p.Vy();
+        auto vz = p.Vz();
         auto parent = -1;
         auto e = p.Energy();
         auto tof = p.T();
         auto weight = p.GetWeight();
-        if (!isOnMassShell(p)) {
-          LOG(WARNING) << "Skipping " << pdgid << " since off-mass shell";
-          continue;
-        }
         LOG(DEBUG) << "Putting primary " << pdgid << " " << p.GetStatusCode() << " " << p.GetUniqueID();
         primGen->AddTrack(pdgid, px, py, pz, vx, vy, vz, parent, wanttracking, e, tof, weight);
         particlecounter++;
@@ -148,7 +155,93 @@ Bool_t GeneratorFromFile::ReadEvent(FairPrimaryGenerator* primGen)
   return kFALSE;
 }
 
+// based on O2 kinematics
+
+GeneratorFromO2Kine::GeneratorFromO2Kine(const char* name)
+{
+  mEventFile = TFile::Open(name);
+  if (mEventFile == nullptr) {
+    LOG(FATAL) << "EventFile " << name << " not found";
+    return;
+  }
+  // the kinematics will be stored inside a branch MCTrack
+  // different events are stored inside different entries
+  auto tree = (TTree*)mEventFile->Get("o2sim");
+  if (tree) {
+    mEventBranch = tree->GetBranch("MCTrack");
+    if (mEventBranch) {
+      mEventsAvailable = mEventBranch->GetEntries();
+      LOG(INFO) << "Found " << mEventsAvailable << " events in this file";
+      return;
+    }
+  }
+  LOG(ERROR) << "Problem reading events from file " << name;
+}
+
+void GeneratorFromO2Kine::SetStartEvent(int start)
+{
+  if (start < mEventsAvailable) {
+    mEventCounter = start;
+  } else {
+    LOG(ERROR) << "start event bigger than available events\n";
+  }
+}
+
+bool GeneratorFromO2Kine::importParticles()
+{
+  // NOTE: This should be usable with kinematics files without secondaries
+  // It might need some adjustment to make it work with secondaries or to continue
+  // from a kinematics snapshot
+
+  if (mEventCounter < mEventsAvailable) {
+    int particlecounter = 0;
+
+    std::vector<o2::MCTrack>* tracks = nullptr;
+    mEventBranch->SetAddress(&tracks);
+    mEventBranch->GetEntry(mEventCounter);
+
+    for (auto& t : *tracks) {
+      // I guess we only want primaries (unless later on we continue a simulation)
+      if (!t.isPrimary()) {
+        continue;
+      }
+
+      auto pdg = t.GetPdgCode();
+      auto px = t.Px();
+      auto py = t.Py();
+      auto pz = t.Pz();
+      auto vx = t.Vx();
+      auto vy = t.Vy();
+      auto vz = t.Vz();
+      auto m1 = t.getMotherTrackId();
+      auto m2 = t.getSecondMotherTrackId();
+      auto d1 = t.getFirstDaughterTrackId();
+      auto d2 = t.getLastDaughterTrackId();
+      auto e = t.GetEnergy();
+      auto vt = t.T();
+      auto weight = 1.; // p.GetWeight() ??
+      auto wanttracking = t.getToBeDone();
+      LOG(DEBUG) << "Putting primary " << pdg;
+
+      mParticles.push_back(TParticle(pdg, wanttracking, m1, m2, d1, d2, px, py, pz, e, vx, vy, vz, vt));
+      particlecounter++;
+    }
+    mEventCounter++;
+
+    if (tracks) {
+      delete tracks;
+    }
+
+    LOG(INFO) << "Event generator put " << particlecounter << " on stack";
+    return true;
+  } else {
+    LOG(ERROR) << "GeneratorFromO2Kine: Ran out of events\n";
+  }
+  return false;
+}
+
 } // namespace eventgen
 } // end namespace o2
 
 ClassImp(o2::eventgen::GeneratorFromFile);
+ClassImp(o2::eventgen::GeneratorFromO2Kine);

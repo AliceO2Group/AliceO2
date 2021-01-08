@@ -31,20 +31,16 @@ void DCAFitter::CrossInfo::set(const TrcAuxPar& trc0, const TrcAuxPar& trc1)
   const auto& trcB = trc0.r > trc1.r ? trc1 : trc0;
   ftype_t xDist = trcB.xCen - trcA.xCen, yDist = trcB.yCen - trcA.yCen;
   ftype_t dist2 = xDist * xDist + yDist * yDist, dist = TMath::Sqrt(dist2), rsum = trcA.r + trcB.r;
-  if (TMath::Abs(dist) < 1e-12)
+  if (TMath::Abs(dist) < 1e-12) {
     return; // circles are concentric?
-  ftype_t distI = 1. / dist;
+  }
   if (dist > rsum) { // circles don't touch, chose a point in between
     // the parametric equation of lines connecting the centers is
     // x = x0 + t/dist * (x1-x0), y = y0 + t/dist * (y1-y0)
-    nDCA = 1;
-    xDCA[0] = 0.5 * (trcA.xCen + xDist * distI * (dist + trcA.r - trcB.r));
-    yDCA[0] = 0.5 * (trcA.yCen + yDist * distI * (dist + trcA.r - trcB.r));
+    notTouchingXY(dist, xDist, yDist, trcA, trcB.r);
   } else if (dist + trcB.r < trcA.r) { // the small circle is nestled into large one w/o touching
     // select the point of closest approach of 2 circles
-    nDCA = 1;
-    xDCA[0] = 0.5 * (trcB.xCen + trcA.xCen + xDist * distI * rsum);
-    yDCA[0] = 0.5 * (trcB.yCen + trcA.yCen + yDist * distI * rsum);
+    notTouchingXY(dist, xDist, yDist, trcA, -trcB.r);
   } else { // 2 intersection points
     // to simplify calculations, we move to new frame x->x+Xc0, y->y+Yc0, so that
     // the 1st one is centered in origin
@@ -61,9 +57,7 @@ void DCAFitter::CrossInfo::set(const TrcAuxPar& trc0, const TrcAuxPar& trc1)
         xDCA[1] += trcA.xCen;
         nDCA = 2;
       } else { // due to the finite precision the det<=0, i.e. the circles are barely touching, fall back to this special case
-        nDCA = 1;
-        xDCA[0] = 0.5 * (trcA.xCen + xDist * distI * (dist + trcA.r - trcB.r));
-        yDCA[0] = 0.5 * (trcA.yCen + yDist * distI * (dist + trcA.r - trcB.r));
+        notTouchingXY(dist, xDist, yDist, trcA, trcB.r);
       }
     } else {
       ftype_t a = (trcA.r * trcA.r - trcB.r * trcB.r + dist2) / (2. * xDist), b = -yDist / xDist, ab = a * b, bb = b * b;
@@ -78,9 +72,7 @@ void DCAFitter::CrossInfo::set(const TrcAuxPar& trc0, const TrcAuxPar& trc1)
         yDCA[1] += trcA.yCen;
         nDCA = 2;
       } else { // due to the finite precision the det<=0, i.e. the circles are barely touching, fall back to this special case
-        nDCA = 1;
-        xDCA[0] = 0.5 * (trcA.xCen + xDist * distI * (dist + trcA.r - trcB.r));
-        yDCA[0] = 0.5 * (trcA.yCen + yDist * distI * (dist + trcA.r - trcB.r));
+        notTouchingXY(dist, xDist, yDist, trcA, trcB.r);
       }
     }
   }
@@ -89,21 +81,11 @@ void DCAFitter::CrossInfo::set(const TrcAuxPar& trc0, const TrcAuxPar& trc1)
 //_____________________________________________________________________________________
 void DCAFitter::TrcAuxPar::setRCen(const Track& tr, ftype_t bz)
 {
-  // set track radius and circle coordinates in global frame
-  ftype_t crv = tr.getCurvature(bz);
-  r = TMath::Abs(crv);
-  r = 1. / r;
-  ftype_t sn = tr.getSnp();
-  ftype_t cs = TMath::Sqrt((1. - sn) * (1. + sn));
-  ftype_t x, y;
-  if (crv > 0) { // clockwise
-    x = tr.getX() - sn * r;
-    y = tr.getY() + cs * r;
-  } else {
-    x = tr.getX() + sn * r;
-    y = tr.getY() - cs * r;
-  }
-  loc2glo(x, y, xCen, yCen);
+  // set track radius and circle coordinates in global frame, no check for bz==0!
+  r = 1. / tr.getCurvature(bz);
+  ftype_t sn = tr.getSnp(), cs = TMath::Sqrt((1. - sn) * (1. + sn));
+  loc2glo(tr.getX() - sn * r, tr.getY() + cs * r, xCen, yCen);
+  r = TMath::Abs(r);
 }
 
 //___________________________________________________________________
@@ -167,10 +149,10 @@ bool DCAFitter::processCandidateChi2(const TrcAuxPar& trc0Aux, const TrcAuxPar& 
     chi2Deriv(trc0, tDer0, trc0Aux, trcEI0, trCFVT0, trc1, tDer1, trc1Aux, trcEI1, trCFVT1, deriv);
 
     // do Newton-Rapson iteration with corrections = - dchi2/d{x0,x1} * [ d^2chi2/d{x0,x1}^2 ]^-1
-    ftype_t detDer2 = deriv.dChidx0dx0 * deriv.dChidx1dx1 - deriv.dChidx0dx1 * deriv.dChidx0dx1;
-    ftype_t detDer2I = 1. / detDer2;
-    ftype_t dX0 = -(deriv.dChidx0 * deriv.dChidx1dx1 - deriv.dChidx1 * deriv.dChidx0dx1) * detDer2I;
-    ftype_t dX1 = -(deriv.dChidx1 * deriv.dChidx0dx0 - deriv.dChidx0 * deriv.dChidx0dx1) * detDer2I;
+    dtype_t detDer2 = deriv.dChidx0dx0 * deriv.dChidx1dx1 - deriv.dChidx0dx1 * deriv.dChidx0dx1;
+    dtype_t detDer2I = 1. / detDer2;
+    dtype_t dX0 = -(deriv.dChidx0 * deriv.dChidx1dx1 - deriv.dChidx1 * deriv.dChidx0dx1) * detDer2I;
+    dtype_t dX1 = -(deriv.dChidx1 * deriv.dChidx0dx0 - deriv.dChidx0 * deriv.dChidx0dx1) * detDer2I;
     if (!trc0.propagateParamTo(trc0.getX() + dX0, mBz) || !trc1.propagateParamTo(trc1.getX() + dX1, mBz)) {
       return false;
     }
@@ -233,10 +215,10 @@ bool DCAFitter::processCandidateDCA(const TrcAuxPar& trc0Aux, const TrcAuxPar& t
     DCADeriv(trc0, tDer0, trc0Aux, trc1, tDer1, trc1Aux, deriv);
 
     // do Newton-Rapson iteration with corrections = - dchi2/d{x0,x1} * [ d^2chi2/d{x0,x1}^2 ]^-1
-    ftype_t detDer2 = deriv.dChidx0dx0 * deriv.dChidx1dx1 - deriv.dChidx0dx1 * deriv.dChidx0dx1;
-    ftype_t detDer2I = 1. / detDer2;
-    ftype_t dX0 = -(deriv.dChidx0 * deriv.dChidx1dx1 - deriv.dChidx1 * deriv.dChidx0dx1) * detDer2I;
-    ftype_t dX1 = -(deriv.dChidx1 * deriv.dChidx0dx0 - deriv.dChidx0 * deriv.dChidx0dx1) * detDer2I;
+    dtype_t detDer2 = deriv.dChidx0dx0 * deriv.dChidx1dx1 - deriv.dChidx0dx1 * deriv.dChidx0dx1;
+    dtype_t detDer2I = 1. / detDer2;
+    dtype_t dX0 = -(deriv.dChidx0 * deriv.dChidx1dx1 - deriv.dChidx1 * deriv.dChidx0dx1) * detDer2I;
+    dtype_t dX1 = -(deriv.dChidx1 * deriv.dChidx0dx0 - deriv.dChidx0 * deriv.dChidx0dx1) * detDer2I;
     if (!trc0.propagateParamTo(trc0.getX() + dX0, mBz) || !trc1.propagateParamTo(trc1.getX() + dX1, mBz)) {
       return false;
     }
@@ -539,9 +521,9 @@ ftype_t DCAFitter::calcDCA(const Track& trc0, const TrcAuxPar& trc0Aux, const Tr
 {
   // calculate distance (non-weighted) of closest approach of 2 points in their local frame
   ftype_t chi2 = 0;
-  ftype_t cosDA = trc0Aux.c * trc1Aux.c + trc0Aux.s * trc1Aux.s; // cos(A0-A1)
-  ftype_t sinDA = trc0Aux.s * trc1Aux.c - trc0Aux.c * trc1Aux.s; // sin(A0-A1)
-  ftype_t dx = trc0.getX() - trc1.getX(), dy = trc0.getY() - trc1.getY(), dz = trc0.getZ() - trc1.getZ();
+  dtype_t cosDA = trc0Aux.c * trc1Aux.c + trc0Aux.s * trc1Aux.s; // cos(A0-A1)
+  dtype_t sinDA = trc0Aux.s * trc1Aux.c - trc0Aux.c * trc1Aux.s; // sin(A0-A1)
+  dtype_t dx = trc0.getX() - trc1.getX(), dy = trc0.getY() - trc1.getY(), dz = trc0.getZ() - trc1.getZ();
   chi2 = 0.5 * (dx * dx + dy * dy + dz * dz) + (1. - cosDA) * (trc0.getX() * trc1.getX() + trc0.getY() * trc1.getY()) +
          sinDA * (trc0.getY() * trc1.getX() - trc1.getY() * trc0.getX());
 
@@ -555,4 +537,35 @@ bool DCAFitter::closerToAlternative(ftype_t x, ftype_t y) const
   ftype_t dxCur = x - mCrossings.xDCA[mCrossIDCur], dyCur = y - mCrossings.yDCA[mCrossIDCur];
   ftype_t dxAlt = x - mCrossings.xDCA[mCrossIDAlt], dyAlt = y - mCrossings.yDCA[mCrossIDAlt];
   return dxCur * dxCur + dyCur * dyCur > dxAlt * dxAlt + dyAlt * dyAlt;
+}
+
+//___________________________________________________________________
+ftype_t DCAFitter::getDistance2(const Track& trc0, const Track& trc1)
+{
+  // calculate un-weighted distance^2 between 2 tracks
+  dtype_t cosalp0 = TMath::Cos(trc0.getAlpha()), sinalp0 = TMath::Sin(trc0.getAlpha());
+  dtype_t cosalp1 = TMath::Cos(trc1.getAlpha()), sinalp1 = TMath::Sin(trc1.getAlpha());
+  dtype_t x0 = trc0.getX() * cosalp0 - trc0.getY() * sinalp0;
+  dtype_t y0 = trc0.getX() * sinalp0 + trc0.getY() * cosalp0;
+  dtype_t x1 = trc1.getX() * cosalp1 - trc1.getY() * sinalp1;
+  dtype_t y1 = trc1.getX() * sinalp1 + trc1.getY() * cosalp1;
+
+  dtype_t dx = x0 - x1, dy = y0 - y1, dz = trc0.getZ() - trc1.getZ();
+  return dx * dx + dy * dy + dz * dz;
+}
+
+//___________________________________________________________________
+ftype_t DCAFitter::getDistance2(ftype_t x, ftype_t y, ftype_t z, const Track& trc0, const Track& trc1)
+{
+  // calculate un-weighted 1/2 distance^2 between 2 tracks and vertex coordinates
+  dtype_t cosalp0 = TMath::Cos(trc0.getAlpha()), sinalp0 = TMath::Sin(trc0.getAlpha());
+  dtype_t cosalp1 = TMath::Cos(trc1.getAlpha()), sinalp1 = TMath::Sin(trc1.getAlpha());
+  dtype_t x0 = trc0.getX() * cosalp0 - trc0.getY() * sinalp0;
+  dtype_t y0 = trc0.getX() * sinalp0 + trc0.getY() * cosalp0;
+  dtype_t x1 = trc1.getX() * cosalp1 - trc1.getY() * sinalp1;
+  dtype_t y1 = trc1.getX() * sinalp1 + trc1.getY() * cosalp1;
+
+  dtype_t dx0 = x0 - x, dy0 = y0 - y, dz0 = trc0.getZ() - z;
+  dtype_t dx1 = x1 - x, dy1 = y1 - y, dz1 = trc1.getZ() - z;
+  return 0.5 * (dx0 * dx0 + dy0 * dy0 + dz0 * dz0 + dx1 * dx1 + dy1 * dy1 + dz1 * dz1);
 }

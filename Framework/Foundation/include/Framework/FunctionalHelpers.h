@@ -7,12 +7,13 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef o2_framework_FunctionalHelpers_H_INCLUDED
-#define o2_framework_FunctionalHelpers_H_INCLUDED
+#ifndef O2_FRAMEWORK_FUNCTIONALHELPERS_H_
+#define O2_FRAMEWORK_FUNCTIONALHELPERS_H_
 
-namespace o2
-{
-namespace framework
+#include "Framework/Pack.h"
+#include <functional>
+
+namespace o2::framework
 {
 
 namespace
@@ -21,13 +22,20 @@ template <typename T>
 struct memfun_type {
   using type = void;
 };
+} // namespace
 
+/// Type helper to hold metadata about a lambda or a class
+/// method.
 template <typename Ret, typename Class, typename... Args>
 struct memfun_type<Ret (Class::*)(Args...) const> {
   using type = std::function<Ret(Args...)>;
+  using args = pack<Args...>;
+  using return_type = Ret;
 };
-} // namespace
 
+/// Funtion From Lambda. Helper to create an std::function from a
+/// lambda and therefore being able to use the std::function type
+/// for template matching.
 /// @return an std::function from a lambda (or anything actually callable). This
 /// allows doing further template matching tricks to extract the arguments of the
 /// function.
@@ -38,7 +46,14 @@ typename memfun_type<decltype(&F::operator())>::type
   return func;
 }
 
-} // namespace framework
-} // namespace o2
+/// @return metadata associated to method or a lambda.
+template <typename F>
+memfun_type<decltype(&F::operator())>
+  FunctionMetadata(F const& func)
+{
+  return memfun_type<decltype(&F::operator())>();
+}
 
-#endif // o2_framework_FunctionalHelpers_H_INCLUDED
+} // namespace o2::framework
+
+#endif // O2_FRAMEWORK_FUNCTIONALHELPERS_H_

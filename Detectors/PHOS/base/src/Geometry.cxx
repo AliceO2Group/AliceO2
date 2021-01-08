@@ -19,63 +19,58 @@ Geometry* Geometry::sGeom = nullptr;
 
 Geometry::Geometry(const std::string_view name) : mGeoName(name) {}
 
-// static Geometry* Geometry::GetInstance(const std::string_view name)
-// {
-//     if(sGeom){
-//       if(sGeom->GetName()==name){
-//         return sGeom;
-//       }
-//       else{
-//         delete sGeom ;
-//       }
-//     }
-//     sGeom = new Geometry(name) ;
-//     return sGeom;
-// }
+// module numbering:
+//  start from module 0 (non-existing), 1 (half-module), 2 (bottom),... 4(highest)
+// absId:
+// start from 1 till 5*64*56. Numbering in each module starts at bottom left and first go in z direction:
+//  56   112   3584
+//  ...  ...    ...
+//  1    57 ...3529
+//  relid[3]: (module number[0...4], iphi[1...64], iz[1...56])
 
-Int_t Geometry::RelToAbsId(Int_t moduleNumber, Int_t strip, Int_t cell) const
+short Geometry::relToAbsId(char moduleNumber, int strip, int cell)
 {
   // calculates absolute cell Id from moduleNumber, strip (number) and cell (number)
   // PHOS layout parameters:
-  const Int_t nStrpZ = 28;                 // Number of strips along z-axis
-  const Int_t nCrystalsInModule = 56 * 64; // Total number of crystals in module
-  const Int_t nCellsXInStrip = 8;          // Number of crystals in strip unit along x-axis
-  const Int_t nZ = 56;                     // nStripZ * nCellsZInStrip
+  const short nStrpZ = 28;                 // Number of strips along z-axis
+  const short nCrystalsInModule = 56 * 64; // Total number of crystals in module
+  const short nCellsXInStrip = 8;          // Number of crystals in strip unit along x-axis
+  const short nZ = 56;                     // nStripZ * nCellsZInStrip
 
-  Int_t row = nStrpZ - (strip - 1) % nStrpZ;
-  Int_t col = (Int_t)std::ceil((Double_t)strip / (nStrpZ)) - 1;
+  short row = nStrpZ - (strip - 1) % nStrpZ;
+  short col = (int)std::ceil((float)strip / (nStrpZ)) - 1;
 
-  return (moduleNumber - 1) * nCrystalsInModule + row * 2 + (col * nCellsXInStrip + (cell - 1) / 2) * nZ -
+  return moduleNumber * nCrystalsInModule + row * 2 + (col * nCellsXInStrip + (cell - 1) / 2) * nZ -
          (cell & 1 ? 1 : 0);
 }
 
-Bool_t Geometry::AbsToRelNumbering(Int_t absId, Int_t* relid) const
+bool Geometry::absToRelNumbering(short absId, char* relid)
 {
   // Converts the absolute numbering into the following array
   //  relid[0] = PHOS Module number 1:fNModules
   //  relid[1] = Row number inside a PHOS module (Z coordinate)
   //  relid[2] = Column number inside a PHOS module (Phi coordinate)
-  const Int_t nZ = 56;   // nStripZ * nCellsZInStrip
-  const Int_t nPhi = 64; // nStripZ * nCellsZInStrip
+  const short nZ = 56;   // nStripZ * nCellsZInStrip
+  const short nPhi = 64; // nStripZ * nCellsZInStrip
 
-  Int_t phosmodulenumber = (absId - 1) / (nZ * nPhi);
+  short phosmodulenumber = (absId - 1) / (nZ * nPhi);
 
-  relid[0] = phosmodulenumber + 1;
+  relid[0] = phosmodulenumber;
   absId -= phosmodulenumber * nPhi * nZ;
   relid[1] = 1 + (absId - 1) / nZ;
   relid[2] = absId - (relid[1] - 1) * nZ;
 
   return true;
 }
-Int_t Geometry::AbsIdToModule(Int_t absId)
+char Geometry::absIdToModule(short absId)
 {
-  const Int_t nZ = 56;
-  const Int_t nPhi = 64;
+  const short nZ = 56;
+  const short nPhi = 64;
 
-  return 1 + (absId - 1) / (nZ * nPhi);
+  return (absId - 1) / (nZ * nPhi);
 }
 
-int Geometry::AreNeighbours(Int_t absId1, Int_t absId2) const
+int Geometry::areNeighbours(short absId1, short absId2)
 {
 
   // Gives the neighbourness of two digits = 0 are not neighbour but continue searching
@@ -87,39 +82,53 @@ int Geometry::AreNeighbours(Int_t absId1, Int_t absId2) const
   // The order of d1 and d2 is important: first (d1) should be a digit already in a cluster
   //                                      which is compared to a digit (d2)  not yet in a cluster
 
-  Int_t relid1[3];
-  AbsToRelNumbering(absId1, relid1);
+  char relid1[3];
+  absToRelNumbering(absId1, relid1);
 
-  Int_t relid2[3];
-  AbsToRelNumbering(absId2, relid2);
+  char relid2[3];
+  absToRelNumbering(absId2, relid2);
 
   if (relid1[0] == relid2[0]) { // inside the same PHOS module
-    Int_t rowdiff = TMath::Abs(relid1[1] - relid2[1]);
-    Int_t coldiff = TMath::Abs(relid1[2] - relid2[2]);
+    char rowdiff = TMath::Abs(relid1[1] - relid2[1]);
+    char coldiff = TMath::Abs(relid1[2] - relid2[2]);
 
     if ((coldiff <= 1) && (rowdiff <= 1)) { // At least common vertex
       return 1;
     } else {
-      if ((relid2[1] > relid1[1]) && (relid2[2] > relid1[2] + 1))
+      if ((relid2[1] > relid1[1]) && (relid2[2] > relid1[2] + 1)) {
         return 2; //  Difference in row numbers is too large to look further
+      }
     }
     return 0;
 
   } else {
-    if (relid1[0] > relid2[0]) // we switched to the next module
+    if (relid1[0] > relid2[0]) { // we switched to the next module
       return -1;
+    }
     return 2;
   }
   return 0;
 }
-void Geometry::AbsIdToRelPosInModule(int absId, double& x, double& z) const
+void Geometry::absIdToRelPosInModule(short absId, float& x, float& z)
 {
 
-  const double cellStep = 2.25;
+  const float cellStep = 2.25;
 
-  Int_t relid[3];
-  AbsToRelNumbering(absId, relid);
+  char relid[3];
+  absToRelNumbering(absId, relid);
 
   x = (relid[1] - 28 - 0.5) * cellStep;
   z = (relid[2] - 32 - 0.5) * cellStep;
+}
+bool Geometry::relToAbsNumbering(const char* relId, short& absId)
+{
+  const short nZ = 56;   // nStripZ * nCellsZInStrip
+  const short nPhi = 64; // nStripZ * nCellsZInStrip
+
+  absId =
+    relId[0] * nPhi * nZ + // the offset of PHOS modules
+    (relId[1] - 1) * nZ +  // the offset along phi
+    relId[2];              // the offset along z
+
+  return true;
 }

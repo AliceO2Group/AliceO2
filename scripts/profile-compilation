@@ -1,0 +1,7 @@
+#!/bin/bash
+
+COMPILE_COMMADS=$PWD/compile_commands.json
+FILENAME=$1
+CLANG_PATH=${CLANG_PATH:-clang++}
+cd `cat $COMPILE_COMMADS | jq ".[] | select(.file|test(\".*$FILENAME\"))" | jq -r '.directory'`
+`cat $COMPILE_COMMADS | jq ".[] | select(.file|test(\".*$FILENAME\"))" | jq ".command |= (sub(\"^.*/c[+][+]\";\"$CLANG_PATH -ftime-trace\"))" | jq -r '.command'`

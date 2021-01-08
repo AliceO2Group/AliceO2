@@ -20,12 +20,13 @@
 #include <TH2F.h>
 #include <TRobustEstimator.h>
 
-#include "TRDBase/TRDPadPlane.h"
-#include "TRDBase/TRDGeometry.h"
+#include "TRDBase/PadPlane.h"
+#include "TRDBase/Geometry.h"
 #include "TRDBase/CalDet.h"
 // #include "AliMathBase.h"
 
 using namespace o2::trd;
+using namespace o2::trd::constants;
 
 //___________________________________________________________________________________
 double CalDet::getMean(CalDet* const outlierDet) const
@@ -35,11 +36,11 @@ double CalDet::getMean(CalDet* const outlierDet) const
   //
 
   if (!outlierDet) {
-    return TMath::Mean(kNdet, mData.data());
+    return TMath::Mean(MAXCHAMBER, mData.data());
   }
-  std::array<double, kNdet> ddata;
+  std::array<double, MAXCHAMBER> ddata;
   int nPoints = 0;
-  for (int i = 0; i < kNdet; i++) {
+  for (int i = 0; i < MAXCHAMBER; i++) {
     if (!(outlierDet->getValue(i))) {
       ddata[nPoints] = mData[nPoints];
       nPoints++;
@@ -56,11 +57,11 @@ double CalDet::getMedian(CalDet* const outlierDet) const
   //
 
   if (!outlierDet) {
-    return (double)TMath::Median(kNdet, mData.data());
+    return (double)TMath::Median(MAXCHAMBER, mData.data());
   }
-  std::array<double, kNdet> ddata;
+  std::array<double, MAXCHAMBER> ddata;
   int nPoints = 0;
-  for (int i = 0; i < kNdet; i++) {
+  for (int i = 0; i < MAXCHAMBER; i++) {
     if (!(outlierDet->getValue(i))) {
       ddata[nPoints] = mData[nPoints];
       nPoints++;
@@ -77,11 +78,11 @@ double CalDet::getRMS(CalDet* const outlierDet) const
   //
 
   if (!outlierDet) {
-    return TMath::RMS(kNdet, mData.data());
+    return TMath::RMS(MAXCHAMBER, mData.data());
   }
-  std::array<double, kNdet> ddata;
+  std::array<double, MAXCHAMBER> ddata;
   int nPoints = 0;
-  for (int i = 0; i < kNdet; i++) {
+  for (int i = 0; i < MAXCHAMBER; i++) {
     if (!(outlierDet->getValue(i))) {
       ddata[nPoints] = mData[nPoints];
       nPoints++;
@@ -98,27 +99,29 @@ double CalDet::getRMSRobust(double robust) const
   //
 
   // sorted
-  std::array<int, kNdet> index;
-  TMath::Sort((int)kNdet, mData.data(), index.data());
+  std::array<int, MAXCHAMBER> index;
+  TMath::Sort((int)MAXCHAMBER, mData.data(), index.data());
 
   // reject
-  double reject = (int)(kNdet * (1 - robust) / 2.0);
+  double reject = (int)(MAXCHAMBER * (1 - robust) / 2.0);
   if (reject <= 0) {
     reject = 0;
   }
-  if (reject >= kNdet) {
+  if (reject >= MAXCHAMBER) {
     reject = 0;
   }
 
-  std::array<double, kNdet> ddata;
+  std::array<double, MAXCHAMBER> ddata;
   int nPoints = 0;
-  for (int i = 0; i < kNdet; i++) {
+  for (int i = 0; i < MAXCHAMBER; i++) {
     bool rej = kFALSE;
     for (int k = 0; k < reject; k++) {
-      if (i == index[k])
+      if (i == index[k]) {
         rej = kTRUE;
-      if (i == index[kNdet - (k + 1)])
+      }
+      if (i == index[MAXCHAMBER - (k + 1)]) {
         rej = kTRUE;
+      }
     }
     if (!rej) {
       ddata[nPoints] = mData[i];
@@ -136,25 +139,29 @@ double CalDet::getMeanRobust(double robust) const
   //
 
   // sorted
-  std::array<int, kNdet> index;
-  TMath::Sort((int)kNdet, mData.data(), index.data());
+  std::array<int, MAXCHAMBER> index;
+  TMath::Sort((int)MAXCHAMBER, mData.data(), index.data());
 
   // reject
-  double reject = (int)(kNdet * (1 - robust) / 2.0);
-  if (reject <= 0)
+  double reject = (int)(MAXCHAMBER * (1 - robust) / 2.0);
+  if (reject <= 0) {
     reject = 0;
-  if (reject >= kNdet)
+  }
+  if (reject >= MAXCHAMBER) {
     reject = 0;
+  }
 
-  std::array<double, kNdet> ddata;
+  std::array<double, MAXCHAMBER> ddata;
   int nPoints = 0;
-  for (int i = 0; i < kNdet; i++) {
+  for (int i = 0; i < MAXCHAMBER; i++) {
     bool rej = kFALSE;
     for (int k = 0; k < reject; k++) {
-      if (i == index[k])
+      if (i == index[k]) {
         rej = kTRUE;
-      if (i == index[kNdet - (k + 1)])
+      }
+      if (i == index[MAXCHAMBER - (k + 1)]) {
         rej = kTRUE;
+      }
     }
     if (!rej) {
       ddata[nPoints] = mData[i];
@@ -171,10 +178,10 @@ double CalDet::getLTM(double* sigma, double fraction, CalDet* const outlierDet)
   //  Calculate LTM mean and sigma
   //
 
-  std::array<double, kNdet> ddata;
+  std::array<double, MAXCHAMBER> ddata;
   double mean = 0, lsigma = 0;
   unsigned int nPoints = 0;
-  for (int i = 0; i < kNdet; i++) {
+  for (int i = 0; i < MAXCHAMBER; i++) {
     if (!outlierDet || !(outlierDet->getValue(i))) {
       ddata[nPoints] = mData[nPoints];
       nPoints++;
@@ -232,7 +239,7 @@ TH1F* CalDet::makeHisto1Distribution(float min, float max, int type)
   title << mTitle.c_str() << " CalDet 1Distribution";
   std::string titlestr = title.str();
   TH1F* his = new TH1F(mName.c_str(), titlestr.c_str(), 100, min, max);
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     his->Fill(getValue(idet));
   }
   return his;
@@ -276,8 +283,8 @@ TH1F* CalDet::makeHisto1DAsFunctionOfDet(float min, float max, int type)
   std::stringstream title;
   title << mTitle.c_str() << " CalDet as function of det";
   std::string titlestr = title.str();
-  TH1F* his = new TH1F(mName.c_str(), titlestr.c_str(), kNdet, 0, kNdet);
-  for (int det = 0; det < kNdet; det++) {
+  TH1F* his = new TH1F(mName.c_str(), titlestr.c_str(), MAXCHAMBER, 0, MAXCHAMBER);
+  for (int det = 0; det < MAXCHAMBER; det++) {
     his->Fill(det + 0.5, getValue(det));
   }
   his->SetMaximum(max);
@@ -321,7 +328,7 @@ TH2F* CalDet::makeHisto2DCh(int ch, float min, float max, int type)
     }
   }
 
-  TRDGeometry* trdGeo = new TRDGeometry();
+  Geometry* trdGeo = Geometry::instance();
 
   float poslocal[3] = {0, 0, 0};
   float posglobal[3] = {0, 0, 0};
@@ -334,10 +341,10 @@ TH2F* CalDet::makeHisto2DCh(int ch, float min, float max, int type)
   // Where we begin
   int offsetch = 6 * ch;
 
-  for (int isec = 0; isec < kNsect; isec++) {
-    for (int ipl = 0; ipl < kNplan; ipl++) {
+  for (int isec = 0; isec < NSECTOR; isec++) {
+    for (int ipl = 0; ipl < NLAYER; ipl++) {
       int det = offsetch + isec * 30 + ipl;
-      const TRDPadPlane* padPlane = trdGeo->getPadPlane(ipl, ch);
+      const PadPlane* padPlane = trdGeo->getPadPlane(ipl, ch);
       for (int icol = 0; icol < padPlane->getNcols(); icol++) {
         poslocal[0] = trdGeo->getTime0(ipl);
         poslocal[2] = padPlane->getRowPos(0);
@@ -354,7 +361,6 @@ TH2F* CalDet::makeHisto2DCh(int ch, float min, float max, int type)
   his->SetStats(0);
   his->SetMaximum(max);
   his->SetMinimum(min);
-  delete trdGeo;
   return his;
 }
 
@@ -395,8 +401,8 @@ TH2F* CalDet::makeHisto2DSmPl(int sm, int pl, float min, float max, int type)
     }
   }
 
-  TRDGeometry* trdGeo = new TRDGeometry();
-  const TRDPadPlane* padPlane0 = trdGeo->getPadPlane(pl, 0);
+  Geometry* trdGeo = Geometry::instance();
+  const PadPlane* padPlane0 = trdGeo->getPadPlane(pl, 0);
   double row0 = padPlane0->getRow0();
   double col0 = padPlane0->getCol0();
 
@@ -407,9 +413,9 @@ TH2F* CalDet::makeHisto2DSmPl(int sm, int pl, float min, float max, int type)
   // Where we begin
   int offsetsmpl = 30 * sm + pl;
 
-  for (int k = 0; k < kNcham; k++) {
+  for (int k = 0; k < NSTACK; k++) {
     int det = offsetsmpl + k * 6;
-    int kb = kNcham - 1 - k;
+    int kb = NSTACK - 1 - k;
     his->SetBinContent(kb + 1, 2, mData[det]);
     his->SetBinContent(kb + 1, 3, mData[det]);
   }
@@ -418,7 +424,6 @@ TH2F* CalDet::makeHisto2DSmPl(int sm, int pl, float min, float max, int type)
   his->SetStats(0);
   his->SetMaximum(max);
   his->SetMinimum(min);
-  delete trdGeo;
   return his;
 }
 
@@ -429,7 +434,7 @@ void CalDet::add(float c1)
   // Add constant for all detectors
   //
 
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     mData[idet] += c1;
   }
 }
@@ -441,7 +446,7 @@ void CalDet::multiply(float c1)
   // multiply constant for all detectors
   //
 
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     mData[idet] *= c1;
   }
 }
@@ -453,7 +458,7 @@ void CalDet::add(const CalDet* calDet, double c1)
   // add caldet channel by channel multiplied by c1
   //
 
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     mData[idet] += calDet->getValue(idet) * c1;
   }
 }
@@ -465,7 +470,7 @@ void CalDet::multiply(const CalDet* calDet)
   // multiply caldet channel by channel
   //
 
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     mData[idet] *= calDet->getValue(idet);
   }
 }
@@ -478,7 +483,7 @@ void CalDet::divide(const CalDet* calDet)
   //
 
   float eps = 0.00000000000000001;
-  for (int idet = 0; idet < kNdet; idet++) {
+  for (int idet = 0; idet < MAXCHAMBER; idet++) {
     if (TMath::Abs(calDet->getValue(idet)) > eps) {
       mData[idet] /= calDet->getValue(idet);
     }

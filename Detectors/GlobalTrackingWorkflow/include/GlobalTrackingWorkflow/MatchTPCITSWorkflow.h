@@ -20,7 +20,7 @@ namespace o2
 namespace globaltracking
 {
 
-framework::WorkflowSpec getMatchTPCITSWorkflow(bool useMC, bool useFIT);
+framework::WorkflowSpec getMatchTPCITSWorkflow(bool useFT0, bool calib, bool useMC, bool disableRootInp, bool disableRootOut);
 
 } // namespace globaltracking
 } // namespace o2

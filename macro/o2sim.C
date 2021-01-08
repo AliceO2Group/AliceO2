@@ -15,7 +15,7 @@
 #include <Generators/PDG.h>
 #include "SimulationDataFormat/MCEventHeader.h"
 #include <SimConfig/SimConfig.h>
-#include <SimConfig/ConfigurableParam.h>
+#include <CommonUtils/ConfigurableParam.h>
 #include <CommonUtils/RngHelper.h>
 #include <TStopwatch.h>
 #include <memory>
@@ -25,13 +25,28 @@
 #include <SimSetup/SimSetup.h>
 #include <Steer/O2RunSim.h>
 #include <DetectorsBase/MaterialManager.h>
+#include <CCDB/BasicCCDBManager.h>
+#include <DetectorsCommonDataFormats/NameConf.h>
 #include <unistd.h>
 #include <sstream>
 #endif
+#include "migrateSimFiles.C"
 
 FairRunSim* o2sim_init(bool asservice)
 {
   auto& confref = o2::conf::SimConfig::Instance();
+  // initialize CCDB service
+  auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
+  ccdbmgr.setURL(confref.getConfigData().mCCDBUrl);
+  ccdbmgr.setTimestamp(confref.getConfigData().mTimestamp);
+  // try to verify connection
+  if (!ccdbmgr.isHostReachable()) {
+    LOG(ERROR) << "Could not setup CCDB connecting";
+  } else {
+    LOG(INFO) << "Initialized CCDB Manager at URL: " << ccdbmgr.getURL();
+    LOG(INFO) << "Initialized CCDB Manager with timestamp : " << ccdbmgr.getTimestamp();
+  }
+
   // we can read from CCDB (for the moment faking with a TFile)
   // o2::conf::ConfigurableParam::fromCCDB("params_ccdb.root", runid);
 
@@ -55,6 +70,7 @@ FairRunSim* o2sim_init(bool asservice)
   FairRunSim* run = new o2::steer::O2RunSim(asservice);
   run->SetImportTGeoToVMC(false); // do not import TGeo to VMC since the latter is built together with TGeo
   run->SetSimSetup([confref]() { o2::SimSetup::setup(confref.getMCEngine().c_str()); });
+  run->SetRunId(confref.getConfigData().mTimestamp);
 
   auto pid = getpid();
   std::stringstream s;
@@ -75,7 +91,6 @@ FairRunSim* o2sim_init(bool asservice)
 
   // construct geometry / including magnetic field
   build_geometry(run);
-
   // setup generator
   auto embedinto_filename = confref.getEmbedIntoFileName();
   auto primGen = new o2::eventgen::PrimaryGenerator();
@@ -93,22 +108,6 @@ FairRunSim* o2sim_init(bool asservice)
 
   // run init
   run->Init();
-  finalize_geometry(run);
-  std::stringstream geomss;
-  geomss << "O2geometry";
-  if (asservice) {
-    geomss << "_" << pid;
-  }
-  geomss << ".root";
-  gGeoManager->Export(geomss.str().c_str());
-  if (asservice) {
-    // create a link of expected file name to actually produced file
-    // (deletes link if previously existing)
-    unlink("O2geometry.root");
-    if (symlink(geomss.str().c_str(), "O2geometry.root") != 0) {
-      LOG(ERROR) << "Failed to create simlink to geometry file";
-    }
-  }
   std::time_t runStart = std::time(nullptr);
 
   // runtime database
@@ -161,11 +160,17 @@ FairRunSim* o2sim_init(bool asservice)
       grp.setDipoleCurrent(currDip);
     }
     // save
-    std::string grpfilename = confref.getOutPrefix() + "_grp.root";
+    std::string grpfilename = o2::base::NameConf::getGRPFileName(confref.getOutPrefix());
     TFile grpF(grpfilename.c_str(), "recreate");
     grpF.WriteObjectAny(&grp, grp.Class(), "GRP");
   }
   // todo: save beam information in the grp
+
+  // print summary about cuts and processes used
+  std::ofstream cutfile(o2::base::NameConf::getCutProcFileName(confref.getOutPrefix()));
+  auto& matmgr = o2::base::MaterialManager::Instance();
+  matmgr.printCuts(cutfile);
+  matmgr.printProcesses(cutfile);
 
   timer.Stop();
   Double_t rtime = timer.RealTime();
@@ -203,6 +208,14 @@ void o2sim_run(FairRunSim* run, bool asservice)
   LOG(INFO) << "Macro finished succesfully.";
   LOG(INFO) << "Real time " << rtime << " s, CPU time " << ctime << "s";
   LOG(INFO) << "Memory used " << sysinfo.GetMaxMemory() << " MB";
+
+  // migrate to file format where hits sit in separate files
+  // (Note: The parallel version is doing this intrinsically;
+  //  The serial version uses FairRootManager IO which handles a common file IO for all outputs)
+  if (!asservice) {
+    LOG(INFO) << "Migrating simulation output to separate hit file format";
+    migrateSimFiles(confref.getOutPrefix().c_str());
+  }
 }
 
 // asservice: in a parallel device-based context?

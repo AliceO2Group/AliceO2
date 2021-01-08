@@ -44,24 +44,15 @@ void ArrayFromVector(const std::vector<C_TYPE>& values, std::shared_ptr<arrow::A
 
 } // namespace
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 std::shared_ptr<arrow::Table>
   TableBuilder::finalize()
 {
   mFinalizer();
-  std::vector<std::shared_ptr<arrow::Column>> columns;
-  columns.reserve(mArrays.size());
-  for (size_t i = 0; i < mSchema->num_fields(); ++i) {
-    auto column = std::make_shared<arrow::Column>(mSchema->field(i), mArrays[i]);
-    columns.emplace_back(column);
-  }
-  auto table_ = arrow::Table::Make(mSchema, columns);
-  return table_;
+  assert(mSchema->num_fields() > 0 && "Schema needs to be non-empty");
+  return arrow::Table::Make(mSchema, mArrays);
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

@@ -26,13 +26,12 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #include "GPUTPCTrackParam.cxx"
 #include "GPUTPCTrack.cxx"
-#include "GPUTPCHitArea.cxx"
 #include "GPUTPCGrid.cxx"
 #include "GPUTPCRow.cxx"
-#include "GPUParam.cxx"
 #include "GPUTPCTracker.cxx"
 
 #include "GPUGeneralKernels.cxx"
+#include "GPUErrors.cxx"
 
 #include "GPUTPCTrackletSelector.cxx"
 #include "GPUTPCNeighboursFinder.cxx"
@@ -40,51 +39,86 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTPCStartHitsFinder.cxx"
 #include "GPUTPCStartHitsSorter.cxx"
 #include "GPUTPCTrackletConstructor.cxx"
+#include "GPUTPCGlobalTracking.cxx"
 
-#ifdef GPUCA_BUILD_MERGER
+#if !defined(GPUCA_OPENCL1) && !defined(GPUCA_ALIROOT_LIB)
+// Files for TPC Merger
+#include "GPUTPCGMMerger.cxx"
 #include "GPUTPCGMMergerGPU.cxx"
-#include "GPUTPCGMMerger.h"
+#include "GPUTPCGMSliceTrack.cxx"
 #include "GPUTPCGMTrackParam.cxx"
 #include "GPUTPCGMPhysicalTrackModel.cxx"
 #include "GPUTPCGMPropagator.cxx"
-#ifdef HAVE_O2HEADERS
+#include "GPUTPCSliceData.cxx"
+#include "GPUTPCCreateSliceData.cxx"
+
+#if defined(HAVE_O2HEADERS)
+// Files for propagation with material
 #include "MatLayerCylSet.cxx"
 #include "MatLayerCyl.cxx"
 #include "Ray.cxx"
-#endif
-#endif
 
-#ifdef GPUCA_BUILD_DEDX
+// O2 track model
+#include "TrackParametrization.cxx"
+#include "TrackParametrizationWithError.cxx"
+#include "Propagator.cxx"
+#include "TrackLTIntegral.cxx"
+
+// Files for GPU dEdx
 #include "GPUdEdx.cxx"
-#endif
 
-#ifdef GPUCA_BUILD_TPCCONVERT
+// Files for TPC Transformation
 #include "GPUTPCConvertKernel.cxx"
-#endif
 
-#ifdef GPUCA_BUILD_TPCCOMPRESSION
+// Files for TPC Compression
 #include "GPUTPCCompressionKernels.cxx"
 #include "GPUTPCCompressionTrackModel.cxx"
-#endif
 
-#ifdef GPUCA_BUILD_TRD
-#include "GPUTRDTrackerGPU.cxx"
+// Files for TPC Cluster Finder
+#include "ClusterAccumulator.cxx"
+#include "GPUTPCCFStreamCompaction.cxx"
+#include "GPUTPCCFChargeMapFiller.cxx"
+#include "GPUTPCCFPeakFinder.cxx"
+#include "GPUTPCCFNoiseSuppression.cxx"
+#include "GPUTPCCFClusterizer.cxx"
+#include "GPUTPCCFDeconvolution.cxx"
+#include "GPUTPCCFMCLabelFlattener.cxx"
+#include "GPUTPCCFCheckPadBaseline.cxx"
+#include "GPUTPCCFDecodeZS.cxx"
+#include "GPUTPCCFGather.cxx"
+
+// Files for TRD Tracking
+#include "GPUTRDTrackerKernels.cxx"
 #include "GPUTRDTrack.cxx"
 #include "GPUTRDTracker.cxx"
 #include "GPUTRDTrackletWord.cxx"
-#include "TRDGeometryBase.cxx"
-#endif
+#include "GeometryBase.cxx"
 
-#ifdef GPUCA_BUILD_ITS
+// Files for ITS Track Fit
 #include "GPUITSFitterKernels.cxx"
-#if !defined(GPUCA_O2_LIB) && defined(__CUDACC__)
+
+// Files for Refit
+#include "GPUTrackingRefit.cxx"
+#include "GPUTrackingRefitKernel.cxx"
+
+#if !defined(GPUCA_O2_LIB) && defined(__HIPCC__) && !defined(GPUCA_NO_ITS_TRAITS) && !defined(GPUCA_GPUCODE_GENRTC)
+#include "VertexerTraitsHIP.hip.cxx"
+#include "ContextHIP.hip.cxx"
+#include "DeviceStoreVertexerHIP.hip.cxx"
+#include "ClusterLinesHIP.hip.cxx"
+#include "UtilsHIP.hip.cxx"
+#elif !defined(GPUCA_O2_LIB) && defined(__CUDACC__) && !defined(GPUCA_NO_ITS_TRAITS) && !defined(GPUCA_GPUCODE_GENRTC)
 #include "TrackerTraitsNV.cu"
 #include "VertexerTraitsGPU.cu"
 #include "Context.cu"
 #include "Stream.cu"
 #include "DeviceStoreNV.cu"
+#include "DeviceStoreVertexerGPU.cu"
+#include "ClusterLinesGPU.cu"
 #include "Utils.cu"
-#endif
-#endif
+#endif // !defined(GPUCA_O2_LIB) && defined(__CUDACC__) && !defined(GPUCA_NO_ITS_TRAITS)
 
-#endif
+#endif // HAVE_O2HEADERS
+#endif // (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !defined(GPUCA_ALIROOT_LIB)
+
+#endif // GPURECONSTRUCTIONINCLUDESDEVICE_H

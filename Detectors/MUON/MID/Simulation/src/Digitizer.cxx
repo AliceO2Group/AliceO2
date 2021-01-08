@@ -36,7 +36,6 @@ void Digitizer::addStrip(const Mapping::MpStripIndex& stripIndex, int cathode, i
   }
 
   mDigits.emplace_back(ColumnDataMC{(uint8_t)deId, (uint8_t)stripIndex.column});
-  mDigits.back().setTimeStamp(mTime);
   mDigits.back().addStrip(stripIndex.strip, cathode, stripIndex.line);
 }
 
@@ -90,10 +89,13 @@ bool Digitizer::hitToDigits(const Hit& hit)
 {
   /// Generate digits from the hit
 
+  // Clear
+  mDigits.clear();
+
   // Convert point from global to local coordinates
   auto midPt = hit.middlePoint();
   int deId = hit.GetDetectorID();
-  Point3D<double> localPoint = mTransformer.globalToLocal(deId, (double)midPt.x(), (double)midPt.y(), (double)midPt.z());
+  math_utils::Point3D<double> localPoint = mTransformer.globalToLocal(deId, (double)midPt.x(), (double)midPt.y(), (double)midPt.z());
 
   // First get the touched BP strip
   Mapping::MpStripIndex stripIndex = mMapping.stripByPosition(localPoint.x(), localPoint.y(), 0, deId);
@@ -105,7 +107,6 @@ bool Digitizer::hitToDigits(const Hit& hit)
   }
 
   // Digitize if the RPC was efficient
-  mDigits.clear();
   double prob = mRandom(mGenerator);
 
   if (isEfficientBP) {
@@ -137,7 +138,6 @@ bool Digitizer::hitToDigits(const Hit& hit)
 void Digitizer::process(const std::vector<Hit>& hits, std::vector<ColumnDataMC>& digitStore, o2::dataformats::MCTruthContainer<MCLabel>& mcContainer)
 {
   /// Generate digits from a vector of hits
-  // mMCTruthContainer.clear();
   digitStore.clear();
   mcContainer.clear();
   int firstStrip = 0, lastStrip = 0;

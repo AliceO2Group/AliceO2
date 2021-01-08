@@ -11,13 +11,13 @@
 #ifndef ALICEO2_PASSIVE_SHIL_H
 #define ALICEO2_PASSIVE_SHIL_H
 
-#include "FairModule.h" // for FairModule
+#include "DetectorsPassive/PassiveBase.h"
 
 namespace o2
 {
 namespace passive
 {
-class Shil : public FairModule
+class Shil : public PassiveBase
 {
  public:
   Shil(const char* name, const char* Title = "ALICE Shil");

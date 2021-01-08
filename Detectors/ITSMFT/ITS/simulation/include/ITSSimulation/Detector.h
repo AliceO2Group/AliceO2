@@ -305,6 +305,18 @@ class Detector : public o2::base::DetImpl<Detector>
   /// \param motherVolume the TGeoVolume owing the volume structure
   void createInnerBarrelServices(TGeoVolume* motherVolume);
 
+  /// Creates the Middle Barrel Services
+  /// \param motherVolume the TGeoVolume owing the volume structure
+  void createMiddlBarrelServices(TGeoVolume* motherVolume);
+
+  /// Creates the Outer Barrel Services
+  /// \param motherVolume the TGeoVolume owing the volume structure
+  void createOuterBarrelServices(TGeoVolume* motherVolume);
+
+  /// Creates the Outer Barrel Supports
+  /// \param motherVolume the TGeoVolume owing the volume supports
+  void createOuterBarrelSupports(TGeoVolume* motherVolume);
+
   Detector(const Detector&);
 
   Detector& operator=(const Detector&);

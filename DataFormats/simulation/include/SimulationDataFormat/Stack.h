@@ -18,10 +18,9 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "FairGenericStack.h"
 #include "SimulationDataFormat/MCTrack.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/TrackReference.h"
 #include "SimulationDataFormat/MCEventStats.h"
-
+#include "SimulationDataFormat/ParticleStatus.h"
 #include "Rtypes.h"
 #include "TParticle.h"
 
@@ -29,6 +28,7 @@
 #include <memory>
 #include <stack>
 #include <utility>
+#include <functional>
 
 class TClonesArray;
 class TRefArray;
@@ -88,8 +88,12 @@ class Stack : public FairGenericStack
                  Double_t vx, Double_t vy, Double_t vz, Double_t time, Double_t polx, Double_t poly, Double_t polz,
                  TMCProcess proc, Int_t& ntr, Double_t weight, Int_t is, Int_t secondParentId) override;
 
+  void PushTrack(Int_t toBeDone, Int_t parentID, Int_t pdgCode, Double_t px, Double_t py, Double_t pz, Double_t e,
+                 Double_t vx, Double_t vy, Double_t vz, Double_t time, Double_t polx, Double_t poly, Double_t polz,
+                 TMCProcess proc, Int_t& ntr, Double_t weight, Int_t is, Int_t secondParentId, Int_t daughter1Id, Int_t daughter2Id);
+
   // similar function taking a particle
-  void PushTrack(Int_t toBeDone, TParticle const&);
+  void PushTrack(Int_t toBeDone, TParticle&);
 
   /// Get next particle for tracking from the stack.
   /// Declared in TVirtualMCStack
@@ -121,7 +125,6 @@ class Stack : public FairGenericStack
     // the const cast is necessary ... the interface should have been `const TParticle* GetCurrentParticle() const`
     return const_cast<TParticle*>(&mCurrentParticle);
   }
-
   /// Get the number of the current track
   /// Declared in TVirtualMCStack
   Int_t GetCurrentTrackNumber() const override { return mIndexOfCurrentTrack; }
@@ -156,6 +159,7 @@ class Stack : public FairGenericStack
   /// \param option: 0=events summary, non0=track info
   void Print(Option_t* option = nullptr) const override;
 
+  void ReorderKine(std::vector<MCTrack>& particles, std::vector<int>& reOrderedIndices);
   /// Modifiers
   void StoreSecondaries(Bool_t choice = kTRUE) { mStoreSecondaries = choice; }
   void pruneKinematics(bool choice = true) { mPruneKinematics = choice; }
@@ -173,9 +177,6 @@ class Stack : public FairGenericStack
   /// Clone for worker (used in MT mode only)
   FairGenericStack* CloneStack() const override;
 
-  // receive notification that primary is finished
-  void notifyFinishPrimary();
-
   // methods concerning track references
   void addTrackReference(const o2::TrackReference& p);
 
@@ -183,11 +184,16 @@ class Stack : public FairGenericStack
   const std::vector<TParticle>& getPrimaries() const { return mPrimaryParticles; }
 
   // initialize Stack from external vector containing primaries
-  void initFromPrimaries(std::vector<TParticle> const& primaries)
+
+  void initFromPrimaries(std::vector<TParticle>& primaries)
   {
     Reset();
     for (auto p : primaries) {
-      PushTrack(1, p);
+      Int_t doTrack = 0;
+      if (p.TestBit(ParticleStatus::kToBeDone)) {
+        doTrack = 1;
+      }
+      PushTrack(doTrack, p);
     }
     mNumberOfPrimaryParticles = primaries.size();
     mNumberOfEntriesInParticles = mNumberOfPrimaryParticles;
@@ -219,6 +225,8 @@ class Stack : public FairGenericStack
   /// update values in the current event header
   void updateEventStats();
 
+  typedef std::function<bool(const TParticle& p, const std::vector<TParticle>& particles)> TransportFcn;
+
  private:
   /// STL stack (FILO) used to handle the TParticles for tracking
   /// stack entries refer to
@@ -226,15 +234,13 @@ class Stack : public FairGenericStack
 
   /// Array of TParticles (contains all TParticles put into or created
   /// by the transport)
-  std::vector<o2::MCTrack> mParticles; //!
-  std::vector<int> mTransportedIDs;    //! prim + sec trackIDs transported for "current" primary
-  std::vector<int> mIndexOfPrimaries;  //! index of primaries in mParticles
-
+  std::vector<o2::MCTrack> mParticles;       //!
+  std::vector<int> mTransportedIDs;          //! prim + sec trackIDs transported for "current" primary
+  std::vector<int> mIndexOfPrimaries;        //! index of primaries in mParticles
   std::vector<int> mTrackIDtoParticlesEntry; //! an O(1) mapping of trackID to the entry of mParticles
-                                             //! where this track is stored
-
-  /// the current TParticle object
+  // the current TParticle object
   TParticle mCurrentParticle;
+  TParticle mCurrentParticle0;
 
   // keep primary particles in its original form
   // (mainly for the PopPrimaryParticleInterface
@@ -250,11 +256,14 @@ class Stack : public FairGenericStack
   std::vector<o2::base::Detector*> mActiveDetectors; //!
 
   /// Some indices and counters
-  Int_t mIndexOfCurrentTrack;        //! Global index of current track
-  Int_t mNumberOfPrimaryParticles;   //! Number of primary particles
-  Int_t mNumberOfEntriesInParticles; //! Number of entries in mParticles
-  Int_t mNumberOfEntriesInTracks;    //! Number of entries in mTracks
-  Int_t mIndex;                      //! Used for merging
+  Int_t mIndexOfCurrentTrack;          //! Global index of current track
+  Int_t mIndexOfCurrentPrimary;        //! Global index of current primry
+  Int_t mNumberOfPrimaryParticles;     //! Number of primary particles
+  Int_t mNumberOfEntriesInParticles;   //! Number of entries in mParticles
+  Int_t mNumberOfEntriesInTracks;      //! Number of entries in mTracks
+  Int_t mNumberOfPrimariesforTracking; //! Number of primaries for tracking (ie without shirtlived particles and partons)
+  Int_t mNumberOfPrimariesPopped;      //! Number of primaries popped from stack
+  Int_t mIndex;                        //! Used for merging
 
   /// Variables defining the criteria for output selection
   Bool_t mStoreMothers;
@@ -274,10 +283,10 @@ class Stack : public FairGenericStack
 
   bool mIsExternalMode = false; // is stack an external factory or directly used inside simulation?
 
+  TransportFcn mTransportPrimary = [](const TParticle& p, const std::vector<TParticle>& particles) { return false; }; //! a function to inhibit the tracking of a particle
+
   // storage for track references
   std::vector<o2::TrackReference>* mTrackRefs = nullptr; //!
-
-  o2::dataformats::MCTruthContainer<o2::TrackReference>* mIndexedTrackRefs = nullptr; //!
 
   /// a pointer to the current MCEventStats object
   o2::dataformats::MCEventStats* mMCEventStats = nullptr; //!
@@ -287,15 +296,15 @@ class Stack : public FairGenericStack
   /// returns false if some tracks are discarded
   bool selectTracks();
 
+  bool isPrimary(const MCTrack& part);
+  bool isFromPrimaryDecayChain(const MCTrack& part);
+  bool isFromPrimaryPairProduction(const MCTrack& part);
+
+  bool keepPhysics(const MCTrack& part);
+
   Stack(const Stack&);
 
   Stack& operator=(const Stack&);
-
-  /// function called after each primary
-  /// and all its secondaries where transported
-  /// this allows applying selection criteria at a much finer granularity
-  /// than done with FillTrackArray which is only called once per event
-  void finishCurrentPrimary();
 
   /// Increment number of hits for an arbitrary track in a given detector
   /// \param iDet    Detector unique identifier
@@ -305,7 +314,15 @@ class Stack : public FairGenericStack
   ClassDefOverride(Stack, 1);
 };
 
-inline void Stack::addTrackReference(const o2::TrackReference& ref) { mTrackRefs->push_back(ref); }
+inline void Stack::addTrackReference(const o2::TrackReference& ref)
+{
+  if (mIndexOfCurrentTrack >= mNumberOfPrimaryParticles) {
+    Int_t iTrack = mTrackIDtoParticlesEntry[mIndexOfCurrentTrack];
+    auto& part = mParticles[iTrack];
+    part.setStore(true);
+  }
+  mTrackRefs->push_back(ref);
+}
 
 inline int Stack::getCurrentPrimaryIndex() const { return mPrimaryParticles.size() - 1 - mPrimariesDone; }
 

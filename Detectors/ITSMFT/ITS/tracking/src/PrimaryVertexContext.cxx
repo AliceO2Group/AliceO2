@@ -21,35 +21,101 @@ namespace o2
 namespace its
 {
 
-void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const std::array<std::vector<Cluster>, constants::its::LayersNumber>& cl,
-                                      const std::array<float, 3>& pVtx, const int iteration)
+void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const TrackingParameters& trkParam,
+                                      const std::vector<std::vector<Cluster>>& cl, const std::array<float, 3>& pVtx, const int iteration)
 {
+
+  struct ClusterHelper {
+    float phi;
+    float r;
+    int bin;
+    int ind;
+  };
+
   mPrimaryVertex = {pVtx[0], pVtx[1], pVtx[2]};
 
-  for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
+  if (iteration == 0) {
 
-    const auto& currentLayer{cl[iLayer]};
-    const int clustersNum{static_cast<int>(currentLayer.size())};
+    std::vector<ClusterHelper> cHelper;
 
-    if (iteration == 0) {
+    mMinR.resize(trkParam.NLayers, 10000.);
+    mMaxR.resize(trkParam.NLayers, -1.);
+    mClusters.resize(trkParam.NLayers);
+    mUsedClusters.resize(trkParam.NLayers);
+    mCells.resize(trkParam.CellsPerRoad());
+    mCellsLookupTable.resize(trkParam.CellsPerRoad() - 1);
+    mCellsNeighbours.resize(trkParam.CellsPerRoad() - 1);
+    mIndexTables.resize(trkParam.TrackletsPerRoad(), std::vector<int>(trkParam.ZBins * trkParam.PhiBins + 1, 0));
+    mTracklets.resize(trkParam.TrackletsPerRoad());
+    mTrackletsLookupTable.resize(trkParam.CellsPerRoad());
+    mIndexTableUtils.setTrackingParameters(trkParam);
+
+    std::vector<int> clsPerBin(trkParam.PhiBins * trkParam.ZBins, 0);
+    for (unsigned int iLayer{0}; iLayer < mClusters.size(); ++iLayer) {
+
+      const auto& currentLayer{cl[iLayer]};
+      const int clustersNum{static_cast<int>(currentLayer.size())};
+
       mClusters[iLayer].clear();
-      mClusters[iLayer].reserve(clustersNum);
+      mClusters[iLayer].resize(clustersNum);
       mUsedClusters[iLayer].clear();
       mUsedClusters[iLayer].resize(clustersNum, false);
 
-      for (int iCluster{0}; iCluster < clustersNum; ++iCluster) {
+      std::fill(clsPerBin.begin(), clsPerBin.end(), 0);
 
-        const Cluster& currentCluster{currentLayer.at(iCluster)};
-        mClusters[iLayer].emplace_back(iLayer, mPrimaryVertex, currentCluster);
+      cHelper.clear();
+      cHelper.resize(clustersNum);
+
+      mMinR[iLayer] = 1000.f;
+      mMaxR[iLayer] = -1.f;
+
+      for (int iCluster{0}; iCluster < clustersNum; ++iCluster) {
+        const Cluster& c = currentLayer[iCluster];
+        ClusterHelper& h = cHelper[iCluster];
+        float x = c.xCoordinate - mPrimaryVertex.x;
+        float y = c.yCoordinate - mPrimaryVertex.y;
+        float phi = math_utils::calculatePhiCoordinate(x, y);
+        const int zBin{mIndexTableUtils.getZBinIndex(iLayer, c.zCoordinate)};
+        int bin = mIndexTableUtils.getBinIndex(zBin, mIndexTableUtils.getPhiBinIndex(phi));
+        CA_DEBUGGER(assert(zBin > 0));
+        h.phi = phi;
+        h.r = math_utils::calculateRCoordinate(x, y);
+        mMinR[iLayer] = o2::gpu::GPUCommonMath::Min(h.r, mMinR[iLayer]);
+        mMaxR[iLayer] = o2::gpu::GPUCommonMath::Max(h.r, mMaxR[iLayer]);
+        h.bin = bin;
+        h.ind = clsPerBin[bin]++;
       }
 
-      std::sort(mClusters[iLayer].begin(), mClusters[iLayer].end(), [](Cluster& cluster1, Cluster& cluster2) {
-        return cluster1.indexTableBinIndex < cluster2.indexTableBinIndex;
-      });
+      std::vector<int> lutPerBin(clsPerBin.size());
+      lutPerBin[0] = 0;
+      for (unsigned int iB{1}; iB < lutPerBin.size(); ++iB) {
+        lutPerBin[iB] = lutPerBin[iB - 1] + clsPerBin[iB - 1];
+      }
+
+      for (int iCluster{0}; iCluster < clustersNum; ++iCluster) {
+        ClusterHelper& h = cHelper[iCluster];
+        Cluster& c = mClusters[iLayer][lutPerBin[h.bin] + h.ind];
+        c = currentLayer[iCluster];
+        c.phiCoordinate = h.phi;
+        c.rCoordinate = h.r;
+        c.indexTableBinIndex = h.bin;
+      }
+
+      if (iLayer > 0) {
+        for (unsigned int iB{0}; iB < clsPerBin.size(); ++iB) {
+          mIndexTables[iLayer - 1][iB] = lutPerBin[iB];
+        }
+        for (auto iB{clsPerBin.size()}; iB < mIndexTables[iLayer - 1].size(); iB++) {
+          mIndexTables[iLayer - 1][iB] = clustersNum;
+        }
+      }
     }
+  }
 
-    if (iLayer < constants::its::CellsPerRoad) {
+  mRoads.clear();
 
+  for (unsigned int iLayer{0}; iLayer < mClusters.size(); ++iLayer) {
+    if (iLayer < mCells.size()) {
       mCells[iLayer].clear();
       float cellsMemorySize =
         memParam.MemoryOffset +
@@ -62,67 +128,32 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
       }
     }
 
-    if (iLayer < constants::its::CellsPerRoad - 1) {
-
+    if (iLayer < mCells.size() - 1) {
       mCellsLookupTable[iLayer].clear();
-      mCellsLookupTable[iLayer].resize(
-        std::max(cl[iLayer + 1].size(), cl[iLayer + 2].size()) +
-          std::ceil((memParam.TrackletsMemoryCoefficients[iLayer + 1] *
-                     cl[iLayer + 1].size()) *
-                    cl[iLayer + 2].size()),
-        constants::its::UnusedIndex);
-
+      mCellsLookupTable[iLayer].resize(memParam.MemoryOffset +
+                                         std::max(cl[iLayer + 1].size(), cl[iLayer + 2].size()) +
+                                         std::ceil((memParam.TrackletsMemoryCoefficients[iLayer + 1] *
+                                                    cl[iLayer + 1].size()) *
+                                                   cl[iLayer + 2].size()),
+                                       constants::its::UnusedIndex);
       mCellsNeighbours[iLayer].clear();
     }
   }
 
-  mRoads.clear();
-
-  for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
-
-    const int clustersNum = static_cast<int>(mClusters[iLayer].size());
-
-    if (iLayer > 0 && iteration == 0) {
-
-      int previousBinIndex{0};
-      mIndexTables[iLayer - 1][0] = 0;
-
-      for (int iCluster{0}; iCluster < clustersNum; ++iCluster) {
-
-        const int currentBinIndex{mClusters[iLayer][iCluster].indexTableBinIndex};
-
-        if (currentBinIndex > previousBinIndex) {
-
-          for (int iBin{previousBinIndex + 1}; iBin <= currentBinIndex; ++iBin) {
-
-            mIndexTables[iLayer - 1][iBin] = iCluster;
-          }
-
-          previousBinIndex = currentBinIndex;
-        }
-      }
-
-      for (int iBin{previousBinIndex + 1}; iBin < (int)mIndexTables[iLayer - 1].size(); iBin++) {
-        mIndexTables[iLayer - 1][iBin] = clustersNum;
-      }
-    }
-
-    if (iLayer < constants::its::TrackletsPerRoad) {
-
+  for (unsigned int iLayer{0}; iLayer < mClusters.size(); ++iLayer) {
+    if (iLayer < mTracklets.size()) {
       mTracklets[iLayer].clear();
-
-      float trackletsMemorySize =
-        std::max(cl[iLayer].size(), cl[iLayer + 1].size()) +
-        std::ceil((memParam.TrackletsMemoryCoefficients[iLayer] * cl[iLayer].size()) *
-                  cl[iLayer + 1].size());
+      float trackletsMemorySize = memParam.MemoryOffset +
+                                  std::max(cl[iLayer].size(), cl[iLayer + 1].size()) +
+                                  std::ceil((memParam.TrackletsMemoryCoefficients[iLayer] * cl[iLayer].size()) *
+                                            cl[iLayer + 1].size());
 
       if (trackletsMemorySize > mTracklets[iLayer].capacity()) {
         mTracklets[iLayer].reserve(trackletsMemorySize);
       }
     }
 
-    if (iLayer < constants::its::CellsPerRoad) {
-
+    if (iLayer < mCells.size()) {
       mTrackletsLookupTable[iLayer].clear();
       mTrackletsLookupTable[iLayer].resize(cl[iLayer + 1].size(), constants::its::UnusedIndex);
     }

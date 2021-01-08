@@ -16,9 +16,7 @@
 #define O2_MFT_CLUSTER_H_
 
 #include <array>
-
-#include "MFTTracking/IndexTableUtils.h"
-
+#include "ReconstructionDataFormats/BaseCluster.h"
 #include "GPUCommonDef.h"
 
 namespace o2
@@ -26,25 +24,29 @@ namespace o2
 namespace mft
 {
 
-struct Cluster final {
-  Cluster(const Float_t x, const Float_t y, const Float_t z, const Float_t phi, const Float_t r, const Int_t idx, const Int_t bin)
-    : xCoordinate{x},
-      yCoordinate{y},
-      zCoordinate{z},
+struct Cluster : public o2::BaseCluster<float> {
+  Cluster() = default;
+  Cluster(const Float_t x, const Float_t y, const Float_t z, const Float_t phi, const Float_t r, const Int_t id, const Int_t bin, const Float_t sigX2, const Float_t sigY2, const Int_t sensorID)
+    : BaseCluster(sensorID, x, y, z),
       phiCoordinate{phi},
       rCoordinate{r},
-      clusterId{idx},
-      indexTableBin{bin} {};
+      clusterId{id},
+      indexTableBin{bin},
+      sigmaX2{sigX2},
+      sigmaY2{sigY2},
+      isUsed{false} {};
   Cluster(const Float_t x, const Float_t y, const Float_t z, const Int_t index);
-  Cluster(const Int_t layerIndex, const Cluster& other);
 
-  Float_t xCoordinate;
-  Float_t yCoordinate;
-  Float_t zCoordinate;
+  void setUsed(Bool_t bval) { isUsed = bval; }
+  const Bool_t getUsed() { return isUsed; }
+
   Float_t phiCoordinate;
   Float_t rCoordinate;
   Int_t clusterId;
   Int_t indexTableBin;
+  Float_t sigmaX2;
+  Float_t sigmaY2;
+  Bool_t isUsed;
 };
 
 } // namespace mft

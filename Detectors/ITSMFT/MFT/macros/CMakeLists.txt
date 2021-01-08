@@ -9,3 +9,4 @@
 # submit itself to any jurisdiction.
 
 add_subdirectory(mapping)
+add_subdirectory(test)

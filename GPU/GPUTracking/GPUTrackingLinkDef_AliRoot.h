@@ -23,7 +23,6 @@
 #pragma link C++ class AliGPU::gpu::GPUTPCTrackParam + ;
 #pragma link C++ class AliGPU::gpu::GPUTPCRow + ;
 #pragma link C++ class AliGPU::gpu::GPUTPCGrid + ;
-#pragma link C++ class AliGPU::gpu::GPUTPCHitArea + ;
 #pragma link C++ class GPUTPCTrackerComponent + ;
 #pragma link C++ class AliGPU::gpu::GPUTPCNeighboursFinder + ;
 #pragma link C++ class AliGPU::gpu::GPUTPCNeighboursCleaner + ;
@@ -31,8 +30,6 @@
 #pragma link C++ class AliGPU::gpu::GPUTPCTrackletConstructor + ;
 #pragma link C++ class AliGPU::gpu::GPUTPCTrackletSelector + ;
 #pragma link C++ class GPUTPCGlobalMergerComponent + ;
-#pragma link C++ class AliGPU::gpu::GPUTPCClusterData + ;
-#pragma link C++ class AliGPU::gpu::GPUTPCSliceData + ;
 #pragma link C++ class AliGPU::gpu::GPUTPCSliceOutput + ;
 #pragma link C++ class AliGPU::gpu::GPUTPCGMTrackParam + ;
 #pragma link C++ class AliGPU::gpu::GPUTPCGMSliceTrack + ;

@@ -11,7 +11,9 @@
 /// \brief This task tests of the Response of the MCH digitization
 /// \author Michael Winn, DPhN/IRFU/CEA, michael.winn@cern.ch
 
+#define BOOST_TEST_MODULE Test MCHSimulation Response
 #define BOOST_TEST_DYN_LINK
+
 #include <boost/test/unit_test.hpp>
 #include <memory>
 #include <vector>
@@ -26,6 +28,7 @@ namespace o2
 namespace mch
 {
 
+BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE(Response_test)
 {
   //check transition between energy and charge

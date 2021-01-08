@@ -18,6 +18,9 @@
 #include <boost/serialization/base_object.hpp> // for base_object
 #include <TMath.h>
 #include <cstdlib>
+#include "CommonConstants/LHCConstants.h"
+#include <vector>
+#include "Rtypes.h"
 
 namespace o2
 {
@@ -33,6 +36,7 @@ class Cluster : public o2::BaseCluster<float>
   static constexpr float PhiOutOfRange = 9999;    // used to check if phi was already calculated or not
 
   static constexpr int NPADSXSECTOR = 8736;
+  static constexpr Double_t BC_TIME_INPS_INV = 1.E-3 / o2::constants::lhc::LHCBunchSpacingNS;
 
  public:
   enum { kUpLeft = 0,    // 2^0, 1st bit
@@ -61,7 +65,7 @@ class Cluster : public o2::BaseCluster<float>
   double getTime() const { return mTime; }                  // Cluster ToF getter
   void setTime(double time) { mTime = time; }               // Cluster ToF setter
   float getTot() const { return mTot; }                     // Cluster Charge getter
-  void setTot(int tot) { mTot = tot; }                      // Cluster ToT setter
+  void setTot(float tot) { mTot = tot; }                    // Cluster ToT setter
   int getL0L1Latency() const { return mL0L1Latency; };      // L0L1 latency
   void setL0L1Latency(int value) { mL0L1Latency = value; }; // L0-L1 latency
   int getDeltaBC() const { return mDeltaBC; };              // deltaBC
@@ -106,6 +110,13 @@ class Cluster : public o2::BaseCluster<float>
   void setEntryInTree(int value) { mEntryInTree = value; }
   int getEntryInTree() const { return mEntryInTree; }
 
+  int getBC() const { return int(mTimeRaw * BC_TIME_INPS_INV); }
+
+  void setDigitInfo(int idig, int ch, double t, float tot);
+  int getDigitInfoCH(int idig) const { return mDigitInfoCh[idig]; }
+  double getDigitInfoT(int idig) const { return mDigitInfoT[idig]; }
+  float getDigitInfoTOT(int idig) const { return mDigitInfoTOT[idig]; }
+
  private:
   friend class boost::serialization::access;
 
@@ -119,10 +130,37 @@ class Cluster : public o2::BaseCluster<float>
   float mPhi = PhiOutOfRange;  //! phi coordinate
   int mEntryInTree;            //! index of the entry in the tree from which we read the cluster
 
-  ClassDefNV(Cluster, 3);
+  // add extra info to trace all digit infos (for commissioning phase)
+  int mDigitInfoCh[6] = {0, 0, 0, 0, 0, 0};
+  double mDigitInfoT[6] = {0., 0., 0., 0., 0., 0.};
+  float mDigitInfoTOT[6] = {0., 0., 0., 0., 0., 0.};
+
+  ClassDefNV(Cluster, 4);
 };
 
 std::ostream& operator<<(std::ostream& os, Cluster& c);
 } // namespace tof
+
+/// Defining o2::tof::Cluster explicitly as messageable
+///
+/// o2::tof::Cluster does not fulfill is_messageable because the underlying ROOT
+/// classes of Point3D are note trivially copyable.
+/// std::is_trivially_copyable<ROOT::Math::Cartesian3D<float>> fails because the class
+/// implements a copy constructor, although it does not much more than the default copy
+/// constructor. Have been trying to specialize std::is_trivially_copyable for Point3D
+/// alias in MathUtils/Cartesian.h, but structures with a member of Point3D are
+/// still not fulfilling the condition. Need to understand how the type trait checks
+/// the condition for members.
+/// We believe that o2::tof::Cluster is messageable and explicitly specialize the
+/// type trait, adding a corresponding unit test to go beyond make-believe
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::tof::Cluster> : std::true_type {
+};
+} // namespace framework
+
 } // namespace o2
 #endif

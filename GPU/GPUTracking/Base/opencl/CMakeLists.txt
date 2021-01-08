@@ -9,6 +9,7 @@
 # submit itself to any jurisdiction.
 
 set(MODULE GPUTrackingOCL)
+enable_language(ASM)
 
 # AMD APP SDK required for OpenCL tracker as it's using specific extensions
 # (currently) not provided by other vendors
@@ -50,15 +51,19 @@ add_custom_command(
           ${CL_BIN}
           ${CL_SRC}
           --
-          "-D$<JOIN:$<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>, -D>"
+          "-D$<JOIN:$<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>,$<SEMICOLON>-D>"
           -I${GPUDIR}/../Common
           -I${GPUDIR}/Base
           -I${GPUDIR}/Merger
+          -I${GPUDIR}/Global
           -I${GPUDIR}/SliceTracker
+          -I${GPUDIR}/TRDTracking
+          -I${GPUDIR}/Standalone
           -DGPUCA_GPULIBRARY=OCL1
-          -x
-          clc++
-  MAIN_DEPENDENCY ${CL_SRC})
+          -x clc++
+  MAIN_DEPENDENCY ${CL_SRC}
+  IMPLICIT_DEPENDS CXX ${CL_SRC}
+  COMMAND_EXPAND_LISTS)
 
 # cmake-format: off
 add_custom_command(
@@ -74,7 +79,7 @@ set_source_files_properties(
   ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S
   PROPERTIES
   LANGUAGE
-  CXX
+  ASM
   OBJECT_DEPENDS
   "${CL_BIN};${GPUDIR}/Standalone/makefiles/include.S")
 

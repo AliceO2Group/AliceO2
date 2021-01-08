@@ -20,6 +20,7 @@
    FitAngularResolution();
  */
 
+#if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "TROOT.h"
 #include "TStyle.h"
 #include "TFile.h"
@@ -31,11 +32,72 @@
 #include "TString.h"
 #include "TH1.h"
 #include "TH2.h"
+#include "TF1.h"
 #include "TLegend.h"
+#endif
 
 TFile* f = 0x0;    // input file (TRDhlt.root)
 TTree* tree = 0x0; // input tree (tracksFinal)
 TFile* fOut = 0x0; // output file with results
+
+static const Float_t xDrift = 3.f; // drift length in TRD
+
+Float_t mRadiusTRD[540] = {
+  // values obtained from TRD geometry with misalignment from Run 2 data
+  301.1638, 313.6753, 326.2809, 338.9940, 351.6026, 364.0537, 300.1665, 312.7854, 325.2572, 338.0002,
+  350.5855, 363.2468, 299.9399, 312.6280, 325.1296, 337.8112, 350.4096, 362.9868, 300.0480, 312.6387,
+  325.2549, 337.8503, 350.4702, 363.1088, 300.6183, 313.1226, 325.6801, 336.4037, 351.1088, 363.7209,
+  301.0214, 313.5769, 325.9181, 338.8168, 351.3764, 364.0374, 300.4273, 313.0337, 325.5900, 338.2114,
+  350.3062, 363.4128, 300.4677, 312.4737, 325.6458, 338.2561, 350.8812, 363.4771, 300.6205, 313.2002,
+  325.1768, 338.4358, 351.0317, 363.6595, 301.0286, 313.5724, 326.1777, 338.8574, 351.4896, 364.1179,
+  300.9745, 313.4982, 326.1171, 338.7638, 351.3966, 363.9760, 300.3126, 312.8979, 325.4928, 338.0868,
+  350.6675, 363.3101, 300.0797, 312.6622, 325.2723, 337.8378, 350.4357, 363.0448, 300.1662, 312.7673,
+  325.3743, 337.9777, 350.5836, 363.2047, 300.5636, 313.1315, 325.7466, 338.3991, 351.0360, 363.6499,
+  300.0736, 312.5803, 325.2037, 337.8509, 350.4709, 363.0919, 299.4032, 311.9627, 324.5612, 337.1712,
+  349.7448, 362.3622, 299.0729, 311.6657, 324.2644, 336.8565, 349.4228, 362.0316, 299.3591, 311.9435,
+  324.5541, 337.1744, 349.7820, 362.3092, 299.7018, 312.2701, 324.9075, 337.5642, 350.1906, 362.8041,
+  300.2838, 312.7707, 325.4074, 338.0439, 350.6742, 363.2568, 299.4787, 312.0710, 324.6480, 337.2245,
+  349.8300, 362.4292, 299.1346, 311.7354, 324.3476, 336.9353, 349.5186, 362.1122, 299.3472, 311.9391,
+  324.5588, 337.1538, 349.7728, 362.3968, 299.7233, 312.2910, 324.9137, 337.5317, 350.1523, 362.7660,
+  300.8478, 313.3206, 325.9622, 338.6137, 351.2384, 363.7973, 300.4421, 313.0483, 325.6368, 338.2621,
+  350.8496, 363.5216, 300.2939, 312.8903, 325.4760, 338.0599, 350.6551, 363.2704, 300.2710, 312.8796,
+  325.4750, 338.0652, 350.6739, 363.2903, 300.6549, 313.2075, 325.8105, 338.4437, 351.0597, 363.6997,
+  300.3321, 312.8056, 325.4342, 338.0782, 350.7090, 363.2995, 299.7911, 312.3856, 324.9652, 337.5777,
+  350.1493, 362.7679, 299.6359, 312.2484, 324.8446, 337.4233, 350.0143, 362.6087, 299.7957, 312.3872,
+  324.9664, 337.5905, 350.1895, 362.8127, 300.1930, 312.7411, 325.3527, 337.9474, 350.5567, 363.1714,
+  299.8708, 312.4178, 325.0097, 337.6199, 350.2367, 362.8197, 299.1785, 311.7572, 324.3414, 337.3875,
+  349.5200, 362.1488, 299.4955, 312.1514, 324.7430, 337.3484, 349.4956, 362.4435, 300.2071, 313.4209,
+  325.7401, 338.3114, 351.2445, 363.8318, 301.1368, 313.7283, 323.1139, 339.0000, 348.2148, 364.2878,
+  300.2202, 311.5885, 325.3409, 337.9732, 350.6152, 363.1797, 299.4919, 312.0841, 324.6882, 337.2600,
+  349.8945, 362.5386, 299.8091, 312.4409, 325.0175, 337.6343, 350.2683, 362.9218, 300.8080, 313.4294,
+  326.0444, 338.6830, 351.3325, 364.0310, 302.0378, 314.4691, 327.2754, 339.9633, 352.7125, 365.4345,
+  299.9575, 312.4977, 325.0936, 337.7063, 350.2953, 362.9128, 299.5390, 311.1592, 324.7299, 337.3160,
+  349.9368, 362.5510, 299.5108, 312.1093, 324.7206, 337.2922, 349.9214, 362.4301, 299.8687, 312.4665,
+  325.1017, 337.6802, 350.2963, 362.8917, 300.9908, 313.4976, 326.1486, 338.7900, 351.4818, 363.9900,
+  300.6823, 313.2546, 325.9451, 338.5287, 351.1094, 363.7102, 300.0946, 312.6830, 324.9392, 337.8933,
+  350.4915, 363.1127, 299.8324, 312.4263, 325.0230, 337.6105, 350.2232, 362.8239, 299.3513, 311.9513,
+  324.7056, 337.9153, 350.5267, 363.1600, 300.4924, 313.0683, 325.7024, 338.3462, 350.9743, 363.6421,
+  300.7480, 313.3162, 325.9303, 338.5727, 351.1999, 361.9792, 300.3176, 312.9042, 325.4741, 338.1341,
+  350.7175, 363.3588, 300.1988, 312.8076, 325.3764, 337.9723, 350.5598, 363.1935, 300.2925, 312.8776,
+  325.4606, 338.0796, 350.6691, 363.2837, 300.7752, 313.2974, 325.9370, 338.5706, 351.1929, 363.7629,
+  301.4623, 314.0134, 326.6686, 339.3200, 351.9519, 364.5737, 300.6925, 313.2856, 325.9172, 338.5039,
+  351.1359, 363.7670, 300.2042, 312.8122, 325.4005, 337.9800, 350.5984, 363.2198, 300.2045, 312.8112,
+  325.3964, 337.9856, 350.5974, 363.1866, 300.5374, 313.1093, 325.7511, 338.3422, 350.9572, 363.0667,
+  301.8664, 314.4035, 327.0365, 339.7027, 352.3793, 364.9678, 301.2704, 313.8376, 326.4926, 339.1151,
+  351.7640, 364.3762, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 300.4171, 313.0230,
+  325.6084, 338.2077, 350.8230, 363.4106, 300.7245, 313.2963, 325.9065, 338.5176, 351.1591, 363.7482,
+  301.1933, 313.7285, 326.4055, 339.0260, 351.7000, 364.3218, 300.6251, 313.2307, 325.8524, 338.4811,
+  351.0968, 363.7139, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 300.0714, 312.6378,
+  325.2482, 337.8352, 350.4462, 363.0263, 300.4317, 312.9689, 325.5656, 338.2149, 350.8201, 363.4381,
+  301.1367, 313.6926, 326.3340, 338.9482, 351.6006, 364.2099, 300.6340, 313.2314, 325.8670, 338.4652,
+  351.1076, 363.7123, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 299.9679, 312.5547,
+  325.1368, 337.7163, 350.3134, 362.9132, 300.3560, 312.9071, 325.4938, 338.1319, 350.7675, 363.3560,
+  301.6351, 314.1871, 326.8156, 339.4562, 352.0907, 364.7228, 300.8649, 313.4675, 326.0716, 338.7047,
+  350.1673, 363.9594, 300.3626, 312.4153, 325.4608, 338.1805, 350.7680, 363.3876, 300.2386, 312.8433,
+  325.4392, 338.0548, 350.6596, 363.2844, 300.7667, 313.3035, 325.9411, 338.6026, 351.2442, 363.8458,
+  301.1233, 313.6592, 326.2866, 338.9925, 351.5959, 364.2216, 300.4396, 313.0188, 325.6150, 338.2195,
+  350.8347, 363.4567, 300.2179, 312.8220, 325.4206, 337.9880, 350.5974, 363.2124, 300.2803, 312.8911,
+  325.4789, 338.1055, 350.7065, 363.3173, 300.9001, 313.4750, 326.0733, 338.7448, 0.0000, 363.9888};
 
 // branches
 Int_t event = 0x0;
@@ -60,6 +122,7 @@ TVectorF* trackY = 0x0;
 TVectorF* trackYerr = 0x0;
 TVectorF* trackPhi = 0x0;
 TVectorF* trackLambda = 0x0;
+TVectorF* trackQPt = 0x0;
 TVectorF* trackPt = 0x0;
 TVectorF* trackZ = 0x0;
 TVectorF* trackZerr = 0x0;
@@ -83,6 +146,9 @@ TVectorF* nMatchingTracklets = 0x0;
 TVectorF* trackletX = 0x0;
 TVectorF* trackletY = 0x0;
 TVectorF* trackletZ = 0x0;
+TVectorF* trackletYerr = 0x0;
+TVectorF* trackletYZerr = 0x0;
+TVectorF* trackletZerr = 0x0;
 TVectorF* trackletYRaw = 0x0;
 TVectorF* trackletZRaw = 0x0;
 TVectorF* trackletDy = 0x0;
@@ -109,6 +175,8 @@ static const Int_t nCandidates[nCandidatesSweep] = {1, 2, 3};
 static const Int_t maxMissingLayers[maxMissingLayersSweep] = {4};
 static const Int_t chi2Penalty[chi2PenaltySweep] = {16};
 
+static const Bool_t isInteractive = kTRUE;
+
 // functions
 Bool_t InitAnalysis(const char* filename = "TRDhlt.root", Bool_t isMC = kTRUE);
 void GetEfficiency(TH1F* hEfficiency);
@@ -116,7 +184,7 @@ void GetFakeRate(TH1F* hFakeRate);
 void Reset();
 
 TF1* fitRMSAngle = new TF1("fitRMSAngle", "sqrt([0]**2+[2]**2*(x-[1])**2)", -1, 1);       // RMS of angular residuals as function of track phi
-TF1* fitRMSDelta012 = new TF1("fitRMSdelta012", "sqrt([0]**2+[2]**2*(x-[1])**2)", -1, 1); //  RMS of r-phi residuals (using interpolation from surrounding layers) as function of track phi
+TF1* fitRMSDelta012 = new TF1("fitRMSdelta012", "sqrt([0]**2+[2]**2*(x-[1])**2)", -1, 1); // RMS of r-phi residuals (using interpolation from surrounding layers) as function of track phi
 TF1* fitTrackletDy = new TF1("fitTrackletDy", "pol2");                                    // tracklet deflection as function of track phi
 TF1* fitDAngleCorr = new TF1("fitDAngleCorr", "pol1");                                    //
 
@@ -151,6 +219,7 @@ void InitBranches()
   tree->SetBranchAddress("trackYerr.", &trackYerr);
   tree->SetBranchAddress("trackPhi.", &trackPhi);
   tree->SetBranchAddress("trackLambda.", &trackLambda);
+  tree->SetBranchAddress("trackQPt.", &trackQPt);
   tree->SetBranchAddress("trackPt.", &trackPt);
   tree->SetBranchAddress("trackZ.", &trackZ);
   tree->SetBranchAddress("trackZerr.", &trackZerr);
@@ -175,6 +244,9 @@ void InitBranches()
   tree->SetBranchAddress("trackletY.", &trackletY);
   tree->SetBranchAddress("trackletDy.", &trackletDy);
   tree->SetBranchAddress("trackletZ.", &trackletZ);
+  tree->SetBranchAddress("trackletYerr.", &trackletYerr);
+  tree->SetBranchAddress("trackletZerr.", &trackletZerr);
+  tree->SetBranchAddress("trackletYZerr.", &trackletYZerr);
   tree->SetBranchAddress("trackletYRaw.", &trackletYRaw);
   tree->SetBranchAddress("trackletZRaw.", &trackletZRaw);
   tree->SetBranchAddress("trackletDet.", &trackletDet);
@@ -209,7 +281,7 @@ void InitCalib()
 {
   fitTrackletDy->SetParameters(0.14, 2.35, -0.635);
   fitRMSAngle->SetParameters(0.0473, 0.163, 0.427);
-  fitRMSDelta012->SetParameters(0.08, 0.08, 0.34);
+  fitRMSDelta012->SetParameters(0.04, 0.125, 0.31);
 }
 
 void SetAlias(TTree* tree, Bool_t isMC)
@@ -219,13 +291,16 @@ void SetAlias(TTree* tree, Bool_t isMC)
   }
 
   tree->SetAlias("layer", "Iteration$");
+  tree->SetAlias("det", "trackletDet.fElements");
+  tree->SetAlias("sec", "TMath::FloorNint(trackletDet.fElements/30)");
+  tree->SetAlias("stack", "TMath::FloorNint((trackletDet.fElements%30)/6)");
   tree->SetAlias("isPresent", "update.fElements>0");
   tree->SetAlias("matchAvail", "nMatchingTracklets.fElements>0");
   tree->SetAlias("geoFindable", "findable.fElements>0");
   if (isMC) {
     tree->SetAlias("isGold", "nMatching==6");
-    tree->SetAlias("isMatch", "isPresent&&update.fElements<8");
-    tree->SetAlias("isRelated", "update.fElements>3&&update.fElements<8");
+    tree->SetAlias("isMatch", "isPresent&&update.fElements<3.5");
+    tree->SetAlias("isRelated", "update.fElements>3.5&&update.fElements<8");
     tree->SetAlias("isGood", "isMatch||isRelated");
     tree->SetAlias("isFake", "isPresent&&update.fElements>8");
   } else {
@@ -244,10 +319,10 @@ void SetAlias(TTree* tree, Bool_t isMC)
   tree->SetAlias("inZroad", "(abs(GetDeltaZmatch(layer))-roadZ)<0");
   tree->SetAlias("trkPhi", "trackPhi.fElements");
   tree->SetAlias("trkltDy", "trackletDy.fElements");
-  tree->SetAlias("resY", "(trackY.fElements-trackletY.fElements)");
-  tree->SetAlias("resZ", "(trackZ.fElements-trackletZ.fElements)");
-  tree->SetAlias("pullY", "resY/sqrt(trackYerr.fElements+trackletYerr.fElements)");
-  tree->SetAlias("pullZ", "resZ/sqrt(trackZerr.fElements+trackletZerr.fElements)");
+  tree->SetAlias("resY", "(trackNoUpY.fElements-trackletY.fElements)");
+  tree->SetAlias("resZ", "(trackNoUpZ.fElements-trackletZ.fElements)");
+  tree->SetAlias("pullY", "resY/sqrt(trackNoUpYerr.fElements+trackletYerr.fElements)");
+  tree->SetAlias("pullZ", "resZ/sqrt(trackNoUpZerr.fElements+trackletZerr.fElements)");
   tree->SetAlias("isIdealAngle", "abs(trackPhi.fElements-0.12)<0.05");
 }
 
@@ -261,18 +336,29 @@ Int_t LoadBranches(Int_t entry)
   return 1;
 }
 
+Int_t GetStack(Float_t det)
+{
+  Int_t detInt = TMath::Nint(det);
+  return (detInt % 30) / 6;
+}
+
+// convert azimuthal track angle (sin(phi) = param[3]) to dy of tracklet
 Double_t AngleToDy(Double_t tanPhi) { return fitTrackletDy->Eval(tanPhi); }
-
-Double_t DyToSnp(Double_t dy) { return ((dy / 3) / TMath::Sqrt(1 + TMath::Power((dy / 3), 2))); }
-
-Double_t SnpToDy(Double_t snp) { return (3. * snp / TMath::Sqrt(1 - TMath::Power(snp, 2))); }
-
+// convert dy of tracklet to track azimuthal angle sin(phi)
+Double_t DyToSnp(Double_t dy) { return ((dy / xDrift) / TMath::Sqrt(1 + TMath::Power((dy / xDrift), 2))); }
+// convert sin(phi) to dy
+Double_t SnpToDy(Double_t snp) { return (xDrift * snp / TMath::Sqrt(1 - TMath::Power(snp, 2))); }
+// TRD angular resolution at given angle (best resolution at lorentz angle)
 Double_t GetAngularResolution(Double_t tanPhi) { return fitRMSAngle->Eval(tanPhi); }
 
+// angular pull for tracklet in given layer
 Double_t GetPullAngle(Int_t layer)
 {
   if (layer < 0 || layer > 5) {
     return -999;
+  }
+  if ((*update)[layer] < 1) {
+    return -666;
   }
   Double_t trackletDyLayer = (*trackletDy)[layer];
   Double_t trackletDyFit = AngleToDy((*trackPhi)[layer]);
@@ -283,6 +369,7 @@ Double_t GetPullAngle(Int_t layer)
   return -999;
 }
 
+// angular residuals in given layer
 Double_t GetDeltaAngle(Int_t layer)
 {
   if (layer < 0 || layer > 5) {
@@ -296,6 +383,25 @@ Double_t GetDeltaAngle(Int_t layer)
   return (trackletDyLayer - trackletDyF);
 }
 
+Double_t GetEta(Float_t tgl)
+{
+  Double_t theta = TMath::Pi() / 2. - TMath::ATan(tgl);
+  return -TMath::Log(TMath::Tan(theta * .5));
+}
+
+Double_t GetDeltaR(Int_t layer)
+{
+  if (layer < 0 || layer > 5 || (*trackletXreal)[layer] < 10) {
+    return -999;
+  }
+  if (TMath::Abs(GetEta((*trackLambda)[layer])) > 0.05) {
+    return 999;
+  }
+  return (*trackletXreal)[layer] - mRadiusTRD[TMath::Nint((*trackletDetReal)[layer])];
+}
+
+// tracklet residual in rphi, either based on interpolated tracklet position from the surrounding layers
+// or only on the tracklet position in given layer
 Double_t GetDeltaRPhi(Int_t layer, Bool_t interpolation = kFALSE, Bool_t rawTrkltPosition = kFALSE)
 {
   if ((layer < 0) || (layer > 5) || ((*update)[layer] < 0.5)) {
@@ -338,12 +444,15 @@ void FitAngularResolution()
   if (!tree) {
     return;
   }
+  if (!isInteractive) {
+    fOut = new TFile("results.root", "update");
+  }
   TGraph* gr = TStatToolkit::MakeGraphErrors(tree, "trackletDy.fElements:trackPhi.fElements", "isGold&&LoadBranches(Entry$)", 25, 1, 1, 0, 100000);
   gr->Fit("pol2", "rob=0.9", "", -0.3, 0.3);
   tree->SetAlias("trackletDyFit", TString::Format("(%f)+(%f)*trackPhi.fElements+(%f)*trackPhi.fElements^2", gr->GetFunction("pol2")->GetParameter(0), gr->GetFunction("pol2")->GetParameter(1), gr->GetFunction("pol2")->GetParameter(2)));
   gr->Draw("ap");
   fitTrackletDy->SetParameters(gr->GetFunction("pol2")->GetParameter(0), gr->GetFunction("pol2")->GetParameter(1), gr->GetFunction("pol2")->GetParameter(2));
-  tree->Draw("trackletDy.fElements-trackletDyFit:trackPhi.fElements>>hisDyPhi(20, -0.3, 0.3, 50, -0.3, 0.3)", "isGold", "colz");
+  tree->Draw("trackletDy.fElements-trackletDyFit:trackPhi.fElements>>hisDyPhi(20, -0.25, 0.25, 50, -0.3, 0.3)", "isGold", "colz");
   TH2* hisDyPhi = (TH2*)tree->GetHistogram();
   hisDyPhi->FitSlicesY();
   TH1* hAngularResolution = (TH1*)gROOT->FindObject("hisDyPhi_2");
@@ -351,10 +460,18 @@ void FitAngularResolution()
   hAngularResolution->Fit(fitRMSAngle);
   hAngularResolution->SetTitle("");
   hAngularResolution->GetXaxis()->SetTitle("track #phi");
-  hAngularResolution->GetYaxis()->SetTitle("RMS (tracklet deflection - fit tracklet defl. vs track #phi)");
+  hAngularResolution->GetYaxis()->SetTitle("RMS (tracklet defl. - fit tracklet defl.)");
   gStyle->SetOptStat(0);
   hAngularResolution->Draw();
   fitRMSAngle->Draw("same");
+  if (!isInteractive) {
+    hAngularResolution->Write();
+    delete hAngularResolution;
+    fitRMSAngle->Write();
+    delete fitRMSAngle;
+    fOut->Close();
+    delete fOut;
+  }
 }
 
 void FitPositionResolution()
@@ -362,10 +479,23 @@ void FitPositionResolution()
   if (!tree) {
     return;
   }
+  if (!isInteractive) {
+    fOut = new TFile("results.root", "update");
+  }
   tree->Draw("GetDeltaRPhi(layer, 1, 0):trackNoUpPhi.fElements>>hisDeltaRPhi(15, -0.4, 0.4, 50, -0.3, 0.3)", "isGold&&lowMult&&LoadBranches(Entry$)", "colz");
   ((TH2*)tree->GetHistogram())->FitSlicesY();
   ((TH1*)gROOT->FindObject("hisDeltaRPhi_2"))->Fit(fitRMSDelta012);
   gPad->SaveAs("FitPositionResolution.png");
+  TH1* hPositionResolution = (TH1*)gROOT->FindObject("hisDeltaRPhi_2");
+  hPositionResolution->Draw();
+  if (!isInteractive) {
+    hPositionResolution->Write();
+    delete hPositionResolution;
+    fitRMSDelta012->Write();
+    delete fitRMSDelta012;
+    fOut->Close();
+    delete fOut;
+  }
 }
 
 void FitRPhiVsChamber(Bool_t rawTrkltPosition = kTRUE)
@@ -382,6 +512,55 @@ void FitRPhiVsChamber(Bool_t rawTrkltPosition = kTRUE)
     ((TH2*)tree->GetHistogram())->FitSlicesY();
     ((TH1*)gROOT->FindObject("hisRPhiDet_1"))->Draw();
   }
+}
+
+void CheckRadialOffset()
+{
+  fOut = new TFile("results.root", "update");
+  TH2F* hRadialOffset = new TH2F("radialOffset", "", 540, -0.5, 539.5, 100, -3, 3);
+  for (Int_t i = 0; i < tree->GetEntriesFast(); ++i) {
+    tree->GetEntry(i);
+    if (trackID < 0) {
+      continue;
+    }
+    //if (nMatching != 6) {
+    //  continue;
+    //}
+    //if ((*trackPhi)[0] < 0.15) {
+    //  continue;
+    //}
+    if (nTracklets < 1 || nTPCtracks > 300) {
+      continue;
+    }
+    for (Int_t iLy = 0; iLy < 6; iLy++) {
+      if ((*update)[iLy] < 1) {
+        // not tracklet in this layer
+        continue;
+      }
+      Double_t phi = (*trackPhi)[iLy];
+      Double_t deltaRPhi = (*trackletY)[iLy] - (*trackNoUpY)[iLy];
+      if (TMath::Abs(deltaRPhi / TMath::Sqrt((*trackletYerr)[iLy] + (*trackNoUpYerr)[iLy])) > 3) {
+        continue;
+      }
+      Int_t det = (*trackletDet)[iLy];
+      Double_t deltaR = deltaRPhi / TMath::Tan(TMath::ASin(phi));
+      hRadialOffset->Fill(det, deltaR);
+    }
+  }
+  hRadialOffset->Write();
+  delete hRadialOffset;
+  fOut->Close();
+  delete fOut;
+}
+
+void FitRadialSpreadTrklts()
+{
+  if (!tree) {
+    return;
+  }
+  tree->Draw("GetDeltaR(layer):trackletDetReal.fElements>>hisRDet(540, -0.5, 539.5, 50, -5, 5)", "LoadBranches(Entry$)", "colz");
+  ((TH2*)tree->GetHistogram())->FitSlicesY();
+  ((TH1*)gROOT->FindObject("hisRDet_2"))->Draw();
 }
 
 void PrintEfficiency(Float_t ptCut = 1.5)
@@ -598,7 +777,7 @@ void MakeLogScale(TH1* hist, Double_t xMin = -1, Double_t xMax = -1)
 
 void TwoTrackletEfficiency(Int_t nEntries = -1)
 {
-  fOut = new TFile("results.root", "recreate");
+  fOut = new TFile("results.root", "update");
   TH1F* hAll = new TH1F("all", "p_{T} spectrum for all tracks;track pT (GeV); counts", 10, 0, 10);
   TH1F* h2Trklts = new TH1F("h2trklts", "p_{T} spectrum for all tracks w/ N_{trklts} >= 2;track pT (GeV); counts", 10, 0, 10);
   TH1F* h2TrkltsNoFakes = new TH1F("h2trkltsNoFakes", "p_{T} spectrum for all tracks w/ N_{trklts} >= 2 and zero fakes;track pT (GeV); counts", 10, 0, 10);
@@ -633,19 +812,19 @@ void TwoTrackletEfficiency(Int_t nEntries = -1)
     if (trackID < 0) {
       continue;
     }
-    if (findable->Sum() < 1) {
+    if (findable->Sum() < 2) {
       continue;
     }
     Double_t pt = trackPtTPC;
     hAll->Fill(pt);
-    // if (nTracklets >= 2) {
+    //if (nTracklets >= 2) {
     if (nMatching + nRelated >= 2) {
       h2Trklts->Fill(pt);
       if (nFake == 0) {
         h2TrkltsNoFakes->Fill(pt);
       }
     }
-    // if (nTrackletsOffline >= 2) {
+    //if (nTrackletsOffline >= 2) {
     if (nMatchingOffline + nRelatedOffline >= 2) {
       h2TrkltsRef->Fill(pt);
       if (nFakeOffline == 0) {
@@ -658,26 +837,6 @@ void TwoTrackletEfficiency(Int_t nEntries = -1)
   h2TrkltsNoFakesEff->Divide(h2TrkltsNoFakes, h2Trklts, 1, 1, "B");
   h2TrkltsEffRef->Divide(h2TrkltsRef, hAll, 1, 1, "B");
   h2TrkltsNoFakesEffRef->Divide(h2TrkltsNoFakesRef, h2TrkltsRef, 1, 1, "B");
-  /*
-        TCanvas *cAll = new TCanvas("cAll", "cAll");
-        hAll->Draw();
-        TCanvas *c2Trklts = new TCanvas("c2Trklts", "c2Trklts");
-        h2Trklts->Draw();
-        TCanvas *c2TrkltsNoFakes = new TCanvas("c2TrkltsNoFakes", "c2TrkltsNoFakes");
-        h2TrkltsNoFakes->Draw();
-        TCanvas *c2TrkltsEff = new TCanvas("c2TrkltsEff", "c2TrkltsEff");
-        //h2TrkltsEff->GetYaxis()->SetRangeUser(0.7, 1.1);
-        h2TrkltsEff->SetMarkerStyle(21);
-        h2TrkltsEff->Draw("e0");
-        c2TrkltsEff->SetGridx();
-        c2TrkltsEff->SetGridy();
-        TCanvas *c2TrkltsNoFakesEff = new TCanvas("c2TrkltsNoFakesEff", "c2TrkltsNoFakesEff");
-        //h2TrkltsNoFakesEff->GetYaxis()->SetRangeUser(0.7, 1.1);
-        h2TrkltsNoFakesEff->SetMarkerStyle(21);
-        h2TrkltsNoFakesEff->Draw("e0");
-        c2TrkltsNoFakesEff->SetGridx();
-        c2TrkltsNoFakesEff->SetGridy();
-   */
 
   fOut->cd();
   h2TrkltsEff->Write();
@@ -693,88 +852,7 @@ void TwoTrackletEfficiency(Int_t nEntries = -1)
   fOut = 0x0;
 }
 
-void OfflineOnlineComparison()
-{
-  if (!tree) {
-    printf("Initialize first! Exiting\n");
-    return;
-  }
-  fOut = new TFile("results.root", "recreate");
-  TH1F* hAll = new TH1F("all", "p_{T} spectrum for all tracks;track pT (GeV); counts", 10, 0, 10);
-  TH1F* h2TrkltsOn = new TH1F("h2trkltsOn", "p_{T} spectrum for all tracks w/ N_{trklts} >= 2 (online);track pT (GeV); counts", 10, 0, 10);
-  TH1F* h2TrkltsOff = new TH1F("h2trkltsOff", "p_{T} spectrum for all tracks w/ N_{trklts} >= 2 (offline);track pT (GeV); counts", 10, 0, 10);
-  TH1F* h2TrkltsNoFakes = new TH1F("h2trkltsNoFakes", "p_{T} spectrum for all tracks w/ N_{trklts} >= 2 and zero fakes;track pT (GeV); counts", 10, 0, 10);
-  TH1F* h2TrkltsNoFakesRef = new TH1F("h2trkltsNoFakesRef", "p_{T} spectrum for all tracks w/ N_{trklts} >= 2 and zero fakes (ref);track pT (GeV); counts", 10, 0, 10);
-  TH1F* h2TrkltsEffOn = new TH1F("h2TrkltsEffOn", "fraction with at least two online tracklets;track pT (GeV); counts", 10, 0, 10);
-  TH1F* h2TrkltsEffOff = new TH1F("h2TrkltsEffOff", "fraction with at least two offline tracklets;track pT (GeV); counts", 10, 0, 10);
-  TH1F* h2TrkltsNoFakesEff = new TH1F("h2TrkltsNoFakesEff", "fraction of two tracklet tracks w/o fakes;track pT (GeV); counts", 10, 0, 10);
-  TH1F* h2TrkltsNoFakesEffRef = new TH1F("h2TrkltsNoFakesEffRef", "fraction of two tracklet tracks w/o fakes (ref);track pT (GeV); counts", 10, 0, 10);
 
-  hAll->Sumw2();
-  h2TrkltsOn->Sumw2();
-  h2TrkltsOff->Sumw2();
-  h2TrkltsNoFakes->Sumw2();
-  h2TrkltsNoFakesRef->Sumw2();
-
-  Float_t xMin = 0.25, xMax = 6;
-  MakeLogScale(hAll, xMin, xMax);
-  MakeLogScale(h2TrkltsOn, xMin, xMax);
-  MakeLogScale(h2TrkltsOff, xMin, xMax);
-  MakeLogScale(h2TrkltsNoFakes, xMin, xMax);
-  MakeLogScale(h2TrkltsNoFakesRef, xMin, xMax);
-  MakeLogScale(h2TrkltsEffOn, xMin, xMax);
-  MakeLogScale(h2TrkltsEffOff, xMin, xMax);
-  MakeLogScale(h2TrkltsNoFakesEff, xMin, xMax);
-  MakeLogScale(h2TrkltsNoFakesEffRef, xMin, xMax);
-
-  Int_t nEntries = tree->GetEntriesFast();
-
-  for (Int_t iEntry = 0; iEntry < nEntries; iEntry++) {
-    tree->GetEntry(iEntry);
-    if (trackID < 0) {
-      continue;
-    }
-    if (findable->Sum() < 1) {
-      continue;
-    }
-    Double_t pt = trackPtTPC;
-    hAll->Fill(pt);
-    if (nTracklets >= 2) {
-      h2TrkltsOn->Fill(pt);
-      if (nFake == 0) {
-        h2TrkltsNoFakes->Fill(pt);
-      }
-    }
-    if (nTrackletsOffline >= 2) {
-      h2TrkltsOff->Fill(pt);
-      if (TMath::Abs(trackIDref) == trackID) {
-        h2TrkltsNoFakesRef->Fill(pt);
-      }
-    }
-  }
-  gStyle->SetOptStat(0);
-  h2TrkltsEffOn->Divide(h2TrkltsOn, hAll, 1, 1, "B");
-  h2TrkltsEffOff->Divide(h2TrkltsOff, hAll, 1, 1, "B");
-  h2TrkltsNoFakesEff->Divide(h2TrkltsNoFakes, h2TrkltsOn, 1, 1, "B");
-  h2TrkltsNoFakesEffRef->Divide(h2TrkltsNoFakesRef, h2TrkltsOff, 1, 1, "B");
-  h2TrkltsEffOn->SetMarkerStyle(21);
-  h2TrkltsEffOff->SetMarkerStyle(22);
-  h2TrkltsNoFakesEff->SetMarkerStyle(21);
-  h2TrkltsNoFakesEffRef->SetMarkerStyle(21);
-
-  fOut->cd();
-  h2TrkltsEffOn->Write();
-  delete h2TrkltsEffOn;
-  h2TrkltsEffOff->Write();
-  delete h2TrkltsEffOff;
-  h2TrkltsNoFakesEff->Write();
-  delete h2TrkltsNoFakesEff;
-  h2TrkltsNoFakesEffRef->Write();
-  delete h2TrkltsNoFakesEffRef;
-  fOut->Close();
-  delete fOut;
-  fOut = 0x0;
-}
 
 void PlotTRDEfficiency(Int_t nEntries = -1, Bool_t writeToFile = kTRUE)
 {
@@ -906,20 +984,29 @@ void PlotOnlineTrackletEfficiency(Int_t nEntries = -1)
   // efficiency: fraction of online tracklets with correct track label
   //             if track produced hits within the TRD layer
 
+  fOut = new TFile("results.root", "update");
   if (nEntries < 0) {
     nEntries = tree->GetEntriesFast();
   }
-  TH1F* hAll = new TH1F("all", "tmp histogram;pT (GeV);counts", 10, 0, 5);
-  TH1F* hFrac = new TH1F("frac", "tmp histogram;pT (GeV);counts", 10, 0, 5);
-  TH1F* hEff = new TH1F("eff", "online tracklet efficiency;p_{T} (GeV/#it{c});efficiency", 10, 0, 5);
-  hAll->Sumw2();
-  hFrac->Sumw2();
-  MakeLogScale(hAll, 0.2, 12);
-  MakeLogScale(hFrac, 0.2, 12);
-  MakeLogScale(hEff, 0.2, 12);
+  TH1F* hAllPos = new TH1F("allPos", "tmp histogram;pT (GeV);counts", 10, 0, 5);
+  TH1F* hFracPos = new TH1F("fracPos", "tmp histogram;pT (GeV);counts", 10, 0, 5);
+  TH1F* hEffPos = new TH1F("effPos", "online tracklet efficiency;p_{T} (GeV/#it{c});efficiency", 10, 0, 5);
+  hAllPos->Sumw2();
+  hFracPos->Sumw2();
+  MakeLogScale(hAllPos, 0.2, 12);
+  MakeLogScale(hFracPos, 0.2, 12);
+  MakeLogScale(hEffPos, 0.2, 12);
+  TH1F* hAllNeg = new TH1F("allNeg", "tmp histogram;pT (GeV);counts", 10, 0, 5);
+  TH1F* hFracNeg = new TH1F("fracNeg", "tmp histogram;pT (GeV);counts", 10, 0, 5);
+  TH1F* hEffNeg = new TH1F("effNeg", "online tracklet efficiency;p_{T} (GeV/#it{c});efficiency", 10, 0, 5);
+  hAllNeg->Sumw2();
+  hFracNeg->Sumw2();
+  MakeLogScale(hAllNeg, 0.2, 12);
+  MakeLogScale(hFracNeg, 0.2, 12);
+  MakeLogScale(hEffNeg, 0.2, 12);
   for (Int_t iEntry = 0; iEntry < nEntries; iEntry++) {
     tree->GetEntry(iEntry);
-    if (trackID < 0) {
+    if (trackID < 0 || TMath::Abs(trackPID) != 211) {
       continue;
     }
     for (Int_t iLy = 1; iLy < 6; iLy++) {
@@ -927,24 +1014,83 @@ void PlotOnlineTrackletEfficiency(Int_t nEntries = -1)
         continue;
       }
       Double_t trkPt = (*trackPt)[iLy];
-      hAll->Fill(trkPt);
+      //(*trackQPt)[iLy] > 0 ? hAllPos->Fill(trkPt) : hAllNeg->Fill(trkPt);
+      trackPID == 211 ? hAllPos->Fill(trkPt) : hAllNeg->Fill(trkPt);
       if ((*nMatchingTracklets)[iLy] > 0) {
-        hFrac->Fill(trkPt);
+        //(*trackQPt)[iLy] > 0 ? hFracPos->Fill(trkPt) : hFracNeg->Fill(trkPt);
+        trackPID == 211 ? hFracPos->Fill(trkPt) : hFracNeg->Fill(trkPt);
       }
     }
   }
   gStyle->SetOptStat(0);
   gStyle->SetErrorX(0);
-  hEff->Divide(hFrac, hAll, 1, 1, "B");
+  hEffPos->Divide(hFracPos, hAllPos, 1, 1, "B");
+  hEffNeg->Divide(hFracNeg, hAllNeg, 1, 1, "B");
+  //TCanvas* c1 = new TCanvas("c1", "c1");
+  //c1->SetGridy();
+  //c1->SetGridx();
+  //c1->SetLogx();
+  hEffPos->SetLineWidth(2);
+  hEffPos->SetLineColor(kRed);
+  hEffPos->SetMarkerStyle(22);
+  hEffPos->SetMarkerColor(kRed);
+  hEffPos->GetYaxis()->SetRangeUser(0.2, 1.);
+  hEffNeg->SetLineWidth(2);
+  hEffNeg->SetLineColor(kBlack);
+  hEffNeg->SetMarkerStyle(22);
+  hEffNeg->SetMarkerColor(kBlack);
+  //hEff->Draw("ep");
+  hEffPos->Write();
+  delete hEffPos;
+  hEffNeg->Write();
+  delete hEffNeg;
+  fOut->Close();
+}
+
+void MultipleHypothesisCheck(Float_t minPt = 0.7, Int_t nEntries = -1)
+{
+  if (!tree) {
+    printf("Initialize first!\n");
+    return;
+  }
+  if (nEntries < 0) {
+    nEntries = tree->GetEntriesFast();
+  }
+  TH1F* hChi2 = new TH1F("chi2", "chi2 for correct update;chi2;counts", 100, 0, 100);
+  Int_t nPossibleSaves = 0;
+  Int_t nTracksTotal = 0;
+  for (Int_t iEntry = 0; iEntry < nEntries; iEntry++) {
+    tree->GetEntry(iEntry);
+    if (trackID < 0) {
+      continue;
+    }
+    if (trackPtTPC < minPt) {
+      continue;
+    }
+    if (nTracklets < 0) {
+      continue;
+    }
+    ++nTracksTotal;
+    for (Int_t iLy = 0; iLy < 5; ++iLy) {
+      if ((*update)[iLy] > 6) {
+        // fake tracklet attached in this layer
+        if ((*update)[iLy + 1] > 6 || (*update)[iLy + 1] < 1) {
+          // no tracklet or fake tracklet in the next
+          if ((*nMatchingTracklets)[iLy + 1] > 0) {
+            // but match would have been available
+            ++nPossibleSaves;
+            hChi2->Fill((*chi2Real)[iLy + 1]);
+            //hChi2->Fill((*chi2Update)[iLy+1]-(*chi2Real)[iLy+1]);
+            break;
+          }
+        }
+      }
+    }
+  }
+  printf("Out of %i tracks, %i additional updates could have possibly been done\n", nTracksTotal, nPossibleSaves);
   TCanvas* c1 = new TCanvas("c1", "c1");
-  c1->SetGridy();
-  c1->SetGridx();
-  c1->SetLogx();
-  hEff->SetLineWidth(2);
-  hEff->SetMarkerStyle(22);
-  hEff->SetMarkerColor(kBlue);
-  hEff->GetYaxis()->SetRangeUser(0.4, 1.);
-  hEff->Draw("ep");
+  hChi2->SetLineWidth(2);
+  hChi2->Draw();
 }
 
 void LoopFakes(Int_t nEntries = -1)
@@ -1250,6 +1396,8 @@ void LoopCheckHitsMC(Int_t nEntries = -1)
 {
   // only makes sense if related tracklets were not
   // counted as matches
+  // Loops over all tracks and looks for layers where a matching tracklet was available for the track, but
+  // no hits are availabel at the entrance / exit of the TRD chamber
   if (nEntries < 0) {
     nEntries = tree->GetEntriesFast();
   }
@@ -1293,11 +1441,12 @@ void chi2Distribution(Int_t nEntries = -1)
 {
   // compare chi2 for matching tracklets with chi2 for fake tracklets
   // scaled w.r.t. total number of updates
-  TH1F* hChi2Match = new TH1F("chi2Match", ";#chi^{2};normalized counts", 50, 0, 15);
-  TH1F* hChi2Fake = new TH1F("chi2Fake", ";#chi^{2};normalized counts", 50, 0, 15);
+  TFile* fOut = new TFile("results.root", "update");
+  TH1F* hChi2Match = new TH1F("chi2Match", ";#chi^{2};normalized counts", 50, 0, 30);
+  TH1F* hChi2Fake = new TH1F("chi2Fake", ";#chi^{2};normalized counts", 50, 0, 30);
 
-  MakeLogScale(hChi2Match, 0.05, 25);
-  MakeLogScale(hChi2Fake, 0.05, 25);
+  MakeLogScale(hChi2Match, 0.05, 35);
+  MakeLogScale(hChi2Fake, 0.05, 35);
 
   Double_t nUpdates = 0;
 
@@ -1322,6 +1471,7 @@ void chi2Distribution(Int_t nEntries = -1)
       }
     }
   }
+  /*
   TCanvas* c1 = new TCanvas("c1", "c1");
   c1->SetLogx();
   hChi2Match->SetLineWidth(2);
@@ -1335,6 +1485,47 @@ void chi2Distribution(Int_t nEntries = -1)
   hChi2Match->Draw();
   hChi2Fake->Draw("same");
   leg->Draw();
+  */
+  hChi2Match->Write();
+  delete hChi2Match;
+  hChi2Fake->Write();
+  delete hChi2Fake;
+  fOut->Close();
+  delete fOut;
+}
+
+void RecreateDyPlotJochen()
+{
+  const Int_t nBinsPerDim = 100;
+  const Int_t nBins = (nBinsPerDim + 2) * (nBinsPerDim + 2);
+  TH2F* hDy = new TH2F("dy", ";#it{y} (cm);#it{q}/#it{p}_{T} (#it{c}/GeV)", nBinsPerDim, -60, 60, nBinsPerDim, -2, 2);
+  TAxis* axX = hDy->GetXaxis();
+  TAxis* axY = hDy->GetYaxis();
+  std::vector<int> nEntries(nBins); // number of entries for given bin
+  std::vector<float> dYacc(nBins);  // accumulated values for dy for specific bin
+  for (Int_t i = 0; i < tree->GetEntries(); i++) {
+    // loop over all tracks
+    tree->GetEntry(i);
+    for (Int_t iLy = 0; iLy < 6; ++iLy) {
+      Double_t trkQpt = (*trackQPt)[iLy];
+      Double_t trkY = (*trackY)[iLy];
+      Int_t binX = axX->FindBin(trkY);
+      Int_t binY = axY->FindBin(trkQpt);
+      Int_t binToFill = binY * (nBinsPerDim + 2) + binX;
+      nEntries[binToFill] += 1;
+      dYacc[binToFill] += (*trackletDy)[iLy];
+    }
+  }
+  for (Int_t i = 0; i < nBins; ++i) {
+    if (nEntries[i] != 0) {
+      dYacc[i] = dYacc[i] / nEntries[i];
+      hDy->SetBinContent(i, dYacc[i]);
+    } else {
+      hDy->SetBinContent(i, -99);
+    }
+  }
+  hDy->GetZaxis()->SetRangeUser(-1, 1);
+  hDy->Draw("colz");
 }
 
 void OnlineTrackletEfficiency(Int_t nEntries = -1)
@@ -1349,9 +1540,9 @@ void OnlineTrackletEfficiency(Int_t nEntries = -1)
   const Double_t binEndPt = 5.;
 
   const Int_t nBins2D = 50;
-  TH2F* hIsFindableQptY = new TH2F("isFindableQptY", ";#it{y} (cm);#it{q}/#it{p}_{T} (#it{c}/GeV)", nBins2D, -60, 60, nBins2D, -1, 1);
-  TH2F* hIsFoundQptY = new TH2F("isFoundQptY", ";#it{y} (cm);#it{q}/#it{p}_{T} (#it{c}/GeV)", nBins2D, -60, 60, nBins2D, -1, 1);
-  TH2F* hEfficiencyQptY = new TH2F("isEfficiencyQptY", ";#it{y} (cm);#it{q}/#it{p}_{T} (#it{c}/GeV)", nBins2D, -60, 60, nBins2D, -1, 1);
+  TH2F* hIsFindableQptY = new TH2F("isFindableQptY", ";#it{y} (cm);#it{q}/#it{p}_{T} (#it{c}/GeV)", nBins2D, -60, 60, nBins2D, -2, 2);
+  TH2F* hIsFoundQptY = new TH2F("isFoundQptY", ";#it{y} (cm);#it{q}/#it{p}_{T} (#it{c}/GeV)", nBins2D, -60, 60, nBins2D, -2, 2);
+  TH2F* hEfficiencyQptY = new TH2F("isEfficiencyQptY", ";#it{y} (cm);#it{q}/#it{p}_{T} (#it{c}/GeV)", nBins2D, -60, 60, nBins2D, -2, 2);
 
   TH1F* hIsFindablePhi = new TH1F("isFindablePhi", ";track #varphi;counts", nBins, binStartPhi, binEndPhi);
   hIsFindablePhi->Sumw2();
@@ -1384,13 +1575,13 @@ void OnlineTrackletEfficiency(Int_t nEntries = -1)
     }
     for (Int_t iLy = 0; iLy < 6; ++iLy) {
       if ((*findable)[iLy] < 1 || (*findableMC)[iLy] < 1) {
-        // track is in acceptance and MC hits are available
         continue;
       }
+      // track is in acceptance and MC hits are available
       hIsFindablePhi->Fill((*trackPhi)[iLy]);
       hIsFindablePt->Fill((*trackPt)[iLy]);
-      Double_t trkQpt = 0;
-      Double_t trkY = 0;
+      Double_t trkQpt = (*trackQPt)[iLy];
+      Double_t trkY = (*trackY)[iLy];
       hIsFindableQptY->Fill(trkY, trkQpt);
       if ((*nMatchingTracklets)[iLy] > 0) {
         hIsFoundPhi->Fill((*trackPhi)[iLy]);
@@ -1412,6 +1603,7 @@ void OnlineTrackletEfficiency(Int_t nEntries = -1)
     for (Int_t iBinY = 0; iBinY < nBins2D; iBinY++) {
       Int_t iBin = hIsFindableQptY->GetBin(iBinX, iBinY);
       if (hIsFindableQptY->GetBinContent(iBin) <= 0) {
+        hEfficiencyQptY->SetBinContent(iBin, 0);
         continue;
       }
       hEfficiencyQptY->SetBinContent(iBin, hIsFoundQptY->GetBinContent(iBin) / hIsFindableQptY->GetBinContent(iBin));
@@ -1461,8 +1653,122 @@ void OnlineTrackletEfficiency(Int_t nEntries = -1)
   legFindable->Draw();
 
   TCanvas* cEfficiencyQptY = new TCanvas("efficiencyQptY", "efficiencyQptY");
-  hEfficiencyQptY->GetZaxis()->SetRangeUser(0.5, 1);
+  hEfficiencyQptY->GetXaxis()->SetRangeUser(-45.0, 45.);
+  hEfficiencyQptY->GetZaxis()->SetRangeUser(0.0, 1);
   hEfficiencyQptY->Draw("colz");
+}
+
+void zResolution()
+{
+  TFile* fOut = new TFile("results.root", "update");
+  TH1F* histInner = new TH1F("inner", ";#Delta z(cm);normalized counts", 50, -8, 8);
+  TH1F* histOuter = new TH1F("outer", ";#Delta z(cm);normalized counts", 50, -8, 8);
+  Int_t nEntries = tree->GetEntries();
+  for (Int_t i = 0; i < nEntries; i++) {
+    tree->GetEntry(i);
+    if (trackID < 0) {
+      continue;
+    }
+    for (Int_t iLy = 0; iLy < 6; ++iLy) {
+      if ((*update)[iLy] < 1 || (*update)[iLy] > 3) {
+        // not matching tracklet in this layer
+        continue;
+      }
+      if (iLy < 2 && TMath::Abs((*trackLambda)[iLy]) > 0.2) {
+        histInner->Fill((*trackletZ)[iLy] - (*trackNoUpZ)[iLy]);
+      }
+      if (iLy >= 4) {
+        histOuter->Fill((*trackletZ)[iLy] - (*trackNoUpZ)[iLy]);
+      }
+    }
+  }
+  histInner->Write();
+  delete histInner;
+  histOuter->Write();
+  delete histOuter;
+  fOut->Close();
+  delete fOut;
+}
+
+void plotDyResiduals()
+{
+  TFile* fOut = new TFile("results.root", "update");
+  TH2F* hist = new TH2F("dYresiduals", ";sin (#varphi_{Trk});#it{d_{y}} (cm)", 50, -0.3, 0.3, 50, -0.9, 0.9);
+  Int_t nEntries = tree->GetEntries();
+  for (Int_t i = 0; i < nEntries; i++) {
+    // loop over all tracks
+    tree->GetEntry(i);
+    if (trackID < 0) {
+      continue;
+    }
+    for (Int_t iLy = 0; iLy < 6; ++iLy) {
+      if ((*update)[iLy] < 1) {
+        // not tracklet in this layer
+        continue;
+      }
+      hist->Fill((*trackPhi)[iLy], (*trackletDy)[iLy]);
+    }
+  }
+  hist->Write();
+  delete hist;
+  fOut->Close();
+  delete fOut;
+}
+
+void CheckPulls()
+{
+  TFile* fOut = new TFile("results.root", "update");
+  TH1F* histPullY = new TH1F("pullY", ";#it{P_{y}};counts", 100, -3, 3);
+  TH1F* histPullZ = new TH1F("pullZ", ";#it{P_{z}};counts", 100, -3, 3);
+  Int_t nEntries = tree->GetEntries();
+  for (Int_t i = 0; i < nEntries; i++) {
+    // loop over all tracks
+    tree->GetEntry(i);
+    if (trackID < 0) {
+      continue;
+    }
+    for (Int_t iLy = 0; iLy < 6; ++iLy) {
+      if ((*update)[iLy] < 1 || (*update)[iLy] > 3) {
+        // not matching tracklet in this layer
+        continue;
+      }
+      float sy = fitRMSDelta012->Eval((*trackPhi)[iLy]);
+      float sz2 = (*trackletZerr)[iLy];
+      histPullY->Fill(((*trackNoUpY)[iLy] - (*trackletY)[iLy]) / sy);
+      histPullZ->Fill(((*trackNoUpZ)[iLy] - (*trackletZ)[iLy]) / TMath::Sqrt(sz2));
+    }
+  }
+  histPullY->Write();
+  delete histPullY;
+  histPullZ->Write();
+  delete histPullZ;
+  fOut->Close();
+  delete fOut;
+}
+
+void CheckZcorrection()
+{
+  TFile* fOut = new TFile("results.root", "update");
+  TH2F* histZ = new TH2F("zcorr", ";tan (#lambda_{Trk});#Delta z (cm)", 50, -1, 1, 100, -5, 5);
+  Int_t nEntries = tree->GetEntries();
+  for (Int_t i = 0; i < nEntries; i++) {
+    // loop over all tracks
+    tree->GetEntry(i);
+    if (trackID < 0) {
+      continue;
+    }
+    for (Int_t iLy = 0; iLy < 6; ++iLy) {
+      if ((*update)[iLy] < 1 || (*update)[iLy] > 3) {
+        // not matching tracklet in this layer
+        continue;
+      }
+      histZ->Fill((*trackLambda)[iLy], (*trackZ)[iLy] - (*trackletZ)[iLy]);
+    }
+  }
+  histZ->Write();
+  delete histZ;
+  fOut->Close();
+  delete fOut;
 }
 
 Bool_t InitAnalysis(const char* filename, Bool_t isMC)
@@ -1509,24 +1815,5 @@ void checkDbgOutput()
    // what about tracklet errors? in z different for different pad widths, in y constant. should not make a difference, or?
    //tree->Draw("chi2Real.fElements-chi2Update.fElements", "isFake&&LoadBranches(Entry$)&&matchAvail&&inYroad&&inZroad&&abs(GetDeltaZmatch(layer))<abs(GetDeltaZ(layer))&&abs(GetDeltaYmatch(layer))<abs(GetDeltaY(layer))" );
    //tree->Draw("update.fElements", "isPresent&&LoadBranches(Entry$)" );
-   Int_t isSectorCrossing(Int_t layer)
-   {
-   // invalid layer
-   if (layer < 0 || layer > 4) {
-    return 0;
-   }
-   if ((*trackSecReal)[layer] < 1 || (*trackSecReal)[layer+1] < 1) {
-    return 0;
-   }
 
-   if ((*trackSecReal)[layer] < (*trackSecReal)[layer+1]) {
-    return -1;
-   }
-   else if ((*trackSecReal)[layer] > (*trackSecReal)[layer+1]) {
-    return 1;
-   }
-   else if (TMath::Abs((*trackSecReal)[layer] - (*trackSecReal)[layer+1]) < 0.5) {
-    return 0;
-   }
-   }
  */

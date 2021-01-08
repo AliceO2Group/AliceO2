@@ -29,13 +29,13 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2;
 using namespace o2::its;
 
-GPUd() bool GPUITSFitterKernel::fitTrack(GPUITSFitter& Fitter, GPUTPCGMPropagator& prop, GPUITSTrack& track, int start, int end, int step)
+GPUdii() bool GPUITSFitterKernel::fitTrack(GPUITSFitter& GPUrestrict() Fitter, GPUTPCGMPropagator& GPUrestrict() prop, GPUITSTrack& GPUrestrict() track, int start, int end, int step)
 {
   for (int iLayer{start}; iLayer != end; iLayer += step) {
     if (track.mClusters[iLayer] == o2::its::constants::its::UnusedIndex) {
       continue;
     }
-    const TrackingFrameInfo& trackingHit = Fitter.trackingFrame()[iLayer][track.mClusters[iLayer]];
+    const TrackingFrameInfo& GPUrestrict() trackingHit = Fitter.trackingFrame()[iLayer][track.mClusters[iLayer]];
 
     if (prop.PropagateToXAlpha(trackingHit.xTrackingFrame, trackingHit.alphaTrackingFrame, step > 0)) {
       return false;
@@ -55,7 +55,7 @@ GPUd() bool GPUITSFitterKernel::fitTrack(GPUITSFitter& Fitter, GPUTPCGMPropagato
 }
 
 template <>
-GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUTPCSharedMemory& smem, processorType& processors)
+GPUdii() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors)
 {
   GPUITSFitter& Fitter = processors.itsFitter;
 
@@ -78,7 +78,7 @@ GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock,
     int lastCellLevel = o2::its::constants::its::UnusedIndex;
     CA_DEBUGGER(int nClusters = 2);
 
-    for (int iCell{0}; iCell < o2::its::constants::its::CellsPerRoad; ++iCell) {
+    for (int iCell{0}; iCell < Fitter.NumberOfLayers() - 2; ++iCell) {
       const int cellIndex = road[iCell];
       if (cellIndex == o2::its::constants::its::UnusedIndex) {
         continue;
@@ -121,16 +121,16 @@ GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock,
       const float y3 = cluster3.positionTrackingFrame[0];
       const float z3 = cluster3.positionTrackingFrame[1];
 
-      const float crv = math_utils::computeCurvature(x1, y1, x2, y2, x3, y3);
-      const float x0 = math_utils::computeCurvatureCentreX(x1, y1, x2, y2, x3, y3);
-      const float tgl12 = math_utils::computeTanDipAngle(x1, y1, x2, y2, z1, z2);
-      const float tgl23 = math_utils::computeTanDipAngle(x2, y2, x3, y3, z2, z3);
+      const float crv = o2::its::math_utils::computeCurvature(x1, y1, x2, y2, x3, y3);
+      const float x0 = o2::its::math_utils::computeCurvatureCentreX(x1, y1, x2, y2, x3, y3);
+      const float tgl12 = o2::its::math_utils::computeTanDipAngle(x1, y1, x2, y2, z1, z2);
+      const float tgl23 = o2::its::math_utils::computeTanDipAngle(x2, y2, x3, y3, z2, z3);
 
       const float r2 = CAMath::Sqrt(cluster2.xCoordinate * cluster2.xCoordinate + cluster2.yCoordinate * cluster2.yCoordinate);
       const float r3 = CAMath::Sqrt(cluster3.xCoordinate * cluster3.xCoordinate + cluster3.yCoordinate * cluster3.yCoordinate);
       const float fy = 1. / (r2 - r3);
       const float& tz = fy;
-      const float cy = (math_utils::computeCurvature(x1, y1, x2, y2 + o2::its::constants::its::Resolution, x3, y3) - crv) / (o2::its::constants::its::Resolution * bz * constants::math::B2C) * 20.f; // FIXME: MS contribution to the cov[14] (*20 added)
+      const float cy = (o2::its::math_utils::computeCurvature(x1, y1, x2, y2 + o2::its::constants::its::Resolution, x3, y3) - crv) / (o2::its::constants::its::Resolution * bz * constants::math::B2C) * 20.f; // FIXME: MS contribution to the cov[14] (*20 added)
       constexpr float s2 = o2::its::constants::its::Resolution * o2::its::constants::its::Resolution;
 
       temporaryTrack.X() = cluster3.xTrackingFrame;
@@ -139,7 +139,7 @@ GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock,
       temporaryTrack.SinPhi() = crv * (x3 - x0);
       temporaryTrack.DzDs() = 0.5f * (tgl12 + tgl23);
       temporaryTrack.QPt() = CAMath::Abs(bz) < constants::math::Almost0 ? constants::math::Almost0 : crv / (bz * constants::math::B2C);
-      temporaryTrack.ZOffset() = 0;
+      temporaryTrack.TZOffset() = 0;
       temporaryTrack.Cov()[0] = s2;
       temporaryTrack.Cov()[1] = 0.f;
       temporaryTrack.Cov()[2] = s2;
@@ -164,13 +164,13 @@ GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock,
     for (size_t iC = 0; iC < 7; ++iC) {
       temporaryTrack.mClusters[iC] = clusters[iC];
     }
-    bool fitSuccess = fitTrack(Fitter, prop, temporaryTrack, o2::its::constants::its::LayersNumber - 4, -1, -1);
+    bool fitSuccess = fitTrack(Fitter, prop, temporaryTrack, Fitter.NumberOfLayers() - 4, -1, -1);
     if (!fitSuccess) {
       continue;
     }
     CA_DEBUGGER(fitCounters[nClusters - 4]++);
     temporaryTrack.ResetCovariance();
-    fitSuccess = fitTrack(Fitter, prop, temporaryTrack, 0, o2::its::constants::its::LayersNumber, 1);
+    fitSuccess = fitTrack(Fitter, prop, temporaryTrack, 0, Fitter.NumberOfLayers(), 1);
     if (!fitSuccess) {
       continue;
     }
@@ -184,12 +184,12 @@ GPUd() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock,
     temporaryTrack.mOuterParam.X = temporaryTrack.X();
     temporaryTrack.mOuterParam.alpha = prop.GetAlpha();
     temporaryTrack.ResetCovariance();
-    fitSuccess = fitTrack(Fitter, prop, temporaryTrack, o2::its::constants::its::LayersNumber - 1, -1, -1);
+    fitSuccess = fitTrack(Fitter, prop, temporaryTrack, Fitter.NumberOfLayers() - 1, -1, -1);
     if (!fitSuccess) {
       continue;
     }
     CA_DEBUGGER(refitCounters[nClusters - 4]++);
-    int trackId = CAMath::AtomicAdd(&Fitter.NumberOfTracks(), 1);
+    int trackId = CAMath::AtomicAdd(&Fitter.NumberOfTracks(), 1u);
     Fitter.tracks()[trackId] = temporaryTrack;
   }
 #ifdef CA_DEBUG

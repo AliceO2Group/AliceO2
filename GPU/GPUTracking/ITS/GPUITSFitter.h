@@ -17,20 +17,15 @@
 #include "GPUProcessor.h"
 #include "GPUITSTrack.h"
 
-namespace o2
-{
-namespace its
+namespace o2::its
 {
 class Road;
 struct TrackingFrameInfo;
 struct Cluster;
 class Cell;
-} // namespace its
-} // namespace o2
+} // namespace o2::its
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 class GPUITSTrack;
 
@@ -40,7 +35,7 @@ class GPUITSFitter : public GPUProcessor
 #ifndef GPUCA_GPUCODE
   void InitializeProcessor();
   void RegisterMemoryAllocation();
-  void SetMaxData();
+  void SetMaxData(const GPUTrackingInOutPointers& io);
 
   void* SetPointersInput(void* mem);
   void* SetPointersTracks(void* mem);
@@ -61,6 +56,8 @@ class GPUITSFitter : public GPUProcessor
   {
     return mMemory->mNumberOfTracks;
   }
+  GPUd() void SetNumberOfLayers(int i) { mNumberOfLayers = i; }
+  GPUd() int NumberOfLayers() { return mNumberOfLayers; }
   GPUd() void SetNumberTF(int i, int v) { mNTF[i] = v; }
   GPUd() o2::its::TrackingFrameInfo** trackingFrame()
   {
@@ -82,22 +79,22 @@ class GPUITSFitter : public GPUProcessor
   };
 
  protected:
+  int mNumberOfLayers;
   int mNumberOfRoads = 0;
   int mNMaxTracks = 0;
-  int mNTF[7] = {};
+  int* mNTF = nullptr;
   Memory* mMemory = nullptr;
   o2::its::Road* mRoads = nullptr;
-  o2::its::TrackingFrameInfo* mTF[7] = {};
+  o2::its::TrackingFrameInfo** mTF = {nullptr};
   GPUITSTrack* mTracks = nullptr;
 
-  const o2::its::Cluster* mClusterPtrs[7];
-  const o2::its::Cell* mCellPtrs[5];
+  const o2::its::Cluster** mClusterPtrs;
+  const o2::its::Cell** mCellPtrs;
 
   short mMemoryResInput = -1;
   short mMemoryResTracks = -1;
   short mMemoryResMemory = -1;
 };
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

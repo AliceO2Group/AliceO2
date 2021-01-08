@@ -10,13 +10,12 @@
 #ifndef FRAMEWORK_COMPLETIONPOLICY_H
 #define FRAMEWORK_COMPLETIONPOLICY_H
 
-#include "Framework/PartRef.h"
+#include "Framework/DataRef.h"
+#include "Framework/InputSpan.h"
 
 #include <functional>
 #include <string>
 #include <vector>
-
-#include <gsl/span>
 
 namespace o2
 {
@@ -50,18 +49,27 @@ struct CompletionPolicy {
   };
 
   using Matcher = std::function<bool(DeviceSpec const& device)>;
-  using Callback = std::function<CompletionOp(gsl::span<PartRef const> const&)>;
+  using InputSetElement = DataRef;
+  using InputSet = InputSpan const&;
+  using Callback = std::function<CompletionOp(InputSet)>;
 
   /// Name of the policy itself.
-  std::string name;
+  std::string name = "";
   /// Callback to be used to understand if the policy should apply
   /// to the given device.
-  Matcher matcher;
+  Matcher matcher = nullptr;
   /// Actual policy which decides what to do with a partial InputRecord.
-  Callback callback;
+  Callback callback = nullptr;
 
   /// Helper to create the default configuration.
   static std::vector<CompletionPolicy> createDefaultPolicies();
+
+  /// Constructor
+  CompletionPolicy()
+    : name(), matcher(), callback() {}
+  /// Constructor for emplace_back
+  CompletionPolicy(std::string _name, Matcher _matcher, Callback _callback)
+    : name(_name), matcher(_matcher), callback(_callback) {}
 };
 
 std::ostream& operator<<(std::ostream& oss, CompletionPolicy::CompletionOp const& val);

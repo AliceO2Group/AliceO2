@@ -40,8 +40,6 @@ using namespace o2::tpc;
 using namespace o2::dataformats;
 using namespace std;
 
-using MCLabelContainer = MCTruthContainer<o2::MCCompLabel>;
-
 #if !defined(__CLING__) || defined(__ROOTCLING__) // Disable in interpreted mode due to missing rootmaps
 
 // This is a prototype of a macro to test running the HLT O2 CA Tracking library on a root input file containg
@@ -58,7 +56,7 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile)
   // Just some default options to keep the macro running for now
   // Should be deprecated anyway in favor of the TPC workflow
   GPUO2InterfaceConfiguration config;
-  config.configEvent.continuousMaxTimeBin = 0.023 * 5e6;
+  config.configEvent.continuousMaxTimeBin = GPUSettings::TPC_MAX_TF_TIME_BIN;
   config.configReconstruction.NWays = 3;
   config.configReconstruction.NWaysOuter = true;
   config.configReconstruction.SearchWindowDZDR = 2.5f;
@@ -74,8 +72,8 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile)
   bool doMC = true;
 
   TFile fin(inputFile);
-  for (int i = 0; i < Constants::MAXSECTOR; i++) {
-    for (int j = 0; j < Constants::MAXGLOBALPADROW; j++) {
+  for (int i = 0; i < o2::tpc::constants::MAXSECTOR; i++) {
+    for (int j = 0; j < o2::tpc::constants::MAXGLOBALPADROW; j++) {
       TString contName = Form("clusters_sector_%d_row_%d", i, j);
       TObject* tmp = fin.FindObjectAny(contName);
       if (tmp == nullptr) {
@@ -99,17 +97,20 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile)
     ClusterNativeHelper::createClusterNativeIndex(clusterBuffer, cont, doMC ? &clusterMCBuffer : nullptr, doMC ? &contMC : nullptr);
 
   vector<TrackTPC> tracks;
-  MCLabelContainer tracksMC;
+  vector<TPCClRefElem> trackClusRefs;
+  std::vector<o2::MCCompLabel> tracksMC;
 
   TFile fout(outputFile, "recreate");
   TTree tout("events", "events");
   tout.Branch("Tracks", &tracks);
+  tout.Branch("TracksClusRefs", &trackClusRefs);
   tout.Branch("TracksMCTruth", &tracksMC);
 
   printf("Processing time frame\n");
   GPUO2InterfaceIOPtrs ptrs;
   ptrs.clusters = clusters.get();
   ptrs.outputTracks = &tracks;
+  ptrs.outputClusRefs = &trackClusRefs;
   ptrs.outputTracksMCTruth = doMC ? &tracksMC : nullptr;
   if (tracker.runTracking(&ptrs) == 0) {
     printf("\tFound %d tracks\n", (int)tracks.size());
@@ -118,7 +119,6 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile)
   }
 
   float artificialVDrift = tracker.getPseudoVDrift();
-  float tfReferenceLength = tracker.getTFReferenceLength();
 
   // partial printout of 100 tracks
   int step = tracks.size() / 100;
@@ -129,9 +129,9 @@ int runCATrackingClusterNative(TString inputFile, TString outputFile)
       // Get cluster references
       uint8_t sector, row;
       uint32_t clusterIndexInRow;
-      tracks[i].getClusterReference(j, sector, row, clusterIndexInRow);
-      const ClusterNative& cl = tracks[i].getCluster(j, *clusters, sector, row);
-      const ClusterNative& clLast = tracks[i].getCluster(0, *clusters);
+      tracks[i].getClusterReference(trackClusRefs, j, sector, row, clusterIndexInRow);
+      const ClusterNative& cl = tracks[i].getCluster(trackClusRefs, j, *clusters, sector, row);
+      const ClusterNative& clLast = tracks[i].getCluster(trackClusRefs, 0, *clusters);
       // RS: TODO: account for possible A/C merged tracks
       float sideFactor = tracks[i].hasASideClustersOnly() ? -1.f : 1.f;
       printf(

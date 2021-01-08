@@ -13,35 +13,16 @@
 #ifndef O2_ITS_TRACKWRITER
 #define O2_ITS_TRACKWRITER
 
-#include "TFile.h"
-
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/Task.h"
-
-using namespace o2::framework;
 
 namespace o2
 {
 namespace its
 {
 
-class TrackWriter : public Task
-{
- public:
-  TrackWriter(bool useMC) : mUseMC(useMC) {}
-  ~TrackWriter() override = default;
-  void init(InitContext& ic) final;
-  void run(ProcessingContext& pc) final;
-
- private:
-  int mState = 0;
-  bool mUseMC = true;
-  std::unique_ptr<TFile> mFile = nullptr;
-};
-
 /// create a processor spec
-/// write ITS tracks a root file
-framework::DataProcessorSpec getTrackWriterSpec(bool useMC);
+/// write ITS tracks to ROOT file
+o2::framework::DataProcessorSpec getTrackWriterSpec(bool useMC);
 
 } // namespace its
 } // namespace o2

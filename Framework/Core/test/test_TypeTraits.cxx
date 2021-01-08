@@ -131,3 +131,30 @@ BOOST_AUTO_TEST_CASE(TestHasRootStreamer)
   BOOST_REQUIRE_EQUAL(has_root_dictionary<decltype(f)>::value, true);
   BOOST_REQUIRE_EQUAL(has_root_dictionary<decltype(g)>::value, false);
 }
+
+BOOST_AUTO_TEST_CASE(TestIsSpan)
+{
+  gsl::span<int> a;
+  int b;
+  std::vector<char> c;
+  BOOST_REQUIRE_EQUAL(is_span<decltype(a)>::value, true);
+  BOOST_REQUIRE_EQUAL(is_span<decltype(b)>::value, false);
+  BOOST_REQUIRE_EQUAL(is_span<decltype(c)>::value, false);
+}
+
+BOOST_AUTO_TEST_CASE(TestCanAssign)
+{
+  using Callback = std::function<bool(int, float)>;
+  auto matching = [](int, float) -> bool {
+    return true;
+  };
+  auto otherReturn = [](int, float) -> int {
+    return 0;
+  };
+  auto otherParam = [](int, int) -> bool {
+    return true;
+  };
+  BOOST_REQUIRE((can_assign<decltype(matching), Callback>::value == true));
+  BOOST_REQUIRE((can_assign<decltype(otherReturn), Callback>::value == false));
+  BOOST_REQUIRE((can_assign<decltype(otherParam), Callback>::value == false));
+}

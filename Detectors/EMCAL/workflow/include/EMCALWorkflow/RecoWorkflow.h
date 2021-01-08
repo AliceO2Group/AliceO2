@@ -24,22 +24,38 @@ namespace emcal
 namespace reco_workflow
 {
 
-/// define input and output types of the workflow
-enum struct InputType { Digitizer, // directly read digits from channel {TPC:DIGITS}
-                        Digits,    // read digits from file
-                        Raw,       // read hardware clusters in raw page format from file
-                        Clusters,  // read native clusters from file
-};
-enum struct OutputType { Digits,
-                         Raw,
-                         Clusters
+/// \enum InputType
+/// \brief Input types of the workflow
+/// \ingroup EMCALworkflow
+enum struct InputType { Digits,  ///< read digits from file
+                        Cells,   ///< read compressed cells from file
+                        Raw,     ///< read data in raw page format from file
+                        Clusters ///< read native clusters from file
 };
 
-/// create the workflow for EMCAL reconstruction
+/// \enum OutputType
+/// \brief Output types of the workflow
+/// \ingroup EMCALworkflow
+enum struct OutputType { Digits,          ///< EMCAL digits
+                         Cells,           ///< EMCAL cells
+                         Raw,             ///< EMCAL raw data
+                         Clusters,        ///< EMCAL clusters
+                         AnalysisClusters ///< EMCAL analysis clusters
+};
+
+/// \brief create the workflow for EMCAL reconstruction
+/// \param propagateMC If true MC labels are propagated to the output files
+/// \param enableDigitsPrinter If true
+/// \param cfgInput Input objects processed in the workflow
+/// \param cfgOutput Output objects created in the workflow
+/// \return EMCAL reconstruction workflow for the configuration provided
+/// \ingroup EMCALwokflow
 framework::WorkflowSpec getWorkflow(bool propagateMC = true,
-                                    std::string const& cfgInput = "digits",   //
-                                    std::string const& cfgOutput = "clusters" //
-);
+                                    bool enableDigitsPrinter = false,
+                                    std::string const& cfgInput = "digits",    //
+                                    std::string const& cfgOutput = "clusters", //
+                                    bool disableRootInput = false,
+                                    bool disableRootOutput = false);
 } // namespace reco_workflow
 
 } // namespace emcal

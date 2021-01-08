@@ -46,39 +46,60 @@ class CalArray;
 class CalibTreeDump
 {
  public:
-  using DataTypes = boost::variant<CalDet<int>, CalDet<float>, CalDet<double>, CalDet<bool>, CalDet<unsigned int>>;
+  using DataTypes = CalDet<float>; //boost::variant<CalDet<int>, CalDet<float>, CalDet<double>, CalDet<bool>, CalDet<unsigned int>>;
 
   CalibTreeDump() = default;
   ~CalibTreeDump() = default;
 
   /// Add CalDet object
   template <typename T>
-  void add(const CalDet<T>& calDet)
+  void add(CalDet<T>* calDet)
   {
-    mCalDetObjects.push_back(calDet);
+    mCalDetObjects.emplace_back(calDet);
   }
   //void add(const CalDet<DataTypes>& calDet) { mCalDetObjects.push_back(calDet); }
 
   /// Add CalArray objects
   template <typename T>
-  void add(const CalArray<T>& calArray)
+  void add(CalArray<T>* calArray)
   {
-    mCalArrayObjects.push_back(calArray);
+    mCalArrayObjects.emplace_back(calArray);
   }
+
+  /// Set adding of FEE mapping to the tree
+  void setAddFEEInfo(bool add = true) { mAddFEEInfo = add; }
+
+  /// Add CalPad objects from a file
+  void addCalPads(const std::string_view file, const std::string_view calPadNames);
 
   /// Dump the registered calibration data to file
   void dumpToFile(const std::string filename = "CalibTree.root");
 
  private:
-  std::vector<DataTypes> mCalDetObjects;   ///< array of CalDet objects
-  std::vector<DataTypes> mCalArrayObjects; ///< array of CalArray objects
+  std::vector<DataTypes*> mCalDetObjects{};   ///< array of CalDet objects
+  std::vector<DataTypes*> mCalArrayObjects{}; ///< array of CalArray objects
+  bool mAddFEEInfo{false};                   ///< add front end electronics mappings
+  std::vector<float> mTraceLengthIROC;       ///< trace lengths IROC
+  std::vector<float> mTraceLengthOROC;       ///< trace lengths OROC
 
   /// add default mapping like local, global x/y positions
   void addDefaultMapping(TTree* tree);
 
+  /// add FEE mapping like FEC id, SAMPA id, chip id
+  void addFEEMapping(TTree* tree);
+
   /// add the values of the calDet objects
   /// \todo still to be finalized
   void addCalDetObjects(TTree* tree);
+
+  /// set default aliases
+  void setDefaultAliases(TTree* tree);
+
+  /// read trace lengths
+  void readTraceLengths(std::string_view mappingDir = "");
+
+  /// load trace lengths into vector
+  void setTraceLengths(std::string_view inputFile, std::vector<float>& length);
 
   /// forwarding visitor class, required to loop over the variant types
   template <class Result, class Func>

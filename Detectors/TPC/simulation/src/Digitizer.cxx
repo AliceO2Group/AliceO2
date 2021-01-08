@@ -40,7 +40,7 @@ void Digitizer::init()
 {
   // Calculate distortion lookup tables if initial space-charge density is provided
   if (mUseSCDistortions) {
-    mSpaceChargeHandler->init();
+    mSpaceCharge->init();
   }
 }
 
@@ -79,7 +79,7 @@ void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
 
       // Distort the electron position in case space-charge distortions are used
       if (mUseSCDistortions) {
-        mSpaceChargeHandler->distortElectron(posEle);
+        mSpaceCharge->distortElectron(posEle);
       }
 
       /// Remove electrons that end up more than three sigma of the hit's average diffusion away from the current sector
@@ -156,20 +156,41 @@ void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
 }
 
 void Digitizer::flush(std::vector<o2::tpc::Digit>& digits,
-                      o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels, bool finalFlush)
+                      o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels,
+                      std::vector<o2::tpc::CommonMode>& commonModeOutput,
+                      bool finalFlush)
 {
   static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
-  mDigitContainer.fillOutputContainer(digits, labels, mSector, sampaProcessing.getTimeBinFromTime(mEventTime), mIsContinuous, finalFlush);
+  mDigitContainer.fillOutputContainer(digits, labels, commonModeOutput, mSector, sampaProcessing.getTimeBinFromTime(mEventTime), mIsContinuous, finalFlush);
 }
 
-void Digitizer::enableSCDistortions(SpaceCharge::SCDistortionType distortionType, TH3* hisInitialSCDensity, int nZSlices, int nPhiBins, int nRBins)
+void Digitizer::setUseSCDistortions(SC::SCDistortionType distortionType, const TH3* hisInitialSCDensity)
 {
   mUseSCDistortions = true;
-  if (!mSpaceChargeHandler) {
-    mSpaceChargeHandler = std::make_unique<SpaceCharge>(nZSlices, nPhiBins, nRBins);
+  if (!mSpaceCharge) {
+    mSpaceCharge = std::make_unique<SC>();
   }
-  mSpaceChargeHandler->setSCDistortionType(distortionType);
+  mSpaceCharge->setSCDistortionType(distortionType);
   if (hisInitialSCDensity) {
-    mSpaceChargeHandler->setInitialSpaceChargeDensity(hisInitialSCDensity);
+    mSpaceCharge->fillChargeDensityFromHisto(*hisInitialSCDensity);
+    mSpaceCharge->setUseInitialSCDensity(true);
   }
+}
+
+void Digitizer::setUseSCDistortions(SC* spaceCharge)
+{
+  mUseSCDistortions = true;
+  mSpaceCharge.reset(spaceCharge);
+}
+
+void Digitizer::setUseSCDistortions(TFile& finp)
+{
+  mUseSCDistortions = true;
+  if (!mSpaceCharge) {
+    mSpaceCharge = std::make_unique<SC>();
+  }
+  mSpaceCharge->setGlobalDistortionsFromFile(finp, Side::A);
+  mSpaceCharge->setGlobalDistortionsFromFile(finp, Side::C);
+  mSpaceCharge->setGlobalCorrectionsFromFile(finp, Side::A);
+  mSpaceCharge->setGlobalCorrectionsFromFile(finp, Side::C);
 }

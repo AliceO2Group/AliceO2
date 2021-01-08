@@ -15,6 +15,7 @@
 #include "TGeoGlobalMagField.h"
 
 #include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "ITSWorkflow/CookedTrackerSpec.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/Cluster.h"
@@ -32,6 +33,11 @@
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/Vertexer.h"
 #include "ITStracking/VertexerTraits.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/StringUtils.h"
+
+#include "ITSReconstruction/FastMultEstConfig.h"
+#include "ITSReconstruction/FastMultEst.h"
 
 using namespace o2::framework;
 
@@ -40,8 +46,12 @@ namespace o2
 namespace its
 {
 
+using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
+
 void CookedTrackerDPL::init(InitContext& ic)
 {
+  mTimer.Stop();
+  mTimer.Reset();
   auto nthreads = ic.options().get<int>("nthreads");
   mTracker.setNumberOfThreads(nthreads);
   auto filename = ic.options().get<std::string>("grp-file");
@@ -53,8 +63,8 @@ void CookedTrackerDPL::init(InitContext& ic)
 
     o2::base::GeometryManager::loadGeometry();
     o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
-    geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::T2L, o2::TransformType::T2GRot,
-                                              o2::TransformType::T2G));
+    geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
+                                                   o2::math_utils::TransformType::T2G));
     mTracker.setGeometry(geom);
 
     double origD[3] = {0., 0., 0.};
@@ -64,82 +74,144 @@ void CookedTrackerDPL::init(InitContext& ic)
     LOG(INFO) << "ITSCookedTracker RO: continuous=" << continuous;
     mTracker.setContinuousMode(continuous);
   } else {
-    LOG(ERROR) << "Cannot retrieve GRP from the " << filename.c_str() << " file !";
-    mState = 0;
+    throw std::runtime_error(o2::utils::concat_string("Cannot retrieve GRP from the ", filename));
   }
-  mState = 1;
+
+  std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
+  std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
+  if (o2::base::NameConf::pathExists(dictFile)) {
+    mDict.readBinaryFile(dictFile);
+    LOG(INFO) << "Tracker running with a provided dictionary: " << dictFile;
+  } else {
+    LOG(INFO) << "Dictionary " << dictFile << " is absent, Tracker expects cluster patterns";
+  }
 }
 
 void CookedTrackerDPL::run(ProcessingContext& pc)
 {
-  if (mState != 1)
-    return;
+  mTimer.Start(false);
+  auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
+  gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
 
-  auto compClusters = pc.inputs().get<const std::vector<o2::itsmft::CompClusterExt>>("compClusters");
-  auto clusters = pc.inputs().get<const std::vector<o2::itsmft::Cluster>>("clusters");
-  auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
+  // code further down does assignment to the rofs and the altered object is used for output
+  // we therefore need a copy of the vector rather than an object created directly on the input data,
+  // the output vector however is created directly inside the message memory thus avoiding copy by
+  // snapshot
+  auto rofsinput = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
+  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "ITSTrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
 
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> labels;
-  std::vector<o2::itsmft::MC2ROFRecord> mc2rofs;
+  gsl::span<itsmft::MC2ROFRecord const> mc2rofs;
   if (mUseMC) {
     labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
-    mc2rofs = pc.inputs().get<const std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
+    // get the array as read-onlt span, a snapshot is send forward
+    mc2rofs = pc.inputs().get<gsl::span<itsmft::MC2ROFRecord>>("MC2ROframes");
   }
+  const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
+  FastMultEst multEst;                                     // mult estimator
 
-  LOG(INFO) << "ITSCookedTracker pulled " << clusters.size() << " clusters, in "
-            << rofs.size() << " RO frames";
+  LOG(INFO) << "ITSCookedTracker pulled " << compClusters.size() << " clusters, in " << rofs.size() << " RO frames";
 
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackLabels;
+  std::vector<o2::MCCompLabel> trackLabels;
   if (mUseMC) {
     mTracker.setMCTruthContainers(labels.get(), &trackLabels);
   }
 
   o2::its::VertexerTraits vertexerTraits;
   o2::its::Vertexer vertexer(&vertexerTraits);
-  o2::its::ROframe event(0);
+  o2::its::ROframe event(0, 7);
 
-  std::vector<o2::its::TrackITS> tracks;
-  std::vector<int> clusIdx;
+  auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe});
+  auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe});
+  auto& tracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"ITS", "TRACKS", 0, Lifetime::Timeframe});
+  auto& clusIdx = pc.outputs().make<std::vector<int>>(Output{"ITS", "TRACKCLSID", 0, Lifetime::Timeframe});
+
+  gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
   for (auto& rof : rofs) {
-    o2::its::ioutils::loadROFrameData(rof, event, &clusters, labels.get());
-    vertexer.clustersToVertices(event);
-    auto vertices = vertexer.exportVertices();
-    if (vertices.empty()) {
-      vertices.emplace_back();
+    auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
+    vtxROF.setFirstEntry(vertices.size());
+    vtxROF.setNEntries(0);
+
+    auto it = pattIt;
+    o2::its::ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels.get());
+
+    // fast cluster mult. cut if asked (e.g. sync. mode)
+    if (rof.getNEntries() && (multEstConf.cutMultClusLow > 0 || multEstConf.cutMultClusHigh > 0)) { // cut was requested
+      auto mult = multEst.process(rof.getROFData(compClusters));
+      if (mult < multEstConf.cutMultClusLow || (multEstConf.cutMultClusHigh > 0 && mult > multEstConf.cutMultClusHigh)) {
+        LOG(INFO) << "Estimated cluster mult. " << mult << " is outside of requested range "
+                  << multEstConf.cutMultClusLow << " : " << multEstConf.cutMultClusHigh << " | ROF " << rof.getBCData();
+        rof.setFirstEntry(tracks.size());
+        rof.setNEntries(0);
+        continue;
+      }
     }
-    mTracker.setVertices(vertices);
-    mTracker.process(clusters, tracks, clusIdx, rof);
+
+    vertexer.clustersToVertices(event);
+    auto vtxVecLoc = vertexer.exportVertices();
+
+    if (multEstConf.cutMultVtxLow > 0 || multEstConf.cutMultVtxHigh > 0) { // cut was requested
+      std::vector<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>> vtxVecSel;
+      vtxVecSel.swap(vtxVecLoc);
+      for (const auto& vtx : vtxVecSel) {
+        if (vtx.getNContributors() < multEstConf.cutMultVtxLow || (multEstConf.cutMultVtxHigh > 0 && vtx.getNContributors() > multEstConf.cutMultVtxHigh)) {
+          LOG(INFO) << "Found vertex mult. " << vtx.getNContributors() << " is outside of requested range "
+                    << multEstConf.cutMultVtxLow << " : " << multEstConf.cutMultVtxHigh << " | ROF " << rof.getBCData();
+          continue; // skip vertex of unwanted multiplicity
+        }
+        vtxVecLoc.push_back(vtx);
+      }
+    }
+    if (vtxVecLoc.empty()) {
+      if (multEstConf.cutMultVtxLow < 1) { // do blind search only if there is no cut on the low mult vertices
+        vtxVecLoc.emplace_back();
+      } else {
+        rof.setFirstEntry(tracks.size());
+        rof.setNEntries(0);
+        continue;
+      }
+    } else { // save vetrices
+      vtxROF.setNEntries(vtxVecLoc.size());
+      for (const auto& vtx : vtxVecLoc) {
+        vertices.push_back(vtx);
+      }
+    }
+    mTracker.setVertices(vtxVecLoc);
+    mTracker.process(compClusters, it, mDict, tracks, clusIdx, rof);
   }
 
   LOG(INFO) << "ITSCookedTracker pushed " << tracks.size() << " tracks";
-  pc.outputs().snapshot(Output{"ITS", "TRACKS", 0, Lifetime::Timeframe}, tracks);
-  pc.outputs().snapshot(Output{"ITS", "TRACKCLSID", 0, Lifetime::Timeframe}, clusIdx);
-  pc.outputs().snapshot(Output{"ITS", "ITSTrackROF", 0, Lifetime::Timeframe}, rofs);
 
   if (mUseMC) {
     pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, trackLabels);
     pc.outputs().snapshot(Output{"ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
   }
+  mTimer.Stop();
+}
 
-  mState = 2;
-  pc.services().get<ControlService>().readyToQuit(false);
+void CookedTrackerDPL::endOfStream(EndOfStreamContext& ec)
+{
+  LOGF(INFO, "ITS Cooked-Tracker total timing: Cpu: %.3e Real: %.3e s in %d slots",
+       mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
 DataProcessorSpec getCookedTrackerSpec(bool useMC)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("clusters", "ITS", "CLUSTERS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ROframes", "ITS", "ITSClusterROF", 0, Lifetime::Timeframe);
+  inputs.emplace_back("patterns", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "VERTICES", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "VERTICESROF", 0, Lifetime::Timeframe);
 
   if (useMC) {
     inputs.emplace_back("labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    inputs.emplace_back("MC2ROframes", "ITS", "ITSClusterMC2ROF", 0, Lifetime::Timeframe);
+    inputs.emplace_back("MC2ROframes", "ITS", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe);
   }
@@ -151,8 +223,8 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC)
     AlgorithmSpec{adaptFromTask<CookedTrackerDPL>(useMC)},
     Options{
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
-      {"nthreads", VariantType::Int, 1, {"Number of threads"}},
-    }};
+      {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
+      {"nthreads", VariantType::Int, 1, {"Number of threads"}}}};
 }
 
 } // namespace its

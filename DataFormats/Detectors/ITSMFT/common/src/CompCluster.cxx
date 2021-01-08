@@ -26,7 +26,7 @@ std::ostream& operator<<(std::ostream& stream, const CompCluster& cl)
 
 std::ostream& operator<<(std::ostream& stream, const CompClusterExt& cl)
 {
-  stream << "ROF: " << cl.getROFrame() << " chip: " << cl.getChipID() << ((const CompCluster&)cl);
+  stream << " chip: " << cl.getChipID() << ((const CompCluster&)cl);
   return stream;
 }
 

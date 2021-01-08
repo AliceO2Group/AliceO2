@@ -30,39 +30,25 @@ class GPUTPCTracker;
  * @class GPUTPCStartHitsSorter
  *
  */
-class GPUTPCStartHitsSorter
+class GPUTPCStartHitsSorter : public GPUKernelTemplate
 {
  public:
   MEM_CLASS_PRE()
-  class GPUTPCSharedMemory
-  {
-    friend class GPUTPCStartHitsSorter;
-
-   public:
-#if !defined(GPUCA_GPUCODE)
-    GPUTPCSharedMemory() : mStartRow(0), mNRows(0), mStartOffset(0)
-    {
-    }
-
-    GPUTPCSharedMemory(const GPUTPCSharedMemory& /*dummy*/) : mStartRow(0), mNRows(0), mStartOffset(0) {}
-    GPUTPCSharedMemory& operator=(const GPUTPCSharedMemory& /*dummy*/) { return *this; }
-#endif //! GPUCA_GPUCODE
-
-   protected:
+  struct GPUSharedMemory {
     int mStartRow;    // start row index
     int mNRows;       // number of rows to process
     int mStartOffset; // start offset for hits sorted by this block
   };
 
   typedef GPUconstantref() MEM_GLOBAL(GPUTPCTracker) processorType;
-  GPUhdi() static GPUDataTypes::RecoStep GetRecoStep() { return GPUCA_RECO_STEP::TPCSliceTracking; }
+  GPUhdi() CONSTEXPRRET static GPUDataTypes::RecoStep GetRecoStep() { return GPUCA_RECO_STEP::TPCSliceTracking; }
   MEM_TEMPLATE()
   GPUhdi() static processorType* Processor(MEM_TYPE(GPUConstantMem) & processors)
   {
     return processors.tpcTrackers;
   }
-  template <int iKernel = 0>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUTPCSharedMemory) & smem, processorType& tracker);
+  template <int iKernel = defaultKernel>
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, processorType& tracker);
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

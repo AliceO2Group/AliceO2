@@ -17,13 +17,14 @@
 #include "ITSMFTReconstruction/PixelReader.h"
 #include "ITSMFTReconstruction/PixelData.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include <TTree.h>
 #include <vector>
 #include <memory>
+#include <gsl/span>
 
 namespace o2
 {
@@ -36,34 +37,34 @@ class DigitPixelReader : public PixelReader
   DigitPixelReader() = default;
   ~DigitPixelReader() override;
 
-  const std::vector<o2::itsmft::MC2ROFRecord>* getMC2ROFRecords() const
+  const auto getMC2ROFRecords() const
   {
     return mMC2ROFRecVec;
   }
 
-  void setMC2ROFRecords(const std::vector<o2::itsmft::MC2ROFRecord>* a)
+  void setMC2ROFRecords(const gsl::span<const o2::itsmft::MC2ROFRecord> a)
   {
     mMC2ROFRecVec = a;
   }
 
-  void setROFRecords(const std::vector<o2::itsmft::ROFRecord>* a)
+  void setROFRecords(const gsl::span<const o2::itsmft::ROFRecord> a)
   {
     mROFRecVec = a;
     mIdROF = -1;
   }
 
-  void setDigits(const std::vector<o2::itsmft::Digit>* a)
+  void setDigits(const gsl::span<const o2::itsmft::Digit> a)
   {
     mDigits = a;
     mIdDig = 0;
   }
 
-  void setDigitsMCTruth(const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* m)
+  void setDigitsMCTruth(const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>* m)
   {
     mDigitsMCTruth = m;
   }
 
-  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* getDigitsMCTruth() const override
+  const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>* getDigitsMCTruth() const override
   {
     return mDigitsMCTruth;
   }
@@ -73,10 +74,12 @@ class DigitPixelReader : public PixelReader
 
   void init() override
   {
-    mLastDigit = nullptr;
     mIdDig = 0;
     mIdROF = -1;
   }
+
+  // prepare next trigger
+  int decodeNextTrigger() override;
 
   // methods for standalone reading
   void openInput(const std::string rawInput, o2::detectors::DetID det);
@@ -96,20 +99,17 @@ class DigitPixelReader : public PixelReader
   std::vector<o2::itsmft::Digit>* mDigitsSelf = nullptr;
   std::vector<o2::itsmft::ROFRecord>* mROFRecVecSelf = nullptr;
   std::vector<o2::itsmft::MC2ROFRecord>* mMC2ROFRecVecSelf = nullptr;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mDigitsMCTruthSelf = nullptr;
+  const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>* mDigitsMCTruthSelf = nullptr;
 
-  const std::vector<o2::itsmft::Digit>* mDigits = nullptr;
-  const std::vector<o2::itsmft::ROFRecord>* mROFRecVec = nullptr;
-  const std::vector<o2::itsmft::MC2ROFRecord>* mMC2ROFRecVec = nullptr;
+  gsl::span<const o2::itsmft::Digit> mDigits;
+  gsl::span<const o2::itsmft::ROFRecord> mROFRecVec;
+  gsl::span<const o2::itsmft::MC2ROFRecord> mMC2ROFRecVec;
 
-  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mDigitsMCTruth = nullptr;
-  const Digit* mLastDigit = nullptr;
-  Int_t mIdDig = 0; // last Digits slot read
-  Int_t mIdROF = 0; // last ROFRecord slot read
+  const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>* mDigitsMCTruth = nullptr;
+  Int_t mIdDig = 0; // Digits slot read within ROF
+  Int_t mIdROF = 0; // ROFRecord being red
 
   std::unique_ptr<TTree> mInputTree;       // input tree for digits
-  std::unique_ptr<TTree> mInputTreeROF;    // input tree for ROF references
-  std::unique_ptr<TTree> mInputTreeMC2ROF; // input tree for MC2ROF references
 
   ClassDefOverride(DigitPixelReader, 1);
 };

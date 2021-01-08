@@ -22,15 +22,14 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-#ifdef GPUCA_O2_LIB
+#if defined(GPUCA_O2_LIB) || defined(GPUCA_O2_INTERFACE)
 typedef unsigned int calink;
 typedef unsigned int cahit;
 #else
 typedef unsigned int calink;
 typedef unsigned int cahit;
 #endif
-
-struct cahit2{cahit x, y;};
+struct cahit2 { cahit x, y; };
 }
 } // GPUCA_NAMESPACE::GPU
 
@@ -49,14 +48,6 @@ struct cahit2{cahit x, y;};
   #ifdef GPUCA_TPC_USE_STAT_ERROR
     #undef GPUCA_TPC_USE_STAT_ERROR
   #endif
-#endif
-
-#ifdef GPUCA_EXTERN_ROW_HITS
-  #define CA_GET_ROW_HIT(iRow) tracker.TrackletRowHits()[iRow * s.mNTracklets + r.mItr]
-  #define CA_SET_ROW_HIT(iRow, val) tracker.TrackletRowHits()[iRow * s.mNTracklets + r.mItr] = val
-#else
-  #define CA_GET_ROW_HIT(iRow) tracklet.RowHit(iRow)
-  #define CA_SET_ROW_HIT(iRow, val) tracklet.SetRowHit(iRow, val)
 #endif
 
 #endif //GPUDTPCEF_H

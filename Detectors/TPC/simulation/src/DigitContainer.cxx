@@ -21,7 +21,7 @@
 using namespace o2::tpc;
 
 void DigitContainer::fillOutputContainer(std::vector<Digit>& output,
-                                         dataformats::MCTruthContainer<MCCompLabel>& mcTruth, const Sector& sector, TimeBin eventTimeBin, bool isContinuous, bool finalFlush)
+                                         dataformats::MCTruthContainer<MCCompLabel>& mcTruth, std::vector<CommonMode>& commonModeOutput, const Sector& sector, TimeBin eventTimeBin, bool isContinuous, bool finalFlush)
 {
   auto& eleParam = ParameterElectronics::Instance();
   const auto digitizationMode = eleParam.DigiMode;
@@ -38,19 +38,19 @@ void DigitContainer::fillOutputContainer(std::vector<Digit>& output,
 
       switch (digitizationMode) {
         case DigitzationMode::FullMode: {
-          time.fillOutputContainer<DigitzationMode::FullMode>(output, mcTruth, sector, timeBin);
+          time.fillOutputContainer<DigitzationMode::FullMode>(output, mcTruth, commonModeOutput, sector, timeBin);
           break;
         }
         case DigitzationMode::SubtractPedestal: {
-          time.fillOutputContainer<DigitzationMode::SubtractPedestal>(output, mcTruth, sector, timeBin);
+          time.fillOutputContainer<DigitzationMode::SubtractPedestal>(output, mcTruth, commonModeOutput, sector, timeBin);
           break;
         }
         case DigitzationMode::NoSaturation: {
-          time.fillOutputContainer<DigitzationMode::NoSaturation>(output, mcTruth, sector, timeBin);
+          time.fillOutputContainer<DigitzationMode::NoSaturation>(output, mcTruth, commonModeOutput, sector, timeBin);
           break;
         }
         case DigitzationMode::PropagateADC: {
-          time.fillOutputContainer<DigitzationMode::PropagateADC>(output, mcTruth, sector, timeBin);
+          time.fillOutputContainer<DigitzationMode::PropagateADC>(output, mcTruth, commonModeOutput, sector, timeBin);
           break;
         }
       }

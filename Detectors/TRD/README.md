@@ -1,5 +1,9 @@
+<!-- doxy
 \page refDetectorsTRD TRD
+/doxy -->
 
-This is a top page for the TRD detector documentation.
+# TRD 
 
-- \subpage refTRDbase
+<!-- doxy
+* \subpage refTRDbase
+/doxy -->

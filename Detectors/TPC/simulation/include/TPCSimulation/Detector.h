@@ -114,7 +114,7 @@ class Detector : public o2::base::DetImpl<Detector>
   /// @param kp* Parameters for the ALICE TPC
   /// @return Bethe-Bloch value in MIP units
   template <typename T>
-  T BetheBlochAleph(T bg, T kp1, T kp2, T kp3, T kp4, T kp5);
+  static T BetheBlochAleph(T bg, T kp1, T kp2, T kp3, T kp4, T kp5);
 
   /// Copied from AliRoot - should go to someplace else
   /// Function to generate random numbers according to Gamma function
@@ -127,12 +127,6 @@ class Detector : public o2::base::DetImpl<Detector>
   /** The following methods can be implemented if you need to make
      *  any optional action in your detector during the transport.
     */
-
-  /// Special Geant3? limits and definitions
-  /// \todo Check how to deal with this in O2 compared to AliRoot
-  /// \todo Discuss in a wider scope
-  /// \todo Check correctness of the implementation
-  void SetSpecialPhysicsCuts() override;
 
   void EndOfEvent() override;
   void FinishPrimary() override { ; }

@@ -19,9 +19,13 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <gsl/gsl>
 
+#include "MFTTracking/Tracker.h"
 #include "MFTTracking/ROframe.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
+#include "ReconstructionDataFormats/BaseCluster.h"
 
 namespace o2
 {
@@ -37,17 +41,25 @@ class MCTruthContainer;
 namespace itsmft
 {
 class Cluster;
-}
+class CompClusterExt;
+class TopologyDictionary;
+} // namespace itsmft
 
 namespace mft
 {
 
-namespace IOUtils
+namespace ioutils
 {
-Int_t loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, const std::vector<itsmft::Cluster>* clusters, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
-void loadEventData(ROframe& event, const std::vector<itsmft::Cluster>* clusters,
-                   const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
-} // namespace IOUtils
+constexpr float DefClusErrorRow = o2::itsmft::SegmentationAlpide::PitchRow * 0.5;
+constexpr float DefClusErrorCol = o2::itsmft::SegmentationAlpide::PitchCol * 0.5;
+constexpr float DefClusError2Row = DefClusErrorRow * DefClusErrorRow;
+constexpr float DefClusError2Col = DefClusErrorCol * DefClusErrorCol;
+
+int loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& events, gsl::span<const itsmft::CompClusterExt> clusters,
+                    gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
+                    const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr, const o2::mft::Tracker* tracker = nullptr);
+
+} // namespace ioutils
 } // namespace mft
 } // namespace o2
 

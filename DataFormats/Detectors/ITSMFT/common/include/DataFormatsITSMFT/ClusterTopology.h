@@ -23,6 +23,8 @@
 #ifndef ALICEO2_ITSMFT_CLUSTERTOPOLOGY_H
 #define ALICEO2_ITSMFT_CLUSTERTOPOLOGY_H
 #include "DataFormatsITSMFT/ClusterPattern.h"
+#include <map>
+#include <iosfwd>
 
 namespace o2
 {
@@ -34,12 +36,15 @@ class ClusterTopology
   /// Default constructor
   ClusterTopology();
   /// Standard constructor
-  ClusterTopology(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
+  ClusterTopology(int nRow, int nCol, const unsigned char patt[ClusterPattern::MaxPatternBytes]);
+  /// Constructor
+  ClusterTopology(const ClusterPattern& patt);
 
   /// Returns a specific byte of the pattern
   unsigned char getByte(int n) const { return mPattern.getByte(n); }
   /// Returns the pattern
   std::array<unsigned char, ClusterPattern::kExtendedPatternBytes> getPattern() const { return mPattern.getPattern(); }
+  ClusterPattern getClusterPattern() const { return mPattern; }
   /// Returns the number of rows
   int getRowSpan() const { return mPattern.getRowSpan(); }
   /// Returns the number of columns
@@ -51,23 +56,33 @@ class ClusterTopology
   /// Prints the topology
   friend std::ostream& operator<<(std::ostream& os, const ClusterTopology& top);
   /// Prints to the stdout
-  void print() const { std::cout << (*this) << "\n"; }
+  void print() const;
   /// MurMur2 hash fucntion
   static unsigned int hashFunction(const void* key, int len);
   /// Compute the complete hash as defined for mHash
-  static unsigned long getCompleteHash(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
+  static unsigned long getCompleteHash(int nRow, int nCol, const unsigned char patt[ClusterPattern::MaxPatternBytes]);
   static unsigned long getCompleteHash(const ClusterTopology& topology);
-  // compute position of COG pixel wrt top-left corner
-  static void getCOGshift(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes], int& rowShift, int& colShift);
   /// Sets the pattern
-  void setPattern(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]);
+  void setPattern(int nRow, int nCol, const unsigned char patt[ClusterPattern::MaxPatternBytes]);
+  /// Sets the pattern
+  void setPattern(const ClusterPattern& patt);
+
+  ///Helper function useful for analyses with topologies stored on a separate branch
+  static void makeRareTopologyMap(const std::vector<ClusterTopology>& vec, std::map<int, ClusterPattern>& map)
+  {
+    for (const auto& topo : vec) {
+      auto key = topo.getHash();
+      map[key] = topo.getClusterPattern();
+    }
+  }
 
  private:
+  void setHash(unsigned long hash) { mHash = hash; }
   ClusterPattern mPattern; ///< Pattern of pixels
   /// Hashcode computed from the pattern
   ///
   /// The first four bytes are computed with MurMur2 hash-function. The remaining
-  /// four bytes are the first 32 pixels of the pattern. If the number of pixles
+  /// four bytes are the first 32 pixels of the pattern. If the number of pixels
   /// is less than 32, the remaining bits are set to 0.
   unsigned long mHash;
 

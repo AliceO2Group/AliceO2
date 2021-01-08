@@ -17,7 +17,7 @@
 #include "TCanvas.h"
 #include "TH1F.h"
 
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 #include "TPCBase/Mapper.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -47,7 +47,7 @@ void readClusters(std::string clusterFilename, std::string digitFilename, int se
   std::vector<o2::tpc::Digit>* digits = nullptr;
   digitBranch->SetAddress(&digits);
 
-  using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
+  using MCLabelContainer = o2::dataformats::MCLabelContainer;
   MCLabelContainer* mcClusterTruth = nullptr;
   clusterTree->SetBranchAddress(Form("TPCClusterHWMCTruth%i", sectorid), &mcClusterTruth);
   MCLabelContainer* mcDigitTruth = nullptr;

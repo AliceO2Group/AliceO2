@@ -27,8 +27,11 @@
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<o2::framework::ConfigParamSpec> options{
-    {"input-type", o2::framework::VariantType::String, "digits", {"digitizer, digits, raw, clusters"}},
-    {"output-type", o2::framework::VariantType::String, "digits", {"digits, raw, clusters"}},
+    {"input-type", o2::framework::VariantType::String, "digits", {"digits, cells, raw, clusters"}},
+    {"output-type", o2::framework::VariantType::String, "cells", {"digits, cells, raw, clusters, analysisclusters"}},
+    {"enable-digits-printer", o2::framework::VariantType::Bool, false, {"enable digits printer component"}},
+    {"disable-root-input", o2::framework::VariantType::Bool, false, {"do not initialize root files readers"}},
+    {"disable-root-output", o2::framework::VariantType::Bool, false, {"do not initialize root file writers"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information"}},
   };
   std::swap(workflowOptions, options);
@@ -51,8 +54,10 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& cfgc)
 {
   //bla
-  return o2::emcal::reco_workflow::getWorkflow(not cfgc.options().get<bool>("disable-mc"),    //
-                                               cfgc.options().get<std::string>("input-type"), //
-                                               cfgc.options().get<std::string>("output-type") //
-  );
+  return o2::emcal::reco_workflow::getWorkflow(not cfgc.options().get<bool>("disable-mc"),        //
+                                               cfgc.options().get<bool>("enable-digits-printer"), //
+                                               cfgc.options().get<std::string>("input-type"),     //
+                                               cfgc.options().get<std::string>("output-type"),    //
+                                               cfgc.options().get<bool>("disable-root-input"),
+                                               cfgc.options().get<bool>("disable-root-output"));
 }

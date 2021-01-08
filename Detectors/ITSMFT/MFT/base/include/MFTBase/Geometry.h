@@ -79,6 +79,7 @@ class Geometry : public TNamed
   static const Double_t sGlueRohacellCarbonThickness;
   static const Double_t sKaptonOnCarbonThickness;
   static const Double_t sKaptonGlueThickness;
+  static const Int_t sGrooves;
 
   static TGeoHMatrix sTransMFT2ITS; ///< transformation due to the different conventions
 

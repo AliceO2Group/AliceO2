@@ -22,8 +22,8 @@
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/OutputRoute.h"
-#include "ComputingResource.h"
-#include "DataProcessorInfo.h"
+#include "Framework/DataProcessorInfo.h"
+#include "ResourceManager.h"
 #include "WorkflowHelpers.h"
 #include <boost/program_options.hpp>
 
@@ -35,6 +35,8 @@ namespace o2
 {
 namespace framework
 {
+struct InputChannelSpec;
+struct OutputChannelSpec;
 
 struct DeviceSpecHelpers {
   /// Helper to convert from an abstract dataflow specification, @a workflow,
@@ -45,19 +47,37 @@ struct DeviceSpecHelpers {
     std::vector<CompletionPolicy> const& completionPolicies,
     std::vector<DispatchPolicy> const& dispatchPolicies,
     std::vector<DeviceSpec>& devices,
-    std::vector<ComputingResource>& resources);
+    ResourceManager& resourceManager,
+    std::string const& uniqueWorkflowId,
+    bool optimizeTopology = false,
+    unsigned short resourcesMonitoringInterval = 0,
+    std::string const& channelPrefix = "");
 
   static void dataProcessorSpecs2DeviceSpecs(
     const WorkflowSpec& workflow,
     std::vector<ChannelConfigurationPolicy> const& channelPolicies,
     std::vector<CompletionPolicy> const& completionPolicies,
     std::vector<DeviceSpec>& devices,
-    std::vector<ComputingResource>& resources)
+    ResourceManager& resourceManager,
+    std::string const& uniqueWorkflowId,
+    bool optimizeTopology = false,
+    unsigned short resourcesMonitoringInterval = 0,
+    std::string const& channelPrefix = "")
   {
     std::vector<DispatchPolicy> dispatchPolicies = DispatchPolicy::createDefaultPolicies();
-    dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, dispatchPolicies, devices, resources);
+    dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies,
+                                   dispatchPolicies, devices, resourceManager, uniqueWorkflowId, optimizeTopology, resourcesMonitoringInterval, channelPrefix);
   }
 
+  /// Helper to provide the channel configuration string for an input channel
+  static std::string inputChannel2String(const InputChannelSpec& channel);
+
+  /// Helper to provide the channel configuration string for an output channel
+  static std::string outputChannel2String(const OutputChannelSpec& channel);
+
+  /// Rework the infos so that they have a consisten --shm-section-size
+  /// which is the maximum of the specified value.
+  static void reworkShmSegmentSize(std::vector<DataProcessorInfo>& infos);
   /// Helper to prepare the arguments which will be used to
   /// start the various devices.
   static void prepareArguments(
@@ -66,7 +86,8 @@ struct DeviceSpecHelpers {
     std::vector<DataProcessorInfo> const& processorInfos,
     std::vector<DeviceSpec> const& deviceSpecs,
     std::vector<DeviceExecution>& deviceExecutions,
-    std::vector<DeviceControl>& deviceControls);
+    std::vector<DeviceControl>& deviceControls,
+    std::string const& uniqueWorkflowId);
 
   /// This takes the list of preprocessed edges of a graph
   /// and creates Devices and Channels which are related
@@ -76,13 +97,15 @@ struct DeviceSpecHelpers {
     std::vector<DeviceSpec>& devices,
     std::vector<DeviceId>& deviceIndex,
     std::vector<DeviceConnectionId>& connections,
-    std::vector<ComputingResource>& resources,
+    ResourceManager& resourceManager,
     const std::vector<size_t>& outEdgeIndex,
     const std::vector<DeviceConnectionEdge>& logicalEdges,
     const std::vector<EdgeAction>& actions,
     const WorkflowSpec& workflow,
     const std::vector<OutputSpec>& outputs,
-    std::vector<ChannelConfigurationPolicy> const& channelPolicies);
+    std::vector<ChannelConfigurationPolicy> const& channelPolicies,
+    std::string const& channelPrefix,
+    ComputingOffer const& defaultOffer);
 
   /// This takes the list of preprocessed edges of a graph
   /// and creates Devices and Channels which are related
@@ -91,14 +114,16 @@ struct DeviceSpecHelpers {
   static void processInEdgeActions(
     std::vector<DeviceSpec>& devices,
     std::vector<DeviceId>& deviceIndex,
-    std::vector<ComputingResource>& resources,
     const std::vector<DeviceConnectionId>& connections,
+    ResourceManager& resourceManager,
     const std::vector<size_t>& inEdgeIndex,
     const std::vector<DeviceConnectionEdge>& logicalEdges,
     const std::vector<EdgeAction>& actions,
     const WorkflowSpec& workflow,
     const std::vector<LogicalForwardInfo>& availableForwardsInfo,
-    std::vector<ChannelConfigurationPolicy> const& channelPolicies);
+    std::vector<ChannelConfigurationPolicy> const& channelPolicies,
+    std::string const& channelPrefix,
+    ComputingOffer const& defaultOffer);
 
   /// return a description of all options to be forwarded to the device
   /// by default

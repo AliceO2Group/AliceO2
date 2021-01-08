@@ -20,6 +20,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/BunchFilling.h"
 #include "CommonConstants/LHCConstants.h"
+#include "MathUtils/RandomRing.h"
 
 namespace o2
 {
@@ -29,44 +30,55 @@ class InteractionSampler
 {
  public:
   static constexpr float Sec2NanoSec = 1.e9; // s->ns conversion
-
-  o2::InteractionTimeRecord generateCollisionTime();
+  const o2::InteractionTimeRecord& generateCollisionTime();
   void generateCollisionTimes(std::vector<o2::InteractionTimeRecord>& dest);
 
   void init();
 
-  void setInteractionRate(float rateHz) { mIntRate = rateHz; }
+  void setInteractionRate(float rateHz)
+  {
+    mIntRate = rateHz;
+    mMuBC = -1.; // invalidate
+  }
   float getInteractionRate() const { return mIntRate; }
-  void setMuPerBC(float mu) { mMuBC = mu; }
+  void setFirstIR(const o2::InteractionRecord& ir) { mFirstIR.InteractionRecord::operator=(ir); }
+  const o2::InteractionRecord& getFirstIR() const { return mFirstIR; }
+
+  void setMuPerBC(float mu)
+  {
+    mMuBC = mu;
+    mIntRate = -1.; // invalidate
+  }
   float getMuPerBC() const { return mMuBC; }
   void setBCTimeRMS(float tNS = 0.2) { mBCTimeRMS = tNS; }
   float getBCTimeRMS() const { return mBCTimeRMS; }
   const BunchFilling& getBunchFilling() const { return mBCFilling; }
   BunchFilling& getBunchFilling() { return mBCFilling; }
-  int getBCMin() const { return mBCMin; }
-  int getBCMax() const { return mBCMax; }
+  void setBunchFilling(const BunchFilling& bc) { mBCFilling = bc; }
+  void setBunchFilling(const std::string& bcFillingFile);
 
   void print() const;
 
  protected:
   int simulateInteractingBC();
-  int genPoissonZT();
-  void nextCollidingBC();
-  void warnOrbitWrapped() const;
+  void nextCollidingBC(int n);
 
+  o2::math_utils::RandomRing<10000> mBCJumpGenerator;  // generator of random jumps in BC
+  o2::math_utils::RandomRing<1000> mNCollBCGenerator;  // generator of number of interactions in BC
+  o2::math_utils::RandomRing<1000> mCollTimeGenerator; // generator of number of interactions in BC
+
+  o2::InteractionTimeRecord mIR{{0, 0}, 0.};
+  o2::InteractionTimeRecord mFirstIR{{0, 0}, 0.};
   int mIntBCCache = 0;         ///< N interactions left for current BC
-  int mBCCurrent = 0;          ///< current BC
-  unsigned int mOrbit = 0;     ///< current orbit
-  int mBCMin = 0;              ///< 1st filled BCID
-  int mBCMax = -1;             ///< last filled BCID
+
   float mIntRate = -1.;        ///< total interaction rate in Hz
   float mBCTimeRMS = 0.2;      ///< BC time spread in NANOSECONDS
-  float mMuBC = -1.;           ///< interaction probability per BC
-  float mProbInteraction = 1.; ///< probability of non-0 interactions at per BC
-  float mMuBCZTRed = 0;        ///< reduced mu for fast zero-truncated Poisson derivation
+  double mMuBC = -1.;          ///< interaction probability per BC
 
   o2::BunchFilling mBCFilling;  ///< patter of active BCs
   std::vector<float> mTimeInBC; ///< interaction times within single BC
+  std::vector<uint16_t> mInteractingBCs; // vector of interacting BCs
+  int mCurrBCIdx = 0;                    ///< counter for current interacting bunch
 
   static constexpr float DefIntRate = 50e3; ///< default interaction rate
 
@@ -84,32 +96,16 @@ inline void InteractionSampler::generateCollisionTimes(std::vector<o2::Interacti
 }
 
 //_________________________________________________
-inline void InteractionSampler::nextCollidingBC()
+inline void InteractionSampler::nextCollidingBC(int n)
 {
-  // increment bunch ID till next colliding bunch
-  do {
-    if (++mBCCurrent > mBCMax) { // did we exhaust full orbit?
-      mBCCurrent = mBCMin;
-      if (++mOrbit >= o2::constants::lhc::MaxNOrbits) { // wrap orbit (should not happen in run3)
-        warnOrbitWrapped();
-        mOrbit = 0;
-      }
-    }
-  } while (!mBCFilling.testBC(mBCCurrent));
+  /// get colliding BC as n-th after current one
+  if ((mCurrBCIdx += n) >= (int)mInteractingBCs.size()) {
+    mIR.orbit += mCurrBCIdx / mInteractingBCs.size();
+    mCurrBCIdx %= mInteractingBCs.size();
+  }
+  mIR.bc = mInteractingBCs[mCurrBCIdx];
 }
 
-//_________________________________________________
-inline int InteractionSampler::genPoissonZT()
-{
-  // generate 0-truncated poisson number
-  // https://en.wikipedia.org/wiki/Zero-truncated_Poisson_distribution
-  int k = 1;
-  double t = mMuBCZTRed, u = gRandom->Rndm(), s = t;
-  while (s < u) {
-    s += t *= mMuBC / (++k);
-  }
-  return k;
-}
 } // namespace steer
 } // namespace o2
 

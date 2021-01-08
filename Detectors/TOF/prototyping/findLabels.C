@@ -50,27 +50,27 @@ void findLabels(int itrk, int ientry)
   tofClTree->GetEntry(0);
 
   o2::dataformats::TrackTPCITS trackITSTPC = mTracksArrayInp->at(itrk);
-  const o2::dataformats::EvIndex<int, int>& evIdxTPC = trackITSTPC.getRefTPC();
-  Printf("matched TPCtrack: eventID = %d, indexID = %d", evIdxTPC.getEvent(), evIdxTPC.getIndex());
-  const o2::dataformats::EvIndex<int, int>& evIdxITS = trackITSTPC.getRefITS();
-  Printf("matched ITStrack: eventID = %d, indexID = %d", evIdxITS.getEvent(), evIdxITS.getIndex());
-  itsTree->GetEntry(evIdxITS.getEvent());
+  int evIdxTPC = trackITSTPC.getRefTPC();
+  Printf("matched TPCtrack  index = %d", evIdxTPC);
+  int evIdxITS = trackITSTPC.getRefITS();
+  Printf("matched ITStrack index = %d", evIdxITS);
+  itsTree->GetEntry(evIdxITS);
 
   // getting the TPC labels
-  const auto& labelsTPC = mcTPC->getLabels(evIdxTPC.getIndex());
+  const auto& labelsTPC = mcTPC->getLabels(evIdxTPC);
   for (int ilabel = 0; ilabel < labelsTPC.size(); ilabel++) {
     Printf("TPC label %d: trackID = %d, eventID = %d, sourceID = %d", ilabel, labelsTPC[ilabel].getTrackID(), labelsTPC[ilabel].getEventID(), labelsTPC[ilabel].getSourceID());
   }
 
   // getting the ITS labels
-  const auto& labelsITS = mcITS->getLabels(evIdxITS.getIndex());
+  const auto& labelsITS = mcITS->getLabels(evIdxITS);
   for (int ilabel = 0; ilabel < labelsITS.size(); ilabel++) {
     Printf("ITS label %d: trackID = %d, eventID = %d, sourceID = %d", ilabel, labelsITS[ilabel].getTrackID(), labelsITS[ilabel].getEventID(), labelsITS[ilabel].getSourceID());
   }
 
   // now checking if we have a corresponding cluster
   bool found = false;
-  for (int tofClIndex = 0; tofClIndex < mTOFClustersArrayInp->size(); tofClIndex++) {
+  for (int tofClIndex = 0; tofClIndex < int(mTOFClustersArrayInp->size()); tofClIndex++) {
     o2::tof::Cluster tofCluster = mTOFClustersArrayInp->at(tofClIndex);
     const auto& labelsTOF = mcTOF->getLabels(tofClIndex);
     int trackIdTOF;

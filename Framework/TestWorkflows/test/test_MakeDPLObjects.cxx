@@ -7,6 +7,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include "Framework/RootSerializationSupport.h"
 #include "Framework/runDataProcessing.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/ControlService.h"
@@ -37,13 +38,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
       AlgorithmSpec{
         [](ProcessingContext& ctx) {
           // A new message with 1 XYZ instance in it
-          XYZ& x = ctx.outputs().make<XYZ>(Output{"TST", "POINT", 0});
+          auto& x = ctx.outputs().make<XYZ>(Output{"TST", "POINT", 0});
           // A new message with a gsl::span<XYZ> with 1000 items
-          gsl::span<XYZ> y = ctx.outputs().make<XYZ>(Output{"TST", "POINTS", 0}, 1000);
+          auto& y = ctx.outputs().make<XYZ>(Output{"TST", "POINTS", 0}, 1000);
           y[0] = XYZ{1, 2, 3};
           y[999] = XYZ{1, 2, 3};
           // A new message with a TH1F inside
-          auto h = ctx.outputs().make<TH1F>(Output{"TST", "HISTO"}, "h", "test", 100, -10., 10.);
+          auto& h = ctx.outputs().make<TH1F>(Output{"TST", "HISTO"}, "h", "test", 100, -10., 10.);
           // A snapshot for an std::vector
           std::vector<XYZ> v{1000};
           v[0] = XYZ{1, 2, 3};
@@ -55,8 +56,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           // simply make a vector of pointers, snapshot will include the latest
           // change, but not the one which is done after taking the snapshot
           std::vector<XYZ*> p;
-          for (auto& i : v)
+          for (auto& i : v) {
             p.push_back(&i);
+          }
           ctx.outputs().snapshot(Output{"TST", "LINEARIZED"}, p);
           v[999] = XYZ{3, 4, 5};
 
@@ -105,7 +107,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           assert(c3[999].x == 2);
           assert(c3[999].y == 3);
           assert(c3[999].z == 4);
-          ctx.services().get<ControlService>().readyToQuit(true);
+          ctx.services().get<ControlService>().readyToQuit(QuitRequest::All);
           auto o = ctx.inputs().get<TNamed*>("object");
           assert(strcmp(o->GetName(), "named") == 0 &&
                  strcmp(o->GetTitle(), "a named test object") == 0);

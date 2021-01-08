@@ -73,7 +73,7 @@ void SpaceFrame::CreateGeometry()
   /************ End efinition of constants **************************/
 
   //////////////////////////////////////Setup/////////////////////////////////////////
-  TGeoVolume* top = gGeoManager->GetVolume("cave");
+  TGeoVolume* top = gGeoManager->GetVolume("barrel");
   TGeoMedium* steel = gGeoManager->GetMedium("EMC_S steel$");
   TGeoMedium* air = gGeoManager->GetMedium("EMC_Air$");
 
@@ -209,6 +209,6 @@ void SpaceFrame::CreateGeometry()
   calFrameMO->AddNode(calHalfFrameMO, 1, halfTrans1);
   calFrameMO->AddNode(calHalfFrameMO, 2, halfTrans2);
 
-  top->AddNode(calFrameMO, 1, gGeoIdentity);
+  top->AddNode(calFrameMO, 1, new TGeoTranslation(0., 30., 0.));
   LOG(DEBUG) << "**********************************\nmEndRadius:\t" << ENDRADIUS << std::endl;
 }

@@ -94,6 +94,12 @@ class ROC
   /// \return ROC type
   RocType rocType() const { return mROC < MaxROC / SIDES ? RocType::IROC : RocType::OROC; }
 
+  /// If roc is an IROC
+  bool isIROC() const { return mROC < MaxROC / SIDES; }
+
+  /// If roc is an OROC
+  bool isOROC() const { return mROC >= MaxROC / SIDES; }
+
   /// get sector
   Sector getSector() const { return Sector(mROC); }
 

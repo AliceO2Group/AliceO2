@@ -34,7 +34,7 @@ using o2::ft0::Geometry;
 ClassImp(Detector);
 
 Detector::Detector(Bool_t Active)
-  : o2::base::DetImpl<Detector>("FT0", Active), mIdSens1(0), mPMTeff(nullptr), mHits(o2::utils::createSimVector<o2::ft0::HitType>())
+  : o2::base::DetImpl<Detector>("FT0", Active), mIdSens1(0), mPMTeff(nullptr), mHits(o2::utils::createSimVector<o2::ft0::HitType>()), mTrackIdTop(-1), mTrackIdMCPtop(-1)
 
 {
   // Gegeo  = GetGeometry() ;
@@ -43,7 +43,7 @@ Detector::Detector(Bool_t Active)
 }
 
 Detector::Detector(const Detector& rhs)
-  : o2::base::DetImpl<Detector>(rhs), mIdSens1(rhs.mIdSens1), mPMTeff(rhs.mPMTeff), mHits(o2::utils::createSimVector<o2::ft0::HitType>())
+  : o2::base::DetImpl<Detector>(rhs), mIdSens1(rhs.mIdSens1), mPMTeff(rhs.mPMTeff), mHits(o2::utils::createSimVector<o2::ft0::HitType>()), mTrackIdTop(-1), mTrackIdMCPtop(-1)
 {
 }
 
@@ -62,6 +62,19 @@ void Detector::InitializeO2Detector()
 
     AddSensitiveVolume(v);
   }
+
+  TGeoVolume* vrad = gGeoManager->GetVolume("0TOP");
+  if (vrad == nullptr) {
+    LOG(WARN) << "@@@@ Sensitive radiator not found!!!!!!!!";
+  } else {
+    AddSensitiveVolume(vrad);
+  }
+  TGeoVolume* vmcp = gGeoManager->GetVolume("0MTO");
+  if (vmcp == nullptr) {
+    LOG(WARN) << "@@@@ Sensitive MCP glass not found!!!!!!!!";
+  } else {
+    AddSensitiveVolume(vmcp);
+  }
 }
 
 void Detector::ConstructGeometry()
@@ -69,14 +82,14 @@ void Detector::ConstructGeometry()
   LOG(DEBUG) << "Creating FT0 geometry\n";
   CreateMaterials();
 
-  Float_t zdetA = 333;
-  Float_t zdetC = 82;
+  Float_t zdetA = Geometry::ZdetA;
+  Float_t zdetC = Geometry::ZdetC;
 
   Int_t idrotm[999];
   Double_t x, y, z;
   Float_t pstartC[3] = {20., 20, 5};
   Float_t pstartA[3] = {20, 20, 5};
-  Float_t pinstart[3] = {2.95, 2.95, 4.34};
+  Float_t pinstart[3] = {2.9491, 2.9491, 2.5};
   Float_t pmcp[3] = {2.949, 2.949, 1.}; // MCP
 
   int nCellsA = Geometry::NCellsA;
@@ -88,7 +101,7 @@ void Detector::ConstructGeometry()
 
   // C side Concave Geometry
 
-  Double_t crad = 82.; // define concave c-side radius here
+  Double_t crad = Geometry::ZdetC; // define concave c-side radius here
 
   Double_t dP = pmcp[0]; // side length of mcp divided by 2
 
@@ -170,6 +183,8 @@ void Detector::ConstructGeometry()
     tr[itr] = new TGeoTranslation(nameTr.Data(), xa[itr], ya[itr], z);
     tr[itr]->RegisterYourself();
     stlinA->AddNode(ins, itr, tr[itr]);
+    LOG(INFO) << " detID "
+              << " " << itr << " x " << xa[itr] << " y " << ya[itr];
   }
 
   TGeoRotation* rot[Geometry::NCellsC];
@@ -196,12 +211,10 @@ void Detector::ConstructGeometry()
     TGeoHMatrix* ph = new TGeoHMatrix(hm);
     stlinC->AddNode(ins, itr, ph);
   }
-
-  TGeoVolume* alice = gGeoManager->GetVolume("cave");
-  alice->AddNode(stlinA, 1, new TGeoTranslation(0, 0, zdetA));
-  // alice->AddNode(stlinC,1,new TGeoTranslation(0,0, -zdetC ) );
+  TGeoVolume* alice = gGeoManager->GetVolume("barrel");
+  alice->AddNode(stlinA, 1, new TGeoTranslation(0, 30., zdetA));
   TGeoRotation* rotC = new TGeoRotation("rotC", 90., 0., 90., 90., 180., 0.);
-  alice->AddNode(stlinC, 1, new TGeoCombiTrans(0., 0., -zdetC, rotC));
+  alice->AddNode(stlinC, 1, new TGeoCombiTrans(0., 30., -zdetC, rotC));
 
   // MCP + 4 x wrapped radiator + 4xphotocathod + MCP + Al top in front of radiators
   SetOneMCP(ins);
@@ -212,6 +225,7 @@ void Detector::ConstructOpGeometry()
   LOG(DEBUG) << "Creating FIT optical geometry properties";
 
   DefineOpticalProperties();
+  DefineSim2LUTindex();
 }
 
 //_________________________________________
@@ -219,101 +233,68 @@ void Detector::SetOneMCP(TGeoVolume* ins)
 {
 
   Double_t x, y, z;
-  Double_t crad = 82.;         // Define concave c-side radius here
-  Double_t dP = 3.31735114408; // Work in Progress side length
 
-  Float_t pinstart[3] = {2.95, 2.95, 2.5};
-  Float_t ptop[3] = {1.324, 1.324, 1.};      // Cherenkov radiator
+  Float_t pinstart[3] = {2.9491, 2.9491, 2.5};
+  Float_t ptop[3] = {1.324, 1.324, 1.}; // Cherenkov radiator
+  //  Float_t ptopblack[3] = {1.324, 1.324, 0.0002}; // black paper on the top on radiator
   Float_t ptopref[3] = {1.3241, 1.3241, 1.}; // Cherenkov radiator wrapped with reflector
   Double_t prfv[3] = {0.0002, 1.323, 1.};    // Vertical refracting layer bettwen radiators and between radiator and not optical Air
   Double_t prfh[3] = {1.323, 0.0002, 1.};    // Horizontal refracting layer bettwen radiators and ...
   Float_t pmcp[3] = {2.949, 2.949, 1.};      // MCP
-  Float_t pmcpinner[3] = {2.749, 2.979, 0.1};
+  Float_t pmcpinner[3] = {2.749, 2.749, 0.1};
   Float_t pmcpside[3] = {0.1, 2.949, 1};
   Float_t pmcpbase[3] = {2.949, 2.949, 0.1};
   Float_t pmcptopglass[3] = {2.949, 2.949, 0.1}; // MCP top glass optical
 
-  Float_t preg[3] = {1.324, 1.324, 0.05}; // Photcathode
-  Double_t pal[3] = {2.648, 2.648, 0.25}; // 5mm Al on top of each radiator
+  Float_t preg[3] = {1.324, 1.324, 0.005}; // Photcathode
+  Double_t pal[3] = {2.648, 2.648, 0.25};  // 5mm Al on top of each radiator
   // Entry window (glass)
   TVirtualMC::GetMC()->Gsvolu("0TOP", "BOX", getMediumID(kOpGlass), ptop, 3); // Glass radiator
   TGeoVolume* top = gGeoManager->GetVolume("0TOP");
+  // TVirtualMC::GetMC()->Gsvolu("0TBL", "BOX", getMediumID(kOptBlack), ptopblack, 3); // Glass radiator
+  //  TGeoVolume* topblack = gGeoManager->GetVolume("0TBL");
   TVirtualMC::GetMC()->Gsvolu("0TRE", "BOX", getMediumID(kAir), ptopref, 3); // Air: wrapped  radiator
   TGeoVolume* topref = gGeoManager->GetVolume("0TRE");
-  TVirtualMC::GetMC()->Gsvolu("0RFV", "BOX", getMediumID(kOpAir), prfv, 3); // Optical Air vertical
+  TVirtualMC::GetMC()->Gsvolu("0RFV", "BOX", getMediumID(kOptAl), prfv, 3); // Optical Air vertical
   TGeoVolume* rfv = gGeoManager->GetVolume("0RFV");
-  TVirtualMC::GetMC()->Gsvolu("0RFH", "BOX", getMediumID(kOpAir), prfh, 3); // Optical Air horizontal
+  TVirtualMC::GetMC()->Gsvolu("0RFH", "BOX", getMediumID(kOptAl), prfh, 3); // Optical Air horizontal
   TGeoVolume* rfh = gGeoManager->GetVolume("0RFH");
 
   TVirtualMC::GetMC()->Gsvolu("0PAL", "BOX", getMediumID(kAl), pal, 3); // 5mm Al on top of the radiator
   TGeoVolume* altop = gGeoManager->GetVolume("0PAL");
 
-  Double_t thet = TMath::ATan(dP / crad);
-  Double_t rat = TMath::Tan(thet) / 2.0;
-  /*
-  //Al housing definition
-  Double_t mgon[16];
-
-  mgon[0] = -45;
-  mgon[1] = 360.0;
-  mgon[2] = 4;
-  mgon[3] = 4;
-
-  z = -pinstart[2] + 2 * pal[2];
-  mgon[4] = z;
-  mgon[5] = 2 * ptop[0] + preg[2];
-  mgon[6] = dP + rat * z * 4 / 3;
-
-  z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2];
-  mgon[7] = z;
-  mgon[8] = mgon[5];
-  mgon[9] = dP + z * rat;
-  mgon[10] = z;
-  mgon[11] = pmcp[0] + preg[2];
-  mgon[12] = mgon[9];
-
-  z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + 2 * preg[2] + 2 * pmcp[2];
-  mgon[13] = z;
-  mgon[14] = mgon[11];
-  mgon[15] = dP + z * rat * pmcp[2] * 9 / 10;
-
-  TVirtualMC::GetMC()->Gsvolu("0SUP", "PGON", getMediumID(kAl), mgon, 16); //Al Housing for Support Structure//
-  TGeoVolume* alsup = gGeoManager->GetVolume("0SUP");
-  */
   TVirtualMC::GetMC()->Gsvolu("0REG", "BOX", getMediumID(kOpGlassCathode), preg, 3);
   TGeoVolume* cat = gGeoManager->GetVolume("0REG");
 
   //wrapped radiator +  reflecting layers
 
   Int_t ntops = 0, nrfvs = 0, nrfhs = 0;
-  Float_t xin = 0, yin = 0, xinv = 0, yinv = 0, xinh = 0, yinh = 0;
+  //  Float_t yin = 0, xinv = 0, yinv = 0;
   x = y = z = 0;
   topref->AddNode(top, 1, new TGeoTranslation(0, 0, 0));
-  xinv = -ptop[0] - prfv[0];
+  float xinv = -ptop[0] - prfv[0];
   topref->AddNode(rfv, 1, new TGeoTranslation(xinv, 0, 0));
-  printf(" GEOGEO  refv %f ,  0,0 \n", xinv);
   xinv = ptop[0] + prfv[0];
   topref->AddNode(rfv, 2, new TGeoTranslation(xinv, 0, 0));
-  printf(" GEOGEO  refv %f ,  0,0 \n", xinv);
-  yinv = -ptop[1] - prfh[1];
+  float yinv = -ptop[1] - prfh[1];
   topref->AddNode(rfh, 1, new TGeoTranslation(0, yinv, 0));
-  printf(" GEOGEO  refh  ,  0, %f, 0 \n", yinv);
   yinv = ptop[1] + prfh[1];
   topref->AddNode(rfh, 2, new TGeoTranslation(0, yinv, 0));
+  //  zin = -ptop[2] - ptopblack[2];
+  //  printf(" GEOGEO  refh  ,  0, 0, %f \n", zin);
+  //  topref->AddNode(topblack, 1, new TGeoTranslation(0, 0, zin));
 
   //container for radiator, cathode
   for (Int_t ix = 0; ix < 2; ix++) {
-    xin = -pinstart[0] + 0.3 + (ix + 0.5) * 2 * ptopref[0];
+    float xin = -pinstart[0] + 0.3 + (ix + 0.5) * 2 * ptopref[0];
     for (Int_t iy = 0; iy < 2; iy++) {
       z = -pinstart[2] + 2 * pal[2] + ptopref[2];
-      yin = -pinstart[1] + 0.3 + (iy + 0.5) * 2 * ptopref[1];
+      float yin = -pinstart[1] + 0.3 + (iy + 0.5) * 2 * ptopref[1];
       ntops++;
       ins->AddNode(topref, ntops, new TGeoTranslation(xin, yin, z));
-      printf(" 0TOP  full %i x %f y %f z %f \n", ntops, xin, yin, z);
       z += ptopref[2] + 2. * pmcptopglass[2] + preg[2];
       ins->AddNode(cat, ntops, new TGeoTranslation(xin, yin, z));
-      cat->Print();
-      printf(" GEOGEO  CATHOD x=%f , y= %f z= %f num  %i\n", xin, yin, z, ntops);
+      LOG(INFO) << " n " << ntops << " x " << xin << " y " << yin;
     }
   }
   //Al top
@@ -353,13 +334,13 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   TGeoVolume* mcpbase = gGeoManager->GetVolume("0MBA");
   z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + pmcptopglass[2] + 2 * pmcp[2] + pmcpbase[2];
   ins->AddNode(mcpbase, 1, new TGeoTranslation(0, 0, z));
-
-  // Al Housing for Support Structure
-  //  ins->AddNode(alsup,1);
 }
 
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
+
+  TString volname = fMC->CurrentVolName();
+
   TVirtualMCStack* stack = fMC->GetStack();
   Int_t quadrant, mcp;
   if (fMC->IsTrackEntering()) {
@@ -369,20 +350,43 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     fMC->CurrentVolOffID(1, mcp);
     float time = fMC->TrackTime() * 1.0e9; //time from seconds to ns
     int trackID = stack->GetCurrentTrackNumber();
-    int detID = 4 * mcp + quadrant - 1;
+    int detID = mSim2LUT[4 * mcp + quadrant - 1];
     float etot = fMC->Etot();
     int iPart = fMC->TrackPid();
     float enDep = fMC->Edep();
     Int_t parentID = stack->GetCurrentTrack()->GetMother(0);
-    if (fMC->TrackCharge()) { //charge particles for MCtrue
+    if (fMC->TrackCharge() && volname.Contains("0REG")) { //charge particles for MCtrue
       AddHit(x, y, z, time, 10, trackID, detID);
     }
-    if (iPart == 50000050) // If particles is photon then ...
-    {
-      if (RegisterPhotoE(etot)) {
-        //        AddHit(x, y, z, time, enDep, trackID, detID);
-        AddHit(x, y, z, time, enDep, parentID, detID);
-        //	std::cout << trackID <<" parent "<<parentID<<std::endl;
+    if (iPart == 50000050) { // If particles is photon then ...
+      if (volname.Contains("0TOP")) {
+        if (!RegisterPhotoE(etot)) {
+          fMC->StopTrack();
+          return kFALSE;
+        }
+        mTrackIdTop = trackID;
+      }
+
+      if (volname.Contains("0MTO")) {
+        if (trackID != mTrackIdTop) {
+          if (!RegisterPhotoE(etot)) {
+            //   std::cout<<" брысь "<<etot<<" track "<<trackID<<" parentID "<<parentID<<" "<<volname<<std::endl;
+            fMC->StopTrack();
+            return kFALSE;
+          }
+          mTrackIdMCPtop = trackID;
+        }
+      }
+
+      if (volname.Contains("0REG")) {
+        if (trackID != mTrackIdTop && trackID != mTrackIdMCPtop) {
+          if (RegisterPhotoE(etot)) {
+            AddHit(x, y, z, time, enDep, parentID, detID);
+          }
+        }
+        if (trackID == mTrackIdTop || trackID == mTrackIdMCPtop) {
+          AddHit(x, y, z, time, enDep, parentID, detID);
+        }
       }
     }
 
@@ -394,8 +398,10 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 o2::ft0::HitType* Detector::AddHit(float x, float y, float z, float time, float energy, Int_t trackId, Int_t detId)
 {
   mHits->emplace_back(x, y, z, time, energy, trackId, detId);
-  auto stack = (o2::data::Stack*)fMC->GetStack();
-  stack->addHit(GetDetId());
+  if (energy == 10) {
+    auto stack = (o2::data::Stack*)fMC->GetStack();
+    stack->addHit(GetDetId());
+  }
   return &(mHits->back());
 }
 
@@ -457,8 +463,10 @@ void Detector::CreateMaterials()
   Medium(4, "Ceramic$", 3, 0, isxfld, sxmgmx, 10., .01, .1, .003, .003);
   Medium(6, "Glass$", 4, 0, isxfld, sxmgmx, 10., .01, .1, .003, .003);
   Medium(7, "OpAir$", 2, 0, isxfld, sxmgmx, 10., .1, 1., .003, .003);
+  Medium(18, "OpBlack$", 2, 0, isxfld, sxmgmx, 10., .1, 1., .003, .003);
   Medium(15, "Aluminium$", 11, 0, isxfld, sxmgmx, 10., .01, 1., .003, .003);
-  Medium(16, "OpticalGlass$", 24, 1, isxfld, sxmgmx, 10., .01, .1, .003, .003);
+  Medium(17, "OptAluminium$", 11, 0, isxfld, sxmgmx, 10., .01, 1., .003, .003);
+  Medium(16, "OpticalGlass$", 24, 1, isxfld, sxmgmx, 10., .01, .1, .003, .01);
   Medium(19, "OpticalGlassCathode$", 24, 1, isxfld, sxmgmx, 10., .01, .1, .003, .003);
   Medium(22, "SensAir$", 2, 1, isxfld, sxmgmx, 10., .1, 1., .003, .003);
 }
@@ -469,8 +477,9 @@ void Detector::DefineOpticalProperties()
   // Path of the optical properties input file
   TString inputDir;
   const char* aliceO2env = std::getenv("O2_ROOT");
-  if (aliceO2env)
+  if (aliceO2env) {
     inputDir = aliceO2env;
+  }
   inputDir += "/share/Detectors/FT0/files/";
 
   TString optPropPath = inputDir + "quartzOptProperties.txt";
@@ -479,7 +488,7 @@ void Detector::DefineOpticalProperties()
   Int_t result = ReadOptProperties(optPropPath.Data());
   if (result < 0) {
     // Error reading file
-    LOG(ERROR) << "Could not read FIT optical properties " << result << " " << optPropPath.Data() << FairLogger::endl;
+    LOG(ERROR) << "Could not read FIT optical properties " << result << " " << optPropPath.Data();
     return;
   }
   Int_t nBins = mPhotonEnergyD.size();
@@ -491,28 +500,58 @@ void Detector::DefineOpticalProperties()
 
   // Quick conversion from vector<Double_t> to Double_t*: photonEnergyD -> &(photonEnergyD[0])
   TVirtualMC::GetMC()->SetCerenkov(getMediumID(kOpGlass), nBins, &(mPhotonEnergyD[0]), &(mAbsorptionLength[0]),
-                                   &(mEfficAll[0]), &(mRefractionIndex[0]));
-  // TVirtualMC::GetMC()->SetCerenkov (getMediumID(kOpGlassCathode), kNbins, aPckov, aAbsSiO2, effCathode, rindexSiO2);
+                                   &(mQuantumEfficiency[0]), &(mRefractionIndex[0]));
   TVirtualMC::GetMC()->SetCerenkov(getMediumID(kOpGlassCathode), nBins, &(mPhotonEnergyD[0]), &(mAbsorptionLength[0]),
-                                   &(mEfficAll[0]), &(mRefractionIndex[0]));
+                                   &(mQuantumEfficiency[0]), &(mRefractionIndex[0]));
+  /*
+    TVirtualMC::GetMC()->SetCerenkov(getMediumID(kOptBlack), nBins, &(mPhotonEnergyD[0]), &(mAbsorAir[0]),
+                                   &(mEfficAll[0]), &(mRindexAir[0]));
+  TVirtualMC::GetMC()->SetCerenkov(getMediumID(kOptAl), nBins, &(mPhotonEnergyD[0]), &(mAbsorbCathodeNext[0]),
+                                   &(mEfficMet[0]), &(mRindexCathodeNext[0]));
 
+  */
   // Define a border for radiator optical properties
-  TVirtualMC::GetMC()->DefineOpSurface("surfRd", kUnified /*kGlisur*/, kDielectric_metal, kPolished, 0.);
+  TVirtualMC::GetMC()->DefineOpSurface("surfRd", kUnified, kDielectric_metal, kPolishedbackpainted, 0.);
   TVirtualMC::GetMC()->SetMaterialProperty("surfRd", "EFFICIENCY", nBins, &(mPhotonEnergyD[0]), &(mEfficMet[0]));
   TVirtualMC::GetMC()->SetMaterialProperty("surfRd", "REFLECTIVITY", nBins, &(mPhotonEnergyD[0]), &(mReflMet[0]));
+  TVirtualMC::GetMC()->SetBorderSurface("surMirrorBorder0", "0TOP", 1, "0RFV", 1, "surfRd");
+  TVirtualMC::GetMC()->SetBorderSurface("surMirrorBorder1", "0TOP", 1, "0RFH", 1, "surfRd");
+  TVirtualMC::GetMC()->SetBorderSurface("surMirrorBorder2", "0TOP", 1, "0RFV", 2, "surfRd");
+  TVirtualMC::GetMC()->SetBorderSurface("surMirrorBorder3", "0TOP", 1, "0RFH", 2, "surfRd");
+  //Define black paper on the top of radiator
+  TVirtualMC::GetMC()->DefineOpSurface("surBlack", kUnified, kDielectric_dielectric, kGroundbackpainted, 0.);
+  // TVirtualMC::GetMC()->SetMaterialProperty("surBlack", "EFFICIENCY", nBins, &(mPhotonEnergyD[0]), &(mEffBlackPaper[0]));
+  TVirtualMC::GetMC()->SetMaterialProperty("surBlack", "REFLECTIVITY", nBins, &(mPhotonEnergyD[0]), &(mReflBlackPaper[0]));
+  TVirtualMC::GetMC()->SetBorderSurface("surBlackBorder", "0TOP", 1, "0PAL", 1, "surBlack");
+  //between cathode and back of front MCP glass window
+  TVirtualMC::GetMC()->DefineOpSurface("surFrontBWindow", kUnified, kDielectric_dielectric, kPolishedbackpainted, 0.);
+  //  TVirtualMC::GetMC()->SetMaterialProperty("surFrontBWindow", "EFFICIENCY", nBins, &(mPhotonEnergyD[0]), &(mEfficAll[0]));
+  TVirtualMC::GetMC()->SetMaterialProperty("surFrontBWindow", "REFLECTIVITY", nBins, &(mPhotonEnergyD[0]), &(mReflFrontWindow[0]));
+  TVirtualMC::GetMC()->SetBorderSurface("surBorderFrontBWindow", "0REG", 1, "0MTO", 1, "surFrontBWindow");
+  //between radiator and front MCP glass window
+  TVirtualMC::GetMC()->DefineOpSurface("surFrontWindow", kUnified, kDielectric_dielectric, kPolishedbackpainted, 0.);
+  //TVirtualMC::GetMC()->SetMaterialProperty("surFrontWindow", "EFFICIENCY", nBins, &(mPhotonEnergyD[0]), &(mEfficAll[0]));
+  TVirtualMC::GetMC()->SetMaterialProperty("surFrontWindow", "REFLECTIVITY", nBins, &(mPhotonEnergyD[0]), &(mReflBlackPaper[0]));
+  TVirtualMC::GetMC()->SetBorderSurface("surBorderFrontWindow", "0TOP", 1, "0MTO", 1, "surFrontWindow");
 }
 
 void Detector::FillOtherOptProperties()
 {
   // Set constant values to the other arrays
   for (Int_t i = 0; i < mPhotonEnergyD.size(); i++) {
-    mEfficAll.push_back(1.);
+    mReflBlackPaper.push_back(0.);
+    mEffBlackPaper.push_back(0);
+    mAbsBlackPaper.push_back(1);
+
+    mReflFrontWindow.push_back(0.5);
+
     mRindexAir.push_back(1.);
     mAbsorAir.push_back(0.3);
-    mRindexCathodeNext.push_back(0.);
-    mAbsorbCathodeNext.push_back(0.);
-    mEfficMet.push_back(0.);
-    mReflMet.push_back(1.);
+    mRindexCathodeNext.push_back(1);
+    mAbsorbCathodeNext.push_back(1);
+    mEfficMet.push_back(0);
+    mRindexMet.push_back(0);
+    mReflMet.push_back(0.9);
   }
 }
 
@@ -521,8 +560,9 @@ Bool_t Detector::RegisterPhotoE(float energy)
 {
   float eff = mPMTeff->Eval(energy);
   float p = gRandom->Rndm();
-  if (p > eff)
+  if (p > eff) {
     return kFALSE;
+  }
 
   return kTRUE;
 }
@@ -531,7 +571,7 @@ Int_t Detector::ReadOptProperties(const std::string filePath)
 {
   std::ifstream infile;
   infile.open(filePath.c_str());
-
+  LOG(INFO) << " file " << filePath.c_str();
   // Check if file is opened correctly
   if (infile.fail() == true) {
     // AliFatal(Form("Error opening ascii file: %s", filePath.c_str()));
@@ -540,7 +580,7 @@ Int_t Detector::ReadOptProperties(const std::string filePath)
 
   std::string comment;             // dummy, used just to read 4 first lines and move the cursor to the 5th, otherwise unused
   if (!getline(infile, comment)) { // first comment line
-    //         AliFatal(Form("Error opening ascii file (it is probably a folder!): %s", filePath.c_str()));
+    LOG(ERROR) << "Error opening ascii file (it is probably a folder!): " << filePath.c_str();
     return -2;
   }
   getline(infile, comment); // 2nd comment line
@@ -549,7 +589,6 @@ Int_t Detector::ReadOptProperties(const std::string filePath)
   Int_t nLines;
   infile >> nLines;
   if (nLines < 0 || nLines > 1e4) {
-    //   AliFatal(Form("Input arraySize out of range 0..1e4: %i. Check input file: %s", kNbins, filePath.c_str()));
     return -4;
   }
 
@@ -562,8 +601,7 @@ Int_t Detector::ReadOptProperties(const std::string filePath)
   getline(infile, sLine);
   while (!infile.eof()) {
     if (iLine >= nLines) {
-      //      AliFatal(Form("Line number: %i reaches range of declared arraySize: %i. Check input file: %s", iLine,
-      //      kNbins, filePath.c_str()));
+      //   LOG(ERROR) << "Line number: " << iLine << " reaches range of declared arraySize:" << kNbins << " Check input file:" << filePath.c_str();
       return -5;
     }
     std::stringstream ssLine(sLine);
@@ -586,17 +624,45 @@ Int_t Detector::ReadOptProperties(const std::string filePath)
     mQuantumEfficiency.push_back(efficiency);
     if (!(ssLine.good() || ssLine.eof())) { // check if there were problems with numbers conversion
       //    AliFatal(Form("Error while reading line %i: %s", iLine, ssLine.str().c_str()));
+
       return -6;
     }
     getline(infile, sLine);
     iLine++;
   }
   if (iLine != mPhotonEnergyD.size()) {
-    //    AliFatal(Form("Total number of lines %i is different than declared %i. Check input file: %s", iLine, kNbins,
+    //    LOG(ERROR)(Form("Total number of lines %i is different than declared %i. Check input file: %s", iLine, kNbins,
     //    filePath.c_str()));
     return -7;
   }
 
-  //  AliInfo(Form("Optical properties taken from the file: %s. Number of lines read: %i",filePath.c_str(),iLine));
+  LOG(INFO) << "Optical properties taken from the file: " << filePath.c_str() << " Number of lines read: " << iLine;
   return 0;
+}
+
+void Detector::DefineSim2LUTindex()
+{
+  // Path of the LookUp table
+  std::string inputDir;
+  const char* aliceO2env = std::getenv("O2_ROOT");
+  if (aliceO2env) {
+    inputDir = aliceO2env;
+  }
+  inputDir += "/share/Detectors/FT0/files/";
+
+  std::string indPath = inputDir + "Sim2DataChannels.txt";
+  indPath = gSystem->ExpandPathName(indPath.data()); // Expand $(ALICE_ROOT) into real system path
+
+  std::ifstream infile;
+  infile.open(indPath.data());
+  LOG(INFO) << " file  open " << indPath.data();
+  // Check if file is opened correctly
+  if (infile.fail() == true) {
+    LOG(ERROR) << "Error opening ascii file (it is probably a folder!): " << indPath.c_str();
+  }
+  int fromfile;
+  for (int iind = 0; iind < Geometry::Nchannels; iind++) {
+    infile >> fromfile;
+    mSim2LUT[iind] = fromfile;
+  }
 }

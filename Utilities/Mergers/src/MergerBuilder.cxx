@@ -13,17 +13,20 @@
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
-#include <Framework/DeviceSpec.h>
+#include "Framework/DeviceSpec.h"
 #include "Framework/DataSpecUtils.h"
+#include <Framework/CompletionPolicyHelpers.h>
+#include <Framework/CompletionPolicy.h>
+#include <Monitoring/Monitoring.h>
+#include <Mergers/FullHistoryMerger.h>
 
 #include "Mergers/MergerBuilder.h"
-#include "Mergers/Merger.h"
+#include "Mergers/IntegratingMerger.h"
+#include "Mergers/FullHistoryMerger.h"
 
 using namespace o2::framework;
 
-namespace o2
-{
-namespace experimental::mergers
+namespace o2::mergers
 {
 
 MergerBuilder::MergerBuilder() : mName("INVALID"),
@@ -82,27 +85,22 @@ framework::DataProcessorSpec MergerBuilder::buildSpec()
     merger.outputs[0].binding = {mergerOutputBinding()};
   }
 
-  merger.algorithm = framework::adaptFromTask<Merger>(mConfig, subSpec);
-
-  if (mConfig.publicationDecision.value == PublicationDecision::EachNSeconds) {
-    merger.inputs.push_back({"timer-publish", "MRGR", mergerDataDescription("timer-" + mName), mergerSubSpec(mLayer, mId), framework::Lifetime::Timer});
-    merger.options.push_back({"period-timer-publish", framework::VariantType::Int, static_cast<int>(mConfig.publicationDecision.param * 1000000), {"timer period"}});
+  if (mConfig.inputObjectTimespan.value == InputObjectsTimespan::LastDifference) {
+    merger.algorithm = framework::adaptFromTask<IntegratingMerger>(mConfig, subSpec);
+  } else {
+    merger.algorithm = framework::adaptFromTask<FullHistoryMerger>(mConfig, subSpec);
   }
+
+  merger.inputs.push_back({"timer-publish", "MRGR", mergerDataDescription("timer-" + mName), mergerSubSpec(mLayer, mId), framework::Lifetime::Timer});
+  merger.options.push_back({"period-timer-publish", framework::VariantType::Int, static_cast<int>(mConfig.publicationDecision.param * 1000000), {"timer period"}});
 
   return std::move(merger);
 }
 
 void MergerBuilder::customizeInfrastructure(std::vector<framework::CompletionPolicy>& policies)
 {
-  auto matcher = [](framework::DeviceSpec const& device) {
-    return device.name.find(MergerBuilder::mergerIdString()) != std::string::npos;
-  };
-  auto callback = [](gsl::span<framework::PartRef const> const& inputs) {
-    return framework::CompletionPolicy::CompletionOp::Consume;
-  };
-  framework::CompletionPolicy mergerConsumes{"mergerConsumes", matcher, callback};
-  policies.push_back(mergerConsumes);
+  // each merger's name contains the common ID string and should always consume
+  policies.push_back(CompletionPolicyHelpers::defineByName(".*" + MergerBuilder::mergerIdString() + ".*", CompletionPolicy::CompletionOp::Consume));
 }
 
-} // namespace experimental::mergers
-} // namespace o2
+} // namespace o2::mergers

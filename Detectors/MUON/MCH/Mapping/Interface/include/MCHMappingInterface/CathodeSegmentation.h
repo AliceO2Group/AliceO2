@@ -21,7 +21,9 @@
 #include <memory>
 #include <iostream>
 #include <vector>
-#include <boost/format.hpp>
+#include <sstream>
+#include <functional>
+#include <iomanip>
 
 namespace o2
 {
@@ -176,6 +178,9 @@ class CathodeSegmentation
   int dualSampaId(int dualSampaIndex) const { return mDualSampaIds[dualSampaIndex]; }
   ///@}
 
+  /// Loop over dual sampas of this detection element
+  void forEachDualSampa(std::function<void(int dualSampaId)> func) const;
+
   /** @name ForEach methods.
    * Those methods let you execute a function on each of the pads belonging to
    * some group.
@@ -239,6 +244,15 @@ void CathodeSegmentation::forEachNeighbouringPad(int catPadIndex, CALLABLE&& fun
   mchCathodeSegmentationForEachNeighbouringPad(mImpl, catPadIndex, callback, &func);
 }
 
+inline void CathodeSegmentation::forEachDualSampa(std::function<void(int dualSampaId)> func) const
+{
+  auto callback = [](void* data, int dualSampaId) {
+    auto fn = static_cast<decltype(&func)>(data);
+    (*fn)(dualSampaId);
+  };
+  mchCathodeSegmentationForEachDualSampa(mImpl, callback, &func);
+}
+
 /** Convenience method to loop over detection elements. */
 template <typename CALLABLE>
 void forEachDetectionElement(CALLABLE&& func)
@@ -267,9 +281,16 @@ inline std::string CathodeSegmentation::padAsString(int catPadIndex) const
   if (!isValid(catPadIndex)) {
     return "invalid pad with uid=" + std::to_string(catPadIndex);
   }
-  return boost::str(boost::format("FEC %4d CH %2d X %7.3f Y %7.3f SX %7.3f SY %7.3f") %
-                    padDualSampaId(catPadIndex) % padDualSampaChannel(catPadIndex) % padPositionX(catPadIndex) %
-                    padPositionY(catPadIndex) % padSizeX(catPadIndex) % padSizeY(catPadIndex));
+  std::stringstream s;
+
+  s << "FEC " << std::setw(4) << padDualSampaId(catPadIndex)
+    << "CH " << std::setw(2) << padDualSampaChannel(catPadIndex)
+    << "X " << std::setw(7) << std::setprecision(2) << padPositionX(catPadIndex)
+    << "Y " << std::setw(7) << std::setprecision(2) << padPositionY(catPadIndex)
+    << "SX " << std::setw(7) << std::setprecision(2) << padSizeX(catPadIndex)
+    << "SY " << std::setw(7) << std::setprecision(2) << padSizeY(catPadIndex);
+
+  return s.str();
 }
 
 } // namespace mapping

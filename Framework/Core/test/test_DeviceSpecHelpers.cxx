@@ -11,6 +11,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include "Mocking.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DeviceExecution.h"
@@ -23,6 +24,7 @@
 #include <vector>
 #include <map>
 #include "../src/SimpleResourceManager.h"
+#include "../src/ComputingResourceHelpers.h"
 
 namespace o2
 {
@@ -79,7 +81,8 @@ void check(const std::vector<std::string>& arguments,
                                       dataProcessorInfos,
                                       deviceSpecs,
                                       deviceExecutions,
-                                      deviceControls);
+                                      deviceControls,
+                                      "workflow-id");
 
   std::cout << "created execution for " << deviceSpecs.size() << " device(s)" << std::endl;
 
@@ -131,14 +134,16 @@ BOOST_AUTO_TEST_CASE(test_prepareArguments)
 
   std::vector<DeviceSpec> deviceSpecs;
 
-  auto resourceManager = std::make_unique<SimpleResourceManager>(42000, 100);
-  auto resources = resourceManager->getAvailableResources();
+  std::vector<ComputingResource> resources = {ComputingResourceHelpers::getLocalhostResource()};
+  auto rm = std::make_unique<SimpleResourceManager>(resources);
 
+  auto configContext = makeEmptyConfigContext();
+  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
   DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow,
-                                                    ChannelConfigurationPolicy::createDefaultPolicies(),
+                                                    channelPolicies,
                                                     CompletionPolicy::createDefaultPolicies(),
                                                     deviceSpecs,
-                                                    resources);
+                                                    *rm, "workflow-id");
 
   // Now doing the test cases
   CheckMatrix matrix;

@@ -16,10 +16,8 @@
 #include "GPUParam.h"
 #include "GPUTPCGMMergedTrackHit.h"
 #include "GPUO2DataTypes.h"
-
-#ifndef __OPENCL__
-#include <cmath>
-#endif
+#include "GPUParam.inc"
+#include "GPUTPCGMMergerTypes.h"
 
 #if defined(GPUCA_GM_USE_FULL_FIELD)
 #include "AliTracker.h"
@@ -28,16 +26,16 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-GPUd() void GPUTPCGMPropagator::GetBxByBz(float Alpha, float X, float Y, float Z, float B[3]) const
+GPUd() void GPUTPCGMPropagator::GetBxByBzBase(float cosAlpha, float sinAlpha, float X, float Y, float Z, float B[3]) const
 {
   // get global coordinates
 
-  float cs = CAMath::Cos(Alpha);
-  float sn = CAMath::Sin(Alpha);
+  float gx = getGlobalX(cosAlpha, sinAlpha, X, Y);
+  float gy = getGlobalY(cosAlpha, sinAlpha, X, Y);
 
 #if defined(GPUCA_GM_USE_FULL_FIELD)
   const double kCLight = 0.000299792458;
-  double r[3] = {X * cs - Y * sn, X * sn + Y * cs, Z};
+  double r[3] = {gx, gy, Z};
   double bb[3];
   AliTracker::GetBxByBz(r, bb);
   bb[0] *= kCLight;
@@ -56,22 +54,22 @@ GPUd() void GPUTPCGMPropagator::GetBxByBz(float Alpha, float X, float Y, float Z
   float bb[3];
   switch (mFieldRegion) {
     case ITS:
-      mField->GetFieldIts(X * cs - Y * sn, X * sn + Y * cs, Z, bb);
+      mField->GetFieldIts(gx, gy, Z, bb);
       break;
     case TRD:
-      mField->GetFieldTrd(X * cs - Y * sn, X * sn + Y * cs, Z, bb);
+      mField->GetFieldTrd(gx, gy, Z, bb);
       break;
     case TPC:
     default:
-      mField->GetField(X * cs - Y * sn, X * sn + Y * cs, Z, bb);
+      mField->GetField(gx, gy, Z, bb);
   }
 
 #endif
 
   // rotate field to local coordinates
 
-  B[0] = bb[0] * cs + bb[1] * sn;
-  B[1] = -bb[0] * sn + bb[1] * cs;
+  B[0] = bb[0] * cosAlpha + bb[1] * sinAlpha;
+  B[1] = -bb[0] * sinAlpha + bb[1] * cosAlpha;
   B[2] = bb[2];
   /*if( mToyMCEvents ){ // special treatment for toy monte carlo
     B[0] = 0;
@@ -80,36 +78,35 @@ GPUd() void GPUTPCGMPropagator::GetBxByBz(float Alpha, float X, float Y, float Z
   }*/
 }
 
-GPUd() float GPUTPCGMPropagator::GetBz(float Alpha, float X, float Y, float Z) const
+GPUd() float GPUTPCGMPropagator::GetBzBase(float cosAlpha, float sinAlpha, float X, float Y, float Z) const
 {
   if (mToyMCEvents) { // special treatment for toy monte carlo
     float B[3];
-    GetBxByBz(Alpha, X, Y, Z, B);
+    GetBxByBzBase(cosAlpha, sinAlpha, X, Y, Z, B);
     return B[2];
   }
 
   // get global coordinates
 
-  float cs = CAMath::Cos(Alpha);
-  float sn = CAMath::Sin(Alpha);
+  float gx = getGlobalX(cosAlpha, sinAlpha, X, Y);
+  float gy = getGlobalY(cosAlpha, sinAlpha, X, Y);
 
 #if defined(GPUCA_GM_USE_FULL_FIELD)
   const double kCLight = 0.000299792458;
-  double r[3] = {X * cs - Y * sn, X * sn + Y * cs, Z};
+  double r[3] = {gx, gy, Z};
   double bb[3];
   AliTracker::GetBxByBz(r, bb);
   return bb[2] * kCLight;
 #else
   switch (mFieldRegion) {
     case ITS:
-      return mField->GetFieldItsBz(X * cs - Y * sn, X * sn + Y * cs, Z);
+      return mField->GetFieldItsBz(gx, gy, Z);
     case TRD:
-      return mField->GetFieldTrdBz(X * cs - Y * sn, X * sn + Y * cs, Z);
+      return mField->GetFieldTrdBz(gx, gy, Z);
     case TPC:
     default:
-      return mField->GetFieldBz(X * cs - Y * sn, X * sn + Y * cs, Z);
+      return mField->GetFieldBz(gx, gy, Z);
   }
-
 #endif
 }
 
@@ -120,8 +117,11 @@ GPUd() int GPUTPCGMPropagator::RotateToAlpha(float newAlpha)
   // return value is error code (0==no error)
   //
 
-  float cc = CAMath::Cos(newAlpha - mAlpha);
-  float ss = CAMath::Sin(newAlpha - mAlpha);
+  float newCosAlpha, newSinAlpha;
+  CAMath::SinCos(newAlpha, newSinAlpha, newCosAlpha);
+
+  float cc = newCosAlpha * mCosAlpha + newSinAlpha * mSinAlpha; // cos(newAlpha - mAlpha);
+  float ss = newSinAlpha * mCosAlpha - newCosAlpha * mSinAlpha; //sin(newAlpha - mAlpha);
 
   GPUTPCGMPhysicalTrackModel t0 = mT0;
 
@@ -155,11 +155,20 @@ GPUd() int GPUTPCGMPropagator::RotateToAlpha(float newAlpha)
   float trackX = x0 * cc + ss * mT->Y();
 
   // transport t0 to trackX
-  float B[3];
-  GetBxByBz(newAlpha, t0.X(), t0.Y(), t0.Z(), B);
   float dLp = 0;
-  if (t0.PropagateToXBxByBz(trackX, B[0], B[1], B[2], dLp)) {
-    return -1;
+  float Bz;
+  if (mPropagateBzOnly) {
+    Bz = GetBzBase(newCosAlpha, newSinAlpha, t0.X(), t0.Y(), t0.Z());
+    if (t0.PropagateToXBzLight(trackX, Bz, dLp)) {
+      return -1;
+    }
+  } else {
+    float B[3];
+    GetBxByBz(newAlpha, t0.X(), t0.Y(), t0.Z(), B);
+    Bz = B[2];
+    if (t0.PropagateToXBxByBz(trackX, B[0], B[1], B[2], dLp)) {
+      return -1;
+    }
   }
 
   if (CAMath::Abs(t0.SinPhi()) >= mMaxSinPhi) {
@@ -233,7 +242,7 @@ GPUd() int GPUTPCGMPropagator::RotateToAlpha(float newAlpha)
   // only covariance changes. Use rotated and transported t0 for linearisation
   float j3 = -t0.Py() / t0.Px();
   float j4 = -t0.Pz() / t0.Px();
-  float j5 = t0.QPt() * B[2];
+  float j5 = t0.QPt() * Bz;
 
   //                    Y  Z Sin DzDs q/p  X
   // Jacobian J1 = { {  1, 0, 0,  0,  0,  j3 }, // Y
@@ -270,6 +279,8 @@ GPUd() int GPUTPCGMPropagator::RotateToAlpha(float newAlpha)
   }
 
   mAlpha = newAlpha;
+  mCosAlpha = newCosAlpha;
+  mSinAlpha = newSinAlpha;
   mT0 = t0;
 
   return 0;
@@ -277,14 +288,21 @@ GPUd() int GPUTPCGMPropagator::RotateToAlpha(float newAlpha)
 
 GPUd() int GPUTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, bool inFlyDirection)
 {
+  if (mPropagateBzOnly) {
+    return PropagateToXAlphaBz(posX, posAlpha, inFlyDirection);
+  }
   if (CAMath::Abs(posAlpha - mAlpha) > 1.e-4f) {
     if (RotateToAlpha(posAlpha) != 0) {
       return -2;
     }
   }
+  if (CAMath::Abs(posX - mT->X()) < 1.e-7f) {
+    mT->SetX(posX);
+    return 0;
+  }
 
   float B[3];
-  GetBxByBz(mAlpha, mT0.X(), mT0.Y(), mT0.Z(), B);
+  GetBxByBz(mT0.X(), mT0.Y(), mT0.Z(), B);
 
   // propagate mT0 to t0e
 
@@ -298,10 +316,46 @@ GPUd() int GPUTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, boo
     return -3;
   }
 
+  return FollowLinearization(t0e, B[2], dLp, inFlyDirection);
+}
+
+GPUd() int GPUTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha, bool inFlyDirection)
+{
+  if (CAMath::Abs(posAlpha - mAlpha) > 1.e-4) {
+    if (RotateToAlpha(posAlpha) != 0) {
+      return -2;
+    }
+  }
+  if (CAMath::Abs(posX - mT->X()) < 1.e-7f) {
+    mT->SetX(posX);
+    return 0;
+  }
+
+  float Bz = GetBz(mT0.X(), mT0.Y(), mT0.Z());
+
+  // propagate mT0 to t0e
+
+  GPUTPCGMPhysicalTrackModel t0e(mT0);
+  float dLp = 0;
+  if (t0e.PropagateToXBzLight(posX, Bz, dLp)) {
+    return 1;
+  }
+
+  if (CAMath::Abs(t0e.SinPhi()) >= mMaxSinPhi) {
+    return -3;
+  }
+
+  return FollowLinearization(t0e, Bz, dLp, inFlyDirection);
+}
+
+GPUd() int GPUTPCGMPropagator::FollowLinearization(const GPUTPCGMPhysicalTrackModel& GPUrestrict() t0e, float Bz, float dLp, bool inFlyDirection)
+{
+  // t0e is alrerady extrapolated t0
+
   // propagate track and cov matrix with derivatives for (0,0,Bz) field
 
-  float dS = dLp * t0e.Pt();
-  float dL = CAMath::Abs(dLp * t0e.P());
+  float dS = dLp * t0e.GetPt();
+  float dL = CAMath::Abs(dLp * t0e.GetP());
 
   if (inFlyDirection) {
     dL = -dL;
@@ -310,25 +364,23 @@ GPUd() int GPUTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, boo
   float ey = mT0.SinPhi();
   float ex = mT0.CosPhi();
   float exi = mT0.SecPhi();
-  float ey1 = t0e.SinPhi();
-  float ex1 = t0e.CosPhi();
-  float ex1i = t0e.SecPhi();
+  float ey1 = t0e.GetSinPhi();
+  float ex1 = t0e.GetCosPhi();
+  float ex1i = t0e.GetSecPhi();
 
-  float bz = B[2];
-  float k = -mT0.QPt() * bz;
-  float dx = posX - mT0.X();
+  float k = -mT0.QPt() * Bz;
+  float dx = t0e.GetX() - mT0.X();
   float kdx = k * dx;
   float cc = ex + ex1;
   float cci = 1.f / cc;
 
   float dxcci = dx * cci;
   float hh = dxcci * ex1i * (1.f + ex * ex1 + ey * ey1);
-  // float hh = dxcci*ex1i*(2.f+0.5f*kdx*kdx);  //DR: Before was like this!
 
   float j02 = exi * hh;
-  float j04 = -bz * dxcci * hh;
+  float j04 = -Bz * dxcci * hh;
   float j13 = dS;
-  float j24 = -dx * bz;
+  float j24 = -dx * Bz;
 
   float* p = mT->Par();
 
@@ -338,18 +390,22 @@ GPUd() int GPUTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, boo
   float d3 = p[3] - mT0.DzDs();
   float d4 = p[4] - mT0.QPt();
 
-  float newSinPhi = t0e.SinPhi() + d2 + j24 * d4;
+  float newSinPhi = ey1 + d2 + j24 * d4;
   if (mT->NDF() >= 15 && CAMath::Abs(newSinPhi) > GPUCA_MAX_SIN_PHI) {
-    return (-4);
+    return -4;
+  }
+
+  if (mMatLUT) {
+    UpdateMaterial(t0e);
   }
 
   mT0 = t0e;
-  mT->X() = t0e.X();
-  p[0] = t0e.Y() + d0 + j02 * d2 + j04 * d4;
-  p[1] = t0e.Z() + d1 + j13 * d3;
+  mT->X() = t0e.GetX();
+  p[0] = t0e.GetY() + d0 + j02 * d2 + j04 * d4;
+  p[1] = t0e.GetZ() + d1 + j13 * d3;
   p[2] = newSinPhi;
-  p[3] = t0e.DzDs() + d3;
-  p[4] = t0e.QPt() + d4;
+  p[3] = t0e.GetDzDs() + d3;
+  p[4] = t0e.GetQPt() + d4;
 
   float* c = mT->Cov();
 
@@ -410,7 +466,7 @@ GPUd() int GPUTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, boo
     if (CAMath::Abs(mT0.QPt()) > 1.e-6f) {
       j14 = (2.f * xx * ex1i * dx / yy - dS) * mT0.DzDs() / mT0.QPt();
     } else {
-      j14 = -mT0.DzDs() * bz * dx * dx * exi * exi * exi * (0.5f * ey + (1.f / 3.f) * kdx * (1 + 2.f * ey * ey) * exi * exi);
+      j14 = -mT0.DzDs() * Bz * dx * dx * exi * exi * exi * (0.5f * ey + (1.f / 3.f) * kdx * (1 + 2.f * ey * ey) * exi * exi);
     }
 
     p[1] += j12 * d2 + j14 * d4;
@@ -504,9 +560,9 @@ GPUd() int GPUTPCGMPropagator::PropagateToXAlpha(float posX, float posAlpha, boo
   return 0;
 }
 
-GPUd() int GPUTPCGMPropagator::GetPropagatedYZ(float x, float& projY, float& projZ)
+GPUd() int GPUTPCGMPropagator::GetPropagatedYZ(float x, float& GPUrestrict() projY, float& GPUrestrict() projZ)
 {
-  float bz = GetBz(mAlpha, mT->X(), mT->Y(), mT->Z());
+  float bz = GetBz(mT->X(), mT->Y(), mT->Z());
   float k = mT0.QPt() * bz;
   float dx = x - mT->X();
   float kdx = k * dx;
@@ -537,175 +593,18 @@ GPUd() int GPUTPCGMPropagator::GetPropagatedYZ(float x, float& projY, float& pro
   return 0;
 }
 
-/*
-GPUd() int GPUTPCGMPropagator::PropagateToXAlphaBz(float posX, float posAlpha, bool inFlyDirection)
+GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUrestrict() err2Z, const GPUParam& GPUrestrict() param, float posZ, int iRow, short clusterState) const
 {
-  if ( CAMath::Abs( posAlpha - mAlpha) > 1.e-4 ) {
-    if( RotateToAlpha( posAlpha )!=0 ) return -2;
-  }
-
-  float Bz = GetBz( mAlpha, mT0.X(), mT0.Y(), mT0.Z() );
-
-  // propagate mT0 to t0e
-
-  GPUTPCGMPhysicalTrackModel t0e(mT0);
-  float dLp = 0;
-  if (t0e.PropagateToXBzLight( posX, Bz, dLp )) return 1;
-  t0e.UpdateValues();
-  if( CAMath::Abs( t0e.SinPhi() ) >= mMaxSinPhi ) return -3;
-
-  // propagate track and cov matrix with derivatives for (0,0,Bz) field
-
-  float dS =  dLp*t0e.Pt();
-  float dL =  CAMath::Abs(dLp*t0e.P());
-
-  if( inFlyDirection ) dL = -dL;
-
-  float k  = -mT0.QPt()*Bz;
-  float dx = posX - mT0.X();
-  float kdx = k*dx;
-  float dxcci = dx / (mT0.CosPhi() + t0e.CosPhi());
-
-  float hh = dxcci*t0e.SecPhi()*(2.f+0.5f*kdx*kdx);
-  float h02 = mT0.SecPhi()*hh;
-  float h04 = -Bz*dxcci*hh;
-  float h13 = dS;
-  float h24 = -dx*Bz;
-
-  float *p = mT->Par();
-
-  float d0 = p[0] - mT0.Y();
-  float d1 = p[1] - mT0.Z();
-  float d2 = p[2] - mT0.SinPhi();
-  float d3 = p[3] - mT0.DzDs();
-  float d4 = p[4] - mT0.QPt();
-
-  float newSinPhi = t0e.SinPhi() +  d2           + h24*d4;
-  if (mT->NDF() >= 15 && CAMath::Abs(newSinPhi) > GPUCA_MAX_SIN_PHI) return(-4);
-
-  mT0 = t0e;
-
-  mT->X() = t0e.X();
-  p[0] = t0e.Y() + d0    + h02*d2         + h04*d4;
-  p[1] = t0e.Z() + d1    + h13*d3;
-  p[2] = newSinPhi;
-  p[3] = t0e.DzDs() + d3;
-  p[4] = t0e.QPt() + d4;
-
-  float *c = mT->Cov();
-  float c20 = c[ 3];
-  float c21 = c[ 4];
-  float c22 = c[ 5];
-  float c30 = c[ 6];
-  float c31 = c[ 7];
-  float c32 = c[ 8];
-  float c33 = c[ 9];
-  float c40 = c[10];
-  float c41 = c[11];
-  float c42 = c[12];
-  float c43 = c[13];
-  float c44 = c[14];
-
-  float c20ph04c42 =  c20 + h04*c42;
-  float h02c22 = h02*c22;
-  float h04c44 = h04*c44;
-
-  float n6 = c30 + h02*c32 + h04*c43;
-  float n7 = c31 + h13*c33;
-  float n10 = c40 + h02*c42 + h04c44;
-  float n11 = c41 + h13*c43;
-  float n12 = c42 + h24*c44;
-
-  c[8] = c32 + h24*c43;
-
-  c[0]+= h02*h02c22 + h04*h04c44 + 2.f*( h02*c20ph04c42  + h04*c40 );
-
-  c[1]+= h02*c21 + h04*c41 + h13*n6;
-  c[6] = n6;
-
-  c[2]+= h13*(c31 + n7);
-  c[7] = n7;
-
-  c[3] = c20ph04c42 + h02c22  + h24*n10;
-  c[10] = n10;
-
-  c[4] = c21 + h13*c32 + h24*n11;
-  c[11] = n11;
-
-  c[5] = c22 + h24*( c42 + n12 );
-  c[12] = n12;
-
-  // Energy Loss
-
-  float &mC22 = c[5];
-  float &mC33 = c[9];
-  float &mC40 = c[10];
-  float &mC41 = c[11];
-  float &mC42 = c[12];
-  float &mC43 = c[13];
-  float &mC44 = c[14];
-
-  float dLmask = 0.f;
-  bool maskMS = ( CAMath::Abs( dL ) < mMaterial.fDLMax );
-  if( maskMS ) dLmask = dL;
-  float dLabs = CAMath::Abs( dLmask);
-  float corr = 1.f - mMaterial.fEP2* dLmask ;
-
-  float corrInv = 1.f/corr;
-  mT0.Px()*=corrInv;
-  mT0.Py()*=corrInv;
-  mT0.Pz()*=corrInv;
-  mT0.Pt()*=corrInv;
-  mT0.P()*=corrInv;
-  mT0.QPt()*=corr;
-
-  p[4]*= corr;
-
-  mC40 *= corr;
-  mC41 *= corr;
-  mC42 *= corr;
-  mC43 *= corr;
-  mC44  = mC44*corr*corr + dLabs*mMaterial.fSigmadE2;
-
-  //  Multiple Scattering
-
-  mC22 += dLabs * mMaterial.fK22 * mT0.CosPhi()*mT0.CosPhi();
-  mC33 += dLabs * mMaterial.fK33;
-  mC43 += dLabs * mMaterial.fK43;
-  mC44 += dLabs * mMaterial.fK44;
-
-  return 0;
-}
-*/
-
-GPUd() void GPUTPCGMPropagator::GetErr2(float& err2Y, float& err2Z, const GPUParam& param, float posZ, int iRow, short clusterState) const
-{
-  if (mSpecialErrors) {
+  if (!mSeedingErrors) {
     param.GetClusterErrors2(iRow, posZ, mT0.GetSinPhi(), mT0.DzDs(), err2Y, err2Z);
   } else {
     param.GetClusterRMS2(iRow, posZ, mT0.GetSinPhi(), mT0.DzDs(), err2Y, err2Z);
   }
-
-  if (clusterState & GPUTPCGMMergedTrackHit::flagEdge) {
-    err2Y += 0.35f;
-    err2Z += 0.15f;
-  }
-  if (clusterState & GPUTPCGMMergedTrackHit::flagSingle) {
-    err2Y += 0.2f;
-    err2Z += 0.2f;
-  }
-  if (clusterState & (GPUTPCGMMergedTrackHit::flagSplitPad | GPUTPCGMMergedTrackHit::flagShared | GPUTPCGMMergedTrackHit::flagSingle)) {
-    err2Y += 0.03f;
-    err2Y *= 3;
-  }
-  if (clusterState & (GPUTPCGMMergedTrackHit::flagSplitTime | GPUTPCGMMergedTrackHit::flagShared | GPUTPCGMMergedTrackHit::flagSingle)) {
-    err2Z += 0.03f;
-    err2Z *= 3;
-  }
+  param.UpdateClusterError2ByState(clusterState, err2Y, err2Z);
   mStatErrors.GetOfflineStatisticalErrors(err2Y, err2Z, mT0.SinPhi(), mT0.DzDs(), clusterState);
 }
 
-GPUd() float GPUTPCGMPropagator::PredictChi2(float posY, float posZ, int iRow, const GPUParam& param, short clusterState) const
+GPUd() float GPUTPCGMPropagator::PredictChi2(float posY, float posZ, int iRow, const GPUParam& GPUrestrict() param, short clusterState) const
 {
   float err2Y, err2Z;
   GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState);
@@ -739,10 +638,21 @@ GPUd() float GPUTPCGMPropagator::PredictChi2(float posY, float posZ, float err2Y
   }
 }
 
-GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, int iRow, const GPUParam& param, short clusterState, bool rejectChi2, bool refit)
+GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, int iRow, const GPUParam& GPUrestrict() param, short clusterState, char rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, bool refit)
 {
   float err2Y, err2Z;
   GetErr2(err2Y, err2Z, param, posZ, iRow, clusterState);
+
+  if (rejectChi2 >= 2) {
+    if (rejectChi2 == 3 && inter->errorY < (GPUCA_MERGER_INTERPOLATION_ERROR_TYPE)0) {
+      rejectChi2 = 1;
+    } else {
+      int retVal = InterpolateReject(posY, posZ, clusterState, rejectChi2, inter, err2Y, err2Z);
+      if (retVal) {
+        return retVal;
+      }
+    }
+  }
 
   if (mT->NDF() == -5) { // first measurement: no need to filter, as the result is known in advance. just set it.
     mT->ResetCovariance();
@@ -761,20 +671,86 @@ GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, int iRow, const GP
     return 0;
   }
 
-  return Update(posY, posZ, clusterState, rejectChi2, err2Y, err2Z);
+  return Update(posY, posZ, clusterState, rejectChi2 == 1, err2Y, err2Z);
+}
+
+GPUd() int GPUTPCGMPropagator::InterpolateReject(float posY, float posZ, short clusterState, char rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, float err2Y, float err2Z)
+{
+  float* GPUrestrict() mC = mT->Cov();
+  float* GPUrestrict() mP = mT->Par();
+  if (rejectChi2 == 2) {
+    inter->posY = mP[0];
+    inter->posZ = mP[1];
+    inter->errorY = mC[0];
+    inter->errorZ = mC[2];
+  } else if (rejectChi2 == 3) {
+    float chiY, chiZ;
+    if (mFitInProjections || mT->NDF() <= 0) {
+      const float Iz0 = inter->posY - mP[0];
+      const float Iz1 = inter->posZ - mP[1];
+      const float Iw0 = 1.f / (mC[0] + (float)inter->errorY);
+      const float Iw2 = 1.f / (mC[2] + (float)inter->errorZ);
+      const float Ik00 = mC[0] * Iw0;
+      const float Ik11 = mC[2] * Iw2;
+      const float ImP0 = mP[0] + Ik00 * Iz0;
+      const float ImP1 = mP[1] + Ik11 * Iz1;
+      const float ImC0 = mC[0] - Ik00 * mC[0];
+      const float ImC2 = mC[2] - Ik11 * mC[2];
+      //printf("\t%21sInterpo ----- abde artaf%16s Y %8.3f, Z %8.3f (Errors %f <-- (%f, %f) %f <-- (%f, %f))\n", "", "", ImP0, ImP1, sqrtf(ImC0), sqrtf(mC[0]), sqrtf(inter->errorY), sqrtf(ImC2), sqrtf(mC[2]), sqrtf(inter->errorZ));
+      const float Jz0 = posY - ImP0;
+      const float Jz1 = posZ - ImP1;
+      const float Jw0 = 1.f / (ImC0 + err2Y);
+      const float Jw2 = 1.f / (ImC2 + err2Z);
+      chiY = Jw0 * Jz0 * Jz0;
+      chiZ = Jw2 * Jz1 * Jz1;
+    } else {
+      const float Iz0 = inter->posY - mP[0];
+      const float Iz1 = inter->posZ - mP[1];
+      float Iw0 = mC[2] + (float)inter->errorZ;
+      float Iw2 = mC[0] + (float)inter->errorY;
+      float Idet = CAMath::Max(1e-10f, Iw0 * Iw2 - mC[1] * mC[1]);
+      Idet = 1.f / Idet;
+      Iw0 *= Idet;
+      const float Iw1 = mC[1] * Idet;
+      Iw2 *= Idet;
+      const float Ik00 = mC[0] * Iw0 + mC[1] * Iw1;
+      const float Ik01 = mC[0] * Iw1 + mC[1] * Iw2;
+      const float Ik10 = mC[1] * Iw0 + mC[2] * Iw1;
+      const float Ik11 = mC[1] * Iw1 + mC[2] * Iw2;
+      const float ImP0 = mP[0] + Ik00 * Iz0 + Ik01 * Iz1;
+      const float ImP1 = mP[1] + Ik10 * Iz0 + Ik11 * Iz1;
+      const float ImC0 = mC[0] - Ik00 * mC[0] + Ik01 * mC[1];
+      const float ImC1 = mC[1] - Ik10 * mC[0] + Ik11 * mC[1];
+      const float ImC2 = mC[2] - Ik10 * mC[1] + Ik11 * mC[2];
+      const float Jz0 = posY - ImP0;
+      const float Jz1 = posZ - ImP1;
+      float Jw0 = ImC2 + err2Z;
+      float Jw2 = ImC0 + err2Y;
+      float Jdet = CAMath::Max(1e-10f, Jw0 * Jw2 - ImC1 * ImC1);
+      Jdet = 1.f / Jdet;
+      Jw0 *= Jdet;
+      const float Jw1 = ImC1 * Jdet;
+      Jw2 *= Jdet;
+      chiY = CAMath::Abs((Jw0 * Jz0 + Jw1 * Jz1) * Jz0);
+      chiZ = CAMath::Abs((Jw1 * Jz0 + Jw2 * Jz1) * Jz1);
+    }
+    if (RejectCluster(chiY, chiZ, clusterState)) { // TODO: Relative Pt resolution decreases slightly, why?
+      return 2;
+    }
+  }
+  return 0;
 }
 
 GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, short clusterState, bool rejectChi2, float err2Y, float err2Z)
 {
-  float* mC = mT->Cov();
-  float* mP = mT->Par();
+  float* GPUrestrict() mC = mT->Cov();
+  float* GPUrestrict() mP = mT->Par();
 
-  float d00 = mC[0], d01 = mC[1], d02 = mC[3], d03 = mC[6], d04 = mC[10];
-  float d10 = mC[1], d11 = mC[2], d12 = mC[4], d13 = mC[7], d14 = mC[11];
+  const float d00 = mC[0], d01 = mC[1], d02 = mC[3], d03 = mC[6], d04 = mC[10];
+  const float d10 = mC[1], d11 = mC[2], d12 = mC[4], d13 = mC[7], d14 = mC[11];
 
-  float z0 = posY - mP[0];
-  float z1 = posZ - mP[1];
-
+  const float z0 = posY - mP[0];
+  const float z1 = posZ - mP[1];
   float w0, w1, w2, chiY, chiZ;
   if (mFitInProjections || mT->NDF() <= 0) {
     w0 = 1.f / (err2Y + d00);
@@ -799,18 +775,18 @@ GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, short clusterState
   }
   float dChi2 = chiY + chiZ;
   // GPUInfo("hits %d chi2 %f, new %f %f (dy %f dz %f)", N, mChi2, chiY, chiZ, z0, z1);
-  if (mSpecialErrors && rejectChi2 && RejectCluster(chiY, chiZ, clusterState)) {
-    return 2; // DR: TOTO get rid of stupid specialerror
+  if (!mSeedingErrors && rejectChi2 == 1 && RejectCluster(chiY, chiZ, clusterState)) {
+    return 2;
   }
   mT->Chi2() += dChi2;
   mT->NDF() += 2;
 
   if (mFitInProjections || mT->NDF() <= 0) {
-    float k00 = d00 * w0;
-    float k20 = d02 * w0;
-    float k40 = d04 * w0;
-    float k11 = d11 * w2;
-    float k31 = d13 * w2;
+    const float k00 = d00 * w0;
+    const float k20 = d02 * w0;
+    const float k40 = d04 * w0;
+    const float k11 = d11 * w2;
+    const float k31 = d13 * w2;
     mP[0] += k00 * z0;
     mP[1] += k11 * z1;
     mP[2] += k20 * z0;
@@ -827,16 +803,16 @@ GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, short clusterState
     mC[12] -= k40 * d02;
     mC[14] -= k40 * d04;
   } else {
-    float k00 = d00 * w0 + d01 * w1;
-    float k01 = d00 * w1 + d10 * w2;
-    float k10 = d01 * w0 + d11 * w1;
-    float k11 = d01 * w1 + d11 * w2;
-    float k20 = d02 * w0 + d12 * w1;
-    float k21 = d02 * w1 + d12 * w2;
-    float k30 = d03 * w0 + d13 * w1;
-    float k31 = d03 * w1 + d13 * w2;
-    float k40 = d04 * w0 + d14 * w1;
-    float k41 = d04 * w1 + d14 * w2;
+    const float k00 = d00 * w0 + d01 * w1;
+    const float k01 = d00 * w1 + d10 * w2;
+    const float k10 = d01 * w0 + d11 * w1;
+    const float k11 = d01 * w1 + d11 * w2;
+    const float k20 = d02 * w0 + d12 * w1;
+    const float k21 = d02 * w1 + d12 * w2;
+    const float k30 = d03 * w0 + d13 * w1;
+    const float k31 = d03 * w1 + d13 * w2;
+    const float k40 = d04 * w0 + d14 * w1;
+    const float k41 = d04 * w1 + d14 * w2;
 
     mP[0] += k00 * z0 + k01 * z1;
     mP[1] += k10 * z0 + k11 * z1;
@@ -858,17 +834,12 @@ GPUd() int GPUTPCGMPropagator::Update(float posY, float posZ, short clusterState
     mC[12] -= k40 * d02 + k41 * d12;
     mC[14] -= k40 * d04 + k41 * d14;
 
-    if (!mFitInProjections && mT->NDF() >= 0) {
-      mC[1] -= k10 * d00 + k11 * d10;
-
-      mC[4] -= k20 * d01 + k21 * d11;
-
-      mC[6] -= k30 * d00 + k31 * d10;
-      mC[8] -= k30 * d02 + k31 * d12;
-
-      mC[11] -= k40 * d01 + k41 * d11;
-      mC[13] -= k40 * d03 + k41 * d13;
-    }
+    mC[1] -= k10 * d00 + k11 * d10;
+    mC[4] -= k20 * d01 + k21 * d11;
+    mC[6] -= k30 * d00 + k31 * d10;
+    mC[8] -= k30 * d02 + k31 * d12;
+    mC[11] -= k40 * d01 + k41 * d11;
+    mC[13] -= k40 * d03 + k41 * d13;
   }
   return 0;
 }
@@ -935,7 +906,7 @@ GPUd() void GPUTPCGMPropagator::CalculateMaterialCorrection()
   float p2 = w2 / pti2; // impuls 2
   float betheRho = ApproximateBetheBloch(p2 / mass2) * mMaterial.rho;
   float E = CAMath::Sqrt(p2 + mass2);
-  float theta2 = (14.1f * 14.1f / 1.e6f) / (beta2 * p2) * mMaterial.rhoOverRadLen;
+  float theta2 = (14.1f * 14.1f / 1.e6f) / (beta2 * p2) * mMaterial.radLenInv;
 
   mMaterial.EP2 = E / p2;
 
@@ -976,6 +947,8 @@ GPUd() void GPUTPCGMPropagator::Rotate180()
   while (mAlpha < -M_PI) {
     mAlpha += 2 * M_PI;
   }
+  mCosAlpha = -mCosAlpha;
+  mSinAlpha = -mSinAlpha;
 
   float* c = mT->Cov();
   c[6] = -c[6];
@@ -1009,7 +982,7 @@ GPUd() void GPUTPCGMPropagator::Mirror(bool inFlyDirection)
 {
   // mirror the track and the track approximation to the point which has the same X, but located on the other side of trajectory
   float B[3];
-  GetBxByBz(mAlpha, mT0.X(), mT0.Y(), mT0.Z(), B);
+  GetBxByBz(mT0.X(), mT0.Y(), mT0.Z(), B);
   float Bz = B[2];
   if (CAMath::Abs(Bz) < 1.e-8f) {
     Bz = 1.e-8f;
@@ -1089,11 +1062,25 @@ GPUd() void GPUTPCGMPropagator::Mirror(bool inFlyDirection)
   }
 }
 
-GPUd() o2::base::MatBudget GPUTPCGMPropagator::getMatBudget(float* p1, float* p2)
+GPUd() o2::base::MatBudget GPUTPCGMPropagator::getMatBudget(const float* p1, const float* p2)
 {
 #ifdef HAVE_O2HEADERS
   return mMatLUT->getMatBudget(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2]);
 #else
   return o2::base::MatBudget();
+#endif
+}
+
+GPUdic(0, 1) void GPUTPCGMPropagator::UpdateMaterial(const GPUTPCGMPhysicalTrackModel& GPUrestrict() t0e)
+{
+#ifdef HAVE_O2HEADERS
+  float xyz1[3] = {getGlobalX(mT0.GetX(), mT0.GetY()), getGlobalY(mT0.GetX(), mT0.GetY()), mT0.GetZ()};
+  float xyz2[3] = {getGlobalX(t0e.GetX(), t0e.GetY()), getGlobalY(t0e.GetX(), t0e.GetY()), t0e.GetZ()};
+  o2::base::MatBudget mat = getMatBudget(xyz1, xyz2);
+  if (mat.meanX2X0 > 1.e-8) {
+    SetMaterial(mat.length / mat.meanX2X0, mat.meanRho);
+  } else {
+    SetMaterialTPC();
+  }
 #endif
 }

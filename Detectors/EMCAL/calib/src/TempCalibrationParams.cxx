@@ -24,11 +24,6 @@ void TempCalibrationParams::addTempCalibParam(unsigned short cellID, float Slope
   mTempCalibParamsA0[cellID] = ParamA0;
 }
 
-void TempCalibrationParams::addTempCalibParamPerSM(unsigned short iSM, float ParamSM)
-{
-  mTempCalibParamsPerSM[iSM] = ParamSM;
-}
-
 float TempCalibrationParams::getTempCalibParamSlope(unsigned short cellID) const
 {
   return mTempCalibParamsSlope[cellID];
@@ -39,19 +34,15 @@ float TempCalibrationParams::getTempCalibParamA0(unsigned short cellID) const
   return mTempCalibParamsA0[cellID];
 }
 
-float TempCalibrationParams::getTempCalibParamPerSM(unsigned short iSM) const
-{
-  return mTempCalibParamsPerSM[iSM];
-}
-
 TH1* TempCalibrationParams::getHistogramRepresentationSlope() const
 {
 
   auto hist = new TH1F("TempCalibrationParamsSlope", "Temp Calibration Params Slope", 17664, 0, 17664);
   hist->SetDirectory(nullptr);
 
-  for (std::size_t icell{0}; icell < mTempCalibParamsSlope.size(); ++icell)
+  for (std::size_t icell{0}; icell < mTempCalibParamsSlope.size(); ++icell) {
     hist->SetBinContent(icell + 1, mTempCalibParamsSlope[icell]);
+  }
 
   return hist;
 }
@@ -62,8 +53,9 @@ TH1* TempCalibrationParams::getHistogramRepresentationA0() const
   auto hist = new TH1F("TempCalibrationParamsA0", "Temp Calibration Params A0", 17664, 0, 17664);
   hist->SetDirectory(nullptr);
 
-  for (std::size_t icell{0}; icell < mTempCalibParamsA0.size(); ++icell)
+  for (std::size_t icell{0}; icell < mTempCalibParamsA0.size(); ++icell) {
     hist->SetBinContent(icell + 1, mTempCalibParamsA0[icell]);
+  }
 
   return hist;
 }

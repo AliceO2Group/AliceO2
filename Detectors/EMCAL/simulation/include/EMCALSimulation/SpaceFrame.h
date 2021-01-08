@@ -17,30 +17,22 @@ namespace o2
 {
 namespace emcal
 {
-////////////////////////////////////////////////////////////////////////////
-///
 /// \class  SpaceFrame
 /// \brief Space Frame implementation
-///
-/// EMCAL Space Frame implementation (converted from AliRoot)
-///
+/// \ingroup EMCALsimulation
 /// \author Ryan M. Ward, <rmward@calpoly.edu>, Cal Poly
 ///
-////////////////////////////////////////////////////////////////////////////
+/// EMCAL Space Frame implementation (converted from AliRoot)
 class SpaceFrame
 {
  public:
-  ///
-  /// Default constructor. Initialize parameters
+  /// \brief Default constructor. Initialize parameters
   SpaceFrame() = default;
 
-  ///
-  /// Destructor
+  /// \brief Destructor
   virtual ~SpaceFrame() = default;
 
-  ///
-  /// This method assembles the Geometries and places them into the
-  /// Alice master volume
+  /// \brief Assembles the Geometries and places them into the Alice master volume
   void CreateGeometry();
 };
 } // namespace emcal

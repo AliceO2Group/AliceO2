@@ -49,7 +49,7 @@ class MCCompLabel
   // mask for all used fields
   static constexpr ULong64_t maskFull = (ul0x1 << (nbitsTrackID + nbitsEvID + nbitsSrcID)) - 1;
 
-  MCCompLabel(int trackID, int evID, int srcID, bool fake) { set(trackID, evID, srcID, fake); }
+  MCCompLabel(int trackID, int evID, int srcID, bool fake = false) { set(trackID, evID, srcID, fake); }
   MCCompLabel(bool noise = false)
   {
     if (noise) {
@@ -120,6 +120,7 @@ class MCCompLabel
   int getTrackIDSigned() const { return isFake() ? -getTrackID() : getTrackID(); }
   int getEventID() const { return (mLabel >> nbitsTrackID) & maskEvID; }
   int getSourceID() const { return (mLabel >> (nbitsTrackID + nbitsEvID)) & maskSrcID; }
+  ULong64_t getTrackEventSourceID() const { return static_cast<ULong64_t>(mLabel & maskFull); }
   void get(int& trackID, int& evID, int& srcID, bool& fake)
   {
     /// parse label

@@ -14,7 +14,7 @@
 #ifndef ALICEO2_TPC_GBTFRAMECONTAINER_H_
 #define ALICEO2_TPC_GBTFRAMECONTAINER_H_
 
-#include "TPCBase/Digit.h"
+#include "DataFormatsTPC/Digit.h"
 #include "TPCBase/Mapper.h"
 #include "TPCReconstruction/AdcClockMonitor.h"
 #include "TPCReconstruction/GBTFrame.h"
@@ -147,8 +147,9 @@ class GBTFrameContainer
   void setEnableStoreGBTFrames(bool val)
   {
     mEnableStoreGBTFrames = val;
-    if (!mEnableStoreGBTFrames)
+    if (!mEnableStoreGBTFrames) {
       mGBTFrames.resize(2);
+    }
   };
 
   /// Extracts the digits after all 80 channels were transmitted (5*16)

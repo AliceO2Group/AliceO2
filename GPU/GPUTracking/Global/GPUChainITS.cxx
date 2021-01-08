@@ -46,17 +46,21 @@ int GPUChainITS::Init() { return 0; }
 
 TrackerTraits* GPUChainITS::GetITSTrackerTraits()
 {
+#ifndef GPUCA_NO_ITS_TRAITS
   if (mITSTrackerTraits == nullptr) {
     mRec->GetITSTraits(&mITSTrackerTraits, nullptr);
     mITSTrackerTraits->SetRecoChain(this, &GPUChainITS::PrepareAndRunITSTrackFit);
   }
+#endif
   return mITSTrackerTraits.get();
 }
 VertexerTraits* GPUChainITS::GetITSVertexerTraits()
 {
+#ifndef GPUCA_NO_ITS_TRAITS
   if (mITSVertexerTraits == nullptr) {
     mRec->GetITSTraits(nullptr, &mITSVertexerTraits);
   }
+#endif
   return mITSVertexerTraits.get();
 }
 
@@ -66,38 +70,37 @@ int GPUChainITS::Finalize() { return 0; }
 
 int GPUChainITS::RunChain() { return 0; }
 
-int GPUChainITS::PrepareAndRunITSTrackFit(std::vector<Road>& roads, std::array<const Cluster*, 7> clusters, std::array<const Cell*, 5> cells, const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITSExt>& tracks)
+int GPUChainITS::PrepareAndRunITSTrackFit(std::vector<o2::its::Road>& roads, std::vector<const o2::its::Cluster*>& clusters, std::vector<const o2::its::Cell*>& cells, const std::vector<std::vector<o2::its::TrackingFrameInfo>>& tf, std::vector<o2::its::TrackITSExt>& tracks)
 {
   mRec->PrepareEvent();
   return RunITSTrackFit(roads, clusters, cells, tf, tracks);
 }
 
-int GPUChainITS::RunITSTrackFit(std::vector<Road>& roads, std::array<const Cluster*, 7> clusters, std::array<const Cell*, 5> cells, const std::array<std::vector<TrackingFrameInfo>, 7>& tf, std::vector<TrackITSExt>& tracks)
+int GPUChainITS::RunITSTrackFit(std::vector<o2::its::Road>& roads, std::vector<const o2::its::Cluster*>& clusters, std::vector<const o2::its::Cell*>& cells, const std::vector<std::vector<o2::its::TrackingFrameInfo>>& tf, std::vector<o2::its::TrackITSExt>& tracks)
 {
   auto threadContext = GetThreadContext();
-  mRec->SetThreadCounts(RecoStep::ITSTracking);
   bool doGPU = GetRecoStepsGPU() & RecoStep::ITSTracking;
   GPUITSFitter& Fitter = processors()->itsFitter;
   GPUITSFitter& FitterShadow = doGPU ? processorsShadow()->itsFitter : Fitter;
 
   Fitter.clearMemory();
   Fitter.SetNumberOfRoads(roads.size());
-  for (int i = 0; i < 7; i++) {
+  for (unsigned int i = 0; i < clusters.size(); i++) {
     Fitter.SetNumberTF(i, tf[i].size());
   }
-  Fitter.SetMaxData();
+  Fitter.SetMaxData(processors()->ioPtrs);
   std::copy(clusters.begin(), clusters.end(), Fitter.clusters());
   std::copy(cells.begin(), cells.end(), Fitter.cells());
   SetupGPUProcessor(&Fitter, true);
   std::copy(roads.begin(), roads.end(), Fitter.roads());
-  for (int i = 0; i < 7; i++) {
+  for (unsigned int i = 0; i < clusters.size(); i++) {
     std::copy(tf[i].begin(), tf[i].end(), Fitter.trackingFrame()[i]);
   }
 
-  WriteToConstantMemory((char*)&processors()->itsFitter - (char*)processors(), &FitterShadow, sizeof(FitterShadow), 0);
-  TransferMemoryResourcesToGPU(&Fitter, 0);
-  runKernel<GPUITSFitterKernel>({BlockCount(), ThreadCount(), 0}, nullptr, krnlRunRangeNone, krnlEventNone);
-  TransferMemoryResourcesToHost(&Fitter, 0);
+  WriteToConstantMemory(RecoStep::ITSTracking, (char*)&processors()->itsFitter - (char*)processors(), &FitterShadow, sizeof(FitterShadow), 0);
+  TransferMemoryResourcesToGPU(RecoStep::ITSTracking, &Fitter, 0);
+  runKernel<GPUITSFitterKernel>(GetGridBlk(BlockCount(), 0), krnlRunRangeNone, krnlEventNone);
+  TransferMemoryResourcesToHost(RecoStep::ITSTracking, &Fitter, 0);
 
   SynchronizeGPU();
 
@@ -110,7 +113,6 @@ int GPUChainITS::RunITSTrackFit(std::vector<Road>& roads, std::array<const Clust
                                      {trkin.Cov()[0], trkin.Cov()[1], trkin.Cov()[2], trkin.Cov()[3], trkin.Cov()[4], trkin.Cov()[5], trkin.Cov()[6], trkin.Cov()[7], trkin.Cov()[8], trkin.Cov()[9], trkin.Cov()[10], trkin.Cov()[11], trkin.Cov()[12], trkin.Cov()[13], trkin.Cov()[14]}},
                                     (short int)((trkin.NDF() + 5) / 2),
                                     trkin.Chi2(),
-                                    0,
                                     {trkin.mOuterParam.X,
                                      trkin.mOuterParam.alpha,
                                      {trkin.mOuterParam.P[0], trkin.mOuterParam.P[1], trkin.mOuterParam.P[2], trkin.mOuterParam.P[3], trkin.mOuterParam.P[4]},

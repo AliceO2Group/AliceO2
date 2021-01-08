@@ -13,8 +13,6 @@
 #include <FairMQMessage.h>
 #include <FairMQDevice.h>
 #include <FairMQParts.h>
-#include <ITSMFTSimulation/Hit.h>
-#include <TPCSimulation/Point.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <TMessage.h>
 #include <sstream>
@@ -26,6 +24,8 @@
 #include <TGeoManager.h>
 #include <fstream>
 #include <FairVolume.h>
+#include <DetectorsCommonDataFormats/NameConf.h>
+#include "SimConfig/SimUserDecay.h"
 
 namespace o2
 {
@@ -115,6 +115,26 @@ void O2MCApplicationBase::InitGeometry()
   }
 }
 
+bool O2MCApplicationBase::MisalignGeometry()
+{
+  for (auto det : listActiveDetectors) {
+    if (dynamic_cast<o2::base::Detector*>(det)) {
+      ((o2::base::Detector*)det)->addAlignableVolumes();
+    }
+  }
+
+  auto b = FairMCApplication::MisalignGeometry();
+  // we use this moment to stream our geometry (before other
+  // VMC engine dependent modifications are done)
+
+  auto& confref = o2::conf::SimConfig::Instance();
+  auto geomfile = o2::base::NameConf::getGeomFileName(confref.getOutPrefix());
+  gGeoManager->Export(geomfile.c_str());
+
+  // return original return value of misalignment procedure
+  return b;
+}
+
 void O2MCApplicationBase::finishEventCommon()
 {
   LOG(INFO) << "This event/chunk did " << mStepCounter << " steps";
@@ -151,6 +171,29 @@ void O2MCApplicationBase::BeginEvent()
   static_cast<o2::data::Stack*>(GetStack())->setMCEventStats(&header->getMCEventStats());
 
   mStepCounter = 0;
+}
+
+void O2MCApplicationBase::AddParticles()
+{
+  // dispatch first to function in FairRoot
+  FairMCApplication::AddParticles();
+
+  auto& param = o2::conf::SimUserDecay::Instance();
+  LOG(INFO) << "Printing \'SimUserDecay\' parameters";
+  LOG(INFO) << param;
+
+  // check if there are PDG codes requested for user decay
+  if (param.pdglist.empty()) {
+    return;
+  }
+
+  // loop over PDG codes in the string
+  std::stringstream ss(param.pdglist);
+  int pdg;
+  while (ss >> pdg) {
+    LOG(INFO) << "Setting user decay for PDG " << pdg;
+    TVirtualMC::GetMC()->SetUserDecay(pdg);
+  }
 }
 
 void O2MCApplication::initLate()
@@ -201,10 +244,10 @@ void O2MCApplication::SendData()
   // fill these parts ... the receiver has to unpack similary
   // TODO: actually we could just loop over branches in FairRootManager at this moment?
   mSubEventInfo->npersistenttracks = static_cast<o2::data::Stack*>(GetStack())->getMCTracks()->size();
+  mSubEventInfo->nprimarytracks = static_cast<o2::data::Stack*>(GetStack())->GetNprimary();
   attachSubEventInfo(simdataparts, *mSubEventInfo);
   auto tracks = attachBranch<std::vector<o2::MCTrack>>("MCTrack", *mSimDataChannel, simdataparts);
   attachBranch<std::vector<o2::TrackReference>>("TrackRefs", *mSimDataChannel, simdataparts);
-  attachBranch<o2::dataformats::MCTruthContainer<o2::TrackReference>>("IndexedTrackRefs", *mSimDataChannel, simdataparts);
   assert(tracks->size() == mSubEventInfo->npersistenttracks);
 
   for (auto det : listActiveDetectors) {

@@ -20,6 +20,7 @@
 
 #include "TVectorF.h"
 #include "TTreeStream.h"
+#include "GPULogging.h"
 #include "GPUTRDTrack.h"
 
 namespace GPUCA_NAMESPACE
@@ -27,11 +28,18 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 
+template <class T>
 class GPUTRDTrackerDebug
 {
  public:
-  GPUTRDTrackerDebug() { fStreamer = new TTreeSRedirector("TRDhlt.root", "recreate"); }
+  GPUTRDTrackerDebug() : fStreamer(0x0) {}
   ~GPUTRDTrackerDebug() { delete fStreamer; }
+
+  void CreateStreamer()
+  {
+    GPUInfo("Creating streamer for debugging");
+    fStreamer = new TTreeSRedirector("TRDhlt.root", "recreate");
+  }
 
   int GetSector(float alpha)
   {
@@ -49,6 +57,7 @@ class GPUTRDTrackerDebug
     fTrackPhi.ResizeTo(6);
     fTrackLambda.ResizeTo(6);
     fTrackPt.ResizeTo(6);
+    fTrackQPt.ResizeTo(6);
     fTrackSector.ResizeTo(6);
     fTrackYerr.ResizeTo(6);
     fTrackZerr.ResizeTo(6);
@@ -102,6 +111,7 @@ class GPUTRDTrackerDebug
     fTrackPhi.Zero();
     fTrackLambda.Zero();
     fTrackPt.Zero();
+    fTrackQPt.Zero();
     fTrackSector.Zero();
     fTrackYerr.Zero();
     fTrackZerr.Zero();
@@ -184,7 +194,7 @@ class GPUTRDTrackerDebug
   }
 
   // track parameters
-  void SetTrackParameter(const GPUTRDTrack& trk, int ly)
+  void SetTrackParameter(const T& trk, int ly)
   {
     fTrackX(ly) = trk.getX();
     fTrackY(ly) = trk.getY();
@@ -192,11 +202,12 @@ class GPUTRDTrackerDebug
     fTrackPhi(ly) = trk.getSnp();
     fTrackLambda(ly) = trk.getTgl();
     fTrackPt(ly) = trk.getPt();
+    fTrackQPt(ly) = trk.getQ2Pt();
     fTrackSector(ly) = GetSector(trk.getAlpha());
     fTrackYerr(ly) = trk.getSigmaY2();
     fTrackZerr(ly) = trk.getSigmaZ2();
   }
-  void SetTrackParameterNoUp(const GPUTRDTrack& trk, int ly)
+  void SetTrackParameterNoUp(const T& trk, int ly)
   {
     fTrackNoUpX(ly) = trk.getX();
     fTrackNoUpY(ly) = trk.getY();
@@ -208,14 +219,14 @@ class GPUTRDTrackerDebug
     fTrackNoUpYerr(ly) = trk.getSigmaY2();
     fTrackNoUpZerr(ly) = trk.getSigmaZ2();
   }
-  void SetTrackParameterReal(const GPUTRDTrack& trk, int ly)
+  void SetTrackParameterReal(const T& trk, int ly)
   {
     fTrackXReal(ly) = trk.getX();
     fTrackYReal(ly) = trk.getY();
     fTrackZReal(ly) = trk.getZ();
     fTrackSecReal(ly) = GetSector(trk.getAlpha());
   }
-  void SetTrack(const GPUTRDTrack& trk)
+  void SetTrack(const T& trk)
   {
     fChi2 = trk.GetChi2();
     fNlayers = trk.GetNlayers();
@@ -316,6 +327,7 @@ class GPUTRDTrackerDebug
       "trackZ.=" << &fTrackZ <<                            // z-pos of track (layerwise)
       "trackPhi.=" << &fTrackPhi <<                        // phi angle of track (track.fP[2])
       "trackLambda.=" << &fTrackLambda <<                  // lambda angle of track (track.fP[3])
+      "trackQPt.=" << &fTrackQPt <<                        // track q/pT (track.fP[4])
       "trackPt.=" << &fTrackPt <<                          // track pT (layerwise)
       "trackYerr.=" << &fTrackYerr <<                      // sigma_y^2 for track
       "trackZerr.=" << &fTrackZerr <<                      // sigma_z^2 for track
@@ -400,6 +412,7 @@ class GPUTRDTrackerDebug
   TVectorF fTrackPhi;
   TVectorF fTrackLambda;
   TVectorF fTrackPt;
+  TVectorF fTrackQPt;
   TVectorF fTrackSector;
   TVectorF fTrackYerr;
   TVectorF fTrackZerr;
@@ -447,6 +460,7 @@ class GPUTRDTrackerDebug
 
   TTreeSRedirector* fStreamer;
 };
+template class GPUTRDTrackerDebug<GPUTRDTrack>;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
@@ -457,9 +471,11 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 
+template <class T>
 class GPUTRDTrackerDebug
 {
  public:
+  GPUd() void CreateStreamer() {}
   GPUd() void ExpandVectors() {}
   GPUd() void Reset() {}
 
@@ -468,10 +484,10 @@ class GPUTRDTrackerDebug
   GPUd() void SetTrackProperties(int nMatch = 0, int nFake = 0, int nRelated = 0) {}
 
   // track parameters
-  GPUd() void SetTrackParameter(const GPUTRDTrack& trk, int ly) {}
-  GPUd() void SetTrackParameterNoUp(const GPUTRDTrack& trk, int ly) {}
-  GPUd() void SetTrackParameterReal(const GPUTRDTrack& trk, int ly) {}
-  GPUd() void SetTrack(const GPUTRDTrack& trk) {}
+  GPUd() void SetTrackParameter(const T& trk, int ly) {}
+  GPUd() void SetTrackParameterNoUp(const T& trk, int ly) {}
+  GPUd() void SetTrackParameterReal(const T& trk, int ly) {}
+  GPUd() void SetTrack(const T& trk) {}
 
   // tracklet parameters
   GPUd() void SetRawTrackletPosition(const float fX, const float* fYZ, int ly) {}
@@ -485,6 +501,7 @@ class GPUTRDTrackerDebug
   // update information
   GPUd() void SetChi2Update(float chi2, int ly) {}
   GPUd() void SetChi2Real(float chi2, int ly) {}
+  GPUd() void SetChi2YZPhiUpdate(float chi2, int ly) {}
 
   // other infos
   GPUd() void SetRoad(float roadY, float roadZ, int ly) {}
@@ -495,6 +512,12 @@ class GPUTRDTrackerDebug
   GPUd() void SetMCinfo(float xv, float yv, float zv, int pdg) {}
   GPUd() void Output() {}
 };
+#ifndef GPUCA_ALIROOT_LIB
+template class GPUTRDTrackerDebug<GPUTRDTrackGPU>;
+#endif
+#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
+template class GPUTRDTrackerDebug<GPUTRDTrack>;
+#endif
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

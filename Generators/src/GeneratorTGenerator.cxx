@@ -25,28 +25,37 @@ namespace eventgen
 
 GeneratorTGenerator::GeneratorTGenerator() : Generator("ALICEo2", "ALICEo2 TGenerator Generator"),
                                              mTGenerator(nullptr),
-                                             mParticles(nullptr)
+                                             mCloneParticles(nullptr)
 {
   /** default constructor **/
+
+  mInterface = reinterpret_cast<void*>(mTGenerator);
+  mInterfaceName = "tgenerator";
+  mCloneParticles = new TClonesArray("TParticle");
+  mCloneParticles->SetOwner(kTRUE);
 }
 
 /*****************************************************************/
 
 GeneratorTGenerator::GeneratorTGenerator(const Char_t* name, const Char_t* title) : Generator(name, title),
                                                                                     mTGenerator(nullptr),
-                                                                                    mParticles(nullptr)
+                                                                                    mCloneParticles(nullptr)
 {
   /** constructor **/
+
+  mInterface = reinterpret_cast<void*>(mTGenerator);
+  mInterfaceName = "tgenerator";
+  mCloneParticles = new TClonesArray("TParticle");
+  mCloneParticles->SetOwner(kTRUE);
 }
 
 /*****************************************************************/
 
 GeneratorTGenerator::~GeneratorTGenerator()
 {
-  /** default destructor **/
+  /** destructor **/
 
-  if (mParticles)
-    delete mParticles;
+  delete mCloneParticles;
 }
 
 /*****************************************************************/
@@ -57,7 +66,6 @@ Bool_t
   /** generate event **/
 
   mTGenerator->GenerateEvent();
-  mTGenerator->ImportParticles(mParticles, "Final");
 
   /** success **/
   return kTRUE;
@@ -66,40 +74,15 @@ Bool_t
 /*****************************************************************/
 
 Bool_t
-  GeneratorTGenerator::boostEvent(Double_t boost)
+  GeneratorTGenerator::importParticles()
 {
-  /** boost event **/
+  /** import particles **/
 
-  LOG(WARNING) << "Boost not implemented yet" << std::endl;
-  return kTRUE;
-}
-
-/*****************************************************************/
-
-Bool_t
-  GeneratorTGenerator::addTracks(FairPrimaryGenerator* primGen) const
-{
-  /** add tracks **/
-
-  /* loop over particles */
-  Int_t nParticles = mParticles->GetEntries();
-  TParticle* particle = nullptr;
-  for (Int_t iparticle = 0; iparticle < nParticles; iparticle++) {
-    particle = (TParticle*)mParticles->At(iparticle);
-    if (!particle)
-      continue;
-    primGen->AddTrack(particle->GetPdgCode(),
-                      particle->Px() * mMomentumUnit,
-                      particle->Py() * mMomentumUnit,
-                      particle->Pz() * mMomentumUnit,
-                      particle->Vx() * mPositionUnit,
-                      particle->Vy() * mPositionUnit,
-                      particle->Vz() * mPositionUnit,
-                      particle->GetMother(0),
-                      particle->GetStatusCode() == 1,
-                      particle->Energy() * mEnergyUnit,
-                      particle->T() * mTimeUnit,
-                      particle->GetWeight());
+  mTGenerator->ImportParticles(mCloneParticles, "All");
+  auto nparticles = mCloneParticles->GetEntries();
+  for (Int_t iparticle = 0; iparticle < nparticles; iparticle++) {
+    auto particle = (TParticle*)mCloneParticles->At(iparticle);
+    mParticles.push_back(*particle);
   }
 
   /** success **/
@@ -113,14 +96,13 @@ Bool_t
 {
   /** init **/
 
+  /** init base class **/
+  Generator::Init();
+
   if (!mTGenerator) {
     LOG(FATAL) << "No TGenerator inteface assigned" << std::endl;
     return kFALSE;
   }
-
-  /** array of generated particles **/
-  mParticles = new TClonesArray("TParticle");
-  mParticles->SetOwner(kTRUE);
 
   /** success **/
   return kTRUE;

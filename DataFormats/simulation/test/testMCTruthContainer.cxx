@@ -12,10 +12,14 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
-#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/LabelContainer.h"
+#include "SimulationDataFormat/IOMCTruthContainerView.h"
 #include <algorithm>
 #include <iostream>
+#include <TFile.h>
+#include <TTree.h>
 
 namespace o2
 {
@@ -28,8 +32,8 @@ BOOST_AUTO_TEST_CASE(MCTruth)
   container.addElement(1, TruthElement(1));
   container.addElement(2, TruthElement(10));
 
-  // this is not possible: (how to test for it)
-  // container.addElement(0,TruthElement(0));
+  // not supported, must throw
+  BOOST_CHECK_THROW(container.addElement(0, TruthElement(0)), std::runtime_error);
 
   // check header/index information
   BOOST_CHECK(container.getMCTruthHeader(0).index == 0);
@@ -95,13 +99,22 @@ BOOST_AUTO_TEST_CASE(MCTruth)
     container2.addElement(1, TruthElement(1));
     container2.addElement(2, TruthElement(10));
 
+    dataformats::MCTruthContainer<TruthElement> containerA;
+
     container1.mergeAtBack(container2);
+
+    containerA.mergeAtBack(container1, 0, 2);
+    containerA.mergeAtBack(container1, 2, 2);
+
     auto lview = container1.getLabels(3); //
+    auto lviewA = containerA.getLabels(3);
     BOOST_CHECK(lview.size() == 2);
     BOOST_CHECK(lview[0] == 11);
     BOOST_CHECK(lview[1] == 12);
     BOOST_CHECK(container1.getIndexedSize() == 6);
     BOOST_CHECK(container1.getNElements() == 8);
+    BOOST_CHECK(lview.size() == lviewA.size());
+    BOOST_CHECK(lview[0] == lviewA[0] && lview[1] == lviewA[1]);
   }
 }
 
@@ -139,6 +152,51 @@ BOOST_AUTO_TEST_CASE(MCTruth_RandomAccess)
     BOOST_CHECK(view[0] == 20);
     BOOST_CHECK(view[1] == 21);
   }
+}
+
+BOOST_AUTO_TEST_CASE(MCTruthContainer_flatten)
+{
+  using TruthElement = long;
+  using TruthContainer = dataformats::MCTruthContainer<TruthElement>;
+  TruthContainer container;
+  container.addElement(0, TruthElement(1));
+  container.addElement(0, TruthElement(2));
+  container.addElement(1, TruthElement(1));
+  container.addElement(2, TruthElement(10));
+
+  std::vector<char> buffer;
+  container.flatten_to(buffer);
+  BOOST_REQUIRE(buffer.size() > sizeof(TruthContainer::FlatHeader));
+  auto& header = *reinterpret_cast<TruthContainer::FlatHeader*>(buffer.data());
+  BOOST_CHECK(header.nofHeaderElements == container.getIndexedSize());
+  BOOST_CHECK(header.nofTruthElements == container.getNElements());
+
+  TruthContainer restoredContainer;
+  restoredContainer.restore_from(buffer.data(), buffer.size());
+
+  // check header/index information
+  BOOST_CHECK(restoredContainer.getMCTruthHeader(0).index == 0);
+  BOOST_CHECK(restoredContainer.getMCTruthHeader(1).index == 2);
+  BOOST_CHECK(restoredContainer.getMCTruthHeader(2).index == 3);
+
+  // check MC truth information
+  BOOST_CHECK(restoredContainer.getElement(0) == 1);
+  BOOST_CHECK(restoredContainer.getElement(1) == 2);
+  BOOST_CHECK(restoredContainer.getElement(2) == 1);
+  BOOST_CHECK(restoredContainer.getElement(3) == 10);
+
+  // check the special version ConstMCTruthContainer
+  using ConstMCTruthContainer = dataformats::ConstMCTruthContainer<TruthElement>;
+  ConstMCTruthContainer cc;
+  container.flatten_to(cc);
+
+  BOOST_CHECK(cc.getIndexedSize() == container.getIndexedSize());
+  BOOST_CHECK(cc.getNElements() == container.getNElements());
+  BOOST_CHECK(cc.getLabels(0).size() == container.getLabels(0).size());
+  BOOST_CHECK(cc.getLabels(1).size() == container.getLabels(1).size());
+  BOOST_CHECK(cc.getLabels(2).size() == container.getLabels(2).size());
+  BOOST_CHECK(cc.getLabels(2)[0] == container.getLabels(2)[0]);
+  BOOST_CHECK(cc.getLabels(2)[0] == 10);
 }
 
 BOOST_AUTO_TEST_CASE(LabelContainer_noncont)
@@ -262,6 +320,54 @@ BOOST_AUTO_TEST_CASE(MCTruthContainer_move)
   BOOST_CHECK(container2.getNElements() == 0);
   BOOST_CHECK(container.getIndexedSize() == 3);
   BOOST_CHECK(container.getNElements() == 4);
+}
+
+BOOST_AUTO_TEST_CASE(MCTruthContainer_ROOTIO)
+{
+  using TruthElement = o2::MCCompLabel;
+  using Container = dataformats::MCTruthContainer<TruthElement>;
+  Container container;
+  const size_t BIGSIZE{1000000};
+  for (int i = 0; i < BIGSIZE; ++i) {
+    container.addElement(i, TruthElement(i, i, i));
+    container.addElement(i, TruthElement(i + 1, i, i));
+  }
+  std::vector<char> buffer;
+  container.flatten_to(buffer);
+
+  // We use the special IO split container to stream to a file and back
+  dataformats::IOMCTruthContainerView io(buffer);
+  {
+    TFile f("tmp2.root", "RECREATE");
+    TTree tree("o2sim", "o2sim");
+    auto br = tree.Branch("Labels", &io, 32000, 2);
+    tree.Fill();
+    tree.Write();
+    f.Close();
+  }
+
+  // read back
+  TFile f2("tmp2.root", "OPEN");
+  auto tree2 = (TTree*)f2.Get("o2sim");
+  dataformats::IOMCTruthContainerView* io2 = nullptr;
+  auto br2 = tree2->GetBranch("Labels");
+  BOOST_CHECK(br2 != nullptr);
+  br2->SetAddress(&io2);
+  br2->GetEntry(0);
+
+  // make a const MC label container out of it
+  using ConstMCTruthContainer = dataformats::ConstMCTruthContainer<TruthElement>;
+  ConstMCTruthContainer cc;
+  io2->copyandflatten(cc);
+
+  BOOST_CHECK(cc.getNElements() == BIGSIZE * 2);
+  BOOST_CHECK(cc.getIndexedSize() == BIGSIZE);
+  BOOST_CHECK(cc.getLabels(0).size() == 2);
+  BOOST_CHECK(cc.getLabels(0)[0] == TruthElement(0, 0, 0));
+  BOOST_CHECK(cc.getLabels(0)[1] == TruthElement(1, 0, 0));
+  BOOST_CHECK(cc.getLabels(BIGSIZE - 1).size() == 2);
+  BOOST_CHECK(cc.getLabels(BIGSIZE - 1)[0] == TruthElement(BIGSIZE - 1, BIGSIZE - 1, BIGSIZE - 1));
+  BOOST_CHECK(cc.getLabels(BIGSIZE - 1)[1] == TruthElement(BIGSIZE, BIGSIZE - 1, BIGSIZE - 1));
 }
 
 } // namespace o2

@@ -26,10 +26,11 @@ namespace o2
 namespace mft
 {
 
-class Cell final
+class Cell
 {
  public:
   Cell();
+  /// layer1, layer2, clsInLayer1, clsInLayer2, cellId; set level = 1
   Cell(const Int_t, const Int_t, const Int_t, const Int_t, const Int_t);
 
   const Int_t getFirstLayerId() const;
@@ -46,10 +47,27 @@ class Cell final
   const Bool_t isUsed() const { return mIsUsed; }
   const Int_t getCellId() const { return mCellId; };
   void setCellId(const Int_t);
-  const std::array<std::pair<Int_t, Int_t>, Constants::mft::MaxCellNeighbours>& getLeftNeighbours() const;
-  const std::array<std::pair<Int_t, Int_t>, Constants::mft::MaxCellNeighbours>& getRightNeighbours() const;
+  const std::array<std::pair<Int_t, Int_t>, constants::mft::MaxCellNeighbours>& getLeftNeighbours() const;
+  const std::array<std::pair<Int_t, Int_t>, constants::mft::MaxCellNeighbours>& getRightNeighbours() const;
   const UChar_t getNLeftNeighbours() const { return mNLeftNeighbours; }
   const UChar_t getNRightNeighbours() const { return mNRightNeighbours; }
+
+  void setCoordinates(Float_t* coord)
+  {
+    mCoord[0] = coord[0]; // X1
+    mCoord[1] = coord[1]; // Y1
+    mCoord[2] = coord[2]; // Z1
+    mCoord[3] = coord[3]; // X2
+    mCoord[4] = coord[4]; // Y2
+    mCoord[5] = coord[5]; // Z2
+  }
+
+  const Float_t getX1() const { return mCoord[0]; }
+  const Float_t getY1() const { return mCoord[1]; }
+  const Float_t getZ1() const { return mCoord[2]; }
+  const Float_t getX2() const { return mCoord[3]; }
+  const Float_t getY2() const { return mCoord[4]; }
+  const Float_t getZ2() const { return mCoord[5]; }
 
  private:
   const Int_t mFirstLayerId;
@@ -62,8 +80,9 @@ class Cell final
   Int_t mCellId;
   UChar_t mNLeftNeighbours;
   UChar_t mNRightNeighbours;
-  std::array<std::pair<Int_t, Int_t>, Constants::mft::MaxCellNeighbours> mLeftNeighbours;
-  std::array<std::pair<Int_t, Int_t>, Constants::mft::MaxCellNeighbours> mRightNeighbours;
+  std::array<std::pair<Int_t, Int_t>, constants::mft::MaxCellNeighbours> mLeftNeighbours;
+  std::array<std::pair<Int_t, Int_t>, constants::mft::MaxCellNeighbours> mRightNeighbours;
+  Float_t mCoord[6];
 };
 
 inline Cell::Cell()
@@ -93,7 +112,6 @@ inline Cell::Cell(const Int_t firstLayerId, const Int_t secondLayerId, const Int
     mNLeftNeighbours{0},
     mNRightNeighbours{0}
 {
-  // Nothing to do
 }
 
 inline const Int_t Cell::getFirstLayerId() const { return mFirstLayerId; }
@@ -113,32 +131,24 @@ inline void Cell::setLevel(const Int_t level) { mLevel = level; }
 
 inline void Cell::addRightNeighbour(const Int_t layer, const Int_t clusterId)
 {
-  std::cout << "Cell::addRightNeighbour " << layer << " " << clusterId << std::endl;
-  try {
-    mRightNeighbours.at(mNRightNeighbours++) = std::pair<Int_t, Int_t>(layer, clusterId);
-  } catch (const std::out_of_range& err) {
-    std::cout << "Maximum number of right neighbours for this cell!" << std::endl;
-  }
-  std::cout << "Cell::addRightNeighbour done..." << std::endl;
+  mRightNeighbours.at(mNRightNeighbours++) = std::pair<Int_t, Int_t>(layer, clusterId);
 }
 
 inline void Cell::addLeftNeighbour(const Int_t layer, const Int_t clusterId)
 {
-  std::cout << "Cell::addLeftNeighbour " << layer << " " << clusterId << std::endl;
   try {
     mLeftNeighbours.at(mNLeftNeighbours++) = std::pair<Int_t, Int_t>(layer, clusterId);
   } catch (const std::out_of_range& err) {
     std::cout << "Maximum number of left neighbours for this cell!" << std::endl;
   }
-  std::cout << "Cell::addLeftNeighbour done..." << std::endl;
 }
 
-inline const std::array<std::pair<Int_t, Int_t>, Constants::mft::MaxCellNeighbours>& Cell::getLeftNeighbours() const
+inline const std::array<std::pair<Int_t, Int_t>, constants::mft::MaxCellNeighbours>& Cell::getLeftNeighbours() const
 {
   return mLeftNeighbours;
 }
 
-inline const std::array<std::pair<Int_t, Int_t>, Constants::mft::MaxCellNeighbours>& Cell::getRightNeighbours() const
+inline const std::array<std::pair<Int_t, Int_t>, constants::mft::MaxCellNeighbours>& Cell::getRightNeighbours() const
 {
   return mRightNeighbours;
 }

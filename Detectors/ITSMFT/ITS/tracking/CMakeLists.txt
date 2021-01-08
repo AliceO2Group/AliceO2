@@ -13,14 +13,14 @@ o2_add_library(ITStracking
                SOURCES src/ClusterLines.cxx
                        src/Cluster.cxx
                        src/ROframe.cxx
-                       src/Graph.cxx
-                       src/DBScan.cxx
                        src/IOUtils.cxx
                        src/Label.cxx
                        src/PrimaryVertexContext.cxx
                        src/Road.cxx
+                       src/StandaloneDebugger.cxx
                        src/Tracker.cxx
                        src/TrackerTraitsCPU.cxx
+                       src/TrackingConfigParam.cxx
                        src/ClusterLines.cxx
                        src/Vertexer.cxx
                        src/VertexerTraits.cxx
@@ -35,10 +35,16 @@ o2_add_library(ITStracking
 o2_target_root_dictionary(ITStracking
                           HEADERS include/ITStracking/ClusterLines.h
                                   include/ITStracking/Tracklet.h
-                                  include/ITStracking/DBScan.h
+                                  include/ITStracking/Cluster.h
+                                  include/ITStracking/TrackingConfigParam.h
+                                  include/ITStracking/StandaloneDebugger.h
                           LINKDEF src/TrackingLinkDef.h)
 
 if(CUDA_ENABLED)
   add_subdirectory(cuda)
   target_compile_definitions(${targetName} PRIVATE CUDA_ENABLED)
+endif()
+if(HIP_ENABLED)
+  add_subdirectory(hip)
+  target_compile_definitions(${targetName} PRIVATE HIP_ENABLED)
 endif()

@@ -18,6 +18,7 @@
 
 namespace bpo = boost::program_options;
 using namespace o2::tpc;
+using rawreader::RawReaderCRU;
 
 int main(int argc, char** argv)
 {

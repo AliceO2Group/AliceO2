@@ -20,6 +20,7 @@ namespace emcal
 {
 /// \class Hit
 /// \brief EMCAL simulation hit information
+/// \ingroup EMCALbase
 class Hit : public o2::BasicXYZEHit<float>
 {
  public:
@@ -32,20 +33,18 @@ class Hit : public o2::BasicXYZEHit<float>
   /// momentum, energy, track, ...)
   ///
   /// \param primary Number of primary particle
-  /// \param trackID Index of the track
-  /// \param parentID ID of the parent primary entering the EMCAL
+  /// \param trackID Index of the track, defined as parent track entering teh EMCAL
   /// \param detID ID of the detector segment
   /// \param initialEnergy Energy of the primary particle enering the EMCAL
   /// \param pos Position vector of the point
   /// \param mom Momentum vector for the particle at the point
   /// \param tof Time of the hit
-  /// \param length Length of the segment
-  Hit(Int_t primary, Int_t trackID, Int_t parentID, Int_t detID, Int_t initialEnergy, const Point3D<float>& pos,
-      const Vector3D<float>& mom, Double_t tof, Double_t eLoss)
+  /// \param eLoss Energy loss
+  Hit(Int_t primary, Int_t trackID, Int_t detID, Double_t initialEnergy, const math_utils::Point3D<float>& pos,
+      const math_utils::Vector3D<float>& mom, Double_t tof, Double_t eLoss)
     : o2::BasicXYZEHit<float>(pos.X(), pos.Y(), pos.Z(), tof, eLoss, trackID, detID),
       mPvector(mom),
       mPrimary(primary),
-      mParent(parentID),
       mInitialEnergy(initialEnergy)
   {
   }
@@ -64,7 +63,7 @@ class Hit : public o2::BasicXYZEHit<float>
   Hit& operator+=(const Hit& rhs);
 
   /// \brief Creates a new point base on this point but adding the energy loss of the right hand side
-  /// \param
+  /// \param rhs Hit to add to
   /// \return New EMAL point base on this point
   Hit operator+(const Hit& rhs) const;
 
@@ -75,10 +74,6 @@ class Hit : public o2::BasicXYZEHit<float>
   /// \return Energy of the primary particle entering EMCAL
   Double_t GetInitialEnergy() const { return mInitialEnergy; }
 
-  /// \brief Get parent track of the particle producing the hit
-  /// \return ID of the parent particle
-  Int_t GetParentTrack() const { return mParent; }
-
   /// \brief Get Primary particles at the origin of the hit
   /// \return Primary particles at the origin of the hit
   Int_t GetPrimary() const { return mPrimary; }
@@ -86,10 +81,6 @@ class Hit : public o2::BasicXYZEHit<float>
   /// \brief Set initial energy of the primary particle entering EMCAL
   /// \param energy Energy of the primary particle entering EMCAL
   void SetInitialEnergy(Double_t energy) { mInitialEnergy = energy; }
-
-  /// \brief Set the ID of the parent track of the track producing the hit
-  /// \param parentID ID of the parent track
-  void SetParentTrack(Int_t parentID) { mParent = parentID; }
 
   /// \brief Set primary particles at the origin of the hit
   /// \param primary Primary particles at the origin of the hit
@@ -100,10 +91,9 @@ class Hit : public o2::BasicXYZEHit<float>
   void PrintStream(std::ostream& stream) const;
 
  private:
-  Vector3D<float> mPvector;  ///< Momentum Vector
-  Int_t mPrimary;            ///< Primary particles at the origin of the hit
-  Int_t mParent;             ///< Parent particle that entered the EMCAL
-  Double32_t mInitialEnergy; ///< Energy of the parent particle that entered the EMCAL
+  math_utils::Vector3D<float> mPvector; ///< Momentum Vector
+  Int_t mPrimary;                       ///< Primary particles at the origin of the hit
+  Double32_t mInitialEnergy;            ///< Energy of the parent particle that entered the EMCAL
 
   ClassDefNV(Hit, 1);
 };

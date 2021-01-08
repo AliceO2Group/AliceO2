@@ -46,13 +46,13 @@ InitStatus DigitizerTask::Init()
 {
   FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
-    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ...";
     return kERROR;
   }
 
   mHitsArray = mgr->InitObjectAs<const std::vector<o2::itsmft::Hit>*>("MFTHit");
   if (!mHitsArray) {
-    LOG(ERROR) << "MFT hits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "MFT hits not registered in the FairRootManager. Exiting ...";
     return kERROR;
   }
 
@@ -61,7 +61,7 @@ InitStatus DigitizerTask::Init()
   mgr->RegisterAny("MFTDigitMCTruth", mMCTruthArrayPtr, kTRUE);
 
   GeometryTGeo* geom = GeometryTGeo::Instance();
-  geom->fillMatrixCache(o2::utils::bit2Mask(o2::TransformType::L2G)); // make sure L2G matrices are loaded
+  geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G)); // make sure L2G matrices are loaded
   mDigitizer.setGeometry(geom);
 
   mDigitizer.setDigits(mDigitsArrayPtr);
@@ -89,7 +89,7 @@ void DigitizerTask::Exec(Option_t* option)
   //
   mDigitizer.setEventTime(tEvent);
   // the type of digitization is steered by the DigiParams object of the Digitizer
-  LOG(DEBUG) << "Running digitization on new event " << mEventID << " from source " << mSourceID << FairLogger::endl;
+  LOG(DEBUG) << "Running digitization on new event " << mEventID << " from source " << mSourceID;
 
   mDigitizer.process(mHitsArray, mEventID, mSourceID);
 
@@ -144,7 +144,7 @@ void DigitizerTask::setQEDInput(TBranch* qed, float timebin, UChar_t srcID)
   // timebin ns of collisions
 
   LOG(INFO) << "Attaching QED ITS hits as sourceID=" << int(srcID) << ", entry integrates "
-            << timebin << " ns" << FairLogger::endl;
+            << timebin << " ns";
 
   mQEDBranch = qed;
   mQEDEntryTimeBinNS = timebin;

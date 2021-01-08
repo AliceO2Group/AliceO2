@@ -18,14 +18,18 @@
 
 #include "Mergers/MergerConfig.h"
 
-#include <Framework/DataProcessorSpec.h>
-#include <Framework/CompletionPolicy.h>
+#include "Framework/DataProcessorSpec.h"
 
 #include <string>
 
 namespace o2
 {
-namespace experimental::mergers
+namespace framework
+{
+class CompletionPolicy;
+}
+
+namespace mergers
 {
 
 /// \brief A builder class to generate a DataProcessorSpec of one Merger
@@ -75,7 +79,7 @@ class MergerBuilder
   MergerConfig mConfig;
 };
 
-} // namespace experimental::mergers
+} // namespace mergers
 } // namespace o2
 
 #endif //ALICEO2_MERGERBUILDER_H

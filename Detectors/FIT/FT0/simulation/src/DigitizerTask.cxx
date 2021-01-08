@@ -33,14 +33,14 @@ InitStatus DigitizerTask::Init()
 {
   FairRootManager* mgr = FairRootManager::Instance();
   if (!mgr) {
-    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "Could not instantiate FairRootManager. Exiting ...";
     return kERROR;
   }
 
   mHitsArray = mgr->InitObjectAs<const std::vector<o2::ft0::HitType>*>("FITHit");
 
   if (!mHitsArray) {
-    LOG(ERROR) << "FIT hits not registered in the FairRootManager. Exiting ..." << FairLogger::endl;
+    LOG(ERROR) << "FIT hits not registered in the FairRootManager. Exiting ...";
     return kERROR;
   }
 

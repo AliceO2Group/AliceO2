@@ -62,7 +62,7 @@ void V11Geometry::intersectLines(Double_t m, Double_t x0, Double_t y0, Double_t 
                                  Double_t y1, Double_t& xi, Double_t& yi) const
 {
   if (TMath::Abs(m - n) < 0.000001) {
-    LOG(ERROR) << "Lines are parallel: m = " << m << " n = " << n << FairLogger::endl;
+    LOG(ERROR) << "Lines are parallel: m = " << m << " n = " << n;
     return;
   }
 

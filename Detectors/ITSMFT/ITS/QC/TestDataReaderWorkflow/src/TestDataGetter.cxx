@@ -12,10 +12,9 @@
 
 #include "Framework/ControlService.h"
 #include "ITSQCDataReaderWorkflow/TestDataGetter.h"
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "DataFormatsITSMFT/CompCluster.h"
-#include "DataFormatsITSMFT/Cluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -53,7 +52,7 @@ void TestDataGetter::run(ProcessingContext& pc)
 			LOG(DEBUG) << "Chip ID Getting " << digit.getChipIndex() << " Row = " << digit.getRow() << "   Column = " << digit.getColumn();
 			*/
 
-  //pc.services().get<ControlService>().readyToQuit(true);
+  //pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
 }
 
 DataProcessorSpec getTestDataGetterSpec()

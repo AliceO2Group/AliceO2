@@ -15,6 +15,7 @@
 #define ALICE_O2_TPC_HALFSAMPADATA_H_
 
 #include <array>
+#include <iosfwd>
 
 namespace o2
 {

@@ -4,6 +4,8 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/StackParam.h"
+#include "TVirtualMC.h"
+#include "Generators/DecayerPythia8.h"
 #endif
 
 template <typename T, typename R>
@@ -35,8 +37,15 @@ void stackSetup(T* vmc, R* run)
       }
     }
     if (!foundCave) {
-      LOG(FATAL) << "Cave volume not found; Could not attach observers" << FairLogger::endl;
+      LOG(FATAL) << "Cave volume not found; Could not attach observers";
     }
   }
 */
+}
+
+void decayerSetup(TVirtualMC* vmc)
+{
+  auto decayer = new o2::eventgen::DecayerPythia8;
+  decayer->Init();
+  vmc->SetExternalDecayer(decayer);
 }

@@ -11,6 +11,8 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include "Mocking.h"
+#include "../src/ComputingResourceHelpers.h"
 #include "../src/DeviceSpecHelpers.h"
 #include "../src/GraphvizHelpers.h"
 #include "../src/SimpleResourceManager.h"
@@ -94,11 +96,12 @@ BOOST_AUTO_TEST_CASE(TestGraphviz)
   for (auto& device : devices) {
     BOOST_CHECK(device.id != "");
   }
-  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  auto configContext = makeEmptyConfigContext();
+  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
-  SimpleResourceManager rm(22000, 1000);
-  auto resources = rm.getAvailableResources();
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, resources);
+  std::vector<ComputingResource> resources = {ComputingResourceHelpers::getLocalhostResource()};
+  SimpleResourceManager rm(resources);
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, rm, "workflow-id");
   str.str("");
   GraphvizHelpers::dumpDeviceSpec2Graphviz(str, devices);
   lineByLineComparision(str.str(), R"EXPECTED(digraph structs {
@@ -132,11 +135,12 @@ BOOST_AUTO_TEST_CASE(TestGraphvizWithPipeline)
   for (auto& device : devices) {
     BOOST_CHECK(device.id != "");
   }
-  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  auto configContext = makeEmptyConfigContext();
+  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
-  SimpleResourceManager rm(22000, 1000);
-  auto resources = rm.getAvailableResources();
-  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, resources);
+  std::vector<ComputingResource> resources = {ComputingResourceHelpers::getLocalhostResource()};
+  SimpleResourceManager rm(resources);
+  DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, devices, rm, "workflow-id");
   str.str("");
   GraphvizHelpers::dumpDeviceSpec2Graphviz(str, devices);
   lineByLineComparision(str.str(), R"EXPECTED(digraph structs {

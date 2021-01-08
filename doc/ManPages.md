@@ -1,4 +1,8 @@
+<!-- doxy
 \page refdocManPages Man Pages
+/doxy -->
+
+# Man Pages
 
 You can create man pages in nroff format under:
 

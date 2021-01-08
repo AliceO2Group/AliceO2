@@ -19,9 +19,12 @@
 #include "GPUTPCClusterData.h"
 #include "GPUTPCSliceOutput.h"
 #include "GPUTPCTrackletConstructor.h"
-#include "GPUTPCTrackLinearisation.h"
-
+#include "GPUO2DataTypes.h"
 #include "GPUTPCTrackParam.h"
+#include "GPUParam.inc"
+#if !defined(__OPENCL__) || defined(__OPENCLCPP__)
+#include "GPUTPCConvertImpl.h"
+#endif
 
 #if !defined(GPUCA_GPUCODE)
 #include <cstring>
@@ -34,11 +37,12 @@
 #endif
 
 using namespace GPUCA_NAMESPACE::gpu;
+using namespace o2::tpc;
 
 #if !defined(GPUCA_GPUCODE)
 
 GPUTPCTracker::GPUTPCTracker()
-  : GPUProcessor(), mLinkTmpMemory(nullptr), mISlice(-1), mData(), mNMaxStartHits(0), mNMaxTracklets(0), mNMaxTracks(0), mNMaxTrackHits(0), mMemoryResLinksScratch(-1), mMemoryResScratchHost(-1), mMemoryResCommon(-1), mMemoryResTracklets(-1), mMemoryResOutput(-1), mRowStartHitCountOffset(nullptr), mTrackletTmpStartHits(nullptr), mGPUTrackletTemp(nullptr), mGPUParametersConst(), mCommonMem(nullptr), mTrackletStartHits(nullptr), mTracklets(nullptr), mTrackletRowHits(nullptr), mTracks(nullptr), mTrackHits(nullptr), mOutput(nullptr), mOutputMemory(nullptr)
+  : GPUProcessor(), mLinkTmpMemory(nullptr), mISlice(-1), mData(), mNMaxStartHits(0), mNMaxRowStartHits(0), mNMaxTracklets(0), mNMaxRowHits(0), mNMaxTracks(0), mNMaxTrackHits(0), mMemoryResLinks(-1), mMemoryResScratchHost(-1), mMemoryResCommon(-1), mMemoryResTracklets(-1), mMemoryResOutput(-1), mMemoryResSliceScratch(-1), mMemoryResSliceInput(-1), mRowStartHitCountOffset(nullptr), mTrackletTmpStartHits(nullptr), mGPUTrackletTemp(nullptr), mGPUParametersConst(), mCommonMem(nullptr), mTrackletStartHits(nullptr), mTracklets(nullptr), mTrackletRowHits(nullptr), mTracks(nullptr), mTrackHits(nullptr), mOutput(nullptr), mOutputMemory(nullptr)
 {
 }
 
@@ -56,20 +60,25 @@ void GPUTPCTracker::InitializeProcessor()
   if (mISlice < 0) {
     throw std::runtime_error("Slice not set");
   }
-  InitializeRows(mCAParam);
+  InitializeRows(&Param());
   SetupCommonMemory();
 }
 
-void* GPUTPCTracker::SetPointersDataInput(void* mem) { return mData.SetPointersInput(mem, mRec->GetRecoStepsGPU() & GPUReconstruction::RecoStep::TPCMerging); }
+bool GPUTPCTracker::SliceDataOnGPU()
+{
+  return (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCSliceTracking) && (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCConversion) && mRec->GetParam().rec.mergerReadFromTrackerDirectly && (mRec->GetConstantMem().ioPtrs.clustersNative || mRec->GetConstantMem().ioPtrs.tpcZS || mRec->GetConstantMem().ioPtrs.tpcPackedDigits);
+}
 
-void* GPUTPCTracker::SetPointersDataScratch(void* mem) { return mData.SetPointersScratch(mem); }
-
+void* GPUTPCTracker::SetPointersDataInput(void* mem) { return mData.SetPointersInput(mem, mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCMerging, SliceDataOnGPU()); }
+void* GPUTPCTracker::SetPointersDataLinks(void* mem) { return mData.SetPointersLinks(mem); }
+void* GPUTPCTracker::SetPointersDataWeights(void* mem) { return mData.SetPointersWeights(mem); }
+void* GPUTPCTracker::SetPointersDataScratch(void* mem) { return mData.SetPointersScratch(mem, mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCMerging, SliceDataOnGPU()); }
 void* GPUTPCTracker::SetPointersDataRows(void* mem) { return mData.SetPointersRows(mem); }
 
 void* GPUTPCTracker::SetPointersScratch(void* mem)
 {
   computePointerWithAlignment(mem, mTrackletStartHits, mNMaxStartHits);
-  if (mRec->GetDeviceProcessingSettings().memoryAllocationStrategy != GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
+  if (mRec->GetProcessingSettings().memoryAllocationStrategy != GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
     mem = SetPointersTracklets(mem);
   }
   if (mRec->IsGPU()) {
@@ -81,8 +90,10 @@ void* GPUTPCTracker::SetPointersScratch(void* mem)
 
 void* GPUTPCTracker::SetPointersScratchHost(void* mem)
 {
-  computePointerWithAlignment(mem, mLinkTmpMemory, mRec->Res(mMemoryResLinksScratch).Size());
-  mem = mData.SetPointersScratchHost(mem, mRec->GetRecoStepsGPU() & GPUReconstruction::RecoStep::TPCMerging);
+  if (mRec->GetProcessingSettings().keepDisplayMemory) {
+    computePointerWithAlignment(mem, mLinkTmpMemory, mRec->Res(mMemoryResLinks).Size());
+  }
+  mem = mData.SetPointersClusterIds(mem, mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCMerging);
   return mem;
 }
 
@@ -94,16 +105,23 @@ void* GPUTPCTracker::SetPointersCommon(void* mem)
 
 void GPUTPCTracker::RegisterMemoryAllocation()
 {
-  mMemoryResLinksScratch = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataScratch, GPUMemoryResource::MEMORY_SCRATCH, "TPCSliceLinks");
-  mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataInput, GPUMemoryResource::MEMORY_INPUT, "TPCSliceInput");
-  mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersScratch, GPUMemoryResource::MEMORY_SCRATCH, "TPCTrackerScratch");
+  AllocateAndInitializeLate();
+  bool reuseCondition = !mRec->GetProcessingSettings().keepDisplayMemory && mRec->GetProcessingSettings().trackletSelectorInPipeline && ((mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCSliceTracking) || mRec->GetProcessingSettings().ompKernels == 1 || mRec->GetProcessingSettings().ompThreads == 1);
+  GPUMemoryReuse reLinks{reuseCondition, GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::TrackerDataLinks, (unsigned short)(mISlice % mRec->GetProcessingSettings().nStreams)};
+  mMemoryResLinks = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataLinks, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK, "TPCSliceLinks", reLinks);
+  mMemoryResSliceScratch = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataScratch, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK | GPUMemoryResource::MEMORY_CUSTOM, "TPCSliceScratch");
+  mMemoryResSliceInput = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataInput, GPUMemoryResource::MEMORY_INPUT | GPUMemoryResource::MEMORY_STACK | GPUMemoryResource::MEMORY_CUSTOM, "TPCSliceInput");
+  GPUMemoryReuse reWeights{reuseCondition, GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::TrackerDataWeights, (unsigned short)(mISlice % mRec->GetProcessingSettings().nStreams)};
+  mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataWeights, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK, "TPCSliceWeights", reWeights);
+  GPUMemoryReuse reScratch{reuseCondition, GPUMemoryReuse::REUSE_1TO1, GPUMemoryReuse::TrackerScratch, (unsigned short)(mISlice % mRec->GetProcessingSettings().nStreams)};
+  mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersScratch, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK, "TPCTrackerScratch", reScratch);
   mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersScratchHost, GPUMemoryResource::MEMORY_SCRATCH_HOST, "TPCTrackerHost");
   mMemoryResCommon = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersCommon, GPUMemoryResource::MEMORY_PERMANENT, "TPCTrackerCommon");
   mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersDataRows, GPUMemoryResource::MEMORY_PERMANENT, "TPCSliceRows");
 
-  auto type = GPUMemoryResource::MEMORY_OUTPUT;
-  if (mRec->GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) { // For individual scheme, we allocate tracklets separately, and change the type for the following allocations to custom
-    type = GPUMemoryResource::MEMORY_CUSTOM;
+  unsigned int type = mRec->GetProcessingSettings().fullMergerOnGPU ? GPUMemoryResource::MEMORY_SCRATCH : GPUMemoryResource::MEMORY_OUTPUT;
+  if (mRec->GetProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) { // For individual scheme, we allocate tracklets separately, and change the type for the following allocations to custom
+    type |= GPUMemoryResource::MEMORY_CUSTOM;
     mMemoryResTracklets = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersTracklets, type, "TPCTrackerTracklets");
   }
   mMemoryResOutput = mRec->RegisterMemoryAllocation(this, &GPUTPCTracker::SetPointersOutput, type, "TPCTrackerTracks");
@@ -112,9 +130,7 @@ void GPUTPCTracker::RegisterMemoryAllocation()
 GPUhd() void* GPUTPCTracker::SetPointersTracklets(void* mem)
 {
   computePointerWithAlignment(mem, mTracklets, mNMaxTracklets);
-#ifdef GPUCA_EXTERN_ROW_HITS
-  computePointerWithAlignment(mem, mTrackletRowHits, mNMaxTracklets * GPUCA_ROW_COUNT);
-#endif
+  computePointerWithAlignment(mem, mTrackletRowHits, mNMaxRowHits);
   return mem;
 }
 
@@ -125,18 +141,19 @@ GPUhd() void* GPUTPCTracker::SetPointersOutput(void* mem)
   return mem;
 }
 
-void GPUTPCTracker::SetMaxData()
+void GPUTPCTracker::SetMaxData(const GPUTrackingInOutPointers& io)
 {
-  if (mRec->GetDeviceProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
+  if (mRec->GetProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
     mNMaxStartHits = mData.NumberOfHits();
   } else {
-    mNMaxStartHits = mRec->MemoryScalers()->NTPCTracklets(mData.NumberOfHits());
+    mNMaxStartHits = mRec->MemoryScalers()->NTPCStartHits(mData.NumberOfHits());
   }
-  mNMaxRowStartHits = mRec->MemoryScalers()->NTPCMaxRowStartHits(mData.NumberOfHits());
+  mNMaxRowStartHits = mRec->MemoryScalers()->NTPCRowStartHits(mData.NumberOfHits());
   mNMaxTracklets = mRec->MemoryScalers()->NTPCTracklets(mData.NumberOfHits());
+  mNMaxRowHits = mRec->MemoryScalers()->NTPCTrackletHits(mData.NumberOfHits());
   mNMaxTracks = mRec->MemoryScalers()->NTPCSectorTracks(mData.NumberOfHits());
   mNMaxTrackHits = mRec->MemoryScalers()->NTPCSectorTrackHits(mData.NumberOfHits());
-#ifdef GPUCA_SORT_STARTHITS
+#ifdef GPUCA_SORT_STARTHITS_GPU
   if (mRec->IsGPU()) {
     if (mNMaxStartHits > mNMaxRowStartHits * GPUCA_ROW_COUNT) {
       mNMaxStartHits = mNMaxRowStartHits * GPUCA_ROW_COUNT;
@@ -148,36 +165,23 @@ void GPUTPCTracker::SetMaxData()
 
 void GPUTPCTracker::UpdateMaxData()
 {
-  mNMaxTracklets = mCommonMem->nTracklets;
-  mNMaxTracks = mCommonMem->nTracklets * 2 + 50;
+  mNMaxTracklets = mCommonMem->nStartHits;
+  mNMaxTracks = mNMaxTracklets * 2 + 50;
+  mNMaxRowHits = mNMaxTracklets * GPUCA_ROW_COUNT;
 }
 
 void GPUTPCTracker::SetupCommonMemory() { new (mCommonMem) commonMemoryStruct; }
-
-int GPUTPCTracker::ReadEvent()
-{
-  SetupCommonMemory();
-
-  //* Convert input hits, create grids, etc.
-  if (mData.InitFromClusterData()) {
-    GPUError("Error initializing from cluster data");
-    return 1;
-  }
-  if (mData.MaxZ() > 300 && !mCAParam->ContinuousTracking) {
-    GPUError("Need to set continuous tracking mode for data outside of the TPC volume!");
-    return 1;
-  }
-  return 0;
-}
 
 GPUh() int GPUTPCTracker::CheckEmptySlice()
 {
   // Check if the Slice is empty, if so set the output apropriate and tell the reconstuct procesdure to terminate
   if (NHitsTotal() < 1) {
     mCommonMem->nTracks = mCommonMem->nTrackHits = 0;
-    WriteOutputPrepare();
-    mOutput->SetNTracks(0);
-    mOutput->SetNTrackClusters(0);
+    if (mOutput) {
+      WriteOutputPrepare();
+      mOutput->SetNTracks(0);
+      mOutput->SetNTrackClusters(0);
+    }
     return 1;
   }
   return 0;
@@ -209,22 +213,21 @@ GPUh() void GPUTPCTracker::WriteOutput()
   int nStoredTracks = 0;
   int nStoredLocalTracks = 0;
 
-  GPUTPCSliceOutTrack* out = mOutput->FirstTrack();
+  GPUTPCTrack* out = mOutput->FirstTrack();
 
   trackSortData* trackOrder = new trackSortData[mCommonMem->nTracks];
   for (unsigned int i = 0; i < mCommonMem->nTracks; i++) {
     trackOrder[i].fTtrack = i;
     trackOrder[i].fSortVal = mTracks[trackOrder[i].fTtrack].NHits() / 1000.f + mTracks[trackOrder[i].fTtrack].Param().GetZ() * 100.f + mTracks[trackOrder[i].fTtrack].Param().GetY();
   }
-  std::sort(trackOrder, trackOrder + mCommonMem->nLocalTracks, SortComparison<trackSortData>);
+  std::sort(trackOrder, trackOrder + mCommonMem->nLocalTracks, SortComparison<trackSortData>); // TODO: Check why this sorting affects the merging efficiency!
   std::sort(trackOrder + mCommonMem->nLocalTracks, trackOrder + mCommonMem->nTracks, SortComparison<trackSortData>);
 
   for (unsigned int iTrTmp = 0; iTrTmp < mCommonMem->nTracks; iTrTmp++) {
     const int iTr = trackOrder[iTrTmp].fTtrack;
     GPUTPCTrack& iTrack = mTracks[iTr];
 
-    out->SetParam(iTrack.Param());
-    out->SetLocalTrackId(iTrack.LocalTrackId());
+    *out = iTrack;
     int nClu = 0;
     int iID = iTrack.FirstHitID();
 
@@ -234,16 +237,13 @@ GPUh() void GPUTPCTracker::WriteOutput()
       int ih = ic.HitIndex();
 
       const GPUTPCRow& row = mData.Row(iRow);
+      int clusterIndex = mData.ClusterDataIndex(row, ih);
 #ifdef GPUCA_ARRAY_BOUNDS_CHECKS
       if (ih >= row.NHits() || ih < 0) {
         GPUError("Array out of bounds access (Sector Row) (Hit %d / %d - NumC %d): Sector %d Row %d Index %d", ith, iTrack.NHits(), NHitsTotal(), mISlice, iRow, ih);
         fflush(stdout);
         continue;
       }
-#endif
-      int clusterIndex = mData.ClusterDataIndex(row, ih);
-
-#ifdef GPUCA_ARRAY_BOUNDS_CHECKS
       if (clusterIndex >= NHitsTotal() || clusterIndex < 0) {
         GPUError("Array out of bounds access (Cluster Data) (Hit %d / %d - NumC %d): Sector %d Row %d Hit %d, Clusterdata Index %d", ith, iTrack.NHits(), NHitsTotal(), mISlice, iRow, ih, clusterIndex);
         fflush(stdout);
@@ -251,19 +251,31 @@ GPUh() void GPUTPCTracker::WriteOutput()
       }
 #endif
 
-      float origX = mData.ClusterData()[clusterIndex].x;
-      float origY = mData.ClusterData()[clusterIndex].y;
-      float origZ = mData.ClusterData()[clusterIndex].z;
-      int id = mData.ClusterData()[clusterIndex].id;
-      unsigned char flags = mData.ClusterData()[clusterIndex].flags;
-      unsigned short amp = mData.ClusterData()[clusterIndex].amp;
+      float origX, origY, origZ;
+      unsigned char flags;
+      unsigned short amp;
+      int id;
+      if (Param().par.earlyTpcTransform) {
+        origX = mData.ClusterData()[clusterIndex].x;
+        origY = mData.ClusterData()[clusterIndex].y;
+        origZ = mData.ClusterData()[clusterIndex].z;
+        flags = mData.ClusterData()[clusterIndex].flags;
+        amp = mData.ClusterData()[clusterIndex].amp;
+        id = mData.ClusterData()[clusterIndex].id;
+      } else {
+        const ClusterNativeAccess& cls = *mConstantMem->ioPtrs.clustersNative;
+        id = clusterIndex + cls.clusterOffset[mISlice][0];
+        GPUTPCConvertImpl::convert(*mConstantMem, mISlice, iRow, cls.clustersLinear[id].getPad(), cls.clustersLinear[id].getTime(), origX, origY, origZ);
+        flags = cls.clustersLinear[id].getFlags();
+        amp = cls.clustersLinear[id].qTot;
+      }
       GPUTPCSliceOutCluster c;
       c.Set(id, iRow, flags, amp, origX, origY, origZ);
 #ifdef GPUCA_TPC_RAW_PROPAGATE_PAD_ROW_TIME
       c.mPad = mData.ClusterData()[clusterIndex].pad;
       c.mTime = mData.ClusterData()[clusterIndex].time;
 #endif
-      out->SetCluster(nClu, c);
+      out->SetOutTrackCluster(nClu, c);
       nClu++;
     }
 
@@ -272,7 +284,7 @@ GPUh() void GPUTPCTracker::WriteOutput()
       nStoredLocalTracks++;
     }
     nStoredHits += nClu;
-    out->SetNClusters(nClu);
+    out->SetNHits(nClu);
     out = out->NextTrack();
   }
   delete[] trackOrder;
@@ -280,180 +292,9 @@ GPUh() void GPUTPCTracker::WriteOutput()
   mOutput->SetNTracks(nStoredTracks);
   mOutput->SetNLocalTracks(nStoredLocalTracks);
   mOutput->SetNTrackClusters(nStoredHits);
-  if (mCAParam->debugLevel >= 3) {
+  if (Param().par.debugLevel >= 3) {
     GPUInfo("Slice %d, Output: Tracks %d, local tracks %d, hits %d", mISlice, nStoredTracks, nStoredLocalTracks, nStoredHits);
   }
-}
-
-GPUh() int GPUTPCTracker::PerformGlobalTrackingRun(GPUTPCTracker& sliceSource, int iTrack, int rowIndex, float angle, int direction)
-{
-  /*for (int j = 0;j < mTracks[j].NHits();j++)
-  {
-    GPUInfo("Hit %3d: Row %3d: X %3.7lf Y %3.7lf", j, mTrackHits[mTracks[iTrack].FirstHitID() + j].RowIndex(), Row(mTrackHits[mTracks[iTrack].FirstHitID() + j].RowIndex()).X(),
-    (float) Data().HitDataY(Row(mTrackHits[mTracks[iTrack].FirstHitID() + j].RowIndex()), mTrackHits[mTracks[iTrack].FirstHitID() + j].HitIndex()) * Row(mTrackHits[mTracks[iTrack].FirstHitID() + j].RowIndex()).HstepY() + Row(mTrackHits[mTracks[iTrack].FirstHitID() + j].RowIndex()).Grid().YMin());
-  }*/
-
-  GPUTPCTrackParam tParam;
-  tParam.InitParam();
-  tParam.SetCov(0, 0.05);
-  tParam.SetCov(2, 0.05);
-  tParam.SetCov(5, 0.001);
-  tParam.SetCov(9, 0.001);
-  tParam.SetCov(14, 0.05);
-  tParam.SetParam(sliceSource.mTracks[iTrack].Param());
-
-  // GPUInfo("Parameters X %f Y %f Z %f SinPhi %f DzDs %f QPt %f SignCosPhi %f", tParam.X(), tParam.Y(), tParam.Z(), tParam.SinPhi(), tParam.DzDs(), tParam.QPt(), tParam.SignCosPhi());
-  if (!tParam.Rotate(angle, GPUCA_MAX_SIN_PHI)) {
-    return (0);
-  }
-  // GPUInfo("Rotated X %f Y %f Z %f SinPhi %f DzDs %f QPt %f SignCosPhi %f", tParam.X(), tParam.Y(), tParam.Z(), tParam.SinPhi(), tParam.DzDs(), tParam.QPt(), tParam.SignCosPhi());
-
-  int maxRowGap = 10;
-  GPUTPCTrackLinearisation t0(tParam);
-  do {
-    rowIndex += direction;
-    if (!tParam.TransportToX(Row(rowIndex).X(), t0, mCAParam->ConstBz, GPUCA_MAX_SIN_PHI)) {
-      return (0); // Reuse t0 linearization until we are in the next sector
-    }
-    // GPUInfo("Transported X %f Y %f Z %f SinPhi %f DzDs %f QPt %f SignCosPhi %f (MaxY %f)", tParam.X(), tParam.Y(), tParam.Z(), tParam.SinPhi(), tParam.DzDs(), tParam.QPt(), tParam.SignCosPhi(), Row(rowIndex).MaxY());
-    if (--maxRowGap == 0) {
-      return (0);
-    }
-  } while (fabsf(tParam.Y()) > Row(rowIndex).MaxY());
-
-  float err2Y, err2Z;
-  GetErrors2(rowIndex, tParam.Z(), tParam.SinPhi(), tParam.DzDs(), err2Y, err2Z);
-  if (tParam.GetCov(0) < err2Y) {
-    tParam.SetCov(0, err2Y);
-  }
-  if (tParam.GetCov(2) < err2Z) {
-    tParam.SetCov(2, err2Z);
-  }
-
-  int nHits = GPUTPCTrackletConstructor::GPUTPCTrackletConstructorGlobalTracking(*this, tParam, rowIndex, direction, 0);
-  if (nHits >= GPUCA_GLOBAL_TRACKING_MIN_HITS) {
-    // GPUInfo("%d hits found", nHits);
-    unsigned int hitId = CAMath::AtomicAdd(&mCommonMem->nTrackHits, nHits);
-    if ((hitId + nHits) >= mNMaxTrackHits) {
-      mCommonMem->kernelError = GPUCA_ERROR_GLOBAL_TRACKING_TRACK_HIT_OVERFLOW;
-      CAMath::AtomicExch(&mCommonMem->nTrackHits, mNMaxTrackHits);
-      return (0);
-    }
-    unsigned int trackId = CAMath::AtomicAdd(&mCommonMem->nTracks, 1);
-    if (direction == 1) {
-      int i = 0;
-      while (i < nHits) {
-#ifdef GPUCA_EXTERN_ROW_HITS
-        const calink rowHit = TrackletRowHits()[rowIndex * *NTracklets()];
-#else
-        const calink rowHit = Tracklet(0).RowHit(rowIndex);
-#endif
-        if (rowHit != CALINK_INVAL) {
-          // GPUInfo("New track: entry %d, row %d, hitindex %d", i, rowIndex, mTrackletRowHits[rowIndex * mCommonMem->nTracklets]);
-          mTrackHits[hitId + i].Set(rowIndex, rowHit);
-          // if (i == 0) tParam.TransportToX(Row(rowIndex).X(), mCAParam->ConstBz(), GPUCA_MAX_SIN_PHI); //Use transport with new linearisation, we have changed the track in between - NOT needed, fitting will always start at outer end of global track!
-          i++;
-        }
-        rowIndex++;
-      }
-    } else {
-      int i = nHits - 1;
-      while (i >= 0) {
-#ifdef GPUCA_EXTERN_ROW_HITS
-        const calink rowHit = TrackletRowHits()[rowIndex * *NTracklets()];
-#else
-        const calink rowHit = Tracklet(0).RowHit(rowIndex);
-#endif
-        if (rowHit != CALINK_INVAL) {
-          // GPUInfo("New track: entry %d, row %d, hitindex %d", i, rowIndex, mTrackletRowHits[rowIndex * mCommonMem->nTracklets]);
-          mTrackHits[hitId + i].Set(rowIndex, rowHit);
-          i--;
-        }
-        rowIndex--;
-      }
-    }
-    GPUTPCTrack& track = mTracks[trackId];
-    track.SetAlive(1);
-    track.SetParam(tParam.GetParam());
-    track.SetNHits(nHits);
-    track.SetFirstHitID(hitId);
-    track.SetLocalTrackId((sliceSource.mISlice << 24) | sliceSource.mTracks[iTrack].LocalTrackId());
-  }
-
-  return (nHits >= GPUCA_GLOBAL_TRACKING_MIN_HITS);
-}
-
-GPUh() void GPUTPCTracker::PerformGlobalTracking(GPUTPCTracker& sliceTarget, bool right)
-{
-  for (int i = 0; i < mCommonMem->nLocalTracks; i++) {
-    {
-      const int tmpHit = mTracks[i].FirstHitID();
-      if (mTrackHits[tmpHit].RowIndex() >= GPUCA_GLOBAL_TRACKING_MIN_ROWS && mTrackHits[tmpHit].RowIndex() < GPUCA_GLOBAL_TRACKING_RANGE) {
-        int rowIndex = mTrackHits[tmpHit].RowIndex();
-        const GPUTPCRow& row = Row(rowIndex);
-        float Y = (float)Data().HitDataY(row, mTrackHits[tmpHit].HitIndex()) * row.HstepY() + row.Grid().YMin();
-        if (sliceTarget.mCommonMem->nTracks >= sliceTarget.mNMaxTracks) {
-          sliceTarget.mCommonMem->kernelError = GPUCA_ERROR_GLOBAL_TRACKING_TRACK_OVERFLOW;
-          return;
-        }
-        if (!right && Y < -row.MaxY() * GPUCA_GLOBAL_TRACKING_Y_RANGE_LOWER) {
-          // GPUInfo("Track %d, lower row %d, left border (%f of %f)", i, mTrackHits[tmpHit].RowIndex(), Y, -row.MaxY());
-          sliceTarget.PerformGlobalTrackingRun(*this, i, rowIndex, -mCAParam->DAlpha, -1);
-        }
-        if (right && Y > row.MaxY() * GPUCA_GLOBAL_TRACKING_Y_RANGE_LOWER) {
-          // GPUInfo("Track %d, lower row %d, right border (%f of %f)", i, mTrackHits[tmpHit].RowIndex(), Y, row.MaxY());
-          sliceTarget.PerformGlobalTrackingRun(*this, i, rowIndex, mCAParam->DAlpha, -1);
-        }
-      }
-    }
-
-    {
-      const int tmpHit = mTracks[i].FirstHitID() + mTracks[i].NHits() - 1;
-      if (mTrackHits[tmpHit].RowIndex() < GPUCA_ROW_COUNT - GPUCA_GLOBAL_TRACKING_MIN_ROWS && mTrackHits[tmpHit].RowIndex() >= GPUCA_ROW_COUNT - GPUCA_GLOBAL_TRACKING_RANGE) {
-        int rowIndex = mTrackHits[tmpHit].RowIndex();
-        const GPUTPCRow& row = Row(rowIndex);
-        float Y = (float)Data().HitDataY(row, mTrackHits[tmpHit].HitIndex()) * row.HstepY() + row.Grid().YMin();
-        if (sliceTarget.mCommonMem->nTracks >= sliceTarget.mNMaxTracks) {
-          sliceTarget.mCommonMem->kernelError = GPUCA_ERROR_GLOBAL_TRACKING_TRACK_OVERFLOW;
-          return;
-        }
-        if (!right && Y < -row.MaxY() * GPUCA_GLOBAL_TRACKING_Y_RANGE_UPPER) {
-          // GPUInfo("Track %d, upper row %d, left border (%f of %f)", i, mTrackHits[tmpHit].RowIndex(), Y, -row.MaxY());
-          sliceTarget.PerformGlobalTrackingRun(*this, i, rowIndex, -mCAParam->DAlpha, 1);
-        }
-        if (right && Y > row.MaxY() * GPUCA_GLOBAL_TRACKING_Y_RANGE_UPPER) {
-          // GPUInfo("Track %d, upper row %d, right border (%f of %f)", i, mTrackHits[tmpHit].RowIndex(), Y, row.MaxY());
-          sliceTarget.PerformGlobalTrackingRun(*this, i, rowIndex, mCAParam->DAlpha, 1);
-        }
-      }
-    }
-  }
-}
-
-GPUh() void GPUTPCTracker::PerformGlobalTracking(GPUTPCTracker& sliceLeft, GPUTPCTracker& sliceRight)
-{
-  if (NHitsTotal() == 0) {
-    return;
-  }
-  int nTrk = mCommonMem->nTracklets;
-  mCommonMem->nTracklets = 1;
-  GPUTPCTracklet* trk = mTracklets;
-  mTracklets = new GPUTPCTracklet;
-#ifdef GPUCA_EXTERN_ROW_HITS
-  calink* lnk = mTrackletRowHits;
-  mTrackletRowHits = new calink[GPUCA_ROW_COUNT];
-#endif
-
-  sliceLeft.PerformGlobalTracking(*this, true);
-  sliceRight.PerformGlobalTracking(*this, false);
-
-  mCommonMem->nTracklets = nTrk;
-  delete mTracklets;
-  mTracklets = trk;
-#ifdef GPUCA_EXTERN_ROW_HITS
-  delete[] mTrackletRowHits;
-  mTrackletRowHits = lnk;
-#endif
 }
 
 #endif

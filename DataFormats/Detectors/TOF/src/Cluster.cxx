@@ -37,22 +37,30 @@ int Cluster::getNumOfContributingChannels() const
   //
   int nContributingChannels = 1;
 
-  if (isAdditionalChannelSet(kUpLeft))
+  if (isAdditionalChannelSet(kUpLeft)) {
     nContributingChannels++;
-  if (isAdditionalChannelSet(kUp))
+  }
+  if (isAdditionalChannelSet(kUp)) {
     nContributingChannels++;
-  if (isAdditionalChannelSet(kUpRight))
+  }
+  if (isAdditionalChannelSet(kUpRight)) {
     nContributingChannels++;
-  if (isAdditionalChannelSet(kRight))
+  }
+  if (isAdditionalChannelSet(kRight)) {
     nContributingChannels++;
-  if (isAdditionalChannelSet(kDownRight))
+  }
+  if (isAdditionalChannelSet(kDownRight)) {
     nContributingChannels++;
-  if (isAdditionalChannelSet(kDown))
+  }
+  if (isAdditionalChannelSet(kDown)) {
     nContributingChannels++;
-  if (isAdditionalChannelSet(kDownLeft))
+  }
+  if (isAdditionalChannelSet(kDownLeft)) {
     nContributingChannels++;
-  if (isAdditionalChannelSet(kLeft))
+  }
+  if (isAdditionalChannelSet(kLeft)) {
     nContributingChannels++;
+  }
 
   return nContributingChannels;
 }
@@ -63,4 +71,12 @@ std::ostream& operator<<(std::ostream& os, Cluster& c)
   os << (o2::BaseCluster<float>&)c;
   os << " TOF cluster: raw time = " << std::scientific << c.getTimeRaw() << ", time = " << std::scientific << c.getTime() << ", Tot = " << std::scientific << c.getTot() << ", L0L1Latency = " << c.getL0L1Latency() << ", deltaBC = " << c.getDeltaBC() << ", R = " << c.getR() << ", mPhi = " << c.getPhi() << ", Number of contributingChannels = " << c.getNumOfContributingChannels() << "\n";
   return os;
+}
+
+//______________________________________________________________________
+void Cluster::setDigitInfo(int idig, int ch, double t, float tot)
+{
+  mDigitInfoCh[idig] = ch;
+  mDigitInfoT[idig] = t;
+  mDigitInfoTOT[idig] = tot;
 }

@@ -13,9 +13,10 @@
 /// \author David Rohr
 #ifndef ALICEO2_DATAFORMATSTPC_CLUSTERNATIVE_H
 #define ALICEO2_DATAFORMATSTPC_CLUSTERNATIVE_H
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <cstdint>
 #include <cstddef> // for size_t
+#include <utility>
 #endif
 #include "DataFormatsTPC/Constants.h"
 #include "GPUCommonDef.h"
@@ -26,7 +27,9 @@ class MCCompLabel;
 namespace dataformats
 {
 template <class T>
-class MCTruthContainer;
+class ConstMCTruthContainer;
+template <class T>
+class ConstMCTruthContainerView;
 }
 } // namespace o2
 
@@ -48,8 +51,13 @@ namespace tpc
  * Not for permanent storage.
  */
 struct ClusterNative {
-  static constexpr int scaleTimePacked =
-    64;                                           //< ~50 is needed for 0.1mm precision, but leads to float rounding artifacts around 20ms
+  // NOTE: These states must match those from GPUTPCGMMergedTrackHit!
+  enum clusterState { flagSplitPad = 0x1,  // Split in pad direction
+                      flagSplitTime = 0x2, // Split in time direction
+                      flagEdge = 0x4,      // At edge of TPC sector
+                      flagSingle = 0x8 };  // Single pad or single time-bin cluster
+
+  static constexpr int scaleTimePacked = 64;      //< ~50 is needed for 0.1mm precision, but leads to float rounding artifacts around 20ms
   static constexpr int scalePadPacked = 64;       //< ~60 is needed for 0.1mm precision, but power of two avoids rounding
   static constexpr int scaleSigmaTimePacked = 32; // 1/32nd of pad/timebin precision for cluster size
   static constexpr int scaleSigmaPadPacked = 32;
@@ -93,6 +101,19 @@ struct ClusterNative {
   {
     timeFlagsPacked = (packTime(time) & 0xFFFFFF) | ((decltype(timeFlagsPacked))flags << 24);
   }
+
+  /// @return Returns the pad position of the cluster.
+  /// note that the pad position is defined on the left side of the pad.
+  /// the pad position from clusters are calculated in HwClusterer::hwClusterProcessor()
+  /// around the centre of gravity around the left side of the pad.
+  /// i.e. the center of the first pad has pad position zero.
+  /// To get the corresponding local Y coordinate of the cluster:
+  /// Y = (pad_position - 0.5 * (n_pads - 1)) * padWidth
+  /// example:
+  /// the pad position is for example 12.4 (pad_position = 12.4).
+  /// there are 66 pads in the first pad row (n_pads = 66).
+  /// the pad width for pads in the first padrow is 4.16mm (padWidth = 4.16mm).
+  /// Y = (12.4 - 0.5 * (66 - 1)) * 4.16mm = -83.616mm
   GPUd() float getPad() const { return unpackPad(padPacked); }
   GPUd() void setPad(float pad) { padPacked = packPad(pad); }
   GPUd() float getSigmaTime() const { return float(sigmaTimePacked) * (1.f / scaleSigmaTimePacked); }
@@ -138,22 +159,28 @@ struct ClusterNative {
 // the data inside a buffer.
 struct ClusterNativeAccess {
   const ClusterNative* clustersLinear;
-  const ClusterNative* clusters[o2::tpc::Constants::MAXSECTOR][o2::tpc::Constants::MAXGLOBALPADROW];
-  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* clustersMCTruth;
-  unsigned int nClusters[o2::tpc::Constants::MAXSECTOR][o2::tpc::Constants::MAXGLOBALPADROW];
-  unsigned int nClustersSector[o2::tpc::Constants::MAXSECTOR];
-  unsigned int clusterOffset[o2::tpc::Constants::MAXSECTOR][o2::tpc::Constants::MAXGLOBALPADROW];
+  const ClusterNative* clusters[constants::MAXSECTOR][constants::MAXGLOBALPADROW];
+  const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>* clustersMCTruth;
+  unsigned int nClusters[constants::MAXSECTOR][constants::MAXGLOBALPADROW];
+  unsigned int nClustersSector[constants::MAXSECTOR];
+  unsigned int clusterOffset[constants::MAXSECTOR][constants::MAXGLOBALPADROW];
   unsigned int nClustersTotal;
 
   void setOffsetPtrs();
+
+#ifndef GPUCA_GPUCODE
+  using ConstMCLabelContainer = o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>;
+  using ConstMCLabelContainerView = o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>;
+  using ConstMCLabelContainerViewWithBuffer = std::pair<ConstMCLabelContainer, ConstMCLabelContainerView>;
+#endif
 };
 
 inline void ClusterNativeAccess::setOffsetPtrs()
 {
   int offset = 0;
-  for (unsigned int i = 0; i < o2::tpc::Constants::MAXSECTOR; i++) {
+  for (unsigned int i = 0; i < constants::MAXSECTOR; i++) {
     nClustersSector[i] = 0;
-    for (unsigned int j = 0; j < o2::tpc::Constants::MAXGLOBALPADROW; j++) {
+    for (unsigned int j = 0; j < constants::MAXGLOBALPADROW; j++) {
       clusterOffset[i][j] = offset;
       clusters[i][j] = &clustersLinear[offset];
       nClustersSector[i] += nClusters[i][j];

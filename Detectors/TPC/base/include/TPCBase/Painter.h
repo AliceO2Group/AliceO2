@@ -16,10 +16,12 @@
 /// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 ///
 
+#include <vector>
 #include "DataFormatsTPC/Defs.h"
 
 class TH1;
 class TH2;
+class TCanvas;
 
 namespace o2
 {
@@ -45,13 +47,28 @@ namespace painter
 //using T=float;
 /// Drawing of a CalDet object
 /// \param CalDet object to draw
+/// \return TCanvas containing CalDet content
 template <class T>
-void draw(const CalDet<T>& calDet);
+TCanvas* draw(const CalDet<T>& calDet, int nbins1D = 300, float xMin1D = 0, float xMax1D = 0);
 
 /// Drawing of a CalDet object
 /// \param CalArray object to draw
+/// \return TCanvas containing CalArray content
 template <class T>
-void draw(const CalArray<T>& calArray);
+TCanvas* draw(const CalArray<T>& calArray);
+
+/// fill existing 2D histogram for CalDet object
+/// \param h2D histogram to fill
+/// \param CalDet object with data
+/// \param side side which to get the histogram for
+template <class T>
+void fillHistogram2D(TH2& h2D, const CalDet<T>& calDet, Side side);
+
+/// fill existing 2D histogram for CalArray object
+/// \param h2D histogram to fill
+/// \param CalArray object with data
+template <class T>
+void fillHistogram2D(TH2& h2D, const CalArray<T>& calArray);
 
 /// get 2D histogram for CalDet object
 /// \param CalDet object with data
@@ -66,6 +83,33 @@ TH2* getHistogram2D(const CalDet<T>& calDet, Side side);
 /// \return 2D histogram with data
 template <class T>
 TH2* getHistogram2D(const CalArray<T>& calArray);
+
+/// Create summary canvases for a CalDet object
+///
+/// 1 Canvas with 2D and 1D distributions for each side
+/// 1 Canvas with 2D distributions for all ROCs
+/// 1 Canvas with 1D distributions for all ROCs
+/// \param CalDet object to draw
+/// \param nbins1D number of bins used for the 1D projections
+/// \param xMin1D minimum value for 1D distribution (xMin = 0 and xMax = 0 for auto scaling)
+/// \param xMax1D maximum value for 1D distribution (xMin = 0 and xMax = 0 for auto scaling)
+/// \return TCanvas containing CalDet content
+template <class T>
+std::vector<TCanvas*> makeSummaryCanvases(const CalDet<T>& calDet, int nbins1D = 300, float xMin1D = 0, float xMax1D = 0, bool onlyFilled = true);
+
+/// Create summary canvases for a CalDet object
+///
+/// 1 Canvas with 2D and 1D distributions for each side
+/// 1 Canvas with 2D distributions for all ROCs
+/// 1 Canvas with 1D distributions for all ROCs
+/// \param CalDet object to draw
+/// \param nbins1D number of bins used for the 1D projections
+/// \param xMin1D minimum value for 1D distribution (xMin = 0 and xMax = 0 for auto scaling)
+/// \param xMax1D maximum value for 1D distribution (xMin = 0 and xMax = 0 for auto scaling)
+/// \param fileName input file name
+/// \param calPadNames comma separated list of names of the CalPad objects as stored in the file.
+/// \return TCanvas containing CalDet content
+std::vector<TCanvas*> makeSummaryCanvases(const std::string_view fileName, const std::string_view calPadNames, int nbins1D = 300, float xMin1D = 0, float xMax1D = 0, bool onlyFilled = true);
 
 } // namespace painter
 

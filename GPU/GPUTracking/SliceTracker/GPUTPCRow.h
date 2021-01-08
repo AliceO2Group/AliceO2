@@ -45,7 +45,7 @@ class GPUTPCRow
   }
   GPUhd() float X() const { return mX; }
   GPUhd() float MaxY() const { return mMaxY; }
-  GPUhd() MakeType(const GPUTPCGrid&) Grid() const { return mGrid; }
+  GPUhd() MakeType(const MEM_LG(GPUTPCGrid) &) Grid() const { return mGrid; }
 
   GPUhd() float Hy0() const { return mHy0; }
   GPUhd() float Hz0() const { return mHz0; }
@@ -53,15 +53,18 @@ class GPUTPCRow
   GPUhd() float HstepZ() const { return mHstepZ; }
   GPUhd() float HstepYi() const { return mHstepYi; }
   GPUhd() float HstepZi() const { return mHstepZi; }
-  GPUhd() int FullSize() const { return mFullSize; }
   GPUhd() int HitNumberOffset() const { return mHitNumberOffset; }
   GPUhd() unsigned int FirstHitInBinOffset() const { return mFirstHitInBinOffset; }
 
  private:
+  friend class GPUTPCNeighboursFinder;
+  friend class GPUTPCStartHitsFinder;
+
   int mNHits;       // number of hits
   float mX;         // X coordinate of the row
   float mMaxY;      // maximal Y coordinate of the row
-  GPUTPCGrid mGrid; // grid of hits
+  MEM_LG(GPUTPCGrid)
+  mGrid; // grid of hits
 
   // hit packing:
   float mHy0;     // offset
@@ -71,7 +74,6 @@ class GPUTPCRow
   float mHstepYi; // inverse step size
   float mHstepZi; // inverse step size
 
-  int mFullSize;        // size of this row in Tracker::mRowData
   int mHitNumberOffset; // index of the first hit in the hit array, used as
   // offset in GPUTPCSliceData::LinkUp/DownData/HitDataY/...
   unsigned int mFirstHitInBinOffset; // offset in Tracker::mRowData to find the FirstHitInBin

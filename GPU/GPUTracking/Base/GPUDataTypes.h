@@ -16,24 +16,63 @@
 
 #include "GPUCommonDef.h"
 
+// These are basic and non-comprex data types, which will also be visible on the GPU.
+// Please add complex data types required on the host but not GPU to GPUHostDataTypes.h and forward-declare!
+#ifndef GPUCA_GPUCODE_DEVICE
+#include <cstddef>
 #ifdef GPUCA_NOCOMPAT_ALLOPENCL
 #include <type_traits>
+#endif
+#endif
+#ifdef GPUCA_NOCOMPAT
 #include "GPUTRDDef.h"
 
-class AliHLTTPCClusterMCLabel;
+struct AliHLTTPCClusterMCLabel;
 struct AliHLTTPCRawCluster;
 namespace o2
 {
 namespace tpc
 {
 struct ClusterNativeAccess;
-template <class T>
-struct CompressedClustersPtrs_helper;
-struct CompressedClustersCounters;
-using CompressedClusters = CompressedClustersPtrs_helper<CompressedClustersCounters>;
+struct CompressedClustersFlat;
+class Digit;
+namespace constants
+{
+} // namespace constants
 } // namespace tpc
 } // namespace o2
 #endif
+
+namespace o2
+{
+class MCCompLabel;
+namespace base
+{
+class Propagator;
+class MatLayerCylSet;
+} // namespace base
+namespace trd
+{
+class GeometryFlat;
+} // namespace trd
+namespace dataformats
+{
+template <class T>
+class MCTruthContainer;
+template <class T>
+class ConstMCTruthContainerView;
+} // namespace dataformats
+} // namespace o2
+
+namespace GPUCA_NAMESPACE
+{
+namespace gpu
+{
+class TPCFastTransform;
+class TPCdEdxCalibrationSplines;
+struct TPCPadGainCalib;
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 namespace GPUCA_NAMESPACE
 {
@@ -50,17 +89,19 @@ namespace gpu
 #define GPUCA_RECO_STEP GPUDataTypes
 #endif
 
-#ifdef __OPENCL__
+#if defined(__OPENCL__) && !defined(__OPENCLCPP__)
 MEM_CLASS_PRE() // Macro with some template magic for OpenCL 1.2
 #endif
 class GPUTPCTrack;
 class GPUTPCHitId;
 class GPUTPCGMMergedTrack;
 struct GPUTPCGMMergedTrackHit;
+struct GPUTPCGMMergedTrackHitXYZ;
 class GPUTRDTrackletWord;
-class GPUTPCMCInfo;
+struct GPUTPCMCInfo;
 struct GPUTPCClusterData;
 struct GPUTRDTrackletLabels;
+struct GPUTPCDigitsMCInput;
 
 class GPUDataTypes
 {
@@ -72,6 +113,9 @@ class GPUDataTypes
                               HIP = 3,
                               OCL = 4,
                               OCL2 = 5 };
+  enum ENUM_CLASS GeneralStep { Prepare = 1,
+                                QA = 2 };
+
   enum ENUM_CLASS RecoStep { TPCConversion = 1,
                              TPCSliceTracking = 2,
                              TPCMerging = 4,
@@ -79,6 +123,9 @@ class GPUDataTypes
                              TRDTracking = 16,
                              ITSTracking = 32,
                              TPCdEdx = 64,
+                             TPCClusterFinding = 128,
+                             TPCDecompression = 256,
+                             Refit = 512,
                              AllRecoSteps = 0x7FFFFFFF,
                              NoRecoStep = 0 };
   enum ENUM_CLASS InOutType { TPCClusters = 1,
@@ -86,14 +133,20 @@ class GPUDataTypes
                               TPCMergedTracks = 4,
                               TPCCompressedClusters = 8,
                               TRDTracklets = 16,
-                              TRDTracks = 32 };
+                              TRDTracks = 32,
+                              TPCRaw = 64 };
 
 #ifdef GPUCA_NOCOMPAT_ALLOPENCL
-  static constexpr const char* const RECO_STEP_NAMES[] = {"TPC Transformation", "TPC Sector Tracking", "TPC Track Merging and Fit", "TPC Compression", "TRD Tracking", "ITS Tracking", "TPC dEdx Computation"};
+  static constexpr const char* const RECO_STEP_NAMES[] = {"TPC Transformation", "TPC Sector Tracking", "TPC Track Merging and Fit", "TPC Compression", "TRD Tracking", "ITS Tracking", "TPC dEdx Computation", "TPC Cluster Finding", "TPC Decompression", "Global Refit"};
+  static constexpr const char* const GENERAL_STEP_NAMES[] = {"Prepare", "QA"};
   typedef bitfield<RecoStep, unsigned int> RecoStepField;
   typedef bitfield<InOutType, unsigned int> InOutTypeField;
+  constexpr static int N_RECO_STEPS = sizeof(GPUDataTypes::RECO_STEP_NAMES) / sizeof(GPUDataTypes::RECO_STEP_NAMES[0]);
+  constexpr static int N_GENERAL_STEPS = sizeof(GPUDataTypes::GENERAL_STEP_NAMES) / sizeof(GPUDataTypes::GENERAL_STEP_NAMES[0]);
 #endif
-
+#ifdef GPUCA_NOCOMPAT
+  static constexpr unsigned int NSLICES = 36;
+#endif
   static DeviceType GetDeviceType(const char* type);
 };
 
@@ -104,21 +157,72 @@ struct GPURecoStepConfiguration {
   GPUDataTypes::InOutTypeField inputs = 0;
   GPUDataTypes::InOutTypeField outputs = 0;
 };
+#endif
+
+#ifdef GPUCA_NOCOMPAT
+
+template <class T>
+struct DefaultPtr {
+  typedef T type;
+};
+template <class T>
+struct ConstPtr {
+  typedef const T type;
+};
+
+template <template <typename T> class S>
+struct GPUCalibObjectsTemplate {
+  typename S<TPCFastTransform>::type* fastTransform = nullptr;
+  typename S<o2::base::MatLayerCylSet>::type* matLUT = nullptr;
+  typename S<o2::trd::GeometryFlat>::type* trdGeometry = nullptr;
+  typename S<TPCdEdxCalibrationSplines>::type* dEdxSplines = nullptr;
+  typename S<TPCPadGainCalib>::type* tpcPadGain = nullptr;
+  typename S<o2::base::Propagator>::type* o2Propagator = nullptr;
+};
+typedef GPUCalibObjectsTemplate<DefaultPtr> GPUCalibObjects;
+typedef GPUCalibObjectsTemplate<ConstPtr> GPUCalibObjectsConst;
+
+struct GPUTrackingInOutZS {
+  static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;
+  static constexpr unsigned int NENDPOINTS = 20;
+  struct GPUTrackingInOutZSSlice {
+    const void* const* zsPtr[NENDPOINTS];
+    const unsigned int* nZSPtr[NENDPOINTS];
+    unsigned int count[NENDPOINTS];
+  };
+  struct GPUTrackingInOutZSCounts {
+    unsigned int count[NSLICES][NENDPOINTS] = {};
+  };
+  struct GPUTrackingInOutZSMeta {
+    void* ptr[NSLICES][NENDPOINTS];
+    unsigned int n[NSLICES][NENDPOINTS];
+  };
+  GPUTrackingInOutZSSlice slice[NSLICES];
+};
+
+struct GPUTrackingInOutDigits {
+  static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;
+  const o2::tpc::Digit* tpcDigits[NSLICES] = {nullptr};
+  size_t nTPCDigits[NSLICES] = {0};
+  GPUTPCDigitsMCInput* tpcDigitsMC;
+};
 
 struct GPUTrackingInOutPointers {
   GPUTrackingInOutPointers() = default;
   GPUTrackingInOutPointers(const GPUTrackingInOutPointers&) = default;
-  static constexpr unsigned int NSLICES = 36;
+  static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;
 
+  const GPUTrackingInOutZS* tpcZS = nullptr;
+  const GPUTrackingInOutDigits* tpcPackedDigits = nullptr;
   const GPUTPCClusterData* clusterData[NSLICES] = {nullptr};
   unsigned int nClusterData[NSLICES] = {0};
   const AliHLTTPCRawCluster* rawClusters[NSLICES] = {nullptr};
   unsigned int nRawClusters[NSLICES] = {0};
   const o2::tpc::ClusterNativeAccess* clustersNative = nullptr;
-  const GPUTPCTrack* sliceOutTracks[NSLICES] = {nullptr};
-  unsigned int nSliceOutTracks[NSLICES] = {0};
-  const GPUTPCHitId* sliceOutClusters[NSLICES] = {nullptr};
-  unsigned int nSliceOutClusters[NSLICES] = {0};
+  const GPUTPCTrack* sliceTracks[NSLICES] = {nullptr};
+  unsigned int nSliceTracks[NSLICES] = {0};
+  const GPUTPCHitId* sliceClusters[NSLICES] = {nullptr};
+  unsigned int nSliceClusters[NSLICES] = {0};
   const AliHLTTPCClusterMCLabel* mcLabelsTPC = nullptr;
   unsigned int nMCLabelsTPC = 0;
   const GPUTPCMCInfo* mcInfosTPC = nullptr;
@@ -126,15 +230,22 @@ struct GPUTrackingInOutPointers {
   const GPUTPCGMMergedTrack* mergedTracks = nullptr;
   unsigned int nMergedTracks = 0;
   const GPUTPCGMMergedTrackHit* mergedTrackHits = nullptr;
+  const GPUTPCGMMergedTrackHitXYZ* mergedTrackHitsXYZ = nullptr;
   unsigned int nMergedTrackHits = 0;
-  const o2::tpc::CompressedClusters* tpcCompressedClusters = nullptr;
+  unsigned int* mergedTrackHitAttachment = nullptr;
+  unsigned char* mergedTrackHitStates = nullptr;
+  const o2::tpc::CompressedClustersFlat* tpcCompressedClusters = nullptr;
   const GPUTRDTrackletWord* trdTracklets = nullptr;
   unsigned int nTRDTracklets = 0;
   const GPUTRDTrackletLabels* trdTrackletsMC = nullptr;
   unsigned int nTRDTrackletsMC = 0;
-  const GPUTRDTrack* trdTracks = nullptr;
+  const GPUTRDTrackGPU* trdTracks = nullptr;
   unsigned int nTRDTracks = 0;
-  friend class GPUReconstruction;
+};
+#else
+struct GPUTrackingInOutPointers {
+};
+struct GPUCalibObjectsConst {
 };
 #endif
 

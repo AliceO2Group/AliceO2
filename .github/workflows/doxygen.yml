@@ -1,0 +1,31 @@
+name: Build Documentation
+
+on:
+  push:
+    branches:    
+    - 'dev'
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install doxygen
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y doxygen doxygen-doc doxygen-latex doxygen-gui graphviz cmake
+    - uses: actions/checkout@v2
+      with:
+        ref: "dev"
+    - name: Install doxygen
+      run: |
+        cat > CMakeLists.txt <<\EOF
+        add_subdirectory(doc)
+        EOF
+        cmake .
+        make doc
+        git add doc/html
+        git config --global user.email "github-action-bot@example.com"
+        git config --global user.name "GitHub Action Bot"
+        git commit -m "Updated README" -a || echo "No changes to commit"
+        git push origin `git subtree split --prefix doc/html dev`:refs/heads/gh-pages --force
+

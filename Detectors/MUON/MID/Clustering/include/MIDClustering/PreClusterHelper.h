@@ -27,8 +27,8 @@ namespace mid
 class PreClusterHelper
 {
  public:
-  MpArea getArea(const PreCluster& pc);
-  MpArea getArea(int column, const PreCluster& pc);
+  MpArea getArea(const PreCluster& pc) const;
+  MpArea getArea(int column, const PreCluster& pc) const;
 
  private:
   Mapping mMapping; ///< Mapping

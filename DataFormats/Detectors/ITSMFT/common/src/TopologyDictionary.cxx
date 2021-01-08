@@ -14,6 +14,7 @@
 /// \author Luca Barioglio, University and INFN of Torino
 
 #include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DataFormatsITSMFT/ClusterTopology.h"
 #include <iostream>
 #include "ITSMFTBase/SegmentationAlpide.h"
 
@@ -34,14 +35,14 @@ TopologyDictionary::TopologyDictionary() : mSmallTopologiesLUT{-1} {}
 
 TopologyDictionary::TopologyDictionary(std::string fileName)
 {
-  ReadBinaryFile(fileName);
+  readBinaryFile(fileName);
 }
 
 std::ostream& operator<<(std::ostream& os, const TopologyDictionary& dict)
 {
-  for (auto& p : dict.mVectorOfGroupIDs) {
-    os << "Hash: " << p.mHash << " ErrX: " << p.mErrX << " ErrZ : " << p.mErrZ << " xCOG: " << p.mXCOG << " zCOG: " << p.mZCOG << " Npixles: " << p.mNpixels << " Frequency: "
-       << p.mFrequency << std::endl
+  int ID = 0;
+  for (auto& p : dict.mVectorOfIDs) {
+    os << "ID: " << ID++ << " Hash: " << p.mHash << " ErrX: " << p.mErrX << " ErrZ : " << p.mErrZ << " xCOG: " << p.mXCOG << " zCOG: " << p.mZCOG << " Npixles: " << p.mNpixels << " Frequency: " << p.mFrequency << " isGroup : " << std::boolalpha << p.mIsGroup << std::endl
        << p.mPattern << std::endl
        << "*********************************************************" << std::endl
        << std::endl;
@@ -49,13 +50,15 @@ std::ostream& operator<<(std::ostream& os, const TopologyDictionary& dict)
   return os;
 }
 
-void TopologyDictionary::WriteBinaryFile(string outputfile)
+void TopologyDictionary::writeBinaryFile(string outputfile)
 {
   std::ofstream file_output(outputfile, std::ios::out | std::ios::binary);
-  for (auto& p : mVectorOfGroupIDs) {
+  for (auto& p : mVectorOfIDs) {
     file_output.write(reinterpret_cast<char*>(&p.mHash), sizeof(unsigned long));
     file_output.write(reinterpret_cast<char*>(&p.mErrX), sizeof(float));
     file_output.write(reinterpret_cast<char*>(&p.mErrZ), sizeof(float));
+    file_output.write(reinterpret_cast<char*>(&p.mErr2X), sizeof(float));
+    file_output.write(reinterpret_cast<char*>(&p.mErr2Z), sizeof(float));
     file_output.write(reinterpret_cast<char*>(&p.mXCOG), sizeof(float));
     file_output.write(reinterpret_cast<char*>(&p.mZCOG), sizeof(float));
     file_output.write(reinterpret_cast<char*>(&p.mNpixels), sizeof(int));
@@ -67,33 +70,40 @@ void TopologyDictionary::WriteBinaryFile(string outputfile)
   file_output.close();
 }
 
-int TopologyDictionary::ReadBinaryFile(string fname)
+int TopologyDictionary::readBinaryFile(string fname)
 {
-  mVectorOfGroupIDs.clear();
-  mFinalMap.clear();
-  for (auto& p : mSmallTopologiesLUT)
+  mVectorOfIDs.clear();
+  mCommonMap.clear();
+  for (auto& p : mSmallTopologiesLUT) {
     p = -1;
+  }
   std::ifstream in(fname.data(), std::ios::in | std::ios::binary);
   GroupStruct gr;
   int groupID = 0;
   if (!in.is_open()) {
-    LOG(ERROR) << "The file coud not be opened";
+    LOG(ERROR) << "The file " << fname << " coud not be opened";
     throw std::runtime_error("The file coud not be opened");
   } else {
     while (in.read(reinterpret_cast<char*>(&gr.mHash), sizeof(unsigned long))) {
       in.read(reinterpret_cast<char*>(&gr.mErrX), sizeof(float));
       in.read(reinterpret_cast<char*>(&gr.mErrZ), sizeof(float));
+      in.read(reinterpret_cast<char*>(&gr.mErr2X), sizeof(float));
+      in.read(reinterpret_cast<char*>(&gr.mErr2Z), sizeof(float));
       in.read(reinterpret_cast<char*>(&gr.mXCOG), sizeof(float));
       in.read(reinterpret_cast<char*>(&gr.mZCOG), sizeof(float));
       in.read(reinterpret_cast<char*>(&gr.mNpixels), sizeof(int));
       in.read(reinterpret_cast<char*>(&gr.mFrequency), sizeof(double));
       in.read(reinterpret_cast<char*>(&gr.mIsGroup), sizeof(bool));
       in.read(reinterpret_cast<char*>(&gr.mPattern.mBitmap), sizeof(unsigned char) * (ClusterPattern::kExtendedPatternBytes));
-      mVectorOfGroupIDs.push_back(gr);
-      if (gr.mPattern.getUsedBytes() == 1)
-        mSmallTopologiesLUT[(gr.mPattern.getColumnSpan() - 1) * 255 + (int)gr.mPattern.mBitmap[2]] = groupID;
-      if (((gr.mHash) & 0xffffffff) != 0)
-        mFinalMap.insert(std::make_pair(gr.mHash, groupID));
+      mVectorOfIDs.push_back(gr);
+      if (!gr.mIsGroup) {
+        mCommonMap.insert(std::make_pair(gr.mHash, groupID));
+        if (gr.mPattern.getUsedBytes() == 1) {
+          mSmallTopologiesLUT[(gr.mPattern.getColumnSpan() - 1) * 255 + (int)gr.mPattern.mBitmap[2]] = groupID;
+        }
+      } else {
+        mGroupMap.insert(std::make_pair((int)(gr.mHash >> 32) & 0x00000000ffffffff, groupID));
+      }
       groupID++;
     }
   }
@@ -101,86 +111,42 @@ int TopologyDictionary::ReadBinaryFile(string fname)
   return 0;
 }
 
-float TopologyDictionary::GetXcog(int n) const
+void TopologyDictionary::getTopologyDistribution(const TopologyDictionary& dict, TH1F*& histo, const char* histName)
 {
-  if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
-    LOG(ERROR) << "Index out of bounds";
-    throw std::range_error("Index out of bounds");
-  } else
-    return mVectorOfGroupIDs[n].mXCOG;
-}
-float TopologyDictionary::GetErrX(int n) const
-{
-  if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
-    LOG(ERROR) << "Index out of bounds";
-    throw std::range_error("Index out of bounds");
-  } else
-    return mVectorOfGroupIDs[n].mErrX;
-}
-
-float TopologyDictionary::GetZcog(int n) const
-{
-  if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
-    LOG(ERROR) << "Index out of bounds";
-    throw std::range_error("Index out of bounds");
-  } else
-    return mVectorOfGroupIDs[n].mZCOG;
-}
-
-float TopologyDictionary::GetErrZ(int n) const
-{
-  if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
-    LOG(ERROR) << "Index out of bounds";
-    throw std::range_error("Index out of bounds");
-  } else
-    return mVectorOfGroupIDs[n].mErrZ;
-}
-
-unsigned long TopologyDictionary::GetHash(int n) const
-{
-  if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
-    LOG(ERROR) << "Index out of bounds";
-    throw std::range_error("Index out of bounds");
-  } else
-    return mVectorOfGroupIDs[n].mHash;
-}
-
-int TopologyDictionary::GetNpixels(int n) const
-{
-  if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
-    LOG(ERROR) << "Index out of bounds";
-    throw std::range_error("Index out of bounds");
-  } else
-    return mVectorOfGroupIDs[n].mNpixels;
-}
-
-ClusterPattern TopologyDictionary::GetPattern(int n) const
-{
-  if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
-    LOG(ERROR) << "Index out of bounds";
-    throw std::range_error("Index out of bounds");
-  } else
-    return mVectorOfGroupIDs[n].mPattern;
-}
-
-double TopologyDictionary::GetFrequency(int n) const
-{
-  if (n < 0 || n >= (int)mVectorOfGroupIDs.size()) {
-    LOG(ERROR) << "Index out of bounds";
-    throw std::range_error("Index out of bounds");
-  } else if (n == 0) {
-    return mVectorOfGroupIDs[n].mFrequency;
-  } else {
-    return mVectorOfGroupIDs[n].mFrequency - mVectorOfGroupIDs[n - 1].mFrequency;
+  int dictSize = (int)dict.getSize();
+  if (histo) {
+    delete histo;
+  }
+  histo = new TH1F(histName, ";Topology ID;Frequency", dictSize, -0.5, dictSize - 0.5);
+  histo->SetFillColor(kRed);
+  histo->SetFillStyle(3005);
+  histo->SetDrawOption("histo");
+  for (int i = 0; i < dictSize; i++) {
+    histo->Fill(i, dict.getFrequency(i));
   }
 }
 
-Point3D<float> TopologyDictionary::getClusterCoordinates(const CompCluster& cl) const
+math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const CompCluster& cl) const
 {
-  Point3D<float> locCl;
+  math_utils::Point3D<float> locCl;
   o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
-  locCl.SetX(locCl.X() + this->GetXcog(cl.getPatternID()));
-  locCl.SetZ(locCl.Z() + this->GetZcog(cl.getPatternID()));
+  locCl.SetX(locCl.X() + this->getXCOG(cl.getPatternID()));
+  locCl.SetZ(locCl.Z() + this->getZCOG(cl.getPatternID()));
+  return locCl;
+}
+
+math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const CompCluster& cl, const ClusterPattern& patt, bool isGroup)
+{
+  auto refRow = cl.getRow();
+  auto refCol = cl.getCol();
+  float xCOG = 0, zCOG = 0;
+  patt.getCOG(xCOG, zCOG);
+  if (isGroup) {
+    refRow -= round(xCOG);
+    refCol -= round(zCOG);
+  }
+  math_utils::Point3D<float> locCl;
+  o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(refRow + xCOG, refCol + zCOG, locCl);
   return locCl;
 }
 

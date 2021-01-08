@@ -14,7 +14,6 @@ o2_add_library(TPCBase
                        src/CDBInterface.cxx
                        src/ContainerFactory.cxx
                        src/CRU.cxx
-                       src/Digit.cxx
                        src/DigitPos.cxx
                        src/ModelGEM.cxx
                        src/FECInfo.cxx
@@ -30,11 +29,12 @@ o2_add_library(TPCBase
                        src/ParameterGas.cxx
                        src/ParameterGEM.cxx
                        src/PartitionInfo.cxx
-                       src/RandomRing.cxx
                        src/ROC.cxx
                        src/Sector.cxx
+                       src/Utils.cxx
+                       src/ZeroSuppress.cxx
                PUBLIC_LINK_LIBRARIES Vc::Vc Boost::boost O2::DataFormatsTPC
-                                     O2::CCDB FairRoot::Base)
+                                     O2::DetectorsRaw O2::CCDB FairRoot::Base)
 
 o2_target_root_dictionary(TPCBase
                           HEADERS include/TPCBase/CalArray.h
@@ -42,7 +42,6 @@ o2_target_root_dictionary(TPCBase
                                   include/TPCBase/CDBInterface.h
                                   include/TPCBase/ContainerFactory.h
                                   include/TPCBase/CRU.h
-                                  include/TPCBase/Digit.h
                                   include/TPCBase/DigitPos.h
                                   include/TPCBase/ModelGEM.h
                                   include/TPCBase/FECInfo.h
@@ -58,9 +57,10 @@ o2_target_root_dictionary(TPCBase
                                   include/TPCBase/ParameterGas.h
                                   include/TPCBase/ParameterGEM.h
                                   include/TPCBase/PartitionInfo.h
-                                  include/TPCBase/RandomRing.h
                                   include/TPCBase/ROC.h
-                                  include/TPCBase/Sector.h)
+                                  include/TPCBase/Sector.h
+                                  include/TPCBase/ZeroSuppress.h
+                                  include/TPCBase/Utils.h)
 
 o2_add_test(Base
             COMPONENT_NAME tpc
@@ -88,11 +88,17 @@ o2_add_test(Parameters
             SOURCES test/testTPCParameters.cxx
             LABELS tpc)
 
-o2_add_test(CCDBInterface
+o2_add_test(RDHUtils
             COMPONENT_NAME tpc
             PUBLIC_LINK_LIBRARIES O2::TPCBase
-            SOURCES test/testTPCCDBInterface.cxx
-            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+            SOURCES test/testRDHUtils.cxx
             LABELS tpc)
+
+#o2_add_test(CCDBInterface
+#            COMPONENT_NAME tpc
+#            PUBLIC_LINK_LIBRARIES O2::TPCBase
+#            SOURCES test/testTPCCDBInterface.cxx
+#            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+#            LABELS tpc)
 
 o2_data_file(COPY files DESTINATION Detectors/TPC)

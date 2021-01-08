@@ -31,7 +31,7 @@ class CRU
   CRU() = default;
   CRU(unsigned short cru) : mCRU(cru % MaxCRU) {}
   CRU(const CRU& cru) : mCRU(cru.mCRU) {}
-  CRU(const Sector& sec, const unsigned char partitionNum) : mCRU(sec.getSector() * CRUperSector + partitionNum) {}
+  CRU(const Sector& sec, const unsigned char regionNum) : mCRU(sec.getSector() * CRUperSector + regionNum) {}
   //       CRU(RocType t, Side s, unsigned char r):mCRU( (s==Side::A)*18 + (t==RocType::OCRU)*18 + r%18 ) {}
   //       CRU(Side t) {}
 
@@ -63,6 +63,8 @@ class CRU
   unsigned char region() const { return (mCRU % CRUperSector); }
   const Sector sector() const { return Sector(mCRU / CRUperSector); }
   RocType rocType() const { return mCRU % CRUperSector < CRUperIROC ? RocType::IROC : RocType::OROC; }
+  bool isIROC() const { return mCRU % CRUperSector < CRUperIROC; }
+  bool isOROC() const { return mCRU % CRUperSector >= CRUperIROC; }
   GEMstack gemStack() const;
 
   /// int return operator to use similar as integer
@@ -80,14 +82,15 @@ inline GEMstack CRU::gemStack() const
 {
   const int reg = int(region());
 
-  if (reg < CRUperIROC)
+  if (reg < CRUperIROC) {
     return GEMstack::IROCgem;
-  else if (reg - CRUperIROC < CRUperPartition)
+  } else if (reg - CRUperIROC < CRUperPartition) {
     return GEMstack::OROC1gem;
-  else if (reg - CRUperIROC - CRUperPartition < CRUperPartition)
+  } else if (reg - CRUperIROC - CRUperPartition < CRUperPartition) {
     return GEMstack::OROC2gem;
-  else
+  } else {
     return GEMstack::OROC3gem;
+  }
 }
 } // namespace tpc
 } // namespace o2

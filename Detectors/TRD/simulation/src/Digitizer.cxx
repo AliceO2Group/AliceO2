@@ -14,66 +14,208 @@
 #include "FairLogger.h"
 #include "DetectorsBase/GeometryManager.h"
 
-#include "TRDBase/TRDGeometry.h"
-#include "TRDBase/TRDSimParam.h"
-#include "TRDBase/TRDPadPlane.h"
+#include "TRDBase/Geometry.h"
+#include "TRDBase/SimParam.h"
+#include "TRDBase/PadPlane.h"
 #include "TRDBase/PadResponse.h"
 
 #include "TRDSimulation/Digitizer.h"
+#include "TRDSimulation/TRDSimParams.h"
+#include <cmath>
+
+#ifdef WITH_OPENMP
+#include <omp.h>
+#endif
 
 using namespace o2::trd;
+using namespace o2::trd::constants;
+using namespace o2::math_utils;
 
-Digitizer::Digitizer()
+// init method for late initialization
+void Digitizer::init()
 {
-  // Check if you need more initialization
-  o2::base::GeometryManager::loadGeometry();
-  mGeo = new TRDGeometry();
-  mGeo->createClusterMatrixArray(); // Requiered for chamberInGeometry()
-
-  mPRF = new PadResponse();
-
-  // get the Instance of simulation and common parameters
-  mSimParam = TRDSimParam::Instance();
-  mCommonParam = TRDCommonParam::Instance();
-  // mCalib = TRDCalibDB::Instace(); // PLEASE FIX ME when CCDB is ready
+  mGeo = Geometry::instance();
+  mGeo->createClusterMatrixArray();          // Requiered for chamberInGeometry()
+  mPRF = new PadResponse();                  // Pad response function initialization
+  mSimParam = SimParam::Instance();          // Instance for simulation parameters
+  mCommonParam = CommonParam::Instance();    // Instance for common parameters
   if (!mSimParam) {
-    LOG(FATAL) << "TRD Simulation Parameters not available";
   }
   if (!mCommonParam) {
-    LOG(FATAL) << "TRD Common Parameters not available";
   } else {
     if (!mCommonParam->cacheMagField()) {
-      LOG(FATAL) << "TRD Common Parameters does not have magnetic field available";
     }
   }
-  // if (!mCalib) { // PLEASE FIX ME when CCDB is ready
-  //   LOG(FATAL) << "TRD mCalib database not available";
-  // }
-  mSDigits = false;
+
+  // obtain the number of threads from configuration
+#ifdef WITH_OPENMP
+  int askedthreads = TRDSimParams::Instance().digithreads;
+  int maxthreads = omp_get_max_threads();
+  if (askedthreads < 0) {
+    mNumThreads = maxthreads;
+  } else {
+    mNumThreads = std::min(maxthreads, askedthreads);
+  }
+  LOG(INFO) << "TRD: Digitizing with " << mNumThreads << " threads ";
+#endif
+
+  // initialize structures that we need per thread
+  mGausRandomRings.resize(mNumThreads);
+  mFlatRandomRings.resize(mNumThreads);
+  mLogRandomRings.resize(mNumThreads);
+  for (int i = 0; i < mNumThreads; ++i) {
+    mGausRandomRings[i].initialize(RandomRing<>::RandomType::Gaus);
+    mFlatRandomRings[i].initialize(RandomRing<>::RandomType::Flat);
+    mLogRandomRings[i].initialize([]() -> float { return std::log(gRandom->Rndm()); });
+    mDriftEstimators.emplace_back();
+  }
+
+  setSimulationParameters();
 }
 
-void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digitCont, o2::dataformats::MCTruthContainer<MCLabel>& labels)
+void Digitizer::setSimulationParameters()
 {
-  // (WIP) Implementation for digitization
+  mNpad = mSimParam->getNumberOfPadsInPadResponse(); // Number of pads included in the pad response
+  if (mSimParam->TRFOn()) {
+    mTimeBinTRFend = ((int)(mSimParam->GetTRFhi() * mCommonParam->GetSamplingFrequency())) - 1;
+  }
+  mMaxTimeBins = TIMEBINS;     // for signals, usually set at 30 tb = 3 microseconds
+  mMaxTimeBinsTRAP = TIMEBINS; // for adcs; should be read from the CCDB or the TRAP config
+  mSamplingRate = mCommonParam->GetSamplingFrequency();
+  mElAttachProp = mSimParam->GetElAttachProp() / 100;
+}
 
-  // Check if Geometry and if CCDB are available as they will be requiered
-  // const int nTimeBins = mCalib->GetNumberOfTimeBinsDCS(); PLEASE FIX ME when CCDB is ready
+void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
+{
+  if (mPileupSignals.size() > 0) {
+    // Add the signals, all chambers are keept in the same signal container
+    SignalContainer smc = addSignalsFromPileup();
+    if (smc.size() > 0) {
+      bool status = convertSignalsToADC(smc, digits);
+      if (!status) {
+        LOG(WARN) << "TRD conversion of signals to digits failed";
+      }
+      for (const auto& iter : smc) {
+        if (iter.second.isDigit)
+          labels.addElements(labels.getIndexedSize(), iter.second.labels);
+      }
+    }
+  } else {
+    // since we don't have any pileup signals just flush the signals for each chamber
+    // we avoid flattening the array<map, ndets> to a single map
+    for (auto& smc : mSignalsMapCollection) {
+      bool status = convertSignalsToADC(smc, digits);
+      if (!status) {
+        LOG(WARN) << "TRD conversion of signals to digits failed";
+      }
+      for (const auto& iter : smc) {
+        if (iter.second.isDigit)
+          labels.addElements(labels.getIndexedSize(), iter.second.labels);
+      }
+    }
+  }
+  clearContainers();
+}
 
-  SignalContainer_t adcMapCont;
-  mLabels.clear();
+SignalContainer Digitizer::addSignalsFromPileup()
+{
+  int count = 0;
+  SignalContainer addedSignalsMap;
+  for (const auto& collection : mPileupSignals) {
+    for (int det = 0; det < MAXCHAMBER; ++det) {
+      const auto& signalMap = collection[det]; //--> a map with active pads only for this chamber
+      for (const auto& signal : signalMap) {   // loop over active pads only, if there is any
+        const int& key = signal.first;
+        const SignalArray& signalArray = signal.second;
+        // check if the signal is from a previous event
+        if (signalArray.firstTBtime < mCurrentTriggerTime) {
+          if ((mCurrentTriggerTime - signalArray.firstTBtime) < BUSY_TIME) {
+            continue; // ignore the signal if it  is too old.
+          }
+          // add only what's leftover from this signal
+          // 0.01 = samplingRate/1000, 1/1000 to go from ns to micro-s, the sampling rate is in 1/micro-s
+          int idx = (int)((mCurrentTriggerTime - signalArray.firstTBtime) * 0.01); // number of bins to add, from the tail
+          auto it0 = signalArray.signals.begin() + idx;
+          auto it1 = addedSignalsMap[key].signals.begin();
+          while (it0 < signalArray.signals.end()) {
+            *it1 += *it0;
+            it0++;
+            it1++;
+          }
+        } else {
+          // the signal is from a triggered event
+          int idx = (int)((signalArray.firstTBtime - mCurrentTriggerTime) * 0.01); // number of bins to add, on the tail of the final signal
+          auto it0 = signalArray.signals.begin();
+          auto it1 = addedSignalsMap[key].signals.begin() + idx;
+          while (it1 < addedSignalsMap[key].signals.end()) {
+            *it1 += *it0;
+            it0++;
+            it1++;
+          }
+          if (it0 < signalArray.signals.end()) {
+            count++; // add one more element to keep from the tail of the deque
+          }
+        }
+
+        // do we need to set this for further processing?, it is ok for setting up the full-signal map
+        addedSignalsMap[key].firstTBtime = mCurrentTriggerTime;
+
+        // keep the labels
+        for (const auto& label : signalArray.labels) {
+          (addedSignalsMap[key].labels).push_back(label); // maybe check if the label already exists? is that even possible?
+        }
+      } // loop over active pads in detector
+    }   // loop over detectors
+  }     // loop over pileup container
+  // remove all used added signals, keep those that can pileup to newer events.
+  const int numberOfElementsToPop = mPileupSignals.size() - count;
+  for (int i = 0; i < numberOfElementsToPop; ++i) {
+    mPileupSignals.pop_front();
+  }
+  return addedSignalsMap;
+}
+
+void Digitizer::pileup()
+{
+  mPileupSignals.push_back(mSignalsMapCollection);
+  clearContainers();
+}
+
+void Digitizer::clearContainers()
+{
+  for (auto& sm : mSignalsMapCollection) {
+    sm.clear();
+  }
+}
+
+void Digitizer::process(std::vector<HitType> const& hits, DigitContainer& digits,
+                        o2::dataformats::MCTruthContainer<MCLabel>& labels)
+{
+  if (!mCalib) {
+    LOG(FATAL) << "TRD Calibration database not available";
+  }
 
   // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
-  std::array<std::vector<HitType>, kNdet> hitsPerDetector;
+  std::array<std::vector<HitType>, MAXCHAMBER> hitsPerDetector;
   getHitContainerPerDetector(hits, hitsPerDetector);
 
-  // Loop over all TRD detectors
-  for (int det = 0; det < kNdet; ++det) {
+#ifdef WITH_OPENMP
+  omp_set_num_threads(mNumThreads);
+// Loop over all TRD detectors (in a parallel fashion)
+#pragma omp parallel for schedule(dynamic)
+#endif
+  for (int det = 0; det < MAXCHAMBER; ++det) {
+#ifdef WITH_OPENMP
+    const int threadid = omp_get_thread_num();
+#else
+    const int threadid = 0;
+#endif
+    auto& signalsMap = mSignalsMapCollection[det];
     // Jump to the next detector if the detector is
     // switched off, not installed, etc
-    /*      
-    if (mCalib->IsChamberNoData(det)) { // PLEASE FIX ME when CCDB is ready
+    if (mCalib->isChamberNoData(det)) {
       continue;
-    } */
+    }
     if (!mGeo->chamberInGeometry(det)) {
       continue;
     }
@@ -83,30 +225,17 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer_t& digi
       continue;
     }
 
-    if (!convertHits(det, hitsPerDetector[det], adcMapCont)) {
+    if (!convertHits(det, hitsPerDetector[det], signalsMap, threadid)) {
       LOG(WARN) << "TRD conversion of hits failed for detector " << det;
       continue; // go to the next chamber
     }
-
-    if (!convertSignalsToDigits(det, adcMapCont)) {
-      LOG(WARN) << "TRD conversion of signals to digits failed for detector " << det;
-      continue; // go to the next chamber
-    }
-  }
-
-  // Finalize
-  Digit::convertMapToVectors(adcMapCont, digitCont);
-
-  // MC labels
-  for (int i = 0; i < mLabels.size(); ++i) {
-    labels.addElement(i, mLabels[i]);
   }
 }
 
-void Digitizer::getHitContainerPerDetector(const std::vector<HitType>& hits, std::array<std::vector<HitType>, kNdet>& hitsPerDetector)
+void Digitizer::getHitContainerPerDetector(const std::vector<HitType>& hits, std::array<std::vector<HitType>, MAXCHAMBER>& hitsPerDetector)
 {
   //
-  // Fill an array of size kNdet (540)
+  // Fill an array of size MAXCHAMBER (540)
   // The i-element of the array contains the hit collection for the i-detector
   // To be called once, before doing the loop over all detectors and process the hits
   //
@@ -115,48 +244,16 @@ void Digitizer::getHitContainerPerDetector(const std::vector<HitType>& hits, std
   }
 }
 
-bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, SignalContainer_t& adcMapCont)
+bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, SignalContainer& signalMapCont, int thread)
 {
   //
   // Convert the detector-wise sorted hits to detector signals
   //
-  const int kNpad = mSimParam->getNumberOfPadsInPadResponse(); // Number of pads included in the pad response
-  const float kAmWidth = TRDGeometry::amThick();               // Width of the amplification region
-  const float kDrWidth = TRDGeometry::drThick();               // Width of the drift retion
-  const float kDrMin = -0.5 * kAmWidth;                        // Drift + Amplification region
-  const float kDrMax = kDrWidth + 0.5 * kAmWidth;              // Drift + Amplification region
 
-  int timeBinTRFend = 0;
-  double padSignal[kNpad];
-  double signalOld[kNpad];
+  double padSignal[mNpad];
 
-  // Get the detector wise mCalib objects
-  // const TRDCalDet* calVdriftDet = mCalib->GetVdriftDet();    PLEASE FIX ME when CCDB is ready
-  // const TRDCalDet* calT0Det = mCalib->GetT0Det();            PLEASE FIX ME when CCDB is ready
-  // const TRDCalDet* calExBDet = mCalib->GetExBDet();          PLEASE FIX ME when CCDB is ready
-
-  // FIX ME: Default values until I have implemented the mCalib objects
-  //
-  // See Table 8 (Nuclear Inst. and Methods in Physics Research, A 881 (2018) 88-127)
-  // Defaults values  from OCDB (AliRoot DrawTrending macro - Thanks to Y. Pachmayer)
-  // For 5 TeV pp - 27 runs from LHC15n
-  //
-  float calVdriftDetValue = 1.48; // cm/microsecond         // calVdriftDet->GetValue(det); PLEASE FIX ME when CCDB is ready
-  float calT0DetValue = -1.38;    // microseconds           // calT0Det->GetValue(det);     PLEASE FIX ME when CCDB is ready
-  double calExBDetValue = 0.16;   // T * V/cm (check units) // calExBDet->GetValue(det);    PLEASE FIX ME when CCDB is ready
-
-  // TRDCalROC* calVdriftROC = mCalib->GetVdriftROC(det); PLEASE FIX ME when CCDB is ready
-  // TRDCalROC* calT0ROC = mCalib->GetT0ROC(det);         PLEASE FIX ME when CCDB is ready
-
-  if (mSimParam->TRFOn()) {
-    timeBinTRFend = ((int)(mSimParam->GetTRFhi() * mCommonParam->GetSamplingFrequency())) - 1;
-  }
-
-  const int nTimeTotal = kTimeBins; // PLEASE FIX ME when CCDB is ready
-  const float samplingRate = mCommonParam->GetSamplingFrequency();
-  const float elAttachProp = mSimParam->GetElAttachProp() / 100;
-
-  const TRDPadPlane* padPlane = mGeo->getPadPlane(det);
+  const double calExBDetValue = mCalib->getExB(det); // T * V/cm (check units)
+  const PadPlane* padPlane = mGeo->getPadPlane(det);
   const int layer = mGeo->getLayer(det);
   const float rowEndROC = padPlane->getRowEndROC();
   const float row0 = padPlane->getRow0ROC();
@@ -165,7 +262,6 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
 
   // Loop over hits
   for (const auto& hit : hits) {
-    bool isDigit = false;
     const int qTotal = hit.GetCharge();
     /*
       Now the real local coordinate system of the ROC
@@ -178,26 +274,18 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
       region), meaning locT = 0, and is negative for hits coming from the
       drift region.
     */
-    double locC = hit.getLocalC(); // col direction in amplification or drift volume
-    double locR = hit.getLocalR(); // row direction in amplification or drift volume
-    double locT = hit.getLocalT(); // time direction in amplification or drift volume
-
-    if (hit.isFromDriftRegion()) {
-      locT = locT - kDrWidth / 2 - kAmWidth / 2;
-    }
-
+    double locC = hit.getLocalC();        // col direction in amplification or drift volume
+    double locR = hit.getLocalR();        // row direction in amplification or drift volume
+    double locT = hit.getLocalT();        // time direction in amplification or drift volume
     const double driftLength = -1 * locT; // The drift length in cm without diffusion
-
     // Patch to take care of TR photons that are absorbed
     // outside the chamber volume. A real fix would actually need
     // a more clever implementation of the TR hit generation
     if (qTotal < 0) {
-      if ((locR < rowEndROC) ||
-          (locR > row0)) {
+      if ((locR < rowEndROC) || (locR > row0)) {
         continue;
       }
-      if ((driftLength < kDrMin) ||
-          (driftLength > kDrMax)) {
+      if ((driftLength < DrMin) || (driftLength > DrMax)) {
         continue;
       }
     }
@@ -214,20 +302,20 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
       continue;
     }
 
-    // FIX ME: Commented out what is still not yet implemented
-    double absDriftLength = abs(driftLength); // Normalized drift length
+    double absDriftLength = std::fabs(driftLength); // Normalized drift length
     if (mCommonParam->ExBOn()) {
-      absDriftLength /= TMath::Sqrt(1 / (1 + calExBDetValue * calExBDetValue));
+      absDriftLength /= std::sqrt(1 / (1 + calExBDetValue * calExBDetValue));
     }
-    // double driftVelocity = calVdriftDetValue * calVdriftROC->GetValue(colE, rowE); PLEASE FIX ME when CCDB is ready
-    double driftVelocity = 2.13; // Defaults values  from OCDB (AliRoot DrawTrending macro) for 5 TeV pp - 27 runs from LHC15n
+
+    float driftVelocity = mCalib->getVDrift(det, colE, rowE); // The drift velocity
+    float t0 = mCalib->getT0(det, colE, rowE);                // The T0 velocity
 
     // Loop over all created electrons
-    const int nElectrons = abs(qTotal);
+    const int nElectrons = std::fabs(qTotal);
     for (int el = 0; el < nElectrons; ++el) {
       // Electron attachment
       if (mSimParam->ElAttachOn()) {
-        if (gRandom->Rndm() < absDriftLength * elAttachProp) {
+        if (mFlatRandomRings[thread].getNextValue() < absDriftLength * mElAttachProp) {
           continue;
         }
       }
@@ -236,17 +324,18 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
 
       // Apply diffusion smearing
       if (mSimParam->DiffusionOn()) {
-        if (!diffusion(driftVelocity, absDriftLength, calExBDetValue, locR, locC, locT, locRd, locCd, locTd)) {
+        if (!diffusion(driftVelocity, absDriftLength, calExBDetValue, locR, locC, locT, locRd, locCd, locTd, thread)) {
           continue;
         }
       }
+
       // Apply E x B effects
       if (mCommonParam->ExBOn()) {
         locCd = locCd + calExBDetValue * driftLength;
       }
       // The electron position after diffusion and ExB in pad coordinates.
       rowE = padPlane->getPadRowNumberROC(locRd);
-      if (rowE < 1) {
+      if (rowE < 0) {
         continue;
       }
       rowOffset = padPlane->getPadRowOffsetROC(rowE, locRd);
@@ -257,35 +346,28 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
         continue;
       }
       const double colOffset = padPlane->getPadColOffset(colE, locCd + offsetTilt);
-      // Retrieve drift velocity becuase col and row may have changed
-      // driftVelocity = calVdriftDetValue* calVdriftROC->GetValue(colE, rowE);  PLEASE FIX ME when CCDB is ready
-      driftVelocity = 2.13; // Defaults values  from OCDB (AliRoot DrawTrending macro) for 5 TeV pp - 27 runs from LHC15n
-      // float t0 = calT0DetValue + calT0ROC->getValue(colE, rowE);      PLEASE FIX ME when CCDB is ready
-      const float t0 = -1.38 + 0; // Defaults values  from OCDB (AliRoot DrawTrending macro) for 5 TeV pp - 27 runs from LHC15n
+      driftVelocity = mCalib->getVDrift(det, colE, rowE); // The drift velocity for the updated col and row
+      t0 = mCalib->getT0(det, colE, rowE);                // The T0 velocity for the updated col and row
       // Convert the position to drift time [mus], using either constant drift velocity or
       // time structure of drift cells (non-isochronity, GARFIELD calculation).
       // Also add absolute time of hits to take pile-up events into account properly
       double driftTime;
       if (mSimParam->TimeStructOn()) {
         // Get z-position with respect to anode wire
-        double zz = row0 - locR + padPlane->getAnodeWireOffset();
+        double zz = row0 - locRd + padPlane->getAnodeWireOffset();
         zz -= ((int)(2 * zz)) * 0.5;
         if (zz > 0.25) {
           zz = 0.5 - zz;
         }
         // Use drift time map (GARFIELD)
-        driftTime = mCommonParam->TimeStruct(driftVelocity, 0.5 * kAmWidth - 1.0 * locTd, zz) + hit.GetTime();
+        driftTime = mDriftEstimators[thread].TimeStruct(driftVelocity, 0.5 * AmWidth - 1.0 * locTd, zz) + hit.GetTime();
       } else {
         // Use constant drift velocity
-        driftTime = abs(locTd) / driftVelocity + hit.GetTime();
+        driftTime = std::fabs(locTd) / driftVelocity + hit.GetTime(); // drift time in microseconds
       }
 
       // Apply the gas gain including fluctuations
-      double ggRndm = 0;
-      do {
-        ggRndm = gRandom->Rndm();
-      } while (ggRndm <= 0);
-      double signal = -(mSimParam->GetGasGain()) * TMath::Log(ggRndm);
+      const double signal = -(mSimParam->GetGasGain()) * mLogRandomRings[thread].getNextValue();
 
       // Apply the pad response
       if (mSimParam->PRFOn()) {
@@ -304,24 +386,23 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
       }
 
       // The time bin (always positive), with t0 distortion
-      double timeBinIdeal = driftTime * samplingRate + t0;
+      double timeBinIdeal = driftTime * mSamplingRate + t0;
       // Protection
-      if (abs(timeBinIdeal) > 2 * nTimeTotal) {
-        timeBinIdeal = 2 * nTimeTotal;
+      if (std::fabs(timeBinIdeal) > (2 * mMaxTimeBins)) {
+        timeBinIdeal = 2 * mMaxTimeBins;
       }
       int timeBinTruncated = ((int)timeBinIdeal);
       // The distance of the position to the middle of the timebin
-      double timeOffset = ((float)timeBinTruncated + 0.5 - timeBinIdeal) / samplingRate;
-
+      double timeOffset = ((float)timeBinTruncated + 0.5 - timeBinIdeal) / mSamplingRate;
       // Sample the time response inside the drift region + additional time bins before and after.
       // The sampling is done always in the middle of the time bin
-      const int firstTimeBin = TMath::Max(timeBinTruncated, 0);
-      const int lastTimeBin = TMath::Min(timeBinTruncated + timeBinTRFend, nTimeTotal);
+      const int firstTimeBin = std::max(timeBinTruncated, 0);
+      const int lastTimeBin = std::min(timeBinTruncated + mTimeBinTRFend, mMaxTimeBins);
 
       // loop over pads first then over timebins for better cache friendliness
-      // and less access to adcMapCont
-      for (int iPad = 0; iPad < kNpad; iPad++) {
-        int colPos = colE + iPad - 1;
+      // and less access to signalMapCont
+      for (int pad = 0; pad < mNpad; ++pad) {
+        int colPos = colE + pad - 1;
         if (colPos < 0) {
           continue;
         }
@@ -329,86 +410,56 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
           break;
         }
 
-        const int key = Digit::calculateKey(det, rowE, colPos);
-        if (key < KEY_MIN || key > KEY_MAX) {
-          LOG(FATAL) << "Wrong TRD key " << key << " for (det,row,col) = (" << det << ", " << rowE << ", " << colPos << ")";
+        const int key = calculateKey(det, rowE, colPos);
+        auto& currentSignalData = signalMapCont[key]; // Get the old signal or make a new one if it doesn't exist
+        auto& currentSignal = currentSignalData.signals;
+        auto& trackIds = currentSignalData.trackIds;
+        auto& labels = currentSignalData.labels;
+        currentSignalData.firstTBtime = mCurrentTriggerTime;
+        addLabel(hit, labels, trackIds); // add a label record only if needed
+
+        // add signal with crosstalk for the non-central pads only
+        if (colPos != colE) {
+          for (int tb = firstTimeBin; tb < lastTimeBin; ++tb) {
+            const double t = (tb - timeBinTruncated) / mSamplingRate + timeOffset;
+            const double timeResponse = mSimParam->TRFOn() ? mSimParam->TimeResponse(t) : 1;
+            const double crossTalk = mSimParam->CTOn() ? mSimParam->CrossTalk(t) : 0;
+            currentSignal[tb] += padSignal[pad] * (timeResponse + crossTalk);
+          } // end of loop time bins
+        } else {
+          for (int tb = firstTimeBin; tb < lastTimeBin; ++tb) {
+            const double t = (tb - timeBinTruncated) / mSamplingRate + timeOffset;
+            const double timeResponse = mSimParam->TRFOn() ? mSimParam->TimeResponse(t) : 1;
+            currentSignal[tb] += padSignal[pad] * timeResponse;
+          } // end of loop time bins
         }
-        // Add the signals
-        // Get the old signal
-        auto& currentSignal = adcMapCont[key];
-        for (int iTimeBin = firstTimeBin; iTimeBin < lastTimeBin; ++iTimeBin) {
-          // Apply the time response
-          double timeResponse = 1;
-          double crossTalk = 0;
-          const double t = (iTimeBin - timeBinTruncated) / samplingRate + timeOffset;
-          if (mSimParam->TRFOn()) {
-            timeResponse = mSimParam->TimeResponse(t);
-          }
-          if (mSimParam->CTOn()) {
-            crossTalk = mSimParam->CrossTalk(t);
-          }
-          signalOld[0] = 0;
-          signalOld[1] = 0;
-          signalOld[2] = 0;
-
-          signalOld[iPad] = currentSignal[iTimeBin];
-          if (colPos != colE) {
-            // Cross talk added to non-central pads
-            signalOld[iPad] += padSignal[iPad] * (timeResponse + crossTalk);
-          } else {
-            // Without cross talk at central pad
-            signalOld[iPad] += padSignal[iPad] * timeResponse;
-          }
-          // Update the final signal
-          currentSignal[iTimeBin] = signalOld[iPad];
-          isDigit = true;
-        } // Loop: time bins
-      }   // Loop: pads
-    }     // end of loop over electrons
-    mLabels.emplace_back(hit.GetTrackID(), mEventID, mSrcID, isDigit);
-  } // end of loop over hits
+      } // end of loop over pads
+    }   // end of loop over electrons
+  }     // end of loop over hits
   return true;
 }
 
-bool Digitizer::convertSignalsToDigits(const int det, SignalContainer_t& adcMapCont)
+void Digitizer::addLabel(const o2::trd::HitType& hit, std::vector<o2::trd::MCLabel>& labels, std::unordered_map<int, int>& trackIds)
 {
-  //
-  // conversion of signals to digits
-  //
-
-  if (mSDigits) {
-    // Convert the signal array to s-digits
-    if (!convertSignalsToSDigits(det, adcMapCont)) {
-      return false;
-    }
-  } else {
-    // Convert the signal array to digits
-    if (!convertSignalsToADC(det, adcMapCont)) {
-      return false;
-    }
-    // Run digital processing for digits
-    // RunDigitalProcessing(det);
+  if (trackIds[hit.GetTrackID()] == 0) {
+    trackIds[hit.GetTrackID()] = 1;
+    MCLabel label(hit.GetTrackID(), getEventID(), getSrcID());
+    labels.push_back(label);
   }
-  return true;
 }
 
-bool Digitizer::convertSignalsToSDigits(const int det, SignalContainer_t& adcMapCont)
+float drawGaus(o2::math_utils::RandomRing<>& normaldistRing, float mu, float sigma)
 {
-  //
-  // Convert signals to S-digits
-  //
-  LOG(FATAL) << "You shouldn't be here. This is not implemented yet.";
-  return false;
+  // this is using standard normally distributed random numbers and rescaling to make
+  // them gaussian distributed with general mu and sigma
+  return mu + sigma * normaldistRing.getNextValue();
 }
 
-bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont)
+bool Digitizer::convertSignalsToADC(SignalContainer& signalMapCont, DigitContainer& digits, int thread)
 {
   //
   // Converts the sampled electron signals to ADC values for a given chamber
   //
-  if (adcMapCont.size() == 0) {
-    return false;
-  }
 
   constexpr double kEl2fC = 1.602e-19 * 1.0e15;                                 // Converts number of electrons to fC
   double coupling = mSimParam->GetPadCoupling() * mSimParam->GetTimeCoupling(); // Coupling factor
@@ -417,51 +468,43 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont
   double baseline = mSimParam->GetADCbaseline() / adcConvert;                   // The electronics baseline in mV
   double baselineEl = baseline / convert;                                       // The electronics baseline in electrons
 
-  int nRowMax = mGeo->getPadPlane(det)->getNrows();
-  int nColMax = mGeo->getPadPlane(det)->getNcols();
-  int nTimeTotal = kTimeBins; // fDigitsManager->GetDigitsParam()->GetNTimeBins(det);
-
-  // Get the mCalib objects
-  // CalDet* calGainFactorDet = mCalib->GetGainFactorDet();
-  // CalRoc* calGainFactorROC = mCalib->GetGainFactorROC(det);
-  // calGainFactorDetValue = calGainFactorDet->GetValue(det);
-  float calGainFactorDetValue = 0.47; // +/- 0.06 // Defaults value  from OCDB (AliRoot DrawTrending macro) for 5 TeV pp - 27 runs from LHC15n
-
-  // Create the digits for this chamber
-  // for (int row = 0; row < nRowMax; row++) {
-  //   for (int col = 0; col < nColMax; col++) {
-  for (auto& adcMapIter : adcMapCont) {
-    const int row = Digit::getRowFromKey(adcMapIter.first); // for the next line, when ccdb is ready
-    const int col = Digit::getColFromKey(adcMapIter.first); // for the next line, when ccdb is ready
+  for (auto& signalMapIter : signalMapCont) {
+    const auto key = signalMapIter.first;
+    const int det = getDetectorFromKey(key);
+    const int row = getRowFromKey(key);
+    const int col = getColFromKey(key);
     // halfchamber masking
-    int iMcm = (int)(col / 18);               // current group of 18 col pads
-    int halfchamberside = (iMcm > 3 ? 1 : 0); // 0=Aside, 1=Bside
+    int mcm = (int)(col / 18);               // current group of 18 col pads
+    int halfchamberside = (mcm > 3 ? 1 : 0); // 0=Aside, 1=Bside
+
     // Halfchambers that are switched off, masked by mCalib
-    // if (mCalib->IsHalfChamberNoData(det, halfchamberside))
-    //   continue;
+    /* Something is wrong with isHalfChamberNoData - deactivated for now
+    if (mCalib->isHalfChamberNoData(det, halfchamberside)) {
+      continue;
+    }
+    */
+
     // Check whether pad is masked
     // Bridged pads are not considered yet!!!
-    // if (mCalib->IsPadMasked(det, col, row) ||
-    //     mCalib->IsPadNotConnected(det, col, row)) {
-    //   continue;
-    // }
-
-    // The gain factors
-    float padgain = calGainFactorDetValue; // * calGainFactorROC->GetValue(col, row); // PLEASE FIX ME when CCDB is ready
-    if (padgain <= 0) {
-      LOG(FATAL) << "Not a valid gain " << padgain
-                 << ", " << det
-                 << ", " << col
-                 << ", " << row;
+    if (mCalib->isPadMasked(det, col, row) || mCalib->isPadNotConnected(det, col, row)) {
+      continue;
     }
-    // loop over time bins
-    // for (int tb = 0; tb < nTimeTotal; tb++) {
-    for (auto& adcArrayVal : adcMapIter.second) {
-      float signalAmp = (float)adcArrayVal; // The signal amplitude
-      signalAmp *= coupling;                // Pad and time coupling
-      signalAmp *= padgain;                 // Gain factors
+
+    float padgain = mCalib->getPadGainFactor(det, row, col); // The gain factor
+    if (padgain <= 0) {
+      LOG(FATAL) << "Not a valid gain " << padgain << ", " << det << ", " << col << ", " << row;
+    }
+
+    signalMapIter.second.isDigit = true; // flag the signal as digit
+    // Loop over the all timebins in the ADC array
+    const auto& signalArray = signalMapIter.second.signals;
+    ArrayADC adcs{};
+    for (int tb = 0; tb < mMaxTimeBinsTRAP; ++tb) {
+      float signalAmp = (float)signalArray[tb]; // The signal amplitude
+      signalAmp *= coupling;                    // Pad and time coupling
+      signalAmp *= padgain;                     // Gain factors
       // Add the noise, starting from minus ADC baseline in electrons
-      signalAmp = TMath::Max((double)gRandom->Gaus(signalAmp, mSimParam->GetNoise()), -baselineEl);
+      signalAmp = std::max((double)drawGaus(mGausRandomRings[thread], signalAmp, mSimParam->GetNoise()), -baselineEl);
       signalAmp *= convert;  // Convert to mV
       signalAmp += baseline; // Add ADC baseline in mV
       // Convert to ADC counts
@@ -470,18 +513,20 @@ bool Digitizer::convertSignalsToADC(const int det, SignalContainer_t& adcMapCont
       if (signalAmp >= mSimParam->GetADCinRange()) {
         adc = ((ADC_t)mSimParam->GetADCoutRange());
       } else {
-        adc = TMath::Nint(signalAmp * adcConvert);
+        adc = std::lround(signalAmp * adcConvert);
       }
       // update the adc array value
-      adcArrayVal = adc;
-    } // for: tb
-  }
+      adcs[tb] = adc;
+    } // loop over timebins
+    // Convert the map to digits here, and push them to the container
+    digits.emplace_back(det, row, col, adcs, getEventTime());
+  } // loop over digits
   return true;
 }
 
-bool Digitizer::diffusion(float vdrift, double absdriftlength, double exbvalue,
-                          double lRow0, double lCol0, double lTime0,
-                          double& lRow, double& lCol, double& lTime)
+bool Digitizer::diffusion(float vdrift, float absdriftlength, float exbvalue,
+                          float lRow0, float lCol0, float lTime0,
+                          double& lRow, double& lCol, double& lTime, int thread)
 {
   //
   // Applies the diffusion smearing to the position of a single electron.
@@ -489,17 +534,18 @@ bool Digitizer::diffusion(float vdrift, double absdriftlength, double exbvalue,
   //
   float diffL = 0.0;
   float diffT = 0.0;
-  if (mCommonParam->GetDiffCoeff(diffL, diffT, vdrift)) {
-    float driftSqrt = TMath::Sqrt(absdriftlength);
+  if (mDriftEstimators[thread].GetDiffCoeff(diffL, diffT, vdrift)) {
+    float driftSqrt = std::sqrt(absdriftlength);
     float sigmaT = driftSqrt * diffT;
     float sigmaL = driftSqrt * diffL;
-    lRow = gRandom->Gaus(lRow0, sigmaT);
+    lRow = drawGaus(mGausRandomRings[thread], lRow0, sigmaT);
     if (mCommonParam->ExBOn()) {
-      lCol = gRandom->Gaus(lCol0, sigmaT * 1.0 / (1.0 + exbvalue * exbvalue));
-      lTime = gRandom->Gaus(lTime0, sigmaL * 1.0 / (1.0 + exbvalue * exbvalue));
+      const float exbfactor = 1.f / (1.f + exbvalue * exbvalue);
+      lCol = drawGaus(mGausRandomRings[thread], lCol0, sigmaT * exbfactor);
+      lTime = drawGaus(mGausRandomRings[thread], lTime0, sigmaL * exbfactor);
     } else {
-      lCol = gRandom->Gaus(lCol0, sigmaT);
-      lTime = gRandom->Gaus(lTime0, sigmaL);
+      lCol = drawGaus(mGausRandomRings[thread], lCol0, sigmaT);
+      lTime = drawGaus(mGausRandomRings[thread], lTime0, sigmaL);
     }
     return true;
   } else {

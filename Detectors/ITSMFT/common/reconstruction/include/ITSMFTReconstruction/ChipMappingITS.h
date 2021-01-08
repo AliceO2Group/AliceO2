@@ -19,12 +19,16 @@
 #include <cstdlib>
 #include <cstdint>
 #include <string>
+#include "Headers/DataHeader.h"
 #include "ITSMFTReconstruction/RUInfo.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 
 namespace o2
 {
 namespace itsmft
 {
+
+#define _OVERRIDE_RUID_HACK_
 
 class ChipMappingITS
 {
@@ -34,6 +38,8 @@ class ChipMappingITS
   ~ChipMappingITS() = default;
 
   static constexpr std::string_view getName() { return "ITS"; }
+  static constexpr o2::header::DataOrigin getOrigin() { return o2::header::gDataOriginITS; }
+  static constexpr o2::detectors::DetID::ID getDetID() { return o2::detectors::DetID::ITS; }
 
   const std::vector<uint8_t>& getCableHWFirstChip(int s) const { return mCableHWFirstChip[s]; }
 
@@ -63,6 +69,9 @@ class ChipMappingITS
     lr = feeID >> 12;
     ruOnLr = feeID & 0x3f;
     link = (feeID >> 8) & 0x3;
+#ifdef _OVERRIDE_RUID_HACK_
+    ruOnLr %= NStavesOnLr[lr];
+#endif
   }
 
   ///< impose user defined FEEId -> ruSW (staveID) conversion, to be used only for forced decoding of corrupted data
@@ -125,7 +134,15 @@ class ChipMappingITS
   }
 
   ///< get SW id of the RU from RU HW id
-  uint8_t FEEId2RUSW(uint16_t hw) const { return mFEEId2RUSW[hw]; }
+  uint8_t FEEId2RUSW(uint16_t hw) const
+  {
+#ifdef _OVERRIDE_RUID_HACK_
+    uint16_t lr, ruOnLr, link;
+    expandFEEId(hw, lr, ruOnLr, link);
+    hw = composeFEEId(lr, ruOnLr, link);
+#endif
+    return mFEEId2RUSW[hw];
+  }
 
   ///< get FEEId of the RU (software id of the RU), read via given link
   uint16_t RUSW2FEEId(uint16_t sw, uint16_t linkID = 0) const
@@ -149,8 +166,14 @@ class ChipMappingITS
   ///< get number of chips served by single cable on given RU type
   uint8_t getGBTHeaderRUType(int ruType, int cableHW) { return GBTHeaderFlagSB[ruType] + (cableHW & 0x1f); }
 
-  ///< convert HW cable ID to SW ID for give RU type
+  ///< convert HW cable ID to its position on the ActiveLanes word in the GBT.header for given RU type
+  uint8_t cableHW2Pos(uint8_t ruType, uint8_t hwid) const { return mCableHW2Pos[ruType][hwid]; }
+
+  ///< convert HW cable ID to SW ID for given RU type (see ChipOnRUInfo.cableSW explanation)
   uint8_t cableHW2SW(uint8_t ruType, uint8_t hwid) const { return mCableHW2SW[ruType][hwid]; }
+
+  ///< convert cable iterator ID to the position on the ActiveLanes word in the GBT.header for given RU type; MFT lanes position compatible
+  uint8_t cablePos(uint8_t ruType, uint8_t id) const { return id; }
 
   ///< get number of chips served by single cable on given RU type
   int getNChipsPerCable(int ruType) { return NChipsPerCableSB[ruType]; }
@@ -159,7 +182,7 @@ class ChipMappingITS
   int getNCablesOnRUType(int ruType) const { return NCablesPerStaveSB[ruType]; }
 
   ///< get pattern of lanes on the RU served by a given RU type
-  int getCablesOnRUType(int ruType) const { return CablesOnStaveSB[ruType]; }
+  int getCablesOnRUType(int ruType) const { return mCablesOnStaveSB[ruType]; }
 
   ///< get number of chips served by RU of given type (i.e. RU type for ITS)
   int getNChipsOnRUType(int ruType) const { return NChipsPerStaveSB[ruType]; }
@@ -194,17 +217,18 @@ class ChipMappingITS
   {
     int sid = 0;
     for (int i = 0; i < NLayers; i++) {
-      if (i >= lr)
+      if (i >= lr) {
         break;
+      }
       sid += NStavesOnLr[i];
     }
     return sid + ruOnLr;
   }
 
- private:
   // sub-barrel types, their number, N layers, Max N GBT Links per RU
   static constexpr int IB = 0, MB = 1, OB = 2, NSubB = 3, NLayers = 7, NLinks = 3;
 
+ private:
   static constexpr std::array<uint8_t, NSubB> GBTHeaderFlagSB = {0x1 << 5, 0x1 << 6, 0x1 << 6}; // prefixes for data GBT header byte
 
   ///< N chips per cable of each sub-barrel
@@ -245,11 +269,6 @@ class ChipMappingITS
                                                                NCablesPerModule[MB] * NModulesPerStaveSB[MB],
                                                                NCablesPerModule[OB] * NModulesPerStaveSB[OB]};
 
-  ///< pattern of cables per stave of sub-barrel
-  static constexpr std::array<int, NSubB> CablesOnStaveSB = {(0x1 << NCablesPerModule[IB] * NModulesPerStaveSB[IB]) - 1,
-                                                             (0x1 << NCablesPerModule[MB] * NModulesPerStaveSB[MB]) - 1,
-                                                             (0x1 << NCablesPerModule[OB] * NModulesPerStaveSB[OB]) - 1};
-
   ///< number of chips per sub-barrel
   static constexpr std::array<int, NSubB> NChipsSB = {NChipsPerStaveSB[IB] * NStavesSB[IB],
                                                       NChipsPerStaveSB[MB] * NStavesSB[MB],
@@ -278,7 +297,10 @@ class ChipMappingITS
   int mChipInfoEntrySB[NSubB] = {0};
 
   std::vector<uint8_t> mCableHW2SW[NSubB];       ///< table of cables HW to SW conversion for each RU type
+  std::vector<uint8_t> mCableHW2Pos[NSubB];      ///< table of cables positions in the ActiveLanes mask for each RU type
   std::vector<uint8_t> mCableHWFirstChip[NSubB]; ///< 1st chip of module (relative to the 1st chip of the stave) served by each cable
+
+  std::array<int, NSubB> mCablesOnStaveSB = {0}; ///< pattern of cables per stave of sub-barrel
 
   ClassDefNV(ChipMappingITS, 1);
 };

@@ -15,17 +15,30 @@
 
 #include <vector>
 #include "DataFormatsFT0/Digit.h"
+#include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/RecPoints.h"
+#include "CommonDataFormat/InteractionRecord.h"
+#include "CommonDataFormat/TimeStamp.h"
+#include <gsl/span>
+#include <bitset>
+
 namespace o2
 {
 namespace ft0
 {
 class CollisionTimeRecoTask
 {
+
  public:
+  enum : int { TimeMean,
+               TimeA,
+               TimeC,
+               Vertex };
   CollisionTimeRecoTask() = default;
   ~CollisionTimeRecoTask() = default;
-  void Process(const o2::ft0::Digit& digits, RecPoints& recPoints) const;
+  o2::ft0::RecPoints process(o2::ft0::Digit const& bcd,
+                             gsl::span<const o2::ft0::ChannelData> inChData,
+                             gsl::span<o2::ft0::ChannelDataFloat> outChData);
   void FinishTask();
 
  private:

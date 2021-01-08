@@ -13,8 +13,10 @@
 #ifndef ALICEO2_ITSMFT_PIXELDATA_H
 #define ALICEO2_ITSMFT_PIXELDATA_H
 
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "CommonDataFormat/InteractionRecord.h"
+#include "ITSMFTReconstruction/DecodingStat.h"
+
 #include <vector>
 #include <utility>
 #include <cstdint>
@@ -64,6 +66,13 @@ class PixelData
     return getCol() < dt.getCol();
   }
 
+  bool isNeighbour(const PixelData& dt, int maxDist) const
+  {
+    ///< check if one pixel is in proximity of another
+    return (std::abs(static_cast<int>(getCol()) - static_cast<int>(dt.getCol())) <= maxDist &&
+            std::abs(static_cast<int>(getRow()) - static_cast<int>(dt.getRow())) <= maxDist);
+  }
+
   int compare(const PixelData& dt) const
   {
     ///< compare to pixels (first column then row)
@@ -109,11 +118,18 @@ class ChipPixelData
   void setFirstUnmasked(uint32_t n) { mFirstUnmasked = n; }
   void setTrigger(uint32_t t) { mTrigger = t; }
 
+  void setError(ChipStat::DecErrors i) { mErrors |= 0x1 << i; }
+  void setErrorFlags(uint32_t f) { mErrors |= f; }
+  bool isErrorSet(ChipStat::DecErrors i) const { return mErrors & (0x1 << i); }
+  bool isErrorSet() const { return mErrors != 0; }
+  uint32_t getErrorFlags() const { return mErrors; }
+
   void clear()
   {
     mPixels.clear();
     mROFlags = 0;
     mFirstUnmasked = 0;
+    mErrors = 0;
   }
 
   void swap(ChipPixelData& other)
@@ -160,6 +176,52 @@ class ChipPixelData
     }
   }
 
+  void maskFiredInSample(const ChipPixelData& sample, int maxDist)
+  {
+    ///< mask in the current data pixels (or their neighbours) fired in provided sample
+    const auto& pixelsS = sample.getData();
+    int nC = mPixels.size();
+    if (!nC) {
+      return;
+    }
+    int nS = pixelsS.size();
+    if (!nS) {
+      return;
+    }
+    for (int itC = 0, itS = 0; itC < nC; itC++) {
+      auto& pix0 = mPixels[itC];
+
+      // seek to itS which is inferior than itC - maxDist
+      auto mincol = pix0.getCol() > maxDist ? pix0.getCol() - maxDist : 0;
+      auto minrow = pix0.getRowDirect() > maxDist ? pix0.getRowDirect() - maxDist : 0;
+      if (itS == nS) { // in case itS lool below reached the end
+        itS--;
+      }
+      while ((pixelsS[itS].getCol() > mincol || pixelsS[itS].getRow() > minrow) && itS > 0) {
+        itS--;
+      }
+      for (; itS < nS; itS++) {
+        const auto& pixC = pixelsS[itS];
+
+        auto drow = static_cast<int>(pixC.getRow()) - static_cast<int>(pix0.getRowDirect());
+        auto dcol = static_cast<int>(pixC.getCol()) - static_cast<int>(pix0.getCol());
+
+        if (dcol > maxDist || (dcol == maxDist && drow > maxDist)) {
+          break; // all higher itS will not match to this itC also
+        }
+        if (dcol < -maxDist || (drow > maxDist || drow < -maxDist)) {
+          continue;
+        } else {
+          pix0.setMask();
+          if (int(mFirstUnmasked) == itC) { // mFirstUnmasked should flag 1st unmasked pixel entry
+            mFirstUnmasked = itC + 1;
+          }
+          break;
+        }
+      }
+    }
+  }
+
   void print() const;
 
  private:
@@ -169,6 +231,7 @@ class ChipPixelData
   uint32_t mFirstUnmasked = 0;                   // first unmasked entry in the mPixels
   uint32_t mStartID = 0;                         // entry of the 1st pixel data in the whole detector data, for MCtruth access
   uint32_t mTrigger = 0;                         // trigger pattern
+  uint32_t mErrors = 0;                          // errors set during decoding
   o2::InteractionRecord mInteractionRecord = {}; // interaction record
   std::vector<PixelData> mPixels;                // vector of pixeld
 

@@ -10,24 +10,28 @@
 
 /// \file   MID/Workflow/src/DigitReaderSpec.cxx
 /// \brief  Data processor spec for MID digits reader device
-/// \author Diego Stocco <dstocco at cern.ch>
+/// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   11 April 2019
 
 #include "MIDWorkflow/DigitReaderSpec.h"
 
-#include "Framework/ControlService.h"
-#include "Framework/Output.h"
-#include "Framework/Task.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
-#include "DataFormatsMID/ColumnData.h"
-#include "MIDSimulation/ColumnDataMC.h"
-#include "MIDSimulation/DigitsMerger.h"
-#include "MIDSimulation/DigitsPacker.h"
-#include "MIDSimulation/MCLabel.h"
+#include <sstream>
+#include <string>
+#include "fmt/format.h"
 #include "TFile.h"
 #include "TTree.h"
-
-#include <fairlogger/Logger.h>
+#include "Framework/ConfigParamRegistry.h"
+#include "Framework/ControlService.h"
+#include "Framework/DataSpecUtils.h"
+#include "Framework/Logger.h"
+#include "Framework/Output.h"
+#include "Framework/Task.h"
+#include "Framework/WorkflowSpec.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "DataFormatsMID/ColumnData.h"
+#include "DataFormatsMID/ROFRecord.h"
+#include "MIDSimulation/ColumnDataMC.h"
+#include "MIDSimulation/MCLabel.h"
 
 namespace of = o2::framework;
 
@@ -39,6 +43,7 @@ namespace mid
 class DigitsReaderDeviceDPL
 {
  public:
+  DigitsReaderDeviceDPL(bool useMC, const std::vector<header::DataDescription>& descriptions) : mUseMC(useMC), mDescriptions(descriptions) {}
   void init(o2::framework::InitContext& ic)
   {
     auto filename = ic.options().get<std::string>("mid-digit-infile");
@@ -54,9 +59,11 @@ class DigitsReaderDeviceDPL
       mState = 1;
       return;
     }
-    mTimediff = ic.options().get<int>("mid-digit-timediff");
     mTree->SetBranchAddress("MIDDigit", &mDigits);
-    mTree->SetBranchAddress("MIDDigitMCLabels", &mMCContainer);
+    if (mUseMC) {
+      mTree->SetBranchAddress("MIDDigitMCLabels", &mMCContainer);
+    }
+    mTree->SetBranchAddress("MIDROFRecords", &mROFRecords);
     mState = 0;
   }
 
@@ -66,65 +73,63 @@ class DigitsReaderDeviceDPL
       return;
     }
 
-    if (!nextGroup()) {
-      pc.services().get<of::ControlService>().readyToQuit(false);
-      return;
+    std::vector<ColumnData> digits;
+    o2::dataformats::MCTruthContainer<MCLabel> mcContainer;
+    std::vector<ROFRecord> rofRecords;
+
+    for (auto ientry = 0; ientry < mTree->GetEntries(); ++ientry) {
+      mTree->GetEntry(ientry);
+      digits.insert(digits.end(), mDigits->begin(), mDigits->end());
+      rofRecords.insert(rofRecords.end(), mROFRecords->begin(), mROFRecords->end());
+      if (mUseMC) {
+        mcContainer.mergeAtBack(*mMCContainer);
+      }
     }
 
-    std::vector<o2::mid::ColumnDataMC> packedDigits;
-    std::vector<o2::mid::ColumnData> data;
-    o2::dataformats::MCTruthContainer<MCLabel> packedMCContainer, outMCContainer;
-
-    mDigitsPacker.getGroup(mCurrentGroup, packedDigits, packedMCContainer);
-    LOG(INFO) << "MIDDigitsReader found " << packedDigits.size() << " unmerged MC digits with same timestamp";
-    mDigitsMerger.process(packedDigits, packedMCContainer, data, outMCContainer);
-    LOG(INFO) << "MIDDigitsReader pushed " << data.size() << " merged digits";
-    pc.outputs().snapshot(of::Output{"MID", "DATA", 0, of::Lifetime::Timeframe}, data);
-    LOG(INFO) << "MIDDigitsReader pushed " << outMCContainer.getIndexedSize() << " indexed digits";
-    pc.outputs().snapshot(of::Output{"MID", "DATALABELS", 0, of::Lifetime::Timeframe}, outMCContainer);
+    LOG(DEBUG) << "MIDDigitsReader pushed " << digits.size() << " merged digits";
+    pc.outputs().snapshot(of::Output{header::gDataOriginMID, mDescriptions[0], 0, of::Lifetime::Timeframe}, digits);
+    pc.outputs().snapshot(of::Output{header::gDataOriginMID, mDescriptions[1], 0, of::Lifetime::Timeframe}, rofRecords);
+    LOG(DEBUG) << "MIDDigitsReader pushed " << digits.size() << " indexed digits";
+    if (mUseMC) {
+      pc.outputs().snapshot(of::Output{header::gDataOriginMID, mDescriptions[2], 0, of::Lifetime::Timeframe}, mcContainer);
+    }
+    mState = 2;
+    pc.services().get<of::ControlService>().endOfStream();
   }
 
  private:
-  bool nextGroup()
-  {
-    if (mCurrentEntry == mTree->GetEntries()) {
-      return false;
-    }
-    ++mCurrentGroup;
-    if (mCurrentEntry < 0 || mCurrentGroup == mDigitsPacker.getNGroups()) {
-      ++mCurrentEntry;
-      if (mCurrentEntry == mTree->GetEntries()) {
-        return false;
-      }
-      mTree->GetEntry(mCurrentEntry);
-      mCurrentGroup = 0;
-    }
-    mDigitsPacker.process(*mDigits, *mMCContainer, mTimediff);
-    return true;
-  }
-
-  DigitsMerger mDigitsMerger;
-  DigitsPacker mDigitsPacker;
-  std::unique_ptr<TFile> mFile = nullptr;
-  TTree* mTree = nullptr;                                             // not owner
-  std::vector<o2::mid::ColumnDataMC>* mDigits = nullptr;              // not owner
-  o2::dataformats::MCTruthContainer<MCLabel>* mMCContainer = nullptr; // not owner
-  int mTimediff = 0;
+  std::unique_ptr<TFile> mFile{nullptr};
+  TTree* mTree{nullptr};                                             // not owner
+  std::vector<o2::mid::ColumnDataMC>* mDigits{nullptr};              // not owner
+  o2::dataformats::MCTruthContainer<MCLabel>* mMCContainer{nullptr}; // not owner
+  std::vector<o2::mid::ROFRecord>* mROFRecords{nullptr};             // not owner
+  std::vector<header::DataDescription> mDescriptions{};
   int mState = 0;
-  int mCurrentGroup = -1;
-  int mCurrentEntry = -1;
+  bool mUseMC = true;
 };
 
-framework::DataProcessorSpec getDigitReaderSpec()
+framework::DataProcessorSpec getDigitReaderSpec(bool useMC, const char* baseDescription)
 {
+  std::vector<of::OutputSpec> outputs;
+  std::vector<header::DataDescription> descriptions;
+  std::stringstream ss;
+  ss << "A:" << header::gDataOriginMID.as<std::string>() << "/" << baseDescription << "/0";
+  ss << ";B:" << header::gDataOriginMID.as<std::string>() << "/" << baseDescription << "ROF/0";
+  if (useMC) {
+    ss << ";C:" << header::gDataOriginMID.as<std::string>() << "/" << baseDescription << "LABELS/0";
+  }
+  auto matchers = of::select(ss.str().c_str());
+  for (auto& matcher : matchers) {
+    outputs.emplace_back(of::DataSpecUtils::asOutputSpec(matcher));
+    descriptions.emplace_back(of::DataSpecUtils::asConcreteDataDescription(matcher));
+  }
+
   return of::DataProcessorSpec{
     "MIDDigitsReader",
     of::Inputs{},
-    of::Outputs{of::OutputSpec{"MID", "DATA"}, of::OutputSpec{"MID", "DATALABELS"}},
-    of::AlgorithmSpec{of::adaptFromTask<o2::mid::DigitsReaderDeviceDPL>()},
-    of::Options{
-      {"mid-digit-infile", of::VariantType::String, "middigits.root", {"Name of the input file"}},
-      {"mid-digit-timediff", of::VariantType::Int, 0, {"Maximum difference between digits"}}}};
+    outputs,
+    of::AlgorithmSpec{of::adaptFromTask<o2::mid::DigitsReaderDeviceDPL>(useMC, descriptions)},
+    of::Options{{"mid-digit-infile", of::VariantType::String, "middigits.root", {"Name of the input file"}}}};
 }
 } // namespace mid
 } // namespace o2

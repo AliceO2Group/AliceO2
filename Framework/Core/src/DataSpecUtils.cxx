@@ -11,6 +11,9 @@
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/DataMatcherWalker.h"
 #include "Framework/VariantHelpers.h"
+#include "Framework/Logger.h"
+#include "Framework/RuntimeError.h"
+
 #include <cstring>
 #include <cinttypes>
 
@@ -69,7 +72,7 @@ std::string DataSpecUtils::describe(InputSpec const& spec)
     ss << "<matcher query: " << *matcher << ">";
     return ss.str();
   }
-  throw std::runtime_error("Unhandled InputSpec kind.");
+  throw runtime_error("Unhandled InputSpec kind.");
 }
 
 std::string DataSpecUtils::describe(OutputSpec const& spec)
@@ -94,7 +97,7 @@ void DataSpecUtils::describe(char* buffer, size_t size, InputSpec const& spec)
     ss << "<matcher query: " << *matcher << ">";
     strncpy(buffer, ss.str().c_str(), size - 1);
   } else {
-    throw std::runtime_error("Unsupported InputSpec");
+    throw runtime_error("Unsupported InputSpec");
   }
 }
 
@@ -111,7 +114,7 @@ std::string DataSpecUtils::label(InputSpec const& spec)
 
     return result;
   }
-  throw std::runtime_error("Unsupported InputSpec");
+  throw runtime_error("Unsupported InputSpec");
 }
 
 std::string DataSpecUtils::label(OutputSpec const& spec)
@@ -128,7 +131,7 @@ std::string DataSpecUtils::restEndpoint(InputSpec const& spec)
   if (auto concrete = std::get_if<ConcreteDataMatcher>(&spec.matcher)) {
     return std::string("/") + join(*concrete, "/");
   } else {
-    throw std::runtime_error("Unsupported InputSpec kind");
+    throw runtime_error("Unsupported InputSpec kind");
   }
 }
 
@@ -214,7 +217,7 @@ bool DataSpecUtils::match(InputSpec const& spec, ConcreteDataMatcher const& targ
     data_matcher::VariableContext context;
     return matcher->match(target, context);
   } else {
-    throw std::runtime_error("Unsupported InputSpec");
+    throw runtime_error("Unsupported InputSpec");
   }
 }
 
@@ -229,6 +232,20 @@ bool DataSpecUtils::match(OutputSpec const& spec, ConcreteDataMatcher const& tar
                                concrete.description == target.description;
                       }},
                     spec.matcher);
+}
+
+bool DataSpecUtils::match(OutputSpec const& left, OutputSpec const& right)
+{
+  if (auto leftConcrete = std::get_if<ConcreteDataMatcher>(&left.matcher)) {
+    return match(right, *leftConcrete);
+  } else if (auto rightConcrete = std::get_if<ConcreteDataMatcher>(&right.matcher)) {
+    return match(left, *rightConcrete);
+  } else {
+    // both sides are ConcreteDataTypeMatcher without subspecification, we simply specify 0
+    // this is ignored in the mathing since also left hand object is ConcreteDataTypeMatcher
+    ConcreteDataTypeMatcher dataType = DataSpecUtils::asConcreteDataTypeMatcher(right);
+    return match(left, dataType.origin, dataType.description, 0);
+  }
 }
 
 bool DataSpecUtils::match(InputSpec const& input, OutputSpec const& output)
@@ -247,26 +264,25 @@ bool DataSpecUtils::partialMatch(OutputSpec const& output, header::DataOrigin co
 
 bool DataSpecUtils::partialMatch(InputSpec const& input, header::DataOrigin const& origin)
 {
-  auto dataType = DataSpecUtils::asConcreteDataTypeMatcher(input);
-  return dataType.origin == origin;
+  return DataSpecUtils::asConcreteOrigin(input) == origin;
 }
 
-ConcreteDataMatcher DataSpecUtils::asConcreteDataMatcher(InputSpec const& spec)
+bool DataSpecUtils::partialMatch(InputSpec const& input, header::DataDescription const& description)
 {
-  return std::get<ConcreteDataMatcher>(spec.matcher);
+  try {
+    return DataSpecUtils::asConcreteDataDescription(input) == description;
+  } catch (...) {
+    return false;
+  }
 }
 
-ConcreteDataMatcher DataSpecUtils::asConcreteDataMatcher(OutputSpec const& spec)
+bool DataSpecUtils::partialMatch(OutputSpec const& output, header::DataDescription const& description)
 {
-  return std::get<ConcreteDataMatcher>(spec.matcher);
-}
-
-ConcreteDataTypeMatcher DataSpecUtils::asConcreteDataTypeMatcher(OutputSpec const& spec)
-{
-  return std::visit([](auto const& concrete) {
-    return ConcreteDataTypeMatcher{concrete.origin, concrete.description};
-  },
-                    spec.matcher);
+  try {
+    return DataSpecUtils::asConcreteDataTypeMatcher(output).description == description;
+  } catch (...) {
+    return false;
+  }
 }
 
 struct MatcherInfo {
@@ -357,10 +373,40 @@ MatcherInfo extractMatcherInfo(DataDescriptorMatcher const& top)
   return state;
 }
 
+ConcreteDataMatcher DataSpecUtils::asConcreteDataMatcher(InputSpec const& spec)
+{
+  return std::visit(overloaded{[](ConcreteDataMatcher const& concrete) {
+                                 return concrete;
+                               },
+                               [&binding = spec.binding](DataDescriptorMatcher const& matcher) {
+                                 auto info = extractMatcherInfo(matcher);
+                                 if (info.hasOrigin && info.hasUniqueOrigin &&
+                                     info.hasDescription && info.hasDescription &&
+                                     info.hasSubSpec && info.hasUniqueSubSpec) {
+                                   return ConcreteDataMatcher{info.origin, info.description, info.subSpec};
+                                 }
+                                 throw std::runtime_error("Cannot convert " + binding + " to ConcreteDataMatcher");
+                               }},
+                    spec.matcher);
+}
+
+ConcreteDataMatcher DataSpecUtils::asConcreteDataMatcher(OutputSpec const& spec)
+{
+  return std::get<ConcreteDataMatcher>(spec.matcher);
+}
+
+ConcreteDataTypeMatcher DataSpecUtils::asConcreteDataTypeMatcher(OutputSpec const& spec)
+{
+  return std::visit([](auto const& concrete) {
+    return ConcreteDataTypeMatcher{concrete.origin, concrete.description};
+  },
+                    spec.matcher);
+}
+
 ConcreteDataTypeMatcher DataSpecUtils::asConcreteDataTypeMatcher(InputSpec const& spec)
 {
   return std::visit(overloaded{
-                      [](ConcreteDataMatcher const& concrete) {
+                      [](auto const& concrete) {
                         return ConcreteDataTypeMatcher{concrete.origin, concrete.description};
                       },
                       [](DataDescriptorMatcher const& matcher) {
@@ -368,7 +414,58 @@ ConcreteDataTypeMatcher DataSpecUtils::asConcreteDataTypeMatcher(InputSpec const
                         if (state.hasUniqueOrigin && state.hasUniqueDescription) {
                           return ConcreteDataTypeMatcher{state.origin, state.description};
                         }
-                        throw std::runtime_error("Could not extract data type from query");
+                        throw runtime_error("Could not extract data type from query");
+                      }},
+                    spec.matcher);
+}
+
+header::DataOrigin DataSpecUtils::asConcreteOrigin(InputSpec const& spec)
+{
+  return std::visit(overloaded{
+                      [](auto const& concrete) {
+                        return concrete.origin;
+                      },
+                      [](DataDescriptorMatcher const& matcher) {
+                        auto state = extractMatcherInfo(matcher);
+                        if (state.hasUniqueOrigin) {
+                          return state.origin;
+                        }
+                        throw runtime_error("Could not extract data type from query");
+                      }},
+                    spec.matcher);
+}
+
+header::DataDescription DataSpecUtils::asConcreteDataDescription(InputSpec const& spec)
+{
+  return std::visit(overloaded{
+                      [](auto const& concrete) {
+                        return concrete.description;
+                      },
+                      [](DataDescriptorMatcher const& matcher) {
+                        auto state = extractMatcherInfo(matcher);
+                        if (state.hasUniqueDescription) {
+                          return state.description;
+                        }
+                        throw runtime_error("Could not extract data type from query");
+                      }},
+                    spec.matcher);
+}
+
+OutputSpec DataSpecUtils::asOutputSpec(InputSpec const& spec)
+{
+  return std::visit(overloaded{
+                      [&spec](ConcreteDataMatcher const& concrete) {
+                        return OutputSpec{{spec.binding}, concrete, spec.lifetime};
+                      },
+                      [&spec](DataDescriptorMatcher const& matcher) {
+                        auto state = extractMatcherInfo(matcher);
+                        if (state.hasUniqueOrigin && state.hasUniqueDescription && state.hasUniqueSubSpec) {
+                          return OutputSpec{{spec.binding}, ConcreteDataMatcher{state.origin, state.description, state.subSpec}, spec.lifetime};
+                        } else if (state.hasUniqueOrigin && state.hasUniqueDescription) {
+                          return OutputSpec{{spec.binding}, ConcreteDataTypeMatcher{state.origin, state.description}, spec.lifetime};
+                        }
+
+                        throw runtime_error_f("Could not extract neither ConcreteDataMatcher nor ConcreteDataTypeMatcher from query %s", describe(spec).c_str());
                       }},
                     spec.matcher);
 }
@@ -383,6 +480,42 @@ DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(ConcreteDataTypeM
     DataDescriptorMatcher::Op::And,
     OriginValueMatcher{dataType.origin.as<std::string>()},
     std::move(timeDescriptionMatcher)));
+}
+
+DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(header::DataOrigin const& origin)
+{
+  char buf[5] = {0, 0, 0, 0, 0};
+  strncpy(buf, origin.str, 4);
+  DataDescriptorMatcher matchOnlyOrigin{
+    DataDescriptorMatcher::Op::And,
+    OriginValueMatcher{buf},
+    std::make_unique<DataDescriptorMatcher>(
+      DataDescriptorMatcher::Op::And,
+      DescriptionValueMatcher{ContextRef{1}},
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::And,
+        SubSpecificationTypeValueMatcher{ContextRef{2}},
+        std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
+                                                StartTimeValueMatcher{ContextRef{0}})))};
+  return std::move(matchOnlyOrigin);
+}
+
+DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(header::DataDescription const& description)
+{
+  char buf[17] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  strncpy(buf, description.str, 16);
+  DataDescriptorMatcher matchOnlyOrigin{
+    DataDescriptorMatcher::Op::And,
+    OriginValueMatcher{ContextRef{1}},
+    std::make_unique<DataDescriptorMatcher>(
+      DataDescriptorMatcher::Op::And,
+      DescriptionValueMatcher{buf},
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::And,
+        SubSpecificationTypeValueMatcher{ContextRef{2}},
+        std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
+                                                StartTimeValueMatcher{ContextRef{0}})))};
+  return std::move(matchOnlyOrigin);
 }
 
 InputSpec DataSpecUtils::matchingInput(OutputSpec const& spec)
@@ -429,11 +562,38 @@ std::optional<header::DataHeader::SubSpecificationType> DataSpecUtils::getOption
                         if (state.hasUniqueSubSpec) {
                           return std::make_optional(state.subSpec);
                         } else if (state.hasError) {
-                          throw std::runtime_error("Could not extract subSpec from query");
+                          throw runtime_error("Could not extract subSpec from query");
                         }
                         return {};
                       }},
                     spec.matcher);
+}
+
+bool DataSpecUtils::includes(const InputSpec& left, const InputSpec& right)
+{
+  return std::visit(
+    overloaded{
+      [&left](ConcreteDataMatcher const& rightMatcher) {
+        return match(left, rightMatcher);
+      },
+      [&left](DataDescriptorMatcher const& rightMatcher) {
+        auto rightInfo = extractMatcherInfo(rightMatcher);
+        return std::visit(
+          overloaded{
+            [&rightInfo](ConcreteDataMatcher const& leftMatcher) {
+              return rightInfo.hasUniqueOrigin && rightInfo.origin == leftMatcher.origin &&
+                     rightInfo.hasUniqueDescription && rightInfo.description == leftMatcher.description &&
+                     rightInfo.hasUniqueSubSpec && rightInfo.subSpec == leftMatcher.subSpec;
+            },
+            [&rightInfo](DataDescriptorMatcher const& leftMatcher) {
+              auto leftInfo = extractMatcherInfo(leftMatcher);
+              return (!leftInfo.hasOrigin || (rightInfo.hasOrigin && leftInfo.origin == rightInfo.origin)) &&
+                     (!leftInfo.hasDescription || (rightInfo.hasDescription && leftInfo.description == rightInfo.description)) &&
+                     (!leftInfo.hasSubSpec || (rightInfo.hasSubSpec && leftInfo.subSpec == rightInfo.hasSubSpec));
+            }},
+          left.matcher);
+      }},
+    right.matcher);
 }
 
 } // namespace o2::framework

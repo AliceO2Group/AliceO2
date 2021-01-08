@@ -11,8 +11,8 @@
 #ifndef ALICEO2_SIMDATAFORMAT_STACKPARAM_H_
 #define ALICEO2_SIMDATAFORMAT_STACKPARAM_H_
 
-#include "SimConfig/ConfigurableParam.h"
-#include "SimConfig/ConfigurableParamHelper.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 
 namespace o2
 {
@@ -23,6 +23,10 @@ namespace sim
 struct StackParam : public o2::conf::ConfigurableParamHelper<StackParam> {
   bool storeSecondaries = true;
   bool pruneKine = true;
+  std::string transportPrimary = "all";
+  std::string transportPrimaryFileName = "";
+  std::string transportPrimaryFuncName = "";
+  bool transportPrimaryInvert = false;
 
   // boilerplate stuff + make principal key "Stack"
   O2ParamDef(StackParam, "Stack");

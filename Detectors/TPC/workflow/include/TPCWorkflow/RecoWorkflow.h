@@ -17,57 +17,95 @@
 
 #include "Framework/WorkflowSpec.h"
 #include <vector>
+#include <array>
 #include <string>
 #include <numeric> // std::iota
 
 namespace o2
 {
+namespace framework
+{
+struct InputSpec;
+}
 namespace tpc
 {
 
 namespace reco_workflow
 {
 /// define input and output types of the workflow
-enum struct InputType { Digitizer, // directly read digits from channel {TPC:DIGITS}
-                        Digits,    // read digits from file
-                        Raw,       // read hardware clusters in raw page format from file
-                        Clusters,  // read native clusters from file
-};
-enum struct OutputType { Digits,
-                         Raw,
-                         Clusters,
-                         Tracks,
+enum struct InputType { Digitizer,        // directly read digits from channel {TPC:DIGITS}
+                        Digits,           // read digits from file
+                        ClustersHardware, // read hardware clusters in raw page format from file
+                        Clusters,         // read native clusters from file
+                        CompClusters,     // read compressed cluster container
+                        CompClustersCTF,  // compressed clusters from CTF, as flat format
+                        EncodedClusters,  // read encoded clusters
+                        ZSRaw,
 };
 
+/// Output types of the workflow, workflow layout is built depending on configured types
+/// - Digits           simulated digits
+/// - ClustersHardware the first attempt of a raw format storing ClusterHardware in 8k pages
+/// - Clusters         decoded clusters, ClusterNative, as input to the tracker
+/// - Tracks           tracks
+/// - CompClusters     compressed clusters, CompClusters container
+/// - EncodedClusters  the encoded CompClusters container
+/// - ZSRaw            TPC zero-suppressed raw data
+enum struct OutputType { Digits,
+                         ClustersHardware,
+                         Clusters,
+                         Tracks,
+                         CompClusters,
+                         EncodedClusters,
+                         DisableWriter,
+                         SendClustersPerSector,
+                         ZSRaw,
+                         QA,
+};
+
+using CompletionPolicyData = std::vector<framework::InputSpec>;
+
 /// create the workflow for TPC reconstruction
-framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors,           //
+framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,             //
+                                    std::vector<int> const& tpcSectors,           //
                                     std::vector<int> const& laneConfiguration,    //
                                     bool propagateMC = true, unsigned nLanes = 1, //
                                     std::string const& cfgInput = "digitizer",    //
-                                    std::string const& cfgOutput = "tracks"       //
-);
+                                    std::string const& cfgOutput = "tracks",      //
+                                    int caClusterer = 0,                          //
+                                    int zsOnTheFly = 0,
+                                    int zs10bit = 0,
+                                    float zsThreshold = 2.0f);
 
-framework::WorkflowSpec getWorkflow(std::vector<int> const& tpcSectors,           //
-                                    bool propagateMC = true, unsigned nLanes = 1, //
-                                    std::string const& cfgInput = "digitizer",    //
-                                    std::string const& cfgOutput = "tracks"       //
-)
+static inline framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,             //
+                                                  std::vector<int> const& tpcSectors,           //
+                                                  bool propagateMC = true, unsigned nLanes = 1, //
+                                                  std::string const& cfgInput = "digitizer",    //
+                                                  std::string const& cfgOutput = "tracks",      //
+                                                  int caClusterer = 0,                          //
+                                                  int zsOnTheFly = 0,
+                                                  int zs10bit = 0,
+                                                  float zsThreshold = 2.0f)
 {
   // create a default lane configuration with ids [0, nLanes-1]
   std::vector<int> laneConfiguration(nLanes);
   std::iota(laneConfiguration.begin(), laneConfiguration.end(), 0);
-  return getWorkflow(tpcSectors, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput);
+  return getWorkflow(policyData, tpcSectors, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput, caClusterer, zsOnTheFly, zs10bit, zsThreshold);
 }
 
-framework::WorkflowSpec getWorkflow(bool propagateMC = true, unsigned nLanes = 1, //
-                                    std::string const& cfgInput = "digitizer",    //
-                                    std::string const& cfgOutput = "tracks"       //
-)
+static inline framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,             //
+                                                  bool propagateMC = true, unsigned nLanes = 1, //
+                                                  std::string const& cfgInput = "digitizer",    //
+                                                  std::string const& cfgOutput = "tracks",      //
+                                                  int caClusterer = 0,                          //
+                                                  int zsOnTheFly = 0,
+                                                  int zs10bit = 0,
+                                                  float zsThreshold = 2.0f)
 {
   // create a default lane configuration with ids [0, nLanes-1]
   std::vector<int> laneConfiguration(nLanes);
   std::iota(laneConfiguration.begin(), laneConfiguration.end(), 0);
-  return getWorkflow({}, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput);
+  return getWorkflow(policyData, {}, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput, caClusterer, zsOnTheFly, zs10bit, zsThreshold);
 }
 
 } // end namespace reco_workflow

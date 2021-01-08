@@ -20,43 +20,64 @@ void InteractionSampler::init()
 
   int nBCSet = mBCFilling.getNBunches();
   if (!nBCSet) {
-    LOG(WARNING) << "No bunch filling provided, impose default one" << FairLogger::endl;
+    LOG(WARNING) << "No bunch filling provided, impose default one";
     mBCFilling.setDefault();
     nBCSet = mBCFilling.getNBunches();
   }
 
   if (mMuBC < 0. && mIntRate < 0.) {
-    LOG(WARNING) << "No IR or muBC is provided, setting default IR" << FairLogger::endl;
+    LOG(WARNING) << "No IR or muBC is provided, setting default IR";
     mIntRate = DefIntRate;
   }
 
   if (mMuBC > 0.) {
     mIntRate = mMuBC * nBCSet * o2::constants::lhc::LHCRevFreq;
-    LOG(INFO) << "Deducing IR=" << mIntRate << "Hz from " << nBCSet << " BCs at mu=" << mMuBC << FairLogger::endl;
+    LOG(INFO) << "Deducing IR=" << mIntRate << "Hz from " << nBCSet << " BCs at mu=" << mMuBC;
   } else {
     mMuBC = mIntRate / (nBCSet * o2::constants::lhc::LHCRevFreq);
-    LOG(INFO) << "Deducing mu=" << mMuBC << " per BC from IR=" << mIntRate << " with " << nBCSet << " BCs"
-              << FairLogger::endl;
+    LOG(INFO) << "Deducing mu=" << mMuBC << " per BC from IR=" << mIntRate << " with " << nBCSet << " BCs";
   }
 
-  mBCMin = 0;
-  mBCMax = -1;
+  mInteractingBCs.clear();
+  mInteractingBCs.reserve(nBCSet);
   for (int i = 0; i < o2::constants::lhc::LHCMaxBunches; i++) {
     if (mBCFilling.testBC(i)) {
-      if (mBCMin > i) {
-        mBCMin = i;
-      }
-      if (mBCMax < i) {
-        mBCMax = i;
-      }
+      mInteractingBCs.push_back(i);
     }
   }
-  double muexp = TMath::Exp(-mMuBC);
-  mProbInteraction = 1. - muexp;
-  mMuBCZTRed = mMuBC * muexp / mProbInteraction;
-  mBCCurrent = mBCMin + gRandom->Integer(mBCMax - mBCMin + 1);
+
+  auto mu = mMuBC;
+  // prob. of not having interaction in N consecutive BCs is P(N) = mu*exp(-(N-1)*mu), hence its cumulative distribution
+  // is T(N) = integral_1^N {P(N)} = 1. - exp(-(N-1)*mu)
+  // We generate random N using its inverse, N = 1 - log(1 - Rndm)/mu
+  mBCJumpGenerator.initialize([mu]() { return (1. - std::log(1. - gRandom->Rndm()) / mu); });
+
+  // Poisson distribution of number of collisions in the bunch excluding 0
+  mNCollBCGenerator.initialize([mu]() {
+    int n = 0;
+    while ((n = gRandom->Poisson(mu)) == 0) {
+      ;
+    }
+    return n;
+  });
+
+  auto trms = mBCTimeRMS;
+  mCollTimeGenerator.initialize([trms]() {
+    float t; // make sure it does not go outside half bunch
+    while (std::abs(t = gRandom->Gaus(0, trms)) > o2::constants::lhc::LHCBunchSpacingNS / 2.1) {
+      ;
+    }
+    return t;
+  });
+
   mIntBCCache = 0;
-  mOrbit = 0;
+  mCurrBCIdx = 0;
+  mIR = mFirstIR;
+  while (mCurrBCIdx < mInteractingBCs.size() && mInteractingBCs[mCurrBCIdx] < mIR.bc) {
+    mCurrBCIdx++;
+  }
+  // set the "current BC" right in front of the 1st BC to generate. There will be a jump by at least 1 during generation
+  mCurrBCIdx--;
 }
 
 //_________________________________________________
@@ -66,13 +87,13 @@ void InteractionSampler::print() const
     LOG(ERROR) << "not yet initialized";
     return;
   }
-  LOG(INFO) << "InteractionSampler with " << mBCFilling.getNBunches() << " colliding BCs in [" << mBCMin
-            << '-' << mBCMax << "], mu(BC)= " << getMuPerBC() << " -> total IR= " << getInteractionRate();
-  LOG(INFO) << "Current BC= " << mBCCurrent << '(' << mIntBCCache << " coll left) at orbit " << mOrbit;
+  LOG(INFO) << "InteractionSampler with " << mInteractingBCs.size() << " colliding BCs, mu(BC)= "
+            << getMuPerBC() << " -> total IR= " << getInteractionRate();
+  LOG(INFO) << "Current " << mIR << '(' << mIntBCCache << " coll left)";
 }
 
 //_________________________________________________
-o2::InteractionTimeRecord InteractionSampler::generateCollisionTime()
+const o2::InteractionTimeRecord& InteractionSampler::generateCollisionTime()
 {
   // generate single interaction record
   if (mIntRate < 0) {
@@ -82,13 +103,11 @@ o2::InteractionTimeRecord InteractionSampler::generateCollisionTime()
   if (mIntBCCache < 1) {                   // do we still have interaction in current BC?
     mIntBCCache = simulateInteractingBC(); // decide which BC interacts and N collisions
   }
-  double timeInt = mTimeInBC.back() + o2::InteractionTimeRecord::bc2ns(mBCCurrent, mOrbit);
+  mIR.timeInBCNS = mTimeInBC.back();
   mTimeInBC.pop_back();
   mIntBCCache--;
 
-  o2::InteractionTimeRecord tmp(timeInt);
-
-  return o2::InteractionTimeRecord(timeInt);
+  return mIR;
 }
 
 //_________________________________________________
@@ -96,19 +115,13 @@ int InteractionSampler::simulateInteractingBC()
 {
   // Returns number of collisions assigned to selected BC
 
-  do {
-    nextCollidingBC();                          // pick next interacting bunch
-  } while (gRandom->Rndm() > mProbInteraction); // skip BCs w/o collisions
-
+  nextCollidingBC(mBCJumpGenerator.getNextValue());
   // once BC is decided, enforce at least one interaction
-  int ncoll = genPoissonZT();
+  int ncoll = mNCollBCGenerator.getNextValue();
+
   // assign random time withing a bunch
   for (int i = ncoll; i--;) {
-    double tInBC = 0; // tInBC should be in the vicinity of the BC
-    do {
-      tInBC = gRandom->Gaus(0., mBCTimeRMS);
-    } while (std::abs(tInBC) > o2::constants::lhc::LHCBunchSpacingNS / 2.1);
-    mTimeInBC.push_back(tInBC);
+    mTimeInBC.push_back(mCollTimeGenerator.getNextValue());
   }
   if (ncoll > 1) { // sort in DECREASING time order (we are reading vector from the end)
     std::sort(mTimeInBC.begin(), mTimeInBC.end(), [](const float a, const float b) { return a > b; });
@@ -117,9 +130,13 @@ int InteractionSampler::simulateInteractingBC()
 }
 
 //_________________________________________________
-void InteractionSampler::warnOrbitWrapped() const
+void InteractionSampler::setBunchFilling(const std::string& bcFillingFile)
 {
-  /// in run3 the orbit is 32 bits and should never wrap
-  LOG(WARN) << "Orbit wraps, current state of InteractionSampler:" << FairLogger::endl;
-  print();
+  // load bunch filling from the file
+  auto* bc = o2::BunchFilling::loadFrom(bcFillingFile);
+  if (!bc) {
+    LOG(FATAL) << "Failed to load bunch filling from " << bcFillingFile;
+  }
+  mBCFilling = *bc;
+  delete bc;
 }

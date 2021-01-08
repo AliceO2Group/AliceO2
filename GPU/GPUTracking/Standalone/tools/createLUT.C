@@ -10,7 +10,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 void createLUT()
 {
   o2::base::MatLayerCylSet* lut = o2::base::MatLayerCylSet::loadFromFile("matbud.root", "MatBud");
-  gSystem->Load("libO2GPUTracking.so");
+  gSystem->Load("libO2GPUTracking");
   GPUReconstruction* rec = GPUReconstruction::CreateInstance(GPUReconstruction::DeviceType::CPU);
   GPUChainTracking* chain = rec->AddChain<GPUChainTracking>();
   chain->SetMatLUT(lut);

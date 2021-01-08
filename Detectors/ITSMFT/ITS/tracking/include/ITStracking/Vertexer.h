@@ -31,6 +31,8 @@
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/Cluster.h"
 
+#include "Framework/Logger.h"
+
 class TTree;
 
 namespace o2
@@ -50,6 +52,7 @@ class Vertexer
 
   void setROframe(const uint32_t ROframe) { mROframe = ROframe; }
   void setParameters(const VertexingParameters& verPar);
+  void getGlobalConfiguration();
   VertexingParameters getVertParameters() const;
 
   uint32_t getROFrame() const { return mROframe; }
@@ -65,6 +68,7 @@ class Vertexer
 
   void findTrivialMCTracklets();
   void findVertices();
+  void findHistVertices();
 
   template <typename... T>
   void initialiseVertexer(T&&... args);
@@ -79,6 +83,7 @@ class Vertexer
   void setDebugTrackletSelection();
   void setDebugLines();
   void setDebugSummaryLines();
+  void setDebugCentroidsHistograms();
   // \debug
 
  private:
@@ -86,10 +91,12 @@ class Vertexer
   VertexerTraits* mTraits = nullptr;
 };
 
+#ifdef _ALLOW_DEBUG_TREES_ITS_
 inline void Vertexer::filterMCTracklets()
 {
   mTraits->computeMCFiltering();
 }
+#endif
 
 template <typename... T>
 void Vertexer::initialiseVertexer(T&&... args)
@@ -132,8 +139,10 @@ inline std::vector<Vertex> Vertexer::exportVertices()
 {
   std::vector<Vertex> vertices;
   for (auto& vertex : mTraits->getVertices()) {
-    std::cout << "\t\tFound vertex with: " << std::setw(6) << vertex.mContributors << " contributors" << std::endl;
-    vertices.emplace_back(Point3D<float>(vertex.mX, vertex.mY, vertex.mZ), vertex.mRMS2, vertex.mContributors, vertex.mAvgDistance2);
+    if (fair::Logger::Logging(fair::Severity::info)) {
+      std::cout << "\t\tFound vertex with: " << std::setw(6) << vertex.mContributors << " contributors" << std::endl;
+    }
+    vertices.emplace_back(o2::math_utils::Point3D<float>(vertex.mX, vertex.mY, vertex.mZ), vertex.mRMS2, vertex.mContributors, vertex.mAvgDistance2);
     vertices.back().setTimeStamp(vertex.mTimeStamp);
   }
   return vertices;
@@ -153,10 +162,12 @@ float Vertexer::evaluateTask(void (Vertexer::*task)(T...), const char* taskName,
     std::chrono::duration<double, std::milli> diff_t{end - start};
     diff = diff_t.count();
 
-    if (taskName == nullptr) {
-      ostream << diff << "\t";
-    } else {
-      ostream << std::setw(2) << " - " << taskName << " completed in: " << diff << " ms" << std::endl;
+    if (fair::Logger::Logging(fair::Severity::info)) {
+      if (taskName == nullptr) {
+        ostream << diff << "\t";
+      } else {
+        ostream << std::setw(2) << " - " << taskName << " completed in: " << diff << " ms" << std::endl;
+      }
     }
   } else {
     (this->*task)(std::forward<T>(args)...);
@@ -183,6 +194,11 @@ inline void Vertexer::setDebugLines()
 inline void Vertexer::setDebugSummaryLines()
 {
   mTraits->setDebugFlag(VertexerDebug::LineSummaryAll);
+}
+
+inline void Vertexer::setDebugCentroidsHistograms()
+{
+  mTraits->setDebugFlag(VertexerDebug::HistCentroids);
 }
 
 } // namespace its

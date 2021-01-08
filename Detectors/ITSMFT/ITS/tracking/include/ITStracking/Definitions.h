@@ -15,7 +15,9 @@
 #ifndef TRACKINGITSU_INCLUDE_CADEFINITIONS_H_
 #define TRACKINGITSU_INCLUDE_CADEFINITIONS_H_
 
-#ifndef __OPENCL__
+// #define _ALLOW_DEBUG_TREES_ITS_ // to allow debug (vertexer only)
+
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <array>
 #endif
 
@@ -27,9 +29,9 @@
 #define CA_DEBUGGER(x) \
   do {                 \
   } while (0)
-#ifndef NDEBUG
-#define NDEBUG 1
-#endif
+// #ifndef NDEBUG
+// #define NDEBUG 1
+// #endif
 #endif
 
 #if defined(CUDA_ENABLED)
@@ -57,10 +59,13 @@
 
 #define MATH_CEIL ceil
 
+#ifndef GPUCA_GPUCODE_DEVICE
+#include <cstddef>
+#endif
 #include "ITStrackingCUDA/Array.h"
 
-template <typename T, std::size_t Size>
-using GPUArray = o2::its::GPU::Array<T, Size>;
+template <typename T, size_t Size>
+using GPUArray = o2::its::gpu::Array<T, Size>;
 
 typedef cudaStream_t GPUStream;
 
@@ -82,13 +87,14 @@ typedef cudaStream_t GPUStream;
 #endif
 
 #ifndef __OPENCL__
+#include <cstddef>
 template <typename T, size_t Size>
 using GPUArray = std::array<T, Size>;
 #else
 #include "ITStrackingCUDA/Array.h"
 
 template <typename T, size_t Size>
-using GPUArray = o2::its::GPU::Array<T, Size>;
+using GPUArray = o2::its::gpu::Array<T, Size>;
 #endif
 
 typedef struct _dummyStream {

@@ -43,15 +43,16 @@ bool PadResponse::importPRF(std::string file, std::unique_ptr<TGraph2D>& grPRF) 
 {
   std::string inputDir;
   const char* aliceO2env = std::getenv("O2_ROOT");
-  if (aliceO2env)
+  if (aliceO2env) {
     inputDir = aliceO2env;
+  }
   inputDir += "/share/Detectors/TPC/files/";
 
   float x, y, normalizedPadResponse;
   int i = 0;
   std::ifstream prfFile(inputDir + file, std::ifstream::in);
   if (!prfFile) {
-    LOG(FATAL) << "tpc::PadResponse - Input file '" << inputDir + file << "' does not exist! No PRF loaded!" << FairLogger::endl;
+    LOG(FATAL) << "tpc::PadResponse - Input file '" << inputDir + file << "' does not exist! No PRF loaded!";
     return false;
   }
   for (std::string line; std::getline(prfFile, line);) {

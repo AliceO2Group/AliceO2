@@ -83,7 +83,8 @@ Geometry::Geometry(const Geometry& geo)
     mTrd1BondPaperThick(geo.mTrd1BondPaperThick),
     mILOSS(geo.mILOSS),
     mIHADR(geo.mIHADR),
-    mSteelFrontThick(geo.mSteelFrontThick) // obsolete data member?
+    mSteelFrontThick(geo.mSteelFrontThick), // obsolete data member?
+    mCellIndexLookup(geo.mCellIndexLookup)
 {
   memcpy(mEnvelop, geo.mEnvelop, sizeof(Float_t) * 3);
   memcpy(mParSM, geo.mParSM, sizeof(Float_t) * 3);
@@ -155,6 +156,11 @@ Geometry::Geometry(const std::string_view name, const std::string_view mcname, c
 
   CreateListOfTrd1Modules();
 
+  mCellIndexLookup.resize(mNCells);
+  for (auto icell = 0; icell < mNCells; icell++) {
+    mCellIndexLookup[icell] = CalculateCellIndex(icell);
+  }
+
   memset(SMODULEMATRIX, 0, sizeof(TGeoHMatrix*) * EMCAL_MODULES);
 
   LOG(DEBUG) << "Name <<" << name << ">>";
@@ -174,8 +180,9 @@ Geometry::~Geometry()
   }
 
   for (Int_t smod = 0; smod < mNumberOfSuperModules; smod++) {
-    if (SMODULEMATRIX[smod])
+    if (SMODULEMATRIX[smod]) {
       delete SMODULEMATRIX[smod];
+    }
   }
 }
 
@@ -189,7 +196,7 @@ Geometry* Geometry::GetInstance(const std::string_view name, const std::string_v
                                 const std::string_view mctitle)
 {
   if (!sGeom) {
-    if (name != std::string("")) { // get default geometry
+    if (!name.length()) { // get default geometry
       sGeom = new Geometry(DEFAULT_GEOMETRY, mcname, mctitle);
     } else {
       sGeom = new Geometry(name, mcname, mctitle);
@@ -212,70 +219,60 @@ Geometry* Geometry::GetInstanceFromRunNumber(Int_t runNumber, const std::string_
 
   // printf("AliEMCALGeometry::GetInstanceFromRunNumber() - run %d, geoName <<%s>> \n",runNumber,geoName.Data());
 
-  bool showInfo = !(getenv("HLT_ONLINE_MODE") && strcmp(getenv("HLT_ONLINE_MODE"), "on") == 0);
-
   if (runNumber >= 104064 && runNumber < 140000) {
     // 2009-2010 runs
     // First year geometry, 4 SM.
 
-    if (showInfo) {
-      if (contains(geoName, "FIRSTYEARV1") && geoName != std::string("")) {
-        LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
-                  << "\t Specified geometry name <<" << geoName << ">> for run " << runNumber
-                  << " is not considered! \n"
-                  << "\t In use <<EMCAL_FIRSTYEARV1>>, check run number and year";
-      } else {
-        LOG(INFO)
-          << "o2::emcal::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_FIRSTYEARV1>>";
-      }
+    if (contains(geoName, "FIRSTYEARV1") && geoName != std::string("")) {
+      LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
+                << "\t Specified geometry name <<" << geoName << ">> for run " << runNumber
+                << " is not considered! \n"
+                << "\t In use <<EMCAL_FIRSTYEARV1>>, check run number and year";
+    } else {
+      LOG(INFO)
+        << "o2::emcal::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_FIRSTYEARV1>>";
     }
 
     return Geometry::GetInstance("EMCAL_FIRSTYEARV1", mcname, mctitle);
   } else if (runNumber >= 140000 && runNumber <= 170593) {
     // Almost complete EMCAL geometry, 10 SM. Year 2011 configuration
 
-    if (showInfo) {
-      if (contains(geoName, "COMPLETEV1") && geoName != std::string("")) {
-        LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
-                  << "\t Specified geometry name <<" << geoName << ">> for run " << runNumber
-                  << " is not considered! \n"
-                  << "\t In use <<EMCAL_COMPLETEV1>>, check run number and year";
-      } else {
-        LOG(INFO)
-          << "o2::emcal::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_COMPLETEV1>>";
-      }
+    if (contains(geoName, "COMPLETEV1") && geoName != std::string("")) {
+      LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
+                << "\t Specified geometry name <<" << geoName << ">> for run " << runNumber
+                << " is not considered! \n"
+                << "\t In use <<EMCAL_COMPLETEV1>>, check run number and year";
+    } else {
+      LOG(INFO)
+        << "o2::emcal::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name <<EMCAL_COMPLETEV1>>";
     }
     return Geometry::GetInstance("EMCAL_COMPLETEV1", mcname, mctitle);
   } else if (runNumber > 176000 && runNumber <= 197692) {
     // Complete EMCAL geometry, 12 SM. Year 2012 and on
     // The last 2 SM were not active, anyway they were there.
 
-    if (showInfo) {
-      if (contains(geoName, "COMPLETE12SMV1") && geoName != std::string("")) {
-        LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
-                  << "\t Specified geometry name <<" << geoName << " >> for run " << runNumber
-                  << " is not considered! \n"
-                  << "\t In use <<EMCAL_COMPLETE12SMV1>>, check run number and year";
-      } else {
-        LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name "
-                     "<<EMCAL_COMPLETE12SMV1>>";
-      }
+    if (contains(geoName, "COMPLETE12SMV1") && geoName != std::string("")) {
+      LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
+                << "\t Specified geometry name <<" << geoName << " >> for run " << runNumber
+                << " is not considered! \n"
+                << "\t In use <<EMCAL_COMPLETE12SMV1>>, check run number and year";
+    } else {
+      LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name "
+                   "<<EMCAL_COMPLETE12SMV1>>";
     }
     return Geometry::GetInstance("EMCAL_COMPLETE12SMV1", mcname, mctitle);
   } else // Run 2
   {
     // EMCAL + DCAL geometry, 20 SM. Year 2015 and on
 
-    if (showInfo) {
-      if (contains(geoName, "DCAL_8SM") && geoName != std::string("")) {
-        LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
-                  << "\t Specified geometry name <<" << geoName << ">> for run " << runNumber
-                  << " is not considered! \n"
-                  << "\t In use <<EMCAL_COMPLETE12SMV1_DCAL_8SM>>, check run number and year";
-      } else {
-        LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name "
-                     "<<EMCAL_COMPLETE12SMV1_DCAL_8SM>>";
-      }
+    if (contains(geoName, "DCAL_8SM") && geoName != std::string("")) {
+      LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() *** ATTENTION *** \n"
+                << "\t Specified geometry name <<" << geoName << ">> for run " << runNumber
+                << " is not considered! \n"
+                << "\t In use <<EMCAL_COMPLETE12SMV1_DCAL_8SM>>, check run number and year";
+    } else {
+      LOG(INFO) << "o2::emcal::Geometry::GetInstanceFromRunNumber() - Initialized geometry with name "
+                   "<<EMCAL_COMPLETE12SMV1_DCAL_8SM>>";
     }
     return Geometry::GetInstance("EMCAL_COMPLETE12SMV1_DCAL_8SM", mcname, mctitle);
   }
@@ -308,23 +305,23 @@ void Geometry::DefineSamplingFraction(const std::string_view mcname, const std::
   }
 
   Float_t samplingFactorTranportModel = 1.;
-  if (contains(mcname, "Geant3"))
+  if (contains(mcname, "Geant3")) {
     samplingFactorTranportModel = 1.; // 0.988 // Do nothing
-  else if (contains(mcname, "Fluka"))
+  } else if (contains(mcname, "Fluka")) {
     samplingFactorTranportModel = 1.; // To be set
-  else if (contains(mcname, "Geant4")) {
-    if (contains(mctitle, "EMV-EMCAL"))
+  } else if (contains(mcname, "Geant4")) {
+    if (contains(mctitle, "EMV-EMCAL")) {
       samplingFactorTranportModel = 0.821; // EMC list but for EMCal, before 0.86
-    else if (contains(mctitle, "EMV"))
+    } else if (contains(mctitle, "EMV")) {
       samplingFactorTranportModel = 1.096; // 0.906, 0.896 (OPT)
-    else
+    } else {
       samplingFactorTranportModel = 0.821; // 1.15 (CHIPS), 1.149 (BERT), 1.147 (BERT_CHIPS)
+    }
   }
 
   LOG(INFO) << "MC modeler <" << mcname << ">, Title <" << mctitle << ">: Sampling " << std::setw(2)
             << std::setprecision(3) << mSampling << ", model fraction with respect to G3 "
-            << samplingFactorTranportModel << ", final sampling " << mSampling * samplingFactorTranportModel
-            << FairLogger::endl;
+            << samplingFactorTranportModel << ", final sampling " << mSampling * samplingFactorTranportModel;
 
   mSampling *= samplingFactorTranportModel;
 }
@@ -345,8 +342,9 @@ void Geometry::DefineEMC(std::string_view mcname, std::string_view mctitle)
     }
   }
 
-  if (contains(mGeoName, "WSUC"))
+  if (contains(mGeoName, "WSUC")) {
     mGeoName = "EMCAL_WSUC";
+  }
 
   // check that we have a valid geometry name
   if (!(contains(mGeoName, "EMCAL_PDC06") || contains(mGeoName, "EMCAL_WSUC") || contains(mGeoName, "EMCAL_COMPLETE") ||
@@ -357,10 +355,12 @@ void Geometry::DefineEMC(std::string_view mcname, std::string_view mctitle)
 
   // Option to know whether we have the "half" supermodule(s) or not
   mKey110DEG = 0;
-  if (contains(mGeoName, "COMPLETE") || contains(mGeoName, "PDC06") || contains(mGeoName, "12SM"))
+  if (contains(mGeoName, "COMPLETE") || contains(mGeoName, "PDC06") || contains(mGeoName, "12SM")) {
     mKey110DEG = 1; // for GetAbsCellId
-  if (contains(mGeoName, "COMPLETEV1"))
+  }
+  if (contains(mGeoName, "COMPLETEV1")) {
     mKey110DEG = 0;
+  }
 
   mnSupModInDCAL = 0;
   if (contains(mGeoName, "DCAL_DEV")) {
@@ -452,10 +452,11 @@ void Geometry::DefineEMC(std::string_view mcname, std::string_view mctitle)
     if (contains(mGeoName, "DCAL")) {
       mNumberOfSuperModules = 12 + mnSupModInDCAL;
       mArm1PhiMax = 320.0;
-      if (contains(mGeoName, "DCAL_8SM"))
+      if (contains(mGeoName, "DCAL_8SM")) {
         mArm1PhiMax = 340.0; // degrees, End of DCAL Phi position
-      else if (contains(mGeoName, "DCAL_DEV"))
+      } else if (contains(mGeoName, "DCAL_DEV")) {
         mArm1PhiMin = 40.0; // degrees, Starting EMCAL(shifted) Phi position
+      }
       mDCALPhiMin = mArm1PhiMax - 10. * mnSupModInDCAL;
     }
   }
@@ -465,8 +466,9 @@ void Geometry::DefineEMC(std::string_view mcname, std::string_view mctitle)
   mEMCSMSystem.clear();
   mEMCSMSystem.resize(mNumberOfSuperModules);
 
-  for (Int_t i = 0; i < mNumberOfSuperModules; i++)
+  for (Int_t i = 0; i < mNumberOfSuperModules; i++) {
     mEMCSMSystem[i] = NOT_EXISTENT;
+  }
 
   Int_t iSM = 0;
 
@@ -526,23 +528,25 @@ void Geometry::DefineEMC(std::string_view mcname, std::string_view mctitle)
   mNCellsInSupMod = mNCellsInModule * mNPhi * mNZ;
   mNCells = 0;
   for (int i = 0; i < mNumberOfSuperModules; i++) {
-    if (GetSMType(i) == EMCAL_STANDARD)
+    if (GetSMType(i) == EMCAL_STANDARD) {
       mNCells += mNCellsInSupMod;
-    else if (GetSMType(i) == EMCAL_HALF)
+    } else if (GetSMType(i) == EMCAL_HALF) {
       mNCells += mNCellsInSupMod / 2;
-    else if (GetSMType(i) == EMCAL_THIRD)
+    } else if (GetSMType(i) == EMCAL_THIRD) {
       mNCells += mNCellsInSupMod / 3;
-    else if (GetSMType(i) == DCAL_STANDARD)
+    } else if (GetSMType(i) == DCAL_STANDARD) {
       mNCells += 2 * mNCellsInSupMod / 3;
-    else if (GetSMType(i) == DCAL_EXT)
+    } else if (GetSMType(i) == DCAL_EXT) {
       mNCells += mNCellsInSupMod / 3;
-    else
+    } else {
       LOG(ERROR) << "Uknown SuperModule Type !!\n";
+    }
   }
 
   mNPhiSuperModule = mNumberOfSuperModules / 2;
-  if (mNPhiSuperModule < 1)
+  if (mNPhiSuperModule < 1) {
     mNPhiSuperModule = 1;
+  }
 
   mPhiTileSize = mPhiModuleSize / double(mNPHIdiv) - mLateralSteelStrip; // 13-may-05
   mEtaTileSize = mEtaModuleSize / double(mNETAdiv) - mLateralSteelStrip; // 13-may-05
@@ -555,8 +559,9 @@ void Geometry::DefineEMC(std::string_view mcname, std::string_view mctitle)
   }
   m2Trd1Dx2 = mEtaModuleSize + 2. * mLongModuleSize * TMath::Tan(mTrd1Angle * TMath::DegToRad() / 2.);
 
-  if (!contains(mGeoName, "WSUC"))
+  if (!contains(mGeoName, "WSUC")) {
     mShellThickness = TMath::Sqrt(mLongModuleSize * mLongModuleSize + m2Trd1Dx2 * m2Trd1Dx2);
+  }
 
   // These parameters are used to create the mother volume to hold the supermodules
   // 2cm padding added to allow for misalignments - JLK 30-May-2008
@@ -618,19 +623,20 @@ void Geometry::DefineEMC(std::string_view mcname, std::string_view mctitle)
   mEMCALPhiMax = mArm1PhiMin;
   mDCALPhiMax = mDCALPhiMin; // DCAl extention will not be included
   for (Int_t i = 0; i < mNumberOfSuperModules; i += 2) {
-    if (GetSMType(i) == EMCAL_STANDARD)
+    if (GetSMType(i) == EMCAL_STANDARD) {
       mEMCALPhiMax += 20.;
-    else if (GetSMType(i) == EMCAL_HALF)
+    } else if (GetSMType(i) == EMCAL_HALF) {
       mEMCALPhiMax += mPhiSuperModule / 2. + innerExtandedPhi;
-    else if (GetSMType(i) == EMCAL_THIRD)
+    } else if (GetSMType(i) == EMCAL_THIRD) {
       mEMCALPhiMax += mPhiSuperModule / 3. + 4.0 * innerExtandedPhi / 3.0;
-    else if (GetSMType(i) == DCAL_STANDARD) {
+    } else if (GetSMType(i) == DCAL_STANDARD) {
       mDCALPhiMax += 20.;
       mDCALStandardPhiMax = mDCALPhiMax;
-    } else if (GetSMType(i) == DCAL_EXT)
+    } else if (GetSMType(i) == DCAL_EXT) {
       mDCALPhiMax += mPhiSuperModule / 3. + 4.0 * innerExtandedPhi / 3.0;
-    else
+    } else {
       LOG(ERROR) << "Unkown SM Type!!\n";
+    }
   }
   // for compatible reason
   // if(fNumberOfSuperModules == 4) {fEMCALPhiMax = fArm1PhiMax ;}
@@ -672,7 +678,7 @@ void Geometry::GetGlobal(Int_t absId, Double_t glob[3]) const
     loc[1] = cellpos.Y();
     loc[2] = cellpos.Z();
   } catch (InvalidCellIDException& e) {
-    LOG(ERROR) << e.what() << FairLogger::endl;
+    LOG(ERROR) << e.what();
     return;
   }
 
@@ -709,25 +715,27 @@ Int_t Geometry::GetAbsCellId(Int_t nSupMod, Int_t nModule, Int_t nIphi, Int_t nI
   // 0 <= absid   < fNCells
   Int_t id = 0; // have to change from 0 to fNCells-1
   for (int i = 0; i < nSupMod; i++) {
-    if (GetSMType(i) == EMCAL_STANDARD)
+    if (GetSMType(i) == EMCAL_STANDARD) {
       id += mNCellsInSupMod;
-    else if (GetSMType(i) == EMCAL_HALF)
+    } else if (GetSMType(i) == EMCAL_HALF) {
       id += mNCellsInSupMod / 2;
-    else if (GetSMType(i) == EMCAL_THIRD)
+    } else if (GetSMType(i) == EMCAL_THIRD) {
       id += mNCellsInSupMod / 3;
-    else if (GetSMType(i) == DCAL_STANDARD)
+    } else if (GetSMType(i) == DCAL_STANDARD) {
       id += 2 * mNCellsInSupMod / 3;
-    else if (GetSMType(i) == DCAL_EXT)
+    } else if (GetSMType(i) == DCAL_EXT) {
       id += mNCellsInSupMod / 3;
-    else
+    } else {
       throw InvalidSupermoduleTypeException();
+    }
   }
 
   id += mNCellsInModule * nModule;
   id += mNPHIdiv * nIphi;
   id += nIeta;
-  if (!CheckAbsCellId(id))
+  if (!CheckAbsCellId(id)) {
     id = -TMath::Abs(id); // if negative something wrong
+  }
 
   return id;
 }
@@ -747,8 +755,7 @@ Int_t Geometry::GetAbsCellIdFromCellIndexes(Int_t nSupMod, Int_t iphi, Int_t iet
   // Check if the indeces correspond to existing SM or tower indeces
   if (iphi < 0 || iphi >= EMCAL_ROWS || ieta < 0 || ieta >= EMCAL_COLS || nSupMod < 0 ||
       nSupMod >= GetNumberOfSuperModules()) {
-    LOG(DEBUG) << "Wrong cell indexes : SM " << nSupMod << ", column (eta) " << ieta << ", row (phi) " << iphi
-               << FairLogger::endl;
+    LOG(DEBUG) << "Wrong cell indexes : SM " << nSupMod << ", column (eta) " << ieta << ", row (phi) " << iphi;
     return -1;
   }
 
@@ -762,26 +769,85 @@ Int_t Geometry::GetAbsCellIdFromCellIndexes(Int_t nSupMod, Int_t iphi, Int_t iet
 
 std::tuple<int, int> Geometry::GlobalRowColFromIndex(int cellID) const
 {
-  auto indexes = GetCellIndex(cellID);
-  auto supermodule = std::get<0>(indexes),
-       module = std::get<1>(indexes),
-       nPhiInMod = std::get<2>(indexes),
-       nEtaInMod = std::get<3>(indexes);
-  auto rcSupermodule = GetCellPhiEtaIndexInSModule(supermodule, nPhiInMod, nPhiInMod, nEtaInMod);
-  auto row = std::get<0>(rcSupermodule),
-       col = std::get<1>(rcSupermodule);
+  if (cellID >= GetNCells()) {
+    throw InvalidCellIDException(cellID);
+  }
+  auto [supermodule, module, phiInModule, etaInModule] = GetCellIndex(cellID);
+  auto [row, col] = GetCellPhiEtaIndexInSModule(supermodule, module, phiInModule, etaInModule);
   // add offsets (row / col per supermodule)
-  if (supermodule % 2)
+  if (supermodule == 13 || supermodule == 15 || supermodule == 17) {
+    // DCal odd SMs need shift of the col. index in oder to get the global col. index
+    col += 16;
+  }
+  if (supermodule % 2) {
     col += mNZ * 2;
+  }
   int sector = supermodule / 2;
   if (sector > 0) {
-    for (int isec = 0; isec < sector - 1; isec++) {
+    for (int isec = 0; isec < sector; isec++) {
       auto smtype = GetSMType(isec * 2);
       auto nphism = (smtype == EMCAL_THIRD || smtype == DCAL_EXT) ? GetNPhi() / 3 : GetNPhi();
       row += 2 * nphism;
     }
   }
   return std::make_tuple(row, col);
+}
+
+std::tuple<int, int, int> Geometry::GetPositionInSupermoduleFromGlobalRowCol(int row, int col) const
+{
+  if (col < 0 || col >= 4 * GetNEta()) {
+    throw RowColException(row, col);
+  }
+  int side = col < GetNEta() * 2 ? 0 : 1,
+      colSM = col % (GetNEta() * 2);
+  int sector = -1,
+      rowSM = row;
+  for (int isec = 0; isec < GetNPhiSuperModule(); isec++) {
+    auto smtype = GetSMType(isec * 2);
+    auto nphism = GetNPhi() * 2;
+    if (smtype == EMCAL_THIRD || smtype == DCAL_EXT) {
+      nphism /= 3;
+    }
+    if (rowSM < nphism) {
+      sector = isec;
+      break;
+    }
+    rowSM -= nphism;
+  }
+  if (sector < 0) {
+    throw RowColException(row, col);
+  }
+  int supermodule = sector * 2 + side;
+  if (supermodule == 13 || supermodule == 15 || supermodule == 17) {
+    // DCal odd SMs need shift of the col. index as global col index includes PHOS hole
+    colSM -= 16;
+    if (colSM < 0) {
+      throw RowColException(row, col); // Position inside PHOS hole specified
+    }
+  }
+  if (supermodule == 12 || supermodule == 14 || supermodule == 16) {
+    if (colSM > 32) {
+      throw RowColException(row, col); // Position inside PHOS hole specified
+    }
+  }
+  return std::make_tuple(supermodule, rowSM, colSM);
+}
+
+int Geometry::GetCellAbsIDFromGlobalRowCol(int row, int col) const
+{
+  auto [supermodule, rowSM, colSM] = GetPositionInSupermoduleFromGlobalRowCol(row, col);
+  return GetAbsCellIdFromCellIndexes(supermodule, rowSM, colSM);
+}
+
+std::tuple<int, int, int, int> Geometry::GetCellIndexFromGlobalRowCol(int row, int col) const
+{
+  auto [supermodule, rowSM, colSM] = GetPositionInSupermoduleFromGlobalRowCol(row, col);
+  auto indexmod = GetModuleIndexesFromCellIndexesInSModule(supermodule, rowSM, colSM);
+
+  Int_t colInModule = colSM % mNETAdiv,
+        rowInMOdule = rowSM % mNPHIdiv;
+  colInModule = mNETAdiv - 1 - colInModule;
+  return std::make_tuple(supermodule, std::get<2>(indexmod), rowInMOdule, colInModule);
 }
 
 int Geometry::GlobalCol(int cellID) const
@@ -796,26 +862,29 @@ int Geometry::GlobalRow(int cellID) const
 
 Int_t Geometry::SuperModuleNumberFromEtaPhi(Double_t eta, Double_t phi) const
 {
-  if (TMath::Abs(eta) > mEtaMaxOfTRD1)
+  if (TMath::Abs(eta) > mEtaMaxOfTRD1) {
     throw InvalidPositionException(eta, phi);
+  }
 
   phi = TVector2::Phi_0_2pi(phi); // move phi to (0,2pi) boundaries
   Int_t nphism = mNumberOfSuperModules / 2;
   Int_t nSupMod = 0;
   for (Int_t i = 0; i < nphism; i++) {
-    LOG(DEBUG) << "Sec " << i << ": Min " << mPhiBoundariesOfSM[2 * i] << ", Max " << mPhiBoundariesOfSM[2 * i + 1] << FairLogger::endl;
+    LOG(DEBUG) << "Sec " << i << ": Min " << mPhiBoundariesOfSM[2 * i] << ", Max " << mPhiBoundariesOfSM[2 * i + 1];
     if (phi >= mPhiBoundariesOfSM[2 * i] && phi <= mPhiBoundariesOfSM[2 * i + 1]) {
       nSupMod = 2 * i;
-      if (eta < 0.0)
+      if (eta < 0.0) {
         nSupMod++;
+      }
 
       if (GetSMType(nSupMod) == DCAL_STANDARD) { // Gap between DCAL
-        if (TMath::Abs(eta) < GetNEta() / 3 * mTrd1Angle * TMath::DegToRad())
+        if (TMath::Abs(eta) < GetNEta() / 3 * mTrd1Angle * TMath::DegToRad()) {
           throw InvalidPositionException(eta, phi);
+        }
       }
 
       LOG(DEBUG) << "eta " << eta << " phi " << phi << " (" << std::setw(5) << std::setprecision(2)
-                 << phi * TMath::RadToDeg() << ") : nSupMod " << nSupMod << ": #bound " << i << FairLogger::endl;
+                 << phi * TMath::RadToDeg() << ") : nSupMod " << nSupMod << ": #bound " << i;
       return nSupMod;
     }
   }
@@ -830,12 +899,13 @@ Int_t Geometry::GetAbsCellIdFromEtaPhi(Double_t eta, Double_t phi) const
   phi = TVector2::Phi_0_2pi(phi);
   Double_t phiLoc = phi - mPhiCentersOfSMSec[nSupMod / 2];
   Int_t nphi = mPhiCentersOfCells.size();
-  if (GetSMType(nSupMod) == EMCAL_HALF)
+  if (GetSMType(nSupMod) == EMCAL_HALF) {
     nphi /= 2;
-  else if (GetSMType(nSupMod) == EMCAL_THIRD)
+  } else if (GetSMType(nSupMod) == EMCAL_THIRD) {
     nphi /= 3;
-  else if (GetSMType(nSupMod) == DCAL_EXT)
+  } else if (GetSMType(nSupMod) == DCAL_EXT) {
     nphi /= 3;
+  }
 
   Double_t dmin = TMath::Abs(mPhiCentersOfCells[0] - phiLoc),
            d = 0.;
@@ -856,8 +926,9 @@ Int_t Geometry::GetAbsCellIdFromEtaPhi(Double_t eta, Double_t phi) const
   Int_t neta = mCentersOfCellsEtaDir.size(),
         etaShift = iphi * neta,
         ieta = 0;
-  if (GetSMType(nSupMod) == DCAL_STANDARD)
+  if (GetSMType(nSupMod) == DCAL_STANDARD) {
     ieta += 16; // jump 16 cells for DCSM
+  }
   dmin = TMath::Abs(mEtaCentersOfCells[etaShift + ieta] - absEta);
   for (Int_t i = ieta + 1; i < neta; i++) {
     d = TMath::Abs(mEtaCentersOfCells[i + etaShift] - absEta);
@@ -867,27 +938,29 @@ Int_t Geometry::GetAbsCellIdFromEtaPhi(Double_t eta, Double_t phi) const
     }
   }
 
-  if (GetSMType(nSupMod) == DCAL_STANDARD)
+  if (GetSMType(nSupMod) == DCAL_STANDARD) {
     ieta -= 16; // jump 16 cells for DCSM
+  }
 
-  LOG(DEBUG2) << " ieta " << ieta << " : dmin " << dmin << " (eta=" << eta << ") : nSupMod " << nSupMod
-              << FairLogger::endl;
+  LOG(DEBUG2) << " ieta " << ieta << " : dmin " << dmin << " (eta=" << eta << ") : nSupMod " << nSupMod;
 
   // patch for mapping following alice convention
   if (nSupMod % 2 ==
       0) { // 47 + 16 -ieta for DCSM, 47 - ieta for others, revert the ordering on A side in order to keep convention.
     ieta = (neta - 1) - ieta;
-    if (GetSMType(nSupMod) == DCAL_STANDARD)
+    if (GetSMType(nSupMod) == DCAL_STANDARD) {
       ieta -= 16; // recover cells for DCSM
+    }
   }
 
   return GetAbsCellIdFromCellIndexes(nSupMod, iphi, ieta);
 }
 
-std::tuple<int, int, int, int> Geometry::GetCellIndex(Int_t absId) const
+std::tuple<int, int, int, int> Geometry::CalculateCellIndex(Int_t absId) const
 {
-  if (!CheckAbsCellId(absId))
+  if (!CheckAbsCellId(absId)) {
     throw InvalidCellIDException(absId);
+  }
 
   Int_t tmp = absId;
   Int_t test = absId;
@@ -896,17 +969,17 @@ std::tuple<int, int, int, int> Geometry::GetCellIndex(Int_t absId) const
   for (nSupMod = -1; test >= 0;) {
     nSupMod++;
     tmp = test;
-    if (GetSMType(nSupMod) == EMCAL_STANDARD)
+    if (GetSMType(nSupMod) == EMCAL_STANDARD) {
       test -= mNCellsInSupMod;
-    else if (GetSMType(nSupMod) == EMCAL_HALF)
+    } else if (GetSMType(nSupMod) == EMCAL_HALF) {
       test -= mNCellsInSupMod / 2;
-    else if (GetSMType(nSupMod) == EMCAL_THIRD)
+    } else if (GetSMType(nSupMod) == EMCAL_THIRD) {
       test -= mNCellsInSupMod / 3;
-    else if (GetSMType(nSupMod) == DCAL_STANDARD)
+    } else if (GetSMType(nSupMod) == DCAL_STANDARD) {
       test -= 2 * mNCellsInSupMod / 3;
-    else if (GetSMType(nSupMod) == DCAL_EXT)
+    } else if (GetSMType(nSupMod) == DCAL_EXT) {
       test -= mNCellsInSupMod / 3;
-    else {
+    } else {
       throw InvalidSupermoduleTypeException();
     }
   }
@@ -917,19 +990,28 @@ std::tuple<int, int, int, int> Geometry::GetCellIndex(Int_t absId) const
   return std::make_tuple(nSupMod, nModule, nIphi, nIeta);
 }
 
+std::tuple<int, int, int, int> Geometry::GetCellIndex(Int_t absId) const
+{
+  if (!CheckAbsCellId(absId)) {
+    throw InvalidCellIDException(absId);
+  }
+  return mCellIndexLookup[absId];
+}
+
 Int_t Geometry::GetSuperModuleNumber(Int_t absId) const { return std::get<0>(GetCellIndex(absId)); }
 
 std::tuple<int, int> Geometry::GetModulePhiEtaIndexInSModule(Int_t nSupMod, Int_t nModule) const
 {
   Int_t nphi = -1;
-  if (GetSMType(nSupMod) == EMCAL_HALF)
+  if (GetSMType(nSupMod) == EMCAL_HALF) {
     nphi = mNPhi / 2; // halfSM
-  else if (GetSMType(nSupMod) == EMCAL_THIRD)
+  } else if (GetSMType(nSupMod) == EMCAL_THIRD) {
     nphi = mNPhi / 3; // 1/3 SM
-  else if (GetSMType(nSupMod) == DCAL_EXT)
+  } else if (GetSMType(nSupMod) == DCAL_EXT) {
     nphi = mNPhi / 3; // 1/3 SM
-  else
+  } else {
     nphi = mNPhi; // full SM
+  }
 
   return std::make_tuple(int(nModule % nphi), int(nModule / nphi));
 }
@@ -944,13 +1026,38 @@ std::tuple<int, int> Geometry::GetCellPhiEtaIndexInSModule(Int_t nSupMod, Int_t 
   Int_t ieta = ietam * mNETAdiv + (mNETAdiv - 1 - nIeta); // x(module) = -z(SM)
   Int_t iphi = iphim * mNPHIdiv + nIphi;                  // y(module) =  y(SM)
 
-  if (iphi < 0 || ieta < 0)
+  if (iphi < 0 || ieta < 0) {
     LOG(DEBUG) << " nSupMod " << nSupMod << " nModule " << nModule << " nIphi " << nIphi << " nIeta " << nIeta
-               << " => ieta " << ieta << " iphi " << iphi << FairLogger::endl;
+               << " => ieta " << ieta << " iphi " << iphi;
+  }
   return std::make_tuple(iphi, ieta);
 }
 
-Point3D<double> Geometry::RelPosCellInSModule(Int_t absId) const
+std::tuple<int, int> Geometry::ShiftOnlineToOfflineCellIndexes(Int_t supermoduleID, Int_t iphi, Int_t ieta) const
+{
+  if (supermoduleID == 13 || supermoduleID == 15 || supermoduleID == 17) {
+    // DCal odd SMs
+    ieta -= 16; // Same cabling mapping as for EMCal, not considered offline.
+  } else if (supermoduleID == 18 || supermoduleID == 19) {
+    // DCal 1/3 SMs
+    iphi -= 16; // Needed due to cabling mistake.
+  }
+  return std::tuple<int, int>(iphi, ieta);
+}
+
+std::tuple<int, int> Geometry::ShiftOfflineToOnlineCellIndexes(Int_t supermoduleID, Int_t iphi, Int_t ieta) const
+{
+  if (supermoduleID == 13 || supermoduleID == 15 || supermoduleID == 17) {
+    // DCal odd SMs
+    ieta += 16; // Same cabling mapping as for EMCal, not considered offline.
+  } else if (supermoduleID == 18 || supermoduleID == 19) {
+    // DCal 1/3 SMs
+    iphi += 16; // Needed due to cabling mistake.
+  }
+  return std::tuple<int, int>(iphi, ieta);
+}
+
+o2::math_utils::Point3D<double> Geometry::RelPosCellInSModule(Int_t absId) const
 {
   // Shift index taking into account the difference between standard SM
   // and SM of half (or one third) size in phi direction
@@ -959,8 +1066,9 @@ Point3D<double> Geometry::RelPosCellInSModule(Int_t absId) const
   Double_t zshift = 0.5 * GetDCALInnerEdge();
   Double_t xr, yr, zr;
 
-  if (!CheckAbsCellId(absId))
+  if (!CheckAbsCellId(absId)) {
     throw InvalidCellIDException(absId);
+  }
 
   auto cellindex = GetCellIndex(absId);
   Int_t nSupMod = std::get<0>(cellindex), nModule = std::get<1>(cellindex), nIphi = std::get<2>(cellindex),
@@ -970,44 +1078,51 @@ Point3D<double> Geometry::RelPosCellInSModule(Int_t absId) const
 
   // Get eta position. Careful with ALICE conventions (increase index decrease eta)
   Int_t ieta2 = ieta;
-  if (nSupMod % 2 == 0)
+  if (nSupMod % 2 == 0) {
     ieta2 = (mCentersOfCellsEtaDir.size() - 1) -
             ieta; // 47-ieta, revert the ordering on A side in order to keep convention.
+  }
 
-  if (GetSMType(nSupMod) == DCAL_STANDARD && nSupMod % 2)
+  if (GetSMType(nSupMod) == DCAL_STANDARD && nSupMod % 2) {
     ieta2 += 16; // DCAL revert the ordering on C side ...
+  }
   zr = mCentersOfCellsEtaDir[ieta2];
-  if (GetSMType(nSupMod) == DCAL_STANDARD)
+  if (GetSMType(nSupMod) == DCAL_STANDARD) {
     zr -= zshift; // DCAL shift (SMALLER SM)
+  }
   xr = mCentersOfCellsXDir[ieta2];
 
   // Get phi position. Careful with ALICE conventions (increase index increase phi)
   Int_t iphi2 = iphi;
   if (GetSMType(nSupMod) == DCAL_EXT) {
-    if (nSupMod % 2 != 0)
+    if (nSupMod % 2 != 0) {
       iphi2 = (phiindex / 3 - 1) - iphi; // 7-iphi [1/3SM], revert the ordering on C side in order to keep convention.
+    }
     yr = mCentersOfCellsPhiDir[iphi2 + phiindex / 3];
   } else if (GetSMType(nSupMod) == EMCAL_HALF) {
-    if (nSupMod % 2 != 0)
+    if (nSupMod % 2 != 0) {
       iphi2 = (phiindex / 2 - 1) - iphi; // 11-iphi [1/2SM], revert the ordering on C side in order to keep
-                                         // convention.
+    }
+    // convention.
     yr = mCentersOfCellsPhiDir[iphi2 + phiindex / 4];
   } else if (GetSMType(nSupMod) == EMCAL_THIRD) {
-    if (nSupMod % 2 != 0)
+    if (nSupMod % 2 != 0) {
       iphi2 = (phiindex / 3 - 1) - iphi; // 7-iphi [1/3SM], revert the ordering on C side in order to keep convention.
+    }
     yr = mCentersOfCellsPhiDir[iphi2 + phiindex / 3];
   } else {
-    if (nSupMod % 2 != 0)
+    if (nSupMod % 2 != 0) {
       iphi2 = (phiindex - 1) - iphi; // 23-iphi, revert the ordering on C side in order to keep conventi
+    }
     yr = mCentersOfCellsPhiDir[iphi2];
   }
 
   LOG(DEBUG) << "absId " << absId << " nSupMod " << nSupMod << " iphi " << iphi << " ieta " << ieta << " xr " << xr
-             << " yr " << yr << " zr " << zr << FairLogger::endl;
-  return Point3D<double>(xr, yr, zr);
+             << " yr " << yr << " zr " << zr;
+  return o2::math_utils::Point3D<double>(xr, yr, zr);
 }
 
-Point3D<double> Geometry::RelPosCellInSModule(Int_t absId, Double_t distEff) const
+o2::math_utils::Point3D<double> Geometry::RelPosCellInSModule(Int_t absId, Double_t distEff) const
 {
   // Shift index taking into account the difference between standard SM
   // and SM of half (or one third) size in phi direction
@@ -1018,8 +1133,9 @@ Point3D<double> Geometry::RelPosCellInSModule(Int_t absId, Double_t distEff) con
 
   Int_t iphim = -1, ietam = -1;
   TVector2 v;
-  if (!CheckAbsCellId(absId))
+  if (!CheckAbsCellId(absId)) {
     throw InvalidCellIDException(absId);
+  }
 
   auto cellindex = GetCellIndex(absId);
   Int_t nSupMod = std::get<0>(cellindex), nModule = std::get<1>(cellindex), nIphi = std::get<2>(cellindex),
@@ -1034,45 +1150,52 @@ Point3D<double> Geometry::RelPosCellInSModule(Int_t absId, Double_t distEff) con
   if (nSupMod % 2 == 0) {
     ietam = (mCentersOfCellsEtaDir.size() / 2 - 1) -
             ietam; // 24-ietam, revert the ordering on A side in order to keep convention.
-    if (nIeta == 0)
+    if (nIeta == 0) {
       nIeta = 1;
-    else
+    } else {
       nIeta = 0;
+    }
   }
 
-  if (GetSMType(nSupMod) == DCAL_STANDARD && nSupMod % 2)
+  if (GetSMType(nSupMod) == DCAL_STANDARD && nSupMod % 2) {
     ietam += kDCalshift; // DCAL revert the ordering on C side ....
+  }
   const ShishKebabTrd1Module& mod = GetShishKebabModule(ietam);
   mod.GetPositionAtCenterCellLine(nIeta, distEff, v);
   xr = v.Y() - mParSM[0];
   zr = v.X() - mParSM[2];
-  if (GetSMType(nSupMod) == DCAL_STANDARD)
+  if (GetSMType(nSupMod) == DCAL_STANDARD) {
     zr -= zshift; // DCAL shift (SMALLER SM)
+  }
 
   // Get phi position. Careful with ALICE conventions (increase index increase phi)
   Int_t iphi2 = iphi;
   if (GetSMType(nSupMod) == DCAL_EXT) {
-    if (nSupMod % 2 != 0)
+    if (nSupMod % 2 != 0) {
       iphi2 = (nphiIndex / 3 - 1) - iphi; // 7-iphi [1/3SM], revert the ordering on C side in order to keep convention.
+    }
     yr = mCentersOfCellsPhiDir[iphi2 + nphiIndex / 3];
   } else if (GetSMType(nSupMod) == EMCAL_HALF) {
-    if (nSupMod % 2 != 0)
+    if (nSupMod % 2 != 0) {
       iphi2 = (nphiIndex / 2 - 1) - iphi; // 11-iphi [1/2SM], revert the ordering on C side in order to keep
-                                          // convention.
+    }
+    // convention.
     yr = mCentersOfCellsPhiDir[iphi2 + nphiIndex / 2];
   } else if (GetSMType(nSupMod) == EMCAL_THIRD) {
-    if (nSupMod % 2 != 0)
+    if (nSupMod % 2 != 0) {
       iphi2 = (nphiIndex / 3 - 1) - iphi; // 7-iphi [1/3SM], revert the ordering on C side in order to keep convention.
+    }
     yr = mCentersOfCellsPhiDir[iphi2 + nphiIndex / 3];
   } else {
-    if (nSupMod % 2 != 0)
+    if (nSupMod % 2 != 0) {
       iphi2 = (nphiIndex - 1) - iphi; // 23-iphi, revert the ordering on C side in order to keep convention.
+    }
     yr = mCentersOfCellsPhiDir[iphi2];
   }
 
   LOG(DEBUG) << "absId " << absId << " nSupMod " << nSupMod << " iphi " << iphi << " ieta " << ieta << " xr " << xr
-             << " yr " << yr << " zr " << zr << FairLogger::endl;
-  return Point3D<double>(xr, yr, zr);
+             << " yr " << yr << " zr " << zr;
+  return math_utils::Point3D<double>(xr, yr, zr);
 }
 
 void Geometry::CreateListOfTrd1Modules()
@@ -1095,7 +1218,7 @@ void Geometry::CreateListOfTrd1Modules()
   ShishKebabTrd1Module& mod = mShishKebabTrd1Modules.back();
   mEtaMaxOfTRD1 = mod.GetMaxEtaOfModule();
   LOG(DEBUG2) << " mShishKebabTrd1Modules has " << mShishKebabTrd1Modules.size() << " modules : max eta "
-              << std::setw(5) << std::setprecision(4) << mEtaMaxOfTRD1 << FairLogger::endl;
+              << std::setw(5) << std::setprecision(4) << mEtaMaxOfTRD1;
 
   // define grid for cells in eta(z) and x directions in local coordinates system of SM
   // Works just for 2x2 case only -- ?? start here
@@ -1104,7 +1227,7 @@ void Geometry::CreateListOfTrd1Modules()
   // Define grid for cells in phi(y) direction in local coordinates system of SM
   // as for 2X2 as for 3X3 - Nov 8,2006
   //
-  LOG(DEBUG2) << " Cells grid in phi directions : size " << mCentersOfCellsPhiDir.size() << FairLogger::endl;
+  LOG(DEBUG2) << " Cells grid in phi directions : size " << mCentersOfCellsPhiDir.size();
 
   Int_t ind = 0; // this is phi index
   Int_t ieta = 0, nModule = 0;
@@ -1134,7 +1257,7 @@ void Geometry::CreateListOfTrd1Modules()
       mPhiCentersOfCells[ind] = phi;
 
       LOG(DEBUG2) << " ind " << std::setw(2) << std::setprecision(2) << ind << " : y " << std::setw(8)
-                  << std::setprecision(3) << mCentersOfCellsPhiDir[ind] << FairLogger::endl;
+                  << std::setprecision(3) << mCentersOfCellsPhiDir[ind];
       ind++;
     }
   }
@@ -1143,7 +1266,7 @@ void Geometry::CreateListOfTrd1Modules()
   mCentersOfCellsXDir.resize(mNZ * mNETAdiv);
   mEtaCentersOfCells.resize(mNZ * mNETAdiv * mNPhi * mNPHIdiv);
 
-  LOG(DEBUG2) << " Cells grid in eta directions : size " << mCentersOfCellsEtaDir.size() << FairLogger::endl;
+  LOG(DEBUG2) << " Cells grid in eta directions : size " << mCentersOfCellsEtaDir.size();
 
   for (Int_t it = 0; it < mNZ; it++) {
     const ShishKebabTrd1Module& trd1 = GetShishKebabModule(it);
@@ -1184,14 +1307,15 @@ void Geometry::CreateListOfTrd1Modules()
   for (Int_t i = 0; i < mCentersOfCellsEtaDir.size(); i++) {
     LOG(DEBUG2) << " ind " << std::setw(2) << std::setprecision(2) << i + 1 << " : z " << std::setw(8)
                 << std::setprecision(3) << mCentersOfCellsEtaDir[i] << " : x " << std::setw(8)
-                << std::setprecision(3) << mCentersOfCellsXDir[i] << FairLogger::endl;
+                << std::setprecision(3) << mCentersOfCellsXDir[i];
   }
 }
 
 const ShishKebabTrd1Module& Geometry::GetShishKebabModule(Int_t neta) const
 {
-  if (mShishKebabTrd1Modules.size() && neta >= 0 && neta < mShishKebabTrd1Modules.size())
+  if (mShishKebabTrd1Modules.size() && neta >= 0 && neta < mShishKebabTrd1Modules.size()) {
     return mShishKebabTrd1Modules.at(neta);
+  }
   throw InvalidModuleException(neta, mShishKebabTrd1Modules.size());
 }
 
@@ -1199,26 +1323,28 @@ Bool_t Geometry::Impact(const TParticle* particle) const
 {
   Bool_t in = kFALSE;
   Int_t absID = 0;
-  Point3D<double> vimpact = {0, 0, 0};
+  math_utils::Point3D<double> vimpact = {0, 0, 0};
 
   ImpactOnEmcal({particle->Vx(), particle->Vy(), particle->Vz()}, particle->Theta(), particle->Phi(), absID, vimpact);
 
-  if (absID >= 0)
+  if (absID >= 0) {
     in = kTRUE;
+  }
 
   return in;
 }
 
-void Geometry::ImpactOnEmcal(const Point3D<double>& vtx, Double_t theta, Double_t phi, Int_t& absId, Point3D<double>& vimpact) const
+void Geometry::ImpactOnEmcal(const math_utils::Point3D<double>& vtx, Double_t theta, Double_t phi, Int_t& absId, math_utils::Point3D<double>& vimpact) const
 {
-  Vector3D<double> p(TMath::Sin(theta) * TMath::Cos(phi), TMath::Sin(theta) * TMath::Sin(phi), TMath::Cos(theta));
+  math_utils::Vector3D<double> p(TMath::Sin(theta) * TMath::Cos(phi), TMath::Sin(theta) * TMath::Sin(phi), TMath::Cos(theta));
 
   vimpact.SetXYZ(0, 0, 0);
   absId = -1;
-  if (phi == 0 || theta == 0)
+  if (phi == 0 || theta == 0) {
     return;
+  }
 
-  Vector3D<double> direction;
+  math_utils::Vector3D<double> direction;
   Double_t factor = (mIPDistance - vtx.Y()) / p.Y();
   direction = vtx + factor * p;
 
@@ -1233,7 +1359,7 @@ void Geometry::ImpactOnEmcal(const Point3D<double>& vtx, Double_t theta, Double_
   try {
     RelPosCellInSModule(absId).GetCoordinates(loc[0], loc[1], loc[2]);
   } catch (InvalidCellIDException& e) {
-    LOG(ERROR) << e.what() << FairLogger::endl;
+    LOG(ERROR) << e.what();
     return;
   }
 
@@ -1243,22 +1369,24 @@ void Geometry::ImpactOnEmcal(const Point3D<double>& vtx, Double_t theta, Double_
         nIeta = std::get<3>(cellindex);
   // look at 2 neighbours-s cell using nIphi={0,1} and nIeta={0,1}
   Int_t nIphi2 = -1, nIeta2 = -1, absId2 = -1, absId3 = -1;
-  if (nIeta == 0)
+  if (nIeta == 0) {
     nIeta2 = 1;
-  else
+  } else {
     nIeta2 = 0;
+  }
   absId2 = GetAbsCellId(nSupMod, nModule, nIphi, nIeta2);
-  if (nIphi == 0)
+  if (nIphi == 0) {
     nIphi2 = 1;
-  else
+  } else {
     nIphi2 = 0;
+  }
   absId3 = GetAbsCellId(nSupMod, nModule, nIphi2, nIeta);
 
   // 2nd point on emcal cell plane
   try {
     RelPosCellInSModule(absId2).GetCoordinates(loc2[0], loc2[1], loc2[2]);
   } catch (InvalidCellIDException& e) {
-    LOG(ERROR) << e.what() << FairLogger::endl;
+    LOG(ERROR) << e.what();
     return;
   }
 
@@ -1266,7 +1394,7 @@ void Geometry::ImpactOnEmcal(const Point3D<double>& vtx, Double_t theta, Double_
   try {
     RelPosCellInSModule(absId3).GetCoordinates(loc3[0], loc3[1], loc3[2]);
   } catch (InvalidCellIDException& e) {
-    LOG(ERROR) << e.what() << FairLogger::endl;
+    LOG(ERROR) << e.what();
     return;
   }
 
@@ -1293,10 +1421,11 @@ void Geometry::ImpactOnEmcal(const Point3D<double>& vtx, Double_t theta, Double_
   Double_t dist = mLongModuleSize / 2.;
   Double_t norm = TMath::Sqrt(a * a + b * b + c * c);
   Double_t glob4[3] = {};
-  Vector3D<double> dir = {a, b, c};
-  Point3D<double> point = {glob[0], glob[1], glob[2]};
-  if (point.Dot(dir) < 0)
+  math_utils::Vector3D<double> dir = {a, b, c};
+  math_utils::Point3D<double> point = {glob[0], glob[1], glob[2]};
+  if (point.Dot(dir) < 0) {
     dist *= -1;
+  }
   glob4[0] = glob[0] - dist * a / norm;
   glob4[1] = glob[1] - dist * b / norm;
   glob4[2] = glob[2] - dist * c / norm;
@@ -1321,67 +1450,75 @@ void Geometry::ImpactOnEmcal(const Point3D<double>& vtx, Double_t theta, Double_
   vimpact.SetXYZ(vimpact.Z() + dist * a / norm, vimpact.Y() + dist * b / norm, vimpact.Z() + dist * c / norm);
 }
 
-Bool_t Geometry::IsInEMCAL(const Point3D<double>& pnt) const
+Bool_t Geometry::IsInEMCAL(const math_utils::Point3D<double>& pnt) const
 {
-  if (IsInEMCALOrDCAL(pnt) == EMCAL_ACCEPTANCE)
+  if (IsInEMCALOrDCAL(pnt) == EMCAL_ACCEPTANCE) {
     return kTRUE;
-  else
+  } else {
     return kFALSE;
+  }
 }
 
-Bool_t Geometry::IsInDCAL(const Point3D<double>& pnt) const
+Bool_t Geometry::IsInDCAL(const math_utils::Point3D<double>& pnt) const
 {
-  if (IsInEMCALOrDCAL(pnt) == DCAL_ACCEPTANCE)
+  if (IsInEMCALOrDCAL(pnt) == DCAL_ACCEPTANCE) {
     return kTRUE;
-  else
+  } else {
     return kFALSE;
+  }
 }
 
-o2::emcal::AcceptanceType_t Geometry::IsInEMCALOrDCAL(const Point3D<double>& pnt) const
+o2::emcal::AcceptanceType_t Geometry::IsInEMCALOrDCAL(const math_utils::Point3D<double>& pnt) const
 {
   Double_t r = sqrt(pnt.X() * pnt.X() + pnt.Y() * pnt.Y());
 
-  if (r <= mEnvelop[0])
+  if (r <= mEnvelop[0]) {
     return NON_ACCEPTANCE;
-  else {
+  } else {
     Double_t theta = TMath::ATan2(r, pnt.Z());
     Double_t eta;
-    if (theta == 0)
+    if (theta == 0) {
       eta = 9999;
-    else
+    } else {
       eta = -TMath::Log(TMath::Tan(theta / 2.));
-    if (eta < mArm1EtaMin || eta > mArm1EtaMax)
+    }
+    if (eta < mArm1EtaMin || eta > mArm1EtaMax) {
       return NON_ACCEPTANCE;
+    }
 
     Double_t phi = TMath::ATan2(pnt.Y(), pnt.X()) * 180. / TMath::Pi();
-    if (phi < 0)
+    if (phi < 0) {
       phi += 360; // phi should go from 0 to 360 in this case
+    }
 
-    if (phi >= mArm1PhiMin && phi <= mEMCALPhiMax)
+    if (phi >= mArm1PhiMin && phi <= mEMCALPhiMax) {
       return EMCAL_ACCEPTANCE;
-    else if (phi >= mDCALPhiMin && phi <= mDCALStandardPhiMax && TMath::Abs(eta) > mDCALInnerExtandedEta)
+    } else if (phi >= mDCALPhiMin && phi <= mDCALStandardPhiMax && TMath::Abs(eta) > mDCALInnerExtandedEta) {
       return DCAL_ACCEPTANCE;
-    else if (phi > mDCALStandardPhiMax && phi <= mDCALPhiMax)
+    } else if (phi > mDCALStandardPhiMax && phi <= mDCALPhiMax) {
       return DCAL_ACCEPTANCE;
+    }
     return NON_ACCEPTANCE;
   }
 }
 
 const TGeoHMatrix* Geometry::GetMatrixForSuperModule(Int_t smod) const
 {
-  if (smod < 0 || smod > mNumberOfSuperModules)
-    LOG(FATAL) << "Wrong supermodule index -> " << smod << FairLogger::endl;
+  if (smod < 0 || smod > mNumberOfSuperModules) {
+    LOG(FATAL) << "Wrong supermodule index -> " << smod;
+  }
 
   if (!SMODULEMATRIX[smod]) {
-    if (gGeoManager)
+    if (gGeoManager) {
       SetMisalMatrix(GetMatrixForSuperModuleFromGeoManager(smod), smod);
-    else
+    } else {
       LOG(FATAL) << "Cannot find EMCAL misalignment matrices! Recover them either: \n"
                  << "\t - importing TGeoManager from file geometry.root or \n"
                  << "\t - from OADB in file OADB/EMCAL/EMCALlocal2master.root or \n"
                  << "\t - from OCDB in directory OCDB/EMCAL/Align/Data/ or \n"
                  << "\t - from AliESDs (not in AliAOD) via AliESDRun::GetEMCALMatrix(Int_t superModIndex). \n"
                  << "Store them via AliEMCALGeometry::SetMisalMatrix(Int_t superModIndex)";
+    }
   }
 
   return SMODULEMATRIX[smod];
@@ -1389,8 +1526,9 @@ const TGeoHMatrix* Geometry::GetMatrixForSuperModule(Int_t smod) const
 
 const TGeoHMatrix* Geometry::GetMatrixForSuperModuleFromArray(Int_t smod) const
 {
-  if (smod < 0 || smod > mNumberOfSuperModules)
-    LOG(FATAL) << "Wrong supermodule index -> " << smod << FairLogger::endl;
+  if (smod < 0 || smod > mNumberOfSuperModules) {
+    LOG(FATAL) << "Wrong supermodule index -> " << smod;
+  }
 
   return SMODULEMATRIX[smod];
 }
@@ -1415,23 +1553,25 @@ const TGeoHMatrix* Geometry::GetMatrixForSuperModuleFromGeoManager(Int_t smod) c
   Int_t smType = GetSMType(smod);
   TString smName = "";
 
-  if (smType == EMCAL_STANDARD)
+  if (smType == EMCAL_STANDARD) {
     smName = "SMOD";
-  else if (smType == EMCAL_HALF)
+  } else if (smType == EMCAL_HALF) {
     smName = "SM10";
-  else if (smType == EMCAL_THIRD)
+  } else if (smType == EMCAL_THIRD) {
     smName = "SM3rd";
-  else if (smType == DCAL_STANDARD)
+  } else if (smType == DCAL_STANDARD) {
     smName = "DCSM";
-  else if (smType == DCAL_EXT)
+  } else if (smType == DCAL_EXT) {
     smName = "DCEXT";
-  else
+  } else {
     LOG(ERROR) << "Unkown SM Type!!\n";
+  }
 
-  snprintf(path, buffersize, "/ALIC_1/XEN1_1/%s_%d", smName.Data(), smOrder);
+  snprintf(path, buffersize, "/cave/barrel_1/%s_%d", smName.Data(), smOrder);
 
-  if (!gGeoManager->cd(path))
+  if (!gGeoManager->cd(path)) {
     LOG(FATAL) << "Geo manager can not find path " << path << "!\n";
+  }
 
   return gGeoManager->GetCurrentMatrix();
 }
@@ -1449,7 +1589,7 @@ void Geometry::RecalculateTowerPosition(Float_t drow, Float_t dcol, const Int_t 
 
     const Int_t nSMod = mNumberOfSuperModules;
 
-    gGeoManager->cd("ALIC_1/XEN1_1");
+    gGeoManager->cd("/cave/barrel_1/");
     TGeoNode* geoXEn1 = gGeoManager->GetCurrentNode();
     TGeoNodeMatrix* geoSM[nSMod];
     TGeoVolume* geoSMVol[nSMod];
@@ -1491,13 +1631,11 @@ void Geometry::RecalculateTowerPosition(Float_t drow, Float_t dcol, const Int_t 
 
     // Do some basic checks
     if (dcol >= 47.5 || dcol < -0.5) {
-      LOG(ERROR) << "Bad tower coordinate dcol=" << dcol << ", where dcol >= 47.5 || dcol<-0.5; org: " << dcolorg
-                 << FairLogger::endl;
+      LOG(ERROR) << "Bad tower coordinate dcol=" << dcol << ", where dcol >= 47.5 || dcol<-0.5; org: " << dcolorg;
       return;
     }
     if (drow >= 23.5 || drow < -0.5) {
-      LOG(ERROR) << "Bad tower coordinate drow=" << drow << ", where drow >= 23.5 || drow<-0.5; org: " << droworg
-                 << FairLogger::endl;
+      LOG(ERROR) << "Bad tower coordinate drow=" << drow << ", where drow >= 23.5 || drow<-0.5; org: " << droworg;
       return;
     }
     if (sm >= nSMod || sm < 0) {
@@ -1515,11 +1653,12 @@ void Geometry::RecalculateTowerPosition(Float_t drow, Float_t dcol, const Int_t 
 
     for (int is = 0; is <= istrip; is++) {
       teta1 = TMath::DegToRad() * (is * 1.5 + 0.75);
-      if (is == 0)
+      if (is == 0) {
         zIs = zIs + 2 * dz * TMath::Cos(teta1);
-      else
+      } else {
         zIs =
           zIs + 2 * dz * TMath::Cos(teta1) + 2 * dz * TMath::Sin(teta1) * TMath::Tan(teta1 - 0.75 * TMath::DegToRad());
+      }
     }
 
     z0 = dz * (dcol - 2 * istrip + 0.5);
@@ -1568,8 +1707,9 @@ void Geometry::RecalculateTowerPosition(Float_t drow, Float_t dcol, const Int_t 
 void Geometry::SetMisalMatrix(const TGeoHMatrix* m, Int_t smod) const
 {
   if (smod >= 0 && smod < mNumberOfSuperModules) {
-    if (!SMODULEMATRIX[smod])
+    if (!SMODULEMATRIX[smod]) {
       SMODULEMATRIX[smod] = new TGeoHMatrix(*m); // Set only if not set yet
+    }
   } else {
     LOG(FATAL) << "Wrong supermodule index -> " << smod << std::endl;
   }
@@ -1577,16 +1717,18 @@ void Geometry::SetMisalMatrix(const TGeoHMatrix* m, Int_t smod) const
 
 Bool_t Geometry::IsDCALSM(Int_t iSupMod) const
 {
-  if (mEMCSMSystem[iSupMod] == DCAL_STANDARD || mEMCSMSystem[iSupMod] == DCAL_EXT)
+  if (mEMCSMSystem[iSupMod] == DCAL_STANDARD || mEMCSMSystem[iSupMod] == DCAL_EXT) {
     return kTRUE;
+  }
 
   return kFALSE;
 }
 
 Bool_t Geometry::IsDCALExtSM(Int_t iSupMod) const
 {
-  if (mEMCSMSystem[iSupMod] == DCAL_EXT)
+  if (mEMCSMSystem[iSupMod] == DCAL_EXT) {
     return kTRUE;
+  }
 
   return kFALSE;
 }
@@ -1606,15 +1748,17 @@ Double_t Geometry::GetPhiCenterOfSM(Int_t nsupmod) const
 std::tuple<double, double> Geometry::GetPhiBoundariesOfSM(Int_t nSupMod) const
 {
   int i;
-  if (nSupMod < 0 || nSupMod > 12 + mnSupModInDCAL - 1)
+  if (nSupMod < 0 || nSupMod > 12 + mnSupModInDCAL - 1) {
     throw InvalidModuleException(nSupMod, 12 + mnSupModInDCAL);
+  }
   i = nSupMod / 2;
   return std::make_tuple((Double_t)mPhiBoundariesOfSM[2 * i], (Double_t)mPhiBoundariesOfSM[2 * i + 1]);
 }
 
 std::tuple<double, double> Geometry::GetPhiBoundariesOfSMGap(Int_t nPhiSec) const
 {
-  if (nPhiSec < 0 || nPhiSec > 5 + mnSupModInDCAL / 2 - 1)
+  if (nPhiSec < 0 || nPhiSec > 5 + mnSupModInDCAL / 2 - 1) {
     throw InvalidModuleException(nPhiSec, 5 + mnSupModInDCAL / 2);
+  }
   return std::make_tuple(mPhiBoundariesOfSM[2 * nPhiSec + 1], mPhiBoundariesOfSM[2 * nPhiSec + 2]);
 }

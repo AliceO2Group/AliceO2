@@ -41,15 +41,16 @@ Bool_t DigitDataReader::getNextStripData(StripData& stripData)
 
   while (mIdx < mDigitArray->size()) {
     mLastDigit = &((*mDigitArray)[mIdx++]);
-    if (stripData.stripID != mLastDigit->getChannel() / Geo::NPADS)
+    if (stripData.stripID != mLastDigit->getChannel() / Geo::NPADS) {
       break;
+    }
     stripData.digits.emplace_back(*mLastDigit);
     mLastDigit = nullptr;
   }
 
   // sorting the digits of the current strip according to the TDC
   std::sort(stripData.digits.begin(), stripData.digits.end(),
-            [](const Digit& a, const Digit& b) { return a.getTDC() < b.getTDC(); });
+            [](const Digit& a, const Digit& b) { if(a.getBC() != b.getBC()){ return a.getBC() < b.getBC();} return a.getTDC() < b.getTDC(); });
 
   return kTRUE;
 }

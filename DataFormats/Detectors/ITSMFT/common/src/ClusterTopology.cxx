@@ -14,6 +14,7 @@
 /// \author Luca Barioglio, University and INFN of Torino
 
 #include "DataFormatsITSMFT/ClusterTopology.h"
+#include "Framework/Logger.h"
 #include <iostream>
 #include <TMath.h>
 
@@ -25,14 +26,25 @@ namespace itsmft
 {
 ClusterTopology::ClusterTopology() : mPattern{}, mHash{0} {}
 
-ClusterTopology::ClusterTopology(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes]) : mHash{0}
+ClusterTopology::ClusterTopology(int nRow, int nCol, const unsigned char patt[ClusterPattern::MaxPatternBytes]) : mHash{0}
 {
   setPattern(nRow, nCol, patt);
 }
 
-void ClusterTopology::setPattern(int nRow, int nCol, const unsigned char patt[Cluster::kMaxPatternBytes])
+ClusterTopology::ClusterTopology(const ClusterPattern& patt)
+{
+  setPattern(patt);
+}
+
+void ClusterTopology::setPattern(int nRow, int nCol, const unsigned char patt[ClusterPattern::MaxPatternBytes])
 {
   mPattern.setPattern(nRow, nCol, patt);
+  mHash = getCompleteHash(*this);
+}
+
+void ClusterTopology::setPattern(const ClusterPattern& patt)
+{
+  mPattern = patt;
   mHash = getCompleteHash(*this);
 }
 
@@ -78,15 +90,16 @@ unsigned int ClusterTopology::hashFunction(const void* key, int len)
 }
 
 unsigned long ClusterTopology::getCompleteHash(int nRow, int nCol,
-                                               const unsigned char patt[Cluster::kMaxPatternBytes])
+                                               const unsigned char patt[ClusterPattern::MaxPatternBytes])
 {
   unsigned char extended_pattern[ClusterPattern::kExtendedPatternBytes] = {0};
   extended_pattern[0] = (unsigned char)nRow;
   extended_pattern[1] = (unsigned char)nCol;
   int nBits = nRow * nCol;
   int nBytes = nBits / 8;
-  if (nBits % 8 != 0)
+  if (nBits % 8 != 0) {
     nBytes++;
+  }
   memcpy(&extended_pattern[2], patt, nBytes);
 
   unsigned long partialHash = (unsigned long)hashFunction(extended_pattern, nBytes);
@@ -137,45 +150,15 @@ unsigned long ClusterTopology::getCompleteHash(const ClusterTopology& topology)
   return completeHash;
 }
 
+void ClusterTopology::print() const
+{
+  std::cout << (*this) << "\n";
+}
+
 std::ostream& operator<<(std::ostream& os, const ClusterTopology& topology)
 {
   os << topology.mPattern << std::endl;
   return os;
-}
-
-void ClusterTopology::getCOGshift(int nRows, int nCols, const unsigned char patt[Cluster::kMaxPatternBytes], int& rowShift, int& colShift)
-{
-  int tempxCOG = 0, tempzCOG = 0, tempFiredPixels = 0, s = 0, ic = 0, ir = 0;
-  int nBits = nRows * nCols;
-  int nBytes = nBits / 8;
-  if (nBits % 8 != 0) {
-    nBytes++;
-  }
-  for (unsigned int i = 0; i < nBytes; i++) {
-    unsigned char tempChar = patt[i];
-    s = 128; // 0b10000000
-    while (s > 0) {
-      if ((tempChar & s) != 0) {
-        tempFiredPixels++;
-        tempxCOG += ir;
-        tempzCOG += ic;
-      }
-      ic++;
-      s /= 2;
-      if ((ir + 1) * ic == nBits) {
-        break;
-      }
-      if (ic == nCols) {
-        ic = 0;
-        ir++;
-      }
-    }
-    if ((ir + 1) * ic == nBits) {
-      break;
-    }
-  }
-  rowShift = TMath::Nint(float(tempxCOG) / tempFiredPixels);
-  colShift = TMath::Nint(float(tempzCOG) / tempFiredPixels);
 }
 
 } // namespace itsmft

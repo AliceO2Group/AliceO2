@@ -18,14 +18,9 @@
 
 using namespace o2::track;
 
-constexpr const char* PID::sNames[NIDs + 1];
-constexpr const float PID::sMasses[NIDs];
-constexpr const float PID::sMasses2Z[NIDs];
-constexpr const int PID::sCharges[NIDs];
-
 //_______________________________
 PID::PID(const char* name) : mID(nameToID(name, First))
 {
   // construct from the name
-  assert(mID < NIDs);
+  assert(mID < NIDsTot);
 }

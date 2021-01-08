@@ -7,14 +7,12 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_CHANNELSPEC_H
-#define FRAMEWORK_CHANNELSPEC_H
+#ifndef O2_FRAMEWORK_CHANNELSPEC_H_
+#define O2_FRAMEWORK_CHANNELSPEC_H_
 
 #include <string>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// These map to zeromq connection
@@ -30,15 +28,30 @@ enum struct ChannelType {
   Sub,
   Push,
   Pull,
+  Pair
+};
+
+/// The kind of backend to use for the channels
+enum struct ChannelProtocol {
+  Network,
+  IPC
 };
 
 /// This describes an input channel. Since they are point to
 /// point connections, there is not much to say about them.
+/// Notice that this should be considered read only once it
+/// has been created.
 struct InputChannelSpec {
   std::string name;
   enum ChannelType type;
   enum ChannelMethod method;
+  std::string hostname;
   unsigned short port;
+  ChannelProtocol protocol = ChannelProtocol::Network;
+  size_t rateLogging = 0;
+  size_t recvBufferSize = 1000;
+  size_t sendBufferSize = 1000;
+  std::string ipcPrefix = ".";
 };
 
 /// This describes an output channel. Output channels are semantically
@@ -50,11 +63,16 @@ struct OutputChannelSpec {
   std::string name;
   enum ChannelType type;
   enum ChannelMethod method;
+  std::string hostname;
   unsigned short port;
   size_t listeners;
+  ChannelProtocol protocol = ChannelProtocol::Network;
+  size_t rateLogging = 0;
+  size_t recvBufferSize = 1000;
+  size_t sendBufferSize = 1000;
+  std::string ipcPrefix = ".";
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // FRAMEWORK_CHANNELSPEC_H
+#endif // O2_FRAMEWORK_CHANNELSPEC_H_

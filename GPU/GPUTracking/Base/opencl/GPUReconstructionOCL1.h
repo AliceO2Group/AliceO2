@@ -17,9 +17,9 @@
 #include "GPUReconstructionOCL.h"
 
 #ifdef _WIN32
-extern "C" __declspec(dllexport) GPUCA_NAMESPACE::gpu::GPUReconstruction* GPUReconstruction_Create_OCL(const GPUCA_NAMESPACE::gpu::GPUSettingsProcessing& cfg);
+extern "C" __declspec(dllexport) GPUCA_NAMESPACE::gpu::GPUReconstruction* GPUReconstruction_Create_OCL(const GPUCA_NAMESPACE::gpu::GPUSettingsDeviceBackend& cfg);
 #else
-extern "C" GPUCA_NAMESPACE::gpu::GPUReconstruction* GPUReconstruction_Create_OCL(const GPUCA_NAMESPACE::gpu::GPUSettingsProcessing& cfg);
+extern "C" GPUCA_NAMESPACE::gpu::GPUReconstruction* GPUReconstruction_Create_OCL(const GPUCA_NAMESPACE::gpu::GPUSettingsDeviceBackend& cfg);
 #endif
 
 namespace GPUCA_NAMESPACE::gpu
@@ -32,12 +32,12 @@ class GPUReconstructionOCL1Backend : public GPUReconstructionOCL
   ~GPUReconstructionOCL1Backend() override = default;
 
  protected:
-  GPUReconstructionOCL1Backend(const GPUSettingsProcessing& cfg);
+  GPUReconstructionOCL1Backend(const GPUSettingsDeviceBackend& cfg);
 
   template <class T, int I = 0, typename... Args>
-  int runKernelBackend(const krnlExec& x, const krnlRunRange& y, const krnlEvent& z, const Args&... args);
-  template <class S, class T, int I = 0>
-  S& getKernelObject(int num);
+  int runKernelBackend(krnlSetup& _xyz, const Args&... args);
+  template <class S, class T, int I, bool MULTI>
+  S& getKernelObject();
 
   RecoStepField AvailableRecoSteps() override { return (RecoStep::TPCSliceTracking); }
   bool ContextForAllPlatforms() override { return true; }

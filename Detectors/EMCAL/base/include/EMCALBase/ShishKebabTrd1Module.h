@@ -25,10 +25,9 @@ namespace o2
 namespace emcal
 {
 
-//_________________________________________________________________________
 /// \class ShishKebabTrd1Module
-/// \ingroup EMCALUtils
 /// \brief Main class for TRD1 geometry of Shish-Kebab case.
+/// \ingroup EMCALbase
 ///
 /// Sep 20004 - Nov 2006; Apr 2010
 /// See web page with description of Shish-Kebab geometries:
@@ -40,42 +39,30 @@ namespace emcal
 class ShishKebabTrd1Module
 {
  public:
-  ///
-  /// Constructor.
-  ///
+  /// \brief Constructor.
   ShishKebabTrd1Module(Double_t theta = 0.0, Geometry* g = nullptr);
 
-  ///
-  /// Constructor.
-  ///
+  /// \brief Constructor.
   ShishKebabTrd1Module(ShishKebabTrd1Module& leftNeighbor);
 
-  ///
-  /// Init (add explanation)
-  ///
+  /// \brief Init (add explanation)
   void Init(Double_t A, Double_t B);
 
-  ///
-  /// Define more things (add explanation)
-  ///
+  /// \brief Define more things (add explanation)
   void DefineAllStuff();
 
-  ///
-  /// Copy Constructor.
-  ///
+  /// \brief Copy Constructor.
   ShishKebabTrd1Module(const ShishKebabTrd1Module& mod);
 
   ShishKebabTrd1Module& operator=(const ShishKebabTrd1Module& /*rvalue*/)
   {
-    LOG(FATAL) << "operator = not implemented" << FairLogger::endl;
+    LOG(FATAL) << "operator = not implemented";
     return *this;
   }
 
   ~ShishKebabTrd1Module() = default;
 
-  ///
-  /// Recover module parameters stored in geometry
-  ///
+  /// \brief Recover module parameters stored in geometry
   Bool_t SetParameters();
 
   ///
@@ -101,10 +88,11 @@ class ShishKebabTrd1Module
   //  ieta=0 or 1 - Jun 02, 2006
   const TVector2& GetCenterOfCellInLocalCoordinateofSM(Int_t ieta) const
   {
-    if (ieta <= 0)
+    if (ieta <= 0) {
       return mOK2;
-    else
+    } else {
       return mOK1;
+    }
   }
 
   void GetCenterOfCellInLocalCoordinateofSM(Int_t ieta, Double_t& xr, Double_t& zr) const
@@ -117,16 +105,17 @@ class ShishKebabTrd1Module
       zr = mOK1.X();
     }
     LOG(DEBUG2) << " ieta " << std::setw(2) << std::setprecision(2) << ieta << " xr " << std::setw(8)
-                << std::setprecision(4) << xr << " zr " << std::setw(8) << std::setprecision(4) << zr
-                << FairLogger::endl;
+                << std::setprecision(4) << xr << " zr " << std::setw(8) << std::setprecision(4) << zr;
   }
 
   void GetCenterOfCellInLocalCoordinateofSM3X3(Int_t ieta, Double_t& xr, Double_t& zr) const
   { // 3X3 case - Nov 9,2006
-    if (ieta < 0)
+    if (ieta < 0) {
       ieta = 0; // ieta = ieta<0? ieta=0 : ieta; // check index
-    if (ieta > 2)
+    }
+    if (ieta > 2) {
       ieta = 2; // ieta = ieta>2? ieta=2 : ieta;
+    }
     xr = mOK3X3[2 - ieta].Y();
     zr = mOK3X3[2 - ieta].X();
   }
@@ -141,10 +130,11 @@ class ShishKebabTrd1Module
   const TVector2& GetCenterOfModuleFace() const { return mOB; }
   const TVector2& GetCenterOfModuleFace(Int_t ieta) const
   {
-    if (ieta <= 0)
+    if (ieta <= 0) {
       return mOB2;
-    else
+    } else {
       return mOB1;
+    }
   }
 
   // Jul 30, 2007

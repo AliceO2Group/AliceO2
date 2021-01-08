@@ -8,46 +8,80 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <iostream>
 #include <vector>
+#include <type_traits>
+#include <gsl/span>
 
 #include "FairLogger.h"
 
 #include "Framework/ControlService.h"
 #include "Framework/DataRefUtils.h"
 #include "DataFormatsEMCAL/EMCALBlockHeader.h"
+#include "DataFormatsEMCAL/Cell.h"
 #include "DataFormatsEMCAL/Digit.h"
+#include "DataFormatsEMCAL/TriggerRecord.h"
 #include "EMCALWorkflow/DigitsPrinterSpec.h"
 
-o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getEmcalDigitsPrinterSpec()
+using namespace o2::emcal::reco_workflow;
+
+template <class InputType>
+void DigitsPrinterSpec<InputType>::init(o2::framework::InitContext& ctx)
 {
-  auto initFunction = [](o2::framework::InitContext& ctx) {
-    auto processFunction = [](o2::framework::ProcessingContext& pc) {
-      // Get the EMCAL block header and check whether it contains digits
-      LOG(DEBUG) << "[EMCALDigitsPrinter - process] called";
-      auto dataref = pc.inputs().get("digits");
-      auto const* emcheader = o2::framework::DataRefUtils::getHeader<o2::emcal::EMCALBlockHeader*>(dataref);
-      if (!emcheader->mHasPayload) {
-        LOG(DEBUG) << "[EMCALDigitsPrinter - process] No more digits" << std::endl;
-        pc.services().get<o2::framework::ControlService>().readyToQuit(false);
-        return;
-      }
-
-      auto digits = pc.inputs().get<std::vector<o2::emcal::Digit>>("digits");
-      std::cout << "[EMCALDigitsPrinter - process] receiveed " << digits.size() << " digits ..." << std::endl;
-      if (digits.size()) {
-        for (const auto& d : digits) {
-          std::cout << "[EMCALDigitsPrinter - process] Channel: " << d.getTower() << std::endl;
-          std::cout << "[EMCALDigitsPrinter - process] Energy: " << d.getEnergy() << std::endl;
-          //std::cout << d << std::endl;
-        }
-      }
-    };
-
-    return processFunction;
-  };
-
-  return o2::framework::DataProcessorSpec{"EMCALDigitsPrinter",
-                                          {{"digits", o2::header::gDataOriginEMC, "DIGITS", 0, o2::framework::Lifetime::Timeframe}},
-                                          {},
-                                          o2::framework::AlgorithmSpec(initFunction)};
 }
+
+template <class InputType>
+void DigitsPrinterSpec<InputType>::run(framework::ProcessingContext& pc)
+{
+  // Get the EMCAL block header and check whether it contains digits
+  LOG(DEBUG) << "[EMCALDigitsPrinter - process] called";
+  std::string objectbranch;
+  if constexpr (std::is_same<InputType, o2::emcal::Digit>::value) {
+    objectbranch = "digits";
+  } else if constexpr (std::is_same<InputType, o2::emcal::Cell>::value) {
+    objectbranch = "cells";
+  } else {
+    LOG(ERROR) << "Unsupported input type ... ";
+    return;
+  }
+
+  auto objects = pc.inputs().get<gsl::span<InputType>>(objectbranch);
+  auto triggerrecords = pc.inputs().get<gsl::span<o2::emcal::TriggerRecord>>("triggerrecord");
+  std::cout << "[EMCALDigitsPrinter - process] receiveed " << objects.size() << " digits from " << triggerrecords.size() << " triggers ..." << std::endl;
+  if (triggerrecords.size()) {
+    for (const auto& trg : triggerrecords) {
+      if (!trg.getNumberOfObjects()) {
+        std::cout << "[EMCALDigitsPrinter - process] Trigger does not contain " << objectbranch << ", skipping ..." << std::endl;
+        continue;
+      }
+      std::cout << "[EMCALDigitsPrinter - process] Trigger has " << trg.getNumberOfObjects() << " " << objectbranch << " ..." << std::endl;
+      gsl::span<const InputType> objectsTrigger(objects.data() + trg.getFirstEntry(), trg.getNumberOfObjects());
+      for (const auto& d : objectsTrigger) {
+        std::cout << "[EMCALDigitsPrinter - process] Channel: " << d.getTower() << std::endl;
+        std::cout << "[EMCALDigitsPrinter - process] Energy: " << d.getEnergy() << std::endl;
+        //std::cout << d << std::endl;
+      }
+    }
+  }
+}
+
+o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getEmcalDigitsPrinterSpec(std::string inputtype)
+{
+  if (inputtype == "digits") {
+    return o2::framework::DataProcessorSpec{"EMCALDigitsPrinter",
+                                            {{"digits", o2::header::gDataOriginEMC, "DIGITS", 0, o2::framework::Lifetime::Timeframe},
+                                             {"triggerrecord", o2::header::gDataOriginEMC, "DIGITSTRGR", 0, o2::framework::Lifetime::Timeframe}},
+                                            {},
+                                            o2::framework::adaptFromTask<o2::emcal::reco_workflow::DigitsPrinterSpec<o2::emcal::Digit>>()};
+  } else if (inputtype == "cells") {
+    return o2::framework::DataProcessorSpec{"EMCALDigitsPrinter",
+                                            {{"cells", o2::header::gDataOriginEMC, "CELLS", 0, o2::framework::Lifetime::Timeframe},
+                                             {"triggerrecord", o2::header::gDataOriginEMC, "CELLSTRGR", 0, o2::framework::Lifetime::Timeframe}},
+                                            {},
+                                            o2::framework::adaptFromTask<o2::emcal::reco_workflow::DigitsPrinterSpec<o2::emcal::Cell>>()};
+  }
+  throw std::runtime_error("Input type not supported");
+}
+
+//template class o2::emcal::reco_workflow::DigitsPrinterSpec<o2::emcal::Digit>;
+//template class o2::emcal::reco_workflow::DigitsPrinterSpec<o2::emcal::Cell>;

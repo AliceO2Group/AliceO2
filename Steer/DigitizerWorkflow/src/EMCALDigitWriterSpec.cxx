@@ -11,19 +11,13 @@
 /// @brief  Processor spec for a ROOT file writer for EMCAL digits
 
 #include "EMCALDigitWriterSpec.h"
-#include "Framework/CallbackService.h"
-#include "Framework/ControlService.h"
-#include <SimulationDataFormat/MCCompLabel.h>
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include <SimulationDataFormat/MCTruthContainer.h>
-#include "TTree.h"
-#include "TBranch.h"
-#include "TFile.h"
 #include "DataFormatsEMCAL/Digit.h"
-#include <memory> // for make_shared, make_unique, unique_ptr
-#include <vector>
+#include <DataFormatsEMCAL/MCLabel.h>
+#include "DataFormatsEMCAL/TriggerRecord.h"
 
 using namespace o2::framework;
-using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
 namespace o2
 {
@@ -31,86 +25,21 @@ namespace emcal
 {
 
 template <typename T>
-TBranch* getOrMakeBranch(TTree& tree, std::string brname, T* ptr)
-{
-  if (auto br = tree.GetBranch(brname.c_str())) {
-    br->SetAddress(static_cast<void*>(&ptr));
-    return br;
-  }
-  // otherwise make it
-  return tree.Branch(brname.c_str(), ptr);
-}
+using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
 
 /// create the processor spec
 /// describing a processor receiving digits for EMCal writing them to file
-DataProcessorSpec getEMCALDigitWriterSpec()
+DataProcessorSpec getEMCALDigitWriterSpec(bool mctruth)
 {
-  auto initFunction = [](InitContext& ic) {
-    // get the option from the init context
-    auto filename = ic.options().get<std::string>("emcal-digit-outfile");
-    auto treename = ic.options().get<std::string>("treename");
-
-    auto outputfile = std::make_shared<TFile>(filename.c_str(), "RECREATE");
-    auto outputtree = std::make_shared<TTree>(treename.c_str(), treename.c_str());
-
-    // container for incoming digits
-    auto digits = std::make_shared<std::vector<o2::emcal::Digit>>();
-
-    // the callback to be set as hook at stop of processing for the framework
-    auto finishWriting = [outputfile, outputtree]() {
-      outputtree->SetEntries(1);
-      outputtree->Write();
-      outputfile->Close();
-    };
-    ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishWriting);
-
-    // setup the processing function
-    // using by-copy capture of the worker instance shared pointer
-    // the shared pointer makes sure to clean up the instance when the processing
-    // function gets out of scope
-    auto processingFct = [outputfile, outputtree, digits](ProcessingContext& pc) {
-      static bool finished = false;
-      if (finished) {
-        // avoid being executed again when marked as finished;
-        return;
-      }
-
-      // retrieve the digits from the input
-      auto indata = pc.inputs().get<std::vector<o2::emcal::Digit>>("emcaldigits");
-      LOG(INFO) << "RECEIVED DIGITS SIZE " << indata.size();
-      *digits.get() = std::move(indata);
-
-      // connect this to a particular branch
-      auto br = getOrMakeBranch(*outputtree.get(), "EMCALDigit", digits.get());
-      br->Fill();
-
-      // retrieve labels from the input
-      auto labeldata = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("emcaldigitlabels");
-      LOG(INFO) << "EMCAL GOT " << labeldata->getNElements() << " LABELS ";
-      auto labeldataraw = labeldata.get();
-      // connect this to a particular branch
-      auto labelbr = getOrMakeBranch(*outputtree.get(), "EMCALDigitMCTruth", &labeldataraw);
-      labelbr->Fill();
-
-      finished = true;
-      pc.services().get<ControlService>().readyToQuit(false);
-    };
-
-    // return the actual processing function as a lambda function using variables
-    // of the init function
-    return processingFct;
-  };
-
-  return DataProcessorSpec{
-    "EMCALDigitWriter",
-    Inputs{InputSpec{"emcaldigits", "EMC", "DIGITS", 0, Lifetime::Timeframe},
-           InputSpec{"emcaldigitlabels", "EMC", "DIGITSMCTR", 0, Lifetime::Timeframe}},
-    {}, // no output
-    AlgorithmSpec(initFunction),
-    Options{
-      {"emcal-digit-outfile", VariantType::String, "emcaldigits.root", {"Name of the input file"}},
-      {"treename", VariantType::String, "o2sim", {"Name of top-level TTree"}},
-    }};
+  using InputSpec = framework::InputSpec;
+  using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
+  return MakeRootTreeWriterSpec("EMCALDigitWriter",
+                                "emcaldigits.root",
+                                "o2sim",
+                                1,
+                                BranchDefinition<std::vector<o2::emcal::Digit>>{InputSpec{"emcaldigits", "EMC", "DIGITS"}, "EMCALDigit"},
+                                BranchDefinition<std::vector<o2::emcal::TriggerRecord>>{InputSpec{"trgrecorddigits", "EMC", "TRGRDIG"}, "EMCALDigitTRGR"},
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>>{InputSpec{"emcaldigitlabels", "EMC", "DIGITSMCTR"}, "EMCALDigitMCTruth", mctruth ? 1 : 0})();
 }
 } // end namespace emcal
 } // end namespace o2

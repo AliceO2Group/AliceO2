@@ -23,9 +23,10 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITStracking/Configuration.h"
 #include "ITStracking/ROframe.h"
-#include "ITStracking/json.h"
 #include "ITStracking/Label.h"
 #include "ITStracking/Road.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
+#include "ReconstructionDataFormats/BaseCluster.h"
 
 namespace o2
 {
@@ -40,28 +41,33 @@ class MCTruthContainer;
 
 namespace itsmft
 {
-class Cluster;
+class CompClusterExt;
+class TopologyDictionary;
 }
 
 namespace its
 {
 
-void to_json(nlohmann::json& j, const TrackingParameters& par);
-void from_json(const nlohmann::json& j, TrackingParameters& par);
-void to_json(nlohmann::json& j, const MemoryParameters& par);
-void from_json(const nlohmann::json& j, MemoryParameters& par);
-void to_json(nlohmann::json& j, const IndexTableParameters& par);
-void from_json(const nlohmann::json& j, IndexTableParameters& par);
-
 namespace ioutils
 {
-void loadConfigurations(const std::string&);
+constexpr float DefClusErrorRow = o2::itsmft::SegmentationAlpide::PitchRow * 0.5;
+constexpr float DefClusErrorCol = o2::itsmft::SegmentationAlpide::PitchCol * 0.5;
+constexpr float DefClusError2Row = DefClusErrorRow * DefClusErrorRow;
+constexpr float DefClusError2Col = DefClusErrorCol * DefClusErrorCol;
+
 std::vector<ROframe> loadEventData(const std::string&);
-void loadEventData(ROframe& events, const std::vector<itsmft::Cluster>* mClustersArray,
-                   const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr);
-int loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& events, const std::vector<itsmft::Cluster>* mClustersArray,
+void loadEventData(ROframe& events, gsl::span<const itsmft::CompClusterExt> clusters,
+                   gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
+                   const dataformats::MCTruthContainer<MCCompLabel>* clsLabels = nullptr);
+int loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& events, gsl::span<const itsmft::CompClusterExt> clusters,
+                    gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
                     const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr);
-void generateSimpleData(ROframe& event, const int phiDivs, const int zDivs);
+// void generateSimpleData(ROframe& event, const int phiDivs, const int zDivs);
+
+void convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,
+                            gsl::span<const unsigned char>::iterator& pattIt,
+                            std::vector<o2::BaseCluster<float>>& output,
+                            const itsmft::TopologyDictionary& dict);
 
 std::vector<std::unordered_map<int, Label>> loadLabels(const int, const std::string&);
 void writeRoadsReport(std::ofstream&, std::ofstream&, std::ofstream&, const std::vector<std::vector<Road>>&,

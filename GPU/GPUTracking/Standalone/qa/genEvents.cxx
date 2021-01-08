@@ -31,7 +31,7 @@
 #include "GPUTPCClusterData.h"
 #include "GPUTPCMCInfo.h"
 #include "AliHLTTPCClusterMCData.h"
-#include "GPUParam.h"
+#include "GPUParam.inc"
 #include "GPUTPCGMPhysicalTrackModel.h"
 #include "GPUTPCGMPropagator.h"
 #include "GPUTPCGMMerger.h"
@@ -41,6 +41,10 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace std;
+namespace GPUCA_NAMESPACE::gpu
+{
+extern GPUSettingsStandalone configStandalone;
+}
 
 int genEvents::GetSlice(double GlobalPhi)
 {
@@ -87,7 +91,7 @@ double genEvents::GetGaus(double sigma)
   double x = 0;
   do {
     x = gRandom->Gaus(0., sigma);
-    if (fabsf(x) <= 3.5 * sigma) {
+    if (fabs(x) <= 3.5 * sigma) {
       break;
     }
   } while (1);
@@ -153,7 +157,7 @@ int genEvents::GenerateEvent(const GPUParam& param, char* filename)
     gRandom->SetSeed(configStandalone.seed);
   }
 
-  int nTracks = configStandalone.configEG.numberOfTracks; // Number of MC tracks, must be at least as large as the largest fMCID assigned above
+  int nTracks = configStandalone.EG.numberOfTracks; // Number of MC tracks, must be at least as large as the largest fMCID assigned above
   cout << "NTracks " << nTracks << endl;
   std::vector<GPUTPCMCInfo> mcInfo(nTracks);
   memset(mcInfo.data(), 0, nTracks * sizeof(mcInfo[0]));
@@ -165,7 +169,7 @@ int genEvents::GenerateEvent(const GPUParam& param, char* filename)
   {
     prop.SetToyMCEventsFlag(kTRUE);
     const GPUTPCGMMerger& merger = mRec->GetTPCMerger();
-    prop.SetPolynomialField(merger.pField());
+    prop.SetPolynomialField(&merger.Param().polynomialField);
   }
 
   //  const double kCLight = 0.000299792458;

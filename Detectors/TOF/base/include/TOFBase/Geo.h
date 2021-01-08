@@ -12,6 +12,8 @@
 #define ALICEO2_TOF_GEO_H
 
 #include "Rtypes.h"
+#include "CommonConstants/LHCConstants.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 namespace o2
 {
@@ -19,15 +21,19 @@ namespace tof
 {
 /// \class Geo
 /// \brief TOF geo parameters (only statics)
+
 class Geo
 {
  public:
+  //  static void updateNSinTF() { NS_IN_TF = o2::constants::lhc::LHCOrbitNS * o2::raw::HBFUtils::getNOrbitsPerTF(); }
+
   // From AliTOFGeometry
   static void translate(Float_t* xyz, Float_t translationVector[3]);
   static void rotate(Float_t* xyz, Double_t rotationAngles[6]);
 
   static void rotateToSector(Float_t* xyz, Int_t isector);
   static void rotateToStrip(Float_t* xyz, Int_t iplate, Int_t istrip);
+  static void antiRotateToSector(Float_t* xyz, Int_t isector);
 
   static void antiRotate(Float_t* xyz, Double_t rotationAngles[6]);
   static void getDetID(Float_t* pos, Int_t* det);
@@ -37,6 +43,7 @@ class Geo
   static void getPos(Int_t* det, Float_t* pos);
   static void getVolumePath(const Int_t* ind, Char_t* path);
   static Int_t getStripNumberPerSM(Int_t iplate, Int_t istrip);
+  static void getStripAndModule(Int_t iStripPerSM, Int_t& iplate, Int_t& istrip); // Return the module and strip per module corresponding to the strip number per SM
 
   static Float_t getAngles(Int_t iplate, Int_t istrip) { return ANGLES[iplate][istrip]; }
   static Float_t getHeights(Int_t iplate, Int_t istrip) { return HEIGHTS[iplate][istrip]; }
@@ -54,10 +61,13 @@ class Geo
     kNCh = 8      // Number of channels per Tdc
   };
 
-  static constexpr Float_t BC_TIME = 25;                         // bunch crossing in ns
-  static constexpr Float_t BC_TIME_INV = 1. / BC_TIME;           // inv bunch crossing in ns
-  static constexpr Float_t BC_TIME_INPS = BC_TIME * 1000;        // bunch crossing in ps
-  static constexpr Float_t BC_TIME_INPS_INV = 1. / BC_TIME_INPS; // inv bunch crossing in ps
+  static constexpr Int_t RAW_PAGE_MAX_SIZE = 8192;
+
+  static constexpr Double_t BC_TIME = o2::constants::lhc::LHCBunchSpacingNS; // bunch crossing in ns
+  static constexpr Double_t BC_TIME_INV = 1. / BC_TIME;                      // inv bunch crossing in ns
+  static constexpr Double_t BC_TIME_INPS = BC_TIME * 1000;                   // bunch crossing in ps
+  static constexpr Double_t BC_TIME_INPS_INV = 1. / BC_TIME_INPS;            // inv bunch crossing in ps
+  static constexpr int BC_IN_ORBIT = o2::constants::lhc::LHCMaxBunches;     // N. bunch crossing in 1 orbit
 
   static constexpr Int_t NPADX = 48;
   static constexpr Int_t NPADZ = 2;
@@ -74,6 +84,7 @@ class Geo
   static constexpr Int_t NPLATES = 5;
 
   static constexpr int NCHANNELS = NSTRIPS * NPADS;
+  static constexpr int N_ELECTRONIC_CHANNELS = 72 << 12;
 
   static constexpr Float_t MAXHZTOF = 370.6;      // Max half z-size of TOF (cm)
   static constexpr Float_t ZLENA = MAXHZTOF * 2.; // length (cm) of the A module
@@ -96,9 +107,11 @@ class Geo
 
   static constexpr Float_t PHISEC = 20; // sector Phi width (deg)
 
-  static constexpr Float_t TDCBIN = 24.4;                    ///< TDC bin width [ps]
+  static constexpr Float_t TDCBIN = o2::constants::lhc::LHCBunchSpacingNS * 1E3 / 1024; ///< TDC bin width [ps]
   static constexpr Float_t NTDCBIN_PER_PS = 1. / TDCBIN;     ///< number of TDC bins in 1 ns
-  static constexpr Float_t TOTBIN = 48.8;                    // time-over-threshold bin width [ps]
+  static constexpr Int_t RATIO_TOT_TDC_BIN = 2;              // ratio between TDC and TOT bin sizes
+  static constexpr Float_t TOTBIN = TDCBIN * RATIO_TOT_TDC_BIN; // time-over-threshold bin width [ps]
+  static constexpr Float_t TOTBIN_NS = TOTBIN * 1E-3;        // time-over-threshold bin width [ns]
   static constexpr Float_t NTOTBIN_PER_NS = 1000. / TOTBIN;  // number of time-over-threshold bin in 1 ns
   static constexpr Float_t BUNCHCROSSINGBIN = TDCBIN * 1024; // bunch-crossing bin width [ps]
 
@@ -107,10 +120,19 @@ class Geo
 
   static constexpr Float_t DEADTIME = 25E+03;               // Single channel dead time (ps)
   static constexpr Float_t DEADTIMETDC = DEADTIME / TDCBIN; ///< Single channel TDC dead time (ps)
-  static constexpr Float_t MATCHINGWINDOW = TDCBIN * 8192;  // Matching window  (ps) 2^13=8192
-  //  static constexpr Float_t READOUTWINDOW = 1000;           // Readout window (ns)
-  static constexpr Float_t READOUTWINDOW = 1e9;                    // Readout window (ns) - now put 1s for DPL to work fine, but it will be 29e3
-  static constexpr Float_t READOUTWINDOW_INV = 1. / READOUTWINDOW; // Readout window (ns)
+  static constexpr int NWINDOW_IN_ORBIT = 3;                //< Number of tof window in 1 orbit
+  static constexpr Double_t READOUTWINDOW = o2::constants::lhc::LHCOrbitNS / NWINDOW_IN_ORBIT; // Readout window (ns) - time between two consecutive triggers = 1/3 orbit
+  static constexpr int BC_IN_WINDOW = BC_IN_ORBIT / NWINDOW_IN_ORBIT;                         // N. bunch crossing in 1 tof window
+  static constexpr double BC_IN_WINDOW_INV = 1. / BC_IN_WINDOW;
+  static constexpr Double_t READOUTWINDOW_INV = 1. / READOUTWINDOW;                           // Readout window (ns)
+
+  static constexpr Int_t READOUTWINDOW_IN_BC = BC_IN_ORBIT / NWINDOW_IN_ORBIT;                             // round down in case
+  static constexpr Int_t LATENCYWINDOW_IN_BC = 1400;                                                       // Latency window  in BC (larger than 1/3 orbit 1188 BC)
+  static constexpr Int_t MATCHINGWINDOW_IN_BC = 1200;                                                      // Latency window  in BC (larger than 1/3 orbit 1188 BC)
+  static constexpr Int_t OVERLAP_IN_BC = MATCHINGWINDOW_IN_BC - READOUTWINDOW_IN_BC;                       // overlap between two readout window in BC
+  static constexpr Double_t LATENCYWINDOW = LATENCYWINDOW_IN_BC * o2::constants::lhc::LHCBunchSpacingNS;   // Latency window  in ns
+  static constexpr Double_t MATCHINGWINDOW = MATCHINGWINDOW_IN_BC * o2::constants::lhc::LHCBunchSpacingNS; // Matching window  in ns
+  static constexpr Double_t WINDOWOVERLAP = MATCHINGWINDOW - READOUTWINDOW;                                // overlap between two consecutive matchingwindow
 
   static constexpr Float_t ANGLES[NPLATES][NMAXNSTRIP] = { // Strip Tilt Angles
     {43.99, 43.20, 42.40, 41.59, 40.77, 39.94, 39.11, 38.25, 37.40, 36.53,
@@ -248,6 +270,15 @@ class Geo
   static Float_t getPropagationDelay() { return CABLEPROPAGATIONDELAY; };
   static Int_t getIndexFromEquipment(Int_t icrate, Int_t islot, Int_t ichain, Int_t itdc); // return TOF channel index
 
+  static Int_t getCrateFromECH(int ech) { return ech >> 12; }
+  static Int_t getTRMFromECH(int ech) { return ((ech % 4096) >> 8) + 3; }
+  static Int_t getChainFromECH(int ech) { return (ech % 256) >> 7; }
+  static Int_t getTDCFromECH(int ech) { return (ech % 128) >> 3; }
+  static Int_t getTDCChFromECH(int ech) { return (ech % 8); }
+  static Int_t getECHFromIndexes(int crate, int trm, int chain, int tdc, int chan) { return (crate << 12) + ((trm - 3) << 8) + (chain << 7) + (tdc << 3) + chan; }
+  static Int_t getECHFromCH(int chan) { return CHAN_TO_ELCHAN[chan]; }
+  static Int_t getCHFromECH(int echan) { return ELCHAN_TO_CHAN[echan]; }
+
  private:
   static void Init();
 
@@ -267,6 +298,8 @@ class Geo
   // cable length map
   static constexpr Float_t CABLEPROPAGATIONDELAY = 0.0513;           // Propagation delay [ns/cm]
   static const Float_t CABLELENGTH[kNCrate][10][kNChain][kNTdc / 3]; // not constexpr as we initialize it in CableLength.cxx at run time
+  static const Int_t CHAN_TO_ELCHAN[NCHANNELS];
+  static const Int_t ELCHAN_TO_CHAN[N_ELECTRONIC_CHANNELS];
 
   ClassDefNV(Geo, 1);
 };

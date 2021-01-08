@@ -1,5 +1,8 @@
+<!-- doxy
 \page refFrameworkCore Core
 \subpage refFrameworkCoreCOOKBOOK Core COOKBOOK
+\subpage refFrameworkCoreANALYSIS Core ANALYSIS
+/doxy -->
 
 # Data Processing Layer in O2 Framework
 
@@ -295,7 +298,7 @@ The control service allow DataProcessors to modify their state or the one of the
 ```cpp
 #include "Framework/ControlService.h"
 //...
-auto ctx.services().get<ControlService>().readyToQuit(true) // In the DataProcessor lambda
+auto ctx.services().get<ControlService>().readyToQuit(QuitRequest::All) // In the DataProcessor lambda
 ```
 
 #### RawDeviceService
@@ -370,8 +373,9 @@ A service that data processors can register callback functions invoked by the fr
 
 Moreover in case you want to process events which are not coming from `FairMQ`, there is a `CallbackService::Id::ClockTick` which is called according to the rate specified for the backing FairMQ device.
 
-Similarly the `CallbackService::Id::Idle` callback is fired whenever there
-was nothing to process.
+Similarly the `CallbackService::Id::Idle` callback is fired whenever there was nothing to process.
+
+One last callback is `CallbackService::Id::EndOfStream`. This callback will be invoked whenever all the upstream DataProcessingDevice consider that they will not produce any more data, so we can finalize our results and exit.
 
 ## Expressing parallelism
 
@@ -463,100 +467,6 @@ There is also a few demonstrator available in particular:
 
 - [MillWheel: Fault-Tolerant Stream Processing at Internet Scale](https://research.google.com/pubs/pub41378.html) : paper about Google previous generation system for stream processing
 
-## Data Sampling
-
-Data Sampling provides possibility to sample data in DPL workflows, basing on certain conditions ( 5% randomly, when payload is greater than 4234 bytes, etc.). The job of passing the right data is done by a data processor called `Dispatcher`. A desired data stream is specified in form of Data Sampling Policies, configured by JSON structures (example below).
-```
-{
-  "id": "policy_example1",              # name of the policy
-  "active": "false",                    # activation flag
-  "machines": [                         # list of machines where the policy should be run (now ignored)
-    "aido2flp1",
-    "aido2flp2"
-  ],                                    # list of data that should be sampled, the format is:
-                                        # binding1:origin1/description1/subSpec1[;binding2:...]
-  "query": "clusters:TPC/CLUSTERS/0;tracks:TPC/TRACKS/0",
-  "samplingConditions": [               # list of sampling conditions
-    {
-      "condition": "random",            # condition type
-      "fraction": "0.1",                # condition-dependent parameter: fraction of data to sample
-      "seed": "2112"                    # condition-dependent parameter: seed of PRNG
-    }
-  ],
-  "blocking": "false"                   # should the dispatcher block the main data flow? (now ignored)
-}
-```
-
-### Usage
-
-To use Data Sampling in a DPL workflow insert following lines to your code:
-```cpp
-#include "Framework/DataSampling.h"
-using namespace o2::framework;
-void customize(std::vector<CompletionPolicy>& policies)
-{
-  DataSampling::CustomizeInfrastructure(policies);
-}
-
-void customize(std::vector<ChannelConfigurationPolicy>& policies)
-{
-  DataSampling::CustomizeInfrastructure(policies);
-}
-
-#include "Framework/runDataProcessing.h"
-
-std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext &ctx)
-{
-
- WorkflowSpec workflow;
-// <declaration of other DPL processors>
-
- DataSampling::GenerateInfrastructure(workflow, "json:///absolute/path/to/config/file.json");
-
- return workflow;
-}
-```
-
-Sampled data can be subscribed to by adding `InputSpecs` provided by `std::vector<InputSpec> DataSampling::InputSpecsForPolicy(const std::string& policiesSource, const std::string& policyName)` to a chosen data processor. Then, they can be accessed by the bindings specified in the configuration file. Dispatcher adds a `DataSamplingHeader` to the header stack, which contains statistics like total number of evaluated/accepted messages for a given Policy or the sampling time since epoch.
-
-[o2-datasampling-pod-and-root](https://github.com/AliceO2Group/AliceO2/blob/dev/Framework/TestWorkflows/src/dataSamplingPodAndRoot.cxx) workflow can serve as usage example.
-
-## Data Sampling Conditions
-
-The following sampling conditions are available. When more than one is used, a positive decision is taken when all the conditions are fulfilled.
-- **DataSamplingConditionRandom** - pseudo-randomly accepts specified fraction of incoming messages.
-```json
-{
-  "condition": "random",
-  "fraction": "0.1",
-  "seed": "22222"
-}
-```
-- **DataSamplingConditionNConsecutive** - approves n consecutive samples in defined cycle. It assumes that timesliceID always increments by one.
-```json
-{
-  "condition": "nConsecutive",
-  "samplesNumber": "3",
-  "cycleSize": "100"
-}
-```
-- **DataSamplingConditionPayloadSize** - approves messages having payload size within specified boundaries.
-```json
-{
-  "condition": "payloadSize",
-  "lowerLimit": "300",
-  "upperLimit": "500"
-}
-```
-- **DataSamplingConditionCustom** - loads a custom condition, which should inherit from DataSamplingCondition, from a specified library.
-```json
-{
-  "condition": "custom",
-  "moduleName": "QcExample",
-  "className": "o2::quality_control_modules::example::ExampleCondition",
-  "customParam": "value"
-}
-```
 ## Document history
 
 * v0.9: proposal for approval at the O2 TB - 19th June 2018

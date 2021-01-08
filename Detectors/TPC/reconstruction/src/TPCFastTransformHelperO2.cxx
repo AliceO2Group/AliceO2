@@ -21,7 +21,7 @@
 #include "TPCBase/Sector.h"
 #include "DataFormatsTPC/Defs.h"
 #include "TPCFastTransform.h"
-#include "IrregularSpline2D3DCalibrator.h"
+#include "Spline2DHelper.h"
 #include "Riostream.h"
 #include "FairLogger.h"
 
@@ -48,8 +48,6 @@ void TPCFastTransformHelperO2::init()
 {
   // initialize geometry
 
-  // TODO: create TPCFastTransformGeo class
-
   const Mapper& mapper = Mapper::instance();
 
   const int nRows = mapper.getNumberOfRows();
@@ -67,8 +65,9 @@ void TPCFastTransformHelperO2::init()
   for (int iRow = 0; iRow < mGeo.getNumberOfRows(); iRow++) {
     Sector sector = 0;
     int regionNumber = 0;
-    while (iRow >= mapper.getGlobalRowOffsetRegion(regionNumber) + mapper.getNumberOfRowsRegion(regionNumber))
+    while (iRow >= mapper.getGlobalRowOffsetRegion(regionNumber) + mapper.getNumberOfRowsRegion(regionNumber)) {
       regionNumber++;
+    }
 
     const PadRegionInfo& region = mapper.getPadRegionInfo(regionNumber);
 
@@ -100,26 +99,28 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
     init();
   }
 
-  TPCDistortionIRS distortion;
+  TPCFastSpaceChargeCorrection correction;
 
-  { // create the distortion map
+  { // create the correction map
 
     const int nRows = mGeo.getNumberOfRows();
-    const int nDistortionScenarios = nRows / 10 + 1;
+    const int nCorrectionScenarios = nRows / 10 + 1;
 
-    distortion.startConstruction(mGeo, nDistortionScenarios);
+    correction.startConstruction(mGeo, nCorrectionScenarios);
 
     // init rows
     for (int row = 0; row < mGeo.getNumberOfRows(); row++) {
       int scenario = row / 10;
-      if (scenario >= nDistortionScenarios) {
-        scenario = nDistortionScenarios - 1;
+      if (scenario >= nCorrectionScenarios) {
+        scenario = nCorrectionScenarios - 1;
       }
-      distortion.setRowScenarioID(row, scenario);
+      correction.setRowScenarioID(row, scenario);
     }
 
-    // adjust the number of knots and the knot positions for the TPC distortion splines
+    // adjust the number of knots and the knot positions for the TPC correction splines
 
+    /*
+     TODO: update the calibrator
     IrregularSpline2D3DCalibrator calibrator;
     calibrator.setRasterSize(41, 41);
     calibrator.setMaxNKnots(21, 21);
@@ -128,13 +129,16 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
     IrregularSpline2D3D raster;
     raster.constructRegular(101, 101);
     std::vector<float> rasterData(3 * raster.getNumberOfKnots());
-
-    for (int scenario = 0; scenario < nDistortionScenarios; scenario++) {
+    */
+    for (int scenario = 0; scenario < nCorrectionScenarios; scenario++) {
       int row = scenario * 10;
-      IrregularSpline2D3D spline;
+      TPCFastSpaceChargeCorrection::SplineType spline;
       if (!mSpaceChargeCorrection || row >= nRows) {
-        spline.constructRegular(21, 21);
+        spline.recreate(8, 20);
       } else {
+        // TODO: update the calibrator
+        spline.recreate(8, 20);
+        /*
         // create the input function
         for (int knot = 0; knot < raster.getNumberOfKnots(); knot++) {
           float su = 0.f, sv = 0.f;
@@ -156,11 +160,12 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
         std::cout << "calibrated spline for scenario " << scenario << ", TPC row " << row << ": knots u "
                   << spline.getGridU().getNumberOfKnots() << ", v "
                   << spline.getGridV().getNumberOfKnots() << std::endl;
+                  */
       }
-      distortion.setSplineScenario(scenario, spline);
+      correction.setSplineScenario(scenario, spline);
     }
-    distortion.finishConstruction();
-  } // .. create the distortion map
+    correction.finishConstruction();
+  } // .. create the correction map
 
   std::unique_ptr<TPCFastTransform> fastTransformPtr(new TPCFastTransform);
 
@@ -168,10 +173,10 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
 
   { // create the fast transform object
 
-    fastTransform.startConstruction(distortion);
+    fastTransform.startConstruction(correction);
 
-    // tell the transformation to apply the space charge distortions
-    fastTransform.setApplyDistortionOn();
+    // tell the transformation to apply the space charge corrections
+    fastTransform.setApplyCorrectionOn();
 
     // set some initial calibration values, will be reinitialised later int updateCalibration()
     const float t0 = 0.;
@@ -238,10 +243,10 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
   // fast transform formula:
   // L = (t-t0)*(mVdrift + mVdriftCorrY*yLab ) + mLdriftCorr
   // Z = Z(L) +  tpcAlignmentZ
-  // spline distortions for xyz
+  // spline corrections for xyz
   // Time-of-flight correction: ldrift += dist-to-vtx*tofCorr
 
-  const double t0 = elParam.PeakingTime / elParam.ZbinWidth;
+  const double t0 = elParam.getAverageShapingTime() / elParam.ZbinWidth;
 
   const double vdCorrY = 0.;
   const double ldCorr = 0.;
@@ -250,38 +255,36 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
 
   fastTransform.setCalibration(TimeStamp, t0, vDrift, vdCorrY, ldCorr, tofCorr, primVtxZ);
 
-  // now calculate distortion map: dx,du,dv = ( origTransform() -> x,u,v) - fastTransformNominal:x,u,v
+  // now calculate correction map: dx,du,dv = ( origTransform() -> x,u,v) - fastTransformNominal:x,u,v
 
-  TPCDistortionIRS& distortion = fastTransform.getDistortionNonConst();
+  TPCFastSpaceChargeCorrection& correction = fastTransform.getCorrection();
 
   // for the future: switch TOF correction off for a while
 
-  for (int slice = 0; slice < distortion.getGeometry().getNumberOfSlices(); slice++) {
-    for (int row = 0; row < distortion.getGeometry().getNumberOfRows(); row++) {
-      const IrregularSpline2D3D& spline = distortion.getSpline(slice, row);
-      float* data = distortion.getSplineDataNonConst(slice, row);
-
-      for (int knot = 0; knot < spline.getNumberOfKnots(); knot++) {
-        float dx = 0.f, du = 0.f, dv = 0.f;
-        if (mSpaceChargeCorrection) {
-          float su = 0, sv = 0;
-          spline.getKnotUV(knot, su, sv);
-          getSpaceChargeCorrection(slice, row, su, sv, dx, du, dv);
-        }
-        data[3 * knot + 0] = dx;
-        data[3 * knot + 1] = du;
-        data[3 * knot + 2] = dv;
-      } // knots
-      spline.correctEdges(data);
-    } // row
-  }   // slice
+  if (mSpaceChargeCorrection) {
+    for (int slice = 0; slice < correction.getGeometry().getNumberOfSlices(); slice++) {
+      for (int row = 0; row < correction.getGeometry().getNumberOfRows(); row++) {
+        const TPCFastSpaceChargeCorrection::SplineType& spline = correction.getSpline(slice, row);
+        float* data = correction.getSplineData(slice, row);
+        Spline2DHelper<float> helper;
+        helper.setSpline(spline, 3, 3);
+        auto F = [&](double su, double sv, double dxuv[3]) {
+          getSpaceChargeCorrection(slice, row, su, sv, dxuv[0], dxuv[1], dxuv[2]);
+        };
+        helper.approximateFunction(data, 0., 1., 0., 1., F);
+      } // row
+    }   // slice
+    correction.initInverse();
+  } else {
+    correction.setNoCorrection();
+  }
 
   // for the future: set back the time-of-flight correction
 
   return 0;
 }
 
-int TPCFastTransformHelperO2::getSpaceChargeCorrection(int slice, int row, float su, float sv, float& dx, float& du, float& dv)
+int TPCFastTransformHelperO2::getSpaceChargeCorrection(int slice, int row, double su, double sv, double& dx, double& du, double& dv)
 {
   // get space charge correction in internal TPCFastTransform coordinates su,sv->dx,du,dv
 
@@ -305,7 +308,7 @@ int TPCFastTransformHelperO2::getSpaceChargeCorrection(int slice, int row, float
   float u = 0, v = 0;
   mGeo.convScaledUVtoUV(slice, row, su, sv, u, v);
 
-  // nominal x,y,z coordinates of the knot (without distortions and time-of-flight correction)
+  // nominal x,y,z coordinates of the knot (without corrections and time-of-flight correction)
   float y = 0, z = 0;
   mGeo.convUVtoLocal(slice, u, v, y, z);
 
@@ -316,7 +319,7 @@ int TPCFastTransformHelperO2::getSpaceChargeCorrection(int slice, int row, float
   {
     double xyz[3] = {gx, gy, gz};
     double dxyz[3] = {0., 0., 0.};
-    mSpaceChargeCorrection(xyz, dxyz);
+    mSpaceChargeCorrection(slice, xyz, dxyz);
     gx1 += dxyz[0];
     gy1 += dxyz[1];
     gz1 += dxyz[2];
@@ -326,13 +329,14 @@ int TPCFastTransformHelperO2::getSpaceChargeCorrection(int slice, int row, float
   float x1, y1, z1;
   mGeo.convGlobalToLocal(slice, gx1, gy1, gz1, x1, y1, z1);
 
-  // distortion corrections in u,v
+  // correction corrections in u,v
   float u1 = 0, v1 = 0;
   mGeo.convLocalToUV(slice, y1, z1, u1, v1);
 
   dx = x1 - x;
   du = u1 - u;
   dv = v1 - v;
+
   return 0;
 }
 

@@ -23,22 +23,9 @@ namespace o2
 namespace mft
 {
 
-class TrackWriter : public o2::framework::Task
-{
- public:
-  TrackWriter() = default;
-  ~TrackWriter() override = default;
-  void init(o2::framework::InitContext& ic) final;
-  void run(o2::framework::ProcessingContext& pc) final;
-
- private:
-  int mState = 0;
-  std::unique_ptr<TFile> mFile = nullptr;
-};
-
 /// create a processor spec
 /// write MFT tracks a root file
-o2::framework::DataProcessorSpec getTrackWriterSpec();
+o2::framework::DataProcessorSpec getTrackWriterSpec(bool useMC);
 
 } // namespace mft
 } // namespace o2

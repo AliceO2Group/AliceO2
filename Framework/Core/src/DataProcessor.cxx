@@ -8,67 +8,54 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/DataProcessor.h"
-#include "Framework/RootObjectContext.h"
 #include "Framework/MessageContext.h"
 #include "Framework/StringContext.h"
 #include "Framework/ArrowContext.h"
 #include "Framework/RawBufferContext.h"
 #include "Framework/TMessageSerializer.h"
+#include "Framework/ServiceRegistry.h"
 #include "FairMQResizableBuffer.h"
 #include "CommonUtils/BoostSerializer.h"
 #include "Headers/DataHeader.h"
+
+#include <Monitoring/Monitoring.h>
 #include <fairmq/FairMQParts.h>
 #include <fairmq/FairMQDevice.h>
 #include <arrow/io/memory.h>
 #include <arrow/ipc/writer.h>
 #include <cstddef>
+#include <unordered_map>
 
 using namespace o2::framework;
 using DataHeader = o2::header::DataHeader;
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 void DataProcessor::doSend(FairMQDevice& device, FairMQParts&& parts, const char* channel, unsigned int index)
 {
-  assert(parts.Size() == 2);
   device.Send(parts, channel, index);
 }
 
-void DataProcessor::doSend(FairMQDevice& device, MessageContext& context)
+void DataProcessor::doSend(FairMQDevice& device, MessageContext& context, ServiceRegistry&)
 {
-  for (auto& message : context) {
+  std::unordered_map<std::string const*, FairMQParts> outputs;
+  auto contextMessages = context.getMessagesForSending();
+  for (auto& message : contextMessages) {
     //     monitoringService.send({ message->parts.Size(), "outputs/total" });
     FairMQParts parts = std::move(message->finalize());
     assert(message->empty());
     assert(parts.Size() == 2);
-    device.Send(parts, message->channel(), 0);
-    assert(parts.Size() == 2);
+    for (auto& part : parts) {
+      outputs[&(message->channel())].AddPart(std::move(part));
+    }
+  }
+  for (auto& [channel, parts] : outputs) {
+    device.Send(parts, *channel, 0);
   }
 }
 
-void DataProcessor::doSend(FairMQDevice& device, RootObjectContext& context)
-{
-  for (auto& messageRef : context) {
-    assert(messageRef.payload.get());
-    FairMQParts parts;
-    FairMQMessagePtr payload(device.NewMessage());
-    auto a = messageRef.payload.get();
-    device.Serialize<TMessageSerializer>(*payload, a);
-    const DataHeader* cdh = o2::header::get<DataHeader*>(messageRef.header->GetData());
-    // sigh... See if we can avoid having it const by not
-    // exposing it to the user in the first place.
-    DataHeader* dh = const_cast<DataHeader*>(cdh);
-    dh->payloadSize = payload->GetSize();
-    parts.AddPart(std::move(messageRef.header));
-    parts.AddPart(std::move(payload));
-    device.Send(parts, messageRef.channel, 0);
-  }
-}
-
-void DataProcessor::doSend(FairMQDevice& device, StringContext& context)
+void DataProcessor::doSend(FairMQDevice& device, StringContext& context, ServiceRegistry&)
 {
   for (auto& messageRef : context) {
     FairMQParts parts;
@@ -87,9 +74,13 @@ void DataProcessor::doSend(FairMQDevice& device, StringContext& context)
   }
 }
 
-// FIXME: for the moment we simply send empty messages.
-void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context)
+void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context, ServiceRegistry& registry)
 {
+  using o2::monitoring::Metric;
+  using o2::monitoring::Monitoring;
+  using o2::monitoring::tags::Key;
+  using o2::monitoring::tags::Value;
+
   for (auto& messageRef : context) {
     FairMQParts parts;
     // Depending on how the arrow table is constructed, we finalize
@@ -103,13 +94,20 @@ void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context)
     // exposing it to the user in the first place.
     DataHeader* dh = const_cast<DataHeader*>(cdh);
     dh->payloadSize = payload->GetSize();
+    dh->serialization = o2::header::gSerializationMethodArrow;
+    context.updateBytesSent(payload->GetSize());
+    context.updateMessagesSent(1);
     parts.AddPart(std::move(messageRef.header));
     parts.AddPart(std::move(payload));
     device.Send(parts, messageRef.channel, 0);
   }
+  auto& monitoring = registry.get<Monitoring>();
+  monitoring.send(Metric{(uint64_t)context.bytesSent(), "arrow-bytes-created"}.addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{(uint64_t)context.messagesCreated(), "arrow-messages-created"}.addTag(Key::Subsystem, Value::DPL));
+  monitoring.flushBuffer();
 }
 
-void DataProcessor::doSend(FairMQDevice& device, RawBufferContext& context)
+void DataProcessor::doSend(FairMQDevice& device, RawBufferContext& context, ServiceRegistry& registry)
 {
   for (auto& messageRef : context) {
     FairMQParts parts;
@@ -130,5 +128,4 @@ void DataProcessor::doSend(FairMQDevice& device, RawBufferContext& context)
   }
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

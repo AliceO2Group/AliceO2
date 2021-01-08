@@ -14,7 +14,9 @@
 #include "Framework/Lifetime.h"
 #include "Framework/ConcreteDataMatcher.h"
 
+#if !defined(__CLING__) && !defined(__ROOTCLING__)
 #include <variant>
+#endif
 
 namespace o2::framework
 {
@@ -28,7 +30,9 @@ struct OutputLabel {
 /// topology.
 struct OutputSpec {
   OutputLabel binding;
+#if !defined(__CLING__) && !defined(__ROOTCLING__)
   std::variant<ConcreteDataMatcher, ConcreteDataTypeMatcher> matcher;
+#endif
   enum Lifetime lifetime = Lifetime::Timeframe;
 
   /// Build a fully qualified tuple for the OutputSpec
@@ -45,6 +49,14 @@ struct OutputSpec {
 
   /// Build an OutputSpec which has 0 as subSpec.
   OutputSpec(header::DataOrigin inOrigin, header::DataDescription inDescription,
+             enum Lifetime inLifetime = Lifetime::Timeframe);
+
+  /// Build an OutputSpec from a ConcreteDataMatcher
+  OutputSpec(OutputLabel const& inBinding, ConcreteDataMatcher const& concrete,
+             enum Lifetime inLifetime = Lifetime::Timeframe);
+
+  /// Build an OutputSpec from a ConcreteDataMatcher
+  OutputSpec(ConcreteDataMatcher const& concrete,
              enum Lifetime inLifetime = Lifetime::Timeframe);
 
   /// Build an OutputSpec which does not specify which subSpec the output will

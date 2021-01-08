@@ -14,7 +14,7 @@
 #ifndef Q_BITFIELD_H
 #define Q_BITFIELD_H
 
-#ifdef GPUCA_NOCOMPAT_ALLOPENCL
+#if !defined(GPUCA_NOCOMPAT_ALLOPENCL) && !defined(GPUCA_GPUCODE_GENRTC)
 #include <type_traits>
 #endif
 
@@ -27,6 +27,7 @@ class bitfield
   bitfield(const bitfield&) = default;
   bitfield& operator=(const bitfield&) = default;
   bitfield operator|(const bitfield v) const { return bits | v.bits; }
+  bitfield operator|(const T v) const { return bits | static_cast<S>(v); }
   bitfield& operator|=(const bitfield v)
   {
     bits |= v.bits;
@@ -53,6 +54,7 @@ class bitfield
     }
     return *this;
   }
+  void clear() { bits = 0; }
   void set(S v) { bits = v; }
   void set(T v) { bits = static_cast<S>(v); }
   template <typename... Args>
@@ -66,8 +68,30 @@ class bitfield
   operator S() const { return bits; }
   bool isSet(const bitfield& v) const { return *this & v; }
   bool isSet(const S v) const { return bits & v; }
+  template <typename... Args>
+  bool isSetAll(Args... args)
+  {
+    return (bits & lor(args...).bits) == lor(args...).bits;
+  }
+  template <typename... Args>
+  bool isSetAny(Args... args)
+  {
+    return (bits & lor(args...).bits) != 0;
+  }
+  template <typename... Args>
+  bool isOnlySet(Args... args)
+  {
+    return (bits & ~lor(args...).bits) == 0;
+  }
+  template <typename... Args>
+  static bitfield lor(const Args&... args)
+  {
+    bitfield retVal;
+    retVal.set(args...);
+    return retVal;
+  }
 
-#ifdef GPUCA_NOCOMPAT_ALLOPENCL
+#if defined(GPUCA_NOCOMPAT_ALLOPENCL) && !defined(GPUCA_GPUCODE_DEVICE)
   static_assert(std::is_integral<S>::value, "Storage type non integral");
   static_assert(sizeof(S) >= sizeof(T), "Storage type has insufficient capacity");
 #endif

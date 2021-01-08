@@ -14,12 +14,16 @@
 
 #include "TTree.h"
 
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
+#include "Framework/Logger.h"
 #include "ITSWorkflow/DigitReaderSpec.h"
-#include "ITSMFTBase/Digit.h"
+#include "DataFormatsITSMFT/Digit.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
+#include "SimulationDataFormat/IOMCTruthContainerView.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
+#include <cmath>
 
 using namespace o2::framework;
 using namespace o2::itsmft;
@@ -48,79 +52,52 @@ void DigitReader::run(ProcessingContext& pc)
   }
 
   std::unique_ptr<TTree> treeDig((TTree*)mFile->Get("o2sim"));
-  std::unique_ptr<TTree> treeROF((TTree*)mFile->Get("ITSDigitROF"));
 
-  if (treeDig && treeROF) {
+  if (treeDig) {
 
-    std::vector<o2::itsmft::Digit> allDigits;
     std::vector<o2::itsmft::Digit> digits, *pdigits = &digits;
     treeDig->SetBranchAddress("ITSDigit", &pdigits);
 
     std::vector<ROFRecord> rofs, *profs = &rofs;
-    treeROF->SetBranchAddress("ITSDigitROF", &profs);
-    treeROF->GetEntry(0);
+    treeDig->SetBranchAddress("ITSDigitROF", &profs);
 
-    o2::dataformats::MCTruthContainer<o2::MCCompLabel> allLabels;
-    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels, *plabels = &labels;
-    std::unique_ptr<TTree> treeMC2ROF;
+    o2::dataformats::IOMCTruthContainerView* plabels = nullptr;
+
     std::vector<MC2ROFRecord> mc2rofs, *pmc2rofs = &mc2rofs;
     if (mUseMC) {
       treeDig->SetBranchAddress("ITSDigitMCTruth", &plabels);
-      treeMC2ROF.reset((TTree*)mFile->Get("ITSDigitMC2ROF"));
-      if (treeMC2ROF) {
-        treeMC2ROF->SetBranchAddress("ITSDigitMC2ROF", &pmc2rofs);
-        treeMC2ROF->GetEntry(0);
-      }
+      treeDig->SetBranchAddress("ITSDigitMC2ROF", &pmc2rofs);
     }
+    treeDig->GetEntry(0);
 
-    int prevEntry = -1;
-    int offset = 0;
-    for (auto& rof : rofs) {
-      int entry = rof.getROFEntry().getEvent();
-      if (entry > prevEntry) { // In principal, there should be just one entry...
-        if (treeDig->GetEntry(entry) <= 0) {
-          LOG(ERROR) << "ITSDigitReader: empty digit entry, or read error !";
-          return;
-        }
-        prevEntry = entry;
-        offset = allDigits.size();
-
-        //Accumulate digits and MC labels
-        std::copy(digits.begin(), digits.end(), std::back_inserter(allDigits));
-        allLabels.mergeAtBack(labels);
-      }
-
-      //Once in memory, the RO frame boundaries should be "straightened"
-      rof.getROFEntry().setEvent(0);
-      int index = rof.getROFEntry().getIndex();
-      rof.getROFEntry().setIndex(index + offset);
-    }
-
-    LOG(INFO) << "ITSDigitReader pushed " << allDigits.size() << " digits, in "
+    LOG(INFO) << "ITSDigitReader pushed " << digits.size() << " digits, in "
               << profs->size() << " RO frames";
 
-    pc.outputs().snapshot(Output{"ITS", "DIGITS", 0, Lifetime::Timeframe}, allDigits);
-    pc.outputs().snapshot(Output{"ITS", "ITSDigitROF", 0, Lifetime::Timeframe}, *profs);
+    pc.outputs().snapshot(Output{"ITS", "DIGITS", 0, Lifetime::Timeframe}, digits);
+    pc.outputs().snapshot(Output{"ITS", "DIGITSROF", 0, Lifetime::Timeframe}, *profs);
     if (mUseMC) {
-      pc.outputs().snapshot(Output{"ITS", "DIGITSMCTR", 0, Lifetime::Timeframe}, allLabels);
-      pc.outputs().snapshot(Output{"ITS", "ITSDigitMC2ROF", 0, Lifetime::Timeframe}, *pmc2rofs);
+      auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{"ITS", "DIGITSMCTR", 0, Lifetime::Timeframe});
+      plabels->copyandflatten(sharedlabels);
+      delete plabels;
+      pc.outputs().snapshot(Output{"ITS", "DIGITSMC2ROF", 0, Lifetime::Timeframe}, *pmc2rofs);
     }
   } else {
     LOG(ERROR) << "Cannot read the ITS digits !";
     return;
   }
   mState = 2;
-  pc.services().get<ControlService>().readyToQuit(false);
+  pc.services().get<ControlService>().endOfStream();
+  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 DataProcessorSpec getDigitReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ITS", "DIGITS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("ITS", "ITSDigitROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "DIGITSROF", 0, Lifetime::Timeframe);
   if (useMC) {
     outputs.emplace_back("ITS", "DIGITSMCTR", 0, Lifetime::Timeframe);
-    outputs.emplace_back("ITS", "ITSDigitMC2ROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back("ITS", "DIGITSMC2ROF", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{

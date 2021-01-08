@@ -13,14 +13,14 @@
 #ifndef O2_MATCHING_TPCITS_SPEC
 #define O2_MATCHING_TPCITS_SPEC
 
-#include "TFile.h"
-
 #include "GlobalTracking/MatchTPCITS.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsTPC/Constants.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include <string>
 #include <vector>
+#include "TStopwatch.h"
 
 using namespace o2::framework;
 
@@ -32,27 +32,23 @@ namespace globaltracking
 class TPCITSMatchingDPL : public Task
 {
  public:
-  TPCITSMatchingDPL(bool useMC, bool useFIT, const std::vector<int>& tpcClusLanes)
-    : mUseMC(useMC), mUseFIT(useFIT), mTPCClusLanes(tpcClusLanes) {}
+  TPCITSMatchingDPL(bool useFT0, bool calib, bool useMC) : mUseFT0(useFT0), mCalibMode(calib), mUseMC(useMC) {}
   ~TPCITSMatchingDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
+  void endOfStream(framework::EndOfStreamContext& ec) final;
 
  private:
   o2::globaltracking::MatchTPCITS mMatching; // matching engine
-
-  std::vector<int> mTPCClusLanes;
-  std::array<std::vector<char>, o2::tpc::Constants::MAXSECTOR> mBufferedTPCClusters; // at the moment not used
-
-  bool mUseFIT = false;
-
-  bool mFinished = false;
+  o2::itsmft::TopologyDictionary mITSDict;   // cluster patterns dictionary
+  bool mUseFT0 = false;
+  bool mCalibMode = false;
   bool mUseMC = true;
+  TStopwatch mTimer;
 };
 
 /// create a processor spec
-/// write ITS tracks a root file
-framework::DataProcessorSpec getTPCITSMatchingSpec(bool useMC, bool useFIT, const std::vector<int>& tpcClusLanes);
+framework::DataProcessorSpec getTPCITSMatchingSpec(bool useFT0, bool calib, bool useMC, const std::vector<int>& tpcClusLanes);
 
 } // namespace globaltracking
 } // namespace o2

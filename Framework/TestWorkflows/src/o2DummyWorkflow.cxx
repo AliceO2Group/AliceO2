@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/DataRefUtils.h"
 #include "Framework/runDataProcessing.h"
-#include <Monitoring/Monitoring.h>
+#include "Framework/Monitoring.h"
 #include "Framework/Logger.h"
 
 #include <chrono>
@@ -45,7 +45,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
         std::this_thread::sleep_for(std::chrono::seconds(1));
         // Creates a new message of size 1000 which
         // has "TPC" as data origin and "CLUSTERS" as data description.
-        auto tpcClusters = ctx.outputs().make<FakeCluster>(OutputRef{"tpc"}, 1000);
+        auto& tpcClusters = ctx.outputs().make<FakeCluster>(OutputRef{"tpc"}, 1000);
         int i = 0;
 
         for (auto& cluster : tpcClusters) {
@@ -59,7 +59,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
           i++;
         }
 
-        auto itsClusters = ctx.outputs().make<FakeCluster>(OutputRef{"its"}, 1000);
+        auto& itsClusters = ctx.outputs().make<FakeCluster>(OutputRef{"its"}, 1000);
         i = 0;
         for (auto& cluster : itsClusters) {
           assert(i < 1000);
@@ -77,11 +77,11 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     {InputSpec{"clusters", "TPC", "CLUSTERS"}},
     {OutputSpec{{"summary"}, "TPC", "SUMMARY"}},
     AlgorithmSpec{[](ProcessingContext& ctx) {
-      auto tpcSummary = ctx.outputs().make<Summary>(OutputRef{"summary"}, 1);
+      auto& tpcSummary = ctx.outputs().make<Summary>(OutputRef{"summary"}, 1);
       tpcSummary.at(0).inputCount = ctx.inputs().size();
     }},
     {ConfigParamSpec{"some-cut", VariantType::Float, 1.0f, {"some cut"}}},
-    {"CPUTimer"}};
+  };
 
   DataProcessorSpec itsClusterSummary{
     "its-cluster-summary",
@@ -90,11 +90,11 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
       OutputSpec{{"summary"}, "ITS", "SUMMARY"},
     },
     AlgorithmSpec{[](ProcessingContext& ctx) {
-      auto itsSummary = ctx.outputs().make<Summary>(OutputRef{"summary"}, 1);
+      auto& itsSummary = ctx.outputs().make<Summary>(OutputRef{"summary"}, 1);
       itsSummary.at(0).inputCount = ctx.inputs().size();
     }},
     {ConfigParamSpec{"some-cut", VariantType::Float, 1.0f, {"some cut"}}},
-    {"CPUTimer"}};
+  };
 
   DataProcessorSpec merger{
     "merger",

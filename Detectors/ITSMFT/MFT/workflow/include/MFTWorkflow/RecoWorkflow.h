@@ -20,9 +20,9 @@ namespace o2
 namespace mft
 {
 
-namespace RecoWorkflow
+namespace reco_workflow
 {
-framework::WorkflowSpec getWorkflow();
+framework::WorkflowSpec getWorkflow(bool useMC, bool upstreamDigits, bool upstreamClusters, bool disableRootOutput);
 }
 
 } // namespace mft

@@ -20,7 +20,7 @@
 #include "TPCReconstruction/Clusterer.h"
 #include "DataFormatsTPC/Helpers.h"
 
-#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
 #include <vector>
@@ -39,10 +39,9 @@ class ClusterHardware;
 /// \brief Class for TPC HW cluster finding
 class HwClusterer : public Clusterer
 {
-
  private:
-  using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-
+  using MCLabelContainer = o2::dataformats::MCLabelContainer;
+  using ConstMCLabelContainerView = o2::dataformats::ConstMCLabelContainerView;
   /// Main Constructor
   HwClusterer(
     std::vector<ClusterHardwareContainer8kb>* clusterOutputContainer,
@@ -64,19 +63,22 @@ class HwClusterer : public Clusterer
   /// Copy Constructor
   HwClusterer(HwClusterer const& other) = default;
 
+  /// initialize the clusterer from HwClustererParam
+  void init();
+
   /// Process digits
   /// \param digits Container with TPC digits
   /// \param mcDigitTruth MC Digit Truth container
   /// \param clearContainerFirst Clears the outpcontainer for clusters and MC labels first, before processing
-  void process(std::vector<o2::tpc::Digit> const& digits, MCLabelContainer const* mcDigitTruth) override;
-  void process(std::vector<o2::tpc::Digit> const& digits, MCLabelContainer const* mcDigitTruth, bool clearContainerFirst);
+  void process(gsl::span<o2::tpc::Digit const> const& digits, ConstMCLabelContainerView const& mcDigitTruth) override;
+  void process(gsl::span<o2::tpc::Digit const> const& digits, ConstMCLabelContainerView const& mcDigitTruth, bool clearContainerFirst);
 
   /// Finish processing digits
   /// \param digits Container with TPC digits
   /// \param mcDigitTruth MC Digit Truth container
   /// \param clearContainerFirst Clears the outpcontainer for clusters and MC labels first, before processing
-  void finishProcess(std::vector<o2::tpc::Digit> const& digits, MCLabelContainer const* mcDigitTruth) override;
-  void finishProcess(std::vector<o2::tpc::Digit> const& digits, MCLabelContainer const* mcDigitTruth, bool clearContainerFirst);
+  void finishProcess(gsl::span<o2::tpc::Digit const> const& digits, ConstMCLabelContainerView const& mcDigitTruth) override;
+  void finishProcess(gsl::span<o2::tpc::Digit const> const& digits, ConstMCLabelContainerView const& mcDigitTruth, bool clearContainerFirst);
 
   /// Switch for triggered / continuous readout
   /// \param isContinuous - false for triggered readout, true for continuous readout
@@ -186,7 +188,9 @@ class HwClusterer : public Clusterer
   short mCurrentMcContainerInBuffer;     ///< Bit field, where to find the current MC container in buffer
   short mSplittingMode;                  ///< Cluster splitting mode, 0 no splitting, 1 for minimum contributes half to both, 2 for miminum corresponds to left/older cluster
   int mClusterSector;                    ///< Sector to be processed
-  int mLastTimebin;                      ///< Last time bin of previous event
+  int mPreviousTimebin;                  ///< Last time bin of previous event
+  int mFirstTimebin;                     ///< First time bin to process
+  int mLastTimebin;                      ///< Last time bin to process
   unsigned mLastHB;                      ///< Last HB bin of previous event
   unsigned mPeakChargeThreshold;         ///< Charge threshold for the central peak in ADC counts
   unsigned mContributionChargeThreshold; ///< Charge threshold for the contributing pads in ADC counts
@@ -213,12 +217,12 @@ class HwClusterer : public Clusterer
   MCLabelContainer* mClusterMcLabelArray;                  ///< Pointer to MC Label container
 };
 
-inline void HwClusterer::process(std::vector<o2::tpc::Digit> const& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel> const* mcDigitTruth)
+inline void HwClusterer::process(gsl::span<o2::tpc::Digit const> const& digits, ConstMCLabelContainerView const& mcDigitTruth)
 {
   process(digits, mcDigitTruth, true);
 }
 
-inline void HwClusterer::finishProcess(std::vector<o2::tpc::Digit> const& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel> const* mcDigitTruth)
+inline void HwClusterer::finishProcess(gsl::span<o2::tpc::Digit const> const& digits, ConstMCLabelContainerView const& mcDigitTruth)
 {
   finishProcess(digits, mcDigitTruth, true);
 }
@@ -271,8 +275,9 @@ inline Vc::uint_v HwClusterer::getFpOfADC(const Vc::uint_v value)
 inline short HwClusterer::getFirstSetBitOfField()
 {
   for (short i = 0; i < mTimebinsInBuffer; ++i) {
-    if ((mCurrentMcContainerInBuffer >> i) & 0x1)
+    if ((mCurrentMcContainerInBuffer >> i) & 0x1) {
       return i;
+    }
   }
   return -1;
 }

@@ -14,15 +14,14 @@
 #include "DPLBroadcasterMerger.h"
 #include "DPLUtils/Utils.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/ControlService.h"
 #include "random"
 #include "Framework/Logger.h"
 #include <thread>
 
 namespace o2f = o2::framework;
 
-namespace o2
-{
-namespace workflows
+namespace o2::workflows
 {
 
 o2f::Inputs noInputs{};
@@ -44,6 +43,9 @@ o2f::DataProcessorSpec defineGenerator(o2f::OutputSpec usrOutput)
             // Processing context in captured from return on InitCallback
             return [usrOutput_shptr, msgCounter_shptr](o2f::ProcessingContext& ctx) {
               int msgIndex = (*msgCounter_shptr)++;
+              if (msgIndex > 10) {
+                ctx.services().get<framework::ControlService>().endOfStream();
+              }
               LOG(INFO) << ">>> MSG:" << msgIndex;
               std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
@@ -140,5 +142,4 @@ o2::framework::WorkflowSpec DPLBroadcasterMergerWorkflow()
   return std::move(lspec);
 }
 
-} // namespace workflows
-} // namespace o2
+} // namespace o2::workflows

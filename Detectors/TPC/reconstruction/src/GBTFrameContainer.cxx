@@ -56,7 +56,7 @@ void GBTFrameContainer::addGBTFramesFromFile(std::string fileName)
   std::ifstream file(fileName);
 
   if (!file.is_open()) {
-    LOG(ERROR) << "Can't read file " << fileName << FairLogger::endl;
+    LOG(ERROR) << "Can't read file " << fileName;
     return;
   }
 
@@ -94,7 +94,7 @@ void GBTFrameContainer::addGBTFramesFromBinaryFile(std::string fileName, std::st
   std::ifstream file(fileName);
 
   if (!file.is_open()) {
-    LOG(ERROR) << "Can't read file " << fileName << FairLogger::endl;
+    LOG(ERROR) << "Can't read file " << fileName;
     return;
   }
 
@@ -134,14 +134,14 @@ void GBTFrameContainer::addGBTFramesFromBinaryFile(std::string fileName, std::st
       event_count = (event_count << 32) | words[5];
       uint64_t reserved_1 = words[6];
       reserved_1 = (reserved_1 << 32) | words[7];
-      LOG(DEBUG) << "Header version: " << headerVersion << FairLogger::endl;
-      LOG(DEBUG) << "ChannelID: " << channelID << FairLogger::endl;
-      LOG(DEBUG) << "reserved_0: 0x" << std::hex << std::setfill('0') << std::right << std::setw(1) << reserved_0 << std::dec << FairLogger::endl;
-      LOG(DEBUG) << "Readout mode: " << readoutMode << FairLogger::endl;
-      LOG(DEBUG) << "n_words: " << n_words << FairLogger::endl;
-      LOG(DEBUG) << "Timestamp: 0x" << std::hex << std::setfill('0') << std::right << std::setw(16) << timestamp << std::dec << FairLogger::endl;
-      LOG(DEBUG) << "Event counter: " << event_count << FairLogger::endl;
-      LOG(DEBUG) << "reserved_1: 0x" << std::hex << std::setfill('0') << std::right << std::setw(16) << reserved_1 << std::dec << FairLogger::endl;
+      LOG(DEBUG) << "Header version: " << headerVersion;
+      LOG(DEBUG) << "ChannelID: " << channelID;
+      LOG(DEBUG) << "reserved_0: 0x" << std::hex << std::setfill('0') << std::right << std::setw(1) << reserved_0 << std::dec;
+      LOG(DEBUG) << "Readout mode: " << readoutMode;
+      LOG(DEBUG) << "n_words: " << n_words;
+      LOG(DEBUG) << "Timestamp: 0x" << std::hex << std::setfill('0') << std::right << std::setw(16) << timestamp << std::dec;
+      LOG(DEBUG) << "Event counter: " << event_count;
+      LOG(DEBUG) << "reserved_1: 0x" << std::hex << std::setfill('0') << std::right << std::setw(16) << reserved_1 << std::dec;
 
       switch (readoutMode) {
         case 1: { // raw GBT frames
@@ -185,8 +185,9 @@ void GBTFrameContainer::addGBTFramesFromBinaryFile(std::string fileName, std::st
             std::cout << std::endl;
 
             for (int j = 0; j < 5; ++j) {
-              if (ids[j] == 0x8)
+              if (ids[j] == 0x8) {
                 writeValue[j] = true;
+              }
             }
             for (int j = 0; j < 5; ++j) {
               if ((writeValue[j] & ids[j]) == 0xF) {
@@ -232,8 +233,9 @@ void GBTFrameContainer::addGBTFramesFromBinaryFile(std::string fileName, std::st
             adcValues[0][((ids[0] & 0x7) * 2)] = (((ids[0] >> 3) & 0x1) == 0) ? 0 : ((words[4] & 0xF) << 6) | ((words[5] >> 26) & 0x3F);
 
             for (int j = 0; j < 5; ++j) {
-              if (ids[j] == 0x8)
+              if (ids[j] == 0x8) {
                 writeValue[j] = true;
+              }
             }
             for (int j = 0; j < 5; ++j) {
               if ((writeValue[j] & ids[j]) == 0xF) {
@@ -290,7 +292,7 @@ void GBTFrameContainer::processAllFrames()
   for (std::array<std::queue<short>*, 5>::iterator it = mAdcValues.begin(); it != mAdcValues.end(); ++it) {
     if ((*it)->size() > 0) {
       LOG(WARNING) << "There are already some ADC values for half SAMPA " << std::distance(mAdcValues.begin(), it)
-                   << " , maybe the frames were already processed." << FairLogger::endl;
+                   << " , maybe the frames were already processed.";
     }
   }
   mAdcMutex.unlock();
@@ -304,13 +306,15 @@ void GBTFrameContainer::processFrame(std::vector<GBTFrame>::iterator iFrame)
 {
   ++mGBTFramesAnalyzed;
 
-  if (mEnableAdcClockWarning)
+  if (mEnableAdcClockWarning) {
     checkAdcClock(iFrame);
+  }
 
   searchSyncPattern(iFrame);
 
-  if (mEnableCompileAdcValues)
+  if (mEnableCompileAdcValues) {
     compileAdcValues(iFrame);
+  }
 }
 
 void GBTFrameContainer::compileAdcValues(std::vector<GBTFrame>::iterator iFrame)
@@ -319,10 +323,12 @@ void GBTFrameContainer::compileAdcValues(std::vector<GBTFrame>::iterator iFrame)
   short value2;
   mAdcMutex.lock();
   for (short iHalfSampa = 0; iHalfSampa < 5; ++iHalfSampa) {
-    if (mPositionForHalfSampa[iHalfSampa] == -1)
+    if (mPositionForHalfSampa[iHalfSampa] == -1) {
       continue;
-    if (mPositionForHalfSampa[iHalfSampa + 5] == -1)
+    }
+    if (mPositionForHalfSampa[iHalfSampa + 5] == -1) {
       continue;
+    }
 
     switch (mPositionForHalfSampa[iHalfSampa]) {
       case 0:
@@ -354,7 +360,7 @@ void GBTFrameContainer::compileAdcValues(std::vector<GBTFrame>::iterator iFrame)
         break;
 
       default:
-        LOG(ERROR) << "Position " << mPositionForHalfSampa[iHalfSampa] << " not known." << FairLogger::endl;
+        LOG(ERROR) << "Position " << mPositionForHalfSampa[iHalfSampa] << " not known.";
         return;
     }
 
@@ -374,12 +380,15 @@ void GBTFrameContainer::compileAdcValues(std::vector<GBTFrame>::iterator iFrame)
 
 void GBTFrameContainer::checkAdcClock(std::vector<GBTFrame>::iterator iFrame)
 {
-  if (mAdcClock[0].addSequence(iFrame->getAdcClock(0)))
-    LOG(WARNING) << "ADC clock error of SAMPA 0 in GBT Frame " << std::distance(mGBTFrames.begin(), iFrame) << FairLogger::endl;
-  if (mAdcClock[1].addSequence(iFrame->getAdcClock(1)))
-    LOG(WARNING) << "ADC clock error of SAMPA 1 in GBT Frame " << std::distance(mGBTFrames.begin(), iFrame) << FairLogger::endl;
-  if (mAdcClock[2].addSequence(iFrame->getAdcClock(2)))
-    LOG(WARNING) << "ADC clock error of SAMPA 2 in GBT Frame " << std::distance(mGBTFrames.begin(), iFrame) << FairLogger::endl;
+  if (mAdcClock[0].addSequence(iFrame->getAdcClock(0))) {
+    LOG(WARNING) << "ADC clock error of SAMPA 0 in GBT Frame " << std::distance(mGBTFrames.begin(), iFrame);
+  }
+  if (mAdcClock[1].addSequence(iFrame->getAdcClock(1))) {
+    LOG(WARNING) << "ADC clock error of SAMPA 1 in GBT Frame " << std::distance(mGBTFrames.begin(), iFrame);
+  }
+  if (mAdcClock[2].addSequence(iFrame->getAdcClock(2))) {
+    LOG(WARNING) << "ADC clock error of SAMPA 2 in GBT Frame " << std::distance(mGBTFrames.begin(), iFrame);
+  }
 }
 
 void GBTFrameContainer::searchSyncPattern(std::vector<GBTFrame>::iterator iFrame)
@@ -431,16 +440,15 @@ void GBTFrameContainer::searchSyncPattern(std::vector<GBTFrame>::iterator iFrame
   if (mEnableSyncPatternWarning) {
     if (mPositionForHalfSampa[0] != mPositionForHalfSampa[1]) {
       LOG(WARNING) << "The two half words from SAMPA 0 don't start at the same position, lower bits start at "
-                   << mPositionForHalfSampa[0] << ", higher bits at " << mPositionForHalfSampa[1] << FairLogger::endl;
+                   << mPositionForHalfSampa[0] << ", higher bits at " << mPositionForHalfSampa[1];
     }
     if (mPositionForHalfSampa[2] != mPositionForHalfSampa[3]) {
       LOG(WARNING) << "The two half words from SAMPA 1 don't start at the same position, lower bits start at "
-                   << mPositionForHalfSampa[2] << ", higher bits at " << mPositionForHalfSampa[3] << FairLogger::endl;
+                   << mPositionForHalfSampa[2] << ", higher bits at " << mPositionForHalfSampa[3];
     }
     if (mPositionForHalfSampa[0] != mPositionForHalfSampa[2] || mPositionForHalfSampa[0] != mPositionForHalfSampa[4]) {
       LOG(WARNING) << "The three SAMPAs don't have the same position, SAMPA0 = " << mPositionForHalfSampa[0]
-                   << ", SAMPA1 = " << mPositionForHalfSampa[2] << ", SAMPA2 = " << mPositionForHalfSampa[4]
-                   << FairLogger::endl;
+                   << ", SAMPA1 = " << mPositionForHalfSampa[2] << ", SAMPA2 = " << mPositionForHalfSampa[4];
     }
   }
 }
@@ -475,8 +483,9 @@ bool GBTFrameContainer::getData(std::vector<Digit>& container)
   }
   mAdcMutex.unlock();
 
-  if (!dataAvailable)
+  if (!dataAvailable) {
     return dataAvailable;
+  }
 
   const Mapper& mapper = Mapper::instance();
   int iTimeBin = mTimebin;
@@ -506,8 +515,9 @@ bool GBTFrameContainer::getData(std::vector<Digit>& container)
     }
   }
 
-  if (dataAvailable)
+  if (dataAvailable) {
     ++mTimebin;
+  }
   return dataAvailable;
 }
 
@@ -529,11 +539,12 @@ bool GBTFrameContainer::getData(std::vector<HalfSAMPAData>& container)
   }
   mAdcMutex.unlock();
 
-  if (!dataAvailable)
+  if (!dataAvailable) {
     return dataAvailable;
+  }
 
   //  if (container.size() != 5) {
-  ////    LOG(INFO) << "Container had the wrong size, set it to 5" << FairLogger::endl;
+  ////    LOG(INFO) << "Container had the wrong size, set it to 5";
   //    container.resize(5);
   //  }
   //  container.at(0).reset();
@@ -555,7 +566,7 @@ bool GBTFrameContainer::getData(std::vector<HalfSAMPAData>& container)
 
 void GBTFrameContainer::reset()
 {
-  LOG(INFO) << "Resetting GBT-Frame container" << FairLogger::endl;
+  LOG(INFO) << "Resetting GBT-Frame container";
   resetAdcClock();
   resetSyncPattern();
   resetAdcValues();

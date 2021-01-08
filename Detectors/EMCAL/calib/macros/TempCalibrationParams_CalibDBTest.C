@@ -18,6 +18,7 @@
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <iostream>
 #endif
 
 /// \brief Converting time into numerical time stamp representation
@@ -51,7 +52,7 @@ void TempCalibrationParams_CalibDBTest(const std::string_view ccdbserver = "emcc
   std::string inputDir = " ";
   if (aliceO2env)
     inputDir = aliceO2env;
-  inputDir += "/share/Detectors/EMCAL/files/";
+  inputDir += "/share/Detectors/EMC/files/";
 
   std::string file = inputDir + "TempCalibCoeff.txt";
   std::ifstream fileTemp(file, std::ifstream::in);
@@ -99,7 +100,7 @@ void TempCalibrationParams_CalibDBTest(const std::string_view ccdbserver = "emcc
   //auto rangetest = create_timestamp(2016, 4, 23, 0, 58, 40); //LHC16
   //auto rangetest = create_timestamp(2015, 9, 12, 5, 7, 8); //LHC15
 
-  std::cout << "Using read timestamp " << rangetest << "(omitted untill function is implemented server side)" << std::endl;
+  std::cout << "Using read timestamp " << rangetest << std::endl;
   o2::emcal::TempCalibrationParams* read(nullptr);
   try {
     read = ccdbhandler.readTempCalibParam(rangetest, metadata);

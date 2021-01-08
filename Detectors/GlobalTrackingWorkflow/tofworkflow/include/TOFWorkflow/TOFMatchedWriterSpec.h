@@ -8,19 +8,25 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// @file   TOFMatchedWriterSpec.h
+
 #ifndef TOFWORKFLOW_TOFMATCHEDWRITER_H_
 #define TOFWORKFLOW_TOFMATCHEDWRITER_H_
 
 #include "Framework/DataProcessorSpec.h"
+
+using namespace o2::framework;
 
 namespace o2
 {
 namespace tof
 {
 
-o2::framework::DataProcessorSpec getTOFMatchedWriterSpec(bool useMC);
+/// create a processor spec
+/// write TOF matching info in a root file
+o2::framework::DataProcessorSpec getTOFMatchedWriterSpec(bool useMC, const char* outdef = "o2match_tof.root");
 
-} // end namespace tof
-} // end namespace o2
+} // namespace tof
+} // namespace o2
 
 #endif /* TOFWORKFLOW_TOFMATCHEDWRITER_H_ */
