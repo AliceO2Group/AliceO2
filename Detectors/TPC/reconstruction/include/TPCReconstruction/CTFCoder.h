@@ -81,6 +81,21 @@ auto makeInputIterators(iterA_T iterA, iterB_T iterB, size_t nElements, F functo
                          CombinedInputIterator{advanceIter(iterA, nElements), advanceIter(iterB, nElements), functor});
 };
 
+template <int bits_A, int bits_B>
+struct MergedColumnsDecoder {
+
+  using combined_t = combinedType_t<bits_A, bits_B>;
+
+  template <typename iterA_T, typename iterB_T, typename F>
+  static void decode(iterA_T iterA, iterB_T iterB, CTF::Slots slot, F decodingFunctor)
+  {
+    ShiftFunctor<combined_t, bits_B> f{};
+    auto iter = rans::utils::CombinedOutputIteratorFactory<combined_t>::makeIter(iterA, iterB, f);
+
+    decodingFunctor(iter, slot);
+  }
+};
+
 } // namespace detail
 
 class CTFCoder : public o2::ctf::CTFCoderBase
@@ -152,23 +167,6 @@ void CTFCoder::buildCoder(ctf::CTFCoderBase::OpType coderType, const CTF::contai
   };
 
   this->createCoder<source_T>(coderType, buildFrequencyTable(ctf, slot), getProbabilityBits(ctf, slot), static_cast<int>(slot));
-}
-
-/// split words of input vector to columns assigned to provided pointers (memory must be allocated in advance)
-template <int NU, int NL, typename CU, typename CL>
-void CTFCoder::splitColumns(const std::vector<detail::combinedType_t<NU, NL>>& vm, CU*& vu, CL*& vl)
-{
-  static_assert(NU <= sizeof(CU) * 8 && NL <= sizeof(CL) * 8, "output columns bit count is wrong");
-
-  using combined_t = detail::combinedType_t<NU, NL>;
-
-  detail::ShiftFunctor<combined_t, NL> f;
-  auto iter = rans::utils::CombinedOutputIteratorFactory<combined_t>::makeIter(vu, vl, f);
-
-  for (auto value : vm) {
-    *iter = value;
-    ++iter;
-  }
 }
 
 /// entropy-encode clusters to buffer with CTF
@@ -311,76 +309,63 @@ void CTFCoder::decode(const CTF::base& ec, VEC& buffVec)
   ec.print(getPrefix());
 
   // decode encoded data directly to destination buff
-#define DECODETPC(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
-  // clang-format off
-  if (mCombineColumns) {
-    std::vector<combinedType_t<CTF::NBitsQTot, CTF::NBitsQMax>> mrg;
-    DECODETPC(mrg,                  CTF::BLCqTotA);
-    splitColumns<CTF::NBitsQTot, CTF::NBitsQMax>(mrg, cc.qTotA, cc.qMaxA);
-  }
-  else {
-    DECODETPC(cc.qTotA,             CTF::BLCqTotA);
-    DECODETPC(cc.qMaxA,             CTF::BLCqMaxA);
-  }
-  
-  DECODETPC(cc.flagsA,              CTF::BLCflagsA);
-  
-  if (mCombineColumns) {
-    std::vector<combinedType_t<CTF::NBitsRowDiff, CTF::NBitsSliceLegDiff>> mrg;
-    DECODETPC(mrg,                  CTF::BLCrowDiffA);
-    splitColumns<CTF::NBitsRowDiff, CTF::NBitsSliceLegDiff>(mrg, cc.rowDiffA, cc.sliceLegDiffA);
-  }
-  else {
-    DECODETPC(cc.rowDiffA,          CTF::BLCrowDiffA);
-    DECODETPC(cc.sliceLegDiffA,     CTF::BLCsliceLegDiffA);
-  }
-  
-  DECODETPC(cc.padResA,             CTF::BLCpadResA);
-  DECODETPC(cc.timeResA,            CTF::BLCtimeResA);
+  auto decodeTPC = [&ec, &coders = mCoders](auto begin, CTF::Slots slot) {
+    const auto slotVal = static_cast<int>(slot);
+    ec.decode(begin, slotVal, coders[slotVal].get());
+  };
 
   if (mCombineColumns) {
-    std::vector<combinedType_t<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>> mrg;
-    DECODETPC(mrg,                  CTF::BLCsigmaPadA);
-    splitColumns<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>(mrg, cc.sigmaPadA, cc.sigmaTimeA);
+    detail::MergedColumnsDecoder<CTF::NBitsQTot, CTF::NBitsQMax>::decode(cc.qTotA, cc.qMaxA, CTF::BLCqTotA, decodeTPC);
+  } else {
+    decodeTPC(cc.qTotA, CTF::BLCqTotA);
+    decodeTPC(cc.qMaxA, CTF::BLCqMaxA);
   }
-  else { 
-    DECODETPC(cc.sigmaPadA,         CTF::BLCsigmaPadA);
-    DECODETPC(cc.sigmaTimeA,        CTF::BLCsigmaTimeA);
-  }
-  
-  DECODETPC(cc.qPtA,                CTF::BLCqPtA);
-  DECODETPC(cc.rowA,                CTF::BLCrowA);
-  DECODETPC(cc.sliceA,              CTF::BLCsliceA);
-  DECODETPC(cc.timeA,               CTF::BLCtimeA);
-  DECODETPC(cc.padA,                CTF::BLCpadA);
+
+  decodeTPC(cc.flagsA, CTF::BLCflagsA);
 
   if (mCombineColumns) {
-    std::vector<combinedType_t<CTF::NBitsQTot, CTF::NBitsQMax>> mrg;
-    DECODETPC(mrg,                  CTF::BLCqTotU);
-    splitColumns<CTF::NBitsQTot, CTF::NBitsQMax>(mrg, cc.qTotU, cc.qMaxU);
-  }
-  else {
-    DECODETPC(cc.qTotU,             CTF::BLCqTotU);
-    DECODETPC(cc.qMaxU,             CTF::BLCqMaxU);
+    detail::MergedColumnsDecoder<CTF::NBitsRowDiff, CTF::NBitsSliceLegDiff>::decode(cc.rowDiffA, cc.sliceLegDiffA, CTF::BLCrowDiffA, decodeTPC);
+  } else {
+    decodeTPC(cc.rowDiffA, CTF::BLCrowDiffA);
+    decodeTPC(cc.sliceLegDiffA, CTF::BLCsliceLegDiffA);
   }
 
-  DECODETPC(cc.flagsU,              CTF::BLCflagsU);
-  DECODETPC(cc.padDiffU,            CTF::BLCpadDiffU);
-  DECODETPC(cc.timeDiffU,           CTF::BLCtimeDiffU);
+  decodeTPC(cc.padResA, CTF::BLCpadResA);
+  decodeTPC(cc.timeResA, CTF::BLCtimeResA);
 
   if (mCombineColumns) {
-    std::vector<combinedType_t<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>> mrg;
-    DECODETPC(mrg,                  CTF::BLCsigmaPadU);
-    splitColumns<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>(mrg, cc.sigmaPadU, cc.sigmaTimeU);
+    detail::MergedColumnsDecoder<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>::decode(cc.sigmaPadA, cc.sigmaTimeA, CTF::BLCsigmaPadA, decodeTPC);
+  } else {
+    decodeTPC(cc.sigmaPadA, CTF::BLCsigmaPadA);
+    decodeTPC(cc.sigmaTimeA, CTF::BLCsigmaTimeA);
   }
-  else {
-    DECODETPC(cc.sigmaPadU,         CTF::BLCsigmaPadU);
-    DECODETPC(cc.sigmaTimeU,        CTF::BLCsigmaTimeU);
+
+  decodeTPC(cc.qPtA, CTF::BLCqPtA);
+  decodeTPC(cc.rowA, CTF::BLCrowA);
+  decodeTPC(cc.sliceA, CTF::BLCsliceA);
+  decodeTPC(cc.timeA, CTF::BLCtimeA);
+  decodeTPC(cc.padA, CTF::BLCpadA);
+
+  if (mCombineColumns) {
+    detail::MergedColumnsDecoder<CTF::NBitsQTot, CTF::NBitsQMax>::decode(cc.qTotU, cc.qMaxU, CTF::BLCqTotU, decodeTPC);
+  } else {
+    decodeTPC(cc.qTotU, CTF::BLCqTotU);
+    decodeTPC(cc.qMaxU, CTF::BLCqMaxU);
   }
-  
-  DECODETPC(cc.nTrackClusters,      CTF::BLCnTrackClusters);
-  DECODETPC(cc.nSliceRowClusters,   CTF::BLCnSliceRowClusters);
-  // clang-format on
+
+  decodeTPC(cc.flagsU, CTF::BLCflagsU);
+  decodeTPC(cc.padDiffU, CTF::BLCpadDiffU);
+  decodeTPC(cc.timeDiffU, CTF::BLCtimeDiffU);
+
+  if (mCombineColumns) {
+    detail::MergedColumnsDecoder<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>::decode(cc.sigmaPadU, cc.sigmaTimeU, CTF::BLCsigmaPadU, decodeTPC);
+  } else {
+    decodeTPC(cc.sigmaPadU, CTF::BLCsigmaPadU);
+    decodeTPC(cc.sigmaTimeU, CTF::BLCsigmaTimeU);
+  }
+
+  decodeTPC(cc.nTrackClusters, CTF::BLCnTrackClusters);
+  decodeTPC(cc.nSliceRowClusters, CTF::BLCnSliceRowClusters);
 }
 
 } // namespace tpc
