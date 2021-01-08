@@ -160,8 +160,10 @@ void CTFCoder::splitColumns(const std::vector<detail::combinedType_t<NU, NL>>& v
 {
   static_assert(NU <= sizeof(CU) * 8 && NL <= sizeof(CL) * 8, "output columns bit count is wrong");
 
-  detail::ShiftFunctor<detail::combinedType_t<NU, NL>, NL> f;
-  o2::rans::utils::CombinedOutputIterator iter(vu, vl, f);
+  using combined_t = detail::combinedType_t<NU, NL>;
+
+  detail::ShiftFunctor<combined_t, NL> f;
+  auto iter = rans::utils::CombinedOutputIteratorFactory<combined_t>::makeIter(vu, vl, f);
 
   for (auto value : vm) {
     *iter = value;
