@@ -168,7 +168,7 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
     auto ddlid = srucont.mSRUid;
     auto [crorc, link] = getLinkAssignment(ddlid);
     LOG(DEBUG1) << "Adding payload with size " << payload.size() << " (" << payload.size() / 4 << " ALTRO words)";
-    mRawWriter->addData(ddlid, crorc, link, 0, trg.getBCData(), payload);
+    mRawWriter->addData(ddlid, crorc, link, 0, trg.getBCData(), payload, false, trg.getTriggerBits());
   }
   std::cout << "Done" << std::endl;
   return true;
