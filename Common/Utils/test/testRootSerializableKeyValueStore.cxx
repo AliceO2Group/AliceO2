@@ -111,6 +111,8 @@ BOOST_AUTO_TEST_CASE(write_read_test)
 
     auto histo = s2->get<TH1F>("h1");
     BOOST_CHECK(histo);
+
+    s2->print();
   }
   f.Close();
 }
