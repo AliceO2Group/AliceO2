@@ -87,7 +87,7 @@ AddOptionRTC(useMatLUT, char, 0, "", 0, "Use material lookup table for TPC refit
 AddOptionRTC(trdStopTrkAfterNMissLy, unsigned char, 6, "", 0, "Abandon track following after N layers without a TRD match")
 AddOptionRTC(trackingRefitGPUModel, char, 1, "", 0, "Use GPU track model for the Global Track Refit")
 AddCustomCPP(void SetMinTrackPt(float v) { MaxTrackQPt = v > 0.001 ? (1. / v) : (1. / 0.001); })
-AddVariable(dummyRTC, float, 0.f) // Ensure non empty struct and proper alignment even if all normal members are constexpr
+AddVariable(dummyRTC, void*, nullptr) // Ensure non empty struct and proper alignment even if all normal members are constexpr
 AddHelp("help", 'h')
 EndConfig()
 
@@ -343,7 +343,7 @@ AddVariableRTC(dodEdx, char, 0)              // Do dEdx computation
 AddVariableRTC(earlyTpcTransform, char, 0)   // do Early TPC transformation
 AddVariableRTC(debugLevel, char, 0)          // Debug level
 AddVariableRTC(continuousMaxTimeBin, int, 0) // Max time bin for continuous tracking
-AddVariable(dummyRTC, float, 0.f)            // Ensure non empty struct and proper alignment even if all normal members are constexpr
+AddVariable(dummyRTC, void*, nullptr)        // Ensure non empty struct and proper alignment even if all normal members are constexpr
 EndConfig()
 
 EndNamespace() // gpu
