@@ -10,9 +10,9 @@
 //
 // Contact: iarsene@cern.ch, i.c.arsene@fys.uio.no
 //
-#include "AnalysisCore/AnalysisCut.h"
-#include "AnalysisCore/AnalysisCompositeCut.h"
-#include "AnalysisCore/VarManager.h"
+#include "AnalysisCut.h"
+#include "AnalysisCompositeCut.h"
+#include "VarManager.h"
 
 namespace o2::aod
 {
