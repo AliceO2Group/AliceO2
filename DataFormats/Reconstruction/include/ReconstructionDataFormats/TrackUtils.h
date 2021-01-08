@@ -19,7 +19,7 @@
 #include "GPUCommonRtypes.h"
 #include "GPUCommonArray.h"
 
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <cmath>
 #endif
 

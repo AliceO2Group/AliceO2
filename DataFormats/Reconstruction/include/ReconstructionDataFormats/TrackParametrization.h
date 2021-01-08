@@ -31,7 +31,7 @@
 #include "GPUCommonArray.h"
 #include "GPUROOTCartesianFwd.h"
 
-#ifndef __OPENCL__
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
