@@ -34,7 +34,7 @@ auto printArray(std::vector<T> const& vec)
 }
 
 template <typename T>
-auto printMatrix(matrix<T> const& m)
+auto printMatrix(Array2D<T> const& m)
 {
   std::stringstream ss;
   ss << "[[" << m(0, 0);
@@ -59,7 +59,7 @@ struct ConfigurableObjectDemo {
 
   // note that size is fixed by this declaration - externally supplied vector needs to be the same size!
   Configurable<std::vector<int>> array{"array", {0, 0, 0, 0, 0, 0, 0}, "generic array"};
-  Configurable<matrix<float>> vmatrix{"matrix", {&defaultm[0][0], 3, 4}, "generic matrix"};
+  Configurable<Array2D<float>> vmatrix{"matrix", {&defaultm[0][0], 3, 4}, "generic matrix"};
 
   void init(InitContext const&){};
   void process(aod::Collision const&, aod::Tracks const& tracks)
@@ -69,7 +69,7 @@ struct ConfigurableObjectDemo {
     LOGF(INFO, "Cut1 labels: %s; Cut2 labels: %s", printArray(cut->getLabels()), printArray(mutable_cut->getLabels()));
     auto vec = (std::vector<int>)array;
     LOGF(INFO, "Array: %s", printArray(vec).c_str());
-    LOGF(INFO, "Matrix: %s", printMatrix((matrix<float>)vmatrix));
+    LOGF(INFO, "Matrix: %s", printMatrix((Array2D<float>)vmatrix));
     for (auto const& track : tracks) {
       if (track.globalIndex() % 500 == 0) {
         std::string decision1;

@@ -92,13 +92,13 @@ void PropertyTreeHelpers::populateDefaults(std::vector<ConfigParamSpec> const& s
           addBranch(key, spec.defaultValue.get<std::string*>(), spec.defaultValue.size());
           break;
         case VariantType::MatrixInt:
-          addSubTree(key, spec.defaultValue.get<matrix<int>>());
+          addSubTree(key, spec.defaultValue.get<Array2D<int>>());
           break;
         case VariantType::MatrixFloat:
-          addSubTree(key, spec.defaultValue.get<matrix<float>>());
+          addSubTree(key, spec.defaultValue.get<Array2D<float>>());
           break;
         case VariantType::MatrixDouble:
-          addSubTree(key, spec.defaultValue.get<matrix<double>>());
+          addSubTree(key, spec.defaultValue.get<Array2D<double>>());
           break;
         case VariantType::Unknown:
         case VariantType::Empty:
@@ -149,7 +149,7 @@ std::vector<std::string> toVector(std::string const& input)
 }
 
 template <typename T>
-matrix<T> toMatrix(std::string const& input)
+Array2D<T> toMatrix(std::string const& input)
 {
   std::vector<T> cache;
   assert(input[0] == variant_array_symbol<T>::symbol);
@@ -177,7 +177,7 @@ matrix<T> toMatrix(std::string const& input)
     }
     ++nrows;
   }
-  return matrix<T>{cache, nrows, ncols};
+  return Array2D<T>{cache, nrows, ncols};
 }
 } // namespace
 

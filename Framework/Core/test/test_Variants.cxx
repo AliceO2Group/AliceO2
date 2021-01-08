@@ -27,14 +27,14 @@ bool unknown_type(RuntimeErrorRef const& ref)
 BOOST_AUTO_TEST_CASE(MatrixTest)
 {
   float m[3][4] = {{0.1, 0.2, 0.3, 0.4}, {0.5, 0.6, 0.7, 0.8}, {0.9, 1.0, 1.1, 1.2}};
-  matrix mm(&m[0][0], 3, 4);
+  Array2D mm(&m[0][0], 3, 4);
   for (auto i = 0U; i < 3; ++i) {
     for (auto j = 0U; j < 4; ++j) {
       BOOST_CHECK(mm(i, j) == m[i][j]);
     }
   }
   std::vector<float> v = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2};
-  matrix mv(v, 3, 4);
+  Array2D mv(v, 3, 4);
   for (auto i = 0U; i < 3; ++i) {
     for (auto j = 0U; j < 4; ++j) {
       BOOST_CHECK(mm(i, j) == v[i * 4 + j]);
@@ -155,9 +155,9 @@ BOOST_AUTO_TEST_CASE(VariantTest)
   }
 
   float m[3][4] = {{0.1, 0.2, 0.3, 0.4}, {0.5, 0.6, 0.7, 0.8}, {0.9, 1.0, 1.1, 1.2}};
-  matrix mm(&m[0][0], 3, 4);
+  Array2D mm(&m[0][0], 3, 4);
   Variant vmm(mm);
-  auto const& mmc = vmm.get<matrix<float>>();
+  auto const& mmc = vmm.get<Array2D<float>>();
   for (auto i = 0U; i < 3; ++i) {
     for (auto j = 0U; j < 4; ++j) {
       BOOST_CHECK(mmc(i, j) == mm(i, j));
@@ -167,13 +167,13 @@ BOOST_AUTO_TEST_CASE(VariantTest)
   Variant vmmc(vmm);            // Copy constructor
   Variant vmmm(std::move(vmm)); // Move constructor
   Variant vmma = vmmm;          // Copy assignment
-  auto const& mmc2 = vmmc.get<matrix<float>>();
+  auto const& mmc2 = vmmc.get<Array2D<float>>();
   for (auto i = 0U; i < 3; ++i) {
     for (auto j = 0U; j < 4; ++j) {
       BOOST_CHECK(mmc2(i, j) == mm(i, j));
     }
   }
-  auto const& mmc3 = vmma.get<matrix<float>>();
+  auto const& mmc3 = vmma.get<Array2D<float>>();
   for (auto i = 0U; i < 3; ++i) {
     for (auto j = 0U; j < 4; ++j) {
       BOOST_CHECK(mmc3(i, j) == mm(i, j));

@@ -17,10 +17,10 @@ namespace o2::framework
 // matrix-like wrapper for std::vector
 // has no range checks
 template <typename T>
-struct matrix {
+struct Array2D {
   using element_t = T;
 
-  matrix(T const* data_, uint32_t r, uint32_t c)
+  Array2D(T const* data_, uint32_t r, uint32_t c)
     : rows{r}, cols{c}
   {
     data = new T[rows * cols];
@@ -30,7 +30,7 @@ struct matrix {
       }
     }
   }
-  matrix(std::vector<T> data_, uint32_t r, uint32_t c)
+  Array2D(std::vector<T> data_, uint32_t r, uint32_t c)
     : rows{r}, cols{c}
   {
     data = new T[rows * cols];
@@ -41,7 +41,7 @@ struct matrix {
     }
   }
 
-  matrix(matrix<T> const& other)
+  Array2D(Array2D<T> const& other)
     : rows{other.rows},
       cols{other.cols}
   {
@@ -53,7 +53,7 @@ struct matrix {
     }
   }
 
-  matrix(matrix<T>&& other)
+  Array2D(Array2D<T>&& other)
     : rows{other.rows},
       cols{other.cols}
   {
@@ -63,7 +63,7 @@ struct matrix {
     other.cols = 0;
   }
 
-  matrix& operator=(matrix<T> const& other)
+  Array2D& operator=(Array2D<T> const& other)
   {
     this->rows = other.rows;
     this->cols = other.cols;
@@ -76,7 +76,7 @@ struct matrix {
     return *this;
   }
 
-  matrix& operator=(matrix<T>&& other)
+  Array2D& operator=(Array2D<T>&& other)
   {
     this->rows = other.rows;
     this->cols = other.cols;
@@ -87,7 +87,7 @@ struct matrix {
     return *this;
   }
 
-  ~matrix()
+  ~Array2D()
   {
     if (data != nullptr) {
       delete[] data;

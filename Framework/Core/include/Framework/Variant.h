@@ -11,7 +11,7 @@
 #define FRAMEWORK_VARIANT_H
 
 #include "Framework/RuntimeError.h"
-#include "Framework/Matrix.h"
+#include "Framework/Array2D.h"
 #include <type_traits>
 #include <cstring>
 #include <cstdint>
@@ -77,9 +77,9 @@ DECLARE_VARIANT_TRAIT(std::vector<double>, ArrayDouble);
 DECLARE_VARIANT_TRAIT(std::vector<bool>, ArrayBool);
 DECLARE_VARIANT_TRAIT(std::vector<std::string>, ArrayString);
 
-DECLARE_VARIANT_TRAIT(matrix<int>, MatrixInt);
-DECLARE_VARIANT_TRAIT(matrix<float>, MatrixFloat);
-DECLARE_VARIANT_TRAIT(matrix<double>, MatrixDouble);
+DECLARE_VARIANT_TRAIT(Array2D<int>, MatrixInt);
+DECLARE_VARIANT_TRAIT(Array2D<float>, MatrixFloat);
+DECLARE_VARIANT_TRAIT(Array2D<double>, MatrixDouble);
 
 template <typename T>
 struct variant_array_symbol {
@@ -137,9 +137,9 @@ DECLARE_VARIANT_TYPE(double*, ArrayDouble);
 DECLARE_VARIANT_TYPE(bool*, ArrayBool);
 DECLARE_VARIANT_TYPE(std::string*, ArrayString);
 
-DECLARE_VARIANT_TYPE(matrix<int>, MatrixInt);
-DECLARE_VARIANT_TYPE(matrix<float>, MatrixFloat);
-DECLARE_VARIANT_TYPE(matrix<double>, MatrixDouble);
+DECLARE_VARIANT_TYPE(Array2D<int>, MatrixInt);
+DECLARE_VARIANT_TYPE(Array2D<float>, MatrixFloat);
+DECLARE_VARIANT_TYPE(Array2D<double>, MatrixDouble);
 
 template <typename S, typename T>
 struct variant_helper {
@@ -180,7 +180,7 @@ struct variant_helper<S, std::string> {
 /// Variant for configuration parameter storage. Owns stored data.
 class Variant
 {
-  using storage_t = std::aligned_union<8, int, int64_t, const char*, float, double, bool, int*, float*, double*, bool*, matrix<int>, matrix<float>, matrix<double>>::type;
+  using storage_t = std::aligned_union<8, int, int64_t, const char*, float, double, bool, int*, float*, double*, bool*, Array2D<int>, Array2D<float>, Array2D<double>>::type;
 
  public:
   Variant(VariantType type = VariantType::Unknown) : mType{type}, mSize{1} {}

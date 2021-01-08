@@ -72,12 +72,12 @@ std::vector<std::string> configurableCut::getLabels() const
   return labels;
 }
 
-void configurableCut::setCuts(o2::framework::matrix<double> cuts_)
+void configurableCut::setCuts(o2::framework::Array2D<double> cuts_)
 {
   cuts = std::move(cuts_);
 }
 
-o2::framework::matrix<double> configurableCut::getCuts() const
+o2::framework::Array2D<double> configurableCut::getCuts() const
 {
   return cuts;
 }

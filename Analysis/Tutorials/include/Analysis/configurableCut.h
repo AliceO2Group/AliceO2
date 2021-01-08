@@ -11,7 +11,7 @@
 #ifndef CONFIGURABLECUT_H
 #define CONFIGURABLECUT_H
 
-#include "Framework/Matrix.h"
+#include "Framework/Array2D.h"
 #include <iosfwd>
 #include <Rtypes.h>
 #include <TMath.h>
@@ -24,7 +24,7 @@ class configurableCut
   configurableCut(float cut_ = 2., int state_ = 1, bool option_ = true,
                   std::vector<float> bins_ = {0.5, 1.5, 2.5},
                   std::vector<std::string> labels_ = {"l1", "l2", "l3"},
-                  o2::framework::matrix<double> cuts_ = {&default_matrix[0][0], 3, 3})
+                  o2::framework::Array2D<double> cuts_ = {&default_matrix[0][0], 3, 3})
     : cut{cut_}, state{state_}, option{option_}, bins{bins_}, labels{labels_}, cuts{cuts_}
   {
   }
@@ -46,8 +46,8 @@ class configurableCut
   void setLabels(std::vector<std::string> labels_);
   std::vector<std::string> getLabels() const;
 
-  void setCuts(o2::framework::matrix<double> cuts_);
-  o2::framework::matrix<double> getCuts() const;
+  void setCuts(o2::framework::Array2D<double> cuts_);
+  o2::framework::Array2D<double> getCuts() const;
 
  private:
   float cut;
@@ -55,7 +55,7 @@ class configurableCut
   bool option;
   std::vector<float> bins;
   std::vector<std::string> labels;
-  o2::framework::matrix<double> cuts;
+  o2::framework::Array2D<double> cuts;
 
   ClassDef(configurableCut, 5);
 };

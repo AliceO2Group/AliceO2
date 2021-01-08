@@ -89,7 +89,7 @@ std::vector<T> extractVector(boost::property_tree::ptree const& tree)
 }
 
 template <typename T>
-matrix<T> extractMatrix(boost::property_tree::ptree const& tree)
+Array2D<T> extractMatrix(boost::property_tree::ptree const& tree)
 {
   std::vector<T> cache;
   uint32_t nrows = tree.size();
@@ -108,7 +108,7 @@ matrix<T> extractMatrix(boost::property_tree::ptree const& tree)
     }
     ++irow;
   }
-  return matrix<T>{cache, nrows, ncols};
+  return Array2D<T>{cache, nrows, ncols};
 }
 } // namespace
 
@@ -152,13 +152,13 @@ void ptreeToMember(boost::property_tree::ptree const& value,
   } else {
     switch (typehash) {
       case compile_time_hash("o2::framework::matrix<int>"):
-        *static_cast<matrix<int>*>(ptr) = extractMatrix<int>(value);
+        *static_cast<Array2D<int>*>(ptr) = extractMatrix<int>(value);
         return;
       case compile_time_hash("o2::framework::matrix<float>"):
-        *static_cast<matrix<float>*>(ptr) = extractMatrix<float>(value);
+        *static_cast<Array2D<float>*>(ptr) = extractMatrix<float>(value);
         return;
       case compile_time_hash("o2::framework::matrix<double>"):
-        *static_cast<matrix<double>*>(ptr) = extractMatrix<double>(value);
+        *static_cast<Array2D<double>*>(ptr) = extractMatrix<double>(value);
         return;
     }
   }
@@ -254,11 +254,11 @@ ConfigParamSpec memberToConfigParamSpec(const char* tname, TDataMember* dm, void
   } else {
     switch (typehash) {
       case compile_time_hash("o2::framework::matrix<int>"):
-        return ConfigParamSpec{tname, VariantType::MatrixInt, *static_cast<matrix<int>*>(ptr), {"No help"}};
+        return ConfigParamSpec{tname, VariantType::MatrixInt, *static_cast<Array2D<int>*>(ptr), {"No help"}};
       case compile_time_hash("o2::framework::matrix<float>"):
-        return ConfigParamSpec{tname, VariantType::MatrixFloat, *static_cast<matrix<float>*>(ptr), {"No help"}};
+        return ConfigParamSpec{tname, VariantType::MatrixFloat, *static_cast<Array2D<float>*>(ptr), {"No help"}};
       case compile_time_hash("o2::framework::matrix<double>"):
-        return ConfigParamSpec{tname, VariantType::MatrixDouble, *static_cast<matrix<double>*>(ptr), {"No help"}};
+        return ConfigParamSpec{tname, VariantType::MatrixDouble, *static_cast<Array2D<double>*>(ptr), {"No help"}};
     }
   }
   auto* dt = dm->GetDataType();
