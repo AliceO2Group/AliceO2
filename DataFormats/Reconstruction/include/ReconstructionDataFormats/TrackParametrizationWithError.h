@@ -53,6 +53,7 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   GPUdDefault() ~TrackParametrizationWithError() = default;
   using TrackParametrization<value_T>::TrackParametrization;
 
+  GPUd() void set(value_t x, value_t alpha, const params_t& par, const covMat_t& cov, int charge = 1);
   GPUd() const value_t* getCov() const;
   GPUd() value_t getSigmaY2() const;
   GPUd() value_t getSigmaZY() const;
@@ -130,6 +131,16 @@ GPUdi() TrackParametrizationWithError<value_T>::TrackParametrizationWithError(va
   : TrackParametrization<value_T>{x, alpha, par, charge}
 {
   // explicit constructor
+  for (int i = 0; i < kCovMatSize; i++) {
+    mC[i] = cov[i];
+  }
+}
+
+//__________________________________________________________________________
+template <typename value_T>
+GPUdi() void TrackParametrizationWithError<value_T>::set(value_t x, value_t alpha, const params_t& par, const covMat_t& cov, int charge)
+{
+  TrackParametrization<value_T>::set(x, alpha, par, charge);
   for (int i = 0; i < kCovMatSize; i++) {
     mC[i] = cov[i];
   }
