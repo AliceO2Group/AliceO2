@@ -99,7 +99,7 @@ static void BM_Array_Write_Iterator(benchmark::State& state)
       *iterB = value & ((1 << shift) - 1);
     };
 
-    o2::rans::utils::CombinedOutputIterator out(a.begin(), b.begin(), writeOP);
+    auto out = o2::rans::utils::CombinedOutputIteratorFactory<uint32_t>::makeIter(a.begin(), b.begin(), writeOP);
 
     for (auto iter = c.begin(); iter != c.end(); ++iter) {
       *out = *iter + 1;
