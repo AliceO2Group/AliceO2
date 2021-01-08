@@ -375,7 +375,6 @@ void Clusterer::evalCluProperties(gsl::span<const Digit> digits, std::vector<Clu
           }
           ++ll;
         }
-        clusters->back().setLabel(labelIndex);
         labelIndex++;
       } // Work with MC
     }

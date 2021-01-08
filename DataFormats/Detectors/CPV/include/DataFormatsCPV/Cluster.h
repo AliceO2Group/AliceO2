@@ -41,6 +41,7 @@ class Cluster
 
  public:
   Cluster() = default;
+  Cluster(char mult, char mod, char exMax, float x, float z, float e) : mMulDigit(mult), mModule(mod), mNExMax(exMax), mLocalPosX(x), mLocalPosZ(z), mEnergy(e) {}
   Cluster(const Cluster& clu) = default;
 
   ~Cluster() = default;
@@ -65,9 +66,6 @@ class Cluster
   int getMultiplicity() const { return mMulDigit; } // gets the number of digits making this recpoint
                                                     // 0: was no unfolging, -1: unfolding failed
   char getModule() const { return mModule; }        // CPV module of a current cluster
-
-  int getLabel() const { return mLabel; } //Index in MCContainer entry
-  void setLabel(int l) { mLabel = l; }
 
   // 0: was no unfolging, -1: unfolding failed
   void setNExMax(char nmax = 1) { mNExMax = nmax; }
@@ -112,7 +110,6 @@ class Cluster
   char mMulDigit = 0;    ///< Digit nultiplicity
   char mModule = 0;      ///< Module number
   char mNExMax = -1;     ///< number of (Ex-)maxima before unfolding
-  int mLabel = -1;       ///< Ref to entry in MCTruthContainer with list of labels
   float mLocalPosX = 0.; ///< Center of gravity position in local module coordunates (phi direction)
   float mLocalPosZ = 0.; ///< Center of gravity position in local module coordunates (z direction)
   float mEnergy = 0.;    ///< full energy of a cluster
