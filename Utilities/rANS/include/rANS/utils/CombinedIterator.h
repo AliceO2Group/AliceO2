@@ -40,7 +40,7 @@ class CombinedInputIterator
   using reference = value_type&;
   using iterator_category = std::bidirectional_iterator_tag;
 
-  CombinedInputIterator();
+  CombinedInputIterator() = default;
   CombinedInputIterator(iterA_T iterA, iterB_T iterB, F functor);
   CombinedInputIterator(const CombinedInputIterator& iter) = default;
   CombinedInputIterator(CombinedInputIterator&& iter) = default;
@@ -62,9 +62,9 @@ class CombinedInputIterator
   auto operator*() const;
 
  private:
-  iterA_T mIterA;
-  iterB_T mIterB;
-  F mFunctor;
+  iterA_T mIterA{};
+  iterB_T mIterB{};
+  F mFunctor{};
 
  public:
   friend std::ostream& operator<<(std::ostream& o, const CombinedInputIterator& iter)
@@ -74,7 +74,7 @@ class CombinedInputIterator
   }
 };
 
-template <class iterA_T, class iterB_T, class F>
+template <class input_T, class iterA_T, class iterB_T, class F>
 class CombinedOutputIterator
 {
 
@@ -83,16 +83,15 @@ class CombinedOutputIterator
    public:
     Proxy(CombinedOutputIterator& iter);
 
-    template <typename value_T>
-    Proxy& operator=(value_T value);
+    Proxy& operator=(input_T value);
 
    private:
-    CombinedOutputIterator& mIter;
+    CombinedOutputIterator* mIter;
   };
 
  public:
   using difference_type = std::ptrdiff_t;
-  using value_type = Proxy;
+  using value_type = input_T;
   using pointer = value_type*;
   using reference = value_type&;
   using iterator_category = std::input_iterator_tag;
@@ -109,12 +108,13 @@ class CombinedOutputIterator
   CombinedOutputIterator operator++(int);
 
   // dereference
-  value_type operator*();
+  Proxy& operator*();
 
  private:
-  iterA_T mIterA;
-  iterB_T mIterB;
-  F mFunctor;
+  iterA_T mIterA{};
+  iterB_T mIterB{};
+  F mFunctor{};
+  Proxy mProxy{*this};
 
  public:
   friend std::ostream& operator<<(std::ostream& o, const CombinedOutputIterator& iter)
@@ -124,8 +124,15 @@ class CombinedOutputIterator
   }
 };
 
-template <class iterA_T, class iterB_T, class F>
-CombinedInputIterator<iterA_T, iterB_T, F>::CombinedInputIterator() : mIterA{}, mIterB{}, mFunctor{} {};
+template <typename input_T>
+struct CombinedOutputIteratorFactory {
+
+  template <class iterA_T, class iterB_T, class F>
+  static inline auto makeIter(iterA_T iterA, iterB_T iterB, F functor) -> CombinedOutputIterator<input_T, iterA_T, iterB_T, F>
+  {
+    return {iterA, iterB, functor};
+  }
+};
 
 template <class iterA_T, class iterB_T, class F>
 CombinedInputIterator<iterA_T, iterB_T, F>::CombinedInputIterator(iterA_T iterA, iterB_T iterB, F functor) : mIterA(iterA), mIterB(iterB), mFunctor(functor)
@@ -190,51 +197,51 @@ inline auto CombinedInputIterator<iterA_T, iterB_T, F>::operator*() const
   return mFunctor(mIterA, mIterB);
 }
 
-template <class iterA_T, class iterB_T, class F>
-CombinedOutputIterator<iterA_T, iterB_T, F>::CombinedOutputIterator(iterA_T iterA, iterB_T iterB, F functor) : mIterA(iterA), mIterB(iterB), mFunctor(functor)
+template <typename input_T, class iterA_T, class iterB_T, class F>
+CombinedOutputIterator<input_T, iterA_T, iterB_T, F>::CombinedOutputIterator(iterA_T iterA, iterB_T iterB, F functor) : mIterA(iterA), mIterB(iterB), mFunctor(functor)
 {
 }
 
-template <class iterA_T, class iterB_T, class F>
-auto CombinedOutputIterator<iterA_T, iterB_T, F>::operator=(const CombinedOutputIterator& other) -> CombinedOutputIterator&
+template <typename input_T, class iterA_T, class iterB_T, class F>
+auto CombinedOutputIterator<input_T, iterA_T, iterB_T, F>::operator=(const CombinedOutputIterator& other) -> CombinedOutputIterator&
 {
   mIterA = other.mIterA;
   mIterB = other.mIterB;
   return *this;
 }
 
-template <class iterA_T, class iterB_T, class F>
-inline auto CombinedOutputIterator<iterA_T, iterB_T, F>::operator++() -> CombinedOutputIterator&
+template <typename input_T, class iterA_T, class iterB_T, class F>
+inline auto CombinedOutputIterator<input_T, iterA_T, iterB_T, F>::operator++() -> CombinedOutputIterator&
 {
   ++mIterA;
   ++mIterB;
   return *this;
 }
 
-template <class iterA_T, class iterB_T, class F>
-inline auto CombinedOutputIterator<iterA_T, iterB_T, F>::operator++(int) -> CombinedOutputIterator
+template <typename input_T, class iterA_T, class iterB_T, class F>
+inline auto CombinedOutputIterator<input_T, iterA_T, iterB_T, F>::operator++(int) -> CombinedOutputIterator
 {
   auto res = *this;
   ++(*this);
   return res;
 }
 
-template <class iterA_T, class iterB_T, class F>
-inline auto CombinedOutputIterator<iterA_T, iterB_T, F>::operator*() -> value_type
+template <typename input_T, class iterA_T, class iterB_T, class F>
+inline auto CombinedOutputIterator<input_T, iterA_T, iterB_T, F>::operator*() -> Proxy&
 {
-  return Proxy(*this);
+  mProxy = {*this};
+  return mProxy;
 }
 
-template <class iterA_T, class iterB_T, class F>
-CombinedOutputIterator<iterA_T, iterB_T, F>::Proxy::Proxy(CombinedOutputIterator& iter) : mIter(iter)
+template <typename input_T, class iterA_T, class iterB_T, class F>
+CombinedOutputIterator<input_T, iterA_T, iterB_T, F>::Proxy::Proxy(CombinedOutputIterator& iter) : mIter(&iter)
 {
 }
 
-template <class iterA_T, class iterB_T, class F>
-template <typename value_T>
-inline auto CombinedOutputIterator<iterA_T, iterB_T, F>::Proxy::operator=(value_T value) -> CombinedOutputIterator::Proxy&
+template <typename input_T, class iterA_T, class iterB_T, class F>
+inline auto CombinedOutputIterator<input_T, iterA_T, iterB_T, F>::Proxy::operator=(input_T value) -> Proxy&
 {
-  mIter.mFunctor(mIter.mIterA, mIter.mIterB, value);
+  mIter->mFunctor(mIter->mIterA, mIter->mIterB, value);
   return *this;
 }
 

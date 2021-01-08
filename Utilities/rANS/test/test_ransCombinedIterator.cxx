@@ -88,7 +88,8 @@ BOOST_FIXTURE_TEST_CASE(test_CombinedOutputIteratorBase, test_CombninedIteratorF
   std::vector<uint16_t> aOut(2, 0x0);
   std::vector<uint16_t> bOut(2, 0x0);
 
-  o2::rans::utils::CombinedOutputIterator iter(aOut.begin(), bOut.begin(), f);
+  o2::rans::utils::CombinedOutputIteratorFactory<uint32_t> iterFactory;
+  auto iter = iterFactory.makeIter(aOut.begin(), bOut.begin(), f);
 
   // test deref:
   *iter = aAndB[0];
@@ -105,7 +106,7 @@ BOOST_FIXTURE_TEST_CASE(test_CombinedOutputIteratorBase, test_CombninedIteratorF
   BOOST_CHECK_EQUAL(bOut[1], b[1]);
   aOut.assign(2, 0x0);
   bOut.assign(2, 0x0);
-  iter = o2::rans::utils::CombinedOutputIterator(aOut.begin(), bOut.begin(), f);
+  iter = iterFactory.makeIter(aOut.begin(), bOut.begin(), f);
 
   // test post-increment
   auto preInc = iter++;
@@ -136,7 +137,7 @@ BOOST_FIXTURE_TEST_CASE(test_CombinedOutputIteratorWriteArray, test_CombninedIte
   std::vector<uint16_t> aRes(a.size(), 0);
   std::vector<uint16_t> bRes(b.size(), 0);
 
-  o2::rans::utils::CombinedOutputIterator iter(aRes.begin(), bRes.begin(), f);
+  auto iter = o2::rans::utils::CombinedOutputIteratorFactory<uint32_t>::makeIter(aRes.begin(), bRes.begin(), f);
   for (auto input : aAndB) {
     *iter++ = input;
   }
