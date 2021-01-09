@@ -71,8 +71,11 @@ int GPUReconstructionCPUBackend::runKernelBackend(krnlSetup& _xyz, const Args&..
   }
   unsigned int num = y.num == 0 || y.num == -1 ? 1 : y.num;
   for (unsigned int k = 0; k < num; k++) {
-    if (mProcessingSettings.ompKernels) {
-      int ompThreads = mProcessingSettings.ompKernels == 2 ? ((mProcessingSettings.ompThreads + mNestedLoopOmpFactor - 1) / mNestedLoopOmpFactor) : mProcessingSettings.ompThreads;
+    int ompThreads = mProcessingSettings.ompKernels ? (mProcessingSettings.ompKernels == 2 ? ((mProcessingSettings.ompThreads + mNestedLoopOmpFactor - 1) / mNestedLoopOmpFactor) : mProcessingSettings.ompThreads) : 1;
+    if (ompThreads > 1) {
+      if (mProcessingSettings.debugLevel >= 5) {
+        printf("Running %d ompThreads\n", ompThreads);
+      }
       GPUCA_OPENMP(parallel for num_threads(ompThreads))
       for (unsigned int iB = 0; iB < x.nBlocks; iB++) {
         typename T::GPUSharedMemory smem;
@@ -349,9 +352,12 @@ unsigned int GPUReconstructionCPU::getNextTimerId()
 unsigned int GPUReconstructionCPU::SetAndGetNestedLoopOmpFactor(bool condition, unsigned int max)
 {
   if (condition && mProcessingSettings.ompKernels != 1) {
-    mNestedLoopOmpFactor = mProcessingSettings.ompKernels == 2 ? std::max<unsigned int>(max, mProcessingSettings.ompThreads) : mProcessingSettings.ompThreads;
+    mNestedLoopOmpFactor = mProcessingSettings.ompKernels == 2 ? std::min<unsigned int>(max, mProcessingSettings.ompThreads) : mProcessingSettings.ompThreads;
   } else {
     mNestedLoopOmpFactor = 1;
+  }
+  if (mProcessingSettings.debugLevel >= 5) {
+    printf("Running %d OMP threads in outer loop\n", mNestedLoopOmpFactor);
   }
   return mNestedLoopOmpFactor;
 }
