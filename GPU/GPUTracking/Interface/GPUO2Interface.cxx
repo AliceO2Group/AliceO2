@@ -99,8 +99,8 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceO
   if (!mInitialized) {
     return (1);
   }
-  static int nEvent = 0;
   if (mConfig->configInterface.dumpEvents) {
+    static int nEvent = 0;
     mChain->ClearIOPointers();
     mChain->mIOPtrs.clustersNative = data->clustersNative;
     mChain->mIOPtrs.tpcPackedDigits = data->tpcPackedDigits;
@@ -112,6 +112,7 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceO
     if (nEvent == 0) {
       mRec->DumpSettings();
     }
+    nEvent++;
     if (mConfig->configInterface.dumpEvents >= 2) {
       return 0;
     }
@@ -168,7 +169,6 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceO
   }
   *data = mChain->mIOPtrs;
 
-  nEvent++;
   return 0;
 }
 

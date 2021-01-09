@@ -150,13 +150,14 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
     data->clusters = ptrs.clustersNative;
   }
   data->compressedClusters = ptrs.tpcCompressedClusters;
+
+  if (retVal || mTrackingCAO2Interface->getConfig().configInterface.dumpEvents >= 2) {
+    return retVal;
+  }
+
   const GPUTPCGMMergedTrack* tracks = ptrs.mergedTracks;
   int nTracks = ptrs.nMergedTracks;
   const GPUTPCGMMergedTrackHit* trackClusters = ptrs.mergedTrackHits;
-
-  if (retVal) {
-    return retVal;
-  }
 
   std::vector<std::pair<int, float>> trackSort(nTracks);
   int tmp = 0, tmp2 = 0;
