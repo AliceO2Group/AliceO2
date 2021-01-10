@@ -43,7 +43,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
       char exMax = gRandom->Integer(3);
       float x = 72.3 * 2. * (gRandom->Rndm() - 0.5);
       float z = 63.3 * 2. * (gRandom->Rndm() - 0.5);
-      float e = 10. * gRandom->Rndm();
+      float e = 254. * gRandom->Rndm();
       clusters.emplace_back(mult, mod, exMax, x, z, e);
     }
     triggers.emplace_back(ir, start, clusters.size() - start);
@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     const auto& cdc = clustersD[i];
     BOOST_CHECK(cor.getMultiplicity() == cdc.getMultiplicity());
     BOOST_CHECK(cor.getModule() == cdc.getModule());
-    BOOST_CHECK(abs(cor.getEnergy() - cdc.getEnergy()) < 0.01);
+    BOOST_CHECK(abs(cor.getEnergy() - cdc.getEnergy()) < 1.);
     float xCor, zCor, xCdc, zCdc;
     cor.getLocalPosition(xCor, zCor);
     cdc.getLocalPosition(xCdc, zCdc);
