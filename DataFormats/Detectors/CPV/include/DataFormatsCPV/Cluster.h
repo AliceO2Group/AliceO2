@@ -21,11 +21,11 @@ class Geometry;
 /// \class Cluster
 /// \brief Contains CPV cluster parameters
 
-constexpr float kMinX = -72.32; // Minimal coordinate in X direction
-constexpr float kStepX = 0.002; // digitization step in X direction
-constexpr float kMinZ = -63.3;  // Minimal coordinate in Z direction
-constexpr float kStepZ = 0.002; // digitization step in Z direction
-constexpr float kStepE = 1.;    // Amplitude digitization step
+constexpr float kMinX = -72.32;  // Minimal coordinate in X direction
+constexpr float kStepX = 0.0025; // digitization step in X direction
+constexpr float kMinZ = -63.3;   // Minimal coordinate in Z direction
+constexpr float kStepZ = 0.002;  // digitization step in Z direction
+constexpr float kStepE = 1.;     // Amplitude digitization step
 
 class Cluster
 {

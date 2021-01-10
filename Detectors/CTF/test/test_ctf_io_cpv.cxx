@@ -41,8 +41,8 @@ BOOST_AUTO_TEST_CASE(CTFTest)
       char mult = gRandom->Integer(30);
       char mod = 1 + gRandom->Integer(3);
       char exMax = gRandom->Integer(3);
-      float x = 200. * (gRandom->Rndm() - 0.5);
-      float z = 200. * (gRandom->Rndm() - 0.5);
+      float x = 72.3 * 2. * (gRandom->Rndm() - 0.5);
+      float z = 63.3 * 2. * (gRandom->Rndm() - 0.5);
       float e = 10. * gRandom->Rndm();
       clusters.emplace_back(mult, mod, exMax, x, z, e);
     }
@@ -73,6 +73,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
 
   // reading
   vec.clear();
+  LOG(INFO) << "Start reading from tree ";
   {
     sw.Start();
     TFile flIn("test_ctf_cpv.root");
@@ -116,12 +117,11 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     const auto& cdc = clustersD[i];
     BOOST_CHECK(cor.getMultiplicity() == cdc.getMultiplicity());
     BOOST_CHECK(cor.getModule() == cdc.getModule());
-    BOOST_CHECK(cor.getNExMax() == cdc.getNExMax());
-    BOOST_CHECK(cor.getEnergy() == cdc.getEnergy());
+    BOOST_CHECK(abs(cor.getEnergy() - cdc.getEnergy()) < 0.01);
     float xCor, zCor, xCdc, zCdc;
     cor.getLocalPosition(xCor, zCor);
     cdc.getLocalPosition(xCdc, zCdc);
-    BOOST_CHECK(xCor == xCdc);
-    BOOST_CHECK(zCor == zCdc);
+    BOOST_CHECK(TMath::Abs(xCor - xCdc) < 0.004);
+    BOOST_CHECK(TMath::Abs(zCor - zCdc) < 0.004);
   }
 }
