@@ -96,13 +96,13 @@ Array2D<T> extractMatrix(boost::property_tree::ptree const& tree)
   uint32_t ncols = 0;
   bool first = true;
   auto irow = 0u;
-  for (auto& row : tree) {
+  for (auto const& row : tree) {
     if (first) {
       ncols = row.second.size();
       first = false;
     }
     auto icol = 0u;
-    for (auto& entry : row.second) {
+    for (auto const& entry : row.second) {
       cache.push_back(entry.second.get_value<T>());
       ++icol;
     }
@@ -151,13 +151,13 @@ void ptreeToMember(boost::property_tree::ptree const& value,
     }
   } else {
     switch (typehash) {
-      case compile_time_hash("o2::framework::matrix<int>"):
+      case compile_time_hash("o2::framework::Array2D<int>"):
         *static_cast<Array2D<int>*>(ptr) = extractMatrix<int>(value);
         return;
-      case compile_time_hash("o2::framework::matrix<float>"):
+      case compile_time_hash("o2::framework::Array2D<float>"):
         *static_cast<Array2D<float>*>(ptr) = extractMatrix<float>(value);
         return;
-      case compile_time_hash("o2::framework::matrix<double>"):
+      case compile_time_hash("o2::framework::Array2D<double>"):
         *static_cast<Array2D<double>*>(ptr) = extractMatrix<double>(value);
         return;
     }
@@ -224,7 +224,7 @@ void ptreeToMember(boost::property_tree::ptree const& value,
     }
   }
   // if we get here none of the above worked
-  if (strcmp(tname, "string") == 0 || strcmp(tname, "std::string")) {
+  if (strcmp(tname, "string") == 0 || strcmp(tname, "std::string") == 0) {
     *(std::string*)ptr = value.get_value<std::string>();
   }
   throw std::runtime_error("Unable to override value");
@@ -253,11 +253,11 @@ ConfigParamSpec memberToConfigParamSpec(const char* tname, TDataMember* dm, void
     }
   } else {
     switch (typehash) {
-      case compile_time_hash("o2::framework::matrix<int>"):
+      case compile_time_hash("o2::framework::Array2D<int>"):
         return ConfigParamSpec{tname, VariantType::MatrixInt, *static_cast<Array2D<int>*>(ptr), {"No help"}};
-      case compile_time_hash("o2::framework::matrix<float>"):
+      case compile_time_hash("o2::framework::Array2D<float>"):
         return ConfigParamSpec{tname, VariantType::MatrixFloat, *static_cast<Array2D<float>*>(ptr), {"No help"}};
-      case compile_time_hash("o2::framework::matrix<double>"):
+      case compile_time_hash("o2::framework::Array2D<double>"):
         return ConfigParamSpec{tname, VariantType::MatrixDouble, *static_cast<Array2D<double>*>(ptr), {"No help"}};
     }
   }
