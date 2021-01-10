@@ -59,7 +59,7 @@ class TriggerRecord
   DataRange mDataRange;  /// Index of the triggering event (event index and first entry in the container)
   uint32_t mTriggerBits; /// Trigger bits as from the Raw Data Header
 
-  ClassDefNV(TriggerRecord, 1);
+  ClassDefNV(TriggerRecord, 2);
 };
 
 std::ostream& operator<<(std::ostream& stream, const TriggerRecord& trg);
