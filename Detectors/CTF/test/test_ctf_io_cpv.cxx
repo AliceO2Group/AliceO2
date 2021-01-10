@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     const auto& cdc = clustersD[i];
     BOOST_CHECK(cor.getMultiplicity() == cdc.getMultiplicity());
     BOOST_CHECK(cor.getModule() == cdc.getModule());
-    BOOST_CHECK(abs(cor.getEnergy() - cdc.getEnergy()) < 1.);
+    BOOST_CHECK(TMath::Abs(cor.getEnergy() - cdc.getEnergy()) < 1.);
     float xCor, zCor, xCdc, zCdc;
     cor.getLocalPosition(xCor, zCor);
     cdc.getLocalPosition(xCdc, zCdc);
