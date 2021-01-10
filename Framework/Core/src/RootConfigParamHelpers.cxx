@@ -45,9 +45,9 @@ void loopOverMembers(TClass* cl, void* obj,
     auto isValidComplex = [dm]() {
       auto typehash = compile_time_hash(dm->GetTypeName());
       return isString(*dm) || dm->IsEnum() || dm->IsSTLContainer() ||
-             (typehash == compile_time_hash("o2::framework::matrix<int>")) ||
-             (typehash == compile_time_hash("o2::framework::matrix<float>")) ||
-             (typehash == compile_time_hash("o2::framework::matrix<double>"));
+             (typehash == compile_time_hash("o2::framework::Array2D<int>")) ||
+             (typehash == compile_time_hash("o2::framework::Array2D<float>")) ||
+             (typehash == compile_time_hash("o2::framework::Array2D<double>"));
     };
 
     // filter out static members for now
