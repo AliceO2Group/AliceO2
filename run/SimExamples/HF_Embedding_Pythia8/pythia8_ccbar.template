@@ -16,4 +16,4 @@ PhaseSpace:pTHatMax ${pTHatMax}	# the maximum invariant pT
 
 ### decays
 ParticleDecays:limitTau0 on	
-ParticleDecays:tau0Max 0.001	
+ParticleDecays:tau0Max 10.	
