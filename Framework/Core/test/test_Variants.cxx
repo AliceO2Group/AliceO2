@@ -20,8 +20,32 @@ using namespace o2::framework;
 
 bool unknown_type(RuntimeErrorRef const& ref)
 {
-  auto& err = error_from_ref(ref);
+  auto const& err = error_from_ref(ref);
   return strcmp(err.what, "Mismatch between types") == 0;
+}
+
+BOOST_AUTO_TEST_CASE(MatrixTest)
+{
+  float m[3][4] = {{0.1, 0.2, 0.3, 0.4}, {0.5, 0.6, 0.7, 0.8}, {0.9, 1.0, 1.1, 1.2}};
+  Array2D mm(&m[0][0], 3, 4);
+  for (auto i = 0U; i < 3; ++i) {
+    for (auto j = 0U; j < 4; ++j) {
+      BOOST_CHECK(mm(i, j) == m[i][j]);
+    }
+  }
+  std::vector<float> v = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2};
+  Array2D mv(v, 3, 4);
+  for (auto i = 0U; i < 3; ++i) {
+    for (auto j = 0U; j < 4; ++j) {
+      BOOST_CHECK(mm(i, j) == v[i * 4 + j]);
+    }
+  }
+  for (auto i = 0U; i < 3; ++i) {
+    auto const& vv = mm[i];
+    for (auto j = 0u; j < 4; ++j) {
+      BOOST_CHECK(vv[j] == mm(i, j));
+    }
+  }
 }
 
 BOOST_AUTO_TEST_CASE(VariantTest)
@@ -71,19 +95,19 @@ BOOST_AUTO_TEST_CASE(VariantTest)
 
   BOOST_CHECK(viarr.size() == 5);
   BOOST_CHECK(viarr.get<int*>() != iarr);
-  for (auto i = 0u; i < viarr.size(); ++i) {
+  for (auto i = 0U; i < viarr.size(); ++i) {
     BOOST_CHECK(iarr[i] == (viarr.get<int*>())[i]);
   }
 
   BOOST_CHECK(vfarr.size() == 6);
   BOOST_CHECK(vfarr.get<float*>() != farr);
-  for (auto i = 0u; i < vfarr.size(); ++i) {
+  for (auto i = 0U; i < vfarr.size(); ++i) {
     BOOST_CHECK(farr[i] == (vfarr.get<float*>())[i]);
   }
 
   BOOST_CHECK(vdvec.size() == dvec.size());
   BOOST_CHECK(vdvec.get<double*>() != dvec.data());
-  for (auto i = 0u; i < dvec.size(); ++i) {
+  for (auto i = 0U; i < dvec.size(); ++i) {
     BOOST_CHECK(dvec[i] == (vdvec.get<double*>())[i]);
   }
 
@@ -94,15 +118,15 @@ BOOST_AUTO_TEST_CASE(VariantTest)
   BOOST_CHECK(vfarr.get<float*>() == nullptr);
 
   BOOST_CHECK(fb.get<float*>() != farr);
-  for (auto i = 0u; i < fb.size(); ++i) {
+  for (auto i = 0U; i < fb.size(); ++i) {
     BOOST_CHECK(farr[i] == (fb.get<float*>())[i]);
   }
   BOOST_CHECK(fc.get<float*>() != farr);
-  for (auto i = 0u; i < fc.size(); ++i) {
+  for (auto i = 0U; i < fc.size(); ++i) {
     BOOST_CHECK(farr[i] == (fc.get<float*>())[i]);
   }
   BOOST_CHECK(fd.get<float*>() != farr);
-  for (auto i = 0u; i < fd.size(); ++i) {
+  for (auto i = 0U; i < fd.size(); ++i) {
     BOOST_CHECK(farr[i] == (fd.get<float*>())[i]);
   }
 
@@ -113,20 +137,49 @@ BOOST_AUTO_TEST_CASE(VariantTest)
 
   BOOST_CHECK(vstr.size() == 3);
   BOOST_CHECK(vvstr.size() == 3);
-  for (auto i = 0u; i < vstr.size(); ++i) {
+  for (auto i = 0U; i < vstr.size(); ++i) {
     BOOST_CHECK(strings[i] == (vstr.get<std::string*>())[i]);
   }
-  for (auto i = 0u; i < vvstr.size(); ++i) {
+  for (auto i = 0U; i < vvstr.size(); ++i) {
     BOOST_CHECK(vstrings[i] == (vvstr.get<std::string*>())[i]);
   }
 
   Variant vsc(vstr);            // Copy constructor
   Variant vsm(std::move(vstr)); // Move constructor
   Variant vscc = vsm;           // Copy assignment
-  for (auto i = 0u; i < vsm.size(); ++i) {
+  for (auto i = 0U; i < vsm.size(); ++i) {
     BOOST_CHECK(strings[i] == (vsm.get<std::string*>())[i]);
   }
-  for (auto i = 0u; i < vscc.size(); ++i) {
+  for (auto i = 0U; i < vscc.size(); ++i) {
     BOOST_CHECK(strings[i] == (vscc.get<std::string*>())[i]);
   }
+
+  float m[3][4] = {{0.1, 0.2, 0.3, 0.4}, {0.5, 0.6, 0.7, 0.8}, {0.9, 1.0, 1.1, 1.2}};
+  Array2D mm(&m[0][0], 3, 4);
+  Variant vmm(mm);
+  auto const& mmc = vmm.get<Array2D<float>>();
+  for (auto i = 0U; i < 3; ++i) {
+    for (auto j = 0U; j < 4; ++j) {
+      BOOST_CHECK(mmc(i, j) == mm(i, j));
+    }
+  }
+
+  Variant vmmc(vmm);            // Copy constructor
+  Variant vmmm(std::move(vmm)); // Move constructor
+  Variant vmma = vmmm;          // Copy assignment
+  auto const& mmc2 = vmmc.get<Array2D<float>>();
+  for (auto i = 0U; i < 3; ++i) {
+    for (auto j = 0U; j < 4; ++j) {
+      BOOST_CHECK(mmc2(i, j) == mm(i, j));
+    }
+  }
+  auto const& mmc3 = vmma.get<Array2D<float>>();
+  for (auto i = 0U; i < 3; ++i) {
+    for (auto j = 0U; j < 4; ++j) {
+      BOOST_CHECK(mmc3(i, j) == mm(i, j));
+    }
+  }
+  std::stringstream ssm;
+  ssm << vmma;
+  BOOST_CHECK(ssm.str() == "f[[0.1, 0.2, 0.3, 0.4], [0.5, 0.6, 0.7, 0.8], [0.9, 1, 1.1, 1.2]]");
 }

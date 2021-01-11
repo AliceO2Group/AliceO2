@@ -11,6 +11,12 @@
 #include "Analysis/configurableCut.h"
 #include <iostream>
 
+std::ostream& operator<<(std::ostream& os, configurableCut const& c)
+{
+  os << "Cut value: " << c.getCut() << "; state: " << c.getState();
+  return os;
+}
+
 bool configurableCut::method(float arg) const
 {
   return arg > cut;
@@ -24,12 +30,6 @@ void configurableCut::setCut(float cut_)
 float configurableCut::getCut() const
 {
   return cut;
-}
-
-std::ostream& operator<<(std::ostream& os, configurableCut const& c)
-{
-  os << "Cut value: " << c.getCut() << "; state: " << c.getState();
-  return os;
 }
 
 void configurableCut::setState(int state_)
@@ -54,19 +54,30 @@ bool configurableCut::getOption() const
 
 void configurableCut::setBins(std::vector<float> bins_)
 {
-  bins = bins_;
-};
+  bins = std::move(bins_);
+}
+
 std::vector<float> configurableCut::getBins() const
 {
   return bins;
-};
+}
 
 void configurableCut::setLabels(std::vector<std::string> labels_)
 {
-  labels = labels_;
+  labels = std::move(labels_);
 }
 
 std::vector<std::string> configurableCut::getLabels() const
 {
   return labels;
+}
+
+void configurableCut::setCuts(o2::framework::Array2D<double> cuts_)
+{
+  cuts = std::move(cuts_);
+}
+
+o2::framework::Array2D<double> configurableCut::getCuts() const
+{
+  return cuts;
 }
