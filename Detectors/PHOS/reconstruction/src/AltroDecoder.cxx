@@ -113,7 +113,8 @@ void AltroDecoder::readChannels()
 
 const std::vector<Channel>& AltroDecoder::getChannels() const
 {
-  if (!mChannelsInitialized)
+  if (!mChannelsInitialized) {
     throw AltroDecoderError::ErrorType_t::CHANNEL_ERROR; // "Channels not initizalized");
+  }
   return mChannels;
 }
