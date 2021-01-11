@@ -15,6 +15,7 @@
 #include "CommonDataFormat/RangeReference.h"
 #include <Rtypes.h>
 #include <gsl/span>
+#include <bitset>
 
 /// \file BCData.h
 /// \brief Class to describe fired triggered and/or stored channels for the BC and to refer to channel data
@@ -29,9 +30,10 @@ class ChannelData;
 struct Triggers {
   enum {
     bitMinBias,
-    bitMinBiasInner,
-    bitMinBiasOuter,
-    bitHighMult
+    bitMinBiasInner, // experimental
+    bitMinBiasOuter, // experimental
+    bitHighMult,
+    bitDummy // non-defined yet, placeholder
   };
   uint8_t triggerSignals = 0; // V0 trigger signals
   int8_t nChanA = 0;          // number of fired channels [A side]
@@ -50,14 +52,30 @@ struct Triggers {
   bool getIsMinBiasOuter() const { return (triggerSignals & (1 << bitMinBiasOuter)) != 0; }
   bool getIsHighMult() const { return (triggerSignals & (1 << bitHighMult)) != 0; }
 
-  void setTriggers(Bool_t isMinBias, Bool_t isMinBiasInner, Bool_t isMinBiasOuter, Bool_t isHighMult, int8_t chanA, int32_t amplASum)
+  void setTriggers(Bool_t isMinBias, Bool_t isMinBiasInner, Bool_t isMinBiasOuter, Bool_t isHighMult, Bool_t isDummy, int8_t chanA, int32_t amplASum)
   {
-    triggerSignals = (isMinBias << bitMinBias) | (isMinBiasInner << bitMinBiasInner) | (isMinBiasOuter << bitMinBiasOuter) | (isHighMult << bitHighMult);
+    triggerSignals = (isMinBias << bitMinBias) | (isMinBiasInner << bitMinBiasInner) | (isMinBiasOuter << bitMinBiasOuter) | (isHighMult << bitHighMult) | (isDummy << bitDummy);
     nChanA = chanA;
     amplA = amplASum;
   }
 
   ClassDefNV(Triggers, 1);
+};
+
+struct DetTrigInput {
+  o2::InteractionRecord mIntRecord; // bc/orbit of the intpur
+  std::bitset<5> mInputs;           // pattern of inputs.
+  DetTrigInput() = default;
+  DetTrigInput(const o2::InteractionRecord& iRec, Bool_t isMb, Bool_t isMbIn, Bool_t isMbOut, Bool_t isHm, Bool_t isDummy)
+    : mIntRecord(iRec),
+      mInputs((isMb << Triggers::bitMinBias) |
+              (isMbIn << Triggers::bitMinBiasInner) |
+              (isMbOut << Triggers::bitMinBiasOuter) |
+              (isHm << Triggers::bitHighMult) |
+              (isDummy << Triggers::bitDummy))
+  {
+  }
+  ClassDefNV(DetTrigInput, 1);
 };
 
 struct BCData {
