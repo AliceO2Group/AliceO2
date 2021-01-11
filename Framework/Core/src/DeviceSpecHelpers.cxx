@@ -99,7 +99,7 @@ struct ExpirationHandlerHelpers {
       // in a synchronous way.
       uv_signal_t* sh = (uv_signal_t*)(malloc(sizeof(uv_signal_t)));
       uv_signal_init(state.loop, sh);
-      uv_signal_start(sh, detail::signal_callback, SIGUSR1);
+      uv_signal_start(sh, detail::signal_callback, SIGUSR2);
       state.activeSignals.push_back(sh);
 
       return LifetimeHelpers::enumDrivenCreation(start, stop, step, inputTimeslice, maxInputTimeslices);

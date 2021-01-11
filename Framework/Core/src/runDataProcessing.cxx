@@ -859,7 +859,7 @@ void gui_callback(uv_timer_s* ctx)
 void single_step_callback(uv_timer_s* ctx)
 {
   DeviceInfos* infos = reinterpret_cast<DeviceInfos*>(ctx->data);
-  killChildren(*infos, SIGUSR1);
+  killChildren(*infos, SIGUSR2);
 }
 
 // This is the handler for the parent inner loop.
@@ -1270,7 +1270,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         killChildren(infos, SIGCONT);
         // We send SIGTERM to make sure we do the STOP transition in FairMQ
         killChildren(infos, SIGTERM);
-        // We have a timer to send SIGUSR1 to make sure we advance all devices
+        // We have a timer to send SIGUSR2 to make sure we advance all devices
         // in a timely manner.
         force_step_timer.data = &infos;
         uv_timer_start(&force_step_timer, single_step_callback, 0, 300);

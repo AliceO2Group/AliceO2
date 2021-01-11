@@ -28,7 +28,7 @@ enum struct Lifetime {
   /// A message which is created immediately, with payload / containing a
   /// single value which gets incremented for every / invokation.
   Enumeration,
-  /// A message which is created every time a SIGUSR1 is received.
+  /// A message which is created every time a SIGUSR2 is received.
   Signal,
   /// An optional message. When data arrives, if not already part of the data,
   /// a dummy entry will be generated.

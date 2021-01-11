@@ -256,7 +256,7 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                              for (size_t di = 0; di < specs.size(); ++di) {
                                if (specs[di].name == "internal-dpl-aod-reader") {
                                  if (di < infos.size() && (now - lastSignal > 10000000)) {
-                                   kill(infos[di].pid, SIGUSR1);
+                                   kill(infos[di].pid, SIGUSR2);
                                    totalSignalsMetric(driverMetrics, signalsCount++, timestamp);
                                    lastSignal = now;
                                  } else {
@@ -282,7 +282,7 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                              for (size_t di = 0; di < specs.size(); ++di) {
                                if (specs[di].name == "internal-dpl-aod-reader") {
                                  if (di < infos.size()) {
-                                   kill(infos[di].pid, SIGUSR1);
+                                   kill(infos[di].pid, SIGUSR2);
                                    totalSignalsMetric(driverMetrics, signalsCount++, timestamp);
                                    lastSignal = now;
                                  }
@@ -295,7 +295,7 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                              for (size_t di = 0; di < specs.size(); ++di) {
                                if (specs[di].name == "internal-dpl-aod-reader") {
                                  if (di < infos.size() && (now - lastSignal > 10000000)) {
-                                   kill(infos[di].pid, SIGUSR1);
+                                   kill(infos[di].pid, SIGUSR2);
                                    totalSignalsMetric(driverMetrics, signalsCount++, timestamp);
                                    lastSignal = now;
                                  } else {

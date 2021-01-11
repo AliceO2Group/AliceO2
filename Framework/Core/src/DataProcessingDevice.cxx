@@ -326,13 +326,13 @@ void DataProcessingDevice::InitTask()
     });
   }
 
-  // Add a signal manager for SIGUSR1 so that we can force
+  // Add a signal manager for SIGUSR2 so that we can force
   // an event from the outside, making sure that the event loop can
   // be unblocked (e.g. by a quitting DPL driver) even when there
   // is no data pending to be processed.
   uv_signal_t* sigusr1Handle = (uv_signal_t*)malloc(sizeof(uv_signal_t));
   uv_signal_init(mState.loop, sigusr1Handle);
-  uv_signal_start(sigusr1Handle, on_signal_callback, SIGUSR1);
+  uv_signal_start(sigusr1Handle, on_signal_callback, SIGUSR2);
   // Handle SIGWINCH by simply forcing the event loop to continue.
   // This will hopefully hide it from FairMQ on linux.
   uv_signal_t* sigwinchHandle = (uv_signal_t*)malloc(sizeof(uv_signal_t));
