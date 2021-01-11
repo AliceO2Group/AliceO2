@@ -54,10 +54,12 @@ class Digitizer
   void setInteractionRecord(const InteractionTimeRecord& ir) { mIntRecord = ir; }
 
   void process(const std::vector<o2::fv0::Hit>& hits, std::vector<o2::fv0::BCData>& digitsBC,
-               std::vector<o2::fv0::ChannelData>& digitsCh, o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>& labels);
+               std::vector<o2::fv0::ChannelData>& digitsCh, std::vector<o2::fv0::DetTrigInput>& digitsTrig,
+               o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>& labels);
 
   void flush(std::vector<o2::fv0::BCData>& digitsBC,
              std::vector<o2::fv0::ChannelData>& digitsCh,
+             std::vector<o2::fv0::DetTrigInput>& digitsTrig,
              o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>& labels);
 
   const InteractionRecord& getInteractionRecord() const { return mIntRecord; }
@@ -102,7 +104,10 @@ class Digitizer
   BCCache& setBCCache(const o2::InteractionRecord& ir);
   BCCache* getBCCache(const o2::InteractionRecord& ir);
 
-  void storeBC(const BCCache& bc, std::vector<o2::fv0::BCData>& digitsBC, std::vector<o2::fv0::ChannelData>& digitsCh,
+  void storeBC(const BCCache& bc,
+               std::vector<o2::fv0::BCData>& digitsBC,
+               std::vector<o2::fv0::ChannelData>& digitsCh,
+               std::vector<o2::fv0::DetTrigInput>& digitsTrig,
                o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>& labels);
 
   std::array<std::vector<Float_t>, Constants::nFv0Channels> mPmtChargeVsTime; // Charge time series aka analogue signal pulse from PM
