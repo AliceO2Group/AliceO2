@@ -8,15 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// \file   CTFHelper.cxx
+/// \author ruben.shahoyan@cern.ch
+/// \brief  Helper for CPV CTF creation
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
-
-#pragma link C++ class o2::cpv::Clusterer + ;
-#pragma link C++ class o2::cpv::FullCluster + ;
-#pragma link C++ class o2::cpv::RawReaderMemory + ;
-#pragma link C++ class o2::cpv::RawDecoder + ;
-
-#endif
+#include "CPVReconstruction/CTFHelper.h"

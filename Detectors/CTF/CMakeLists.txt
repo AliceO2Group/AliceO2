@@ -76,8 +76,16 @@ o2_add_test(emcal
 	  
 o2_add_test(phos
             PUBLIC_LINK_LIBRARIES O2::CTFWorkflow
-                                  O2::DataFormatsEMCAL
+                                  O2::DataFormatsPHOS
                                   O2::PHOSReconstruction
             SOURCES test/test_ctf_io_phos.cxx
+            COMPONENT_NAME ctf
+            LABELS ctf)
+
+o2_add_test(cpv
+            PUBLIC_LINK_LIBRARIES O2::CTFWorkflow
+                                  O2::DataFormatsCPV
+                                  O2::CPVReconstruction
+            SOURCES test/test_ctf_io_cpv.cxx
             COMPONENT_NAME ctf
             LABELS ctf)

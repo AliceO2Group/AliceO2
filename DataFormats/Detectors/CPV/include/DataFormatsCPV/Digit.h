@@ -36,7 +36,7 @@ class Digit : public DigitBase
   /// \brief Main Digit constructor
   /// \param cell absId of a cell, amplitude energy deposited in a cell, time time measured in cell, label label of a
   /// particle in case of MC \return constructed Digit
-  Digit(short cell, float amplitude, int label);
+  Digit(unsigned short cell, float amplitude, int label);
 
   /// \brief Digit constructor from Hit
   /// \param CPV Hit
@@ -93,8 +93,8 @@ class Digit : public DigitBase
   Digit& operator+=(const Digit& other); //
 
   /// \brief Absolute sell id
-  short getAbsId() const { return mAbsId; }
-  void setAbsId(short cellId) { mAbsId = cellId; }
+  unsigned short getAbsId() const { return mAbsId; }
+  void setAbsId(unsigned short cellId) { mAbsId = cellId; }
 
   /// \brief Energy deposited in a cell
   float getAmplitude() const { return mAmplitude; }
@@ -109,9 +109,9 @@ class Digit : public DigitBase
  private:
   // friend class boost::serialization::access;
 
-  short mAbsId = 0;     ///< pad index (absolute pad ID)
-  int mLabel = -1;      ///< Index of the corresponding entry/entries in the MC label array
-  float mAmplitude = 0; ///< Amplitude
+  unsigned short mAbsId = 0; ///< pad index (absolute pad ID)
+  int mLabel = -1;           ///< Index of the corresponding entry/entries in the MC label array
+  float mAmplitude = 0;      ///< Amplitude
 
   ClassDefNV(Digit, 2);
 };

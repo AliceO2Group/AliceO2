@@ -20,6 +20,8 @@ o2_add_library(CTFWorkflow
                                      O2::DataFormatsFV0
 				     O2::DataFormatsFDD
 				     O2::DataFormatsMID
+				     O2::DataFormatsPHOS
+				     O2::DataFormatsCPV
                                      O2::DataFormatsParameters
                                      O2::ITSMFTWorkflow
                                      O2::TPCWorkflow
@@ -30,6 +32,7 @@ o2_add_library(CTFWorkflow
                                      O2::MIDWorkflow
                                      O2::EMCALWorkflow
 				     O2::PHOSWorkflow
+				     O2::CPVWorkflow
                                      O2::Algorithm
                                      O2::CommonUtils)
 
