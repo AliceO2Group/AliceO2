@@ -32,19 +32,21 @@ void Clusterer::initialize()
   mFirstDigitInEvent = 0;
   mLastDigitInEvent = -1;
 }
+
 //____________________________________________________________________________
 void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRecord> dtr,
-                        const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* dmc,
+                        const o2::dataformats::MCTruthContainer<o2::MCCompLabel>& dmc,
                         std::vector<Cluster>* clusters, std::vector<TriggerRecord>* trigRec,
                         o2::dataformats::MCTruthContainer<o2::MCCompLabel>* cluMC)
 {
   clusters->clear(); //final out list of clusters
   trigRec->clear();
-  if (cluMC) {
+  if (mRunMC) {
     cluMC->clear();
   }
 
   for (const auto& tr : dtr) {
+
     mFirstDigitInEvent = tr.getFirstEntry();
     mLastDigitInEvent = mFirstDigitInEvent + tr.getNumberOfObjects();
     int indexStart = clusters->size();
@@ -52,36 +54,14 @@ void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRe
 
     LOG(DEBUG) << "Starting clusteriztion digits from " << mFirstDigitInEvent << " to " << mLastDigitInEvent;
 
-    if (!mBadMap) {
-      if (o2::cpv::CPVSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-        mBadMap = new BadChannelMap(1);    // test default map
-        mCalibParams = new CalibParams(1); //test calibration map
-        LOG(INFO) << "No reading BadMap/Calibration from ccdb requested, set default";
-      } else {
-        LOG(INFO) << "Getting BadMap object from ccdb";
-        o2::ccdb::CcdbApi ccdb;
-        std::map<std::string, std::string> metadata; // do we want to store any meta data?
-        ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
-        long bcTime = 1;                             //TODO!!! Convert BC time to time o2::InteractionRecord bcTime = digitsTR.front().getBCData() ;
-        mBadMap = ccdb.retrieveFromTFileAny<o2::cpv::BadChannelMap>("CPV/BadMap", metadata, bcTime);
-        mCalibParams = ccdb.retrieveFromTFileAny<o2::cpv::CalibParams>("CPV/Calib", metadata, bcTime);
-        if (!mBadMap) {
-          LOG(FATAL) << "[CPVClusterer - run] can not get Bad Map";
-        }
-        if (!mCalibParams) {
-          LOG(FATAL) << "[CPVClusterer - run] can not get CalibParams";
-        }
-      }
-    }
-
     // Collect digits to clusters
     makeClusters(digits);
 
-    // Unfold overlapped clusters
-    // Split clusters with several local maxima if necessary
-    if (o2::cpv::CPVSimParams::Instance().mUnfoldClusters) {
-      makeUnfoldings(digits);
-    }
+    // // Unfold overlapped clusters
+    // // Split clusters with several local maxima if necessary
+    // if (o2::cpv::CPVSimParams::Instance().mUnfoldClusters) {
+    //   makeUnfoldings(digits);
+    // }
 
     // Calculate properties of collected clusters (Local position, energy, disp etc.)
     evalCluProperties(digits, clusters, dmc, cluMC);
@@ -97,59 +77,51 @@ void Clusterer::makeClusters(gsl::span<const Digit> digits)
   // A cluster is defined as a list of neighbour digits
 
   // Mark all digits as unused yet
-  const int maxNDigits = 12546; // There is no digits more than in CPV modules ;)
-  bool digitsUsed[maxNDigits];
-  memset(digitsUsed, 0, sizeof(bool) * maxNDigits);
+  const int maxNDigits = 23040;       // There is no digits more than in CPV modules ;)
+  std::bitset<maxNDigits> digitsUsed; ///< Container for bad cells, 1 means bad sell
+  digitsUsed.reset();
 
   int iFirst = mFirstDigitInEvent; // first index of digit which potentially can be a part of cluster
 
   for (int i = iFirst; i < mLastDigitInEvent; i++) {
-    if (digitsUsed[i - mFirstDigitInEvent]) {
+    if (digitsUsed.test(i - mFirstDigitInEvent)) {
       continue;
     }
 
     const Digit& digitSeed = digits[i];
-    float digitSeedEnergy = calibrate(digitSeed.getAmplitude(), digitSeed.getAbsId());
-    if (isBadChannel(digitSeed.getAbsId())) {
-      digitSeedEnergy = 0.;
-    }
+    float digitSeedEnergy = digitSeed.getAmplitude(); //already calibrated digits
     if (digitSeedEnergy < o2::cpv::CPVSimParams::Instance().mDigitMinEnergy) {
       continue;
     }
 
     // is this digit so energetic that start cluster?
-    FullCluster* clu = nullptr;
-    int iDigitInCluster = 0;
-    if (digitSeedEnergy > o2::cpv::CPVSimParams::Instance().mClusteringThreshold) {
-      // start new cluster
-      mClusters.emplace_back(digitSeed.getAbsId(), digitSeedEnergy, digitSeed.getLabel());
-      clu = &(mClusters.back());
-
-      digitsUsed[i - mFirstDigitInEvent] = true;
-      iDigitInCluster = 1;
-    } else {
+    if (digitSeedEnergy < o2::cpv::CPVSimParams::Instance().mClusteringThreshold) {
       continue;
     }
+    // start new cluster
+    mClusters.emplace_back(digitSeed.getAbsId(), digitSeedEnergy, digitSeed.getLabel());
+    FullCluster& clu = mClusters.back();
+    digitsUsed.set(i - mFirstDigitInEvent, true);
+    int iDigitInCluster = 1;
+
     // Now scan remaining digits in list to find neigbours of our seed
     int index = 0;
     while (index < iDigitInCluster) { // scan over digits already in cluster
-      short digitSeedAbsId = clu->getDigitAbsId(index);
+      short digitSeedAbsId = clu.getDigitAbsId(index);
       index++;
-      for (Int_t j = iFirst; j < mLastDigitInEvent; j++) {
-        if (digitsUsed[j - mFirstDigitInEvent]) {
+      bool runLoop = true;
+      for (Int_t j = iFirst; runLoop && (j < mLastDigitInEvent); j++) {
+        if (digitsUsed.test(j - mFirstDigitInEvent)) {
           continue; // look through remaining digits
         }
-        const Digit* digitN = &(digits[j]);
-        float digitNEnergy = calibrate(digitN->getAmplitude(), digitN->getAbsId());
-        if (isBadChannel(digitN->getAbsId())) { //remove digit
-          digitNEnergy = 0.;
-        }
+        const Digit& digitN = digits[j];
+        float digitNEnergy = digitN.getAmplitude(); //Already calibrated digits!
         if (digitNEnergy < o2::cpv::CPVSimParams::Instance().mDigitMinEnergy) {
           continue;
         }
 
         // call (digit,digitN) in THAT oder !!!!!
-        Int_t ineb = Geometry::areNeighbours(digitSeedAbsId, digitN->getAbsId());
+        Int_t ineb = Geometry::areNeighbours(digitSeedAbsId, digitN.getAbsId());
         switch (ineb) {
           case -1: // too early (e.g. previous module), do not look before j at subsequent passes
             iFirst = j;
@@ -157,12 +129,13 @@ void Clusterer::makeClusters(gsl::span<const Digit> digits)
           case 0: // not a neighbour
             break;
           case 1: // are neighbours
-            clu->addDigit(digitN->getAbsId(), digitNEnergy, digitN->getLabel());
+            clu.addDigit(digitN.getAbsId(), digitNEnergy, digitN.getLabel());
             iDigitInCluster++;
-            digitsUsed[j - mFirstDigitInEvent] = true;
+            digitsUsed.set(j - mFirstDigitInEvent, true);
             break;
           case 2: // too far from each other
           default:
+            runLoop = false;
             break;
         } // switch
       }
@@ -340,7 +313,7 @@ void Clusterer::unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> 
 
 //____________________________________________________________________________
 void Clusterer::evalCluProperties(gsl::span<const Digit> digits, std::vector<Cluster>* clusters,
-                                  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* dmc,
+                                  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>& dmc,
                                   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* cluMC)
 {
 
@@ -349,9 +322,10 @@ void Clusterer::evalCluProperties(gsl::span<const Digit> digits, std::vector<Clu
   }
 
   int labelIndex = 0;
-  if (cluMC) {
+  if (mRunMC) {
     labelIndex = cluMC->getIndexedSize();
   }
+
   auto clu = mClusters.begin();
 
   while (clu != mClusters.end()) {
@@ -370,7 +344,7 @@ void Clusterer::evalCluProperties(gsl::span<const Digit> digits, std::vector<Clu
     if (clu->getEnergy() > 1.e-4) { //Non-empty cluster
       clusters->emplace_back(*clu);
 
-      if (cluMC) { //Handle labels
+      if (mRunMC) { //Handle labels
         //Calculate list of primaries
         //loop over entries in digit MCTruthContainer
         const std::vector<FullCluster::CluElement>* vl = clu->getElementList();
@@ -381,7 +355,7 @@ void Clusterer::evalCluProperties(gsl::span<const Digit> digits, std::vector<Clu
             ++ll;
             continue;
           }
-          gsl::span<const o2::MCCompLabel> spDigList = dmc->getLabels(i);
+          gsl::span<const o2::MCCompLabel> spDigList = dmc.getLabels(i);
           gsl::span<o2::MCCompLabel> spCluList = cluMC->getLabels(labelIndex); //get updated list
           auto digL = spDigList.begin();
           while (digL != spDigList.end()) {
@@ -401,7 +375,6 @@ void Clusterer::evalCluProperties(gsl::span<const Digit> digits, std::vector<Clu
           }
           ++ll;
         }
-        clusters->back().setLabel(labelIndex);
         labelIndex++;
       } // Work with MC
     }

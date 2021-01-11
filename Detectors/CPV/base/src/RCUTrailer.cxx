@@ -11,16 +11,10 @@
 #include <cmath>
 #include <iostream>
 #include <fmt/format.h>
-#include "FairLogger.h"
 #include "CommonConstants/LHCConstants.h"
-#include "PHOSBase/RCUTrailer.h"
+#include "CPVBase/RCUTrailer.h"
 
-using namespace o2::phos;
-
-RCUTrailer::RCUTrailer(const gsl::span<const uint32_t> payloadwords)
-{
-  constructFromRawPayload(payloadwords);
-}
+using namespace o2::cpv;
 
 void RCUTrailer::reset()
 {
@@ -39,69 +33,71 @@ void RCUTrailer::reset()
   mIsInitialized = false;
 }
 
-void RCUTrailer::constructFromRawPayload(const gsl::span<const uint32_t> payloadwords)
+void RCUTrailer::constructFromRawPayload(const gsl::span<const char> payloadwords)
 {
-  reset();
-  int index = payloadwords.size();
-  auto word = payloadwords[--index];
-  if ((word >> 30) != 3) {
-    throw Error(Error::ErrorType_t::DECODING_INVALID, "Last RCU trailer word not found!");
-  }
-  mFirmwareVersion = (word >> 16) & 0xFF;
 
-  mRCUId = (int)((word >> 7) & 0x1FF);
-  int trailerSize = (word & 0x7F);
+  // Code below assumes uint32_t span instead of current char!!!!!!
+  // reset();
+  // int index = payloadwords.size();
+  // auto word = payloadwords[--index];
+  // if ((word >> 30) != 3) {
+  //   throw Error(Error::ErrorType_t::DECODING_INVALID, "Last RCU trailer word not found!");
+  // }
+  // mFirmwareVersion = (word >> 16) & 0xFF;
 
-  if (trailerSize < 2) {
-    throw Error(Error::ErrorType_t::SIZE_INVALID, fmt::format("Invalid trailer size found (%d bytes) !", trailerSize * 4).data());
-  }
-  mTrailerSize = trailerSize;
+  // mRCUId = (int)((word >> 7) & 0x1FF);
+  // int trailerSize = (word & 0x7F);
 
-  trailerSize -= 2; // Cut first and last trailer words as they are handled separately
-  for (; trailerSize > 0; trailerSize--) {
-    word = payloadwords[--index];
-    if ((word >> 30) != 2) {
-      LOG(ERROR) << "Missing RCU trailer identifier pattern!";
-      continue;
-    }
-    int parCode = (word >> 26) & 0xF;
-    int parData = word & 0x3FFFFFF;
-    switch (parCode) {
-      case 1:
-        // ERR_REG1
-        mFECERRA = ((parData >> 13) & 0x1FFF) << 7;
-        mFECERRB = ((parData & 0x1FFF)) << 7;
-        break;
-      case 2:
-        // ERR_REG2
-        mERRREG2 = parData & 0x1FF;
-        break;
-      case 3:
-        // ERR_REG3
-        mERRREG3 = parData & 0x1FFFFFF;
-        break;
-      case 4:
-        // FEC_RO_A
-        mActiveFECsA = parData & 0xFFFF;
-        break;
-      case 5:
-        // FEC_RO_B
-        mActiveFECsB = parData & 0xFFFF;
-        break;
-      case 6:
-        // RDO_CFG1
-        mAltroCFG1 = parData & 0xFFFFF;
-        break;
-      case 7:
-        // RDO_CFG2
-        mAltroCFG2 = parData & 0x1FFFFFF;
-        break;
-      default:
-        LOG(ERROR) << "Undefined parameter code " << parCode << ", ignore it !";
-        break;
-    }
-  }
-  mPayloadSize = payloadwords[--index] & 0x3FFFFFF;
+  // if (trailerSize < 2) {
+  //   throw Error(Error::ErrorType_t::SIZE_INVALID, fmt::format("Invalid trailer size found (%d bytes) !", trailerSize * 4).data());
+  // }
+  // mTrailerSize = trailerSize;
+
+  // trailerSize -= 2; // Cut first and last trailer words as they are handled separately
+  // for (; trailerSize > 0; trailerSize--) {
+  //   word = payloadwords[--index];
+  //   if ((word >> 30) != 2) {
+  //     std::cerr << "Missing RCU trailer identifier pattern!\n";
+  //     continue;
+  //   }
+  //   int parCode = (word >> 26) & 0xF;
+  //   int parData = word & 0x3FFFFFF;
+  //   switch (parCode) {
+  //     case 1:
+  //       // ERR_REG1
+  //       mFECERRA = ((parData >> 13) & 0x1FFF) << 7;
+  //       mFECERRB = ((parData & 0x1FFF)) << 7;
+  //       break;
+  //     case 2:
+  //       // ERR_REG2
+  //       mERRREG2 = parData & 0x1FF;
+  //       break;
+  //     case 3:
+  //       // ERR_REG3
+  //       mERRREG3 = parData & 0x1FFFFFF;
+  //       break;
+  //     case 4:
+  //       // FEC_RO_A
+  //       mActiveFECsA = parData & 0xFFFF;
+  //       break;
+  //     case 5:
+  //       // FEC_RO_B
+  //       mActiveFECsB = parData & 0xFFFF;
+  //       break;
+  //     case 6:
+  //       // RDO_CFG1
+  //       mAltroCFG1 = parData & 0xFFFFF;
+  //       break;
+  //     case 7:
+  //       // RDO_CFG2
+  //       mAltroCFG2 = parData & 0x1FFFFFF;
+  //       break;
+  //     default:
+  //       std::cerr << "Undefined parameter code " << parCode << ", ignore it !\n";
+  //       break;
+  //   }
+  // }
+  // mPayloadSize = payloadwords[--index] & 0x3FFFFFF;
   mIsInitialized = true;
 }
 
@@ -235,11 +231,18 @@ void RCUTrailer::printStream(std::ostream& stream) const
 RCUTrailer RCUTrailer::constructFromPayloadWords(const gsl::span<const uint32_t> payloadwords)
 {
   RCUTrailer result;
+  auto tmp = gsl::span<const char>(reinterpret_cast<const char*>(payloadwords.data()), payloadwords.size() * sizeof(uint32_t));
+  result.constructFromRawPayload(tmp);
+  return result;
+}
+RCUTrailer RCUTrailer::constructFromPayload(const gsl::span<const char> payloadwords)
+{
+  RCUTrailer result;
   result.constructFromRawPayload(payloadwords);
   return result;
 }
 
-std::ostream& o2::phos::operator<<(std::ostream& stream, const o2::phos::RCUTrailer& trailer)
+std::ostream& o2::cpv::operator<<(std::ostream& stream, const o2::cpv::RCUTrailer& trailer)
 {
   trailer.printStream(stream);
   return stream;

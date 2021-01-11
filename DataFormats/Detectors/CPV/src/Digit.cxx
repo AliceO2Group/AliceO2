@@ -17,7 +17,7 @@ using namespace o2::cpv;
 
 ClassImp(Digit);
 
-Digit::Digit(short absId, float amplitude, int label)
+Digit::Digit(unsigned short absId, float amplitude, int label)
   : DigitBase(0), mAmplitude(amplitude), mAbsId(absId), mLabel(label)
 {
 }

@@ -33,36 +33,29 @@ class Clusterer
 
   void initialize();
   void process(gsl::span<const Digit> digits, gsl::span<const TriggerRecord> dtr,
-               const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* dmc,
-               std::vector<Cluster>* clusters, std::vector<TriggerRecord>* rigRec,
+               const o2::dataformats::MCTruthContainer<o2::MCCompLabel>& dmc,
+               std::vector<Cluster>* clusters, std::vector<TriggerRecord>* trigRec,
                o2::dataformats::MCTruthContainer<o2::MCCompLabel>* cluMC);
 
   void makeClusters(gsl::span<const Digit> digits);
   void evalCluProperties(gsl::span<const Digit> digits, std::vector<Cluster>* clusters,
-                         const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* dmc,
+                         const o2::dataformats::MCTruthContainer<o2::MCCompLabel>& dmc,
                          o2::dataformats::MCTruthContainer<o2::MCCompLabel>* cluMC);
 
   float responseShape(float dx, float dz); // Parameterization of EM shower
+  void propagateMC(bool toRun = true) { mRunMC = toRun; }
 
   void makeUnfoldings(gsl::span<const Digit> digits); // Find and unfold clusters with few local maxima
   void unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> digitId, gsl::span<const Digit> digits);
 
  protected:
-  //Calibrate Amplitude
-  inline float calibrate(float amp, short absId) { return amp * mCalibParams->getGain(absId); }
-  //Test Bad map
-  inline bool isBadChannel(short absId) { return (!mBadMap->isChannelGood(absId)); }
-
- protected:
   static constexpr short NLMMax = 10; ///< maximal number of local maxima in cluster
 
-  const CalibParams* mCalibParams = nullptr; //! Calibration coefficients
-  const BadChannelMap* mBadMap = nullptr;    //! Calibration coefficients
-
-  std::vector<FullCluster> mClusters; ///< internal vector of clusters
+  bool mRunMC = false;                ///< Process MC info
   int mFirstDigitInEvent;             ///< Range of digits from one event
   int mLastDigitInEvent;              ///< Range of digits from one event
-  std::vector<Digit> mDigits;         ///< vector of trancient digits for cell processing
+  std::vector<FullCluster> mClusters; ///< internal vector of clusters
+  std::vector<Digit> mDigits;         ///< vector of transient digits for cell processing
 
   std::vector<std::vector<float>> meInClusters = std::vector<std::vector<float>>(10, std::vector<float>(NLMMax));
   std::vector<std::vector<float>> mfij = std::vector<std::vector<float>>(10, std::vector<float>(NLMMax));

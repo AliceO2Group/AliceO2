@@ -39,14 +39,14 @@ struct CPVSimParams : public o2::conf::ConfigurableParamHelper<CPVSimParams> {
 
   //Parameters used in electronic noise calculation and thresholds (Digitizer)
   bool mApplyDigitization = true;   ///< if energy digitization should be applied
-  float mZSthreshold = 0.005;       ///< Zero Suppression threshold
+  float mZSthreshold = 0.01;        ///< Zero Suppression threshold
   float mADCWidth = 0.005;          ///< Widht of ADC channel used for energy digitization
-  float mNoise = 0.03;              ///<  charge noise in one pad
+  float mNoise = 0.01;              ///<  charge noise in one pad
   float mCoeffToNanoSecond = 1.e+9; ///< Conversion for time units
   float mSortingDelta = 0.1;        ///< used in sorting clusters inverse sorting band in cm
 
   //Parameters used in clusterization
-  float mDigitMinEnergy = 0.005;      ///< Minimal amplitude of a digit to be used in cluster
+  float mDigitMinEnergy = 0.01;       ///< Minimal amplitude of a digit to be used in cluster
   float mClusteringThreshold = 0.050; ///< Seed digit minimal amplitude
   float mUnfogingEAccuracy = 1.e-3;   ///< Accuracy of energy calculation in unfoding prosedure (GeV)
   float mUnfogingXZAccuracy = 1.e-1;  ///< Accuracy of position calculation in unfolding procedure (cm)

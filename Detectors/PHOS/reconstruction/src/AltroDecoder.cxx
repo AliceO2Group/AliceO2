@@ -80,6 +80,10 @@ void AltroDecoder::readChannels()
     auto& currentchannel = mChannels.back();
     /// decode all words for channel
     int numberofwords = (currentchannel.getPayloadSize() + 2) / 3;
+    if (numberofwords > payloadend - currentpos) {
+      LOG(ERROR) << "Channel payload " << numberofwords << " larger than left in total " << payloadend - currentpos;
+      continue;
+    }
     std::vector<uint16_t> bunchwords;
     for (int iword = 0; iword < numberofwords; iword++) {
       currentword = buffer[currentpos++];
@@ -109,7 +113,8 @@ void AltroDecoder::readChannels()
 
 const std::vector<Channel>& AltroDecoder::getChannels() const
 {
-  if (!mChannelsInitialized)
+  if (!mChannelsInitialized) {
     throw AltroDecoderError::ErrorType_t::CHANNEL_ERROR; // "Channels not initizalized");
+  }
   return mChannels;
 }

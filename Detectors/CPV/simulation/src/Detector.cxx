@@ -249,15 +249,15 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     int ixcell = (int)xcell;
     float zc = zcell - izcell - 0.5;
     float xc = xcell - ixcell - 0.5;
-    for (int iz = 1; iz <= cpvparam.mNgamz; iz++) {
+    for (int iz = 0; iz < cpvparam.mNgamz; iz++) {
       int kzg = izcell + iz - nz3;
-      if (kzg <= 0 || kzg > cpvparam.mnCellZ) {
+      if (kzg < 0 || kzg >= cpvparam.mnCellZ) {
         continue;
       }
       float zg = (float)(iz - nz3) - zc;
-      for (int ix = 1; ix <= cpvparam.mNgamx; ix++) {
+      for (int ix = 0; ix < cpvparam.mNgamx; ix++) {
         int kxg = ixcell + ix - nx3;
-        if (kxg <= 0 || kxg > cpvparam.mnCellX) {
+        if (kxg < 0 || kxg >= cpvparam.mnCellX) {
           continue;
         }
         float xg = (float)(ix - nx3) - xc;

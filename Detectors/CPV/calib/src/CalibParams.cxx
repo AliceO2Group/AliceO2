@@ -19,13 +19,13 @@
 
 using namespace o2::cpv;
 
-CalibParams::CalibParams(int /*dummy*/)
+CalibParams::CalibParams(short /*dummy*/)
 {
   //produce reasonable objest for test purposes
-  mGainCalib.fill(0.005);
+  mGainCalib.fill(0.01);
 }
 
-bool CalibParams::setGain(TH2* h, char module)
+bool CalibParams::setGain(TH2* h, short module)
 {
   const short MAXX = 128,
               MAXZ = 56;
@@ -40,7 +40,7 @@ bool CalibParams::setGain(TH2* h, char module)
   }
 
   short relid[3] = {module, 1, 1};
-  short absId;
+  unsigned short absId;
   for (short ix = 1; ix <= MAXX; ix++) {
     relid[1] = ix;
     for (short iz = 1; iz <= MAXZ; iz++) {
