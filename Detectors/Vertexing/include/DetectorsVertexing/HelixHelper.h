@@ -17,6 +17,9 @@
 
 #include "MathUtils/Primitive2D.h"
 #include "ReconstructionDataFormats/Track.h"
+#include "GPUCommonDef.h"
+#include "GPUCommonRtypes.h"
+#include "GPUCommonMath.h"
 
 namespace o2
 {
@@ -30,11 +33,11 @@ struct TrackAuxPar : public o2::math_utils::CircleXYf_t {
 
   float c, s, cc, ss, cs; // cos ans sin of track alpha and their products
 
-  TrackAuxPar() = default;
-  TrackAuxPar(const Track& trc, float bz) { set(trc, bz); }
-  float cosDif(const TrackAuxPar& t) const { return c * t.c + s * t.s; } // cos(alpha_this - alha_t)
-  float sinDif(const TrackAuxPar& t) const { return s * t.c - c * t.s; } // sin(alpha_this - alha_t)
-  void set(const Track& trc, float bz)
+  GPUdDefault() TrackAuxPar() = default;
+  GPUd() TrackAuxPar(const Track& trc, float bz) { set(trc, bz); }
+  GPUd() float cosDif(const TrackAuxPar& t) const { return c * t.c + s * t.s; } // cos(alpha_this - alha_t)
+  GPUd() float sinDif(const TrackAuxPar& t) const { return s * t.c - c * t.s; } // sin(alpha_this - alha_t)
+  GPUd() void set(const Track& trc, float bz)
   {
     trc.getCircleParams(bz, *this, s, c);
     cc = c * c;
@@ -51,7 +54,7 @@ struct CrossInfo {
   float yDCA[2];
   int nDCA;
 
-  int circlesCrossInfo(const TrackAuxPar& trax0, const TrackAuxPar& trax1)
+  GPUd() int circlesCrossInfo(const TrackAuxPar& trax0, const TrackAuxPar& trax1)
   {
     const auto& trcA = trax0.rC > trax1.rC ? trax0 : trax1; // designate the largest circle as A
     const auto& trcB = trax0.rC > trax1.rC ? trax1 : trax0;
@@ -105,7 +108,7 @@ struct CrossInfo {
     return nDCA;
   }
 
-  void notTouchingXY(float dist, float xDist, float yDist, const TrackAuxPar& trcA, float rBSign)
+  GPUd() void notTouchingXY(float dist, float xDist, float yDist, const TrackAuxPar& trcA, float rBSign)
   {
     // fast method to calculate DCA between 2 circles, assuming that they don't touch each outer:
     // the parametric equation of lines connecting the centers is x = xA + t/dist * xDist, y = yA + t/dist * yDist
@@ -119,7 +122,7 @@ struct CrossInfo {
     yDCA[0] = trcA.yC + 0.5 * (yDist * t2d);
   }
 
-  int linesCrossInfo(const TrackAuxPar& trax0, const TrackPar& tr0,
+  GPUd() int linesCrossInfo(const TrackAuxPar& trax0, const TrackPar& tr0,
                      const TrackAuxPar& trax1, const TrackPar& tr1)
   {
     /// closest approach of 2 straight lines
@@ -173,7 +176,7 @@ struct CrossInfo {
     return nDCA;
   }
 
-  int circleLineCrossInfo(const TrackAuxPar& trax0, const TrackPar& tr0,
+  GPUd() int circleLineCrossInfo(const TrackAuxPar& trax0, const TrackPar& tr0,
                           const TrackAuxPar& trax1, const TrackPar& tr1)
   {
     /// closest approach of line and circle
@@ -227,7 +230,7 @@ struct CrossInfo {
     return nDCA;
   }
 
-  int set(const TrackAuxPar& trax0, const TrackPar& tr0, const TrackAuxPar& trax1, const TrackPar& tr1)
+  GPUd() int set(const TrackAuxPar& trax0, const TrackPar& tr0, const TrackAuxPar& trax1, const TrackPar& tr1)
   {
     // calculate up to 2 crossings between 2 circles
     nDCA = 0;
@@ -242,9 +245,9 @@ struct CrossInfo {
     return nDCA;
   }
 
-  CrossInfo() = default;
+  GPUdDefault() CrossInfo() = default;
 
-  CrossInfo(const TrackAuxPar& trax0, const TrackPar& tr0, const TrackAuxPar& trax1, const TrackPar& tr1)
+  GPUd() CrossInfo(const TrackAuxPar& trax0, const TrackPar& tr0, const TrackAuxPar& trax1, const TrackPar& tr1)
   {
     set(trax0, tr0, trax1, tr1);
   }

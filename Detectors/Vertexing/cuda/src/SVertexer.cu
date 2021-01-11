@@ -9,16 +9,18 @@
 // or submit itself to any jurisdiction.
 
 #include "DetectorsVertexingCUDA/SVertexer.h"
-// #include "DetectorsVertexing/DCAFitterN.h" <- target
+#include "DetectorsVertexing/DCAFitterN.h" // <- target
+// #include "DetectorsVertexing/HelixHelper.h"
 // #include "ReconstructionDataFormats/Track.h"
 
 namespace o2
 {
 namespace vertexing
 {
-namespace GPU
+namespace gpu
 { // Kernels
 GPUg() void helloKernel() {
+    o2::vertexing::DCAFitterN<2> mFitter2Prong;
     printf("Hello World from GPU!\n");
 }
 }
@@ -26,7 +28,7 @@ GPUg() void helloKernel() {
 // Steers
 void SVertexerGPU::hello()
 {
-    GPU::helloKernel<<<1,1>>>();
+    gpu::helloKernel<<<1,1>>>();
 }
 
 }
