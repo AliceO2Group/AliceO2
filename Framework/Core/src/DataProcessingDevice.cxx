@@ -177,27 +177,6 @@ void on_socket_polled(uv_poll_t* poller, int status, int events)
   // We do nothing, all the logic for now stays in DataProcessingDevice::doRun()
 }
 
-namespace
-{
-template <typename T>
-std::string arrayPrinter(boost::property_tree::ptree const& tree)
-{
-  std::stringstream ss;
-  int size = tree.size();
-  int count = 0;
-  ss << variant_array_symbol<T>::symbol << "[";
-  for (auto& element : tree) {
-    ss << element.second.get_value<T>();
-    if (count < size - 1) {
-      ss << ",";
-    }
-    ++count;
-  }
-  ss << "]";
-  return ss.str();
-}
-} // namespace
-
 /// This  takes care  of initialising  the device  from its  specification. In
 /// particular it needs to:
 ///

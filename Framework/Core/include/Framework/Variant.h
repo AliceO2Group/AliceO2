@@ -11,6 +11,7 @@
 #define FRAMEWORK_VARIANT_H
 
 #include "Framework/RuntimeError.h"
+#include "Framework/Array2D.h"
 #include <type_traits>
 #include <cstring>
 #include <cstdint>
@@ -21,9 +22,7 @@
 #include <vector>
 #include <string>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 enum class VariantType : int { Int = 0,
@@ -37,6 +36,9 @@ enum class VariantType : int { Int = 0,
                                ArrayDouble,
                                ArrayBool,
                                ArrayString,
+                               MatrixInt,
+                               MatrixFloat,
+                               MatrixDouble,
                                Empty,
                                Unknown };
 
@@ -74,6 +76,10 @@ DECLARE_VARIANT_TRAIT(std::vector<float>, ArrayFloat);
 DECLARE_VARIANT_TRAIT(std::vector<double>, ArrayDouble);
 DECLARE_VARIANT_TRAIT(std::vector<bool>, ArrayBool);
 DECLARE_VARIANT_TRAIT(std::vector<std::string>, ArrayString);
+
+DECLARE_VARIANT_TRAIT(Array2D<int>, MatrixInt);
+DECLARE_VARIANT_TRAIT(Array2D<float>, MatrixFloat);
+DECLARE_VARIANT_TRAIT(Array2D<double>, MatrixDouble);
 
 template <typename T>
 struct variant_array_symbol {
@@ -131,6 +137,10 @@ DECLARE_VARIANT_TYPE(double*, ArrayDouble);
 DECLARE_VARIANT_TYPE(bool*, ArrayBool);
 DECLARE_VARIANT_TYPE(std::string*, ArrayString);
 
+DECLARE_VARIANT_TYPE(Array2D<int>, MatrixInt);
+DECLARE_VARIANT_TYPE(Array2D<float>, MatrixFloat);
+DECLARE_VARIANT_TYPE(Array2D<double>, MatrixDouble);
+
 template <typename S, typename T>
 struct variant_helper {
   static void set(S* store, T value) { *(reinterpret_cast<T*>(store)) = value; }
@@ -170,7 +180,7 @@ struct variant_helper<S, std::string> {
 /// Variant for configuration parameter storage. Owns stored data.
 class Variant
 {
-  using storage_t = std::aligned_union<8, int, int64_t, const char*, float, double, bool, int*, float*, double*, bool*>::type;
+  using storage_t = std::aligned_union<8, int, int64_t, const char*, float, double, bool, int*, float*, double*, bool*, Array2D<int>, Array2D<float>, Array2D<double>>::type;
 
  public:
   Variant(VariantType type = VariantType::Unknown) : mType{type}, mSize{1} {}
@@ -355,7 +365,6 @@ class Variant
   size_t mSize = 1;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif
