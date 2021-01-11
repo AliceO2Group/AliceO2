@@ -87,7 +87,7 @@ class FV0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
         // call actual digitization procedure
         mDigitizer.setEventId(part.entryID);
         mDigitizer.setSrcId(part.sourceID);
-        mDigitizer.process(hits, mDigitsBC, mDigitsCh, mLabels);
+        mDigitizer.process(hits, mDigitsBC, mDigitsCh, mDigitsTrig, mLabels);
       }
       LOG(INFO) << "[FV0] Has " << mDigitsBC.size() << " BC elements,   " << mDigitsCh.size() << " mDigitsCh elements";
     }
@@ -95,7 +95,7 @@ class FV0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     o2::InteractionTimeRecord terminateIR;
     terminateIR.orbit = 0xffffffff; // supply IR in the infinite future to flush all cached BC
     mDigitizer.setInteractionRecord(terminateIR);
-    mDigitizer.flush(mDigitsBC, mDigitsCh, mLabels);
+    mDigitizer.flush(mDigitsBC, mDigitsCh, mDigitsTrig, mLabels);
 
     // here we have all digits and we can send them to consumer (aka snapshot it onto output)
     LOG(INFO) << "FV0: Sending " << mDigitsBC.size() << " digitsBC and " << mDigitsCh.size() << " digitsCh.";
@@ -103,6 +103,7 @@ class FV0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     // send out to next stage
     pc.outputs().snapshot(Output{"FV0", "DIGITSBC", 0, Lifetime::Timeframe}, mDigitsBC);
     pc.outputs().snapshot(Output{"FV0", "DIGITSCH", 0, Lifetime::Timeframe}, mDigitsCh);
+    pc.outputs().snapshot(Output{"FV0", "TRIGGERINPUT", 0, Lifetime::Timeframe}, mDigitsTrig);
     if (pc.outputs().isAllowed({"FV0", "DIGITLBL", 0})) {
       pc.outputs().snapshot(Output{"FV0", "DIGITLBL", 0, Lifetime::Timeframe}, mLabels);
     }
@@ -120,6 +121,7 @@ class FV0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
   std::vector<TChain*> mSimChains;
   std::vector<o2::fv0::ChannelData> mDigitsCh;
   std::vector<o2::fv0::BCData> mDigitsBC;
+  std::vector<o2::fv0::DetTrigInput> mDigitsTrig;
   o2::dataformats::MCTruthContainer<o2::fv0::MCLabel> mLabels; // labels which get filled
 
   // RS: at the moment using hardcoded flag for continuous readout
@@ -137,6 +139,7 @@ o2::framework::DataProcessorSpec getFV0DigitizerSpec(int channel, bool mctruth)
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("FV0", "DIGITSBC", 0, Lifetime::Timeframe);
   outputs.emplace_back("FV0", "DIGITSCH", 0, Lifetime::Timeframe);
+  outputs.emplace_back("FV0", "TRIGGERINPUT", 0, Lifetime::Timeframe);
   if (mctruth) {
     outputs.emplace_back("FV0", "DIGITLBL", 0, Lifetime::Timeframe);
   }
