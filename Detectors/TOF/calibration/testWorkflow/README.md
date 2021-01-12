@@ -75,6 +75,23 @@ o2-calibration-tof-calib-workflow --do-channel-offset --use-ccdb --min-entries 5
 o2-calibration-ccdb-populator-workflow --ccdb-path localhost:8080 -b
 ```
 
+By default the rate of the TF sampling will match to `mean-latence / lanes`, so that the sampling and generation are balanced and no TF is dropped out at the generation level.
+One can provide the option `--pressure <float, D=1.>`, in which case the sampling rate will be increased by this factor, creating a back-pressure on the processing due to its latency.
+
+There is a possibility to generate data in multiple independent workflows, still avoiding TF-s with the same ID in different workflow. Options `--gen-norm <N, D=1> --gen-slot <I,D=0>` will
+enforce skipping all TF-s except those with ``(TFID/lanes)%N == I``. I.e. for example, to emulate the processing with 3 different EPN's with 8 lanes each one can run in 3 terminals:
+
+```shell
+# Term.1: will produce TFs [0:7], [24:31], [48:55] ...
+o2-calibration-data-generator-workflow --lanes 8 --max-timeframes 5000 --gen-norm 3 --gen-slot 0
+
+# Term.2: will produce TFs [8:15], [32,39], [56:63] ...
+o2-calibration-data-generator-workflow --lanes 8 --max-timeframes 5000 --gen-norm 3 --gen-slot 1
+
+# Term.3: will produce TFs [16:23], [40:47], [64:71] ...
+o2-calibration-data-generator-workflow --lanes 8 --max-timeframes 5000 --gen-norm 3 --gen-slot 2
+```
+
 ## TimeSlewing:
 
 For Time Slewing. Will save the Time Slewing information in files when a certain condition is reached. A post-processing
