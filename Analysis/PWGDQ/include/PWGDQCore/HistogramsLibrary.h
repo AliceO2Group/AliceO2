@@ -10,8 +10,8 @@
 //
 // Contact: iarsene@cern.ch, i.c.arsene@fys.uio.no
 //
-#include "HistogramManager.h"
-#include "VarManager.h"
+#include "PWGDQCore/HistogramManager.h"
+#include "PWGDQCore/VarManager.h"
 
 namespace o2::aod
 {

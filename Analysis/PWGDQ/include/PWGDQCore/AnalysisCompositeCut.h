@@ -16,7 +16,7 @@
 #ifndef AnalysisCompositeCut_H
 #define AnalysisCompositeCut_H
 
-#include "AnalysisCut.h"
+#include "PWGDQCore/AnalysisCut.h"
 #include <vector>
 
 //_________________________________________________________________________

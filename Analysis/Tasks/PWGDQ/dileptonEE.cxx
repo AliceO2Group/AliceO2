@@ -15,10 +15,10 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoAHelpers.h"
 #include "AnalysisDataModel/ReducedInfoTables.h"
-#include "VarManager.h"
-#include "HistogramManager.h"
-#include "AnalysisCut.h"
-#include "AnalysisCompositeCut.h"
+#include "PWGDQCore/VarManager.h"
+#include "PWGDQCore/HistogramManager.h"
+#include "PWGDQCore/AnalysisCut.h"
+#include "PWGDQCore/AnalysisCompositeCut.h"
 #include <TH1F.h>
 #include <TMath.h>
 #include <THashList.h>
