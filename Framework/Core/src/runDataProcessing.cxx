@@ -1326,6 +1326,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           performanceMetrics.push_back("aod-bytes-read-compressed");
           performanceMetrics.push_back("aod-total-read-calls");
           performanceMetrics.push_back("aod-file-read-path");
+          performanceMetrics.push_back("aod-file-read-path");
           ResourcesMonitoringHelper::dumpMetricsToJSON(metricsInfos, driverInfo.metrics, deviceSpecs, performanceMetrics);
         }
         // This is a clean exit. Before we do so, if required,
