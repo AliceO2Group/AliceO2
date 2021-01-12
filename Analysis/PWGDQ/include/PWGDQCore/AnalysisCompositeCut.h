@@ -16,7 +16,7 @@
 #ifndef AnalysisCompositeCut_H
 #define AnalysisCompositeCut_H
 
-#include "AnalysisCore/AnalysisCut.h"
+#include "PWGDQCore/AnalysisCut.h"
 #include <vector>
 
 //_________________________________________________________________________
@@ -44,8 +44,8 @@ class AnalysisCompositeCut : public AnalysisCut
   bool IsSelected(float* values) override;
 
  protected:
-  bool fOptionUseAND;                // true (default): apply AND on all cuts; false: use OR
-  std::vector<AnalysisCut> fCutList; // list of cuts
+  bool fOptionUseAND;                                  // true (default): apply AND on all cuts; false: use OR
+  std::vector<AnalysisCut> fCutList;                   // list of cuts
   std::vector<AnalysisCompositeCut> fCompositeCutList; // list of composite cuts
 
   ClassDef(AnalysisCompositeCut, 2);

@@ -11,10 +11,6 @@
 o2_add_library(AnalysisCore
                SOURCES  src/CorrelationContainer.cxx
                         src/TrackSelection.cxx
-                        src/VarManager.cxx
-                        src/HistogramManager.cxx
-                        src/AnalysisCut.cxx
-                        src/AnalysisCompositeCut.cxx
                         src/TriggerAliases.cxx
 			src/HFConfigurables.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel)
@@ -23,10 +19,6 @@ o2_target_root_dictionary(AnalysisCore
               HEADERS include/AnalysisCore/CorrelationContainer.h
                       include/AnalysisCore/TrackSelection.h
                       include/AnalysisCore/TrackSelectionDefaults.h
-                      include/AnalysisCore/VarManager.h
-                      include/AnalysisCore/HistogramManager.h
-                      include/AnalysisCore/AnalysisCut.h
-                      include/AnalysisCore/AnalysisCompositeCut.h
                       include/AnalysisCore/TriggerAliases.h
                       include/AnalysisCore/MC.h
 		      include/AnalysisCore/HFConfigurables.h

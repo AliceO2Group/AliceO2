@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "AnalysisCore/HistogramManager.h"
+#include "PWGDQCore/HistogramManager.h"
 
 #include <iostream>
 #include <fstream>
