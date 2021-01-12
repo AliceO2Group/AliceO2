@@ -146,7 +146,7 @@ taskwrapper() {
     finalcommand="TIME=\"#walltime %e\" ${O2_ROOT}/share/scripts/monitor-mem.sh ${TIMECOMMAND} './${SCRIPTNAME}'"
   fi
   echo "Running: ${finalcommand}" > ${logfile}
-  eval ${finalcommand} >> ${logfile} 2>&1 & disown
+  eval ${finalcommand} >> ${logfile} 2>&1 & #can't disown here since we want to retrieve exit status later on
 
   # THE NEXT PART IS THE SUPERVISION PART
   # get the PID
