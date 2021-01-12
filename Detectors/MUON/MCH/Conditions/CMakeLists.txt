@@ -8,14 +8,17 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(Base)
-add_subdirectory(Contour)
-add_subdirectory(Mapping)
-add_subdirectory(PreClustering)
-add_subdirectory(Geometry)
-add_subdirectory(Clustering)
-add_subdirectory(Simulation)
-add_subdirectory(Tracking)
-add_subdirectory(Raw)
-add_subdirectory(Workflow)
-add_subdirectory(Conditions)
+o2_add_library(
+  MCHConditions
+  SOURCES src/DCSNamer.cxx
+  PUBLIC_LINK_LIBRARIES fmt::fmt)
+
+if(BUILD_TESTING)
+  o2_add_test(
+    dcs-namer
+    SOURCES test/testDCSNamer.cxx test/HVAliases.cxx test/LVAliases.cxx
+    COMPONENT_NAME mch
+    LABELS "muon;mch;dcs"
+    PUBLIC_LINK_LIBRARIES O2::MCHConditions)
+endif()
+
