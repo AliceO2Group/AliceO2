@@ -100,6 +100,10 @@ int checkresult()
   // easy check: see if we have number of entries in output tree == number of events asked
   std::string filename = o2::base::NameConf::getMCKinematicsFileName(conf.getOutPrefix().c_str());
   TFile f(filename.c_str(), "OPEN");
+  if (f.IsZombie()) {
+    LOG(WARN) << "Kinematics file corrupted or does not exist";
+    return 1;
+  }
   auto tr = static_cast<TTree*>(f.Get("o2sim"));
   if (!tr) {
     errors++;
