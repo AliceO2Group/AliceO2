@@ -8,14 +8,17 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(Base)
-add_subdirectory(Contour)
-add_subdirectory(Mapping)
-add_subdirectory(PreClustering)
-add_subdirectory(Geometry)
-add_subdirectory(Clustering)
-add_subdirectory(Simulation)
-add_subdirectory(Tracking)
-add_subdirectory(Raw)
-add_subdirectory(Workflow)
-add_subdirectory(Conditions)
+o2_add_library(
+  MIDConditions
+  SOURCES src/DCSNamer.cxx 
+  PUBLIC_LINK_LIBRARIES O2::MIDBase fmt::fmt)
+
+if(BUILD_TESTING)
+  o2_add_test(
+    dcs-namer
+    SOURCES test/testDCSNamer.cxx test/HVAliases.cxx
+    COMPONENT_NAME mid
+    LABELS "muon;mid;dcs"
+    PUBLIC_LINK_LIBRARIES O2::MIDConditions)
+endif()
+
