@@ -44,6 +44,7 @@ A3Pipe::A3Pipe(const char* name,
 {
 }
 
+A3Pipe::~A3Pipe() = default;
 A3Pipe& A3Pipe::operator=(const A3Pipe& rhs)
 {
   // self assignment
