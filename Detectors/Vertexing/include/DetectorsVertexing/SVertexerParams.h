@@ -50,16 +50,12 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   float minRfromMeanVertex = 0.5;     ///< min radial distance of V0 from beam line (mean vertex)
   float maxDCAXYfromMeanVertex = 0.2; ///< min DCA of V0 from beam line (mean vertex)
   float minCosPointingAngle = 0.8;
+
   // cuts on different PID params
-  float pidCuts[NPIDV0][NPIDParams] = {
-    //
-    {0.001, 20, 0.6, 0.},    // Photon
-    {0.003, 20, 0.07, 0.5},  // K0
-    {0.001, 20, 0.07, 0.5},  // Lambda
-    {0.001, 20, 0.07, 0.5},  // AntiLambda
-    {0.0025, 14, 0.07, 0.5}, // HyperTriton
-    {0.0025, 14, 0.07, 0.5}  // AntiHyperTriton
-  };
+  float pidCutsPhoton[NPIDParams] = {0.001, 20, 0.60, 0.0};   // Photon
+  float pidCutsK0[NPIDParams] = {0.003, 20, 0.07, 0.5};       // K0
+  float pidCutsLambda[NPIDParams] = {0.001, 20, 0.07, 0.5};   // Lambda
+  float pidCutsHTriton[NPIDParams] = {0.0025, 14, 0.07, 0.5}; // HyperTriton
 
   O2ParamDef(SVertexerParams, "svertexer");
 };
