@@ -10,7 +10,6 @@
 
 add_subdirectory(aliceHLTwrapper)
 add_subdirectory(O2MessageMonitor)
-add_subdirectory(DataFlow)
 add_subdirectory(DataSampling)
 add_subdirectory(Publishers)
 add_subdirectory(DataCompression)
