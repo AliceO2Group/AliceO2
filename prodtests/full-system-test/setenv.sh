@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Make sure we can open sufficiently many files / allocate enough memory
-ulimit -n 4096 || ulimit -l unlimited || ulimit -m unlimited || ulimit -l unlimited
+ulimit -n 4096 && ulimit -l unlimited && ulimit -m unlimited && ulimit -l unlimited
 if [ $? != 0 ]; then
   echo Error setting ulimits
   exit 1
