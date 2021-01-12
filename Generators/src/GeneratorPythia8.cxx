@@ -196,37 +196,15 @@ void GeneratorPythia8::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
 {
   /** update header **/
 
-  eventHeader->putInfo<std::string>("generator", "pythia8");
-  eventHeader->putInfo<int>("version", PYTHIA_VERSION_INTEGER);
-
 #if PYTHIA_VERSION_INTEGER < 8300
   auto hiinfo = mPythia.info.hiinfo;
 #else
   auto hiinfo = mPythia.info.hiInfo;
 #endif
 
+  /** set impact parameter if in heavy-ion mode **/
   if (hiinfo) {
-    /** set impact parameter **/
     eventHeader->SetB(hiinfo->b());
-    eventHeader->putInfo<double>("Bimpact", hiinfo->b());
-    /** set Ncoll, Npart and Nremn **/
-    int nColl, nPart;
-    int nPartProtonProj, nPartNeutronProj, nPartProtonTarg, nPartNeutronTarg;
-    int nRemnProtonProj, nRemnNeutronProj, nRemnProtonTarg, nRemnNeutronTarg;
-    getNcoll(nColl);
-    getNpart(nPart);
-    getNpart(nPartProtonProj, nPartNeutronProj, nPartProtonTarg, nPartNeutronTarg);
-    getNremn(nRemnProtonProj, nRemnNeutronProj, nRemnProtonTarg, nRemnNeutronTarg);
-    eventHeader->putInfo<int>("Ncoll", nColl);
-    eventHeader->putInfo<int>("Npart", nPart);
-    eventHeader->putInfo<int>("Npart_proj_p", nPartProtonProj);
-    eventHeader->putInfo<int>("Npart_proj_n", nPartNeutronProj);
-    eventHeader->putInfo<int>("Npart_targ_p", nPartProtonTarg);
-    eventHeader->putInfo<int>("Npart_targ_n", nPartNeutronTarg);
-    eventHeader->putInfo<int>("Nremn_proj_p", nRemnProtonProj);
-    eventHeader->putInfo<int>("Nremn_proj_n", nRemnNeutronProj);
-    eventHeader->putInfo<int>("Nremn_targ_p", nRemnProtonTarg);
-    eventHeader->putInfo<int>("Nremn_targ_n", nRemnNeutronTarg);
   }
 }
 
