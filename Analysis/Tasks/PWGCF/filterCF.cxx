@@ -50,6 +50,9 @@ struct FilterCF {
   {
     LOGF(info, "Tracks for collision: %d | Vertex: %.1f | INT7: %d | V0M: %.1f", tracks.size(), collision.posZ(), collision.sel7(), collision.centV0M());
 
+    if (!collision.alias()[kINT7]) {
+      return;
+    }
     if (!collision.sel7()) {
       return;
     }

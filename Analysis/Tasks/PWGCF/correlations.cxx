@@ -153,6 +153,9 @@ struct CorrelationTask {
 
     same->fillEvent(centrality, CorrelationContainer::kCFStepAll);
 
+    if (!collision.alias()[kINT7]) {
+      return;
+    }
     if (!collision.sel7()) {
       return;
     }
