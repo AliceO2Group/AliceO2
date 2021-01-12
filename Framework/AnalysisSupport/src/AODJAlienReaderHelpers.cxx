@@ -299,13 +299,19 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
           std::string nextFileRead = info.file->GetPath();
           if (currentFileRead != nextFileRead) {
             currentFileRead = nextFileRead;
+            std::string monitoringInfo(currentFileRead);
+            monitoringInfo += ",";
+            monitoringInfo += std::to_string(info.file->GetSize());
 #if __has_include(<TJAlienFile.h>)
             auto alienFile = dynamic_cast<TJAlienFile*>(info.file);
             if (alienFile) {
-              /// FIXME: get the JAlien stats
+              monitoringInfo += ",";
+              monitoringInfo += alienFile->GetSE();
             }
 #endif
-            monitoring.send(Metric{currentFileRead, "aod-file-read-path"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
+            monitoring.send(Metric{monitoringInfo, "aod-file-read-info"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
+            LOGP(INFO, "File read info: {}", monitoringInfo);
+            // TODO extend to publish at the end of the file (or on each TF?) the sizes read *per file*
           }
         }
         monitoring.send(Metric{(double)ps.GetReadCalls(), "aod-tree-read-calls"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
