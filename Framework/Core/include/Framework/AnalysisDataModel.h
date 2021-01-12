@@ -265,6 +265,100 @@ using TrackExtra = TracksExtra::iterator;
 using FullTracks = soa::Join<Tracks, TracksCov, TracksExtra>;
 using FullTrack = FullTracks::iterator;
 
+namespace trackfwd
+{
+// TRACKPARFWD TABLE definition
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+DECLARE_SOA_COLUMN(TrackType, trackType, uint8_t); // TODO change to TrackTypeEnum when enums are supported
+DECLARE_SOA_COLUMN(X, x, float);
+DECLARE_SOA_COLUMN(Y, y, float);
+DECLARE_SOA_COLUMN(Z, z, float);
+DECLARE_SOA_COLUMN(Phi, phi, float);
+DECLARE_SOA_COLUMN(Tgl, tgl, float);
+DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float);
+
+DECLARE_SOA_DYNAMIC_COLUMN(Charge, charge, [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
+DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, -1.f * nlog(ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::trackfwd::tgl))));
+DECLARE_SOA_EXPRESSION_COLUMN(Pt, pt, float, nabs(1.f / aod::trackfwd::signed1Pt));
+DECLARE_SOA_EXPRESSION_COLUMN(P, p, float, 0.5f * (ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::trackfwd::tgl)) + 1.f / ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::trackfwd::tgl))) / nabs(aod::trackfwd::signed1Pt));
+
+// TRACKPARCOVFWD TABLE definition
+DECLARE_SOA_COLUMN(SigmaX, sigmaX, float);
+DECLARE_SOA_COLUMN(SigmaY, sigmaY, float);
+DECLARE_SOA_COLUMN(SigmaPhi, sigmaPhi, float);
+DECLARE_SOA_COLUMN(SigmaTgl, sigmaTgl, float);
+DECLARE_SOA_COLUMN(Sigma1Pt, sigma1Pt, float);
+DECLARE_SOA_COLUMN(RhoXY, rhoXY, int8_t);
+DECLARE_SOA_COLUMN(RhoPhiX, rhoPhiX, int8_t);
+DECLARE_SOA_COLUMN(RhoPhiY, rhoPhiY, int8_t);
+DECLARE_SOA_COLUMN(RhoTglX, rhoTglX, int8_t);
+DECLARE_SOA_COLUMN(RhoTglY, rhoTglY, int8_t);
+DECLARE_SOA_COLUMN(RhoTglPhi, rhoTglPhi, int8_t);
+DECLARE_SOA_COLUMN(Rho1PtX, rho1PtX, int8_t);
+DECLARE_SOA_COLUMN(Rho1PtY, rho1PtY, int8_t);
+DECLARE_SOA_COLUMN(Rho1PtPhi, rho1PtPhi, int8_t);
+DECLARE_SOA_COLUMN(Rho1PtTgl, rho1PtTgl, int8_t);
+
+DECLARE_SOA_EXPRESSION_COLUMN(CXX, cXX, float, aod::trackfwd::sigmaX* aod::trackfwd::sigmaX);
+DECLARE_SOA_EXPRESSION_COLUMN(CXY, cXY, float, (aod::trackfwd::rhoXY / 128.f) * (aod::trackfwd::sigmaX * aod::trackfwd::sigmaY)); //Why /128.f ?
+DECLARE_SOA_EXPRESSION_COLUMN(CYY, cYY, float, aod::trackfwd::sigmaY* aod::trackfwd::sigmaY);
+DECLARE_SOA_EXPRESSION_COLUMN(CPhiX, cPhiX, float, (aod::trackfwd::rhoPhiX / 128.f) * (aod::trackfwd::sigmaPhi * aod::trackfwd::sigmaX));
+DECLARE_SOA_EXPRESSION_COLUMN(CPhiY, cPhiY, float, (aod::trackfwd::rhoPhiY / 128.f) * (aod::trackfwd::sigmaPhi * aod::trackfwd::sigmaY));
+DECLARE_SOA_EXPRESSION_COLUMN(CPhiPhi, cPhiPhi, float, aod::trackfwd::sigmaPhi* aod::trackfwd::sigmaPhi);
+DECLARE_SOA_EXPRESSION_COLUMN(CTglX, cTglX, float, (aod::trackfwd::rhoTglX / 128.f) * (aod::trackfwd::sigmaTgl * aod::trackfwd::sigmaX));
+DECLARE_SOA_EXPRESSION_COLUMN(CTglY, cTglY, float, (aod::trackfwd::rhoTglY / 128.f) * (aod::trackfwd::sigmaTgl * aod::trackfwd::sigmaY));
+DECLARE_SOA_EXPRESSION_COLUMN(CTglPhi, cTglPhi, float, (aod::trackfwd::rhoTglPhi / 128.f) * (aod::trackfwd::sigmaTgl * aod::trackfwd::sigmaPhi));
+DECLARE_SOA_EXPRESSION_COLUMN(CTglTgl, cTglTgl, float, aod::trackfwd::sigmaTgl* aod::trackfwd::sigmaTgl);
+DECLARE_SOA_EXPRESSION_COLUMN(C1PtY, c1PtY, float, (aod::trackfwd::rho1PtY / 128.f) * (aod::trackfwd::sigma1Pt * aod::trackfwd::sigmaY));
+DECLARE_SOA_EXPRESSION_COLUMN(C1PtX, c1PtX, float, (aod::trackfwd::rho1PtX / 128.f) * (aod::trackfwd::sigma1Pt * aod::trackfwd::sigmaX));
+DECLARE_SOA_EXPRESSION_COLUMN(C1PtPhi, c1PtPhi, float, (aod::trackfwd::rho1PtPhi / 128.f) * (aod::trackfwd::sigma1Pt * aod::trackfwd::sigmaPhi));
+DECLARE_SOA_EXPRESSION_COLUMN(C1PtTgl, c1PtTgl, float, (aod::trackfwd::rho1PtTgl / 128.f) * (aod::trackfwd::sigma1Pt * aod::trackfwd::sigmaTgl));
+DECLARE_SOA_EXPRESSION_COLUMN(C1Pt21Pt2, c1Pt21Pt2, float, aod::trackfwd::sigma1Pt* aod::trackfwd::sigma1Pt);
+} // namespace trackfwd
+
+DECLARE_SOA_TABLE_FULL(StoredTracksFwd, "TracksFwd", "AOD", "TRACKFWD:PAR",
+                       o2::soa::Index<>, trackfwd::CollisionId, trackfwd::TrackType,
+                       trackfwd::X,
+                       trackfwd::Y, trackfwd::Z, trackfwd::Phi, trackfwd::Tgl,
+                       trackfwd::Signed1Pt,
+                       // trackfwd::Px<trackfwd::Signed1Pt, trackfwd::Phi>,
+                       // trackfwd::Py<trackfwd::Signed1Pt, trackfwd::Phi>,
+                       // trackfwd::Pz<trackfwd::Signed1Pt, trackfwd::Tgl>,
+                       trackfwd::Charge<trackfwd::Signed1Pt>);
+
+DECLARE_SOA_EXTENDED_TABLE(TracksFwd, StoredTracksFwd, "TRACKFWD:PAR",
+                           aod::trackfwd::Pt,
+                           aod::trackfwd::P,
+                           aod::trackfwd::Eta);
+
+DECLARE_SOA_TABLE_FULL(StoredTracksCovFwd, "TracksCovFwd", "AOD", "TRACKFWD:PARCOV",
+                       trackfwd::SigmaX, trackfwd::SigmaY, trackfwd::SigmaPhi, trackfwd::SigmaTgl, trackfwd::Sigma1Pt,
+                       trackfwd::RhoXY, trackfwd::RhoPhiY, trackfwd::RhoPhiX, trackfwd::RhoTglX, trackfwd::RhoTglY,
+                       trackfwd::RhoTglPhi, trackfwd::Rho1PtX, trackfwd::Rho1PtY, trackfwd::Rho1PtPhi, trackfwd::Rho1PtTgl);
+
+DECLARE_SOA_EXTENDED_TABLE(TracksCovFwd, StoredTracksCovFwd, "TRACKFWD:PARCOV",
+                           aod::trackfwd::CXX,
+                           aod::trackfwd::CXY,
+                           aod::trackfwd::CYY,
+                           aod::trackfwd::CPhiX,
+                           aod::trackfwd::CPhiY,
+                           aod::trackfwd::CPhiPhi,
+                           aod::trackfwd::CTglX,
+                           aod::trackfwd::CTglY,
+                           aod::trackfwd::CTglPhi,
+                           aod::trackfwd::CTglTgl,
+                           aod::trackfwd::C1PtX,
+                           aod::trackfwd::C1PtY,
+                           aod::trackfwd::C1PtPhi,
+                           aod::trackfwd::C1PtTgl,
+                           aod::trackfwd::C1Pt21Pt2);
+
+using TrackFwd = TracksFwd::iterator;
+using TrackCovFwd = TracksCovFwd::iterator;
+
+using FullTracksFwd = soa::Join<TracksFwd, TracksCovFwd>;
+using FullTrackFwd = FullTracksFwd::iterator;
+
 namespace unassignedtracks
 {
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
