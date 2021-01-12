@@ -551,7 +551,7 @@ class O2HitMerger : public FairMQDevice
     std::vector<int> nprimaries;   // collecting primary particles in each subevent
     std::vector<int> nsubevents;   // collecting of subevent numbers
 
-    std::unique_ptr<o2::dataformats::MCEventHeader> eventheader; // The event header
+    o2::dataformats::MCEventHeader* eventheader = nullptr; // The event header
 
     // the MC labels (trackID) for hits
     o2::data::SubEventInfo* info = nullptr;
@@ -562,9 +562,9 @@ class O2HitMerger : public FairMQDevice
       trackoffsets.emplace_back(info->npersistenttracks);
       nprimaries.emplace_back(info->nprimarytracks);
       nsubevents.emplace_back(info->part);
+      info->mMCEventHeader.printInfo();
       if (eventheader == nullptr) {
-        eventheader = std::unique_ptr<dataformats::MCEventHeader>(
-          new dataformats::MCEventHeader(info->mMCEventHeader));
+        eventheader = &info->mMCEventHeader;
       } else {
         eventheader->getMCEventStats().add(info->mMCEventHeader.getMCEventStats());
       }
@@ -580,9 +580,9 @@ class O2HitMerger : public FairMQDevice
     }
 
     // put the event headers into the new TTree
-    o2::dataformats::MCEventHeader* headerptr = eventheader.get();
-    auto headerbr = o2::base::getOrMakeBranch(*mOutTree, "MCEventHeader.", &headerptr);
-    headerbr->SetAddress(&headerptr);
+    eventheader->printInfo();
+    auto headerbr = o2::base::getOrMakeBranch(*mOutTree, "MCEventHeader.", &eventheader);
+    headerbr->SetAddress(&eventheader);
     headerbr->Fill();
     headerbr->ResetAddress();
 
