@@ -46,10 +46,12 @@ o2_cleanup_shm_files() {
 }
 
 # Function to find out all the (recursive) child processes starting from a parent PID.
-# The output includes includes the parent
-# output is saved in child_pid_list
+# The output includes the parent
 childprocs() {
   local parent=$1
+  if [ ! "$2" ]; then
+    child_pid_list=""
+  fi
   if [ "$parent" ] ; then
     child_pid_list="$child_pid_list $parent"
     for childpid in $(pgrep -P ${parent}); do
