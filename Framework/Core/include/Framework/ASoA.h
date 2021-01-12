@@ -1127,6 +1127,10 @@ class Table
     return t;
   }
 
+ protected:
+  /// Offset of the table within a larger table.
+  uint64_t mOffset;
+
  private:
   template <typename T>
   arrow::ChunkedArray* lookupColumn()
@@ -1149,8 +1153,6 @@ class Table
   unfiltered_iterator mBegin;
   /// Cached end iterator for this table.
   RowViewSentinel mEnd;
-  /// Offset of the table within a larger table.
-  uint64_t mOffset;
 };
 
 template <typename T>
