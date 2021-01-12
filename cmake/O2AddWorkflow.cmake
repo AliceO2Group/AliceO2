@@ -49,7 +49,7 @@ function(o2_add_dpl_workflow baseTargetName)
 
   add_custom_command(
     TARGET ${targetExeName} POST_BUILD
-    COMMAND $<TARGET_FILE:${targetExeName}> -b | cat > ${jsonFile})
+    COMMAND $<TARGET_FILE:${targetExeName}> -b --dump-workflow --dump-workflow-file ${jsonFile})
 
   install(
     FILES ${CMAKE_CURRENT_BINARY_DIR}/${jsonFile}
