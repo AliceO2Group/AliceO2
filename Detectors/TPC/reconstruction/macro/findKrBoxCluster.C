@@ -53,8 +53,6 @@ void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1)
 
   // Create KrBoxClusterFinder object, memory is only allocated once
   auto clFinder = std::make_unique<o2::tpc::KrBoxClusterFinder>();
-  // Or if correcting with a gainmap:
-  // auto clFinder = std::make_unique<o2::tpc::KrBoxClusterFinder>("/path/to/caldetfile.root", true);
 
   // Now everything can get processed
   // Loop over all events
@@ -67,6 +65,9 @@ void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1)
       if (sector->size() == 0) {
         continue;
       }
+      // Set CalDet File:
+      // clFinder->setCalDetFile("/path/to/caldetfile.root");
+
       // Create ClusterFinder Object on Heap since creation on stack fails
       // Probably due to too much memory consumption
       clFinder->fillAndCorrectMap(*sector, i);

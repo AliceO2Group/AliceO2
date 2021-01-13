@@ -95,7 +95,9 @@ class KrBoxClusterFinder
 {
  public:
   /// Constructor:
-  explicit KrBoxClusterFinder(const std::string_view calDetFileName = "", const bool correctWithGainMap = false); ///< Creates a 3D Map
+  explicit KrBoxClusterFinder(); ///< Creates a 3D Map
+
+  void setCalDetFile(const std::string_view calDetFileName);
 
   /// Function used in macro to fill the map with all recorded digits
   /// If a gain map exists, the map can be corrected with this function
@@ -131,7 +133,6 @@ class KrBoxClusterFinder
   int mMinNumberOfNeighbours = 1; ///< amount of direct neighbours required for a cluster maximum
 
   TFile* mCalDetFile = nullptr; ///< Holds the filename of the CalDet File
-  bool mCorrectWithGainMap;     ///< To specify if correction with an existing gain map should be performed
 
   /// Maximum Map Dimensions
   /// Here is room for improvements

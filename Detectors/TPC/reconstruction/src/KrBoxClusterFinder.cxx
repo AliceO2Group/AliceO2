@@ -22,14 +22,20 @@
 using namespace o2::tpc;
 
 // Constructor:
-// This function creates a three dimensional vector (Pad,Row,Time) which is
+// The constructor allocates a three dimensional array (Pad,Row,Time) which is
 // later filled with the recorded charges for each digit
-KrBoxClusterFinder::KrBoxClusterFinder(const std::string_view calDetFileName, const bool correctWithGainMap)
+KrBoxClusterFinder::KrBoxClusterFinder()
 {
-  if (correctWithGainMap && calDetFileName.size() != 0) {
-    mCalDetFile = new TFile(calDetFileName.data());
+}
+
+// If a gain map already exists in form of a CalDet file, it can be specified here
+void KrBoxClusterFinder::setCalDetFile(const std::string_view calDetFileName)
+{
+  mCalDetFile = new TFile(calDetFileName.data());
+  if (!mCalDetFile->IsOpen()) {
+    LOGP(error, "Could not open CalDet File.");
+    mCalDetFile = nullptr;
   }
-  mCorrectWithGainMap = correctWithGainMap;
 }
 
 // Fill the map with all digits.
@@ -49,11 +55,10 @@ void KrBoxClusterFinder::fillAndCorrectMap(std::vector<o2::tpc::Digit>& eventSec
   }
 
   CalDet<float>* correctionFactorCalDet = nullptr;
-  std::vector<CalArray<float>> correctionFactorArray;
 
-  if (mCorrectWithGainMap) {
+  // Check if CalDet File was set
+  if (mCalDetFile != nullptr) {
     mCalDetFile->GetObject("relGain", correctionFactorCalDet);
-    correctionFactorArray = correctionFactorCalDet->getData();
   }
 
   // Fill digits map
@@ -65,13 +70,13 @@ void KrBoxClusterFinder::fillAndCorrectMap(std::vector<o2::tpc::Digit>& eventSec
     float correctionFactor = 1.0;
 
     int padNum = 0;
-    if (mCorrectWithGainMap) {
+    if (mCalDetFile != nullptr) {
       if (row >= MaxRowsIROC) {
         padNum = mMapperInstance.globalPadNumber(PadPos(row, pad)) - mMapperInstance.getPadsInIROC();
-        correctionFactor = correctionFactorArray[sector + 36].getValue(padNum);
+        correctionFactor = correctionFactorCalDet->getValue(sector, padNum);
       } else {
         padNum = mMapperInstance.globalPadNumber(PadPos(row, pad));
-        correctionFactor = correctionFactorArray[sector].getValue(padNum);
+        correctionFactor = correctionFactorCalDet->getValue(sector, padNum);
       }
     }
     // Every row starts at pad zero. But the number of pads in a row is not a constant.
