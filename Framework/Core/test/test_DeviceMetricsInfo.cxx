@@ -128,6 +128,27 @@ BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo)
   BOOST_CHECK_EQUAL(result, true);
   result = DeviceMetricsHelper::processMetric(match, info);
   BOOST_CHECK_EQUAL(result, true);
+  BOOST_CHECK_EQUAL(info.metricLabelsIdx.size(), 4);
+  BOOST_CHECK_EQUAL(info.metrics.size(), 4);
+  BOOST_CHECK_EQUAL(info.stringMetrics.size(), 1);
+  BOOST_CHECK_EQUAL(info.metrics[3].type, MetricType::String);
+  BOOST_CHECK_EQUAL(info.metrics[3].storeIdx, 0);
+  BOOST_CHECK_EQUAL(info.metrics[3].pos, 1);
+
+  // Parse a string metric with a file description in it
+  memset(&match, 0, sizeof(match));
+  metric = "[METRIC] alien-file-name,1 alien:///alice/data/2015/LHC15o/000244918/pass5_lowIR/PWGZZ/Run3_Conversion/96_20201013-1346_child_1/0028/AO2D.root:/,631838549,ALICE::CERN::EOS 1789372895 hostname=test.cern.ch";
+  result = DeviceMetricsHelper::parseMetric(metric, match);
+  BOOST_CHECK_EQUAL(result, true);
+  result = DeviceMetricsHelper::processMetric(match, info);
+  BOOST_CHECK_EQUAL(result, true);
+  BOOST_CHECK_EQUAL(info.metricLabelsIdx.size(), 5);
+  BOOST_CHECK_EQUAL(info.metrics.size(), 5);
+  BOOST_CHECK_EQUAL(info.stringMetrics.size(), 2);
+  BOOST_CHECK_EQUAL(info.metrics[4].type, MetricType::String);
+  BOOST_CHECK_EQUAL(info.metrics[4].storeIdx, 1);
+  BOOST_CHECK_EQUAL(info.metrics[4].pos, 1);
+  BOOST_CHECK_EQUAL(std::string(info.stringMetrics[1][0].data), std::string("alien:///alice/data/2015/LHC15o/000244918/pass5_lowIR/PWGZZ/Run3_Conversion/96_20201013-1346_child_1/0028/AO2D.root:/,631838549,ALICE::CERN::EOS"));
 }
 
 BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo2)
