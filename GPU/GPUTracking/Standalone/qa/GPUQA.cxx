@@ -1058,6 +1058,9 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
               }
 
               int val = (j == 0) ? (mRecTracks[iCol][i] ? 1 : 0) : (j == 1) ? (mRecTracks[iCol][i] ? mRecTracks[iCol][i] - 1 : 0) : (j == 2) ? mFakeTracks[iCol][i] : 1;
+              if (val == 0) {
+                continue;
+              }
 
               for (int l = 0; l < 5; l++) {
                 if (info.prim && mcpt < PT_MIN_PRIM) {
