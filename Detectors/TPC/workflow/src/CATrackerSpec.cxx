@@ -302,7 +302,6 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       if (processAttributes->readyToQuit) {
         return;
       }
-      printf("RUN PROCESSING\n");
       auto cput = timer.CpuTime();
       timer.Start(false);
       auto& parser = processAttributes->parser;
@@ -634,7 +633,6 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         outputRegions.clusterLabels.allocator = [&clustersMCBuffer](size_t size) -> void* { return &clustersMCBuffer; };
       }
 
-      printf("RUN TRACKING\n");
       int retVal = tracker->runTracking(&ptrs, &outputRegions);
       if (processAttributes->suppressOutput) {
         return;
