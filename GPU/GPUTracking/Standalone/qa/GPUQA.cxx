@@ -324,7 +324,7 @@ void GPUQA::clearGarbagageCollector()
   std::apply([](auto&&... args) { ((args.clear()), ...); }, mGarbageCollector->v);
 }
 
-GPUQA::GPUQA(GPUChainTracking* chain, const GPUSettingsQA* config) : mTracking(chain), mConfig(config ? *config : GPUQA_GetConfig(chain)), mGarbageCollector(std::make_unique<GPUQAGarbageCollection>())
+GPUQA::GPUQA(GPUChainTracking* chain, const GPUSettingsQA* config, const GPUParam* param) : mTracking(chain), mConfig(config ? *config : GPUQA_GetConfig(chain)), mParam(param ? *param : chain->GetParam()), mGarbageCollector(std::make_unique<GPUQAGarbageCollection>())
 {
   static int initColorsInitialized = initColors();
   (void)initColorsInitialized;
@@ -756,9 +756,9 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
     mcLabelBuffer[mNEvents - 1].resize(mTracking->mIOPtrs.nMergedTracks);
   }
 
-  bool mcAvail = mcPresent();
+  bool mcAvail = mcPresent() || tracksExtMC;
 
-  if (mcAvail && mTracking->GetParam().rec.NonConsecutiveIDs) {
+  if (mcAvail && !tracksExtMC && mTracking->GetParam().rec.NonConsecutiveIDs) {
     GPUError("QA incompatible to non-consecutive MC labels");
     return;
   }
@@ -1088,8 +1088,8 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
       GPUTPCGMPropagator prop;
       prop.SetMaxSinPhi(.999);
       prop.SetMaterialTPC();
-      prop.SetPolynomialField(&mTracking->GetParam().polynomialField);
-      prop.SetToyMCEventsFlag(mTracking->GetParam().par.ToyMCEventsFlag);
+      prop.SetPolynomialField(&mParam.polynomialField);
+      prop.SetToyMCEventsFlag(mParam.par.ToyMCEventsFlag);
 
       for (unsigned int i = 0; i < mTrackMCLabels.size(); i++) {
         if (mConfig.writeMCLabels) {
@@ -1188,11 +1188,11 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         }
 
         auto getdz = [this, &param, &mc1, &side]() {
-          if (!mTracking->GetParam().par.continuousMaxTimeBin) {
+          if (!mParam.par.continuousMaxTimeBin) {
             return param.Z() - mc1.z;
           }
 #ifdef GPUCA_TPC_GEOMETRY_O2
-          if (!mTracking->GetParam().par.earlyTpcTransform) {
+          if (!mParam.par.earlyTpcTransform) {
             float shift = side == 2 ? 0 : mTracking->GetTPCTransform()->convDeltaTimeToDeltaZinTimeFrame(side * GPUChainTracking::NSLICES / 2, param.GetTZOffset() - mc1.t0);
             return param.GetZ() + shift - mc1.z;
           }
@@ -2263,8 +2263,9 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
         }
         if (!mConfig.inputHistogramsOnly && mcAvail) {
           TH1D* e = hist;
-          e->GetEntries();
-          e->Fit("gaus", "sQ");
+          if (e && e->GetEntries()) {
+            e->Fit("gaus", "sQ");
+          }
         }
 
         float tmpMax = 0;
