@@ -66,20 +66,20 @@ o2_add_executable(standalone
   COMPONENT_NAME DataSampling
   PUBLIC_LINK_LIBRARIES O2::Framework O2::DataSampling)
 
-o2_add_dpl_workflow(datasampling-pod-and-root
+o2_add_executable(datasampling-pod-and-root
   SOURCES test/dataSamplingPodAndRoot.cxx
   COMPONENT_NAME DataSampling
-  PUBLIC_LINK_LIBRARIES O2::DataSampling)
+PUBLIC_LINK_LIBRARIES O2::Framework O2::DataSampling)
 
-o2_add_dpl_workflow(datasampling-parallel
+o2_add_executable(datasampling-parallel
   SOURCES test/dataSamplingParallel.cxx
   COMPONENT_NAME DataSampling
-  PUBLIC_LINK_LIBRARIES O2::DataSampling)
+PUBLIC_LINK_LIBRARIES O2::Framework O2::DataSampling)
 
-o2_add_dpl_workflow(datasampling-time-pipeline
+o2_add_executable(datasampling-time-pipeline
   SOURCES test/dataSamplingTimePipeline.cxx
   COMPONENT_NAME DataSampling
-  PUBLIC_LINK_LIBRARIES O2::DataSampling)
+  PUBLIC_LINK_LIBRARIES O2::Framework O2::DataSampling)
 
 o2_add_dpl_workflow(datasampling-benchmark
   SOURCES test/dataSamplingBenchmark.cxx
