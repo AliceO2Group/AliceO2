@@ -20,6 +20,9 @@
 #include <Math/SVector.h>
 #include "ReconstructionDataFormats/Track.h"
 #include "DetectorsVertexing/HelixHelper.h"
+#include "GPUCommonArray.h"
+
+using namespace o2::gpu;
 
 namespace o2
 {
@@ -89,11 +92,11 @@ class DCAFitterN
   using MatSymND = ROOT::Math::SMatrix<double, N, N, ROOT::Math::MatRepSym<double, N>>;
   using MatStdND = ROOT::Math::SMatrix<double, N, N, ROOT::Math::MatRepStd<double, N>>;
   using TrackCoefVtx = MatStd3D;
-  using ArrTrack = std::array<Track, N>;         // container for prongs (tracks) at single vertex cand.
-  using ArrTrackCovI = std::array<TrackCovI, N>; // container for inv.cov.matrices at single vertex cand.
-  using ArrTrCoef = std::array<TrackCoefVtx, N>; // container of TrackCoefVtx coefficients at single vertex cand.
-  using ArrTrDer = std::array<TrackDeriv, N>;    // container of Track 1st and 2nd derivative over their X param
-  using ArrTrPos = std::array<Vec3D, N>;         // container of Track positions
+  using ArrTrack = gpustd::array<Track, N>;         // container for prongs (tracks) at single vertex cand.
+  using ArrTrackCovI = gpustd::array<TrackCovI, N>; // container for inv.cov.matrices at single vertex cand.
+  using ArrTrCoef = gpustd::array<TrackCoefVtx, N>; // container of TrackCoefVtx coefficients at single vertex cand.
+  using ArrTrDer = gpustd::array<TrackDeriv, N>;    // container of Track 1st and 2nd derivative over their X param
+  using ArrTrPos = gpustd::array<Vec3D, N>;         // container of Track positions
 
  public:
   static constexpr int getNProngs() { return N; }
@@ -241,30 +244,30 @@ class DCAFitterN
 
  private:
   // vectors of 1st derivatives of track local residuals over X parameters
-  std::array<std::array<Vec3D, N>, N> mDResidDx;
+  gpustd::array<gpustd::array<Vec3D, N>, N> mDResidDx;
   // vectors of 1nd derivatives of track local residuals over X parameters
   // (cross-derivatives DR/(dx_j*dx_k) = 0 for j!=k, therefore the hessian is diagonal)
-  std::array<std::array<Vec3D, N>, N> mD2ResidDx2;
+  gpustd::array<gpustd::array<Vec3D, N>, N> mD2ResidDx2;
   VecND mDChi2Dx;      // 1st derivatives of chi2 over tracks X params
   MatSymND mD2Chi2Dx2; // 2nd derivatives of chi2 over tracks X params (symmetric matrix)
   MatSymND mCosDif;    // matrix with cos(alp_j-alp_i) for j<i
   MatSymND mSinDif;    // matrix with sin(alp_j-alp_i) for j<i
-  std::array<const Track*, N> mOrigTrPtr;
-  std::array<TrackAuxPar, N> mTrAux; // Aux track info for each track at each cand. vertex
+  gpustd::array<const Track*, N> mOrigTrPtr;
+  gpustd::array<TrackAuxPar, N> mTrAux; // Aux track info for each track at each cand. vertex
   CrossInfo mCrossings;              // info on track crossing
 
-  std::array<ArrTrackCovI, MAXHYP> mTrcEInv; // errors for each track at each cand. vertex
-  std::array<ArrTrack, MAXHYP> mCandTr;      // tracks at each cond. vertex (Note: Errors are at seed XY point)
-  std::array<ArrTrCoef, MAXHYP> mTrCFVT;     // TrackCoefVtx for each track at each cand. vertex
-  std::array<ArrTrDer, MAXHYP> mTrDer;       // Track derivativse
-  std::array<ArrTrPos, MAXHYP> mTrPos;       // Track positions
-  std::array<ArrTrPos, MAXHYP> mTrRes;       // Track residuals
-  std::array<Vec3D, MAXHYP> mPCA;            // PCA for each vertex candidate
-  std::array<float, MAXHYP> mChi2 = {0};     // Chi2 at PCA candidate
-  std::array<int, MAXHYP> mNIters;           // number of iterations for each seed
-  std::array<bool, MAXHYP> mTrPropDone;      // Flag that the tracks are fully propagated to PCA
+  gpustd::array<ArrTrackCovI, MAXHYP> mTrcEInv; // errors for each track at each cand. vertex
+  gpustd::array<ArrTrack, MAXHYP> mCandTr;      // tracks at each cond. vertex (Note: Errors are at seed XY point)
+  gpustd::array<ArrTrCoef, MAXHYP> mTrCFVT;     // TrackCoefVtx for each track at each cand. vertex
+  gpustd::array<ArrTrDer, MAXHYP> mTrDer;       // Track derivativse
+  gpustd::array<ArrTrPos, MAXHYP> mTrPos;       // Track positions
+  gpustd::array<ArrTrPos, MAXHYP> mTrRes;       // Track residuals
+  gpustd::array<Vec3D, MAXHYP> mPCA;            // PCA for each vertex candidate
+  gpustd::array<float, MAXHYP> mChi2 = {0};     // Chi2 at PCA candidate
+  gpustd::array<int, MAXHYP> mNIters;           // number of iterations for each seed
+  gpustd::array<bool, MAXHYP> mTrPropDone;      // Flag that the tracks are fully propagated to PCA
   MatSym3D mWeightInv;                       // inverse weight of single track, [sum{M^T E M}]^-1 in EQ.T
-  std::array<int, MAXHYP> mOrder{0};
+  gpustd::array<int, MAXHYP> mOrder{0};
   int mCurHyp = 0;
   int mCrossIDCur = 0;
   int mCrossIDAlt = -1;
@@ -512,7 +515,7 @@ template <int N, typename... Args>
 void DCAFitterN<N, Args...>::calcChi2Derivatives()
 {
   //< calculate 1st and 2nd derivatives of wighted DCA (chi2) over track parameters X, see EQ.Chi2 in the ref
-  std::array<std::array<Vec3D, N>, N> covIDrDx; // tempory vectors of covI_j * dres_j/dx_i
+  gpustd::array<gpustd::array<Vec3D, N>, N> covIDrDx; // tempory vectors of covI_j * dres_j/dx_i
 
   // chi2 1st derivative
   for (int i = N; i--;) {
@@ -909,13 +912,13 @@ o2::track::TrackParCov DCAFitterN<N, Args...>::createParentTrackParCov(int cand,
   const auto& trP = getTrack(0, cand);
   const auto& trN = getTrack(1, cand);
   const auto& wvtx = getPCACandidate(cand);
-  std::array<float, 21> covV = {0.};
-  std::array<float, 3> pvecV = {0.};
+  gpustd::array<float, 21> covV = {0.};
+  gpustd::array<float, 3> pvecV = {0.};
   int q = 0;
   for (int it = 0; it < N; it++) {
     const auto& trc = getTrack(it, cand);
-    std::array<float, 3> pvecT = {0.};
-    std::array<float, 21> covT = {0.};
+    gpustd::array<float, 3> pvecT = {0.};
+    gpustd::array<float, 21> covT = {0.};
     trc.getPxPyPzGlo(pvecT);
     trc.getCovXYZPxPyPzGlo(covT);
     constexpr int MomInd[6] = {9, 13, 14, 18, 19, 20}; // cov matrix elements for momentum component
@@ -934,7 +937,7 @@ o2::track::TrackParCov DCAFitterN<N, Args...>::createParentTrackParCov(int cand,
   covV[3] = covVtxV(2, 0);
   covV[4] = covVtxV(2, 1);
   covV[5] = covVtxV(2, 2);
-  const std::array<float, 3> vertex = {(float)wvtx[0], (float)wvtx[1], (float)wvtx[2]};
+  const gpustd::array<float, 3> vertex = {(float)wvtx[0], (float)wvtx[1], (float)wvtx[2]};
   return std::move(o2::track::TrackParCov(vertex, pvecV, covV, q, sectorAlpha));
 }
 
@@ -945,18 +948,18 @@ o2::track::TrackPar DCAFitterN<N, Args...>::createParentTrackPar(int cand, bool 
   const auto& trP = getTrack(0, cand);
   const auto& trN = getTrack(1, cand);
   const auto& wvtx = getPCACandidate(cand);
-  std::array<float, 3> pvecV = {0.};
+  gpustd::array<float, 3> pvecV = {0.};
   int q = 0;
   for (int it = 0; it < N; it++) {
     const auto& trc = getTrack(it, cand);
-    std::array<float, 3> pvecT = {0.};
+    gpustd::array<float, 3> pvecT = {0.};
     trc.getPxPyPzGlo(pvecT);
     for (int i = 0; i < 3; i++) {
       pvecV[i] += pvecT[i];
     }
     q += trc.getCharge();
   }
-  const std::array<float, 3> vertex = {(float)wvtx[0], (float)wvtx[1], (float)wvtx[2]};
+  const gpustd::array<float, 3> vertex = {(float)wvtx[0], (float)wvtx[1], (float)wvtx[2]};
   return std::move(o2::track::TrackPar(vertex, pvecV, q, sectorAlpha));
 }
 
