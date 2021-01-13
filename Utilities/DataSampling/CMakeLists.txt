@@ -61,10 +61,10 @@ endforeach()
 
 o2_data_file(COPY etc/exampleDataSamplingConfig.json DESTINATION etc)
 
-o2_add_dpl_workflow(standalone
+o2_add_executable(standalone
   SOURCES src/dataSamplingStandalone.cxx
   COMPONENT_NAME DataSampling
-  PUBLIC_LINK_LIBRARIES O2::DataSampling)
+  PUBLIC_LINK_LIBRARIES O2::Framework O2::DataSampling)
 
 o2_add_dpl_workflow(datasampling-pod-and-root
   SOURCES test/dataSamplingPodAndRoot.cxx
