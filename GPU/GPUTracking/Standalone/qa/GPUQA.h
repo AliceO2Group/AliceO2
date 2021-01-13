@@ -83,6 +83,7 @@ struct AliHLTTPCClusterMCLabel;
 namespace GPUCA_NAMESPACE::gpu
 {
 class GPUChainTracking;
+class GPUParam;
 struct GPUTPCMCInfo;
 struct GPUQAGarbageCollection;
 
@@ -90,7 +91,7 @@ class GPUQA
 {
  public:
   GPUQA();
-  GPUQA(GPUChainTracking* chain, const GPUSettingsQA* config = nullptr);
+  GPUQA(GPUChainTracking* chain, const GPUSettingsQA* config = nullptr, const GPUParam* param = nullptr);
   ~GPUQA();
 
   int InitQA(int tasks = -1);
@@ -206,6 +207,7 @@ class GPUQA
 
   GPUChainTracking* mTracking;
   const GPUSettingsQA& mConfig;
+  const GPUParam& mParam;
 
   const char* str_perf_figure_1 = "ALICE Performance 2018/03/20";
   // const char* str_perf_figure_2 = "2015, MC pp, #sqrt{s} = 5.02 TeV";
