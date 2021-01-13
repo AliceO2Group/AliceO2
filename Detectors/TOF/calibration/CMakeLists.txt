@@ -83,3 +83,9 @@ o2_add_executable(tof-dcs-workflow
                   PUBLIC_LINK_LIBRARIES O2::Framework
                                        O2::TOFCalibration
                                        O2::DetectorsDCS)
+
+o2_add_executable(tof-dcs-sim-workflow
+                  COMPONENT_NAME calibration
+                  SOURCES testWorkflow/tof-dcs-sim-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::DCStestWorkflow)
+
