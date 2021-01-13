@@ -104,7 +104,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
     std::unique_ptr<TPCFastTransform> fastTransform;
     std::unique_ptr<TPCdEdxCalibrationSplines> dEdxSplines;
     std::unique_ptr<TPCPadGainCalib> tpcPadGainCalib;
-    std::unique_ptr<GPUSettingsQA> qaConfig;
+    std::unique_ptr<GPUO2InterfaceConfiguration> config;
     int qaTaskMask = 0;
     std::unique_ptr<GPUO2InterfaceQA> qa;
     std::vector<int> clusterOutputIds;
@@ -121,7 +121,8 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
     processAttributes->tpcSectorMask |= (1ul << s);
   }
   auto initFunction = [processAttributes, specconfig](InitContext& ic) {
-    GPUO2InterfaceConfiguration config;
+    processAttributes->config.reset(new GPUO2InterfaceConfiguration);
+    GPUO2InterfaceConfiguration& config = *processAttributes->config.get();
     GPUSettingsO2 confParam;
     {
       auto& parser = processAttributes->parser;
@@ -259,8 +260,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         throw std::invalid_argument("GPUCATracking initialization failed");
       }
       if (specconfig.outputQA) {
-        processAttributes->qaConfig.reset(new GPUSettingsQA(config.configQA));
-        processAttributes->qa = std::make_unique<GPUO2InterfaceQA>(processAttributes->qaConfig.get());
+        processAttributes->qa = std::make_unique<GPUO2InterfaceQA>(processAttributes->config.get());
       }
       timer.Stop();
       timer.Reset();
