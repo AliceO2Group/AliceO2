@@ -34,37 +34,6 @@ o2_target_root_dictionary(
           include/DetectorsDCS/DataPointValue.h
           include/DetectorsDCS/DCSProcessor.h)
 
-o2_add_executable(
-  data-workflow
-  COMPONENT_NAME dcs
-  SOURCES testWorkflow/dcs-data-workflow.cxx
-  PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsDCS)
-
-o2_add_executable(
-  random-data-workflow
-  COMPONENT_NAME dcs
-  SOURCES testWorkflow/dcs-random-data-workflow.cxx
-  PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsDCS)
-
-o2_add_executable(
-  proxy
-  COMPONENT_NAME dcs
-  SOURCES testWorkflow/dcs-proxy.cxx
-  PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::DetectorsDCS)
-
-o2_add_executable(
-  data-client
-  COMPONENT_NAME dcs
-  SOURCES testWorkflow/dcs-data-client-workflow.cxx
-  PUBLIC_LINK_LIBRARIES O2::Framework
-  O2::DetectorsDCS)
-
-o2_add_executable(
-  sim-workflow
-  COMPONENT_NAME dcs
-  SOURCES testWorkflow/dcs-sim-workflow.cxx
-  PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsDCS)
-
 if(OpenMP_CXX_FOUND)
   target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
   target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
@@ -90,3 +59,5 @@ if(BUILD_TESTING)
     LABELS "dcs"
     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsDCS)
 endif()
+
+add_subdirectory(testWorkflow)
