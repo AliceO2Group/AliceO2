@@ -164,6 +164,11 @@ FileAndFolder DataInputDescriptor::getFileFolder(int counter, int numTF)
   return fileAndFolder;
 }
 
+int DataInputDescriptor::getTimeFramesInFile(int counter)
+{
+  return mfilenames.at(counter)->numberOfTimeFrames;
+}
+
 void DataInputDescriptor::closeInputFile()
 {
   if (mcurrentFile) {
@@ -524,6 +529,17 @@ FileAndFolder DataInputDirector::getFileFolder(header::DataHeader dh, int counte
   }
 
   return didesc->getFileFolder(counter, numTF);
+}
+
+int DataInputDirector::getTimeFramesInFile(header::DataHeader dh, int counter)
+{
+  auto didesc = getDataInputDescriptor(dh);
+  // if NOT match then use defaultDataInputDescriptor
+  if (!didesc) {
+    didesc = mdefaultDataInputDescriptor;
+  }
+
+  return didesc->getTimeFramesInFile(counter);
 }
 
 uint64_t DataInputDirector::getTimeFrameNumber(header::DataHeader dh, int counter, int numTF)
