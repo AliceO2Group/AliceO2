@@ -22,7 +22,7 @@ class A3Pipe : public A3PassiveBase
 {
  public:
   A3Pipe();
-  ~A3Pipe();
+  ~A3Pipe() override;
   A3Pipe(const char* name,
          const char* title = "Alice 3 Pipe",
          const float innerRho = 0.f,
