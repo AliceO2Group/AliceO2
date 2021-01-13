@@ -13,6 +13,7 @@
 #include "Framework/RawDeviceService.h"
 #include <FairMQDevice.h>
 #include <InfoLogger/InfoLogger.hxx>
+#include "Framework/Monitoring.h"
 
 #include <chrono>
 #include <thread>
@@ -20,6 +21,7 @@
 
 using namespace o2::framework;
 using namespace AliceO2::InfoLogger;
+using namespace o2::monitoring;
 
 void customize(std::vector<ConfigParamSpec>& options)
 {
@@ -43,7 +45,8 @@ AlgorithmSpec simplePipe(std::string const& what, int minDelay)
 {
   return AlgorithmSpec{adaptStateful([what, minDelay]() {
     srand(getpid());
-    return adaptStateless([what, minDelay](DataAllocator& outputs) {
+    return adaptStateless([what, minDelay](DataAllocator& outputs, Monitoring& monitoring) {
+      monitoring.send(Metric{"/foo/bar.txt", "aod-file-read-path"}.addTag(tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
       std::this_thread::sleep_for(std::chrono::seconds((rand() % 5) + minDelay));
       auto& bData = outputs.make<int>(OutputRef{what}, 1);
     });
