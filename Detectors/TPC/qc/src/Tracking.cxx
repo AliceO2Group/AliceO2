@@ -43,9 +43,9 @@ static constexpr int QAMODE = 7;
 void Tracking::initialize(outputModes outputMode, bool postprocessOnly)
 {
   mOutputMode = outputMode;
-  GPUO2InterfaceConfiguration config;
-  config.configQA.shipToQCAsCanvas = mOutputMode == outputLayout;
-  mQA = std::make_unique<GPUO2InterfaceQA>(&config.configQA);
+  mQAConfig = std::make_unique<GPUO2InterfaceConfiguration>();
+  mQAConfig->configQA.shipToQCAsCanvas = mOutputMode == outputLayout;
+  mQA = std::make_unique<GPUO2InterfaceQA>(&mQAConfig->configQA);
   if (!postprocessOnly) {
     mQA->initializeForProcessing(QAMODE);
   }
