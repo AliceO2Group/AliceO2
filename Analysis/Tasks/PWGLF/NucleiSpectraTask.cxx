@@ -15,16 +15,17 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoAHelpers.h"
 #include "AnalysisDataModel/PID/PIDResponse.h"
-
-#include "AnalysisDataModel/EventSelection.h"
 #include "AnalysisDataModel/TrackSelectionTables.h"
-#include "AnalysisDataModel/Centrality.h"
-#include "AnalysisCore/CorrelationContainer.h"
-#include "AnalysisCore/PairCuts.h"
 
-#include <TH1F.h>
-#include <TH2F.h>
+// #include "AnalysisDataModel/EventSelection.h"
+// #include "AnalysisDataModel/TrackSelectionTables.h"
+// #include "AnalysisDataModel/Centrality.h"
+
+#include "Framework/HistogramRegistry.h"
+
 #include <TLorentzVector.h>
+
+#include <cmath>
 
 using namespace o2;
 using namespace o2::framework;
@@ -32,44 +33,20 @@ using namespace o2::framework::expressions;
 
 struct NucleiSpecraTask {
 
-  // const int nCentBins = 13;
-  // float vCentBins[14] = {-5.f, 0.f, 1.f, 5.f, 10.f, 20.f, 30.f, 40.f, 50.f, 60.f, 70.f, 80.f, 90.f, 100.f};
+  HistogramRegistry spectra{"spectra", {}, OutputObjHandlingPolicy::AnalysisObject, true, true};
 
-  // const int nPtBins = 19;
-  // float vPtBins[20] = {-5.f, 0.f, 1.f, 5.f, 10.f, 20.f, 30.f, 40.f, 50.f, 60.f, 70.f, 80.f, 90.f, 100.f};
+  void init(o2::framework::InitContext&)
+  {
+    std::vector<double> ptBinning = {0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.8, 2.0, 2.2, 2.4, 2.8, 3.2, 3.6, 4., 5.};
+    std::vector<double> centBinning = {0., 1., 5., 10., 20., 30., 40., 50., 70., 100.};
 
-  // const int nDCAbins = 52;
-  // float vDCAbins[53] = {
-  //   -1.30, -1.20, -1.10, -1.00, -0.90, -0.80, -0.70, -0.60, -0.50, -0.40,
-  //   -0.35, -0.30, -0.25, -0.20, -0.15, -0.12, -0.10, -0.09, -0.08, -0.07,
-  //   -0.06, -0.05, -0.04, -0.03, -0.02, -0.01, 0.00, 0.01, 0.02, 0.03,
-  //   0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.12, 0.15, 0.20,
-  //   0.25, 0.30, 0.35, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 1.00,
-  //   1.10, 1.20, 1.30};
+    AxisSpec ptAxis = {ptBinning, "#it{p}_{T} (GeV/#it{c})"};
+    AxisSpec centAxis = {centBinning, "V0M (%)"};
 
-  // const int nTOFbins = 75;
-  // float fTOFlowBoundary = -2.4;
-  // float fTOFhighBoundary = 3.6;
-  // float vTOFbins[76];
-  // const float deltaTOF = (fTOFhighBoundary - fTOFlowBoundary) / nTOFbins;
-  // for (int i = 0; i <= nTOFbins; ++i) {
-  //   vTOFbins[i] = i * deltaTOF + fTOFlowBoundary;
-  // }
+    spectra.add("fTPCsignal", "Specific energy loss", HistType::kTH2F, {{600, 0., 3, "#it{p} (GeV/#it{c})"}, {1400, 0, 1400, "d#it{E} / d#it{X} (a. u.)"}});
 
-  // const int nTPCbins = 240;
-  // float fSigmaLimit = 6;
-  // float vTPCbins[241];
-  // const float deltaSigma = 2.f * fSigmaLimit / nTPCbins;
-  // for (int i = 0; i <= nTPCbins; ++i) {
-  //   vTPCbins[i] = i * deltaSigma - fSigmaLimit;
-  // }
-
-  OutputObj<TH2F> fTPCsignal{TH2F("fTPCsignal", ";#it{p} (GeV/#it{c}); d#it{E} / d#it{X} (a. u.)", 600, 0., 3, 1400, 0, 1400)};
-  // OutputObj<TH1F> fMultiplicity{TH1F("fMultiplicity", ";V0M (%);", 101, -0.5, 100.5)};
-  // OutputObj<TH3F> fTOFsignalPos{TH3F("fMTOFsignal", ";Centrality (%);#it{p}_{T} (GeV/#it{c});#it{m}^{2}-m_{PDG}^{2} (GeV/#it{c}^{2})^{2}", nCentBins, vCentBins, nPtBins, vPtBins, nTOFnBins, vTOFbins)}
-  // OutputObj<TH3F> fTOFsignalNeg{TH3F("fATOFsignal", ";Centrality (%);#it{p}_{T} (GeV/#it{c});#it{m}^{2}-m_{PDG}^{2} (GeV/#it{c}^{2})^{2}", nCentBins, vCentBins, nPtBins, vPtBins, nTOFnBins, vTOFbins)}
-  // OutputObj<TH3F> fTPCcountsPos{TH3F("fMTPCcounts", ";Centrality (%);#it{p}_{T} (GeV/#it{c}); n_{#sigma} d", nCentBins, centBins, nPtBins, pTbins, nTPCbins, vTPCbins)};
-  // OutputObj<TH3F> fTPCcountsNeg{TH3F("fATPCcounts", ";Centrality (%);#it{p}_{T} (GeV/#it{c}); n_{#sigma} d", nCentBins, centBins, nPtBins, pTbins, nTPCbins, vTPCbins)};
+    spectra.add("fTPCcounts", "n-sigma TPC", HistType::kTH2F, {ptAxis, {200, -5, 5, "n#sigma_{d} (a. u.)"}});
+  }
 
   Configurable<float> yMin{"yMin", -0.5, "Maximum rapidity"};
   Configurable<float> yMax{"yMax", 0.5, "Minimum rapidity"};
@@ -80,24 +57,20 @@ struct NucleiSpecraTask {
   Configurable<float> nsigmacut{"nsigmacut", 3, "Value of the Nsigma cut"};
 
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
-  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == (uint8_t) true) && (aod::track::tofSignal > 0.f);
+  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == (uint8_t) true);
 
-  using ColCandidates = soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::Cents>>;
-  
   using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::pidRespTOF, aod::pidRespTOFbeta, aod::TrackSelection>>;
 
-  int counter = 0;
-
-  void process(ColCandidates::iterator const& col, TrackCandidates const& tracks)
+  void process(/*soa::Join<aod::Collisions, aod::EvSels, aod::Cents> aod::Collisions::iterator const& col, */ TrackCandidates const& tracks)
   {
-    
+    /*
     if (!col.alias()[kINT7])
       return;
     if (!col.sel7())
       return;
 
     fMultiplicity->Fill(col.centV0M());
- 
+    */
     for (auto track : tracks) {
 
       TLorentzVector cutVector{};
@@ -105,7 +78,8 @@ struct NucleiSpecraTask {
       if (cutVector.Rapidity() < yMin + yBeam || cutVector.Rapidity() > yMax + yBeam)
         continue;
 
-      fTPCsignal->Fill(track.p(), track.tpcSignal());
+      spectra.fill(HIST("fTPCsignal"), track.p(), track.tpcSignal());
+      spectra.fill(HIST("fTPCcounts"), fabs(track.pt()), track.tpcNSigmaDe());
     }
   }
 };
