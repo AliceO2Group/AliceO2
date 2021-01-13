@@ -72,7 +72,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData,
   CTFHelper helper(trigData, cellData);
 
   // book output size with some margin
-  auto szIni = sizeof(CTFHeader) + helper.getSize() / 4; // will be autoexpanded if needed
+  auto szIni = sizeof(CTFHeader) + helper.getSize() * 2. / 3; // will be autoexpanded if needed
   buff.resize(szIni);
 
   auto ec = CTF::create(buff);

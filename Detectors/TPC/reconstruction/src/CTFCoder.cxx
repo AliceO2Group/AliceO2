@@ -215,7 +215,7 @@ size_t CTFCoder::estimateCompressedSize(const CompressedClusters& ccl)
   sz += ESTSIZE(CTF::BLCnTrackClusters,    ccl.nTrackClusters,    ccl.nTracks);
   sz += ESTSIZE(CTF::BLCnSliceRowClusters, ccl.nSliceRowClusters, ccl.nSliceRows);
   // clang-format on
-
+  sz *= 2. / 3; // if needed, will be autoexpanded
   LOG(INFO) << "Estimated output size is " << sz << " bytes";
   return sz;
 }
