@@ -131,9 +131,8 @@ void build_geometry(FairRunSim* run = nullptr)
     if (isActivated("IT3")) {
       run->AddModule(new o2::passive::Pipe("PIPE", "Beam pipe", 1.6f, 0.05f));
     }
-#else
-    run->AddModule(new o2::passive::Pipe("PIPE", "Beam pipe"));
 #endif
+    run->AddModule(new o2::passive::Pipe("PIPE", "Beam pipe"));
   }
 
 #ifdef ENABLE_UPGRADES
