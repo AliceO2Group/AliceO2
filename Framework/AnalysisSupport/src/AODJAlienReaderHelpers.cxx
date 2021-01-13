@@ -147,27 +147,14 @@ static inline auto extractOriginalsTuple(framework::pack<Os...>, ProcessingConte
 
 void AODJAlienReaderHelpers::dumpFileMetrics(Monitoring& monitoring, TFile* currentFile, int tfPerFile, int tfRead)
 {
-  std::string monitoringInfo("lfn=");
-  monitoringInfo += currentFile->GetPath();
-  monitoringInfo += ",size=";
-  monitoringInfo += std::to_string(currentFile->GetSize());
-  monitoringInfo += ",total_tf=";
-  monitoringInfo += std::to_string(tfPerFile);
-  monitoringInfo += ",read_tf=";
-  monitoringInfo += std::to_string(tfRead);
-  monitoringInfo += ",read_bytes=";
-  monitoringInfo += std::to_string(currentFile->GetBytesRead());
-  monitoringInfo += ",read_calls=";
-  monitoringInfo += std::to_string(currentFile->GetReadCalls());
+  std::string monitoringInfo(fmt::format("lfn={},size={},total_tf={},read_tf={},read_bytes={},read_calls={}", currentFile->GetPath(), currentFile->GetSize(), tfPerFile, tfRead, currentFile->GetBytesRead(), currentFile->GetReadCalls()));
 #if __has_include(<TJAlienFile.h>)
   auto alienFile = dynamic_cast<TJAlienFile*>(currentFile);
   if (alienFile) {
-    monitoringInfo += ",se=";
-    monitoringInfo += alienFile->GetSE();
+    monitoringInfo += fmt::format(",se={}", alienFile->GetSE());
   }
 #endif
   monitoring.send(Metric{monitoringInfo, "aod-file-read-info"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
-  LOGP(INFO, "File read info: {}", monitoringInfo);
 }
 
 AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
