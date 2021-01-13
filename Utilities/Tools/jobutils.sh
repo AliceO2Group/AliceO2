@@ -336,6 +336,12 @@ taskwrapper() {
     eval "${hook}"
   fi
 
+  if [ ! "${RC}" -eq "0" ]; then
+    if [ ! "${JOBUTILS_NOEXIT_ON_ERROR}" ]; then
+      # in case of incorrect termination, we usually like to stop the whole outer script (== we are in non-interactive mode)
+      [[ ! $- == *i* ]] && exit ${RC}
+    fi
+  fi
   return ${RC}
 }
 
