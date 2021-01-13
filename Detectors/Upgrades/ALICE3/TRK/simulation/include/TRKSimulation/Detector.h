@@ -262,6 +262,10 @@ class Detector : public o2::base::DetImpl<Detector>
   virtual Model getStaveModelIB() const { return mStaveModelInnerBarrel; }
   virtual Model getStaveModelOB() const { return mStaveModelOuterBarrel; }
 
+  float getLayerRadius(const int layNo) const { return mLayerRadii[layNo]; }
+  float getLayerZLength(const int layNo) const { return mLayerZLen[layNo]; }
+  float getLayerThickness(const int layNo) const { return mDetectorThickness[layNo]; }
+
   void createOuterBarrel(const Bool_t ob) { mCreateOuterBarrel = ob; };
   Bool_t isCreateOuterBarrel() { return mCreateOuterBarrel; };
 
