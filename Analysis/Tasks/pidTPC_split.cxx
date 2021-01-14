@@ -27,16 +27,21 @@ using namespace o2::track;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
-    {"add-qa", VariantType::Int, 0, {"Produce TPC PID QA histograms"}}};
+    {"add-qa", VariantType::Int, 0, {"Produce TPC PID QA histograms"}},
+    {"pid-el", VariantType::Int, 0, {"Produce PID information for the electron mass hypothesis"}},
+    {"pid-mu", VariantType::Int, 0, {"Produce PID information for the muon mass hypothesis"}},
+    {"pid-pikapr", VariantType::Int, 0, {"Produce PID information for the Pion, Kaon, Proton mass hypothesis"}},
+    {"pid-nuclei", VariantType::Int, 0, {"Produce PID information for the Deuteron, Triton, Alpha mass hypothesis"}}};
   std::swap(workflowOptions, options);
 }
 
 #include "Framework/runDataProcessing.h"
 
-struct pidTPCTask {
+template <o2::track::PID::ID pid_type, typename table>
+struct pidTPCTaskPerParticle {
   using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
   using Coll = aod::Collisions;
-  Produces<aod::pidRespTPC> tpcpid;
+  Produces<table> tpcpid;
   DetectorResponse resp;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
   Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
@@ -67,36 +72,12 @@ struct pidTPCTask {
 
   void process(Coll const& collisions, Trks const& tracks)
   {
-    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Electron> resp_Electron = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Electron>();
-    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Muon> resp_Muon = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Muon>();
-    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Pion> resp_Pion = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Pion>();
-    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Kaon> resp_Kaon = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Kaon>();
-    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Proton> resp_Proton = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Proton>();
-    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Deuteron> resp_Deuteron = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Deuteron>();
-    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Triton> resp_Triton = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Triton>();
-    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Helium3> resp_Helium3 = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Helium3>();
-    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Alpha> resp_Alpha = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Alpha>();
+    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, pid_type> resp_PID = tpc::ELoss<Coll::iterator, Trks::iterator, pid_type>();
 
     tpcpid.reserve(tracks.size());
     for (auto const& trk : tracks) {
-      tpcpid(resp_Electron.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Muon.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Pion.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Kaon.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Proton.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Deuteron.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Triton.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Helium3.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Alpha.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Electron.GetSeparation(resp, trk.collision(), trk),
-             resp_Muon.GetSeparation(resp, trk.collision(), trk),
-             resp_Pion.GetSeparation(resp, trk.collision(), trk),
-             resp_Kaon.GetSeparation(resp, trk.collision(), trk),
-             resp_Proton.GetSeparation(resp, trk.collision(), trk),
-             resp_Deuteron.GetSeparation(resp, trk.collision(), trk),
-             resp_Triton.GetSeparation(resp, trk.collision(), trk),
-             resp_Helium3.GetSeparation(resp, trk.collision(), trk),
-             resp_Alpha.GetSeparation(resp, trk.collision(), trk));
+      tpcpid(resp_PID.GetExpectedSigma(resp, trk.collision(), trk),
+             resp_PID.GetSeparation(resp, trk.collision(), trk));
     }
   }
 };
@@ -204,9 +185,29 @@ struct pidTPCTaskQA {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  auto workflow = WorkflowSpec{adaptAnalysisTask<pidTPCTask>("pidTPC-task")};
+  auto workflow = WorkflowSpec{};
+  if (cfgc.options().get<int>("pid-el")) {
+    workflow.push_back(adaptAnalysisTask<pidTPCTaskPerParticle<PID::Electron, o2::aod::pidRespTPCEl>>("pidTPCEl-task"));
+  }
+  if (cfgc.options().get<int>("pid-mu")) {
+    workflow.push_back(adaptAnalysisTask<pidTPCTaskPerParticle<PID::Muon, o2::aod::pidRespTPCMu>>("pidTPCMu-task"));
+  }
+  if (cfgc.options().get<int>("pid-pikapr")) {
+    workflow.push_back(adaptAnalysisTask<pidTPCTaskPerParticle<PID::Pion, o2::aod::pidRespTPCPi>>("pidTPCPi-task"));
+    workflow.push_back(adaptAnalysisTask<pidTPCTaskPerParticle<PID::Kaon, o2::aod::pidRespTPCKa>>("pidTPCKa-task"));
+    workflow.push_back(adaptAnalysisTask<pidTPCTaskPerParticle<PID::Proton, o2::aod::pidRespTPCPr>>("pidTPCPr-task"));
+  }
+  if (cfgc.options().get<int>("pid-nuclei")) {
+    workflow.push_back(adaptAnalysisTask<pidTPCTaskPerParticle<PID::Deuteron, o2::aod::pidRespTPCDe>>("pidTPCDe-task"));
+    workflow.push_back(adaptAnalysisTask<pidTPCTaskPerParticle<PID::Triton, o2::aod::pidRespTPCTr>>("pidTPCTr-task"));
+    workflow.push_back(adaptAnalysisTask<pidTPCTaskPerParticle<PID::Helium3, o2::aod::pidRespTPCHe>>("pidTPCHe-task"));
+    workflow.push_back(adaptAnalysisTask<pidTPCTaskPerParticle<PID::Alpha, o2::aod::pidRespTPCAl>>("pidTPCAl-task"));
+  }
   if (cfgc.options().get<int>("add-qa")) {
     workflow.push_back(adaptAnalysisTask<pidTPCTaskQA>("pidTPCQA-task"));
   }
   return workflow;
+}
+
+return workflow;
 }
