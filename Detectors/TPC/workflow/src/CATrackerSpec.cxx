@@ -169,13 +169,16 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       }
       config.configProcessing.runMC = specconfig.processMC;
       if (specconfig.outputQA) {
-        if (!specconfig.processMC) {
+        if (!specconfig.processMC && !config.configQA.clusterRejectionHistograms) {
           throw std::runtime_error("Need MC information to create QA plots");
+        }
+        if (!specconfig.processMC) {
+          config.configQA.noMC = true;
         }
         config.configQA.shipToQC = true;
         if (!config.configProcessing.runQA) {
           config.configQA.enableLocalOutput = false;
-          processAttributes->qaTaskMask = 15;
+          processAttributes->qaTaskMask = (specconfig.processMC ? 15 : 0) | (config.configQA.clusterRejectionHistograms ? 32 : 0);
           config.configProcessing.runQA = -processAttributes->qaTaskMask;
         }
       }
