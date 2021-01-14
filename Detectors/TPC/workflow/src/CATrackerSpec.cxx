@@ -213,6 +213,9 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         config.configWorkflow.outputs.setBits(GPUDataTypes::InOutType::TPCClusters, true);
         config.configWorkflow.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, false);
       }
+      if (specconfig.outputSharedClusterMap) {
+        config.configProcessing.outputSharedClusterMap = true;
+      }
 
       // Create and forward data objects for TPC transformation, material LUT, ...
       if (confParam.transformationFile.size()) {
@@ -601,8 +604,8 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       }
 
       GPUInterfaceOutputs outputRegions;
-      std::optional<std::reference_wrapper<O2CharVectorOutputType>> clusterOutput = std::nullopt, bufferCompressedClusters = std::nullopt, bufferTPCTracks = std::nullopt;
-      char *clusterOutputChar = nullptr, *bufferCompressedClustersChar = nullptr, *bufferTPCTracksChar = nullptr;
+      std::optional<std::reference_wrapper<O2CharVectorOutputType>> clusterOutput = std::nullopt, bufferCompressedClusters = std::nullopt, bufferTPCTracks = std::nullopt, bufferSharedClusterMap = std::nullopt;
+      char *clusterOutputChar = nullptr, *bufferCompressedClustersChar = nullptr, *bufferTPCTracksChar = nullptr, *bufferSharedClusterMapChar;
       if (specconfig.outputCompClustersFlat) {
         if (processAttributes->allocateOutputOnTheFly) {
           outputRegions.compressedClusters.allocator = [&bufferCompressedClustersChar, &pc](size_t size) -> void* {bufferCompressedClustersChar = pc.outputs().make<char>(Output{gDataOriginTPC, "COMPCLUSTERSFLAT", 0}, size).data(); return bufferCompressedClustersChar; };
@@ -630,6 +633,15 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
           bufferTPCTracks.emplace(pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "TRACKSGPU", 0}, processAttributes->outputBufferSize));
           outputRegions.tpcTracks.ptr = bufferTPCTracksChar = bufferTPCTracks->get().data();
           outputRegions.tpcTracks.size = bufferTPCTracks->get().size();
+        }
+      }
+      if (specconfig.outputSharedClusterMap) {
+        if (processAttributes->allocateOutputOnTheFly) {
+          outputRegions.sharedClusterMap.allocator = [&bufferSharedClusterMapChar, &pc](size_t size) -> void* {bufferSharedClusterMapChar = pc.outputs().make<char>(Output{gDataOriginTPC, "CLSHAREDMAP", 0}, size).data(); return bufferSharedClusterMapChar; };
+        } else {
+          bufferSharedClusterMap.emplace(pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "CLSHAREDMAP", 0}, processAttributes->outputBufferSize));
+          outputRegions.sharedClusterMap.ptr = bufferSharedClusterMapChar = bufferSharedClusterMap->get().data();
+          outputRegions.sharedClusterMap.size = bufferSharedClusterMap->get().size();
         }
       }
       if (specconfig.processMC) {
@@ -830,6 +842,9 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
           outputSpecs.emplace_back(gDataOriginTPC, "CLNATIVEMCLBL", NSectors, Lifetime::Timeframe);
         }
       }
+    }
+    if (specconfig.outputSharedClusterMap) {
+      outputSpecs.emplace_back(gDataOriginTPC, "CLSHAREDMAP", 0, Lifetime::Timeframe);
     }
     if (specconfig.outputQA) {
       outputSpecs.emplace_back(gDataOriginTPC, "TRACKINGQA", 0, Lifetime::Timeframe);
