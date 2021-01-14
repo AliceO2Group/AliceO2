@@ -923,20 +923,16 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     /// Lookup the executable name in the metadata associated with the workflow.
     /// If we find it, we rewrite the command line arguments to be processed
     /// so that they look like the ones passed to the merged workflow.
-    for (auto& processorInfo : processorInfos) {
-      if (processorInfo.name == spec.id) {
-        argc = processorInfo.cmdLineArgs.size() + 1;
-        argv = (char**)malloc(sizeof(char**) * (argc + 1));
-        argv[0] = strdup(processorInfo.executable.data());
-        for (size_t ai = 0; ai < processorInfo.cmdLineArgs.size(); ++ai) {
-          auto& arg = processorInfo.cmdLineArgs[ai];
-          argv[ai + 1] = strdup(arg.data());
-        }
-        argv[argc] = nullptr;
-        workflowOptions = processorInfo.workflowOptions;
-        break;
-      }
+    auto pi = std::find_if(processorInfos.begin(), processorInfos.end(), [&](auto const& x) { return x.name == spec.id; });
+    argc = pi->cmdLineArgs.size() + 1;
+    argv = (char**)malloc(sizeof(char**) * (argc + 1));
+    argv[0] = strdup(pi->executable.data());
+    for (size_t ai = 0; ai < pi->cmdLineArgs.size(); ++ai) {
+      auto const& arg = pi->cmdLineArgs[ai];
+      argv[ai + 1] = strdup(arg.data());
     }
+    argv[argc] = nullptr;
+    workflowOptions = pi->workflowOptions;
 
     // We duplicate the list of options, filtering only those
     // which are actually relevant for the given device. The additional

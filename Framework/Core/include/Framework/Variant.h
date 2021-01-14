@@ -39,6 +39,9 @@ enum class VariantType : int { Int = 0,
                                Array2DInt,
                                Array2DFloat,
                                Array2DDouble,
+                               LabeledArrayInt,
+                               LabeledArrayFloat,
+                               LabeledArrayDouble,
                                Empty,
                                Unknown };
 
@@ -52,6 +55,12 @@ template <VariantType V>
 constexpr auto isArray2D()
 {
   return (V == VariantType::Array2DInt || V == VariantType::Array2DFloat || V == VariantType::Array2DDouble);
+}
+
+template <VariantType V>
+constexpr auto isLabeledArray()
+{
+  return (V == VariantType::LabeledArrayInt || V == VariantType::LabeledArrayFloat || V == VariantType::LabeledArrayDouble);
 }
 
 template <typename T>
@@ -92,6 +101,10 @@ DECLARE_VARIANT_TRAIT(std::vector<std::string>, ArrayString);
 DECLARE_VARIANT_TRAIT(Array2D<int>, Array2DInt);
 DECLARE_VARIANT_TRAIT(Array2D<float>, Array2DFloat);
 DECLARE_VARIANT_TRAIT(Array2D<double>, Array2DDouble);
+
+DECLARE_VARIANT_TRAIT(LabeledArray<int>, LabeledArrayInt);
+DECLARE_VARIANT_TRAIT(LabeledArray<float>, LabeledArrayFloat);
+DECLARE_VARIANT_TRAIT(LabeledArray<double>, LabeledArrayDouble);
 
 template <typename T>
 struct variant_array_symbol {
@@ -153,6 +166,10 @@ DECLARE_VARIANT_TYPE(Array2D<int>, Array2DInt);
 DECLARE_VARIANT_TYPE(Array2D<float>, Array2DFloat);
 DECLARE_VARIANT_TYPE(Array2D<double>, Array2DDouble);
 
+DECLARE_VARIANT_TYPE(LabeledArray<int>, LabeledArrayInt);
+DECLARE_VARIANT_TYPE(LabeledArray<float>, LabeledArrayFloat);
+DECLARE_VARIANT_TYPE(LabeledArray<double>, LabeledArrayDouble);
+
 template <VariantType type>
 struct variant_array_element_type {
 };
@@ -172,6 +189,13 @@ DECLARE_VARIANT_ARRAY_ELEMENT_TYPE(double, Array2DDouble);
 DECLARE_VARIANT_ARRAY_ELEMENT_TYPE(bool, ArrayBool);
 DECLARE_VARIANT_ARRAY_ELEMENT_TYPE(std::string, ArrayString);
 
+DECLARE_VARIANT_ARRAY_ELEMENT_TYPE(int, LabeledArrayInt);
+DECLARE_VARIANT_ARRAY_ELEMENT_TYPE(float, LabeledArrayFloat);
+DECLARE_VARIANT_ARRAY_ELEMENT_TYPE(double, LabeledArrayDouble);
+
+template <VariantType V>
+using variant_array_element_type_t = typename variant_array_element_type<V>::type;
+
 template <typename S, typename T>
 struct variant_helper {
   static void set(S* store, T value)
@@ -182,10 +206,6 @@ struct variant_helper {
   static void set(S* store, T values, size_t size)
   {
     *reinterpret_cast<T*>(store) = reinterpret_cast<T>(std::memcpy(std::malloc(size * sizeof(std::remove_pointer_t<T>)), reinterpret_cast<void*>(values), size * sizeof(std::remove_pointer_t<T>)));
-  }
-  static void reset(S* store, T values, size_t)
-  {
-    *reinterpret_cast<T*>(store) = values;
   }
 
   static T get(const S* store) { return *(reinterpret_cast<const T*>(store)); }
@@ -215,7 +235,10 @@ struct variant_helper<S, std::string> {
 /// Variant for configuration parameter storage. Owns stored data.
 class Variant
 {
-  using storage_t = std::aligned_union<8, int, int64_t, const char*, float, double, bool, int*, float*, double*, bool*, Array2D<int>, Array2D<float>, Array2D<double>>::type;
+  using storage_t = std::aligned_union<8, int, int64_t, const char*, float, double, bool,
+                                       int*, float*, double*, bool*,
+                                       Array2D<int>, Array2D<float>, Array2D<double>,
+                                       LabeledArray<int>, LabeledArray<float>, LabeledArray<double>>::type;
 
  public:
   Variant(VariantType type = VariantType::Unknown) : mType{type}, mSize{1} {}

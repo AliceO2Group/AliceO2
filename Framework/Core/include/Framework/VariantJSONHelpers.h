@@ -42,7 +42,9 @@ struct VariantReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Va
   };
 
   VariantReader()
-    : states{}
+    : states{},
+      rows{0},
+      cols{0}
   {
     debug << "Start" << std::endl;
     states.push(State::IN_START);
@@ -61,8 +63,7 @@ struct VariantReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Va
       debug << "In ERROR state" << std::endl;
       return false;
     }
-    if constexpr (!(V == VariantType::ArrayInt || V == VariantType::Array2DInt)) {
-      debug << "Integer value in non-integer variant" << std::endl;
+    if constexpr (!std::is_same_v<int, variant_array_element_type_t<V>>) {
       states.push(State::IN_ERROR);
       return true;
     } else {
@@ -101,16 +102,16 @@ struct VariantReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Va
       debug << "In ERROR state" << std::endl;
       return false;
     }
-    if constexpr (!(V == VariantType::ArrayDouble || V == VariantType::Array2DDouble || V == VariantType::ArrayFloat || V == VariantType::Array2DFloat)) {
+    if constexpr (!(std::is_same_v<float, variant_array_element_type_t<V>> || std::is_same_v<double, variant_array_element_type_t<V>>)) {
       states.push(State::IN_ERROR);
       return true;
     }
     if (states.top() == State::IN_ARRAY || states.top() == State::IN_ROW) {
-      if constexpr (V == VariantType::ArrayDouble || V == VariantType::Array2DDouble) {
+      if constexpr (std::is_same_v<double, variant_array_element_type_t<V>>) {
         debug << "added to array as double" << std::endl;
         accumulatedData.push_back(d);
         return true;
-      } else if constexpr (V == VariantType::ArrayFloat || V == VariantType::Array2DFloat) {
+      } else if constexpr (std::is_same_v<float, variant_array_element_type_t<V>>) {
         debug << "added to array as float" << std::endl;
         accumulatedData.push_back(static_cast<float>(d));
         return true;
@@ -127,15 +128,17 @@ struct VariantReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Va
       debug << "In ERROR state" << std::endl;
       return false;
     }
-    if constexpr (V != VariantType::ArrayBool) {
+    if constexpr (!std::is_same_v<bool, variant_array_element_type_t<V>>) {
       states.push(State::IN_ERROR);
       return false;
     } else {
-      if (states.top() == State::IN_ARRAY || states.top() == State::IN_ROW) {
+      if (states.top() == State::IN_ARRAY) {
         debug << "added to array" << std::endl;
         accumulatedData.push_back(b);
         return true;
       }
+      states.push(State::IN_ERROR);
+      return true;
     }
   }
 
@@ -146,13 +149,26 @@ struct VariantReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Va
       debug << "In ERROR state" << std::endl;
       return false;
     }
-    if constexpr (V != VariantType::ArrayString) {
+    if constexpr (!(V == VariantType::ArrayString || isLabeledArray<V>())) {
       states.push(State::IN_ERROR);
       return true;
     } else {
-      if (states.top() == State::IN_ARRAY || states.top() == State::IN_ROW) {
+      if (states.top() == State::IN_ARRAY) {
         debug << "added to array" << std::endl;
-        accumulatedData.push_back(str);
+        if constexpr (isLabeledArray<V>()) {
+          if (currentKey == labels_rows_str) {
+            labels_rows.push_back(str);
+            return true;
+          } else if (currentKey == labels_cols_str) {
+            labels_cols.push_back(str);
+            return true;
+          } else {
+            states.push(State::IN_ERROR);
+            return true;
+          }
+        } else {
+          accumulatedData.push_back(str);
+        }
         return true;
       }
       states.push(State::IN_ERROR);
@@ -180,13 +196,25 @@ struct VariantReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Va
     debug << "Key(" << str << ")" << std::endl;
     if (states.top() == State::IN_ERROR) {
       debug << "In ERROR state" << std::endl;
+      currentKey = str;
       return false;
     }
-    if (states.top() == State::IN_DATA || states.top() == State::IN_KEY) {
+    if (states.top() == State::IN_DATA) {
+      //no previous keys
       states.push(State::IN_KEY);
       currentKey = str;
       return true;
     }
+    if (states.top() == State::IN_KEY) {
+      currentKey = str;
+      if constexpr (!isLabeledArray<V>()) {
+        debug << "extra keys in a single-key variant" << std::endl;
+        states.push(State::IN_ERROR);
+        return true;
+      }
+      return true;
+    }
+    currentKey = str;
     states.push(State::IN_ERROR);
     return true;
   }
@@ -199,13 +227,23 @@ struct VariantReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Va
       return false;
     }
     if (states.top() == State::IN_KEY) {
-      // finish up key
       if constexpr (isArray<V>()) {
         debug << "creating 1d-array variant" << std::endl;
         result = Variant(accumulatedData);
       } else if constexpr (isArray2D<V>()) {
         debug << "creating 2d-array variant" << std::endl;
+        assert(accumulatedData.size() == rows * cols);
         result = Variant(Array2D{accumulatedData, rows, cols});
+      } else if constexpr (isLabeledArray<V>()) {
+        debug << "creating labeled array variant" << std::endl;
+        assert(accumulatedData.size() == rows * cols);
+        if (labels_rows.empty() == false) {
+          assert(labels_rows.size() == rows);
+        }
+        if (labels_cols.empty() == false) {
+          assert(labels_cols.size() == cols);
+        }
+        result = Variant(LabeledArray{Array2D{accumulatedData, rows, cols}, labels_rows, labels_cols});
       }
       states.push(State::IN_STOP);
       return true;
@@ -223,12 +261,10 @@ struct VariantReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Va
     }
     if (states.top() == State::IN_KEY) {
       states.push(State::IN_ARRAY);
-      rows = 1;
       return true;
     } else if (states.top() == State::IN_ARRAY) {
-      if constexpr (isArray2D<V>()) {
+      if constexpr (isArray2D<V>() || isLabeledArray<V>()) {
         states.push(State::IN_ROW);
-        ++rows;
         return true;
       }
     }
@@ -246,18 +282,16 @@ struct VariantReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Va
     if (states.top() == State::IN_ARRAY) {
       //finish up array
       states.pop();
-      if constexpr (isArray<V>()) {
-        cols = elementCount;
-      } else if constexpr (isArray2D<V>()) {
+      if constexpr (isArray2D<V>() || isLabeledArray<V>()) {
         rows = elementCount;
       }
       return true;
     } else if (states.top() == State::IN_ROW) {
-      if constexpr (isArray2D<V>()) {
-        cols = elementCount;
-      }
       //finish up row
       states.pop();
+      if constexpr (isArray2D<V>() || isLabeledArray<V>()) {
+        cols = elementCount;
+      }
       return true;
     }
     states.push(State::IN_ERROR);
@@ -270,15 +304,17 @@ struct VariantReader : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Va
   uint32_t rows;
   uint32_t cols;
   std::string currentKey;
-  std::vector<typename variant_array_element_type<V>::type> accumulatedData;
+  std::vector<variant_array_element_type_t<V>> accumulatedData;
+  std::vector<std::string> labels_rows;
+  std::vector<std::string> labels_cols;
   Variant result;
 };
 
 template <VariantType V>
 void writeVariant(std::ostream& o, Variant const& v)
 {
-  if constexpr (isArray<V>() || isArray2D<V>()) {
-    using type = typename variant_array_element_type<V>::type;
+  if constexpr (isArray<V>() || isArray2D<V>() || isLabeledArray<V>()) {
+    using type = variant_array_element_type_t<V>;
     rapidjson::OStreamWrapper osw(o);
     rapidjson::Writer<rapidjson::OStreamWrapper> w(osw);
 
@@ -290,13 +326,17 @@ void writeVariant(std::ostream& o, Variant const& v)
           w.Int(values[i]);
         } else if constexpr (std::is_same_v<float, T> || std::is_same_v<double, T>) {
           w.Double(values[i]);
-        } else if constexpr (std::is_same_v<int, bool>) {
+        } else if constexpr (std::is_same_v<bool, T>) {
           w.Bool(values[i]);
         } else if constexpr (std::is_same_v<std::string, T>) {
           w.String(values[i].c_str());
         }
       }
       w.EndArray();
+    };
+
+    auto writeVector = [&](auto&& vector) {
+      return writeArray(vector.data(), vector.size());
     };
 
     auto writeArray2D = [&](auto&& array2d) {
@@ -316,12 +356,24 @@ void writeVariant(std::ostream& o, Variant const& v)
       w.EndArray();
     };
 
+    auto writeLabeledArray = [&](auto&& array) {
+      w.Key(labels_rows_str);
+      writeVector(array.getLabelsRows());
+      w.Key(labels_cols_str);
+      writeVector(array.getLabelsCols());
+      w.Key("values");
+      writeArray2D(array.getData());
+    };
+
     w.StartObject();
-    w.Key("values");
     if constexpr (isArray<V>()) {
+      w.Key("values");
       writeArray(v.get<type*>(), v.size());
     } else if constexpr (isArray2D<V>()) {
+      w.Key("values");
       writeArray2D(v.get<Array2D<type>>());
+    } else if constexpr (isLabeledArray<V>()) {
+      writeLabeledArray(v.get<LabeledArray<type>>());
     }
     w.EndObject();
   }
@@ -336,6 +388,7 @@ struct VariantJSONHelpers {
     rapidjson::IStreamWrapper isw(s);
     VariantReader<V> vreader;
     bool ok = reader.Parse(isw, vreader);
+
     if (ok == false) {
       std::stringstream error;
       error << "Cannot parse serialized Variant, error: " << rapidjson::GetParseError_En(reader.GetParseErrorCode()) << " at offset: " << reader.GetErrorOffset();
@@ -371,6 +424,15 @@ struct VariantJSONHelpers {
         break;
       case VariantType::Array2DDouble:
         writeVariant<VariantType::Array2DDouble>(o, v);
+        break;
+      case VariantType::LabeledArrayInt:
+        writeVariant<VariantType::LabeledArrayInt>(o, v);
+        break;
+      case VariantType::LabeledArrayFloat:
+        writeVariant<VariantType::LabeledArrayFloat>(o, v);
+        break;
+      case VariantType::LabeledArrayDouble:
+        writeVariant<VariantType::LabeledArrayDouble>(o, v);
         break;
       default:
         break;
