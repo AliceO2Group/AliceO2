@@ -65,6 +65,8 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
     mChain->SetOutputControlClustersNative(mOutputClustersNative.get());
     mOutputTPCTracks.reset(new GPUOutputControl);
     mChain->SetOutputControlTPCTracks(mOutputTPCTracks.get());
+    mOutputSharedClusterMap.reset(new GPUOutputControl);
+    mChain->SetOutputControlSharedClusterMap(mOutputSharedClusterMap.get());
     GPUOutputControl dummy;
     dummy.set([](size_t size) -> void* {throw std::runtime_error("invalid output memory request, no common output buffer set"); return nullptr; });
     mRec->SetOutputControl(dummy);
@@ -140,6 +142,13 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceO
       mOutputTPCTracks->set(outputs->tpcTracks.ptr, outputs->tpcTracks.size);
     } else {
       mOutputTPCTracks->reset();
+    }
+    if (outputs->sharedClusterMap.allocator) {
+      mOutputSharedClusterMap->set(outputs->sharedClusterMap.allocator);
+    } else if (outputs->sharedClusterMap.ptr) {
+      mOutputSharedClusterMap->set(outputs->sharedClusterMap.ptr, outputs->sharedClusterMap.size);
+    } else {
+      mOutputSharedClusterMap->reset();
     }
   }
   if (mConfig->configProcessing.runMC) {

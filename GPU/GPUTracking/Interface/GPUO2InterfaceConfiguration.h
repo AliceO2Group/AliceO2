@@ -72,6 +72,7 @@ struct GPUInterfaceOutputs {
   GPUInterfaceOutputRegion clustersNative;
   GPUInterfaceOutputRegion tpcTracks;
   GPUInterfaceOutputRegion clusterLabels;
+  GPUInterfaceOutputRegion sharedClusterMap;
   GPUInterfaceQAOutputs qa;
 };
 

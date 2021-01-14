@@ -173,6 +173,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void SetOutputControlClustersNative(GPUOutputControl* v) { mOutputClustersNative = v; }
   void SetOutputControlTPCTracks(GPUOutputControl* v) { mOutputTPCTracks = v; }
   void SetOutputControlClusterLabels(GPUOutputControl* v) { mOutputClusterLabels = v; }
+  void SetOutputControlSharedClusterMap(GPUOutputControl* v) { mOutputSharedClusterMap = v; }
 
   const GPUSettingsDisplay* mConfigDisplay = nullptr; // Abstract pointer to Standalone Display Configuration Structure
   const GPUSettingsQA* mConfigQA = nullptr;           // Abstract pointer to Standalone QA Configuration Structure
@@ -245,6 +246,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   GPUOutputControl* mOutputClustersNative = nullptr;
   GPUOutputControl* mOutputTPCTracks = nullptr;
   GPUOutputControl* mOutputClusterLabels = nullptr;
+  GPUOutputControl* mOutputSharedClusterMap = nullptr;
 
   std::unique_ptr<GPUTPCCFChainContext> mCFContext;
 

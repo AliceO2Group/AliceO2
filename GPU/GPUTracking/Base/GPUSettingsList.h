@@ -138,6 +138,7 @@ AddOption(alternateBorderSort, int, -1, "", 0, "Alternative implementation for s
 AddOption(enableRTC, bool, false, "", 0, "Use RTC to optimize GPU code")
 AddOption(rtcConstexpr, bool, true, "", 0, "Replace constant variables by static constexpr expressions")
 AddOption(showOutputStat, bool, false, "", 0, "Print some track output statistics")
+AddOption(outputSharedClusterMap, bool, false, "", 0, "Ship optional shared cluster map as output for further use")
 AddVariable(eventDisplay, GPUCA_NAMESPACE::gpu::GPUDisplayBackend*, nullptr)
 AddHelp("help", 'h')
 EndConfig()

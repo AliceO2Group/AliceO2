@@ -85,7 +85,8 @@ const std::unordered_map<std::string, OutputType> OutputMap{
   {"disable-writer", OutputType::DisableWriter},
   {"send-clusters-per-sector", OutputType::SendClustersPerSector},
   {"zsraw", OutputType::ZSRaw},
-  {"qa", OutputType::QA}};
+  {"qa", OutputType::QA},
+  {"no-shared-cluster-map", OutputType::NoSharedClusterMap}};
 
 framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vector<int> const& tpcSectors, std::vector<int> const& laneConfiguration,
                                     bool propagateMC, unsigned nLanes, std::string const& cfgInput, std::string const& cfgOutput,
@@ -445,6 +446,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
                                                                isEnabled(OutputType::SendClustersPerSector) ? ca::Operation::SendClustersPerSector : ca::Operation::Noop,
                                                                isEnabled(OutputType::QA) ? ca::Operation::OutputQA : ca::Operation::Noop,
                                                                isEnabled(OutputType::Clusters) && (caClusterer || decompressTPC) ? ca::Operation::OutputCAClusters : ca::Operation::Noop,
+                                                               isEnabled(OutputType::Clusters) && isEnabled(OutputType::Tracks) && !isEnabled(OutputType::NoSharedClusterMap) ? ca::Operation::OutputSharedClusterMap : ca::Operation::Noop,
                                                              },
                                                  tpcSectors));
   }

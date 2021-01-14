@@ -86,6 +86,7 @@ class GPUTPCGMMerger : public GPUProcessor
   void* SetPointersRefitScratch(void* mem);
   void* SetPointersRefitScratch2(void* mem);
   void* SetPointersOutput(void* mem);
+  void* SetPointersOutputState(void* mem);
   void* SetPointersMemory(void* mem);
 
   void SetSliceData(int index, const GPUTPCSliceOutput* sliceData) { mkSlices[index] = sliceData; }
@@ -119,6 +120,7 @@ class GPUTPCGMMerger : public GPUProcessor
 
   GPUd() unsigned short MemoryResMemory() { return mMemoryResMemory; }
   GPUd() unsigned short MemoryResOutput() const { return mMemoryResOutput; }
+  GPUd() unsigned short MemoryResOutputState() const { return mMemoryResOutputState; }
 
   GPUd() int RefitSliceTrack(GPUTPCGMSliceTrack& sliceTrack, const GPUTPCTrack* inTrack, float alpha, int slice);
   GPUd() void SetTrackClusterZT(GPUTPCGMSliceTrack& track, int iSlice, const GPUTPCTrack* sliceTr);
@@ -211,6 +213,7 @@ class GPUTPCGMMerger : public GPUProcessor
 
   unsigned short mMemoryResMemory;
   unsigned short mMemoryResOutput;
+  unsigned short mMemoryResOutputState;
 
   int mNClusters;                     // Total number of incoming clusters (from slice tracks)
   GPUTPCGMMergedTrack* mOutputTracks; //* array of output merged tracks
