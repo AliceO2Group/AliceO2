@@ -203,6 +203,8 @@ AddOption(noMC, bool, false, "", 0, "Force running QA without MC labels even if 
 AddOption(shipToQC, bool, false, "", 0, "Do not write output files but ship histograms for QC")
 AddOption(shipToQCAsCanvas, bool, false, "", 0, "Send TCanvases with full layout to QC instead of individual histograms")
 AddOption(enableLocalOutput, bool, true, "", 0, "Enable normal output to local PDF files / console")
+AddOption(clusterRejectionHistograms, bool, false, "", 0, "Fill histograms with cluster rejection statistics")
+AddOption(histMaxNClusters, unsigned int, 500000000, "", 0, "Maximum number of clusters in rejection histograms")
 AddShortcut("compare", 0, "--QAinput", "Compare QA histograms", "--qa", "--QAinputHistogramsOnly")
 AddHelp("help", 'h')
 EndConfig()

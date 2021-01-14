@@ -524,6 +524,12 @@ int GPUQA::InitQACreateHistograms()
     createHist(mTracks, name, name, AXIS_BINS[4], binsPt.get());
   }
 
+  if ((mQATasks & taskClusterCounts) && mConfig.clusterRejectionHistograms) {
+    int num = DoClusterCounts(nullptr, 2);
+    mHistClusterCount.resize(num);
+    DoClusterCounts(nullptr, 1);
+  }
+
   for (unsigned int i = 0; i < mHist1D->size(); i++) {
     *mHist1D_pos[i] = &(*mHist1D)[i];
   }
@@ -544,9 +550,6 @@ int GPUQA::loadHistograms(std::vector<TH1F>& i1, std::vector<TH2F>& i2, std::vec
   }
   if (mQAInitialized && (!mHaveExternalHists || tasks != mQATasks)) {
     throw std::runtime_error("QA not initialized or initialized with different task array");
-  }
-  if (tasks & taskClusterCounts) {
-    throw std::runtime_error("Cluster counts impossible with external histograms");
   }
   mHist1D = &i1;
   mHist2D = &i2;
@@ -576,6 +579,10 @@ int GPUQA::InitQA(int tasks)
   mHist2D = new std::vector<TH2F>;
   mHist1Dd = new std::vector<TH1D>;
   mQATasks = tasks;
+
+  if (mTracking) {
+    mClNative = mTracking->mIOPtrs.clustersNative;
+  }
 
   if (InitQACreateHistograms()) {
     return 1;
@@ -1502,7 +1509,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         GPUInfo("QA Time: Fill cluster histograms:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
       }
     }
-  } else if (!mConfig.inputHistogramsOnly) {
+  } else if (!mConfig.inputHistogramsOnly && !mConfig.noMC && (mQATasks & (taskTrackingEff | taskTrackingRes | taskTrackingResPull | taskClusterAttach))) {
     GPUWarning("No MC information available, only running partial TPC QA!");
   }
 
@@ -1516,10 +1523,15 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
       mTracks->Fill(1.f / fabsf(track.GetParam().GetQPt()));
       mNCl->Fill(track.NClustersFitted());
     }
+
+    if (QA_TIMING) {
+      GPUInfo("QA Time: Fill track statistics:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
+    }
   }
 
+  unsigned int nCl = clNative ? clNative->nClustersTotal : mTracking->GetTPCMerger().NMaxClusters();
+  mClusterCounts.nTotal += nCl;
   if (mQATasks & taskClusterCounts) {
-    unsigned int nCl = clNative ? clNative->nClustersTotal : mTracking->GetTPCMerger().NMaxClusters();
     for (unsigned int i = 0; i < nCl; i++) {
       int attach = mTracking->mIOPtrs.mergedTrackHitAttachment[i];
       CHECK_CLUSTER_STATE();
@@ -1566,23 +1578,27 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
             mClusterCounts.nFakeProtect40++;
           }
         }
-      } else {
-        mClusterCounts.nTotal++;
-        if (physics) {
-          mClusterCounts.nPhysics++;
-        }
-        if (physics || protect) {
-          mClusterCounts.nProt++;
-        }
-        if (unattached) {
-          mClusterCounts.nUnattached++;
-        }
+      }
+      if (physics) {
+        mClusterCounts.nPhysics++;
+      }
+      if (physics || protect) {
+        mClusterCounts.nProt++;
+      }
+      if (unattached) {
+        mClusterCounts.nUnattached++;
       }
     }
   }
 
+  // Process cluster count statistics
+  if ((mQATasks & taskClusterCounts) && mConfig.clusterRejectionHistograms) {
+    DoClusterCounts(nullptr);
+    mClusterCounts = counts_t();
+  }
+
   if (QA_TIMING) {
-    GPUInfo("QA Time: Others:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
+    GPUInfo("QA Time: Cluster Counts:\t%6.0f us", timer.GetCurrentElapsedTime(true) * 1e6);
   }
 
   // Create CSV DumpTrackHits
@@ -1753,6 +1769,7 @@ void GPUQA::resetHists()
   for (auto& h : *mHist1Dd) {
     h.Reset();
   }
+  mClusterCounts = counts_t();
 }
 
 int GPUQA::DrawQAHistograms(TObjArray* qcout)
@@ -2341,8 +2358,9 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
     }
   }
 
-  if (mQATasks & taskClusterCounts) {
-    // Process Cluster Histograms
+  unsigned long long int attachClusterCounts[N_CLS_HIST];
+  if (mQATasks & taskClusterAttach) {
+    // Process Cluster Attachment Histograms
     if (mConfig.inputHistogramsOnly == 0) {
       for (int i = N_CLS_HIST; i < N_CLS_TYPE * N_CLS_HIST - 1; i++) {
         mClusters[i]->Sumw2(true);
@@ -2356,52 +2374,13 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
       if (totalVal == 0.) {
         totalVal = 1.;
       }
-      unsigned long long int counts[N_CLS_HIST];
       for (int i = 0; i < N_CLS_HIST; i++) {
         double val = 0;
         for (int j = 0; j < mClusters[i]->GetXaxis()->GetNbins() + 2; j++) {
           val += mClusters[i]->GetBinContent(j);
           mClusters[2 * N_CLS_HIST - 1 + i]->SetBinContent(j, val / totalVal);
         }
-        counts[i] = val;
-      }
-      mClusterCounts.nRejected += mClusterCounts.nHighIncl;
-      if (!mcAvail) {
-        counts[N_CLS_HIST - 1] = mClusterCounts.nTotal;
-      }
-      if (mConfig.enableLocalOutput && counts[N_CLS_HIST - 1]) {
-        if (mcAvail) {
-          for (int i = 0; i < N_CLS_HIST; i++) {
-            printf("\t%35s: %'12llu (%6.2f%%)\n", CLUSTER_NAMES[i], counts[i], 100.f * counts[i] / counts[N_CLS_HIST - 1]);
-          }
-          printf("\t%35s: %'12llu (%6.2f%%)\n", "Unattached", counts[N_CLS_HIST - 1] - counts[CL_att_adj], 100.f * (counts[N_CLS_HIST - 1] - counts[CL_att_adj]) / counts[N_CLS_HIST - 1]);
-          printf("\t%35s: %'12llu (%6.2f%%)\n", "Removed", counts[CL_att_adj] - counts[CL_prot], 100.f * (counts[CL_att_adj] - counts[CL_prot]) / counts[N_CLS_HIST - 1]);      // Attached + Adjacent (also fake) - protected
-          printf("\t%35s: %'12llu (%6.2f%%)\n", "Unaccessible", (unsigned long long int)mClusterCounts.nUnaccessible, 100.f * mClusterCounts.nUnaccessible / counts[N_CLS_HIST - 1]); // No contribution from track >= 10 MeV, unattached or fake-attached/adjacent
-        } else {
-          printf("\t%35s: %'12llu (%6.2f%%)\n", "All Clusters", counts[N_CLS_HIST - 1], 100.f);
-          printf("\t%35s: %'12llu (%6.2f%%)\n", "Used in Physics", mClusterCounts.nPhysics, 100.f * mClusterCounts.nPhysics / counts[N_CLS_HIST - 1]);
-          printf("\t%35s: %'12llu (%6.2f%%)\n", "Protected", mClusterCounts.nProt, 100.f * mClusterCounts.nProt / counts[N_CLS_HIST - 1]);
-          printf("\t%35s: %'12llu (%6.2f%%)\n", "Unattached", mClusterCounts.nUnattached, 100.f * mClusterCounts.nUnattached / counts[N_CLS_HIST - 1]);
-          printf("\t%35s: %'12llu (%6.2f%%)\n", "Removed", mClusterCounts.nTotal - mClusterCounts.nUnattached - mClusterCounts.nProt, 100.f * (mClusterCounts.nTotal - mClusterCounts.nUnattached - mClusterCounts.nProt) / counts[N_CLS_HIST - 1]);
-        }
-
-        printf("\t%35s: %'12llu (%6.2f%%)\n", "Merged Loopers (Afterburner)", mClusterCounts.nMergedLooper, 100.f * mClusterCounts.nMergedLooper / counts[N_CLS_HIST - 1]);
-        printf("\t%35s: %'12llu (%6.2f%%)\n", "High Inclination Angle", mClusterCounts.nHighIncl, 100.f * mClusterCounts.nHighIncl / counts[N_CLS_HIST - 1]);
-        printf("\t%35s: %'12llu (%6.2f%%)\n", "Rejected", mClusterCounts.nRejected, 100.f * mClusterCounts.nRejected / counts[N_CLS_HIST - 1]);
-        printf("\t%35s: %'12llu (%6.2f%%)\n", "Tube (> 200 MeV)", mClusterCounts.nTube, 100.f * mClusterCounts.nTube / counts[N_CLS_HIST - 1]);
-        printf("\t%35s: %'12llu (%6.2f%%)\n", "Tube (< 200 MeV)", mClusterCounts.nTube200, 100.f * mClusterCounts.nTube200 / counts[N_CLS_HIST - 1]);
-        printf("\t%35s: %'12llu (%6.2f%%)\n", "Looping Legs", mClusterCounts.nLoopers, 100.f * mClusterCounts.nLoopers / counts[N_CLS_HIST - 1]);
-        printf("\t%35s: %'12llu (%6.2f%%)\n", "Low Pt < 50 MeV", mClusterCounts.nLowPt, 100.f * mClusterCounts.nLowPt / counts[N_CLS_HIST - 1]);
-        printf("\t%35s: %'12llu (%6.2f%%)\n", "Low Pt < 200 MeV", mClusterCounts.n200MeV, 100.f * mClusterCounts.n200MeV / counts[N_CLS_HIST - 1]);
-
-        if (mcAvail) {
-          printf("\t%35s: %'12llu (%6.2f%%)\n", "Tracks > 400 MeV", mClusterCounts.nAbove400, 100.f * mClusterCounts.nAbove400 / counts[N_CLS_HIST - 1]);
-          printf("\t%35s: %'12llu (%6.2f%%)\n", "Fake Removed (> 400 MeV)", mClusterCounts.nFakeRemove400, 100.f * mClusterCounts.nFakeRemove400 / std::max(mClusterCounts.nAbove400, 1ll));
-          printf("\t%35s: %'12llu (%6.2f%%)\n", "Full Fake Removed (> 400 MeV)", mClusterCounts.nFullFakeRemove400, 100.f * mClusterCounts.nFullFakeRemove400 / std::max(mClusterCounts.nAbove400, 1ll));
-
-          printf("\t%35s: %'12llu (%6.2f%%)\n", "Tracks < 40 MeV", mClusterCounts.nBelow40, 100.f * mClusterCounts.nBelow40 / counts[N_CLS_HIST - 1]);
-          printf("\t%35s: %'12llu (%6.2f%%)\n", "Fake Protect (< 40 MeV)", mClusterCounts.nFakeProtect40, 100.f * mClusterCounts.nFakeProtect40 / std::max(mClusterCounts.nBelow40, 1ll));
-        }
+        attachClusterCounts[i] = val;
       }
 
       if (!CLUST_HIST_INT_SUM) {
@@ -2505,7 +2484,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
 
         e->SetLineColor(colorNums[numColor++ % COLORCOUNT]);
         e->Draw("same");
-        mLClust[i]->AddEntry(e, "Removed", "l");
+        mLClust[i]->AddEntry(e, "Removed (Strategy A)", "l");
       }
       if (!mConfig.enableLocalOutput && !mConfig.shipToQCAsCanvas) {
         continue;
@@ -2524,6 +2503,21 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
       mCClust[i]->Print(i == 2 ? "plots/clusters_integral.pdf" : i == 1 ? "plots/clusters_relative.pdf" : "plots/clusters.pdf");
       if (mConfig.writeRootFiles) {
         mCClust[i]->Print(i == 2 ? "plots/clusters_integral.root" : i == 1 ? "plots/clusters_relative.root" : "plots/clusters.root");
+      }
+    }
+  }
+
+  // Process cluster count statistics
+  if ((mQATasks & taskClusterCounts) && !mHaveExternalHists && !mConfig.clusterRejectionHistograms && !mConfig.inputHistogramsOnly) {
+    DoClusterCounts(attachClusterCounts);
+  }
+  if ((qcout || tout) && (mQATasks & taskClusterCounts) && mConfig.clusterRejectionHistograms) {
+    for (unsigned int i = 0; i < mHistClusterCount.size(); i++) {
+      if (tout) {
+        mHistClusterCount[i]->Write();
+      }
+      if (qcout) {
+        qcout->Add(mHistClusterCount[i]);
       }
     }
   }
@@ -2637,4 +2631,61 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
     clearGarbagageCollector();
   }
   return (0);
+}
+
+void GPUQA::PrintClusterCount(int mode, int& num, const char* name, unsigned long long int n, unsigned long long int normalization)
+{
+  if (mode == 2) {
+    // do nothing, just count num
+  } else if (mode == 1) {
+    char name2[128];
+    sprintf(name2, "clusterCount%d", num);
+    createHist(mHistClusterCount[num], name2, name, 1000, 0, mConfig.histMaxNClusters, 1000, 0, 100);
+  } else if (mode == 0) {
+    if (normalization && mConfig.enableLocalOutput) {
+      printf("\t%35s: %'12llu (%6.2f%%)\n", name, n, 100.f * n / normalization);
+    }
+    if (mConfig.clusterRejectionHistograms) {
+      float ratio = 100.f * n / std::max(normalization, 1llu);
+      mHistClusterCount[num]->Fill(n, ratio, 1);
+    }
+  }
+  num++;
+}
+
+int GPUQA::DoClusterCounts(unsigned long long int* attachClusterCounts, int mode)
+{
+  int num = 0;
+  if (mcPresent() && (mQATasks & taskClusterAttach) && attachClusterCounts) {
+    for (int i = 0; i < N_CLS_HIST; i++) {
+      PrintClusterCount(mode, num, CLUSTER_NAMES[i], attachClusterCounts[i], mClusterCounts.nTotal);
+    }
+    PrintClusterCount(mode, num, "Unattached", attachClusterCounts[N_CLS_HIST - 1] - attachClusterCounts[CL_att_adj], mClusterCounts.nTotal);
+    PrintClusterCount(mode, num, "Removed (Strategy A)", attachClusterCounts[CL_att_adj] - attachClusterCounts[CL_prot], mClusterCounts.nTotal); // Attached + Adjacent (also fake) - protected
+    PrintClusterCount(mode, num, "Unaccessible", mClusterCounts.nUnaccessible, mClusterCounts.nTotal);                                           // No contribution from track >= 10 MeV, unattached or fake-attached/adjacent
+  } else {
+    PrintClusterCount(mode, num, "All Clusters", mClusterCounts.nTotal, mClusterCounts.nTotal);
+    PrintClusterCount(mode, num, "Used in Physics", mClusterCounts.nPhysics, mClusterCounts.nTotal);
+    PrintClusterCount(mode, num, "Protected", mClusterCounts.nProt, mClusterCounts.nTotal);
+    PrintClusterCount(mode, num, "Unattached", mClusterCounts.nUnattached, mClusterCounts.nTotal);
+    PrintClusterCount(mode, num, "Removed (Strategy A)", mClusterCounts.nTotal - mClusterCounts.nUnattached - mClusterCounts.nProt, mClusterCounts.nTotal);
+  }
+
+  PrintClusterCount(mode, num, "Merged Loopers (Afterburner)", mClusterCounts.nMergedLooper, mClusterCounts.nTotal);
+  PrintClusterCount(mode, num, "High Inclination Angle", mClusterCounts.nHighIncl, mClusterCounts.nTotal);
+  PrintClusterCount(mode, num, "Rejected", mClusterCounts.nRejected, mClusterCounts.nTotal);
+  PrintClusterCount(mode, num, "Tube (> 200 MeV)", mClusterCounts.nTube, mClusterCounts.nTotal);
+  PrintClusterCount(mode, num, "Tube (< 200 MeV)", mClusterCounts.nTube200, mClusterCounts.nTotal);
+  PrintClusterCount(mode, num, "Looping Legs", mClusterCounts.nLoopers, mClusterCounts.nTotal);
+  PrintClusterCount(mode, num, "Low Pt < 50 MeV", mClusterCounts.nLowPt, mClusterCounts.nTotal);
+  PrintClusterCount(mode, num, "Low Pt < 200 MeV", mClusterCounts.n200MeV, mClusterCounts.nTotal);
+
+  if (mcPresent() && (mQATasks & taskClusterAttach)) {
+    PrintClusterCount(mode, num, "Tracks > 400 MeV", mClusterCounts.nAbove400, mClusterCounts.nTotal);
+    PrintClusterCount(mode, num, "Fake Removed (> 400 MeV)", mClusterCounts.nFakeRemove400, mClusterCounts.nAbove400);
+    PrintClusterCount(mode, num, "Full Fake Removed (> 400 MeV)", mClusterCounts.nFullFakeRemove400, mClusterCounts.nAbove400);
+    PrintClusterCount(mode, num, "Tracks < 40 MeV", mClusterCounts.nBelow40, mClusterCounts.nTotal);
+    PrintClusterCount(mode, num, "Fake Protect (< 40 MeV)", mClusterCounts.nFakeProtect40, mClusterCounts.nBelow40);
+  }
+  return num;
 }
