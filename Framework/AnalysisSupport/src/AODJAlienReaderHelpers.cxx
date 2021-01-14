@@ -145,16 +145,18 @@ static inline auto extractOriginalsTuple(framework::pack<Os...>, ProcessingConte
   return std::make_tuple(extractTypedOriginal<Os>(pc)...);
 }
 
-void AODJAlienReaderHelpers::dumpFileMetrics(Monitoring& monitoring, TFile* currentFile, int tfPerFile, int tfRead)
+void AODJAlienReaderHelpers::dumpFileMetrics(Monitoring& monitoring, TFile* currentFile, uint64_t startedAt, int tfPerFile, int tfRead)
 {
-  std::string monitoringInfo(fmt::format("lfn={},size={},total_tf={},read_tf={},read_bytes={},read_calls={}", currentFile->GetPath(), currentFile->GetSize(), tfPerFile, tfRead, currentFile->GetBytesRead(), currentFile->GetReadCalls()));
+  std::string monitoringInfo(fmt::format("lfn={},size={},total_tf={},read_tf={},read_bytes={},read_calls={},run_time={:.1f}", currentFile->GetName(),
+                                         currentFile->GetSize(), tfPerFile, tfRead, currentFile->GetBytesRead(), currentFile->GetReadCalls(), ((float)(uv_hrtime() - startedAt) / 1e9)));
 #if __has_include(<TJAlienFile.h>)
   auto alienFile = dynamic_cast<TJAlienFile*>(currentFile);
   if (alienFile) {
-    monitoringInfo += fmt::format(",se={}", alienFile->GetSE());
+    monitoringInfo += fmt::format(",se={},open_time={:.1f}", alienFile->GetSE(), alienFile->GetElapsed());
   }
 #endif
   monitoring.send(Metric{monitoringInfo, "aod-file-read-info"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
+  LOGP(DEBUG, "Read info: {}", monitoringInfo);
 }
 
 AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
@@ -228,13 +230,14 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
       static size_t totalSizeCompressed = 0;
       static TFile* currentFile = nullptr;
       static int tfCurrentFile = -1;
+      static auto currentFileStartedAt = uv_hrtime();
 
       // check if RuntimeLimit is reached
       if (!watchdog->update()) {
         LOGP(INFO, "Run time exceeds run time limit of {} seconds!", watchdog->runTimeLimit);
         LOGP(INFO, "Stopping reader {} after time frame {}.", device.inputTimesliceId, watchdog->numberTimeFrames - 1);
         if (currentFile) {
-          dumpFileMetrics(monitoring, currentFile, tfCurrentFile, ntf);
+          dumpFileMetrics(monitoring, currentFile, currentFileStartedAt, tfCurrentFile, ntf);
         }
         monitoring.flushBuffer();
         didir->closeInputFiles();
@@ -254,7 +257,9 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
         if (!tr) {
           if (first) {
             // dump metrics of file which is done for reading
-            dumpFileMetrics(monitoring, currentFile, tfCurrentFile, ntf);
+            dumpFileMetrics(monitoring, currentFile, currentFileStartedAt, tfCurrentFile, ntf);
+            currentFile = nullptr;
+            currentFileStartedAt = uv_hrtime();
 
             // check if there is a next file to read
             fcnt += device.maxInputTimeslices;
@@ -309,9 +314,10 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
         delete tr;
 
         // needed for metrics dumping (upon next file read, or terminate due to watchdog)
-        auto info = didir->getFileFolder(dh, fcnt, ntf);
-        currentFile = info.file;
-        tfCurrentFile = didir->getTimeFramesInFile(dh, fcnt);
+        if (currentFile == nullptr) {
+          currentFile = didir->getFileFolder(dh, fcnt, ntf).file;
+          tfCurrentFile = didir->getTimeFramesInFile(dh, fcnt);
+        }
 
         first = false;
       }
