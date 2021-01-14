@@ -17,11 +17,10 @@
 #define _ALICEO2_DCA_FITTERN_
 #include <TMath.h>
 #include <Math/SMatrix.h>
-#include <Math/SVector.h>
 #include "ReconstructionDataFormats/Track.h"
 #include "DetectorsVertexing/HelixHelper.h"
 #include "GPUCommonArray.h"
-#include "CartesianGPU.h"
+#include "MathUtils/CartesianGPU.h"
 
 using namespace o2::gpu;
 
@@ -88,10 +87,10 @@ class DCAFitterN
 
   using Vec3D = o2::math_utils::SVector<double, 3>;
   using VecND = o2::math_utils::SVector<double, N>;
-  using MatSym3D = ROOT::Math::SMatrix<double, 3, 3, ROOT::Math::MatRepSym<double, 3>>;
-  using MatStd3D = ROOT::Math::SMatrix<double, 3, 3, ROOT::Math::MatRepStd<double, 3>>;
-  using MatSymND = ROOT::Math::SMatrix<double, N, N, ROOT::Math::MatRepSym<double, N>>;
-  using MatStdND = ROOT::Math::SMatrix<double, N, N, ROOT::Math::MatRepStd<double, N>>;
+  using MatSym3D = o2::math_utils::SMatrix<double, 3, 3, o2::math_utils::MatRepSym<double, 3>>;
+  using MatStd3D = o2::math_utils::SMatrix<double, 3, 3, o2::math_utils::MatRepStd<double, 3>>;
+  using MatSymND = o2::math_utils::SMatrix<double, N, N, o2::math_utils::MatRepSym<double, N>>;
+  using MatStdND = o2::math_utils::SMatrix<double, N, N, o2::math_utils::MatRepStd<double, N>>;
   using TrackCoefVtx = MatStd3D;
   using ArrTrack = gpustd::array<Track, N>;         // container for prongs (tracks) at single vertex cand.
   using ArrTrackCovI = gpustd::array<TrackCovI, N>; // container for inv.cov.matrices at single vertex cand.
@@ -613,7 +612,7 @@ void DCAFitterN<N, Args...>::calcPCANoErr()
 
 //___________________________________________________________________
 template <int N, typename... Args>
-ROOT::Math::SMatrix<double, 3, 3, ROOT::Math::MatRepSym<double, 3>> DCAFitterN<N, Args...>::calcPCACovMatrix(int cand) const
+o2::math_utils::SMatrix<double, 3, 3, ROOT::Math::MatRepSym<double, 3>> DCAFitterN<N, Args...>::calcPCACovMatrix(int cand) const
 {
   // calculate covariance matrix for the point of closest approach
   MatSym3D covm;

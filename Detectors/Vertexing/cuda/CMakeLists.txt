@@ -12,7 +12,8 @@ message(STATUS "Building CUDA secondary vertexer") # TODO: remove, dbg only
 
 o2_add_library(DetectorsVertexingCUDA
                SOURCES src/SVertexer.cu
-               PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
+               PUBLIC_LINK_LIBRARIES O2::GPUCommon
+                                     O2::ReconstructionDataFormats
                                      O2::DetectorsVertexing
                TARGETVARNAME targetName)
 

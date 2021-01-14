@@ -26,6 +26,7 @@ o2_add_library(DetectorsVertexing
                                      O2::SimulationDataFormat
                                      O2::FT0Reconstruction
                                      O2::DataFormatsFT0
+                                     O2::MathUtils
                                      ms_gsl::ms_gsl)
 
 o2_target_root_dictionary(DetectorsVertexing
