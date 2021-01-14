@@ -21,6 +21,7 @@
 #include "ReconstructionDataFormats/Track.h"
 #include "DetectorsVertexing/HelixHelper.h"
 #include "GPUCommonArray.h"
+#include "CartesianGPU.h"
 
 using namespace o2::gpu;
 
@@ -85,8 +86,8 @@ class DCAFitterN
   using TrackAuxPar = o2::track::TrackAuxPar;
   using CrossInfo = o2::track::CrossInfo;
 
-  using Vec3D = ROOT::Math::SVector<double, 3>;
-  using VecND = ROOT::Math::SVector<double, N>;
+  using Vec3D = o2::math_utils::SVector<double, 3>;
+  using VecND = o2::math_utils::SVector<double, N>;
   using MatSym3D = ROOT::Math::SMatrix<double, 3, 3, ROOT::Math::MatRepSym<double, 3>>;
   using MatStd3D = ROOT::Math::SMatrix<double, 3, 3, ROOT::Math::MatRepStd<double, 3>>;
   using MatSymND = ROOT::Math::SMatrix<double, N, N, ROOT::Math::MatRepSym<double, N>>;
