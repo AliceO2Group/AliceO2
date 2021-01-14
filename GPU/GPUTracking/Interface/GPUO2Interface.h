@@ -76,6 +76,7 @@ class GPUTPCO2Interface
   std::unique_ptr<GPUOutputControl> mOutputClustersNative;
   std::unique_ptr<GPUOutputControl> mOutputTPCTracks;
   std::unique_ptr<GPUOutputControl> mOutputTPCClusterLabels;
+  std::unique_ptr<GPUOutputControl> mOutputSharedClusterMap;
 };
 } // namespace o2::gpu
 

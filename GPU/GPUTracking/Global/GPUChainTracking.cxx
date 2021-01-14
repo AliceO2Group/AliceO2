@@ -351,6 +351,12 @@ int GPUChainTracking::Init()
   if (mOutputTPCTracks == nullptr) {
     mOutputTPCTracks = &mRec->OutputControl();
   }
+  if (mOutputSharedClusterMap == nullptr) {
+    mOutputSharedClusterMap = &mRec->OutputControl();
+  }
+  if (mOutputClusterLabels == nullptr) {
+    mOutputClusterLabels = &mRec->OutputControl();
+  }
 
   if (!ValidateSettings()) {
     return 1;
@@ -1951,6 +1957,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   SynchronizeGPU(); // Need to know the full number of slice tracks
   SetupGPUProcessor(&Merger, true);
   AllocateRegisteredMemory(Merger.MemoryResOutput(), mOutputTPCTracks);
+  AllocateRegisteredMemory(Merger.MemoryResOutputState(), mOutputSharedClusterMap);
 
   if (Merger.CheckSlices()) {
     return 1;
