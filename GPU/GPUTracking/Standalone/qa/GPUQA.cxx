@@ -586,87 +586,89 @@ int GPUQA::InitQA(int tasks)
   }
 
 #ifdef GPUCA_O2_LIB
-  static constexpr float PRIM_MAX_T = 0.01f;
+  if (!mConfig.noMC) {
+    static constexpr float PRIM_MAX_T = 0.01f;
 
-  o2::steer::MCKinematicsReader mcReader("collisioncontext.root");
-  int nSimEvents = mcReader.getNEvents(0);
-  mTrackMCLabelsReverse.resize(nSimEvents);
-  mRecTracks.resize(nSimEvents);
-  mFakeTracks.resize(nSimEvents);
-  mMCParam.resize(nSimEvents);
-  mMCInfos.resize(nSimEvents);
-  mNColTracks.resize(nSimEvents);
-  std::vector<int> refId;
+    o2::steer::MCKinematicsReader mcReader("collisioncontext.root");
+    int nSimEvents = mcReader.getNEvents(0);
+    mTrackMCLabelsReverse.resize(nSimEvents);
+    mRecTracks.resize(nSimEvents);
+    mFakeTracks.resize(nSimEvents);
+    mMCParam.resize(nSimEvents);
+    mMCInfos.resize(nSimEvents);
+    mNColTracks.resize(nSimEvents);
+    std::vector<int> refId;
 
-  auto dc = o2::steer::DigitizationContext::loadFromFile("collisioncontext.root");
-  auto evrec = dc->getEventRecords();
+    auto dc = o2::steer::DigitizationContext::loadFromFile("collisioncontext.root");
+    auto evrec = dc->getEventRecords();
 
-  for (int i = 0; i < nSimEvents; i++) {
-    auto ir = evrec[i];
-    auto ir0 = o2::raw::HBFUtils::Instance().getFirstIRofTF(ir);
-    float timebin = (float)ir.differenceInBC(ir0) / o2::tpc::constants::LHCBCPERTIMEBIN;
+    for (int i = 0; i < nSimEvents; i++) {
+      auto ir = evrec[i];
+      auto ir0 = o2::raw::HBFUtils::Instance().getFirstIRofTF(ir);
+      float timebin = (float)ir.differenceInBC(ir0) / o2::tpc::constants::LHCBCPERTIMEBIN;
 
-    const std::vector<o2::MCTrack>& tracks = mcReader.getTracks(0, i);
-    const std::vector<o2::TrackReference>& trackRefs = mcReader.getTrackRefsByEvent(0, i);
+      const std::vector<o2::MCTrack>& tracks = mcReader.getTracks(0, i);
+      const std::vector<o2::TrackReference>& trackRefs = mcReader.getTrackRefsByEvent(0, i);
 
-    refId.resize(tracks.size());
-    std::fill(refId.begin(), refId.end(), -1);
-    for (unsigned int j = 0; j < trackRefs.size(); j++) {
-      if (trackRefs[j].getDetectorId() == o2::detectors::DetID::TPC) {
-        int trkId = trackRefs[j].getTrackID();
-        if (refId[trkId] == -1) {
-          refId[trkId] = j;
-        }
-      }
-    }
-    mNColTracks[i] = tracks.size();
-    mMCInfos[i].resize(tracks.size());
-    for (unsigned int j = 0; j < tracks.size(); j++) {
-      auto& info = mMCInfos[i][j];
-      const auto& trk = tracks[j];
-      TParticlePDG* particle = TDatabasePDG::Instance()->GetParticle(trk.GetPdgCode());
-      Int_t pid = -1;
-      if (abs(trk.GetPdgCode()) == kElectron) {
-        pid = 0;
-      }
-      if (abs(trk.GetPdgCode()) == kMuonMinus) {
-        pid = 1;
-      }
-      if (abs(trk.GetPdgCode()) == kPiPlus) {
-        pid = 2;
-      }
-      if (abs(trk.GetPdgCode()) == kKPlus) {
-        pid = 3;
-      }
-      if (abs(trk.GetPdgCode()) == kProton) {
-        pid = 4;
-      }
-
-      info.charge = particle ? particle->Charge() : 0;
-      info.prim = trk.T() < PRIM_MAX_T;
-      info.primDaughters = 0;
-      if (trk.getFirstDaughterTrackId() != -1) {
-        for (int k = trk.getFirstDaughterTrackId(); k <= trk.getLastDaughterTrackId(); k++) {
-          if (tracks[k].T() < PRIM_MAX_T) {
-            info.primDaughters = 1;
-            break;
+      refId.resize(tracks.size());
+      std::fill(refId.begin(), refId.end(), -1);
+      for (unsigned int j = 0; j < trackRefs.size(); j++) {
+        if (trackRefs[j].getDetectorId() == o2::detectors::DetID::TPC) {
+          int trkId = trackRefs[j].getTrackID();
+          if (refId[trkId] == -1) {
+            refId[trkId] = j;
           }
         }
       }
-      info.pid = pid;
-      info.t0 = timebin;
-      if (refId[j] >= 0) {
-        const auto& trkRef = trackRefs[refId[j]];
-        info.x = trkRef.X();
-        info.y = trkRef.Y();
-        info.z = trkRef.Z();
-        info.pX = trkRef.Px();
-        info.pY = trkRef.Py();
-        info.pZ = trkRef.Pz();
-        info.genRadius = std::sqrt(trk.GetStartVertexCoordinatesX() * trk.GetStartVertexCoordinatesX() + trk.GetStartVertexCoordinatesY() * trk.GetStartVertexCoordinatesY() + trk.GetStartVertexCoordinatesZ() * trk.GetStartVertexCoordinatesZ());
-      } else {
-        info.x = info.y = info.z = info.pX = info.pY = info.pZ = 0;
-        info.genRadius = 0;
+      mNColTracks[i] = tracks.size();
+      mMCInfos[i].resize(tracks.size());
+      for (unsigned int j = 0; j < tracks.size(); j++) {
+        auto& info = mMCInfos[i][j];
+        const auto& trk = tracks[j];
+        TParticlePDG* particle = TDatabasePDG::Instance()->GetParticle(trk.GetPdgCode());
+        Int_t pid = -1;
+        if (abs(trk.GetPdgCode()) == kElectron) {
+          pid = 0;
+        }
+        if (abs(trk.GetPdgCode()) == kMuonMinus) {
+          pid = 1;
+        }
+        if (abs(trk.GetPdgCode()) == kPiPlus) {
+          pid = 2;
+        }
+        if (abs(trk.GetPdgCode()) == kKPlus) {
+          pid = 3;
+        }
+        if (abs(trk.GetPdgCode()) == kProton) {
+          pid = 4;
+        }
+
+        info.charge = particle ? particle->Charge() : 0;
+        info.prim = trk.T() < PRIM_MAX_T;
+        info.primDaughters = 0;
+        if (trk.getFirstDaughterTrackId() != -1) {
+          for (int k = trk.getFirstDaughterTrackId(); k <= trk.getLastDaughterTrackId(); k++) {
+            if (tracks[k].T() < PRIM_MAX_T) {
+              info.primDaughters = 1;
+              break;
+            }
+          }
+        }
+        info.pid = pid;
+        info.t0 = timebin;
+        if (refId[j] >= 0) {
+          const auto& trkRef = trackRefs[refId[j]];
+          info.x = trkRef.X();
+          info.y = trkRef.Y();
+          info.z = trkRef.Z();
+          info.pX = trkRef.Px();
+          info.pY = trkRef.Py();
+          info.pZ = trkRef.Pz();
+          info.genRadius = std::sqrt(trk.GetStartVertexCoordinatesX() * trk.GetStartVertexCoordinatesX() + trk.GetStartVertexCoordinatesY() * trk.GetStartVertexCoordinatesY() + trk.GetStartVertexCoordinatesZ() * trk.GetStartVertexCoordinatesZ());
+        } else {
+          info.x = info.y = info.z = info.pX = info.pY = info.pZ = 0;
+          info.genRadius = 0;
+        }
       }
     }
   }
