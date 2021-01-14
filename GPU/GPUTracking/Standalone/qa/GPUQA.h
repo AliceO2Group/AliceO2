@@ -140,6 +140,8 @@ class GPUQA
   };
 
   int InitQACreateHistograms();
+  int DoClusterCounts(unsigned long long int* attachClusterCounts, int mode = 0);
+  void PrintClusterCount(int mode, int& num, const char* name, unsigned long long int n, unsigned long long int normalization);
 
   void SetAxisSize(TH1F* e);
   void SetLegend(TLegend* l);
@@ -276,6 +278,8 @@ class GPUQA
   TPad* mPNCl;
   TLegend* mLNCl;
 
+  std::vector<TH2F*> mHistClusterCount;
+
   std::vector<TH1F>* mHist1D = nullptr;
   std::vector<TH2F>* mHist2D = nullptr;
   std::vector<TH1D>* mHist1Dd = nullptr;
@@ -306,7 +310,7 @@ class GPUQA
 
   int mMCTrackMin = -1, mMCTrackMax = -1;
 
-  const o2::tpc::ClusterNativeAccess* mClNative;
+  const o2::tpc::ClusterNativeAccess* mClNative = nullptr;
 };
 
 inline bool GPUQA::SuppressTrack(int iTrack) const { return (mConfig.matchMCLabels.size() && !mGoodTracks[mNEvents][iTrack]); }
