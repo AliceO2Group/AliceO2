@@ -147,6 +147,9 @@ static inline auto extractOriginalsTuple(framework::pack<Os...>, ProcessingConte
 
 void AODJAlienReaderHelpers::dumpFileMetrics(Monitoring& monitoring, TFile* currentFile, uint64_t startedAt, int tfPerFile, int tfRead)
 {
+  if (currentFile == nullptr) {
+    return;
+  }
   std::string monitoringInfo(fmt::format("lfn={},size={},total_tf={},read_tf={},read_bytes={},read_calls={},run_time={:.1f}", currentFile->GetName(),
                                          currentFile->GetSize(), tfPerFile, tfRead, currentFile->GetBytesRead(), currentFile->GetReadCalls(), ((float)(uv_hrtime() - startedAt) / 1e9)));
 #if __has_include(<TJAlienFile.h>)
@@ -236,9 +239,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
       if (!watchdog->update()) {
         LOGP(INFO, "Run time exceeds run time limit of {} seconds!", watchdog->runTimeLimit);
         LOGP(INFO, "Stopping reader {} after time frame {}.", device.inputTimesliceId, watchdog->numberTimeFrames - 1);
-        if (currentFile) {
-          dumpFileMetrics(monitoring, currentFile, currentFileStartedAt, tfCurrentFile, ntf);
-        }
+        dumpFileMetrics(monitoring, currentFile, currentFileStartedAt, tfCurrentFile, ntf);
         monitoring.flushBuffer();
         didir->closeInputFiles();
         control.endOfStream();
