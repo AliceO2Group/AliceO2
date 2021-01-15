@@ -16,6 +16,7 @@
 #include "TPCBase/CalDet.h"
 #include "TPCBase/Painter.h"
 #include "TPCBase/Utils.h"
+#include "TPCBase/CDBInterface.h"
 #include "TPad.h"
 #include "TCanvas.h"
 #include "TH1F.h"
@@ -38,15 +39,27 @@ TObjArray* drawNoiseAndPedestal(std::string_view pedestalFile, int mode = 0, std
   arrCanvases->SetName("NoiseAndPedestals");
 
   using namespace o2::tpc;
-  TFile f(pedestalFile.data());
-  gROOT->cd();
 
   // ===| load noise and pedestal from file |===
   CalDet<float> dummy;
-  CalDet<float>* calPedestal = nullptr;
-  CalDet<float>* calNoise = nullptr;
-  f.GetObject("Pedestals", calPedestal);
-  f.GetObject("Noise", calNoise);
+  const CalDet<float>* calPedestal = nullptr;
+  const CalDet<float>* calNoise = nullptr;
+
+  if (pedestalFile.find("cdb") != std::string::npos) {
+    auto& cdb = CDBInterface::instance();
+    if (pedestalFile == "cdb-test") {
+      cdb.setURL("http://ccdb-test.cern.ch:8080");
+    } else if (pedestalFile == "cdb-prod") {
+      cdb.setURL("");
+    }
+    calPedestal = &cdb.getPedestals();
+    calNoise = &cdb.getNoise();
+  } else {
+    TFile f(pedestalFile.data());
+    gROOT->cd();
+    f.GetObject("Pedestals", calPedestal);
+    f.GetObject("Noise", calNoise);
+  }
 
   // mode 1 handling
   if (mode == 1) {
