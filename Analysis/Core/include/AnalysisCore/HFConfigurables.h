@@ -36,21 +36,21 @@ class HFTrackIndexSkimsCreatorConfigs
   double mCPAJpsiMin = -2;
   double mImpParProductJpsiMax = 1000.;
   // 3-prong cuts - D+
-  double mPtDPlusMin = 0.;
-  double mInvMassDPlusMin = 1.7;
-  double mInvMassDPlusMax = 2.05;
+  double mPtDPlusMin = 1.;        //original value 0.
+  double mInvMassDPlusMin = 1.75; //original value 1.7
+  double mInvMassDPlusMax = 2.0;  //original value 2.05
   double mCPADPlusMin = 0.5;
   double mDecLenDPlusMin = 0.;
   // 3-prong cuts - Lc
-  double mPtLcMin = 0.;
-  double mInvMassLcMin = 2.1;
-  double mInvMassLcMax = 2.5;
+  double mPtLcMin = 1.;        //original value 0.
+  double mInvMassLcMin = 2.15; //original value 2.1
+  double mInvMassLcMax = 2.45; //original value 2.5
   double mCPALcMin = 0.5;
   double mDecLenLcMin = 0.;
   // 3-prong cuts - Ds
-  double mPtDsMin = 0.;
-  double mInvMassDsMin = 1.7;
-  double mInvMassDsMax = 2.2;
+  double mPtDsMin = 1.;        //original value 0.
+  double mInvMassDsMin = 1.75; //original value 1.7
+  double mInvMassDsMax = 2.15; //original value 2.2
   double mCPADsMin = 0.5;
   double mDecLenDsMin = 0.;
 
