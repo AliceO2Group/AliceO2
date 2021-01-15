@@ -428,6 +428,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 #endif
     if (result == -1) {
       LOG(FATAL) << uv_dlerror(&supportLib);
+      return;
     }
     void* callback = nullptr;
     DPLPluginHandle* (*dpl_plugin_callback)(DPLPluginHandle*);
