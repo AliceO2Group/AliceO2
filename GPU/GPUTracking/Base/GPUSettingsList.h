@@ -118,6 +118,7 @@ AddOption(memoryScalingFactor, float, 1.f, "", 0, "Factor to apply to all memory
 AddOption(registerStandaloneInputMemory, bool, false, "registerInputMemory", 0, "Automatically register input memory buffers for the GPU")
 AddOption(ompThreads, int, -1, "omp", 't', "Number of OMP threads to run (-1: all)", min(-1), message("Using %s OMP threads"))
 AddOption(ompKernels, unsigned char, 2, "", 0, "Parallelize with OMP inside kernels instead of over slices, 2 for nested parallelization over TPC sectors and inside kernels")
+AddOption(ompAutoNThreads, bool, true, "", 0, "Auto-adjust number of OMP threads, decreasing the number for small input data")
 AddOption(nDeviceHelperThreads, int, 1, "", 0, "Number of CPU helper threads for CPU processing")
 AddOption(nStreams, char, 8, "", 0, "Number of GPU streams / command queues")
 AddOption(nTPCClustererLanes, char, 3, "", 0, "Number of TPC clusterers that can run in parallel")
