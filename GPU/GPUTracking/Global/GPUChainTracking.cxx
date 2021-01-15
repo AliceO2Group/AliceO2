@@ -1085,6 +1085,9 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   if (RunTPCClusterizer_prepare(mPipelineNotifyCtx && GetProcessingSettings().doublePipelineClusterizer)) {
     return 1;
   }
+  if (GetProcessingSettings().ompAutoNThreads && !mRec->IsGPU()) {
+    mRec->SetNOMPThreads(mRec->MemoryScalers()->nTPCdigits / 20000);
+  }
 
   for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
     processors()->tpcClusterer[iSlice].SetMaxData(mIOPtrs); // First iteration to set data sizes
@@ -2445,6 +2448,9 @@ int GPUChainTracking::RunRefit()
 
 int GPUChainTracking::RunChain()
 {
+  if (GetProcessingSettings().ompAutoNThreads && !mRec->IsGPU()) {
+    mRec->SetNOMPThreads(-1);
+  }
   const auto threadContext = GetThreadContext();
   if (GetProcessingSettings().runCompressionStatistics && mCompressionStatistics == nullptr) {
     mCompressionStatistics.reset(new GPUTPCClusterStatistics);
@@ -2487,6 +2493,10 @@ int GPUChainTracking::RunChain()
     if (runRecoStep(RecoStep::TPCClusterFinding, &GPUChainTracking::RunTPCClusterizer, false)) {
       return 1;
     }
+  }
+
+  if (GetProcessingSettings().ompAutoNThreads && !mRec->IsGPU() && mIOPtrs.clustersNative) {
+    mRec->SetNOMPThreads(mIOPtrs.clustersNative->nClustersTotal / 5000);
   }
 
   if (mIOPtrs.clustersNative && runRecoStep(RecoStep::TPCConversion, &GPUChainTracking::ConvertNativeToClusterData)) {
@@ -2538,6 +2548,10 @@ int GPUChainTracking::RunChain()
 
   if (CheckErrorCodes()) {
     return 1;
+  }
+
+  if (GetProcessingSettings().ompAutoNThreads && !mRec->IsGPU()) {
+    mRec->SetNOMPThreads(-1);
   }
 
   return GetProcessingSettings().doublePipeline ? 0 : RunChainFinalize();

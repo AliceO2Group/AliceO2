@@ -121,6 +121,19 @@ void GPUReconstruction::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* tr
   }
 }
 
+int GPUReconstruction::SetNOMPThreads(int n)
+{
+#ifdef WITH_OPENMP
+  omp_set_num_threads(mProcessingSettings.ompThreads = std::max(1, n < 0 ? mMaxOMPThreads : std::min(n, mMaxOMPThreads)));
+  if (mProcessingSettings.debugLevel >= 3) {
+    GPUInfo("Set number of OpenMP threads to %d (%d requested)", mProcessingSettings.ompThreads, n);
+  }
+  return n > mMaxOMPThreads;
+#else
+  return 1;
+#endif
+}
+
 int GPUReconstruction::Init()
 {
   if (mMaster) {
@@ -266,11 +279,13 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (mProcessingSettings.ompThreads <= 0) {
     mProcessingSettings.ompThreads = omp_get_max_threads();
   } else {
+    mProcessingSettings.ompAutoNThreads = false;
     omp_set_num_threads(mProcessingSettings.ompThreads);
   }
 #else
   mProcessingSettings.ompThreads = 1;
 #endif
+  mMaxOMPThreads = mProcessingSettings.ompThreads;
   mMaxThreads = std::max(mMaxThreads, mProcessingSettings.ompThreads);
   if (IsGPU()) {
     mNStreams = std::max<int>(mProcessingSettings.nStreams, 3);
