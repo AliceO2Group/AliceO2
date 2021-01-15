@@ -45,6 +45,11 @@ o2_add_executable(calib-pedestal
                   SOURCES src/tpc-calib-pedestal.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
+o2_add_executable(track-reader
+                  COMPONENT_NAME tpc
+                  SOURCES src/TrackReaderWorkflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
 o2_add_test(workflow
             COMPONENT_NAME tpc
             LABELS tpc workflow

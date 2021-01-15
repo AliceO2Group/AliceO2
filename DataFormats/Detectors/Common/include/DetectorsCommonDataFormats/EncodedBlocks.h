@@ -775,7 +775,8 @@ void EncodedBlocks<H, N, W>::encode(const S_IT srcBegin,     // iterator begin o
   // case 3: message where entropy coding should be applied
   if (opt == Metadata::OptStore::EENCODE) {
     // build symbol statistics
-    constexpr size_t SizeEstMargin = 10 * 1024;
+    constexpr size_t SizeEstMarginAbs = 10 * 1024;
+    constexpr float SizeEstMarginRel = 1.05;
     const o2::rans::LiteralEncoder64<STYP>* encoder = reinterpret_cast<const o2::rans::LiteralEncoder64<STYP>*>(encoderExt);
     std::unique_ptr<o2::rans::LiteralEncoder64<STYP>> encoderLoc;
     std::unique_ptr<o2::rans::FrequencyTable> frequencies = nullptr;
@@ -791,7 +792,7 @@ void EncodedBlocks<H, N, W>::encode(const S_IT srcBegin,     // iterator begin o
     // estimate size of encode buffer
     int dataSize = rans::calculateMaxBufferSize(messageLength, encoder->getAlphabetRangeBits(), sizeof(STYP)); // size in bytes
     // preliminary expansion of storage based on dict size + estimated size of encode buffer
-    dataSize = SizeEstMargin + dataSize / sizeof(W) + (sizeof(STYP) < sizeof(W)); // size in words of output stream
+    dataSize = SizeEstMarginAbs + int(SizeEstMarginRel * (dataSize / sizeof(W))) + (sizeof(STYP) < sizeof(W)); // size in words of output stream
     expandStorage(dictSize + dataSize);
     //store dictionary first
     if (dictSize) {
@@ -800,7 +801,9 @@ void EncodedBlocks<H, N, W>::encode(const S_IT srcBegin,     // iterator begin o
     // vector of incompressible literal symbols
     std::vector<STYP> literals;
     // directly encode source message into block buffer.
-    const auto encodedMessageEnd = encoder->process(bl->getCreateData(), bl->getCreateData() + dataSize, srcBegin, srcEnd, literals);
+    auto blIn = bl->getCreateData();
+    auto frSize = bl->registry->getFreeSize(); // note: "this" might be not valid after expandStorage call!!!
+    const auto encodedMessageEnd = encoder->process(blIn, blIn + frSize, srcBegin, srcEnd, literals);
     dataSize = encodedMessageEnd - bl->getData();
     bl->setNData(dataSize);
     bl->realignBlock();

@@ -81,7 +81,7 @@ if [ $CTFINPUT == 1 ]; then
   TOF_INPUT=digits
   WORKFLOW="o2-ctf-reader-workflow --ctf-input o2_ctf_0000000000.root $ARGS_ALL | "
 elif [ $EXTINPUT == 1 ]; then
-  WORKFLOW="o2-dpl-raw-proxy $ARGS_ALL --dataspec \"B:TPC/RAWDATA;C:ITS/RAWDATA;D:TOF/RAWDATA;D:MFT/RAWDATA;E:FT0/RAWDATA;F:MID/RAWDATA;G:EMC/RAWDATA;H:PHS/RAWDATA\" --channel-config \"name=readout-proxy,type=pull,method=connect,address=ipc://@stfb-to-dpl,transport=shmem,rateLogging=0\" | "
+  WORKFLOW="o2-dpl-raw-proxy $ARGS_ALL --dataspec \"B:TPC/RAWDATA;C:ITS/RAWDATA;D:TOF/RAWDATA;D:MFT/RAWDATA;E:FT0/RAWDATA;F:MID/RAWDATA;G:EMC/RAWDATA;H:PHS/RAWDATA;I:CPV/RAWDATA\" --channel-config \"name=readout-proxy,type=pull,method=connect,address=ipc://@stfb-to-dpl,transport=shmem,rateLogging=0\" | "
 else
   WORKFLOW="o2-raw-file-reader-workflow $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=$NHBPERTF;\" --delay $TFDELAY --loop $NTIMEFRAMES --max-tf 0 --input-conf rawAll.cfg | "
 fi
@@ -105,20 +105,23 @@ WORKFLOW+="o2-tof-reco-workflow $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF
 # Workflows disabled in sync mode
 if [ $SYNCMODE == 0 ]; then
   WORKFLOW+="o2-mid-reco-workflow $ARGS_ALL --disable-root-output $DISABLE_MC | "
-  # WORKFLOW+="o2-mft-reco-workflow $ARGS_ALL --clusters-from-upstream --disable-mc --disable-root-output --configKeyValues \"HBFUtils.nHBFPerTF=128;\" | " # Disabled since currently crashing
-  WORKFLOW+="o2-primary-vertexing-workflow $ARGS_ALL --disable-mc --disable-root-input --disable-root-output --validate-with-ft0 | "
+  WORKFLOW+="o2-mft-reco-workflow $ARGS_ALL --clusters-from-upstream $DISABLE_MC --disable-root-output --configKeyValues \"HBFUtils.nHBFPerTF=128;\" | "
+  WORKFLOW+="o2-primary-vertexing-workflow $ARGS_ALL $DISABLE_MC --disable-root-input --disable-root-output --validate-with-ft0 | "
   WORKFLOW+="o2-secondary-vertexing-workflow $ARGS_ALL --disable-root-input --disable-root-output | "
 fi
 
 # Workflows disabled in async mode
 if [ $CTFINPUT == 0 ]; then
-  WORKFLOW+="o2-phos-reco-workflow $ARGS_ALL --input-type raw --output-type cells | "
-  WORKFLOW+="o2-emcal-reco-workflow $ARGS_ALL --input-type raw --output-type cells --disable-root-output | "
+  WORKFLOW+="o2-phos-reco-workflow $ARGS_ALL --input-type raw --output-type cells $DISABLE_MC  | "
+  WORKFLOW+="o2-cpv-reco-workflow $ARGS_ALL --input-type raw --output-type digits $DISABLE_MC  | "
+  WORKFLOW+="o2-cpv-reco-workflow $ARGS_ALL --input-type digits --output-type clusters $DISABLE_MC | "
+  WORKFLOW+="o2-emcal-reco-workflow $ARGS_ALL --input-type raw --output-type cells --disable-root-output $DISABLE_MC  | "
 
   WORKFLOW+="o2-itsmft-entropy-encoder-workflow $ARGS_ALL --runmft true | "
   WORKFLOW+="o2-ft0-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-mid-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-phos-entropy-encoder-workflow $ARGS_ALL | "
+  WORKFLOW+="o2-cpv-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-emcal-entropy-encoder-workflow $ARGS_ALL | "
 
   WORKFLOW+="o2-tpc-scdcalib-interpolation-workflow $ARGS_ALL --disable-root-output --disable-root-input | "
@@ -128,7 +131,7 @@ if [ $CTFINPUT == 0 ]; then
   if [ $CREATECTFDICT == 1 ] && [ $SAVECTF == 1 ]; then CTF_OUTPUT_TYPE="both"; fi
   if [ $CREATECTFDICT == 1 ] && [ $SAVECTF == 0 ]; then CTF_OUTPUT_TYPE="dict"; fi
   if [ $CREATECTFDICT == 0 ] && [ $SAVECTF == 1 ]; then CTF_OUTPUT_TYPE="ctf"; fi
-  CMD_CTF="o2-ctf-writer-workflow $ARGS_ALL --output-type $CTF_OUTPUT_TYPE --onlyDet ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS"
+  CMD_CTF="o2-ctf-writer-workflow $ARGS_ALL --output-type $CTF_OUTPUT_TYPE --onlyDet ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS,CPV"
   if [ $CREATECTFDICT == 1 ] && [ $; then
     CMD_CTF+=" --save-dict-after 1"
   fi

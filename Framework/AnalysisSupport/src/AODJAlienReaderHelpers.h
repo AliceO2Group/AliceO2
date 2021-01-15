@@ -14,6 +14,7 @@
 #include "Framework/TableBuilder.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/Logger.h"
+#include <Monitoring/Monitoring.h>
 #include <uv.h>
 
 namespace o2::framework::readers
@@ -21,6 +22,7 @@ namespace o2::framework::readers
 
 struct AODJAlienReaderHelpers {
   static AlgorithmSpec rootFileReaderCallback();
+  static void dumpFileMetrics(o2::monitoring::Monitoring& monitoring, TFile* currentFile, uint64_t startedAt, int tfPerFile, int tfRead);
 };
 
 } // namespace o2::framework::readers

@@ -11,14 +11,19 @@
 /// \file GPUO2InterfaceQA.cxx
 /// \author David Rohr
 
+#include "GPUParam.h"
 #include "GPUQA.h"
+#include "GPUO2InterfaceConfiguration.h"
 #include "GPUO2InterfaceQA.h"
 
 using namespace o2::gpu;
 using namespace o2::tpc;
 
-GPUO2InterfaceQA::GPUO2InterfaceQA(const GPUSettingsQA* config) : mQA(new GPUQA(nullptr, config))
+GPUO2InterfaceQA::GPUO2InterfaceQA(const GPUO2InterfaceConfiguration* config)
 {
+  mParam.reset(new GPUParam);
+  mParam->SetDefaults(&config->configEvent, &config->configReconstruction, &config->configProcessing, nullptr);
+  mQA.reset(new GPUQA(nullptr, &config->configQA, mParam.get()));
 }
 
 GPUO2InterfaceQA::~GPUO2InterfaceQA() = default;

@@ -46,10 +46,12 @@ o2_cleanup_shm_files() {
 }
 
 # Function to find out all the (recursive) child processes starting from a parent PID.
-# The output includes includes the parent
-# output is saved in child_pid_list
+# The output includes the parent
 childprocs() {
   local parent=$1
+  if [ ! "$2" ]; then
+    child_pid_list=""
+  fi
   if [ "$parent" ] ; then
     child_pid_list="$child_pid_list $parent"
     for childpid in $(pgrep -P ${parent}); do
@@ -146,7 +148,7 @@ taskwrapper() {
     finalcommand="TIME=\"#walltime %e\" ${O2_ROOT}/share/scripts/monitor-mem.sh ${TIMECOMMAND} './${SCRIPTNAME}'"
   fi
   echo "Running: ${finalcommand}" > ${logfile}
-  eval ${finalcommand} >> ${logfile} 2>&1 & disown
+  eval ${finalcommand} >> ${logfile} 2>&1 & #can't disown here since we want to retrieve exit status later on
 
   # THE NEXT PART IS THE SUPERVISION PART
   # get the PID
@@ -334,6 +336,12 @@ taskwrapper() {
     eval "${hook}"
   fi
 
+  if [ ! "${RC}" -eq "0" ]; then
+    if [ ! "${JOBUTILS_NOEXIT_ON_ERROR}" ]; then
+      # in case of incorrect termination, we usually like to stop the whole outer script (== we are in non-interactive mode)
+      [[ ! $- == *i* ]] && exit ${RC}
+    fi
+  fi
   return ${RC}
 }
 

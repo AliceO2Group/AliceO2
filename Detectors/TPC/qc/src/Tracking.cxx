@@ -28,6 +28,8 @@
 #include "TPCQC/Tracking.h"
 #include "GPUO2InterfaceQA.h"
 #include "GPUO2InterfaceConfiguration.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DataFormatsParameters/GRPObject.h"
 
 ClassImp(o2::tpc::qc::Tracking);
 
@@ -37,15 +39,23 @@ using namespace o2::gpu;
 Tracking::Tracking() = default;
 Tracking::~Tracking() = default;
 
-static constexpr int QAMODE = 7;
+static constexpr int QAMODE = 7; // Efficiency (1) | Res (2) | Pull (3), others are not supported from external input!
 
 //______________________________________________________________________________
 void Tracking::initialize(outputModes outputMode, bool postprocessOnly)
 {
   mOutputMode = outputMode;
-  GPUO2InterfaceConfiguration config;
-  config.configQA.shipToQCAsCanvas = mOutputMode == outputLayout;
-  mQA = std::make_unique<GPUO2InterfaceQA>(&config.configQA);
+  mQAConfig = std::make_unique<GPUO2InterfaceConfiguration>();
+  const auto grp = o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName());
+  if (grp) {
+    mQAConfig->configEvent.solenoidBz = 5.00668f * grp->getL3Current() / 30000.;
+    mQAConfig->configEvent.continuousMaxTimeBin = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC) ? -1 : 0;
+  } else {
+    throw std::runtime_error("Failed to initialize run parameters from GRP");
+  }
+  mQAConfig->ReadConfigurableParam();
+  mQAConfig->configQA.shipToQCAsCanvas = mOutputMode == outputLayout;
+  mQA = std::make_unique<GPUO2InterfaceQA>(mQAConfig.get());
   if (!postprocessOnly) {
     mQA->initializeForProcessing(QAMODE);
   }

@@ -104,7 +104,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
     std::unique_ptr<TPCFastTransform> fastTransform;
     std::unique_ptr<TPCdEdxCalibrationSplines> dEdxSplines;
     std::unique_ptr<TPCPadGainCalib> tpcPadGainCalib;
-    std::unique_ptr<GPUSettingsQA> qaConfig;
+    std::unique_ptr<GPUO2InterfaceConfiguration> config;
     int qaTaskMask = 0;
     std::unique_ptr<GPUO2InterfaceQA> qa;
     std::vector<int> clusterOutputIds;
@@ -121,7 +121,8 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
     processAttributes->tpcSectorMask |= (1ul << s);
   }
   auto initFunction = [processAttributes, specconfig](InitContext& ic) {
-    GPUO2InterfaceConfiguration config;
+    processAttributes->config.reset(new GPUO2InterfaceConfiguration);
+    GPUO2InterfaceConfiguration& config = *processAttributes->config.get();
     GPUSettingsO2 confParam;
     {
       auto& parser = processAttributes->parser;
@@ -168,13 +169,16 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       }
       config.configProcessing.runMC = specconfig.processMC;
       if (specconfig.outputQA) {
-        if (!specconfig.processMC) {
+        if (!specconfig.processMC && !config.configQA.clusterRejectionHistograms) {
           throw std::runtime_error("Need MC information to create QA plots");
+        }
+        if (!specconfig.processMC) {
+          config.configQA.noMC = true;
         }
         config.configQA.shipToQC = true;
         if (!config.configProcessing.runQA) {
           config.configQA.enableLocalOutput = false;
-          processAttributes->qaTaskMask = 15;
+          processAttributes->qaTaskMask = (specconfig.processMC ? 15 : 0) | (config.configQA.clusterRejectionHistograms ? 32 : 0);
           config.configProcessing.runQA = -processAttributes->qaTaskMask;
         }
       }
@@ -259,8 +263,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         throw std::invalid_argument("GPUCATracking initialization failed");
       }
       if (specconfig.outputQA) {
-        processAttributes->qaConfig.reset(new GPUSettingsQA(config.configQA));
-        processAttributes->qa = std::make_unique<GPUO2InterfaceQA>(processAttributes->qaConfig.get());
+        processAttributes->qa = std::make_unique<GPUO2InterfaceQA>(processAttributes->config.get());
       }
       timer.Stop();
       timer.Reset();
@@ -302,7 +305,6 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       if (processAttributes->readyToQuit) {
         return;
       }
-      printf("RUN PROCESSING\n");
       auto cput = timer.CpuTime();
       timer.Start(false);
       auto& parser = processAttributes->parser;
@@ -634,7 +636,6 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         outputRegions.clusterLabels.allocator = [&clustersMCBuffer](size_t size) -> void* { return &clustersMCBuffer; };
       }
 
-      printf("RUN TRACKING\n");
       int retVal = tracker->runTracking(&ptrs, &outputRegions);
       if (processAttributes->suppressOutput) {
         return;
