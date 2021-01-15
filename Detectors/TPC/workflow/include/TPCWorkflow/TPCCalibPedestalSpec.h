@@ -120,7 +120,7 @@ class TPCCalibPedestalDevice : public o2::framework::Task
 
     // perhaps should be changed to time of the run
     const auto now = std::chrono::system_clock::now();
-    long timeStart = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+    long timeStart = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
     long timeEnd = 99999999999999;
 
     std::array<const CalDet<float>*, 2> data = {&mCalibPedestal.getPedestal(), &mCalibPedestal.getNoise()};
