@@ -204,6 +204,7 @@ taskwrapper() {
 
       RC_ACUM=$((RC_ACUM+1))
       [ ! "${JOBUTILS_KEEPJOBSCRIPT}" ] && rm ${SCRIPTNAME} 2> /dev/null
+      [[ ! "${JOBUTILS_NOEXIT_ON_ERROR}" ]] && [[ ! $- == *i* ]] && exit 1
       return 1
     fi
 
