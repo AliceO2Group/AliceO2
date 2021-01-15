@@ -16,6 +16,7 @@
 
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <Math/SVector.h>
+#include <Math/SMatrix.h>
 #endif
 
 #include <cstddef>
@@ -61,8 +62,7 @@ class GPUSVector
   GPUSVector();
   //   template <class A>
   //   SVector(const VecExpr<A, T, D>& rhs);
-  //   /// copy contructor
-  //   SVector(const SVector<T, D>& rhs);
+  SVector(const SVector<T, D>& rhs);
 
   //   // new constructs using STL iterator interface
   //   // skip - need to solve the ambiguities
@@ -79,13 +79,13 @@ class GPUSVector
   //        The size must be <= vector size
   //      */
   //   template <class InputIterator>
-  //   explicit SVector(InputIterator begin, unsigned int size);
+  //   explicit SVector(InputIterator begin, size_t size);
 
   // #else
   //   // if you use iterator this is not necessary
 
   //   /// fill from array with len must be equal to D!
-  //   SVector(const T* a, unsigned int len);
+  //   SVector(const T* a, size_t len);
 
   //   /** fill from a SVector iterator of type T*
   //        (for ambiguities iterator cannot be generic )
@@ -141,9 +141,9 @@ class GPUSVector
   //   };
 
   //   /// return dimension \f$D\f$
-  //   inline static unsigned int Dim() { return D; }
+  //   inline static size_t Dim() { return D; }
   //   /// access the parse tree. Index starts from zero
-  //   T apply(unsigned int i) const;
+  //   T apply(size_t i) const;
   //   /// return read-only pointer to internal array
   //   const T* Array() const;
   //   /// return non-const pointer to internal array
@@ -171,7 +171,7 @@ class GPUSVector
   //   /// set vector elements copying the values
   //   /// size must be <= vector size
   //   template <class InputIterator>
-  //   void SetElements(InputIterator begin, unsigned int size);
+  //   void SetElements(InputIterator begin, size_t size);
 
   //   /** @name --- Operators --- */
 
@@ -206,17 +206,17 @@ class GPUSVector
   //   bool operator<(const VecExpr<A, T, D>& rhs) const;
 
   //   /// read-only access of vector elements. Index starts from 0.
-  //   const T& operator[](unsigned int i) const;
+  //   const T& operator[](size_t i) const;
   //   /// read-only access of vector elements. Index starts from 0.
-  //   const T& operator()(unsigned int i) const;
+  //   const T& operator()(size_t i) const;
   //   /// read-only access of vector elements with check on index. Index starts from 0.
-  //   const T& At(unsigned int i) const;
+  //   const T& At(size_t i) const;
   //   /// read/write access of vector elements. Index starts from 0.
-  //   T& operator[](unsigned int i);
+  //   T& operator[](size_t i);
   //   /// read/write access of vector elements. Index starts from 0.
-  //   T& operator()(unsigned int i);
+  //   T& operator()(size_t i);
   //   /// read/write access of vector elements with check on index. Index starts from 0.
-  //   T& At(unsigned int i);
+  //   T& At(size_t i);
 
   //   /// self addition with a scalar
   //   SVector<T, D>& operator+=(const T& rhs);
@@ -259,11 +259,11 @@ class GPUSVector
   //   /// transform vector into a vector of length 1
   //   SVector<T, D>& Unit();
   //   /// place a sub-vector starting from the given position
-  //   template <unsigned int D2>
-  //   SVector<T, D>& Place_at(const SVector<T, D2>& rhs, unsigned int row);
+  //   template <size_t D2>
+  //   SVector<T, D>& Place_at(const SVector<T, D2>& rhs, size_t row);
   //   /// place a sub-vector expression starting from the given position
-  //   template <class A, unsigned int D2>
-  //   SVector<T, D>& Place_at(const VecExpr<A, T, D2>& rhs, unsigned int row);
+  //   template <class A, size_t D2>
+  //   SVector<T, D>& Place_at(const VecExpr<A, T, D2>& rhs, size_t row);
 
   //   /**
   //        return a subvector of size N starting at the value row
@@ -271,7 +271,7 @@ class GPUSVector
   //      Condition  row+N <= D
   //      */
   //   template <class SubVector>
-  //   SubVector Sub(unsigned int row) const;
+  //   SubVector Sub(size_t row) const;
 
   //   /**
   //         Function to check if a vector is sharing same memory location of the passed pointer
@@ -290,7 +290,29 @@ class GPUSVector
   T mArray[N];
 };
 
-// template <class T, unsigned int D>
+template <class T, size_t D>
+SVector<T, D>::SVector()
+{
+  for (size_t i = 0; i < D; ++i) {
+    mArray[i] = 0;
+  }
+}
+
+template <class T, size_t D>
+template <class A>
+SVector<T, D>::SVector(const VecExpr<A, T, D>& rhs)
+{
+  operator=(rhs);
+}
+
+template <class T, size_t D>
+SVector<T, D>::SVector(const SVector<T, D>& rhs)
+{
+  for (size_t i = 0; i < D; ++i)
+    mArray[i] = rhs.mArray[i];
+}
+
+// template <class T, size_t D>
 // class MatRepSym
 // {
 
@@ -299,27 +321,27 @@ class GPUSVector
 
 //   typedef T value_type;
 
-//   inline T& operator()(unsigned int i, unsigned int j)
+//   inline T& operator()(size_t i, size_t j)
 //   {
 //     return fArray[offset(i, j)];
 //   }
 
-//   inline /* constexpr */ T const& operator()(unsigned int i, unsigned int j) const
+//   inline /* constexpr */ T const& operator()(size_t i, size_t j) const
 //   {
 //     return fArray[offset(i, j)];
 //   }
 
-//   inline T& operator[](unsigned int i)
+//   inline T& operator[](size_t i)
 //   {
 //     return fArray[off(i)];
 //   }
 
-//   inline /* constexpr */ T const& operator[](unsigned int i) const
+//   inline /* constexpr */ T const& operator[](size_t i) const
 //   {
 //     return fArray[off(i)];
 //   }
 
-//   inline /* constexpr */ T apply(unsigned int i) const
+//   inline /* constexpr */ T apply(size_t i) const
 //   {
 //     return fArray[off(i)];
 //   }
@@ -340,7 +362,7 @@ class GPUSVector
 //   }
 //   inline MatRepSym<T, D>& operator=(const MatRepSym& rhs)
 //   {
-//     for (unsigned int i = 0; i < mSize; ++i)
+//     for (size_t i = 0; i < mSize; ++i)
 //       fArray[i] = rhs.Array()[i];
 //     return *this;
 //   }
@@ -357,7 +379,7 @@ class GPUSVector
 //   }
 //   inline MatRepSym<T, D>& operator+=(const MatRepSym& rhs)
 //   {
-//     for (unsigned int i = 0; i < mSize; ++i)
+//     for (size_t i = 0; i < mSize; ++i)
 //       fArray[i] += rhs.Array()[i];
 //     return *this;
 //   }
@@ -374,7 +396,7 @@ class GPUSVector
 //   }
 //   inline MatRepSym<T, D>& operator-=(const MatRepSym& rhs)
 //   {
-//     for (unsigned int i = 0; i < mSize; ++i)
+//     for (size_t i = 0; i < mSize; ++i)
 //       fArray[i] -= rhs.Array()[i];
 //     return *this;
 //   }
@@ -382,7 +404,7 @@ class GPUSVector
 //   inline bool operator==(const R& rhs) const
 //   {
 //     bool rc = true;
-//     for (unsigned int i = 0; i < D * D; ++i) {
+//     for (size_t i = 0; i < D * D; ++i) {
 //       rc = rc && (operator[](i) == rhs[i]);
 //     }
 //     return rc;
@@ -407,8 +429,8 @@ class GPUSVector
 //     return v[i];
 //   }
 
-//   static inline constexpr unsigned int
-//     offset(unsigned int i, unsigned int j)
+//   static inline constexpr size_t
+//     offset(size_t i, size_t j)
 //   {
 //     //if (j > i) std::swap(i, j);
 //     return off(i * D + j);
@@ -426,13 +448,13 @@ using SVector = GPUSVector<T, N>;
 template <typename T, size_t N>
 using SVector = ROOT::Math::SVector<T, N>;
 
-template <class T, unsigned int D1, unsigned int D2, class R>
+template <class T, size_t D1, size_t D2, class R>
 using SMatrix = ROOT::Math::SMatrix<T, D1, D2, R>;
 
-template <class T, unsigned int D>
+template <class T, size_t D>
 using MatRepSym = ROOT::Math::MatRepSym<T, D>;
 
-template <class T, unsigned int D>
+template <class T, size_t D>
 using MatRepStd = ROOT::Math::MatRepStd<T, D>;
 #endif
 

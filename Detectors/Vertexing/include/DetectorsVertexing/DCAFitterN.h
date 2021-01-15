@@ -109,10 +109,10 @@ class DCAFitterN
 
   //=========================================================================
   ///< return PCA candidate, by default best on is provided (no check for the index validity)
-  const Vec3D& getPCACandidate(int cand = 0) const { return mPCA[mOrder[cand]]; }
+  GPUd() const Vec3D& getPCACandidate(int cand = 0) const { return mPCA[mOrder[cand]]; }
 
   ///< return Chi2 at PCA candidate (no check for its validity)
-  float getChi2AtPCACandidate(int cand = 0) const { return mChi2[mOrder[cand]]; }
+  GPUd() float getChi2AtPCACandidate(int cand = 0) const { return mChi2[mOrder[cand]]; }
 
   ///< prepare copies of tracks at the V0 candidate (no check for the candidate validity)
   ///  must be called before getTrack(i,cand) query
