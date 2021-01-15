@@ -31,6 +31,7 @@
 #include "internal/SymbolTable.h"
 #include "internal/Decoder.h"
 #include "internal/SymbolStatistics.h"
+#include "internal/helper.h"
 
 namespace o2
 {
@@ -54,7 +55,7 @@ class Decoder
   ~Decoder() = default;
   Decoder(const FrequencyTable& stats, size_t probabilityBits);
 
-  template <typename stream_IT, typename source_IT>
+  template <typename stream_IT, typename source_IT, std::enable_if_t<internal::isCompatibleIter_v<stream_T, stream_IT> && internal::isCompatibleIter_v<source_T, source_IT>, bool> = true>
   void process(const source_IT outputBegin, const stream_IT inputEnd, size_t messageLength) const;
 
   size_t getAlphabetRangeBits() const { return mSymbolTable->getAlphabetRangeBits(); }
@@ -107,15 +108,13 @@ Decoder<coder_T, stream_T, source_T>::Decoder(const FrequencyTable& frequencies,
 };
 
 template <typename coder_T, typename stream_T, typename source_T>
-template <typename stream_IT, typename source_IT>
+template <typename stream_IT, typename source_IT, std::enable_if_t<internal::isCompatibleIter_v<stream_T, stream_IT> && internal::isCompatibleIter_v<source_T, source_IT>, bool>>
 void Decoder<coder_T, stream_T, source_T>::process(const source_IT outputBegin, const stream_IT inputEnd, size_t messageLength) const
 {
   using namespace internal;
   LOG(trace) << "start decoding";
   RANSTimer t;
   t.start();
-  static_assert(std::is_same<typename std::iterator_traits<source_IT>::value_type, source_T>::value);
-  static_assert(std::is_same<typename std::iterator_traits<stream_IT>::value_type, stream_T>::value);
 
   if (messageLength == 0) {
     LOG(warning) << "Empty message passed to decoder, skipping decode process";

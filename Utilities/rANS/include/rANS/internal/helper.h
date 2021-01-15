@@ -19,6 +19,8 @@
 #include <cstddef>
 #include <cmath>
 #include <chrono>
+#include <type_traits>
+#include <iterator>
 
 namespace o2
 {
@@ -59,6 +61,9 @@ class RANSTimer
   std::chrono::time_point<std::chrono::high_resolution_clock> mStart;
   std::chrono::time_point<std::chrono::high_resolution_clock> mStop;
 };
+
+template <typename T, typename IT>
+inline constexpr bool isCompatibleIter_v = std::is_same_v<typename std::iterator_traits<IT>::value_type, T>;
 
 } // namespace internal
 } // namespace rans
