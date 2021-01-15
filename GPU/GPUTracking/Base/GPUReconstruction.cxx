@@ -273,7 +273,7 @@ int GPUReconstruction::InitPhaseBeforeDevice()
 #endif
   mMaxThreads = std::max(mMaxThreads, mProcessingSettings.ompThreads);
   if (IsGPU()) {
-    mNStreams = std::max(mProcessingSettings.nStreams, 3);
+    mNStreams = std::max<int>(mProcessingSettings.nStreams, 3);
   }
 
   if (mProcessingSettings.doublePipeline && (mChains.size() != 1 || mChains[0]->SupportsDoublePipeline() == false || !IsGPU() || mProcessingSettings.memoryAllocationStrategy != GPUMemoryResource::ALLOCATION_GLOBAL)) {
