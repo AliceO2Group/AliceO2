@@ -216,14 +216,16 @@ class LookUpTable
 };
 
 //Singleton for LookUpTable
-class SingleLUT:public LookUpTable
+class SingleLUT : public LookUpTable
 {
  private:
-  SingleLUT():LookUpTable(LookUpTable::readTable()) {}
+  SingleLUT() : LookUpTable(LookUpTable::readTable()) {}
   SingleLUT(const SingleLUT&) = delete;
   SingleLUT& operator=(SingleLUT&) = delete;
+
  public:
-  static SingleLUT& Instance() {
+  static SingleLUT& Instance()
+  {
     static SingleLUT instanceLUT;
     return instanceLUT;
   }
