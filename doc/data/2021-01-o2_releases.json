@@ -25,6 +25,12 @@
             "tagName": "v20.49",
             "publishedAt": "2020-12-11T16:12:56Z"
           }
+        },
+        {
+          "node": {
+            "tagName": "v21.01",
+            "publishedAt": "2021-01-05T16:47:05Z"
+          }
         }
       ]
     }
