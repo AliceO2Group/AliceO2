@@ -39,9 +39,10 @@ namespace o2::framework
 
 constexpr int INVALID_INPUT = -1;
 
-// 16 is just some reasonable numer
-// The number should really be tuned at runtime for each processor.
-constexpr int DEFAULT_PIPELINE_LENGTH = 16;
+// With the previous default of 16, messages are dropped when processing triggered pp data.
+// I am just putting some arbitrary larger value here, but this is not safe.
+// This should be extended automatically, or set depending on what kind of data is processed.
+constexpr int DEFAULT_PIPELINE_LENGTH = 512;
 
 DataRelayer::DataRelayer(const CompletionPolicy& policy,
                          std::vector<InputRoute> const& routes,
