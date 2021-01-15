@@ -323,7 +323,8 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   auto fillLabels = [](TBranch& branch, std::vector<char> const& labelbuffer, DataRef const& /*ref*/) {
     o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> labels(labelbuffer);
     o2::dataformats::IOMCTruthContainerView outputcontainer;
-    auto br = framework::RootTreeWriter::remapBranch(branch, &outputcontainer);
+    auto ptr = &outputcontainer;
+    auto br = framework::RootTreeWriter::remapBranch(branch, &ptr);
     outputcontainer.adopt(labelbuffer);
     br->Fill();
     br->ResetAddress();

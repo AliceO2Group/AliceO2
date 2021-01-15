@@ -203,7 +203,8 @@ DataProcessorSpec getTPCDigitRootWriterSpec(std::vector<int> const& laneConfigur
     // first of all redefine the output format (special to labels)
     auto tree = branch.GetTree();
     auto sector = extractSector(ref);
-    auto br = framework::RootTreeWriter::remapBranch(branch, &outputcontainer);
+    auto ptr = &outputcontainer;
+    auto br = framework::RootTreeWriter::remapBranch(branch, &ptr);
 
     auto const* dh = DataRefUtils::getHeader<DataHeader*>(ref);
     LOG(INFO) << "HAVE LABEL DATA FOR SECTOR " << sector << " ON CHANNEL " << dh->subSpecification;
