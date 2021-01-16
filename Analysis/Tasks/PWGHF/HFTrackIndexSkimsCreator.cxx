@@ -40,13 +40,13 @@ struct SelectTracks {
   Configurable<int> d_tpcnclsfound{"d_tpcnclsfound", 70, ">= min. number of TPC clusters needed"};
   // 2-prong cuts
   Configurable<double> ptmintrack_2prong{"ptmintrack_2prong", -1., "min. track pT for 2 prong candidate"};
-  Configurable<double> dcatoprimxy_2prong_maxpt{"dcatoprimxymin_2prong_minpt", 2., "max pt cut for min. DCAXY to prim. vtx. for 2 prong candidate"};
+  Configurable<double> dcatoprimxy_2prong_maxpt{"dcatoprimxy_2prong_maxpt", 2., "max pt cut for min. DCAXY to prim. vtx. for 2 prong candidate"};
   Configurable<double> dcatoprimxymin_2prong{"dcatoprimxymin_2prong", 0., "min. DCAXY to prim. vtx. for 2 prong candidate"};
   Configurable<double> dcatoprimxymax_2prong{"dcatoprimxymax_2prong", 1.0, "max. DCAXY to prim. vtx. for 2 prong candidate"};
   Configurable<double> etamax_2prong{"etamax_2prong", 4., "max. pseudorapidity for 2 prong candidate"};
   // 3-prong cuts
   Configurable<double> ptmintrack_3prong{"ptmintrack_3prong", -1., "min. track pT for 3 prong candidate"};
-  Configurable<double> dcatoprimxy_3prong_maxpt{"dcatoprimxy_3prong_minpt", 2., "max pt cut for min. DCAXY to prim. vtx. for 3 prong candidate"};
+  Configurable<double> dcatoprimxy_3prong_maxpt{"dcatoprimxy_3prong_maxpt", 2., "max pt cut for min. DCAXY to prim. vtx. for 3 prong candidate"};
   Configurable<double> dcatoprimxymin_3prong{"dcatoprimxymin_3prong", 0., "min. DCAXY to prim. vtx. for 3 prong candidate"};
   Configurable<double> dcatoprimxymax_3prong{"dcatoprimxymax_3prong", 1.0, "max. DCAXY to prim. vtx. for 3 prong candidate"};
   Configurable<double> etamax_3prong{"etamax_3prong", 4., "max. pseudorapidity for 3 prong candidate"};
