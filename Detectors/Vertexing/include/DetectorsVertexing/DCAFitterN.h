@@ -16,7 +16,6 @@
 #ifndef _ALICEO2_DCA_FITTERN_
 #define _ALICEO2_DCA_FITTERN_
 #include <TMath.h>
-#include <Math/SMatrix.h>
 #include "ReconstructionDataFormats/Track.h"
 #include "DetectorsVertexing/HelixHelper.h"
 #include "GPUCommonArray.h"

@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "DetectorsVertexingCUDA/SVertexer.h"
+#include "MathUtils/CartesianGPU.h"
 // #include "DetectorsVertexing/DCAFitterN.h" // <- target
 // #include "DetectorsVertexing/HelixHelper.h"
 // #include "ReconstructionDataFormats/Track.h"
@@ -20,7 +21,7 @@ namespace vertexing
 namespace gpu
 { // Kernels
 GPUg() void helloKernel() {
-    // o2::vertexing::DCAFitterN<2> mFitter2Prong;
+    o2::vertexing::DCAFitterN<2> mFitter2Prong;
     printf("Hello World from GPU!\n");
 }
 }
