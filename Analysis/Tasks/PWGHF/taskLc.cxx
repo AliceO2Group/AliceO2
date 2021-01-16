@@ -37,12 +37,12 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 struct TaskLc {
   HistogramRegistry registry{
     "registry",
-    {{"hmass", "3-prong candidates;inv. mass (p K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
+    {{"hmass", "3-prong candidates;inv. mass (p K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 1.6, 3.1}}}},
      {"hptcand", "3-prong candidates;candidate #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hptprong0", "3-prong candidates;prong 0 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hptprong1", "3-prong candidates;prong 1 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hptprong2", "3-prong candidates;prong 2 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
-     {"hdeclength", "3-prong candidates;decay length (cm);entries", {HistType::kTH1F, {{400, -2., 2.}}}},
+     {"hdeclength", "3-prong candidates;decay length (cm);entries", {HistType::kTH1F, {{200, 0., 2.}}}},
      {"hd0Prong0", "3-prong candidates;prong 0 DCAxy to prim. vertex (cm);entries", {HistType::kTH1F, {{100, -1., 1.}}}},
      {"hd0Prong1", "3-prong candidates;prong 1 DCAxy to prim. vertex (cm);entries", {HistType::kTH1F, {{100, -1., 1.}}}},
      {"hd0Prong2", "3-prong candidates;prong 1 DCAxy to prim. vertex (cm);entries", {HistType::kTH1F, {{100, -1., 1.}}}},
@@ -63,36 +63,34 @@ struct TaskLc {
   void process(soa::Filtered<soa::Join<aod::HfCandProng3, aod::HFSelLcCandidate>> const& candidates)
   {
     for (auto& candidate : candidates) {
-      /* if (candidate.pt()>5){
-	 continue;}*/
       if (cutEtaCandMax >= 0. && std::abs(candidate.eta()) > cutEtaCandMax) {
         //Printf("Candidate: eta rejection: %g", candidate.eta());
         continue;
       }
       if (candidate.isSelLcpKpi() >= d_selectionFlagLc) {
-        registry.get<TH1>("hmass")->Fill(InvMassLcpKpi(candidate));
+        registry.fill(HIST("hmass"), InvMassLcpKpi(candidate));
       }
       if (candidate.isSelLcpiKp() >= d_selectionFlagLc) {
-        registry.get<TH1>("hmass")->Fill(InvMassLcpiKp(candidate));
+        registry.fill(HIST("hmass"), InvMassLcpiKp(candidate));
       }
-      registry.get<TH1>("hptcand")->Fill(candidate.pt());
-      registry.get<TH1>("hptprong0")->Fill(candidate.ptProng0());
-      registry.get<TH1>("hptprong1")->Fill(candidate.ptProng1());
-      registry.get<TH1>("hptprong2")->Fill(candidate.ptProng2());
-      registry.get<TH1>("hdeclength")->Fill(candidate.decayLength());
-      registry.get<TH1>("hd0Prong0")->Fill(candidate.impactParameter0());
-      registry.get<TH1>("hd0Prong1")->Fill(candidate.impactParameter1());
-      registry.get<TH1>("hd0Prong2")->Fill(candidate.impactParameter2());
-      registry.get<TH1>("hCt")->Fill(CtLc(candidate));
-      registry.get<TH1>("hCPA")->Fill(candidate.cpa());
-      registry.get<TH1>("hEta")->Fill(candidate.eta());
-      registry.get<TH1>("hselectionstatus")->Fill(candidate.isSelLcpKpi());
-      registry.get<TH1>("hselectionstatus")->Fill(candidate.isSelLcpiKp());
-      registry.get<TH1>("hImpParErr")->Fill(candidate.errorImpactParameter0());
-      registry.get<TH1>("hImpParErr")->Fill(candidate.errorImpactParameter1());
-      registry.get<TH1>("hImpParErr")->Fill(candidate.errorImpactParameter2());
-      registry.get<TH1>("hDecLenErr")->Fill(candidate.errorDecayLength());
-      registry.get<TH1>("hDecLenErr")->Fill(candidate.chi2PCA());
+      registry.fill(HIST("hptcand"), candidate.pt());
+      registry.fill(HIST("hptprong0"), candidate.ptProng0());
+      registry.fill(HIST("hptprong1"), candidate.ptProng1());
+      registry.fill(HIST("hptprong2"), candidate.ptProng2());
+      registry.fill(HIST("hdeclength"), candidate.decayLength());
+      registry.fill(HIST("hd0Prong0"), candidate.impactParameter0());
+      registry.fill(HIST("hd0Prong1"), candidate.impactParameter1());
+      registry.fill(HIST("hd0Prong2"), candidate.impactParameter2());
+      registry.fill(HIST("hCt"), CtLc(candidate));
+      registry.fill(HIST("hCPA"), candidate.cpa());
+      registry.fill(HIST("hEta"), candidate.eta());
+      registry.fill(HIST("hselectionstatus"), candidate.isSelLcpKpi());
+      registry.fill(HIST("hselectionstatus"), candidate.isSelLcpiKp());
+      registry.fill(HIST("hImpParErr"), candidate.errorImpactParameter0());
+      registry.fill(HIST("hImpParErr"), candidate.errorImpactParameter1());
+      registry.fill(HIST("hImpParErr"), candidate.errorImpactParameter2());
+      registry.fill(HIST("hDecLenErr"), candidate.errorDecayLength());
+      registry.fill(HIST("hDecLenErr"), candidate.chi2PCA());
     }
   }
 };
@@ -127,13 +125,13 @@ struct TaskLcMC {
         continue;
       }
       if (std::abs(candidate.flagMCMatchRec()) == LcToPKPi) {
-        registry.get<TH1>("hPtRecSig")->Fill(candidate.pt());
-        registry.get<TH1>("hCPARecSig")->Fill(candidate.cpa());
-        registry.get<TH1>("hEtaRecSig")->Fill(candidate.eta());
+        registry.fill(HIST("hPtRecSig"), candidate.pt());
+        registry.fill(HIST("hCPARecSig"), candidate.cpa());
+        registry.fill(HIST("hEtaRecSig"), candidate.eta());
       } else {
-        registry.get<TH1>("hPtRecBg")->Fill(candidate.pt());
-        registry.get<TH1>("hCPARecBg")->Fill(candidate.cpa());
-        registry.get<TH1>("hEtaRecBg")->Fill(candidate.eta());
+        registry.fill(HIST("hPtRecBg"), candidate.pt());
+        registry.fill(HIST("hCPARecBg"), candidate.cpa());
+        registry.fill(HIST("hEtaRecBg"), candidate.eta());
       }
     }
     // MC gen.
@@ -144,8 +142,8 @@ struct TaskLcMC {
         continue;
       }
       if (std::abs(particle.flagMCMatchGen()) == LcToPKPi) {
-        registry.get<TH1>("hPtGen")->Fill(particle.pt());
-        registry.get<TH1>("hEtaGen")->Fill(particle.eta());
+        registry.fill(HIST("hPtGen"), particle.pt());
+        registry.fill(HIST("hEtaGen"), particle.eta());
       }
     }
   }
