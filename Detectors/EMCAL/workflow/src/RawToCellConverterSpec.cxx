@@ -64,6 +64,7 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
 void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 {
   LOG(DEBUG) << "[EMCALRawToCellConverter - run] called";
+  const double CONVADCGEV = 0.016; // Conversion from ADC counts to energy: E = 16 MeV / ADC
 
   // Cache cells from for bunch crossings as the component reads timeframes from many links consecutively
   std::map<o2::InteractionRecord, std::shared_ptr<std::vector<o2::emcal::Cell>>> cellBuffer; // Internal cell buffer
@@ -138,7 +139,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         if (fitResults.getTime() < 0) {
           fitResults.setTime(0.);
         }
-        currentCellContainer->emplace_back(CellID, amp, time, chantype);
+        currentCellContainer->emplace_back(CellID, amp * CONVADCGEV, time, chantype);
       }
     }
   }
