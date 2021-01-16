@@ -62,7 +62,7 @@ class TrackletsParser
   uint16_t mCRUEndpoint; // the upper or lower half of the currently parsed cru 0-14 or 15-29
   uint16_t mCRUID;
   uint16_t mHCID;
-  uint16_t mFEEID;                                     // current Fee ID working on
+  uint16_t mFEEID; // current Fee ID working on
   //  std::array<uint32_t, 16> mAverageNumTrackletsPerTrap; TODO come back to this stat.
 };
 

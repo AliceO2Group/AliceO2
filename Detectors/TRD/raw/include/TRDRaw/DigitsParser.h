@@ -55,7 +55,8 @@ class DigitsParser
                           StateDigitMCMData,
                           StatePadding };
 
- inline void swapByteOrder(unsigned int& word);
+  inline void swapByteOrder(unsigned int& word);
+
  private:
   int mState;
   int mDataWordsParsed; // count of data wordsin data that have been parsed in current call to parse.

@@ -31,12 +31,12 @@ namespace trd
 {
 
 inline void DigitsParser::swapByteOrder(unsigned int& word)
-    {
-        word = (word >> 24) |
-            ((word<<8) & 0x00FF0000) |
-            ((word>>8) & 0x0000FF00) |
-            (word << 24);
-    }
+{
+  word = (word >> 24) |
+         ((word << 8) & 0x00FF0000) |
+         ((word >> 8) & 0x0000FF00) |
+         (word << 24);
+}
 
 int DigitsParser::Parse()
 {
@@ -63,26 +63,26 @@ int DigitsParser::Parse()
     //loop over all the words
     //check for digit end marker
     swapByteOrder(*word);
-    auto nextword=std::next(word,1);
+    auto nextword = std::next(word, 1);
     swapByteOrder(*nextword);
-    if((*word)==0x0 && (*nextword)==0x0){
-        // end of digits marker.
-        LOG(info) << "Found digits end marker :" << std::hex << *word << "::" << *nextword;
-        //state *should* be StateDigitMCMData check that it is
-        if(mState != StateDigitMCMData){
-            LOG(warn) << "Digit end marker found but state is not StateDigitMCMData("<<StateDigitMCMData << ") but rather " << mState;
-        }
-        //only thing that can remain is the padding.
-        //now read padding words till end.
-        //no need to byteswap its uniform.
-        mBufferLocation+=2;
-        int paddingoffsetcount=2;
-        auto paddingword=std::next(word,paddingoffsetcount);
-        while(*paddingword == 0xeeeeeeee){
-            //read the remainder of the padding words.
-            mPaddingWordCounter++;
-            paddingword=std::next(word,paddingoffsetcount);
-        }
+    if ((*word) == 0x0 && (*nextword) == 0x0) {
+      // end of digits marker.
+      LOG(info) << "Found digits end marker :" << std::hex << *word << "::" << *nextword;
+      //state *should* be StateDigitMCMData check that it is
+      if (mState != StateDigitMCMData) {
+        LOG(warn) << "Digit end marker found but state is not StateDigitMCMData(" << StateDigitMCMData << ") but rather " << mState;
+      }
+      //only thing that can remain is the padding.
+      //now read padding words till end.
+      //no need to byteswap its uniform.
+      mBufferLocation += 2;
+      int paddingoffsetcount = 2;
+      auto paddingword = std::next(word, paddingoffsetcount);
+      while (*paddingword == 0xeeeeeeee) {
+        //read the remainder of the padding words.
+        mPaddingWordCounter++;
+        paddingword = std::next(word, paddingoffsetcount);
+      }
     }
     if (mState == StateDigitMCMHeader) {
       LOG(info) << "mDigitMCMHeader has value " << std::hex << *word;
@@ -133,7 +133,7 @@ int DigitsParser::Parse()
         mBufferLocation++;
         if (*word == 0xeeeeeeee) {
           mState = StatePadding;
-          LOG(info) <<"changing state to padding from mcmdata" ;
+          LOG(info) << "changing state to padding from mcmdata";
         } else {
           if (*word & 0x1) {
             mState = StateDigitMCMHeader; // we have more tracklet data;
@@ -152,8 +152,10 @@ int DigitsParser::Parse()
       // mTotalHalfCRUDataLength++;
       //end of data so
     }
-    if (word == mEndParse) LOG(info) << "word is mEndParse";
-    if (std::distance(word,mEndParse)> 0) LOG(info) <<std::dec <<  "word to mEndParse is :"<< std::distance(word,mEndParse);
+    if (word == mEndParse)
+      LOG(info) << "word is mEndParse";
+    if (std::distance(word, mEndParse) > 0)
+      LOG(info) << std::dec << "word to mEndParse is :" << std::distance(word, mEndParse);
   }
   LOG(info) << "***** parsing loop finished for this link";
   return 1;
