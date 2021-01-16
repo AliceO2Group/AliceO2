@@ -69,28 +69,28 @@ struct TaskD0 {
         continue;
       }
       if (candidate.isSelD0() >= d_selectionFlagD0) {
-        registry.get<TH1>(HIST("hmass"))->Fill(InvMassD0(candidate));
+        registry.fill(HIST("hmass"), InvMassD0(candidate));
       }
       if (candidate.isSelD0bar() >= d_selectionFlagD0bar) {
-        registry.get<TH1>(HIST("hmass"))->Fill(InvMassD0bar(candidate));
+        registry.fill(HIST("hmass"), InvMassD0bar(candidate));
       }
-      registry.get<TH1>(HIST("hptcand"))->Fill(candidate.pt());
-      registry.get<TH1>(HIST("hptprong0"))->Fill(candidate.ptProng0());
-      registry.get<TH1>(HIST("hptprong1"))->Fill(candidate.ptProng1());
-      registry.get<TH1>(HIST("hdeclength"))->Fill(candidate.decayLength());
-      registry.get<TH1>(HIST("hdeclengthxy"))->Fill(candidate.decayLengthXY());
-      registry.get<TH1>(HIST("hd0Prong0"))->Fill(candidate.impactParameter0());
-      registry.get<TH1>(HIST("hd0Prong1"))->Fill(candidate.impactParameter1());
-      registry.get<TH1>(HIST("hd0d0"))->Fill(candidate.impactParameterProduct());
-      registry.get<TH1>(HIST("hCTS"))->Fill(CosThetaStarD0(candidate));
-      registry.get<TH1>(HIST("hCt"))->Fill(CtD0(candidate));
-      registry.get<TH1>(HIST("hCPA"))->Fill(candidate.cpa());
-      registry.get<TH1>(HIST("hEta"))->Fill(candidate.eta());
-      registry.get<TH1>(HIST("hselectionstatus"))->Fill(candidate.isSelD0() + (candidate.isSelD0bar() * 2));
-      registry.get<TH1>(HIST("hImpParErr"))->Fill(candidate.errorImpactParameter0());
-      registry.get<TH1>(HIST("hImpParErr"))->Fill(candidate.errorImpactParameter1());
-      registry.get<TH1>(HIST("hDecLenErr"))->Fill(candidate.errorDecayLength());
-      registry.get<TH1>(HIST("hDecLenXYErr"))->Fill(candidate.errorDecayLengthXY());
+      registry.fill(HIST("hptcand"), candidate.pt());
+      registry.fill(HIST("hptprong0"), candidate.ptProng0());
+      registry.fill(HIST("hptprong1"), candidate.ptProng1());
+      registry.fill(HIST("hdeclength"), candidate.decayLength());
+      registry.fill(HIST("hdeclengthxy"), candidate.decayLengthXY());
+      registry.fill(HIST("hd0Prong0"), candidate.impactParameter0());
+      registry.fill(HIST("hd0Prong1"), candidate.impactParameter1());
+      registry.fill(HIST("hd0d0"), candidate.impactParameterProduct());
+      registry.fill(HIST("hCTS"), CosThetaStarD0(candidate));
+      registry.fill(HIST("hCt"), CtD0(candidate));
+      registry.fill(HIST("hCPA"), candidate.cpa());
+      registry.fill(HIST("hEta"), candidate.eta());
+      registry.fill(HIST("hselectionstatus"), candidate.isSelD0() + (candidate.isSelD0bar() * 2));
+      registry.fill(HIST("hImpParErr"), candidate.errorImpactParameter0());
+      registry.fill(HIST("hImpParErr"), candidate.errorImpactParameter1());
+      registry.fill(HIST("hDecLenErr"), candidate.errorDecayLength());
+      registry.fill(HIST("hDecLenXYErr"), candidate.errorDecayLengthXY());
     }
   }
 };
@@ -125,13 +125,13 @@ struct TaskD0MC {
         continue;
       }
       if (std::abs(candidate.flagMCMatchRec()) == D0ToPiK) {
-        registry.get<TH1>(HIST("hPtRecSig"))->Fill(candidate.pt());
-        registry.get<TH1>(HIST("hCPARecSig"))->Fill(candidate.cpa());
-        registry.get<TH1>(HIST("hEtaRecSig"))->Fill(candidate.eta());
+        registry.fill(HIST("hPtRecSig"), candidate.pt());
+        registry.fill(HIST("hCPARecSig"), candidate.cpa());
+        registry.fill(HIST("hEtaRecSig"), candidate.eta());
       } else {
-        registry.get<TH1>(HIST("hPtRecBg"))->Fill(candidate.pt());
-        registry.get<TH1>(HIST("hCPARecBg"))->Fill(candidate.cpa());
-        registry.get<TH1>(HIST("hEtaRecBg"))->Fill(candidate.eta());
+        registry.fill(HIST("hPtRecBg"), candidate.pt());
+        registry.fill(HIST("hCPARecBg"), candidate.cpa());
+        registry.fill(HIST("hEtaRecBg"), candidate.eta());
       }
     }
     // MC gen.
@@ -142,8 +142,8 @@ struct TaskD0MC {
         continue;
       }
       if (std::abs(particle.flagMCMatchGen()) == D0ToPiK) {
-        registry.get<TH1>(HIST("hPtGen"))->Fill(particle.pt());
-        registry.get<TH1>(HIST("hEtaGen"))->Fill(particle.eta());
+        registry.fill(HIST("hPtGen"), particle.pt());
+        registry.fill(HIST("hEtaGen"), particle.eta());
       }
     }
   }
