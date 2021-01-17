@@ -18,6 +18,7 @@ namespace o2::aod
 {
 namespace dqhistograms
 {
+void DefineDataPeriod(const char* dataPeriod);
 void DefineHistograms(HistogramManager* hm, const char* histClass, const char* groupName, const char* subGroupName = "");
 }
 } // namespace o2::aod
@@ -133,5 +134,39 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
   if (groupStr.Contains("pair-hadron-correlation")) {
     hm->AddHistogram(histClass, "DeltaEta_DeltaPhi", "", false, 20, -2.0, 2.0, VarManager::kDeltaEta, 50, -8.0, 8.0, VarManager::kDeltaPhi);
     hm->AddHistogram(histClass, "DeltaEta_DeltaPhiSym", "", false, 20, -2.0, 2.0, VarManager::kDeltaEta, 50, -8.0, 8.0, VarManager::kDeltaPhiSym);
+  }
+}
+
+void o2::aod::dqhistograms::DefineDataPeriod(const char* dataPeriod)
+{
+  //
+  // Define the list of runs to be used for histogramming.
+  //
+  TString periodStr = dataPeriod;
+  periodStr.ToLower();
+  if (periodStr.Contains("lhc18b")) {
+    std::vector<int> runs = {
+      285009, 285011, 285012, 285013, 285014, 285015, 285064, 285065, 285066, 285106,
+      285108, 285125, 285127, 285165, 285200, 285202, 285203, 285222, 285224, 285327,
+      285328, 285347, 285364, 285365, 285396};
+    VarManager::SetRunNumbers(runs);
+  }
+  if (periodStr.Contains("lhc15o")) {
+    std::vector<int> runs = {
+      244917, 244918, 244975, 244980, 244982, 244983, 245064, 245066, 245068, 245145,
+      245146, 245151, 245152, 245231, 245232, 245259, 245343, 245345, 245346, 245347,
+      245349, 245353, 245396, 245397, 245401, 245407, 245409, 245411, 245439, 245441,
+      245446, 245450, 245452, 245454, 245496, 245497, 245501, 245504, 245505, 245507,
+      245535, 245540, 245542, 245543, 245544, 245545, 245554, 245683, 245692, 245700,
+      245702, 245705, 245829, 245831, 245833, 245923, 245949, 245952, 245954, 245963,
+      246001, 246003, 246012, 246036, 246037, 246042, 246048, 246049, 246052, 246053,
+      246087, 246089, 246113, 246115, 246148, 246151, 246152, 246153, 246178, 246180,
+      246181, 246182, 246185, 246217, 246222, 246225, 246271, 246272, 246275, 246276,
+      246391, 246392, 246424, 246428, 246431, 246434, 246487, 246488, 246493, 246495,
+      246675, 246676, 246750, 246751, 246757, 246758, 246759, 246760, 246763, 246765,
+      246766, 246804, 246805, 246807, 246808, 246809, 246810, 246844, 246845, 246846,
+      246847, 246851, 246865, 246867, 246870, 246871, 246928, 246945, 246948, 246980,
+      246982, 246984, 246989, 246991, 246994};
+    VarManager::SetRunNumbers(runs);
   }
 }
