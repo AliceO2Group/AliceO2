@@ -113,6 +113,8 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   const auto tracksTPC = pc.inputs().get<gsl::span<o2::tpc::TrackTPC>>("trackTPC");
   const auto tracksTPCClRefs = pc.inputs().get<gsl::span<o2::tpc::TPCClRefElem>>("trackTPCClRefs");
 
+  const auto clusTPCShmap = pc.inputs().get<gsl::span<unsigned char>>("clusTPCshmap");
+
   //---------------------------->> TPC Clusters loading >>------------------------------------------
   int operation = 0;
   uint64_t activeSectors = 0;
@@ -242,6 +244,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   mMatching.setTPCTracksInp(tracksTPC);
   mMatching.setTPCTrackClusIdxInp(tracksTPCClRefs);
   mMatching.setTPCClustersInp(&clusterIndex);
+  mMatching.setTPCClustersSharingMap(clusTPCShmap);
 
   if (mUseMC) {
     mMatching.setITSTrkLabelsInp(lblITS);
@@ -302,6 +305,7 @@ DataProcessorSpec getTPCITSMatchingSpec(bool useFT0, bool calib, bool useMC, con
   inputs.emplace_back("trackTPCClRefs", "TPC", "CLUSREFS", 0, Lifetime::Timeframe);
 
   inputs.emplace_back("clusTPC", ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}, Lifetime::Timeframe);
+  inputs.emplace_back("clusTPCshmap", "TPC", "CLSHAREDMAP", 0, Lifetime::Timeframe);
 
   if (useFT0) {
     inputs.emplace_back("fitInfo", "FT0", "RECPOINTS", 0, Lifetime::Timeframe);
