@@ -49,8 +49,8 @@ int DigitsParser::Parse(bool verbose)
   mDigitsFound = 0;     // tracklets found in the data block, mostly used for debugging.
   mBufferLocation = 0;
   mPaddingWordsCounter = 0;
-  int digitwordcount=9;
-  int digittimebinoffset=0;
+  int digitwordcount = 9;
+  int digittimebinoffset = 0;
   if (mVerbose)
     LOG(info) << "Digits Parser parse of data sitting at :" << std::hex << (void*)mData << " starting at " << std::distance(mData->begin(), mStartParse) << " ending at " << std::distance(mData->begin(), mEndParse);
   //mData holds a buffer containing tracklets parse placing tracklets in the output vector.
@@ -111,9 +111,9 @@ int DigitsParser::Parse(bool verbose)
         mBufferLocation++;
         mState = StateDigitHCHeader;
         //new header so digit word count becomes zero
-        digitwordcount=0;
-        mMCM=mDigitMCMHeader->mcm;
-        mROB=mDigitMCMHeader->rob;
+        digitwordcount = 0;
+        mMCM = mDigitMCMHeader->mcm;
+        mROB = mDigitMCMHeader->rob;
 
       } else {
         if (*word == o2::trd::constants::CRUPADDING32) {
@@ -131,32 +131,29 @@ int DigitsParser::Parse(bool verbose)
             LOG(info) << "assumed mDigitMCMData is at " << mBufferLocation << " had value 0x" << std::hex << *word;
           //for the case of on flp build a vector of tracklets, then pack them into a data stream with a header.
           //for dpl build a vector and connect it with a triggerrecord.
-          if(mState=StateDigitMCMHeader){
+          if (mState = StateDigitMCMHeader) {
             //first digit for this mcm
-           // mCurrentDigit.setMCM();
-           // mCurrentDigit.setROB();
+            // mCurrentDigit.setMCM();
+            // mCurrentDigit.setROB();
           }
           mDigitMCMData = (DigitMCMData*)word;
           mBufferLocation++;
           mState = StateDigitMCMData;
           digitwordcount++;
-          LOG(info) << "adc values : " << mDigitMCMData->x << "::" << mDigitMCMData->y << "::" << mDigitMCMData->z ;
-          mADCValues[digittimebinoffset]=mDigitMCMData->x;
-          mADCValues[digittimebinoffset++]=mDigitMCMData->y;
-          mADCValues[digittimebinoffset++]=mDigitMCMData->z;
-          LOG(info) << 
-            "digit word count is : " << digitwordcount;
-          if(digitwordcount % 10 == 0)
-          {
-              LOG(info) << "change of adc";
-              //write out adc value to vector
-              //zero digittimebinoffset
-              mDigits.emplace_back(Digit(1,1,1,mADCValues,1));                                              // outgoing parsed digits
-              digittimebinoffset=0;
-              
+          LOG(info) << "adc values : " << mDigitMCMData->x << "::" << mDigitMCMData->y << "::" << mDigitMCMData->z;
+          mADCValues[digittimebinoffset] = mDigitMCMData->x;
+          mADCValues[digittimebinoffset++] = mDigitMCMData->y;
+          mADCValues[digittimebinoffset++] = mDigitMCMData->z;
+          LOG(info) << "digit word count is : " << digitwordcount;
+          if (digitwordcount % 10 == 0) {
+            LOG(info) << "change of adc";
+            //write out adc value to vector
+            //zero digittimebinoffset
+            mDigits.emplace_back(Digit(1, 1, 1, mADCValues, 1)); // outgoing parsed digits
+            digittimebinoffset = 0;
           }
         }
-        }
+      }
       }
 
       //accounting ....
@@ -173,9 +170,9 @@ int DigitsParser::Parse(bool verbose)
     }
     if (mVerbose)
       LOG(info) << "***** parsing loop finished for this link";
-      
-    if (mState != StateDigitMCMData || mState != StatePadding || mState!= StateDigitEndMarker) {
-        LOG(warn) << "Exiting parsing but the state is wrong ... mState= " << mState;
+
+    if (mState != StateDigitMCMData || mState != StatePadding || mState != StateDigitEndMarker) {
+      LOG(warn) << "Exiting parsing but the state is wrong ... mState= " << mState;
     }
     return 1;
   }

@@ -374,7 +374,7 @@ struct trdTestPattern6 {
 struct DigitMCMData {
   //             10987654321098765432109876543210
   // uint32_t:   00000000000000000000000000000000
-/*  union {
+  /*  union {
     uint32_t word0;
     struct {
       uint32_t a : 2;
