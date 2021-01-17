@@ -232,10 +232,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow;
   const bool isPbPb = cfgc.options().get<bool>("isPbPb");
-  if (isPbPb)
+  if (isPbPb) {
     workflow.push_back(adaptAnalysisTask<TableMaker<gkEventFillMap, MyEvents>>("table-maker"));
-  else
+  }
+  else {
     workflow.push_back(adaptAnalysisTask<TableMaker<gkEventFillMapNoCent, MyEventsNoCent>>("table-maker"));
+  }
 
   return workflow;
 }
