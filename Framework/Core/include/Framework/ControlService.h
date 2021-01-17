@@ -11,9 +11,15 @@
 #define O2_FRAMEWORK_CONTROLSERVICE_H_
 
 #include "Framework/ServiceHandle.h"
+#include <regex>
+#include <mutex>
 
 namespace o2::framework
 {
+
+struct ServiceRegistry;
+struct DeviceState;
+struct DriverClient;
 
 enum struct StreamingState : int;
 
@@ -33,16 +39,26 @@ class ControlService
  public:
   constexpr static ServiceKind service_kind = ServiceKind::Global;
 
+  ControlService(ServiceRegistry& registry, DeviceState& deviceState);
   /// Compatibility with old API.
   void readyToQuit(bool all) { this->readyToQuit(all ? QuitRequest::All : QuitRequest::Me); }
   /// Signal control that we are potentially ready to quit some / all
   /// dataprocessor.
-  virtual void readyToQuit(QuitRequest kind) = 0;
+  void readyToQuit(QuitRequest kind);
   /// Signal that we are done with the current stream
-  virtual void endOfStream() = 0;
+  void endOfStream();
   /// Report the current streaming state of a given device
-  virtual void notifyStreamingState(StreamingState state) = 0;
+  void notifyStreamingState(StreamingState state);
+
+ private:
+  bool mOnce = false;
+  ServiceRegistry& mRegistry;
+  DeviceState& mDeviceState;
+  DriverClient& mDriverClient;
+  std::mutex mMutex;
 };
 
+bool parseControl(std::string const& s, std::smatch& match);
+
 } // namespace o2::framework
-#endif // O2_FRAMEWORK_ROOTFILESERVICE_H_
+#endif // O2_FRAMEWORK_CONTROLSERVICE_H_

@@ -32,7 +32,7 @@
 #include "Framework/SimpleRawDeviceService.h"
 #define O2_SIGNPOST_DEFINE_CONTEXT
 #include "Framework/Signpost.h"
-#include "Framework/TextControlService.h"
+#include "Framework/ControlService.h"
 #include "Framework/CallbackService.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Monitoring.h"

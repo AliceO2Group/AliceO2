@@ -7,7 +7,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "Framework/TextControlService.h"
+#include "Framework/ControlService.h"
+#include "Framework/DriverClient.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceState.h"
 #include "Framework/ServiceRegistry.h"
@@ -22,21 +23,22 @@
 namespace o2::framework
 {
 
-TextControlService::TextControlService(ServiceRegistry& registry, DeviceState& deviceState)
+ControlService::ControlService(ServiceRegistry& registry, DeviceState& deviceState)
   : mRegistry{registry},
-    mDeviceState{deviceState}
+    mDeviceState{deviceState},
+    mDriverClient{registry.get<DriverClient>()}
 {
 }
 
 // This will send an end of stream to all the devices downstream.
-void TextControlService::endOfStream()
+void ControlService::endOfStream()
 {
   std::scoped_lock lock(mMutex);
   mDeviceState.streaming = StreamingState::EndOfStreaming;
 }
 
 // All we do is to printout
-void TextControlService::readyToQuit(QuitRequest what)
+void ControlService::readyToQuit(QuitRequest what)
 {
   std::scoped_lock lock(mMutex);
   if (mOnce == true) {
@@ -46,27 +48,27 @@ void TextControlService::readyToQuit(QuitRequest what)
   switch (what) {
     case QuitRequest::All:
       mDeviceState.quitRequested = true;
-      LOG(INFO) << "CONTROL_ACTION: READY_TO_QUIT_ALL";
+      mDriverClient.tell("CONTROL_ACTION: READY_TO_QUIT_ALL");
       break;
     case QuitRequest::Me:
       mDeviceState.quitRequested = true;
-      LOG(INFO) << "CONTROL_ACTION: READY_TO_QUIT_ME";
+      mDriverClient.tell("CONTROL_ACTION: READY_TO_QUIT_ME");
       break;
   }
 }
 
-void TextControlService::notifyStreamingState(StreamingState state)
+void ControlService::notifyStreamingState(StreamingState state)
 {
   std::scoped_lock lock(mMutex);
   switch (state) {
     case StreamingState::Idle:
-      LOG(INFO) << "CONTROL_ACTION: NOTIFY_STREAMING_STATE IDLE";
+      mDriverClient.tell("CONTROL_ACTION: NOTIFY_STREAMING_STATE IDLE");
       break;
     case StreamingState::Streaming:
-      LOG(INFO) << "CONTROL_ACTION: NOTIFY_STREAMING_STATE STREAMING";
+      mDriverClient.tell("CONTROL_ACTION: NOTIFY_STREAMING_STATE STREAMING");
       break;
     case StreamingState::EndOfStreaming:
-      LOG(INFO) << "CONTROL_ACTION: NOTIFY_STREAMING_STATE EOS";
+      mDriverClient.tell("CONTROL_ACTION: NOTIFY_STREAMING_STATE EOS");
       break;
     default:
       throw std::runtime_error("Unknown streaming state");

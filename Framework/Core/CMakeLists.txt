@@ -31,6 +31,7 @@ o2_add_library(Framework
                        src/CompletionPolicyHelpers.cxx
                        src/ComputingResourceHelpers.cxx
                        src/ConfigContext.cxx
+                       src/ControlService.cxx
                        src/DispatchPolicy.cxx
                        src/ConfigParamStore.cxx
                        src/ConfigParamsHelper.cxx
@@ -83,10 +84,10 @@ o2_add_library(Framework
                        src/TableBuilder.cxx
                        src/TableConsumer.cxx
                        src/TableTreeHelpers.cxx
+                       src/TextDriverClient.cxx
                        src/DataInputDirector.cxx
                        src/DataOutputDirector.cxx
                        src/Task.cxx
-                       src/TextControlService.cxx
                        src/Variant.cxx
                        src/WorkflowCustomizationHelpers.cxx
                        src/WorkflowHelpers.cxx
