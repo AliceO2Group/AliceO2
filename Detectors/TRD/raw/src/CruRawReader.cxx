@@ -41,7 +41,7 @@ uint32_t CruRawReader::processHBFs()
   mDataRDH = reinterpret_cast<const o2::header::RDHAny*>(mDataPointer);
   //mEncoderRDH = reinterpret_cast<o2::header::RDHAny*>(mEncoderPointer);
   auto rdh = mDataRDH;
-  uint64_t totaldataread=0;
+  uint64_t totaldataread = 0;
   /* loop until RDH stop header */
   mState = CRUStateHalfCRUHeader;
   while (!o2::raw::RDHUtils::getStop(rdh)) { // carry on till the end of the event.
@@ -138,7 +138,7 @@ uint32_t CruRawReader::processHBFs()
     LOG(info) << "moving rdh from " << (void*)rdh;
     rdh = (o2::header::RDHAny*)((char*)(rdh) + offsetToNext);
     LOG(info) << " rdh is now at 0x" << (void*)rdh << " offset to next : " << offsetToNext;
-    totaldataread+= memorySize ;
+    totaldataread += memorySize;
     LOG(info) << "total data read so far is : " << totaldataread;
   }
 
@@ -164,7 +164,7 @@ uint32_t CruRawReader::processHBFs()
 
   /* otherwise return */
 
-  return totaldataread;//mDataEndPointer - mDataPointer;
+  return totaldataread; //mDataEndPointer - mDataPointer;
 }
 
 int CruRawReader::DataBufferFormatIs()

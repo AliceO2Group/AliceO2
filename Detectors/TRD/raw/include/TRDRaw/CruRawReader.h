@@ -55,7 +55,7 @@ class CruRawReader
     LOG(info) << "And away we go, run method of Translator";
     rewind();
     uint32_t dowhilecount = 0;
-    uint64_t totaldataread=0;
+    uint64_t totaldataread = 0;
     do {
       LOG(info) << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! start";
       LOG(info) << "do while loop count " << dowhilecount++;
@@ -63,8 +63,8 @@ class CruRawReader
       LOG(info) << " mDataBuffer :" << (void*)mDataBuffer;
       int datareadfromhbf = processHBFs();
       LOG(info) << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! end with " << datareadfromhbf;
-      totaldataread+= datareadfromhbf;      //     LOG(info) << "mDataReadIn :" << mDataReadIn << " mDataBufferSize:" << mDataBufferSize;
-      LOG(info) << " Total data read so far is : "<< totaldataread;
+      totaldataread += datareadfromhbf; //     LOG(info) << "mDataReadIn :" << mDataReadIn << " mDataBufferSize:" << mDataBufferSize;
+      LOG(info) << " Total data read so far is : " << totaldataread;
     } while (mDataReadIn < mDataBufferSize);
 
     return false;

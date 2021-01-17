@@ -39,9 +39,9 @@ class DigitsParser
   ~DigitsParser() = default;
   void setData(std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>* data) { mData = data; }
   //  void setLinkLengths(std::array<uint32_t, 15>& lengths) { mCurrentHalfCRULinkLengths = lengths; };
-  int Parse(bool verbose=true); // presupposes you have set everything up already.
+  int Parse(bool verbose = true); // presupposes you have set everything up already.
   int Parse(std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>::iterator start,
-            std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>::iterator end, int detector, bool verbose=true) //, std::array<uint32_t, 15>& lengths) // change to calling per link.
+            std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>::iterator end, int detector, bool verbose = true) //, std::array<uint32_t, 15>& lengths) // change to calling per link.
   {
     setData(data);
     //   setLinkLengths(lengths);
@@ -55,11 +55,11 @@ class DigitsParser
                           StateDigitMCMHeader,
                           StateDigitMCMData,
                           StatePadding,
-                          StateDigitEndMarker};
+                          StateDigitEndMarker };
 
   inline void swapByteOrder(unsigned int& word);
-  bool getVerbose(){return mVerbose;}
-  void setVerbose(bool value){mVerbose=value;}
+  bool getVerbose() { return mVerbose; }
+  void setVerbose(bool value) { mVerbose = value; }
 
  private:
   int mState;
