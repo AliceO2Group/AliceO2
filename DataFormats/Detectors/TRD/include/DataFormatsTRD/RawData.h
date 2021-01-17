@@ -374,18 +374,18 @@ struct trdTestPattern6 {
 struct DigitMCMData {
   //             10987654321098765432109876543210
   // uint32_t:   00000000000000000000000000000000
-  union {
+/*  union {
     uint32_t word0;
     struct {
       uint32_t a : 2;
       uint32_t b : 5;
       uint32_t adc : 21; //adc bit patternpad plane
     } __attribute__((__packed__));
-  };
+  };*/
   union {
     //             10987654321098765432109876543210
     // uint32_t:   00000000000000000000000000000000
-    uint32_t word1;
+    uint32_t word;
     struct {
       uint32_t c : 2; // c is wrong I cant remember name, but not a concern at the moment.
       uint32_t z : 10;

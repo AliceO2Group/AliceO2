@@ -67,6 +67,8 @@ class DigitsParser
   int mDigitsFound;     // tracklets found in the data block, mostly used for debugging.
   int mBufferLocation;
   int mPaddingWordsCounter;
+  ArrayADC mADCValues;
+
   std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>* mData = nullptr; // parsed in vector of raw data to parse.
   std::vector<Digit> mDigits;                                              // outgoing parsed digits
   std::vector<TriggerRecord> mTriggerRecords;                              // trigger records to index into the digits vector.
@@ -76,6 +78,8 @@ class DigitsParser
   DigitMCMData* mDigitMCMData;
   bool mVerbose{true};
   uint16_t mDetector;
+  uint16_t mMCM;
+  uint16_t mROB;
   std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>::iterator mStartParse, mEndParse; // limits of parsing, effectively the link limits to parse on.
   //uint32_t mCurrentLinkDataPosition256;                // count of data read for current link in units of 256 bits
   //uint32_t mCurrentLinkDataPosition;                   // count of data read for current link in units of 256 bits
