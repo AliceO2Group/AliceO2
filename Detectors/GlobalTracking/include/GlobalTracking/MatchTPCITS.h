@@ -406,6 +406,12 @@ class MatchTPCITS
     mTPCTrackClusIdx = inp;
   }
 
+  ///< set input TPC cluster sharing map
+  void setTPCClustersSharingMap(const gsl::span<const unsigned char> inp)
+  {
+    mTPCRefitterShMap = inp;
+  }
+
   ///< set input TPC clusters
   void setTPCClustersInp(const o2::tpc::ClusterNativeAccess* inp)
   {
@@ -653,7 +659,6 @@ class MatchTPCITS
   std::unique_ptr<TPCTransform> mTPCTransform;         ///< TPC cluster transformation
   std::unique_ptr<o2::gpu::GPUParam> mTPCClusterParam; ///< TPC clusters error param
   std::unique_ptr<o2::gpu::GPUTPCO2InterfaceRefit> mTPCRefitter; ///< TPC refitter used for TPC tracks refit during the reconstruction
-  std::vector<unsigned char> mTPCRefitterShMap;
 
   o2::BunchFilling mBunchFilling;
   std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchAbove; // closest filled bunch from above
@@ -669,6 +674,8 @@ class MatchTPCITS
   gsl::span<const ITSCluster> mITSClustersArray;            ///< input ITS clusters span
   gsl::span<const o2::itsmft::ROFRecord> mITSClusterROFRec; ///< input ITS clusters ROFRecord span
   gsl::span<const o2::ft0::RecPoints> mFITInfo;             ///< optional input FIT info span
+
+  gsl::span<const unsigned char> mTPCRefitterShMap; ///< externally set TPC clusters sharing map
 
   const o2::tpc::ClusterNativeAccess* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
 
