@@ -403,9 +403,6 @@ void MatchTPCITS::updateTimeDependentParams()
   mMinTPCTrackPtInv = (mFieldON && mParams->minTPCTrackR > 0) ? 1. / std::abs(mParams->minTPCTrackR * mBz * o2::constants::math::B2C) : 999.;
   mMinITSTrackPtInv = (mFieldON && mParams->minITSTrackR > 0) ? 1. / std::abs(mParams->minITSTrackR * mBz * o2::constants::math::B2C) : 999.;
 
-  // RSTODO: do we need to recreate it? It should be enough to add/use setters in GPUTPCO2InterfaceRefit
-  mTPCRefitterShMap.resize(mTPCClusterIdxStruct->nClustersTotal);
-  o2::gpu::GPUTPCO2InterfaceRefit::fillSharedClustersMap(mTPCClusterIdxStruct, mTPCTracksArray, mTPCTrackClusIdx.data(), mTPCRefitterShMap.data());
   mTPCRefitter = std::make_unique<o2::gpu::GPUTPCO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCTransform.get(), mBz, mTPCTrackClusIdx.data(), mTPCRefitterShMap.data(), nullptr, o2::base::Propagator::Instance());
 
   o2::math_utils::Point3D<float> p0(90., 1., 1), p1(90., 100., 100.);
