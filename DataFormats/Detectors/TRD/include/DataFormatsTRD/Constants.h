@@ -50,6 +50,7 @@ constexpr int TIMEBINS = 30; // the number of time bins
 
 // array size to store incoming half cru payload.
 constexpr int CRUBUFFERMAX = 1048576;
+constexpr int CRUPADDING32 = 0xeeeeeeee;
 
 } //namespace constants
 } // namespace trd

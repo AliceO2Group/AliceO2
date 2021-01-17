@@ -39,29 +39,34 @@ class DigitsParser
   ~DigitsParser() = default;
   void setData(std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>* data) { mData = data; }
   //  void setLinkLengths(std::array<uint32_t, 15>& lengths) { mCurrentHalfCRULinkLengths = lengths; };
-  int Parse(); // presupposes you have set everything up already.
+  int Parse(bool verbose=true); // presupposes you have set everything up already.
   int Parse(std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>::iterator start,
-            std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>::iterator end, int detector) //, std::array<uint32_t, 15>& lengths) // change to calling per link.
+            std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>::iterator end, int detector, bool verbose=true) //, std::array<uint32_t, 15>& lengths) // change to calling per link.
   {
     setData(data);
     //   setLinkLengths(lengths);
     mStartParse = start;
     mEndParse = end;
     mDetector = detector;
+    setVerbose(verbose);
     return Parse();
   };
   enum DigitParserState { StateDigitHCHeader, // always the start of a half chamber.
                           StateDigitMCMHeader,
                           StateDigitMCMData,
-                          StatePadding };
+                          StatePadding,
+                          StateDigitEndMarker};
 
   inline void swapByteOrder(unsigned int& word);
+  bool getVerbose(){return mVerbose;}
+  void setVerbose(bool value){mVerbose=value;}
 
  private:
   int mState;
   int mDataWordsParsed; // count of data wordsin data that have been parsed in current call to parse.
   int mDigitsFound;     // tracklets found in the data block, mostly used for debugging.
   int mBufferLocation;
+  int mPaddingWordsCounter;
   std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>* mData = nullptr; // parsed in vector of raw data to parse.
   std::vector<Digit> mDigits;                                              // outgoing parsed digits
   std::vector<TriggerRecord> mTriggerRecords;                              // trigger records to index into the digits vector.
@@ -69,7 +74,7 @@ class DigitsParser
   DigitHCHeader* mDigitHCHeader;
   DigitMCMHeader* mDigitMCMHeader;
   DigitMCMData* mDigitMCMData;
-
+  bool mVerbose{true};
   uint16_t mDetector;
   std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>::iterator mStartParse, mEndParse; // limits of parsing, effectively the link limits to parse on.
   //uint32_t mCurrentLinkDataPosition256;                // count of data read for current link in units of 256 bits

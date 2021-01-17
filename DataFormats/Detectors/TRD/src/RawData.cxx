@@ -282,5 +282,12 @@ bool digitMCMHeaderSanityCheck(o2::trd::DigitMCMHeader* header)
   return goodheader;
 }
 
+
+void printDigitHCHeader(o2::trd::DigitHCHeader& header)
+{
+  LOGF(INFO, "Digit HalfChamber Header\n Raw:0x%08x 0x%08x reserve:%01x side:%01x stack:0x%02x layer:0x%02x supermod:0x%02x numberHCW:0x%02x minor:0x%03x major:0x%03x version:0x%01x reserve:0x%02x pretriggercount=0x%02x pretriggerphase=0x%02x bunchxing:0x%05x number of timebins : 0x%03x\n",
+       header.word0,header.word1,header.res0,header.side,header.stack,header.layer,header.supermodule,header.numberHCW,header.minor,header.major,header.version, header.res1,header.ptrigcount, header.ptrigphase, header.bunchcrossing, header.numtimebins);
+}
+
 } // namespace trd
 } // namespace o2

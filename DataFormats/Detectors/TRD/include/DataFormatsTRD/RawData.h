@@ -422,6 +422,7 @@ bool trackletMCMHeaderSanityCheck(o2::trd::TrackletMCMHeader& header);
 bool trackletHCHeaderSanityCheck(o2::trd::TrackletHCHeader& header);
 bool digitMCMHeaderSanityCheck(o2::trd::DigitMCMHeader* header);
 void printDigitMCMHeader(o2::trd::DigitMCMHeader& header);
+void printDigitHCHeader(o2::trd::DigitHCHeader& header);
 }
 }
 #endif
