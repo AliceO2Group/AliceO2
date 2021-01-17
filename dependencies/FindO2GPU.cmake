@@ -163,6 +163,8 @@ if(ENABLE_HIP)
 
   if(EXISTS "${HIP_PATH}")
     get_filename_component(hip_ROOT "${HIP_PATH}" ABSOLUTE)
+    set(ROCM_WARN_TOOLCHAIN_VAR OFF CACHE BOOL "" FORCE)
+    set(ROCM_ERROR_TOOLCHAIN_VAR OFF CACHE BOOL "" FORCE)
     find_package(hip)
     find_package(hipcub)
     find_package(rocprim)

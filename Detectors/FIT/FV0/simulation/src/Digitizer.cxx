@@ -33,7 +33,6 @@ void Digitizer::clear()
 void Digitizer::init()
 {
   LOG(INFO) << "V0Digitizer::init -> start = ";
-
   mNBins = FV0DigParam::Instance().waveformNbins;      //Will be computed using detector set-up from CDB
   mBinSize = FV0DigParam::Instance().waveformBinWidth; //Will be set-up from CDB
 
@@ -63,11 +62,14 @@ void Digitizer::init()
   LOG(INFO) << "V0Digitizer::init -> finished";
 }
 
-void Digitizer::process(const std::vector<o2::fv0::Hit>& hits, std::vector<o2::fv0::BCData>& digitsBC,
-                        std::vector<o2::fv0::ChannelData>& digitsCh, o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>& labels)
+void Digitizer::process(const std::vector<o2::fv0::Hit>& hits,
+                        std::vector<o2::fv0::BCData>& digitsBC,
+                        std::vector<o2::fv0::ChannelData>& digitsCh,
+                        std::vector<o2::fv0::DetTrigInput>& digitsTrig,
+                        o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>& labels)
 {
   LOG(INFO) << "[FV0] Digitizer::process(): begin with " << hits.size() << " hits";
-  flush(digitsBC, digitsCh, labels); // flush cached signal which cannot be affect by new event
+  flush(digitsBC, digitsCh, digitsTrig, labels); // flush cached signal which cannot be affect by new event
 
   std::vector<int> hitIdx(hits.size());
   std::iota(std::begin(hitIdx), std::end(hitIdx), 0);
@@ -104,7 +106,6 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits, std::vector<o2::f
       } else {
         iChannelPerCell = 2; // not a ring 5 cell -> don't repeat the loop
       }
-
       Double_t const nPhotons = hitEdep * DP::N_PHOTONS_PER_MEV;
       float const nPhE = SimulateLightYield(detId, nPhotons);
       float mipFraction = float(nPhE / FV0DigParam::Instance().avgNumberPhElectronPerMip);
@@ -113,7 +114,6 @@ void Digitizer::process(const std::vector<o2::fv0::Hit>& hits, std::vector<o2::f
       o2::InteractionTimeRecord irHit(timeHit);
       std::array<o2::InteractionRecord, NBC2Cache> cachedIR;
       int nCachedIR = 0;
-
       for (int i = BCCacheMin; i < BCCacheMax + 1; i++) {
         double tNS = timeHit + o2::constants::lhc::LHCBunchSpacingNS * i;
         cachedIR[nCachedIR].setFromNS(tNS);
@@ -174,7 +174,9 @@ void Digitizer::createPulse(float mipFraction, int parID, const double hitTime,
   }
 }
 
-void Digitizer::flush(std::vector<o2::fv0::BCData>& digitsBC, std::vector<o2::fv0::ChannelData>& digitsCh,
+void Digitizer::flush(std::vector<o2::fv0::BCData>& digitsBC,
+                      std::vector<o2::fv0::ChannelData>& digitsCh,
+                      std::vector<o2::fv0::DetTrigInput>& digitsTrig,
                       o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>& labels)
 {
   int nCached = mCache.size();
@@ -183,7 +185,7 @@ void Digitizer::flush(std::vector<o2::fv0::BCData>& digitsBC, std::vector<o2::fv
   }
   for (auto bc : mCache) {
     if (mIntRecord.differenceInBC(bc) > NBC2Cache) { // Build events those are separated by NBC2Cache BCs from current BC
-      storeBC(bc, digitsBC, digitsCh, labels);
+      storeBC(bc, digitsBC, digitsCh, digitsTrig, labels);
       mCache.pop_front();
     } else {
       return;
@@ -191,13 +193,20 @@ void Digitizer::flush(std::vector<o2::fv0::BCData>& digitsBC, std::vector<o2::fv
   }
 }
 
-void Digitizer::storeBC(const BCCache& bc, std::vector<o2::fv0::BCData>& digitsBC, std::vector<o2::fv0::ChannelData>& digitsCh,
+void Digitizer::storeBC(const BCCache& bc,
+                        std::vector<o2::fv0::BCData>& digitsBC,
+                        std::vector<o2::fv0::ChannelData>& digitsCh,
+                        std::vector<o2::fv0::DetTrigInput>& digitsTrig,
                         o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>& labels)
 
 {
   int first = digitsCh.size();
   size_t nStored = 0;
   double totalCharge = 0;
+  double totalChargeAllRing = 0;
+  double nSignalInner = 0;
+  double nSignalOuter = 0;
+
   for (int iPmt = 0; iPmt < Constants::nFv0Channels; iPmt++) {
     double cfdWithOffset = SimulateTimeCfd(bc.mPmtChargeVsTime[iPmt]);
     double cfdZero = cfdWithOffset - FV0DigParam::Instance().avgCfdTimeForMip;
@@ -205,10 +214,9 @@ void Digitizer::storeBC(const BCCache& bc, std::vector<o2::fv0::BCData>& digitsB
     if (cfdZero < -FV0DigParam::Instance().cfdCheckWindow || cfdZero > FV0DigParam::Instance().cfdCheckWindow) {
       continue;
     }
-
-    //LOG(INFO) << "time inside analyse and store =========> " << cfdZero <<"   detid  "<<iPmt;
     float charge = IntegrateCharge(bc.mPmtChargeVsTime[iPmt]);
     totalCharge += charge;
+    totalChargeAllRing += charge;
     totalCharge *= DP::INV_CHARGE_PER_ADC;
     cfdZero *= DP::INV_TIME_PER_TDCCHANNEL;
 
@@ -216,9 +224,31 @@ void Digitizer::storeBC(const BCCache& bc, std::vector<o2::fv0::BCData>& digitsB
                           static_cast<short int>(std::round(totalCharge)));
     totalCharge = 0;
     ++nStored;
+    //---trigger---
+    if (iPmt < 25) {
+      nSignalInner++;
+    } else {
+      nSignalOuter++;
+    }
   }
+  if (nStored < 1) {
+    return;
+  }
+  totalChargeAllRing *= DP::INV_CHARGE_PER_ADC;
+  //LOG(INFO)<<"Total charge ADC " <<totalChargeAllRing ;
+  ///Triggers for FV0
+  bool isMinBias, isMinBiasInner, isMinBiasOuter, isHighMult, isDummy;
+  isMinBias = nStored > 0;
+  isMinBiasInner = nSignalInner > 0; //ring 1,2 and 3
+  isMinBiasOuter = nSignalOuter > 0; //ring 4 and 5
+  isHighMult = totalChargeAllRing > FV0DigParam::Instance().adcChargeHighMultTh;
+  isDummy = false;
+
+  Triggers triggers;
+  triggers.setTriggers(isMinBias, isMinBiasInner, isMinBiasOuter, isHighMult, isDummy, nStored, totalChargeAllRing);
+  digitsBC.emplace_back(first, nStored, bc, triggers);
+  digitsTrig.emplace_back(bc, isMinBias, isMinBiasInner, isMinBiasOuter, isHighMult, isDummy);
   int nBC = digitsBC.size();
-  digitsBC.emplace_back(first, nStored, bc);
   for (const auto& lbl : bc.labels) {
     labels.addElement(nBC, lbl);
   }

@@ -8,23 +8,39 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-// This task re-reconstructs the V0s and cascades
+// V0 Finder task
+// ==============
+//
+// This code loops over positive and negative tracks and finds
+// valid V0 candidates from scratch using a certain set of
+// minimum (configurable) selection criteria.
+//
+// It is different than the producer: the producer merely
+// loops over an *existing* list of V0s (pos+neg track
+// indices) and calculates the corresponding full V0 information
+//
+// In both cases, any analysis should loop over the "V0Data"
+// table as that table contains all information.
+//
+//    Comments, questions, complaints, suggestions?
+//    Please write to:
+//    david.dobrigkeit.chinellato@cern.ch
+//
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoAHelpers.h"
-#include "Analysis/HFSecondaryVertex.h"
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "ReconstructionDataFormats/Track.h"
-#include "Analysis/RecoDecay.h"
-#include "Analysis/trackUtilities.h"
-#include "PID/PIDResponse.h"
-#include "Analysis/StrangenessTables.h"
-#include "Analysis/TrackSelection.h"
-#include "Analysis/TrackSelectionTables.h"
-#include "Analysis/EventSelection.h"
-#include "Analysis/Centrality.h"
+#include "AnalysisCore/RecoDecay.h"
+#include "AnalysisCore/trackUtilities.h"
+#include "AnalysisDataModel/PID/PIDResponse.h"
+#include "AnalysisDataModel/StrangenessTables.h"
+#include "AnalysisCore/TrackSelection.h"
+#include "AnalysisDataModel/TrackSelectionTables.h"
+#include "AnalysisDataModel/EventSelection.h"
+#include "AnalysisDataModel/Centrality.h"
 
 #include <TFile.h>
 #include <TLorentzVector.h>
@@ -66,40 +82,45 @@ struct lambdakzeroprefilter {
   Configurable<float> dcanegtopv{"dcanegtopv", .1, "DCA Neg To PV"};
   Configurable<float> dcapostopv{"dcapostopv", .1, "DCA Pos To PV"};
   Configurable<int> mincrossedrows{"mincrossedrows", 70, "min crossed rows"};
+  Configurable<int> tpcrefit{"tpcrefit", 1, "demand TPC refit"};
 
   Produces<aod::V0GoodPosTracks> v0GoodPosTracks;
   Produces<aod::V0GoodNegTracks> v0GoodNegTracks;
 
-  Partition<soa::Join<aod::FullTracks, aod::TracksExtended>> goodPosTracks = aod::track::signed1Pt > 0.0f && aod::track::dcaXY > dcapostopv;
-  Partition<soa::Join<aod::FullTracks, aod::TracksExtended>> goodNegTracks = aod::track::signed1Pt < 0.0f && aod::track::dcaXY < -dcanegtopv;
+  //still exhibiting issues? To be checked
+  //Partition<soa::Join<aod::FullTracks, aod::TracksExtended>> goodPosTracks = aod::track::signed1Pt > 0.0f && aod::track::dcaXY > dcapostopv;
+  //Partition<soa::Join<aod::FullTracks, aod::TracksExtended>> goodNegTracks = aod::track::signed1Pt < 0.0f && aod::track::dcaXY < -dcanegtopv;
 
   void process(aod::Collision const& collision,
                soa::Join<aod::FullTracks, aod::TracksExtended> const& tracks)
   {
-    for (auto& t0 : goodPosTracks) {
-      if (!(t0.flags() & 0x40)) {
-        continue; //TPC refit
+    for (auto& t0 : tracks) {
+      if (tpcrefit) {
+        if (!(t0.trackType() & o2::aod::track::TPCrefit)) {
+          continue; //TPC refit
+        }
       }
       if (t0.tpcNClsCrossedRows() < mincrossedrows) {
         continue;
       }
-      v0GoodPosTracks(t0.globalIndex(), t0.collisionId(), t0.dcaXY());
-    }
-    for (auto& t0 : goodNegTracks) {
-      if (!(t0.flags() & 0x40)) {
-        continue; //TPC refit
+      if (t0.signed1Pt() > 0.0f) {
+        if (fabs(t0.dcaXY()) < dcapostopv) {
+          continue;
+        }
+        v0GoodPosTracks(t0.globalIndex(), t0.collisionId(), t0.dcaXY());
       }
-      if (t0.tpcNClsCrossedRows() < mincrossedrows) {
-        continue;
+      if (t0.signed1Pt() < 0.0f) {
+        if (fabs(t0.dcaXY()) < dcanegtopv) {
+          continue;
+        }
+        v0GoodNegTracks(t0.globalIndex(), t0.collisionId(), -t0.dcaXY());
       }
-      v0GoodNegTracks(t0.globalIndex(), t0.collisionId(), -t0.dcaXY());
     }
   }
 };
 
 struct lambdakzerofinder {
   Produces<aod::V0Data> v0data;
-  Produces<aod::V0FinderData> v0finderdata;
 
   OutputObj<TH1F> hCandPerEvent{TH1F("hCandPerEvent", "", 1000, 0, 1000)};
 
@@ -172,8 +193,9 @@ struct lambdakzerofinder {
         }
 
         lNCand++;
-        v0finderdata(t0.globalIndex(), t1.globalIndex(), t0.collisionId());
-        v0data(pos[0], pos[1], pos[2],
+        v0data(t0.globalIndex(), t1.globalIndex(), t0.collisionId(),
+               fitter.getTrack(0).getX(), fitter.getTrack(1).getX(),
+               pos[0], pos[1], pos[2],
                pvec0[0], pvec0[1], pvec0[2],
                pvec1[0], pvec1[1], pvec1[2],
                fitter.getChi2AtPCACandidate(),
@@ -210,10 +232,9 @@ struct lambdakzerofinderQA {
   //Filter preFilter2 = aod::v0data::dcanegtopv > dcanegtopv;
   //Filter preFilter3 = aod::v0data::dcaV0daughters < dcav0dau;
 
-  ///Connect to V0FinderData: newly indexed, note: V0DataExt table incompatible with standard V0 table!
+  ///Connect to V0Data: newly indexed, note: V0DataExt table incompatible with standard V0 table!
   void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision,
-               //             soa::Filtered<soa::Join<aod::V0FinderData, aod::V0DataExt>> const& fullV0s)
-               soa::Join<aod::V0FinderData, aod::V0DataExt> const& fullV0s)
+               aod::V0DataExt const& fullV0s)
   {
     if (!collision.alias()[kINT7]) {
       return;

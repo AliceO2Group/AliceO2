@@ -102,6 +102,7 @@ bool DataInputDescriptor::setFile(int counter)
   if (!mcurrentFile) {
     throw std::runtime_error(fmt::format("Couldn't open file \"{}\"!", filename));
   }
+  mcurrentFile->SetReadaheadSize(50 * 1024 * 1024);
 
   // get the directory names
   if (mfilenames[counter]->numberOfTimeFrames <= 0) {
@@ -161,6 +162,11 @@ FileAndFolder DataInputDescriptor::getFileFolder(int counter, int numTF)
   fileAndFolder.folderName = (mfilenames[counter]->listOfTimeFrameKeys)[numTF];
 
   return fileAndFolder;
+}
+
+int DataInputDescriptor::getTimeFramesInFile(int counter)
+{
+  return mfilenames.at(counter)->numberOfTimeFrames;
 }
 
 void DataInputDescriptor::closeInputFile()
@@ -523,6 +529,17 @@ FileAndFolder DataInputDirector::getFileFolder(header::DataHeader dh, int counte
   }
 
   return didesc->getFileFolder(counter, numTF);
+}
+
+int DataInputDirector::getTimeFramesInFile(header::DataHeader dh, int counter)
+{
+  auto didesc = getDataInputDescriptor(dh);
+  // if NOT match then use defaultDataInputDescriptor
+  if (!didesc) {
+    didesc = mdefaultDataInputDescriptor;
+  }
+
+  return didesc->getTimeFramesInFile(counter);
 }
 
 uint64_t DataInputDirector::getTimeFrameNumber(header::DataHeader dh, int counter, int numTF)

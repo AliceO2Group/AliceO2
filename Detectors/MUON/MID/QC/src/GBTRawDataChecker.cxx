@@ -267,15 +267,16 @@ bool GBTRawDataChecker::isCompleteSelfTrigEvent(const o2::InteractionRecord& ir)
   // compared to triggered events.
   // So, we expect information from a previous orbit after having received an orbit trigger.
   // Let us check that we have all boards with the same orbit
+
   bool isIncluded = false;
   for (uint8_t ireg = 8; ireg < 10; ++ireg) {
     auto item = mBoardsSelfTrig.find(ireg);
     if (item != mBoardsSelfTrig.end()) {
+      if (item->second.back().interactionRecord.orbit == ir.orbit) {
+        return false;
+      }
       if (item->second.front().interactionRecord.orbit <= ir.orbit) {
         isIncluded = true;
-      }
-      if (item->second.back().interactionRecord.orbit <= ir.orbit) {
-        return false;
       }
     }
   }
@@ -304,7 +305,7 @@ unsigned int GBTRawDataChecker::getLastCompleteTrigEvent()
   for (; trigEventIt != end; ++trigEventIt) {
     if ((trigEventIt->second & fullMask) == fullMask) {
       // The trigger events contain the unprocessed events for both triggered and self-triggered events
-      // These might not be synchronized (typically the latest complete self-triggered events lies behind)
+      // These might not be synchronized (typically the latest complete self-triggered events lie behind)
       // If the latest IR in memory is more recent than the current complete event found,
       // then it means that we need to wait for more HBs.
       if (mLastCompleteIRTrig.isDummy() || mLastCompleteIRTrig < trigEventIt->first) {
@@ -320,11 +321,33 @@ unsigned int GBTRawDataChecker::getLastCompleteTrigEvent()
         }
         ++trIt;
       }
+
       return completeMask;
     }
   }
 
   return completeMask;
+}
+
+bool GBTRawDataChecker::runCheckEvents(unsigned int completeMask)
+{
+  /// Runs the checker if needed
+
+  bool isOk = true;
+
+  if (completeMask & 0x1) {
+    sortEvents(true);
+    isOk &= checkEvents(true);
+    clearChecked(true, mBoardsSelfTrig.empty());
+  }
+
+  if (completeMask & 0x2) {
+    sortEvents(false);
+    isOk &= checkEvents(false);
+    clearChecked(false, true);
+  }
+
+  return isOk;
 }
 
 void GBTRawDataChecker::sortEvents(bool isTriggered)
@@ -337,7 +360,7 @@ void GBTRawDataChecker::sortEvents(bool isTriggered)
   orderedIndexes.clear();
   lastIndexes.clear();
   for (auto& boardItem : boards) {
-    size_t lastIdx = 0;
+    long int lastIdx = -1;
     for (auto boardIt = boardItem.second.begin(), end = boardItem.second.end(); boardIt != end; ++boardIt) {
       if (boardIt->interactionRecord > lastCompleteTrigEventIR) {
         break;
@@ -418,6 +441,10 @@ bool GBTRawDataChecker::process(gsl::span<const LocalBoardRO> localBoards, gsl::
 
   // Fill board information
   for (auto rofIt = rofRecords.begin(); rofIt != rofRecords.end(); ++rofIt) {
+    if (rofIt->interactionRecord.orbit == 0xffffffff) {
+      // Protection for event with orbit 0
+      continue;
+    }
     for (auto locIt = localBoards.begin() + rofIt->firstEntry; locIt != localBoards.begin() + rofIt->firstEntry + rofIt->nEntries; ++locIt) {
       // Find what page this event corresponds to.
       // This is useful for debugging.
@@ -455,8 +482,8 @@ bool GBTRawDataChecker::process(gsl::span<const LocalBoardRO> localBoards, gsl::
         selfVec.push_back({*locIt, ir, page});
       }
 
-      // Keep track of the orbit triggers
-      if (locIt->triggerWord & raw::sORB) {
+      // Keep track of the trigger chosen for synchronisation
+      if (locIt->triggerWord & mSyncTrigger) {
         mTrigEvents[rofIt->interactionRecord] |= (1 << id);
         mResetVal = rofIt->interactionRecord.bc;
       }
@@ -479,23 +506,7 @@ bool GBTRawDataChecker::process(gsl::span<const LocalBoardRO> localBoards, gsl::
     } // loop on local boards
   }   // loop on ROF records
 
-  auto completeMask = getLastCompleteTrigEvent();
-
-  bool isOk = true;
-
-  if (completeMask & 0x1) {
-    sortEvents(true);
-    isOk &= checkEvents(true);
-    clearChecked(true, mBoardsSelfTrig.empty());
-  }
-
-  if (completeMask & 0x2) {
-    sortEvents(false);
-    isOk &= checkEvents(false);
-    clearChecked(false, true);
-  }
-
-  return isOk;
+  return runCheckEvents(getLastCompleteTrigEvent());
 }
 
 void GBTRawDataChecker::clear()

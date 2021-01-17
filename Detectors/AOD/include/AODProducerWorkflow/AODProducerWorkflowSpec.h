@@ -18,7 +18,7 @@
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "ReconstructionDataFormats/TrackTPCITS.h"
+#include "GlobalTrackingWorkflow/PrimaryVertexingSpec.h"
 #include "TStopwatch.h"
 #include <CCDB/BasicCCDBManager.h>
 #include <string>
@@ -73,6 +73,24 @@ using TracksTable = o2::soa::Table<o2::aod::track::CollisionId,
                                    o2::aod::track::TrackEtaEMCAL,
                                    o2::aod::track::TrackPhiEMCAL>;
 
+using MCParticlesTable = o2::soa::Table<o2::aod::mcparticle::McCollisionId,
+                                        o2::aod::mcparticle::PdgCode,
+                                        o2::aod::mcparticle::StatusCode,
+                                        o2::aod::mcparticle::Flags,
+                                        o2::aod::mcparticle::Mother0,
+                                        o2::aod::mcparticle::Mother1,
+                                        o2::aod::mcparticle::Daughter0,
+                                        o2::aod::mcparticle::Daughter1,
+                                        o2::aod::mcparticle::Weight,
+                                        o2::aod::mcparticle::Px,
+                                        o2::aod::mcparticle::Py,
+                                        o2::aod::mcparticle::Pz,
+                                        o2::aod::mcparticle::E,
+                                        o2::aod::mcparticle::Vx,
+                                        o2::aod::mcparticle::Vy,
+                                        o2::aod::mcparticle::Vz,
+                                        o2::aod::mcparticle::Vt>;
+
 class AODProducerWorkflowDPL : public Task
 {
  public:
@@ -86,16 +104,54 @@ class AODProducerWorkflowDPL : public Task
   int mFillTracksITS = 1;
   int mFillTracksTPC = 1;
   int mFillTracksITSTPC = 1;
+  int mTFNumber = -1;
+  int mTruncate = 1;
   TStopwatch mTimer;
+
+  // truncation is enabled by default
+  uint32_t mCollisionPosition = 0xFFFFFFF0;    // 19 bits mantissa
+  uint32_t mCollisionPositionCov = 0xFFFFE000; // 10 bits mantissa
+  uint32_t mTrackX = 0xFFFFFFF0;               // 19 bits
+  uint32_t mTrackAlpha = 0xFFFFFFF0;           // 19 bits
+  uint32_t mTrackSnp = 0xFFFFFF00;             // 15 bits
+  uint32_t mTrackTgl = 0xFFFFFF00;             // 15 bits
+  uint32_t mTrack1Pt = 0xFFFFFC00;             // 13 bits
+  uint32_t mTrackCovDiag = 0xFFFFFF00;         // 15 bits
+  uint32_t mTrackCovOffDiag = 0xFFFF0000;      // 7 bits
+  uint32_t mTrackSignal = 0xFFFFFF00;          // 15 bits
+  uint32_t mTrackPosEMCAL = 0xFFFFFF00;        // 15 bits
+  uint32_t mTracklets = 0xFFFFFF00;            // 15 bits
+  uint32_t mMcParticleW = 0xFFFFFFF0;          // 19 bits
+  uint32_t mMcParticlePos = 0xFFFFFFF0;        // 19 bits
+  uint32_t mMcParticleMom = 0xFFFFFFF0;        // 19 bits
+  uint32_t mCaloAmp = 0xFFFFFF00;              // 15 bits
+  uint32_t mCaloTime = 0xFFFFFF00;             // 15 bits
+  uint32_t mMuonTr1P = 0xFFFFFC00;             // 13 bits
+  uint32_t mMuonTrThetaX = 0xFFFFFF00;         // 15 bits
+  uint32_t mMuonTrThetaY = 0xFFFFFF00;         // 15 bits
+  uint32_t mMuonTrZmu = 0xFFFFFFF0;            // 19 bits
+  uint32_t mMuonTrBend = 0xFFFFFFF0;           // 19 bits
+  uint32_t mMuonTrNonBend = 0xFFFFFFF0;        // 19 bits
+  uint32_t mMuonTrCov = 0xFFFF0000;            // 7 bits
+  uint32_t mMuonCl = 0xFFFFFF00;               // 15 bits
+  uint32_t mMuonClErr = 0xFFFF0000;            // 7 bits
+  uint32_t mV0Time = 0xFFFFF000;               // 11 bits
+  uint32_t mFDDTime = 0xFFFFF000;              // 11 bits
+  uint32_t mT0Time = 0xFFFFFF00;               // 15 bits
+  uint32_t mV0Amplitude = 0xFFFFF000;          // 11 bits
+  uint32_t mFDDAmplitude = 0xFFFFF000;         // 11 bits
+  uint32_t mT0Amplitude = 0xFFFFF000;          // 11 bits
 
   uint64_t maxGlBC = 0;
   uint64_t minGlBC = INT64_MAX;
 
-  void findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const o2::dataformats::TrackTPCITS>& tracksITSTPC, const std::vector<o2::InteractionTimeRecord>& mcRecords);
+  void findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const o2::vertexing::PVertex>& primVertices, const std::vector<o2::InteractionTimeRecord>& mcRecords);
   int64_t getTFNumber(uint64_t firstVtxGlBC, int runNumber);
 
   template <typename TracksType, typename TracksCursorType>
   void fillTracksTable(const TracksType& tracks, std::vector<int>& vCollRefs, const TracksCursorType& tracksCursor, int trackType);
+
+  float TruncateFloatFraction(float x, uint32_t mask);
 };
 
 /// create a processor spec

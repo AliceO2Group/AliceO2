@@ -23,41 +23,37 @@ void ClusterizerSpec::init(framework::InitContext& ctx)
 
   // Initialize clusterizer and link geometry
   mClusterizer.initialize();
+  mClusterizer.propagateMC(mPropagateMC);
 }
 
 void ClusterizerSpec::run(framework::ProcessingContext& ctx)
 {
-  if (ctx.inputs().isValid("digits")) {
-    LOG(DEBUG) << "CPVClusterizer - run on digits called";
+  LOG(INFO) << "Start run ";
+  LOG(DEBUG) << "CPVClusterizer - run on digits called";
+  auto digits = ctx.inputs().get<gsl::span<Digit>>("digits");
+  // auto digitsTR = ctx.inputs().get<std::span<TriggerRecord>>("digitTriggerRecords"); //TODO:: Why span does not work???
+  // auto digits = ctx.inputs().get<std::vector<o2::cpv::Digit>>("digits");
+  auto digitsTR = ctx.inputs().get<std::vector<o2::cpv::TriggerRecord>>("digitTriggerRecords");
 
-    auto dataref = ctx.inputs().get("digits");
-    auto const* cpvheader = o2::framework::DataRefUtils::getHeader<o2::cpv::CPVBlockHeader*>(dataref);
-    if (!cpvheader->mHasPayload) {
-      LOG(DEBUG) << "[CPVClusterizer - run] No more digits" << std::endl;
-      ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
-      return;
-    }
+  // printf("CluSpec: digits=%d, TR=%d \n",digits.size(),digitsTR.size()) ;
 
-    //    auto digits = ctx.inputs().get<gsl::span<o2::cpv::Digit>>("digits");
-    auto digits = ctx.inputs().get<std::vector<o2::cpv::Digit>>("digits");
-    auto digitsTR = ctx.inputs().get<std::vector<o2::cpv::TriggerRecord>>("digitTriggerRecords");
-
-    LOG(DEBUG) << "[CPVClusterizer - run]  Received " << digitsTR.size() << " TR, running clusterizer ...";
-    auto truthcont = ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("digitsmctr");
-    mClusterizer.process(digits, digitsTR, truthcont.get(), &mOutputClusters, &mOutputClusterTrigRecs, &mOutputTruthCont); // Find clusters on digits (pass by ref)
+  LOG(DEBUG) << "[CPVClusterizer - run]  Received " << digitsTR.size() << " TR, running clusterizer ...";
+  std::unique_ptr<const o2::dataformats::MCTruthContainer<MCCompLabel>> truthcont;
+  if (mPropagateMC) {
+    truthcont = ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("digitsmctr");
   }
 
-  LOG(DEBUG) << "[CPVClusterizer - run] Writing " << mOutputClusters.size() << " clusters, " << mOutputClusterTrigRecs.size() << "TR and " << mOutputTruthCont.getIndexedSize() << " Labels";
+  mClusterizer.process(digits, digitsTR, *truthcont, &mOutputClusters, &mOutputClusterTrigRecs, &mOutputTruthCont); // Find clusters on digits (pass by ref)
+
   ctx.outputs().snapshot(o2::framework::Output{"CPV", "CLUSTERS", 0, o2::framework::Lifetime::Timeframe}, mOutputClusters);
   ctx.outputs().snapshot(o2::framework::Output{"CPV", "CLUSTERTRIGRECS", 0, o2::framework::Lifetime::Timeframe}, mOutputClusterTrigRecs);
   if (mPropagateMC) {
     ctx.outputs().snapshot(o2::framework::Output{"CPV", "CLUSTERTRUEMC", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthCont);
   }
-  LOG(INFO) << "Finished ";
+  LOG(INFO) << "Finished, wrote  " << mOutputClusters.size() << " clusters, " << mOutputClusterTrigRecs.size() << "TR and " << mOutputTruthCont.getIndexedSize() << " Labels";
   ctx.services().get<o2::framework::ControlService>().endOfStream();
   ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
 }
-
 o2::framework::DataProcessorSpec o2::cpv::reco_workflow::getClusterizerSpec(bool propagateMC)
 {
   std::vector<o2::framework::InputSpec> inputs;

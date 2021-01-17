@@ -11,6 +11,7 @@
 #define FRAMEWORK_VARIANT_H
 
 #include "Framework/RuntimeError.h"
+#include "Framework/Array2D.h"
 #include <type_traits>
 #include <cstring>
 #include <cstdint>
@@ -21,9 +22,7 @@
 #include <vector>
 #include <string>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 enum class VariantType : int { Int = 0,
@@ -36,6 +35,10 @@ enum class VariantType : int { Int = 0,
                                ArrayFloat,
                                ArrayDouble,
                                ArrayBool,
+                               ArrayString,
+                               MatrixInt,
+                               MatrixFloat,
+                               MatrixDouble,
                                Empty,
                                Unknown };
 
@@ -53,17 +56,60 @@ DECLARE_VARIANT_TRAIT(long int, Int64);
 DECLARE_VARIANT_TRAIT(long long int, Int64);
 DECLARE_VARIANT_TRAIT(float, Float);
 DECLARE_VARIANT_TRAIT(double, Double);
+DECLARE_VARIANT_TRAIT(bool, Bool);
+
 DECLARE_VARIANT_TRAIT(const char*, String);
 DECLARE_VARIANT_TRAIT(char*, String);
 DECLARE_VARIANT_TRAIT(char* const, String);
 DECLARE_VARIANT_TRAIT(const char* const, String);
 DECLARE_VARIANT_TRAIT(std::string_view, String);
 DECLARE_VARIANT_TRAIT(std::string, String);
-DECLARE_VARIANT_TRAIT(bool, Bool);
+
 DECLARE_VARIANT_TRAIT(int*, ArrayInt);
 DECLARE_VARIANT_TRAIT(float*, ArrayFloat);
 DECLARE_VARIANT_TRAIT(double*, ArrayDouble);
 DECLARE_VARIANT_TRAIT(bool*, ArrayBool);
+DECLARE_VARIANT_TRAIT(std::string*, ArrayString);
+
+DECLARE_VARIANT_TRAIT(std::vector<int>, ArrayInt);
+DECLARE_VARIANT_TRAIT(std::vector<float>, ArrayFloat);
+DECLARE_VARIANT_TRAIT(std::vector<double>, ArrayDouble);
+DECLARE_VARIANT_TRAIT(std::vector<bool>, ArrayBool);
+DECLARE_VARIANT_TRAIT(std::vector<std::string>, ArrayString);
+
+DECLARE_VARIANT_TRAIT(Array2D<int>, MatrixInt);
+DECLARE_VARIANT_TRAIT(Array2D<float>, MatrixFloat);
+DECLARE_VARIANT_TRAIT(Array2D<double>, MatrixDouble);
+
+template <typename T>
+struct variant_array_symbol {
+  constexpr static char symbol = 'u';
+};
+
+template <>
+struct variant_array_symbol<int> {
+  constexpr static char symbol = 'i';
+};
+
+template <>
+struct variant_array_symbol<float> {
+  constexpr static char symbol = 'f';
+};
+
+template <>
+struct variant_array_symbol<double> {
+  constexpr static char symbol = 'd';
+};
+
+template <>
+struct variant_array_symbol<bool> {
+  constexpr static char symbol = 'b';
+};
+
+template <>
+struct variant_array_symbol<std::string> {
+  constexpr static char symbol = 's';
+};
 
 template <typename T>
 inline constexpr VariantType variant_trait_v = variant_trait<T>::value;
@@ -84,10 +130,16 @@ DECLARE_VARIANT_TYPE(float, Float);
 DECLARE_VARIANT_TYPE(double, Double);
 DECLARE_VARIANT_TYPE(const char*, String);
 DECLARE_VARIANT_TYPE(bool, Bool);
+
 DECLARE_VARIANT_TYPE(int*, ArrayInt);
 DECLARE_VARIANT_TYPE(float*, ArrayFloat);
 DECLARE_VARIANT_TYPE(double*, ArrayDouble);
 DECLARE_VARIANT_TYPE(bool*, ArrayBool);
+DECLARE_VARIANT_TYPE(std::string*, ArrayString);
+
+DECLARE_VARIANT_TYPE(Array2D<int>, MatrixInt);
+DECLARE_VARIANT_TYPE(Array2D<float>, MatrixFloat);
+DECLARE_VARIANT_TYPE(Array2D<double>, MatrixDouble);
 
 template <typename S, typename T>
 struct variant_helper {
@@ -128,7 +180,7 @@ struct variant_helper<S, std::string> {
 /// Variant for configuration parameter storage. Owns stored data.
 class Variant
 {
-  using storage_t = std::aligned_union<8, int, int64_t, const char*, float, double, bool, int*, float*, double*, bool*>::type;
+  using storage_t = std::aligned_union<8, int, int64_t, const char*, float, double, bool, int*, float*, double*, bool*, Array2D<int>, Array2D<float>, Array2D<double>>::type;
 
  public:
   Variant(VariantType type = VariantType::Unknown) : mType{type}, mSize{1} {}
@@ -184,6 +236,10 @@ class Variant
         mSize = other.mSize;
         variant_helper<storage_t, bool*>::set(&mStore, other.get<bool*>(), mSize);
         return;
+      case variant_trait_v<std::string*>:
+        mSize = other.mSize;
+        variant_helper<storage_t, std::string*>::set(&mStore, other.get<std::string*>(), mSize);
+        return;
       default:
         mStore = other.mStore;
         mSize = other.mSize;
@@ -210,6 +266,8 @@ class Variant
       case variant_trait_v<bool*>:
         *reinterpret_cast<bool**>(&(other.mStore)) = nullptr;
         return;
+      case variant_trait_v<std::string*>:
+        *reinterpret_cast<std::string**>(&(other.mStore)) = nullptr;
       default:
         return;
     }
@@ -225,6 +283,7 @@ class Variant
       case variant_trait_v<float*>:
       case variant_trait_v<double*>:
       case variant_trait_v<bool*>:
+      case variant_trait_v<std::string*>:
         if (reinterpret_cast<void**>(&mStore) != nullptr) {
           free(*reinterpret_cast<void**>(&mStore));
         }
@@ -256,6 +315,10 @@ class Variant
       case variant_trait_v<bool*>:
         mSize = other.mSize;
         variant_helper<storage_t, bool*>::set(&mStore, other.get<bool*>(), mSize);
+        return;
+      case variant_trait_v<std::string*>:
+        mSize = other.mSize;
+        variant_helper<storage_t, std::string*>::set(&mStore, other.get<std::string*>(), mSize);
         return;
       default:
         mStore = other.mStore;
@@ -293,6 +356,7 @@ class Variant
 
   VariantType type() const { return mType; }
   size_t size() const { return mSize; }
+  std::string asString() const;
 
  private:
   friend std::ostream& operator<<(std::ostream& oss, Variant const& val);
@@ -301,7 +365,6 @@ class Variant
   size_t mSize = 1;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif

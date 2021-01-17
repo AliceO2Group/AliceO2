@@ -60,6 +60,7 @@ struct InputObjectRoute {
   std::string directory;
   uint32_t taskHash;
   OutputObjHandlingPolicy policy;
+  OutputObjSourceType sourceType;
 };
 
 struct InputObject {
@@ -123,8 +124,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(outputObjects const
           };
 
           TDirectory* currentDir = f[route.policy]->GetDirectory(currentDirectory.c_str());
-          TNamed* named = static_cast<TNamed*>(entry.obj);
-          if (named->InheritsFrom(TList::Class())) {
+          if (route.sourceType == OutputObjSourceType::HistogramRegistrySource) {
             TList* outputList = (TList*)entry.obj;
             outputList->SetOwner(false);
 
@@ -185,6 +185,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(outputObjects const
       }
 
       auto policy = objh->mPolicy;
+      auto sourceType = objh->mSourceType;
       auto hash = objh->mTaskHash;
 
       obj.obj = tm.ReadObjectAny(obj.kind);
@@ -207,7 +208,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(outputObjects const
         return;
       }
       auto nameHash = compile_time_hash(obj.name.c_str());
-      InputObjectRoute key{obj.name, nameHash, taskname, hash, policy};
+      InputObjectRoute key{obj.name, nameHash, taskname, hash, policy, sourceType};
       auto existing = std::find_if(inputObjects->begin(), inputObjects->end(), [&](auto&& x) { return (x.first.uniqueId == nameHash) && (x.first.taskHash == hash); });
       if (existing == inputObjects->end()) {
         inputObjects->push_back(std::make_pair(key, obj));

@@ -14,11 +14,11 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoAHelpers.h"
-#include "Analysis/ReducedInfoTables.h"
-#include "Analysis/VarManager.h"
-#include "Analysis/HistogramManager.h"
-#include "Analysis/AnalysisCut.h"
-#include "Analysis/AnalysisCompositeCut.h"
+#include "AnalysisDataModel/ReducedInfoTables.h"
+#include "PWGDQCore/VarManager.h"
+#include "PWGDQCore/HistogramManager.h"
+#include "PWGDQCore/AnalysisCut.h"
+#include "PWGDQCore/AnalysisCompositeCut.h"
 #include <TH1F.h>
 #include <TMath.h>
 #include <THashList.h>
@@ -277,7 +277,7 @@ void DefineHistograms(o2::framework::OutputObj<HistogramManager> histMan, TStrin
   }
   VarManager::SetRunNumbers(kNRuns, runs);
 
-  TObjArray* arr = histClasses.Tokenize(";");
+  std::unique_ptr<TObjArray> arr(histClasses.Tokenize(";"));
   for (Int_t iclass = 0; iclass < arr->GetEntries(); ++iclass) {
     TString classStr = arr->At(iclass)->GetName();
 

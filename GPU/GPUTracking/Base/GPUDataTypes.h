@@ -27,7 +27,7 @@
 #ifdef GPUCA_NOCOMPAT
 #include "GPUTRDDef.h"
 
-class AliHLTTPCClusterMCLabel;
+struct AliHLTTPCClusterMCLabel;
 struct AliHLTTPCRawCluster;
 namespace o2
 {
@@ -48,6 +48,7 @@ namespace o2
 class MCCompLabel;
 namespace base
 {
+class Propagator;
 class MatLayerCylSet;
 } // namespace base
 namespace trd
@@ -69,7 +70,7 @@ namespace gpu
 {
 class TPCFastTransform;
 class TPCdEdxCalibrationSplines;
-struct TPCCFCalibration;
+struct TPCPadGainCalib;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
@@ -97,7 +98,7 @@ class GPUTPCGMMergedTrack;
 struct GPUTPCGMMergedTrackHit;
 struct GPUTPCGMMergedTrackHitXYZ;
 class GPUTRDTrackletWord;
-class GPUTPCMCInfo;
+struct GPUTPCMCInfo;
 struct GPUTPCClusterData;
 struct GPUTRDTrackletLabels;
 struct GPUTPCDigitsMCInput;
@@ -136,7 +137,7 @@ class GPUDataTypes
                               TPCRaw = 64 };
 
 #ifdef GPUCA_NOCOMPAT_ALLOPENCL
-  static constexpr const char* const RECO_STEP_NAMES[] = {"TPC Transformation", "TPC Sector Tracking", "TPC Track Merging and Fit", "TPC Compression", "TRD Tracking", "ITS Tracking", "TPC dEdx Computation", "TPC Cluster Finding", "TPC Decompression"};
+  static constexpr const char* const RECO_STEP_NAMES[] = {"TPC Transformation", "TPC Sector Tracking", "TPC Track Merging and Fit", "TPC Compression", "TRD Tracking", "ITS Tracking", "TPC dEdx Computation", "TPC Cluster Finding", "TPC Decompression", "Global Refit"};
   static constexpr const char* const GENERAL_STEP_NAMES[] = {"Prepare", "QA"};
   typedef bitfield<RecoStep, unsigned int> RecoStepField;
   typedef bitfield<InOutType, unsigned int> InOutTypeField;
@@ -175,7 +176,8 @@ struct GPUCalibObjectsTemplate {
   typename S<o2::base::MatLayerCylSet>::type* matLUT = nullptr;
   typename S<o2::trd::GeometryFlat>::type* trdGeometry = nullptr;
   typename S<TPCdEdxCalibrationSplines>::type* dEdxSplines = nullptr;
-  typename S<TPCCFCalibration>::type* tpcCalibration = nullptr;
+  typename S<TPCPadGainCalib>::type* tpcPadGain = nullptr;
+  typename S<o2::base::Propagator>::type* o2Propagator = nullptr;
 };
 typedef GPUCalibObjectsTemplate<DefaultPtr> GPUCalibObjects;
 typedef GPUCalibObjectsTemplate<ConstPtr> GPUCalibObjectsConst;

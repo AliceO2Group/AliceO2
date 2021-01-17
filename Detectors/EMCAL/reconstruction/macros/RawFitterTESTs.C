@@ -43,6 +43,7 @@ void RawFitterTESTs(const char* filename = "")
     inputDir += "/share/Detectors/EMC/files/";
     inputfile = inputDir + "emcal.raw";
   }
+  std::cout << "Using input file " << inputfile << std::endl;
 
   o2::raw::RawFileReader reader;
   reader.setDefaultDataOrigin(o2::header::gDataOriginEMC);
@@ -64,6 +65,7 @@ void RawFitterTESTs(const char* filename = "")
       break;
     }
     std::vector<char> dataBuffer; // where to put extracted data
+    std::cout << "Next iteration: Number of links: " << reader.getNLinks() << std::endl;
     for (int il = 0; il < reader.getNLinks(); il++) {
       auto& link = reader.getLink(il);
       std::cout << "Decoding link " << il << std::endl;
@@ -84,14 +86,17 @@ void RawFitterTESTs(const char* filename = "")
 
         // use the altro decoder to decode the raw data, and extract the RCU trailer
         o2::emcal::AltroDecoder decoder(parser);
+        std::cout << "Decoding" << std::endl;
         decoder.decode();
 
         std::cout << decoder.getRCUTrailer() << std::endl;
+        std::cout << "Found number of channels: " << decoder.getChannels().size() << std::endl;
 
         // Loop over all the channels
         for (auto& chan : decoder.getChannels()) {
-
+          std::cout << "processing next channel idx " << chan.getChannelIndex() << ", " << chan.getHardwareAddress() << std::endl;
           // define the conatiner for the fit results, and perform the raw fitting using the stadnard raw fitter
+          continue;
           o2::emcal::CaloFitResults fitResults = RawFitter.evaluate(chan.getBunches(), 0, 0);
 
           // print the fit output

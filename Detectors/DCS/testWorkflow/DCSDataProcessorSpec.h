@@ -93,9 +93,6 @@ class DCSDataProcessor : public o2::framework::Task
     pidVect.push_back(dpidtmp);
     mDetectorPid[dpidtmp] = vectDet;
 
-    mDCSproc.init(pidVect);
-    mDCSproc.setMaxCyclesNoFullMap(ic.options().get<int64_t>("max-cycles-no-full-map"));
-    mDCSproc.setName("Test0Det");
     for (int idet = 0; idet < kNdetectors; idet++) {
       mDCSprocVect[idet].init(pidVect);
       mDCSprocVect[idet].setMaxCyclesNoFullMap(ic.options().get<int64_t>("max-cycles-no-full-map"));
@@ -107,7 +104,6 @@ class DCSDataProcessor : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final
   {
     auto tfid = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
-    mDCSproc.setTF(tfid);
     for (int idet = 0; idet < kNdetectors; idet++) {
       mDCSprocVect[idet].setTF(tfid);
     }
@@ -275,7 +271,6 @@ class DCSDataProcessor : public o2::framework::Task
  private:
   std::unordered_map<DPID, std::vector<int>> mDetectorPid;
   std::array<DCSProcessor, kNdetectors> mDCSprocVect;
-  o2::dcs::DCSProcessor mDCSproc;
   TStopwatch mReceiveBinaryData;
   TStopwatch mDeltaReceiveBinaryData;
   TStopwatch mBuildingUnorderedMap;
@@ -299,14 +294,16 @@ class DCSDataProcessor : public o2::framework::Task
     // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
     // copied from LHCClockCalibratorSpec.cxx
     using clbUtils = o2::calibration::Utils;
-    const auto& payload = mDCSproc.getCCDBSimpleMovingAverage();
-    auto& info = mDCSproc.getCCDBSimpleMovingAverageInfo();
-    auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
-    LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
-              << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
+    for (int idet = 0; idet < kNdetectors; idet++) {
+      const auto& payload = mDCSprocVect[idet].getCCDBSimpleMovingAverage();
+      auto& info = mDCSprocVect[idet].getCCDBSimpleMovingAverageInfo();
+      auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
+      LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
+                << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
 
-    output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, 0}, *image.get());
-    output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, 0}, info);
+      output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, 0}, *image.get());
+      output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, 0}, info);
+    }
   }
 }; // end class
 } // namespace dcs

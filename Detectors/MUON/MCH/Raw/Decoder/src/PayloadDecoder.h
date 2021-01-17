@@ -12,7 +12,7 @@
 #define O2_MCH_RAW_PAYLOAD_DECODER_H
 
 #include "Headers/RAWDataHeader.h"
-#include "MCHRawDecoder/SampaChannelHandler.h"
+#include "MCHRawDecoder/DecodedDataHandlers.h"
 #include "MCHRawDecoder/PageDecoder.h"
 #include <map>
 #include <cstdlib>
@@ -38,9 +38,9 @@ class PayloadDecoder
 {
  public:
   /// Constructs a decoder
-  /// \param channelHandler the handler that will be called for each
-  /// piece of sampa data (a SampaCluster, i.e. a part of a time window)
-  PayloadDecoder(SampaChannelHandler channelHandler);
+  /// \param decodedDataHandlers decodedDataHandlers a structure with various callable objects that
+  /// will be called for each decoded Sampa packet and in case of decoding errors
+  PayloadDecoder(DecodedDataHandlers decodedDataHandlers);
 
   /// decode the buffer (=payload only)
   /// \return the number of bytes used from the buffer
@@ -48,12 +48,12 @@ class PayloadDecoder
 
  private:
   uint32_t mOrbit;
-  SampaChannelHandler mChannelHandler;
+  DecodedDataHandlers mDecodedDataHandlers;
 };
 
 template <typename T>
-PayloadDecoder<T>::PayloadDecoder(SampaChannelHandler channelHandler)
-  : mChannelHandler(channelHandler)
+PayloadDecoder<T>::PayloadDecoder(DecodedDataHandlers decodedDataHandlers)
+  : mDecodedDataHandlers(decodedDataHandlers)
 {
 }
 

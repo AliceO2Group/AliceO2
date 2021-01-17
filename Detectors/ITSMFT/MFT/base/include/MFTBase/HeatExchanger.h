@@ -42,6 +42,7 @@ class HeatExchanger
   void createHalfDisk3(Int_t half);
   void createHalfDisk4(Int_t half);
   void createManifold(Int_t disk);
+  void createCoolingPipes(Int_t half, Int_t disk);
 
   Double_t getWaterRadius() { return mRWater; }
   void setWaterRadius(Double_t& Rwater) { mRWater = Rwater; }

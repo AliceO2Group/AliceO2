@@ -16,12 +16,13 @@
 
 #include "Framework/AnalysisTask.h"
 #include "DetectorsVertexing/DCAFitterN.h"
-#include "Analysis/HFSecondaryVertex.h"
-#include "Analysis/trackUtilities.h"
+#include "AnalysisDataModel/HFSecondaryVertex.h"
+#include "AnalysisCore/trackUtilities.h"
 #include "ReconstructionDataFormats/DCA.h"
 
 using namespace o2;
 using namespace o2::framework;
+using namespace o2::aod::hf_cand_prong2;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
@@ -114,7 +115,8 @@ struct HFCandidateCreator2Prong {
                        pvec1[0], pvec1[1], pvec1[2],
                        impactParameter0.getY(), impactParameter1.getY(),
                        std::sqrt(impactParameter0.getSigmaY2()), std::sqrt(impactParameter1.getSigmaY2()),
-                       rowTrackIndexProng2.index0Id(), rowTrackIndexProng2.index1Id());
+                       rowTrackIndexProng2.index0Id(), rowTrackIndexProng2.index1Id(),
+                       rowTrackIndexProng2.hfflag());
 
       // fill histograms
       if (b_dovalplots) {
@@ -144,18 +146,35 @@ struct HFCandidateCreator2ProngMC {
                aod::BigTracksMC const& tracks,
                aod::McParticles const& particlesMC)
   {
+    int8_t sign = 0;
+    int8_t result = 0;
+
     // Match reconstructed candidates.
     for (auto& candidate : candidates) {
-      auto isMatchedRec = RecoDecay::isMCMatchedDecayRec(
+      //Printf("New rec. candidate");
+      result = 0;
+
+      // D0(bar) → π± K∓
+      //Printf("Checking D0(bar) → π± K∓");
+      auto indexRecD0 = RecoDecay::getMatchedMCRec(
         particlesMC, array{candidate.index0_as<aod::BigTracksMC>(), candidate.index1_as<aod::BigTracksMC>()},
-        421, array{+kPiPlus, -kKPlus}, true);
-      rowMCMatchRec(uint8_t(isMatchedRec));
+        421, array{+kPiPlus, -kKPlus}, true, &sign);
+      result += sign * D0ToPiK * int8_t(indexRecD0 > -1);
+
+      rowMCMatchRec(result);
     }
 
     // Match generated particles.
     for (auto& particle : particlesMC) {
-      auto isMatchedGen = RecoDecay::isMCMatchedDecayGen(particlesMC, particle, 421, array{+kPiPlus, -kKPlus}, true);
-      rowMCMatchGen(uint8_t(isMatchedGen));
+      //Printf("New gen. candidate");
+      result = 0;
+
+      // D0(bar) → π± K∓
+      //Printf("Checking D0(bar) → π± K∓");
+      auto isMatchedGenD0 = RecoDecay::isMatchedMCGen(particlesMC, particle, 421, array{+kPiPlus, -kKPlus}, true, &sign);
+      result += sign * D0ToPiK * int8_t(isMatchedGenD0);
+
+      rowMCMatchGen(result);
     }
   }
 };

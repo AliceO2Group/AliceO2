@@ -32,10 +32,11 @@
 #include <Generators/GeneratorHepMCParam.h>
 #endif
 #include <Generators/BoxGunParam.h>
+#include <Generators/PDG.h>
 #include <Generators/TriggerParticle.h>
 #include <Generators/TriggerExternalParam.h>
 #include <Generators/TriggerParticleParam.h>
-#include "Generators/ConfigurationMacroHelper.h"
+#include "CommonUtils/ConfigurationMacroHelper.h"
 
 #include "TRandom.h"
 
@@ -77,6 +78,7 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
 
   /** generators **/
 
+  o2::PDG::addParticlesToPdgDataBase();
   auto genconfig = conf.getGenerator();
   if (genconfig.compare("boxgen") == 0) {
     // a simple "box" generator configurable via BoxGunparam
@@ -136,6 +138,12 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     extGen->SetStartEvent(conf.getStartEvent());
     primGen->AddGenerator(extGen);
     LOG(INFO) << "using external kinematics";
+  } else if (genconfig.compare("extkinO2") == 0) {
+    // external kinematics from previous O2 output
+    auto extGen = new o2::eventgen::GeneratorFromO2Kine(conf.getExtKinematicsFileName().c_str());
+    extGen->SetStartEvent(conf.getStartEvent());
+    primGen->AddGenerator(extGen);
+    LOG(INFO) << "using external O2 kinematics";
 #ifdef GENERATORS_WITH_HEPMC3
   } else if (genconfig.compare("hepmc") == 0) {
     // external HepMC file
@@ -199,7 +207,7 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     LOG(INFO) << params;
     auto extgen_filename = params.fileName;
     auto extgen_func = params.funcName;
-    auto extgen = GetFromMacro<FairGenerator*>(extgen_filename, extgen_func, "FairGenerator*", "extgen");
+    auto extgen = o2::conf::GetFromMacro<FairGenerator*>(extgen_filename, extgen_func, "FairGenerator*", "extgen");
     if (!extgen) {
       LOG(FATAL) << "Failed to retrieve \'extgen\': problem with configuration ";
     }
@@ -237,10 +245,10 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     LOG(INFO) << params;
     auto external_trigger_filename = params.fileName;
     auto external_trigger_func = params.funcName;
-    trigger = GetFromMacro<o2::eventgen::Trigger>(external_trigger_filename, external_trigger_func, "o2::eventgen::Trigger", "trigger");
+    trigger = o2::conf::GetFromMacro<o2::eventgen::Trigger>(external_trigger_filename, external_trigger_func, "o2::eventgen::Trigger", "trigger");
     if (!trigger) {
       LOG(INFO) << "Trying to retrieve a \'o2::eventgen::DeepTrigger\' type" << std::endl;
-      deeptrigger = GetFromMacro<o2::eventgen::DeepTrigger>(external_trigger_filename, external_trigger_func, "o2::eventgen::DeepTrigger", "deeptrigger");
+      deeptrigger = o2::conf::GetFromMacro<o2::eventgen::DeepTrigger>(external_trigger_filename, external_trigger_func, "o2::eventgen::DeepTrigger", "deeptrigger");
     }
     if (!trigger && !deeptrigger) {
       LOG(FATAL) << "Failed to retrieve \'external trigger\': problem with configuration ";

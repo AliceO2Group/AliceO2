@@ -15,6 +15,7 @@
 #ifndef ALICEO2_track_PID_H_
 #define ALICEO2_track_PID_H_
 
+#include "GPUCommonDef.h"
 #include "GPUCommonRtypes.h"
 #include "CommonConstants/PhysicsConstants.h"
 
@@ -24,11 +25,55 @@ namespace track
 {
 namespace o2cp = o2::constants::physics;
 
+namespace pid_constants // GPUs currently cannot have static constexpr array members
+{
+typedef uint8_t ID;
+static constexpr ID NIDsTot = 14;
+GPUconstexpr() const char* sNames[NIDsTot + 1] = ///< defined particle names
+  {"Electron", "Muon", "Pion", "Kaon", "Proton", "Deuteron", "Triton", "He3", "Alpha",
+   "Pion0", "Photon", "K0", "Lambda", "HyperTriton",
+   nullptr};
+
+GPUconstexpr() const float sMasses[NIDsTot] = ///< defined particle masses
+  {o2cp::MassElectron, o2cp::MassMuon, o2cp::MassPionCharged, o2cp::MassKaonCharged,
+   o2cp::MassProton, o2cp::MassDeuteron, o2cp::MassTriton, o2cp::MassHelium3,
+   o2cp::MassAlpha, o2cp::MassPionNeutral, o2cp::MassPhoton,
+   o2cp::MassKaonNeutral, o2cp::MassLambda, o2cp::MassHyperTriton};
+
+GPUconstexpr() const float sMasses2[NIDsTot] = ///< defined particle masses^2
+  {o2cp::MassElectron * o2cp::MassElectron,
+   o2cp::MassMuon* o2cp::MassMuon,
+   o2cp::MassPionCharged* o2cp::MassPionCharged,
+   o2cp::MassKaonCharged* o2cp::MassKaonCharged,
+   o2cp::MassProton* o2cp::MassProton,
+   o2cp::MassDeuteron* o2cp::MassDeuteron,
+   o2cp::MassTriton* o2cp::MassTriton,
+   o2cp::MassHelium3* o2cp::MassHelium3,
+   o2cp::MassAlpha* o2cp::MassAlpha,
+   o2cp::MassPionNeutral* o2cp::MassPionNeutral,
+   o2cp::MassPhoton* o2cp::MassPhoton,
+   o2cp::MassKaonNeutral* o2cp::MassKaonNeutral,
+   o2cp::MassLambda* o2cp::MassLambda,
+   o2cp::MassHyperTriton* o2cp::MassHyperTriton};
+
+GPUconstexpr() const float sMasses2Z[NIDsTot] = ///< defined particle masses / Z
+  {o2cp::MassElectron, o2cp::MassMuon,
+   o2cp::MassPionCharged, o2cp::MassKaonCharged,
+   o2cp::MassProton, o2cp::MassDeuteron,
+   o2cp::MassTriton, o2cp::MassHelium3 / 2.,
+   o2cp::MassAlpha / 2.,
+   0, 0, 0, 0, o2cp::MassHyperTriton};
+
+GPUconstexpr() const int sCharges[NIDsTot] = ///< defined particle charges
+  {1, 1, 1, 1, 1, 1, 1, 2, 2,
+   0, 0, 0, 0, 1};
+} // namespace pid_constants
+
 class PID
 {
  public:
   // particle identifiers, continuos starting from 0
-  typedef uint8_t ID;
+  typedef pid_constants::ID ID;
 
   static constexpr ID Electron = 0;
   static constexpr ID Muon = 1;
@@ -52,80 +97,50 @@ class PID
   static constexpr ID HyperTriton = 13;
   static constexpr ID FirstExt = PI0;
   static constexpr ID LastExt = HyperTriton;
-  static constexpr ID NIDsTot = LastExt + 1; ///< total number of defined IDs
+  static constexpr ID NIDsTot = pid_constants::NIDsTot; ///< total number of defined IDs
+  static_assert(NIDsTot == LastExt + 1, "Incorrect NIDsTot, please update!");
 
-  PID() = default;
-  PID(ID id) : mID(id) {}
-  PID(const char* name);
-  PID(const PID& src) = default;
-  PID& operator=(const PID& src) = default;
+  GPUdDefault() PID() = default;
+  GPUd() PID(ID id) : mID(id) {}
+  GPUd() PID(const char* name);
+  GPUdDefault() PID(const PID& src) = default;
+  GPUdDefault() PID& operator=(const PID& src) = default;
 
-  ID getID() const { return mID; }
-  operator ID() const { return getID(); }
+  GPUd() ID getID() const { return mID; }
+  GPUd() operator ID() const { return getID(); }
 
-  float getMass() const { return getMass(mID); }
-  float getMass2Z() const { return getMass2Z(mID); }
-  int getCharge() const { return getCharge(mID); }
-  const char* getName() const { return getName(mID); }
+  GPUd() float getMass() const { return getMass(mID); }
+  GPUd() float getMass2() const { return getMass2(mID); }
+  GPUd() float getMass2Z() const { return getMass2Z(mID); }
+  GPUd() int getCharge() const { return getCharge(mID); }
 
-  static constexpr const char* getName(ID id) { return sNames[id]; }
-  static constexpr float getMass(ID id) { return sMasses[id]; }
-  static constexpr float getMass2(ID id) { return sMasses2[id]; }
-  static constexpr float getMass2Z(ID id) { return sMasses2Z[id]; }
-  static constexpr int getCharge(ID id) { return sCharges[id]; }
+  GPUd() static float getMass(ID id) { return pid_constants::sMasses[id]; }
+  GPUd() static float getMass2(ID id) { return pid_constants::sMasses2[id]; }
+  GPUd() static float getMass2Z(ID id) { return pid_constants::sMasses2Z[id]; }
+  GPUd() static int getCharge(ID id) { return pid_constants::sCharges[id]; }
+#ifndef GPUCA_GPUCODE_DEVICE
+  GPUd() const char* getName() const
+  {
+    return getName(mID);
+  }
+  GPUd() static const char* getName(ID id) { return pid_constants::sNames[id]; }
+#endif
 
  private:
   ID mID = Pion;
 
   // are 2 strings equal ? (trick from Giulio)
-  inline static constexpr bool sameStr(char const* x, char const* y)
+  GPUdi() static constexpr bool sameStr(char const* x, char const* y)
   {
     return !*x && !*y ? true : /* default */ (*x == *y && sameStr(x + 1, y + 1));
   }
 
-  inline static constexpr ID nameToID(char const* name, ID id)
+#ifndef GPUCA_GPUCODE_DEVICE
+  GPUdi() static constexpr ID nameToID(char const* name, ID id)
   {
-    return id > LastExt ? id : sameStr(name, sNames[id]) ? id : nameToID(name, id + 1);
+    return id > LastExt ? id : sameStr(name, pid_constants::sNames[id]) ? id : nameToID(name, id + 1);
   }
-
-  static constexpr const char* sNames[NIDsTot + 1] = ///< defined particle names
-    {"Electron", "Muon", "Pion", "Kaon", "Proton", "Deuteron", "Triton", "He3", "Alpha",
-     "Pion0", "Photon", "K0", "Lambda", "HyperTriton",
-     nullptr};
-
-  static constexpr const float sMasses[NIDsTot] = ///< defined particle masses
-    {o2cp::MassElectron, o2cp::MassMuon, o2cp::MassPionCharged, o2cp::MassKaonCharged,
-     o2cp::MassProton, o2cp::MassDeuteron, o2cp::MassTriton, o2cp::MassHelium3,
-     o2cp::MassAlpha, o2cp::MassPionNeutral, o2cp::MassPhoton,
-     o2cp::MassKaonNeutral, o2cp::MassLambda, o2cp::MassHyperTriton};
-
-  static constexpr const float sMasses2[NIDsTot] = ///< defined particle masses^2
-    {o2cp::MassElectron * o2cp::MassElectron,
-     o2cp::MassMuon* o2cp::MassMuon,
-     o2cp::MassPionCharged* o2cp::MassPionCharged,
-     o2cp::MassKaonCharged* o2cp::MassKaonCharged,
-     o2cp::MassProton* o2cp::MassProton,
-     o2cp::MassDeuteron* o2cp::MassDeuteron,
-     o2cp::MassTriton* o2cp::MassTriton,
-     o2cp::MassHelium3* o2cp::MassHelium3,
-     o2cp::MassAlpha* o2cp::MassAlpha,
-     o2cp::MassPionNeutral* o2cp::MassPionNeutral,
-     o2cp::MassPhoton* o2cp::MassPhoton,
-     o2cp::MassKaonNeutral* o2cp::MassKaonNeutral,
-     o2cp::MassLambda* o2cp::MassLambda,
-     o2cp::MassHyperTriton* o2cp::MassHyperTriton};
-
-  static constexpr const float sMasses2Z[NIDsTot] = ///< defined particle masses / Z
-    {o2cp::MassElectron, o2cp::MassMuon,
-     o2cp::MassPionCharged, o2cp::MassKaonCharged,
-     o2cp::MassProton, o2cp::MassDeuteron,
-     o2cp::MassTriton, o2cp::MassHelium3 / 2.,
-     o2cp::MassAlpha / 2.,
-     0, 0, 0, 0, o2cp::MassHyperTriton};
-
-  static constexpr const int sCharges[NIDsTot] = ///< defined particle charges
-    {1, 1, 1, 1, 1, 1, 1, 2, 2,
-     0, 0, 0, 0, 1};
+#endif
 
   ClassDefNV(PID, 2);
 };

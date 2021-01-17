@@ -170,7 +170,7 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
                   positions[nDigitsTmp++] = pos;
                   if (inFragment) {
                     float q = float(byte & mask) * decodeBitsFactor;
-                    q *= clusterer.getGainCorrection(row, pad);
+                    q *= clusterer.GetConstantMem()->calibObjects.tpcPadGain->getGainCorrection(slice, row, pad);
                     chargeMap[pos] = PackedCharge(q);
                   }
                   pad++;

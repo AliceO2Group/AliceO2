@@ -16,10 +16,10 @@
 #define MATHUTILS_INCLUDE_MATHUTILS_DETAIL_TRIGONOMETRIC_H_
 
 #ifndef GPUCA_GPUCODE_DEVICE
-#include <array>
 #include <cmath>
 #include <tuple>
 #endif
+#include "GPUCommonArray.h"
 #include "GPUCommonDef.h"
 #include "GPUCommonMath.h"
 #include "CommonConstants/MathConstants.h"
@@ -32,7 +32,7 @@ namespace detail
 {
 
 template <typename T>
-GPUdi() T to02Pi(T phi)
+GPUhdi() T to02Pi(T phi)
 {
   T res = phi;
   // ensure angle in [0:2pi] for the input in [-pi:pi] or [0:pi]
@@ -43,7 +43,7 @@ GPUdi() T to02Pi(T phi)
 }
 
 template <typename T>
-GPUdi() void bringTo02Pi(T& phi)
+GPUhdi() void bringTo02Pi(T& phi)
 {
   phi = to02Pi<T>(phi);
 }
@@ -69,7 +69,7 @@ inline void bringTo02PiGen(T& phi)
 }
 
 template <typename T>
-inline T toPMPi(T phi)
+GPUhdi() T toPMPi(T phi)
 {
   T res = phi;
   // ensure angle in [-pi:pi] for the input in [-pi:pi] or [0:pi]
@@ -82,7 +82,7 @@ inline T toPMPi(T phi)
 }
 
 template <typename T>
-inline void bringToPMPi(T& phi)
+GPUhdi() void bringToPMPi(T& phi)
 {
   phi = toPMPi<T>(phi);
 }
@@ -107,15 +107,24 @@ inline void bringToPMPiGen(T& phi)
   phi = toPMPiGen<T>(phi);
 }
 
-GPUdi() void sincos(float ang, float& s, float& c)
+#ifdef __OPENCL__ // TODO: get rid of that stupid workaround for OpenCL template address spaces
+template <typename T>
+GPUhdi() void sincos(T ang, float& s, float& c)
 {
-  o2::gpu::GPUCommonMath::SinCos(ang, s, c);
+  return o2::gpu::GPUCommonMath::SinCos(ang, s, c);
 }
-
-GPUdi() void sincos(double ang, double& s, double& c)
+#else
+template <typename T>
+GPUhdi() void sincos(T ang, T& s, T& c)
 {
-  o2::gpu::GPUCommonMath::SinCos(ang, s, c);
+  return o2::gpu::GPUCommonMath::SinCos(ang, s, c);
 }
+template <>
+GPUhdi() void sincos(double ang, double& s, double& c)
+{
+  return o2::gpu::GPUCommonMath::SinCosd(ang, s, c);
+}
+#endif
 
 #ifndef GPUCA_GPUCODE_DEVICE
 
@@ -124,7 +133,7 @@ GPUhdi() std::tuple<T, T> sincos(T ang)
 {
   T sin = 0;
   T cos = 0;
-  o2::gpu::GPUCommonMath::SinCos(ang, sin, cos);
+  sincos<T>(ang, sin, cos);
   return std::make_tuple(sin, cos);
 }
 
@@ -136,39 +145,43 @@ inline std::tuple<T, T> rotateZ(T xL, T yL, T snAlp, T csAlp)
 }
 
 template <typename T>
-inline std::tuple<T, T> rotateZInv(T xG, T yG, T snAlp, T csAlp)
+GPUhdi() std::tuple<T, T> rotateZInv(T xG, T yG, T snAlp, T csAlp)
 {
   // inverse 2D rotation of the point by angle alpha (global to local)
   return rotateZ<T>(xG, yG, -snAlp, csAlp);
 }
 
-template <typename T>
-inline void rotateZ(T xL, T yL, T& xG, T& yG, T snAlp, T csAlp)
-{
-  std::tie(xG, yG) = rotateZ<T>(xL, yL, snAlp, csAlp);
-}
+#endif
 
 template <typename T>
-inline void rotateZ(std::array<T, 3>& xy, T alpha)
+GPUhdi() void rotateZ(gpu::gpustd::array<T, 3>& xy, T alpha)
 {
   // transforms vector in tracking frame alpha to global frame
-  auto [sin, cos] = sincos<T>(alpha);
+  T sin, cos;
+  sincos<T>(alpha, sin, cos);
   const T x = xy[0];
   xy[0] = x * cos - xy[1] * sin;
   xy[1] = x * sin + xy[1] * cos;
 }
 
 template <typename T>
-inline void rotateZInv(T xG, T yG, T& xL, T& yL, T snAlp, T csAlp)
+GPUhdi() void rotateZ(T xL, T yL, T& xG, T& yG, T snAlp, T csAlp)
+{
+  xG = xL * csAlp - yL * snAlp;
+  yG = xL * snAlp + yL * csAlp;
+  ;
+  // std::tie(xG, yG) = rotateZ<T>(xL, yL, snAlp, csAlp); // must not use std:: - versions on GPU
+}
+
+template <typename T>
+GPUhdi() void rotateZInv(T xG, T yG, T& xL, T& yL, T snAlp, T csAlp)
 {
   // inverse 2D rotation of the point by angle alpha (global to local)
   rotateZ<T>(xG, yG, xL, yL, -snAlp, csAlp);
 }
 
-#endif
-
 template <typename T>
-inline int angle2Sector(T phi)
+GPUhdi() int angle2Sector(T phi)
 {
   // convert angle to sector ID, phi can be either in 0:2pi or -pi:pi convention
   int sect = phi * o2::constants::math::Rad2Deg / o2::constants::math::SectorSpanDeg;
@@ -179,7 +192,7 @@ inline int angle2Sector(T phi)
 }
 
 template <typename T>
-inline T sector2Angle(int sect)
+GPUhdi() T sector2Angle(int sect)
 {
   // convert sector to its angle center, in -pi:pi convention
   T ang = o2::constants::math::SectorSpanRad * (0.5f + sect);
@@ -188,10 +201,22 @@ inline T sector2Angle(int sect)
 }
 
 template <typename T>
-inline T angle2Alpha(T phi)
+GPUhdi() T angle2Alpha(T phi)
 {
   // convert angle to its sector alpha
   return sector2Angle<T>(angle2Sector<T>(phi));
+}
+
+template <typename T>
+GPUhdi() T copysign(T x, T y)
+{
+  return o2::gpu::GPUCommonMath::Copysign(x, y);
+}
+
+template <>
+GPUhdi() double copysign(double x, double y)
+{
+  return o2::gpu::GPUCommonMath::Copysignd(x, y);
 }
 
 template <typename T>
@@ -233,7 +258,7 @@ GPUhdi() T fastATan2(T y, T x)
   };
 
   // fast atan2(y,x) for any angle [-Pi,Pi]
-  return o2::gpu::GPUCommonMath::Copysign(atan2P(o2::gpu::GPUCommonMath::Abs(y), x), y);
+  return copysign<T>(atan2P(o2::gpu::GPUCommonMath::Abs(y), x), y);
 }
 
 } // namespace detail

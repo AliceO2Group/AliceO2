@@ -25,6 +25,8 @@
 #include <utility>
 
 #include "ITStracking/Configuration.h"
+#include "DetectorsBase/MatLayerCylSet.h"
+#include "CommonConstants/MathConstants.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/ROframe.h"
 #include "ITStracking/MathUtils.h"
@@ -35,6 +37,10 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 
 #include "Framework/Logger.h"
+
+#ifdef CA_DEBUG
+#include "ITStracking/StandaloneDebugger.h"
+#endif
 
 namespace o2
 {
@@ -63,12 +69,15 @@ class Tracker
 
   std::vector<TrackITSExt>& getTracks();
   auto& getTrackLabels() { return mTrackLabels; }
+  bool isMatLUT();
 
   void clustersToTracks(const ROframe&, std::ostream& = std::cout);
 
   void setROFrame(std::uint32_t f) { mROFrame = f; }
   std::uint32_t getROFrame() const { return mROFrame; }
   void setParameters(const std::vector<MemoryParameters>&, const std::vector<TrackingParameters>&);
+  void initMatBudLUTFromFile();
+  void getGlobalConfiguration();
 
  private:
   track::TrackParCov buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3,
@@ -80,7 +89,8 @@ class Tracker
   void findCellsNeighbours(int& iteration);
   void findRoads(int& iteration);
   void findTracks(const ROframe& ev);
-  bool fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step);
+  bool fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step,
+                const float chi2cut = o2::constants::math::VeryBig);
   void traverseCellsTree(const int, const int);
   void computeRoadsMClabels(const ROframe&);
   void computeTracksMClabels(const ROframe&);
@@ -100,7 +110,12 @@ class Tracker
   std::uint32_t mROFrame = 0;
   std::vector<TrackITSExt> mTracks;
   std::vector<MCCompLabel> mTrackLabels;
+  o2::base::MatLayerCylSet* mMatLayerCylSet = nullptr;
   o2::gpu::GPUChainITS* mRecoChain = nullptr;
+
+#ifdef CA_DEBUG
+  StandaloneDebugger* mDebugger;
+#endif
 };
 
 inline void Tracker::setParameters(const std::vector<MemoryParameters>& memPars, const std::vector<TrackingParameters>& trkPars)
@@ -117,6 +132,16 @@ inline float Tracker::getBz() const
 inline void Tracker::setBz(float bz)
 {
   mBz = bz;
+}
+
+inline void Tracker::initMatBudLUTFromFile()
+{
+  mMatLayerCylSet = o2::base::MatLayerCylSet::loadFromFile();
+}
+
+inline bool Tracker::isMatLUT()
+{
+  return mMatLayerCylSet;
 }
 
 template <typename... T>

@@ -65,7 +65,7 @@
 
 #ifdef ENABLE_UPGRADES
 #include <ITS3Simulation/Detector.h>
-#include <ITS4Simulation/Detector.h>
+#include <TRKSimulation/Detector.h>
 #endif
 
 namespace o2
@@ -262,7 +262,6 @@ class O2HitMerger : public FairMQDevice
     fillSubEventInfoEntry(info);
     consumeData<std::vector<o2::MCTrack>>(info.eventID, "MCTrack", data, index);
     consumeData<std::vector<o2::TrackReference>>(info.eventID, "TrackRefs", data, index);
-    consumeData<o2::dataformats::MCTruthContainer<o2::TrackReference>>(info.eventID, "IndexedTrackRefs", data, index);
     while (index < data.Size()) {
       consumeHits(info.eventID, data, index);
     }
@@ -324,13 +323,6 @@ class O2HitMerger : public FairMQDevice
   void backInsert(T const& from, T& to)
   {
     std::copy(from.begin(), from.end(), std::back_inserter(to));
-  }
-  // specialization for o2::MCTruthContainer<S>
-  template <typename S>
-  void backInsert(o2::dataformats::MCTruthContainer<S> const& from,
-                  o2::dataformats::MCTruthContainer<S>& to)
-  {
-    to.mergeAtBack(from);
   }
 
   void reorderAndMergeMCTRacks(TTree& origin, TTree& target, const std::vector<int>& nprimaries, const std::vector<int>& nsubevents)
@@ -559,7 +551,7 @@ class O2HitMerger : public FairMQDevice
     std::vector<int> nprimaries;   // collecting primary particles in each subevent
     std::vector<int> nsubevents;   // collecting of subevent numbers
 
-    std::unique_ptr<o2::dataformats::MCEventHeader> eventheader; // The event header
+    o2::dataformats::MCEventHeader* eventheader = nullptr; // The event header
 
     // the MC labels (trackID) for hits
     o2::data::SubEventInfo* info = nullptr;
@@ -570,9 +562,9 @@ class O2HitMerger : public FairMQDevice
       trackoffsets.emplace_back(info->npersistenttracks);
       nprimaries.emplace_back(info->nprimarytracks);
       nsubevents.emplace_back(info->part);
+      info->mMCEventHeader.printInfo();
       if (eventheader == nullptr) {
-        eventheader = std::unique_ptr<dataformats::MCEventHeader>(
-          new dataformats::MCEventHeader(info->mMCEventHeader));
+        eventheader = &info->mMCEventHeader;
       } else {
         eventheader->getMCEventStats().add(info->mMCEventHeader.getMCEventStats());
       }
@@ -588,9 +580,9 @@ class O2HitMerger : public FairMQDevice
     }
 
     // put the event headers into the new TTree
-    o2::dataformats::MCEventHeader* headerptr = eventheader.get();
-    auto headerbr = o2::base::getOrMakeBranch(*mOutTree, "MCEventHeader.", &headerptr);
-    headerbr->SetAddress(&headerptr);
+    eventheader->printInfo();
+    auto headerbr = o2::base::getOrMakeBranch(*mOutTree, "MCEventHeader.", &eventheader);
+    headerbr->SetAddress(&eventheader);
     headerbr->Fill();
     headerbr->ResetAddress();
 
@@ -610,7 +602,6 @@ class O2HitMerger : public FairMQDevice
     reorderAndMergeMCTRacks(*tree, *mOutTree, nprimaries, subevOrdered);
     Int_t ioffset = 0;
     remapTrackIdsAndMerge<std::vector<o2::TrackReference>>("TrackRefs", *tree, *mOutTree, trackoffsets, nprimaries, subevOrdered);
-    merge<o2::dataformats::MCTruthContainer<o2::TrackReference>>("IndexedTrackRefs", *tree, *mOutTree);
 
     // c) do the merge procedure for all hits ... delegate this to detector specific functions
     // since they know about types; number of branches; etc.
@@ -751,8 +742,8 @@ void O2HitMerger::initDetInstances()
       mDetectorInstances[i] = std::move(std::make_unique<o2::its3::Detector>(true));
       counter++;
     }
-    if (i == DetID::IT4) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::its4::Detector>(true));
+    if (i == DetID::TRK) {
+      mDetectorInstances[i] = std::move(std::make_unique<o2::trk::Detector>(true));
       counter++;
     }
 #endif

@@ -278,10 +278,10 @@ EXTERNAL_PAGES         = YES
 #---------------------------------------------------------------------------
 # Configuration options related to the dot tool
 #---------------------------------------------------------------------------
-CLASS_DIAGRAMS         = YES
+CLASS_DIAGRAMS         = NO
 DIA_PATH               =
 HIDE_UNDOC_RELATIONS   = NO
-HAVE_DOT               = YES
+HAVE_DOT               = NO
 DOT_NUM_THREADS        = 1
 DOT_FONTNAME           = Helvetica
 DOT_FONTSIZE           = 10

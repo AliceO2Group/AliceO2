@@ -18,7 +18,13 @@
 #include "Generators/Trigger.h"
 #include <vector>
 
-class FairMCEventHeader;
+namespace o2
+{
+namespace dataformats
+{
+class MCEventHeader;
+}
+} // namespace o2
 
 namespace o2
 {
@@ -59,7 +65,11 @@ class Generator : public FairGenerator
 	*@param pStack The stack
 	*@return kTRUE if successful, kFALSE if not
 	**/
-  Bool_t ReadEvent(FairPrimaryGenerator* primGen) override;
+  Bool_t ReadEvent(FairPrimaryGenerator* primGen) final;
+
+  /** methods to override **/
+  virtual Bool_t generateEvent() = 0;
+  virtual Bool_t importParticles() = 0;
 
   /** setters **/
   void setMomentumUnit(double val) { mMomentumUnit = val; };
@@ -71,8 +81,14 @@ class Generator : public FairGenerator
   void addTrigger(Trigger trigger) { mTriggers.push_back(trigger); };
   void addDeepTrigger(DeepTrigger trigger) { mDeepTriggers.push_back(trigger); };
 
+  /** getters **/
+  const std::vector<TParticle>& getParticles() const { return mParticles; }; //!
+
+  /** other **/
+  void clearParticles() { mParticles.clear(); };
+
   /** notification methods **/
-  virtual void notifyEmbedding(const FairMCEventHeader* mcHeader){};
+  virtual void notifyEmbedding(const o2::dataformats::MCEventHeader* eventHeader){};
 
  protected:
   /** copy constructor **/
@@ -80,12 +96,8 @@ class Generator : public FairGenerator
   /** operator= **/
   Generator& operator=(const Generator&);
 
-  /** methods to override **/
-  virtual Bool_t generateEvent() = 0;
-  virtual Bool_t importParticles() = 0;
-
   /** methods that can be overridded **/
-  virtual void updateHeader(FairMCEventHeader* eventHeader){};
+  virtual void updateHeader(o2::dataformats::MCEventHeader* eventHeader){};
 
   /** internal methods **/
   Bool_t addTracks(FairPrimaryGenerator* primGen);

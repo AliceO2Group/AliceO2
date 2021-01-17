@@ -16,6 +16,7 @@
 #include "Framework/ControlService.h"
 #include "DataFormatsPHOS/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "PHOSBase/PHOSSimParams.h"
 #include "CCDB/CcdbApi.h"
@@ -24,7 +25,7 @@ using namespace o2::phos::reco_workflow;
 
 void CellConverterSpec::init(framework::InitContext& ctx)
 {
-  LOG(DEBUG) << "[PHOSCellConverter - init] Initialize converter " << (mPropagateMC ? "with" : "without") << " MC truth container";
+  LOG(INFO) << "[PHOSCellConverter - init] Initialize converter " << (mPropagateMC ? "with" : "without") << " MC truth container";
 }
 
 void CellConverterSpec::run(framework::ProcessingContext& ctx)
@@ -38,19 +39,19 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
     ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
     return;
   }
-  LOG(INFO) << "Had Payload";
 
   mOutputCells.clear();
   mOutputCellTrigRecs.clear();
 
   auto digits = ctx.inputs().get<std::vector<o2::phos::Digit>>("digits");
   auto digitsTR = ctx.inputs().get<std::vector<o2::phos::TriggerRecord>>("digitTriggerRecords");
-  auto truthcont = ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>*>("digitsmctr");
+  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::phos::MCLabel>> truthcont(nullptr);
   if (mPropagateMC) {
+    truthcont = ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>*>("digitsmctr");
     mOutputTruthCont.clear();
     mOutputTruthMap.clear();
   }
-  LOG(INFO) << "[PHOSCellConverter - run]  Received " << digits.size() << " digits and " << digitsTR.size() << " TriggerRecords";
+  LOG(INFO) << "[PHOSCellConverter - run]  Received " << digits.size() << " digits and " << digitsTR.size() << " TriggerRecords" << truthcont->getNElements() << " MC labels";
 
   //Get TimeStamp from TriggerRecord
   if (!mBadMap) {
@@ -97,7 +98,6 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
       //      chantype = ChannelType_t::TRU;
 
       mOutputCells.emplace_back(dig.getAbsId(), dig.getAmplitude(), dig.getTime(), chantype);
-      icell++;
       if (mPropagateMC) { //copy MC info,
         int iLab = dig.getLabel();
         if (iLab > -1) {
@@ -106,18 +106,18 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
           labelIndex++;
         }
       }
+      icell++;
     }
     mOutputCellTrigRecs.emplace_back(tr.getBCData(), indexStart, mOutputCells.size());
   }
-  LOG(INFO) << "[PHOSCellConverter - run] Writing " << mOutputCells.size() << " cells and " << mOutputCellTrigRecs.size() << " Trig Records ";
+  LOG(INFO) << "[PHOSCellConverter - run] Writing " << mOutputCells.size() << " cells, " << mOutputCellTrigRecs.size() << " Trig Records " << mOutputTruthCont.getNElements() << " PHOS labels ";
+  ;
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", 0, o2::framework::Lifetime::Timeframe}, mOutputCells);
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputCellTrigRecs);
   if (mPropagateMC) {
     ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLSMCTR", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthCont);
     ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLSMCMAP", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthMap);
   }
-  LOG(INFO) << "Finished ";
-  ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
 }
 
 o2::framework::DataProcessorSpec o2::phos::reco_workflow::getCellConverterSpec(bool propagateMC)

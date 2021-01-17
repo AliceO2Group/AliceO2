@@ -648,10 +648,10 @@ int GPUDisplay::InitGL_internal()
   mThreadTracks.resize(mChain->GetProcessingSettings().ompThreads);
 #ifdef GPUCA_DISPLAY_OPENGL_CORE
   CHKERR(mVertexShader = glCreateShader(GL_VERTEX_SHADER));
-  CHKERR(glShaderSource(mVertexShader, 1, &GPUDisplayShaders::vertexShader, NULL));
+  CHKERR(glShaderSource(mVertexShader, 1, &GPUDisplayShaders::vertexShader, nullptr));
   CHKERR(glCompileShader(mVertexShader));
   CHKERR(mFragmentShader = glCreateShader(GL_FRAGMENT_SHADER));
-  CHKERR(glShaderSource(mFragmentShader, 1, &GPUDisplayShaders::fragmentShader, NULL));
+  CHKERR(glShaderSource(mFragmentShader, 1, &GPUDisplayShaders::fragmentShader, nullptr));
   CHKERR(glCompileShader(mFragmentShader));
   CHKERR(mShaderProgram = glCreateProgram());
   CHKERR(glAttachShader(mShaderProgram, mVertexShader));
@@ -1268,6 +1268,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
         if (mMerger.Param().par.earlyTpcTransform) {
           const auto& cl = ioptrs().clusterData[iSlice][i];
           cid = cl.id;
+          row = cl.row;
         } else {
           cid = ioptrs().clustersNative->clusterOffset[iSlice][0] + i;
           while (row < GPUCA_ROW_COUNT && ioptrs().clustersNative->clusterOffset[iSlice][row + 1] <= (unsigned int)cid) {
@@ -1282,7 +1283,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
         float4* ptr = &mGlobalPos[cid];
         if (mMerger.Param().par.earlyTpcTransform) {
           const auto& cl = ioptrs().clusterData[iSlice][i];
-          mChain->GetParam().Slice2Global(iSlice, cl.x + mXadd, cl.y, cl.z, &ptr->x, &ptr->y, &ptr->z);
+          mChain->GetParam().Slice2Global(iSlice, (mConfig.clustersOnNominalRow ? mMerger.Param().tpcGeometry.Row2X(row) : cl.x) + mXadd, cl.y, cl.z, &ptr->x, &ptr->y, &ptr->z);
         } else {
           float x, y, z;
           const auto& cln = ioptrs().clustersNative->clusters[iSlice][0][i];

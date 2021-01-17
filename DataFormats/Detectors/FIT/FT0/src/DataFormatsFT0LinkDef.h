@@ -19,12 +19,14 @@
 #pragma link C++ class o2::ft0::DigitsTemp + ;
 #pragma link C++ class o2::ft0::ChannelData + ;
 #pragma link C++ class o2::ft0::Triggers + ;
+#pragma link C++ class o2::ft0::DetTrigInput + ;
 #pragma link C++ class o2::ft0::TriggersExt + ;
 #pragma link C++ class vector < o2::ft0::ChannelData> + ;
 #pragma link C++ class vector < o2::ft0::Digit> + ;
 #pragma link C++ class vector < o2::ft0::DigitExt> + ;
 #pragma link C++ class vector < o2::ft0::DigitsTemp> + ;
 #pragma link C++ class vector < o2::ft0::Triggers> + ;
+#pragma link C++ class vector < o2::ft0::DetTrigInput> + ;
 #pragma link C++ class vector < o2::ft0::TriggersExt> + ;
 
 #pragma link C++ class o2::ft0::RecPoints + ;
@@ -33,6 +35,7 @@
 #pragma link C++ class vector < o2::ft0::ChannelDataFloat> + ;
 
 #pragma link C++ class o2::ft0::MCLabel + ;
+#include "SimulationDataFormat/MCTruthContainer.h"
 #pragma link C++ class o2::dataformats::MCTruthContainer < o2::ft0::MCLabel> + ;
 
 #pragma link C++ class o2::ft0::HitType + ;
@@ -42,10 +45,12 @@
 #pragma link C++ class o2::ft0::EventHeader + ;
 #pragma link C++ class o2::ft0::EventData + ;
 #pragma link C++ class o2::ft0::Topo + ;
+#pragma link C++ class o2::ft0::HVchannel + ;
+#pragma link C++ class vector < o2::ft0::HVchannel> + ;
 
 #pragma link C++ class o2::ft0::CTFHeader + ;
 #pragma link C++ class o2::ft0::CompressedDigits + ;
 #pragma link C++ class o2::ft0::CTF + ;
-#pragma link C++ class o2::ctf::EncodedBlocks < o2::ft0::CTFHeader, 8, uint32_t> + ;
+#pragma link C++ class o2::ctf::EncodedBlocks < o2::ft0::CTFHeader, 9, uint32_t> + ;
 
 #endif

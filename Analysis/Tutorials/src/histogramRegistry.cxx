@@ -12,6 +12,7 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/HistogramRegistry.h"
 #include <TH1F.h>
+#include <TParameter.h>
 
 #include <cmath>
 
@@ -34,8 +35,8 @@ struct ATask {
   void process(aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
-      registry.get<TH1>("eta")->Fill(track.eta());
-      registry.get<TH1>("phi")->Fill(track.phi());
+      registry.get<TH1>(HIST("eta"))->Fill(track.eta());
+      registry.get<TH1>(HIST("phi"))->Fill(track.phi());
     }
   }
 };
@@ -52,8 +53,8 @@ struct BTask {
 
   void process(aod::Tracks const& tracks)
   {
-    registry.fill<aod::track::Eta>("eta", tracks, aod::track::eta > 0.0f);
-    registry.fill<aod::track::Pt, aod::track::Pt>("ptToPt", tracks, aod::track::pt < 5.0f);
+    registry.fill<aod::track::Eta>(HIST("eta"), tracks, aod::track::eta > 0.0f);
+    registry.fill<aod::track::Pt, aod::track::Pt>(HIST("ptToPt"), tracks, aod::track::pt < 5.0f);
   }
 };
 
@@ -96,30 +97,30 @@ struct CTask {
   {
     using namespace aod::track;
     // does not work with dynamic columns (e.g. Charge, NormalizedPhi)
-    registry.fill<Eta>("1d", tracks, eta > -0.7f);
-    registry.fill<Pt, Eta, RawPhi>("3d", tracks, eta > 0.f);
-    registry.fill<Pt, Eta, RawPhi, P, X>("5d", tracks, pt > 0.15f);
-    registry.fill<Pt, Eta, RawPhi, P, X, Y, Z>("7d", tracks, pt > 0.15f);
-    registry.fill<Pt, Eta, RawPhi>("2d-profile", tracks, eta > -0.5f);
+    registry.fill<Eta>(HIST("1d"), tracks, eta > -0.7f);
+    registry.fill<Pt, Eta, RawPhi>(HIST("3d"), tracks, eta > 0.f);
+    registry.fill<Pt, Eta, RawPhi, P, X>(HIST("5d"), tracks, pt > 0.15f);
+    registry.fill<Pt, Eta, RawPhi, P, X, Y, Z>(HIST("7d"), tracks, pt > 0.15f);
+    registry.fill<Pt, Eta, RawPhi>(HIST("2d-profile"), tracks, eta > -0.5f);
 
     // fill 4d histogram with weight (column X)
-    registry.fill<Pt, Eta, RawPhi, Z, X>("4d-weight", tracks, eta > 0.f);
+    registry.fill<Pt, Eta, RawPhi, Z, X>(HIST("4d-weight"), tracks, eta > 0.f);
 
-    registry.fill<Pt, Eta, RawPhi>("2d-weight", tracks, eta > 0.f);
+    registry.fill<Pt, Eta, RawPhi>(HIST("2d-weight"), tracks, eta > 0.f);
 
-    registry.fill<Pt, Eta, RawPhi>("1d-profile-weight", tracks, eta > 0.f);
+    registry.fill<Pt, Eta, RawPhi>(HIST("1d-profile-weight"), tracks, eta > 0.f);
 
     for (auto& track : tracks) {
-      registry.fill("2d", track.eta(), track.pt());
-      registry.fill("4d", track.pt(), track.eta(), track.phi(), track.signed1Pt());
-      registry.fill("6d", track.pt(), track.eta(), track.phi(), track.snp(), track.tgl(), track.alpha());
-      registry.fill("1d-profile", track.pt(), track.eta());
-      registry.fill("3d-profile", track.pt(), track.eta(), track.phi(), track.snp());
+      registry.fill(HIST("2d"), track.eta(), track.pt());
+      registry.fill(HIST("4d"), track.pt(), track.eta(), track.phi(), track.signed1Pt());
+      registry.fill(HIST("6d"), track.pt(), track.eta(), track.phi(), track.snp(), track.tgl(), track.alpha());
+      registry.fill(HIST("1d-profile"), track.pt(), track.eta());
+      registry.fill(HIST("3d-profile"), track.pt(), track.eta(), track.phi(), track.snp());
 
       // fill 3d histogram with weight (2.)
-      registry.fill("3d-weight", track.pt(), track.eta(), track.phi(), 2.);
+      registry.fill(HIST("3d-weight"), track.pt(), track.eta(), track.phi(), 2.);
 
-      registry.fill("2d-profile-weight", track.pt(), track.eta(), track.phi(), 5.);
+      registry.fill(HIST("2d-profile-weight"), track.pt(), track.eta(), track.phi(), 5.);
     }
   }
 };
@@ -144,8 +145,8 @@ struct DTask {
     HistogramConfigSpec defaultParticleHist({HistType::kTHnF, {ptAxis, etaAxis, centAxis, cutAxis}});
 
     spectra.add("myControlHist", "a", kTH2F, {ptAxis, etaAxis});
-    spectra.get<TH2>("myControlHist")->GetYaxis()->SetTitle("my-y-axis");
-    spectra.get<TH2>("myControlHist")->SetTitle("something meaningful");
+    spectra.get<TH2>(HIST("myControlHist"))->GetYaxis()->SetTitle("my-y-axis");
+    spectra.get<TH2>(HIST("myControlHist"))->SetTitle("something meaningful");
 
     spectra.add("charged/pions", "Pions", defaultParticleHist);
     spectra.add("neutral/pions", "Pions", defaultParticleHist);
@@ -153,7 +154,7 @@ struct DTask {
     spectra.add("sigmas", "Sigmas", defaultParticleHist);
     spectra.add("lambdas", "Lambd", defaultParticleHist);
 
-    spectra.get<THn>("lambdas")->SetTitle("Lambdas");
+    spectra.get<THn>(HIST("lambdas"))->SetTitle("Lambdas");
 
     etaStudy.add("positive", "A side spectra", kTH1I, {ptAxis});
     etaStudy.add("negative", "C side spectra", kTH1I, {ptAxis});
@@ -161,8 +162,6 @@ struct DTask {
     spectra.add("before_cuts/hist1", "asdf", defaultParticleHist);
     spectra.add("before_cuts/hist2", "asdf", defaultParticleHist);
     spectra.add("before_cuts/hist3", "asdf", defaultParticleHist);
-    spectra.add("before_cuts/hist4", "asdf", defaultParticleHist);
-    spectra.add("before_cuts/hist5", "asdf", defaultParticleHist);
 
     // clone whole category / group
     spectra.addClone("before_cuts/", "after_cuts/");
@@ -172,29 +171,40 @@ struct DTask {
     spectra.addClone("neutral/pions", "strange/funny/particles");
   }
 
+  template <bool mode, typename T>
+  void fillHistos(const T& track)
+  {
+    static constexpr std::string_view subDir[] = {"before_cuts/", "after_cuts/"};
+
+    spectra.fill(HIST(subDir[mode]) + HIST("hist1"), track.pt(), track.eta(), 50., 0.);
+    spectra.fill(HIST(subDir[mode]) + HIST("hist2"), track.pt(), track.eta(), 50., 0.);
+    spectra.fill(HIST(subDir[mode]) + HIST("hist3"), track.pt(), track.eta(), 50., 0.);
+  }
+
   void process(aod::Tracks const& tracks)
   {
     using namespace aod::track;
 
-    etaStudy.fill<Pt>("positive", tracks, eta > 0.f);
-    etaStudy.fill<Pt>("negative", tracks, eta < 0.f);
+    etaStudy.fill<Pt>(HIST("positive"), tracks, eta > 0.f);
+    etaStudy.fill<Pt>(HIST("negative"), tracks, eta < 0.f);
 
     for (auto& track : tracks) {
-      spectra.fill("myControlHist", track.pt(), track.eta());
-      spectra.fill("charged/pions", track.pt(), track.eta(), 50., 0.);
-      spectra.fill("charged/pions", track.pt(), track.eta(), 50., 0.);
-      spectra.fill("neutral/pions", track.pt(), track.eta(), 50., 0.);
-      spectra.fill("one/two/three/four/kaons", track.pt(), track.eta(), 50., 0.);
-      spectra.fill("sigmas", track.pt(), track.eta(), 50., 0.);
-      spectra.fill("lambdas", track.pt(), track.eta(), 50., 0.);
+      spectra.fill(HIST("myControlHist"), track.pt(), track.eta());
+      spectra.fill(HIST("charged/pions"), track.pt(), track.eta(), 50., 0.);
+      spectra.fill(HIST("charged/pions"), track.pt(), track.eta(), 50., 0.);
+      spectra.fill(HIST("neutral/pions"), track.pt(), track.eta(), 50., 0.);
+      spectra.fill(HIST("one/two/three/four/kaons"), track.pt(), track.eta(), 50., 0.);
+      spectra.fill(HIST("sigmas"), track.pt(), track.eta(), 50., 0.);
+      spectra.fill(HIST("lambdas"), track.pt(), track.eta(), 50., 0.);
 
-      spectra.fill("before_cuts/hist2", track.pt(), track.eta(), 50., 0.);
-      spectra.fill("before_cuts/hist2", track.pt(), track.eta(), 50., 0.);
+      // fill histograms before and after cuts
+      fillHistos<false>(track);
+      if (std::rand() > (RAND_MAX / 2)) {
+        fillHistos<true>(track);
+      }
 
-      spectra.fill("after_cuts/hist2", track.pt(), track.eta(), 50., 0.);
-
-      spectra.fill("cascades", track.pt(), track.eta(), 50., 0.);
-      spectra.fill("strange/funny/particles", track.pt(), track.eta(), 50., 0.);
+      spectra.fill(HIST("cascades"), track.pt(), track.eta(), 50., 0.);
+      spectra.fill(HIST("strange/funny/particles"), track.pt(), track.eta(), 50., 0.);
     }
   }
 };
@@ -212,6 +222,34 @@ struct ETask {
   }
 };
 
+struct FTask {
+  Configurable<int> cfgTrackType{"trktype", 1, "Type of selected tracks: 0 = no selection, 1 = global tracks FB96"};
+  OutputObj<TList> fOutput{"TListForTests", OutputObjHandlingPolicy::AnalysisObject, OutputObjSourceType::OutputObjSource};
+  HistogramRegistry registry{
+    "registry",
+    {
+      {"eta", "#eta", {HistType::kTH1F, {{102, -2.01, 2.01}}}},     //
+      {"phi", "#varphi", {HistType::kTH1F, {{100, 0., 2. * M_PI}}}} //
+    }                                                               //
+  };
+
+  void init(InitContext const&)
+  {
+    TList* fOutputList = new TList();
+    fOutputList->SetOwner(true);
+    fOutput.setObject(fOutputList);
+    fOutputList->Add(new TParameter<Int_t>("TrackType", cfgTrackType, 'f'));
+  }
+
+  void process(aod::Tracks const& tracks)
+  {
+    for (auto& track : tracks) {
+      registry.get<TH1>(HIST("eta"))->Fill(track.eta());
+      registry.get<TH1>(HIST("phi"))->Fill(track.phi());
+    }
+  }
+};
+
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
@@ -219,5 +257,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     adaptAnalysisTask<ATask>("eta-and-phi-histograms"),
     adaptAnalysisTask<BTask>("filtered-histograms"),
     adaptAnalysisTask<CTask>("dimension-test"),
-    adaptAnalysisTask<DTask>("realistic-example")};
+    adaptAnalysisTask<DTask>("realistic-example"),
+    adaptAnalysisTask<FTask>("tlist-test")};
 }

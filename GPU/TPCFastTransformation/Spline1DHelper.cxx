@@ -501,7 +501,7 @@ int Spline1DHelper<DataT>::test(const bool draw, const bool drawDataPoints)
     double cosx[Fdegree + 1], sinx[Fdegree + 1];
     double xi = 0;
     for (int i = 0; i <= Fdegree; i++, xi += x) {
-      GPUCommonMath::SinCos(xi, sinx[i], cosx[i]);
+      GPUCommonMath::SinCosd(xi, sinx[i], cosx[i]);
     }
     for (int dim = 0; dim < Ndim; dim++) {
       f[dim] = 0; // Fcoeff[0]/2;

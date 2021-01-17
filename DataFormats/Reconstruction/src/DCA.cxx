@@ -19,7 +19,7 @@ namespace o2
 namespace dataformats
 {
 
-#ifndef ALIGPU_GPUCODE
+#ifndef GPUCA_GPUCODE_DEVICE
 std::ostream& operator<<(std::ostream& os, const o2::dataformats::DCA& d)
 {
   // stream itself
@@ -30,7 +30,7 @@ std::ostream& operator<<(std::ostream& os, const o2::dataformats::DCA& d)
 
 void DCA::print() const
 {
-#ifndef ALIGPU_GPUCODE
+#ifndef GPUCA_GPUCODE_DEVICE
   std::cout << *this << '\n';
 #endif
 }

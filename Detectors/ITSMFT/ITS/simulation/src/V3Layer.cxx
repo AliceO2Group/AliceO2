@@ -491,8 +491,8 @@ TGeoVolume* V3Layer::createStave(const TGeoManager* /*mgr*/)
       xpos = (static_cast<TGeoBBox*>(hstaveVol->GetShape()))->GetDX() - sOBHalfStaveXOverlap / 2;
       // ypos is now a parameter to avoid HS displacement wrt nominal radii
       ypos = sOBHalfStaveYPos;
-      staveVol->AddNode(hstaveVol, 0, new TGeoTranslation(-xpos, ypos, 0));
-      staveVol->AddNode(hstaveVol, 1, new TGeoTranslation(xpos, ypos + sOBHalfStaveYTrans, 0));
+      staveVol->AddNode(hstaveVol, 0, new TGeoTranslation(-xpos, ypos + sOBHalfStaveYTrans, 0));
+      staveVol->AddNode(hstaveVol, 1, new TGeoTranslation(xpos, ypos, 0));
       mHierarchy[kHalfStave] = 2; // RS
       mechStaveVol = createSpaceFrameOuterB();
 

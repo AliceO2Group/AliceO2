@@ -20,6 +20,8 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/StringHelpers.h"
 #include "Framework/CommonMessageBackends.h"
+#include "Framework/ExternalFairMQDeviceProxy.h"
+#include "Framework/Plugins.h"
 
 #include "Headers/DataHeader.h"
 #include <algorithm>
@@ -258,7 +260,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
                static_cast<DataAllocator::SubSpecificationType>(compile_time_hash("internal-dpl-aod-reader")),
                aodLifetime}},
     {},
-    readers::AODReaderHelpers::rootFileReaderCallback(),
+    AlgorithmSpec::dummyAlgorithm(),
     {ConfigParamSpec{"aod-file", VariantType::String, {"Input AOD file"}},
      ConfigParamSpec{"aod-reader-json", VariantType::String, {"json configuration file"}},
      ConfigParamSpec{"time-limit", VariantType::Int64, 0ll, {"Maximum run time limit in seconds"}},
@@ -323,6 +325,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         case Lifetime::QA:
         case Lifetime::Transient:
         case Lifetime::Timeframe:
+        case Lifetime::Optional:
           break;
       }
       if (DataSpecUtils::partialMatch(input, header::DataOrigin{"AOD"})) {
@@ -416,6 +419,26 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   // add the reader
   if (aodReader.outputs.empty() == false) {
+    uv_lib_t supportLib;
+    int result = 0;
+#ifdef __APPLE__
+    result = uv_dlopen("libO2FrameworkAnalysisSupport.dylib", &supportLib);
+#else
+    result = uv_dlopen("libO2FrameworkAnalysisSupport.so", &supportLib);
+#endif
+    if (result == -1) {
+      LOG(ERROR) << uv_dlerror(&supportLib);
+    }
+    void* callback = nullptr;
+    DPLPluginHandle* (*dpl_plugin_callback)(DPLPluginHandle*);
+
+    result = uv_dlsym(&supportLib, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
+    if (result == -1) {
+      LOG(ERROR) << uv_dlerror(&supportLib);
+    }
+    DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
+    AlgorithmPlugin* creator = PluginManager::getByName<AlgorithmPlugin>(pluginInstance, "ROOTFileReader");
+    aodReader.algorithm = creator->create();
     aodReader.outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
     extraSpecs.push_back(timePipeline(aodReader, ctx.options().get<int64_t>("readers")));
     auto concrete = DataSpecUtils::asConcreteDataMatcher(aodReader.inputs[0]);
@@ -510,6 +533,7 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
                                      std::vector<LogicalForwardInfo>& forwardedInputsInfo)
 {
   assert(!workflow.empty());
+
   // This is the state. Oif is the iterator I use for the searches.
   std::list<LogicalOutputInfo> availableOutputsInfo;
   auto const& constOutputs = outputs; // const version of the outputs
@@ -755,10 +779,10 @@ void WorkflowHelpers::sortEdges(std::vector<size_t>& inEdgeIndex,
   std::sort(outEdgeIndex.begin(), outEdgeIndex.end(), outSorter);
 }
 
-void WorkflowHelpers::verifyWorkflow(const o2::framework::WorkflowSpec& workflow)
+WorkflowParsingState WorkflowHelpers::verifyWorkflow(const o2::framework::WorkflowSpec& workflow)
 {
   if (workflow.empty()) {
-    throw std::runtime_error("Empty workflow!");
+    return WorkflowParsingState::Empty;
   }
   std::set<std::string> validNames;
   std::vector<OutputSpec> availableOutputs;
@@ -799,6 +823,7 @@ void WorkflowHelpers::verifyWorkflow(const o2::framework::WorkflowSpec& workflow
       }
     }
   }
+  return WorkflowParsingState::Valid;
 }
 
 using UnifiedDataSpecType = std::variant<InputSpec, OutputSpec>;

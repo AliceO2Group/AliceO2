@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "EMCALDigitizerSpec.h"
+#include "CommonConstants/Triggers.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
@@ -128,7 +129,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
     std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(mAccumulatedDigits));
     labelAccum.mergeAtBack(mLabels);
     LOG(INFO) << "Have " << mAccumulatedDigits.size() << " digits ";
-    triggers.emplace_back(timesview[trigID], indexStart, mDigits.size());
+    triggers.emplace_back(timesview[trigID], o2::trigger::PhT, indexStart, mDigits.size());
     indexStart = mAccumulatedDigits.size();
     mDigits.clear();
     mLabels.clear();

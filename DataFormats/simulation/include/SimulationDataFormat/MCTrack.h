@@ -15,6 +15,7 @@
 #ifndef ALICEO2_DATA_MCTRACK_H_
 #define ALICEO2_DATA_MCTRACK_H_
 
+#include "SimulationDataFormat/ParticleStatus.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Rtypes.h"
 #include "TDatabasePDG.h"
@@ -60,7 +61,8 @@ class MCTrackT
   Int_t GetPdgCode() const { return mPdgCode; }
   Int_t getMotherTrackId() const { return mMotherTrackId; }
   Int_t getSecondMotherTrackId() const { return mSecondMotherTrackId; }
-  bool isSecondary() const { return mMotherTrackId != -1; }
+  bool isPrimary() const { return getProcess() == TMCProcess::kPPrimary; }
+  bool isSecondary() const { return !isPrimary(); }
   Int_t getFirstDaughterTrackId() const { return mFirstDaughterTrackId; }
   Int_t getLastDaughterTrackId() const { return mLastDaughterTrackId; }
   Double_t GetStartVertexMomentumX() const { return mStartVertexMomentumX; }
@@ -184,6 +186,14 @@ class MCTrackT
   /// get the production process (id) of this track
   int getProcess() const { return ((PropEncoding)mProp).process; }
 
+  void setToBeDone(bool f)
+  {
+    auto prop = ((PropEncoding)mProp);
+    prop.toBeDone = f;
+    mProp = prop.i;
+  }
+  bool getToBeDone() const { return ((PropEncoding)mProp).toBeDone; }
+
   /// get the string representation of the production process
   const char* getProdProcessAsString() const;
 
@@ -198,11 +208,11 @@ class MCTrackT
   Int_t mPdgCode;
 
   ///  Index of mother tracks
-  Int_t mMotherTrackId;
-  Int_t mSecondMotherTrackId;
+  Int_t mMotherTrackId = -1;
+  Int_t mSecondMotherTrackId = -1;
 
-  Int_t mFirstDaughterTrackId;
-  Int_t mLastDaughterTrackId;
+  Int_t mFirstDaughterTrackId = -1;
+  Int_t mLastDaughterTrackId = -1;
   // hitmask stored as an int
   // if bit i is set it means that this track left a trace in detector i
   // we should have sizeof(int) < o2::base::DetId::nDetectors
@@ -216,7 +226,8 @@ class MCTrackT
     struct {
       int storage : 1;  // encoding whether to store this track to the output
       int process : 6;  // encoding process that created this track (enough to store TMCProcess from ROOT)
-      int hitmask : 25; // encoding hits per detector
+      int hitmask : 24; // encoding hits per detector
+      int toBeDone : 1; // whether this (still) needs tracking --> we might more complete information to cover full ParticleStatus space
     };
   };
 
@@ -305,6 +316,8 @@ inline MCTrackT<T>::MCTrackT(const TParticle& part)
 {
   // our convention is to communicate the process as (part) of the unique ID
   setProcess(part.GetUniqueID());
+  // extract toBeDone flag
+  setToBeDone(part.TestBit(ParticleStatus::kToBeDone));
 }
 
 template <typename T>

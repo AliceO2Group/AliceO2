@@ -47,6 +47,9 @@ class GBTRawDataChecker
   /// Sets the delay in the electronics
   void setElectronicsDelay(const ElectronicsDelay& electronicsDelay) { mElectronicsDelay = electronicsDelay; }
 
+  /// Sets the trigger use to verify if all data of an event where received
+  void setSyncTrigger(uint32_t syncTrigger) { mSyncTrigger = syncTrigger; }
+
  private:
   struct Mask {
     std::array<uint16_t, 4> patternsBP{};  /// Bending plane mask
@@ -78,6 +81,7 @@ class GBTRawDataChecker
   unsigned int getLastCompleteTrigEvent();
   bool isCompleteSelfTrigEvent(const o2::InteractionRecord& ir) const;
   std::string printBoards(const std::vector<LocalBoardRO>& boards) const;
+  bool runCheckEvents(unsigned int completeMask);
   void sortEvents(bool isTriggered);
 
   std::string mEventDebugMsg{};                   /// Debug message for the event
@@ -88,6 +92,7 @@ class GBTRawDataChecker
   uint16_t mFeeId{0};                             /// FeeId
   uint16_t mResetVal{0};                          /// Reset value
   ElectronicsDelay mElectronicsDelay{};           /// Delays in the electronics
+  uint32_t mSyncTrigger{raw::sORB};               /// Trigger for synchronization
 
   std::map<o2::InteractionRecord, uint16_t> mTrigEvents{}; ///! Index of triggered events
 
@@ -100,8 +105,8 @@ class GBTRawDataChecker
   std::map<o2::InteractionRecord, std::vector<std::pair<uint8_t, size_t>>> mOrderedIndexesTrig{};     ///! Ordered indexes for triggered boards
   std::map<o2::InteractionRecord, std::vector<std::pair<uint8_t, size_t>>> mOrderedIndexesSelfTrig{}; ///! Ordered indexes for self-triggered boards
 
-  std::unordered_map<uint8_t, size_t> mLastIndexTrig{};     ///! Last checked index for triggered boards
-  std::unordered_map<uint8_t, size_t> mLastIndexSelfTrig{}; ///! Last checked index for self-triggered boards
+  std::unordered_map<uint8_t, long int> mLastIndexTrig{};     ///! Last checked index for triggered boards
+  std::unordered_map<uint8_t, long int> mLastIndexSelfTrig{}; ///! Last checked index for self-triggered boards
 
   o2::InteractionRecord mLastCompleteIRTrig{};     ///! Last complete IR for triggered boards
   o2::InteractionRecord mLastCompleteIRSelfTrig{}; ///! Last complete IR for self-triggered boards

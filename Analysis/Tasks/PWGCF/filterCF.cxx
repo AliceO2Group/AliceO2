@@ -12,10 +12,10 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoAHelpers.h"
 
-#include "Analysis/CFDerived.h"
-#include "Analysis/EventSelection.h"
-#include "Analysis/TrackSelectionTables.h"
-#include "Analysis/Centrality.h"
+#include "AnalysisDataModel/CFDerived.h"
+#include "AnalysisDataModel/EventSelection.h"
+#include "AnalysisDataModel/TrackSelectionTables.h"
+#include "AnalysisDataModel/Centrality.h"
 
 #include <TH3F.h>
 
@@ -34,7 +34,7 @@ struct FilterCF {
 
   // Filters and input definitions
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex && aod::cent::centV0M <= 80.0f;
-  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::pt > cfgCutPt) && ((aod::track::isGlobalTrack == true) || (aod::track::isGlobalTrackSDD == true));
+  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::pt > cfgCutPt) && ((aod::track::isGlobalTrack == (uint8_t) true) || (aod::track::isGlobalTrackSDD == (uint8_t) true));
 
   OutputObj<TH3F> yields{TH3F("yields", "centrality vs pT vs eta", 100, 0, 100, 40, 0, 20, 100, -2, 2)};
   OutputObj<TH3F> etaphi{TH3F("etaphi", "centrality vs eta vs phi", 100, 0, 100, 100, -2, 2, 200, 0, 2 * M_PI)};
@@ -50,6 +50,9 @@ struct FilterCF {
   {
     LOGF(info, "Tracks for collision: %d | Vertex: %.1f | INT7: %d | V0M: %.1f", tracks.size(), collision.posZ(), collision.sel7(), collision.centV0M());
 
+    if (!collision.alias()[kINT7]) {
+      return;
+    }
     if (!collision.sel7()) {
       return;
     }

@@ -25,7 +25,7 @@
 //    alienv enter VO_ALICE@O2::latest-O2-o2,VO_ALICE@AliRoot::latest-O2-o2
 //    according to my configs, modify as required of course.
 //
-
+#if !defined(__CINT__) || defined(__MAKECINT__)
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -78,11 +78,12 @@
 #include "TRDBase/CalOnlineGainTables.h"
 #include "TRDBase/FeeParam.h"
 #include "TRDSimulation/TrapConfig.h"
+#include "DataFormatsTRD/Constants.h"
+#endif
 
 using namespace std;
 using namespace o2::ccdb;
 using namespace o2::trd;
-
 // global variables
 // histograms used for extracting the mean and RMS of calibration parameters
 

@@ -14,17 +14,17 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoAHelpers.h"
-#include "Analysis/Multiplicity.h"
-#include "Analysis/EventSelection.h"
-#include "Analysis/Centrality.h"
-#include "Analysis/TriggerAliases.h"
-#include "Analysis/ReducedInfoTables.h"
-#include "Analysis/VarManager.h"
-#include "Analysis/HistogramManager.h"
-#include "Analysis/AnalysisCut.h"
-#include "Analysis/AnalysisCompositeCut.h"
-#include "PID/PIDResponse.h"
-#include "Analysis/TrackSelectionTables.h"
+#include "AnalysisDataModel/Multiplicity.h"
+#include "AnalysisDataModel/EventSelection.h"
+#include "AnalysisDataModel/Centrality.h"
+#include "AnalysisCore/TriggerAliases.h"
+#include "AnalysisDataModel/ReducedInfoTables.h"
+#include "PWGDQCore/VarManager.h"
+#include "PWGDQCore/HistogramManager.h"
+#include "PWGDQCore/AnalysisCut.h"
+#include "PWGDQCore/AnalysisCompositeCut.h"
+#include "AnalysisDataModel/PID/PIDResponse.h"
+#include "AnalysisDataModel/TrackSelectionTables.h"
 #include <iostream>
 
 using std::cout;
@@ -210,7 +210,7 @@ struct TableMaker_pp {
     }
     VarManager::SetRunNumbers(kNRuns, runs);
 
-    TObjArray* arr = histClasses.Tokenize(";");
+    std::unique_ptr<TObjArray> arr(histClasses.Tokenize(";"));
     for (Int_t iclass = 0; iclass < arr->GetEntries(); ++iclass) {
       TString classStr = arr->At(iclass)->GetName();
 

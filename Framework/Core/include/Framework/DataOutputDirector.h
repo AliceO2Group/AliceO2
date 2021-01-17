@@ -20,9 +20,7 @@
 
 #include "rapidjson/fwd.h"
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 using namespace rapidjson;
 
@@ -105,7 +103,6 @@ struct DataOutputDirector {
   const std::tuple<std::string, std::string, int> memptyanswer = std::make_tuple(std::string(""), std::string(""), -1);
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif // o2_framework_DataOutputDirector_H_INCLUDED

@@ -25,8 +25,9 @@ namespace o2
 {
 namespace mid
 {
-framework::DataProcessorSpec getRawDecoderSpec(bool isBare = false);
-framework::DataProcessorSpec getRawDecoderSpec(bool isBare, bool isDebugMode, const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks, const ElectronicsDelay& electronicsDelay);
+framework::DataProcessorSpec getRawDecoderSpec(bool isDebugMode = false);
+framework::DataProcessorSpec getRawDecoderSpec(bool isDebugMode, const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks, const ElectronicsDelay& electronicsDelay);
+framework::DataProcessorSpec getRawDecoderSpec(bool isDebugMode, const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks, const ElectronicsDelay& electronicsDelay, header::DataHeader::SubSpecificationType subSpec);
 } // namespace mid
 } // namespace o2
 

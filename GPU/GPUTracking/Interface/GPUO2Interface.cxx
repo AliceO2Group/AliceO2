@@ -53,10 +53,11 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
   }
   mRec->SetSettings(&mConfig->configEvent, &mConfig->configReconstruction, &mConfig->configProcessing, &mConfig->configWorkflow);
   mChain->SetTPCFastTransform(mConfig->configCalib.fastTransform);
-  mChain->SetTPCCFCalibration(mConfig->configCalib.tpcCalibration);
+  mChain->SetTPCPadGainCalib(mConfig->configCalib.tpcPadGain);
   mChain->SetdEdxSplines(mConfig->configCalib.dEdxSplines);
   mChain->SetMatLUT(mConfig->configCalib.matLUT);
   mChain->SetTRDGeometry(mConfig->configCalib.trdGeometry);
+  mChain->SetO2Propagator(mConfig->configCalib.o2Propagator);
   if (mConfig->configInterface.outputToExternalBuffers) {
     mOutputCompressedClusters.reset(new GPUOutputControl);
     mChain->SetOutputControlCompressedClusters(mOutputCompressedClusters.get());
@@ -64,6 +65,8 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
     mChain->SetOutputControlClustersNative(mOutputClustersNative.get());
     mOutputTPCTracks.reset(new GPUOutputControl);
     mChain->SetOutputControlTPCTracks(mOutputTPCTracks.get());
+    mOutputSharedClusterMap.reset(new GPUOutputControl);
+    mChain->SetOutputControlSharedClusterMap(mOutputSharedClusterMap.get());
     GPUOutputControl dummy;
     dummy.set([](size_t size) -> void* {throw std::runtime_error("invalid output memory request, no common output buffer set"); return nullptr; });
     mRec->SetOutputControl(dummy);
@@ -76,7 +79,7 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
   if (mRec->Init()) {
     return (1);
   }
-  if (!mRec->IsGPU() && mConfig->configProcessing.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
+  if (!mRec->IsGPU() && mRec->GetProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
     mRec->MemoryScalers()->factor *= 2;
   }
   mRec->MemoryScalers()->factor *= mConfig->configInterface.memoryBufferScaleFactor;
@@ -98,8 +101,8 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceO
   if (!mInitialized) {
     return (1);
   }
-  static int nEvent = 0;
   if (mConfig->configInterface.dumpEvents) {
+    static int nEvent = 0;
     mChain->ClearIOPointers();
     mChain->mIOPtrs.clustersNative = data->clustersNative;
     mChain->mIOPtrs.tpcPackedDigits = data->tpcPackedDigits;
@@ -111,6 +114,7 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceO
     if (nEvent == 0) {
       mRec->DumpSettings();
     }
+    nEvent++;
     if (mConfig->configInterface.dumpEvents >= 2) {
       return 0;
     }
@@ -138,6 +142,13 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceO
       mOutputTPCTracks->set(outputs->tpcTracks.ptr, outputs->tpcTracks.size);
     } else {
       mOutputTPCTracks->reset();
+    }
+    if (outputs->sharedClusterMap.allocator) {
+      mOutputSharedClusterMap->set(outputs->sharedClusterMap.allocator);
+    } else if (outputs->sharedClusterMap.ptr) {
+      mOutputSharedClusterMap->set(outputs->sharedClusterMap.ptr, outputs->sharedClusterMap.size);
+    } else {
+      mOutputSharedClusterMap->reset();
     }
   }
   if (mConfig->configProcessing.runMC) {
@@ -167,7 +178,6 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceO
   }
   *data = mChain->mIOPtrs;
 
-  nEvent++;
   return 0;
 }
 

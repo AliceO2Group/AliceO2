@@ -1,0 +1,31 @@
+#include "generator.macro"
+
+void
+read_event_info(const char *fname)
+{
+
+  auto fin = TFile::Open(fname);
+  auto tin = (TTree*)fin->Get("o2sim");
+  auto head = new o2::dataformats::MCEventHeader;
+  tin->SetBranchAddress("MCEventHeader.", &head);
+
+  bool isvalid;
+  
+  for (int iev = 0; iev < tin->GetEntries(); ++iev) {
+
+    tin->GetEntry(iev);
+
+    std::cout << " ---------------" << std::endl;
+    auto Xsection = Generator::getXsection(head, isvalid);
+    if (isvalid)
+      std::cout << "    Xsection = " << Xsection << std::endl;
+    auto XsectionErr = Generator::getXsectionErr(head, isvalid);
+    if (isvalid)
+      std::cout << " XsectionErr = " << XsectionErr << std::endl;
+    auto Nmpi = Generator::getNmpi(head, isvalid);
+    if (isvalid)
+      std::cout << "        Nmpi = " << Nmpi << std::endl;
+
+  }
+  
+}

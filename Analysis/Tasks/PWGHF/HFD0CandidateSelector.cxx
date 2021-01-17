@@ -15,8 +15,8 @@
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Analysis/HFSecondaryVertex.h"
-#include "Analysis/HFCandidateSelectionTables.h"
+#include "AnalysisDataModel/HFSecondaryVertex.h"
+#include "AnalysisDataModel/HFCandidateSelectionTables.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -177,7 +177,7 @@ struct HFD0CandidateSelector {
       }
     }
 
-    if (TMath::Abs(trackPion.pt()) < TMath::Abs(cuts[pTBin][4]) || TMath::Abs(trackKaon.pt()) < TMath::Abs(cuts[pTBin][3])) {
+    if (trackPion.pt() < cuts[pTBin][4] || trackKaon.pt() < cuts[pTBin][3]) {
       return false; //cut on daughter pT
     }
     if (TMath::Abs(trackPion.dcaPrim0()) > cuts[pTBin][6] || TMath::Abs(trackKaon.dcaPrim0()) > cuts[pTBin][5]) {

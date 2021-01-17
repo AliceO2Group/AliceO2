@@ -114,32 +114,37 @@ GPUdi() I GPUCommonAlgorithm::MedianOf3Select(I f, I l, Cmp cmp) noexcept
   --l;
 
   if (cmp(*f, *m)) {
-    if (cmp(*m, *l))
+    if (cmp(*m, *l)) {
       return m;
-    else if (cmp(*f, *l))
+    } else if (cmp(*f, *l)) {
       return l;
-    else
+    } else {
       return f;
-  } else if (cmp(*f, *l))
+    }
+  } else if (cmp(*f, *l)) {
     return f;
-  else if (cmp(*m, *l))
+  } else if (cmp(*m, *l)) {
     return l;
-  else
+  } else {
     return m;
+  }
 }
 
 template <typename I, typename T, typename Cmp>
 GPUdi() I GPUCommonAlgorithm::UnguardedPartition(I f, I l, T piv, Cmp cmp) noexcept
 {
   do {
-    while (cmp(*f, piv))
+    while (cmp(*f, piv)) {
       ++f;
+    }
     --l;
-    while (cmp(piv, *l))
+    while (cmp(piv, *l)) {
       --l;
+    }
 
-    if (l <= f)
+    if (l <= f) {
       return f;
+    }
     IterSwap(f, l);
     ++f;
   } while (true);
@@ -148,10 +153,9 @@ GPUdi() I GPUCommonAlgorithm::UnguardedPartition(I f, I l, T piv, Cmp cmp) noexc
 template <typename I, typename Cmp>
 GPUdi() void GPUCommonAlgorithm::QuickSort(I f, I l, Cmp cmp) noexcept
 {
-  if (f == l)
-
+  if (f == l) {
     return;
-
+  }
   using IndexType = unsigned short;
 
   struct pair {
@@ -186,15 +190,19 @@ GPUdi() void GPUCommonAlgorithm::QuickSort(I f, I l, Cmp cmp) noexcept
     const auto lsz = pp - it0;
     const auto rsz = it1 - pp;
     if (lsz < rsz) {
-      if (rsz > cutoff)
+      if (rsz > cutoff) {
         s.emplace(pp - f, it1 - f);
-      if (lsz > cutoff)
+      }
+      if (lsz > cutoff) {
         s.emplace(it0 - f, pp - f);
+      }
     } else {
-      if (lsz > cutoff)
+      if (lsz > cutoff) {
         s.emplace(it0 - f, pp - f);
-      if (rsz > cutoff)
+      }
+      if (rsz > cutoff) {
         s.emplace(pp - f, it1 - f);
+      }
     }
   }
   InsertionSort(f, l, cmp);

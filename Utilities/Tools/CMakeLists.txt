@@ -8,6 +8,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
+add_subdirectory(cpulimit)
 
 install(PROGRAMS monitor-mem.sh DESTINATION share/scripts/)
 install(PROGRAMS jobutils.sh DESTINATION share/scripts/)

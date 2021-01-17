@@ -39,11 +39,14 @@
 #include "TPCdEdxCalibrationSplines.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "DetectorsBase/MatLayerCylSet.h"
+#include "DetectorsBase/Propagator.h"
+#include "DetectorsBase/GeometryManager.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "TPCBase/RDHUtils.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUO2InterfaceQA.h"
-#include "TPCCFCalibration.h"
+#include "TPCPadGainCalib.h"
 #include "GPUDisplayBackend.h"
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
 #include "GPUDisplayBackendGlfw.h"
@@ -100,8 +103,9 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
     std::unique_ptr<GPUDisplayBackend> displayBackend;
     std::unique_ptr<TPCFastTransform> fastTransform;
     std::unique_ptr<TPCdEdxCalibrationSplines> dEdxSplines;
-    std::unique_ptr<TPCCFCalibration> tpcCalibration;
-    std::unique_ptr<GPUSettingsQA> qaConfig;
+    std::unique_ptr<TPCPadGainCalib> tpcPadGainCalib;
+    std::unique_ptr<GPUO2InterfaceConfiguration> config;
+    int qaTaskMask = 0;
     std::unique_ptr<GPUO2InterfaceQA> qa;
     std::vector<int> clusterOutputIds;
     unsigned long outputBufferSize = 0;
@@ -117,7 +121,8 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
     processAttributes->tpcSectorMask |= (1ul << s);
   }
   auto initFunction = [processAttributes, specconfig](InitContext& ic) {
-    GPUO2InterfaceConfiguration config;
+    processAttributes->config.reset(new GPUO2InterfaceConfiguration);
+    GPUO2InterfaceConfiguration& config = *processAttributes->config.get();
     GPUSettingsO2 confParam;
     {
       auto& parser = processAttributes->parser;
@@ -126,7 +131,9 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       tracker = std::make_unique<GPUCATracking>();
 
       // Create configuration object and fill settings
-      const auto grp = o2::parameters::GRPObject::loadFrom("o2sim_grp.root");
+      const auto grp = o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName());
+      o2::base::GeometryManager::loadGeometry();
+      o2::base::Propagator::initFieldFromGRP(o2::base::NameConf::getGRPFileName());
       if (grp) {
         config.configEvent.solenoidBz = 5.00668f * grp->getL3Current() / 30000.;
         config.configEvent.continuousMaxTimeBin = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC) ? -1 : 0; // Number of timebins in timeframe if continuous, 0 otherwise
@@ -162,10 +169,18 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       }
       config.configProcessing.runMC = specconfig.processMC;
       if (specconfig.outputQA) {
-        if (!config.configProcessing.runQA) {
-          config.configQA.shipToQC = true;
+        if (!specconfig.processMC && !config.configQA.clusterRejectionHistograms) {
+          throw std::runtime_error("Need MC information to create QA plots");
         }
-        config.configProcessing.runQA = true;
+        if (!specconfig.processMC) {
+          config.configQA.noMC = true;
+        }
+        config.configQA.shipToQC = true;
+        if (!config.configProcessing.runQA) {
+          config.configQA.enableLocalOutput = false;
+          processAttributes->qaTaskMask = (specconfig.processMC ? 15 : 0) | (config.configQA.clusterRejectionHistograms ? 32 : 0);
+          config.configProcessing.runQA = -processAttributes->qaTaskMask;
+        }
       }
       config.configReconstruction.NWaysOuter = true;
       config.configInterface.outputToExternalBuffers = true;
@@ -198,6 +213,9 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         config.configWorkflow.outputs.setBits(GPUDataTypes::InOutType::TPCClusters, true);
         config.configWorkflow.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, false);
       }
+      if (specconfig.outputSharedClusterMap) {
+        config.configProcessing.outputSharedClusterMap = true;
+      }
 
       // Create and forward data objects for TPC transformation, material LUT, ...
       if (confParam.transformationFile.size()) {
@@ -210,32 +228,34 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       if (config.configCalib.fastTransform == nullptr) {
         throw std::invalid_argument("GPUCATracking: initialization of the TPC transformation failed");
       }
+
       if (confParam.matLUTFile.size()) {
         config.configCalib.matLUT = o2::base::MatLayerCylSet::loadFromFile(confParam.matLUTFile.c_str(), "MatBud");
       }
+
       if (confParam.dEdxFile.size()) {
         processAttributes->dEdxSplines.reset(new TPCdEdxCalibrationSplines(confParam.dEdxFile.c_str()));
       } else {
         processAttributes->dEdxSplines.reset(new TPCdEdxCalibrationSplines);
       }
-
       config.configCalib.dEdxSplines = processAttributes->dEdxSplines.get();
 
       if (boost::filesystem::exists(confParam.gainCalibFile)) {
         LOG(INFO) << "Loading tpc gain correction from file " << confParam.gainCalibFile;
         const auto* gainMap = o2::tpc::utils::readCalPads(confParam.gainCalibFile, "GainMap")[0];
-        processAttributes->tpcCalibration.reset(new TPCCFCalibration{*gainMap});
+        processAttributes->tpcPadGainCalib.reset(new TPCPadGainCalib{*gainMap});
       } else {
         if (not confParam.gainCalibFile.empty()) {
           LOG(WARN) << "Couldn't find tpc gain correction file " << confParam.gainCalibFile << ". Not applying any gain correction.";
         }
-        processAttributes->tpcCalibration.reset(new TPCCFCalibration{});
+        processAttributes->tpcPadGainCalib.reset(new TPCPadGainCalib{});
       }
-      config.configCalib.tpcCalibration = processAttributes->tpcCalibration.get();
+      config.configCalib.tpcPadGain = processAttributes->tpcPadGainCalib.get();
+
+      config.configCalib.o2Propagator = Propagator::Instance();
 
       // Sample code what needs to be done for the TRD Geometry, when we extend this to TRD tracking.
-      /*o2::base::GeometryManager::loadGeometry();
-      o2::trd::Geometry gm;
+      /* o2::trd::Geometry gm;
       gm.createPadPlaneArray();
       gm.createClusterMatrixArray();
       std::unique_ptr<o2::trd::GeometryFlat> gf(gm);
@@ -246,8 +266,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         throw std::invalid_argument("GPUCATracking initialization failed");
       }
       if (specconfig.outputQA) {
-        processAttributes->qaConfig.reset(new GPUSettingsQA(config.configQA));
-        processAttributes->qa = std::make_unique<GPUO2InterfaceQA>(processAttributes->qaConfig.get());
+        processAttributes->qa = std::make_unique<GPUO2InterfaceQA>(processAttributes->config.get());
       }
       timer.Stop();
       timer.Reset();
@@ -585,8 +604,8 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       }
 
       GPUInterfaceOutputs outputRegions;
-      std::optional<std::reference_wrapper<O2CharVectorOutputType>> clusterOutput = std::nullopt, bufferCompressedClusters = std::nullopt, bufferTPCTracks = std::nullopt;
-      char *clusterOutputChar = nullptr, *bufferCompressedClustersChar = nullptr, *bufferTPCTracksChar = nullptr;
+      std::optional<std::reference_wrapper<O2CharVectorOutputType>> clusterOutput = std::nullopt, bufferCompressedClusters = std::nullopt, bufferTPCTracks = std::nullopt, bufferSharedClusterMap = std::nullopt;
+      char *clusterOutputChar = nullptr, *bufferCompressedClustersChar = nullptr, *bufferTPCTracksChar = nullptr, *bufferSharedClusterMapChar;
       if (specconfig.outputCompClustersFlat) {
         if (processAttributes->allocateOutputOnTheFly) {
           outputRegions.compressedClusters.allocator = [&bufferCompressedClustersChar, &pc](size_t size) -> void* {bufferCompressedClustersChar = pc.outputs().make<char>(Output{gDataOriginTPC, "COMPCLUSTERSFLAT", 0}, size).data(); return bufferCompressedClustersChar; };
@@ -614,6 +633,15 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
           bufferTPCTracks.emplace(pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "TRACKSGPU", 0}, processAttributes->outputBufferSize));
           outputRegions.tpcTracks.ptr = bufferTPCTracksChar = bufferTPCTracks->get().data();
           outputRegions.tpcTracks.size = bufferTPCTracks->get().size();
+        }
+      }
+      if (specconfig.outputSharedClusterMap) {
+        if (processAttributes->allocateOutputOnTheFly) {
+          outputRegions.sharedClusterMap.allocator = [&bufferSharedClusterMapChar, &pc](size_t size) -> void* {bufferSharedClusterMapChar = pc.outputs().make<char>(Output{gDataOriginTPC, "CLSHAREDMAP", 0}, size).data(); return bufferSharedClusterMapChar; };
+        } else {
+          bufferSharedClusterMap.emplace(pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "CLSHAREDMAP", 0}, processAttributes->outputBufferSize));
+          outputRegions.sharedClusterMap.ptr = bufferSharedClusterMapChar = bufferSharedClusterMap->get().data();
+          outputRegions.sharedClusterMap.size = bufferSharedClusterMap->get().size();
         }
       }
       if (specconfig.processMC) {
@@ -711,7 +739,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         std::vector<TH1F> copy1 = *outputRegions.qa.hist1; // Internally, this will also be used as output, so we need a non-const copy
         std::vector<TH2F> copy2 = *outputRegions.qa.hist2;
         std::vector<TH1D> copy3 = *outputRegions.qa.hist3;
-        processAttributes->qa->postprocess(copy1, copy2, copy3, out);
+        processAttributes->qa->postprocessExternal(copy1, copy2, copy3, out, processAttributes->qaTaskMask ? processAttributes->qaTaskMask : -1);
         pc.outputs().snapshot({gDataOriginTPC, "TRACKINGQA", 0, Lifetime::Timeframe}, out);
         processAttributes->qa->cleanup();
       }
@@ -814,6 +842,9 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
           outputSpecs.emplace_back(gDataOriginTPC, "CLNATIVEMCLBL", NSectors, Lifetime::Timeframe);
         }
       }
+    }
+    if (specconfig.outputSharedClusterMap) {
+      outputSpecs.emplace_back(gDataOriginTPC, "CLSHAREDMAP", 0, Lifetime::Timeframe);
     }
     if (specconfig.outputQA) {
       outputSpecs.emplace_back(gDataOriginTPC, "TRACKINGQA", 0, Lifetime::Timeframe);

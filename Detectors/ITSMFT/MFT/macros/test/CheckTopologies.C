@@ -35,7 +35,9 @@
 void CheckTopologies(std::string clusfile = "mftclusters.root",
                      std::string hitfile = "o2sim_HitsMFT.root",
                      std::string collContextfile = "collisioncontext.root",
-                     std::string inputGeom = "")
+                     std::string inputGeom = "",
+                     float checkOutliers = 2. // reject outliers (MC dX or dZ exceeds row/col span by a factor above the threshold)
+)
 {
   const int QEDSourceID = 99; // Clusters from this MC source correspond to QED electrons
 
@@ -211,6 +213,12 @@ void CheckTopologies(std::string clusfile = "mftclusters.root",
             const auto locC = o2::itsmft::TopologyDictionary::getClusterCoordinates(cluster, pattern);
             dX = locH.X() - locC.X();
             dZ = locH.Z() - locC.Z();
+            if (checkOutliers > 0.) {
+              if (std::abs(dX) > topology.getRowSpan() * o2::itsmft::SegmentationAlpide::PitchRow * checkOutliers ||
+                  std::abs(dZ) > topology.getColumnSpan() * o2::itsmft::SegmentationAlpide::PitchCol * checkOutliers) { // ignore outlier
+                dX = dZ = BuildTopologyDictionary::IgnoreVal;
+              }
+            }
           } else {
             printf("Failed to find MC hit entry for Tr:%d chipID:%d\n", trID, chipID);
             lab.print();

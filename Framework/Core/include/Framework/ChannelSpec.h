@@ -7,14 +7,12 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_CHANNELSPEC_H
-#define FRAMEWORK_CHANNELSPEC_H
+#ifndef O2_FRAMEWORK_CHANNELSPEC_H_
+#define O2_FRAMEWORK_CHANNELSPEC_H_
 
 #include <string>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// These map to zeromq connection
@@ -50,6 +48,10 @@ struct InputChannelSpec {
   std::string hostname;
   unsigned short port;
   ChannelProtocol protocol = ChannelProtocol::Network;
+  size_t rateLogging = 0;
+  size_t recvBufferSize = 1000;
+  size_t sendBufferSize = 1000;
+  std::string ipcPrefix = ".";
 };
 
 /// This describes an output channel. Output channels are semantically
@@ -65,9 +67,12 @@ struct OutputChannelSpec {
   unsigned short port;
   size_t listeners;
   ChannelProtocol protocol = ChannelProtocol::Network;
+  size_t rateLogging = 0;
+  size_t recvBufferSize = 1000;
+  size_t sendBufferSize = 1000;
+  std::string ipcPrefix = ".";
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // FRAMEWORK_CHANNELSPEC_H
+#endif // O2_FRAMEWORK_CHANNELSPEC_H_

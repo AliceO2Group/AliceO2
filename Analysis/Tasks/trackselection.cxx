@@ -15,10 +15,10 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/runDataProcessing.h"
-#include "Analysis/TrackSelection.h"
-#include "Analysis/TrackSelectionDefaults.h"
-#include "Analysis/TrackSelectionTables.h"
-#include "Analysis/trackUtilities.h"
+#include "AnalysisCore/TrackSelection.h"
+#include "AnalysisCore/TrackSelectionDefaults.h"
+#include "AnalysisDataModel/TrackSelectionTables.h"
+#include "AnalysisCore/trackUtilities.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -44,8 +44,8 @@ struct TrackSelectionTask {
   void process(soa::Join<aod::FullTracks, aod::TracksExtended> const& tracks)
   {
     for (auto& track : tracks) {
-      filterTable(globalTracks.IsSelected(track),
-                  globalTracksSDD.IsSelected(track));
+      filterTable((uint8_t)globalTracks.IsSelected(track),
+                  (uint8_t)globalTracksSDD.IsSelected(track));
     }
   }
 };

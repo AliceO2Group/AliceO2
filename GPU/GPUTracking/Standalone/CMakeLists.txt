@@ -23,6 +23,18 @@ if(NOT EXISTS "${CMAKE_BINARY_DIR}/config.cmake")
   file(COPY "${CMAKE_SOURCE_DIR}/cmake/config.cmake" DESTINATION "${CMAKE_BINARY_DIR}")
 endif()
 include("${CMAKE_BINARY_DIR}/config.cmake")
+if(DEFINED CONFIG_COMPILER)
+  if(CONFIG_COMPILER STREQUAL "clang")
+    set(CMAKE_C_COMPILER "clang")
+    set(CMAKE_CXX_COMPILER "clang++")
+  elseif(CONFIG_COMPILER STREQUAL "gcc")
+    set(CMAKE_C_COMPILER "gcc")
+    set(CMAKE_CXX_COMPILER "c++")
+  else()
+    set(CMAKE_C_COMPILER "${CONFIG_COMPILER}")
+    set(CMAKE_CXX_COMPILER "${CONFIG_COMPILER}")
+  endif()
+endif()
 
 # Set Build and Compiler settings
 set(ALIGPU_BUILD_TYPE "Standalone")
@@ -35,7 +47,10 @@ if(BUILD_DEBUG)
   set(CMAKE_CXX_FLAGS "-O0 -ggdb")
   set(CMAKE_BUILD_TYPE DEBUG)
 else()
-  set(CMAKE_CXX_FLAGS "-O3 -march=native -ggdb -minline-all-stringops -ftracer -funroll-loops -fprefetch-loop-arrays -ffast-math -fno-stack-protector")
+  set(CMAKE_CXX_FLAGS "-O3 -march=native -ggdb -minline-all-stringops -funroll-loops -ffast-math -fno-stack-protector")
+  if (NOT CMAKE_CXX_COMPILER STREQUAL "clang++")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ftracer -fprefetch-loop-arrays")
+  endif()
   set(CMAKE_RELEASE_TYPE RELEASE)
   add_definitions(-DNDEBUG)
 endif()
@@ -91,7 +106,7 @@ if(CONFIG_O2_EXTENSIONS)
 endif()
 
 if(CONFIG_FMT)
-  find_package(fmt REQUIRED)
+  find_package(fmt REQUIRED HINTS $ENV{FMT_ROOT})
 else()
   add_definitions(-DGPUCA_NO_FMT)
 endif()
@@ -132,6 +147,7 @@ include_directories(${CMAKE_SOURCE_DIR}/TPCClusterFinder
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Headers/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/MemoryResources/include
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/Reconstruction/include
+                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/Reconstruction/src
                     ${CMAKE_SOURCE_DIR}/../../../DataFormats/simulation/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/Base/include
                     ${CMAKE_SOURCE_DIR}/../../../Detectors/Base/src
@@ -168,6 +184,8 @@ if(CONFIG_O2_EXTENSIONS)
                ../../../DataFormats/Reconstruction/src/TrackParametrizationWithError.cxx
                ../../../DataFormats/Reconstruction/src/Vertex.cxx
                ../../../DataFormats/Reconstruction/src/TrackLTIntegral.cxx
+               ../../../DataFormats/Reconstruction/src/TrackParametrization.cxx
+               ../../../DataFormats/Reconstruction/src/TrackParametrizationWithError.cxx
                ../../../Detectors/TRD/base/src/GeometryBase.cxx
                ../../../Detectors/Base/src/MatLayerCylSet.cxx
                ../../../Detectors/Base/src/MatLayerCyl.cxx
@@ -208,7 +226,7 @@ if(BUILD_EVENT_DISPLAY)
     target_sources(GPUTracking PRIVATE display/3rdparty/gl3w.c)
     target_compile_definitions(GPUTracking PUBLIC GPUCA_DISPLAY_GL3W)
   endif()
-  target_sources(GPUTracking PRIVATE display/3rdparty/HandMadeMathImpl.cxx)
+  target_sources(GPUTracking PRIVATE display/3rdparty/HandMadeMath/HandMadeMathImpl.cxx)
   target_include_directories(GPUTracking SYSTEM PUBLIC display/3rdparty)
 endif()
 
@@ -229,6 +247,10 @@ endif()
 
 if(OpenMP_CXX_FOUND)
   target_link_libraries(ca PUBLIC OpenMP::OpenMP_CXX)
+  if (CMAKE_CXX_COMPILER STREQUAL "clang++")
+    target_link_libraries(ca PUBLIC -fopenmp)
+    target_link_libraries(GPUTracking PUBLIC -fopenmp)
+  endif()
 endif()
 
 # Installation

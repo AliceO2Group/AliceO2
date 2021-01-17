@@ -10,6 +10,7 @@
 
 #include "Framework/RootConfigParamHelpers.h"
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/StringHelpers.h"
 #include <TClass.h>
 #include <TDataMember.h>
 #include <TDataType.h>
@@ -35,14 +36,18 @@ bool isString(TDataMember const& dm)
 // a generic looper of data members of a TClass; calling a callback
 // reused in various functions below
 void loopOverMembers(TClass* cl, void* obj,
-                     std::function<void(const TDataMember*, int, int)>&& callback)
+                     std::function<void(TDataMember*, int, int)>&& callback)
 {
-  auto memberlist = cl->GetListOfDataMembers();
+  auto* memberlist = cl->GetListOfDataMembers();
   for (int i = 0; i < memberlist->GetEntries(); ++i) {
-    auto dm = (TDataMember*)memberlist->At(i);
+    auto* dm = (TDataMember*)memberlist->At(i);
 
     auto isValidComplex = [dm]() {
-      return isString(*dm) || dm->IsEnum();
+      auto typehash = compile_time_hash(dm->GetTypeName());
+      return isString(*dm) || dm->IsEnum() || dm->IsSTLContainer() ||
+             (typehash == compile_time_hash("o2::framework::Array2D<int>")) ||
+             (typehash == compile_time_hash("o2::framework::Array2D<float>")) ||
+             (typehash == compile_time_hash("o2::framework::Array2D<double>"));
     };
 
     // filter out static members for now
@@ -70,6 +75,43 @@ void loopOverMembers(TClass* cl, void* obj,
   }
 }
 
+namespace
+{
+template <typename T>
+std::vector<T> extractVector(boost::property_tree::ptree const& tree)
+{
+  std::vector<T> result(tree.size());
+  auto count = 0U;
+  for (auto const& entry : tree) {
+    result[count++] = entry.second.get_value<T>();
+  }
+  return result;
+}
+
+template <typename T>
+Array2D<T> extractMatrix(boost::property_tree::ptree const& tree)
+{
+  std::vector<T> cache;
+  uint32_t nrows = tree.size();
+  uint32_t ncols = 0;
+  bool first = true;
+  auto irow = 0u;
+  for (auto const& row : tree) {
+    if (first) {
+      ncols = row.second.size();
+      first = false;
+    }
+    auto icol = 0u;
+    for (auto const& entry : row.second) {
+      cache.push_back(entry.second.get_value<T>());
+      ++icol;
+    }
+    ++irow;
+  }
+  return Array2D<T>{cache, nrows, ncols};
+}
+} // namespace
+
 // construct name (in dependence on vector or scalar data and index)
 std::string getName(const TDataMember* dm, int index, int size)
 {
@@ -83,10 +125,44 @@ std::string getName(const TDataMember* dm, int index, int size)
 
 void ptreeToMember(boost::property_tree::ptree const& value,
                    char const* tname,
-                   TDataMember const* dm,
+                   TDataMember* dm,
                    void* ptr)
 {
-  auto dt = dm->GetDataType();
+  auto typehash = compile_time_hash(dm->GetTypeName());
+  if (dm->IsSTLContainer()) {
+    switch (typehash) {
+      case compile_time_hash("vector<int>"):
+        *static_cast<std::vector<int>*>(ptr) = extractVector<int>(value);
+        return;
+      case compile_time_hash("vector<float>"):
+        *static_cast<std::vector<float>*>(ptr) = extractVector<float>(value);
+        return;
+      case compile_time_hash("vector<double>"):
+        *static_cast<std::vector<double>*>(ptr) = extractVector<double>(value);
+        return;
+      case compile_time_hash("vector<bool>"):
+        throw std::runtime_error("Bool arrays are not implemented yet");
+      case compile_time_hash("vector<std::string>"):
+      case compile_time_hash("vector<string>"):
+        *static_cast<std::vector<std::string>*>(ptr) = extractVector<std::string>(value);
+        return;
+      default:
+        throw std::runtime_error("Not an int/float/double/bool vector");
+    }
+  } else {
+    switch (typehash) {
+      case compile_time_hash("o2::framework::Array2D<int>"):
+        *static_cast<Array2D<int>*>(ptr) = extractMatrix<int>(value);
+        return;
+      case compile_time_hash("o2::framework::Array2D<float>"):
+        *static_cast<Array2D<float>*>(ptr) = extractMatrix<float>(value);
+        return;
+      case compile_time_hash("o2::framework::Array2D<double>"):
+        *static_cast<Array2D<double>*>(ptr) = extractMatrix<double>(value);
+        return;
+    }
+  }
+  auto* dt = dm->GetDataType();
   if (dt != nullptr) {
     switch (dt->GetType()) {
       case kChar_t: {
@@ -125,10 +201,7 @@ void ptreeToMember(boost::property_tree::ptree const& value,
         *(float*)ptr = value.get_value<float>();
         return;
       }
-      case kDouble_t: {
-        *(double*)ptr = value.get_value<double>();
-        return;
-      }
+      case kDouble_t:
       case kDouble32_t: {
         *(double*)ptr = value.get_value<double>();
         return;
@@ -151,16 +224,44 @@ void ptreeToMember(boost::property_tree::ptree const& value,
     }
   }
   // if we get here none of the above worked
-  if (strcmp(tname, "string") == 0 || strcmp(tname, "std::string")) {
+  if (strcmp(tname, "string") == 0 || strcmp(tname, "std::string") == 0) {
     *(std::string*)ptr = value.get_value<std::string>();
   }
   throw std::runtime_error("Unable to override value");
 }
 
 // Convert a DataMember to a ConfigParamSpec
-ConfigParamSpec memberToConfigParamSpec(const char* tname, TDataMember const* dm, void* ptr)
+ConfigParamSpec memberToConfigParamSpec(const char* tname, TDataMember* dm, void* ptr)
 {
-  auto dt = dm->GetDataType();
+  auto typehash = compile_time_hash(dm->GetTypeName());
+  if (dm->IsSTLContainer()) {
+    switch (typehash) {
+      case compile_time_hash("vector<int>"):
+        return ConfigParamSpec{tname, VariantType::ArrayInt, *static_cast<std::vector<int>*>(ptr), {"No help"}};
+      case compile_time_hash("vector<float>"):
+        return ConfigParamSpec{tname, VariantType::ArrayFloat, *static_cast<std::vector<float>*>(ptr), {"No help"}};
+      case compile_time_hash("vector<double>"):
+        return ConfigParamSpec{tname, VariantType::ArrayDouble, *static_cast<std::vector<double>*>(ptr), {"No help"}};
+      case compile_time_hash("vector<bool>"):
+        throw std::runtime_error("bool vector not supported yet");
+        //        return ConfigParamSpec{tname, VariantType::ArrayBool, *static_cast<std::vector<bool>*>(ptr), {"No help"}};
+      case compile_time_hash("vector<std::string>"):
+      case compile_time_hash("vector<string>"):
+        return ConfigParamSpec{tname, VariantType::ArrayString, *static_cast<std::vector<std::string>*>(ptr), {"No help"}};
+      default:
+        throw std::runtime_error("Not an int/float/double/bool vector");
+    }
+  } else {
+    switch (typehash) {
+      case compile_time_hash("o2::framework::Array2D<int>"):
+        return ConfigParamSpec{tname, VariantType::MatrixInt, *static_cast<Array2D<int>*>(ptr), {"No help"}};
+      case compile_time_hash("o2::framework::Array2D<float>"):
+        return ConfigParamSpec{tname, VariantType::MatrixFloat, *static_cast<Array2D<float>*>(ptr), {"No help"}};
+      case compile_time_hash("o2::framework::Array2D<double>"):
+        return ConfigParamSpec{tname, VariantType::MatrixDouble, *static_cast<Array2D<double>*>(ptr), {"No help"}};
+    }
+  }
+  auto* dt = dm->GetDataType();
   if (dt != nullptr) {
     switch (dt->GetType()) {
       case kChar_t: {
@@ -190,9 +291,7 @@ ConfigParamSpec memberToConfigParamSpec(const char* tname, TDataMember const* dm
       case kFloat_t: {
         return ConfigParamSpec{tname, VariantType::Float, *(float*)ptr, {"No help"}};
       }
-      case kDouble_t: {
-        return ConfigParamSpec{tname, VariantType::Double, *(double*)ptr, {"No help"}};
-      }
+      case kDouble_t:
       case kDouble32_t: {
         return ConfigParamSpec{tname, VariantType::Double, *(double*)ptr, {"No help"}};
       }
@@ -211,7 +310,7 @@ ConfigParamSpec memberToConfigParamSpec(const char* tname, TDataMember const* dm
     }
   }
   // if we get here none of the above worked
-  if (strcmp(tname, "string") == 0 || strcmp(tname, "std::string")) {
+  if (strcmp(tname, "string") == 0 || strcmp(tname, "std::string") == 0) {
     return ConfigParamSpec{tname, VariantType::String, *(std::string*)ptr, {"No help"}};
   }
   throw std::runtime_error("Cannot use " + std::string(tname));
@@ -226,9 +325,9 @@ std::vector<ConfigParamSpec>
 {
   std::vector<ConfigParamSpec> specs;
 
-  auto toDataMember = [&mainKey, &specs, obj](const TDataMember* dm, int index, int size) {
-    auto dt = dm->GetDataType();
-    auto TS = dt ? dt->Size() : 0;
+  auto toDataMember = [&mainKey, &specs, obj](TDataMember* dm, int index, int size) {
+    auto* dt = dm->GetDataType();
+    auto TS = dt != nullptr ? dt->Size() : 0;
     char* ptr = ((char*)obj) + dm->GetOffset() + index * TS;
     const std::string name = mainKey + "." + getName(dm, index, size);
 
@@ -243,9 +342,9 @@ std::vector<ConfigParamSpec>
 /// using the values in the ptree to override, where appropriate.
 void RootConfigParamHelpers::fillFromPtree(TClass* cl, void* obj, boost::property_tree::ptree const& pt)
 {
-  auto toDataMember = [obj, &pt](const TDataMember* dm, int index, int size) {
-    auto dt = dm->GetDataType();
-    auto TS = dt ? dt->Size() : 0;
+  auto toDataMember = [obj, &pt](TDataMember* dm, int index, int size) {
+    auto* dt = dm->GetDataType();
+    auto TS = dt != nullptr ? dt->Size() : 0;
     char* ptr = ((char*)obj) + dm->GetOffset() + index * TS;
     const std::string name = getName(dm, index, size);
     auto it = pt.get_child_optional(name);

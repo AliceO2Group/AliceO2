@@ -11,6 +11,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include "Mocking.h"
 #include "test_HelperMacros.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/WorkflowSpec.h"
@@ -24,46 +25,22 @@
 
 using namespace o2::framework;
 
-std::unique_ptr<ConfigContext> makeEmptyConfigContext()
-{
-  // FIXME: Ugly... We need to fix ownership and make sure the ConfigContext
-  //        either owns or shares ownership of the registry.
-  std::vector<std::unique_ptr<ParamRetriever>> retrievers;
-  static std::vector<ConfigParamSpec> specs = {
-    ConfigParamSpec{"forwarding-policy",
-                    VariantType::String,
-                    "dangling",
-                    {""}},
-    ConfigParamSpec{"forwarding-destination",
-                    VariantType::String,
-                    "file",
-                    {"what to do with dangling outputs. file: write to file, fairmq: send to output proxy"}},
-  };
-  specs.push_back(ConfigParamSpec{"aod-memory-rate-limit", VariantType::String, "0", {"rate"}});
-  auto store = std::make_unique<ConfigParamStore>(specs, std::move(retrievers));
-  store->preload();
-  store->activate();
-  static ConfigParamRegistry registry(std::move(store));
-  auto context = std::make_unique<ConfigContext>(registry, 0, nullptr);
-  return context;
-}
-
 BOOST_AUTO_TEST_CASE(TestVerifyWorkflow)
 {
   using namespace o2::framework;
   auto checkIncompleteInput = [](WorkflowSpec const& workflow) {
     // Empty workflows should be invalid.
-    BOOST_CHECK_THROW(WorkflowHelpers::verifyWorkflow(workflow), std::runtime_error);
+    BOOST_CHECK_THROW((void)WorkflowHelpers::verifyWorkflow(workflow), std::runtime_error);
   };
 
   auto checkOk = [](WorkflowSpec const& workflow) {
     // Empty workflows should be invalid.
-    BOOST_CHECK_NO_THROW(WorkflowHelpers::verifyWorkflow(workflow));
+    BOOST_CHECK_NO_THROW((void)WorkflowHelpers::verifyWorkflow(workflow));
   };
 
   auto checkNotOk = [](WorkflowSpec const& workflow) {
     // Empty workflows should be invalid.
-    BOOST_CHECK_THROW(WorkflowHelpers::verifyWorkflow(workflow), std::runtime_error);
+    BOOST_CHECK_THROW((void)WorkflowHelpers::verifyWorkflow(workflow), std::runtime_error);
   };
 
   // A non fully specified input is an error, given the result is ambiguous.
@@ -232,7 +209,8 @@ BOOST_AUTO_TEST_CASE(TestSimpleConnection)
   std::vector<OutputSpec> outputs;
   std::vector<LogicalForwardInfo> availableForwardsInfo;
 
-  WorkflowHelpers::verifyWorkflow(workflow);
+  auto result = WorkflowHelpers::verifyWorkflow(workflow);
+  BOOST_REQUIRE(result == WorkflowParsingState::Valid);
   auto context = makeEmptyConfigContext();
   WorkflowHelpers::injectServiceDevices(workflow, *context);
   BOOST_CHECK_EQUAL(workflow.size(), 3);
@@ -273,7 +251,7 @@ BOOST_AUTO_TEST_CASE(TestSimpleForward)
   std::vector<DeviceConnectionEdge> logicalEdges;
   std::vector<OutputSpec> outputs;
   std::vector<LogicalForwardInfo> availableForwardsInfo;
-  WorkflowHelpers::verifyWorkflow(workflow);
+  BOOST_REQUIRE(WorkflowHelpers::verifyWorkflow(workflow) == WorkflowParsingState::Valid);
   auto context = makeEmptyConfigContext();
   WorkflowHelpers::injectServiceDevices(workflow, *context);
   WorkflowHelpers::constructGraph(workflow, logicalEdges,
@@ -330,7 +308,7 @@ BOOST_AUTO_TEST_CASE(TestGraphConstruction)
   // channels, so that we can construct them before assigning to a device.
   std::vector<OutputSpec> outputs;
 
-  WorkflowHelpers::verifyWorkflow(workflow);
+  BOOST_REQUIRE(WorkflowHelpers::verifyWorkflow(workflow) == WorkflowParsingState::Valid);
   auto context = makeEmptyConfigContext();
   WorkflowHelpers::injectServiceDevices(workflow, *context);
   WorkflowHelpers::constructGraph(workflow, logicalEdges,
@@ -449,7 +427,7 @@ BOOST_AUTO_TEST_CASE(TestExternalInput)
        InputSpec{"external", "TST", "A", 0, Lifetime::Timer}},
      Outputs{
        OutputSpec{"TST", "B"}}}};
-  WorkflowHelpers::verifyWorkflow(workflow);
+  BOOST_REQUIRE(WorkflowHelpers::verifyWorkflow(workflow) == WorkflowParsingState::Valid);
   std::vector<DeviceConnectionEdge> logicalEdges;
   std::vector<OutputSpec> outputs;
   std::vector<LogicalForwardInfo> availableForwardsInfo;
@@ -536,7 +514,7 @@ BOOST_AUTO_TEST_CASE(TestOriginWildcard)
   std::vector<OutputSpec> outputs;
   std::vector<LogicalForwardInfo> availableForwardsInfo;
 
-  WorkflowHelpers::verifyWorkflow(workflow);
+  BOOST_REQUIRE(WorkflowHelpers::verifyWorkflow(workflow) == WorkflowParsingState::Valid);
   auto context = makeEmptyConfigContext();
   WorkflowHelpers::injectServiceDevices(workflow, *context);
   BOOST_CHECK_EQUAL(workflow.size(), 3);

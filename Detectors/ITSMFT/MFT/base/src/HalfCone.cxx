@@ -14,22 +14,23 @@
 /// \Carlos csoncco@pucp.edu.pe
 /// \date 01/07/2020
 
-#include "TGeoManager.h"
-#include "TGeoMatrix.h"
-#include "TGeoManager.h"
+#include "TGeoBBox.h"
+#include "TGeoBoolNode.h"
 #include "TGeoCompositeShape.h"
-#include "TGeoShape.h"
 #include "TGeoCone.h"
-#include "TGeoVolume.h"
+#include "TGeoManager.h"
 #include "TGeoMaterial.h"
+#include "TGeoMatrix.h"
 #include "TGeoMedium.h"
-#include "TGeoTube.h"
+#include "TGeoShape.h"
 #include "TGeoTrd1.h"
-#include "TMath.h"
+#include "TGeoTube.h"
+#include "TGeoVolume.h"
 #include "TGeoXtru.h"
+#include "TMath.h"
 
-#include "MFTBase/HalfCone.h"
 #include "MFTBase/Constants.h"
+#include "MFTBase/HalfCone.h"
 
 using namespace o2::mft;
 
@@ -528,7 +529,7 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   Double_t high_bord = 1.355; // 13.5
   Double_t ang_in_bord = 0;
   Double_t ang_fin_bord = 90;
-  // TGeoRotation *rot_bord1 = new TGeoRotation("rot_bord1", ang_in_1hole
+  // TGeoRotation* rot_bord1 = new TGeoRotation("rot_bord1", ang_in_1hole
   // +0.0167,0,0);
   TGeoRotation* rot1_bord1 = new TGeoRotation("rot1_bord1", 14.8, 0, 0);
   rot1_bord1->RegisterYourself();
@@ -1771,7 +1772,8 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   HalfConeVolume->AddNode(frame_back, 6, c_final); //
   HalfConeVolume->AddNode(colonne_mb, 7, c_final); //
 
-  //========================== Mother Boards =========================================
+  //========================== Mother Boards
+  //=========================================
 
   // =============  MotherBoard 0 and 1
   Double_t mMB0cu[3];
@@ -1794,15 +1796,22 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
 
   auto* MotherBoard0 = new TGeoVolumeAssembly(Form("MotherBoard0_H%d", half));
   // 4 layers
-  TGeoVolume* vMB0cu = gGeoManager->MakeBox("vMB0cu", mCu, mMB0cu[0] / 2, mMB0cu[1] / 2, mMB0cu[2] / 2);
-  TGeoVolume* vMB0fr4 = gGeoManager->MakeBox("vMB0fr4", mFR4, mMB0cu[0] / 2, mMB0fr4 / 2, mMB0cu[2] / 2);
-  TGeoVolume* vMB0pol = gGeoManager->MakeBox("vMB0pol", mPol, mMB0cu[0] / 2, mMB0pol / 2, mMB0cu[2] / 2);
-  TGeoVolume* vMB0epo = gGeoManager->MakeBox("vMB0epo", mEpo, mMB0cu[0] / 2, mMB0epo / 2, mMB0cu[2] / 2);
+  TGeoVolume* vMB0cu = gGeoManager->MakeBox("vMB0cu", mCu, mMB0cu[0] / 2,
+                                            mMB0cu[1] / 2, mMB0cu[2] / 2);
+  TGeoVolume* vMB0fr4 = gGeoManager->MakeBox("vMB0fr4", mFR4, mMB0cu[0] / 2,
+                                             mMB0fr4 / 2, mMB0cu[2] / 2);
+  TGeoVolume* vMB0pol = gGeoManager->MakeBox("vMB0pol", mPol, mMB0cu[0] / 2,
+                                             mMB0pol / 2, mMB0cu[2] / 2);
+  TGeoVolume* vMB0epo = gGeoManager->MakeBox("vMB0epo", mEpo, mMB0cu[0] / 2,
+                                             mMB0epo / 2, mMB0cu[2] / 2);
   // Screws = Head + Thread
-  TGeoVolume* vMB0screwH = gGeoManager->MakeTube("vMB0screwH", mInox, 0.0, 0.7 / 2, 0.35 / 2); // tete
-  TGeoVolume* vMB0screwT = gGeoManager->MakeTube("vMB0screwT", mInox, 0.0, 0.4 / 2, 1.2 / 2);  // filetage
+  TGeoVolume* vMB0screwH = gGeoManager->MakeTube("vMB0screwH", mInox, 0.0,
+                                                 0.7 / 2, 0.35 / 2); // tete
+  TGeoVolume* vMB0screwT = gGeoManager->MakeTube("vMB0screwT", mInox, 0.0,
+                                                 0.4 / 2, 1.2 / 2); // filetage
   // Insert Sertitec
-  TGeoVolume* vMB0serti = gGeoManager->MakeTube("vMB0serti", mInox, 0.16 / 2, 0.556 / 2, 0.15 / 2); // tete
+  TGeoVolume* vMB0serti = gGeoManager->MakeTube("vMB0serti", mInox, 0.16 / 2,
+                                                0.556 / 2, 0.15 / 2); // tete
 
   vMB0cu->SetLineColor(kRed);
   vMB0fr4->SetLineColor(kBlack);
@@ -1820,31 +1829,46 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   if (half == 1) {
     signe = +1;
   }
-  auto* t_MB0fr4 = new TGeoTranslation("translation_fr4", 0.0, signe * (mMB0fr4 + mMB0cu[1]) / 2, 0.0);
+  auto* t_MB0fr4 = new TGeoTranslation("translation_fr4", 0.0,
+                                       signe * (mMB0fr4 + mMB0cu[1]) / 2, 0.0);
   t_MB0fr4->RegisterYourself();
   MotherBoard0->AddNode(vMB0fr4, 1, t_MB0fr4);
-  auto* t_MB0pol = new TGeoTranslation("translation_pol", 0.0, signe * (mMB0fr4 + (mMB0cu[1] + mMB0pol) / 2), 0.0);
+  auto* t_MB0pol =
+    new TGeoTranslation("translation_pol", 0.0,
+                        signe * (mMB0fr4 + (mMB0cu[1] + mMB0pol) / 2), 0.0);
   t_MB0pol->RegisterYourself();
   MotherBoard0->AddNode(vMB0pol, 1, t_MB0pol);
-  auto* t_MB0epo = new TGeoTranslation("translation_epo", 0.0, signe * (mMB0fr4 + mMB0pol + (mMB0cu[1] + mMB0epo) / 2), 0.0);
+  auto* t_MB0epo = new TGeoTranslation(
+    "translation_epo", 0.0,
+    signe * (mMB0fr4 + mMB0pol + (mMB0cu[1] + mMB0epo) / 2), 0.0);
   t_MB0epo->RegisterYourself();
   MotherBoard0->AddNode(vMB0epo, 1, t_MB0epo);
   auto* r_MB0screw = new TGeoRotation("rotation_vMB0screw", 0, 90, 0);
-  auto* t_MB0screwH1 = new TGeoCombiTrans(mMB0cu[0] / 2 - 1.65,
-                                          signe * (mMB0fr4 + mMB0pol + mMB0epo + (mMB0cu[1] + 0.35) / 2), 0.0, r_MB0screw);
+  auto* t_MB0screwH1 = new TGeoCombiTrans(
+    mMB0cu[0] / 2 - 1.65,
+    signe * (mMB0fr4 + mMB0pol + mMB0epo + (mMB0cu[1] + 0.35) / 2), 0.0,
+    r_MB0screw);
   t_MB0screwH1->RegisterYourself();
-  auto* t_MB0screwT1 = new TGeoCombiTrans(mMB0cu[0] / 2 - 1.65, -signe * (mMB0cu[1] + 1.2) / 2, 0.0, r_MB0screw);
+  auto* t_MB0screwT1 = new TGeoCombiTrans(
+    mMB0cu[0] / 2 - 1.65, -signe * (mMB0cu[1] + 1.2) / 2, 0.0, r_MB0screw);
   t_MB0screwT1->RegisterYourself();
-  auto* t_MB0screwH2 = new TGeoCombiTrans(-(mMB0cu[0] / 2 - 1.65),
-                                          signe * (mMB0fr4 + mMB0pol + mMB0epo + (mMB0cu[1] + 0.35) / 2), 0.0, r_MB0screw);
+  auto* t_MB0screwH2 = new TGeoCombiTrans(
+    -(mMB0cu[0] / 2 - 1.65),
+    signe * (mMB0fr4 + mMB0pol + mMB0epo + (mMB0cu[1] + 0.35) / 2), 0.0,
+    r_MB0screw);
   t_MB0screwH2->RegisterYourself();
-  auto* t_MB0screwT2 = new TGeoCombiTrans(-(mMB0cu[0] / 2 - 1.65), -signe * (mMB0cu[1] + 1.2) / 2, 0.0, r_MB0screw);
+  auto* t_MB0screwT2 = new TGeoCombiTrans(
+    -(mMB0cu[0] / 2 - 1.65), -signe * (mMB0cu[1] + 1.2) / 2, 0.0, r_MB0screw);
   t_MB0screwT2->RegisterYourself();
-  auto* t_MB0serti1 = new TGeoCombiTrans(mMB0cu[0] / 2 - 2.65,
-                                         signe * (mMB0fr4 + mMB0pol + mMB0epo + (mMB0cu[1] + 0.153) / 2), 0.0, r_MB0screw);
+  auto* t_MB0serti1 = new TGeoCombiTrans(
+    mMB0cu[0] / 2 - 2.65,
+    signe * (mMB0fr4 + mMB0pol + mMB0epo + (mMB0cu[1] + 0.153) / 2), 0.0,
+    r_MB0screw);
   t_MB0serti1->RegisterYourself();
-  auto* t_MB0serti2 = new TGeoCombiTrans(-(mMB0cu[0] / 2 - 2.65),
-                                         signe * (mMB0fr4 + mMB0pol + mMB0epo + (mMB0cu[1] + 0.153) / 2), 0.0, r_MB0screw);
+  auto* t_MB0serti2 = new TGeoCombiTrans(
+    -(mMB0cu[0] / 2 - 2.65),
+    signe * (mMB0fr4 + mMB0pol + mMB0epo + (mMB0cu[1] + 0.153) / 2), 0.0,
+    r_MB0screw);
   t_MB0serti2->RegisterYourself();
   MotherBoard0->AddNode(vMB0screwH, 1, t_MB0screwH1);
   MotherBoard0->AddNode(vMB0screwT, 1, t_MB0screwT1);
@@ -1856,7 +1880,9 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   // Positioning the board
   auto* t_MB0 = new TGeoTranslation("translation_MB0", 0.0, tyMB0, tzMB0);
   t_MB0->RegisterYourself();
-  auto* t_MB1 = new TGeoTranslation("translation_MB1", 0.0, tyMB0, tzMB0 - 3.3); // 3.3 cm is the interdistance between disk 0 and 1
+  auto* t_MB1 = new TGeoTranslation(
+    "translation_MB1", 0.0, tyMB0,
+    tzMB0 - 3.3); // 3.3 cm is the interdistance between disk 0 and 1
   t_MB1->RegisterYourself();
   auto* r_MB0 = new TGeoRotation("rotation_MB0", 0.0, 0.0, 0.0);
   r_MB0->RegisterYourself();
@@ -1868,12 +1894,17 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   HalfConeVolume->AddNode(MotherBoard0, 1, p_MB0);
   HalfConeVolume->AddNode(MotherBoard0, 1, p_MB1);
 
-  auto* MotherBoard0_1 = new TGeoVolumeAssembly(Form("MotherBoard0_1_H%d", half));
+  auto* MotherBoard0_1 =
+    new TGeoVolumeAssembly(Form("MotherBoard0_1_H%d", half));
   // 4 layers
-  TGeoVolume* vMB0cu_1 = gGeoManager->MakeBox("vMB0cu_1", mCu, 18.0 / 2, mMB0cu[1] / 2, 1.2 / 2);
-  TGeoVolume* vMB0fr4_1 = gGeoManager->MakeBox("vMB0fr4_1", mFR4, 18.0 / 2, mMB0fr4 / 2, 1.2 / 2);
-  TGeoVolume* vMB0pol_1 = gGeoManager->MakeBox("vMB0pol_1", mPol, 18.0 / 2, mMB0pol / 2, 1.2 / 2);
-  TGeoVolume* vMB0epo_1 = gGeoManager->MakeBox("vMB0epo_1", mEpo, 18.0 / 2, mMB0epo / 2, 1.2 / 2);
+  TGeoVolume* vMB0cu_1 =
+    gGeoManager->MakeBox("vMB0cu_1", mCu, 18.0 / 2, mMB0cu[1] / 2, 1.2 / 2);
+  TGeoVolume* vMB0fr4_1 =
+    gGeoManager->MakeBox("vMB0fr4_1", mFR4, 18.0 / 2, mMB0fr4 / 2, 1.2 / 2);
+  TGeoVolume* vMB0pol_1 =
+    gGeoManager->MakeBox("vMB0pol_1", mPol, 18.0 / 2, mMB0pol / 2, 1.2 / 2);
+  TGeoVolume* vMB0epo_1 =
+    gGeoManager->MakeBox("vMB0epo_1", mEpo, 18.0 / 2, mMB0epo / 2, 1.2 / 2);
   vMB0cu_1->SetLineColor(kRed);
   vMB0fr4_1->SetLineColor(kBlack);
   vMB0pol_1->SetLineColor(kGreen);
@@ -1899,21 +1930,34 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   mMB2epo = 0.0075; // 75 microns
   auto* MotherBoard2 = new TGeoVolumeAssembly(Form("MotherBoard2_H%d", half));
   // 4 layers
-  TGeoVolume* vMB2cu = gGeoManager->MakeTrd1("vMB2cu", mCu, mMB2cu[0] / 2, mMB2cu[1] / 2, mMB2cu[2] / 2, mMB2cu[3] / 2);
-  TGeoVolume* vMB2fr4 = gGeoManager->MakeTrd1("vMB2fr4", mFR4, mMB2cu[0] / 2, mMB2cu[1] / 2, mMB2fr4 / 2, mMB2cu[3] / 2);
-  TGeoVolume* vMB2pol = gGeoManager->MakeTrd1("vMB2pol", mPol, mMB2cu[0] / 2, mMB2cu[1] / 2, mMB2pol / 2, mMB2cu[3] / 2);
-  TGeoVolume* vMB2epo = gGeoManager->MakeTrd1("vMB2epo", mEpo, mMB2cu[0] / 2, mMB2cu[1] / 2, mMB2epo / 2, mMB2cu[3] / 2);
+  TGeoVolume* vMB2cu =
+    gGeoManager->MakeTrd1("vMB2cu", mCu, mMB2cu[0] / 2, mMB2cu[1] / 2,
+                          mMB2cu[2] / 2, mMB2cu[3] / 2);
+  TGeoVolume* vMB2fr4 =
+    gGeoManager->MakeTrd1("vMB2fr4", mFR4, mMB2cu[0] / 2, mMB2cu[1] / 2,
+                          mMB2fr4 / 2, mMB2cu[3] / 2);
+  TGeoVolume* vMB2pol =
+    gGeoManager->MakeTrd1("vMB2pol", mPol, mMB2cu[0] / 2, mMB2cu[1] / 2,
+                          mMB2pol / 2, mMB2cu[3] / 2);
+  TGeoVolume* vMB2epo =
+    gGeoManager->MakeTrd1("vMB2epo", mEpo, mMB2cu[0] / 2, mMB2cu[1] / 2,
+                          mMB2epo / 2, mMB2cu[3] / 2);
 
   vMB2cu->SetLineColor(kRed);
   vMB2fr4->SetLineColor(kBlack);
   vMB2pol->SetLineColor(kGreen);
   vMB2epo->SetLineColor(kBlue);
 
-  auto* t_MB2fr4 = new TGeoTranslation("translation_fr4", 0.0, signe * (mMB2fr4 + mMB2cu[2]) / 2, 0.0);
+  auto* t_MB2fr4 = new TGeoTranslation("translation_fr4", 0.0,
+                                       signe * (mMB2fr4 + mMB2cu[2]) / 2, 0.0);
   t_MB2fr4->RegisterYourself();
-  auto* t_MB2pol = new TGeoTranslation("translation_pol", 0.0, signe * (mMB2fr4 + (mMB2cu[2] + mMB2pol) / 2), 0.0);
+  auto* t_MB2pol =
+    new TGeoTranslation("translation_pol", 0.0,
+                        signe * (mMB2fr4 + (mMB2cu[2] + mMB2pol) / 2), 0.0);
   t_MB2pol->RegisterYourself();
-  auto* t_MB2epo = new TGeoTranslation("translation_epo", 0.0, signe * (mMB2fr4 + mMB2pol + (mMB2cu[2] + mMB2epo) / 2), 0.0);
+  auto* t_MB2epo = new TGeoTranslation(
+    "translation_epo", 0.0,
+    signe * (mMB2fr4 + mMB2pol + (mMB2cu[2] + mMB2epo) / 2), 0.0);
   t_MB2epo->RegisterYourself();
 
   MotherBoard2->AddNode(vMB2cu, 1);
@@ -1921,9 +1965,12 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   MotherBoard2->AddNode(vMB2pol, 1, t_MB2pol);
   MotherBoard2->AddNode(vMB2epo, 1, t_MB2epo);
   for (Float_t i = -1; i < 3; i++) {
-    auto* t_MB2serti1 = new TGeoTranslation("translationMB2serti1", 8.5, -signe * (mMB2cu[2] + 0.153) / 2, 1.3 * i);
+    auto* t_MB2serti1 = new TGeoTranslation(
+      "translationMB2serti1", 8.5, -signe * (mMB2cu[2] + 0.153) / 2, 1.3 * i);
     t_MB2serti1->RegisterYourself();
-    auto* t_MB2serti2 = new TGeoTranslation("translationMB2serti2", -8.5, -signe * (mMB2cu[2] + 0.153) / 2, 1.3 * i);
+    auto* t_MB2serti2 =
+      new TGeoTranslation("translationMB2serti2", -8.5,
+                          -signe * (mMB2cu[2] + 0.153) / 2, 1.3 * i);
     t_MB2serti2->RegisterYourself();
     auto* p_MB2serti1 = new TGeoCombiTrans(*t_MB2serti1, *r_MB0screw);
     p_MB2serti1->RegisterYourself();
@@ -1934,9 +1981,12 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   }
 
   for (Float_t i = -2; i < 1; i++) {
-    auto* t_MB2serti3 = new TGeoTranslation("translationMB2serti3", 0.7, -signe * (mMB2cu[2] + 0.153) / 2, 1.3 * i);
+    auto* t_MB2serti3 = new TGeoTranslation(
+      "translationMB2serti3", 0.7, -signe * (mMB2cu[2] + 0.153) / 2, 1.3 * i);
     t_MB2serti3->RegisterYourself();
-    auto* t_MB2serti4 = new TGeoTranslation("translationMB2serti4", -0.7, -signe * (mMB2cu[2] + 0.153) / 2, 1.3 * i);
+    auto* t_MB2serti4 =
+      new TGeoTranslation("translationMB2serti4", -0.7,
+                          -signe * (mMB2cu[2] + 0.153) / 2, 1.3 * i);
     t_MB2serti4->RegisterYourself();
     auto* p_MB2serti3 = new TGeoCombiTrans(*t_MB2serti3, *r_MB0screw);
     p_MB2serti3->RegisterYourself();
@@ -1947,11 +1997,15 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   }
 
   for (Float_t i = -2; i < 2; i++) {
-    auto* t_MB2serti5 = new TGeoTranslation("translationMB2serti5", 7.0 * i + 3.5, -signe * (mMB2cu[2] + 0.153) / 2, -2.5);
+    auto* t_MB2serti5 =
+      new TGeoTranslation("translationMB2serti5", 7.0 * i + 3.5,
+                          -signe * (mMB2cu[2] + 0.153) / 2, -2.5);
     t_MB2serti5->RegisterYourself();
     auto* p_MB2serti5 = new TGeoCombiTrans(*t_MB2serti5, *r_MB0screw);
     p_MB2serti5->RegisterYourself();
-    auto* t_MB2serti6 = new TGeoTranslation("translationMB2serti6", 7.0 * i + 3.5, -signe * (mMB2cu[2] + 0.153) / 2, -3.5);
+    auto* t_MB2serti6 =
+      new TGeoTranslation("translationMB2serti6", 7.0 * i + 3.5,
+                          -signe * (mMB2cu[2] + 0.153) / 2, -3.5);
     t_MB2serti6->RegisterYourself();
     auto* p_MB2serti6 = new TGeoCombiTrans(*t_MB2serti6, *r_MB0screw);
     p_MB2serti6->RegisterYourself();
@@ -1959,22 +2013,224 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
     MotherBoard2->AddNode(vMB0serti, 1, p_MB2serti6);
   }
   // Connector board of MB0 on MB2
-  auto* t_MotherBoard0_1 = new TGeoTranslation("translation_MB0_1", 0.0, -signe * (-0.5), 3.5);
+  auto* t_MotherBoard0_1 =
+    new TGeoTranslation("translation_MB0_1", 0.0, -signe * (-0.5), 3.5);
   t_MotherBoard0_1->RegisterYourself();
-  auto* t_MotherBoard0_2 = new TGeoTranslation("translation_MB0_2", 0.0, -signe * (-0.5), 1.5);
+  auto* t_MotherBoard0_2 =
+    new TGeoTranslation("translation_MB0_2", 0.0, -signe * (-0.5), 1.5);
   t_MotherBoard0_2->RegisterYourself();
   MotherBoard2->AddNode(MotherBoard0_1, 1, t_MotherBoard0_1);
   MotherBoard2->AddNode(MotherBoard0_1, 1, t_MotherBoard0_2);
   // Positioning the board
-  auto* t_MotherBoard2 = new TGeoTranslation("translation_MB2", 0.0,
-                                             -signe * (-20.52 + mMB2fr4 + mMB2pol + mMB2epo + 2.2 * TMath::Sin(19.0)),
-                                             -62.8 + 2.2 * TMath::Cos(19.0));
+  auto* t_MotherBoard2 = new TGeoTranslation(
+    "translation_MB2", 0.0,
+    -signe * (-20.52 + mMB2fr4 + mMB2pol + mMB2epo + 2.2 * TMath::Sin(19.0)),
+    -62.8 + 2.2 * TMath::Cos(19.0));
   t_MotherBoard2->RegisterYourself();
-  auto* r_MotherBoard2 = new TGeoRotation("rotation_MB2", 0.0, -signe * (-19.0), 0.0);
+  auto* r_MotherBoard2 =
+    new TGeoRotation("rotation_MB2", 0.0, -signe * (-19.0), 0.0);
   r_MotherBoard2->RegisterYourself();
   auto* p_MB2 = new TGeoCombiTrans(*t_MotherBoard2, *r_MotherBoard2);
   p_MB2->RegisterYourself();
   HalfConeVolume->AddNode(MotherBoard2, 1, p_MB2);
+
+  //======================== Air ventilation ==========================
+  TGeoMedium* mVentilation = gGeoManager->GetMedium("MFT_Polypropylene$");
+  // Bottom
+  TGeoSubtraction* vent_subB1;
+  Float_t lB1 = 5.5; // half length
+  Float_t xB1 = 0.3;
+  Float_t yB1 = 0.4;
+  auto* ventB1 = new TGeoBBox(Form("ventB1_H%d", half), xB1, yB1, lB1);
+  auto* ventB1_int =
+    new TGeoBBox(Form("ventB1_int_H%d", half), 0.2, 0.3, lB1 + 0.0001);
+  vent_subB1 = new TGeoSubtraction(ventB1, ventB1_int, nullptr, nullptr);
+  TGeoCompositeShape* vent_finalB1 =
+    new TGeoCompositeShape(Form("vent_finalB1_H%d", half), vent_subB1);
+  auto* vent_B1 =
+    new TGeoVolume(Form("ventB1_H%d", half), vent_finalB1, mVentilation);
+  vent_B1->SetLineColor(kGray);
+  auto* t_airB1 = new TGeoTranslation("t_airB1", signe * (15.3 - xB1),
+                                      -8.75 - yB1 - 0.1, -45.570 - lB1);
+  t_airB1->RegisterYourself();
+  auto* r_airB1 = new TGeoRotation("r_airB1", 0.0, 0.0, 0.0);
+  r_airB1->RegisterYourself();
+  auto* p_airB1 = new TGeoCombiTrans(*t_airB1, *r_airB1);
+  p_airB1->RegisterYourself();
+  HalfConeVolume->AddNode(vent_B1, 1, p_airB1);
+
+  TGeoSubtraction* vent_subB2;
+  Float_t lB2 = 10.6; // half length
+  auto* ventB2 = new TGeoBBox(Form("ventB2_H%d", half), yB1, xB1, lB2);
+  auto* ventB2_int =
+    new TGeoBBox(Form("ventB2_int_H%d", half), 0.3, 0.2, lB2 + 0.0001);
+  vent_subB2 = new TGeoSubtraction(ventB2, ventB2_int, nullptr, nullptr);
+  TGeoCompositeShape* vent_finalB2 =
+    new TGeoCompositeShape(Form("vent_finalB2_H%d", half), vent_subB2);
+  auto* vent_B2 =
+    new TGeoVolume(Form("ventB2_H%d", half), vent_finalB2, mVentilation);
+  vent_B2->SetLineColor(kGray);
+  Float_t theta = -signe * 32.;
+  Float_t phi = signe * 23.;
+  Float_t thetaRad = theta * TMath::Pi() / 180.;
+  Float_t phiRad = phi * TMath::Pi() / 180.;
+  auto* r_airB2 = new TGeoRotation("r_airB2", 90.0 - phi, theta, 0.);
+  r_airB2->RegisterYourself();
+  Float_t XairB2 =
+    signe *
+    (15.3 + lB2 * TMath::Sin(TMath::Abs(thetaRad) * TMath::Cos(phiRad)));
+  Float_t YairB2 =
+    -8.75 - 2 * yB1 + TMath::Sin(phiRad) * TMath::Sin(thetaRad) * lB2 + 0.2;
+  Float_t ZairB2 = -45.570 - 2 * lB1 - TMath::Cos(thetaRad) * lB2 - 0.2;
+  auto* t_airB2 = new TGeoTranslation("t_airB2", XairB2, YairB2, ZairB2);
+  t_airB2->RegisterYourself();
+  auto* p_airB2 = new TGeoCombiTrans(*t_airB2, *r_airB2);
+  p_airB2->RegisterYourself();
+  HalfConeVolume->AddNode(vent_B2, 1, p_airB2);
+
+  TGeoSubtraction* vent_subB3;
+  Float_t lB3 = 4.8; // half length
+  auto* ventB3 = new TGeoBBox(Form("ventB3_H%d", half), yB1, xB1, lB3);
+  auto* ventB3_int =
+    new TGeoBBox(Form("ventB3_int_H%d", half), 0.3, 0.2, lB3 + 0.0001);
+  vent_subB3 = new TGeoSubtraction(ventB3, ventB3_int, nullptr, nullptr);
+  TGeoCompositeShape* vent_finalB3 =
+    new TGeoCompositeShape(Form("vent_finalB3_H%d", half), vent_subB3);
+  auto* vent_B3 =
+    new TGeoVolume(Form("ventB3_H%d", half), vent_finalB3, mVentilation);
+  vent_B3->SetLineColor(kGray);
+  auto* r_airB3 = new TGeoRotation("r_airB3", 90.0 - phi, theta, 0.);
+  r_airB3->RegisterYourself();
+  Float_t XairB3 =
+    signe *
+    (15.3 +
+     (2 * lB2 - lB3) * TMath::Sin(TMath::Abs(thetaRad) * TMath::Cos(phiRad)) -
+     xB1);
+  Float_t YairB3 = -8.75 - 2 * yB1 +
+                   TMath::Sin(phiRad) * TMath::Sin(thetaRad) * (2 * lB2 - lB3) +
+                   0.2 - 1.9 * yB1;
+  Float_t ZairB3 =
+    -45.570 - 2 * lB1 - TMath::Cos(thetaRad) * (2 * lB2 - lB3) - 0.2;
+
+  auto* t_airB3 = new TGeoTranslation("t_airB3", XairB3, YairB3, ZairB3);
+
+  t_airB3->RegisterYourself();
+  auto* p_airB3 = new TGeoCombiTrans(*t_airB3, *r_airB3);
+  p_airB3->RegisterYourself();
+  HalfConeVolume->AddNode(vent_B3, 1, p_airB3);
+
+  TGeoSubtraction* vent_subB4;
+  Float_t lB4 = 4.5; // half length
+  Float_t xB4 = 0.3;
+  Float_t yB4 = 0.8;
+  auto* ventB4 = new TGeoBBox(Form("ventB4_H%d", half), yB4, xB4, lB4);
+  auto* ventB4_int =
+    new TGeoBBox(Form("ventB4_int_H%d", half), 0.7, 0.2, lB4 + 0.0001);
+  vent_subB4 = new TGeoSubtraction(ventB4, ventB4_int, nullptr, nullptr);
+  TGeoCompositeShape* vent_finalB4 =
+    new TGeoCompositeShape(Form("vent_finalB4_H%d", half), vent_subB4);
+  auto* vent_B4 =
+    new TGeoVolume(Form("ventB3_H%d", half), vent_finalB4, mVentilation);
+  vent_B4->SetLineColor(kGray);
+  auto* r_airB4 =
+    new TGeoRotation("r_airB4", 90.0 - signe * 25., -signe * 5, 0.);
+  r_airB4->RegisterYourself();
+  auto* t_airB4 = new TGeoTranslation(
+    "t_airB4",
+    XairB2 +
+      signe * (lB2 * TMath::Sin(TMath::Abs(thetaRad) * TMath::Cos(phiRad)) +
+               0.4),
+    YairB2 + TMath::Sin(phiRad) * TMath::Sin(thetaRad) * lB2 - 0.6,
+    ZairB3 - TMath::Cos(thetaRad) * lB2 * 0.965);
+  t_airB4->RegisterYourself();
+  auto* p_airB4 = new TGeoCombiTrans(*t_airB4, *r_airB4);
+  p_airB4->RegisterYourself();
+  HalfConeVolume->AddNode(vent_B4, 1, p_airB4);
+
+  // Top
+  TGeoSubtraction* vent_subT1;
+  auto* ventT1 = new TGeoBBox(Form("ventT1_H%d", half), xB1, yB1, lB1);
+  auto* ventT1_int =
+    new TGeoBBox(Form("ventT1_int_H%d", half), 0.2, 0.3, lB1 + 0.0001);
+  vent_subT1 = new TGeoSubtraction(ventB1, ventB1_int, nullptr, nullptr);
+  TGeoCompositeShape* vent_finalT1 =
+    new TGeoCompositeShape(Form("vent_finalT1_H%d", half), vent_subT1);
+  auto* vent_T1 =
+    new TGeoVolume(Form("ventT1_H%d", half), vent_finalT1, mVentilation);
+  vent_T1->SetLineColor(kGray);
+  auto* t_airT1 = new TGeoTranslation("t_airT1", signe * (15.3 - xB1),
+                                      -(-8.75 - yB1 - 0.1), -45.570 - lB1);
+  t_airB1->RegisterYourself();
+  auto* r_airT1 = new TGeoRotation("r_airT1", 0.0, 0.0, 0.0);
+  r_airT1->RegisterYourself();
+  auto* p_airT1 = new TGeoCombiTrans(*t_airT1, *r_airT1);
+  p_airT1->RegisterYourself();
+  HalfConeVolume->AddNode(vent_T1, 1, p_airT1);
+
+  TGeoSubtraction* vent_subT2;
+  auto* ventT2 = new TGeoBBox(Form("ventT2_H%d", half), yB1, xB1, lB2);
+  auto* ventT2_int =
+    new TGeoBBox(Form("ventT2_int_H%d", half), 0.3, 0.2, lB2 + 0.0001);
+  vent_subT2 = new TGeoSubtraction(ventT2, ventT2_int, nullptr, nullptr);
+  TGeoCompositeShape* vent_finalT2 =
+    new TGeoCompositeShape(Form("vent_finalT2_H%d", half), vent_subT2);
+  auto* vent_T2 =
+    new TGeoVolume(Form("ventT2_H%d", half), vent_finalT2, mVentilation);
+  vent_T2->SetLineColor(kGray);
+  theta = -signe * 32.;
+  phi = signe * 23.;
+  thetaRad = theta * TMath::Pi() / 180.;
+  phiRad = phi * TMath::Pi() / 180.;
+  auto* r_airT2 = new TGeoRotation("r_airT2", 90.0 - phi, -theta, 0.);
+  r_airT2->RegisterYourself();
+  auto* t_airT2 = new TGeoTranslation("t_airT2", -XairB2, -YairB2, ZairB2);
+  t_airT2->RegisterYourself();
+  auto* p_airT2 = new TGeoCombiTrans(*t_airT2, *r_airT2);
+  p_airT2->RegisterYourself();
+  HalfConeVolume->AddNode(vent_T2, 1, p_airT2);
+
+  TGeoSubtraction* vent_subT3;
+  auto* ventT3 = new TGeoBBox(Form("ventT3_H%d", half), yB1, xB1, lB3);
+  auto* ventT3_int =
+    new TGeoBBox(Form("ventT3_int_H%d", half), 0.3, 0.2, lB3 + 0.0001);
+  vent_subT3 = new TGeoSubtraction(ventT3, ventT3_int, nullptr, nullptr);
+  TGeoCompositeShape* vent_finalT3 =
+    new TGeoCompositeShape(Form("vent_finalT3_H%d", half), vent_subT3);
+  auto* vent_T3 =
+    new TGeoVolume(Form("ventT3_H%d", half), vent_finalT3, mVentilation);
+  vent_T3->SetLineColor(kGray);
+  auto* r_airT3 = new TGeoRotation("r_airT3", 90.0 - phi, -theta, 0.);
+  r_airT3->RegisterYourself();
+  auto* t_airT3 = new TGeoTranslation("t_airT3", -XairB3, -YairB3, ZairB3);
+  t_airT3->RegisterYourself();
+  auto* p_airT3 = new TGeoCombiTrans(*t_airT3, *r_airT3);
+  p_airT3->RegisterYourself();
+  HalfConeVolume->AddNode(vent_T3, 1, p_airT3);
+
+  TGeoSubtraction* vent_subT4;
+  auto* ventT4 = new TGeoBBox(Form("ventT4_H%d", half), yB4, xB4, lB4);
+  auto* ventT4_int =
+    new TGeoBBox(Form("ventT4_int_H%d", half), 0.7, 0.2, lB4 + 0.0001);
+  vent_subT4 = new TGeoSubtraction(ventT4, ventT4_int, nullptr, nullptr);
+  TGeoCompositeShape* vent_finalT4 =
+    new TGeoCompositeShape(Form("vent_finalT4_H%d", half), vent_subT4);
+  auto* vent_T4 =
+    new TGeoVolume(Form("ventT4_H%d", half), vent_finalT4, mVentilation);
+  vent_T4->SetLineColor(kGray);
+  auto* r_airT4 =
+    new TGeoRotation("r_airT4", 90.0 - signe * 25., signe * 5, 0.);
+  r_airT4->RegisterYourself();
+  auto* t_airT4 = new TGeoTranslation(
+    "t_airT4",
+    -(XairB2 +
+      signe * (lB2 * TMath::Sin(TMath::Abs(thetaRad) * TMath::Cos(phiRad)) +
+               0.4)),
+    -(YairB2 + TMath::Sin(phiRad) * TMath::Sin(thetaRad) * lB2 - 0.6),
+    ZairB3 - TMath::Cos(thetaRad) * lB2 * 0.965);
+  t_airT4->RegisterYourself();
+  auto* p_airT4 = new TGeoCombiTrans(*t_airT4, *r_airT4);
+  p_airT4->RegisterYourself();
+  HalfConeVolume->AddNode(vent_T4, 1, p_airT4);
   //===================================================================
   return HalfConeVolume;
 }

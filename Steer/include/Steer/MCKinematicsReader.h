@@ -12,6 +12,8 @@
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCEventHeader.h"
+#include "SimulationDataFormat/TrackReference.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 #include <vector>
 
 class TChain;
@@ -79,8 +81,21 @@ class MCKinematicsReader
 
   /// get all mothers/daughters of the given label
 
+  /// return all track references associated to a source/event/track
+  gsl::span<o2::TrackReference> getTrackRefs(int source, int event, int track) const;
+  /// return all track references associated to a source/event
+  const std::vector<o2::TrackReference>& getTrackRefsByEvent(int source, int event) const;
+  /// return all track references associated to a event/track (when initialized from kinematics directly)
+  gsl::span<o2::TrackReference> getTrackRefs(int event, int track) const;
+
   /// retrieves the MCEventHeader for a given eventID and sourceID
   o2::dataformats::MCEventHeader const& getMCEventHeader(int source, int event) const;
+
+  /// Get number of sources
+  size_t getNSources() const;
+
+  /// Get number of events
+  size_t getNEvents(int source) const;
 
   DigitizationContext const* getDigitizationContext() const
   {
@@ -90,6 +105,8 @@ class MCKinematicsReader
  private:
   void loadTracksForSource(int source) const;
   void loadHeadersForSource(int source) const;
+  void loadTrackRefsForSource(int source) const;
+  void initIndexedTrackRefs(std::vector<o2::TrackReference>& refs, o2::dataformats::MCTruthContainer<o2::TrackReference>& indexedrefs) const;
 
   DigitizationContext const* mDigitizationContext = nullptr;
 
@@ -99,6 +116,7 @@ class MCKinematicsReader
   // a vector of tracks foreach source and each collision
   mutable std::vector<std::vector<std::vector<o2::MCTrack>>> mTracks; // the in-memory track container
   mutable std::vector<std::vector<o2::dataformats::MCEventHeader>> mHeaders; // the in-memory header container
+  mutable std::vector<std::vector<o2::dataformats::MCTruthContainer<o2::TrackReference>>> mIndexedTrackRefs; // the in-memory track ref container
 
   bool mInitialized = false; // whether initialized
 };
@@ -143,6 +161,40 @@ inline o2::dataformats::MCEventHeader const& MCKinematicsReader::getMCEventHeade
     loadHeadersForSource(source);
   }
   return mHeaders.at(source)[event];
+}
+
+inline gsl::span<o2::TrackReference> MCKinematicsReader::getTrackRefs(int source, int event, int track) const
+{
+  if (mIndexedTrackRefs[source].size() == 0) {
+    loadTrackRefsForSource(source);
+  }
+  return mIndexedTrackRefs[source][event].getLabels(track);
+}
+
+inline const std::vector<o2::TrackReference>& MCKinematicsReader::getTrackRefsByEvent(int source, int event) const
+{
+  if (mIndexedTrackRefs[source].size() == 0) {
+    loadTrackRefsForSource(source);
+  }
+  return mIndexedTrackRefs[source][event].getTruthArray();
+}
+
+inline gsl::span<o2::TrackReference> MCKinematicsReader::getTrackRefs(int event, int track) const
+{
+  return getTrackRefs(0, event, track);
+}
+
+inline size_t MCKinematicsReader::getNSources() const
+{
+  return mTracks.size();
+}
+
+inline size_t MCKinematicsReader::getNEvents(int source) const
+{
+  if (mTracks[source].size() == 0) {
+    loadTracksForSource(source);
+  }
+  return mTracks[source].size();
 }
 
 } // namespace steer

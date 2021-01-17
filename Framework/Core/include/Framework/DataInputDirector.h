@@ -18,11 +18,8 @@
 #include <regex>
 #include "rapidjson/fwd.h"
 
-namespace o2
+namespace o2::framework
 {
-namespace framework
-{
-using namespace rapidjson;
 
 struct FileNameHolder {
   std::string fileName;
@@ -72,6 +69,7 @@ struct DataInputDescriptor {
 
   uint64_t getTimeFrameNumber(int counter, int numTF);
   FileAndFolder getFileFolder(int counter, int numTF);
+  int getTimeFramesInFile(int counter);
 
   void closeInputFile();
   bool isAlienSupportOn() { return mAlienSupport; }
@@ -117,6 +115,7 @@ struct DataInputDirector {
   TTree* getDataTree(header::DataHeader dh, int counter, int numTF);
   uint64_t getTimeFrameNumber(header::DataHeader dh, int counter, int numTF);
   FileAndFolder getFileFolder(header::DataHeader dh, int counter, int numTF);
+  int getTimeFramesInFile(header::DataHeader dh, int counter);
 
  private:
   std::string minputfilesFile;
@@ -130,11 +129,10 @@ struct DataInputDirector {
   bool mDebugMode = false;
   bool mAlienSupport = false;
 
-  bool readJsonDocument(Document* doc);
+  bool readJsonDocument(rapidjson::Document* doc);
   bool isValid();
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif // o2_framework_DataInputDirector_H_INCLUDED

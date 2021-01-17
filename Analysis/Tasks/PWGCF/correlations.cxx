@@ -15,11 +15,11 @@
 #include "Framework/StepTHn.h"
 #include "Framework/HistogramRegistry.h"
 
-#include "Analysis/EventSelection.h"
-#include "Analysis/TrackSelectionTables.h"
-#include "Analysis/Centrality.h"
-#include "Analysis/CorrelationContainer.h"
-#include "Analysis/PairCuts.h"
+#include "AnalysisDataModel/EventSelection.h"
+#include "AnalysisDataModel/TrackSelectionTables.h"
+#include "AnalysisDataModel/Centrality.h"
+#include "AnalysisCore/CorrelationContainer.h"
+#include "AnalysisCore/PairCuts.h"
 
 #include <TH1F.h>
 #include <cmath>
@@ -58,7 +58,7 @@ struct CorrelationTask {
 
   // Filters and input definitions
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
-  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::pt > cfgCutPt) && ((aod::track::isGlobalTrack == true) || (aod::track::isGlobalTrackSDD == true));
+  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::pt > cfgCutPt) && ((aod::track::isGlobalTrack == (uint8_t) true) || (aod::track::isGlobalTrackSDD == (uint8_t) true));
   using myTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>>;
 
   // Output definitions
@@ -153,6 +153,9 @@ struct CorrelationTask {
 
     same->fillEvent(centrality, CorrelationContainer::kCFStepAll);
 
+    if (!collision.alias()[kINT7]) {
+      return;
+    }
     if (!collision.sel7()) {
       return;
     }
@@ -177,11 +180,10 @@ struct CorrelationTask {
     }
 
     for (auto& track1 : tracks) {
-
       // LOGF(info, "Track %f | %f | %f  %d %d", track1.eta(), track1.phi(), track1.pt(), track1.isGlobalTrack(), track1.isGlobalTrackSDD());
 
-      registry.fill("yields", centrality, track1.pt(), track1.eta());
-      registry.fill("etaphi", centrality, track1.eta(), track1.phi());
+      registry.fill(HIST("yields"), centrality, track1.pt(), track1.eta());
+      registry.fill(HIST("etaphi"), centrality, track1.eta(), track1.phi());
 
       if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.charge() < 0) {
         continue;

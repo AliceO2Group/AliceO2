@@ -11,6 +11,7 @@
 #ifndef ALICEO2_EMCAL_TRIGGERRECORD_H
 #define ALICEO2_EMCAL_TRIGGERRECORD_H
 
+#include <cstdint>
 #include <iosfwd>
 #include "Rtypes.h"
 #include "CommonDataFormat/InteractionRecord.h"
@@ -35,26 +36,30 @@ class TriggerRecord
 
  public:
   TriggerRecord() = default;
-  TriggerRecord(const BCData& bunchcrossing, int firstentry, int nentries) : mBCData(bunchcrossing), mDataRange(firstentry, nentries) {}
+  TriggerRecord(const BCData& bunchcrossing, int firstentry, int nentries) : mBCData(bunchcrossing), mDataRange(firstentry, nentries), mTriggerBits(0) {}
+  TriggerRecord(const BCData& bunchcrossing, uint32_t triggerbits, int firstentry, int nentries) : TriggerRecord(bunchcrossing, firstentry, nentries) { mTriggerBits = triggerbits; }
   ~TriggerRecord() = default;
 
   void setBCData(const BCData& data) { mBCData = data; }
+  void setTriggerBits(uint32_t triggerbits) { mTriggerBits = triggerbits; }
   void setDataRange(int firstentry, int nentries) { mDataRange.set(firstentry, nentries); }
   void setIndexFirstObject(int firstentry) { mDataRange.setFirstEntry(firstentry); }
   void setNumberOfObjects(int nentries) { mDataRange.setEntries(nentries); }
 
   const BCData& getBCData() const { return mBCData; }
   BCData& getBCData() { return mBCData; }
+  uint32_t getTriggerBits() const { return mTriggerBits; }
   int getNumberOfObjects() const { return mDataRange.getEntries(); }
   int getFirstEntry() const { return mDataRange.getFirstEntry(); }
 
   void printStream(std::ostream& stream) const;
 
  private:
-  BCData mBCData;       /// Bunch crossing data of the trigger
-  DataRange mDataRange; /// Index of the triggering event (event index and first entry in the container)
+  BCData mBCData;        /// Bunch crossing data of the trigger
+  DataRange mDataRange;  /// Index of the triggering event (event index and first entry in the container)
+  uint32_t mTriggerBits; /// Trigger bits as from the Raw Data Header
 
-  ClassDefNV(TriggerRecord, 1);
+  ClassDefNV(TriggerRecord, 2);
 };
 
 std::ostream& operator<<(std::ostream& stream, const TriggerRecord& trg);

@@ -11,6 +11,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include "Mocking.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DeviceExecution.h"
@@ -136,8 +137,10 @@ BOOST_AUTO_TEST_CASE(test_prepareArguments)
   std::vector<ComputingResource> resources = {ComputingResourceHelpers::getLocalhostResource()};
   auto rm = std::make_unique<SimpleResourceManager>(resources);
 
+  auto configContext = makeEmptyConfigContext();
+  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
   DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow,
-                                                    ChannelConfigurationPolicy::createDefaultPolicies(),
+                                                    channelPolicies,
                                                     CompletionPolicy::createDefaultPolicies(),
                                                     deviceSpecs,
                                                     *rm, "workflow-id");

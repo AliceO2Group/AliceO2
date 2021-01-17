@@ -52,7 +52,7 @@ void GBTLinkDecodingStat::print(bool skipEmpty) const
   for (int i = NErrorsDefined; i--;) {
     nErr += errorCounts[i];
   }
-  LOGF(INFO, "GBTLink#0x%d Packet States Statistics (total packets: %d)", ruLinkID, nPackets);
+  LOGF(INFO, "GBTLink#0x%d Packet States Statistics (total packets: %d, triggers: %d)", ruLinkID, nPackets, nTriggers);
   for (int i = 0; i < GBTDataTrailer::MaxStateCombinations; i++) {
     if (packetStates[i]) {
       std::bitset<GBTDataTrailer::NStatesDefined> patt(i);

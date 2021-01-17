@@ -46,7 +46,7 @@ class TrackExtrap
   static bool isFieldON() { return sFieldON; }
 
   /// Switch to Runge-Kutta extrapolation v2
-  static void useExtrapV2() { sExtrapV2 = true; }
+  static void useExtrapV2(bool extrapV2 = true) { sExtrapV2 = extrapV2; }
 
   static double getImpactParamFromBendingMomentum(double bendingMomentum);
   static double getBendingMomentumFromImpactParam(double impactParam);

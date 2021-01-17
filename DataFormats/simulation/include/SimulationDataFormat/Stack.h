@@ -18,9 +18,9 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "FairGenericStack.h"
 #include "SimulationDataFormat/MCTrack.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/TrackReference.h"
 #include "SimulationDataFormat/MCEventStats.h"
+#include "SimulationDataFormat/ParticleStatus.h"
 #include "Rtypes.h"
 #include "TParticle.h"
 
@@ -28,6 +28,7 @@
 #include <memory>
 #include <stack>
 #include <utility>
+#include <functional>
 
 class TClonesArray;
 class TRefArray;
@@ -55,11 +56,6 @@ namespace data
 /// The storage of secondaries can be switched off.
 /// The storage of all mothers can be switched off.
 /// By default, the minimal number of hits is 1 and the energy cut is 0.
-enum ParticleStatus { kKeep = BIT(14),
-                      kDaughters = BIT(15),
-                      kToBeDone = BIT(16),
-                      kPrimary = BIT(17),
-                      kTransport = BIT(18) };
 class Stack : public FairGenericStack
 {
  public:
@@ -91,6 +87,10 @@ class Stack : public FairGenericStack
   void PushTrack(Int_t toBeDone, Int_t parentID, Int_t pdgCode, Double_t px, Double_t py, Double_t pz, Double_t e,
                  Double_t vx, Double_t vy, Double_t vz, Double_t time, Double_t polx, Double_t poly, Double_t polz,
                  TMCProcess proc, Int_t& ntr, Double_t weight, Int_t is, Int_t secondParentId) override;
+
+  void PushTrack(Int_t toBeDone, Int_t parentID, Int_t pdgCode, Double_t px, Double_t py, Double_t pz, Double_t e,
+                 Double_t vx, Double_t vy, Double_t vz, Double_t time, Double_t polx, Double_t poly, Double_t polz,
+                 TMCProcess proc, Int_t& ntr, Double_t weight, Int_t is, Int_t secondParentId, Int_t daughter1Id, Int_t daughter2Id);
 
   // similar function taking a particle
   void PushTrack(Int_t toBeDone, TParticle&);
@@ -225,6 +225,8 @@ class Stack : public FairGenericStack
   /// update values in the current event header
   void updateEventStats();
 
+  typedef std::function<bool(const TParticle& p, const std::vector<TParticle>& particles)> TransportFcn;
+
  private:
   /// STL stack (FILO) used to handle the TParticles for tracking
   /// stack entries refer to
@@ -281,10 +283,10 @@ class Stack : public FairGenericStack
 
   bool mIsExternalMode = false; // is stack an external factory or directly used inside simulation?
 
+  TransportFcn mTransportPrimary = [](const TParticle& p, const std::vector<TParticle>& particles) { return false; }; //! a function to inhibit the tracking of a particle
+
   // storage for track references
   std::vector<o2::TrackReference>* mTrackRefs = nullptr; //!
-
-  o2::dataformats::MCTruthContainer<o2::TrackReference>* mIndexedTrackRefs = nullptr; //!
 
   /// a pointer to the current MCEventStats object
   o2::dataformats::MCEventStats* mMCEventStats = nullptr; //!

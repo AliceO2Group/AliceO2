@@ -59,7 +59,7 @@ class GPUTRDGeometry;
 class TPCFastTransform;
 class TPCdEdxCalibrationSplines;
 class GPUTrackingInputProvider;
-class GPUChainTrackingFinalContext;
+struct GPUChainTrackingFinalContext;
 struct GPUTPCCFChainContext;
 
 class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelegateBase
@@ -152,24 +152,28 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   // Getters / setters for parameters
   const TPCFastTransform* GetTPCTransform() const { return processors()->calibObjects.fastTransform; }
-  const TPCCFCalibration* GetTPCCalibration() const { return processors()->calibObjects.tpcCalibration; }
+  const TPCPadGainCalib* GetTPCPadGainCalib() const { return processors()->calibObjects.tpcPadGain; }
   const TPCdEdxCalibrationSplines* GetdEdxSplines() const { return processors()->calibObjects.dEdxSplines; }
   const o2::base::MatLayerCylSet* GetMatLUT() const { return processors()->calibObjects.matLUT; }
   const GPUTRDGeometry* GetTRDGeometry() const { return (GPUTRDGeometry*)processors()->calibObjects.trdGeometry; }
+  const o2::base::Propagator* GetO2Propagator() const { return processors()->calibObjects.o2Propagator; }
   void SetTPCFastTransform(std::unique_ptr<TPCFastTransform>&& tpcFastTransform);
   void SetdEdxSplines(std::unique_ptr<TPCdEdxCalibrationSplines>&& dEdxSplines);
   void SetMatLUT(std::unique_ptr<o2::base::MatLayerCylSet>&& lut);
   void SetTRDGeometry(std::unique_ptr<o2::trd::GeometryFlat>&& geo);
   void SetTPCFastTransform(const TPCFastTransform* tpcFastTransform) { processors()->calibObjects.fastTransform = tpcFastTransform; }
-  void SetTPCCFCalibration(const TPCCFCalibration* tpcCalibration) { processors()->calibObjects.tpcCalibration = tpcCalibration; }
+  void SetTPCPadGainCalib(const TPCPadGainCalib* tpcPadGainCalib) { processors()->calibObjects.tpcPadGain = tpcPadGainCalib; }
   void SetdEdxSplines(const TPCdEdxCalibrationSplines* dEdxSplines) { processors()->calibObjects.dEdxSplines = dEdxSplines; }
   void SetMatLUT(const o2::base::MatLayerCylSet* lut) { processors()->calibObjects.matLUT = lut; }
   void SetTRDGeometry(const o2::trd::GeometryFlat* geo) { processors()->calibObjects.trdGeometry = geo; }
+  void SetO2Propagator(const o2::base::Propagator* prop) { processors()->calibObjects.o2Propagator = prop; }
+  void SetDefaultO2PropagatorForGPU();
   void LoadClusterErrors();
   void SetOutputControlCompressedClusters(GPUOutputControl* v) { mOutputCompressedClusters = v; }
   void SetOutputControlClustersNative(GPUOutputControl* v) { mOutputClustersNative = v; }
   void SetOutputControlTPCTracks(GPUOutputControl* v) { mOutputTPCTracks = v; }
   void SetOutputControlClusterLabels(GPUOutputControl* v) { mOutputClusterLabels = v; }
+  void SetOutputControlSharedClusterMap(GPUOutputControl* v) { mOutputSharedClusterMap = v; }
 
   const GPUSettingsDisplay* mConfigDisplay = nullptr; // Abstract pointer to Standalone Display Configuration Structure
   const GPUSettingsQA* mConfigQA = nullptr;           // Abstract pointer to Standalone QA Configuration Structure
@@ -231,7 +235,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   // Ptr to detector / calibration objects
   std::unique_ptr<TPCFastTransform> mTPCFastTransformU;               // Global TPC fast transformation object
-  std::unique_ptr<TPCCFCalibration> mTPCCalibrationU;                 // TPC gain calibration and cluster finder parameters
+  std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalibU;                 // TPC gain calibration and cluster finder parameters
   std::unique_ptr<TPCdEdxCalibrationSplines> mdEdxSplinesU;           // TPC dEdx calibration splines
   std::unique_ptr<o2::base::MatLayerCylSet> mMatLUTU;                 // Material Lookup Table
   std::unique_ptr<o2::trd::GeometryFlat> mTRDGeometryU;               // TRD Geometry
@@ -242,6 +246,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   GPUOutputControl* mOutputClustersNative = nullptr;
   GPUOutputControl* mOutputTPCTracks = nullptr;
   GPUOutputControl* mOutputClusterLabels = nullptr;
+  GPUOutputControl* mOutputSharedClusterMap = nullptr;
 
   std::unique_ptr<GPUTPCCFChainContext> mCFContext;
 

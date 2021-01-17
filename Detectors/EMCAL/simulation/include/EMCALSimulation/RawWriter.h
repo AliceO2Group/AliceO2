@@ -58,7 +58,7 @@ union ChannelHeader {
     uint32_t mPayloadSize : 10;     ///< Bits 16 - 25: Payload size
     uint32_t mZero1 : 3;            ///< Bits 26 - 28: zeroed
     uint32_t mBadChannel : 1;       ///< Bit  29: Bad channel status
-    uint32_t mZero2 : 2;            ///< Bits 30 - 31: zeroed
+    uint32_t mHeaderBits : 2;       ///< Bits 30 - 31: channel header bits (1)
   };
 };
 

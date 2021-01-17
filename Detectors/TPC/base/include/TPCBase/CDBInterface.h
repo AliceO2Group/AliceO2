@@ -260,7 +260,7 @@ class CDBStorage
 
   void setJIRA(std::string_view jira)
   {
-    mMetaData["Intervention"] = jira;
+    mMetaData["JIRA"] = jira;
   }
 
   void setComment(std::string_view comment)

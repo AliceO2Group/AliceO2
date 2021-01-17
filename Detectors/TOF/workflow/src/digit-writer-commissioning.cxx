@@ -34,6 +34,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   // Update the (declared) parameters if changed from the command line
   auto ntf = cfgc.options().get<int>("ntf");
   auto write_err = cfgc.options().get<bool>("write-decoding-errors");
-  wf.emplace_back(o2::framework::getTOFCalibCollectorWriterSpec(ntf, write_err));
+  wf.emplace_back(o2::framework::getTOFDigitWriterSplitterSpec(ntf, write_err));
   return wf;
 }

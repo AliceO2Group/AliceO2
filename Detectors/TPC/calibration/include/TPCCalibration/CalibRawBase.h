@@ -129,6 +129,9 @@ class CalibRawBase
   /// get present event number
   size_t getPresentEventNumber() const { return mPresentEventNumber; }
 
+  /// return number of events
+  int getNumberOfEvents() const { return mRawReaderCRUManager.getNumberOfEvents(); }
+
   /// check if present event is complete
   bool isPresentEventComplete() const { return mRawReaderCRUManager.isEventComplete(mPresentEventNumber); }
 

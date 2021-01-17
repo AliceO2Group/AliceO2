@@ -65,7 +65,7 @@
 #include "ITStrackingCUDA/Array.h"
 
 template <typename T, size_t Size>
-using GPUArray = o2::its::GPU::Array<T, Size>;
+using GPUArray = o2::its::gpu::Array<T, Size>;
 
 typedef cudaStream_t GPUStream;
 
@@ -94,7 +94,7 @@ using GPUArray = std::array<T, Size>;
 #include "ITStrackingCUDA/Array.h"
 
 template <typename T, size_t Size>
-using GPUArray = o2::its::GPU::Array<T, Size>;
+using GPUArray = o2::its::gpu::Array<T, Size>;
 #endif
 
 typedef struct _dummyStream {

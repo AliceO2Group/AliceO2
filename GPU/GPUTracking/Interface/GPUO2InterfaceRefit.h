@@ -28,6 +28,7 @@
 #include "GPUTrackingRefit.h"
 #include <memory>
 #include <vector>
+#include <gsl/span>
 
 namespace o2::tpc
 {
@@ -45,7 +46,7 @@ class GPUTPCO2InterfaceRefit
   // - Either the shared cluster map (sharedmap) or the vector of tpc tracks (trks) to build the shared cluster map internally
   // - o2::base::Propagator (p) in case RefitTrackAsTrackParCov is to be used
 
-  GPUTPCO2InterfaceRefit(const o2::tpc::ClusterNativeAccess* cl, const TPCFastTransform* trans, float bz, const o2::tpc::TPCClRefElem* trackRef, const unsigned char* sharedmap = nullptr, std::vector<o2::tpc::TrackTPC>* trks = nullptr, o2::base::Propagator* p = nullptr);
+  GPUTPCO2InterfaceRefit(const o2::tpc::ClusterNativeAccess* cl, const TPCFastTransform* trans, float bz, const o2::tpc::TPCClRefElem* trackRef, const unsigned char* sharedmap = nullptr, const std::vector<o2::tpc::TrackTPC>* trks = nullptr, o2::base::Propagator* p = nullptr);
   ~GPUTPCO2InterfaceRefit();
 
   int RefitTrackAsGPU(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false) { return mRefit.RefitTrackAsGPU(trk, outward, resetCov); }
@@ -55,6 +56,8 @@ class GPUTPCO2InterfaceRefit
   void setGPUTrackFitInProjections(bool v = true);
   void setTrackReferenceX(float v);
   void setIgnoreErrorsAtTrackEnds(bool v) { mRefit.mIgnoreErrorsOnTrackEnds = v; }
+
+  static void fillSharedClustersMap(const o2::tpc::ClusterNativeAccess* cl, const gsl::span<const o2::tpc::TrackTPC> trks, const o2::tpc::TPCClRefElem* trackRef, unsigned char* shmap);
 
  private:
   GPUTrackingRefit mRefit;

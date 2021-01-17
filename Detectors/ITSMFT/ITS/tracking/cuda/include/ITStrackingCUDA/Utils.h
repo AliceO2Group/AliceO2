@@ -22,13 +22,13 @@ namespace o2
 {
 namespace its
 {
-namespace GPU
+namespace gpu
 {
 
-namespace Utils
+namespace utils
 {
 
-namespace Host
+namespace host
 {
 
 #ifdef __CUDACC__
@@ -49,16 +49,16 @@ void gpuMemcpyHostToDeviceAsync(void*, const void*, int, Stream&);
 void gpuMemcpyDeviceToHost(void*, const void*, int);
 // void gpuStartProfiler();
 // void gpuStopProfiler();
-} // namespace Host
+} // namespace host
 
-namespace Device
+namespace device
 {
 GPUd() int getLaneIndex();
 GPUd() int shareToWarp(const int, const int);
 GPUd() int gpuAtomicAdd(int*, const int);
-} // namespace Device
+} // namespace device
 } // namespace Utils
-} // namespace GPU
+} // namespace gpu
 } // namespace its
 } // namespace o2
 

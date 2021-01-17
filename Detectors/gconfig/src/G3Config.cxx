@@ -13,39 +13,23 @@
 #include "TGeant3TGeo.h"
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/StackParam.h"
-#include <iostream>
 #include "FairLogger.h"
 #include "FairModule.h"
-#include <DetectorsPassive/Cave.h>
-#include "DetectorsBase/MaterialManager.h"
-#include "SimSetup/GlobalProcessCutSimParam.h"
 #include "Generators/DecayerPythia8.h"
 
-//using declarations here since SetCuts.C and g3Config.C are included within namespace
-// these are needed for SetCuts.C inclusion
-using o2::GlobalProcessCutSimParam;
-using o2::base::ECut;
-using o2::base::EProc;
-using o2::base::MaterialManager;
-// these are used in g3Config.C
-using std::cout;
-using std::endl;
 // these are used in commonConfig.C
 using o2::eventgen::DecayerPythia8;
-#include <SimSetup/SimSetup.h>
 
 namespace o2
 {
 namespace g3config
 {
 #include "../g3Config.C"
-#include "../SetCuts.h"
 
 void G3Config()
 {
   LOG(INFO) << "Setting up G3 sim from library code";
   Config();
-  SetCuts();
 }
 } // namespace g3config
 } // namespace o2

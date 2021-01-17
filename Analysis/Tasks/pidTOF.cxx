@@ -15,8 +15,8 @@
 #include "Framework/HistogramRegistry.h"
 #include "ReconstructionDataFormats/Track.h"
 #include <CCDB/BasicCCDBManager.h>
-#include "PID/PIDResponse.h"
-#include "PID/PIDTOF.h"
+#include "AnalysisDataModel/PID/PIDResponse.h"
+#include "AnalysisDataModel/PID/PIDTOF.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -28,7 +28,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
     {"add-qa", VariantType::Int, 0, {"Produce TOF PID QA histograms"}},
-    {"add-beta", VariantType::Int, 0, {"Produce TOF Beta table"}}};
+    {"add-beta", VariantType::Int, 1, {"Produce TOF Beta table"}}};
   std::swap(workflowOptions, options);
 }
 
@@ -36,7 +36,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 struct pidTOFTask {
   using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
-  using Coll = aod::Collision;
+  using Coll = aod::Collisions;
   Produces<aod::pidRespTOF> tofpid;
   DetectorResponse resp;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
@@ -65,47 +65,38 @@ struct pidTOFTask {
     }
   }
 
-  void process(Coll const& collision, Trks const& tracks)
+  void process(Coll const& collisions, Trks const& tracks)
   {
-    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Electron> resp_Electron = tof::ExpTimes<Coll, Trks::iterator, PID::Electron>();
-    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Muon> resp_Muon = tof::ExpTimes<Coll, Trks::iterator, PID::Muon>();
-    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Pion> resp_Pion = tof::ExpTimes<Coll, Trks::iterator, PID::Pion>();
-    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Kaon> resp_Kaon = tof::ExpTimes<Coll, Trks::iterator, PID::Kaon>();
-    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Proton> resp_Proton = tof::ExpTimes<Coll, Trks::iterator, PID::Proton>();
-    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Deuteron> resp_Deuteron = tof::ExpTimes<Coll, Trks::iterator, PID::Deuteron>();
-    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Triton> resp_Triton = tof::ExpTimes<Coll, Trks::iterator, PID::Triton>();
-    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Helium3> resp_Helium3 = tof::ExpTimes<Coll, Trks::iterator, PID::Helium3>();
-    constexpr tof::ExpTimes<Coll, Trks::iterator, PID::Alpha> resp_Alpha = tof::ExpTimes<Coll, Trks::iterator, PID::Alpha>();
+    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Electron> resp_Electron = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Electron>();
+    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Muon> resp_Muon = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Muon>();
+    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Pion> resp_Pion = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Pion>();
+    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Kaon> resp_Kaon = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Kaon>();
+    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Proton> resp_Proton = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Proton>();
+    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Deuteron> resp_Deuteron = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Deuteron>();
+    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Triton> resp_Triton = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Triton>();
+    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Helium3> resp_Helium3 = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Helium3>();
+    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Alpha> resp_Alpha = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Alpha>();
 
     tofpid.reserve(tracks.size());
     for (auto const& trk : tracks) {
-      tofpid(resp_Electron.GetExpectedSignal(collision, trk),
-             resp_Muon.GetExpectedSignal(collision, trk),
-             resp_Pion.GetExpectedSignal(collision, trk),
-             resp_Kaon.GetExpectedSignal(collision, trk),
-             resp_Proton.GetExpectedSignal(collision, trk),
-             resp_Deuteron.GetExpectedSignal(collision, trk),
-             resp_Triton.GetExpectedSignal(collision, trk),
-             resp_Helium3.GetExpectedSignal(collision, trk),
-             resp_Alpha.GetExpectedSignal(collision, trk),
-             resp_Electron.GetExpectedSigma(resp, collision, trk),
-             resp_Muon.GetExpectedSigma(resp, collision, trk),
-             resp_Pion.GetExpectedSigma(resp, collision, trk),
-             resp_Kaon.GetExpectedSigma(resp, collision, trk),
-             resp_Proton.GetExpectedSigma(resp, collision, trk),
-             resp_Deuteron.GetExpectedSigma(resp, collision, trk),
-             resp_Triton.GetExpectedSigma(resp, collision, trk),
-             resp_Helium3.GetExpectedSigma(resp, collision, trk),
-             resp_Alpha.GetExpectedSigma(resp, collision, trk),
-             resp_Electron.GetSeparation(resp, collision, trk),
-             resp_Muon.GetSeparation(resp, collision, trk),
-             resp_Pion.GetSeparation(resp, collision, trk),
-             resp_Kaon.GetSeparation(resp, collision, trk),
-             resp_Proton.GetSeparation(resp, collision, trk),
-             resp_Deuteron.GetSeparation(resp, collision, trk),
-             resp_Triton.GetSeparation(resp, collision, trk),
-             resp_Helium3.GetSeparation(resp, collision, trk),
-             resp_Alpha.GetSeparation(resp, collision, trk));
+      tofpid(resp_Electron.GetExpectedSigma(resp, trk.collision(), trk),
+             resp_Muon.GetExpectedSigma(resp, trk.collision(), trk),
+             resp_Pion.GetExpectedSigma(resp, trk.collision(), trk),
+             resp_Kaon.GetExpectedSigma(resp, trk.collision(), trk),
+             resp_Proton.GetExpectedSigma(resp, trk.collision(), trk),
+             resp_Deuteron.GetExpectedSigma(resp, trk.collision(), trk),
+             resp_Triton.GetExpectedSigma(resp, trk.collision(), trk),
+             resp_Helium3.GetExpectedSigma(resp, trk.collision(), trk),
+             resp_Alpha.GetExpectedSigma(resp, trk.collision(), trk),
+             resp_Electron.GetSeparation(resp, trk.collision(), trk),
+             resp_Muon.GetSeparation(resp, trk.collision(), trk),
+             resp_Pion.GetSeparation(resp, trk.collision(), trk),
+             resp_Kaon.GetSeparation(resp, trk.collision(), trk),
+             resp_Proton.GetSeparation(resp, trk.collision(), trk),
+             resp_Deuteron.GetSeparation(resp, trk.collision(), trk),
+             resp_Triton.GetSeparation(resp, trk.collision(), trk),
+             resp_Helium3.GetSeparation(resp, trk.collision(), trk),
+             resp_Alpha.GetSeparation(resp, trk.collision(), trk));
     }
   }
 };
@@ -136,16 +127,17 @@ struct pidTOFTaskBeta {
 };
 
 struct pidTOFTaskQA {
+
   static constexpr int Np = 9;
-  static constexpr const char* hexpected[Np] = {"expected/El", "expected/Mu", "expected/Pi",
-                                                "expected/Ka", "expected/Pr", "expected/De",
-                                                "expected/Tr", "expected/He", "expected/Al"};
-  static constexpr const char* hexpected_diff[Np] = {"expected_diff/El", "expected_diff/Mu", "expected_diff/Pi",
-                                                     "expected_diff/Ka", "expected_diff/Pr", "expected_diff/De",
-                                                     "expected_diff/Tr", "expected_diff/He", "expected_diff/Al"};
-  static constexpr const char* hnsigma[Np] = {"nsigma/El", "nsigma/Mu", "nsigma/Pi",
-                                              "nsigma/Ka", "nsigma/Pr", "nsigma/De",
-                                              "nsigma/Tr", "nsigma/He", "nsigma/Al"};
+  static constexpr std::string_view hexpected[Np] = {"expected/El", "expected/Mu", "expected/Pi",
+                                                     "expected/Ka", "expected/Pr", "expected/De",
+                                                     "expected/Tr", "expected/He", "expected/Al"};
+  static constexpr std::string_view hexpected_diff[Np] = {"expected_diff/El", "expected_diff/Mu", "expected_diff/Pi",
+                                                          "expected_diff/Ka", "expected_diff/Pr", "expected_diff/De",
+                                                          "expected_diff/Tr", "expected_diff/He", "expected_diff/Al"};
+  static constexpr std::string_view hnsigma[Np] = {"nsigma/El", "nsigma/Mu", "nsigma/Pi",
+                                                   "nsigma/Ka", "nsigma/Pr", "nsigma/De",
+                                                   "nsigma/Tr", "nsigma/He", "nsigma/Al"};
   static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
   HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::QAObject};
 
@@ -153,21 +145,39 @@ struct pidTOFTaskQA {
   Configurable<float> MinP{"MinP", 0.1, "Minimum momentum in range"};
   Configurable<float> MaxP{"MaxP", 5, "Maximum momentum in range"};
 
-#define makelogaxis(h)                                            \
-  {                                                               \
-    const Int_t nbins = h->GetNbinsX();                           \
-    double binp[nbins + 1];                                       \
-    double max = h->GetXaxis()->GetBinUpEdge(nbins);              \
-    double min = h->GetXaxis()->GetBinLowEdge(1);                 \
-    if (min <= 0)                                                 \
-      min = 0.00001;                                              \
-    double lmin = TMath::Log10(min);                              \
-    double ldelta = (TMath::Log10(max) - lmin) / ((double)nbins); \
-    for (int i = 0; i < nbins; i++) {                             \
-      binp[i] = TMath::Exp(TMath::Log(10) * (lmin + i * ldelta)); \
-    }                                                             \
-    binp[nbins] = max + 1;                                        \
-    h->GetXaxis()->Set(nbins, binp);                              \
+  template <typename T>
+  void makelogaxis(T h)
+  {
+    const int nbins = h->GetNbinsX();
+    double binp[nbins + 1];
+    double max = h->GetXaxis()->GetBinUpEdge(nbins);
+    double min = h->GetXaxis()->GetBinLowEdge(1);
+    if (min <= 0) {
+      min = 0.00001;
+    }
+    double lmin = TMath::Log10(min);
+    double ldelta = (TMath::Log10(max) - lmin) / ((double)nbins);
+    for (int i = 0; i < nbins; i++) {
+      binp[i] = TMath::Exp(TMath::Log(10) * (lmin + i * ldelta));
+    }
+    binp[nbins] = max + 1;
+    h->GetXaxis()->Set(nbins, binp);
+  }
+
+  template <uint8_t i>
+  void addParticleHistos()
+  {
+    // Exp signal
+    histos.add(hexpected[i].data(), Form(";#it{p} (GeV/#it{c});t_{exp}(%s)", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 2e6}});
+    makelogaxis(histos.get<TH2>(HIST(hexpected[i])));
+
+    // T-Texp
+    histos.add(hexpected_diff[i].data(), Form(";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp}(%s))", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {100, -1000, 1000}});
+    makelogaxis(histos.get<TH2>(HIST(hexpected_diff[i])));
+
+    // NSigma
+    histos.add(hnsigma[i].data(), Form(";#it{p} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {200, -10, 10}});
+    makelogaxis(histos.get<TH2>(HIST(hnsigma[i])));
   }
 
   void init(o2::framework::InitContext&)
@@ -176,52 +186,56 @@ struct pidTOFTaskQA {
     histos.add("event/vertexz", ";Vtx_{z} (cm);Entries", HistType::kTH1F, {{100, -20, 20}});
     histos.add("event/colltime", ";Collision time (ps);Entries", HistType::kTH1F, {{100, -2000, 2000}});
     histos.add("event/tofsignal", ";#it{p} (GeV/#it{c});TOF Signal", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {10000, 0, 2e6}});
-    makelogaxis(histos.get<TH2>("event/tofsignal"));
+    makelogaxis(histos.get<TH2>(HIST("event/tofsignal")));
     histos.add("event/tofbeta", ";#it{p} (GeV/#it{c});TOF #beta", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 2}});
-    makelogaxis(histos.get<TH2>("event/tofbeta"));
-    for (int i = 0; i < Np; i++) {
-      // Exp signal
-      histos.add(hexpected[i], Form(";#it{p} (GeV/#it{c});t_{exp}(%s)", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 2e6}});
-      makelogaxis(histos.get<TH2>(hexpected[i]));
-      // T-Texp
-      histos.add(hexpected_diff[i], Form(";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp}(%s))", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {100, -1000, 1000}});
-      makelogaxis(histos.get<TH2>(hexpected_diff[i]));
-      // NSigma
-      histos.add(hnsigma[i], Form(";#it{p} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {200, -10, 10}});
-      makelogaxis(histos.get<TH2>(hnsigma[i]));
-    }
+    makelogaxis(histos.get<TH2>(HIST("event/tofbeta")));
+
+    addParticleHistos<0>();
+    addParticleHistos<1>();
+    addParticleHistos<2>();
+    addParticleHistos<3>();
+    addParticleHistos<4>();
+    addParticleHistos<5>();
+    addParticleHistos<6>();
+    addParticleHistos<7>();
+    addParticleHistos<8>();
   }
-#undef makelogaxis
+
+  template <uint8_t i, typename T>
+  void fillParticleHistos(const T& t, const float tof, const float exp_diff, const float nsigma)
+  {
+    histos.fill(HIST(hexpected[i]), t.p(), tof - exp_diff);
+    histos.fill(HIST(hexpected_diff[i]), t.p(), exp_diff);
+    histos.fill(HIST(hnsigma[i]), t.p(), nsigma);
+  }
 
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOF, aod::pidRespTOFbeta> const& tracks)
   {
-    histos.fill("event/vertexz", collision.posZ());
-    histos.fill("event/colltime", collision.collisionTime());
+    const float collisionTime_ps = collision.collisionTime() * 1000.f;
+    histos.fill(HIST("event/vertexz"), collision.posZ());
+    histos.fill(HIST("event/colltime"), collisionTime_ps);
 
     for (auto t : tracks) {
       //
       if (t.tofSignal() < 0) { // Skipping tracks without TOF
         continue;
       }
-      const float tof = t.tofSignal() - collision.collisionTime();
+
+      const float tof = t.tofSignal() - collisionTime_ps;
+
       //
-      histos.fill("event/tofsignal", t.p(), t.tofSignal());
-      histos.fill("event/tofbeta", t.p(), t.beta());
+      histos.fill(HIST("event/tofsignal"), t.p(), t.tofSignal());
+      histos.fill(HIST("event/tofbeta"), t.p(), t.beta());
       //
-      const float exp[Np] = {t.tofExpSignalEl(), t.tofExpSignalMu(), t.tofExpSignalPi(),
-                             t.tofExpSignalKa(), t.tofExpSignalPr(), t.tofExpSignalDe(),
-                             t.tofExpSignalTr(), t.tofExpSignalHe(), t.tofExpSignalAl()};
-      for (int i = 0; i < Np; i++) {
-        histos.fill(hexpected[i], t.p(), exp[i]);
-        histos.fill(hexpected_diff[i], t.p(), tof - exp[i]);
-      }
-      //
-      const float nsigma[Np] = {t.tofNSigmaEl(), t.tofNSigmaMu(), t.tofNSigmaPi(),
-                                t.tofNSigmaKa(), t.tofNSigmaPr(), t.tofNSigmaDe(),
-                                t.tofNSigmaTr(), t.tofNSigmaHe(), t.tofNSigmaAl()};
-      for (int i = 0; i < Np; i++) {
-        histos.fill(hnsigma[i], t.p(), nsigma[i]);
-      }
+      fillParticleHistos<0>(t, tof, t.tofExpSignalDiffEl(), t.tofNSigmaEl());
+      fillParticleHistos<1>(t, tof, t.tofExpSignalDiffMu(), t.tofNSigmaMu());
+      fillParticleHistos<2>(t, tof, t.tofExpSignalDiffPi(), t.tofNSigmaPi());
+      fillParticleHistos<3>(t, tof, t.tofExpSignalDiffKa(), t.tofNSigmaKa());
+      fillParticleHistos<4>(t, tof, t.tofExpSignalDiffPr(), t.tofNSigmaPr());
+      fillParticleHistos<5>(t, tof, t.tofExpSignalDiffDe(), t.tofNSigmaDe());
+      fillParticleHistos<6>(t, tof, t.tofExpSignalDiffTr(), t.tofNSigmaTr());
+      fillParticleHistos<7>(t, tof, t.tofExpSignalDiffHe(), t.tofNSigmaHe());
+      fillParticleHistos<8>(t, tof, t.tofExpSignalDiffAl(), t.tofNSigmaAl());
     }
   }
 };

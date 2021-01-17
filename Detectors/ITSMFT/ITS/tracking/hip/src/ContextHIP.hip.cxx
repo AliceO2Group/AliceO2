@@ -40,7 +40,7 @@ namespace o2
 {
 namespace its
 {
-namespace GPU
+namespace gpu
 {
 
 using Utils::HostHIP::checkHIPError;
@@ -129,6 +129,6 @@ const DeviceProperties& ContextHIP::getDeviceProperties(const int deviceIndex)
   return mDeviceProperties[deviceIndex];
 }
 
-} // namespace GPU
+} // namespace gpu
 } // namespace its
 } // namespace o2

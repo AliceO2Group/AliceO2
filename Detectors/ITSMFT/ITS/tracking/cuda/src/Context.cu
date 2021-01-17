@@ -77,10 +77,10 @@ namespace o2
 {
 namespace its
 {
-namespace GPU
+namespace gpu
 {
 
-using Utils::Host::checkCUDAError;
+using utils::host::checkCUDAError;
 
 Context::Context(bool dumpDevices)
 {
@@ -169,6 +169,6 @@ const DeviceProperties& Context::getDeviceProperties(const int deviceIndex)
   return mDeviceProperties[deviceIndex];
 }
 
-} // namespace GPU
+} // namespace gpu
 } // namespace its
 } // namespace o2

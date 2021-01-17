@@ -15,14 +15,7 @@
 #include "Framework/ConfigContext.h"
 #include "Framework/DataProcessingDevice.h"
 #include "Framework/DataProcessorSpec.h"
-#if __has_include(<DebugGUI/DebugGUI.h>)
-#include <DebugGUI/DebugGUI.h>
-#else
-// the DebugGUI is in a separate package and is optional for O2,
-// we include a header implementing GUI interface dummy methods
-#pragma message "Building DPL without Debug GUI"
-#include "Framework/NoDebugGUI.h"
-#endif
+#include "Framework/Plugins.h"
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceExecution.h"
 #include "Framework/DeviceInfo.h"
@@ -30,7 +23,7 @@
 #include "Framework/DeviceConfigInfo.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceState.h"
-#include "Framework/FrameworkGUIDebugger.h"
+#include "Framework/DebugGUI.h"
 #include "Framework/LocalRootFileService.h"
 #include "Framework/LogParsingHelpers.h"
 #include "Framework/Logger.h"
@@ -39,19 +32,19 @@
 #include "Framework/SimpleRawDeviceService.h"
 #define O2_SIGNPOST_DEFINE_CONTEXT
 #include "Framework/Signpost.h"
-#include "Framework/TextControlService.h"
+#include "Framework/ControlService.h"
 #include "Framework/CallbackService.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Monitoring.h"
+#include "Framework/DataProcessorInfo.h"
+#include "Framework/DriverInfo.h"
+#include "Framework/DriverControl.h"
 
 #include "ComputingResourceHelpers.h"
 #include "DataProcessingStatus.h"
 #include "DDSConfigHelpers.h"
 #include "O2ControlHelpers.h"
 #include "DeviceSpecHelpers.h"
-#include "DriverControl.h"
-#include "DriverInfo.h"
-#include "DataProcessorInfo.h"
 #include "GraphvizHelpers.h"
 #include "PropertyTreeHelpers.h"
 #include "SimpleResourceManager.h"
@@ -283,7 +276,7 @@ int calculateExitCode(DeviceSpecs& deviceSpecs, DeviceInfos& infos)
     auto& spec = deviceSpecs[di];
     if (exitCode == 0 && info.maxLogLevel >= LogParsingHelpers::LogLevel::Error) {
       LOG(ERROR) << "SEVERE: Device " << spec.name << " (" << info.pid << ") had at least one "
-                 << "message above severity ERROR: " << std::regex_replace(info.lastError, regexp, "");
+                 << "message above severity ERROR: " << std::regex_replace(info.firstError, regexp, "");
       exitCode = 1;
     }
   }
@@ -699,6 +692,9 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
       }
       if (logLevel == LogParsingHelpers::LogLevel::Error) {
         info.lastError = token;
+        if (info.firstError.empty()) {
+          info.firstError = token;
+        }
       }
       s.remove_prefix(pos + delimiter.length());
     }
@@ -809,9 +805,14 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry, const o2::f
                << boost::current_exception_diagnostic_information(true);
     return 1;
   } catch (o2::framework::RuntimeErrorRef e) {
-    LOG(ERROR) << "Unhandled o2::framework::runtime_error reached the top of main, device shutting down. Details follow: \n";
     auto& err = o2::framework::error_from_ref(e);
-    backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+    if (err.maxBacktrace != 0) {
+      LOG(ERROR) << "Unhandled o2::framework::runtime_error reached the top of main, device shutting down. Details follow: \n";
+      backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+    } else {
+      LOG(ERROR) << "Unhandled o2::framework::runtime_error reached the top of main, device shutting down."
+                    " Recompile with DPL_ENABLE_BACKTRACE=1 to get more information.";
+    }
     return 1;
   } catch (std::exception& e) {
     LOG(ERROR) << "Unhandled std::exception reached the top of main: " << e.what() << ", device shutting down.";
@@ -833,6 +834,7 @@ struct GuiCallbackContext {
   uint64_t frameLast;
   float* frameLatency;
   float* frameCost;
+  DebugGUI* plugin;
   void* window;
   bool* guiQuitRequested;
   std::function<void(void)> callback;
@@ -841,9 +843,12 @@ struct GuiCallbackContext {
 void gui_callback(uv_timer_s* ctx)
 {
   GuiCallbackContext* gui = reinterpret_cast<GuiCallbackContext*>(ctx->data);
+  if (gui->plugin == nullptr) {
+    return;
+  }
   uint64_t frameStart = uv_hrtime();
   uint64_t frameLatency = frameStart - gui->frameLast;
-  *(gui->guiQuitRequested) = (pollGUI(gui->window, gui->callback) == false);
+  *(gui->guiQuitRequested) = (gui->plugin->pollGUI(gui->window, gui->callback) == false);
   uint64_t frameEnd = uv_hrtime();
   *(gui->frameCost) = (frameEnd - frameStart) / 1000000;
   *(gui->frameLatency) = frameLatency / 1000000;
@@ -884,12 +889,39 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
   auto resourceManager = std::make_unique<SimpleResourceManager>(resources);
 
+  DebugGUI* debugGUI = nullptr;
   void* window = nullptr;
-  decltype(gui::getGUIDebugger(infos, deviceSpecs, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl)) debugGUICallback;
+  decltype(debugGUI->getGUIDebugger(infos, deviceSpecs, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl)) debugGUICallback;
 
   // An empty frameworkId means this is the driver, so we initialise the GUI
   if (driverInfo.batch == false && frameworkId.empty()) {
-    window = initGUI("O2 Framework debug GUI");
+    auto initDebugGUI = []() -> DebugGUI* {
+      uv_lib_t supportLib;
+      int result = 0;
+  #ifdef __APPLE__
+      result = uv_dlopen("libO2FrameworkGUISupport.dylib", &supportLib);
+  #else
+      result = uv_dlopen("libO2FrameworkGUISupport.so", &supportLib);
+  #endif
+      if (result == -1) {
+        LOG(ERROR) << uv_dlerror(&supportLib);
+        return nullptr;
+      }
+      void* callback = nullptr;
+      DPLPluginHandle* (*dpl_plugin_callback)(DPLPluginHandle*);
+
+      result = uv_dlsym(&supportLib, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
+      if (result == -1) {
+        LOG(ERROR) << uv_dlerror(&supportLib);
+        return nullptr;
+      }
+      DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
+      return PluginManager::getByName<DebugGUI>(pluginInstance, "ImGUIDebugGUI");
+    };
+    debugGUI = initDebugGUI();
+    if (debugGUI) {
+      window = debugGUI->initGUI("O2 Framework debug GUI");
+    }
   }
   if (driverInfo.batch == false && window == nullptr && frameworkId.empty()) {
     LOG(WARN) << "Could not create GUI. Switching to batch mode. Do you have GLFW on your system?";
@@ -912,6 +944,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   }
 
   GuiCallbackContext guiContext;
+  guiContext.plugin = debugGUI;
   guiContext.frameLast = uv_hrtime();
   guiContext.frameLatency = &driverInfo.frameLatency;
   guiContext.frameCost = &driverInfo.frameCost;
@@ -927,6 +960,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   std::vector<ServiceMetricHandling> metricProcessingCallbacks;
   std::vector<ServicePreSchedule> preScheduleCallbacks;
   std::vector<ServicePostSchedule> postScheduleCallbacks;
+
+  bool guiDeployedOnce = false;
 
   while (true) {
     // If control forced some transition on us, we push it to the queue.
@@ -1025,6 +1060,10 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         break;
       case DriverState::MATERIALISE_WORKFLOW:
         try {
+          auto workflowState = WorkflowHelpers::verifyWorkflow(workflow);
+          if (driverInfo.batch == true && workflowState == WorkflowParsingState::Empty) {
+            throw runtime_error("Empty workflow provided while running in batch mode.");
+          }
           DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow,
                                                             driverInfo.channelPolicies,
                                                             driverInfo.completionPolicies,
@@ -1033,7 +1072,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                                             *resourceManager,
                                                             driverInfo.uniqueWorkflowId,
                                                             !varmap["no-IPC"].as<bool>(),
-                                                            driverInfo.resourcesMonitoringInterval);
+                                                            driverInfo.resourcesMonitoringInterval,
+                                                            varmap["channel-prefix"].as<std::string>());
           metricProcessingCallbacks.clear();
           for (auto& device : deviceSpecs) {
             for (auto& service : device.services) {
@@ -1062,6 +1102,13 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           // This should expand nodes so that we can build a consistent DAG.
         } catch (std::runtime_error& e) {
           std::cerr << "Invalid workflow: " << e.what() << std::endl;
+          return 1;
+        } catch (o2::framework::RuntimeErrorRef ref) {
+          auto& err = o2::framework::error_from_ref(ref);
+#ifdef DPL_ENABLE_BACKTRACE
+          backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+#endif
+          std::cerr << "Invalid workflow: " << err.what << std::endl;
           return 1;
         } catch (...) {
           std::cerr << "Unknown error while materialising workflow";
@@ -1103,10 +1150,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         // because getGUIDebugger actually recreates the GUI state.
         if (window) {
           uv_timer_stop(&gui_timer);
-          guiContext.callback = gui::getGUIDebugger(infos, deviceSpecs, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl);
+          guiContext.callback = debugGUI->getGUIDebugger(infos, deviceSpecs, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl);
           guiContext.window = window;
           gui_timer.data = &guiContext;
           uv_timer_start(&gui_timer, gui_callback, 0, 20);
+          guiDeployedOnce = true;
         }
         break;
       case DriverState::SCHEDULE: {
@@ -1185,10 +1233,14 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           driverInfo.states.push_back(DriverState::RUNNING);
           driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
           driverInfo.states.push_back(DriverState::SCHEDULE);
-        } else if (deviceSpecs.size() == 0) {
+        } else if (deviceSpecs.empty() && driverInfo.batch == true) {
           LOG(INFO) << "No device resulting from the workflow. Quitting.";
           // If there are no deviceSpecs, we exit.
           driverInfo.states.push_back(DriverState::EXIT);
+        } else if (deviceSpecs.empty() && driverInfo.batch == false && !guiDeployedOnce) {
+          // In case of an empty workflow, we need to deploy the GUI at least once.
+          driverInfo.states.push_back(DriverState::RUNNING);
+          driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
         } else {
           driverInfo.states.push_back(DriverState::RUNNING);
         }
@@ -1270,17 +1322,26 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           LOG(INFO) << "Dumping performance metrics to performanceMetrics.json file";
           auto performanceMetrics = o2::monitoring::ProcessMonitor::getAvailableMetricsNames();
           performanceMetrics.push_back("arrow-bytes-delta");
-          ResourcesMonitoringHelper::dumpMetricsToJSON(metricsInfos, deviceSpecs, performanceMetrics);
+          performanceMetrics.push_back("aod-bytes-read-uncompressed");
+          performanceMetrics.push_back("aod-bytes-read-compressed");
+          performanceMetrics.push_back("aod-file-read-info");
+          ResourcesMonitoringHelper::dumpMetricsToJSON(metricsInfos, driverInfo.metrics, deviceSpecs, performanceMetrics);
         }
         // This is a clean exit. Before we do so, if required,
         // we dump the configuration of all the devices so that
-        // we can reuse it
+        // we can reuse it. Notice we do not dump anything if
+        // the workflow was not really run.
+        // NOTE: is this really what we want? should we run
+        // SCHEDULE and dump the full configuration as well?
+        if (infos.empty()) {
+          return 0;
+        }
         boost::property_tree::ptree finalConfig;
         assert(infos.size() == deviceSpecs.size());
         for (size_t di = 0; di < infos.size(); ++di) {
           auto info = infos[di];
           auto spec = deviceSpecs[di];
-          PropertyTreeHelpers::merge(finalConfig, info.currentConfig, spec.name);
+          finalConfig.put_child(spec.name, info.currentConfig);
         }
         LOG(INFO) << "Dumping used configuration in dpl-config.json";
         boost::property_tree::write_json("dpl-config.json", finalConfig);
@@ -1350,6 +1411,68 @@ bool isOutputToPipe()
   struct stat s;
   fstat(STDOUT_FILENO, &s);
   return ((s.st_mode & S_IFIFO) != 0);
+}
+
+void overrideSuffix(ConfigContext& ctx, WorkflowSpec& workflow)
+{
+  auto suffix = ctx.options().get<std::string>("workflow-suffix");
+  if (suffix.empty()) {
+    return;
+  }
+  for (auto& processor : workflow) {
+    processor.name = processor.name + suffix;
+  }
+}
+
+void overrideCloning(ConfigContext& ctx, WorkflowSpec& workflow)
+{
+  struct CloningSpec {
+    std::string templateMatcher;
+    std::string cloneName;
+  };
+  auto s = ctx.options().get<std::string>("clone");
+  std::vector<CloningSpec> specs;
+  std::string delimiter = ",";
+
+  size_t pos = 0;
+  while (s.empty() == false) {
+    auto newPos = s.find(delimiter);
+    auto token = s.substr(0, newPos);
+    auto split = token.find(":");
+    if (split == std::string::npos) {
+      throw std::runtime_error("bad clone definition. Syntax <template-processor>:<clone-name>");
+    }
+    auto key = token.substr(0, split);
+    token.erase(0, split + 1);
+    size_t error;
+    std::string value = "";
+    try {
+      auto numValue = std::stoll(token, &error, 10);
+      if (token[error] != '\0') {
+        throw std::runtime_error("bad name for clone:" + token);
+      }
+      value = key + "_c" + std::to_string(numValue);
+    } catch (std::invalid_argument& e) {
+      value = token;
+    }
+    specs.push_back({key, value});
+    s.erase(0, newPos + (newPos == std::string::npos ? 0 : 1));
+  }
+  if (s.empty() == false && specs.empty() == true) {
+    throw std::runtime_error("bad pipeline definition. Syntax <processor>:<pipeline>");
+  }
+
+  std::vector<DataProcessorSpec> extraSpecs;
+  for (auto& spec : specs) {
+    for (auto& processor : workflow) {
+      if (processor.name == spec.templateMatcher) {
+        auto clone = processor;
+        clone.name = spec.cloneName;
+        extraSpecs.push_back(clone);
+      }
+    }
+  }
+  workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
 }
 
 void overridePipeline(ConfigContext& ctx, WorkflowSpec& workflow)

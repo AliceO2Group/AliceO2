@@ -10,9 +10,11 @@
 #include <iomanip>
 //#include <TVector3.h>
 #include "FT0Base/Geometry.h"
-
+#include "TSystem.h"
 #include <FairLogger.h>
 #include <sstream>
+#include <string>
+#include <iostream>
 
 ClassImp(o2::ft0::Geometry);
 

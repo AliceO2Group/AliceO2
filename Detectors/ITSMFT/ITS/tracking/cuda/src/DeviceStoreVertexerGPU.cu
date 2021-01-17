@@ -21,7 +21,7 @@ namespace o2
 {
 namespace its
 {
-namespace GPU
+namespace gpu
 {
 GPUg() void defaultInitArrayKernel(int* array, const size_t arraySize, const int initValue = 0)
 {
@@ -47,7 +47,7 @@ DeviceStoreVertexerGPU::DeviceStoreVertexerGPU()
   mBeamPosition = Vector<float>{2, 2};
 
   for (int iTable{0}; iTable < 2; ++iTable) {
-    mIndexTables[iTable] = Vector<int>{constants::index_table::ZBins * constants::index_table::PhiBins + 1}; // 2*20*20+1 * sizeof(int) = 802B
+    mIndexTables[iTable] = Vector<int>{constants::its2::ZBins * constants::its2::PhiBins + 1}; // 2*20*20+1 * sizeof(int) = 802B
   }
   for (int iLayer{0}; iLayer < constants::its::LayersNumberVertexer; ++iLayer) { // 4e4 * 3 * sizof(Cluster) = 3.36MB
     mClusters[iLayer] = Vector<Cluster>{mGPUConf.clustersPerLayerCapacity, mGPUConf.clustersPerLayerCapacity};
@@ -65,10 +65,10 @@ DeviceStoreVertexerGPU::DeviceStoreVertexerGPU()
   }
   mSizes = Vector<int>{constants::its::LayersNumberVertexer};
 #endif
-} // namespace GPU
+} // namespace gpu
 
 UniquePointer<DeviceStoreVertexerGPU> DeviceStoreVertexerGPU::initialise(const std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer>& clusters,
-                                                                         const std::array<std::array<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>,
+                                                                         const std::array<std::array<int, constants::its2::ZBins * constants::its2::PhiBins + 1>,
                                                                                           constants::its::LayersNumberVertexer>& indexTables)
 {
 #ifdef _ALLOW_DEBUG_TREES_ITS_
@@ -83,8 +83,8 @@ UniquePointer<DeviceStoreVertexerGPU> DeviceStoreVertexerGPU::initialise(const s
   mIndexTables[0].reset(indexTables[0].data(), static_cast<int>(indexTables[0].size()));
   mIndexTables[1].reset(indexTables[2].data(), static_cast<int>(indexTables[2].size()));
 
-  const dim3 threadsPerBlock{Utils::Host::getBlockSize(mClusters[1].capacity())};
-  const dim3 blocksGrid{Utils::Host::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
+  const dim3 threadsPerBlock{utils::host::getBlockSize(mClusters[1].capacity())};
+  const dim3 blocksGrid{utils::host::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
 
   UniquePointer<DeviceStoreVertexerGPU> deviceStoreVertexerPtr{*this};
 
@@ -104,6 +104,6 @@ GPUd() const Vector<int>& DeviceStoreVertexerGPU::getIndexTable(const VertexerLa
   return mIndexTables[1];
 }
 
-} // namespace GPU
+} // namespace gpu
 } // namespace its
 } // namespace o2

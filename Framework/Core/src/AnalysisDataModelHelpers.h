@@ -16,6 +16,5 @@
 namespace o2::aod::datamodel
 {
 std::string getTreeName(header::DataHeader dh);
-std::vector<std::string> getColumnNames(header::DataHeader dh);
 } // namespace o2::aod::datamodel
 #endif // O2_FRAMEWORK_ANALYSISDATAMODELHELPERS_H_

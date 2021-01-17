@@ -11,6 +11,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include "Mocking.h"
 #include "../src/ComputingResourceHelpers.h"
 #include "../src/DeviceSpecHelpers.h"
 #include "../src/GraphvizHelpers.h"
@@ -95,7 +96,8 @@ BOOST_AUTO_TEST_CASE(TestGraphviz)
   for (auto& device : devices) {
     BOOST_CHECK(device.id != "");
   }
-  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  auto configContext = makeEmptyConfigContext();
+  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
   std::vector<ComputingResource> resources = {ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
@@ -133,7 +135,8 @@ BOOST_AUTO_TEST_CASE(TestGraphvizWithPipeline)
   for (auto& device : devices) {
     BOOST_CHECK(device.id != "");
   }
-  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies();
+  auto configContext = makeEmptyConfigContext();
+  auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
   std::vector<ComputingResource> resources = {ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);

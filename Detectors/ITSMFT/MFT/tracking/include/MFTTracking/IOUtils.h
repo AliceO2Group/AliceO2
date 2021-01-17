@@ -21,6 +21,7 @@
 #include <vector>
 #include <gsl/gsl>
 
+#include "MFTTracking/Tracker.h"
 #include "MFTTracking/ROframe.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -56,7 +57,7 @@ constexpr float DefClusError2Col = DefClusErrorCol * DefClusErrorCol;
 
 int loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& events, gsl::span<const itsmft::CompClusterExt> clusters,
                     gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
-                    const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr);
+                    const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr, const o2::mft::Tracker* tracker = nullptr);
 
 } // namespace ioutils
 } // namespace mft

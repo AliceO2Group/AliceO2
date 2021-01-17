@@ -38,7 +38,7 @@ using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 class ROframe final
 {
  public:
-  ROframe(int ROframeId);
+  ROframe(int ROframeId, int nLayers);
   int getROFrameId() const;
   const float3& getPrimaryVertex(const int) const;
   int getPrimaryVerticesNum() const;
@@ -49,10 +49,10 @@ class ROframe final
   int getTotalClusters() const;
   bool empty() const;
 
-  const std::array<std::vector<Cluster>, constants::its::LayersNumber>& getClusters() const;
+  const auto& getClusters() const { return mClusters; }
   const std::vector<Cluster>& getClustersOnLayer(int layerId) const;
   const std::vector<TrackingFrameInfo>& getTrackingFrameInfoOnLayer(int layerId) const;
-  const std::array<std::vector<TrackingFrameInfo>, constants::its::LayersNumber>& getTrackingFrameInfo() const;
+  const auto& getTrackingFrameInfo() const { return mTrackingFrameInfo; }
 
   const TrackingFrameInfo& getClusterTrackingFrameInfo(int layerId, const Cluster& cl) const;
   const MCCompLabel& getClusterLabels(int layerId, const Cluster& cl) const;
@@ -73,10 +73,10 @@ class ROframe final
  private:
   const int mROframeId;
   std::vector<float3> mPrimaryVertices;
-  std::array<std::vector<Cluster>, constants::its::LayersNumber> mClusters;
-  std::array<std::vector<TrackingFrameInfo>, constants::its::LayersNumber> mTrackingFrameInfo;
-  std::array<std::vector<MCCompLabel>, constants::its::LayersNumber> mClusterLabels;
-  std::array<std::vector<int>, constants::its::LayersNumber> mClusterExternalIndices;
+  std::vector<std::vector<Cluster>> mClusters;
+  std::vector<std::vector<TrackingFrameInfo>> mTrackingFrameInfo;
+  std::vector<std::vector<MCCompLabel>> mClusterLabels;
+  std::vector<std::vector<int>> mClusterExternalIndices;
 };
 
 inline int ROframe::getROFrameId() const { return mROframeId; }
@@ -87,11 +87,6 @@ inline int ROframe::getPrimaryVerticesNum() const { return mPrimaryVertices.size
 
 inline bool ROframe::empty() const { return getTotalClusters() == 0; }
 
-inline const std::array<std::vector<Cluster>, constants::its::LayersNumber>& ROframe::getClusters() const
-{
-  return mClusters;
-}
-
 inline const std::vector<Cluster>& ROframe::getClustersOnLayer(int layerId) const
 {
   return mClusters[layerId];
@@ -100,11 +95,6 @@ inline const std::vector<Cluster>& ROframe::getClustersOnLayer(int layerId) cons
 inline const std::vector<TrackingFrameInfo>& ROframe::getTrackingFrameInfoOnLayer(int layerId) const
 {
   return mTrackingFrameInfo[layerId];
-}
-
-inline const std::array<std::vector<TrackingFrameInfo>, constants::its::LayersNumber>& ROframe::getTrackingFrameInfo() const
-{
-  return mTrackingFrameInfo;
 }
 
 inline const TrackingFrameInfo& ROframe::getClusterTrackingFrameInfo(int layerId, const Cluster& cl) const
@@ -157,7 +147,7 @@ inline void ROframe::addClusterExternalIndexToLayer(int layer, const int idx)
 
 inline void ROframe::clear()
 {
-  for (int iL = 0; iL < constants::its::LayersNumber; ++iL) {
+  for (unsigned int iL = 0; iL < mClusters.size(); ++iL) {
     mClusters[iL].clear();
     mTrackingFrameInfo[iL].clear();
     mClusterLabels[iL].clear();

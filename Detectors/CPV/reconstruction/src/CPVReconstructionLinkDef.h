@@ -16,5 +16,7 @@
 
 #pragma link C++ class o2::cpv::Clusterer + ;
 #pragma link C++ class o2::cpv::FullCluster + ;
+#pragma link C++ class o2::cpv::RawReaderMemory + ;
+#pragma link C++ class o2::cpv::RawDecoder + ;
 
 #endif

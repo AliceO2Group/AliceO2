@@ -7,18 +7,32 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+//
+// Example cascade analysis task
+// =============================
+//
+// This code loops over a CascData table and produces some
+// standard analysis output. It requires either
+// the cascadefinder or the cascadeproducer tasks
+// to have been executed in the workflow (before).
+//
+//    Comments, questions, complaints, suggestions?
+//    Please write to:
+//    david.dobrigkeit.chinellato@cern.ch
+//
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoAHelpers.h"
 #include "ReconstructionDataFormats/Track.h"
-#include "Analysis/RecoDecay.h"
-#include "Analysis/trackUtilities.h"
-#include "Analysis/StrangenessTables.h"
-#include "Analysis/TrackSelection.h"
-#include "Analysis/TrackSelectionTables.h"
-#include "Analysis/EventSelection.h"
-#include "Analysis/Centrality.h"
+#include "AnalysisCore/RecoDecay.h"
+#include "AnalysisCore/trackUtilities.h"
+#include "AnalysisDataModel/StrangenessTables.h"
+#include "AnalysisCore/TrackSelection.h"
+#include "AnalysisDataModel/TrackSelectionTables.h"
+#include "AnalysisDataModel/EventSelection.h"
+#include "AnalysisDataModel/Centrality.h"
 
 #include <TFile.h>
 #include <TH2F.h>
@@ -30,7 +44,6 @@
 #include <cmath>
 #include <array>
 #include <cstdlib>
-#include "PID/PIDResponse.h"
 #include "Framework/ASoAHelpers.h"
 
 using namespace o2;
@@ -57,7 +70,7 @@ struct cascadeQA {
   OutputObj<TH1F> hDCACascDau{TH1F("hDCACascDau", "", 1000, 0.0, 10.0)};
   OutputObj<TH1F> hLambdaMass{TH1F("hLambdaMass", "", 1000, 0.0, 10.0)};
 
-  void process(aod::Collision const& collision, soa::Join<aod::Cascades, aod::CascDataExt> const& Cascades)
+  void process(aod::Collision const& collision, aod::CascDataExt const& Cascades)
   {
     for (auto& casc : Cascades) {
       if (casc.charge() < 0) { //FIXME: could be done better...
@@ -107,7 +120,7 @@ struct cascadeconsumer {
                                                                            aod::cascdata::dcabachtopv > dcabachtopv&&
                                                                                                           aod::cascdata::dcaV0daughters < dcav0dau&& aod::cascdata::dcacascdaughters < dcacascdau;
 
-  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision, soa::Filtered<soa::Join<aod::Cascades, aod::CascDataExt>> const& Cascades)
+  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision, soa::Filtered<aod::CascDataExt> const& Cascades)
   {
     if (!collision.alias()[kINT7]) {
       return;

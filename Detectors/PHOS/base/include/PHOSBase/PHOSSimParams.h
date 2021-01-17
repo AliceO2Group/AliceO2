@@ -35,7 +35,7 @@ struct PHOSSimParams : public o2::conf::ConfigurableParamHelper<PHOSSimParams> {
   bool mApplyNonLinearity = false;   ///< Apply energy non-linearity in digitization
   bool mApplyDigitization = false;   ///< Apply energy digitization in digitization
   float mAPDNoise = 0.005;           ///< RMS of APD noise
-  float mDigitThreshold = 2.5;       ///< minimal energy to keep digit in ADC counts
+  float mDigitThreshold = 2.;        ///< minimal energy to keep digit in ADC counts
   float mADCwidth = 0.005;           ///< width of ADC channel in GeV
   float mTOFa = 0.5e-9;              ///< constant term of TOF resolution
   float mTOFb = 1.e-9;               ///< stohastic term of TOF resolution
@@ -43,12 +43,29 @@ struct PHOSSimParams : public o2::conf::ConfigurableParamHelper<PHOSSimParams> {
   float mCellNonLineaityB = 0.109;   ///< Energy scale of cel non-linearity
   float mCellNonLineaityC = 1.;      ///< Overall calibration
 
-  float mZSthreshold = 2.5;      ///< Zero Suppression threshold
+  short mZSthreshold = 1;        ///< Zero Suppression threshold
   float mTimeResolutionA = 2.;   ///< Time resolution parameter A (in ns)
   float mTimeResolutionB = 2.;   ///< Time resolution parameter B (in ns/GeV)
   float mTimeResThreshold = 0.5; ///< threshold for time resolution calculation (in GeV)
   float mMinNoiseTime = -200.;   ///< minimum time in noise channels (in ns)
   float mMaxNoiseTime = 2000.;   ///< minimum time in noise channels (in ns)
+
+  //Parameters used in Raw simulation
+  float mSampleDecayTime = 0.091; ///< Time parameter in Gamma2 function (1/tau, 100.e-9/2.1e-6)
+
+  // //Parameters used in raw data reconstruction
+  short mSpikeThreshold = 100; ///< Single spike >100 ADC channels
+  short mBaseLine = 0;         ///<
+  short mPreSamples = 2;       ///< number of pre-samples readout before sample (if no pedestal subtrauction)
+  short mMCOverflow = 970;     ///< Overflow level for MC simulations: 1023-(pedestal~50)
+  float mTimeTick = 100.;      ///< ns to PHOS digitization step conversion
+
+  // bool  mSubtractPedestal = false ;    ///< subtract pedestals
+  // bool  mCreateSampleQualityOutput = false ; ///< Create stream of sample quality
+  // bool  mApplyBadMap = false ;         ///< Apply bad map in sample fitting
+  // short mChiMinCut = 0 ;               ///< Minimal cut on sample quality
+  // short mChiMaxCut = 1000;             ///< Maximal cut on sample quality
+  // std::string mFitterVersion = "default"; ///< version of raw fitter to be used
 
   //Parameters used in clusterization
   float mLogWeight = 4.5;             ///< Cutoff used in log. weight calculation

@@ -11,11 +11,20 @@
 o2_add_library(CPVReconstruction
                SOURCES src/Clusterer.cxx
                        src/FullCluster.cxx
+                       src/RawDecoder.cxx
+                       src/RawReaderMemory.cxx
+		       src/CTFCoder.cxx
+		       src/CTFHelper.cxx
                PUBLIC_LINK_LIBRARIES O2::CPVBase
                                      O2::CPVCalib
                                      O2::DataFormatsCPV
-                                     AliceO2::InfoLogger)
+                                     O2::DetectorsRaw
+                                     AliceO2::InfoLogger
+				     O2::rANS
+				     ms_gsl::ms_gsl)
 
 o2_target_root_dictionary(CPVReconstruction
                           HEADERS include/CPVReconstruction/Clusterer.h 
-                                  include/CPVReconstruction/FullCluster.h)
+                                  include/CPVReconstruction/FullCluster.h
+                                  include/CPVReconstruction/RawReaderMemory.h
+                                  include/CPVReconstruction/RawDecoder.h)

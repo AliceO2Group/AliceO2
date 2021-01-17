@@ -14,6 +14,7 @@
 #define ALICEO2_GENERATORFROMFILE_H_
 
 #include "FairGenerator.h"
+#include "Generators/Generator.h"
 
 class TBranch;
 class TFile;
@@ -56,6 +57,33 @@ class GeneratorFromFile : public FairGenerator
   bool mSkipNonTrackable = true; //! whether to pass non-trackable (decayed particles) to the MC stack
   bool mFixOffShell = true;      // fix particles with M_assigned != M_calculated
   ClassDefOverride(GeneratorFromFile, 1);
+};
+
+/// This class implements a generic FairGenerator which
+/// reads the particles from an external O2 sim kinematics file.
+class GeneratorFromO2Kine : public o2::eventgen::Generator
+{
+ public:
+  GeneratorFromO2Kine() = default;
+  GeneratorFromO2Kine(const char* name);
+
+  // the o2 Generator interface methods
+  bool generateEvent() override
+  { /* trivial - actual work in importParticles */
+    return true;
+  }
+  bool importParticles() override;
+
+  // Set from which event to start
+  void SetStartEvent(int start);
+
+ private:
+  TFile* mEventFile = nullptr;     //! the file containing the persistent events
+  TBranch* mEventBranch = nullptr; //! the branch containing the persistent events
+  int mEventCounter = 0;
+  int mEventsAvailable = 0;
+  bool mSkipNonTrackable = true; //! whether to pass non-trackable (decayed particles) to the MC stack
+  ClassDefOverride(GeneratorFromO2Kine, 1);
 };
 
 } // end namespace eventgen

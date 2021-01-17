@@ -15,6 +15,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
+#include "Steer/MCKinematicsReader.h"
 #include "TFile.h"
 #include "TTree.h"
 #ifdef NDEBUG
@@ -46,16 +47,13 @@ int main(int argc, char** argv)
   assert(refbr);
   refbr->SetAddress(&trackrefs);
 
-  o2::dataformats::MCTruthContainer<o2::TrackReference>* indexedtrackrefs = nullptr;
-  auto irefbr = tr->GetBranch("IndexedTrackRefs");
-  irefbr->SetAddress(&indexedtrackrefs);
+  o2::steer::MCKinematicsReader mcreader(nameprefix, o2::steer::MCKinematicsReader::Mode::kMCKine);
 
-  for (int i = 0; i < mcbr->GetEntries(); ++i) {
-    mcbr->GetEntry(i);
-    refbr->GetEntry(i);
-    irefbr->GetEntry(i);
-    LOG(DEBUG) << "-- Entry --" << i << "\n";
-    LOG(DEBUG) << "Have " << mctracks->size() << " tracks \n";
+  for (int eventID = 0; eventID < mcbr->GetEntries(); ++eventID) {
+    mcbr->GetEntry(eventID);
+    refbr->GetEntry(eventID);
+    LOG(DEBUG) << "-- Entry --" << eventID;
+    LOG(DEBUG) << "Have " << mctracks->size() << " tracks";
     int ti = 0;
 
     // record tracks that left a hit in TPC
@@ -68,24 +66,22 @@ int main(int argc, char** argv)
       if (t.leftTrace(o2::detectors::DetID::TPC)) {
         trackidsinTPC.emplace_back(ti);
       }
-      LOG(DEBUG) << " track " << ti << "\t" << t.getMotherTrackId() << " hits " << t.hasHits() << "\n";
+      LOG(DEBUG) << " track " << ti << "\t" << t.getMotherTrackId() << " hits " << t.hasHits();
       ti++;
     }
 
-    LOG(DEBUG) << "Have " << trackidsinTPC.size() << " tracks with hits in TPC\n";
-    LOG(DEBUG) << "Have " << trackrefs->size() << " track refs \n";
-    LOG(DEBUG) << "Have " << indexedtrackrefs->getIndexedSize() << " mapped tracks\n";
-    LOG(DEBUG) << "Have " << indexedtrackrefs->getNElements() << " track refs\n";
+    LOG(DEBUG) << "Have " << trackidsinTPC.size() << " tracks with hits in TPC";
+    LOG(DEBUG) << "Have " << trackrefs->size() << " track refs";
 
+    // check correct working of MCKinematicsReader
     bool havereferences = trackrefs->size();
     if (havereferences) {
-      for (auto& i : trackidsinTPC) {
-        auto labels = indexedtrackrefs->getLabels(i);
-        assert(labels.size() > 0);
-        LOG(DEBUG) << " Track " << i << " has " << labels.size() << " TrackRefs "
-                   << "\n";
-        for (int j = 0; j < labels.size(); ++j) {
-          LOG(DEBUG) << labels[j];
+      for (auto& trackID : trackidsinTPC) {
+        auto trackrefs = mcreader.getTrackRefs(eventID, trackID);
+        assert(trackrefs.size() > 0);
+        LOG(DEBUG) << " Track " << trackID << " has " << trackrefs.size() << " TrackRefs";
+        for (auto& ref : trackrefs) {
+          assert(ref.getTrackID() == trackID);
         }
       }
     }

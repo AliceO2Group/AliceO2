@@ -31,6 +31,8 @@
 #include "DataFormatsTOF/CTF.h"
 #include "DataFormatsMID/CTF.h"
 #include "DataFormatsEMCAL/CTF.h"
+#include "DataFormatsPHOS/CTF.h"
+#include "DataFormatsCPV/CTF.h"
 #include "Algorithm/RangeTokenizer.h"
 
 using namespace o2::framework;
@@ -170,6 +172,20 @@ void CTFReaderSpec::run(ProcessingContext& pc)
   if (detsTF[det]) {
     auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::emcal::CTF));
     o2::emcal::CTF::readFromTree(bufVec, *(tree.get()), det.getName());
+    setFirstTFOrbit(det.getName());
+  }
+
+  det = DetID::PHS;
+  if (detsTF[det]) {
+    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::phos::CTF));
+    o2::phos::CTF::readFromTree(bufVec, *(tree.get()), det.getName());
+    setFirstTFOrbit(det.getName());
+  }
+
+  det = DetID::CPV;
+  if (detsTF[det]) {
+    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::cpv::CTF));
+    o2::cpv::CTF::readFromTree(bufVec, *(tree.get()), det.getName());
     setFirstTFOrbit(det.getName());
   }
 

@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
 {
   std::vector<TriggerRecord> triggers;
   std::vector<Cell> cells;
-  //  gSystem->Load("libO2DetectorsCommonDataFormats.so");
+  //  gSystem->Load("libO2DetectorsCommonDataFormats");
   TStopwatch sw;
   sw.Start();
   o2::InteractionRecord ir(0, 0);

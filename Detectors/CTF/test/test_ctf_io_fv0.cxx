@@ -27,6 +27,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
 {
   std::vector<BCData> digits;
   std::vector<ChannelData> channels;
+  Triggers trigger; // TODO: Actual values are not set
 
   TStopwatch sw;
   sw.Start();
@@ -44,7 +45,8 @@ BOOST_AUTO_TEST_CASE(CTFTest)
       ich += 1 + gRandom->Poisson(10);
     }
     auto end = channels.size();
-    digits.emplace_back(start, end - start, ir);
+
+    digits.emplace_back(start, end - start, ir, trigger);
   }
 
   LOG(INFO) << "Generated " << channels.size() << " channels in " << digits.size() << " digits " << sw.CpuTime() << " s";

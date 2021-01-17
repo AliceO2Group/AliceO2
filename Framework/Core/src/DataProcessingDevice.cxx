@@ -55,6 +55,8 @@
 #include <unordered_map>
 #include <uv.h>
 #include <execinfo.h>
+#include <sstream>
+#include <boost/property_tree/json_parser.hpp>
 
 using namespace o2::framework;
 using Key = o2::monitoring::tags::Key;
@@ -219,25 +221,25 @@ void DataProcessingDevice::Init()
   } else {
     retrievers.emplace_back(std::make_unique<FairOptionsRetriever>(GetConfig()));
   }
-  auto configStore = std::move(std::make_unique<ConfigParamStore>(mSpec.options, std::move(retrievers)));
+  auto configStore = std::make_unique<ConfigParamStore>(mSpec.options, std::move(retrievers));
   configStore->preload();
   configStore->activate();
   using boost::property_tree::ptree;
 
   /// Dump the configuration so that we can get it from the driver.
   for (auto& entry : configStore->store()) {
-    LOG(INFO) << "[CONFIG] " << entry.first << "=" << configStore->store().get<std::string>(entry.first) << " 1 " << configStore->provenance(entry.first.c_str());
-    PropertyTreeHelpers::WalkerFunction printer = [&configStore, topLevel = entry.first](ptree const& parent, ptree::path_type childPath, ptree const& child) {
-      // FIXME: not clear why we get invoked for the root entry
-      //        and twice for each node. It nevertheless works
-      //        because the net result is that we call twice
-      //        ptree put.
-      if (childPath.dump() != "") {
-        LOG(INFO) << "[CONFIG] " << topLevel << "." << childPath.dump() << "=" << child.data() << " 1 " << configStore->provenance(topLevel.c_str());
-      }
-    };
-    PropertyTreeHelpers::traverse(entry.second, printer);
+    std::stringstream ss;
+    std::string str;
+    if (entry.second.size() != 0) {
+      boost::property_tree::json_parser::write_json(ss, entry.second, false);
+      str = ss.str();
+      str.pop_back(); //remove EoL
+    } else {
+      str = entry.second.get_value<std::string>();
+    }
+    LOG(INFO) << "[CONFIG] " << entry.first << "=" << str << " 1 " << configStore->provenance(entry.first.c_str());
   }
+
   mConfigRegistry = std::make_unique<ConfigParamRegistry>(std::move(configStore));
 
   mExpirationHandlers.clear();
@@ -275,9 +277,9 @@ void DataProcessingDevice::Init()
   /// expect them to create any data.
   for (size_t ci = 0; ci < mSpec.inputChannels.size(); ++ci) {
     auto& name = mSpec.inputChannels[ci].name;
-    if (name.find("from_internal-dpl-clock") == 0) {
+    if (name.find(mSpec.channelPrefix + "from_internal-dpl-clock") == 0) {
       mState.inputChannelInfos[ci].state = InputChannelState::Pull;
-    } else if (name.find("from_internal-dpl-ccdb-backend") == 0) {
+    } else if (name.find(mSpec.channelPrefix + "from_internal-dpl-ccdb-backend") == 0) {
       mState.inputChannelInfos[ci].state = InputChannelState::Pull;
     }
   }
@@ -355,11 +357,11 @@ void DataProcessingDevice::InitTask()
     // devices to allow for enumerations.
     if (mState.activeInputPollers.empty() && mState.activeTimers.empty() && mState.activeSignals.empty()) {
       for (auto& x : fChannels) {
-        if (x.first.rfind("from_internal-dpl", 0) == 0) {
+        if (x.first.rfind(mSpec.channelPrefix + "from_internal-dpl", 0) == 0) {
           LOG(debug) << x.first << " is an internal channel. Not polling." << std::endl;
           continue;
         }
-        assert(x.first.rfind("from_" + mSpec.name + "_", 0) == 0);
+        assert(x.first.rfind(mSpec.channelPrefix + "from_" + mSpec.name + "_", 0) == 0);
         // We assume there is always a ZeroMQ socket behind.
         int zmq_fd = 0;
         size_t zmq_fd_len = sizeof(zmq_fd);
@@ -505,7 +507,7 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
     if (info.state != InputChannelState::Running) {
       continue;
     }
-    int result = -2;
+    int64_t result = -2;
     auto& fairMQChannel = context.device->GetChannel(channel.name, 0);
     auto& socket = fairMQChannel.GetSocket();
     uint32_t events;

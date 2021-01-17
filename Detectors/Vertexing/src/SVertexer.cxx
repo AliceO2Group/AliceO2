@@ -39,12 +39,12 @@ void SVertexer::init()
   auto bz = o2::base::Propagator::Instance()->getNominalBz();
   mFitter2Prong.setBz(bz);
   //
-  mV0Hyps[SVertexerParams::Photon].set(PID::Photon, PID::Electron, PID::Electron, mSVParams->pidCuts[SVertexerParams::Photon], bz);
-  mV0Hyps[SVertexerParams::K0].set(PID::K0, PID::Pion, PID::Pion, mSVParams->pidCuts[SVertexerParams::K0], bz);
-  mV0Hyps[SVertexerParams::Lambda].set(PID::Lambda, PID::Proton, PID::Pion, mSVParams->pidCuts[SVertexerParams::Lambda], bz);
-  mV0Hyps[SVertexerParams::AntiLambda].set(PID::Lambda, PID::Pion, PID::Proton, mSVParams->pidCuts[SVertexerParams::AntiLambda], bz);
-  mV0Hyps[SVertexerParams::HyperTriton].set(PID::HyperTriton, PID::Helium3, PID::Pion, mSVParams->pidCuts[SVertexerParams::HyperTriton], bz);
-  mV0Hyps[SVertexerParams::AntiHyperTriton].set(PID::HyperTriton, PID::Pion, PID::Helium3, mSVParams->pidCuts[SVertexerParams::AntiHyperTriton], bz);
+  mV0Hyps[SVertexerParams::Photon].set(PID::Photon, PID::Electron, PID::Electron, mSVParams->pidCutsPhoton, bz);
+  mV0Hyps[SVertexerParams::K0].set(PID::K0, PID::Pion, PID::Pion, mSVParams->pidCutsK0, bz);
+  mV0Hyps[SVertexerParams::Lambda].set(PID::Lambda, PID::Proton, PID::Pion, mSVParams->pidCutsLambda, bz);
+  mV0Hyps[SVertexerParams::AntiLambda].set(PID::Lambda, PID::Pion, PID::Proton, mSVParams->pidCutsLambda, bz);
+  mV0Hyps[SVertexerParams::HyperTriton].set(PID::HyperTriton, PID::Helium3, PID::Pion, mSVParams->pidCutsHTriton, bz);
+  mV0Hyps[SVertexerParams::AntiHyperTriton].set(PID::HyperTriton, PID::Pion, PID::Helium3, mSVParams->pidCutsHTriton, bz);
   //
 }
 
@@ -167,9 +167,9 @@ void SVertexer::process(const gsl::span<const PVertex>& vertices,   // primary v
             continue;
           }
           // check cos of pointing angle
-          float dz = v0pos[2] - mMeanVertex.getZ(), cosPointingAngle = (prodXY + dz * pV0[2]) / std::sqrt((dx * dx + dy * dy + dz * dz) * p2V0);
+          float dz = v0pos[2] - pv.getZ(), cosPointingAngle = (prodXY + dz * pV0[2]) / std::sqrt((dx * dx + dy * dy + dz * dz) * p2V0);
           if (cosPointingAngle < mMinCosPointingAngle) {
-            if (ambiguousV0) {
+            if (!ambiguousV0) {
               continue; // no need to check this pair wrt other vertices
             }
             cosPointingAngle = mMinCosPointingAngle - 1e-6;
@@ -203,6 +203,7 @@ void SVertexer::process(const gsl::span<const PVertex>& vertices,   // primary v
           if (cosPointingAngle > v0.getCosPA()) { // reassign
             v0.setCosPA(cosPointingAngle);
             v0.setVertexID(iv);
+            v0sIdx.push_back(*resPair);
             pvrefs.changeEntriesBy(1);
           }
         }

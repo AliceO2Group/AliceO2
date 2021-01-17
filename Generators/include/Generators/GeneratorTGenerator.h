@@ -37,6 +37,10 @@ class GeneratorTGenerator : public Generator
   /** destructor **/
   ~GeneratorTGenerator() override;
 
+  /** methods to override **/
+  Bool_t generateEvent() override;
+  Bool_t importParticles() override;
+
   /** setters **/
   void setTGenerator(TGenerator* val) { mTGenerator = val; };
   const TGenerator* getTGenerator() const { return mTGenerator; }
@@ -48,10 +52,6 @@ class GeneratorTGenerator : public Generator
   GeneratorTGenerator(const GeneratorTGenerator&);
   /** operator= **/
   GeneratorTGenerator& operator=(const GeneratorTGenerator&);
-
-  /** methods to override **/
-  Bool_t generateEvent() override;
-  Bool_t importParticles() override;
 
   /** TGenerator interface **/
   TGenerator* mTGenerator;

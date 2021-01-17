@@ -192,6 +192,12 @@ class AlpideCoder
             addHit(chipData, rightColHits[ihr], colDPrev);
           }
         }
+        if (!chipData.getData().size() && !chipData.isErrorSet()) {
+          nRightCHits = 0;
+          colDPrev = 0xffff;
+          chipData.clear();
+          continue;
+        }
         break;
       }
 

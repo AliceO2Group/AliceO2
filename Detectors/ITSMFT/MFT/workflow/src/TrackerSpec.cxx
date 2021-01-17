@@ -12,6 +12,7 @@
 
 #include "MFTWorkflow/TrackerSpec.h"
 
+#include "MFTTracking/TrackerConfig.h"
 #include "MFTTracking/ROframe.h"
 #include "MFTTracking/IOUtils.h"
 #include "MFTTracking/Tracker.h"
@@ -57,14 +58,19 @@ void TrackerDPL::init(InitContext& ic)
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
                                                    o2::math_utils::TransformType::T2G));
 
+    // tracking configuration parameters
+    auto& mftTrackingParam = MFTTrackingParam::Instance();
+    // create the tracker: set the B-field, the configuration and initialize
     mTracker = std::make_unique<o2::mft::Tracker>(mUseMC);
     double centerMFT[3] = {0, 0, -61.4}; // Field at center of MFT
     mTracker->setBz(field->getBz(centerMFT));
+    mTracker->initConfig(mftTrackingParam);
+    mTracker->initialize();
   } else {
     throw std::runtime_error(o2::utils::concat_string("Cannot retrieve GRP from the ", filename));
   }
 
-  std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
+  std::string dictPath = ic.options().get<std::string>("mft-dictionary-path");
   std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::MFT, dictPath, ".bin");
   if (o2::base::NameConf::pathExists(dictFile)) {
     mDict.readBinaryFile(dictFile);
@@ -131,10 +137,10 @@ void TrackerDPL::run(ProcessingContext& pc)
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
   if (continuous) {
     for (auto& rof : rofs) {
-      int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels);
+      int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels, mTracker.get());
       if (nclUsed) {
         event.setROFrameId(roFrame);
-        event.initialise();
+        event.initialize();
         LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
         mTracker->setROFrame(roFrame);
         mTracker->clustersToTracks(event);
@@ -206,7 +212,7 @@ DataProcessorSpec getTrackerSpec(bool useMC)
     AlgorithmSpec{adaptFromTask<TrackerDPL>(useMC)},
     Options{
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the output file"}},
-      {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}}}};
+      {"mft-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}}}};
 }
 
 } // namespace mft

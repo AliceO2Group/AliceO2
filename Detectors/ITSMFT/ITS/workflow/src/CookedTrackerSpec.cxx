@@ -119,7 +119,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
 
   o2::its::VertexerTraits vertexerTraits;
   o2::its::Vertexer vertexer(&vertexerTraits);
-  o2::its::ROframe event(0);
+  o2::its::ROframe event(0, 7);
 
   auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe});
   auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe});

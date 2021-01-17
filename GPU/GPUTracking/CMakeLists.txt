@@ -129,6 +129,7 @@ set(HDRS_INSTALL
     Merger/GPUTPCGMMergerTypes.h
     Global/GPUErrorCodes.h
     Standalone/qconfigoptions.h
+    Standalone/qa/GPUQAHelper.h
     Base/GPUSettingsList.h
     DataCompression/GPUTPCClusterRejection.h
 )
@@ -162,6 +163,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         TPCClusterFinder/GPUTPCClusterFinder.cxx
         TPCClusterFinder/ClusterAccumulator.cxx
         TPCClusterFinder/MCLabelAccumulator.cxx
+        TPCClusterFinder/GPUTPCCFCheckPadBaseline.cxx
         TPCClusterFinder/GPUTPCCFStreamCompaction.cxx
         TPCClusterFinder/GPUTPCCFChargeMapFiller.cxx
         TPCClusterFinder/GPUTPCCFPeakFinder.cxx
@@ -171,9 +173,10 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         TPCClusterFinder/GPUTPCCFMCLabelFlattener.cxx
         TPCClusterFinder/GPUTPCCFDecodeZS.cxx
         TPCClusterFinder/GPUTPCCFGather.cxx
-        TPCClusterFinder/TPCCFCalibration.cxx
+        TPCClusterFinder/TPCPadGainCalib.cxx
         dEdx/TPCdEdxCalibrationSplines.cxx
-        Refit/GPUTrackingRefit.cxx)
+        Refit/GPUTrackingRefit.cxx
+        Refit/GPUTrackingRefitKernel.cxx)
 
     set(SRCS_NO_H ${SRCS_NO_H}
         TPCClusterFinder/GPUTPCClusterFinderDump.cxx)
@@ -258,6 +261,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                        O2::TPCFastTransformation
                                        O2::DetectorsRaw
                                        ${DEBUGGUI_TARGET}
+                                       O2::Steer
                  PUBLIC_INCLUDE_DIRECTORIES SliceTracker
                                             Base
                                             TPCConvert

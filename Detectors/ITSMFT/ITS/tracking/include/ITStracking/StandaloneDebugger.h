@@ -15,10 +15,16 @@
 #ifndef O2_ITS_STANDALONE_DEBUGGER_H_
 #define O2_ITS_STANDALONE_DEBUGGER_H_
 
+#include <string>
+#include <iterator>
+
+// Tracker
+#include "DataFormatsITS/TrackITS.h"
+#include "ITStracking/PrimaryVertexContext.h"
+#include "ITStracking/ROframe.h"
+
 namespace o2
 {
-
-class MCCompLabel;
 
 namespace utils
 {
@@ -30,6 +36,93 @@ namespace its
 class Tracklet;
 class Line;
 class ROframe;
+class ClusterLines;
+
+using constants::its::UnusedIndex;
+
+template <int numClusters = TrackITSExt::MaxClusters>
+struct FakeTrackInfo {
+ public:
+  FakeTrackInfo();
+  FakeTrackInfo(PrimaryVertexContext* pvc, const ROframe& event, TrackITSExt& track, bool storeClusters) : isFake{false}, isAmbiguousId{false}, mainLabel{UnusedIndex, UnusedIndex, UnusedIndex, false}
+  {
+    occurrences.clear();
+    for (auto& c : clusStatuses) {
+      c = -1;
+    }
+    for (size_t iCluster{0}; iCluster < numClusters; ++iCluster) {
+      int extIndex = track.getClusterIndex(iCluster);
+      if (extIndex == -1) {
+        continue;
+      }
+      o2::MCCompLabel mcLabel = event.getClusterLabels(iCluster, extIndex);
+      bool found = false;
+
+      for (size_t iOcc{0}; iOcc < occurrences.size(); ++iOcc) {
+        std::pair<o2::MCCompLabel, int>& occurrence = occurrences[iOcc];
+        if (mcLabel == occurrence.first) {
+          ++occurrence.second;
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        occurrences.emplace_back(mcLabel, 1);
+      }
+    }
+
+    if (occurrences.size() > 1) {
+      isFake = true;
+    }
+    std::sort(std::begin(occurrences), std::end(occurrences), [](auto e1, auto e2) {
+      return e1.second > e2.second;
+    });
+    mainLabel = occurrences[0].first;
+
+    for (size_t iOcc{1}; iOcc < occurrences.size(); ++iOcc) {
+      if (occurrences[iOcc].second == occurrences[0].second) {
+        isAmbiguousId = true;
+        break;
+      }
+    }
+
+    for (size_t iCluster{0}; iCluster < numClusters; ++iCluster) {
+      int extIndex = track.getClusterIndex(iCluster);
+      if (extIndex == -1) {
+        continue;
+      }
+      o2::MCCompLabel lbl = event.getClusterLabels(iCluster, extIndex);
+      if (lbl == mainLabel && occurrences[0].second > 1 && !lbl.isNoise()) { // if we have MaxClusters fake clusters -> occurrences[0].second = 1
+        clusStatuses[iCluster] = 1;
+      } else {
+        clusStatuses[iCluster] = 0;
+        ++nFakeClusters;
+      }
+    }
+    if (storeClusters) {
+      for (auto iCluster{0}; iCluster < numClusters; ++iCluster) {
+        const int index = track.getClusterIndex(iCluster);
+        if (index != constants::its::UnusedIndex) {
+          clusters[iCluster] = pvc->getClusters()[iCluster][index];
+          trackingFrameInfos[iCluster] = event.getTrackingFrameInfoOnLayer(iCluster).at(index);
+        }
+      }
+    }
+  }
+
+  // Data
+  std::vector<std::pair<MCCompLabel, int>>
+    occurrences;
+  MCCompLabel mainLabel;
+  std::array<int, numClusters> clusStatuses;
+  std::array<o2::its::Cluster, numClusters> clusters;
+  std::array<o2::its::TrackingFrameInfo, numClusters> trackingFrameInfos;
+
+  bool isFake;
+  bool isAmbiguousId;
+  int nFakeClusters = 0;
+  ClassDefNV(FakeTrackInfo, 1);
+}; // namespace its
 
 class StandaloneDebugger
 {
@@ -58,6 +151,9 @@ class StandaloneDebugger
   void fillLineClustersTree(std::vector<ClusterLines> clusters, const ROframe* event);
   void fillXYZHistogramTree(std::array<std::vector<int>, 3>, const std::array<int, 3>);
   void fillVerticesInfoTree(float x, float y, float z, int size, int rId, int eId, float pur);
+
+  // Tracker debug utilities
+  void dumpTrackToBranchWithInfo(std::string branchName, o2::its::TrackITSExt track, const ROframe event, PrimaryVertexContext* pvc, const bool dumpClusters = false);
 
   static int getBinIndex(const float, const int, const float, const float);
 

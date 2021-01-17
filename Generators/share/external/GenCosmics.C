@@ -11,7 +11,7 @@
 //< Macro to run QED background generator, us it as e.g.
 //< o2-sim -n10000 -m PIPE ITS TPC -g extgen --configKeyValues "GeneratorExternal.fileName=$O2_ROOT/share/Generators/external/GenCosmicsLoader.C"
 
-R__LOAD_LIBRARY(libGeneratorCosmics.so)
+R__LOAD_LIBRARY(libGeneratorCosmics)
 
 using namespace o2::eventgen;
 

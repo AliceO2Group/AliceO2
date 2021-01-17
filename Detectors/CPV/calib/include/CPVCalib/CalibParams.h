@@ -36,7 +36,7 @@ class CalibParams
   CalibParams() = default;
 
   /// \brief Constructor for tests
-  CalibParams(int test);
+  CalibParams(short test);
 
   /// \brief Destructor
   ~CalibParams() = default;
@@ -44,22 +44,22 @@ class CalibParams
   /// \brief Get High Gain energy calibration coefficients
   /// \param cellID Absolute ID of cell
   /// \return high gain energy calibration coefficient of the cell
-  float getGain(short cellID) const { return mGainCalib[cellID]; }
+  float getGain(unsigned short cellID) const { return mGainCalib[cellID]; }
 
   /// \brief Set High Gain energy calibration coefficient
   /// \param cellID Absolute ID of cell
   /// \param c is the calibration coefficient
-  void setGain(short cellID, float c) { mGainCalib[cellID] = c; }
+  void setGain(unsigned short cellID, float c) { mGainCalib[cellID] = c; }
 
   /// \brief Set High Gain energy calibration coefficients for one module in the form of 2D histogram
   /// \param 2D(64,56) histogram with calibration coefficients
   /// \param module number
   /// \return Is successful
-  bool setGain(TH2* h, char module);
+  bool setGain(TH2* h, short module);
 
  private:
-  static constexpr short NCHANNELS = 28673; ///< Number of channels starting from 1
-  std::array<float, NCHANNELS> mGainCalib;  ///< Container for the gain calibration coefficients
+  static constexpr unsigned short NCHANNELS = 30720; ///< Number of channels starting from 1
+  std::array<float, NCHANNELS> mGainCalib;           ///< Container for the gain calibration coefficients
   ClassDefNV(CalibParams, 1);
 };
 

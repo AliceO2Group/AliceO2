@@ -25,8 +25,7 @@
 #include "MIDRaw/CrateParameters.h"
 #include "MIDRaw/ElectronicsDelay.h"
 #include "MIDRaw/FEEIdConfig.h"
-#include "MIDRaw/GBTBareDecoder.h"
-#include "MIDRaw/GBTUserLogicDecoder.h"
+#include "MIDRaw/GBTDecoder.h"
 #include "MIDRaw/LocalBoardRO.h"
 
 namespace o2
@@ -34,26 +33,18 @@ namespace o2
 namespace mid
 {
 
-template <typename GBTDECODER>
 class Decoder
 {
  public:
-  Decoder();
-  ~Decoder() = default;
-  /// Sets the FEE ID config file
-  void setFeeIdConfig(const FEEIdConfig& feeIdConfig) { mFEEIdConfig = feeIdConfig; }
-  /// Sets the crate masks
-  void setCrateMasks(const CrateMasks& masks) { mMasks = masks; }
-  /// Sets the electronics delays
-  void setElectronicsDelay(const ElectronicsDelay& electronicsDelay) { mElectronicsDelay = electronicsDelay; }
-  void init(bool isDebugMode = false);
+  Decoder(bool isDebugMode = false, bool isBare = false, const ElectronicsDelay& electronicsDelay = ElectronicsDelay(), const CrateMasks& crateMasks = CrateMasks(), const FEEIdConfig& feeIdConfig = FEEIdConfig());
+  virtual ~Decoder() = default;
   void process(gsl::span<const uint8_t> bytes);
-  template <typename RDH = o2::header::RAWDataHeader>
+  template <class RDH>
   void process(gsl::span<const uint8_t> payload, const RDH& rdh)
   {
     /// Processes the page
-    uint16_t feeId = mFEEIdConfig.getFeeId(o2::raw::RDHUtils::getLinkID(rdh), o2::raw::RDHUtils::getEndPointID(rdh), o2::raw::RDHUtils::getCRUID(rdh));
-    mGBTDecoders[feeId].process(payload, o2::raw::RDHUtils::getHeartBeatBC(rdh), o2::raw::RDHUtils::getHeartBeatOrbit(rdh), o2::raw::RDHUtils::getPageCounter(rdh));
+    auto feeId = mGetFEEID(rdh);
+    mGBTDecoders[feeId]->process(payload, o2::raw::RDHUtils::getHeartBeatOrbit(rdh), mData, mROFRecords);
   }
   /// Gets the vector of data
   const std::vector<LocalBoardRO>& getData() const { return mData; }
@@ -61,20 +52,21 @@ class Decoder
   /// Gets the vector of data RO frame records
   const std::vector<ROFRecord>& getROFRecords() const { return mROFRecords; }
 
-  void flush();
-
   void clear();
 
-  bool isComplete() const;
+ protected:
+  /// Gets the feeID
+  std::function<uint16_t(const o2::header::RDHAny& rdh)> mGetFEEID{[](const o2::header::RDHAny& rdh) { return o2::raw::RDHUtils::getFEEID(rdh); }};
+
+  std::array<std::unique_ptr<GBTDecoder>, crateparams::sNGBTs> mGBTDecoders{nullptr}; /// GBT decoders
 
  private:
-  std::vector<LocalBoardRO> mData{};                          /// Vector of output data
-  std::vector<ROFRecord> mROFRecords{};                       /// List of ROF records
-  std::array<GBTDECODER, crateparams::sNGBTs> mGBTDecoders{}; /// GBT decoders
-  FEEIdConfig mFEEIdConfig{};                                 /// Crate FEEID mapper
-  CrateMasks mMasks{};                                        /// Crate masks
-  ElectronicsDelay mElectronicsDelay{};                       /// Delay in the electronics
+  std::vector<LocalBoardRO> mData{};    /// Vector of output data
+  std::vector<ROFRecord> mROFRecords{}; /// List of ROF records
 };
+
+std::unique_ptr<Decoder> createDecoder(const o2::header::RDHAny& rdh, bool isDebugMode, ElectronicsDelay& electronicsDelay, const CrateMasks& crateMasks, const FEEIdConfig& feeIdConfig);
+std::unique_ptr<Decoder> createDecoder(const o2::header::RDHAny& rdh, bool isDebugMode, const char* electronicsDelayFile = "", const char* crateMasksFile = "", const char* feeIdConfigFile = "");
 
 } // namespace mid
 } // namespace o2

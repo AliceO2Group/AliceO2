@@ -16,9 +16,11 @@
 
 #pragma link C++ class o2::its::ClusterLines + ;
 #pragma link C++ class o2::its::Tracklet + ;
-#pragma link C++ class o2::its::Centroid + ;
 
 #pragma link C++ class o2::its::VertexerParamConfig + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper <o2::its::VertexerParamConfig> + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::its::VertexerParamConfig> + ;
+
+#pragma link C++ class o2::its::TrackerParamConfig + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper <o2::its::TrackerParamConfig> + ;
 
 #endif

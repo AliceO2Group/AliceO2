@@ -656,7 +656,10 @@ bool CcdbApi::checkAlienToken() const
   // a somewhat weird construction to programmatically find out if we
   // have a GRID token; Can be replaced with something more elegant once
   // alien-token-info does not ask for passwords interactively
-  auto returncode = system("timeout 1s timeout 1s alien-token-info &> /dev/null");
+  if (getenv("JALIEN_TOKEN_CERT")) {
+    return true;
+  }
+  auto returncode = system("alien-token-info > /dev/null 2> /dev/null");
   return returncode == 0;
 }
 
@@ -704,6 +707,11 @@ void* CcdbApi::interpretAsTMemFileAndExtract(char* contentptr, size_t contentsiz
 // navigate sequence of URLs until TFile content is found; object is extracted and returned
 void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string const& url, TClass* cl, std::map<string, string>* headers) const
 {
+  // a global internal data structure that can be filled with HTTP header information
+  // static --> to avoid frequent alloc/dealloc as optimization
+  // not sure if thread_local takes away that benefit
+  static thread_local std::multimap<std::string, std::string> headerData;
+
   // let's see first of all if the url is something specific that curl cannot handle
   if (url.find("alien:/", 0) != std::string::npos) {
     return downloadAlienContent(url, cl);
@@ -719,9 +727,9 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
   curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
   // if redirected , we tell libcurl NOT to follow redirection
   curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 0L);
-  curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_map_callback<decltype(mHeaderData)>);
-  mHeaderData.clear();
-  curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, (void*)&mHeaderData);
+  curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_map_callback<decltype(headerData)>);
+  headerData.clear();
+  curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, (void*)&headerData);
 
   MemoryStruct chunk{(char*)malloc(1), 0};
 
@@ -736,7 +744,7 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
   bool cachingflag = false;
   if (res == CURLE_OK && curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code) == CURLE_OK) {
     if (headers) {
-      for (auto& p : mHeaderData) {
+      for (auto& p : headerData) {
         (*headers)[p.first] = p.second;
       }
     }
@@ -754,20 +762,40 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
     else if (300 <= response_code && response_code < 400) {
       // we try content locations in order of appearance until one succeeds
       // 1st: The "Location" field
-      // 2nd: Possible "Content-Location" fields
-      auto tryLocations = [this, &curl_handle, &content, cl](auto range) {
+      // 2nd: Possible "Content-Location" fields - Location field
+
+      // some locations are relative to the main server so we need to fix/complement them
+      auto complement_Location = [this](std::string const& loc) {
+        if (loc[0] == '/') {
+          // if it's just a path (noticed by trailing '/' we prepend the server url
+          return getURL() + loc;
+        }
+        return loc;
+      };
+
+      std::vector<std::string> locs;
+      auto iter = headerData.find("Location");
+      if (iter != headerData.end()) {
+        locs.push_back(complement_Location(iter->second));
+      }
+      // add alternative locations (not yet included)
+      auto iter2 = headerData.find("Content-Location");
+      if (iter2 != headerData.end()) {
+        auto range = headerData.equal_range("Content-Location");
         for (auto it = range.first; it != range.second; ++it) {
-          auto nextlocation = it->second;
-          LOG(DEBUG) << "Trying content location " << nextlocation;
-          content = navigateURLsAndRetrieveContent(curl_handle, nextlocation, cl, nullptr);
+          if (std::find(locs.begin(), locs.end(), it->second) == locs.end()) {
+            locs.push_back(complement_Location(it->second));
+          }
+        }
+      }
+      for (auto& l : locs) {
+        if (l.size() > 0) {
+          LOG(DEBUG) << "Trying content location " << l;
+          content = navigateURLsAndRetrieveContent(curl_handle, l, cl, nullptr);
           if (content /* or other success marker in future */) {
             break;
           }
         }
-      };
-      tryLocations(mHeaderData.equal_range("Location"));
-      if (content == nullptr) {
-        tryLocations(mHeaderData.equal_range("Content-Location"));
       }
     } else if (response_code == 404) {
       LOG(ERROR) << "Requested resource does not exist";

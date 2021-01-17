@@ -39,6 +39,7 @@
 #include "GPUTPCConvertKernel.h"
 #include "GPUTPCCompressionKernels.h"
 #include "GPUTPCClusterFinderKernels.h"
+#include "GPUTrackingRefitKernel.h"
 #endif
 
 namespace GPUCA_NAMESPACE
@@ -56,6 +57,7 @@ class GPUReconstructionCPUBackend : public GPUReconstruction
   int runKernelBackend(krnlSetup& _xyz, const Args&... args);
   template <class T, int I>
   krnlProperties getKernelPropertiesBackend();
+  unsigned int mNestedLoopOmpFactor = 1;
 };
 
 template <class T>
@@ -146,6 +148,9 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
 
   HighResTimer& getRecoStepTimer(RecoStep step) { return mTimersRecoSteps[getRecoStepNum(step)].timerTotal; }
   HighResTimer& getGeneralStepTimer(GeneralStep step) { return mTimersGeneralSteps[getGeneralStepNum(step)]; }
+
+  void SetNestedLoopOmpFactor(unsigned int f) { mNestedLoopOmpFactor = f; }
+  unsigned int SetAndGetNestedLoopOmpFactor(bool condition, unsigned int max);
 
  protected:
   struct GPUProcessorProcessors : public GPUProcessor {

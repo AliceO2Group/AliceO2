@@ -459,7 +459,7 @@ struct alignas(64) DataPointValue final {
          */
   inline std::unique_ptr<std::string> get_timestamp() const noexcept
   {
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
     // time_t should be uint64_t (compatible) on 64-bit Linux platforms:
     char buffer[17];
     std::time_t ts((uint64_t)sec);

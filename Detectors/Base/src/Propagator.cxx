@@ -9,14 +9,20 @@
 // or submit itself to any jurisdiction.
 
 #include "DetectorsBase/Propagator.h"
-#include <GPUCommonLogger.h>
-#include "Field/MagFieldFast.h"
+#include "GPUCommonLogger.h"
+#include "GPUCommonMath.h"
+#include "GPUTPCGMPolynomialField.h"
 #include "MathUtils/Utils.h"
 #include "ReconstructionDataFormats/Vertex.h"
 
 using namespace o2::base;
+using namespace o2::gpu;
 
-#ifndef GPUCA_STANDALONE
+#if !defined(GPUCA_GPUCODE)
+#include "Field/MagFieldFast.h" // Don't use this on the GPU
+#endif
+
+#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 #include "Field/MagneticField.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -92,12 +98,15 @@ int Propagator::initFieldFromGRP(const o2::parameters::GRPObject* grp, bool verb
   }
   return 0;
 }
-
+#elif !defined(GPUCA_GPUCODE)
+Propagator::Propagator()
+{
+} // empty dummy constructor for standalone benchmark
 #endif
 
 //_______________________________________________________________________
-bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, float mass, float maxSnp, float maxStep,
-                                    Propagator::MatCorrType matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr) const
+GPUd() bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, float maxSnp, float maxStep,
+                                           Propagator::MatCorrType matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr) const
 {
   //----------------------------------------------------------------
   //
@@ -105,7 +114,6 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, 
   // taking into account all the three components of the magnetic field
   // and correcting for the crossed material.
   //
-  // mass     - mass used in propagation - used for energy loss correction (if <0 then q=2)
   // maxStep  - maximal step for propagation
   // tofInfo  - optional container for track length and PID-dependent TOF integration
   //
@@ -118,26 +126,26 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, 
     signCorr = -dir; // sign of eloss correction is not imposed
   }
 
-  std::array<float, 3> b;
-  while (std::abs(dx) > Epsilon) {
-    auto step = std::min(std::abs(dx), maxStep);
+  gpu::gpustd::array<float, 3> b;
+  while (CAMath::Abs(dx) > Epsilon) {
+    auto step = CAMath::Min(CAMath::Abs(dx), maxStep);
     if (dir < 0) {
       step = -step;
     }
     auto x = track.getX() + step;
     auto xyz0 = track.getXYZGlo();
-    mField->Field(xyz0, b.data());
+    getFiedXYZ(xyz0, &b[0]);
 
     if (!track.propagateTo(x, b)) {
       return false;
     }
-    if (maxSnp > 0 && std::abs(track.getSnp()) >= maxSnp) {
+    if (maxSnp > 0 && CAMath::Abs(track.getSnp()) >= maxSnp) {
       return false;
     }
     if (matCorr != MatCorrType::USEMatCorrNONE) {
       auto xyz1 = track.getXYZGlo();
       auto mb = getMatBudget(matCorr, xyz0, xyz1);
-      if (!track.correctForMaterial(mb.meanX2X0, ((signCorr < 0) ? -mb.length : mb.length) * mb.meanRho, mass)) {
+      if (!track.correctForMaterial(mb.meanX2X0, ((signCorr < 0) ? -mb.length : mb.length) * mb.meanRho)) {
         return false;
       }
 
@@ -156,8 +164,8 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float xToGo, 
 }
 
 //_______________________________________________________________________
-bool Propagator::PropagateToXBxByBz(o2::track::TrackPar& track, float xToGo, float mass, float maxSnp, float maxStep,
-                                    Propagator::MatCorrType matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr) const
+GPUd() bool Propagator::PropagateToXBxByBz(o2::track::TrackPar& track, float xToGo, float maxSnp, float maxStep,
+                                           Propagator::MatCorrType matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr) const
 {
   //----------------------------------------------------------------
   //
@@ -165,7 +173,6 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackPar& track, float xToGo, flo
   // taking into account all the three components of the magnetic field
   // and optionally correcting for the e.loss crossed material.
   //
-  // mass     - mass used in propagation - used for energy loss correction (if <0 then q=2)
   // maxStep  - maximal step for propagation
   // tofInfo  - optional container for track length and PID-dependent TOF integration
   //
@@ -178,26 +185,26 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackPar& track, float xToGo, flo
     signCorr = -dir; // sign of eloss correction is not imposed
   }
 
-  std::array<float, 3> b;
-  while (std::abs(dx) > Epsilon) {
-    auto step = std::min(std::abs(dx), maxStep);
+  gpu::gpustd::array<float, 3> b;
+  while (CAMath::Abs(dx) > Epsilon) {
+    auto step = CAMath::Min(CAMath::Abs(dx), maxStep);
     if (dir < 0) {
       step = -step;
     }
     auto x = track.getX() + step;
     auto xyz0 = track.getXYZGlo();
-    mField->Field(xyz0, b.data());
+    getFiedXYZ(xyz0, &b[0]);
 
     if (!track.propagateParamTo(x, b)) {
       return false;
     }
-    if (maxSnp > 0 && std::abs(track.getSnp()) >= maxSnp) {
+    if (maxSnp > 0 && CAMath::Abs(track.getSnp()) >= maxSnp) {
       return false;
     }
     if (matCorr != MatCorrType::USEMatCorrNONE) {
       auto xyz1 = track.getXYZGlo();
       auto mb = getMatBudget(matCorr, xyz0, xyz1);
-      if (!track.correctForELoss(((signCorr < 0) ? -mb.length : mb.length) * mb.meanRho, mass)) {
+      if (!track.correctForELoss(((signCorr < 0) ? -mb.length : mb.length) * mb.meanRho)) {
         return false;
       }
       if (tofInfo) {
@@ -215,8 +222,8 @@ bool Propagator::PropagateToXBxByBz(o2::track::TrackPar& track, float xToGo, flo
 }
 
 //_______________________________________________________________________
-bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float bZ, float mass, float maxSnp, float maxStep,
-                              Propagator::MatCorrType matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr) const
+GPUd() bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float bZ, float maxSnp, float maxStep,
+                                     Propagator::MatCorrType matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr) const
 {
   //----------------------------------------------------------------
   //
@@ -224,7 +231,6 @@ bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float 
   // taking into account all the three components of the magnetic field
   // and correcting for the crossed material.
   //
-  // mass     - mass used in propagation - used for energy loss correction (if <0 then q=2)
   // maxStep  - maximal step for propagation
   // tofInfo  - optional container for track length and PID-dependent TOF integration
   //
@@ -237,8 +243,8 @@ bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float 
     signCorr = -dir; // sign of eloss correction is not imposed
   }
 
-  while (std::abs(dx) > Epsilon) {
-    auto step = std::min(std::abs(dx), maxStep);
+  while (CAMath::Abs(dx) > Epsilon) {
+    auto step = CAMath::Min(CAMath::Abs(dx), maxStep);
     if (dir < 0) {
       step = -step;
     }
@@ -248,14 +254,14 @@ bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float 
     if (!track.propagateTo(x, bZ)) {
       return false;
     }
-    if (maxSnp > 0 && std::abs(track.getSnp()) >= maxSnp) {
+    if (maxSnp > 0 && CAMath::Abs(track.getSnp()) >= maxSnp) {
       return false;
     }
     if (matCorr != MatCorrType::USEMatCorrNONE) {
       auto xyz1 = track.getXYZGlo();
       auto mb = getMatBudget(matCorr, xyz0, xyz1);
       //
-      if (!track.correctForMaterial(mb.meanX2X0, ((signCorr < 0) ? -mb.length : mb.length) * mb.meanRho, mass)) {
+      if (!track.correctForMaterial(mb.meanX2X0, ((signCorr < 0) ? -mb.length : mb.length) * mb.meanRho)) {
         return false;
       }
 
@@ -274,8 +280,8 @@ bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo, float 
 }
 
 //_______________________________________________________________________
-bool Propagator::propagateToX(o2::track::TrackPar& track, float xToGo, float bZ, float mass, float maxSnp, float maxStep,
-                              Propagator::MatCorrType matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr) const
+GPUd() bool Propagator::propagateToX(o2::track::TrackPar& track, float xToGo, float bZ, float maxSnp, float maxStep,
+                                     Propagator::MatCorrType matCorr, o2::track::TrackLTIntegral* tofInfo, int signCorr) const
 {
   //----------------------------------------------------------------
   //
@@ -283,7 +289,6 @@ bool Propagator::propagateToX(o2::track::TrackPar& track, float xToGo, float bZ,
   // taking into account all the three components of the magnetic field
   // and correcting for the crossed material.
   //
-  // mass     - mass used in propagation - used for energy loss correction (if <0 then q=2)
   // maxStep  - maximal step for propagation
   // tofInfo  - optional container for track length and PID-dependent TOF integration
   //
@@ -296,8 +301,8 @@ bool Propagator::propagateToX(o2::track::TrackPar& track, float xToGo, float bZ,
     signCorr = -dir; // sign of eloss correction is not imposed
   }
 
-  while (std::abs(dx) > Epsilon) {
-    auto step = std::min(std::abs(dx), maxStep);
+  while (CAMath::Abs(dx) > Epsilon) {
+    auto step = CAMath::Min(CAMath::Abs(dx), maxStep);
     if (dir < 0) {
       step = -step;
     }
@@ -307,14 +312,14 @@ bool Propagator::propagateToX(o2::track::TrackPar& track, float xToGo, float bZ,
     if (!track.propagateParamTo(x, bZ)) {
       return false;
     }
-    if (maxSnp > 0 && std::abs(track.getSnp()) >= maxSnp) {
+    if (maxSnp > 0 && CAMath::Abs(track.getSnp()) >= maxSnp) {
       return false;
     }
     if (matCorr != MatCorrType::USEMatCorrNONE) {
       auto xyz1 = track.getXYZGlo();
       auto mb = getMatBudget(matCorr, xyz0, xyz1);
       //
-      if (!track.correctForELoss(((signCorr < 0) ? -mb.length : mb.length) * mb.meanRho, mass)) {
+      if (!track.correctForELoss(((signCorr < 0) ? -mb.length : mb.length) * mb.meanRho)) {
         return false;
       }
 
@@ -333,36 +338,36 @@ bool Propagator::propagateToX(o2::track::TrackPar& track, float xToGo, float bZ,
 }
 
 //_______________________________________________________________________
-bool Propagator::propagateToDCA(const o2::dataformats::VertexBase& vtx, o2::track::TrackParCov& track, float bZ,
-                                float mass, float maxStep, Propagator::MatCorrType matCorr,
-                                o2::dataformats::DCA* dca, o2::track::TrackLTIntegral* tofInfo,
-                                int signCorr, float maxD) const
+GPUd() bool Propagator::propagateToDCA(const o2::dataformats::VertexBase& vtx, o2::track::TrackParCov& track, float bZ,
+                                       float maxStep, Propagator::MatCorrType matCorr,
+                                       o2::dataformats::DCA* dca, o2::track::TrackLTIntegral* tofInfo,
+                                       int signCorr, float maxD) const
 {
   // propagate track to DCA to the vertex
   float sn, cs, alp = track.getAlpha();
   o2::math_utils::sincos(alp, sn, cs);
-  float x = track.getX(), y = track.getY(), snp = track.getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp));
+  float x = track.getX(), y = track.getY(), snp = track.getSnp(), csp = CAMath::Sqrt((1.f - snp) * (1.f + snp));
   float xv = vtx.getX() * cs + vtx.getY() * sn, yv = -vtx.getX() * sn + vtx.getY() * cs, zv = vtx.getZ();
   x -= xv;
   y -= yv;
   //Estimate the impact parameter neglecting the track curvature
-  Double_t d = std::abs(x * snp - y * csp);
+  float d = CAMath::Abs(x * snp - y * csp);
   if (d > maxD) {
     return false;
   }
   float crv = track.getCurvature(bZ);
   float tgfv = -(crv * x - snp) / (crv * y + csp);
-  sn = tgfv / std::sqrt(1.f + tgfv * tgfv);
-  cs = std::sqrt((1. - sn) * (1. + sn));
-  cs = (std::abs(tgfv) > o2::constants::math::Almost0) ? sn / tgfv : o2::constants::math::Almost1;
+  sn = tgfv / CAMath::Sqrt(1.f + tgfv * tgfv);
+  cs = CAMath::Sqrt((1. - sn) * (1. + sn));
+  cs = (CAMath::Abs(tgfv) > o2::constants::math::Almost0) ? sn / tgfv : o2::constants::math::Almost1;
 
   x = xv * cs + yv * sn;
   yv = -xv * sn + yv * cs;
   xv = x;
 
   auto tmpT(track); // operate on the copy to recover after the failure
-  alp += std::asin(sn);
-  if (!tmpT.rotate(alp) || !propagateToX(tmpT, xv, bZ, mass, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
+  alp += CAMath::ASin(sn);
+  if (!tmpT.rotate(alp) || !propagateToX(tmpT, xv, bZ, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
     LOG(WARNING) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: ";
     tmpT.print();
     return false;
@@ -378,36 +383,36 @@ bool Propagator::propagateToDCA(const o2::dataformats::VertexBase& vtx, o2::trac
 }
 
 //_______________________________________________________________________
-bool Propagator::propagateToDCABxByBz(const o2::dataformats::VertexBase& vtx, o2::track::TrackParCov& track,
-                                      float mass, float maxStep, Propagator::MatCorrType matCorr,
-                                      o2::dataformats::DCA* dca, o2::track::TrackLTIntegral* tofInfo,
-                                      int signCorr, float maxD) const
+GPUd() bool Propagator::propagateToDCABxByBz(const o2::dataformats::VertexBase& vtx, o2::track::TrackParCov& track,
+                                             float maxStep, Propagator::MatCorrType matCorr,
+                                             o2::dataformats::DCA* dca, o2::track::TrackLTIntegral* tofInfo,
+                                             int signCorr, float maxD) const
 {
   // propagate track to DCA to the vertex
   float sn, cs, alp = track.getAlpha();
   o2::math_utils::sincos(alp, sn, cs);
-  float x = track.getX(), y = track.getY(), snp = track.getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp));
+  float x = track.getX(), y = track.getY(), snp = track.getSnp(), csp = CAMath::Sqrt((1.f - snp) * (1.f + snp));
   float xv = vtx.getX() * cs + vtx.getY() * sn, yv = -vtx.getX() * sn + vtx.getY() * cs, zv = vtx.getZ();
   x -= xv;
   y -= yv;
   //Estimate the impact parameter neglecting the track curvature
-  Double_t d = std::abs(x * snp - y * csp);
+  float d = CAMath::Abs(x * snp - y * csp);
   if (d > maxD) {
     return false;
   }
   float crv = track.getCurvature(mBz);
   float tgfv = -(crv * x - snp) / (crv * y + csp);
-  sn = tgfv / std::sqrt(1.f + tgfv * tgfv);
-  cs = std::sqrt((1. - sn) * (1. + sn));
-  cs = (std::abs(tgfv) > o2::constants::math::Almost0) ? sn / tgfv : o2::constants::math::Almost1;
+  sn = tgfv / CAMath::Sqrt(1.f + tgfv * tgfv);
+  cs = CAMath::Sqrt((1. - sn) * (1. + sn));
+  cs = (CAMath::Abs(tgfv) > o2::constants::math::Almost0) ? sn / tgfv : o2::constants::math::Almost1;
 
   x = xv * cs + yv * sn;
   yv = -xv * sn + yv * cs;
   xv = x;
 
   auto tmpT(track); // operate on the copy to recover after the failure
-  alp += std::asin(sn);
-  if (!tmpT.rotate(alp) || !PropagateToXBxByBz(tmpT, xv, mass, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
+  alp += CAMath::ASin(sn);
+  if (!tmpT.rotate(alp) || !PropagateToXBxByBz(tmpT, xv, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
     LOG(WARNING) << "failed to propagate to alpha=" << alp << " X=" << xv << vtx << " | Track is: ";
     tmpT.print();
     return false;
@@ -423,36 +428,36 @@ bool Propagator::propagateToDCABxByBz(const o2::dataformats::VertexBase& vtx, o2
 }
 
 //_______________________________________________________________________
-bool Propagator::propagateToDCA(const math_utils::Point3D<float>& vtx, o2::track::TrackPar& track, float bZ,
-                                float mass, float maxStep, Propagator::MatCorrType matCorr,
-                                std::array<float, 2>* dca, o2::track::TrackLTIntegral* tofInfo,
-                                int signCorr, float maxD) const
+GPUd() bool Propagator::propagateToDCA(const math_utils::Point3D<float>& vtx, o2::track::TrackPar& track, float bZ,
+                                       float maxStep, Propagator::MatCorrType matCorr,
+                                       gpu::gpustd::array<float, 2>* dca, o2::track::TrackLTIntegral* tofInfo,
+                                       int signCorr, float maxD) const
 {
   // propagate track to DCA to the vertex
   float sn, cs, alp = track.getAlpha();
   o2::math_utils::sincos(alp, sn, cs);
-  float x = track.getX(), y = track.getY(), snp = track.getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp));
+  float x = track.getX(), y = track.getY(), snp = track.getSnp(), csp = CAMath::Sqrt((1.f - snp) * (1.f + snp));
   float xv = vtx.X() * cs + vtx.Y() * sn, yv = -vtx.X() * sn + vtx.Y() * cs, zv = vtx.Z();
   x -= xv;
   y -= yv;
   //Estimate the impact parameter neglecting the track curvature
-  Double_t d = std::abs(x * snp - y * csp);
+  float d = CAMath::Abs(x * snp - y * csp);
   if (d > maxD) {
     return false;
   }
   float crv = track.getCurvature(bZ);
   float tgfv = -(crv * x - snp) / (crv * y + csp);
-  sn = tgfv / std::sqrt(1.f + tgfv * tgfv);
-  cs = std::sqrt((1. - sn) * (1. + sn));
-  cs = (std::abs(tgfv) > o2::constants::math::Almost0) ? sn / tgfv : o2::constants::math::Almost1;
+  sn = tgfv / CAMath::Sqrt(1.f + tgfv * tgfv);
+  cs = CAMath::Sqrt((1. - sn) * (1. + sn));
+  cs = (CAMath::Abs(tgfv) > o2::constants::math::Almost0) ? sn / tgfv : o2::constants::math::Almost1;
 
   x = xv * cs + yv * sn;
   yv = -xv * sn + yv * cs;
   xv = x;
 
   auto tmpT(track); // operate on the copy to recover after the failure
-  alp += std::asin(sn);
-  if (!tmpT.rotateParam(alp) || !propagateToX(tmpT, xv, bZ, mass, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
+  alp += CAMath::ASin(sn);
+  if (!tmpT.rotateParam(alp) || !propagateToX(tmpT, xv, bZ, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
     LOG(WARNING) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex "
                  << vtx.X() << ' ' << vtx.Y() << ' ' << vtx.Z() << " | Track is: ";
     tmpT.printParam();
@@ -467,36 +472,36 @@ bool Propagator::propagateToDCA(const math_utils::Point3D<float>& vtx, o2::track
 }
 
 //_______________________________________________________________________
-bool Propagator::propagateToDCABxByBz(const math_utils::Point3D<float>& vtx, o2::track::TrackPar& track,
-                                      float mass, float maxStep, Propagator::MatCorrType matCorr,
-                                      std::array<float, 2>* dca, o2::track::TrackLTIntegral* tofInfo,
-                                      int signCorr, float maxD) const
+GPUd() bool Propagator::propagateToDCABxByBz(const math_utils::Point3D<float>& vtx, o2::track::TrackPar& track,
+                                             float maxStep, Propagator::MatCorrType matCorr,
+                                             gpu::gpustd::array<float, 2>* dca, o2::track::TrackLTIntegral* tofInfo,
+                                             int signCorr, float maxD) const
 {
   // propagate track to DCA to the vertex
   float sn, cs, alp = track.getAlpha();
   o2::math_utils::sincos(alp, sn, cs);
-  float x = track.getX(), y = track.getY(), snp = track.getSnp(), csp = std::sqrt((1.f - snp) * (1.f + snp));
+  float x = track.getX(), y = track.getY(), snp = track.getSnp(), csp = CAMath::Sqrt((1.f - snp) * (1.f + snp));
   float xv = vtx.X() * cs + vtx.Y() * sn, yv = -vtx.X() * sn + vtx.Y() * cs, zv = vtx.Z();
   x -= xv;
   y -= yv;
   //Estimate the impact parameter neglecting the track curvature
-  Double_t d = std::abs(x * snp - y * csp);
+  float d = CAMath::Abs(x * snp - y * csp);
   if (d > maxD) {
     return false;
   }
   float crv = track.getCurvature(mBz);
   float tgfv = -(crv * x - snp) / (crv * y + csp);
-  sn = tgfv / std::sqrt(1.f + tgfv * tgfv);
-  cs = std::sqrt((1. - sn) * (1. + sn));
-  cs = (std::abs(tgfv) > o2::constants::math::Almost0) ? sn / tgfv : o2::constants::math::Almost1;
+  sn = tgfv / CAMath::Sqrt(1.f + tgfv * tgfv);
+  cs = CAMath::Sqrt((1. - sn) * (1. + sn));
+  cs = (CAMath::Abs(tgfv) > o2::constants::math::Almost0) ? sn / tgfv : o2::constants::math::Almost1;
 
   x = xv * cs + yv * sn;
   yv = -xv * sn + yv * cs;
   xv = x;
 
   auto tmpT(track); // operate on the copy to recover after the failure
-  alp += std::asin(sn);
-  if (!tmpT.rotateParam(alp) || !PropagateToXBxByBz(tmpT, xv, mass, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
+  alp += CAMath::ASin(sn);
+  if (!tmpT.rotateParam(alp) || !PropagateToXBxByBz(tmpT, xv, 0.85, maxStep, matCorr, tofInfo, signCorr)) {
     LOG(WARNING) << "failed to propagate to alpha=" << alp << " X=" << xv << " for vertex "
                  << vtx.X() << ' ' << vtx.Y() << ' ' << vtx.Z() << " | Track is: ";
     tmpT.printParam();
@@ -511,12 +516,28 @@ bool Propagator::propagateToDCABxByBz(const math_utils::Point3D<float>& vtx, o2:
 }
 
 //____________________________________________________________
-MatBudget Propagator::getMatBudget(Propagator::MatCorrType corrType, const math_utils::Point3D<float>& p0, const math_utils::Point3D<float>& p1) const
+GPUd() MatBudget Propagator::getMatBudget(Propagator::MatCorrType corrType, const math_utils::Point3D<float>& p0, const math_utils::Point3D<float>& p1) const
 {
-#ifndef GPUCA_STANDALONE
-  if (corrType == MatCorrType::USEMatCorrTGeo) {
+#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
+  if (corrType == MatCorrType::USEMatCorrTGeo || !mMatLUT) {
     return GeometryManager::meanMaterialBudget(p0, p1);
   }
 #endif
   return mMatLUT->getMatBudget(p0.X(), p0.Y(), p0.Z(), p1.X(), p1.Y(), p1.Z());
+}
+
+GPUd() void Propagator::getFiedXYZ(const math_utils::Point3D<float> xyz, float* bxyz) const
+{
+  if (mGPUField) {
+#if defined(GPUCA_GPUCODE_DEVICE) && defined(GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM)
+    const auto* f = &GPUCA_CONSMEM.param.polynomialField; // Access directly from constant memory on GPU (copied here to avoid complicated header dependencies)
+#else
+    const auto* f = mGPUField;
+#endif
+    f->GetField(xyz.X(), xyz.Y(), xyz.Z(), bxyz);
+  } else {
+#ifndef GPUCA_GPUCODE
+    mField->Field(xyz, bxyz); // Must not call the host-only function in GPU compilation
+#endif
+  }
 }
