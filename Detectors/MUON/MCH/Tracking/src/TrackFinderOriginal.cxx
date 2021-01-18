@@ -1221,7 +1221,7 @@ void TrackFinderOriginal::improveTracks()
       }
 
       // Identify removable clusters
-      itTrack->tagRemovableClusters(requestedStationMask());
+      itTrack->tagRemovableClusters(requestedStationMask(), false);
 
       // Look for the cluster with the worst local chi2
       double worstLocalChi2(-1.);
