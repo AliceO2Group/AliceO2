@@ -277,6 +277,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   return WorkflowSpec{
     adaptAnalysisTask<lambdakzeroprefilter>("lf-lambdakzeroprefilter"),
     adaptAnalysisTask<lambdakzerofinder>("lf-lambdakzerofinder"),
-    adaptAnalysisTask<lambdakzeroinitializer>("lf-lambdakzeroinitializer"),
-    adaptAnalysisTask<lambdakzerofinderQA>("lf-lambdakzerofinderQA")};
+    adaptAnalysisTask<lambdakzerofinderQA>("lf-lambdakzerofinderQA"),
+    adaptAnalysisTask<lambdakzeroinitializer>("lf-lambdakzeroinitializer")};
 }

@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-// V0 Producer task
+// V0 builder task
 // ================
 //
 // This task loops over an *existing* list of V0s (neg/pos track
@@ -17,7 +17,7 @@
 // Any analysis should loop over the "V0Data"
 // table as that table contains all information
 //
-// WARNING: adding filters to the producer IS NOT
+// WARNING: adding filters to the builder IS NOT
 // equivalent to re-running the finders. This will only
 // ever produce *tighter* selection sections. It is your
 // responsibility to check if, by setting a loose filter
@@ -123,7 +123,7 @@ struct lambdakzeroprefilterpairs {
 };
 
 /// Cascade builder task: rebuilds cascades
-struct lambdakzeroproducer {
+struct lambdakzerobuilder {
 
   Produces<aod::V0Data> v0data;
 
@@ -210,9 +210,16 @@ struct lambdakzeroproducer {
   }
 };
 
+/// Extends the v0data table with expression columns
+struct lambdakzeroinitializer {
+  Spawns<aod::V0DataExt> v0dataext;
+  void init(InitContext const&) {}
+};
+
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
     adaptAnalysisTask<lambdakzeroprefilterpairs>("lf-lambdakzeroprefilterpairs"),
-    adaptAnalysisTask<lambdakzeroproducer>("lf-lambdakzeroproducer")};
+    adaptAnalysisTask<lambdakzerobuilder>("lf-lambdakzerobuilder"),
+    adaptAnalysisTask<lambdakzeroinitializer>("lf-lambdakzeroinitializer")};
 }
