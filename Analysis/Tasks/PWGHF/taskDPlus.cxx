@@ -62,6 +62,11 @@ struct TaskDPlus {
   void process(aod::HfCandProng3 const& candidates)
   {
     for (auto& candidate : candidates) {
+      //apply only candidate pre-selections for the moment, not possible in Filter
+      //since expressions do not support binary operators
+      if (!(candidate.hfflag() & DPlusToPiKPi)) {
+        continue;
+      }
       registry.fill(HIST("hMass"), InvMassDPlus(candidate));
       registry.fill(HIST("hPt"), candidate.pt());
       registry.fill(HIST("hEta"), candidate.eta());
