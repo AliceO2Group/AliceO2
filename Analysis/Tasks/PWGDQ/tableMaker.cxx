@@ -79,7 +79,6 @@ struct TableMaker {
   OutputObj<THashList> fOutputList{"output"};
   HistogramManager* fHistMan;
 
-  Configurable<std::string> fConfigDataPeriod{"cfgDataPeriod", "LHC15o", "Data period to be analyzed"};
   Configurable<std::string> fConfigEventCuts{"cfgEventCuts", "eventStandard", "Event selection"};
   Configurable<std::string> fConfigTrackCuts{"cfgBarrelTrackCuts", "jpsiPID1", "Comma separated list of barrel track cuts"};
   Configurable<float> fConfigBarrelTrackPtLow{"cfgBarrelLowPt", 1.0f, "Low pt cut for tracks in the barrel"};
@@ -208,9 +207,6 @@ struct TableMaker {
 
   void DefineHistograms(TString histClasses)
   {
-    TString periodStr = fConfigDataPeriod.value;
-    dqhistograms::DefineDataPeriod(periodStr.Data());
-
     std::unique_ptr<TObjArray> objArray(histClasses.Tokenize(";"));
     for (Int_t iclass = 0; iclass < objArray->GetEntries(); ++iclass) {
       TString classStr = objArray->At(iclass)->GetName();
