@@ -79,7 +79,7 @@ struct NucleiSpecraTask {
         continue;
       }
 
-      spectra.fill(HIST("fTPCsignal"), track.p(), track.tpcSignal());
+      spectra.fill(HIST("fTPCsignal"), track.tpcInnerParam(), track.tpcSignal());
       spectra.fill(HIST("fTPCcounts"), fabs(track.pt()), track.tpcNSigmaDe());
     }
   }
