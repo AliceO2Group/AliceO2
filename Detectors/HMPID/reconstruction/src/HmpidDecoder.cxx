@@ -18,7 +18,7 @@
 /* ------ HISTORY ---------
 */
 
-#include "FairLogger.h"
+#include "Framework/Logger.h"
 #include "Headers/RAWDataHeader.h"
 #include "HMPIDReconstruction/HmpidDecoder.h"
 
@@ -473,7 +473,7 @@ void HmpidDecoder::decodePage(uint32_t **streamBuf)
   catch (int e) {
     // The stream end !
     LOG(DEBUG) << "End main decoding loop !";
-    break;
+    throw TH_BUFFEREMPTY;
   }
   try {
     decodeHeader(*streamBuf, &equipmentIndex);
@@ -781,7 +781,7 @@ void HmpidDecoder::decodePageFast(uint32_t **streamBuf)
   catch (int e) {
     // The stream end !
     LOG(DEBUG) << "End Fast Page decoding loop !";
-    break;
+    throw TH_BUFFEREMPTY;
   }
   try {
     decodeHeader(*streamBuf, &equipmentIndex);

@@ -24,7 +24,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <unistd.h>
-#include <vector.h>
+#include <vector>
 
 #include "HMPIDBase/Digit.h"
 #include "HMPIDBase/Geo.h"
@@ -60,7 +60,7 @@ class HmpidDecodeRawDigit: public HmpidDecodeRawMem
     HmpidDecodeRawDigit(int numOfEquipments);
     ~HmpidDecodeRawDigit();
 
-    vector<o2::hmpid::Digit> mDigits;
+    std::vector<o2::hmpid::Digit> mDigits;
 
   private:
     void setPad(HmpidEquipment *eq, int col, int dil, int ch, int charge);

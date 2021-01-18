@@ -143,7 +143,7 @@ void HmpidDecodeRawMem::setPad(HmpidEquipment *eq, int col, int dil, int ch, int
 /// @param[in] numOfEquipments : the number of equipments to define [1..14]
 HmpidDecodeRawDigit::HmpidDecodeRawDigit(int numOfEquipments)
     :
-    HmpidDecoder(numOfEquipments)
+    HmpidDecodeRawMem(numOfEquipments)
 {
 }
 
@@ -158,7 +158,7 @@ HmpidDecodeRawDigit::HmpidDecodeRawDigit(int numOfEquipments)
 /// @param[in] *LinkIds : the pointer to the Link ID array
 HmpidDecodeRawDigit::HmpidDecodeRawDigit(int *EqIds, int *CruIds, int *LinkIds, int numOfEquipments)
     :
-    HmpidDecoder(EqIds, CruIds, LinkIds, numOfEquipments)
+    HmpidDecodeRawMem(EqIds, CruIds, LinkIds, numOfEquipments)
 {
 }
 

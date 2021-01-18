@@ -9,7 +9,7 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(HMPIDReconstruction
-               SOURCES src/Clusterer.cxx 
+               SOURCES src/Clusterer.cxx SOURCES src/HmpidDecoder.cxx src/HmpidDecodeRawMem.cxx src/HmpidEquipment.cxx
                PUBLIC_LINK_LIBRARIES O2::HMPIDBase
                                      O2::HMPIDSimulation)
                        

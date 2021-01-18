@@ -38,6 +38,8 @@ class Digit
     // convenience conversion to x-y pad coordinates
     int getPx() const { return Param::A2X(mPad); }
     int getPy() const { return Param::A2Y(mPad); }
+    int getPhC() const { return Param::A2P(mPad); }
+    int getCh() const { return Param::A2C(mPad); }
 
     static void getPadAndTotalCharge(HitType const& hit, int& chamber, int& pc, int& px, int& py, float& totalcharge);
     static float getFractionalContributionForPad(HitType const& hit, int somepad);

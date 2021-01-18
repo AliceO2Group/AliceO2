@@ -21,31 +21,25 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
-#include "HMPIDReconstruction/HmpidDecodeRawMem.h"
-
 namespace o2
 {
 namespace hmpid
 {
 
-  class DataDecoderTask : public framework::Task
+  class DumpDigitsTask : public framework::Task
   {
     public:
-      DataDecoderTask() = default;
-      ~DataDecoderTask() override = default;
+      DumpDigitsTask() = default;
+      ~DumpDigitsTask() override = default;
       void init(framework::InitContext& ic) final;
       void run(framework::ProcessingContext& pc) final;
-      void decodeTF(framework::ProcessingContext& pc);
-      void decodeReadout(framework::ProcessingContext& pc);
-      void decodeRawFile(framework::ProcessingContext& pc);
 
     private:
-      HmpidDecodeRawDigit *mDeco;
 
   };
 
-o2::framework::DataProcessorSpec getDecodingSpec(std::string inputSpec = "TF:HMP/RAWDATA");
-//o2::framework::DataProcessorSpec getDecodingSpec();
+o2::framework::DataProcessorSpec getDumpDigitsSpec(std::string inputSpec = "HMP/DIGITS");
+
 } // end namespace hmpid
 } // end namespace o2
 
