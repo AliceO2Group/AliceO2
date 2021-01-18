@@ -107,7 +107,7 @@ if(pythia6_FOUND)
                          LABELS generators COMPILE_ONLY)
 endif()
 
-if(doBuildSimulation)
+if(BUILD_SIMULATION)
   o2_add_test_root_macro(share/external/QEDLoader.C
                          PUBLIC_LINK_LIBRARIES O2::Generators
                                                O2::SimConfig

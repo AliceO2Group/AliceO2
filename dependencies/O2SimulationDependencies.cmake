@@ -88,6 +88,7 @@ if(pythia_FOUND
 endif()
 
 if(DEFINED BUILD_SIMULATION AND BUILD_SIMULATION AND NOT doBuildSimulation)
+  unset(doBuildSimulation)
   return()
 endif()
 
@@ -99,3 +100,5 @@ if(NOT DEFINED BUILD_SIMULATION)
            ${doBuildSimulation})
   endif()
 endif()
+  
+unset(doBuildSimulation)
