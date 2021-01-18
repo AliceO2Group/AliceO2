@@ -422,7 +422,7 @@ struct cascadefinderQA {
   }
 };
 
-/// Extends the v0data table with expression columns
+/// Extends the cascdata table with expression columns
 struct cascadeinitializer {
   Spawns<aod::CascDataExt> cascdataext;
   void init(InitContext const&) {}
@@ -433,6 +433,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   return WorkflowSpec{
     adaptAnalysisTask<cascadeprefilter>("lf-cascadeprefilter"),
     adaptAnalysisTask<cascadefinder>("lf-cascadefinder"),
-    adaptAnalysisTask<cascadeinitializer>("lf-cascadeinitializer"),
-    adaptAnalysisTask<cascadefinderQA>("lf-cascadefinderQA")};
+    adaptAnalysisTask<cascadefinderQA>("lf-cascadefinderQA"),
+    adaptAnalysisTask<cascadeinitializer>("lf-cascadeinitializer")};
 }

@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-// Cascade Producer task
+// Cascade builder task
 // =====================
 //
 // This task loops over an *existing* list of cascades (V0+bachelor track
@@ -17,7 +17,7 @@
 // Any analysis should loop over the "CascData"
 // table as that table contains all information
 //
-// WARNING: adding filters to the producer IS NOT
+// WARNING: adding filters to the builder IS NOT
 // equivalent to re-running the finders. This will only
 // ever produce *tighter* selection sections. It is your
 // responsibility to check if, by setting a loose filter
@@ -151,7 +151,7 @@ struct cascadeprefilterpairs {
 };
 
 /// Cascade builder task: rebuilds cascades
-struct cascadeproducer {
+struct cascadebuilder {
   Produces<aod::CascData> cascdata;
 
   OutputObj<TH1F> hEventCounter{TH1F("hEventCounter", "", 1, 0, 1)};
@@ -268,16 +268,16 @@ struct cascadeproducer {
   }
 };
 
-/// Extends the v0data table with expression columns
-struct cascprodinitializer {
-  Spawns<aod::V0DataExt> v0dataext;
+/// Extends the cascdata table with expression columns
+struct cascadeinitializer {
+  Spawns<aod::CascDataExt> cascdataext;
   void init(InitContext const&) {}
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<cascprodinitializer>("lf-cascprodinitializer"),
     adaptAnalysisTask<cascadeprefilterpairs>("lf-cascadeprefilterpairs"),
-    adaptAnalysisTask<cascadeproducer>("lf-cascadeproducer")};
+    adaptAnalysisTask<cascadebuilder>("lf-cascadebuilder"),
+    adaptAnalysisTask<cascadeinitializer>("lf-cascadeinitializer")};
 }

@@ -79,7 +79,7 @@ struct lambdakzeroQA {
   }
 };
 
-struct lambdakzeroconsumer {
+struct lambdakzeroanalysis {
   OutputObj<TH3F> h3dMassK0Short{TH3F("h3dMassK0Short", "", 20, 0, 100, 200, 0, 10, 200, 0.450, 0.550)};
   OutputObj<TH3F> h3dMassLambda{TH3F("h3dMassLambda", "", 20, 0, 100, 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
   OutputObj<TH3F> h3dMassAntiLambda{TH3F("h3dMassAntiLambda", "", 20, 0, 100, 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
@@ -118,16 +118,9 @@ struct lambdakzeroconsumer {
   }
 };
 
-/// Extends the v0data table with expression columns
-struct lambdakzeroinitializer {
-  Spawns<aod::V0DataExt> v0dataext;
-  void init(InitContext const&) {}
-};
-
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<lambdakzeroconsumer>("lf-lambdakzeroconsumer"),
-    adaptAnalysisTask<lambdakzeroQA>("lf-lambdakzeroQA"),
-    adaptAnalysisTask<lambdakzeroinitializer>("lf-lambdakzeroinitializer")};
+    adaptAnalysisTask<lambdakzeroanalysis>("lf-lambdakzeroanalysis"),
+    adaptAnalysisTask<lambdakzeroQA>("lf-lambdakzeroQA")};
 }

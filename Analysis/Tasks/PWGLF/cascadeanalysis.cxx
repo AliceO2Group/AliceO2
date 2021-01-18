@@ -96,7 +96,7 @@ struct cascadeQA {
   }
 };
 
-struct cascadeconsumer {
+struct cascadeanalysis {
   OutputObj<TH3F> h3dMassXiMinus{TH3F("h3dMassXiMinus", "", 20, 0, 100, 200, 0, 10, 200, 1.322 - 0.100, 1.322 + 0.100)};
   OutputObj<TH3F> h3dMassXiPlus{TH3F("h3dMassXiPlus", "", 20, 0, 100, 200, 0, 10, 200, 1.322 - 0.100, 1.322 + 0.100)};
   OutputObj<TH3F> h3dMassOmegaMinus{TH3F("h3dMassOmegaMinus", "", 20, 0, 100, 200, 0, 10, 200, 1.672 - 0.100, 1.672 + 0.100)};
@@ -155,16 +155,9 @@ struct cascadeconsumer {
   }
 };
 
-/// Extends the v0data table with expression columns
-struct cascadeinitializer {
-  Spawns<aod::CascDataExt> cascdataext;
-  void init(InitContext const&) {}
-};
-
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<cascadeconsumer>("lf-cascadeconsumer"),
-    adaptAnalysisTask<cascadeQA>("lf-cascadeQA"),
-    adaptAnalysisTask<cascadeinitializer>("lf-cascadeinitializer")};
+    adaptAnalysisTask<cascadeanalysis>("lf-cascadeanalysis"),
+    adaptAnalysisTask<cascadeQA>("lf-cascadeQA")};
 }
