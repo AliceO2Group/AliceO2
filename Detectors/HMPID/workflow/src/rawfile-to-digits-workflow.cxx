@@ -25,7 +25,7 @@
 #include "Framework/Task.h"
 #include "Framework/runDataProcessing.h"
 
-#include "HMPIDWorkflow/DataDecoderSpec.h"
+#include "HMPIDWorkflow/RawFileReaderSpec.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -34,8 +34,10 @@ WorkflowSpec defineDataProcessing(const ConfigContext&)
 {
   WorkflowSpec specs;
 
-  DataProcessorSpec producer = o2::hmpid::getDecodingSpec();
+  DataProcessorSpec producer = o2::hmpid::getRawFileReaderSpec();
+//  DataProcessorSpec consumer = o2::hmpid::getDecodingSpec();
   specs.push_back(producer);
+//  specs.push_back(consumer);
 
   return specs;
 }
