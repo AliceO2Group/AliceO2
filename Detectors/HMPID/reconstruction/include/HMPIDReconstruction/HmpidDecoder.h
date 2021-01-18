@@ -59,7 +59,7 @@ class HmpidDecoder
     static char sHmpidErrorDescription[MAXHMPIDERRORS][MAXDESCRIPTIONLENGHT];
 
   public:
-    int mHeEvent;
+    uint64_t mHeEvent;
     int mHeBusy;
     int mNumberWordToRead;
     int mPayloadTail;
@@ -89,11 +89,13 @@ class HmpidDecoder
     int mHeORBIT;
     int mHeTType;
 
-    int32_t *mActualStreamPtr;
-    int32_t *mEndStreamPtr;
-    int32_t *mStartStreamPtr;
+    uint32_t *mActualStreamPtr;
+    uint32_t *mEndStreamPtr;
+    uint32_t *mStartStreamPtr;
+    int mRDHSize;
+    int mRDHAcceptedVersion;
 
-  // Methods
+    // Methods
   public:
     HmpidDecoder(int *EqIds, int *CruIds, int *LinkIds, int numOfEquipments);
     HmpidDecoder(int numOfEquipments);
@@ -121,6 +123,8 @@ class HmpidDecoder
     int getEquipmentIndex(int CruID, int LinkId);
     int getEquipmentID(int CruId, int LinkId);
 
+    void decodePage(uint32_t **streamBuffer);
+    void decodePageFast(uint32_t **streamBuf);
     bool decodeBuffer();
     bool decodeBufferFast();
 
@@ -139,23 +143,24 @@ class HmpidDecoder
     float getAverageBusyTime(int Equipment);
 
   protected:
-    int checkType(int32_t wp, int *p1, int *p2, int *p3, int *p4);
-    bool isRowMarker(int32_t wp, int *Err, int *rowSize, int *mark);
-    bool isSegmentMarker(int32_t wp, int *Err, int *segSize, int *Seg, int *mark);
-    bool isPadWord(int32_t wp, int *Err, int *Col, int *Dilogic, int *Channel, int *Charge);
-    bool isEoEmarker(int32_t wp, int *Err, int *Col, int *Dilogic, int *Eoesize);
-    int decodeHeader(int32_t *streamPtrAdr, int *EquipIndex);
+    int checkType(uint32_t wp, int *p1, int *p2, int *p3, int *p4);
+    bool isRowMarker(uint32_t wp, int *Err, int *rowSize, int *mark);
+    bool isSegmentMarker(uint32_t wp, int *Err, int *segSize, int *Seg, int *mark);
+    bool isEoEmarker(uint32_t wp, int *Err, int *Col, int *Dilogic, int *Eoesize);
+  public:
     bool decodeHmpidError(int ErrorField, char *outbuf);
     void dumpHmpidError(int ErrorField);
+    bool isPadWord(uint32_t wp, int *Err, int *Col, int *Dilogic, int *Channel, int *Charge);
+    int decodeHeader(uint32_t *streamPtrAdr, int *EquipIndex);
     HmpidEquipment* evaluateHeaderContents(int EquipmentIndex);
     void updateStatistics(HmpidEquipment *eq);
-
+  protected:
     virtual void setPad(HmpidEquipment *eq, int col, int dil, int ch, int charge) = 0;
 
-    virtual bool getBlockFromStream(int32_t **streamPtr, uint32_t Size) = 0;
-    virtual bool getHeaderFromStream(int32_t **streamPtr) = 0;
-    virtual bool getWordFromStream(int32_t *word) = 0;
-    int32_t* getActualStreamPtr()
+    virtual bool getBlockFromStream(uint32_t **streamPtr, uint32_t Size) = 0;
+    virtual bool getHeaderFromStream(uint32_t **streamPtr) = 0;
+    virtual bool getWordFromStream(uint32_t *word) = 0;
+    uint32_t* getActualStreamPtr()
     {
       return (mActualStreamPtr);
     }

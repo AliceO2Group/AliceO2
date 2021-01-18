@@ -11,7 +11,7 @@
 #ifndef ALICEO2_HMPID_GEO_H
 #define ALICEO2_HMPID_GEO_H
 
-//#include "Rtypes.h"
+#include <TMath.h>
 
 namespace o2
 {
@@ -62,8 +62,9 @@ class Geo
   static constexpr int N_HMPIDTOTALPADS = MAXEQUIPMENTS * N_SEGMENTS * N_COLXSEGMENT * N_DILOGICS * N_CHANNELS;
 
 
-  void Module2Equipment(int Mod, int Col, int Row, int *Equi, int *Colu, int *Dilo, int *Chan);
-  void Equipment2Module(int Equi, int Colu, int Dilo, int Chan, int *Mod, int *Col, int *Row);
+  static void Module2Equipment(int Mod, int Col, int Row, int *Equi, int *Colu, int *Dilo, int *Chan);
+  static void Equipment2Module(int Equi, int Colu, int Dilo, int Chan, int *Mod, int *Col, int *Row);
+  static Int_t GetPad(int Equi, int Colu, int Dilo, int Chan);
 
   // from
   //static constexpr Bool_t FEAWITHMASKS[NSECTORS] =

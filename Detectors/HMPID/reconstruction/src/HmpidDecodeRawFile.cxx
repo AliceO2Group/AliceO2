@@ -18,7 +18,7 @@
 /* ------ HISTORY ---------
 */
 
-#include "HmpidDecodeRawFile.h"
+#include "HMPIDReconstruction/HmpidDecodeRawFile.h"
 
 using namespace o2::hmpid;
 
@@ -60,13 +60,13 @@ bool HmpidDecodeRawFile::setUpStream(void *FileName, long Size)
   strcpy(mInputFile, (const char*) FileName);
   // files section ----
   if (!fileExists(mInputFile)) {
-    ILOG(ERROR) << "The input file " << mInputFile << " does not exist at this time." << FairLogger::endl;
+    LOG(ERROR) << "The input file " << mInputFile << " does not exist at this time." << FairLogger::endl;
     throw TH_FILENOTEXISTS;
   }
   // open the file
   fh = fopen(mInputFile, "rb");
   if (fh == 0) {
-    ILOG(ERROR) << "ERROR to open Input file ! [" << mInputFile << "]" << FairLogger::endl;
+    LOG(ERROR) << "ERROR to open Input file ! [" << mInputFile << "]" << FairLogger::endl;
     throw TH_OPENFILE;
   }
 
@@ -87,7 +87,7 @@ bool HmpidDecodeRawFile::setUpStream(void *FileName, long Size)
 /// @param[in] Size : not used
 /// @returns True if the file is opened
 /// @throws TH_WRONGFILELEN Thrown if the file doesn't contains enough words
-bool HmpidDecodeRawFile::getBlockFromStream(int32_t **streamPtr, uint32_t Size)
+bool HmpidDecodeRawFile::getBlockFromStream(uint32_t **streamPtr, uint32_t Size)
 {
   if (Size > MAXRAWFILEBUFFER)
     return (false);
@@ -97,7 +97,7 @@ bool HmpidDecodeRawFile::getBlockFromStream(int32_t **streamPtr, uint32_t Size)
   }
   Size = ((mFileBuffer[2] & 0x0000FFFF) / sizeof(int32_t)) - HEADERDIMENSION_W;
   nr = fread(mFileBuffer+HEADERDIMENSION_W, sizeof(int32_t), Size, fh);
-  ILOG(DEBUG) << " getBlockFromStream read " << nr << " of " << Size+HEADERDIMENSION_W << " words !" << FairLogger::endl;
+  LOG(DEBUG) << " getBlockFromStream read " << nr << " of " << Size+HEADERDIMENSION_W << " words !" << FairLogger::endl;
   if (nr != Size) {
     throw TH_WRONGFILELEN;
   }
@@ -111,7 +111,7 @@ bool HmpidDecodeRawFile::getBlockFromStream(int32_t **streamPtr, uint32_t Size)
 /// Reads the Header from the file
 /// @param[in] **streamPtr : the pointer to the memory buffer
 /// @returns True if the header is read
-bool HmpidDecodeRawFile::getHeaderFromStream(int32_t **streamPtr)
+bool HmpidDecodeRawFile::getHeaderFromStream(uint32_t **streamPtr)
 {
   bool flag = getBlockFromStream(streamPtr, RAWBLOCKDIMENSION_W); // reads the 8k block
   mActualStreamPtr += HEADERDIMENSION_W; // Move forward for the first word
@@ -121,7 +121,7 @@ bool HmpidDecodeRawFile::getHeaderFromStream(int32_t **streamPtr)
 /// Read one word from the pre-load buffer
 /// @param[in] *word : the buffer for the read word
 /// @returns True every time
-bool HmpidDecodeRawFile::getWordFromStream(int32_t *word)
+bool HmpidDecodeRawFile::getWordFromStream(uint32_t *word)
 {
   *word = *mActualStreamPtr;
   mActualStreamPtr++;

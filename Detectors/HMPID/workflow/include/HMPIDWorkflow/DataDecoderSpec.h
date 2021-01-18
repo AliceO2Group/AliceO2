@@ -19,11 +19,27 @@
 #define O2_MCH_DATADECODERSPEC_H_
 
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/Task.h"
 
 namespace o2
 {
 namespace hmpid
 {
+
+  class DataDecoderTask : public Task
+  {
+    public:
+      DataDecoderTask() = default;
+      ~DataDecoderTask() override = default;
+      void init(framework::InitContext& ic) final;
+      void run(framework::ProcessingContext& pc) final;
+      void decodeTF(framework::ProcessingContext& pc);
+
+    private:
+      o2::hmpid::HmpidDecodeRawDigit *mDeco;
+ //     vector<o2::hmpid::Digit> mDigits;
+
+  };
 
 o2::framework::DataProcessorSpec getDecodingSpec(std::string inputSpec = "TF:HMP/RAWDATA");
 //o2::framework::DataProcessorSpec getDecodingSpec();

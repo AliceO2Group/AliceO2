@@ -19,7 +19,8 @@
 */
 
 #include "FairLogger.h"
-#include "HmpidDecoder.h"
+#include "Headers/RAWDataHeader.h"
+#include "HMPIDReconstruction/HmpidDecoder.h"
 
 using namespace o2::hmpid;
 
@@ -84,6 +85,9 @@ HmpidDecoder::~HmpidDecoder()
 /// Resets to 0 all the class members
 void HmpidDecoder::init()
 {
+  mRDHAcceptedVersion = 6;
+  mRDHSize =  sizeof(o2::header::RAWDataHeaderV6) / sizeof(uint32_t);
+
   mVerbose = 0;
   mHeEvent = 0;
   mHeBusy = 0;
@@ -171,7 +175,7 @@ int HmpidDecoder::getEquipmentID(int CruId, int LinkId)
 /// @param[out] *p3 : third parameter extract (if it exists)
 /// @param[out] *p4 : fourth parameter extract (if it exists)
 /// @returns Type of Word : the type of word [0..4] (0 := undetect)
-int HmpidDecoder::checkType(int32_t wp, int *p1, int *p2, int *p3, int *p4)
+int HmpidDecoder::checkType(uint32_t wp, int *p1, int *p2, int *p3, int *p4)
 {
   if ((wp & 0x0000ffff) == 0x36A8 || (wp & 0x0000ffff) == 0x32A8 || (wp & 0x0000ffff) == 0x30A0
       || (wp & 0x0800ffff) == 0x080010A0) {
@@ -217,7 +221,7 @@ int HmpidDecoder::checkType(int32_t wp, int *p1, int *p2, int *p3, int *p4)
 /// @param[out] *rowSize : the number of words of the row
 /// @param[out] *mark : the row marker
 /// @returns True if Row Marker is detected
-bool HmpidDecoder::isRowMarker(int32_t wp, int *Err, int *rowSize, int *mark)
+bool HmpidDecoder::isRowMarker(uint32_t wp, int *Err, int *rowSize, int *mark)
 {
   if ((wp & 0x0000ffff) == 0x36A8 || (wp & 0x0000ffff) == 0x32A8 || (wp & 0x0000ffff) == 0x30A0
       || (wp & 0x0800ffff) == 0x080010A0) {
@@ -238,7 +242,7 @@ bool HmpidDecoder::isRowMarker(int32_t wp, int *Err, int *rowSize, int *mark)
 /// @param[out] *Seg : the Segment number [1..3]
 /// @param[out] *mark : the Segment Marker
 /// @returns True if Segment Marker is detected
-bool HmpidDecoder::isSegmentMarker(int32_t wp, int *Err, int *segSize, int *Seg, int *mark)
+bool HmpidDecoder::isSegmentMarker(uint32_t wp, int *Err, int *segSize, int *Seg, int *mark)
 {
   *Err = false;
   if ((wp & 0xfff00000) >> 20 == 0xAB0) {
@@ -247,7 +251,7 @@ bool HmpidDecoder::isSegmentMarker(int32_t wp, int *Err, int *segSize, int *Seg,
     *Seg = wp & 0x0000000F;
 
     if (*Seg > 3 || *Seg < 1) {
-      ILOG(INFO) << " Wrong segment Marker Word, bad Number of segment" << *Seg << "!" << FairLogger::endl;
+      LOG(INFO) << " Wrong segment Marker Word, bad Number of segment" << *Seg << "!";
       *Err = true;
     }
     return (true);
@@ -265,7 +269,7 @@ bool HmpidDecoder::isSegmentMarker(int32_t wp, int *Err, int *segSize, int *Seg,
 /// @param[out] *Channel : the channel number [0..47]
 /// @param[out] *Charge : the value of Charge [0..4095]
 /// @returns True if PAD Word is detected
-bool HmpidDecoder::isPadWord(int32_t wp, int *Err, int *Col, int *Dilogic, int *Channel, int *Charge)
+bool HmpidDecoder::isPadWord(uint32_t wp, int *Err, int *Col, int *Dilogic, int *Channel, int *Charge)
 {
   *Err = false;
   if ((wp & 0x08000000) == 0) { //  # this is a pad
@@ -274,8 +278,8 @@ bool HmpidDecoder::isPadWord(int32_t wp, int *Err, int *Col, int *Dilogic, int *
     *Channel = (wp & 0x0003F000) >> 12;
     *Charge = (wp & 0x00000FFF);
     if (*Dilogic > 10 || *Channel > 47 || *Dilogic < 1 || *Col > 24 || *Col < 1) {
-      ILOG(WARNING) << " Wrong Pad values Col=" << *Col << " Dilogic="<< *Dilogic << \
-          " Channel=" << *Channel << " Charge=" << *Charge << FairLogger::endl;
+      LOG(WARNING) << " Wrong Pad values Col=" << *Col << " Dilogic="<< *Dilogic << \
+          " Channel=" << *Channel << " Charge=" << *Charge;
       *Err = true;
     }
     return (true);
@@ -291,7 +295,7 @@ bool HmpidDecoder::isPadWord(int32_t wp, int *Err, int *Col, int *Dilogic, int *
 /// @param[out] *Dilogic : the dilogic number [1..10]
 /// @param[out] *Eoesize : the number of words for dilogic
 /// @returns True if EoE marker is detected
-bool HmpidDecoder::isEoEmarker(int32_t wp, int *Err, int *Col, int *Dilogic, int *Eoesize)
+bool HmpidDecoder::isEoEmarker(uint32_t wp, int *Err, int *Col, int *Dilogic, int *Eoesize)
 {
   *Err = false;
   // #EX MASK Raul 0x3803FF80  # ex mask 0xF803FF80 - this is EoE marker 0586800B0
@@ -300,7 +304,7 @@ bool HmpidDecoder::isEoEmarker(int32_t wp, int *Err, int *Col, int *Dilogic, int
     *Dilogic = (wp & 0x003C0000) >> 18;
     *Eoesize = (wp & 0x0000007F);
     if (*Col > 24 || *Dilogic > 10) {
-      ILOG(INFO) << " EoE size wrong definition. Col=" << *Col << " Dilogic=" << *Dilogic << FairLogger::endl;
+      LOG(INFO) << " EoE size wrong definition. Col=" << *Col << " Dilogic=" << *Dilogic;
       *Err = true;
     }
     return (true);
@@ -341,10 +345,12 @@ bool HmpidDecoder::decodeHmpidError(int ErrorField, char *outbuf)
 /// @param[out] *EquipIndex : the Index to the Equipment Object Array [0..13]
 /// @returns True every time
 /// @throws TH_WRONGEQUIPINDEX Thrown if the Equipment Index is out of boundary (Equipment not recognized)
-int HmpidDecoder::decodeHeader(int32_t *streamPtrAdr, int *EquipIndex)
+int HmpidDecoder::decodeHeader(uint32_t *streamPtrAdr, int *EquipIndex)
 {
-  int32_t *buffer = streamPtrAdr; // Sets the pointer to buffer
+  uint32_t *buffer = streamPtrAdr; // Sets the pointer to buffer
+  o2::header::RAWDataHeaderV6 *hpt = (o2::header::RAWDataHeaderV6 *)buffer;
 
+  /*
   mHeFEEID = (buffer[0] & 0x000f0000) >> 16;
   mHeSize = (buffer[0] & 0x0000ff00) >> 8;
   mHeVer = (buffer[0] & 0x000000ff);
@@ -365,6 +371,27 @@ int HmpidDecoder::decodeHeader(int32_t *streamPtrAdr, int *EquipIndex)
   mHeFirmwareVersion = buffer[12] & 0x0000000f;
   mHeHmpidError = (buffer[12] & 0x000001F0) >> 4;
   mHePAR = buffer[13] & 0x0000FFFF;
+  */
+  mHeFEEID = hpt->feeId;
+  mHeSize = hpt->headerSize;
+  mHeVer = hpt->version;
+  mHePrior = hpt->priority;
+  mHeDetectorID = hpt->sourceID;
+  mHeOffsetNewPack = hpt->offsetToNext;
+  mHeMemorySize = hpt->memorySize;
+  mHeDW = hpt->endPointID;
+  mHeCruID = hpt->cruID;
+  mHePackNum = hpt->packetCounter;
+  mHeLinkNum = hpt->linkID;
+  mHeBCDI = hpt->bunchCrossing;
+  mHeORBIT = hpt->orbit;
+  mHeTType = hpt->triggerType;
+  mHePageNum = hpt->pageCnt;
+  mHeStop = hpt->stop;
+  mHeBusy = (hpt->detectorField & 0xfffffe00) >> 9;
+  mHeFirmwareVersion = hpt->detectorField & 0x0000000f;
+  mHeHmpidError = (hpt->detectorField & 0x000001F0) >> 4;
+  mHePAR = hpt->detectorPAR;
 
   *EquipIndex = getEquipmentIndex(mHeCruID, mHeLinkNum);
   //  mEquipment = (*EquipIndex != -1) ? mTheEquipments[*EquipIndex]->getEquipmentId() : -1;
@@ -372,19 +399,19 @@ int HmpidDecoder::decodeHeader(int32_t *streamPtrAdr, int *EquipIndex)
   mNumberWordToRead = ((mHeMemorySize - mHeSize) / sizeof(uint32_t));
   mPayloadTail = ((mHeOffsetNewPack - mHeMemorySize) / sizeof(uint32_t));
 
-  // ---- Event ID  : Actualy based on ORBIT NUMBER ...
-  mHeEvent = mHeORBIT;
+  // ---- Event ID  : Actualy based on ORBIT NUMBER and BC
+  mHeEvent = (mHeORBIT<<12) | mHeBCDI;
 
-  ILOG(INFO) << "FEE-ID=" << mHeFEEID << " HeSize=" <<  mHeSize << " HePrior=" << mHePrior << " Det.Id=" << mHeDetectorID <<\
-      " HeMemorySize=" << mHeMemorySize << " HeOffsetNewPack=" << mHeOffsetNewPack << FairLogger::endl;
-  ILOG(INFO) << "      Equipment=" << mEquipment << " PakCounter=" <<  mHePackNum << " Link=" << mHeLinkNum << " CruID=" << \
-      mHeCruID << " DW=" << mHeDW << " BC=" << mHeBCDI << " ORBIT=" << mHeORBIT << FairLogger::endl;
-  ILOG(INFO) << "      TType=" << mHeTType << " HeStop=" << mHeStop << " PagesCounter=" << mHePageNum << " FirmVersion=" << \
-      mHeFirmwareVersion << " BusyTime=" << mHeBusy << " Error=" << mHeHmpidError << " PAR=" << mHePAR << FairLogger::endl;
-  ILOG(INFO) << "      Payload :  Words to read=" << mNumberWordToRead << " PailoadTail=" << mPayloadTail << FairLogger::endl;
+  LOG(INFO) << "FEE-ID=" << mHeFEEID << " HeSize=" <<  mHeSize << " HePrior=" << mHePrior << " Det.Id=" << mHeDetectorID <<\
+      " HeMemorySize=" << mHeMemorySize << " HeOffsetNewPack=" << mHeOffsetNewPack;
+  LOG(INFO) << "      Equipment=" << mEquipment << " PakCounter=" <<  mHePackNum << " Link=" << mHeLinkNum << " CruID=" << \
+      mHeCruID << " DW=" << mHeDW << " BC=" << mHeBCDI << " ORBIT=" << mHeORBIT;
+  LOG(INFO) << "      TType=" << mHeTType << " HeStop=" << mHeStop << " PagesCounter=" << mHePageNum << " FirmVersion=" << \
+      mHeFirmwareVersion << " BusyTime=" << mHeBusy << " Error=" << mHeHmpidError << " PAR=" << mHePAR;
+  LOG(INFO) << "      Payload :  Words to read=" << mNumberWordToRead << " PailoadTail=" << mPayloadTail;
 
   if (*EquipIndex == -1) {
-    ILOG(ERROR) << "ERROR ! Bad equipment Number: " << mEquipment << FairLogger::endl;
+    LOG(ERROR) << "ERROR ! Bad equipment Number: " << mEquipment;
     throw TH_WRONGEQUIPINDEX;
   }
   return (true);
@@ -430,11 +457,279 @@ HmpidEquipment* HmpidDecoder::evaluateHeaderContents(int EquipmentIndex)
   }
   eq->mEventSize += mNumberWordToRead * sizeof(uint32_t); // Calculate the size in bytes
   if (mHeHmpidError != 0) {
-    ILOG(ERROR) << "HMPID Header reports an error : " << mHeHmpidError << FairLogger::endl;
+    LOG(ERROR) << "HMPID Header reports an error : " << mHeHmpidError;
     dumpHmpidError(mHeHmpidError);
     eq->setError(ERR_HMPID);
   }
   return (eq);
+}
+
+void HmpidDecoder::decodePage(uint32_t **streamBuf)
+{
+  int equipmentIndex;
+  try {
+    getHeaderFromStream(streamBuf);
+  }
+  catch (int e) {
+    // The stream end !
+    LOG(DEBUG) << "End main decoding loop !";
+    break;
+  }
+  try {
+    decodeHeader(*streamBuf, &equipmentIndex);
+  }
+  catch (int e) {
+    LOG(ERROR) << "Failed to decode the Header !";
+    throw TH_WRONGHEADER;
+  }
+
+  HmpidEquipment *eq = evaluateHeaderContents(equipmentIndex);
+
+  uint32_t wpprev = 0;
+  uint32_t wp = 0;
+  int newOne = true;
+  int p1, p2, p3, p4;
+  int error;
+  int type;
+  bool isIt;
+
+  int payIndex = 0;
+  while (payIndex < mNumberWordToRead) {  //start the payload loop word by word
+    if (newOne == true) {
+      wpprev = wp;
+      if (!getWordFromStream(&wp)) { // end the stream
+        break;
+      }
+
+      type = checkType(wp, &p1, &p2, &p3, &p4);
+      if (type == WTYPE_NONE) {
+        if (eq->mWillBePad == true) { // try to recover the first pad !
+          type = checkType((wp & 0xF7FFFFFF), &p1, &p2, &p3, &p4);
+          if (type == WTYPE_PAD && p3 == 0 && eq->mWordsPerDilogicCounter == 0) {
+            newOne = false; // # reprocess as pad
+            continue;
+          }
+        }
+        eq->setError(ERR_NOTKNOWN);
+        LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_NOTKNOWN] << " [" << wp << "]";
+        eq->mWordsPerRowCounter++;
+        eq->mWordsPerSegCounter++;
+        payIndex++;
+        continue;
+      }
+    }
+
+    if (eq->mWillBeRowMarker == true) { // #shoud be a Row Marker
+      if (type == WTYPE_ROW) {
+        eq->mColumnCounter++;
+        eq->mWordsPerSegCounter++;
+        eq->mRowSize = p2;
+        switch (p2) {
+          case 0: // Empty column
+            eq->setError(ERR_ROWMARKEMPTY);
+            LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_ROWMARKEMPTY] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
+                "[" << p1 << "]";
+            eq->mWillBeRowMarker = true;
+            break;
+          case 0x3FF: // Error in column
+            eq->setError(ERR_ROWMARKERROR);
+            LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_ROWMARKERROR] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
+                "[" << p1 << "]";
+            eq->mWillBeRowMarker = true;
+            break;
+          case 0x3FE: // Masked column
+            LOG(INFO) << "Equip=" << mEquipment << "The column=" << (eq->mSegment) * 8 + eq->mColumnCounter << " is Masked !";
+            eq->mWillBeRowMarker = true;
+            break;
+          default:
+            eq->mWillBeRowMarker = false;
+            eq->mWillBePad = true;
+            break;
+        }
+        newOne = true;
+      } else {
+        if (wp == wpprev) {
+          eq->setError(ERR_DUPLICATEPAD);
+          LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_DUPLICATEPAD] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
+              "[" << p1 << "]";
+          newOne = true;
+        } else if (type == WTYPE_EOE) { // # Could be a EoE
+          eq->mColumnCounter++;
+          eq->setError(ERR_ROWMARKWRONG);
+          eq->mWillBeRowMarker = false;
+          eq->mWillBePad = true;
+          newOne = true;
+        } else if (type == WTYPE_PAD) { //# Could be a PAD
+          eq->mColumnCounter++;
+          eq->setError(ERR_ROWMARKLOST);
+          LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_ROWMARKLOST] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
+              "[" << p1 << "]";
+          eq->mWillBeRowMarker = false;
+          eq->mWillBePad = true;
+          newOne = true;
+        } else if (type == WTYPE_EOS) { // # Could be a EoS
+          eq->mWillBeRowMarker = false;
+          eq->mWillBeSegmentMarker = true;
+          newOne = false;
+        } else {
+          eq->mColumnCounter++;
+          eq->setError(ERR_ROWMARKLOST);
+          LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_ROWMARKLOST] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
+              "[" << p1 << "]";
+          eq->mWillBeRowMarker = false;
+          eq->mWillBePad = true;
+          newOne = true;
+        }
+      }
+    } else if (eq->mWillBePad == true) { // # We expect a pad
+      //# PAD:0000.0ccc.ccdd.ddnn.nnnn.vvvv.vvvv.vvvv :: c=col,d=dilo,n=chan,v=value
+      //   c = 1..24   d = 1..10  n = 0..47
+      if (type == WTYPE_PAD) {
+        newOne = true;
+        if (wp == wpprev) {
+          eq->setError(ERR_DUPLICATEPAD);
+          LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_DUPLICATEPAD] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
+              "[" << p1 << "]";
+        } else if (p1 != (eq->mSegment * 8 + eq->mColumnCounter)) {        // # Manage
+          // We try to recover the RowMarker misunderstanding
+          isIt = isRowMarker(wp, &error, &p2, &p1);
+          if (isIt == true && error == false) {
+            type = WTYPE_ROW;
+            newOne = false;
+            eq->mWillBeEoE = true;
+            eq->mWillBePad = false;
+          } else {
+            LOG(DEBUG) << "Equip=" << mEquipment << " Mismatch in column" << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
+                "[" << p1 << "]";
+            eq->mColumnCounter = p1 % 8;
+          }
+        } else {
+          setPad(eq, p1 - 1, p2 - 1, p3, p4);
+          eq->mWordsPerDilogicCounter++;
+          eq->mSampleNumber++;
+          if (p3 == 47) {
+            eq->mWillBeEoE = true;
+            eq->mWillBePad = false;
+          }
+        }
+        eq->mWordsPerRowCounter++;
+        eq->mWordsPerSegCounter++;
+      } else if (type == WTYPE_EOE) { //# the pads are end ok
+        eq->mWillBeEoE = true;
+        eq->mWillBePad = false;
+        newOne = false;
+      } else if (type == WTYPE_ROW) { // # We Lost the EoE !
+        // We try to recover the PAD misunderstanding
+        isIt = isPadWord(wp, &error, &p1, &p2, &p3, &p4);
+        if (isIt == true && error == false) {
+          type = WTYPE_PAD;
+          newOne = false;            // # reprocess as pad
+        } else {
+          eq->setError(ERR_LOSTEOEMARK);
+          LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_LOSTEOEMARK] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
+              "[" << p1 << "]";
+          eq->mWillBeRowMarker = true;
+          eq->mWillBePad = false;
+          newOne = false;
+        }
+      } else if (type == WTYPE_EOS) {            // # We Lost the EoE !
+        eq->setError(ERR_LOSTEOEMARK);
+        LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_LOSTEOEMARK] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
+            "[" << p1 << "]";
+        eq->mWillBeSegmentMarker = true;
+        eq->mWillBePad = false;
+        newOne = false;
+      }
+    } else if (eq->mWillBeEoE == true) {            // # We expect a EoE
+      if (type == WTYPE_EOE) {
+        eq->mWordsPerRowCounter++;
+        eq->mWordsPerSegCounter++;
+        if (wpprev == wp) {
+          eq->setError(ERR_DOUBLEEOEMARK);
+          LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_DOUBLEEOEMARK] << " col=" << p1;
+        } else if (p3 != eq->mWordsPerDilogicCounter) {
+          eq->setError(ERR_WRONGSIZEINEOE);
+          LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_WRONGSIZEINEOE] << " col=" << p1;
+        }
+        eq->mWordsPerDilogicCounter = 0;
+        if (p2 == 10) {
+          if (p1 % 8 != 0) {            // # we expect the Row Marker
+            eq->mWillBeRowMarker = true;
+          } else {
+            eq->mWillBeSegmentMarker = true;
+          }
+        } else {
+          eq->mWillBePad = true;
+        }
+        eq->mWillBeEoE = false;
+        newOne = true;
+      } else if (type == WTYPE_EOS) {            // We Lost the EoE !
+        eq->setError(ERR_LOSTEOEMARK);
+        LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_LOSTEOEMARK] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
+            "[" << p1 << "]";
+        eq->mWillBeSegmentMarker = true;
+        eq->mWillBeEoE = false;
+        newOne = false;
+      } else if (type == WTYPE_ROW) { //# We Lost the EoE !
+        eq->setError(ERR_LOSTEOEMARK);
+        LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_LOSTEOEMARK] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
+            "[" << p1 << "]";
+        eq->mWillBeRowMarker = true;
+        eq->mWillBeEoE = false;
+        newOne = false;
+      } else if (type == WTYPE_PAD) { // # We Lost the EoE !
+        int typb, p1b, p2b, p3b, p4b;
+        typb = checkType((wp | 0x08000000), &p1b, &p2b, &p3b, &p4b);
+        if (typb == WTYPE_EOE && p3b == 48) {
+          type = typb;
+          p1 = p1b;
+          p2 = p2b;
+          p3 = p3b;
+          p4 = p4b;
+          newOne = false; // # reprocess as EoE
+        } else {
+          eq->setError(ERR_LOSTEOEMARK);
+          LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_LOSTEOEMARK] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
+              "[" << p1 << "]";
+          eq->mWillBePad = true;
+          eq->mWillBeEoE = false;
+          newOne = false;
+        }
+      }
+    } else if (eq->mWillBeSegmentMarker == true) { // # We expect a EoSegment
+      if (wpprev == wp) {
+        eq->setError(ERR_DOUBLEMARKWORD);
+        LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_DOUBLEMARKWORD] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
+            "[" << p1 << "]";
+        newOne = true;
+      } else if (type == 2) {
+        if (abs(eq->mWordsPerSegCounter - p2) > 5) {
+          eq->setError(ERR_WRONGSIZESEGMENTMARK);
+          LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_WRONGSIZESEGMENTMARK] << " Seg=" << p2;
+        }
+        eq->mWordsPerSegCounter = 0;
+        eq->mWordsPerRowCounter = 0;
+        eq->mColumnCounter = 0;
+        eq->mSegment = p3 % 3;
+        eq->mWillBeRowMarker = true;
+        eq->mWillBeSegmentMarker = false;
+        newOne = true;
+      } else {
+        eq->setError(ERR_LOSTEOSMARK);
+        LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_LOSTEOSMARK] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
+            "[" << p1 << "]";
+        eq->mWillBeSegmentMarker = false;
+        eq->mWillBeRowMarker = true;
+        newOne = false;
+      }
+    }
+    if (newOne) {
+      payIndex += 1;
+    }
+  }
+  for (int i = 0; i < mPayloadTail; i++) { // move the pointer to skip the Payload Tail
+    getWordFromStream(&wp);
+  }
 }
 
 /// --------------- Read Raw Data Buffer ---------------
@@ -454,271 +749,17 @@ bool HmpidDecoder::decodeBuffer()
   int equipmentIndex = -1;
   int isIt;
   HmpidEquipment *eq;
-  int32_t *streamBuf;
-  ILOG(DEBUG) << "Enter decoding !" << FairLogger::endl;
+  uint32_t *streamBuf;
+  LOG(DEBUG) << "Enter decoding !";
 
   // Input Stream Main Loop
   while (true) {
     try {
-      getHeaderFromStream(&streamBuf);
+      decodePage(&streamBuf);
     }
     catch (int e) {
-      // The stream end !
-      ILOG(DEBUG) << "End main decoding loop !" << FairLogger::endl;
+      LOG(DEBUG) << "End main buffer decoding loop !";
       break;
-    }
-    try {
-      decodeHeader(streamBuf, &equipmentIndex);
-    }
-    catch (int e) {
-      ILOG(ERROR) << "Failed to decode the Header !" << FairLogger::endl;
-      throw TH_WRONGHEADER;
-    }
-
-    eq = evaluateHeaderContents(equipmentIndex);
-
-    int wpprev = 0;
-    int wp = 0;
-    int newOne = true;
-    int p1, p2, p3, p4;
-    int error;
-
-    int payIndex = 0;
-    while (payIndex < mNumberWordToRead) {  //start the payload loop word by word
-      if (newOne == true) {
-        wpprev = wp;
-        if (!getWordFromStream(&wp)) { // end the stream
-          break;
-        }
-
-        type = checkType(wp, &p1, &p2, &p3, &p4);
-        if (type == WTYPE_NONE) {
-          if (eq->mWillBePad == true) { // try to recover the first pad !
-            type = checkType((wp & 0xF7FFFFFF), &p1, &p2, &p3, &p4);
-            if (type == WTYPE_PAD && p3 == 0 && eq->mWordsPerDilogicCounter == 0) {
-              newOne = false; // # reprocess as pad
-              continue;
-            }
-          }
-          eq->setError(ERR_NOTKNOWN);
-          ILOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_NOTKNOWN] << " [" << wp << "]" << FairLogger::endl;
-          eq->mWordsPerRowCounter++;
-          eq->mWordsPerSegCounter++;
-          payIndex++;
-          continue;
-        }
-      }
-
-      if (eq->mWillBeRowMarker == true) { // #shoud be a Row Marker
-        if (type == WTYPE_ROW) {
-          eq->mColumnCounter++;
-          eq->mWordsPerSegCounter++;
-          eq->mRowSize = p2;
-          switch (p2) {
-            case 0: // Empty column
-              eq->setError(ERR_ROWMARKEMPTY);
-              ILOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_ROWMARKEMPTY] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
-                  "[" << p1 << "]" << FairLogger::endl;
-              eq->mWillBeRowMarker = true;
-              break;
-            case 0x3FF: // Error in column
-              eq->setError(ERR_ROWMARKERROR);
-              ILOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_ROWMARKERROR] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
-                  "[" << p1 << "]" << FairLogger::endl;
-              eq->mWillBeRowMarker = true;
-              break;
-            case 0x3FE: // Masked column
-              ILOG(INFO) << "Equip=" << mEquipment << "The column=" << (eq->mSegment) * 8 + eq->mColumnCounter << " is Masked !" << FairLogger::endl;
-              eq->mWillBeRowMarker = true;
-              break;
-            default:
-              eq->mWillBeRowMarker = false;
-              eq->mWillBePad = true;
-              break;
-          }
-          newOne = true;
-        } else {
-          if (wp == wpprev) {
-            eq->setError(ERR_DUPLICATEPAD);
-            ILOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_DUPLICATEPAD] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
-                "[" << p1 << "]" << FairLogger::endl;
-            newOne = true;
-          } else if (type == WTYPE_EOE) { // # Could be a EoE
-            eq->mColumnCounter++;
-            eq->setError(ERR_ROWMARKWRONG);
-            eq->mWillBeRowMarker = false;
-            eq->mWillBePad = true;
-            newOne = true;
-          } else if (type == WTYPE_PAD) { //# Could be a PAD
-            eq->mColumnCounter++;
-            eq->setError(ERR_ROWMARKLOST);
-            ILOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_ROWMARKLOST] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
-                "[" << p1 << "]" << FairLogger::endl;
-            eq->mWillBeRowMarker = false;
-            eq->mWillBePad = true;
-            newOne = true;
-          } else if (type == WTYPE_EOS) { // # Could be a EoS
-            eq->mWillBeRowMarker = false;
-            eq->mWillBeSegmentMarker = true;
-            newOne = false;
-          } else {
-            eq->mColumnCounter++;
-            eq->setError(ERR_ROWMARKLOST);
-            ILOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_ROWMARKLOST] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
-                "[" << p1 << "]" << FairLogger::endl;
-            eq->mWillBeRowMarker = false;
-            eq->mWillBePad = true;
-            newOne = true;
-          }
-        }
-      } else if (eq->mWillBePad == true) { // # We expect a pad
-        //# PAD:0000.0ccc.ccdd.ddnn.nnnn.vvvv.vvvv.vvvv :: c=col,d=dilo,n=chan,v=value
-        //   c = 1..24   d = 1..10  n = 0..47
-        if (type == WTYPE_PAD) {
-          newOne = true;
-          if (wp == wpprev) {
-            eq->setError(ERR_DUPLICATEPAD);
-            ILOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_DUPLICATEPAD] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
-                "[" << p1 << "]" << FairLogger::endl;
-          } else if (p1 != (eq->mSegment * 8 + eq->mColumnCounter)) {        // # Manage
-            // We try to recover the RowMarker misunderstanding
-            isIt = isRowMarker(wp, &error, &p2, &p1);
-            if (isIt == true && error == false) {
-              type = WTYPE_ROW;
-              newOne = false;
-              eq->mWillBeEoE = true;
-              eq->mWillBePad = false;
-            } else {
-              ILOG(DEBUG) << "Equip=" << mEquipment << " Mismatch in column" << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
-                  "[" << p1 << "]" << FairLogger::endl;
-              eq->mColumnCounter = p1 % 8;
-            }
-          } else {
-            setPad(eq, p1 - 1, p2 - 1, p3, p4);
-            eq->mWordsPerDilogicCounter++;
-            eq->mSampleNumber++;
-            if (p3 == 47) {
-              eq->mWillBeEoE = true;
-              eq->mWillBePad = false;
-            }
-          }
-          eq->mWordsPerRowCounter++;
-          eq->mWordsPerSegCounter++;
-        } else if (type == WTYPE_EOE) { //# the pads are end ok
-          eq->mWillBeEoE = true;
-          eq->mWillBePad = false;
-          newOne = false;
-        } else if (type == WTYPE_ROW) { // # We Lost the EoE !
-          // We try to recover the PAD misunderstanding
-          isIt = isPadWord(wp, &error, &p1, &p2, &p3, &p4);
-          if (isIt == true && error == false) {
-            type = WTYPE_PAD;
-            newOne = false;            // # reprocess as pad
-          } else {
-            eq->setError(ERR_LOSTEOEMARK);
-            ILOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_LOSTEOEMARK] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
-                "[" << p1 << "]" << FairLogger::endl;
-            eq->mWillBeRowMarker = true;
-            eq->mWillBePad = false;
-            newOne = false;
-          }
-        } else if (type == WTYPE_EOS) {            // # We Lost the EoE !
-          eq->setError(ERR_LOSTEOEMARK);
-          ILOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_LOSTEOEMARK] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
-              "[" << p1 << "]" << FairLogger::endl;
-          eq->mWillBeSegmentMarker = true;
-          eq->mWillBePad = false;
-          newOne = false;
-        }
-      } else if (eq->mWillBeEoE == true) {            // # We expect a EoE
-        if (type == WTYPE_EOE) {
-          eq->mWordsPerRowCounter++;
-          eq->mWordsPerSegCounter++;
-          if (wpprev == wp) {
-            eq->setError(ERR_DOUBLEEOEMARK);
-            ILOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_DOUBLEEOEMARK] << " col=" << p1 << FairLogger::endl;
-          } else if (p3 != eq->mWordsPerDilogicCounter) {
-            eq->setError(ERR_WRONGSIZEINEOE);
-            ILOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_WRONGSIZEINEOE] << " col=" << p1 << FairLogger::endl;
-          }
-          eq->mWordsPerDilogicCounter = 0;
-          if (p2 == 10) {
-            if (p1 % 8 != 0) {            // # we expect the Row Marker
-              eq->mWillBeRowMarker = true;
-            } else {
-              eq->mWillBeSegmentMarker = true;
-            }
-          } else {
-            eq->mWillBePad = true;
-          }
-          eq->mWillBeEoE = false;
-          newOne = true;
-        } else if (type == WTYPE_EOS) {            // We Lost the EoE !
-          eq->setError(ERR_LOSTEOEMARK);
-          ILOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_LOSTEOEMARK] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
-              "[" << p1 << "]" << FairLogger::endl;
-          eq->mWillBeSegmentMarker = true;
-          eq->mWillBeEoE = false;
-          newOne = false;
-        } else if (type == WTYPE_ROW) { //# We Lost the EoE !
-          eq->setError(ERR_LOSTEOEMARK);
-          ILOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_LOSTEOEMARK] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
-              "[" << p1 << "]" << FairLogger::endl;
-          eq->mWillBeRowMarker = true;
-          eq->mWillBeEoE = false;
-          newOne = false;
-        } else if (type == WTYPE_PAD) { // # We Lost the EoE !
-          int typb, p1b, p2b, p3b, p4b;
-          typb = checkType((wp | 0x08000000), &p1b, &p2b, &p3b, &p4b);
-          if (typb == WTYPE_EOE && p3b == 48) {
-            type = typb;
-            p1 = p1b;
-            p2 = p2b;
-            p3 = p3b;
-            p4 = p4b;
-            newOne = false; // # reprocess as EoE
-          } else {
-            eq->setError(ERR_LOSTEOEMARK);
-            ILOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_LOSTEOEMARK] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
-                "[" << p1 << "]" << FairLogger::endl;
-            eq->mWillBePad = true;
-            eq->mWillBeEoE = false;
-            newOne = false;
-          }
-        }
-      } else if (eq->mWillBeSegmentMarker == true) { // # We expect a EoSegment
-        if (wpprev == wp) {
-          eq->setError(ERR_DOUBLEMARKWORD);
-          ILOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_DOUBLEMARKWORD] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
-              "[" << p1 << "]" << FairLogger::endl;
-          newOne = true;
-        } else if (type == 2) {
-          if (abs(eq->mWordsPerSegCounter - p2) > 5) {
-            eq->setError(ERR_WRONGSIZESEGMENTMARK);
-            ILOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_WRONGSIZESEGMENTMARK] << " Seg=" << p2 << FairLogger::endl;
-          }
-          eq->mWordsPerSegCounter = 0;
-          eq->mWordsPerRowCounter = 0;
-          eq->mColumnCounter = 0;
-          eq->mSegment = p3 % 3;
-          eq->mWillBeRowMarker = true;
-          eq->mWillBeSegmentMarker = false;
-          newOne = true;
-        } else {
-          eq->setError(ERR_LOSTEOSMARK);
-          ILOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_LOSTEOSMARK] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
-              "[" << p1 << "]" << FairLogger::endl;
-          eq->mWillBeSegmentMarker = false;
-          eq->mWillBeRowMarker = true;
-          newOne = false;
-        }
-      }
-      if (newOne) {
-        payIndex += 1;
-      }
-    }
-    for (int i = 0; i < mPayloadTail; i++) { // move the pointer to skip the Payload Tail
-      getWordFromStream(&wp);
     }
   } // this is the end of stream
 
@@ -731,6 +772,57 @@ bool HmpidDecoder::decodeBuffer()
   return (true);
 }
 
+void HmpidDecoder::decodePageFast(uint32_t **streamBuf)
+{
+  int equipmentIndex;
+  try {
+    getHeaderFromStream(streamBuf);
+  }
+  catch (int e) {
+    // The stream end !
+    LOG(DEBUG) << "End Fast Page decoding loop !";
+    break;
+  }
+  try {
+    decodeHeader(*streamBuf, &equipmentIndex);
+  }
+  catch (int e) {
+    LOG(ERROR) << "Failed to decode the Header !";
+    throw TH_WRONGHEADER;
+  }
+
+  HmpidEquipment *eq = evaluateHeaderContents(equipmentIndex);
+
+  uint32_t wpprev = 0;
+  uint32_t wp = 0;
+  int newOne = true;
+  int Column, Dilogic, Channel, Charge;
+  int error;
+
+  int payIndex = 0;
+  while (payIndex < mNumberWordToRead) {  //start the payload loop word by word
+    wpprev = wp;
+    if (!getWordFromStream(&wp)) { // end the stream
+      break;
+    }
+    if (wp == wpprev) {
+      LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_DUPLICATEPAD] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
+          "[" << Column << "]";
+    } else {
+      if( isPadWord(wp, &error, &Column, &Dilogic, &Channel, &Charge) == true) {
+        if( error != false) {
+          setPad(eq, Column - 1, Dilogic - 1, Channel, Charge);
+          eq->mSampleNumber++;
+        }
+      }
+    }
+    payIndex += 1;
+  }
+  for (int i = 0; i < mPayloadTail; i++) { // move the pointer to skip the Payload Tail
+    getWordFromStream(&wp);
+  }
+  return;
+}
 /// ---------- Read Raw Data Buffer with Fast Decoding ----------
 /// Read the stream, decode the contents and store resuls.
 /// Fast alghoritm : no parsing of control words !
@@ -744,60 +836,17 @@ bool HmpidDecoder::decodeBufferFast()
     mTheEquipments[i]->resetPadMap();
   }
 
-  int type;
-  int equipmentIndex = -1;
-  int isIt;
-  HmpidEquipment *eq;
-  int32_t *streamBuf;
-  ILOG(DEBUG) << "Enter FAST decoding !" << FairLogger::endl;
+  uint32_t *streamBuf;
+  LOG(DEBUG) << "Enter FAST decoding !";
 
   // Input Stream Main Loop
   while (true) {
     try {
-      getHeaderFromStream(&streamBuf);
+      decodePageFast(&streamBuf);
     }
-    catch (int e) {
-      // The stream end !
-      ILOG(DEBUG) << "End main decoding loop !" << FairLogger::endl;
+    catch(int e) {
+      LOG(DEBUG) << " End Buffer Fast Decoding !";
       break;
-    }
-    try {
-      decodeHeader(streamBuf, &equipmentIndex);
-    }
-    catch (int e) {
-      ILOG(ERROR) << "Failed to decode the Header !" << FairLogger::endl;
-      throw TH_WRONGHEADER;
-    }
-
-    eq = evaluateHeaderContents(equipmentIndex);
-
-    int wpprev = 0;
-    int wp = 0;
-    int newOne = true;
-    int p1, p2, p3, p4;
-    int error;
-
-    int payIndex = 0;
-    while (payIndex < mNumberWordToRead) {  //start the payload loop word by word
-      wpprev = wp;
-      if (!getWordFromStream(&wp)) { // end the stream
-        break;
-      }
-      if (wp == wpprev) {
-        ILOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_DUPLICATEPAD] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
-            "[" << p1 << "]" << FairLogger::endl;
-      } else {
-        if( isPadWord(wp, &error, &p1, &p2, &p3, &p4) == true) {
-          if( error != false) {
-            setPad(eq, p1 - 1, p2 - 1, p3, p4);
-            eq->mSampleNumber++;
-          }
-        }
-      }
-      payIndex += 1;
-    }
-    for (int i = 0; i < mPayloadTail; i++) { // move the pointer to skip the Payload Tail
-      getWordFromStream(&wp);
     }
   } // this is the end of stream
 
@@ -984,7 +1033,7 @@ void HmpidDecoder::dumpHmpidError(int ErrorField)
 {
   char printbuf[MAXHMPIDERRORS * MAXDESCRIPTIONLENGHT];
   if (decodeHmpidError(ErrorField, printbuf) == true) {
-    ILOG(ERROR) << "HMPID Error field = " << ErrorField << " : " << printbuf << FairLogger::endl;
+    LOG(ERROR) << "HMPID Error field = " << ErrorField << " : " << printbuf;
   }
   return;
 }

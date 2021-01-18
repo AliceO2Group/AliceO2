@@ -110,8 +110,11 @@ void HMPIDDigitizer::process(std::vector<o2::hmpid::HitType> const& hits, std::v
         }
       } else {
         // create digit ... and register
-        mDigits.emplace_back(mCurrentTriggerTime, pad, totalQ * fraction);
-        mIndexForPad[pad] = mDigits.size() - 1;
+int Orbit = 1;
+int Bc = 1;
+//        mDigits.emplace_back(mCurrentTriggerTime, pad, totalQ * fraction);
+      mDigits.emplace_back(Orbit, Bc, pad, totalQ * fraction);
+      mIndexForPad[pad] = mDigits.size() - 1;
         mInvolvedPads.emplace_back(pad);
 
         if (mRegisteredLabelContainer) {
