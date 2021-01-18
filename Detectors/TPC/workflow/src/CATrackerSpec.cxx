@@ -110,7 +110,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
     std::vector<int> clusterOutputIds;
     unsigned long outputBufferSize = 0;
     unsigned long tpcSectorMask = 0;
-    int verbosity = 1;
+    int verbosity = 0;
     bool readyToQuit = false;
     bool allocateOutputOnTheFly = false;
     bool suppressOutput = false;
@@ -378,7 +378,9 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
             pageSector += tpcZSonTheFlySizes[i * NEndpoints + j];
             offset += tpcZSonTheFlySizes[i * NEndpoints + j];
           }
-          LOG(INFO) << "GOT ZS pages FOR SECTOR " << i << " ->  pages: " << pageSector;
+          if (verbosity >= 1) {
+            LOG(INFO) << "GOT ZS pages FOR SECTOR " << i << " ->  pages: " << pageSector;
+          }
         }
       }
       if (specconfig.zsDecoder) {
