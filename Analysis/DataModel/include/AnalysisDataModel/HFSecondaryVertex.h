@@ -155,7 +155,9 @@ DECLARE_SOA_COLUMN(FlagMCMatchRec, flagMCMatchRec, int8_t); // reconstruction le
 DECLARE_SOA_COLUMN(FlagMCMatchGen, flagMCMatchGen, int8_t); // generator level
 
 // mapping of decay types
-enum DecayType { D0ToPiK = 1 };
+enum DecayType { D0ToPiK = 0,
+                 JpsiToEE,
+                 N2ProngDecays }; //always keep N2ProngDecays at the end
 
 // functions for specific particles
 
@@ -289,8 +291,10 @@ DECLARE_SOA_COLUMN(FlagMCMatchRec, flagMCMatchRec, int8_t); // reconstruction le
 DECLARE_SOA_COLUMN(FlagMCMatchGen, flagMCMatchGen, int8_t); // generator level
 
 // mapping of decay types
-enum DecayType { DPlusToPiKPi = 1,
-                 LcToPKPi };
+enum DecayType { DPlusToPiKPi = 0,
+                 LcToPKPi,
+                 DsToPiKK,
+                 N3ProngDecays }; //always keep N3ProngDecays at the end
 
 // functions for specific particles
 
