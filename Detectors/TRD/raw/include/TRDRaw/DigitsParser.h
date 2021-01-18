@@ -41,7 +41,7 @@ class DigitsParser
   //  void setLinkLengths(std::array<uint32_t, 15>& lengths) { mCurrentHalfCRULinkLengths = lengths; };
   int Parse(bool verbose = true); // presupposes you have set everything up already.
   int Parse(std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>::iterator start,
-            std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>::iterator end, int detector, bool verbose = true) //, std::array<uint32_t, 15>& lengths) // change to calling per link.
+            std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>::iterator end, int detector, bool cleardigits=false, bool verbose = true) //, std::array<uint32_t, 15>& lengths) // change to calling per link.
   {
     setData(data);
     //   setLinkLengths(lengths);
@@ -49,6 +49,7 @@ class DigitsParser
     mEndParse = end;
     mDetector = detector;
     setVerbose(verbose);
+    clearDigits();
     return Parse();
   };
   enum DigitParserState { StateDigitHCHeader, // always the start of a half chamber.
@@ -60,6 +61,8 @@ class DigitsParser
   inline void swapByteOrder(unsigned int& word);
   bool getVerbose() { return mVerbose; }
   void setVerbose(bool value) { mVerbose = value; }
+  std::vector<Digit>& getDigits(){return mDigits;}
+  void clearDigits(){mDigits.clear();}
 
  private:
   int mState;
@@ -71,7 +74,9 @@ class DigitsParser
 
   std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>* mData = nullptr; // parsed in vector of raw data to parse.
   std::vector<Digit> mDigits;                                              // outgoing parsed digits
-  std::vector<TriggerRecord> mTriggerRecords;                              // trigger records to index into the digits vector.
+                                                                           // subtle point, mDigits is not cleared between parsings,only between events.
+                                                                           // this means that successive calls to Parse simply appends the new digits onto the vector.
+                                                                           // at the end of the event the calling object must pull/copy the vector and clear or clear on next parse.
   int mParsedWords{0};                                                     // words parsed in data vector, last complete bit is not parsed, and left for another round of data update.
   DigitHCHeader* mDigitHCHeader;
   DigitMCMHeader* mDigitMCMHeader;

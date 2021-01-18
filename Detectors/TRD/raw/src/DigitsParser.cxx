@@ -149,7 +149,7 @@ int DigitsParser::Parse(bool verbose)
             LOG(info) << "change of adc";
             //write out adc value to vector
             //zero digittimebinoffset
-            mDigits.emplace_back(Digit(1, 1, 1, mADCValues, 1)); // outgoing parsed digits
+            mDigits.emplace_back(Digit(mDetector,mROB,mMCM, mADCValues, 1)); // outgoing parsed digits
             digittimebinoffset = 0;
           }
         }
