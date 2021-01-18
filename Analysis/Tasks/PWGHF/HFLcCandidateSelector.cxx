@@ -287,9 +287,8 @@ struct HFLcCandidateSelector {
 
       statusLcpKpi = 0;
       statusLcpiKp = 0;
-      int LcFlag = hfCandProng3.hfflag();
 
-      if (!(LcFlag & 1 << 1)) {
+      if (!(hfCandProng3.hfflag() & 1 << LcToPKPi)) {
         hfSelLcCandidate(statusLcpKpi, statusLcpiKp);
         continue;
       }
