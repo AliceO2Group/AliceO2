@@ -14,9 +14,11 @@
 
 #include "TPCReconstruction/KrBoxClusterFinder.h"
 #include "TPCBase/CalDet.h"
+#include "TPCBase/Utils.h"
+
 #include "Framework/Logger.h"
+
 #include <TFile.h>
-#include "TPCBase/CalArray.h"
 #include <vector>
 
 using namespace o2::tpc;
@@ -29,13 +31,17 @@ KrBoxClusterFinder::KrBoxClusterFinder()
 }
 
 // If a gain map already exists in form of a CalDet file, it can be specified here
-void KrBoxClusterFinder::setCalDetFile(const std::string_view calDetFileName)
+void KrBoxClusterFinder::loadGainMapFromFile(const std::string_view calDetFileName, const std::string_view gainMapName)
 {
-  mCalDetFile = new TFile(calDetFileName.data());
-  if (!mCalDetFile->IsOpen()) {
-    LOGP(error, "Could not open CalDet File.");
-    mCalDetFile = nullptr;
+  auto calPads = utils::readCalPads(calDetFileName, gainMapName);
+  auto gain = calPads[0];
+
+  if (!gain) {
+    LOGP(error, "No valid gain map object '{}' could be loaded from file '{}'", calDetFileName, gainMapName);
+    return;
   }
+  mGainMap.reset(gain);
+  LOGP(info, "Loaded gain map object '{}' from file '{}'", calDetFileName, gainMapName);
 }
 
 // Fill the map with all digits.
@@ -54,12 +60,7 @@ void KrBoxClusterFinder::fillAndCorrectMap(std::vector<o2::tpc::Digit>& eventSec
     return;
   }
 
-  CalDet<float>* correctionFactorCalDet = nullptr;
-
-  // Check if CalDet File was set
-  if (mCalDetFile != nullptr) {
-    mCalDetFile->GetObject("relGain", correctionFactorCalDet);
-  }
+  const auto correctionFactorCalDet = mGainMap.get();
 
   // Fill digits map
   for (const auto& digit : eventSector) {
@@ -70,7 +71,7 @@ void KrBoxClusterFinder::fillAndCorrectMap(std::vector<o2::tpc::Digit>& eventSec
     float correctionFactor = 1.0;
 
     int padNum = 0;
-    if (mCalDetFile != nullptr) {
+    if (correctionFactorCalDet) {
       if (row >= MaxRowsIROC) {
         padNum = mMapperInstance.globalPadNumber(PadPos(row, pad)) - mMapperInstance.getPadsInIROC();
         correctionFactor = correctionFactorCalDet->getValue(sector, padNum);

@@ -72,7 +72,7 @@
 #include "TPCReconstruction/KrCluster.h"
 #include "TPCBase/Mapper.h"
 
-#include "TFile.h"
+#include "TPCBase/CalDet.h"
 
 #include <tuple>
 #include <vector>
@@ -97,11 +97,11 @@ class KrBoxClusterFinder
   /// Constructor:
   explicit KrBoxClusterFinder(); ///< Creates a 3D Map
 
-  void setCalDetFile(const std::string_view calDetFileName);
+  /// If a gain map exists, the map can be loaded with this function
+  /// The function expects a CalDet file with a gain map (gain entry for each pad).
+  void loadGainMapFromFile(const std::string_view calDetFileName, const std::string_view gainMapName = "GainMap");
 
   /// Function used in macro to fill the map with all recorded digits
-  /// If a gain map exists, the map can be corrected with this function
-  /// The function expects a CaldDet file which has a "relGain" entry for each pad.
   void fillAndCorrectMap(std::vector<o2::tpc::Digit>& eventSector, const int sector);
 
   /// After the map is created, we look for local maxima with this function:
@@ -132,7 +132,7 @@ class KrBoxClusterFinder
   float mQThreshold = 1.0;        ///< every charge which is added to a cluster must exceed this value or it is discarded
   int mMinNumberOfNeighbours = 1; ///< amount of direct neighbours required for a cluster maximum
 
-  TFile* mCalDetFile = nullptr; ///< Holds the filename of the CalDet File
+  std::unique_ptr<CalPad> mGainMap; ///< Gain map object
 
   /// Maximum Map Dimensions
   /// Here is room for improvements
