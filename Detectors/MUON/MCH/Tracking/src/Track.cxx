@@ -28,8 +28,7 @@ using namespace std;
 
 //__________________________________________________________________________
 Track::Track(const Track& track)
-  : mParamAtVertex(track.mParamAtVertex),
-    mParamAtClusters(track.mParamAtClusters),
+  : mParamAtClusters(track.mParamAtClusters),
     mCurrentParam(nullptr),
     mCurrentChamber(-1),
     mConnected(track.mConnected),
@@ -133,63 +132,61 @@ bool Track::isBetter(const Track& track) const
 }
 
 //__________________________________________________________________________
-void Track::tagRemovableClusters(uint8_t requestedStationMask)
+void Track::tagRemovableClusters(uint8_t requestedStationMask, bool request2ChInSameSt45)
 {
-  /// Identify clusters that can be removed from the track,
-  /// with the only requirements to have at least 1 cluster per requested station
-  /// and at least 2 chambers over 4 in stations 4 & 5 that contain cluster(s)
+  /// Identify clusters that can be removed from the track, with the requirement
+  /// to have enough chambers fired to fulfill the tracking criteria
 
-  int previousCh(-1), previousSt(-1), nChHitInSt45(0);
-  TrackParam* previousParam(nullptr);
-
+  // count the number of clusters in each chamber and the number of chambers fired on stations 4 and 5
+  int nClusters[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   for (auto& param : *this) {
+    ++nClusters[param.getClusterPtr()->getChamberId()];
+  }
+  int nChFiredInSt4 = (nClusters[6] > 0) ? 1 : 0;
+  if (nClusters[7] > 0) {
+    ++nChFiredInSt4;
+  }
+  int nChFiredInSt5 = (nClusters[8] > 0) ? 1 : 0;
+  if (nClusters[9] > 0) {
+    ++nChFiredInSt5;
+  }
+  int nChFiredInSt45 = nChFiredInSt4 + nChFiredInSt5;
 
-    int currentCh = param.getClusterPtr()->getChamberId();
-    int currentSt = currentCh / 2;
+  bool removable[10] = {false, false, false, false, false, false, false, false, false, false};
 
-    // set the cluster as removable if the station is not requested or if it is not alone in the station
-    if (((1 << currentSt) & requestedStationMask) == 0) {
-      param.setRemovable(true);
-    } else if (currentSt == previousSt) {
-      previousParam->setRemovable(true);
-      param.setRemovable(true);
-    } else {
-      param.setRemovable(false);
-      previousSt = currentSt;
-      previousParam = &param;
-    }
-
-    // count the number of chambers in station 4 & 5 that contain cluster(s)
-    if (currentCh > 5 && currentCh != previousCh) {
-      ++nChHitInSt45;
-      previousCh = currentCh;
+  // for station 1, 2 and 3, there must be at least one cluster per requested station
+  for (int iCh = 0; iCh < 6; iCh += 2) {
+    if (nClusters[iCh] + nClusters[iCh + 1] > 1 || (requestedStationMask & (1 << (iCh / 2))) == 0) {
+      removable[iCh] = removable[iCh + 1] = true;
     }
   }
 
-  // if there are less than 3 chambers containing cluster(s) in station 4 & 5
-  if (nChHitInSt45 < 3) {
-
-    previousCh = -1;
-    previousParam = nullptr;
-
-    for (auto itParam = this->rbegin(); itParam != this->rend(); ++itParam) {
-
-      int currentCh = itParam->getClusterPtr()->getChamberId();
-
-      if (currentCh < 6) {
-        break;
-      }
-
-      // set the cluster as not removable unless it is not alone in the chamber
-      if (currentCh == previousCh) {
-        previousParam->setRemovable(true);
-        itParam->setRemovable(true);
-      } else {
-        itParam->setRemovable(false);
-        previousCh = currentCh;
-        previousParam = &*itParam;
-      }
+  // for station 4 and 5, there must be at least one cluster per requested station and
+  // at least 2 chambers fired (on the same station or not depending on the requirement)
+  if (nChFiredInSt45 == 4) {
+    removable[6] = removable[7] = removable[8] = removable[9] = true;
+  } else if (nChFiredInSt45 == 3) {
+    if (nChFiredInSt4 == 2 && request2ChInSameSt45) {
+      removable[6] = (nClusters[6] > 1);
+      removable[7] = (nClusters[7] > 1);
+    } else if (nClusters[6] + nClusters[7] > 1 || (requestedStationMask & 0x8) == 0) {
+      removable[6] = removable[7] = true;
     }
+    if (nChFiredInSt5 == 2 && request2ChInSameSt45) {
+      removable[8] = (nClusters[8] > 1);
+      removable[9] = (nClusters[9] > 1);
+    } else if (nClusters[8] + nClusters[9] > 1 || (requestedStationMask & 0x10) == 0) {
+      removable[8] = removable[9] = true;
+    }
+  } else {
+    for (int iCh = 6; iCh < 10; ++iCh) {
+      removable[iCh] = (nClusters[iCh] > 1);
+    }
+  }
+
+  // tag the removable clusters
+  for (auto& param : *this) {
+    param.setRemovable(removable[param.getClusterPtr()->getChamberId()]);
   }
 }
 

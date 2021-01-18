@@ -39,11 +39,11 @@ class Track
   Track(Track&&) = delete;
   Track& operator=(Track&&) = delete;
 
-  /// Return a reference to the track parameters at vertex
-  const TrackParam& getParamAtVertex() const { return mParamAtVertex; }
-
   /// Return the number of attached clusters
   int getNClusters() const { return mParamAtClusters.size(); }
+
+  /// Return the number of degrees of freedom of the track
+  int getNDF() const { return 2 * getNClusters() - 5; }
 
   /// Return a reference to the track parameters at first cluster
   const TrackParam& first() const { return mParamAtClusters.front(); }
@@ -72,7 +72,7 @@ class Track
 
   bool isBetter(const Track& track) const;
 
-  void tagRemovableClusters(uint8_t requestedStationMask);
+  void tagRemovableClusters(uint8_t requestedStationMask, bool request2ChInSameSt45);
 
   void setCurrentParam(const TrackParam& param, int chamber);
   TrackParam& getCurrentParam();
@@ -98,7 +98,6 @@ class Track
   void print() const;
 
  private:
-  TrackParam mParamAtVertex{};                 ///< track parameters at vertex
   std::list<TrackParam> mParamAtClusters{};    ///< list of track parameters at each cluster
   std::unique_ptr<TrackParam> mCurrentParam{}; ///< current track parameters used during tracking
   int mCurrentChamber = -1;                    ///< current chamber on which the current parameters are given

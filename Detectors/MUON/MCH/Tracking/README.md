@@ -97,9 +97,11 @@ attached to the new track. Clusters that drive the track parameters outside of a
 are discarded.
 - Improve the tracks: run the smoother to recompute the local chi2 at each cluster, remove the worst cluster if it does
 not pass a stricter chi2 cut, refit the track and repeat the procedure until all clusters pass the cut or one of them
-cannot be removed (the track must contain at least 1 cluster per station), in which case the track is removed.
+cannot be removed without violating the tracking conditions (by default, the track must contain at least 1 cluster per
+station and both chambers fired on station 4 or 5), in which case the track is removed.
 - Remove connected tracks in station 3, 4 and 5. If two tracks share at least one cluster in these stations, remove the
-one with the smallest number of clusters or with the highest chi2 in case of equality, assuming it is a fake track.
+one with the smallest number of fired chambers or with the highest chi2/(ndf-1) in case of equality, assuming it is a 
+fake track.
 
 In all stations, the search for compatible clusters is done in a way to consider every possibilities, i.e. every
 combinations of 1 to 4 clusters, while skipping the already tested combinations. This includes subsets of previously
