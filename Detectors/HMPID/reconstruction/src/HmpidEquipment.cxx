@@ -18,7 +18,7 @@
 /* ------ HISTORY ---------
 */
 
-#include "HmpidEquipment.h"
+#include "HMPIDReconstruction/HmpidEquipment.h"
 
 using namespace o2::hmpid;
 

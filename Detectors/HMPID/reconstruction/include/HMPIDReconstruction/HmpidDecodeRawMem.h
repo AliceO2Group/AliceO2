@@ -24,7 +24,10 @@
 #include <unistd.h>
 #include <string.h>
 #include <unistd.h>
+#include <vector.h>
 
+#include "HMPIDBase/Digit.h"
+#include "HMPIDBase/Geo.h"
 #include "HmpidDecoder.h"
 
 namespace o2{
@@ -41,12 +44,27 @@ class HmpidDecodeRawMem: public HmpidDecoder
     bool setUpStream(void *Buffer, long BufferLen);
 
   private:
-    bool getBlockFromStream(int32_t **streamPtr, uint32_t Size);
-    bool getHeaderFromStream(int32_t **streamPtr);
-    bool getWordFromStream(int32_t *word);
+    bool getBlockFromStream(uint32_t **streamPtr, uint32_t Size);
+    bool getHeaderFromStream(uint32_t **streamPtr);
+    bool getWordFromStream(uint32_t *word);
     void setPad(HmpidEquipment *eq, int col, int dil, int ch, int charge);
 
   private:
+
+};
+
+class HmpidDecodeRawDigit: public HmpidDecodeRawMem
+{
+  public:
+    HmpidDecodeRawDigit(int *EqIds, int *CruIds, int *LinkIds, int numOfEquipments);
+    HmpidDecodeRawDigit(int numOfEquipments);
+    ~HmpidDecodeRawDigit();
+
+    vector<o2::hmpid::Digit> mDigits;
+
+  private:
+    void setPad(HmpidEquipment *eq, int col, int dil, int ch, int charge);
+
 
 };
 

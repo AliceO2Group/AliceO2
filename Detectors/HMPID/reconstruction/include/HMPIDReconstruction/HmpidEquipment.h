@@ -93,7 +93,7 @@ class HmpidEquipment
     int mErrorsCounter;
     int mErrorPadsPerEvent;
 
-    int mEventNumber;
+    uint64_t mEventNumber;
     int mNumberOfEvents;
     float mEventSizeAverage;
     int mEventSize;

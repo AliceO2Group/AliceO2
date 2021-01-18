@@ -18,7 +18,9 @@
 /* ------ HISTORY ---------
 */
 
-#include "HmpidDecodeRawMem.h"
+#include "HMPIDBase/Digit.h"
+#include "HMPIDBase/Geo.h"
+#include "HMPIDReconstruction/HmpidDecodeRawMem.h"
 
 using namespace o2::hmpid;
 
@@ -66,21 +68,21 @@ bool HmpidDecodeRawMem::setUpStream(void *Buffer, long BufferLen)
 {
   long wordsBufferLen = BufferLen / (sizeof(int32_t) / sizeof(char)); // Converts the len in words
   if (Buffer == nullptr) {
-    ILOG(ERROR) << "Raw data buffer null Pointer ! " << FairLogger::endl;
+    LOG(ERROR) << "Raw data buffer null Pointer ! ";
     throw TH_NULLBUFFERPOINTER;
   }
   if (wordsBufferLen == 0) {
-    ILOG(Error) << "Raw data buffer Empty ! " <<FairLogger::endl;
+    LOG(ERROR) << "Raw data buffer Empty ! ";
     throw TH_BUFFEREMPTY;
   }
   if (wordsBufferLen < 16) {
-    ILOG(Error) << "Raw data buffer less then the Header Dimension = " << wordsBufferLen << FairLogger::endl;
+    LOG(ERROR) << "Raw data buffer less then the Header Dimension = " << wordsBufferLen;
     throw TH_WRONGBUFFERDIM;
   }
 
-  mActualStreamPtr = (int32_t*) Buffer; // sets the pointer to the Buffer
-  mEndStreamPtr = ((int32_t*) Buffer) + wordsBufferLen; //sets the End of buffer
-  mStartStreamPtr = ((int32_t*) Buffer);
+  mActualStreamPtr = (uint32_t*) Buffer; // sets the pointer to the Buffer
+  mEndStreamPtr = ((uint32_t*) Buffer) + wordsBufferLen; //sets the End of buffer
+  mStartStreamPtr = ((uint32_t*) Buffer);
 
   return (true);
 }
@@ -90,7 +92,7 @@ bool HmpidDecodeRawMem::setUpStream(void *Buffer, long BufferLen)
 /// @param[in] Size : the dimension of the chunk (words)
 /// @returns True every time
 /// @throw TH_WRONGBUFFERDIM Buffer length shorter then the requested
-bool HmpidDecodeRawMem::getBlockFromStream(int32_t **streamPtr, uint32_t Size)
+bool HmpidDecodeRawMem::getBlockFromStream(uint32_t **streamPtr, uint32_t Size)
 {
   *streamPtr = mActualStreamPtr;
   mActualStreamPtr += Size;
@@ -102,17 +104,17 @@ bool HmpidDecodeRawMem::getBlockFromStream(int32_t **streamPtr, uint32_t Size)
 /// Gets the Header Block from the stream.
 /// @param[in] **streamPtr : the pointer to the memory buffer
 /// @returns True if the header is read
-bool HmpidDecodeRawMem::getHeaderFromStream(int32_t **streamPtr)
+bool HmpidDecodeRawMem::getHeaderFromStream(uint32_t **streamPtr)
 {
-  return (getBlockFromStream(streamPtr, 16));
+  return (getBlockFromStream(streamPtr, mRDHSize));
 }
 
 /// Gets a Word from the stream.
 /// @param[in] *word : the buffer for the read word
 /// @returns True if the operation end well
-bool HmpidDecodeRawMem::getWordFromStream(int32_t *word)
+bool HmpidDecodeRawMem::getWordFromStream(uint32_t *word)
 {
-  int32_t *appo;
+  uint32_t *appo;
   *word = *mActualStreamPtr;
   return (getBlockFromStream(&appo, 1));
 }
@@ -131,4 +133,56 @@ void HmpidDecodeRawMem::setPad(HmpidEquipment *eq, int col, int dil, int ch, int
   eq->setPad(col, dil, ch, charge);
   return;
 }
+
+// ========================================================================================
+
+/// Constructor : accepts the number of equipments to define
+///               The mapping is the default at P2
+///               Allocates instances for all defined equipments
+///               normally it is equal to 14
+/// @param[in] numOfEquipments : the number of equipments to define [1..14]
+HmpidDecodeRawDigit::HmpidDecodeRawDigit(int numOfEquipments)
+    :
+    HmpidDecoder(numOfEquipments)
+{
+}
+
+/// Constructor : accepts the number of equipments to define
+///               and their complete address map
+///               Allocates instances for all defined equipments
+///
+///  The Address map is build from three array
+/// @param[in] numOfEquipments : the number of equipments to define [1..14]
+/// @param[in] *EqIds : the pointer to the Equipments ID array
+/// @param[in] *CruIds : the pointer to the CRU ID array
+/// @param[in] *LinkIds : the pointer to the Link ID array
+HmpidDecodeRawDigit::HmpidDecodeRawDigit(int *EqIds, int *CruIds, int *LinkIds, int numOfEquipments)
+    :
+    HmpidDecoder(EqIds, CruIds, LinkIds, numOfEquipments)
+{
+}
+
+/// Destructor
+HmpidDecodeRawDigit::~HmpidDecodeRawDigit()
+{
+}
+
+/// -----   Sets the Pad ! ------
+/// this is an overloaded method. In this version the value of the charge
+/// is used to update the statistical matrix of the base class
+///
+/// @param[in] *eq : the pointer to the Equipment object
+/// @param[in] col : the column [0..23]
+/// @param[in] dil : the dilogic [0..9]
+/// @param[in] ch : the channel [0..47]
+/// @param[in] charge : the value of the charge
+void HmpidDecodeRawDigit::setPad(HmpidEquipment *eq, int col, int dil, int ch, int charge)
+{
+  eq->setPad(col, dil, ch, charge);
+  mDigits.push_back(Digit(mHeBCDI, mHeORBIT,
+			  o2::hmpid::Geo::GetPad(eq->getEquipmentId(), col - 1, dil - 1, ch),
+			  charge));
+  return;
+}
+
 
