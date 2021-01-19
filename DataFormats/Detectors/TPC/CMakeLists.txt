@@ -23,6 +23,7 @@ o2_add_library(
           src/LaserTrack.cxx
           src/TPCSectorHeader.cxx
           src/ClusterNativeHelper.cxx
+          src/WorkflowHelper.cxx
           src/CompressedClusters.cxx
   PUBLIC_LINK_LIBRARIES O2::GPUCommon
                         O2::SimulationDataFormat
