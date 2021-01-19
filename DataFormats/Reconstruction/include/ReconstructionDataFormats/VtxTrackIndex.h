@@ -9,13 +9,13 @@
 // or submit itself to any jurisdiction.
 
 /// @file  VtxTrackIndex.h
-/// \brief Index of track attached to vertx: index in its proper container, container source and flags
+/// \brief Extention of GlobalTrackID by flags relevant for verter-track association
 /// \author ruben.shahoyan@cern.ch
 
 #ifndef O2_VERTEX_TRACK_INDEX
 #define O2_VERTEX_TRACK_INDEX
 
-#include "CommonDataFormat/AbstractRef.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include <iosfwd>
 #include <string>
 #include <array>
@@ -26,20 +26,9 @@ namespace o2
 namespace dataformats
 {
 
-class VtxTrackIndex : public AbstractRef<26, 3, 3>
+class VtxTrackIndex : public GlobalTrackID
 {
  public:
-  enum Source : uint8_t { // provenance of the track
-    TPCITS,
-    ITS,
-    TPC,
-    NSources
-  };
-  static constexpr std::array<std::string_view, NSources> SourceNames = {
-    "TPCITS",
-    "ITS",
-    "TPC"};
-
   enum Flags : uint8_t {
     Contributor, // flag that it contributes to vertex fit
     Reserved,    //
@@ -47,13 +36,7 @@ class VtxTrackIndex : public AbstractRef<26, 3, 3>
     NFlags
   };
 
-  using AbstractRef<26, 3, 3>::AbstractRef;
-
-  static constexpr std::string_view getSourceName(int i) { return SourceNames[i]; }
-  void print() const;
-  std::string asString() const;
-
-  operator auto() const { return AbstractRef<26, 3, 3>(); }
+  using GlobalTrackID::GlobalTrackID;
 
   bool isPVContributor() const { return testBit(Contributor); }
   void setPVContributor() { setBit(Contributor); }
@@ -61,10 +44,8 @@ class VtxTrackIndex : public AbstractRef<26, 3, 3>
   bool isAmbiguous() const { return testBit(Ambiguous); }
   void setAmbiguous() { setBit(Ambiguous); }
 
-  ClassDefNV(VtxTrackIndex, 1);
+  ClassDefNV(VtxTrackIndex, 2);
 };
-
-std::ostream& operator<<(std::ostream& os, const o2::dataformats::VtxTrackIndex& v);
 
 } // namespace dataformats
 } // namespace o2
