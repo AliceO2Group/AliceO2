@@ -167,6 +167,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void SetMatLUT(const o2::base::MatLayerCylSet* lut) { processors()->calibObjects.matLUT = lut; }
   void SetTRDGeometry(const o2::trd::GeometryFlat* geo) { processors()->calibObjects.trdGeometry = geo; }
   void SetO2Propagator(const o2::base::Propagator* prop) { processors()->calibObjects.o2Propagator = prop; }
+  void SetCalibObjects(const GPUCalibObjectsConst& obj) { processors()->calibObjects = obj; }
+  void SetCalibObjects(const GPUCalibObjects& obj) { memcpy((void*)&processors()->calibObjects, (const void*)&obj, sizeof(obj)); }
   void SetDefaultO2PropagatorForGPU();
   void LoadClusterErrors();
   void SetOutputControlCompressedClusters(GPUOutputControl* v) { mOutputCompressedClusters = v; }
