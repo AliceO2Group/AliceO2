@@ -581,7 +581,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
         vCollRefsTPC[trackIndex.getIndex()] = collisionID;
       } else if (source == o2::vertexing::GIndex::Source::ITS) {
         vCollRefsITS[trackIndex.getIndex()] = collisionID;
-      } else if (source == o2::vertexing::GIndex::Source::TPCITS) {
+      } else if (source == o2::vertexing::GIndex::Source::ITSTPC) {
         vCollRefsTPCITS[trackIndex.getIndex()] = collisionID;
       } else {
         LOG(WARNING) << "Unsupported track type!";
@@ -648,7 +648,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   if (mFillTracksITSTPC) {
-    fillTracksTable(tracksITSTPC, vCollRefsTPCITS, tracksCursor, o2::vertexing::GIndex::Source::TPCITS); // fTrackType = 0
+    fillTracksTable(tracksITSTPC, vCollRefsTPCITS, tracksCursor, o2::vertexing::GIndex::Source::ITSTPC); // fTrackType = 0
     for (int i = 0; i < tracksITSTPC.size(); i++) {
       auto& mcTruthITS = tracksITSTPC_ITSMC[i];
       auto& mcTruthTPC = tracksITSTPC_TPCMC[i];
