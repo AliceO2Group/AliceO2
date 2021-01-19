@@ -61,6 +61,12 @@ class NameConf
     return o2::utils::concat_string(prefix, "_", KINE_STRING, ".root");
   }
 
+  // Filename to store final MC configuration file
+  static std::string getMCConfigFileName(const std::string_view prefix = STANDARDSIMPREFIX)
+  {
+    return o2::utils::concat_string(prefix, "_", CONFIG_STRING, ".ini");
+  }
+
   // Filename to store geometry file
   static std::string getGeomFileName(const std::string_view prefix = "");
 
@@ -105,6 +111,7 @@ class NameConf
   static constexpr std::string_view KINE_STRING = "Kine";     // hardcoded
   static constexpr std::string_view GEOM_FILE_STRING = "geometry";
   static constexpr std::string_view CUT_FILE_STRING = "proc-cut";
+  static constexpr std::string_view CONFIG_STRING = "configuration";
 
   static constexpr std::string_view DICTFILENAME = "dictionary";
   static constexpr std::string_view MATBUDLUT = "matbud";
