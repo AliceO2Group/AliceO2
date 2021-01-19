@@ -230,13 +230,7 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
     p.SetBit(ParticleStatus::kKeep);
     p.SetBit(ParticleStatus::kPrimary);
     if (toBeDone == 1) {
-      if (mTransportPrimary(p, mPrimaryParticles)) {
-        p.SetBit(ParticleStatus::kToBeDone, 1);
-        mNumberOfPrimariesforTracking++;
-      } else {
-        p.SetBit(ParticleStatus::kToBeDone, 0);
-        p.SetBit(ParticleStatus::kInhibited, 1);
-      }
+      handleTransportPrimary(p);
     } else {
       p.SetBit(ParticleStatus::kToBeDone, 0);
     }
@@ -256,6 +250,20 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
   mStack.push(p);
 }
 
+void Stack::handleTransportPrimary(TParticle& p)
+{
+  // this function tests whether we really want to transport
+  // this particle and sets the relevant bits accordingly
+
+  if (mTransportPrimary(p, mPrimaryParticles)) {
+    p.SetBit(ParticleStatus::kToBeDone, 1);
+    mNumberOfPrimariesforTracking++;
+  } else {
+    p.SetBit(ParticleStatus::kToBeDone, 0);
+    p.SetBit(ParticleStatus::kInhibited, 1);
+  }
+}
+
 void Stack::PushTrack(int toBeDone, TParticle& p)
 {
   //  printf("stack -> Pushing Primary toBeDone %5d %5d parentId %5d pdgCode %5d is %5d entries %5d \n", toBeDone, p.TestBit(ParticleStatus::kToBeDone), p.GetFirstMother(), p.GetPdgCode(), p.GetStatusCode(),  mNumberOfEntriesInParticles);
@@ -266,12 +274,12 @@ void Stack::PushTrack(int toBeDone, TParticle& p)
   if (p.GetUniqueID() == 0) {
     // one to one mapping for primaries
     mIndexMap[mNumberOfPrimaryParticles] = mNumberOfPrimaryParticles;
-    mNumberOfPrimaryParticles++;
-    mPrimaryParticles.push_back(p);
     // Push particle on the stack
     if (p.TestBit(ParticleStatus::kPrimary) && p.TestBit(ParticleStatus::kToBeDone)) {
-      mNumberOfPrimariesforTracking++;
+      handleTransportPrimary(p);
     }
+    mNumberOfPrimaryParticles++;
+    mPrimaryParticles.push_back(p);
     mStack.push(p);
     mTracks->emplace_back(p);
   }
