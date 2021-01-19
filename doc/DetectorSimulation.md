@@ -44,9 +44,9 @@ The purpose of the `o2-sim` executable is to simulate the passage of particles e
 | `o2sim_grp.root`      | special global run parameters (grp) such as field                                      |
 | `o2sim_XXXHits.root`  | hit file for each participating active detector XXX                                    |
 | `o2sim_configuration.ini` | summary of parameter values with which the simulation was done                     |
-| `serverlog` | log file produced from the particle generator server |
-| `workerlog` | log file produced form the transportation processes |
-| `hitmergerlog` | log file produced from the IO process |
+| `o2sim_serverlog` | log file produced from the particle generator server |
+| `o2sim_workerlog` | log file produced form the transportation processes |
+| `o2sim_hitmergerlog` | log file produced from the IO process |
 
 
 * **Main command line options**: The following major options are available (incomplete):
