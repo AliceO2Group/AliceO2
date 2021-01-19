@@ -155,14 +155,11 @@ DECLARE_SOA_COLUMN(FlagMCMatchRec, flagMCMatchRec, int8_t); // reconstruction le
 DECLARE_SOA_COLUMN(FlagMCMatchGen, flagMCMatchGen, int8_t); // generator level
 
 // mapping of decay types
-<<<<<<< HEAD
 enum DecayType { D0ToPiK = 0,
                  JpsiToEE,
                  N2ProngDecays }; //always keep N2ProngDecays at the end
-=======
 enum DecayType { D0ToPiK = 1,
                  JpsiToEE };
->>>>>>> Jpsi task and candidate selection for HF
 
 // functions for specific particles
 
