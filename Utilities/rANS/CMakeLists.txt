@@ -35,7 +35,7 @@ o2_add_test(CombinedIterator
             COMPONENT_NAME rANS
             LABELS utils)
             
-if (target benchmark::benchmark)
+if (TARGET benchmark::benchmark)
 o2_add_executable(CombinedIterator
                     SOURCES benchmarks/bench_ransCombinedIterator.cxx
                     COMPONENT_NAME rANS
