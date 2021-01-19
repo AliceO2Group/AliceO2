@@ -72,6 +72,18 @@ void VarManager::SetRunNumbers(int n, int* runs)
 }
 
 //__________________________________________________________________
+void VarManager::SetRunNumbers(std::vector<int> runs)
+{
+  //
+  // maps the list of runs such that one can plot the list of runs nicely in a histogram axis
+  //
+  for (int i = 0; i < runs.size(); ++i) {
+    fgRunMap[runs.at(i)] = i + 1;
+    fgRunStr += Form("%d;", runs.at(i));
+  }
+}
+
+//__________________________________________________________________
 void VarManager::FillEventDerived(float* values)
 {
   //

@@ -215,6 +215,7 @@ class VarManager : public TObject
   }
 
   static void SetRunNumbers(int n, int* runs);
+  static void SetRunNumbers(std::vector<int> runs);
   static int GetNRuns()
   {
     return fgRunMap.size();
