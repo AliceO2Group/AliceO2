@@ -58,7 +58,6 @@ class GPUCATracking
   //Input: cluster structure, possibly including MC labels, pointers to std::vectors for tracks and track MC labels. outputTracksMCTruth may be nullptr to indicate missing cluster MC labels. Otherwise, cluster MC labels are assumed to be present.
   int runTracking(o2::gpu::GPUO2InterfaceIOPtrs* data, o2::gpu::GPUInterfaceOutputs* outputs = nullptr);
 
-  float getPseudoVDrift();                                              //Return artificial VDrift used to convert time to Z
   void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, short clusterState, float& ErrY2, float& ErrZ2) const;
 
   int registerMemoryForGPU(const void* ptr, size_t size);

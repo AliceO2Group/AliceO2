@@ -13,17 +13,10 @@
 
 #include "TPCReconstruction/GPUCATracking.h"
 
-#include "FairLogger.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
-#include "TChain.h"
-#include "TClonesArray.h"
-#include "TPCBase/Mapper.h"
 #include "TPCBase/PadRegionInfo.h"
-#include "TPCBase/ParameterDetector.h"
-#include "TPCBase/ParameterElectronics.h"
-#include "TPCBase/ParameterGas.h"
 #include "TPCBase/Sector.h"
 #include "DataFormatsTPC/Digit.h"
 #include "DataFormatsTPC/ClusterNativeHelper.h"
@@ -84,11 +77,6 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
     LOG(ERROR) << "Output tracks or clusRefs vectors are not initialized";
     return 0;
   }
-  auto& detParam = ParameterDetector::Instance();
-  auto& gasParam = ParameterGas::Instance();
-  auto& elParam = ParameterElectronics::Instance();
-  float vzbin = (elParam.ZbinWidth * gasParam.DriftV);
-  Mapper& mapper = Mapper::instance();
 
   std::vector<o2::tpc::Digit> gpuDigits[Sector::MAXSECTOR];
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> gpuDigitsMC[Sector::MAXSECTOR];
@@ -245,9 +233,6 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
       int globalRow = trackClusters[tracks[i].FirstClusterRef() + j].row;
       int clusterIdInRow = clusterIdGlobal - data->clusters->clusterOffset[sector][globalRow];
       int regionNumber = 0;
-      while (globalRow > mapper.getGlobalRowOffsetRegion(regionNumber) + mapper.getNumberOfRowsRegion(regionNumber)) {
-        regionNumber++;
-      }
       clIndArr[nOutCl2] = clusterIdInRow;
       sectorIndexArr[nOutCl2] = sector;
       rowIndexArr[nOutCl2] = globalRow;
@@ -315,13 +300,6 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
   mTrackingCAO2Interface->Clear(false);
 
   return (retVal);
-}
-
-float GPUCATracking::getPseudoVDrift()
-{
-  auto& gasParam = ParameterGas::Instance();
-  auto& elParam = ParameterElectronics::Instance();
-  return (elParam.ZbinWidth * gasParam.DriftV);
 }
 
 void GPUCATracking::GetClusterErrors2(int row, float z, float sinPhi, float DzDs, short clusterState, float& ErrY2, float& ErrZ2) const
