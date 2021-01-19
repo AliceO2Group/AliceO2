@@ -179,7 +179,7 @@ struct GPUCalibObjectsTemplate {
   typename S<TPCPadGainCalib>::type* tpcPadGain = nullptr;
   typename S<o2::base::Propagator>::type* o2Propagator = nullptr;
 };
-typedef GPUCalibObjectsTemplate<DefaultPtr> GPUCalibObjects;
+typedef GPUCalibObjectsTemplate<DefaultPtr> GPUCalibObjects; // NOTE: These 2 must have identical layout since they are memcopied
 typedef GPUCalibObjectsTemplate<ConstPtr> GPUCalibObjectsConst;
 
 struct GPUTrackingInOutZS {

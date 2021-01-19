@@ -52,12 +52,7 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
     mConfig->configEvent.needsClusterer = 1;
   }
   mRec->SetSettings(&mConfig->configEvent, &mConfig->configReconstruction, &mConfig->configProcessing, &mConfig->configWorkflow);
-  mChain->SetTPCFastTransform(mConfig->configCalib.fastTransform);
-  mChain->SetTPCPadGainCalib(mConfig->configCalib.tpcPadGain);
-  mChain->SetdEdxSplines(mConfig->configCalib.dEdxSplines);
-  mChain->SetMatLUT(mConfig->configCalib.matLUT);
-  mChain->SetTRDGeometry(mConfig->configCalib.trdGeometry);
-  mChain->SetO2Propagator(mConfig->configCalib.o2Propagator);
+  mChain->SetCalibObjects(mConfig->configCalib);
   if (mConfig->configInterface.outputToExternalBuffers) {
     mOutputCompressedClusters.reset(new GPUOutputControl);
     mChain->SetOutputControlCompressedClusters(mOutputCompressedClusters.get());
