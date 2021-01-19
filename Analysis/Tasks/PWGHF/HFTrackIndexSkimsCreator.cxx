@@ -28,6 +28,8 @@
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
+using namespace o2::aod::hf_cand_prong2;
+using namespace o2::aod::hf_cand_prong3;
 
 /// Track selection
 struct SelectTracks {
@@ -55,11 +57,11 @@ struct SelectTracks {
     "registry",
     {{"hpt_nocuts", "all tracks;#it{p}_{T}^{track} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 100.}}}},
      // 2-prong histograms
-     {"hpt_cuts_2prong", "tracks selected for 2-prong vertexing;#it{p}_{T}^{track} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 100.}}}},
+     {"hpt_cuts_2prong", "tracks selected for 2-prong vertexing;#it{p}_{T}^{track} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hdcatoprimxy_cuts_2prong", "tracks selected for 2-prong vertexing;DCAxy to prim. vtx. (cm);entries", {HistType::kTH1F, {{static_cast<int>(1.2 * dcatoprimxymax_2prong * 100), -1.2 * dcatoprimxymax_2prong, 1.2 * dcatoprimxymax_2prong}}}},
      {"heta_cuts_2prong", "tracks selected for 2-prong vertexing;#it{#eta};entries", {HistType::kTH1F, {{static_cast<int>(1.2 * etamax_2prong * 100), -1.2 * etamax_2prong, 1.2 * etamax_2prong}}}},
      // 3-prong histograms
-     {"hpt_cuts_3prong", "tracks selected for 3-prong vertexing;#it{p}_{T}^{track} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 100.}}}},
+     {"hpt_cuts_3prong", "tracks selected for 3-prong vertexing;#it{p}_{T}^{track} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hdcatoprimxy_cuts_3prong", "tracks selected for 3-prong vertexing;DCAxy to prim. vtx. (cm);entries", {HistType::kTH1F, {{static_cast<int>(1.2 * dcatoprimxymax_3prong) * 100, -1.2 * dcatoprimxymax_3prong, 1.2 * dcatoprimxymax_3prong}}}},
      {"heta_cuts_3prong", "tracks selected for 3-prong vertexing;#it{#eta};entries", {HistType::kTH1F, {{static_cast<int>(1.2 * etamax_3prong * 100), -1.2 * etamax_3prong, 1.2 * etamax_3prong}}}}}};
 
@@ -171,17 +173,17 @@ struct HFTrackIndexSkimsCreator {
      {"hvtx2_z", "2-prong candidates;#it{z}_{sec. vtx.} (cm);entries", {HistType::kTH1F, {{1000, -20., 20.}}}},
      {"hNCand2Prong", "2-prong candidates preselected;# of candidates;entries", {HistType::kTH1F, {{2000, 0., 200000.}}}},
      {"hNCand2ProngVsNTracks", "2-prong candidates preselected;# of selected tracks;# of candidates;entries", {HistType::kTH2F, {{2500, 0., 25000.}, {2000, 0., 200000.}}}},
-     {"hmassD0", "D0 candidates;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
-     {"hmassJpsi", "Jpsi candidates;inv. mass (e+ e-) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
+     {"hmassD0ToPiK", "D0 candidates;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
+     {"hmassJpsiToEE", "Jpsi candidates;inv. mass (e+ e-) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
      //3prong histograms
      {"hvtx3_x", "3-prong candidates;#it{x}_{sec. vtx.} (cm);entries", {HistType::kTH1F, {{1000, -2., 2.}}}},
      {"hvtx3_y", "3-prong candidates;#it{y}_{sec. vtx.} (cm);entries", {HistType::kTH1F, {{1000, -2., 2.}}}},
      {"hvtx3_z", "3-prong candidates;#it{z}_{sec. vtx.} (cm);entries", {HistType::kTH1F, {{1000, -20., 20.}}}},
      {"hNCand3Prong", "3-prong candidates preselected;# of candidates;entries", {HistType::kTH1F, {{5000, 0., 500000.}}}},
      {"hNCand3ProngVsNTracks", "3-prong candidates preselected;# of selected tracks;# of candidates;entries", {HistType::kTH2F, {{2500, 0., 25000.}, {5000, 0., 500000.}}}},
-     {"hmassDPlus", "D+ candidates;inv. mass (#pi K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
-     {"hmassLc", "Lc candidates;inv. mass (p K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
-     {"hmassDs", "Ds candidates;inv. mass (K K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}}}};
+     {"hmassDPlusToPiKPi", "D+ candidates;inv. mass (#pi K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
+     {"hmassLctoPKPi", "Lc candidates;inv. mass (p K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
+     {"hmassDsToPiKK", "Ds candidates;inv. mass (K K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}}}};
 
   Filter filterSelectTracks = (aod::hf_seltrack::isSelProng > 0);
   using SelectedTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::HFSelTrack>>;
@@ -226,52 +228,78 @@ struct HFTrackIndexSkimsCreator {
     }
 
     //FIXME move above process function
-    const int n2ProngDecays = 2;                         //number of two prong hadron types
-    const int n3ProngDecays = 3;                         //number of three prong hadron types
+    const int n2ProngDecays = N2ProngDecays;             //number of two prong hadron types
+    const int n3ProngDecays = N3ProngDecays;             //number of three prong hadron types
     int n2ProngBit = TMath::Power(2, n2ProngDecays) - 1; //bit value for 2 prongs candidates where each candidiate is one bit and they are all set it 1
     int n3ProngBit = TMath::Power(2, n3ProngDecays) - 1; //bit value for 3 prongs candidates where each candidiate is one bit and they are all set it 1
 
     //retrieve cuts from json - to be made pT dependent when option appears in json
-    const int nCuts2Prong = 4; //how mant different selections are made on 2 prongs
-    double cut2ProngPtCandMin[n2ProngDecays] = {configs->mPtD0Min, configs->mPtJpsiMin};
-    double cut2ProngInvMassCandMin[n2ProngDecays] = {configs->mInvMassD0Min, configs->mInvMassJpsiMin};
-    double cut2ProngInvMassCandMax[n2ProngDecays] = {configs->mInvMassD0Max, configs->mInvMassJpsiMax};
-    double cut2ProngCPACandMin[n2ProngDecays] = {configs->mCPAD0Min, configs->mCPAJpsiMin};
-    double cut2ProngImpParProductCandMax[n2ProngDecays] = {configs->mImpParProductD0Max, configs->mImpParProductJpsiMax};
+    const int nCuts2Prong = 4; //how many different selections are made on 2-prongs
+    double cut2ProngPtCandMin[n2ProngDecays];
+    double cut2ProngInvMassCandMin[n2ProngDecays];
+    double cut2ProngInvMassCandMax[n2ProngDecays];
+    double cut2ProngCPACandMin[n2ProngDecays];
+    double cut2ProngImpParProductCandMax[n2ProngDecays];
 
-    const int nCuts3Prong = 4; //how mant different selections are made on 3 prongs
-    double cut3ProngPtCandMin[n3ProngDecays] = {configs->mPtDPlusMin, configs->mPtLcMin, configs->mPtDsMin};
-    double cut3ProngInvMassCandMin[n3ProngDecays] = {configs->mInvMassDPlusMin, configs->mInvMassLcMin, configs->mInvMassDsMin};
-    double cut3ProngInvMassCandMax[n3ProngDecays] = {configs->mInvMassDPlusMax, configs->mInvMassLcMax, configs->mInvMassDsMax};
-    double cut3ProngCPACandMin[n3ProngDecays] = {configs->mCPADPlusMin, configs->mCPALcMin, configs->mCPADsMin};
-    double cut3ProngDecLenCandMin[n3ProngDecays] = {configs->mDecLenDPlusMin, configs->mDecLenLcMin, configs->mDecLenDsMin};
+    cut2ProngPtCandMin[D0ToPiK] = configs->mPtD0ToPiKMin;
+    cut2ProngInvMassCandMin[D0ToPiK] = configs->mInvMassD0ToPiKMin;
+    cut2ProngInvMassCandMax[D0ToPiK] = configs->mInvMassD0ToPiKMax;
+    cut2ProngCPACandMin[D0ToPiK] = configs->mCPAD0ToPiKMin;
+    cut2ProngImpParProductCandMax[D0ToPiK] = configs->mImpParProductD0ToPiKMax;
+
+    cut2ProngPtCandMin[JpsiToEE] = configs->mPtJpsiToEEMin;
+    cut2ProngInvMassCandMin[JpsiToEE] = configs->mInvMassJpsiToEEMin;
+    cut2ProngInvMassCandMax[JpsiToEE] = configs->mInvMassJpsiToEEMax;
+    cut2ProngCPACandMin[JpsiToEE] = configs->mCPAJpsiToEEMin;
+    cut2ProngImpParProductCandMax[JpsiToEE] = configs->mImpParProductJpsiToEEMax;
+
+    const int nCuts3Prong = 4; //how many different selections are made on 3-prongs
+    double cut3ProngPtCandMin[n3ProngDecays];
+    double cut3ProngInvMassCandMin[n3ProngDecays];
+    double cut3ProngInvMassCandMax[n3ProngDecays];
+    double cut3ProngCPACandMin[n3ProngDecays];
+    double cut3ProngDecLenCandMin[n3ProngDecays];
+
+    cut3ProngPtCandMin[DPlusToPiKPi] = configs->mPtDPlusToPiKPiMin;
+    cut3ProngInvMassCandMin[DPlusToPiKPi] = configs->mInvMassDPlusToPiKPiMin;
+    cut3ProngInvMassCandMax[DPlusToPiKPi] = configs->mInvMassDPlusToPiKPiMax;
+    cut3ProngCPACandMin[DPlusToPiKPi] = configs->mCPADPlusToPiKPiMin;
+    cut3ProngDecLenCandMin[DPlusToPiKPi] = configs->mDecLenDPlusToPiKPiMin;
+
+    cut3ProngPtCandMin[LcToPKPi] = configs->mPtLcToPKPiMin;
+    cut3ProngInvMassCandMin[LcToPKPi] = configs->mInvMassLcToPKPiMin;
+    cut3ProngInvMassCandMax[LcToPKPi] = configs->mInvMassLcToPKPiMax;
+    cut3ProngCPACandMin[LcToPKPi] = configs->mCPALcToPKPiMin;
+    cut3ProngDecLenCandMin[LcToPKPi] = configs->mDecLenLcToPKPiMin;
+
+    cut3ProngPtCandMin[DsToPiKK] = configs->mPtDsToPiKKMin;
+    cut3ProngInvMassCandMin[DsToPiKK] = configs->mInvMassDsToPiKKMin;
+    cut3ProngInvMassCandMax[DsToPiKK] = configs->mInvMassDsToPiKKMax;
+    cut3ProngCPACandMin[DsToPiKK] = configs->mCPADsToPiKKMin;
+    cut3ProngDecLenCandMin[DsToPiKK] = configs->mDecLenDsToPiKKMin;
 
     bool cutStatus2Prong[n2ProngDecays][nCuts2Prong];
     bool cutStatus3Prong[n3ProngDecays][nCuts3Prong];
     int nCutStatus2ProngBit = TMath::Power(2, nCuts2Prong) - 1; //bit value for selection status for each 2 prongs candidate where each selection is one bit and they are all set it 1
     int nCutStatus3ProngBit = TMath::Power(2, nCuts3Prong) - 1; //bit value for selection status for each 2 prongs candidate where each selection is one bit and they are all set it 1
 
-    //set mass hypothesis 1 for 2 prong
-    auto arr2Mass1 = array{
-      array{massPi, massK},
-      array{massElectron, massElectron}};
+    array<array<double, 2>, n2ProngDecays> arr2Mass1;
+    arr2Mass1[D0ToPiK] = array{massPi, massK};
+    arr2Mass1[JpsiToEE] = array{massElectron, massElectron};
 
-    //set mass hypothesis 2 for 2 prong
-    auto arr2Mass2 = array{
-      array{massK, massPi},
-      array{massElectron, massElectron}};
+    array<array<double, 2>, n2ProngDecays> arr2Mass2;
+    arr2Mass2[D0ToPiK] = array{massK, massPi};
+    arr2Mass2[JpsiToEE] = array{massElectron, massElectron};
 
-    //set mass hypothesis 1 for 3 prong
-    auto arr3Mass1 = array{
-      array{massPi, massK, massPi},
-      array{massProton, massK, massPi},
-      array{massK, massK, massPi}};
+    array<array<double, 3>, n3ProngDecays> arr3Mass1;
+    arr3Mass1[DPlusToPiKPi] = array{massPi, massK, massPi};
+    arr3Mass1[LcToPKPi] = array{massProton, massK, massPi};
+    arr3Mass1[DsToPiKK] = array{massK, massK, massPi};
 
-    //set mass hypothesis 2 for 3 prong
-    auto arr3Mass2 = array{
-      array{massPi, massK, massPi},
-      array{massPi, massK, massProton},
-      array{massPi, massK, massK}};
+    array<array<double, 3>, n3ProngDecays> arr3Mass2;
+    arr3Mass2[DPlusToPiKPi] = array{massPi, massK, massPi};
+    arr3Mass2[LcToPKPi] = array{massPi, massK, massProton};
+    arr3Mass2[DsToPiKK] = array{massPi, massK, massK};
 
     double mass2ProngHypo1[n2ProngDecays];
     double mass2ProngHypo2[n2ProngDecays];
@@ -449,17 +477,17 @@ struct HFTrackIndexSkimsCreator {
                   if (isSelected2ProngCand & 1 << n2) {
                     if ((cut2ProngInvMassCandMin[n2] < 0. && cut2ProngInvMassCandMax[n2] <= 0.) || (mass2ProngHypo1[n2] >= cut2ProngInvMassCandMin[n2] && mass2ProngHypo1[n2] < cut2ProngInvMassCandMax[n2])) {
                       mass2ProngHypo1[n2] = RecoDecay::M(arrMom, arr2Mass1[n2]);
-                      if (n2 == 0) {
-                        registry.get<TH1>(HIST("hmassD0"))->Fill(mass2ProngHypo1[n2]);
+                      if (n2 == D0ToPiK) {
+                        registry.get<TH1>(HIST("hmassD0ToPiK"))->Fill(mass2ProngHypo1[n2]);
                       }
-                      if (n2 == 1) {
-                        registry.get<TH1>(HIST("hmassJpsi"))->Fill(mass2ProngHypo1[n2]);
+                      if (n2 == JpsiToEE) {
+                        registry.get<TH1>(HIST("hmassJpsiToEE"))->Fill(mass2ProngHypo1[n2]);
                       }
                     }
                     if ((cut2ProngInvMassCandMin[n2] < 0. && cut2ProngInvMassCandMax[n2] <= 0.) || (mass2ProngHypo2[n2] >= cut2ProngInvMassCandMin[n2] && mass2ProngHypo2[n2] < cut2ProngInvMassCandMax[n2])) {
                       mass2ProngHypo2[n2] = RecoDecay::M(arrMom, arr2Mass2[n2]);
-                      if (n2 == 0) {
-                        registry.get<TH1>(HIST("hmassD0"))->Fill(mass2ProngHypo1[n2]);
+                      if (n2 == D0ToPiK) {
+                        registry.get<TH1>(HIST("hmassD0ToPiK"))->Fill(mass2ProngHypo1[n2]);
                       }
                     }
                   }
@@ -617,23 +645,23 @@ struct HFTrackIndexSkimsCreator {
                 if (isSelected3ProngCand & 1 << n3) {
                   if ((cut3ProngInvMassCandMin[n3] < 0. && cut3ProngInvMassCandMax[n3] <= 0.) || (mass3ProngHypo1[n3] >= cut3ProngInvMassCandMin[n3] && mass3ProngHypo1[n3] < cut3ProngInvMassCandMax[n3])) {
                     mass3ProngHypo1[n3] = RecoDecay::M(arr3Mom, arr3Mass1[n3]);
-                    if (n3 == 0) {
-                      registry.get<TH1>(HIST("hmassDPlus"))->Fill(mass3ProngHypo1[n3]);
+                    if (n3 == DPlusToPiKPi) {
+                      registry.get<TH1>(HIST("hmassDPlusToPiKPi"))->Fill(mass3ProngHypo1[n3]);
                     }
-                    if (n3 == 1) {
-                      registry.get<TH1>(HIST("hmassLc"))->Fill(mass3ProngHypo1[n3]);
+                    if (n3 == LcToPKPi) {
+                      registry.get<TH1>(HIST("hmassLcToPKPi"))->Fill(mass3ProngHypo1[n3]);
                     }
-                    if (n3 == 2) {
-                      registry.get<TH1>(HIST("hmassDs"))->Fill(mass3ProngHypo1[n3]);
+                    if (n3 == DsToPiKK) {
+                      registry.get<TH1>(HIST("hmassDsToPiKK"))->Fill(mass3ProngHypo1[n3]);
                     }
                   }
                   if ((cut3ProngInvMassCandMin[n3] < 0. && cut3ProngInvMassCandMax[n3] <= 0.) || (mass3ProngHypo2[n3] >= cut3ProngInvMassCandMin[n3] && mass3ProngHypo2[n3] < cut3ProngInvMassCandMax[n3])) {
                     mass3ProngHypo2[n3] = RecoDecay::M(arr3Mom, arr3Mass2[n3]);
-                    if (n3 == 1) {
-                      registry.get<TH1>(HIST("hmassLc"))->Fill(mass3ProngHypo2[n3]);
+                    if (n3 == LcToPKPi) {
+                      registry.get<TH1>(HIST("hmassLcToPKPi"))->Fill(mass3ProngHypo2[n3]);
                     }
-                    if (n3 == 2) {
-                      registry.get<TH1>(HIST("hmassDs"))->Fill(mass3ProngHypo2[n3]);
+                    if (n3 == DsToPiKK) {
+                      registry.get<TH1>(HIST("hmassDsToPiKK"))->Fill(mass3ProngHypo2[n3]);
                     }
                   }
                 }
@@ -784,23 +812,23 @@ struct HFTrackIndexSkimsCreator {
                 if (isSelected3ProngCand & 1 << n3) {
                   if ((cut3ProngInvMassCandMin[n3] < 0. && cut3ProngInvMassCandMax[n3] <= 0.) || (mass3ProngHypo1[n3] >= cut3ProngInvMassCandMin[n3] && mass3ProngHypo1[n3] < cut3ProngInvMassCandMax[n3])) {
                     mass3ProngHypo1[n3] = RecoDecay::M(arr3Mom, arr3Mass1[n3]);
-                    if (n3 == 0) {
-                      registry.get<TH1>(HIST("hmassDPlus"))->Fill(mass3ProngHypo1[n3]);
+                    if (n3 == DPlusToPiKPi) {
+                      registry.get<TH1>(HIST("hmassDPlusToPiKPi"))->Fill(mass3ProngHypo1[n3]);
                     }
-                    if (n3 == 1) {
-                      registry.get<TH1>(HIST("hmassLc"))->Fill(mass3ProngHypo1[n3]);
+                    if (n3 == LcToPKPi) {
+                      registry.get<TH1>(HIST("hmassLcToPKPi"))->Fill(mass3ProngHypo1[n3]);
                     }
-                    if (n3 == 2) {
-                      registry.get<TH1>(HIST("hmassDs"))->Fill(mass3ProngHypo1[n3]);
+                    if (n3 == DsToPiKK) {
+                      registry.get<TH1>(HIST("hmassDsToPiKK"))->Fill(mass3ProngHypo1[n3]);
                     }
                   }
                   if ((cut3ProngInvMassCandMin[n3] < 0. && cut3ProngInvMassCandMax[n3] <= 0.) || (mass3ProngHypo2[n3] >= cut3ProngInvMassCandMin[n3] && mass3ProngHypo2[n3] < cut3ProngInvMassCandMax[n3])) {
                     mass3ProngHypo2[n3] = RecoDecay::M(arr3Mom, arr3Mass2[n3]);
-                    if (n3 == 1) {
-                      registry.get<TH1>(HIST("hmassLc"))->Fill(mass3ProngHypo2[n3]);
+                    if (n3 == LcToPKPi) {
+                      registry.get<TH1>(HIST("hmassLcToPKPi"))->Fill(mass3ProngHypo2[n3]);
                     }
-                    if (n3 == 2) {
-                      registry.get<TH1>(HIST("hmassDs"))->Fill(mass3ProngHypo2[n3]);
+                    if (n3 == DsToPiKK) {
+                      registry.get<TH1>(HIST("hmassDsToPiKK"))->Fill(mass3ProngHypo2[n3]);
                     }
                   }
                 }
