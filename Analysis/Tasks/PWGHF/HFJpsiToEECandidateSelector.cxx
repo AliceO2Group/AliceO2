@@ -141,15 +141,15 @@ struct HFJpsiToEECandidateSelector {
   /// \note nPDG=11 electron
   /// \return true if track satisfies TPC PID hypothesis for given Nsigma cut
   template <typename T>
-  bool selectionPIDTPC(const T& track, int nPDG, int nSigmaCut)
+  bool selectionPIDTPC(const T& track, int nSigmaCut)
   {
-    double nSigma = 100.0; //arbitarily large value
-    nPDG = TMath::Abs(nPDG);
-    if (nPDG == 11) {
-      nSigma = track.tpcNSigmaEl();
-    } else {
-      return false;
-    }
+    double nSigma = 1.0; //arbitarily large value
+    nPDG = TMath::Abs(11);
+    //if (nPDG == 11) {
+    //  nSigma = track.tpcNSigmaEl();
+    //} else {
+    //  return false;
+    //}
     return nSigma < nSigmaCut;
   }
 
@@ -165,7 +165,7 @@ struct HFJpsiToEECandidateSelector {
     // int statusTOF = -1;
 
     if (validTPCPID(track)) {
-      if (!selectionPIDTPC(track, nPDG, d_nSigmaTPC)) {
+      if (!selectionPIDTPC(track, d_nSigmaTPC)) {
 
         statusTPC = 0; //rejected by PID
       } else {
