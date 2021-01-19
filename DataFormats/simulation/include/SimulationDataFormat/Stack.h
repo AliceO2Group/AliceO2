@@ -311,6 +311,8 @@ class Stack : public FairGenericStack
   /// \param iTrack  Track number
   void addHit(int iDet, Int_t iTrack);
 
+  void handleTransportPrimary(TParticle& p);
+
   ClassDefOverride(Stack, 1);
 };
 
