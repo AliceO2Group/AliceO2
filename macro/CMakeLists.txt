@@ -32,7 +32,6 @@ install(FILES CheckDigits_mft.C
               readEMCHits.C
               readITSDigits.C
               rootlogon.C
-              runCATrackingClusterNative.C
               runTPCRefit.C
               run_CRUDataSkimming_its.C
               run_calib_tof.C
@@ -231,13 +230,6 @@ o2_add_test_root_macro(readITSDigits.C
                                              O2::SimulationDataFormat
                        LABELS its)
 
-# FIXME: move to subsystem dir
-o2_add_test_root_macro(runCATrackingClusterNative.C
-                       PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC
-                                             O2::ReconstructionDataFormats
-                                             O2::SimulationDataFormat
-                                             O2::TPCReconstruction
-LABELS tpc)
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(runTPCRefit.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC

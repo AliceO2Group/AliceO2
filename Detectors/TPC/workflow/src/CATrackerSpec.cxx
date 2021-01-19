@@ -26,7 +26,6 @@
 #include "Framework/Logger.h"
 #include "Framework/CallbackService.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
-#include "DataFormatsTPC/ClusterGroupAttribute.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/CompressedClusters.h"
 #include "DataFormatsTPC/Helpers.h"

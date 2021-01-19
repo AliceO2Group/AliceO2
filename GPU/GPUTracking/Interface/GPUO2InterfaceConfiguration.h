@@ -131,15 +131,6 @@ struct GPUO2InterfaceIOPtrs {
 
   // Output for entropy-reduced clusters of TPC compression
   const o2::tpc::CompressedClustersFlat* compressedClusters = nullptr;
-
-  // Hint for GPUCATracking to place its output in this buffer if possible.
-  // This enables to create the output directly in a shared memory segment of the framework.
-  // This allows further processing with zero-copy.
-  // So far this is only a hint, GPUCATracking will not always follow.
-  // If outputBuffer = nullptr, GPUCATracking will allocate the output internally and own the memory.
-  // TODO: Make this mandatory if outputBuffer != nullptr, and throw an error if outputBufferSize is too small.
-  void* outputBuffer = nullptr;
-  size_t outputBufferSize = 0;
 };
 } // namespace gpu
 } // namespace o2
