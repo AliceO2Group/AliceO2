@@ -56,8 +56,8 @@ void RawFileReaderTask::init(framework::InitContext& ic)
 {
   // Get the input file and other options from the context
   LOG(INFO) << "Raw file reader Init";
-
-  auto inputFileName = ic.options().get<std::string>("infile");
+std::cout << ">>> INIT !" << std::endl;
+  auto inputFileName = ic.options().get<std::string>("input-file");
   mInputFile.open(inputFileName, std::ios::binary);
   if (!mInputFile.is_open()) {
     throw std::invalid_argument("Cannot open input file \"" + inputFileName + "\"");
@@ -85,6 +85,7 @@ void RawFileReaderTask::run(framework::ProcessingContext& pc)
     mInputFile.read((char*)(&rdh), sizeof(RDH));
     if (mInputFile.fail()) {
       pc.services().get<ControlService>().endOfStream();
+      LOG(INFO) << " Fails to read the header ! ";
       return; // probably reached eof
     }
 
@@ -92,9 +93,10 @@ void RawFileReaderTask::run(framework::ProcessingContext& pc)
     auto rdhVersion = o2::raw::RDHUtils::getVersion(rdh);
     auto rdhHeaderSize = o2::raw::RDHUtils::getHeaderSize(rdh);
     if (rdhVersion != 6 || rdhHeaderSize != 64) {
+      LOG(WARNING) << " Wrong RDH  (v." << rdhVersion << ", size=" << rdhHeaderSize << ")";
       return;
     }
-
+    std::cout<<"h";
     // get the frame size from the RDH offsetToNext field
     auto frameSize = o2::raw::RDHUtils::getOffsetToNext(rdh);
 
@@ -118,6 +120,7 @@ void RawFileReaderTask::run(framework::ProcessingContext& pc)
 
     // read the frame payload into the output buffer
     mInputFile.read(buf + rdhHeaderSize, frameSize - rdhHeaderSize);
+    std::cout<<"p";
     // stop if data cannot be read completely
     if (mInputFile.fail()) {
       LOG(ERROR) << "Fail to read the payload ";
@@ -127,21 +130,25 @@ void RawFileReaderTask::run(framework::ProcessingContext& pc)
     }
     // create the output message
     auto freefct = [](void* data, void* /*hint*/) { free(data); };
-    pc.outputs().adoptChunk(Output{"HMP", "rawfile"}, buf, bufSize, freefct, nullptr);
+
+    pc.outputs().make<char>(Output{"HMP","rawfile"},buf, bufSize );
+//    pc.outputs().snapshot(Output{"HMP", "rawfile", 0, o2::framework::Lifetime::Timeframe}, buf);
+//    pc.outputs().adoptChunk(Output{"HMP", "rawfile"}, buf, bufSize, freefct, nullptr);
+    std::cout<<"w"<<std::endl;
+
   }
 }
 
 //_________________________________________________________________________________________________
 // clang-format off
-o2::framework::DataProcessorSpec getRawFileReaderSpec()
+DataProcessorSpec getRawFileReaderSpec()
 {
   return DataProcessorSpec{
     "RawFileReader",
     Inputs{},
-    Outputs{OutputSpec{"HMP", "rawfile", 0, Lifetime::Timeframe}},
+    Outputs{{"HMP", "rawfile", 0, o2::framework::Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<RawFileReaderTask>()},
-    Options{{"infile", VariantType::String, "", {"input file name"}}}
-    };
+    Options{{"input-file", VariantType::String, "", {"input raw file name"}}}};
 }
 // clang-format on
 

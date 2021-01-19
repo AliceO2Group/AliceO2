@@ -24,6 +24,8 @@
 #include <functional>
 #include <vector>
 
+#include "TTree.h"
+
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
@@ -74,6 +76,42 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
 
   LOG(INFO) << "[HMPID Data Decoder - run] Writing " << mDeco->mDigits.size() << " Digits ...";
   pc.outputs().snapshot(o2::framework::Output{"HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mDigits);
+
+
+  float avgEventSize[o2::hmpid::Geo::MAXEQUIPMENTS];
+  float avgBusyTime[o2::hmpid::Geo::MAXEQUIPMENTS];
+
+  uint32_t numOfSamples[o2::hmpid::Geo::N_MODULES][o2::hmpid::Geo::N_YCOLS][o2::hmpid::Geo::N_XROWS];
+  double sumOfCharges[o2::hmpid::Geo::N_MODULES][o2::hmpid::Geo::N_YCOLS][o2::hmpid::Geo::N_XROWS];
+  double squareOfCharges[o2::hmpid::Geo::N_MODULES][o2::hmpid::Geo::N_YCOLS][o2::hmpid::Geo::N_XROWS];
+
+  TTree theObj("t", "HMPID Data Decoding Statistic results");
+
+  theObj.Branch("Average_Event_Size", avgEventSize,"f[14]");
+  theObj.Branch("Average_Busy_Time", avgBusyTime,"f[14]");
+  theObj.Branch("Samples_per_pad", avgBusyTime,"d[7][144][160]");
+  theObj.Branch("Sum_of_charges_per_pad", sumOfCharges,"d[7][144][160]");
+  theObj.Branch("Sum_of_square_of_charges", squareOfCharges,"d[7][144][160]");
+
+
+  int numEqui = mDeco->getNumberOfEquipments();
+  for(int e=0;e<numEqui;e++) {
+      avgEventSize[e] = mDeco->getAverageEventSize(e);
+      avgBusyTime[e] = mDeco->getAverageBusyTime(e);
+  }
+  for(int m=0; m < o2::hmpid::Geo::N_MODULES; m++)
+    for(int y=0; y < o2::hmpid::Geo::N_YCOLS; y++)
+      for(int x=0; x < o2::hmpid::Geo::N_XROWS; x++ ) {
+        numOfSamples[m][y][x] = mDeco->getPadSamples(m, y, x);
+        sumOfCharges[m][y][x] = mDeco->getPadSum(m, y, x);
+        squareOfCharges[m][y][x] = mDeco->getPadSquares(m, y, x);
+      }
+  theObj.Fill();
+  //t.Write();
+ // mDeco->getChannelSamples(Equipment, Column, Dilogic, Channel);
+ // mDeco->getChannelSquare(Equipment, Column, Dilogic, Channel);
+ // mDeco->getChannelSum(Equipment, Column, Dilogic, Channel);
+  pc.outputs().snapshot(o2::framework::Output{"HMP", "STATS", 0, o2::framework::Lifetime::Timeframe}, theObj);
 
 }
 
