@@ -15,8 +15,8 @@
 /// \brief Definition of a data processor to run the raw decoding
 ///
 
-#ifndef O2_MCH_DATADECODERSPEC_H_
-#define O2_MCH_DATADECODERSPEC_H_
+#ifndef DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_DUMPDIGITSPEC_H_
+#define DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_DUMPDIGITSPEC_H_
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
