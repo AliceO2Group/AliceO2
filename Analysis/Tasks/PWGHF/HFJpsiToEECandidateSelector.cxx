@@ -194,13 +194,12 @@ struct HFJpsiToEECandidateSelector {
       auto trackPos = hfCandProng2.index0_as<aod::BigTracksPID>(); //positive daughter
       auto trackNeg = hfCandProng2.index1_as<aod::BigTracksPID>(); //negative daughter
 
-      statusJpsi = 0;
+      statusJpsi = true;
       pidJpsi = -1;
       electronPlus = -1;
       electronMinus = -1;
-      int JpsiFlag = hfCandProng2.hfflag();
 
-      if (!(JpsiFlag & 1 << 1)) {
+      if (!(hfCandProng2.hfflag() & 1 << JpsiToEE)) {
         hfSelJpsiCandidate(statusJpsi);
         continue;
       }

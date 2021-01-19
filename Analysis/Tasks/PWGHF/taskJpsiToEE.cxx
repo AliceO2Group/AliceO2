@@ -61,6 +61,9 @@ struct TaskJpsiToEE {
   {
     //Printf("Candidates: %d", candidates.size());
     for (auto& candidate : candidates) {
+      if (!(candidate.hfflag() & 1 << JpsiToEE)) {
+        continue;
+      }
       if (cutEtaCandMax >= 0. && std::abs(candidate.eta()) > cutEtaCandMax) {
         //Printf("Candidate: eta rejection: %g", candidate.eta());
         continue;
@@ -108,6 +111,9 @@ struct TaskJpsiToEEMC {
     // MC rec.
     //Printf("MC Candidates: %d", candidates.size());
     for (auto& candidate : candidates) {
+      if (!(candidate.hfflag() & 1 << JpsiToEE)) {
+        continue;
+      }
       if (cutEtaCandMax >= 0. && std::abs(candidate.eta()) > cutEtaCandMax) {
         //Printf("MC Rec.: eta rejection: %g", candidate.eta());
         continue;
