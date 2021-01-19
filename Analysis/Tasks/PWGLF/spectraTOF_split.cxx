@@ -21,7 +21,7 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-struct TOFSpectraTask {
+struct TOFSpectraTaskSplit {
   static constexpr int Np = 9;
   static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
   static constexpr std::string_view hp[Np] = {"p/El", "p/Mu", "p/Pi", "p/Ka", "p/Pr", "p/De", "p/Tr", "p/He", "p/Al"};
@@ -60,7 +60,11 @@ struct TOFSpectraTask {
 
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
   Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == (uint8_t) true) && (aod::track::tofSignal > 0.f);
-  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOF, aod::pidRespTOFbeta, aod::TrackSelection>>;
+  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra,
+                                                  aod::pidRespTOFEl, aod::pidRespTOFMu, aod::pidRespTOFPi,
+                                                  aod::pidRespTOFKa, aod::pidRespTOFPr, aod::pidRespTOFDe,
+                                                  aod::pidRespTOFTr, aod::pidRespTOFHe, aod::pidRespTOFAl,
+                                                  aod::pidRespTOFbeta, aod::TrackSelection>>;
   void process(TrackCandidates::iterator const& track)
   {
     histos.fill(HIST("p/Unselected"), track.p());
@@ -90,6 +94,6 @@ struct TOFSpectraTask {
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
-  WorkflowSpec workflow{adaptAnalysisTask<TOFSpectraTask>("tofspectra-task")};
+  WorkflowSpec workflow{adaptAnalysisTask<TOFSpectraTaskSplit>("tofspectra-split-task")};
   return workflow;
 }

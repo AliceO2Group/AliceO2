@@ -80,6 +80,7 @@ DECLARE_SOA_TABLE(pidRespTOFbeta, "AOD", "pidRespTOFbeta",
                   ExpBetaEl, ExpBetaElError,
                   SeparationBetaEl,
                   DiffBetaEl<Beta, ExpBetaEl>);
+
 using namespace pidtof;
 DECLARE_SOA_TABLE(pidRespTOF, "AOD", "pidRespTOF",
                   // Expected signals
@@ -100,6 +101,17 @@ DECLARE_SOA_TABLE(pidRespTOF, "AOD", "pidRespTOF",
                   TOFNSigmaEl, TOFNSigmaMu, TOFNSigmaPi,
                   TOFNSigmaKa, TOFNSigmaPr, TOFNSigmaDe,
                   TOFNSigmaTr, TOFNSigmaHe, TOFNSigmaAl);
+
+// Per particle tables
+DECLARE_SOA_TABLE(pidRespTOFEl, "AOD", "pidRespTOFEl", TOFExpSignalDiffEl<TOFNSigmaEl, TOFExpSigmaEl>, TOFExpSigmaEl, TOFNSigmaEl);
+DECLARE_SOA_TABLE(pidRespTOFMu, "AOD", "pidRespTOFMu", TOFExpSignalDiffMu<TOFNSigmaMu, TOFExpSigmaMu>, TOFExpSigmaMu, TOFNSigmaMu);
+DECLARE_SOA_TABLE(pidRespTOFPi, "AOD", "pidRespTOFPi", TOFExpSignalDiffPi<TOFNSigmaPi, TOFExpSigmaPi>, TOFExpSigmaPi, TOFNSigmaPi);
+DECLARE_SOA_TABLE(pidRespTOFKa, "AOD", "pidRespTOFKa", TOFExpSignalDiffKa<TOFNSigmaKa, TOFExpSigmaKa>, TOFExpSigmaKa, TOFNSigmaKa);
+DECLARE_SOA_TABLE(pidRespTOFPr, "AOD", "pidRespTOFPr", TOFExpSignalDiffPr<TOFNSigmaPr, TOFExpSigmaPr>, TOFExpSigmaPr, TOFNSigmaPr);
+DECLARE_SOA_TABLE(pidRespTOFDe, "AOD", "pidRespTOFDe", TOFExpSignalDiffDe<TOFNSigmaDe, TOFExpSigmaDe>, TOFExpSigmaDe, TOFNSigmaDe);
+DECLARE_SOA_TABLE(pidRespTOFTr, "AOD", "pidRespTOFTr", TOFExpSignalDiffTr<TOFNSigmaTr, TOFExpSigmaTr>, TOFExpSigmaTr, TOFNSigmaTr);
+DECLARE_SOA_TABLE(pidRespTOFHe, "AOD", "pidRespTOFHe", TOFExpSignalDiffHe<TOFNSigmaHe, TOFExpSigmaHe>, TOFExpSigmaHe, TOFNSigmaHe);
+DECLARE_SOA_TABLE(pidRespTOFAl, "AOD", "pidRespTOFAl", TOFExpSignalDiffAl<TOFNSigmaAl, TOFExpSigmaAl>, TOFExpSigmaAl, TOFNSigmaAl);
 
 namespace pidtpc
 {
@@ -155,6 +167,17 @@ DECLARE_SOA_TABLE(pidRespTPC, "AOD", "pidRespTPC",
                   TPCNSigmaEl, TPCNSigmaMu, TPCNSigmaPi,
                   TPCNSigmaKa, TPCNSigmaPr, TPCNSigmaDe,
                   TPCNSigmaTr, TPCNSigmaHe, TPCNSigmaAl);
+
+// Per particle tables
+DECLARE_SOA_TABLE(pidRespTPCEl, "AOD", "pidRespTPCEl", TPCExpSignalDiffEl<TPCNSigmaEl, TPCExpSigmaEl>, TPCExpSigmaEl, TPCNSigmaEl);
+DECLARE_SOA_TABLE(pidRespTPCMu, "AOD", "pidRespTPCMu", TPCExpSignalDiffMu<TPCNSigmaMu, TPCExpSigmaMu>, TPCExpSigmaMu, TPCNSigmaMu);
+DECLARE_SOA_TABLE(pidRespTPCPi, "AOD", "pidRespTPCPi", TPCExpSignalDiffPi<TPCNSigmaPi, TPCExpSigmaPi>, TPCExpSigmaPi, TPCNSigmaPi);
+DECLARE_SOA_TABLE(pidRespTPCKa, "AOD", "pidRespTPCKa", TPCExpSignalDiffKa<TPCNSigmaKa, TPCExpSigmaKa>, TPCExpSigmaKa, TPCNSigmaKa);
+DECLARE_SOA_TABLE(pidRespTPCPr, "AOD", "pidRespTPCPr", TPCExpSignalDiffPr<TPCNSigmaPr, TPCExpSigmaPr>, TPCExpSigmaPr, TPCNSigmaPr);
+DECLARE_SOA_TABLE(pidRespTPCDe, "AOD", "pidRespTPCDe", TPCExpSignalDiffDe<TPCNSigmaDe, TPCExpSigmaDe>, TPCExpSigmaDe, TPCNSigmaDe);
+DECLARE_SOA_TABLE(pidRespTPCTr, "AOD", "pidRespTPCTr", TPCExpSignalDiffTr<TPCNSigmaTr, TPCExpSigmaTr>, TPCExpSigmaTr, TPCNSigmaTr);
+DECLARE_SOA_TABLE(pidRespTPCHe, "AOD", "pidRespTPCHe", TPCExpSignalDiffHe<TPCNSigmaHe, TPCExpSigmaHe>, TPCExpSigmaHe, TPCNSigmaHe);
+DECLARE_SOA_TABLE(pidRespTPCAl, "AOD", "pidRespTPCAl", TPCExpSignalDiffAl<TPCNSigmaAl, TPCExpSigmaAl>, TPCExpSigmaAl, TPCNSigmaAl);
 
 } // namespace o2::aod
 
