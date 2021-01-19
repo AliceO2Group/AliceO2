@@ -54,6 +54,7 @@
 #include "DataFormatsTRD/LinkRecord.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/RawData.h"
+#include "DataFormatsTRD/Constants.h"
 
 //#ifdef WITH_OPENMP
 //#include <omp.h>
@@ -315,7 +316,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   uint64_t currentTriggerRecord = 0;
 
   /* *******
-   * reserve sizes 
+   * reserve sizes
    * *******/
   mLinkRecords.reserve(1080 * triggerRecords.size()); // worse case scenario is all links for all events. TODO get 1080 from somewhere.
   //TODO these must be created directly in the output as done at the top of this run method
@@ -420,6 +421,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
     if (digititerator == msgDigitsIndex.begin()) { // first time in loop
       oldrow = row;
       olddetector = detector;
+      mOldHalfChamberLinkId = LinkRecord::getHalfChamberLinkId(detector, rob); // OS: maybe this is needed in case half chamber 0 has no data?
     }
     //Are we on a new half chamber ?
     if (mOldHalfChamberLinkId != LinkRecord::getHalfChamberLinkId(detector, rob)) {
@@ -545,7 +547,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
                  << mcm << ") as its not initialized and we need to send it some adc data.";
       mTrapSimulator[trapindex].init(mTrapConfig, detector, rob, mcm);
     }
-    int adc = 20 - (pad % 18) - 1;
+    int localPad = constants::NCOLMCM - 1 - (pad % constants::NCOLMCM);
     std::vector<o2::MCCompLabel> tmplabels;
     auto digitslabels = digitMCLabels.getLabels(digitcounter);
     for (auto& tmplabel : digitslabels) {
@@ -553,23 +555,21 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
     }
     LOG(debug) << "tmplabels for set data : " << tmplabels.size() << " and gslspan digitlabels size of : " << digitslabels.size();
     LOG(debug) << " setting data with pad=" << pad << " ti=" << trapindex + 1;
-    mTrapSimulator[trapindex].setData(adc, digit->getADC(), tmplabels);
+    mTrapSimulator[trapindex].setData(localPad, digit->getADC(), tmplabels);
 
     // now take care of the case of shared pads (the whole reason for doing this pad row wise).
 
-    if (pad % 18 == 0 || (pad + 1) % 18 == 0) { //case of pad 18 and 19 must be shared to preceding trap chip adc 1 and 0 respectively.
-      adc = 20 - (pad % 18) - 1;
+    if (localPad >= constants::NCOLMCM - 2) {
+      // the rightmost two pads are shared with the preceeding MCM
       if (trapindex != 0) { // avoid the case of the first trap chip
         LOG(debug) << " setting data preceding with pad=" << pad << " ti=" << trapindex - 1;
-        mTrapSimulator[trapindex - 1].setData(adc, digit->getADC(), tmplabels);
+        mTrapSimulator[trapindex - 1].setData(localPad - constants::NCOLMCM - 2, digit->getADC(), tmplabels);
       }
-    }
-    if ((pad - 1) % 18 == 0) { // case of pad 17 must shared to next trap chip as adc 20
-                               //check trap is initialised.
-      adc = 20 - (pad % 18) - 1;
-      if (trapindex + 1 != 8) { // avoid the case of the last trap chip.
+    } else if (localPad == 0) {
+      // the leftmost pad is shared with the following MCM
+      if (trapindex < 7) { // avoid the case of the last trap chip.
         LOG(debug) << " setting data proceeding with pad=" << pad << " ti=" << trapindex + 1;
-        mTrapSimulator[trapindex + 1].setData(adc, digit->getADC(), tmplabels);
+        mTrapSimulator[trapindex + 1].setData(constants::NADCMCM - 1, digit->getADC(), tmplabels);
       }
     }
 
