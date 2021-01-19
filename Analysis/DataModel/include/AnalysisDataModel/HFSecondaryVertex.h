@@ -158,8 +158,6 @@ DECLARE_SOA_COLUMN(FlagMCMatchGen, flagMCMatchGen, int8_t); // generator level
 enum DecayType { D0ToPiK = 0,
                  JpsiToEE,
                  N2ProngDecays }; //always keep N2ProngDecays at the end
-enum DecayType { D0ToPiK = 1,
-                 JpsiToEE };
 
 // functions for specific particles
 
