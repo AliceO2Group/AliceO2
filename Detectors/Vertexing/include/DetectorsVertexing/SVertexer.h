@@ -15,13 +15,11 @@
 #define O2_S_VERTEXER_H
 
 #include "gsl/span"
+#include "ReconstructionDataFormats/GlobalTrackAccessor.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "ReconstructionDataFormats/V0.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
-#include "ReconstructionDataFormats/TrackTPCITS.h"
-#include "DataFormatsTPC/TrackTPC.h"
-#include "DataFormatsITS/TrackITS.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "DetectorsVertexing/SVertexerParams.h"
@@ -41,57 +39,13 @@ class SVertexer
   using VRef = o2::dataformats::VtxTrackRef;
   using PVertex = const o2::dataformats::PrimaryVertex;
   using V0 = o2::dataformats::V0;
-  using TrackTPCITS = o2::dataformats::TrackTPCITS;
-  using TrackITS = o2::its::TrackITS;
-  using TrackTPC = o2::tpc::TrackTPC;
   using RRef = o2::dataformats::RangeReference<int, int>;
-
-  // struct to access tracks and extra info from different sources
-  struct TrackAccessor {
-    static constexpr std::array<size_t, GIndex::NSources> sizes{sizeof(TrackTPCITS), sizeof(TrackITS), sizeof(TrackTPC)};
-    std::array<const char*, GIndex::NSources> startOfSource{};
-    std::array<std::vector<char>, GIndex::NSources> charges;
-
-    TrackAccessor(const gsl::span<const TrackTPCITS>& tpcits, const gsl::span<const TrackITS>& its, const gsl::span<const TrackTPC>& tpc)
-    {
-      if (tpcits.size()) {
-        startOfSource[GIndex::TPCITS] = reinterpret_cast<const char*>(tpcits.data());
-        auto& ch = charges[GIndex::TPCITS];
-        ch.resize(tpcits.size());
-        for (uint32_t ic = 0; ic < tpcits.size(); ic++) {
-          ch[ic] = tpcits[ic].getCharge();
-        }
-      }
-      if (its.size()) {
-        startOfSource[GIndex::ITS] = reinterpret_cast<const char*>(its.data());
-        auto& ch = charges[GIndex::ITS];
-        ch.resize(its.size());
-        for (uint32_t ic = 0; ic < its.size(); ic++) {
-          ch[ic] = its[ic].getCharge();
-        }
-      }
-      if (tpc.size()) {
-        startOfSource[GIndex::TPC] = reinterpret_cast<const char*>(tpc.data());
-        auto& ch = charges[GIndex::TPC];
-        ch.resize(tpc.size());
-        for (uint32_t ic = 0; ic < tpc.size(); ic++) {
-          ch[ic] = tpc[ic].getCharge();
-        }
-      }
-    }
-    char getCharge(GIndex id) const { return getCharge(id.getSource(), id.getIndex()); }
-    char getCharge(int src, int idx) const { return charges[src][idx]; }
-    const o2::track::TrackParCov& getTrack(GIndex id) const { return getTrack(id.getSource(), id.getIndex()); }
-    const o2::track::TrackParCov& getTrack(int src, int idx) const { return *reinterpret_cast<const o2::track::TrackParCov*>(startOfSource[src] + sizes[src] * idx); }
-  };
 
   void init();
   void process(const gsl::span<const PVertex>& vertices,   // primary vertices
                const gsl::span<const GIndex>& trackIndex,  // Global ID's for associated tracks
                const gsl::span<const VRef>& vtxRefs,       // references from vertex to these track IDs
-               const gsl::span<const TrackTPCITS>& tpcits, // global tracks
-               const gsl::span<const TrackITS>& its,       // ITS tracks
-               const gsl::span<const TrackTPC>& tpc,       // TPC tracks
+               const o2d::GlobalTrackAccessor& tracksPool, // accessor to various tracks
                std::vector<V0>& v0s,                       // found V0s
                std::vector<RRef>& vtx2V0refs               // references from PVertex to V0
   );
