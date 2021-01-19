@@ -13,6 +13,7 @@ o2_add_library(CommonDataFormat
                        src/BunchFilling.cxx
                        src/FlatHisto1D.cxx
                        src/FlatHisto2D.cxx
+                       src/AbstractRefAccessor.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonConstants O2::GPUCommon
                                      ROOT::Core FairRoot::Base ms_gsl::ms_gsl)
 
@@ -38,5 +39,10 @@ o2_add_test(RangeRef
 
 o2_add_test(FlatHisto
             SOURCES test/testFlatHisto.cxx
+            COMPONENT_NAME CommonDataFormat
+            PUBLIC_LINK_LIBRARIES O2::CommonDataFormat)
+
+o2_add_test(AbstractRefAccessor
+            SOURCES test/testAbstractRefAccessor.cxx
             COMPONENT_NAME CommonDataFormat
             PUBLIC_LINK_LIBRARIES O2::CommonDataFormat)
