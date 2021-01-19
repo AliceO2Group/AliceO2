@@ -169,7 +169,7 @@ void fillCollisionAndTrackTable()
             track = &((*tpctracks)[trackindex.getIndex()]);
           } else if (source == o2::dataformats::VtxTrackIndex::Source::ITS) {
             track = &((*itstracks)[trackindex.getIndex()]);
-          } else if (source == o2::dataformats::VtxTrackIndex::Source::TPCITS) {
+          } else if (source == o2::dataformats::VtxTrackIndex::Source::ITSTPC) {
             track = &((*itstpctracks)[trackindex.getIndex()]);
           } else {
             LOG(WARNING) << "Unsupported track source";
