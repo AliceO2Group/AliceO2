@@ -87,6 +87,7 @@ o2_add_test(DPLRawParser
             COMPONENT_NAME DPLUtils
             LABELS dplutils)
 
+if (TARGET benchmark::benchmark)
 foreach(b
         RawParser
         )
@@ -96,3 +97,4 @@ foreach(b
               LABELS dplutils benchmark
               PUBLIC_LINK_LIBRARIES O2::DPLUtils benchmark::benchmark)
 endforeach()
+endif()
