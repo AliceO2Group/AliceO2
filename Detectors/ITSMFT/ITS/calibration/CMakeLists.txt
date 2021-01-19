@@ -8,11 +8,14 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(base)
-add_subdirectory(calibration)
-add_subdirectory(simulation)
-add_subdirectory(reconstruction)
-add_subdirectory(tracking)
-add_subdirectory(workflow)
-add_subdirectory(macros)
-add_subdirectory(QC)
+o2_add_library(ITSCalibration
+               SOURCES src/NoiseCalibratorSpec.cxx
+               PUBLIC_LINK_LIBRARIES O2::DataFormatsITS O2::ITSBase
+                                     O2::CCDB)
+
+o2_add_executable(its-calib-workflow
+                  COMPONENT_NAME calibration
+                  SOURCES testWorkflow/its-calib-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                                        O2::ITSCalibration)
+
