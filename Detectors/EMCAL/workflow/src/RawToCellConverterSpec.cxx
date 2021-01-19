@@ -131,15 +131,14 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         int CellID = mGeometry->GetAbsCellIdFromCellIndexes(iSM, iRow, iCol);
 
         // define the conatiner for the fit results, and perform the raw fitting using the stadnard raw fitter
-        double amp = 0., time = 0.;
         o2::emcal::CaloFitResults fitResults = mRawFitter->evaluate(chan.getBunches(), 0, 0);
-        if (fitResults.getAmp() > 0) {
+        if (fitResults.getAmp() < 0) {
           fitResults.setAmp(0.);
         }
         if (fitResults.getTime() < 0) {
           fitResults.setTime(0.);
         }
-        currentCellContainer->emplace_back(CellID, amp * CONVADCGEV, time, chantype);
+        currentCellContainer->emplace_back(CellID, fitResults.getAmp() * CONVADCGEV, fitResults.getTime(), chantype);
       }
     }
   }
