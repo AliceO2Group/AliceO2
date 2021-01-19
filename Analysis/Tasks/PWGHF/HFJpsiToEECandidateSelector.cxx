@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file HFJpsiCandidateSelector.cxx
+/// \file HFJpsiToEECandidateSelector.cxx
 /// \brief Jpsi selection task.
 /// \author Biao Zhang <biao.zhang@cern.ch>, CCNU
 /// \author Nima Zardoshti <nima.zardoshti@cern.ch>, CERN
@@ -38,7 +38,7 @@ constexpr double cuts[npTBins][nCutVars] =
 
 /// Struct for applying Jpsi selection cuts
 
-struct HFJpsiCandidateSelector {
+struct HFJpsiToEECandidateSelector {
 
   Produces<aod::HFSelJpsiCandidate> hfSelJpsiCandidate;
 
@@ -232,5 +232,5 @@ struct HFJpsiCandidateSelector {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HFJpsiCandidateSelector>("hf-jpsi-candidate-selector")};
+    adaptAnalysisTask<HFJpsiToEECandidateSelector>("hf-jpsi-candidate-selector")};
 }

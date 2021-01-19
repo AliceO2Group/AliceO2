@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file taskJpsi.cxx
+/// \file taskJpsiToEE.cxx
 /// \brief Jpsi analysis task
 ///
 /// \author Gian Michele Innocenti <gian.michele.innocenti@cern.ch>, CERN
@@ -32,8 +32,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 #include "Framework/runDataProcessing.h"
 
-/// jpsi2ee analysis task
-struct TaskJpsi {
+/// jpsitoee analysis task
+struct TaskJpsiToEE {
   HistogramRegistry registry{
     "registry",
     {{"hmass", "2-prong candidates;inv. mass (#e+ e-) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
@@ -86,7 +86,7 @@ struct TaskJpsi {
 };
 
 /// Fills MC histograms.
-struct TaskJpsiMC {
+struct TaskJpsiToEEMC {
   HistogramRegistry registry{
     "registry",
     {{"hPtRecSig", "2-prong candidates (rec. matched);#it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
@@ -140,10 +140,10 @@ struct TaskJpsiMC {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<TaskJpsi>("hf-task-jpsi")};
+    adaptAnalysisTask<TaskJpsiToEE>("hf-task-jpsi")};
   const bool doMC = cfgc.options().get<bool>("doMC");
   if (doMC) {
-    workflow.push_back(adaptAnalysisTask<TaskJpsiMC>("hf-task-jpsi-mc"));
+    workflow.push_back(adaptAnalysisTask<TaskJpsiMCToEE>("hf-task-jpsi-mc"));
   }
   return workflow;
 }
