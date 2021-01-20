@@ -26,6 +26,7 @@
 #endif
 
 #include <memory>
+#include <vector>
 #include "GPUCommonDef.h"
 #include "GPUDataTypes.h"
 namespace o2::tpc
@@ -41,6 +42,7 @@ class GPUChainTracking;
 struct GPUO2InterfaceConfiguration;
 struct GPUInterfaceOutputs;
 struct GPUOutputControl;
+struct GPUTrackingOutputs;
 
 class GPUTPCO2Interface
 {
@@ -69,14 +71,11 @@ class GPUTPCO2Interface
   bool mInitialized = false;
   bool mContinuous = false;
 
-  std::unique_ptr<GPUReconstruction> mRec;
-  GPUChainTracking* mChain = nullptr;
-  std::unique_ptr<GPUO2InterfaceConfiguration> mConfig;
-  std::unique_ptr<GPUOutputControl> mOutputCompressedClusters;
-  std::unique_ptr<GPUOutputControl> mOutputClustersNative;
-  std::unique_ptr<GPUOutputControl> mOutputTPCTracks;
-  std::unique_ptr<GPUOutputControl> mOutputTPCClusterLabels;
-  std::unique_ptr<GPUOutputControl> mOutputSharedClusterMap;
+  std::unique_ptr<GPUReconstruction> mRec;              //!
+  GPUChainTracking* mChain = nullptr;                   //!
+  std::unique_ptr<GPUO2InterfaceConfiguration> mConfig; //!
+  std::unique_ptr<GPUTrackingOutputs> mOutputRegions;   //!
+  std::vector<GPUOutputControl> mOutputControls;        //!
 };
 } // namespace o2::gpu
 
