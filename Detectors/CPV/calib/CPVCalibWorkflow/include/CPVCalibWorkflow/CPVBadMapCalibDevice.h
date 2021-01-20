@@ -53,7 +53,6 @@ class CPVBadMapCalibDevice : public o2::framework::Task
   std::string mPath{"./"};                                  ///< path and name of file with collected histograms
   std::unique_ptr<BadChannelMap> mBadMap;                   /// Final calibration object
   std::array<char, o2::cpv::Geometry::kNCHANNELS> mMapDiff; /// difference between new and old map
-  ClassDefNV(CPVBadMapCalibDevice, 1);
 };
 
 o2::framework::DataProcessorSpec getBadMapCalibSpec(bool useCCDB, bool forceUpdate, std::string path, short method);
