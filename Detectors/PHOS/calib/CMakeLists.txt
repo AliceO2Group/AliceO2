@@ -11,14 +11,18 @@
 o2_add_library(PHOSCalib
                SOURCES src/BadChannelMap.cxx
                        src/CalibParams.cxx
+                       src/Pedestals.cxx
                        src/CalibDB.cxx
 	       PUBLIC_LINK_LIBRARIES O2::CCDB O2::PHOSBase)
 
 o2_target_root_dictionary(PHOSCalib
                           HEADERS include/PHOSCalib/BadChannelMap.h
                                   include/PHOSCalib/CalibParams.h
+                                  include/PHOSCalib/Pedestals.h
                                   include/PHOSCalib/CalibDB.h
                           LINKDEF src/PHOSCalibLinkDef.h)
+
+add_subdirectory(PHOSCalibWorkflow)
 
 if(BUILD_TESTING)
   o2_add_test_root_macro(macros/PostBadMapCCDB.C  

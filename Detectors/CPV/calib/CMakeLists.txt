@@ -11,12 +11,16 @@
 o2_add_library(CPVCalib
                SOURCES src/BadChannelMap.cxx
                        src/CalibParams.cxx
+                       src/Pedestals.cxx
 	       PUBLIC_LINK_LIBRARIES O2::CCDB O2::CPVBase)
 
 o2_target_root_dictionary(CPVCalib
                           HEADERS include/CPVCalib/BadChannelMap.h
                                   include/CPVCalib/CalibParams.h
+                                  include/CPVCalib/Pedestals.h
                           LINKDEF src/CPVCalibLinkDef.h)
+
+add_subdirectory(CPVCalibWorkflow)
 
 if(BUILD_TESTING)
   o2_add_test_root_macro(macros/PostBadMapCCDB.C  
