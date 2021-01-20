@@ -1827,7 +1827,7 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
   Double_t yGraph = sOBGraphiteFoilThick;
   Double_t xHalfSt, yHalfSt;
 
-  Double_t xmod, ymod, zmod, ypowbus;
+  Double_t xmod, ymod, zmod, ypowbus, zbias;
   Double_t xtru[12], ytru[12];
   Double_t xpos, ypos, ypos1, zpos /*, zpos5cm*/;
   Double_t xlen, ylen, zlen;
@@ -2051,13 +2051,17 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
   //  flex1_5cmVol->SetLineColor(kRed);
   //  flex2_5cmVol->SetLineColor(kGreen);
 
+  // Compute starting Z pos to center modules in stave
+  // (no need to divide by 2, these are already half-lengths)
+  zbias = zlen - mNumberOfModules * zmod - (mNumberOfModules - 1) * 0.5 * sOBModuleGap;
+
   // Now build up the half stave
   ypos = -ypowbus;
   halfStaveVol->AddNode(powerBusVol, 1, new TGeoTranslation(0, ypos, 0));
 
   ypos -= (ypowbus + ymod);
   for (Int_t j = 0; j < mNumberOfModules; j++) {
-    zpos = zlen - j * (2 * zmod + sOBModuleGap) - zmod;
+    zpos = zlen - zbias - j * (2 * zmod + sOBModuleGap) - zmod;
     halfStaveVol->AddNode(moduleVol, j, new TGeoTranslation(0, ypos, zpos));
     mHierarchy[kModule]++;
   }
