@@ -421,10 +421,11 @@ inline T* GPUReconstruction::AllocateIOMemoryHelper(size_t n, const T*& ptr, std
     return nullptr;
   }
   T* retVal;
-  if (mInputControl.OutputType == GPUOutputControl::UseExternalBuffer) {
+  if (mInputControl.useExternal()) {
     u.reset(nullptr);
-    GPUProcessor::computePointerWithAlignment(mInputControl.OutputPtr, retVal, n);
-    if ((size_t)((char*)mInputControl.OutputPtr - (char*)mInputControl.OutputBase) > mInputControl.OutputMaxSize) {
+    mInputControl.checkCurrent();
+    GPUProcessor::computePointerWithAlignment(mInputControl.ptrCurrent, retVal, n);
+    if ((size_t)((char*)mInputControl.ptrCurrent - (char*)mInputControl.ptrBase) > mInputControl.size) {
       throw std::bad_alloc();
     }
   } else {

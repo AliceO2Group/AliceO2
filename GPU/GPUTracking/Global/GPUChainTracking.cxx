@@ -1377,10 +1377,10 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   if (propagateMCLabels) {
     // TODO: write to buffer directly
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> mcLabels;
-    if (mOutputClusterLabels == nullptr || !mOutputClusterLabels->OutputAllocator) {
+    if (mOutputClusterLabels == nullptr || !mOutputClusterLabels->allocator) {
       throw std::runtime_error("Cluster MC Label buffer missing");
     }
-    ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer* container = reinterpret_cast<ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer*>(mOutputClusterLabels->OutputAllocator(0));
+    ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer* container = reinterpret_cast<ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer*>(mOutputClusterLabels->allocator(0));
 
     assert(propagateMCLabels ? mcLinearLabels.header.size() == nClsTotal : true);
     assert(propagateMCLabels ? mcLinearLabels.data.size() >= nClsTotal : true);

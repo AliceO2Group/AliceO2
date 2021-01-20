@@ -118,8 +118,8 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceO
     for (unsigned int i = 0; i < mOutputRegions->count(); i++) {
       if (outputs->asArray()[i].allocator) {
         mOutputControls[i].set(outputs->asArray()[i].allocator);
-      } else if (outputs->asArray()[i].ptr) {
-        mOutputControls[i].set(outputs->asArray()[i].ptr, outputs->asArray()[i].size);
+      } else if (outputs->asArray()[i].ptrBase) {
+        mOutputControls[i].set(outputs->asArray()[i].ptrBase, outputs->asArray()[i].size);
       } else {
         mOutputControls[i].reset();
       }
@@ -135,9 +135,9 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceO
     return retVal;
   }
   if (mConfig->configInterface.outputToExternalBuffers) {
-    outputs->compressedClusters.size = mOutputControls[outputs->getIndex(outputs->compressedClusters)].EndOfSpace ? 0 : mChain->mIOPtrs.tpcCompressedClusters->totalDataSize;
-    outputs->clustersNative.size = mOutputControls[outputs->getIndex(outputs->clustersNative)].EndOfSpace ? 0 : (mChain->mIOPtrs.clustersNative->nClustersTotal * sizeof(*mChain->mIOPtrs.clustersNative->clustersLinear));
-    outputs->tpcTracks.size = mOutputControls[outputs->getIndex(outputs->tpcTracks)].EndOfSpace ? 0 : (size_t)((char*)mOutputControls[outputs->getIndex(outputs->tpcTracks)].OutputPtr - (char*)mOutputControls[outputs->getIndex(outputs->tpcTracks)].OutputBase);
+    outputs->compressedClusters.size = mOutputControls[outputs->getIndex(outputs->compressedClusters)].size == 1 ? 0 : mChain->mIOPtrs.tpcCompressedClusters->totalDataSize;
+    outputs->clustersNative.size = mOutputControls[outputs->getIndex(outputs->clustersNative)].size == 1 ? 0 : (mChain->mIOPtrs.clustersNative->nClustersTotal * sizeof(*mChain->mIOPtrs.clustersNative->clustersLinear));
+    outputs->tpcTracks.size = mOutputControls[outputs->getIndex(outputs->tpcTracks)].size == 1 ? 0 : (size_t)((char*)mOutputControls[outputs->getIndex(outputs->tpcTracks)].ptrCurrent - (char*)mOutputControls[outputs->getIndex(outputs->tpcTracks)].ptrBase);
   }
   if (mConfig->configQA.shipToQC) {
     outputs->qa.hist1 = &mChain->GetQA()->getHistograms1D();
