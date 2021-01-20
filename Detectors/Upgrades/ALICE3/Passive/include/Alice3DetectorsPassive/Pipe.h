@@ -24,13 +24,13 @@ class Alice3Pipe : public Alice3PassiveBase
   Alice3Pipe();
   ~Alice3Pipe() override;
   Alice3Pipe(const char* name,
-         const char* title = "Alice 3 Pipe",
-         const float innerRho = 0.f,
-         const float innerThickness = 0.f,
-         const float innerLength = 0.f,
-         const float outerRho = 0.f,
-         const float outerThickness = 0.f,
-         const float outerLength = 0.f);
+             const char* title = "Alice 3 Pipe",
+             const float innerRho = 0.f,
+             const float innerThickness = 0.f,
+             const float innerLength = 0.f,
+             const float outerRho = 0.f,
+             const float outerThickness = 0.f,
+             const float outerLength = 0.f);
 
   void ConstructGeometry() override;
 
