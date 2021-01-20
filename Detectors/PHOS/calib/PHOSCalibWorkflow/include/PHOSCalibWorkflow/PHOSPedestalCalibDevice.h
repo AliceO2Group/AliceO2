@@ -62,7 +62,6 @@ class PHOSPedestalCalibDevice : public o2::framework::Task
   std::unique_ptr<TH2F> mRMSLG;                               /// RMS of values in Low Gain channels
   std::array<short, o2::phos::Mapping::NCHANNELS> mPedHGDiff; /// Pedestal variation wrt previous map
   std::array<short, o2::phos::Mapping::NCHANNELS> mPedLGDiff; /// Pedestal variation wrt previous map
-  ClassDefNV(PHOSPedestalCalibDevice, 1);
 };
 
 o2::framework::DataProcessorSpec getPedestalCalibSpec(bool useCCDB, bool forceUpdate, std::string path);

@@ -173,40 +173,6 @@ void CPVPedestalCalibDevice::checkPedestals()
   // }
 }
 
-//
-// Method to compare new pedestals and latest in ccdb
-// Do not update existing object automatically if difference is too strong
-// create object with validity range if far future (?) and send warning (e-mail?) to operator
-// if (mUseCCDB) { // read calibration objects from ccdb
-//    LHCphase lhcPhaseObjTmp;
-/*
-      // for now this part is not implemented; below, the sketch of how it should be done
-      if (mAttachToLHCphase) {
-        // if I want to take the LHCclockphase just produced, I need to loop over what the previous spec produces:
-        int nSlots = pc.inputs().getNofParts(0);
-        assert(pc.inputs().getNofParts(1) == nSlots);
-
-        int lhcphaseIndex = -1;
-        for (int isl = 0; isl < nSlots; isl++) {
-          const auto wrp = pc.inputs().get<CcdbObjectInfo*>("clbInfo", isl);
-          if (wrp->getStartValidityTimestamp() > tfcounter) { // replace tfcounter with the timestamp of the TF
-            lhxphaseIndex = isl - 1;
-            break;
-          }
-        }
-        if (lhcphaseIndex == -1) {
-          // no new object found, use CCDB
-	  auto lhcPhase = pc.inputs().get<LHCphase*>("tofccdbLHCphase");
-          lhcPhaseObjTmp = std::move(*lhcPhase);
-        }
-        else {
-          const auto pld = pc.inputs().get<gsl::span<char>>("clbPayload", lhcphaseIndex); // this is actually an image of TMemFile
-          // now i need to make a LHCphase object; Ruben suggested how, I did not try yet
-	  // ...
-        }
-      }
-*/
-
 o2::framework::DataProcessorSpec o2::cpv::getPedestalCalibSpec(bool useCCDB, bool forceUpdate, std::string path)
 {
 
@@ -220,34 +186,3 @@ o2::framework::DataProcessorSpec o2::cpv::getPedestalCalibSpec(bool useCCDB, boo
                                           o2::framework::adaptFromTask<CPVPedestalCalibDevice>(useCCDB, forceUpdate, path),
                                           o2::framework::Options{}};
 }
-
-// //============================================================
-// DataProcessorSpec getTOFChannelCalibDeviceSpec(bool useCCDB){
-//   using device = o2::calibration::TOFChannelCalibDevice;
-//   using clbUtils = o2::calibration::Utils;
-
-//   std::vector<OutputSpec> outputs;
-//   outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload});
-//   outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
-
-//   std::vector<InputSpec> inputs;
-//   inputs.emplace_back("input", "TOF", "CALIBDATA");
-//   if (useCCDB) {
-//     inputs.emplace_back("tofccdbLHCphase", o2::header::gDataOriginTOF, "LHCphase");
-//     inputs.emplace_back("tofccdbChannelCalib", o2::header::gDataOriginTOF, "ChannelCalib");
-//     inputs.emplace_back("startTimeLHCphase", o2::header::gDataOriginTOF, "StartLHCphase");
-//     inputs.emplace_back("startTimeChCalib", o2::header::gDataOriginTOF, "StartChCalib");
-//   }
-
-//   return DataProcessorSpec{
-//     "calib-tofchannel-calibration",
-//     inputs,
-//     outputs,
-//     AlgorithmSpec{adaptFromTask<device>(useCCDB, attachChannelOffsetToLHCphase)},
-//     Options{
-//       {"min-entries", VariantType::Int, 500, {"minimum number of entries to fit channel histos"}},
-//       {"nbins", VariantType::Int, 1000, {"number of bins for t-texp"}},
-//       {"range", VariantType::Float, 24000.f, {"range for t-text"}},
-//       {"do-TOF-channel-calib-in-test-mode", VariantType::Bool, false, {"to run in test mode for simplification"}},
-//       {"ccdb-path", VariantType::String, "http://ccdb-test.cern.ch:8080", {"Path to CCDB"}}}};
-// }

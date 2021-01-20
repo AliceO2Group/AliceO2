@@ -61,12 +61,14 @@ class DigitizerSpec final : public o2::base::BaseDPLDigitizer
                     int sourceID,
                     int entryID);
 
-  Bool_t mFinished = false;                               ///< Flag for digitization finished
+  float mReadoutTime = 0.;                                ///< PHOS readout time
+  float mDeadTime = 0.;                                   ///< PHOS dead time
   Digitizer mDigitizer;                                   ///< Digitizer object
-  std::vector<TChain*> mSimChains;
-  std::vector<Hit>* mHitsBg = nullptr;                    ///< Vector with input hits from Bg event
-  std::vector<Hit>* mHitsS = nullptr;                     ///< Vector with input hits from Signal event
-  std::vector<Digit> mDigits;                             ///< Vector with non-accumulated digits (per collision)
+  std::vector<TChain*> mSimChains;                        ///< Chain of files for background/signal events
+  std::vector<Hit>* mHits = nullptr;                      ///< Vector with input hits from Signal event
+  std::vector<Digit> mDigitsTmp;                          ///< Vector with accumulated digits (per collision)
+  std::vector<Digit> mDigitsFinal;                        ///< Vector with accumulated digits (per collision)
+  std::vector<Digit> mDigitsOut;                          ///< Vector with accumulated digits (per collision)
   dataformats::MCTruthContainer<o2::MCCompLabel> mLabels; ///< List of labels
 };
 

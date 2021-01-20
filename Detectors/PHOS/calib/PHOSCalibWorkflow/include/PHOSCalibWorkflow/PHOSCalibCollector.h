@@ -124,7 +124,7 @@ class PHOSCalibCollector : public o2::framework::Task
   PHOSCalibCollector() = default;
   PHOSCalibCollector(short mode) : mMode(mode) {}
 
-  ~PHOSCalibCollector() final = default;
+  ~PHOSCalibCollector() override = default;
 
   void init(o2::framework::InitContext& ic) final;
 
