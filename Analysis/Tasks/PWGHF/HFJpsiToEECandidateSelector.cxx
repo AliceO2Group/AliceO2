@@ -40,7 +40,7 @@ constexpr double cuts[npTBins][nCutVars] =
 
 struct HFJpsiToEECandidateSelector {
 
-  Produces<aod::HFSelJpsiCandidate> hfSelJpsiCandidate;
+  Produces<aod::HFSelJpsiToEECandidate> hfSelJpsiToEECandidate;
 
   Configurable<double> d_pTCandMin{"d_pTCandMin", 0., "Lower bound of candidate pT"};
   Configurable<double> d_pTCandMax{"d_pTCandMax", 50., "Upper bound of candidate pT"};
@@ -103,7 +103,7 @@ struct HFJpsiToEECandidateSelector {
       return false; //check that the candidate pT is within the analysis range
     }
 
-    if (TMath::Abs(InvMassJpsi(hfCandProng2) - RecoDecay::getMassPDG(443)) > cuts[pTBin][0]) {
+    if (TMath::Abs(InvMassJpsiToEE(hfCandProng2) - RecoDecay::getMassPDG(443)) > cuts[pTBin][0]) {
       return false;
     }
 
@@ -143,14 +143,7 @@ struct HFJpsiToEECandidateSelector {
   template <typename T>
   bool selectionPIDTPC(const T& track, int nSigmaCut)
   {
-    double nSigma = 1.0; //arbitarily large value
-    nPDG = TMath::Abs(11);
-    //if (nPDG == 11) {
-    //  nSigma = track.tpcNSigmaEl();
-    //} else {
-    //  return false;
-    //}
-    return nSigma < nSigmaCut;
+    return track.tpcNSigmaEl() < nSigmaCut;
   }
 
   /// PID selection on daughter track
@@ -161,33 +154,21 @@ struct HFJpsiToEECandidateSelector {
   template <typename T>
   int selectionPID(const T& track, int nPDG)
   {
-    int statusTPC = -1;
-    // int statusTOF = -1;
 
     if (validTPCPID(track)) {
       if (!selectionPIDTPC(track, d_nSigmaTPC)) {
 
-        statusTPC = 0; //rejected by PID
+        return 0; //rejected by PID
       } else {
-        statusTPC = 1; //positive PID
+        return 1; //positive PID
       }
     } else {
-      statusTPC = -1; //no PID info
-    }
-
-    if (statusTPC == 1) {
-      return 1; //what if we have 2 && 0 ?
-    } else if (statusTPC == 0) {
-      return 0;
-    } else {
-      return -1;
+      return -1; //no PID info
     }
   }
-
   void process(aod::HfCandProng2 const& hfCandProng2s, aod::BigTracksPID const& tracks)
   {
     int statusJpsi; // final selection flag : 0-rejected  1-accepted
-    int pidJpsi, electronPlus, electronMinus;
 
     for (auto& hfCandProng2 : hfCandProng2s) { //looping over 2 prong candidates
 
@@ -195,18 +176,15 @@ struct HFJpsiToEECandidateSelector {
       auto trackNeg = hfCandProng2.index1_as<aod::BigTracksPID>(); //negative daughter
 
       statusJpsi = 0;
-      pidJpsi = -1;
-      electronPlus = -1;
-      electronMinus = -1;
 
       if (!(hfCandProng2.hfflag() & 1 << JpsiToEE)) {
-        hfSelJpsiCandidate(statusJpsi);
+        hfSelJpsiToEECandidate(statusJpsi);
         continue;
       }
 
       // daughter track validity selection
       if (!daughterSelection(trackPos) || !daughterSelection(trackNeg)) {
-        hfSelJpsiCandidate(statusJpsi);
+        hfSelJpsiToEECandidate(statusJpsi);
         continue;
       }
 
@@ -214,16 +192,16 @@ struct HFJpsiToEECandidateSelector {
       //need to add special cuts (additional cuts on decay length and d0 norm)
 
       if (!selectionTopol(hfCandProng2, trackPos, trackNeg)) {
-        hfSelJpsiCandidate(statusJpsi);
+        hfSelJpsiToEECandidate(statusJpsi);
         continue;
       }
 
       if (selectionPID(trackPos, 11) == 0 || selectionPID(trackNeg, 11) == 0) {
-        hfSelJpsiCandidate(statusJpsi);
+        hfSelJpsiToEECandidate(statusJpsi);
         continue;
       }
 
-      hfSelJpsiCandidate(1);
+      hfSelJpsiToEECandidate(1);
     }
   }
 };
@@ -231,5 +209,5 @@ struct HFJpsiToEECandidateSelector {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HFJpsiToEECandidateSelector>("hf-jpsi-candidate-selector")};
+    adaptAnalysisTask<HFJpsiToEECandidateSelector>("hf-jpsi-toee-candidate-selector")};
 }

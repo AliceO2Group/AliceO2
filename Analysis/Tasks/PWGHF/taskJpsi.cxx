@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file taskJpsiToEE.cxx
+/// \file taskJpsi.cxx
 /// \brief Jpsi analysis task
 ///
 /// \author Gian Michele Innocenti <gian.michele.innocenti@cern.ch>, CERN
@@ -33,7 +33,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h"
 
 /// jpsitoee analysis task
-struct TaskJpsiToEE {
+struct TaskJpsi {
   HistogramRegistry registry{
     "registry",
     {{"hmass", "2-prong candidates;inv. mass (#e+ e-) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
@@ -54,9 +54,9 @@ struct TaskJpsiToEE {
   Configurable<int> d_selectionFlagJpsi{"d_selectionFlagJpsi", 1, "Selection Flag for Jpsi"};
   Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
 
-  Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsi >= d_selectionFlagJpsi);
+  Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsiToEE >= d_selectionFlagJpsi);
 
-  void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiCandidate>> const& candidates)
+  void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiToEECandidate>> const& candidates)
   //  void process(aod::HfCandProng2 const& candidates)
   {
     //Printf("Candidates: %d", candidates.size());
@@ -69,7 +69,7 @@ struct TaskJpsiToEE {
         continue;
       }
 
-      registry.fill(HIST("hmass"), InvMassJpsi(candidate));
+      registry.fill(HIST("hmass"), InvMassJpsiToEE(candidate));
       registry.fill(HIST("hptcand"), candidate.pt());
       registry.fill(HIST("hptprong0"), candidate.ptProng0());
       registry.fill(HIST("hptprong1"), candidate.ptProng1());
@@ -89,7 +89,7 @@ struct TaskJpsiToEE {
 };
 
 /// Fills MC histograms.
-struct TaskJpsiToEEMC {
+struct TaskJpsiMC {
   HistogramRegistry registry{
     "registry",
     {{"hPtRecSig", "2-prong candidates (rec. matched);#it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
@@ -103,9 +103,9 @@ struct TaskJpsiToEEMC {
 
   Configurable<int> d_selectionFlagJpsi{"d_selectionFlagJpsi", 1, "Selection Flag for Jpsi"};
   Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
-  Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsi >= d_selectionFlagJpsi);
+  Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsiToEE >= d_selectionFlagJpsi);
 
-  void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiCandidate, aod::HfCandProng2MCRec>> const& candidates,
+  void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiToEECandidate, aod::HfCandProng2MCRec>> const& candidates,
                soa::Join<aod::McParticles, aod::HfCandProng2MCGen> const& particlesMC)
   {
     // MC rec.
@@ -146,10 +146,10 @@ struct TaskJpsiToEEMC {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<TaskJpsiToEE>("hf-task-jpsi")};
+    adaptAnalysisTask<TaskJpsi>("hf-task-jpsi")};
   const bool doMC = cfgc.options().get<bool>("doMC");
   if (doMC) {
-    workflow.push_back(adaptAnalysisTask<TaskJpsiMCToEE>("hf-task-jpsi-mc"));
+    workflow.push_back(adaptAnalysisTask<TaskJpsiMC>("hf-task-jpsi-mc"));
   }
   return workflow;
 }

@@ -225,7 +225,7 @@ auto EJpsi(const T& candidate)
 }
 
 template <typename T>
-auto InvMassJpsi(const T& candidate)
+auto InvMassJpsiToEE(const T& candidate)
 {
   return candidate.m(array{RecoDecay::getMassPDG(kElectron), RecoDecay::getMassPDG(kElectron)});
 }

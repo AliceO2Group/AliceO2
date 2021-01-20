@@ -35,8 +35,8 @@ namespace o2::aod
 {
 namespace hf_selcandidate_jpsi
 {
-DECLARE_SOA_COLUMN(IsSelJpsi, isSelJpsi, int);
+DECLARE_SOA_COLUMN(IsSelJpsiToEE, isSelJpsiToEE, int);
 } // namespace hf_selcandidate_jpsi
-DECLARE_SOA_TABLE(HFSelJpsiCandidate, "AOD", "HFSELJPSICAND", hf_selcandidate_jpsi::IsSelJpsi);
+DECLARE_SOA_TABLE(HFSelJpsiToEECandidate, "AOD", "HFSELJPSICAND", hf_selcandidate_jpsi::IsSelJpsiToEE);
 } // namespace o2::aod
 #endif // O2_ANALYSIS_HFCANDIDATESELECTIONTABLES_H_

@@ -38,7 +38,7 @@ o2_add_dpl_workflow(hf-lc-candidate-selector
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(hf-jpsi-candidate-selector   
+o2_add_dpl_workflow(hf-jpsi-toee-candidate-selector   
                     SOURCES HFJpsiToEECandidateSelector.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
@@ -59,6 +59,6 @@ o2_add_dpl_workflow(hf-task-lc
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(hf-task-jpsi                                
-                    SOURCES taskJpsiToEE.cxx
+                    SOURCES taskJpsi.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
