@@ -17,9 +17,9 @@
 #include "AnalysisDataModel/PID/PIDResponse.h"
 #include "AnalysisDataModel/TrackSelectionTables.h"
 
-// #include "AnalysisDataModel/EventSelection.h"
-// #include "AnalysisDataModel/TrackSelectionTables.h"
-// #include "AnalysisDataModel/Centrality.h"
+#include "AnalysisDataModel/EventSelection.h"
+#include "AnalysisDataModel/TrackSelectionTables.h"
+#include "AnalysisDataModel/Centrality.h"
 
 #include "Framework/HistogramRegistry.h"
 
@@ -43,13 +43,13 @@ struct NucleiSpecraTask {
     AxisSpec ptAxis = {ptBinning, "#it{p}_{T} (GeV/#it{c})"};
     AxisSpec centAxis = {centBinning, "V0M (%)"};
 
+    spectra.add("fCollZpos", "collision z position", HistType::kTH1F,{{600, -20., +20., "z position (cm)"}});
     spectra.add("fTPCsignal", "Specific energy loss", HistType::kTH2F, {{600, 0., 3, "#it{p} (GeV/#it{c})"}, {1400, 0, 1400, "d#it{E} / d#it{X} (a. u.)"}});
-
-    spectra.add("fTPCcounts", "n-sigma TPC", HistType::kTH2F, {ptAxis, {200, -5, 5, "n#sigma_{d} (a. u.)"}});
+    spectra.add("fTPCcounts", "n-sigma TPC", HistType::kTH2F, {ptAxis, {200, -100., +100., "n#sigma_{He} (a. u.)"}});
   }
 
-  Configurable<float> yMin{"yMin", -0.5, "Maximum rapidity"};
-  Configurable<float> yMax{"yMax", 0.5, "Minimum rapidity"};
+  Configurable<float> yMin{"yMin", -0.8, "Maximum rapidity"};
+  Configurable<float> yMax{"yMax", 0.8, "Minimum rapidity"};
   Configurable<float> yBeam{"yBeam", 0., "Beam rapidity"};
 
   Configurable<float> cfgCutVertex{"cfgCutVertex", 10.0f, "Accepted z-vertex range"};
@@ -61,26 +61,27 @@ struct NucleiSpecraTask {
 
   using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::pidRespTOF, aod::pidRespTOFbeta, aod::TrackSelection>>;
 
-  void process(/*soa::Join<aod::Collisions, aod::EvSels, aod::Cents> aod::Collisions::iterator const& col, */ TrackCandidates const& tracks)
+  void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision, aod::BCsWithTimestamps const&, TrackCandidates const& tracks)
   {
-    /*
-    if (!col.alias()[kINT7])
+    
+    if (!collision.alias()[kINT7])
       return;
-    if (!col.sel7())
+    if (!collision.sel7())
       return;
 
-    fMultiplicity->Fill(col.centV0M());
-    */
+    spectra.fill(HIST("fCollZpos"), collision.posZ());
+
+
     for (auto track : tracks) {
 
       TLorentzVector cutVector{};
-      cutVector.SetPtEtaPhiM(track.pt(), track.eta(), track.phi(), constants::physics::MassDeuteron);
+      cutVector.SetPtEtaPhiM(track.pt(), track.eta(), track.phi(), constants::physics::MassHelium3);
       if (cutVector.Rapidity() < yMin + yBeam || cutVector.Rapidity() > yMax + yBeam) {
         continue;
       }
 
       spectra.fill(HIST("fTPCsignal"), track.tpcInnerParam(), track.tpcSignal());
-      spectra.fill(HIST("fTPCcounts"), fabs(track.pt()), track.tpcNSigmaDe());
+      spectra.fill(HIST("fTPCcounts"), fabs(track.pt()), track.tpcNSigmaHe());
     }
   }
 };
