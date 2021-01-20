@@ -134,11 +134,6 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceO
     mRec->ClearAllocatedMemory();
     return retVal;
   }
-  if (mConfig->configInterface.outputToExternalBuffers) {
-    outputs->compressedClusters.size = mOutputControls[outputs->getIndex(outputs->compressedClusters)].size == 1 ? 0 : mChain->mIOPtrs.tpcCompressedClusters->totalDataSize;
-    outputs->clustersNative.size = mOutputControls[outputs->getIndex(outputs->clustersNative)].size == 1 ? 0 : (mChain->mIOPtrs.clustersNative->nClustersTotal * sizeof(*mChain->mIOPtrs.clustersNative->clustersLinear));
-    outputs->tpcTracks.size = mOutputControls[outputs->getIndex(outputs->tpcTracks)].size == 1 ? 0 : (size_t)((char*)mOutputControls[outputs->getIndex(outputs->tpcTracks)].ptrCurrent - (char*)mOutputControls[outputs->getIndex(outputs->tpcTracks)].ptrBase);
-  }
   if (mConfig->configQA.shipToQC) {
     outputs->qa.hist1 = &mChain->GetQA()->getHistograms1D();
     outputs->qa.hist2 = &mChain->GetQA()->getHistograms2D();

@@ -391,7 +391,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         }
         std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
         for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
-          const o2::header::DataHeader* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+          const DataHeader* dh = DataRefUtils::getHeader<DataHeader*>(ref);
           const gsl::span<const char> raw = pc.inputs().get<gsl::span<char>>(ref);
           o2::framework::RawParser parser(raw.data(), raw.size());
 
@@ -403,7 +403,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
           size_t totalSize = 0;
           for (auto it = parser.begin(); it != parser.end(); it++) {
             const unsigned char* current = it.raw();
-            const o2::header::RAWDataHeader* rdh = (const o2::header::RAWDataHeader*)current;
+            const RAWDataHeader* rdh = (const RAWDataHeader*)current;
             if (current == nullptr || it.size() == 0 || (current - ptr) % TPCZSHDR::TPC_ZS_PAGE_SIZE || o2::raw::RDHUtils::getFEEID(*rdh) != lastFEE) {
               if (count) {
                 tpcZSmetaPointers[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(ptr);
@@ -445,7 +445,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         /*DPLRawParser parser(pc.inputs(), filter);
         for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
           // retrieving RDH v4
-          auto const* rdh = it.get_if<o2::header::RAWDataHeaderV4>();
+          auto const* rdh = it.get_if<RAWDataHeaderV4>();
           // retrieving the raw pointer of the page
           auto const* raw = it.raw();
           // retrieving payload pointer of the page
@@ -484,28 +484,26 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
 
       const auto& inputsClustersDigits = getWorkflowTPCInput(pc, verbosity, getWorkflowTPCInput_mc, getWorkflowTPCInput_clusters, processAttributes->tpcSectorMask, getWorkflowTPCInput_digits);
 
-      if (specconfig.caClusterer) {
-        if (specconfig.zsOnTheFly) {
-          const unsigned long long int* buffer = reinterpret_cast<const unsigned long long int*>(&inputZS[0]);
-          o2::gpu::GPUReconstructionConvert::RunZSEncoderCreateMeta(buffer, tpcZSonTheFlySizes.data(), *&ptrEp, &tpcZS);
-          ptrs.tpcZS = &tpcZS;
-          if (specconfig.processMC) {
-            ptrs.o2Digits = &inputsClustersDigits->inputDigits;
-            ptrs.o2DigitsMC = &inputsClustersDigits->inputDigitsMCPtrs;
-          }
-        } else if (specconfig.zsDecoder) {
-          ptrs.tpcZS = &tpcZS;
-          if (specconfig.processMC) {
-            throw std::runtime_error("Cannot process MC information, none available");
-          }
-        } else {
-          ptrs.o2Digits = &inputsClustersDigits->inputDigits;
-          if (specconfig.processMC) {
-            ptrs.o2DigitsMC = &inputsClustersDigits->inputDigitsMCPtrs;
-          }
-        }
-      } else if (specconfig.decompressTPC) {
+      if (specconfig.decompressTPC) {
         ptrs.compressedClusters = pCompClustersFlat;
+      } else if (specconfig.zsOnTheFly) {
+        const unsigned long long int* buffer = reinterpret_cast<const unsigned long long int*>(&inputZS[0]);
+        o2::gpu::GPUReconstructionConvert::RunZSEncoderCreateMeta(buffer, tpcZSonTheFlySizes.data(), *&ptrEp, &tpcZS);
+        ptrs.tpcZS = &tpcZS;
+        if (specconfig.processMC) {
+          ptrs.o2Digits = &inputsClustersDigits->inputDigits;
+          ptrs.o2DigitsMC = &inputsClustersDigits->inputDigitsMCPtrs;
+        }
+      } else if (specconfig.zsDecoder) {
+        ptrs.tpcZS = &tpcZS;
+        if (specconfig.processMC) {
+          throw std::runtime_error("Cannot process MC information, none available");
+        }
+      } else if (specconfig.caClusterer) {
+        ptrs.o2Digits = &inputsClustersDigits->inputDigits;
+        if (specconfig.processMC) {
+          ptrs.o2DigitsMC = &inputsClustersDigits->inputDigitsMCPtrs;
+        }
       } else {
         ptrs.clusters = &inputsClustersDigits->clusterIndex;
       }
@@ -515,52 +513,35 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       TPCSectorHeader clusterOutputSectorHeader{0};
       if (processAttributes->clusterOutputIds.size() > 0) {
         clusterOutputSectorHeader.sectorBits = processAttributes->tpcSectorMask;
-        // subspecs [0, NSectors - 1] are used to identify sector data, we use NSectors
-        // to indicate the full TPC
+        // subspecs [0, NSectors - 1] are used to identify sector data, we use NSectors to indicate the full TPC
         clusterOutputSectorHeader.activeSectors = processAttributes->tpcSectorMask;
       }
 
       GPUInterfaceOutputs outputRegions;
-      std::optional<std::reference_wrapper<O2CharVectorOutputType>> clusterOutput = std::nullopt, bufferCompressedClusters = std::nullopt, bufferTPCTracks = std::nullopt, bufferSharedClusterMap = std::nullopt;
-      char *clusterOutputChar = nullptr, *bufferCompressedClustersChar = nullptr, *bufferTPCTracksChar = nullptr, *bufferSharedClusterMapChar;
-      if (specconfig.outputCompClustersFlat) {
-        if (processAttributes->allocateOutputOnTheFly) {
-          outputRegions.compressedClusters.allocator = [&bufferCompressedClustersChar, &pc](size_t size) -> void* {bufferCompressedClustersChar = pc.outputs().make<char>(Output{gDataOriginTPC, "COMPCLUSTERSFLAT", 0}, size).data(); return bufferCompressedClustersChar; };
-        } else {
-          bufferCompressedClusters.emplace(pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "COMPCLUSTERSFLAT", 0}, processAttributes->outputBufferSize));
-          outputRegions.compressedClusters.ptrBase = bufferCompressedClustersChar = bufferCompressedClusters->get().data();
-          outputRegions.compressedClusters.size = bufferCompressedClusters->get().size();
+      std::vector<std::pair<std::optional<std::reference_wrapper<O2CharVectorOutputType>>, char*>> outputBuffers(GPUInterfaceOutputs::count(), {std::nullopt, nullptr});
+
+      auto setOutputAllocator = [&specconfig, &outputBuffers, &outputRegions, &processAttributes, &pc, verbosity](bool condition, GPUOutputControl& region, auto&& outputSpec, size_t offset = 0) {
+        if (condition) {
+          auto& buffer = outputBuffers[outputRegions.getIndex(region)];
+          if (processAttributes->allocateOutputOnTheFly) {
+            region.allocator = [&buffer, &pc, outputSpec = std::move(outputSpec), verbosity, offset](size_t size) -> void* {
+              size += offset;
+              if (verbosity) {
+                LOG(INFO) << "ALLOCATING " << size << " bytes for " << std::get<DataOrigin>(outputSpec).template as<std::string>() << "/" << std::get<DataDescription>(outputSpec).template as<std::string>() << "/" << std::get<2>(outputSpec);
+              }
+              return (buffer.second = pc.outputs().make<char>(std::make_from_tuple<Output>(outputSpec), size).data()) + offset;
+            };
+          } else {
+            buffer.first.emplace(pc.outputs().make<std::vector<char>>(std::make_from_tuple<Output>(outputSpec), processAttributes->outputBufferSize));
+            region.ptrBase = (buffer.second = buffer.first->get().data()) + offset;
+            region.size = buffer.first->get().size() - offset;
+          }
         }
-      }
-      if (processAttributes->clusterOutputIds.size() > 0) {
-        const o2::header::DataDescription outputLabel = specconfig.sendClustersPerSector ? (o2::header::DataDescription) "CLUSTERNATIVETMP" : (o2::header::DataDescription) "CLUSTERNATIVE";
-        if (processAttributes->allocateOutputOnTheFly) {
-          outputRegions.clustersNative.allocator = [&clusterOutputChar, &pc, clusterOutputSectorHeader, outputLabel](size_t size) -> void* {clusterOutputChar = pc.outputs().make<char>({gDataOriginTPC, outputLabel, NSectors, Lifetime::Timeframe, {clusterOutputSectorHeader}}, size + sizeof(ClusterCountIndex)).data(); return clusterOutputChar + sizeof(ClusterCountIndex); };
-        } else {
-          clusterOutput.emplace(pc.outputs().make<std::vector<char>>({gDataOriginTPC, outputLabel, NSectors, Lifetime::Timeframe, {clusterOutputSectorHeader}}, processAttributes->outputBufferSize));
-          clusterOutputChar = clusterOutput->get().data();
-          outputRegions.clustersNative.ptrBase = clusterOutputChar + sizeof(ClusterCountIndex);
-          outputRegions.clustersNative.size = clusterOutput->get().size() - sizeof(ClusterCountIndex);
-        }
-      }
-      if (specconfig.outputTracks) {
-        if (processAttributes->allocateOutputOnTheFly) {
-          outputRegions.tpcTracks.allocator = [&bufferTPCTracksChar, &pc](size_t size) -> void* {bufferTPCTracksChar = pc.outputs().make<char>(Output{gDataOriginTPC, "TRACKSGPU", 0}, size).data(); return bufferTPCTracksChar; };
-        } else {
-          bufferTPCTracks.emplace(pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "TRACKSGPU", 0}, processAttributes->outputBufferSize));
-          outputRegions.tpcTracks.ptrBase = bufferTPCTracksChar = bufferTPCTracks->get().data();
-          outputRegions.tpcTracks.size = bufferTPCTracks->get().size();
-        }
-      }
-      if (specconfig.outputSharedClusterMap) {
-        if (processAttributes->allocateOutputOnTheFly) {
-          outputRegions.sharedClusterMap.allocator = [&bufferSharedClusterMapChar, &pc](size_t size) -> void* {bufferSharedClusterMapChar = pc.outputs().make<char>(Output{gDataOriginTPC, "CLSHAREDMAP", 0}, size).data(); return bufferSharedClusterMapChar; };
-        } else {
-          bufferSharedClusterMap.emplace(pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "CLSHAREDMAP", 0}, processAttributes->outputBufferSize));
-          outputRegions.sharedClusterMap.ptrBase = bufferSharedClusterMapChar = bufferSharedClusterMap->get().data();
-          outputRegions.sharedClusterMap.size = bufferSharedClusterMap->get().size();
-        }
-      }
+      };
+      setOutputAllocator(specconfig.outputCompClustersFlat, outputRegions.compressedClusters, std::make_tuple(gDataOriginTPC, (DataDescription) "COMPCLUSTERSFLAT", 0));
+      setOutputAllocator(processAttributes->clusterOutputIds.size() > 0, outputRegions.clustersNative, std::make_tuple(gDataOriginTPC, specconfig.sendClustersPerSector ? (DataDescription) "CLUSTERNATIVETMP" : (DataDescription) "CLUSTERNATIVE", NSectors, Lifetime::Timeframe, clusterOutputSectorHeader), sizeof(ClusterCountIndex));
+      setOutputAllocator(specconfig.outputTracks, outputRegions.tpcTracks, std::make_tuple(gDataOriginTPC, (DataDescription) "TRACKSGPU", 0));
+      setOutputAllocator(specconfig.outputSharedClusterMap, outputRegions.sharedClusterMap, std::make_tuple(gDataOriginTPC, (DataDescription) "CLSHAREDMAP", 0));
       if (specconfig.processMC && specconfig.caClusterer) {
         outputRegions.clusterLabels.allocator = [&clustersMCBuffer](size_t size) -> void* { return &clustersMCBuffer; };
       }
@@ -572,6 +553,23 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       if (retVal != 0) {
         throw std::runtime_error("tracker returned error code " + std::to_string(retVal));
       }
+
+      if (!processAttributes->allocateOutputOnTheFly) {
+        for (unsigned int i = 0; i < outputRegions.count(); i++) {
+          if (outputRegions.asArray()[i].ptrBase) {
+            if (outputRegions.asArray()[i].size == 1) {
+              throw std::runtime_error("Preallocated buffer size exceeded");
+            }
+            outputRegions.asArray()[i].checkCurrent();
+            outputBuffers[i].first->get().resize((char*)outputRegions.asArray()[i].ptrCurrent - (char*)outputBuffers[i].second);
+            if ((void*)outputBuffers[i].first->get().data() != (void*)outputBuffers[i].second) {
+              throw std::runtime_error("Output buffer ptr out of sync");
+            }
+            outputBuffers[i].second = outputBuffers[i].first->get().data();
+          }
+        }
+      }
+
       LOG(INFO) << "found " << tracks.size() << " track(s)";
       // tracks are published if the output channel is configured
       if (specconfig.outputTracks) {
@@ -583,42 +581,22 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         }
       }
 
-      if (ptrs.compressedClusters != nullptr) {
-        if (specconfig.outputCompClustersFlat) {
-          if (!processAttributes->allocateOutputOnTheFly) {
-            bufferCompressedClusters->get().resize(outputRegions.compressedClusters.size);
-          }
-          if ((void*)ptrs.compressedClusters != (void*)bufferCompressedClustersChar) {
-            throw std::runtime_error("compressed cluster output ptrs out of sync"); // sanity check
-          }
-        }
-        if (specconfig.outputCompClusters) {
-          CompressedClustersROOT compressedClusters = *ptrs.compressedClusters;
-          pc.outputs().snapshot(Output{gDataOriginTPC, "COMPCLUSTERS", 0}, ROOTSerialized<CompressedClustersROOT const>(compressedClusters));
-        }
-      } else {
-        LOG(ERROR) << "unable to get compressed cluster info from track";
+      if (specconfig.outputCompClusters) {
+        CompressedClustersROOT compressedClusters = *ptrs.compressedClusters;
+        pc.outputs().snapshot(Output{gDataOriginTPC, "COMPCLUSTERS", 0}, ROOTSerialized<CompressedClustersROOT const>(compressedClusters));
       }
 
-      // publish clusters produced by CA clusterer sector-wise if the outputs are configured
-      if (processAttributes->clusterOutputIds.size() > 0 && ptrs.clusters == nullptr) {
-        throw std::logic_error("No cluster index object provided by GPU processor");
-      }
-      // previously, clusters have been published individually for the enabled sectors
-      // clusters are now published as one block, subspec is NSectors
       if (processAttributes->clusterOutputIds.size() > 0) {
-        if (!processAttributes->allocateOutputOnTheFly) {
-          clusterOutput->get().resize(sizeof(ClusterCountIndex) + outputRegions.clustersNative.size);
-        }
-        if ((void*)ptrs.clusters->clustersLinear != (void*)(clusterOutputChar + sizeof(ClusterCountIndex))) {
+        if ((void*)ptrs.clusters->clustersLinear != (void*)(outputBuffers[outputRegions.getIndex(outputRegions.clustersNative)].second + sizeof(ClusterCountIndex))) {
           throw std::runtime_error("cluster native output ptrs out of sync"); // sanity check
         }
 
         ClusterNativeAccess const& accessIndex = *ptrs.clusters;
         if (specconfig.sendClustersPerSector) {
+          // Clusters are shipped by sector, we are copying into per-sector buffers (anyway only for ROOT output)
           for (int i = 0; i < NSectors; i++) {
             if (processAttributes->tpcSectorMask & (1ul << i)) {
-              o2::header::DataHeader::SubSpecificationType subspec = i;
+              DataHeader::SubSpecificationType subspec = i;
               clusterOutputSectorHeader.sectorBits = (1ul << i);
               char* buffer = pc.outputs().make<char>({gDataOriginTPC, "CLUSTERNATIVE", subspec, Lifetime::Timeframe, {clusterOutputSectorHeader}}, accessIndex.nClustersSector[i] * sizeof(*accessIndex.clustersLinear) + sizeof(ClusterCountIndex)).data();
               ClusterCountIndex* outIndex = reinterpret_cast<ClusterCountIndex*>(buffer);
@@ -642,8 +620,9 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
             }
           }
         } else {
-          o2::header::DataHeader::SubSpecificationType subspec = NSectors;
-          ClusterCountIndex* outIndex = reinterpret_cast<ClusterCountIndex*>(clusterOutputChar);
+          // Clusters are shipped as single message, fill ClusterCountIndex
+          DataHeader::SubSpecificationType subspec = NSectors;
+          ClusterCountIndex* outIndex = reinterpret_cast<ClusterCountIndex*>(outputBuffers[outputRegions.getIndex(outputRegions.clustersNative)].second);
           static_assert(sizeof(ClusterCountIndex) == sizeof(accessIndex.nClusters));
           memcpy(outIndex, &accessIndex.nClusters[0][0], sizeof(ClusterCountIndex));
           if (specconfig.processMC && specconfig.caClusterer && accessIndex.clustersMCTruth) {
@@ -728,7 +707,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
     }
     if (specconfig.processMC && specconfig.outputTracks) {
       OutputLabel label{"mclblout"};
-      constexpr o2::header::DataDescription datadesc("TRACKSMCLBL");
+      constexpr DataDescription datadesc("TRACKSMCLBL");
       outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
     }
     if (specconfig.outputCompClusters) {
