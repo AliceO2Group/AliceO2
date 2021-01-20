@@ -528,7 +528,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
           outputRegions.compressedClusters.allocator = [&bufferCompressedClustersChar, &pc](size_t size) -> void* {bufferCompressedClustersChar = pc.outputs().make<char>(Output{gDataOriginTPC, "COMPCLUSTERSFLAT", 0}, size).data(); return bufferCompressedClustersChar; };
         } else {
           bufferCompressedClusters.emplace(pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "COMPCLUSTERSFLAT", 0}, processAttributes->outputBufferSize));
-          outputRegions.compressedClusters.ptr = bufferCompressedClustersChar = bufferCompressedClusters->get().data();
+          outputRegions.compressedClusters.ptrBase = bufferCompressedClustersChar = bufferCompressedClusters->get().data();
           outputRegions.compressedClusters.size = bufferCompressedClusters->get().size();
         }
       }
@@ -539,7 +539,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         } else {
           clusterOutput.emplace(pc.outputs().make<std::vector<char>>({gDataOriginTPC, outputLabel, NSectors, Lifetime::Timeframe, {clusterOutputSectorHeader}}, processAttributes->outputBufferSize));
           clusterOutputChar = clusterOutput->get().data();
-          outputRegions.clustersNative.ptr = clusterOutputChar + sizeof(ClusterCountIndex);
+          outputRegions.clustersNative.ptrBase = clusterOutputChar + sizeof(ClusterCountIndex);
           outputRegions.clustersNative.size = clusterOutput->get().size() - sizeof(ClusterCountIndex);
         }
       }
@@ -548,7 +548,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
           outputRegions.tpcTracks.allocator = [&bufferTPCTracksChar, &pc](size_t size) -> void* {bufferTPCTracksChar = pc.outputs().make<char>(Output{gDataOriginTPC, "TRACKSGPU", 0}, size).data(); return bufferTPCTracksChar; };
         } else {
           bufferTPCTracks.emplace(pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "TRACKSGPU", 0}, processAttributes->outputBufferSize));
-          outputRegions.tpcTracks.ptr = bufferTPCTracksChar = bufferTPCTracks->get().data();
+          outputRegions.tpcTracks.ptrBase = bufferTPCTracksChar = bufferTPCTracks->get().data();
           outputRegions.tpcTracks.size = bufferTPCTracks->get().size();
         }
       }
@@ -557,7 +557,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
           outputRegions.sharedClusterMap.allocator = [&bufferSharedClusterMapChar, &pc](size_t size) -> void* {bufferSharedClusterMapChar = pc.outputs().make<char>(Output{gDataOriginTPC, "CLSHAREDMAP", 0}, size).data(); return bufferSharedClusterMapChar; };
         } else {
           bufferSharedClusterMap.emplace(pc.outputs().make<std::vector<char>>(Output{gDataOriginTPC, "CLSHAREDMAP", 0}, processAttributes->outputBufferSize));
-          outputRegions.sharedClusterMap.ptr = bufferSharedClusterMapChar = bufferSharedClusterMap->get().data();
+          outputRegions.sharedClusterMap.ptrBase = bufferSharedClusterMapChar = bufferSharedClusterMap->get().data();
           outputRegions.sharedClusterMap.size = bufferSharedClusterMap->get().size();
         }
       }
