@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "A3DetectorsPassive/A3Pipe.h"
+#include "Alice3DetectorsPassive/Pipe.h"
 #include <DetectorsBase/Detector.h>
 #include <DetectorsBase/MaterialManager.h>
 #include <TGeoTube.h>
@@ -25,8 +25,8 @@
 
 using namespace o2::passive;
 
-A3Pipe::A3Pipe() : A3PassiveBase{"Alice3PIPE", ""} {}
-A3Pipe::A3Pipe(const char* name,
+Alice3Pipe::Alice3Pipe() : Alice3PassiveBase{"Alice3PIPE", ""} {}
+Alice3Pipe::Alice3Pipe(const char* name,
                const char* title,
                float innerRho,
                float innerThickness,
@@ -34,7 +34,7 @@ A3Pipe::A3Pipe(const char* name,
                float outerRho,
                float outerThickness,
                float outerLength)
-  : A3PassiveBase{name, title},
+  : Alice3PassiveBase{name, title},
     mBeInnerPipeRmax{innerRho},
     mBeInnerPipeThick{innerThickness},
     mInnerIpHLength{innerLength},
@@ -44,8 +44,8 @@ A3Pipe::A3Pipe(const char* name,
 {
 }
 
-A3Pipe::~A3Pipe() = default;
-A3Pipe& A3Pipe::operator=(const A3Pipe& rhs)
+Alice3Pipe::~Alice3Pipe() = default;
+Alice3Pipe& Alice3Pipe::operator=(const Alice3Pipe& rhs)
 {
   // self assignment
   if (this == &rhs) {
@@ -53,16 +53,16 @@ A3Pipe& A3Pipe::operator=(const A3Pipe& rhs)
   }
 
   // base class assignment
-  A3PassiveBase::operator=(rhs);
+  Alice3PassiveBase::operator=(rhs);
 
   return *this;
 }
 
-void A3Pipe::ConstructGeometry()
+void Alice3Pipe::ConstructGeometry()
 {
   createMaterials();
   //
-  //  Class describing the beam A3Pipe geometry
+  //  Class describing the beam Alice3Pipe geometry
   //
   float z, zsh, z0;
   //
@@ -79,11 +79,11 @@ void A3Pipe::ConstructGeometry()
   // Media
   auto& matmgr = o2::base::MaterialManager::Instance();
 
-  const TGeoMedium* kMedBe = matmgr.getTGeoMedium("A3PIPE_BE");
-  const TGeoMedium* kMedVac = matmgr.getTGeoMedium("A3PIPE_VACUUM");
-  const TGeoMedium* kMedVacNF = matmgr.getTGeoMedium("A3PIPE_VACUUM_NF");
-  const TGeoMedium* kMedVacHC = matmgr.getTGeoMedium("A3PIPE_VACUUM_HC");
-  const TGeoMedium* kMedVacNFHC = matmgr.getTGeoMedium("A3PIPE_VACUUM_NFHC");
+  const TGeoMedium* kMedBe = matmgr.getTGeoMedium("ALICE3PIPE_BE");
+  const TGeoMedium* kMedVac = matmgr.getTGeoMedium("ALICE3PIPE_VACUUM");
+  const TGeoMedium* kMedVacNF = matmgr.getTGeoMedium("ALICE3PIPE_VACUUM_NF");
+  const TGeoMedium* kMedVacHC = matmgr.getTGeoMedium("ALICE3PIPE_VACUUM_HC");
+  const TGeoMedium* kMedVacNFHC = matmgr.getTGeoMedium("ALICE3PIPE_VACUUM_NFHC");
 
   // Top volume
   TGeoVolume* top = gGeoManager->GetVolume("cave");
@@ -123,10 +123,10 @@ void A3Pipe::ConstructGeometry()
   barrel->AddNode(outerBerylliumTubeVacuumVolume, 1, gGeoIdentity);
 }
 
-void A3Pipe::createMaterials()
+void Alice3Pipe::createMaterials()
 {
   //
-  // Define materials for beam A3Pipe
+  // Define materials for beam Alice3Pipe
   //
   Int_t isxfld = 2.;
   float sxmgmx = 10.;
@@ -154,21 +154,21 @@ void A3Pipe::createMaterials()
   auto& matmgr = o2::base::MaterialManager::Instance();
 
   //    Beryllium
-  matmgr.Material("A3PIPE", 5, "BERILLIUM$", 9.01, 4., 1.848, 35.3, 36.7);
-  matmgr.Medium("A3PIPE", 5, "BE", 5, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Material("ALICE3PIPE", 5, "BERILLIUM$", 9.01, 4., 1.848, 35.3, 36.7);
+  matmgr.Medium("ALICE3PIPE", 5, "BE", 5, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 
   //    Vacuum
-  matmgr.Mixture("A3PIPE", 16, "VACUUM$ ", aAir, zAir, dAir1, 4, wAir);
-  matmgr.Mixture("A3PIPE", 36, "VACUUM$_NF", aAir, zAir, dAir1, 4, wAir);
-  matmgr.Mixture("A3PIPE", 56, "VACUUM$_HC ", aAir, zAir, dAir1, 4, wAir);
-  matmgr.Mixture("A3PIPE", 76, "VACUUM$_NFHC", aAir, zAir, dAir1, 4, wAir);
+  matmgr.Mixture("ALICE3PIPE", 16, "VACUUM$ ", aAir, zAir, dAir1, 4, wAir);
+  matmgr.Mixture("ALICE3PIPE", 36, "VACUUM$_NF", aAir, zAir, dAir1, 4, wAir);
+  matmgr.Mixture("ALICE3PIPE", 56, "VACUUM$_HC ", aAir, zAir, dAir1, 4, wAir);
+  matmgr.Mixture("ALICE3PIPE", 76, "VACUUM$_NFHC", aAir, zAir, dAir1, 4, wAir);
 
-  matmgr.Medium("A3PIPE", 16, "VACUUM", 16, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("A3PIPE", 36, "VACUUM_NF", 36, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("A3PIPE", 56, "VACUUM_HC", 56, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
-  matmgr.Medium("A3PIPE", 76, "VACUUM_NFHC", 76, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ALICE3PIPE", 16, "VACUUM", 16, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ALICE3PIPE", 36, "VACUUM_NF", 36, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ALICE3PIPE", 56, "VACUUM_HC", 56, 0, isxfld, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
+  matmgr.Medium("ALICE3PIPE", 76, "VACUUM_NFHC", 76, 0, 0, sxmgmx, tmaxfd, stemax, deemax, epsil, stmin);
 }
 
 // ----------------------------------------------------------------------------
-FairModule* A3Pipe::CloneModule() const { return new A3Pipe(*this); }
-ClassImp(o2::passive::A3Pipe);
+FairModule* Alice3Pipe::CloneModule() const { return new Alice3Pipe(*this); }
+ClassImp(o2::passive::Alice3Pipe);

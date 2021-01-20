@@ -9,11 +9,11 @@
 // or submit itself to any jurisdiction.
 
 #include "DetectorsBase/MaterialManager.h"
-#include "A3DetectorsPassive/A3PassiveBase.h"
+#include "Alice3DetectorsPassive/PassiveBase.h"
 
 using namespace o2::passive;
 
-void A3PassiveBase::SetSpecialPhysicsCuts()
+void Alice3PassiveBase::SetSpecialPhysicsCuts()
 {
   // default implementation for physics cuts setting (might still be overriden by detectors)
   // we try to read an external text file supposed to be installed
