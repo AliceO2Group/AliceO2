@@ -551,7 +551,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         checkForNoisyPads &= (rec()->GetParam().rec.noisyPadsQuickCheck ? fragment.index == 0 : true);
 
         if (checkForNoisyPads) {
-          int nBlocks = TPC_PADS_IN_SECTOR / GPUTPCCFCheckPadBaseline::getPadsPerBlock(doGPU);
+          int nBlocks = TPC_PADS_IN_SECTOR / GPUTPCCFCheckPadBaseline::PadsPerCacheline;
           runKernel<GPUTPCCFCheckPadBaseline>(GetGridBlk(nBlocks, lane), {iSlice}, {});
         }
 
