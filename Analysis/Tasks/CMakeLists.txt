@@ -54,7 +54,7 @@ o2_add_dpl_workflow(pid-tpc
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(pid-tpc-split
-                    SOURCES pidTPC.cxx
+                    SOURCES pidTPC_split.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore
                     COMPONENT_NAME Analysis)
 

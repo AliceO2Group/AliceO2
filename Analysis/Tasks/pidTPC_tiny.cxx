@@ -27,7 +27,6 @@ using namespace o2::track;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
-    {"add-qa", VariantType::Int, 1, {"Produce TPC PID QA histograms"}},
     {"pid-el", VariantType::Int, 1, {"Produce PID information for the electron mass hypothesis"}},
     {"pid-mu", VariantType::Int, 1, {"Produce PID information for the muon mass hypothesis"}},
     {"pid-pikapr", VariantType::Int, 1, {"Produce PID information for the Pion, Kaon, Proton mass hypothesis"}},
@@ -38,7 +37,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h"
 
 template <o2::track::PID::ID pid_type, typename table>
-struct pidTPCTaskPerTiny {
+struct pidTPCTaskTiny {
   using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
   using Coll = aod::Collisions;
   Produces<table> tpcpid;
@@ -95,21 +94,21 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow;
   if (cfgc.options().get<int>("pid-el")) {
-    workflow.push_back(adaptAnalysisTask<pidTPCTaskPerTiny<PID::Electron, o2::aod::pidRespTPCTEl>>("pidTPCEl-task"));
+    workflow.push_back(adaptAnalysisTask<pidTPCTaskTiny<PID::Electron, o2::aod::pidRespTPCTEl>>("pidTPCEl-task"));
   }
   if (cfgc.options().get<int>("pid-mu")) {
-    workflow.push_back(adaptAnalysisTask<pidTPCTaskPerTiny<PID::Muon, o2::aod::pidRespTPCTMu>>("pidTPCMu-task"));
+    workflow.push_back(adaptAnalysisTask<pidTPCTaskTiny<PID::Muon, o2::aod::pidRespTPCTMu>>("pidTPCMu-task"));
   }
   if (cfgc.options().get<int>("pid-pikapr")) {
-    workflow.push_back(adaptAnalysisTask<pidTPCTaskPerTiny<PID::Pion, o2::aod::pidRespTPCTPi>>("pidTPCPi-task"));
-    workflow.push_back(adaptAnalysisTask<pidTPCTaskPerTiny<PID::Kaon, o2::aod::pidRespTPCTKa>>("pidTPCKa-task"));
-    workflow.push_back(adaptAnalysisTask<pidTPCTaskPerTiny<PID::Proton, o2::aod::pidRespTPCTPr>>("pidTPCPr-task"));
+    workflow.push_back(adaptAnalysisTask<pidTPCTaskTiny<PID::Pion, o2::aod::pidRespTPCTPi>>("pidTPCPi-task"));
+    workflow.push_back(adaptAnalysisTask<pidTPCTaskTiny<PID::Kaon, o2::aod::pidRespTPCTKa>>("pidTPCKa-task"));
+    workflow.push_back(adaptAnalysisTask<pidTPCTaskTiny<PID::Proton, o2::aod::pidRespTPCTPr>>("pidTPCPr-task"));
   }
   if (cfgc.options().get<int>("pid-nuclei")) {
-    workflow.push_back(adaptAnalysisTask<pidTPCTaskPerTiny<PID::Deuteron, o2::aod::pidRespTPCTDe>>("pidTPCDe-task"));
-    workflow.push_back(adaptAnalysisTask<pidTPCTaskPerTiny<PID::Triton, o2::aod::pidRespTPCTTr>>("pidTPCTr-task"));
-    workflow.push_back(adaptAnalysisTask<pidTPCTaskPerTiny<PID::Helium3, o2::aod::pidRespTPCTHe>>("pidTPCHe-task"));
-    workflow.push_back(adaptAnalysisTask<pidTPCTaskPerTiny<PID::Alpha, o2::aod::pidRespTPCTAl>>("pidTPCAl-task"));
+    workflow.push_back(adaptAnalysisTask<pidTPCTaskTiny<PID::Deuteron, o2::aod::pidRespTPCTDe>>("pidTPCDe-task"));
+    workflow.push_back(adaptAnalysisTask<pidTPCTaskTiny<PID::Triton, o2::aod::pidRespTPCTTr>>("pidTPCTr-task"));
+    workflow.push_back(adaptAnalysisTask<pidTPCTaskTiny<PID::Helium3, o2::aod::pidRespTPCTHe>>("pidTPCHe-task"));
+    workflow.push_back(adaptAnalysisTask<pidTPCTaskTiny<PID::Alpha, o2::aod::pidRespTPCTAl>>("pidTPCAl-task"));
   }
   return workflow;
 }
