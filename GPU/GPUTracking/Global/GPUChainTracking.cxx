@@ -303,7 +303,10 @@ bool GPUChainTracking::ValidateSettings()
       GPUError("Invalid outputs for double pipeline mode 0x%x", (unsigned int)GetRecoStepsOutputs());
       return false;
     }
-    if (((GetRecoStepsOutputs().isSet(GPUDataTypes::InOutType::TPCCompressedClusters) && mOutputCompressedClusters == nullptr) || (GetRecoStepsOutputs().isSet(GPUDataTypes::InOutType::TPCClusters) && mOutputClustersNative == nullptr) || (GetRecoStepsOutputs().isSet(GPUDataTypes::InOutType::TPCMergedTracks) && mOutputTPCTracks == nullptr))) {
+    if (((GetRecoStepsOutputs().isSet(GPUDataTypes::InOutType::TPCCompressedClusters) && mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::compressedClusters)] == nullptr) ||
+         (GetRecoStepsOutputs().isSet(GPUDataTypes::InOutType::TPCClusters) && mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clustersNative)] == nullptr) ||
+         (GetRecoStepsOutputs().isSet(GPUDataTypes::InOutType::TPCMergedTracks) && mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::tpcTracks)] == nullptr) ||
+         (GetProcessingSettings().outputSharedClusterMap && mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::sharedClusterMap)] == nullptr))) {
       GPUError("Must use external output for double pipeline mode");
       return false;
     }
@@ -342,20 +345,10 @@ int GPUChainTracking::Init()
     return 1;
   }
 
-  if (mOutputCompressedClusters == nullptr) {
-    mOutputCompressedClusters = &mRec->OutputControl();
-  }
-  if (mOutputClustersNative == nullptr) {
-    mOutputClustersNative = &mRec->OutputControl();
-  }
-  if (mOutputTPCTracks == nullptr) {
-    mOutputTPCTracks = &mRec->OutputControl();
-  }
-  if (mOutputSharedClusterMap == nullptr) {
-    mOutputSharedClusterMap = &mRec->OutputControl();
-  }
-  if (mOutputClusterLabels == nullptr) {
-    mOutputClusterLabels = &mRec->OutputControl();
+  for (unsigned int i = 0; i < mSubOutputControls.size(); i++) {
+    if (mSubOutputControls[i] == nullptr) {
+      mSubOutputControls[i] = &mRec->OutputControl();
+    }
   }
 
   if (!ValidateSettings()) {
@@ -1128,7 +1121,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeBuffer);
   }
   if (buildNativeHost && !(buildNativeGPU && GetProcessingSettings().delayedOutput)) {
-    AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeOutput, mOutputClustersNative);
+    AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeOutput, mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clustersNative)]);
   }
 
   GPUTPCLinearLabels mcLinearLabels;
@@ -1377,10 +1370,10 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   if (propagateMCLabels) {
     // TODO: write to buffer directly
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> mcLabels;
-    if (mOutputClusterLabels == nullptr || !mOutputClusterLabels->allocator) {
+    if (mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clusterLabels)] == nullptr || !mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clusterLabels)]->allocator) {
       throw std::runtime_error("Cluster MC Label buffer missing");
     }
-    ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer* container = reinterpret_cast<ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer*>(mOutputClusterLabels->allocator(0));
+    ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer* container = reinterpret_cast<ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer*>(mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clusterLabels)]->allocator(0));
 
     assert(propagateMCLabels ? mcLinearLabels.header.size() == nClsTotal : true);
     assert(propagateMCLabels ? mcLinearLabels.data.size() >= nClsTotal : true);
@@ -1393,7 +1386,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
 
   if (buildNativeHost && buildNativeGPU && GetProcessingSettings().delayedOutput) {
     mInputsHost->mNClusterNative = mInputsShadow->mNClusterNative = nClsTotal;
-    AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeOutput, mOutputClustersNative);
+    AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeOutput, mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clustersNative)]);
     for (unsigned int i = outputQueueStart; i < mOutputQueue.size(); i++) {
       mOutputQueue[i].dst = (char*)mInputsHost->mPclusterNativeOutput + (size_t)mOutputQueue[i].dst;
     }
@@ -1959,8 +1952,8 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
 
   SynchronizeGPU(); // Need to know the full number of slice tracks
   SetupGPUProcessor(&Merger, true);
-  AllocateRegisteredMemory(Merger.MemoryResOutput(), mOutputTPCTracks);
-  AllocateRegisteredMemory(Merger.MemoryResOutputState(), mOutputSharedClusterMap);
+  AllocateRegisteredMemory(Merger.MemoryResOutput(), mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::tpcTracks)]);
+  AllocateRegisteredMemory(Merger.MemoryResOutputState(), mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::sharedClusterMap)]);
 
   if (Merger.CheckSlices()) {
     return 1;
@@ -2182,7 +2175,7 @@ int GPUChainTracking::RunTPCCompression()
   O->nAttachedClustersReduced = O->nAttachedClusters - O->nTracks;
   O->nSliceRows = NSLICES * GPUCA_ROW_COUNT;
   O->nComppressionModes = param().rec.tpcCompressionModes;
-  size_t outputSize = AllocateRegisteredMemory(Compressor.mMemoryResOutputHost, mOutputCompressedClusters);
+  size_t outputSize = AllocateRegisteredMemory(Compressor.mMemoryResOutputHost, mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::compressedClusters)]);
   Compressor.mOutputFlat->set(outputSize, *Compressor.mOutput);
   char* hostFlatPtr = (char*)Compressor.mOutput->qTotU; // First array as allocated in GPUTPCCompression::SetPointersCompressedClusters
   size_t copySize = 0;
@@ -2325,7 +2318,7 @@ int GPUChainTracking::RunTPCDecompression()
   TPCClusterDecompressor decomp;
   auto allocator = [this](size_t size) {
     this->mInputsHost->mNClusterNative = this->mInputsShadow->mNClusterNative = size;
-    this->AllocateRegisteredMemory(this->mInputsHost->mResourceClusterNativeOutput, this->mOutputClustersNative);
+    this->AllocateRegisteredMemory(this->mInputsHost->mResourceClusterNativeOutput, this->mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clustersNative)]);
     return this->mInputsHost->mPclusterNativeOutput;
   };
   auto& gatherTimer = getTimer<TPCClusterDecompressor>("TPCDecompression", 0);

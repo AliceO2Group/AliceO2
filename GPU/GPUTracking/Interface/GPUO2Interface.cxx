@@ -55,18 +55,13 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
   mRec->SetSettings(&mConfig->configEvent, &mConfig->configReconstruction, &mConfig->configProcessing, &mConfig->configWorkflow);
   mChain->SetCalibObjects(mConfig->configCalib);
   mOutputRegions.reset(new GPUTrackingOutputs);
-  mOutputControls.resize(GPUTrackingOutputs::count());
   if (mConfig->configInterface.outputToExternalBuffers) {
-    mChain->SetOutputControlCompressedClusters(&mOutputControls[mOutputRegions->getIndex(mOutputRegions->compressedClusters)]);
-    mChain->SetOutputControlClustersNative(&mOutputControls[mOutputRegions->getIndex(mOutputRegions->clustersNative)]);
-    mChain->SetOutputControlTPCTracks(&mOutputControls[mOutputRegions->getIndex(mOutputRegions->tpcTracks)]);
-    mChain->SetOutputControlSharedClusterMap(&mOutputControls[mOutputRegions->getIndex(mOutputRegions->sharedClusterMap)]);
+    for (unsigned int i = 0; i < mOutputRegions->count(); i++) {
+      mChain->SetSubOutputControl(i, &mOutputRegions->asArray()[i]);
+    }
     GPUOutputControl dummy;
     dummy.set([](size_t size) -> void* {throw std::runtime_error("invalid output memory request, no common output buffer set"); return nullptr; });
     mRec->SetOutputControl(dummy);
-  }
-  if (mConfig->configProcessing.runMC) {
-    mChain->SetOutputControlClusterLabels(&mOutputControls[mOutputRegions->getIndex(mOutputRegions->clusterLabels)]);
   }
 
   if (mRec->Init()) {
@@ -117,11 +112,11 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceO
   if (mConfig->configInterface.outputToExternalBuffers) {
     for (unsigned int i = 0; i < mOutputRegions->count(); i++) {
       if (outputs->asArray()[i].allocator) {
-        mOutputControls[i].set(outputs->asArray()[i].allocator);
+        mOutputRegions->asArray()[i].set(outputs->asArray()[i].allocator);
       } else if (outputs->asArray()[i].ptrBase) {
-        mOutputControls[i].set(outputs->asArray()[i].ptrBase, outputs->asArray()[i].size);
+        mOutputRegions->asArray()[i].set(outputs->asArray()[i].ptrBase, outputs->asArray()[i].size);
       } else {
-        mOutputControls[i].reset();
+        mOutputRegions->asArray()[i].reset();
       }
     }
   }

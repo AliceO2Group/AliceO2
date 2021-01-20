@@ -71,9 +71,10 @@ struct GPUTrackingOutputs {
   GPUOutputControl clusterLabels;
   GPUOutputControl sharedClusterMap;
 
-  static size_t count() { return sizeof(GPUTrackingOutputs) / sizeof(compressedClusters); }
+  static constexpr size_t count() { return sizeof(GPUTrackingOutputs) / sizeof(GPUOutputControl); }
   GPUOutputControl* asArray() { return (GPUOutputControl*)this; }
   size_t getIndex(const GPUOutputControl& v) { return &v - (const GPUOutputControl*)this; }
+  static int getIndex(GPUOutputControl GPUTrackingOutputs::*v) { return &(((GPUTrackingOutputs*)(nullptr))->*v) - (GPUOutputControl*)(nullptr); }
 };
 
 } // namespace gpu
