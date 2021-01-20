@@ -63,6 +63,9 @@ struct TaskLc {
   void process(soa::Filtered<soa::Join<aod::HfCandProng3, aod::HFSelLcCandidate>> const& candidates)
   {
     for (auto& candidate : candidates) {
+      if (!(candidate.hfflag() & 1 << LcToPKPi)) {
+        continue;
+      }
       if (cutEtaCandMax >= 0. && std::abs(candidate.eta()) > cutEtaCandMax) {
         //Printf("Candidate: eta rejection: %g", candidate.eta());
         continue;
@@ -120,6 +123,9 @@ struct TaskLcMC {
     // MC rec.
     //Printf("MC Candidates: %d", candidates.size());
     for (auto& candidate : candidates) {
+      if (!(candidate.hfflag() & 1 << LcToPKPi)) {
+        continue;
+      }
       if (cutEtaCandMax >= 0. && std::abs(candidate.eta()) > cutEtaCandMax) {
         //Printf("MC Rec.: eta rejection: %g", candidate.eta());
         continue;
