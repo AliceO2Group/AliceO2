@@ -8,13 +8,27 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#ifndef ALICE3_PASSIVE_BASE_H
+#define ALICE3_PASSIVE_BASE_H
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "FairModule.h" // for FairModule
 
-#pragma link C++ class o2::passive::A3PassiveBase + ;
-#pragma link C++ class o2::passive::A3Pipe + ;
+namespace o2
+{
+namespace passive
+{
+
+/// a common base class for passive modules - implementing generic functions
+class Alice3PassiveBase : public FairModule
+{
+ public:
+  using FairModule::FairModule;
+  void SetSpecialPhysicsCuts() override;
+
+  ClassDefOverride(Alice3PassiveBase, 1);
+};
+
+} // namespace passive
+} // namespace o2
 
 #endif

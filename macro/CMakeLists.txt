@@ -110,7 +110,7 @@ o2_add_test_root_macro(analyzeOriginHits.C
 if (ENABLE_UPGRADES)
   o2_add_test_root_macro(build_geometry.C
                          PUBLIC_LINK_LIBRARIES O2::DetectorsPassive
-                                               O2::A3DetectorsPassive
+                                               O2::Alice3DetectorsPassive
                                                O2::Field
                                                O2::TPCSimulation
                                                O2::ITSSimulation

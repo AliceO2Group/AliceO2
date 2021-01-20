@@ -8,12 +8,12 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(A3DetectorsPassive
-               SOURCES src/A3Pipe.cxx
-                       src/A3PassiveBase.cxx
+o2_add_library(Alice3DetectorsPassive
+               SOURCES src/Pipe.cxx
+                       src/PassiveBase.cxx
                PUBLIC_LINK_LIBRARIES O2::Field O2::DetectorsBase O2::SimConfig)
 
-o2_target_root_dictionary(A3DetectorsPassive
-                          HEADERS include/A3DetectorsPassive/A3Pipe.h
-                                  include/A3DetectorsPassive/A3PassiveBase.h
-                          LINKDEF src/A3PassiveLinkDef.h)
+o2_target_root_dictionary(Alice3DetectorsPassive
+                          HEADERS include/Alice3DetectorsPassive/Pipe.h
+                                  include/Alice3DetectorsPassive/PassiveBase.h
+                          LINKDEF src/PassiveLinkDef.h)

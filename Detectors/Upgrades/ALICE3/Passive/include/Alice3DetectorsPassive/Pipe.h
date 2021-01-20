@@ -12,18 +12,18 @@
 #define ALICE3_PASSIVE_PIPE_H
 
 #include "Rtypes.h"
-#include "A3DetectorsPassive/A3PassiveBase.h"
+#include "Alice3DetectorsPassive/PassiveBase.h"
 
 namespace o2
 {
 namespace passive
 {
-class A3Pipe : public A3PassiveBase
+class Alice3Pipe : public Alice3PassiveBase
 {
  public:
-  A3Pipe();
-  ~A3Pipe() override;
-  A3Pipe(const char* name,
+  Alice3Pipe();
+  ~Alice3Pipe() override;
+  Alice3Pipe(const char* name,
          const char* title = "Alice 3 Pipe",
          const float innerRho = 0.f,
          const float innerThickness = 0.f,
@@ -49,8 +49,8 @@ class A3Pipe : public A3PassiveBase
 
  private:
   void createMaterials();
-  A3Pipe(const A3Pipe& orig) = default;
-  A3Pipe& operator=(const A3Pipe&);
+  Alice3Pipe(const Alice3Pipe& orig) = default;
+  Alice3Pipe& operator=(const Alice3Pipe&);
 
   float mBeInnerPipeRmax = 0.;  // inner diameter of the Be section
   float mBeInnerPipeThick = 0.; // inner section  thickness
@@ -60,7 +60,7 @@ class A3Pipe : public A3PassiveBase
   float mBeOuterPipeThick = 0.; // outer section  thickness
   float mOuterIpHLength = 0.;   // half length of the outer beampipe around the IP
 
-  ClassDefOverride(A3Pipe, 1);
+  ClassDefOverride(Alice3Pipe, 1);
 };
 } // namespace passive
 } // namespace o2
