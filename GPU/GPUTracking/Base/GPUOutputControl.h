@@ -52,6 +52,30 @@ struct GPUOutputControl {
   OutputTypeStruct OutputType = AllocateInternal;         // How to perform the output
   char EndOfSpace = 0;                                    // end of space flag
 };
+
+// This defines an output region. Ptr points to a memory buffer, which should have a proper alignment.
+// Since DPL does not respect the alignment of data types, we do not impose anything specic but just use void*, but it should be >= 64 bytes ideally.
+// The size defines the maximum possible buffer size when GPUReconstruction is called, and returns the number of filled bytes when it returns.
+// If ptr == nullptr, there is no region defined and GPUReconstruction will write its output to an internal buffer.
+// If allocator is set, it is called as a callback to provide a ptr to the memory.
+struct GPUInterfaceOutputRegion {
+  void* ptr = nullptr;
+  size_t size = 0;
+  std::function<void*(size_t)> allocator = nullptr;
+};
+
+struct GPUTrackingOutputs {
+  GPUInterfaceOutputRegion compressedClusters;
+  GPUInterfaceOutputRegion clustersNative;
+  GPUInterfaceOutputRegion tpcTracks;
+  GPUInterfaceOutputRegion clusterLabels;
+  GPUInterfaceOutputRegion sharedClusterMap;
+
+  static size_t count() { return sizeof(GPUTrackingOutputs) / sizeof(compressedClusters); }
+  GPUInterfaceOutputRegion* asArray() { return (GPUInterfaceOutputRegion*)this; }
+  size_t getIndex(const GPUInterfaceOutputRegion& v) { return &v - (const GPUInterfaceOutputRegion*)this; }
+};
+
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
