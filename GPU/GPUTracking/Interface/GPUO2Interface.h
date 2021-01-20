@@ -41,7 +41,6 @@ class GPUReconstruction;
 class GPUChainTracking;
 struct GPUO2InterfaceConfiguration;
 struct GPUInterfaceOutputs;
-struct GPUOutputControl;
 struct GPUTrackingOutputs;
 
 class GPUTPCO2Interface
@@ -75,7 +74,6 @@ class GPUTPCO2Interface
   GPUChainTracking* mChain = nullptr;                   //!
   std::unique_ptr<GPUO2InterfaceConfiguration> mConfig; //!
   std::unique_ptr<GPUTrackingOutputs> mOutputRegions;   //!
-  std::vector<GPUOutputControl> mOutputControls;        //!
 };
 } // namespace o2::gpu
 
