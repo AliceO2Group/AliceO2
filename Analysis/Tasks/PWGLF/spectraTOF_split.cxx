@@ -36,12 +36,6 @@ struct TOFSpectraTaskSplit {
       histos.add(hp[i].data(), Form("%s;#it{p} (GeV/#it{c})", pT[i]), kTH1F, {{100, 0, 20}});
       histos.add(hpt[i].data(), Form("%s;#it{p}_{T} (GeV/#it{c})", pT[i]), kTH1F, {{100, 0, 20}});
     }
-    histos.add("electronbeta/hp_El", ";#it{p} (GeV/#it{c})", kTH1F, {{100, 0, 20}});
-    histos.add("electronbeta/hpt_El", ";#it{p}_{T} (GeV/#it{c})", kTH1F, {{100, 0, 20}});
-    histos.add("electronbeta/hlength_El", ";Track Length (cm);Tracks", kTH1D, {{100, 0, 1000}});
-    histos.add("electronbeta/htime_El", ";TOF Time (ns);Tracks", kTH1D, {{1000, 0, 600}});
-    histos.add("electronbeta/hp_beta_El", ";#it{p} (GeV/#it{c});#beta - #beta_{e};Tracks", kTH2D, {{100, 0, 20}, {100, -0.01, 0.01}});
-    histos.add("electronbeta/hp_betasigma_El", ";#it{p} (GeV/#it{c});(#beta - #beta_{e})/#sigma;Tracks", kTH2D, {{100, 0, 20}, {100, -5, 5}});
   }
 
   template <std::size_t i, typename T>
@@ -64,7 +58,7 @@ struct TOFSpectraTaskSplit {
                                                   aod::pidRespTOFEl, aod::pidRespTOFMu, aod::pidRespTOFPi,
                                                   aod::pidRespTOFKa, aod::pidRespTOFPr, aod::pidRespTOFDe,
                                                   aod::pidRespTOFTr, aod::pidRespTOFHe, aod::pidRespTOFAl,
-                                                  aod::pidRespTOFbeta, aod::TrackSelection>>;
+                                                  aod::TrackSelection>>;
   void process(TrackCandidates::iterator const& track)
   {
     histos.fill(HIST("p/Unselected"), track.p());
@@ -79,16 +73,6 @@ struct TOFSpectraTaskSplit {
     fillParticleHistos<6>(track, track.tofNSigmaTr());
     fillParticleHistos<7>(track, track.tofNSigmaHe());
     fillParticleHistos<8>(track, track.tofNSigmaAl());
-
-    //
-    if (TMath::Abs(track.separationbetael() < 1.f)) {
-      histos.fill(HIST("electronbeta/hp_El"), track.p());
-      histos.fill(HIST("electronbeta/hpt_El"), track.pt());
-      histos.fill(HIST("electronbeta/hlength_El"), track.length());
-      histos.fill(HIST("electronbeta/htime_El"), track.tofSignal() / 1000);
-      histos.fill(HIST("electronbeta/hp_beta_El"), track.p(), track.diffbetael());
-      histos.fill(HIST("electronbeta/hp_betasigma_El"), track.p(), track.separationbetael());
-    }
   }
 };
 

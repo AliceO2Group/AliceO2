@@ -10,6 +10,7 @@
 
 // O2 includes
 #include "ReconstructionDataFormats/Track.h"
+#include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoAHelpers.h"
@@ -19,34 +20,6 @@
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
-
-void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
-{
-  std::vector<ConfigParamSpec> options{
-    {"add-tof-histos", VariantType::Int, 0, {"Generate TPC with TOF histograms"}}};
-  std::swap(workflowOptions, options);
-}
-
-#include "Framework/runDataProcessing.h"
-
-template <typename T>
-void makelogaxis(T h)
-{
-  const int nbins = h->GetNbinsX();
-  double binp[nbins + 1];
-  double max = h->GetXaxis()->GetBinUpEdge(nbins);
-  double min = h->GetXaxis()->GetBinLowEdge(1);
-  if (min <= 0) {
-    min = 0.00001;
-  }
-  double lmin = TMath::Log10(min);
-  double ldelta = (TMath::Log10(max) - lmin) / ((double)nbins);
-  for (int i = 0; i < nbins; i++) {
-    binp[i] = TMath::Exp(TMath::Log(10) * (lmin + i * ldelta));
-  }
-  binp[nbins] = max + 1;
-  h->GetXaxis()->Set(nbins, binp);
-}
 
 struct TPCSpectraTaskTiny {
   static constexpr int Np = 9;
@@ -78,6 +51,7 @@ struct TPCSpectraTaskTiny {
   Configurable<float> cfgCutVertex{"cfgCutVertex", 10.0f, "Accepted z-vertex range"};
   Configurable<float> cfgCutEta{"cfgCutEta", 0.8f, "Eta range for tracks"};
   Configurable<float> nsigmacut{"nsigmacut", 3, "Value of the Nsigma cut"};
+
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
   Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == (uint8_t) true);
   using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra,
@@ -103,7 +77,7 @@ struct TPCSpectraTaskTiny {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
+WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   WorkflowSpec workflow{adaptAnalysisTask<TPCSpectraTaskTiny>("tpcspectra-tiny-task")};
   return workflow;
