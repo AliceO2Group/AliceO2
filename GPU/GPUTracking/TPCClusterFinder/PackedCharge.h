@@ -50,6 +50,7 @@ class PackedCharge
   GPUdi() tpccf::Charge unpack() const { return tpccf::Charge(mVal & ChargeMask) / tpccf::Charge(1 << DecimalBits); }
   GPUdi() bool has3x3Peak() const { return mVal & Has3x3PeakMask; }
   GPUdi() bool isSplit() const { return mVal & IsSplitMask; }
+  GPUdi() bool isZero() const { return mVal == 0; }
 
  private:
   BasicType mVal;

@@ -96,7 +96,7 @@ struct GridSize<1> {
 template <>
 struct GridSize<2> {
   enum {
-    Width = 4,
+    Width = 8,
     Height = 4,
   };
 };

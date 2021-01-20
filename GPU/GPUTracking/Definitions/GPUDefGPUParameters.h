@@ -355,7 +355,7 @@
 
 #define GPUCA_THREAD_COUNT_SCAN 512 // TODO: WARNING!!! Must not be GPUTYPE-dependent right now! // TODO: Fix!
 
-#define GPUCA_LB_GPUTPCCFCheckPadBaseline GPUCA_WARP_SIZE
+#define GPUCA_LB_GPUTPCCFCheckPadBaseline 64
 #define GPUCA_LB_GPUTPCCFChargeMapFiller_fillIndexMap GPUCA_LB_CLUSTER_FINDER
 #define GPUCA_LB_GPUTPCCFChargeMapFiller_fillFromDigits GPUCA_LB_CLUSTER_FINDER
 #define GPUCA_LB_GPUTPCCFChargeMapFiller_findFragmentStart GPUCA_LB_CLUSTER_FINDER

@@ -39,12 +39,15 @@ using ulong = unsigned long;
 #define SCRATCH_PAD_NOISE_N 16
 #endif
 
-#define PADDING_PAD 2
-#define PADDING_TIME 3
+// Padding of 2 and 3 respectively would be enough. But this ensures that
+// rows are always aligned along cache lines. Likewise for TPC_PADS_PER_ROW.
+#define PADDING_PAD 8
+#define PADDING_TIME 4
+#define TPC_PADS_PER_ROW 144
+
 #define TPC_SECTORS 36
 #define TPC_ROWS_PER_CRU 18
 #define TPC_NUM_OF_ROWS 152
-#define TPC_PADS_PER_ROW 138
 #define TPC_PADS_PER_ROW_PADDED (TPC_PADS_PER_ROW + PADDING_PAD)
 #define TPC_NUM_OF_PADS (TPC_NUM_OF_ROWS * TPC_PADS_PER_ROW_PADDED + PADDING_PAD)
 #define TPC_PADS_IN_SECTOR 14560
