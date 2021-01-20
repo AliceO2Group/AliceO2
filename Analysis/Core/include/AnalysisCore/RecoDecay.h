@@ -513,8 +513,8 @@ class RecoDecay
   /// \param acceptAntiParticles  switch to accept the antiparticle of the expected mother
   /// \param sign  antiparticle indicator of the found mother w.r.t. PDGMother; 1 if particle, -1 if antiparticle, 0 if mother not found
   /// \return index of the mother particle if found, -1 otherwise
-  template <typename T, typename U>
-  static int getMother(const T& particlesMC, const U& particle, int PDGMother, bool acceptAntiParticles = false, int8_t* sign = nullptr)
+  template <typename T>
+  static int getMother(const T& particlesMC, const typename T::iterator& particle, int PDGMother, bool acceptAntiParticles = false, int8_t* sign = nullptr)
   {
     int8_t sgn = 0;                 // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGMother)
     int indexMother = -1;           // index of the final matched mother, if found
