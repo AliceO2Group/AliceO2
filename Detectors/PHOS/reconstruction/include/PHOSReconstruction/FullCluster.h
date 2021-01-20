@@ -32,12 +32,14 @@ class FullCluster : public Cluster
  public:
   struct CluElement {
     short absId;
+    bool isHG;
     float energy;
     float time;
     float localX;
     float localZ;
     int label;
     float scale;
+    CluElement() = default;
     CluElement(short a, float e, float t, float x, float z, int l, float s) : absId(a), energy(e), time(t), localX(x), localZ(z), label(l), scale(s) {}
   };
 
@@ -62,6 +64,8 @@ class FullCluster : public Cluster
 
   void purify(); // Removes digits below threshold
 
+  void reset(); // Cleans up cluster
+
  protected:
   void evalCoreEnergy();    // computes energy within radius Rcore
   void evalLocalPosition(); // computes the position in the PHOS module
@@ -72,7 +76,7 @@ class FullCluster : public Cluster
   std::vector<Digit>::const_iterator BinarySearch(const std::vector<Digit>* container, Digit& element);
 
  private:
-  std::vector<CluElement> mElementList; //!  Transient Array of digits
+  std::vector<CluElement> mElementList; ///  Transient Array of digits
 
   ClassDefNV(FullCluster, 1);
 };

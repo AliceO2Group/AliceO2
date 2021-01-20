@@ -33,7 +33,7 @@ namespace o2
 namespace cpv
 {
 
-static constexpr short kNDDL = 4;      ///< Total number of DDLs
+static constexpr short kNDDL = 3;      ///< Total number of DDLs
 static constexpr short kNPAD = 48;     ///< Nuber of pads per dilogic
 static constexpr short kNDilogic = 10; ///< Number of dilogic per row
 static constexpr short kNRow = 16;     ///< number of rows per dddl

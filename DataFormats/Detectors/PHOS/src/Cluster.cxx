@@ -21,8 +21,8 @@ bool Cluster::operator<(const Cluster& other) const
 {
   // Compares two Clusters according to their position in the PHOS modules
 
-  char phosmod1 = getPHOSMod();
-  char phosmod2 = other.getPHOSMod();
+  char phosmod1 = module();
+  char phosmod2 = other.module();
   if (phosmod1 != phosmod2) {
     return phosmod1 < phosmod2;
   }
@@ -47,8 +47,8 @@ bool Cluster::operator>(const Cluster& other) const
 {
   // Compares two Clusters according to their position in the PHOS modules
 
-  char phosmod1 = getPHOSMod();
-  char phosmod2 = other.getPHOSMod();
+  char phosmod1 = module();
+  char phosmod2 = other.module();
   if (phosmod1 != phosmod2) {
     return phosmod1 > phosmod2;
   }

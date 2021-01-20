@@ -93,20 +93,20 @@ class BadChannelMap
   /// Only bad or warm cells are added to the container. In case
   /// the mask type is GOOD_CELL, the entry is removed from the
   /// container if present before, otherwise the cell is ignored.
-  void addBadChannel(short channelID) { mBadCells.set(channelID); } //set bit to true
+  void addBadChannel(short channelID) { mBadCells.set(channelID - OFFSET); } //set bit to true
 
   /// \brief Mark channel as good
   /// \param channelID Absolute ID of the channel
   ///
   /// Setting channel as good.
-  void setChannelGood(short channelID) { mBadCells.set(channelID, false); }
+  void setChannelGood(short channelID) { mBadCells.set(channelID - OFFSET, false); }
 
   /// \brief Get the status of a certain cell
   /// \param channelID channel for which to obtain the channel status
   /// \return true if good channel
   ///
   /// Provide the mask status of a cell.
-  bool isChannelGood(short channelID) const { return !mBadCells.test(channelID); }
+  bool isChannelGood(short channelID) const { return !mBadCells.test(channelID - OFFSET); }
 
   /// \brief Convert map into 2D histogram representation
   /// \param mod Module number
@@ -132,6 +132,7 @@ class BadChannelMap
 
  private:
   static constexpr short NCHANNELS = 14337; ///< Number of channels starting from 1 (4*64*56+1
+  static constexpr short OFFSET = 5377;     ///< Non-existing channels 56*64*1.5+1
   std::bitset<NCHANNELS> mBadCells;         ///< Container for bad cells, 1 means bad sell
 
   ClassDefNV(BadChannelMap, 1);
