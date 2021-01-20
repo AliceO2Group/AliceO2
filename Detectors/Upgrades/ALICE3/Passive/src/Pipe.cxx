@@ -27,13 +27,13 @@ using namespace o2::passive;
 
 Alice3Pipe::Alice3Pipe() : Alice3PassiveBase{"Alice3PIPE", ""} {}
 Alice3Pipe::Alice3Pipe(const char* name,
-               const char* title,
-               float innerRho,
-               float innerThickness,
-               float innerLength,
-               float outerRho,
-               float outerThickness,
-               float outerLength)
+                       const char* title,
+                       float innerRho,
+                       float innerThickness,
+                       float innerLength,
+                       float outerRho,
+                       float outerThickness,
+                       float outerLength)
   : Alice3PassiveBase{name, title},
     mBeInnerPipeRmax{innerRho},
     mBeInnerPipeThick{innerThickness},
