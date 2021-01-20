@@ -81,7 +81,7 @@ struct lambdakzeroprefilterpairs {
   Configurable<float> dcanegtopv{"dcanegtopv", .1, "DCA Neg To PV"};
   Configurable<float> dcapostopv{"dcapostopv", .1, "DCA Pos To PV"};
   Configurable<int> mincrossedrows{"mincrossedrows", 70, "min crossed rows"};
-  Configurable<int> tpcrefit{"tpcrefit", 1, "demand TPC refit"};
+  Configurable<bool> tpcrefit{"tpcrefit", 1, "demand TPC refit"};
 
   OutputObj<TH1F> hGoodIndices{TH1F("hGoodIndices", "", 4, 0, 4)};
 
@@ -189,7 +189,6 @@ struct lambdakzerobuilder {
       }
 
       auto V0CosinePA = RecoDecay::CPA(array{collision.posX(), collision.posY(), collision.posZ()}, array{pos[0], pos[1], pos[2]}, array{pvec0[0] + pvec1[0], pvec0[1] + pvec1[1], pvec0[2] + pvec1[2]});
-
       if (V0CosinePA < v0cospa) {
         continue;
       }
