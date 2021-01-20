@@ -26,51 +26,48 @@ BadChannelMap::BadChannelMap(int /*dummy*/)
   for (short i = 0; i < 56; i++) {
     //module 2
     short channelID = 3584 + i * 57;
-    mBadCells.set(channelID);
+    mBadCells.set(channelID - OFFSET);
     channelID = 3640 + i * 55;
-    mBadCells.set(channelID);
+    mBadCells.set(channelID - OFFSET);
   }
 
   for (short i = 0; i < 16; i++) {
     //module 3
     int channelID = 8972 + i * 57;
-    mBadCells.set(channelID);
+    mBadCells.set(channelID - OFFSET);
     channelID = 8092 + i * 57;
-    mBadCells.set(channelID);
+    mBadCells.set(channelID - OFFSET);
     channelID = 8147 + i * 55;
-    mBadCells.set(channelID);
+    mBadCells.set(channelID - OFFSET);
     channelID = 9059 + i * 55;
-    mBadCells.set(channelID);
+    mBadCells.set(channelID - OFFSET);
   }
 }
 
 void BadChannelMap::getHistogramRepresentation(char module, TH2* h) const
 {
+  const char MAXX = 64,
+             MAXZ = 56;
+  if (module < 1 || module > 4) {
+    LOG(ERROR) << "module " << module << "does not exist";
+    return;
+  }
   if (!h) {
     LOG(ERROR) << "provide histogram to be filled";
   }
-
-  const char MAXX = 64,
-             MAXZ = 56;
   if (h->GetNbinsX() != MAXX || h->GetNbinsY() != MAXZ) {
     LOG(ERROR) << "Wrong dimentions of input histogram:" << h->GetNbinsX() << "," << h->GetNbinsY() << " instead of " << MAXX << "," << MAXZ;
     return;
   }
 
   h->Reset();
-  auto geo = Geometry::GetInstance();
-  if (!geo) {
-    LOG(ERROR) << "Geometry needs to be initialized";
-    return;
-  }
-
   char relid[3] = {module, 1, 1};
   short absId;
   for (char ix = 1; ix <= MAXX; ix++) {
     relid[1] = ix;
     for (char iz = 1; iz <= MAXZ; iz++) {
       relid[2] = iz;
-      if (geo->relToAbsNumbering(relid, absId)) {
+      if (o2::phos::Geometry::relToAbsNumbering(relid, absId)) {
         if (!isChannelGood(absId)) {
           h->SetBinContent(ix, iz, 1);
         }
@@ -85,7 +82,7 @@ void BadChannelMap::PrintStream(std::ostream& stream) const
   stream << "Number of bad cells:  " << mBadCells.count() << "\n";
   for (int cellID = 0; cellID < mBadCells.size(); cellID++) {
     if (mBadCells.test(cellID)) {
-      stream << cellID << "\n";
+      stream << cellID + OFFSET << "\n";
     }
   }
 }

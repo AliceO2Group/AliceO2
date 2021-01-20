@@ -58,9 +58,9 @@ class Cluster
 
   // 0: was no unfolging, -1: unfolding failed
   void setNExMax(char nmax = 1) { mNExMax = nmax; }
-  char getNExMax() const { return mNExMax; }  // Number of maxima found in cluster in unfolding:
-                                              // 0: was no unfolging, -1: unfolding failed
-  char getPHOSMod() const { return mModule; } // PHOS module of a current cluster
+  char getNExMax() const { return mNExMax; } // Number of maxima found in cluster in unfolding:
+                                             // 0: was no unfolging, -1: unfolding failed
+  char module() const { return mModule; }    // PHOS module of a current cluster
 
   float getTime() const { return mTime; }
 

@@ -44,12 +44,12 @@ class CalibParams
   /// \brief Get High Gain energy calibration coefficients
   /// \param cellID Absolute ID of cell
   /// \return high gain energy calibration coefficient of the cell
-  float getGain(short cellID) const { return mGainCalib.at(cellID); }
+  float getGain(short cellID) const { return mGainCalib.at(cellID - OFFSET); }
 
   /// \brief Set High Gain energy calibration coefficient
   /// \param cellID Absolute ID of cell
   /// \param c is the calibration coefficient
-  void setGain(short cellID, float c) { mGainCalib[cellID] = c; }
+  void setGain(short cellID, float c) { mGainCalib[cellID - OFFSET] = c; }
 
   /// \brief Set High Gain energy calibration coefficients for one module in the form of 2D histogram
   /// \param 2D(64,56) histogram with calibration coefficients
@@ -60,12 +60,12 @@ class CalibParams
   /// \brief Get High Gain to Low Gain ratio calibration coefficients
   /// \param cellID Absolute ID of cell
   /// \return High Gain to Low Gain ratio of the cell
-  float getHGLGRatio(short cellID) const { return mHGLGRatio.at(cellID); }
+  float getHGLGRatio(short cellID) const { return mHGLGRatio.at(cellID - OFFSET); }
 
   /// \brief Set High Gain to Low Gain ratio
   /// \param cellID Absolute ID of cell
   /// \param r is the calibration coefficient
-  void setHGLGRatio(short cellID, float r) { mHGLGRatio[cellID] = r; }
+  void setHGLGRatio(short cellID, float r) { mHGLGRatio[cellID - OFFSET] = r; }
 
   /// \brief Set High Gain to Low Gain ratio for one module in the form of 2D histogram
   /// \param 2D(64,56) histogram with High Gain to Low Gain ratio
@@ -76,12 +76,12 @@ class CalibParams
   /// \brief Get High Gain time calibration coefficients
   /// \param cellID Absolute ID of cell
   /// \return high gain time calibration coefficient of the cell
-  float getHGTimeCalib(short cellID) const { return mHGTimeCalib.at(cellID); }
+  float getHGTimeCalib(short cellID) const { return mHGTimeCalib.at(cellID - OFFSET); }
 
   /// \brief Set High Gain time calibration coefficient
   /// \param cellID Absolute ID of cell
   /// \param t is the calibration coefficient
-  void setHGTimeCalib(short cellID, float t) { mHGTimeCalib[cellID] = t; }
+  void setHGTimeCalib(short cellID, float t) { mHGTimeCalib[cellID - OFFSET] = t; }
 
   /// \brief Set High Gain time calibration coefficients for one module in the form of 2D histogram
   /// \param 2D(64,56) histogram with calibration coefficients
@@ -92,12 +92,12 @@ class CalibParams
   /// \brief Get Low Gain time calibration coefficient
   /// \param cellID Absolute ID of cell
   /// \return low gain time calibration coefficient of the cell
-  float getLGTimeCalib(short cellID) const { return mLGTimeCalib.at(cellID); }
+  float getLGTimeCalib(short cellID) const { return mLGTimeCalib.at(cellID - OFFSET); }
 
   /// \brief Set time calibration coefficient
   /// \param cellID Absolute ID of cell
   /// \param t is the calibration coefficient
-  void setLGTimeCalib(short cellID, float t) { mLGTimeCalib[cellID] = t; }
+  void setLGTimeCalib(short cellID, float t) { mLGTimeCalib[cellID - OFFSET] = t; }
 
   /// \brief Set Low Gain time calibration coefficients for one module in the form of 2D histogram
   /// \param 2D(64,56) histogram with calibration coefficients
@@ -107,6 +107,7 @@ class CalibParams
 
  private:
   static constexpr short NCHANNELS = 14337;  ///< Number of channels starting from 1
+  static constexpr short OFFSET = 5377;      ///< Non-existing channels 56*64*1.5+1
   std::array<float, NCHANNELS> mGainCalib;   ///< Container for the gain calibration coefficients
   std::array<float, NCHANNELS> mHGLGRatio;   ///< Container for the High Gain to Low Gain ratios
   std::array<float, NCHANNELS> mHGTimeCalib; ///< Container for the High Gain time calibration coefficients

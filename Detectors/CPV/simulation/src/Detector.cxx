@@ -385,7 +385,7 @@ void Detector::ConstructGeometry()
     float pos[3] = {0};
     geomParams->GetModuleCenter(iModule, pos);
 
-    fMC->Gspos("CPV", iModule + 1, "barrel", pos[0], pos[1] + 30., pos[2], idrotm[iModule], "ONLY");
+    fMC->Gspos("CPV", iModule, "barrel", pos[0], pos[1] + 30., pos[2], idrotm[iModule], "ONLY");
   }
 
   //start filling CPV moodules
@@ -563,7 +563,7 @@ void Detector::addAlignableVolumes() const
 
   TString symbModuleName = "CPV/Module";
 
-  for (Int_t iModule = 1; iModule <= geom->GetNModules(); iModule++) {
+  for (Int_t iModule = 0; iModule < geom->GetNModules(); iModule++) {
 
     TString volPath(physModulePath);
     volPath += iModule;
@@ -571,7 +571,7 @@ void Detector::addAlignableVolumes() const
     TString symName(symbModuleName);
     symName += iModule;
 
-    int modUID = o2::base::GeometryManager::getSensID(idCPV, iModule - 1);
+    int modUID = o2::base::GeometryManager::getSensID(idCPV, iModule);
 
     LOG(DEBUG) << "--------------------------------------------"
                << "\n";

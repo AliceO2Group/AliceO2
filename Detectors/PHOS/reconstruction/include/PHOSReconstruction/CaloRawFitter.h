@@ -21,13 +21,13 @@
 
 #ifndef PHOSRAWFITTER_H_
 #define PHOSRAWFITTER_H_
-class Bunch;
 
 namespace o2
 {
 
 namespace phos
 {
+class Bunch;
 
 class CaloRawFitter
 {

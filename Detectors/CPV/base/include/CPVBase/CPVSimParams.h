@@ -38,6 +38,10 @@ struct CPVSimParams : public o2::conf::ConfigurableParamHelper<CPVSimParams> {
   float mB = 0.7;               ///<  Parameter to model CPV response
 
   //Parameters used in electronic noise calculation and thresholds (Digitizer)
+  float mReadoutTime = 5.;          ///< Read-out time in ns for default simulaionts
+  float mDeadTime = 20.;            ///< PHOS dead time (includes Read-out time i.e. mDeadTime>=mReadoutTime)
+  float mReadoutTimePU = 2000.;     ///< Read-out time in ns if pileup simulation on in DigitizerSpec
+  float mDeadTimePU = 30000.;       ///< PHOS dead time if pileup simulation on in DigitizerSpec
   bool mApplyDigitization = true;   ///< if energy digitization should be applied
   float mZSthreshold = 0.01;        ///< Zero Suppression threshold
   float mADCWidth = 0.005;          ///< Widht of ADC channel used for energy digitization
