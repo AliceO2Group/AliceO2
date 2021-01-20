@@ -107,6 +107,8 @@ class GPUTrackingRefitProcessor
 };
 struct GPUTPCCFChainContext {
 };
+struct TPCPadGainCalib {
+};
 #ifndef __OPENCL__
 struct GPUParam;
 class GPUTPCClusterStatistics

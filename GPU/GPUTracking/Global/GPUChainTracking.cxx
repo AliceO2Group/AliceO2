@@ -2704,7 +2704,9 @@ void GPUChainTracking::ClearErrorCodes()
 
 void GPUChainTracking::SetDefaultO2PropagatorForGPU()
 {
+#ifdef HAVE_O2HEADERS
   o2::base::Propagator* prop = param().GetDefaultO2Propagator(true);
   prop->setMatLUT(processors()->calibObjects.matLUT);
   SetO2Propagator(prop);
+#endif
 }
