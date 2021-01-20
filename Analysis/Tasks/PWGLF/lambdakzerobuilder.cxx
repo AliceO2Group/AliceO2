@@ -81,7 +81,7 @@ struct lambdakzeroprefilterpairs {
   Configurable<float> dcanegtopv{"dcanegtopv", .1, "DCA Neg To PV"};
   Configurable<float> dcapostopv{"dcapostopv", .1, "DCA Pos To PV"};
   Configurable<int> mincrossedrows{"mincrossedrows", 70, "min crossed rows"};
-  Configurable<bool> tpcrefit{"tpcrefit", 1, "demand TPC refit"};
+  Configurable<int> tpcrefit{"tpcrefit", 1, "demand TPC refit"};
 
   OutputObj<TH1F> hGoodIndices{TH1F("hGoodIndices", "", 4, 0, 4)};
 
