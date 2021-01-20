@@ -11,6 +11,7 @@
 #include "Framework/RootConfigParamHelpers.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/StringHelpers.h"
+#include "Framework/VariantPropertyTreeHelpers.h"
 #include <TClass.h>
 #include <TDataMember.h>
 #include <TDataType.h>
@@ -75,43 +76,6 @@ void loopOverMembers(TClass* cl, void* obj,
   }
 }
 
-namespace
-{
-template <typename T>
-std::vector<T> extractVector(boost::property_tree::ptree const& tree)
-{
-  std::vector<T> result(tree.size());
-  auto count = 0U;
-  for (auto const& entry : tree) {
-    result[count++] = entry.second.get_value<T>();
-  }
-  return result;
-}
-
-template <typename T>
-Array2D<T> extractMatrix(boost::property_tree::ptree const& tree)
-{
-  std::vector<T> cache;
-  uint32_t nrows = tree.size();
-  uint32_t ncols = 0;
-  bool first = true;
-  auto irow = 0u;
-  for (auto const& row : tree) {
-    if (first) {
-      ncols = row.second.size();
-      first = false;
-    }
-    auto icol = 0u;
-    for (auto const& entry : row.second) {
-      cache.push_back(entry.second.get_value<T>());
-      ++icol;
-    }
-    ++irow;
-  }
-  return Array2D<T>{cache, nrows, ncols};
-}
-} // namespace
-
 // construct name (in dependence on vector or scalar data and index)
 std::string getName(const TDataMember* dm, int index, int size)
 {
@@ -132,19 +96,19 @@ void ptreeToMember(boost::property_tree::ptree const& value,
   if (dm->IsSTLContainer()) {
     switch (typehash) {
       case compile_time_hash("vector<int>"):
-        *static_cast<std::vector<int>*>(ptr) = extractVector<int>(value);
+        *static_cast<std::vector<int>*>(ptr) = vectorFromBranch<int>(value);
         return;
       case compile_time_hash("vector<float>"):
-        *static_cast<std::vector<float>*>(ptr) = extractVector<float>(value);
+        *static_cast<std::vector<float>*>(ptr) = vectorFromBranch<float>(value);
         return;
       case compile_time_hash("vector<double>"):
-        *static_cast<std::vector<double>*>(ptr) = extractVector<double>(value);
+        *static_cast<std::vector<double>*>(ptr) = vectorFromBranch<double>(value);
         return;
       case compile_time_hash("vector<bool>"):
         throw std::runtime_error("Bool arrays are not implemented yet");
       case compile_time_hash("vector<std::string>"):
       case compile_time_hash("vector<string>"):
-        *static_cast<std::vector<std::string>*>(ptr) = extractVector<std::string>(value);
+        *static_cast<std::vector<std::string>*>(ptr) = vectorFromBranch<std::string>(value);
         return;
       default:
         throw std::runtime_error("Not an int/float/double/bool vector");
@@ -152,13 +116,13 @@ void ptreeToMember(boost::property_tree::ptree const& value,
   } else {
     switch (typehash) {
       case compile_time_hash("o2::framework::Array2D<int>"):
-        *static_cast<Array2D<int>*>(ptr) = extractMatrix<int>(value);
+        *static_cast<Array2D<int>*>(ptr) = array2DFromBranch<int>(value);
         return;
       case compile_time_hash("o2::framework::Array2D<float>"):
-        *static_cast<Array2D<float>*>(ptr) = extractMatrix<float>(value);
+        *static_cast<Array2D<float>*>(ptr) = array2DFromBranch<float>(value);
         return;
       case compile_time_hash("o2::framework::Array2D<double>"):
-        *static_cast<Array2D<double>*>(ptr) = extractMatrix<double>(value);
+        *static_cast<Array2D<double>*>(ptr) = array2DFromBranch<double>(value);
         return;
     }
   }
