@@ -71,7 +71,6 @@ class PHOSHGLGRatioCalibDevice : public o2::framework::Task
   std::unique_ptr<CalibParams> mCalibObject;                  /// Final calibration object
   std::unique_ptr<TH2F> mhRatio;                              /// Histogram with ratios
   std::array<float, o2::phos::Mapping::NCHANNELS> mRatioDiff; /// Ratio variation wrt previous map
-  ClassDefNV(PHOSHGLGRatioCalibDevice, 1);
 };
 
 DataProcessorSpec getHGLGRatioCalibSpec(bool useCCDB, bool forceUpdate, std::string path);

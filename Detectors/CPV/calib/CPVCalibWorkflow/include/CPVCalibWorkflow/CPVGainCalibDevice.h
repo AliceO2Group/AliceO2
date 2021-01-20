@@ -55,7 +55,6 @@ class CPVGainCalibDevice : public o2::framework::Task
   std::unique_ptr<CalibParams> mCalibParams;                   /// Final calibration object
   std::unique_ptr<TH2F> mMean;                                 /// Mean values in High Gain channels
   std::array<short, o2::cpv::Geometry::kNCHANNELS> mGainRatio; /// Gain variation wrt previous map
-  ClassDefNV(CPVGainCalibDevice, 1);
 };
 
 o2::framework::DataProcessorSpec getGainCalibSpec(bool useCCDB, bool forceUpdate, std::string path);
