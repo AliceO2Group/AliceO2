@@ -50,7 +50,7 @@ using namespace o2::gpu;
 #undef AddHelp
 #undef AddShortcut
 
-GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam()
+GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam_internal()
 {
 #define BeginNamespace(name)
 #define EndNamespace()

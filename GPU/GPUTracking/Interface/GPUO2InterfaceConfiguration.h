@@ -49,6 +49,7 @@ class Digit;
 namespace gpu
 {
 class TPCFastTransform;
+class GPUReconstruction;
 struct GPUSettingsO2;
 
 struct GPUInterfaceQAOutputs {
@@ -91,6 +92,10 @@ struct GPUO2InterfaceConfiguration {
   GPUCalibObjects configCalib;
 
   GPUSettingsO2 ReadConfigurableParam();
+
+ private:
+  friend class GPUReconstruction;
+  GPUSettingsO2 ReadConfigurableParam_internal();
 };
 
 // Structure with pointers to actual data for input and output

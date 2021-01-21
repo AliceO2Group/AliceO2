@@ -17,18 +17,15 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::gpu::GPUTPCO2Interface + ;
-#pragma link C++ class o2::gpu::GPUTPCO2InterfaceRefit + ;
-#pragma link C++ class o2::gpu::GPUO2InterfaceQA + ;
 #pragma link C++ class o2::gpu::TPCdEdxCalibrationSplines + ;
+#pragma link C++ class o2::gpu::trackInterface < o2::dataformats::TrackTPCITS> + ;
+#pragma link C++ class o2::gpu::GPUTRDTrack_t < o2::gpu::trackInterface < o2::dataformats::TrackTPCITS>> + ;
+#pragma link C++ class std::vector < o2::gpu::GPUTRDTrack_t < o2::gpu::trackInterface < o2::dataformats::TrackTPCITS>>> + ;
 #pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsO2 + ;
 #pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsRec + ;
 #pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsProcessing + ;
 #pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsDisplay + ;
 #pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsDisplayLight + ;
 #pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsQA + ;
-#pragma link C++ class o2::gpu::trackInterface < o2::dataformats::TrackTPCITS> + ;
-#pragma link C++ class o2::gpu::GPUTRDTrack_t < o2::gpu::trackInterface < o2::dataformats::TrackTPCITS>> + ;
-#pragma link C++ class std::vector < o2::gpu::GPUTRDTrack_t < o2::gpu::trackInterface < o2::dataformats::TrackTPCITS>>> + ;
 
 #endif
