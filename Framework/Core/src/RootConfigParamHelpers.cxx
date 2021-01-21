@@ -218,11 +218,11 @@ ConfigParamSpec memberToConfigParamSpec(const char* tname, TDataMember* dm, void
   } else {
     switch (typehash) {
       case compile_time_hash("o2::framework::Array2D<int>"):
-        return ConfigParamSpec{tname, VariantType::MatrixInt, *static_cast<Array2D<int>*>(ptr), {"No help"}};
+        return ConfigParamSpec{tname, VariantType::Array2DInt, *static_cast<Array2D<int>*>(ptr), {"No help"}};
       case compile_time_hash("o2::framework::Array2D<float>"):
-        return ConfigParamSpec{tname, VariantType::MatrixFloat, *static_cast<Array2D<float>*>(ptr), {"No help"}};
+        return ConfigParamSpec{tname, VariantType::Array2DFloat, *static_cast<Array2D<float>*>(ptr), {"No help"}};
       case compile_time_hash("o2::framework::Array2D<double>"):
-        return ConfigParamSpec{tname, VariantType::MatrixDouble, *static_cast<Array2D<double>*>(ptr), {"No help"}};
+        return ConfigParamSpec{tname, VariantType::Array2DDouble, *static_cast<Array2D<double>*>(ptr), {"No help"}};
     }
   }
   auto* dt = dm->GetDataType();
