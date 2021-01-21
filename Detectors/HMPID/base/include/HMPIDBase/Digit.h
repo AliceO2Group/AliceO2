@@ -27,8 +27,35 @@ namespace hmpid
 class Digit
 {
   public:
+  
+  // Conversion functions
+    static inline uint32_t Abs(int ch, int pc, int x, int y) { return ch << 20 | pc << 16 | x << 8 | y; }
+    static inline int DDL2C(int ddl) { return ddl >> 1; }                 //ddl -> chamber
+    static inline int A2C(uint32_t pad) { return (pad & 0x00F00000) >> 20; }           //abs pad -> chamber
+    static inline int A2P(uint32_t pad) { return (pad & 0x000F0000) >> 16; } //abs pad -> pc
+    static inline int A2X(uint32_t pad) { return (pad & 0x0000FF00) >> 8; }      //abs pad -> pad X
+    static inline int A2Y(uint32_t pad) { return (pad & 0x000000FF); }                //abs pad -> pad Y
+    static inline uint32_t Photo2Pad(int ch, int pc, int x, int y) { return Abs(ch, pc, x, y); }
+    static uint32_t Equipment2Pad(int Equi, int Colu, int Dilo, int Chan);
+    static void Pad2Equipment(uint32_t pad, int *Equi, int *Colu, int *Dilo, int *Chan);
+    static void Pad2Absolute(uint32_t pad, int *Module, int *x, int *y);
+    static uint32_t Absolute2Pad(int Module, int x, int y);
+    static void Pad2Photo(uint32_t pad, int *chamber, int *photo, int *x, int *y);
+
+    // Operators definition !
+    inline bool operator<(const Digit& l, const Digit& r) { return l.mPad < r.mPad; };
+    inline bool operator==(const Digit& l, const Digit& r) { return l.mPad == r.mPad; };
+    inline bool operator> (const Digit& l, const Digit& r){ return r < l; };
+    inline bool operator<=(const Digit& l, const Digit& r){ return !(l > r); };
+    inline bool operator>=(const Digit& l, const Digit& r){ return !(l < r); };
+    inline bool operator!=(const Digit& l, const Digit& r) { return !(l == r); };
+
+  public:
     Digit() = default;
-    Digit(int bc, int orbit, int pad, float charge) : mBc(bc), mOrbit(orbit), mPad(pad), mQ(charge) {};
+    Digit(int bc, int orbit, int pad, float charge) : mBc(bc), mOrbit(orbit), mQ(charge), mPad(pad) {};
+    Digit(int bc, int orbit, int chamber, int photo, int x, int y, float charge);
+    Digit(int bc, int orbit, float charge, int equipment, int column, int dilogic, int channel) ;
+    Digit(int bc, int orbit, float charge, int module, int x, int y);
 
     float getCharge() const { return mQ; }
     int getPadID() const { return mPad; }
@@ -36,10 +63,11 @@ class Digit
     int getBC() const { return mBc; }
 
     // convenience conversion to x-y pad coordinates
-    int getPx() const { return Param::A2X(mPad); }
-    int getPy() const { return Param::A2Y(mPad); }
-    int getPhC() const { return Param::A2P(mPad); }
-    int getCh() const { return Param::A2C(mPad); }
+    int getPx() const { return A2X(mPad); }
+    int getPy() const { return A2Y(mPad); }
+    int getPhC() const { return A2P(mPad); }
+    int getCh() const { return A2C(mPad); }
+
 
     static void getPadAndTotalCharge(HitType const& hit, int& chamber, int& pc, int& px, int& py, float& totalcharge);
     static float getFractionalContributionForPad(HitType const& hit, int somepad);
@@ -49,12 +77,12 @@ class Digit
 
   private:
     float mQ = 0.;
-    int mPad = 0.; // -1 indicates invalid digit
+    uint32_t mPad = 0.; // -1 indicates invalid digit
     int mBc = 0.;
     int mOrbit = 0;
 
-    static float LorsX(int pad) { return Param::LorsX(Param::A2P(pad), Param::A2X(pad)); } //center of the pad x, [cm]
-    static float LorsY(int pad) { return Param::LorsY(Param::A2P(pad), Param::A2Y(pad)); } //center of the pad y, [cm]
+    static float LorsX(int pad) { return Param::LorsX(A2P(pad), A2X(pad)); } //center of the pad x, [cm]
+    static float LorsY(int pad) { return Param::LorsY(A2P(pad), A2Y(pad)); } //center of the pad y, [cm]
 
     // determines the total charge created by a hit
     // might modify the localX, localY coordiates associated to the hit

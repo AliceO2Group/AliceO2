@@ -179,10 +179,7 @@ HmpidDecodeRawDigit::~HmpidDecodeRawDigit()
 void HmpidDecodeRawDigit::setPad(HmpidEquipment *eq, int col, int dil, int ch, int charge)
 {
   eq->setPad(col, dil, ch, charge);
-  mDigits.push_back(Digit(mHeBCDI, mHeORBIT,
-			  o2::hmpid::Geo::GetPad(eq->getEquipmentId(), col - 1, dil - 1, ch),
-			  charge));
+  mDigits.push_back(Digit(mHeBCDI, mHeORBIT, (float)charge, eq->getEquipmentId(), col, dil, ch));
   return;
 }
-
 

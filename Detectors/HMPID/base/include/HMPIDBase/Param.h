@@ -80,9 +80,9 @@ class Param
   static float SizeAllY() { return fgAllY; }                //all PCs size y, [cm]
 
   //center of the pad x, [cm]
-  static float LorsX(Int_t pc, Int_t padx) { return (padx + 0.5) * SizePadX() + fgkMinPcX[pc]; }
+  static float LorsX(Int_t pc, int padx) { return (padx + 0.5) * SizePadX() + fgkMinPcX[pc]; }
   //center of the pad y, [cm]
-  static float LorsY(Int_t pc, Int_t pady) { return (pady + 0.5) * SizePadY() + fgkMinPcY[pc]; }
+  static float LorsY(Int_t pc, int pady) { return (pady + 0.5) * SizePadY() + fgkMinPcY[pc]; }
 
   //PhiMin (degree) of the camber ch
   float ChPhiMin(Int_t ch) { return Lors2Mars(ch, LorsX(ch, kMinPx) - mX, LorsY(ch, kMinPy) - mY).Phi() * r2d(); }
@@ -96,12 +96,21 @@ class Param
   static void Lors2Pad(float x, float y, Int_t& pc, Int_t& px, Int_t& py); //(x,y)->(pc,px,py)
 
   //(ch,pc,padx,pady)-> abs pad
-  static Int_t Abs(Int_t ch, Int_t pc, Int_t x, Int_t y) { return ch * 100000000 + pc * 1000000 + x * 1000 + y; }
-  static Int_t DDL2C(Int_t ddl) { return ddl / 2; }                 //ddl -> chamber
-  static Int_t A2C(Int_t pad) { return pad / 100000000; }           //abs pad -> chamber
-  static Int_t A2P(Int_t pad) { return pad % 100000000 / 1000000; } //abs pad -> pc
-  static Int_t A2X(Int_t pad) { return pad % 1000000 / 1000; }      //abs pad -> pad X
-  static Int_t A2Y(Int_t pad) { return pad % 1000; }                //abs pad -> pad Y
+//  static Int_t Abs(Int_t ch, Int_t pc, Int_t x, Int_t y) { return ch * 100000000 + pc * 1000000 + x * 1000 + y; }
+//  static Int_t DDL2C(Int_t ddl) { return ddl / 2; }                 //ddl -> chamber
+//  static Int_t A2C(Int_t pad) { return pad / 100000000; }           //abs pad -> chamber
+//  static Int_t A2P(Int_t pad) { return pad % 100000000 / 1000000; } //abs pad -> pc
+//  static Int_t A2X(Int_t pad) { return pad % 1000000 / 1000; }      //abs pad -> pad X
+//  static Int_t A2Y(Int_t pad) { return pad % 1000; }                //abs pad -> pad Y
+
+
+  // Moved in Digit.h
+  static Int_t Abs(Int_t ch, Int_t pc, Int_t x, Int_t y) { return ch << 20 | pc << 16 | x << 8 | y; }
+  static Int_t DDL2C(Int_t ddl) { return ddl >> 1; }                 //ddl -> chamber
+  static Int_t A2C(Int_t pad) { return (pad & 0x00F00000) >> 20; }           //abs pad -> chamber
+  static Int_t A2P(Int_t pad) { return (pad & 0x000F0000) >> 16; } //abs pad -> pc
+  static Int_t A2X(Int_t pad) { return (pad & 0x0000FF00) >> 8; }      //abs pad -> pad X
+  static Int_t A2Y(Int_t pad) { return (pad & 0x000000FF); }                //abs pad -> pad Y
 
   static bool IsOverTh(float q) { return q >= fgThreshold; } //is digit over threshold?
 
