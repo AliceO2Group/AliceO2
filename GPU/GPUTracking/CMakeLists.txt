@@ -132,6 +132,12 @@ set(HDRS_INSTALL
     Standalone/qa/GPUQAHelper.h
     Base/GPUSettingsList.h
     DataCompression/GPUTPCClusterRejection.h
+    Definitions/GPUDef.h
+    Definitions/GPUDefConstantsAndSettings.h
+    Definitions/GPUDefGPUParameters.h
+    Definitions/GPUDefOpenCL12Templates.h
+    Definitions/GPULogging.h
+    Definitions/GPUDefMacros.h
 )
 
 # Sources only for O2
@@ -262,8 +268,9 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                        O2::DetectorsRaw
                                        ${DEBUGGUI_TARGET}
                                        O2::Steer
-                 PUBLIC_INCLUDE_DIRECTORIES SliceTracker
+                 PUBLIC_INCLUDE_DIRECTORIES Definitions
                                             Base
+                                            SliceTracker
                                             TPCConvert
                                             dEdx
                                             ITS
@@ -330,6 +337,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
                       ${CMAKE_SOURCE_DIR}/GPU/Common
                       ${CMAKE_SOURCE_DIR}/GPU/Utils
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking
+                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Definitions
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Standalone
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/SliceTracker
