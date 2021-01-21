@@ -81,7 +81,7 @@ struct lambdakzeroprefilterpairs {
   Configurable<float> dcanegtopv{"dcanegtopv", .1, "DCA Neg To PV"};
   Configurable<float> dcapostopv{"dcapostopv", .1, "DCA Pos To PV"};
   Configurable<int> mincrossedrows{"mincrossedrows", 70, "min crossed rows"};
-  Configurable<bool> tpcrefit{"tpcrefit", 1, "demand TPC refit"};
+  Configurable<int> tpcrefit{"tpcrefit", 1, "demand TPC refit"};
 
   OutputObj<TH1F> hGoodIndices{TH1F("hGoodIndices", "", 4, 0, 4)};
 
@@ -132,7 +132,7 @@ struct lambdakzerobuilder {
 
   //Configurables
   Configurable<double> d_bz{"d_bz", -5.0, "bz field"};
-  Configurable<double> d_UseAbsDCA{"d_UseAbsDCA", kTRUE, "Use Abs DCAs"};
+  // Configurable<int> d_UseAbsDCA{"d_UseAbsDCA", 1, "Use Abs DCAs"}; uncomment this once we want to use the weighted DCA
 
   //Selection criteria
   Configurable<double> v0cospa{"v0cospa", 0.995, "V0 CosPA"}; //double -> N.B. dcos(x)/dx = 0 at x=0)
@@ -156,7 +156,7 @@ struct lambdakzerobuilder {
     fitter.setMinRelChi2Change(0.9);
     fitter.setMaxDZIni(1e9);
     fitter.setMaxChi2(1e9);
-    fitter.setUseAbsDCA(d_UseAbsDCA);
+    fitter.setUseAbsDCA(true); // use d_UseAbsDCA once we want to use the weighted DCA
 
     hEventCounter->Fill(0.5);
     std::array<float, 3> pVtx = {collision.posX(), collision.posY(), collision.posZ()};
@@ -189,8 +189,12 @@ struct lambdakzerobuilder {
       }
 
       auto V0CosinePA = RecoDecay::CPA(array{collision.posX(), collision.posY(), collision.posZ()}, array{pos[0], pos[1], pos[2]}, array{pvec0[0] + pvec1[0], pvec0[1] + pvec1[1], pvec0[2] + pvec1[2]});
-
       if (V0CosinePA < v0cospa) {
+        continue;
+      }
+
+      auto V0radius = RecoDecay::sqrtSumOfSquares(pos[0], pos[1]); //probably find better name to differentiate the cut from the variable
+      if (V0radius < v0radius) {
         continue;
       }
 
