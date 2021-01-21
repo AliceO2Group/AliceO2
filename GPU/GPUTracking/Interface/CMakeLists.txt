@@ -23,7 +23,7 @@ o2_add_library(${MODULE}
                PUBLIC_INCLUDE_DIRECTORIES ../Definitions
                                           ../DataTypes
                                           ../Interface
-                                          ../Standalone)
+                                          ../)
 
 o2_target_root_dictionary(${MODULE}
                           HEADERS ${HDRS}
