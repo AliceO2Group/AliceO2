@@ -68,8 +68,8 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   
   add_custom_command(
       OUTPUT ${CURTC_BIN}.src.S
-      COMMAND cat ${GPUDIR}/Standalone/makefiles/include.S | sed "s/FILENAMEMOD/_curtc_GPUReconstructionCUDArtc_cu_src/g" | sed "s,FILENAMENORMAL,${CURTC_BIN}.src,g" > ${CURTC_BIN}.src.S
-      MAIN_DEPENDENCY ${GPUDIR}/Standalone/makefiles/include.S
+      COMMAND cat ${GPUDIR}/utils/include.S | sed "s/FILENAMEMOD/_curtc_GPUReconstructionCUDArtc_cu_src/g" | sed "s,FILENAMENORMAL,${CURTC_BIN}.src,g" > ${CURTC_BIN}.src.S
+      MAIN_DEPENDENCY ${GPUDIR}/utils/include.S
   )
 
   add_custom_command(
@@ -81,8 +81,8 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   
   add_custom_command(
       OUTPUT ${CURTC_BIN}.command.S
-      COMMAND cat ${GPUDIR}/Standalone/makefiles/include.S | sed "s/FILENAMEMOD/_curtc_GPUReconstructionCUDArtc_cu_command/g" | sed "s,FILENAMENORMAL,${CURTC_BIN}.command,g" > ${CURTC_BIN}.command.S
-      MAIN_DEPENDENCY ${GPUDIR}/Standalone/makefiles/include.S
+      COMMAND cat ${GPUDIR}/utils/include.S | sed "s/FILENAMEMOD/_curtc_GPUReconstructionCUDArtc_cu_command/g" | sed "s,FILENAMENORMAL,${CURTC_BIN}.command,g" > ${CURTC_BIN}.command.S
+      MAIN_DEPENDENCY ${GPUDIR}/utils/include.S
       DEPENDS ${CURTC_BIN}.command
   )
   # cmake-format: on
@@ -95,7 +95,7 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
     LANGUAGE
     ASM
     OBJECT_DEPENDS
-    "${CURTC_BIN}.src;${GPUDIR}/Standalone/makefiles/include.S")
+    "${CURTC_BIN}.src;${GPUDIR}/utils/include.S")
     
   set_source_files_properties(
     ${CURTC_BIN}.command.S

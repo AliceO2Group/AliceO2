@@ -37,7 +37,7 @@ set(CL_BIN ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCL1Code.bin)
 # * checks the correct vendor implementation (AMD)
 # * builds binary code (blob) for the found platform(s)
 add_executable(opencl_compiler
-               ${GPUDIR}/Standalone/makefiles/makefile_opencl_compiler.cxx)
+               ${GPUDIR}/utils/makefile_opencl_compiler.cxx)
 target_link_libraries(opencl_compiler PUBLIC OpenCL::OpenCL)
 set_property(TARGET opencl_compiler
              PROPERTY RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
@@ -68,8 +68,8 @@ add_custom_command(
 # cmake-format: off
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S
-    COMMAND cat ${GPUDIR}/Standalone/makefiles/include.S | sed "s/FILENAMEMOD/_makefile_opencl_program_Base_opencl_common_GPUReconstructionOCL_cl/g" | sed "s/FILENAMENORMAL/GPUReconstructionOCL1Code.bin/g" > ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S
-    MAIN_DEPENDENCY ${GPUDIR}/Standalone/makefiles/include.S
+    COMMAND cat ${GPUDIR}/utils/include.S | sed "s/FILENAMEMOD/_makefile_opencl_program_Base_opencl_common_GPUReconstructionOCL_cl/g" | sed "s/FILENAMENORMAL/GPUReconstructionOCL1Code.bin/g" > ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S
+    MAIN_DEPENDENCY ${GPUDIR}/utils/include.S
 )
 # cmake-format: on
 
@@ -81,7 +81,7 @@ set_source_files_properties(
   LANGUAGE
   ASM
   OBJECT_DEPENDS
-  "${CL_BIN};${GPUDIR}/Standalone/makefiles/include.S")
+  "${CL_BIN};${GPUDIR}/utils/include.S")
 
 set(SRCS GPUReconstructionOCL1.cxx
          ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S)
