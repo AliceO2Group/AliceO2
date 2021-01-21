@@ -49,7 +49,6 @@ o2_add_executable(
     O2::ITSReconstruction
     O2::FT0Reconstruction
     O2::TPCFastTransformation
-    O2::GPUTracking
     O2::TPCBase
     O2::TPCReconstruction
     O2::TOFBase
