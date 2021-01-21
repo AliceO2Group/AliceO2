@@ -90,11 +90,12 @@ struct lambdakzeroanalysis {
   Configurable<float> dcanegtopv{"dcanegtopv", .1, "DCA Neg To PV"};
   Configurable<float> dcapostopv{"dcapostopv", .1, "DCA Pos To PV"};
   Configurable<float> v0radius{"v0radius", 5.0, "v0radius"};
+  Configurable<float> rapidity{"rapidity", 0.5, "rapidity"};
 
-  Filter preFilterV0 = aod::v0data::dcapostopv > dcapostopv&&
-                                                   aod::v0data::dcanegtopv > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;
+  // Filter preFilterV0 = aod::v0data::dcapostopv > dcapostopv&&
+  //                                                  aod::v0data::dcanegtopv > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau; we can use this again once (and if) math expressions can be used there
 
-  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision, soa::Filtered<aod::V0DataExt> const& fullV0s)
+  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision, aod::V0DataExt const& fullV0s)
   {
     if (!collision.alias()[kINT7]) {
       return;
@@ -106,11 +107,20 @@ struct lambdakzeroanalysis {
     for (auto& v0 : fullV0s) {
       //FIXME: could not find out how to filter cosPA and radius variables (dynamic columns)
       if (v0.v0radius() > v0radius && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospa) {
-        if (TMath::Abs(v0.yLambda()) < 0.5) {
+        if (fabs(v0.dcapostopv()) < dcapostopv) {
+          continue;
+        }
+        if (fabs(v0.dcanegtopv()) < dcanegtopv) {
+          continue;
+        }
+        if (fabs(v0.dcaV0daughters()) > dcav0dau) {
+          continue;
+        }
+        if (TMath::Abs(v0.yLambda()) < rapidity) {
           h3dMassLambda->Fill(collision.centV0M(), v0.pt(), v0.mLambda());
           h3dMassAntiLambda->Fill(collision.centV0M(), v0.pt(), v0.mAntiLambda());
         }
-        if (TMath::Abs(v0.yK0Short()) < 0.5) {
+        if (TMath::Abs(v0.yK0Short()) < rapidity) {
           h3dMassK0Short->Fill(collision.centV0M(), v0.pt(), v0.mK0Short());
         }
       }
