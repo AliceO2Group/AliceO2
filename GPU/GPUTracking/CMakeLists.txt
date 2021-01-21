@@ -140,9 +140,9 @@ set(HDRS_INSTALL
 
 # Sources only for O2
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
-  set(SRCS ${SRCS} Interface/GPUO2Interface.cxx Interface/GPUO2InterfaceRefit.cxx Interface/GPUO2InterfaceQA.cxx Interface/GPUO2InterfaceConfigurableParam.cxx)
-  set(HDRS_CINT_O2 ${HDRS_CINT_O2} Interface/GPUO2Interface.h Interface/GPUO2InterfaceRefit.h Interface/GPUO2InterfaceQA.h Interface/GPUO2InterfaceConfigurableParam.h DataTypes/TPCdEdxCalibrationSplines.h)
-  set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h DataTypes/GPUSettingsList.h TRDTracking/GPUTRDTrack.h) # Manual dependencies for ROOT dictionary generation
+  set(SRCS ${SRCS} Interface/GPUO2InterfaceConfigurableParam.cxx)
+  set(HDRS_CINT_O2 ${HDRS_CINT_O2} DataTypes/TPCdEdxCalibrationSplines.h Interface/GPUO2InterfaceConfigurableParam.h)
+  set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h DataTypes/GPUSettingsList.h DataTypes/GPUDataTypes.h TRDTracking/GPUTRDTrack.h) # Manual dependencies for ROOT dictionary generation
 endif()
 
 # Sources for O2 and for Standalone if requested in config file
@@ -185,7 +185,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         TPCClusterFinder/GPUTPCClusterFinderDump.cxx)
 
     set(HDRS_INSTALL ${HDRS_INSTALL}
-                     Interface/GPUO2InterfaceConfiguration.h
                      ITS/GPUITSTrack.h
                      TPCClusterFinder/Array2D.h
                      TPCClusterFinder/CfConsts.h
@@ -309,6 +308,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_test_root_macro(Standalone/tools/createLUT.C
                          PUBLIC_LINK_LIBRARIES O2::GPUTracking
                          LABELS its COMPILE_ONLY)
+
+  add_subdirectory(Interface)
 endif()
 
 # Main CMake part for AliRoot
