@@ -54,7 +54,7 @@ GPUdi() unsigned int GPURawDataUtils::getOrbit(const RAWDataHeaderGPU* rdh)
 #ifndef __OPENCL__
   return o2::raw::RDHUtils::getHeartBeatOrbit(*rdh);
 #else
-  return (rdh->words[2] >> 32);           // TODO: Ad-hoc implementation for OpenCL, RDHV4, to be moved to RDHUtils
+  return (rdh->words[2] >> 32); // TODO: Ad-hoc implementation for OpenCL, RDHV4, to be moved to RDHUtils
 #endif
 }
 
@@ -63,7 +63,7 @@ GPUdi() unsigned int GPURawDataUtils::getBC(const RAWDataHeaderGPU* rdh)
 #ifndef __OPENCL__
   return o2::raw::RDHUtils::getHeartBeatBC(*rdh);
 #else
-  return (rdh->words[2] & 0xFFF);         // TODO: Ad-hoc implementation for OpenCL, RDHV4, to be moved to RDHUtils
+  return (rdh->words[2] & 0xFFF); // TODO: Ad-hoc implementation for OpenCL, RDHV4, to be moved to RDHUtils
 #endif
 }
 

@@ -62,10 +62,10 @@ set(SRCS
     Base/GPUParam.cxx)
 
 set(SRCS_NO_CINT
-    Base/GPUDataTypes.cxx
+    DataTypes/GPUDataTypes.cxx
     Base/GPUReconstruction.cxx
     Base/GPUReconstructionCPU.cxx
-    Base/GPUSettings.cxx
+    DataTypes/GPUSettings.cxx
     Base/GPUProcessor.cxx
     Base/GPUMemoryResource.cxx
     Base/GPUGeneralKernels.cxx
@@ -97,7 +97,7 @@ set(HDRS_INSTALL
     Merger/GPUTPCGMOfflineStatisticalErrors.h
     Merger/GPUTPCGMMergedTrack.h
     Merger/GPUTPCGMMergedTrackHit.h
-    TRDTracking/GPUTRDDef.h
+    DataTypes/GPUTRDDef.h
     TRDTracking/GPUTRDTrackPoint.h
     TRDTracking/GPUTRDTrack.h
     TRDTracking/GPUTRDTrackData.h
@@ -114,23 +114,21 @@ set(HDRS_INSTALL
     Base/GPUReconstructionKernels.h
     Base/GPUReconstructionIncludesITS.h
     Base/GPUReconstructionHelpers.h
-    Base/GPUOutputControl.h
-    Base/GPUOutputControl.h
-    Base/GPUO2DataTypes.h
-    Base/GPUHostDataTypes.h
-    Base/GPUMemorySizeScalers.h
-    Base/GPURawData.h
-    dEdx/GPUdEdxInfo.h
-    dEdx/TPCdEdxCalibrationSplines.h
     TPCConvert/GPUTPCConvertImpl.h
     Base/GPUReconstructionKernelMacros.h
-    Base/GPUO2FakeClasses.h
+    DataTypes/GPUO2FakeClasses.h
+    DataTypes/GPUSettingsList.h
+    DataTypes/GPUOutputControl.h
+    DataTypes/GPUO2DataTypes.h
+    DataTypes/GPUHostDataTypes.h
+    DataTypes/GPUMemorySizeScalers.h
+    DataTypes/GPURawData.h
+    DataTypes/GPUdEdxInfo.h
     Base/GPUParam.inc
     Merger/GPUTPCGMMergerTypes.h
     Global/GPUErrorCodes.h
     Standalone/qconfigoptions.h
     Standalone/qa/GPUQAHelper.h
-    Base/GPUSettingsList.h
     DataCompression/GPUTPCClusterRejection.h
     Definitions/GPUDef.h
     Definitions/GPUDefConstantsAndSettings.h
@@ -143,8 +141,8 @@ set(HDRS_INSTALL
 # Sources only for O2
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   set(SRCS ${SRCS} Interface/GPUO2Interface.cxx Interface/GPUO2InterfaceRefit.cxx Interface/GPUO2InterfaceQA.cxx Interface/GPUO2InterfaceConfigurableParam.cxx)
-  set(HDRS_CINT_O2 ${HDRS_CINT_O2} Interface/GPUO2Interface.h Interface/GPUO2InterfaceRefit.h Interface/GPUO2InterfaceQA.h Interface/GPUO2InterfaceConfigurableParam.h dEdx/TPCdEdxCalibrationSplines.h)
-  set(HDRS_CINT_O2_ADDITIONAL Base/GPUSettings.h Base/GPUSettingsList.h TRDTracking/GPUTRDTrack.h) # Manual dependencies for ROOT dictionary generation
+  set(HDRS_CINT_O2 ${HDRS_CINT_O2} Interface/GPUO2Interface.h Interface/GPUO2InterfaceRefit.h Interface/GPUO2InterfaceQA.h Interface/GPUO2InterfaceConfigurableParam.h DataTypes/TPCdEdxCalibrationSplines.h)
+  set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h DataTypes/GPUSettingsList.h TRDTracking/GPUTRDTrack.h) # Manual dependencies for ROOT dictionary generation
 endif()
 
 # Sources for O2 and for Standalone if requested in config file
@@ -158,7 +156,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         ITS/GPUITSFitter.cxx
         ITS/GPUITSFitterKernels.cxx
         dEdx/GPUdEdx.cxx
-        dEdx/TPCdEdxCalibrationSplines.cxx
+        DataTypes/TPCdEdxCalibrationSplines.cxx
         TPCConvert/GPUTPCConvert.cxx
         TPCConvert/GPUTPCConvertKernel.cxx
         DataCompression/GPUTPCCompression.cxx
@@ -180,7 +178,6 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         TPCClusterFinder/GPUTPCCFDecodeZS.cxx
         TPCClusterFinder/GPUTPCCFGather.cxx
         TPCClusterFinder/TPCPadGainCalib.cxx
-        dEdx/TPCdEdxCalibrationSplines.cxx
         Refit/GPUTrackingRefit.cxx
         Refit/GPUTrackingRefitKernel.cxx)
 
@@ -269,6 +266,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                        ${DEBUGGUI_TARGET}
                                        O2::Steer
                  PUBLIC_INCLUDE_DIRECTORIES Definitions
+                                            DataTypes
                                             Base
                                             SliceTracker
                                             TPCConvert
@@ -338,6 +336,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
                       ${CMAKE_SOURCE_DIR}/GPU/Utils
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Definitions
+                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/DataTypes
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Standalone
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/SliceTracker
