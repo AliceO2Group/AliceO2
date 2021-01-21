@@ -78,7 +78,7 @@ class TrackSamplerTask
   {
     /// send the tracks with attached clusters of the next events in the current TF
 
-    static uint32_t event(-1);
+    static uint32_t event(0);
 
     // reached eof
     if (mInputFile.peek() == EOF) {
@@ -95,7 +95,7 @@ class TrackSamplerTask
     // loop over the requested number of events (or until eof) and fill the messages
     for (int iEvt = 0; iEvt < mNEventsPerTF && mInputFile.peek() != EOF; ++iEvt) {
       int nTracks = readOneEvent(tracks, clusters);
-      rofs.emplace_back(o2::InteractionRecord{0, ++event}, tracks.size() - nTracks, nTracks);
+      rofs.emplace_back(o2::InteractionRecord{0, event++}, tracks.size() - nTracks, nTracks);
     }
   }
 
