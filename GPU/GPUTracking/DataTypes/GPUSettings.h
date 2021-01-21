@@ -15,6 +15,7 @@
 #define GPUSETTINGS_H
 
 #include "GPUCommonDef.h"
+#include "GPUDataTypes.h"
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <vector>
 #include <string>
@@ -48,24 +49,24 @@ class GPUSettings
 #endif
 };
 
+#ifdef GPUCA_NOCOMPAT
 // Settings describing the events / time frames
 struct GPUSettingsEvent {
   // All new members must be sizeof(int) resp. sizeof(float) for alignment reasons!
-  GPUSettingsEvent();
-  float solenoidBz;         // solenoid field strength
-  int constBz;              // for test-MC events with constant Bz
-  int homemadeEvents;       // Toy-MC events
-  int continuousMaxTimeBin; // 0 for triggered events, -1 for default of 23ms
-  int needsClusterer;       // Set to true if the data requires the clusterizer
+  float solenoidBz = -5.00668;  // solenoid field strength
+  int constBz = 0;              // for test-MC events with constant Bz
+  int homemadeEvents = 0;       // Toy-MC events
+  int continuousMaxTimeBin = 0; // 0 for triggered events, -1 for default of 23ms
+  int needsClusterer = 0;       // Set to true if the data requires the clusterizer
 };
 
 // Settings defining the setup of the GPUReconstruction processing (basically selecting the device / class instance)
 struct GPUSettingsDeviceBackend {
-  GPUSettingsDeviceBackend();
-  unsigned int deviceType;   // Device type, shall use GPUDataTypes::DEVICE_TYPE constants, e.g. CPU / CUDA
-  char forceDeviceType;      // Fail if device initialization fails, otherwise falls back to CPU
-  GPUReconstruction* master; // GPUReconstruction master object
+  unsigned int deviceType = GPUDataTypes::DeviceType::CPU; // Device type, shall use GPUDataTypes::DEVICE_TYPE constants, e.g. CPU / CUDA
+  char forceDeviceType = true;                             // Fail if device initialization fails, otherwise falls back to CPU
+  GPUReconstruction* master = nullptr;                     // GPUReconstruction master object
 };
+#endif
 
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
