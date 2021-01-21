@@ -43,12 +43,18 @@ class Digit
     static void Pad2Photo(uint32_t pad, int *chamber, int *photo, int *x, int *y);
 
     // Operators definition !
-    inline bool operator<(const Digit& l, const Digit& r) { return l.mPad < r.mPad; };
-    inline bool operator==(const Digit& l, const Digit& r) { return l.mPad == r.mPad; };
-    inline bool operator> (const Digit& l, const Digit& r){ return r < l; };
-    inline bool operator<=(const Digit& l, const Digit& r){ return !(l > r); };
-    inline bool operator>=(const Digit& l, const Digit& r){ return !(l < r); };
-    inline bool operator!=(const Digit& l, const Digit& r) { return !(l == r); };
+    friend inline bool operator<(const Digit& l, const Digit& r) { return l.mPad < r.mPad; };
+    friend inline bool operator==(const Digit& l, const Digit& r) { return l.mPad == r.mPad; };
+    friend inline bool operator> (const Digit& l, const Digit& r){ return r < l; };
+    friend inline bool operator<=(const Digit& l, const Digit& r){ return !(l > r); };
+    friend inline bool operator>=(const Digit& l, const Digit& r){ return !(l < r); };
+    friend inline bool operator!=(const Digit& l, const Digit& r) { return !(l == r); };
+
+    friend std::ostream& operator<< (std::ostream& os, const Digit& d) {
+      os << "[" << A2C(d.mPad) << "," << A2P(d.mPad) << "," << A2X(d.mPad) << "," <<
+         A2Y(d.mPad) << "}@(" << d.mOrbit << "," << d.mBc << ")=" << d.mQ;
+      return os;
+    };
 
   public:
     Digit() = default;

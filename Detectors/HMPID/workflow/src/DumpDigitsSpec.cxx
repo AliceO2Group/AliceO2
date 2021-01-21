@@ -71,13 +71,11 @@ void DumpDigitsTask::run(framework::ProcessingContext& pc)
         return;
       }
       std::vector<o2::hmpid::Digit>*theDigits = (std::vector<o2::hmpid::Digit>*)input.payload;
-
+      std::cout << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
       for(o2::hmpid::Digit Dig : *theDigits) {
-        std::cout << Dig.getOrbit() << "," << Dig.getBC() << "," << Dig.getPadID() <<
-            " (" << Dig.getCh() << "," << Dig.getPhC() << "," << Dig.getPx() << "," << Dig.getPy() << ") =" <<
-            Dig.getCharge() << std::endl;
+        std::cout << Dig << std::endl;
       }
-
+      std::cout << "---------------- HMP Dump Digits : EOF ------------------" << std::endl;
     }
   }
 
