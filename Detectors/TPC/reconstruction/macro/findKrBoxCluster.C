@@ -27,7 +27,7 @@
 #include <vector>
 #endif
 
-void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1)
+void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1, std::string_view gainMapFile = "")
 {
   // Read the digits:
   TFile* file = new TFile("tpcdigits.root");
@@ -53,6 +53,9 @@ void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1)
 
   // Create KrBoxClusterFinder object, memory is only allocated once
   auto clFinder = std::make_unique<o2::tpc::KrBoxClusterFinder>();
+  if (gainMapFile.size()) {
+    clFinder->loadGainMapFromFile(gainMapFile);
+  }
 
   // Now everything can get processed
   // Loop over all events
@@ -60,18 +63,19 @@ void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1)
     std::cout << iEvent + 1 << "/" << nEntries << std::endl;
     tree->GetEntry(iEvent);
     // Each event consists of sectors (atm only two)
+
     for (int i = 0; i < 36; i++) {
       auto sector = digitizedSignal[i];
       if (sector->size() == 0) {
         continue;
       }
-      // Set CalDet File:
-      // clFinder->setCalDetFile("/path/to/caldetfile.root");
 
       // Create ClusterFinder Object on Heap since creation on stack fails
       // Probably due to too much memory consumption
       clFinder->fillAndCorrectMap(*sector, i);
+
       std::vector<std::tuple<int, int, int>> localMaxima = clFinder->findLocalMaxima();
+
       // Loop over cluster centers
       for (const std::tuple<int, int, int>& coords : localMaxima) {
         int padMax = std::get<0>(coords);
@@ -84,6 +88,7 @@ void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1)
         // Build total cluster
         o2::tpc::KrCluster tempCluster = clFinder->buildCluster(padMax, rowMax, timeMax);
         tempCluster.sector = i;
+
         clusters.emplace_back(tempCluster);
       }
     }
@@ -102,5 +107,3 @@ int main()
   findKrBoxCluster();
   return 0;
 }
-
-// g++ -o test $(root-config --cflags) $(root-config --libs) -I$O2_ROOT/include -I$O2_ROOT/include/GPU -L$O2_ROOT/lib -l O2TPCBase -l O2TPCReconstruction $O2_SRC/Detectors/TPC/reconstruction/macro/findKrBoxCluster.C -g -Og

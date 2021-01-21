@@ -49,6 +49,15 @@ void KrBoxClusterFinder::loadGainMapFromFile(const std::string_view calDetFileNa
 // The CalDet File should contain the relative Gain of each Pad.
 void KrBoxClusterFinder::fillAndCorrectMap(std::vector<o2::tpc::Digit>& eventSector, const int sector)
 {
+  // Reset whole map:
+  for (int iTime = 0; iTime < MaxTimes; iTime++) {
+    for (int iRow = 0; iRow < MaxRows; iRow++) {
+      for (int iPad = 0; iPad < MaxPads; iPad++) {
+        mMapOfAllDigits[iTime][iRow][iPad] = 0;
+      }
+    }
+  }
+
   if (eventSector.size() == 0) {
     // prevents a segementation fault if the envent contains no data
     // segementation fault would occure later when trying to dereference the
@@ -160,10 +169,11 @@ std::vector<std::tuple<int, int, int>> KrBoxClusterFinder::findLocalMaxima()
       setMaxClusterSize(iRow);
 
       const auto& mapPad = mapRow[iRow];
+      const int padsInRow = mMapperInstance.getNumberOfPadsInRowSector(iRow);
 
-      for (int iPad = 0; iPad < MaxPads; iPad++) { // mapPad.size()
+      // Only loop over existing pads:
+      for (int iPad = MaxPads / 2 - padsInRow / 2; iPad < MaxPads / 2 + padsInRow / 2; iPad++) { // mapPad.size()
 
-        // const float qMax = mMapOfAllDigits[iTime][iRow][iPad];
         const float qMax = mapPad[iPad];
 
         // cluster Maximum must at least be larger than Threshold
