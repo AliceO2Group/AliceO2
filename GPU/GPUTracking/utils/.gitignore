@@ -12,3 +12,6 @@
 /vecpodtest.cxx
 /*.cpp
 /*.sh
+/.svn
+/as
+/callvc.bat
