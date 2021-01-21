@@ -17,7 +17,6 @@ o2_add_library(TPCQC
                        src/Tracks.cxx
                PUBLIC_LINK_LIBRARIES O2::TPCBase
                                      O2::DataFormatsTPC
-                                     O2::GPUTracking
                                      O2::GPUO2Interface)
 
 
