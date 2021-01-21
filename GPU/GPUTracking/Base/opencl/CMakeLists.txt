@@ -52,13 +52,7 @@ add_custom_command(
           ${CL_SRC}
           --
           "-D$<JOIN:$<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>,$<SEMICOLON>-D>"
-          -I${GPUDIR}/../Common
-          -I${GPUDIR}/Base
-          -I${GPUDIR}/Merger
-          -I${GPUDIR}/Global
-          -I${GPUDIR}/SliceTracker
-          -I${GPUDIR}/TRDTracking
-          -I${GPUDIR}/Standalone
+          "-I$<JOIN:$<FILTER:$<TARGET_PROPERTY:O2::GPUTracking,INCLUDE_DIRECTORIES>,EXCLUDE,^/usr.*>,$<SEMICOLON>-I>"
           -DGPUCA_GPULIBRARY=OCL1
           -x clc++
   MAIN_DEPENDENCY ${CL_SRC}
