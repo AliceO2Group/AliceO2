@@ -29,7 +29,7 @@ TrackReader::TrackReader(bool useMC)
 
 void TrackReader::init(InitContext& ic)
 {
-  mInputFileName = ic.options().get<std::string>("tpc-tracks-infile");
+  mInputFileName = ic.options().get<std::string>("infile");
   connectTree(mInputFileName);
 }
 
@@ -131,7 +131,7 @@ DataProcessorSpec getTPCTrackReaderSpec(bool useMC)
     outputSpec,
     AlgorithmSpec{adaptFromTask<TrackReader>(useMC)},
     Options{
-      {"tpc-tracks-infile", VariantType::String, "tpctracks.root", {"Name of the input track file"}}}};
+      {"infile", VariantType::String, "tpctracks.root", {"Name of the input track file"}}}};
 }
 
 } // namespace tpc

@@ -25,6 +25,7 @@ o2_add_library(TPCWorkflow
                        src/ZSSpec.cxx
                        src/CalibProcessingHelper.cxx
                        src/ClusterSharingMapSpec.cxx
+                       src/FileReaderWorkflow.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
                                      O2::DPLUtils O2::TPCReconstruction
@@ -49,6 +50,11 @@ o2_add_executable(calib-pedestal
 o2_add_executable(track-reader
                   COMPONENT_NAME tpc
                   SOURCES src/TrackReaderWorkflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(file-reader
+                  COMPONENT_NAME tpc
+                  SOURCES src/FileReaderWorkflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 o2_add_test(workflow
