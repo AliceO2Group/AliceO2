@@ -31,7 +31,7 @@ static float truncateFloatFraction(float x, uint32_t mask = 0xFFFFFF00)
   // Mask the less significant bits in the float fraction (1 bit sign, 8 bits exponent, 23 bits fraction), see
   // https://en.wikipedia.org/wiki/Single-precision_floating-point_format
   // mask 0xFFFFFF00 means 23 - 8 = 15 bits in the fraction
-  constexpr uint32_t ProtMask = ((0x1 << 9) - 1) << 23;
+  constexpr uint32_t ProtMask = ((0x1u << 9) - 1u) << 23;
   union {
     float y;
     uint32_t iy;
