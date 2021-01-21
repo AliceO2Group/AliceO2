@@ -8,8 +8,6 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-message(STATUS "Building CUDA secondary vertexer") # TODO: remove, dbg only
-
 o2_add_library(DetectorsVertexingCUDA
                SOURCES src/SVertexer.cu
                PUBLIC_LINK_LIBRARIES O2::GPUCommon
@@ -17,7 +15,7 @@ o2_add_library(DetectorsVertexingCUDA
                                      O2::DetectorsVertexing
                TARGETVARNAME targetName)
 
-set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+               set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 
 target_compile_definitions(
   ${targetName} PRIVATE $<TARGET_PROPERTY:O2::DetectorsVertexing,COMPILE_DEFINITIONS>)

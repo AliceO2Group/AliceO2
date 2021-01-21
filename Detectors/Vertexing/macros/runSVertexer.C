@@ -3,12 +3,14 @@
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "DetectorsVertexing/DCAFitterN.h"
+#include "DetectorsVertexingHIP/SVertexer.h"
 #include "DetectorsVertexingCUDA/SVertexer.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include <TRandom.h>
 #include <TGenPhaseSpace.h>
 #include <TLorentzVector.h>
 #include <TStopwatch.h>
+#include <TSystem.h>
 #include <Math/SVector.h>
 #include <array>
 #endif

@@ -7,30 +7,32 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \file SVertexer.h
+/// \ author: mconcas@cern.ch
 
-#include "DetectorsVertexingCUDA/SVertexer.h"
-#include "MathUtils/CartesianGPU.h"
-// #include "DetectorsVertexing/DCAFitterN.h" // <- target
-// #include "DetectorsVertexing/HelixHelper.h"
-// #include "ReconstructionDataFormats/Track.h"
+// #include "DetectorsVertexing/SVertexer.h"
+#include "GPUCommonDef.h"
+
+void hello_util();
 
 namespace o2
 {
 namespace vertexing
 {
-namespace gpu
-{ // Kernels
-GPUg() void helloKernel() {
-    o2::vertexing::DCAFitterN<2> mFitter2Prong;
-    printf("Hello World from GPU!\n");
-}
-}
+
+class SVertexerHIP final
+{
+ public:
+  SVertexerHIP() = default;
+  virtual ~SVertexerHIP() = default;
+  void hello();
+};
 
 // Steers
-void SVertexerGPU::hello()
+void SVertexerHIP::hello()
 {
-    gpu::helloKernel<<<1,1>>>();
+  hello_util();
 }
-
-}
-}
+} // namespace vertexing
+} // namespace o2
