@@ -77,7 +77,7 @@ class ClusterSamplerTask
   {
     /// send the clusters of the next events in the current TF
 
-    static uint32_t event(-1);
+    static uint32_t event(0);
 
     // reached eof
     if (mInputFile.peek() == EOF) {
@@ -93,7 +93,7 @@ class ClusterSamplerTask
     // loop over the requested number of events (or until eof) and fill the messages
     for (int iEvt = 0; iEvt < mNEventsPerTF && mInputFile.peek() != EOF; ++iEvt) {
       int nClusters = readOneEvent(clusters);
-      rofs.emplace_back(o2::InteractionRecord{0, ++event}, clusters.size() - nClusters, nClusters);
+      rofs.emplace_back(o2::InteractionRecord{0, event++}, clusters.size() - nClusters, nClusters);
     }
   }
 
