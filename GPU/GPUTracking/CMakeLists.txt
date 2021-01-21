@@ -65,7 +65,6 @@ set(SRCS_NO_CINT
     DataTypes/GPUDataTypes.cxx
     Base/GPUReconstruction.cxx
     Base/GPUReconstructionCPU.cxx
-    DataTypes/GPUSettings.cxx
     Base/GPUProcessor.cxx
     Base/GPUMemoryResource.cxx
     Base/GPUGeneralKernels.cxx
@@ -98,6 +97,7 @@ set(HDRS_INSTALL
     Merger/GPUTPCGMMergedTrack.h
     Merger/GPUTPCGMMergedTrackHit.h
     DataTypes/GPUTRDDef.h
+    DataTypes/GPUSettings.h
     TRDTracking/GPUTRDTrackPoint.h
     TRDTracking/GPUTRDTrack.h
     TRDTracking/GPUTRDTrackData.h
