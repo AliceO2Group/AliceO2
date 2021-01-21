@@ -116,6 +116,7 @@ find_package(O2GPU)
 
 # Global include directories
 include_directories(${CMAKE_SOURCE_DIR}
+                    ${CMAKE_SOURCE_DIR}/Definitions
                     ${CMAKE_SOURCE_DIR}/Base
                     ${CMAKE_SOURCE_DIR}/Base/opencl-common
                     ${CMAKE_SOURCE_DIR}/Common

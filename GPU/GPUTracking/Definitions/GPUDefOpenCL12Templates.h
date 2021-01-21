@@ -88,4 +88,4 @@ enum LocalOrGlobal { Mem_Local, Mem_Global, Mem_Constant, Mem_Plain };
 #endif
 
 #endif //GPUDEFOPENCL12TEMPLATES_H
-  // clang-format on
+// clang-format on
