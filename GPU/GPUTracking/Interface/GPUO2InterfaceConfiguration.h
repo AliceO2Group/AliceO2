@@ -32,6 +32,7 @@
 #include "GPUSettings.h"
 #include "GPUDataTypes.h"
 #include "GPUHostDataTypes.h"
+#include "GPUOutputControl.h"
 #include "DataFormatsTPC/Constants.h"
 
 class TH1F;
@@ -50,29 +51,13 @@ namespace gpu
 class TPCFastTransform;
 struct GPUSettingsO2;
 
-// This defines an output region. Ptr points to a memory buffer, which should have a proper alignment.
-// Since DPL does not respect the alignment of data types, we do not impose anything specic but just use a char data type, but it should be >= 64 bytes ideally.
-// The size defines the maximum possible buffer size when GPUReconstruction is called, and returns the number of filled bytes when it returns.
-// If ptr == nullptr, there is no region defined and GPUReconstruction will write its output to an internal buffer.
-// If allocator is set, it is called as a callback to provide a ptr to the memory.
-struct GPUInterfaceOutputRegion {
-  void* ptr = nullptr;
-  size_t size = 0;
-  std::function<void*(size_t)> allocator = nullptr;
-};
-
 struct GPUInterfaceQAOutputs {
   const std::vector<TH1F>* hist1;
   const std::vector<TH2F>* hist2;
   const std::vector<TH1D>* hist3;
 };
 
-struct GPUInterfaceOutputs {
-  GPUInterfaceOutputRegion compressedClusters;
-  GPUInterfaceOutputRegion clustersNative;
-  GPUInterfaceOutputRegion tpcTracks;
-  GPUInterfaceOutputRegion clusterLabels;
-  GPUInterfaceOutputRegion sharedClusterMap;
+struct GPUInterfaceOutputs : public GPUTrackingOutputs {
   GPUInterfaceQAOutputs qa;
 };
 
@@ -131,15 +116,6 @@ struct GPUO2InterfaceIOPtrs {
 
   // Output for entropy-reduced clusters of TPC compression
   const o2::tpc::CompressedClustersFlat* compressedClusters = nullptr;
-
-  // Hint for GPUCATracking to place its output in this buffer if possible.
-  // This enables to create the output directly in a shared memory segment of the framework.
-  // This allows further processing with zero-copy.
-  // So far this is only a hint, GPUCATracking will not always follow.
-  // If outputBuffer = nullptr, GPUCATracking will allocate the output internally and own the memory.
-  // TODO: Make this mandatory if outputBuffer != nullptr, and throw an error if outputBufferSize is too small.
-  void* outputBuffer = nullptr;
-  size_t outputBufferSize = 0;
 };
 } // namespace gpu
 } // namespace o2

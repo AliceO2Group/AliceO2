@@ -11,7 +11,10 @@
 /// @file  SecondaryVertexingSpec.cxx
 
 #include <vector>
+#include "ReconstructionDataFormats/GlobalTrackAccessor.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
+#include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsITS/TrackITS.h"
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "GlobalTrackingWorkflow/SecondaryVertexingSpec.h"
@@ -27,9 +30,6 @@ using GIndex = o2::dataformats::VtxTrackIndex;
 using VRef = o2::dataformats::VtxTrackRef;
 using PVertex = const o2::dataformats::PrimaryVertex;
 using V0 = o2::dataformats::V0;
-using TrackTPCITS = o2::dataformats::TrackTPCITS;
-using TrackITS = o2::its::TrackITS;
-using TrackTPC = o2::tpc::TrackTPC;
 using RRef = o2::dataformats::RangeReference<int, int>;
 
 namespace o2
@@ -74,9 +74,12 @@ void SecondaryVertexingSpec::run(ProcessingContext& pc)
   std::vector<V0> v0s;
   std::vector<RRef> pv2v0ref;
 
-  mVertexer.process(pvertices, pvtxTracks, pvtxTrackRefs,
-                    tracksITSTPC, tracksITS, tracksTPC,
-                    v0s, pv2v0ref);
+  o2::dataformats::GlobalTrackAccessor tracksPool;
+  tracksPool.registerContainer(tracksITSTPC, GIndex::ITSTPC);
+  tracksPool.registerContainer(tracksITS, GIndex::ITS);
+  tracksPool.registerContainer(tracksTPC, GIndex::TPC);
+
+  mVertexer.process(pvertices, pvtxTracks, pvtxTrackRefs, tracksPool, v0s, pv2v0ref);
 
   pc.outputs().snapshot(Output{"GLO", "V0s", 0, Lifetime::Timeframe}, v0s);
   pc.outputs().snapshot(Output{"GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe}, pv2v0ref);

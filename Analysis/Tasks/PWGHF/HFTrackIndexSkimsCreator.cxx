@@ -209,7 +209,7 @@ struct HFTrackIndexSkimsCreator {
     /*
     if (nCollsMax > -1){
       if (nColls == nCollMax){
-	return;
+        return;
         //can be added to run over limited collisions per file - for tesing purposes
       }
       nColls++;

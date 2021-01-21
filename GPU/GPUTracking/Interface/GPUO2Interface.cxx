@@ -19,6 +19,7 @@
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUParam.inc"
 #include "GPUQA.h"
+#include "GPUOutputControl.h"
 #include <iostream>
 #include <fstream>
 #ifdef WITH_OPENMP
@@ -52,28 +53,15 @@ int GPUTPCO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
     mConfig->configEvent.needsClusterer = 1;
   }
   mRec->SetSettings(&mConfig->configEvent, &mConfig->configReconstruction, &mConfig->configProcessing, &mConfig->configWorkflow);
-  mChain->SetTPCFastTransform(mConfig->configCalib.fastTransform);
-  mChain->SetTPCPadGainCalib(mConfig->configCalib.tpcPadGain);
-  mChain->SetdEdxSplines(mConfig->configCalib.dEdxSplines);
-  mChain->SetMatLUT(mConfig->configCalib.matLUT);
-  mChain->SetTRDGeometry(mConfig->configCalib.trdGeometry);
-  mChain->SetO2Propagator(mConfig->configCalib.o2Propagator);
+  mChain->SetCalibObjects(mConfig->configCalib);
+  mOutputRegions.reset(new GPUTrackingOutputs);
   if (mConfig->configInterface.outputToExternalBuffers) {
-    mOutputCompressedClusters.reset(new GPUOutputControl);
-    mChain->SetOutputControlCompressedClusters(mOutputCompressedClusters.get());
-    mOutputClustersNative.reset(new GPUOutputControl);
-    mChain->SetOutputControlClustersNative(mOutputClustersNative.get());
-    mOutputTPCTracks.reset(new GPUOutputControl);
-    mChain->SetOutputControlTPCTracks(mOutputTPCTracks.get());
-    mOutputSharedClusterMap.reset(new GPUOutputControl);
-    mChain->SetOutputControlSharedClusterMap(mOutputSharedClusterMap.get());
+    for (unsigned int i = 0; i < mOutputRegions->count(); i++) {
+      mChain->SetSubOutputControl(i, &mOutputRegions->asArray()[i]);
+    }
     GPUOutputControl dummy;
     dummy.set([](size_t size) -> void* {throw std::runtime_error("invalid output memory request, no common output buffer set"); return nullptr; });
     mRec->SetOutputControl(dummy);
-  }
-  if (mConfig->configProcessing.runMC) {
-    mOutputTPCClusterLabels.reset(new GPUOutputControl);
-    mChain->SetOutputControlClusterLabels(mOutputTPCClusterLabels.get());
   }
 
   if (mRec->Init()) {
@@ -122,42 +110,17 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceO
 
   mChain->mIOPtrs = *data;
   if (mConfig->configInterface.outputToExternalBuffers) {
-    if (outputs->compressedClusters.allocator) {
-      mOutputCompressedClusters->set(outputs->compressedClusters.allocator);
-    } else if (outputs->compressedClusters.ptr) {
-      mOutputCompressedClusters->set(outputs->compressedClusters.ptr, outputs->compressedClusters.size);
-    } else {
-      mOutputCompressedClusters->reset();
-    }
-    if (outputs->clustersNative.allocator) {
-      mOutputClustersNative->set(outputs->clustersNative.allocator);
-    } else if (outputs->clustersNative.ptr) {
-      mOutputClustersNative->set(outputs->clustersNative.ptr, outputs->clustersNative.size);
-    } else {
-      mOutputClustersNative->reset();
-    }
-    if (outputs->tpcTracks.allocator) {
-      mOutputTPCTracks->set(outputs->tpcTracks.allocator);
-    } else if (outputs->tpcTracks.ptr) {
-      mOutputTPCTracks->set(outputs->tpcTracks.ptr, outputs->tpcTracks.size);
-    } else {
-      mOutputTPCTracks->reset();
-    }
-    if (outputs->sharedClusterMap.allocator) {
-      mOutputSharedClusterMap->set(outputs->sharedClusterMap.allocator);
-    } else if (outputs->sharedClusterMap.ptr) {
-      mOutputSharedClusterMap->set(outputs->sharedClusterMap.ptr, outputs->sharedClusterMap.size);
-    } else {
-      mOutputSharedClusterMap->reset();
+    for (unsigned int i = 0; i < mOutputRegions->count(); i++) {
+      if (outputs->asArray()[i].allocator) {
+        mOutputRegions->asArray()[i].set(outputs->asArray()[i].allocator);
+      } else if (outputs->asArray()[i].ptrBase) {
+        mOutputRegions->asArray()[i].set(outputs->asArray()[i].ptrBase, outputs->asArray()[i].size);
+      } else {
+        mOutputRegions->asArray()[i].reset();
+      }
     }
   }
-  if (mConfig->configProcessing.runMC) {
-    if (outputs->clusterLabels.allocator) {
-      mOutputTPCClusterLabels->set(outputs->clusterLabels.allocator);
-    } else {
-      mOutputTPCClusterLabels->reset();
-    }
-  }
+
   int retVal = mRec->RunChains();
   if (retVal == 2) {
     retVal = 0; // 2 signals end of event display, ignore
@@ -165,11 +128,6 @@ int GPUTPCO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceO
   if (retVal) {
     mRec->ClearAllocatedMemory();
     return retVal;
-  }
-  if (mConfig->configInterface.outputToExternalBuffers) {
-    outputs->compressedClusters.size = mOutputCompressedClusters->EndOfSpace ? 0 : mChain->mIOPtrs.tpcCompressedClusters->totalDataSize;
-    outputs->clustersNative.size = mOutputClustersNative->EndOfSpace ? 0 : (mChain->mIOPtrs.clustersNative->nClustersTotal * sizeof(*mChain->mIOPtrs.clustersNative->clustersLinear));
-    outputs->tpcTracks.size = mOutputCompressedClusters->EndOfSpace ? 0 : (size_t)((char*)mOutputCompressedClusters->OutputPtr - (char*)mOutputCompressedClusters->OutputBase);
   }
   if (mConfig->configQA.shipToQC) {
     outputs->qa.hist1 = &mChain->GetQA()->getHistograms1D();

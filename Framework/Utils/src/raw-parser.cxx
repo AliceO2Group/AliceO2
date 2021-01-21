@@ -66,17 +66,26 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
                 }
                 // print the DataHeader information only for the first part or if we have high verbosity
                 if (loglevel > 1 || dh->splitPayloadIndex == 0) {
-                  rdhprintout << dh->dataOrigin.as<std::string>() << "/"
+                  rdhprintout << "DH: "
+                              << dh->dataOrigin.as<std::string>() << "/"
                               << dh->dataDescription.as<std::string>() << "/"
-                              << dh->subSpecification << "  ";
+                              << dh->subSpecification << "  "
+                              << " TF " << dh->tfCounter << " Run " << dh->runNumber << " |";
+
                   // at high verbosity print part number, otherwise only the total number of parts
                   if (loglevel > 1) {
-                    rdhprintout << "part " + std::to_string(dh->splitPayloadIndex) + " of " + std::to_string(dh->splitPayloadParts);
+                    rdhprintout << " part " + std::to_string(dh->splitPayloadIndex) + " of " + std::to_string(dh->splitPayloadParts);
                   } else {
                     rdhprintout << " " + std::to_string(dh->splitPayloadParts) + " part(s)";
                   }
-                  rdhprintout << " payload size " << dh->payloadSize
-                              << std::endl;
+                  rdhprintout << " payload size " << dh->payloadSize;
+
+                  const auto* dph = it.o2DataProcessingHeader();
+                  if (dph) {
+                    rdhprintout << " | DPH: "
+                                << " Start " << dph->startTime << " dT " << dph->duration << " Creation " << dph->creation;
+                  }
+                  rdhprintout << std::endl;
                 }
                 rdhprintout << DPLRawParser::RDHInfo(it) << std::endl;
               }

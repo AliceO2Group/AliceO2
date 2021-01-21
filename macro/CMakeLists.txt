@@ -32,7 +32,6 @@ install(FILES CheckDigits_mft.C
               readEMCHits.C
               readITSDigits.C
               rootlogon.C
-              runCATrackingClusterNative.C
               runTPCRefit.C
               run_CRUDataSkimming_its.C
               run_calib_tof.C
@@ -108,47 +107,27 @@ o2_add_test_root_macro(analyzeOriginHits.C
                        PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
                                              O2::DetectorsCommonDataFormats)
 
-if (ENABLE_UPGRADES)
-  o2_add_test_root_macro(build_geometry.C
-                         PUBLIC_LINK_LIBRARIES O2::DetectorsPassive
-                                               O2::Field
-                                               O2::TPCSimulation
-                                               O2::ITSSimulation
-                                               O2::ITS3Simulation
-                                               O2::TRKSimulation
-                                               O2::MFTSimulation
-                                               O2::MCHSimulation
-                                               O2::MIDSimulation
-                                               O2::EMCALSimulation
-                                               O2::TOFSimulation
-                                               O2::TRDSimulation
-                                               O2::FT0Simulation
-                                               O2::FV0Simulation
-                                               O2::FDDSimulation
-                                               O2::HMPIDSimulation
-                                               O2::PHOSSimulation
-                                               O2::CPVSimulation
-                                               O2::ZDCSimulation)
-else()
-  o2_add_test_root_macro(build_geometry.C
-                         PUBLIC_LINK_LIBRARIES O2::DetectorsPassive
-                                               O2::Field
-                                               O2::TPCSimulation
-                                               O2::ITSSimulation
-                                               O2::MFTSimulation
-                                               O2::MCHSimulation
-                                               O2::MIDSimulation
-                                               O2::EMCALSimulation
-                                               O2::TOFSimulation
-                                               O2::TRDSimulation
-                                               O2::FT0Simulation
-                                               O2::FV0Simulation
-                                               O2::FDDSimulation
-                                               O2::HMPIDSimulation
-                                               O2::PHOSSimulation
-                                               O2::CPVSimulation
-                                               O2::ZDCSimulation)
-endif()
+o2_add_test_root_macro(build_geometry.C
+                       PUBLIC_LINK_LIBRARIES O2::DetectorsPassive
+                                             O2::Field
+                                             O2::TPCSimulation
+                                             O2::ITSSimulation
+                                             O2::MFTSimulation
+                                             O2::MCHSimulation
+                                             O2::MIDSimulation
+                                             O2::EMCALSimulation
+                                             O2::TOFSimulation
+                                             O2::TRDSimulation
+                                             O2::FT0Simulation
+                                             O2::FV0Simulation
+                                             O2::FDDSimulation
+                                             O2::HMPIDSimulation
+                                             O2::PHOSSimulation
+                                             O2::CPVSimulation
+                                             O2::ZDCSimulation
+                                             $<$<BOOL:${ENABLE_UPGRADES}>:O2::Alice3DetectorsPassive>
+                                             $<$<BOOL:${ENABLE_UPGRADES}>:O2::ITS3Simulation>
+                                             $<$<BOOL:${ENABLE_UPGRADES}>:O2::TRKSimulation>)
 
 o2_add_test_root_macro(checkTOFMatching.C
                        PUBLIC_LINK_LIBRARIES O2::GlobalTracking
@@ -231,13 +210,6 @@ o2_add_test_root_macro(readITSDigits.C
                                              O2::SimulationDataFormat
                        LABELS its)
 
-# FIXME: move to subsystem dir
-o2_add_test_root_macro(runCATrackingClusterNative.C
-                       PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC
-                                             O2::ReconstructionDataFormats
-                                             O2::SimulationDataFormat
-                                             O2::TPCReconstruction
-LABELS tpc)
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(runTPCRefit.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC

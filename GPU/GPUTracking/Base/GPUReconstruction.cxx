@@ -305,7 +305,7 @@ int GPUReconstruction::InitPhaseBeforeDevice()
     mChains[i]->RegisterPermanentMemoryAndProcessors();
     size_t memPrimary, memPageLocked;
     mChains[i]->MemorySize(memPrimary, memPageLocked);
-    if (!IsGPU() || mOutputControl.OutputType == GPUOutputControl::AllocateInternal) {
+    if (!IsGPU() || mOutputControl.useInternal()) {
       memPageLocked = memPrimary;
     }
     mDeviceMemorySize += memPrimary;
@@ -315,7 +315,7 @@ int GPUReconstruction::InitPhaseBeforeDevice()
     mDeviceMemorySize = mProcessingSettings.forceMemoryPoolSize;
   } else if (mProcessingSettings.forceMemoryPoolSize > 2) {
     mDeviceMemorySize = mProcessingSettings.forceMemoryPoolSize;
-    if (!IsGPU() || mOutputControl.OutputType == GPUOutputControl::AllocateInternal) {
+    if (!IsGPU() || mOutputControl.useInternal()) {
       mHostMemorySize = mDeviceMemorySize;
     }
   }
@@ -517,7 +517,7 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
 
 void GPUReconstruction::AllocateRegisteredMemoryInternal(GPUMemoryResource* res, GPUOutputControl* control, GPUReconstruction* recPool)
 {
-  if (mProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL && (control == nullptr || control->OutputType == GPUOutputControl::AllocateInternal)) {
+  if (mProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL && (control == nullptr || control->useInternal())) {
     if (!(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) {
       if (res->mPtrDevice && res->mReuse < 0) {
         operator delete(res->mPtrDevice GPUCA_OPERATOR_NEW_ALIGNMENT);
@@ -550,14 +550,14 @@ void GPUReconstruction::AllocateRegisteredMemoryInternal(GPUMemoryResource* res,
       res->mOverrideSize = GPUCA_BUFFER_ALIGNMENT;
     }
     if ((!IsGPU() || (res->mType & GPUMemoryResource::MEMORY_HOST) || mProcessingSettings.keepDisplayMemory) && !(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) { // keepAllMemory --> keepDisplayMemory
-      if (control && control->OutputType == GPUOutputControl::UseExternalBuffer) {
-        if (control->OutputAllocator) {
+      if (control && control->useExternal()) {
+        if (control->allocator) {
           res->mSize = std::max((size_t)res->SetPointers((void*)1) - 1, res->mOverrideSize);
-          res->mPtr = control->OutputAllocator(res->mSize);
+          res->mPtr = control->allocator(res->mSize);
           res->mSize = std::max<size_t>((char*)res->SetPointers(res->mPtr) - (char*)res->mPtr, res->mOverrideSize);
         } else {
           void* dummy = nullptr;
-          res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, control->OutputPtr, control->OutputBase, control->OutputMaxSize, &GPUMemoryResource::SetPointers, dummy);
+          res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, control->ptrCurrent, control->ptrBase, control->size, &GPUMemoryResource::SetPointers, dummy);
         }
       } else {
         res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, recPool->mHostMemoryPool, recPool->mHostMemoryBase, recPool->mHostMemorySize, &GPUMemoryResource::SetPointers, recPool->mHostMemoryPoolEnd);

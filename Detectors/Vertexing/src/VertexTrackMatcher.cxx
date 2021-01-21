@@ -99,7 +99,7 @@ void VertexTrackMatcher::process(const gsl::span<const PVertex>& vertices,
   memset(idTPC.data(), 0, sizeof(int) * idTPC.size());
   memset(flgITS.data(), 0, sizeof(int) * flgITS.size());
   std::array<std::vector<int>*, GIndex::NSources> vptr;
-  vptr[GIndex::TPCITS] = &idTPCITS;
+  vptr[GIndex::ITSTPC] = &idTPCITS;
   vptr[GIndex::ITS] = &flgITS;
   vptr[GIndex::TPC] = &idTPC;
   int nv = vertices.size();
@@ -114,7 +114,7 @@ void VertexTrackMatcher::process(const gsl::span<const PVertex>& vertices,
   for (int iv = 0; iv < nv; iv++) {
     int srcStart[GIndex::NSources + 1];
     int entry = trackIndex.size();
-    srcStart[GIndex::TPCITS] = entry;
+    srcStart[GIndex::ITSTPC] = entry;
     for (int is = 1; is < GIndex::NSources; is++) {
       srcStart[is] = -1;
     }
@@ -179,7 +179,7 @@ void VertexTrackMatcher::attachTPCITS(TmpMap& tmpMap, const gsl::span<const Trac
       } else if (trcT.getTimeStamp() > maxTime) {
         break;
       } else if (compatibleTimes(vtxT, trcT)) {
-        tmpMap[ivtCurr].emplace_back(idTPCITS[itr], GIndex::TPCITS);
+        tmpMap[ivtCurr].emplace_back(idTPCITS[itr], GIndex::ITSTPC);
       }
       itr++;
     }

@@ -519,7 +519,7 @@ bool Digitizer::convertSignalsToADC(SignalContainer& signalMapCont, DigitContain
       adcs[tb] = adc;
     } // loop over timebins
     // Convert the map to digits here, and push them to the container
-    digits.emplace_back(det, row, col, adcs, getEventTime());
+    digits.emplace_back(det, row, col, adcs);
   } // loop over digits
   return true;
 }

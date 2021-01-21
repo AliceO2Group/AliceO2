@@ -18,6 +18,7 @@
 #include "MathUtils/detail/bitOps.h"
 #include "MathUtils/detail/StatAccumulator.h"
 #include "MathUtils/detail/trigonometric.h"
+#include "MathUtils/detail/TypeTruncation.h"
 
 namespace o2
 {
@@ -221,6 +222,7 @@ using detail::StatAccumulator;
 
 using detail::bit2Mask;
 using detail::numberOfBitsSet;
+using detail::truncateFloatFraction;
 
 } // namespace math_utils
 } // namespace o2

@@ -195,7 +195,7 @@ void FeeParam::Copy(FeeParam& p) const
 }
 
 //_____________________________________________________________________________
-int FeeParam::getPadRowFromMCM(int irob, int imcm) const
+int FeeParam::getPadRowFromMCM(int irob, int imcm)
 {
   //
   // Return on which pad row this mcm sits
@@ -205,7 +205,7 @@ int FeeParam::getPadRowFromMCM(int irob, int imcm) const
 }
 
 //_____________________________________________________________________________
-int FeeParam::getPadColFromADC(int irob, int imcm, int iadc) const
+int FeeParam::getPadColFromADC(int irob, int imcm, int iadc)
 {
   //
   // Return which pad is connected to this adc channel.
@@ -232,7 +232,7 @@ int FeeParam::getPadColFromADC(int irob, int imcm, int iadc) const
 }
 
 //_____________________________________________________________________________
-int FeeParam::getExtendedPadColFromADC(int irob, int imcm, int iadc) const
+int FeeParam::getExtendedPadColFromADC(int irob, int imcm, int iadc)
 {
   //
   // Return which pad coresponds to the extended digit container pad numbering
@@ -250,7 +250,7 @@ int FeeParam::getExtendedPadColFromADC(int irob, int imcm, int iadc) const
 }
 
 //_____________________________________________________________________________
-int FeeParam::getMCMfromPad(int irow, int icol) const
+int FeeParam::getMCMfromPad(int irow, int icol)
 {
   //
   // Return on which MCM this pad is directry connected.
@@ -264,7 +264,7 @@ int FeeParam::getMCMfromPad(int irow, int icol) const
 }
 
 //_____________________________________________________________________________
-int FeeParam::getMCMfromSharedPad(int irow, int icol) const
+int FeeParam::getMCMfromSharedPad(int irow, int icol)
 {
   //
   // Return on which MCM this pad is directry connected.
@@ -295,7 +295,7 @@ int FeeParam::getMCMfromSharedPad(int irow, int icol) const
 }
 
 //_____________________________________________________________________________
-int FeeParam::getROBfromPad(int irow, int icol) const
+int FeeParam::getROBfromPad(int irow, int icol)
 {
   //
   // Return on which rob this pad is
@@ -304,7 +304,7 @@ int FeeParam::getROBfromPad(int irow, int icol) const
 }
 
 //_____________________________________________________________________________
-int FeeParam::getROBfromSharedPad(int irow, int icol) const
+int FeeParam::getROBfromSharedPad(int irow, int icol)
 {
   //
   // Return on which rob this pad is for shared pads
@@ -318,7 +318,7 @@ int FeeParam::getROBfromSharedPad(int irow, int icol) const
 }
 
 //_____________________________________________________________________________
-int FeeParam::getRobSide(int irob) const
+int FeeParam::getRobSide(int irob)
 {
   //
   // Return on which side this rob sits (A side = 0, B side = 1)
@@ -332,7 +332,7 @@ int FeeParam::getRobSide(int irob) const
 }
 
 //_____________________________________________________________________________
-int FeeParam::getColSide(int icol) const
+int FeeParam::getColSide(int icol)
 {
   //
   // Return on which side this column sits (A side = 0, B side = 1)
@@ -511,14 +511,14 @@ void FeeParam::createORILookUpTable()
 }
 */
 
-int FeeParam::getORI(int detector, int readoutboard) const
+int FeeParam::getORI(int detector, int readoutboard)
 {
   int supermodule = detector / 30;
   LOG(debug3) << "getORI : " << detector << " :: " << readoutboard << getORIinSM(detector, readoutboard) + 60 * detector;
   return getORIinSM(detector, readoutboard) + 2 * detector; // 2 ORI per detector
 }
 
-int FeeParam::getORIinSM(int detector, int readoutboard) const
+int FeeParam::getORIinSM(int detector, int readoutboard)
 {
   int ori = -1;
   int chamberside = 0;
@@ -546,7 +546,7 @@ int FeeParam::getORIinSM(int detector, int readoutboard) const
   return ori;
 }
 
-int FeeParam::getORIfromHCID(int hcid) const
+int FeeParam::getORIfromHCID(int hcid)
 {
   int detector = hcid / 2;
   int side = hcid % 2; // 0 for side 0, 1 for side 1;
@@ -555,9 +555,8 @@ int FeeParam::getORIfromHCID(int hcid) const
   int trdstack = Geometry::getStack(detector);
   int trdlayer = Geometry::getLayer(detector);
   return getORIinSM(detector, side); // it takes readoutboard but only cares if its odd or even hence side here.
-  return 1;
 }
-int FeeParam::getHCIDfromORI(int ori, int readoutboard) const
+int FeeParam::getHCIDfromORI(int ori, int readoutboard)
 {
   // ori = 60*SM+offset[0-29 A, 30-59 C]
   // from the offset, we can derive the stack/layer/side combination giving the decector.

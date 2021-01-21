@@ -99,8 +99,6 @@ class SpaceCharge
   void fillChargeDensityFromFile(TFile& fInp, const char* name);
 
   /// \param side side of the TPC
-  /// \param globalDistType the algorithm which is used to calculate the global distortions
-  /// \param globalDistCorrMethod the setting if local distortions/corrections or the electrical field will be used for the calculation of the global distortions/corrections
   void calculateDistortionsCorrections(const o2::tpc::Side side);
 
   /// step 0: this function fills the internal storage for the charge density using an analytical formula
@@ -157,19 +155,19 @@ class SpaceCharge
   /// \param diffCorr if the absolute differences from the interpolated values for the global corrections from the last iteration compared to the current iteration is smaller than this value, set converged to true for current global distortion
   void calcGlobalDistWithGlobalCorrIterative(const DistCorrInterpolator<DataT, Nz, Nr, Nphi>& globCorr, const int maxIter = 100, const DataT approachZ = 0.5, const DataT approachR = 0.5, const DataT approachPhi = 0.5, const DataT diffCorr = 1e-6);
 
-  /// get the global correction for given coordinate
+  /// get the space charge density for given coordinate
   /// \param z global z coordinate
   /// \param r global r coordinate
   /// \param phi global phi coordinate
   DataT getChargeCyl(const DataT z, const DataT r, const DataT phi, const Side side) const;
 
-  /// get the global correction for given coordinate
+  /// get the potential for given coordinate
   /// \param z global z coordinate
   /// \param r global r coordinate
   /// \param phi global phi coordinate
   DataT getPotentialCyl(const DataT z, const DataT r, const DataT phi, const Side side) const;
 
-  /// get the global correction for given coordinate
+  /// get the electric field for given coordinate
   /// \param z global z coordinate
   /// \param r global r coordinate
   /// \param phi global phi coordinate
@@ -178,7 +176,7 @@ class SpaceCharge
   /// \param ePhi returns correction in phi direction
   void getElectricFieldsCyl(const DataT z, const DataT r, const DataT phi, const Side side, DataT& eZ, DataT& eR, DataT& ePhi) const;
 
-  /// get the global correction for given coordinate
+  /// get the local correction for given coordinate
   /// \param z global z coordinate
   /// \param r global r coordinate
   /// \param phi global phi coordinate
@@ -205,7 +203,7 @@ class SpaceCharge
   /// \param corrZ returns corrections in z direction
   void getCorrections(const DataT x, const DataT y, const DataT z, const Side side, DataT& corrX, DataT& corrY, DataT& corrZ) const;
 
-  /// get the global distortions for given coordinate
+  /// get the local distortions for given coordinate
   /// \param z global z coordinate
   /// \param r global r coordinate
   /// \param phi global phi coordinate
@@ -320,122 +318,122 @@ class SpaceCharge
   /// \param side side of the TPC
   DistCorrInterpolator<DataT, Nz, Nr, Nphi> getGlobalCorrInterpolator(const Side side) const;
 
-  /// \param vertex in iz dimension
-  /// \param vertex in ir dimension
-  /// \param vertex in iphi dimension
+  /// \param iz vertex in z dimension
+  /// \param ir vertex in r dimension
+  /// \param iphi vertex in phi dimension
   /// \param side side of the TPC
   /// \return returns local distortion dR for given vertex
   DataT getLocalDistR(const size_t iz, const size_t ir, const size_t iphi, const Side side) const { return mLocalDistdR[side](iz, ir, iphi); }
 
-  /// \param vertex in iz dimension
-  /// \param vertex in ir dimension
-  /// \param vertex in iphi dimension
+  /// \param iz vertex in z dimension
+  /// \param ir vertex in r dimension
+  /// \param iphi vertex in phi dimension
   /// \param side side of the TPC
   /// \return returns local distortion dZ for given vertex
   DataT getLocalDistZ(const size_t iz, const size_t ir, const size_t iphi, const Side side) const { return mLocalDistdZ[side](iz, ir, iphi); }
 
-  /// \param vertex in iz dimension
-  /// \param vertex in ir dimension
-  /// \param vertex in iphi dimension
+  /// \param iz vertex in z dimension
+  /// \param ir vertex in r dimension
+  /// \param iphi vertex in phi dimension
   /// \param side side of the TPC
   /// \return returns local distortion dRPhi for given vertex
   DataT getLocalDistRPhi(const size_t iz, const size_t ir, const size_t iphi, const Side side) const { return mLocalDistdRPhi[side](iz, ir, iphi); }
 
-  /// \param vertex in iz dimension
-  /// \param vertex in ir dimension
-  /// \param vertex in iphi dimension
+  /// \param iz vertex in z dimension
+  /// \param ir vertex in r dimension
+  /// \param iphi vertex in phi dimension
   /// \param side side of the TPC
   /// \return returns local correction dR for given vertex
   DataT getLocalCorrR(const size_t iz, const size_t ir, const size_t iphi, const Side side) const { return mLocalCorrdR[side](iz, ir, iphi); }
 
-  /// \param vertex in iz dimension
-  /// \param vertex in ir dimension
-  /// \param vertex in iphi dimension
+  /// \param iz vertex in z dimension
+  /// \param ir vertex in r dimension
+  /// \param iphi vertex in phi dimension
   /// \param side side of the TPC
   /// \return returns local correction dZ for given vertex
   DataT getLocalCorrZ(const size_t iz, const size_t ir, const size_t iphi, const Side side) const { return mLocalCorrdZ[side](iz, ir, iphi); }
 
-  /// \param vertex in iz dimension
-  /// \param vertex in ir dimension
-  /// \param vertex in iphi dimension
+  /// \param iz vertex in z dimension
+  /// \param ir vertex in r dimension
+  /// \param iphi vertex in phi dimension
   /// \param side side of the TPC
   /// \return returns local correction dRPhi for given vertex
   DataT getLocalCorrRPhi(const size_t iz, const size_t ir, const size_t iphi, const Side side) const { return mLocalCorrdRPhi[side](iz, ir, iphi); }
 
   /// Get global distortion dR for vertex
-  /// \param vertex in iz dimension
-  /// \param vertex in ir dimension
-  /// \param vertex in iphi dimension
+  /// \param iz vertex in z dimension
+  /// \param ir vertex in r dimension
+  /// \param iphi vertex in phi dimension
   /// \param side side of the TPC
   DataT getGlobalDistR(const size_t iz, const size_t ir, const size_t iphi, const Side side) const { return mGlobalDistdR[side](iz, ir, iphi); }
 
   /// Get global distortion dZ for vertex
-  /// \param vertex in iz dimension
-  /// \param vertex in ir dimension
-  /// \param vertex in iphi dimension
+  /// \param iz vertex in z dimension
+  /// \param ir vertex in r dimension
+  /// \param iphi vertex in phi dimension
   /// \param side side of the TPC
   DataT getGlobalDistZ(const size_t iz, const size_t ir, const size_t iphi, const Side side) const { return mGlobalDistdZ[side](iz, ir, iphi); }
 
   /// Get global distortion dRPhi for vertex
-  /// \param vertex in iz dimension
-  /// \param vertex in ir dimension
-  /// \param vertex in iphi dimension
+  /// \param iz vertex in z dimension
+  /// \param ir vertex in r dimension
+  /// \param iphi vertex in phi dimension
   /// \param side side of the TPC
   DataT getGlobalDistRPhi(const size_t iz, const size_t ir, const size_t iphi, const Side side) const { return mGlobalDistdRPhi[side](iz, ir, iphi); }
 
   /// Get global correction dR for vertex
-  /// \param vertex in iz dimension
-  /// \param vertex in ir dimension
-  /// \param vertex in iphi dimension
+  /// \param iz vertex in z dimension
+  /// \param ir vertex in r dimension
+  /// \param iphi vertex in phi dimension
   /// \param side side of the TPC
   DataT getGlobalCorrR(const size_t iz, const size_t ir, const size_t iphi, const Side side) const { return mGlobalCorrdR[side](iz, ir, iphi); }
 
   /// Get global correction dZ for vertex
-  /// \param vertex in iz dimension
-  /// \param vertex in ir dimension
-  /// \param vertex in iphi dimension
+  /// \param iz vertex in z dimension
+  /// \param ir vertex in r dimension
+  /// \param iphi vertex in phi dimension
   /// \param side side of the TPC
   DataT getGlobalCorrZ(const size_t iz, const size_t ir, const size_t iphi, const Side side) const { return mGlobalCorrdZ[side](iz, ir, iphi); }
 
   /// Get global correction dRPhi for vertex
-  /// \param vertex in iz dimension
-  /// \param vertex in ir dimension
-  /// \param vertex in iphi dimension
+  /// \param iz vertex in z dimension
+  /// \param ir vertex in r dimension
+  /// \param iphi vertex in phi dimension
   /// \param side side of the TPC
   DataT getGlobalCorrRPhi(const size_t iz, const size_t ir, const size_t iphi, const Side side) const { return mGlobalCorrdRPhi[side](iz, ir, iphi); }
 
   /// Get global electric Field Er for vertex
-  /// \param vertex in iz dimension
-  /// \param vertex in ir dimension
-  /// \param vertex in iphi dimension
+  /// \param iz vertex in z dimension
+  /// \param ir vertex in r dimension
+  /// \param iphi vertex in phi dimension
   /// \param side side of the TPC
   DataT getEr(const size_t iz, const size_t ir, const size_t iphi, const Side side) const { return mElectricFieldEr[side](iz, ir, iphi); }
 
   /// Get global electric Field Ez for vertex
-  /// \param vertex in iz dimension
-  /// \param vertex in ir dimension
-  /// \param vertex in iphi dimension
+  /// \param iz vertex in z dimension
+  /// \param ir vertex in r dimension
+  /// \param iphi vertex in phi dimension
   /// \param side side of the TPC
   DataT getEz(const size_t iz, const size_t ir, const size_t iphi, const Side side) const { return mElectricFieldEz[side](iz, ir, iphi); }
 
   /// Get global electric Field Ephi for vertex
-  /// \param vertex in iz dimension
-  /// \param vertex in ir dimension
-  /// \param vertex in iphi dimension
+  /// \param iz vertex in z dimension
+  /// \param ir vertex in r dimension
+  /// \param iphi vertex in phi dimension
   /// \param side side of the TPC
   DataT getEphi(const size_t iz, const size_t ir, const size_t iphi, const Side side) const { return mElectricFieldEphi[side](iz, ir, iphi); }
 
   /// Get density for vertex
-  /// \param vertex in iz dimension
-  /// \param vertex in ir dimension
-  /// \param vertex in iphi dimension
+  /// \param iz vertex in z dimension
+  /// \param ir vertex in r dimension
+  /// \param iphi vertex in phi dimension
   /// \param side side of the TPC
   DataT getDensity(const size_t iz, const size_t ir, const size_t iphi, const Side side) const { return mDensity[side](iz, ir, iphi); }
 
   /// Get potential for vertex
-  /// \param vertex in iz dimension
-  /// \param vertex in ir dimension
-  /// \param vertex in iphi dimension
+  /// \param iz vertex in z dimension
+  /// \param ir vertex in r dimension
+  /// \param iphi vertex in phi dimension
   /// \param side side of the TPC
   DataT getPotential(const size_t iz, const size_t ir, const size_t iphi, const Side side) const { return mPotential[side](iz, ir, iphi); }
 
@@ -531,15 +529,39 @@ class SpaceCharge
   /// \side side of the TPC
   void setPotentialFromFile(TFile& inpf, const Side side) { mPotential[side].initFromFile(inpf, Form("potential_side%s", getSideName(side).data())); }
 
-  /// write potential to root file
+  /// set the potential directly
+  /// \param potential potential which will be set
+  /// \param iz vertex in z dimension
+  /// \param ir vertex in r dimension
+  /// \param iphi vertex in phi dimension
+  /// \side side of the TPC
+  void fillPotential(const DataT potential, const size_t iz, const size_t ir, const size_t iphi, const Side side) { mPotential[side](iz, ir, iphi) = potential; }
+
+  /// write density to root file
   /// \param outf output file where the charge density will be written to
   /// \side side of the TPC
   int dumpDensity(TFile& outf, const Side side) const { return mDensity[side].writeToFile(outf, Form("density_side%s", getSideName(side).data())); }
 
-  /// set potential from root file
+  /// set density from root file
   /// \param inpf input file where the charge density is stored
   /// \side side of the TPC
-  void setDensityFromFile(TFile& inpf, const Side side) { mDensity[side].initFromFile(inpf, Form("density_side%s", getSideName(side).data())); }
+  void setDensityFromFile(TFile& inpf, const Side side)
+  {
+    mDensity[side].initFromFile(inpf, Form("density_side%s", getSideName(side).data()));
+    setDensityFilled(side);
+  }
+
+  /// set the space charge density directly
+  /// \param density space charege density which will be set
+  /// \param iz vertex in z dimension
+  /// \param ir vertex in r dimension
+  /// \param iphi vertex in phi dimension
+  /// \side side of the TPC
+  void fillDensity(const DataT density, const size_t iz, const size_t ir, const size_t iphi, const Side side) { mDensity[side](iz, ir, iphi) = density; }
+
+  /// set the status of the density as filled
+  /// \side side of the TPC
+  void setDensityFilled(const Side side) { mIsChargeSet[side] = true; }
 
   /// write global distortions to root file
   /// \param outf output file where the global distortions will be written to
@@ -612,7 +634,7 @@ class SpaceCharge
   bool mIsLocalDistSet[FNSIDES]{};      ///< flag if local distortions are set
   bool mIsGlobalCorrSet[FNSIDES]{};     ///< flag if global corrections are set
   bool mIsGlobalDistSet[FNSIDES]{};     ///< flag if global distortions are set
-  bool mIsChargeSet[FNSIDES]{};         ///< flag if the charge
+  bool mIsChargeSet[FNSIDES]{};         ///< flag if the charge is set
 
   bool mUseInitialSCDensity{false}; ///< Flag for the use of an initial space-charge density at the beginning of the simulation
   bool mInitLookUpTables{false};    ///< Flag to indicate if lookup tables have been calculated
