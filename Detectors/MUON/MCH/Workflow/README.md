@@ -55,7 +55,7 @@ filePath = /home/data/data-de819-ped-raw.raw
 
 `o2-mch-clusters-to-tracks-original-workflow`
 
-Take as input the list of clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) of the current event with the data description "CLUSTERS" and send the list of MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)) and the list of associated clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) in two separate messages with the data description "TRACKS" and "TRACKCLUSTERS", respectively.
+Take as input the list of all clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) in the current time frame, with the data description "CLUSTERS", and the list of ROF records pointing to the clusters associated to each interaction, with the data description "CLUSTERROFS". Send the list of all MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)) in the time frame, the list of all associated clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) and the list of ROF records pointing to the tracks associated to each interaction in three separate messages with the data description "TRACKS", "TRACKCLUSTERS" and "TRACKROFS", respectively.
 
 Options `--l3Current xxx` and `--dipoleCurrent yyy` allow to specify the current in L3 and in the dipole to be used to set the magnetic field.
 
@@ -73,7 +73,7 @@ Same behavior and options as [Original track finder](#original-track-finder)
 
 `o2-mch-tracks-to-tracks-at-vertex-workflow`
 
-Take as input the vertex position (`Point3D<double>`) and the list of MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)) of the current event with the data description "VERTEX" and "TRACKS", respectively, and send the list of tracks at vertex (`TrackAtVtxStruct` as described below) with the data description "TRACKSATVERTEX".
+Take as input the list of all MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)) in the current time frame, the list of ROF records pointing to the tracks associated to each interaction and their vertex position (`Point3D<double>`), with the data description "TRACKS", "TRACKROFS" and "VERTICES", respectively. Send the list of all tracks at vertex (`TrackAtVtxStruct` as described below) in the time frame with the data description "TRACKSATVERTEX".
 
 ```c++
 struct TrackAtVtxStruct {
@@ -90,7 +90,7 @@ Options `--l3Current xxx` and `--dipoleCurrent yyy` allow to specify the current
 
 `o2-mch-tracks-to-tracks-workflow`
 
-Take as input the list of MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)) and the list of associated clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) of the current event with the data description "TRACKSIN" and "TRACKCLUSTERSIN", respectively, and send the list of refitted MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)) and the list of associated clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) in two separate messages with the data description "TRACKS" and "TRACKCLUSTERS", respectively.
+Take as input the list of all MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)) in the current time frame, the list of all associated clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) and the list of ROF records pointing to the tracks associated to each interaction, with the data description "TRACKSIN", "TRACKCLUSTERSIN" and "TRACKROFSIN", respectively. Send the list of all refitted MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)) in the time frame, the list of all associated clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) and the list of ROF records pointing to the tracks associated to each interaction in three separate messages with the data description "TRACKS", "TRACKCLUSTERS" and "TRACKROFS", respectively.
 
 Options `--l3Current xxx` and `--dipoleCurrent yyy` allow to specify the current in L3 and in the dipole to be used to set the magnetic field.
 
@@ -109,7 +109,9 @@ where `clusters.in` is a binary file containing for each event:
 * list of clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h))
 * list of associated digits ([Digit](../Base/include/MCHBase/Digit.h))
 
-Send the list of clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) of the current event with the data description "CLUSTERS".
+Send the list of all clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) in the current time frame, with the data description "CLUSTERS", and the list of ROF records pointing to the clusters associated to each interaction, with the data description "CLUSTERROFS".
+
+Option `--nEventsPerTF xxx` allows to set the number of events (i.e. ROF records) to send per time frame (default = 1)
 
 ### Track sampler
 
@@ -117,15 +119,17 @@ Send the list of clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.
 
 where `tracks.in` is a binary file with the same format as the one written by the workflow [o2-mch-tracks-sink-workflow](#track-sink)
 
-Send the list of MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)) and the list of associated clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) in two separate messages with the data description "TRACKS" and "TRACKCLUSTERS", respectively.
+Send the list of all MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)) in the current time frame, the list of all associated clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) and the list of ROF records pointing to the tracks associated to each interaction in three separate messages with the data description "TRACKS", "TRACKCLUSTERS" and "TRACKROFS", respectively.
 
-Option `--forTrackFitter` allows to send the messages with the data description "TRACKSIN" and "TRACKCLUSTERSIN", respectively, as expected by the workflow [o2-mch-tracks-to-tracks-workflow](#track-fitter).
+Option `--forTrackFitter` allows to send the messages with the data description "TRACKSIN", "TRACKCLUSTERSIN" and TRACKROFSIN, respectively, as expected by the workflow [o2-mch-tracks-to-tracks-workflow](#track-fitter).
+
+Option `--nEventsPerTF xxx` allows to set the number of events (i.e. ROF records) to send per time frame (default = 1)
 
 ### Vertex sampler
 
 `o2-mch-vertex-sampler-workflow`
 
-Send the vertex position (`Point3D<double>`) of the current event with the data description "VERTEX".
+Take as input the list of ROF records in the current time frame, with the data description "TRACKROFS". Send the list of all vertex positions (`Point3D<double>`) in the time frame, one per interaction, with the data description "VERTICES".
 
 Option `--infile "vertices.in"` allows to read the position of the vertex from the binary file `vertices.in` containing for each event:
 
@@ -146,7 +150,7 @@ If no binary file is provided, the vertex is always set to (0,0,0).
 
 `o2-mch-tracks-sink-workflow --outfile "tracks.out"`
 
-Take as input the list of tracks at vertex ([TrackAtVtxStruct](#track-extrapolation-to-vertex)), the list of MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)) and the list of associated clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) of the current event with the data description "TRACKSATVERTEX", "TRACKS" and "TRACKCLUSTERS", respectively, and write them in the binary file `tracks.out` with the following format:
+Take as input the list of all tracks at vertex ([TrackAtVtxStruct](#track-extrapolation-to-vertex)) in the current time frame, the list of all MCH tracks ([TrackMCH](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/TrackMCH.h)), the list of all associated clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) and the list of ROF records pointing to the MCH tracks associated to each interaction, with the data description "TRACKSATVERTEX", "TRACKS", "TRACKCLUSTERS" and "TRACKROFS", respectively, and write them event-by-event in the binary file `tracks.out` with the following format for each event:
 
 * number of tracks at vertex (int)
 * number of MCH tracks (int)

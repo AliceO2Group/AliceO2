@@ -31,6 +31,7 @@
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
 
+#include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
 #include "MCHBase/ClusterBlock.h"
 #include "MCHTracking/TrackParam.h"
@@ -80,28 +81,41 @@ class TrackFinderTask
   //_________________________________________________________________________________________________
   void run(framework::ProcessingContext& pc)
   {
-    /// read the clusters of the current event, find tracks and send them
+    /// for each event in the current TF, read the clusters and find tracks, then send them all
 
-    // get the input clusters
+    // get the input messages with clusters
+    auto clusterROFs = pc.inputs().get<gsl::span<ROFRecord>>("clusterrofs");
     auto clustersIn = pc.inputs().get<gsl::span<ClusterStruct>>("clusters");
-    std::array<std::list<Cluster>, 10> clusters{};
-    for (const auto& cluster : clustersIn) {
-      clusters[cluster.getChamberId()].emplace_back(cluster);
-    }
 
-    // run the track finder
-    auto tStart = std::chrono::high_resolution_clock::now();
-    const auto& tracks = mTrackFinder.findTracks(&clusters);
-    auto tEnd = std::chrono::high_resolution_clock::now();
-    mElapsedTime += tEnd - tStart;
+    //LOG(INFO) << "received time frame with " << clusterROFs.size() << " interactions";
 
     // create the output messages for tracks and attached clusters
-    auto& mchTracks = pc.outputs().make<std::vector<TrackMCH>>(Output{"MCH", "TRACKS", 0, Lifetime::Timeframe});
-    auto& usedClusters = pc.outputs().make<std::vector<ClusterStruct>>(Output{"MCH", "TRACKCLUSTERS", 0, Lifetime::Timeframe});
+    auto& trackROFs = pc.outputs().make<std::vector<ROFRecord>>(OutputRef{"trackrofs"});
+    auto& mchTracks = pc.outputs().make<std::vector<TrackMCH>>(OutputRef{"tracks"});
+    auto& usedClusters = pc.outputs().make<std::vector<ClusterStruct>>(OutputRef{"trackclusters"});
 
-    // write the messages
-    if (tracks.size() > 0) {
-      writeTracks(tracks, mchTracks, usedClusters);
+    trackROFs.reserve(clusterROFs.size());
+    for (const auto& clusterROF : clusterROFs) {
+
+      //LOG(INFO) << "processing interaction: " << clusterROF.getBCData() << "...";
+
+      // get the input clusters of the current event
+      std::array<std::list<Cluster>, 10> clusters{};
+      for (const auto& cluster : clustersIn.subspan(clusterROF.getFirstIdx(), clusterROF.getNEntries())) {
+        clusters[cluster.getChamberId()].emplace_back(cluster);
+      }
+
+      // run the track finder
+      auto tStart = std::chrono::high_resolution_clock::now();
+      const auto& tracks = mTrackFinder.findTracks(&clusters);
+      auto tEnd = std::chrono::high_resolution_clock::now();
+      mElapsedTime += tEnd - tStart;
+
+      // fill the ouput messages
+      trackROFs.emplace_back(clusterROF.getBCData(), mchTracks.size(), tracks.size());
+      if (tracks.size() > 0) {
+        writeTracks(tracks, mchTracks, usedClusters);
+      }
     }
   }
 
@@ -112,10 +126,6 @@ class TrackFinderTask
                    std::vector<ClusterStruct, o2::pmr::polymorphic_allocator<ClusterStruct>>& usedClusters) const
   {
     /// fill the output messages with tracks and attached clusters
-
-    // avoid memory reallocation
-    mchTracks.reserve(tracks.size());
-    usedClusters.reserve(20. * tracks.size());
 
     for (const auto& track : tracks) {
 
@@ -138,9 +148,11 @@ o2::framework::DataProcessorSpec getTrackFinderOriginalSpec()
 {
   return DataProcessorSpec{
     "TrackFinderOriginal",
-    Inputs{InputSpec{"clusters", "MCH", "CLUSTERS", 0, Lifetime::Timeframe}},
-    Outputs{OutputSpec{"MCH", "TRACKS", 0, Lifetime::Timeframe},
-            OutputSpec{"MCH", "TRACKCLUSTERS", 0, Lifetime::Timeframe}},
+    Inputs{InputSpec{"clusterrofs", "MCH", "CLUSTERROFS", 0, Lifetime::Timeframe},
+           InputSpec{"clusters", "MCH", "CLUSTERS", 0, Lifetime::Timeframe}},
+    Outputs{OutputSpec{{"trackrofs"}, "MCH", "TRACKROFS", 0, Lifetime::Timeframe},
+            OutputSpec{{"tracks"}, "MCH", "TRACKS", 0, Lifetime::Timeframe},
+            OutputSpec{{"trackclusters"}, "MCH", "TRACKCLUSTERS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<TrackFinderTask>()},
     Options{{"l3Current", VariantType::Float, -30000.0f, {"L3 current"}},
             {"dipoleCurrent", VariantType::Float, -6000.0f, {"Dipole current"}},
