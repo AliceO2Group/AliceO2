@@ -35,6 +35,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "MathUtils/Cartesian.h"
 #include "Field/MagneticField.h"
+#include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
 #include "MCHBase/TrackBlock.h"
 #include "MCHTracking/TrackParam.h"
@@ -84,23 +85,31 @@ class TrackAtVertexTask
   //_________________________________________________________________________________________________
   void run(framework::ProcessingContext& pc)
   {
-    /// propagate the MCH tracks to the vertex and send the results
+    /// propagate the MCH tracks to the vertex for each event in the TF and send the results
 
-    // get the vertex
-    auto vertex = pc.inputs().get<math_utils::Point3D<double>>("vertex");
-
-    // get the tracks
+    // get the ROFs, tracks and vertices
+    auto rofs = pc.inputs().get<gsl::span<ROFRecord>>("rofs");
     auto tracks = pc.inputs().get<gsl::span<TrackMCH>>("tracks");
+    auto vertices = pc.inputs().get<gsl::span<math_utils::Point3D<double>>>("vertices");
 
-    // propagate the tracks to the vertex
-    auto tStart = std::chrono::high_resolution_clock::now();
-    extrapTracksToVertex(tracks, vertex);
-    auto tEnd = std::chrono::high_resolution_clock::now();
-    mElapsedTime += tEnd - tStart;
+    if (vertices.size() != rofs.size()) {
+      throw length_error("number of vertices different from number of events");
+    }
+
+    // for each event, propagate the tracks to the vertex
+    mTracksAtVtx.clear();
+    int iVertex(-1);
+    int nTracksTot(0);
+    for (const auto& rof : rofs) {
+      auto tStart = std::chrono::high_resolution_clock::now();
+      nTracksTot += extrapTracksToVertex(tracks.subspan(rof.getFirstIdx(), rof.getNEntries()), vertices[++iVertex]);
+      auto tEnd = std::chrono::high_resolution_clock::now();
+      mElapsedTime += tEnd - tStart;
+    }
 
     // create the output message
     auto msgOut = pc.outputs().make<char>(Output{"MCH", "TRACKSATVERTEX", 0, Lifetime::Timeframe},
-                                          sizeof(int) + mTracksAtVtx.size() * sizeof(TrackAtVtxStruct));
+                                          mTracksAtVtx.size() * sizeof(int) + nTracksTot * sizeof(TrackAtVtxStruct));
 
     // write the tracks
     writeTracks(msgOut.data());
@@ -115,24 +124,24 @@ class TrackAtVertexTask
   };
 
   //_________________________________________________________________________________________________
-  void extrapTracksToVertex(gsl::span<const TrackMCH>& tracks, const math_utils::Point3D<double>& vertex)
+  int extrapTracksToVertex(gsl::span<const TrackMCH> tracks, const math_utils::Point3D<double>& vertex)
   {
     /// compute the tracks parameters at vertex, at DCA and at the end of the absorber
+    /// return the number of tracks successfully propagated to the vertex
 
-    mTracksAtVtx.clear();
+    auto& tracksAtVtx = mTracksAtVtx.emplace_back();
     int trackIdx(-1);
 
     for (const auto& track : tracks) {
 
-      // create a new track at vertex pointing to the current track
-      mTracksAtVtx.emplace_back();
-      auto& trackAtVtx = mTracksAtVtx.back();
+      // create a new track at vertex pointing to the current track (index within the current event)
+      auto& trackAtVtx = tracksAtVtx.emplace_back();
       trackAtVtx.mchTrackIdx = ++trackIdx;
 
       // extrapolate to vertex
       TrackParam trackParamAtVertex(track.getZ(), track.getParameters());
       if (!TrackExtrap::extrapToVertex(&trackParamAtVertex, vertex.x(), vertex.y(), vertex.z(), 0., 0.)) {
-        mTracksAtVtx.pop_back();
+        tracksAtVtx.pop_back();
         continue;
       }
       trackAtVtx.paramAtVertex.x = trackParamAtVertex.getNonBendingCoor();
@@ -146,7 +155,7 @@ class TrackAtVertexTask
       // extrapolate to DCA
       TrackParam trackParamAtDCA(track.getZ(), track.getParameters());
       if (!TrackExtrap::extrapToVertexWithoutBranson(&trackParamAtDCA, vertex.z())) {
-        mTracksAtVtx.pop_back();
+        tracksAtVtx.pop_back();
         continue;
       }
       double dcaX = trackParamAtDCA.getNonBendingCoor() - vertex.x();
@@ -156,33 +165,39 @@ class TrackAtVertexTask
       // extrapolate to the end of the absorber
       TrackParam trackParamAtRAbs(track.getZ(), track.getParameters());
       if (!TrackExtrap::extrapToZ(&trackParamAtRAbs, -505.)) {
-        mTracksAtVtx.pop_back();
+        tracksAtVtx.pop_back();
         continue;
       }
       double xAbs = trackParamAtRAbs.getNonBendingCoor();
       double yAbs = trackParamAtRAbs.getBendingCoor();
       trackAtVtx.rAbs = TMath::Sqrt(xAbs * xAbs + yAbs * yAbs);
     }
+
+    return tracksAtVtx.size();
   }
 
   //_________________________________________________________________________________________________
   void writeTracks(char* bufferPtr) const
   {
-    /// write the track informations in the message payload
+    /// write the track informations for each event in the message payload
 
-    // write the number of tracks
-    int nTracks = mTracksAtVtx.size();
-    memcpy(bufferPtr, &nTracks, sizeof(int));
-    bufferPtr += sizeof(int);
+    for (const auto& tracksAtVtx : mTracksAtVtx) {
 
-    // write the tracks
-    if (nTracks > 0) {
-      memcpy(bufferPtr, mTracksAtVtx.data(), nTracks * sizeof(TrackAtVtxStruct));
+      // write the number of tracks
+      int nTracks = tracksAtVtx.size();
+      memcpy(bufferPtr, &nTracks, sizeof(int));
+      bufferPtr += sizeof(int);
+
+      // write the tracks
+      if (nTracks > 0) {
+        memcpy(bufferPtr, tracksAtVtx.data(), nTracks * sizeof(TrackAtVtxStruct));
+        bufferPtr += nTracks * sizeof(TrackAtVtxStruct);
+      }
     }
   }
 
-  std::vector<TrackAtVtxStruct> mTracksAtVtx{}; ///< list of tracks extrapolated to vertex
-  std::chrono::duration<double> mElapsedTime{}; ///< timer
+  std::vector<std::vector<TrackAtVtxStruct>> mTracksAtVtx{}; ///< list of tracks extrapolated to vertex for each event
+  std::chrono::duration<double> mElapsedTime{};              ///< timer
 };
 
 //_________________________________________________________________________________________________
@@ -190,10 +205,11 @@ o2::framework::DataProcessorSpec getTrackAtVertexSpec()
 {
   return DataProcessorSpec{
     "TrackAtVertex",
-    Inputs{InputSpec{"vertex", "MCH", "VERTEX", 0, Lifetime::Timeframe},
+    Inputs{InputSpec{"vertices", "MCH", "VERTICES", 0, Lifetime::Timeframe},
+           InputSpec{"rofs", "MCH", "TRACKROFS", 0, Lifetime::Timeframe},
            InputSpec{"tracks", "MCH", "TRACKS", 0, Lifetime::Timeframe},
            InputSpec{"clusters", "MCH", "TRACKCLUSTERS", 0, Lifetime::Timeframe}},
-    Outputs{OutputSpec{"MCH", "TRACKSATVERTEX", 0, Lifetime::Timeframe}},
+    Outputs{OutputSpec{{"tracksatvertex"}, "MCH", "TRACKSATVERTEX", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<TrackAtVertexTask>()},
     Options{{"l3Current", VariantType::Float, -30000.0f, {"L3 current"}},
             {"dipoleCurrent", VariantType::Float, -6000.0f, {"Dipole current"}}}};

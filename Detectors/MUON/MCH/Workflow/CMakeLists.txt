@@ -74,7 +74,7 @@ o2_add_executable(
         clusters-sampler-workflow
         SOURCES src/ClusterSamplerSpec.cxx src/clusters-sampler-workflow.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::MCHBase)
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase)
 
 o2_add_executable(
         clusters-to-tracks-original-workflow
@@ -92,7 +92,7 @@ o2_add_executable(
         vertex-sampler-workflow
         SOURCES src/VertexSamplerSpec.cxx src/vertex-sampler-workflow.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework)
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH)
 
 o2_add_executable(
         tracks-to-tracks-at-vertex-workflow

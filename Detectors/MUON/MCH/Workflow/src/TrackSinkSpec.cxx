@@ -18,6 +18,7 @@
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
+#include <vector>
 
 #include <gsl/span>
 
@@ -29,8 +30,10 @@
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
 
+#include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
 #include "MCHBase/ClusterBlock.h"
+#include "MCHBase/TrackBlock.h"
 
 namespace o2
 {
@@ -66,15 +69,15 @@ class TrackSinkTask
   //_________________________________________________________________________________________________
   void run(framework::ProcessingContext& pc)
   {
-    /// dump the tracks with attached clusters of the current event
+    /// dump the tracks and attached clusters for each event in the TF
 
     // get the input messages
+    gsl::span<const ROFRecord> rofs{};
     gsl::span<const TrackMCH> tracks{};
-    if (pc.inputs().getPos("tracks") >= 0) {
-      tracks = pc.inputs().get<gsl::span<TrackMCH>>("tracks");
-    }
     gsl::span<const ClusterStruct> clusters{};
-    if (pc.inputs().getPos("clusters") >= 0) {
+    if (pc.inputs().getPos("rofs") >= 0) {
+      rofs = pc.inputs().get<gsl::span<ROFRecord>>("rofs");
+      tracks = pc.inputs().get<gsl::span<TrackMCH>>("tracks");
       clusters = pc.inputs().get<gsl::span<ClusterStruct>>("clusters");
     }
     gsl::span<const char> tracksAtVtx{};
@@ -82,23 +85,127 @@ class TrackSinkTask
       tracksAtVtx = pc.inputs().get<gsl::span<char>>("tracksAtVtx");
     }
 
-    // write the number of tracks at vertex, MCH tracks and attached clusters
-    int nTracksAtVtx = tracksAtVtx.empty() ? 0 : *reinterpret_cast<const int*>(tracksAtVtx.data());
-    mOutputFile.write(reinterpret_cast<char*>(&nTracksAtVtx), sizeof(int));
-    int nTracks = tracks.size();
-    mOutputFile.write(reinterpret_cast<char*>(&nTracks), sizeof(int));
-    int nClusters = clusters.size();
-    mOutputFile.write(reinterpret_cast<char*>(&nClusters), sizeof(int));
+    // loop over events based on ROF records, if any, or based on the tracks-at-vertex message otherwise
+    if (!rofs.empty()) {
 
-    // write the tracks at vertex, MCH tracks and attached clusters
-    if (tracksAtVtx.size() > sizeof(int)) {
-      mOutputFile.write(&tracksAtVtx[sizeof(int)], tracksAtVtx.size() - sizeof(int));
+      int tracksAtVtxOffset(0);
+      std::vector<TrackMCH> eventTracks{};
+      for (const auto& rof : rofs) {
+
+        // get the MCH tracks, attached clusters and corresponding tracks at vertex (if any)
+        auto eventClusters = getEventTracksAndClusters(rof, tracks, clusters, eventTracks);
+        auto eventTracksAtVtx = getEventTracksAtVtx(tracksAtVtx, tracksAtVtxOffset);
+
+        // write the number of tracks at vertex, MCH tracks and attached clusters
+        int nEventTracksAtVtx = eventTracksAtVtx.size() / sizeof(TrackAtVtxStruct);
+        mOutputFile.write(reinterpret_cast<char*>(&nEventTracksAtVtx), sizeof(int));
+        int nEventTracks = eventTracks.size();
+        mOutputFile.write(reinterpret_cast<char*>(&nEventTracks), sizeof(int));
+        int nEventClusters = eventClusters.size();
+        mOutputFile.write(reinterpret_cast<char*>(&nEventClusters), sizeof(int));
+
+        // write the tracks at vertex, MCH tracks and attached clusters
+        mOutputFile.write(eventTracksAtVtx.data(), eventTracksAtVtx.size());
+        mOutputFile.write(reinterpret_cast<const char*>(eventTracks.data()), eventTracks.size() * sizeof(TrackMCH));
+        mOutputFile.write(reinterpret_cast<const char*>(eventClusters.data()), eventClusters.size_bytes());
+      }
+
+      // at this point we should have dumped all the tracks at vertex, if any
+      if (tracksAtVtxOffset != tracksAtVtx.size()) {
+        throw length_error("inconsistent payload");
+      }
+
+    } else if (!tracksAtVtx.empty()) {
+
+      int tracksAtVtxOffset(0);
+      int zero(0);
+      while (tracksAtVtxOffset != tracksAtVtx.size()) {
+
+        // get the tracks at vertex
+        auto eventTracksAtVtx = getEventTracksAtVtx(tracksAtVtx, tracksAtVtxOffset);
+
+        // write the number of tracks at vertex (number of MCH tracks and attached clusters = 0)
+        int nEventTracksAtVtx = eventTracksAtVtx.size() / sizeof(TrackAtVtxStruct);
+        mOutputFile.write(reinterpret_cast<char*>(&nEventTracksAtVtx), sizeof(int));
+        mOutputFile.write(reinterpret_cast<char*>(&zero), sizeof(int));
+        mOutputFile.write(reinterpret_cast<char*>(&zero), sizeof(int));
+
+        // write the tracks at vertex
+        mOutputFile.write(eventTracksAtVtx.data(), eventTracksAtVtx.size());
+      }
+
+    } else {
+      throw length_error("empty time frame");
     }
-    mOutputFile.write(reinterpret_cast<const char*>(tracks.data()), tracks.size_bytes());
-    mOutputFile.write(reinterpret_cast<const char*>(clusters.data()), clusters.size_bytes());
   }
 
  private:
+  struct TrackAtVtxStruct {
+    TrackParamStruct paramAtVertex{};
+    double dca = 0.;
+    double rAbs = 0.;
+    int mchTrackIdx = 0;
+  };
+
+  //_________________________________________________________________________________________________
+  gsl::span<const ClusterStruct> getEventTracksAndClusters(const ROFRecord& rof, gsl::span<const TrackMCH> tracks,
+                                                           gsl::span<const ClusterStruct> clusters,
+                                                           std::vector<TrackMCH>& eventTracks) const
+  {
+    /// copy the MCH tracks of the current event (needed to edit the tracks)
+    /// modify the references to the attached clusters to start the indexing from 0
+    /// return a sub-span with the attached clusters
+
+    eventTracks.clear();
+
+    if (rof.getNEntries() < 1) {
+      return {};
+    }
+
+    if (rof.getLastIdx() >= tracks.size()) {
+      throw length_error("missing tracks");
+    }
+
+    eventTracks.insert(eventTracks.end(), tracks.begin() + rof.getFirstIdx(), tracks.begin() + rof.getLastIdx() + 1);
+
+    int clusterIdxOffset = eventTracks.front().getFirstClusterIdx();
+    for (auto& track : eventTracks) {
+      track.setClusterRef(track.getFirstClusterIdx() - clusterIdxOffset, track.getNClusters());
+    }
+
+    if (eventTracks.back().getLastClusterIdx() + clusterIdxOffset >= clusters.size()) {
+      throw length_error("missing clusters");
+    }
+
+    return clusters.subspan(clusterIdxOffset, eventTracks.back().getLastClusterIdx() + 1);
+  }
+
+  //_________________________________________________________________________________________________
+  gsl::span<const char> getEventTracksAtVtx(gsl::span<const char> tracksAtVtx, int& tracksAtVtxOffset) const
+  {
+    /// return a sub-span with the tracks at vertex of the current event, if any,
+    /// and move forward the tracksAtVtxOffset to point to the next event
+
+    if (tracksAtVtx.empty()) {
+      return {};
+    }
+
+    if (tracksAtVtx.size() - tracksAtVtxOffset < sizeof(int)) {
+      throw length_error("inconsistent payload");
+    }
+
+    int nEventTracksAtVtx = *reinterpret_cast<const int*>(&tracksAtVtx[tracksAtVtxOffset]);
+    tracksAtVtxOffset += sizeof(int);
+
+    int payloadSize = nEventTracksAtVtx * sizeof(TrackAtVtxStruct);
+    if (tracksAtVtx.size() - tracksAtVtxOffset < payloadSize) {
+      throw length_error("inconsistent payload");
+    }
+
+    tracksAtVtxOffset += payloadSize;
+    return tracksAtVtx.subspan(tracksAtVtxOffset - payloadSize, payloadSize);
+  }
+
   std::ofstream mOutputFile{}; ///< output file
 };
 
@@ -107,6 +214,7 @@ o2::framework::DataProcessorSpec getTrackSinkSpec(bool mchTracks, bool tracksAtV
 {
   Inputs inputs{};
   if (mchTracks) {
+    inputs.emplace_back("rofs", "MCH", "TRACKROFS", 0, Lifetime::Timeframe);
     inputs.emplace_back("tracks", "MCH", "TRACKS", 0, Lifetime::Timeframe);
     inputs.emplace_back("clusters", "MCH", "TRACKCLUSTERS", 0, Lifetime::Timeframe);
   }
