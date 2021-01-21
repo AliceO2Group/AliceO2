@@ -24,7 +24,6 @@ using namespace o2::hmpid;
 void Geo::Init()
 {
   LOG(INFO) << "hmpid::Geo: Initialization of HMPID parameters";
-
 }
 // =================== General Purposes HMPID Functions =======================
 /// Functions to translate coordinates : from Module,Col,Row to Equipment,Col,Dilogic,Channel
@@ -74,27 +73,4 @@ void Geo::Equipment2Module(int Equi, int Colu, int Dilo, int Chan, int *Mod, int
   return;
 }
 
-//Int_t Geo::GetPad(int eqi, intnt_t row,Int_t dil,Int_t pad)
-Int_t Geo::GetPad(int Equi, int Colu, int Dilo, int Chan)
-{
-  // The method returns the absolute pad number or -1
-  // in case the charge from the channels
-  // has not been read or invalid arguments
 
-
-  if(Equi<0 || Equi >= Geo::MAXEQUIPMENTS || Colu<0 || Colu >= N_COLUMNS ||
-      Dilo<0 || Dilo >= Geo::N_DILOGICS || Chan<0 || Chan >= N_CHANNELS ) return -1;
-
-  int a2y[6]={3,2,4,1,5,0};     //pady for a given padress (for single DILOGIC chip)
-  int ch = Equi / 2; // The Module
-
-  int tmp = (23 - Colu) / N_COLXSEGMENT;
-  int pc = (Equi % 2) ? 5-2*tmp : 2*tmp; // The PhotoCatode
-
-  int px = (N_DILOGICS+1 - Dilo) * DILOPADSROWS - Chan / DILOPADSCOLS - 1;  //flip according to Paolo (2-9-2008)
-
-  tmp = (Equi % 2) ? Colu : (23-Colu);
-  int py = DILOPADSCOLS * (tmp % DILOPADSROWS)+a2y[Chan % DILOPADSCOLS];
-
-  return Param::Abs(ch,pc,px,py);
-}

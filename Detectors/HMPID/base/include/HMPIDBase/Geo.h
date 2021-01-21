@@ -57,15 +57,13 @@ class Geo
 
   static constexpr int EQUIPMENTSPERMODULE = 2;
 
-
   static constexpr int N_EQUIPMENTTOTALPADS = N_SEGMENTS * N_COLXSEGMENT * N_DILOGICS * N_CHANNELS;
   static constexpr int N_HMPIDTOTALPADS = MAXEQUIPMENTS * N_SEGMENTS * N_COLXSEGMENT * N_DILOGICS * N_CHANNELS;
 
-
   static void Module2Equipment(int Mod, int Col, int Row, int *Equi, int *Colu, int *Dilo, int *Chan);
   static void Equipment2Module(int Equi, int Colu, int Dilo, int Chan, int *Mod, int *Col, int *Row);
-  static Int_t GetPad(int Equi, int Colu, int Dilo, int Chan);
-
+  
+  
   // from
   //static constexpr Bool_t FEAWITHMASKS[NSECTORS] =
   //  // TOF sectors with Nino masks: 0, 8, 9, 10, 16

@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "HMPIDBase/Digit.h"
+#include "HMPIDBase/Geo.h"
 #include "HMPIDBase/Param.h"
 #include "TRandom.h"
 #include "TMath.h"
@@ -17,6 +18,84 @@ using namespace o2::hmpid;
 
 ClassImp(o2::hmpid::Digit);
 
+// ----- Constructors ------------
+ Digit::Digit(int bc, int orbit, int chamber, int photo, int x, int y, float charge)
+{
+  mBc = bc;
+  mOrbit = orbit;
+  mQ =  charge;
+  mPad = Abs(chamber, photo, x, y);
+}
+
+ Digit::Digit(int bc, int orbit, float charge, int equipment, int column, int dilogic, int channel)
+{
+  mBc = bc;
+  mOrbit = orbit;
+  mQ =  charge;
+  mPad = Equipment2Pad(equipment, column, dilogic, channel);
+}
+
+ Digit::Digit(int bc, int orbit, float charge, int module, int x, int y)
+{
+  mBc = bc;
+  mOrbit = orbit;
+  mQ =  charge;
+  mPad = Absolute2Pad(module, x, y);
+}
+
+// -----  Coordinate Conversion ----
+uint32_t Digit::Equipment2Pad(int Equi, int Colu, int Dilo, int Chan)
+{
+  if(Equi<0 || Equi >= Geo::MAXEQUIPMENTS || Colu<0 || Colu >= Geo::N_COLUMNS ||
+      Dilo<0 || Dilo >= Geo::N_DILOGICS || Chan<0 || Chan >= Geo::N_CHANNELS ) return -1;
+
+  int a2y[6]={3,2,4,1,5,0};     //pady for a given padress (for single DILOGIC chip)
+  int ch = Equi / 2; // The Module
+  int tmp = (23 - Colu) / Geo::N_COLXSEGMENT;
+  int pc = (Equi % 2) ? 5-2*tmp : 2*tmp; // The PhotoCatode
+  int px = (Geo::N_DILOGICS+1 - Dilo) * Geo::DILOPADSROWS - Chan / Geo::DILOPADSCOLS - 1;
+  tmp = (Equi % 2) ? Colu : (23-Colu);
+  int py = Geo::DILOPADSCOLS * (tmp % Geo::DILOPADSROWS)+a2y[Chan % Geo::DILOPADSCOLS];
+  return Abs(ch,pc,px,py);
+}
+
+void Digit::Pad2Equipment(uint32_t pad, int *Equi, int *Colu, int *Dilo, int *Chan)
+{
+  int ch, ar, ac;
+  Pad2Absolute(pad, &ch, &ar, &ac);
+  Geo::Module2Equipment(ch, ac, ar, Equi, Colu, Dilo, Chan);
+  return;
+}
+
+uint32_t Digit::Absolute2Pad(int Module, int x, int y)
+{
+  int ph = (y/Geo::N_COLXSEGMENT)+((x >= Geo::HALFXROWS ) ? 1 : 0);
+  int px  = x % Geo::N_COLXSEGMENT;
+  int py  = y % Geo::HALFXROWS;
+  return Abs(Module,ph,px,py);
+}
+
+void Digit::Pad2Absolute(uint32_t pad, int *Module, int *x, int *y)
+{
+  *Module = A2C(pad);
+  int ph = A2P(pad);
+  int px  = A2X(pad);
+  int py  = A2Y(pad);
+  *x = (ph % 2 == 0) ? px : (px + Geo::HALFXROWS);
+  *y = ((ph >> 1) * Geo::N_COLXSEGMENT) + py;
+  return;
+}
+
+void Digit::Pad2Photo(uint32_t pad, int *chamber, int *photo, int *x, int *y)
+{
+  *chamber = A2C(pad);
+  *photo = A2P(pad);
+  *x  = A2X(pad);
+  *y  = A2Y(pad);
+  return;
+}
+
+// -----  Getter Methods ---------
 void Digit::getPadAndTotalCharge(HitType const& hit, int& chamber, int& pc, int& px, int& py, float& totalcharge)
 {
   float localX;
@@ -27,6 +106,7 @@ void Digit::getPadAndTotalCharge(HitType const& hit, int& chamber, int& pc, int&
   Param::Lors2Pad(localX, localY, pc, px, py);
 
   totalcharge = Digit::QdcTot(hit.GetEnergyLoss(), hit.GetTime(), pc, px, py, localX, localY);
+  return;
 }
 
 float Digit::getFractionalContributionForPad(HitType const& hit, int somepad)
@@ -42,7 +122,6 @@ float Digit::getFractionalContributionForPad(HitType const& hit, int somepad)
   // calculate charge fraction in given pad
   return Digit::InMathieson(localX, localY, somepad);
 }
-
 
 float Digit::QdcTot(float e, float time, int pc, int px, int py, float& localX, float& localY)
 {
