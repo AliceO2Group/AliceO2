@@ -47,7 +47,7 @@ GPUCATracking::~GPUCATracking() { deinitialize(); }
 
 int GPUCATracking::initialize(const GPUO2InterfaceConfiguration& config)
 {
-  mTrackingCAO2Interface.reset(new GPUTPCO2Interface);
+  mTrackingCAO2Interface.reset(new GPUO2Interface);
   int retVal = mTrackingCAO2Interface->Initialize(config);
   if (retVal) {
     mTrackingCAO2Interface.reset();

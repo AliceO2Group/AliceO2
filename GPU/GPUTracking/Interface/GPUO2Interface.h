@@ -43,11 +43,11 @@ struct GPUO2InterfaceConfiguration;
 struct GPUInterfaceOutputs;
 struct GPUTrackingOutputs;
 
-class GPUTPCO2Interface
+class GPUO2Interface
 {
  public:
-  GPUTPCO2Interface();
-  ~GPUTPCO2Interface();
+  GPUO2Interface();
+  ~GPUO2Interface();
 
   int Initialize(const GPUO2InterfaceConfiguration& config);
   void Deinitialize();
@@ -64,8 +64,8 @@ class GPUTPCO2Interface
   const GPUO2InterfaceConfiguration& getConfig() const { return *mConfig; }
 
  private:
-  GPUTPCO2Interface(const GPUTPCO2Interface&);
-  GPUTPCO2Interface& operator=(const GPUTPCO2Interface&);
+  GPUO2Interface(const GPUO2Interface&);
+  GPUO2Interface& operator=(const GPUO2Interface&);
 
   bool mInitialized = false;
   bool mContinuous = false;
