@@ -152,7 +152,7 @@ struct HFJpsiToEECandidateSelector {
   /// \note nPDG=11 electron
   /// \return 1 if successful PID match, 0 if successful PID rejection, -1 if no PID info
   template <typename T>
-  int selectionPID(const T& track, int nPDG)
+  int selectionPID(const T& track)
   {
 
     if (validTPCPID(track)) {
@@ -168,23 +168,20 @@ struct HFJpsiToEECandidateSelector {
   }
   void process(aod::HfCandProng2 const& hfCandProng2s, aod::BigTracksPID const& tracks)
   {
-    int statusJpsi; // final selection flag : 0-rejected  1-accepted
 
     for (auto& hfCandProng2 : hfCandProng2s) { //looping over 2 prong candidates
 
       auto trackPos = hfCandProng2.index0_as<aod::BigTracksPID>(); //positive daughter
       auto trackNeg = hfCandProng2.index1_as<aod::BigTracksPID>(); //negative daughter
 
-      statusJpsi = 0;
-
       if (!(hfCandProng2.hfflag() & 1 << JpsiToEE)) {
-        hfSelJpsiToEECandidate(statusJpsi);
+        hfSelJpsiToEECandidate(0);
         continue;
       }
 
       // daughter track validity selection
       if (!daughterSelection(trackPos) || !daughterSelection(trackNeg)) {
-        hfSelJpsiToEECandidate(statusJpsi);
+        hfSelJpsiToEECandidate(0);
         continue;
       }
 
@@ -192,12 +189,12 @@ struct HFJpsiToEECandidateSelector {
       //need to add special cuts (additional cuts on decay length and d0 norm)
 
       if (!selectionTopol(hfCandProng2, trackPos, trackNeg)) {
-        hfSelJpsiToEECandidate(statusJpsi);
+        hfSelJpsiToEECandidate(0);
         continue;
       }
 
-      if (selectionPID(trackPos, 11) == 0 || selectionPID(trackNeg, 11) == 0) {
-        hfSelJpsiToEECandidate(statusJpsi);
+      if (selectionPID(trackPos) == 0 || selectionPID(trackNeg) == 0) {
+        hfSelJpsiToEECandidate(0);
         continue;
       }
 

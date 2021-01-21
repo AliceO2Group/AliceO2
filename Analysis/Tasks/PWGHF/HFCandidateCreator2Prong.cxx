@@ -161,9 +161,11 @@ struct HFCandidateCreator2ProngMC {
         result = sign * D0ToPiK;
       }
       // Jpsi → e+e-
-      //Printf("Checking Jpsi → e+e-");
-      if (RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), 443, array{+kElectron, -kElectron}, true, &sign) > -1) {
-        result = sign * JpsiToEE;
+      if (result == N2ProngDecays) {
+        //Printf("Checking Jpsi → e+e-");
+        if (RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), 443, array{+kElectron, -kElectron}, true, &sign) > -1) {
+          result = sign * JpsiToEE;
+        }
       }
 
       rowMCMatchRec(result);
@@ -180,9 +182,11 @@ struct HFCandidateCreator2ProngMC {
         result = sign * D0ToPiK;
       }
       // Jpsi → e+e-
-      //Printf("Checking Jpsi → e+e-");
-      if (RecoDecay::isMatchedMCGen(particlesMC, particle, 443, array{+kElectron, -kElectron}, true, &sign)) {
-        result = sign * JpsiToEE;
+      if (result == N2ProngDecays) {
+        //Printf("Checking Jpsi → e+e-");
+        if (RecoDecay::isMatchedMCGen(particlesMC, particle, 443, array{+kElectron, -kElectron}, true, &sign)) {
+          result = sign * JpsiToEE;
+        }
       }
 
       rowMCMatchGen(result);

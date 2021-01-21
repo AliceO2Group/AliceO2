@@ -118,7 +118,7 @@ struct TaskJpsiMC {
         //Printf("MC Rec.: eta rejection: %g", candidate.eta());
         continue;
       }
-      if (std::abs(candidate.flagMCMatchRec()) == JpsiToEE) {
+      if (candidate.flagMCMatchRec() == JpsiToEE) {
         registry.fill(HIST("hPtRecSig"), candidate.pt());
         registry.fill(HIST("hCPARecSig"), candidate.cpa());
         registry.fill(HIST("hEtaRecSig"), candidate.eta());
