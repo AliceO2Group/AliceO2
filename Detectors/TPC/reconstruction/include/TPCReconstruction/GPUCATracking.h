@@ -25,7 +25,7 @@ namespace gpu
 struct GPUO2InterfaceConfiguration;
 struct GPUO2InterfaceIOPtrs;
 struct GPUInterfaceOutputs;
-class GPUTPCO2Interface;
+class GPUO2Interface;
 } // namespace gpu
 } // namespace o2
 
@@ -64,9 +64,9 @@ class GPUCATracking
   int unregisterMemoryForGPU(const void* ptr);
 
  private:
-  std::unique_ptr<o2::gpu::GPUTPCO2Interface> mTrackingCAO2Interface; //Pointer to Interface class in HLT O2 CA Tracking library.
-                                                                      //The tracking code itself is not included in the O2 package, but contained in the CA library.
-                                                                      //The GPUCATracking class interfaces this library via this pointer to GPUTPCO2Interface class.
+  std::unique_ptr<o2::gpu::GPUO2Interface> mTrackingCAO2Interface; //Pointer to Interface class in HLT O2 CA Tracking library.
+                                                                   //The tracking code itself is not included in the O2 package, but contained in the CA library.
+                                                                   //The GPUCATracking class interfaces this library via this pointer to GPUO2Interface class.
 
   static constexpr float sTrackMCMaxFake = 0.1;
 };
