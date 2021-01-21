@@ -38,7 +38,7 @@ using TPCClRefElem = uint32_t;
 namespace o2::gpu
 {
 class GPUParam;
-class GPUTPCO2InterfaceRefit
+class GPUO2InterfaceRefit
 {
  public:
   // Must initialize with:
@@ -46,8 +46,8 @@ class GPUTPCO2InterfaceRefit
   // - Either the shared cluster map (sharedmap) or the vector of tpc tracks (trks) to build the shared cluster map internally
   // - o2::base::Propagator (p) in case RefitTrackAsTrackParCov is to be used
 
-  GPUTPCO2InterfaceRefit(const o2::tpc::ClusterNativeAccess* cl, const TPCFastTransform* trans, float bz, const o2::tpc::TPCClRefElem* trackRef, const unsigned char* sharedmap = nullptr, const std::vector<o2::tpc::TrackTPC>* trks = nullptr, o2::base::Propagator* p = nullptr);
-  ~GPUTPCO2InterfaceRefit();
+  GPUO2InterfaceRefit(const o2::tpc::ClusterNativeAccess* cl, const TPCFastTransform* trans, float bz, const o2::tpc::TPCClRefElem* trackRef, const unsigned char* sharedmap = nullptr, const std::vector<o2::tpc::TrackTPC>* trks = nullptr, o2::base::Propagator* p = nullptr);
+  ~GPUO2InterfaceRefit();
 
   int RefitTrackAsGPU(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false) { return mRefit.RefitTrackAsGPU(trk, outward, resetCov); }
   int RefitTrackAsTrackParCov(o2::tpc::TrackTPC& trk, bool outward = false, bool resetCov = false) { return mRefit.RefitTrackAsTrackParCov(trk, outward, resetCov); }
