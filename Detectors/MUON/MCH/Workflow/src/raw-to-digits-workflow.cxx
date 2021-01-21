@@ -23,17 +23,33 @@
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
 #include "Framework/Task.h"
-#include "Framework/runDataProcessing.h"
+
+#include "Framework/ConfigParamSpec.h"
+#include "Framework/CompletionPolicyHelpers.h"
 #include "MCHWorkflow/DataDecoderSpec.h"
+
+
+using namespace o2::framework;
+//using namespace o2::utilities;
+
+void customize(std::vector<ConfigParamSpec>& workflowOptions)
+{
+  workflowOptions.push_back(ConfigParamSpec{"input-spec", VariantType::String, "TF:MCH/RAWDATA", {"input data specification"}});
+}
+
+
+#include "Framework/runDataProcessing.h"
 
 using namespace o2;
 using namespace o2::framework;
 
-WorkflowSpec defineDataProcessing(const ConfigContext&)
+WorkflowSpec defineDataProcessing(const ConfigContext& config)
 {
+  auto inputSpec = config.options().get<std::string>("input-spec");
+
   WorkflowSpec specs;
 
-  DataProcessorSpec producer = o2::mch::raw::getDecodingSpec();
+  DataProcessorSpec producer = o2::mch::raw::getDecodingSpec(inputSpec);
   specs.push_back(producer);
 
   return specs;
