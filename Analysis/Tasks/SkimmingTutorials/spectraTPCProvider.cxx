@@ -46,14 +46,15 @@ struct TPCSpectraProviderTask {
     uint32_t pNsigma = 0xFFFFFF00; //15 bit precision for Nsigma
     outputTracks.reserve(tracks.size());
     for (auto track : tracks) {
-      float nsigma[9] = {truncateFloatFraction(track.tpcNSigmaEl(), pNsigma), truncateFloatFraction(track.tpcNSigmaMu(), pNsigma),
-                         truncateFloatFraction(track.tpcNSigmaPi(), pNsigma), truncateFloatFraction(track.tpcNSigmaKa(), pNsigma),
-                         truncateFloatFraction(track.tpcNSigmaPr(), pNsigma), truncateFloatFraction(track.tpcNSigmaDe(), pNsigma),
-                         truncateFloatFraction(track.tpcNSigmaTr(), pNsigma), truncateFloatFraction(track.tpcNSigmaHe(), pNsigma),
-                         truncateFloatFraction(track.tpcNSigmaAl(), pNsigma)}; //the significance needs to be discussed
 
       //outputTracks(outputCollisions.lastIndex(), track.pt(), track.p(), track.eta(), nsigma);
-      outputTracks(track.pt(), track.p(), track.eta(), nsigma);
+      outputTracks(track.pt(), track.p(), track.eta(),
+                   std::array{truncateFloatFraction(track.tpcNSigmaEl(), pNsigma), truncateFloatFraction(track.tpcNSigmaMu(), pNsigma),
+                              truncateFloatFraction(track.tpcNSigmaPi(), pNsigma), truncateFloatFraction(track.tpcNSigmaKa(), pNsigma),
+                              truncateFloatFraction(track.tpcNSigmaPr(), pNsigma), truncateFloatFraction(track.tpcNSigmaDe(), pNsigma),
+                              truncateFloatFraction(track.tpcNSigmaTr(), pNsigma), truncateFloatFraction(track.tpcNSigmaHe(), pNsigma),
+                              truncateFloatFraction(track.tpcNSigmaAl(), pNsigma)}
+                     .begin());
     }
   }
 };
