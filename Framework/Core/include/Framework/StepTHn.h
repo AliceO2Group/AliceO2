@@ -30,7 +30,7 @@ class StepTHn : public TNamed
 {
  public:
   StepTHn();
-  StepTHn(const Char_t* name, const Char_t* title, const Int_t nSteps, const Int_t nAxis, Int_t* nBins, std::vector<Double_t> binLimits[], const char** axisTitles);
+  StepTHn(const Char_t* name, const Char_t* title, const Int_t nSteps, const Int_t nAxes);
   ~StepTHn() override;
 
   template <typename... Ts>
@@ -54,6 +54,10 @@ class StepTHn : public TNamed
   void Copy(TObject& c) const override;
 
   virtual Long64_t Merge(TCollection* list) = 0;
+
+  TAxis* GetAxis(int i) { return mPrototype->GetAxis(i); }
+  virtual TObject* Clone(const char* name = nullptr) = 0;
+  void Sumw2(){}; // TODO: added for compatibiltiy with registry, but maybe it would be useful also in StepTHn as toggle for error weights
 
  protected:
   void init();
@@ -87,6 +91,7 @@ class StepTHnT : public StepTHn
  public:
   StepTHnT() : StepTHn() {}
   StepTHnT(const Char_t* name, const Char_t* title, const Int_t nSteps, const Int_t nAxis, Int_t* nBins, std::vector<Double_t> binLimits[], const char** axisTitles);
+  StepTHnT(const char* name, const char* title, const int nAxes, const int* nBins, const double* xmin, const double* xmax, const int nSteps);
   ~StepTHnT() override = default;
 
  protected:
@@ -99,6 +104,8 @@ class StepTHnT : public StepTHn
     }
   }
 
+  TObject* Clone(const char* name) override;
+
   Long64_t Merge(TCollection* list) override;
 
   ClassDef(StepTHnT, 1) // THn like container
@@ -110,6 +117,10 @@ typedef StepTHnT<TArrayD> StepTHnD;
 template <typename... Ts>
 void StepTHn::Fill(Int_t istep, const Ts&... valuesAndWeight)
 {
+  if (istep >= mNSteps) {
+    LOGF(FATAL, "Selected step for filling is not in range of StepTHn.");
+  }
+
   constexpr int nParams = sizeof...(Ts);
   // TODO Find a way to avoid the array
   double tempArray[nParams] = {static_cast<double>(valuesAndWeight)...};
@@ -118,7 +129,7 @@ void StepTHn::Fill(Int_t istep, const Ts&... valuesAndWeight)
   if (nParams == mNVars + 1) {
     weight = tempArray[mNVars];
   } else if (nParams != mNVars) {
-    LOGF(fatal, "Fill called with invalid number of parameters (%d vs %d)", mNVars, nParams);
+    LOGF(FATAL, "Fill called with invalid number of parameters (%d vs %d)", mNVars, nParams);
   }
 
   // fill axis cache
@@ -170,7 +181,7 @@ void StepTHn::Fill(Int_t istep, const Ts&... valuesAndWeight)
     LOGF(info, "Created values container for step %d", istep);
   }
 
-  if (weight != 1) {
+  if (weight != 1.) {
     // initialize with already filled entries (which have been filled with weight == 1), in this case mSumw2 := mValues
     if (!mSumw2[istep]) {
       mSumw2[istep] = createArray();

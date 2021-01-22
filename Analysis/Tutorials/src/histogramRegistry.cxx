@@ -91,6 +91,10 @@ struct CTask {
 
     registry.add("1d-profile-weight", "test 1d profile weight", {HistType::kTProfile, {{2, -10.0f, 10.01f}}}, true);
     registry.add("2d-profile-weight", "test 2d profile weight", {HistType::kTProfile2D, {{2, -10.0f, 10.01f}, {2, -10.0f, 10.01f}}}, true);
+
+    registry.add("2d-step", "test 2d step", {HistType::kStepTHnD, {{2, -10.0f, 10.01f}, {2, -10.0f, 10.01f}}, 3});
+
+    registry.add("2d-step-weight", "test 2d step weight", {HistType::kStepTHnF, {{2, -10.0f, 10.01f}, {2, -10.0f, 10.01f}}, 4}, true);
   }
 
   void process(aod::Tracks const& tracks)
@@ -121,6 +125,9 @@ struct CTask {
       registry.fill(HIST("3d-weight"), track.pt(), track.eta(), track.phi(), 2.);
 
       registry.fill(HIST("2d-profile-weight"), track.pt(), track.eta(), track.phi(), 5.);
+
+      registry.fill(HIST("2d-step"), 1, track.pt(), track.eta());
+      registry.fill(HIST("2d-step-weight"), 2, track.pt(), track.eta(), track.phi());
     }
   }
 };

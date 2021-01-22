@@ -30,8 +30,7 @@ const std::map<HistType, std::function<HistPtr(const HistogramSpec&)>> HistFacto
   CALLB(THnD), CALLB(THnF), CALLB(THnI), CALLB(THnC), CALLB(THnS), CALLB(THnL),
   CALLB(THnSparseD), CALLB(THnSparseF), CALLB(THnSparseI), CALLB(THnSparseC), CALLB(THnSparseS), CALLB(THnSparseL),
   CALLB(TProfile), CALLB(TProfile2D), CALLB(TProfile3D),
-  //CALLB(StepTHnF), CALLB(StepTHnD)
-};
+  CALLB(StepTHnF), CALLB(StepTHnD)};
 
 #undef CALLB
 
@@ -66,9 +65,12 @@ void HistogramRegistry::validateHistName(const char* name, const uint32_t hash)
     LOGF(FATAL, R"(Hash collision in HistogramRegistry "%s"! Please rename histogram "%s" or "%s".)", mName, name, collidingName);
   }
   // validate that name contains only allowed characters
+  /*
+   TODO: exactly determine constraints for valid histogram names
   if (!std::regex_match(name, std::regex("[A-Za-z0-9\-_/]+"))) {
     LOGF(FATAL, R"(Histogram name "%s" contains invalid characters.)", name);
   }
+   */
 }
 
 void HistogramRegistry::add(const HistogramSpec& histSpec)

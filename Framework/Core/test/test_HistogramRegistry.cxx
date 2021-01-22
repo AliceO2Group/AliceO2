@@ -107,3 +107,19 @@ BOOST_AUTO_TEST_CASE(HistogramRegistryExpressionFill)
   registry.fill<test::X, test::Y>(HIST("xy"), tests, test::x > 3.0f && test::y > -5.0f);
   BOOST_CHECK_EQUAL(registry.get<TH2>(HIST("xy"))->GetEntries(), 2);
 }
+
+BOOST_AUTO_TEST_CASE(HistogramRegistryStepTHn)
+{
+  HistogramRegistry registry{"registry"};
+
+  registry.add("stepTHnF", "a", {kStepTHnF, {{100, -10.0f, 10.01f}, {100, -10.0f, 10.01f}}, 2});
+  registry.add("stepTHnD", "b", {kStepTHnF, {{100, -10.0f, 10.01f}, {100, -10.0f, 10.01f}}, 3});
+
+  auto& histo = registry.get<StepTHn>(HIST("stepTHnD"));
+  BOOST_REQUIRE_EQUAL(histo->getNSteps(), 3);
+
+  // fill first step at position (0,2)
+  registry.fill(HIST("stepTHnF"), 0, 0., 3.);
+  // fill second step (0,2)
+  registry.fill(HIST("stepTHnF"), 1, 0., 4.);
+}
