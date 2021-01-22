@@ -259,6 +259,6 @@ struct CandidateTreeWriter {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow;
-  workflow.push_back(adaptAnalysisTask<CandidateTreeWriter>("hf-cand-tree-2prong-writer"));
+  workflow.push_back(adaptAnalysisTask<CandidateTreeWriter>("hf-treewriter-2prong-d0tokpi"));
   return workflow;
 }

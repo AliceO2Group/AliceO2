@@ -28,8 +28,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   ConfigParamSpec optionDoMC{"doMC", VariantType::Bool, false, {"Perform MC matching."}};
   workflowOptions.push_back(optionDoMC);
-  ConfigParamSpec optionWriteTree{"writeTree", VariantType::Bool, false, {"Writing debug tree."}};
-  workflowOptions.push_back(optionWriteTree);
 }
 
 #include "Framework/runDataProcessing.h"
@@ -419,10 +417,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   const bool doMC = cfgc.options().get<bool>("doMC");
   if (doMC) {
     workflow.push_back(adaptAnalysisTask<HFCandidateCreator2ProngMC>("hf-cand-creator-2prong-mc"));
-  }
-  const bool writeTree = cfgc.options().get<bool>("writeTree");
-  if (writeTree) {
-    workflow.push_back(adaptAnalysisTask<CandidateTreeWriter>("hf-cand-tree-2prong-writer"));
   }
   return workflow;
 }
