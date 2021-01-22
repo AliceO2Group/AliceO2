@@ -203,6 +203,7 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   mRecoSteps.setBits(RecoStep::TPCConversion, false);
   mRecoSteps.setBits(RecoStep::TPCCompression, false);
   mRecoSteps.setBits(RecoStep::TPCdEdx, false);
+  mProcessingSettings.createO2Output = false;
 #endif
   mRecoStepsGPU &= mRecoSteps;
   mRecoStepsGPU &= AvailableRecoSteps();
@@ -245,6 +246,9 @@ int GPUReconstruction::InitPhaseBeforeDevice()
     if (mProcessingSettings.trackletSelectorSlices < 0) {
       mProcessingSettings.trackletSelectorSlices = 1;
     }
+  }
+  if (mProcessingSettings.createO2Output > 1 && mProcessingSettings.runQA) {
+    mProcessingSettings.createO2Output = 1;
   }
   if (!(mRecoStepsGPU & GPUDataTypes::RecoStep::TPCMerging)) {
     mProcessingSettings.mergerSortTracks = false;
