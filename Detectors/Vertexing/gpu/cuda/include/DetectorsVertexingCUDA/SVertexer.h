@@ -14,23 +14,23 @@
 // #include "DetectorsVertexing/SVertexer.h"
 #include "GPUCommonDef.h"
 
-void hello_util();
-
 namespace o2
 {
 namespace vertexing
 {
 
-class SVertexerHIP final
+void hello_util();
+
+class SVertexerCUDA final
 {
  public:
-  SVertexerHIP() = default;
-  virtual ~SVertexerHIP() = default;
+  SVertexerCUDA() = default;
+  virtual ~SVertexerCUDA() = default;
   void hello();
 };
 
 // Steers
-void SVertexerHIP::hello()
+void SVertexerCUDA::hello()
 {
   hello_util();
 }

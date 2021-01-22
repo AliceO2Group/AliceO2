@@ -8,11 +8,11 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-if(ENABLE_CUDA)
+if(CUDA_ENABLED)
 message(STATUS "Building SVertexer with CUDA")
 add_subdirectory(cuda)
 endif()
-if(ENABLE_HIP)
+if(HIP_ENABLED)
 message(STATUS "Building SVertexer with HIP")
 add_subdirectory(hip)
 endif()

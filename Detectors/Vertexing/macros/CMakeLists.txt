@@ -1,5 +1,12 @@
+set(MACRO_GPU_TARGET "")
+if (CUDA_ENABLED)
+list(APPEND MACRO_GPU_TARGET O2::DetectorsVertexingCUDA)
+endif()
+if(HIP_ENABLED)
+list(APPEND MACRO_GPU_TARGET O2::DetectorsVertexingHIP)
+endif()
+
 o2_add_test_root_macro(runSVertexer.C
                        PUBLIC_LINK_LIBRARIES
-                       $<$<BOOL:${ENABLE_CUDA}>:O2::DetectorsVertexingCUDA>
-                       $<$<BOOL:${ENABLE_HIP}>:O2::DetectorsVertexingHIP>
+                       ${MACRO_GPU_TARGET}
                        LABELS svertexer)

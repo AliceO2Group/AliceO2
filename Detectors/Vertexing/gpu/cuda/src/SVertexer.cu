@@ -24,16 +24,20 @@ namespace o2
 namespace vertexing
 {
 namespace gpu
-{ // Kernels
+{ 
+// Kernels
 GPUg() void helloKernel()
 {
   //  o2::vertexing::DCAFitterN<2> mFitter2Prong;
   printf("Hello World from GPU!\n");
 }
+
 } // namespace gpu
 
 void hello_util()
 {
   gpu::helloKernel<<<1, 1>>>();
 }
+
 } // namespace vertexing
+}
