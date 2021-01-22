@@ -32,12 +32,13 @@ Digitizer::BCCache::BCCache()
 void Digitizer::process(const std::vector<o2::fdd::Hit>& hits,
                         std::vector<o2::fdd::Digit>& digitsBC,
                         std::vector<o2::fdd::ChannelData>& digitsCh,
+                        std::vector<o2::fdd::DetTrigInput>& digitsTrig,
                         o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>& labels)
 {
   // loop over all hits and produce digits
   //LOG(INFO) << "Processing IR = " << mIntRecord << " | NHits = " << hits.size();
 
-  flush(digitsBC, digitsCh, labels); // flush cached signal which cannot be affect by new event
+  flush(digitsBC, digitsCh, digitsTrig, labels); // flush cached signal which cannot be affect by new event
 
   auto sorted_hits{hits};
   std::sort(sorted_hits.begin(), sorted_hits.end(), [](o2::fdd::Hit const& a, o2::fdd::Hit const& b) {
@@ -155,6 +156,7 @@ void Digitizer::createPulse(int nPhE, int parID, double timeHit, std::array<o2::
 //_____________________________________________________________________________
 void Digitizer::flush(std::vector<o2::fdd::Digit>& digitsBC,
                       std::vector<o2::fdd::ChannelData>& digitsCh,
+                      std::vector<o2::fdd::DetTrigInput>& digitsTrig,
                       o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>& labels)
 {
 
@@ -175,7 +177,7 @@ void Digitizer::flush(std::vector<o2::fdd::Digit>& digitsBC,
 
   for (int ibc = 0; ibc < nCached; ibc++) { // digitize BCs which might not be affected by future events
     auto& bc = mCache[ibc];
-    storeBC(bc, digitsBC, digitsCh, labels);
+    storeBC(bc, digitsBC, digitsCh, digitsTrig, labels);
   }
   // clean cache for BCs which are not needed anymore
   //LOG(INFO) << "Cleaning cache";
@@ -184,6 +186,7 @@ void Digitizer::flush(std::vector<o2::fdd::Digit>& digitsBC,
 //_____________________________________________________________________________
 void Digitizer::storeBC(const BCCache& bc,
                         std::vector<o2::fdd::Digit>& digitsBC, std::vector<o2::fdd::ChannelData>& digitsCh,
+                        std::vector<o2::fdd::DetTrigInput>& digitsTrig,
                         o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>& labels)
 {
   //LOG(INFO) << "Storing BC " << bc;
@@ -196,6 +199,7 @@ void Digitizer::storeBC(const BCCache& bc,
 
   int nBC = digitsBC.size();
   digitsBC.emplace_back(first, 16, bc, mTriggers);
+  digitsTrig.emplace_back(bc, 0, 0, 0, 0, 0);
 
   for (const auto& lbl : bc.labels) {
     labels.addElement(nBC, lbl);

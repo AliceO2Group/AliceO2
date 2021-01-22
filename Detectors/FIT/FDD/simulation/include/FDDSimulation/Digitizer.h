@@ -65,10 +65,12 @@ class Digitizer
   void process(const std::vector<o2::fdd::Hit>& hits,
                std::vector<o2::fdd::Digit>& digitsBC,
                std::vector<o2::fdd::ChannelData>& digitsCh,
+               std::vector<o2::fdd::DetTrigInput>& digitsTrig,
                o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>& labels);
 
   void flush(std::vector<o2::fdd::Digit>& digitsBC,
              std::vector<o2::fdd::ChannelData>& digitsCh,
+             std::vector<o2::fdd::DetTrigInput>& digitsTrig,
              o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>& labels);
 
   void setEventTime(long value) { mEventTime = value; }
@@ -93,7 +95,7 @@ class Digitizer
   BCCache* getBCCache(const o2::InteractionRecord& ir);
 
   void storeBC(const BCCache& bc,
-               std::vector<o2::fdd::Digit>& digitsBC, std::vector<o2::fdd::ChannelData>& digitsCh,
+               std::vector<o2::fdd::Digit>& digitsBC, std::vector<o2::fdd::ChannelData>& digitsCh, std::vector<o2::fdd::DetTrigInput>& digitsTrig,
                o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>& labels);
 
   long mEventTime;                      // TF (run) timestamp

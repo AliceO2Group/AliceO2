@@ -28,6 +28,11 @@ namespace fdd
 class ChannelData;
 
 struct Triggers {
+  enum { bitA,
+         bitC,
+         bitVertex,
+         bitCen,
+         bitSCen };
   uint8_t triggersignals = 0; // FDD trigger signals
   int8_t nChanA = -1;         // number of fired channels A side
   int8_t nChanC = -1;         // number of fired channels A side
@@ -56,6 +61,22 @@ struct Triggers {
   Triggers getTriggers();
 
   ClassDefNV(Triggers, 1);
+};
+
+struct DetTrigInput {
+  o2::InteractionRecord mIntRecord; // bc/orbit of the intpur
+  std::bitset<5> mInputs;           // pattern of inputs.
+  DetTrigInput() = default;
+  DetTrigInput(const o2::InteractionRecord& iRec, Bool_t isA, Bool_t isC, Bool_t isVrtx, Bool_t isCnt, Bool_t isSCnt)
+    : mIntRecord(iRec),
+      mInputs((isA << Triggers::bitA) |
+              (isC << Triggers::bitC) |
+              (isVrtx << Triggers::bitVertex) |
+              (isCnt << Triggers::bitCen) |
+              (isSCnt << Triggers::bitSCen))
+  {
+  }
+  ClassDefNV(DetTrigInput, 1);
 };
 
 struct Digit {
