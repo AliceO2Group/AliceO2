@@ -292,8 +292,8 @@ int GPUReconstructionCPU::RunChains()
 void GPUReconstructionCPU::ResetDeviceProcessorTypes()
 {
   for (unsigned int i = 0; i < mProcessors.size(); i++) {
-    if (mProcessors[i].proc->mDeviceProcessor) {
-      mProcessors[i].proc->mDeviceProcessor->InitGPUProcessor(this, GPUProcessor::PROCESSOR_TYPE_DEVICE);
+    if (mProcessors[i].proc->mGPUProcessorType != GPUProcessor::PROCESSOR_TYPE_DEVICE && mProcessors[i].proc->mLinkedProcessor) {
+      mProcessors[i].proc->mLinkedProcessor->InitGPUProcessor(this, GPUProcessor::PROCESSOR_TYPE_DEVICE);
     }
   }
 }

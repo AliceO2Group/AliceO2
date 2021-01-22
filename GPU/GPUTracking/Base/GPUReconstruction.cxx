@@ -564,7 +564,7 @@ void GPUReconstruction::AllocateRegisteredMemoryInternal(GPUMemoryResource* res,
       }
     }
     if (IsGPU() && (res->mType & GPUMemoryResource::MEMORY_GPU)) {
-      if (res->mProcessor->mDeviceProcessor == nullptr) {
+      if (res->mProcessor->mLinkedProcessor == nullptr) {
         GPUError("Device Processor not set (%s)", res->mName);
         throw std::bad_alloc();
       }
@@ -917,8 +917,8 @@ void GPUReconstruction::PrepareEvent() // TODO: Clean this up, this should not b
       continue;
     }
     (mProcessors[i].proc->*(mProcessors[i].SetMaxData))(mHostConstantMem->ioPtrs);
-    if (mProcessors[i].proc->mDeviceProcessor) {
-      (mProcessors[i].proc->mDeviceProcessor->*(mProcessors[i].SetMaxData))(mHostConstantMem->ioPtrs);
+    if (mProcessors[i].proc->mGPUProcessorType != GPUProcessor::PROCESSOR_TYPE_DEVICE && mProcessors[i].proc->mLinkedProcessor) {
+      (mProcessors[i].proc->mLinkedProcessor->*(mProcessors[i].SetMaxData))(mHostConstantMem->ioPtrs);
     }
   }
   ComputeReuseMax(nullptr);
