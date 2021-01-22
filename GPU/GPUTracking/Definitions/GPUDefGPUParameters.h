@@ -59,8 +59,6 @@
   #define GPUCA_LB_GPUTPCGMMergerMergeCE 256
   #define GPUCA_LB_GPUTPCGMMergerLinkGlobalTracks 256
   #define GPUCA_LB_GPUTPCGMMergerCollect 512
-  #define GPUCA_LB_GPUTPCGMMergerSortTracks 256
-  #define GPUCA_LB_GPUTPCGMMergerSortTracksQPt 256
   #define GPUCA_LB_GPUTPCGMMergerSortTracksPrepare 256
   #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step0 256
   #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step1 256
@@ -116,8 +114,6 @@
   #define GPUCA_LB_GPUTPCGMMergerMergeCE 256
   #define GPUCA_LB_GPUTPCGMMergerLinkGlobalTracks 256
   #define GPUCA_LB_GPUTPCGMMergerCollect 256, 2
-  #define GPUCA_LB_GPUTPCGMMergerSortTracks 256
-  #define GPUCA_LB_GPUTPCGMMergerSortTracksQPt 256
   #define GPUCA_LB_GPUTPCGMMergerSortTracksPrepare 256
   #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step0 256
   #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step1 256
@@ -173,8 +169,6 @@
   #define GPUCA_LB_GPUTPCGMMergerMergeCE 256
   #define GPUCA_LB_GPUTPCGMMergerLinkGlobalTracks 256
   #define GPUCA_LB_GPUTPCGMMergerCollect 128, 2
-  #define GPUCA_LB_GPUTPCGMMergerSortTracks 256
-  #define GPUCA_LB_GPUTPCGMMergerSortTracksQPt 256
   #define GPUCA_LB_GPUTPCGMMergerSortTracksPrepare 256
   #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step0 256
   #define GPUCA_LB_GPUTPCGMMergerPrepareClusters_step1 256
@@ -306,12 +300,6 @@
   #ifndef GPUCA_LB_GPUTPCGMMergerCollect
     #define GPUCA_LB_GPUTPCGMMergerCollect 256
   #endif
-  #ifndef GPUCA_LB_GPUTPCGMMergerSortTracks
-    #define GPUCA_LB_GPUTPCGMMergerSortTracks 256
-  #endif
-  #ifndef GPUCA_LB_GPUTPCGMMergerSortTracksQPt
-    #define GPUCA_LB_GPUTPCGMMergerSortTracksQPt 256
-  #endif
   #ifndef GPUCA_LB_GPUTPCGMMergerSortTracksPrepare
     #define GPUCA_LB_GPUTPCGMMergerSortTracksPrepare 256
   #endif
@@ -335,6 +323,12 @@
   #endif
   #ifndef GPUCA_LB_GPUTPCGMMergerMergeLoopers
     #define GPUCA_LB_GPUTPCGMMergerMergeLoopers 256
+  #endif
+  #ifndef GPUCA_LB_GPUTPCGMO2Output_prepare
+    #define GPUCA_LB_GPUTPCGMO2Output_prepare 256
+  #endif
+  #ifndef GPUCA_LB_GPUTPCGMO2Output_output
+    #define GPUCA_LB_GPUTPCGMO2Output_output 256
   #endif
   #ifndef GPUCA_LB_GPUITSFitterKernel
     #define GPUCA_LB_GPUITSFitterKernel 256

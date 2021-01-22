@@ -187,7 +187,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         TPCClusterFinder/GPUTPCCFGather.cxx
         TPCClusterFinder/TPCPadGainCalib.cxx
         Refit/GPUTrackingRefit.cxx
-        Refit/GPUTrackingRefitKernel.cxx)
+        Refit/GPUTrackingRefitKernel.cxx
+        Merger/GPUTPCGMO2Output.cxx)
 
     set(SRCS_NO_H ${SRCS_NO_H}
         TPCClusterFinder/GPUTPCClusterFinderDump.cxx)

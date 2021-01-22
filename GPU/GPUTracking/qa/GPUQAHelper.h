@@ -18,6 +18,10 @@
 #include <vector>
 #include <type_traits>
 
+#ifdef GPUCA_STANDALONE
+#include "AliHLTTPCClusterMCData.h"
+#endif
+
 struct AliHLTTPCClusterMCWeight;
 struct AliHLTTPCClusterMCLabel;
 

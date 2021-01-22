@@ -60,7 +60,10 @@ class GPUProcessor
   void InitGPUProcessor(GPUReconstruction* rec, ProcessorType type = PROCESSOR_TYPE_CPU, GPUProcessor* slaveProcessor = nullptr);
   void Clear();
   template <class T>
-  T& HostProcessor(T*) { return *(T*)(mGPUProcessorType == PROCESSOR_TYPE_DEVICE ? mLinkedProcessor : this); }
+  T& HostProcessor(T*)
+  {
+    return *(T*)(mGPUProcessorType == PROCESSOR_TYPE_DEVICE ? mLinkedProcessor : this);
+  }
 
   template <size_t alignment = GPUCA_BUFFER_ALIGNMENT>
   static inline size_t getAlignmentMod(size_t addr)
