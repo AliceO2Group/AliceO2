@@ -28,6 +28,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 #include "Framework/runDataProcessing.h"
 #include "ITSCalibration/NoiseCalibratorSpec.h"
+#include "ITSCalibration/NoiseCalibrator.h"
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {

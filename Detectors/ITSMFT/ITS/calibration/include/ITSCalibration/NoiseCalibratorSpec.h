@@ -10,14 +10,13 @@
 
 /// @file   NoiseCalibratorSpec.h
 
-#ifndef O2_ITS_NOISECALIBRATOR
-#define O2_ITS_NOISECALIBRATOR
+#ifndef O2_ITS_NOISECALIBRATORSPEC
+#define O2_ITS_NOISECALIBRATORSPEC
+
+#include <string>
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "DataFormatsITSMFT/NoiseMap.h"
-#include "DataFormatsITSMFT/CompCluster.h"
-#include "DataFormatsITSMFT/ROFRecord.h"
 
 using namespace o2::framework;
 
@@ -27,31 +26,20 @@ namespace o2
 namespace its
 {
 
-class NoiseCalibrator : public Task
+class NoiseCalibrator;
+
+class NoiseCalibratorSpec : public Task
 {
  public:
-  NoiseCalibrator() = default;
-  ~NoiseCalibrator() override = default;
+  NoiseCalibratorSpec() = default;
+  ~NoiseCalibratorSpec() override = default;
 
-  void setProbabilityThreshold(float t) { mProbabilityThreshold = t; }
-  void setOnePix(bool onepix = true) { m1pix = onepix; }
-  void setUseCCDB(bool use = true) { mUseCCDB = use; }
-  void processTimeFrame(gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
-                        gsl::span<const unsigned char> const& patterns,
-                        gsl::span<const o2::itsmft::ROFRecord> const& rofs);
-  void registerNoiseMap();
-
-  //DPL-oriented functions
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(EndOfStreamContext& ec) final;
 
  private:
-  o2::itsmft::NoiseMap mNoiseMap{24120};
-  float mProbabilityThreshold = 3e-6f;
-  unsigned int mNumberOfStrobes = 0;
-  bool mUseCCDB = false;
-  bool m1pix = true;
+  std::unique_ptr<o2::its::NoiseCalibrator> mCalibrator = nullptr;
 };
 
 /// create a processor spec
@@ -61,4 +49,4 @@ DataProcessorSpec getNoiseCalibratorSpec();
 } // namespace its
 } // namespace o2
 
-#endif /* O2_ITS_CLUSTERERDPL */
+#endif /* O2_ITS_NOISECALIBRATORSPEC */
