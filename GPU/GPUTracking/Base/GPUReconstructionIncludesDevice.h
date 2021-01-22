@@ -87,6 +87,9 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTPCCFDecodeZS.cxx"
 #include "GPUTPCCFGather.cxx"
 
+// Files for output into O2 format
+#include "GPUTPCGMO2Output.cxx"
+
 // Files for TRD Tracking
 #include "GPUTRDTrackerKernels.cxx"
 #include "GPUTRDTrack.cxx"

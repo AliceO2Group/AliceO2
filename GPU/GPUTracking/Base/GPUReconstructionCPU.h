@@ -40,6 +40,7 @@
 #include "GPUTPCCompressionKernels.h"
 #include "GPUTPCClusterFinderKernels.h"
 #include "GPUTrackingRefitKernel.h"
+#include "GPUTPCGMO2Output.h"
 #endif
 
 namespace GPUCA_NAMESPACE

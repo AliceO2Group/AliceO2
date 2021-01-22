@@ -559,9 +559,13 @@ int LoadEvent(int iEvent, int x)
 void OutputStat(GPUChainTracking* t, long long int* nTracksTotal = nullptr, long long int* nClustersTotal = nullptr)
 {
   int nTracks = 0;
-  for (unsigned int k = 0; k < t->mIOPtrs.nMergedTracks; k++) {
-    if (t->mIOPtrs.mergedTracks[k].OK()) {
-      nTracks++;
+  if (t->GetProcessingSettings().createO2Output) {
+    nTracks += t->mIOPtrs.nOutputTracksTPCO2;
+  } else {
+    for (unsigned int k = 0; k < t->mIOPtrs.nMergedTracks; k++) {
+      if (t->mIOPtrs.mergedTracks[k].OK()) {
+        nTracks++;
+      }
     }
   }
   if (nTracksTotal && nClustersTotal) {

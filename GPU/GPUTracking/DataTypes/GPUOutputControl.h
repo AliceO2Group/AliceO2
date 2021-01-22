@@ -70,6 +70,9 @@ struct GPUTrackingOutputs {
   GPUOutputControl tpcTracks;
   GPUOutputControl clusterLabels;
   GPUOutputControl sharedClusterMap;
+  GPUOutputControl tpcTracksO2;
+  GPUOutputControl tpcTracksO2ClusRefs;
+  GPUOutputControl tpcTracksO2Labels;
 
   static constexpr size_t count() { return sizeof(GPUTrackingOutputs) / sizeof(GPUOutputControl); }
   GPUOutputControl* asArray() { return (GPUOutputControl*)this; }

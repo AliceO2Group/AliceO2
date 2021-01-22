@@ -98,15 +98,11 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   std::unique_ptr<ClusterNativeAccess> clusters = ClusterNativeHelper::createClusterNativeIndex(clusterBuffer, cont, nullptr, nullptr);
 
   GPUO2InterfaceIOPtrs ptrs;
-  std::vector<TrackTPC> tracks;
   ptrs.clusters = clusters.get();
-  ptrs.outputTracks = &tracks;
-  std::vector<TPCClRefElem> trackClusRefs;
-  ptrs.outputClusRefs = &trackClusRefs;
 
   int retVal = tracker.runTracking(&ptrs);
   BOOST_CHECK_EQUAL(retVal, 0);
-  BOOST_CHECK_EQUAL((int)tracks.size(), 1);
+  BOOST_CHECK_EQUAL((int)ptrs.outputTracks.size(), 1);
 }
 } // namespace tpc
 } // namespace o2
