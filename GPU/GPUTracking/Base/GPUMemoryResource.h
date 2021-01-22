@@ -89,7 +89,7 @@ class GPUMemoryResource
   {
     return (mProcessor->*mSetPointers)(ptr);
   }
-  void* SetDevicePointers(void* ptr) { return (mProcessor->mDeviceProcessor->*mSetPointers)(ptr); }
+  void* SetDevicePointers(void* ptr) { return (mProcessor->mLinkedProcessor->*mSetPointers)(ptr); }
   void* Ptr() { return mPtr; }
   void* PtrDevice() { return mPtrDevice; }
   size_t Size() const { return mSize; }
