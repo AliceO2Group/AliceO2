@@ -49,21 +49,30 @@ void VertexTrackMatcher::process(const gsl::span<const PVertex>& vertices,
                                  std::vector<VRef>& vtxRefs)
 {
 
-  TmpMap tmpMap;
-  tmpMap.reserve(vertices.size());
-
+  int nv = vertices.size();
+  TmpMap tmpMap(nv);
+  // 1st register vertex contributors
   // TPC/ITS and TPC tracks are not sorted in time, do this and exclude indiced of tracks used in the vertex fit
   std::vector<int> idTPCITS(tpcitsTracks.size()); // indices of TPCITS tracks sorted in time
+  std::iota(idTPCITS.begin(), idTPCITS.end(), 0);
+  for (int iv = 0; iv < nv; iv++) {
+    int idMin = v2tfitRefs[iv].getFirstEntry(), idMax = idMin + v2tfitRefs[iv].getEntries();
+    auto& vtxIds = tmpMap[iv]; // global IDs of contibuting tracks
+    vtxIds.reserve(v2tfitRefs[iv].getEntries());
+    for (int id = idMin; id < idMax; id++) {
+      auto gid = v2tfitIDs[id];
+      vtxIds.push_back(gid);
+      // flag already accounted tracks
+      idTPCITS[gid.getIndex()] = -1; // RS Attention: this will not work once not only ITSTPC contributes to vertex, FIXME!!!
+    }
+  }
+
   std::vector<int> idVtxIRMin(vertices.size());   // indices of vertices sorted in IRmin
   std::vector<int> flgITS(itsTracks.size(), 0);
   std::vector<int> idTPC(tpcTracks.size()); // indices of TPC tracks sorted in min time
   std::iota(idTPC.begin(), idTPC.end(), 0);
-  std::iota(idTPCITS.begin(), idTPCITS.end(), 0);
   std::iota(idVtxIRMin.begin(), idVtxIRMin.end(), 0);
-  for (auto id : v2tfitIDs) { // flag matched ITS-TPC tracks used in the vertex fit, we exclude them from this association
-    idTPCITS[id.getIndex()] = -1;
-  }
-  for (const auto& tpcits : tpcitsTracks) { // flag standalone ITS and TPC tracks used in global matched, we exclude them from association to vertex
+  for (const auto& tpcits : tpcitsTracks) { // flag standalone ITS and TPC tracks used in global matches, we exclude them from association to vertex
     flgITS[tpcits.getRefITS()] = -1;
     idTPC[tpcits.getRefTPC()] = -1;
   }
@@ -87,7 +96,6 @@ void VertexTrackMatcher::process(const gsl::span<const PVertex>& vertices,
     return tI < tJ;
   });
 
-  // Important: do this in the same order in which VtxTrackIndex::Source enums are defined!
   attachTPCITS(tmpMap, tpcitsTracks, idTPCITS, vertices);
   attachITS(tmpMap, itsTracks, itsROFR, flgITS, vertices, idVtxIRMin);
   attachTPC(tmpMap, tpcTimes, idTPC, vertices, idVtxIRMin);
@@ -95,6 +103,7 @@ void VertexTrackMatcher::process(const gsl::span<const PVertex>& vertices,
   // build vector of global indices
   trackIndex.clear();
   vtxRefs.clear();
+  // just to reuse these vectors for ambiguous attachment counting
   memset(idTPCITS.data(), 0, sizeof(int) * idTPCITS.size());
   memset(idTPC.data(), 0, sizeof(int) * idTPC.size());
   memset(flgITS.data(), 0, sizeof(int) * flgITS.size());
@@ -102,7 +111,6 @@ void VertexTrackMatcher::process(const gsl::span<const PVertex>& vertices,
   vptr[GIndex::ITSTPC] = &idTPCITS;
   vptr[GIndex::ITS] = &flgITS;
   vptr[GIndex::TPC] = &idTPC;
-  int nv = vertices.size();
   // flag tracks attached to >1 vertex
   for (int iv = 0; iv < nv; iv++) {
     const auto& trvec = tmpMap[iv];
@@ -112,40 +120,29 @@ void VertexTrackMatcher::process(const gsl::span<const PVertex>& vertices,
   }
 
   for (int iv = 0; iv < nv; iv++) {
-    int srcStart[GIndex::NSources + 1];
-    int entry = trackIndex.size();
-    srcStart[GIndex::ITSTPC] = entry;
-    for (int is = 1; is < GIndex::NSources; is++) {
-      srcStart[is] = -1;
-    }
+    auto& trvec = tmpMap[iv];
+    // sort entries in each vertex track indices list according to the source
+    std::sort(trvec.begin(), trvec.end(), [](GIndex a, GIndex b) { return a.getSource() < b.getSource(); });
 
-    // 1st: attach indices of global tracks used in vertex fit
-    int idMin = v2tfitRefs[iv].getFirstEntry(), idMax = idMin + v2tfitRefs[iv].getEntries();
-    for (int id = idMin; id < idMax; id++) {
-      trackIndex.push_back(v2tfitIDs[id]);
-    }
-
-    // 2nd: attach non-contributing tracks
-    const auto& trvec = tmpMap[iv];
+    auto entry0 = trackIndex.size();   // start of entries for this vertex
+    auto& vr = vtxRefs.emplace_back(); //entry0, 0);
+    int oldSrc = -1;
     for (const auto gid0 : trvec) {
       int src = gid0.getSource();
-      if (srcStart[src] == -1) {
-        srcStart[src] = trackIndex.size();
+      while (oldSrc < src) {
+        oldSrc++;
+        vr.setFirstEntryOfSource(oldSrc, trackIndex.size()); // register start of new source
       }
       auto& gid = trackIndex.emplace_back(gid0);
       if ((*vptr[src])[gid.getIndex()] > 1) {
         gid.setAmbiguous();
       }
     }
-
-    auto& vr = vtxRefs.emplace_back(entry, trackIndex.size() - entry);
-    srcStart[GIndex::NSources] = trackIndex.size();
-    for (int is = GIndex::NSources; is > 0; is--) {
-      if (srcStart[is] == -1) { // in case the source did not contribute
-        srcStart[is] = srcStart[is + 1];
-      }
-      vr.setFirstEntryOfSource(is, srcStart[is]);
+    while (++oldSrc < GIndex::NSources) {
+      vr.setFirstEntryOfSource(oldSrc, trackIndex.size());
     }
+    vr.setEnd(trackIndex.size());
+    LOG(INFO) << "Vertxex " << iv << " Tracks " << vr;
   }
 }
 
