@@ -578,6 +578,35 @@ struct LogProcessingState {
   bool hasNewMetric = false;
 };
 
+void processCommand(DeviceInfos& infos, short pid, std::string const& command, std::string const& arg)
+{
+  auto doToMatchingPid = [](std::vector<DeviceInfo>& infos, int pid, auto lambda) {
+    for (auto& deviceInfo : infos) {
+      if (deviceInfo.pid == pid) {
+        lambda(deviceInfo);
+        break;
+      }
+    }
+  };
+  LOGP(debug, "Found control command {} from pid {} with argument {}.", command, pid, arg);
+  if (command == "QUIT" && arg == "ALL") {
+    for (auto& deviceInfo : infos) {
+      deviceInfo.readyToQuit = true;
+    }
+  } else if (command == "QUIT" && arg == "ME") {
+    doToMatchingPid(infos, pid, [](DeviceInfo& info) { info.readyToQuit = true; });
+  } else if (command == "NOTIFY_STREAMING_STATE" && arg == "IDLE") {
+    // FIXME: this should really be a policy...
+    doToMatchingPid(infos, pid, [](DeviceInfo& info) { info.readyToQuit = true; info.streamingState = StreamingState::Idle; });
+  } else if (command == "NOTIFY_STREAMING_STATE" && arg == "STREAMING") {
+    // FIXME: this should really be a policy...
+    doToMatchingPid(infos, pid, [](DeviceInfo& info) { info.streamingState = StreamingState::Streaming; });
+  } else if (command == "NOTIFY_STREAMING_STATE" && arg == "EOS") {
+    // FIXME: this should really be a policy...
+    doToMatchingPid(infos, pid, [](DeviceInfo& info) { info.streamingState = StreamingState::EndOfStreaming; });
+  }
+};
+
 LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
                                          DeviceInfos& infos,
                                          DeviceSpecs const& specs,
@@ -627,14 +656,6 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
       hasNewMetric = true;
     };
 
-    auto doToMatchingPid = [&infos](int pid, auto lambda) {
-      for (auto& deviceInfo : infos) {
-        if (deviceInfo.pid == pid) {
-          lambda(deviceInfo);
-          break;
-        }
-      }
-    };
 
     while ((pos = s.find(delimiter)) != std::string::npos) {
       std::string token{s.substr(0, pos)};
@@ -651,25 +672,7 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
         DeviceMetricsHelper::processMetric(metricMatch, metrics, newMetricCallback);
         result.didProcessMetric = true;
       } else if (logLevel == LogParsingHelpers::LogLevel::Info && parseControl(token, match)) {
-        auto command = match[1];
-        auto arg = match[2];
-        LOGP(debug, "Found control command {} from pid {} with argument {}.", command, info.pid, arg);
-        if (command == "QUIT" && arg == "ALL") {
-          for (auto& deviceInfo : infos) {
-            deviceInfo.readyToQuit = true;
-          }
-        } else if (command == "QUIT" && arg == "ME") {
-          doToMatchingPid(info.pid, [](DeviceInfo& info) { info.readyToQuit = true; });
-        } else if (command == "NOTIFY_STREAMING_STATE" && arg == "IDLE") {
-          // FIXME: this should really be a policy...
-          doToMatchingPid(info.pid, [](DeviceInfo& info) { info.readyToQuit = true; info.streamingState = StreamingState::Idle; });
-        } else if (command == "NOTIFY_STREAMING_STATE" && arg == "STREAMING") {
-          // FIXME: this should really be a policy...
-          doToMatchingPid(info.pid, [](DeviceInfo& info) { info.streamingState = StreamingState::Streaming; });
-        } else if (command == "NOTIFY_STREAMING_STATE" && arg == "EOS") {
-          // FIXME: this should really be a policy...
-          doToMatchingPid(info.pid, [](DeviceInfo& info) { info.streamingState = StreamingState::EndOfStreaming; });
-        }
+        processCommand(infos, info.pid, match[1].str(), match[2].str());
         result.didProcessControl = true;
       } else if (logLevel == LogParsingHelpers::LogLevel::Info && DeviceConfigHelper::parseConfig(token, configMatch)) {
         DeviceConfigHelper::processConfig(configMatch, info);
