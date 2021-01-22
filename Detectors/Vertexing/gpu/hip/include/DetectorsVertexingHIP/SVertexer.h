@@ -11,7 +11,6 @@
 /// \file SVertexer.h
 /// \ author: mconcas@cern.ch
 
-// #include "DetectorsVertexing/SVertexer.h"
 #include "GPUCommonDef.h"
 
 namespace o2
@@ -19,13 +18,21 @@ namespace o2
 namespace vertexing
 {
 
-class SVertexerGPU final
+void hello_util();
+
+class SVertexerHIP final
 {
  public:
-  SVertexerGPU() = default;
-  virtual ~SVertexerGPU() = default;
+  SVertexerHIP() = default;
+  virtual ~SVertexerHIP() = default;
   void hello();
 };
+
+// Steers
+void SVertexerHIP::hello()
+{
+  hello_util();
+}
 
 } // namespace vertexing
 } // namespace o2

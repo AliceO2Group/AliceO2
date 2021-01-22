@@ -11,7 +11,6 @@
 /// \file SVertexer.h
 /// \ author: mconcas@cern.ch
 
-// #include "DetectorsVertexing/SVertexer.h"
 #include "GPUCommonDef.h"
 
 namespace o2
