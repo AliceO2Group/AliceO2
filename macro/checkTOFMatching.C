@@ -37,11 +37,11 @@ void checkTOFMatching(bool batchMode = true)
 
   // getting the TPC tracks
   TFile* ftracksTPC = new TFile("tpctracks.root");
-  TTree* tpcTree = (TTree*)ftracksTPC->Get("events");
+  TTree* tpcTree = (TTree*)ftracksTPC->Get("tpcrec");
   std::vector<o2::tpc::TrackTPC>* mTPCTracksArrayInp = new std::vector<o2::tpc::TrackTPC>;
-  tpcTree->SetBranchAddress("Tracks", &mTPCTracksArrayInp);
+  tpcTree->SetBranchAddress("TPCTracks", &mTPCTracksArrayInp);
   std::vector<o2::MCCompLabel>* mcTPC = new std::vector<o2::MCCompLabel>();
-  tpcTree->SetBranchAddress("TracksMCTruth", &mcTPC);
+  tpcTree->SetBranchAddress("TPCTracksMCTruth", &mcTPC);
 
   // getting the ITS tracks
   TFile* ftracksITS = new TFile("o2trac_its.root");

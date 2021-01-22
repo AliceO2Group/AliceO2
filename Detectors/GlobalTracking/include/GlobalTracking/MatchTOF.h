@@ -302,7 +302,7 @@ class MatchTOF
   int* mMatchedClustersIndex = nullptr; //[mNumOfClusters]
 
   std::string mTracksBranchName = "TPCITS";                    ///< name of branch containing input matched tracks
-  std::string mTPCTracksBranchName = "Tracks";                 ///< name of branch containing actual TPC tracks
+  std::string mTPCTracksBranchName = "TPCTracks";              ///< name of branch containing actual TPC tracks
   std::string mTPCMCTruthBranchName = "MatchTPCMCTruth";       ///< name of branch containing TPC labels
   std::string mITSMCTruthBranchName = "MatchITSMCTruth";       ///< name of branch containing ITS labels
   std::string mTOFMCTruthBranchName = "TOFClusterMCTruth";     ///< name of branch containing TOF clusters labels
@@ -312,7 +312,7 @@ class MatchTOF
   std::string mOutTOFMCTruthBranchName = "MatchTOFMCTruth";    ///< name of branch containing TOF labels for output matched tracks
   std::string mOutTPCMCTruthBranchName = "MatchTPCMCTruth";    ///< name of branch containing TOF labels for output matched tracks
   std::string mOutITSMCTruthBranchName = "MatchITSMCTruth";    ///< name of branch containing TOF labels for output matched tracks
-  std::string mOutTPCTrackMCTruthBranchName = "TracksMCTruth"; ///< name of branch containing TPC labels for input TPC tracks
+  std::string mOutTPCTrackMCTruthBranchName = "TPCTracksMCTruth"; ///< name of branch containing TPC labels for input TPC tracks
 
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
   UInt_t mDBGFlags = 0;
