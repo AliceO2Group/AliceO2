@@ -79,13 +79,13 @@ struct pidTPCTaskTiny {
       const float exp_sigma = resp_PID.GetExpectedSigma(resp, trk.collision(), trk);
       const float separation = resp_PID.GetSeparation(resp, trk.collision(), trk);
       if (separation <= o2::aod::pidtpc_tiny::binned_min) {
-        tpcpid(exp_sigma, o2::aod::pidtpc_tiny::lower_bin);
+        tpcpid(o2::aod::pidtpc_tiny::lower_bin);
       } else if (separation >= o2::aod::pidtpc_tiny::binned_max) {
-        tpcpid(exp_sigma, o2::aod::pidtpc_tiny::upper_bin);
+        tpcpid(o2::aod::pidtpc_tiny::upper_bin);
       } else if (separation >= 0) {
-        tpcpid(exp_sigma, separation / o2::aod::pidtpc_tiny::bin_width + 0.5f);
+        tpcpid(separation / o2::aod::pidtpc_tiny::bin_width + 0.5f);
       } else {
-        tpcpid(exp_sigma, separation / o2::aod::pidtpc_tiny::bin_width - 0.5f);
+        tpcpid(separation / o2::aod::pidtpc_tiny::bin_width - 0.5f);
       }
     }
   }
@@ -161,13 +161,13 @@ struct pidTPCTaskTinyFull {
     const float exp_sigma = PID_RESPONSE.GetExpectedSigma(resp, trk.collision(), trk); \
     const float separation = PID_RESPONSE.GetSeparation(resp, trk.collision(), trk);   \
     if (separation <= o2::aod::pidtpc_tiny::binned_min) {                              \
-      PID_TABLE(exp_sigma, o2::aod::pidtpc_tiny::lower_bin);                           \
+      PID_TABLE(o2::aod::pidtpc_tiny::lower_bin);                                      \
     } else if (separation >= o2::aod::pidtpc_tiny::binned_max) {                       \
-      PID_TABLE(exp_sigma, o2::aod::pidtpc_tiny::upper_bin);                           \
+      PID_TABLE(o2::aod::pidtpc_tiny::upper_bin);                                      \
     } else if (separation >= 0) {                                                      \
-      PID_TABLE(exp_sigma, separation / o2::aod::pidtpc_tiny::bin_width + 0.5f);       \
+      PID_TABLE(separation / o2::aod::pidtpc_tiny::bin_width + 0.5f);                  \
     } else {                                                                           \
-      PID_TABLE(exp_sigma, separation / o2::aod::pidtpc_tiny::bin_width - 0.5f);       \
+      PID_TABLE(separation / o2::aod::pidtpc_tiny::bin_width - 0.5f);                  \
     }                                                                                  \
   }
 

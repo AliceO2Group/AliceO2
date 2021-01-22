@@ -152,15 +152,15 @@ DECLARE_SOA_TABLE(pidRespTOFHe, "AOD", "pidRespTOFHe", TOFExpSignalDiffHe<TOFNSi
 DECLARE_SOA_TABLE(pidRespTOFAl, "AOD", "pidRespTOFAl", TOFExpSignalDiffAl<TOFNSigmaAl, TOFExpSigmaAl>, TOFExpSigmaAl, TOFNSigmaAl);
 
 // Tiny size tables
-DECLARE_SOA_TABLE(pidRespTOFTEl, "AOD", "pidRespTOFTEl", TOFExpSigmaEl, pidtof_tiny::TOFNSigmaStoreEl, pidtof_tiny::TOFNSigmaEl<pidtof_tiny::TOFNSigmaStoreEl>);
-DECLARE_SOA_TABLE(pidRespTOFTMu, "AOD", "pidRespTOFTMu", TOFExpSigmaMu, pidtof_tiny::TOFNSigmaStoreMu, pidtof_tiny::TOFNSigmaMu<pidtof_tiny::TOFNSigmaStoreMu>);
-DECLARE_SOA_TABLE(pidRespTOFTPi, "AOD", "pidRespTOFTPi", TOFExpSigmaPi, pidtof_tiny::TOFNSigmaStorePi, pidtof_tiny::TOFNSigmaPi<pidtof_tiny::TOFNSigmaStorePi>);
-DECLARE_SOA_TABLE(pidRespTOFTKa, "AOD", "pidRespTOFTKa", TOFExpSigmaKa, pidtof_tiny::TOFNSigmaStoreKa, pidtof_tiny::TOFNSigmaKa<pidtof_tiny::TOFNSigmaStoreKa>);
-DECLARE_SOA_TABLE(pidRespTOFTPr, "AOD", "pidRespTOFTPr", TOFExpSigmaPr, pidtof_tiny::TOFNSigmaStorePr, pidtof_tiny::TOFNSigmaPr<pidtof_tiny::TOFNSigmaStorePr>);
-DECLARE_SOA_TABLE(pidRespTOFTDe, "AOD", "pidRespTOFTDe", TOFExpSigmaDe, pidtof_tiny::TOFNSigmaStoreDe, pidtof_tiny::TOFNSigmaDe<pidtof_tiny::TOFNSigmaStoreDe>);
-DECLARE_SOA_TABLE(pidRespTOFTTr, "AOD", "pidRespTOFTTr", TOFExpSigmaTr, pidtof_tiny::TOFNSigmaStoreTr, pidtof_tiny::TOFNSigmaTr<pidtof_tiny::TOFNSigmaStoreTr>);
-DECLARE_SOA_TABLE(pidRespTOFTHe, "AOD", "pidRespTOFTHe", TOFExpSigmaHe, pidtof_tiny::TOFNSigmaStoreHe, pidtof_tiny::TOFNSigmaHe<pidtof_tiny::TOFNSigmaStoreHe>);
-DECLARE_SOA_TABLE(pidRespTOFTAl, "AOD", "pidRespTOFTAl", TOFExpSigmaAl, pidtof_tiny::TOFNSigmaStoreAl, pidtof_tiny::TOFNSigmaAl<pidtof_tiny::TOFNSigmaStoreAl>);
+DECLARE_SOA_TABLE(pidRespTOFTEl, "AOD", "pidRespTOFTEl", pidtof_tiny::TOFNSigmaStoreEl, pidtof_tiny::TOFNSigmaEl<pidtof_tiny::TOFNSigmaStoreEl>);
+DECLARE_SOA_TABLE(pidRespTOFTMu, "AOD", "pidRespTOFTMu", pidtof_tiny::TOFNSigmaStoreMu, pidtof_tiny::TOFNSigmaMu<pidtof_tiny::TOFNSigmaStoreMu>);
+DECLARE_SOA_TABLE(pidRespTOFTPi, "AOD", "pidRespTOFTPi", pidtof_tiny::TOFNSigmaStorePi, pidtof_tiny::TOFNSigmaPi<pidtof_tiny::TOFNSigmaStorePi>);
+DECLARE_SOA_TABLE(pidRespTOFTKa, "AOD", "pidRespTOFTKa", pidtof_tiny::TOFNSigmaStoreKa, pidtof_tiny::TOFNSigmaKa<pidtof_tiny::TOFNSigmaStoreKa>);
+DECLARE_SOA_TABLE(pidRespTOFTPr, "AOD", "pidRespTOFTPr", pidtof_tiny::TOFNSigmaStorePr, pidtof_tiny::TOFNSigmaPr<pidtof_tiny::TOFNSigmaStorePr>);
+DECLARE_SOA_TABLE(pidRespTOFTDe, "AOD", "pidRespTOFTDe", pidtof_tiny::TOFNSigmaStoreDe, pidtof_tiny::TOFNSigmaDe<pidtof_tiny::TOFNSigmaStoreDe>);
+DECLARE_SOA_TABLE(pidRespTOFTTr, "AOD", "pidRespTOFTTr", pidtof_tiny::TOFNSigmaStoreTr, pidtof_tiny::TOFNSigmaTr<pidtof_tiny::TOFNSigmaStoreTr>);
+DECLARE_SOA_TABLE(pidRespTOFTHe, "AOD", "pidRespTOFTHe", pidtof_tiny::TOFNSigmaStoreHe, pidtof_tiny::TOFNSigmaHe<pidtof_tiny::TOFNSigmaStoreHe>);
+DECLARE_SOA_TABLE(pidRespTOFTAl, "AOD", "pidRespTOFTAl", pidtof_tiny::TOFNSigmaStoreAl, pidtof_tiny::TOFNSigmaAl<pidtof_tiny::TOFNSigmaStoreAl>);
 
 namespace pidtpc
 {
@@ -262,15 +262,15 @@ DECLARE_SOA_TABLE(pidRespTPCHe, "AOD", "pidRespTPCHe", TPCExpSignalDiffHe<TPCNSi
 DECLARE_SOA_TABLE(pidRespTPCAl, "AOD", "pidRespTPCAl", TPCExpSignalDiffAl<TPCNSigmaAl, TPCExpSigmaAl>, TPCExpSigmaAl, TPCNSigmaAl);
 
 // Tiny size tables
-DECLARE_SOA_TABLE(pidRespTPCTEl, "AOD", "pidRespTPCTEl", TPCExpSigmaEl, pidtpc_tiny::TPCNSigmaStoreEl, pidtpc_tiny::TPCNSigmaEl<pidtpc_tiny::TPCNSigmaStoreEl>);
-DECLARE_SOA_TABLE(pidRespTPCTMu, "AOD", "pidRespTPCTMu", TPCExpSigmaMu, pidtpc_tiny::TPCNSigmaStoreMu, pidtpc_tiny::TPCNSigmaMu<pidtpc_tiny::TPCNSigmaStoreMu>);
-DECLARE_SOA_TABLE(pidRespTPCTPi, "AOD", "pidRespTPCTPi", TPCExpSigmaPi, pidtpc_tiny::TPCNSigmaStorePi, pidtpc_tiny::TPCNSigmaPi<pidtpc_tiny::TPCNSigmaStorePi>);
-DECLARE_SOA_TABLE(pidRespTPCTKa, "AOD", "pidRespTPCTKa", TPCExpSigmaKa, pidtpc_tiny::TPCNSigmaStoreKa, pidtpc_tiny::TPCNSigmaKa<pidtpc_tiny::TPCNSigmaStoreKa>);
-DECLARE_SOA_TABLE(pidRespTPCTPr, "AOD", "pidRespTPCTPr", TPCExpSigmaPr, pidtpc_tiny::TPCNSigmaStorePr, pidtpc_tiny::TPCNSigmaPr<pidtpc_tiny::TPCNSigmaStorePr>);
-DECLARE_SOA_TABLE(pidRespTPCTDe, "AOD", "pidRespTPCTDe", TPCExpSigmaDe, pidtpc_tiny::TPCNSigmaStoreDe, pidtpc_tiny::TPCNSigmaDe<pidtpc_tiny::TPCNSigmaStoreDe>);
-DECLARE_SOA_TABLE(pidRespTPCTTr, "AOD", "pidRespTPCTTr", TPCExpSigmaTr, pidtpc_tiny::TPCNSigmaStoreTr, pidtpc_tiny::TPCNSigmaTr<pidtpc_tiny::TPCNSigmaStoreTr>);
-DECLARE_SOA_TABLE(pidRespTPCTHe, "AOD", "pidRespTPCTHe", TPCExpSigmaHe, pidtpc_tiny::TPCNSigmaStoreHe, pidtpc_tiny::TPCNSigmaHe<pidtpc_tiny::TPCNSigmaStoreHe>);
-DECLARE_SOA_TABLE(pidRespTPCTAl, "AOD", "pidRespTPCTAl", TPCExpSigmaAl, pidtpc_tiny::TPCNSigmaStoreAl, pidtpc_tiny::TPCNSigmaAl<pidtpc_tiny::TPCNSigmaStoreAl>);
+DECLARE_SOA_TABLE(pidRespTPCTEl, "AOD", "pidRespTPCTEl", pidtpc_tiny::TPCNSigmaStoreEl, pidtpc_tiny::TPCNSigmaEl<pidtpc_tiny::TPCNSigmaStoreEl>);
+DECLARE_SOA_TABLE(pidRespTPCTMu, "AOD", "pidRespTPCTMu", pidtpc_tiny::TPCNSigmaStoreMu, pidtpc_tiny::TPCNSigmaMu<pidtpc_tiny::TPCNSigmaStoreMu>);
+DECLARE_SOA_TABLE(pidRespTPCTPi, "AOD", "pidRespTPCTPi", pidtpc_tiny::TPCNSigmaStorePi, pidtpc_tiny::TPCNSigmaPi<pidtpc_tiny::TPCNSigmaStorePi>);
+DECLARE_SOA_TABLE(pidRespTPCTKa, "AOD", "pidRespTPCTKa", pidtpc_tiny::TPCNSigmaStoreKa, pidtpc_tiny::TPCNSigmaKa<pidtpc_tiny::TPCNSigmaStoreKa>);
+DECLARE_SOA_TABLE(pidRespTPCTPr, "AOD", "pidRespTPCTPr", pidtpc_tiny::TPCNSigmaStorePr, pidtpc_tiny::TPCNSigmaPr<pidtpc_tiny::TPCNSigmaStorePr>);
+DECLARE_SOA_TABLE(pidRespTPCTDe, "AOD", "pidRespTPCTDe", pidtpc_tiny::TPCNSigmaStoreDe, pidtpc_tiny::TPCNSigmaDe<pidtpc_tiny::TPCNSigmaStoreDe>);
+DECLARE_SOA_TABLE(pidRespTPCTTr, "AOD", "pidRespTPCTTr", pidtpc_tiny::TPCNSigmaStoreTr, pidtpc_tiny::TPCNSigmaTr<pidtpc_tiny::TPCNSigmaStoreTr>);
+DECLARE_SOA_TABLE(pidRespTPCTHe, "AOD", "pidRespTPCTHe", pidtpc_tiny::TPCNSigmaStoreHe, pidtpc_tiny::TPCNSigmaHe<pidtpc_tiny::TPCNSigmaStoreHe>);
+DECLARE_SOA_TABLE(pidRespTPCTAl, "AOD", "pidRespTPCTAl", pidtpc_tiny::TPCNSigmaStoreAl, pidtpc_tiny::TPCNSigmaAl<pidtpc_tiny::TPCNSigmaStoreAl>);
 
 #undef DEFINE_UNWRAP_NSIGMA_COLUMN
 
