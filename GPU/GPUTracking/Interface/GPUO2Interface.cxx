@@ -22,9 +22,6 @@
 #include "GPUOutputControl.h"
 #include <iostream>
 #include <fstream>
-#ifdef WITH_OPENMP
-#include <omp.h>
-#endif
 
 using namespace o2::gpu;
 
