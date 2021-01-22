@@ -16,6 +16,7 @@
 #define ALICEO2_FDD_RAWEVENTDATA_H_
 
 #include "FDDBase/Constants.h"
+#include "DataFormatsFDD/Digit.h"
 #include "DataFormatsFDD/ChannelData.h"
 #include "Headers/RAWDataHeader.h"
 #include "DataFormatsFDD/LookUpTable.h"
@@ -31,21 +32,34 @@ namespace o2
 namespace fdd
 {
 struct EventHeader {
-  static constexpr int PayloadSize = 16;
+  static constexpr size_t PayloadSize = 16;       //should be equal to 10
+  static constexpr size_t PayloadPerGBTword = 16; //should be equal to 10
+  static constexpr int MinNelements = 1;
+  static constexpr int MaxNelements = 1;
   union {
     uint64_t word[2] = {};
     struct {
       uint64_t bc : 12;
       uint64_t orbit : 32;
-      uint64_t reservedField1 : 20;
+      uint64_t phase : 3;
+      uint64_t errorPhase : 1;
+      uint64_t reservedField1 : 16;
       uint64_t reservedField2 : 8;
       uint64_t nGBTWords : 4;
       uint64_t startDescriptor : 4;
       uint64_t reservedField3 : 48;
     };
   };
+  InteractionRecord getIntRec() const { return InteractionRecord{(uint16_t)bc, (uint32_t)orbit}; }
 };
 struct EventData {
+  static constexpr size_t PayloadSize = 5;
+  static constexpr size_t PayloadPerGBTword = 10;
+  static constexpr int MinNelements = 1; //additional static field
+  static constexpr int MaxNelements = 12;
+  //
+  static constexpr int BitFlagPos = 25; // position of first bit flag(numberADC)
+
   union {
     uint64_t word = {0};
     struct {
@@ -79,10 +93,17 @@ struct EventData {
     isEventInTVDC = 1;
     isTimeInfoLost = 0;
   }
+  uint8_t getFlagWord() const
+  {
+    return uint8_t(word >> BitFlagPos);
+  }
 };
 
 struct TCMdata {
-  static constexpr int PayloadSize = 16;
+  static constexpr size_t PayloadSize = 16;       //should be equal to 10
+  static constexpr size_t PayloadPerGBTword = 16; //should be equal to 10
+  static constexpr int MinNelements = 1;
+  static constexpr int MaxNelements = 1;
   union {
     uint64_t word[2] = {0};
     struct {
@@ -101,6 +122,20 @@ struct TCMdata {
         reservedField2 : 46;
     };
   };
+  void fillTrigger(Triggers& trg)
+  {
+    trg.triggersignals = ((bool)orA << Triggers::bitA) |
+                         ((bool)orC << Triggers::bitC) |
+                         ((bool)vertex << Triggers::bitVertex) |
+                         ((bool)cen << Triggers::bitCen) |
+                         ((bool)sCen << Triggers::bitSCen);
+    trg.nChanA = (int8_t)nChanA;
+    trg.nChanC = (int8_t)nChanC;
+    trg.amplA = (int32_t)amplA;
+    trg.amplC = (int32_t)amplC;
+    trg.timeA = (int16_t)timeA;
+    trg.timeC = (int16_t)timeC;
+  }
 };
 
 class RawEventData

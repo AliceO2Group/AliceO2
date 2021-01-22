@@ -75,6 +75,7 @@ o2::framework::DataProcessorSpec getFDDDigitWriterSpec(bool mctruth = true)
                                 MakeRootTreeWriterSpec::CustomClose(finishWriting),
                                 BranchDefinition<std::vector<o2::fdd::Digit>>{InputSpec{"digitBCinput", "FDD", "DIGITSBC"}, "FDDDigit"},
                                 BranchDefinition<std::vector<o2::fdd::ChannelData>>{InputSpec{"digitChinput", "FDD", "DIGITSCH"}, "FDDDigitCh"},
+                                BranchDefinition<std::vector<o2::fdd::DetTrigInput>>{InputSpec{"digitTrinput", "FDD", "TRIGGERINPUT"}, "TRIGGERINPUT"},
                                 std::move(labelsdef))();
 }
 

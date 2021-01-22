@@ -10,15 +10,24 @@
 
 o2_add_library(FDDWorkflow
                SOURCES src/DigitReaderSpec.cxx
+	               src/DigitWriterSpec.cxx
 	               src/EntropyEncoderSpec.cxx
 		       src/EntropyDecoderSpec.cxx
 	       	       src/RecoWorkflow.cxx 
                        src/ReconstructorSpec.cxx 
 		       src/RecPointWriterSpec.cxx
                        src/RecPointReaderSpec.cxx
-               PUBLIC_LINK_LIBRARIES O2::FDDReconstruction 
+
+                       src/RawDataProcessSpec.cxx
+                       src/RawDataReaderSpec.cxx
+                       src/RawReaderFDD.cxx
+		       src/RawWorkflow.cxx
+		       
+               PUBLIC_LINK_LIBRARIES O2::DataFormatsFDD
+	       			     O2::FDDReconstruction 
 	       			     O2::Framework 
-				     O2::DPLUtils)
+				     O2::DPLUtils
+				     O2::FDDRaw)
 
 o2_add_executable(reco-workflow
                   COMPONENT_NAME fdd
@@ -35,3 +44,8 @@ o2_add_executable(digit-reader-workflow
                   COMPONENT_NAME fdd
                   PUBLIC_LINK_LIBRARIES O2::FDDWorkflow)
 
+o2_add_executable(flp-dpl-workflow
+                  COMPONENT_NAME fdd
+                  SOURCES src/fdd-flp-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::FDDWorkflow
+                  TARGETVARNAME fddflpexe)
