@@ -80,6 +80,13 @@ set(SRCS_NO_CINT
 
 set(SRCS_NO_H SliceTracker/GPUTPCTrackerDump.cxx
               Merger/GPUTPCGMMergerDump.cxx
+              Global/GPUChainTrackingClusterizer.cxx
+              Global/GPUChainTrackingTransformation.cxx
+              Global/GPUChainTrackingTRD.cxx
+              Global/GPUChainTrackingRefit.cxx
+              Global/GPUChainTrackingSliceTracker.cxx
+              Global/GPUChainTrackingMerger.cxx
+              Global/GPUChainTrackingCompression.cxx
               Global/GPUChainTrackingDebugAndProfiling.cxx
               Global/GPUChainTrackingIO.cxx)
 
@@ -127,6 +134,7 @@ set(HDRS_INSTALL
     Base/GPUParam.inc
     Merger/GPUTPCGMMergerTypes.h
     Global/GPUErrorCodes.h
+    Global/GPUChainTrackingDefs.h
     qconfigoptions.h
     qa/GPUQAHelper.h
     DataCompression/GPUTPCClusterRejection.h
