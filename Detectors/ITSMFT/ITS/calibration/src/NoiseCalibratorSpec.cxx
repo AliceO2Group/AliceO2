@@ -10,13 +10,16 @@
 
 /// @file   NoiseCalibratorSpec.cxx
 
+#include "CCDB/CcdbApi.h"
+#include "DetectorsCalibration/Utils.h"
 #include "ITSCalibration/NoiseCalibratorSpec.h"
+#include "ITSCalibration/NoiseCalibrator.h"
+#include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 
 #include "FairLogger.h"
-#include "TFile.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "DataFormatsITSMFT/ClusterPattern.h"
 
 using namespace o2::framework;
 
@@ -24,107 +27,45 @@ namespace o2
 {
 namespace its
 {
-void NoiseCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
-                                       gsl::span<const unsigned char> const& patterns,
-                                       gsl::span<const o2::itsmft::ROFRecord> const& rofs)
+
+void NoiseCalibratorSpec::init(InitContext& ic)
 {
-  static int nTF = 0;
-  LOG(INFO) << "Processing TF# " << nTF++;
+  auto onepix = ic.options().get<bool>("1pix-only");
+  LOG(INFO) << "Fast 1=pixel calibration: " << onepix;
+  auto probT = ic.options().get<float>("prob-threshold");
+  LOG(INFO) << "Setting the probability threshold to " << probT;
 
-  auto pattIt = patterns.cbegin();
-  for (const auto& rof : rofs) {
-    auto clustersInFrame = rof.getROFData(clusters);
-    for (const auto& c : clustersInFrame) {
-      if (c.getPatternID() != o2::itsmft::CompCluster::InvalidPatternID) {
-        // For the noise calibration, we use "pass1" clusters...
-        continue;
-      }
-      o2::itsmft::ClusterPattern patt(pattIt);
-
-      auto id = c.getSensorID();
-      auto row = c.getRow();
-      auto col = c.getCol();
-      auto colSpan = patt.getColumnSpan();
-      auto rowSpan = patt.getRowSpan();
-
-      // Fast 1-pixel calibration
-      if ((rowSpan == 1) && (colSpan == 1)) {
-        mNoiseMap.increaseNoiseCount(id, row, col);
-        continue;
-      }
-      if (m1pix) {
-        continue;
-      }
-
-      // All-pixel calibration
-      auto nBits = rowSpan * colSpan;
-      int ic = 0, ir = 0;
-      for (unsigned int i = 2; i < patt.getUsedBytes() + 2; i++) {
-        unsigned char tempChar = patt.getByte(i);
-        int s = 128; // 0b10000000
-        while (s > 0) {
-          if ((tempChar & s) != 0) {
-            mNoiseMap.increaseNoiseCount(id, row + ir, col + ic);
-          }
-          ic++;
-          s >>= 1;
-          if ((ir + 1) * ic == nBits) {
-            break;
-          }
-          if (ic == colSpan) {
-            ic = 0;
-            ir++;
-          }
-        }
-        if ((ir + 1) * ic == nBits) {
-          break;
-        }
-      }
-    }
-  }
-  mNumberOfStrobes += rofs.size();
+  mCalibrator = std::make_unique<o2::its::NoiseCalibrator>(onepix, probT);
 }
 
-void NoiseCalibrator::init(InitContext& ic)
-{
-  mUseCCDB = ic.options().get<bool>("use-ccdb");
-  LOG(INFO) << "Registration in CCDB: " << mUseCCDB;
-  m1pix = ic.options().get<bool>("1pix-only");
-  LOG(INFO) << "Fast 1=pixel calibration: " << m1pix;
-  mProbabilityThreshold = ic.options().get<float>("prob-threshold");
-  LOG(INFO) << "Setting the probability threshold to " << mProbabilityThreshold;
-}
-
-void NoiseCalibrator::run(ProcessingContext& pc)
+void NoiseCalibratorSpec::run(ProcessingContext& pc)
 {
   const auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
   gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
   const auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
 
-  processTimeFrame(compClusters, patterns, rofs);
+  mCalibrator->processTimeFrame(compClusters, patterns, rofs);
 }
 
-void NoiseCalibrator::registerNoiseMap()
+void NoiseCalibratorSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
-  LOG(INFO) << "Number of processed strobes is " << mNumberOfStrobes;
-  mNoiseMap.applyProbThreshold(mProbabilityThreshold, mNumberOfStrobes);
+  mCalibrator->finalize();
+  const auto& payload = mCalibrator->getNoiseMap();
 
-  if (!mUseCCDB) {
-    TFile out("noise.root", "new");
-    if (!out.IsOpen()) {
-      LOG(ERROR) << "The output file already exists !";
-      return;
-    }
-    out.WriteObject(&mNoiseMap, "Noise");
-    out.Close();
-  } else {
-    LOG(INFO) << "Registering the noise map in CCDB...";
-  }
-}
+  std::map<std::string, std::string> md;
+  o2::ccdb::CcdbObjectInfo info("ITS/Noise", "NoiseMap", "noise.root", md, 0, 9999999);
 
-void NoiseCalibrator::endOfStream(o2::framework::EndOfStreamContext& ec)
-{
-  registerNoiseMap();
+  auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
+  LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName()
+            << " of size " << image->size()
+            << " bytes, valid for " << info.getStartValidityTimestamp()
+            << " : " << info.getEndValidityTimestamp();
+
+  using clbUtils = o2::calibration::Utils;
+  ec.outputs().snapshot(
+    Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, 0}, *image.get());
+  ec.outputs().snapshot(
+    Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, 0}, info);
 }
 
 DataProcessorSpec getNoiseCalibratorSpec()
@@ -134,15 +75,19 @@ DataProcessorSpec getNoiseCalibratorSpec()
   inputs.emplace_back("patterns", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
   inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
 
+  using clbUtils = o2::calibration::Utils;
   std::vector<OutputSpec> outputs;
+  outputs.emplace_back(
+    ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload});
+  outputs.emplace_back(
+    ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
 
   return DataProcessorSpec{
     "its-noise-calibrator",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<NoiseCalibrator>()},
+    AlgorithmSpec{adaptFromTask<NoiseCalibratorSpec>()},
     Options{
-      {"use-ccdb", VariantType::Bool, false, {"Register the noise map in CCDB"}},
       {"1pix-only", VariantType::Bool, false, {"Fast 1-pixel calibration only"}},
       {"prob-threshold", VariantType::Float, 3.e-6f, {"Probability threshold for noisy pixels"}}}};
 }
