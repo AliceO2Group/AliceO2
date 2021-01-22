@@ -494,9 +494,9 @@ inline void GPUReconstruction::SetupGPUProcessor(T* proc, bool allocate)
   if (allocate) {
     proc->SetMaxData(mHostConstantMem->ioPtrs);
   }
-  if (proc->mDeviceProcessor) {
-    std::memcpy((void*)proc->mDeviceProcessor, (const void*)proc, sizeof(*proc));
-    proc->mDeviceProcessor->InitGPUProcessor((GPUReconstruction*)this, GPUProcessor::PROCESSOR_TYPE_DEVICE);
+  if (proc->mGPUProcessorType != GPUProcessor::PROCESSOR_TYPE_DEVICE && proc->mLinkedProcessor) {
+    std::memcpy((void*)proc->mLinkedProcessor, (const void*)proc, sizeof(*proc));
+    proc->mLinkedProcessor->InitGPUProcessor((GPUReconstruction*)this, GPUProcessor::PROCESSOR_TYPE_DEVICE, proc);
   }
   if (allocate) {
     AllocateRegisteredMemory(proc, true);
