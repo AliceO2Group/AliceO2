@@ -48,7 +48,7 @@ o2_add_test_root_macro(macro/createSCHistosFromHits.C
                                             O2::TPCSimulation
                                             O2::DataFormatsTPC
                                             O2::MathUtils
-                      LABELS tpc)
+                      LABELS tpc COMPILE_ONLY)
 
 o2_add_test(PoissonSolver
             COMPONENT_NAME spacecharge
