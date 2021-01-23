@@ -281,7 +281,7 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
   }
   if (mProcessingSettings.debugLevel >= 1) {
     t = &getKernelTimer<S, I, J>(myStep, !IsGPU() || cpuFallback ? getOMPThreadNum() : x.stream);
-    if (!mProcessingSettings.deviceTimers || !IsGPU() || cpuFallback) {
+    if ((!mProcessingSettings.deviceTimers || !IsGPU() || cpuFallback) && (mNestedLoopOmpFactor < 2 || getOMPThreadNum() == 0)) {
       t->Start();
     }
   }
@@ -300,10 +300,10 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
   }
   if (mProcessingSettings.debugLevel >= 1) {
     if (t) {
-      if (!mProcessingSettings.deviceTimers || !IsGPU() || cpuFallback) {
-        t->Stop();
-      } else {
+      if (!(!mProcessingSettings.deviceTimers || !IsGPU() || cpuFallback)) {
         t->AddTime(setup.t);
+      } else if (mNestedLoopOmpFactor < 2 || getOMPThreadNum() == 0) {
+        t->Stop();
       }
     }
     if (CheckErrorCodes(cpuFallback)) {
