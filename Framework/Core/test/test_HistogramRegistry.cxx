@@ -114,12 +114,17 @@ BOOST_AUTO_TEST_CASE(HistogramRegistryStepTHn)
 
   registry.add("stepTHnF", "a", {kStepTHnF, {{100, -10.0f, 10.01f}, {100, -10.0f, 10.01f}}, 2});
   registry.add("stepTHnD", "b", {kStepTHnF, {{100, -10.0f, 10.01f}, {100, -10.0f, 10.01f}}, 3});
+  registry.addClone("stepTHnD", "stepTHnD2");
 
   auto& histo = registry.get<StepTHn>(HIST("stepTHnD"));
   BOOST_REQUIRE_EQUAL(histo->getNSteps(), 3);
 
-  // fill first step at position (0,2)
+  // fill first step at position (0,3)
   registry.fill(HIST("stepTHnF"), 0, 0., 3.);
-  // fill second step (0,2)
+  // fill second step (0,4)
   registry.fill(HIST("stepTHnF"), 1, 0., 4.);
+
+  registry.fill(HIST("stepTHnD2"), 1, 0., 4.);
+
+  registry.print();
 }

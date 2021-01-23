@@ -222,9 +222,10 @@ template <class TemplateArray>
 TObject* StepTHnT<TemplateArray>::Clone(const char* name)
 {
   StepTHnT<TemplateArray>* newHist = new StepTHnT<TemplateArray>();
-  newHist->SetName((name) ? name : GetName());
-  newHist->SetTitle(GetTitle());
   Copy(*newHist);
+  if (name) {
+    newHist->SetName(name);
+  }
   return newHist;
 }
 
