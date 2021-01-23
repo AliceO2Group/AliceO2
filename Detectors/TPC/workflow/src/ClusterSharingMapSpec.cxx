@@ -32,7 +32,7 @@ void ClusterSharingMapSpec::run(ProcessingContext& pc)
   const auto& clustersTPC = getWorkflowTPCInput(pc);
 
   auto& bufVec = pc.outputs().make<std::vector<unsigned char>>(Output{o2::header::gDataOriginTPC, "CLSHAREDMAP", 0}, clustersTPC->clusterIndex.nClustersTotal);
-  o2::gpu::GPUTPCO2InterfaceRefit::fillSharedClustersMap(&clustersTPC->clusterIndex, tracksTPC, tracksTPCClRefs.data(), bufVec.data());
+  o2::gpu::GPUO2InterfaceRefit::fillSharedClustersMap(&clustersTPC->clusterIndex, tracksTPC, tracksTPCClRefs.data(), bufVec.data());
 
   timer.Stop();
   LOGF(INFO, "Timing for TPC clusters sharing map creation: Cpu: %.3e Real: %.3e s", timer.CpuTime(), timer.RealTime());

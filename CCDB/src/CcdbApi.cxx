@@ -166,7 +166,7 @@ void CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::stri
   headerlist = curl_slist_append(headerlist, buf);
   if (curl != nullptr) {
     string fullUrl = getFullUrlForStorage(curl, path, objectType, metadata, sanitizedStartValidityTimestamp, sanitizedEndValidityTimestamp);
-    LOG(DEBUG) << "Full URL Encoded: " << fullUrl;
+    LOG(debug3) << "Full URL Encoded: " << fullUrl;
     /* what URL that receives this POST */
     curl_easy_setopt(curl, CURLOPT_URL, fullUrl.c_str());
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);

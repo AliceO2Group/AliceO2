@@ -89,6 +89,11 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
     if (isEnabled(OutputType::Digits)) {
       specs.emplace_back(o2::cpv::reco_workflow::getRawToDigitConverterSpec());
     }
+    if (isEnabled(OutputType::Clusters)) {
+      // add clusterizer
+      specs.emplace_back(o2::cpv::reco_workflow::getRawToDigitConverterSpec());
+      specs.emplace_back(o2::cpv::reco_workflow::getClusterizerSpec(propagateMC));
+    }
   }
 
   if (inputType == InputType::Digits) {

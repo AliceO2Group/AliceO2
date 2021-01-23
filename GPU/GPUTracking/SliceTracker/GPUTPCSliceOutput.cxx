@@ -30,18 +30,19 @@ void GPUTPCSliceOutput::Allocate(GPUTPCSliceOutput*& ptrOutput, int nTracks, int
   // Allocate All memory needed for slice output
   const size_t memsize = EstimateSize(nTracks, nTrackHits);
 
-  if (outputControl && outputControl->OutputType != GPUOutputControl::AllocateInternal) {
+  if (outputControl && outputControl->useExternal()) {
     static std::atomic_flag lock = ATOMIC_FLAG_INIT;
     while (lock.test_and_set(std::memory_order_acquire)) {
     }
-    if (outputControl->OutputMaxSize - ((char*)outputControl->OutputPtr - (char*)outputControl->OutputBase) < memsize) {
-      outputControl->EndOfSpace = 1;
+    outputControl->checkCurrent();
+    if (outputControl->size - ((char*)outputControl->ptrCurrent - (char*)outputControl->ptrBase) < memsize) {
+      outputControl->size = 1;
       ptrOutput = nullptr;
       lock.clear(std::memory_order_release);
       return;
     }
-    ptrOutput = reinterpret_cast<GPUTPCSliceOutput*>(outputControl->OutputPtr);
-    outputControl->OutputPtr = (char*)outputControl->OutputPtr + memsize;
+    ptrOutput = reinterpret_cast<GPUTPCSliceOutput*>(outputControl->ptrCurrent);
+    outputControl->ptrCurrent = (char*)outputControl->ptrCurrent + memsize;
     lock.clear(std::memory_order_release);
   } else {
     if (internalMemory) {

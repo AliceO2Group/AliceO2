@@ -167,13 +167,16 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void SetMatLUT(const o2::base::MatLayerCylSet* lut) { processors()->calibObjects.matLUT = lut; }
   void SetTRDGeometry(const o2::trd::GeometryFlat* geo) { processors()->calibObjects.trdGeometry = geo; }
   void SetO2Propagator(const o2::base::Propagator* prop) { processors()->calibObjects.o2Propagator = prop; }
+  void SetCalibObjects(const GPUCalibObjectsConst& obj) { processors()->calibObjects = obj; }
+  void SetCalibObjects(const GPUCalibObjects& obj) { memcpy((void*)&processors()->calibObjects, (const void*)&obj, sizeof(obj)); }
   void SetDefaultO2PropagatorForGPU();
   void LoadClusterErrors();
-  void SetOutputControlCompressedClusters(GPUOutputControl* v) { mOutputCompressedClusters = v; }
-  void SetOutputControlClustersNative(GPUOutputControl* v) { mOutputClustersNative = v; }
-  void SetOutputControlTPCTracks(GPUOutputControl* v) { mOutputTPCTracks = v; }
-  void SetOutputControlClusterLabels(GPUOutputControl* v) { mOutputClusterLabels = v; }
-  void SetOutputControlSharedClusterMap(GPUOutputControl* v) { mOutputSharedClusterMap = v; }
+  void SetOutputControlCompressedClusters(GPUOutputControl* v) { mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::compressedClusters)] = v; }
+  void SetOutputControlClustersNative(GPUOutputControl* v) { mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clustersNative)] = v; }
+  void SetOutputControlTPCTracks(GPUOutputControl* v) { mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::tpcTracks)] = v; }
+  void SetOutputControlClusterLabels(GPUOutputControl* v) { mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clusterLabels)] = v; }
+  void SetOutputControlSharedClusterMap(GPUOutputControl* v) { mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::sharedClusterMap)] = v; }
+  void SetSubOutputControl(int i, GPUOutputControl* v) { mSubOutputControls[i] = v; }
 
   const GPUSettingsDisplay* mConfigDisplay = nullptr; // Abstract pointer to Standalone Display Configuration Structure
   const GPUSettingsQA* mConfigQA = nullptr;           // Abstract pointer to Standalone QA Configuration Structure
@@ -242,11 +245,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   std::unique_ptr<o2::tpc::ClusterNativeAccess> mClusterNativeAccess;
 
-  GPUOutputControl* mOutputCompressedClusters = nullptr;
-  GPUOutputControl* mOutputClustersNative = nullptr;
-  GPUOutputControl* mOutputTPCTracks = nullptr;
-  GPUOutputControl* mOutputClusterLabels = nullptr;
-  GPUOutputControl* mOutputSharedClusterMap = nullptr;
+  std::array<GPUOutputControl*, GPUTrackingOutputs::count()> mSubOutputControls = {nullptr};
 
   std::unique_ptr<GPUTPCCFChainContext> mCFContext;
 

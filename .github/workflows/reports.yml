@@ -131,4 +131,7 @@ jobs:
           hub pull-request -f -b dev -h changelog \
               --no-edit --no-maintainer-edits     \
               'Auto-generated changelog'          \
-              -m 'The following changelog has been automatically generated.'
+              -m 'The following changelog has been automatically generated.' ||
+            # If the PR already exists, the force-push will have updated it.
+            # It's fine if this step fails.
+            true

@@ -27,17 +27,26 @@ namespace o2
 namespace dataformats
 {
 
+/* Class to refer in start and number of contributors in the container of with consecutively filled conributors.
+     The contributors are suppossed to be sorted according to their sources.
+     Note: the only way to fill the references is to fill them all in increasing order and set the end!
+     VtxTrackIndex ref;
+     for (int i=0;i<VtxTrackIndex::Source::NSources;i++) {
+       ref.setFirstEntryOfSource(i, idxI); // idxI must be >= idxI-1 (if it is =, then source i has not entries
+     }
+     ref.setEnd(idxLast + 1); // i.e. idxLast+1 = idx0 + TotalNumberOfEntries
+  */
+
 class VtxTrackRef : public RangeReference<int, int>
 {
  public:
-  VtxTrackRef(int ent, int n) : RangeReference(ent, n)
+  VtxTrackRef() : RangeReference(-1, 0)
   {
-    auto end = ent + n;
     for (int i = VtxTrackIndex::Source::NSources - 1; i--;) {
-      mFirstEntrySource[i] = end; // only 1st source (base reference) is filled at constructor level
+      mFirstEntrySource[i] = -1; // only 1st source (base reference) is filled at constructor level
     }
   }
-  using RangeReference<int, int>::RangeReference;
+
   void print() const;
   std::string asString() const;
 
@@ -64,7 +73,12 @@ class VtxTrackRef : public RangeReference<int, int>
     }
   }
 
+  // set the last +1 element index and finalize all references
+  void setEnd(int end);
+
  private:
+  using RangeReference<int, int>::RangeReference;
+
   std::array<int, VtxTrackIndex::Source::NSources - 1> mFirstEntrySource{0};
 
   ClassDefNV(VtxTrackRef, 1);

@@ -26,13 +26,14 @@ class Geometry
  public:
   static constexpr short kNumberOfCPVPadsPhi = 128;
   static constexpr short kNumberOfCPVPadsZ = 60;
+  static constexpr short kNCHANNELS = kNumberOfCPVPadsPhi * kNumberOfCPVPadsZ * 3;
   static constexpr float kCPVPadSizePhi = 1.13;
   static constexpr float kCPVPadSizeZ = 2.1093;
   //for hwaddress
   static constexpr short kNPAD = 48;
   static constexpr short kNDilogic = 10;
   static constexpr short kNRow = 16;
-  static constexpr short kNDDL = 4;
+  static constexpr short kNDDL = 3;
 
   /// Available numbering schems:
   /// relative pad coordinates
@@ -89,10 +90,10 @@ class Geometry
   static void hwaddressToAbsId(short ddl, short row, short dilogic, short hw, unsigned short& absId);
   static void absIdToHWaddress(unsigned short absId, short& ddl, short& row, short& dilogic, short& hw);
 
-  static unsigned short getTotalNPads() { return kNumberOfCPVPadsPhi * kNumberOfCPVPadsZ * 4; }
+  static unsigned short getTotalNPads() { return kNCHANNELS; }
   static bool IsPadExists(unsigned short absId)
   {
-    return absId > 0 && absId <= getTotalNPads();
+    return absId >= 0 && absId < getTotalNPads();
   } // TODO: evaluate from real geometry
 
   ClassDefNV(Geometry, 1);

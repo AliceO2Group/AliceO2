@@ -329,3 +329,15 @@ char FullCluster::getNumberOfLocalMax(gsl::span<int> maxAt) const
 
   return iDigitN;
 }
+
+//____________________________________________________________________________
+void FullCluster::reset()
+{
+  //clean up everething
+  mElementList.clear();
+  mFullEnergy = 0.;
+  mCoreEnergy = 0.;
+  mMulDigit = 0;
+  mNExMax = -1;
+  //other cluster parameters will be re-calculated
+}

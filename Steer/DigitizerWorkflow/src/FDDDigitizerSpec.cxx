@@ -31,7 +31,6 @@
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
-
 namespace o2
 {
 namespace fdd
@@ -91,18 +90,19 @@ class FDDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         mDigitizer.setEventID(part.entryID);
         mDigitizer.setSrcID(part.sourceID);
 
-        mDigitizer.process(hits, mDigitsBC, mDigitsCh, labels);
+        mDigitizer.process(hits, mDigitsBC, mDigitsCh, mDigitsTrig, labels);
       }
     }
 
     o2::InteractionTimeRecord terminateIR;
     terminateIR.orbit = 0xffffffff; // supply IR in the infinite future to flush all cached BC
     mDigitizer.setInteractionRecord(terminateIR);
-    mDigitizer.flush(mDigitsBC, mDigitsCh, labels);
+    mDigitizer.flush(mDigitsBC, mDigitsCh, mDigitsTrig, labels);
 
     // send out to next stage
     pc.outputs().snapshot(Output{"FDD", "DIGITSBC", 0, Lifetime::Timeframe}, mDigitsBC);
     pc.outputs().snapshot(Output{"FDD", "DIGITSCH", 0, Lifetime::Timeframe}, mDigitsCh);
+    pc.outputs().snapshot(Output{"FDD", "TRIGGERINPUT", 0, Lifetime::Timeframe}, mDigitsTrig);
     if (pc.outputs().isAllowed({"FDD", "DIGITLBL", 0})) {
       auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::fdd::MCLabel>>(Output{"FDD", "DIGITLBL", 0, Lifetime::Timeframe});
       labels.flatten_to(sharedlabels);
@@ -123,6 +123,7 @@ class FDDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   std::vector<TChain*> mSimChains;
   std::vector<o2::fdd::ChannelData> mDigitsCh;
   std::vector<o2::fdd::Digit> mDigitsBC;
+  std::vector<o2::fdd::DetTrigInput> mDigitsTrig;
 
   // RS: at the moment using hardcoded flag for continuous readout
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
@@ -138,6 +139,7 @@ o2::framework::DataProcessorSpec getFDDDigitizerSpec(int channel, bool mctruth)
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("FDD", "DIGITSBC", 0, Lifetime::Timeframe);
   outputs.emplace_back("FDD", "DIGITSCH", 0, Lifetime::Timeframe);
+  outputs.emplace_back("FDD", "TRIGGERINPUT", 0, Lifetime::Timeframe);
   if (mctruth) {
     outputs.emplace_back("FDD", "DIGITLBL", 0, Lifetime::Timeframe);
   }

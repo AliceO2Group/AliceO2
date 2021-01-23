@@ -670,7 +670,7 @@ void* GPUTPCTrackerComponent::TrackerDoEvent(void* par)
   int ret = 0;
   size = 0;
 
-  if (fRec->OutputControl().EndOfSpace) {
+  if (fRec->OutputControl().size == 1) {
     HLTWarning("Output buffer size exceeded buffer size %d, tracks are not stored", maxBufferSize);
     ret = -ENOSPC;
   } else {

@@ -32,6 +32,7 @@
 #include "GPUSettings.h"
 #include "GPUDataTypes.h"
 #include "GPUHostDataTypes.h"
+#include "GPUOutputControl.h"
 #include "DataFormatsTPC/Constants.h"
 
 class TH1F;
@@ -48,18 +49,8 @@ class Digit;
 namespace gpu
 {
 class TPCFastTransform;
+class GPUReconstruction;
 struct GPUSettingsO2;
-
-// This defines an output region. Ptr points to a memory buffer, which should have a proper alignment.
-// Since DPL does not respect the alignment of data types, we do not impose anything specic but just use a char data type, but it should be >= 64 bytes ideally.
-// The size defines the maximum possible buffer size when GPUReconstruction is called, and returns the number of filled bytes when it returns.
-// If ptr == nullptr, there is no region defined and GPUReconstruction will write its output to an internal buffer.
-// If allocator is set, it is called as a callback to provide a ptr to the memory.
-struct GPUInterfaceOutputRegion {
-  void* ptr = nullptr;
-  size_t size = 0;
-  std::function<void*(size_t)> allocator = nullptr;
-};
 
 struct GPUInterfaceQAOutputs {
   const std::vector<TH1F>* hist1;
@@ -67,12 +58,7 @@ struct GPUInterfaceQAOutputs {
   const std::vector<TH1D>* hist3;
 };
 
-struct GPUInterfaceOutputs {
-  GPUInterfaceOutputRegion compressedClusters;
-  GPUInterfaceOutputRegion clustersNative;
-  GPUInterfaceOutputRegion tpcTracks;
-  GPUInterfaceOutputRegion clusterLabels;
-  GPUInterfaceOutputRegion sharedClusterMap;
+struct GPUInterfaceOutputs : public GPUTrackingOutputs {
   GPUInterfaceQAOutputs qa;
 };
 
@@ -106,6 +92,10 @@ struct GPUO2InterfaceConfiguration {
   GPUCalibObjects configCalib;
 
   GPUSettingsO2 ReadConfigurableParam();
+
+ private:
+  friend class GPUReconstruction;
+  GPUSettingsO2 ReadConfigurableParam_internal();
 };
 
 // Structure with pointers to actual data for input and output

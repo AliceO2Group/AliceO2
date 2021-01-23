@@ -204,6 +204,31 @@ auto CosThetaStarD0bar(const T& candidate)
 {
   return candidate.cosThetaStar(array{RecoDecay::getMassPDG(kKPlus), RecoDecay::getMassPDG(kPiPlus)}, RecoDecay::getMassPDG(421), 0);
 }
+
+// Jpsi → e+e-
+template <typename T>
+auto CtJpsi(const T& candidate)
+{
+  return candidate.ct(RecoDecay::getMassPDG(443));
+}
+
+template <typename T>
+auto YJpsi(const T& candidate)
+{
+  return candidate.y(RecoDecay::getMassPDG(443));
+}
+
+template <typename T>
+auto EJpsi(const T& candidate)
+{
+  return candidate.e(RecoDecay::getMassPDG(443));
+}
+
+template <typename T>
+auto InvMassJpsiToEE(const T& candidate)
+{
+  return candidate.m(array{RecoDecay::getMassPDG(kElectron), RecoDecay::getMassPDG(kElectron)});
+}
 } // namespace hf_cand_prong2
 
 // general columns

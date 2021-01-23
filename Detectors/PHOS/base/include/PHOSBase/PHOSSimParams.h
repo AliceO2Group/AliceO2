@@ -31,6 +31,10 @@ struct PHOSSimParams : public o2::conf::ConfigurableParamHelper<PHOSSimParams> {
   float mAPDFactor = (13.418 / mLightYieldMean / 100.) * 300.;    // factor relating light yield and APD response
 
   //Parameters used in electronic noise calculation and thresholds (Digitizer)
+  float mReadoutTime = 5.;           ///< Read-out time in ns for default simulaionts
+  float mDeadTime = 20.;             ///< PHOS dead time (includes Read-out time i.e. mDeadTime>=mReadoutTime)
+  float mReadoutTimePU = 2000.;      ///< Read-out time in ns if pileup simulation on in DigitizerSpec
+  float mDeadTimePU = 30000.;        ///< PHOS dead time if pileup simulation on in DigitizerSpec
   bool mApplyTimeResolution = false; ///< Apply time resolution in digitization
   bool mApplyNonLinearity = false;   ///< Apply energy non-linearity in digitization
   bool mApplyDigitization = false;   ///< Apply energy digitization in digitization

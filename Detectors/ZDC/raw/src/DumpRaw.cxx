@@ -142,7 +142,7 @@ inline int DumpRaw::getHPos(uint32_t board, uint32_t ch)
 
 int DumpRaw::processWord(const UInt_t* word)
 {
-  if (word == 0) {
+  if (word == nullptr) {
     printf("NULL\n");
     return 1;
   }

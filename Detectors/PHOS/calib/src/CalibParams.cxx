@@ -32,6 +32,11 @@ bool CalibParams::setGain(TH2* h, char module)
 {
   const char MAXX = 64,
              MAXZ = 56;
+  if (module < 1 || module > 4) {
+    LOG(ERROR) << "module " << module << "does not exist";
+    return false;
+  }
+
   if (!h) {
     LOG(ERROR) << "no input histogam";
     return false;
@@ -42,12 +47,6 @@ bool CalibParams::setGain(TH2* h, char module)
     return false;
   }
 
-  auto geo = Geometry::GetInstance();
-  if (!geo) {
-    LOG(ERROR) << "Geometry needs to be initialized";
-    return false;
-  }
-
   char relid[3] = {module, 1, 1};
   short absId;
   for (char ix = 1; ix <= MAXX; ix++) {
@@ -55,8 +54,11 @@ bool CalibParams::setGain(TH2* h, char module)
     for (char iz = 1; iz <= MAXZ; iz++) {
       relid[2] = iz;
 
-      if (geo->relToAbsNumbering(relid, absId)) {
-        mGainCalib[absId] = h->GetBinContent(ix, iz);
+      if (o2::phos::Geometry::relToAbsNumbering(relid, absId)) {
+        if (absId - OFFSET < 0) { //non-existing part of a module 1
+          continue;
+        }
+        mGainCalib[absId - OFFSET] = h->GetBinContent(ix, iz);
       }
     }
   }
@@ -67,6 +69,10 @@ bool CalibParams::setHGLGRatio(TH2* h, char module)
 {
   const char MAXX = 64,
              MAXZ = 56;
+  if (module < 1 || module > 4) {
+    LOG(ERROR) << "module " << module << "does not exist";
+    return false;
+  }
   if (!h) {
     LOG(ERROR) << "no input histogam";
     return false;
@@ -77,12 +83,6 @@ bool CalibParams::setHGLGRatio(TH2* h, char module)
     return false;
   }
 
-  auto geo = Geometry::GetInstance();
-  if (!geo) {
-    LOG(ERROR) << "Geometry needs to be initialized";
-    return false;
-  }
-
   char relid[3] = {module, 1, 1};
   short absId;
   for (char ix = 1; ix <= MAXX; ix++) {
@@ -90,8 +90,11 @@ bool CalibParams::setHGLGRatio(TH2* h, char module)
     for (char iz = 1; iz <= MAXZ; iz++) {
       relid[2] = iz;
 
-      if (geo->relToAbsNumbering(relid, absId)) {
-        mHGLGRatio[absId] = h->GetBinContent(ix, iz);
+      if (o2::phos::Geometry::relToAbsNumbering(relid, absId)) {
+        if (absId - OFFSET < 0) { //non-existing part of a module 1
+          continue;
+        }
+        mHGLGRatio[absId - OFFSET] = h->GetBinContent(ix, iz);
       }
     }
   }
@@ -102,6 +105,10 @@ bool CalibParams::setHGTimeCalib(TH2* h, char module)
 {
   const char MAXX = 64,
              MAXZ = 56;
+  if (module < 1 || module > 4) {
+    LOG(ERROR) << "module " << module << "does not exist";
+    return false;
+  }
   if (!h) {
     LOG(ERROR) << "no input histogam";
     return false;
@@ -112,12 +119,6 @@ bool CalibParams::setHGTimeCalib(TH2* h, char module)
     return false;
   }
 
-  auto geo = Geometry::GetInstance();
-  if (!geo) {
-    LOG(ERROR) << "Geometry needs to be initialized";
-    return false;
-  }
-
   char relid[3] = {module, 1, 1};
   short absId;
   for (char ix = 1; ix <= MAXX; ix++) {
@@ -125,8 +126,11 @@ bool CalibParams::setHGTimeCalib(TH2* h, char module)
     for (char iz = 1; iz <= MAXZ; iz++) {
       relid[2] = iz;
 
-      if (geo->relToAbsNumbering(relid, absId)) {
-        mHGTimeCalib[absId] = h->GetBinContent(ix, iz);
+      if (o2::phos::Geometry::relToAbsNumbering(relid, absId)) {
+        if (absId - OFFSET < 0) { //non-existing part of a module 1
+          continue;
+        }
+        mHGTimeCalib[absId - OFFSET] = h->GetBinContent(ix, iz);
       }
     }
   }
@@ -137,6 +141,10 @@ bool CalibParams::setLGTimeCalib(TH2* h, char module)
 {
   const char MAXX = 64,
              MAXZ = 56;
+  if (module < 1 || module > 4) {
+    LOG(ERROR) << "module " << module << "does not exist";
+    return false;
+  }
   if (!h) {
     LOG(ERROR) << "no input histogam";
     return false;
@@ -147,12 +155,6 @@ bool CalibParams::setLGTimeCalib(TH2* h, char module)
     return false;
   }
 
-  auto geo = Geometry::GetInstance();
-  if (!geo) {
-    LOG(ERROR) << "Geometry needs to be initialized";
-    return false;
-  }
-
   char relid[3] = {module, 1, 1};
   short absId;
   for (char ix = 1; ix <= MAXX; ix++) {
@@ -160,8 +162,11 @@ bool CalibParams::setLGTimeCalib(TH2* h, char module)
     for (char iz = 1; iz <= MAXZ; iz++) {
       relid[2] = iz;
 
-      if (geo->relToAbsNumbering(relid, absId)) {
-        mLGTimeCalib[absId] = h->GetBinContent(ix, iz);
+      if (o2::phos::Geometry::relToAbsNumbering(relid, absId)) {
+        if (absId - OFFSET < 0) { //non-existing part of a module 1
+          continue;
+        }
+        mLGTimeCalib[absId - OFFSET] = h->GetBinContent(ix, iz);
       }
     }
   }

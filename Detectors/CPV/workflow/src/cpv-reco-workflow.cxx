@@ -28,7 +28,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<o2::framework::ConfigParamSpec> options{
     {"input-type", o2::framework::VariantType::String, "hits", {"hits, digits, raw, clusters"}},
-    {"output-type", o2::framework::VariantType::String, "digits", {"digits, raw, clusters, cells"}},
+    {"output-type", o2::framework::VariantType::String, "digits", {"digits, clusters"}},
     {"enable-digits-printer", o2::framework::VariantType::Bool, false, {"enable digits printer component"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information"}},
   };

@@ -31,26 +31,30 @@ struct TPCSpectraProviderTask {
   //Produces<aod::LFCollisions> outputCollisions; //currently it seems in the spectraTPC task no loop over the collision is made. Leave this here in case it will be added
   Produces<aod::LFTracks> outputTracks;
 
-  //Configurable<float> cfgCutVertex{"cfgCutVertex", 10.0f, "Accepted z-vertex range"};
+  Configurable<float> vertexZCut{"vertexZCut", 10.0f, "Accepted z-vertex range"};
   Configurable<float> trackEtaCut{"trackEtaCut", 0.9f, "Eta range for tracks"};
+  Configurable<float> trackPtCut{"trackPtCut", 0.0f, "Pt range for tracks"};
 
-  //Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
-  Filter trackFilter = (nabs(aod::track::eta) < trackEtaCut) && (aod::track::isGlobalTrack == (uint8_t) true);
+  Filter collisionFilter = nabs(aod::collision::posZ) < vertexZCut;
+  Filter trackFilter = (nabs(aod::track::eta) < trackEtaCut) && (aod::track::isGlobalTrack == (uint8_t) true) && (aod::track::pt > trackPtCut);
 
   Configurable<float> nsigmacut{"nsigmacut", 3, "Value of the Nsigma cut"}; //can we add an upper limit?
 
   using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::TrackSelection>>;
-  void process(TrackCandidates::iterator const& track)
+  void process(soa::Filtered<aod::Collisions>::iterator const& collision, TrackCandidates const& tracks)
   {
     uint32_t pNsigma = 0xFFFFFF00; //15 bit precision for Nsigma
-    float nsigma[9] = {truncateFloatFraction(track.tpcNSigmaEl(), pNsigma), truncateFloatFraction(track.tpcNSigmaMu(), pNsigma),
-                       truncateFloatFraction(track.tpcNSigmaPi(), pNsigma), truncateFloatFraction(track.tpcNSigmaKa(), pNsigma),
-                       truncateFloatFraction(track.tpcNSigmaPr(), pNsigma), truncateFloatFraction(track.tpcNSigmaDe(), pNsigma),
-                       truncateFloatFraction(track.tpcNSigmaTr(), pNsigma), truncateFloatFraction(track.tpcNSigmaHe(), pNsigma),
-                       truncateFloatFraction(track.tpcNSigmaAl(), pNsigma)}; //the significance needs to be discussed
+    outputTracks.reserve(tracks.size());
+    for (auto track : tracks) {
+      float nsigma[9] = {truncateFloatFraction(track.tpcNSigmaEl(), pNsigma), truncateFloatFraction(track.tpcNSigmaMu(), pNsigma),
+                         truncateFloatFraction(track.tpcNSigmaPi(), pNsigma), truncateFloatFraction(track.tpcNSigmaKa(), pNsigma),
+                         truncateFloatFraction(track.tpcNSigmaPr(), pNsigma), truncateFloatFraction(track.tpcNSigmaDe(), pNsigma),
+                         truncateFloatFraction(track.tpcNSigmaTr(), pNsigma), truncateFloatFraction(track.tpcNSigmaHe(), pNsigma),
+                         truncateFloatFraction(track.tpcNSigmaAl(), pNsigma)}; //the significance needs to be discussed
 
-    //outputTracks(outputCollisions.lastIndex(), track.pt(), track.p(), track.eta(), nsigma);
-    outputTracks(track.pt(), track.p(), track.eta(), nsigma);
+      //outputTracks(outputCollisions.lastIndex(), track.pt(), track.p(), track.eta(), nsigma);
+      outputTracks(track.pt(), track.p(), track.eta(), nsigma);
+    }
   }
 };
 

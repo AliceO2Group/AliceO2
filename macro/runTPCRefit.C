@@ -81,7 +81,7 @@ int runTPCRefit(TString trackFile = "tpctracks.root", TString clusterFile = "tpc
       std::cout << "Error reading clusters (code " << retVal << ")\n";
       return 1;
     }
-    GPUTPCO2InterfaceRefit refit(&clusterIndex, trans.get(), bz, trackHitRefs->data(), nullptr, tracks, prop);
+    GPUO2InterfaceRefit refit(&clusterIndex, trans.get(), bz, trackHitRefs->data(), nullptr, tracks, prop);
     //refit.setGPUTrackFitInProjections(false); // Enable full 3D fit without assuming y and Z are uncorrelated
     for (unsigned int i = 0; i < tracks->size(); i++) {
       TrackTPC trk = (*tracks)[i];

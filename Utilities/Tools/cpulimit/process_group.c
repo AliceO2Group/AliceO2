@@ -71,7 +71,9 @@ int find_process_by_name(const char *process_name)
 			break;
 		}
 	}
-	if (close_process_iterator(&it) != 0) exit(1);
+	if (close_process_iterator(&it) != 0) {
+		exit(1);
+	}
 	if (pid >= 0) {
 		//ok, the process was found
 		return pid;
@@ -178,7 +180,9 @@ void update_process_group(struct process_group *pgroup)
 				assert(tmp_process.pid == p->pid);
 				assert(tmp_process.starttime == p->starttime);
 				add_elem(pgroup->proclist, p);
-				if (dt < MIN_DT) continue;
+				if (dt < MIN_DT) {
+					continue;
+				}
 				//process exists. update CPU usage
 				double sample = 1.0 * (tmp_process.cputime - p->cputime) / dt;
 				if (p->cpu_usage == -1) {
@@ -194,16 +198,22 @@ void update_process_group(struct process_group *pgroup)
 		}
 	}
 	close_process_iterator(&it);
-	if (dt < MIN_DT) return;
+	if (dt < MIN_DT) {
+		return;
+	}
 	pgroup->last_update = now;
 }
 
 int remove_process(struct process_group *pgroup, int pid)
 {
 	int hashkey = pid_hashfn(pid);
-	if (pgroup->proctable[hashkey] == NULL) return 1; //nothing to delete
+	if (pgroup->proctable[hashkey] == NULL) {
+		return 1; //nothing to delete
+	}
 	struct list_node *node = (struct list_node*)locate_node(pgroup->proctable[hashkey], &pid);
-	if (node == NULL) return 2;
+	if (node == NULL) {
+		return 2;
+	}
 	delete_node(pgroup->proctable[hashkey], node);
 	return 0;
 }

@@ -69,8 +69,9 @@ struct TPCSpectraReferenceTask {
   //Defining filters and input
   Configurable<float> cfgCutVertex{"cfgCutVertex", 10.0f, "Accepted z-vertex range"};
   Configurable<float> cfgCutEta{"cfgCutEta", 0.8f, "Eta range for tracks"};
+  Configurable<float> cfgCutPt{"cfgCutPt", 0.0f, "Pt range for tracks"};
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
-  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == (uint8_t) true);
+  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == (uint8_t) true) && (aod::track::pt > cfgCutPt);
 
   Configurable<float> nsigmacut{"nsigmacut", 3, "Value of the Nsigma cut"};
 
@@ -85,23 +86,25 @@ struct TPCSpectraReferenceTask {
   }
 
   using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::TrackSelection>>;
-  void process(TrackCandidates::iterator const& track)
+  void process(soa::Filtered<aod::Collisions>::iterator const& collision, TrackCandidates const& tracks)
   {
-    const float nsigma[Np] = {track.tpcNSigmaEl(), track.tpcNSigmaMu(), track.tpcNSigmaPi(),
-                              track.tpcNSigmaKa(), track.tpcNSigmaPr(), track.tpcNSigmaDe(),
-                              track.tpcNSigmaTr(), track.tpcNSigmaHe(), track.tpcNSigmaAl()};
-    histos.fill(HIST("p/Unselected"), track.p());
-    histos.fill(HIST("pt/Unselected"), track.pt());
+    for (auto track : tracks) {
+      const float nsigma[Np] = {track.tpcNSigmaEl(), track.tpcNSigmaMu(), track.tpcNSigmaPi(),
+                                track.tpcNSigmaKa(), track.tpcNSigmaPr(), track.tpcNSigmaDe(),
+                                track.tpcNSigmaTr(), track.tpcNSigmaHe(), track.tpcNSigmaAl()};
+      histos.fill(HIST("p/Unselected"), track.p());
+      histos.fill(HIST("pt/Unselected"), track.pt());
 
-    fillParticleHistos<0>(track, nsigma);
-    fillParticleHistos<1>(track, nsigma);
-    fillParticleHistos<2>(track, nsigma);
-    fillParticleHistos<3>(track, nsigma);
-    fillParticleHistos<4>(track, nsigma);
-    fillParticleHistos<5>(track, nsigma);
-    fillParticleHistos<6>(track, nsigma);
-    fillParticleHistos<7>(track, nsigma);
-    fillParticleHistos<8>(track, nsigma);
+      fillParticleHistos<0>(track, nsigma);
+      fillParticleHistos<1>(track, nsigma);
+      fillParticleHistos<2>(track, nsigma);
+      fillParticleHistos<3>(track, nsigma);
+      fillParticleHistos<4>(track, nsigma);
+      fillParticleHistos<5>(track, nsigma);
+      fillParticleHistos<6>(track, nsigma);
+      fillParticleHistos<7>(track, nsigma);
+      fillParticleHistos<8>(track, nsigma);
+    }
   }
 };
 

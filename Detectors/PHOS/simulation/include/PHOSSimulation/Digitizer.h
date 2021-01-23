@@ -34,15 +34,12 @@ class Digitizer : public TObject
   void finish();
 
   /// Steer conversion of hits to digits
-  void process(const std::vector<Hit>* hitsBg, const std::vector<Hit>* hitsS, std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::phos::MCLabel>& labels);
-
-  void setEventTime(double t);
-  double getEventTime() const { return mEventTime; }
-
-  void setCurrEvID(int v);
-  int getCurrEvID() const { return mCurrEvID; }
+  void processHits(const std::vector<Hit>* mHits, const std::vector<Digit>& digitsBg,
+                   std::vector<Digit>& digitsOut, o2::dataformats::MCTruthContainer<MCLabel>& mLabels,
+                   int source, int entry, double dt);
 
  protected:
+  void addNoisyChannels(int start, int end, std::vector<Digit>& digitsOut);
   float nonLinearity(float e);
   float uncalibrate(float e, int absId);
   float uncalibrateT(float t, int absId, bool isHighGain);
@@ -51,15 +48,9 @@ class Digitizer : public TObject
   float simulateNoiseTime();
 
  private:
-  const Geometry* mGeometry = nullptr;       //!  PHOS geometry
-  const CalibParams* mCalibParams = nullptr; //! Calibration coefficients
-  double mEventTime = 0;                     ///< global event time
-  uint mROFrameMin = 0;                      ///< lowest RO frame of current digits
-  uint mROFrameMax = 0;                      ///< highest RO frame of current digits
-  int mCurrSrcID = 0;                        ///< current MC source from the manager
-  int mCurrEvID = 0;                         ///< current event ID from the manager
+  std::unique_ptr<CalibParams> mCalibParams; /// Calibration coefficients
 
-  ClassDefOverride(Digitizer, 2);
+  ClassDefOverride(Digitizer, 3);
 };
 } // namespace phos
 } // namespace o2

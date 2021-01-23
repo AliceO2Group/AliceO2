@@ -12,34 +12,6 @@
 # convenient bag for all the deps needed in the executables below
 add_library(allsim INTERFACE)
 
-if(ENABLE_UPGRADES)
-target_link_libraries(allsim
-                      INTERFACE O2::SimConfig
-                                O2::Steer
-                                O2::SimSetup
-                                FairMQ::FairMQ
-                                O2::CPVSimulation
-                                O2::DetectorsPassive
-                                O2::EMCALSimulation
-                                O2::FDDSimulation
-                                O2::Field
-                                O2::HMPIDSimulation
-                                O2::ITSSimulation
-                                O2::ITS3Simulation
-                                O2::TRKSimulation
-				                        O2::MCHBase
-                                O2::MCHSimulation
-                                O2::MFTSimulation
-                                O2::MIDSimulation
-                                O2::PHOSSimulation
-                                O2::FT0Simulation
-                                O2::TOFSimulation
-                                O2::TPCSimulation
-                                O2::TRDSimulation
-                                O2::FV0Simulation
-                                O2::ZDCSimulation
-                                O2::Generators)
-else()
 target_link_libraries(allsim
                       INTERFACE O2::SimConfig
                                 O2::Steer
@@ -63,9 +35,10 @@ target_link_libraries(allsim
                                 O2::TRDSimulation
                                 O2::FV0Simulation
                                 O2::ZDCSimulation
+                                $<$<BOOL:${ENABLE_UPGRADES}>:O2::Alice3DetectorsPassive>
+                                $<$<BOOL:${ENABLE_UPGRADES}>:O2::ITS3Simulation>
+                                $<$<BOOL:${ENABLE_UPGRADES}>:O2::TRKSimulation>
                                 O2::Generators)
-endif()
-
 
 add_library(internal::allsim ALIAS allsim)
 

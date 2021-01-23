@@ -61,13 +61,6 @@ float getDetLengthFromEta(const float eta, const float radius)
 Detector::Detector()
   : o2::base::DetImpl<Detector>("TRK", kTRUE),
     mTrackData(),
-    /*
-    mHitStarted(false),
-    mTrkStatusStart(),
-    mPositionStart(),
-    mMomentumStart(),
-    mEnergyLoss(),
-    */
     mNumberOfDetectors(-1),
     mModifyGeometry(kFALSE),
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
@@ -101,24 +94,7 @@ void Detector::configITS(Detector* its)
          kPhi0,
          kNStave,
          kNPar };
-  // Radii are from last TDR (ALICE-TDR-017.pdf Tab. 1.1, rMid is mean value)
-  // const double tdr5dat[kNLr][kNPar] = {
-  //   {2.24, 2.34, 2.67, 9., 16.42, 12}, // for each inner layer: rMin,rMid,rMax,NChip/Stave, phi0, nStaves
-  //   {3.01, 3.15, 3.46, 9., 12.18, 16},
-  //   {3.78, 3.93, 4.21, 9., 9.55, 20},
-  //   {-1, 19.6, -1, 4., 0., 24},  // for others: -, rMid, -, NMod/HStave, phi0, nStaves // 24 was 49
-  //   {-1, 24.55, -1, 4., 0., 30}, // 30 was 61
-  //   {-1, 34.39, -1, 7., 0., 42}, // 42 was 88
-  //   {-1, 39.34, -1, 7., 0., 48}  // 48 was 100
-  // };
-  // const int nChipsPerModule = 7;  // For OB: how many chips in a row
-  // const double zChipGap = 0.01;   // For OB: gap in Z between chips
-  // const double zModuleGap = 0.01; // For OB: gap in Z between modules
 
-  // double dzLr, rLr, phi0, turbo;
-  // int nStaveLr, nModPerStaveLr;
-
-  //  its->setStaveModelIB(o2::trk::Detector::kIBModel4);
   its->setStaveModelOB(o2::trk::Detector::kOBModel2);
 
   const int kNWrapVol = 3;
@@ -130,38 +106,29 @@ void Detector::configITS(Detector* its)
     its->defineWrapperVolume(iw, wrpRMin[iw], wrpRMax[iw], wrpZSpan[iw]);
   }
 
-  // Build OB only (4 layers)
-  // for (int idLr = mNumberOfInnerLayers; idLr < mTotalNumberOfLayers; idLr++) {
-  //   int im = idLr - mNumberOfInnerLayers + kNLrInner;
-  //   rLr = tdr5dat[im][kRmd];
-  //   phi0 = tdr5dat[im][kPhi0];
+  // Layout updated at December 18th 2020 [cm]
 
-  //   nStaveLr = TMath::Nint(tdr5dat[im][kNStave]);
-  //   nModPerStaveLr = TMath::Nint(tdr5dat[im][kNModPerStave]);
-  //   int nChipsPerStaveLr = nModPerStaveLr;
-  //   its->defineLayer(idLr, phi0, rLr, nStaveLr, nModPerStaveLr, ChipThicknessOB, Segmentation::SensorLayerThickness,
-  //                    kSensTypeID, kBuildLevel);
-  // }
+  std::vector<std::array<double, 2>> layers;
+  const int nLayers{12};
+  layers.emplace_back(std::array<double, 2>{0.5f, 15.f});
+  layers.emplace_back(std::array<double, 2>{1.2f, 15.f});
+  layers.emplace_back(std::array<double, 2>{2.5f, 15.f});
+  layers.emplace_back(std::array<double, 2>{3.75f, 62.f});
+  layers.emplace_back(std::array<double, 2>{7.f, 62.f});
+  layers.emplace_back(std::array<double, 2>{12.f, 62.f});
+  layers.emplace_back(std::array<double, 2>{20.f, 62.f});
+  layers.emplace_back(std::array<double, 2>{30.f, 62.f});
+  layers.emplace_back(std::array<double, 2>{45.f, 132.f});
+  layers.emplace_back(std::array<double, 2>{60.f, 132.f});
+  layers.emplace_back(std::array<double, 2>{80.f, 132.f});
+  layers.emplace_back(std::array<double, 2>{100.f, 132.f});
 
-  // From Mario Sitta's hack
-  std::vector<std::array<double, 2>> tdr5data;
-  tdr5data.emplace_back(std::array<double, 2>{1.8f, getDetLengthFromEta(1.44f, 1.8f)});
-  tdr5data.emplace_back(std::array<double, 2>{2.8f, getDetLengthFromEta(1.44f, 2.8f)});
-  tdr5data.emplace_back(std::array<double, 2>{3.8f, getDetLengthFromEta(1.44f, 3.8f)});
-  tdr5data.emplace_back(std::array<double, 2>{8.0f, getDetLengthFromEta(1.44f, 8.0f)});
-  tdr5data.emplace_back(std::array<double, 2>{20.0f, getDetLengthFromEta(1.44f, 20.0f)});
-  tdr5data.emplace_back(std::array<double, 2>{25.0f, getDetLengthFromEta(1.44f, 25.0f)});
-  tdr5data.emplace_back(std::array<double, 2>{40.0f, getDetLengthFromEta(1.44f, 40.0f)});
-  tdr5data.emplace_back(std::array<double, 2>{55.f, getDetLengthFromEta(1.44f, 55.f)});
-  tdr5data.emplace_back(std::array<double, 2>{80.0f, getDetLengthFromEta(1.44f, 80.0f)});
-  tdr5data.emplace_back(std::array<double, 2>{100.f, getDetLengthFromEta(1.44f, 100.f)});
-
-  std::array<float, 10> sensorThicknesses = {50.e-4, 50.e-4, 50.e-4, 50.e-3, 50.e-3, 50.e-3, 50.e-3, 50.e-3, 50.e-3, 50.e-3};
+  std::array<float, 12> sensorThicknesses = {50.e-4, 50.e-4, 50.e-4, 50.e-4, 50.e-3, 50.e-3, 50.e-3, 50.e-3, 50.e-3, 50.e-3, 50.e-3, 50.e-3};
   its->setStaveModelOB(o2::trk::Detector::kOBModel2);
   // its->createOuterBarrel(false);
 
   auto idLayer{0};
-  for (auto& layerData : tdr5data) {
+  for (auto& layerData : layers) {
     its->defineInnerLayerTRK(idLayer, layerData[0], layerData[1], sensorThicknesses[idLayer], 0, 0);
     ++idLayer;
   }
@@ -171,14 +138,7 @@ void Detector::configITS(Detector* its)
 Detector::Detector(Bool_t active)
   : o2::base::DetImpl<Detector>("TRK", active),
     mTrackData(),
-    /*
-    mHitStarted(false),
-    mTrkStatusStart(),
-    mPositionStart(),
-    mMomentumStart(),
-    mEnergyLoss(),
-    */
-    mNumberOfInnerLayers(10),
+    mNumberOfInnerLayers(12),
     mNumberOfDetectors(-1),
     mModifyGeometry(kFALSE),
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
@@ -186,7 +146,7 @@ Detector::Detector(Bool_t active)
     mStaveModelOuterBarrel(kOBModel0)
 {
 
-  mTotalNumberOfLayers = mNumberOfInnerLayers + (sNumberLayers - sNumberInnerLayers);
+  mTotalNumberOfLayers = mNumberOfInnerLayers;
 
   createAllArrays();
 
