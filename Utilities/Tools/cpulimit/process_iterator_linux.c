@@ -44,10 +44,12 @@ static int get_boot_time()
 static int check_proc()
 {
 	struct statfs mnt;
-	if (statfs("/proc", &mnt) < 0)
+	if (statfs("/proc", &mnt) < 0) {
 		return 0;
-	if (mnt.f_type!=0x9fa0)
+	}
+	if (mnt.f_type!=0x9fa0) {
 		return 0;
+	}
 	return 1;
 }
 
@@ -77,7 +79,9 @@ static int read_process_info(pid_t pid, struct process *p)
 	//read stat file
 	sprintf(statfile, "/proc/%d/stat", p->pid);
 	FILE *fd = fopen(statfile, "r");
-	if (fd==NULL) return -1;
+	if (fd==NULL) {
+		return -1;
+	}
 	if (fgets(buffer, sizeof(buffer), fd)==NULL) {
 		fclose(fd);
 		return -1;
@@ -85,15 +89,19 @@ static int read_process_info(pid_t pid, struct process *p)
 	fclose(fd);
 	char *token = strtok(buffer, " ");
 	int i;
-	for (i=0; i<3; i++) token = strtok(NULL, " ");
-	p->ppid = atoi(token);
-	for (i=0; i<10; i++)
+	for (i=0; i<3; i++) {
 		token = strtok(NULL, " ");
+	}
+	p->ppid = atoi(token);
+	for (i=0; i<10; i++) {
+		token = strtok(NULL, " ");
+	}
 	p->cputime = atoi(token) * 1000 / HZ;
 	token = strtok(NULL, " ");
 	p->cputime += atoi(token) * 1000 / HZ;
-	for (i=0; i<7; i++)
+	for (i=0; i<7; i++) {
 		token = strtok(NULL, " ");
+	}
 	p->starttime = atoi(token) / sysconf(_SC_CLK_TCK);
 	//read command line
 	sprintf(exefile,"/proc/%d/cmdline", p->pid);
@@ -113,7 +121,9 @@ static pid_t getppid_of(pid_t pid)
 	char buffer[1024];
 	sprintf(statfile, "/proc/%d/stat", pid);
 	FILE *fd = fopen(statfile, "r");
-	if (fd==NULL) return -1;
+	if (fd==NULL) {
+		return -1;
+	}
 	if (fgets(buffer, sizeof(buffer), fd)==NULL) {
 		fclose(fd);
 		return -1;
@@ -121,7 +131,9 @@ static pid_t getppid_of(pid_t pid)
 	fclose(fd);
 	char *token = strtok(buffer, " ");
 	int i;
-	for (i=0; i<3; i++) token = strtok(NULL, " ");
+	for (i=0; i<3; i++) {
+		token = strtok(NULL, " ");
+	}
 	return atoi(token);
 }
 
@@ -147,16 +159,21 @@ int get_next_process(struct process_iterator *it, struct process *p)
 		//p->starttime += it->boot_time;
 		closedir(it->dip);
 		it->dip = NULL;
-		if (ret != 0) return -1;
+		if (ret != 0) {
+			return -1;
+		}
 		return 0;
 	}
 	struct dirent *dit = NULL;
 	//read in from /proc and seek for process dirs
 	while ((dit = readdir(it->dip)) != NULL) {
-		if(strtok(dit->d_name, "0123456789") != NULL)
+		if(strtok(dit->d_name, "0123456789") != NULL) {
 			continue;
+		}
 		p->pid = atoi(dit->d_name);
-		if (it->filter->pid != 0 && it->filter->pid != p->pid && !is_child_of(p->pid, it->filter->pid)) continue;
+		if (it->filter->pid != 0 && it->filter->pid != p->pid && !is_child_of(p->pid, it->filter->pid)) {
+			continue;
+		}
 		read_process_info(p->pid, p);
 		//p->starttime += it->boot_time;
 		break;
