@@ -21,7 +21,6 @@
 #include "ITStracking/VertexerTraits.h"
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Constants.h"
-// #include "ITStracking/Definitions.h"
 #include "ITStracking/Tracklet.h"
 
 #include "ITStrackingHIP/DeviceStoreVertexerHIP.h"
