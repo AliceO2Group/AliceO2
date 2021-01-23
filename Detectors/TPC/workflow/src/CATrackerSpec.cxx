@@ -709,17 +709,11 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
     return inputs;
   };
 
-  //o2::framework::InputSpec{"cluster", o2::framework::ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}},
-  //  o2::framework::InputSpec{"digits", o2::framework::ConcreteDataTypeMatcher{"TPC", "DIGITS"}})());
-
   auto createOutputSpecs = [&specconfig, &tpcsectors, &processAttributes]() {
-    std::vector<OutputSpec> outputSpecs{
-      OutputSpec{gDataOriginTPC, "TRACKS", 0, Lifetime::Timeframe},
-      OutputSpec{gDataOriginTPC, "CLUSREFS", 0, Lifetime::Timeframe},
-    };
-    if (!specconfig.outputTracks) {
-      // this case is the less unlikely one, that's why the logic this way
-      outputSpecs.clear();
+    std::vector<OutputSpec> outputSpecs;
+    if (specconfig.outputTracks) {
+      outputSpecs.emplace_back(gDataOriginTPC, "TRACKS", 0, Lifetime::Timeframe);
+      outputSpecs.emplace_back(gDataOriginTPC, "CLUSREFS", 0, Lifetime::Timeframe);
     }
     if (specconfig.processMC && specconfig.outputTracks) {
       outputSpecs.emplace_back(gDataOriginTPC, "TRACKSMCLBL", 0, Lifetime::Timeframe);
