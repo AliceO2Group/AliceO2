@@ -255,6 +255,7 @@ void* GPUTPCGMMerger::SetPointersMerger(void* mem)
   size_t tmpSize = CAMath::Max(mNMaxSingleSliceTracks, 1u) * NSLICES * sizeof(int);
   tmpSize = CAMath::Max(tmpSize, CAMath::nextMultipleOf<4>(mNMaxTracks) * sizeof(int) + mNMaxClusters * sizeof(unsigned int));
   tmpSize = CAMath::Max(tmpSize, 4 * mNMaxTracks * sizeof(int));
+  tmpSize = CAMath::Max(tmpSize, mNMaxTracks * (sizeof(*mRetryRefitIds) + sizeof(*mLoopData)));
   computePointerWithAlignment(mem, mTmpMem, (tmpSize + sizeof(*mTmpMem) - 1) / sizeof(*mTmpMem));
 
   int nTracks = 0;
@@ -265,6 +266,8 @@ void* GPUTPCGMMerger::SetPointersMerger(void* mem)
     mBorderRange[iSlice] = mBorderRangeMemory + 2 * nTracks;
     nTracks += n;
   }
+  mLoopData = (GPUTPCGMLoopData*)mTmpMem;
+  mRetryRefitIds = (unsigned int*)(mLoopData + mNMaxTracks);
   return mem;
 }
 
@@ -276,8 +279,6 @@ void* GPUTPCGMMerger::SetPointersMemory(void* mem)
 
 void* GPUTPCGMMerger::SetPointersRefitScratch(void* mem)
 {
-  computePointerWithAlignment(mem, mRetryRefitIds, mNMaxTracks);
-  computePointerWithAlignment(mem, mLoopData, mNMaxTracks);
   if (mRec->GetProcessingSettings().fullMergerOnGPU) {
     mem = SetPointersRefitScratch2(mem);
   }
