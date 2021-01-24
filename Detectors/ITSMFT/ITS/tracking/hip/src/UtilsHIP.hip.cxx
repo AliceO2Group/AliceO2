@@ -19,7 +19,7 @@
 
 #include <hip/hip_runtime_api.h>
 #include "ITStrackingHIP/ContextHIP.h"
-#include "ITStrackingHIP/utilsHIP.h"
+#include "ITStrackingHIP/UtilsHIP.h"
 
 namespace
 {
