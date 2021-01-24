@@ -25,10 +25,10 @@ struct CPVSimParams : public o2::conf::ConfigurableParamHelper<CPVSimParams> {
   std::string mCCDBPath = "localtest"; ///< use "localtest" to avoid connecting ccdb server, otherwise use ccdb-test.cern.ch
 
   //Parameters used in conversion of deposited energy to APD response
-  int mnCellZ = 128;
-  int mnCellX = 60;
-  float mPadSizeZ = 1.13;       ///<  overall size of CPV active size
-  float mPadSizeX = 2.1093;     ///<  in phi and z directions
+  int mnCellX = 128;
+  int mnCellZ = 60;
+  float mPadSizeX = 1.13;       ///<  overall size of CPV active size
+  float mPadSizeZ = 2.1093;     ///<  in phi and z directions
   float mDetR = 0.1;            ///<  Relative energy fluctuation in track for 100 e-
   float mdEdx = 4.0;            ///<  Average energy loss in CPV;
   int mNgamz = 5;               ///<  Ionization size in Z
