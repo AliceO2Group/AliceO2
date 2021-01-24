@@ -38,7 +38,7 @@ namespace its
 class TrackerDPL : public framework::Task
 {
  public:
-  TrackerDPL(bool isMC, bool async, o2::gpu::GPUDataTypes::DeviceType dType = o2::gpu::GPUDataTypes::DeviceType::CPU); // : mIsMC{isMC} {}
+  TrackerDPL(bool isMC, const std::string& trModeS, o2::gpu::GPUDataTypes::DeviceType dType = o2::gpu::GPUDataTypes::DeviceType::CPU); // : mIsMC{isMC} {}
   ~TrackerDPL() override = default;
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;
@@ -46,7 +46,7 @@ class TrackerDPL : public framework::Task
 
  private:
   bool mIsMC = false;
-  bool mAsyncMode = false;
+  std::string mMode = "sync";
   o2::itsmft::TopologyDictionary mDict;
   std::unique_ptr<o2::gpu::GPUReconstruction> mRecChain = nullptr;
   std::unique_ptr<parameters::GRPObject> mGRP = nullptr;
@@ -57,7 +57,7 @@ class TrackerDPL : public framework::Task
 
 /// create a processor spec
 /// run ITS CA tracker
-framework::DataProcessorSpec getTrackerSpec(bool useMC, bool async, o2::gpu::GPUDataTypes::DeviceType dType);
+framework::DataProcessorSpec getTrackerSpec(bool useMC, const std::string& trModeS, o2::gpu::GPUDataTypes::DeviceType dType);
 
 } // namespace its
 } // namespace o2

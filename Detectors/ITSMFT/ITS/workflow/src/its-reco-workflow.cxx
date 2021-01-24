@@ -31,7 +31,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"do not write output root files"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"trackerCA", o2::framework::VariantType::Bool, false, {"use trackerCA (default: trackerCM)"}},
-    {"async-phase", o2::framework::VariantType::Bool, false, {"perform multiple passes for async. phase reconstruction"}},
+    {"tracking-mode", o2::framework::VariantType::String, "sync", {"sync,async,cosmics"}},
     {"entropy-encoding", o2::framework::VariantType::Bool, false, {"produce entropy encoded data"}},
     {"gpuDevice", o2::framework::VariantType::Int, 1, {"use gpu device: CPU=1,CUDA=2,HIP=3 (default: CPU)"}}};
 
@@ -55,16 +55,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto useCAtracker = configcontext.options().get<bool>("trackerCA");
-  auto async = configcontext.options().get<bool>("async-phase");
+  auto trmode = configcontext.options().get<std::string>("tracking-mode");
   auto gpuDevice = static_cast<o2::gpu::GPUDataTypes::DeviceType>(configcontext.options().get<int>("gpuDevice"));
   auto extDigits = configcontext.options().get<bool>("digits-from-upstream");
   auto extClusters = configcontext.options().get<bool>("clusters-from-upstream");
   auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
   auto eencode = configcontext.options().get<bool>("entropy-encoding");
 
-  if (async && !useCAtracker) {
-    LOG(ERROR) << "Async.mode is not supported by CookedTracker, use --trackerCA";
+  std::transform(trmode.begin(), trmode.end(), trmode.begin(), [](unsigned char c) { return std::tolower(c); });
+  if (trmode != "sync" && !useCAtracker) {
+    LOG(ERROR) << "requested CookedTracker supports only sync tracking-mode, use --trackerCA";
     throw std::runtime_error("incompatible options provided");
   }
-  return std::move(o2::its::reco_workflow::getWorkflow(useMC, useCAtracker, async, gpuDevice, extDigits, extClusters, disableRootOutput, eencode));
+  return std::move(o2::its::reco_workflow::getWorkflow(useMC, useCAtracker, trmode, gpuDevice, extDigits, extClusters, disableRootOutput, eencode));
 }
