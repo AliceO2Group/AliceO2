@@ -70,12 +70,6 @@ void CPVGainCalibDevice::run(o2::framework::ProcessingContext& ctx)
       auto& header = rawreader.getRawHeader();
       auto triggerBC = o2::raw::RDHUtils::getTriggerBC(header);
       auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(header);
-      auto ddl = o2::raw::RDHUtils::getFEEID(header);
-      //
-      if (ddl > o2::cpv::Geometry::kNDDL) { //only 4 correct DDLs
-        LOG(ERROR) << "DDL=" << ddl;
-        continue; //skip STU ddl
-      }
       // use the altro decoder to decode the raw data, and extract the RCU trailer
       o2::cpv::RawDecoder decoder(rawreader);
       RawErrorType_t err = decoder.decode();
