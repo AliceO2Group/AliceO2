@@ -13,6 +13,16 @@ o2_add_dpl_workflow(qatask
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
                     COMPONENT_NAME Analysis)
 
+o2_add_dpl_workflow(qa-efficiency
+                    SOURCES qaTaskEfficiency.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(qa-simple
+                    SOURCES qaTaskSimple.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
+                    COMPONENT_NAME Analysis)
+
 o2_add_dpl_workflow(hf-track-index-skims-creator
                     SOURCES HFTrackIndexSkimsCreator.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing ROOT::EG
