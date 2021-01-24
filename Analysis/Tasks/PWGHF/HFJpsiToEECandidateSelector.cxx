@@ -134,11 +134,9 @@ struct HFJpsiToEECandidateSelector {
     return true;
   }
 
-  /// Check if track is compatible with given TPC Nsigma cut for a given flavour hypothesis
+  /// Check if track is compatible with given TPC Nsigma cut for the electron hypothesis
   /// \param track is the track
-  /// \param nPDG is the flavour hypothesis PDG number
   /// \param nSigmaCut is the nsigma threshold to test against
-  /// \note nPDG=11 electron
   /// \return true if track satisfies TPC PID hypothesis for given Nsigma cut
   template <typename T>
   bool selectionPIDTPC(const T& track, int nSigmaCut)
@@ -148,8 +146,6 @@ struct HFJpsiToEECandidateSelector {
 
   /// PID selection on daughter track
   /// \param track is the daughter track
-  /// \param nPDG is the PDG code of the flavour hypothesis
-  /// \note nPDG=11 electron
   /// \return 1 if successful PID match, 0 if successful PID rejection, -1 if no PID info
   template <typename T>
   int selectionPID(const T& track)
