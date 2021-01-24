@@ -27,13 +27,13 @@ RawErrorType_t RawDecoder::decode()
 {
 
   auto& header = mRawReader.getRawHeader();
-  short ddl = o2::raw::RDHUtils::getFEEID(header);
+  short mod = o2::raw::RDHUtils::getFEEID(header);
   mDigits.clear();
 
   auto payloadwords = mRawReader.getPayload();
   if (payloadwords.size() == 0) {
-    mErrors.emplace_back(ddl, 0, 0, 0, kNO_PAYLOAD); //add error
-    LOG(ERROR) << "Empty payload for DDL=" << ddl;
+    mErrors.emplace_back(mod, 0, 0, 0, kNO_PAYLOAD); //add error
+    LOG(ERROR) << "Empty payload for DDL=" << mod;
     return kNO_PAYLOAD;
   }
 
@@ -56,47 +56,41 @@ RawErrorType_t RawDecoder::readChannels()
 {
   mChannelsInitialized = false;
   auto& header = mRawReader.getRawHeader();
-  short ddl = o2::raw::RDHUtils::getFEEID(header); //Current fee/ddl
+  short mod = o2::raw::RDHUtils::getLinkID(header) + 2; //Current module
 
   auto& payloadwords = mRawReader.getPayload();
   //start reading from the end
   auto currentWord = payloadwords.rbegin();
   while (currentWord != payloadwords.rend()) {
-    SegMarkerWord sw = {*currentWord++};                          //first get value, then increment
-    if (sw.marker != 2736) {                                      //error
-      mErrors.emplace_back(ddl, 17, 2, 0, kSEGMENT_HEADER_ERROR); //add error for non-existing row
+    SegMarkerWord sw = {*currentWord++}; //first get value, then increment
+    if (sw.marker != 2736) {             //error
+      LOG(ERROR) << "Seg. marker word not in place: marker=" << sw.marker << " expected " << 2736 << " word=" << sw.mDataWord;
+      mErrors.emplace_back(mod, 17, 2, 0, kSEGMENT_HEADER_ERROR); //add error for non-existing row
       //try adding this as padWord
-      addDigit(sw.mDataWord, ddl);
+      addDigit(sw.mDataWord, mod);
       continue;
     }
     short nSegWords = sw.nwords;
-    short currentRow = sw.row;
     short nEoE = 0;
     while (nSegWords > 0 && currentWord != payloadwords.rend()) {
       EoEWord ew = {*currentWord++};
+      short currentRow = ew.row;
       nSegWords--;
       if (ew.checkbit != 1) { //error
-        LOG(ERROR) << " error EoE, ddl" << ddl << " row " << currentRow;
-        mErrors.emplace_back(ddl, currentRow, 11, 0, kEOE_HEADER_ERROR); //add error
+        LOG(ERROR) << " error EoE, mod" << mod << " row " << currentRow;
+        mErrors.emplace_back(mod, currentRow, 11, 0, kEOE_HEADER_ERROR); //add error
         //try adding this as padWord
-        addDigit(ew.mDataWord, ddl);
+        addDigit(ew.mDataWord, mod);
         continue;
       }
       nEoE++;
       short nEoEwords = ew.nword;
       short currentDilogic = ew.dilogic;
-      if (ew.row != currentRow) {
-        LOG(ERROR) << "Row in EoE=" << ew.row << " != expected row " << currentRow;
-        mErrors.emplace_back(ddl, currentRow, currentDilogic, 0, kEOE_HEADER_ERROR); //add error
-        //try adding this as padWord
-        addDigit(ew.mDataWord, ddl);
-        continue;
-      }
       if (currentDilogic < 0 || currentDilogic > 10) {
         LOG(ERROR) << "wrong Dilogic in EoE=" << currentDilogic;
-        mErrors.emplace_back(ddl, currentRow, currentDilogic, 0, kEOE_HEADER_ERROR); //add error
+        mErrors.emplace_back(mod, currentRow, currentDilogic, 0, kEOE_HEADER_ERROR); //add error
         //try adding this as padWord
-        addDigit(ew.mDataWord, ddl);
+        addDigit(ew.mDataWord, mod);
         continue;
       }
       while (nEoEwords > 0 && currentWord != payloadwords.rend()) {
@@ -105,16 +99,16 @@ RawErrorType_t RawDecoder::readChannels()
         nSegWords--;
         if (pad.zero != 0) {
           LOG(ERROR) << "bad pad, word=" << pad.mDataWord;
-          mErrors.emplace_back(ddl, currentRow, currentDilogic, 49, kPADERROR); //add error and skip word
+          mErrors.emplace_back(mod, currentRow, currentDilogic, 49, kPADERROR); //add error and skip word
           continue;
         }
         //check paw/pad indexes
         if (pad.row != currentRow || pad.dilogic != currentDilogic) {
           LOG(ERROR) << "RawPad " << pad.row << " != currentRow=" << currentRow << "dilogicPad=" << pad.dilogic << "!= currentDilogic=" << currentDilogic;
-          mErrors.emplace_back(ddl, short(pad.row), short(pad.dilogic), short(pad.address), kPadAddress); //add error and skip word
+          mErrors.emplace_back(mod, short(pad.row), short(pad.dilogic), short(pad.address), kPadAddress); //add error and skip word
           //do not skip, try adding using info from pad
         }
-        addDigit(pad.mDataWord, ddl);
+        addDigit(pad.mDataWord, mod);
       }                                           //pads in EoE
       if (nEoE % 10 == 0) {                       // kNDilogic = 10;   ///< Number of dilogic per row
         if (currentWord != payloadwords.rend()) { //Read row HEader
@@ -122,10 +116,10 @@ RawErrorType_t RawDecoder::readChannels()
           nSegWords--;
           currentRow--;
           if (rw.marker != 13992) {
-            LOG(ERROR) << "Error in row marker:" << rw.marker << "row header word=" << rw.mDataWord;
-            mErrors.emplace_back(ddl, currentRow, 11, 0, kPadAddress); //add error and skip word
+            LOG(ERROR) << "Error in row marker: " << rw.marker << "!=13992, row header word=" << rw.mDataWord;
+            mErrors.emplace_back(mod, currentRow, 11, 0, kPadAddress); //add error and skip word
             //try adding digit assuming this is pad word
-            addDigit(rw.mDataWord, ddl);
+            addDigit(rw.mDataWord, mod);
           }
         }
       }
@@ -151,7 +145,7 @@ const std::vector<uint32_t>& RawDecoder::getDigits() const
   return mDigits;
 }
 
-void RawDecoder::addDigit(uint32_t w, short ddl)
+void RawDecoder::addDigit(uint32_t w, short mod)
 {
 
   PadWord pad = {w};
@@ -162,7 +156,7 @@ void RawDecoder::addDigit(uint32_t w, short ddl)
   short dilogicPad = pad.dilogic;
   short hw = pad.address;
   unsigned short absId;
-  o2::cpv::Geometry::hwaddressToAbsId(ddl, rowPad, dilogicPad, hw, absId);
+  o2::cpv::Geometry::hwaddressToAbsId(mod, rowPad, dilogicPad, hw, absId);
 
   AddressCharge ac = {0};
   ac.Address = absId;

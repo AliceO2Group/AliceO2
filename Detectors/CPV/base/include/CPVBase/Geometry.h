@@ -33,15 +33,15 @@ class Geometry
   static constexpr short kNPAD = 48;
   static constexpr short kNDilogic = 10;
   static constexpr short kNRow = 16;
-  static constexpr short kNDDL = 3;
+  static constexpr short kNMod = 4;
 
   /// Available numbering schems:
   /// relative pad coordinates
-  /// relId[3]={Module, phi col, z row} where Module=1..3, phi col=0..127, z row=0..59
+  /// relId[3]={Module, phi col, z row} where Module=2..4, phi col=0..127, z row=0..59
   /// Absolute pad coordunate
-  /// absId=0..128*60*3=23040
+  /// absId=0..128*60*3-1=23039
   /// Raw addresses:
-  /// DDL corresponds to one module: ddl=Module-1
+  /// DDL corresponds to one module: ddl=Module
   /// each module consist of 16 columns of width 8 pads: row=0..15
   /// Each column consists of 10 dilogics (in z direction) dilogic=0...9
   /// Ecah dilogic contains 8*6 pads: hwaddress=0...48
