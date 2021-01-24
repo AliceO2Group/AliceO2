@@ -34,7 +34,7 @@ if [ $SYNCMODE == 1 ]; then
   TPC_CONFIG_KEY+=" GPU_global.synchronousProcessing=1;"
 fi
 if [ $CTFINPUT == 1 ]; then
-  ITS_CONFIG+=" --async-phase"
+  ITS_CONFIG+=" --tracking-mode async"
 else
   ITS_CONFIG+=" --entropy-encoding"
   TOF_OUTPUT+=",ctf"
