@@ -70,13 +70,13 @@ void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1, std::
         continue;
       }
 
-      // Create ClusterFinder Object on Heap since creation on stack fails
-      // Probably due to too much memory consumption
+      // Fill map and (if specified) correct with existing gain map
       clFinder->fillAndCorrectMap(*sector, i);
 
+      // Find all local maxima in sector
       std::vector<std::tuple<int, int, int>> localMaxima = clFinder->findLocalMaxima();
 
-      // Loop over cluster centers
+      // Loop over cluster centers = local maxima
       for (const std::tuple<int, int, int>& coords : localMaxima) {
         int padMax = std::get<0>(coords);
         int rowMax = std::get<1>(coords);
