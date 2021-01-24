@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file CartesianGPU.h
-/// @author David Rohr
+/// @author David Rohr, Matteo Concas
 
 #ifndef ALICEO2_CARTESIANGPU_H
 #define ALICEO2_CARTESIANGPU_H
@@ -21,6 +21,8 @@
 
 #include <cstddef>
 #include "GPUCommonDef.h"
+#include "GPUCommonMath.h"
+#include "GPUCommonArray.h"
 
 namespace o2::math_utils
 {
@@ -60,8 +62,6 @@ class GPUSVector
   typedef T* iterator;
   typedef const T* const_iterator;
   GPUSVector();
-  //   template <class A>
-  //   SVector(const VecExpr<A, T, D>& rhs);
   GPUSVector(const GPUSVector<T, N>& rhs);
 
  private:
@@ -84,177 +84,179 @@ GPUSVector<T, D>::GPUSVector(const GPUSVector<T, D>& rhs)
   }
 }
 
-// namespace rowOffsetsUtils
-// {
+// utils for SMatrix
+namespace row_offsets_utils
+{
 
-// template <int...>
-// struct indices {
-// };
+template <int...>
+struct indices {
+};
 
-// template <int I, class IndexTuple, int N>
-// struct make_indices_impl;
+template <int I, class IndexTuple, int N>
+struct make_indices_impl;
 
-// template <int I, int... Indices, int N>
-// struct make_indices_impl<I, indices<Indices...>, N> {
-//   typedef typename make_indices_impl<I + 1, indices<Indices..., I>,
-//                                      N>::type type;
-// };
+template <int I, int... Indices, int N>
+struct make_indices_impl<I, indices<Indices...>, N> {
+  typedef typename make_indices_impl<I + 1, indices<Indices..., I>,
+                                     N>::type type;
+};
 
-// template <int N, int... Indices>
-// struct make_indices_impl<N, indices<Indices...>, N> {
-//   typedef indices<Indices...> type;
-// };
+template <int N, int... Indices>
+struct make_indices_impl<N, indices<Indices...>, N> {
+  typedef indices<Indices...> type;
+};
 
-// template <int N>
-// struct make_indices : make_indices_impl<0, indices<>, N> {
-// };
-// // end of stuff
+template <int N>
+struct make_indices : make_indices_impl<0, indices<>, N> {
+};
+// end of stuff
 
-// template <int I0, class F, int... I>
-// constexpr gpustd::array<decltype(std::declval<F>()(std::declval<int>())), sizeof...(I)>
-//   do_make(F f, indices<I...>)
-// {
-//   return gpustd::array<decltype(std::declval<F>()(std::declval<int>())),
-//                     sizeof...(I)>{{f(I0 + I)...}};
-// }
+template <int I0, class F, int... I>
+constexpr gpu::gpustd::array<F, sizeof...(I)>
+do_make(F f, indices<I...>)
+{
+  return gpu::gpustd::array<F,
+                       sizeof...(I)>{{f{I0 + I}...}};
+}
 
-// template <int N, int I0 = 0, class F>
+template <int N, int I0 = 0, class F>
 // constexpr gpustd::array<decltype(std::declval<F>()(std::declval<int>())), N>
-//   make(F f)
-// {
-//   return do_make<I0>(f, typename make_indices<N>::type());
-// }
+constexpr gpu::gpustd::array<F, N> 
+make(F f)
+{
+  return do_make<I0>(f, typename make_indices<N>::type());
+}
 
-// } // namespace rowOffsetsUtils
+} // namespace row_offsets_utils
 
-// template <class T, size_t D>
-// class MatRepSym
-// {
-//  public:
-//   inline MatRepSym() {}
-//   typedef T value_type;
+template <class T, size_t D>
+class MatRepSym
+{
+ public:
+  inline MatRepSym() {}
+  typedef T value_type;
 
-//   inline T& operator()(size_t i, size_t j)
-//   {
-//     return mArray[offset(i, j)];
-//   }
+  inline T& operator()(size_t i, size_t j)
+  {
+    return mArray[offset(i, j)];
+  }
 
-//   inline T const& operator()(size_t i, size_t j) const
-//   {
-//     return mArray[offset(i, j)];
-//   }
+  inline T const& operator()(size_t i, size_t j) const
+  {
+    return mArray[offset(i, j)];
+  }
 
-//   inline T& operator[](size_t i)
-//   {
-//     return mArray[off(i)];
-//   }
+  inline T& operator[](size_t i)
+  {
+    return mArray[off(i)];
+  }
 
-//   inline T const& operator[](size_t i) const
-//   {
-//     return mArray[off(i)];
-//   }
+  inline T const& operator[](size_t i) const
+  {
+    return mArray[off(i)];
+  }
 
-//   inline T apply(size_t i) const
-//   {
-//     return mArray[off(i)];
-//   }
+  inline T apply(size_t i) const
+  {
+    return mArray[off(i)];
+  }
 
-//   inline T* Array() { return mArray; }
+  inline T* Array() { return mArray; }
 
-//   inline const T* Array() const { return mArray; }
+  inline const T* Array() const { return mArray; }
 
-//   /**
-//           assignment : only symmetric to symmetric allowed
-//         */
-//   // template <class R>
-//   // inline MatRepSym<T, D>& operator=(const R&)
-//   // {
-//   //   STATIC_CHECK(0 == 1,
-//   //                Cannot_assign_general_to_symmetric_matrix_representation);
-//   //   return *this;
-//   // }
-//   inline MatRepSym<T, D>& operator=(const MatRepSym& rhs)
-//   {
-//     for (size_t i = 0; i < mSize; ++i)
-//       mArray[i] = rhs.Array()[i];
-//     return *this;
-//   }
+  /**
+          assignment : only symmetric to symmetric allowed
+        */
+  template <class R>
+  inline MatRepSym<T, D>& operator=(const R&)
+  {
+    STATIC_CHECK(0 == 1,
+                 Cannot_assign_general_to_symmetric_matrix_representation);
+    return *this;
+  }
+  inline MatRepSym<T, D>& operator=(const MatRepSym& rhs)
+  {
+    for (size_t i = 0; i < mSize; ++i)
+      mArray[i] = rhs.Array()[i];
+    return *this;
+  }
 
-//   /**
-//           self addition : only symmetric to symmetric allowed
-//         */
-//   // template <class R>
-//   // inline MatRepSym<T, D>& operator+=(const R&)
-//   // {
-//   //   STATIC_CHECK(0 == 1,
-//   //                Cannot_add_general_to_symmetric_matrix_representation);
-//   //   return *this;
-//   // }
-//   inline MatRepSym<T, D>& operator+=(const MatRepSym& rhs)
-//   {
-//     for (size_t i = 0; i < mSize; ++i)
-//       mArray[i] += rhs.Array()[i];
-//     return *this;
-//   }
+  /**
+          self addition : only symmetric to symmetric allowed
+        */
+  // template <class R>
+  // inline MatRepSym<T, D>& operator+=(const R&)
+  // {
+  //   STATIC_CHECK(0 == 1,
+  //                Cannot_add_general_to_symmetric_matrix_representation);
+  //   return *this;
+  // }
+  inline MatRepSym<T, D>& operator+=(const MatRepSym& rhs)
+  {
+    for (size_t i = 0; i < mSize; ++i)
+      mArray[i] += rhs.Array()[i];
+    return *this;
+  }
 
-//   // /**
-//   //         self subtraction : only symmetric to symmetric allowed
-//   //       */
-//   // template <class R>
-//   // inline MatRepSym<T, D>& operator-=(const R&)
-//   // {
-//   //   STATIC_CHECK(0 == 1,
-//   //                Cannot_substract_general_to_symmetric_matrix_representation);
-//   //   return *this;
-//   // }
-//   inline MatRepSym<T, D>& operator-=(const MatRepSym& rhs)
-//   {
-//     for (size_t i = 0; i < mSize; ++i)
-//       mArray[i] -= rhs.Array()[i];
-//     return *this;
-//   }
+  // /**
+  //         self subtraction : only symmetric to symmetric allowed
+  //       */
+  // template <class R>
+  // inline MatRepSym<T, D>& operator-=(const R&)
+  // {
+  //   STATIC_CHECK(0 == 1,
+  //                Cannot_substract_general_to_symmetric_matrix_representation);
+  //   return *this;
+  // }
+  inline MatRepSym<T, D>& operator-=(const MatRepSym& rhs)
+  {
+    for (size_t i = 0; i < mSize; ++i)
+      mArray[i] -= rhs.Array()[i];
+    return *this;
+  }
 
-//   template <class R>
-//   inline bool operator==(const R& rhs) const
-//   {
-//     bool rc = true;
-//     for (size_t i = 0; i < D * D; ++i) {
-//       rc = rc && (operator[](i) == rhs[i]);
-//     }
-//     return rc;
-//   }
+  template <class R>
+  inline bool operator==(const R& rhs) const
+  {
+    bool rc = true;
+    for (size_t i = 0; i < D * D; ++i) {
+      rc = rc && (operator[](i) == rhs[i]);
+    }
+    return rc;
+  }
 
-//   enum {
-//     /// return no. of matrix rows
-//     kRows = D,
-//     /// return no. of matrix columns
-//     kCols = D,
-//     /// return no of elements: rows*columns
-//     mSize = D * (D + 1) / 2
-//   };
+  enum {
+    /// return no. of matrix rows
+    kRows = D,
+    /// return no. of matrix columns
+    kCols = D,
+    /// return no of elements: rows*columns
+    mSize = D * (D + 1) / 2
+  };
 
-//   static constexpr int off0(int i) { return i == 0 ? 0 : off0(i - 1) + i; }
-//   static constexpr int off2(int i, int j) { return j < i ? off0(i) + j : off0(j) + i; }
-//   static constexpr int off1(int i) { return off2(i / D, i % D); }
+  static constexpr int off0(int i) { return i == 0 ? 0 : off0(i - 1) + i; }
+  static constexpr int off2(int i, int j) { return j < i ? off0(i) + j : off0(j) + i; }
+  static constexpr int off1(int i) { return off2(i / D, i % D); }
 
-//   static int off(int i)
-//   {
-//     static constexpr auto v = rowOffsetsUtils::make<D * D>(off1);
-//     return v[i];
-//   }
+  static int off(int i)
+  {
+    static constexpr auto v = row_offsets_utils::make<D * D>(off1);
+    return v[i];
+  }
 
-//   static inline constexpr size_t
-//     offset(size_t i, size_t j)
-//   {
-//     //if (j > i) std::swap(i, j);
-//     return off(i * D + j);
-//     // return (i>j) ? (i * (i+1) / 2) + j :  (j * (j+1) / 2) + i;
-//   }
+  static inline constexpr size_t
+    offset(size_t i, size_t j)
+  {
+    //if (j > i) std::swap(i, j);
+    return off(i * D + j);
+    // return (i>j) ? (i * (i+1) / 2) + j :  (j * (j+1) / 2) + i;
+  }
 
-//  private:
-//   //T __attribute__ ((aligned (16))) mArray[mSize];
-//   T mArray[mSize];
-// };
+ private:
+  //T __attribute__ ((aligned (16))) mArray[mSize];
+  T mArray[mSize];
+};
 
 template <typename T, size_t N>
 using SVector = GPUSVector<T, N>;
