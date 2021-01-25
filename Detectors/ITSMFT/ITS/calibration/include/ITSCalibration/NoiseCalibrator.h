@@ -25,7 +25,7 @@ namespace itsmft
 {
 class CompClusterExt;
 class ROFRecord;
-}
+} // namespace itsmft
 
 namespace its
 {
