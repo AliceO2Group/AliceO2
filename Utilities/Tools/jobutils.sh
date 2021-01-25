@@ -158,9 +158,11 @@ taskwrapper() {
   trap "taskwrapper_cleanup_handler ${PID} SIGTERM" SIGTERM
 
   cpucounter=1
+  inactivitycounter=0   # used to detect periods of inactivity
   NLOGICALCPUS=$(getNumberOfLogicalCPUCores)
 
   reduction_factor=1
+  control_iteration=1
   while [ 1 ]; do
     # We don't like to see critical problems in the log file.
 
@@ -261,29 +263,51 @@ taskwrapper() {
       # And take corrective actions if we extend by 10%
       limitPIDs=""
       unset waslimited
-      if (( $(echo "${totalCPU_unlimited} > 1.1*${JOBUTILS_LIMITLOAD}" | bc -l) )); then
-        # we reduce each pid proportionally for the time until the next check and record the reduction factor in place
-        oldreduction=${reduction_factor}
-        reduction_factor=$(awk -v limit="${JOBUTILS_LIMITLOAD}" -v cur="${totalCPU_unlimited}" 'BEGIN{ print limit/cur;}')
-        echo "APPLYING REDUCTION = ${reduction_factor}"
+      if [ ${JOBUTILS_LIMITLOAD} ]; then
+        if (( $(echo "${totalCPU_unlimited} > 1.1*${JOBUTILS_LIMITLOAD}" | bc -l) )); then
+          # we reduce each pid proportionally for the time until the next check and record the reduction factor in place
+          oldreduction=${reduction_factor}
+          reduction_factor=$(awk -v limit="${JOBUTILS_LIMITLOAD}" -v cur="${totalCPU_unlimited}" 'BEGIN{ print limit/cur;}')
+          echo "APPLYING REDUCTION = ${reduction_factor}"
 
-        for p in $childpids; do
-          cpulim=$(awk -v a="${thisCPU[${p}]}" -v newr="${reduction_factor}" -v oldr="${oldreduction}" 'BEGIN { r=(a/oldr)*newr; print r; if(r > 0.05) {exit 0;} exit 1; }')
-          if [ $? = "0" ]; then
-            # we only apply to jobs above a certain threshold
-            echo "Setting CPU lim for job ${p} / ${name[$p]} to ${cpulim}";
+          for p in $childpids; do
+            cpulim=$(awk -v a="${thisCPU[${p}]}" -v newr="${reduction_factor}" -v oldr="${oldreduction}" 'BEGIN { r=(a/oldr)*newr; print r; if(r > 0.05) {exit 0;} exit 1; }')
+            if [ $? = "0" ]; then
+              # we only apply to jobs above a certain threshold
+              echo "Setting CPU lim for job ${p} / ${name[$p]} to ${cpulim}";
 
-            timeout ${JOBUTILS_WRAPPER_SLEEP} ${O2_ROOT}/share/scripts/cpulimit -l ${cpulim} -p ${p} > /dev/null 2> /dev/null & disown
-            proc=$!
-            limitPIDs="${limitPIDs} ${proc}"
-            waslimited[$p]=1
-          fi
-        done
-      else
-        echo "RESETING REDUCTION = 1"
-        reduction_factor=1.
+              timeout ${JOBUTILS_WRAPPER_SLEEP} ${O2_ROOT}/share/scripts/cpulimit -l ${cpulim} -p ${p} > /dev/null 2> /dev/null & disown
+              proc=$!
+              limitPIDs="${limitPIDs} ${proc}"
+              waslimited[$p]=1
+            fi
+          done
+        else
+          # echo "RESETING REDUCTION = 1"
+          reduction_factor=1.
+        fi
       fi
+
       let cpucounter=cpucounter+1
+      # our condition for inactive
+      if (( $(echo "${totalCPU} < 5" | bc -l) )); then
+        let inactivitycounter=inactivitycounter+JOBUTILS_WRAPPER_SLEEP
+      else
+        inactivitycounter=0
+      fi
+      if [ "${JOBUTILS_JOB_KILLINACTIVE}" ]; then
+        $(awk -v I="${inactivitycounter}" -v T="${JOBUTILS_JOB_KILLINACTIVE}" 'BEGIN {if(I>T){exit 1;} exit 0;}')
+        if [ "$?" = "1" ]; then
+          echo "task inactivity limit reached .. killing all processes";
+          taskwrapper_cleanup $PID SIGKILL
+          # call a more specialized hook for this??
+          if [ "${JOBUTILS_JOB_FAILUREHOOK}" ]; then
+            hook="${JOBUTILS_JOB_FAILUREHOOK} '$command' $logfile"
+            eval "${hook}"
+          fi
+          return 1
+        fi
+      fi
     fi
 
     # a good moment to check for jobs timeout (or other resources)
@@ -303,6 +327,18 @@ taskwrapper() {
 
     # sleep for some time (can be customized for power user)
     sleep ${JOBUTILS_WRAPPER_SLEEP:-10}
+
+    # power feature: we allow to call a user hook at each i-th control
+    # iteration
+    if [ "${JOBUTILS_JOB_PERIODICCONTROLHOOK}" ]; then
+      if [ "${control_iteration}" = "${JOBUTILS_JOB_CONTROLITERS:-10}" ]; then
+        hook="${JOBUTILS_JOB_PERIODICCONTROLHOOK} '$command' $logfile"
+        eval "${hook}"
+        control_iteration=0
+      fi
+    fi
+
+    let control_iteration=control_iteration+1
   done
 
   # wait for PID and fetch return code
