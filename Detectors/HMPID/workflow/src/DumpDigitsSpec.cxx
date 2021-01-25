@@ -68,6 +68,7 @@ void DumpDigitsTask::run(framework::ProcessingContext& pc)
 //      mPDigits = &digits;
 
   for (auto&& input : pc.inputs()) {
+ std::cout << input.spec->binding << std::endl;
     if (input.spec->binding == "digits") {
       const auto* header = o2::header::get<header::DataHeader*>(input.header);
       if (!header) {
