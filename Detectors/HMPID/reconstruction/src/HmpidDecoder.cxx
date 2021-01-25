@@ -813,8 +813,7 @@ void HmpidDecoder::decodePageFast(uint32_t **streamBuf)
           "[" << Column << "]";
     } else {
       if( isPadWord(wp, &pwer, &Column, &Dilogic, &Channel, &Charge) == true) {
-        if( pwer != false) {
-          std::cout << ".";
+        if( pwer != true) {
           setPad(eq, Column - 1, Dilogic - 1, Channel, Charge);
           eq->mSampleNumber++;
         }
