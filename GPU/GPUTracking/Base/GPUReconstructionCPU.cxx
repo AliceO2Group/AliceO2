@@ -308,7 +308,7 @@ int GPUReconstructionCPU::getOMPMaxThreads()
   return omp_get_max_threads();
 }
 
-static std::atomic_flag timerFlag; // TODO: Should be a class member not global, but cannot be moved to header due to ROOT limitation
+static std::atomic_flag timerFlag = ATOMIC_FLAG_INIT; // TODO: Should be a class member not global, but cannot be moved to header due to ROOT limitation
 
 GPUReconstructionCPU::timerMeta* GPUReconstructionCPU::insertTimer(unsigned int id, std::string&& name, int J, int num, int type, RecoStep step)
 {
@@ -323,6 +323,8 @@ GPUReconstructionCPU::timerMeta* GPUReconstructionCPU::insertTimer(unsigned int 
       name += std::to_string(J);
     }
     mTimers[id].reset(new timerMeta{std::unique_ptr<HighResTimer[]>{new HighResTimer[num]}, name, num, type, 1u, step, (size_t)0});
+  } else {
+    mTimers[id]->count++;
   }
   timerMeta* retVal = mTimers[id].get();
   timerFlag.clear();
