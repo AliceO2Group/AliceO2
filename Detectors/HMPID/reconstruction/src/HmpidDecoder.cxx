@@ -408,7 +408,7 @@ int HmpidDecoder::decodeHeader(uint32_t *streamPtrAdr, int *EquipIndex)
       mHeCruID << " DW=" << mHeDW << " BC=" << mHeBCDI << " ORBIT=" << mHeORBIT;
   LOG(INFO) << "      TType=" << mHeTType << " HeStop=" << mHeStop << " PagesCounter=" << mHePageNum << " FirmVersion=" << \
       mHeFirmwareVersion << " BusyTime=" << mHeBusy << " Error=" << mHeHmpidError << " PAR=" << mHePAR;
-  LOG(INFO) << "      Payload :  Words to read=" << mNumberWordToRead << " PailoadTail=" << mPayloadTail;
+  LOG(INFO) << "      EquIdx = "<<*EquipIndex<< " Event = "<< mHeEvent<< " Payload :  Words to read=" << mNumberWordToRead << " PailoadTail=" << mPayloadTail;
 
   if (*EquipIndex == -1) {
     LOG(ERROR) << "ERROR ! Bad equipment Number: " << mEquipment;
