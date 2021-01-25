@@ -63,7 +63,7 @@ void DumpDigitsTask::run(framework::ProcessingContext& pc)
 {
 
   LOG(INFO) << "[HMPID Dump Digits - run] Dumping ...";
-
+return;
   auto digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>("digits");
 //  const std::vector<o2::hmpid::Digit>* mPDigits = &digits;
   std::cout << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
