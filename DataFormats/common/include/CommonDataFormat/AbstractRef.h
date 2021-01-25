@@ -70,8 +70,6 @@ class AbstractRef
 
   Base_t getRaw() const { return mRef; }
 
-  operator Base_t() const { return mRef; }
-
  protected:
   Base_t mRef = 0; // packed reference
 
