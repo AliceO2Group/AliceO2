@@ -150,7 +150,7 @@ class HmpidDecoder
   public:
     bool decodeHmpidError(int ErrorField, char *outbuf);
     void dumpHmpidError(int ErrorField);
-    bool isPadWord(uint32_t wp, int *Err, int *Col, int *Dilogic, int *Channel, int *Charge);
+    bool isPadWord(uint32_t wp, bool *Err, int *Col, int *Dilogic, int *Channel, int *Charge);
     int decodeHeader(uint32_t *streamPtrAdr, int *EquipIndex);
     HmpidEquipment* evaluateHeaderContents(int EquipmentIndex);
     void updateStatistics(HmpidEquipment *eq);
