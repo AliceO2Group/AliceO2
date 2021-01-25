@@ -83,7 +83,7 @@ bool HmpidDecodeRawMem::setUpStream(void *Buffer, long BufferLen)
   mActualStreamPtr = (uint32_t*) Buffer; // sets the pointer to the Buffer
   mEndStreamPtr = ((uint32_t*) Buffer) + wordsBufferLen; //sets the End of buffer
   mStartStreamPtr = ((uint32_t*) Buffer);
-  std::cout << " setUpStrem : StPtr=" << mStartStreamPtr << " EndPtr=" << mEndStreamPtr << " Len=" << wordsBufferLen << std::endl;
+//  std::cout << " setUpStrem : StPtr=" << mStartStreamPtr << " EndPtr=" << mEndStreamPtr << " Len=" << wordsBufferLen << std::endl;
   return (true);
 }
 
@@ -96,7 +96,6 @@ bool HmpidDecodeRawMem::getBlockFromStream(uint32_t **streamPtr, uint32_t Size)
 {
   *streamPtr = mActualStreamPtr;
   mActualStreamPtr += Size;
-  std::cout << ".";
   if (mActualStreamPtr > mEndStreamPtr) {
 //    std::cout << " getBlockFromStream : StPtr=" << mActualStreamPtr << " EndPtr=" << mEndStreamPtr << " Len=" << Size << std::endl;
 //    std::cout << "Beccato " << std::endl;
