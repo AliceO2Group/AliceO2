@@ -414,6 +414,7 @@ int HmpidDecoder::decodeHeader(uint32_t *streamPtrAdr, int *EquipIndex)
     LOG(ERROR) << "ERROR ! Bad equipment Number: " << mEquipment;
     throw TH_WRONGEQUIPINDEX;
   }
+  std::cout << "HMPID ! Exit decode header" << std::endl;
   return (true);
 }
 
