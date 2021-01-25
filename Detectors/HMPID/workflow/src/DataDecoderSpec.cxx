@@ -58,8 +58,10 @@ using RDH = o2::header::RDHAny;
 // Data decoder
 void DataDecoderTask::init(framework::InitContext& ic)
 {
-    mDeco = new o2::hmpid::HmpidDecodeRawDigit(Geo::MAXEQUIPMENTS);
-    mDeco->init();
+
+  LOG(INFO) << "[HMPID Data Decoder - Init] ( create Decoder for " << Geo::MAXEQUIPMENTS << " equipments !";
+  mDeco = new o2::hmpid::HmpidDecodeRawDigit(Geo::MAXEQUIPMENTS);
+  mDeco->init();
 
 
     return;
