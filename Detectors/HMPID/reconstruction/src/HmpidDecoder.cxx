@@ -402,11 +402,11 @@ int HmpidDecoder::decodeHeader(uint32_t *streamPtrAdr, int *EquipIndex)
   // ---- Event ID  : Actualy based on ORBIT NUMBER and BC
   mHeEvent = (mHeORBIT<<12) | mHeBCDI;
 
-  LOG(INFO) << "FEE-ID=" << mHeFEEID << " HeSize=" <<  mHeSize << " HePrior=" << mHePrior << " Det.Id=" << mHeDetectorID <<\
+  LOG(DEBUG) << "FEE-ID=" << mHeFEEID << " HeSize=" <<  mHeSize << " HePrior=" << mHePrior << " Det.Id=" << mHeDetectorID <<\
       " HeMemorySize=" << mHeMemorySize << " HeOffsetNewPack=" << mHeOffsetNewPack;
-  LOG(INFO) << "      Equipment=" << mEquipment << " PakCounter=" <<  mHePackNum << " Link=" << mHeLinkNum << " CruID=" << \
+  LOG(DEBUG) << "      Equipment=" << mEquipment << " PakCounter=" <<  mHePackNum << " Link=" << mHeLinkNum << " CruID=" << \
       mHeCruID << " DW=" << mHeDW << " BC=" << mHeBCDI << " ORBIT=" << mHeORBIT;
-  LOG(INFO) << "      TType=" << mHeTType << " HeStop=" << mHeStop << " PagesCounter=" << mHePageNum << " FirmVersion=" << \
+  LOG(DEBUG) << "      TType=" << mHeTType << " HeStop=" << mHeStop << " PagesCounter=" << mHePageNum << " FirmVersion=" << \
       mHeFirmwareVersion << " BusyTime=" << mHeBusy << " Error=" << mHeHmpidError << " PAR=" << mHePAR;
   LOG(INFO) << "      EquIdx = "<<*EquipIndex<< " Event = "<< mHeEvent<< " Payload :  Words to read=" << mNumberWordToRead << " PailoadTail=" << mPayloadTail;
 
@@ -414,7 +414,7 @@ int HmpidDecoder::decodeHeader(uint32_t *streamPtrAdr, int *EquipIndex)
     LOG(ERROR) << "ERROR ! Bad equipment Number: " << mEquipment;
     throw TH_WRONGEQUIPINDEX;
   }
-  std::cout << "HMPID ! Exit decode header" << std::endl;
+ // std::cout << "HMPID ! Exit decode header" << std::endl;
   return (true);
 }
 
@@ -444,7 +444,7 @@ void HmpidDecoder::updateStatistics(HmpidEquipment *eq)
 /// @returns the Pointer to the modified Equipment object
 HmpidEquipment* HmpidDecoder::evaluateHeaderContents(int EquipmentIndex)
 {
-  std::cout << "Enter evaluateHeaderContents..";
+  //std::cout << "Enter evaluateHeaderContents..";
   HmpidEquipment *eq = mTheEquipments[EquipmentIndex];
   if (mHeEvent != eq->mEventNumber) { // Is a new event
     if (eq->mEventNumber != -1) { // skip the first
@@ -463,7 +463,7 @@ HmpidEquipment* HmpidDecoder::evaluateHeaderContents(int EquipmentIndex)
     dumpHmpidError(mHeHmpidError);
     eq->setError(ERR_HMPID);
   }
-  std::cout << ".. end evaluateHeaderContents = " << eq->mEventNumber << std::endl;
+ // std::cout << ".. end evaluateHeaderContents = " << eq->mEventNumber << std::endl;
   return (eq);
 }
 
