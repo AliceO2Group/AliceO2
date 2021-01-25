@@ -15,7 +15,7 @@
 #include "DetectorsVertexingCUDA/SVertexer.h"
 #endif
 
-// #include "MathUtils/CartesianGPU.h"
+#include "GPUROOTSMatrix.h"
 // #include "DetectorsVertexing/DCAFitterN.h" // <- target
 // #include "DetectorsVertexing/HelixHelper.h"
 // #include "ReconstructionDataFormats/Track.h"
@@ -25,11 +25,12 @@ namespace o2
 namespace vertexing
 {
 namespace gpu
-{ 
+{
 // Kernels
 GPUg() void helloKernel()
 {
   //  o2::vertexing::DCAFitterN<2> mFitter2Prong;
+  int arr[3] = {1, 2, 3};
   printf("Hello World from GPU!\n");
 }
 
@@ -41,4 +42,4 @@ void hello_util()
 }
 
 } // namespace vertexing
-}
+} // namespace o2

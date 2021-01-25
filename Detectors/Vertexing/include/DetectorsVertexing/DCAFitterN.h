@@ -19,7 +19,7 @@
 #include "ReconstructionDataFormats/Track.h"
 #include "DetectorsVertexing/HelixHelper.h"
 #include "GPUCommonArray.h"
-#include "MathUtils/CartesianGPU.h"
+#include "GPUROOTSMatrix.h"
 
 using namespace o2::gpu;
 
