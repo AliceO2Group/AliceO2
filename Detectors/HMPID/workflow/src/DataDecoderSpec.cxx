@@ -70,8 +70,8 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
   mDeco->mDigits.clear();
 
   decodeTF(pc);
-  decodeReadout(pc);
-  decodeRawFile(pc);
+//  decodeReadout(pc);
+//  decodeRawFile(pc);
 
 
   LOG(INFO) << "[HMPID Data Decoder - run] Writing " << mDeco->mDigits.size() << " Digits ...";
