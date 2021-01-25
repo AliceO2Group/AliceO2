@@ -60,6 +60,8 @@ void DataDecoderTask::init(framework::InitContext& ic)
 {
 
   LOG(INFO) << "[HMPID Data Decoder - Init] ( create Decoder for " << Geo::MAXEQUIPMENTS << " equipments !";
+  std::cout << "[HMPID Data Decoder - Init] ( create Decoder for " << Geo::MAXEQUIPMENTS << " equipments !" << std::endl;
+
   mDeco = new o2::hmpid::HmpidDecodeRawDigit(Geo::MAXEQUIPMENTS);
   mDeco->init();
 
@@ -77,6 +79,8 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
 
 
   LOG(INFO) << "[HMPID Data Decoder - run] Writing " << mDeco->mDigits.size() << " Digits ...";
+  std::cout << "[HMPID Data Decoder - run] Writing " << mDeco->mDigits.size() << " Digits ..." << std::endl;
+
   pc.outputs().snapshot(o2::framework::Output{"HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mDigits);
 
 
@@ -142,6 +146,7 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
 void DataDecoderTask::decodeTF(framework::ProcessingContext& pc)
 {
   LOG(INFO) << "*********** In decodeTF **************";
+  std::cout << "*********** In decodeTF **************" << std::endl;
 
 
   // get the input buffer
@@ -152,6 +157,7 @@ void DataDecoderTask::decodeTF(framework::ProcessingContext& pc)
     uint32_t *theBuffer = (uint32_t *)it.raw();
     mDeco->setUpStream(theBuffer, it.size()+it.offset());
     mDeco->decodePageFast(&theBuffer);
+    std::cout << "." ;
   }
   return;
 }
