@@ -85,9 +85,10 @@ void DumpDigitsTask::run(framework::ProcessingContext& pc)
 //        std::cout << Dig << std::endl;
 //      }
 
- */
+
       std::cout << "---------------- HMP Dump Digits : EOF ------------------" << std::endl;
     }
+    */
   }
 
 
