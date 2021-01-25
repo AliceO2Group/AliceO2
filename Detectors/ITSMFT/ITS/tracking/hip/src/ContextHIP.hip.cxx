@@ -43,7 +43,7 @@ namespace its
 namespace gpu
 {
 
-using Utils::HostHIP::checkHIPError;
+using utils::host_hip::checkHIPError;
 
 ContextHIP::ContextHIP(bool dumpDevices)
 {

@@ -84,8 +84,8 @@ UniquePointer<DeviceStoreVertexerHIP> DeviceStoreVertexerHIP::initialise(const s
   mIndexTables[0].reset(indexTables[0].data(), static_cast<int>(indexTables[0].size()));
   mIndexTables[1].reset(indexTables[2].data(), static_cast<int>(indexTables[2].size()));
 
-  const dim3 threadsPerBlock{Utils::HostHIP::getBlockSize(mClusters[1].capacity())};
-  const dim3 blocksGrid{Utils::HostHIP::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
+  const dim3 threadsPerBlock{utils::host_hip::getBlockSize(mClusters[1].capacity())};
+  const dim3 blocksGrid{utils::host_hip::getBlocksGrid(threadsPerBlock, mClusters[1].capacity())};
 
   UniquePointer<DeviceStoreVertexerHIP> deviceStoreVertexerPtr{*this};
 
