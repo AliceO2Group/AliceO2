@@ -83,7 +83,7 @@ bool HmpidDecodeRawMem::setUpStream(void *Buffer, long BufferLen)
   mActualStreamPtr = (uint32_t*) Buffer; // sets the pointer to the Buffer
   mEndStreamPtr = ((uint32_t*) Buffer) + wordsBufferLen; //sets the End of buffer
   mStartStreamPtr = ((uint32_t*) Buffer);
-
+  std::cout << " setUpStrem : StPtr=" << mStartStreamPtr << " EndPtr=" << mEndStreamPtr << " Len=" << wordsBufferLen << std::endl;
   return (true);
 }
 
