@@ -64,6 +64,9 @@ void DumpDigitsTask::run(framework::ProcessingContext& pc)
 
   LOG(INFO) << "[HMPID Dump Digits - run] Dumping ...";
 
+//  auto digits = pc.inputs().get<OutputType>("digits");
+//      mPDigits = &digits;
+
   for (auto&& input : pc.inputs()) {
     if (input.spec->binding == "DIGITS") {
       const auto* header = o2::header::get<header::DataHeader*>(input.header);
@@ -91,13 +94,13 @@ o2::framework::DataProcessorSpec getDumpDigitsSpec(std::string inputSpec)
 {
   
   std::vector<o2::framework::InputSpec> inputs;
-  inputs.emplace_back("DIGITS", o2::header::gDataOriginHMP, "DIGITS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("digits", o2::header::gDataOriginHMP, "DIGITS", 0, Lifetime::Timeframe);
 
   std::vector<o2::framework::OutputSpec> outputs;
 
   
   return DataProcessorSpec{
-    "HMP-DataDecoder",
+    "HMP-DigitsDump",
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<DumpDigitsTask>()},
