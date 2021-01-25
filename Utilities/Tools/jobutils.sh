@@ -24,7 +24,7 @@ o2_cleanup_shm_files() {
   which lsof &> /dev/null
   if [ "$?" = "0" ]; then
     # find shared memory files **CURRENTLY IN USE** by FairMQ
-    USEDFILES=`lsof -u $(whoami) | grep -e \"/dev/shm/.*fmq\" | sed 's/.*\/dev/\/dev/g' | sort | uniq | tr '\n' ' '`
+    USEDFILES=`lsof -u $(whoami) 2> /dev/null | grep -e \"/dev/shm/.*fmq\" | sed 's/.*\/dev/\/dev/g' | sort | uniq | tr '\n' ' '`
 
     echo "${USEDFILES}"
     if [ ! "${USEDFILES}" ]; then
