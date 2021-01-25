@@ -156,7 +156,6 @@ class HmpidDecoder
     void updateStatistics(HmpidEquipment *eq);
   protected:
     virtual void setPad(HmpidEquipment *eq, int col, int dil, int ch, int charge) = 0;
-
     virtual bool getBlockFromStream(uint32_t **streamPtr, uint32_t Size) = 0;
     virtual bool getHeaderFromStream(uint32_t **streamPtr) = 0;
     virtual bool getWordFromStream(uint32_t *word) = 0;

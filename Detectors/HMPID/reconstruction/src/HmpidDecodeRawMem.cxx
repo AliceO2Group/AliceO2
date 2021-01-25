@@ -135,6 +135,7 @@ bool HmpidDecodeRawMem::getWordFromStream(uint32_t *word)
 void HmpidDecodeRawMem::setPad(HmpidEquipment *eq, int col, int dil, int ch, int charge)
 {
   eq->setPad(col, dil, ch, charge);
+  std::cout << ":";
   return;
 }
 
