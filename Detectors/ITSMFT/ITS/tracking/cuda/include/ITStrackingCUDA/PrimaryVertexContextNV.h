@@ -36,7 +36,7 @@ class PrimaryVertexContextNV final : public PrimaryVertexContext
 {
  public:
   PrimaryVertexContextNV() = default;
-  virtual ~PrimaryVertexContextNV() = default;
+  ~PrimaryVertexContextNV() override;
 
   void initialise(const MemoryParameters& memParam, const TrackingParameters& trkParam,
                   const std::vector<std::vector<Cluster>>& cl, const std::array<float, 3>& pv, const int iteration) override;
@@ -61,6 +61,8 @@ class PrimaryVertexContextNV final : public PrimaryVertexContext
   std::array<gpu::Vector<Tracklet>, constants::its2::CellsPerRoad> mTempTrackletArray;
   std::array<gpu::Vector<Cell>, constants::its2::CellsPerRoad - 1> mTempCellArray;
 };
+
+inline PrimaryVertexContextNV::~PrimaryVertexContextNV() = default;
 
 inline gpu::DeviceStoreNV& PrimaryVertexContextNV::getDeviceContext()
 {
