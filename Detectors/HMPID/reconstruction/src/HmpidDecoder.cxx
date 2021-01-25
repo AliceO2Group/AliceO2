@@ -444,6 +444,7 @@ void HmpidDecoder::updateStatistics(HmpidEquipment *eq)
 /// @returns the Pointer to the modified Equipment object
 HmpidEquipment* HmpidDecoder::evaluateHeaderContents(int EquipmentIndex)
 {
+  std::cout << "Enter evaluateHeaderContents..";
   HmpidEquipment *eq = mTheEquipments[EquipmentIndex];
   if (mHeEvent != eq->mEventNumber) { // Is a new event
     if (eq->mEventNumber != -1) { // skip the first
@@ -458,10 +459,11 @@ HmpidEquipment* HmpidDecoder::evaluateHeaderContents(int EquipmentIndex)
   }
   eq->mEventSize += mNumberWordToRead * sizeof(uint32_t); // Calculate the size in bytes
   if (mHeHmpidError != 0) {
-    LOG(ERROR) << "HMPID Header reports an error : " << mHeHmpidError;
+    LOG(INFO) << "HMPID Header reports an error : " << mHeHmpidError;
     dumpHmpidError(mHeHmpidError);
     eq->setError(ERR_HMPID);
   }
+  std::cout << ".. end evaluateHeaderContents = " << eq->mEventNumber << std::endl;
   return (eq);
 }
 
