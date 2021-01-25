@@ -76,7 +76,7 @@ void DumpDigitsTask::run(framework::ProcessingContext& pc)
       }
       std::vector<o2::hmpid::Digit>*theDigits = (std::vector<o2::hmpid::Digit>*)input.payload;
       std::cout << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
-      for(o2::hmpid::Digit Dig : *theDigits) {
+      for(o2::hmpid::Digit Dig : theDigits) {
         std::cout << Dig << std::endl;
       }
       std::cout << "---------------- HMP Dump Digits : EOF ------------------" << std::endl;
