@@ -544,6 +544,10 @@ void GPUReconstruction::AllocateRegisteredMemoryInternal(GPUMemoryResource* res,
       if (res->mType & GPUMemoryResource::MEMORY_STACK) {
         mNonPersistentIndividualAllocations.emplace_back(res);
       }
+      if ((size_t)res->mPtr % GPUCA_BUFFER_ALIGNMENT) {
+        GPUError("Got buffer with insufficient alignment");
+        throw std::bad_alloc();
+      }
     }
   } else {
     if (res->mPtr != nullptr) {
@@ -557,7 +561,7 @@ void GPUReconstruction::AllocateRegisteredMemoryInternal(GPUMemoryResource* res,
       if (control && control->useExternal()) {
         if (control->allocator) {
           res->mSize = std::max((size_t)res->SetPointers((void*)1) - 1, res->mOverrideSize);
-          res->mPtr = control->allocator(res->mSize);
+          res->mPtr = control->allocator(CAMath::nextMultipleOf<GPUCA_BUFFER_ALIGNMENT>(res->mSize));
           res->mSize = std::max<size_t>((char*)res->SetPointers(res->mPtr) - (char*)res->mPtr, res->mOverrideSize);
         } else {
           void* dummy = nullptr;
@@ -565,6 +569,10 @@ void GPUReconstruction::AllocateRegisteredMemoryInternal(GPUMemoryResource* res,
         }
       } else {
         res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, recPool->mHostMemoryPool, recPool->mHostMemoryBase, recPool->mHostMemorySize, &GPUMemoryResource::SetPointers, recPool->mHostMemoryPoolEnd);
+      }
+      if ((size_t)res->mPtr % GPUCA_BUFFER_ALIGNMENT) {
+        GPUError("Got buffer with insufficient alignment");
+        throw std::bad_alloc();
       }
     }
     if (IsGPU() && (res->mType & GPUMemoryResource::MEMORY_GPU)) {
@@ -578,6 +586,10 @@ void GPUReconstruction::AllocateRegisteredMemoryInternal(GPUMemoryResource* res,
         res->mSize = size;
       } else if (size != res->mSize) {
         GPUError("Inconsistent device memory allocation (%s: device %lu vs %lu)", res->mName, size, res->mSize);
+        throw std::bad_alloc();
+      }
+      if ((size_t)res->mPtrDevice % GPUCA_BUFFER_ALIGNMENT) {
+        GPUError("Got buffer with insufficient alignment");
         throw std::bad_alloc();
       }
     }
