@@ -61,6 +61,8 @@ mkdir -p raw
 taskwrapper itsraw.log o2-its-digi2raw --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/ITS
 taskwrapper mftraw.log o2-mft-digi2raw --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/MFT
 taskwrapper ft0raw.log o2-ft0-digi2raw --file-per-link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/FT0
+taskwrapper fv0raw.log o2-fv0-digi2raw --file-per-link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/FV0
+taskwrapper fddraw.log o2-fdd-digit2raw --file-per-link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/FDD
 taskwrapper tpcraw.log o2-tpc-digits-to-rawzs  --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -i tpcdigits.root -o raw/TPC
 taskwrapper tofraw.log o2-tof-reco-workflow ${GLOBALDPLOPT} --tof-raw-file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' --output-type raw --tof-raw-outdir raw/TOF
 taskwrapper midraw.log o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --mid-raw-perlink  --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"'
