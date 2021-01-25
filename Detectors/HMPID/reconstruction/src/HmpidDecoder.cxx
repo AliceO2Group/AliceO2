@@ -800,7 +800,7 @@ void HmpidDecoder::decodePageFast(uint32_t **streamBuf)
   uint32_t wp = 0;
   int newOne = true;
   int Column, Dilogic, Channel, Charge;
-  bool pwer;
+  int pwer;
 
   int payIndex = 0;
   while (payIndex < mNumberWordToRead) {  //start the payload loop word by word
