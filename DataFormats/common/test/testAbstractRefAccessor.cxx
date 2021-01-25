@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(AbstractRefAccess)
     auto gid = vid[i];
     const auto& obj = acc.get(gid);
     int expect = gid.getSource() * 100 + i / GloIdx::NSources;
-    LOG(INFO) << i << " ? " << obj.b << " == " << expect << " for " << gid;
+    LOG(INFO) << i << " ? " << obj.b << " == " << expect << " for " << gid.getRaw();
     BOOST_CHECK(obj.b == expect);
   }
 

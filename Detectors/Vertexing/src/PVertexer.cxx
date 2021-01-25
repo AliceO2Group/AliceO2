@@ -35,7 +35,7 @@ int PVertexer::process(gsl::span<const o2d::TrackTPCITS> tracksITSTPC, gsl::span
   dbscan_clusterize();
 
   std::vector<PVertex> verticesLoc;
-  std::vector<int> vertexTrackIDsLoc;
+  std::vector<GTrackID> vertexTrackIDsLoc;
   std::vector<V2TRef> v2tRefsLoc;
   std::vector<float> validationTimes;
 
@@ -87,7 +87,7 @@ int PVertexer::process(gsl::span<const o2d::TrackTPCITS> tracksITSTPC, gsl::span
     vertices.push_back(vtx);
     int it = v2tRefsLoc[i].getFirstEntry(), itEnd = it + v2tRefsLoc[i].getEntries(), dest0 = vertexTrackIDs.size();
     for (; it < itEnd; it++) {
-      auto& gid = vertexTrackIDs.emplace_back(vertexTrackIDsLoc[it], GIndex::ITSTPC);
+      auto& gid = vertexTrackIDs.emplace_back(vertexTrackIDsLoc[it]);
       gid.setPVContributor();
     }
     v2tRefs.emplace_back(dest0, v2tRefsLoc[i].getEntries());
@@ -110,7 +110,7 @@ int PVertexer::process(gsl::span<const o2d::TrackTPCITS> tracksITSTPC, gsl::span
 }
 
 //______________________________________________
-int PVertexer::findVertices(const VertexingInput& input, std::vector<PVertex>& vertices, std::vector<int>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs)
+int PVertexer::findVertices(const VertexingInput& input, std::vector<PVertex>& vertices, std::vector<GTrackID>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs)
 {
   // find vertices using tracks with indices (sorted in time) from idRange from "tracks" pool. The pool may containt arbitrary number of tracks,
   // only those which are in the idRange and have canUse()==true, will be used.
@@ -439,7 +439,7 @@ void PVertexer::init()
 
 //___________________________________________________________________
 void PVertexer::finalizeVertex(const VertexingInput& input, const PVertex& vtx,
-                               std::vector<PVertex>& vertices, std::vector<V2TRef>& v2tRefs, std::vector<int>& vertexTrackIDs,
+                               std::vector<PVertex>& vertices, std::vector<V2TRef>& v2tRefs, std::vector<GTrackID>& vertexTrackIDs,
                                SeedHisto& histo)
 {
   int lastID = vertices.size();
@@ -477,7 +477,7 @@ void PVertexer::createTracksPool(gsl::span<const o2d::TrackTPCITS> tracksITSTPC)
         dca.getY() * dca.getY() / (dca.getSigmaY2() + vtxErr2) > mPVParams->pullIniCut) {
       continue;
     }
-    auto& tvf = mTracksPool.emplace_back(trc, tracksITSTPC[i].getTimeMUS(), i, 0);
+    auto& tvf = mTracksPool.emplace_back(trc, tracksITSTPC[i].getTimeMUS(), GTrackID{i, o2::dataformats::GlobalTrackID::ITSTPC});
     mStatZErr.add(std::sqrt(trc.getSigmaZ2()));
     mStatTErr.add(tvf.timeEst.getTimeStampError());
   }

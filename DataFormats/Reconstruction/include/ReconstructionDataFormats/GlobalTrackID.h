@@ -55,7 +55,7 @@ class GlobalTrackID : public AbstractRef<25, 4, 3>
   void print() const;
   std::string asString() const;
 
-  operator auto() const { return AbstractRef<25, 4, 3>(); }
+  operator int() const { return int(getIndex()); }
 
   ClassDefNV(GlobalTrackID, 1);
 };

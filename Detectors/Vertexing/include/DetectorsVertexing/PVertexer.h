@@ -70,7 +70,7 @@ class PVertexer
   }
   float getTukey() const;
 
-  void finalizeVertex(const VertexingInput& input, const PVertex& vtx, std::vector<PVertex>& vertices, std::vector<V2TRef>& v2tRefs, std::vector<int>& vertexTrackIDs, SeedHisto& histo);
+  void finalizeVertex(const VertexingInput& input, const PVertex& vtx, std::vector<PVertex>& vertices, std::vector<V2TRef>& v2tRefs, std::vector<GTrackID>& vertexTrackIDs, SeedHisto& histo);
   bool setCompatibleIR(PVertex& vtx);
 
   void setBunchFilling(const o2::BunchFilling& bf);
@@ -107,7 +107,7 @@ class PVertexer
   void applyConstraint(VertexSeed& vtxSeed) const;
   bool upscaleSigma(VertexSeed& vtxSeed) const;
   void createTracksPool(gsl::span<const o2d::TrackTPCITS> tracksITSTPC);
-  int findVertices(const VertexingInput& input, std::vector<PVertex>& vertices, std::vector<int>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs);
+  int findVertices(const VertexingInput& input, std::vector<PVertex>& vertices, std::vector<GTrackID>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs);
   std::pair<int, int> getBestFT0Trigger(const PVertex& vtx, gsl::span<const o2::ft0::RecPoints> ft0Data, int& currEntry) const;
 
   int dbscan_RangeQuery(int idxs, std::vector<int>& cand, const std::vector<int>& status);

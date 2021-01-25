@@ -16,7 +16,7 @@ using namespace o2::dataformats;
 void TrackTPCITS::print() const
 {
   printf("TPCref: %6d ITSref: %6d\nChi2Refit: %6.2f Chi2Matc: %6.2f Time: %10.4f+-%10.4f mus\n",
-         mRefTPC, mRefITS, getChi2Refit(), getChi2Match(),
+         mRefTPC.getIndex(), mRefITS.getIndex(), getChi2Refit(), getChi2Match(),
          mTimeMUS.getTimeStamp(), mTimeMUS.getTimeStampError());
   printf("Inner param: ");
   o2::track::TrackParCov::print();

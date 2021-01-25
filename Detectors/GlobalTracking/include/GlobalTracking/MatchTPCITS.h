@@ -30,6 +30,7 @@
 #include "DetectorsBase/Propagator.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "MathUtils/Primitive2D.h"
 #include "CommonDataFormat/EvIndex.h"
 #include "CommonDataFormat/InteractionRecord.h"
@@ -551,7 +552,7 @@ class MatchTPCITS
     }
     int rof = tbin > 0 ? tbin * mTPCBin2ITSROFrame : 0;
     // the rof is estimated continuous counter but the actual bins might have gaps (e.g. HB rejects etc)-> use mapping
-    return rof < mITSTrackROFContMapping.size() ? mITSTrackROFContMapping[rof] : mITSTrackROFContMapping.back();
+    return rof < int(mITSTrackROFContMapping.size()) ? mITSTrackROFContMapping[rof] : mITSTrackROFContMapping.back();
   }
 
   ///< convert ITS ROFrame to TPC time bin units // TOREMOVE
