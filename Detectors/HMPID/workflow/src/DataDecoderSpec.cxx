@@ -173,7 +173,7 @@ void DataDecoderTask::decodeTF(framework::ProcessingContext& pc)
     mDeco->setUpStream(theBuffer, it.size()+it.offset());
     mDeco->decodePageFast(&theBuffer);
 
-    pc.outputs().snapshot(o2::framework::Output{"HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mDigits);
+    pc.outputs().adoptChunk(o2::framework::Output{"HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mDigits);
 
   }
   return;
