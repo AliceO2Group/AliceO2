@@ -71,7 +71,7 @@ void DataDecoderTask::init(framework::InitContext& ic)
 
 void DataDecoderTask::run(framework::ProcessingContext& pc)
 {
-  mDeco->mDigits.clear();
+//----  mDeco->mDigits.clear();
 
   decodeTF(pc);
 //  decodeReadout(pc);
@@ -79,9 +79,8 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
 
 
   LOG(INFO) << "[HMPID Data Decoder - run] Writing " << mDeco->mDigits.size() << " Digits ...";
-  std::cout << "[HMPID Data Decoder - run] Writing " << mDeco->mDigits.size() << " Digits ..." << std::endl;
 
-  pc.outputs().snapshot(o2::framework::Output{"HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mDigits);
+//-----  pc.outputs().snapshot(o2::framework::Output{"HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mDigits);
 
 
   float avgEventSize[o2::hmpid::Geo::MAXEQUIPMENTS];
@@ -167,10 +166,14 @@ void DataDecoderTask::decodeTF(framework::ProcessingContext& pc)
   DPLRawParser parser(inputs, o2::framework::select("TF:HMP/RAWDATA"));
 
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
+    mDeco->mDigits.clear();
+
     uint32_t *theBuffer = (uint32_t *)it.raw();
   //  std::cout << "Decode parser loop :"<< it.size() << " , " << it.offset() << std::endl;
     mDeco->setUpStream(theBuffer, it.size()+it.offset());
     mDeco->decodePageFast(&theBuffer);
+
+    pc.outputs().snapshot(o2::framework::Output{"HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mDigits);
 
   }
   return;
