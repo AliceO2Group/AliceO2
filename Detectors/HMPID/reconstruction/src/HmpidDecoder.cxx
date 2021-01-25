@@ -395,7 +395,7 @@ int HmpidDecoder::decodeHeader(uint32_t *streamPtrAdr, int *EquipIndex)
 
   *EquipIndex = getEquipmentIndex(mHeCruID, mHeLinkNum);
   //  mEquipment = (*EquipIndex != -1) ? mTheEquipments[*EquipIndex]->getEquipmentId() : -1;
-  mEquipment = mHeFEEID;
+  mEquipment = mHeFEEID & 0x000F;
   mNumberWordToRead = ((mHeMemorySize - mHeSize) / sizeof(uint32_t));
   mPayloadTail = ((mHeOffsetNewPack - mHeMemorySize) / sizeof(uint32_t));
 
