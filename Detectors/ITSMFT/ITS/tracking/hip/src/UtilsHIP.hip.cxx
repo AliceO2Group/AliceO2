@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file UtilsHIP.hip.cxx
+/// \file utilsHIP.hip.cxx
 /// \brief
 ///
 
@@ -58,7 +58,7 @@ namespace its
 namespace gpu
 {
 
-void Utils::HostHIP::checkHIPError(const hipError_t error, const char* file, const int line)
+void utils::host_hip::checkHIPError(const hipError_t error, const char* file, const int line)
 {
   if (error != hipSuccess) {
     std::ostringstream errorString{};
@@ -68,18 +68,18 @@ void Utils::HostHIP::checkHIPError(const hipError_t error, const char* file, con
   }
 }
 
-dim3 Utils::HostHIP::getBlockSize(const int colsNum)
+dim3 utils::host_hip::getBlockSize(const int colsNum)
 {
   return getBlockSize(colsNum, 1);
 }
 
-dim3 Utils::HostHIP::getBlockSize(const int colsNum, const int rowsNum)
+dim3 utils::host_hip::getBlockSize(const int colsNum, const int rowsNum)
 {
   const DeviceProperties& deviceProperties = ContextHIP::getInstance().getDeviceProperties();
   return getBlockSize(colsNum, rowsNum, deviceProperties.streamProcessors / deviceProperties.maxBlocksPerSM);
 }
 
-dim3 Utils::HostHIP::getBlockSize(const int colsNum, const int rowsNum, const int maxThreadsPerBlock)
+dim3 utils::host_hip::getBlockSize(const int colsNum, const int rowsNum, const int maxThreadsPerBlock)
 {
   const DeviceProperties& deviceProperties = ContextHIP::getInstance().getDeviceProperties();
   int xThreads = std::max(std::min(colsNum, static_cast<int>(deviceProperties.maxThreadsDim.x)), 1);
@@ -98,57 +98,57 @@ dim3 Utils::HostHIP::getBlockSize(const int colsNum, const int rowsNum, const in
   return dim3{static_cast<unsigned int>(xThreads), static_cast<unsigned int>(yThreads)};
 }
 
-dim3 Utils::HostHIP::getBlocksGrid(const dim3& threadsPerBlock, const int rowsNum)
+dim3 utils::host_hip::getBlocksGrid(const dim3& threadsPerBlock, const int rowsNum)
 {
   return getBlocksGrid(threadsPerBlock, rowsNum, 1);
 }
 
-dim3 Utils::HostHIP::getBlocksGrid(const dim3& threadsPerBlock, const int rowsNum, const int colsNum)
+dim3 utils::host_hip::getBlocksGrid(const dim3& threadsPerBlock, const int rowsNum, const int colsNum)
 {
   return dim3{1 + (rowsNum - 1) / threadsPerBlock.x, 1 + (colsNum - 1) / threadsPerBlock.y};
 }
 
-void Utils::HostHIP::gpuMalloc(void** p, const int size)
+void utils::host_hip::gpuMalloc(void** p, const int size)
 {
   checkHIPError(hipMalloc(p, size), __FILE__, __LINE__);
 }
 
-void Utils::HostHIP::gpuFree(void* p)
+void utils::host_hip::gpuFree(void* p)
 {
   checkHIPError(hipFree(p), __FILE__, __LINE__);
 }
 
-void Utils::HostHIP::gpuMemset(void* p, int value, int size)
+void utils::host_hip::gpuMemset(void* p, int value, int size)
 {
   checkHIPError(hipMemset(p, value, size), __FILE__, __LINE__);
 }
 
-void Utils::HostHIP::gpuMemcpyHostToDevice(void* dst, const void* src, int size)
+void utils::host_hip::gpuMemcpyHostToDevice(void* dst, const void* src, int size)
 {
   checkHIPError(hipMemcpy(dst, src, size, hipMemcpyHostToDevice), __FILE__, __LINE__);
 }
 
-void Utils::HostHIP::gpuMemcpyHostToDeviceAsync(void* dst, const void* src, int size, hipStream_t& stream)
+void utils::host_hip::gpuMemcpyHostToDeviceAsync(void* dst, const void* src, int size, hipStream_t& stream)
 {
   checkHIPError(hipMemcpyAsync(dst, src, size, hipMemcpyHostToDevice, stream), __FILE__, __LINE__);
 }
 
-void Utils::HostHIP::gpuMemcpyDeviceToHost(void* dst, const void* src, int size)
+void utils::host_hip::gpuMemcpyDeviceToHost(void* dst, const void* src, int size)
 {
   checkHIPError(hipMemcpy(dst, src, size, hipMemcpyDeviceToHost), __FILE__, __LINE__);
 }
 
-// void Utils::HostHIP::gpuStartProfiler()
+// void utils::host_hip::gpuStartProfiler()
 // {
 //   checkHIPError(hipProfilerStart(), __FILE__, __LINE__);
 // }
 
-// void Utils::HostHIP::gpuStopProfiler()
+// void utils::host_hip::gpuStopProfiler()
 // {
 //   checkHIPError(hipProfilerStop(), __FILE__, __LINE__);
 // }
 
-GPUd() int Utils::DeviceHIP::getLaneIndex()
+GPUd() int utils::device_hip::getLaneIndex()
 {
   uint32_t laneIndex;
   asm volatile("mov.u32 %0, %%laneid;"
@@ -156,13 +156,13 @@ GPUd() int Utils::DeviceHIP::getLaneIndex()
   return static_cast<int>(laneIndex);
 }
 
-// GPUd() int Utils::Device::shareToWarp(const int value, const int laneIndex)
+// GPUd() int utils::Device::shareToWarp(const int value, const int laneIndex)
 // {
 //   cooperative_groups::coalesced_group threadGroup = cooperative_groups::coalesced_threads();
 //   return threadGroup.shfl(value, laneIndex);
 // }
 
-// GPUd() int Utils::Device::gpuAtomicAdd(int* p, const int incrementSize)
+// GPUd() int utils::Device::gpuAtomicAdd(int* p, const int incrementSize)
 // {
 //   return atomicAdd(p, incrementSize);
 // }
