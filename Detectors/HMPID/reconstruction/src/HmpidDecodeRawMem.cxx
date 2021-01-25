@@ -97,6 +97,7 @@ bool HmpidDecodeRawMem::getBlockFromStream(uint32_t **streamPtr, uint32_t Size)
   *streamPtr = mActualStreamPtr;
   mActualStreamPtr += Size;
   if (mActualStreamPtr > mEndStreamPtr) {
+    std::cout << " getBlockFromStream : StPtr=" << mActualStreamPtr << " EndPtr=" << mEndStreamPtr << " Len=" << Size << std::endl;
     std::cout << "Beccato " << std::endl;
     throw TH_WRONGBUFFERDIM;
   }
