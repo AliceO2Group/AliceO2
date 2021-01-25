@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "TTree.h"
+#include <gsl/span>
 
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -65,8 +66,7 @@ void DataDecoderTask::init(framework::InitContext& ic)
   mDeco = new o2::hmpid::HmpidDecodeRawDigit(Geo::MAXEQUIPMENTS);
   mDeco->init();
 
-
-    return;
+  return;
 }
 
 void DataDecoderTask::run(framework::ProcessingContext& pc)
@@ -91,10 +91,10 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
   double sumOfCharges[o2::hmpid::Geo::N_MODULES][o2::hmpid::Geo::N_YCOLS][o2::hmpid::Geo::N_XROWS];
   double squareOfCharges[o2::hmpid::Geo::N_MODULES][o2::hmpid::Geo::N_YCOLS][o2::hmpid::Geo::N_XROWS];
 
-  TString filename = TString::Format("%s_%06d.root", "test", 1);
-  LOG(DEBUG) << "opening file " << filename.Data();
-  std::unique_ptr<TFile> mfileOut = nullptr;
-  mfileOut.reset(TFile::Open(TString::Format("%s", filename.Data()), "RECREATE"));
+ // TString filename = TString::Format("%s_%06d.root", "test", 1);
+ // LOG(DEBUG) << "opening file " << filename.Data();
+ // std::unique_ptr<TFile> mfileOut = nullptr;
+ // mfileOut.reset(TFile::Open(TString::Format("%s", filename.Data()), "RECREATE"));
 
   std::unique_ptr<TTree> theObj;
   theObj = std::make_unique<TTree>("o2hmp", "HMPID Data Decoding Statistic results");
@@ -120,10 +120,10 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
       }
   theObj->Fill();
 
-  mfileOut->cd();
-  theObj->Write();
-  theObj.reset();
-  mfileOut.reset();
+//  mfileOut->cd();
+//  theObj->Write();
+//  theObj.reset();
+//  mfileOut.reset();
 
 
  // mDeco->getChannelSamples(Equipment, Column, Dilogic, Channel);
@@ -131,6 +131,7 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
  // mDeco->getChannelSum(Equipment, Column, Dilogic, Channel);
   pc.outputs().snapshot(o2::framework::Output{"HMP", "STATS", 0, o2::framework::Lifetime::Timeframe}, theObj);
 
+  theObj.reset();
 }
 
 /*    auto& digits = mDecoder->getOutputDigits();
