@@ -91,13 +91,19 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
   double sumOfCharges[o2::hmpid::Geo::N_MODULES][o2::hmpid::Geo::N_YCOLS][o2::hmpid::Geo::N_XROWS];
   double squareOfCharges[o2::hmpid::Geo::N_MODULES][o2::hmpid::Geo::N_YCOLS][o2::hmpid::Geo::N_XROWS];
 
-  TTree theObj("t", "HMPID Data Decoding Statistic results");
+  TString filename = TString::Format("%s_%06d.root", "test", 1);
+  LOG(DEBUG) << "opening file " << filename.Data();
+  std::unique_ptr<TFile> mfileOut = nullptr;
+  mfileOut.reset(TFile::Open(TString::Format("%s", filename.Data()), "RECREATE"));
 
-  theObj.Branch("Average_Event_Size", avgEventSize,"f[14]");
-  theObj.Branch("Average_Busy_Time", avgBusyTime,"f[14]");
-  theObj.Branch("Samples_per_pad", avgBusyTime,"d[7][144][160]");
-  theObj.Branch("Sum_of_charges_per_pad", sumOfCharges,"d[7][144][160]");
-  theObj.Branch("Sum_of_square_of_charges", squareOfCharges,"d[7][144][160]");
+  std::unique_ptr<TTree> theObj;
+  theObj = std::make_unique<TTree>("o2hmp", "HMPID Data Decoding Statistic results");
+
+  theObj->Branch("Average_Event_Size", avgEventSize,"f[14]");
+  theObj->Branch("Average_Busy_Time", avgBusyTime,"f[14]");
+  theObj->Branch("Samples_per_pad", avgBusyTime,"d[7][144][160]");
+  theObj->Branch("Sum_of_charges_per_pad", sumOfCharges,"d[7][144][160]");
+  theObj->Branch("Sum_of_square_of_charges", squareOfCharges,"d[7][144][160]");
 
 
   int numEqui = mDeco->getNumberOfEquipments();
@@ -112,8 +118,13 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
         sumOfCharges[m][y][x] = mDeco->getPadSum(m, y, x);
         squareOfCharges[m][y][x] = mDeco->getPadSquares(m, y, x);
       }
-  theObj.Fill();
-  //t.Write();
+  theObj->Fill();
+
+  mfileOut->cd();
+  theObj->Write();
+  theObj.reset();
+  mfileOut.reset();
+
  // mDeco->getChannelSamples(Equipment, Column, Dilogic, Channel);
  // mDeco->getChannelSquare(Equipment, Column, Dilogic, Channel);
  // mDeco->getChannelSum(Equipment, Column, Dilogic, Channel);
