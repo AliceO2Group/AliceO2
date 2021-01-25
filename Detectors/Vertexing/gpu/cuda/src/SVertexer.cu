@@ -14,8 +14,8 @@
 #include "DetectorsVertexingCUDA/SVertexer.h"
 #endif
 
-#include "GPUROOTSMatrix.h"
-// #include "DetectorsVertexing/DCAFitterN.h" // <- target
+#include "MathUtils/SMatrixGPU.h"
+#include "DetectorsVertexing/DCAFitterN.h" // <- target
 // #include "DetectorsVertexing/HelixHelper.h"
 // #include "ReconstructionDataFormats/Track.h"
 
