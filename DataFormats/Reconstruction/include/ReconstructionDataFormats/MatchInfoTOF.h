@@ -15,6 +15,7 @@
 #define ALICEO2_MATCHINFOTOF_H
 
 #include "ReconstructionDataFormats/TrackLTIntegral.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "CommonDataFormat/EvIndex.h"
 
 namespace o2
@@ -23,15 +24,16 @@ namespace dataformats
 {
 class MatchInfoTOF
 {
+  using evGIdx = o2::dataformats::EvIndex<int, o2::dataformats::GlobalTrackID>;
   using evIdx = o2::dataformats::EvIndex<int, int>;
 
  public:
-  MatchInfoTOF(evIdx evIdxTOFCl, float chi2, o2::track::TrackLTIntegral trkIntLT, evIdx evIdxTrack = evIdx(0, 0)) : mEvIdxTOFCl(evIdxTOFCl), mChi2(chi2), mIntLT(trkIntLT), mEvIdxTrack(evIdxTrack){};
+  MatchInfoTOF(evIdx evIdxTOFCl, float chi2, o2::track::TrackLTIntegral trkIntLT, evGIdx evIdxTrack) : mEvIdxTOFCl(evIdxTOFCl), mChi2(chi2), mIntLT(trkIntLT), mEvIdxTrack(evIdxTrack){};
   MatchInfoTOF() = default;
   void setEvIdxTOFCl(evIdx index) { mEvIdxTOFCl = index; }
-  void setEvIdxTrack(evIdx index) { mEvIdxTrack = index; }
+  void setEvIdxTrack(evGIdx index) { mEvIdxTrack = index; }
   evIdx getEvIdxTOFCl() const { return mEvIdxTOFCl; }
-  evIdx getEvIdxTrack() const { return mEvIdxTrack; }
+  evGIdx getEvIdxTrack() const { return mEvIdxTrack; }
   int getEventTOFClIndex() const { return mEvIdxTOFCl.getEvent(); }
   int getTOFClIndex() const { return mEvIdxTOFCl.getIndex(); }
   int getEventTrackIndex() const { return mEvIdxTrack.getEvent(); }
@@ -47,7 +49,7 @@ class MatchInfoTOF
   float mChi2;                       // chi2 of the pair track-TOFcluster
   o2::track::TrackLTIntegral mIntLT; ///< L,TOF integral calculated during the propagation
   evIdx mEvIdxTOFCl;                 ///< EvIdx for TOF cluster (first: ev index; second: cluster index)
-  evIdx mEvIdxTrack;                 ///< EvIdx for track (first: ev index; second: cluster index)
+  evGIdx mEvIdxTrack;                ///< EvIdx for track (first: ev index; second: track global index)
 
   ClassDefNV(MatchInfoTOF, 1);
 };

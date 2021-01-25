@@ -1472,8 +1472,8 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
   trfit.setChi2Match(tpcMatchRec.chi2);
   trfit.setChi2Refit(chi2);
   trfit.setTimeMUS(time, timeErr);
-  trfit.setRefTPC(tTPC.sourceID);
-  trfit.setRefITS(tITS.sourceID);
+  trfit.setRefTPC({unsigned(tTPC.sourceID), o2::dataformats::GlobalTrackID::TPC});
+  trfit.setRefITS({unsigned(tITS.sourceID), o2::dataformats::GlobalTrackID::ITS});
 
   if (mMCTruthON) { // store MC info
     mOutITSLabels.emplace_back(mITSLblWork[iITS]);

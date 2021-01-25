@@ -24,6 +24,7 @@
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DataFormatsTOF/CalibInfoTOF.h"
 #include "CommonDataFormat/EvIndex.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -72,6 +73,7 @@ class MatchTOF
 {
   using Geo = o2::tof::Geo;
   using Cluster = o2::tof::Cluster;
+  using evGIdx = o2::dataformats::EvIndex<int, o2::dataformats::GlobalTrackID>;
   using evIdx = o2::dataformats::EvIndex<int, int>;
   using timeEst = o2::dataformats::TimeStampWithError<float, float>;
   using matchTrack = std::pair<o2::track::TrackParCov, timeEst>;
