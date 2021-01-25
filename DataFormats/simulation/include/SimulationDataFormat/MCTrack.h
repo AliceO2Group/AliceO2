@@ -202,6 +202,8 @@ class MCTrackT
   }
   bool getInhibited() const { return ((PropEncoding)mProp).inhibited; }
 
+  bool isTransported() const { return getToBeDone() && !getInhibited(); };
+
   /// get the string representation of the production process
   const char* getProdProcessAsString() const;
 
