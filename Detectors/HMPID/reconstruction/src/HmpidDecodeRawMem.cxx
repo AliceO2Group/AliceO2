@@ -184,6 +184,7 @@ void HmpidDecodeRawDigit::setPad(HmpidEquipment *eq, int col, int dil, int ch, i
 {
   eq->setPad(col, dil, ch, charge);
   mDigits.push_back(Digit(mHeBCDI, mHeORBIT, (float)charge, eq->getEquipmentId(), col, dil, ch));
+  std::cout << ".";
   return;
 }
 
