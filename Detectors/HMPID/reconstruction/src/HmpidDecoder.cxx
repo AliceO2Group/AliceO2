@@ -269,7 +269,7 @@ bool HmpidDecoder::isSegmentMarker(uint32_t wp, int *Err, int *segSize, int *Seg
 /// @param[out] *Channel : the channel number [0..47]
 /// @param[out] *Charge : the value of Charge [0..4095]
 /// @returns True if PAD Word is detected
-bool HmpidDecoder::isPadWord(uint32_t wp, int *Err, int *Col, int *Dilogic, int *Channel, int *Charge)
+bool HmpidDecoder::isPadWord(uint32_t wp, bool *Err, int *Col, int *Dilogic, int *Channel, int *Charge)
 {
   *Err = false;
   if ((wp & 0x08000000) == 0) { //  # this is a pad
@@ -800,7 +800,7 @@ void HmpidDecoder::decodePageFast(uint32_t **streamBuf)
   uint32_t wp = 0;
   int newOne = true;
   int Column, Dilogic, Channel, Charge;
-  int error;
+  bool pwer;
 
   int payIndex = 0;
   while (payIndex < mNumberWordToRead) {  //start the payload loop word by word
@@ -812,8 +812,8 @@ void HmpidDecoder::decodePageFast(uint32_t **streamBuf)
       LOG(INFO) << "Equip=" << mEquipment << sErrorDescription[ERR_DUPLICATEPAD] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
           "[" << Column << "]";
     } else {
-      if( isPadWord(wp, &error, &Column, &Dilogic, &Channel, &Charge) == true) {
-        if( error != false) {
+      if( isPadWord(wp, &pwer, &Column, &Dilogic, &Channel, &Charge) == true) {
+        if( pwer != false) {
           setPad(eq, Column - 1, Dilogic - 1, Channel, Charge);
           eq->mSampleNumber++;
         }
