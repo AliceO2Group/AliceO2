@@ -155,7 +155,7 @@ void DataDecoderTask::decodeTF(framework::ProcessingContext& pc)
 
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
     uint32_t *theBuffer = (uint32_t *)it.raw();
-    std::cout << "Decode parser loop :"<< it.size() << " , " << it.offset();
+    std::cout << "Decode parser loop :"<< it.size() << " , " << it.offset() << std::endl;
     mDeco->setUpStream(theBuffer, it.size()+it.offset());
     mDeco->decodePageFast(&theBuffer);
 
