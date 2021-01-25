@@ -780,14 +780,14 @@ void HmpidDecoder::decodePageFast(uint32_t **streamBuf)
   }
   catch (int e) {
     // The stream end !
-    LOG(DEBUG) << "End Fast Page decoding loop !";
+    LOG(INFO) << "End Fast Page decoding loop !";
     throw TH_BUFFEREMPTY;
   }
   try {
     decodeHeader(*streamBuf, &equipmentIndex);
   }
   catch (int e) {
-    LOG(ERROR) << "Failed to decode the Header !";
+    LOG(INFO) << "Failed to decode the Header !";
     throw TH_WRONGHEADER;
   }
 
@@ -806,7 +806,7 @@ void HmpidDecoder::decodePageFast(uint32_t **streamBuf)
       break;
     }
     if (wp == wpprev) {
-      LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_DUPLICATEPAD] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
+      LOG(INFO) << "Equip=" << mEquipment << sErrorDescription[ERR_DUPLICATEPAD] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
           "[" << Column << "]";
     } else {
       if( isPadWord(wp, &error, &Column, &Dilogic, &Channel, &Charge) == true) {
@@ -837,7 +837,7 @@ bool HmpidDecoder::decodeBufferFast()
   }
 
   uint32_t *streamBuf;
-  LOG(DEBUG) << "Enter FAST decoding !";
+  LOG(INFO) << "Enter FAST decoding !";
 
   // Input Stream Main Loop
   while (true) {
@@ -845,7 +845,7 @@ bool HmpidDecoder::decodeBufferFast()
       decodePageFast(&streamBuf);
     }
     catch(int e) {
-      LOG(DEBUG) << " End Buffer Fast Decoding !";
+      LOG(INFO) << " End Buffer Fast Decoding !";
       break;
     }
   } // this is the end of stream

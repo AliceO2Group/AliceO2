@@ -146,7 +146,7 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
 void DataDecoderTask::decodeTF(framework::ProcessingContext& pc)
 {
   LOG(INFO) << "*********** In decodeTF **************";
-  std::cout << "*********** In decodeTF **************" << std::endl;
+ // std::cout << "*********** In decodeTF **************" << std::endl;
 
 
   // get the input buffer
@@ -157,7 +157,7 @@ void DataDecoderTask::decodeTF(framework::ProcessingContext& pc)
     uint32_t *theBuffer = (uint32_t *)it.raw();
     mDeco->setUpStream(theBuffer, it.size()+it.offset());
     mDeco->decodePageFast(&theBuffer);
-    std::cout << "." ;
+    std::cout << "Decode parser loop ..." ;
   }
   return;
 }
