@@ -206,7 +206,10 @@ o2::framework::DataProcessorSpec getDecodingSpec(std::string inputSpec)
 {
   
   std::vector<o2::framework::InputSpec> inputs;
-  inputs.emplace_back("TF", o2::header::gDataOriginHMP, "RAWDATA", 0, Lifetime::Timeframe);
+//  inputs.emplace_back("TF", o2::header::gDataOriginHMP, "RAWDATA", 0, Lifetime::Timeframe);
+
+  inputs.emplace_back("TF", o2::framework::ConcreteDataTypeMatcher{"HMP", "RAWDATA"}, o2::framework::Lifetime::Timeframe);
+
 //  inputs.emplace_back("rawdata", o2::header::gDataOriginHMP, "RAWDATA_TF", 0, Lifetime::Timeframe);
 //  inputs.emplace_back("readout", o2::header::gDataOriginHMP, "RAWDATA_QC", 0, Lifetime::Timeframe);
 //  inputs.emplace_back("readout", o2::header::gDataOriginHMP, "RAWDATA", 0, Lifetime::Timeframe);
