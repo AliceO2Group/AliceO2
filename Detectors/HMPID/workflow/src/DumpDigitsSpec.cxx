@@ -91,7 +91,7 @@ o2::framework::DataProcessorSpec getDumpDigitsSpec(std::string inputSpec)
 {
   
   std::vector<o2::framework::InputSpec> inputs;
-  inputs.emplace_back("DIGITS", o2::header::gDataOriginHMP, "DIGITS_VECT", 0, Lifetime::Timeframe);
+  inputs.emplace_back("DIGITS", o2::header::gDataOriginHMP, "DIGITS", 0, Lifetime::Timeframe);
 
   std::vector<o2::framework::OutputSpec> outputs;
 
