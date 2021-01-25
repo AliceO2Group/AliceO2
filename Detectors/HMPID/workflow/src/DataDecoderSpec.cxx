@@ -125,6 +125,7 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
   theObj.reset();
   mfileOut.reset();
 
+
  // mDeco->getChannelSamples(Equipment, Column, Dilogic, Channel);
  // mDeco->getChannelSquare(Equipment, Column, Dilogic, Channel);
  // mDeco->getChannelSum(Equipment, Column, Dilogic, Channel);
