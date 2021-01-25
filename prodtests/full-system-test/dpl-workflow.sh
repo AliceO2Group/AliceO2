@@ -21,6 +21,7 @@ if [ $NORATELOG == 1 ]; then
 fi
 
 # Set some individual workflow arguments depending on configuration
+CTF_DETECTORS=ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS,CPV
 TPC_INPUT=zsraw
 TPC_OUTPUT=tracks,clusters,disable-writer
 TPC_CONFIG=
@@ -79,7 +80,7 @@ fi
 if [ $CTFINPUT == 1 ]; then
   TPC_INPUT=compressed-clusters-ctf
   TOF_INPUT=digits
-  WORKFLOW="o2-ctf-reader-workflow --ctf-input o2_ctf_0000000000.root $ARGS_ALL | "
+  WORKFLOW="o2-ctf-reader-workflow --ctf-input o2_ctf_0000000000.root --onlyDet $CTF_DETECTORS $ARGS_ALL | "
 elif [ $EXTINPUT == 1 ]; then
   WORKFLOW="o2-dpl-raw-proxy $ARGS_ALL --dataspec \"B:TPC/RAWDATA;C:ITS/RAWDATA;D:TOF/RAWDATA;D:MFT/RAWDATA;E:FT0/RAWDATA;F:MID/RAWDATA;G:EMC/RAWDATA;H:PHS/RAWDATA;I:CPV/RAWDATA\" --channel-config \"name=readout-proxy,type=pull,method=connect,address=ipc://@stfb-to-dpl,transport=shmem,rateLogging=0\" | "
 else
@@ -131,7 +132,7 @@ if [ $CTFINPUT == 0 ]; then
   if [ $CREATECTFDICT == 1 ] && [ $SAVECTF == 1 ]; then CTF_OUTPUT_TYPE="both"; fi
   if [ $CREATECTFDICT == 1 ] && [ $SAVECTF == 0 ]; then CTF_OUTPUT_TYPE="dict"; fi
   if [ $CREATECTFDICT == 0 ] && [ $SAVECTF == 1 ]; then CTF_OUTPUT_TYPE="ctf"; fi
-  CMD_CTF="o2-ctf-writer-workflow $ARGS_ALL --output-type $CTF_OUTPUT_TYPE --onlyDet ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS,CPV"
+  CMD_CTF="o2-ctf-writer-workflow $ARGS_ALL --output-type $CTF_OUTPUT_TYPE --onlyDet $CTF_DETECTORS"
   if [ $CREATECTFDICT == 1 ] && [ $; then
     CMD_CTF+=" --save-dict-after 1"
   fi
