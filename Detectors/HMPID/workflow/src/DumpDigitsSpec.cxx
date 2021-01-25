@@ -64,12 +64,12 @@ void DumpDigitsTask::run(framework::ProcessingContext& pc)
 
   LOG(INFO) << "[HMPID Dump Digits - run] Dumping ...";
 
-//  auto digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>("digits");
+  auto digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>("digits");
 //  const std::vector<o2::hmpid::Digit>* mPDigits = &digits;
-//  std::cout << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
-//  std::cout << "The size of the vector " << digits.size() << std::endl;
+  std::cout << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
+  std::cout << "The size of the vector " << digits.size() << std::endl;
 
-
+/*
   for (auto&& input : pc.inputs()) {
  std::cout << input.spec->binding << std::endl;
     if (input.spec->binding == "digits") {
@@ -89,6 +89,7 @@ void DumpDigitsTask::run(framework::ProcessingContext& pc)
       std::cout << "---------------- HMP Dump Digits : EOF ------------------" << std::endl;
     }
   }
+  */
 }
 
 //_________________________________________________________________________________________________
