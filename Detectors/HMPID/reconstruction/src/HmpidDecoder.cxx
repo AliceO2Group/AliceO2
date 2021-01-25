@@ -269,7 +269,7 @@ bool HmpidDecoder::isSegmentMarker(uint32_t wp, int *Err, int *segSize, int *Seg
 /// @param[out] *Channel : the channel number [0..47]
 /// @param[out] *Charge : the value of Charge [0..4095]
 /// @returns True if PAD Word is detected
-bool HmpidDecoder::isPadWord(uint32_t wp, bool *Err, int *Col, int *Dilogic, int *Channel, int *Charge)
+bool HmpidDecoder::isPadWord(uint32_t wp, int *Err, int *Col, int *Dilogic, int *Channel, int *Charge)
 {
   *Err = false;
   if ((wp & 0x08000000) == 0) { //  # this is a pad
