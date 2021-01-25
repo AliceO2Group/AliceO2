@@ -546,7 +546,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
           throw std::runtime_error("Invalid buffer size requested");
         }
         buffer.first->get().resize(size);
-        if (buffer.first->get().data() != buffer.second) {
+        if (size && buffer.first->get().data() != buffer.second) {
           throw std::runtime_error("Inconsistent buffer address after downsize");
         }
       };
@@ -561,7 +561,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         if (!buffer.first) {
           return;
         }
-        if (buffer.second != (char*)span.data()) {
+        if (span.size() && buffer.second != (char*)span.data()) {
           throw std::runtime_error("Buffer does not match span");
         }
         downSizeBuffer(buffer, span.size() * sizeof(*span.data()));
