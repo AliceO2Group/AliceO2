@@ -301,7 +301,7 @@ struct HistFactory {
                          const int nBins[], const double lowerBounds[], const double upperBounds[], const int nSteps = 1)
   {
     if constexpr (std::is_base_of_v<StepTHn, T>) {
-      return new T(name.data(), title.data(), nDim, nBins, lowerBounds, upperBounds, nSteps);
+      return new T(name.data(), title.data(), nSteps, nDim, nBins, lowerBounds, upperBounds);
     } else if constexpr (std::is_base_of_v<THnBase, T>) {
       return new T(name.data(), title.data(), nDim, nBins, lowerBounds, upperBounds);
     } else if constexpr (std::is_base_of_v<TH3, T>) {

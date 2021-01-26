@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(HistogramRegistryStepTHn)
   HistogramRegistry registry{"registry"};
 
   registry.add("stepTHnF", "a", {kStepTHnF, {{100, -10.0f, 10.01f}, {100, -10.0f, 10.01f}}, 2});
-  registry.add("stepTHnD", "b", {kStepTHnF, {{100, -10.0f, 10.01f}, {100, -10.0f, 10.01f}}, 3});
+  registry.add("stepTHnD", "b", {kStepTHnD, {{100, -10.0f, 10.01f}, {100, -10.0f, 10.01f}}, 3});
   registry.addClone("stepTHnD", "stepTHnD2");
 
   auto& histo = registry.get<StepTHn>(HIST("stepTHnD"));

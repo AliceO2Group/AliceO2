@@ -68,7 +68,7 @@ StepTHn::StepTHn(const Char_t* name, const Char_t* title, const Int_t nSteps, co
 
 // root-like constructor
 template <class TemplateArray>
-StepTHnT<TemplateArray>::StepTHnT(const char* name, const char* title, const int nAxes, const int* nBins, const double* xmin, const double* xmax, const int nSteps) : StepTHn(name, title, nSteps, nAxes)
+StepTHnT<TemplateArray>::StepTHnT(const char* name, const char* title, const int nSteps, const int nAxes, const int* nBins, const double* xmin, const double* xmax) : StepTHn(name, title, nSteps, nAxes)
 {
   mNBins = 1;
   for (Int_t i = 0; i < mNVars; i++) {
@@ -210,11 +210,7 @@ void StepTHn::Copy(TObject& c) const
   }
 
   if (mPrototype) {
-    if (mPrototype->InheritsFrom(THnSparseF::Class())) {
-      target.mPrototype = dynamic_cast<THnSparseF*>(mPrototype->Clone());
-    } else if (mPrototype->InheritsFrom(THnSparseD::Class())) {
-      target.mPrototype = dynamic_cast<THnSparseD*>(mPrototype->Clone());
-    }
+    target.mPrototype = dynamic_cast<THnSparse*>(mPrototype->Clone());
   }
 }
 
@@ -232,8 +228,7 @@ TObject* StepTHnT<TemplateArray>::Clone(const char* name)
 template <class TemplateArray>
 Long64_t StepTHnT<TemplateArray>::Merge(TCollection* list)
 {
-  // Merge a list of StepTHn objects with this (needed for
-  // PROOF).
+  // Merge a list of StepTHn objects with this (needed for PROOF).
   // Returns the number of merged objects (including this).
 
   if (!list) {
