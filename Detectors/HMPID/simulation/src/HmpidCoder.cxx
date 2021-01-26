@@ -47,6 +47,18 @@ HmpidCoder::~HmpidCoder()
 }
 
 // =====================  Random production of Raw Files ===================
+void HmpidCoder::getEquipCoord(int Equi, uint32_t *CruId, uint32_t *LinkId)
+{
+  for (int i = 0; i < Geo::MAXEQUIPMENTS; i++)
+    if (mEqIds[i] == Equi) {
+      *CruId = mCruIds[i];
+      *LinkId = mLinkIds[i];
+      return;
+    }
+  *CruId = mCruIds[0];
+  *LinkId = mLinkIds[0];
+  return;
+}
 
 int HmpidCoder::calculateNumberOfPads()
 {
