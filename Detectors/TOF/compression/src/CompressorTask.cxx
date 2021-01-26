@@ -38,6 +38,7 @@ void CompressorTask<RDH, verbose>::init(InitContext& ic)
   auto decoderVerbose = ic.options().get<bool>("tof-compressor-decoder-verbose");
   auto encoderVerbose = ic.options().get<bool>("tof-compressor-encoder-verbose");
   auto checkerVerbose = ic.options().get<bool>("tof-compressor-checker-verbose");
+  mOutputBufferSize = ic.options().get<bool>("tof-compressor-output-buffer-size");
 
   mCompressor.setDecoderCONET(decoderCONET);
   mCompressor.setDecoderVerbose(decoderVerbose);
@@ -56,10 +57,6 @@ void CompressorTask<RDH, verbose>::run(ProcessingContext& pc)
 {
   LOG(DEBUG) << "Compressor run";
 
-  /** set encoder output buffer **/
-  mCompressor.setEncoderBuffer(mBufferOut);
-  mCompressor.setEncoderBufferSize(mBufferOutSize);
-
   auto device = pc.services().get<o2::framework::RawDeviceService>().device();
   auto outputRoutes = pc.services().get<o2::framework::RawDeviceService>().spec().outputs;
   auto fairMQChannel = outputRoutes.at(0).channel;
@@ -76,18 +73,24 @@ void CompressorTask<RDH, verbose>::run(ProcessingContext& pc)
     /** loop over input parts **/
     for (auto const& ref : iit) {
 
+      /** input **/
       auto headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       auto dataProcessingHeaderIn = DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(ref);
       auto payloadIn = ref.payload;
       auto payloadInSize = headerIn->payloadSize;
+
+      /** prepare **/
+      auto bufferSize = mOutputBufferSize > 0 ? mOutputBufferSize : payloadInSize;
+      auto payloadMessage = device->NewMessage(bufferSize);
       mCompressor.setDecoderBuffer(payloadIn);
       mCompressor.setDecoderBufferSize(payloadInSize);
+      mCompressor.setEncoderBuffer((char*)payloadMessage->GetData());
+      mCompressor.setEncoderBufferSize(bufferSize);
 
       /** run **/
       mCompressor.run();
       auto payloadOutSize = mCompressor.getEncoderByteCounter();
-      auto payloadMessage = device->NewMessage(payloadOutSize);
-      std::memcpy(payloadMessage->GetData(), mBufferOut, payloadOutSize);
+      payloadMessage->SetUsedSize(payloadOutSize);
 
       /** output **/
       auto headerOut = *headerIn;
