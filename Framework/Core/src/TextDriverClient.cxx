@@ -22,4 +22,8 @@ void TextDriverClient::tell(const char* msg)
   LOG(INFO) << msg;
 }
 
+void TextDriverClient::flushPending()
+{
+}
+
 } // namespace o2::framework
