@@ -51,6 +51,7 @@ o2_add_library(Framework
                        src/DeviceMetricsInfo.cxx
                        src/DeviceSpec.cxx
                        src/DeviceSpecHelpers.cxx
+                       src/DPLMonitoringBackend.cxx
                        src/DriverControl.cxx
                        src/DriverInfo.cxx
                        src/Expressions.cxx
