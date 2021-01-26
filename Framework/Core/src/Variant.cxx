@@ -84,13 +84,13 @@ std::ostream& operator<<(std::ostream& oss, Variant const& val)
     case VariantType::ArrayString:
       printArray<std::string>(oss, val.get<std::string*>(), val.size());
       break;
-    case VariantType::MatrixInt:
+    case VariantType::Array2DInt:
       printMatrix<int>(oss, val.get<Array2D<int>>());
       break;
-    case VariantType::MatrixFloat:
+    case VariantType::Array2DFloat:
       printMatrix<float>(oss, val.get<Array2D<float>>());
       break;
-    case VariantType::MatrixDouble:
+    case VariantType::Array2DDouble:
       printMatrix<double>(oss, val.get<Array2D<double>>());
       break;
     case VariantType::Empty:
