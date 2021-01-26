@@ -56,7 +56,7 @@ using RDH = o2::header::RDHAny;
 void DumpDigitsTask::init(framework::InitContext& ic)
 {
   LOG(INFO) << "[HMPID Dump Digits - run] Dumping ...";
-  mPrintDigits = ic.options().get<std::string>("print");
+  mPrintDigits = ic.options().get<bool>("print");
 
   std::cout << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
   return;
