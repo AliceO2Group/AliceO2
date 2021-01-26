@@ -154,15 +154,15 @@ std::string encode_websocket_handshake_reply(char const* nonce)
   return fmt::format(res, HTTPParserHelpers::calculateAccept(nonce));
 }
 
-void parse_http_request(char const* start, size_t size, HTTPParser* parser)
+void parse_http_request(char* start, size_t size, HTTPParser* parser)
 {
   enum HTTPState state = HTTPState::IN_START;
   // Too short, let's try again...
   if (size < 2) {
     parser->remaining += std::string_view(start, size);
   }
-  char const* cur = start;
-  char const* next = cur;
+  char* cur = start;
+  char* next = cur;
   std::string_view lastToken(cur, 0);
   std::string_view lastKey;
   std::string_view lastValue;
@@ -294,7 +294,7 @@ void parse_http_request(char const* start, size_t size, HTTPParser* parser)
         break;
       case HTTPState::BEGIN_BODY: {
         size_t bodySize = size - (cur - start);
-        parser->body(std::string_view(cur, bodySize));
+        parser->body(cur, bodySize);
         next = cur + bodySize;
         cur = next;
         parser->states.push_back(HTTPState::BEGIN_BODY);

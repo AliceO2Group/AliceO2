@@ -43,9 +43,9 @@ class DPLParser : public HTTPParser
   {
     mHeaders[std::string(k)] = v;
   }
-  void body(std::string_view const& b) override
+  void body(char* buf, size_t s) override
   {
-    mBody = b;
+    mBody = buf;
   }
 };
 
@@ -75,9 +75,9 @@ class DPLClientParser : public HTTPParser
   {
     mHeaders[std::string(k)] = v;
   }
-  void body(std::string_view const& b) override
+  void body(char* buf, size_t s) override
   {
-    mBody = b;
+    mBody = buf;
   }
 };
 
@@ -96,9 +96,9 @@ class TestWSHandler : public WebSocketHandler
 BOOST_AUTO_TEST_CASE(HTTPParser1)
 {
   {
-    const char* request =
+    char* request = strdup(
       "GET / HTTP/1.1\r\n"
-      "x-dpl-pid: 124679842\r\n\r\nCONTROL QUIT";
+      "x-dpl-pid: 124679842\r\n\r\nCONTROL QUIT");
     DPLParser parser;
     parse_http_request(request, strlen(request), &parser);
     BOOST_REQUIRE_EQUAL(std::string(parser.mMethod), std::string("GET"));
@@ -107,10 +107,10 @@ BOOST_AUTO_TEST_CASE(HTTPParser1)
     BOOST_REQUIRE_EQUAL(parser.mHeaders.size(), 1);
   }
   {
-    const char* request =
+    char* request = strdup(
       "GET / HTTP/1.1\r\n"
       "x-dpl-pid: 124679842\r\n"
-      "Somethingelse: cjnjsdnjks\r\n\r\nCONTROL QUIT";
+      "Somethingelse: cjnjsdnjks\r\n\r\nCONTROL QUIT");
     DPLParser parser;
     parse_http_request(request, strlen(request), &parser);
     BOOST_REQUIRE_EQUAL(std::string(parser.mMethod), std::string("GET"));
@@ -123,11 +123,11 @@ BOOST_AUTO_TEST_CASE(HTTPParser1)
   }
   {
     // handle continuations...
-    const char* request =
+    char* request = strdup(
       "GET / HTTP/1.1\r\n"
       "x-dpl-pid: 124679842\r\n"
-      "Somethingelse: cjnjsdnjks\r\n\r\nCONTROL QUIT";
-    const char* request2 = "FOO BAR";
+      "Somethingelse: cjnjsdnjks\r\n\r\nCONTROL QUIT");
+    char* request2 = strdup("FOO BAR");
     DPLParser parser;
     parse_http_request(request, strlen(request), &parser);
     BOOST_REQUIRE_EQUAL(std::string(parser.mMethod), std::string("GET"));
@@ -143,7 +143,7 @@ BOOST_AUTO_TEST_CASE(HTTPParser1)
 
   {
     // WebSocket example
-    const char* request =
+    char* request = strdup(
       "GET /chat HTTP/1.1\r\n"
       "Host: server.example.com\r\n"
       "Upgrade: websocket\r\n"
@@ -151,7 +151,7 @@ BOOST_AUTO_TEST_CASE(HTTPParser1)
       "Sec-WebSocket-Key: x3JJHMbDL1EzLkh9GBhXDw==\r\n"
       "Sec-WebSocket-Protocol: chat, superchat\r\n"
       "Sec-WebSocket-Version: 13\r\n"
-      "Origin: http://example.com\r\n\r\n";
+      "Origin: http://example.com\r\n\r\n");
 
     DPLParser parser;
     parse_http_request(request, strlen(request), &parser);
@@ -163,11 +163,11 @@ BOOST_AUTO_TEST_CASE(HTTPParser1)
   }
   {
     // WebSocket example
-    const char* request =
+    char* request = strdup(
       "HTTP/1.1 101 Switching Protocols\r\n"
       "Upgrade: websocket\r\n"
       "Connection: Upgrade\r\n"
-      "Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n";
+      "Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n\r\n");
 
     DPLClientParser parser;
     parser.states.push_back(HTTPState::IN_START_REPLY);
@@ -181,7 +181,7 @@ BOOST_AUTO_TEST_CASE(HTTPParser1)
   }
   {
     // WebSocket frame encoding / decoding
-    char const* buffer = "hello websockets!";
+    char* buffer = strdup("hello websockets!");
     std::vector<uv_buf_t> encoded;
     encode_websocket_frames(encoded, buffer, strlen(buffer) + 1, WebSocketOpCode::Binary, 0);
     BOOST_REQUIRE_EQUAL(encoded.size(), 1);
@@ -193,7 +193,7 @@ BOOST_AUTO_TEST_CASE(HTTPParser1)
   }
   {
     // WebSocket multiple frame encoding / decoding
-    char const* buffer = "hello websockets!";
+    char* buffer = strdup("hello websockets!");
     std::vector<uv_buf_t> encoded;
     encode_websocket_frames(encoded, buffer, strlen(buffer) + 1, WebSocketOpCode::Binary, 0);
     BOOST_REQUIRE_EQUAL(encoded.size(), 1);
