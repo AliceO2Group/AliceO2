@@ -60,8 +60,8 @@ class Digit
     Digit() = default;
     Digit(uint16_t bc, uint32_t orbit, int pad, uint16_t charge) : mBc(bc), mOrbit(orbit), mQ(charge), mPad(pad) {};
     Digit(uint16_t bc, uint32_t orbit, int chamber, int photo, int x, int y, uint16_t charge);
-    Digit(uint16_t bc, uint32_t orbit, float uint16_t, int equipment, int column, int dilogic, int channel) ;
-    Digit(uint16_t bc, uint32_t orbit, float uint16_t, int module, int x, int y);
+    Digit(uint16_t bc, uint32_t orbit, uint16_t, int equipment, int column, int dilogic, int channel) ;
+    Digit(uint16_t bc, uint32_t orbit, uint16_t, int module, int x, int y);
 
     uint16_t getCharge() const { return mQ; }
     int getPadID() const { return mPad; }
