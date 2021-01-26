@@ -28,8 +28,12 @@
 #pragma link C++ class o2::BaseCluster < float> + ;
 #pragma link C++ class o2::dataformats::TrackTPCITS + ;
 #pragma link C++ class std::vector < o2::dataformats::TrackTPCITS> + ;
+
 #pragma link C++ class o2::dataformats::MatchInfoTOF + ;
 #pragma link C++ class std::vector < o2::dataformats::MatchInfoTOF> + ;
+
+#pragma link C++ class o2::dataformats::TrackTPCTOF + ;
+#pragma link C++ class std::vector < o2::dataformats::TrackTPCTOF> + ;
 
 #pragma link C++ class std::vector < std::pair < float, float>> + ;
 #pragma link C++ class std::vector < std::pair < int, float>> + ;
