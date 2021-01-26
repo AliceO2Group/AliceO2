@@ -92,8 +92,16 @@ class DigitHW : public Digit
 
   ~DigitHW() = default;
 
-  /// Get the calbeHW
+  /// Get hardware and calibartion info
   UShort_t getCableHW() const { return mCableHW; }
+  UShort_t getCounter() const { return mCounter; }
+  UShort_t getNInj() const { return mNInj; }
+  UShort_t getChargeInj() const { return mChargeInj; }
+  UShort_t getHalf() const { return mHalf; }
+  UShort_t getDisk() const { return mDisk; }
+  UShort_t getPlane() const { return mPlane; }
+  UShort_t getZone() const { return mZone; }
+
 
   /// Set cable HW
   void setCableHW(UShort_t chw) { mCableHW = chw;}
