@@ -38,6 +38,7 @@ namespace hmpid
       void decodeTF(framework::ProcessingContext& pc);
       void decodeReadout(framework::ProcessingContext& pc);
       void decodeRawFile(framework::ProcessingContext& pc);
+      void endOfStream(framework::EndOfStreamContext& ec);
 
     private:
       HmpidDecodeRawDigit *mDeco;
