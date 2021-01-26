@@ -25,7 +25,10 @@
 #include "Framework/Tracing.h"
 #include "Framework/Monitoring.h"
 #include "TextDriverClient.h"
+#include "WSDriverClient.h"
+#include "HTTPParser.h"
 #include "../src/DataProcessingStatus.h"
+#include "DPLMonitoringBackend.h"
 
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
@@ -35,6 +38,7 @@
 #include <options/FairMQProgOptions.h>
 
 #include <cstdlib>
+#include <cstring>
 
 using AliceO2::InfoLogger::InfoLogger;
 using AliceO2::InfoLogger::InfoLoggerContext;
@@ -58,8 +62,19 @@ struct ServiceKindExtractor<InfoLoggerContext> {
 o2::framework::ServiceSpec CommonServices::monitoringSpec()
 {
   return ServiceSpec{"monitoring",
-                     [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
-                       void* service = MonitoringFactory::Get(options.GetPropertyAsString("monitoring-backend")).release();
+                     [](ServiceRegistry& registry, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+                       void* service = nullptr;
+                       bool isWebsocket = strncmp(options.GetPropertyAsString("driver-client-backend").c_str(), "ws://", 4) == 0;
+                       bool isDefault = options.GetPropertyAsString("monitoring-backend") == "default";
+                       bool useDPL = (isWebsocket && isDefault) || options.GetPropertyAsString("monitoring-backend") == "dpl://";
+                       if (useDPL) {
+                         auto monitoring = new Monitoring();
+                         monitoring->addBackend(std::make_unique<DPLMonitoringBackend>(registry));
+                         service = monitoring;
+                       } else {
+                         auto backend = isDefault ? "infologger://" : options.GetPropertyAsString("monitoring-backend");
+                         service = MonitoringFactory::Get(backend).release();
+                       }
                        return ServiceHandle{TypeIdHelpers::uniqueId<Monitoring>(), service};
                      },
                      noConfiguration(),
@@ -223,8 +238,14 @@ o2::framework::ServiceSpec CommonServices::driverClientSpec()
   return ServiceSpec{
     "driverClient",
     [](ServiceRegistry& services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
+      auto backend = options.GetPropertyAsString("driver-client-backend");
+      if (backend == "stdout://") {
+        return ServiceHandle{TypeIdHelpers::uniqueId<DriverClient>(),
+                             new TextDriverClient(services, state)};
+      }
+      auto [ip, port] = o2::framework::parse_websocket_url(backend.c_str());
       return ServiceHandle{TypeIdHelpers::uniqueId<DriverClient>(),
-                           new TextDriverClient(services, state)};
+                           new WSDriverClient(services, state, ip.c_str(), port)};
     },
     noConfiguration(),
     nullptr,

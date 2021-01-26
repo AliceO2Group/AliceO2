@@ -137,6 +137,8 @@ struct DriverInfo {
   std::string uniqueWorkflowId = "";
   /// Metrics gathering interval
   unsigned short resourcesMonitoringInterval;
+  /// Port used by the websocket control. 0 means not initialised.
+  unsigned short port = 0;
   /// Last port used for tracy
   short tracyPort = 8086;
   /// Aggregate metrics calculated in the driver itself

@@ -52,11 +52,8 @@ WSDriverClient::WSDriverClient(ServiceRegistry& registry, DeviceState& state, ch
   connectToDriver(this, state.loop, ip, port);
 }
 
-void sendMessageToDriver(std::unique_ptr<o2::framework::WSDPLClient>& client, char const* message)
+void sendMessageToDriver(std::unique_ptr<o2::framework::WSDPLClient>& client, char const* message, size_t s)
 {
-  std::vector<uv_buf_t> outputs;
-  encode_websocket_frames(outputs, message, strlen(message), WebSocketOpCode::Binary, 0);
-  client->write(outputs);
 }
 
 void WSDriverClient::setDPLClient(std::unique_ptr<WSDPLClient> client)
@@ -74,13 +71,26 @@ void WSDriverClient::observe(const char*, std::function<void(char const*)>)
 {
 }
 
-void WSDriverClient::tell(const char* msg)
+void WSDriverClient::tell(const char* msg, size_t s, bool flush)
+{
+  static bool printed1 = false;
+  static bool printed2 = false;
+  if (mClient && mClient->isConnected() && flush) {
+    flushPending();
+    std::vector<uv_buf_t> outputs;
+    encode_websocket_frames(outputs, msg, s, WebSocketOpCode::Binary, 0);
+    mClient->write(outputs);
+  } else {
+    encode_websocket_frames(mBacklog, msg, s, WebSocketOpCode::Binary, 0);
+  }
+}
+
+void WSDriverClient::flushPending()
 {
   static bool printed1 = false;
   static bool printed2 = false;
   if (!mClient) {
-    mBacklog.push_back(msg);
-    if (mBacklog.size() > 100) {
+    if (mBacklog.size() > 1000) {
       if (!printed1) {
         LOG(WARNING) << "Unable to communicate with driver because client does not exist";
         printed1 = true;
@@ -89,8 +99,7 @@ void WSDriverClient::tell(const char* msg)
     return;
   }
   if (!(mClient->isConnected())) {
-    mBacklog.push_back(msg);
-    if (mBacklog.size() > 100) {
+    if (mBacklog.size() > 1000) {
       if (!printed2) {
         LOG(WARNING) << "Unable to communicate with driver because client is not connected";
         printed2 = true;
@@ -103,21 +112,7 @@ void WSDriverClient::tell(const char* msg)
     printed1 = false;
     printed2 = false;
   }
-  for (auto& old : mBacklog) {
-    sendMessageToDriver(mClient, old.c_str());
-  }
-  mBacklog.resize(0);
-  sendMessageToDriver(mClient, msg);
-}
-
-void WSDriverClient::flushPending()
-{
-  if (!mClient || !(mClient->isConnected())) {
-    return;
-  }
-  for (auto& old : mBacklog) {
-    sendMessageToDriver(mClient, old.c_str());
-  }
+  mClient->write(mBacklog);
   mBacklog.resize(0);
 }
 

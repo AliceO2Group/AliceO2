@@ -11,6 +11,7 @@
 #define O2_FRAMEWORK_WSDRIVERCLIENT_H_
 
 #include "Framework/DriverClient.h"
+#include <uv.h>
 #include <memory>
 #include <string>
 #include <vector>
@@ -32,9 +33,9 @@ class WSDriverClient : public DriverClient
 {
  public:
   WSDriverClient(ServiceRegistry& registry, DeviceState& state, char const* ip, unsigned short port);
-  void tell(const char* msg) override;
-  void observe(const char* command, std::function<void(char const*)>) override;
-  void flushPending() override;
+  void tell(const char* msg, size_t s, bool flush = true) final;
+  void observe(const char* command, std::function<void(char const*)>) final;
+  void flushPending() final;
   void setDPLClient(std::unique_ptr<WSDPLClient>);
   void setConnection(uv_connect_t* connection) { mConnection = connection; };
   DeviceSpec const& spec() { return mSpec; }
@@ -44,7 +45,7 @@ class WSDriverClient : public DriverClient
  private:
   DeviceSpec const& mSpec;
   bool mConnected = false;
-  std::vector<std::string> mBacklog;
+  std::vector<uv_buf_t> mBacklog;
   uv_connect_t* mConnection = nullptr;
   std::unique_ptr<WSDPLClient> mClient;
 };

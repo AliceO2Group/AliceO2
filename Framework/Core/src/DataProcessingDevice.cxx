@@ -33,6 +33,7 @@
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/Logger.h"
 #include "Framework/Monitoring.h"
+#include "Framework/DriverClient.h"
 #include "PropertyTreeHelpers.h"
 #include "DataProcessingStatus.h"
 #include "DataProcessingHelpers.h"
@@ -237,7 +238,8 @@ void DataProcessingDevice::Init()
     } else {
       str = entry.second.get_value<std::string>();
     }
-    LOG(INFO) << "[CONFIG] " << entry.first << "=" << str << " 1 " << configStore->provenance(entry.first.c_str());
+    std::string configString = fmt::format("[CONFIG] {}={} 1 {}", entry.first, str, configStore->provenance(entry.first.c_str())).c_str();
+    mServiceRegistry.get<DriverClient>().tell(configString.c_str());
   }
 
   mConfigRegistry = std::make_unique<ConfigParamRegistry>(std::move(configStore));

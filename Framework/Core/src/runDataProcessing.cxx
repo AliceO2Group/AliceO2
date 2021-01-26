@@ -40,6 +40,8 @@
 #include "Framework/DriverInfo.h"
 #include "Framework/DriverControl.h"
 #include "ControlServiceHelpers.h"
+#include "HTTPParser.h"
+#include "DPLWebSocket.h"
 
 #include "ComputingResourceHelpers.h"
 #include "DataProcessingStatus.h"
@@ -371,6 +373,7 @@ void spawnRemoteDevice(std::string const& forwardedStdin,
 struct DeviceLogContext {
   int fd;
   int index;
+  uv_loop_t* loop;
   std::vector<DeviceInfo>* infos;
 };
 
@@ -388,6 +391,228 @@ void log_callback(uv_poll_t* handle, int status, int events)
   }
   if (events & UV_DISCONNECT) {
     info.active = false;
+  }
+}
+
+void websocket_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf)
+{
+  WSDPLHandler* handler = (WSDPLHandler*)stream->data;
+  if (nread == 0) {
+    return;
+  }
+  if (nread < 0) {
+    // FIXME: improve error message
+    // FIXME: should I close?
+    LOG(ERROR) << "websocket_callback: Error while reading from websocket";
+    return;
+  }
+  try {
+    LOG(debug3) << "Parsing request with " << handler << " with " << nread << " bytes";
+    parse_http_request(buf->base, nread, handler);
+  } catch (WSError& e) {
+    LOG(ERROR) << "Error while parsing request: " << e.message;
+    handler->error(e.code, e.message.c_str());
+  }
+}
+
+static void my_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf)
+{
+  buf->base = (char*)malloc(suggested_size);
+  buf->len = suggested_size;
+}
+
+/// Helper struct which holds all the lists the Driver needs to know about.
+struct DriverServerContext {
+  uv_loop_t* loop;
+  ServiceRegistry* registry = nullptr;
+  std::vector<DeviceInfo>* infos = nullptr;
+  std::vector<DeviceSpec>* specs = nullptr;
+  std::vector<DeviceMetricsInfo>* metrics = nullptr;
+  std::vector<ServiceMetricHandling>* metricProcessingCallbacks;
+  DriverInfo* driver;
+};
+
+void updateMetricsNames(DriverInfo& driverInfo, std::vector<DeviceMetricsInfo> const& metricsInfos)
+{
+  // Calculate the unique set of metrics, as available in the metrics service
+  static std::unordered_set<std::string> allMetricsNames;
+  for (const auto& metricsInfo : metricsInfos) {
+    for (const auto& labelsPairs : metricsInfo.metricLabelsIdx) {
+      allMetricsNames.insert(std::string(labelsPairs.label));
+    }
+  }
+  for (const auto& labelsPairs : driverInfo.metrics.metricLabelsIdx) {
+    allMetricsNames.insert(std::string(labelsPairs.label));
+  }
+  std::vector<std::string> result(allMetricsNames.begin(), allMetricsNames.end());
+  std::sort(result.begin(), result.end());
+  driverInfo.availableMetrics.swap(result);
+}
+
+void processCommand(DeviceInfos& infos,
+                    pid_t pid,
+                    std::string const& command,
+                    std::string const& arg)
+{
+  auto doToMatchingPid = [](std::vector<DeviceInfo>& infos, int pid, auto lambda) {
+    for (auto& deviceInfo : infos) {
+      if (deviceInfo.pid == pid) {
+        lambda(deviceInfo);
+        break;
+      }
+    }
+  };
+  LOGP(info, "Found control command {} from pid {} with argument {}.", command, pid, arg);
+  if (command == "QUIT" && arg == "ALL") {
+    for (auto& deviceInfo : infos) {
+      deviceInfo.readyToQuit = true;
+    }
+  } else if (command == "QUIT" && arg == "ME") {
+    doToMatchingPid(infos, pid, [](DeviceInfo& info) { info.readyToQuit = true; });
+  } else if (command == "NOTIFY_STREAMING_STATE" && arg == "IDLE") {
+    // FIXME: this should really be a policy...
+    doToMatchingPid(infos, pid, [](DeviceInfo& info) { info.readyToQuit = true; info.streamingState = StreamingState::Idle; });
+  } else if (command == "NOTIFY_STREAMING_STATE" && arg == "STREAMING") {
+    // FIXME: this should really be a policy...
+    doToMatchingPid(infos, pid, [](DeviceInfo& info) { info.streamingState = StreamingState::Streaming; });
+  } else if (command == "NOTIFY_STREAMING_STATE" && arg == "EOS") {
+    // FIXME: this should really be a policy...
+    doToMatchingPid(infos, pid, [](DeviceInfo& info) { info.streamingState = StreamingState::EndOfStreaming; });
+  }
+};
+
+/// An handler for a websocket message stream.
+struct ControlWebSocketHandler : public WebSocketHandler {
+  ControlWebSocketHandler(DriverServerContext& context)
+    : mContext{context}
+  {
+  }
+
+  /// Invoked at the end of the headers.
+  /// as a special header we have "x-dpl-pid" which devices can use
+  /// to identify themselves.
+  /// FIXME: No effort is done to guarantee their identity. Maybe each device
+  ///        should be started with a unique secret if we wanted to provide
+  ///        some secutity.
+  void headers(std::map<std::string, std::string> const& headers) override
+  {
+    if (headers.count("x-dpl-pid")) {
+      auto s = headers.find("x-dpl-pid");
+      this->mPid = std::stoi(s->second);
+      for (size_t di = 0; di < mContext.infos->size(); ++di) {
+        if ((*mContext.infos)[di].pid == mPid) {
+          mIndex = di;
+          return;
+        }
+      }
+    }
+  }
+  /// FIXME: not implemented by the backend.
+  void beginFragmentation() override {}
+
+  /// Invoked when a frame it's parsed. Notice you do not own the data and you must
+  /// not free the memory.
+  void frame(char const* frame, size_t s) override
+  {
+    bool hasNewMetric = false;
+    auto updateMetricsViews = Metric2DViewIndex::getUpdater({&(*mContext.infos)[mIndex].dataRelayerViewIndex,
+                                                             &(*mContext.infos)[mIndex].variablesViewIndex,
+                                                             &(*mContext.infos)[mIndex].queriesViewIndex});
+
+    auto newMetricCallback = [&updateMetricsViews, &metrics = mContext.metrics, &hasNewMetric](std::string const& name, MetricInfo const& metric, int value, size_t metricIndex) {
+      updateMetricsViews(name, metric, value, metricIndex);
+      hasNewMetric = true;
+    };
+    std::string token(frame, s);
+    std::smatch match;
+    ParsedConfigMatch configMatch;
+    ParsedMetricMatch metricMatch;
+
+    if (DeviceMetricsHelper::parseMetric(token, metricMatch)) {
+      // We use this callback to cache which metrics are needed to provide a
+      // the DataRelayer view.
+      assert(mContext.metrics);
+      DeviceMetricsHelper::processMetric(metricMatch, (*mContext.metrics)[mIndex], newMetricCallback);
+      didProcessMetric = true;
+      didHaveNewMetric |= hasNewMetric;
+    } else if (ControlServiceHelpers::parseControl(token, match)) {
+      LOG(debug2) << "Found a command, processing for pid " << mPid;
+      assert(mContext.infos);
+      processCommand(*mContext.infos, mPid, match[1].str(), match[2].str());
+    } else if (DeviceConfigHelper::parseConfig(std::string{"                 "} + token, configMatch)) {
+      LOG(debug2) << "Found configuration information for pid " << mPid;
+      assert(mContext.infos);
+      DeviceConfigHelper::processConfig(configMatch, (*mContext.infos)[mIndex]);
+    }
+    LOG(debug3) << "Data received: " << std::string_view(frame, s);
+  }
+
+  /// FIXME: not implemented
+  void endFragmentation() override{};
+  /// FIXME: not implemented
+  void control(char const* frame, size_t s) override{};
+
+  /// Invoked at the beginning of some incoming data. We simply
+  /// reset actions which need to happen on a per chunk basis.
+  void beginChunk() override
+  {
+    didProcessMetric = false;
+    didHaveNewMetric = false;
+  }
+
+  /// Invoked after we have processed all the available incoming data.
+  /// In this particular case we must handle the metric callbacks, if
+  /// needed.
+  void endChunk() override
+  {
+    if (!didProcessMetric) {
+      return;
+    }
+    size_t timestamp = current_time_with_ms();
+    for (auto& callback : *mContext.metricProcessingCallbacks) {
+      callback(*mContext.registry, *mContext.metrics, *mContext.specs, *mContext.infos, mContext.driver->metrics, timestamp);
+    }
+    for (auto& metricsInfo : *mContext.metrics) {
+      std::fill(metricsInfo.changed.begin(), metricsInfo.changed.end(), false);
+    }
+    if (didHaveNewMetric) {
+      updateMetricsNames(*mContext.driver, *mContext.metrics);
+    }
+  }
+
+  /// The driver context were we want to accumulate changes
+  /// which we got from the websocket.
+  DriverServerContext& mContext;
+  /// The pid of the remote process actually associated to this
+  /// handler. Notice that this information comes as part of
+  /// the HTTP headers via x-dpl-pid.
+  pid_t mPid = 0;
+  /// The index of the remote process associated to this handler.
+  size_t mIndex = (size_t)-1;
+  /// Wether any frame operation between beginChunk and endChunk
+  /// actually processed some metric.
+  bool didProcessMetric = false;
+  bool didHaveNewMetric = false;
+};
+
+/// A callback for the rest engine
+void ws_connect_callback(uv_stream_t* server, int status)
+{
+  DriverServerContext* serverContext = reinterpret_cast<DriverServerContext*>(server->data);
+  if (status < 0) {
+    LOGF(error, "New connection error %s\n", uv_strerror(status));
+    // error!
+    return;
+  }
+
+  uv_tcp_t* client = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));
+  uv_tcp_init(serverContext->loop, client);
+  if (uv_accept(server, (uv_stream_t*)client) == 0) {
+    auto handler = std::make_unique<ControlWebSocketHandler>(*serverContext);
+    client->data = new WSDPLHandler((uv_stream_t*)client, std::move(handler));
+    uv_read_start((uv_stream_t*)client, (uv_alloc_cb)my_alloc_cb, websocket_callback);
+  } else {
+    uv_close((uv_handle_t*)client, nullptr);
   }
 }
 
@@ -542,6 +767,7 @@ void spawnDevice(std::string const& forwardedStdin,
     DeviceLogContext* context = new DeviceLogContext{};
     context->index = index;
     context->fd = fd;
+    context->loop = loop;
     context->infos = &deviceInfos;
     handles.push_back((uv_poll_t*)malloc(sizeof(uv_poll_t)));
     auto handle = handles.back();
@@ -554,22 +780,6 @@ void spawnDevice(std::string const& forwardedStdin,
   addPoller(deviceInfos.size() - 1, childstderr[0]);
 }
 
-void updateMetricsNames(DriverInfo& driverInfo, std::vector<DeviceMetricsInfo> const& metricsInfos)
-{
-  // Calculate the unique set of metrics, as available in the metrics service
-  static std::unordered_set<std::string> allMetricsNames;
-  for (const auto& metricsInfo : metricsInfos) {
-    for (const auto& labelsPairs : metricsInfo.metricLabelsIdx) {
-      allMetricsNames.insert(std::string(labelsPairs.label));
-    }
-  }
-  for (const auto& labelsPairs : driverInfo.metrics.metricLabelsIdx) {
-    allMetricsNames.insert(std::string(labelsPairs.label));
-  }
-  std::vector<std::string> result(allMetricsNames.begin(), allMetricsNames.end());
-  std::sort(result.begin(), result.end());
-  driverInfo.availableMetrics.swap(result);
-}
 
 struct LogProcessingState {
   bool didProcessLog = false;
@@ -627,7 +837,6 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
       updateMetricsViews(name, metric, value, metricIndex);
       hasNewMetric = true;
     };
-
 
     while ((pos = s.find(delimiter)) != std::string::npos) {
       std::string token{s.substr(0, pos)};
@@ -753,9 +962,10 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry, const o2::f
     runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec](fair::mq::DeviceRunner& r) {
       boost::program_options::options_description optsDesc;
       ConfigParamsHelper::populateBoostProgramOptions(optsDesc, spec.options, gHiddenDeviceOptions);
-      optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("infologger://"), "monitoring backend info") //
-        ("infologger-severity", bpo::value<std::string>()->default_value(""), "minimum FairLogger severity to send to InfoLogger")       //
-        ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                         //
+      optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("default"), "monitoring backend info")                                                   //
+        ("driver-client-backend", bpo::value<std::string>()->default_value("stdout://"), "backend for device -> driver communicataon: stdout://: use stdout, ws://: use websockets") //
+        ("infologger-severity", bpo::value<std::string>()->default_value(""), "minimum FairLogger severity to send to InfoLogger")                                                   //
+        ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                                                                     //
         ("infologger-mode", bpo::value<std::string>()->default_value(""), "INFOLOGGER_MODE override");
       r.fConfig.AddToCmdLineOptions(optsDesc, true);
     });
@@ -936,6 +1146,42 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   if (window) {
     uv_timer_init(loop, &gui_timer);
   }
+  // We initialise this in the driver, because different drivers might have
+  // different versions of the service
+  ServiceRegistry serviceRegistry;
+  std::vector<ServiceMetricHandling> metricProcessingCallbacks;
+  std::vector<ServicePreSchedule> preScheduleCallbacks;
+  std::vector<ServicePostSchedule> postScheduleCallbacks;
+
+  // This is to make sure we can process metrics, commands, configuration
+  // changes coming from websocket (or even via any standard uv_stream_t, I guess).
+  DriverServerContext serverContext;
+  serverContext.loop = loop;
+  serverContext.infos = &infos;
+  serverContext.specs = &deviceSpecs;
+  serverContext.metrics = &metricsInfos;
+  serverContext.driver = &driverInfo;
+  serverContext.metricProcessingCallbacks = &metricProcessingCallbacks;
+
+  uv_tcp_t serverHandle;
+  serverHandle.data = &serverContext;
+  uv_tcp_init(loop, &serverHandle);
+  driverInfo.port = 8080;
+  int result = 0;
+  struct sockaddr_in* serverAddr = nullptr;
+
+  do {
+    if (serverAddr) {
+      free(serverAddr);
+    }
+    serverAddr = (sockaddr_in*)malloc(sizeof(sockaddr_in));
+    uv_ip4_addr("0.0.0.0", driverInfo.port, serverAddr);
+    uv_tcp_bind(&serverHandle, (const struct sockaddr*)serverAddr, 0);
+    result = uv_listen((uv_stream_t*)&serverHandle, 100, ws_connect_callback);
+    if (result != 0) {
+      driverInfo.port++;
+    }
+  } while (result != 0);
 
   GuiCallbackContext guiContext;
   guiContext.plugin = debugGUI;
@@ -948,14 +1194,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   uv_timer_t force_step_timer;
   uv_timer_init(loop, &force_step_timer);
 
-  // We initialise this in the driver, because different drivers might have
-  // different versions of the service
-  ServiceRegistry serviceRegistry;
-  std::vector<ServiceMetricHandling> metricProcessingCallbacks;
-  std::vector<ServicePreSchedule> preScheduleCallbacks;
-  std::vector<ServicePostSchedule> postScheduleCallbacks;
 
   bool guiDeployedOnce = false;
+  bool once = false;
 
   while (true) {
     // If control forced some transition on us, we push it to the queue.
@@ -1165,6 +1406,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             "--aod-writer-ntfmerge",
             "--aod-writer-resfile",
             "--aod-writer-resmode",
+            "--driver-client-backend",
             "--readers",
             "--resources-monitoring",
             "--time-limit",
@@ -1190,7 +1432,6 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 #endif
           return 1;
         }
-
       } break;
       case DriverState::SCHEDULE: {
         // FIXME: for the moment modifying the topology means we rebuild completely
@@ -1238,7 +1479,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         // Run any pending libUV event loop, block if
         // any, so that we do not consume CPU time when the driver is
         // idle.
-        uv_run(loop, UV_RUN_ONCE);
+        uv_run(loop, once ? UV_RUN_ONCE : UV_RUN_NOWAIT);
+        once = true;
         // Calculate what we should do next and eventually
         // show the GUI
         if (guiQuitRequested ||
@@ -1305,7 +1547,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         // Run any pending libUV event loop, block if
         // any, so that we do not consume CPU time when the driver is
         // idle.
-        uv_run(loop, UV_RUN_ONCE);
+        uv_run(loop, once ? UV_RUN_ONCE : UV_RUN_NOWAIT);
+        once = true;
         // I allow queueing of more sigchld only when
         // I process the previous call
         if (forceful_exit == true) {

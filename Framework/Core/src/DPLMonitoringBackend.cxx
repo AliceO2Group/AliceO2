@@ -76,7 +76,7 @@ void DPLMonitoringBackend::send(o2::monitoring::Metric const& metric)
     mStream << o2::monitoring::tags::TAG_KEY[key] << "=" << o2::monitoring::tags::GetValue(value);
   }
   mStream << '\n';
-  mRegistry.get<framework::DriverClient>().tell(mStream.str().c_str());
+  mRegistry.get<framework::DriverClient>().tell(mStream.str());
 }
 
 } // namespace o2::framework
