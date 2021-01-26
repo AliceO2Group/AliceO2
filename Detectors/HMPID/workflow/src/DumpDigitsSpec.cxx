@@ -55,25 +55,26 @@ using RDH = o2::header::RDHAny;
 // Data decoder
 void DumpDigitsTask::init(framework::InitContext& ic)
 {
-
-    return;
+  LOG(INFO) << "[HMPID Dump Digits - run] Dumping ...";
+  std::cout << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
+  return;
 }
 
 void DumpDigitsTask::run(framework::ProcessingContext& pc)
 {
-
-  LOG(INFO) << "[HMPID Dump Digits - run] Dumping ...";
-
   auto digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>("digits");
-  std::cout << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
   std::cout << "The size of the vector " << digits.size() << std::endl;
   for(o2::hmpid::Digit Dig : digits) {
      std::cout << Dig << std::endl;
   }
-  std::cout << "---------------- HMP Dump Digits : EOF ------------------" << std::endl;
-
+  return;
 }
 
+void DumpDigitsTask::endOfStream(framework::EndOfStreamContext& ec)
+{
+  std::cout << "---------------- HMP Dump Digits : EOF ------------------" << std::endl;
+  return;
+}
 //_________________________________________________________________________________________________
 o2::framework::DataProcessorSpec getDumpDigitsSpec(std::string inputSpec)
 //o2::framework::DataPrecessorSpec getDecodingSpec()
