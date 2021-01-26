@@ -232,3 +232,27 @@ BOOST_AUTO_TEST_CASE(HTTPParser1)
     BOOST_CHECK_EQUAL(reply, checkReply);
   }
 }
+
+BOOST_AUTO_TEST_CASE(URLParser)
+{
+  {
+    auto [ip, port] = o2::framework::parse_websocket_url("ws://");
+    BOOST_CHECK_EQUAL(ip, "127.0.0.1");
+    BOOST_CHECK_EQUAL(port, 8080);
+  }
+  {
+    auto [ip, port] = o2::framework::parse_websocket_url("ws://127.0.0.1:8080");
+    BOOST_CHECK_EQUAL(ip, "127.0.0.1");
+    BOOST_CHECK_EQUAL(port, 8080);
+  }
+  {
+    auto [ip, port] = o2::framework::parse_websocket_url("ws://0.0.0.0:8080");
+    BOOST_CHECK_EQUAL(ip, "0.0.0.0");
+    BOOST_CHECK_EQUAL(port, 8080);
+  }
+  {
+    auto [ip, port] = o2::framework::parse_websocket_url("ws://0.0.0.0:8081");
+    BOOST_CHECK_EQUAL(ip, "0.0.0.0");
+    BOOST_CHECK_EQUAL(port, 8081);
+  }
+}
