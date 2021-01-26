@@ -119,7 +119,7 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
 //  theObj.reset();
 //  mfileOut.reset();
 
-  ec.outputs().snapshot(o2::framework::Output{"HMP", "STATS", 0, o2::framework::Lifetime::Timeframe}, *theObj);
+  pc.outputs().snapshot(o2::framework::Output{"HMP", "STATS", 0, o2::framework::Lifetime::Timeframe}, *theObj);
 
   theObj.reset();
 
