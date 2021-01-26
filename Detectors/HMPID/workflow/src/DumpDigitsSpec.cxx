@@ -64,9 +64,9 @@ void DumpDigitsTask::run(framework::ProcessingContext& pc)
 {
   auto digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>("digits");
   std::cout << "The size of the vector " << digits.size() << std::endl;
-  for(o2::hmpid::Digit Dig : digits) {
-     std::cout << Dig << std::endl;
-  }
+//  for(o2::hmpid::Digit Dig : digits) {
+//     std::cout << Dig << std::endl;
+//  }
   return;
 }
 
