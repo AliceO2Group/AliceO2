@@ -150,7 +150,10 @@ struct HTTPParser {
   virtual void version(std::string_view const& s){};
   virtual void header(std::string_view const& k, std::string_view const& v){};
   virtual void endHeaders(){};
-  virtual void body(std::string_view const& b){};
+  /// Invoked whenever we are parsing data.
+  /// In order to allow for xoring (as required by the websocket standard)
+  /// in place, we pass it as a mutable pointer.
+  virtual void body(char* data, size_t s){};
   virtual void replyVersion(std::string_view const& s){};
   virtual void replyCode(std::string_view const& s){};
   virtual void replyMessage(std::string_view const& s){};
@@ -161,7 +164,7 @@ struct HTTPParserHelpers {
   static std::string calculateAccept(const char* nonce);
 };
 
-void parse_http_request(char const* start, size_t size, HTTPParser* parser);
+void parse_http_request(char* start, size_t size, HTTPParser* parser);
 
 std::pair<std::string, unsigned short> parse_websocket_url(const char* s);
 } // namespace o2::framework
