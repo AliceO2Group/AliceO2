@@ -95,12 +95,14 @@ o2_add_library(Framework
                        src/WorkflowHelpers.cxx
                        src/WorkflowSerializationHelpers.cxx
                        src/WorkflowSpec.cxx
+                       src/WSDriverClient.cxx
                        src/runDataProcessing.cxx
                        src/ExternalFairMQDeviceProxy.cxx
                        src/HistogramRegistry.cxx
                        src/StepTHn.cxx
                        src/SHA1.cxx
                        src/Base64.cxx
+                       src/DPLWebSocket.cxx
                        test/TestClasses.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
                PUBLIC_LINK_LIBRARIES AliceO2::Common
