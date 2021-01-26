@@ -1216,6 +1216,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("post-fork-command", bpo::value<std::string>(), "post fork command to execute (e.g. numactl {pid}")                                      //
     ("session", bpo::value<std::string>(), "unique label for the shared memory session")                                                      //
     ("configuration,cfg", bpo::value<std::string>(), "configuration connection string")                                                       //
+    ("driver-client-backend", bpo::value<std::string>(), "driver connection string")                                                          //
     ("monitoring-backend", bpo::value<std::string>(), "monitoring connection string")                                                         //
     ("infologger-mode", bpo::value<std::string>(), "INFOLOGGER_MODE override")                                                                //
     ("infologger-severity", bpo::value<std::string>(), "minimun FairLogger severity which goes to info logger")                               //

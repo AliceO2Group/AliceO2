@@ -41,7 +41,7 @@ struct DeviceState {
   StreamingState streaming = StreamingState::Streaming;
   bool quitRequested = false;
   // The libuv event loop which serves this device.
-  uv_loop_t* loop;
+  uv_loop_t* loop = nullptr;
   // The list of active timers which notify this device.
   std::vector<uv_timer_t*> activeTimers;
   // The list of pollers for active input channels

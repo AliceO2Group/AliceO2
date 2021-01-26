@@ -28,10 +28,10 @@ class TextDriverClient : public DriverClient
 
   /// The text based client simply sends a message on stdout which is
   /// (potentially) captured by the driver.
-  void tell(const char* msg) override;
+  void tell(char const* msg, size_t s, bool flush = true) final;
   /// Half duplex communication
-  void observe(const char* event, std::function<void(char const*)> callback) override{};
-  void flushPending() override;
+  void observe(const char* event, std::function<void(char const*)> callback) final{};
+  void flushPending() final;
 };
 
 } // namespace o2::framework
