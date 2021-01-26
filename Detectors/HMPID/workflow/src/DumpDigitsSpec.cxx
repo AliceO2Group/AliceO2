@@ -56,6 +56,8 @@ using RDH = o2::header::RDHAny;
 void DumpDigitsTask::init(framework::InitContext& ic)
 {
   LOG(INFO) << "[HMPID Dump Digits - run] Dumping ...";
+  mPrintDigits = ic.options().get<std::string>("print");
+
   std::cout << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
   return;
 }
@@ -64,17 +66,15 @@ void DumpDigitsTask::run(framework::ProcessingContext& pc)
 {
   auto digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>("digits");
   std::cout << "The size of the vector " << digits.size() << std::endl;
-//  for(o2::hmpid::Digit Dig : digits) {
-//     std::cout << Dig << std::endl;
-//  }
-  return;
-}
-
-void DumpDigitsTask::endOfStream(framework::EndOfStreamContext& ec)
-{
+  if (mPrintDigits) {
+    for(o2::hmpid::Digit Dig : digits) {
+      std::cout << Dig << std::endl;
+    }
+  }
   std::cout << "---------------- HMP Dump Digits : EOF ------------------" << std::endl;
   return;
 }
+
 //_________________________________________________________________________________________________
 o2::framework::DataProcessorSpec getDumpDigitsSpec(std::string inputSpec)
 //o2::framework::DataPrecessorSpec getDecodingSpec()
@@ -91,7 +91,7 @@ o2::framework::DataProcessorSpec getDumpDigitsSpec(std::string inputSpec)
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<DumpDigitsTask>()},
-    Options{{"print", VariantType::Bool, false, {"print digits"}}} };
+    Options{{"print", VariantType::Bool, false, {"print digits (default false )"}}} };
 }
 
 } // namespace hmpid
