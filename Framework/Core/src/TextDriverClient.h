@@ -31,6 +31,7 @@ class TextDriverClient : public DriverClient
   void tell(const char* msg) override;
   /// Half duplex communication
   void observe(const char* event, std::function<void(char const*)> callback) override{};
+  void flushPending() override;
 };
 
 } // namespace o2::framework

@@ -27,6 +27,8 @@ class DriverClient
 
   /// Act on some @a event notified by the driver
   virtual void observe(const char* event, std::function<void(char const*)> callback) = 0;
+  /// Flush all pending events (if connected)
+  virtual void flushPending() = 0;
 };
 
 } // namespace o2::framework
