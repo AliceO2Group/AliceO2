@@ -20,6 +20,13 @@ template <typename T>
 struct Array2D {
   using element_t = T;
 
+  Array2D()
+    : data{nullptr},
+      rows{0},
+      cols{0}
+  {
+  }
+
   Array2D(T const* data_, uint32_t r, uint32_t c)
     : rows{r}, cols{c}
   {
@@ -103,9 +110,9 @@ struct Array2D {
     return data + y * cols;
   }
 
-  T* data = nullptr;
-  uint32_t rows = 0;
-  uint32_t cols = 0;
+  T* data;
+  uint32_t rows;
+  uint32_t cols;
 };
 } // namespace o2::framework
 

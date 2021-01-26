@@ -65,13 +65,13 @@ void PropertyTreeHelpers::populateDefaults(std::vector<ConfigParamSpec> const& s
         case VariantType::ArrayString:
           pt.put_child(key, vectorToBranch(spec.defaultValue.get<std::string*>(), spec.defaultValue.size()));
           break;
-        case VariantType::MatrixInt:
+        case VariantType::Array2DInt:
           pt.put_child(key, array2DToBranch(spec.defaultValue.get<Array2D<int>>()));
           break;
-        case VariantType::MatrixFloat:
+        case VariantType::Array2DFloat:
           pt.put_child(key, array2DToBranch(spec.defaultValue.get<Array2D<float>>()));
           break;
-        case VariantType::MatrixDouble:
+        case VariantType::Array2DDouble:
           pt.put_child(key, array2DToBranch(spec.defaultValue.get<Array2D<double>>()));
           break;
         case VariantType::Unknown:
@@ -143,13 +143,13 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
         case VariantType::ArrayString:
           pt.put_child(key, vectorToBranch<std::string>(stringToVector<std::string>(vmap[key].as<std::string>())));
           break;
-        case VariantType::MatrixInt:
+        case VariantType::Array2DInt:
           pt.put_child(key, array2DToBranch<int>(stringToArray2D<int>(vmap[key].as<std::string>())));
           break;
-        case VariantType::MatrixFloat:
+        case VariantType::Array2DFloat:
           pt.put_child(key, array2DToBranch<float>(stringToArray2D<float>(vmap[key].as<std::string>())));
           break;
-        case VariantType::MatrixDouble:
+        case VariantType::Array2DDouble:
           pt.put_child(key, array2DToBranch<double>(stringToArray2D<double>(vmap[key].as<std::string>())));
           break;
         case VariantType::Unknown:
@@ -206,9 +206,9 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
         case VariantType::ArrayDouble:
         case VariantType::ArrayBool:
         case VariantType::ArrayString:
-        case VariantType::MatrixInt:
-        case VariantType::MatrixFloat:
-        case VariantType::MatrixDouble:
+        case VariantType::Array2DInt:
+        case VariantType::Array2DFloat:
+        case VariantType::Array2DDouble:
           pt.put_child(key, *it);
           break;
         case VariantType::Unknown:

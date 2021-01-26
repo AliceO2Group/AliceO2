@@ -70,14 +70,14 @@ void ConfigParamsHelper::populateBoostProgramOptions(
       case VariantType::ArrayString:
         addConfigSpecOption<VariantType::ArrayString>(spec, options);
         break;
-      case VariantType::MatrixInt:
-        addConfigSpecOption<VariantType::MatrixInt>(spec, options);
+      case VariantType::Array2DInt:
+        addConfigSpecOption<VariantType::Array2DInt>(spec, options);
         break;
-      case VariantType::MatrixFloat:
-        addConfigSpecOption<VariantType::MatrixFloat>(spec, options);
+      case VariantType::Array2DFloat:
+        addConfigSpecOption<VariantType::Array2DFloat>(spec, options);
         break;
-      case VariantType::MatrixDouble:
-        addConfigSpecOption<VariantType::MatrixDouble>(spec, options);
+      case VariantType::Array2DDouble:
+        addConfigSpecOption<VariantType::Array2DDouble>(spec, options);
         break;
       case VariantType::Unknown:
       case VariantType::Empty:
