@@ -578,9 +578,9 @@ struct LogProcessingState {
   bool hasNewMetric = false;
 };
 
-void processCommand(DeviceInfos& infos, short pid, std::string const& command, std::string const& arg)
+void processCommand(DeviceInfos& infos, pid_t pid, std::string const& command, std::string const& arg)
 {
-  auto doToMatchingPid = [](std::vector<DeviceInfo>& infos, int pid, auto lambda) {
+  auto doToMatchingPid = [](std::vector<DeviceInfo>& infos, pid_t pid, auto lambda) {
     for (auto& deviceInfo : infos) {
       if (deviceInfo.pid == pid) {
         lambda(deviceInfo);
