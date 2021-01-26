@@ -10,7 +10,7 @@
 
 o2_add_library(HMPIDWorkflow
 #               SOURCES src/DataDecoderSpec.cxx src/DigitReaderSpec.cxx src/ClusterizerSpec.cxx src/RawFileReaderSpec.cxx src/DumpDigitsSpec.cxx
-               SOURCES src/DataDecoderSpec.cxx src/DigitReaderSpec.cxx src/ClusterizerSpec.cxx src/DumpDigitsSpec.cxx src/WriteRawFromDigitSpec.cxx
+               SOURCES src/DataDecoderSpec.cxx src/DigitReaderSpec.cxx src/ClusterizerSpec.cxx src/DumpDigitsSpec.cxx src/WriteRawFromDigitsSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DPLUtils
                                      O2::DetectorsRaw
