@@ -77,6 +77,7 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
 //  decodeReadout(pc);
 //  decodeRawFile(pc);
 
+  pc.services().get<o2::framework::ControlService>().endOfStream();
 }
 
 /*    auto& digits = mDecoder->getOutputDigits();
@@ -225,10 +226,10 @@ o2::framework::DataProcessorSpec getDecodingSpec(std::string inputSpec)
 
   inputs.emplace_back("TF", o2::framework::ConcreteDataTypeMatcher{"HMP", "RAWDATA"}, o2::framework::Lifetime::Timeframe);
 
-//  inputs.emplace_back("rawdata", o2::header::gDataOriginHMP, "RAWDATA_TF", 0, Lifetime::Timeframe);
-//  inputs.emplace_back("readout", o2::header::gDataOriginHMP, "RAWDATA_QC", 0, Lifetime::Timeframe);
+//  inputs.emplace_back("rawdata", o2::header::gDataOriginHMP, "RAWDATA", 0, Lifetime::Timeframe);
 //  inputs.emplace_back("readout", o2::header::gDataOriginHMP, "RAWDATA", 0, Lifetime::Timeframe);
-//  inputs.emplace_back("rawfile", o2::header::gDataOriginHMP, "RAWDATA_FILE", 0, Lifetime::Timeframe);
+//  inputs.emplace_back("readout", o2::header::gDataOriginHMP, "RAWDATA", 0, Lifetime::Timeframe);
+//  inputs.emplace_back("rawfile", o2::header::gDataOriginHMP, "RAWDATA", 0, Lifetime::Timeframe);
 
   std::vector<o2::framework::OutputSpec> outputs;
   outputs.emplace_back("HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe);
