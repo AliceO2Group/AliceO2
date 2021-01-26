@@ -23,8 +23,6 @@ using uchar = unsigned char;
 using ulong = unsigned long;
 #endif
 
-#define SCRATCH_PAD_WORK_GROUP_SIZE GPUCA_GET_THREAD_COUNT(GPUCA_LB_CLUSTER_FINDER)
-
 /* #define CHARGEMAP_TIME_MAJOR_LAYOUT */
 #define CHARGEMAP_TILING_LAYOUT
 
