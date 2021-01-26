@@ -58,15 +58,16 @@ class Digit
 
   public:
     Digit() = default;
-    Digit(int bc, int orbit, int pad, float charge) : mBc(bc), mOrbit(orbit), mQ(charge), mPad(pad) {};
-    Digit(int bc, int orbit, int chamber, int photo, int x, int y, float charge);
-    Digit(int bc, int orbit, float charge, int equipment, int column, int dilogic, int channel) ;
-    Digit(int bc, int orbit, float charge, int module, int x, int y);
+    Digit(uint16_t bc, uint32_t orbit, int pad, uint16_t charge) : mBc(bc), mOrbit(orbit), mQ(charge), mPad(pad) {};
+    Digit(uint16_t bc, uint32_t orbit, int chamber, int photo, int x, int y, uint16_t charge);
+    Digit(uint16_t bc, uint32_t orbit, float uint16_t, int equipment, int column, int dilogic, int channel) ;
+    Digit(uint16_t bc, uint32_t orbit, float uint16_t, int module, int x, int y);
 
-    float getCharge() const { return mQ; }
+    uint16_t getCharge() const { return mQ; }
     int getPadID() const { return mPad; }
-    int getOrbit() const { return mOrbit; }
-    int getBC() const { return mBc; }
+    uint32_t getOrbit() const { return mOrbit; }
+    uint16_t getBC() const { return mBc; }
+    uint64_t getTriggerID() const { return ((mOrbit << 12) | mBc); }
 
     // convenience conversion to x-y pad coordinates
     int getPx() const { return A2X(mPad); }
@@ -82,10 +83,10 @@ class Digit
     void addCharge(float q) { mQ += q; }
 
   private:
-    float mQ = 0.;
-    uint32_t mPad = 0.; // -1 indicates invalid digit
-    int mBc = 0.;
-    int mOrbit = 0;
+    uint16_t mQ = 0;
+    uint32_t mPad = 0; // -1 indicates invalid digit
+    uint16_t mBc = 0.;
+    uint32_t mOrbit = 0;
 
     static float LorsX(int pad) { return Param::LorsX(A2P(pad), A2X(pad)); } //center of the pad x, [cm]
     static float LorsY(int pad) { return Param::LorsY(A2P(pad), A2Y(pad)); } //center of the pad y, [cm]
