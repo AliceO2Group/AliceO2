@@ -33,10 +33,10 @@ namespace hmpid
       ~DumpDigitsTask() override = default;
       void init(framework::InitContext& ic) final;
       void run(framework::ProcessingContext& pc) final;
-      void endOfStream(framework::EndOfStreamContext& ec) final;
+
 
     private:
-
+      bool mPrintDigits = false;
   };
 
 o2::framework::DataProcessorSpec getDumpDigitsSpec(std::string inputSpec = "HMP/DIGITS");
