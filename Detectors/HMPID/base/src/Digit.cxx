@@ -19,7 +19,7 @@ using namespace o2::hmpid;
 ClassImp(o2::hmpid::Digit);
 
 // ----- Constructors ------------
- Digit::Digit(int bc, int orbit, int chamber, int photo, int x, int y, float charge)
+ Digit::Digit(uint16_t bc, uint32_t orbit, int chamber, int photo, int x, int y, uint16_t charge)
 {
   mBc = bc;
   mOrbit = orbit;
@@ -27,7 +27,7 @@ ClassImp(o2::hmpid::Digit);
   mPad = Abs(chamber, photo, x, y);
 }
 
- Digit::Digit(int bc, int orbit, float charge, int equipment, int column, int dilogic, int channel)
+ Digit::Digit(uint16_t bc, uint32_t orbit, uint16_t charge, int equipment, int column, int dilogic, int channel)
 {
   mBc = bc;
   mOrbit = orbit;
@@ -35,7 +35,7 @@ ClassImp(o2::hmpid::Digit);
   mPad = Equipment2Pad(equipment, column, dilogic, channel);
 }
 
- Digit::Digit(int bc, int orbit, float charge, int module, int x, int y)
+ Digit::Digit(uint16_t bc, uint32_t orbit, uint16_t charge, int module, int x, int y)
 {
   mBc = bc;
   mOrbit = orbit;
