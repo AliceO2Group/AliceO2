@@ -348,10 +348,12 @@ taskwrapper() {
   RC=$?
   RC_ACUM=$((RC_ACUM+RC))
   if [ "${RC}" -eq "0" ]; then
-    # if return code 0 we mark this task as done
-    echo "Command \"${command}\" successfully finished." > "${logfile}"_done
-    echo "The presence of this file can be used to skip this command in future runs" >> "${logfile}"_done
-    echo "of the pipeline by setting the JOBUTILS_SKIPDONE environment variable." >> "${logfile}"_done
+    if [ ! "${JOBUTILS_JOB_SKIPCREATEDONE}" ]; then
+      # if return code 0 we mark this task as done
+      echo "Command \"${command}\" successfully finished." > "${logfile}"_done
+      echo "The presence of this file can be used to skip this command in future runs" >> "${logfile}"_done
+      echo "of the pipeline by setting the JOBUTILS_SKIPDONE environment variable." >> "${logfile}"_done
+    fi
   else
     echo "command ${command} had nonzero exit code ${RC}"
   fi

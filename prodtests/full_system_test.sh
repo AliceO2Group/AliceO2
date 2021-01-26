@@ -78,6 +78,7 @@ if [ $ENABLE_GPU_TEST != "0" ]; then
 fi
 STAGES+=" ASYNC"
 for STAGE in $STAGES; do
+  logfile=reco_${STAGE}.log
 
   ARGS_ALL="--session default"
   DICTCREATION=""
@@ -90,7 +91,7 @@ for STAGE in $STAGES; do
     export CTFINPUT=0
     export SAVECTF=0
   elif [[ "$STAGE" = "ASYNC" ]]; then
-    export CREATECTFDICT=1
+    export CREATECTFDICT=0
     export GPUTYPE=CPU
     export SYNCMODE=0
     export HOSTMEMSIZE=$TPCTRACKERSCRATCHMEMORY
@@ -103,14 +104,14 @@ for STAGE in $STAGES; do
     export HOSTMEMSIZE=$TPCTRACKERSCRATCHMEMORY
     export CTFINPUT=0
     export SAVECTF=1
-    rm -f ctf_dictionary.root
+    JOBUTILS_JOB_SKIPCREATEDONE=1 taskwrapper ${logfile} "rm -f ctf_dictionary.root"
+    unset JOBUTILS_JOB_SKIPCREATEDONE
   fi
   export SHMSIZE
   export NTIMEFRAMES
   export TFDELAY
   export GLOBALDPLOPT
 
-  logfile=reco_${STAGE}.log
   taskwrapper ${logfile} "$O2_ROOT/prodtests/full-system-test/dpl-workflow.sh"
 
   # --- record interesting metrics to monitor ----
