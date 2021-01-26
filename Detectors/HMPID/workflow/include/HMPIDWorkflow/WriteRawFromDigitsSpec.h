@@ -20,6 +20,7 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
+#include "HMPIDBase/Digit.h"
 
 namespace o2
 {
@@ -36,7 +37,7 @@ namespace hmpid
 
 
     private:
-      bool eventEquipPadsComparision(o2::hmpid::Digit d1, o2::hmpid::Digit d2);
+      static bool eventEquipPadsComparision(o2::hmpid::Digit d1, o2::hmpid::Digit d2);
   };
 
 o2::framework::DataProcessorSpec getWriteRawFromDigitsSpec(std::string inputSpec = "HMP/DIGITS");
