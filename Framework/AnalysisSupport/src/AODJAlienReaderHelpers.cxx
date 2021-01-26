@@ -32,7 +32,6 @@
 #include <TGrid.h>
 #include <TFile.h>
 #include <TTreeCache.h>
-#include <TTreePerfStats.h>
 
 #include <arrow/ipc/reader.h>
 #include <arrow/ipc/writer.h>
@@ -159,7 +158,7 @@ void AODJAlienReaderHelpers::dumpFileMetrics(Monitoring& monitoring, TFile* curr
   }
 #endif
   monitoring.send(Metric{monitoringInfo, "aod-file-read-info"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
-  LOGP(DEBUG, "Read info: {}", monitoringInfo);
+  LOGP(INFO, "Read info: {}", monitoringInfo);
 }
 
 AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
@@ -283,7 +282,6 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
             throw std::runtime_error("Processing is stopped!");
           }
         }
-        TTreePerfStats ps("ioperf", tr);
 
         if (first) {
           timeFrameNumber = didir->getTimeFrameNumber(dh, fcnt, ntf);
@@ -311,7 +309,6 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
           }
         }
         t2t.fill(tr);
-        monitoring.send(Metric{(double)ps.GetReadCalls(), "aod-tree-read-calls"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
         delete tr;
 
         // needed for metrics dumping (upon next file read, or terminate due to watchdog)
