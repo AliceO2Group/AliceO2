@@ -30,7 +30,7 @@ o2_add_executable(raw-to-digits-workflow
 
 o2_add_executable(write-raw-from-digits-workflow
               COMPONENT_NAME hmpid
-              SOURCES src/write-rawfrom-digits-workflow.cxx
+              SOURCES src/write-raw-from-digits-workflow.cxx
               PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
 
 o2_add_executable(dump-digits-workflow
