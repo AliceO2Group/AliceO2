@@ -326,7 +326,7 @@ taskwrapper() {
     fi
 
     # sleep for some time (can be customized for power user)
-    sleep ${JOBUTILS_WRAPPER_SLEEP:-10}
+    sleep ${JOBUTILS_WRAPPER_SLEEP:-1}
 
     # power feature: we allow to call a user hook at each i-th control
     # iteration
