@@ -9,9 +9,11 @@
 // or submit itself to any jurisdiction.
 
 #include "HTTPParser.h"
+#include "Framework/RuntimeError.h"
 #include <string_view>
 #include "SHA1.h"
 #include "Base64.h"
+#include <regex>
 
 using namespace o2::framework::internal;
 namespace o2::framework
@@ -87,6 +89,7 @@ void encode_websocket_frames(std::vector<uv_buf_t>& outputs, char const* src, si
 void decode_websocket(char* start, size_t size, WebSocketHandler& handler)
 {
   char* cur = start;
+  handler.beginChunk();
   while (cur - start < size) {
     WebSocketFrameTiny* header = (WebSocketFrameTiny*)cur;
     size_t payloadSize = 0;
@@ -110,6 +113,7 @@ void decode_websocket(char* start, size_t size, WebSocketHandler& handler)
     handler.frame(cur + headerSize, payloadSize);
     cur += headerSize + payloadSize;
   }
+  handler.endChunk();
 }
 
 std::string encode_websocket_handshake_request(const char* endpoint, const char* protocol, int version, char const* nonce,
@@ -364,9 +368,27 @@ void parse_http_request(char const* start, size_t size, HTTPParser* parser)
         break;
       default:
         parser->states.push_back(HTTPState::IN_ERROR);
-        ;
-        ;
+        break;
     }
   }
+}
+
+std::pair<std::string, unsigned short> parse_websocket_url(char const* url)
+{
+  std::string s = url;
+  if (s == "ws://") {
+    s = "ws://127.0.0.1:8080";
+  }
+  const std::regex urlMatcher("^ws://([0-9-_.]+)[:]([0-9]+)$");
+  std::smatch parts;
+  if (!std::regex_match(s, parts, urlMatcher)) {
+    throw runtime_error_f(
+      "Unable to parse driver client url: %s.\n"
+      "Format should be ws://[<driver ip>:<port>] e.g. ws://127.0.0.1:8080 or just ws://");
+  }
+  std::string ip = std::string{parts[1]};
+  auto portS = std::string(parts[2]);
+  unsigned short port = std::stoul(portS);
+  return {ip, port};
 }
 } // namespace o2::framework

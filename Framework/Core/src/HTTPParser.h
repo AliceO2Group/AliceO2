@@ -93,11 +93,15 @@ struct WebSocketHandler {
   virtual void beginFragmentation(){};
   /// Invoked when a frame it's parsed. Notice you do not own the data and you must
   /// not free the memory.
-  virtual void frame(char const* frame, size_t s){};
+  virtual void frame(char const* frame, size_t s) {}
+  /// Invoked before processing the next round of input
+  virtual void beginChunk() {}
+  /// Invoked whenever we have no more input to process
+  virtual void endChunk() {}
   /// FIXME: not implemented
-  virtual void endFragmentation(){};
+  virtual void endFragmentation() {}
   /// FIXME: not implemented
-  virtual void control(char const* frame, size_t s){};
+  virtual void control(char const* frame, size_t s) {}
 };
 
 /// Decoder for websocket data. For now we assume that the frame was not split. However multiple
@@ -158,5 +162,7 @@ struct HTTPParserHelpers {
 };
 
 void parse_http_request(char const* start, size_t size, HTTPParser* parser);
+
+std::pair<std::string, unsigned short> parse_websocket_url(const char* s);
 } // namespace o2::framework
 #endif
