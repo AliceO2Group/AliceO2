@@ -60,6 +60,7 @@ o2_add_library(Framework
                        src/ConfigurationOptionsRetriever.cxx
                        src/FreePortFinder.cxx
                        src/GraphvizHelpers.cxx
+                       src/HTTPParser.cxx
                        src/InputRecord.cxx
                        src/InputSpec.cxx
                        src/OutputSpec.cxx
@@ -97,6 +98,8 @@ o2_add_library(Framework
                        src/ExternalFairMQDeviceProxy.cxx
                        src/HistogramRegistry.cxx
                        src/StepTHn.cxx
+                       src/SHA1.cxx
+                       src/Base64.cxx
                        test/TestClasses.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
                PUBLIC_LINK_LIBRARIES AliceO2::Common
@@ -157,6 +160,7 @@ foreach(t
         Graphviz
         GroupSlicer
         HistogramRegistry
+        HTTPParser
         IndexBuilder
         InfoLogger
         InputRecord
