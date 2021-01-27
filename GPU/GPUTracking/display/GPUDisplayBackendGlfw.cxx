@@ -268,9 +268,6 @@ int GPUDisplayBackendGlfw::OpenGLMain()
 
 #ifdef GPUCA_O2_LIB
   ImGui_ImplGlfwGL3_Init(mWindow, false);
-#endif
-
-#ifdef GPUCA_O2_LIB
   while (o2::framework::pollGUI(mWindow, DisplayLoop)) {
   }
 #else

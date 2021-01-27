@@ -88,6 +88,8 @@ endif()
 
 if(CONFIG_ROOT)
   find_package(ROOT CONFIG REQUIRED)
+else()
+  add_definitions(-DGPUCA_NO_ROOT)
 endif()
 if(CONFIG_O2_EXTENSIONS)
   add_definitions(-DHAVE_O2HEADERS)
