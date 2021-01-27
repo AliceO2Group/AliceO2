@@ -15,11 +15,11 @@
 
 #ifndef _ALICEO2_DCA_FITTERN_
 #define _ALICEO2_DCA_FITTERN_
-#include <TMath.h>
+// #include <TMath.h>
 #include "ReconstructionDataFormats/Track.h"
 #include "DetectorsVertexing/HelixHelper.h"
 #include "GPUCommonArray.h"
-#include "MathUtils/SMatrixGPU.h"
+#include "DetectorsVertexing/SMatrixGPU.h"
 
 using namespace o2::gpu;
 
@@ -385,7 +385,7 @@ GPUd() bool DCAFitterN<N, Args...>::calcInverseWeight()
 {
   //< calculate [sum_{0<j<N} M_j*E_j*M_j^T]^-1 used for Ti matrices, see EQ.T
   auto* arrmat = mWeightInv.Array();
-  memset(arrmat, 0, sizeof(mWeightInv));
+  memset((void*)arrmat, 0, sizeof(mWeightInv));
   enum { XX,
          XY,
          YY,
@@ -619,12 +619,12 @@ GPUd() void DCAFitterN<N, Args...>::calcPCANoErr()
 
 //___________________________________________________________________
 template <int N, typename... Args>
-o2::math_utils::SMatrix<double, 3, 3, ROOT::Math::MatRepSym<double, 3>> DCAFitterN<N, Args...>::calcPCACovMatrix(int cand) const
+GPUd() o2::math_utils::SMatrix<double, 3, 3, o2::math_utils::MatRepSym<double, 3>> DCAFitterN<N, Args...>::calcPCACovMatrix(int cand) const
 {
   // calculate covariance matrix for the point of closest approach
   MatSym3D covm;
   for (int i = N; i--;) {
-    covm += ROOT::Math::Similarity(mUseAbsDCA ? getTrackRotMatrix(i) : mTrCFVT[mOrder[cand]][i], getTrackCovMatrix(i, cand));
+    covm += o2::math_utils::Similarity(mUseAbsDCA ? getTrackRotMatrix(i) : mTrCFVT[mOrder[cand]][i], getTrackCovMatrix(i, cand));
   }
   return covm;
 }
@@ -781,7 +781,7 @@ GPUd() bool DCAFitterN<N, Args...>::minimizeChi2()
 
     // do Newton-Rapson iteration with corrections = - dchi2/d{x0..xN} * [ d^2chi2/d{x0..xN}^2 ]^-1
     if (!mD2Chi2Dx2.Invert()) {
-#if !defined(__CUDACC__)
+#if !defined(GPUCA_GPUCODE)
       LOG(ERROR) << "InversionFailed";
 #else
       printf("InversionFailed");
@@ -838,7 +838,7 @@ GPUd() bool DCAFitterN<N, Args...>::minimizeChi2NoErr()
 
     // do Newton-Rapson iteration with corrections = - dchi2/d{x0..xN} * [ d^2chi2/d{x0..xN}^2 ]^-1
     if (!mD2Chi2Dx2.Invert()) {
-#if !defined(__CUDACC__)
+#if !defined(GPUCA_GPUCODE)
       LOG(ERROR) << "InversionFailed";
 #else
       printf("InversionFailed");

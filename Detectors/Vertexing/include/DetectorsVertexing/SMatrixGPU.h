@@ -17,8 +17,10 @@
 #define ALICEO2_ROOTSMATRIX_H
 
 #ifndef GPUCA_GPUCODE_DEVICE
+#include <TMath.h>
 #include <Math/SVector.h>
 #include <Math/SMatrix.h>
+#include <Math/Functions.h>
 #endif
 
 #include "GPUCommonDef.h"
@@ -104,8 +106,30 @@ GPUd() SVectorGPU<T, N>::SVectorGPU(const SVectorGPU<T, N>& rhs)
   }
 }
 
-// Utils for SMatrixGPU
-/// SMatrix * SMatrix mult
+// Dot operator support
+template <size_t I>
+struct meta_dot {
+  template <class A, class B, class T>
+  static GPUdi() T f(const A& lhs, const B& rhs, const T& x)
+  {
+    return lhs.apply(I) * rhs.apply(I) + meta_dot<I - 1>::f(lhs, rhs, x);
+  }
+};
+
+template <>
+struct meta_dot<0> {
+  template <class A, class B, class T>
+  static GPUdi() T f(const A& lhs, const B& rhs, const T& /*x */)
+  {
+    return lhs.apply(0) * rhs.apply(0);
+  }
+};
+
+template <class T, size_t D>
+GPUdi() T Dot(const SVectorGPU<T, D>& lhs, const SVectorGPU<T, D>& rhs)
+{
+  return meta_dot<D - 1>::f(lhs, rhs, T());
+}
 
 template <size_t I>
 struct meta_matrix_dot {
@@ -153,36 +177,8 @@ struct meta_matrix_dot<0> {
   }
 };
 
-template <class MatrixA, class MatrixB, class T, size_t D>
-class MatrixMulOpGPU
-{
- public:
-  MatrixMulOpGPU(const MatrixA& lhs, const MatrixB& rhs) : mLhs(lhs), mRhs(rhs) {}
-  ~MatrixMulOpGPU() {}
-
-  GPUdi() T apply(size_t i) const
-  {
-    return meta_matrix_dot<D - 1>::f(mLhs, mRhs, i);
-  }
-
-  GPUdi() T operator()(size_t i, unsigned j) const
-  {
-    return meta_matrix_dot<D - 1>::g(mLhs, mRhs, i, j);
-  }
-
-  GPUdi() bool IsInUse(const T* p) const
-  {
-    return mLhs.IsInUse(p) || mRhs.IsInUse(p);
-  }
-
- protected:
-  const MatrixA& mLhs;
-  const MatrixB& mRhs;
-};
-
 namespace row_offsets_utils
 {
-
 template <int...>
 struct indices {
 };
@@ -412,8 +408,7 @@ struct SMatrixIdentity {
 struct SMatrixNoInit {
 };
 
-template <class ExprType, class T, size_t D, size_t D2 = 1,
-          class R1 = MatRepStdGPU<T, D, D2>>
+template <class ExprType, class T, size_t D, size_t D2 = 1, class R1 = MatRepStdGPU<T, D, D2>>
 class Expr
 {
  public:
@@ -442,10 +437,7 @@ class Expr
   ExprType mRhs;
 };
 
-template <class T,
-          size_t D1,
-          size_t D2 = D1,
-          class R = MatRepStdGPU<T, D1, D2>>
+template <class T, size_t D1, size_t D2 = D1, class R = MatRepStdGPU<T, D1, D2>>
 class SMatrixGPU
 {
  public:
@@ -475,12 +467,12 @@ class SMatrixGPU
   // SMatrixGPU<T, D1, D2, R>& operator=(SMatrixIdentity);
   // SMatrixGPU<T, D1, D2, R>& operator=(const T& rhs);
   enum {
-    kRows = D1, // rows
-    kCols = D2, // columns
+    kRows = D1,     // rows
+    kCols = D2,     // columns
     kSize = D1 * D2 // rows*columns
   };
   T apply(size_t i) const;
-  const T* Array() const;
+  GPUd() const T* Array() const;
   T* Array();
   iterator begin();
   iterator end();
@@ -623,9 +615,7 @@ class SMatrixGPU
   R mRep;
 };
 
-template <class T,
-          size_t D1, size_t D2,
-          class A, class R1, class R2>
+template <class T, size_t D1, size_t D2, class A, class R1, class R2>
 struct Assign {
   // Evaluate the expression from general to general matrices.
   GPUd() static void Evaluate(SMatrixGPU<T, D1, D2, R1>& lhs, const Expr<A, T, D1, D2, R2>& rhs)
@@ -652,9 +642,7 @@ struct Assign {
   }
 };
 
-template <class T,
-          size_t D1, size_t D2,
-          class A>
+template <class T, size_t D1, size_t D2, class A>
 struct Assign<T, D1, D2, A, MatRepSymGPU<T, D1>, MatRepSymGPU<T, D1>> {
   // Evaluate the expression from  symmetric to symmetric matrices.
   GPUd() static void Evaluate(SMatrixGPU<T, D1, D2, MatRepSymGPU<T, D1>>& lhs,
@@ -760,13 +748,6 @@ struct MultPolicyGPU {
   typedef MatRepStdGPU<T, N1, N2> RepType;
 };
 
-/**
-    Matrix *  Matrix multiplication , \f$ C(i,j) = \sum_{k} A(i,k) * B(k,j)\f$
-    returning a matrix expression
-  **/
-//==============================================================================
-// operator* (SMatrixGPU * SMatrixGPU, binary)
-//==============================================================================
 template <class T, size_t D1, size_t D, size_t D2, class R1, class R2>
 GPUdi() Expr<MatrixMulOpGPU<SMatrixGPU<T, D1, D, R1>, SMatrixGPU<T, D, D2, R2>, T, D>, T, D1, D2, typename MultPolicyGPU<T, R1, R2>::RepType>
   operator*(const SMatrixGPU<T, D1, D, R1>& lhs, const SMatrixGPU<T, D, D2, R2>& rhs)
@@ -774,6 +755,63 @@ GPUdi() Expr<MatrixMulOpGPU<SMatrixGPU<T, D1, D, R1>, SMatrixGPU<T, D, D2, R2>, 
   typedef MatrixMulOpGPU<SMatrixGPU<T, D1, D, R1>, SMatrixGPU<T, D, D2, R2>, T, D> MatMulOp;
   return Expr<MatMulOp, T, D1, D2,
               typename MultPolicyGPU<T, R1, R2>::RepType>(MatMulOp(lhs, rhs));
+}
+
+template <class T, size_t D1, size_t D2, class R>
+struct TranspPolicyGPU {
+  enum {
+    N1 = R::kRows,
+    N2 = R::kCols
+  };
+  typedef MatRepStdGPU<T, N2, N1> RepType;
+};
+
+template <class T, size_t D1, size_t D2>
+struct TranspPolicyGPU<T, D1, D2, MatRepSymGPU<T, D1>> {
+  typedef MatRepSymGPU<T, D1> RepType;
+};
+
+template <class Matrix, class T, size_t D1, size_t D2 = D1>
+class TransposeOpGPU
+{
+ public:
+  GPUd() TransposeOpGPU(const Matrix& rhs) : mRhs(rhs) {}
+
+  ~TransposeOpGPU() {}
+
+  GPUdi() T apply(size_t i) const
+  {
+    return mRhs.apply((i % D1) * D2 + i / D1);
+  }
+  GPUdi() T operator()(size_t i, unsigned j) const
+  {
+    return mRhs(j, i);
+  }
+
+  GPUdi() bool IsInUse(const T* p) const
+  {
+    return mRhs.IsInUse(p);
+  }
+
+ protected:
+  const Matrix& mRhs;
+};
+
+template <class T, size_t D1, size_t D2, class R>
+GPUdi() Expr<TransposeOpGPU<SMatrixGPU<T, D1, D2, R>, T, D1, D2>, T, D2, D1, typename TranspPolicyGPU<T, D1, D2, R>::RepType> Transpose(const SMatrixGPU<T, D1, D2, R>& rhs)
+{
+  typedef TransposeOpGPU<SMatrixGPU<T, D1, D2, R>, T, D1, D2> MatTrOp;
+  return Expr<MatTrOp, T, D2, D1, typename TranspPolicyGPU<T, D1, D2, R>::RepType>(MatTrOp(rhs));
+}
+
+template <class T, size_t D1, size_t D2, class R>
+GPUdi() SMatrixGPU<T, D1, D1, MatRepSymGPU<T, D1>> Similarity(const SMatrixGPU<T, D1, D2, R>& lhs, const SMatrixGPU<T, D2, D2, MatRepSymGPU<T, D2>>& rhs)
+{
+  SMatrixGPU<T, D1, D2, MatRepStdGPU<T, D1, D2>> tmp = lhs * rhs;
+  typedef SMatrixGPU<T, D1, D1, MatRepSymGPU<T, D1>> SMatrixSym;
+  SMatrixSym mret;
+  AssignSym::Evaluate(mret, tmp * Transpose(lhs));
+  return mret;
 }
 
 /// SMatrixGPU end port here
@@ -803,6 +841,12 @@ using MatRepSym = ROOT::Math::MatRepSym<T, D>;
 
 template <class T, size_t D>
 using MatRepStd = ROOT::Math::MatRepStd<T, D>;
+
+// template <class T, size_t D>
+// using Dot = ROOT::Math::Dot<T, D>;
+template <class T, unsigned int D1, unsigned int D2, class R>
+using Similarity = ROOT::Math::Similarity<T, D1, D2, R>
+
 #endif
 }; // namespace o2::math_utils
 

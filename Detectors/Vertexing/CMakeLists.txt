@@ -30,7 +30,8 @@ o2_add_library(DetectorsVertexing
                                      ms_gsl::ms_gsl)
 
 o2_target_root_dictionary(DetectorsVertexing
-                          HEADERS include/DetectorsVertexing/HelixHelper.h
+                          HEADERS include/DetectorsVertexing/SMatrixGPU.h
+                                  include/DetectorsVertexing/HelixHelper.h
                                   include/DetectorsVertexing/PVertexer.h
                                   include/DetectorsVertexing/PVertexerHelpers.h
                                   include/DetectorsVertexing/PVertexerParams.h
