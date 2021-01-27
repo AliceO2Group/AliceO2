@@ -25,60 +25,68 @@
 #include "THn.h"
 #include "TMath.h"
 
-ClassImp(StepTHn)
-  templateClassImp(StepTHnT)
+ClassImp(StepTHn);
+templateClassImp(StepTHnT);
 
-    StepTHn::StepTHn() : mNBins(0),
-                         mNVars(0),
-                         mNSteps(0),
-                         mValues(nullptr),
-                         mSumw2(nullptr),
-                         mTarget(nullptr),
-                         mAxisCache(nullptr),
-                         mNbinsCache(nullptr),
-                         mLastVars(nullptr),
-                         mLastBins(nullptr),
-                         mPrototype(nullptr)
+StepTHn::StepTHn() : mNBins(0),
+                     mNVars(0),
+                     mNSteps(0),
+                     mValues(nullptr),
+                     mSumw2(nullptr),
+                     mTarget(nullptr),
+                     mAxisCache(nullptr),
+                     mNbinsCache(nullptr),
+                     mLastVars(nullptr),
+                     mLastBins(nullptr),
+                     mPrototype(nullptr)
 {
   // Default constructor (for streaming)
 }
 
-StepTHn::StepTHn(const Char_t* name, const Char_t* title, const Int_t nSteps, const Int_t nAxis, Int_t* nBins, std::vector<Double_t> binEdges[], const char** axisTitles) : TNamed(name, title),
-                                                                                                                                                                            mNBins(0),
-                                                                                                                                                                            mNVars(nAxis),
-                                                                                                                                                                            mNSteps(nSteps),
-                                                                                                                                                                            mValues(nullptr),
-                                                                                                                                                                            mSumw2(nullptr),
-                                                                                                                                                                            mTarget(nullptr),
-                                                                                                                                                                            mAxisCache(nullptr),
-                                                                                                                                                                            mNbinsCache(nullptr),
-                                                                                                                                                                            mLastVars(nullptr),
-                                                                                                                                                                            mLastBins(nullptr),
-                                                                                                                                                                            mPrototype(nullptr)
+StepTHn::StepTHn(const Char_t* name, const Char_t* title, const Int_t nSteps, const Int_t nAxes) : TNamed(name, title),
+                                                                                                   mNBins(0),
+                                                                                                   mNVars(nAxes),
+                                                                                                   mNSteps(nSteps),
+                                                                                                   mValues(nullptr),
+                                                                                                   mSumw2(nullptr),
+                                                                                                   mTarget(nullptr),
+                                                                                                   mAxisCache(nullptr),
+                                                                                                   mNbinsCache(nullptr),
+                                                                                                   mLastVars(nullptr),
+                                                                                                   mLastBins(nullptr),
+                                                                                                   mPrototype(nullptr)
 {
   // Constructor
   //
   // This will create a container for <nSteps> steps. The memory for such a step is only allocated once the first value is filled.
   // Therefore you can easily create many steps which are only filled under certain analysis settings.
-  // For each step a <nAxis> dimensional histogram is created.
+  // For each step a <nAxes> dimensional histogram is created.
   // The axis have <nBins[i]> bins. The bin edges are given in <binEdges[i]>. If there are only two bin edges, equidistant binning is set.
 
   init();
 }
 
+// root-like constructor
 template <class TemplateArray>
-StepTHnT<TemplateArray>::StepTHnT(const Char_t* name, const Char_t* title, const Int_t nSteps, const Int_t nAxis,
-                                  Int_t* nBins, std::vector<Double_t> binEdges[], const char** axisTitles) : StepTHn(name, title, nSteps, nAxis, nBins, binEdges, axisTitles)
+StepTHnT<TemplateArray>::StepTHnT(const char* name, const char* title, const int nSteps, const int nAxes, const int* nBins, const double* xmin, const double* xmax) : StepTHn(name, title, nSteps, nAxes)
 {
   mNBins = 1;
   for (Int_t i = 0; i < mNVars; i++) {
     mNBins *= nBins[i];
   }
-  if constexpr (std::is_same_v<TemplateArray, TArrayD>) {
-    mPrototype = new THnSparseD(Form("%s_sparse", name), title, nAxis, nBins);
-  } else {
-    mPrototype = new THnSparseF(Form("%s_sparse", name), title, nAxis, nBins);
+  mPrototype = new THnSparseT<TemplateArray>(Form("%s_sparse", name), title, nAxes, nBins, xmin, xmax);
+}
+
+template <class TemplateArray>
+StepTHnT<TemplateArray>::StepTHnT(const Char_t* name, const Char_t* title, const Int_t nSteps, const Int_t nAxes,
+                                  Int_t* nBins, std::vector<Double_t> binEdges[], const char** axisTitles) : StepTHn(name, title, nSteps, nAxes)
+{
+  mNBins = 1;
+  for (Int_t i = 0; i < mNVars; i++) {
+    mNBins *= nBins[i];
   }
+  mPrototype = new THnSparseT<TemplateArray>(Form("%s_sparse", name), title, nAxes, nBins);
+
   for (Int_t i = 0; i < mNVars; i++) {
     if (nBins[i] + 1 == binEdges[i].size()) { // variable-width binning
       mPrototype->GetAxis(i)->Set(nBins[i], &(binEdges[i])[0]);
@@ -202,15 +210,14 @@ void StepTHn::Copy(TObject& c) const
   }
 
   if (mPrototype) {
-    target.mPrototype = dynamic_cast<THnSparseF*>(mPrototype->Clone());
+    target.mPrototype = dynamic_cast<THnSparse*>(mPrototype->Clone());
   }
 }
 
 template <class TemplateArray>
 Long64_t StepTHnT<TemplateArray>::Merge(TCollection* list)
 {
-  // Merge a list of StepTHn objects with this (needed for
-  // PROOF).
+  // Merge a list of StepTHn objects with this (needed for PROOF).
   // Returns the number of merged objects (including this).
 
   if (!list) {
