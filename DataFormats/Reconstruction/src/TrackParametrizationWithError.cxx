@@ -30,7 +30,9 @@
 
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <iostream>
+#ifndef GPUCA_STANDALONE
 #include "Math/SMatrix.h"
+#endif
 #endif
 
 #ifndef GPUCA_ALIGPUCODE
@@ -688,7 +690,7 @@ GPUd() typename TrackParametrizationWithError<value_T>::value_t TrackParametriza
   return (d * (szz * d - sdz * z) + z * (sdd * z - d * sdz)) / det;
 }
 
-#ifndef GPUCA_GPUCODE // Disable function relying on ROOT SMatrix on GPU
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // Disable function relying on ROOT SMatrix on GPU
 
 //______________________________________________
 template <typename value_T>
