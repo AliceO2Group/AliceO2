@@ -741,6 +741,32 @@ bool processSigChild(DeviceInfos& infos)
   return hasError;
 }
 
+void doDPLException(RuntimeErrorRef& e)
+{
+  auto& err = o2::framework::error_from_ref(e);
+  if (err.maxBacktrace != 0) {
+    LOG(ERROR) << "Unhandled o2::framework::runtime_error reached the top of main, device shutting down. Details follow: \n";
+    backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+  } else {
+    LOG(ERROR) << "Unhandled o2::framework::runtime_error reached the top of main, device shutting down."
+                  " Recompile with DPL_ENABLE_BACKTRACE=1 to get more information.";
+  }
+}
+
+void doUnknownException(std::string const& s)
+{
+  if (s.empty()) {
+    LOG(ERROR) << "Unknown error while setting up workflow.";
+  } else {
+    LOG(ERROR) << "error while setting up workflow: " << s;
+  }
+}
+
+void doDefaultWorkflowTerminationHook()
+{
+  //LOG(INFO) << "Process " << getpid() << " is exiting.";
+}
+
 int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry, const o2::framework::DeviceSpec& spec, TerminationPolicy errorPolicy,
             uv_loop_t* loop)
 {
@@ -808,14 +834,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry, const o2::f
                << boost::current_exception_diagnostic_information(true);
     return 1;
   } catch (o2::framework::RuntimeErrorRef e) {
-    auto& err = o2::framework::error_from_ref(e);
-    if (err.maxBacktrace != 0) {
-      LOG(ERROR) << "Unhandled o2::framework::runtime_error reached the top of main, device shutting down. Details follow: \n";
-      backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
-    } else {
-      LOG(ERROR) << "Unhandled o2::framework::runtime_error reached the top of main, device shutting down."
-                    " Recompile with DPL_ENABLE_BACKTRACE=1 to get more information.";
-    }
+    doDPLException(e);
     return 1;
   } catch (std::exception& e) {
     LOG(ERROR) << "Unhandled std::exception reached the top of main: " << e.what() << ", device shutting down.";
@@ -1161,16 +1180,26 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         }
         break;
       case DriverState::MERGE_CONFIGS: {
-        controls.resize(deviceSpecs.size());
-        deviceExecutions.resize(deviceSpecs.size());
+        try {
+          controls.resize(deviceSpecs.size());
+          deviceExecutions.resize(deviceSpecs.size());
 
-        DeviceSpecHelpers::reworkShmSegmentSize(dataProcessorInfos);
-        DeviceSpecHelpers::prepareArguments(driverControl.defaultQuiet,
-                                            driverControl.defaultStopped,
-                                            dataProcessorInfos,
-                                            deviceSpecs,
-                                            deviceExecutions, controls,
-                                            driverInfo.uniqueWorkflowId);
+          DeviceSpecHelpers::reworkShmSegmentSize(dataProcessorInfos);
+          DeviceSpecHelpers::prepareArguments(driverControl.defaultQuiet,
+                                              driverControl.defaultStopped,
+                                              dataProcessorInfos,
+                                              deviceSpecs,
+                                              deviceExecutions, controls,
+                                              driverInfo.uniqueWorkflowId);
+        } catch (o2::framework::RuntimeErrorRef& ref) {
+          auto& err = o2::framework::error_from_ref(ref);
+          LOG(ERROR) << "Unable to merge configurations: " << err.what;
+#ifdef DPL_ENABLE_BACKTRACE
+          std::cerr << "\nStacktrace follows:\n\n";
+          backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+#endif
+          return 1;
+        }
 
       } break;
       case DriverState::SCHEDULE: {
