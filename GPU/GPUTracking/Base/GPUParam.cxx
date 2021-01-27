@@ -257,7 +257,7 @@ o2::base::Propagator* GPUParam::GetDefaultO2Propagator(bool useGPUField) const
   if (useGPUField == false) {
     throw std::runtime_error("o2 propagator withouzt gpu field unsupported");
   }
-  prop = o2::base::Propagator::Instance();
+  prop = o2::base::Propagator::Instance(useGPUField);
   if (useGPUField) {
     prop->setGPUField(&polynomialField);
     prop->setBz(polynomialField.GetNominalBz());

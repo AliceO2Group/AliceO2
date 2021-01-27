@@ -29,8 +29,11 @@ using namespace o2::gpu;
 #include <FairRunAna.h> // eventually will get rid of it
 #include <TGeoGlobalMagField.h>
 
-Propagator::Propagator()
+Propagator::Propagator(bool uninitialized)
 {
+  if (uninitialized) {
+    return;
+  }
   ///< construct checking if needed components were initialized
 
   // we need the geoemtry loaded
@@ -99,7 +102,7 @@ int Propagator::initFieldFromGRP(const o2::parameters::GRPObject* grp, bool verb
   return 0;
 }
 #elif !defined(GPUCA_GPUCODE)
-Propagator::Propagator()
+Propagator::Propagator(bool uninitialized)
 {
 } // empty dummy constructor for standalone benchmark
 #endif

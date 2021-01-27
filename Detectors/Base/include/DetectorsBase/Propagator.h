@@ -114,9 +114,9 @@ class Propagator
   GPUd() void setBz(float bz) { mBz = bz; }
 
 #ifndef GPUCA_GPUCODE
-  static Propagator* Instance()
+  static Propagator* Instance(bool uninitialized = false)
   {
-    static Propagator instance;
+    static Propagator instance(uninitialized);
     return &instance;
   }
 
@@ -129,7 +129,7 @@ class Propagator
 
  private:
 #ifndef GPUCA_GPUCODE
-  Propagator();
+  Propagator(bool uninitialized = false);
   ~Propagator() = default;
 #endif
 
