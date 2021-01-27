@@ -78,25 +78,14 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #define GET_CID(slice, i) (tracker.Param().par.earlyTpcTransform ? tracker.ClusterData()[i].id : (tracker.GetConstantMem()->ioPtrs.clustersNative->clusterOffset[slice][0] + i))
 
-#ifdef GPUCA_STANDALONE
-namespace GPUCA_NAMESPACE::gpu
-{
-extern GPUSettingsStandalone configStandalone;
-}
-#endif
 static const GPUSettingsDisplay& GPUDisplay_GetConfig(GPUChainTracking* chain)
 {
-#if !defined(GPUCA_STANDALONE)
   static GPUSettingsDisplay defaultConfig;
   if (chain->mConfigDisplay) {
     return *chain->mConfigDisplay;
   } else {
     return defaultConfig;
   }
-
-#else
-  return configStandalone.GL;
-#endif
 }
 
 GPUDisplay::GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* chain, GPUQA* qa) : mBackend(backend), mChain(chain), mConfig(GPUDisplay_GetConfig(chain)), mQA(qa), mMerger(chain->GetTPCMerger()) { backend->mDisplay = this; }

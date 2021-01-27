@@ -287,6 +287,9 @@ int SetupReconstruction()
     }
   }
 
+  chainTracking->mConfigQA = &configStandalone.QA;
+  chainTracking->mConfigDisplay = &configStandalone.GL;
+
   GPUSettingsEvent ev = rec->GetEventSettings();
   GPUSettingsRec recSet;
   GPUSettingsProcessing devProc;
