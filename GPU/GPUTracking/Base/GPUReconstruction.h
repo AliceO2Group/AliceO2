@@ -98,10 +98,12 @@ class GPUReconstruction
                                          TRD_TRACKLET_MC = 11,
                                          TPC_COMPRESSED_CL = 12,
                                          TPC_DIGIT = 13,
-                                         TPC_ZS = 14 };
-  static constexpr const char* const IOTYPENAMES[] = {"TPC Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters", "TRD Tracks", "TRD Tracklets",
-                                                      "Raw Clusters", "ClusterNative", "TRD Tracklet MC Labels", "TPC Compressed Clusters", "TPC Digit", "TPC ZS Page"};
-  static unsigned int getNIOTypeMultiplicity(InOutPointerType type) { return (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS || type == TPC_DIGIT) ? NSLICES : 1; }
+                                         TPC_ZS = 14,
+                                         CLUSTER_NATIVE_MC = 15,
+                                         TPC_DIGIT_MC = 16 };
+  static constexpr const char* const IOTYPENAMES[] = {"TPC HLT Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters", "TRD Tracks", "TRD Tracklets",
+                                                      "TPC Raw Clusters", "TPC Native Clusters", "TRD Tracklet MC Labels", "TPC Compressed Clusters", "TPC Digit", "TPC ZS Page", "TPC Native Clusters MC Labels", "TPC Digit MC Labeels"};
+  static unsigned int getNIOTypeMultiplicity(InOutPointerType type) { return (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS || type == TPC_DIGIT || type == TPC_DIGIT_MC) ? NSLICES : 1; }
 
   // Functionality to create an instance of GPUReconstruction for the desired device
   static GPUReconstruction* CreateInstance(const GPUSettingsDeviceBackend& cfg);
