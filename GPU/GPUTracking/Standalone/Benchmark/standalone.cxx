@@ -31,9 +31,6 @@
 #include <thread>
 #include <future>
 #include <atomic>
-#ifdef WITH_OPENMP
-#include <omp.h>
-#endif
 
 #ifndef _WIN32
 #include <unistd.h>
