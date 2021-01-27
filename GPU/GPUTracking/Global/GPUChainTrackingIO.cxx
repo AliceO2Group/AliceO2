@@ -11,11 +11,6 @@
 /// \file GPUChainTrackingIO.cxx
 /// \author David Rohr
 
-#ifdef HAVE_O2HEADERS
-#include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
-#endif
-
 #include "GPUChainTracking.h"
 #include "GPUTPCClusterData.h"
 #include "GPUTPCSliceOutput.h"
@@ -39,6 +34,8 @@
 #include "GPUTrackingInputProvider.h"
 
 #ifdef HAVE_O2HEADERS
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 #include "GPUTPCClusterStatistics.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "GPUHostDataTypes.h"
@@ -58,6 +55,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 using namespace o2::tpc;
 using namespace o2::trd;
+using namespace o2::dataformats;
 
 static constexpr unsigned int DUMP_HEADER_SIZE = 4;
 static constexpr char DUMP_HEADER[DUMP_HEADER_SIZE + 1] = "CAv1";
@@ -77,12 +75,28 @@ void GPUChainTracking::DumpData(const char* filename)
   fwrite(&GPUReconstruction::geometryType, sizeof(GPUReconstruction::geometryType), 1, fp);
   DumpData(fp, mIOPtrs.clusterData, mIOPtrs.nClusterData, InOutPointerType::CLUSTER_DATA);
   DumpData(fp, mIOPtrs.rawClusters, mIOPtrs.nRawClusters, InOutPointerType::RAW_CLUSTERS);
+#ifdef HAVE_O2HEADERS
   if (mIOPtrs.clustersNative) {
     DumpData(fp, &mIOPtrs.clustersNative->clustersLinear, &mIOPtrs.clustersNative->nClustersTotal, InOutPointerType::CLUSTERS_NATIVE);
     fwrite(&mIOPtrs.clustersNative->nClusters[0][0], sizeof(mIOPtrs.clustersNative->nClusters[0][0]), NSLICES * GPUCA_ROW_COUNT, fp);
+    if (mIOPtrs.clustersNative->clustersMCTruth) {
+      const auto& buffer = mIOPtrs.clustersNative->clustersMCTruth->getBuffer();
+      std::pair<const char*, size_t> tmp = {buffer.data(), buffer.size()};
+      DumpData(fp, &tmp.first, &tmp.second, InOutPointerType::CLUSTER_NATIVE_MC);
+    }
   }
   if (mIOPtrs.tpcPackedDigits) {
     DumpData(fp, mIOPtrs.tpcPackedDigits->tpcDigits, mIOPtrs.tpcPackedDigits->nTPCDigits, InOutPointerType::TPC_DIGIT);
+    if (mIOPtrs.tpcPackedDigits->tpcDigitsMC) {
+      const char* ptrs[NSLICES];
+      size_t sizes[NSLICES];
+      for (unsigned int i = 0; i < NSLICES; i++) {
+        const auto& buffer = mIOPtrs.tpcPackedDigits->tpcDigitsMC->v[i]->getBuffer();
+        ptrs[i] = buffer.data();
+        sizes[i] = buffer.size();
+      }
+      DumpData(fp, ptrs, sizes, InOutPointerType::TPC_DIGIT_MC);
+    }
   }
   if (mIOPtrs.tpcZS) {
     size_t total = 0;
@@ -110,6 +124,7 @@ void GPUChainTracking::DumpData(const char* filename)
     DumpData(fp, &ptr, &total, InOutPointerType::TPC_ZS);
     fwrite(&counts, sizeof(counts), 1, fp);
   }
+#endif
   DumpData(fp, mIOPtrs.sliceTracks, mIOPtrs.nSliceTracks, InOutPointerType::SLICE_OUT_TRACK);
   DumpData(fp, mIOPtrs.sliceClusters, mIOPtrs.nSliceClusters, InOutPointerType::SLICE_OUT_CLUSTER);
   DumpData(fp, &mIOPtrs.mcLabelsTPC, &mIOPtrs.nMCLabelsTPC, InOutPointerType::MC_LABEL_TPC);
@@ -155,10 +170,26 @@ int GPUChainTracking::ReadData(const char* filename)
     r = fread(&mIOMem.clusterNativeAccess->nClusters[0][0], sizeof(mIOMem.clusterNativeAccess->nClusters[0][0]), NSLICES * GPUCA_ROW_COUNT, fp);
     mIOMem.clusterNativeAccess->setOffsetPtrs();
     mIOPtrs.clustersNative = mIOMem.clusterNativeAccess.get();
+    std::pair<const char*, size_t> tmp = {nullptr, 0};
+    if (ReadData(fp, &tmp.first, &tmp.second, &mIOMem.clusterNativeMC, InOutPointerType::CLUSTER_NATIVE_MC)) {
+      mIOMem.clusterNativeMCView = std::make_unique<ConstMCLabelContainerView>(gsl::span<const char>(tmp.first, tmp.first + tmp.second));
+      mIOMem.clusterNativeAccess->clustersMCTruth = mIOMem.clusterNativeMCView.get();
+    }
   }
   mIOMem.digitMap.reset(new GPUTrackingInOutDigits);
   if (ReadData(fp, mIOMem.digitMap->tpcDigits, mIOMem.digitMap->nTPCDigits, mIOMem.tpcDigits, InOutPointerType::TPC_DIGIT)) {
     mIOPtrs.tpcPackedDigits = mIOMem.digitMap.get();
+    const char* ptrs[NSLICES];
+    size_t sizes[NSLICES];
+    if (ReadData(fp, ptrs, sizes, mIOMem.tpcDigitsMC, InOutPointerType::TPC_DIGIT_MC)) {
+      mIOMem.tpcDigitMCMap = std::make_unique<GPUTPCDigitsMCInput>();
+      mIOMem.tpcDigitMCView.reset(new ConstMCLabelContainerView[NSLICES]);
+      for (unsigned int i = 0; i < NSLICES; i++) {
+        mIOMem.tpcDigitMCView.get()[i] = gsl::span<const char>(ptrs[i], ptrs[i] + sizes[i]);
+        mIOMem.tpcDigitMCMap->v[i] = mIOMem.tpcDigitMCView.get() + i;
+      }
+      mIOMem.digitMap->tpcDigitsMC = mIOMem.tpcDigitMCMap.get();
+    }
   }
   const char* ptr;
   size_t total;

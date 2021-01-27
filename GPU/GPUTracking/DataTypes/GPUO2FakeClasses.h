@@ -21,13 +21,12 @@
 
 namespace o2
 {
+class MCCompLabel
+{
+};
 namespace gpu
 {
 } // namespace gpu
-} // namespace o2
-
-namespace o2
-{
 namespace tpc
 {
 class Digit
@@ -76,6 +75,13 @@ class GeometryFlat
 {
 };
 } // namespace trd
+namespace dataformats
+{
+template <class T>
+class ConstMCTruthContainerView
+{
+};
+} // namespace dataformats
 } // namespace o2
 
 namespace GPUCA_NAMESPACE
@@ -109,6 +115,8 @@ class GPUTrackingRefitProcessor
 {
 };
 struct GPUTPCCFChainContext {
+};
+struct GPUTPCDigitsMCInput {
 };
 struct TPCPadGainCalib {
 };

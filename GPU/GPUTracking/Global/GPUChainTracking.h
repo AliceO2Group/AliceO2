@@ -19,6 +19,7 @@
 #include "GPUDataTypes.h"
 #include <atomic>
 #include <array>
+#include <vector>
 #include <utility>
 
 namespace o2
@@ -109,6 +110,12 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     std::unique_ptr<GPUTRDTrackletWord[]> trdTracklets;
     std::unique_ptr<GPUTRDTrackletLabels[]> trdTrackletsMC;
     std::unique_ptr<GPUTRDTrackGPU[]> trdTracks;
+    std::unique_ptr<char[]> clusterNativeMC;
+    std::unique_ptr<o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>> clusterNativeMCView;
+    std::unique_ptr<char[]> tpcDigitsMC[NSLICES];
+    std::unique_ptr<o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>[]> tpcDigitMCView;
+    std::unique_ptr<GPUTPCDigitsMCInput> tpcDigitMCMap;
+
   } mIOMem;
 
   // Read / Dump / Clear Data

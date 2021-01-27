@@ -256,6 +256,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     TransferMemoryResourcesToHost(RecoStep::TPCMerging, &Merger, -1, true);
   }
 
+#ifdef HAVE_O2HEADERS
   if (GetProcessingSettings().createO2Output) {
     mRec->ReturnVolatileDeviceMemory();
     runKernel<GPUTPCGMO2Output, GPUTPCGMO2Output::prepare>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
@@ -278,6 +279,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
       ReleaseEvent(&mEvents->single);
     }
   }
+#endif
   if (synchronizeOutput) {
     SynchronizeStream(mRec->NStreams() - 2);
   }
