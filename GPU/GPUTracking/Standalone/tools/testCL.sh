@@ -9,10 +9,10 @@ LLVM_SPIRV=llvm-spirv
 #COMPILER=/home/qon/clang-build/install/bin/clang++
 #LLVM_SPIRV=/home/qon/clang-build/SPIRV-LLVM-Translator/build/tools/llvm-spirv/llvm-spirv
 
-INCLUDES="-I../. -I../Base -I../SliceTracker -I../Common -I../Merger -I../TRDTracking -I../ITS -I../dEdx -I../TPCConvert -I../TPCFastTransformation -I../DataCompression -I../TPCClusterFinder -I../Global -I ../GPUUtils \
+INCLUDES="-I../. -I../DataTypes -I../Definitions -I../Base -I../SliceTracker -I../Common -I../Merger -I../Refit -I../TRDTracking -I../ITS -I../dEdx -I../TPCConvert -I../TPCFastTransformation -I../DataCompression -I../TPCClusterFinder -I../Global -I ../GPUUtils \
           -I$HOME/alice/O2/DataFormats/Detectors/TPC/include -I$HOME/alice/O2/Detectors/Base/include -I$HOME/alice/O2/Detectors/Base/src -I$HOME/alice/O2/Common/MathUtils/include -I$HOME/alice/O2/DataFormats/Headers/include \
           -I$HOME/alice/O2/Detectors/TRD/base/include -I$HOME/alice/O2/Detectors/TRD/base/src -I$HOME/alice/O2/Detectors/ITSMFT/ITS/tracking/include -I$HOME/alice/O2/Detectors/ITSMFT/ITS/tracking/cuda/include -I$HOME/alice/O2/Common/Constants/include \
-          -I$HOME/alice/O2/DataFormats/common/include -I$HOME/alice/O2/DataFormats/Detectors/TRD/include"
+          -I$HOME/alice/O2/DataFormats/common/include -I$HOME/alice/O2/DataFormats/Detectors/TRD/include -I$HOME/alice/O2/DataFormats/Reconstruction/include -I$HOME/alice/O2/DataFormats/Reconstruction/src"
 DEFINES="-DGPUCA_STANDALONE -DGPUCA_GPULIBRARY=OCL -DNDEBUG -D__OPENCLCPP__ -DHAVE_O2HEADERS -DGPUCA_TPC_GEOMETRY_O2"
 FLAGS="-O3 -cl-denorms-are-zero -cl-mad-enable -cl-no-signed-zeros -ferror-limit=1000 -Xclang -finclude-default-header -Dcl_clang_storage_class_specifiers"
 
