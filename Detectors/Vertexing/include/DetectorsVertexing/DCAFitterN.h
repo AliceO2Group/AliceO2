@@ -48,9 +48,12 @@ struct TrackCovI {
       syy = czz * detYZI;
       syz = -cyz * detYZI;
       szz = cyy * detYZI;
-#ifndef GPUCA_GPUCODE_DEVICE
     } else {
+#ifndef GPUCA_GPUCODE_DEVICE
       throw std::runtime_error("invalid track covariance");
+#else
+      constexpr int invalid_track_covariance{0};
+      assert(invalid_track_covariance);
 #endif
     }
   }
@@ -115,90 +118,95 @@ class DCAFitterN
 
   ///< prepare copies of tracks at the V0 candidate (no check for the candidate validity)
   ///  must be called before getTrack(i,cand) query
-  bool propagateTracksToVertex(int cand = 0);
+  GPUd() bool propagateTracksToVertex(int cand = 0);
 
   ///< check if propagation of tracks to candidate vertex was done
-  bool isPropagateTracksToVertexDone(int cand = 0) const { return mTrPropDone[mOrder[cand]]; }
+  GPUd() bool isPropagateTracksToVertexDone(int cand = 0) const { return mTrPropDone[mOrder[cand]]; }
 
   ///< track param propagated to V0 candidate (no check for the candidate validity)
   ///  propagateTracksToVertex must be called in advance
-  const Track& getTrack(int i, int cand = 0) const
+  GPUd() const Track& getTrack(int i, int cand = 0) const
   {
     if (!mTrPropDone[mOrder[cand]]) {
+#ifndef GPUCA_GPUCODE_DEVICE
       throw std::runtime_error("propagateTracksToVertex was not called yet");
+#else
+      constexpr int propagate_tracks_to_vertex_not_called_yet{0};
+      assert(propagate_tracks_to_vertex_not_called_yet);
+#endif
     }
     return mCandTr[mOrder[cand]][i];
   }
 
   ///< create parent track param with errors for decay vertex
-  o2::track::TrackParCov createParentTrackParCov(int cand = 0, bool sectorAlpha = true) const;
+  GPUd() o2::track::TrackParCov createParentTrackParCov(int cand = 0, bool sectorAlpha = true) const;
 
   ///< create parent track param w/o errors for decay vertex
-  o2::track::TrackPar createParentTrackPar(int cand = 0, bool sectorAlpha = true) const;
+  GPUd() o2::track::TrackPar createParentTrackPar(int cand = 0, bool sectorAlpha = true) const;
 
   ///< calculate on the fly track param (no cov mat) at candidate, check isValid to make sure propagation was successful
   GPUd() o2::track::TrackPar getTrackParamAtPCA(int i, int cand = 0) const;
 
-  MatSym3D calcPCACovMatrix(int cand = 0) const;
+  GPUd() MatSym3D calcPCACovMatrix(int cand = 0) const;
 
-  const Track* getOrigTrackPtr(int i) const { return mOrigTrPtr[i]; }
+  GPUd() const Track* getOrigTrackPtr(int i) const { return mOrigTrPtr[i]; }
 
   ///< return number of iterations during minimization (no check for its validity)
-  int getNIterations(int cand = 0) const { return mNIters[mOrder[cand]]; }
-  void setPropagateToPCA(bool v = true) { mPropagateToPCA = v; }
-  void setMaxIter(int n = 20) { mMaxIter = n > 2 ? n : 2; }
-  void setMaxR(float r = 200.) { mMaxR2 = r * r; }
-  void setMaxDZIni(float d = 4.) { mMaxDZIni = d; }
-  void setMaxChi2(float chi2 = 999.) { mMaxChi2 = chi2; }
-  void setBz(float bz) { mBz = std::abs(bz) > o2::constants::math::Almost0 ? bz : 0.f; }
-  void setMinParamChange(float x = 1e-3) { mMinParamChange = x > 1e-4 ? x : 1.e-4; }
-  void setMinRelChi2Change(float r = 0.9) { mMinRelChi2Change = r > 0.1 ? r : 999.; }
-  void setUseAbsDCA(bool v) { mUseAbsDCA = v; }
-  void setMaxDistance2ToMerge(float v) { mMaxDist2ToMergeSeeds = v; }
+  GPUd() int getNIterations(int cand = 0) const { return mNIters[mOrder[cand]]; }
+  GPUd() void setPropagateToPCA(bool v = true) { mPropagateToPCA = v; }
+  GPUd() void setMaxIter(int n = 20) { mMaxIter = n > 2 ? n : 2; }
+  GPUd() void setMaxR(float r = 200.) { mMaxR2 = r * r; }
+  GPUd() void setMaxDZIni(float d = 4.) { mMaxDZIni = d; }
+  GPUd() void setMaxChi2(float chi2 = 999.) { mMaxChi2 = chi2; }
+  GPUd() void setBz(float bz) { mBz = std::abs(bz) > o2::constants::math::Almost0 ? bz : 0.f; }
+  GPUd() void setMinParamChange(float x = 1e-3) { mMinParamChange = x > 1e-4 ? x : 1.e-4; }
+  GPUd() void setMinRelChi2Change(float r = 0.9) { mMinRelChi2Change = r > 0.1 ? r : 999.; }
+  GPUd() void setUseAbsDCA(bool v) { mUseAbsDCA = v; }
+  GPUd() void setMaxDistance2ToMerge(float v) { mMaxDist2ToMergeSeeds = v; }
 
-  int getNCandidates() const { return mCurHyp; }
-  int getMaxIter() const { return mMaxIter; }
-  float getMaxR() const { return std::sqrt(mMaxR2); }
-  float getMaxDZIni() const { return mMaxDZIni; }
-  float getMaxChi2() const { return mMaxChi2; }
-  float getMinParamChange() const { return mMinParamChange; }
-  float getBz() const { return mBz; }
-  float getMaxDistance2ToMerge() const { return mMaxDist2ToMergeSeeds; }
-  bool getUseAbsDCA() const { return mUseAbsDCA; }
-  bool getPropagateToPCA() const { return mPropagateToPCA; }
+  GPUd() int getNCandidates() const { return mCurHyp; }
+  GPUd() int getMaxIter() const { return mMaxIter; }
+  GPUd() float getMaxR() const { return std::sqrt(mMaxR2); }
+  GPUd() float getMaxDZIni() const { return mMaxDZIni; }
+  GPUd() float getMaxChi2() const { return mMaxChi2; }
+  GPUd() float getMinParamChange() const { return mMinParamChange; }
+  GPUd() float getBz() const { return mBz; }
+  GPUd() float getMaxDistance2ToMerge() const { return mMaxDist2ToMergeSeeds; }
+  GPUd() bool getUseAbsDCA() const { return mUseAbsDCA; }
+  GPUd() bool getPropagateToPCA() const { return mPropagateToPCA; }
 
   template <class... Tr>
   GPUd() int process(const Tr&... args);
-  void print() const;
+  GPUd() void print() const;
 
  protected:
-  bool calcPCACoefs();
-  bool calcInverseWeight();
-  void calcResidDerivatives();
-  void calcResidDerivativesNoErr();
-  void calcRMatrices();
-  void calcChi2Derivatives();
-  void calcChi2DerivativesNoErr();
-  void calcPCA();
-  void calcPCANoErr();
-  void calcTrackResiduals();
-  void calcTrackDerivatives();
-  double calcChi2() const;
-  double calcChi2NoErr() const;
-  bool correctTracks(const VecND& corrX);
-  bool minimizeChi2();
-  bool minimizeChi2NoErr();
-  bool roughDZCut() const;
-  bool closerToAlternative() const;
-  GPUd() static double getAbsMax(const VecND& v);
+  GPUd() bool calcPCACoefs();
+  GPUd() bool calcInverseWeight();
+  GPUd() void calcResidDerivatives();
+  GPUd() void calcResidDerivativesNoErr();
+  GPUd() void calcRMatrices();
+  GPUd() void calcChi2Derivatives();
+  GPUd() void calcChi2DerivativesNoErr();
+  GPUd() void calcPCA();
+  GPUd() void calcPCANoErr();
+  GPUd() void calcTrackResiduals();
+  GPUd() void calcTrackDerivatives();
+  GPUd() double calcChi2() const;
+  GPUd() double calcChi2NoErr() const;
+  GPUd() bool correctTracks(const VecND& corrX);
+  GPUd() bool minimizeChi2();
+  GPUd() bool minimizeChi2NoErr();
+  GPUd() bool roughDZCut() const;
+  GPUd() bool closerToAlternative() const;
+  GPUd() GPUd() static double getAbsMax(const VecND& v);
 
   ///< track param positions at V0 candidate (no check for the candidate validity)
-  const Vec3D& getTrackPos(int i, int cand = 0) const { return mTrPos[mOrder[cand]][i]; }
+  GPUd() const Vec3D& getTrackPos(int i, int cand = 0) const { return mTrPos[mOrder[cand]][i]; }
 
   ///< track X-param at V0 candidate (no check for the candidate validity)
-  float getTrackX(int i, int cand = 0) const { return getTrackPos(i, cand)[0]; }
+  GPUd() float getTrackX(int i, int cand = 0) const { return getTrackPos(i, cand)[0]; }
 
-  MatStd3D getTrackRotMatrix(int i) const // generate 3D matrix for track rotation to global frame
+  GPUd() MatStd3D getTrackRotMatrix(int i) const // generate 3D matrix for track rotation to global frame
   {
     MatStd3D mat;
     mat(2, 2) = 1;
@@ -208,7 +216,7 @@ class DCAFitterN
     return mat;
   }
 
-  MatSym3D getTrackCovMatrix(int i, int cand = 0) const // generate covariance matrix of track position, adding fake X error
+  GPUd() MatSym3D getTrackCovMatrix(int i, int cand = 0) const // generate covariance matrix of track position, adding fake X error
   {
     const auto& trc = mCandTr[mOrder[cand]][i];
     MatSym3D mat;
@@ -253,7 +261,7 @@ class DCAFitterN
   MatSymND mSinDif;    // matrix with sin(alp_j-alp_i) for j<i
   gpustd::array<const Track*, N> mOrigTrPtr;
   gpustd::array<TrackAuxPar, N> mTrAux; // Aux track info for each track at each cand. vertex
-  CrossInfo mCrossings;              // info on track crossing
+  CrossInfo mCrossings;                 // info on track crossing
 
   gpustd::array<ArrTrackCovI, MAXHYP> mTrcEInv; // errors for each track at each cand. vertex
   gpustd::array<ArrTrack, MAXHYP> mCandTr;      // tracks at each cond. vertex (Note: Errors are at seed XY point)
@@ -265,7 +273,7 @@ class DCAFitterN
   gpustd::array<float, MAXHYP> mChi2 = {0};     // Chi2 at PCA candidate
   gpustd::array<int, MAXHYP> mNIters;           // number of iterations for each seed
   gpustd::array<bool, MAXHYP> mTrPropDone;      // Flag that the tracks are fully propagated to PCA
-  MatSym3D mWeightInv;                       // inverse weight of single track, [sum{M^T E M}]^-1 in EQ.T
+  MatSym3D mWeightInv;                          // inverse weight of single track, [sum{M^T E M}]^-1 in EQ.T
   gpustd::array<int, MAXHYP> mOrder{0};
   int mCurHyp = 0;
   int mCrossIDCur = 0;
@@ -347,7 +355,7 @@ GPUd() int DCAFitterN<N, Args...>::process(const Tr&... args)
 
 //__________________________________________________________________________
 template <int N, typename... Args>
-bool DCAFitterN<N, Args...>::calcPCACoefs()
+GPUd() bool DCAFitterN<N, Args...>::calcPCACoefs()
 {
   //< calculate Ti matrices for global vertex decomposition to V = sum_{0<i<N} Ti pi, see EQ.T in the ref
   if (!calcInverseWeight()) {
@@ -373,7 +381,7 @@ bool DCAFitterN<N, Args...>::calcPCACoefs()
 
 //__________________________________________________________________________
 template <int N, typename... Args>
-bool DCAFitterN<N, Args...>::calcInverseWeight()
+GPUd() bool DCAFitterN<N, Args...>::calcInverseWeight()
 {
   //< calculate [sum_{0<j<N} M_j*E_j*M_j^T]^-1 used for Ti matrices, see EQ.T
   auto* arrmat = mWeightInv.Array();
@@ -400,7 +408,7 @@ bool DCAFitterN<N, Args...>::calcInverseWeight()
 
 //__________________________________________________________________________
 template <int N, typename... Args>
-void DCAFitterN<N, Args...>::calcResidDerivatives()
+GPUd() void DCAFitterN<N, Args...>::calcResidDerivatives()
 {
   //< calculate matrix of derivatives for weighted chi2: residual i vs parameter X of track j
   MatStd3D matMT;
@@ -446,7 +454,7 @@ void DCAFitterN<N, Args...>::calcResidDerivatives()
 
 //__________________________________________________________________________
 template <int N, typename... Args>
-void DCAFitterN<N, Args...>::calcResidDerivativesNoErr()
+GPUd() void DCAFitterN<N, Args...>::calcResidDerivativesNoErr()
 {
   //< calculate matrix of derivatives for absolute distance chi2: residual i vs parameter X of track j
   constexpr double NInv1 = 1. - NInv;       // profit from Rii = I/Ninv
@@ -496,7 +504,7 @@ void DCAFitterN<N, Args...>::calcResidDerivativesNoErr()
 
 //__________________________________________________________________________
 template <int N, typename... Args>
-void DCAFitterN<N, Args...>::calcRMatrices()
+GPUd() void DCAFitterN<N, Args...>::calcRMatrices()
 {
   //< calculate Rij = 1/N M_i^T * M_j matrices (rotation from j-th track to i-th track frame)
   for (int i = N; i--;) {
@@ -511,7 +519,7 @@ void DCAFitterN<N, Args...>::calcRMatrices()
 
 //__________________________________________________________________________
 template <int N, typename... Args>
-void DCAFitterN<N, Args...>::calcChi2Derivatives()
+GPUd() void DCAFitterN<N, Args...>::calcChi2Derivatives()
 {
   //< calculate 1st and 2nd derivatives of wighted DCA (chi2) over track parameters X, see EQ.Chi2 in the ref
   gpustd::array<gpustd::array<Vec3D, N>, N> covIDrDx; // tempory vectors of covI_j * dres_j/dx_i
@@ -554,7 +562,7 @@ void DCAFitterN<N, Args...>::calcChi2Derivatives()
 
 //__________________________________________________________________________
 template <int N, typename... Args>
-void DCAFitterN<N, Args...>::calcChi2DerivativesNoErr()
+GPUd() void DCAFitterN<N, Args...>::calcChi2DerivativesNoErr()
 {
   //< calculate 1st and 2nd derivatives of abs DCA (chi2) over track parameters X, see (6) in the ref
   for (int i = N; i--;) {
@@ -578,7 +586,7 @@ void DCAFitterN<N, Args...>::calcChi2DerivativesNoErr()
 
 //___________________________________________________________________
 template <int N, typename... Args>
-void DCAFitterN<N, Args...>::calcPCA()
+GPUd() void DCAFitterN<N, Args...>::calcPCA()
 {
   // calculate point of closest approach for N prongs
   mPCA[mCurHyp] = mTrCFVT[mCurHyp][N - 1] * mTrPos[mCurHyp][N - 1];
@@ -589,7 +597,7 @@ void DCAFitterN<N, Args...>::calcPCA()
 
 //___________________________________________________________________
 template <int N, typename... Args>
-void DCAFitterN<N, Args...>::calcPCANoErr()
+GPUd() void DCAFitterN<N, Args...>::calcPCANoErr()
 {
   // calculate point of closest approach for N prongs w/o errors
   auto& pca = mPCA[mCurHyp];
@@ -623,7 +631,7 @@ o2::math_utils::SMatrix<double, 3, 3, ROOT::Math::MatRepSym<double, 3>> DCAFitte
 
 //___________________________________________________________________
 template <int N, typename... Args>
-void DCAFitterN<N, Args...>::calcTrackResiduals()
+GPUd() void DCAFitterN<N, Args...>::calcTrackResiduals()
 {
   // calculate residuals
   Vec3D vtxLoc;
@@ -637,7 +645,7 @@ void DCAFitterN<N, Args...>::calcTrackResiduals()
 
 //___________________________________________________________________
 template <int N, typename... Args>
-inline void DCAFitterN<N, Args...>::calcTrackDerivatives()
+GPUdi() void DCAFitterN<N, Args...>::calcTrackDerivatives()
 {
   // calculate track derivatives over X param
   for (int i = N; i--;) {
@@ -647,7 +655,7 @@ inline void DCAFitterN<N, Args...>::calcTrackDerivatives()
 
 //___________________________________________________________________
 template <int N, typename... Args>
-inline double DCAFitterN<N, Args...>::calcChi2() const
+GPUdi() double DCAFitterN<N, Args...>::calcChi2() const
 {
   // calculate current chi2
   double chi2 = 0;
@@ -661,7 +669,7 @@ inline double DCAFitterN<N, Args...>::calcChi2() const
 
 //___________________________________________________________________
 template <int N, typename... Args>
-inline double DCAFitterN<N, Args...>::calcChi2NoErr() const
+GPUdi() double DCAFitterN<N, Args...>::calcChi2NoErr() const
 {
   // calculate current chi2 of abs. distance minimization
   double chi2 = 0;
@@ -674,7 +682,7 @@ inline double DCAFitterN<N, Args...>::calcChi2NoErr() const
 
 //___________________________________________________________________
 template <int N, typename... Args>
-bool DCAFitterN<N, Args...>::correctTracks(const VecND& corrX)
+GPUd() bool DCAFitterN<N, Args...>::correctTracks(const VecND& corrX)
 {
   // propagate tracks to updated X
   for (int i = N; i--;) {
@@ -689,7 +697,7 @@ bool DCAFitterN<N, Args...>::correctTracks(const VecND& corrX)
 
 //___________________________________________________________________
 template <int N, typename... Args>
-bool DCAFitterN<N, Args...>::propagateTracksToVertex(int icand)
+GPUd() bool DCAFitterN<N, Args...>::propagateTracksToVertex(int icand)
 {
   // propagate tracks to current vertex
   int ord = mOrder[icand];
@@ -743,7 +751,7 @@ GPUd() inline double DCAFitterN<N, Args...>::getAbsMax(const VecND& v)
 
 //___________________________________________________________________
 template <int N, typename... Args>
-bool DCAFitterN<N, Args...>::minimizeChi2()
+GPUd() bool DCAFitterN<N, Args...>::minimizeChi2()
 {
   // find best chi2 (weighted DCA) of N tracks in the vicinity of the seed PCA
   for (int i = N; i--;) {
@@ -804,7 +812,7 @@ bool DCAFitterN<N, Args...>::minimizeChi2()
 
 //___________________________________________________________________
 template <int N, typename... Args>
-bool DCAFitterN<N, Args...>::minimizeChi2NoErr()
+GPUd() bool DCAFitterN<N, Args...>::minimizeChi2NoErr()
 {
   // find best chi2 (absolute DCA) of N tracks in the vicinity of the PCA seed
 
@@ -861,7 +869,7 @@ bool DCAFitterN<N, Args...>::minimizeChi2NoErr()
 
 //___________________________________________________________________
 template <int N, typename... Args>
-bool DCAFitterN<N, Args...>::roughDZCut() const
+GPUd() bool DCAFitterN<N, Args...>::roughDZCut() const
 {
   // apply rough cut on DZ between the tracks in the seed point
   bool accept = true;
@@ -878,7 +886,7 @@ bool DCAFitterN<N, Args...>::roughDZCut() const
 
 //___________________________________________________________________
 template <int N, typename... Args>
-bool DCAFitterN<N, Args...>::closerToAlternative() const
+GPUd() bool DCAFitterN<N, Args...>::closerToAlternative() const
 {
   // check if the point current PCA point is closer to the seeding XY point being tested or to alternative see (if any)
   auto dxCur = mPCA[mCurHyp][0] - mCrossings.xDCA[mCrossIDCur], dyCur = mPCA[mCurHyp][1] - mCrossings.yDCA[mCrossIDCur];
@@ -888,9 +896,9 @@ bool DCAFitterN<N, Args...>::closerToAlternative() const
 
 //___________________________________________________________________
 template <int N, typename... Args>
-void DCAFitterN<N, Args...>::print() const
+GPUd() void DCAFitterN<N, Args...>::print() const
 {
-#if !defined(__CUDACC__)
+#if !defined(GPUCA_GPUCODE_DEVICE)
   LOG(INFO) << N << "-prong vertex fitter in " << (mUseAbsDCA ? "abs." : "weighted") << " distance minimization mode";
   LOG(INFO) << "Bz: " << mBz << " MaxIter: " << mMaxIter << " MaxChi2: " << mMaxChi2;
   LOG(INFO) << "Stopping condition: Max.param change < " << mMinParamChange << " Rel.Chi2 change > " << mMinRelChi2Change;
@@ -901,12 +909,11 @@ void DCAFitterN<N, Args...>::print() const
   printf("Stopping condition: Max.param change < %f  Rel.Chi2 change > %f\n", mMinParamChange, mMinRelChi2Change);
   printf("Discard candidates for : Rvtx > %f  DZ between tracks > %f", getMaxR(), mMaxDZIni);
 #endif
-
 }
 
 //___________________________________________________________________
 template <int N, typename... Args>
-o2::track::TrackParCov DCAFitterN<N, Args...>::createParentTrackParCov(int cand, bool sectorAlpha) const
+GPUd() o2::track::TrackParCov DCAFitterN<N, Args...>::createParentTrackParCov(int cand, bool sectorAlpha) const
 {
   const auto& trP = getTrack(0, cand);
   const auto& trN = getTrack(1, cand);
@@ -942,7 +949,7 @@ o2::track::TrackParCov DCAFitterN<N, Args...>::createParentTrackParCov(int cand,
 
 //___________________________________________________________________
 template <int N, typename... Args>
-o2::track::TrackPar DCAFitterN<N, Args...>::createParentTrackPar(int cand, bool sectorAlpha) const
+GPUd() o2::track::TrackPar DCAFitterN<N, Args...>::createParentTrackPar(int cand, bool sectorAlpha) const
 {
   const auto& trP = getTrack(0, cand);
   const auto& trN = getTrack(1, cand);
