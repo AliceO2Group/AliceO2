@@ -215,17 +215,6 @@ void StepTHn::Copy(TObject& c) const
 }
 
 template <class TemplateArray>
-TObject* StepTHnT<TemplateArray>::Clone(const char* name)
-{
-  StepTHnT<TemplateArray>* newHist = new StepTHnT<TemplateArray>();
-  Copy(*newHist);
-  if (name) {
-    newHist->SetName(name);
-  }
-  return newHist;
-}
-
-template <class TemplateArray>
 Long64_t StepTHnT<TemplateArray>::Merge(TCollection* list)
 {
   // Merge a list of StepTHn objects with this (needed for PROOF).

@@ -56,7 +56,6 @@ class StepTHn : public TNamed
   virtual Long64_t Merge(TCollection* list) = 0;
 
   TAxis* GetAxis(int i) { return mPrototype->GetAxis(i); }
-  virtual TObject* Clone(const char* name = nullptr) = 0;
   void Sumw2(){}; // TODO: added for compatibiltiy with registry, but maybe it would be useful also in StepTHn as toggle for error weights
 
  protected:
@@ -103,8 +102,6 @@ class StepTHnT : public StepTHn
       return new TemplateArray(*((TemplateArray*)src));
     }
   }
-
-  TObject* Clone(const char* name) override;
 
   Long64_t Merge(TCollection* list) override;
 
