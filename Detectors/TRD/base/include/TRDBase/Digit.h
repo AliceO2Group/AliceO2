@@ -60,7 +60,7 @@ class Digit
   void setDetector(int det) { mDetector = det; }
   void setADC(ArrayADC const& adc) { mADC = adc; }
   // Get methods
-  int getDetector() const { return mROB; }
+  int getDetector() const { return mDetector; }
   int getRow() const { return FeeParam::getPadRowFromMCM(mROB, mMCM); }
   int getPad() const { return FeeParam::getPadColFromADC(mROB, mMCM, mChannel); }
   int getROB() const { return mROB; }
@@ -72,10 +72,10 @@ class Digit
   ADC_t getADCsum() const { return std::accumulate(mADC.begin(), mADC.end(), (ADC_t)0); }
 
  private:
-  std::uint16_t mDetector{0}; // detector, the chamber
-  std::uint8_t mROB{0};       // read out board with in chamber
-  std::uint8_t mMCM{0};       // MCM chip this digit is attached to
-  std::uint8_t mChannel{0};   // channel of this chip the digit is attached to.
+  std::uint16_t mDetector{0}; // chamber ID [0..539]
+  std::uint8_t mROB{0};       // readout board ID within mDetector [0..7]
+  std::uint8_t mMCM{0};       // MCM chip ID on top of mROB [0..15]
+  std::uint8_t mChannel{0};   // TRAP ADC channel for mMCM [0..20], note: conversion to pad column described in https://cds.cern.ch/record/1973326 fig. 4.8 (TODO: put correct reference to ROB_MCM_numbering.pdf)
 
   ArrayADC mADC{}; // ADC vector (30 time-bins)
   ClassDefNV(Digit, 3);

@@ -9,20 +9,27 @@
 // or submit itself to any jurisdiction.
 
 #include "TRDBase/Digit.h"
+#include "DataFormatsTRD/Constants.h"
+
 namespace o2::trd
 {
+
+using namespace constants;
+
 Digit::Digit(const int det, const int row, const int pad, const ArrayADC adc)
 {
   setDetector(det);
   setROB(row, pad);
   setMCM(row, pad);
   setADC(adc);
+  setChannel(NADCMCM - 2 - (pad % NCOLMCM));
 }
 Digit::Digit(const int det, const int row, const int pad) // add adc data in a seperate step
 {
   setDetector(det);
   setROB(row, pad);
   setMCM(row, pad);
+  setChannel(NADCMCM - 2 - (pad % NCOLMCM));
 }
 Digit::Digit(const int det, const int rob, const int mcm, const int channel, const ArrayADC adc)
 {
@@ -39,7 +46,7 @@ Digit::Digit(const int det, const int rob, const int mcm, const int channel) // 
 }
 int Digit::isSharedDigit()
 {
-  if (mChannel == 0 || mChannel == 19 || mChannel == 20) {
+  if (mChannel == 0 || mChannel == 1 || mChannel == NADCMCM - 1) {
     return 1;
   } else {
     return 0;
