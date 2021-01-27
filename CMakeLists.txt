@@ -84,7 +84,9 @@ add_subdirectory(EventVisualisation)
 add_subdirectory(Generators)
 add_subdirectory(Steer) # consider building this only for simulation ?
 add_subdirectory(prodtests)
+if(BUILD_ANALYSIS)
 add_subdirectory(Analysis)
+endif()
 add_subdirectory(scripts)
 
 if(BUILD_EXAMPLES)

@@ -14,6 +14,8 @@ function(o2_define_options)
 
   option(BUILD_SHARED_LIBS "Build shared libs" ON)
 
+  option(BUILD_ANALYSIS "Build analysis parts" ON)
+
   option(BUILD_EXAMPLES "Build examples" ON)
 
   option(BUILD_TEST_ROOT_MACROS
