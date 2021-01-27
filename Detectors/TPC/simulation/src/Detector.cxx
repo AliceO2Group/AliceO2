@@ -1387,8 +1387,8 @@ void Detector::ConstructTPCGeometry()
   // guard rings for IFC - outer placed in inner insulator, inner placed in the drift gas (3 different radii)
   // AL, 1.2 cm wide, 0.015 cm thick, volumes TPC_IGR1 - outer, TPC_IGR2-4 - inner
   //
-  auto* igro = new TGeoTube(76.6624, 76.6774, 0.6);
-  auto* igrio = new TGeoTube(78.845, 78.86, 0.6); //outer part
+  auto* igro = new TGeoTube(76.6624, 76.6774, 0.6); //inner part, ends at inner radius of the IFC
+  auto* igrio = new TGeoTube(78.845, 78.86, 0.6);   //outer part
   auto* igrim = new TGeoTube(78.795, 78.81, 0.6);
   auto* igric = new TGeoTube(78.785, 78.8, 0.6);
   //
@@ -1436,20 +1436,27 @@ void Detector::ConstructTPCGeometry()
   //
   auto* cflv = new TGeoVolume("TPC_CDR", cfl, m3);
   // sandwich
-  auto* cd1 = new TGeoTubeSeg(60.6224, 61.19, 71.1, 0.2, 119.2);
-  auto* cd2 = new TGeoTubeSeg(60.6262, 61.1862, 71.1, 0.2, 119.2);
-  auto* cd3 = new TGeoTubeSeg(60.6462, 61.1662, 71.1, 0.2, 119.2);
-  auto* cd4 = new TGeoTubeSeg(60.6562, 61.1562, 71.1, 0.2, 119.2);
-  auto* tepox4 = new TGeoTubeSeg(60.6224, 61.19, 71.1, 359.8, 0.8);
+  auto* cd1 = new TGeoTubeSeg(60.6224, 61.19, 69.8, 0.2, 119.95);
+  auto* cd2 = new TGeoTubeSeg(60.6262, 61.1862, 69.8, 0.2, 119.95);
+  auto* cd3 = new TGeoTubeSeg(60.6462, 61.1662, 69.8, 0.2, 119.95);
+  auto* cd4 = new TGeoTubeSeg(60.6562, 61.1562, 69.8, 0.2, 119.95);
+  auto* tepox4 = new TGeoTubeSeg(60.6224, 61.19, 69.8, 359.8, 0.8);
   //
   TGeoMedium* sm6 = gGeoManager->GetMedium("TPC_Prepreg1");
   TGeoMedium* sm8 = gGeoManager->GetMedium("TPC_Epoxyfm");
-  auto* cd1v = new TGeoVolume("TPC_CDR1", cd1, sm2); // tedlar
-  auto* cd2v = new TGeoVolume("TPC_CDR2", cd2, sm6); // prepreg1
-  auto* cd3v = new TGeoVolume("TPC_CDR3", cd3, sm8); // epoxy film
-  auto* cd4v = new TGeoVolume("TPC_CDR4", cd4, sm4); // nomex
-  auto* tvep4 = new TGeoVolume("TPC_IFEPOX4", tepox4, smep);
-
+  auto* cd1v = new TGeoVolume("TPC_CDR1", cd1, sm2);         // tedlar
+  auto* cd2v = new TGeoVolume("TPC_CDR2", cd2, sm6);         // prepreg1
+  auto* cd3v = new TGeoVolume("TPC_CDR3", cd3, sm8);         // epoxy film
+  auto* cd4v = new TGeoVolume("TPC_CDR4", cd4, sm4);         // nomex
+  auto* tvep4 = new TGeoVolume("TPC_IFEPOX4", tepox4, smep); // epoxy glue
+  //
+  // joints between sections 1 deg prepreg1 placed in nomex at lower and upper radius + 0.1 deg of glue (epoxy)
+  //
+  auto* cdjl = new TGeoTubeSeg(60.6562, 60.6762, 69.8, 0., 1.0); //lower, to be rotated when positioned
+  auto* cdju = new TGeoTubeSeg(61.1362, 61.1562, 69.8, 0., 1.0); //upper, to be rotated when positioned
+  //
+  auto* cdjlv = new TGeoVolume("TPC_CDJL", cdjl, sm6);
+  auto* cdjuv = new TGeoVolume("TPC_CDJU", cdju, sm6);
   //
   // seals for central drum 2 copies
   //
@@ -1482,19 +1489,46 @@ void Detector::ConstructTPCGeometry()
   cd1v->AddNode(cd2v, 1);
   cd2v->AddNode(cd3v, 1);
   cd3v->AddNode(cd4v, 1); // sandwich
+  //
+  // joints, lower part and upper parts, placed in nomex
+  //
+  segrot = new TGeoRotation();
+  segrot->RotateZ(0.05);
+  cd4v->AddNode(cdjlv, 1, segrot);
+  cd4v->AddNode(cdjuv, 1, segrot);
+  segrot = new TGeoRotation();
+  segrot->RotateZ(118.95);
+  cd4v->AddNode(cdjlv, 2, segrot);
+  cd4v->AddNode(cdjuv, 2, segrot);
+  //
+  // according to the conversion data, segments have an additionaly rotated by 4.6 deg
+  //
   // first segment
-  cflv->AddNode(cd1v, 1);
-  cflv->AddNode(tvep4, 1);
+  segrot = new TGeoRotation();
+  segrot->RotateZ(4.6);
+  cflv->AddNode(cd1v, 1, segrot);
+  cflv->AddNode(tvep4, 1, segrot);
   // second segment
   segrot = new TGeoRotation();
-  segrot->RotateZ(120.);
+  segrot->RotateZ(124.6);
   cflv->AddNode(cd1v, 2, segrot);
   cflv->AddNode(tvep4, 2, segrot);
   // third segment
   segrot = new TGeoRotation();
-  segrot->RotateZ(240.);
+  segrot->RotateZ(244.6);
   cflv->AddNode(cd1v, 3, segrot);
   cflv->AddNode(tvep4, 3, segrot);
+  //
+  // heating strips
+  //
+  auto* hstr = new TGeoTubeSeg(60.6124, 60.6224, 68.5, 0., 1.25);
+  auto* hstrv = new TGeoVolume("TPC_HSTR", hstr, m1); // air, caved out from cflv, first strip starts at 0 deg
+  for (Int_t i = 0; i < 144; i++) {
+    Double_t alpha = 1.25 + i * 2.5;
+    segrot = new TGeoRotation();
+    segrot->RotateZ(alpha);
+    cflv->AddNode(hstrv, i + 1, segrot);
+  }
   //
   v1->AddNode(siv, 1, new TGeoTranslation(0., 0., -69.9));
   v1->AddNode(siv, 2, new TGeoTranslation(0., 0., 69.9));
