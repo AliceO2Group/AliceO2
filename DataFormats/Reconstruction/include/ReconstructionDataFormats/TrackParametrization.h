@@ -37,6 +37,7 @@
 #include <cmath>
 #include <cstring>
 #include <iosfwd>
+#include <type_traits>
 #endif
 
 #ifndef GPUCA_ALIGPUCODE //Used only by functions that are hidden on the GPU
@@ -261,70 +262,70 @@ GPUdi() void TrackParametrization<value_T>::set(value_t x, value_t alpha, const 
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() const typename TrackParametrization<value_T>::value_t* TrackParametrization<value_T>::getParams() const
+GPUdi() auto TrackParametrization<value_T>::getParams() const -> const value_t*
 {
   return mP;
 }
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getParam(int i) const
+GPUdi() auto TrackParametrization<value_T>::getParam(int i) const -> value_t
 {
   return mP[i];
 }
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getX() const
+GPUdi() auto TrackParametrization<value_T>::getX() const -> value_t
 {
   return mX;
 }
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getAlpha() const
+GPUdi() auto TrackParametrization<value_T>::getAlpha() const -> value_t
 {
   return mAlpha;
 }
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getY() const
+GPUdi() auto TrackParametrization<value_T>::getY() const -> value_t
 {
   return mP[kY];
 }
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getZ() const
+GPUdi() auto TrackParametrization<value_T>::getZ() const -> value_t
 {
   return mP[kZ];
 }
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getSnp() const
+GPUdi() auto TrackParametrization<value_T>::getSnp() const -> value_t
 {
   return mP[kSnp];
 }
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getTgl() const
+GPUdi() auto TrackParametrization<value_T>::getTgl() const -> value_t
 {
   return mP[kTgl];
 }
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getQ2Pt() const
+GPUdi() auto TrackParametrization<value_T>::getQ2Pt() const -> value_t
 {
   return mP[kQ2Pt];
 }
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getCharge2Pt() const
+GPUdi() auto TrackParametrization<value_T>::getCharge2Pt() const -> value_t
 {
   return mAbsCharge ? mP[kQ2Pt] : 0.f;
 }
@@ -353,7 +354,7 @@ GPUdi() void TrackParametrization<value_T>::setPID(const PID pid)
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getCsp2() const
+GPUdi() auto TrackParametrization<value_T>::getCsp2() const -> value_t
 {
   const value_t csp2 = (1.f - mP[kSnp]) * (1.f + mP[kSnp]);
   return csp2 > o2::constants::math::Almost0 ? csp2 : o2::constants::math::Almost0;
@@ -361,7 +362,7 @@ GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<val
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getCsp() const
+GPUdi() auto TrackParametrization<value_T>::getCsp() const -> value_t
 {
   return gpu::CAMath::Sqrt(getCsp2());
 }
@@ -474,7 +475,7 @@ GPUdi() void TrackParametrization<value_T>::getLineParams(o2::math_utils::Interv
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getCurvature(value_t b) const
+GPUdi() auto TrackParametrization<value_T>::getCurvature(value_t b) const -> value_t
 {
   return mAbsCharge ? mP[kQ2Pt] * b * o2::constants::math::B2C : 0.;
 }
@@ -495,7 +496,7 @@ GPUdi() int TrackParametrization<value_T>::getSign() const
 
 //_______________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getPhi() const
+GPUdi() auto TrackParametrization<value_T>::getPhi() const -> value_t
 {
   // track pt direction phi (in 0:2pi range)
   value_t phi = gpu::CAMath::ASin(getSnp()) + getAlpha();
@@ -505,7 +506,7 @@ GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<val
 
 //_______________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getPhiPos() const
+GPUdi() auto TrackParametrization<value_T>::getPhiPos() const -> value_t
 {
   // angle of track position (in -pi:pi range)
   value_t phi = gpu::CAMath::ATan2(getY(), getX()) + getAlpha();
@@ -515,7 +516,7 @@ GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<val
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getPtInv() const
+GPUdi() auto TrackParametrization<value_T>::getPtInv() const -> value_t
 {
   // return the inverted track pT
   const value_t ptInv = gpu::CAMath::Abs(mP[kQ2Pt]);
@@ -524,7 +525,7 @@ GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<val
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getP2Inv() const
+GPUdi() auto TrackParametrization<value_T>::getP2Inv() const -> value_t
 {
   // return the inverted track momentum^2
   const value_t p2 = mP[kQ2Pt] * mP[kQ2Pt] / (1.f + getTgl() * getTgl());
@@ -533,7 +534,7 @@ GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<val
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getP2() const
+GPUdi() auto TrackParametrization<value_T>::getP2() const -> value_t
 {
   // return the track momentum^2
   const value_t p2inv = getP2Inv();
@@ -542,7 +543,7 @@ GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<val
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getPInv() const
+GPUdi() auto TrackParametrization<value_T>::getPInv() const -> value_t
 {
   // return the inverted track momentum^2
   const value_t pInv = gpu::CAMath::Abs(mP[kQ2Pt]) / gpu::CAMath::Sqrt(1.f + getTgl() * getTgl());
@@ -551,7 +552,7 @@ GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<val
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getP() const
+GPUdi() auto TrackParametrization<value_T>::getP() const -> value_t
 {
   // return the track momentum
   const value_t pInv = getPInv();
@@ -560,7 +561,7 @@ GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<val
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getPt() const
+GPUdi() auto TrackParametrization<value_T>::getPt() const -> value_t
 {
   // return the track transverse momentum
   value_t ptI = gpu::CAMath::Abs(mP[kQ2Pt]);
@@ -572,21 +573,21 @@ GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<val
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getTheta() const
+GPUdi() auto TrackParametrization<value_T>::getTheta() const -> value_t
 {
   return constants::math::PIHalf - gpu::CAMath::ATan(mP[3]);
 }
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrization<value_T>::value_t TrackParametrization<value_T>::getEta() const
+GPUdi() auto TrackParametrization<value_T>::getEta() const -> value_t
 {
   return -gpu::CAMath::Log(gpu::CAMath::Tan(0.5f * getTheta()));
 }
 
 //_______________________________________________________
 template <typename value_T>
-GPUdi() math_utils::Point3D<typename TrackParametrization<value_T>::value_t> TrackParametrization<value_T>::getXYZGlo() const
+GPUdi() auto TrackParametrization<value_T>::getXYZGlo() const -> math_utils::Point3D<value_t>
 {
 #ifndef GPUCA_ALIGPUCODE
   return math_utils::Rotation2D<value_t>(getAlpha())(math_utils::Point3D<value_t>(getX(), getY(), getZ()));
@@ -610,7 +611,7 @@ GPUdi() void TrackParametrization<value_T>::getXYZGlo(dim3_t& xyz) const
 
 //_______________________________________________________
 template <typename value_T>
-GPUdi() math_utils::Point3D<typename TrackParametrization<value_T>::value_t> TrackParametrization<value_T>::getXYZGloAt(value_t xk, value_t b, bool& ok) const
+GPUdi() auto TrackParametrization<value_T>::getXYZGloAt(value_t xk, value_t b, bool& ok) const -> math_utils::Point3D<value_t>
 {
   //----------------------------------------------------------------
   // estimate global X,Y,Z in global frame at given X
