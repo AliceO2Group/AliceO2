@@ -528,16 +528,12 @@ int GPUChainTracking::RunChain()
   }
 
   mRec->getGeneralStepTimer(GeneralStep::Prepare).Start();
-#ifdef GPUCA_STANDALONE
-  mRec->PrepareEvent();
-#else
   try {
     mRec->PrepareEvent();
   } catch (const std::bad_alloc& e) {
     GPUError("Memory Allocation Error");
     return (1);
   }
-#endif
   mRec->getGeneralStepTimer(GeneralStep::Prepare).Stop();
 
   PrepareDebugOutput();

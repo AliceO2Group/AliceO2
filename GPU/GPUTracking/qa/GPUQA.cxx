@@ -123,25 +123,14 @@ using namespace GPUCA_NAMESPACE::gpu;
     GPUTPCClusterRejection::GetProtectionStatus<false>(attach, physics, protect); \
   }
 
-#ifdef GPUCA_STANDALONE
-namespace GPUCA_NAMESPACE::gpu
-{
-extern GPUSettingsStandalone configStandalone;
-}
-#endif
 static const GPUSettingsQA& GPUQA_GetConfig(GPUChainTracking* chain)
 {
-#if !defined(GPUCA_STANDALONE)
   static GPUSettingsQA defaultConfig;
   if (chain && chain->mConfigQA) {
     return *chain->mConfigQA;
   } else {
     return defaultConfig;
   }
-
-#else
-  return configStandalone.QA;
-#endif
 }
 
 static const constexpr bool PLOT_ROOT = 0;
