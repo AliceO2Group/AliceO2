@@ -23,6 +23,12 @@
 
 using namespace o2::gpu;
 
+#if defined(GPUCA_GPUCODE)
+using ROOT::Math::Dot;
+using ROOT::Math::Similarity;
+#else
+#endif
+
 namespace o2
 {
 namespace vertexing
@@ -537,7 +543,7 @@ GPUd() void DCAFitterN<N, Args...>::calcChi2Derivatives()
       cidr[1] = covI.syy * dr1[1] + covI.syz * dr1[2];
       cidr[2] = covI.syz * dr1[1] + covI.szz * dr1[2];
       // calculate res_i * covI_j * dres_j/dx_i
-      dchi1 += ROOT::Math::Dot(res, cidr);
+      dchi1 += Dot(res, cidr);
     }
   }
   // chi2 2nd derivative
@@ -548,7 +554,7 @@ GPUd() void DCAFitterN<N, Args...>::calcChi2Derivatives()
       for (int k = N; k--;) {
         const auto& dr1j = mDResidDx[k][j];  // vector of k-th residuals 1st derivative over X param of track j
         const auto& cidrkj = covIDrDx[i][k]; // vector covI_k * dres_k/dx_i
-        dchi2 += ROOT::Math::Dot(dr1j, cidrkj);
+        dchi2 += Dot(dr1j, cidrkj);
         if (k == j) {
           const auto& res = mTrRes[mCurHyp][k];    // vector of residuals of track k
           const auto& covI = mTrcEInv[mCurHyp][k]; // inverse cov matrix of track k
@@ -571,13 +577,13 @@ GPUd() void DCAFitterN<N, Args...>::calcChi2DerivativesNoErr()
     for (int j = N; j--;) {
       const auto& res = mTrRes[mCurHyp][j]; // vector of residuals of track j
       const auto& dr1 = mDResidDx[j][i];    // vector of j-th residuals 1st derivative over X param of track i
-      dchi1 += ROOT::Math::Dot(res, dr1);
+      dchi1 += Dot(res, dr1);
       if (i >= j) { // symmetrix matrix
         // chi2 2nd derivative
         auto& dchi2 = mD2Chi2Dx2[i][j]; // D2Chi2/Dx_i/Dx_j = sum_k { Dres_k/Dx_j * covI_k * Dres_k/Dx_i + res_k * covI_k * D2res_k/Dx_i/Dx_j }
-        dchi2 = ROOT::Math::Dot(mTrRes[mCurHyp][i], mD2ResidDx2[i][j]);
+        dchi2 = Dot(mTrRes[mCurHyp][i], mD2ResidDx2[i][j]);
         for (int k = N; k--;) {
-          dchi2 += ROOT::Math::Dot(mDResidDx[k][i], mDResidDx[k][j]);
+          dchi2 += Dot(mDResidDx[k][i], mDResidDx[k][j]);
         }
       }
     }
@@ -624,7 +630,7 @@ GPUd() o2::math_utils::SMatrix<double, 3, 3, o2::math_utils::MatRepSym<double, 3
   // calculate covariance matrix for the point of closest approach
   MatSym3D covm;
   for (int i = N; i--;) {
-    covm += o2::math_utils::Similarity(mUseAbsDCA ? getTrackRotMatrix(i) : mTrCFVT[mOrder[cand]][i], getTrackCovMatrix(i, cand));
+    covm += Similarity(mUseAbsDCA ? getTrackRotMatrix(i) : mTrCFVT[mOrder[cand]][i], getTrackCovMatrix(i, cand));
   }
   return covm;
 }

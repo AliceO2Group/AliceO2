@@ -14,8 +14,8 @@
 #include "DetectorsVertexingCUDA/SVertexer.h"
 #endif
 
-// #include "MathUtils/SMatrixGPU.h"
-#include "DetectorsVertexing/DCAFitterN.h" // <- target
+#include "DetectorsVertexing/SMatrixGPU.h"
+// #include "DetectorsVertexing/DCAFitterN.h" // <- target
 // #include "DetectorsVertexing/HelixHelper.h"
 // #include "ReconstructionDataFormats/Track.h"
 
@@ -23,22 +23,21 @@ namespace o2
 {
 namespace vertexing
 {
-namespace gpu
-{
+
+using Vec3D = o2::math_utils::SVector<double, 3>;
 
 // Kernels
 GPUg() void helloKernel()
 {
-  o2::vertexing::DCAFitterN<2> mFitter2Prong;
-  int arr[3] = {1, 2, 3};
+  // o2::vertexing::DCAFitterN<2> mFitter2Prong;
+  o2::gpu::gpustd::array<Vec3D, 2> mPCA;
   printf("Hello World from GPU!\n");
 }
 
-} // namespace gpu
-
 void hello_util()
 {
-  gpu::helloKernel<<<1, 1>>>();
+  helloKernel<<<1, 1>>>();
+  cudaDeviceSynchronize();
 }
 
 } // namespace vertexing
