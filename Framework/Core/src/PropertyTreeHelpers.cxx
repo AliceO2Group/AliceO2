@@ -99,11 +99,6 @@ void PropertyTreeHelpers::populateDefaults(std::vector<ConfigParamSpec> const& s
   }
 }
 
-namespace
-{
-
-} // namespace
-
 void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
                                    boost::property_tree::ptree& pt,
                                    boost::program_options::variables_map const& vmap,
