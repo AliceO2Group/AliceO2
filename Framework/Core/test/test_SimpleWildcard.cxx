@@ -13,6 +13,7 @@
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
 #include "Framework/EndOfStreamContext.h"
+#include "Framework/Logger.h"
 #include <iostream>
 #include <algorithm>
 #include <memory>
