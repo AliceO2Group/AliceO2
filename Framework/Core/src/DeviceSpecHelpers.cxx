@@ -852,6 +852,67 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
   }
 }
 
+void DeviceSpecHelpers::reworkHomogeneousOption(std::vector<DataProcessorInfo>& infos, char const* name, char const* defaultValue)
+{
+  std::string finalValue;
+  for (auto& info : infos) {
+    auto it = std::find(info.cmdLineArgs.begin(), info.cmdLineArgs.end(), name);
+    if (it == info.cmdLineArgs.end()) {
+      continue;
+    }
+    auto value = it + 1;
+    if (value == info.cmdLineArgs.end()) {
+      throw runtime_error_f("%s requires an argument", name);
+    }
+    if (!finalValue.empty() && finalValue != *value) {
+      throw runtime_error_f("Found incompatible %s values: %s amd %s", name, finalValue.c_str(), value->c_str());
+    }
+    finalValue = *value;
+    info.cmdLineArgs.erase(it, it + 2);
+  }
+  if (finalValue.empty() && defaultValue == nullptr) {
+    return;
+  }
+  if (finalValue.empty()) {
+    finalValue = defaultValue;
+  }
+  for (auto& info : infos) {
+    info.cmdLineArgs.push_back(name);
+    info.cmdLineArgs.push_back(finalValue);
+  }
+}
+
+void DeviceSpecHelpers::reworkIntegerOption(std::vector<DataProcessorInfo>& infos, char const* name, std::function<long long()> defaultValueCallback, long long startValue, std::function<long long(long long, long long)> bestValue)
+{
+  int64_t finalValue = startValue;
+  bool wasModified = false;
+  for (auto& info : infos) {
+    auto it = std::find(info.cmdLineArgs.begin(), info.cmdLineArgs.end(), name);
+    if (it == info.cmdLineArgs.end()) {
+      continue;
+    }
+    auto valueS = it + 1;
+    if (valueS == info.cmdLineArgs.end()) {
+      throw runtime_error_f("%s requires an integer argument", name);
+    }
+    char* err = nullptr;
+    long long value = strtoll(valueS->c_str(), &err, 10);
+    finalValue = bestValue(value, finalValue);
+    wasModified = true;
+    info.cmdLineArgs.erase(it, it + 2);
+  }
+  if (!wasModified && defaultValueCallback == nullptr) {
+    return;
+  }
+  if (!wasModified) {
+    finalValue = defaultValueCallback();
+  }
+  for (auto& info : infos) {
+    info.cmdLineArgs.push_back(name);
+    info.cmdLineArgs.push_back(std::to_string(finalValue));
+  }
+}
+
 void DeviceSpecHelpers::reworkShmSegmentSize(std::vector<DataProcessorInfo>& infos)
 {
   int64_t segmentSize = 0;

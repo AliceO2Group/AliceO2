@@ -1184,6 +1184,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           controls.resize(deviceSpecs.size());
           deviceExecutions.resize(deviceSpecs.size());
 
+          DeviceSpecHelpers::reworkHomogeneousOption(dataProcessorInfos, "--resources-monitoring", nullptr);
+          DeviceSpecHelpers::reworkHomogeneousOption(dataProcessorInfos, "--readers", nullptr);
+          DeviceSpecHelpers::reworkHomogeneousOption(dataProcessorInfos, "--aod-memory-rate-limit", nullptr);
+          DeviceSpecHelpers::reworkHomogeneousOption(dataProcessorInfos, "--time-limit", nullptr);
+          DeviceSpecHelpers::reworkHomogeneousOption(dataProcessorInfos, "--driver-client-backend", nullptr);
           DeviceSpecHelpers::reworkShmSegmentSize(dataProcessorInfos);
           DeviceSpecHelpers::prepareArguments(driverControl.defaultQuiet,
                                               driverControl.defaultStopped,
