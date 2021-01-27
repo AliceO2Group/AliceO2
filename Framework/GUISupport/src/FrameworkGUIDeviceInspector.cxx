@@ -229,8 +229,8 @@ void displayDeviceInspector(DeviceSpec const& spec,
     (void)retVal;
   }
 
-  ImGui::SameLine();
 #if DPL_ENABLE_TRACING
+  ImGui::SameLine();
   if (ImGui::Button("Tracy")) {
     std::string tracyPort = std::to_string(info.tracyPort);
     auto cmd = fmt::format("tracy-profiler -p {} -a 127.0.0.1 &", info.tracyPort);
