@@ -74,6 +74,15 @@ void PropertyTreeHelpers::populateDefaults(std::vector<ConfigParamSpec> const& s
         case VariantType::Array2DDouble:
           pt.put_child(key, array2DToBranch(spec.defaultValue.get<Array2D<double>>()));
           break;
+        case VariantType::LabeledArrayInt:
+          pt.put_child(key, labeledArrayToBranch(spec.defaultValue.get<LabeledArray<int>>()));
+          break;
+        case VariantType::LabeledArrayFloat:
+          pt.put_child(key, labeledArrayToBranch(spec.defaultValue.get<LabeledArray<float>>()));
+          break;
+        case VariantType::LabeledArrayDouble:
+          pt.put_child(key, labeledArrayToBranch(spec.defaultValue.get<LabeledArray<double>>()));
+          break;
         case VariantType::Unknown:
         case VariantType::Empty:
         default:
@@ -209,6 +218,9 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
         case VariantType::Array2DInt:
         case VariantType::Array2DFloat:
         case VariantType::Array2DDouble:
+        case VariantType::LabeledArrayInt:
+        case VariantType::LabeledArrayFloat:
+        case VariantType::LabeledArrayDouble:
           pt.put_child(key, *it);
           break;
         case VariantType::Unknown:
