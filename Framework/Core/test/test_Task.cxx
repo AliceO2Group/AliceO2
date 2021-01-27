@@ -11,6 +11,7 @@
 #include "Framework/Task.h"
 #include "Framework/ControlService.h"
 #include "Framework/Monitoring.h"
+#include "Framework/Logger.h"
 
 #define ASSERT_ERROR(condition)                                                                      \
   if ((condition) == false) {                                                                        \
