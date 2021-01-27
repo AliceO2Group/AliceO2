@@ -133,7 +133,7 @@ if [ $CTFINPUT == 0 ]; then
   if [ $CREATECTFDICT == 1 ] && [ $SAVECTF == 0 ]; then CTF_OUTPUT_TYPE="dict"; fi
   if [ $CREATECTFDICT == 0 ] && [ $SAVECTF == 1 ]; then CTF_OUTPUT_TYPE="ctf"; fi
   CMD_CTF="o2-ctf-writer-workflow $ARGS_ALL --output-type $CTF_OUTPUT_TYPE --onlyDet $CTF_DETECTORS"
-  if [ $CREATECTFDICT == 1 ] && [ $EXTINPUT == 1]; then
+  if [ $CREATECTFDICT == 1 ] && [ $EXTINPUT == 1 ]; then
     CMD_CTF+=" --save-dict-after $NTIMEFRAMES"
   fi
   WORKFLOW+="$CMD_CTF | "
