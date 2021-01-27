@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <memory>
 #include <string>
+#include <cassert>
 
 namespace o2::framework
 {
