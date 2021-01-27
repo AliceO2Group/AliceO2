@@ -230,7 +230,7 @@ void DataProcessingDevice::Init()
   for (auto& entry : configStore->store()) {
     std::stringstream ss;
     std::string str;
-    if (entry.second.size() != 0) {
+    if (entry.second.empty() == false) {
       boost::property_tree::json_parser::write_json(ss, entry.second, false);
       str = ss.str();
       str.pop_back(); //remove EoL

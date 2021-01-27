@@ -88,6 +88,27 @@ auto array2DFromBranch(boost::property_tree::ptree const& branch)
   }
   return Array2D<T>{cache, nrows, ncols};
 }
+
+template <typename T>
+auto labeledArrayFromBranch(boost::property_tree::ptree const& tree)
+{
+  auto labels_rows = vectorFromBranch<std::string>(tree.get_child("labels_rows"));
+  auto labels_cols = vectorFromBranch<std::string>(tree.get_child("labels_cols"));
+  auto values = array2DFromBranch<T>(tree.get_child("values"));
+
+  return LabeledArray<T>{values, labels_rows, labels_cols};
+}
+
+template <typename T>
+auto labeledArrayToBranch(LabeledArray<T>&& array)
+{
+  boost::property_tree::ptree subtree;
+  subtree.put_child("labels_rows", vectorToBranch(array.getLabelsRows()));
+  subtree.put_child("lanels_cols", vectorToBranch(array.getLabelsCols()));
+  subtree.put_child("values", array2DToBranch(array.getData()));
+
+  return subtree;
+}
 } // namespace o2::framework
 
 #endif // FRAMEWORK_VARIANTPTREEHELPERS_H

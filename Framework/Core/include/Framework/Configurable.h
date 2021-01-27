@@ -15,7 +15,7 @@ namespace o2::framework
 template <typename T>
 struct ConfigurableBase {
   ConfigurableBase(std::string const& name, T&& defaultValue, std::string const& help)
-    : name(name), value{std::move(defaultValue)}, help(help)
+    : name(name), value{std::forward<T>(defaultValue)}, help(help)
   {
   }
   using type = T;

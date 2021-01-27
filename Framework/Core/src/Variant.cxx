@@ -28,7 +28,7 @@ void printArray(std::ostream& oss, T* array, size_t size)
 }
 
 template <typename T>
-void printMatrix(std::ostream& oss, Array2D<T> m)
+void printMatrix(std::ostream& oss, Array2D<T> const& m)
 {
   oss << variant_array_symbol<T>::symbol << "[[";
   oss << m(0, 0);
