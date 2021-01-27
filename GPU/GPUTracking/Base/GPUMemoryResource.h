@@ -84,7 +84,6 @@ class GPUMemoryResource
   GPUMemoryResource(const GPUMemoryResource&) CON_DEFAULT;
 #endif
 
-#ifndef __OPENCL__
   void* SetPointers(void* ptr)
   {
     return (mProcessor->*mSetPointers)(ptr);
@@ -95,7 +94,6 @@ class GPUMemoryResource
   size_t Size() const { return mSize; }
   const char* Name() const { return mName; }
   MemoryType Type() const { return mType; }
-#endif
 
  private:
   GPUProcessor* mProcessor;
