@@ -18,7 +18,7 @@
 #include "GPUTPCRow.h"
 #include "GPUCommonMath.h"
 #include "GPUParam.h"
-#include "GPUMemoryResource.h"
+#include "GPUProcessor.h"
 
 namespace GPUCA_NAMESPACE
 {
