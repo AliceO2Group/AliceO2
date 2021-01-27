@@ -24,6 +24,7 @@
 #include "qconfig_helpers.h"
 
 // Create config instances
+#define QCONFIG_PARSER_CXX
 #define QCONFIG_INSTANCE
 #include "qconfig.h"
 #undef QCONFIG_INSTANCE

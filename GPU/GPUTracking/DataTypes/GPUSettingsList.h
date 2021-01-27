@@ -213,7 +213,7 @@ AddShortcut("compare", 0, "--QAinput", "Compare QA histograms", "--qa", "--QAinp
 AddHelp("help", 'h')
 EndConfig()
 
-#ifdef GPUCA_STANDALONE
+#ifdef BeginConfig
 // Settings concerning the standlone timeframe from run 2 events assembly tool
 BeginSubConfig(GPUSettingsTF, TF, configStandalone, "TF", 't', "Timeframe settings")
 AddOption(nMerge, int, 0, "", 0, "Merge n events in a timeframe", min(0))
@@ -312,7 +312,10 @@ AddSubConfig(GPUSettingsDisplay, GL)
 AddSubConfig(GPUSettingsDisplayLight, GLlight)
 AddSubConfig(GPUSettingsEG, EG)
 EndConfig()
-#elif defined(GPUCA_O2_LIB) || defined(GPUCA_O2_INTERFACE) // GPUCA_STANDALONE
+#endif
+
+//Settings for the O2 workfllow
+#if !defined(QCONFIG_PARSER_CXX) && (defined(GPUCA_O2_LIB) || defined(GPUCA_O2_INTERFACE))
 BeginSubConfig(GPUSettingsO2, global, configStandalone, "O2", 0, "O2 workflow settings")
 AddOption(solenoidBz, float, -1e6f, "", 0, "solenoid field strength")
 AddOption(constBz, bool, false, "", 0, "force constant Bz for tests")

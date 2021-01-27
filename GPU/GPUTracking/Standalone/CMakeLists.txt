@@ -167,10 +167,8 @@ include_directories(${CMAKE_SOURCE_DIR}/TPCClusterFinder
 endif()
 
 # Create main targets
-add_executable(ca standalone.cxx
-                  Base/GPUReconstructionTimeframe.cxx)
 add_subdirectory(../../ GPU)
-add_library(standalone_support SHARED utils/qconfig.cxx)
+add_library(standalone_support SHARED dummy.cxx)
 
 target_link_libraries(GPUTracking PUBLIC TPCFastTransformation standalone_support dl)
 target_link_libraries(ca PUBLIC GPUTracking)
@@ -207,9 +205,6 @@ if(CONFIG_O2_EXTENSIONS)
     target_link_libraries(standalone_support PUBLIC Boost::boost)
   endif()
 endif()
-if(CONFIG_ROOT)
-  target_sources(ca PRIVATE qa/genEvents.cxx)
-endif()
 
 if(CONFIG_FMT)
   target_link_libraries(standalone_support PUBLIC fmt::fmt)
@@ -220,12 +215,7 @@ if(CONFIG_VC)
 endif()
 
 if(BUILD_EVENT_DISPLAY)
-  target_link_libraries(standalone_support PUBLIC
-                             X11::X11
-                             glfw
-                             glut)
-  target_sources(GPUTracking PRIVATE display/GPUDisplayBackendX11.cxx
-                             display/GPUDisplayBackendGlut.cxx)
+  target_link_libraries(standalone_support PUBLIC glfw)
   if(CONFIG_GL3W)
     target_sources(GPUTracking PRIVATE display/3rdparty/gl3w.c)
     target_compile_definitions(GPUTracking PUBLIC GPUCA_DISPLAY_GL3W)

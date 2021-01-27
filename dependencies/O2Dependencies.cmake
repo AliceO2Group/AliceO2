@@ -142,7 +142,10 @@ set_package_properties(AliRoot
 
 find_package(GLEW)
 set_package_properties(GLEW PROPERTIES TYPE OPTIONAL)
-
+find_package(X11)
+set_package_properties(X11 PROPERTIES TYPE OPTIONAL)
+find_package(GLUT)
+set_package_properties(GLUT PROPERTIES TYPE OPTIONAL)
 find_package(OpenGL)
 set_package_properties(OpenGL PROPERTIES TYPE OPTIONAL)
 
