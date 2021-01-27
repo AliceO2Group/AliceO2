@@ -3,7 +3,7 @@
 MYDIR="$(dirname $(readlink -f $0))"
 source $MYDIR/setenv.sh
 
-if [ "0$ALIENVLVL" == "0" ]; then
+if [ `which StfBuilder 2> /dev/null | wc -l` == "0" ]; then
   eval "`alienv shell-helper`"
   alienv --no-refresh load DataDistribution/latest
 fi
