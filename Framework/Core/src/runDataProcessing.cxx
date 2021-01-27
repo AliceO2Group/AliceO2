@@ -1160,12 +1160,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           guiDeployedOnce = true;
         }
         break;
-      case DriverState::SCHEDULE: {
-        // FIXME: for the moment modifying the topology means we rebuild completely
-        //        all the devices and we restart them. This is also what DDS does at
-        //        a larger scale. In principle one could try to do a delta and only
-        //        restart the data processors which need to be restarted.
-        LOG(INFO) << "Redeployment of configuration asked.";
+      case DriverState::MERGE_CONFIGS: {
         controls.resize(deviceSpecs.size());
         deviceExecutions.resize(deviceSpecs.size());
 
@@ -1177,6 +1172,13 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                             deviceExecutions, controls,
                                             driverInfo.uniqueWorkflowId);
 
+      } break;
+      case DriverState::SCHEDULE: {
+        // FIXME: for the moment modifying the topology means we rebuild completely
+        //        all the devices and we restart them. This is also what DDS does at
+        //        a larger scale. In principle one could try to do a delta and only
+        //        restart the data processors which need to be restarted.
+        LOG(INFO) << "Redeployment of configuration asked.";
         std::ostringstream forwardedStdin;
         WorkflowSerializationHelpers::dump(forwardedStdin, workflow, dataProcessorInfos);
         infos.reserve(deviceSpecs.size());
@@ -1236,6 +1238,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           driverInfo.states.push_back(DriverState::RUNNING);
           driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
           driverInfo.states.push_back(DriverState::SCHEDULE);
+          driverInfo.states.push_back(DriverState::MERGE_CONFIGS);
         } else if (deviceSpecs.empty() && driverInfo.batch == true) {
           LOG(INFO) << "No device resulting from the workflow. Quitting.";
           // If there are no deviceSpecs, we exit.
@@ -1545,6 +1548,7 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
     control.forcedTransitions = {
       DriverState::EXIT,                    //
       DriverState::PERFORM_CALLBACKS,       //
+      DriverState::MERGE_CONFIGS,           //
       DriverState::IMPORT_CURRENT_WORKFLOW, //
       DriverState::MATERIALISE_WORKFLOW     //
     };
@@ -1563,6 +1567,7 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
       DriverState::EXIT,                    //
       DriverState::PERFORM_CALLBACKS,       //
       DriverState::SCHEDULE,                //
+      DriverState::MERGE_CONFIGS,           //
       DriverState::IMPORT_CURRENT_WORKFLOW, //
       DriverState::MATERIALISE_WORKFLOW     //
     };
@@ -1577,6 +1582,7 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
       DriverState::EXIT,                    //
       DriverState::PERFORM_CALLBACKS,       //
       DriverState::SCHEDULE,                //
+      DriverState::MERGE_CONFIGS,           //
       DriverState::IMPORT_CURRENT_WORKFLOW, //
       DriverState::MATERIALISE_WORKFLOW     //
     };
@@ -1587,6 +1593,7 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
     //        it's own configuration by the driver.
     control.forcedTransitions = {
       DriverState::DO_CHILD,                //
+      DriverState::MERGE_CONFIGS,           //
       DriverState::IMPORT_CURRENT_WORKFLOW, //
       DriverState::MATERIALISE_WORKFLOW     //
     };
@@ -1607,6 +1614,7 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
     control.forcedTransitions = {
       DriverState::EXIT,                    //
       DriverState::PERFORM_CALLBACKS,       //
+      DriverState::MERGE_CONFIGS,           //
       DriverState::IMPORT_CURRENT_WORKFLOW, //
       DriverState::MATERIALISE_WORKFLOW     //
     };

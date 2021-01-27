@@ -33,6 +33,8 @@ class ConfigContext;
 /// Possible states for the DPL Driver application
 ///
 /// INIT => Initial state where global initialization should happen
+/// MERGE_CONFIGS => Invoked to rework the configuration so that common
+///                  options are homogeneous between different invokations.
 /// SCHEDULE => Invoked whenever the topology or the resources associated
 ///             to it change.
 /// RUNNING => At least one device is running and processing data.
@@ -69,6 +71,7 @@ enum struct DriverState {
   MATERIALISE_WORKFLOW,
   IMPORT_CURRENT_WORKFLOW,
   DO_CHILD,
+  MERGE_CONFIGS,
   LAST
 };
 
