@@ -19,6 +19,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
+#include "ReconstructionDataFormats/TrackTPCTOF.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
 namespace o2
@@ -29,7 +30,7 @@ namespace tof
 class TOFMatchedReader : public o2::framework::Task
 {
  public:
-  TOFMatchedReader(bool useMC) : mUseMC(useMC) {}
+  TOFMatchedReader(bool useMC, bool tpcmatch, bool readTracks) : mUseMC(useMC), mTPCMatch(tpcmatch), mReadTracks(readTracks) {}
   ~TOFMatchedReader() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
@@ -38,11 +39,15 @@ class TOFMatchedReader : public o2::framework::Task
   void connectTree(const std::string& filename);
 
   bool mUseMC = false;
+  bool mTPCMatch = false;
+  bool mReadTracks = false;
+
   std::string mInFileName{"o2match_tof.root"};
   std::string mInTreeName{"matchTOF"};
   std::unique_ptr<TFile> mFile = nullptr;
   std::unique_ptr<TTree> mTree = nullptr;
   std::vector<o2::dataformats::MatchInfoTOF> mMatches, *mMatchesPtr = &mMatches;
+  std::vector<o2::dataformats::TrackTPCTOF> mTracks, *mTracksPtr = &mTracks;
   std::vector<o2::MCCompLabel> mLabelTOF, *mLabelTOFPtr = &mLabelTOF;
   std::vector<o2::MCCompLabel> mLabelTPC, *mLabelTPCPtr = &mLabelTPC;
   std::vector<o2::MCCompLabel> mLabelITS, *mLabelITSPtr = &mLabelITS;
@@ -50,7 +55,7 @@ class TOFMatchedReader : public o2::framework::Task
 
 /// create a processor spec
 /// read matched TOF clusters from a ROOT file
-framework::DataProcessorSpec getTOFMatchedReaderSpec(bool useMC);
+framework::DataProcessorSpec getTOFMatchedReaderSpec(bool useMC, bool tpcmatch = false, bool readTracks = false);
 
 } // namespace tof
 } // namespace o2

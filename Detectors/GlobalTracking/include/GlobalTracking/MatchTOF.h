@@ -23,6 +23,7 @@
 #include <TStopwatch.h>
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
+#include "ReconstructionDataFormats/TrackTPCTOF.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DataFormatsTOF/CalibInfoTOF.h"
@@ -34,7 +35,7 @@
 #include "GlobalTracking/MatchTPCITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "ReconstructionDataFormats/PID.h"
-#include <gsl/span>
+#include "TPCFastTransform.h"
 
 // from FIT
 #include "DataFormatsFT0/RecPoints.h"
@@ -199,7 +200,40 @@ class MatchTOF
     mFITRecPoints = recpoints;
   }
 
+  ///< set input TPC tracks cluster indices
+  void setTPCTrackClusIdxInp(const gsl::span<const o2::tpc::TPCClRefElem> inp)
+  {
+    mTPCTrackClusIdx = inp;
+  }
+
+  ///< set input TPC cluster sharing map
+  void setTPCClustersSharingMap(const gsl::span<const unsigned char> inp)
+  {
+    mTPCRefitterShMap = inp;
+  }
+
+  ///< set input TPC clusters
+  void setTPCClustersInp(const o2::tpc::ClusterNativeAccess* inp)
+  {
+    mTPCClusterIdxStruct = inp;
+  }
+
   int findFITIndex(int bc);
+
+  ///< populate externally provided container by TOF-time-constrained TPC tracks
+  template <typename V>
+  void makeConstrainedTPCTracks(V& container)
+  {
+    checkRefitter();
+    int nmatched = mMatchedTracks.size(), nconstrained = 0;
+    container.resize(nmatched);
+    for (unsigned i = 0; i < nmatched; i++) {
+      if (makeConstrainedTPCTrack(i, container[nconstrained])) {
+        nconstrained++;
+      }
+    }
+    container.resize(nconstrained);
+  }
 
  private:
   void attachInputTrees();
@@ -217,6 +251,10 @@ class MatchTOF
   bool propagateToRefX(o2::track::TrackParCov& trc, float xRef /*in cm*/, float stepInCm /*in cm*/, o2::track::TrackLTIntegral& intLT);
   bool propagateToRefXWithoutCov(o2::track::TrackParCov& trc, float xRef /*in cm*/, float stepInCm /*in cm*/, float bz);
 
+  void updateTimeDependentParams();
+  void checkRefitter();
+  bool makeConstrainedTPCTrack(int matchedID, o2::dataformats::TrackTPCTOF& trConstr);
+
   //================================================================
 
   // Data members
@@ -232,8 +270,12 @@ class MatchTOF
   bool mMCTruthON = false; ///< flag availability of MC truth
 
   ///========== Parameters to be set externally, e.g. from CCDB ====================
+  float mBz = 0; ///< nominal Bz
 
   // to be done later
+  float mTPCTBinMUS = 0.;    ///< TPC time bin duration in microseconds
+  float mTPCTBinMUSInv = 0.; ///< inverse TPC time bin duration in microseconds
+  float mTPCBin2Z = 0.;      ///< conversion coeff from TPC time-bin to Z
 
   float mTimeTolerance = 1e3; ///<tolerance in ns for track-TOF time bracket matching
   float mSpaceTolerance = 10; ///<tolerance in cm for track-TOF time bracket matching
@@ -257,6 +299,13 @@ class MatchTOF
   std::vector<o2::tpc::TrackTPC>* mTPCTracksArrayInpVect;         ///< input tracks (vector to read from tree)
   gsl::span<const Cluster> mTOFClustersArrayInp;                  ///< input TOF clusters
   std::vector<Cluster>* mTOFClustersArrayInpVect;                 ///< input TOF clusters (vector to read from tree)
+
+  /// data needed for refit of time-constrained TPC tracks
+  gsl::span<const o2::tpc::TPCClRefElem> mTPCTrackClusIdx;            ///< input TPC track cluster indices span
+  gsl::span<const unsigned char> mTPCRefitterShMap;                   ///< externally set TPC clusters sharing map
+  const o2::tpc::ClusterNativeAccess* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
+  std::unique_ptr<o2::gpu::TPCFastTransform> mTPCTransform;           ///< TPC cluster transformation
+  std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter;         ///< TPC refitter used for TPC tracks refit during the reconstruction
 
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mTOFClusLabels;     ///< input TOF clusters MC labels
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTOFClusLabelsPtr; ///< input TOF clusters MC labels (pointer to read from tree)

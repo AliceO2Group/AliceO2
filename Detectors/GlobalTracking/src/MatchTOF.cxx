@@ -38,6 +38,7 @@
 
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/ParameterElectronics.h"
+#include "TPCReconstruction/TPCFastTransformHelperO2.h"
 
 using namespace o2::globaltracking;
 using evGIdx = o2::dataformats::EvIndex<int, o2::dataformats::GlobalTrackID>;
@@ -49,6 +50,7 @@ ClassImp(MatchTOF);
 void MatchTOF::run()
 {
   ///< running the matching
+  updateTimeDependentParams();
 
   if (!mWFInputAttached && !mSAInitDone) {
     LOG(ERROR) << "run called with mSAInitDone=" << mSAInitDone << " and mWFInputAttached=" << mWFInputAttached;
@@ -449,10 +451,7 @@ bool MatchTOF::prepareTracks()
     mTracksSectIndexCache[sec].reserve(100 + 1.2 * mNumOfTracks / o2::constants::math::NSectors);
   }
 
-  // getting Bz (mag field)
-  auto o2field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
-  float bzField = o2field->solenoidField(); // magnetic field in kGauss
-  float maxInvPt = abs(bzField) > 0.1 ? 1. / (abs(bzField) * 0.05) : 999.;
+  float maxInvPt = abs(mBz) > 0.1 ? 1. / (abs(mBz) * 0.05) : 999.;
 
   LOG(DEBUG) << "\n\nWe have %d tracks to try to match to TOF: " << mNumOfTracks;
   int nNotPropagatedToTOF = 0;
@@ -479,7 +478,7 @@ bool MatchTOF::prepareTracks()
     LOG(DEBUG) << "Global coordinates Before propagating to 371 cm: globalPos[0] = " << globalPos[0] << ", globalPos[1] = " << globalPos[1] << ", globalPos[2] = " << globalPos[2];
     LOG(DEBUG) << "Radius xy Before propagating to 371 cm = " << TMath::Sqrt(globalPos[0] * globalPos[0] + globalPos[1] * globalPos[1]);
     LOG(DEBUG) << "Radius xyz Before propagating to 371 cm = " << TMath::Sqrt(globalPos[0] * globalPos[0] + globalPos[1] * globalPos[1] + globalPos[2] * globalPos[2]);
-    if (!propagateToRefXWithoutCov(trc, mXRef, 2, bzField)) { // we first propagate to 371 cm without considering the covariance matrix
+    if (!propagateToRefXWithoutCov(trc, mXRef, 2, mBz)) { // we first propagate to 371 cm without considering the covariance matrix
       nNotPropagatedToTOF++;
       continue;
     }
@@ -567,10 +566,7 @@ bool MatchTOF::prepareTPCTracks()
     mTPCTracksSectIndexCache[sec].reserve(100 + 1.2 * mNumOfTracks / o2::constants::math::NSectors);
   }
 
-  // getting Bz (mag field)
-  auto o2field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
-  float bzField = o2field->solenoidField(); // magnetic field in kGauss
-  float maxInvPt = abs(bzField) > 0.1 ? 1. / (abs(bzField) * 0.05) : 999.;
+  float maxInvPt = abs(mBz) > 0.1 ? 1. / (abs(mBz) * 0.05) : 999.;
   int nclustersMin = 0;
   LOG(INFO) << "Max track Inv pT allowed = " << maxInvPt;
   LOG(INFO) << "Min track Nclusters allowed = " << nclustersMin;
@@ -584,10 +580,10 @@ bool MatchTOF::prepareTPCTracks()
     // create working copy of track param
     timeEst timeInfo;
     // set
-    timeInfo.setTimeStamp(trcOrig.getTime0() * o2::tpc::ParameterElectronics::Instance().ZbinWidth);
-    timeInfo.setTimeStampError((trcOrig.getDeltaTBwd() + 5) * o2::tpc::ParameterElectronics::Instance().ZbinWidth);
+    timeInfo.setTimeStamp(trcOrig.getTime0() * mTPCTBinMUS);
+    timeInfo.setTimeStampError((trcOrig.getDeltaTBwd() + 5) * mTPCTBinMUS);
     mSideTPC.push_back(trcOrig.hasASideClustersOnly() ? 1 : (trcOrig.hasCSideClustersOnly() ? -1 : 0));
-    mExtraTPCFwdTime.push_back((trcOrig.getDeltaTFwd() + 5) * o2::tpc::ParameterElectronics::Instance().ZbinWidth);
+    mExtraTPCFwdTime.push_back((trcOrig.getDeltaTFwd() + 5) * mTPCTBinMUS);
 
     o2::track::TrackLTIntegral intLT0; //mTPCTracksWork.back().getLTIntegralOut(); // we get the integrated length from TPC-ITC outward propagation
     // make a copy of the TPC track that we have to propagate
@@ -617,7 +613,7 @@ bool MatchTOF::prepareTPCTracks()
     // the "very rough" propagation worked; now we can propagate considering also the cov matrix
 #endif
 
-    if (!propagateToRefXWithoutCov(trc, mXRef, 10, bzField)) { // we first propagate to 371 cm without considering the covariance matrix
+    if (!propagateToRefXWithoutCov(trc, mXRef, 10, mBz)) { // we first propagate to 371 cm without considering the covariance matrix
       nNotPropagatedToTOF++;
       continue;
     }
@@ -1137,7 +1133,6 @@ void MatchTOF::doMatching(int sec)
 //______________________________________________
 void MatchTOF::doMatchingForTPC(int sec)
 {
-  printf("here, DoMatch\n");
   auto& gasParam = o2::tpc::ParameterGas::Instance();
   float vdrift = gasParam.DriftV;
 
@@ -1542,7 +1537,7 @@ void MatchTOF::selectBestMatches()
 bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float stepInCm, o2::track::TrackLTIntegral& intLT)
 {
   // propagate track to matching reference X
-  o2::base::Propagator::MatCorrType matCorr = o2::base::Propagator::MatCorrType::USEMatCorrTGeo; // material correction method
+  o2::base::Propagator::MatCorrType matCorr = o2::base::Propagator::MatCorrType::USEMatCorrLUT; // material correction method
   const float tanHalfSector = tan(o2::constants::math::SectorSpanRad / 2);
   bool refReached = false;
   float xStart = trc.getX();
@@ -1667,4 +1662,76 @@ void MatchTOF::fillTOFmatchTreeWithLabels(const char* trname, int cacheTOF, int 
                << "\n";
   }
   mTimerDBG.Stop();
+}
+
+//______________________________________________
+void MatchTOF::updateTimeDependentParams()
+{
+  ///< update parameters depending on time (once per TF)
+  auto& elParam = o2::tpc::ParameterElectronics::Instance();
+  auto& gasParam = o2::tpc::ParameterGas::Instance();
+  mTPCTBinMUS = elParam.ZbinWidth; // TPC bin in microseconds
+  mTPCTBinMUSInv = 1. / mTPCTBinMUS;
+  mTPCBin2Z = mTPCTBinMUS * gasParam.DriftV;
+
+  mBz = o2::base::Propagator::Instance()->getNominalBz();
+}
+
+//_________________________________________________________
+bool MatchTOF::makeConstrainedTPCTrack(int matchedID, o2::dataformats::TrackTPCTOF& trConstr)
+{
+  auto& match = mMatchedTracks[matchedID];
+  const auto& tpcTrOrig = mTPCTracksArrayInp[match.getTrackIndex()];
+  const auto& tofCl = mTOFClustersArrayInp[match.getTOFClIndex()];
+  const auto& intLT = match.getLTIntegralOut();
+  // correct the time of the track
+  auto timeTOFMUS = (tofCl.getTime() - intLT.getTOF(o2::track::PID::Pion)) * 1e-6; // tof time in \mus, FIXME: account for time of flight to R TOF
+  auto timeTOFTB = timeTOFMUS * mTPCTBinMUSInv;                                    // TOF time in TPC timebins
+  auto deltaTBins = timeTOFTB - tpcTrOrig.getTime0();                              // time shift in timeBins
+  float timeErr = 0.010;                                                           // assume 10 ns error FIXME
+  auto dzCorr = deltaTBins * mTPCBin2Z;
+
+  if (mTPCClusterIdxStruct) {                                              // refit was requested
+    trConstr.o2::track::TrackParCov::operator=(tpcTrOrig.getOuterParam()); // seed for inward refit of constrained track, made from the outer param
+  } else {
+    trConstr.o2::track::TrackParCov::operator=(tpcTrOrig); // inner param, we just correct is position, w/o refit
+  }
+
+  auto zTrack = trConstr.getZ();
+
+  if (tpcTrOrig.hasASideClustersOnly()) {
+    zTrack += dzCorr;
+  } else if (tpcTrOrig.hasCSideClustersOnly()) {
+    zTrack -= dzCorr;
+  } else {
+    // TODO : special treatment of tracks crossing the CE
+  }
+  trConstr.setZ(zTrack);
+  trConstr.setTimeMUS(timeTOFMUS, timeErr);
+  trConstr.setRefMatch(matchedID);
+  if (mTPCClusterIdxStruct) { // refit was requested
+    float chi2 = 0;
+    mTPCRefitter->setTrackReferenceX(o2::globaltracking::MatchTPCITS::XTPCInnerRef);
+    if (mTPCRefitter->RefitTrackAsTrackParCov(trConstr, tpcTrOrig.getClusterRef(), timeTOFTB, &chi2, false, true) < 0) { // outward refit after resetting cov.mat.
+      LOG(DEBUG) << "Refit failed";
+      return false;
+    }
+    trConstr.setChi2Refit(chi2);
+  }
+
+  return true;
+}
+
+//_________________________________________________________
+void MatchTOF::checkRefitter()
+{
+  if (mTPCClusterIdxStruct) {
+    if (!mTPCTransform) { // eventually, should be updated at every TF?
+      mTPCTransform = o2::tpc::TPCFastTransformHelperO2::instance()->create(0);
+    }
+
+    mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCTransform.get(), mBz,
+                                                                  mTPCTrackClusIdx.data(), mTPCRefitterShMap.data(),
+                                                                  nullptr, o2::base::Propagator::Instance());
+  }
 }
