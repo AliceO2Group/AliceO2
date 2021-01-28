@@ -62,6 +62,21 @@ struct getWorkflowTPCInput_ret {
 };
 } // namespace internal
 
+static auto getWorkflowTPCInputEmpryPtr()
+{
+  /*
+  In case the need of TPCInput is conditional, this will allow to define an empty unique_ptr to this complex structure outside 
+  of the "if" scope, i.e. 
+  auto inp = getWorkflowTPCInputEmpryPtr();
+  if (want_TPCInput) {
+    inp = getWorkflowTPCInput(...);
+    consumer->setInp(inp);
+  }
+*/
+  std::unique_ptr<internal::getWorkflowTPCInput_ret> ptr;
+  return ptr;
+}
+
 static auto getWorkflowTPCInput(o2::framework::ProcessingContext& pc, int verbosity = 0, bool do_mcLabels = false, bool do_clusters = true, unsigned long tpcSectorMask = 0xFFFFFFFFF, bool do_digits = false)
 {
   auto retVal = std::make_unique<internal::getWorkflowTPCInput_ret>();

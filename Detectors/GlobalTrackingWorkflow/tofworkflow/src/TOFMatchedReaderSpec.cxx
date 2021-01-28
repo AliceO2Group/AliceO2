@@ -47,6 +47,12 @@ void TOFMatchedReader::connectTree(const std::string& filename)
   mTree.reset((TTree*)mFile->Get(mInTreeName.c_str()));
   assert(mTree);
   mTree->SetBranchAddress("TOFMatchInfo", &mMatchesPtr);
+  if (mReadTracks) {
+    if (!mTree->GetBranch("TPCTOFTracks")) {
+      throw std::runtime_error("TPC-TOF tracks are requested but not found in the tree");
+    }
+    mTree->SetBranchAddress("TPCTOFTracks", &mMatchesPtr);
+  }
   if (mUseMC) {
     mTree->SetBranchAddress("MatchTOFMCTruth", &mLabelTOFPtr);
     mTree->SetBranchAddress("MatchTPCMCTruth", &mLabelTPCPtr);
@@ -63,6 +69,9 @@ void TOFMatchedReader::run(ProcessingContext& pc)
   LOG(INFO) << "Pushing " << mMatches.size() << " TOF matchings at entry " << currEntry;
 
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFOS", 0, Lifetime::Timeframe}, mMatches);
+  if (mReadTracks) {
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "TPCTOFTRACKS", 0, Lifetime::Timeframe}, mTracks);
+  }
   if (mUseMC) {
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHTOFINFOSMC", 0, Lifetime::Timeframe}, mLabelTOF);
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHTPCINFOSMC", 0, Lifetime::Timeframe}, mLabelTPC);
@@ -75,10 +84,13 @@ void TOFMatchedReader::run(ProcessingContext& pc)
   }
 }
 
-DataProcessorSpec getTOFMatchedReaderSpec(bool useMC)
+DataProcessorSpec getTOFMatchedReaderSpec(bool useMC, bool readTracks)
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFOS", 0, Lifetime::Timeframe);
+  if (readTracks) {
+    outputs.emplace_back(o2::header::gDataOriginTOF, "TPCTOFTRACKS", 0, Lifetime::Timeframe);
+  }
   if (useMC) {
     outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHTOFINFOSMC", 0, Lifetime::Timeframe);
     outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHTPCINFOSMC", 0, Lifetime::Timeframe);
@@ -89,7 +101,7 @@ DataProcessorSpec getTOFMatchedReaderSpec(bool useMC)
     "TOFMatchedReader",
     Inputs{},
     outputs,
-    AlgorithmSpec{adaptFromTask<TOFMatchedReader>(useMC)},
+    AlgorithmSpec{adaptFromTask<TOFMatchedReader>(useMC, readTracks)},
     Options{
       {"tof-matched-infile", VariantType::String, "o2match_tof.root", {"Name of the input file"}},
       {"treename", VariantType::String, "matchTOF", {"Name of top-level TTree"}},

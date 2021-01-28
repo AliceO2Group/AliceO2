@@ -18,6 +18,7 @@
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
+#include "ReconstructionDataFormats/TrackTPCTOF.h"
 #include "DataFormatsTOF/CalibInfoTOF.h"
 #include "DataFormatsTOF/Cluster.h"
 #include "CommonUtils/StringUtils.h"
@@ -31,14 +32,15 @@ namespace tof
 
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
-using OutputType = std::vector<o2::dataformats::MatchInfoTOF>;
+using MatchInfo = std::vector<o2::dataformats::MatchInfoTOF>;
+using TrackInfo = std::vector<o2::dataformats::TrackTPCTOF>;
 using LabelsType = std::vector<o2::MCCompLabel>;
 using namespace o2::header;
 
-DataProcessorSpec getTOFMatchedWriterSpec(bool useMC, const char* outdef)
+DataProcessorSpec getTOFMatchedWriterSpec(bool useMC, const char* outdef, bool writeTracks)
 {
   // spectators for logging
-  auto loggerMatched = [](OutputType const& indata) {
+  auto loggerMatched = [](MatchInfo const& indata) {
     LOG(INFO) << "RECEIVED MATCHED SIZE " << indata.size();
   };
   auto loggerTofLabels = [](LabelsType const& labeltof) {
@@ -51,16 +53,21 @@ DataProcessorSpec getTOFMatchedWriterSpec(bool useMC, const char* outdef)
     LOG(INFO) << "ITS LABELS GOT " << labelits.size() << " LABELS ";
   };
   // TODO: there was a comment in the original implementation:
-  // RS why do we need to repead ITS/TPC labels ?
+  // RS why do we need to repeat ITS/TPC labels ?
   // They can be extracted from TPC-ITS matches
+
   return MakeRootTreeWriterSpec("TOFMatchedWriter",
                                 outdef,
                                 "matchTOF",
-                                BranchDefinition<OutputType>{InputSpec{"tofmatching", gDataOriginTOF, "MATCHINFOS", 0},
-                                                             "TOFMatchInfo",
-                                                             "TOFMatchInfo-branch-name",
-                                                             1,
-                                                             loggerMatched},
+                                BranchDefinition<MatchInfo>{InputSpec{"tofmatching", gDataOriginTOF, "MATCHINFOS", 0},
+                                                            "TOFMatchInfo",
+                                                            "TOFMatchInfo-branch-name",
+                                                            1,
+                                                            loggerMatched},
+                                BranchDefinition<TrackInfo>{InputSpec{"tpctofTracks", gDataOriginTOF, "TPCTOFTRACKS", 0},
+                                                            "TPCTOFTracks",
+                                                            "TPCTOFTracks-branch-name",
+                                                            writeTracks},
                                 BranchDefinition<LabelsType>{InputSpec{"matchtoflabels", gDataOriginTOF, "MATCHTOFINFOSMC", 0},
                                                              "MatchTOFMCTruth",
                                                              "MatchTOFMCTruth-branch-name",

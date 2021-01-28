@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "TOFWorkflow/RecoWorkflowSpec.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataRefUtils.h"
@@ -21,6 +22,7 @@
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include <gsl/span>
 #include "TStopwatch.h"
 
@@ -55,6 +57,16 @@ class TOFDPLRecoWorkflowTask
     // nothing special to be set up
     o2::base::GeometryManager::loadGeometry();
     o2::base::Propagator::initFieldFromGRP("o2sim_grp.root");
+    std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
+    std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
+    if (o2::base::NameConf::pathExists(matLUTFile)) {
+      auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
+      o2::base::Propagator::Instance()->setMatLUT(lut);
+      LOG(INFO) << "Loaded material LUT from " << matLUTFile;
+    } else {
+      LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
+    }
+
     mTimer.Stop();
     mTimer.Reset();
   }
@@ -159,7 +171,8 @@ o2::framework::DataProcessorSpec getTOFRecoWorkflowSpec(bool useMC, bool useFIT)
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TOFDPLRecoWorkflowTask>(useMC, useFIT)},
-    Options{/* for the moment no options */}};
+    Options{
+      {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
 }
 
 } // end namespace tof
