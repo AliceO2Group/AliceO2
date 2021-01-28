@@ -117,7 +117,7 @@ void HmpidEquipment::setError(int ErrType)
 /// @param[in] dil : dilogic [0..9]
 /// @param[in] cha : channel [0..47]
 /// @param[in] charge : the value of the charge
-void HmpidEquipment::setPad(int col, int dil, int cha, int charge)
+void HmpidEquipment::setPad(int col, int dil, int cha, uint16_t charge)
 {
   mPadSamples[col][dil][cha]++;
   mPadSum[col][dil][cha] += (double) charge;

@@ -37,6 +37,10 @@ namespace hmpid
 
     private:
       bool mPrintDigits = false;
+      bool mIsOutputOnFile = false;
+      std::string mOutputFileName = "";
+      std::ofstream mOsFile;
+
   };
 
 o2::framework::DataProcessorSpec getDumpDigitsSpec(std::string inputSpec = "HMP/DIGITS");

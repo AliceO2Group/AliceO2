@@ -109,6 +109,13 @@ class Geo
   static constexpr int N_EQUIPMENTTOTALPADS = N_SEGMENTS * N_COLXSEGMENT * N_DILOGICS * N_CHANNELS;
   static constexpr int N_HMPIDTOTALPADS = MAXEQUIPMENTS * N_SEGMENTS * N_COLXSEGMENT * N_DILOGICS * N_CHANNELS;
 
+  static constexpr int N_PHOTOCATODS = 6;
+  static constexpr int N_PHOTOCATODSX = 80;
+  static constexpr int N_PHOTOCATODSY = 48;
+  static constexpr int MAXXPHOTO = 79;
+  static constexpr int MAXYPHOTO = 47;
+
+
   static void Module2Equipment(int Mod, int Col, int Row, int *Equi, int *Colu, int *Dilo, int *Chan);
   static void Equipment2Module(int Equi, int Colu, int Dilo, int Chan, int *Mod, int *Col, int *Row);
   

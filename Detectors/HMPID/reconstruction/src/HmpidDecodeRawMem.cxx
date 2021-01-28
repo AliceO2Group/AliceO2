@@ -132,7 +132,7 @@ bool HmpidDecodeRawMem::getWordFromStream(uint32_t *word)
 /// @param[in] dil : the dilogic [0..9]
 /// @param[in] ch : the channel [0..47]
 /// @param[in] charge : the value of the charge
-void HmpidDecodeRawMem::setPad(HmpidEquipment *eq, int col, int dil, int ch, int charge)
+void HmpidDecodeRawMem::setPad(HmpidEquipment *eq, int col, int dil, int ch, uint16_t charge)
 {
   eq->setPad(col, dil, ch, charge);
   return;
@@ -180,10 +180,11 @@ HmpidDecodeRawDigit::~HmpidDecodeRawDigit()
 /// @param[in] dil : the dilogic [0..9]
 /// @param[in] ch : the channel [0..47]
 /// @param[in] charge : the value of the charge
-void HmpidDecodeRawDigit::setPad(HmpidEquipment *eq, int col, int dil, int ch, int charge)
+void HmpidDecodeRawDigit::setPad(HmpidEquipment *eq, int col, int dil, int ch, uint16_t charge)
 {
   eq->setPad(col, dil, ch, charge);
-  mDigits.push_back(Digit(mHeBCDI, mHeORBIT, (float)charge, eq->getEquipmentId(), col, dil, ch));
+  mDigits.push_back(Digit(mHeBCDI, mHeORBIT, charge, eq->getEquipmentId(), col, dil, ch));
+  //std::cout << "DI " << mDigits.back() << " "<<col<<","<< dil<<","<< ch<<"="<< charge<<std::endl;
   return;
 }
 

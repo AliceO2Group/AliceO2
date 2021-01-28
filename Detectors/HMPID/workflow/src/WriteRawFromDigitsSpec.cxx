@@ -58,6 +58,7 @@ using RDH = o2::header::RDHAny;
 void WriteRawFromDigitsTask::init(framework::InitContext& ic)
 {
   LOG(INFO) << "[HMPID Write Raw File From Digits vector - run] Dumping ...";
+  mBaseFileName = ic.options().get<std::string>("out-file");
 
 
   return;
@@ -79,17 +80,41 @@ bool WriteRawFromDigitsTask::eventEquipPadsComparision(o2::hmpid::Digit d1, o2::
 
 void WriteRawFromDigitsTask::run(framework::ProcessingContext& pc)
 {
-  std::vector<o2::hmpid::Digit> digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>("digits");
-  LOG(INFO) << "The size of the digits vector " << digits.size();
+  uint32_t pad;
+  int Equi, Colu, Dilo, Chan;
+  int Equi1, Colu1, Dilo1, Chan1;
 
-  sort(digits.begin(), digits.end(), eventEquipPadsComparision);
-  LOG(INFO) << "Digits sorted ! " ;
+  for(Equi=0; Equi<14; Equi++)
+    for(Colu=0;Colu<24;Colu++)
+	for(Dilo=0;Dilo<10;Dilo++)
+	  for(Chan=0;Chan<48;Chan++) {
+	      pad = Digit::Equipment2Pad(Equi, Colu, Dilo, Chan);
+	      Digit::Pad2Equipment(pad, &Equi1, &Colu1, &Dilo1, &Chan1);
+	      if(Equi!=Equi1 ||Colu!=Colu1||Dilo!=Dilo1||Chan!=Chan1) {
+		  std::cout << ">>>> !" << Equi<<","<< Colu<<","<< Dilo<<","<< Chan << std::endl;
+	      }
+	  }
 
-  HmpidCoder cod(Geo::MAXEQUIPMENTS);
-  cod.openOutputStream("pippo");
-  cod.codeDigitsVector(digits);
-  cod.closeOutputStream();
-  LOG(INFO) << "Raw File created ! " ;
+
+
+  return;
+
+  for (auto&& input : pc.inputs()) {
+    if (input.spec->binding == "digits") {
+      auto digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>("digits");
+
+      LOG(INFO) << "The size of the digits vector " << digits.size();
+      sort(digits.begin(), digits.end(), eventEquipPadsComparision);
+      LOG(INFO) << "Digits sorted ! " ;
+
+      HmpidCoder cod(Geo::MAXEQUIPMENTS);
+      cod.openOutputStream(mBaseFileName.c_str());
+      //cod.codeDigitsTest(2, 100);
+      cod.codeDigitsVector(digits);
+      cod.closeOutputStream();
+      LOG(INFO) << "Raw File created ! " ;
+    }
+  }
   return;
 }
 
@@ -109,7 +134,7 @@ o2::framework::DataProcessorSpec getWriteRawFromDigitsSpec(std::string inputSpec
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<WriteRawFromDigitsTask>()},
-    Options{{"print", VariantType::Bool, false, {"print"}}} };
+    Options{{"out-file", VariantType::String, "hmpidRaw", {"name of the output file"}}} };
 }
 
 } // namespace hmpid

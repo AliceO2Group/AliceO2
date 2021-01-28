@@ -58,20 +58,41 @@ void DumpDigitsTask::init(framework::InitContext& ic)
   LOG(INFO) << "[HMPID Dump Digits - run] Dumping ...";
   mPrintDigits = ic.options().get<bool>("print");
 
-  std::cout << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
+  mIsOutputOnFile = false;
+  mOutputFileName = ic.options().get<std::string>("out-file");
+  if(mOutputFileName != "") {
+    mOsFile.open(mOutputFileName, std::ios::out);
+    if (mOsFile.is_open()) {
+      mIsOutputOnFile = true;
+    }
+  }
   return;
 }
 
 void DumpDigitsTask::run(framework::ProcessingContext& pc)
 {
-  auto digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>("digits");
-  std::cout << "The size of the vector " << digits.size() << std::endl;
-  if (mPrintDigits) {
-    for(o2::hmpid::Digit Dig : digits) {
-      std::cout << Dig << std::endl;
+  //LOG(INFO) << "Enter Dump run...";
+
+  for (auto&& input : pc.inputs()) {
+    if (input.spec->binding == "digits") {
+      auto digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>("digits");
+      LOG(INFO) << "The size of the vector =" << digits.size();
+      if (mPrintDigits) {
+         std::cout << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
+         for(o2::hmpid::Digit Dig : digits) {
+           std::cout << Dig << std::endl;
+         }
+         std::cout << "---------------- HMP Dump Digits : EOF ------------------" << std::endl;
+      }
+      if (mIsOutputOnFile) {
+         mOsFile << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
+         for(o2::hmpid::Digit Dig : digits) {
+           mOsFile << Dig << std::endl;
+         }
+         mOsFile.close();
+      }
     }
   }
-  std::cout << "---------------- HMP Dump Digits : EOF ------------------" << std::endl;
   return;
 }
 
@@ -91,7 +112,8 @@ o2::framework::DataProcessorSpec getDumpDigitsSpec(std::string inputSpec)
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<DumpDigitsTask>()},
-    Options{{"print", VariantType::Bool, false, {"print digits (default false )"}}} };
+    Options{{"out-file", VariantType::String, "", {"name of the output file"}},
+            {"print", VariantType::Bool, false, {"print digits (default false )"}}} };
 }
 
 } // namespace hmpid

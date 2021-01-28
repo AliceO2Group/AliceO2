@@ -32,6 +32,8 @@ HmpidCoder::HmpidCoder(int numOfEquipments)
 
   mPailoadBufferDimPerEquipment =  ((Geo::N_SEGMENTS * (Geo::N_COLXSEGMENT * (Geo::N_DILOGICS * (Geo::N_CHANNELS + 1) + 1) + 1)) + 10);
 
+  for(int i=0;i<Geo::MAXEQUIPMENTS; i++) mPacketCounterPerEquipment[i] = 0;
+
   mPayloadBufferPtr = (uint32_t *) std::malloc(mNumberOfEquipments * sizeof(uint32_t) * mPailoadBufferDimPerEquipment );
   mEventBufferBasePtr = (uint32_t *) std::malloc(sizeof(uint32_t) * RAWBLOCKDIMENSION_W);
   mEventBufferPtr = mEventBufferBasePtr;
@@ -140,8 +142,9 @@ void HmpidCoder::fillTheOutputBuffer(uint32_t* padMap)
   int count;
   int segSize;
 
-  for(int i=0; i<Geo::MAXEQUIPMENTS; i++)
+  for(int i=0; i<Geo::MAXEQUIPMENTS; i++) {
     mEventSizePerEquipment[i] = 0;
+  }
 
   for (int eq = 0; eq < mNumberOfEquipments; eq++) {
     int startPtr = ptr;
@@ -209,7 +212,7 @@ void HmpidCoder::writePaginatedEvent(uint32_t orbit, uint16_t bc)
       while (count < PAYLOADDIMENSION_W)
         mEventBufferPtr[HEADERDIMENSION_W + count++] = 0;
       uint32_t MemSize = nWordToRead * sizeof(uint32_t) + HEADERDIMENSION_W * sizeof(uint32_t);
-      uint32_t PackNum = PageNum;
+      uint32_t PackNum = mPacketCounterPerEquipment[eq]++;
       writeHeader(mEventBufferPtr, MemSize, mEqIds[eq], PackNum, bc, orbit, PageNum);
       saveEventPage(mFlpIds[eq]);
     }
@@ -259,12 +262,13 @@ void HmpidCoder::codeDigitsVector(std::vector<Digit>digits)
 
   uint32_t *padMap = (uint32_t *) std::malloc(sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS);
   int eq,col,dil,cha,mo,x,y, idx;
-
+std::cout << ">>> Coding size "<< digits.size() << std::endl;
+int padsCount =0;
   for(o2::hmpid::Digit d : digits) {
     orbit = d.getOrbit();
     bc = d.getBC();
     if(orbit != pv_orbit || bc != pv_bc) { //the event is changed
-      if (orbit != 0) {
+      if (pv_orbit != 0 || pv_bc != 0 ) {
         fillTheOutputBuffer(padMap);
         writePaginatedEvent(pv_orbit, pv_bc);
       }
@@ -275,16 +279,45 @@ void HmpidCoder::codeDigitsVector(std::vector<Digit>digits)
     Digit::Pad2Absolute(d.getPadID(), &mo, &x, &y);
     Geo::Module2Equipment(mo, y, x, &eq, &col, &dil, &cha);
     idx = getEquipmentPadIndex(eq, col, dil, cha);
+    if(idx == 107562) {
+	std::cout << ">>> Beccato >"<< idx << " " << d <<" ("<< mo <<","<<x<<","<<y<<") ("<<eq<<","<<col<<","<<dil<<","<<cha<<")"<< std::endl;
+    }
     padMap[idx] = d.getCharge();
+padsCount++;
   }
   fillTheOutputBuffer(padMap);
   writePaginatedEvent(pv_orbit, pv_bc);
-
+std::cout << ">>> CPads set "<< padsCount << std::endl;
   std::free(padMap);
   return;
 }
 
+void HmpidCoder::codeDigitsTest(int Events, uint16_t charge)
+{
+  uint32_t orbit = 0;
+  uint16_t bc = 0;
 
+  uint32_t *padMap = (uint32_t *) std::malloc(sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS);
+  int eq,col,dil,cha,mo,x,y, idx;
+
+  for(int e=0; e<Events; e++) {
+    orbit++;
+    bc++;
+    charge++;
+    for(eq = 0; eq<Geo::MAXEQUIPMENTS; eq++)
+      for(col =0; col<Geo::N_COLUMNS; col++)
+        for(dil =0; dil<Geo::N_DILOGICS; dil++)
+          for(cha=0;cha<Geo::N_CHANNELS; cha++) {
+            idx = getEquipmentPadIndex(eq, col, dil, cha);
+            padMap[idx] = charge;
+          }
+    fillTheOutputBuffer(padMap);
+    writePaginatedEvent(orbit, bc);
+    memset(padMap, 0, sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS);
+  }
+  std::free(padMap);
+  return;
+}
 // ====================== FILES management functions ======================
 
 void HmpidCoder::saveEventPage(int Flp)

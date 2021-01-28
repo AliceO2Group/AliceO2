@@ -52,7 +52,7 @@ class Digit
 
     friend std::ostream& operator<< (std::ostream& os, const Digit& d) {
       os << "[" << A2C(d.mPad) << "," << A2P(d.mPad) << "," << A2X(d.mPad) << "," <<
-         A2Y(d.mPad) << "}@(" << d.mOrbit << "," << d.mBc << ")=" << d.mQ;
+         A2Y(d.mPad) << "]@(" << d.mOrbit << "," << d.mBc << ")=" << d.mQ;
       return os;
     };
 
