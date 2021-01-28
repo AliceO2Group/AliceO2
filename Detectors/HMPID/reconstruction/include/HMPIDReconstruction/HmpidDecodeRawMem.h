@@ -47,7 +47,7 @@ class HmpidDecodeRawMem: public HmpidDecoder
     bool getBlockFromStream(uint32_t **streamPtr, uint32_t Size);
     bool getHeaderFromStream(uint32_t **streamPtr);
     bool getWordFromStream(uint32_t *word);
-    void setPad(HmpidEquipment *eq, int col, int dil, int ch, int charge);
+    void setPad(HmpidEquipment *eq, int col, int dil, int ch, uint16_t charge);
 
   private:
 
@@ -63,7 +63,7 @@ class HmpidDecodeRawDigit: public HmpidDecodeRawMem
     std::vector<o2::hmpid::Digit> mDigits;
 
   private:
-    void setPad(HmpidEquipment *eq, int col, int dil, int ch, int charge);
+    void setPad(HmpidEquipment *eq, int col, int dil, int ch, uint16_t charge);
 
 
 };

@@ -66,6 +66,7 @@ class HmpidCoder
     uint32_t *mEventBufferPtr;
     uint32_t *mEventBufferBasePtr;
     int mEventSizePerEquipment[Geo::MAXEQUIPMENTS];
+    uint32_t mPacketCounterPerEquipment[Geo::MAXEQUIPMENTS];
 
     FILE *mOutStream160;
     FILE *mOutStream161;
@@ -120,7 +121,7 @@ class HmpidCoder
 
     void createRandomEvent(uint32_t orbit, uint16_t bc);
     void codeDigitsVector(std::vector<Digit>);
-
+    void codeDigitsTest(int Events, uint16_t charge);
 
   protected:
     void createRandomPayloadPerEvent();

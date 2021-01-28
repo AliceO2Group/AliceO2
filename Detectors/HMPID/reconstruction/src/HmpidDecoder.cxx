@@ -272,7 +272,10 @@ bool HmpidDecoder::isSegmentMarker(uint32_t wp, int *Err, int *segSize, int *Seg
 bool HmpidDecoder::isPadWord(uint32_t wp, int *Err, int *Col, int *Dilogic, int *Channel, int *Charge)
 {
   *Err = false;
-  if ((wp & 0x08000000) == 0) { //  # this is a pad
+  if ( (wp & 0x0000ffff) == 0x36A8 || (wp & 0x0000ffff) == 0x32A8 || (wp & 0x0000ffff) == 0x30A0 \
+      || (wp & 0x0800ffff) == 0x080010A0 || (wp & 0x08000000) != 0) { //  # ! this is a pad
+    return(false);
+  } else {
     *Col = (wp & 0x07c00000) >> 22;
     *Dilogic = (wp & 0x003C0000) >> 18;
     *Channel = (wp & 0x0003F000) >> 12;
@@ -283,8 +286,6 @@ bool HmpidDecoder::isPadWord(uint32_t wp, int *Err, int *Col, int *Dilogic, int 
       *Err = true;
     }
     return (true);
-  } else {
-    return (false);
   }
 }
 

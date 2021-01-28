@@ -35,9 +35,9 @@ namespace hmpid
       void init(framework::InitContext& ic) final;
       void run(framework::ProcessingContext& pc) final;
 
-
     private:
       static bool eventEquipPadsComparision(o2::hmpid::Digit d1, o2::hmpid::Digit d2);
+      std::string mBaseFileName = "";
   };
 
 o2::framework::DataProcessorSpec getWriteRawFromDigitsSpec(std::string inputSpec = "HMP/DIGITS");

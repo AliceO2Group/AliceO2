@@ -69,9 +69,9 @@ void Digit::Pad2Equipment(uint32_t pad, int *Equi, int *Colu, int *Dilo, int *Ch
 
 uint32_t Digit::Absolute2Pad(int Module, int x, int y)
 {
-  int ph = (y/Geo::N_COLXSEGMENT)+((x >= Geo::HALFXROWS ) ? 1 : 0);
-  int px  = x % Geo::N_COLXSEGMENT;
-  int py  = y % Geo::HALFXROWS;
+  int ph = (y/Geo::N_PHOTOCATODSY)+((x >= Geo::HALFXROWS ) ? 1 : 0);
+  int px  = x % Geo::HALFXROWS;
+  int py  = y % Geo::N_PHOTOCATODSY;
   return Abs(Module,ph,px,py);
 }
 
@@ -82,7 +82,7 @@ void Digit::Pad2Absolute(uint32_t pad, int *Module, int *x, int *y)
   int px  = A2X(pad);
   int py  = A2Y(pad);
   *x = (ph % 2 == 0) ? px : (px + Geo::HALFXROWS);
-  *y = ((ph >> 1) * Geo::N_COLXSEGMENT) + py;
+  *y = ((ph >> 1) * Geo::N_PHOTOCATODSY) + py;
   return;
 }
 

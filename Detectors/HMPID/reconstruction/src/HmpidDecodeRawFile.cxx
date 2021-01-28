@@ -137,7 +137,7 @@ bool HmpidDecodeRawFile::getWordFromStream(uint32_t *word)
 /// @param[in] dil : the dilogic [0..9]
 /// @param[in] ch : the channel [0..47]
 /// @param[in] charge : the value of the charge
-void HmpidDecodeRawFile::setPad(HmpidEquipment *eq, int col, int dil, int ch, int charge)
+void HmpidDecodeRawFile::setPad(HmpidEquipment *eq, int col, int dil, int ch, uint16_t charge)
 {
   eq->setPad(col, dil, ch, charge);
   return;

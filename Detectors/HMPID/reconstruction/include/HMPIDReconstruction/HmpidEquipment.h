@@ -124,7 +124,7 @@ class HmpidEquipment
     void resetPadMap();
     void resetErrors();
     void setError(int ErrType);
-    void setPad(int col, int dil, int cha, int charge);
+    void setPad(int col, int dil, int cha, uint16_t charge);
 
 };
 

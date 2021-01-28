@@ -48,7 +48,7 @@ class HmpidDecodeRawFile: public HmpidDecoder
     bool getHeaderFromStream(uint32_t **streamPtr);
     bool getWordFromStream(uint32_t *word);
     int fileExists(char *filewithpath);
-    void setPad(HmpidEquipment *eq, int col, int dil, int ch, int charge);
+    void setPad(HmpidEquipment *eq, int col, int dil, int ch, uint16_t charge);
 
   private:
     FILE *fh;
