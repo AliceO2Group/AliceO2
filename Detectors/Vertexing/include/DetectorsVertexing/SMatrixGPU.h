@@ -61,6 +61,9 @@ class SVectorGPU
   GPUd() const T& operator()(size_t i) const;
   GPUd() T& operator[](size_t i);
   GPUd() T& operator()(size_t i);
+  GPUd() const T* Array() const;
+  GPUd() T* Array();
+  GPUd() T apply(size_t i) const;
 
  private:
   T mArray[N];
@@ -94,7 +97,7 @@ template <class T, size_t N>
 GPUd() SVectorGPU<T, N>::SVectorGPU()
 {
   for (size_t i = 0; i < N; ++i) {
-    mArray[i] = 0;
+    mArray[i] = 7;
   }
 }
 
@@ -106,30 +109,48 @@ GPUd() SVectorGPU<T, N>::SVectorGPU(const SVectorGPU<T, N>& rhs)
   }
 }
 
-// // Dot operator support
-// template <size_t I>
-// struct meta_dot {
-//   template <class A, class B, class T>
-//   static GPUdi() T f(const A& lhs, const B& rhs, const T& x)
-//   {
-//     return lhs.apply(I) * rhs.apply(I) + meta_dot<I - 1>::f(lhs, rhs, x);
-//   }
-// };
+template <class T, size_t D>
+GPUdi() T SVectorGPU<T, D>::apply(size_t i) const
+{
+  return mArray[i];
+}
 
-// template <>
-// struct meta_dot<0> {
-//   template <class A, class B, class T>
-//   static GPUdi() T f(const A& lhs, const B& rhs, const T& /*x */)
-//   {
-//     return lhs.apply(0) * rhs.apply(0);
-//   }
-// };
+template <class T, size_t D>
+GPUdi() const T* SVectorGPU<T, D>::Array() const
+{
+  return mArray;
+}
 
-// template <class T, size_t D>
-// GPUdi() T Dot(const SVectorGPU<T, D>& lhs, const SVectorGPU<T, D>& rhs)
-// {
-//   return meta_dot<D - 1>::f(lhs, rhs, T());
-// }
+template <class T, size_t D>
+GPUdi() T* SVectorGPU<T, D>::Array()
+{
+  return mArray;
+}
+
+// Dot operator support
+template <size_t I>
+struct meta_dot {
+  template <class A, class B, class T>
+  static GPUdi() T f(const A& lhs, const B& rhs, const T& x)
+  {
+    return lhs.apply(I) * rhs.apply(I) + meta_dot<I - 1>::f(lhs, rhs, x);
+  }
+};
+
+template <>
+struct meta_dot<0> {
+  template <class A, class B, class T>
+  static GPUdi() T f(const A& lhs, const B& rhs, const T& /*x */)
+  {
+    return lhs.apply(0) * rhs.apply(0);
+  }
+};
+
+template <class T, size_t D>
+GPUdi() T Dot(const SVectorGPU<T, D>& lhs, const SVectorGPU<T, D>& rhs)
+{
+  return meta_dot<D - 1>::f(lhs, rhs, T());
+}
 
 // template <size_t I>
 // struct meta_matrix_dot {
@@ -218,119 +239,119 @@ GPUd() SVectorGPU<T, N>::SVectorGPU(const SVectorGPU<T, N>& rhs)
 // }
 // } // namespace row_offsets_utils
 
-// // Symm representation
-// template <class T, size_t D>
-// class MatRepSymGPU
-// {
-//  public:
-//   typedef T value_type;
-//   GPUdDefault() MatRepSymGPU();
-//   GPUdi() T& operator()(size_t i, size_t j)
-//   {
-//     return mArray[offset(i, j)];
-//   }
+// Symm representation
+template <class T, size_t D>
+class MatRepSymGPU
+{
+ public:
+  typedef T value_type;
+  GPUd() MatRepSymGPU();
+  GPUdi() T& operator()(size_t i, size_t j)
+  {
+    return mArray[offset(i, j)];
+  }
 
-//   GPUdi() T const& operator()(size_t i, size_t j) const
-//   {
-//     return mArray[offset(i, j)];
-//   }
+  GPUdi() T const& operator()(size_t i, size_t j) const
+  {
+    return mArray[offset(i, j)];
+  }
 
-//   GPUdi() T& operator[](size_t i)
-//   {
-//     return mArray[off(i)];
-//   }
+  GPUdi() T& operator[](size_t i)
+  {
+    return mArray[off(i)];
+  }
 
-//   GPUdi() T const& operator[](size_t i) const
-//   {
-//     return mArray[off(i)];
-//   }
+  GPUdi() T const& operator[](size_t i) const
+  {
+    return mArray[off(i)];
+  }
 
-//   GPUdi() T apply(size_t i) const
-//   {
-//     return mArray[off(i)];
-//   }
+  GPUdi() T apply(size_t i) const
+  {
+    return mArray[off(i)];
+  }
 
-//   GPUdi() T* Array() { return mArray; }
+  GPUdi() T* Array() { return mArray; }
 
-//   GPUdi() const T* Array() const { return mArray; }
+  GPUdi() const T* Array() const { return mArray; }
 
-//   // assignment: only symmetric to symmetric allowed
-//   template <class R>
-//   GPUdi() MatRepSymGPU<T, D>& operator=(const R&)
-//   {
-//     GPU_STATIC_CHECK(0 == 1, Check_symmetric_matrices_equivalence);
-//     return *this;
-//   }
-//   GPUdi() MatRepSymGPU<T, D>& operator=(const MatRepSymGPU& rhs)
-//   {
-//     for (size_t i = 0; i < kSize; ++i)
-//       mArray[i] = rhs.Array()[i];
-//     return *this;
-//   }
+  // assignment: only symmetric to symmetric allowed
+  template <class R>
+  GPUdi() MatRepSymGPU<T, D>& operator=(const R&)
+  {
+    GPU_STATIC_CHECK(0 == 1, Check_symmetric_matrices_equivalence);
+    return *this;
+  }
+  GPUdi() MatRepSymGPU<T, D>& operator=(const MatRepSymGPU& rhs)
+  {
+    for (size_t i = 0; i < kSize; ++i)
+      mArray[i] = rhs.Array()[i];
+    return *this;
+  }
 
-//   // self addition : only symmetric to symmetric allowed
-//   template <class R>
-//   GPUdi() MatRepSymGPU<T, D>& operator+=(const R&)
-//   {
-//     GPU_STATIC_CHECK(0 == 1, Check_symmetric_matrices_sum);
-//     return *this;
-//   }
-//   GPUdi() MatRepSymGPU<T, D>& operator+=(const MatRepSymGPU& rhs)
-//   {
-//     for (size_t i = 0; i < kSize; ++i)
-//       mArray[i] += rhs.Array()[i];
-//     return *this;
-//   }
+  // // self addition : only symmetric to symmetric allowed
+  // template <class R>
+  // GPUdi() MatRepSymGPU<T, D>& operator+=(const R&)
+  // {
+  //   GPU_STATIC_CHECK(0 == 1, Check_symmetric_matrices_sum);
+  //   return *this;
+  // }
+  // GPUdi() MatRepSymGPU<T, D>& operator+=(const MatRepSymGPU& rhs)
+  // {
+  //   for (size_t i = 0; i < kSize; ++i)
+  //     mArray[i] += rhs.Array()[i];
+  //   return *this;
+  // }
 
-//   // self subtraction : only symmetric to symmetric allowed
-//   template <class R>
-//   GPUdi() MatRepSymGPU<T, D>& operator-=(const R&)
-//   {
-//     GPU_STATIC_CHECK(0 == 1, Check_symmetric_matrices_subtraction);
-//     return *this;
-//   }
-//   GPUdi() MatRepSymGPU<T, D>& operator-=(const MatRepSymGPU& rhs)
-//   {
-//     for (size_t i = 0; i < kSize; ++i)
-//       mArray[i] -= rhs.Array()[i];
-//     return *this;
-//   }
+  // // self subtraction : only symmetric to symmetric allowed
+  // template <class R>
+  // GPUdi() MatRepSymGPU<T, D>& operator-=(const R&)
+  // {
+  //   GPU_STATIC_CHECK(0 == 1, Check_symmetric_matrices_subtraction);
+  //   return *this;
+  // }
+  // GPUdi() MatRepSymGPU<T, D>& operator-=(const MatRepSymGPU& rhs)
+  // {
+  //   for (size_t i = 0; i < kSize; ++i)
+  //     mArray[i] -= rhs.Array()[i];
+  //   return *this;
+  // }
 
-//   template <class R>
-//   GPUdi() bool operator==(const R& rhs) const
-//   {
-//     bool rc = true;
-//     for (size_t i = 0; i < D * D; ++i) {
-//       rc = rc && (operator[](i) == rhs[i]);
-//     }
-//     return rc;
-//   }
+  // template <class R>
+  // GPUdi() bool operator==(const R& rhs) const
+  // {
+  //   bool rc = true;
+  //   for (size_t i = 0; i < D * D; ++i) {
+  //     rc = rc && (operator[](i) == rhs[i]);
+  //   }
+  //   return rc;
+  // }
 
-//   enum {
-//     kRows = D,              // rows
-//     kCols = D,              // columns
-//     kSize = D * (D + 1) / 2 // rows*columns
-//   };
+  enum {
+    kRows = D,              // rows
+    kCols = D,              // columns
+    kSize = D * (D + 1) / 2 // rows*columns
+  };
 
-//   static constexpr int off0(int i) { return i == 0 ? 0 : off0(i - 1) + i; }
-//   static constexpr int off2(int i, int j) { return j < i ? off0(i) + j : off0(j) + i; }
-//   static constexpr int off1(int i) { return off2(i / D, i % D); }
+  static constexpr int off0(int i) { return i == 0 ? 0 : off0(i - 1) + i; }
+  static constexpr int off2(int i, int j) { return j < i ? off0(i) + j : off0(j) + i; }
+  static constexpr int off1(int i) { return off2(i / D, i % D); }
 
-//   static int off(int i)
-//   {
-//     static constexpr auto v = row_offsets_utils::make<D * D>(off1);
-//     return v[i];
-//   }
+  static int off(int i)
+  {
+    static constexpr auto v = row_offsets_utils::make<D * D>(off1);
+    return v[i];
+  }
 
-//   static GPUdi() constexpr size_t
-//     offset(size_t i, size_t j)
-//   {
-//     return off(i * D + j);
-//   }
+  static GPUdi() constexpr size_t
+    offset(size_t i, size_t j)
+  {
+    return off(i * D + j);
+  }
 
-//  private:
-//   T mArray[kSize];
-// };
+ private:
+  T mArray[kSize];
+};
 
 // /// SMatReprStd starting port here
 // template <class T, size_t D1, size_t D2 = D1>
