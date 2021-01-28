@@ -9,6 +9,9 @@
 // or submit itself to any jurisdiction.
 #ifndef FRAMEWORK_ARRAY2D_H
 #define FRAMEWORK_ARRAY2D_H
+
+#include <Framework/RuntimeError.h>
+
 #include <cstdint>
 #include <vector>
 #include <unordered_map>
@@ -159,10 +162,14 @@ struct LabelMap {
 
   labelmap_t populate(uint32_t size, std::vector<std::string> labels)
   {
-    assert(labels.size() == size);
     labelmap_t map;
-    for (auto i = 0u; i < size; ++i) {
-      map.emplace(labels[i], (uint32_t)i);
+    if (labels.empty() == false) {
+      if (labels.size() != size) {
+        throw runtime_error("labels array size != array dimension");
+      }
+      for (auto i = 0u; i < size; ++i) {
+        map.emplace(labels[i], (uint32_t)i);
+      }
     }
     return map;
   }
