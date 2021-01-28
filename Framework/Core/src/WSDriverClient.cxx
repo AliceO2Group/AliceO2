@@ -14,7 +14,6 @@
 #include "Framework/DeviceSpec.h"
 #include "DPLWebSocket.h"
 #include <uv.h>
-#include <uv/unix.h>
 
 namespace o2::framework
 {
