@@ -184,15 +184,19 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           }
           if (fitResults == CaloRawFitter::FitStatus::kOK || fitResults == CaloRawFitter::FitStatus::kNoTime) {
             //TODO: which results should be accepted? full configurable list
-            for (int is = 0; is < mRawFitter->getNsamples(); is++) {
-              if (caloFlag == Mapping::kHighGain && !mRawFitter->isOverflow(is)) {
-                currentCellContainer->emplace_back(absId, mRawFitter->getAmp(is),
-                                                   mRawFitter->getTime(is) * o2::phos::PHOSSimParams::Instance().mTimeTick, (ChannelType_t)caloFlag);
+            if (!mPedestalRun) {
+              for (int is = 0; is < mRawFitter->getNsamples(); is++) {
+                if (caloFlag == Mapping::kHighGain && !mRawFitter->isOverflow(is)) {
+                  currentCellContainer->emplace_back(absId, mRawFitter->getAmp(is),
+                                                     mRawFitter->getTime(is) * o2::phos::PHOSSimParams::Instance().mTimeTick, (ChannelType_t)caloFlag);
+                }
+                if (caloFlag == Mapping::kLowGain) {
+                  currentCellContainer->emplace_back(absId, mRawFitter->getAmp(is),
+                                                     mRawFitter->getTime(is) * o2::phos::PHOSSimParams::Instance().mTimeTick, (ChannelType_t)caloFlag);
+                }
               }
-              if (caloFlag == Mapping::kLowGain) {
-                currentCellContainer->emplace_back(absId, mRawFitter->getAmp(is),
-                                                   mRawFitter->getTime(is) * o2::phos::PHOSSimParams::Instance().mTimeTick, (ChannelType_t)caloFlag);
-              }
+            } else { //pedestal, to store RMS, scale in by 1.e-7 to fit range
+              currentCellContainer->emplace_back(absId, mRawFitter->getAmp(0), 1.e-7 * mRawFitter->getTime(0), (ChannelType_t)caloFlag);
             }
           }
         }
@@ -235,13 +239,13 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           ++it2;
         }
       } else {
-        for (auto cell : *cells) {
+        for (auto& cell : *cells) {
           mOutputCells.push_back(cell);
         }
       }
     }
 
-    mOutputTriggerRecords.emplace_back(bc, mOutputCells.size(), mOutputCells.size() - prevCellSize);
+    mOutputTriggerRecords.emplace_back(bc, prevCellSize, mOutputCells.size() - prevCellSize);
   }
   cellBuffer.clear();
 

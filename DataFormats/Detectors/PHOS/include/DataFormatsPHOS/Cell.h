@@ -25,7 +25,8 @@ namespace o2
 namespace phos
 {
 
-constexpr int kNmaxCell = 12545;        //56*64*3.5 + 1
+constexpr int kOffset = 1792;           // offset due to missing half of module 1: 56*32
+constexpr int kNmaxCell = 14337;        //56*64*4 + 1 - kOffset
 constexpr float kEnergyConv = 0.005;    //Energy digitization step
 constexpr float kTimeAccuracy = 0.3e-9; //Time digitization step
 constexpr float kTime0 = 150.e-9;       //-Minimal time to be digitized
