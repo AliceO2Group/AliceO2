@@ -658,7 +658,6 @@ class MatchTPCITS
   std::unique_ptr<o2::dataformats::FlatHisto2D_f> mHistoDTgl; ///< histo for VDrift calibration data
 
   std::unique_ptr<TPCTransform> mTPCTransform;         ///< TPC cluster transformation
-  std::unique_ptr<o2::gpu::GPUParam> mTPCClusterParam; ///< TPC clusters error param
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter; ///< TPC refitter used for TPC tracks refit during the reconstruction
 
   o2::BunchFilling mBunchFilling;
