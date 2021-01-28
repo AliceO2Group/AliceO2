@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <cassert>
 #include "FairLogger.h"
+#include "DataFormatsTOF/CompressedDataFormat.h"
 
 using namespace o2::tof;
 
@@ -190,18 +191,51 @@ void WindowFiller::fillOutputContainer(std::vector<Digit>& digits)
     int npatterns = 0;
 
     // check if patterns are in the current row
+    unsigned int initrow = mFirstIR.orbit * Geo::NWINDOW_IN_ORBIT;
     for (std::vector<PatternData>::reverse_iterator it = mCratePatterns.rbegin(); it != mCratePatterns.rend(); ++it) {
-      if (it->row > mReadoutWindowCurrent) {
+      //printf("pattern row=%ld current=%ld\n",it->row - initrow,mReadoutWindowCurrent);
+
+      if (it->row - initrow > mReadoutWindowCurrent) {
         break;
       }
 
-      if (it->row < mReadoutWindowCurrent) { // this should not happen
+      if (it->row - initrow < mReadoutWindowCurrent) { // this should not happen
         LOG(ERROR) << "One pattern skipped because appears to occur early of the current row " << it->row << " < " << mReadoutWindowCurrent << " ?!";
       } else {
-        mPatterns.push_back(it->pattern);
-        info.addedDiagnostic(it->icrate);
+        uint32_t cpatt = it->pattern;
+        auto dpatt = reinterpret_cast<compressed::Diagnostic_t*>(&cpatt);
+        uint8_t slot = dpatt->slotID;
+        uint32_t cbit = 1;
 
+        mPatterns.push_back(slot + 28); // add slot
+        info.addedDiagnostic(it->icrate);
         npatterns++;
+
+        for (int ibit = 0; ibit < 28; ibit++) {
+          if (dpatt->faultBits & cbit) {
+            mPatterns.push_back(ibit); // add bit error
+            info.addedDiagnostic(it->icrate);
+            npatterns++;
+          }
+          cbit <<= 1;
+        }
+        //        uint8_t w1 = cpatt & 0xff;
+        //        uint8_t w2 = (cpatt >> 8) & 0xff;
+        //        uint8_t w3 = (cpatt >> 16) & 0xff;
+        //        uint8_t w4 = (cpatt >> 24) & 0xff;
+        ////      cpatt = w1 + (w2 + (w3 + uint(w4)*256)*256)*256;
+        //        mPatterns.push_back(w1);
+        //        info.addedDiagnostic(it->icrate);
+        //        npatterns++;
+        //        mPatterns.push_back(w2);
+        //        info.addedDiagnostic(it->icrate);
+        //        npatterns++;
+        //        mPatterns.push_back(w3);
+        //        info.addedDiagnostic(it->icrate);
+        //        npatterns++;
+        //        mPatterns.push_back(w4);
+        //        info.addedDiagnostic(it->icrate);
+        //        npatterns++;
       }
       mCratePatterns.pop_back();
     }
@@ -265,11 +299,13 @@ void WindowFiller::flushOutputContainer(std::vector<Digit>& digits)
       checkIfReuseFutureDigitsRO();
     }
 
-    for (Int_t i = 0; i < MAXWINDOWS; i++) {
-      fillOutputContainer(digits); // fill last readout windows
-    }
-
     int nwindowperTF = o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * Geo::NWINDOW_IN_ORBIT;
+
+    for (Int_t i = 0; i < MAXWINDOWS; i++) {
+      if (mReadoutWindowData.size() < nwindowperTF) {
+        fillOutputContainer(digits); // fill last readout windows
+      }
+    }
 
     // check that all orbits are complete in terms of number of readout windows
     while ((mReadoutWindowData.size() % nwindowperTF)) {
@@ -306,7 +342,7 @@ void WindowFiller::checkIfReuseFutureDigits()
     int isnext = Int_t(timestamp * Geo::READOUTWINDOW_INV) - (mReadoutWindowCurrent + 1);    // to be replaced with uncalibrated time
 
     if (isnext < 0) { // we jump too ahead in future, digit will be not stored
-      LOG(INFO) << "Digit lost because we jump too ahead in future. Current RO window=" << isnext << "\n";
+      LOG(DEBUG) << "Digit lost because we jump too ahead in future. Current RO window=" << isnext << "\n";
 
       // remove digit from array in the future
       int labelremoved = digit->getLabel();
@@ -375,7 +411,7 @@ void WindowFiller::checkIfReuseFutureDigitsRO() // the same but using readout in
     int isnext = row - mReadoutWindowCurrent;
 
     if (isnext < 0) { // we jump too ahead in future, digit will be not stored
-      LOG(INFO) << "Digit lost because we jump too ahead in future. Current RO window=" << isnext << "\n";
+      LOG(DEBUG) << "Digit lost because we jump too ahead in future. Current RO window=" << isnext << "\n";
 
       // remove digit from array in the future
       int labelremoved = digit->getLabel();
