@@ -20,11 +20,11 @@ ClassImp(Geometry);
 // module numbering:
 //  start from module 0 (non-existing), 1 (half-module), 2 (bottom),... 4(highest)
 // absId:
-// start from 1 till 5*64*56. Numbering in each module starts at bottom left and first go in z direction:
+// start from 1 till 4*64*56. Numbering in each module starts at bottom left and first go in z direction:
 //  56   112   3584
 //  ...  ...    ...
 //  1    57 ...3529
-//  relid[3]: (module number[0...4], iphi[1...64], iz[1...56])
+//  relid[3]: (module number[0...3], iphi[1...64], iz[1...56])
 
 // these initialisations are needed for a singleton
 Geometry* Geometry::sGeom = nullptr;
@@ -131,8 +131,8 @@ void Geometry::absIdToRelPosInModule(short absId, float& x, float& z)
   char relid[3];
   absToRelNumbering(absId, relid);
 
-  x = (relid[1] - 28 - 0.5) * cellStep;
-  z = (relid[2] - 32 - 0.5) * cellStep;
+  x = (relid[1] - 32 - 0.5) * cellStep;
+  z = (relid[2] - 28 - 0.5) * cellStep;
 }
 bool Geometry::relToAbsNumbering(const char* relId, short& absId)
 {
@@ -151,7 +151,7 @@ void Geometry::relPosToAbsId(char module, float x, float z, short& absId)
 {
   const float cellStep = 2.25;
 
-  char relid[3] = {module, char(x / cellStep + 28.5), char(z / cellStep + 32.5)};
+  char relid[3] = {module, static_cast<char>(ceil(x / cellStep + 32.5)), static_cast<char>(ceil(z / cellStep + 28.5))};
   relToAbsNumbering(relid, absId);
 }
 

@@ -107,7 +107,7 @@ class CalibParams
 
  private:
   static constexpr short NCHANNELS = 14337;  ///< Number of channels starting from 1
-  static constexpr short OFFSET = 5377;      ///< Non-existing channels 56*64*1.5+1
+  static constexpr short OFFSET = 1793;      ///< Non-existing channels 56*64*0.5+1
   std::array<float, NCHANNELS> mGainCalib;   ///< Container for the gain calibration coefficients
   std::array<float, NCHANNELS> mHGLGRatio;   ///< Container for the High Gain to Low Gain ratios
   std::array<float, NCHANNELS> mHGTimeCalib; ///< Container for the High Gain time calibration coefficients

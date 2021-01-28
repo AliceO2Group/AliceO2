@@ -55,8 +55,8 @@ void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRe
 
     if (!mBadMap) {
       if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-        mBadMap = new BadChannelMap(1);    // test default map
-        mCalibParams = new CalibParams(1); //test calibration map
+        mBadMap.reset(new BadChannelMap(1));    // test default map
+        mCalibParams.reset(new CalibParams(1)); //test calibration map
         LOG(INFO) << "No reading BadMap/Calibration from ccdb requested, set default";
       } else {
         LOG(INFO) << "Getting BadMap object from ccdb";
@@ -64,14 +64,14 @@ void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRe
         std::map<std::string, std::string> metadata; // do we want to store any meta data?
         ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
         long bcTime = 1;                             //TODO!!! Convert BC time to time o2::InteractionRecord bcTime = digitsTR.front().getBCData() ;
-        mBadMap = ccdb.retrieveFromTFileAny<o2::phos::BadChannelMap>("PHOS/BadMap", metadata, bcTime);
-        mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, bcTime);
-        if (!mBadMap) {
-          LOG(FATAL) << "[PHOSCellConverter - run] can not get Bad Map";
-        }
-        if (!mCalibParams) {
-          LOG(FATAL) << "[PHOSCellConverter - run] can not get CalibParams";
-        }
+        // mBadMap = ccdb.retrieveFromTFileAny<o2::phos::BadChannelMap>("PHOS/BadMap", metadata, bcTime);
+        // mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, bcTime);
+        // if (!mBadMap) {
+        //   LOG(FATAL) << "[PHOSCellConverter - run] can not get Bad Map";
+        // }
+        // if (!mCalibParams) {
+        //   LOG(FATAL) << "[PHOSCellConverter - run] can not get CalibParams";
+        // }
       }
     }
 
@@ -89,7 +89,7 @@ void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRe
 
     LOG(DEBUG) << "Found clusters from " << indexStart << " to " << clusters->size();
 
-    trigRec->emplace_back(tr.getBCData(), indexStart, clusters->size());
+    trigRec->emplace_back(tr.getBCData(), indexStart, clusters->size() - indexStart);
   }
 }
 //____________________________________________________________________________
@@ -111,33 +111,30 @@ void Clusterer::processCells(gsl::span<const Cell> cells, gsl::span<const Trigge
 
     LOG(DEBUG) << "Starting clusteriztion cells from " << mFirstDigitInEvent << " to " << mLastDigitInEvent;
 
-    if (!mBadMap) {
+    if (mBadMap.get() == nullptr) {
       if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-        mBadMap = new BadChannelMap(1);    // test default map
-        mCalibParams = new CalibParams(1); //test calibration map
+        mBadMap.reset(new BadChannelMap(1));    // test default map
+        mCalibParams.reset(new CalibParams(1)); //test calibration map
         LOG(INFO) << "No reading BadMap/Calibration from ccdb requested, set default";
       } else {
-        LOG(INFO) << "Getting BadMap object from ccdb";
-        o2::ccdb::CcdbApi ccdb;
-        std::map<std::string, std::string> metadata; // do we want to store any meta data?
-        ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
-        long bcTime = 1;                             //TODO!!! Convert BC time to time o2::InteractionRecord bcTime = digitsTR.front().getBCData() ;
-        mBadMap = ccdb.retrieveFromTFileAny<o2::phos::BadChannelMap>("PHOS/BadMap", metadata, bcTime);
-        mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, bcTime);
-        if (!mBadMap) {
-          LOG(FATAL) << "[PHOSCellConverter - run] can not get Bad Map";
-        }
-        if (!mCalibParams) {
-          LOG(FATAL) << "[PHOSCellConverter - run] can not get CalibParams";
-        }
+        //   LOG(INFO) << "Getting BadMap object from ccdb";
+        //   o2::ccdb::CcdbApi ccdb;
+        //   std::map<std::string, std::string> metadata; // do we want to store any meta data?
+        //   ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
+        //   // long bcTime = 1;                             //TODO!!! Convert BC time to time o2::InteractionRecord bcTime = digitsTR.front().getBCData() ;
+        //   // mBadMap = ccdb.retrieveFromTFileAny<o2::phos::BadChannelMap>("PHOS/BadMap", metadata, bcTime);
+        //   // mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, bcTime);
+        //   // if (!mBadMap) {
+        //   //   LOG(FATAL) << "[PHOSCellConverter - run] can not get Bad Map";
+        //   // }
+        //   // if (!mCalibParams) {
+        //   //   LOG(FATAL) << "[PHOSCellConverter - run] can not get CalibParams";
+        //   // }
       }
     }
-
     convertCellsToDigits(cells, firstCellInEvent, lastCellInEvent, mcmap);
-
     // Collect digits to clusters
     makeClusters(mDigits);
-
     // Unfold overlapped clusters
     // Split clusters with several local maxima if necessary
     if (o2::phos::PHOSSimParams::Instance().mUnfoldClusters) {
@@ -149,7 +146,7 @@ void Clusterer::processCells(gsl::span<const Cell> cells, gsl::span<const Trigge
 
     LOG(DEBUG) << "Found clusters from " << indexStart << " to " << clusters->size();
 
-    trigRec->emplace_back(tr.getBCData(), indexStart, clusters->size());
+    trigRec->emplace_back(tr.getBCData(), indexStart, clusters->size() - indexStart);
   }
 }
 //____________________________________________________________________________
@@ -160,25 +157,25 @@ void Clusterer::convertCellsToDigits(gsl::span<const Cell> cells, int firstCellI
   if (mDigits.capacity() < lastCellInEvent - firstCellInEvent) {
     mDigits.reserve(lastCellInEvent - firstCellInEvent);
   }
-  int iLab = 0, nLab = mcmap.size();
-  while (iLab < nLab) {
-    if (mcmap[iLab] >= firstCellInEvent) {
-      break;
-    }
-    ++iLab;
-  }
+  // int iLab = 0, nLab = mcmap.size();
+  // while (iLab < nLab) {
+  //   if (mcmap[iLab] >= firstCellInEvent) {
+  //     break;
+  //   }
+  //   ++iLab;
+  // }
 
   for (int i = firstCellInEvent; i < lastCellInEvent; i++) {
     const Cell c = cells[i];
     //short cell, float amplitude, float time, int label
     int label = -1;
-    if (mcmap[iLab] == i) {
-      label = iLab;
-      ++iLab;
-      if (iLab >= nLab) {
-        --iLab;
-      }
-    }
+    // if (mcmap[iLab] == i) {
+    //   label = iLab;
+    //   ++iLab;
+    //   if (iLab >= nLab) {
+    //     --iLab;
+    //   }
+    // }
     mDigits.emplace_back(c.getAbsId(), c.getEnergy(), c.getTime(), label);
     mDigits.back().setHighGain(c.getHighGain());
   }

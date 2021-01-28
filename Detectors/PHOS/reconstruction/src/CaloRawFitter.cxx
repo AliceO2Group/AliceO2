@@ -40,16 +40,17 @@ CaloRawFitter::FitStatus CaloRawFitter::evaluate(const std::vector<Bunch>& bunch
         rms += a * a;
         ++nPed;
       }
-      if (nPed > 0) {
-        mean /= nPed;
-        rms = rms / nPed - mean * mean;
-        if (rms > 0.) {
-          rms = sqrt(rms);
-        }
+    }
+    if (nPed > 0) {
+      mean /= nPed;
+      rms = rms / nPed - mean * mean;
+      if (rms > 0.) {
+        rms = sqrt(rms);
       }
     }
     mAmp.push_back(mean);
     mTime.push_back(rms);
+    mOverflow.push_back(false);
     mStatus = kOK;
     return kOK;
   }
