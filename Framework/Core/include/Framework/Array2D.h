@@ -122,8 +122,6 @@ static constexpr const char* const labels_rows_str = "labels_rows";
 static constexpr const char* const labels_cols_str = "labels_cols";
 
 using labelmap_t = std::unordered_map<std::string, uint32_t>;
-namespace
-{
 struct LabelMap {
   LabelMap()
     : rowmap{},
@@ -179,7 +177,6 @@ struct LabelMap {
     return labels_cols;
   }
 };
-} // namespace
 
 template <typename T>
 class LabeledArray : public LabelMap
