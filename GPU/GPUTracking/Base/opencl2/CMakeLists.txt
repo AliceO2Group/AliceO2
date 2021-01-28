@@ -48,6 +48,7 @@ if(OPENCL2_ENABLED_AMD) # BUILD OpenCL2 binaries for AMD target
   add_custom_command(
     OUTPUT ${CL_BIN}.amd
     COMMAND ${CLANG_OCL}
+            -O3
             ${OCL_FLAGS}
             ${OCL_DEFINECL}
             -mcpu=${OCL2_GPUTARGET}
@@ -82,6 +83,7 @@ if(OPENCL2_ENABLED_SPIRV) # BUILD OpenCL2 intermediate code for SPIR-V target
   add_custom_command(
       OUTPUT ${CL_BIN}.bc
       COMMAND clang
+              -O0
               -emit-llvm --target=spir64-unknown-unknown
               ${OCL_FLAGS}
               ${OCL_DEFINECL}
