@@ -235,7 +235,7 @@ DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagat
                            {createOutputSpecs()},
                            AlgorithmSpec(initFunction),
                            Options{
-                             {"infile", VariantType::String, "", {"Name of the input file"}},
+                             {"infile", VariantType::String, config.defaultFileName.c_str(), {"Name of the input file"}},
                              {"treename", VariantType::String, config.defaultTreeName.c_str(), {"Name of input tree"}},
                              {dtb.option.c_str(), VariantType::String, dtb.defval.c_str(), {dtb.help.c_str()}},
                              {mcb.option.c_str(), VariantType::String, mcb.defval.c_str(), {mcb.help.c_str()}},

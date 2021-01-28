@@ -45,6 +45,7 @@ framework::WorkflowSpec getMatchTPCITSWorkflow(bool useFT0, bool useMC, bool dis
     specs.emplace_back(o2::tpc::getTPCTrackReaderSpec(useMC));
     specs.emplace_back(o2::tpc::getPublisherSpec(o2::tpc::PublisherConf{
                                                    "tpc-native-cluster-reader",
+                                                   "tpc-native-clusters.root",
                                                    "tpcrec",
                                                    {"clusterbranch", "TPCClusterNative", "Branch with TPC native clusters"},
                                                    {"clustermcbranch", "TPCClusterNativeMCTruth", "MC label branch"},
