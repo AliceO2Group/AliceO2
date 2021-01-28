@@ -583,6 +583,11 @@ int GPUQA::InitQA(int tasks)
 
 #ifdef GPUCA_O2_LIB
   if (!mConfig.noMC) {
+    HighResTimer timer;
+    if (mTracking && mTracking->GetProcessingSettings().debugLevel) {
+      GPUInfo("Start reading O2 Track MC information");
+      timer.Start();
+    }
     static constexpr float PRIM_MAX_T = 0.01f;
 
     o2::steer::MCKinematicsReader mcReader("collisioncontext.root");
@@ -666,6 +671,9 @@ int GPUQA::InitQA(int tasks)
           info.genRadius = 0;
         }
       }
+    }
+    if (mTracking && mTracking->GetProcessingSettings().debugLevel) {
+      GPUInfo("Finished reading O2 Track MC information (%f seconds)", timer.GetCurrentElapsedTime());
     }
   }
 #endif

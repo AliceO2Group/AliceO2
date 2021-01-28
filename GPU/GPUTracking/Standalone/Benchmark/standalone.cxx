@@ -353,6 +353,9 @@ int SetupReconstruction()
 #endif
     devProc.eventDisplay = eventDisplay.get();
   }
+  if (devProc.runQA) {
+    devProc.runMC = true;
+  }
 
   steps.steps = GPUDataTypes::RecoStep::AllRecoSteps;
   if (configStandalone.runTRD != -1) {
@@ -413,6 +416,7 @@ int SetupReconstruction()
       devProc.eventDisplay = nullptr;
     }
   }
+
   rec->SetSettings(&ev, &recSet, &devProc, &steps);
   if (configStandalone.proc.doublePipeline) {
     recPipeline->SetSettings(&ev, &recSet, &devProc, &steps);
@@ -513,7 +517,7 @@ int LoadEvent(int iEvent, int x)
     }
   }
   bool encodeZS = configStandalone.encodeZS == -1 ? (chainTracking->mIOPtrs.tpcPackedDigits && !chainTracking->mIOPtrs.tpcZS) : (bool)configStandalone.encodeZS;
-  bool zsFilter = configStandalone.zsFilter == -1 ? (!encodeZS && chainTracking->mIOPtrs.tpcPackedDigits) : (bool)configStandalone.zsFilter;
+  bool zsFilter = configStandalone.zsFilter == -1 ? (!encodeZS && chainTracking->mIOPtrs.tpcPackedDigits && !chainTracking->mIOPtrs.tpcZS) : (bool)configStandalone.zsFilter;
   if (encodeZS || zsFilter) {
     if (!chainTracking->mIOPtrs.tpcPackedDigits) {
       printf("Need digit input to run ZS\n");
