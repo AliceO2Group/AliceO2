@@ -22,6 +22,7 @@
   #pragma OPENCL EXTENSION cl_khr_fp64 : enable
   #ifdef __clang__
     #pragma OPENCL EXTENSION cl_clang_storage_class_specifiers : enable
+    #pragma OPENCL EXTENSION __cl_clang_function_pointers : enable
     #define global __global
     #define local __local
     #define constant __constant
