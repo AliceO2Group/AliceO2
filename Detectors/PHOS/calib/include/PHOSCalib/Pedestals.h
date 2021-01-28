@@ -83,7 +83,7 @@ class Pedestals
 
  private:
   static constexpr short NCHANNELS = 14337;          ///< Number of channels starting from 1
-  static constexpr short OFFSET = 5377;              ///< Non-existing channels 56*64*1.5+1
+  static constexpr short OFFSET = 1793;              ///< Non-existing channels 56*64*1.5+1
   std::array<unsigned char, NCHANNELS> mHGPedestals; ///< Container for pedestals
   std::array<unsigned char, NCHANNELS> mLGPedestals; ///< Container for pedestals
 

@@ -27,7 +27,6 @@ void ClusterizerSpec::init(framework::InitContext& ctx)
 
 void ClusterizerSpec::run(framework::ProcessingContext& ctx)
 {
-  printf("CellCLusterizerSpec: Run \n");
   if (mUseDigits) {
     LOG(DEBUG) << "PHOSClusterizer - run on digits called";
 
@@ -53,36 +52,17 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
 
     LOG(DEBUG) << "PHOSClusterizer - run run on cells called";
 
-    // auto dataref = ctx.inputs().get("cells");
-    // auto const* phosheader = o2::framework::DataRefUtils::getHeader<o2::phos::PHOSBlockHeader*>(dataref);
-    // if (!phosheader->mHasPayload) {
-    //   LOG(DEBUG) << "[PHOSClusterizer - run] No more cells" << std::endl;
-    //   ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
-    //   return;
-    // }
-
     auto cells = ctx.inputs().get<gsl::span<o2::phos::Cell>>("cells");
     LOG(DEBUG) << "[PHOSClusterizer - run]  Received " << cells.size() << " cells, running clusterizer ...";
     auto cellsTR = ctx.inputs().get<gsl::span<o2::phos::TriggerRecord>>("cellTriggerRecords");
 
-    printf("-------------Cells------------\n");
-    for (auto cTR : cellsTR) {
-      printf("new Event \n");
-      int firstCellInEvent = cTR.getFirstEntry();
-      int lastCellInEvent = firstCellInEvent + cTR.getNumberOfObjects();
-      for (int i = firstCellInEvent; i < lastCellInEvent; i++) {
-        Cell c = cells[i];
-        printf("cell[%d]: absId=%d, amp=%f, Time=%e \n", i, c.getAbsId(), c.getEnergy(), c.getTime());
-      }
+    std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::phos::MCLabel>> truthcont;
+    gsl::span<const unsigned int> truthmap;
+    if (mPropagateMC) {
+      truthcont = ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>*>("cellsmctr");
+      truthmap = ctx.inputs().get<gsl::span<uint>>("cellssmcmap");
     }
-
-    // const o2::dataformats::MCTruthContainer<MCLabel>* truthcont=nullptr;
-    // gsl::span<const unsigned int> mcmap ;
-    // if(mPropagateMC){
-    //   truthcont = ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>*>("cellsmctr");
-    //   truthmap = ctx.inputs().get<gsl::span<uint>>("cellssmcmap");
-    // }
-    // mClusterizer.processCells(cells, cellsTR, truthcont.get(), truthmap, &mOutputClusters, &mOutputClusterTrigRecs, &mOutputTruthCont); // Find clusters on digits (pass by ref)
+    mClusterizer.processCells(cells, cellsTR, truthcont.get(), truthmap, &mOutputClusters, &mOutputClusterTrigRecs, &mOutputTruthCont); // Find clusters on digits (pass by ref)
   }
 
   LOG(DEBUG) << "[PHOSClusterizer - run] Writing " << mOutputClusters.size() << " clusters, " << mOutputClusterTrigRecs.size() << "TR and " << mOutputTruthCont.getIndexedSize() << " Labels";
@@ -124,8 +104,8 @@ o2::framework::DataProcessorSpec o2::phos::reco_workflow::getCellClusterizerSpec
   inputs.emplace_back("cells", o2::header::gDataOriginPHS, "CELLS", 0, o2::framework::Lifetime::Timeframe);
   inputs.emplace_back("cellTriggerRecords", o2::header::gDataOriginPHS, "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe);
   if (propagateMC) {
-    //inputs.emplace_back("cellsmctr", "PHS", "CELLSMCTR", 0, o2::framework::Lifetime::Timeframe);
-    //inputs.emplace_back("cellssmcmap", "PHS", "CELLSMCMAP", 0, o2::framework::Lifetime::Timeframe);
+    inputs.emplace_back("cellsmctr", "PHS", "CELLSMCTR", 0, o2::framework::Lifetime::Timeframe);
+    inputs.emplace_back("cellssmcmap", "PHS", "CELLSMCMAP", 0, o2::framework::Lifetime::Timeframe);
   }
   outputs.emplace_back("PHS", "CLUSTERS", 0, o2::framework::Lifetime::Timeframe);
   outputs.emplace_back("PHS", "CLUSTERTRIGRECS", 0, o2::framework::Lifetime::Timeframe);

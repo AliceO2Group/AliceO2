@@ -119,7 +119,6 @@ Mapping::ErrorStatus Mapping::setMapping()
         LOG(FATAL) << "Maximal HW address in file " << maxHWAddress << "larger than array size " << NMaxHWAddress << "for /Mod" << m << "RCU" << i << ".data is wrong: no maxHWAddress";
         return kNotInitialized;
       }
-
       for (short ich = 0; ich < numberOfChannels; ich++) { // 1792 = 2*896 channels connected to each RCU
         int hwAddress;
         if (!(*fIn >> hwAddress)) {
@@ -152,7 +151,7 @@ Mapping::ErrorStatus Mapping::setMapping()
         //  relid[2] = Column number inside a PHOS module (Z coordinate)
         short ddl = 4 * m + i - 2;
 
-        char relid[3] = {(char)m, (char)row, (char)col};
+        char relid[3] = {static_cast<char>(m), static_cast<char>(row + 1), static_cast<char>(col + 1)};
         short absId;
         geom->relToAbsNumbering(relid, absId);
 
@@ -163,7 +162,6 @@ Mapping::ErrorStatus Mapping::setMapping()
 
         mAbsId[ddl][hwAddress] = absId;
         mCaloFlag[ddl][hwAddress] = (CaloFlag)caloFlag;
-
         mAbsToHW[absId][caloFlag][0] = ddl;
         mAbsToHW[absId][caloFlag][1] = hwAddress;
       }

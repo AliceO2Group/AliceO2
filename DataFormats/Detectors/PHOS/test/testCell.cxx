@@ -29,7 +29,7 @@ BOOST_AUTO_TEST_CASE(Cell_test)
 {
   Cell c;
   c.setTime(0.);
-  for (short j = 0; j < 12544; j++) {
+  for (short j = 1793; j < 14337; j++) {
     c.setAbsId(j);
     BOOST_CHECK_EQUAL(c.getAbsId(), j);
     BOOST_CHECK_EQUAL(c.getTRUId(), 0);
@@ -47,12 +47,12 @@ BOOST_AUTO_TEST_CASE(Cell_test)
     BOOST_CHECK_EQUAL(c.getTRU(), true);
   }
 
-  c.setAbsId(0);
+  c.setAbsId(1793);
   std::vector<float> times = {-150.e-9, -10.5e-9, -0.55e-9, 0.35e-9, 2.1e-9, 3.2e-9, 4.e-9, 5.e-9, 6.e-9, 7.e-9, 8.e-9, 9.e-9, 10.e-9, 20.e-9, 50.e-9, 100.e-9, 150.e-9};
 
   for (float t : times) {
     c.setTime(t);
-    BOOST_CHECK_EQUAL(c.getAbsId(), 0);
+    BOOST_CHECK_EQUAL(c.getAbsId(), 1793);
     BOOST_CHECK_SMALL(c.getTime() - t, kTimeAccuracy);
     BOOST_CHECK_SMALL(c.getEnergy() - float(0), kEnergyConv);
     BOOST_CHECK_EQUAL(c.getLowGain(), true);
@@ -63,7 +63,7 @@ BOOST_AUTO_TEST_CASE(Cell_test)
 
   for (float e : energies) {
     c.setEnergy(e);
-    BOOST_CHECK_EQUAL(c.getAbsId(), 0);
+    BOOST_CHECK_EQUAL(c.getAbsId(), 1793);
     BOOST_CHECK_SMALL(c.getTime() - float(0.), kTimeAccuracy);
     BOOST_CHECK_SMALL(e - c.getEnergy(), kEnergyConv); // Require 5 MeV resolution
     BOOST_CHECK_EQUAL(c.getLowGain(), true);
@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(Cell_test)
   c.setEnergy(0);
 
   c.setLowGain();
-  BOOST_CHECK_EQUAL(c.getAbsId(), 0);
+  BOOST_CHECK_EQUAL(c.getAbsId(), 1793);
   BOOST_CHECK_SMALL(c.getTime() - float(0.), kTimeAccuracy);
   BOOST_CHECK_SMALL(c.getEnergy() - float(0), kEnergyConv);
   BOOST_CHECK_EQUAL(c.getLowGain(), true);
@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(Cell_test)
   BOOST_CHECK_EQUAL(c.getTRU(), false);
 
   c.setHighGain();
-  BOOST_CHECK_EQUAL(c.getAbsId(), 0);
+  BOOST_CHECK_EQUAL(c.getAbsId(), 1793);
   BOOST_CHECK_SMALL(c.getTime() - float(0.), kTimeAccuracy);
   BOOST_CHECK_SMALL(c.getEnergy() - float(0), kEnergyConv);
   BOOST_CHECK_EQUAL(c.getLowGain(), false);

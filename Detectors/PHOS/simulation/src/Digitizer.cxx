@@ -62,7 +62,7 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
 
   bool addNoise = !(digitsBg.size()); //If digits list not empty, noise already there
 
-  int currentId = 64 * 56 + 32 * 56; //first digit in half-mod 1 minus 1
+  int currentId = 32 * 56; //first digit in half-mod 1 minus 1
 
   while (dBg != digitsBg.cend() && hBg != hits->cend()) {
     if (dBg->getAbsId() < hBg->GetDetectorID()) { // copy digit
@@ -131,7 +131,6 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
       digitsOut.push_back(digit);
     }
   }
-
   //Fill remainder
   while (dBg != digitsBg.cend()) {
     digitsOut.push_back(*dBg);
@@ -183,7 +182,6 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
 
     digitsOut.push_back(digit);
   }
-
   //Add noisy channels to the end of PHOS
   if (addNoise) {
     addNoisyChannels(currentId, 56 * 64 * 4, digitsOut);
