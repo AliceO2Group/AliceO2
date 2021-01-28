@@ -26,9 +26,6 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 
-// GRP
-#include "DataFormatsParameters/GRPObject.h"
-
 // FIT
 #include "FT0Workflow/RecPointReaderSpec.h"
 
@@ -75,20 +72,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec specs;
 
-  if (!cfgc.helpOnCommandLine()) {
-    std::string inputGRP = o2::base::NameConf::getGRPFileName();
-    o2::base::Propagator::initFieldFromGRP(inputGRP);
-    const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
-    if (!grp) {
-      LOG(ERROR) << "This workflow needs a valid GRP file to start";
-      return specs;
-    }
-    o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
-    //  o2::conf::ConfigurableParam::writeINI("o2tofrecoflow_configuration.ini");
-  }
   // the lane configuration defines the subspecification ids to be distributed among the lanes.
-  // auto tofSectors = o2::RangeTokenizer::tokenize<int>(cfgc.options().get<std::string>("tof-sectors"));
-  // std::vector<int> laneConfiguration = tofSectors;
   auto nLanes = cfgc.options().get<int>("tof-lanes");
   auto inputType = cfgc.options().get<std::string>("input-type");
   auto outputType = cfgc.options().get<std::string>("output-type");
