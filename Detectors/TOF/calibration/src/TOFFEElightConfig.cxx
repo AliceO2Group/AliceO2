@@ -17,9 +17,5 @@ TOFFEEchannelConfig* TOFFEElightConfig::getChannelConfig(int icrate, int itrm, i
 
   // return the channel config for the given crate, trm, chain, tdc, tdcchannel
 
-  return icrate >= Geo::kNCrate ? nullptr : itrm >= Geo::kNTRM     ? nullptr
-                                          : ichain >= Geo::kNChain ? nullptr
-                                          : itdc >= Geo::kNTdc     ? nullptr
-                                          : ichtdc >= Geo::kNCh    ? nullptr
-                                                                   : &mChannelConfig[icrate][itrm][ichain][itdc][ichtdc];
+  return icrate >= Geo::kNCrate ? nullptr : itrm >= Geo::kNTRM ? nullptr : ichain >= Geo::kNChain ? nullptr : itdc >= Geo::kNTdc ? nullptr : ichtdc >= Geo::kNCh ? nullptr : &mChannelConfig[icrate][itrm][ichain][itdc][ichtdc];
 }

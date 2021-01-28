@@ -33,7 +33,7 @@ class TOFDigitWriterSplitter : public Task
 {
   using OutputType = std::vector<o2::tof::Digit>;
   using ReadoutWinType = std::vector<o2::tof::ReadoutWindowData>;
-  using PatternType = std::vector<uint32_t>;
+  using PatternType = std::vector<uint8_t>;
   using ErrorType = std::vector<uint64_t>;
   using HeaderType = o2::tof::DigitHeader;
 

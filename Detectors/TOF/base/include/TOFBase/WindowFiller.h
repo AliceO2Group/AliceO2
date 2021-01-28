@@ -75,7 +75,7 @@ class WindowFiller
     memset(mChannelCounts, 0, o2::tof::Geo::NCHANNELS * sizeof(mChannelCounts[0]));
   }
 
-  std::vector<uint32_t>& getPatterns() { return mPatterns; }
+  std::vector<uint8_t>& getPatterns() { return mPatterns; }
   void addPattern(const uint32_t val, int icrate, int orbit, int bc) { mCratePatterns.emplace_back(val, icrate, orbit * 3 + (bc + 100) / Geo::BC_IN_WINDOW); }
   void addCrateHeaderData(unsigned long orbit, int crate, int32_t bc, uint32_t eventCounter);
 
@@ -111,7 +111,7 @@ class WindowFiller
   // arrays with digit and MCLabels out of the current readout windows (stored to fill future readout window)
   std::vector<Digit> mFutureDigits;
 
-  std::vector<uint32_t> mPatterns;
+  std::vector<uint8_t> mPatterns;
   std::vector<uint64_t> mErrors;
 
   std::vector<PatternData> mCratePatterns;

@@ -26,7 +26,7 @@ template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 using OutputType = std::vector<o2::tof::Digit>;
 using ReadoutWinType = std::vector<o2::tof::ReadoutWindowData>;
-using PatternType = std::vector<uint32_t>;
+using PatternType = std::vector<uint8_t>;
 using ErrorType = std::vector<uint64_t>;
 using LabelsType = std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>;
 using HeaderType = o2::tof::DigitHeader;

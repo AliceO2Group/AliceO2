@@ -43,7 +43,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
   auto compDigits = pc.inputs().get<gsl::span<Digit>>("compDigits");
-  auto pspan = pc.inputs().get<gsl::span<uint32_t>>("patterns");
+  auto pspan = pc.inputs().get<gsl::span<uint8_t>>("patterns");
   auto rofs = pc.inputs().get<gsl::span<ReadoutWindowData>>("ROframes");
 
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{o2::header::gDataOriginTOF, "CTFDATA", 0, Lifetime::Timeframe});
