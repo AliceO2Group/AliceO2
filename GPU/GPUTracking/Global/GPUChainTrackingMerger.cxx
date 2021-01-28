@@ -256,7 +256,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     TransferMemoryResourcesToHost(RecoStep::TPCMerging, &Merger, -1, true);
   }
 
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_TPC_GEOMETRY_O2
   if (GetProcessingSettings().createO2Output) {
     mRec->ReturnVolatileDeviceMemory();
     runKernel<GPUTPCGMO2Output, GPUTPCGMO2Output::prepare>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
@@ -268,7 +268,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     runKernel<GPUTPCGMO2Output, GPUTPCGMO2Output::sort>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
     runKernel<GPUTPCGMO2Output, GPUTPCGMO2Output::output>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
 
-    if (GetProcessingSettings().runMC) {
+    if (GetProcessingSettings().runMC && mIOPtrs.clustersNative->clustersMCTruth) {
       AllocateRegisteredMemory(Merger.MemoryResOutputO2MC(), mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::tpcTracksO2Labels)]);
       TransferMemoryResourcesToHost(RecoStep::TPCMerging, &Merger, -1, true);
       runKernel<GPUTPCGMO2Output, GPUTPCGMO2Output::mc>(GetGridAuto(0, GPUReconstruction::krnlDeviceType::CPU), krnlRunRangeNone, krnlEventNone);

@@ -41,6 +41,7 @@
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 using namespace o2::tpc::constants;
+using namespace o2::dataformats;
 
 #ifdef GPUCA_TPC_GEOMETRY_O2
 std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCountUpdate(unsigned int iSlice, const CfFragment& fragment)
@@ -671,18 +672,27 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   if (propagateMCLabels) {
     // TODO: write to buffer directly
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> mcLabels;
-    if (mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clusterLabels)] == nullptr || !mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clusterLabels)]->allocator) {
-      throw std::runtime_error("Cluster MC Label buffer missing");
+    std::pair<ConstMCLabelContainer*, ConstMCLabelContainerView*> buffer;
+    if (mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clusterLabels)] && mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clusterLabels)]->useExternal()) {
+      if (!mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clusterLabels)]->allocator) {
+        throw std::runtime_error("Cluster MC Label buffer missing");
+      }
+      ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer* container = reinterpret_cast<ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer*>(mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clusterLabels)]->allocator(0));
+      buffer = {&container->first, &container->second};
+    } else {
+      mIOMem.clusterNativeMCView = std::make_unique<ConstMCLabelContainerView>();
+      mIOMem.clusterNativeMCBuffer = std::make_unique<ConstMCLabelContainer>();
+      buffer.first = mIOMem.clusterNativeMCBuffer.get();
+      buffer.second = mIOMem.clusterNativeMCView.get();
     }
-    ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer* container = reinterpret_cast<ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer*>(mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clusterLabels)]->allocator(0));
 
     assert(propagateMCLabels ? mcLinearLabels.header.size() == nClsTotal : true);
     assert(propagateMCLabels ? mcLinearLabels.data.size() >= nClsTotal : true);
 
     mcLabels.setFrom(mcLinearLabels.header, mcLinearLabels.data);
-    mcLabels.flatten_to(container->first);
-    container->second = container->first;
-    mcLabelsConstView = &container->second;
+    mcLabels.flatten_to(*buffer.first);
+    *buffer.second = *buffer.first;
+    mcLabelsConstView = buffer.second;
   }
 
   if (buildNativeHost && buildNativeGPU && GetProcessingSettings().delayedOutput) {

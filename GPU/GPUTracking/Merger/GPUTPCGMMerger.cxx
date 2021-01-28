@@ -347,7 +347,7 @@ void GPUTPCGMMerger::RegisterMemoryAllocation()
     mMemoryResOutputO2 = mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersOutputO2, GPUMemoryResource::MEMORY_OUTPUT | GPUMemoryResource::MEMORY_CUSTOM, "TPCMergerOutputO2");
     mMemoryResOutputO2Clus = mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersOutputO2Clus, GPUMemoryResource::MEMORY_OUTPUT | GPUMemoryResource::MEMORY_CUSTOM, "TPCMergerOutputO2Clus");
     if (mRec->GetProcessingSettings().runMC) {
-      mMemoryResOutputO2MC = mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersOutputO2MC, GPUMemoryResource::MEMORY_OUTPUT | GPUMemoryResource::MEMORY_HOST | GPUMemoryResource::MEMORY_CUSTOM, "TPCMergerOutputO2MC");
+      mMemoryResOutputO2MC = mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersOutputO2MC, GPUMemoryResource::MEMORY_OUTPUT_FLAG | GPUMemoryResource::MEMORY_HOST | GPUMemoryResource::MEMORY_CUSTOM, "TPCMergerOutputO2MC");
     }
   }
   mMemoryResMemory = mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersMemory, GPUMemoryResource::MEMORY_PERMANENT, "TPCMergerMemory");
