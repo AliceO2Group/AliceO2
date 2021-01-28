@@ -44,7 +44,7 @@ class DigitReader : public Task
   std::vector<o2::tof::Digit> mDigits, *mPdigits = &mDigits;
   std::vector<o2::tof::ReadoutWindowData> mRow, *mProw = &mRow;
   std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mLabels, *mPlabels = &mLabels;
-  std::vector<uint32_t> mPatterns, *mPpatterns = &mPatterns;
+  std::vector<uint8_t> mPatterns, *mPpatterns = &mPatterns;
 };
 
 /// create a processor spec
