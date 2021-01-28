@@ -38,6 +38,7 @@ struct PublisherConf {
   };
 
   std::string processName;
+  std::string defaultFileName;
   std::string defaultTreeName;
   BranchOptionConfig databranch;
   BranchOptionConfig mcbranch;
