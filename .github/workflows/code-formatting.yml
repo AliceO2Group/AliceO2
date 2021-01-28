@@ -7,6 +7,9 @@ jobs:
     # We need at least 20.04 to install clang-format-11.
     runs-on: ubuntu-20.04
 
+    env:
+      CLANG_FORMAT: clang-format-11
+
     steps:
     - uses: actions/checkout@v2
       with:
@@ -22,7 +25,7 @@ jobs:
         DEBIAN_FRONTEND: noninteractive
       run: |
         sudo apt update -y
-        sudo apt install -y clang-format-11
+        sudo apt install -y $CLANG_FORMAT
 
     - name: Run clang format
       id: clang_format
@@ -63,13 +66,13 @@ jobs:
           git push --set-upstream https://alibuild:$ALIBUILD_GITHUB_TOKEN@github.com/alibuild/AliceO2.git :alibot-cleanup-${{ github.event.pull_request.number }} -f || true
           echo ::set-output name=clean::true
         else
-          git-clang-format-11 --diff --commit $BASE_COMMIT --style file         \
-                              --binary "$(which clang-format-11)" $COMMIT_FILES |
+          git-$CLANG_FORMAT --diff --commit $BASE_COMMIT --style file       \
+                            --binary "$(which $CLANG_FORMAT)" $COMMIT_FILES |
             patch -p1
           echo "clang-format failed."
           echo "To reproduce it locally please run"
           echo -e "\tgit checkout ${{ github.event.pull_request.head.ref }}"
-          echo -e "\tgit-clang-format --commit $BASE_COMMIT --diff --style file --binary $(which clang-format-11)"
+          echo -e "\tgit-$CLANG_FORMAT --commit $BASE_COMMIT --diff --style file --binary $(which $CLANG_FORMAT) $COMMIT_FILES"
           echo "Opening a PR to your branch with the fixes"
           git commit -m "Please consider the following formatting changes" -a
           git show | cat
