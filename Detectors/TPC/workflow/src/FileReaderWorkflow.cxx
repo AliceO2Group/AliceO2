@@ -87,6 +87,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
     specs.emplace_back(o2::tpc::getPublisherSpec(o2::tpc::PublisherConf{
                                                    "tpc-native-cluster-reader",
+                                                   "tpc-native-clusters.root",
                                                    "tpcrec",
                                                    {"clusterbranch", "TPCClusterNative", "Branch with TPC native clusters"},
                                                    {"clustermcbranch", "TPCClusterNativeMCTruth", "MC label branch"},
