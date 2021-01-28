@@ -46,6 +46,21 @@ ClassImp(o2::hmpid::Digit);
 // -----  Coordinate Conversion ----
 uint32_t Digit::Equipment2Pad(int Equi, int Colu, int Dilo, int Chan)
 {
+  /*
+   *
+   * kNDILOGICAdd = 10
+   *
+    if(ddl<0 || ddl >13 || row<1 || row >25 || dil<1 || dil >10 || pad<0 || pad >47 ) return -1;
+  Int_t a2y[6]={3,2,4,1,5,0};     //pady for a given padress (for single DILOGIC chip)
+  Int_t ch=ddl/2;
+  Int_t tmp=(24-row)/8;
+  Int_t pc=(ddl%2)?5-2*tmp:2*tmp;
+  Int_t px=(kNDILOGICAdd+1 - dil)*8-pad/6-1;  //flip according to Paolo (2-9-2008)
+
+  tmp=(ddl%2)?row-1:(24-row);
+  Int_t py=6*(tmp%8)+a2y[pad%6];
+
+   */
   if(Equi<0 || Equi >= Geo::MAXEQUIPMENTS || Colu<0 || Colu >= Geo::N_COLUMNS ||
       Dilo<0 || Dilo >= Geo::N_DILOGICS || Chan<0 || Chan >= Geo::N_CHANNELS ) return -1;
 
@@ -53,7 +68,7 @@ uint32_t Digit::Equipment2Pad(int Equi, int Colu, int Dilo, int Chan)
   int ch = Equi / 2; // The Module
   int tmp = (23 - Colu) / Geo::N_COLXSEGMENT;
   int pc = (Equi % 2) ? 5-2*tmp : 2*tmp; // The PhotoCatode
-  int px = (Geo::N_DILOGICS+1 - Dilo) * Geo::DILOPADSROWS - Chan / Geo::DILOPADSCOLS - 1;
+  int px = (Geo::N_DILOGICS - Dilo) * Geo::DILOPADSROWS - Chan / Geo::DILOPADSCOLS - 1;
   tmp = (Equi % 2) ? Colu : (23-Colu);
   int py = Geo::DILOPADSCOLS * (tmp % Geo::DILOPADSROWS)+a2y[Chan % Geo::DILOPADSCOLS];
   return Abs(ch,pc,px,py);
