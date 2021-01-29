@@ -45,14 +45,14 @@ namespace hmpid
 
  143
   ^
-  |    40 32 24 16 08 00           07 15 23 31 39 47
-  |    41 33 25 17 09 01           06 14 22 30 38 46
-       42 34 26 18 10 02           05 13 21 29 37 45
-  y    43 35 27 19 11 03           04 12 20 28 36 44  (Column,Dil.)
-       44 36 28 20 12 04           03 11 19 27 35 43
-  |    45 37 29 21 13 05           02 10 18 26 34 42
-  |    46 38 30 22 14 06           01 09 17 25 33 41
-       47 39 31 23 15 07           00 08 16 24 32 40
+  |    46 40 34 28 22 16 10 04      05 11 17 23 29 35 41 47
+  |    44 38 32 26 20 14 08 02      03 09 15 21 27 33 39 45
+       40 36 30 24 18 12 06 00      01 07 13 19 25 31 37 43
+  y    43 37 31 25 19 13 07 01      00 06 12 18 24 30 36 40  (Column,Dil.)
+       45 39 33 27 21 15 09 03      02 08 14 20 26 32 38 44
+  |    47 41 35 29 23 17 11 05      04 10 16 22 28 34 40 46
+  |
+
   0
 
 
@@ -116,8 +116,8 @@ class Geo
   static constexpr int MAXYPHOTO = 47;
 
 
-  static void Module2Equipment(int Mod, int Col, int Row, int *Equi, int *Colu, int *Dilo, int *Chan);
-  static void Equipment2Module(int Equi, int Colu, int Dilo, int Chan, int *Mod, int *Col, int *Row);
+  static void Module2Equipment(int Mod, int Row, int Col, int *Equi, int *Colu, int *Dilo, int *Chan);
+  static void Equipment2Module(int Equi, int Colu, int Dilo, int Chan, int *Mod, int *Row, int *Col);
   
   
   // from

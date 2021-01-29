@@ -113,9 +113,9 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
   for(int m=0; m < o2::hmpid::Geo::N_MODULES; m++)
     for(int y=0; y < o2::hmpid::Geo::N_YCOLS; y++)
       for(int x=0; x < o2::hmpid::Geo::N_XROWS; x++ ) {
-        numOfSamples[m][y][x] = mDeco->getPadSamples(m, y, x);
-        sumOfCharges[m][y][x] = mDeco->getPadSum(m, y, x);
-        squareOfCharges[m][y][x] = mDeco->getPadSquares(m, y, x);
+        numOfSamples[m][y][x] = mDeco->getPadSamples(m, x, y);
+        sumOfCharges[m][y][x] = mDeco->getPadSum(m, x, y);
+        squareOfCharges[m][y][x] = mDeco->getPadSquares(m, x, y);
   //      std::cout << "@ " << m <<","<<y<<","<<x << " "<< numOfSamples[m][y][x] << "=" <<sumOfCharges[m][y][x] << std::endl;
       }
 //  theObj->Fill();

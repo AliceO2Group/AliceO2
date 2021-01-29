@@ -34,9 +34,9 @@ void Geo::Init()
 ///
 ///                    (0,0,0,0) Right Top   (1,0,0,0) Left Bottom
 ///
-void Geo::Module2Equipment(int Mod, int Col, int Row, int *Equi, int *Colu, int *Dilo, int *Chan)
+void Geo::Module2Equipment(int Mod, int Row, int Col, int *Equi, int *Colu, int *Dilo, int *Chan)
 {
-  if (Row > MAXHALFXROWS) {
+/*  if (Row > MAXHALFXROWS) {
     *Equi = Mod * EQUIPMENTSPERMODULE + 1;
     Row = Row - HALFXROWS;
   } else {
@@ -48,6 +48,21 @@ void Geo::Module2Equipment(int Mod, int Col, int Row, int *Equi, int *Colu, int 
   *Colu = Col / DILOPADSCOLS;
   *Chan = (Row % DILOPADSROWS) * DILOPADSCOLS + (Col % DILOPADSCOLS);
   return;
+*/
+  int y2a[6]={5,3,1,0,2,4};
+  int ch, ax, ay;
+  if (ax > Geo::MAXHALFXROWS) {
+    *Equi = ch * Geo::EQUIPMENTSPERMODULE + 1;
+    ax = ax - Geo::HALFXROWS;
+  } else {
+    *Equi = ch * Geo::EQUIPMENTSPERMODULE;
+    ax = Geo::MAXHALFXROWS - ax;
+    ay = Geo::MAXYCOLS - ay;
+  }
+  *Dilo = ax / Geo::DILOPADSROWS;
+  *Colu = ay / Geo::DILOPADSCOLS;
+  *Chan = (ax % Geo::DILOPADSROWS) * Geo::DILOPADSCOLS + y2a[ay % Geo::DILOPADSCOLS];
+  return;
 }
 
 /// Functions to translate coordinates : from Equipment,Col,Dilogic,Channel to Module,Col,Row
@@ -58,8 +73,10 @@ void Geo::Module2Equipment(int Mod, int Col, int Row, int *Equi, int *Colu, int 
 ///
 ///                    (0,0,0,0) Right Top   (1,0,0,0) Left Bottom
 ///
-void Geo::Equipment2Module(int Equi, int Colu, int Dilo, int Chan, int *Mod, int *Col, int *Row)
+void Geo::Equipment2Module(int Equi, int Colu, int Dilo, int Chan, int *Mod, int *Row, int *Col)
 {
+/*
+
   *Mod = Equi / EQUIPMENTSPERMODULE;
   *Row = Dilo * DILOPADSROWS + Chan / DILOPADSROWS;
   *Col = (Colu * DILOPADSCOLS) + Chan % DILOPADSCOLS;
@@ -70,6 +87,20 @@ void Geo::Equipment2Module(int Equi, int Colu, int Dilo, int Chan, int *Mod, int
     *Row = MAXHALFXROWS - *Row;
     *Col = MAXYCOLS - *Col;
   }
+  */
+  if(Equi<0 || Equi >= Geo::MAXEQUIPMENTS || Colu<0 || Colu >= Geo::N_COLUMNS ||
+      Dilo<0 || Dilo >= Geo::N_DILOGICS || Chan<0 || Chan >= Geo::N_CHANNELS ) return;
+
+  int a2y[6]={3,2,4,1,5,0};     //pady for a given padress (for single DILOGIC chip)
+  int ch = Equi / Geo::EQUIPMENTSPERMODULE; // The Module
+  int tmp = (23 - Colu) / Geo::N_COLXSEGMENT;
+  int pc = (Equi % Geo::EQUIPMENTSPERMODULE) ? 5-2*tmp : 2*tmp; // The PhotoCatode
+  int px = (Geo::N_DILOGICS - Dilo) * Geo::DILOPADSROWS - Chan / Geo::DILOPADSCOLS - 1;
+  tmp = (Equi % Geo::EQUIPMENTSPERMODULE) ? Colu : (23-Colu);
+  int py = Geo::DILOPADSCOLS * (tmp % Geo::DILOPADSROWS)+a2y[Chan % Geo::DILOPADSCOLS];
+  *Mod = ch;
+  *Row = px;
+  *Col = py;
   return;
 }
 
