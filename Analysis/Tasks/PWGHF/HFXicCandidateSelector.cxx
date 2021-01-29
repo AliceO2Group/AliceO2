@@ -196,14 +196,11 @@ struct HFXicCandidateSelector {
     nPDG = TMath::Abs(nPDG);
     if (nPDG == 2212) {
       nSigma = track.tpcNSigmaPr();
-    }
-    else if (nPDG == 321) {
+    } else if (nPDG == 321) {
       nSigma = track.tpcNSigmaKa();
-    }
-    else if (nPDG == 211) {
+    } else if (nPDG == 211) {
       nSigma = track.tpcNSigmaPi();
-    }
-    else{
+    } else {
       return false;
     }
 
@@ -221,16 +218,13 @@ struct HFXicCandidateSelector {
   {
     double nSigma = 99.; //arbitarily large value
     nPDG = TMath::Abs(nPDG);
-    if (nPDG == 2212){
+    if (nPDG == 2212) {
       nSigma = track.tofNSigmaPr();
-    }
-    else if (nPDG == 321){
+    } else if (nPDG == 321) {
       nSigma = track.tofNSigmaKa();
-    }
-    else if (nPDG == 211){
+    } else if (nPDG == 211) {
       nSigma = track.tofNSigmaPi();
-    }
-    else{
+    } else {
       return false;
     }
 
@@ -428,7 +422,7 @@ struct HFXicCandidateSelector {
           if (std::abs(prot1) == 1 && std::abs(pion2) == 1) {
             pidXicPKPi = 1;
           }
-          if (std::abs(pion1) == 1 && std::abs(prot2) == 1){
+          if (std::abs(pion1) == 1 && std::abs(prot2) == 1) {
             pidXicPiKP = 1;
           }
         }
