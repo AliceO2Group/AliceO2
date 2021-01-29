@@ -173,6 +173,14 @@ struct HFCandidateCreator3ProngMC {
         }
       }
 
+      // Ξc± → p± K∓ π±
+      if (result == N3ProngDecays) {
+        //Printf("Checking Ξc± → p± K∓ π±");
+        if (RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), 4232, array{+kProton, -kKPlus, +kPiPlus}, true, &sign) > -1) {
+          result = sign * XicToPKPi;
+        }
+      }
+
       rowMCMatchRec(result);
     }
 
@@ -188,6 +196,14 @@ struct HFCandidateCreator3ProngMC {
       }
 
       // Λc± → p± K∓ π±
+      if (result == N3ProngDecays) {
+        //Printf("Checking Λc± → p± K∓ π±");
+        if (RecoDecay::isMatchedMCGen(particlesMC, particle, 4122, array{+kProton, -kKPlus, +kPiPlus}, true, &sign)) {
+          result = sign * LcToPKPi;
+        }
+      }
+
+      // Ξc± → p± K∓ π±
       if (result == N3ProngDecays) {
         //Printf("Checking Λc± → p± K∓ π±");
         if (RecoDecay::isMatchedMCGen(particlesMC, particle, 4122, array{+kProton, -kKPlus, +kPiPlus}, true, &sign)) {

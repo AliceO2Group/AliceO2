@@ -183,7 +183,9 @@ struct HFTrackIndexSkimsCreator {
      {"hNCand3ProngVsNTracks", "3-prong candidates preselected;# of selected tracks;# of candidates;entries", {HistType::kTH2F, {{2500, 0., 25000.}, {5000, 0., 500000.}}}},
      {"hmassDPlusToPiKPi", "D+ candidates;inv. mass (#pi K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
      {"hmassLcToPKPi", "Lc candidates;inv. mass (p K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
-     {"hmassDsToPiKK", "Ds candidates;inv. mass (K K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}}}};
+     {"hmassDsToPiKK", "Ds candidates;inv. mass (K K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
+     {"hmassXicToPKPi", "Xic candidates;inv. mass (p K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 2., 3.}}}}
+     }};
 
   Filter filterSelectTracks = (aod::hf_seltrack::isSelProng > 0);
   using SelectedTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::HFSelTrack>>;
@@ -278,6 +280,12 @@ struct HFTrackIndexSkimsCreator {
     cut3ProngCPACandMin[DsToPiKK] = configs->mCPADsToPiKKMin;
     cut3ProngDecLenCandMin[DsToPiKK] = configs->mDecLenDsToPiKKMin;
 
+    cut3ProngPtCandMin[XicToPKPi] = configs->mPtXicToPKPiMin;
+    cut3ProngInvMassCandMin[XicToPKPi] = configs->mInvMassXicToPKPiMin;
+    cut3ProngInvMassCandMax[XicToPKPi] = configs->mInvMassXicToPKPiMax;
+    cut3ProngCPACandMin[XicToPKPi] = configs->mCPAXicToPKPiMin;
+    cut3ProngDecLenCandMin[XicToPKPi] = configs->mDecLenXicToPKPiMin;
+
     bool cutStatus2Prong[n2ProngDecays][nCuts2Prong];
     bool cutStatus3Prong[n3ProngDecays][nCuts3Prong];
     int nCutStatus2ProngBit = TMath::Power(2, nCuts2Prong) - 1; //bit value for selection status for each 2 prongs candidate where each selection is one bit and they are all set it 1
@@ -295,11 +303,13 @@ struct HFTrackIndexSkimsCreator {
     arr3Mass1[DPlusToPiKPi] = array{massPi, massK, massPi};
     arr3Mass1[LcToPKPi] = array{massProton, massK, massPi};
     arr3Mass1[DsToPiKK] = array{massK, massK, massPi};
+    arr3Mass1[XicToPKPi] = array{massProton, massK, massPi};
 
     array<array<double, 3>, n3ProngDecays> arr3Mass2;
     arr3Mass2[DPlusToPiKPi] = array{massPi, massK, massPi};
     arr3Mass2[LcToPKPi] = array{massPi, massK, massProton};
     arr3Mass2[DsToPiKK] = array{massPi, massK, massK};
+    arr3Mass2[XicToPKPi] = array{massPi, massK, massProton};
 
     double mass2ProngHypo1[n2ProngDecays];
     double mass2ProngHypo2[n2ProngDecays];
@@ -654,6 +664,9 @@ struct HFTrackIndexSkimsCreator {
                     if (n3 == DsToPiKK) {
                       registry.get<TH1>(HIST("hmassDsToPiKK"))->Fill(mass3ProngHypo1[n3]);
                     }
+                    if (n3 == XicToPKPi) {
+                      registry.get<TH1>(HIST("hmassXicToPKPi"))->Fill(mass3ProngHypo1[n3]);
+                    }
                   }
                   if ((cut3ProngInvMassCandMin[n3] < 0. && cut3ProngInvMassCandMax[n3] <= 0.) || (mass3ProngHypo2[n3] >= cut3ProngInvMassCandMin[n3] && mass3ProngHypo2[n3] < cut3ProngInvMassCandMax[n3])) {
                     mass3ProngHypo2[n3] = RecoDecay::M(arr3Mom, arr3Mass2[n3]);
@@ -662,6 +675,9 @@ struct HFTrackIndexSkimsCreator {
                     }
                     if (n3 == DsToPiKK) {
                       registry.get<TH1>(HIST("hmassDsToPiKK"))->Fill(mass3ProngHypo2[n3]);
+                    }
+                    if (n3 == XicToPKPi) {
+                      registry.get<TH1>(HIST("hmassXicToPKPi"))->Fill(mass3ProngHypo2[n3]);
                     }
                   }
                 }
@@ -821,6 +837,9 @@ struct HFTrackIndexSkimsCreator {
                     if (n3 == DsToPiKK) {
                       registry.get<TH1>(HIST("hmassDsToPiKK"))->Fill(mass3ProngHypo1[n3]);
                     }
+                    if (n3 == XicToPKPi) {
+                      registry.get<TH1>(HIST("hmassXicToPKPi"))->Fill(mass3ProngHypo1[n3]);
+                    }
                   }
                   if ((cut3ProngInvMassCandMin[n3] < 0. && cut3ProngInvMassCandMax[n3] <= 0.) || (mass3ProngHypo2[n3] >= cut3ProngInvMassCandMin[n3] && mass3ProngHypo2[n3] < cut3ProngInvMassCandMax[n3])) {
                     mass3ProngHypo2[n3] = RecoDecay::M(arr3Mom, arr3Mass2[n3]);
@@ -829,6 +848,9 @@ struct HFTrackIndexSkimsCreator {
                     }
                     if (n3 == DsToPiKK) {
                       registry.get<TH1>(HIST("hmassDsToPiKK"))->Fill(mass3ProngHypo2[n3]);
+                    }
+                    if (n3 == XicToPKPi) {
+                      registry.get<TH1>(HIST("hmassXicToPKPi"))->Fill(mass3ProngHypo2[n3]);
                     }
                   }
                 }
