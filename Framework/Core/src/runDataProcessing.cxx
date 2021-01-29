@@ -39,6 +39,7 @@
 #include "Framework/DataProcessorInfo.h"
 #include "Framework/DriverInfo.h"
 #include "Framework/DriverControl.h"
+#include "ControlServiceHelpers.h"
 
 #include "ComputingResourceHelpers.h"
 #include "DataProcessingStatus.h"
@@ -578,35 +579,6 @@ struct LogProcessingState {
   bool hasNewMetric = false;
 };
 
-void processCommand(DeviceInfos& infos, pid_t pid, std::string const& command, std::string const& arg)
-{
-  auto doToMatchingPid = [](std::vector<DeviceInfo>& infos, pid_t pid, auto lambda) {
-    for (auto& deviceInfo : infos) {
-      if (deviceInfo.pid == pid) {
-        lambda(deviceInfo);
-        break;
-      }
-    }
-  };
-  LOGP(debug, "Found control command {} from pid {} with argument {}.", command, pid, arg);
-  if (command == "QUIT" && arg == "ALL") {
-    for (auto& deviceInfo : infos) {
-      deviceInfo.readyToQuit = true;
-    }
-  } else if (command == "QUIT" && arg == "ME") {
-    doToMatchingPid(infos, pid, [](DeviceInfo& info) { info.readyToQuit = true; });
-  } else if (command == "NOTIFY_STREAMING_STATE" && arg == "IDLE") {
-    // FIXME: this should really be a policy...
-    doToMatchingPid(infos, pid, [](DeviceInfo& info) { info.readyToQuit = true; info.streamingState = StreamingState::Idle; });
-  } else if (command == "NOTIFY_STREAMING_STATE" && arg == "STREAMING") {
-    // FIXME: this should really be a policy...
-    doToMatchingPid(infos, pid, [](DeviceInfo& info) { info.streamingState = StreamingState::Streaming; });
-  } else if (command == "NOTIFY_STREAMING_STATE" && arg == "EOS") {
-    // FIXME: this should really be a policy...
-    doToMatchingPid(infos, pid, [](DeviceInfo& info) { info.streamingState = StreamingState::EndOfStreaming; });
-  }
-};
-
 LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
                                          DeviceInfos& infos,
                                          DeviceSpecs const& specs,
@@ -671,8 +643,8 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
         // the DataRelayer view.
         DeviceMetricsHelper::processMetric(metricMatch, metrics, newMetricCallback);
         result.didProcessMetric = true;
-      } else if (logLevel == LogParsingHelpers::LogLevel::Info && parseControl(token, match)) {
-        processCommand(infos, info.pid, match[1].str(), match[2].str());
+      } else if (logLevel == LogParsingHelpers::LogLevel::Info && ControlServiceHelpers::parseControl(token, match)) {
+        ControlServiceHelpers::processCommand(infos, info.pid, match[1].str(), match[2].str());
         result.didProcessControl = true;
       } else if (logLevel == LogParsingHelpers::LogLevel::Info && DeviceConfigHelper::parseConfig(token, configMatch)) {
         DeviceConfigHelper::processConfig(configMatch, info);
