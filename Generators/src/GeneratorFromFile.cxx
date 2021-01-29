@@ -9,9 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Generators/GeneratorFromFile.h"
-#include "Generators/GeneratorFromO2KineParam.h"
 #include "SimulationDataFormat/MCTrack.h"
-#include "SimulationDataFormat/MCEventHeader.h"
 #include <FairLogger.h>
 #include <FairPrimaryGenerator.h>
 #include <TBranch.h>
@@ -178,13 +176,6 @@ GeneratorFromO2Kine::GeneratorFromO2Kine(const char* name)
     }
   }
   LOG(ERROR) << "Problem reading events from file " << name;
-
-  // read and set params
-  auto& param = GeneratorFromO2KineParam::Instance();
-  LOG(INFO) << "Instance \'FromO2Kine\' generator with following parameters";
-  LOG(INFO) << param;
-  mSkipNonTrackable = param.skipNonTrackable;
-  mContinueMode = param.continueMode;
 }
 
 void GeneratorFromO2Kine::SetStartEvent(int start)
@@ -210,9 +201,8 @@ bool GeneratorFromO2Kine::importParticles()
     mEventBranch->GetEntry(mEventCounter);
 
     for (auto& t : *tracks) {
-
-      // in case we do not want to continue, take only primaries
-      if (!mContinueMode && !t.isPrimary()) {
+      // I guess we only want primaries (unless later on we continue a simulation)
+      if (!t.isPrimary()) {
         continue;
       }
 
@@ -231,16 +221,9 @@ bool GeneratorFromO2Kine::importParticles()
       auto vt = t.T();
       auto weight = 1.; // p.GetWeight() ??
       auto wanttracking = t.getToBeDone();
-
-      if (mContinueMode) { // in case we want to continue, do only inhibited tracks
-        wanttracking &= t.getInhibited();
-      }
-
       LOG(DEBUG) << "Putting primary " << pdg;
 
       mParticles.push_back(TParticle(pdg, wanttracking, m1, m2, d1, d2, px, py, pz, e, vx, vy, vz, vt));
-      mParticles.back().SetUniqueID((unsigned int)t.getProcess()); // we should propagate the process ID
-
       particlecounter++;
     }
     mEventCounter++;
@@ -255,17 +238,6 @@ bool GeneratorFromO2Kine::importParticles()
     LOG(ERROR) << "GeneratorFromO2Kine: Ran out of events\n";
   }
   return false;
-}
-
-void GeneratorFromO2Kine::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
-{
-  /** update header **/
-
-  // put information about input file and event number of the current event
-
-  eventHeader->putInfo<std::string>("generator", "generatorFromO2Kine");
-  eventHeader->putInfo<std::string>("inputFile", mEventFile->GetName());
-  eventHeader->putInfo<int>("inputEventNumber", mEventCounter - 1);
 }
 
 } // namespace eventgen
