@@ -8,9 +8,9 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(test)
+o2_add_library(UpgradesAODUtils
+               SOURCES src/Run2LikeAO2D.cxx
+               PUBLIC_LINK_LIBRARIES ROOT::Core)
 
-o2_add_test_root_macro(ALICE3toAO2D.C
-                       PUBLIC_LINK_LIBRARIES O2::UpgradesAODUtils
-                                             O2::GPUTracking
-                                             O2::ITSMFTSimulation)
+o2_target_root_dictionary(UpgradesAODUtils
+                          HEADERS include/UpgradesAODUtils/Run2LikeAO2D.h)
