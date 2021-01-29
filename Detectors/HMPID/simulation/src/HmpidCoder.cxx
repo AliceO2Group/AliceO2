@@ -15,6 +15,7 @@
 /// \version 1.0
 /// \date 24 set 2020
 
+#include "HMPIDBase/Digit.h"
 #include "HMPIDSimulation/HmpidCoder.h"
 
 using namespace o2::hmpid;
@@ -86,7 +87,7 @@ void HmpidCoder::fillPadsMap(uint32_t *padMap)
     mo = rand() % Geo::N_MODULES;
     xr = rand() % Geo::N_XROWS;
     yc = rand() % Geo::N_YCOLS;
-    Geo::Module2Equipment(mo, yc, xr, &eq, &col, &dil, &cha);
+    Digit::Absolute2Equipment(mo, xr, yc, &eq, &col, &dil, &cha);
     int index = getEquipmentPadIndex(eq, col, dil, cha);
     if( padMap[index] == 0) {
       if(mRandomCharge) {
@@ -276,11 +277,13 @@ int padsCount =0;
       pv_orbit = orbit;
       pv_bc = bc;
     }
-    Digit::Pad2Absolute(d.getPadID(), &mo, &x, &y);
-    Geo::Module2Equipment(mo, y, x, &eq, &col, &dil, &cha);
+    Digit::Pad2Equipment(d.getPadID(),&eq, &col, &dil, &cha);
     idx = getEquipmentPadIndex(eq, col, dil, cha);
-    if(idx == 107562) {
-	std::cout << ">>> Beccato >"<< idx << " " << d <<" ("<< mo <<","<<x<<","<<y<<") ("<<eq<<","<<col<<","<<dil<<","<<cha<<")"<< std::endl;
+    if(padMap[idx] != 0) {
+      std::cout << ">>> Beccato >"<< idx << " " << d <<" ("<<eq<<","<<col<<","<<dil<<","<<cha<<")"<< std::endl;
+      Digit::Pad2Absolute(d.getPadID(), &mo, &x, &y);
+      Digit::Absolute2Equipment(mo, x, y, &eq, &col, &dil, &cha);
+      std::cout << ">>>          >"<< idx << " " << d <<" ("<< mo <<","<<x<<","<<y<<") ("<<eq<<","<<col<<","<<dil<<","<<cha<<")"<< std::endl;
     }
     padMap[idx] = d.getCharge();
 padsCount++;

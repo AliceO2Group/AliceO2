@@ -131,9 +131,9 @@ class HmpidDecoder
     uint16_t getChannelSamples(int Equipment, int Column, int Dilogic, int Channel);
     double getChannelSum(int Equipment, int Column, int Dilogic, int Channel);
     double getChannelSquare(int Equipment, int Column, int Dilogic, int Channel);
-    uint16_t getPadSamples(int Module, int Column, int Row);
-    double getPadSum(int Module, int Column, int Row);
-    double getPadSquares(int Module, int Column, int Row);
+    uint16_t getPadSamples(int Module, int Row, int Column);
+    double getPadSum(int Module, int Row, int Column);
+    double getPadSquares(int Module, int Row, int Column);
 
     void dumpErrors(int Equipment);
     void dumpPads(int Equipment, int type = 0);

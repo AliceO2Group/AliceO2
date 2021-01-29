@@ -21,6 +21,7 @@
 #include "Framework/Logger.h"
 #include "Headers/RAWDataHeader.h"
 #include "HMPIDReconstruction/HmpidDecoder.h"
+#include "HMPIDBase/Digit.h"
 
 using namespace o2::hmpid;
 
@@ -872,10 +873,10 @@ bool HmpidDecoder::decodeBufferFast()
 /// @param[in] Column : the HMPID Module Column number [0..143]
 /// @param[in] Row : the HMPID Module Row number [0..159]
 /// @returns The Number of entries for specified pad
-uint16_t HmpidDecoder::getPadSamples(int Module, int Column, int Row)
+uint16_t HmpidDecoder::getPadSamples(int Module, int Row, int Column)
 {
   int e, c, d, h;
-  Geo::Module2Equipment(Module, Column, Row, &e, &c, &d, &h);
+  Digit::Absolute2Equipment(Module, Row, Column, &e, &c, &d, &h);
   int EqInd = getEquipmentIndex(e);
   if (EqInd < 0)
     return (0);
@@ -887,10 +888,10 @@ uint16_t HmpidDecoder::getPadSamples(int Module, int Column, int Row)
 /// @param[in] Column : the HMPID Module Column number [0..143]
 /// @param[in] Row : the HMPID Module Row number [0..159]
 /// @returns The Sum of Charges for specified pad
-double HmpidDecoder::getPadSum(int Module, int Column, int Row)
+double HmpidDecoder::getPadSum(int Module, int Row, int Column)
 {
   int e, c, d, h;
-  Geo::Module2Equipment(Module, Column, Row, &e, &c, &d, &h);
+  Digit::Absolute2Equipment(Module, Row, Column, &e, &c, &d, &h);
   int EqInd = getEquipmentIndex(e);
   if (EqInd < 0)
     return (0);
@@ -902,10 +903,10 @@ double HmpidDecoder::getPadSum(int Module, int Column, int Row)
 /// @param[in] Column : the HMPID Module Column number [0..143]
 /// @param[in] Row : the HMPID Module Row number [0..159]
 /// @returns The Sum of Square Charges for specified pad
-double HmpidDecoder::getPadSquares(int Module, int Column, int Row)
+double HmpidDecoder::getPadSquares(int Module, int Row, int Column)
 {
   int e, c, d, h;
-  Geo::Module2Equipment(Module, Column, Row, &e, &c, &d, &h);
+  Digit::Absolute2Equipment(Module, Row, Column, &e, &c, &d, &h);
   int EqInd = getEquipmentIndex(e);
   if (EqInd < 0)
     return (0);
@@ -1015,13 +1016,13 @@ void HmpidDecoder::dumpPads(int EquipmId, int type)
     for (int r = StartRow; r < EndRow; r++) {
       switch (type) {
         case 0:
-          std::cout << getPadSamples(Module, c, r) << ",";
+          std::cout << getPadSamples(Module, r, c) << ",";
           break;
         case 1:
-          std::cout << getPadSum(Module, c, r) << ",";
+          std::cout << getPadSum(Module, r, c) << ",";
           break;
         case 2:
-          std::cout << getPadSquares(Module, c, r) << ",";
+          std::cout << getPadSquares(Module, r, c) << ",";
           break;
       }
     }

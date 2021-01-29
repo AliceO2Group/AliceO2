@@ -41,6 +41,8 @@ class Digit
     static void Pad2Absolute(uint32_t pad, int *Module, int *x, int *y);
     static uint32_t Absolute2Pad(int Module, int x, int y);
     static void Pad2Photo(uint32_t pad, int *chamber, int *photo, int *x, int *y);
+    static void Absolute2Equipment(int Module, int x, int y, int *Equi, int *Colu, int *Dilo, int *Chan);
+    static void Equipment2Absolute(int Equi, int Colu, int Dilo, int Chan, int *Module, int *x, int *y);
 
     // Operators definition !
     friend inline bool operator<(const Digit& l, const Digit& r) { return l.mPad < r.mPad; };

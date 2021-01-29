@@ -80,25 +80,6 @@ bool WriteRawFromDigitsTask::eventEquipPadsComparision(o2::hmpid::Digit d1, o2::
 
 void WriteRawFromDigitsTask::run(framework::ProcessingContext& pc)
 {
-  uint32_t pad;
-  int Equi, Colu, Dilo, Chan;
-  int Equi1, Colu1, Dilo1, Chan1;
-
-  for(Equi=0; Equi<14; Equi++)
-    for(Colu=0;Colu<24;Colu++)
-	for(Dilo=0;Dilo<10;Dilo++)
-	  for(Chan=0;Chan<48;Chan++) {
-	      pad = Digit::Equipment2Pad(Equi, Colu, Dilo, Chan);
-	      Digit::Pad2Equipment(pad, &Equi1, &Colu1, &Dilo1, &Chan1);
-	      if(Equi!=Equi1 ||Colu!=Colu1||Dilo!=Dilo1||Chan!=Chan1) {
-		  std::cout << ">>>> !" << Equi<<","<< Colu<<","<< Dilo<<","<< Chan << std::endl;
-	      }
-	  }
-
-
-
-  return;
-
   for (auto&& input : pc.inputs()) {
     if (input.spec->binding == "digits") {
       auto digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>("digits");
@@ -122,12 +103,10 @@ void WriteRawFromDigitsTask::run(framework::ProcessingContext& pc)
 o2::framework::DataProcessorSpec getWriteRawFromDigitsSpec(std::string inputSpec)
 //o2::framework::DataPrecessorSpec getDecodingSpec()
 {
-  
   std::vector<o2::framework::InputSpec> inputs;
   inputs.emplace_back("digits", o2::header::gDataOriginHMP, "DIGITS", 0, Lifetime::Timeframe);
 
   std::vector<o2::framework::OutputSpec> outputs;
-
   
   return DataProcessorSpec{
     "HMP-WriteRawFrtomDigits",

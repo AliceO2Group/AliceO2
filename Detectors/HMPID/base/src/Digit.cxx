@@ -65,20 +65,65 @@ uint32_t Digit::Equipment2Pad(int Equi, int Colu, int Dilo, int Chan)
       Dilo<0 || Dilo >= Geo::N_DILOGICS || Chan<0 || Chan >= Geo::N_CHANNELS ) return -1;
 
   int a2y[6]={3,2,4,1,5,0};     //pady for a given padress (for single DILOGIC chip)
-  int ch = Equi / 2; // The Module
+  int ch = Equi / Geo::EQUIPMENTSPERMODULE; // The Module
   int tmp = (23 - Colu) / Geo::N_COLXSEGMENT;
-  int pc = (Equi % 2) ? 5-2*tmp : 2*tmp; // The PhotoCatode
-  int px = (Geo::N_DILOGICS - Dilo) * Geo::DILOPADSROWS - Chan / Geo::DILOPADSCOLS - 1;
-  tmp = (Equi % 2) ? Colu : (23-Colu);
-  int py = Geo::DILOPADSCOLS * (tmp % Geo::DILOPADSROWS)+a2y[Chan % Geo::DILOPADSCOLS];
+
+  int py;
+  int pc;
+  int px;
+  if((Equi % Geo::EQUIPMENTSPERMODULE) != 0 ) {
+    pc = 5-2*tmp;
+    px = Dilo * Geo::DILOPADSROWS + Chan / Geo::DILOPADSCOLS;
+    tmp = Colu;
+  }else {
+    pc = 2*tmp;
+    px = (Geo::N_DILOGICS - Dilo) * Geo::DILOPADSROWS - Chan / Geo::DILOPADSCOLS - 1;
+    tmp = (23-Colu);
+
+  }
+  py = Geo::DILOPADSCOLS * (tmp % Geo::DILOPADSROWS)+a2y[Chan % Geo::DILOPADSCOLS];
+  py = py % 48;
+
+//  int pc = (Equi % Geo::EQUIPMENTSPERMODULE) ? 5-2*tmp : 2*tmp; // The PhotoCatode
+//  int px = (Geo::N_DILOGICS - Dilo) * Geo::DILOPADSROWS - Chan / Geo::DILOPADSCOLS - 1;
+//  tmp = (Equi % Geo::EQUIPMENTSPERMODULE) ? Colu : (23-Colu);
+//  int py = Geo::DILOPADSCOLS * (tmp % Geo::DILOPADSROWS)+a2y[Chan % Geo::DILOPADSCOLS];
   return Abs(ch,pc,px,py);
 }
 
 void Digit::Pad2Equipment(uint32_t pad, int *Equi, int *Colu, int *Dilo, int *Chan)
 {
-  int ch, ar, ac;
-  Pad2Absolute(pad, &ch, &ar, &ac);
-  Geo::Module2Equipment(ch, ac, ar, Equi, Colu, Dilo, Chan);
+  int ch, ax, ay;
+  int y2a[6]={4,2,0,1,3,5};
+
+  Pad2Absolute(pad, &ch, &ax, &ay);
+
+  if (ax > Geo::MAXHALFXROWS) {
+    *Equi = ch * Geo::EQUIPMENTSPERMODULE + 1;
+    ax = ax - Geo::HALFXROWS;
+    *Chan = (ax % Geo::DILOPADSROWS) * Geo::DILOPADSCOLS + y2a[5 -(ay % Geo::DILOPADSCOLS)];
+  } else {
+    *Equi = ch * Geo::EQUIPMENTSPERMODULE;
+    ax = Geo::MAXHALFXROWS - ax;
+    ay = Geo::MAXYCOLS - ay;
+    *Chan = (ax % Geo::DILOPADSROWS) * Geo::DILOPADSCOLS + y2a[ay % Geo::DILOPADSCOLS];
+  }
+  *Dilo = ax / Geo::DILOPADSROWS;
+  *Colu = ay / Geo::DILOPADSCOLS;
+  return;
+}
+
+void Digit::Absolute2Equipment(int Module, int x, int y, int *Equi, int *Colu, int *Dilo, int *Chan)
+{
+  uint32_t pad = Absolute2Pad(Module, x, y);
+  Pad2Equipment(pad, Equi, Colu, Dilo, Chan);
+  return;
+}
+
+void Digit::Equipment2Absolute(int Equi, int Colu, int Dilo, int Chan, int *Module, int *x, int *y)
+{
+  uint32_t pad = Equipment2Pad(Equi, Colu, Dilo, Chan);
+  Pad2Absolute(pad, Module, x, y);
   return;
 }
 
