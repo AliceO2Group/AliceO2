@@ -32,6 +32,7 @@ o2_add_library(Framework
                        src/ComputingResourceHelpers.cxx
                        src/ConfigContext.cxx
                        src/ControlService.cxx
+                       src/ControlServiceHelpers.cxx
                        src/DispatchPolicy.cxx
                        src/ConfigParamStore.cxx
                        src/ConfigParamsHelper.cxx
