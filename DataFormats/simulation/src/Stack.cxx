@@ -103,7 +103,6 @@ Stack::Stack(Int_t size)
     if (!mTransportPrimary) {
       LOG(FATAL) << "Failed to retrieve external \'transportPrimary\' function: problem with configuration ";
     }
-    LOG(INFO) << "Successfully retrieve external \'transportPrimary\' frunction: " << param.transportPrimaryFileName;
   } else {
     LOG(FATAL) << "unsupported \'trasportPrimary\' mode: " << param.transportPrimary;
   }
@@ -184,13 +183,12 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
                       Double_t vx, Double_t vy, Double_t vz, Double_t time, Double_t polx, Double_t poly, Double_t polz,
                       TMCProcess proc, Int_t& ntr, Double_t weight, Int_t is, Int_t secondparentId)
 {
-  PushTrack(toBeDone, parentId, pdgCode, px, py, pz, e, vx, vy, vz, time, polx, poly, polz, proc, ntr, weight, is, secondparentId, -1, -1, proc);
+  PushTrack(toBeDone, parentId, pdgCode, px, py, pz, e, vx, vy, vz, time, polx, poly, polz, proc, ntr, weight, is, secondparentId, -1, -1);
 }
 
 void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px, Double_t py, Double_t pz, Double_t e,
                       Double_t vx, Double_t vy, Double_t vz, Double_t time, Double_t polx, Double_t poly, Double_t polz,
-                      TMCProcess proc, Int_t& ntr, Double_t weight, Int_t is, Int_t secondparentId, Int_t daughter1Id, Int_t daughter2Id,
-                      TMCProcess proc2)
+                      TMCProcess proc, Int_t& ntr, Double_t weight, Int_t is, Int_t secondparentId, Int_t daughter1Id, Int_t daughter2Id)
 {
   //  printf("Pushing %s toBeDone %5d parentId %5d pdgCode %5d is %5d entries %5d \n",
   //	 proc == kPPrimary ? "Primary:   " : "Secondary: ",
@@ -216,38 +214,36 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
   p.SetPolarisation(polx, poly, polz);
   p.SetWeight(weight);
   p.SetUniqueID(proc); // using the unique ID to transfer process ID
-  p.SetBit(ParticleStatus::kPrimary, proc == kPPrimary ? 1 : 0); // set primary bit
-  p.SetBit(ParticleStatus::kToBeDone, toBeDone == 1 ? 1 : 0);    // set to be done bit
   mNumberOfEntriesInParticles++;
 
   insertInVector(mTrackIDtoParticlesEntry, trackId, (int)(mParticles.size()));
 
-  handleTransportPrimary(p); // handle selective transport of primary particles
-
   // Push particle on the stack if toBeDone is set
-  if (p.TestBit(ParticleStatus::kPrimary)) {
+  if (proc == kPPrimary) {
     // This is a particle from the primary particle generator
     //
     // SetBit is used to pass information about the primary particle to the stack during transport.
     // Sime particles have already decayed or are partons from a shower. They are needed for the
     // event history in the stack, but not for transport.
     //
-
-    // primary particles might have been pushed with a second creation process
-    // in case we pushed a secondary track of a previous simulation to be continued.
-    // We save therefore in the UniqueID the correct process
-    // while the particle will still be treated as a primary given its bit settings
-    p.SetUniqueID(proc2);
-
     mIndexMap[trackId] = trackId;
-    p.SetBit(ParticleStatus::kKeep, 1);
-    if (p.TestBit(ParticleStatus::kToBeDone)) {
-      mNumberOfPrimariesforTracking++;
+    p.SetBit(ParticleStatus::kKeep);
+    p.SetBit(ParticleStatus::kPrimary);
+    if (toBeDone == 1) {
+      handleTransportPrimary(p);
+    } else {
+      p.SetBit(ParticleStatus::kToBeDone, 0);
     }
     mNumberOfPrimaryParticles++;
     mPrimaryParticles.push_back(p);
     mTracks->emplace_back(p);
   } else {
+    p.SetBit(ParticleStatus::kPrimary, 0);
+    if (toBeDone == 1) {
+      p.SetBit(ParticleStatus::kToBeDone, 1);
+    } else {
+      p.SetBit(ParticleStatus::kToBeDone, 0);
+    }
     mParticles.emplace_back(p);
     mCurrentParticle0 = p;
   }
@@ -259,11 +255,10 @@ void Stack::handleTransportPrimary(TParticle& p)
   // this function tests whether we really want to transport
   // this particle and sets the relevant bits accordingly
 
-  if (!p.TestBit(ParticleStatus::kToBeDone) || !p.TestBit(ParticleStatus::kPrimary)) {
-    return;
-  }
-
-  if (!mTransportPrimary(p, mPrimaryParticles)) {
+  if (mTransportPrimary(p, mPrimaryParticles)) {
+    p.SetBit(ParticleStatus::kToBeDone, 1);
+    mNumberOfPrimariesforTracking++;
+  } else {
     p.SetBit(ParticleStatus::kToBeDone, 0);
     p.SetBit(ParticleStatus::kInhibited, 1);
   }
@@ -276,15 +271,15 @@ void Stack::PushTrack(int toBeDone, TParticle& p)
   // This method is called
   //
   // - during parallel simulation to push primary particles (called by the stack itself)
-  if (p.TestBit(ParticleStatus::kPrimary)) {
+  if (p.GetUniqueID() == 0) {
     // one to one mapping for primaries
     mIndexMap[mNumberOfPrimaryParticles] = mNumberOfPrimaryParticles;
+    // Push particle on the stack
+    if (p.TestBit(ParticleStatus::kPrimary) && p.TestBit(ParticleStatus::kToBeDone)) {
+      handleTransportPrimary(p);
+    }
     mNumberOfPrimaryParticles++;
     mPrimaryParticles.push_back(p);
-    // Push particle on the stack
-    if (p.TestBit(ParticleStatus::kToBeDone)) {
-      mNumberOfPrimariesforTracking++;
-    }
     mStack.push(p);
     mTracks->emplace_back(p);
   }

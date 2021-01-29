@@ -48,8 +48,6 @@
 #endif
 #pragma link C++ class o2::eventgen::GeneratorFromFile + ;
 #pragma link C++ class o2::eventgen::GeneratorFromO2Kine + ;
-#pragma link C++ class o2::eventgen::GeneratorFromO2KineParam + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::GeneratorFromO2KineParam> + ;
 #pragma link C++ class o2::PDG + ;
 #pragma link C++ class o2::eventgen::PrimaryGenerator + ;
 
