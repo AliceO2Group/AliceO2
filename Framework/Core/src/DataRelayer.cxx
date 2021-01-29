@@ -372,7 +372,14 @@ DataRelayer::RelayChoice
   updateStatistics(action);
 
   if (action == TimesliceIndex::ActionTaken::DropObsolete) {
-    LOG(WARNING) << "Incoming data is already obsolete, not relaying.";
+    static std::atomic<size_t> obsoleteCount = 0;
+    static std::atomic<size_t> mult = 1;
+    if ((obsoleteCount++ % (1 * mult)) == 0) {
+      LOGP(WARNING, "Over {} incoming messages are already obsolete, not relaying.", obsoleteCount);
+      if (obsoleteCount > mult * 10) {
+        mult = mult * 10;
+      }
+    }
     return WillNotRelay;
   }
 
