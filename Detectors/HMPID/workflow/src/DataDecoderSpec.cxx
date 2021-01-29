@@ -206,12 +206,14 @@ void DataDecoderTask::decodeRawFile(framework::ProcessingContext& pc)
 
   for (auto&& input : pc.inputs()) {
     if (input.spec->binding == "rawfile") {
-      const auto* header = o2::header::get<header::DataHeader*>(input.header);
-      if (!header) {
-        return;
-      }
+  //    const auto* header = o2::header::get<header::DataHeader*>(input.header);
+  //    if (!header) {
+  //      return;
+  //    }
+      const o2::header::DataHeader* header = o2::header::get<header::DataHeader*>(input.header);
       uint32_t *theBuffer = (uint32_t *)input.payload;
       int pagesize = header->payloadSize;
+      std::cout << "Get page !" << std::endl;
       mDeco->setUpStream(theBuffer, pagesize);
       mDeco->decodePageFast(&theBuffer);
     }
@@ -229,7 +231,7 @@ o2::framework::DataProcessorSpec getDecodingSpec(std::string inputSpec)
 
   inputs.emplace_back("TF", o2::framework::ConcreteDataTypeMatcher{"HMP", "RAWDATA"}, o2::framework::Lifetime::Timeframe);
 
-//  inputs.emplace_back("rawdata", o2::header::gDataOriginHMP, "RAWDATA", 0, Lifetime::Timeframe);
+ // inputs.emplace_back("rawfile", o2::framework::ConcreteDataTypeMatcher{"HMP", "RAWDATA"}, o2::framework::Lifetime::Timeframe);
 //  inputs.emplace_back("readout", o2::header::gDataOriginHMP, "RAWDATA", 0, Lifetime::Timeframe);
 //  inputs.emplace_back("readout", o2::header::gDataOriginHMP, "RAWDATA", 0, Lifetime::Timeframe);
 //  inputs.emplace_back("rawfile", o2::header::gDataOriginHMP, "RAWDATA", 0, Lifetime::Timeframe);
