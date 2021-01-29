@@ -131,7 +131,8 @@ Bool_t
                         particle.GetStatusCode() == 1,
                         particle.Energy() * mEnergyUnit,
                         particle.T() * mTimeUnit,
-                        particle.GetWeight());
+                        particle.GetWeight(),
+                        (TMCProcess)particle.GetUniqueID());
   }
 
   /** success **/
