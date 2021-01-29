@@ -55,7 +55,7 @@ DECLARE_SOA_COLUMN(JpsiToEEFlag, jpsiToEEFlag, uint8_t);
 DECLARE_SOA_COLUMN(DPlusPiKPiFlag, dPlusPiKPiFlag, uint8_t);
 DECLARE_SOA_COLUMN(LcPKPiFlag, lcPKPiFlag, uint8_t);
 DECLARE_SOA_COLUMN(DsKKPiFlag, dsKKPiFlag, uint8_t);
-DECLARE_SOA_COLUMN(XicPKPiFlag,xicPKPiFlag, uint8_t);
+DECLARE_SOA_COLUMN(XicPKPiFlag, xicPKPiFlag, uint8_t);
 } // namespace hf_track_index
 
 DECLARE_SOA_TABLE(HfTrackIndexProng2, "AOD", "HFTRACKIDXP2",
@@ -384,7 +384,6 @@ auto InvMassLcpiKp(const T& candidate)
 {
   return candidate.m(array{RecoDecay::getMassPDG(kPiPlus), RecoDecay::getMassPDG(kKPlus), RecoDecay::getMassPDG(kProton)});
 }
-
 
 // Ξc± → p± K∓ π±
 template <typename T>

@@ -184,8 +184,7 @@ struct HFTrackIndexSkimsCreator {
      {"hmassDPlusToPiKPi", "D+ candidates;inv. mass (#pi K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
      {"hmassLcToPKPi", "Lc candidates;inv. mass (p K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
      {"hmassDsToPiKK", "Ds candidates;inv. mass (K K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
-     {"hmassXicToPKPi", "Xic candidates;inv. mass (p K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 2., 3.}}}}
-     }};
+     {"hmassXicToPKPi", "Xic candidates;inv. mass (p K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 2., 3.}}}}}};
 
   Filter filterSelectTracks = (aod::hf_seltrack::isSelProng > 0);
   using SelectedTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::HFSelTrack>>;

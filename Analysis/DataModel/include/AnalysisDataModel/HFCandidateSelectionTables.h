@@ -50,5 +50,4 @@ DECLARE_SOA_COLUMN(IsSelXicpiKp, isSelXicpiKp, int);
 DECLARE_SOA_TABLE(HFSelXicpKpiCandidate, "AOD", "HFSELXICCAND", hf_selcandidate_xic::IsSelXicpKpi, hf_selcandidate_xic::IsSelXicpiKp);
 } // namespace o2::aod
 
-
 #endif // O2_ANALYSIS_HFCANDIDATESELECTIONTABLES_H_

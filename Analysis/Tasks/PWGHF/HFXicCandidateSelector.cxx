@@ -26,24 +26,24 @@ using namespace o2::aod::hf_cand_prong3;
 static const int npTBins = 10;
 static const int nCutVars = 8;
 //temporary until 2D array in configurable is solved - then move to json
-//                                               m    ptp    ptk    ptpi    DCA  sigmavtx   dlenght   cosp
-constexpr double cuts[npTBins][nCutVars] = {{0.400,   0.4,   0.4,   0.4,   0.05,    0.09,    0.005,      0.},  /* pt<1     */
-                                            {0.400,   0.4,   0.4,   0.4,   0.05,    0.09,    0.005,      0.},  /* 1<pt<2   */
-                                            {0.400,   0.4,   0.4,   0.4,   0.05,    0.09,    0.005,      0.},  /* 2<pt<3   */
-                                            {0.400,   0.4,   0.4,   0.4,   0.05,    0.09,    0.005,      0.},  /* 3<pt<4   */
-                                            {0.400,   0.4,   0.4,   0.4,   0.05,    0.09,    0.005,      0.},  /* 4<pt<5   */
-                                            {0.400,   0.4,   0.4,   0.4,   0.05,    0.09,    0.005,      0.},  /* 5<pt<6   */
-                                            {0.400,   0.4,   0.4,   0.4,   0.05,    0.09,    0.005,      0.},  /* 6<pt<8   */
-                                            {0.400,   0.4,   0.4,   0.4,   0.05,    0.09,    0.005,      0.},  /* 8<pt<12  */
-                                            {0.400,   0.4,   0.4,   0.4,   0.05,    0.09,    0.005,      0.},  /* 12<pt<24 */
-                                            {0.400,   0.4,   0.4,   0.4,   0.05,    0.09,    0.005,      0.}}; /* 24<pt<36 */
+// m    ptp    ptk    ptpi    DCA  sigmavtx   dlenght   cosp
+constexpr double cuts[npTBins][nCutVars] = {{0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.},  /* pt<1     */
+                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.},  /* 1<pt<2   */
+                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.},  /* 2<pt<3   */
+                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.},  /* 3<pt<4   */
+                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.},  /* 4<pt<5   */
+                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.},  /* 5<pt<6   */
+                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.},  /* 6<pt<8   */
+                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.},  /* 8<pt<12  */
+                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.},  /* 12<pt<24 */
+                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.}}; /* 24<pt<36 */
 
-/// Struct for applying Lc selection cuts
+/// Struct for applying Xic selection cuts
 struct HFXicCandidateSelector {
 
   Produces<aod::HFSelXicpKpiCandidate> hfSelXicCandidate;
 
-  Configurable<bool>   d_FilterPID{"d_FilterPID", true, "Bool to use or not the PID at filtering level"};
+  Configurable<bool> d_FilterPID{"d_FilterPID", true, "Bool to use or not the PID at filtering level"};
 
   Configurable<double> d_pTCandMin{"d_pTCandMin", 0., "Lower bound of candidate pT"};
   Configurable<double> d_pTCandMax{"d_pTCandMax", 36., "Upper bound of candidate pT"};
@@ -194,10 +194,18 @@ struct HFXicCandidateSelector {
   {
     double nSigma = 99.; //arbitarily large value
     nPDG = TMath::Abs(nPDG);
-    if (nPDG == 2212)     nSigma = track.tpcNSigmaPr();
-    else if (nPDG == 321) nSigma = track.tpcNSigmaKa();
-    else if (nPDG == 211) nSigma = track.tpcNSigmaPi();
-    else  return false;
+    if (nPDG == 2212) {
+      nSigma = track.tpcNSigmaPr();
+    }
+    else if (nPDG == 321) {
+      nSigma = track.tpcNSigmaKa();
+    }
+    else if (nPDG == 211) {
+      nSigma = track.tpcNSigmaPi();
+    }
+    else{
+      return false;
+    }
 
     return nSigma < nSigmaCut;
   }
@@ -213,10 +221,18 @@ struct HFXicCandidateSelector {
   {
     double nSigma = 99.; //arbitarily large value
     nPDG = TMath::Abs(nPDG);
-    if (nPDG == 2212)     nSigma = track.tofNSigmaPr();
-    else if (nPDG == 321) nSigma = track.tofNSigmaKa();
-    else if (nPDG == 211) nSigma = track.tofNSigmaPi();
-    else  return false;
+    if (nPDG == 2212){
+      nSigma = track.tofNSigmaPr();
+    }
+    else if (nPDG == 321){
+      nSigma = track.tofNSigmaKa();
+    }
+    else if (nPDG == 211){
+      nSigma = track.tofNSigmaPi();
+    }
+    else{
+      return false;
+    }
 
     return nSigma < nSigmaCut;
   }
@@ -239,12 +255,10 @@ struct HFXicCandidateSelector {
         } else {
           statusTPC = 1; //potential to be acceepted if combined with TOF
         }
-      }
-      else {
+      } else {
         statusTPC = 2; //positive PID
       }
-    } 
-    else {
+    } else {
       statusTPC = -1; //no PID info
     }
 
@@ -277,15 +291,23 @@ struct HFXicCandidateSelector {
 
     /// TPC
     if (validTPCPID(track)) {
-      if (!selectionPIDTPC(track, nPDG, d_nSigmaTPC))   statusTPC = 0; //rejected by PID
-      else  statusTPC = 2; //positive PID
+      if (!selectionPIDTPC(track, nPDG, d_nSigmaTPC)) {
+        statusTPC = 0; //rejected by PID
+      } else {
+        statusTPC = 2; //positive PID
+      }
     } 
-    else  statusTPC = -1; //no PID info
+    else{
+      statusTPC = -1; //no PID info
+    }
     
     /// TOF
     if (validTOFPID(track)) {
-      if (!selectionPIDTOF(track, nPDG, d_nSigmaTOF))   statusTOF = 0; //rejected by PID        
-      else  statusTOF = 2; //positive PID
+      if (!selectionPIDTOF(track, nPDG, d_nSigmaTOF)) {
+        statusTOF = 0; //rejected by PID
+      } else {
+        statusTOF = 2; //positive PID
+      }
     }
     else  statusTOF = -1; //no PID info
 
@@ -310,7 +332,7 @@ struct HFXicCandidateSelector {
   {
     int statusXicpKpi, statusXicpiKp; // final selection flag : 0-rejected  1-accepted
     bool topolXicpKpi, topolXicpiKp;
-    int pidXicPKPi, pidXicPiKP, kaonNeg, prot1, prot2, pion1, pion2;  // proton, kaonMinus, pionPlus;
+    int pidXicPKPi, pidXicPiKP, kaonNeg, prot1, prot2, pion1, pion2; // proton, kaonMinus, pionPlus;
 
     for (auto& hfCandProng3 : hfCandProng3s) { //looping over 3 prong candidates
 
@@ -394,18 +416,21 @@ struct HFXicCandidateSelector {
       pion1 = selectionPID(trackPos1, 211);
       pion2 = selectionPID(trackPos2, 211);
 
-      if(!d_FilterPID) {
+      if (!d_FilterPID) {
         /// PID not applied at filtering level
         /// set the PID flags to 1
         pidXicPKPi = 1;
         pidXicPiKP = 1;
-      }
-      else{
+      } else {
         /// PID applied at filtering level
         /// Accept only candidates recognised either at least as pKpi or as piKp
-        if(kaonNeg == 1){
-          if(std::abs(prot1) == 1 && std::abs(pion2) == 1)  pidXicPKPi = 1;
-          if(std::abs(pion1) == 1 && std::abs(prot2) == 1)  pidXicPiKP = 1;
+        if (kaonNeg == 1) {
+          if (std::abs(prot1) == 1 && std::abs(pion2) == 1) {
+            pidXicPKPi = 1;
+          }
+          if (std::abs(pion1) == 1 && std::abs(prot2) == 1){
+            pidXicPiKP = 1;
+          }
         }
       }
 
