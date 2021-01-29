@@ -9,3 +9,10 @@
 # submit itself to any jurisdiction.
 
 add_subdirectory(test)
+
+install(FILES ALICE3toAO2D.C
+        DESTINATION share/macro/)
+
+o2_add_test_root_macro(ALICE3toAO2D.C
+                       PUBLIC_LINK_LIBRARIES O2::GPUTracking O2::ITSMFTSimulation
+                       LABELS its COMPILE_ONLY)
