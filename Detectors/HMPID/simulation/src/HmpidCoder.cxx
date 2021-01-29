@@ -279,11 +279,13 @@ int padsCount =0;
     }
     Digit::Pad2Equipment(d.getPadID(),&eq, &col, &dil, &cha);
     idx = getEquipmentPadIndex(eq, col, dil, cha);
+   // std::cout << ">>> "<< idx << " " << d <<" ("<<eq<<","<<col<<","<<dil<<","<<cha<<")"<< std::endl;
+
     if(padMap[idx] != 0) {
-      std::cout << ">>> Beccato >"<< idx << " " << d <<" ("<<eq<<","<<col<<","<<dil<<","<<cha<<")"<< std::endl;
+      std::cout << ">>> "<< idx << " " << d <<" ("<<eq<<","<<col<<","<<dil<<","<<cha<<")"<< std::endl;
       Digit::Pad2Absolute(d.getPadID(), &mo, &x, &y);
       Digit::Absolute2Equipment(mo, x, y, &eq, &col, &dil, &cha);
-      std::cout << ">>>          >"<< idx << " " << d <<" ("<< mo <<","<<x<<","<<y<<") ("<<eq<<","<<col<<","<<dil<<","<<cha<<")"<< std::endl;
+      std::cout << ">>>  Errore   >"<<" abso("<< mo <<","<<x<<","<<y<<") equ("<<eq<<","<<col<<","<<dil<<","<<cha<<")"<< std::endl;
     }
     padMap[idx] = d.getCharge();
 padsCount++;

@@ -47,6 +47,7 @@ ClassImp(o2::hmpid::Digit);
 uint32_t Digit::Equipment2Pad(int Equi, int Colu, int Dilo, int Chan)
 {
   /*
+   *       Original algorithm in AliROOT Run 1/2
    *
    * kNDILOGICAdd = 10
    *
@@ -59,10 +60,30 @@ uint32_t Digit::Equipment2Pad(int Equi, int Colu, int Dilo, int Chan)
 
   tmp=(ddl%2)?row-1:(24-row);
   Int_t py=6*(tmp%8)+a2y[pad%6];
-
    */
+
+  // Check the input data
   if(Equi<0 || Equi >= Geo::MAXEQUIPMENTS || Colu<0 || Colu >= Geo::N_COLUMNS ||
       Dilo<0 || Dilo >= Geo::N_DILOGICS || Chan<0 || Chan >= Geo::N_CHANNELS ) return -1;
+
+  int chan2y[6]={3,2,4,1,5,0}; // y coordinate translation for a channel address (index position) for even chamber
+
+  // Calculate the odd/even of geometry
+  bool isEven = (Equi % Geo::EQUIPMENTSPERMODULE) == 0 ? true : false;
+  int ch = Equi / Geo::EQUIPMENTSPERMODULE; // The Module
+
+  // Calculate the x,y photo cathode relative coords
+  int pc = (23-Colu) / Geo::N_COLXSEGMENT * 2;  // pho = [0,2,4]
+  int px = (Geo::N_DILOGICS - Dilo) * Geo::DILOPADSROWS - Chan / Geo::DILOPADSCOLS - 1; // (dil [0..9] ,chan[0..47]) -> x [79..0]
+  int py = Geo::DILOPADSCOLS * ((23-Colu) % Geo::N_COLXSEGMENT) + chan2y[Chan % Geo::DILOPADSCOLS];// Col[0..23] -> y [47..0]
+
+  if(!isEven) {
+    pc = 5 - pc; // revert the photo cathode index
+    px = Geo::MAXXPHOTO - px; // revert the x coordinate
+    py = Geo::MAXYPHOTO - py; // revert the y coordinate
+  }
+
+  /* ---- Last good algorithm -------
 
   int a2y[6]={3,2,4,1,5,0};     //pady for a given padress (for single DILOGIC chip)
   int ch = Equi / Geo::EQUIPMENTSPERMODULE; // The Module
@@ -83,21 +104,45 @@ uint32_t Digit::Equipment2Pad(int Equi, int Colu, int Dilo, int Chan)
   }
   py = Geo::DILOPADSCOLS * (tmp % Geo::DILOPADSROWS)+a2y[Chan % Geo::DILOPADSCOLS];
   py = py % 48;
+  */
 
-//  int pc = (Equi % Geo::EQUIPMENTSPERMODULE) ? 5-2*tmp : 2*tmp; // The PhotoCatode
-//  int px = (Geo::N_DILOGICS - Dilo) * Geo::DILOPADSROWS - Chan / Geo::DILOPADSCOLS - 1;
-//  tmp = (Equi % Geo::EQUIPMENTSPERMODULE) ? Colu : (23-Colu);
-//  int py = Geo::DILOPADSCOLS * (tmp % Geo::DILOPADSROWS)+a2y[Chan % Geo::DILOPADSCOLS];
-  return Abs(ch,pc,px,py);
+  /* Direct Translation from Aliroot
+  int pc = (Equi % Geo::EQUIPMENTSPERMODULE) ? 5-2*tmp : 2*tmp; // The PhotoCatode
+  int px = (Geo::N_DILOGICS - Dilo) * Geo::DILOPADSROWS - Chan / Geo::DILOPADSCOLS - 1;
+  tmp = (Equi % Geo::EQUIPMENTSPERMODULE) ? Colu : (23-Colu);
+  int py = Geo::DILOPADSCOLS * (tmp % Geo::DILOPADSROWS)+a2y[Chan % Geo::DILOPADSCOLS];
+
+ */
+
+  return Abs(ch,pc,px,py);  // Pack the coords into the PadID word
 }
 
 void Digit::Pad2Equipment(uint32_t pad, int *Equi, int *Colu, int *Dilo, int *Chan)
 {
+  int ch, ph, px, py;
+  int y2chan[6]={5,3,1,0,2,4};
+
+  Pad2Photo(pad, &ch, &ph, &px, &py); // Unpak the pad ID in the photo cathode coords
+
+  bool isEven = (ph % 2) == 0 ? true : false;
+  int eq = ch * Geo::EQUIPMENTSPERMODULE;
+
+  if(!isEven) {
+    eq++; // Correct the equipment number
+    px = Geo::MAXXPHOTO - px; // revert the X coord
+    py = Geo::MAXYPHOTO - py; // revert the Y coord
+    ph = 5 - ph; // revert the photo cathode index
+  }
+  *Dilo = Geo::N_DILOGICS - (px / Geo::DILOPADSROWS) -1;  // Calculate the Dilogic x [0..79] -> dil [9..0]
+  *Colu = 23 - (((ph / 2) * Geo::N_COLXSEGMENT) + (py / Geo::DILOPADSCOLS));  // calculate the column  (ph [0,2,4], y [0..47]) -> col [23..0]
+  *Chan = ((Geo::MAXXPHOTO-px) % Geo::DILOPADSROWS) * Geo::DILOPADSCOLS + y2chan[py % Geo::DILOPADSCOLS];
+  *Equi = eq;
+
+  return;
+  /*  last good algorithm
   int ch, ax, ay;
   int y2a[6]={4,2,0,1,3,5};
-
   Pad2Absolute(pad, &ch, &ax, &ay);
-
   if (ax > Geo::MAXHALFXROWS) {
     *Equi = ch * Geo::EQUIPMENTSPERMODULE + 1;
     ax = ax - Geo::HALFXROWS;
@@ -111,6 +156,7 @@ void Digit::Pad2Equipment(uint32_t pad, int *Equi, int *Colu, int *Dilo, int *Ch
   *Dilo = ax / Geo::DILOPADSROWS;
   *Colu = ay / Geo::DILOPADSCOLS;
   return;
+  */
 }
 
 void Digit::Absolute2Equipment(int Module, int x, int y, int *Equi, int *Colu, int *Dilo, int *Chan)
@@ -129,7 +175,7 @@ void Digit::Equipment2Absolute(int Equi, int Colu, int Dilo, int Chan, int *Modu
 
 uint32_t Digit::Absolute2Pad(int Module, int x, int y)
 {
-  int ph = (y/Geo::N_PHOTOCATODSY)+((x >= Geo::HALFXROWS ) ? 1 : 0);
+  int ph = (y/Geo::N_PHOTOCATODSY)*2+((x >= Geo::HALFXROWS ) ? 1 : 0);
   int px  = x % Geo::HALFXROWS;
   int py  = y % Geo::N_PHOTOCATODSY;
   return Abs(Module,ph,px,py);
