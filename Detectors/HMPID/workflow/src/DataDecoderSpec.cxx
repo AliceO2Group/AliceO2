@@ -92,7 +92,7 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
   TString filename = TString::Format("%s_%06d.root", "test", 1);
   LOG(DEBUG) << "opening the stat file " << filename.Data();
 //  std::unique_ptr<TFile> mfileOut = nullptr;
-  TFile mfileOut(TFile::Open(TString::Format("%s", filename.Data()), "RECREATE"));
+  TFile mfileOut(TString::Format("%s", filename.Data()), "RECREATE");
 
  // std::unique_ptr<TTree> theObj;
   TTree *  theObj;
