@@ -94,16 +94,16 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
   std::unique_ptr<TFile> mfileOut = nullptr;
   mfileOut.reset(TFile::Open(TString::Format("%s", filename.Data()), "RECREATE"));
 
-  //std::unique_ptr<TTree> theObj;
-//  TTree *  theObj;
-  //theObj = std::make_unique<TTree>("o2hmp", "HMPID Data Decoding Statistic results");
-//  theObj = new TTree("o2hmp", "HMPID Data Decoding Statistic results");
+  std::unique_ptr<TTree> theObj;
+  TTree *  theObj;
+  theObj = std::make_unique<TTree>("o2hmp", "HMPID Data Decoding Statistic results");
+  theObj = new TTree("o2hmp", "HMPID Data Decoding Statistic results");
 
-//  theObj->Branch("Average_Event_Size", avgEventSize,"f[14]");
-//  theObj->Branch("Average_Busy_Time", avgBusyTime,"f[14]");
-//  theObj->Branch("Samples_per_pad", avgBusyTime,"d[7][144][160]");
-//  theObj->Branch("Sum_of_charges_per_pad", sumOfCharges,"d[7][144][160]");
-//  theObj->Branch("Sum_of_square_of_charges", squareOfCharges,"d[7][144][160]");
+  theObj->Branch("Average_Event_Size", avgEventSize,"f[14]");
+  theObj->Branch("Average_Busy_Time", avgBusyTime,"f[14]");
+  theObj->Branch("Samples_per_pad", avgBusyTime,"d[7][144][160]");
+  theObj->Branch("Sum_of_charges_per_pad", sumOfCharges,"d[7][144][160]");
+  theObj->Branch("Sum_of_square_of_charges", squareOfCharges,"d[7][144][160]");
 
   int numEqui = mDeco->getNumberOfEquipments();
   for(int e=0;e<numEqui;e++) {
@@ -118,12 +118,12 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
         squareOfCharges[m][y][x] = mDeco->getPadSquares(m, x, y);
   //      std::cout << "@ " << m <<","<<y<<","<<x << " "<< numOfSamples[m][y][x] << "=" <<sumOfCharges[m][y][x] << std::endl;
       }
-//  theObj->Fill();
+  theObj->Fill();
 
-//-- mfileOut->WriteObject((TTree *)theObj, "HMPID Decoding Statistics");
+  mfileOut->WriteObject((TTree *)theObj, "HMPID Decoding Statistics");
 //  mfileOut->cd();
 //  theObj->Write();
-//  theObj.reset();
+  theObj.reset();
   mfileOut.reset();
 
  // pc.outputs().snapshot(o2::framework::Output{"HMP", "STATS", 0, o2::framework::Lifetime::Timeframe}, *theObj);
