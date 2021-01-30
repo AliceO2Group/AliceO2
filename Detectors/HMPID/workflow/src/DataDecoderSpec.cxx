@@ -90,9 +90,9 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
   double squareOfCharges[o2::hmpid::Geo::N_MODULES][o2::hmpid::Geo::N_YCOLS][o2::hmpid::Geo::N_XROWS];
 
   TString filename = TString::Format("%s_%06d.root", "test", 1);
- // LOG(DEBUG) << "opening file " << filename.Data();
-//--  std::unique_ptr<TFile> mfileOut = nullptr;
-//--  mfileOut.reset(TFile::Open(TString::Format("%s", filename.Data()), "RECREATE"));
+  LOG(DEBUG) << "opening the stat file " << filename.Data();
+  std::unique_ptr<TFile> mfileOut = nullptr;
+  mfileOut.reset(TFile::Open(TString::Format("%s", filename.Data()), "RECREATE"));
 
   //std::unique_ptr<TTree> theObj;
 //  TTree *  theObj;
@@ -124,7 +124,7 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
 //  mfileOut->cd();
 //  theObj->Write();
 //  theObj.reset();
-//  mfileOut.reset();
+  mfileOut.reset();
 
  // pc.outputs().snapshot(o2::framework::Output{"HMP", "STATS", 0, o2::framework::Lifetime::Timeframe}, *theObj);
 
