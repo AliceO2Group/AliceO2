@@ -96,7 +96,7 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
 
   std::unique_ptr<TTree> theObj;
   TTree *  theObj;
-  theObj = std::make_unique<TTree>("o2hmp", "HMPID Data Decoding Statistic results");
+ // theObj = std::make_unique<TTree>("o2hmp", "HMPID Data Decoding Statistic results");
   theObj = new TTree("o2hmp", "HMPID Data Decoding Statistic results");
 
   theObj->Branch("Average_Event_Size", avgEventSize,"f[14]");
@@ -120,9 +120,9 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
       }
   theObj->Fill();
 
-  mfileOut->WriteObject((TTree *)theObj, "HMPID Decoding Statistics");
+ // mfileOut->WriteObject((TTree *)theObj, "HMPID Decoding Statistics");
 //  mfileOut->cd();
-//  theObj->Write();
+  theObj->Write();
   theObj.reset();
   mfileOut.reset();
 
