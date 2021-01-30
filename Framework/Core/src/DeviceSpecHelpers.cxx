@@ -1058,6 +1058,17 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         split(environment, tmpEnv);
       }
 
+      /// Add libSegFault to the stack if provided.
+      if (varmap.count("stacktrace-on-signal") && varmap["stacktrace-on-signal"].as<std::string>() != "none") {
+        char const* preload = getenv("LD_PRELOAD");
+        if (preload == nullptr) {
+          tmpEnv.push_back("LD_PRELOAD=libSegFault.so");
+        } else {
+          tmpEnv.push_back(fmt::format("LD_PRELOAD=\"{}:libSegFault.so\"", preload));
+        }
+        tmpEnv.push_back(fmt::format("SEGFAULT_SIGNALS=\"{}\"", varmap["stacktrace-on-signal"].as<std::string>()));
+      }
+
       // options can be grouped per processor spec, the group is entered by
       // the option created from the actual processor spec name
       // if specified, the following string is interpreted as a sequence
@@ -1074,6 +1085,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         realOdesc.add_options()("child-driver", bpo::value<std::string>());
         realOdesc.add_options()("rate", bpo::value<std::string>());
         realOdesc.add_options()("environment", bpo::value<std::string>());
+        realOdesc.add_options()("stacktrace-on-signal", bpo::value<std::string>());
         realOdesc.add_options()("post-fork-command", bpo::value<std::string>());
         realOdesc.add_options()("shm-segment-size", bpo::value<std::string>());
         realOdesc.add_options()("shm-mlock-segment", bpo::value<std::string>());
@@ -1199,6 +1211,8 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("shm-throw-bad-alloc", bpo::value<std::string>()->default_value("true"), "throw if insufficient shm memory")                             //
     ("shm-segment-id", bpo::value<std::string>()->default_value("0"), "shm segment id")                                                       //
     ("environment", bpo::value<std::string>(), "comma separated list of environment variables to set for the device")                         //
+    ("stacktrace-on-signal", bpo::value<std::string>()->default_value("none"),                                                                //
+     "dump stacktrace on specified signal(s) (any of `all`, `segv`, `bus`, `ill`, `abrt`, `fpe`, `sys`.)")                                    //
     ("post-fork-command", bpo::value<std::string>(), "post fork command to execute (e.g. numactl {pid}")                                      //
     ("session", bpo::value<std::string>(), "unique label for the shared memory session")                                                      //
     ("configuration,cfg", bpo::value<std::string>(), "configuration connection string")                                                       //
