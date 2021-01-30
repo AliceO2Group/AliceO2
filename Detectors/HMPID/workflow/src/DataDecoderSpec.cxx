@@ -91,10 +91,11 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
 
   TString filename = TString::Format("%s_%06d.root", "test", 1);
   LOG(DEBUG) << "opening the stat file " << filename.Data();
-  std::unique_ptr<TFile> mfileOut = nullptr;
+//  std::unique_ptr<TFile> mfileOut = nullptr;
+  TFile mfileOut;
   mfileOut.reset(TFile::Open(TString::Format("%s", filename.Data()), "RECREATE"));
 
-  std::unique_ptr<TTree> theObj;
+ // std::unique_ptr<TTree> theObj;
   TTree *  theObj;
  // theObj = std::make_unique<TTree>("o2hmp", "HMPID Data Decoding Statistic results");
   theObj = new TTree("o2hmp", "HMPID Data Decoding Statistic results");
