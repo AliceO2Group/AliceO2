@@ -92,8 +92,7 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
   TString filename = TString::Format("%s_%06d.root", "test", 1);
   LOG(DEBUG) << "opening the stat file " << filename.Data();
 //  std::unique_ptr<TFile> mfileOut = nullptr;
-  TFile mfileOut;
-  mfileOut.reset(TFile::Open(TString::Format("%s", filename.Data()), "RECREATE"));
+  TFile mfileOut(TFile::Open(TString::Format("%s", filename.Data()), "RECREATE"));
 
  // std::unique_ptr<TTree> theObj;
   TTree *  theObj;
@@ -124,8 +123,6 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
  // mfileOut->WriteObject((TTree *)theObj, "HMPID Decoding Statistics");
 //  mfileOut->cd();
   theObj->Write();
-  theObj.reset();
-  mfileOut.reset();
 
  // pc.outputs().snapshot(o2::framework::Output{"HMP", "STATS", 0, o2::framework::Lifetime::Timeframe}, *theObj);
 
