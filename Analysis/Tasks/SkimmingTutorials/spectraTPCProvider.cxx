@@ -32,7 +32,7 @@ struct TPCSpectraProviderTask {
   Produces<aod::LFTracks> outputTracks;
 
   Configurable<float> vertexZCut{"vertexZCut", 10.0f, "Accepted z-vertex range"};
-  Configurable<float> trackEtaCut{"trackEtaCut", 0.9f, "Eta range for tracks"};
+  Configurable<float> trackEtaCut{"trackEtaCut", 0.8f, "Eta range for tracks"};
   Configurable<float> trackPtCut{"trackPtCut", 0.0f, "Pt range for tracks"};
 
   Filter collisionFilter = nabs(aod::collision::posZ) < vertexZCut;
@@ -49,12 +49,11 @@ struct TPCSpectraProviderTask {
 
       //outputTracks(outputCollisions.lastIndex(), track.pt(), track.p(), track.eta(), nsigma);
       outputTracks(track.pt(), track.p(), track.eta(),
-                   std::array{truncateFloatFraction(track.tpcNSigmaEl(), pNsigma), truncateFloatFraction(track.tpcNSigmaMu(), pNsigma),
-                              truncateFloatFraction(track.tpcNSigmaPi(), pNsigma), truncateFloatFraction(track.tpcNSigmaKa(), pNsigma),
-                              truncateFloatFraction(track.tpcNSigmaPr(), pNsigma), truncateFloatFraction(track.tpcNSigmaDe(), pNsigma),
-                              truncateFloatFraction(track.tpcNSigmaTr(), pNsigma), truncateFloatFraction(track.tpcNSigmaHe(), pNsigma),
-                              truncateFloatFraction(track.tpcNSigmaAl(), pNsigma)}
-                     .begin());
+                   truncateFloatFraction(track.tpcNSigmaEl(), pNsigma), truncateFloatFraction(track.tpcNSigmaMu(), pNsigma),
+                   truncateFloatFraction(track.tpcNSigmaPi(), pNsigma), truncateFloatFraction(track.tpcNSigmaKa(), pNsigma),
+                   truncateFloatFraction(track.tpcNSigmaPr(), pNsigma), truncateFloatFraction(track.tpcNSigmaDe(), pNsigma),
+                   truncateFloatFraction(track.tpcNSigmaTr(), pNsigma), truncateFloatFraction(track.tpcNSigmaHe(), pNsigma),
+                   truncateFloatFraction(track.tpcNSigmaAl(), pNsigma));
     }
   }
 };
