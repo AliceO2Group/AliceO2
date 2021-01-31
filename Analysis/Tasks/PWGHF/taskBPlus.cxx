@@ -63,7 +63,8 @@ struct TaskBplus {
           if (trackPos1.signed1Pt() < 0) {
             continue;
           }
-          if(candidate.index0().collisionId() != trackPos1.collisionId()) continue;
+          if(candidate.index0().collisionId() != trackPos1.collisionId()) 
+            continue;
           //Printf("Positive track pt: %f", trackPos1.pt());
           registry.fill(HIST("hptcand"), candidate.pt() + trackPos1.pt());
         }
