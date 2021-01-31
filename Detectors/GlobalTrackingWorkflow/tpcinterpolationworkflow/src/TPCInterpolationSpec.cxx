@@ -98,10 +98,10 @@ DataProcessorSpec getTPCInterpolationSpec(bool useMC, const std::vector<int>& tp
     LOG(FATAL) << "MC usage must be disabled for this workflow, since it is not yet implemented";
     // are the MC inputs from ITS-TPC matching and TOF matching duplicates? if trackITSMCTR == matchTOFMCITS one of them should be removed
     inputs.emplace_back("trackITSMCTR", "GLO", "TPCITS_ITSMC", 0, Lifetime::Timeframe);
-    inputs.emplace_back("trackTPCMCTR", "GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe);
-    inputs.emplace_back("matchTOFMC", o2::header::gDataOriginTOF, "MATCHTOFINFOSMC", 0, Lifetime::Timeframe);
-    inputs.emplace_back("matchTOFMCTPC", o2::header::gDataOriginTOF, "MATCHTPCINFOSMC", 0, Lifetime::Timeframe);
-    inputs.emplace_back("matchTOFMCITS", o2::header::gDataOriginTOF, "MATCHITSINFOSMC", 0, Lifetime::Timeframe);
+    inputs.emplace_back("trackTPCMCTR", "GLO", "TPCITSMC", 0, Lifetime::Timeframe);
+    inputs.emplace_back("matchTOFMC", o2::header::gDataOriginTOF, "MCMATCHTOF", 0, Lifetime::Timeframe);
+    inputs.emplace_back("matchTOFMCTPC", o2::header::gDataOriginTOF, "MCMATCHTPC", 0, Lifetime::Timeframe);
+    inputs.emplace_back("matchTOFMCITS", o2::header::gDataOriginTOF, "MCMATCHITS", 0, Lifetime::Timeframe);
   }
 
   outputs.emplace_back("GLO", "TPCINT_TRK", 0, Lifetime::Timeframe);
