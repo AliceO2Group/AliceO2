@@ -107,6 +107,10 @@ o2_add_test_root_macro(analyzeOriginHits.C
                        PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
                                              O2::DetectorsCommonDataFormats)
 
+if(ENABLE_UPGRADES)
+  set(upgradeTargets O2::Alice3DetectorsPassive O2::ITS3Simulation O2::TRKSimulation)
+endif()
+
 o2_add_test_root_macro(build_geometry.C
                        PUBLIC_LINK_LIBRARIES O2::DetectorsPassive
                                              O2::Field
@@ -125,9 +129,7 @@ o2_add_test_root_macro(build_geometry.C
                                              O2::PHOSSimulation
                                              O2::CPVSimulation
                                              O2::ZDCSimulation
-                                             $<$<BOOL:${ENABLE_UPGRADES}>:O2::Alice3DetectorsPassive>
-                                             $<$<BOOL:${ENABLE_UPGRADES}>:O2::ITS3Simulation>
-                                             $<$<BOOL:${ENABLE_UPGRADES}>:O2::TRKSimulation>)
+                                             ${upgradeTargets})
 
 o2_add_test_root_macro(checkTOFMatching.C
                        PUBLIC_LINK_LIBRARIES O2::GlobalTracking
