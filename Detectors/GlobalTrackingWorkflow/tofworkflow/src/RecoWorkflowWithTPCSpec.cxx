@@ -123,13 +123,13 @@ class TOFDPLRecoWorkflowWithTPCTask
     //           << " DIGITS TO " << mClustersArray.size() << " CLUSTERS";
 
     // send matching-info
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFOS", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector());
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFOS_TPC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector());
     if (mUseMC) {
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHTOFINFOSMC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector());
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHTPCINFOSMC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTPCLabelsVector());
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHITSINFOSMC", 0, Lifetime::Timeframe}, mMatcher.getMatchedITSLabelsVector());
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHTOF_TPC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector());
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHTPC_TPC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTPCLabelsVector());
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHITS_TPC", 0, Lifetime::Timeframe}, mMatcher.getMatchedITSLabelsVector());
     }
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CALIBDATA", 0, Lifetime::Timeframe}, mMatcher.getCalibVector());
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CALIBDATA_TPC", 0, Lifetime::Timeframe}, mMatcher.getCalibVector());
     mTimer.Stop();
   }
 
@@ -164,15 +164,15 @@ o2::framework::DataProcessorSpec getTOFRecoWorkflowWithTPCSpec(bool useMC, bool 
     inputs.emplace_back("fitrecpoints", o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);
   }
 
-  outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFOS", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputLabel{"tpctofTracks"}, o2::header::gDataOriginTOF, "TPCTOFTRACKS", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFOS_TPC", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"tpctofTracks"}, o2::header::gDataOriginTOF, "TOFTRACKS_TPC", 0, Lifetime::Timeframe);
 
   if (useMC) {
-    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHTOFINFOSMC", 0, Lifetime::Timeframe);
-    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHTPCINFOSMC", 0, Lifetime::Timeframe);
-    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHITSINFOSMC", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHTOF_TPC", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHTPC_TPC", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHITS_TPC", 0, Lifetime::Timeframe);
   }
-  outputs.emplace_back(o2::header::gDataOriginTOF, "CALIBDATA", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "CALIBDATA_TPC", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "TOFRecoWorkflowWithTPC",

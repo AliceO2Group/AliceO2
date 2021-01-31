@@ -37,7 +37,7 @@ using TrackInfo = std::vector<o2::dataformats::TrackTPCTOF>;
 using LabelsType = std::vector<o2::MCCompLabel>;
 using namespace o2::header;
 
-DataProcessorSpec getTOFMatchedWriterSpec(bool useMC, const char* outdef, bool writeTracks)
+DataProcessorSpec getTOFMatchedWriterSpec(bool useMC, const char* outdef, bool writeTOFTPC)
 {
   // spectators for logging
   auto loggerMatched = [](MatchInfo const& indata) {
@@ -55,30 +55,34 @@ DataProcessorSpec getTOFMatchedWriterSpec(bool useMC, const char* outdef, bool w
   // TODO: there was a comment in the original implementation:
   // RS why do we need to repeat ITS/TPC labels ?
   // They can be extracted from TPC-ITS matches
+  o2::header::DataDescription ddMatchInfo{"MATCHINFOS"}, ddMatchInfo_tpc{"MATCHINFOS_TPC"},
+    ddMCMatchTOF{"MCMATCHTOF"}, ddMCMatchTOF_tpc{"MCMATCHTOF_TPC"},
+    ddMCMatchTPC{"MCMATCHTPC"}, ddMCMatchTPC_tpc{"MCMATCHTPC_TPC"},
+    ddMCMatchITS{"MCMATCHITS"}, ddMCMatchITS_tpc{"MCMATCHITS_TPC"};
 
-  return MakeRootTreeWriterSpec("TOFMatchedWriter",
+  return MakeRootTreeWriterSpec(writeTOFTPC ? "TOFMatchedWriter_TPC" : "TOFMatchedWriter",
                                 outdef,
                                 "matchTOF",
-                                BranchDefinition<MatchInfo>{InputSpec{"tofmatching", gDataOriginTOF, "MATCHINFOS", 0},
+                                BranchDefinition<MatchInfo>{InputSpec{"tofmatching", gDataOriginTOF, writeTOFTPC ? ddMatchInfo_tpc : ddMatchInfo, 0},
                                                             "TOFMatchInfo",
                                                             "TOFMatchInfo-branch-name",
                                                             1,
                                                             loggerMatched},
-                                BranchDefinition<TrackInfo>{InputSpec{"tpctofTracks", gDataOriginTOF, "TPCTOFTRACKS", 0},
+                                BranchDefinition<TrackInfo>{InputSpec{"tpctofTracks", gDataOriginTOF, "TOFTRACKS_TPC", 0},
                                                             "TPCTOFTracks",
                                                             "TPCTOFTracks-branch-name",
-                                                            writeTracks},
-                                BranchDefinition<LabelsType>{InputSpec{"matchtoflabels", gDataOriginTOF, "MATCHTOFINFOSMC", 0},
+                                                            writeTOFTPC},
+                                BranchDefinition<LabelsType>{InputSpec{"matchtoflabels", gDataOriginTOF, writeTOFTPC ? ddMCMatchTOF_tpc : ddMCMatchTOF, 0},
                                                              "MatchTOFMCTruth",
                                                              "MatchTOFMCTruth-branch-name",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              loggerTofLabels},
-                                BranchDefinition<LabelsType>{InputSpec{"matchtpclabels", gDataOriginTOF, "MATCHTPCINFOSMC", 0},
+                                BranchDefinition<LabelsType>{InputSpec{"matchtpclabels", gDataOriginTOF, writeTOFTPC ? ddMCMatchTPC_tpc : ddMCMatchTPC, 0},
                                                              "MatchTPCMCTruth",
                                                              "MatchTPCMCTruth-branch-name",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              loggerTpcLabels},
-                                BranchDefinition<LabelsType>{InputSpec{"matchitslabels", gDataOriginTOF, "MATCHITSINFOSMC", 0},
+                                BranchDefinition<LabelsType>{InputSpec{"matchitslabels", gDataOriginTOF, writeTOFTPC ? ddMCMatchITS_tpc : ddMCMatchITS, 0},
                                                              "MatchITSMCTruth",
                                                              "MatchITSMCTruth-branch-name",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
