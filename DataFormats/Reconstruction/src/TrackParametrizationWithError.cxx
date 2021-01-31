@@ -262,7 +262,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateToDCA(const o2::dat
 //______________________________________________________________
 template <typename value_T>
 GPUd() TrackParametrizationWithError<value_T>::TrackParametrizationWithError(const dim3_t& xyz, const dim3_t& pxpypz,
-                                                                             const gpu::gpustd::array<value_t, kLabCovMatSize>& cv, int charge, bool sectorAlpha)
+                                                                             const gpu::gpustd::array<value_t, kLabCovMatSize>& cv, int charge, bool sectorAlpha, const PID pid)
 {
   // construct track param and covariance from kinematics and lab errors
 
@@ -320,6 +320,7 @@ GPUd() TrackParametrizationWithError<value_T>::TrackParametrizationWithError(con
   this->setTgl(mom[2] * ptI); // tg(lambda)
   this->setAbsCharge(gpu::CAMath::Abs(charge));
   this->setQ2Pt(charge ? ptI * charge : ptI);
+  this->setPID(pid);
   //
   if (gpu::CAMath::Abs(1.f - this->getSnp()) < kSafe) {
     this->setSnp(1.f - kSafe); // Protection

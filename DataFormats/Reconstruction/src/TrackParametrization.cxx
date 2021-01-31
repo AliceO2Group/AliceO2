@@ -42,7 +42,7 @@ using namespace o2::track;
 
 //______________________________________________________________
 template <typename value_T>
-GPUd() TrackParametrization<value_T>::TrackParametrization(const dim3_t& xyz, const dim3_t& pxpypz, int charge, bool sectorAlpha)
+GPUd() TrackParametrization<value_T>::TrackParametrization(const dim3_t& xyz, const dim3_t& pxpypz, int charge, bool sectorAlpha, const PID pid)
   : mX{0.f}, mAlpha{0.f}, mP{0.f}
 {
   // construct track param from kinematics
@@ -100,6 +100,7 @@ GPUd() TrackParametrization<value_T>::TrackParametrization(const dim3_t& xyz, co
   mP[kTgl] = mom[2] * ptI;
   mAbsCharge = gpu::CAMath::Abs(charge);
   mP[kQ2Pt] = charge ? ptI * charge : ptI;
+  mPID = pid;
   //
   if (gpu::CAMath::Abs(1 - getSnp()) < kSafe) {
     mP[kSnp] = 1.f - kSafe; // Protection

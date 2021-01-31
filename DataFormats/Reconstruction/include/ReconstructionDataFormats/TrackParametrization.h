@@ -129,15 +129,15 @@ class TrackParametrization
 #endif
 
   GPUdDefault() TrackParametrization() = default;
-  GPUd() TrackParametrization(value_t x, value_t alpha, const params_t& par, int charge = 1);
-  GPUd() TrackParametrization(const dim3_t& xyz, const dim3_t& pxpypz, int charge, bool sectorAlpha = true);
+  GPUd() TrackParametrization(value_t x, value_t alpha, const params_t& par, int charge = 1, const PID pid = PID::Pion);
+  GPUd() TrackParametrization(const dim3_t& xyz, const dim3_t& pxpypz, int charge, bool sectorAlpha = true, const PID pid = PID::Pion);
   GPUdDefault() TrackParametrization(const TrackParametrization&) = default;
   GPUdDefault() TrackParametrization(TrackParametrization&&) = default;
   GPUdDefault() TrackParametrization& operator=(const TrackParametrization& src) = default;
   GPUdDefault() TrackParametrization& operator=(TrackParametrization&& src) = default;
   GPUdDefault() ~TrackParametrization() = default;
 
-  GPUd() void set(value_t x, value_t alpha, const params_t& par, int charge = 1);
+  GPUd() void set(value_t x, value_t alpha, const params_t& par, int charge = 1, const PID pid = PID::Pion);
   GPUd() const value_t* getParams() const;
   GPUd() value_t getParam(int i) const;
   GPUd() value_t getX() const;
@@ -229,7 +229,7 @@ class TrackParametrization
   value_t mAlpha = 0.f;         /// track frame angle
   value_t mP[kNParams] = {0.f}; /// 5 parameters: Y,Z,sin(phi),tg(lambda),q/pT
   char mAbsCharge = 1;          /// Extra info about the abs charge, to be taken into account only if not 1
-  PID mPID{};                   /// 8 bit PID
+  PID mPID{PID::Pion};          /// 8 bit PID
   uint16_t mUserField = 0;      /// field provided to user
 
   ClassDefNV(TrackParametrization, 3);
@@ -237,8 +237,8 @@ class TrackParametrization
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() TrackParametrization<value_T>::TrackParametrization(value_t x, value_t alpha, const params_t& par, int charge)
-  : mX{x}, mAlpha{alpha}, mAbsCharge{char(gpu::CAMath::Abs(charge))}
+GPUdi() TrackParametrization<value_T>::TrackParametrization(value_t x, value_t alpha, const params_t& par, int charge, const PID pid)
+  : mX{x}, mAlpha{alpha}, mAbsCharge{char(gpu::CAMath::Abs(charge))}, mPID{pid}
 {
   // explicit constructor
   for (int i = 0; i < kNParams; i++) {
@@ -248,7 +248,7 @@ GPUdi() TrackParametrization<value_T>::TrackParametrization(value_t x, value_t a
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() void TrackParametrization<value_T>::set(value_t x, value_t alpha, const params_t& par, int charge)
+GPUdi() void TrackParametrization<value_T>::set(value_t x, value_t alpha, const params_t& par, int charge, const PID pid)
 {
   mX = x;
   mAlpha = alpha;
@@ -256,6 +256,7 @@ GPUdi() void TrackParametrization<value_T>::set(value_t x, value_t alpha, const 
   for (int i = 0; i < kNParams; i++) {
     mP[i] = par[i];
   }
+  mPID = pid;
 }
 
 //____________________________________________________________
