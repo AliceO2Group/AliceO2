@@ -155,7 +155,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     }
     if (writecalib) {
       LOG(INFO) << "Insert TOF Calib Info Writer";
-      specs.emplace_back(o2::tof::getTOFCalibWriterSpec("o2calib_toftpc.root"));
+      specs.emplace_back(o2::tof::getTOFCalibWriterSpec("o2calib_toftpc.root", true));
     }
   }
 
