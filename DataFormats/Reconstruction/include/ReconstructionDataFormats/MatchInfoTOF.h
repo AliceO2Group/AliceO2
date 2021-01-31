@@ -44,6 +44,7 @@ class MatchInfoTOF
 
   o2::track::TrackLTIntegral& getLTIntegralOut() { return mIntLT; }
   const o2::track::TrackLTIntegral& getLTIntegralOut() const { return mIntLT; }
+  void print() const;
 
  private:
   float mChi2;                       // chi2 of the pair track-TOFcluster
