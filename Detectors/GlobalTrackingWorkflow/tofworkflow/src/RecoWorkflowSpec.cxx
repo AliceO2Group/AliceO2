@@ -123,9 +123,9 @@ class TOFDPLRecoWorkflowTask
     // send matching-info
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFOS", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector());
     if (mUseMC) {
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHTOFINFOSMC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector());
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHTPCINFOSMC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTPCLabelsVector());
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHITSINFOSMC", 0, Lifetime::Timeframe}, mMatcher.getMatchedITSLabelsVector());
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHTOF", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector());
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHTPC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTPCLabelsVector());
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHITS", 0, Lifetime::Timeframe}, mMatcher.getMatchedITSLabelsVector());
     }
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CALIBDATA", 0, Lifetime::Timeframe}, mMatcher.getCalibVector());
     mTimer.Stop();
@@ -160,9 +160,9 @@ o2::framework::DataProcessorSpec getTOFRecoWorkflowSpec(bool useMC, bool useFIT)
 
   outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFOS", 0, Lifetime::Timeframe);
   if (useMC) {
-    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHTOFINFOSMC", 0, Lifetime::Timeframe);
-    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHTPCINFOSMC", 0, Lifetime::Timeframe);
-    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHITSINFOSMC", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHTOF", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHTPC", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHITS", 0, Lifetime::Timeframe);
   }
   outputs.emplace_back(o2::header::gDataOriginTOF, "CALIBDATA", 0, Lifetime::Timeframe);
 
