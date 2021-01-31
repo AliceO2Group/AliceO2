@@ -119,32 +119,34 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   LOG(INFO) << "TOF disable-root-input = " << disableRootInput;
   LOG(INFO) << "TOF disable-root-output = " << disableRootOutput;
 
-  if (clusterinput) {
-    LOG(INFO) << "Insert TOF Cluster Reader";
-    specs.emplace_back(o2::tof::getClusterReaderSpec(useMC));
-  }
-  if (trackinput) {
-    LOG(INFO) << "Insert ITS-TPC Track Reader";
-    specs.emplace_back(o2::globaltracking::getTrackTPCITSReaderSpec(useMC));
-  }
+  if (!disableRootInput) { // input data loaded from root files
+    if (clusterinput) {
+      LOG(INFO) << "Insert TOF Cluster Reader";
+      specs.emplace_back(o2::tof::getClusterReaderSpec(useMC));
+    }
+    if (trackinput) {
+      LOG(INFO) << "Insert ITS-TPC Track Reader";
+      specs.emplace_back(o2::globaltracking::getTrackTPCITSReaderSpec(useMC));
+    }
 
-  if (fitinput) {
-    LOG(INFO) << "Insert FIT RecPoint Reader";
-    specs.emplace_back(o2::ft0::getRecPointReaderSpec(useMC));
+    if (fitinput) {
+      LOG(INFO) << "Insert FIT RecPoint Reader";
+      specs.emplace_back(o2::ft0::getRecPointReaderSpec(useMC));
+    }
   }
-
   LOG(INFO) << "Insert TOF Matching";
   specs.emplace_back(o2::tof::getTOFRecoWorkflowSpec(useMC, useFIT));
 
-  if (writematching && !disableRootOutput) {
-    LOG(INFO) << "Insert TOF Matched Info Writer";
-    specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC));
+  if (!disableRootOutput) {
+    if (writematching) {
+      LOG(INFO) << "Insert TOF Matched Info Writer";
+      specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC));
+    }
+    if (writecalib) {
+      LOG(INFO) << "Insert TOF Calib Info Writer";
+      specs.emplace_back(o2::tof::getTOFCalibWriterSpec());
+    }
   }
-  if (writecalib) {
-    LOG(INFO) << "Insert TOF Calib Info Writer";
-    specs.emplace_back(o2::tof::getTOFCalibWriterSpec());
-  }
-
   LOG(INFO) << "Number of active devices = " << specs.size();
 
   return std::move(specs);
