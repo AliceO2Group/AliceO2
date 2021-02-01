@@ -130,7 +130,7 @@ struct TaskLcMC {
         //Printf("MC Rec.: eta rejection: %g", candidate.eta());
         continue;
       }
-      if (std::abs(candidate.flagMCMatchRec()) == LcToPKPi) {
+      if (std::abs(candidate.flagMCMatchRec()) == 1 << LcToPKPi) {
         registry.fill(HIST("hPtRecSig"), candidate.pt());
         registry.fill(HIST("hCPARecSig"), candidate.cpa());
         registry.fill(HIST("hEtaRecSig"), candidate.eta());
@@ -147,7 +147,7 @@ struct TaskLcMC {
         //Printf("MC Gen.: eta rejection: %g", particle.eta());
         continue;
       }
-      if (std::abs(particle.flagMCMatchGen()) == LcToPKPi) {
+      if (std::abs(particle.flagMCMatchGen()) == 1 << LcToPKPi) {
         registry.fill(HIST("hPtGen"), particle.pt());
         registry.fill(HIST("hEtaGen"), particle.eta());
       }
