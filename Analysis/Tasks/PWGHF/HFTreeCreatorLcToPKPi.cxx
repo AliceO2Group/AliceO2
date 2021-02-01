@@ -290,7 +290,7 @@ struct CandidateTreeWriter {
     // Filling particle properties
     rowCandidateFullParticles.reserve(particles.size());
     for (auto& particle : particles) {
-      if (particle.flagMCMatchGen() == DecayType::LcToPKPi) {
+      if (std::abs(candidate.flagMCMatchRec()) == 1 << LcToPKPi) {
         rowCandidateFullParticles(
           particle.mcCollision().bcId(),
           particle.pt(),
