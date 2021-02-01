@@ -15,6 +15,7 @@
 // --- david.dobrigkeit.chinellato@cern.ch
 //******************************************************************
 
+#if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <string>
 #include <TFile.h>
 #include <TChain.h>
@@ -45,15 +46,13 @@
 #include "ReconstructionDataFormats/TrackParametrizationWithError.h"
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-
-#include "DetectorsVertexing/DCAFitterN.h"
 #include "ReconstructionDataFormats/DCA.h"
 #include "ReconstructionDataFormats/Vertex.h"
 #include "UpgradesAODUtils/Run2LikeAO2D.h"
+#endif
 
 using o2::its::MemoryParameters;
 using o2::its::TrackingParameters;
-
 using o2::itsmft::Hit;
 using std::string;
 
@@ -184,17 +183,6 @@ void ALICE3toAO2D()
 
   TH1D* hPtSpectra = new TH1D("hPtSpectra", "", ptbinnumb, ptbinlimits);
   TH1D* hPtSpectraFake = new TH1D("hPtSpectraFake", "", ptbinnumb, ptbinlimits);
-
-  //Define o2 fitter, 2-prong
-  o2::vertexing::DCAFitterN<2> fitterV0, fitterCasc, fitterCascC;
-  fitterV0.setBz(5);
-  fitterV0.setPropagateToPCA(true);
-  fitterV0.setMaxR(200.);
-  fitterV0.setMinParamChange(1e-5);
-  fitterV0.setMinRelChi2Change(0.9);
-  fitterV0.setMaxDZIni(1e9);
-  fitterV0.setMaxChi2(1e9);
-  fitterV0.setUseAbsDCA(true);
 
   //+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   std::cout << "*- Setting up output file..." << std::endl;
