@@ -16,6 +16,7 @@ target_link_libraries(allsim
                       INTERFACE O2::SimConfig
                                 O2::Steer
                                 O2::SimSetup
+                                O2::SimulationDataFormat
                                 FairMQ::FairMQ
                                 O2::CPVSimulation
                                 O2::DetectorsPassive
