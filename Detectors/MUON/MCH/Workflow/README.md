@@ -27,6 +27,14 @@
 
 `o2-mch-raw-to-digits-workflow`
 
+The workflow accepts the following options:
+
+* `--debug`: enable verbose output
+* `--dataspec`: selection string for the input data (default: `"TF:MCH/RAWDATA"`)
+* `--cru-map`: path to custom CRU mapping file
+* `--fec-map`: path to custom FEC mapping file
+* `--ds2manu`: convert channel numbering from Run3 to Run1-2 order
+
 ## Digits to preclusters
 
 `o2-mch-digits-to-preclusters-workflow`

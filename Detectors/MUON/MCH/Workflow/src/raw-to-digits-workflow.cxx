@@ -28,15 +28,12 @@
 #include "Framework/CompletionPolicyHelpers.h"
 #include "MCHWorkflow/DataDecoderSpec.h"
 
-
 using namespace o2::framework;
-//using namespace o2::utilities;
 
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  workflowOptions.push_back(ConfigParamSpec{"input-spec", VariantType::String, "TF:MCH/RAWDATA", {"input data specification"}});
+  workflowOptions.push_back(ConfigParamSpec{"dataspec", VariantType::String, "TF:MCH/RAWDATA", {"selection string for the input data"}});
 }
-
 
 #include "Framework/runDataProcessing.h"
 
@@ -45,7 +42,7 @@ using namespace o2::framework;
 
 WorkflowSpec defineDataProcessing(const ConfigContext& config)
 {
-  auto inputSpec = config.options().get<std::string>("input-spec");
+  auto inputSpec = config.options().get<std::string>("dataspec");
 
   WorkflowSpec specs;
 
