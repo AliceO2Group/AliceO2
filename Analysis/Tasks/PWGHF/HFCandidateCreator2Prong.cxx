@@ -67,7 +67,7 @@ struct HFCandidateCreator2Prong {
     df.setMinRelChi2Change(d_minrelchi2change);
     df.setUseAbsDCA(true);
 
-    // loop over pairs of track indeces
+    // loop over pairs of track indices
     for (const auto& rowTrackIndexProng2 : rowsTrackIndexProng2) {
       auto trackParVarPos1 = getTrackParCov(rowTrackIndexProng2.index0());
       auto trackParVarNeg1 = getTrackParCov(rowTrackIndexProng2.index1());
@@ -147,51 +147,51 @@ struct HFCandidateCreator2ProngMC {
                aod::McParticles const& particlesMC)
   {
     int8_t sign = 0;
-    int8_t result = N2ProngDecays;
+    int8_t flag = 0;
 
     // Match reconstructed candidates.
     for (auto& candidate : candidates) {
       //Printf("New rec. candidate");
-      result = N2ProngDecays;
+      flag = 0;
       auto arrayDaughters = array{candidate.index0_as<aod::BigTracksMC>(), candidate.index1_as<aod::BigTracksMC>()};
 
       // D0(bar) → π± K∓
       //Printf("Checking D0(bar) → π± K∓");
       if (RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, 421, array{+kPiPlus, -kKPlus}, true, &sign) > -1) {
-        result = sign * D0ToPiK;
+        flag = sign * (1 << D0ToPiK);
       }
 
       // J/ψ → e+ e-
-      if (result == N2ProngDecays) {
+      if (flag == 0) {
         //Printf("Checking J/ψ → e+ e-");
         if (RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), 443, array{+kElectron, -kElectron}, true) > -1) {
-          result = JpsiToEE;
+          flag = 1 << JpsiToEE;
         }
       }
 
-      rowMCMatchRec(result);
+      rowMCMatchRec(flag);
     }
 
     // Match generated particles.
     for (auto& particle : particlesMC) {
       //Printf("New gen. candidate");
-      result = N2ProngDecays;
+      flag = 0;
 
       // D0(bar) → π± K∓
       //Printf("Checking D0(bar) → π± K∓");
       if (RecoDecay::isMatchedMCGen(particlesMC, particle, 421, array{+kPiPlus, -kKPlus}, true, &sign)) {
-        result = sign * D0ToPiK;
+        flag = sign * (1 << D0ToPiK);
       }
 
       // J/ψ → e+ e-
-      if (result == N2ProngDecays) {
+      if (flag == 0) {
         //Printf("Checking J/ψ → e+ e-");
         if (RecoDecay::isMatchedMCGen(particlesMC, particle, 443, array{+kElectron, -kElectron}, true)) {
-          result = JpsiToEE;
+          flag = 1 << JpsiToEE;
         }
       }
 
-      rowMCMatchGen(result);
+      rowMCMatchGen(flag);
     }
   }
 };

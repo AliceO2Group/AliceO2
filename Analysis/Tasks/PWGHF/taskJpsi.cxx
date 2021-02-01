@@ -118,7 +118,7 @@ struct TaskJpsiMC {
         //Printf("MC Rec.: eta rejection: %g", candidate.eta());
         continue;
       }
-      if (candidate.flagMCMatchRec() == JpsiToEE) {
+      if (candidate.flagMCMatchRec() == 1 << JpsiToEE) {
         registry.fill(HIST("hPtRecSig"), candidate.pt());
         registry.fill(HIST("hCPARecSig"), candidate.cpa());
         registry.fill(HIST("hEtaRecSig"), candidate.eta());
@@ -135,7 +135,7 @@ struct TaskJpsiMC {
         //Printf("MC Gen.: eta rejection: %g", particle.eta());
         continue;
       }
-      if (std::abs(particle.flagMCMatchGen()) == JpsiToEE) {
+      if (particle.flagMCMatchGen() == 1 << JpsiToEE) {
         registry.fill(HIST("hPtGen"), particle.pt());
         registry.fill(HIST("hEtaGen"), particle.eta());
       }

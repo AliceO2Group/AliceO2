@@ -66,7 +66,7 @@ struct HFCandidateCreator3Prong {
     df.setMinRelChi2Change(d_minrelchi2change);
     df.setUseAbsDCA(true);
 
-    // loop over pairs of track indeces
+    // loop over triplets of track indices
     for (const auto& rowTrackIndexProng3 : rowsTrackIndexProng3) {
       auto trackParVar0 = getTrackParCov(rowTrackIndexProng3.index0());
       auto trackParVar1 = getTrackParCov(rowTrackIndexProng3.index1());
@@ -151,51 +151,51 @@ struct HFCandidateCreator3ProngMC {
                aod::McParticles const& particlesMC)
   {
     int8_t sign = 0;
-    int8_t result = N3ProngDecays;
+    int8_t flag = 0;
 
     // Match reconstructed candidates.
     for (auto& candidate : candidates) {
       //Printf("New rec. candidate");
-      result = N3ProngDecays;
+      flag = 0;
       auto arrayDaughters = array{candidate.index0_as<aod::BigTracksMC>(), candidate.index1_as<aod::BigTracksMC>(), candidate.index2_as<aod::BigTracksMC>()};
 
       // D± → π± K∓ π±
       //Printf("Checking D± → π± K∓ π±");
       if (RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, 411, array{+kPiPlus, -kKPlus, +kPiPlus}, true, &sign) > -1) {
-        result = sign * DPlusToPiKPi;
+        flag = sign * (1 << DPlusToPiKPi);
       }
 
       // Λc± → p± K∓ π±
-      if (result == N3ProngDecays) {
+      if (flag == 0) {
         //Printf("Checking Λc± → p± K∓ π±");
         if (RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), 4122, array{+kProton, -kKPlus, +kPiPlus}, true, &sign) > -1) {
-          result = sign * LcToPKPi;
+          flag = sign * (1 << LcToPKPi);
         }
       }
 
-      rowMCMatchRec(result);
+      rowMCMatchRec(flag);
     }
 
     // Match generated particles.
     for (auto& particle : particlesMC) {
       //Printf("New gen. candidate");
-      result = N3ProngDecays;
+      flag = 0;
 
       // D± → π± K∓ π±
       //Printf("Checking D± → π± K∓ π±");
       if (RecoDecay::isMatchedMCGen(particlesMC, particle, 411, array{+kPiPlus, -kKPlus, +kPiPlus}, true, &sign)) {
-        result = sign * DPlusToPiKPi;
+        flag = sign * (1 << DPlusToPiKPi);
       }
 
       // Λc± → p± K∓ π±
-      if (result == N3ProngDecays) {
+      if (flag == 0) {
         //Printf("Checking Λc± → p± K∓ π±");
         if (RecoDecay::isMatchedMCGen(particlesMC, particle, 4122, array{+kProton, -kKPlus, +kPiPlus}, true, &sign)) {
-          result = sign * LcToPKPi;
+          flag = sign * (1 << LcToPKPi);
         }
       }
 
-      rowMCMatchGen(result);
+      rowMCMatchGen(flag);
     }
   }
 };
