@@ -286,7 +286,7 @@ struct DataBlockWrapper {
   {
     assert(mNelements <= T::MaxNelements);
     for (int i = 0; i < mNelements; i++) {
-      std::cout << "\nPringting element number: " << i << std::endl;
+      std::cout << "\nPrinting element number: " << i << std::endl;
       mData[i].print();
     }
   }
