@@ -37,7 +37,6 @@ class DigitReader : public Task
   void run(ProcessingContext& pc) final;
 
  private:
-  bool mFinished = false;
   bool mUseMC = true; // use MC truth
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginFDD;
 

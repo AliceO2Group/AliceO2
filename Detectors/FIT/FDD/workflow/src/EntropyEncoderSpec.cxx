@@ -63,8 +63,8 @@ void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
 DataProcessorSpec getEntropyEncoderSpec()
 {
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("digits", "FDD", "FDDDigit", 0, Lifetime::Timeframe);
-  inputs.emplace_back("channels", "FDD", "FDDDigitCh", 0, Lifetime::Timeframe);
+  inputs.emplace_back("digits", "FDD", "DIGITSBC", 0, Lifetime::Timeframe);
+  inputs.emplace_back("channels", "FDD", "DIGITSCH", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "fdd-entropy-encoder",
