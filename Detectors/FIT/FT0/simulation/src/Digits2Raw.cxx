@@ -259,5 +259,5 @@ int Digits2Raw::carryOverMethod(const header::RDHAny* rdh, const gsl::span<char>
                                 const char* ptr, int maxSize, int splitID,
                                 std::vector<char>& trailer, std::vector<char>& header) const
 {
-  return data.size() > maxSize ? 0 : data.size();
+  return 0; // do not split, always start new CRU page
 }
