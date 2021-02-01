@@ -27,6 +27,7 @@ o2_add_library(
     O2::TOFWorkflow
     O2::TPCWorkflow
     O2::CCDB
+    O2::MathUtils
 )
 
 o2_add_executable(
