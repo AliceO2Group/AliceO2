@@ -22,8 +22,6 @@
 #include "DataFormatsFDD/LookUpTable.h"
 #include <CommonDataFormat/InteractionRecord.h>
 #include <Framework/Logger.h>
-#include <iostream>
-#include <iomanip>
 #include <cstring>
 #include "Rtypes.h"
 
@@ -51,7 +49,9 @@ struct EventHeader {
     };
   };
   InteractionRecord getIntRec() const { return InteractionRecord{(uint16_t)bc, (uint32_t)orbit}; }
+  void print() const;
 };
+
 struct EventData {
   static constexpr size_t PayloadSize = 5;
   static constexpr size_t PayloadPerGBTword = 10;
@@ -97,6 +97,7 @@ struct EventData {
   {
     return uint8_t(word >> BitFlagPos);
   }
+  void print() const;
 };
 
 struct TCMdata {
@@ -136,6 +137,7 @@ struct TCMdata {
     trg.timeA = (int16_t)timeA;
     trg.timeC = (int16_t)timeC;
   }
+  void print() const;
 };
 
 class RawEventData
@@ -144,9 +146,9 @@ class RawEventData
   RawEventData() = default;
   EventHeader* getEventHeaderPtr() { return &mEventHeader; }
   EventData* getEventDataPtr() { return mEventData; }
-  void print();
-  void printHexEventHeader();
-  void printHexEventData(uint64_t i);
+  void print() const;
+  void printHexEventHeader() const;
+  void printHexEventData(uint64_t i) const;
   enum EEventDataBit { kNumberADC,
                        kIsDoubleEvent,
                        kIs1TimeLostEvent,
