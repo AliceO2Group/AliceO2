@@ -329,6 +329,8 @@ inline MCTrackT<T>::MCTrackT(const TParticle& part)
 {
   // our convention is to communicate the process as (part) of the unique ID
   setProcess(part.GetUniqueID());
+  // extract storage flag
+  setStore(part.TestBit(ParticleStatus::kKeep));
   // extract toBeDone flag
   setToBeDone(part.TestBit(ParticleStatus::kToBeDone));
   // extract inhibited flag
