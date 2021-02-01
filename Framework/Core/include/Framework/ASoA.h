@@ -79,6 +79,12 @@ constexpr bool is_index_table_v = false;
 template <typename T>
 constexpr bool is_index_table_v<T, std::void_t<decltype(sizeof(typename T::indexing_t))>> = true;
 
+template <typename T, typename = void>
+constexpr bool is_pid_table_v = false;
+
+template <typename T>
+constexpr bool is_pid_table_v<T, std::void_t<decltype(sizeof(typename T::is_pid_t))>> = true;
+
 template <typename T, typename TLambda>
 void call_if_has_originals(TLambda&& lambda)
 {
@@ -1566,6 +1572,32 @@ constexpr auto is_binding_compatible_v()
 
 #define DECLARE_SOA_INDEX_TABLE_EXCLUSIVE_USER(_Name_, _Key_, _Description_, ...) \
   DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, "AOD", _Description_, true, __VA_ARGS__)
+
+// Table for the PID
+#define DECLARE_SOA_PID_TABLE_FULL(_Name_, _Origin_, _Description_, ...)               \
+  using _Name_ = o2::soa::Table<__VA_ARGS__>;                                          \
+                                                                                       \
+  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {                 \
+    using table_t = _Name_;                                                            \
+    using sources_t = framework::pack<aod::Collisions, aod::Tracks, aod::TracksExtra>; \
+    using is_pid_t = std::true_type;                                                   \
+    static constexpr char const* mLabel = #_Name_;                                      \
+    static constexpr char const mOrigin[4] = _Origin_;                                 \
+    static constexpr char const mDescription[16] = _Description_;                      \
+  };                                                                                   \
+                                                                                       \
+  template <>                                                                          \
+  struct MetadataTrait<_Name_> {                                                       \
+    using metadata = _Name_##Metadata;                                                 \
+  };                                                                                   \
+                                                                                       \
+  template <>                                                                          \
+  struct MetadataTrait<_Name_::unfiltered_iterator> {                                  \
+    using metadata = _Name_##Metadata;                                                 \
+  };
+
+#define DECLARE_SOA_PID_TABLE(_Name_, _Description_, ...) \
+  DECLARE_SOA_PID_TABLE_FULL(_Name_, "PID", _Description_, __VA_ARGS__)
 
 namespace o2::soa
 {

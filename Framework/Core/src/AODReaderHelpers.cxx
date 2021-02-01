@@ -86,7 +86,6 @@ static inline auto extractOriginalsTuple(framework::pack<Os...>, ProcessingConte
 AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec> requested)
 {
   return AlgorithmSpec::InitCallback{[requested](InitContext& ic) {
-
     return [requested](ProcessingContext& pc) {
       auto outputs = pc.outputs();
       // spawn tables
@@ -146,7 +145,6 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec> requ
 AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> requested)
 {
   return AlgorithmSpec::InitCallback{[requested](InitContext& ic) {
-
     return [requested](ProcessingContext& pc) {
       auto outputs = pc.outputs();
       // spawn tables
@@ -178,6 +176,46 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
           outputs.adopt(Output{origin, description}, maker(o2::aod::MuonsExtensionMetadata{}));
         } else {
           throw runtime_error("Not an extended table");
+        }
+      }
+    };
+  }};
+}
+
+AlgorithmSpec AODReaderHelpers::pidBuilderCallback(std::vector<InputSpec> requested)
+{
+  return AlgorithmSpec::InitCallback{[requested](InitContext& ic) {
+    return [requested](ProcessingContext& pc) {
+      auto outputs = pc.outputs();
+      // spawn tables
+      for (auto& input : requested) {
+        auto description = std::visit(
+          overloaded{
+            [](ConcreteDataMatcher const& matcher) { return matcher.description; },
+            [](auto&&) { return header::DataDescription{""}; }},
+          input.matcher);
+
+        auto origin = std::visit(
+          overloaded{
+            [](ConcreteDataMatcher const& matcher) { return matcher.origin; },
+            [](auto&&) { return header::DataOrigin{""}; }},
+          input.matcher);
+
+        auto maker = [&](auto metadata) {
+          using metadata_t = decltype(metadata);
+          using sources = typename metadata_t::sources_t;
+          TableBuilder builder;
+          auto cursor = framework::FFL(builder.cursor<typename metadata_t::table_t>());
+          auto table = extractOriginalsTuple(sources{}, pc);
+          // Here I fill the cursor as a table
+          cursor(0, 1.);
+          return builder.finalize();
+        };
+        // Dispatch
+        if (description == header::DataDescription{"pidRespTOFEl"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::pidRespTestMetadata{}));
+        } else {
+          throw std::runtime_error("Not a PID table");
         }
       }
     };

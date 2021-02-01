@@ -73,7 +73,6 @@ struct AnalysisDataProcessorBuilder {
   template <typename T>
   static std::vector<ConfigParamSpec> getIndexSources()
   {
-    static_assert(soa::is_soa_index_table_t<T>::value, "Can only be used with IndexTable");
     return getInputSpecs(typename T::sources_t{});
   }
 
@@ -84,6 +83,12 @@ struct AnalysisDataProcessorBuilder {
     static_assert(std::is_same_v<metadata, void> == false,
                   "Could not find metadata. Did you register your type?");
     if constexpr (soa::is_soa_index_table_t<std::decay_t<Arg>>::value) {
+      auto inputSources = getIndexSources<std::decay_t<Arg>>();
+      std::sort(inputSources.begin(), inputSources.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name < b.name; });
+      auto last = std::unique(inputSources.begin(), inputSources.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name == b.name; });
+      inputSources.erase(last, inputSources.end());
+      inputs.push_back(InputSpec{metadata::tableLabel(), metadata::origin(), metadata::description(), Lifetime::Timeframe, inputSources});
+    } else if constexpr (soa::is_pid_table_v<metadata>) {
       auto inputSources = getIndexSources<std::decay_t<Arg>>();
       std::sort(inputSources.begin(), inputSources.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name < b.name; });
       auto last = std::unique(inputSources.begin(), inputSources.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name == b.name; });

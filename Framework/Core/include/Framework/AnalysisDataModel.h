@@ -638,6 +638,14 @@ DECLARE_SOA_INDEX_TABLE(Run3MatchedToBCSparse, BCs, "MA_RN3_BC_SP", indices::BCI
 using CollisionMatchedRun2Sparse = soa::Join<Collisions, Run2MatchedSparse>::iterator;
 using CollisionMatchedRun3Sparse = soa::Join<Collisions, Run3MatchedSparse>::iterator;
 
+namespace pidtest
+{
+DECLARE_SOA_COLUMN(TestExpSigma, testExpSigma, float);
+} // namespace pidtest
+
+DECLARE_SOA_PID_TABLE(pidRespTest, "pidRespTest",
+                      pidtest::TestExpSigma);
+
 } // namespace aod
 
 } // namespace o2

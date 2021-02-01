@@ -419,6 +419,26 @@ struct IndexManager<Builds<IDX, P>> {
     return true;
   }
 };
+
+/// Manager template for building index tables
+template <typename T>
+struct PIDManager {
+  static bool requestInputs(std::vector<InputSpec>&, T const&) { return false; };
+};
+
+template <typename IDX, typename P>
+struct PIDManager<Builds<IDX, P>> {
+  static bool requestInputs(std::vector<InputSpec>& inputs, Builds<IDX, P>& builds)
+  {
+    auto base_specs = builds.base_specs();
+    for (auto& base_spec : base_specs) {
+      if (std::find_if(inputs.begin(), inputs.end(), [&](InputSpec const& spec) { return base_spec.binding == spec.binding; }) == inputs.end()) {
+        inputs.emplace_back(base_spec);
+      }
+    }
+    return true;
+  }
+};
 } // namespace o2::framework
 
 #endif // ANALYSISMANAGERS_H

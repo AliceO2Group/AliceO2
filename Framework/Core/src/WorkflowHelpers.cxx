@@ -273,6 +273,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   std::vector<OutputSpec> providedAODs;
   std::vector<InputSpec> requestedDYNs;
   std::vector<InputSpec> requestedIDXs;
+  std::vector<InputSpec> requestedPIDs;
 
   std::vector<InputSpec> requestedCCDBs;
   std::vector<OutputSpec> providedCCDBs;
@@ -344,6 +345,11 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
           requestedIDXs.emplace_back(input);
         }
       }
+      if (DataSpecUtils::partialMatch(input, header::DataOrigin{"PID"})) {
+        if (std::find_if(requestedPIDs.begin(), requestedPIDs.end(), [&](InputSpec const& spec) { return input.binding == spec.binding; }) == requestedPIDs.end()) {
+          requestedPIDs.emplace_back(input);
+        }
+      }
     }
 
     std::stable_sort(timer.outputs.begin(), timer.outputs.end(), [](OutputSpec const& a, OutputSpec const& b) { return *DataSpecUtils::getOptionalSubSpec(a) < *DataSpecUtils::getOptionalSubSpec(b); });
@@ -377,6 +383,11 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   last = std::unique(requestedIDXs.begin(), requestedIDXs.end());
   requestedIDXs.erase(last, requestedIDXs.end());
 
+  // Redundant duplicates removal
+  std::sort(requestedPIDs.begin(), requestedPIDs.end(), sortingEquals);
+  last = std::unique(requestedPIDs.begin(), requestedPIDs.end());
+  requestedPIDs.erase(last, requestedPIDs.end());
+
   DataProcessorSpec aodSpawner{
     "internal-dpl-aod-spawner",
     {},
@@ -391,8 +402,25 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     readers::AODReaderHelpers::indexBuilderCallback(requestedIDXs),
     {}};
 
+  auto pidServices = CommonServices::defaultServices();
+  // pidServices.push_back( );// Add CCDB here
+
+  DataProcessorSpec pidBuilder{
+    "internal-dpl-aod-pid-builder",
+    {},
+    {},
+    readers::AODReaderHelpers::pidBuilderCallback(requestedPIDs),
+    {{ConfigParamSpec{"aod-file", VariantType::String, {"Input AOD file"}},
+      ConfigParamSpec{"aod-reader-json", VariantType::String, {"json configuration file"}},
+      ConfigParamSpec{"time-limit", VariantType::Int64, 0ll, {"Maximum run time limit in seconds"}},
+      ConfigParamSpec{"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
+      ConfigParamSpec{"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}},
+      ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}}}},
+    pidServices};
+
   addMissingOutputsToSpawner(std::move(requestedDYNs), requestedAODs, aodSpawner);
   addMissingOutputsToBuilder(std::move(requestedIDXs), requestedAODs, indexBuilder);
+  addMissingOutputsToBuilder(std::move(requestedPIDs), requestedAODs, pidBuilder);
 
   addMissingOutputsToReader(providedAODs, requestedAODs, aodReader);
   addMissingOutputsToReader(providedCCDBs, requestedCCDBs, ccdbBackend);
@@ -415,6 +443,10 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   if (indexBuilder.outputs.empty() == false) {
     extraSpecs.push_back(indexBuilder);
+  }
+
+  if (pidBuilder.outputs.empty() == false) {
+    extraSpecs.push_back(pidBuilder);
   }
 
   // add the reader
