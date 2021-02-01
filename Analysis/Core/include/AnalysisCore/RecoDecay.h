@@ -501,7 +501,12 @@ class RecoDecay
       }
     }
     // Get the mass of the new particle and add it in the list.
-    auto newMass = TDatabasePDG::Instance()->GetParticle(pdg)->Mass();
+    const TParticlePDG* particle = TDatabasePDG::Instance()->GetParticle(pdg);
+    if (!particle) { // Check that it's there
+      LOGF(fatal, "Cannot find particle mass for PDG code %i", pdg);
+      return 999.;
+    }
+    auto newMass = particle->Mass();
     mListMass.push_back(std::make_tuple(pdg, newMass));
     return newMass;
   }
