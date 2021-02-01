@@ -19,7 +19,7 @@ namespace o2
 {
 namespace fdd
 {
-framework::WorkflowSpec getRecoWorkflow(bool useMC);
+framework::WorkflowSpec getRecoWorkflow(bool useMC, bool disableRootInp, bool disableRootOut);
 } // namespace fdd
 } // namespace o2
 #endif
