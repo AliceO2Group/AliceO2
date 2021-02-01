@@ -19,8 +19,6 @@ bool has_pi0_converted(const TParticle& pi0, const std::vector<TParticle>& parti
 {  
   if (pi0.GetPdgCode() != 111) return false;
   if (std::fabs(pi0.Eta()) > 1.0) return false;
-  //  pi0.Print();
-  //  std::cout << "HERE: " << pi0.GetNDaughters() << std::endl;
   if (pi0.GetNDaughters() != 2) return false;
   auto& d1 = particles[pi0.GetFirstDaughter()];
   auto& d2 = particles[pi0.GetLastDaughter()];
