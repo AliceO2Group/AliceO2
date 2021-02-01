@@ -178,13 +178,19 @@ GeneratorFromO2Kine::GeneratorFromO2Kine(const char* name)
     }
   }
   LOG(ERROR) << "Problem reading events from file " << name;
+}
+
+bool GeneratorFromO2Kine::Init()
+{
 
   // read and set params
   auto& param = GeneratorFromO2KineParam::Instance();
-  LOG(INFO) << "Instance \'FromO2Kine\' generator with following parameters";
+  LOG(INFO) << "Init \'FromO2Kine\' generator with following parameters";
   LOG(INFO) << param;
   mSkipNonTrackable = param.skipNonTrackable;
   mContinueMode = param.continueMode;
+
+  return true;
 }
 
 void GeneratorFromO2Kine::SetStartEvent(int start)
