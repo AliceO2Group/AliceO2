@@ -63,9 +63,8 @@ void Digits2Raw::readDigits(const std::string& outDir, const std::string& fileDi
       auto channels = bcd.getBunchChannelData(digitsCh);
 
       if (!channels.empty()) {
-        LOG(DEBUG);
-        LOG(INFO) << "o2::fdd::Digits2Raw::readDigits(): Start to convertDigits() at ibc = " << ibc << "  " << bcd.mIntRecord
-                  << " iCh0:" << bcd.ref.getFirstEntry() << "  nentries:" << bcd.ref.getEntries();
+        LOG(DEBUG) << "o2::fdd::Digits2Raw::readDigits(): Start to convertDigits() at ibc = " << ibc << "  " << bcd.mIntRecord
+                   << " iCh0:" << bcd.ref.getFirstEntry() << "  nentries:" << bcd.ref.getEntries();
         convertDigits(bcd, channels, lut);
       }
     }
