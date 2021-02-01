@@ -225,8 +225,7 @@ struct make_indices : make_indices_impl<0, indices<>, N> {
 template <int I0, class F, int... I>
 constexpr auto do_make(F f, indices<I...>) -> gpu::gpustd::array<int, sizeof...(I)>
 {
-  gpu::gpustd::array<int, sizeof...(I)> retarr;
-  retarr.m_internal_V__ = {f(I0 + I)...};
+  gpu::gpustd::array<int, sizeof...(I)> retarr = {f(I0 + I)...};
   return retarr;
 }
 
@@ -243,16 +242,16 @@ class MatRepSymGPU
 {
  public:
   typedef T value_type;
-  GPUdi() MatRepSymGPU() {};
-  // GPUdi() T& operator()(size_t i, size_t j)
-  // {
-  //   return mArray[offset(i, j)];
-  // }
+  GPUdi() MatRepSymGPU(){};
+  GPUdi() T& operator()(size_t i, size_t j)
+  {
+    return mArray[offset(i, j)];
+  }
 
-  // GPUdi() T const& operator()(size_t i, size_t j) const
-  // {
-  //   return mArray[offset(i, j)];
-  // }
+  GPUdi() T const& operator()(size_t i, size_t j) const
+  {
+    return mArray[offset(i, j)];
+  }
 
   GPUdi() T& operator[](size_t i)
   {
@@ -336,7 +335,7 @@ class MatRepSymGPU
   static constexpr int off2(int i, int j) { return j < i ? off0(i) + j : off0(j) + i; }
   static constexpr int off1(int i) { return off2(i / D, i % D); }
 
-  static int off(int i)
+  static GPUdi() int off(int i)
   {
     static constexpr auto v = row_offsets_utils::make<D * D>(off1);
     return v[i];
@@ -358,6 +357,7 @@ class MatRepStdGPU
 {
  public:
   typedef T value_type;
+  GPUdi() MatRepStdGPU(){};
   GPUdi() const T& operator()(size_t i, size_t j) const
   {
     return mArray[i * D2 + j];
@@ -414,11 +414,11 @@ class MatRepStdGPU
   T mArray[kSize];
 };
 
-// /// SMatrixGPU starting port here
-// struct SMatrixIdentity {
-// };
-// struct SMatrixNoInit {
-// };
+/// SMatrixGPU starting port here
+struct SMatrixIdentity {
+};
+struct SMatrixNoInit {
+};
 
 // template <class ExprType, class T, size_t D, size_t D2 = 1, class R1 = MatRepStdGPU<T, D, D2>>
 // class Expr
@@ -457,9 +457,9 @@ class SMatrixGPU
   typedef R rep_type;
   typedef T* iterator;
   typedef const T* const_iterator;
-  GPUd() SMatrixGPU();
-  // GPUdi() SMatrixGPU(SMatrixNoInit) {}
-  // SMatrixGPU(SMatrixIdentity);
+  GPUd() SMatrixGPU(){};
+  GPUdi() SMatrixGPU(SMatrixNoInit) {}
+  SMatrixGPU(SMatrixIdentity);
   GPUd() SMatrixGPU(const SMatrixGPU<T, D1, D2, R>& rhs);
   // template <class R2>
   // SMatrixGPU(const SMatrixGPU<T, D1, D2, R2>& rhs);

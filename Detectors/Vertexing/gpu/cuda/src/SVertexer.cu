@@ -44,7 +44,18 @@ GPUg() void helloKernel()
   // o2::vertexing::DCAFitterN<2> mFitter2Prong;
   o2::gpu::gpustd::array<Vec3D, 2> arrVectors;
   o2::math_utils::MatRepSym<double, 3> repsym;
-  // MatStd3D repstd;
+  o2::math_utils::MatRepStd<double, 3> repstd;
+  MatSym3D matSimRepBased;
+  MatStd3D matStdRepBased;
+  matSimRepBased(0, 0) = 0.0f;
+  matSimRepBased(2, 2) = 4.0f;
+  matSimRepBased(0, 2) = 2.0f;
+  matSimRepBased(0, 1) = 1.0f;
+  matSimRepBased(1, 1) = 3.0f;
+  matSimRepBased(2, 1) = 5.0f;
+
+  matStdRepBased(1, 1) = 4.5f;
+  matStdRepBased(2, 1) = 9.9f;
 
   for (size_t iA{0}; iA < 2; ++iA) {
     for (size_t iV{0}; iV < 3; ++iV) {
@@ -53,6 +64,7 @@ GPUg() void helloKernel()
   }
 
   auto res = o2::math_utils::Dot(arrVectors[0], arrVectors[1]);
+
   // Debug
   printf("Initialisation result:\n");
   for (size_t iA{0}; iA < 2; ++iA) {
@@ -61,7 +73,24 @@ GPUg() void helloKernel()
     }
     printf("\n");
   }
+
   printf("Dot result %f\n", res);
+  printf(" = == = = = = == == == =\n");
+  printf("Sym representation:\n");
+  for (size_t iA{0}; iA < 3; ++iA) {
+    for (size_t iV{0}; iV < 3; ++iV) {
+      printf("(%lu, %lu): %f \t", iA, iV, matSimRepBased(iA, iV));
+    }
+    printf("\n");
+  }
+  printf("\n\nStd representation:\n");
+  for (size_t iA{0}; iA < 3; ++iA) {
+    for (size_t iV{0}; iV < 3; ++iV) {
+      printf("(%lu, %lu): %f \t", iA, iV, matStdRepBased(iA, iV));
+    }
+    printf("\n");
+  }
+  printf("\n\n");
 }
 
 void hello_util()
