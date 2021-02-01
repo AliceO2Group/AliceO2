@@ -1,0 +1,44 @@
+{
+  "repository": {
+    "releases": {
+      "edges": [
+        {
+          "node": {
+            "tagName": "O2-1.0.0",
+            "publishedAt": "2018-11-21T13:41:46Z"
+          }
+        },
+        {
+          "node": {
+            "tagName": "v1.2.0",
+            "publishedAt": "2020-02-25T09:10:00Z"
+          }
+        },
+        {
+          "node": {
+            "tagName": "v1.3.0",
+            "publishedAt": "2020-09-22T07:21:04Z"
+          }
+        },
+        {
+          "node": {
+            "tagName": "v20.49",
+            "publishedAt": "2020-12-11T16:12:56Z"
+          }
+        },
+        {
+          "node": {
+            "tagName": "v21.01",
+            "publishedAt": "2021-01-05T16:47:05Z"
+          }
+        },
+        {
+          "node": {
+            "tagName": "v21.03",
+            "publishedAt": "2021-01-21T13:14:28Z"
+          }
+        }
+      ]
+    }
+  }
+}
