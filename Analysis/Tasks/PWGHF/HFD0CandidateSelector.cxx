@@ -236,7 +236,7 @@ struct HFD0CandidateSelector {
   {
     double nSigma = 100.0; //arbitarily large value
     nPDG = TMath::Abs(nPDG);
-    if (nPDG == 111) {
+    if (nPDG == 211) {
       nSigma = track.tpcNSigmaPi();
     } else if (nPDG == 321) {
       nSigma = track.tpcNSigmaKa();
@@ -257,7 +257,7 @@ struct HFD0CandidateSelector {
   {
     double nSigma = 100.0; //arbitarily large value
     nPDG = TMath::Abs(nPDG);
-    if (nPDG == 111) {
+    if (nPDG == 211) {
       nSigma = track.tofNSigmaPi();
     } else if (nPDG == 321) {
       nSigma = track.tofNSigmaKa();
