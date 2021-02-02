@@ -67,6 +67,8 @@ class GeneratorFromO2Kine : public o2::eventgen::Generator
   GeneratorFromO2Kine() = default;
   GeneratorFromO2Kine(const char* name);
 
+  bool Init() override;
+
   // the o2 Generator interface methods
   bool generateEvent() override
   { /* trivial - actual work in importParticles */
