@@ -84,7 +84,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, valu
   }
   this->setX(xk);
   double dy2dx = (f1 + f2) / (r1 + r2);
-  value_t dP[kNParams] = {0.f};
+  params_t dP{0.f};
   dP[kY] = dx * dy2dx;
   dP[kSnp] = x2r;
   if (gpu::CAMath::Abs(x2r) < 0.05f) {
@@ -691,7 +691,7 @@ GPUd() void TrackParametrizationWithError<value_T>::resetCovariance(value_t s2)
 
 //______________________________________________
 template <typename value_T>
-GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const dim2_t& p, const dim3_t& cov) const -> value_t
+GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const value_t* p, const value_t* cov) const -> value_t
 {
   // Estimate the chi2 of the space point "p" with the cov. matrix "cov"
   auto sdd = static_cast<double>(getSigmaY2()) + static_cast<double>(cov[0]);
@@ -860,7 +860,7 @@ bool TrackParametrizationWithError<value_T>::update(const TrackParametrizationWi
 
 //______________________________________________
 template <typename value_T>
-GPUd() bool TrackParametrizationWithError<value_T>::update(const dim2_t& p, const dim3_t& cov)
+GPUd() bool TrackParametrizationWithError<value_T>::update(const value_t* p, const value_t* cov)
 {
   // Update the track parameters with the space point "p" having
   // the covariance matrix "cov"
@@ -897,8 +897,8 @@ GPUd() bool TrackParametrizationWithError<value_T>::update(const dim2_t& p, cons
     return false;
   }
 
-  value_t dP[kNParams] = {value_t(k00 * dy + k01 * dz), value_t(k10 * dy + k11 * dz), dsnp, value_t(k30 * dy + k31 * dz),
-                          value_t(k40 * dy + k41 * dz)};
+  const params_t dP{value_t(k00 * dy + k01 * dz), value_t(k10 * dy + k11 * dz), dsnp, value_t(k30 * dy + k31 * dz),
+                    value_t(k40 * dy + k41 * dz)};
   this->updateParams(dP);
 
   double c01 = cm10, c02 = cm20, c03 = cm30, c04 = cm40;
