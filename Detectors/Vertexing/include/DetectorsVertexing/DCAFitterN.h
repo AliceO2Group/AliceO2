@@ -15,7 +15,7 @@
 
 #ifndef _ALICEO2_DCA_FITTERN_
 #define _ALICEO2_DCA_FITTERN_
-// #include <TMath.h>
+
 #include "ReconstructionDataFormats/Track.h"
 #include "DetectorsVertexing/HelixHelper.h"
 #include "GPUCommonArray.h"
@@ -23,10 +23,12 @@
 
 using namespace o2::gpu;
 
-#if defined(GPUCA_GPUCODE)
+#if !defined(__CUDACC__) && !defined(__HIPCC__)
 using ROOT::Math::Dot;
 using ROOT::Math::Similarity;
 #else
+using o2::math_utils::Dot;
+using o2::math_utils::Similarity;
 #endif
 
 namespace o2
@@ -55,11 +57,11 @@ struct TrackCovI {
       syz = -cyz * detYZI;
       szz = cyy * detYZI;
     } else {
-#ifndef GPUCA_GPUCODE_DEVICE
+#if !defined(__CUDACC__) && !defined(__HIPCC__)
       throw std::runtime_error("invalid track covariance");
 #else
       constexpr int invalid_track_covariance{0};
-      assert(invalid_track_covariance);
+      gpu_assert(invalid_track_covariance);
 #endif
     }
   }
@@ -134,11 +136,11 @@ class DCAFitterN
   GPUd() const Track& getTrack(int i, int cand = 0) const
   {
     if (!mTrPropDone[mOrder[cand]]) {
-#ifndef GPUCA_GPUCODE_DEVICE
+#if !defined(__CUDACC__) && !defined(__HIPCC__)
       throw std::runtime_error("propagateTracksToVertex was not called yet");
 #else
       constexpr int propagate_tracks_to_vertex_not_called_yet{0};
-      assert(propagate_tracks_to_vertex_not_called_yet);
+      gpu_assert(propagate_tracks_to_vertex_not_called_yet);
 #endif
     }
     return mCandTr[mOrder[cand]][i];
@@ -787,7 +789,7 @@ GPUd() bool DCAFitterN<N, Args...>::minimizeChi2()
 
     // do Newton-Rapson iteration with corrections = - dchi2/d{x0..xN} * [ d^2chi2/d{x0..xN}^2 ]^-1
     if (!mD2Chi2Dx2.Invert()) {
-#if !defined(GPUCA_GPUCODE)
+#if !defined(__CUDACC__)
       LOG(ERROR) << "InversionFailed";
 #else
       printf("InversionFailed");
@@ -844,7 +846,7 @@ GPUd() bool DCAFitterN<N, Args...>::minimizeChi2NoErr()
 
     // do Newton-Rapson iteration with corrections = - dchi2/d{x0..xN} * [ d^2chi2/d{x0..xN}^2 ]^-1
     if (!mD2Chi2Dx2.Invert()) {
-#if !defined(GPUCA_GPUCODE)
+#if !defined(__CUDACC__)
       LOG(ERROR) << "InversionFailed";
 #else
       printf("InversionFailed");
@@ -904,7 +906,7 @@ GPUd() bool DCAFitterN<N, Args...>::closerToAlternative() const
 template <int N, typename... Args>
 GPUd() void DCAFitterN<N, Args...>::print() const
 {
-#if !defined(GPUCA_GPUCODE_DEVICE)
+#if !defined(__CUDACC__)
   LOG(INFO) << N << "-prong vertex fitter in " << (mUseAbsDCA ? "abs." : "weighted") << " distance minimization mode";
   LOG(INFO) << "Bz: " << mBz << " MaxIter: " << mMaxIter << " MaxChi2: " << mMaxChi2;
   LOG(INFO) << "Stopping condition: Max.param change < " << mMinParamChange << " Rel.Chi2 change > " << mMinRelChi2Change;

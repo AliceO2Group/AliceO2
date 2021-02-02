@@ -14,10 +14,8 @@
 #include "DetectorsVertexingCUDA/SVertexer.h"
 #endif
 
-#include "DetectorsVertexing/SMatrixGPU.h"
-// #include "DetectorsVertexing/DCAFitterN.h" // <- target
-// #include "DetectorsVertexing/HelixHelper.h"
-// #include "ReconstructionDataFormats/Track.h"
+// #include "DetectorsVertexing/SMatrixGPU.h"
+#include "DetectorsVertexing/DCAFitterN.h" // <- target
 
 namespace o2
 {
@@ -41,21 +39,33 @@ using MatStd3D = o2::math_utils::SMatrix<double, 3, 3, o2::math_utils::MatRepStd
 // Kernels
 GPUg() void helloKernel()
 {
-  // o2::vertexing::DCAFitterN<2> mFitter2Prong;
+  o2::vertexing::DCAFitterN<2> mFitter2Prong;
+  o2::vertexing::DCAFitterN<3> mFitter3Prong;
+  
   o2::gpu::gpustd::array<Vec3D, 2> arrVectors;
   o2::math_utils::MatRepSym<double, 3> repsym;
   o2::math_utils::MatRepStd<double, 3> repstd;
   MatSym3D matSimRepBased;
+  // o2::math_utils::SMatrixIdentity id;
+  // MatStd3D matStdRepBased{id};
   MatStd3D matStdRepBased;
-  matSimRepBased(0, 0) = 0.0f;
-  matSimRepBased(2, 2) = 4.0f;
-  matSimRepBased(0, 2) = 2.0f;
-  matSimRepBased(0, 1) = 1.0f;
-  matSimRepBased(1, 1) = 3.0f;
-  matSimRepBased(2, 1) = 5.0f;
+  for (size_t iA{0}; iA < 3; ++iA) {
+    for (size_t iV{0}; iV < 3; ++iV) {
+      matStdRepBased(iA, iV) = 1.f;
+    }
+  }
 
-  matStdRepBased(1, 1) = 4.5f;
-  matStdRepBased(2, 1) = 9.9f;
+  MatStd3D result;
+  matSimRepBased(0, 0) = 1.0f;
+  matSimRepBased(2, 2) = 1.0f;
+  matSimRepBased(0, 2) = 1.0f;
+  matSimRepBased(0, 1) = 1.0f;
+  matSimRepBased(1, 1) = 1.0f;
+  matSimRepBased(2, 1) = 1.0f;
+
+  result = matSimRepBased * matStdRepBased;
+  // matStdRepBased(1, 1) = 4.5f;
+  // matStdRepBased(2, 1) = 9.9f;
 
   for (size_t iA{0}; iA < 2; ++iA) {
     for (size_t iV{0}; iV < 3; ++iV) {
@@ -83,10 +93,19 @@ GPUg() void helloKernel()
     }
     printf("\n");
   }
+
   printf("\n\nStd representation:\n");
   for (size_t iA{0}; iA < 3; ++iA) {
     for (size_t iV{0}; iV < 3; ++iV) {
       printf("(%lu, %lu): %f \t", iA, iV, matStdRepBased(iA, iV));
+    }
+    printf("\n");
+  }
+
+  printf("\n\nResult sym*std:\n");
+  for (size_t iA{0}; iA < 3; ++iA) {
+    for (size_t iV{0}; iV < 3; ++iV) {
+      printf("(%lu, %lu): %f \t", iA, iV, result(iA, iV));
     }
     printf("\n");
   }
