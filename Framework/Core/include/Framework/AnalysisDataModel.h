@@ -280,6 +280,15 @@ DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float);
 DECLARE_SOA_DYNAMIC_COLUMN(Charge, charge, [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
 DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, -1.f * nlog(ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::trackfwd::tgl))));
 DECLARE_SOA_EXPRESSION_COLUMN(Pt, pt, float, nabs(1.f / aod::trackfwd::signed1Pt));
+DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float pt, float phi) -> float {
+  return pt * std::cos(phi);
+});
+DECLARE_SOA_DYNAMIC_COLUMN(Py, py, [](float pt, float phi) -> float {
+  return pt * std::sin(phi);
+});
+DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, [](float pt, float tgl) -> float {
+  return pt * tgl;
+});
 DECLARE_SOA_EXPRESSION_COLUMN(P, p, float, 0.5f * (ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::trackfwd::tgl)) + 1.f / ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::trackfwd::tgl))) / nabs(aod::trackfwd::signed1Pt));
 
 // TRACKPARCOVFWD TABLE definition
@@ -314,6 +323,11 @@ DECLARE_SOA_EXPRESSION_COLUMN(C1PtX, c1PtX, float, (aod::trackfwd::rho1PtX / 128
 DECLARE_SOA_EXPRESSION_COLUMN(C1PtPhi, c1PtPhi, float, (aod::trackfwd::rho1PtPhi / 128.f) * (aod::trackfwd::sigma1Pt * aod::trackfwd::sigmaPhi));
 DECLARE_SOA_EXPRESSION_COLUMN(C1PtTgl, c1PtTgl, float, (aod::trackfwd::rho1PtTgl / 128.f) * (aod::trackfwd::sigma1Pt * aod::trackfwd::sigmaTgl));
 DECLARE_SOA_EXPRESSION_COLUMN(C1Pt21Pt2, c1Pt21Pt2, float, aod::trackfwd::sigma1Pt* aod::trackfwd::sigma1Pt);
+
+// TRACKFWDEXTRA TABLE definition
+DECLARE_SOA_COLUMN(Chi2, chi2, float);
+DECLARE_SOA_COLUMN(Chi2Match, chi2Match, float);
+
 } // namespace trackfwd
 
 DECLARE_SOA_TABLE_FULL(StoredTracksFwd, "TracksFwd", "AOD", "TRACKFWD:PAR",
@@ -321,9 +335,9 @@ DECLARE_SOA_TABLE_FULL(StoredTracksFwd, "TracksFwd", "AOD", "TRACKFWD:PAR",
                        trackfwd::X,
                        trackfwd::Y, trackfwd::Z, trackfwd::Phi, trackfwd::Tgl,
                        trackfwd::Signed1Pt,
-                       // trackfwd::Px<trackfwd::Signed1Pt, trackfwd::Phi>,
-                       // trackfwd::Py<trackfwd::Signed1Pt, trackfwd::Phi>,
-                       // trackfwd::Pz<trackfwd::Signed1Pt, trackfwd::Tgl>,
+                       trackfwd::Px<trackfwd::Pt, trackfwd::Phi>,
+                       trackfwd::Py<trackfwd::Pt, trackfwd::Phi>,
+                       trackfwd::Pz<trackfwd::Pt, trackfwd::Tgl>,
                        trackfwd::Charge<trackfwd::Signed1Pt>);
 
 DECLARE_SOA_EXTENDED_TABLE(TracksFwd, StoredTracksFwd, "TRACKFWD:PAR",
@@ -353,10 +367,14 @@ DECLARE_SOA_EXTENDED_TABLE(TracksCovFwd, StoredTracksCovFwd, "TRACKFWD:PARCOV",
                            aod::trackfwd::C1PtTgl,
                            aod::trackfwd::C1Pt21Pt2);
 
+DECLARE_SOA_TABLE(TracksExtraFwd, "AOD", "TRACKFWD:EXTRA",
+                  trackfwd::Chi2, trackfwd::Chi2Match);
+
 using TrackFwd = TracksFwd::iterator;
 using TrackCovFwd = TracksCovFwd::iterator;
+using TrackExtraFwd = TracksExtraFwd::iterator;
 
-using FullTracksFwd = soa::Join<TracksFwd, TracksCovFwd>;
+using FullTracksFwd = soa::Join<TracksFwd, TracksCovFwd, TracksExtraFwd>;
 using FullTrackFwd = FullTracksFwd::iterator;
 
 namespace unassignedtracks
