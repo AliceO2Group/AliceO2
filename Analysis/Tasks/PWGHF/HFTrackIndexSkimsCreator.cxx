@@ -74,7 +74,7 @@ struct SelectTracks {
       int status_prong = 3; // selection flag , 2 bits on
 
       auto trackPt = track.pt();
-      if (b_dovalplots) {
+      if (b_dovalplots.value) {
         registry.get<TH1>(HIST("hpt_nocuts"))->Fill(trackPt);
       }
 
@@ -96,9 +96,9 @@ struct SelectTracks {
       }
 
       // quality cut
-      if (doCutQuality && status_prong > 0) { // FIXME to make a more complete selection e.g track.flags() & o2::aod::track::TPCrefit && track.flags() & o2::aod::track::GoldenChi2 &&
+      if (doCutQuality.value && status_prong > 0) { // FIXME to make a more complete selection e.g track.flags() & o2::aod::track::TPCrefit && track.flags() & o2::aod::track::GoldenChi2 &&
         UChar_t clustermap = track.itsClusterMap();
-        if (!(track.tpcNClsFound() >= d_tpcnclsfound &&
+        if (!(track.tpcNClsFound() >= d_tpcnclsfound.value &&
               track.flags() & o2::aod::track::ITSrefit &&
               (TESTBIT(clustermap, 0) || TESTBIT(clustermap, 1)))) {
           status_prong = 0;
