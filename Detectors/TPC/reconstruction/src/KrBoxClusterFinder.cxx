@@ -23,13 +23,6 @@
 
 using namespace o2::tpc;
 
-// Constructor:
-// The constructor allocates a three dimensional array (Pad,Row,Time) which is
-// later filled with the recorded charges for each digit
-KrBoxClusterFinder::KrBoxClusterFinder()
-{
-}
-
 // If a gain map already exists in form of a CalDet file, it can be specified here
 void KrBoxClusterFinder::loadGainMapFromFile(const std::string_view calDetFileName, const std::string_view gainMapName)
 {

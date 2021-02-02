@@ -95,7 +95,9 @@ class KrBoxClusterFinder
 {
  public:
   /// Constructor:
-  explicit KrBoxClusterFinder(); ///< Creates a 3D Map
+  /// The constructor allocates a three dimensional array (Pad,Row,Time) which is
+  /// later filled with the recorded charges for each digit
+  explicit KrBoxClusterFinder() = default;
 
   /// If a gain map exists, the map can be loaded with this function
   /// The function expects a CalDet file with a gain map (gain entry for each pad).
