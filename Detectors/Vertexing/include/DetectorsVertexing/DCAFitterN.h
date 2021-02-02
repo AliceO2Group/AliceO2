@@ -789,7 +789,7 @@ GPUd() bool DCAFitterN<N, Args...>::minimizeChi2()
 
     // do Newton-Rapson iteration with corrections = - dchi2/d{x0..xN} * [ d^2chi2/d{x0..xN}^2 ]^-1
     if (!mD2Chi2Dx2.Invert()) {
-#if !defined(__CUDACC__)
+#if !defined(__CUDACC__) && !defined(__HIPCC__)
       LOG(ERROR) << "InversionFailed";
 #else
       printf("InversionFailed");
