@@ -48,18 +48,18 @@ struct JetFinderHFTask {
                              60, 0., 60.));
   }
 
-  Configurable<int> d_selectionFlagD0{"d_selectionFlagD0", 1, "Selection Flag for D0"};
-  Configurable<int> d_selectionFlagD0bar{"d_selectionFlagD0bar", 1, "Selection Flag for D0bar"};
+  Configurable<int> d_selectionFlagD0ToPiK{"d_selectionFlagD0ToPiK", 1, "Selection Flag for D0ToPiK"};
+  Configurable<int> d_selectionFlagD0ToPiKbar{"d_selectionFlagD0ToPiKbar", 1, "Selection Flag for D0ToPiKbar"};
 
   //need enum as configurable
   enum pdgCode { pdgD0 = 421 };
 
   Filter trackCuts = (aod::track::pt > 0.15f && aod::track::eta > -0.9f && aod::track::eta < 0.9f);
-  Filter seltrack = (aod::hf_selcandidate_d0::isSelD0 >= d_selectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= d_selectionFlagD0bar);
+  Filter seltrack = (aod::hf_selcandidate_d0::isSelD0ToPiK >= d_selectionFlagD0ToPiK || aod::hf_selcandidate_d0::isSelD0ToPiKbar >= d_selectionFlagD0ToPiKbar);
 
   void process(aod::Collision const& collision,
                soa::Filtered<aod::Tracks> const& tracks,
-               soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate>> const& candidates)
+               soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0ToPiKCandidate>> const& candidates)
   {
     std::cout << "Per Event" << std::endl;
     // TODO: retrieve pion mass from somewhere
@@ -85,7 +85,7 @@ struct JetFinderHFTask {
       for (const auto& jet : jets) {
         isHFJet = false;
         for (const auto& constituent : jet.constituents()) {
-          if (constituent.user_index() == 1 && (candidate.isSelD0() == 1 || candidate.isSelD0bar() == 1)) {
+          if (constituent.user_index() == 1 && (candidate.isSelD0ToPiK() == 1 || candidate.isSelD0ToPiKbar() == 1)) {
             isHFJet = true;
             break;
           }

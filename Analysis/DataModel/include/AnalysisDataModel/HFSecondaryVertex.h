@@ -35,6 +35,14 @@ DECLARE_SOA_TABLE(HFSelTrack, "AOD", "HFSELTRACK",
                   hf_seltrack::DCAPrim0,
                   hf_seltrack::DCAPrim1);
 
+namespace hf_trackquality
+{
+DECLARE_SOA_COLUMN(TrackQuality, trackQuality, int);
+} // namespace hf_trackquality
+
+DECLARE_SOA_TABLE(HFTrackQuality, "AOD", "HFTRACKQUALITY",
+                  hf_trackquality::TrackQuality);
+
 using BigTracks = soa::Join<Tracks, TracksCov, TracksExtra, HFSelTrack>;
 using BigTracksMC = soa::Join<BigTracks, McTrackLabels>;
 using BigTracksPID = soa::Join<BigTracks, pidRespTPC, pidRespTOF>;

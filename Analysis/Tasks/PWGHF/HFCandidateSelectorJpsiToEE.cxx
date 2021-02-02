@@ -38,9 +38,10 @@ constexpr double cuts[npTBins][nCutVars] =
 
 /// Struct for applying Jpsi selection cuts
 
-struct HFJpsiToEECandidateSelector {
+struct HFCandidateSelectorJpsiToEE {
 
   Produces<aod::HFSelJpsiToEECandidate> hfSelJpsiToEECandidate;
+  Produces<aod::HFSelJpsiToEECuts> hfSelJpsiToEECuts;
 
   Configurable<double> d_pTCandMin{"d_pTCandMin", 0., "Lower bound of candidate pT"};
   Configurable<double> d_pTCandMax{"d_pTCandMax", 50., "Upper bound of candidate pT"};
@@ -48,8 +49,14 @@ struct HFJpsiToEECandidateSelector {
   Configurable<double> d_pidTPCMinpT{"d_pidTPCMinpT", 0.15, "Lower bound of track pT for TPC PID"};
   Configurable<double> d_pidTPCMaxpT{"d_pidTPCMaxpT", 10., "Upper bound of track pT for TPC PID"};
 
+  Configurable<bool> b_PID{"b_PID", true, "PID selection switch"};
   Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 70., "Lower bound of TPC findable clusters for good PID"};
-  Configurable<double> d_nSigmaTPC{"d_nSigmaTPC", 3., "Nsigma cut on TPC only"};
+  Configurable<double> d_nSigmaTPCMax{"d_nSigmaTPCMax", 3., "Upper limit of Nsigma cut on TPC only"};
+  Configurable<double> d_nSigmaTPCMin{"d_nSigmaTPCMin", -3., "Lower limit of Nsigma cut on TPC only"};
+
+  Configurable<bool> b_Debug{"b_Debug", false, "Produces Debug histogram"};
+  int selectionTopolBit = 0;
+  int selectionPIDBit = 0;
 
   /// Gets corresponding pT bin from cut file array
   /// \param candpT is the pT of the candidate
@@ -79,9 +86,6 @@ struct HFJpsiToEECandidateSelector {
     if (track.charge() == 0) {
       return false;
     }
-    if (track.tpcNClsFound() == 0) {
-      return false; //is it clusters findable or found - need to check
-    }
     return true;
   }
 
@@ -93,6 +97,7 @@ struct HFJpsiToEECandidateSelector {
   template <typename T1, typename T2>
   bool selectionTopol(const T1& hfCandProng2, const T2& trackPositron, const T2& trackElectron)
   {
+    bool selectionDebug = true;
     auto candpT = hfCandProng2.pt();
     int pTBin = getpTBin(candpT);
     if (pTBin == -1) {
@@ -100,23 +105,49 @@ struct HFJpsiToEECandidateSelector {
     }
 
     if (candpT < d_pTCandMin || candpT >= d_pTCandMax) {
-      return false; //check that the candidate pT is within the analysis range
+      //check that the candidate pT is within the analysis range
+      if (!b_Debug) {
+        return false; //check that the candidate pT is within the analysis range
+      }
+      selectionTopolBit |= 1 << 0;
+      selectionDebug = false;
     }
 
     if (TMath::Abs(InvMassJpsiToEE(hfCandProng2) - RecoDecay::getMassPDG(443)) > cuts[pTBin][0]) {
-      return false;
+      if (!b_Debug) {
+        return false; //check that the candidate pT is within the analysis range
+      }
+      selectionTopolBit |= 1 << 1;
+      selectionDebug = false;
     }
 
     if ((trackElectron.pt() < cuts[pTBin][3]) || (trackPositron.pt() < cuts[pTBin][3])) {
-      return false; //cut on daughter pT
+      //cut on daughter pT
+      if (!b_Debug) {
+        return false; //check that the candidate pT is within the analysis range
+      }
+      selectionTopolBit |= 1 << 2;
+      selectionDebug = false;
     }
     if (TMath::Abs(trackElectron.dcaPrim0()) > cuts[pTBin][1] || TMath::Abs(trackPositron.dcaPrim0()) > cuts[pTBin][1]) {
-      return false; //cut on daughter dca - need to add secondary vertex constraint here
+      //cut on daughter dca - need to add secondary vertex constraint here
+      if (!b_Debug) {
+        return false; //check that the candidate pT is within the analysis range
+      }
+      selectionTopolBit |= 1 << 3;
+      selectionDebug = false;
     }
     if (TMath::Abs(trackElectron.dcaPrim1()) > cuts[pTBin][2] || TMath::Abs(trackPositron.dcaPrim1()) > cuts[pTBin][2]) {
-      return false; //cut on daughter dca - need to add secondary vertex constraint here
+      //cut on daughter dca - need to add secondary vertex constraint here
+      if (!b_Debug) {
+        return false; //check that the candidate pT is within the analysis range
+      }
+      selectionTopolBit |= 1 << 4;
+      selectionDebug = false;
     }
-
+    if (b_Debug && !selectionDebug) {
+      return false;
+    }
     return true;
   }
 
@@ -139,9 +170,9 @@ struct HFJpsiToEECandidateSelector {
   /// \param nSigmaCut is the nsigma threshold to test against
   /// \return true if track satisfies TPC PID hypothesis for given Nsigma cut
   template <typename T>
-  bool selectionPIDTPC(const T& track, int nSigmaCut)
+  bool selectionPIDTPC(const T& track, double nSigmaCutMin, double nSigmaCutMax)
   {
-    return track.tpcNSigmaEl() < nSigmaCut;
+    return track.tpcNSigmaEl() > nSigmaCutMin && track.tpcNSigmaEl() < nSigmaCutMax;
   }
 
   /// PID selection on daughter track
@@ -152,7 +183,7 @@ struct HFJpsiToEECandidateSelector {
   {
 
     if (validTPCPID(track)) {
-      if (!selectionPIDTPC(track, d_nSigmaTPC)) {
+      if (!selectionPIDTPC(track, d_nSigmaTPCMin, d_nSigmaTPCMax)) {
 
         return 0; //rejected by PID
       } else {
@@ -164,37 +195,62 @@ struct HFJpsiToEECandidateSelector {
   }
   void process(aod::HfCandProng2 const& hfCandProng2s, aod::BigTracksPID const& tracks)
   {
-
     for (auto& hfCandProng2 : hfCandProng2s) { //looping over 2 prong candidates
+      int selectionDebug = true;
+      if (!(hfCandProng2.hfflag() & 1 << JpsiToEE)) {
+        hfSelJpsiToEECandidate(0);
+        if (b_Debug) {
+          hfSelJpsiToEECuts(selectionTopolBit, selectionPIDBit);
+        }
+        continue;
+      }
 
       auto trackPos = hfCandProng2.index0_as<aod::BigTracksPID>(); //positive daughter
       auto trackNeg = hfCandProng2.index1_as<aod::BigTracksPID>(); //negative daughter
 
-      if (!(hfCandProng2.hfflag() & 1 << JpsiToEE)) {
-        hfSelJpsiToEECandidate(0);
-        continue;
-      }
-
       // daughter track validity selection
       if (!daughterSelection(trackPos) || !daughterSelection(trackNeg)) {
-        hfSelJpsiToEECandidate(0);
-        continue;
+        if (!b_Debug) {
+          hfSelJpsiToEECandidate(0);
+          continue;
+        } else {
+          selectionDebug = false;
+        }
       }
 
       //implement filter bit 4 cut - should be done before this task at the track selection level
       //need to add special cuts (additional cuts on decay length and d0 norm)
 
       if (!selectionTopol(hfCandProng2, trackPos, trackNeg)) {
-        hfSelJpsiToEECandidate(0);
-        continue;
+        if (!b_Debug) {
+          hfSelJpsiToEECandidate(0);
+          continue;
+        } else {
+          selectionDebug = false;
+        }
       }
-
-      if (selectionPID(trackPos) == 0 || selectionPID(trackNeg) == 0) {
-        hfSelJpsiToEECandidate(0);
-        continue;
+      if (b_PID) {
+        if (selectionPID(trackPos) == 0 || selectionPID(trackNeg) == 0) {
+          if (!b_Debug) {
+            hfSelJpsiToEECandidate(0);
+            continue;
+          } else {
+            selectionDebug = false;
+          }
+        }
       }
 
       hfSelJpsiToEECandidate(1);
+      if (b_Debug) {
+        if (!selectionDebug) {
+          hfSelJpsiToEECandidate(0);
+        } else {
+          hfSelJpsiToEECandidate(1);
+        }
+        hfSelJpsiToEECuts(selectionTopolBit, selectionPIDBit);
+      } else {
+        hfSelJpsiToEECandidate(1);
+      }
     }
   }
 };
@@ -202,5 +258,5 @@ struct HFJpsiToEECandidateSelector {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HFJpsiToEECandidateSelector>("hf-jpsi-toee-candidate-selector")};
+    adaptAnalysisTask<HFCandidateSelectorJpsiToEE>("hf-candidate-selector-jpsitoee")};
 }

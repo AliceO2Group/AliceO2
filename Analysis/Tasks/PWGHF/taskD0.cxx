@@ -54,13 +54,13 @@ struct TaskD0 {
      {"hDecLenErr", "2-prong candidates;decay length error (cm);entries", {HistType::kTH1F, {{100, 0., 1.}}}},
      {"hDecLenXYErr", "2-prong candidates;decay length xy error (cm);entries", {HistType::kTH1F, {{100, 0., 1.}}}}}};
 
-  Configurable<int> d_selectionFlagD0{"d_selectionFlagD0", 1, "Selection Flag for D0"};
-  Configurable<int> d_selectionFlagD0bar{"d_selectionFlagD0bar", 1, "Selection Flag for D0bar"};
+  Configurable<int> d_selectionFlagD0ToPiK{"d_selectionFlagD0ToPiK", 1, "Selection Flag for D0ToPiK"};
+  Configurable<int> d_selectionFlagD0ToPiKbar{"d_selectionFlagD0ToPiKbar", 1, "Selection Flag for D0ToPiKbar"};
   Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
 
-  Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0 >= d_selectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= d_selectionFlagD0bar);
+  Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0ToPiK >= d_selectionFlagD0ToPiK || aod::hf_selcandidate_d0::isSelD0ToPiKbar >= d_selectionFlagD0ToPiKbar);
 
-  void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate>> const& candidates)
+  void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0ToPiKCandidate>> const& candidates)
   {
     //Printf("Candidates: %d", candidates.size());
     for (auto& candidate : candidates) {
@@ -71,10 +71,10 @@ struct TaskD0 {
         //Printf("Candidate: eta rejection: %g", candidate.eta());
         continue;
       }
-      if (candidate.isSelD0() >= d_selectionFlagD0) {
+      if (candidate.isSelD0ToPiK() >= d_selectionFlagD0ToPiK) {
         registry.fill(HIST("hmass"), InvMassD0(candidate));
       }
-      if (candidate.isSelD0bar() >= d_selectionFlagD0bar) {
+      if (candidate.isSelD0ToPiKbar() >= d_selectionFlagD0ToPiKbar) {
         registry.fill(HIST("hmass"), InvMassD0bar(candidate));
       }
       registry.fill(HIST("hptcand"), candidate.pt());
@@ -89,7 +89,7 @@ struct TaskD0 {
       registry.fill(HIST("hCt"), CtD0(candidate));
       registry.fill(HIST("hCPA"), candidate.cpa());
       registry.fill(HIST("hEta"), candidate.eta());
-      registry.fill(HIST("hselectionstatus"), candidate.isSelD0() + (candidate.isSelD0bar() * 2));
+      registry.fill(HIST("hselectionstatus"), candidate.isSelD0ToPiK() + (candidate.isSelD0ToPiKbar() * 2));
       registry.fill(HIST("hImpParErr"), candidate.errorImpactParameter0());
       registry.fill(HIST("hImpParErr"), candidate.errorImpactParameter1());
       registry.fill(HIST("hDecLenErr"), candidate.errorDecayLength());
@@ -112,13 +112,13 @@ struct TaskD0MC {
      {"hEtaRecBg", "2-prong candidates (unmatched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}},
      {"hEtaGen", "MC particles (matched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}}}};
 
-  Configurable<int> d_selectionFlagD0{"d_selectionFlagD0", 1, "Selection Flag for D0"};
-  Configurable<int> d_selectionFlagD0bar{"d_selectionFlagD0bar", 1, "Selection Flag for D0bar"};
+  Configurable<int> d_selectionFlagD0ToPiK{"d_selectionFlagD0ToPiK", 1, "Selection Flag for D0ToPiK"};
+  Configurable<int> d_selectionFlagD0ToPiKbar{"d_selectionFlagD0ToPiKbar", 1, "Selection Flag for D0ToPiKbar"};
   Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
 
-  Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0 >= d_selectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= d_selectionFlagD0bar);
+  Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0ToPiK >= d_selectionFlagD0ToPiK || aod::hf_selcandidate_d0::isSelD0ToPiKbar >= d_selectionFlagD0ToPiKbar);
 
-  void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate, aod::HfCandProng2MCRec>> const& candidates,
+  void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0ToPiKCandidate, aod::HfCandProng2MCRec>> const& candidates,
                soa::Join<aod::McParticles, aod::HfCandProng2MCGen> const& particlesMC, aod::BigTracksMC const& tracks)
   {
     // MC rec.

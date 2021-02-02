@@ -23,6 +23,11 @@ o2_add_dpl_workflow(qa-simple
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
                     COMPONENT_NAME Analysis)
 
+o2_add_dpl_workflow(hf-track-quality-selector
+                    SOURCES HFTrackQualitySelector.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing ROOT::EG
+                    COMPONENT_NAME Analysis)
+
 o2_add_dpl_workflow(hf-track-index-skims-creator
                     SOURCES HFTrackIndexSkimsCreator.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing ROOT::EG
@@ -38,18 +43,18 @@ o2_add_dpl_workflow(hf-candidate-creator-3prong
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing ROOT::EG
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(hf-d0-candidate-selector
-                    SOURCES HFD0CandidateSelector.cxx
+o2_add_dpl_workflow(hf-candidate-selector-d0topik
+                    SOURCES HFCandidateSelectorD0ToPiK.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(hf-lc-candidate-selector
-                    SOURCES HFLcCandidateSelector.cxx
+o2_add_dpl_workflow(hf-candidate-selector-lctopkpi
+                    SOURCES HFCandidateSelectorLcToPKPi.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(hf-jpsi-toee-candidate-selector   
-                    SOURCES HFJpsiToEECandidateSelector.cxx
+o2_add_dpl_workflow(hf-candidate-selector-jpsitoee  
+                    SOURCES HFCandidateSelectorJpsiToEE.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 

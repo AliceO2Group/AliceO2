@@ -54,13 +54,13 @@ struct TaskLc {
      {"hDecLenErr", "3-prong candidates;decay length error (cm);entries", {HistType::kTH1F, {{100, 0., 1.}}}},
      {"hdca2", "3-prong candidates;prong DCA to sec. vertex (cm);entries", {HistType::kTH1F, {{100, 0., 1.}}}}}};
 
-  Configurable<int> d_selectionFlagLc{"d_selectionFlagLc", 1, "Selection Flag for Lc"};
+  Configurable<int> d_selectionFlagLcToPKPi{"d_selectionFlagLcToPKPi", 1, "Selection Flag for LcToPKPi"};
   Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
 
-  Filter filterSelectCandidates = (aod::hf_selcandidate_lc::isSelLcpKpi >= d_selectionFlagLc || aod::hf_selcandidate_lc::isSelLcpiKp >= d_selectionFlagLc);
+  Filter filterSelectCandidates = (aod::hf_selcandidate_lc::isSelLcToPKPi >= d_selectionFlagLcToPKPi || aod::hf_selcandidate_lc::isSelLcToPiKP >= d_selectionFlagLcToPKPi);
 
   //void process(aod::HfCandProng3 const& candidates)
-  void process(soa::Filtered<soa::Join<aod::HfCandProng3, aod::HFSelLcCandidate>> const& candidates)
+  void process(soa::Filtered<soa::Join<aod::HfCandProng3, aod::HFSelLcToPKPiCandidate>> const& candidates)
   {
     for (auto& candidate : candidates) {
       if (!(candidate.hfflag() & 1 << LcToPKPi)) {
@@ -70,10 +70,10 @@ struct TaskLc {
         //Printf("Candidate: eta rejection: %g", candidate.eta());
         continue;
       }
-      if (candidate.isSelLcpKpi() >= d_selectionFlagLc) {
+      if (candidate.isSelLcToPKPi() >= d_selectionFlagLcToPKPi) {
         registry.fill(HIST("hmass"), InvMassLcpKpi(candidate));
       }
-      if (candidate.isSelLcpiKp() >= d_selectionFlagLc) {
+      if (candidate.isSelLcToPiKP() >= d_selectionFlagLcToPKPi) {
         registry.fill(HIST("hmass"), InvMassLcpiKp(candidate));
       }
       registry.fill(HIST("hptcand"), candidate.pt());
@@ -87,8 +87,8 @@ struct TaskLc {
       registry.fill(HIST("hCt"), CtLc(candidate));
       registry.fill(HIST("hCPA"), candidate.cpa());
       registry.fill(HIST("hEta"), candidate.eta());
-      registry.fill(HIST("hselectionstatus"), candidate.isSelLcpKpi());
-      registry.fill(HIST("hselectionstatus"), candidate.isSelLcpiKp());
+      registry.fill(HIST("hselectionstatus"), candidate.isSelLcToPKPi());
+      registry.fill(HIST("hselectionstatus"), candidate.isSelLcToPiKP());
       registry.fill(HIST("hImpParErr"), candidate.errorImpactParameter0());
       registry.fill(HIST("hImpParErr"), candidate.errorImpactParameter1());
       registry.fill(HIST("hImpParErr"), candidate.errorImpactParameter2());
@@ -111,13 +111,13 @@ struct TaskLcMC {
      {"hEtaRecBg", "3-prong candidates (rec. unmatched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}},
      {"hEtaGen", "3-prong candidates (gen. matched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}}}};
 
-  Configurable<int> d_selectionFlagLc{"d_selectionFlagLc", 1, "Selection Flag for Lc"};
-  Configurable<int> d_selectionFlagLcbar{"d_selectionFlagLcbar", 1, "Selection Flag for Lcbar"};
+  Configurable<int> d_selectionFlagLcToPKPi{"d_selectionFlagLcToPKPi", 1, "Selection Flag for LcToPKPi"};
+  Configurable<int> d_selectionFlagLcToPKPibar{"d_selectionFlagLcToPKPibar", 1, "Selection Flag for LcToPKPibar"};
   Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
 
-  Filter filterSelectCandidates = (aod::hf_selcandidate_lc::isSelLcpKpi >= d_selectionFlagLc || aod::hf_selcandidate_lc::isSelLcpiKp >= d_selectionFlagLc);
+  Filter filterSelectCandidates = (aod::hf_selcandidate_lc::isSelLcToPKPi >= d_selectionFlagLcToPKPi || aod::hf_selcandidate_lc::isSelLcToPiKP >= d_selectionFlagLcToPKPi);
 
-  void process(soa::Filtered<soa::Join<aod::HfCandProng3, aod::HFSelLcCandidate, aod::HfCandProng3MCRec>> const& candidates,
+  void process(soa::Filtered<soa::Join<aod::HfCandProng3, aod::HFSelLcToPKPiCandidate, aod::HfCandProng3MCRec>> const& candidates,
                soa::Join<aod::McParticles, aod::HfCandProng3MCGen> const& particlesMC)
   {
     // MC rec.

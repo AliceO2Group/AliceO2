@@ -39,7 +39,7 @@ struct SelectTracks {
   Configurable<double> d_bz{"d_bz", 5., "bz field"};
   // quality cut
   Configurable<bool> doCutQuality{"doCutQuality", true, "apply quality cuts"};
-  Configurable<int> d_tpcnclsfound{"d_tpcnclsfound", 70, ">= min. number of TPC clusters needed"};
+  Configurable<int> trackQualityVal{"trackQualityVal", 1, "value of track quality cut"};
   // 2-prong cuts
   Configurable<double> ptmintrack_2prong{"ptmintrack_2prong", -1., "min. track pT for 2 prong candidate"};
   Configurable<double> dcatoprimxy_2prong_maxpt{"dcatoprimxy_2prong_maxpt", 2., "max pt cut for min. DCAXY to prim. vtx. for 2 prong candidate"};
@@ -66,7 +66,7 @@ struct SelectTracks {
      {"heta_cuts_3prong", "tracks selected for 3-prong vertexing;#it{#eta};entries", {HistType::kTH1F, {{static_cast<int>(1.2 * etamax_3prong * 100), -1.2 * etamax_3prong, 1.2 * etamax_3prong}}}}}};
 
   void process(aod::Collision const& collision,
-               soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
+               soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::HFTrackQuality> const& tracks)
   {
     math_utils::Point3D<float> vtxXYZ(collision.posX(), collision.posY(), collision.posZ());
     for (auto& track : tracks) {
@@ -96,11 +96,8 @@ struct SelectTracks {
       }
 
       // quality cut
-      if (doCutQuality && status_prong > 0) { // FIXME to make a more complete selection e.g track.flags() & o2::aod::track::TPCrefit && track.flags() & o2::aod::track::GoldenChi2 &&
-        UChar_t clustermap = track.itsClusterMap();
-        if (!(track.tpcNClsFound() >= d_tpcnclsfound &&
-              track.flags() & o2::aod::track::ITSrefit &&
-              (TESTBIT(clustermap, 0) || TESTBIT(clustermap, 1)))) {
+      if (doCutQuality && status_prong > 0) {
+        if (track.trackQuality() != trackQualityVal) {
           status_prong = 0;
         }
       }
