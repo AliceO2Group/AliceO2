@@ -13,11 +13,9 @@
 /// \author ruben.shahoyan@cern.ch
 
 #include "DetectorsVertexing/PVertexer.h"
-#include "ReconstructionDataFormats/DCA.h"
 #include "DetectorsBase/Propagator.h"
 #include "Math/SMatrix.h"
 #include "Math/SVector.h"
-#include <numeric>
 #include <unordered_map>
 #include <TStopwatch.h>
 
@@ -26,88 +24,6 @@ using namespace o2::vertexing;
 constexpr float PVertexer::kAlmost0F;
 constexpr double PVertexer::kAlmost0D;
 constexpr float PVertexer::kHugeF;
-
-//___________________________________________________________________
-int PVertexer::process(gsl::span<const o2d::TrackTPCITS> tracksITSTPC, gsl::span<const o2::ft0::RecPoints> ft0Data,
-                       std::vector<PVertex>& vertices, std::vector<GIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs)
-{
-  createTracksPool(tracksITSTPC);
-  dbscan_clusterize();
-
-  std::vector<PVertex> verticesLoc;
-  std::vector<GTrackID> vertexTrackIDsLoc;
-  std::vector<V2TRef> v2tRefsLoc;
-  std::vector<float> validationTimes;
-
-  for (auto tc : mTimeZClusters) {
-    VertexingInput inp;
-    //    inp.idRange = gsl::span<int>((int*)&mSortedTrackID[tc.first], tc.count);
-    inp.idRange = gsl::span<int>((int*)&mClusterTrackIDs[tc.first], tc.count);
-    inp.scaleSigma2 = 3. * estimateScale2();
-    inp.timeEst = tc.timeEst;
-    findVertices(inp, verticesLoc, vertexTrackIDsLoc, v2tRefsLoc);
-  }
-
-  // sort in time
-  std::vector<int> vtTimeSortID(verticesLoc.size());
-  std::iota(vtTimeSortID.begin(), vtTimeSortID.end(), 0);
-  std::sort(vtTimeSortID.begin(), vtTimeSortID.end(), [&verticesLoc](int i, int j) {
-    return verticesLoc[i].getTimeStamp().getTimeStamp() < verticesLoc[j].getTimeStamp().getTimeStamp();
-  });
-
-  vertices.clear();
-  v2tRefs.clear();
-  vertexTrackIDs.clear();
-  vertices.reserve(verticesLoc.size());
-  v2tRefs.reserve(v2tRefsLoc.size());
-  vertexTrackIDs.reserve(vertexTrackIDsLoc.size());
-
-  int trCopied = 0, count = 0, vtimeID = 0;
-  for (auto i : vtTimeSortID) {
-    auto& vtx = verticesLoc[i];
-
-    bool irSet = setCompatibleIR(vtx);
-    if (!irSet) {
-      continue;
-    }
-    // do we need to validate by FT0 ?
-    if (mValidateWithFT0) {
-      auto bestMatch = getBestFT0Trigger(vtx, ft0Data, vtimeID);
-      if (bestMatch.first >= 0) {
-        vtx.setFlags(PVertex::TimeValidated);
-        if (bestMatch.second == 1) {
-          vtx.setIR(ft0Data[bestMatch.first].getInteractionRecord());
-        }
-        LOG(DEBUG) << "Validated with t0 " << bestMatch.first << " with " << bestMatch.second << " candidates";
-      } else if (vtx.getNContributors() >= mPVParams->minNContributorsForFT0cut) {
-        LOG(DEBUG) << "Discarding " << vtx;
-        continue; // reject
-      }
-    }
-    vertices.push_back(vtx);
-    int it = v2tRefsLoc[i].getFirstEntry(), itEnd = it + v2tRefsLoc[i].getEntries(), dest0 = vertexTrackIDs.size();
-    for (; it < itEnd; it++) {
-      auto& gid = vertexTrackIDs.emplace_back(vertexTrackIDsLoc[it]);
-      gid.setPVContributor();
-    }
-    v2tRefs.emplace_back(dest0, v2tRefsLoc[i].getEntries());
-    LOG(DEBUG) << "#" << count++ << " " << vertices.back() << " | " << v2tRefs.back().getEntries() << " indices from " << v2tRefs.back().getFirstEntry(); // RS REM
-  }
-
-  return vertices.size();
-}
-
-//___________________________________________________________________
-int PVertexer::process(gsl::span<const o2d::TrackTPCITS> tracksITSTPC, gsl::span<const o2::ft0::RecPoints> ft0Data,
-                       std::vector<PVertex>& vertices, std::vector<GIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs,
-                       gsl::span<const o2::MCCompLabel> lblITS, gsl::span<const o2::MCCompLabel> lblTPC, std::vector<o2::MCEventLabel>& lblVtx)
-{
-  auto nv = process(tracksITSTPC, ft0Data, vertices, vertexTrackIDs, v2tRefs);
-  if (lblITS.size() && lblTPC.size()) {
-    createMCLabels(lblITS, lblTPC, vertices, vertexTrackIDs, v2tRefs, lblVtx);
-  }
-  return nv;
-}
 
 //______________________________________________
 int PVertexer::findVertices(const VertexingInput& input, std::vector<PVertex>& vertices, std::vector<GTrackID>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs)
@@ -429,7 +345,6 @@ TimeEst PVertexer::timeEstimate(const VertexingInput& input) const
 void PVertexer::init()
 {
   mPVParams = &PVertexerParams::Instance();
-  mFT0Params = &o2::ft0::InteractionTag::Instance();
   setTukey(mPVParams->tukey);
   initMeanVertexConstraint();
 
@@ -455,50 +370,6 @@ void PVertexer::finalizeVertex(const VertexingInput& input, const PVertex& vtx,
     }
   }
   ref.setEntries(vertexTrackIDs.size() - ref.getFirstEntry());
-}
-
-//___________________________________________________________________
-void PVertexer::createTracksPool(gsl::span<const o2d::TrackTPCITS> tracksITSTPC)
-{
-  // create pull of all candidate tracks in a global array ordered in time
-  mTracksPool.clear();
-  mSortedTrackID.clear();
-
-  auto ntGlo = tracksITSTPC.size();
-  mTracksPool.reserve(ntGlo);
-  // check all containers
-  float vtxErr2 = 0.5 * (mMeanVertex.getSigmaX2() + mMeanVertex.getSigmaY2());
-  float pullIniCut = 9.;                          // RS FIXME  pullIniCut should be a parameter
-  o2d::DCA dca;
-
-  for (uint32_t i = 0; i < ntGlo; i++) {
-    o2::track::TrackParCov trc = tracksITSTPC[i];
-    if (!trc.propagateToDCA(mMeanVertex, mBz, &dca, mPVParams->dcaTolerance) ||
-        dca.getY() * dca.getY() / (dca.getSigmaY2() + vtxErr2) > mPVParams->pullIniCut) {
-      continue;
-    }
-    auto& tvf = mTracksPool.emplace_back(trc, tracksITSTPC[i].getTimeMUS(), GTrackID{i, o2::dataformats::GlobalTrackID::ITSTPC});
-    mStatZErr.add(std::sqrt(trc.getSigmaZ2()));
-    mStatTErr.add(tvf.timeEst.getTimeStampError());
-  }
-  // TODO: try to narrow timestamps using tof times
-  auto [zerrMean, zerrRMS] = mStatZErr.getMeanRMS2<float>();
-
-  auto [terrMean, terrRMS] = mStatTErr.getMeanRMS2<float>();
-
-  if (mTracksPool.empty()) {
-    return;
-  }
-  //
-  mSortedTrackID.resize(mTracksPool.size());
-  std::iota(mSortedTrackID.begin(), mSortedTrackID.end(), 0);
-
-  std::sort(mSortedTrackID.begin(), mSortedTrackID.end(), [this](int i, int j) {
-    return this->mTracksPool[i].timeEst.getTimeStamp() < this->mTracksPool[j].timeEst.getTimeStamp();
-  });
-
-  auto tMin = mTracksPool[mSortedTrackID.front()].timeEst.getTimeStamp();
-  auto tMax = mTracksPool[mSortedTrackID.back()].timeEst.getTimeStamp();
 }
 
 //___________________________________________________________________
@@ -556,33 +427,6 @@ void PVertexer::createMCLabels(gsl::span<const o2::MCCompLabel> lblITS, gsl::spa
   }
 }
 
-//___________________________________________________________________
-std::pair<int, int> PVertexer::getBestFT0Trigger(const PVertex& vtx, gsl::span<const o2::ft0::RecPoints> ft0Data, int& currEntry) const
-{
-  // select best matching FT0 recpoint
-  int best = -1, n = ft0Data.size();
-  while (currEntry < n && ft0Data[currEntry].getInteractionRecord() < vtx.getIRMin()) {
-    currEntry++; // skip all times which have no chance to be matched
-  }
-  int i = currEntry, nCompatible = 0;
-  float bestDf = 1e12;
-  auto tVtxNS = (vtx.getTimeStamp().getTimeStamp() + mPVParams->timeBiasMS) * 1e3; // time in ns
-  while (i < n) {
-    if (ft0Data[i].getInteractionRecord() > vtx.getIRMax()) {
-      break;
-    }
-    if (mFT0Params->isSelected(ft0Data[i])) {
-      nCompatible++;
-      auto dfa = std::abs(mFT0Params->getInteractionTimeNS(ft0Data[i], mStartIR) - tVtxNS);
-      if (dfa <= bestDf) {
-        bestDf = dfa;
-        best = i;
-      }
-    }
-    i++;
-  }
-  return {best, nCompatible};
-}
 
 //___________________________________________________________________
 void PVertexer::setBunchFilling(const o2::BunchFilling& bf)
