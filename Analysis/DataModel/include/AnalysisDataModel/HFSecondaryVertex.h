@@ -314,6 +314,8 @@ DECLARE_SOA_DYNAMIC_COLUMN(MaxNormalisedDeltaIP, maxNormalisedDeltaIP, [](float 
 // - ±LcToPKPi: Λc± → p± K∓ π±
 DECLARE_SOA_COLUMN(FlagMCMatchRec, flagMCMatchRec, int8_t); // reconstruction level
 DECLARE_SOA_COLUMN(FlagMCMatchGen, flagMCMatchGen, int8_t); // generator level
+DECLARE_SOA_COLUMN(FlagMCDecayChanRec, flagMCDecayChanRec, int8_t); // Resonant decay channel flag, reconstruction level
+DECLARE_SOA_COLUMN(FlagMCDecayChanGen, flagMCDecayChanGen, int8_t); // Resonant decay channel flag, generator level
 
 // mapping of decay types
 enum DecayType { DPlusToPiKPi = 0,
@@ -428,11 +430,13 @@ using HfCandProng3 = HfCandProng3Ext;
 
 // table with results of reconstruction level MC matching
 DECLARE_SOA_TABLE(HfCandProng3MCRec, "AOD", "HFCANDP3MCREC",
-                  hf_cand_prong3::FlagMCMatchRec);
+                  hf_cand_prong3::FlagMCMatchRec,
+                  hf_cand_prong3::FlagMCDecayChanRec);
 
 // table with results of generator level MC matching
 DECLARE_SOA_TABLE(HfCandProng3MCGen, "AOD", "HFCANDP3MCGEN",
-                  hf_cand_prong3::FlagMCMatchGen);
+                  hf_cand_prong3::FlagMCMatchGen,
+                  hf_cand_prong3::FlagMCDecayChanGen);
 
 } // namespace o2::aod
 
