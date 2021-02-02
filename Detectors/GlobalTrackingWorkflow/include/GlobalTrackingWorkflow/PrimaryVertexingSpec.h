@@ -28,7 +28,7 @@ using namespace o2::framework;
 class PrimaryVertexingSpec : public Task
 {
  public:
-  PrimaryVertexingSpec(bool validateWithFT0, bool useMC) : mUseMC(useMC), mValidateWithFT0(validateWithFT0) {}
+  PrimaryVertexingSpec(bool validateWithIR, bool useMC) : mUseMC(useMC), mValidateWithIR(validateWithIR) {}
   ~PrimaryVertexingSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -37,7 +37,7 @@ class PrimaryVertexingSpec : public Task
  private:
   o2::vertexing::PVertexer mVertexer;
   bool mUseMC{false};           ///< MC flag
-  bool mValidateWithFT0{false}; ///< require vertex validation with FT0
+  bool mValidateWithIR{false};  ///< require vertex validation with IR (e.g. from FT0)
   TStopwatch mTimer;
 };
 
