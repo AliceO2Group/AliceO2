@@ -41,7 +41,7 @@ GPUg() void helloKernel()
 {
   o2::vertexing::DCAFitterN<2> mFitter2Prong;
   o2::vertexing::DCAFitterN<3> mFitter3Prong;
-  
+
   o2::gpu::gpustd::array<Vec3D, 2> arrVectors;
   o2::math_utils::MatRepSym<double, 3> repsym;
   o2::math_utils::MatRepStd<double, 3> repstd;
@@ -115,7 +115,7 @@ GPUg() void helloKernel()
 void hello_util()
 {
   helloKernel<<<1, 1>>>();
-  cudaDeviceSynchronize();
+//   cudaDeviceSynchronize();
   cudaCheckError();
 }
 
