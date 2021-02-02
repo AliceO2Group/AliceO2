@@ -37,85 +37,23 @@ using MatStd3D = o2::math_utils::SMatrix<double, 3, 3, o2::math_utils::MatRepStd
   }
 
 // Kernels
-GPUg() void helloKernel()
+GPUg() void testFitterKernel()
 {
+  double bz = 5.0;
   o2::vertexing::DCAFitterN<2> mFitter2Prong;
-  o2::vertexing::DCAFitterN<3> mFitter3Prong;
+  mFitter2Prong.setBz(bz);
+  mFitter2Prong.setPropagateToPCA(true);  // After finding the vertex, propagate tracks to the DCA. This is default anyway
+  mFitter2Prong.setMaxR(200);             // do not consider V0 seeds with 2D circles crossing above this R. This is default anyway
+  mFitter2Prong.setMaxDZIni(4);           // do not consider V0 seeds with tracks Z-distance exceeding this. This is default anyway
+  mFitter2Prong.setMinParamChange(1e-3);  // stop iterations if max correction is below this value. This is default anyway
+  mFitter2Prong.setMinRelChi2Change(0.9); // stop iterations if chi2 improves by less that this factor
 
-  o2::gpu::gpustd::array<Vec3D, 2> arrVectors;
-  o2::math_utils::MatRepSym<double, 3> repsym;
-  o2::math_utils::MatRepStd<double, 3> repstd;
-  MatSym3D matSimRepBased;
-  // o2::math_utils::SMatrixIdentity id;
-  // MatStd3D matStdRepBased{id};
-  MatStd3D matStdRepBased;
-  for (size_t iA{0}; iA < 3; ++iA) {
-    for (size_t iV{0}; iV < 3; ++iV) {
-      matStdRepBased(iA, iV) = 1.f;
-    }
-  }
-
-  MatStd3D result;
-  matSimRepBased(0, 0) = 1.0f;
-  matSimRepBased(2, 2) = 1.0f;
-  matSimRepBased(0, 2) = 1.0f;
-  matSimRepBased(0, 1) = 1.0f;
-  matSimRepBased(1, 1) = 1.0f;
-  matSimRepBased(2, 1) = 1.0f;
-
-  result = matSimRepBased * matStdRepBased;
-  // matStdRepBased(1, 1) = 4.5f;
-  // matStdRepBased(2, 1) = 9.9f;
-
-  for (size_t iA{0}; iA < 2; ++iA) {
-    for (size_t iV{0}; iV < 3; ++iV) {
-      arrVectors[iA][iV] = 3.f;
-    }
-  }
-
-  auto res = o2::math_utils::Dot(arrVectors[0], arrVectors[1]);
-
-  // Debug
-  printf("Initialisation result:\n");
-  for (size_t iA{0}; iA < 2; ++iA) {
-    for (size_t iV{0}; iV < 3; ++iV) {
-      printf("(%lu, %lu): %f \t", iA, iV, arrVectors[iA][iV]);
-    }
-    printf("\n");
-  }
-
-  printf("Dot result %f\n", res);
-  printf(" = == = = = = == == == =\n");
-  printf("Sym representation:\n");
-  for (size_t iA{0}; iA < 3; ++iA) {
-    for (size_t iV{0}; iV < 3; ++iV) {
-      printf("(%lu, %lu): %f \t", iA, iV, matSimRepBased(iA, iV));
-    }
-    printf("\n");
-  }
-
-  printf("\n\nStd representation:\n");
-  for (size_t iA{0}; iA < 3; ++iA) {
-    for (size_t iV{0}; iV < 3; ++iV) {
-      printf("(%lu, %lu): %f \t", iA, iV, matStdRepBased(iA, iV));
-    }
-    printf("\n");
-  }
-
-  printf("\n\nResult sym*std:\n");
-  for (size_t iA{0}; iA < 3; ++iA) {
-    for (size_t iV{0}; iV < 3; ++iV) {
-      printf("(%lu, %lu): %f \t", iA, iV, result(iA, iV));
-    }
-    printf("\n");
-  }
-  printf("\n\n");
+  printf("End.\n");
 }
 
 void hello_util()
 {
-  helloKernel<<<1, 1>>>();
-//   cudaDeviceSynchronize();
+  testFitterKernel<<<1, 1>>>();
   cudaCheckError();
 }
 
