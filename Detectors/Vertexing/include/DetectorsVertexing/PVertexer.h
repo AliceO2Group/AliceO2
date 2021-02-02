@@ -56,6 +56,11 @@ class PVertexer
 
   int process(gsl::span<const o2d::TrackTPCITS> tracksITSTPC, gsl::span<const o2::ft0::RecPoints> ft0Data,
               std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs);
+  /// Process function specific for ALICE3
+  int process(gsl::span<const o2::track::TrackParCov> tracks,
+              std::vector<PVertex>& vertices,
+              std::vector<o2d::VtxTrackIndex>& vertexTrackIDs,
+              std::vector<V2TRef>& v2tRefs);
 
   static void createMCLabels(gsl::span<const o2::MCCompLabel> lblITS, gsl::span<const o2::MCCompLabel> lblTPC,
                              const std::vector<PVertex> vertices, const std::vector<o2d::VtxTrackIndex> vertexTrackIDs, const std::vector<V2TRef> v2tRefs,
@@ -107,6 +112,8 @@ class PVertexer
   void applyConstraint(VertexSeed& vtxSeed) const;
   bool upscaleSigma(VertexSeed& vtxSeed) const;
   void createTracksPool(gsl::span<const o2d::TrackTPCITS> tracksITSTPC);
+  /// Function specific for ALICE3
+  void createTracksPool(gsl::span<const o2::track::TrackParCov> tracks);
   int findVertices(const VertexingInput& input, std::vector<PVertex>& vertices, std::vector<GTrackID>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs);
   std::pair<int, int> getBestFT0Trigger(const PVertex& vtx, gsl::span<const o2::ft0::RecPoints> ft0Data, int& currEntry) const;
 
@@ -121,13 +128,13 @@ class PVertexer
   //
   o2::math_utils::StatAccumulator mStatZErr;
   o2::math_utils::StatAccumulator mStatTErr;
-  std::vector<TrackVF> mTracksPool;        ///< tracks in internal representation used for vertexing
-  std::vector<int> mSortedTrackID;         ///< indices of tracks sorted in time
+  std::vector<TrackVF> mTracksPool;         ///< tracks in internal representation used for vertexing
+  std::vector<int> mSortedTrackID;          ///< indices of tracks sorted in time
   std::vector<TimeZCluster> mTimeZClusters; ///< set of time clusters
   std::vector<int> mClusterTrackIDs;        ///< IDs of tracks making the clusters
 
-  float mBz = 0.;                          ///< mag.field at beam line
-  bool mValidateWithFT0 = false;           ///< require vertex validation with FT0 (if available)
+  float mBz = 0.;                ///< mag.field at beam line
+  bool mValidateWithFT0 = false; ///< require vertex validation with FT0 (if available)
 
   o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
 

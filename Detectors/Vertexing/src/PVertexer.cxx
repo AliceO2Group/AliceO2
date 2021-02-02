@@ -28,6 +28,64 @@ constexpr double PVertexer::kAlmost0D;
 constexpr float PVertexer::kHugeF;
 
 //___________________________________________________________________
+int PVertexer::process(gsl::span<const o2::track::TrackParCov> tracks,
+                       std::vector<PVertex>& vertices,
+                       std::vector<o2d::VtxTrackIndex>& vertexTrackIDs,
+                       std::vector<V2TRef>& v2tRefs)
+{
+  Printf("Processing the vertexing on ALICE3");
+  createTracksPool(tracks);
+  dbscan_clusterize();
+
+  std::vector<PVertex> verticesLoc;
+  std::vector<GTrackID> vertexTrackIDsLoc;
+  std::vector<V2TRef> v2tRefsLoc;
+  std::vector<float> validationTimes;
+
+  for (auto tc : mTimeZClusters) {
+    VertexingInput inp;
+    //    inp.idRange = gsl::span<int>((int*)&mSortedTrackID[tc.first], tc.count);
+    inp.idRange = gsl::span<int>((int*)&mClusterTrackIDs[tc.first], tc.count);
+    inp.scaleSigma2 = 3. * estimateScale2();
+    inp.timeEst = tc.timeEst;
+    findVertices(inp, verticesLoc, vertexTrackIDsLoc, v2tRefsLoc);
+  }
+
+  // sort in time
+  std::vector<int> vtTimeSortID(verticesLoc.size());
+  std::iota(vtTimeSortID.begin(), vtTimeSortID.end(), 0);
+  std::sort(vtTimeSortID.begin(), vtTimeSortID.end(), [&verticesLoc](int i, int j) {
+    return verticesLoc[i].getTimeStamp().getTimeStamp() < verticesLoc[j].getTimeStamp().getTimeStamp();
+  });
+
+  vertices.clear();
+  v2tRefs.clear();
+  vertexTrackIDs.clear();
+  vertices.reserve(verticesLoc.size());
+  v2tRefs.reserve(v2tRefsLoc.size());
+  vertexTrackIDs.reserve(vertexTrackIDsLoc.size());
+
+  int trCopied = 0, count = 0, vtimeID = 0;
+  for (auto i : vtTimeSortID) {
+    auto& vtx = verticesLoc[i];
+
+    bool irSet = setCompatibleIR(vtx);
+    if (!irSet) {
+      continue;
+    }
+    vertices.push_back(vtx);
+    int it = v2tRefsLoc[i].getFirstEntry(), itEnd = it + v2tRefsLoc[i].getEntries(), dest0 = vertexTrackIDs.size();
+    for (; it < itEnd; it++) {
+      auto& gid = vertexTrackIDs.emplace_back(vertexTrackIDsLoc[it]);
+      gid.setPVContributor();
+    }
+    v2tRefs.emplace_back(dest0, v2tRefsLoc[i].getEntries());
+    LOG(DEBUG) << "#" << count++ << " " << vertices.back() << " | " << v2tRefs.back().getEntries() << " indices from " << v2tRefs.back().getFirstEntry(); // RS REM
+  }
+
+  return vertices.size();
+}
+//___________________________________________________________________
 int PVertexer::process(gsl::span<const o2d::TrackTPCITS> tracksITSTPC, gsl::span<const o2::ft0::RecPoints> ft0Data,
                        std::vector<PVertex>& vertices, std::vector<GIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs)
 {
@@ -468,7 +526,7 @@ void PVertexer::createTracksPool(gsl::span<const o2d::TrackTPCITS> tracksITSTPC)
   mTracksPool.reserve(ntGlo);
   // check all containers
   float vtxErr2 = 0.5 * (mMeanVertex.getSigmaX2() + mMeanVertex.getSigmaY2());
-  float pullIniCut = 9.;                          // RS FIXME  pullIniCut should be a parameter
+  float pullIniCut = 9.; // RS FIXME  pullIniCut should be a parameter
   o2d::DCA dca;
 
   for (uint32_t i = 0; i < ntGlo; i++) {
@@ -487,6 +545,52 @@ void PVertexer::createTracksPool(gsl::span<const o2d::TrackTPCITS> tracksITSTPC)
   auto [terrMean, terrRMS] = mStatTErr.getMeanRMS2<float>();
 
   if (mTracksPool.empty()) {
+    return;
+  }
+  //
+  mSortedTrackID.resize(mTracksPool.size());
+  std::iota(mSortedTrackID.begin(), mSortedTrackID.end(), 0);
+
+  std::sort(mSortedTrackID.begin(), mSortedTrackID.end(), [this](int i, int j) {
+    return this->mTracksPool[i].timeEst.getTimeStamp() < this->mTracksPool[j].timeEst.getTimeStamp();
+  });
+
+  auto tMin = mTracksPool[mSortedTrackID.front()].timeEst.getTimeStamp();
+  auto tMax = mTracksPool[mSortedTrackID.back()].timeEst.getTimeStamp();
+}
+
+//___________________________________________________________________
+void PVertexer::createTracksPool(gsl::span<const o2::track::TrackParCov> tracks)
+{
+  Printf("Creating a pool of tracks for ALICE3!");
+  // create pull of all candidate tracks in a global array ordered in time
+  mTracksPool.clear();
+  mSortedTrackID.clear();
+
+  auto ntGlo = tracks.size();
+  mTracksPool.reserve(ntGlo);
+  // check all containers
+  float vtxErr2 = 0.5 * (mMeanVertex.getSigmaX2() + mMeanVertex.getSigmaY2());
+  float pullIniCut = 9.; // RS FIXME  pullIniCut should be a parameter
+  o2d::DCA dca;
+
+  for (uint32_t i = 0; i < ntGlo; i++) {
+    o2::track::TrackParCov trc = tracks[i];
+    if (!trc.propagateToDCA(mMeanVertex, mBz, &dca, mPVParams->dcaTolerance) ||
+        dca.getY() * dca.getY() / (dca.getSigmaY2() + vtxErr2) > mPVParams->pullIniCut) {
+      continue;
+    }
+    auto& tvf = mTracksPool.emplace_back(trc, TimeEst{0.f, 1.f}, GTrackID{i, o2::dataformats::GlobalTrackID::ITS});
+    mStatZErr.add(std::sqrt(trc.getSigmaZ2()));
+    mStatTErr.add(tvf.timeEst.getTimeStampError());
+  }
+  // TODO: try to narrow timestamps using tof times
+  auto [zerrMean, zerrRMS] = mStatZErr.getMeanRMS2<float>();
+
+  auto [terrMean, terrRMS] = mStatTErr.getMeanRMS2<float>();
+
+  if (mTracksPool.empty()) {
+    Printf("Empty pool!");
     return;
   }
   //
