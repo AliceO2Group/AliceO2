@@ -1156,11 +1156,24 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           controls.resize(deviceSpecs.size());
           deviceExecutions.resize(deviceSpecs.size());
 
-          DeviceSpecHelpers::reworkHomogeneousOption(dataProcessorInfos, "--resources-monitoring", nullptr);
-          DeviceSpecHelpers::reworkHomogeneousOption(dataProcessorInfos, "--readers", nullptr);
-          DeviceSpecHelpers::reworkHomogeneousOption(dataProcessorInfos, "--aod-memory-rate-limit", nullptr);
-          DeviceSpecHelpers::reworkHomogeneousOption(dataProcessorInfos, "--time-limit", nullptr);
-          DeviceSpecHelpers::reworkHomogeneousOption(dataProcessorInfos, "--driver-client-backend", nullptr);
+          // Options  which should be uniform across all
+          // teh subworkflow invokations.
+          const auto uniformOptions = {
+            "--aod-file",
+            "--aod-memory-rate-limit",
+            "--aod-writer-json",
+            "--aod-writer-ntfmerge",
+            "--aod-writer-resfile",
+            "--aod-writer-resmode",
+            "--readers",
+            "--resources-monitoring",
+            "--time-limit",
+          };
+
+          for (auto& option : uniformOptions) {
+            DeviceSpecHelpers::reworkHomogeneousOption(dataProcessorInfos, option, nullptr);
+          }
+
           DeviceSpecHelpers::reworkShmSegmentSize(dataProcessorInfos);
           DeviceSpecHelpers::prepareArguments(driverControl.defaultQuiet,
                                               driverControl.defaultStopped,
