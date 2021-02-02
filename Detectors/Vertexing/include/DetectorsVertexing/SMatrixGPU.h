@@ -41,12 +41,8 @@
 
 namespace o2::math_utils
 {
-#if defined(GPUCA_GPUCODE)
 
-#define gpu_assert(X)                                            \
-  if (!(X))                                                      \
-    printf("GPU Assertion failed %d: %s, %d\n", threadIdx.x, __FILE__, __LINE__); \
-  return;
+#if defined(__CUDACC__) || defined(__HIPCC__)
 
 template <bool>
 struct Check {

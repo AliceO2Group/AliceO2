@@ -60,8 +60,7 @@ struct TrackCovI {
 #if !defined(__CUDACC__) && !defined(__HIPCC__)
       throw std::runtime_error("invalid track covariance");
 #else
-      constexpr int invalid_track_covariance{0};
-      gpu_assert(invalid_track_covariance);
+      printf("invalid track covariance\n");                   // Weak, need to see how we can do it on GPU
 #endif
     }
   }
@@ -139,8 +138,7 @@ class DCAFitterN
 #if !defined(__CUDACC__) && !defined(__HIPCC__)
       throw std::runtime_error("propagateTracksToVertex was not called yet");
 #else
-      constexpr int propagate_tracks_to_vertex_not_called_yet{0};
-      gpu_assert(propagate_tracks_to_vertex_not_called_yet);
+      printf("propagateTracksToVertex was not called yet\n"); // Weak, need to see how we can do it on GPU
 #endif
     }
     return mCandTr[mOrder[cand]][i];
@@ -846,7 +844,7 @@ GPUd() bool DCAFitterN<N, Args...>::minimizeChi2NoErr()
 
     // do Newton-Rapson iteration with corrections = - dchi2/d{x0..xN} * [ d^2chi2/d{x0..xN}^2 ]^-1
     if (!mD2Chi2Dx2.Invert()) {
-#if !defined(__CUDACC__)
+#if !defined(__CUDACC__) && !defined(__HIPCC__)
       LOG(ERROR) << "InversionFailed";
 #else
       printf("InversionFailed");
@@ -906,7 +904,7 @@ GPUd() bool DCAFitterN<N, Args...>::closerToAlternative() const
 template <int N, typename... Args>
 GPUd() void DCAFitterN<N, Args...>::print() const
 {
-#if !defined(__CUDACC__)
+#if !defined(__CUDACC__) && !defined(__HIPCC__)
   LOG(INFO) << N << "-prong vertex fitter in " << (mUseAbsDCA ? "abs." : "weighted") << " distance minimization mode";
   LOG(INFO) << "Bz: " << mBz << " MaxIter: " << mMaxIter << " MaxChi2: " << mMaxChi2;
   LOG(INFO) << "Stopping condition: Max.param change < " << mMinParamChange << " Rel.Chi2 change > " << mMinRelChi2Change;
