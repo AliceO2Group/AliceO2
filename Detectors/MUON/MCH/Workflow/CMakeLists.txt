@@ -35,6 +35,12 @@ o2_add_executable(
         PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
 
 o2_add_executable(
+        raw-debug-workflow
+        SOURCES src/raw-debug-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
+
+o2_add_executable(
         cru-page-to-digits-workflow
         SOURCES src/cru-page-to-digits-workflow.cxx
         COMPONENT_NAME mch
