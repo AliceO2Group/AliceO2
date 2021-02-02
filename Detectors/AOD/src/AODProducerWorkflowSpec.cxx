@@ -140,6 +140,10 @@ void AODProducerWorkflowDPL::fillTracksTable(const TracksType& tracks, std::vect
     auto& track = tracks[i];
     int collisionID = vCollRefs[i];
 
+    //Skip unassigned tracks if requested to do so
+    if (collisionID < 0 && mFillTracksUnassigned < 1)
+      continue;
+
     float tpcInnerParam = 0.f;
     uint32_t flags = 0;
     uint8_t itsClusterMap = 0;
@@ -235,6 +239,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mFillTracksITS = ic.options().get<int>("fill-tracks-its");
   mFillTracksTPC = ic.options().get<int>("fill-tracks-tpc");
   mFillTracksITSTPC = ic.options().get<int>("fill-tracks-its-tpc");
+  mFillTracksUnassigned = ic.options().get<int>("fill-tracks-unassigned");
   mTFNumber = ic.options().get<int>("aod-timeframe-id");
   if (mTFNumber == -1) {
     LOG(INFO) << "TFNumber will be obtained from CCDB";
@@ -738,6 +743,7 @@ DataProcessorSpec getAODProducerWorkflowSpec()
       ConfigParamSpec{"fill-tracks-its", VariantType::Int, 1, {"Fill ITS tracks into tracks table"}},
       ConfigParamSpec{"fill-tracks-tpc", VariantType::Int, 1, {"Fill TPC tracks into tracks table"}},
       ConfigParamSpec{"fill-tracks-its-tpc", VariantType::Int, 1, {"Fill ITS-TPC tracks into tracks table"}},
+      ConfigParamSpec{"fill-tracks-unassigned", VariantType::Int, 1, {"Fill tracks that are unassigned"}},
       ConfigParamSpec{"aod-timeframe-id", VariantType::Int, -1, {"Set timeframe number"}},
       ConfigParamSpec{"enable-truncation", VariantType::Int, 1, {"Truncation parameter: 1 -- on (default), != 1 -- off"}}}};
 }
