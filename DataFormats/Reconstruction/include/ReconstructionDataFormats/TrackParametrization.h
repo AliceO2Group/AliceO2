@@ -139,6 +139,7 @@ class TrackParametrization
   GPUdDefault() ~TrackParametrization() = default;
 
   GPUd() void set(value_t x, value_t alpha, const params_t& par, int charge = 1, const PID pid = PID::Pion);
+  GPUd() void set(value_t x, value_t alpha, const value_t* par, int charge = 1, const PID pid = PID::Pion);
   GPUd() const value_t* getParams() const;
   GPUd() value_t getParam(int i) const;
   GPUd() value_t getX() const;
@@ -219,9 +220,9 @@ class TrackParametrization
   std::string asString() const;
 #endif
 
- protected:
   GPUd() void updateParam(value_t delta, int i);
-  GPUd() void updateParams(const value_t delta[kNParams]);
+  GPUd() void updateParams(const params_t& delta);
+  GPUd() void updateParams(const value_t* delta);
 
  private:
   //
@@ -250,6 +251,13 @@ GPUdi() TrackParametrization<value_T>::TrackParametrization(value_t x, value_t a
 //____________________________________________________________
 template <typename value_T>
 GPUdi() void TrackParametrization<value_T>::set(value_t x, value_t alpha, const params_t& par, int charge, const PID pid)
+{
+  set(x, alpha, par.data(), charge, pid);
+}
+
+//____________________________________________________________
+template <typename value_T>
+GPUdi() void TrackParametrization<value_T>::set(value_t x, value_t alpha, const value_t* par, int charge, const PID pid)
 {
   mX = x;
   mAlpha = alpha;
@@ -666,7 +674,14 @@ GPUdi() void TrackParametrization<value_T>::updateParam(value_t delta, int i)
 
 //____________________________________________________________
 template <typename value_T>
-GPUdi() void TrackParametrization<value_T>::updateParams(const value_t delta[kNParams])
+GPUdi() void TrackParametrization<value_T>::updateParams(const params_t& delta)
+{
+  updateParams(delta.data());
+}
+
+//____________________________________________________________
+template <typename value_T>
+GPUdi() void TrackParametrization<value_T>::updateParams(const value_t* delta)
 {
   for (int i = kNParams; i--;) {
     mP[i] += delta[i];
