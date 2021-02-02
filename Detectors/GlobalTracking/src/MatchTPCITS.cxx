@@ -1573,7 +1573,7 @@ int MatchTPCITS::prepareInteractionTimes()
       if (!mFT0Params->isSelected(ft)) {
         continue;
       }
-      auto fitTime = time2TPCTimeBin(mFT0Params->getInteractionTimeNS(ft, mStartIR) * 1e-3); // FIT time in TPC timebins
+      auto fitTime = time2TPCTimeBin(ft.getInteractionRecord().differenceInBCNS(mStartIR) * 1e-3); // FIT time in TPC timebins
       // find corresponding ITS ROF, works both in cont. and trigg. modes (ignore T0 MeanTime within the BC)
       for (; rof < nITSROFs; rof++) {
         if (mITSROFTimes[rof] < fitTime) {
