@@ -63,9 +63,9 @@ struct TaskBplus {
   Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0 >= d_selectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= d_selectionFlagD0bar);
-  Filter positiveTracks = aod::track::signed1Pt >= 0.f;
+  Partition<aod::BigTracks> positiveTracks = aod::track::signed1Pt >= 0.f;
 
-  void process(aod::Collision const&, soa::Filtered<aod::BigTracks> const& posTracks, soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate, aod::Colls>> const& candidates)
+  void process(aod::Collision const&, aod::BigTracks const&, soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate, aod::Colls>> const& candidates)
   {
     for (auto& candidate : candidates) {
       if (!(candidate.hfflag() & 1 << D0ToPiK)) {
@@ -77,7 +77,7 @@ struct TaskBplus {
       if (candidate.isSelD0bar() >= d_selectionFlagD0bar) {
         registry.fill(HIST("hmassD0"), InvMassD0bar(candidate));
         auto count = 0;
-        for (auto track : posTracks) {
+        for (auto track : positiveTracks) {
           if (count % 100 == 0) {
             LOGF(INFO, "Col: %d (cand); %d (track)", candidate.collisionId(), track.collisionId());
             count++;
