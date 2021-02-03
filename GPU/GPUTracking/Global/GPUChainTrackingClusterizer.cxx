@@ -407,7 +407,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   ClusterNativeAccess* tmpNative = mClusterNativeAccess.get();
 
   // setup MC Labels
-  bool propagateMCLabels = GetProcessingSettings().runMC && processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC != nullptr;
+  bool propagateMCLabels = GetProcessingSettings().runMC && processors()->ioPtrs.tpcPackedDigits && processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC;
 
   auto* digitsMC = propagateMCLabels ? processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC : nullptr;
 
