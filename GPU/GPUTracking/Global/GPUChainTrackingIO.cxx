@@ -77,17 +77,17 @@ void GPUChainTracking::DumpData(const char* filename)
   DumpData(fp, mIOPtrs.rawClusters, mIOPtrs.nRawClusters, InOutPointerType::RAW_CLUSTERS);
 #ifdef HAVE_O2HEADERS
   if (mIOPtrs.clustersNative) {
-    DumpData(fp, &mIOPtrs.clustersNative->clustersLinear, &mIOPtrs.clustersNative->nClustersTotal, InOutPointerType::CLUSTERS_NATIVE);
-    fwrite(&mIOPtrs.clustersNative->nClusters[0][0], sizeof(mIOPtrs.clustersNative->nClusters[0][0]), NSLICES * GPUCA_ROW_COUNT, fp);
-    if (mIOPtrs.clustersNative->clustersMCTruth) {
-      const auto& buffer = mIOPtrs.clustersNative->clustersMCTruth->getBuffer();
-      std::pair<const char*, size_t> tmp = {buffer.data(), buffer.size()};
-      DumpData(fp, &tmp.first, &tmp.second, InOutPointerType::CLUSTER_NATIVE_MC);
+    if (DumpData(fp, &mIOPtrs.clustersNative->clustersLinear, &mIOPtrs.clustersNative->nClustersTotal, InOutPointerType::CLUSTERS_NATIVE)) {
+      fwrite(&mIOPtrs.clustersNative->nClusters[0][0], sizeof(mIOPtrs.clustersNative->nClusters[0][0]), NSLICES * GPUCA_ROW_COUNT, fp);
+      if (mIOPtrs.clustersNative->clustersMCTruth) {
+        const auto& buffer = mIOPtrs.clustersNative->clustersMCTruth->getBuffer();
+        std::pair<const char*, size_t> tmp = {buffer.data(), buffer.size()};
+        DumpData(fp, &tmp.first, &tmp.second, InOutPointerType::CLUSTER_NATIVE_MC);
+      }
     }
   }
   if (mIOPtrs.tpcPackedDigits) {
-    DumpData(fp, mIOPtrs.tpcPackedDigits->tpcDigits, mIOPtrs.tpcPackedDigits->nTPCDigits, InOutPointerType::TPC_DIGIT);
-    if (mIOPtrs.tpcPackedDigits->tpcDigitsMC) {
+    if (DumpData(fp, mIOPtrs.tpcPackedDigits->tpcDigits, mIOPtrs.tpcPackedDigits->nTPCDigits, InOutPointerType::TPC_DIGIT) && mIOPtrs.tpcPackedDigits->tpcDigitsMC) {
       const char* ptrs[NSLICES];
       size_t sizes[NSLICES];
       for (unsigned int i = 0; i < NSLICES; i++) {
@@ -121,8 +121,9 @@ void GPUChainTracking::DumpData(const char* filename)
       }
     }
     total *= TPCZSHDR::TPC_ZS_PAGE_SIZE;
-    DumpData(fp, &ptr, &total, InOutPointerType::TPC_ZS);
-    fwrite(&counts, sizeof(counts), 1, fp);
+    if (DumpData(fp, &ptr, &total, InOutPointerType::TPC_ZS)) {
+      fwrite(&counts, sizeof(counts), 1, fp);
+    }
   }
 #endif
   DumpData(fp, mIOPtrs.sliceTracks, mIOPtrs.nSliceTracks, InOutPointerType::SLICE_OUT_TRACK);
