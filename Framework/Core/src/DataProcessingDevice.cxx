@@ -32,7 +32,6 @@
 #include "Framework/Signpost.h"
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/Logger.h"
-#include "Framework/Monitoring.h"
 #include "Framework/DriverClient.h"
 #include "PropertyTreeHelpers.h"
 #include "DataProcessingStatus.h"
@@ -61,11 +60,9 @@
 #include <boost/property_tree/json_parser.hpp>
 
 using namespace o2::framework;
-using namespace o2::monitoring;
 using ConfigurationInterface = o2::configuration::ConfigurationInterface;
 using DataHeader = o2::header::DataHeader;
 
-constexpr unsigned int MONITORING_QUEUE_SIZE = 100;
 constexpr unsigned int MIN_RATE_LOGGING = 60;
 
 namespace o2::framework
@@ -259,12 +256,6 @@ void DataProcessingDevice::Init()
       route.configurator->expirationConfigurator(mState, *mConfigRegistry)};
     mExpirationHandlers.emplace_back(std::move(handler));
   }
-
-  auto& monitoring = mServiceRegistry.get<Monitoring>();
-  monitoring.enableBuffering(MONITORING_QUEUE_SIZE);
-  static const std::string dataProcessorIdMetric = "dataprocessor_id";
-  static const std::string dataProcessorIdValue = mSpec.name;
-  monitoring.addGlobalTag("dataprocessor_id", dataProcessorIdValue);
 
   if (mInit) {
     InitContext initContext{*mConfigRegistry, mServiceRegistry};
