@@ -31,7 +31,7 @@ BOOST_AUTO_TEST_CASE(MCCompLabel_test)
     MCCompLabel lb(std::abs(tr), ev, src, tr < 0);
     std::cout << "Input:   [" << src << '/' << ev << '/'
               << std::setw(6) << tr << ']' << std::endl;
-    std::cout << "Encoded: " << lb << " (packed: " << ULong_t(lb) << ")" << std::endl;
+    std::cout << "Encoded: " << lb << " (packed: " << lb.getRawValue() << ")" << std::endl;
     labelMap[lb] = tr;
     int trE, evE, srcE;
     bool fake;
