@@ -568,7 +568,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, cons
 
   // Calculate the track parameters
   t = 1.f / gpu::CAMath::Sqrt(vecLab[3] * vecLab[3] + vecLab[4] * vecLab[4]);
-  this->setX(x);
+  this->setX(xk);
   this->setY(y);
   this->setZ(z);
   this->setSnp(vecLab[4] * t);
