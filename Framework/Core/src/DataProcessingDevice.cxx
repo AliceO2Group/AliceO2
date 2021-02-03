@@ -61,10 +61,7 @@
 #include <boost/property_tree/json_parser.hpp>
 
 using namespace o2::framework;
-using Key = o2::monitoring::tags::Key;
-using Value = o2::monitoring::tags::Value;
-using Metric = o2::monitoring::Metric;
-using Monitoring = o2::monitoring::Monitoring;
+using namespace o2::monitoring;
 using ConfigurationInterface = o2::configuration::ConfigurationInterface;
 using DataHeader = o2::header::DataHeader;
 
@@ -105,7 +102,7 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
       auto& err = error_from_ref(e);
       LOGP(ERROR, "Exception caught: {} ", err.what);
       backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
-      serviceRegistry.get<Monitoring>().send({1, "error"});
+      serviceRegistry.get<DataProcessingStats>().exceptionCount++;
       ErrorContext errorContext{record, serviceRegistry, e};
       errorCallback(errorContext);
     };
@@ -116,7 +113,7 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
       auto& err = error_from_ref(e);
       LOGP(ERROR, "Exception caught: {} ", err.what);
       backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
-      serviceRegistry.get<Monitoring>().send({1, "error"});
+      serviceRegistry.get<DataProcessingStats>().exceptionCount++;
       switch (errorPolicy) {
         case TerminationPolicy::QUIT:
           throw e;

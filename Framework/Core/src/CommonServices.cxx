@@ -502,6 +502,7 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
   monitoring.send(Metric{(int)relayerStats.relayedMessages, "relayed_messages"}.addTag(Key::Subsystem, Value::DPL));
 
   monitoring.send(Metric{(int)stats.errorCount, "errors"}.addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{(int)stats.exceptionCount, "exceptions"}.addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{(int)stats.pendingInputs, "inputs/relayed/pending"}.addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{(int)stats.incomplete, "inputs/relayed/incomplete"}.addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{(int)stats.inputParts, "inputs/relayed/total"}.addTag(Key::Subsystem, Value::DPL));
