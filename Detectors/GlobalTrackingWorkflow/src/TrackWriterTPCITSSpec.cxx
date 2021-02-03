@@ -43,12 +43,8 @@ DataProcessorSpec getTrackWriterTPCITSSpec(bool useMC)
                                                              "TPCITS-branch-name",
                                                              1,
                                                              logger},
-                                BranchDefinition<LabelsType>{InputSpec{"matchITSMC", "GLO", "TPCITS_ITSMC", 0},
-                                                             "MatchITSMCTruth",
-                                                             (useMC ? 1 : 0), // one branch if mc labels enabled
-                                                             ""},
-                                BranchDefinition<LabelsType>{InputSpec{"matchTPCMC", "GLO", "TPCITS_TPCMC", 0},
-                                                             "MatchTPCMCTruth",
+                                BranchDefinition<LabelsType>{InputSpec{"matchMC", "GLO", "TPCITS_MC", 0},
+                                                             "MatchMCTruth",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              ""})();
 }

@@ -31,9 +31,7 @@ namespace o2
 namespace tof
 {
 o2::header::DataDescription ddMatchInfo{"MATCHINFOS"}, ddMatchInfo_tpc{"MATCHINFOS_TPC"},
-  ddMCMatchTOF{"MCMATCHTOF"}, ddMCMatchTOF_tpc{"MCMATCHTOF_TPC"},
-  ddMCMatchTPC{"MCMATCHTPC"}, ddMCMatchTPC_tpc{"MCMATCHTPC_TPC"},
-  ddMCMatchITS{"MCMATCHITS"}, ddMCMatchITS_tpc{"MCMATCHITS_TPC"};
+  ddMCMatchTOF{"MCMATCHTOF"}, ddMCMatchTOF_tpc{"MCMATCHTOF_TPC"};
 
 void TOFMatchedReader::init(InitContext& ic)
 {
@@ -60,8 +58,6 @@ void TOFMatchedReader::connectTree(const std::string& filename)
   }
   if (mUseMC) {
     mTree->SetBranchAddress("MatchTOFMCTruth", &mLabelTOFPtr);
-    mTree->SetBranchAddress("MatchTPCMCTruth", &mLabelTPCPtr);
-    mTree->SetBranchAddress("MatchITSMCTruth", &mLabelITSPtr);
   }
   LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
@@ -79,8 +75,6 @@ void TOFMatchedReader::run(ProcessingContext& pc)
   }
   if (mUseMC) {
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, mTPCMatch ? ddMCMatchTOF_tpc : ddMCMatchTOF, 0, Lifetime::Timeframe}, mLabelTOF);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, mTPCMatch ? ddMCMatchTPC_tpc : ddMCMatchTPC, 0, Lifetime::Timeframe}, mLabelTPC);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, mTPCMatch ? ddMCMatchITS_tpc : ddMCMatchITS, 0, Lifetime::Timeframe}, mLabelITS);
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
@@ -99,8 +93,6 @@ DataProcessorSpec getTOFMatchedReaderSpec(bool useMC, bool tpcmatch, bool readTr
   }
   if (useMC) {
     outputs.emplace_back(o2::header::gDataOriginTOF, tpcmatch ? ddMCMatchTOF_tpc : ddMCMatchTOF, 0, Lifetime::Timeframe);
-    outputs.emplace_back(o2::header::gDataOriginTOF, tpcmatch ? ddMCMatchTPC_tpc : ddMCMatchTPC, 0, Lifetime::Timeframe);
-    outputs.emplace_back(o2::header::gDataOriginTOF, tpcmatch ? ddMCMatchITS_tpc : ddMCMatchITS, 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{

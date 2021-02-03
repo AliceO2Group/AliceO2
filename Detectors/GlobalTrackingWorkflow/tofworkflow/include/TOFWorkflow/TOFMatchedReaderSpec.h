@@ -49,8 +49,6 @@ class TOFMatchedReader : public o2::framework::Task
   std::vector<o2::dataformats::MatchInfoTOF> mMatches, *mMatchesPtr = &mMatches;
   std::vector<o2::dataformats::TrackTPCTOF> mTracks, *mTracksPtr = &mTracks;
   std::vector<o2::MCCompLabel> mLabelTOF, *mLabelTOFPtr = &mLabelTOF;
-  std::vector<o2::MCCompLabel> mLabelTPC, *mLabelTPCPtr = &mLabelTPC;
-  std::vector<o2::MCCompLabel> mLabelITS, *mLabelITSPtr = &mLabelITS;
 };
 
 /// create a processor spec

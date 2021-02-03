@@ -102,17 +102,15 @@ class TOFDPLRecoWorkflowTask
 
     // we do a copy of the input but we are looking for a way to avoid it (current problem in conversion form unique_ptr to *)
 
-    gsl::span<const o2::MCCompLabel> itslab;
-    gsl::span<const o2::MCCompLabel> tpclab;
+    gsl::span<const o2::MCCompLabel> itstpclab;
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> toflab;
     if (mUseMC) {
       const auto toflabel = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("tofclusterlabel");
-      itslab = pc.inputs().get<gsl::span<o2::MCCompLabel>>("itstracklabel");
-      tpclab = pc.inputs().get<gsl::span<o2::MCCompLabel>>("tpctracklabel");
+      itstpclab = pc.inputs().get<gsl::span<o2::MCCompLabel>>("itstpclabel");
       toflab = std::move(*toflabel);
     }
 
-    mMatcher.run(tracksRO, clustersRO, toflab, itslab, tpclab);
+    mMatcher.run(tracksRO, clustersRO, toflab, itstpclab);
 
     // in run_match_tof aggiugnere esplicitamente la chiamata a fill del tree (nella classe MatchTOF) e il metodo per leggere i vettori di output
 
@@ -124,8 +122,6 @@ class TOFDPLRecoWorkflowTask
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFOS", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector());
     if (mUseMC) {
       pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHTOF", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector());
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHTPC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTPCLabelsVector());
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHITS", 0, Lifetime::Timeframe}, mMatcher.getMatchedITSLabelsVector());
     }
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CALIBDATA", 0, Lifetime::Timeframe}, mMatcher.getCalibVector());
     mTimer.Stop();
@@ -150,8 +146,7 @@ o2::framework::DataProcessorSpec getTOFRecoWorkflowSpec(bool useMC, bool useFIT)
   inputs.emplace_back("globaltrack", "GLO", "TPCITS", 0, Lifetime::Timeframe);
   if (useMC) {
     inputs.emplace_back("tofclusterlabel", o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    inputs.emplace_back("itstracklabel", "GLO", "TPCITS_ITSMC", 0, Lifetime::Timeframe);
-    inputs.emplace_back("tpctracklabel", "GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe);
+    inputs.emplace_back("itstpclabel", "GLO", "TPCITS_MC", 0, Lifetime::Timeframe);
   }
 
   if (useFIT) {
@@ -161,8 +156,6 @@ o2::framework::DataProcessorSpec getTOFRecoWorkflowSpec(bool useMC, bool useFIT)
   outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFOS", 0, Lifetime::Timeframe);
   if (useMC) {
     outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHTOF", 0, Lifetime::Timeframe);
-    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHTPC", 0, Lifetime::Timeframe);
-    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHITS", 0, Lifetime::Timeframe);
   }
   outputs.emplace_back(o2::header::gDataOriginTOF, "CALIBDATA", 0, Lifetime::Timeframe);
 

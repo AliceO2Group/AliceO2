@@ -313,8 +313,7 @@ void MatchTPCITS::clear()
   mWinnerChi2Refit.clear();
   mMatchedTracks.clear();
   if (mMCTruthON) {
-    mOutITSLabels.clear();
-    mOutTPCLabels.clear();
+    mOutLabels.clear();
   }
 }
 
@@ -1473,9 +1472,10 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
   trfit.setRefTPC({unsigned(tTPC.sourceID), o2::dataformats::GlobalTrackID::TPC});
   trfit.setRefITS({unsigned(tITS.sourceID), o2::dataformats::GlobalTrackID::ITS});
 
-  if (mMCTruthON) { // store MC info
-    mOutITSLabels.emplace_back(mITSLblWork[iITS]);
-    mOutTPCLabels.emplace_back(mTPCLblWork[iTPC]);
+  if (mMCTruthON) { // store MC info: we assign TPC track label and declare the match fake if the ITS and TPC labels are different (their fake flag is ignored)
+    auto& lbl = mOutLabels.emplace_back(mTPCLblWork[iTPC]);
+    lbl.setFakeFlag(mITSLblWork[iITS] != mTPCLblWork[iTPC]);
+    LOG(INFO) << "ITS: " << mITSLblWork[iITS] << " TPC: " << mTPCLblWork[iTPC] << " -> " << lbl;
   }
 
   // if requested, fill the difference of ITS and TPC tracks tgl for vdrift calibation
@@ -2464,6 +2464,113 @@ MatchTPCITS::BracketIR MatchTPCITS::tpcTimeBin2IRBracket(const BracketF tbrange)
   }
   irMax.bc = bc;
   return {irMin, irMax};
+}
+
+//______________________________________________
+void MatchTPCITS::removeTPCfromITS(int tpcID, int itsID)
+{
+  ///< remove reference to tpcID track from itsID track matches
+  auto& tITS = mITSWork[itsID];
+  if (isValidatedITS(tITS)) {
+    return;
+  }
+  int topID = MinusOne, next = tITS.matchID; // ITS MatchRecord
+  while (next > MinusOne) {
+    auto& rcITS = mMatchRecordsITS[next];
+    if (rcITS.partnerID == tpcID) {
+      if (topID < 0) {
+        tITS.matchID = rcITS.nextRecID;
+      } else {
+        mMatchRecordsITS[topID].nextRecID = rcITS.nextRecID;
+      }
+      return;
+    }
+    topID = next;
+    next = rcITS.nextRecID;
+  }
+}
+
+//______________________________________________
+void MatchTPCITS::removeITSfromTPC(int itsID, int tpcID)
+{
+  ///< remove reference to itsID track from matches of tpcID track
+  auto& tTPC = mTPCWork[tpcID];
+  if (isValidatedTPC(tTPC)) {
+    return;
+  }
+  int topID = MinusOne, next = tTPC.matchID;
+  while (next > MinusOne) {
+    auto& rcTPC = mMatchRecordsTPC[next];
+    if (rcTPC.partnerID == itsID) {
+      if (topID < 0) {
+        tTPC.matchID = rcTPC.nextRecID;
+      } else {
+        mMatchRecordsTPC[topID].nextRecID = rcTPC.nextRecID;
+      }
+      return;
+    }
+    topID = next;
+    next = rcTPC.nextRecID;
+  }
+}
+
+//______________________________________________
+void MatchTPCITS::flagUsedITSClusters(const o2::its::TrackITS& track, int rofOffset)
+{
+  // flag clusters used by this track
+  int clEntry = track.getFirstClusterEntry();
+  for (int icl = track.getNumberOfClusters(); icl--;) {
+    mABClusterLinkIndex[rofOffset + mITSTrackClusIdx[clEntry++]] = MinusTen;
+  }
+}
+//__________________________________________________________
+int MatchTPCITS::preselectChipClusters(std::vector<int>& clVecOut, const ClusRange& clRange, const ITSChipClustersRefs& clRefs,
+                                       float trackY, float trackZ, float tolerY, float tolerZ,
+                                       const o2::MCCompLabel& lblTrc) const // TODO lbl is not needed
+{
+  clVecOut.clear();
+  int icID = clRange.getFirstEntry();
+  for (int icl = clRange.getEntries(); icl--;) { // note: clusters within a chip are sorted in Z
+    int clID = clRefs.clusterID[icID++];         // so, we go in clusterID increasing direction
+    const auto& cls = mITSClustersArray[clID];
+    float dz = trackZ - cls.getZ();
+    auto label = mITSClsLabels->getLabels(clID)[0]; // tmp
+    //    if (!(label == lblTrc)) {
+    //      continue; // tmp
+    //    }
+    LOG(DEBUG) << "cl" << icl << '/' << clID << " " << label
+               << " dZ: " << dz << " [" << tolerZ << "| dY: " << trackY - cls.getY() << " [" << tolerY << "]";
+    if (dz > tolerZ) {
+      float clsZ = cls.getZ();
+      LOG(DEBUG) << "Skip the rest since " << trackZ << " > " << clsZ << "\n";
+      break;
+    } else if (dz < -tolerZ) {
+      LOG(DEBUG) << "Skip cluster dz=" << dz << " Ztr=" << trackZ << " zCl=" << cls.getZ();
+      continue;
+    }
+    if (fabs(trackY - cls.getY()) > tolerY) {
+      LOG(DEBUG) << "Skip cluster dy= " << trackY - cls.getY() << " Ytr=" << trackY << " yCl=" << cls.getY();
+      continue;
+    }
+    clVecOut.push_back(clID);
+  }
+  return clVecOut.size();
+}
+
+//______________________________________________
+void MatchTPCITS::cleanAfterBurnerClusRefCache(int currentIC, int& startIC)
+{
+  // check if some of cached cluster reference from tables startIC to currentIC can be released,
+  // they will be necessarily in front slots of the mITSChipClustersRefs
+  while (startIC < currentIC && mInteractions[currentIC].timeBins.getMin() - mInteractions[startIC].timeBins.getMax() > MinTBToCleanCache) {
+    LOG(INFO) << "CAN REMOVE CACHE FOR " << startIC << " curent IC=" << currentIC;
+    while (mInteractions[startIC].clRefPtr == &mITSChipClustersRefs.front()) {
+      LOG(INFO) << "Reset cache pointer" << mInteractions[startIC].clRefPtr << " for IC=" << startIC;
+      mInteractions[startIC++].clRefPtr = nullptr;
+    }
+    LOG(INFO) << "Reset cache slot " << &mITSChipClustersRefs.front();
+    mITSChipClustersRefs.pop_front();
+  }
 }
 
 //<<============================= AfterBurner for TPC-track / ITS cluster matching ===================<<
