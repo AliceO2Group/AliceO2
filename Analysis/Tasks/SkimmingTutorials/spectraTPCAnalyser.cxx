@@ -87,7 +87,9 @@ struct TPCSpectraAnalyserTask {
 
   void process(soa::Filtered<aod::LFTracks>::iterator const& track)
   {
-    auto nsigma = track.tpcNSigma();
+    const float nsigma[Np] = {track.tpcNSigmaEl(), track.tpcNSigmaMu(), track.tpcNSigmaPi(),
+                              track.tpcNSigmaKa(), track.tpcNSigmaPr(), track.tpcNSigmaDe(),
+                              track.tpcNSigmaTr(), track.tpcNSigmaHe(), track.tpcNSigmaAl()};
     histos.fill(HIST("p/Unselected"), track.p());
     histos.fill(HIST("pt/Unselected"), track.pt());
 
