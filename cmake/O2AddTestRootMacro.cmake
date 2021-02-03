@@ -20,8 +20,6 @@ include_guard()
 #   the macro test", a test to compile the library, i.e. using ".L macro.C++
 # * arg COMPILE_ONLY: if present we discard the "load the macro" test and
 #   only attempt the compilation test. It implies COMPILE
-# * arg NON_FATAL: if present mark the test as non_fatal, i.e. it won't
-#   invalidate the build
 # * arg ENVIRONMENT: sets the running environment for the generated test(s).
 # * arg PUBLIC_LINK_LIBRARIES: the list of targets this macro is depending on.
 #   Required to be able to specify correctly the include and library paths to
@@ -44,7 +42,7 @@ function(o2_add_test_root_macro macro)
     PARSE_ARGV
     1
     A
-    "NON_FATAL;COMPILE;COMPILE_ONLY"
+    "COMPILE;COMPILE_ONLY"
     ""
     "ENVIRONMENT;PUBLIC_LINK_LIBRARIES;PUBLIC_INCLUDE_DIRECTORIES;LABELS")
 
@@ -63,10 +61,6 @@ function(o2_add_test_root_macro macro)
   endif()
 
   file(RELATIVE_PATH testName ${CMAKE_SOURCE_DIR} ${macroFileName})
-
-  if(${A_IS_NON_FATAL})
-    set(nonFatal "NON_FATAL")
-  endif()
 
   list(APPEND incdir $ENV{ROOT_INCLUDE_PATH})
   list(APPEND incdir ${A_PUBLIC_INCLUDE_DIRECTORIES})
