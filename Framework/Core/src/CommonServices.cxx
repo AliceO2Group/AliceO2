@@ -59,6 +59,7 @@ struct ServiceKindExtractor<InfoLoggerContext> {
   constexpr static ServiceKind kind = ServiceKind::Global;
 };
 
+#define MONITORING_QUEUE_SIZE 100
 o2::framework::ServiceSpec CommonServices::monitoringSpec()
 {
   return ServiceSpec{"monitoring",
@@ -67,14 +68,18 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
                        bool isWebsocket = strncmp(options.GetPropertyAsString("driver-client-backend").c_str(), "ws://", 4) == 0;
                        bool isDefault = options.GetPropertyAsString("monitoring-backend") == "default";
                        bool useDPL = (isWebsocket && isDefault) || options.GetPropertyAsString("monitoring-backend") == "dpl://";
+                       o2::monitoring::Monitoring* monitoring;
                        if (useDPL) {
-                         auto monitoring = new Monitoring();
+                         monitoring = new Monitoring();
                          monitoring->addBackend(std::make_unique<DPLMonitoringBackend>(registry));
-                         service = monitoring;
                        } else {
                          auto backend = isDefault ? "infologger://" : options.GetPropertyAsString("monitoring-backend");
-                         service = MonitoringFactory::Get(backend).release();
+                         monitoring = MonitoringFactory::Get(backend).release();
                        }
+                       service = monitoring;
+                       monitoring->enableBuffering(MONITORING_QUEUE_SIZE);
+                       assert(registry.get<DeviceSpec const>().name.empty() == false);
+                       monitoring->addGlobalTag("dataprocessor_id", registry.get<DeviceSpec const>().name);
                        return ServiceHandle{TypeIdHelpers::uniqueId<Monitoring>(), service};
                      },
                      noConfiguration(),
