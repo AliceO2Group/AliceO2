@@ -94,8 +94,7 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
     mError{spec.algorithm.onError},
     mConfigRegistry{nullptr},
     mAllocator{&mTimingInfo, &registry, spec.outputs},
-    mServiceRegistry{registry},
-    mErrorCount{0}
+    mServiceRegistry{registry}
 {
   /// FIXME: move erro handling to a service?
   if (mError != nullptr) {
@@ -427,7 +426,6 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context)
   context.error = &mError;
   /// Callback for the error handling
   context.errorHandling = &mErrorHandling;
-  context.errorCount = &mErrorCount;
 }
 
 void DataProcessingDevice::PreRun()
@@ -684,9 +682,8 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, FairMQParts
     return results;
   };
 
-  auto reportError = [& registry = *context.registry, &context](const char* message) {
-    context.errorCount++;
-    registry.get<Monitoring>().send(Metric{*context.errorCount, "errors"}.addTag(Key::Subsystem, Value::DPL));
+  auto reportError = [&registry = *context.registry, &context](const char* message) {
+    registry.get<DataProcessingStats>().errorCount++;
   };
 
   auto handleValidMessages = [&parts, &context = context, &relayer = *context.relayer, &reportError](std::vector<InputType> const& types) {
@@ -782,9 +779,8 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   // should work just fine.
   std::vector<MessageSet> currentSetOfInputs;
 
-  auto reportError = [& registry = *context.registry, &context](const char* message) {
-    context.errorCount++;
-    registry.get<Monitoring>().send(Metric{*context.errorCount, "errors"}.addTag(Key::Subsystem, Value::DPL));
+  auto reportError = [&registry = *context.registry, &context](const char* message) {
+    registry.get<DataProcessingStats>().errorCount++;
   };
 
   // For the moment we have a simple "immediately dispatch" policy for stuff
@@ -1077,8 +1073,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
 void DataProcessingDevice::error(const char* msg)
 {
   LOG(ERROR) << msg;
-  mErrorCount++;
-  mServiceRegistry.get<Monitoring>().send(Metric{mErrorCount, "errors"}.addTag(Key::Subsystem, Value::DPL));
+  mServiceRegistry.get<DataProcessingStats>().errorCount++;
 }
 
 } // namespace o2::framework

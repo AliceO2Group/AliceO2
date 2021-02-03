@@ -25,6 +25,7 @@ struct DataProcessingStats {
     int minLatency = 0;
     int maxLatency = 0;
   };
+  std::atomic<int> errorCount = 0;
   std::atomic<int> pendingInputs = 0;
   std::atomic<int> incomplete = 0;
   std::atomic<int> inputParts = 0;
