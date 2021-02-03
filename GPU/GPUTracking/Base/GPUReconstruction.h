@@ -292,7 +292,7 @@ class GPUReconstruction
 
   // Private helper functions for reading / writing / allocating IO buffer from/to file
   template <class T, class S>
-  void DumpData(FILE* fp, const T* const* entries, const S* num, InOutPointerType type);
+  unsigned int DumpData(FILE* fp, const T* const* entries, const S* num, InOutPointerType type);
   template <class T, class S>
   size_t ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[]>* mem, InOutPointerType type, T** nonConstPtrs = nullptr);
   template <class T>
@@ -508,7 +508,7 @@ inline void GPUReconstruction::SetupGPUProcessor(T* proc, bool allocate)
 }
 
 template <class T, class S>
-inline void GPUReconstruction::DumpData(FILE* fp, const T* const* entries, const S* num, InOutPointerType type)
+inline unsigned int GPUReconstruction::DumpData(FILE* fp, const T* const* entries, const S* num, InOutPointerType type)
 {
   int count = getNIOTypeMultiplicity(type);
   unsigned int numTotal = 0;
@@ -516,7 +516,7 @@ inline void GPUReconstruction::DumpData(FILE* fp, const T* const* entries, const
     numTotal += num[i];
   }
   if (numTotal == 0) {
-    return;
+    return 0;
   }
   fwrite(&type, sizeof(type), 1, fp);
   for (int i = 0; i < count; i++) {
@@ -525,6 +525,10 @@ inline void GPUReconstruction::DumpData(FILE* fp, const T* const* entries, const
       fwrite(entries[i], sizeof(*entries[i]), num[i], fp);
     }
   }
+  if (mProcessingSettings.debugLevel >= 2) {
+    GPUInfo("Dumped %lld %s", (long long int)numTotal, IOTYPENAMES[type]);
+  }
+  return numTotal;
 }
 
 template <class T, class S>
