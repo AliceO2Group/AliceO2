@@ -77,22 +77,12 @@ banner "/Environment"
 # Do we have timeout?
 TIMEOUT_EXEC=timeout
 TIMEOUT_CMD=
-TIMEOUT_PSTACK=
 type $TIMEOUT_EXEC &>/dev/null || TIMEOUT_EXEC=gtimeout
 type $TIMEOUT_EXEC &>/dev/null || TIMEOUT_EXEC=
 if [[ $TIMEOUT_EXEC && $TIMEOUT ]]; then
   # Kill with 15; if after 10 seconds it's still alive, send 9
-  TIMEOUT_CMD="$TIMEOUT_EXEC --signal=SIGTERM --kill-after=10s ${TIMEOUT}s"
+  TIMEOUT_CMD="$TIMEOUT_EXEC --signal=SIGABRT --kill-after=10s ${TIMEOUT}s"
   # Get a stack trace, if possible, shortly before sending the first SIGTERM
-  if type pstack &>/dev/null; then
-    export GDB=$(which gdb 2>/dev/null)
-    TIMEOUT_PSTACK=$((TIMEOUT - 10))
-    if [[ $TIMEOUT_PSTACK -lt 10 ]]; then
-      TIMEOUT_PSTACK=10
-    fi
-  else
-    banner "Will not get stack trace of processes timing out: pstack not found"
-  fi
 fi
 
 banner "Timeout prefix: $TIMEOUT_CMD"
@@ -101,7 +91,7 @@ CMD="$1"
 shift
 type "$CMD" &>/dev/null || CMD="@CMAKE_BINARY_DIR@/bin/$CMD"
 
-for ((ATTEMPT = 1; ATTEMPT <= MAX_ATTEMPTS; ATTEMPT++)); do
+for ATTEMPT in `seq 1 $MAX_ATTEMPTS`; do
   DARGS=("$@")
   # Deduping args that contain a ":"
   N=${#DARGS[@]}
@@ -116,36 +106,13 @@ for ((ATTEMPT = 1; ATTEMPT <= MAX_ATTEMPTS; ATTEMPT++)); do
 
   banner "Running $CMD with args ${DARGS[*]} (attempt $ATTEMPT/$MAX_ATTEMPTS)"
   ERR=0
-  rm -f "${LOG}.bt"
-  $TIMEOUT_CMD "$CMD" "${DARGS[@]}" &
-  REAL_PID=$(pgrep -P$! 2>/dev/null || true)
-  if [[ $REAL_PID && $TIMEOUT_PSTACK ]]; then
-    banner "Process running as $REAL_PID for attempt $ATTEMPT"
-    FINISHED=
-    for ((I = 0; I < TIMEOUT_PSTACK; I++)); do
-      if ! kill -0 $REAL_PID &>/dev/null; then
-        FINISHED=1
-        break
-      fi
-      sleep 1
-    done
-    if [[ ! $FINISHED ]]; then
-      pstack $REAL_PID &>"${LOG}.bt" || true
-    fi
-  fi
-  wait $! || ERR=$? # wait timeout process, not real PID
+  SEGFAULT_SIGNALS=all LD_PRELOAD=libSegFault.so $TIMEOUT_CMD "$CMD" "${DARGS[@]}" || ERR=$?
   if [[ $ERR == 0 ]]; then
     banner "Test finished with success after $ATTEMPT attempts, exiting"
     mv "$LOG" "${LOG}.0"
     exit 0
   else
     banner "Test attempt $ATTEMPT/$MAX_ATTEMPTS failed with exit code $ERR"
-    if [[ -e "${LOG}.bt" ]]; then
-      banner "Stack trace follows for attempt $ATTEMPT"
-      cat "${LOG}.bt"
-      rm -f "${LOG}.bt"
-      banner "End of stack trace for attempt $ATTEMPT"
-    fi
   fi
 done
 
