@@ -43,7 +43,7 @@ void ControlServiceHelpers::processCommand(std::vector<DeviceInfo>& infos,
       }
     }
   };
-  LOGP(info, "Found control command {} from pid {} with argument {}.", command, pid, arg);
+  LOGP(debug2, "Found control command {} from pid {} with argument {}.", command, pid, arg);
   if (command == "QUIT" && arg == "ALL") {
     for (auto& deviceInfo : infos) {
       deviceInfo.readyToQuit = true;
