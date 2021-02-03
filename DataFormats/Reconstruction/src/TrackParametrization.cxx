@@ -291,7 +291,7 @@ GPUd() bool TrackParametrization<value_T>::propagateParamTo(value_t xk, const di
 
   // Calculate the track parameters
   t = 1.f / gpu::CAMath::Sqrt(vecLab[3] * vecLab[3] + vecLab[4] * vecLab[4]);
-  mX = x;
+  mX = xk;
   mP[kY] = y;
   mP[kZ] = z;
   mP[kSnp] = vecLab[4] * t;
