@@ -63,8 +63,6 @@ using namespace o2::framework;
 using ConfigurationInterface = o2::configuration::ConfigurationInterface;
 using DataHeader = o2::header::DataHeader;
 
-constexpr unsigned int MIN_RATE_LOGGING = 60;
-
 namespace o2::framework
 {
 
@@ -184,15 +182,6 @@ void DataProcessingDevice::Init()
   TracyAppInfo(mSpec.name.data(), mSpec.name.size());
   ZoneScopedN("DataProcessingDevice::Init");
   mRelayer = &mServiceRegistry.get<DataRelayer>();
-  // For some reason passing rateLogging does not work anymore.
-  // This makes sure we never have more than one notification per minute.
-  for (auto& x : fChannels) {
-    for (auto& c : x.second) {
-      if (c.GetRateLogging() < MIN_RATE_LOGGING) {
-        c.UpdateRateLogging(MIN_RATE_LOGGING);
-      }
-    }
-  }
   // If available use the ConfigurationInterface, otherwise go for
   // the command line options.
   bool hasConfiguration = false;
