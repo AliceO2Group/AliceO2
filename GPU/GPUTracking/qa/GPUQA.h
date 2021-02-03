@@ -233,7 +233,6 @@ class GPUQA
   std::vector<int> mFakeTracks[1];
   std::vector<additionalMCParameters> mMCParam[1];
 #endif
-  std::vector<int> mNColTracks;
   std::vector<std::vector<mcInfo_t>> mMCInfos;
   std::vector<additionalClusterParameters> mClusterParam;
   int mNTotalFakes = 0;
