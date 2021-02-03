@@ -535,13 +535,12 @@ void Tracker::computeRoadsMClabels(const ROframe& event)
         count = 1;
 
         const int cl1index{mPrimaryVertexContext->getClusters()[iCell + 1][currentCell.getSecondClusterIndex()].clusterId};
-        auto& cl1labs{event.getClusterLabels(iCell + 1, cl1index)};
-        const int secondMonteCarlo{cl1labs.getTrackID()};
+        const auto& cl1labs{event.getClusterLabels(iCell + 1, cl1index)};
 
-        if (secondMonteCarlo == maxOccurrencesValue) {
+        if (cl1labs == maxOccurrencesValue) {
           ++count;
         } else {
-          maxOccurrencesValue = secondMonteCarlo;
+          maxOccurrencesValue = cl1labs;
           count = 1;
           isFakeRoad = true;
         }
@@ -550,10 +549,9 @@ void Tracker::computeRoadsMClabels(const ROframe& event)
       }
 
       const int cl2index{mPrimaryVertexContext->getClusters()[iCell + 2][currentCell.getThirdClusterIndex()].clusterId};
-      auto& cl2labs{event.getClusterLabels(iCell + 2, cl2index)};
-      const int currentMonteCarlo = {cl2labs.getTrackID()};
+      const auto& cl2labs{event.getClusterLabels(iCell + 2, cl2index)};
 
-      if (currentMonteCarlo == maxOccurrencesValue) {
+      if (cl2labs == maxOccurrencesValue) {
         ++count;
       } else {
         --count;
@@ -561,12 +559,12 @@ void Tracker::computeRoadsMClabels(const ROframe& event)
       }
 
       if (count == 0) {
-        maxOccurrencesValue = currentMonteCarlo;
+        maxOccurrencesValue = cl2labs;
         count = 1;
       }
     }
 
-    mPrimaryVertexContext->setRoadLabel(iRoad, maxOccurrencesValue, isFakeRoad);
+    mPrimaryVertexContext->setRoadLabel(iRoad, maxOccurrencesValue.getRawValue(), isFakeRoad);
   }
 }
 

@@ -106,7 +106,7 @@ void CheckDigits_mft(Int_t nEvents = 1, Int_t nMuons = 10, TString mcEngine = "T
         for (auto& p : *hitArray) {
           if (p.GetDetectorID() != (Short_t)chipID)
             continue;
-          if (p.GetTrackID() != (Int_t)lab)
+          if (p.GetTrackID() != lab.getTrackID())
             continue;
 
           auto locH = gman->getMatrixL2G(chipID) ^ (p.GetPos());         // inverse conversion from global to local
