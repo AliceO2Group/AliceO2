@@ -150,7 +150,7 @@ void AODJAlienReaderHelpers::dumpFileMetrics(Monitoring& monitoring, TFile* curr
     return;
   }
   std::string monitoringInfo(fmt::format("lfn={},size={},total_tf={},read_tf={},read_bytes={},read_calls={},io_time={:.1f},wait_time={:.1f}", currentFile->GetName(),
-                                         currentFile->GetSize(), tfPerFile, tfRead, currentFile->GetBytesRead(), currentFile->GetReadCalls(), 
+                                         currentFile->GetSize(), tfPerFile, tfRead, currentFile->GetBytesRead(), currentFile->GetReadCalls(),
                                          ((float)ioTime / 1e9), ((float)(uv_hrtime() - startedAt - ioTime) / 1e9)));
 #if __has_include(<TJAlienFile.h>)
   auto alienFile = dynamic_cast<TJAlienFile*>(currentFile);
