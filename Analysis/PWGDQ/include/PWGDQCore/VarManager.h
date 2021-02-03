@@ -123,6 +123,7 @@ class VarManager : public TObject
     kITSlayerHit,
     kIsTPCrefit,
     kTPCncls,
+    kTPCnclsCR,
     kTPCchi2,
     kTPCsignal,
     kTRDsignal,
@@ -396,6 +397,7 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kTPCncls] = track.tpcNClsFound();
     values[kTPCchi2] = track.tpcChi2NCl();
     values[kTrackLength] = track.length();
+    values[kTPCnclsCR] = track.tpcNClsCrossedRows();
 
     if constexpr ((fillMap & TrackExtra) > 0) {
       if (fgUsedVars[kITSncls]) {

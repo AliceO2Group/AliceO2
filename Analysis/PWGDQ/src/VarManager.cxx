@@ -180,6 +180,8 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kITSlayerHit] = "";
   fgVariableNames[kTPCncls] = "TPC #cls";
   fgVariableUnits[kTPCncls] = "";
+  fgVariableNames[kTPCnclsCR] = "TPC #cls crossed rows";
+  fgVariableUnits[kTPCnclsCR] = "";
   fgVariableNames[kTPCchi2] = "TPC chi2";
   fgVariableUnits[kTPCchi2] = "";
   fgVariableNames[kTPCsignal] = "TPC dE/dx";
