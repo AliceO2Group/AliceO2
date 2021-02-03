@@ -126,8 +126,6 @@ class TOFDPLRecoWorkflowWithTPCTask
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFOS_TPC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector());
     if (mUseMC) {
       pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHTOF_TPC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector());
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHTPC_TPC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTPCLabelsVector());
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHITS_TPC", 0, Lifetime::Timeframe}, mMatcher.getMatchedITSLabelsVector());
     }
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CALIBDATA_TPC", 0, Lifetime::Timeframe}, mMatcher.getCalibVector());
     mTimer.Stop();

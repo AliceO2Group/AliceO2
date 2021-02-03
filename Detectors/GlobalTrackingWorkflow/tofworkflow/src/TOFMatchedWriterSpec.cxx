@@ -46,19 +46,8 @@ DataProcessorSpec getTOFMatchedWriterSpec(bool useMC, const char* outdef, bool w
   auto loggerTofLabels = [](LabelsType const& labeltof) {
     LOG(INFO) << "TOF LABELS GOT " << labeltof.size() << " LABELS ";
   };
-  auto loggerTpcLabels = [](LabelsType const& labeltpc) {
-    LOG(INFO) << "TPC LABELS GOT " << labeltpc.size() << " LABELS ";
-  };
-  auto loggerItsLabels = [](LabelsType const& labelits) {
-    LOG(INFO) << "ITS LABELS GOT " << labelits.size() << " LABELS ";
-  };
-  // TODO: there was a comment in the original implementation:
-  // RS why do we need to repeat ITS/TPC labels ?
-  // They can be extracted from TPC-ITS matches
   o2::header::DataDescription ddMatchInfo{"MATCHINFOS"}, ddMatchInfo_tpc{"MATCHINFOS_TPC"},
-    ddMCMatchTOF{"MCMATCHTOF"}, ddMCMatchTOF_tpc{"MCMATCHTOF_TPC"},
-    ddMCMatchTPC{"MCMATCHTPC"}, ddMCMatchTPC_tpc{"MCMATCHTPC_TPC"},
-    ddMCMatchITS{"MCMATCHITS"}, ddMCMatchITS_tpc{"MCMATCHITS_TPC"};
+    ddMCMatchTOF{"MCMATCHTOF"}, ddMCMatchTOF_tpc{"MCMATCHTOF_TPC"};
 
   return MakeRootTreeWriterSpec(writeTOFTPC ? "TOFMatchedWriter_TPC" : "TOFMatchedWriter",
                                 outdef,
@@ -76,17 +65,7 @@ DataProcessorSpec getTOFMatchedWriterSpec(bool useMC, const char* outdef, bool w
                                                              "MatchTOFMCTruth",
                                                              "MatchTOFMCTruth-branch-name",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
-                                                             loggerTofLabels},
-                                BranchDefinition<LabelsType>{InputSpec{"matchtpclabels", gDataOriginTOF, writeTOFTPC ? ddMCMatchTPC_tpc : ddMCMatchTPC, 0},
-                                                             "MatchTPCMCTruth",
-                                                             "MatchTPCMCTruth-branch-name",
-                                                             (useMC ? 1 : 0), // one branch if mc labels enabled
-                                                             loggerTpcLabels},
-                                BranchDefinition<LabelsType>{InputSpec{"matchitslabels", gDataOriginTOF, writeTOFTPC ? ddMCMatchITS_tpc : ddMCMatchITS, 0},
-                                                             "MatchITSMCTruth",
-                                                             "MatchITSMCTruth-branch-name",
-                                                             (useMC ? 1 : 0), // one branch if mc labels enabled
-                                                             loggerItsLabels})();
+                                                             loggerTofLabels})();
 }
 } // namespace tof
 } // namespace o2

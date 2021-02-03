@@ -40,8 +40,7 @@ void TrackTPCITSReader::run(ProcessingContext& pc)
 
   pc.outputs().snapshot(Output{"GLO", "TPCITS", 0, Lifetime::Timeframe}, mTracks);
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"GLO", "TPCITS_ITSMC", 0, Lifetime::Timeframe}, mITSLabels);
-    pc.outputs().snapshot(Output{"GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe}, mTPCLabels);
+    pc.outputs().snapshot(Output{"GLO", "TPCITS_MC", 0, Lifetime::Timeframe}, mLabels);
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
@@ -59,8 +58,7 @@ void TrackTPCITSReader::connectTree(const std::string& filename)
   assert(mTree);
   mTree->SetBranchAddress("TPCITS", &mTracksPtr);
   if (mUseMC) {
-    mTree->SetBranchAddress("MatchITSMCTruth", &mITSLabelsPtr);
-    mTree->SetBranchAddress("MatchTPCMCTruth", &mTPCLabelsPtr);
+    mTree->SetBranchAddress("MatchMCTruth", &mLabelsPtr);
   }
   LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
@@ -70,8 +68,7 @@ DataProcessorSpec getTrackTPCITSReaderSpec(bool useMC)
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("GLO", "TPCITS", 0, Lifetime::Timeframe);
   if (useMC) {
-    outputs.emplace_back("GLO", "TPCITS_ITSMC", 0, Lifetime::Timeframe);
-    outputs.emplace_back("GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "TPCITS_MC", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{
