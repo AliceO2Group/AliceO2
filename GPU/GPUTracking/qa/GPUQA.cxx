@@ -206,9 +206,9 @@ static constexpr Color_t defaultColorNUms[COLORCOUNT] = {kRed, kBlue, kGreen, kM
 #ifdef GPUCA_TPC_GEOMETRY_O2
 inline unsigned int GPUQA::GetNMCCollissions() const
 {
-  return mNColTracks.size();
+  return mMCInfos.size();
 }
-inline unsigned int GPUQA::GetNMCTracks(int iCol) const { return mNColTracks[iCol]; }
+inline unsigned int GPUQA::GetNMCTracks(int iCol) const { return mMCInfos[iCol].size(); }
 inline unsigned int GPUQA::GetNMCLabels() const { return mClNative->clustersMCTruth ? mClNative->clustersMCTruth->getIndexedSize() : 0; }
 inline const GPUQA::mcInfo_t& GPUQA::GetMCTrack(unsigned int iTrk, unsigned int iCol) { return mMCInfos[iCol][iTrk]; }
 inline const GPUQA::mcInfo_t& GPUQA::GetMCTrack(const mcLabel_t& label) { return mMCInfos[label.getEventID()][label.getTrackID()]; }
@@ -224,7 +224,7 @@ inline const auto& GPUQA::GetClusterLabels() { return mClNative->clustersMCTruth
 inline float GPUQA::GetMCLabelWeight(unsigned int i, unsigned int j) { return 1; }
 inline float GPUQA::GetMCLabelWeight(const mcLabels_t& label, unsigned int j) { return 1; }
 inline float GPUQA::GetMCLabelWeight(const mcLabel_t& label) { return 1; }
-inline bool GPUQA::mcPresent() { return !mConfig.noMC && mTracking && mClNative->clustersMCTruth && mNColTracks.size(); }
+inline bool GPUQA::mcPresent() { return !mConfig.noMC && mTracking && mClNative->clustersMCTruth && mMCInfos.size(); }
 #define TRACK_EXPECTED_REFERENCE_X 78
 #else
 inline GPUQA::mcLabelI_t::mcLabelI_t(const GPUQA::mcLabel_t& l) : track(l.fMCID)
@@ -583,15 +583,13 @@ int GPUQA::ReadO2MCData(const char* filename)
     fclose(fp);
     return 1;
   }
-  mNColTracks.resize(n);
-  mMCInfos.resize(GetNMCCollissions());
+  mMCInfos.resize(n);
   for (unsigned int i = 0; i < n; i++) {
     unsigned int nn = GetNMCTracks(i);
     if (fread(&nn, sizeof(nn), 1, fp) != 1) {
       fclose(fp);
       return 1;
     }
-    mNColTracks[i] = nn;
     mMCInfos[i].resize(nn);
     if (fread(mMCInfos[i].data(), sizeof(mMCInfos[i][0]), nn, fp) != nn) {
       fclose(fp);
@@ -614,8 +612,7 @@ void GPUQA::InitO2MCData()
 
   o2::steer::MCKinematicsReader mcReader("collisioncontext.root");
   int nSimEvents = mcReader.getNEvents(0);
-  mNColTracks.resize(nSimEvents);
-  mMCInfos.resize(GetNMCCollissions());
+  mMCInfos.resize(nSimEvents);
   std::vector<int> refId;
 
   auto dc = o2::steer::DigitizationContext::loadFromFile("collisioncontext.root");
@@ -639,8 +636,7 @@ void GPUQA::InitO2MCData()
         }
       }
     }
-    mNColTracks[i] = tracks.size();
-    mMCInfos[i].resize(mNColTracks[i]);
+    mMCInfos[i].resize(tracks.size());
     for (unsigned int j = 0; j < tracks.size(); j++) {
       auto& info = mMCInfos[i][j];
       const auto& trk = tracks[j];
