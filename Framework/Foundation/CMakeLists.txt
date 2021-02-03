@@ -15,6 +15,8 @@ o2_add_library(FrameworkFoundation
                SOURCES src/RuntimeError.cxx
                TARGETVARNAME targetName
               )
+set(DPL_ENABLE_BACKTRACE ON CACHE BOOL "Enable backtrace on o2::framework::runtime_error")
+
 if (DPL_ENABLE_BACKTRACE)
 target_compile_definitions(${targetName} PUBLIC -DDPL_ENABLE_BACKTRACE)
 endif()

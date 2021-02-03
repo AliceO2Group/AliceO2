@@ -1211,7 +1211,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("shm-throw-bad-alloc", bpo::value<std::string>()->default_value("true"), "throw if insufficient shm memory")                             //
     ("shm-segment-id", bpo::value<std::string>()->default_value("0"), "shm segment id")                                                       //
     ("environment", bpo::value<std::string>(), "comma separated list of environment variables to set for the device")                         //
-    ("stacktrace-on-signal", bpo::value<std::string>()->default_value("none"),                                                                //
+    ("stacktrace-on-signal", bpo::value<std::string>()->default_value("all"),                                                                 //
      "dump stacktrace on specified signal(s) (any of `all`, `segv`, `bus`, `ill`, `abrt`, `fpe`, `sys`.)")                                    //
     ("post-fork-command", bpo::value<std::string>(), "post fork command to execute (e.g. numactl {pid}")                                      //
     ("session", bpo::value<std::string>(), "unique label for the shared memory session")                                                      //
