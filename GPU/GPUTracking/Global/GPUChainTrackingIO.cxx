@@ -222,7 +222,15 @@ int GPUChainTracking::ReadData(const char* filename)
   ReadData(fp, &mIOPtrs.trdTracks, &mIOPtrs.nTRDTracks, &mIOMem.trdTracks, InOutPointerType::TRD_TRACK);
   ReadData(fp, &mIOPtrs.trdTracklets, &mIOPtrs.nTRDTracklets, &mIOMem.trdTracklets, InOutPointerType::TRD_TRACKLET);
   ReadData(fp, &mIOPtrs.trdTrackletsMC, &mIOPtrs.nTRDTrackletsMC, &mIOMem.trdTrackletsMC, InOutPointerType::TRD_TRACKLET_MC);
+
+  size_t fptr = ftell(fp);
+  fseek(fp, 0, SEEK_END);
+  size_t fend = ftell(fp);
   fclose(fp);
+  if (fptr != fend) {
+    GPUError("Error reading data file, reading incomplete");
+    return 1;
+  }
   (void)r;
   for (unsigned int i = 0; i < NSLICES; i++) {
     for (unsigned int j = 0; j < mIOPtrs.nClusterData[i]; j++) {
