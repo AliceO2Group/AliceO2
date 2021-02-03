@@ -52,6 +52,8 @@ class GPUQA
   int HitAttachStatus(int iHit) const { return false; }
   int GetMCTrackLabel(unsigned int trackId) const { return -1; }
   bool clusterRemovable(int attach, bool prot) const { return false; }
+  void DumpO2MCData(const char* filename) const {}
+  int ReadO2MCData(const char* filename) { return 1; }
   static bool QAAvailable() { return false; }
   static bool IsInitialized() { return false; }
 };
@@ -104,6 +106,8 @@ class GPUQA
   int HitAttachStatus(int iHit) const;
   int GetMCTrackLabel(unsigned int trackId) const;
   bool clusterRemovable(int attach, bool prot) const;
+  void DumpO2MCData(const char* filename) const;
+  int ReadO2MCData(const char* filename);
   static bool QAAvailable() { return true; }
   bool IsInitialized() { return mQAInitialized; }
 
@@ -140,6 +144,7 @@ class GPUQA
   };
 
   int InitQACreateHistograms();
+  void InitO2MCData();
   int DoClusterCounts(unsigned long long int* attachClusterCounts, int mode = 0);
   void PrintClusterCount(int mode, int& num, const char* name, unsigned long long int n, unsigned long long int normalization);
 
@@ -188,9 +193,9 @@ class GPUQA
   template <class T>
   static auto& GetMCTrackObj(T& obj, const mcLabelI_t& l);
 
-  unsigned int GetNMCCollissions();
-  unsigned int GetNMCTracks(int iCol);
-  unsigned int GetNMCLabels();
+  unsigned int GetNMCCollissions() const;
+  unsigned int GetNMCTracks(int iCol) const;
+  unsigned int GetNMCLabels() const;
   const mcInfo_t& GetMCTrack(unsigned int iTrk, unsigned int iCol);
   const mcInfo_t& GetMCTrack(const mcLabel_t& label);
   int GetMCLabelNID(const mcLabels_t& label);
@@ -222,14 +227,14 @@ class GPUQA
   std::vector<std::vector<int>> mRecTracks;
   std::vector<std::vector<int>> mFakeTracks;
   std::vector<std::vector<additionalMCParameters>> mMCParam;
-  std::vector<std::vector<mcInfo_t>> mMCInfos;
-  std::vector<int> mNColTracks;
 #else
   std::vector<int> mTrackMCLabelsReverse[1];
   std::vector<int> mRecTracks[1];
   std::vector<int> mFakeTracks[1];
   std::vector<additionalMCParameters> mMCParam[1];
 #endif
+  std::vector<int> mNColTracks;
+  std::vector<std::vector<mcInfo_t>> mMCInfos;
   std::vector<additionalClusterParameters> mClusterParam;
   int mNTotalFakes = 0;
 

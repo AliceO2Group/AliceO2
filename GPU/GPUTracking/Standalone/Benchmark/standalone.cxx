@@ -492,6 +492,18 @@ int ReadEvent(int n)
   if (r) {
     return r;
   }
+#if defined(GPUCA_TPC_GEOMETRY_O2) && defined(GPUCA_BUILD_QA) && !defined(GPUCA_O2_LIB)
+  if (configStandalone.proc.runQA && !configStandalone.QA.noMC) {
+    chainTracking->ForceInitQA();
+    snprintf(filename, 256, "events/%s/mc.%d.dump", configStandalone.EventsDir, n);
+    if (chainTracking->GetQA()->ReadO2MCData(filename)) {
+      snprintf(filename, 256, "events/%s/mc.%d.dump", configStandalone.EventsDir, 0);
+      if (chainTracking->GetQA()->ReadO2MCData(filename)) {
+        throw std::runtime_error("Error reading O2 MC dump");
+      }
+    }
+  }
+#endif
   if (chainTracking->mIOPtrs.clustersNative && (configStandalone.TF.bunchSim || configStandalone.TF.nMerge || !configStandalone.runTransformation)) {
     if (configStandalone.proc.debugLevel >= 2) {
       printf("Converting Native to Legacy ClusterData for overlaying - WARNING: No raw clusters produced - Compression etc will not run!!!\n");
