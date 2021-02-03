@@ -43,7 +43,6 @@ include(O2AddTestWrapper)
 #   before it is actually considered as failed
 # * TIMEOUT : the number of seconds allowed for the test to run. Past this time
 #   failure is assumed.
-# * NON_FATAL : true if the failing of this test is not causing the CI to fail
 # * ENVIRONMENT: extra environment needed by the test to run properly
 #
 function(o2_add_test)
@@ -56,7 +55,7 @@ function(o2_add_test)
     PARSE_ARGV
     1
     A
-    "INSTALL;NO_BOOST_TEST;NON_FATAL"
+    "INSTALL;NO_BOOST_TEST"
     "COMPONENT_NAME;MAX_ATTEMPTS;TIMEOUT;WORKING_DIRECTORY;NAME"
     "SOURCES;PUBLIC_LINK_LIBRARIES;COMMAND_LINE_ARGS;LABELS;CONFIGURATIONS;ENVIRONMENT"
     )
@@ -95,11 +94,6 @@ function(o2_add_test)
                     COMPONENT_NAME ${A_COMPONENT_NAME}
                     IS_TEST ${noInstall} TARGETVARNAME targetName)
 
-  set(nonFatal "")
-  if(NON_FATAL)
-    set(nonFatal NON_FATAL)
-  endif()
-
   # create a test with a script wrapping the executable above
   set(name "")
   if(A_NAME)
@@ -114,7 +108,7 @@ function(o2_add_test)
                       NAME ${name}
                       DONT_FAIL_ON_TIMEOUT
                       MAX_ATTEMPTS ${A_MAX_ATTEMPTS}
-                      TIMEOUT ${A_TIMEOUT} ${nonFatal}
+                      TIMEOUT ${A_TIMEOUT}
                       WORKING_DIRECTORY ${A_WORKING_DIRECTORY}
                       COMMAND_LINE_ARGS ${A_COMMAND_LINE_ARGS}
                       LABELS ${A_LABELS}

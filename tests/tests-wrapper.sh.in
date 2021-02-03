@@ -10,7 +10,6 @@
 MAX_ATTEMPTS=1
 TIMEOUT=              # default: no timeout
 DONT_FAIL_ON_TIMEOUT= # default: if it times out, it fails
-NON_FATAL=            # default: fail on error
 ARGS=("$@")
 
 while [[ $# -gt 0 ]]; do
@@ -33,10 +32,6 @@ while [[ $# -gt 0 ]]; do
     ;;
   --dont-fail-on-timeout)
     DONT_FAIL_ON_TIMEOUT=1
-    shift
-    ;;
-  --non-fatal)
-    NON_FATAL=1
     shift
     ;;
   *)
@@ -63,7 +58,7 @@ function banner() {
   echo "=== $TEST_NAME - $1 ===" >&2
 }
 
-banner "Starting test. Max attempts: $MAX_ATTEMPTS.${TIMEOUT:+" Timeout per attempt: $TIMEOUT."}${DONT_FAIL_ON_TIMEOUT:+" Timeouts are not fatal."}${NON_FATAL:+" Errors are not fatal."}"
+banner "Starting test. Max attempts: $MAX_ATTEMPTS.${TIMEOUT:+" Timeout per attempt: $TIMEOUT."}${DONT_FAIL_ON_TIMEOUT:+" Timeouts are not fatal."}"
 
 for A in "${ARGS[@]}"; do
   banner "Argument: $A"
@@ -121,10 +116,6 @@ banner "Test failed after $MAX_ATTEMPTS attempts with $ERR"
 if [[ $DONT_FAIL_ON_TIMEOUT && $ERR == 124 ]]; then
   # man timeout --> 124 is for "timed out"
   banner "Reason for failure: timeout, explicitly set as not fatal. Exiting with 0"
-  cp "${LOG}.${ERR}" "${LOG}.${ERR}.nonfatal"
-  exit 0
-elif [[ $NON_FATAL ]]; then
-  banner "Failed with error $ERR, but errors are set as not fatal. Exiting with 0"
   cp "${LOG}.${ERR}" "${LOG}.${ERR}.nonfatal"
   exit 0
 fi
