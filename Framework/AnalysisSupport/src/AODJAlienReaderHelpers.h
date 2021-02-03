@@ -22,7 +22,7 @@ namespace o2::framework::readers
 
 struct AODJAlienReaderHelpers {
   static AlgorithmSpec rootFileReaderCallback();
-  static void dumpFileMetrics(o2::monitoring::Monitoring& monitoring, TFile* currentFile, uint64_t startedAt, int tfPerFile, int tfRead);
+  static void dumpFileMetrics(o2::monitoring::Monitoring& monitoring, TFile* currentFile, uint64_t startedAt, uint64_t ioTime, int tfPerFile, int tfRead);
 };
 
 } // namespace o2::framework::readers

@@ -74,7 +74,6 @@ struct DataProcessorContext {
   AlgorithmSpec::ErrorCallback* error = nullptr;
 
   std::function<void(o2::framework::RuntimeErrorRef e, InputRecord& record)>* errorHandling = nullptr;
-  int* errorCount = nullptr;
 };
 
 /// A device actually carrying out all the DPL
@@ -124,7 +123,6 @@ class DataProcessingDevice : public FairMQDevice
   /// Completed actions
   std::vector<DataRelayer::RecordAction> mCompleted;
 
-  int mErrorCount;
   uint64_t mLastSlowMetricSentTimestamp = 0;         /// The timestamp of the last time we sent slow metrics
   uint64_t mLastMetricFlushedTimestamp = 0;          /// The timestamp of the last time we actually flushed metrics
   uint64_t mBeginIterationTimestamp = 0;             /// The timestamp of when the current ConditionalRun was started

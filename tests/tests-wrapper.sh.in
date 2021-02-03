@@ -86,7 +86,7 @@ CMD="$1"
 shift
 type "$CMD" &>/dev/null || CMD="@CMAKE_BINARY_DIR@/bin/$CMD"
 
-for ((ATTEMPT = 1; ATTEMPT <= MAX_ATTEMPTS; ATTEMPT++)); do
+for ATTEMPT in `seq 1 $MAX_ATTEMPTS`; do
   DARGS=("$@")
   # Deduping args that contain a ":"
   N=${#DARGS[@]}
@@ -101,21 +101,13 @@ for ((ATTEMPT = 1; ATTEMPT <= MAX_ATTEMPTS; ATTEMPT++)); do
 
   banner "Running $CMD with args ${DARGS[*]} (attempt $ATTEMPT/$MAX_ATTEMPTS)"
   ERR=0
-  rm -f "${LOG}.bt"
-  SEGFAULT_SIGNALS=all LD_PRELOAD=libSegFault.so $TIMEOUT_CMD "$CMD" "${DARGS[@]}"
-  ERR=$? # wait timeout process, not real PID
+  SEGFAULT_SIGNALS=all LD_PRELOAD=libSegFault.so $TIMEOUT_CMD "$CMD" "${DARGS[@]}" || ERR=$?
   if [[ $ERR == 0 ]]; then
     banner "Test finished with success after $ATTEMPT attempts, exiting"
     mv "$LOG" "${LOG}.0"
     exit 0
   else
     banner "Test attempt $ATTEMPT/$MAX_ATTEMPTS failed with exit code $ERR"
-    if [[ -e "${LOG}.bt" ]]; then
-      banner "Stack trace follows for attempt $ATTEMPT"
-      cat "${LOG}.bt"
-      rm -f "${LOG}.bt"
-      banner "End of stack trace for attempt $ATTEMPT"
-    fi
   fi
 done
 

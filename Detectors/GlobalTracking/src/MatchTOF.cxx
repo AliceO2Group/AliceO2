@@ -76,8 +76,6 @@ void MatchTOF::run()
 
     mMatchedTracks.clear();
     mOutTOFLabels.clear();
-    mOutTPCLabels.clear();
-    mOutITSLabels.clear();
 
     mTimerTot.Stop();
     LOGF(INFO, "Timing prepare tracks: Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
@@ -107,8 +105,6 @@ void MatchTOF::run()
 
     mMatchedTracks.clear();
     mOutTOFLabels.clear();
-    mOutTPCLabels.clear();
-    mOutITSLabels.clear();
 
     mTimerTot.Stop();
     LOGF(INFO, "Timing prepare tracks: Cpu: %.3e s Real: %.3e s in %d slots", mTimerTot.CpuTime(), mTimerTot.RealTime(), mTimerTot.Counter() - 1);
@@ -153,17 +149,16 @@ void MatchTOF::fill()
 }
 
 //______________________________________________
-void MatchTOF::run(const gsl::span<const o2::dataformats::TrackTPCITS>& trackArray, const gsl::span<const Cluster>& clusterArray, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>& toflab, const gsl::span<const o2::MCCompLabel>& itslab, const gsl::span<const o2::MCCompLabel>& tpclab)
+void MatchTOF::run(const gsl::span<const o2::dataformats::TrackTPCITS>& trackArray, const gsl::span<const Cluster>& clusterArray, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>& toflab, const gsl::span<const o2::MCCompLabel>& itstpclab)
 {
   mIsITSused = true;
   mTracksArrayInp = trackArray;
   mTOFClustersArrayInp = clusterArray;
   mIsworkflowON = kTRUE;
   mTOFClusLabels = toflab;
-  mTPCLabels = tpclab;
-  mITSLabels = itslab;
+  mTPCLabels = itstpclab;
 
-  mMCTruthON = (mTOFClusLabels.getNElements() && mTPCLabels.size() && mITSLabels.size());
+  mMCTruthON = (mTOFClusLabels.getNElements() && mTPCLabels.size());
   mWFInputAttached = true;
   mSAInitDone = true;
   run();
@@ -202,10 +197,6 @@ void MatchTOF::init()
     LOG(INFO) << "Matched tracks will be stored in " << mOutTracksBranchName << " branch of tree "
               << mOutputTree->GetName();
     if (mMCTruthON) {
-      mOutputTree->Branch(mOutITSMCTruthBranchName.data(), &mOutITSLabels);
-      LOG(INFO) << "ITS Tracks Labels branch: " << mOutITSMCTruthBranchName;
-      mOutputTree->Branch(mOutTPCMCTruthBranchName.data(), &mOutTPCLabels);
-      LOG(INFO) << "TPC Tracks Labels branch: " << mOutTPCMCTruthBranchName;
       mOutputTree->Branch(mOutTOFMCTruthBranchName.data(), &mOutTOFLabels);
       LOG(INFO) << "TOF Tracks Labels branch: " << mOutTOFMCTruthBranchName;
     }
@@ -258,8 +249,6 @@ void MatchTOF::initTPConly()
     LOG(INFO) << "Matched tracks will be stored in " << mOutTracksBranchName << " branch of tree "
               << mOutputTree->GetName();
     if (mMCTruthON) {
-      mOutputTree->Branch(mOutTPCMCTruthBranchName.data(), &mOutTPCLabels);
-      LOG(INFO) << "TPC Tracks Labels branch: " << mOutTPCMCTruthBranchName;
       mOutputTree->Branch(mOutTOFMCTruthBranchName.data(), &mOutTOFLabels);
       LOG(INFO) << "TOF Tracks Labels branch: " << mOutTOFMCTruthBranchName;
     }
@@ -357,12 +346,6 @@ void MatchTOF::attachInputTrees()
   if (mInputTreeTracks->GetBranch(mTPCMCTruthBranchName.data())) {
     mInputTreeTracks->SetBranchAddress(mTPCMCTruthBranchName.data(), &mTPCLabelsVect);
     LOG(INFO) << "Found TPC tracks MCLabels branch " << mTPCMCTruthBranchName.data();
-  } else {
-    mMCTruthON = false;
-  }
-  if (mInputTreeTracks->GetBranch(mITSMCTruthBranchName.data())) {
-    mInputTreeTracks->SetBranchAddress(mITSMCTruthBranchName.data(), &mITSLabelsVect);
-    LOG(INFO) << "Found ITS tracks MCLabels branch " << mITSMCTruthBranchName.data();
   } else {
     mMCTruthON = false;
   }
@@ -766,7 +749,6 @@ bool MatchTOF::loadTracksNextChunk()
       continue;
     }
     if (mMCTruthON) {
-      mITSLabels = gsl::span<const o2::MCCompLabel>{*mITSLabelsVect};
       mTPCLabels = gsl::span<const o2::MCCompLabel>{*mTPCLabelsVect};
     }
     return true;
@@ -1076,8 +1058,7 @@ void MatchTOF::doMatching(int sec)
             tofLabelSourceID[ilabel] = labelsTOF[ilabel].getSourceID();
           }
           auto labelTPC = mTPCLabels[mTracksSectIndexCache[sec][itrk]];
-          auto labelITS = mITSLabels[mTracksSectIndexCache[indices[0]][itrk]];
-          fillTOFmatchTreeWithLabels("matchPossibleWithLabels", cacheTOF[itof], indices[0], indices[1], indices[2], indices[3], indices[4], cacheTrk[itrk], iPropagation, detId[iPropagation][0], detId[iPropagation][1], detId[iPropagation][2], detId[iPropagation][3], detId[iPropagation][4], resX, resZ, res, trackWork, labelTPC.getTrackID(), labelTPC.getEventID(), labelTPC.getSourceID(), labelITS.getTrackID(), labelITS.getEventID(), labelITS.getSourceID(), tofLabelTrackID[0], tofLabelEventID[0], tofLabelSourceID[0], tofLabelTrackID[1], tofLabelEventID[1], tofLabelSourceID[1], tofLabelTrackID[2], tofLabelEventID[2], tofLabelSourceID[2], trkLTInt[iPropagation].getL(), trkLTInt[iPropagation].getTOF(o2::track::PID::Pion), trefTOF.getTime());
+          fillTOFmatchTreeWithLabels("matchPossibleWithLabels", cacheTOF[itof], indices[0], indices[1], indices[2], indices[3], indices[4], cacheTrk[itrk], iPropagation, detId[iPropagation][0], detId[iPropagation][1], detId[iPropagation][2], detId[iPropagation][3], detId[iPropagation][4], resX, resZ, res, trackWork, labelTPC.getTrackID(), labelTPC.getEventID(), labelTPC.getSourceID(), tofLabelTrackID[0], tofLabelEventID[0], tofLabelSourceID[0], tofLabelTrackID[1], tofLabelEventID[1], tofLabelSourceID[1], tofLabelTrackID[2], tofLabelEventID[2], tofLabelSourceID[2], trkLTInt[iPropagation].getL(), trkLTInt[iPropagation].getTOF(o2::track::PID::Pion), trefTOF.getTime());
         }
 #endif
         if (indices[0] != detId[iPropagation][0]) {
@@ -1094,8 +1075,7 @@ void MatchTOF::doMatching(int sec)
         fillTOFmatchTree("match1", cacheTOF[itof], indices[0], indices[1], indices[2], indices[3], indices[4], cacheTrk[itrk], iPropagation, detId[iPropagation][0], detId[iPropagation][1], detId[iPropagation][2], detId[iPropagation][3], detId[iPropagation][4], resX, resZ, res, trackWork, trkLTInt[iPropagation].getL(), trkLTInt[iPropagation].getTOF(o2::track::PID::Pion), trefTOF.getTime());
         if (mMCTruthON) {
           auto labelTPC = mTPCLabels[mTracksSectIndexCache[sec][itrk]];
-          auto labelITS = mITSLabels[mTracksSectIndexCache[indices[0]][itrk]];
-          fillTOFmatchTreeWithLabels("matchOkWithLabels", cacheTOF[itof], indices[0], indices[1], indices[2], indices[3], indices[4], cacheTrk[itrk], iPropagation, detId[iPropagation][0], detId[iPropagation][1], detId[iPropagation][2], detId[iPropagation][3], detId[iPropagation][4], resX, resZ, res, trackWork, labelTPC.getTrackID(), labelTPC.getEventID(), labelTPC.getSourceID(), labelITS.getTrackID(), labelITS.getEventID(), labelITS.getSourceID(), tofLabelTrackID[0], tofLabelEventID[0], tofLabelSourceID[0], tofLabelTrackID[1], tofLabelEventID[1], tofLabelSourceID[1], tofLabelTrackID[2], tofLabelEventID[2], tofLabelSourceID[2], trkLTInt[iPropagation].getL(), trkLTInt[iPropagation].getTOF(o2::track::PID::Pion), trefTOF.getTime());
+          fillTOFmatchTreeWithLabels("matchOkWithLabels", cacheTOF[itof], indices[0], indices[1], indices[2], indices[3], indices[4], cacheTrk[itrk], iPropagation, detId[iPropagation][0], detId[iPropagation][1], detId[iPropagation][2], detId[iPropagation][3], detId[iPropagation][4], resX, resZ, res, trackWork, labelTPC.getTrackID(), labelTPC.getEventID(), labelTPC.getSourceID(), tofLabelTrackID[0], tofLabelEventID[0], tofLabelSourceID[0], tofLabelTrackID[1], tofLabelEventID[1], tofLabelSourceID[1], tofLabelTrackID[2], tofLabelEventID[2], tofLabelSourceID[2], trkLTInt[iPropagation].getL(), trkLTInt[iPropagation].getTOF(o2::track::PID::Pion), trefTOF.getTime());
         }
 #endif
 
@@ -1111,13 +1091,11 @@ void MatchTOF::doMatching(int sec)
           if (mMCTruthON) {
             const auto& labelsTOF = mTOFClusLabels.getLabels(mTOFClusSectIndexCache[indices[0]][itof]);
             auto labelTPC = mTPCLabels[mTracksSectIndexCache[sec][itrk]];
-            auto labelITS = mITSLabels[mTracksSectIndexCache[indices[0]][itrk]];
             for (int ilabel = 0; ilabel < labelsTOF.size(); ilabel++) {
               LOG(DEBUG) << "TOF label " << ilabel << labelsTOF[ilabel];
             }
             LOG(DEBUG) << "TPC label " << labelTPC;
-            LOG(DEBUG) << "ITS label " << labelITS;
-            fillTOFmatchTreeWithLabels("matchOkWithLabelsInSpaceTolerance", cacheTOF[itof], indices[0], indices[1], indices[2], indices[3], indices[4], cacheTrk[itrk], iPropagation, detId[iPropagation][0], detId[iPropagation][1], detId[iPropagation][2], detId[iPropagation][3], detId[iPropagation][4], resX, resZ, res, trackWork, labelTPC.getTrackID(), labelTPC.getEventID(), labelTPC.getSourceID(), labelITS.getTrackID(), labelITS.getEventID(), labelITS.getSourceID(), tofLabelTrackID[0], tofLabelEventID[0], tofLabelSourceID[0], tofLabelTrackID[1], tofLabelEventID[1], tofLabelSourceID[1], tofLabelTrackID[2], tofLabelEventID[2], tofLabelSourceID[2], trkLTInt[iPropagation].getL(), trkLTInt[iPropagation].getTOF(o2::track::PID::Pion), trefTOF.getTime());
+            fillTOFmatchTreeWithLabels("matchOkWithLabelsInSpaceTolerance", cacheTOF[itof], indices[0], indices[1], indices[2], indices[3], indices[4], cacheTrk[itrk], iPropagation, detId[iPropagation][0], detId[iPropagation][1], detId[iPropagation][2], detId[iPropagation][3], detId[iPropagation][4], resX, resZ, res, trackWork, labelTPC.getTrackID(), labelTPC.getEventID(), labelTPC.getSourceID(), tofLabelTrackID[0], tofLabelEventID[0], tofLabelSourceID[0], tofLabelTrackID[1], tofLabelEventID[1], tofLabelSourceID[1], tofLabelTrackID[2], tofLabelEventID[2], tofLabelSourceID[2], trkLTInt[iPropagation].getL(), trkLTInt[iPropagation].getTOF(o2::track::PID::Pion), trefTOF.getTime());
           }
 #endif
         }
@@ -1503,31 +1481,23 @@ void MatchTOF::selectBestMatches()
       const auto& labelsTOF = mTOFClusLabels.getLabels(matchingPair.getTOFClIndex());
       const auto& labelTPC = mTPCLabels[matchingPair.getTrackIndex()];
       // we want to store positive labels independently of how they are flagged from TPC,ITS people
-      //    o2::MCCompLabel labelTPC(abs(labelTPCor.getTrackID()), labelTPCor.getEventID(), labelTPCor.getSourceID());
-      //    o2::MCCompLabel labelITS(abs(labelITSor.getTrackID()), labelITSor.getEventID(), labelITSor.getSourceID());
       LOG(DEBUG) << "TPC label" << labelTPC;
       bool labelOk = false; // whether we have found or not the same TPC label of the track among the labels of the TOF cluster
 
       for (int ilabel = 0; ilabel < labelsTOF.size(); ilabel++) {
         LOG(DEBUG) << "TOF label " << ilabel << labelsTOF[ilabel];
-        if (labelsTOF[ilabel].getTrackID() == labelTPC.getTrackID() && labelsTOF[ilabel].getEventID() == labelTPC.getEventID() && labelsTOF[ilabel].getSourceID() == labelTPC.getSourceID() && !labelOk) { // if we find one TOF cluster label that is the same as the TPC one, we are happy - even if it is not the first one
+        if (labelsTOF[ilabel] == labelTPC) { // if we find one TOF cluster label that is the same as the TPC one, we are happy - even if it is not the first one
           mOutTOFLabels.push_back(labelsTOF[ilabel]);
           labelOk = true;
+          break;
         }
       }
       if (!labelOk) {
         // we have not found the track label among those associated to the TOF cluster --> fake match! We will associate the label of the main channel, but negative
-        //assert(labelsTOF.size());
         if (!labelsTOF.size()) {
           throw std::runtime_error("TOF label not found since size of label is zero. This should not happen!!!!");
         }
         mOutTOFLabels.emplace_back(labelsTOF[0].getTrackID(), labelsTOF[0].getEventID(), labelsTOF[0].getSourceID(), true);
-      }
-      mOutTPCLabels.push_back(labelTPC);
-      if (mIsITSused) {
-        const auto& labelITS = mITSLabels[matchingPair.getTrackIndex()];
-        LOG(DEBUG) << "ITS label" << labelITS;
-        mOutITSLabels.push_back(labelITS);
       }
     }
     i++;
@@ -1642,7 +1612,7 @@ void MatchTOF::fillTOFmatchTree(const char* trname, int cacheTOF, int sectTOF, i
 }
 
 //_________________________________________________________
-void MatchTOF::fillTOFmatchTreeWithLabels(const char* trname, int cacheTOF, int sectTOF, int plateTOF, int stripTOF, int padXTOF, int padZTOF, int cacheeTrk, int crossedStrip, int sectPropagation, int platePropagation, int stripPropagation, int padXPropagation, int padZPropagation, float resX, float resZ, float res, matchTrack& trk, int TPClabelTrackID, int TPClabelEventID, int TPClabelSourceID, int ITSlabelTrackID, int ITSlabelEventID, int ITSlabelSourceID, int TOFlabelTrackID0, int TOFlabelEventID0, int TOFlabelSourceID0, int TOFlabelTrackID1, int TOFlabelEventID1, int TOFlabelSourceID1, int TOFlabelTrackID2, int TOFlabelEventID2, int TOFlabelSourceID2, float intLength, float intTimePion, float timeTOF)
+void MatchTOF::fillTOFmatchTreeWithLabels(const char* trname, int cacheTOF, int sectTOF, int plateTOF, int stripTOF, int padXTOF, int padZTOF, int cacheeTrk, int crossedStrip, int sectPropagation, int platePropagation, int stripPropagation, int padXPropagation, int padZPropagation, float resX, float resZ, float res, matchTrack& trk, int TPClabelTrackID, int TPClabelEventID, int TPClabelSourceID, int TOFlabelTrackID0, int TOFlabelEventID0, int TOFlabelSourceID0, int TOFlabelTrackID1, int TOFlabelEventID1, int TOFlabelSourceID1, int TOFlabelTrackID2, int TOFlabelEventID2, int TOFlabelSourceID2, float intLength, float intTimePion, float timeTOF)
 {
   ///< fill debug tree for TOF tracks matching check
 
@@ -1654,7 +1624,6 @@ void MatchTOF::fillTOFmatchTreeWithLabels(const char* trname, int cacheTOF, int 
                << "crossedStrip=" << crossedStrip << "sectPropagation=" << sectPropagation << "platePropagation=" << platePropagation << "stripPropagation=" << stripPropagation << "padXPropagation=" << padXPropagation
                << "resX=" << resX << "resZ=" << resZ << "res=" << res << "track=" << trk.first
                << "TPClabelTrackID=" << TPClabelTrackID << "TPClabelEventID=" << TPClabelEventID << "TPClabelSourceID=" << TPClabelSourceID
-               << "ITSlabelTrackID=" << ITSlabelTrackID << "ITSlabelEventID=" << ITSlabelEventID << "ITSlabelSourceID=" << ITSlabelSourceID
                << "TOFlabelTrackID0=" << TOFlabelTrackID0 << "TOFlabelEventID0=" << TOFlabelEventID0 << "TOFlabelSourceID0=" << TOFlabelSourceID0
                << "TOFlabelTrackID1=" << TOFlabelTrackID1 << "TOFlabelEventID1=" << TOFlabelEventID1 << "TOFlabelSourceID1=" << TOFlabelSourceID1
                << "TOFlabelTrackID2=" << TOFlabelTrackID2 << "TOFlabelEventID2=" << TOFlabelEventID2 << "TOFlabelSourceID2=" << TOFlabelSourceID2
