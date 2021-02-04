@@ -859,7 +859,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           nClusters++;
           unsigned int hitId = mTracking->mIOPtrs.mergedTrackHits[track.FirstClusterRef() + k].num;
           if (hitId >= GetNMCLabels()) {
-            GPUError("Invalid hit id %u > %d", hitId, GetNMCLabels());
+            GPUError("Invalid hit id %u > %d (nClusters %d)", hitId, GetNMCLabels(), mTracking->mIOPtrs.clustersNative ? mTracking->mIOPtrs.clustersNative->nClustersTotal : 0);
             throw std::runtime_error("qa error");
           }
           acc.addLabel(hitId);
