@@ -228,7 +228,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* GPUrestrict() merger, 
 
       if (err == 0 && changeDirection) {
         const float mirrordY = prop.GetMirroredYTrack();
-        CADEBUG(printf(" -- MiroredY: %f --> %f", mP[0], mirrordY));
+        CADEBUG(printf(" -- MirroredY: %f --> %f", mP[0], mirrordY));
         if (CAMath::Abs(yy - mP[0]) > CAMath::Abs(yy - mirrordY)) {
           CADEBUG(printf(" - Mirroring!!!"));
           if (allowModification) {
@@ -889,7 +889,7 @@ GPUd() bool GPUTPCGMTrackParam::CheckNumericalQuality(float overrideCovYY) const
   //* Check that the track parameters and covariance matrix are reasonable
   bool ok = CAMath::Finite(mX) && CAMath::Finite(mChi2);
   CADEBUG(
-    printf("OK %d - ", (int)ok); for (int i = 0; i < 5; i++) { printf("%f ", mP[i]); } printf(" - "); for (int i = 0; i < 15; i++) { printf("%f ", mC[i]); } printf("\n"));
+    printf("OK %d - %f - ", (int)ok, mX); for (int i = 0; i < 5; i++) { printf("%f ", mP[i]); } printf(" - "); for (int i = 0; i < 15; i++) { printf("%f ", mC[i]); } printf("\n"));
   const float* c = mC;
   for (int i = 0; i < 15; i++) {
     ok = ok && CAMath::Finite(c[i]);
@@ -1007,6 +1007,8 @@ GPUd() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() tr
     t.QPt() = 1.e-4f;
   }
 
+  CADEBUG(if (t.GetX() > 250) { printf("ERROR, Track at impossible X %f\n", t.GetX()); });
+
   track.SetOK(ok);
   track.SetNClustersFitted(nTrackHits);
   track.Param() = t;
@@ -1033,7 +1035,7 @@ GPUd() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() tr
   }
 }
 
-GPUd() bool GPUTPCGMTrackParam::Rotate(float alpha)
+GPUd() void GPUTPCGMTrackParam::Rotate(float alpha)
 {
   float cA, sA;
   CAMath::SinCos(alpha, sA, cA);
@@ -1068,5 +1070,4 @@ GPUd() bool GPUTPCGMTrackParam::Rotate(float alpha)
     mC[10] = -mC[10];
     mC[11] = -mC[11];
   }
-  return true;
 }

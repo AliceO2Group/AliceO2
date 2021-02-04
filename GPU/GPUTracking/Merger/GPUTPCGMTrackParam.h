@@ -188,7 +188,7 @@ class GPUTPCGMTrackParam
     }
   }
 
-  GPUd() bool Rotate(float alpha);
+  GPUd() void Rotate(float alpha);
   GPUd() void ShiftZ(const GPUTPCGMMerger* merger, int slice, float tzInner, float tzOuter);
   GPUd() void ShiftZ2(const GPUTPCGMMergedTrackHit* clusters, GPUTPCGMMergedTrackHitXYZ* clustersXYZ, const GPUTPCGMMerger* merger, int N);
 
