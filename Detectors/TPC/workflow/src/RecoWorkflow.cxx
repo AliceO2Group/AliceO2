@@ -505,8 +505,8 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     auto ccldef = BranchDefinition<CCluSerializedType>{InputSpec{"inputCompCl", "TPC", "COMPCLUSTERS"}, //
                                                        "TPCCompClusters_0", "compcluster-branch-name"}; //
 
-    specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,            //
-                                           std::move(ccldef))());                                    //
+    specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName, //
+                                           std::move(ccldef))());                         //
   }
 
   return std::move(specs);

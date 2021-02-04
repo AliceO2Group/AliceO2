@@ -214,7 +214,10 @@ template void GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit, DigitArray>
 static inline auto ZSEncoderGetDigits(const DigitArray& in, int i) { return in[i].data(); }
 static inline auto ZSEncoderGetNDigits(const DigitArray& in, int i) { return in[i].size(); }
 #endif
-static inline auto ZSEncoderGetTime(const o2::tpc::Digit a) { return a.getTimeStamp(); }
+static inline auto ZSEncoderGetTime(const o2::tpc::Digit a)
+{
+  return a.getTimeStamp();
+}
 static inline auto ZSEncoderGetPad(const o2::tpc::Digit a) { return a.getPad(); }
 static inline auto ZSEncoderGetRow(const o2::tpc::Digit a) { return a.getRow(); }
 static inline auto ZSEncoderGetCharge(const o2::tpc::Digit a) { return a.getChargeFloat(); }

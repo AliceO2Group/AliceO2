@@ -156,9 +156,12 @@ class GPUCommonMath
   template <typename... Args>
   GPUdi() static float Sum2(float w, Args... args)
   {
-    if CONSTEXPR17 (sizeof...(Args) == 0) {
-      return w * w;
-    } else {
+    if
+      CONSTEXPR17(sizeof...(Args) == 0)
+      {
+        return w * w;
+      }
+    else {
       return w * w + Sum2(args...);
     }
   }
@@ -190,13 +193,16 @@ typedef GPUCommonMath CAMath;
 template <int I, class T>
 GPUdi() CONSTEXPR17 T GPUCommonMath::nextMultipleOf(T val)
 {
-  if CONSTEXPR17 (I & (I - 1)) {
-    T tmp = val % I;
-    if (tmp) {
-      val += I - tmp;
+  if
+    CONSTEXPR17(I & (I - 1))
+    {
+      T tmp = val % I;
+      if (tmp) {
+        val += I - tmp;
+      }
+      return val;
     }
-    return val;
-  } else {
+  else {
     return (val + I - 1) & ~(T)(I - 1);
   }
   return 0; // BUG: Cuda complains about missing return value with constexpr if

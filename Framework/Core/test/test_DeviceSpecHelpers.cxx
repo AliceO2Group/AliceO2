@@ -82,7 +82,6 @@ void check(const std::vector<std::string>& arguments,
                                       deviceControls,
                                       "workflow-id");
 
-
   for (size_t index = 0; index < deviceSpecs.size(); index++) {
     const auto& deviceSpec = deviceSpecs[index];
     const auto& deviceExecution = deviceExecutions[index];

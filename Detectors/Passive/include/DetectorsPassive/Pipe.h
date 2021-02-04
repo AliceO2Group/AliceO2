@@ -12,7 +12,7 @@
 #define ALICEO2_PASSIVE_PIPE_H
 
 #include "DetectorsPassive/PassiveBase.h"
-#include "Rtypes.h"     // for Pipe::Class, ClassDef, Pipe::Streamer
+#include "Rtypes.h" // for Pipe::Class, ClassDef, Pipe::Streamer
 
 class TGeoPcon;
 

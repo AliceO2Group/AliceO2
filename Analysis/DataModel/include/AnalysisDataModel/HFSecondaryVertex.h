@@ -312,8 +312,8 @@ DECLARE_SOA_DYNAMIC_COLUMN(MaxNormalisedDeltaIP, maxNormalisedDeltaIP, [](float 
 // MC matching result:
 // - ±DPlusToPiKPi: D± → π± K∓ π±
 // - ±LcToPKPi: Λc± → p± K∓ π±
-DECLARE_SOA_COLUMN(FlagMCMatchRec, flagMCMatchRec, int8_t); // reconstruction level
-DECLARE_SOA_COLUMN(FlagMCMatchGen, flagMCMatchGen, int8_t); // generator level
+DECLARE_SOA_COLUMN(FlagMCMatchRec, flagMCMatchRec, int8_t);         // reconstruction level
+DECLARE_SOA_COLUMN(FlagMCMatchGen, flagMCMatchGen, int8_t);         // generator level
 DECLARE_SOA_COLUMN(FlagMCDecayChanRec, flagMCDecayChanRec, int8_t); // Resonant decay channel flag, reconstruction level
 DECLARE_SOA_COLUMN(FlagMCDecayChanGen, flagMCDecayChanGen, int8_t); // Resonant decay channel flag, generator level
 

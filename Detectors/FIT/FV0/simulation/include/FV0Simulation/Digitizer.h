@@ -94,10 +94,10 @@ class Digitizer
   void createPulse(float mipFraction, int parID, const double hitTime, std::array<o2::InteractionRecord, NBC2Cache> const& cachedIR,
                    int nCachedIR, const int detID);
 
-  long mTimeStamp;              // TF (run) timestamp
+  long mTimeStamp;                  // TF (run) timestamp
   InteractionTimeRecord mIntRecord; // Interaction record (orbit, bc) -> InteractionTimeRecord
-  Int_t mEventId;               // ID of the current event
-  Int_t mSrcId;                 // signal, background or QED
+  Int_t mEventId;                   // ID of the current event
+  Int_t mSrcId;                     // signal, background or QED
   std::deque<fv0::MCLabel> mMCLabels;
   std::deque<BCCache> mCache;
 
@@ -113,7 +113,7 @@ class Digitizer
   std::array<std::vector<Float_t>, Constants::nFv0Channels> mPmtChargeVsTime; // Charge time series aka analogue signal pulse from PM
   UInt_t mNBins;                                                              //
   UInt_t mNTimeBinsPerBC;
-  Float_t mBinSize;                                                           // Time width of the pulse bin - HPTDC resolution
+  Float_t mBinSize; // Time width of the pulse bin - HPTDC resolution
 
   /// vectors to store the PMT signal from cosmic muons
   std::vector<Double_t> mPmtResponseGlobal;

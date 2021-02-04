@@ -16,7 +16,6 @@
 #ifndef GPUTRDTRACKER_H
 #define GPUTRDTRACKER_H
 
-
 #include "GPUCommonDef.h"
 #include "GPUProcessor.h"
 #include "GPUTRDDef.h"
@@ -204,15 +203,15 @@ class GPUTRDTracker_t : public GPUProcessor
   float mAngleToDyB; // parameterization for conversion track angle -> tracklet deflection
   float mAngleToDyC; // parameterization for conversion track angle -> tracklet deflection
   /// ---- end error parametrization ----
-  bool mDebugOutput;                       // store debug output
-  float mTimeWindow;                       // max. deviation of the ITS-TPC track time w.r.t. TRD trigger record time stamp (in us, default is 100 ns)
-  float mRadialOffset;                     // due to mis-calibration of t0
-  float mMaxEta;                           // TPC tracks with higher eta are ignored
-  float mExtraRoadY;                       // addition to search road in r-phi to account for not exact radial match of tracklets and tracks in first iteration
-  float mRoadZ;                            // in z, a constant search road is used
-  float mZCorrCoefNRC;                     // tracklet z-position depends linearly on track dip angle
-  AliMCEvent* mMCEvent;                    //! externaly supplied optional MC event
-  GPUTRDTrackerDebug<TRDTRK>* mDebug;      // debug output
+  bool mDebugOutput;                  // store debug output
+  float mTimeWindow;                  // max. deviation of the ITS-TPC track time w.r.t. TRD trigger record time stamp (in us, default is 100 ns)
+  float mRadialOffset;                // due to mis-calibration of t0
+  float mMaxEta;                      // TPC tracks with higher eta are ignored
+  float mExtraRoadY;                  // addition to search road in r-phi to account for not exact radial match of tracklets and tracks in first iteration
+  float mRoadZ;                       // in z, a constant search road is used
+  float mZCorrCoefNRC;                // tracklet z-position depends linearly on track dip angle
+  AliMCEvent* mMCEvent;               //! externaly supplied optional MC event
+  GPUTRDTrackerDebug<TRDTRK>* mDebug; // debug output
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

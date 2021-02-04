@@ -126,11 +126,11 @@ class SAMPAProcessing
  private:
   SAMPAProcessing();
 
-  const ParameterGas* mGasParam;         ///< Caching of the parameter class to avoid multiple CDB calls
-  const ParameterDetector* mDetParam;    ///< Caching of the parameter class to avoid multiple CDB calls
-  const ParameterElectronics* mEleParam; ///< Caching of the parameter class to avoid multiple CDB calls
-  const CalPad* mNoiseMap;               ///< Caching of the parameter class to avoid multiple CDB calls
-  const CalPad* mPedestalMap;            ///< Caching of the parameter class to avoid multiple CDB calls
+  const ParameterGas* mGasParam;             ///< Caching of the parameter class to avoid multiple CDB calls
+  const ParameterDetector* mDetParam;        ///< Caching of the parameter class to avoid multiple CDB calls
+  const ParameterElectronics* mEleParam;     ///< Caching of the parameter class to avoid multiple CDB calls
+  const CalPad* mNoiseMap;                   ///< Caching of the parameter class to avoid multiple CDB calls
+  const CalPad* mPedestalMap;                ///< Caching of the parameter class to avoid multiple CDB calls
   math_utils::RandomRing<> mRandomNoiseRing; ///< Ring with random number for noise
 };
 

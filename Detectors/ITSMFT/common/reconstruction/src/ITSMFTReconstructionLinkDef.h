@@ -14,14 +14,14 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::itsmft::RawPixelDecoder < o2::itsmft::ChipMappingITS> + ;
-#pragma link C++ class o2::itsmft::RawPixelDecoder < o2::itsmft::ChipMappingMFT> + ;
+#pragma link C++ class o2::itsmft::RawPixelDecoder < o2::itsmft::ChipMappingITS > +;
+#pragma link C++ class o2::itsmft::RawPixelDecoder < o2::itsmft::ChipMappingMFT > +;
 
 #pragma link C++ class o2::itsmft::Clusterer + ;
 #pragma link C++ class o2::itsmft::PixelReader + ;
 #pragma link C++ class o2::itsmft::DigitPixelReader + ;
-#pragma link C++ class o2::itsmft::RawPixelReader < o2::itsmft::ChipMappingITS> + ;
-#pragma link C++ class o2::itsmft::RawPixelReader < o2::itsmft::ChipMappingMFT> + ;
+#pragma link C++ class o2::itsmft::RawPixelReader < o2::itsmft::ChipMappingITS > +;
+#pragma link C++ class o2::itsmft::RawPixelReader < o2::itsmft::ChipMappingMFT > +;
 
 #pragma link C++ class o2::itsmft::PixelData + ;
 #pragma link C++ class o2::itsmft::ChipPixelData + ;
@@ -49,11 +49,11 @@
 #pragma link C++ class o2::itsmft::RawDecodingStat + ;
 #pragma link C++ class o2::itsmft::ChipStat + ;
 
-#pragma link C++ class std::map < unsigned long, std::pair < o2::itsmft::ClusterTopology, unsigned long>> + ;
+#pragma link C++ class std::map < unsigned long, std::pair < o2::itsmft::ClusterTopology, unsigned long >> +;
 
-#pragma link C++ class o2::itsmft::ClustererParam < o2::detectors::DetID::ITS> + ;
-#pragma link C++ class o2::itsmft::ClustererParam < o2::detectors::DetID::MFT> + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::itsmft::ClustererParam < o2::detectors::DetID::ITS>> + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::itsmft::ClustererParam < o2::detectors::DetID::MFT>> + ;
+#pragma link C++ class o2::itsmft::ClustererParam < o2::detectors::DetID::ITS > +;
+#pragma link C++ class o2::itsmft::ClustererParam < o2::detectors::DetID::MFT > +;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::itsmft::ClustererParam < o2::detectors::DetID::ITS >> +;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::itsmft::ClustererParam < o2::detectors::DetID::MFT >> +;
 
 #endif

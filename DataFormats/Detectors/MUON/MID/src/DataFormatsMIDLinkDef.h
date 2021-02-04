@@ -24,5 +24,5 @@
 
 #pragma link C++ struct o2::mid::CTFHeader + ;
 #pragma link C++ struct o2::mid::CTF + ;
-#pragma link C++ class o2::ctf::EncodedBlocks < o2::mid::CTFHeader, 7, uint32_t> + ;
+#pragma link C++ class o2::ctf::EncodedBlocks < o2::mid::CTFHeader, 7, uint32_t > +;
 #endif

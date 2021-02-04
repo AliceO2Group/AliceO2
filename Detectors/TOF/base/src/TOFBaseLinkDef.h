@@ -16,12 +16,12 @@
 
 #pragma link C++ class o2::tof::Geo + ;
 #pragma link C++ class o2::tof::Digit + ;
-#pragma link C++ class vector < o2::tof::Digit> + ;
+#pragma link C++ class vector < o2::tof::Digit > +;
 #pragma link C++ class o2::tof::Strip + ;
 #pragma link C++ class o2::tof::WindowFiller + ;
 #pragma link C++ class o2::tof::ReadoutWindowData + ;
-#pragma link C++ class vector < o2::tof::ReadoutWindowData> + ;
+#pragma link C++ class vector < o2::tof::ReadoutWindowData > +;
 #pragma link C++ class o2::tof::DigitHeader + ;
-#pragma link C++ class vector < o2::tof::DigitHeader> + ;
-#pragma link C++ class vector < unsigned int> + ;
+#pragma link C++ class vector < o2::tof::DigitHeader > +;
+#pragma link C++ class vector < unsigned int > +;
 #endif

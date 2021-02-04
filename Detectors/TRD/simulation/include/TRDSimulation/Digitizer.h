@@ -74,11 +74,11 @@ class Digitizer
   static constexpr double BUSY_TIME = READOUT_TIME + DEAD_TIME; // the time for which no new trigger can be received in nanoseconds
 
  private:
-  Geometry* mGeo = nullptr;               // access to Geometry
-  PadResponse* mPRF = nullptr;            // access to PadResponse
-  SimParam* mSimParam = nullptr;          // access to SimParam instance
-  CommonParam* mCommonParam = nullptr;    // access to CommonParam instance
-  Calibrations* mCalib = nullptr;         // access to Calibrations in CCDB
+  Geometry* mGeo = nullptr;            // access to Geometry
+  PadResponse* mPRF = nullptr;         // access to PadResponse
+  SimParam* mSimParam = nullptr;       // access to SimParam instance
+  CommonParam* mCommonParam = nullptr; // access to CommonParam instance
+  Calibrations* mCalib = nullptr;      // access to Calibrations in CCDB
 
   // number of digitizer threads
   int mNumThreads = 1;
@@ -103,16 +103,16 @@ class Digitizer
   };
 
   // Digitization parameters
-  static constexpr float AmWidth = Geometry::amThick();    // Width of the amplification region
-  static constexpr float DrWidth = Geometry::drThick();    // Width of the drift retion
-  static constexpr float DrMin = -0.5 * AmWidth;           // Drift + Amplification region
-  static constexpr float DrMax = DrWidth + 0.5 * AmWidth;  // Drift + Amplification region
-  float mSamplingRate = 0;                                 // The sampling rate
-  float mElAttachProp = 0;                                 // Propability for electron attachment (for 1m)
-  int mNpad = 0;                                           // Number of pads included in the pad response
-  int mTimeBinTRFend = 0;                                  // time bin TRF ends
-  int mMaxTimeBins = 30;                                   // Maximum number of time bins for processing signals, usually set at 30 tb = 3 microseconds
-  int mMaxTimeBinsTRAP = 30;                               // Maximum number of time bins for processing adcs; should be read from the CCDB or the TRAP config
+  static constexpr float AmWidth = Geometry::amThick();   // Width of the amplification region
+  static constexpr float DrWidth = Geometry::drThick();   // Width of the drift retion
+  static constexpr float DrMin = -0.5 * AmWidth;          // Drift + Amplification region
+  static constexpr float DrMax = DrWidth + 0.5 * AmWidth; // Drift + Amplification region
+  float mSamplingRate = 0;                                // The sampling rate
+  float mElAttachProp = 0;                                // Propability for electron attachment (for 1m)
+  int mNpad = 0;                                          // Number of pads included in the pad response
+  int mTimeBinTRFend = 0;                                 // time bin TRF ends
+  int mMaxTimeBins = 30;                                  // Maximum number of time bins for processing signals, usually set at 30 tb = 3 microseconds
+  int mMaxTimeBinsTRAP = 30;                              // Maximum number of time bins for processing adcs; should be read from the CCDB or the TRAP config
 
   // Digitization containers
   std::vector<HitType> mHitContainer;                                            // the container of hits in a given detector

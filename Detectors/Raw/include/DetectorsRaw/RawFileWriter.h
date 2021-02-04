@@ -78,22 +78,22 @@ class RawFileWriter
   /// Single GBT link helper
   struct LinkData {
     static constexpr int MarginToFlush = 10 * sizeof(RDHAny); // flush superpage if free space left <= this margin
-    RDHAny rdhCopy;                                          // RDH with the running info of the last RDH seen
-    IR updateIR;                                          // IR at which new HBF needs to be created
-    int lastRDHoffset = -1;                               // position of last RDH in the link buffer
-    bool startOfRun = true;                               // to signal if this is the 1st HBF of the run or not
-    uint8_t packetCounter = 0;                            // running counter
-    uint16_t pageCnt = 0;                                 // running counter
-    LinkSubSpec_t subspec = 0;                            // subspec according to DataDistribution
-    int counter = 0;                                      //RSREM
+    RDHAny rdhCopy;                                           // RDH with the running info of the last RDH seen
+    IR updateIR;                                              // IR at which new HBF needs to be created
+    int lastRDHoffset = -1;                                   // position of last RDH in the link buffer
+    bool startOfRun = true;                                   // to signal if this is the 1st HBF of the run or not
+    uint8_t packetCounter = 0;                                // running counter
+    uint16_t pageCnt = 0;                                     // running counter
+    LinkSubSpec_t subspec = 0;                                // subspec according to DataDistribution
+    int counter = 0;                                          //RSREM
     //
     size_t nTFWritten = 0;    // number of TFs written
     size_t nRDHWritten = 0;   // number of RDHs written
     size_t nBytesWritten = 0; // number of bytes written
     //
-    std::string fileName{};                // file name associated with this link
-    std::vector<char> buffer;              // buffer to accumulate superpage data
-    RawFileWriter* writer = nullptr;       // pointer on the parent writer
+    std::string fileName{};          // file name associated with this link
+    std::vector<char> buffer;        // buffer to accumulate superpage data
+    RawFileWriter* writer = nullptr; // pointer on the parent writer
 
     PayloadCache cacheBuffer;         // used for caching in case of async. data input
     std::unique_ptr<TTree> cacheTree; // tree to store the cache
@@ -152,7 +152,6 @@ class RawFileWriter
       nRDHWritten++;
       return pushBack(reinterpret_cast<const char*>(&rdh), sizeof(RDHAny), false);
     }
-
   };
   //=====================================================================================
 
@@ -392,13 +391,13 @@ class RawFileWriter
   int mVerbosity = 0;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
   int mUseRDHVersion = RDHUtils::getVersion<o2::header::RAWDataHeader>(); // by default, use default version
-  int mSuperPageSize = 1024 * 1024; // super page size
-  bool mStartTFOnNewSPage = true;   // every TF must start on a new SPage
-  bool mDontFillEmptyHBF = false;   // skipp adding empty HBFs (uness it must have TF flag)
-  bool mAddSeparateHBFStopPage = true; // HBF stop is added on a separate CRU page
-  bool mUseRDHStop = true;             // detector uses STOP in RDH
-  bool mCRUDetector = true;            // Detector readout via CRU ( RORC if false)
-  bool mApplyCarryOverToLastPage = false; // call CarryOver method also for last chunk and overwrite modified trailer
+  int mSuperPageSize = 1024 * 1024;                                       // super page size
+  bool mStartTFOnNewSPage = true;                                         // every TF must start on a new SPage
+  bool mDontFillEmptyHBF = false;                                         // skipp adding empty HBFs (uness it must have TF flag)
+  bool mAddSeparateHBFStopPage = true;                                    // HBF stop is added on a separate CRU page
+  bool mUseRDHStop = true;                                                // detector uses STOP in RDH
+  bool mCRUDetector = true;                                               // Detector readout via CRU ( RORC if false)
+  bool mApplyCarryOverToLastPage = false;                                 // call CarryOver method also for last chunk and overwrite modified trailer
 
   //>> caching --------------
   bool mCachingStage = false; // signal that current data should be cached

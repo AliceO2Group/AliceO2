@@ -349,7 +349,5 @@ void ioutils::writeRoadsReport(std::ofstream& correctRoadsOutputStream, std::ofs
   }
 }
 
-
-
 } // namespace its
 } // namespace o2

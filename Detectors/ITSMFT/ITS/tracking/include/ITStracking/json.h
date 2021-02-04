@@ -3467,8 +3467,7 @@ class parser
     return true;
   }
 
-  [[noreturn]] void throw_exception() const
-  {
+  [[noreturn]] void throw_exception() const {
     std::string error_msg = "syntax error - ";
     if (last_token == token_type::parse_error) {
       error_msg += std::string(m_lexer.get_error_message()) + "; last read: '" +
@@ -3484,9 +3483,9 @@ class parser
     JSON_THROW(parse_error::create(101, m_lexer.get_position(), error_msg));
   }
 
- private:
-  /// current level of recursion
-  int depth = 0;
+  private :
+    /// current level of recursion
+    int depth = 0;
   /// callback function
   const parser_callback_t callback = nullptr;
   /// the type of the last read token

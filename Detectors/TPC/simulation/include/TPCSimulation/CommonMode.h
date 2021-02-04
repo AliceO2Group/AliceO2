@@ -55,9 +55,9 @@ class CommonMode
   unsigned char getGEMstack() const { return mGEMstack; }
 
  private:
-  float mCommonMode = 0.f;      ///< Common mode value
-  TimeBin mTimebin = 0;         ///< Time bin
-  unsigned char mGEMstack = 0;  ///< GEM stack
+  float mCommonMode = 0.f;     ///< Common mode value
+  TimeBin mTimebin = 0;        ///< Time bin
+  unsigned char mGEMstack = 0; ///< GEM stack
 
   ClassDefNV(CommonMode, 1);
 };

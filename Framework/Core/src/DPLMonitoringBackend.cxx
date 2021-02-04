@@ -22,7 +22,7 @@ struct overloaded : Ts... {
   using Ts::operator()...;
 };
 template <class... Ts>
-overloaded(Ts...) -> overloaded<Ts...>;
+overloaded(Ts...)->overloaded<Ts...>;
 
 inline unsigned long DPLMonitoringBackend::convertTimestamp(const std::chrono::time_point<std::chrono::system_clock>& timestamp)
 {

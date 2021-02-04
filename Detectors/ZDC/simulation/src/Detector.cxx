@@ -304,7 +304,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   int volID, copy;
   volID = fMC->CurrentVolID(copy);
   //printf("\t ---> track %d in vol. %d %d (volID %d) mother %d \n",
-    //trackn, detector, sector, volID, stack->GetCurrentTrack()->GetMother(0));
+  //trackn, detector, sector, volID, stack->GetCurrentTrack()->GetMother(0));
 
   // If the particle is in a ZN or ZP fiber connected to the common PMT
   // then the assigned sector is 0 (PMC) NB-> does not work for ZEM
@@ -330,35 +330,35 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   auto currentMediumid = fMC->CurrentMedium();
   int nphe = 0;
   if (((currentMediumid == mMediumPMCid) || (currentMediumid == mMediumPMQid))) {
-   if(eDep){
-    int ibeta = 0, iangle = 0, iradius = 0;
-    Bool_t isLightProduced = calculateTableIndexes(ibeta, iangle, iradius);
-    if (isLightProduced) {
-      int charge = 0;
-      if (pdgCode < 10000) {
-        charge = fMC->TrackCharge();
-      } else {
-        charge = TMath::Abs(pdgCode / 10000 - 100000);
-      }
-
-      //look into the light tables if the particle is charged
-      if (TMath::Abs(charge) > 0) {
-        if (detector == 1 || detector == 4) {
-          iradius = std::min((int)Geometry::ZNFIBREDIAMETER, iradius);
-          lightoutput = charge * charge * mLightTableZN[ibeta][iangle][iradius];
-          //printf("  \t ZNtableEntry[%d %d %d] = %1.5f -> lightoutput %f\n", ibeta, iangle, iradius, mLightTableZN[ibeta][iangle][iradius], lightoutput);
+    if (eDep) {
+      int ibeta = 0, iangle = 0, iradius = 0;
+      Bool_t isLightProduced = calculateTableIndexes(ibeta, iangle, iradius);
+      if (isLightProduced) {
+        int charge = 0;
+        if (pdgCode < 10000) {
+          charge = fMC->TrackCharge();
         } else {
-          iradius = std::min((int)Geometry::ZPFIBREDIAMETER, iradius);
-          lightoutput = charge * charge * mLightTableZP[ibeta][iangle][iradius];
-          //printf("  \t ZPtableEntry[%d %d %d] = %1.5f -> lightoutput %f\n", ibeta, iangle, iradius, mLightTableZP[ibeta][iangle][iradius], lightoutput);
+          charge = TMath::Abs(pdgCode / 10000 - 100000);
         }
-        if (lightoutput > 0) {
-          nphe = gRandom->Poisson(lightoutput);
-          //printf("  \t\t-> nphe %d  \n", nphe);
+
+        //look into the light tables if the particle is charged
+        if (TMath::Abs(charge) > 0) {
+          if (detector == 1 || detector == 4) {
+            iradius = std::min((int)Geometry::ZNFIBREDIAMETER, iradius);
+            lightoutput = charge * charge * mLightTableZN[ibeta][iangle][iradius];
+            //printf("  \t ZNtableEntry[%d %d %d] = %1.5f -> lightoutput %f\n", ibeta, iangle, iradius, mLightTableZN[ibeta][iangle][iradius], lightoutput);
+          } else {
+            iradius = std::min((int)Geometry::ZPFIBREDIAMETER, iradius);
+            lightoutput = charge * charge * mLightTableZP[ibeta][iangle][iradius];
+            //printf("  \t ZPtableEntry[%d %d %d] = %1.5f -> lightoutput %f\n", ibeta, iangle, iradius, mLightTableZP[ibeta][iangle][iradius], lightoutput);
+          }
+          if (lightoutput > 0) {
+            nphe = gRandom->Poisson(lightoutput);
+            //printf("  \t\t-> nphe %d  \n", nphe);
+          }
         }
       }
     }
-   }
   }
 
   auto tof = 1.e09 * fMC->TrackTime(); //TOF in ns

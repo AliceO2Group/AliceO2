@@ -43,7 +43,7 @@ namespace itsmft
 {
 class CompClusterExt;
 class TopologyDictionary;
-}
+} // namespace itsmft
 
 namespace its
 {

@@ -32,7 +32,6 @@ struct ResourcesMonitoringHelper {
   static bool isResourcesMonitoringEnabled(unsigned short interval) noexcept { return interval > 0; }
 };
 
-
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_RESOURCESMONITORINGHELPER_H_

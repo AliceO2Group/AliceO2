@@ -68,8 +68,8 @@ class Tracklet
   void print(std::string* /*option=""*/) const {}
 
   // ----- Getters for contents of tracklet word -----
-  int getYbin() const;                                          // in units of 160 um
-  float getdY() const;                                          // in units of 140 um
+  int getYbin() const; // in units of 160 um
+  float getdY() const; // in units of 140 um
   int getZbin() const { return ((mROB >> 1) << 2) | (mMCM >> 2); }
 
   int getPID() const { return mPID; }
@@ -136,16 +136,16 @@ class Tracklet
   float mY4tw; // Y position as per
   float mdY4tw;
 
-  int mMCM;                   // MCM no. in which the tracklet was found
-  int mROB;                   // ROB no. on which the tracklet was found
+  int mMCM; // MCM no. in which the tracklet was found
+  int mROB; // ROB no. on which the tracklet was found
 
   int mQ0; // accumulated charge in the first time window
   int mQ1; // accumulated charge in the second time window
 
-  int mNHits;                // no. of contributing clusters
-  int mNHits0;               // no. of contributing clusters in window 0
-  int mNHits1;               // no. of contributing clusters in window 1
-                             //int  mNHits2 TODO if we add windows we need to add another mNHits2
+  int mNHits;  // no. of contributing clusters
+  int mNHits0; // no. of contributing clusters in window 0
+  int mNHits1; // no. of contributing clusters in window 1
+               //int  mNHits2 TODO if we add windows we need to add another mNHits2
 
   float mSlope;                   // tracklet slope
   float mOffset;                  // tracklet offset

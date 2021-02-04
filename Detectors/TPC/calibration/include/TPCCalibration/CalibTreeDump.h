@@ -78,9 +78,9 @@ class CalibTreeDump
  private:
   std::vector<DataTypes*> mCalDetObjects{};   ///< array of CalDet objects
   std::vector<DataTypes*> mCalArrayObjects{}; ///< array of CalArray objects
-  bool mAddFEEInfo{false};                   ///< add front end electronics mappings
-  std::vector<float> mTraceLengthIROC;       ///< trace lengths IROC
-  std::vector<float> mTraceLengthOROC;       ///< trace lengths OROC
+  bool mAddFEEInfo{false};                    ///< add front end electronics mappings
+  std::vector<float> mTraceLengthIROC;        ///< trace lengths IROC
+  std::vector<float> mTraceLengthOROC;        ///< trace lengths OROC
 
   /// add default mapping like local, global x/y positions
   void addDefaultMapping(TTree* tree);

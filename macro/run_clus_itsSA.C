@@ -37,7 +37,7 @@ void run_clus_itsSA(std::string inputfile = "rawits.bin", // input file name
   TStopwatch timer;
 
   // Setup clusterizer
-  Bool_t useMCTruth = kTRUE;  // kFALSE if no comparison with MC needed
+  Bool_t useMCTruth = kTRUE; // kFALSE if no comparison with MC needed
   o2::its::ClustererTask* clus = new o2::its::ClustererTask(useMCTruth, raw);
   clus->setMaxROframe(2 << 21); // about 3 cluster files per a raw data chunk
 

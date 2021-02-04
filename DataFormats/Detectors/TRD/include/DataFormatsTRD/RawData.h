@@ -239,6 +239,6 @@ void dumpHalfChamber(o2::trd::TrackletHCHeader& halfchamber);
 void printHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru);
 void dumpHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru);
 std::ostream& operator<<(std::ostream& stream, const HalfCRUHeader& halfcru);
-}
-}
+} // namespace trd
+} // namespace o2
 #endif

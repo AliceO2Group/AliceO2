@@ -1,9 +1,9 @@
-const char* defaultCDBUri="local://./OCDB";
-void runHLT(const char* chain, int events=1, int runno=-1, const char* cdbURI=defaultCDBUri)
+const char* defaultCDBUri = "local://./OCDB";
+void runHLT(const char* chain, int events = 1, int runno = -1, const char* cdbURI = defaultCDBUri)
 {
   // setup the OCDB access
   // required to load the GRP entry in order to initialize the magnetic field
-  if (runno>=0) {
+  if (runno >= 0) {
     AliCDBManager::Instance()->SetDefaultStorage(cdbURI);
     AliCDBManager::Instance()->SetRun(runno);
     AliGRPManager grpman;
@@ -12,7 +12,7 @@ void runHLT(const char* chain, int events=1, int runno=-1, const char* cdbURI=de
   }
 
   // init the HLT system
-  AliHLTSystem* pHLT=AliHLTPluginBase::GetInstance();
+  AliHLTSystem* pHLT = AliHLTPluginBase::GetInstance();
 
   ///////////////////////////////////////////////////////////////////////////////////////////
   //

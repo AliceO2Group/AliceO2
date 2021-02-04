@@ -407,8 +407,8 @@ class CcdbApi //: public DatabaseInterface
   std::string mUrl{};
   std::string mSnapshotTopPath{};
   bool mInSnapshotMode = false;
-  mutable TGrid* mAlienInstance = nullptr;                     // a cached connection to TGrid (needed for Alien locations)
-  bool mHaveAlienToken = false;                                // stores if an alien token is available
+  mutable TGrid* mAlienInstance = nullptr; // a cached connection to TGrid (needed for Alien locations)
+  bool mHaveAlienToken = false;            // stores if an alien token is available
 
   ClassDefNV(CcdbApi, 1);
 };

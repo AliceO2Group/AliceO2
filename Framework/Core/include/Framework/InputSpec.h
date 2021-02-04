@@ -72,5 +72,5 @@ struct InputSpec {
   bool operator==(InputSpec const& that) const;
 };
 
-} // namespace o2
+} // namespace o2::framework
 #endif

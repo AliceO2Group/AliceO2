@@ -15,8 +15,8 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::cpv::BadChannelMap + ;
-#pragma link C++ class o2::TObjectWrapper < o2::cpv::BadChannelMap> + ;
+#pragma link C++ class o2::TObjectWrapper < o2::cpv::BadChannelMap > +;
 #pragma link C++ class o2::cpv::CalibParams + ;
-#pragma link C++ class o2::TObjectWrapper < o2::cpv::CalibParams> + ;
+#pragma link C++ class o2::TObjectWrapper < o2::cpv::CalibParams > +;
 
 #endif

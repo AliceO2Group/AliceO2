@@ -35,10 +35,10 @@ using namespace o2::math_utils;
 void Digitizer::init()
 {
   mGeo = Geometry::instance();
-  mGeo->createClusterMatrixArray();          // Requiered for chamberInGeometry()
-  mPRF = new PadResponse();                  // Pad response function initialization
-  mSimParam = SimParam::Instance();          // Instance for simulation parameters
-  mCommonParam = CommonParam::Instance();    // Instance for common parameters
+  mGeo->createClusterMatrixArray();       // Requiered for chamberInGeometry()
+  mPRF = new PadResponse();               // Pad response function initialization
+  mSimParam = SimParam::Instance();       // Instance for simulation parameters
+  mCommonParam = CommonParam::Instance(); // Instance for common parameters
   if (!mSimParam) {
   }
   if (!mCommonParam) {

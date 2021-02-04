@@ -177,8 +177,7 @@ bool DataPublisherDevice::HandleO2LogicalBlock(const byte* headerBuffer,
   // TODO: fix payload size in dh
   auto* buffer = new char[mFileBuffer.size()];
   memcpy(buffer, mFileBuffer.data(), mFileBuffer.size());
-  o2::base::addDataBlock(outgoing, dh, NewMessage(
-                                         buffer, mFileBuffer.size(), [](void* data, void* hint) { delete[] reinterpret_cast<char*>(data); }, nullptr));
+  o2::base::addDataBlock(outgoing, dh, NewMessage(buffer, mFileBuffer.size(), [](void* data, void* hint) { delete[] reinterpret_cast<char*>(data); }, nullptr));
 
   // send message
   Send(outgoing, mOutputChannelName.c_str());

@@ -70,8 +70,8 @@ class CalDet
 
  protected:
   std::array<float, constants::NSECTOR> mData{}; // Data
-  std::string mName;                // name for spectra, carried over originally from inheritence from TNamed
-  std::string mTitle;               // title prepend for spectra, carried over originally from inheritence from TNamed
+  std::string mName;                             // name for spectra, carried over originally from inheritence from TNamed
+  std::string mTitle;                            // title prepend for spectra, carried over originally from inheritence from TNamed
 };
 } // namespace trd
 } // namespace o2

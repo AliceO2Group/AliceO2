@@ -68,13 +68,13 @@ class ClustererTask
   std::unique_ptr<o2::itsmft::DigitPixelReader> mReaderMC;                            ///< reader for MC data
   std::unique_ptr<o2::itsmft::RawPixelReader<o2::itsmft::ChipMappingITS>> mReaderRaw; ///< reader for raw data
 
-  Clusterer mClusterer;                                ///< Cluster finder
+  Clusterer mClusterer; ///< Cluster finder
 
-  std::vector<CompClusterExt> mCompClus;               //!< vector of compact clusters
+  std::vector<CompClusterExt> mCompClus; //!< vector of compact clusters
 
-  std::vector<o2::itsmft::ROFRecord> mROFRecVec;               //!< vector of ROFRecord references
+  std::vector<o2::itsmft::ROFRecord> mROFRecVec; //!< vector of ROFRecord references
 
-  MCTruth mClsLabels;               //! MC labels
+  MCTruth mClsLabels; //! MC labels
 
   std::vector<unsigned char> mPatterns;
 

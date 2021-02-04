@@ -234,13 +234,13 @@ class MCTrackT
     PropEncoding(int a) : i(a) {}
     int i;
     struct {
-      int storage : 1;  // encoding whether to store this track to the output
-      int process : 6;  // encoding process that created this track (enough to store TMCProcess from ROOT)
-      int hitmask : 21; // encoding hits per detector
+      int storage : 1;   // encoding whether to store this track to the output
+      int process : 6;   // encoding process that created this track (enough to store TMCProcess from ROOT)
+      int hitmask : 21;  // encoding hits per detector
       int reserved1 : 1; // bit reserved for possible future purposes
       int reserved2 : 1; // bit reserved for possible future purposes
       int inhibited : 1; // whether tracking of this was inhibited
-      int toBeDone : 1; // whether this (still) needs tracking --> we might more complete information to cover full ParticleStatus space
+      int toBeDone : 1;  // whether this (still) needs tracking --> we might more complete information to cover full ParticleStatus space
     };
   };
 

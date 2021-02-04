@@ -215,7 +215,7 @@ void Stack::PushTrack(Int_t toBeDone, Int_t parentId, Int_t pdgCode, Double_t px
   TParticle p(pdgCode, iStatus, parentId, secondparentId, daughter1Id, daughter2Id, px, py, pz, e, vx, vy, vz, time);
   p.SetPolarisation(polx, poly, polz);
   p.SetWeight(weight);
-  p.SetUniqueID(proc); // using the unique ID to transfer process ID
+  p.SetUniqueID(proc);                                           // using the unique ID to transfer process ID
   p.SetBit(ParticleStatus::kPrimary, proc == kPPrimary ? 1 : 0); // set primary bit
   p.SetBit(ParticleStatus::kToBeDone, toBeDone == 1 ? 1 : 0);    // set to be done bit
   mNumberOfEntriesInParticles++;

@@ -439,6 +439,6 @@ struct VariantJSONHelpers {
     }
   }
 };
-}
+} // namespace o2::framework
 
 #endif // FRAMEWORK_VARIANTJSONHELPERS_H

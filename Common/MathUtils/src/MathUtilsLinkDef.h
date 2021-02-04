@@ -17,15 +17,15 @@
 #pragma link C++ class o2::math_utils::Chebyshev3D + ;
 #pragma link C++ class o2::math_utils::Chebyshev3DCalc + ;
 
-#pragma link C++ function o2::math_utils::fit < float>;
-#pragma link C++ function o2::math_utils::fit < double>;
+#pragma link C++ function o2::math_utils::fit < float > ;
+#pragma link C++ function o2::math_utils::fit < double > ;
 
-#pragma link C++ function o2::math_utils::fitGaus < float>;
-#pragma link C++ function o2::math_utils::fitGaus < double>;
+#pragma link C++ function o2::math_utils::fitGaus < float > ;
+#pragma link C++ function o2::math_utils::fitGaus < double > ;
 
-#pragma link C++ function o2::math_utils::getStatisticsData < float>;
-#pragma link C++ function o2::math_utils::getStatisticsData < double>;
-#pragma link C++ function o2::math_utils::getStatisticsData < short>;
+#pragma link C++ function o2::math_utils::getStatisticsData < float > ;
+#pragma link C++ function o2::math_utils::getStatisticsData < double > ;
+#pragma link C++ function o2::math_utils::getStatisticsData < short > ;
 
 #pragma link C++ class o2::math_utils::Transform3D + ;
 #pragma link C++ class o2::math_utils::Rotation2Df_t + ;

@@ -832,12 +832,12 @@ void MatchTOF::doMatching(int sec)
     auto& intLT = mLTinfos[cacheTrk[itrk]];
 
     //    Printf("intLT (before doing anything): length = %f, time (Pion) = %f", intLT.getL(), intLT.getTOF(o2::track::PID::Pion));
-    float minTrkTime = (trackWork.second.getTimeStamp() - mSigmaTimeCut * trackWork.second.getTimeStampError()) * 1.E6;             // minimum time in ps
-    float maxTrkTime = (trackWork.second.getTimeStamp() + mSigmaTimeCut * trackWork.second.getTimeStampError()) * 1.E6;             // maximum time in ps
-    int istep = 1;                                                                                                                  // number of steps
-    float step = 1.0;                                                                                                               // step size in cm
-                                                                                                                                    //uncomment for local debug
-                                                                                                                                    /*
+    float minTrkTime = (trackWork.second.getTimeStamp() - mSigmaTimeCut * trackWork.second.getTimeStampError()) * 1.E6; // minimum time in ps
+    float maxTrkTime = (trackWork.second.getTimeStamp() + mSigmaTimeCut * trackWork.second.getTimeStampError()) * 1.E6; // maximum time in ps
+    int istep = 1;                                                                                                      // number of steps
+    float step = 1.0;                                                                                                   // step size in cm
+                                                                                                                        //uncomment for local debug
+                                                                                                                        /*
 																//trefTrk.getXYZGlo(posBeforeProp);
 																//float posBeforeProp[3] = {trefTrk.getX(), trefTrk.getY(), trefTrk.getZ()}; // in local ref system
 																//printf("Global coordinates: posBeforeProp[0] = %f, posBeforeProp[1] = %f, posBeforeProp[2] = %f\n", posBeforeProp[0], posBeforeProp[1], posBeforeProp[2]);

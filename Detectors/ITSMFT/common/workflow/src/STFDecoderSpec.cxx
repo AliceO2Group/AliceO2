@@ -116,8 +116,8 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   std::vector<ROFRecord> digROFVec;
   mDecoder->setDecodeNextAuto(false);
   while (mDecoder->decodeNextTrigger()) {
-    if (mDoDigits) {                                    // call before clusterization, since the latter will hide the digits
-      mDecoder->fillDecodedDigits(digVec, digROFVec);   // lot of copying involved
+    if (mDoDigits) {                                  // call before clusterization, since the latter will hide the digits
+      mDecoder->fillDecodedDigits(digVec, digROFVec); // lot of copying involved
     }
     if (mDoClusters) { // !!! THREADS !!!
       mClusterer->process(mNThreads, *mDecoder.get(), &clusCompVec, mDoPatterns ? &clusPattVec : nullptr, &clusROFVec);
@@ -128,7 +128,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{orig, "DIGITS", 0, Lifetime::Timeframe}, digVec);
     pc.outputs().snapshot(Output{orig, "DIGITSROF", 0, Lifetime::Timeframe}, digROFVec);
   }
-  if (mDoClusters) {                                                                  // we are not obliged to create vectors which are not requested, but other devices might not know the options of this one
+  if (mDoClusters) { // we are not obliged to create vectors which are not requested, but other devices might not know the options of this one
     pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe}, clusCompVec);
     pc.outputs().snapshot(Output{orig, "PATTERNS", 0, Lifetime::Timeframe}, clusPattVec);
     pc.outputs().snapshot(Output{orig, "CLUSTERSROF", 0, Lifetime::Timeframe}, clusROFVec);

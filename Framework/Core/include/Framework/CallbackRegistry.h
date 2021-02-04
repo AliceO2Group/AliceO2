@@ -18,7 +18,7 @@
 #include "Framework/TypeTraits.h"
 #include "Framework/RuntimeError.h"
 #include <tuple>
-#include <utility>   // declval
+#include <utility> // declval
 
 namespace o2
 {

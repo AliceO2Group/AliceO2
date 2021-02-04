@@ -38,7 +38,7 @@ void RecoGeomHelper::RecoChip::print() const
 void RecoGeomHelper::RecoLadder::updateLimits(const o2::math_utils::Point3D<float>& pntGlo)
 {
   // update limits from the point in Global frame
-  float phi = pntGlo.phi();    // -pi:pi range
+  float phi = pntGlo.phi();         // -pi:pi range
   o2::math_utils::bringTo02Pi(phi); // temporary bring to 0:2pi range
   o2::math_utils::bringTo02Pi(phiRange.getMin());
   o2::math_utils::bringTo02Pi(phiRange.getMax());

@@ -32,7 +32,7 @@ template <typename TruthElement>
 class MCTruthContainer;
 template <typename TruthElement>
 class ConstMCTruthContainerView;
-}
+} // namespace dataformats
 
 /// @class HardwareClusterDecoder
 /// @brief Class to convert a list of input buffers containing TPC clusters of type ClusterHardware

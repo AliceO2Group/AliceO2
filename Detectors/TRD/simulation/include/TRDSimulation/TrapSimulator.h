@@ -83,7 +83,7 @@ class TrapSimulator
     mNHits = 0;
     mADCFilled = 0;
     for (auto& tmplabel : mADCLabels) {
-      tmplabel.clear();      // clear MC Labels sent in from the digits coming in.
+      tmplabel.clear(); // clear MC Labels sent in from the digits coming in.
     }
     mTrackletLabels.clear(); // clear the stored labels.
     mTrackletArray64.clear();
@@ -351,22 +351,22 @@ class TrapSimulator
  protected:
   void setNTimebins(int ntimebins); // allocate data arrays corr. to the no. of timebins
 
-  bool mInitialized;      // memory is allocated if initialized
-  int mDetector;          // Chamber ID
-  int mRobPos;            // ROB Position on chamber
-  int mMcmPos;            // MCM Position on chamber
-  int mRow;               // Pad row number (0-11 or 0-15) of the MCM on chamber
-  int mNTimeBin;          // Number of timebins currently allocated
+  bool mInitialized; // memory is allocated if initialized
+  int mDetector;     // Chamber ID
+  int mRobPos;       // ROB Position on chamber
+  int mMcmPos;       // MCM Position on chamber
+  int mRow;          // Pad row number (0-11 or 0-15) of the MCM on chamber
+  int mNTimeBin;     // Number of timebins currently allocated
 
   //TODO adcr adcf labels zerosupressionmap can all go into their own class. Refactor when stable.
-  std::vector<int> mADCR; // Array with MCM ADC values (Raw, 12 bit) 2d with dimension mNTimeBin
-  std::vector<int> mADCF; // Array with MCM ADC values (Filtered, 12 bit) 2d with dimension mNTimeBin
+  std::vector<int> mADCR;                                                    // Array with MCM ADC values (Raw, 12 bit) 2d with dimension mNTimeBin
+  std::vector<int> mADCF;                                                    // Array with MCM ADC values (Filtered, 12 bit) 2d with dimension mNTimeBin
   std::array<std::vector<o2::MCCompLabel>, constants::NADCMCM> mADCLabels{}; // MC Labels sent in from the digits coming in.
-  std::vector<unsigned int> mMCMT;      // tracklet word for one mcm/trap-chip
-  std::vector<Tracklet64> mTrackletArray64; // Array of 64 bit tracklets
+  std::vector<unsigned int> mMCMT;                                           // tracklet word for one mcm/trap-chip
+  std::vector<Tracklet64> mTrackletArray64;                                  // Array of 64 bit tracklets
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mTrackletLabels;
   std::vector<TrackletDetail> mTrackletDetails; // store additional tracklet information for eventual debug output.
-  std::vector<int> mZSMap;              // Zero suppression map (1 dimensional projection)
+  std::vector<int> mZSMap;                      // Zero suppression map (1 dimensional projection)
 
   std::array<int, mgkNCPU> mFitPtr{}; // pointer to the tracklet to be calculated by CPU i
 
@@ -381,7 +381,7 @@ class TrapSimulator
 
   std::array<FilterReg, constants::NADCMCM> mInternalFilterRegisters;
   int mADCFilled = 0; // stores bitpattern of fillted adc, for know when to fill with pure baseline, for use with setData(int iadc, const ArrayADC& adc);
-  int mNHits; // Number of detected hits
+  int mNHits;         // Number of detected hits
 
   // Sort functions as in TRAP
   void sort2(unsigned short idx1i, unsigned short idx2i, unsigned short val1i, unsigned short val2i,

@@ -97,7 +97,7 @@ int Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* dig
     digits->clear();
 
     for (; mReadoutWindowCurrent < readoutwindow;) { // mReadoutWindowCurrent incremented in fillOutputContainer!!!!
-      fillOutputContainer(*digits); // fill all windows which are before (not yet stored) of the new current one
+      fillOutputContainer(*digits);                  // fill all windows which are before (not yet stored) of the new current one
       checkIfReuseFutureDigits();
     } // close loop readout window
   }   // close if continuous
@@ -332,7 +332,7 @@ void Digitizer::addDigit(Int_t channel, UInt_t istrip, Double_t time, Float_t x,
 
       // fill temporary digits array
       insertDigitInFuture(channel, tdc, tot * Geo::NTOTBIN_PER_NS, nbc, lblCurrent);
-      return; // don't fill if doesn't match any available readout window
+      return;                               // don't fill if doesn't match any available readout window
     } else if (isIfOverlap == MAXWINDOWS) { // add in future digits but also in one of the current readout windows (beacuse of windows overlap)
       lblCurrent = mFutureIevent.size();
       mFutureIevent.push_back(mEventID);
@@ -514,7 +514,7 @@ void Digitizer::initParameters()
 
   // resolution parameters
   mTOFresolution = TOFSimParams::Instance().time_resolution; // TOF global resolution in ps
-  mShowerResolution = 50; // smearing correlated for all digits of the same hit
+  mShowerResolution = 50;                                    // smearing correlated for all digits of the same hit
   if (mTOFresolution > mShowerResolution) {
     mDigitResolution = TMath::Sqrt(mTOFresolution * mTOFresolution -
                                    mShowerResolution * mShowerResolution); // independent smearing for each digit
@@ -893,8 +893,8 @@ void Digitizer::checkIfReuseFutureDigits()
       break;
     }
 
-    double timestamp = digit->getBC() * Geo::BC_TIME + digit->getTDC() * Geo::TDCBIN * 1E-3; // in ns
-    int isnext = Int_t(timestamp * Geo::READOUTWINDOW_INV) - (mReadoutWindowCurrent + 1); // to be replaced with uncalibrated time
+    double timestamp = digit->getBC() * Geo::BC_TIME + digit->getTDC() * Geo::TDCBIN * 1E-3;                                                     // in ns
+    int isnext = Int_t(timestamp * Geo::READOUTWINDOW_INV) - (mReadoutWindowCurrent + 1);                                                        // to be replaced with uncalibrated time
     int isIfOverlap = Int_t((timestamp - Geo::BC_TIME_INPS * Geo::OVERLAP_IN_BC * 1E-3) * Geo::READOUTWINDOW_INV) - (mReadoutWindowCurrent + 1); // to be replaced with uncalibrated time;
 
     if (isnext == isIfOverlap) {

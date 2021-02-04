@@ -64,7 +64,6 @@ class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
   void PrintStream(std::ostream& stream) const;
 
  private:
-
   // Digitizer
   Int_t mDigitThreshold{3};              ///< Threshold for storing digits in EMC
   Int_t mMeanPhotonElectron{4400};       ///< number of photon electrons per GeV deposited energy

@@ -18,7 +18,7 @@
 #define BOOST_TEST_DYN_LINK
 
 #include "CCDB/CcdbApi.h"
-#include "CCDB/IdPath.h"    // just as test object
+#include "CCDB/IdPath.h"           // just as test object
 #include "CommonUtils/RootChain.h" // just as test object
 #include "CCDB/CCDBTimeStampUtils.h"
 #include <boost/test/unit_test.hpp>

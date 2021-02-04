@@ -46,7 +46,9 @@ static constexpr int kIGNORE_ENDS = 3;
 // End IgnoreErrors
 
 #ifndef GPUCA_GPUCODE
-void GPUTrackingRefitProcessor::InitializeProcessor() {}
+void GPUTrackingRefitProcessor::InitializeProcessor()
+{
+}
 
 void GPUTrackingRefitProcessor::RegisterMemoryAllocation()
 {

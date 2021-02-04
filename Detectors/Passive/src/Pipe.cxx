@@ -226,7 +226,6 @@ void Pipe::ConstructGeometry()
   beamPipeCsideSection->AddNode(voberylliumTubeVacuum, 1,
                                 new TGeoTranslation(0., 0., (kBeryliumSectionZmax + kBeryliumSectionZmin) / 2));
 
-
   //----------------  Al tube ------------------
   TGeoPcon* aluBeforeBellows = new TGeoPcon(0., 360., 9);
   aluBeforeBellows->DefineSection(0, kZ9, 0., kBellowSectionOuterRadius - kBeryliumSectionThickness + kBellowPlieThickness);

@@ -646,9 +646,9 @@ class O2HitMerger : public FairMQDevice
   std::unordered_map<int, TMemFile*> mEventToTMemFileMap; //! files associated to the TTrees
   std::thread mMergerIOThread;                            //! a thread used to do hit merging and IO flushing asynchronously
   std::mutex mMapsMtx;                                    //!
-  int mEntries = 0;         //! counts the number of entries in the branches
-  int mEventChecksum = 0;   //! checksum for events
-  int mNExpectedEvents = 0; //! number of events that we expect to receive
+  int mEntries = 0;                                       //! counts the number of entries in the branches
+  int mEventChecksum = 0;                                 //! checksum for events
+  int mNExpectedEvents = 0;                               //! number of events that we expect to receive
   TStopwatch mTimer;
 
   int mPipeToDriver = -1;

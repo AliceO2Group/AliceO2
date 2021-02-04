@@ -635,19 +635,19 @@ class MatchTPCITS
   ///< assigned time0 and its track Z position (converted from mTPCTimeEdgeZSafeMargin)
   float mTPCTimeEdgeTSafeMargin = 0.f;
 
-  int mITSROFrameLengthInBC = 0;    ///< ITS RO frame in BC (for ITS cont. mode only)
-  float mITSROFrameLengthMUS = -1.; ///< ITS RO frame in \mus
-  float mTPCVDrift0 = -1.;          ///< TPC nominal drift speed in cm/microseconds
-  float mTPCVDrift0Inv = -1.;       ///< inverse TPC nominal drift speed in cm/microseconds
-  float mTPCTBinMUS = 0.;           ///< TPC time bin duration in microseconds
-  float mTPCTBinNS = 0.;            ///< TPC time bin duration in ns
-  float mTPCTBinMUSInv = 0.;        ///< inverse TPC time bin duration in microseconds
-  float mITSROFrame2TPCBin = 0.;    ///< conversion coeff from ITS ROFrame units to TPC time-bin
-  float mTPCBin2ITSROFrame = 0.;    ///< conversion coeff from TPC time-bin to ITS ROFrame units
-  float mZ2TPCBin = 0.;             ///< conversion coeff from Z to TPC time-bin
-  float mTPCBin2Z = 0.;             ///< conversion coeff from TPC time-bin to Z
-  float mNTPCBinsFullDrift = 0.;    ///< max time bin for full drift
-  float mTPCZMax = 0.;              ///< max drift length
+  int mITSROFrameLengthInBC = 0;     ///< ITS RO frame in BC (for ITS cont. mode only)
+  float mITSROFrameLengthMUS = -1.;  ///< ITS RO frame in \mus
+  float mTPCVDrift0 = -1.;           ///< TPC nominal drift speed in cm/microseconds
+  float mTPCVDrift0Inv = -1.;        ///< inverse TPC nominal drift speed in cm/microseconds
+  float mTPCTBinMUS = 0.;            ///< TPC time bin duration in microseconds
+  float mTPCTBinNS = 0.;             ///< TPC time bin duration in ns
+  float mTPCTBinMUSInv = 0.;         ///< inverse TPC time bin duration in microseconds
+  float mITSROFrame2TPCBin = 0.;     ///< conversion coeff from ITS ROFrame units to TPC time-bin
+  float mTPCBin2ITSROFrame = 0.;     ///< conversion coeff from TPC time-bin to ITS ROFrame units
+  float mZ2TPCBin = 0.;              ///< conversion coeff from Z to TPC time-bin
+  float mTPCBin2Z = 0.;              ///< conversion coeff from TPC time-bin to Z
+  float mNTPCBinsFullDrift = 0.;     ///< max time bin for full drift
+  float mTPCZMax = 0.;               ///< max drift length
   float mTPCmeanX0Inv = 1. / 31850.; ///< TPC gas 1/X0
 
   float mMinTPCTrackPtInv = 999.; ///< cutoff on TPC track inverse pT
@@ -656,7 +656,7 @@ class MatchTPCITS
   bool mVDriftCalibOn = false;                                ///< flag to produce VDrift calibration data
   std::unique_ptr<o2::dataformats::FlatHisto2D_f> mHistoDTgl; ///< histo for VDrift calibration data
 
-  std::unique_ptr<TPCTransform> mTPCTransform;         ///< TPC cluster transformation
+  std::unique_ptr<TPCTransform> mTPCTransform;                ///< TPC cluster transformation
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter; ///< TPC refitter used for TPC tracks refit during the reconstruction
 
   o2::BunchFilling mBunchFilling;

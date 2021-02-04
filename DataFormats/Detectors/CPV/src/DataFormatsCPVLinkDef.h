@@ -18,12 +18,12 @@
 #pragma link C++ class o2::cpv::Cluster + ;
 #pragma link C++ class o2::cpv::TriggerRecord + ;
 
-#pragma link C++ class std::vector < o2::cpv::Digit> + ;
-#pragma link C++ class std::vector < o2::cpv::Cluster> + ;
-#pragma link C++ class std::vector < o2::cpv::TriggerRecord> + ;
+#pragma link C++ class std::vector < o2::cpv::Digit > +;
+#pragma link C++ class std::vector < o2::cpv::Cluster > +;
+#pragma link C++ class std::vector < o2::cpv::TriggerRecord > +;
 
 #pragma link C++ struct o2::cpv::CTFHeader + ;
 #pragma link C++ struct o2::cpv::CTF + ;
-#pragma link C++ class o2::ctf::EncodedBlocks < o2::cpv::CTFHeader, 7, uint32_t> + ;
+#pragma link C++ class o2::ctf::EncodedBlocks < o2::cpv::CTFHeader, 7, uint32_t > +;
 
 #endif

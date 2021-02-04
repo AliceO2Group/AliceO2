@@ -16,20 +16,20 @@
 
 #pragma link C++ class o2::itsmft::Digit + ;
 #pragma link C++ class o2::itsmft::NoiseMap + ;
-#pragma link C++ class std::vector < o2::itsmft::Digit> + ;
+#pragma link C++ class std::vector < o2::itsmft::Digit > +;
 
 #pragma link C++ class o2::itsmft::ROFRecord + ;
-#pragma link C++ class std::vector < o2::itsmft::ROFRecord> + ;
+#pragma link C++ class std::vector < o2::itsmft::ROFRecord > +;
 #pragma link C++ class o2::itsmft::MC2ROFRecord + ;
-#pragma link C++ class std::vector < o2::itsmft::MC2ROFRecord> + ;
+#pragma link C++ class std::vector < o2::itsmft::MC2ROFRecord > +;
 #pragma link C++ class o2::itsmft::Cluster + ;
 #pragma link C++ class o2::itsmft::CompCluster + ;
 #pragma link C++ class o2::itsmft::CompClusterExt + ;
-#pragma link C++ class std::vector < o2::itsmft::Cluster> + ;
-#pragma link C++ class std::vector < o2::itsmft::CompCluster> + ;
-#pragma link C++ class std::vector < o2::itsmft::CompClusterExt> + ;
+#pragma link C++ class std::vector < o2::itsmft::Cluster > +;
+#pragma link C++ class std::vector < o2::itsmft::CompCluster > +;
+#pragma link C++ class std::vector < o2::itsmft::CompClusterExt > +;
 #pragma link C++ class o2::itsmft::ClusterPattern + ;
-#pragma link C++ class std::map < int, o2::itsmft::ClusterPattern> + ;
+#pragma link C++ class std::map < int, o2::itsmft::ClusterPattern > +;
 #pragma link C++ class o2::itsmft::ClusterTopology + ;
 #pragma link C++ class o2::itsmft::TopologyDictionary + ;
 #pragma link C++ class o2::itsmft::GroupStruct + ;
@@ -37,7 +37,7 @@
 #pragma link C++ class o2::itsmft::CTFHeader + ;
 #pragma link C++ class o2::itsmft::CompressedClusters + ;
 #pragma link C++ class o2::itsmft::CTF + ;
-#pragma link C++ class o2::ctf::EncodedBlocks < o2::itsmft::CTFHeader, 10, uint32_t> + ;
+#pragma link C++ class o2::ctf::EncodedBlocks < o2::itsmft::CTFHeader, 10, uint32_t > +;
 
 #pragma link C++ function o2::itsmft::getROFData(const gsl::span <const o2::itsmft::Digit> tfdata) const;
 #pragma link C++ function o2::itsmft::getROFData(const gsl::span <const o2::itsmft::Cluster> tfdata) const;

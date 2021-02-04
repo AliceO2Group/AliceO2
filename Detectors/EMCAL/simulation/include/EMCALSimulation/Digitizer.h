@@ -109,12 +109,12 @@ class Digitizer : public TObject
   const SimParam* mSimParam = nullptr;     ///< SimParam object
   bool mEmpty = true;                      ///< Digitizer contains no digits/labels
 
-  std::vector<Digit> mTempDigitVector;                          ///< temporary digit storage
-  std::unordered_map<Int_t, std::list<LabeledDigit>> mDigits;   ///< used to sort digits and labels by tower
+  std::vector<Digit> mTempDigitVector;                        ///< temporary digit storage
+  std::unordered_map<Int_t, std::list<LabeledDigit>> mDigits; ///< used to sort digits and labels by tower
 
-  TRandom3* mRandomGenerator = nullptr;                       // random number generator
-  std::vector<int> mTimeBinOffset;                            // offset of first time bin
-  std::vector<std::vector<double>> mAmplitudeInTimeBins;      // amplitude of signal for each time bin
+  TRandom3* mRandomGenerator = nullptr;                  // random number generator
+  std::vector<int> mTimeBinOffset;                       // offset of first time bin
+  std::vector<std::vector<double>> mAmplitudeInTimeBins; // amplitude of signal for each time bin
 
   float mLiveTime = 1500;  // EMCal live time (ns)
   float mBusyTime = 35000; // EMCal busy time (ns)

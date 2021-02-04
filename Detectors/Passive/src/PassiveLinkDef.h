@@ -38,5 +38,5 @@
 #pragma link C++ class o2::passive::Shil + ;
 #pragma link C++ class o2::passive::Hall + ;
 #pragma link C++ class o2::passive::HallSimParam + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::passive::HallSimParam> + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::passive::HallSimParam > +;
 #endif

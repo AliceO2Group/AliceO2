@@ -173,8 +173,8 @@ class RawReaderSpecs : public o2f::Task
         if (hdrTmpl.splitPayloadIndex == 0) {
           auto ir = o2::raw::RDHUtils::getHeartBeatIR(plMessage->GetData());
           auto tfid = hbfU.getTF(ir);
-          hdrTmpl.firstTForbit = hbfU.getIRTF(tfid).orbit;                                           // will be picked for the
-          hdrTmpl.tfCounter = mTFCounter;                                                            // following parts
+          hdrTmpl.firstTForbit = hbfU.getIRTF(tfid).orbit; // will be picked for the
+          hdrTmpl.tfCounter = mTFCounter;                  // following parts
           // reinterpret_cast<o2::header::DataHeader*>(hdMessage->GetData())->firstTForbit = hdrTmpl.firstTForbit;     // hack to fix already filled headers
           // reinterpret_cast<o2::header::DataHeader*>(hdMessage->GetData())->tfCounter = mTFCounter;   // at the moment don't use it
         }
@@ -224,11 +224,11 @@ class RawReaderSpecs : public o2f::Task
   }
 
  private:
-  int mLoop = 0;                                   // once last TF reached, loop while mLoop>=0
-  uint32_t mTFCounter = 0;                         // TFId accumulator (accounts for looping)
-  uint32_t mDelayUSec = 0;                         // Delay in microseconds between TFs
-  uint32_t mMinTFID = 0;                           // 1st TF to extract
-  uint32_t mMaxTFID = 0xffffffff;                  // last TF to extrct
+  int mLoop = 0;                  // once last TF reached, loop while mLoop>=0
+  uint32_t mTFCounter = 0;        // TFId accumulator (accounts for looping)
+  uint32_t mDelayUSec = 0;        // Delay in microseconds between TFs
+  uint32_t mMinTFID = 0;          // 1st TF to extract
+  uint32_t mMaxTFID = 0xffffffff; // last TF to extrct
   size_t mLoopsDone = 0;
   size_t mSentSize = 0;
   size_t mSentMessages = 0;

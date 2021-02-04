@@ -59,7 +59,7 @@ class SimpleRawReader
   ClassDefNV(SimpleRawReader, 1);
 };
 
-} // namespace itsmft
+} // namespace raw
 } // namespace o2
 
 #endif

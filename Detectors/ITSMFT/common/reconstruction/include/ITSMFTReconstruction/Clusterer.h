@@ -45,7 +45,7 @@ template <typename T>
 class ConstMCTruthContainerView;
 template <typename T>
 class MCTruthContainer;
-}
+} // namespace dataformats
 
 namespace itsmft
 {
@@ -95,10 +95,10 @@ class Clusterer
     std::vector<std::pair<int, uint32_t>> pixels;
     std::vector<int> preClusterHeads; // index of precluster head in the pixels
     std::vector<int> preClusterIndices;
-    uint16_t currCol = 0xffff;                                      ///< Column being processed
-    bool noLeftCol = true;                                          ///< flag that there is no column on the left to check
-    std::array<Label, MaxLabels> labelsBuff;                        //! temporary buffer for building cluster labels
-    std::vector<PixelData> pixArrBuff;                              //! temporary buffer for pattern calc.
+    uint16_t currCol = 0xffff;               ///< Column being processed
+    bool noLeftCol = true;                   ///< flag that there is no column on the left to check
+    std::array<Label, MaxLabels> labelsBuff; //! temporary buffer for building cluster labels
+    std::vector<PixelData> pixArrBuff;       //! temporary buffer for pattern calc.
     //
     /// temporary storage for the thread output
     CompClusCont compClusters;
@@ -184,11 +184,10 @@ class Clusterer
   ///< load the dictionary of cluster topologies
   void loadDictionary(const std::string& fileName) { mPattIdConverter.loadDictionary(fileName); }
 
-  TStopwatch& getTimer() { return mTimer; } // cannot be const
+  TStopwatch& getTimer() { return mTimer; }           // cannot be const
   TStopwatch& getTimerMerge() { return mTimerMerge; } // cannot be const
 
  private:
-
   ///< recalculate min max row and column of the cluster accounting for the position of pix
   static void adjustBoundingBox(uint16_t row, uint16_t col, uint16_t& rMin, uint16_t& rMax, uint16_t& cMin, uint16_t& cMax)
   {
@@ -209,7 +208,7 @@ class Clusterer
   void flushClusters(CompClusCont* compClus, MCTruth* labels);
 
   // clusterization options
-  bool mContinuousReadout = true;    ///< flag continuous readout
+  bool mContinuousReadout = true; ///< flag continuous readout
 
   ///< mask continuosly fired pixels in frames separated by less than this amount of BCs (fired from hit in prev. ROF)
   int mMaxBCSeparationToMask = 6000. / o2::constants::lhc::LHCBunchSpacingNS + 10;
@@ -225,7 +224,6 @@ class Clusterer
   TStopwatch mTimer;
   TStopwatch mTimerMerge;
 };
-
 
 } // namespace itsmft
 } // namespace o2

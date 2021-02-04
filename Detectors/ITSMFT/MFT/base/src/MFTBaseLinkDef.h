@@ -35,6 +35,6 @@
 #pragma link C++ class o2::mft::Barrel + ;
 #pragma link C++ class o2::mft::PatchPanel + ;
 #pragma link C++ class o2::mft::MFTBaseParam + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::mft::MFTBaseParam> + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::mft::MFTBaseParam > +;
 
 #endif

@@ -42,7 +42,6 @@ namespace raw
 struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
   using IR = o2::InteractionRecord;
 
-
   IR getFirstIR() const { return {bcFirst, orbitFirst}; }
 
   int getNOrbitsPerTF() const { return nHBFPerTF; }

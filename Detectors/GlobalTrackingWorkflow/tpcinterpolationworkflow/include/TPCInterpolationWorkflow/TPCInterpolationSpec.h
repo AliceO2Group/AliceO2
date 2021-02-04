@@ -36,7 +36,7 @@ class TPCInterpolationDPL : public Task
 
  private:
   o2::tpc::TrackInterpolation mInterpolation; // track interpolation engine
-  bool mUseMC{false}; ///< MC flag
+  bool mUseMC{false};                         ///< MC flag
   TStopwatch mTimer;
 };
 

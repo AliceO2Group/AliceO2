@@ -17,4 +17,3 @@
 //#pragma link C++ class o2::trd::TRDDPLDigitizerTask + ;
 #pragma link C++ class gsl::span < uint32_t > +;
 #endif
-

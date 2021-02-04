@@ -66,7 +66,7 @@ void run_digi2rawVarPage_its(std::string outPrefix = "rawits",       // prefix o
     o2::raw::HBFUtils::updateFromString("HBFUtils.nHBFPerTF=256"); // this is default anyway
   }
 
-  m2r.getWriter().setSuperPageSize(1024 * 1024);      // this is default anyway
+  m2r.getWriter().setSuperPageSize(1024 * 1024); // this is default anyway
 
   m2r.setVerbosity(0);
 

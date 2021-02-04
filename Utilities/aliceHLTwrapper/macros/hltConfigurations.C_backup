@@ -12,7 +12,7 @@
 
 //  @file   hltConfigurations.C
 //  @author Matthias Richter
-//  @since  2014-05-20 
+//  @since  2014-05-20
 //  @brief  Various helper configurations for the ALICE HLT
 
 /**
@@ -26,35 +26,36 @@
 void hltConfigurations()
 {
   // init the HLT system
-  AliHLTSystem* pHLT=AliHLTPluginBase::GetInstance();
+  AliHLTSystem* pHLT = AliHLTPluginBase::GetInstance();
 
   ///////////////////////////////////////////////////////////////////////////////////////////
   //
   // list of configurations
   //
   ///////////////////////////////////////////////////////////////////////////////////////////
-  int iMinSlice=0; 
-  int iMaxSlice=35;
-  int iMinPart=0;
-  int iMaxPart=5;
+  int iMinSlice = 0;
+  int iMaxSlice = 35;
+  int iMinPart = 0;
+  int iMaxPart = 5;
 
   TString collectionInput;
-  for (int slice=iMinSlice; slice<=iMaxSlice; slice++) {
-    for (int part=iMinPart; part<=iMaxPart; part++) {
+  for (int slice = iMinSlice; slice <= iMaxSlice; slice++) {
+    for (int part = iMinPart; part <= iMaxPart; part++) {
       TString arg;
       TString filterid;
       filterid.Form("TPC-CLFilter_%02d_%d", slice, part);
       arg.Form("-dataspec 0x%02x%02x%02x%02x", slice, slice, part, part);
-      AliHLTConfiguration clusterfilter(filterid.Data(), "BlockFilter","TPC-ClusterTransformation", arg.Data());
+      AliHLTConfiguration clusterfilter(filterid.Data(), "BlockFilter", "TPC-ClusterTransformation", arg.Data());
 
       TString cid;
       cid.Form("TPC-CLWriter_%02d_%d", slice, part);
-      arg=("-directory emulated-tpc-clusters -subdir -specfmt=_0x%08x -blocknofmt=");
-      arg+=Form(" -publisher-conf emulated-tpc-clusters_0x%02x%02x%02x%02x.txt", slice, slice, part, part);
+      arg = ("-directory emulated-tpc-clusters -subdir -specfmt=_0x%08x -blocknofmt=");
+      arg += Form(" -publisher-conf emulated-tpc-clusters_0x%02x%02x%02x%02x.txt", slice, slice, part, part);
       AliHLTConfiguration clusterwriter(cid.Data(), "FileWriter", filterid.Data(), arg.Data());
 
-      if (collectionInput.Length()>0) collectionInput+=" ";
-      collectionInput+=cid;
+      if (collectionInput.Length() > 0)
+        collectionInput += " ";
+      collectionInput += cid;
     }
   }
   AliHLTConfiguration clustercollection("cluster-collection", "BlockFilter", collectionInput.Data(), "");
@@ -63,27 +64,27 @@ void hltConfigurations()
   TString publisher;
 
   arg.Form("-publish-raw filtered");
-  AliHLTConfiguration tpcdatapublisherconf("TPC-DP", "TPCDataPublisher", NULL , arg.Data());
+  AliHLTConfiguration tpcdatapublisherconf("TPC-DP", "TPCDataPublisher", NULL, arg.Data());
 
   publisher.Form("TPC-DP-raw", slice, part);
   arg.Form("-datatype 'DDL_RAW ' 'TPC '");
-  AliHLTConfiguration tpcdatarawfilterconf(publisher.Data(), "BlockFilter", "TPC-DP" , arg.Data());
+  AliHLTConfiguration tpcdatarawfilterconf(publisher.Data(), "BlockFilter", "TPC-DP", arg.Data());
 
   // Hardware CF emulator
   TString hwcfemu;
   hwcfemu.Form("TPC-HWCFEmu");
-  arg="";
+  arg = "";
   AliHLTConfiguration tpchwcfemuconf(hwcfemu.Data(), "TPCHWClusterFinderEmulator", publisher.Data(), arg.Data());
-	
+
   TString hwcf;
   hwcf.Form("TPC-HWCF");
   AliHLTConfiguration hwcfemuconf(hwcf.Data(), "TPCHWClusterTransform", hwcfemu.Data(), "-publish-raw");
- 
+
   TString hwcfDecoder = "TPC-HWCFDecoder";
-  AliHLTConfiguration hwcfdecoderconf(hwcfDecoder.Data(), "TPCHWClusterDecoder",hwcfemu.Data(), "");
+  AliHLTConfiguration hwcfdecoderconf(hwcfDecoder.Data(), "TPCHWClusterDecoder", hwcfemu.Data(), "");
 
   TString clusterTransformation = "TPC-ClusterTransformation";
-  AliHLTConfiguration clustertransformationconf(clusterTransformation.Data(), "TPCClusterTransformation",hwcfDecoder.Data(), "");
+  AliHLTConfiguration clustertransformationconf(clusterTransformation.Data(), "TPCClusterTransformation", hwcfDecoder.Data(), "");
 
   AliHLTConfiguration clusterpubconf("cluster-publisher", "FilePublisher", "", "-datafilelist cluster-input.txt");
 
@@ -91,24 +92,25 @@ void hltConfigurations()
   trackerID.Form("TPC-TR");
   TString trackerInput;
   //trackerInput=clusterTransformation;
-  trackerInput="cluster-publisher";
+  trackerInput = "cluster-publisher";
   AliHLTConfiguration trackerconf(trackerID.Data(), "TPCCATracker", trackerInput.Data(), "-ExampleModule2 -allowGPU -GPUHelperThreads 4");
 
-  AliHLTConfiguration globalmergerconf("TPC-globalmerger","TPCCAGlobalMerger",trackerID.Data(),"");
+  AliHLTConfiguration globalmergerconf("TPC-globalmerger", "TPCCAGlobalMerger", trackerID.Data(), "");
 
   TString input;
-  input+=" "; input+=clusterTransformation;
-  input+=" "; input+=hwcfDecoder;
+  input += " ";
+  input += clusterTransformation;
+  input += " ";
+  input += hwcfDecoder;
   //input+=" TPC-globalmerger";
-  arg="-directory clusters-from-raw -subdir -specfmt=_0x%08x -blocknofmt=  -write-all-blocks -write-all-events";
-  arg+=Form(" -publisher-conf emulated-tpc-clusters.txt");
+  arg = "-directory clusters-from-raw -subdir -specfmt=_0x%08x -blocknofmt=  -write-all-blocks -write-all-events";
+  arg += Form(" -publisher-conf emulated-tpc-clusters.txt");
   AliHLTConfiguration clustertransformwriterconf("TPC-ClusterWriter", "FileWriter", input.Data(), arg.Data());
 
-  arg="-directory output-tracks -subdir -specfmt=_0x%08x -blocknofmt=  -write-all-blocks -write-all-events";
-  arg+=Form(" -publisher-conf output-tracks.txt");
+  arg = "-directory output-tracks -subdir -specfmt=_0x%08x -blocknofmt=  -write-all-blocks -write-all-events";
+  arg += Form(" -publisher-conf output-tracks.txt");
   AliHLTConfiguration trackwriterconf("TPC-TrackWriter", "FileWriter", "TPC-globalmerger", arg.Data());
 
   arg.Form("-disable-component-stat -publish 0 -file ClusterRawStatistics.root");
   AliHLTConfiguration collector("collector", "StatisticsCollector", "TPC-ClusterWriter", arg.Data());
-
 }

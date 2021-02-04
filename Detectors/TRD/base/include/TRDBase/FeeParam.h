@@ -11,7 +11,6 @@
 #ifndef O2_TRD_FEEPARAM_H
 #define O2_TRD_FEEPARAM_H
 
-
 ////////////////////////////////////////////////////////////////////////////
 //                                                                        //
 //  TRD front end electronics parameters class                            //
@@ -158,24 +157,24 @@ class FeeParam
   static const int mgkMaxRAWversion = 3; // Maximum raw version number supported
 
   // geometry constants
-  static std::array<float, constants::NCHAMBERPERSEC> mgZrow;    // z-position of pad row edge 6x5
-  static std::array<float, constants::NLAYER> mgX;               // x-position for all layers
-  static std::array<float, constants::NLAYER> mgInvX;            // inverse x-position for all layers (to remove divisions)
-  static std::array<float, constants::NLAYER> mgTiltingAngle;    // tilting angle for every layer
-  static std::array<float, constants::NLAYER> mgTiltingAngleTan; // tan of tilting angle for every layer (look up table to avoid tan calculations)
-  static std::array<float, constants::NLAYER> mgWidthPad;        // pad width for all layers
-  static std::array<float, constants::NLAYER> mgInvWidthPad;     // inverse pad width for all layers (to remove divisions)
-  static float mgLengthInnerPadC0;                // inner pad length C0 chamber
-  static float mgLengthOuterPadC0;                // outer pad length C0 chamber
+  static std::array<float, constants::NCHAMBERPERSEC> mgZrow;     // z-position of pad row edge 6x5
+  static std::array<float, constants::NLAYER> mgX;                // x-position for all layers
+  static std::array<float, constants::NLAYER> mgInvX;             // inverse x-position for all layers (to remove divisions)
+  static std::array<float, constants::NLAYER> mgTiltingAngle;     // tilting angle for every layer
+  static std::array<float, constants::NLAYER> mgTiltingAngleTan;  // tan of tilting angle for every layer (look up table to avoid tan calculations)
+  static std::array<float, constants::NLAYER> mgWidthPad;         // pad width for all layers
+  static std::array<float, constants::NLAYER> mgInvWidthPad;      // inverse pad width for all layers (to remove divisions)
+  static float mgLengthInnerPadC0;                                // inner pad length C0 chamber
+  static float mgLengthOuterPadC0;                                // outer pad length C0 chamber
   static std::array<float, constants::NLAYER> mgLengthInnerPadC1; // inner pad length C1 chambers
   static std::array<float, constants::NLAYER> mgLengthOuterPadC1; // outer pad length C1 chambers
-  static float mgScalePad;                        // scaling factor for pad width
-  static float mgDriftLength;                     // length of the  parse gaintbl Krypton_2009-01 drift region
-  static float mgBinDy;                           // bin in dy (140 um)
-  static int mgDyMax;                             // max dy for a tracklet (hard limit)
-  static int mgDyMin;                             // min dy for a tracklet (hard limit)
-                                                  //std::array<int,30> mgAsideLUT;                          // A side LUT to map ORI to stack/layer/side
-                                                  //std::array<int,30> mgCsideLUT;                          // C side LUT to map ORI to stack/layer/side
+  static float mgScalePad;                                        // scaling factor for pad width
+  static float mgDriftLength;                                     // length of the  parse gaintbl Krypton_2009-01 drift region
+  static float mgBinDy;                                           // bin in dy (140 um)
+  static int mgDyMax;                                             // max dy for a tracklet (hard limit)
+  static int mgDyMin;                                             // min dy for a tracklet (hard limit)
+                                                                  //std::array<int,30> mgAsideLUT;                          // A side LUT to map ORI to stack/layer/side
+                                                                  //std::array<int,30> mgCsideLUT;                          // C side LUT to map ORI to stack/layer/side
 
   // settings
   float mMagField;          // magnetic field

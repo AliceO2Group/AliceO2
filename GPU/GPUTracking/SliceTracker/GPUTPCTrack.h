@@ -40,7 +40,10 @@ class GPUTPCTrack
   ~GPUTPCTrack() CON_DEFAULT;
 #endif //! GPUCA_GPUCODE
 
-  GPUhd() int NHits() const { return mNHits; }
+  GPUhd() int NHits() const
+  {
+    return mNHits;
+  }
   GPUhd() int LocalTrackId() const { return mLocalTrackId; }
   GPUhd() int FirstHitID() const { return mFirstHitID; }
   GPUhd() MakeType(const MEM_LG(GPUTPCBaseTrackParam) &) Param() const { return mParam; }

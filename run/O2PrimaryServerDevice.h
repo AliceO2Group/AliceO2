@@ -279,8 +279,8 @@ class O2PrimaryServerDevice final : public FairMQDevice
   o2::eventgen::PrimaryGenerator mPrimGen;
   o2::dataformats::MCEventHeader mEventHeader;
   o2::data::Stack* mStack = nullptr; // the stack which is filled (pointer since constructor to be called only init method)
-  int mChunkGranularity = 500; // how many primaries to send to a worker
-  int mLastPosition = 0;       // last position in stack vector
+  int mChunkGranularity = 500;       // how many primaries to send to a worker
+  int mLastPosition = 0;             // last position in stack vector
   int mPartCounter = 0;
   bool mNeedNewEvent = true;
   int mMaxEvents = 2;

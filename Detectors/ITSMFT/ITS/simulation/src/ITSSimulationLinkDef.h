@@ -19,6 +19,6 @@
 #pragma link C++ class o2::its::V3Layer + ;
 #pragma link C++ class o2::its::V3Services + ;
 #pragma link C++ class o2::its::Detector + ;
-#pragma link C++ class o2::base::DetImpl < o2::its::Detector> + ;
+#pragma link C++ class o2::base::DetImpl < o2::its::Detector > +;
 
 #endif

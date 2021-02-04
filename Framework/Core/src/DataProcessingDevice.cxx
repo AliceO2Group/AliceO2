@@ -99,7 +99,7 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
 {
   /// FIXME: move erro handling to a service?
   if (mError != nullptr) {
-    mErrorHandling = [&errorCallback = mError,
+    mErrorHandling = [& errorCallback = mError,
                       &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
       ZoneScopedN("Error handling");
       auto& err = error_from_ref(e);
@@ -110,7 +110,7 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
       errorCallback(errorContext);
     };
   } else {
-    mErrorHandling = [&errorPolicy = mErrorPolicy,
+    mErrorHandling = [& errorPolicy = mErrorPolicy,
                       &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
       ZoneScopedN("Error handling");
       auto& err = error_from_ref(e);
@@ -641,7 +641,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, FairMQParts
   // and we do a few stats. We bind parts as a lambda captured variable, rather
   // than an input, because we do not want the outer loop actually be exposed
   // to the implementation details of the messaging layer.
-  auto getInputTypes = [&stats = context.registry->get<DataProcessingStats>(),
+  auto getInputTypes = [& stats = context.registry->get<DataProcessingStats>(),
                         &parts, &info, &context]() -> std::optional<std::vector<InputType>> {
     stats.inputParts = parts.Size();
 
@@ -684,7 +684,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, FairMQParts
     return results;
   };
 
-  auto reportError = [&registry = *context.registry, &context](const char* message) {
+  auto reportError = [& registry = *context.registry, &context](const char* message) {
     registry.get<DataProcessingStats>().errorCount++;
   };
 
@@ -781,7 +781,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   // should work just fine.
   std::vector<MessageSet> currentSetOfInputs;
 
-  auto reportError = [&registry = *context.registry, &context](const char* message) {
+  auto reportError = [& registry = *context.registry, &context](const char* message) {
     registry.get<DataProcessingStats>().errorCount++;
   };
 
@@ -942,7 +942,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
             LOG(ERROR) << "Forwarded data does not have a DataHeader";
             continue;
           }
-     
+
           forwardedParts[forward.channel].AddPart(std::move(header));
           forwardedParts[forward.channel].AddPart(std::move(payload));
         }
@@ -1055,7 +1055,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         forwardInputs(action.slot, record);
       }
 #ifdef TRACY_ENABLE
-        cleanupRecord(record);
+      cleanupRecord(record);
 #endif
     } else if (action.op == CompletionPolicy::CompletionOp::Process) {
       cleanTimers(action.slot, record);

@@ -22,11 +22,11 @@
 #pragma link C++ class o2::vertexing::PVertexer + ;
 #pragma link C++ class o2::vertexing::PVertexerParams + ;
 #pragma link C++ class o2::vertexing::VertexTrackMatcher + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::vertexing::PVertexerParams> + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::vertexing::PVertexerParams > +;
 
 #pragma link C++ class o2::vertexing::SVertexer + ;
 #pragma link C++ class o2::vertexing::SVertexerParams + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::vertexing::SVertexerParams> + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::vertexing::SVertexerParams > +;
 
 #pragma link C++ class o2::track::TrackAuxPar + ;
 #pragma link C++ class o2::track::CrossInfo + ;

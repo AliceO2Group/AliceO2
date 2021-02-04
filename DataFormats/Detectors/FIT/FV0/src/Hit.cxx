@@ -19,17 +19,17 @@ ClassImp(o2::fv0::Hit);
 
 namespace o2
 {
-  namespace fv0
-  {
+namespace fv0
+{
 
-  void Hit::Print(const Option_t* opt) const
-  {
-    printf(
-      "Det: %5d Track: %6d E.loss: %.3e P: %+.3e %+.3e %+.3e\n"
-      "PosIn: %+.3e %+.3e %+.3e PosOut: %+.3e %+.3e %+.3e\n",
-      GetDetectorID(), GetTrackID(), GetEnergyLoss(), GetPx(), GetPy(), GetPz(),
-      GetStartX(), GetStartY(), GetStartZ(), GetX(), GetY(), GetZ());
-  }
+void Hit::Print(const Option_t* opt) const
+{
+  printf(
+    "Det: %5d Track: %6d E.loss: %.3e P: %+.3e %+.3e %+.3e\n"
+    "PosIn: %+.3e %+.3e %+.3e PosOut: %+.3e %+.3e %+.3e\n",
+    GetDetectorID(), GetTrackID(), GetEnergyLoss(), GetPx(), GetPy(), GetPz(),
+    GetStartX(), GetStartY(), GetStartZ(), GetX(), GetY(), GetZ());
+}
 
-  } // namespace fv0
+} // namespace fv0
 } // namespace o2

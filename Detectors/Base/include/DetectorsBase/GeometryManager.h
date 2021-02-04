@@ -126,6 +126,7 @@ class GeometryManager : public TObject
   /// detector geometry. The output global matrix is stored in 'm'.
   /// Returns kFALSE in case TGeo has not been initialized or the volume path is not valid.
   static Bool_t getOriginalMatrixFromPath(const char* path, TGeoHMatrix& m);
+
  private:
   /// sensitive volume identifier composed from (det_ID<<sDetOffset)|(sensid&sSensorMask)
   static constexpr UInt_t sDetOffset = 15; /// detector identifier will start from this bit

@@ -547,14 +547,14 @@ struct RDHUtils {
   GPUhdi() static uint32_t getDetectorField(const H& rdh, NOTPTR(H))
   {
     return rdh.detectorField;
-  }                                                                                                                       // same for all
+  } // same for all
   GPUhdi() static uint32_t getDetectorField(const RDHAny& rdh) { return getDetectorField(rdh.voidify()); }
   GPUhdi() static uint32_t getDetectorField(const void* rdhP) { return getDetectorField(TOCREF(RDHDef, rdhP)); }
   template <typename H>
   static void setDetectorField(H& rdh, uint32_t v, NOTPTR(H))
   {
     rdh.detectorField = v;
-  }                                                                                                               // same for all
+  } // same for all
   static void setDetectorField(RDHAny& rdh, uint32_t v) { setDetectorField(rdh.voidify(), v); }
   static void setDetectorField(void* rdhP, uint32_t v) { setDetectorField(TOREF(RDHDef, rdhP), v); } // same for all
 

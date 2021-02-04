@@ -14,7 +14,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 #pragma link C++ class o2::tof::Cluster + ;
-#pragma link C++ class std::vector < o2::tof::Cluster> + ;
+#pragma link C++ class std::vector < o2::tof::Cluster > +;
 
 #pragma link C++ class o2::dataformats::CalibInfoTOFshort + ;
 #pragma link C++ class o2::dataformats::CalibInfoTOF + ;
@@ -22,12 +22,12 @@
 #pragma link C++ class o2::dataformats::CalibLHCphaseTOF + ;
 #pragma link C++ class o2::dataformats::CalibTimeSlewingParamTOF + ;
 
-#pragma link C++ class std::vector < o2::dataformats::CalibInfoTOFshort> + ;
-#pragma link C++ class std::vector < o2::dataformats::CalibInfoTOF> + ;
+#pragma link C++ class std::vector < o2::dataformats::CalibInfoTOFshort > +;
+#pragma link C++ class std::vector < o2::dataformats::CalibInfoTOF > +;
 
 #pragma link C++ class o2::tof::CTFHeader + ;
 #pragma link C++ class o2::tof::CompressedInfos + ;
 #pragma link C++ class o2::tof::CTF + ;
-#pragma link C++ class o2::ctf::EncodedBlocks < o2::tof::CTFHeader, 11, uint32_t> + ;
+#pragma link C++ class o2::ctf::EncodedBlocks < o2::tof::CTFHeader, 11, uint32_t > +;
 
 #endif

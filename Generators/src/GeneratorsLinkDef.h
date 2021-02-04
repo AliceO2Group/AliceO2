@@ -43,13 +43,13 @@
 #pragma link C++ class o2::eventgen::GeneratorPythia8Param + ;
 #pragma link C++ class o2::eventgen::DecayerPythia8Param + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::GeneratorPythia8Param > +;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::DecayerPythia8Param> + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::DecayerPythia8Param > +;
 #pragma link C++ class o2::eventgen::GeneratorFactory + ;
 #endif
 #pragma link C++ class o2::eventgen::GeneratorFromFile + ;
 #pragma link C++ class o2::eventgen::GeneratorFromO2Kine + ;
 #pragma link C++ class o2::eventgen::GeneratorFromO2KineParam + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::GeneratorFromO2KineParam> + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::GeneratorFromO2KineParam > +;
 #pragma link C++ class o2::PDG + ;
 #pragma link C++ class o2::eventgen::PrimaryGenerator + ;
 
@@ -57,7 +57,7 @@
 #pragma link C++ class o2::eventgen::InteractionDiamondParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::InteractionDiamondParam > +;
 #pragma link C++ class o2::eventgen::TriggerExternalParam + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::TriggerExternalParam> + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::TriggerExternalParam > +;
 #pragma link C++ class o2::eventgen::TriggerParticleParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::TriggerParticleParam > +;
 #pragma link C++ class o2::eventgen::BoxGunParam + ;
@@ -65,6 +65,6 @@
 #pragma link C++ class o2::eventgen::QEDGenParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::QEDGenParam > +;
 #pragma link C++ class o2::eventgen::GenCosmicsParam + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::GenCosmicsParam> + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::GenCosmicsParam > +;
 
 #endif

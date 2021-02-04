@@ -15,10 +15,10 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::fdd::Detector + ;
-#pragma link C++ class o2::base::DetImpl < o2::fdd::Detector> + ;
+#pragma link C++ class o2::base::DetImpl < o2::fdd::Detector > +;
 #pragma link C++ class o2::fdd::Digitizer + ;
 #pragma link C++ class o2::fdd::DigitizationParameters + ;
-#pragma link C++ class o2::dataformats::MCTruthContainer < o2::fdd::MCLabel> + ;
+#pragma link C++ class o2::dataformats::MCTruthContainer < o2::fdd::MCLabel > +;
 #pragma link C++ class o2::fdd::Digits2Raw + ;
 
 #endif

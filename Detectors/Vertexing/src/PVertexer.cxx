@@ -421,7 +421,6 @@ void PVertexer::createMCLabels(gsl::span<const o2::MCCompLabel> lblTracks, const
   }
 }
 
-
 //___________________________________________________________________
 void PVertexer::setBunchFilling(const o2::BunchFilling& bf)
 {

@@ -67,7 +67,7 @@ void VertexTrackMatcher::process(const gsl::span<const PVertex>& vertices,
     }
   }
 
-  std::vector<int> idVtxIRMin(vertices.size());   // indices of vertices sorted in IRmin
+  std::vector<int> idVtxIRMin(vertices.size()); // indices of vertices sorted in IRmin
   std::vector<int> flgITS(itsTracks.size(), 0);
   std::vector<int> idTPC(tpcTracks.size()); // indices of TPC tracks sorted in min time
   std::iota(idTPC.begin(), idTPC.end(), 0);

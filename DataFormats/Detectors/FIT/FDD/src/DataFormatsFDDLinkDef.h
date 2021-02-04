@@ -16,21 +16,21 @@
 
 #pragma link C++ class o2::fdd::Digit + ;
 #pragma link C++ class o2::fdd::ChannelData + ;
-#pragma link C++ class vector < o2::fdd::Digit> + ;
-#pragma link C++ class vector < o2::fdd::ChannelData> + ;
+#pragma link C++ class vector < o2::fdd::Digit > +;
+#pragma link C++ class vector < o2::fdd::ChannelData > +;
 #pragma link C++ class o2::fdd::Triggers + ;
-#pragma link C++ class vector < o2::fdd::Triggers> + ;
+#pragma link C++ class vector < o2::fdd::Triggers > +;
 #pragma link C++ class o2::fdd::DetTrigInput + ;
-#pragma link C++ class vector < o2::fdd::DetTrigInput> + ;
+#pragma link C++ class vector < o2::fdd::DetTrigInput > +;
 
 #pragma link C++ class o2::fdd::MCLabel + ;
-#pragma link C++ class vector < o2::fdd::MCLabel> + ;
+#pragma link C++ class vector < o2::fdd::MCLabel > +;
 
 #pragma link C++ class o2::fdd::Hit + ;
-#pragma link C++ class vector < o2::fdd::Hit> + ;
+#pragma link C++ class vector < o2::fdd::Hit > +;
 
 #pragma link C++ class o2::fdd::RecPoint + ;
-#pragma link C++ class vector < o2::fdd::RecPoint> + ;
+#pragma link C++ class vector < o2::fdd::RecPoint > +;
 
 #pragma link C++ class o2::fdd::RawEventData + ;
 #pragma link C++ class o2::fdd::EventHeader + ;
@@ -40,6 +40,6 @@
 
 #pragma link C++ class o2::fdd::CTFHeader + ;
 #pragma link C++ class o2::fdd::CTF + ;
-#pragma link C++ class o2::ctf::EncodedBlocks < o2::fdd::CTFHeader, 8, uint32_t> + ;
+#pragma link C++ class o2::ctf::EncodedBlocks < o2::fdd::CTFHeader, 8, uint32_t > +;
 
 #endif

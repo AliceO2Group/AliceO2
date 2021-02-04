@@ -227,7 +227,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       int groupId = 0;
 
       auto metadatum = std::find_if(metadata.begin(), metadata.end(),
-                                    [&name = spec.name](DataProcessorInfo const& info) { return info.name == name; });
+                                    [& name = spec.name](DataProcessorInfo const& info) { return info.name == name; });
 
       for (size_t gi = 0; gi < groupList.Size; ++gi) {
         if (metadatum == metadata.end()) {

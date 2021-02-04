@@ -533,24 +533,24 @@ class TrackResiduals
   bool mIsInitialized{}; ///< initialize only once
   bool mPrintMem{};      ///< turn on to print memory usage at certain points
   // binning
-  int mNXBins{param::NPadRows};            ///< number of bins in radial direction
-  int mNY2XBins{param::NY2XBins};          ///< number of y/x bins per sector
-  int mNZ2XBins{param::NZ2XBins};          ///< number of z/x bins per sector
-  int mNVoxPerSector{};                    ///< number of voxels per sector
-  float mDX{};                             ///< x bin size
-  float mDXI{};                            ///< inverse of x bin size
-  std::vector<float> mMaxY2X{};            ///< max y/x at each x bin, accounting dead zones
-  std::vector<float> mDY2X{};              ///< y/x bin size at given x bin
-  std::vector<float> mDY2XI{};             ///< inverse y/x bin size at given x bin
-  std::vector<float> mY2XBinsDH{};         ///< half width in y/x within the interval [-1..1]
-  std::vector<float> mY2XBinsDI{};         ///< inverse bin width in y/x within the interval [-1..1]
-  std::vector<float> mY2XBinsCenter{};     ///< bin center in y/x within the interval [-1..1]
-  float mDZ2X{};                           ///< bin size in z/x
-  float mDZ2XI{};                          ///< inverse of bin size in z/x
-  std::vector<float> mZ2XBinsDH{};         ///< half width in z/x within the interval [0..1]
-  std::vector<float> mZ2XBinsDI{};         ///< inverse bin width in z/x within the interval [0..1]
-  std::vector<float> mZ2XBinsCenter{};     ///< bin center in z/x within the interval [0..1]
-  float mMaxZ2X{1.f};                      ///< max z/x value
+  int mNXBins{param::NPadRows};                            ///< number of bins in radial direction
+  int mNY2XBins{param::NY2XBins};                          ///< number of y/x bins per sector
+  int mNZ2XBins{param::NZ2XBins};                          ///< number of z/x bins per sector
+  int mNVoxPerSector{};                                    ///< number of voxels per sector
+  float mDX{};                                             ///< x bin size
+  float mDXI{};                                            ///< inverse of x bin size
+  std::vector<float> mMaxY2X{};                            ///< max y/x at each x bin, accounting dead zones
+  std::vector<float> mDY2X{};                              ///< y/x bin size at given x bin
+  std::vector<float> mDY2XI{};                             ///< inverse y/x bin size at given x bin
+  std::vector<float> mY2XBinsDH{};                         ///< half width in y/x within the interval [-1..1]
+  std::vector<float> mY2XBinsDI{};                         ///< inverse bin width in y/x within the interval [-1..1]
+  std::vector<float> mY2XBinsCenter{};                     ///< bin center in y/x within the interval [-1..1]
+  float mDZ2X{};                                           ///< bin size in z/x
+  float mDZ2XI{};                                          ///< inverse of bin size in z/x
+  std::vector<float> mZ2XBinsDH{};                         ///< half width in z/x within the interval [0..1]
+  std::vector<float> mZ2XBinsDI{};                         ///< inverse bin width in z/x within the interval [0..1]
+  std::vector<float> mZ2XBinsCenter{};                     ///< bin center in z/x within the interval [0..1]
+  float mMaxZ2X{1.f};                                      ///< max z/x value
   std::array<bool, VoxDim> mUniformBins{true, true, true}; ///< if binning is uniform for each dimension
   // local residual data, extracted from track interpolation
   std::array<std::unique_ptr<TFile>, SECTORSPERSIDE * SIDES> mTmpFile{}; ///< I/O file
@@ -597,10 +597,10 @@ class TrackResiduals
   DeltaStruct mDeltaStruct;                                ///< helper structure to access the data stored in the residual tree
   std::unique_ptr<TChain> mRun2DeltaTree{};                ///< tree with Run 2 cluster residuals
   bool mFilterOutliers = true;                             ///< flag, if outliers from the cluster residual trees should be rejected
-  int mNMALong{15}; ///< number of points to be used for moving average (long range)
-  int mNMAShort{3}; ///< number of points to be used for estimation of distance from local line (short range)
-  float mMaxRejFrac{.15f}; ///< if the fraction of rejected clusters of a track is higher, the full track is invalidated
-  float mMaxRMSLong{.8f};  ///< maximum variance of the cluster residuals wrt moving avarage for a track to be considered
+  int mNMALong{15};                                        ///< number of points to be used for moving average (long range)
+  int mNMAShort{3};                                        ///< number of points to be used for estimation of distance from local line (short range)
+  float mMaxRejFrac{.15f};                                 ///< if the fraction of rejected clusters of a track is higher, the full track is invalidated
+  float mMaxRMSLong{.8f};                                  ///< maximum variance of the cluster residuals wrt moving avarage for a track to be considered
   // buffer arrays as in AliTPCDcalibRes
   std::array<float, param::NPadRows> mArrX;     ///< calculated cluster x position (pad row x)
   std::array<float, param::NPadRows> mArrR;     ///< cluster radius

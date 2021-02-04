@@ -110,7 +110,7 @@ class MC2RawEncoder
   enum RoMode_t { NotSet,
                   Continuous,
                   Triggered };
-  o2::InteractionRecord mCurrIR;               // currently processed int record
+  o2::InteractionRecord mCurrIR;                        // currently processed int record
   o2::raw::RawFileWriter mWriter{Mapping::getOrigin()}; // set origin of data
   std::string mDefaultSinkName = "dataSink.raw";
   Mapping mMAP;
