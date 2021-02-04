@@ -279,7 +279,7 @@ int calculateExitCode(DeviceSpecs& deviceSpecs, DeviceInfos& infos)
     auto& spec = deviceSpecs[di];
     if (exitCode == 0 && info.maxLogLevel >= LogParsingHelpers::LogLevel::Error) {
       LOG(ERROR) << "SEVERE: Device " << spec.name << " (" << info.pid << ") had at least one "
-                 << "message above severity ERROR: " << std::regex_replace(info.firstError, regexp, "");
+                 << "message above severity ERROR: " << std::regex_replace(info.firstSevereError, regexp, "");
       exitCode = 1;
     }
   }
@@ -870,14 +870,16 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
       }
       // We keep track of the maximum log error a
       // device has seen.
+      bool maxLogLevelIncreased = false;
       if (logLevel > info.maxLogLevel && logLevel > LogParsingHelpers::LogLevel::Info &&
           logLevel != LogParsingHelpers::LogLevel::Unknown) {
         info.maxLogLevel = logLevel;
+        maxLogLevelIncreased = true;
       }
-      if (logLevel == LogParsingHelpers::LogLevel::Error) {
+      if (logLevel >= LogParsingHelpers::LogLevel::Error) {
         info.lastError = token;
-        if (info.firstError.empty()) {
-          info.firstError = token;
+        if (info.firstSevereError.empty() || maxLogLevelIncreased) {
+          info.firstSevereError = token;
         }
       }
       s.remove_prefix(pos + delimiter.length());
@@ -1102,11 +1104,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     auto initDebugGUI = []() -> DebugGUI* {
       uv_lib_t supportLib;
       int result = 0;
-  #ifdef __APPLE__
+#ifdef __APPLE__
       result = uv_dlopen("libO2FrameworkGUISupport.dylib", &supportLib);
-  #else
+#else
       result = uv_dlopen("libO2FrameworkGUISupport.so", &supportLib);
-  #endif
+#endif
       if (result == -1) {
         LOG(ERROR) << uv_dlerror(&supportLib);
         return nullptr;

@@ -45,7 +45,7 @@ struct DeviceInfo {
   /// A circular buffer for the severity of each of the entries
   /// in the circular buffer associated to the device.
   std::vector<LogParsingHelpers::LogLevel> historyLevel;
-  std::string firstError;
+  std::string firstSevereError;
   std::string lastError;
   /// An unterminated string which is not ready to be printed yet
   std::string unprinted;

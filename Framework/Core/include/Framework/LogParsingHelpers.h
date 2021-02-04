@@ -26,6 +26,7 @@ struct LogParsingHelpers {
     Info,
     Warning,
     Error,
+    Fatal,
     Unknown,
     Size
   };
