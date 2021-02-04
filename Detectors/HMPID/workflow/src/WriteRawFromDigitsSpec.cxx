@@ -97,7 +97,6 @@ void WriteRawFromDigitsTask::endOfStream(framework::EndOfStreamContext& ec)
     sort(mDigits.begin(), mDigits.end(), eventEquipPadsComparision);
     LOG(INFO) << mDigits.size() << " Digits sorted ! " ;
   }
-  //cod.codeDigitsTest(2, 100);
   cod.codeDigitsVector(mDigits);
   cod.closeOutputStream();
   LOG(INFO) << "Raw File created ! Digits received = " << mDigitsReceived << " Frame received =" << mFramesReceived;
