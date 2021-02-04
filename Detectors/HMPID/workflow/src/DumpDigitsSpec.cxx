@@ -76,29 +76,28 @@ void DumpDigitsTask::init(framework::InitContext& ic)
 
   mOrbit = -1;
   mBc = -1;
+  mDigitsReceived = 0;
   return;
 }
 
 void DumpDigitsTask::run(framework::ProcessingContext& pc)
 {
   LOG(DEBUG) << "[HMPID Dump Digits - run() ] Enter Dump ...";
-
-  for (auto&& input : pc.inputs()) {
-    if (input.spec->binding == "digits") {
-      auto digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>("digits");
-      LOG(DEBUG) << "The size of the vector =" << digits.size();
-      if (mPrintDigits) {
-        for(o2::hmpid::Digit Dig : digits) {
-          std::cout << Dig << std::endl;
-        }
+  for (auto const& ref : InputRecordWalker(pc.inputs())) {
+    std::vector<o2::hmpid::Digit> digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>(ref);
+    LOG(DEBUG) << "The size of the vector =" << digits.size();
+    mDigitsReceived += digits.size();
+    if (mPrintDigits) {
+      for(o2::hmpid::Digit Dig : digits) {
+        std::cout << Dig << std::endl;
       }
-      if (mIsOutputOnFile) {
-        for(o2::hmpid::Digit Dig : digits) {
-          mOsFile << Dig << std::endl;
-          if(Dig.getOrbit() != mOrbit || Dig.getBC() != mBc) {
-            mOrbit = Dig.getOrbit(); mBc = Dig.getBC();
-            LOG(INFO) << "Event :" << mOrbit << " / " << mBc;
-          }
+    }
+    if (mIsOutputOnFile) {
+      for(o2::hmpid::Digit Dig : digits) {
+        mOsFile << Dig << std::endl;
+        if(Dig.getOrbit() != mOrbit || Dig.getBC() != mBc) {
+          mOrbit = Dig.getOrbit(); mBc = Dig.getBC();
+          LOG(INFO) << "Event :" << mOrbit << " / " << mBc;
         }
       }
     }
@@ -109,7 +108,7 @@ void DumpDigitsTask::run(framework::ProcessingContext& pc)
 void DumpDigitsTask::endOfStream(framework::EndOfStreamContext& ec)
 {
   mOsFile.close();
-  LOG(INFO) << "End Dump !";
+  LOG(INFO) << "End Digits Dump ! Dumped digits = " << mDigitsReceived;
   return;
 }
 

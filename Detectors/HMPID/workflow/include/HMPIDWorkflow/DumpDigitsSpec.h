@@ -44,6 +44,7 @@ namespace hmpid
 
       int mOrbit;
       int mBc;
+      long mDigitsReceived;
   };
 
 o2::framework::DataProcessorSpec getDumpDigitsSpec(std::string inputSpec = "HMP/DIGITS");
