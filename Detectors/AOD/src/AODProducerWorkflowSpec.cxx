@@ -297,8 +297,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto tracksTPC = pc.inputs().get<gsl::span<o2::tpc::TrackTPC>>("trackTPC");
   auto tracksTPCMCTruth = pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackTPCMCTruth");
   auto tracksITSMCTruth = pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSMCTruth");
-  auto tracksITSTPC_ITSMC = pc.inputs().get<gsl::span<o2::MCCompLabel>>("tracksITSTPC_ITSMC");
-  auto tracksITSTPC_TPCMC = pc.inputs().get<gsl::span<o2::MCCompLabel>>("tracksITSTPC_TPCMC");
 
   LOG(DEBUG) << "FOUND " << tracksTPC.size() << " TPC tracks";
   LOG(DEBUG) << "FOUND " << tracksITS.size() << " ITS tracks";
@@ -650,8 +648,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   if (mFillTracksITSTPC) {
     fillTracksTable(tracksITSTPC, vCollRefsTPCITS, tracksCursor, o2::vertexing::GIndex::Source::ITSTPC); // fTrackType = 0
     for (int i = 0; i < tracksITSTPC.size(); i++) {
-      auto& mcTruthITS = tracksITSTPC_ITSMC[i];
-      auto& mcTruthTPC = tracksITSTPC_TPCMC[i];
+      const auto& trc = tracksITSTPC[i];
+      auto mcTruthITS = tracksITSMCTruth[trc.getRefITS()];
+      auto mcTruthTPC = tracksTPCMCTruth[trc.getRefTPC()];
       labelID = std::numeric_limits<uint32_t>::max();
       labelITS = std::numeric_limits<uint32_t>::max();
       labelTPC = std::numeric_limits<uint32_t>::max();
@@ -710,8 +709,6 @@ DataProcessorSpec getAODProducerWorkflowSpec()
   inputs.emplace_back("trackTPC", "TPC", "TRACKS", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackTPCMCTruth", "TPC", "TRACKSMCLBL", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackITSMCTruth", "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
-  inputs.emplace_back("tracksITSTPC_ITSMC", "GLO", "TPCITS_ITSMC", 0, Lifetime::Timeframe);
-  inputs.emplace_back("tracksITSTPC_TPCMC", "GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe);
 
   outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2collision"}, "AOD", "COLLISION", 0, Lifetime::Timeframe);

@@ -62,10 +62,9 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
   double timeCPU0 = mTimer.CpuTime(), timeReal0 = mTimer.RealTime();
   mTimer.Start(false);
   const auto tracksITSTPC = pc.inputs().get<gsl::span<o2::dataformats::TrackTPCITS>>("match");
-  gsl::span<const o2::MCCompLabel> lblITS, lblTPC;
+  gsl::span<const o2::MCCompLabel> lblTPCITS;
   if (mUseMC) {
-    lblITS = pc.inputs().get<gsl::span<o2::MCCompLabel>>("lblITS");
-    lblTPC = pc.inputs().get<gsl::span<o2::MCCompLabel>>("lblTPC");
+    lblTPCITS = pc.inputs().get<gsl::span<o2::MCCompLabel>>("lblTPCITS");
   }
   std::vector<PVertex> vertices;
   std::vector<GIndex> vertexTrackIDs;
@@ -94,7 +93,7 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
     }
   }
 
-  mVertexer.process(tracksITSTPC, idxVec, ft0Data, vertices, vertexTrackIDs, v2tRefs, lblITS, lblTPC, lblVtx);
+  mVertexer.process(tracksITSTPC, idxVec, ft0Data, vertices, vertexTrackIDs, v2tRefs, lblTPCITS, lblVtx);
   pc.outputs().snapshot(Output{"GLO", "PVTX", 0, Lifetime::Timeframe}, vertices);
   pc.outputs().snapshot(Output{"GLO", "PVTX_CONTIDREFS", 0, Lifetime::Timeframe}, v2tRefs);
   pc.outputs().snapshot(Output{"GLO", "PVTX_CONTID", 0, Lifetime::Timeframe}, vertexTrackIDs);
@@ -129,8 +128,7 @@ DataProcessorSpec getPrimaryVertexingSpec(bool validateWithFT0, bool useMC)
   outputs.emplace_back("GLO", "PVTX_CONTIDREFS", 0, Lifetime::Timeframe);
 
   if (useMC) {
-    inputs.emplace_back("lblITS", "GLO", "TPCITS_ITSMC", 0, Lifetime::Timeframe);
-    inputs.emplace_back("lblTPC", "GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe);
+    inputs.emplace_back("lblTPCITS", "GLO", "TPCITS_MC", 0, Lifetime::Timeframe);
     outputs.emplace_back("GLO", "PVTX_MCTR", 0, Lifetime::Timeframe);
   }
 
