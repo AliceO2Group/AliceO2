@@ -67,15 +67,22 @@ class HmpidCoder
     uint32_t *mEventBufferBasePtr;
     int mEventSizePerEquipment[Geo::MAXEQUIPMENTS];
     uint32_t mPacketCounterPerEquipment[Geo::MAXEQUIPMENTS];
+    bool mSkipEmptyEvents;
+    bool mFixedPacketLenght;
 
+    std::string mFileName160;
+    std::string mFileName161;
     FILE *mOutStream160;
     FILE *mOutStream161;
 
+    long mPadsCoded;
+    long mPacketsCoded;
+
   public:
-    HmpidCoder(int numOfEquipments);
+    HmpidCoder(int numOfEquipments, bool skipEmptyEvents = false, bool fixedPacketLenght = true);
     virtual ~HmpidCoder();
 
-    void init();
+    void reset();
     void setVerbosity(int Level)
     {
       mVerbose = Level;
@@ -119,19 +126,21 @@ class HmpidCoder
     void openOutputStream(const char *OutputFileName);
     void closeOutputStream();
 
-    void createRandomEvent(uint32_t orbit, uint16_t bc);
+    void codeRandomEvent(uint32_t orbit, uint16_t bc);
     void codeDigitsVector(std::vector<Digit>);
-    void codeDigitsTest(int Events, uint16_t charge);
+    void codeTest(int Events, uint16_t charge);
+
+    void dumpResults();
 
   protected:
     void createRandomPayloadPerEvent();
-    void saveEventPage(int Flp);
+    void savePacket(int Flp, int packetSize);
     int calculateNumberOfPads();
 
   private:
     void getEquipCoord(int Equi, uint32_t *CruId, uint32_t *LinkId);
     int getEquipmentPadIndex(int eq, int col, int dil, int cha);
-    void writeHeader(uint32_t *Buffer, uint32_t MemSize, int Equip, uint32_t PackNum, uint32_t BCDI, uint32_t ORBIT, uint32_t PageNum);
+    int writeHeader(uint32_t *Buffer, uint32_t WordsToRead, uint32_t PayloadWords, int Equip, uint32_t PackNum, uint32_t BCDI, uint32_t ORBIT, uint32_t PageNum);
     void fillPadsMap(uint32_t *padMap);
     void fillTheOutputBuffer(uint32_t* padMap);
     void writePaginatedEvent(uint32_t orbit, uint16_t bc);

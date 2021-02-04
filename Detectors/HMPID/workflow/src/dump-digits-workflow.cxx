@@ -23,6 +23,18 @@
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
 #include "Framework/Task.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/CompletionPolicyHelpers.h"
+#include "Framework/DispatchPolicy.h"
+
+// customize the completion policy
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  using o2::framework::CompletionPolicy;
+  using o2::framework::CompletionPolicyHelpers;
+  policies.push_back(CompletionPolicyHelpers::defineByName("digit-hmpid-dump", CompletionPolicy::CompletionOp::Consume));
+}
+
 #include "Framework/runDataProcessing.h"
 
 #include "HMPIDWorkflow/DumpDigitsSpec.h"

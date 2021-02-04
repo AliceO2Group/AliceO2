@@ -20,6 +20,7 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
+#include "Framework/WorkflowSpec.h"
 
 namespace o2
 {
@@ -33,7 +34,7 @@ namespace hmpid
       ~DumpDigitsTask() override = default;
       void init(framework::InitContext& ic) final;
       void run(framework::ProcessingContext& pc) final;
-
+      void endOfStream(framework::EndOfStreamContext& ec) override;
 
     private:
       bool mPrintDigits = false;
@@ -41,6 +42,8 @@ namespace hmpid
       std::string mOutputFileName = "";
       std::ofstream mOsFile;
 
+      int mOrbit;
+      int mBc;
   };
 
 o2::framework::DataProcessorSpec getDumpDigitsSpec(std::string inputSpec = "HMP/DIGITS");

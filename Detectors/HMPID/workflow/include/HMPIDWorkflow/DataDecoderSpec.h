@@ -8,12 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-///
-/// \file    DatDecoderSpec.h
-/// \author  Andrea Ferrero
-///
-/// \brief Definition of a data processor to run the raw decoding
-///
 
 #ifndef DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_DATADECODERSPEC_H_
 #define DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_DATADECODERSPEC_H_
@@ -38,10 +32,12 @@ namespace hmpid
       void decodeTF(framework::ProcessingContext& pc);
       void decodeReadout(framework::ProcessingContext& pc);
       void decodeRawFile(framework::ProcessingContext& pc);
-
+      void endOfStream(framework::EndOfStreamContext& ec) override;
 
     private:
       HmpidDecodeRawDigit *mDeco;
+      long mTotalDigits;
+      long mTotalFrames;
 
   };
 

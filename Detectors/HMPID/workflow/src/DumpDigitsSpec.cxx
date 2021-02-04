@@ -55,7 +55,7 @@ using RDH = o2::header::RDHAny;
 // Data decoder
 void DumpDigitsTask::init(framework::InitContext& ic)
 {
-  LOG(INFO) << "[HMPID Dump Digits - run] Dumping ...";
+  LOG(INFO) << "[HMPID Dump Digits - init() ] ";
   mPrintDigits = ic.options().get<bool>("print");
 
   mIsOutputOnFile = false;
@@ -66,33 +66,50 @@ void DumpDigitsTask::init(framework::InitContext& ic)
       mIsOutputOnFile = true;
     }
   }
+
+  if (mPrintDigits) {
+     std::cout << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
+  }
+  if (mIsOutputOnFile) {
+     mOsFile << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
+  }
+
+  mOrbit = -1;
+  mBc = -1;
   return;
 }
 
 void DumpDigitsTask::run(framework::ProcessingContext& pc)
 {
-  //LOG(INFO) << "Enter Dump run...";
+  LOG(DEBUG) << "[HMPID Dump Digits - run() ] Enter Dump ...";
 
   for (auto&& input : pc.inputs()) {
     if (input.spec->binding == "digits") {
       auto digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>("digits");
-      LOG(INFO) << "The size of the vector =" << digits.size();
+      LOG(DEBUG) << "The size of the vector =" << digits.size();
       if (mPrintDigits) {
-         std::cout << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
-         for(o2::hmpid::Digit Dig : digits) {
-           std::cout << Dig << std::endl;
-         }
-         std::cout << "---------------- HMP Dump Digits : EOF ------------------" << std::endl;
+        for(o2::hmpid::Digit Dig : digits) {
+          std::cout << Dig << std::endl;
+        }
       }
       if (mIsOutputOnFile) {
-         mOsFile << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
-         for(o2::hmpid::Digit Dig : digits) {
-           mOsFile << Dig << std::endl;
-         }
-         mOsFile.close();
+        for(o2::hmpid::Digit Dig : digits) {
+          mOsFile << Dig << std::endl;
+          if(Dig.getOrbit() != mOrbit || Dig.getBC() != mBc) {
+            mOrbit = Dig.getOrbit(); mBc = Dig.getBC();
+            LOG(INFO) << "Event :" << mOrbit << " / " << mBc;
+          }
+        }
       }
     }
   }
+  return;
+}
+
+void DumpDigitsTask::endOfStream(framework::EndOfStreamContext& ec)
+{
+  mOsFile.close();
+  LOG(INFO) << "End Dump !";
   return;
 }
 
