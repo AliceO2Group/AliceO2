@@ -43,6 +43,10 @@ HmpidCoder::HmpidCoder(int numOfEquipments, bool skipEmptyEvents, bool fixedPack
   mPayloadBufferPtr = (uint32_t *) std::malloc(mNumberOfEquipments * sizeof(uint32_t) * mPailoadBufferDimPerEquipment );
   mEventBufferBasePtr = (uint32_t *) std::malloc(sizeof(uint32_t) * RAWBLOCKDIMENSION_W);
   mEventBufferPtr = mEventBufferBasePtr;
+
+  mPadMap = (uint32_t *) std::malloc(sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS);
+  // TODO: Add memory allocation error check
+
   reset();
 
 }
@@ -52,6 +56,7 @@ HmpidCoder::~HmpidCoder()
   // TODO Auto-generated destructor stub
   std::free(mPayloadBufferPtr);
   std::free(mEventBufferBasePtr);
+  std::free(mPadMap);
 }
 
 void HmpidCoder::reset()
@@ -59,6 +64,12 @@ void HmpidCoder::reset()
   srand( (unsigned)time(NULL) );
   mPadsCoded = 0;
   mPacketsCoded = 0;
+  mDigits.clear();
+  mPreviousOrbit = 0;
+  mPreviousBc = 0;
+  mLastProcessedDigit =0;
+
+  return;
 }
 
 // =====================  Random production of Raw Files ===================
@@ -98,13 +109,11 @@ void HmpidCoder::fillPadsMap(uint32_t *padMap)
 
 void HmpidCoder::createRandomPayloadPerEvent()
 {
-  uint32_t *padMap = (uint32_t *) std::malloc(sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS);
-  memset(padMap, 0, sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS);
+  memset(mPadMap, 0, sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS);
 
-  fillPadsMap(padMap);
-  fillTheOutputBuffer(padMap);
+  fillPadsMap(mPadMap);
+  fillTheOutputBuffer(mPadMap);
 
-  std::free(padMap);
   return;
 }
 
@@ -280,46 +289,72 @@ int HmpidCoder::writeHeader(uint32_t *Buffer, uint32_t WordsToRead, uint32_t Pay
   return (OffsetNext);
 }
 
-void HmpidCoder::codeDigitsVector(std::vector<Digit>digits)
+void HmpidCoder::codeDigitsChunk(bool flushBuffer)
+{
+  codeEventChunkDigits(mDigits, flushBuffer);
+  return;
+}
+
+int HmpidCoder::addDigitsChunk(std::vector<Digit> &digits)
+{
+  mDigits.insert(mDigits.end(), digits.begin(), digits.end());
+  return(mDigits.size());
+}
+
+void HmpidCoder::codeDigitsVector(std::vector<Digit> &digits)
+{
+  codeEventChunkDigits(digits, true);
+  return;
+}
+
+void HmpidCoder::codeEventChunkDigits(std::vector<Digit> &digits, bool flushVector)
 {
   int eq,col,dil,cha,mo,x,y, idx;
-  uint32_t pv_orbit = 0;
   uint32_t orbit = 0;
-  uint16_t pv_bc = 0;
   uint16_t bc = 0;
 
-  uint32_t *padMap = (uint32_t *) std::malloc(sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS);
-  // TODO: Add memory allocation error check
-
   int padsCount =0;
+  int lastEventDigit = -1;
+  mLastProcessedDigit = -1;
+
   for(o2::hmpid::Digit d : digits) {
     orbit = d.getOrbit();
     bc = d.getBC();
-    if(orbit != pv_orbit || bc != pv_bc) { //the event is changed
-      if (pv_orbit != 0 || pv_bc != 0 ) { // isn't the first !
-        fillTheOutputBuffer(padMap);
-        writePaginatedEvent(pv_orbit, pv_bc);
+    lastEventDigit++;
+
+    if(orbit != mPreviousOrbit || bc != mPreviousBc) { //the event is changed
+      if (mPreviousOrbit != 0 || mPreviousBc != 0 ) { // isn't the first !
+        fillTheOutputBuffer(mPadMap);
+        writePaginatedEvent(mPreviousOrbit, mPreviousBc);
+        mLastProcessedDigit = lastEventDigit;
       }
-      memset(padMap, 0, sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS); // Update for the new event
-      pv_orbit = orbit;
-      pv_bc = bc;
+      memset(mPadMap, 0, sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS); // Update for the new event
+      mPreviousOrbit = orbit;
+      mPreviousBc = bc;
     }
     Digit::Pad2Equipment(d.getPadID(),&eq, &col, &dil, &cha);  // From Digit to Hardware coords
     eq = mEqIds[eq]; // converts the Equipment Id in Cru/Link position ref
     idx = getEquipmentPadIndex(eq, col, dil, cha); // finally to the unique padmap index
 
-    if(padMap[idx] != 0) { // We already have the pad set
+    if(mPadMap[idx] != 0) { // We already have the pad set
       std::cerr << "HmpidCoder [ERROR] : Duplicated DIGIT ="<< d <<" ("<<eq<<","<<col<<","<<dil<<","<<cha<<")"<< std::endl;
     } else {
-      padMap[idx] = d.getCharge();
+      mPadMap[idx] = d.getCharge();
       padsCount++;
     }
   }
-  fillTheOutputBuffer(padMap); // Finalize the last event
-  writePaginatedEvent(pv_orbit, pv_bc);
-  std::free(padMap);
+  mPreviousOrbit = 0;
+  mPreviousBc = 0;
   mPadsCoded += padsCount;
 
+  if(flushVector) {
+    fillTheOutputBuffer(mPadMap); // Finalize the last event
+    writePaginatedEvent(orbit, bc);
+    digits.clear();
+  } else {
+    digits.erase(digits.begin(), digits.begin() + mLastProcessedDigit);
+  }
+  memset(mPadMap, 0, sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS); // Update for the new event
   return;
 }
 
@@ -328,7 +363,7 @@ void HmpidCoder::codeTest(int Events, uint16_t charge)
   uint32_t orbit = 0;
   uint16_t bc = 0;
 
-  uint32_t *padMap = (uint32_t *) std::malloc(sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS);
+  //uint32_t *mPadMap = (uint32_t *) std::malloc(sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS);
   int eq,col,dil,cha,mo,x,y, idx;
 
   for(int e=0; e<Events; e++) {
@@ -340,13 +375,12 @@ void HmpidCoder::codeTest(int Events, uint16_t charge)
         for(dil =0; dil<Geo::N_DILOGICS; dil++)
           for(cha=0;cha<Geo::N_CHANNELS; cha++) {
             idx = getEquipmentPadIndex(eq, col, dil, cha);
-            padMap[idx] = charge;
+            mPadMap[idx] = charge;
           }
-    fillTheOutputBuffer(padMap);
+    fillTheOutputBuffer(mPadMap);
     writePaginatedEvent(orbit, bc);
-    memset(padMap, 0, sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS);
+    memset(mPadMap, 0, sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS);
   }
-  std::free(padMap);
   return;
 }
 // ====================== FILES management functions ======================

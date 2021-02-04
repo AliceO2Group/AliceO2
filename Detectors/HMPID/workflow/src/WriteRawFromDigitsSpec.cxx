@@ -59,6 +59,11 @@ void WriteRawFromDigitsTask::init(framework::InitContext& ic)
   mOrderTheEvents = ic.options().get<bool>("order-events");
   mDigitsReceived = 0;
   mFramesReceived = 0;
+
+  mCod = new HmpidCoder(Geo::MAXEQUIPMENTS, mSkipEmpty, mFixedPacketLenght);
+  mCod->reset();
+  mCod->openOutputStream(mBaseFileName.c_str());
+
   return;
 }
 
@@ -76,10 +81,14 @@ bool WriteRawFromDigitsTask::eventEquipPadsComparision(o2::hmpid::Digit d1, o2::
 
 void WriteRawFromDigitsTask::run(framework::ProcessingContext& pc)
 {
-
   for (auto const& ref : InputRecordWalker(pc.inputs())) {
     std::vector<o2::hmpid::Digit> digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>(ref);
-    mDigits.insert(mDigits.end(), digits.begin(), digits.end());
+    if(mOrderTheEvents) {
+      mDigits.insert(mDigits.end(), digits.begin(), digits.end());
+    } else {
+      mCod->addDigitsChunk(digits);
+      mCod->codeDigitsChunk();
+    }
     mDigitsReceived += digits.size();
     mFramesReceived++;
     LOG(INFO) << "run() Digits received =" << mDigitsReceived << " frames = " << mFramesReceived;
@@ -90,17 +99,16 @@ void WriteRawFromDigitsTask::run(framework::ProcessingContext& pc)
 void WriteRawFromDigitsTask::endOfStream(framework::EndOfStreamContext& ec)
 {
   LOG(INFO) << "Received an End Of Stream !";
-  HmpidCoder cod(Geo::MAXEQUIPMENTS, mSkipEmpty, mFixedPacketLenght);
-  cod.openOutputStream(mBaseFileName.c_str());
-
   if(mOrderTheEvents) {
     sort(mDigits.begin(), mDigits.end(), eventEquipPadsComparision);
     LOG(INFO) << mDigits.size() << " Digits sorted ! " ;
+    mCod->codeDigitsVector(mDigits);
+  } else {
+    mCod->codeDigitsChunk(true);
   }
-  cod.codeDigitsVector(mDigits);
-  cod.closeOutputStream();
+  mCod->closeOutputStream();
   LOG(INFO) << "Raw File created ! Digits received = " << mDigitsReceived << " Frame received =" << mFramesReceived;
-  cod.dumpResults();
+  mCod->dumpResults();
   return;
 }
 
