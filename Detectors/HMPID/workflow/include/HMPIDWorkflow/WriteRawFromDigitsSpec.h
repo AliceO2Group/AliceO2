@@ -16,6 +16,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "HMPIDBase/Digit.h"
+#include "HMPIDSimulation/HmpidCoder.h"
 
 namespace o2
 {
@@ -41,6 +42,7 @@ namespace hmpid
       long mDigitsReceived;
       long mFramesReceived;
       bool mIsTheStremClosed = false;
+      HmpidCoder *mCod;
 
   };
 

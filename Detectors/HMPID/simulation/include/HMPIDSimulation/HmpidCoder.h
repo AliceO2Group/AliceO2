@@ -78,6 +78,12 @@ class HmpidCoder
     long mPadsCoded;
     long mPacketsCoded;
 
+    std::vector<Digit> mDigits;
+    uint32_t mPreviousOrbit = 0;
+    uint16_t mPreviousBc = 0;
+    long mLastProcessedDigit =0;
+    uint32_t *mPadMap;
+
   public:
     HmpidCoder(int numOfEquipments, bool skipEmptyEvents = false, bool fixedPacketLenght = true);
     virtual ~HmpidCoder();
@@ -123,11 +129,14 @@ class HmpidCoder
       return(mOccupancyPercentage);
     };
 
+    int addDigitsChunk(std::vector<Digit> &digits);
+    void codeDigitsChunk(bool flushBuffer = false);
+    void codeDigitsVector(std::vector<Digit> &digits);
+
     void openOutputStream(const char *OutputFileName);
     void closeOutputStream();
 
     void codeRandomEvent(uint32_t orbit, uint16_t bc);
-    void codeDigitsVector(std::vector<Digit>);
     void codeTest(int Events, uint16_t charge);
 
     void dumpResults();
@@ -136,6 +145,7 @@ class HmpidCoder
     void createRandomPayloadPerEvent();
     void savePacket(int Flp, int packetSize);
     int calculateNumberOfPads();
+    void codeEventChunkDigits(std::vector<Digit> &digits, bool flushVector = false);
 
   private:
     void getEquipCoord(int Equi, uint32_t *CruId, uint32_t *LinkId);
