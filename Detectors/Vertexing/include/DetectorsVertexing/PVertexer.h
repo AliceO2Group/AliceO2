@@ -54,11 +54,11 @@ class PVertexer
   template <typename TR, typename BC>
   int process(const TR& tracks, const gsl::span<o2d::GlobalTrackID> gids, const BC& bcData,
               std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs,
-              gsl::span<const o2::MCCompLabel> lblITS, gsl::span<const o2::MCCompLabel> lblTPC, std::vector<o2::MCEventLabel>& lblVtx)
+              gsl::span<const o2::MCCompLabel> lblTracks, std::vector<o2::MCEventLabel>& lblVtx)
   {
     auto nv = process(tracks, gids, bcData, vertices, vertexTrackIDs, v2tRefs);
-    if (lblITS.size() && lblTPC.size()) {
-      createMCLabels(lblITS, lblTPC, vertices, vertexTrackIDs, v2tRefs, lblVtx);
+    if (lblTracks.size()) {
+      createMCLabels(lblTracks, vertices, vertexTrackIDs, v2tRefs, lblVtx);
     }
     return nv;
   }
@@ -67,7 +67,7 @@ class PVertexer
   int process(const TR& tracks, const gsl::span<o2d::GlobalTrackID> gids, const BC& bcData,
               std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs);
 
-  static void createMCLabels(gsl::span<const o2::MCCompLabel> lblITS, gsl::span<const o2::MCCompLabel> lblTPC,
+  static void createMCLabels(gsl::span<const o2::MCCompLabel> lblTracks,
                              const std::vector<PVertex> vertices, const std::vector<o2d::VtxTrackIndex> vertexTrackIDs, const std::vector<V2TRef> v2tRefs,
                              std::vector<o2::MCEventLabel>& lblVtx);
   bool findVertex(const VertexingInput& input, PVertex& vtx);

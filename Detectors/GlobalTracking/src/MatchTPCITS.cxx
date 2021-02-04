@@ -1475,7 +1475,6 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
   if (mMCTruthON) { // store MC info: we assign TPC track label and declare the match fake if the ITS and TPC labels are different (their fake flag is ignored)
     auto& lbl = mOutLabels.emplace_back(mTPCLblWork[iTPC]);
     lbl.setFakeFlag(mITSLblWork[iITS] != mTPCLblWork[iTPC]);
-    LOG(INFO) << "ITS: " << mITSLblWork[iITS] << " TPC: " << mTPCLblWork[iTPC] << " -> " << lbl;
   }
 
   // if requested, fill the difference of ITS and TPC tracks tgl for vdrift calibation

@@ -175,8 +175,6 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC)
 
   if (useMC) {
     LOG(FATAL) << "MC usage must be disabled for this workflow, since it is not yet implemented";
-    //inputs.emplace_back("itstracklabel", "GLO", "TPCITS_ITSMC", 0, Lifetime::Timeframe);
-    //inputs.emplace_back("tpctracklabel", "GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe);
   }
 
   outputs.emplace_back(o2::header::gDataOriginTRD, "MATCHTRD", 0, Lifetime::Timeframe);
