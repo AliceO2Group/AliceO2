@@ -87,12 +87,6 @@ void WriteRawFromDigitsTask::run(framework::ProcessingContext& pc)
   return;
 }
 
-void WriteRawFromDigitsTask::createRawFile(framework::ProcessingContext& pc)
-{
-  return;
-}
-
-
 void WriteRawFromDigitsTask::endOfStream(framework::EndOfStreamContext& ec)
 {
   LOG(INFO) << "Received an End Of Stream !";

@@ -33,7 +33,6 @@ namespace hmpid
 
     private:
       static bool eventEquipPadsComparision(o2::hmpid::Digit d1, o2::hmpid::Digit d2);
-      void createRawFile(framework::ProcessingContext& pc);
       std::string mBaseFileName = "";
       std::vector<o2::hmpid::Digit> mDigits;
       bool mSkipEmpty = false;
