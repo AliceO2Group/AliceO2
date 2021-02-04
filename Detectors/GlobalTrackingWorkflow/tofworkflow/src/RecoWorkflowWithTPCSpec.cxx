@@ -167,8 +167,6 @@ o2::framework::DataProcessorSpec getTOFRecoWorkflowWithTPCSpec(bool useMC, bool 
 
   if (useMC) {
     outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHTOF_TPC", 0, Lifetime::Timeframe);
-    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHTPC_TPC", 0, Lifetime::Timeframe);
-    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHITS_TPC", 0, Lifetime::Timeframe);
   }
   outputs.emplace_back(o2::header::gDataOriginTOF, "CALIBDATA_TPC", 0, Lifetime::Timeframe);
 

@@ -91,11 +91,6 @@ class NameConf
   // public standard CTF dictionary
   static constexpr std::string_view CTFDICT = "ctf_dictionary"; // hardcoded
 
-  // Block for ITS/TPC matching
-  static constexpr std::string_view TPCITS_TracksBranchName = "TPCITS";              ///< name of branch containing output matched tracks
-  static constexpr std::string_view TPCITS_TPCMCTruthBranchName = "MatchTPCMCTruth"; ///< name of branch for output matched tracks TPC MC
-  static constexpr std::string_view TPCITS_ITSMCTruthBranchName = "MatchITSMCTruth"; ///< name of branch for output matched tracks ITS MC
-
   // CTF tree name
   static constexpr std::string_view CTFTREENAME = "ctf"; // hardcoded
 

@@ -373,17 +373,17 @@ void PVertexer::finalizeVertex(const VertexingInput& input, const PVertex& vtx,
 }
 
 //___________________________________________________________________
-void PVertexer::createMCLabels(gsl::span<const o2::MCCompLabel> lblITS, gsl::span<const o2::MCCompLabel> lblTPC,
-                               const std::vector<PVertex> vertices, const std::vector<o2::dataformats::VtxTrackIndex> vertexTrackIDs, const std::vector<V2TRef> v2tRefs,
+void PVertexer::createMCLabels(gsl::span<const o2::MCCompLabel> lblTracks, const std::vector<PVertex> vertices,
+                               const std::vector<o2::dataformats::VtxTrackIndex> vertexTrackIDs, const std::vector<V2TRef> v2tRefs,
                                std::vector<o2::MCEventLabel>& lblVtx)
 {
   lblVtx.clear();
   int nv = vertices.size();
-  if (lblITS.size() != lblITS.size() || !lblITS.size()) {
-    LOG(ERROR) << "labels are not provided or incorrect";
+  if (!lblTracks.size()) {
+    LOG(ERROR) << "Track labels are not provided";
     return;
   }
-  std::unordered_map<o2::MCEventLabel, int> labelOccurenceCorr, labelOccurenceITS;
+  std::unordered_map<o2::MCEventLabel, int> labelOccurenceCorr;
 
   auto bestLbl = [](std::unordered_map<o2::MCEventLabel, int> mp, int norm) -> o2::MCEventLabel {
     o2::MCEventLabel best;
@@ -403,25 +403,19 @@ void PVertexer::createMCLabels(gsl::span<const o2::MCCompLabel> lblITS, gsl::spa
   for (const auto& v2t : v2tRefs) {
     int tref = v2t.getFirstEntry(), last = tref + v2t.getEntries();
     labelOccurenceCorr.clear();
-    labelOccurenceITS.clear();
     o2::MCEventLabel winner; // unset at the moment
     for (; tref < last; tref++) {
       int tid = vertexTrackIDs[tref].getIndex();
-      const auto& lITS = lblITS[tid];
-      const auto& lTPC = lblTPC[tid];
-      if (!lITS.isSet() || !lTPC.isSet()) {
+      const auto& lbl = lblTracks[tid];
+      if (!lbl.isSet()) {
         break;
       }
-      if (lITS.getTrackID() == lTPC.getTrackID() && lITS.getEventID() == lTPC.getEventID() && lITS.getSourceID() == lTPC.getSourceID()) {
-        labelOccurenceCorr[{lITS.getEventID(), lITS.getSourceID(), 0.}]++;
-      } else {
-        labelOccurenceITS[{lITS.getEventID(), lITS.getSourceID(), 0.}]++;
+      if (!lbl.isFake()) {
+        labelOccurenceCorr[{lbl.getEventID(), lbl.getSourceID(), 0.}]++;
       }
     }
     if (labelOccurenceCorr.size()) {
       winner = bestLbl(labelOccurenceCorr, v2t.getEntries());
-    } else if (labelOccurenceITS.size()) {
-      winner = bestLbl(labelOccurenceITS, 0); // in absence of correct matches, set the ITS only label but set its weight to 0
     }
     lblVtx.push_back(winner);
   }
