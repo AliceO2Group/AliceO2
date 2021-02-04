@@ -37,24 +37,15 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "Steer/MCKinematicsReader.h"
 #include "TMath.h"
+#include "MathUtils/Utils.h"
 #include <map>
 #include <vector>
 
 using namespace o2::framework;
+using namespace o2::math_utils::detail;
 
 namespace o2::aodproducer
 {
-
-float AODProducerWorkflowDPL::TruncateFloatFraction(float x, uint32_t mask)
-{
-  union {
-    float y;
-    uint32_t iy;
-  } myu;
-  myu.y = x;
-  myu.iy &= mask;
-  return myu.y;
-}
 
 void AODProducerWorkflowDPL::findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const o2::vertexing::PVertex>& primVertices, const std::vector<o2::InteractionTimeRecord>& mcRecords)
 {
@@ -94,9 +85,6 @@ void AODProducerWorkflowDPL::findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& f
 
 int64_t AODProducerWorkflowDPL::getTFNumber(uint64_t firstVtxGlBC, int runNumber)
 {
-  // FIXME:
-  // check if this code is correct
-
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   o2::ccdb::CcdbApi ccdb_api;
   const std::string rct_path = "RCT/RunInformation/";
@@ -161,8 +149,6 @@ void AODProducerWorkflowDPL::fillTracksTable(const TracksType& tracks, std::vect
     float trackPhiEMCAL = -999.f;
 
     // filling available columns for different track types
-    // FIXME:
-    // is there a more nice/simple way to do this?
     std::variant<o2::its::TrackITS, o2::tpc::TrackTPC, o2::dataformats::TrackTPCITS> tmp = track;
     std::visit(
       overloaded{
@@ -184,18 +170,18 @@ void AODProducerWorkflowDPL::fillTracksTable(const TracksType& tracks, std::vect
     tracksCursor(0,
                  collisionID,
                  trackType,
-                 TruncateFloatFraction(track.getX(), mTrackX),
-                 TruncateFloatFraction(track.getAlpha(), mTrackAlpha),
+                 truncateFloatFraction(track.getX(), mTrackX),
+                 truncateFloatFraction(track.getAlpha(), mTrackAlpha),
                  track.getY(),
                  track.getZ(),
-                 TruncateFloatFraction(track.getSnp(), mTrackSnp),
-                 TruncateFloatFraction(track.getTgl(), mTrackTgl),
-                 TruncateFloatFraction(track.getQ2Pt(), mTrack1Pt),
-                 TruncateFloatFraction(TMath::Sqrt(track.getSigmaY2()), mTrackCovDiag),
-                 TruncateFloatFraction(TMath::Sqrt(track.getSigmaZ2()), mTrackCovDiag),
-                 TruncateFloatFraction(TMath::Sqrt(track.getSigmaSnp2()), mTrackCovDiag),
-                 TruncateFloatFraction(TMath::Sqrt(track.getSigmaTgl2()), mTrackCovDiag),
-                 TruncateFloatFraction(TMath::Sqrt(track.getSigma1Pt2()), mTrackCovDiag),
+                 truncateFloatFraction(track.getSnp(), mTrackSnp),
+                 truncateFloatFraction(track.getTgl(), mTrackTgl),
+                 truncateFloatFraction(track.getQ2Pt(), mTrack1Pt),
+                 truncateFloatFraction(TMath::Sqrt(track.getSigmaY2()), mTrackCovDiag),
+                 truncateFloatFraction(TMath::Sqrt(track.getSigmaZ2()), mTrackCovDiag),
+                 truncateFloatFraction(TMath::Sqrt(track.getSigmaSnp2()), mTrackCovDiag),
+                 truncateFloatFraction(TMath::Sqrt(track.getSigmaTgl2()), mTrackCovDiag),
+                 truncateFloatFraction(TMath::Sqrt(track.getSigma1Pt2()), mTrackCovDiag),
                  (Char_t)(128. * track.getSigmaZY() / track.getSigmaZ2() / track.getSigmaY2()),
                  (Char_t)(128. * track.getSigmaSnpY() / track.getSigmaSnp2() / track.getSigmaY2()),
                  (Char_t)(128. * track.getSigmaSnpZ() / track.getSigmaSnp2() / track.getSigmaZ2()),
@@ -206,7 +192,7 @@ void AODProducerWorkflowDPL::fillTracksTable(const TracksType& tracks, std::vect
                  (Char_t)(128. * track.getSigma1PtZ() / track.getSigma1Pt2() / track.getSigmaZ2()),
                  (Char_t)(128. * track.getSigma1PtSnp() / track.getSigma1Pt2() / track.getSigmaSnp2()),
                  (Char_t)(128. * track.getSigma1PtTgl() / track.getSigma1Pt2() / track.getSigmaTgl2()),
-                 TruncateFloatFraction(tpcInnerParam, mTrack1Pt),
+                 truncateFloatFraction(tpcInnerParam, mTrack1Pt),
                  flags,
                  itsClusterMap,
                  tpcNClsFindable,
@@ -214,17 +200,17 @@ void AODProducerWorkflowDPL::fillTracksTable(const TracksType& tracks, std::vect
                  tpcNClsFindableMinusCrossedRows,
                  tpcNClsShared,
                  trdPattern,
-                 TruncateFloatFraction(itsChi2NCl, mTrackCovOffDiag),
-                 TruncateFloatFraction(tpcChi2NCl, mTrackCovOffDiag),
-                 TruncateFloatFraction(trdChi2, mTrackCovOffDiag),
-                 TruncateFloatFraction(tofChi2, mTrackCovOffDiag),
-                 TruncateFloatFraction(tpcSignal, mTrackSignal),
-                 TruncateFloatFraction(trdSignal, mTrackSignal),
-                 TruncateFloatFraction(tofSignal, mTrackSignal),
-                 TruncateFloatFraction(length, mTrackSignal),
-                 TruncateFloatFraction(tofExpMom, mTrack1Pt),
-                 TruncateFloatFraction(trackEtaEMCAL, mTrackPosEMCAL),
-                 TruncateFloatFraction(trackPhiEMCAL, mTrackPosEMCAL));
+                 truncateFloatFraction(itsChi2NCl, mTrackCovOffDiag),
+                 truncateFloatFraction(tpcChi2NCl, mTrackCovOffDiag),
+                 truncateFloatFraction(trdChi2, mTrackCovOffDiag),
+                 truncateFloatFraction(tofChi2, mTrackCovOffDiag),
+                 truncateFloatFraction(tpcSignal, mTrackSignal),
+                 truncateFloatFraction(trdSignal, mTrackSignal),
+                 truncateFloatFraction(tofSignal, mTrackSignal),
+                 truncateFloatFraction(length, mTrackSignal),
+                 truncateFloatFraction(tofExpMom, mTrack1Pt),
+                 truncateFloatFraction(trackEtaEMCAL, mTrackPosEMCAL),
+                 truncateFloatFraction(trackPhiEMCAL, mTrackPosEMCAL));
   }
 }
 
@@ -432,11 +418,11 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       mcCollisionsCursor(0,
                          mGlobBC2BCID.at(globalBC),
                          generatorID,
-                         TruncateFloatFraction(header.GetX(), mCollisionPosition),
-                         TruncateFloatFraction(header.GetY(), mCollisionPosition),
-                         TruncateFloatFraction(header.GetZ(), mCollisionPosition),
-                         TruncateFloatFraction(time, mCollisionPosition),
-                         TruncateFloatFraction(mcColWeight, mCollisionPosition),
+                         truncateFloatFraction(header.GetX(), mCollisionPosition),
+                         truncateFloatFraction(header.GetY(), mCollisionPosition),
+                         truncateFloatFraction(header.GetZ(), mCollisionPosition),
+                         truncateFloatFraction(time, mCollisionPosition),
+                         truncateFloatFraction(mcColWeight, mCollisionPosition),
                          header.GetB());
     }
     index++;
@@ -474,15 +460,15 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                           mother1,
                           daughter0,
                           daughter1,
-                          TruncateFloatFraction(weight, mMcParticleW),
-                          TruncateFloatFraction((float)mcParticle.Px(), mMcParticleMom),
-                          TruncateFloatFraction((float)mcParticle.Py(), mMcParticleMom),
-                          TruncateFloatFraction((float)mcParticle.Pz(), mMcParticleMom),
-                          TruncateFloatFraction((float)mcParticle.GetEnergy(), mMcParticleMom),
-                          TruncateFloatFraction((float)mcParticle.Vx(), mMcParticlePos),
-                          TruncateFloatFraction((float)mcParticle.Vy(), mMcParticlePos),
-                          TruncateFloatFraction((float)mcParticle.Vz(), mMcParticlePos),
-                          TruncateFloatFraction((float)mcParticle.T(), mMcParticlePos));
+                          truncateFloatFraction(weight, mMcParticleW),
+                          truncateFloatFraction((float)mcParticle.Px(), mMcParticleMom),
+                          truncateFloatFraction((float)mcParticle.Py(), mMcParticleMom),
+                          truncateFloatFraction((float)mcParticle.Pz(), mMcParticleMom),
+                          truncateFloatFraction((float)mcParticle.GetEnergy(), mMcParticleMom),
+                          truncateFloatFraction((float)mcParticle.Vx(), mMcParticlePos),
+                          truncateFloatFraction((float)mcParticle.Vy(), mMcParticlePos),
+                          truncateFloatFraction((float)mcParticle.Vz(), mMcParticlePos),
+                          truncateFloatFraction((float)mcParticle.T(), mMcParticlePos));
         mIDsToIndex[std::make_tuple(sourceID, mcEventID, mcTrackID)] = mcParticlesIndex;
         mcTrackID++;
         mcParticlesIndex++;
@@ -503,18 +489,18 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     float aAmplitudesA[96];
     float aAmplitudesC[112];
     for (int i = 0; i < 96; i++) {
-      aAmplitudesA[i] = TruncateFloatFraction(vAmplitudes[i], mT0Amplitude);
+      aAmplitudesA[i] = truncateFloatFraction(vAmplitudes[i], mT0Amplitude);
     }
     for (int i = 0; i < 112; i++) {
-      aAmplitudesC[i] = TruncateFloatFraction(vAmplitudes[i + 96], mT0Amplitude);
+      aAmplitudesC[i] = truncateFloatFraction(vAmplitudes[i + 96], mT0Amplitude);
     }
     uint64_t globalBC = ft0RecPoint.getInteractionRecord().orbit * o2::constants::lhc::LHCMaxBunches + ft0RecPoint.getInteractionRecord().bc;
     ft0Cursor(0,
               mGlobBC2BCID.at(globalBC),
               aAmplitudesA,
               aAmplitudesC,
-              TruncateFloatFraction(ft0RecPoint.getCollisionTimeA() / 1E3, mT0Time), // ps to ns
-              TruncateFloatFraction(ft0RecPoint.getCollisionTimeC() / 1E3, mT0Time), // ps to ns
+              truncateFloatFraction(ft0RecPoint.getCollisionTimeA() / 1E3, mT0Time), // ps to ns
+              truncateFloatFraction(ft0RecPoint.getCollisionTimeC() / 1E3, mT0Time), // ps to ns
               ft0RecPoint.getTrigger().triggersignals);
   }
 
@@ -550,19 +536,19 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     int collisionTimeMask = 0;
     collisionsCursor(0,
                      BCid,
-                     TruncateFloatFraction(vertex.getX(), mCollisionPosition),
-                     TruncateFloatFraction(vertex.getY(), mCollisionPosition),
-                     TruncateFloatFraction(vertex.getZ(), mCollisionPosition),
-                     TruncateFloatFraction(cov[0], mCollisionPositionCov),
-                     TruncateFloatFraction(cov[1], mCollisionPositionCov),
-                     TruncateFloatFraction(cov[2], mCollisionPositionCov),
-                     TruncateFloatFraction(cov[3], mCollisionPositionCov),
-                     TruncateFloatFraction(cov[4], mCollisionPositionCov),
-                     TruncateFloatFraction(cov[5], mCollisionPositionCov),
-                     TruncateFloatFraction(vertex.getChi2(), mCollisionPositionCov),
+                     truncateFloatFraction(vertex.getX(), mCollisionPosition),
+                     truncateFloatFraction(vertex.getY(), mCollisionPosition),
+                     truncateFloatFraction(vertex.getZ(), mCollisionPosition),
+                     truncateFloatFraction(cov[0], mCollisionPositionCov),
+                     truncateFloatFraction(cov[1], mCollisionPositionCov),
+                     truncateFloatFraction(cov[2], mCollisionPositionCov),
+                     truncateFloatFraction(cov[3], mCollisionPositionCov),
+                     truncateFloatFraction(cov[4], mCollisionPositionCov),
+                     truncateFloatFraction(cov[5], mCollisionPositionCov),
+                     truncateFloatFraction(vertex.getChi2(), mCollisionPositionCov),
                      vertex.getNContributors(),
-                     TruncateFloatFraction(tsTimeStamp, mCollisionPosition),
-                     TruncateFloatFraction(timeStamp.getTimeStampError() * 1E3, mCollisionPositionCov),
+                     truncateFloatFraction(tsTimeStamp, mCollisionPosition),
+                     truncateFloatFraction(timeStamp.getTimeStampError() * 1E3, mCollisionPositionCov),
                      collisionTimeMask);
 
     auto trackRef = primVer2TRefs[collisionID];
@@ -733,7 +719,7 @@ DataProcessorSpec getAODProducerWorkflowSpec()
     AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>()},
     Options{
       ConfigParamSpec{"fill-tracks-its", VariantType::Int, 1, {"Fill ITS tracks into tracks table"}},
-      ConfigParamSpec{"fill-tracks-tpc", VariantType::Int, 1, {"Fill TPC tracks into tracks table"}},
+      ConfigParamSpec{"fill-tracks-tpc", VariantType::Int, 0, {"Fill TPC tracks into tracks table"}},
       ConfigParamSpec{"fill-tracks-its-tpc", VariantType::Int, 1, {"Fill ITS-TPC tracks into tracks table"}},
       ConfigParamSpec{"aod-timeframe-id", VariantType::Int, -1, {"Set timeframe number"}},
       ConfigParamSpec{"enable-truncation", VariantType::Int, 1, {"Truncation parameter: 1 -- on (default), != 1 -- off"}}}};
