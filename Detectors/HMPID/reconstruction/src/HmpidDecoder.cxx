@@ -410,7 +410,7 @@ int HmpidDecoder::decodeHeader(uint32_t *streamPtrAdr, int *EquipIndex)
       mHeCruID << " DW=" << mHeDW << " BC=" << mHeBCDI << " ORBIT=" << mHeORBIT;
   LOG(DEBUG) << "      TType=" << mHeTType << " HeStop=" << mHeStop << " PagesCounter=" << mHePageNum << " FirmVersion=" << \
       mHeFirmwareVersion << " BusyTime=" << mHeBusy << " Error=" << mHeHmpidError << " PAR=" << mHePAR;
-  LOG(INFO) << "      EquIdx = "<<*EquipIndex<< " Event = "<< mHeEvent<< " Payload :  Words to read=" << mNumberWordToRead << " PailoadTail=" << mPayloadTail;
+  LOG(DEBUG) << "      EquIdx = "<<*EquipIndex<< " Event = "<< mHeEvent<< " Payload :  Words to read=" << mNumberWordToRead << " PailoadTail=" << mPayloadTail;
 
   if (*EquipIndex == -1) {
     LOG(ERROR) << "ERROR ! Bad equipment Number: " << mEquipment;
@@ -811,7 +811,7 @@ void HmpidDecoder::decodePageFast(uint32_t **streamBuf)
       break;
     }
     if (wp == wpprev) {
-      LOG(INFO) << "Equip=" << mEquipment << sErrorDescription[ERR_DUPLICATEPAD] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
+      LOG(DEBUG) << "Equip=" << mEquipment << sErrorDescription[ERR_DUPLICATEPAD] << " col=" << (eq->mSegment) * 8 + eq->mColumnCounter << \
           "[" << Column << "]";
     } else {
       if( isPadWord(wp, &pwer, &Column, &Dilogic, &Channel, &Charge) == true) {

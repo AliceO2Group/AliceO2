@@ -8,16 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-///
-/// \file    DatDecoderSpec.h
-/// \author  Andrea Ferrero
-///
-/// \brief Definition of a data processor to run the raw decoding
-///
 
 #ifndef DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_WRITERAWFROMDIGITS_H_
 #define DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_WRITERAWFROMDIGITS_H_
 
+#include <vector>
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "HMPIDBase/Digit.h"
@@ -30,14 +25,24 @@ namespace hmpid
   class WriteRawFromDigitsTask : public framework::Task
   {
     public:
-    WriteRawFromDigitsTask() = default;
+      WriteRawFromDigitsTask() = default;
       ~WriteRawFromDigitsTask() override = default;
       void init(framework::InitContext& ic) final;
       void run(framework::ProcessingContext& pc) final;
+      void endOfStream(framework::EndOfStreamContext& ec) override;
 
     private:
       static bool eventEquipPadsComparision(o2::hmpid::Digit d1, o2::hmpid::Digit d2);
+      void createRawFile(framework::ProcessingContext& pc);
       std::string mBaseFileName = "";
+      std::vector<o2::hmpid::Digit> mDigits;
+      bool mSkipEmpty = false;
+      bool mFixedPacketLenght = false;
+      bool mOrderTheEvents = true;
+      long mDigitsReceived;
+      long mFramesReceived;
+      bool mIsTheStremClosed = false;
+
   };
 
 o2::framework::DataProcessorSpec getWriteRawFromDigitsSpec(std::string inputSpec = "HMP/DIGITS");

@@ -70,6 +70,9 @@ class Digit
     uint32_t getOrbit() const { return mOrbit; }
     uint16_t getBC() const { return mBc; }
     uint64_t getTriggerID() const { return ((mOrbit << 12) | mBc); }
+    void setOrbit(uint32_t orbit) { mOrbit = orbit; return; }
+    void setBC(uint16_t bc) { mBc = bc; return; }
+    void setTriggerID(uint64_t trigger) { mOrbit = (trigger >> 12); mBc = (trigger & 0x0FFF); return; }
 
     // convenience conversion to x-y pad coordinates
     int getPx() const { return A2X(mPad); }

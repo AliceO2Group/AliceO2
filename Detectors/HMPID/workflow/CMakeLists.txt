@@ -9,8 +9,12 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(HMPIDWorkflow
-#               SOURCES src/DataDecoderSpec.cxx src/DigitReaderSpec.cxx src/ClusterizerSpec.cxx src/RawFileReaderSpec.cxx src/DumpDigitsSpec.cxx
-               SOURCES src/DataDecoderSpec.cxx src/DigitReaderSpec.cxx src/ClusterizerSpec.cxx src/DumpDigitsSpec.cxx src/WriteRawFromDigitsSpec.cxx
+               SOURCES src/DataDecoderSpec.cxx
+                       src/DigitReaderSpec.cxx
+                       src/ClusterizerSpec.cxx
+                       src/DumpDigitsSpec.cxx
+                       src/ReadRawFileSpec.cxx
+                       src/WriteRawFromDigitsSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DPLUtils
                                      O2::DetectorsRaw
@@ -21,6 +25,11 @@ o2_add_library(HMPIDWorkflow
 o2_add_executable(recoworkflow
               COMPONENT_NAME hmpid
               SOURCES src/HMPIDRecoWorkflow.cxx 
+              PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
+
+o2_add_executable(read-raw-file-workflow
+              COMPONENT_NAME hmpid
+              SOURCES src/read-raw-file-workflow.cxx
               PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
 
 o2_add_executable(raw-to-digits-workflow

@@ -20,16 +20,21 @@
 
 using namespace o2::hmpid;
 
-HmpidCoder::HmpidCoder(int numOfEquipments)
+HmpidCoder::HmpidCoder(int numOfEquipments, bool skipEmptyEvents, bool fixedPacketsLenght)
 {
 
   mNumberOfEquipments = numOfEquipments;
+  mSkipEmptyEvents = skipEmptyEvents;
+  mFixedPacketLenght = fixedPacketsLenght;
+
   mVerbose = 0;
   mOccupancyPercentage = 0;
   mRandomOccupancy = false;
   mRandomCharge = false;
   mOutStream160 = NULL;
   mOutStream161 = NULL;
+  mFileName160 = "";
+  mFileName161 = "";
 
   mPailoadBufferDimPerEquipment =  ((Geo::N_SEGMENTS * (Geo::N_COLXSEGMENT * (Geo::N_DILOGICS * (Geo::N_CHANNELS + 1) + 1) + 1)) + 10);
 
@@ -38,7 +43,7 @@ HmpidCoder::HmpidCoder(int numOfEquipments)
   mPayloadBufferPtr = (uint32_t *) std::malloc(mNumberOfEquipments * sizeof(uint32_t) * mPailoadBufferDimPerEquipment );
   mEventBufferBasePtr = (uint32_t *) std::malloc(sizeof(uint32_t) * RAWBLOCKDIMENSION_W);
   mEventBufferPtr = mEventBufferBasePtr;
-  srand( (unsigned)time(NULL) );
+  reset();
 
 }
 
@@ -49,28 +54,17 @@ HmpidCoder::~HmpidCoder()
   std::free(mEventBufferBasePtr);
 }
 
-// =====================  Random production of Raw Files ===================
-void HmpidCoder::getEquipCoord(int Equi, uint32_t *CruId, uint32_t *LinkId)
+void HmpidCoder::reset()
 {
-  for (int i = 0; i < Geo::MAXEQUIPMENTS; i++)
-    if (mEqIds[i] == Equi) {
-      *CruId = mCruIds[i];
-      *LinkId = mLinkIds[i];
-      return;
-    }
-  *CruId = mCruIds[0];
-  *LinkId = mLinkIds[0];
-  return;
+  srand( (unsigned)time(NULL) );
+  mPadsCoded = 0;
+  mPacketsCoded = 0;
 }
 
+// =====================  Random production of Raw Files ===================
 int HmpidCoder::calculateNumberOfPads()
 {
-//  int numOfEqipments = 0;
   int occupancyPercentage = 0;
-//  for(int i = 0; i < MAXEQUIPMENTS; i++)
-//    if(mFlpIds[i] == Flp)
-//      numOfEqipments++;
-
   if(mRandomOccupancy) {
     occupancyPercentage = rand() % 1000;
   } else {
@@ -102,15 +96,6 @@ void HmpidCoder::fillPadsMap(uint32_t *padMap)
   return;
 }
 
-constexpr int p1() { return(Geo::N_SEGMENTS * Geo::N_COLXSEGMENT * Geo::N_DILOGICS * Geo::N_CHANNELS); }
-constexpr int p2() { return(Geo::N_DILOGICS * Geo::N_CHANNELS); }
-
-int HmpidCoder::getEquipmentPadIndex(int eq, int col, int dil, int cha)
-{
-  return( eq * p1() + col * p2() + dil * Geo::N_CHANNELS + cha);
-
-}
-
 void HmpidCoder::createRandomPayloadPerEvent()
 {
   uint32_t *padMap = (uint32_t *) std::malloc(sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS);
@@ -123,24 +108,43 @@ void HmpidCoder::createRandomPayloadPerEvent()
   return;
 }
 
-
-void HmpidCoder::createRandomEvent(uint32_t orbit, uint16_t bc)
+void HmpidCoder::codeRandomEvent(uint32_t orbit, uint16_t bc)
 {
-
   createRandomPayloadPerEvent();
   writePaginatedEvent(orbit, bc);
+  return;
+}
+// =====================  END of Random production of Raw Files ===================
 
+void HmpidCoder::getEquipCoord(int Equi, uint32_t *CruId, uint32_t *LinkId)
+{
+  for (int i = 0; i < Geo::MAXEQUIPMENTS; i++)
+    if (mEqIds[i] == Equi) {
+      *CruId = mCruIds[i];
+      *LinkId = mLinkIds[i];
+      return;
+    }
+  *CruId = mCruIds[0];
+  *LinkId = mLinkIds[0];
   return;
 }
 
-// =====================  END of Random production of Raw Files ===================
+constexpr int p1() { return(Geo::N_SEGMENTS * Geo::N_COLXSEGMENT * Geo::N_DILOGICS * Geo::N_CHANNELS); }
+constexpr int p2() { return(Geo::N_DILOGICS * Geo::N_CHANNELS); }
+
+int HmpidCoder::getEquipmentPadIndex(int eq, int col, int dil, int cha)
+{
+  return( eq * p1() + col * p2() + dil * Geo::N_CHANNELS + cha);
+
+}
+
 void HmpidCoder::fillTheOutputBuffer(uint32_t* padMap)
 {
   uint32_t rowMarker, segMarker, eoeMarker, padWord;
   uint32_t rowSize;
   uint32_t ptr = 0;
   int pads[Geo::MAXEQUIPMENTS];
-  int count;
+  int padsCount;
   int segSize;
 
   for(int i=0; i<Geo::MAXEQUIPMENTS; i++) {
@@ -149,10 +153,12 @@ void HmpidCoder::fillTheOutputBuffer(uint32_t* padMap)
 
   for (int eq = 0; eq < mNumberOfEquipments; eq++) {
     int startPtr = ptr;
+    padsCount = 0;
     for (int s = 1; s <= Geo::N_SEGMENTS; s++) {
       segSize = 0;
       for (int c = 1; c <= Geo::N_COLXSEGMENT; c++) {
-        // Pre calculate the size of each column
+
+        // ---- Pre calculate the size of each column
         for(int j=0;j<Geo::N_DILOGICS;j++) pads[j] =0;
         rowSize = 0;
         for(int j=0;j<Geo::N_DILOGICS;j++) {
@@ -161,13 +167,15 @@ void HmpidCoder::fillTheOutputBuffer(uint32_t* padMap)
             if(padMap[idx] > 0) {
               pads[j]++;
               rowSize++;
+              padsCount++;
             }
           }
         }
         rowSize += Geo::N_DILOGICS;
         segSize += (rowSize + 1);
         rowMarker = 0x000036A8 | ((rowSize << 16) & 0x03ff0000);
-      // fills the Payload Buffer
+
+        // ---- fills the Payload Buffer
         mPayloadBufferPtr[ptr++] = rowMarker;
         int col = (s - 1) * Geo::N_COLXSEGMENT + c;
         for (int d = 1; d <= Geo::N_DILOGICS; d++) {
@@ -187,7 +195,12 @@ void HmpidCoder::fillTheOutputBuffer(uint32_t* padMap)
       segMarker = 0xAB000000 | ((segSize << 8) & 0x000fff00) | (s & 0x0000000F);
       mPayloadBufferPtr[ptr++] = segMarker;
     }
-    mEventSizePerEquipment[eq] = ptr - startPtr;
+
+    if(mSkipEmptyEvents && padsCount == 0) {  // Sets the lenght of Events
+      mEventSizePerEquipment[eq] = 0;
+    } else {
+      mEventSizePerEquipment[eq] = ptr - startPtr;
+    }
   }
   return;
 }
@@ -197,9 +210,15 @@ void HmpidCoder::writePaginatedEvent(uint32_t orbit, uint16_t bc)
   int nWordToRead;
   int count;
   int payloatPtr = 0;
+  if(orbit == 0 || bc == 0){
+    std::cerr << "HmpidCoder [ERROR] : Bad Orbit/BCid number (ORBIT="<< orbit << " BCID=" << bc << ")" << std::endl;
+    return;
+  }
 
   for (int eq = 0; eq < mNumberOfEquipments; eq++) {
     int EventSize = mEventSizePerEquipment[eq];
+    if(EventSize == 0) continue;  // Skips the Events sized with 0
+
     int EquipmentCounter = 0;
     int numOfPages = EventSize / PAYLOADMAXSPACE_W + 1;
 
@@ -210,18 +229,21 @@ void HmpidCoder::writePaginatedEvent(uint32_t orbit, uint16_t bc)
         EquipmentCounter++;
       }
       nWordToRead = count;
-      while (count < PAYLOADDIMENSION_W)
-        mEventBufferPtr[HEADERDIMENSION_W + count++] = 0;
-      uint32_t MemSize = nWordToRead * sizeof(uint32_t) + HEADERDIMENSION_W * sizeof(uint32_t);
+
+      int nWordsTail = (mFixedPacketLenght) ? PAYLOADDIMENSION_W : ((count / 8 + 1) * 8);
+      while (count < nWordsTail)
+          mEventBufferPtr[HEADERDIMENSION_W + count++] = 0;
+
       uint32_t PackNum = mPacketCounterPerEquipment[eq]++;
-      writeHeader(mEventBufferPtr, MemSize, mEqIds[eq], PackNum, bc, orbit, PageNum);
-      saveEventPage(mFlpIds[eq]);
+      int PacketSize = writeHeader(mEventBufferPtr, nWordToRead, nWordsTail, mEqIds[eq], PackNum, bc, orbit, PageNum);
+      savePacket(mFlpIds[eq], PacketSize);
     }
   }
   return;
 }
 
-void HmpidCoder::writeHeader(uint32_t *Buffer, uint32_t MemSize, int Equip, uint32_t PackNum, uint32_t BCDI, uint32_t ORBIT, uint32_t PageNum)
+int HmpidCoder::writeHeader(uint32_t *Buffer, uint32_t WordsToRead, uint32_t PayloadWords,
+                             int Equip, uint32_t PackNum, uint32_t BCDI, uint32_t ORBIT, uint32_t PageNum)
 {
   uint32_t CruId, LinkId;
   uint32_t TType = 0;
@@ -231,6 +253,8 @@ void HmpidCoder::writeHeader(uint32_t *Buffer, uint32_t MemSize, int Equip, uint
   uint32_t Busy = 3000;
   uint32_t PAR = 0;
 
+  uint32_t MemSize = WordsToRead * sizeof(uint32_t) + HEADERDIMENSION_W * sizeof(uint32_t);
+  uint32_t OffsetNext = PayloadWords * sizeof(uint32_t) + HEADERDIMENSION_W * sizeof(uint32_t);
   getEquipCoord(Equip, &CruId, &LinkId);
 
   //      FEEID  Header Size     Header version
@@ -238,7 +262,7 @@ void HmpidCoder::writeHeader(uint32_t *Buffer, uint32_t MemSize, int Equip, uint
   //      Priority      System ID
   Buffer[1] = 0x00000100 | 0x00000006;
   //  .....Memory Size       HeOffsetNewPack;
-  Buffer[2] = (MemSize << 16) | 0x00002000;
+  Buffer[2] = (MemSize << 16) | (OffsetNext & 0x0000FFFF);
   //   DW     CruId   PacNum    Link Num
   Buffer[3] = 0x10000000 | ((CruId & 0x00FF) << 16) | ((PackNum & 0x0FF) << 8) | (LinkId & 0x0FF);
   Buffer[4] = 0x00000FFF & BCDI;
@@ -253,51 +277,53 @@ void HmpidCoder::writeHeader(uint32_t *Buffer, uint32_t MemSize, int Equip, uint
   Buffer[13] = PAR;
   Buffer[14] = 0xAAAA0001;
   Buffer[15] = 0xAAAA0001;
-  return;
+  return (OffsetNext);
 }
 
 void HmpidCoder::codeDigitsVector(std::vector<Digit>digits)
 {
-  uint32_t pv_orbit, orbit = 0;
-  uint16_t pv_bc, bc = 0;
+  int eq,col,dil,cha,mo,x,y, idx;
+  uint32_t pv_orbit = 0;
+  uint32_t orbit = 0;
+  uint16_t pv_bc = 0;
+  uint16_t bc = 0;
 
   uint32_t *padMap = (uint32_t *) std::malloc(sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS);
-  int eq,col,dil,cha,mo,x,y, idx;
-std::cout << ">>> Coding size "<< digits.size() << std::endl;
-int padsCount =0;
+  // TODO: Add memory allocation error check
+
+  int padsCount =0;
   for(o2::hmpid::Digit d : digits) {
     orbit = d.getOrbit();
     bc = d.getBC();
     if(orbit != pv_orbit || bc != pv_bc) { //the event is changed
-      if (pv_orbit != 0 || pv_bc != 0 ) {
+      if (pv_orbit != 0 || pv_bc != 0 ) { // isn't the first !
         fillTheOutputBuffer(padMap);
         writePaginatedEvent(pv_orbit, pv_bc);
       }
-      memset(padMap, 0, sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS);
+      memset(padMap, 0, sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS); // Update for the new event
       pv_orbit = orbit;
       pv_bc = bc;
     }
-    Digit::Pad2Equipment(d.getPadID(),&eq, &col, &dil, &cha);
-    idx = getEquipmentPadIndex(eq, col, dil, cha);
-   // std::cout << ">>> "<< idx << " " << d <<" ("<<eq<<","<<col<<","<<dil<<","<<cha<<")"<< std::endl;
+    Digit::Pad2Equipment(d.getPadID(),&eq, &col, &dil, &cha);  // From Digit to Hardware coords
+    eq = mEqIds[eq]; // converts the Equipment Id in Cru/Link position ref
+    idx = getEquipmentPadIndex(eq, col, dil, cha); // finally to the unique padmap index
 
-    if(padMap[idx] != 0) {
-      std::cout << ">>> "<< idx << " " << d <<" ("<<eq<<","<<col<<","<<dil<<","<<cha<<")"<< std::endl;
-      Digit::Pad2Absolute(d.getPadID(), &mo, &x, &y);
-      Digit::Absolute2Equipment(mo, x, y, &eq, &col, &dil, &cha);
-      std::cout << ">>>  Errore   >"<<" abso("<< mo <<","<<x<<","<<y<<") equ("<<eq<<","<<col<<","<<dil<<","<<cha<<")"<< std::endl;
+    if(padMap[idx] != 0) { // We already have the pad set
+      std::cerr << "HmpidCoder [ERROR] : Duplicated DIGIT ="<< d <<" ("<<eq<<","<<col<<","<<dil<<","<<cha<<")"<< std::endl;
+    } else {
+      padMap[idx] = d.getCharge();
+      padsCount++;
     }
-    padMap[idx] = d.getCharge();
-padsCount++;
   }
-  fillTheOutputBuffer(padMap);
+  fillTheOutputBuffer(padMap); // Finalize the last event
   writePaginatedEvent(pv_orbit, pv_bc);
-std::cout << ">>> CPads set "<< padsCount << std::endl;
   std::free(padMap);
+  mPadsCoded += padsCount;
+
   return;
 }
 
-void HmpidCoder::codeDigitsTest(int Events, uint16_t charge)
+void HmpidCoder::codeTest(int Events, uint16_t charge)
 {
   uint32_t orbit = 0;
   uint16_t bc = 0;
@@ -325,12 +351,13 @@ void HmpidCoder::codeDigitsTest(int Events, uint16_t charge)
 }
 // ====================== FILES management functions ======================
 
-void HmpidCoder::saveEventPage(int Flp)
+void HmpidCoder::savePacket(int Flp, int packetSize)
 {
+  mPacketsCoded++;
   if(Flp == 160)
-    fwrite(mEventBufferPtr, RAWBLOCKDIMENSION_W, sizeof(uint32_t), mOutStream160);
+    fwrite(mEventBufferPtr, packetSize, sizeof(uint8_t), mOutStream160);
   else
-    fwrite(mEventBufferPtr, RAWBLOCKDIMENSION_W, sizeof(uint32_t), mOutStream161);
+    fwrite(mEventBufferPtr, packetSize, sizeof(uint8_t), mOutStream161);
   return;
 }
 
@@ -338,19 +365,21 @@ void HmpidCoder::saveEventPage(int Flp)
 void HmpidCoder::openOutputStream(const char *OutputFileName)
 {
   char FileName[512];
-
   sprintf(FileName, "%s%d%s", OutputFileName, 160, ".dat");
   mOutStream160 = fopen(FileName, "wb");
   if (mOutStream160 == 0) {
     LOG(ERROR) << "ERROR to open Output file " << FileName;
     throw 0;
   }
+  mFileName160 = FileName;
+
   sprintf(FileName, "%s%d%s", OutputFileName, 161, ".dat");
   mOutStream161 = fopen(FileName, "wb");
   if (mOutStream161 == 0) {
     LOG(ERROR) << "ERROR to open Output file " << FileName;
     throw 0;
   }
+  mFileName161 = FileName;
   return;
 }
 
@@ -359,4 +388,13 @@ void HmpidCoder::closeOutputStream()
   fclose(mOutStream160);
   fclose(mOutStream161);
   return;
+}
+
+void HmpidCoder::dumpResults()
+{
+  std::cout << " ****  HMPID RawFile Coder : results ****" << std::endl;
+  std::cout << " Created files : " << mFileName160 << " ," << mFileName161 << std::endl;
+  std::cout << " Number of Pads coded : " << mPadsCoded << std::endl;
+  std::cout << " Number of Packets written : " << mPacketsCoded << std::endl;
+  std::cout << " ----------------------------------------" << std::endl;
 }
