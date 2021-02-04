@@ -6,6 +6,20 @@
 
 ## From DCS
 
+To test the DCS to CCDB route you can use the following 3 parts worfklow pipeline : 
+
+```shell
+o2-calibration-mch-dcs-sim-workflow --max-timeframes 10000 --max-cycles-no-full-map 100 -b | \
+o2-calibration-mch-dcs-processor-workflow -b | \
+o2-calibration-ccdb-populator-workflow --ccdb-path="http://localhost:6464" -b
+```
+
+- `o2-calibration-mch-dcs-sim-worfklow` is just generating fake random MCH DCS data points, 
+- `o2-calibration-mch-dcs-processor-workflow` gathers the received data points into a container object 
+- `o2-calibration-ccdb-populator-workflow` uploads the container object to the CCDB (in this example a local dev ccdb).
+
+ The container object that groups the datapoints is considered ready to be shipped either when the data points span a long enough duration (see the `--calib-object-max-duration` option of the `o2-calibration-mch-dcs-processor-workflow`) or is big enough (see the `--calib-object-max-size` option).
+
 ### HV
 
 The MCH high voltage (HV) system is composed of 188 channels :
