@@ -327,7 +327,11 @@ DECLARE_SOA_EXPRESSION_COLUMN(C1Pt21Pt2, c1Pt21Pt2, float, aod::trackfwd::sigma1
 // TRACKFWDEXTRA TABLE definition
 DECLARE_SOA_COLUMN(Chi2, chi2, float);
 DECLARE_SOA_COLUMN(Chi2Match, chi2Match, float);
-
+//DECLARE_SOA_COLUMN(PDca, pDca, float);
+//DECLARE_SOA_COLUMN(RAtAbsorberEnd, rAtAbsorberEnd, float);
+// Expression columns for PDca and RAtAbsorberEnd will be replaced by SOA columns
+DECLARE_SOA_EXPRESSION_COLUMN(PDca, pDca, float, (aod::trackfwd::p)*nsqrt((aod::trackfwd::x * aod::trackfwd::x) + (aod::trackfwd::y * aod::trackfwd::y) + (aod::trackfwd::z * aod::trackfwd::z)));
+DECLARE_SOA_EXPRESSION_COLUMN(RAtAbsorberEnd, rAtAbsorberEnd, float, nsqrt((aod::trackfwd::x + (-505. - aod::trackfwd::z) * ncos(aod::trackfwd::phi) / aod::trackfwd::tgl) * (aod::trackfwd::x + (-505. - aod::trackfwd::z) * ncos(aod::trackfwd::phi) / aod::trackfwd::tgl) + (aod::trackfwd::y + (-505. - aod::trackfwd::z) * nsin(aod::trackfwd::phi) / aod::trackfwd::tgl) * (aod::trackfwd::y + (-505. - aod::trackfwd::z) * nsin(aod::trackfwd::phi) / aod::trackfwd::tgl)));
 } // namespace trackfwd
 
 DECLARE_SOA_TABLE_FULL(StoredTracksFwd, "TracksFwd", "AOD", "TRACKFWD:PAR",
@@ -368,7 +372,7 @@ DECLARE_SOA_EXTENDED_TABLE(TracksCovFwd, StoredTracksCovFwd, "TRACKFWD:PARCOV",
                            aod::trackfwd::C1Pt21Pt2);
 
 DECLARE_SOA_TABLE(TracksExtraFwd, "AOD", "TRACKFWD:EXTRA",
-                  trackfwd::Chi2, trackfwd::Chi2Match);
+                  trackfwd::Chi2, trackfwd::Chi2Match, trackfwd::PDca, trackfwd::RAtAbsorberEnd);
 
 using TrackFwd = TracksFwd::iterator;
 using TrackCovFwd = TracksCovFwd::iterator;
