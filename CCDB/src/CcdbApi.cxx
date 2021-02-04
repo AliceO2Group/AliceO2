@@ -798,7 +798,7 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
         }
       }
     } else if (response_code == 404) {
-      LOG(ERROR) << "Requested resource does not exist";
+      LOG(ERROR) << "Requested resource does not exist: " << url;
       errorflag = true;
     } else {
       errorflag = true;
