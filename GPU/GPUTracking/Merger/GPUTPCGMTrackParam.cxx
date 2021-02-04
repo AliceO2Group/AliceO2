@@ -341,25 +341,26 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* GPUrestrict() merger, 
   return (true);
 }
 
-GPUd() void GPUTPCGMTrackParam::MoveToReference(GPUTPCGMPropagator& prop, const GPUParam& param, float& Alpha)
+GPUdni() void GPUTPCGMTrackParam::MoveToReference(GPUTPCGMPropagator& prop, const GPUParam& param, float& Alpha)
 {
   if (param.rec.TrackReferenceX <= 500) {
-    for (int k = 0; k < 3; k++) // max 3 attempts
-    {
-      int err = prop.PropagateToXAlpha(param.rec.TrackReferenceX, Alpha, 0);
-      ConstrainSinPhi();
-      if (CAMath::Abs(mP[0]) <= mX * CAMath::Tan(kSectAngle / 2.f)) {
-        break;
-      }
+    GPUTPCGMTrackParam save = *this;
+    float saveAlpha = Alpha;
+    for (int attempt = 0; attempt < 3; attempt++) {
       float dAngle = floor(CAMath::ATan2(mP[0], mX) / kDeg2Rad / 20.f + 0.5f) * kSectAngle;
       Alpha += dAngle;
-      if (err || k == 2) {
-        Rotate(dAngle);
-        ConstrainSinPhi();
+      if (prop.PropagateToXAlpha(param.rec.TrackReferenceX, Alpha, 0)) {
         break;
       }
+      ConstrainSinPhi();
+      if (CAMath::Abs(mP[0]) <= mX * CAMath::Tan(kSectAngle / 2.f)) {
+        return;
+      }
     }
-  } else if (CAMath::Abs(mP[0]) > mX * CAMath::Tan(kSectAngle / 2.f)) {
+    *this = save;
+    Alpha = saveAlpha;
+  }
+  if (CAMath::Abs(mP[0]) > mX * CAMath::Tan(kSectAngle / 2.f)) {
     float dAngle = floor(CAMath::ATan2(mP[0], mX) / kDeg2Rad / 20.f + 0.5f) * kSectAngle;
     Rotate(dAngle);
     ConstrainSinPhi();
