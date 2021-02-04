@@ -152,7 +152,7 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
       o2::math_utils::Point3D<float> locC;
       if (pattID == o2::itsmft::CompCluster::InvalidPatternID || dict.isGroup(pattID)) {
         o2::itsmft::ClusterPattern patt(pattIt);
-        locC = dict.getClusterCoordinates(cluster, patt);
+        locC = dict.getClusterCoordinates(cluster, patt, false);
       } else {
         locC = dict.getClusterCoordinates(cluster);
         npix = dict.getNpixels(pattID);
