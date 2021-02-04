@@ -269,7 +269,7 @@ namespace trackfwd
 {
 // TRACKPARFWD TABLE definition
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
-DECLARE_SOA_COLUMN(TrackType, trackType, uint8_t); // TODO change to TrackTypeEnum when enums are supported
+DECLARE_SOA_COLUMN(TrackType, trackType, uint8_t); // TODO change to ForwardTrackTypeEnum when enums are supported
 DECLARE_SOA_COLUMN(X, x, float);
 DECLARE_SOA_COLUMN(Y, y, float);
 DECLARE_SOA_COLUMN(Z, z, float);

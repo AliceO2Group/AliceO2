@@ -17,7 +17,6 @@ namespace o2::aod::track
 enum TrackTypeEnum : uint8_t {
   GlobalTrack = 0,
   ITSStandalone,
-  MFTStandalone,
   Run2GlobalTrack = 254,
   Run2Tracklet = 255
 };
@@ -27,5 +26,14 @@ enum TrackFlagsRun2Enum {
   GoldenChi2 = 0x4
 };
 } // namespace o2::aod::track
+
+namespace o2::aod::trackfwd
+{
+enum ForwardTrackTypeEnum : uint8_t {
+  GlobalMuonTrack = 0,
+  MCHStandalone,
+  MFTStandalone,
+};
+} // namespace o2::aod::trackfwd
 
 #endif // O2_FRAMEWORK_DATATYPES_H_
