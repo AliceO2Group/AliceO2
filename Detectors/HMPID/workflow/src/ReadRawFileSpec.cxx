@@ -91,10 +91,8 @@ void RawFileReaderTask::run(framework::ProcessingContext& pc)
       LOG(INFO) << "End of file !  Number of frames processed :" << numberOfFrames;
       free(outBuffer);
       mInputFile.close();
-  //    LOG(INFO)<< "Sleep 10 sec"<< std::endl;
-  //    for(int i=0;i<10;i++) sleep(1);
       pc.services().get<ControlService>().endOfStream();
- //     pc.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
+      pc.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
       break;
     }
     auto rdhVersion = o2::raw::RDHUtils::getVersion(rdh);
@@ -126,6 +124,7 @@ void RawFileReaderTask::run(framework::ProcessingContext& pc)
       LOG(INFO) << "end of file reached";
       free(outBuffer);
       pc.services().get<ControlService>().endOfStream();
+      pc.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
       break; // probably reached eof
     }
     bufSize = frameSize; // Set the buffer pointer
