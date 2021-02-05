@@ -14,6 +14,7 @@
 #include "SHA1.h"
 #include "Base64.h"
 #include <regex>
+#include <cassert>
 
 using namespace o2::framework::internal;
 namespace o2::framework
