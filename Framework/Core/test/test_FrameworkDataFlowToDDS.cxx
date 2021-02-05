@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE(TestDDS)
       {"C", "foo", {}, workflowOptions},
       {"D", "foo", {}, workflowOptions},
     }};
-  DeviceSpecHelpers::prepareArguments(false, false,
+  DeviceSpecHelpers::prepareArguments(false, false, 8080,
                                       dataProcessorInfos,
                                       devices, executions, controls,
                                       "workflow-id");
