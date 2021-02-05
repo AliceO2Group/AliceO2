@@ -15,6 +15,8 @@
 #include <vector>
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
+
+#include "HMPIDBase/Common.h"
 #include "HMPIDBase/Digit.h"
 #include "HMPIDSimulation/HmpidCoder.h"
 
@@ -44,6 +46,7 @@ namespace hmpid
       bool mIsTheStremClosed = false;
       HmpidCoder *mCod;
 
+      ExecutionTimer mExTimer;
   };
 
 o2::framework::DataProcessorSpec getWriteRawFromDigitsSpec(std::string inputSpec = "HMP/DIGITS");

@@ -14,6 +14,8 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
+
+#include "HMPIDBase/Common.h"
 #include "HMPIDBase/Digit.h"
 
 namespace o2
@@ -32,7 +34,8 @@ namespace hmpid
     private:
       std::ifstream mInputFile{}; ///< input file
       bool mPrint = false;        ///< print debug messages
- //     auto stop(void);
+
+      ExecutionTimer mExTimer;
   };
 
 o2::framework::DataProcessorSpec getReadRawFileSpec(std::string inputSpec = "HMP/RAWDATA");

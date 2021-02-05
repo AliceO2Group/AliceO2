@@ -123,6 +123,10 @@ void HmpidDecoder::init()
   mEndStreamPtr = 0;
   mStartStreamPtr = 0;
 
+  for (int i = 0; i < mNumberOfEquipments; i++) {
+    mTheEquipments[i]->init();
+  }
+
 }
 
 /// Returns the Equipment Index (Pointer of the array) converting
@@ -437,6 +441,9 @@ void HmpidDecoder::updateStatistics(HmpidEquipment *eq)
     eq->mNumberOfWrongEvents += 1;
   eq->mTotalPads += eq->mSampleNumber;
   eq->mTotalErrors += eq->mErrorsCounter;
+
+ // std::cout << ">>>>.. end >>> "<<eq->mNumberOfEvents<<" :" <<eq->mEventSize<<","<< eq->mEventSizeAverage<< ", "<<eq->mEventNumber<<" "<<mHeEvent<<std::endl;
+
   return;
 }
 
@@ -449,7 +456,7 @@ HmpidEquipment* HmpidDecoder::evaluateHeaderContents(int EquipmentIndex)
   //std::cout << "Enter evaluateHeaderContents..";
   HmpidEquipment *eq = mTheEquipments[EquipmentIndex];
   if (mHeEvent != eq->mEventNumber) { // Is a new event
-    if (eq->mEventNumber != -1) { // skip the first
+    if (eq->mEventNumber != OUTRANGEEVENTNUMBER) { // skip the first
       updateStatistics(eq); // update previous statistics
     }
     eq->mNumberOfEvents++;

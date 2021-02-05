@@ -60,7 +60,7 @@ void HmpidEquipment::init()
   mErrorsCounter = 0;
   mErrorPadsPerEvent = 0;
 
-  mEventNumber = -1;
+  mEventNumber = OUTRANGEEVENTNUMBER; // The Magic out-range event number
   mNumberOfEvents = 0;
 
   mBusyTimeValue = 0.0;

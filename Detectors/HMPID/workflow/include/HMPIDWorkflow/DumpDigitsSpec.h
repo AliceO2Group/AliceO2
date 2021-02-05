@@ -20,6 +20,8 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
+
+#include "HMPIDBase/Common.h"
 #include "Framework/WorkflowSpec.h"
 
 namespace o2
@@ -45,6 +47,8 @@ namespace hmpid
       int mOrbit;
       int mBc;
       long mDigitsReceived;
+
+      ExecutionTimer mExTimer;
   };
 
 o2::framework::DataProcessorSpec getDumpDigitsSpec(std::string inputSpec = "HMP/DIGITS");

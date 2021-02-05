@@ -59,7 +59,7 @@ const int TH_NULLBUFFERPOINTER = 13;
 const int TH_BUFFEREMPTY = 12;
 const int TH_WRONGBUFFERDIM = 11;
 
-
+const uint64_t OUTRANGEEVENTNUMBER = 0x1FFFFFFFFFFF;
 
 
 class HmpidEquipment
