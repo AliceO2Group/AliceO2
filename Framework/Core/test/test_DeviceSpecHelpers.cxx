@@ -75,13 +75,12 @@ void check(const std::vector<std::string>& arguments,
       workflowOptions,
     });
   }
-  DeviceSpecHelpers::prepareArguments(true, true,
+  DeviceSpecHelpers::prepareArguments(true, true, 8080,
                                       dataProcessorInfos,
                                       deviceSpecs,
                                       deviceExecutions,
                                       deviceControls,
                                       "workflow-id");
-
 
   for (size_t index = 0; index < deviceSpecs.size(); index++) {
     const auto& deviceSpec = deviceSpecs[index];

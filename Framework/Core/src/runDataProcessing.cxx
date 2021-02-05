@@ -7,6 +7,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include <stdexcept>
 #include "Framework/BoostOptionsRetriever.h"
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/ChannelMatching.h"
@@ -1159,6 +1160,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       if (result != 0) {
         driverInfo.port++;
       }
+      if (driverInfo.port > 64000) {
+        throw runtime_error_f("Unable to find a free port for the driver. Last attempt returned %d", result);
+      }
     } while (result != 0);
   }
 
@@ -1398,6 +1402,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           DeviceSpecHelpers::reworkShmSegmentSize(dataProcessorInfos);
           DeviceSpecHelpers::prepareArguments(driverControl.defaultQuiet,
                                               driverControl.defaultStopped,
+                                              driverInfo.port,
                                               dataProcessorInfos,
                                               deviceSpecs,
                                               deviceExecutions, controls,

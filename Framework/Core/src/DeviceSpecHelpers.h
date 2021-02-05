@@ -101,6 +101,7 @@ struct DeviceSpecHelpers {
   static void prepareArguments(
     bool defaultQuiet,
     bool defaultStopped,
+    unsigned short driverPort,
     std::vector<DataProcessorInfo> const& processorInfos,
     std::vector<DeviceSpec> const& deviceSpecs,
     std::vector<DeviceExecution>& deviceExecutions,
