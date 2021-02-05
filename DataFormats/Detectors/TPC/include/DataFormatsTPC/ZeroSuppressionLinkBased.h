@@ -10,7 +10,7 @@
 
 /// \file ZeroSuppressionLinkBased.h
 /// \brief definitions to deal with the link based zero suppression format
-/// \author Jens Wiechula
+/// @author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 
 #ifndef ALICEO2_DATAFORMATSTPC_ZeroSuppressionLinkBased_H
 #define ALICEO2_DATAFORMATSTPC_ZeroSuppressionLinkBased_H
@@ -29,7 +29,7 @@ static constexpr uint32_t DataWordSizeBytes = DataWordSizeBits / 8; ///< size of
 
 /// header definition of the zero suppressed link based data format
 struct Header {
-  static constexpr uint32_t MagicWord = 0xFC000000;
+  static constexpr uint32_t MagicWord = 0xFC;
 
   union {
     uint64_t word0 = 0;             ///< lower 64 bits
@@ -44,7 +44,8 @@ struct Header {
       uint64_t bitMaskHigh : 16;    ///< higher bits of the 80 bit bitmask
       uint32_t bunchCrossing : 12;  ///< bunch crossing number
       uint32_t numWordsPayload : 4; ///< number of 128bit words with 12bit ADC values
-      uint32_t magicWord : 32;      ///< not used
+      uint32_t timeBin : 24;        ///< time bin number issues by UL, mainly for debugging, since it might wrap
+      uint32_t magicWord : 8;       ///< not used
     };
   };
 
