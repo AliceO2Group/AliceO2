@@ -40,8 +40,9 @@ bool DeviceConfigHelper::parseConfig(std::string_view s, ParsedConfigMatch& matc
   if (match.endValue == nullptr) {
     return false;
   }
+
   char* next = nullptr;
-  match.timestamp = strtoll(match.endValue, &next, 10);
+  match.timestamp = strtoll(match.endValue + 1, &next, 10);
 
   if (!next || *next != ';') {
     return false;
