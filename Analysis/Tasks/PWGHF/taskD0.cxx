@@ -11,7 +11,7 @@
 /// \file taskD0D0correl.cxx
 /// \brief D0 analysis task
 ///
-/// \author Fabio Colamaria <fabio.colamaria@cern.ch>, INFN Bari
+/// \author Fabio Colamaria <fabio.colamaria@cern.ch>, CERN
 /// \author Gian Michele Innocenti <gian.michele.innocenti@cern.ch>, CERN
 /// \author Vít Kučera <vit.kucera@cern.ch>, CERN
 
