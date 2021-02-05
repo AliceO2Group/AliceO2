@@ -19,8 +19,9 @@
 #include <fstream>
 #include <chrono>
 #include <vector>
-
 #include <stdexcept>
+
+#include <gsl/span>
 
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -31,6 +32,7 @@
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
 
+#include "DataFormatsMCH/ROFRecord.h"
 #include "MCHBase/Digit.h"
 #include "MCHBase/PreCluster.h"
 #include "MCHBase/ClusterBlock.h"
@@ -65,27 +67,59 @@ class ClusterFinderOriginalTask
   //_________________________________________________________________________________________________
   void run(framework::ProcessingContext& pc)
   {
-    /// read the preclusters and associated digits, clusterize and send the clusters
+    /// read the preclusters and associated digits, clusterize and send the clusters for all events in the TF
 
     // get the input preclusters and associated digits
+    auto preClusterROFs = pc.inputs().get<gsl::span<ROFRecord>>("preclusterrofs");
     auto preClusters = pc.inputs().get<gsl::span<PreCluster>>("preclusters");
     auto digits = pc.inputs().get<gsl::span<Digit>>("digits");
 
-    // clusterize every preclusters
-    auto tStart = std::chrono::high_resolution_clock::now();
-    mClusterFinder.reset();
-    for (const auto& preCluster : preClusters) {
-      mClusterFinder.findClusters(digits.subspan(preCluster.firstDigit, preCluster.nDigits));
-    }
-    auto tEnd = std::chrono::high_resolution_clock::now();
-    mTimeClusterFinder += tEnd - tStart;
+    //LOG(INFO) << "received time frame with " << preClusterROFs.size() << " interactions";
 
-    // send the output messages
-    pc.outputs().snapshot(Output{"MCH", "CLUSTERS", 0, Lifetime::Timeframe}, mClusterFinder.getClusters());
-    pc.outputs().snapshot(Output{"MCH", "CLUSTERDIGITS", 0, Lifetime::Timeframe}, mClusterFinder.getUsedDigits());
+    // create the output messages for clusters and attached digits
+    auto& clusterROFs = pc.outputs().make<std::vector<ROFRecord>>(OutputRef{"clusterrofs"});
+    auto& clusters = pc.outputs().make<std::vector<ClusterStruct>>(OutputRef{"clusters"});
+    auto& usedDigits = pc.outputs().make<std::vector<Digit>>(OutputRef{"clusterdigits"});
+
+    clusterROFs.reserve(preClusterROFs.size());
+    for (const auto& preClusterROF : preClusterROFs) {
+
+      //LOG(INFO) << "processing interaction: " << preClusterROF.getBCData() << "...";
+
+      // clusterize every preclusters
+      auto tStart = std::chrono::high_resolution_clock::now();
+      mClusterFinder.reset();
+      for (const auto& preCluster : preClusters.subspan(preClusterROF.getFirstIdx(), preClusterROF.getNEntries())) {
+        mClusterFinder.findClusters(digits.subspan(preCluster.firstDigit, preCluster.nDigits));
+      }
+      auto tEnd = std::chrono::high_resolution_clock::now();
+      mTimeClusterFinder += tEnd - tStart;
+
+      // fill the ouput messages
+      clusterROFs.emplace_back(preClusterROF.getBCData(), clusters.size(), mClusterFinder.getClusters().size());
+      writeClusters(clusters, usedDigits);
+    }
   }
 
  private:
+  //_________________________________________________________________________________________________
+  void writeClusters(std::vector<ClusterStruct, o2::pmr::polymorphic_allocator<ClusterStruct>>& clusters,
+                     std::vector<Digit, o2::pmr::polymorphic_allocator<Digit>>& usedDigits) const
+  {
+    /// fill the output messages with clusters and attached digits of the current event
+    /// modify the references to the attached digits according to their position in the global vector
+
+    auto clusterOffset = clusters.size();
+    clusters.insert(clusters.end(), mClusterFinder.getClusters().begin(), mClusterFinder.getClusters().end());
+
+    auto digitOffset = usedDigits.size();
+    usedDigits.insert(usedDigits.end(), mClusterFinder.getUsedDigits().begin(), mClusterFinder.getUsedDigits().end());
+
+    for (auto itCluster = clusters.begin() + clusterOffset; itCluster < clusters.end(); ++itCluster) {
+      itCluster->firstDigit += digitOffset;
+    }
+  }
+
   ClusterFinderOriginal mClusterFinder{};             ///< clusterizer
   std::chrono::duration<double> mTimeClusterFinder{}; ///< timer
 };
@@ -95,10 +129,12 @@ o2::framework::DataProcessorSpec getClusterFinderOriginalSpec()
 {
   return DataProcessorSpec{
     "ClusterFinderOriginal",
-    Inputs{InputSpec{"preclusters", "MCH", "PRECLUSTERS", 0, Lifetime::Timeframe},
+    Inputs{InputSpec{"preclusterrofs", "MCH", "PRECLUSTERROFS", 0, Lifetime::Timeframe},
+           InputSpec{"preclusters", "MCH", "PRECLUSTERS", 0, Lifetime::Timeframe},
            InputSpec{"digits", "MCH", "PRECLUSTERDIGITS", 0, Lifetime::Timeframe}},
-    Outputs{OutputSpec{"MCH", "CLUSTERS", 0, Lifetime::Timeframe},
-            OutputSpec{"MCH", "CLUSTERDIGITS", 0, Lifetime::Timeframe}},
+    Outputs{OutputSpec{{"clusterrofs"}, "MCH", "CLUSTERROFS", 0, Lifetime::Timeframe},
+            OutputSpec{{"clusters"}, "MCH", "CLUSTERS", 0, Lifetime::Timeframe},
+            OutputSpec{{"clusterdigits"}, "MCH", "CLUSTERDIGITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<ClusterFinderOriginalTask>()},
     Options{}};
 }
