@@ -257,19 +257,25 @@ class LabeledArray : public LabelMap
     return values[y];
   }
 
-  auto getData()
+  auto getData() const
   {
     return values;
   }
 
-  auto rows()
+  auto rows() const
   {
     return values.rows;
   }
 
-  auto cols()
+  auto cols() const
   {
     return values.cols;
+  }
+
+  auto copy() const
+  {
+    LabeledArray<T> copy = *this;
+    return copy;
   }
 
  private:
