@@ -35,13 +35,13 @@ void ControlServiceHelpers::processCommand(std::vector<DeviceInfo>& infos,
                                            std::string const& command,
                                            std::string const& arg)
 {
-  auto doToMatchingPid = [](std::vector<DeviceInfo>& infos, int pid, auto lambda) {
+  auto doToMatchingPid = [](std::vector<DeviceInfo>& infos, pid_t pid, auto lambda) {
     for (auto& deviceInfo : infos) {
       if (deviceInfo.pid == pid) {
-        lambda(deviceInfo);
-        break;
+        return lambda(deviceInfo);
       }
     }
+    LOGP(error, "Command received for pid {} which does not exists.", pid);
   };
   LOGP(debug2, "Found control command {} from pid {} with argument {}.", command, pid, arg);
   if (command == "QUIT" && arg == "ALL") {
@@ -59,6 +59,8 @@ void ControlServiceHelpers::processCommand(std::vector<DeviceInfo>& infos,
   } else if (command == "NOTIFY_STREAMING_STATE" && arg == "EOS") {
     // FIXME: this should really be a policy...
     doToMatchingPid(infos, pid, [](DeviceInfo& info) { info.streamingState = StreamingState::EndOfStreaming; });
+  } else {
+    LOGP(error, "Unknown command {} with argument {}", command, arg);
   }
 };
 

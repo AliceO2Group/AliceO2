@@ -102,6 +102,13 @@ struct WebSocketHandler {
   virtual void endFragmentation() {}
   /// FIXME: not implemented
   virtual void control(char const* frame, size_t s) {}
+
+  /// Bytes which are still to be received for the previous, half delivered frame.
+  size_t remainingSize = 0;
+  /// Bytes which are already there from the previous, half delivered frame.
+  size_t pendingSize = 0;
+  /// A buffer large enough to contain the next frame to be processed.
+  char* pendingBuffer = nullptr;
 };
 
 /// Decoder for websocket data. For now we assume that the frame was not split. However multiple

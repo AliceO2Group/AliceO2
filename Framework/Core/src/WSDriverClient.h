@@ -12,6 +12,7 @@
 
 #include "Framework/DriverClient.h"
 #include <uv.h>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
