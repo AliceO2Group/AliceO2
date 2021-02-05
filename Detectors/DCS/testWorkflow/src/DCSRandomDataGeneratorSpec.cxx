@@ -70,7 +70,7 @@ std::vector<o2::dcs::DataPointCompositeObject> generate(const std::vector<o2::dc
   dsec += tfid;
   d.Set(dsec);
 
-  std::string refDate = d.AsString();
+  std::string refDate = d.AsSQLString();
 
   auto GenerateVisitor = [refDate](const auto& t) {
     return o2::dcs::generateRandomDataPoints({t.aliasPattern}, t.minValue, t.maxValue, refDate);
