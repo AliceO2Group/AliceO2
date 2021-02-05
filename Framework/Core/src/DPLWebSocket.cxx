@@ -191,10 +191,11 @@ void websocket_client_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_
 }
 
 // FIXME: mNonce should be random
-WSDPLClient::WSDPLClient(uv_stream_t* s, DeviceSpec const& spec)
+WSDPLClient::WSDPLClient(uv_stream_t* s, DeviceSpec const& spec, std::function<void()> handshake)
   : mStream{s},
     mNonce{"dGhlIHNhbXBsZSBub25jZQ=="},
-    mSpec{spec}
+    mSpec{spec},
+    mHandshake{handshake}
 {
   s->data = this;
   uv_read_start((uv_stream_t*)s, (uv_alloc_cb)my_alloc_cb, websocket_client_callback);
@@ -257,6 +258,7 @@ void WSDPLClient::endHeaders()
   LOG(INFO) << "Correctly handshaken websocket connection.";
   /// Create an appropriate reply
   mHandshaken = true;
+  mHandshake();
 }
 
 void ws_client_write_callback(uv_write_t* h, int status)

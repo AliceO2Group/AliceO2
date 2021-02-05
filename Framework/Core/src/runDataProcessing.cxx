@@ -449,38 +449,6 @@ void updateMetricsNames(DriverInfo& driverInfo, std::vector<DeviceMetricsInfo> c
   driverInfo.availableMetrics.swap(result);
 }
 
-void processCommand(DeviceInfos& infos,
-                    pid_t pid,
-                    std::string const& command,
-                    std::string const& arg)
-{
-  auto doToMatchingPid = [](std::vector<DeviceInfo>& infos, int pid, auto lambda) {
-    for (auto& deviceInfo : infos) {
-      if (deviceInfo.pid == pid) {
-        lambda(deviceInfo);
-        break;
-      }
-    }
-  };
-  LOGP(info, "Found control command {} from pid {} with argument {}.", command, pid, arg);
-  if (command == "QUIT" && arg == "ALL") {
-    for (auto& deviceInfo : infos) {
-      deviceInfo.readyToQuit = true;
-    }
-  } else if (command == "QUIT" && arg == "ME") {
-    doToMatchingPid(infos, pid, [](DeviceInfo& info) { info.readyToQuit = true; });
-  } else if (command == "NOTIFY_STREAMING_STATE" && arg == "IDLE") {
-    // FIXME: this should really be a policy...
-    doToMatchingPid(infos, pid, [](DeviceInfo& info) { info.readyToQuit = true; info.streamingState = StreamingState::Idle; });
-  } else if (command == "NOTIFY_STREAMING_STATE" && arg == "STREAMING") {
-    // FIXME: this should really be a policy...
-    doToMatchingPid(infos, pid, [](DeviceInfo& info) { info.streamingState = StreamingState::Streaming; });
-  } else if (command == "NOTIFY_STREAMING_STATE" && arg == "EOS") {
-    // FIXME: this should really be a policy...
-    doToMatchingPid(infos, pid, [](DeviceInfo& info) { info.streamingState = StreamingState::EndOfStreaming; });
-  }
-};
-
 /// An handler for a websocket message stream.
 struct ControlWebSocketHandler : public WebSocketHandler {
   ControlWebSocketHandler(DriverServerContext& context)
@@ -528,6 +496,7 @@ struct ControlWebSocketHandler : public WebSocketHandler {
     ParsedConfigMatch configMatch;
     ParsedMetricMatch metricMatch;
 
+    LOG(debug3) << "Data received: " << std::string_view(frame, s);
     if (DeviceMetricsHelper::parseMetric(token, metricMatch)) {
       // We use this callback to cache which metrics are needed to provide a
       // the DataRelayer view.
@@ -536,15 +505,16 @@ struct ControlWebSocketHandler : public WebSocketHandler {
       didProcessMetric = true;
       didHaveNewMetric |= hasNewMetric;
     } else if (ControlServiceHelpers::parseControl(token, match)) {
-      LOG(debug2) << "Found a command, processing for pid " << mPid;
+      LOG(error) << "Found a command, processing for pid " << mPid;
       assert(mContext.infos);
-      processCommand(*mContext.infos, mPid, match[1].str(), match[2].str());
+      ControlServiceHelpers::processCommand(*mContext.infos, mPid, match[1].str(), match[2].str());
     } else if (DeviceConfigHelper::parseConfig(std::string{"                 "} + token, configMatch)) {
       LOG(debug2) << "Found configuration information for pid " << mPid;
       assert(mContext.infos);
       DeviceConfigHelper::processConfig(configMatch, (*mContext.infos)[mIndex]);
+    } else {
+      LOG(error) << "Unexpected control data: " << std::string_view(frame, s);
     }
-    LOG(debug3) << "Data received: " << std::string_view(frame, s);
   }
 
   /// FIXME: not implemented
