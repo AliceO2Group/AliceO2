@@ -73,7 +73,7 @@ taskwrapper_cleanup() {
   done
   sleep 2
   # remove leftover shm files
-  o2_cleanup_shm_files
+  # o2_cleanup_shm_files --> this is broken with parallel tasks
 }
 
 taskwrapper_cleanup_handler() {
@@ -165,7 +165,6 @@ taskwrapper() {
   control_iteration=1
   while [ 1 ]; do
     # We don't like to see critical problems in the log file.
-
     # We need to grep on multitude of things:
     # - all sorts of exceptions (may need to fine-tune)  
     # - segmentation violation
@@ -176,6 +175,7 @@ taskwrapper() {
              -e \"error while setting up workflow\" \
              -e \"bus error\"                       \
              -e \"Assertion.*failed\"               \
+             -e \"\[ERROR\]\"                       \
              -e \"There was a crash.\""
       
     grepcommand="grep -H ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} >> encountered_exceptions_list 2>/dev/null"
@@ -363,7 +363,7 @@ taskwrapper() {
   trap '' SIGINT
   trap '' SIGTERM
 
-  o2_cleanup_shm_files #--> better to register a general trap at EXIT
+  # o2_cleanup_shm_files (broken with multiple tasks) #--> better to register a general trap at EXIT
 
   # this gives some possibility to customize the wrapper
   # and do some special task at the ordinary exit. The hook takes 3 arguments: 
