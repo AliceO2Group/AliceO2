@@ -17,6 +17,7 @@
 #define ALICEO2_MCH_CLUSTERBLOCK_H_
 
 #include <iostream>
+#include <stdexcept>
 
 namespace o2
 {
@@ -51,7 +52,10 @@ struct ClusterStruct {
   /// Build the unique ID of the cluster from the chamber ID, detection element ID and cluster index
   static uint32_t buildUniqueId(int chamberId, int deId, int clusterIndex)
   {
-    return (((chamberId & 0xF) << 28) | ((deId & 0x7FF) << 17) | (clusterIndex & 0x1FFFF));
+    if ((clusterIndex & 0x1FFFF) != clusterIndex) {
+      throw std::runtime_error("invalid cluster index. Cannot build unique ID");
+    }
+    return (((chamberId & 0xF) << 28) | ((deId & 0x7FF) << 17) | clusterIndex);
   }
 };
 
