@@ -55,6 +55,7 @@ void ControlService::readyToQuit(QuitRequest what)
       mDriverClient.tell("CONTROL_ACTION: READY_TO_QUIT_ME");
       break;
   }
+  mDriverClient.flushPending();
 }
 
 void ControlService::notifyStreamingState(StreamingState state)
@@ -73,6 +74,7 @@ void ControlService::notifyStreamingState(StreamingState state)
     default:
       throw std::runtime_error("Unknown streaming state");
   }
+  mDriverClient.flushPending();
 }
 
 } // namespace o2::framework

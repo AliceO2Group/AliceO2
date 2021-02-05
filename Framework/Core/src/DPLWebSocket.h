@@ -15,6 +15,7 @@
 #include <memory>
 #include <string>
 #include <map>
+#include <functional>
 
 class uv_stream_s;
 
@@ -53,7 +54,9 @@ struct WSDPLHandler : public HTTPParser {
 struct WSDPLClient : public HTTPParser {
   /// @a stream where the communication happens and @a spec of the device connecting
   /// to the driver.
-  WSDPLClient(uv_stream_t* stream, DeviceSpec const& spec);
+  /// @a spec the DeviceSpec associated with this client
+  /// @a handshake a callback to invoke whenever we have a successful handshake
+  WSDPLClient(uv_stream_t* stream, DeviceSpec const& spec, std::function<void()> handshake);
   void replyVersion(std::string_view const& s) override;
   void replyCode(std::string_view const& s) override;
   void header(std::string_view const& k, std::string_view const& v) override;
@@ -72,6 +75,7 @@ struct WSDPLClient : public HTTPParser {
   std::string mNonce;
   DeviceSpec const& mSpec;
   bool mHandshaken = false;
+  std::function<void()> mHandshake;
   uv_stream_t* mStream = nullptr;
   std::map<std::string, std::string> mHeaders;
 };

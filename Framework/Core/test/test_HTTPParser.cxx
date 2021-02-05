@@ -88,7 +88,7 @@ class TestWSHandler : public WebSocketHandler
   std::vector<size_t> mSize;
   void frame(const char* f, size_t s) final
   {
-    mFrame.push_back(f);
+    mFrame.push_back(strdup(f));
     mSize.push_back(s);
   }
 };
@@ -212,6 +212,20 @@ BOOST_AUTO_TEST_CASE(HTTPParser1)
     BOOST_REQUIRE_EQUAL(std::string(handler.mFrame[1], handler.mSize[1] - 1), std::string(buffer2));
   }
   {
+    // Decode a frame which is split in two.
+    char* buffer = strdup("hello websockets!1");
+    std::vector<uv_buf_t> encoded;
+    encode_websocket_frames(encoded, buffer, strlen(buffer) + 1, WebSocketOpCode::Binary, 0);
+    BOOST_REQUIRE_EQUAL(encoded.size(), 1);
+
+    TestWSHandler handler;
+    decode_websocket(encoded[0].base, encoded[0].len / 2, handler);
+    decode_websocket(encoded[0].base + encoded[0].len / 2, encoded[0].len - encoded[0].len / 2, handler);
+    BOOST_REQUIRE_EQUAL(handler.mFrame.size(), 1);
+    BOOST_REQUIRE_EQUAL(handler.mSize.size(), 1);
+    BOOST_REQUIRE_EQUAL(std::string(handler.mFrame[0], handler.mSize[0] - 1), std::string(buffer));
+  }
+  {} {
     std::string checkRequest =
       "GET /chat HTTP/1.1\r\n"
       "Upgrade: websocket\r\n"

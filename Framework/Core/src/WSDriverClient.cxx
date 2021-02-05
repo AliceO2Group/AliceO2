@@ -25,7 +25,10 @@ void on_connect(uv_connect_t* connection, int status)
     return;
   }
   WSDriverClient* client = (WSDriverClient*)connection->data;
-  client->setDPLClient(std::make_unique<WSDPLClient>(connection->handle, client->spec()));
+  auto onHandshake = [client]() {
+    client->flushPending();
+  };
+  client->setDPLClient(std::make_unique<WSDPLClient>(connection->handle, client->spec(), onHandshake));
   client->sendHandshake();
 }
 
