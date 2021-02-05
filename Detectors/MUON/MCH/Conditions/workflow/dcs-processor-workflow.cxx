@@ -28,11 +28,11 @@
 namespace
 {
 
-using namespace o2::calibration;
-using DPID = o2::dcs::DataPointIdentifier;
+using DPID = o2::dcs::DataPointIdentifier; // aka alias name
 using DPVAL = o2::dcs::DataPointValue;
 using DPMAP = std::unordered_map<DPID, std::vector<DPVAL>>;
 
+using namespace o2::calibration;
 std::vector<o2::framework::OutputSpec> calibrationOutputs{
   o2::framework::ConcreteDataTypeMatcher{Utils::gDataOriginCLB, Utils::gDataDescriptionCLBPayload},
   o2::framework::ConcreteDataTypeMatcher{Utils::gDataOriginCLB, Utils::gDataDescriptionCLBInfo}};
@@ -40,6 +40,15 @@ std::vector<o2::framework::OutputSpec> calibrationOutputs{
 std::array<DPMAP, 2> dataPoints;
 int t0{-1};
 
+/*
+* Create a default CCDB Object Info that will be used as a template.
+*
+* @param path describes the CCDB data path used (e.g. MCH/HV)
+*
+* The start and end validity times are supposed to be updated from this template,
+* as well as the metadata (if needed). The rest of the information should
+* be taken as is.
+*/
 o2::ccdb::CcdbObjectInfo createDefaultInfo(const char* path)
 {
   DPMAP obj;
@@ -58,30 +67,47 @@ o2::ccdb::CcdbObjectInfo createDefaultInfo(const char* path)
 
 std::array<o2::ccdb::CcdbObjectInfo, 2> info{createDefaultInfo("MCH/HV"), createDefaultInfo("MCH/LV")};
 
+/*
+* Send a DPMAP to the output.
+*
+* @param dpmap a map of string to vector of DataPointValue 
+* @param output a DPL data allocator
+* @param info a CCDB object info describing the dpmap
+* @param reason (optional, can be empty) a string description why the dpmap
+* was ready to be shipped (e.g. big enough, long enough, end of process, etc...)
+*/
 void sendOutput(const DPMAP& dpmap, o2::framework::DataAllocator& output, o2::ccdb::CcdbObjectInfo info, const std::string& reason)
 {
   if (dpmap.empty()) {
-    // do not write empty objects
+    // we do _not_ write empty objects
     return;
   }
   auto md = info.getMetaData();
   md["upload reason"] = reason;
   info.setMetaData(md);
   auto image = o2::ccdb::CcdbApi::createObjectImage(&dpmap, &info);
-  LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
-            << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
+  LOG(DEBUG) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
+             << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
   output.snapshot(o2::framework::Output{Utils::gDataOriginCLB, Utils::gDataDescriptionCLBPayload, 0}, *image.get());
   output.snapshot(o2::framework::Output{Utils::gDataOriginCLB, Utils::gDataDescriptionCLBInfo, 0}, info);
 }
 
+/*
+* Implementation of DPL end of stream callback.
+*
+* We send the remaining datapoints at the end of the processing.
+*/
 void endOfStream(o2::framework::EndOfStreamContext& eosc)
 {
-  std::cout << "This is the end. Must write what we have left ?\n";
+  LOG(DEBUG) << "This is the end. Must write what we have left ?\n";
   for (auto i = 0; i < 2; i++) {
     sendOutput(dataPoints[i], eosc.outputs(), info[i], "end of stream");
   }
 }
 
+/*
+* Compute the (approximate) size (in KB) of a dpmap.
+*/
 size_t computeSize(const DPMAP& dpmap)
 {
   constexpr int itemSize = 64; // DataPointIdentifier or DataPointValue have the same size = 64 bytes
@@ -95,6 +121,9 @@ size_t computeSize(const DPMAP& dpmap)
   return static_cast<size_t>(std::floor(nofItems * itemSize * byte2KB));
 }
 
+/*
+* Compute the duration (in seconds) span by the datapoints in the dpmap.
+*/
 int computeDuration(const DPMAP& dpmap)
 {
   uint64_t minTime{std::numeric_limits<uint64_t>::max()};
@@ -109,6 +138,17 @@ int computeDuration(const DPMAP& dpmap)
   return static_cast<int>((maxTime - minTime) / 1000);
 }
 
+/*
+* Decides whether or not the dpmap should be sent to the output.
+*
+* @param maxSize if the dpmap size is above this size, 
+* then it should go to output
+* @param maxDuration if the dpmap spans more than this duration, 
+* then it should go to output
+*
+* @returns a boolean stating if the dpmap should be output and a string
+* describing why it should be output.
+*/
 std::tuple<bool, std::string> needOutput(const DPMAP& dpmap, int maxSize, int maxDuration)
 {
   std::string reason;
@@ -146,6 +186,21 @@ o2::ccdb::CcdbObjectInfo addTFInfo(o2::ccdb::CcdbObjectInfo inf,
   return inf;
 }
 
+/*
+* Process the datapoints received.
+*
+* The datapoints are accumulated into two DPMAPs (map from alias names to
+* vector of DataPointValue) : one for HV values and one for LV values.
+* If the DPMAPs satisfy certain conditions (@see needOutput) they
+* are sent to the output.
+*
+* @param aliases an array of 2 vectors of aliases (one for HV values, one
+* for LV values)
+* @param maxSize an array of two values for the maxsizes of the HV and LV
+* values respectively
+* @param maxDuration an array of two values for the max durations of the HV and LV
+* values respectively
+*/
 void processDataPoints(o2::framework::ProcessingContext& pc,
                        std::array<std::vector<std::string>, 2> aliases,
                        std::array<int, 2> maxSize,
@@ -176,11 +231,19 @@ void processDataPoints(o2::framework::ProcessingContext& pc,
   }
 }
 
+/*
+* Creates the main processing function.
+*
+* @param ic InitContext which is used to get the options and set the end of 
+* stream callback
+*/
 o2::framework::AlgorithmSpec::ProcessCallback createProcessFunction(o2::framework::InitContext& ic)
 {
   auto& callbacks = ic.services().get<o2::framework::CallbackService>();
   callbacks.set(o2::framework::CallbackService::Id::EndOfStream, endOfStream);
 
+  // the aliases arrays contain all the names of the MCH data points
+  // we are interested to transit to the CCDB
   std::array<std::vector<std::string>, 2> aliases = {
     o2::mch::dcs::aliases({o2::mch::dcs::MeasurementType::HV_V,
                            o2::mch::dcs::MeasurementType::HV_I}),
@@ -205,6 +268,14 @@ o2::framework::AlgorithmSpec::ProcessCallback createProcessFunction(o2::framewor
   };
 }
 
+/* Helper function to create a ConfigParamSpec option object.
+* 
+* @param name is either 'size' or 'duration'
+* @param value is the default value to be used (i.e. when the option is not 
+* specified on the command line)
+* @param what is either 'hv' or 'lv'
+* @param unit is the unit in which the values are given
+*/
 o2::framework::ConfigParamSpec whenToSendOption(const char* name, int value,
                                                 const char* what, const char* unit)
 {
@@ -228,6 +299,21 @@ using o2::framework::ConfigContext;
 using o2::framework::DataProcessorSpec;
 using o2::framework::WorkflowSpec;
 
+/**
+* DPL Workflow to process MCH DCS data points.
+*
+* The expected input is a vector of DataPointCompositeObject containing
+* only MCH data points.
+*
+* Those datapoints are accumulated into two DPMAPs (map from alias names to
+* vector of DataPointValue) : one for HV values and one for LV values.
+*
+* The accumulated DPMAP are sent to the output whenever :
+* - they reach a given size (--hv-max-size and --lv-max-size options)
+* - they span a given duration (--hv-max-duration and --lv-max-duration options)
+* - the workflow is ended
+*
+*/
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   DataProcessorSpec dcsProcessor;

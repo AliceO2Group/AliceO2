@@ -80,16 +80,6 @@ int main(int argc, char** argv)
     what.emplace_back("MCH/LV");
   }
 
-  // union Converter {
-  //   uint64_t raw_data;
-  //   T t_value;
-  // };
-  // if (dpcom.id.get_type() != dt) {
-  //   throw std::runtime_error("DPCOM is of unexpected type " + o2::dcs::show(dt));
-  // }
-  // Converter converter;
-  // converter.raw_data = dpcom.data.payload_pt1;
-
   auto sum =
     [](float s, o2::dcs::DataPointValue v) {
       union Converter {
