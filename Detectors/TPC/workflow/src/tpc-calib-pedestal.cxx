@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include <fmt/format.h>
+#include "Algorithm/RangeTokenizer.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSpecUtils.h"
@@ -28,6 +29,7 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "TPCBase/RDHUtils.h"
 #include "TPCWorkflow/TPCCalibPedestalSpec.h"
+#include "TPCWorkflow/CalDetMergerPublisherSpec.h"
 
 using namespace o2::framework;
 using RDHUtils = o2::raw::RDHUtils;
@@ -36,17 +38,23 @@ using RDHUtils = o2::raw::RDHUtils;
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   using o2::framework::CompletionPolicy;
-  policies.push_back(CompletionPolicyHelpers::defineByName("calib-tpc-pedestal", CompletionPolicy::CompletionOp::Consume));
+  policies.push_back(CompletionPolicyHelpers::defineByName("calib-tpc-pedestal.*", CompletionPolicy::CompletionOp::Consume));
+  policies.push_back(CompletionPolicyHelpers::defineByName("calib-tpc-caldet-merger-publisher", CompletionPolicy::CompletionOp::Consume));
 }
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
+  std::string sectorDefault = "0-" + std::to_string(o2::tpc::Sector::MAXSECTOR - 1);
+  int defaultlanes = 1; //std::max(1u, std::thread::hardware_concurrency() / 2);
+
   std::vector<ConfigParamSpec> options{
     {"input-spec", VariantType::String, "A:TPC/RAWDATA", {"selection string input specs"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCCalibPedestal.FirstTimeBin=10;...')"}},
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
-    {"no-calib-output", VariantType::Bool, false, {"skip sending the calibration output"}},
+    {"no-write-ccdb", VariantType::Bool, false, {"skip sending the calibration output to CCDB"}},
+    {"lanes", VariantType::Int, defaultlanes, {"Number of parallel processing lanes."}},
+    {"sectors", VariantType::String, sectorDefault.c_str(), {"List of TPC sectors, comma separated ranges, e.g. 0-3,7,9-15"}},
   };
 
   std::swap(workflowOptions, options);
@@ -66,10 +74,30 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   o2::conf::ConfigurableParam::writeINI("o2tpccalibration_configuration.ini");
 
   const std::string inputSpec = config.options().get<std::string>("input-spec");
-  const auto skipCalib = config.options().get<bool>("no-calib-output");
+  const auto skipCCDB = config.options().get<bool>("no-write-ccdb");
+
+  const auto tpcsectors = o2::RangeTokenizer::tokenize<int>(config.options().get<std::string>("sectors"));
+  const auto nSectors = (int)tpcsectors.size();
+  const auto nLanes = std::min(config.options().get<int>("lanes"), nSectors);
+  const auto sectorsPerLane = nSectors / nLanes + ((nSectors % nLanes) != 0);
 
   WorkflowSpec workflow;
-  workflow.emplace_back(getTPCCalibPedestalSpec(inputSpec, skipCalib));
+
+  if (nLanes <= 0) {
+    return workflow;
+  }
+
+  for (int ilane = 0; ilane < nLanes; ++ilane) {
+    auto first = tpcsectors.begin() + ilane * sectorsPerLane;
+    if (first >= tpcsectors.end()) {
+      break;
+    }
+    auto last = std::min(tpcsectors.end(), first + sectorsPerLane);
+    std::vector<int> range(first, last);
+    workflow.emplace_back(getTPCCalibPedestalSpec(inputSpec, ilane, range));
+  }
+
+  workflow.emplace_back(getCalDetMergerPublisherSpec(skipCCDB));
 
   return workflow;
 }
