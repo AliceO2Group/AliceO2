@@ -1142,18 +1142,25 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   int result = 0;
   struct sockaddr_in* serverAddr = nullptr;
 
-  do {
-    if (serverAddr) {
-      free(serverAddr);
-    }
-    serverAddr = (sockaddr_in*)malloc(sizeof(sockaddr_in));
-    uv_ip4_addr("0.0.0.0", driverInfo.port, serverAddr);
-    uv_tcp_bind(&serverHandle, (const struct sockaddr*)serverAddr, 0);
-    result = uv_listen((uv_stream_t*)&serverHandle, 100, ws_connect_callback);
-    if (result != 0) {
-      driverInfo.port++;
-    }
-  } while (result != 0);
+  // Do not offer websocket endpoint for devices
+  // FIXME: this was blocking david's workflows. For now
+  //        there is no point in any case to have devices
+  //        offering a web based API, but it might make sense in
+  //        the future to inspect them via some web based interface.
+  if (frameworkId.empty()) {
+    do {
+      if (serverAddr) {
+        free(serverAddr);
+      }
+      serverAddr = (sockaddr_in*)malloc(sizeof(sockaddr_in));
+      uv_ip4_addr("0.0.0.0", driverInfo.port, serverAddr);
+      uv_tcp_bind(&serverHandle, (const struct sockaddr*)serverAddr, 0);
+      result = uv_listen((uv_stream_t*)&serverHandle, 100, ws_connect_callback);
+      if (result != 0) {
+        driverInfo.port++;
+      }
+    } while (result != 0);
+  }
 
   GuiCallbackContext guiContext;
   guiContext.plugin = debugGUI;
