@@ -14,7 +14,7 @@ aliases. You can specify the path of CCDB also with `--ccdb-path`.
 YOu can also specify to run in verbose mode (`--use-verbose-mode`)
 
 ```shell
-o2-calibration-tof-sim-workflow --max-timeframes 3 --delta-fraction 0.5 -b |
+o2-calibration-tof-dcs-sim-workflow --max-timeframes 3 --delta-fraction 0.5 -b |
 o2-calibration-tof-dcs-workflow --use-ccdb-to-configure -b |
 o2-calibration-ccdb-populator-workflow --ccdb-path="http://localhost:8080" -b
 ```
