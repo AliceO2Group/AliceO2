@@ -15,6 +15,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
+#include "HMPIDBase/Common.h"
 #include "HMPIDReconstruction/HmpidDecodeRawMem.h"
 
 namespace o2
@@ -38,7 +39,9 @@ namespace hmpid
       HmpidDecodeRawDigit *mDeco;
       long mTotalDigits;
       long mTotalFrames;
+      std::string mRootStatFile;
 
+      ExecutionTimer mExTimer;
   };
 
 o2::framework::DataProcessorSpec getDecodingSpec(std::string inputSpec = "TF:HMP/RAWDATA");

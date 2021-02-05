@@ -64,6 +64,7 @@ void WriteRawFromDigitsTask::init(framework::InitContext& ic)
   mCod->reset();
   mCod->openOutputStream(mBaseFileName.c_str());
 
+  mExTimer.start();
   return;
 }
 
@@ -91,24 +92,27 @@ void WriteRawFromDigitsTask::run(framework::ProcessingContext& pc)
     }
     mDigitsReceived += digits.size();
     mFramesReceived++;
-    LOG(INFO) << "run() Digits received =" << mDigitsReceived << " frames = " << mFramesReceived;
+    LOG(DEBUG) << "run() Digits received =" << mDigitsReceived << " frames = " << mFramesReceived;
   }
+  mExTimer.elapseMes("... Write raw file ... Digits received = " + std::to_string(mDigitsReceived) + " Frames received = " + std::to_string(mFramesReceived));
   return;
 }
 
 void WriteRawFromDigitsTask::endOfStream(framework::EndOfStreamContext& ec)
 {
-  LOG(INFO) << "Received an End Of Stream !";
+  mExTimer.logMes("Received an End Of Stream !");
   if(mOrderTheEvents) {
     sort(mDigits.begin(), mDigits.end(), eventEquipPadsComparision);
-    LOG(INFO) << mDigits.size() << " Digits sorted ! " ;
+    mExTimer.logMes("We sort " + std::to_string(mDigits.size()) + "  ! ");
     mCod->codeDigitsVector(mDigits);
   } else {
     mCod->codeDigitsChunk(true);
   }
   mCod->closeOutputStream();
-  LOG(INFO) << "Raw File created ! Digits received = " << mDigitsReceived << " Frame received =" << mFramesReceived;
   mCod->dumpResults();
+
+  mExTimer.logMes( "Raw File created ! Digits received = " + std::to_string(mDigitsReceived) + " Frame received =" + std::to_string(mFramesReceived));
+  mExTimer.stop();
   return;
 }
 

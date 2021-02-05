@@ -64,76 +64,85 @@ void DataDecoderTask::init(framework::InitContext& ic)
 
   LOG(INFO) << "[HMPID Data Decoder - Init] ( create Decoder for " << Geo::MAXEQUIPMENTS << " equipments !";
 
+  mRootStatFile = ic.options().get<std::string>("root-file");
   mDeco = new o2::hmpid::HmpidDecodeRawDigit(Geo::MAXEQUIPMENTS);
   mDeco->init();
   mTotalDigits = 0;
   mTotalFrames = 0;
+
+  mExTimer.start();
   return;
 }
 
 void DataDecoderTask::run(framework::ProcessingContext& pc)
 {
   mDeco->mDigits.clear();
-
   decodeTF(pc);
+//  TODO: accept other types of Raw Streams ...
 //  decodeReadout(pc);
 // decodeRawFile(pc);
 
-//  LOG(INFO) << "[HMPID Data Decoder - run] Writing " << mDeco->mDigits.size() << " Digits ...";
-//  pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginHMP, "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mDigits);
-
-
- // pc.outputs().snapshot(o2::framework::Output{"HMP", "STATS", 0, o2::framework::Lifetime::Timeframe}, *theObj);
-
- //--- theObj->Reset();
- //---- mfileOut.reset();
-
+  mExTimer.elapseMes("... Decoding... Digits decoded = " + std::to_string(mTotalDigits) + " Frames received = " + std::to_string(mTotalFrames));
+  return;
 }
 
 void DataDecoderTask::endOfStream(framework::EndOfStreamContext& ec)
 {
   // Records the statistics
-  float avgEventSize[o2::hmpid::Geo::MAXEQUIPMENTS];
-  float avgBusyTime[o2::hmpid::Geo::MAXEQUIPMENTS];
-  uint32_t numOfSamples[o2::hmpid::Geo::N_MODULES][o2::hmpid::Geo::N_YCOLS][o2::hmpid::Geo::N_XROWS];
-  double sumOfCharges[o2::hmpid::Geo::N_MODULES][o2::hmpid::Geo::N_YCOLS][o2::hmpid::Geo::N_XROWS];
-  double squareOfCharges[o2::hmpid::Geo::N_MODULES][o2::hmpid::Geo::N_YCOLS][o2::hmpid::Geo::N_XROWS];
+  float avgEventSize;//[o2::hmpid::Geo::MAXEQUIPMENTS];
+  float avgBusyTime;//[o2::hmpid::Geo::MAXEQUIPMENTS];
+  float numOfSamples;//[o2::hmpid::Geo::N_MODULES][o2::hmpid::Geo::N_YCOLS][o2::hmpid::Geo::N_XROWS];
+  float sumOfCharges;//[o2::hmpid::Geo::N_MODULES][o2::hmpid::Geo::N_YCOLS][o2::hmpid::Geo::N_XROWS];
+  float squareOfCharges;//[o2::hmpid::Geo::N_MODULES][o2::hmpid::Geo::N_YCOLS][o2::hmpid::Geo::N_XROWS];
+  float xb;
+  float yb;
 
-  TString filename = TString::Format("%s_%06d.root", "test", 1);
+  TString filename = TString::Format("%s_stat.root", mRootStatFile.c_str());
   LOG(INFO) << "Create the stat file " << filename.Data();
   TFile mfileOut(TString::Format("%s", filename.Data()), "RECREATE");
-  TTree *  theObj;
-  theObj = new TTree("o2hmp", "HMPID Data Decoding Statistic results");
+  TTree *theObj[Geo::N_MODULES+1];
+  for(int i=0; i<Geo::N_MODULES; i++) { // Create the TTree array
+    TString tit = TString::Format("HMPID Data Decoding Statistic results Mod=%d",i);
+    theObj[i] = new TTree("o2hmp", tit);
+    theObj[i]->Branch("x", &xb,"s");
+    theObj[i]->Branch("y", &yb,"s");
+    theObj[i]->Branch("Samples", &numOfSamples,"i");
+    theObj[i]->Branch("Sum_of_charges", &sumOfCharges,"l");
+    theObj[i]->Branch("Sum_of_square", &squareOfCharges,"l");
+  }
+  theObj[Geo::N_MODULES] = new TTree("o2hmp", "HMPID Data Decoding Statistic results");
+  theObj[Geo::N_MODULES]->Branch("Average_Event_Size", &avgEventSize,"F");
+  theObj[Geo::N_MODULES]->Branch("Average_Busy_Time", &avgBusyTime,"F");
 
-  theObj->Branch("Average_Event_Size", avgEventSize,"f[14]");
-  theObj->Branch("Average_Busy_Time", avgBusyTime,"f[14]");
-  theObj->Branch("Samples_per_pad", avgBusyTime,"d[7][144][160]");
-  theObj->Branch("Sum_of_charges_per_pad", sumOfCharges,"d[7][144][160]");
-  theObj->Branch("Sum_of_square_of_charges", squareOfCharges,"d[7][144][160]");
-
+  char summaryFileName[254];
+  sprintf(summaryFileName,"%s_stat.txt", mRootStatFile.c_str());
+  mDeco->writeSummaryFile(summaryFileName);
   int numEqui = mDeco->getNumberOfEquipments();
   for(int e=0;e<numEqui;e++) {
-      avgEventSize[e] = mDeco->getAverageEventSize(e);
-      avgBusyTime[e] = mDeco->getAverageBusyTime(e);
+    avgEventSize = mDeco->getAverageEventSize(e);
+    avgBusyTime = mDeco->getAverageBusyTime(e);
+    theObj[Geo::N_MODULES]->Fill();
   }
   for(int m=0; m < o2::hmpid::Geo::N_MODULES; m++)
     for(int y=0; y < o2::hmpid::Geo::N_YCOLS; y++)
       for(int x=0; x < o2::hmpid::Geo::N_XROWS; x++ ) {
-        numOfSamples[m][y][x] = mDeco->getPadSamples(m, x, y);
-        sumOfCharges[m][y][x] = mDeco->getPadSum(m, x, y);
-        squareOfCharges[m][y][x] = mDeco->getPadSquares(m, x, y);
+        xb = x;
+        yb = y;
+        numOfSamples = mDeco->getPadSamples(m, x, y);
+        sumOfCharges = mDeco->getPadSum(m, x, y);
+        squareOfCharges = mDeco->getPadSquares(m, x, y);
+        theObj[m]->Fill();
       }
- // theObj->Fill();
-  theObj->Write();
 
-  LOG(INFO) << "End the Decoding ! Digits decoded = " << mTotalDigits << " Frames received = " << mTotalFrames;
- // LOG(INFO)<< "Sleep 10 sec"<< std::endl;
- // sleep(30);
+  for(int i=0; i<=Geo::N_MODULES; i++) {
+    theObj[i]->Write();
+  }
 
+  mExTimer.logMes("End the Decoding ! Digits decoded = " + std::to_string(mTotalDigits) + " Frames received = " + std::to_string(mTotalFrames));
+  mExTimer.stop();
   //ec.services().get<ControlService>().endOfStream();
- // ec.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
+  // ec.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
   return;
-
 }
 //_________________________________________________________________________________________________
 // the decodeTF() function processes the the messages generated by the (sub)TimeFrame builder

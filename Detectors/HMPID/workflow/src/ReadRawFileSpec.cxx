@@ -14,11 +14,6 @@
 #include <fstream>
 #include <stdexcept>
 
-
-
-
-
-
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
@@ -33,9 +28,6 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "DPLUtils/DPLRawParser.h"
 
-
-
-
 #include "HMPIDWorkflow/ReadRawFileSpec.h"
 
 namespace o2
@@ -47,12 +39,6 @@ using namespace o2;
 using namespace o2::framework;
 using RDH = o2::header::RDHAny;
 
-//auto RawFileReaderTask::stop(void)
-//{
-//  LOG(INFO) << "Stop file reader";
-//  mInputFile.close();
-//  return;
-//}
 
 void RawFileReaderTask::init(framework::InitContext& ic)
 {
@@ -71,6 +57,9 @@ void RawFileReaderTask::init(framework::InitContext& ic)
     this->mInputFile.close();
   };
   ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
+
+  mExTimer.start();
+  return;
 }
 
 
@@ -81,14 +70,13 @@ void RawFileReaderTask::run(framework::ProcessingContext& pc)
   char* outBuffer{nullptr};
   size_t bufSize{0};
   int numberOfFrames = 0;
-  LOG(INFO)<< "Sleep 5 sec"<< std::endl;
-  sleep(5);
+  LOG(INFO)<< "Sleep 1 sec for sync";
+  sleep(1);
 
   while (true) {
     //usleep(100);
     mInputFile.read((char*)(&rdh), sizeof(RDH)); // read the next RDH, stop if no more data is available
     if (mInputFile.fail()) {
-      LOG(INFO) << "End of file !  Number of frames processed :" << numberOfFrames;
       free(outBuffer);
       mInputFile.close();
       pc.services().get<ControlService>().endOfStream();
@@ -121,7 +109,6 @@ void RawFileReaderTask::run(framework::ProcessingContext& pc)
     memcpy(outBuffer, &rdh, rdhHeaderSize); // fill the buffer
     mInputFile.read(outBuffer + rdhHeaderSize, frameSize - rdhHeaderSize);
     if (mInputFile.fail()) { // Could be EoF
-      LOG(INFO) << "end of file reached";
       free(outBuffer);
       pc.services().get<ControlService>().endOfStream();
       pc.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
@@ -129,7 +116,13 @@ void RawFileReaderTask::run(framework::ProcessingContext& pc)
     }
     bufSize = frameSize; // Set the buffer pointer
     pc.outputs().snapshot(Output{"HMP","RAWDATA"}, outBuffer, bufSize);
+//std::cout << mExTimer.mTimer.CpuTime() << " " << mExTimer.mLastLogTime << std::endl;
+    mExTimer.elapseMes("... Reading... Number of Pages = " + std::to_string(numberOfFrames));
   } // while (true)
+
+  mExTimer.logMes("End of file !  Number of frames processed = " + std::to_string(numberOfFrames));
+  mExTimer.stop();
+  return;
 }
 
 //_________________________________________________________________________________________________

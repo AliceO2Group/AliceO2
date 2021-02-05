@@ -67,17 +67,14 @@ void DumpDigitsTask::init(framework::InitContext& ic)
       mIsOutputOnFile = true;
     }
   }
-
-  if (mPrintDigits) {
-     std::cout << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
-  }
-  if (mIsOutputOnFile) {
-     mOsFile << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
-  }
+  if (mPrintDigits) std::cout << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
+  if (mIsOutputOnFile) mOsFile << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
 
   mOrbit = -1;
   mBc = -1;
   mDigitsReceived = 0;
+
+  mExTimer.start();
   return;
 }
 
@@ -103,13 +100,16 @@ void DumpDigitsTask::run(framework::ProcessingContext& pc)
       }
     }
   }
+  mExTimer.elapseMes( "... Dumping... Digits received = " + std::to_string(mDigitsReceived));
   return;
 }
 
 void DumpDigitsTask::endOfStream(framework::EndOfStreamContext& ec)
 {
   mOsFile.close();
-  LOG(INFO) << "End Digits Dump ! Dumped digits = " << mDigitsReceived;
+
+  mExTimer.stop();
+  mExTimer.logMes("End Digits Dump ! Dumped digits = " + std::to_string(mDigitsReceived));
   return;
 }
 
