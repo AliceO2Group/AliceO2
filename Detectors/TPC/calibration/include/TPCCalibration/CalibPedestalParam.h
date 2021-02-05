@@ -26,11 +26,11 @@ namespace tpc
 {
 
 struct CalibPedestalParam : public o2::conf::ConfigurableParamHelper<CalibPedestalParam> {
-  int FirstTimeBin{0};                              ///< first time bin used in analysis
-  int LastTimeBin{500};                             ///< first time bin used in analysis
-  int ADCMin{0};                                    ///< minimum adc value
-  int ADCMax{120};                                  ///< maximum adc value
-  StatisticsType StatType{StatisticsType::GausFit}; ///< statistics type to be used for pedestal and noise evaluation
+  int FirstTimeBin{0};                                  ///< first time bin used in analysis
+  int LastTimeBin{500};                                 ///< first time bin used in analysis
+  int ADCMin{0};                                        ///< minimum adc value
+  int ADCMax{120};                                      ///< maximum adc value
+  StatisticsType StatType{StatisticsType::GausFitFast}; ///< statistics type to be used for pedestal and noise evaluation
 
   O2ParamDef(CalibPedestalParam, "TPCCalibPedestal");
 };
