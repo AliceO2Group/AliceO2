@@ -8,6 +8,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <vector>
+#include <algorithm>
+
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/InputRecordWalker.h"
 #include "Framework/Logger.h"
@@ -21,7 +24,7 @@
 using namespace o2::tpc;
 using namespace o2::framework;
 
-uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<RawReaderCRU>& reader, bool useOldSubspec)
+uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<RawReaderCRU>& reader, bool useOldSubspec, const std::vector<int>& sectors)
 {
   std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
 
@@ -45,7 +48,13 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
       rdh_utils::getMapping(feeID, cruID, endPoint, linkID);
     }
 
-    uint64_t sector = cruID / 10;
+    const uint64_t sector = cruID / 10;
+
+    // sector selection should be better done by directly subscribing to a range of subspecs. But this might not be that simple
+    if (sectors.size() && (std::find(sectors.begin(), sectors.end(), int(sector)) == sectors.end())) {
+      continue;
+    }
+
     activeSectors |= (0x1 << sector);
 
     const auto globalLinkID = linkID + endPoint * 12;

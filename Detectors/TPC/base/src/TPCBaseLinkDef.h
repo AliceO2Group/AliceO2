@@ -27,6 +27,7 @@
 #pragma link C++ class o2::tpc::CalDet < short> + ;
 #pragma link C++ class o2::tpc::CalDet < bool> + ;
 #pragma link C++ class std::vector < o2::tpc::CalDet < float>> + ;
+#pragma link C++ class std::vector < o2::tpc::CalDet < float>*> + ;
 #pragma link C++ class std::unordered_map < std::string, o2::tpc::CalDet < float>> + ;
 #pragma link C++ class o2::tpc::CDBInterface;
 #pragma link C++ class o2::tpc::ContainerFactory;
