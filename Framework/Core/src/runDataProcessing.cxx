@@ -506,7 +506,6 @@ struct ControlWebSocketHandler : public WebSocketHandler {
       didProcessMetric = true;
       didHaveNewMetric |= hasNewMetric;
     } else if (ControlServiceHelpers::parseControl(token, match)) {
-      LOG(error) << "Found a command, processing for pid " << mPid;
       assert(mContext.infos);
       ControlServiceHelpers::processCommand(*mContext.infos, mPid, match[1].str(), match[2].str());
     } else if (DeviceConfigHelper::parseConfig(std::string{"                 "} + token, configMatch)) {
