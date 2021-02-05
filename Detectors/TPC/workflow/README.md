@@ -152,10 +152,12 @@ bz=     magnetic field
 ### Pedestal calibration
 #### Options
 ```bash
---direct-file-dump write final calibration to local root file
---max-events       maximum number of events to process
---no-calib-output  don't send the calibration data via DPL (required in case the calibration write is not attached)
---use-old-subspec  Subspecification is built from RDH like 
+--direct-file-dump     write final calibration to local root file
+--max-events           maximum number of events to process
+--no-write-ccdb        don't send the calibration data via DPL (required in case the calibration write is not attached)
+--use-old-subspec      use old subspec definition (CruId << 16) | ((LinkId + 1) << (CruEndPoint == 1 ? 8 : 0))
+--lanes arg (=1)       number of parallel processes
+--sectors arg (=0-35)  list of TPC sectors, comma separated ranges, e.g. 0-3,7,9-15
 ```
 
 #### Running with data distribution
@@ -183,7 +185,7 @@ o2-raw-file-reader-workflow  --input-conf raw-reader.cfg --nocheck-hbf-per-tf --
 ```
 
 #### Send data to CCDB
-Remove the `--no-calib-output` option and add
+Remove the `--no-write-ccdb` option and add
 ```bash
 | o2-calibration-ccdb-populator-workflow
 ```

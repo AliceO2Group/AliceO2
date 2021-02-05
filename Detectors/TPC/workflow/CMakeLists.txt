@@ -26,6 +26,7 @@ o2_add_library(TPCWorkflow
                        src/CalibProcessingHelper.cxx
                        src/ClusterSharingMapSpec.cxx
                        src/FileReaderWorkflow.cxx
+                       src/CalDetMergerPublisherSpec.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
                                      O2::DPLUtils O2::TPCReconstruction
