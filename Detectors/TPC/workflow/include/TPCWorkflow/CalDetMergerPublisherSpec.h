@@ -8,28 +8,22 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TPC_CalibProcessingHelper_H
-#define O2_TPC_CalibProcessingHelper_H
+#ifndef O2_TPC_CalDetMergerPublisherSpec_H
+#define O2_TPC_CalDetMergerPublisherSpec_H
 
-#include <memory>
+/// @file   CalDetMergerPublisherSpec.h
+/// @brief  TPC CalDet merger and CCDB publisher
+/// @author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 
-#include "Framework/InputRecord.h"
-
-using o2::tpc::rawreader::RawReaderCRU;
+#include "Framework/DataProcessorSpec.h"
 
 namespace o2
 {
 namespace tpc
 {
-namespace rawreader
-{
-class RawReaderCRU;
-}
-namespace calib_processing_helper
-{
 
-uint64_t processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<RawReaderCRU>& reader, bool useOldSubspec = false, const std::vector<int>& sectors = {});
-} // namespace calib_processing_helper
+o2::framework::DataProcessorSpec getCalDetMergerPublisherSpec(bool skipCCDB);
+
 } // namespace tpc
 } // namespace o2
 
