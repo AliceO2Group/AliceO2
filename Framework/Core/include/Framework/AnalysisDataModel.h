@@ -638,13 +638,67 @@ DECLARE_SOA_INDEX_TABLE(Run3MatchedToBCSparse, BCs, "MA_RN3_BC_SP", indices::BCI
 using CollisionMatchedRun2Sparse = soa::Join<Collisions, Run2MatchedSparse>::iterator;
 using CollisionMatchedRun3Sparse = soa::Join<Collisions, Run3MatchedSparse>::iterator;
 
-namespace pidtest
+namespace autopidtpc
 {
-DECLARE_SOA_COLUMN(TestExpSigma, testExpSigma, float);
-} // namespace pidtest
+// Expected signals
+DECLARE_SOA_DYNAMIC_COLUMN(AutoTPCExpSignalDiffEl, autotpcExpSignalDiffEl, [](float nsigma, float sigma) { return nsigma * sigma; });
+DECLARE_SOA_DYNAMIC_COLUMN(AutoTPCExpSignalDiffMu, autotpcExpSignalDiffMu, [](float nsigma, float sigma) { return nsigma * sigma; });
+DECLARE_SOA_DYNAMIC_COLUMN(AutoTPCExpSignalDiffPi, autotpcExpSignalDiffPi, [](float nsigma, float sigma) { return nsigma * sigma; });
+DECLARE_SOA_DYNAMIC_COLUMN(AutoTPCExpSignalDiffKa, autotpcExpSignalDiffKa, [](float nsigma, float sigma) { return nsigma * sigma; });
+DECLARE_SOA_DYNAMIC_COLUMN(AutoTPCExpSignalDiffPr, autotpcExpSignalDiffPr, [](float nsigma, float sigma) { return nsigma * sigma; });
+DECLARE_SOA_DYNAMIC_COLUMN(AutoTPCExpSignalDiffDe, autotpcExpSignalDiffDe, [](float nsigma, float sigma) { return nsigma * sigma; });
+DECLARE_SOA_DYNAMIC_COLUMN(AutoTPCExpSignalDiffTr, autotpcExpSignalDiffTr, [](float nsigma, float sigma) { return nsigma * sigma; });
+DECLARE_SOA_DYNAMIC_COLUMN(AutoTPCExpSignalDiffHe, autotpcExpSignalDiffHe, [](float nsigma, float sigma) { return nsigma * sigma; });
+DECLARE_SOA_DYNAMIC_COLUMN(AutoTPCExpSignalDiffAl, autotpcExpSignalDiffAl, [](float nsigma, float sigma) { return nsigma * sigma; });
+// Expected sigma
+DECLARE_SOA_COLUMN(AutoTPCExpSigmaEl, autotpcExpSigmaEl, float);
+DECLARE_SOA_COLUMN(AutoTPCExpSigmaMu, autotpcExpSigmaMu, float);
+DECLARE_SOA_COLUMN(AutoTPCExpSigmaPi, autotpcExpSigmaPi, float);
+DECLARE_SOA_COLUMN(AutoTPCExpSigmaKa, autotpcExpSigmaKa, float);
+DECLARE_SOA_COLUMN(AutoTPCExpSigmaPr, autotpcExpSigmaPr, float);
+DECLARE_SOA_COLUMN(AutoTPCExpSigmaDe, autotpcExpSigmaDe, float);
+DECLARE_SOA_COLUMN(AutoTPCExpSigmaTr, autotpcExpSigmaTr, float);
+DECLARE_SOA_COLUMN(AutoTPCExpSigmaHe, autotpcExpSigmaHe, float);
+DECLARE_SOA_COLUMN(AutoTPCExpSigmaAl, autotpcExpSigmaAl, float);
+// NSigma
+DECLARE_SOA_COLUMN(AutoTPCNSigmaEl, autotpcNSigmaEl, float);
+DECLARE_SOA_COLUMN(AutoTPCNSigmaMu, autotpcNSigmaMu, float);
+DECLARE_SOA_COLUMN(AutoTPCNSigmaPi, autotpcNSigmaPi, float);
+DECLARE_SOA_COLUMN(AutoTPCNSigmaKa, autotpcNSigmaKa, float);
+DECLARE_SOA_COLUMN(AutoTPCNSigmaPr, autotpcNSigmaPr, float);
+DECLARE_SOA_COLUMN(AutoTPCNSigmaDe, autotpcNSigmaDe, float);
+DECLARE_SOA_COLUMN(AutoTPCNSigmaTr, autotpcNSigmaTr, float);
+DECLARE_SOA_COLUMN(AutoTPCNSigmaHe, autotpcNSigmaHe, float);
+DECLARE_SOA_COLUMN(AutoTPCNSigmaAl, autotpcNSigmaAl, float);
+} // namespace autopidtpc
 
-DECLARE_SOA_PID_TABLE(pidRespTest, "pidRespTest",
-                      pidtest::TestExpSigma);
+DECLARE_SOA_PID_TABLE(AutoPIDTPCEl, "AutoPIDTPCEl",
+                      autopidtpc::AutoTPCExpSignalDiffEl<autopidtpc::AutoTPCNSigmaEl, autopidtpc::AutoTPCExpSigmaEl>,
+                      autopidtpc::AutoTPCExpSigmaEl, autopidtpc::AutoTPCNSigmaEl);
+DECLARE_SOA_PID_TABLE(AutoPIDTPCMu, "AutoPIDTPCMu",
+                      autopidtpc::AutoTPCExpSignalDiffMu<autopidtpc::AutoTPCNSigmaMu, autopidtpc::AutoTPCExpSigmaMu>,
+                      autopidtpc::AutoTPCExpSigmaMu, autopidtpc::AutoTPCNSigmaMu);
+DECLARE_SOA_PID_TABLE(AutoPIDTPCPi, "AutoPIDTPCPi",
+                      autopidtpc::AutoTPCExpSignalDiffPi<autopidtpc::AutoTPCNSigmaPi, autopidtpc::AutoTPCExpSigmaPi>,
+                      autopidtpc::AutoTPCExpSigmaPi, autopidtpc::AutoTPCNSigmaPi);
+DECLARE_SOA_PID_TABLE(AutoPIDTPCKa, "AutoPIDTPCKa",
+                      autopidtpc::AutoTPCExpSignalDiffKa<autopidtpc::AutoTPCNSigmaKa, autopidtpc::AutoTPCExpSigmaKa>,
+                      autopidtpc::AutoTPCExpSigmaKa, autopidtpc::AutoTPCNSigmaKa);
+DECLARE_SOA_PID_TABLE(AutoPIDTPCPr, "AutoPIDTPCPr",
+                      autopidtpc::AutoTPCExpSignalDiffPr<autopidtpc::AutoTPCNSigmaPr, autopidtpc::AutoTPCExpSigmaPr>,
+                      autopidtpc::AutoTPCExpSigmaPr, autopidtpc::AutoTPCNSigmaPr);
+DECLARE_SOA_PID_TABLE(AutoPIDTPCDe, "AutoPIDTPCDe",
+                      autopidtpc::AutoTPCExpSignalDiffDe<autopidtpc::AutoTPCNSigmaDe, autopidtpc::AutoTPCExpSigmaDe>,
+                      autopidtpc::AutoTPCExpSigmaDe, autopidtpc::AutoTPCNSigmaDe);
+DECLARE_SOA_PID_TABLE(AutoPIDTPCTr, "AutoPIDTPCTr",
+                      autopidtpc::AutoTPCExpSignalDiffTr<autopidtpc::AutoTPCNSigmaTr, autopidtpc::AutoTPCExpSigmaTr>,
+                      autopidtpc::AutoTPCExpSigmaTr, autopidtpc::AutoTPCNSigmaTr);
+DECLARE_SOA_PID_TABLE(AutoPIDTPCHe, "AutoPIDTPCHe",
+                      autopidtpc::AutoTPCExpSignalDiffHe<autopidtpc::AutoTPCNSigmaHe, autopidtpc::AutoTPCExpSigmaHe>,
+                      autopidtpc::AutoTPCExpSigmaHe, autopidtpc::AutoTPCNSigmaHe);
+DECLARE_SOA_PID_TABLE(AutoPIDTPCAl, "AutoPIDTPCAl",
+                      autopidtpc::AutoTPCExpSignalDiffAl<autopidtpc::AutoTPCNSigmaAl, autopidtpc::AutoTPCExpSigmaAl>,
+                      autopidtpc::AutoTPCExpSigmaAl, autopidtpc::AutoTPCNSigmaAl);
 
 } // namespace aod
 
