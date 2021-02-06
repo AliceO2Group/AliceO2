@@ -87,11 +87,11 @@ VertexerTraitsHIP::~VertexerTraitsHIP()
   delete mDebugger;
 }
 #else
+
 VertexerTraitsHIP::VertexerTraitsHIP()
 {
   setIsGPU(true);
 }
-
 #endif
 
 void VertexerTraitsHIP::initialise(ROframe* event)

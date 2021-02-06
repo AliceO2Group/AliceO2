@@ -91,9 +91,9 @@ VertexerTraitsGPU::VertexerTraitsGPU()
   setIsGPU(true);
 }
 
+VertexerTraitsGPU::~VertexerTraitsGPU() = default;
 #endif
 
-VertexerTraitsGPU::~VertexerTraitsGPU() = default;
 
 void VertexerTraitsGPU::initialise(ROframe* event)
 {

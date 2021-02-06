@@ -75,18 +75,18 @@ class RangeRefComp
   GPUd() RangeRefComp(int ent, int n) { set(ent, n); }
   GPUdDefault() RangeRefComp() = default;
   GPUdDefault() RangeRefComp(const RangeRefComp& src) = default;
-  GPUd() void set(int ent, int n)
+  GPUhd() void set(int ent, int n)
   {
     mData = (Base(ent) << NBitsN) + (Base(n) & MaskN);
   }
   GPUd() static constexpr Base getMaxFirstEntry() { return MaskR >> NBitsN; }
   GPUd() static constexpr Base getMaxEntries() { return MaskN; }
-  GPUd() int getFirstEntry() const { return mData >> NBitsN; }
-  GPUd() int getEntries() const { return mData & ((0x1 << NBitsN) - 1); }
-  GPUd() void setFirstEntry(int ent) { mData = (Base(ent) << NBitsN) | (mData & MaskN); }
-  GPUd() void setEntries(int n) { mData = (mData & MaskR) | (Base(n) & MaskN); }
-  GPUd() void changeEntriesBy(int inc) { setEntries(getEntries() + inc); }
-  GPUd() bool operator==(const RangeRefComp& other) const
+  GPUhd() int getFirstEntry() const { return mData >> NBitsN; }
+  GPUhd() int getEntries() const { return mData & ((0x1 << NBitsN) - 1); }
+  GPUhd() void setFirstEntry(int ent) { mData = (Base(ent) << NBitsN) | (mData & MaskN); }
+  GPUhd() void setEntries(int n) { mData = (mData & MaskR) | (Base(n) & MaskN); }
+  GPUhd() void changeEntriesBy(int inc) { setEntries(getEntries() + inc); }
+  GPUhd() bool operator==(const RangeRefComp& other) const
   {
     return mData == other.mData;
   }
