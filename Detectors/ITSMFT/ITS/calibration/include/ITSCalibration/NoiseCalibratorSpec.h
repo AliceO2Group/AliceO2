@@ -39,6 +39,7 @@ class NoiseCalibratorSpec : public Task
   void endOfStream(EndOfStreamContext& ec) final;
 
  private:
+  void sendOutput(DataAllocator& output);
   std::unique_ptr<o2::its::NoiseCalibrator> mCalibrator = nullptr;
 };
 

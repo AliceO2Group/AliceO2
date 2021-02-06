@@ -41,7 +41,9 @@ class NoiseCalibrator
   }
   ~NoiseCalibrator() = default;
 
-  void processTimeFrame(gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
+  void setThreshold(unsigned int t) { mThreshold = t; }
+
+  bool processTimeFrame(gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
                         gsl::span<const unsigned char> const& patterns,
                         gsl::span<const o2::itsmft::ROFRecord> const& rofs);
 
@@ -52,6 +54,7 @@ class NoiseCalibrator
  private:
   o2::itsmft::NoiseMap mNoiseMap{24120};
   float mProbabilityThreshold = 3e-6f;
+  unsigned int mThreshold = 100;
   unsigned int mNumberOfStrobes = 0;
   bool m1pix = true;
 };

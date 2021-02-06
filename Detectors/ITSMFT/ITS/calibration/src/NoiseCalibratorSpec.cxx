@@ -44,10 +44,14 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
   gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
   const auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
 
-  mCalibrator->processTimeFrame(compClusters, patterns, rofs);
+  if (mCalibrator->processTimeFrame(compClusters, patterns, rofs)) {
+    LOG(INFO) << "Minimum number of noise counts has been reached !";
+    sendOutput(pc.outputs());
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
+  }
 }
 
-void NoiseCalibratorSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
+void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
 {
   mCalibrator->finalize();
   const auto& payload = mCalibrator->getNoiseMap();
@@ -62,10 +66,15 @@ void NoiseCalibratorSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
             << " : " << info.getEndValidityTimestamp();
 
   using clbUtils = o2::calibration::Utils;
-  ec.outputs().snapshot(
+  output.snapshot(
     Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, 0}, *image.get());
-  ec.outputs().snapshot(
+  output.snapshot(
     Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, 0}, info);
+}
+
+void NoiseCalibratorSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
+{
+  sendOutput(ec.outputs());
 }
 
 DataProcessorSpec getNoiseCalibratorSpec()
