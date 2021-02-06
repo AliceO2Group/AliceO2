@@ -69,6 +69,12 @@ if(NOT BUILD_SIMULATION)
   list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST Generators/share/external/trigger_mpi.C)
 endif()
 
+if(NOT ENABLE_UPGRADES)
+  # exclude all the macros found under Detectors/Upgrades directory
+  o2_get_list_of_macros(${CMAKE_SOURCE_DIR}/Detectors/Upgrades upgradeMacros)
+  list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST ${upgradeMacros})
+endif()
+
 if(NOT pythia6_FOUND)
   list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST Generators/share/external/pythia6.C)
 endif()
