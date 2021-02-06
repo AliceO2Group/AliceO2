@@ -22,7 +22,7 @@ namespace o2
 {
 namespace its
 {
-void NoiseCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
+bool NoiseCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
                                        gsl::span<const unsigned char> const& patterns,
                                        gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {
@@ -81,6 +81,7 @@ void NoiseCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClusterEx
     }
   }
   mNumberOfStrobes += rofs.size();
+  return (mNumberOfStrobes * mProbabilityThreshold >= mThreshold) ? true : false;
 }
 
 void NoiseCalibrator::finalize()
