@@ -89,10 +89,10 @@ taskwrapper_cleanup_handler() {
 # Main features provided at the moment are:
 # - optional recording of walltime and memory consumption (time evolution)
 # - optional recording of CPU utilization
-# - Some job control and error detection (in particular for DPL workflows). 
+# - Some job control and error detection (in particular for DPL workflows).
 #   If exceptions are found, all participating processes will be sent a termination signal.
-#   The rational behind this function is to be able to determine failing 
-#   conditions early and prevent longtime hanging executables 
+#   The rational behind this function is to be able to determine failing
+#   conditions early and prevent longtime hanging executables
 #   (until DPL offers signal handling and automatic shutdown)
 # - possibility to provide user hooks for "start" and "failure"
 # - possibility to skip (jump over) job alltogether
@@ -114,7 +114,7 @@ taskwrapper() {
   chmod +x ${SCRIPTNAME}
 
   # this gives some possibility to customize the wrapper
-  # and do some special task at the start. The hook takes 2 arguments: 
+  # and do some special task at the start. The hook takes 2 arguments:
   # The original command and the logfile
   if [ "${JOBUTILS_JOB_STARTHOOK}" ]; then
     hook="${JOBUTILS_JOB_STARTHOOK} '$command' $logfile"
@@ -167,7 +167,7 @@ taskwrapper() {
     # We don't like to see critical problems in the log file.
 
     # We need to grep on multitude of things:
-    # - all sorts of exceptions (may need to fine-tune)  
+    # - all sorts of exceptions (may need to fine-tune)
     # - segmentation violation
     # - there was a crash
     # - bus error (often occuring with shared mem)
@@ -193,7 +193,7 @@ taskwrapper() {
       echo "Detected critical problem in logfile $logfile"
 
       # this gives some possibility to customize the wrapper
-      # and do some special task at the start. The hook takes 2 arguments: 
+      # and do some special task at the start. The hook takes 2 arguments:
       # The original command and the logfile
       if [ "${JOBUTILS_JOB_FAILUREHOOK}" ]; then
         hook="${JOBUTILS_JOB_FAILUREHOOK} '$command' $logfile"
@@ -206,6 +206,7 @@ taskwrapper() {
 
       RC_ACUM=$((RC_ACUM+1))
       [ ! "${JOBUTILS_KEEPJOBSCRIPT}" ] && rm ${SCRIPTNAME} 2> /dev/null
+      [ "${JOBUTILS_PRINT_ON_ERROR}" ] && cat ${logfile}
       [[ ! "${JOBUTILS_NOEXIT_ON_ERROR}" ]] && [[ ! $- == *i* ]] && exit 1
       return 1
     fi
@@ -305,6 +306,7 @@ taskwrapper() {
             hook="${JOBUTILS_JOB_FAILUREHOOK} '$command' $logfile"
             eval "${hook}"
           fi
+          [ "${JOBUTILS_PRINT_ON_ERROR}" ] && echo ----- Last log: ----- && pwd && cat ${logfile} && echo ----- End of log -----
           return 1
         fi
       fi
@@ -321,6 +323,7 @@ taskwrapper() {
           hook="${JOBUTILS_JOB_FAILUREHOOK} '$command' $logfile"
           eval "${hook}"
         fi
+        [ "${JOBUTILS_PRINT_ON_ERROR}" ] && echo ----- Last log: ----- && pwd && cat ${logfile} && echo ----- End of log -----
         return 1
       fi
     fi
@@ -356,6 +359,7 @@ taskwrapper() {
     fi
   else
     echo "command ${command} had nonzero exit code ${RC}"
+    [ "${JOBUTILS_PRINT_ON_ERROR}" ] && echo ----- Last log: ----- && pwd && cat ${logfile} && echo ----- End of log -----
   fi
   [ ! "${JOBUTILS_KEEPJOBSCRIPT}" ] && rm ${SCRIPTNAME} 2> /dev/null
 
@@ -366,7 +370,7 @@ taskwrapper() {
   o2_cleanup_shm_files #--> better to register a general trap at EXIT
 
   # this gives some possibility to customize the wrapper
-  # and do some special task at the ordinary exit. The hook takes 3 arguments: 
+  # and do some special task at the ordinary exit. The hook takes 3 arguments:
   # - The original command
   # - the logfile
   # - the return code from the execution
