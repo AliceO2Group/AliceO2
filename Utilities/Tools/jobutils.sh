@@ -307,6 +307,7 @@ taskwrapper() {
             eval "${hook}"
           fi
           [ "${JOBUTILS_PRINT_ON_ERROR}" ] && echo ----- Last log: ----- && pwd && cat ${logfile} && echo ----- End of log -----
+          [[ ! "${JOBUTILS_NOEXIT_ON_ERROR}" ]] && [[ ! $- == *i* ]] && exit 1
           return 1
         fi
       fi
@@ -324,6 +325,7 @@ taskwrapper() {
           eval "${hook}"
         fi
         [ "${JOBUTILS_PRINT_ON_ERROR}" ] && echo ----- Last log: ----- && pwd && cat ${logfile} && echo ----- End of log -----
+        [[ ! "${JOBUTILS_NOEXIT_ON_ERROR}" ]] && [[ ! $- == *i* ]] && exit 1
         return 1
       fi
     fi
