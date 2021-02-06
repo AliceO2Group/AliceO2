@@ -27,6 +27,7 @@ void CompressedClusters::clear()
   row.clear();
   colInc.clear();
   chipInc.clear();
+  chipMul.clear();
   pattID.clear();
   pattMap.clear();
 }
