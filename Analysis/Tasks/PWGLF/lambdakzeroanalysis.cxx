@@ -84,6 +84,10 @@ struct lambdakzeroanalysis {
   OutputObj<TH3F> h3dMassLambda{TH3F("h3dMassLambda", "", 20, 0, 100, 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
   OutputObj<TH3F> h3dMassAntiLambda{TH3F("h3dMassAntiLambda", "", 20, 0, 100, 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
 
+  OutputObj<TH3F> h3dMassK0ShortDca{TH3F("h3dMassK0ShortDca", "", 200, 0, 1, 200, 0, 10, 200, 0.450, 0.550)};
+  OutputObj<TH3F> h3dMassLambdaDca{TH3F("h3dMassLambdaDca", "", 200, 0, 1, 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
+  OutputObj<TH3F> h3dMassAntiLambdaDca{TH3F("h3dMassAntiLambdaDca", "", 200, 0, 1, 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
+
   //Selection criteria
   Configurable<double> v0cospa{"v0cospa", 0.995, "V0 CosPA"}; //double -> N.B. dcos(x)/dx = 0 at x=0)
   Configurable<float> dcav0dau{"dcav0dau", 1.0, "DCA V0 Daughters"};
@@ -91,6 +95,7 @@ struct lambdakzeroanalysis {
   Configurable<float> dcapostopv{"dcapostopv", .1, "DCA Pos To PV"};
   Configurable<float> v0radius{"v0radius", 5.0, "v0radius"};
   Configurable<float> rapidity{"rapidity", 0.5, "rapidity"};
+  Configurable<int> saveDcaHist{"saveDcaHist", 0, "saveDcaHist"};
 
   // Filter preFilterV0 = aod::v0data::dcapostopv > dcapostopv&&
   //                                                  aod::v0data::dcanegtopv > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau; we can use this again once (and if) math expressions can be used there
@@ -119,9 +124,16 @@ struct lambdakzeroanalysis {
         if (TMath::Abs(v0.yLambda()) < rapidity) {
           h3dMassLambda->Fill(collision.centV0M(), v0.pt(), v0.mLambda());
           h3dMassAntiLambda->Fill(collision.centV0M(), v0.pt(), v0.mAntiLambda());
+          if (saveDcaHist == 1) {
+            h3dMassLambdaDca->Fill(v0.dcaV0daughters(), v0.pt(), v0.mLambda());
+            h3dMassAntiLambdaDca->Fill(v0.dcaV0daughters(), v0.pt(), v0.mAntiLambda());
+          }
         }
         if (TMath::Abs(v0.yK0Short()) < rapidity) {
           h3dMassK0Short->Fill(collision.centV0M(), v0.pt(), v0.mK0Short());
+          if (saveDcaHist == 1) {
+            h3dMassK0ShortDca->Fill(v0.dcaV0daughters(), v0.pt(), v0.mK0Short());
+          }
         }
       }
     }
