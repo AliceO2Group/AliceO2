@@ -1683,30 +1683,45 @@ bool MatchTOF::makeConstrainedTPCTrack(int matchedID, o2::dataformats::TrackTPCT
 
   if (mTPCClusterIdxStruct) {                                              // refit was requested
     trConstr.o2::track::TrackParCov::operator=(tpcTrOrig.getOuterParam()); // seed for inward refit of constrained track, made from the outer param
+    trConstr.setParamOut(tpcTrOrig);                                       // seed for outward refit of constrained track, made from the inner param
   } else {
-    trConstr.o2::track::TrackParCov::operator=(tpcTrOrig); // inner param, we just correct is position, w/o refit
+    trConstr.o2::track::TrackParCov::operator=(tpcTrOrig); // inner param, we just correct its position, w/o refit
+    trConstr.setParamOut(tpcTrOrig.getOuterParam());       // outer param, we just correct its position, w/o refit
   }
 
+  auto& trConstrOut = trConstr.getParamOut();
+
   auto zTrack = trConstr.getZ();
+  auto zTrackOut = trConstrOut.getZ();
 
   if (tpcTrOrig.hasASideClustersOnly()) {
     zTrack += dzCorr;
+    zTrackOut += dzCorr;
   } else if (tpcTrOrig.hasCSideClustersOnly()) {
     zTrack -= dzCorr;
+    zTrackOut -= dzCorr;
   } else {
     // TODO : special treatment of tracks crossing the CE
   }
   trConstr.setZ(zTrack);
+  trConstrOut.setZ(zTrackOut);
+  //
   trConstr.setTimeMUS(timeTOFMUS, timeErr);
   trConstr.setRefMatch(matchedID);
   if (mTPCClusterIdxStruct) { // refit was requested
     float chi2 = 0;
     mTPCRefitter->setTrackReferenceX(o2::globaltracking::MatchTPCITS::XTPCInnerRef);
     if (mTPCRefitter->RefitTrackAsTrackParCov(trConstr, tpcTrOrig.getClusterRef(), timeTOFTB, &chi2, false, true) < 0) { // outward refit after resetting cov.mat.
-      LOG(DEBUG) << "Refit failed";
+      LOG(DEBUG) << "Inward Refit failed";
       return false;
     }
     trConstr.setChi2Refit(chi2);
+    //
+    mTPCRefitter->setTrackReferenceX(o2::globaltracking::MatchTPCITS::XTPCOuterRef);
+    if (mTPCRefitter->RefitTrackAsTrackParCov(trConstrOut, tpcTrOrig.getClusterRef(), timeTOFTB, &chi2, true, true) < 0) { // outward refit after resetting cov.mat.
+      LOG(DEBUG) << "Outward refit failed";
+      return false;
+    }
   }
 
   return true;
