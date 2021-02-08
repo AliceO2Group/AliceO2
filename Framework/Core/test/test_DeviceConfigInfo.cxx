@@ -83,9 +83,9 @@ BOOST_AUTO_TEST_CASE(TestDeviceConfigInfo)
   BOOST_REQUIRE_EQUAL(result, false);
 
   // Parse a simple configuration bit
-  configString = "foo[XX:XX:XX][INFO] [CONFIG] foo=bar 1789372894 prov\n";
+  configString = "foo[XX:XX:XX][INFO] [CONFIG];foo=bar;1789372894;prov\n";
   std::string_view config{configString.data() + 3, configString.size() - 4};
-  BOOST_REQUIRE_EQUAL(config, std::string("[XX:XX:XX][INFO] [CONFIG] foo=bar 1789372894 prov"));
+  BOOST_REQUIRE_EQUAL(config, std::string("[XX:XX:XX][INFO] [CONFIG];foo=bar;1789372894;prov"));
   result = DeviceConfigHelper::parseConfig(config, match);
   BOOST_REQUIRE_EQUAL(result, true);
   BOOST_CHECK(strncmp(match.beginKey, "foo", 3) == 0);
@@ -100,7 +100,7 @@ BOOST_AUTO_TEST_CASE(TestDeviceConfigInfo)
   BOOST_CHECK_EQUAL(info.currentProvenance.get<std::string>("foo"), "prov");
 
   // Parse an array
-  configString = "foo[XX:XX:XX][INFO] [CONFIG] array={\"\":\"1\",\"\":\"2\",\"\":\"3\",\"\":\"4\",\"\":\"5\"} 1789372894 prov\n";
+  configString = "foo[XX:XX:XX][INFO] [CONFIG];array={\"\":\"1\",\"\":\"2\",\"\":\"3\",\"\":\"4\",\"\":\"5\"};1789372894;prov\n";
   std::string_view configa{configString.data() + 3, configString.size() - 4};
   result = DeviceConfigHelper::parseConfig(configa, match);
   auto valueString = std::string(match.beginValue, match.endValue - match.beginValue);
