@@ -231,9 +231,9 @@ int RawReaderCRU::scanFile()
   RDH rdh;
   uint32_t currentPacket = 0;
   uint32_t lastHeartbeatOrbit = 0;
+  size_t currentPos = 0;
 
-  while ((currentPacket < numPackets) && !file.eof()) {
-    const size_t currentPos = file.tellg();
+  while ((currentPos < mFileSize) && !file.eof()) {
 
     // ===| read in the RawDataHeader at the current position |=================
     file >> rdh;
@@ -349,6 +349,7 @@ int RawReaderCRU::scanFile()
     // std::cout << "Position after read : " << std::dec << file.tellg() << std::endl;
     file.seekg(offset, file.cur);
     ++currentPacket;
+    currentPos = file.tellg();
   }
 
   // close the File
@@ -905,7 +906,7 @@ void RawReaderCRU::writeGBTDataPerLink(std::string_view outputDirectory, int max
 
   // loop over events
   for (int eventNumber = 0; eventNumber < getNumberOfEvents(); ++eventNumber) {
-    if ((maxEvents > -1) && (eventNumber > maxEvents)) {
+    if ((maxEvents > -1) && (eventNumber >= maxEvents)) {
       break;
     }
 
@@ -916,11 +917,12 @@ void RawReaderCRU::writeGBTDataPerLink(std::string_view outputDirectory, int max
       if (!linkInfo.IsPresent) {
         continue;
       }
+      printf("Event %4d, Link %2d\n", eventNumber, iLink);
 
       const int ep = iLink >= 12;
       const int link = iLink - (ep)*12;
       auto outputFileName = fmt::format("{}/CRU_{:02}_EP_{}_Link_{:02}", outputDirectory.data(), mCRU, ep, link);
-      std::ofstream outputFile(outputFileName, std::ios_base::binary);
+      std::ofstream outputFile(outputFileName, std::ios_base::binary | std::ios_base::app);
 
       for (auto packetNumber : linkInfo.PacketPositions) {
         const auto& packet = mPacketDescriptorMaps[iLink][packetNumber];
@@ -1136,8 +1138,15 @@ void RawReaderCRUManager::copyEvents(const std::vector<uint32_t> eventNumbers, s
 {
   // make sure events have been built
   init();
-  for (auto& rawReader : mRawReadersCRU) {
-    rawReader->copyEvents(eventNumbers, outputDirectory.data(), mode);
+  const auto& cruSeen = mEventSync.getCRUSeen();
+
+  for (size_t iCRU = 0; iCRU < cruSeen.size(); ++iCRU) {
+    const auto readerNumber = cruSeen[iCRU];
+    if (readerNumber >= 0) {
+      auto& reader = mRawReadersCRU[readerNumber];
+      reader->forceCRU(iCRU);
+      reader->copyEvents(eventNumbers, outputDirectory.data(), mode);
+    }
   }
 }
 
