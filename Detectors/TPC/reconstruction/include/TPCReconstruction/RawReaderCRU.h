@@ -498,6 +498,8 @@ class RawReaderCRU
 {
  public:
   class PacketDescriptor;
+  using PacketDescriptorMap = std::vector<PacketDescriptor>;
+  using PacketDescriptorMapArray = std::array<PacketDescriptorMap, MaxNumberOfLinks>;
 
   /// constructor
   /// \param
@@ -645,6 +647,9 @@ class RawReaderCRU
   /// output file prefix
   const std::string& getOutputFilePrefix() const { return mOutputFilePrefix; }
 
+  /// get packet descriptor map array
+  const PacketDescriptorMapArray& getPacketDescriptorMaps() const { return mPacketDescriptorMaps; }
+
   //===========================================================================
   //===| Nested helper classes |===============================================
   //
@@ -723,26 +728,25 @@ class RawReaderCRU
   //
 
  private:
-  using PacketDescriptorMap = std::vector<PacketDescriptor>;
-  uint32_t mDebugLevel;                                                    ///< debug level
-  uint32_t mVerbosity;                                                     ///< verbosity
-  uint32_t mNumTimeBins;                                                   ///< number of time bins to process
-  uint32_t mLink;                                                          ///< present link being processed
-  uint32_t mStream;                                                        ///< present stream being processed
-  uint32_t mEventNumber = 0;                                               ///< current event number to process
-  uint32_t mReaderNumber = 0;                                              ///< raw reader number in manager
-  CRU mCRU;                                                                ///< CRU
-  size_t mFileSize;                                                        ///< size of the input file
-  bool mDumpTextFiles = false;                                             ///< dump debugging text files
-  bool mFillADCdataMap = true;                                             ///< fill the ADC data map
-  bool mForceCRU = false;                                                  ///< force CRU: overwrite value from RDH
-  bool mFileIsScanned = false;                                             ///< if file was already scanned
-  std::array<uint32_t, MaxNumberOfLinks> mPacketsPerLink;                  ///< array to keep track of the number of packets per link
-  std::bitset<MaxNumberOfLinks> mLinkPresent;                              ///< info if link is present in data; information retrieved from scanning the RDH headers
-  std::array<PacketDescriptorMap, MaxNumberOfLinks> mPacketDescriptorMaps; ///< array to hold vectors thhe packet descriptors
-  std::string mInputFileName;                                              ///< input file name
-  std::string mOutputFilePrefix;                                           ///< input file name
-  std::array<SyncArray, MaxNumberOfLinks> mSyncPositions{};                ///< sync positions for each link
+  uint32_t mDebugLevel;                                     ///< debug level
+  uint32_t mVerbosity;                                      ///< verbosity
+  uint32_t mNumTimeBins;                                    ///< number of time bins to process
+  uint32_t mLink;                                           ///< present link being processed
+  uint32_t mStream;                                         ///< present stream being processed
+  uint32_t mEventNumber = 0;                                ///< current event number to process
+  uint32_t mReaderNumber = 0;                               ///< raw reader number in manager
+  CRU mCRU;                                                 ///< CRU
+  size_t mFileSize;                                         ///< size of the input file
+  bool mDumpTextFiles = false;                              ///< dump debugging text files
+  bool mFillADCdataMap = true;                              ///< fill the ADC data map
+  bool mForceCRU = false;                                   ///< force CRU: overwrite value from RDH
+  bool mFileIsScanned = false;                              ///< if file was already scanned
+  std::array<uint32_t, MaxNumberOfLinks> mPacketsPerLink;   ///< array to keep track of the number of packets per link
+  std::bitset<MaxNumberOfLinks> mLinkPresent;               ///< info if link is present in data; information retrieved from scanning the RDH headers
+  PacketDescriptorMapArray mPacketDescriptorMaps;           ///< array to hold vectors thhe packet descriptors
+  std::string mInputFileName;                               ///< input file name
+  std::string mOutputFilePrefix;                            ///< input file name
+  std::array<SyncArray, MaxNumberOfLinks> mSyncPositions{}; ///< sync positions for each link
   // not so nice but simplest way to store the ADC data
   std::map<PadPos, std::vector<uint16_t>> mADCdata; ///< decoded ADC data
   RawReaderCRUManager* mManager{nullptr};           ///< event synchronization information
@@ -951,6 +955,9 @@ class RawReaderCRUManager
       reader->setEventNumber(eventNumber);
     }
   }
+
+  /// get the event sync
+  const RawReaderCRUEventSync& getEventSync() const { return mEventSync; }
 
   /// get number of all events
   size_t getNumberOfEvents() const { return mEventSync.getNumberOfEvents(); }
