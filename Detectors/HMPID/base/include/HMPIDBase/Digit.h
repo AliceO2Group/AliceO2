@@ -44,6 +44,11 @@ class Digit
     static void Absolute2Equipment(int Module, int x, int y, int *Equi, int *Colu, int *Dilo, int *Chan);
     static void Equipment2Absolute(int Equi, int Colu, int Dilo, int Chan, int *Module, int *x, int *y);
 
+    static double OrbitBcToTimeNs(uint32_t Orbit, uint16_t BC);
+    static uint32_t TimeNsToOrbit(double TimeNs);
+    static uint16_t TimeNsToBc(double TimeNs);
+    static void TimeNsToOrbitBc(double TimeNs, uint32_t &Orbit, uint16_t &Bc);
+
     // Operators definition !
     friend inline bool operator<(const Digit& l, const Digit& r) { return l.mPad < r.mPad; };
     friend inline bool operator==(const Digit& l, const Digit& r) { return l.mPad == r.mPad; };

@@ -13,6 +13,7 @@
 #include "HMPIDBase/Param.h"
 #include "TRandom.h"
 #include "TMath.h"
+#include "CommonConstants/LHCConstants.h"
 
 using namespace o2::hmpid;
 
@@ -227,3 +228,25 @@ float Digit::InMathieson(float localX, float localY, int pad)
   return 4. * Digit::IntPartMathiX(localX, pad) * Digit::IntPartMathiY(localY, pad);
 }
 
+// Time conversion functions
+double Digit::OrbitBcToTimeNs(uint32_t Orbit, uint16_t BC)
+{
+  return( BC * o2::constants::lhc::LHCBunchSpacingNS + Orbit * o2::constants::lhc::LHCOrbitNS);
+}
+
+uint32_t Digit::TimeNsToOrbit(double TimeNs)
+{
+  return(TimeNs / o2::constants::lhc::LHCOrbitNS);
+}
+
+uint16_t Digit::TimeNsToBc(double TimeNs)
+{
+  return((TimeNs % o2::constants::lhc::LHCOrbitNS) / o2::constants::lhc::LHCBunchSpacingNS);
+}
+
+void Digit::TimeNsToOrbitBc(double TimeNs, uint32_t &Orbit, uint16_t &Bc)
+{
+  Orbit = TimeNsToOrbit(TimeNs);
+  Bc = TimeNsToBc(TimeNs);
+  return;
+}
