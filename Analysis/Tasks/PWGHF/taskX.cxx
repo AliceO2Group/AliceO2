@@ -71,7 +71,7 @@ struct TaskX {
       if (cutEtaCandMax >= 0. && std::abs(candidate.eta()) > cutEtaCandMax) {
         continue;
       }
-      registry.fill(HIST("hmass"), InvMassJpsiToEE(candidate));
+      registry.fill(HIST("hmassJpsi"), InvMassJpsiToEE(candidate));
       for (auto trackPos1 = tracks.begin(); trackPos1 != tracks.end(); ++trackPos1) {
         if (trackPos1.signed1Pt() < 0) {
           continue;
