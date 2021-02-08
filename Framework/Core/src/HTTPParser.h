@@ -109,6 +109,9 @@ struct WebSocketHandler {
   size_t pendingSize = 0;
   /// A buffer large enough to contain the next frame to be processed.
   char* pendingBuffer = nullptr;
+  /// Bytes from an incomplete header
+  size_t pendingHeaderSize = 0;
+  char* pendingHeader = nullptr;
 };
 
 /// Decoder for websocket data. For now we assume that the frame was not split. However multiple
