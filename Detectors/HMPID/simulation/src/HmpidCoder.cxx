@@ -352,7 +352,8 @@ void HmpidCoder::codeEventChunkDigits(std::vector<Digit> &digits, bool flushVect
     writePaginatedEvent(orbit, bc);
     digits.clear();
   } else {
-    digits.erase(digits.begin(), digits.begin() + mLastProcessedDigit);
+    if(mLastProcessedDigit>=0)
+      digits.erase(digits.begin(), digits.begin() + mLastProcessedDigit);
   }
   memset(mPadMap, 0, sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS); // Update for the new event
   return;
