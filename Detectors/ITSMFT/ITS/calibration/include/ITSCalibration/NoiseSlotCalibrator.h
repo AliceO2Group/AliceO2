@@ -10,7 +10,7 @@
 
 /// @file   NoiseSlotCalibrator.h
 
-#ifndef O2_ITS_NOISESLOTCALIBRATORx
+#ifndef O2_ITS_NOISESLOTCALIBRATOR
 #define O2_ITS_NOISESLOTCALIBRATOR
 
 #include <string>
@@ -60,9 +60,11 @@ class NoiseSlotCalibrator : public o2::calibration::TimeSlotCalibration<o2::itsm
     slot.getContainer()->applyProbThreshold(mProbabilityThreshold, mNumberOfStrobes);
   }
 
-  const o2::itsmft::NoiseMap& getNoiseMap()
+  const o2::itsmft::NoiseMap& getNoiseMap(long& start, long& end)
   {
     const auto& slot = getSlots().back();
+    start = slot.getTFStart();
+    end = slot.getTFEnd();
     return *(slot.getContainer());
   }
 

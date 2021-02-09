@@ -13,7 +13,6 @@
 #include "CCDB/CcdbApi.h"
 #include "DetectorsCalibration/Utils.h"
 #include "ITSCalibration/NoiseCalibratorSpec.h"
-#include "ITSCalibration/NoiseCalibrator.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 
@@ -35,7 +34,7 @@ void NoiseCalibratorSpec::init(InitContext& ic)
   auto probT = ic.options().get<float>("prob-threshold");
   LOG(INFO) << "Setting the probability threshold to " << probT;
 
-  mCalibrator = std::make_unique<o2::its::NoiseCalibrator>(onepix, probT);
+  mCalibrator = std::make_unique<CALIBRATOR>(onepix, probT);
 }
 
 void NoiseCalibratorSpec::run(ProcessingContext& pc)
@@ -54,10 +53,15 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
 void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
 {
   mCalibrator->finalize();
-  const auto& payload = mCalibrator->getNoiseMap();
 
+  long tstart = 0, tend = 9999999;
+#ifdef TIME_SLOT_CALIBRATION
+  const auto& payload = mCalibrator->getNoiseMap(tstart, tend);
+#else
+  const auto& payload = mCalibrator->getNoiseMap();
+#endif
   std::map<std::string, std::string> md;
-  o2::ccdb::CcdbObjectInfo info("ITS/Noise", "NoiseMap", "noise.root", md, 0, 9999999);
+  o2::ccdb::CcdbObjectInfo info("ITS/Noise", "NoiseMap", "noise.root", md, tstart, tend);
 
   auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
   LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName()

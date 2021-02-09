@@ -18,6 +18,15 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
+//#define TIME_SLOT_CALIBRATION
+#ifdef TIME_SLOT_CALIBRATION
+#include "ITSCalibration/NoiseSlotCalibrator.h"
+using CALIBRATOR = o2::its::NoiseSlotCalibrator;
+#else
+#include "ITSCalibration/NoiseCalibrator.h"
+using CALIBRATOR = o2::its::NoiseCalibrator;
+#endif
+
 using namespace o2::framework;
 
 namespace o2
@@ -25,8 +34,6 @@ namespace o2
 
 namespace its
 {
-
-class NoiseCalibrator;
 
 class NoiseCalibratorSpec : public Task
 {
@@ -40,7 +47,7 @@ class NoiseCalibratorSpec : public Task
 
  private:
   void sendOutput(DataAllocator& output);
-  std::unique_ptr<o2::its::NoiseCalibrator> mCalibrator = nullptr;
+  std::unique_ptr<CALIBRATOR> mCalibrator = nullptr;
 };
 
 /// create a processor spec
