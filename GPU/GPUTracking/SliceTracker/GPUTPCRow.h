@@ -60,9 +60,9 @@ class GPUTPCRow
   friend class GPUTPCNeighboursFinder;
   friend class GPUTPCStartHitsFinder;
 
-  int mNHits;       // number of hits
-  float mX;         // X coordinate of the row
-  float mMaxY;      // maximal Y coordinate of the row
+  int mNHits;  // number of hits
+  float mX;    // X coordinate of the row
+  float mMaxY; // maximal Y coordinate of the row
   MEM_LG(GPUTPCGrid)
   mGrid; // grid of hits
 
