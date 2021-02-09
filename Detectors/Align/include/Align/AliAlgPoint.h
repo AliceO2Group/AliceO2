@@ -26,9 +26,9 @@
 #include <TObject.h>
 #include <TMatrixD.h>
 #include <TVectorD.h>
-#include "AliAlgSens.h"
+#include "Align/AliAlgSens.h"
 
-class AliExternalTrackParam;
+//class AliExternalTrackParam;
 
 namespace o2
 {

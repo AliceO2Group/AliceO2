@@ -16,7 +16,7 @@
 #ifndef ALIALGDETHMPID_H
 #define ALIALGDETHMPID_H
 
-#include "AliAlgDet.h"
+#include "Align/AliAlgDet.h"
 
 namespace o2
 {

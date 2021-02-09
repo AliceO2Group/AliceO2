@@ -14,13 +14,13 @@
 /// @brief  Track model for the alignment
 
 #include <stdio.h>
-#include "AliAlgTrack.h"
-#include "AliTrackerBase.h"
-#include "AliLog.h"
-#include "AliAlgSens.h"
-#include "AliAlgVol.h"
-#include "AliAlgDet.h"
-#include "AliAlgAux.h"
+#include "Align/AliAlgTrack.h"
+//#include "AliTrackerBase.h"
+#include "Framework/Logger.h"
+#include "Align/AliAlgSens.h"
+#include "Align/AliAlgVol.h"
+#include "Align/AliAlgDet.h"
+#include "Align/AliAlgAux.h"
 #include <TMatrixD.h>
 #include <TVectorD.h>
 #include <TMatrixDSymEigen.h>

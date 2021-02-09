@@ -13,12 +13,12 @@
 /// @since  2021-02-01
 /// @brief  Special fake "sensor" for event vertex.
 
-#include "AliAlgVtx.h"
-#include "AliTrackPointArray.h"
-#include "AliESDtrack.h"
-#include "AliAlgPoint.h"
-#include "AliAlgDet.h"
-#include "AliLog.h"
+#include "Align/AliAlgVtx.h"
+//#include "AliTrackPointArray.h"
+//#include "AliESDtrack.h"
+#include "Align/AliAlgPoint.h"
+#include "Align/AliAlgDet.h"
+#include "Framework/Logger.h"
 #include <TMath.h>
 
 using namespace TMath;

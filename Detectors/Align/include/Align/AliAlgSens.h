@@ -16,15 +16,15 @@
 #ifndef ALIALGSENS_H
 #define ALIALGSENS_H
 
-#include "AliAlgVol.h"
+#include "Align/AliAlgVol.h"
 #include <TMath.h>
 
-class AliTrackPointArray;
-class AliESDtrack;
+//class AliTrackPointArray;
+//class AliESDtrack;
 class AliAlgDet;
 class AliAlgPoint;
 class TObjArray;
-class AliExternalTrackParam;
+//class AliExternalTrackParam;
 class AliAlgDOFStat;
 class TCloneArray;
 
