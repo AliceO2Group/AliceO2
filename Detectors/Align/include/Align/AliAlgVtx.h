@@ -27,7 +27,7 @@
 #ifndef ALIALGVTX_H
 #define ALIALGVTX_H
 
-#include "AliAlgSens.h"
+#include "Align/AliAlgSens.h"
 class AliTrackPointArray;
 class AliESDtrack;
 class AliAlgPoint;

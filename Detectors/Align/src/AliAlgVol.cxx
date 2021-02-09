@@ -95,13 +95,13 @@
 
  */
 
-#include "AliAlgVol.h"
-#include "AliAlgDOFStat.h"
-#include "AliAlgConstraint.h"
-#include "AliAlignObjParams.h"
-#include "AliGeomManager.h"
-#include "AliAlgAux.h"
-#include "AliLog.h"
+#include "Align/AliAlgVol.h"
+#include "Align/AliAlgDOFStat.h"
+#include "Align/AliAlgConstraint.h"
+//#include "AliAlignObjParams.h"
+//#include "AliGeomManager.h"
+#include "Align/AliAlgAux.h"
+#include "Framework/Logger.h"
 #include <TString.h>
 #include <TClonesArray.h>
 #include <TGeoManager.h>

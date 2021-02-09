@@ -13,22 +13,22 @@
 /// @since  2021-02-01
 /// @brief  Base class for detector: wrapper for set of volumes
 
-#include "AliAlgDet.h"
-#include "AliAlgSens.h"
-#include "AliAlgDet.h"
-#include "AliAlgSteer.h"
-#include "AliAlgTrack.h"
-#include "AliAlgDOFStat.h"
-#include "AliAlgConstraint.h"
-#include "AliLog.h"
-#include "AliGeomManager.h"
-#include "AliCDBManager.h"
-#include "AliCDBMetaData.h"
-#include "AliCDBEntry.h"
-#include "AliAlignObj.h"
-#include "AliCDBId.h"
-#include "AliExternalTrackParam.h"
-#include "AliAlignObjParams.h"
+#include "Align/AliAlgDet.h"
+#include "Align/AliAlgSens.h"
+#include "Align/AliAlgDet.h"
+#include "Align/AliAlgSteer.h"
+#include "Align/AliAlgTrack.h"
+#include "Align/AliAlgDOFStat.h"
+#include "Align/AliAlgConstraint.h"
+#include "Framework/Logger.h"
+//#include "AliGeomManager.h"
+//#include "AliCDBManager.h"
+//#include "AliCDBMetaData.h"
+//#include "AliCDBEntry.h"
+//#include "AliAlignObj.h"
+//#include "AliCDBId.h"
+//#include "AliExternalTrackParam.h"
+//#include "AliAlignObjParams.h"
 #include <TString.h>
 #include <TH1.h>
 #include <TTree.h>

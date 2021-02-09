@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include <TNamed.h>
 #include <TObjArray.h>
-#include "AliAlgVol.h"
+#include "Align/AliAlgVol.h"
 
 namespace o2
 {

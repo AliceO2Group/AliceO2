@@ -16,11 +16,11 @@
 #ifndef ALIALGSENSHMPID_H
 #define ALIALGSENSHMPID_H
 
-#include "AliAlgSens.h"
+#include "Align/AliAlgSens.h"
 
 class TObjArray;
-class AliTrackPointArray;
-class AliESDtrack;
+//class AliTrackPointArray;
+//class AliESDtrack;
 class AliAlgPoint;
 
 namespace o2

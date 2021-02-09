@@ -15,14 +15,14 @@
 
 #include <stdio.h>
 #include <TClonesArray.h>
-#include "AliAlgSens.h"
-#include "AliAlgAux.h"
-#include "AliLog.h"
-#include "AliGeomManager.h"
-#include "AliExternalTrackParam.h"
-#include "AliAlgPoint.h"
-#include "AliAlgDet.h"
-#include "AliAlgDOFStat.h"
+#include "Align/AliAlgSens.h"
+#include "Align/AliAlgAux.h"
+#include "Framework/Logger.h"
+//#include "AliGeomManager.h"
+//#include "AliExternalTrackParam.h"
+#include "Align/AliAlgPoint.h"
+#include "Align/AliAlgDet.h"
+#include "Align/AliAlgDOFStat.h"
 
 ClassImp(AliAlgSens);
 

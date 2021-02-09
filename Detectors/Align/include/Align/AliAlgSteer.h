@@ -21,9 +21,9 @@
 #ifndef ALIALGSTEER_H
 #define ALIALGSTEER_H
 
-#include "AliGeomManager.h"
-#include "AliAlgTrack.h"
-#include "AliSymMatrix.h"
+// #include "AliGeomManager.h"
+#include "Align/AliAlgTrack.h"
+// #include "AliSymMatrix.h"
 
 #include <TMatrixDSym.h>
 #include <TVectorD.h>
@@ -32,12 +32,12 @@
 #include <TArrayF.h>
 #include <TArrayI.h>
 #include <TH1F.h>
-#include "AliAlgAux.h"
+#include "Align/AliAlgAux.h"
 
-class AliESDEvent;
-class AliESDtrack;
-class AliESDCosmicTrack;
-class AliESDVertex;
+//class AliESDEvent;
+//class AliESDtrack;
+//class AliESDCosmicTrack;
+//class AliESDVertex;
 class AliAlgDet;
 class AliAlgVol;
 class AliAlgVtx;

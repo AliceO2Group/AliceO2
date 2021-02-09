@@ -13,9 +13,9 @@
 /// @since  2021-02-01
 /// @brief  Mergable bbject for statistics of points used by each DOF
 
-#include "AliAlgDOFStat.h"
-#include "AliAlgSteer.h"
-#include "AliLog.h"
+#include "Align/AliAlgDOFStat.h"
+#include "Align/AliAlgSteer.h"
+#include "Framework/Logger.h"
 #include <TMath.h>
 #include <TCollection.h>
 

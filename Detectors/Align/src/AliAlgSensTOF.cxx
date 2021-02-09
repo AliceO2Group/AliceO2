@@ -13,13 +13,13 @@
 /// @since  2021-02-01
 /// @brief  TOF sensor
 
-#include "AliAlgSensTOF.h"
-#include "AliAlgAux.h"
-#include "AliAlgDetTOF.h"
-#include "AliLog.h"
-#include "AliAlgPoint.h"
-#include "AliTrackPointArray.h"
-#include "AliESDtrack.h"
+#include "Align/AliAlgSensTOF.h"
+#include "Align/AliAlgAux.h"
+#include "Align/AliAlgDetTOF.h"
+#include "Framework/Logger.h"
+#include "Align/AliAlgPoint.h"
+//#include "AliTrackPointArray.h"
+//#include "AliESDtrack.h"
 
 ClassImp(o2::align::AliAlgSensTOF);
 

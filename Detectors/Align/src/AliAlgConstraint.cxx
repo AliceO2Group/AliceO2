@@ -13,10 +13,10 @@
 /// @since  2021-02-01
 /// @brief  Descriptor of geometrical constraint
 
-#include "AliAlgConstraint.h"
-#include "AliAlignObjParams.h"
-#include "AliAlgAux.h"
-#include "AliLog.h"
+#include "Align/AliAlgConstraint.h"
+//#include "AliAlignObjParams.h"
+#include "Align/AliAlgAux.h"
+#include "Framework/Logger.h"
 #include <TGeoMatrix.h>
 #include <TMath.h>
 #include <stdio.h>

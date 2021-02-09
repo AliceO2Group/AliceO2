@@ -13,13 +13,13 @@
 /// @since  2021-02-01
 /// @brief  TRD detector wrapper
 
-#include "AliAlgDetTRD.h"
-#include "AliAlgVol.h"
-#include "AliAlgSensTRD.h"
-#include "AliAlgSteer.h"
-#include "AliGeomManager.h"
-#include "AliESDtrack.h"
-#include "AliTRDgeometry.h"
+#include "Align/AliAlgDetTRD.h"
+#include "Align/AliAlgVol.h"
+#include "Align/AliAlgSensTRD.h"
+#include "Align/AliAlgSteer.h"
+//#include "AliGeomManager.h"
+//#include "AliESDtrack.h"
+//#include "AliTRDgeometry.h"
 #include <TGeoManager.h>
 #include <TMath.h>
 

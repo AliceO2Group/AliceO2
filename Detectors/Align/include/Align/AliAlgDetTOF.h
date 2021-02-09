@@ -16,7 +16,7 @@
 #ifndef ALIALGDETTOF_H
 #define ALIALGDETTOF_H
 
-#include "AliAlgDet.h"
+#include "Align/AliAlgDet.h"
 
 namespace o2
 {

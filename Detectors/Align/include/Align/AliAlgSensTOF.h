@@ -16,10 +16,10 @@
 #ifndef ALIALGSENSTOF_H
 #define ALIALGSENSTOF_H
 
-#include "AliAlgSens.h"
+#include "Align/AliAlgSens.h"
 
-class AliTrackPointArray;
-class AliESDtrack;
+//class AliTrackPointArray;
+//class AliESDtrack;
 class AliAlgPoint;
 class TObjArray;
 

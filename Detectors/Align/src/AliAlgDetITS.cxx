@@ -13,14 +13,14 @@
 /// @since  2021-02-01
 /// @brief  ITS detector wrapper
 
-#include "AliAlgDetITS.h"
-#include "AliAlgVol.h"
-#include "AliAlgSensITS.h"
-#include "AliAlgSteer.h"
-#include "AliITSgeomTGeo.h"
-#include "AliGeomManager.h"
-#include "AliESDtrack.h"
-#include "AliCheb3DCalc.h"
+#include "Align/AliAlgDetITS.h"
+#include "Align/AliAlgVol.h"
+#include "Align/AliAlgSensITS.h"
+#include "Align/AliAlgSteer.h"
+//#include "AliITSgeomTGeo.h"
+//#include "AliGeomManager.h"
+//#include "AliESDtrack.h"
+//#include "AliCheb3DCalc.h"
 #include <TMath.h>
 #include <stdio.h>
 

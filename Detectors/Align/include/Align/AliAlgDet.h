@@ -19,16 +19,16 @@
 #include <TNamed.h>
 #include <TObjArray.h>
 #include <stdio.h>
-#include "AliAlgAux.h"
-#include "AliESDtrack.h"
+#include "Align/AliAlgAux.h"
+//#include "AliESDtrack.h"
 class AliAlgTrack;
 class AliAlgDOFStat;
 class AliAlgPoint;
 class AliAlgSens;
 class AliAlgVol;
 class AliAlgSteer;
-class AliTrackPointArray;
-class AliExternalTrackParam;
+//class AliTrackPointArray;
+//class AliExternalTrackParam;
 class TH1;
 
 namespace o2

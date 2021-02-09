@@ -18,7 +18,7 @@
 
 #include <TMath.h>
 #include <TString.h>
-class AliCDBId;
+// class AliCDBId;
 class TMap;
 class TList;
 

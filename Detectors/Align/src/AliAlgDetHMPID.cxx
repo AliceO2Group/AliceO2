@@ -13,14 +13,14 @@
 /// @since  2021-02-01
 /// @brief  HMPID detector wrapper
 
-#include "AliAlgDetHMPID.h"
-#include "AliHMPIDParam.h"
-#include "AliAlgVol.h"
-#include "AliAlgSensHMPID.h"
-#include "AliAlgSteer.h"
-#include "AliGeomManager.h"
-#include "AliESDtrack.h"
-#include "AliLog.h"
+#include "Align/AliAlgDetHMPID.h"
+//#include "AliHMPIDParam.h"
+#include "Align/AliAlgVol.h"
+#include "Align/AliAlgSensHMPID.h"
+#include "Align/AliAlgSteer.h"
+//#include "AliGeomManager.h"
+//#include "AliESDtrack.h"
+#include "Framework/Logger.h"
 #include <TGeoManager.h>
 
 ClassImp(o2::align::AliAlgDetHMPID);

@@ -16,9 +16,9 @@
 #include <stdio.h>
 #include <TMath.h>
 #include <TString.h>
-#include "AliAlgPoint.h"
-#include "AliAlgAux.h"
-#include "AliExternalTrackParam.h"
+#include "Align/AliAlgPoint.h"
+#include "Align/AliAlgAux.h"
+//#include "AliExternalTrackParam.h"
 
 using namespace o2::align::AliAlgAux;
 using namespace TMath;

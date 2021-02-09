@@ -13,15 +13,15 @@
 /// @since  2021-02-01
 /// @brief  TRD sensor
 
-#include "AliAlgSensTRD.h"
-#include "AliTRDgeometry.h"
-#include "AliAlgDetTRD.h"
-#include "AliAlgAux.h"
-#include "AliLog.h"
-#include "AliAlgPoint.h"
-#include "AliTrackPointArray.h"
-#include "AliESDtrack.h"
-#include "AliTrackerBase.h"
+#include "Align/AliAlgSensTRD.h"
+//#include "AliTRDgeometry.h"
+#include "Align/AliAlgDetTRD.h"
+#include "Align/AliAlgAux.h"
+#include "Framework/Logger.h"
+#include "Align/AliAlgPoint.h"
+//#include "AliTrackPointArray.h"
+//#include "AliESDtrack.h"
+//#include "AliTrackerBase.h"
 
 ClassImp(o2::align::AliAlgSensTRD)
 

@@ -13,11 +13,11 @@
 /// @since  2021-02-01
 /// @brief  Container for control residuals
 
-#include "AliAlgRes.h"
-#include "AliAlgTrack.h"
-#include "AliAlgPoint.h"
-#include "AliAlgSens.h"
-#include "AliLog.h"
+#include "Align/AliAlgRes.h"
+#include "Align/AliAlgTrack.h"
+#include "Align/AliAlgPoint.h"
+#include "Align/AliAlgSens.h"
+#include "Framework/Logger.h"
 #include <TString.h>
 #include <TMath.h>
 #include <stdio.h>

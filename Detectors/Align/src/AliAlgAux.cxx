@@ -13,10 +13,10 @@
 /// @since  2021-02-01
 /// @brief  Collection of auxillary methods
 
-#include "AliAlgAux.h"
-#include "AliCDBId.h"
-#include "AliCDBManager.h"
-#include "AliLog.h"
+#include "Align/AliAlgAux.h"
+// #include "AliCDBId.h"
+// #include "AliCDBManager.h"
+#include "Framework/Logger.h"
 #include <TList.h>
 #include <TMap.h>
 #include <TObjString.h>
