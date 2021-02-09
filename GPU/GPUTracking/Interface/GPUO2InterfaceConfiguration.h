@@ -45,7 +45,7 @@ namespace tpc
 {
 class TrackTPC;
 class Digit;
-}
+} // namespace tpc
 namespace gpu
 {
 class TPCFastTransform;

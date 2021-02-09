@@ -20,7 +20,10 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 #ifndef GPUCA_GPUCODE_DEVICE
-GPUd() void GPUdEdx::clear() { new (this) GPUdEdx; }
+GPUd() void GPUdEdx::clear()
+{
+  new (this) GPUdEdx;
+}
 #endif
 
 GPUd() void GPUdEdx::computedEdx(GPUdEdxInfo& GPUrestrict() output, const GPUParam& GPUrestrict() param)

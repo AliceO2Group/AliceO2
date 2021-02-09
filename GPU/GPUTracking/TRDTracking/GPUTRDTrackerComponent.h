@@ -132,9 +132,9 @@ class GPUTRDTrackerComponent : public AliHLTProcessor
  * ---------------------------------------------------------------------------------
  */
   GPUCA_NAMESPACE::gpu::GPUTRDTrackerGPU* fTracker; // the tracker itself
-  GPUCA_NAMESPACE::gpu::GPUTRDGeometry* fGeo;     // TRD geometry needed by the tracker
-  GPUCA_NAMESPACE::gpu::GPUReconstruction* fRec;  // GPU Reconstruction object
-  GPUCA_NAMESPACE::gpu::GPUChainTracking* fChain; // Tracking Chain Object
+  GPUCA_NAMESPACE::gpu::GPUTRDGeometry* fGeo;       // TRD geometry needed by the tracker
+  GPUCA_NAMESPACE::gpu::GPUReconstruction* fRec;    // GPU Reconstruction object
+  GPUCA_NAMESPACE::gpu::GPUChainTracking* fChain;   // Tracking Chain Object
 
   TList* fTrackList;
   bool fDebugTrackOutput;              // output GPUTRDTracks instead AliHLTExternalTrackParam
