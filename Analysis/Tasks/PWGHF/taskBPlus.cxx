@@ -77,7 +77,7 @@ struct TaskBplus {
       if (candidate.isSelD0bar() >= d_selectionFlagD0bar) {
         registry.fill(HIST("hmassD0"), InvMassD0bar(candidate));
         auto count = 0;
-        for (auto track : positiveTracks) {
+        for (auto& track : positiveTracks) {
           if (count % 100 == 0) {
             LOGF(INFO, "Col: %d (cand); %d (track)", candidate.collisionId(), track.collisionId());
             count++;
