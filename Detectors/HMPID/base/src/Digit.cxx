@@ -241,7 +241,7 @@ uint32_t Digit::TimeNsToOrbit(double TimeNs)
 
 uint16_t Digit::TimeNsToBc(double TimeNs)
 {
-  return((TimeNs % o2::constants::lhc::LHCOrbitNS) / o2::constants::lhc::LHCBunchSpacingNS);
+  return(std::fmod(TimeNs , o2::constants::lhc::LHCOrbitNS) / o2::constants::lhc::LHCBunchSpacingNS);
 }
 
 void Digit::TimeNsToOrbitBc(double TimeNs, uint32_t &Orbit, uint16_t &Bc)
