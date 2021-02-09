@@ -47,3 +47,8 @@ o2_add_executable(dump-digits-workflow
               SOURCES src/dump-digits-workflow.cxx
               PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
               
+o2_add_executable(write-root-from-digits-workflow
+              COMPONENT_NAME hmpid
+              SOURCES src/write-root-from-digits-workflow.cxx
+              PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
+              

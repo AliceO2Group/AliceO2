@@ -89,3 +89,27 @@ Data processor options: HMP-DigitsDump:
   --out-file arg                        name of the output file
   --print                               print digits (default false )
 ```
+
+
+### o2-hmpid-write-root-from-digits-workflow
+Write the digit stream into a root formatted file
+
+```
+o2-hmpid-write-root-from-digit-workflow --help full
+```
+
+Data processor options: HMPDigitWriter:
+
+```
+  --outfile arg (=hmpiddigits.root)     Name of the output file
+  --treename arg (=o2sim)               Name of tree
+  --treetitle arg (=o2sim)              Title of tree
+  --nevents arg (=-1)                   Number of events to execute
+  --terminate arg (=process)            Terminate the 'process' or 'workflow'
+```
+
+Example
+
+```
+[O2Suite/latest-o2] ~/Downloads/provaRec $> o2-hmpid-read-raw-file-workflow --raw-file test_full_flp1.raw -b | o2-hmpid-raw-to-digits-workflow -b | o2-hmpid-write-root-from-digits-workflow -b
+```
