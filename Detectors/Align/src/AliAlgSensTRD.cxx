@@ -1,17 +1,17 @@
-/**************************************************************************
- * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
- *                                                                        *
- * Author: The ALICE Off-line Project.                                    *
- * Contributors are mentioned in the code where appropriate.              *
- *                                                                        *
- * Permission to use, copy, modify and distribute this software and its   *
- * documentation strictly for non-commercial purposes is hereby granted   *
- * without fee, provided that the above copyright notice appears in all   *
- * copies and that both the copyright notice and this permission notice   *
- * appear in the supporting documentation. The authors make no claims     *
- * about the suitability of this software for any purpose. It is          *
- * provided "as is" without express or implied warranty.                  *
- **************************************************************************/
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// @file   AliAlgSensTRD.h
+/// @author ruben.shahoyan@cern.ch, michael.lettrich@cern.ch
+/// @since  2021-02-01
+/// @brief  TRD sensor
 
 #include "AliAlgSensTRD.h"
 #include "AliTRDgeometry.h"
@@ -23,15 +23,19 @@
 #include "AliESDtrack.h"
 #include "AliTrackerBase.h"
 
-ClassImp(AliAlgSensTRD)
+ClassImp(o2::align::AliAlgSensTRD)
 
-using namespace AliAlgAux;
+  using namespace o2::align::AliAlgAux;
 using namespace TMath;
 
+namespace o2
+{
+namespace align
+{
+
 //_________________________________________________________
-AliAlgSensTRD::AliAlgSensTRD(const char* name,Int_t vid, Int_t iid, Int_t isec) 
-  :AliAlgSens(name,vid,iid)
-  ,fSector(isec)
+AliAlgSensTRD::AliAlgSensTRD(const char* name, Int_t vid, Int_t iid, Int_t isec)
+  : AliAlgSens(name, vid, iid), fSector(isec)
 {
   // def c-tor
 }
@@ -56,12 +60,12 @@ void AliAlgSensTRD::PrepareMatrixT2L()
 {
   // extract from geometry T2L matrix
   double alp = Sector2Alpha(fSector);
-  double loc[3]={0,0,0},glo[3];
-  GetMatrixL2GIdeal().LocalToMaster(loc,glo);
-  double x = Sqrt(glo[0]*glo[0]+glo[1]*glo[1]);
+  double loc[3] = {0, 0, 0}, glo[3];
+  GetMatrixL2GIdeal().LocalToMaster(loc, glo);
+  double x = Sqrt(glo[0] * glo[0] + glo[1] * glo[1]);
   TGeoHMatrix t2l;
   t2l.SetDx(x);
-  t2l.RotateZ(alp*RadToDeg());
+  t2l.RotateZ(alp * RadToDeg());
   const TGeoHMatrix& l2gi = GetMatrixL2GIdeal().Inverse();
   t2l.MultiplyLeft(&l2gi);
   /*
@@ -76,37 +80,36 @@ void AliAlgSensTRD::PrepareMatrixT2L()
 }
 
 //____________________________________________
-void AliAlgSensTRD::DPosTraDParCalib(const AliAlgPoint* pnt,double* deriv,int calibID,const AliAlgVol* parent) const
+void AliAlgSensTRD::DPosTraDParCalib(const AliAlgPoint* pnt, double* deriv, int calibID, const AliAlgVol* parent) const
 {
   // calculate point position X,Y,Z derivatives wrt calibration parameter calibID of given parent
-  // parent=0 means top detector object calibration 
+  // parent=0 means top detector object calibration
   //
-  deriv[0]=deriv[1]=deriv[2]=0;
+  deriv[0] = deriv[1] = deriv[2] = 0;
   //
   if (!parent) { // TRD detector global calibration
     //
     switch (calibID) {
-    case AliAlgDetTRD::kCalibNRCCorrDzDtgl:  
-      {  // correction for Non-Crossing tracklets Z,Y shift: Z -> Z + calib*tgl, Y -> Y + calib*tgl*tilt*sign(tilt);
-	double sgYZ = pnt->GetYZErrTracking()[1]; // makes sense only for nonRC tracklets   
-	if (Abs(sgYZ)>0.01) {
-	  const double kTilt = 2.*TMath::DegToRad();
-	  deriv[2] = pnt->GetTrParamWSA()[AliAlgPoint::kParTgl];
-	  deriv[1] = deriv[2]*Sign(kTilt,sgYZ);
-	}
-	break;
+      case AliAlgDetTRD::kCalibNRCCorrDzDtgl: {   // correction for Non-Crossing tracklets Z,Y shift: Z -> Z + calib*tgl, Y -> Y + calib*tgl*tilt*sign(tilt);
+        double sgYZ = pnt->GetYZErrTracking()[1]; // makes sense only for nonRC tracklets
+        if (Abs(sgYZ) > 0.01) {
+          const double kTilt = 2. * TMath::DegToRad();
+          deriv[2] = pnt->GetTrParamWSA()[AliAlgPoint::kParTgl];
+          deriv[1] = deriv[2] * Sign(kTilt, sgYZ);
+        }
+        break;
       }
-      //
-    case AliAlgDetTRD::kCalibDVT:  
-      { // correction for bias in VdriftT
-	// error in VdriftT equivalent to shift in X at which Y measurement is evaluated
-	// Y -> Y + dVdriftT * tg_phi, where tg_phi is the slope of the track in YX plane
-	double snp=pnt->GetTrParamWSA(AliAlgPoint::kParSnp),slpY=snp/Sqrt((1-snp)*(1+snp));
-	deriv[1] = slpY;
-	break;
+        //
+      case AliAlgDetTRD::kCalibDVT: { // correction for bias in VdriftT
+        // error in VdriftT equivalent to shift in X at which Y measurement is evaluated
+        // Y -> Y + dVdriftT * tg_phi, where tg_phi is the slope of the track in YX plane
+        double snp = pnt->GetTrParamWSA(AliAlgPoint::kParSnp), slpY = snp / Sqrt((1 - snp) * (1 + snp));
+        deriv[1] = slpY;
+        break;
       }
 
-    default: break;
+      default:
+        break;
     };
   }
   //
@@ -121,20 +124,20 @@ AliAlgPoint* AliAlgSensTRD::TrackPoint2AlgPoint(int pntId, const AliTrackPointAr
   AliAlgPoint* pnt = det->GetPointFromPool();
   pnt->SetSensor(this);
   //
-  double tra[3],locId[3],loc[3],
+  double tra[3], locId[3], loc[3],
     glo[3] = {trpArr->GetX()[pntId], trpArr->GetY()[pntId], trpArr->GetZ()[pntId]};
   const TGeoHMatrix& matL2Grec = GetMatrixL2GReco(); // local to global matrix used for reconstruction
-  const TGeoHMatrix& matT2L    = GetMatrixT2L();     // matrix for tracking to local frame translation
+  const TGeoHMatrix& matT2L = GetMatrixT2L();        // matrix for tracking to local frame translation
   //
   // undo reco-time alignment
-  matL2Grec.MasterToLocal(glo,locId); // go to local frame using reco-time matrix, here we recover ideal measurement 
+  matL2Grec.MasterToLocal(glo, locId); // go to local frame using reco-time matrix, here we recover ideal measurement
   //
-  GetMatrixClAlg().LocalToMaster(locId,loc);   // apply alignment
+  GetMatrixClAlg().LocalToMaster(locId, loc); // apply alignment
   //
-  matT2L.MasterToLocal(loc,tra);  // go to tracking frame 
+  matT2L.MasterToLocal(loc, tra); // go to tracking frame
   //
   /*
-  double gloT[3]; 
+  double gloT[3];
   TGeoHMatrix t2g;
   GetMatrixT2G(t2g); t2g.LocalToMaster(tra,gloT);
   printf("\n%5d %s\n",GetVolID(), GetSymName());
@@ -149,7 +152,7 @@ AliAlgPoint* AliAlgSensTRD::TrackPoint2AlgPoint(int pntId, const AliTrackPointAr
     // convert error
     TGeoHMatrix hcov;
     Double_t hcovel[9];
-    const Float_t *pntcov = trpArr->GetCov()+pntId*6; // 6 elements per error matrix
+    const Float_t* pntcov = trpArr->GetCov() + pntId * 6; // 6 elements per error matrix
     hcovel[0] = double(pntcov[0]);
     hcovel[1] = double(pntcov[1]);
     hcovel[2] = double(pntcov[2]);
@@ -162,20 +165,19 @@ AliAlgPoint* AliAlgSensTRD::TrackPoint2AlgPoint(int pntId, const AliTrackPointAr
     hcov.SetRotation(hcovel);
     hcov.Multiply(&matL2Grec);
     const TGeoHMatrix& l2gi = matL2Grec;
-    hcov.MultiplyLeft(&l2gi);    // errors in local frame
+    hcov.MultiplyLeft(&l2gi); // errors in local frame
     hcov.Multiply(&matT2L);
     const TGeoHMatrix& t2li = matT2L.Inverse();
-    hcov.MultiplyLeft(&t2li);       // errors in tracking frame
+    hcov.MultiplyLeft(&t2li); // errors in tracking frame
     //
-    Double_t *hcovscl = hcov.GetRotationMatrix();
-    const double *sysE = GetAddError(); // additional syst error
-    pnt->SetYZErrTracking(hcovscl[4]+sysE[0]*sysE[0],hcovscl[5],hcovscl[8]+sysE[1]*sysE[1]);
-  }
-  else { // errors will be calculated just before using the point in the fit, using track info
-    pnt->SetYZErrTracking(0,0,0);
+    Double_t* hcovscl = hcov.GetRotationMatrix();
+    const double* sysE = GetAddError(); // additional syst error
+    pnt->SetYZErrTracking(hcovscl[4] + sysE[0] * sysE[0], hcovscl[5], hcovscl[8] + sysE[1] * sysE[1]);
+  } else { // errors will be calculated just before using the point in the fit, using track info
+    pnt->SetYZErrTracking(0, 0, 0);
     pnt->SetNeedUpdateFromTrack();
   }
-  pnt->SetXYZTracking(tra[0],tra[1],tra[2]);
+  pnt->SetXYZTracking(tra[0], tra[1], tra[2]);
   pnt->SetAlphaSens(GetAlpTracking());
   pnt->SetXSens(GetXTracking());
   pnt->SetDetID(det->GetDetID());
@@ -186,35 +188,36 @@ AliAlgPoint* AliAlgSensTRD::TrackPoint2AlgPoint(int pntId, const AliTrackPointAr
   // Apply calibrations
   // Correction for NonRC points to account for most probable Z for non-crossing
   {
-    const double kTilt = 2.*TMath::DegToRad();
+    const double kTilt = 2. * TMath::DegToRad();
     // is it pad crrossing?
-    double* errYZ = (double*) pnt->GetYZErrTracking();
+    double* errYZ = (double*)pnt->GetYZErrTracking();
     double sgYZ = errYZ[1];
-    if (TMath::Abs(sgYZ)<0.01) {  // crossing
-      // increase errors since the error 
+    if (TMath::Abs(sgYZ) < 0.01) { // crossing
+      // increase errors since the error
       const double* extraErrRC = det->GetExtraErrRC();
-      errYZ[0] += extraErrRC[0]*extraErrRC[0];
-      errYZ[2] += extraErrRC[1]*extraErrRC[1];
-    }
-    else { // account for probability to not cross the row
+      errYZ[0] += extraErrRC[0] * extraErrRC[0];
+      errYZ[2] += extraErrRC[1] * extraErrRC[1];
+    } else { // account for probability to not cross the row
       double* pYZ = (double*)pnt->GetYZTracking();
-      double corrZ = det->GetNonRCCorrDzDtglWithCal()*tr->GetTgl();
-      pYZ[1] += corrZ; 
-      pYZ[0] += corrZ*Sign(kTilt,sgYZ);  // Y and Z are correlated
+      double corrZ = det->GetNonRCCorrDzDtglWithCal() * tr->GetTgl();
+      pYZ[1] += corrZ;
+      pYZ[0] += corrZ * Sign(kTilt, sgYZ); // Y and Z are correlated
     }
   }
   //
   // Correction for DVT, equivalent to shift in X at which Y is evaluated: dY = tg_phi * dvt
   {
     double dvt = det->GetCorrDVTWithCal();
-    if (Abs(dvt)>kAlmostZeroD) {
+    if (Abs(dvt) > kAlmostZeroD) {
       AliExternalTrackParam trc = *tr;
-      if (!trc.RotateParamOnly(GetAlpTracking())) return 0;
-      double snp = trc.GetSnpAt(pnt->GetXPoint(),AliTrackerBase::GetBz());
-      if (Abs(snp)>kAlmostOneD) return 0;
-      double slpY = snp/Sqrt((1-snp)*(1+snp));
+      if (!trc.RotateParamOnly(GetAlpTracking()))
+        return 0;
+      double snp = trc.GetSnpAt(pnt->GetXPoint(), AliTrackerBase::GetBz());
+      if (Abs(snp) > kAlmostOneD)
+        return 0;
+      double slpY = snp / Sqrt((1 - snp) * (1 + snp));
       double* pYZ = (double*)pnt->GetYZTracking();
-      pYZ[0] += dvt*slpY;
+      pYZ[0] += dvt * slpY;
     }
   }
   //
@@ -223,3 +226,6 @@ AliAlgPoint* AliAlgSensTRD::TrackPoint2AlgPoint(int pntId, const AliTrackPointAr
   return pnt;
   //
 }
+
+} // namespace align
+} // namespace o2
