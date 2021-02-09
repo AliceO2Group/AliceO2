@@ -605,3 +605,43 @@ BOOST_AUTO_TEST_CASE(DataQuery)
       << DataDescriptorMatcher::Op::Just;
   BOOST_CHECK_EQUAL(ops.str(), "andorxorjust");
 }
+
+BOOST_AUTO_TEST_CASE(CheckOriginWildcard)
+{
+  auto result0 = DataDescriptorQueryBuilder::parse("x:TST");
+  BOOST_CHECK_EQUAL(result0.size(), 1);
+  DataDescriptorMatcher expectedMatcher00{
+    DataDescriptorMatcher::Op::And,
+    OriginValueMatcher{"TST"},
+    std::make_unique<DataDescriptorMatcher>(
+      DataDescriptorMatcher::Op::And,
+      DescriptionValueMatcher{ContextRef{1}},
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::And,
+        SubSpecificationTypeValueMatcher{ContextRef{2}},
+        std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
+                                                StartTimeValueMatcher{ContextRef{0}})))};
+  auto matcher = std::get_if<DataDescriptorMatcher>(&result0[0].matcher);
+  BOOST_REQUIRE(matcher != nullptr);
+  BOOST_CHECK_EQUAL(expectedMatcher00, *matcher);
+}
+
+BOOST_AUTO_TEST_CASE(CheckOriginDescriptionWildcard)
+{
+  auto result0 = DataDescriptorQueryBuilder::parse("x:TST/A");
+  BOOST_CHECK_EQUAL(result0.size(), 1);
+  DataDescriptorMatcher expectedMatcher00{
+    DataDescriptorMatcher::Op::And,
+    OriginValueMatcher{"TST"},
+    std::make_unique<DataDescriptorMatcher>(
+      DataDescriptorMatcher::Op::And,
+      DescriptionValueMatcher{"A"},
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::And,
+        SubSpecificationTypeValueMatcher{ContextRef{1}},
+        std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
+                                                StartTimeValueMatcher{ContextRef{0}})))};
+  auto matcher = std::get_if<DataDescriptorMatcher>(&result0[0].matcher);
+  BOOST_REQUIRE(matcher != nullptr);
+  BOOST_CHECK_EQUAL(expectedMatcher00, *matcher);
+}
