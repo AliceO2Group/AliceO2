@@ -131,7 +131,17 @@ class ConstMCTruthContainerView
  public:
   ConstMCTruthContainerView(gsl::span<const char> const bufferview) : mStorage(bufferview){};
   ConstMCTruthContainerView(ConstMCTruthContainer<TruthElement> const& cont) : mStorage(gsl::span<const char>(cont)){};
-  ConstMCTruthContainerView() : mStorage(nullptr, (gsl::span<const char>::index_type)0) { (void)0; } // be explicit that we want nullptr / 0 for an uninitialized container
+#ifdef MS_GSL_V3
+  // be explicit that we want nullptr / 0 for an uninitialized container
+  ConstMCTruthContainerView() : mStorage{nullptr, static_cast<gsl::span<const char>::size_type>(0)}
+  {
+  }
+#else
+  // be explicit that we want nullptr / 0 for an uninitialized container
+  ConstMCTruthContainerView() : mStorage{nullptr, static_cast<gsl::span<const char>::index_type>(0)}
+  {
+  }
+#endif
   ConstMCTruthContainerView(const ConstMCTruthContainerView&) = default;
 
   // const data access

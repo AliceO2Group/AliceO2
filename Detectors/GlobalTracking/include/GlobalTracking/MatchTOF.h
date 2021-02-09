@@ -183,8 +183,12 @@ class MatchTOF
   void setFITRecPoints(const std::vector<o2::ft0::RecPoints>* recpoints)
   {
     if (recpoints) {
+#ifdef MS_GSL_V3
+      mFITRecPoints = {recpoints->data(), recpoints->size()};
+#else
       // need explicit cast because the gsl index_type is signed
       mFITRecPoints = {recpoints->data(), static_cast<decltype(mFITRecPoints)::index_type>(recpoints->size())};
+#endif
     }
   }
   void setFITRecPoints(gsl::span<o2::ft0::RecPoints const> recpoints)
@@ -340,14 +344,14 @@ class MatchTOF
   int mNumOfClusters;                   // number of clusters to be matched
   int* mMatchedClustersIndex = nullptr; //[mNumOfClusters]
 
-  std::string mTracksBranchName = "TPCITS";                    ///< name of branch containing input matched tracks
-  std::string mTPCTracksBranchName = "TPCTracks";              ///< name of branch containing actual TPC tracks
-  std::string mTPCMCTruthBranchName = "MatchMCTruth";          ///< name of branch containing TPC labels
-  std::string mTOFMCTruthBranchName = "TOFClusterMCTruth";     ///< name of branch containing TOF clusters labels
-  std::string mTOFClusterBranchName = "TOFCluster";            ///< name of branch containing input ITS clusters
-  std::string mOutTracksBranchName = "TOFMatchInfo";           ///< name of branch containing output matched tracks
-  std::string mOutCalibBranchName = "TOFCalibInfo";            ///< name of branch containing output calibration infos
-  std::string mOutTOFMCTruthBranchName = "MatchTOFMCTruth";    ///< name of branch containing TOF labels for output matched tracks
+  std::string mTracksBranchName = "TPCITS";                       ///< name of branch containing input matched tracks
+  std::string mTPCTracksBranchName = "TPCTracks";                 ///< name of branch containing actual TPC tracks
+  std::string mTPCMCTruthBranchName = "MatchMCTruth";             ///< name of branch containing TPC labels
+  std::string mTOFMCTruthBranchName = "TOFClusterMCTruth";        ///< name of branch containing TOF clusters labels
+  std::string mTOFClusterBranchName = "TOFCluster";               ///< name of branch containing input ITS clusters
+  std::string mOutTracksBranchName = "TOFMatchInfo";              ///< name of branch containing output matched tracks
+  std::string mOutCalibBranchName = "TOFCalibInfo";               ///< name of branch containing output calibration infos
+  std::string mOutTOFMCTruthBranchName = "MatchTOFMCTruth";       ///< name of branch containing TOF labels for output matched tracks
   std::string mOutTPCTrackMCTruthBranchName = "TPCTracksMCTruth"; ///< name of branch containing TPC labels for input TPC tracks
 
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
