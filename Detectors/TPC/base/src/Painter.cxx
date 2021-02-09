@@ -268,7 +268,7 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const CalDet<T>& calDet, int 
   const std::string_view calName = calDet.getName();
 
   if (outputCanvases) {
-    if (!(outputCanvases->size() < 3)) {
+    if (outputCanvases->size() < 3) {
       LOGP(error, "At least 3 canvases are needed to fill the output, only {} given", outputCanvases->size());
       return vecCanvases;
     }
