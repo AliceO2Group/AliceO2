@@ -16,7 +16,7 @@
 #ifndef ALIALGSENSITS_H
 #define ALIALGSENSITS_H
 
-#include "AliAlgSens.h"
+#include "Align/AliAlgSens.h"
 
 class TObjArray;
 class AliTrackPointArray;

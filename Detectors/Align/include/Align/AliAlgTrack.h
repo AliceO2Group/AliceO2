@@ -22,8 +22,8 @@
 #ifndef ALIALGTRACK_H
 #define ALIALGTRACK_H
 
-#include "AliExternalTrackParam.h"
-#include "AliAlgPoint.h"
+//#include "AliExternalTrackParam.h"
+#include "Align/AliAlgPoint.h"
 #include <TObjArray.h>
 #include <TArrayD.h>
 #include <TArrayI.h>

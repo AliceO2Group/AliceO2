@@ -13,10 +13,10 @@
 /// @since  2021-02-01
 /// @brief  Millepede record in root format (can be converted to proper pede binary format.
 
-#include "AliAlgMPRecord.h"
-#include "AliAlgAux.h"
-#include "AliAlgTrack.h"
-#include "AliLog.h"
+#include "Align/AliAlgMPRecord.h"
+#include "Align/AliAlgAux.h"
+#include "Align/AliAlgTrack.h"
+#include "Framework/Logger.h"
 #include <TMath.h>
 #include <stdio.h>
 

@@ -16,9 +16,9 @@
 #ifndef ALIALGSENSTRD_H
 #define ALIALGSENSTRD_H
 
-#include "AliAlgSens.h"
-class AliTrackPointArray;
-class AliESDtrack;
+#include "Align/AliAlgSens.h"
+//class AliTrackPointArray;
+//class AliESDtrack;
 class AliAlgPoint;
 class TObjArray;
 

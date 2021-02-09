@@ -13,13 +13,13 @@
 /// @since  2021-02-01
 /// @brief  ITS sensor
 
-#include "AliAlgSensITS.h"
-#include "AliAlgAux.h"
-#include "AliLog.h"
-#include "AliTrackPointArray.h"
-#include "AliESDtrack.h"
-#include "AliAlgPoint.h"
-#include "AliAlgDet.h"
+#include "Align/AliAlgSensITS.h"
+#include "Align/AliAlgAux.h"
+#include "Framework/Logger.h"
+//#include "AliTrackPointArray.h"
+//#include "AliESDtrack.h"
+#include "Align/AliAlgPoint.h"
+#include "Align/AliAlgDet.h"
 
 ClassImp(o2::align::AliAlgSensITS);
 

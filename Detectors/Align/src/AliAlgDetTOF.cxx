@@ -13,13 +13,13 @@
 /// @since  2021-02-01
 /// @brief  Wrapper for TOF detector
 
-#include "AliAlgDetTOF.h"
-#include "AliAlgVol.h"
-#include "AliAlgSensTOF.h"
-#include "AliAlgSteer.h"
-#include "AliGeomManager.h"
-#include "AliTOFGeometry.h"
-#include "AliESDtrack.h"
+#include "Align/AliAlgDetTOF.h"
+#include "Align/AliAlgVol.h"
+#include "Align/AliAlgSensTOF.h"
+#include "Align/AliAlgSteer.h"
+//#include "AliGeomManager.h"
+//#include "AliTOFGeometry.h"
+//#include "AliESDtrack.h"
 #include <TGeoManager.h>
 
 ClassImp(o2::align::AliAlgDetTOF);

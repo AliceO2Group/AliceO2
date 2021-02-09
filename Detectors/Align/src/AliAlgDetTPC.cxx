@@ -13,13 +13,13 @@
 /// @since  2021-02-01
 /// @brief  TPC detector wrapper
 
-#include "AliAlgDetTPC.h"
-#include "AliAlgVol.h"
-#include "AliAlgSensTPC.h"
-#include "AliAlgSteer.h"
-#include "AliGeomManager.h"
-#include "AliESDtrack.h"
-#include "AliLog.h"
+#include "Align/AliAlgDetTPC.h"
+#include "Align/AliAlgVol.h"
+#include "Align/AliAlgSensTPC.h"
+#include "Align/AliAlgSteer.h"
+//#include "AliGeomManager.h"
+//#include "AliESDtrack.h"
+#include "Framework/Logger.h"
 #include <TGeoManager.h>
 
 ClassImp(o2::align::AliAlgDetTPC);
