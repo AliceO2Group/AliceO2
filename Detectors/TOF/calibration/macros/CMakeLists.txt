@@ -8,8 +8,6 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_test(
-  make-CCDB-Entry-For-DCS
-  SOURCES makeCCDBEntryForDCS.cxx
-  COMPONENT_NAME tof
+o2_add_test_root_macro(
+  makeCCDBEntryForDCS.C
   PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB)
