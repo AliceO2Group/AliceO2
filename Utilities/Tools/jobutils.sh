@@ -20,28 +20,9 @@
 # -harmonize coding style for variables
 
 o2_cleanup_shm_files() {
-  # check if we have lsof (otherwise we do nothing)
-  which lsof &> /dev/null
-  if [ "$?" = "0" ]; then
-    # find shared memory files **CURRENTLY IN USE** by FairMQ
-    USEDFILES=`lsof -u $(whoami) 2> /dev/null | grep -e \"/dev/shm/.*fmq\" | sed 's/.*\/dev/\/dev/g' | sort | uniq | tr '\n' ' '`
-
-    echo "${USEDFILES}"
-    if [ ! "${USEDFILES}" ]; then
-      # in this case we can remove everything
-      COMMAND="find /dev/shm/ -user $(whoami) -name \"*fmq_*\" -delete 2> /dev/null"
-    else
-      # build exclusion list
-      for f in ${USEDFILES}; do
-        LOGICALOP=""
-        [ "${EXCLPATTERN}" ] && LOGICALOP="-o"
-        EXCLPATTERN="${EXCLPATTERN} ${LOGICALOP} -wholename ${f}"
-      done
-      COMMAND="find /dev/shm/ -user $(whoami) -type f -not \( ${EXCLPATTERN} \) -delete 2> /dev/null"
-    fi
-    eval "${COMMAND}"
-  else
-    echo "Can't do shared mem cleanup: lsof not found"
+  if [ "${JOBUTILS_INTERNAL_DPL_SESSION}" ]; then
+    # echo "cleaning up session ${JOBUTILS_INTERNAL_DPL_SESSION}"
+    fairmq-shmmonitor -s ${JOBUTILS_INTERNAL_DPL_SESSION} -c &> /dev/null
   fi
 }
 
@@ -74,6 +55,7 @@ taskwrapper_cleanup() {
   sleep 2
   # remove leftover shm files
   o2_cleanup_shm_files
+  unset JOBUTILS_INTERNAL_DPL_SESSION
 }
 
 taskwrapper_cleanup_handler() {
@@ -99,6 +81,25 @@ taskwrapper_cleanup_handler() {
 # - possibility to define timeout
 # - possibility to control/limit the CPU load
 taskwrapper() {
+  unset JOBUTILS_INTERNAL_DPL_SESSION
+  # nested helper to parse DPL session ID
+  _parse_DPL_session ()
+  {
+    childpids=$(childprocs ${1})
+    for p in ${childpids}; do
+      command=$(ps -o command ${p} | grep -v "COMMAND" | grep "session")
+      if [ "$?" = "0" ]; then
+        # echo "parsing from ${command}"
+        session=`echo ${command} | sed 's/.*--session//g' | awk '//{print $1}'`
+        if [ "${session}" ]; then
+          # echo "found ${session}"
+          break
+        fi
+      fi
+    done
+    echo "${session:-""}"
+  }
+
   local logfile=$1
   shift 1
   local command="$*"
@@ -215,6 +216,17 @@ taskwrapper() {
     ps -p $PID > /dev/null
     [ $? == 1 ] && break
 
+    if [ "${JOBUTILS_MONITORMEM}" ]; then
+      if [ "${JOBUTILS_INTERNAL_DPL_SESSION}" ]; then
+        MAX_FMQ_SHM=${MAX_FMQ_SHM:-0}
+        text=$(timeout 1 fairmq-shmmonitor --interval 100 -v -s ${JOBUTILS_INTERNAL_DPL_SESSION})
+        line=$(echo ${text} | tr '[' '\n[' | grep "^0" | tail -n1)
+        CURRENT_FMQ_SHM=$(echo ${line} | sed 's/.*used://g')
+        # echo "current shm ${CURRENT_FMQ_SHM}"
+        MAX_FMQ_SHM=$(awk -v "t=${CURRENT_FMQ_SHM}" -v "s=${MAX_FMQ_SHM}" 'BEGIN { if(t>=s) { print t; } else { print s; } }')
+      fi
+    fi
+
     if [ "${JOBUTILS_MONITORCPU}" ] || [ "${JOBUTILS_LIMITLOAD}" ]; then
       # NOTE: The following section is "a bit" compute intensive and currently not optimized
       # A careful evaluation of awk vs bc or other tools might be needed -- or a move to a more
@@ -330,6 +342,12 @@ taskwrapper() {
       fi
     fi
 
+    # Try to find out DPL session ID
+    # if [ -z "${JOBUTILS_INTERNAL_DPL_SESSION}" ]; then
+        JOBUTILS_INTERNAL_DPL_SESSION=$(_parse_DPL_session ${PID})
+    #   echo "got session ${JOBUTILS_INTERNAL_DPL_SESSION}"
+    # fi
+
     # sleep for some time (can be customized for power user)
     sleep ${JOBUTILS_WRAPPER_SLEEP:-1}
 
@@ -387,6 +405,13 @@ taskwrapper() {
       [[ ! $- == *i* ]] && exit ${RC}
     fi
   fi
+  if [ "${JOBUTILS_MONITORMEM}" ]; then
+     # convert bytes in MB
+     MAX_FMQ_SHM=${MAX_FMQ_SHM:-0}
+     MAX_FMQ_SHM=$(awk -v "s=${MAX_FMQ_SHM}" 'BEGIN { print s/(1024.*1024) }')
+     echo "PROCESS MAX FMQ_SHM = ${MAX_FMQ_SHM}" >> ${logfile}
+  fi
+  unset JOBUTILS_INTERNAL_DPL_SESSION
   return ${RC}
 }
 
