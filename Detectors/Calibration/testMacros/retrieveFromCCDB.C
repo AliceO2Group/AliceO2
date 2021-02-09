@@ -9,12 +9,11 @@
 #include <unistd.h>
 #include "Framework/Logger.h"
 #include "CCDB/BasicCCDBManager.h"
-#include "populateCCDB.C"
 #include <pthread.h>
 #include <thread>
 #include <mutex>
-
 #endif
+#include "populateCCDB.C"
 
 using CcdbManager = o2::ccdb::BasicCCDBManager;
 
@@ -24,10 +23,13 @@ using CcdbManager = o2::ccdb::BasicCCDBManager;
 void retrieve(const std::vector<CCDBObj>& objs, float procTimeSec, std::mutex& mtx, std::atomic<int>& n, size_t tfID);
 
 void retrieveFromCCDB(int maxTFs = 8, float procTimeSec = 10.,
-                      const std::string& fname = "cdbSizeV0.txt", const std::string& ccdbHost = "http://localhost:8080" /*"http://ccdb-test.cern.ch:8080"*/)
+                      const std::string& fname = "cdbSizeV0.txt",
+                      const std::string& ccdbHost = "http://localhost:8080" /*"http://ccdb-test.cern.ch:8080"*/,
+                      bool allowCaching = true)
 {
   auto& mgr = CcdbManager::instance();
   mgr.setURL(ccdbHost.c_str()); // or http://localhost:8080 for a local installation
+  mgr.setCaching(allowCaching);
   auto objs = readObjectsList(fname);
   if (objs.empty()) {
     return;
@@ -64,7 +66,9 @@ void retrieve(const std::vector<CCDBObj>& objs, float procTimeSec, std::mutex& m
     mtx.unlock();
     LOG(INFO) << "Retrieved object " << o.path << " of size " << ob->size() << " Bytes"
               << " for TF " << tfID;
-    delete ob;
+    if (!mgr.isCachingEnabled()) { // we can delete object only when caching is disabled
+      delete ob;
+    }
   }
   usleep(long(procTimeSec * (1. - tfrac) * 1e6));
   n--;

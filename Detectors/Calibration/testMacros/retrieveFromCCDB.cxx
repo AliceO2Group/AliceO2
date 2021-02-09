@@ -20,7 +20,13 @@ namespace bpo = boost::program_options;
 
 bool initOptionsAndParse(bpo::options_description& options, int argc, char* argv[], bpo::variables_map& vm)
 {
-  options.add_options()("TFs-in-parallel,nTFs", bpo::value<int>()->default_value(8), "Number of TFs to simulate that access the CCDB in parallel")("TF-processing-time,tTF", bpo::value<float>()->default_value(10.), "Seconds supposed to be needed to process a TF")("host,h", bpo::value<std::string>()->default_value("ccdb-test.cern.ch:8080"), "CCDB server")("in-file-name,n", bpo::value<std::string>()->default_value("cdbSizeV0.txt"), "File name with list of CCDB entries to upload")("help,h", "Produce help message.");
+  options.add_options()(
+    "TFs-in-parallel,m", bpo::value<int>()->default_value(8), "Number of TFs to simulate that access the CCDB in parallel")(
+    "TF-processing-time,t", bpo::value<float>()->default_value(10.), "Seconds supposed to be needed to process a TF")(
+    "ccdb-sercer,s", bpo::value<std::string>()->default_value("ccdb-test.cern.ch:8080"), "CCDB server")(
+    "in-file-name,n", bpo::value<std::string>()->default_value("cdbSizeV0.txt"), "File name with list of CCDB entries to upload")(
+    "disable-caching,d", bpo::value<bool>()->default_value(false)->implicit_value(true), "Disable CCDB caching")(
+    "help,h", "Produce help message.");
 
   try {
     bpo::store(parse_command_line(argc, argv, options), vm);
@@ -54,9 +60,9 @@ int main(int argc, char* argv[])
   auto nTFs = vm["TFs-in-parallel"].as<int>();
   auto tTF = vm["TF-processing-time"].as<float>();
   auto& inputFile = vm["in-file-name"].as<std::string>();
-  auto& ccdbHost = vm["host"].as<std::string>();
-
-  retrieveFromCCDB(nTFs, tTF, inputFile, ccdbHost);
+  auto& ccdbHost = vm["ccdb-sercer"].as<std::string>();
+  auto disableCaching = vm["disable-caching"].as<bool>();
+  retrieveFromCCDB(nTFs, tTF, inputFile, ccdbHost, disableCaching);
 
   return (0);
 }
