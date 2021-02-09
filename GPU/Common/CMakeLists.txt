@@ -20,6 +20,7 @@ set(HDRS_INSTALL
     GPUCommonRtypes.h
     GPUCommonArray.h
     GPUCommonTransform3D.h
+    GPUROOTSMatrixFwd.h
     GPUROOTCartesianFwd.h)
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")

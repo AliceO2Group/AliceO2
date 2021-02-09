@@ -33,7 +33,8 @@ o2_target_root_dictionary(
           include/MathUtils/CartesianGPU.h
           include/MathUtils/CachingTF1.h
           include/MathUtils/RandomRing.h
-          include/MathUtils/Primitive2D.h)
+          include/MathUtils/Primitive2D.h
+          include/MathUtils/SMatrixGPU.h)
 
 o2_add_test(
   CachingTF1
