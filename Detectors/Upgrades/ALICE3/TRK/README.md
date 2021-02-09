@@ -10,7 +10,7 @@ Provided O2 has been compiled with upgrades enabled, it is possible to simulate 
 
 ## Simulation
 TRK module is enabled via the `-m TRK` parameter.
-New beampipe is currently represented by twp cylindrical concentric berillium pipes that cover by default the interaction point region.
+New beampipe is currently represented by two cylindrical concentric beryllium pipes that cover by default the interaction point region.
 It is generally configurable in the code and can be activated passing `-m A3IP` to the `o2-sim` command.
 
 Typical command to generate MC data:
