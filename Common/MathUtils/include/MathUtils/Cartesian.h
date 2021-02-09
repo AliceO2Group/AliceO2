@@ -18,6 +18,8 @@
 #include "GPUCommonDef.h"
 #include "GPUCommonRtypes.h"
 #if !defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
+#include <Math/SMatrix.h>
+#include <Math/SVector.h>
 #include <Math/GenVector/DisplacementVector3D.h>
 #include <Math/GenVector/PositionVector3D.h>
 #include <Math/GenVector/Rotation3D.h>
@@ -30,8 +32,10 @@
 #else
 #include "GPUCommonMath.h"
 #include "CartesianGPU.h"
+#include "SMatrixGPU.h"
 #endif
 #include "GPUROOTCartesianFwd.h"
+#include "GPUROOTSMatrixFwd.h"
 
 namespace o2
 {
