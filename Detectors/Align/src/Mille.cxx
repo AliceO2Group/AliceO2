@@ -1,18 +1,22 @@
-/**
- * \file
- * Create Millepede-II C-binary record.
- *
- *  \author    : Gero Flucke
- *  date       : October 2006
- *  $Revision: 1.3 $
- *  $Date: 2007/04/16 17:47:38 $
- *  (last update by $Author: flucke $)
- */
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// @file   Mille.h
+/// @author Gero Flucke, ruben.shahoyan@cern.ch, michael.lettrich@cern.ch
+/// @since  October 2006
+/// @brief  Class to write C binary file.
 
 /*
   RS: original Mille.cc from http://svnsrv.desy.de/public/MillepedeII/tags/V04-02-03
   jeudi 30 avril 2015: renamed to cxx
-  jeudi 30 avril 2015: added automatic buffer expansion  
+  jeudi 30 avril 2015: added automatic buffer expansion
 */
 
 #include "Mille.h"
@@ -20,6 +24,10 @@
 #include <fstream>
 #include <iostream>
 
+namespace o2
+{
+namespace align
+{
 //___________________________________________________________________________
 
 /// Opens outFileName (by default as binary file).
@@ -28,19 +36,22 @@
  * \param[in] asBinary     flag for binary
  * \param[in] writeZero    flag for keeping of zeros
  */
-Mille::Mille(const char *outFileName, bool asBinary, bool writeZero) : 
-  myOutFile(outFileName, 
-	    (asBinary ? (std::ios::binary | std::ios::out | std::ios::trunc) : (std::ios::out | std::ios::trunc ))),
-  myAsBinary(asBinary), myWriteZero(writeZero),myBufferSize(0),
-  myBufferInt(5000),myBufferFloat(5000),
-  myBufferPos(-1), myHasSpecial(false)
+Mille::Mille(const char* outFileName, bool asBinary, bool writeZero) : myOutFile(outFileName,
+                                                                                 (asBinary ? (std::ios::binary | std::ios::out | std::ios::trunc) : (std::ios::out | std::ios::trunc))),
+                                                                       myAsBinary(asBinary),
+                                                                       myWriteZero(writeZero),
+                                                                       myBufferSize(0),
+                                                                       myBufferInt(5000),
+                                                                       myBufferFloat(5000),
+                                                                       myBufferPos(-1),
+                                                                       myHasSpecial(false)
 {
   // Instead myBufferPos(-1), myHasSpecial(false) and the following two lines
   // we could call newSet() and kill()...
 
   if (!myOutFile.is_open()) {
-    std::cerr << "Mille::Mille: Could not open " << outFileName 
-	      << " as output file." << std::endl;
+    std::cerr << "Mille::Mille: Could not open " << outFileName
+              << " as output file." << std::endl;
   }
 }
 
@@ -62,45 +73,48 @@ Mille::~Mille()
  * \param[in]    rMeas  measurement (residuum)
  * \param[in]    sigma  error
  */
-void Mille::mille(int NLC, const float *derLc,
-		  int NGL, const float *derGl, const int *label,
-		  float rMeas, float sigma)
+void Mille::mille(int NLC, const float* derLc,
+                  int NGL, const float* derGl, const int* label,
+                  float rMeas, float sigma)
 {
-  if (sigma <= 0.) return;
-  if (myBufferPos == -1) this->newSet(); // start, e.g. new track
-  if (!this->checkBufferSize(NLC, NGL)) return;
+  if (sigma <= 0.)
+    return;
+  if (myBufferPos == -1)
+    this->newSet(); // start, e.g. new track
+  if (!this->checkBufferSize(NLC, NGL))
+    return;
 
   // first store measurement
   ++myBufferPos;
   float* bufferFloat = myBufferFloat.GetArray();
-  int*   bufferInt   = myBufferInt.GetArray();
+  int* bufferInt = myBufferInt.GetArray();
   bufferFloat[myBufferPos] = rMeas;
-  bufferInt  [myBufferPos] = 0;
+  bufferInt[myBufferPos] = 0;
 
   // store local derivatives and local 'lables' 1,...,NLC
   for (int i = 0; i < NLC; ++i) {
     if (derLc[i] || myWriteZero) { // by default store only non-zero derivatives
       ++myBufferPos;
       bufferFloat[myBufferPos] = derLc[i]; // local derivatives
-      bufferInt  [myBufferPos] = i+1;      // index of local parameter
+      bufferInt[myBufferPos] = i + 1;      // index of local parameter
     }
   }
 
   // store uncertainty of measurement in between locals and globals
   ++myBufferPos;
   bufferFloat[myBufferPos] = sigma;
-  bufferInt  [myBufferPos] = 0;
+  bufferInt[myBufferPos] = 0;
 
   // store global derivatives and their labels
   for (int i = 0; i < NGL; ++i) {
-    if (derGl[i] || myWriteZero) { // by default store only non-zero derivatives
+    if (derGl[i] || myWriteZero) {                                   // by default store only non-zero derivatives
       if ((label[i] > 0 || myWriteZero) && label[i] <= myMaxLabel) { // and for valid labels
-	++myBufferPos;
-	bufferFloat[myBufferPos] = derGl[i]; // global derivatives
-	bufferInt  [myBufferPos] = label[i]; // index of global parameter
+        ++myBufferPos;
+        bufferFloat[myBufferPos] = derGl[i]; // global derivatives
+        bufferInt[myBufferPos] = label[i];   // index of global parameter
       } else {
-	std::cerr << "Mille::mille: Invalid label " << label[i] 
-		  << " <= 0 or > " << myMaxLabel << std::endl; 
+        std::cerr << "Mille::mille: Invalid label " << label[i]
+                  << " <= 0 or > " << myMaxLabel << std::endl;
       }
     }
   }
@@ -113,16 +127,19 @@ void Mille::mille(int NLC, const float *derLc,
  * \param[in]    floatings  floats
  * \param[in]    integers   ints
  */
-void Mille::special(int nSpecial, const float *floatings, const int *integers)
+void Mille::special(int nSpecial, const float* floatings, const int* integers)
 {
-  if (nSpecial == 0) return;
-  if (myBufferPos == -1) this->newSet(); // start, e.g. new track
+  if (nSpecial == 0)
+    return;
+  if (myBufferPos == -1)
+    this->newSet(); // start, e.g. new track
   if (myHasSpecial) {
     std::cerr << "Mille::special: Special values already stored for this record."
-	      << std::endl; 
+              << std::endl;
     return;
   }
-  if (!this->checkBufferSize(nSpecial, 0)) return;
+  if (!this->checkBufferSize(nSpecial, 0))
+    return;
   myHasSpecial = true; // after newSet() (Note: MILLSP sets to buffer position...)
 
   //  myBufferFloat[.]  | myBufferInt[.]
@@ -132,20 +149,20 @@ void Mille::special(int nSpecial, const float *floatings, const int *integers)
   //  The above indicates special data, following are nSpecial floating and nSpecial integer data.
   //
   float* bufferFloat = myBufferFloat.GetArray();
-  int*   bufferInt   = myBufferInt.GetArray();
+  int* bufferInt = myBufferInt.GetArray();
   //
   ++myBufferPos; // zero pair
   bufferFloat[myBufferPos] = 0.;
-  bufferInt  [myBufferPos] = 0;
+  bufferInt[myBufferPos] = 0;
 
-  ++myBufferPos; // nSpecial and zero
+  ++myBufferPos;                        // nSpecial and zero
   bufferFloat[myBufferPos] = -nSpecial; // automatic conversion to float
-  bufferInt  [myBufferPos] = 0;
+  bufferInt[myBufferPos] = 0;
 
   for (int i = 0; i < nSpecial; ++i) {
     ++myBufferPos;
     bufferFloat[myBufferPos] = floatings[i];
-    bufferInt  [myBufferPos] = integers[i];
+    bufferInt[myBufferPos] = integers[i];
   }
 }
 
@@ -162,30 +179,30 @@ int Mille::end()
 {
   int wrote = 0;
   if (myBufferPos > 0) { // only if anything stored...
-    const int numWordsToWrite = (myBufferPos + 1)*2;
+    const int numWordsToWrite = (myBufferPos + 1) * 2;
     float* bufferFloat = myBufferFloat.GetArray();
-    int*   bufferInt   = myBufferInt.GetArray();
+    int* bufferInt = myBufferInt.GetArray();
 
     if (myAsBinary) {
-      myOutFile.write(reinterpret_cast<const char*>(&numWordsToWrite), 
-		      sizeof(numWordsToWrite));
-      myOutFile.write(reinterpret_cast<char*>(bufferFloat), 
-		      (myBufferPos+1) * sizeof(bufferFloat[0]));
-      myOutFile.write(reinterpret_cast<char*>(bufferInt), 
-		      (myBufferPos+1) * sizeof(bufferInt[0]));
+      myOutFile.write(reinterpret_cast<const char*>(&numWordsToWrite),
+                      sizeof(numWordsToWrite));
+      myOutFile.write(reinterpret_cast<char*>(bufferFloat),
+                      (myBufferPos + 1) * sizeof(bufferFloat[0]));
+      myOutFile.write(reinterpret_cast<char*>(bufferInt),
+                      (myBufferPos + 1) * sizeof(bufferInt[0]));
     } else {
       myOutFile << numWordsToWrite << "\n";
-      for (int i = 0; i < myBufferPos+1; ++i) {
-	myOutFile << bufferFloat[i] << " ";
+      for (int i = 0; i < myBufferPos + 1; ++i) {
+        myOutFile << bufferFloat[i] << " ";
       }
       myOutFile << "\n";
-      
-      for (int i = 0; i < myBufferPos+1; ++i) {
-	myOutFile << bufferInt[i] << " ";
+
+      for (int i = 0; i < myBufferPos + 1; ++i) {
+        myOutFile << bufferInt[i] << " ";
       }
       myOutFile << "\n";
     }
-    wrote = (myBufferPos+1)*(sizeof(bufferFloat[0])+sizeof(bufferInt[0]))+sizeof(int);
+    wrote = (myBufferPos + 1) * (sizeof(bufferFloat[0]) + sizeof(bufferInt[0])) + sizeof(int);
   }
   myBufferPos = -1; // reset buffer for next set of derivatives
   return wrote;
@@ -198,7 +215,7 @@ void Mille::newSet()
   myBufferPos = 0;
   myHasSpecial = false;
   myBufferFloat[0] = 0.0;
-  myBufferInt  [0] = 0;   // position 0 used as error counter
+  myBufferInt[0] = 0; // position 0 used as error counter
 }
 
 //___________________________________________________________________________
@@ -212,15 +229,18 @@ bool Mille::checkBufferSize(int nLocal, int nGlobal)
 {
   if (myBufferPos + nLocal + nGlobal + 2 >= myBufferInt.GetSize()) {
     ++(myBufferInt[0]); // increase error count
-    std::cerr << "Mille::checkBufferSize: Buffer too short (" 
-	      << myBufferInt.GetSize() << "),"
-	      << "\n need space for nLocal (" << nLocal<< ")"
-	      << "/nGlobal (" << nGlobal << ") local/global derivatives, " 
-	      << myBufferPos + 1 << " already stored!"
-	      << std::endl;
+    std::cerr << "Mille::checkBufferSize: Buffer too short ("
+              << myBufferInt.GetSize() << "),"
+              << "\n need space for nLocal (" << nLocal << ")"
+              << "/nGlobal (" << nGlobal << ") local/global derivatives, "
+              << myBufferPos + 1 << " already stored!"
+              << std::endl;
     //    return false;
     myBufferInt.Set(myBufferPos + nLocal + nGlobal + 1000);
     myBufferFloat.Set(myBufferPos + nLocal + nGlobal + 1000);
   }
   return true;
 }
+
+} // namespace align
+} // namespace o2

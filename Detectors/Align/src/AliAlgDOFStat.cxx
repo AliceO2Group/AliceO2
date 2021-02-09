@@ -1,17 +1,17 @@
-/**************************************************************************
- * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
- *                                                                        *
- * Author: The ALICE Off-line Project.                                    *
- * Contributors are mentioned in the code where appropriate.              *
- *                                                                        *
- * Permission to use, copy, modify and distribute this software and its   *
- * documentation strictly for non-commercial purposes is hereby granted   *
- * without fee, provided that the above copyright notice appears in all   *
- * copies and that both the copyright notice and this permission notice   *
- * appear in the supporting documentation. The authors make no claims     *
- * about the suitability of this software for any purpose. It is          *
- * provided "as is" without express or implied warranty.                  *
- **************************************************************************/
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// @file   AliAlgDOFStat.h
+/// @author ruben.shahoyan@cern.ch, michael.lettrich@cern.ch
+/// @since  2021-02-01
+/// @brief  Mergable bbject for statistics of points used by each DOF
 
 #include "AliAlgDOFStat.h"
 #include "AliAlgSteer.h"
@@ -21,19 +21,21 @@
 
 using namespace TMath;
 
-ClassImp(AliAlgDOFStat)
+ClassImp(o2::align::AliAlgDOFStat);
+
+namespace o2
+{
+namespace align
+{
 
 //_________________________________________________________
 AliAlgDOFStat::AliAlgDOFStat(Int_t n)
-  : TNamed("DOFstat","DOF statistics")
-  ,fNDOFs(n)
-  ,fNMerges(1)
-  ,fStat(0)
+  : TNamed("DOFstat", "DOF statistics"), fNDOFs(n), fNMerges(1), fStat(0)
 {
   // def c-tor
   if (fNDOFs) {
     fStat = new Int_t[n];
-    memset(fStat,0,fNDOFs*sizeof(Int_t));
+    memset(fStat, 0, fNDOFs * sizeof(Int_t));
   }
   //
 }
@@ -45,12 +47,11 @@ AliAlgDOFStat::~AliAlgDOFStat()
   delete[] fStat;
 }
 
-
 //____________________________________________
 void AliAlgDOFStat::Print(Option_t*) const
 {
   // print info
-  printf("NDOFs: %d, NMerges: %d\n",fNDOFs,fNMerges);
+  printf("NDOFs: %d, NMerges: %d\n", fNDOFs, fNMerges);
   //
 }
 
@@ -58,32 +59,39 @@ void AliAlgDOFStat::Print(Option_t*) const
 TH1F* AliAlgDOFStat::CreateHisto(AliAlgSteer* st) const
 {
   // create histo with stat. If steer object is supplied, build labels
-  if (!fNDOFs) return 0;
-  TH1F* h = new TH1F("DOFstat","statistics per DOF",fNDOFs,0,fNDOFs);
-  for (int i=fNDOFs;i--;) {
-    h->SetBinContent(i+1,fStat[i]);
-    if (st) h->GetXaxis()->SetBinLabel(i+1,st->GetDOFLabelTxt(i));
+  if (!fNDOFs)
+    return 0;
+  TH1F* h = new TH1F("DOFstat", "statistics per DOF", fNDOFs, 0, fNDOFs);
+  for (int i = fNDOFs; i--;) {
+    h->SetBinContent(i + 1, fStat[i]);
+    if (st)
+      h->GetXaxis()->SetBinLabel(i + 1, st->GetDOFLabelTxt(i));
   }
   return h;
 }
 
 //______________________________________________________________________________
-Long64_t AliAlgDOFStat::Merge(TCollection *list) 
+Long64_t AliAlgDOFStat::Merge(TCollection* list)
 {
   // merge statistics
   int nmerged = 0;
   TIter next(list);
-  TObject *obj;
-  while((obj=next())) {
+  TObject* obj;
+  while ((obj = next())) {
     AliAlgDOFStat* stAdd = dynamic_cast<AliAlgDOFStat*>(obj);
-    if (!stAdd) continue;
+    if (!stAdd)
+      continue;
     if (fNDOFs != stAdd->fNDOFs) {
-      AliErrorF("Different NDOF: %d vs %d",fNDOFs,stAdd->fNDOFs);
+      AliErrorF("Different NDOF: %d vs %d", fNDOFs, stAdd->fNDOFs);
       return 0;
-    } 
-    for (int i=fNDOFs;i--;) fStat[i]+=stAdd->fStat[i];
+    }
+    for (int i = fNDOFs; i--;)
+      fStat[i] += stAdd->fStat[i];
     fNMerges += stAdd->fNMerges;
     nmerged++;
   }
   return nmerged;
 }
+
+} // namespace align
+} // namespace o2

@@ -1,17 +1,17 @@
-/**************************************************************************
- * Copyright(c) 1998-1999, ALICE Experiment at CERN, All rights reserved. *
- *                                                                        *
- * Author: The ALICE Off-line Project.                                    *
- * Contributors are mentioned in the code where appropriate.              *
- *                                                                        *
- * Permission to use, copy, modify and distribute this software and its   *
- * documentation strictly for non-commercial purposes is hereby granted   *
- * without fee, provided that the above copyright notice appears in all   *
- * copies and that both the copyright notice and this permission notice   *
- * appear in the supporting documentation. The authors make no claims     *
- * about the suitability of this software for any purpose. It is          *
- * provided "as is" without express or implied warranty.                  *
- **************************************************************************/
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// @file   AliAlgSensTOF.h
+/// @author ruben.shahoyan@cern.ch, michael.lettrich@cern.ch
+/// @since  2021-02-01
+/// @brief  TOF sensor
 
 #include "AliAlgSensTOF.h"
 #include "AliAlgAux.h"
@@ -21,15 +21,19 @@
 #include "AliTrackPointArray.h"
 #include "AliESDtrack.h"
 
-ClassImp(AliAlgSensTOF)
+ClassImp(o2::align::AliAlgSensTOF);
 
-using namespace AliAlgAux;
+using namespace o2::align::AliAlgAux;
 using namespace TMath;
 
+namespace o2
+{
+namespace align
+{
+
 //_________________________________________________________
-AliAlgSensTOF::AliAlgSensTOF(const char* name,Int_t vid, Int_t iid, Int_t isec) 
-  :AliAlgSens(name,vid,iid)
-  ,fSector(isec)
+AliAlgSensTOF::AliAlgSensTOF(const char* name, Int_t vid, Int_t iid, Int_t isec)
+  : AliAlgSens(name, vid, iid), fSector(isec)
 {
   // def c-tor
 }
@@ -55,12 +59,12 @@ void AliAlgSensTOF::PrepareMatrixT2L()
 {
   // extract from geometry T2L matrix
   double alp = Sector2Alpha(fSector);
-  double loc[3]={0,0,0},glo[3];
-  GetMatrixL2GIdeal().LocalToMaster(loc,glo);
-  double x = Sqrt(glo[0]*glo[0]+glo[1]*glo[1]);
+  double loc[3] = {0, 0, 0}, glo[3];
+  GetMatrixL2GIdeal().LocalToMaster(loc, glo);
+  double x = Sqrt(glo[0] * glo[0] + glo[1] * glo[1]);
   TGeoHMatrix t2l;
   t2l.SetDx(x);
-  t2l.RotateZ(alp*RadToDeg());
+  t2l.RotateZ(alp * RadToDeg());
   const TGeoHMatrix& l2gi = GetMatrixL2GIdeal().Inverse();
   t2l.MultiplyLeft(&l2gi);
   /*
@@ -86,10 +90,10 @@ AliAlgPoint* AliAlgSensTOF::TrackPoint2AlgPoint(int pntId, const AliTrackPointAr
   AliAlgPoint* pnt = det->GetPointFromPool();
   pnt->SetSensor(this);
   //
-  double tra[3],locId[3],loc[3],traId[3],
+  double tra[3], locId[3], loc[3], traId[3],
     glo[3] = {trpArr->GetX()[pntId], trpArr->GetY()[pntId], trpArr->GetZ()[pntId]};
   const TGeoHMatrix& matL2Grec = GetMatrixL2GReco(); // local to global matrix used for reconstruction
-  const TGeoHMatrix& matT2L    = GetMatrixT2L();     // matrix for tracking to local frame translation
+  const TGeoHMatrix& matT2L = GetMatrixT2L();        // matrix for tracking to local frame translation
   //
   // >>>------------- here we fix the z by emulating Misalign action in the tracking frame ------>>>
   if (!trpArr->TestBit(AliTrackPointArray::kTOFBugFixed)) {
@@ -101,26 +105,26 @@ AliAlgPoint* AliAlgSensTOF::TrackPoint2AlgPoint(int pntId, const AliTrackPointAr
     mClAlgTrec.MultiplyLeft(&t2li);
     TGeoHMatrix mT2G;
     GetMatrixT2G(mT2G);
-    mT2G.MasterToLocal(glo,tra);     // we are in tracking frame, with original wrong alignment
-    mClAlgTrec.MasterToLocal(tra,traId); // here we have almost ideal X,Y and wrong Z
-    const double *trans = mClAlgTrec.GetTranslation();
-    const double *rotmt = mClAlgTrec.GetRotationMatrix();  
-    tra[2] = trans[2] + traId[0]*rotmt[6]+traId[1]*rotmt[7]+tra[2]*rotmt[8]; //we got misaligned Z
-    mT2G.LocalToMaster(tra,glo);
+    mT2G.MasterToLocal(glo, tra);         // we are in tracking frame, with original wrong alignment
+    mClAlgTrec.MasterToLocal(tra, traId); // here we have almost ideal X,Y and wrong Z
+    const double* trans = mClAlgTrec.GetTranslation();
+    const double* rotmt = mClAlgTrec.GetRotationMatrix();
+    tra[2] = trans[2] + traId[0] * rotmt[6] + traId[1] * rotmt[7] + tra[2] * rotmt[8]; //we got misaligned Z
+    mT2G.LocalToMaster(tra, glo);
     //
   }
   // now continue as usual
   // <<<------------- here we fix the z by emulating Misalign action in the tracking frame ------<<<
   //
   // undo reco-time alignment
-  matL2Grec.MasterToLocal(glo,locId); // go to local frame using reco-time matrix, here we recover ideal measurement 
+  matL2Grec.MasterToLocal(glo, locId); // go to local frame using reco-time matrix, here we recover ideal measurement
   //
-  GetMatrixClAlg().LocalToMaster(locId,loc);   // apply alignment
+  GetMatrixClAlg().LocalToMaster(locId, loc); // apply alignment
   //
-  matT2L.MasterToLocal(loc,tra);  // go to tracking frame 
+  matT2L.MasterToLocal(loc, tra); // go to tracking frame
   //
   /*
-  double gloT[3]; 
+  double gloT[3];
   TGeoHMatrix t2g;
   GetMatrixT2G(t2g); t2g.LocalToMaster(tra,gloT);
   printf("\n%5d %s\n",GetVolID(), GetSymName());
@@ -135,7 +139,7 @@ AliAlgPoint* AliAlgSensTOF::TrackPoint2AlgPoint(int pntId, const AliTrackPointAr
     // convert error
     TGeoHMatrix hcov;
     Double_t hcovel[9];
-    const Float_t *pntcov = trpArr->GetCov()+pntId*6; // 6 elements per error matrix
+    const Float_t* pntcov = trpArr->GetCov() + pntId * 6; // 6 elements per error matrix
     hcovel[0] = double(pntcov[0]);
     hcovel[1] = double(pntcov[1]);
     hcovel[2] = double(pntcov[2]);
@@ -148,20 +152,19 @@ AliAlgPoint* AliAlgSensTOF::TrackPoint2AlgPoint(int pntId, const AliTrackPointAr
     hcov.SetRotation(hcovel);
     hcov.Multiply(&matL2Grec);
     const TGeoHMatrix& l2gi = matL2Grec.Inverse();
-    hcov.MultiplyLeft(&l2gi);    // errors in local frame
+    hcov.MultiplyLeft(&l2gi); // errors in local frame
     hcov.Multiply(&matT2L);
     const TGeoHMatrix& t2li = matT2L.Inverse();
-    hcov.MultiplyLeft(&t2li);       // errors in tracking frame
+    hcov.MultiplyLeft(&t2li); // errors in tracking frame
     //
-    Double_t *hcovscl = hcov.GetRotationMatrix();
-    const double *sysE = GetAddError(); // additional syst error
-    pnt->SetYZErrTracking(hcovscl[4]+sysE[0]*sysE[0],hcovscl[5],hcovscl[8]+sysE[1]*sysE[1]);
-  }
-  else { // errors will be calculated just before using the point in the fit, using track info
-    pnt->SetYZErrTracking(0,0,0);
+    Double_t* hcovscl = hcov.GetRotationMatrix();
+    const double* sysE = GetAddError(); // additional syst error
+    pnt->SetYZErrTracking(hcovscl[4] + sysE[0] * sysE[0], hcovscl[5], hcovscl[8] + sysE[1] * sysE[1]);
+  } else { // errors will be calculated just before using the point in the fit, using track info
+    pnt->SetYZErrTracking(0, 0, 0);
     pnt->SetNeedUpdateFromTrack();
   }
-  pnt->SetXYZTracking(tra[0],tra[1],tra[2]);
+  pnt->SetXYZTracking(tra[0], tra[1], tra[2]);
   pnt->SetAlphaSens(GetAlpTracking());
   pnt->SetXSens(GetXTracking());
   pnt->SetDetID(det->GetDetID());
@@ -174,3 +177,6 @@ AliAlgPoint* AliAlgSensTOF::TrackPoint2AlgPoint(int pntId, const AliTrackPointAr
   return pnt;
   //
 }
+
+} // namespace align
+} // namespace o2
