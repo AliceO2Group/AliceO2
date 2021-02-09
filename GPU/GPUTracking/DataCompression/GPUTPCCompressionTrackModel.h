@@ -102,7 +102,6 @@ class GPUTPCCompressionTrackModel
 #endif
 
  protected:
-
 #ifdef GPUCA_COMPRESSION_TRACK_MODEL_MERGER
   GPUTPCGMPropagator mProp;
   GPUTPCGMTrackParam mTrk;
