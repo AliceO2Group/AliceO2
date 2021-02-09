@@ -142,7 +142,7 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
           pt.put_child(key, vectorToBranch<double>(stringToVector<double>(vmap[key].as<std::string>())));
           break;
         case VariantType::ArrayBool:
-          pt.put_child(key, vectorToBranch<bool>(stringToVector<bool>(vmap[key].as<std::string>())));
+          //          pt.put_child(key, vectorToBranch<bool>(stringToVector<bool>(vmap[key].as<std::string>())));
           break;
         case VariantType::ArrayString:
           pt.put_child(key, vectorToBranch<std::string>(stringToVector<std::string>(vmap[key].as<std::string>())));
