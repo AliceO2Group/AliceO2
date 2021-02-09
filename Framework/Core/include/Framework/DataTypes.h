@@ -31,7 +31,7 @@ namespace o2::aod::trackfwd
 {
 enum ForwardTrackTypeEnum : uint8_t {
   GlobalMuonTrack = 0,
-  MCHStandalone,
+  MUONStandalone,
   MFTStandalone,
 };
 } // namespace o2::aod::trackfwd
