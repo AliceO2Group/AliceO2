@@ -8,10 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-// executable to populate the CCDB emulating the rates that we expect for
+// executable to retrieve objects from CCDB emulating the rates that we expect for
 // Run 3, as read (in terms of size and rate) from an external file
 
-#include "populateCCDB.C"
+#include "retrieveFromCCDB.C"
 #include <TRandom.h>
 #include <boost/program_options.hpp>
 #include <iostream>
@@ -21,8 +21,11 @@ namespace bpo = boost::program_options;
 bool initOptionsAndParse(bpo::options_description& options, int argc, char* argv[], bpo::variables_map& vm)
 {
   options.add_options()(
-    "ccdb-server,s", bpo::value<std::string>()->default_value("ccdb-test.cern.ch:8080"), "CCDB server")(
+    "TFs-in-parallel,m", bpo::value<int>()->default_value(8), "Number of TFs to simulate that access the CCDB in parallel")(
+    "TF-processing-time,t", bpo::value<float>()->default_value(10.), "Seconds supposed to be needed to process a TF")(
+    "ccdb-sercer,s", bpo::value<std::string>()->default_value("ccdb-test.cern.ch:8080"), "CCDB server")(
     "in-file-name,n", bpo::value<std::string>()->default_value("cdbSizeV0.txt"), "File name with list of CCDB entries to upload")(
+    "disable-caching,d", bpo::value<bool>()->default_value(false)->implicit_value(true), "Disable CCDB caching")(
     "help,h", "Produce help message.");
 
   try {
@@ -54,9 +57,12 @@ int main(int argc, char* argv[])
   }
 
   // call populate "macro"
+  auto nTFs = vm["TFs-in-parallel"].as<int>();
+  auto tTF = vm["TF-processing-time"].as<float>();
   auto& inputFile = vm["in-file-name"].as<std::string>();
-  auto& ccdbHost = vm["ccdb-server"].as<std::string>();
-  populateCCDB(inputFile, ccdbHost);
+  auto& ccdbHost = vm["ccdb-sercer"].as<std::string>();
+  auto disableCaching = vm["disable-caching"].as<bool>();
+  retrieveFromCCDB(nTFs, tTF, inputFile, ccdbHost, disableCaching);
 
   return (0);
 }

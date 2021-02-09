@@ -21,10 +21,10 @@
 
 using DPID = o2::dcs::DataPointIdentifier;
 
-int main(int argc, char* argv[]) //const std::string url = "http://localhost:8080")
+int makeCCDBEntryForDCS(const std::string url = "http://localhost:8080")
 {
 
-  std::string url(argv[0]);
+  //  std::string url(argv[0]);
   // macro to populate CCDB for TOF with the configuration for DCS
   std::unordered_map<DPID, std::string> dpid2DataDesc;
   std::vector<std::string> aliases = {"tof_hv_vp_[00..89]", "tof_hv_vn_[00..89]", "tof_hv_ip_[00..89]", "tof_hv_in_[00..89]"};
