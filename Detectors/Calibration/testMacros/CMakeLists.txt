@@ -10,7 +10,10 @@
 
 install(FILES populateCCDB.C
               retrieveFromCCDB.C
-        DESTINATION share/macro/)
+              DESTINATION share/macro/)
+
+install(FILES cdbSizeV0.txt
+        DESTINATION share/Detectors/Calibration/data)	    
 
 o2_add_test_root_macro(populateCCDB.C
                        PUBLIC_LINK_LIBRARIES O2::CCDB
