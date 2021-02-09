@@ -45,7 +45,7 @@ namespace tpc
 {
 class TrackTPC;
 class Digit;
-}
+} // namespace tpc
 namespace gpu
 {
 class TPCFastTransform;
@@ -114,10 +114,15 @@ struct GPUO2InterfaceIOPtrs {
   const o2::gpu::GPUTrackingInOutZS* tpcZS = nullptr;
 
   // Input / Output for Merged TPC tracks, two ptrs, for the tracks themselves, and for the MC labels.
+#ifdef MS_GSL_V3
+  gsl::span<o2::tpc::TrackTPC> outputTracks = {nullptr, (gsl::span<o2::tpc::TrackTPC>::size_type)0};
+  gsl::span<uint32_t> outputClusRefs = {nullptr, (gsl::span<uint32_t>::size_type)0};
+  gsl::span<o2::MCCompLabel> outputTracksMCTruth = {nullptr, (gsl::span<o2::MCCompLabel>::size_type)0};
+#else
   gsl::span<o2::tpc::TrackTPC> outputTracks = {nullptr, (gsl::span<o2::tpc::TrackTPC>::index_type)0};
   gsl::span<uint32_t> outputClusRefs = {nullptr, (gsl::span<uint32_t>::index_type)0};
   gsl::span<o2::MCCompLabel> outputTracksMCTruth = {nullptr, (gsl::span<o2::MCCompLabel>::index_type)0};
-
+#endif
   // Output for entropy-reduced clusters of TPC compression
   const o2::tpc::CompressedClustersFlat* compressedClusters = nullptr;
 };

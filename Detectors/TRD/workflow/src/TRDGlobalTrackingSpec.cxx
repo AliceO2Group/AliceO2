@@ -94,7 +94,11 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   std::vector<int> trdTriggerIndices;
 
   for (int iEv = 0; iEv < nCollisions; ++iEv) {
+#ifdef MS_GSL_V3
+    const auto& trg = triggerRecords[iEv];
+#else
     const auto& trg = triggerRecords.at(iEv);
+#endif
     int nTrackletsCurrent = trg.getNumberOfObjects();
     int iFirstTracklet = trg.getFirstEntry();
     int64_t evTime = trg.getBCData().toLong() * o2::constants::lhc::LHCBunchSpacingNS; // event time in ns
