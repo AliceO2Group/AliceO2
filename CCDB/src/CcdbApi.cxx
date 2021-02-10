@@ -38,6 +38,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 #include <iostream>
+#include <mutex>
 
 namespace o2
 {
@@ -45,6 +46,8 @@ namespace ccdb
 {
 
 using namespace std;
+
+std::mutex gIOMutex; // to protect TMemFile IO operations
 
 CcdbApi::~CcdbApi()
 {
@@ -97,6 +100,7 @@ std::unique_ptr<std::vector<char>> CcdbApi::createObjectImage(const void* obj, s
 {
   // Create a binary image of the object, if CcdbObjectInfo pointer is provided, register there
   // the assigned object class name and the filename
+  std::lock_guard<std::mutex> guard(gIOMutex);
   std::string className = o2::utils::MemFileHelper::getClassName(tinfo);
   std::string tmpFileName = generateFileName(className);
   if (info) {
@@ -116,6 +120,7 @@ std::unique_ptr<std::vector<char>> CcdbApi::createObjectImage(const TObject* roo
     info->setFileName(tmpFileName);
     info->setObjectType("TObject"); // why TObject and not the actual name?
   }
+  std::lock_guard<std::mutex> guard(gIOMutex);
   return o2::utils::MemFileHelper::createFileImage(*rootObject, tmpFileName, CCDBOBJECT_ENTRY);
 }
 
@@ -358,6 +363,7 @@ TObject* CcdbApi::retrieve(std::string const& path, std::map<std::string, std::s
     long response_code;
     res = curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
     if ((res == CURLE_OK) && (response_code != 404)) {
+      std::lock_guard<std::mutex> guard(gIOMutex);
       TMessage mess(kMESS_OBJECT);
       mess.SetBuffer(chunk.memory, chunk.size, kFALSE);
       mess.SetReadMode();
@@ -484,6 +490,7 @@ TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::strin
     if ((res == CURLE_OK) && (response_code != 404)) {
       Int_t previousErrorLevel = gErrorIgnoreLevel;
       gErrorIgnoreLevel = kFatal;
+      std::lock_guard<std::mutex> guard(gIOMutex);
       TMemFile memFile("name", chunk.memory, chunk.size, "READ");
       gErrorIgnoreLevel = previousErrorLevel;
       if (!memFile.IsZombie()) {
@@ -584,14 +591,13 @@ void CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
   if (success) {
     // trying to append metadata to the file so that it can be inspected WHERE/HOW/WHAT IT corresponds to
     // Just a demonstrator for the moment
-    TFile snapshotfile(targetpath.c_str(), "UPDATE");
     CCDBQuery querysummary(path, metadata, timestamp);
-    snapshotfile.WriteObjectAny(&querysummary, TClass::GetClass(typeid(querysummary)), CCDBQUERY_ENTRY);
-
     // retrieveHeaders
     auto headers = retrieveHeaders(path, metadata, timestamp);
+    std::lock_guard<std::mutex> guard(gIOMutex);
+    TFile snapshotfile(targetpath.c_str(), "UPDATE");
+    snapshotfile.WriteObjectAny(&querysummary, TClass::GetClass(typeid(querysummary)), CCDBQUERY_ENTRY);
     snapshotfile.WriteObjectAny(&headers, TClass::GetClass(typeid(metadata)), CCDBMETA_ENTRY);
-
     snapshotfile.Close();
   }
 }
@@ -641,12 +647,14 @@ void* CcdbApi::extractFromTFile(TFile& file, TClass const* cl)
   return result;
 }
 
-void* CcdbApi::extractFromLocalFile(std::string const& filename, TClass const* tcl) const
+void* CcdbApi::extractFromLocalFile(std::string const& filename, std::type_info const& tinfo) const
 {
   if (!boost::filesystem::exists(filename)) {
     LOG(INFO) << "Local snapshot " << filename << " not found \n";
     return nullptr;
   }
+  std::lock_guard<std::mutex> guard(gIOMutex);
+  auto tcl = tinfo2TClass(tinfo);
   TFile f(filename.c_str(), "READ");
   return extractFromTFile(f, tcl);
 }
@@ -673,13 +681,15 @@ bool CcdbApi::initTGrid() const
   return mAlienInstance != nullptr;
 }
 
-void* CcdbApi::downloadAlienContent(std::string const& url, TClass* cl) const
+void* CcdbApi::downloadAlienContent(std::string const& url, std::type_info const& tinfo) const
 {
   if (!initTGrid()) {
     return nullptr;
   }
+  std::lock_guard<std::mutex> guard(gIOMutex);
   auto memfile = TMemFile::Open(url.c_str(), "OPEN");
   if (memfile) {
+    auto cl = tinfo2TClass(tinfo);
     auto content = extractFromTFile(*memfile, cl);
     delete memfile;
     return content;
@@ -687,14 +697,16 @@ void* CcdbApi::downloadAlienContent(std::string const& url, TClass* cl) const
   return nullptr;
 }
 
-void* CcdbApi::interpretAsTMemFileAndExtract(char* contentptr, size_t contentsize, TClass* tcl) const
+void* CcdbApi::interpretAsTMemFileAndExtract(char* contentptr, size_t contentsize, std::type_info const& tinfo) const
 {
   void* result = nullptr;
   Int_t previousErrorLevel = gErrorIgnoreLevel;
   gErrorIgnoreLevel = kFatal;
+  std::lock_guard<std::mutex> guard(gIOMutex);
   TMemFile memFile("name", contentptr, contentsize, "READ");
   gErrorIgnoreLevel = previousErrorLevel;
   if (!memFile.IsZombie()) {
+    auto tcl = tinfo2TClass(tinfo);
     result = extractFromTFile(memFile, tcl);
     if (!result) {
       LOG(ERROR) << o2::utils::concat_string("Couldn't retrieve object corresponding to ", tcl->GetName(), " from TFile");
@@ -705,7 +717,7 @@ void* CcdbApi::interpretAsTMemFileAndExtract(char* contentptr, size_t contentsiz
 }
 
 // navigate sequence of URLs until TFile content is found; object is extracted and returned
-void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string const& url, TClass* cl, std::map<string, string>* headers) const
+void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string const& url, std::type_info const& tinfo, std::map<string, string>* headers) const
 {
   // a global internal data structure that can be filled with HTTP header information
   // static --> to avoid frequent alloc/dealloc as optimization
@@ -714,7 +726,7 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
 
   // let's see first of all if the url is something specific that curl cannot handle
   if (url.find("alien:/", 0) != std::string::npos) {
-    return downloadAlienContent(url, cl);
+    return downloadAlienContent(url, tinfo);
   }
   // add other final cases here
   // example root://
@@ -750,7 +762,7 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
     }
     if (200 <= response_code && response_code < 300) {
       // good response and the content is directly provided and should have been dumped into "chunk"
-      content = interpretAsTMemFileAndExtract(chunk.memory, chunk.size, cl);
+      content = interpretAsTMemFileAndExtract(chunk.memory, chunk.size, tinfo);
     } else if (response_code == 304) {
       // this means the object exist but I am not serving
       // it since it's already in your possession
@@ -791,7 +803,7 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
       for (auto& l : locs) {
         if (l.size() > 0) {
           LOG(DEBUG) << "Trying content location " << l;
-          content = navigateURLsAndRetrieveContent(curl_handle, l, cl, nullptr);
+          content = navigateURLsAndRetrieveContent(curl_handle, l, tinfo, nullptr);
           if (content /* or other success marker in future */) {
             break;
           }
@@ -824,17 +836,12 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
                                  const std::string& createdNotAfter, const std::string& createdNotBefore) const
 {
   // We need the TClass for this type; will verify if dictionary exists
-  auto tcl = TClass::GetClass(tinfo);
-  if (!tcl) {
-    std::cerr << "Could not retrieve ROOT dictionary for type " << tinfo.name() << " aborting to read from CCDB\n";
-    return nullptr;
-  }
 
   CURL* curl_handle = curl_easy_init();
   string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
   // if we are in snapshot mode we can simply open the file; extract the object and return
   if (mInSnapshotMode) {
-    return extractFromLocalFile(fullUrl, tcl);
+    return extractFromLocalFile(fullUrl, tinfo);
   }
 
   // add some global options to the curl query
@@ -853,7 +860,7 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
   }
   curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, list);
 
-  auto content = navigateURLsAndRetrieveContent(curl_handle, fullUrl, tcl, headers);
+  auto content = navigateURLsAndRetrieveContent(curl_handle, fullUrl, tinfo, headers);
   curl_easy_cleanup(curl_handle);
   return content;
 }
@@ -1140,6 +1147,16 @@ std::vector<std::string> CcdbApi::getAllFolders(std::string const& top) const
   std::vector<std::string> folders;
   traverseAndFillFolders(*this, top, folders);
   return folders;
+}
+
+TClass* CcdbApi::tinfo2TClass(std::type_info const& tinfo)
+{
+  TClass* cl = TClass::GetClass(tinfo);
+  if (!cl) {
+    throw std::runtime_error(fmt::format("Could not retrieve ROOT dictionary for type {}, aborting", tinfo.name()));
+    return nullptr;
+  }
+  return cl;
 }
 
 } // namespace ccdb
