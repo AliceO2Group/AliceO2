@@ -20,10 +20,8 @@
 #include <TObjArray.h>
 
 #include "Align/AliAlgVol.h"
-//#include "Align/AliAlgDet.h" FIXME(milettri) needs AliAlgDet;
-#include "Align/AliAlgPoint.h"
 #include "Align/AliAlgDOFStat.h"
-#include "ReconstructionDataFormats/Track.h"
+#include "Align/AliAlgAux.h"
 
 //class AliTrackPointArray;
 //class AliESDtrack;
@@ -34,6 +32,9 @@ namespace o2
 namespace align
 {
 
+class AliAlgDet;
+class AliAlgPoint;
+
 class AliAlgSens : public AliAlgVol
 {
  public:
@@ -43,8 +44,8 @@ class AliAlgSens : public AliAlgVol
   //
   virtual void AddChild(AliAlgVol*);
   //
-  //  void SetDetector(AliAlgDet* det) { fDet = det; } FIXME(milettri) needs AliAlgDet;
-  //  AliAlgDet* GetDetector() const { return fDet; } FIXME(milettri) needs AliAlgDet;
+  void SetDetector(AliAlgDet* det) { fDet = det; }
+  AliAlgDet* GetDetector() const { return fDet; }
   //
   Int_t GetSID() const { return fSID; }
   void SetSID(int s) { fSID = s; }
@@ -105,7 +106,7 @@ class AliAlgSens : public AliAlgVol
   //
   Int_t fSID;                // sensor id in detector
   Double_t fAddError[2];     // additional error increment for measurement
-                             //  AliAlgDet* fDet;           // pointer on detector  FIXME(milettri) needs AliAlgDet;
+  AliAlgDet* fDet;           // pointer on detector
   TGeoHMatrix fMatClAlg;     // reference cluster alignment matrix in tracking frame
   TGeoHMatrix fMatClAlgReco; // reco-time cluster alignment matrix in tracking frame
 
