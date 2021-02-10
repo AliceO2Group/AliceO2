@@ -97,7 +97,7 @@
 
 #include "Align/AliAlgVol.h"
 #include "Align/AliAlgDOFStat.h"
-#include "Align/AliAlgConstraint.h"
+//#include "Align/AliAlgConstraint.h" FIXME(milettri): needs AliAlgsConstraint
 //#include "AliAlignObjParams.h"
 //#include "AliGeomManager.h"
 #include "Align/AliAlgAux.h"
@@ -110,9 +110,9 @@
 #include <TAxis.h>
 #include <stdio.h>
 
-ClassImp(o2::align::AliAlgVol)
+ClassImp(o2::align::AliAlgVol);
 
-  using namespace TMath;
+using namespace TMath;
 using namespace o2::align::AliAlgAux;
 
 namespace o2
@@ -166,14 +166,16 @@ AliAlgVol::~AliAlgVol()
 //_________________________________________________________
 void AliAlgVol::Delta2Matrix(TGeoHMatrix& deltaM, const Double_t* delta) const
 {
-  // prepare delta matrix for the volume from its
-  // local delta vector (AliAlignObj convension): dx,dy,dz,,theta,psi,phi
-  const double *tr = &delta[0], *rt = &delta[3]; // translation(cm) and rotation(degree)
-  AliAlignObjParams tempAlignObj;
-  tempAlignObj.SetRotation(rt[0], rt[1], rt[2]);
-  tempAlignObj.SetTranslation(tr[0], tr[1], tr[2]);
-  tempAlignObj.GetMatrix(deltaM);
+  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  //FIXME(milettri): needs AliAlignObj
+  //  // prepare delta matrix for the volume from its
+  //  // local delta vector (AliAlignObj convension): dx,dy,dz,,theta,psi,phi
+  //  const double *tr = &delta[0], *rt = &delta[3]; // translation(cm) and rotation(degree)
   //
+  //  AliAlignObjParams tempAlignObj;
+  //  tempAlignObj.SetRotation(rt[0], rt[1], rt[2]);
+  //  tempAlignObj.SetTranslation(tr[0], tr[1], tr[2]);
+  //  tempAlignObj.GetMatrix(deltaM);
 }
 
 //__________________________________________________________________
@@ -295,41 +297,43 @@ void AliAlgVol::Print(const Option_t* opt) const
 //____________________________________________
 void AliAlgVol::PrepareMatrixL2G(Bool_t reco)
 {
-  // extract from geometry L2G matrix, depending on reco flag, set it as a reco-time
-  // or current alignment matrix
-  const char* path = GetSymName();
-  if (gGeoManager->GetAlignableEntry(path)) {
-    const TGeoHMatrix* l2g = AliGeomManager::GetMatrix(path);
-    if (!l2g)
-      AliFatalF("Failed to find L2G matrix for alignable %s", path);
-    reco ? SetMatrixL2GReco(*l2g) : SetMatrixL2G(*l2g);
-  } else { // extract from path
-    if (!gGeoManager->CheckPath(path))
-      AliFatalF("Volume path %s not valid!", path);
-    TGeoPhysicalNode* node = (TGeoPhysicalNode*)gGeoManager->GetListOfPhysicalNodes()->FindObject(path);
-    TGeoHMatrix l2g;
-    if (!node) {
-      AliWarningF("Attention: volume %s was not misaligned, extracting original matrix", path);
-      if (!AliGeomManager::GetOrigGlobalMatrix(path, l2g)) {
-        AliFatalF("Failed to find ideal L2G matrix for %s", path);
-      }
-    } else {
-      l2g = *node->GetMatrix();
-    }
-    reco ? SetMatrixL2GReco(l2g) : SetMatrixL2G(l2g);
-  }
-  //
+  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  // FIXME(milettri): needs AliGeomManager
+  //  // extract from geometry L2G matrix, depending on reco flag, set it as a reco-time
+  //  // or current alignment matrix
+  //  const char* path = GetSymName();
+  //  if (gGeoManager->GetAlignableEntry(path)) {
+  //    const TGeoHMatrix* l2g = AliGeomManager::GetMatrix(path);
+  //    if (!l2g)
+  //      LOG(FATAL) << "Failed to find L2G matrix for alignable " << path;
+  //    reco ? SetMatrixL2GReco(*l2g) : SetMatrixL2G(*l2g);
+  //  } else { // extract from path
+  //    if (!gGeoManager->CheckPath(path))
+  //      LOG(FATAL) << "Volume path " << path << " is not valid!";
+  //    TGeoPhysicalNode* node = (TGeoPhysicalNode*)gGeoManager->GetListOfPhysicalNodes()->FindObject(path);
+  //    TGeoHMatrix l2g;
+  //    if (!node) {
+  //      LOG(WARNING) << "volume " << path << " was not misaligned, extracting original matrix";
+  //      if (!AliGeomManager::GetOrigGlobalMatrix(path, l2g)) {
+  //        LOG(FATAL) << "Failed to find ideal L2G matrix for " << path;
+  //      }
+  //    } else {
+  //      l2g = *node->GetMatrix();
+  //    }
+  //    reco ? SetMatrixL2GReco(l2g) : SetMatrixL2G(l2g);
+  //  }
 }
 
 //____________________________________________
 void AliAlgVol::PrepareMatrixL2GIdeal()
 {
-  // extract from geometry ideal L2G matrix
-  TGeoHMatrix mtmp;
-  if (!AliGeomManager::GetOrigGlobalMatrix(GetSymName(), mtmp))
-    AliFatalF("Failed to find ideal L2G matrix for %s", GetSymName());
-  SetMatrixL2GIdeal(mtmp);
-  //
+  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  //  FIXME(milettri): needs AliGeomManager
+  //  // extract from geometry ideal L2G matrix
+  //  TGeoHMatrix mtmp;
+  //  if (!AliGeomManager::GetOrigGlobalMatrix(GetSymName(), mtmp))
+  //    LOG(FATAL) << "Failed to find ideal L2G matrix for " << GetSymName();
+  //  SetMatrixL2GIdeal(mtmp);
 }
 
 //____________________________________________
@@ -382,7 +386,7 @@ void AliAlgVol::SetTrackingFrame()
   // Define tracking frame of the sensor
   // This method should be implemented for sensors, which receive the T2L
   // matrix from the geometry
-  AliErrorF("Volume %s was supposed to implement its own method", GetName());
+  LOG(ERROR) << "Volume " << GetName() << " was supposed to implement its own method";
 }
 
 //__________________________________________________________________
@@ -412,14 +416,12 @@ void AliAlgVol::InitDOFs()
   //
   // Do we need this strict condition?
   if (GetInitDOFsDone())
-    AliFatalF("Something is wrong, DOFs are already initialized for %s", GetName());
+    LOG(FATAL) << "DOFs are already initialized for " << GetName();
   for (int i = 0; i < fNDOFs; i++)
     if (fParErrs[i] < -9999 && IsZeroAbs(fParVals[i]))
       FixDOF(i);
   CalcFree(kTRUE);
-  //
   SetInitDOFsDone();
-  //
 }
 
 //__________________________________________________________________
@@ -465,7 +467,7 @@ void AliAlgVol::SetParVals(Int_t npar, Double_t* vl, Double_t* er)
 {
   // set parameters
   if (npar > fNDOFs)
-    AliFatalF("Volume %s has %d dofs", GetName(), fNDOFs);
+    LOG(FATAL) << "Volume " << GetName() << " has " << fNDOFs << " dofs";
   for (int i = 0; i < npar; i++) {
     fParVals[i] = vl[i];
     fParErrs[i] = er ? er[i] : 0;
@@ -728,7 +730,6 @@ void AliAlgVol::CreateAlignmenMatrix(TGeoHMatrix& alg) const
     alg.MultiplyLeft(&par->GetMatrixL2GIdeal());
   }
   */
-  //
 }
 
 /*
@@ -763,48 +764,52 @@ void AliAlgVol::CreateAlignmenMatrix(TGeoHMatrix& alg) const
 //_________________________________________________________________
 void AliAlgVol::CreateAlignmentObjects(TClonesArray* arr) const
 {
+  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  // FIXME(milettri): needs AliAlignObjParams
   // add to supplied array alignment object for itself and children
-  TClonesArray& parr = *arr;
-  TGeoHMatrix algM;
-  CreateAlignmenMatrix(algM);
-  new (parr[parr.GetEntriesFast()]) AliAlignObjParams(GetName(), GetVolID(), algM, kTRUE);
-  int nch = GetNChildren();
-  for (int ich = 0; ich < nch; ich++)
-    GetChild(ich)->CreateAlignmentObjects(arr);
+  //  TClonesArray& parr = *arr;
+  //  TGeoHMatrix algM;
+  //  CreateAlignmenMatrix(algM);
+  //  new (parr[parr.GetEntriesFast()]) AliAlignObjParams(GetName(), GetVolID(), algM, kTRUE);
+  //  int nch = GetNChildren();
+  //  for (int ich = 0; ich < nch; ich++)
+  //    GetChild(ich)->CreateAlignmentObjects(arr);
   //
 }
 
 //_________________________________________________________________
 void AliAlgVol::UpdateL2GRecoMatrices(const TClonesArray* algArr, const TGeoHMatrix* cumulDelta)
 {
-  // recreate fMatL2GReco matrices from ideal L2G matrix and alignment objects
-  // used during data reconstruction. For the volume at level J we have
-  // L2G' = Delta_J * Delta_{J-1} *...* Delta_0 * L2GIdeal
-  // cumulDelta is Delta_{J-1} * ... * Delta_0, supplied by the parent
-  //
-  fMatL2GReco = fMatL2GIdeal;
-  // find alignment object for this volume
-  int nalg = algArr->GetEntriesFast();
-  const AliAlignObjParams* par = 0;
-  for (int i = 0; i < nalg; i++) {
-    par = (AliAlignObjParams*)algArr->At(i);
-    if (!strcmp(par->GetSymName(), GetSymName()))
-      break;
-    par = 0;
-  }
-  TGeoHMatrix delta;
-  if (!par)
-    AliInfoF("Alignment for %s is absent in Reco-Time alignment object", GetSymName());
-  else
-    par->GetMatrix(delta);
-  if (cumulDelta)
-    delta *= *cumulDelta;
-  //
-  fMatL2GReco.MultiplyLeft(&delta);
-  // propagate to children
-  for (int ich = GetNChildren(); ich--;)
-    GetChild(ich)->UpdateL2GRecoMatrices(algArr, &delta);
-  //
+  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  // FIXME(milettri): needs AliAlignObjParams
+  //  // recreate fMatL2GReco matrices from ideal L2G matrix and alignment objects
+  //  // used during data reconstruction. For the volume at level J we have
+  //  // L2G' = Delta_J * Delta_{J-1} *...* Delta_0 * L2GIdeal
+  //  // cumulDelta is Delta_{J-1} * ... * Delta_0, supplied by the parent
+  //  //
+  //  fMatL2GReco = fMatL2GIdeal;
+  //  // find alignment object for this volume
+  //  int nalg = algArr->GetEntriesFast();
+  //  const AliAlignObjParams* par = 0;
+  //  for (int i = 0; i < nalg; i++) {
+  //    par = (AliAlignObjParams*)algArr->At(i);
+  //    if (!strcmp(par->GetSymName(), GetSymName()))
+  //      break;
+  //    par = 0;
+  //  }
+  //  TGeoHMatrix delta;
+  //  if (!par)
+  //    LOG(INFO) << "Alignment for " << GetSymName() << " is absent in Reco-Time alignment object";
+  //  else
+  //    par->GetMatrix(delta);
+  //  if (cumulDelta)
+  //    delta *= *cumulDelta;
+  //  //
+  //  fMatL2GReco.MultiplyLeft(&delta);
+  //  // propagate to children
+  //  for (int ich = GetNChildren(); ich--;)
+  //    GetChild(ich)->UpdateL2GRecoMatrices(algArr, &delta);
+  //  //
 }
 
 //______________________________________________________
@@ -862,28 +867,29 @@ void AliAlgVol::FillDOFStat(AliAlgDOFStat* h) const
 //________________________________________
 void AliAlgVol::AddAutoConstraints(TObjArray* constrArr)
 {
-  // adds automatic constraints
-  int nch = GetNChildren();
-  //
-  if (HasChildrenConstraint()) {
-    AliAlgConstraint* constr = new AliAlgConstraint();
-    constr->SetConstrainPattern(fConstrChild);
-    constr->SetParent(this);
-    for (int ich = nch; ich--;) {
-      AliAlgVol* child = GetChild(ich);
-      if (child->GetExcludeFromParentConstraint())
-        continue;
-      constr->AddChild(child);
-    }
-    if (constr->GetNChildren())
-      constrArr->Add(constr);
-    else
-      delete constr;
-  }
-  //
-  for (int ich = 0; ich < nch; ich++)
-    GetChild(ich)->AddAutoConstraints(constrArr);
-  //
+  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  // FIXME(milettri): needs AliAlgConstraint
+  //  // adds automatic constraints
+  //  int nch = GetNChildren();
+  //  //
+  //  if (HasChildrenConstraint()) {
+  //    AliAlgConstraint* constr = new AliAlgConstraint();
+  //    constr->SetConstrainPattern(fConstrChild);
+  //    constr->SetParent(this);
+  //    for (int ich = nch; ich--;) {
+  //      AliAlgVol* child = GetChild(ich);
+  //      if (child->GetExcludeFromParentConstraint())
+  //        continue;
+  //      constr->AddChild(child);
+  //    }
+  //    if (constr->GetNChildren())
+  //      constrArr->Add(constr);
+  //    else
+  //      delete constr;
+  //  }
+  //  for (int ich = 0; ich < nch; ich++) {
+  //    GetChild(ich)->AddAutoConstraints(constrArr);
+  //  }
 }
 
 } // namespace align
