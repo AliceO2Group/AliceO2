@@ -16,16 +16,17 @@
 #ifndef ALIALGSENS_H
 #define ALIALGSENS_H
 
-#include "Align/AliAlgVol.h"
 #include <TMath.h>
+#include <TObjArray.h>
+
+#include "Align/AliAlgVol.h"
+//#include "Align/AliAlgDet.h" FIXME(milettri) needs AliAlgDet;
+#include "Align/AliAlgPoint.h"
+#include "Align/AliAlgDOFStat.h"
+#include "ReconstructionDataFormats/Track.h"
 
 //class AliTrackPointArray;
 //class AliESDtrack;
-class AliAlgDet;
-class AliAlgPoint;
-class TObjArray;
-//class AliExternalTrackParam;
-class AliAlgDOFStat;
 class TCloneArray;
 
 namespace o2
@@ -42,8 +43,8 @@ class AliAlgSens : public AliAlgVol
   //
   virtual void AddChild(AliAlgVol*);
   //
-  void SetDetector(AliAlgDet* det) { fDet = det; }
-  AliAlgDet* GetDetector() const { return fDet; }
+  //  void SetDetector(AliAlgDet* det) { fDet = det; } FIXME(milettri) needs AliAlgDet;
+  //  AliAlgDet* GetDetector() const { return fDet; } FIXME(milettri) needs AliAlgDet;
   //
   Int_t GetSID() const { return fSID; }
   void SetSID(int s) { fSID = s; }
@@ -77,10 +78,10 @@ class AliAlgSens : public AliAlgVol
   virtual Bool_t IsSensor() const { return kTRUE; }
   virtual void Print(const Option_t* opt = "") const;
   //
-  virtual void UpdatePointByTrackInfo(AliAlgPoint* pnt, const AliExternalTrackParam* t) const;
+  virtual void UpdatePointByTrackInfo(AliAlgPoint* pnt, const trackParam_t* t) const;
   virtual void UpdateL2GRecoMatrices(const TClonesArray* algArr, const TGeoHMatrix* cumulDelta);
   //
-  virtual AliAlgPoint* TrackPoint2AlgPoint(int pntId, const AliTrackPointArray* trpArr, const AliESDtrack* t) = 0;
+  //  virtual AliAlgPoint* TrackPoint2AlgPoint(int pntId, const AliTrackPointArray* trpArr, const AliESDtrack* t) = 0; TODO(milettri): needs AliTrackPointArray AliESDtrack
   //
   virtual Int_t FinalizeStat(AliAlgDOFStat* h = 0);
   //
@@ -104,7 +105,7 @@ class AliAlgSens : public AliAlgVol
   //
   Int_t fSID;                // sensor id in detector
   Double_t fAddError[2];     // additional error increment for measurement
-  AliAlgDet* fDet;           // pointer on detector
+                             //  AliAlgDet* fDet;           // pointer on detector  FIXME(milettri) needs AliAlgDet;
   TGeoHMatrix fMatClAlg;     // reference cluster alignment matrix in tracking frame
   TGeoHMatrix fMatClAlgReco; // reco-time cluster alignment matrix in tracking frame
 

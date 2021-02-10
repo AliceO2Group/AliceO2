@@ -28,7 +28,7 @@ namespace align
 
 //_____________________________________
 AliAlgPoint::AliAlgPoint()
-  : fMinLocVarID(0), fMaxLocVarID(0), fDetID(-1), fSID(-1), fAlphaSens(0), fXSens(0), fCosDiagErr(0), fSinDiagErr(0), fX2X0(0), fXTimesRho(0), fNGloDOFs(0), fDGloOffs(0) //, fSensor(0) FIXME(milettri): Needs AliAlgSens
+  : fMinLocVarID(0), fMaxLocVarID(0), fDetID(-1), fSID(-1), fAlphaSens(0), fXSens(0), fCosDiagErr(0), fSinDiagErr(0), fX2X0(0), fXTimesRho(0), fNGloDOFs(0), fDGloOffs(0), fSensor(0)
 {
   // def c-tor
   for (int i = 3; i--;) {
@@ -90,10 +90,8 @@ void AliAlgPoint::Init()
 //_____________________________________
 void AliAlgPoint::UpdatePointByTrackInfo(const trackParam_t* t)
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
-  //FIXME(milettri): needs AliAlgSens
   //  // recalculate point errors using info about the track in the sensor tracking frame
-  //  fSensor->UpdatePointByTrackInfo(this, t);
+  fSensor->UpdatePointByTrackInfo(this, t);
 }
 
 //_____________________________________
@@ -219,8 +217,7 @@ void AliAlgPoint::Clear(Option_t*)
   fSID = -1;
   fNGloDOFs = 0;
   fDGloOffs = 0;
-  //
-  //  fSensor = 0; FIXME(milettri): needs AliAlgSens
+  fSensor = 0;
 }
 
 //__________________________________________________________________

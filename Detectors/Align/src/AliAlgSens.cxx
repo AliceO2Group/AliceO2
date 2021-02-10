@@ -13,18 +13,14 @@
 /// @since  2021-02-01
 /// @brief  End-chain alignment volume in detector branch, where the actual measurement is done.
 
-#include <stdio.h>
+#include <cstdio>
 #include <TClonesArray.h>
+
 #include "Align/AliAlgSens.h"
-#include "Align/AliAlgAux.h"
 #include "Framework/Logger.h"
 //#include "AliGeomManager.h"
-//#include "AliExternalTrackParam.h"
-#include "Align/AliAlgPoint.h"
-#include "Align/AliAlgDet.h"
-#include "Align/AliAlgDOFStat.h"
 
-ClassImp(AliAlgSens);
+ClassImp(o2::align::AliAlgSens);
 
 using namespace o2::align::AliAlgAux;
 using namespace TMath;
@@ -36,7 +32,7 @@ namespace align
 
 //_________________________________________________________
 AliAlgSens::AliAlgSens(const char* name, Int_t vid, Int_t iid)
-  : AliAlgVol(name, iid), fSID(0), fDet(0), fMatClAlg(), fMatClAlgReco()
+  : AliAlgVol(name, iid), fSID(0), /*fDet(0), */ fMatClAlg(), fMatClAlgReco() // FIXME(milettri): needs AliAlgDet
 {
   // def c-tor
   SetVolID(vid);
@@ -263,7 +259,7 @@ void AliAlgSens::DPosTraDParGeom(const AliAlgPoint* pnt, double* deriv, const Al
       parent ? DPosTraDParGeomTRA(pnt, deriv, parent) : DPosTraDParGeomTRA(pnt, deriv);
       break;
     default:
-      AliErrorF("Alignment frame %d is not implemented", parent->GetVarFrame());
+      LOG(ERROR) << "Alignment frame " << parent->GetVarFrame() << " is not implemented";
       break;
   }
 }
@@ -291,7 +287,7 @@ void AliAlgSens::GetModifiedMatrixT2LmodTRA(TGeoHMatrix& matMod, const Double_t*
 //__________________________________________________________________
 void AliAlgSens::AddChild(AliAlgVol*)
 {
-  AliFatalF("Sensor volume cannot have childs: id=%d %s", GetVolID(), GetName());
+  LOG(FATAL) << "Sensor volume cannot have children: id=" << GetVolID() << " " << GetName();
 }
 
 //__________________________________________________________________
@@ -367,14 +363,16 @@ void AliAlgSens::Print(const Option_t* opt) const
 //____________________________________________
 void AliAlgSens::PrepareMatrixT2L()
 {
-  // extract from geometry T2L matrix
-  const TGeoHMatrix* t2l = AliGeomManager::GetTracking2LocalMatrix(GetVolID());
-  if (!t2l) {
-    Print("long");
-    AliFatalF("Failed to find T2L matrix for VID:%d %s", GetVolID(), GetSymName());
-  }
-  SetMatrixT2L(*t2l);
-  //
+  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  // TODO(milettri): depends on AliGeomManager;
+  //  // extract from geometry T2L matrix
+  //  const TGeoHMatrix* t2l = AliGeomManager::GetTracking2LocalMatrix(GetVolID());
+  //  if (!t2l) {
+  //    Print("long");
+  //    AliFatalF("Failed to find T2L matrix for VID:%d %s", GetVolID(), GetSymName());
+  //  }
+  //  SetMatrixT2L(*t2l);
+  //  //
 }
 
 //____________________________________________
@@ -398,10 +396,12 @@ void AliAlgSens::PrepareMatrixClAlgReco()
 }
 
 //____________________________________________
-void AliAlgSens::UpdatePointByTrackInfo(AliAlgPoint* pnt, const AliExternalTrackParam* t) const
+void AliAlgSens::UpdatePointByTrackInfo(AliAlgPoint* pnt, const trackParam_t* t) const
 {
-  // update
-  fDet->UpdatePointByTrackInfo(pnt, t);
+  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  // FIXME(milettri) needs AliAlgDet;
+  //  // update
+  //  fDet->UpdatePointByTrackInfo(pnt, t);
 }
 
 //____________________________________________
