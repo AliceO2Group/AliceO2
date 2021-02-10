@@ -56,7 +56,7 @@ struct TaskD0 {
 
   Configurable<int> d_selectionFlagD0{"d_selectionFlagD0", 1, "Selection Flag for D0"};
   Configurable<int> d_selectionFlagD0bar{"d_selectionFlagD0bar", 1, "Selection Flag for D0bar"};
-  Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
+  Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0 >= d_selectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= d_selectionFlagD0bar);
 
@@ -67,8 +67,8 @@ struct TaskD0 {
       if (!(candidate.hfflag() & 1 << D0ToPiK)) {
         continue;
       }
-      if (cutEtaCandMax >= 0. && std::abs(candidate.eta()) > cutEtaCandMax) {
-        //Printf("Candidate: eta rejection: %g", candidate.eta());
+      if (cutYCandMax >= 0. && std::abs(YD0(candidate)) > cutYCandMax) {
+        //Printf("Candidate: Y rejection: %g", YD0(candidate));
         continue;
       }
       if (candidate.isSelD0() >= d_selectionFlagD0) {
@@ -114,7 +114,7 @@ struct TaskD0MC {
 
   Configurable<int> d_selectionFlagD0{"d_selectionFlagD0", 1, "Selection Flag for D0"};
   Configurable<int> d_selectionFlagD0bar{"d_selectionFlagD0bar", 1, "Selection Flag for D0bar"};
-  Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
+  Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0 >= d_selectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= d_selectionFlagD0bar);
 
@@ -127,8 +127,8 @@ struct TaskD0MC {
       if (!(candidate.hfflag() & 1 << D0ToPiK)) {
         continue;
       }
-      if (cutEtaCandMax >= 0. && std::abs(candidate.eta()) > cutEtaCandMax) {
-        //Printf("MC Rec.: eta rejection: %g", candidate.eta());
+      if (cutYCandMax >= 0. && std::abs(YD0(candidate)) > cutYCandMax) {
+        //Printf("MC Rec.: Y rejection: %g", YD0(candidate));
         continue;
       }
       if (std::abs(candidate.flagMCMatchRec()) == 1 << D0ToPiK) {
@@ -148,11 +148,11 @@ struct TaskD0MC {
     // MC gen.
     //Printf("MC Particles: %d", particlesMC.size());
     for (auto& particle : particlesMC) {
-      if (cutEtaCandMax >= 0. && std::abs(particle.eta()) > cutEtaCandMax) {
-        //Printf("MC Gen.: eta rejection: %g", particle.eta());
-        continue;
-      }
       if (std::abs(particle.flagMCMatchGen()) == 1 << D0ToPiK) {
+        if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(particle.pdgCode()))) > cutYCandMax) {
+          //Printf("MC Gen.: Y rejection: %g", RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(particle.pdgCode())));
+          continue;
+        }
         registry.fill(HIST("hPtGen"), particle.pt());
         registry.fill(HIST("hEtaGen"), particle.eta());
       }
