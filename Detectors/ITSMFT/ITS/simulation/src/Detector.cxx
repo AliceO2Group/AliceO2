@@ -117,7 +117,6 @@ static void configITS(Detector* its)
 
   const int kNWrapVol = 3;
   const double wrpRMin[kNWrapVol] = {2.1, 19.3, 33.32};
-//  const double wrpRMax[kNWrapVol] = {15.4, 29.14, 46.0};
   const double wrpRMax[kNWrapVol] = {15.4, 29.14, 44.9};
   const double wrpZSpan[kNWrapVol] = {70., 93., 163.6};
 
