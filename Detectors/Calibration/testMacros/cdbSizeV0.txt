@@ -1,232 +1,233 @@
-					
-#CDB path	FileSize (Run2)	Validity (s)	DCS data	To Remove	Comment
-					
-ITS/Align/Data	500000	1.00E+09			
-ITS/Calib/NoiseMap	10000000	28800			
-ITS/Calib/DeadMap	10000000	28800			
-ITS/Calib/Params	10000	1.00E+09			
-					
-MFT/Align/Data	500000		1.00E+09			
-MFT/Calib/NoiseMap	3000000	28800			
-MFT/Calib/DeadMap	3000000	28800			
-MFT/Calib/Params	10000	1.00E+09			
-					
-TPC/Calib/IDC	12500000	0.25			
-TPC/Align/Data	2704	1.00E+09			
-TPC/Calib/Pulser	3813733	28800			
-TPC/Calib/CE	4927547	28800			
-TPC/Calib/PadNoise	1343329	28800			
-TPC/Calib/Pedestals	1919841	28800			
-TPC/Calib/PadGainFactor	12591	28800		x	
-TPC/Calib/GainFactorDedx	1878278	28800			
-TPC/Calib/TimeGain	61545	3600			
-TPC/Calib/AltroConfig	1176942	1.00E+09			
-TPC/Calib/ClusterParam	37299	1.00E+09			
-TPC/Calib/CorrectionMapsRef	12768345	1.00E+09			
-TPC/Calib/CorrectionMaps	17884255	60			
-TPC/Calib/GasComposition	9093114	28800	x		Is used for anchored simulation to account for material budget
-TPC/Calib/HighVoltage	2384797	600	x		
-TPC/Calib/IonTail	3893405	1.00E+09		?	Much smaller ion tain with GEMs, should be corrected in CRU or cluster finder
-TPC/Calib/LaserTracks	11115	1.00E+09		?	Not clear yet if this will be needed in the CCDB
-TPC/Calib/Mapping	30129	1.00E+09		?	Not clear yet
-TPC/Calib/PadTime0	1996850	28800		?	Not clear yet if this will be needed
-TPC/Calib/Parameters	4777	28800			
-TPC/Calib/PidResponse	387664	1.00E+09		?	Not clear yet if this will be needed, perhaps merged with TimeGain?
-TPC/Calib/RecoParam	1070	1.00E+09			
-TPC/Calib/Temperature	29282	6 00	x		
-TPC/Calib/TimeDrift	1323	600			
-					
-TPC/Config/GasComposition	1220	600		x	The Config part was for the Run1/2 DCS export. I guess this can be removed.
-TPC/Config/HighVoltageStat	783	600		x	The Config part was for the Run1/2 DCS export. I guess this can be removed.
-TPC/Config/HighVoltage	3714	600		x	The Config part was for the Run1/2 DCS export. I guess this can be removed.
-TPC/Config/Temperature	5719	600		x	The Config part was for the Run1/2 DCS export. I guess this can be removed.
-					
-TRD/Align/Data	28767	1.00E+09			
-TRD/Calib/ChamberExB	1925	600			
-TRD/Calib/ChamberGainFactor	2036	600			
-TRD/Calib/ChamberStatus	472	600			TBD: shorter validity of chamber status due to SEUs?
-TRD/Calib/ChamberT0	1416	600			
-TRD/Calib/ChamberVdrift	1927	600			
-TRD/Calib/DCS	124655	60			
-TRD/Calib/DetNoise	362	600			
-TRD/Calib/Krypton	3085409	1.00E+09			
-TRD/Calib/LocalGainFactor	1817327	3600		x	No longer used in Run 3
-TRD/Calib/LocalT0	16487	600			Will this be used?
-TRD/Calib/LocalVdrift	17075	600			Will this be used?
-TRD/Calib/MonitoringData	8959	600			
-TRD/Calib/PadNoise	1668099	28800			
-TRD/Calib/PadStatus	15881	28800			
-TRD/Calib/PHQ	193161	28800			What PID data will be needed?
-TRD/Calib/PIDLQ1D	44294	28800			
-TRD/Calib/PIDLQ	446116	28800			
-TRD/Calib/PIDNN	378784	28800			
-TRD/Calib/PIDThresholds	1115	28800			
-TRD/Calib/PRFWidth	17725	28800			
-TRD/Calib/RecoParam	958	1.00E+09			
-TRD/Calib/TrapConfig	3017386	1.00E+09			Actual TRAPconfig data (blob) is large and stable
-TRD/Calib/TrapConfig	28800 1.e9			Used TRAPconfig is pointer to data blob
-TRD/Calib/trd_chamberStatus	5298	3600			needs merging with TRD/Calib/ChamberStatus
-TRD/Calib/trd_envTemp	38434	600			
-TRD/Calib/trd_gaschromatographCO2	537	600			Still used?
-TRD/Calib/trd_gaschromatographN2	543	600			
-TRD/Calib/trd_gaschromatographXe	544	600			
-TRD/Calib/trd_gasCO2	507	600			
-TRD/Calib/trd_gasH2O	655	600			
-TRD/Calib/trd_gasO2	620	600			
-TRD/Calib/trd_gasOverpressure	526	600			
-TRD/Calib/trd_goofieCO2	516	600			Still used?
-TRD/Calib/trd_goofieGain	583	600			
-TRD/Calib/trd_goofieHv	514	600			
-TRD/Calib/trd_goofieN2	514	600			
-TRD/Calib/trd_goofiePeakArea	592	600			
-TRD/Calib/trd_goofiePeakPos	587	600			
-TRD/Calib/trd_goofiePressure	528	600			
-TRD/Calib/trd_goofieTemp	582	600			
-TRD/Calib/trd_goofieVelocity	525	600			
-TRD/Calib/trd_hvAnodeImon	7748686	28800			HV currents / voltages needs further discussion
-TRD/Calib/trd_hvAnodeUmon	43528	28800			
-TRD/Calib/trd_hvDriftImon	59798	28800			
-TRD/Calib/trd_hvDriftUmon	36353	28800			
-TRD/Calib/TrkAttach	12516	28800			
-					
-TOF/Align/Data	79624	1.00E+09			
-TOF/Calib/ConfigNoise	299	28800			
-TOF/Calib/Config	371	1.00E+09			
-TOF/Calib/CTPLatency	241	28800			
-TOF/Calib/DeltaBCOffset	252	600			
-TOF/Calib/FineSlewing	10027254	28800			
-TOF/Calib/HW	26678	600			
-TOF/Calib/Noise	26680	3600			
-TOF/Calib/ParOffline	751933	28800			
-TOF/Calib/ParOnlineDelay	540738	28800			
-TOF/Calib/ParOnline	32043	28800			
-TOF/Calib/Problematic	2921	28800			
-TOF/Calib/Pulser	26688	28800			
-TOF/Calib/ReadoutEfficiency	17555	28800			
-TOF/Calib/RecoParam	384	1.00E+09			
-TOF/Calib/RunParams	517	28800			
-TOF/Calib/Status	7807	600			
-TOF/Calib/T0FillOnlineCalib	276	28800			
-TOF/Calib/T0Fill	231	28800			
-					
-EMC/Align/Data	1185	1.00E+09			
-EMC/Calib/BadChannels	4633	1.00E+09			
-EMC/Calib/Data	4621	28800			
-EMC/Calib/Mapping	9327	1.00E+09			
-EMC/Calib/PeakFinder	17239	1.00E+09			
-EMC/Calib/Pedestals	70701	28800			
-EMC/Calib/RecoParam	1800	1.00E+09			
-EMC/Calib/SimParam	309	1.00E+09			
-EMC/Calib/Time	2777	28800			
-EMC/Calib/Trigger	370	28800			
-EMC/Config/Preprocessor	355	28800			
-EMC/Config/Temperature	1603	600			
-					
-PHS/Align/Data	618	1.00E+09			
-PHS/Calib/GainPedestals	131459	28800			
-PHS/Calib/BadChannels	1124	1.00E+09			
-PHS/Calib/RecoParam	528	1.00E+09			
-PHS/Calib/Mapping	73643	1.00E+09			
-PHS/Calib/Time	10000	1.00E+09			
-					
-CPV/Align/Data	618	1.00E+09			
-CPV/Calib/GainPedestals	131459	28800			
-CPV/Calib/BadChannels	1124	1.00E+09			
-CPV/Calib/RecoParam	528	1.00E+09			
-CPV/Calib/Mapping	73643	1.00E+09			
-CPV/Calib/Time	10000	1.00E+09			
-					
-HMP/Align/Data	538	1.00E+09			
-HMP/Calib/RecoParam	403	1.00E+09			
-HMP/Calib/Masked	3450	28800			
-HMP/Calib/NoiseMap	159104	28800			
-HMP/Calib/DaqSig	3450	28800			
-HMP/Calib/Nmean	2804	28800			
-HMP/Calib/QeMap	7797	28800			
-HMP/Calib/Qthre	2320	28800			
-					
-MCH/Align/Baseline	6465	1.00E+09			
-MCH/Align/Data	19696	1.00E+09			
-MCH/Calib/Pedestals	6743530	28800			
-MCH/Calib/BPEVO	258083	1.00E+09			
-MCH/Calib/Capacitances	7304542	1.00E+09			
-MCH/Calib/Config	72271	28800			
-MCH/Calib/Gains	9876740	28800			
-MCH/Calib/HV	9011	600			
-MCH/Calib/LV	7765	600			
-MCH/Calib/MappingData	1202122	1.00E+09			
-MCH/Calib/MappingRunData	94374	28800			
-MCH/Calib/Neighbours	10912490	1.00E+09			
-MCH/Calib/OccupancyMap	207825	28800			
-MCH/Calib/RecoParam	589	1.00E+09			
-MCH/Calib/RejectList	2159	28800			
-					
-MID/Align/Data	19696	1.00E+09			Did not exist in Run2 (it was for MCH). Might exist in Run3, but not clear yet
-MID/Calib/RegionalTriggerBoardMasks	1511	1.00E+09		yes	
-MID/Calib/RegionalTriggerConfig	1533	1.00E+09			To be modified
-MCH/Calib/LocalTriggerBoardMasks	1358	1.00E+09			
-MID/Calib/GlobalTriggerBoardMasks	548	1.00E+09		yes	
-MID/Calib/GlobalTriggerCrateConfig	499	1.00E+09			To be modified
-MID/Calib/TriggerDCS	33209	28800	yes		
-MID/Calib/TriggerEfficiency	12461	28800			
-MID/Calib/TriggerLut	48262	28800		yes	
-MID/Calib/TriggerScalers	41283	28800			
-					
-ZDC/Align/Data	404	1.00E+09	yes	?	Never used in Run1-2 reconstruction nor simulation!
-ZDC/Calib/ChMap	698	28800		will be modified	
-ZDC/Calib/EnergyCalib	303	28800		will be modified	
-ZDC/Calib/LaserCalib	534	28800		?	Never used in Run1-2 (to be checked with Pietro)
-ZDC/Calib/MBCalib	17455	28800		x	
-ZDC/Calib/Pedestals	1454	28800		will be modified	
-ZDC/Calib/RecoParam	1250	1.00E+09		x	In the end it wasn not used in reconstruction
-ZDC/Calib/SaturationCalib	281	28800		x	
-ZDC/Calib/TDCCalib	357	28800		will be modified	
-ZDC/Calib/TowerCalib	277	28800		will be modified	
-					
-					
-FT0/Align/Data	335	1.00E+09			
-FT0/Calib/ChargeEqualization	285	3600			
-FT0/Calib/LightYields	501	1.00E+09			
-FT0/Calib/PMGains	647	3600			
-FT0/Calib/PMTrends	3209	3600			
-FT0/Calib/PulseShapes	625	3600			
-FT0/Calib/RecoParam	360	1.00E+09			
-FT0/Calib/Saturation	21443	3600			
-FT0/Calib/Thresholds	653	1.00E+09			
-FT0/Calib/TimeDelays	491	28800			
-FT0/Calib/TimeSlewing	103205	3600			
-					
-FV0/Align/Data	335	1.00E+09			
-FV0/Calib/ChargeEqualization	285	3600			
-FV0/Calib/LightYields	501	1.00E+09			
-FV0/Calib/PMGains	647	3600			
-FV0/Calib/PMTrends	3209	3600			
-FV0/Calib/PulseShapes	625	3600			
-FV0/Calib/RecoParam	360	1.00E+09			
-FV0/Calib/Saturation	21443	3600			
-FV0/Calib/Thresholds	653	1.00E+09			
-FV0/Calib/TimeDelays	491	28800			
-FV0/Calib/TimeSlewing	103205	3600			
-					
-FDD/Align/Data	335	1.00E+09			
-FDD/Calib/ChargeEqualization	285	3600			
-FDD/Calib/LightYields	501	1.00E+09			
-FDD/Calib/PMGains	647	3600			
-FDD/Calib/PMTrends	3209	3600			
-FDD/Calib/PulseShapes	625	3600			
-FDD/Calib/RecoParam	360	1.00E+09			
-FDD/Calib/Saturation	21443	3600			
-FDD/Calib/Thresholds	653	1.00E+09			
-FDD/Calib/TimeDelays	491	28800			
-FDD/Calib/TimeSlewing	103205	3600			
-					
-GRP/GRP/Data	1760	3600			
-GRP/GRP/LHCData	235537	600			
-GRP/Calib/LHCClockPhase	369	60			
-GRP/Calib/MeanVertex	321	600			
-GRP/Calib/RecoParam	920	1.00E+09			
-GRP/CTP/Aliases	558	28800			
-GRP/CTP/Config	4908	28800			
-GRP/CTP/CTPtiming	699	28800			
-GRP/CTP/Scalers	104057	600			
-GRP/CTP/LTUConfig	401	28800			
+							
+#	CDB path	FileSize (Run2)	Validity (s)	DCS data	To Remove	Comment	
+							
+	ITS/Align/Data	500000	1.00E+09				
+	ITS/Calib/NoiseMap	30000000	28800				
+	ITS/Calib/DeadMap	10000000	28800				
+	ITS/Calib/Params	10000	1.00E+09				
+							
+	MFT/Align/Data	500000	1.00E+09				
+	MFT/Calib/NoiseMap	3000000	28800				
+	MFT/Calib/DeadMap	3000000	28800				
+	MFT/Calib/Params	10000	1.00E+09				
+							
+	TPC/Calib/IDC	12500000	0.25				
+	TPC/Align/Data	2704	1.00E+09				
+	TPC/Calib/Pulser	3813733	28800				
+	TPC/Calib/CE	4927547	28800				
+	TPC/Calib/PadNoise	1343329	28800				
+	TPC/Calib/Pedestals	1919841	28800				
+#	TPC/Calib/PadGainFactor	12591	28800		x		
+	TPC/Calib/GainFactorDedx	1878278	28800				
+	TPC/Calib/TimeGain	61545	3600				
+	TPC/Calib/AltroConfig	1176942	1.00E+09				
+	TPC/Calib/ClusterParam	37299	1.00E+09				
+	TPC/Calib/CorrectionMapsRef	12768345	1.00E+09				
+	TPC/Calib/CorrectionMaps	17884255	60				
+	TPC/Calib/GasComposition	9093114	28800	x		Is used for anchored simulation to account for material budget	
+	TPC/Calib/HighVoltage	2384797	600	x			
+	TPC/Calib/IonTail	3893405	1.00E+09		?	Much smaller ion tain with GEMs, should be corrected in CRU or cluster finder	
+	TPC/Calib/LaserTracks	11115	1.00E+09		?	Not clear yet if this will be needed in the CCDB	
+	TPC/Calib/Mapping	30129	1.00E+09		?	Not clear yet	
+	TPC/Calib/PadTime0	1996850	28800		?	Not clear yet if this will be needed	
+	TPC/Calib/Parameters	4777	28800				
+	TPC/Calib/PidResponse	387664	1.00E+09		?	Not clear yet if this will be needed, perhaps merged with TimeGain?	
+	TPC/Calib/RecoParam	1070	1.00E+09				
+	TPC/Calib/Temperature	29282	600	x			
+	TPC/Calib/TimeDrift	1323	600				
+							
+#	TPC/Config/GasComposition	1220	600		x	The Config part was for the Run1/2 DCS export. I guess this can be removed.	
+#	TPC/Config/HighVoltageStat	783	600		x	The Config part was for the Run1/2 DCS export. I guess this can be removed.	
+#	TPC/Config/HighVoltage	3714	600		x	The Config part was for the Run1/2 DCS export. I guess this can be removed.	
+#	TPC/Config/Temperature	5719	600		x	The Config part was for the Run1/2 DCS export. I guess this can be removed.	
+							
+	TRD/Align/Data	28767	1.00E+09				
+	TRD/Calib/ChamberExB	1925	600				
+	TRD/Calib/ChamberGainFactor	2036	600				
+	TRD/Calib/ChamberStatus	472	600			TBD: shorter validity of chamber status due to SEUs?	
+	TRD/Calib/ChamberT0	1416	600				
+	TRD/Calib/ChamberVdrift	1927	600				
+	TRD/Calib/DCS	124655	60			???	
+	TRD/Calib/DetNoise	362	600				
+	TRD/Calib/Krypton	3085409	1.00E+09				
+#	TRD/Calib/LocalGainFactor	1817327	3600		x	No longer used in Run 3	
+	TRD/Calib/LocalT0	16487	600			Not used	
+	TRD/Calib/LocalVdrift	17075	600			Not used	
+	TRD/Calib/MonitoringData	8959	600				
+	TRD/Calib/PadNoise	1668099	28800				
+	TRD/Calib/PadStatus	15881	28800				
+	TRD/Calib/PHQ	193161	28800			What PID data will be needed?	
+	TRD/Calib/PIDLQ1D	44294	28800				
+	TRD/Calib/PIDLQ	446116	28800				
+	TRD/Calib/PIDNN	378784	28800				
+	TRD/Calib/PIDThresholds	1115	28800				
+	TRD/Calib/PRFWidth	17725	28800			???	
+	TRD/Calib/RecoParam	958	1.00E+09			???	
+	TRD/Calib/TrapConfig	3017386	1.00E+09			Actual TRAPconfig data (blob) is large and stable	
+#	TRD/Calib/TrapConfig	O(1kB)	28800			Used TRAPconfig is pointer to data blob	
+	TRD/Calib/trd_chamberStatus	5298	3600			needs merging with TRD/Calib/ChamberStatus	
+	TRD/Calib/trd_envTemp	38434	600				
+	TRD/Calib/trd_gaschromatographCO2	537	600			Still used?	
+	TRD/Calib/trd_gaschromatographN2	543	600				
+	TRD/Calib/trd_gaschromatographXe	544	600				
+	TRD/Calib/trd_gasCO2	507	600				
+	TRD/Calib/trd_gasH2O	655	600				
+	TRD/Calib/trd_gasO2	620	600				
+	TRD/Calib/trd_gasOverpressure	526	600				
+	TRD/Calib/trd_goofieCO2	516	600			No longer used	
+	TRD/Calib/trd_goofieGain	583	600			No longer used	
+	TRD/Calib/trd_goofieHv	514	600			No longer used	
+	TRD/Calib/trd_goofieN2	514	600			No longer used	
+	TRD/Calib/trd_goofiePeakArea	592	600			No longer used	
+	TRD/Calib/trd_goofiePeakPos	587	600			No longer used	
+	TRD/Calib/trd_goofiePressure	528	600			No longer used	
+	TRD/Calib/trd_goofieTemp	582	600			No longer used	
+	TRD/Calib/trd_goofieVelocity	525	600			No longer used	
+	TRD/Calib/trd_hvAnodeImon	7748686	28800			HV currents / voltages needs further discussion	
+	TRD/Calib/trd_hvAnodeUmon	43528	28800			where do Marian's currents go?	
+	TRD/Calib/trd_hvDriftImon	59798	28800				
+	TRD/Calib/trd_hvDriftUmon	36353	28800				
+	TRD/Calib/TrkAttach	12516	28800			???	
+							
+	TOF/Align/Data	79624	1.00E+09			OK	
+	TOF/Calib/ConfigNoise	299	28800			OK (non 100% sure)	
+	TOF/Calib/Config	371	1.00E+09		???	To be discussed	
+#	TOF/Calib/CTPLatency	241	28800		Yes	Obsolete	
+#	TOF/Calib/DeltaBCOffset	252	600		Yes	Obsolete	
+	TOF/Calib/FineSlewing	10027254	28800			OK - now in CalibTimeSlewingParamTOF	
+	TOF/Calib/HW	26678	600			OK - moved to ChannelStatus (to be defined)	
+	TOF/Calib/Noise	26680	3600			merged with ChannelStatus	
+	TOF/Calib/ParOffline	751933	28800			merged with CalibTimeSlewingParamTOF	
+#	TOF/Calib/ParOnlineDelay	540738	28800		Yes	Obsolete	
+#	TOF/Calib/ParOnline	32043	28800		Yes	Obsolete	
+	TOF/Calib/Problematic	2921	28800			OK (only in part covered by calibration)	
+#	TOF/Calib/Pulser	26688	28800		Yes	Obsolete	
+	TOF/Calib/ReadoutEfficiency	17555	28800			OK (to be added in calibration chain, full dataset, online, no tracking)	
+	TOF/Calib/RecoParam	384	1.00E+09			OK	
+	TOF/Calib/RunParams	517	28800			Ok - now in CalibLHCphaseTOF	
+	TOF/Calib/Status	7807	600			merged with ChannelStatus	
+#	TOF/Calib/T0FillOnlineCalib	276	28800		Yes	Obsolete	
+#	TOF/Calib/T0Fill	231	28800		Yes	Obsolete	
+							
+	EMC/Align/Data	1185	1.00E+09				
+	EMC/Calib/BadChannels	4633	1.00E+09				
+	EMC/Calib/Data	4621	28800				
+	EMC/Calib/Mapping	9327	1.00E+09				
+	EMC/Calib/PeakFinder	17239	1.00E+09				
+	EMC/Calib/Pedestals	70701	28800				
+	EMC/Calib/RecoParam	1800	1.00E+09				
+	EMC/Calib/SimParam	309	1.00E+09				
+	EMC/Calib/Time	2777	28800				
+	EMC/Calib/Trigger	370	28800				
+	EMC/Config/Preprocessor	355	28800				
+	EMC/Config/Temperature	1603	600				
+							
+	PHS/Align/Data	618	1.00E+09				
+	PHS/Calib/GainPedestals	131459	28800				
+	PHS/Calib/BadChannels	1124	1.00E+09				
+	PHS/Calib/RecoParam	528	1.00E+09				
+	PHS/Calib/Mapping	73643	1.00E+09				
+	PHS/Calib/Time	10000	1.00E+09				
+							
+	CPV/Align/Data	618	1.00E+09				
+	CPV/Calib/GainPedestals	131459	28800				
+	CPV/Calib/BadChannels	1124	1.00E+09				
+	CPV/Calib/RecoParam	528	1.00E+09				
+	CPV/Calib/Mapping	73643	1.00E+09				
+	CPV/Calib/Time	10000	1.00E+09				
+							
+	HMP/Align/Data	538	1.00E+09				
+	HMP/Calib/RecoParam	403	1.00E+09				
+	HMP/Calib/Masked	3450	28800				
+	HMP/Calib/NoiseMap	159104	28800				
+	HMP/Calib/DaqSig	3450	28800				
+	HMP/Calib/Nmean	2804	28800				
+	HMP/Calib/QeMap	7797	28800				
+	HMP/Calib/Qthre	2320	28800				
+							
+	MCH/Align/Baseline	6465	1.00E+09				
+	MCH/Align/Data	19696	1.00E+09				
+	MCH/Calib/Pedestals	6743530	28800			on the long term we in principle do not need the pedestals (as the subtraction is done in sampa chips), but I would keep them here at least at the beginning for monitoring purposes	
+	MCH/Calib/BPEVO	258083	1.00E+09		?	unclear atm if/how the Run3 equivalent of this information will be used 	
+#	MCH/Calib/Capacitances	7304542	1.00E+09		X	no longer have gain calibration, so this can go	
+	MCH/Calib/Config	72271	28800	X			
+#	MCH/Calib/Gains	9876740	28800		X	no longer have gain calibration, so this can go	
+	MCH/Calib/HV	9011	600	X			
+	MCH/Calib/LV	7765	600	X			
+#	MCH/Calib/MappingData	1202122	1.00E+09		X	assumption now is that detection mapping is not changing at all (or very very infrequently), so it's now embedded in the code	
+	MCH/Calib/MappingRunData	94374	28800			while the mapping on the detector side should be fixed, the "electronic" (e.g. cru<->solar) mapping might evolve, so I would keep this one (might be renamed of course)	
+	MCH/Calib/Neighbours	10912490	1.00E+09		?		
+	MCH/Calib/OccupancyMap	207825	28800				
+	MCH/Calib/RecoParam	589	1.00E+09				
+	MCH/Calib/RejectList	2159	28800				
+							
+	MID/Align/Data	19696	1.00E+09			Did not exist in Run2 (it was for MCH). Might exist in Run3, but not clear yet	
+#	MID/Calib/RegionalTriggerBoardMasks	1511	1.00E+09		yes		
+	MID/Calib/RegionalTriggerConfig	1533	1.00E+09			To be modified	
+	MCH/Calib/LocalTriggerBoardMasks	1358	1.00E+09				
+#	MID/Calib/GlobalTriggerBoardMasks	548	1.00E+09		yes		
+	MID/Calib/GlobalTriggerCrateConfig	499	1.00E+09			To be modified	
+#	MID/Calib/TriggerDCS	33209	28800		yes		
+	MID/Calib/TriggerEfficiency	12461	28800				
+#	MID/Calib/TriggerLut	48262	28800		yes		
+	MID/Calib/TriggerScalers	41283	28800				
+							
+#	ZDC/Align/Data	404	1.00E+09		yes	Never used in Run1-2 reconstruction nor simulation!	
+	ZDC/Calib/ChMap	698	28800		will be modified	Same info is present in ZDC/Config/Module. Should we keep both? Which should be used in reconstruction?	
+	ZDC/Calib/EnergyCalib	303	28800		will be modified		
+	ZDC/Calib/LaserCalib	534	28800		?	Never used in Run1-2 (issues with laser coupling)	
+#	ZDC/Calib/MBCalib	17455	28800		x		
+	ZDC/Calib/Pedestals	1454	28800		will be modified		
+	ZDC/Calib/RecoParam	1250	1.00E+09			In the end it wasn not used in reconstruction (in Run 3 we foresee some reconstruction parameters that could go here)	RS: we do not some recoparam
+#	ZDC/Calib/SaturationCalib	281	28800		x		
+	ZDC/Calib/TDCCalib	357	28800		will be modified	First version developed	
+	ZDC/Calib/TowerCalib	277	28800		will be modified		
+							
+							
+	FT0/Align/Data	24	1.00E+09			FileSize in bytes?	
+	FT0/Calib/ChargeEqualization	832	3600			Done by laser	
+	FT0/Calib/LightYields	832	1.00E+09				
+	FT0/Calib/PMGains	832	3600				
+#	FT0/Calib/PMTrends	3209	3600		Perhaps not needed?		
+	FT0/Calib/PulseShapes	4160	1.00E+09			Crystalball-like parameters, for digitization	
+	FT0/Calib/RecoParam	200	1.00E+09			Validity for a collision system	
+	FT0/Calib/Saturation	832	3600			Needed for simulation only, changing at the HV change	
+	FT0/Calib/Thresholds	832	1.00E+09			Needed for simulation only	
+	FT0/Calib/TimeDelays	1664	600				
+	FT0/Calib/TimeSlewing	3328000	2.88E+04			Changed only on demand (QC), filesize very rough (overestimated)	
+	FT0/Calib/GlobalDelays	12	3600				
+							
+	FV0/Align/Data	12	1.00E+09				
+	FV0/Calib/ChargeEqualization	192	3600				
+	FV0/Calib/LightYields	192	1.00E+09				
+	FV0/Calib/PMGains	192	3600				
+#	FV0/Calib/PMTrends	3209	3600		Perhaps not needed?		
+	FV0/Calib/PulseShapes	2880	1.00E+09				
+	FV0/Calib/RecoParam	200	1.00E+09				
+	FV0/Calib/Saturation	192	3600				
+	FV0/Calib/Thresholds	192	1.00E+09				
+	FV0/Calib/TimeDelays	384	600				
+	FV0/Calib/TimeSlewing	768000	2.88E+04		Perhaps not needed?		
+							
+	FDD/Align/Data	24	1.00E+09				
+	FDD/Calib/ChargeEqualization	64	3600				
+	FDD/Calib/LightYields	64	1.00E+09				
+	FDD/Calib/PMGains	64	3600				
+#	FDD/Calib/PMTrends	3209	3600		Perhaps not needed?		
+	FDD/Calib/PulseShapes	960	1.00E+09				
+	FDD/Calib/RecoParam	200	1.00E+09				
+	FDD/Calib/Saturation	64	3600				
+	FDD/Calib/Thresholds	64	1.00E+09				
+	FDD/Calib/TimeDelays	128	600				
+	FDD/Calib/TimeSlewing	256000	2.88E+04		Perhaps not needed?		
+							
+	GRP/GRP/Data	1760	3600				
+	GRP/GRP/LHCData	235537	600				
+	GRP/Calib/LHCClockPhase	369	60				
+	GRP/Calib/MeanVertex	321	600				
+	GRP/Calib/RecoParam	920	1.00E+09				
+	GRP/CTP/Aliases	558	28800				
+	GRP/CTP/Config	4908	28800				
+	GRP/CTP/CTPtiming	699	28800				
+	GRP/CTP/Scalers	104057	600				
+	GRP/CTP/LTUConfig	401	28800				
