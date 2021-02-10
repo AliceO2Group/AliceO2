@@ -97,7 +97,7 @@
 
 #include "Align/AliAlgVol.h"
 #include "Align/AliAlgDOFStat.h"
-//#include "Align/AliAlgConstraint.h" FIXME(milettri): needs AliAlgsConstraint
+#include "Align/AliAlgConstraint.h"
 //#include "AliAlignObjParams.h"
 //#include "AliGeomManager.h"
 #include "Align/AliAlgAux.h"
@@ -867,29 +867,27 @@ void AliAlgVol::FillDOFStat(AliAlgDOFStat* h) const
 //________________________________________
 void AliAlgVol::AddAutoConstraints(TObjArray* constrArr)
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
-  // FIXME(milettri): needs AliAlgConstraint
-  //  // adds automatic constraints
-  //  int nch = GetNChildren();
-  //  //
-  //  if (HasChildrenConstraint()) {
-  //    AliAlgConstraint* constr = new AliAlgConstraint();
-  //    constr->SetConstrainPattern(fConstrChild);
-  //    constr->SetParent(this);
-  //    for (int ich = nch; ich--;) {
-  //      AliAlgVol* child = GetChild(ich);
-  //      if (child->GetExcludeFromParentConstraint())
-  //        continue;
-  //      constr->AddChild(child);
-  //    }
-  //    if (constr->GetNChildren())
-  //      constrArr->Add(constr);
-  //    else
-  //      delete constr;
-  //  }
-  //  for (int ich = 0; ich < nch; ich++) {
-  //    GetChild(ich)->AddAutoConstraints(constrArr);
-  //  }
+  // adds automatic constraints
+  int nch = GetNChildren();
+  //
+  if (HasChildrenConstraint()) {
+    AliAlgConstraint* constr = new AliAlgConstraint();
+    constr->SetConstrainPattern(fConstrChild);
+    constr->SetParent(this);
+    for (int ich = nch; ich--;) {
+      AliAlgVol* child = GetChild(ich);
+      if (child->GetExcludeFromParentConstraint())
+        continue;
+      constr->AddChild(child);
+    }
+    if (constr->GetNChildren())
+      constrArr->Add(constr);
+    else
+      delete constr;
+  }
+  for (int ich = 0; ich < nch; ich++) {
+    GetChild(ich)->AddAutoConstraints(constrArr);
+  }
 }
 
 } // namespace align
