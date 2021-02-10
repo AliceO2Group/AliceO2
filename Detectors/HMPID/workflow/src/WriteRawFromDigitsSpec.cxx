@@ -68,6 +68,7 @@ void WriteRawFromDigitsTask::init(framework::InitContext& ic)
   return;
 }
 
+/*
 bool WriteRawFromDigitsTask::eventEquipPadsComparision(o2::hmpid::Digit d1, o2::hmpid::Digit d2)
 {
   uint64_t t1,t2;
@@ -78,7 +79,7 @@ bool WriteRawFromDigitsTask::eventEquipPadsComparision(o2::hmpid::Digit d1, o2::
   if (d1.getPadID() < d2.getPadID()) return true;
   return false;
 }
-
+*/
 
 void WriteRawFromDigitsTask::run(framework::ProcessingContext& pc)
 {
@@ -102,7 +103,8 @@ void WriteRawFromDigitsTask::endOfStream(framework::EndOfStreamContext& ec)
 {
   mExTimer.logMes("Received an End Of Stream !");
   if(mOrderTheEvents) {
-    sort(mDigits.begin(), mDigits.end(), eventEquipPadsComparision);
+//    sort(mDigits.begin(), mDigits.end(), eventEquipPadsComparision);
+    sort(mDigits.begin(), mDigits.end(), o2::hmpid::Digit::eventEquipPadsComp);
     mExTimer.logMes("We sort " + std::to_string(mDigits.size()) + "  ! ");
     mCod->codeDigitsVector(mDigits);
   } else {

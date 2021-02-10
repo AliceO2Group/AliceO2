@@ -15,6 +15,7 @@ o2_add_library(HMPIDWorkflow
                        src/DumpDigitsSpec.cxx
                        src/ReadRawFileSpec.cxx
                        src/WriteRawFromDigitsSpec.cxx
+                       src/PedestalsCalculationSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DPLUtils
                                      O2::DetectorsRaw
@@ -50,5 +51,10 @@ o2_add_executable(dump-digits-workflow
 o2_add_executable(write-root-from-digits-workflow
               COMPONENT_NAME hmpid
               SOURCES src/write-root-from-digits-workflow.cxx
+              PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
+
+o2_add_executable(raw-to-pedestals-workflow
+              COMPONENT_NAME hmpid
+              SOURCES src/raw-to-pedestals-workflow.cxx
               PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
               

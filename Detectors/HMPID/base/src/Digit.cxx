@@ -250,3 +250,41 @@ void Digit::TimeNsToOrbitBc(double TimeNs, uint32_t &Orbit, uint16_t &Bc)
   Bc = TimeNsToBc(TimeNs);
   return;
 }
+
+// Functions to manage Digit vectors
+
+// Function for order digits (Event,Chamber,Photo,x,y)
+bool Digit::eventEquipPadsComp(Digit &d1, Digit &d2)
+{
+  uint64_t t1,t2;
+  t1 = d1.getTriggerID();
+  t2 = d2.getTriggerID();
+  if (t1 < t2) return true;
+  if (t2 < t1) return false;
+  if (d1.getPadID() < d2.getPadID()) return true;
+  return false;
+};
+
+std::vector<o2::hmpid::Digit>* Digit::extractDigitsPerEvent(std::vector<o2::hmpid::Digit> &Digits, uint64_t EventID)
+{
+  std::vector<o2::hmpid::Digit>* subVector = new std::vector<o2::hmpid::Digit>();
+  for(const auto & digit : Digits) {
+    if(digit.getTriggerID() == EventID) {
+        subVector->push_back(digit);
+    }
+  }
+  return(subVector);
+};
+
+std::vector<uint64_t>* Digit::extractEvents(std::vector<o2::hmpid::Digit> &Digits)
+{
+  std::vector<uint64_t>* subVector = new std::vector<uint64_t>();
+  for(const auto & digit : Digits) {
+    if(find(subVector->begin(), subVector->end(), digit.getTriggerID()) == subVector->end()) {
+      subVector->push_back(digit.getTriggerID());
+    }
+  }
+  return(subVector);
+};
+
+

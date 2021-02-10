@@ -9,48 +9,43 @@
 // or submit itself to any jurisdiction.
 
 
-#ifndef DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_WRITERAWFROMDIGITS_H_
-#define DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_WRITERAWFROMDIGITS_H_
+#ifndef DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_DATADECODERSPEC_H_
+#define DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_DATADECODERSPEC_H_
 
-#include <vector>
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
 #include "HMPIDBase/Common.h"
-#include "HMPIDBase/Digit.h"
-#include "HMPIDSimulation/HmpidCoder.h"
+#include "HMPIDReconstruction/HmpidDecodeRawMem.h"
 
 namespace o2
 {
 namespace hmpid
 {
 
-  class WriteRawFromDigitsTask : public framework::Task
+  class PedestalsCalculationTask : public framework::Task
   {
     public:
-      WriteRawFromDigitsTask() = default;
-      ~WriteRawFromDigitsTask() override = default;
+    PedestalsCalculationTask() = default;
+      ~PedestalsCalculationTask() override = default;
       void init(framework::InitContext& ic) final;
       void run(framework::ProcessingContext& pc) final;
+      void decodeTF(framework::ProcessingContext& pc);
+      void decodeReadout(framework::ProcessingContext& pc);
+      void decodeRawFile(framework::ProcessingContext& pc);
       void endOfStream(framework::EndOfStreamContext& ec) override;
 
     private:
- //     static bool eventEquipPadsComparision(o2::hmpid::Digit d1, o2::hmpid::Digit d2);
-      std::string mBaseFileName = "";
-      std::vector<o2::hmpid::Digit> mDigits;
-      bool mSkipEmpty = false;
-      bool mFixedPacketLenght = false;
-      bool mOrderTheEvents = true;
-      long mDigitsReceived;
-      long mFramesReceived;
-      bool mIsTheStremClosed = false;
-      HmpidCoder *mCod;
-
+      HmpidDecodeRawMem *mDeco;
+      long mTotalDigits;
+      long mTotalFrames;
+      std::string mPedestalsBasePath;
+      float mSigmaCut;
       ExecutionTimer mExTimer;
   };
 
-o2::framework::DataProcessorSpec getWriteRawFromDigitsSpec(std::string inputSpec = "HMP/DIGITS");
-
+o2::framework::DataProcessorSpec getPedestalsCalculationSpec(std::string inputSpec = "TF:HMP/RAWDATA");
+//o2::framework::DataProcessorSpec getDecodingSpec();
 } // end namespace hmpid
 } // end namespace o2
 

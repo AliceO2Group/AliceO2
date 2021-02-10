@@ -11,6 +11,8 @@
 #ifndef DETECTORS_HMPID_BASE_INCLUDE_HMPIDBASE_DIGIT_H_
 #define DETECTORS_HMPID_BASE_INCLUDE_HMPIDBASE_DIGIT_H_
 
+#include <vector>
+
 #include "CommonDataFormat/TimeStamp.h"
 #include "HMPIDBase/Hit.h"   // for hit
 #include "HMPIDBase/Param.h" // for param
@@ -62,6 +64,12 @@ class Digit
          A2Y(d.mPad) << "]@(" << d.mOrbit << "," << d.mBc << ")=" << d.mQ;
       return os;
     };
+
+    // Functions to manage Digit vectors
+    static bool eventEquipPadsComp(Digit &d1, Digit &d2);
+    static std::vector<o2::hmpid::Digit>* extractDigitsPerEvent(std::vector<o2::hmpid::Digit> &Digits, uint64_t EventID);
+    static std::vector<uint64_t>* extractEvents(std::vector<o2::hmpid::Digit> &Digits);
+
 
   public:
     Digit() = default;
