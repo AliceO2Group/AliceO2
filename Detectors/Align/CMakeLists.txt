@@ -30,7 +30,7 @@ o2_add_library(Align
                         #src/AliAlgSensTRD.cxx
                         #src/AliAlgSteer.cxx
                         #src/AliAlgTrack.cxx
-                        #src/AliAlgVol.cxx
+                        src/AliAlgVol.cxx
                         #src/AliAlgVtx.cxx
                         #src/Mille.cxx
                PUBLIC_LINK_LIBRARIES O2::FrameworkLogger
@@ -62,7 +62,7 @@ o2_target_root_dictionary(
           #include/Align/AliAlgSensHMPID.h
           #include/Align/AliAlgSteer.h
           #include/Align/AliAlgTrack.h
-          #include/Align/AliAlgVol.h
+          include/Align/AliAlgVol.h
           #include/Align/AliAlgVtx.h
           #include/Align/AliAlgRes.h
           #include/Align/AliAlgResFast.h
