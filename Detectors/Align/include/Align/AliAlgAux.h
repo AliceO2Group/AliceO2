@@ -77,12 +77,7 @@ inline Bool_t IsZeroPos(float f) { return Smaller(f, kAlmostZeroF); }
 int FindKeyIndex(int key, const int* arr, int n);
 //
 void PrintBits(ULong64_t patt, Int_t maxBits);
-//
-// OCDB related stuff
-void CleanOCDB();
-AliCDBId* FindCDBId(const TList* cdbList, const TString& key);
-void RectifyOCDBUri(TString& inp);
-Bool_t PreloadOCDB(int run, const TMap* cdbMap, const TList* cdbList);
+
 } // namespace AliAlgAux
 
 //_________________________________________________________________________________
