@@ -81,6 +81,8 @@ taskwrapper_cleanup_handler() {
 # - possibility to define timeout
 # - possibility to control/limit the CPU load
 taskwrapper() {
+  echo JOBUTILS DEBUG SHM
+  ls -al /dev/shm
   unset JOBUTILS_INTERNAL_DPL_SESSION
   # nested helper to parse DPL session ID
   _parse_DPL_session ()
