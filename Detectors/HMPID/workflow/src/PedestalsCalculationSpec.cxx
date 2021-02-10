@@ -69,7 +69,7 @@ void PedestalsCalculationTask::init(framework::InitContext& ic)
   mTotalDigits = 0;
   mTotalFrames = 0;
 
-  mSigmaCut = ic.options().get<std::string>("sigmacut");
+  mSigmaCut = ic.options().get<float>("sigmacut");
   mPedestalsBasePath = ic.options().get<std::string>("files-basepath");
 
   mExTimer.start();
