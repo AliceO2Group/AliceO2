@@ -67,7 +67,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
 
   std::unordered_map<InputType, std::vector<OutputType>> allowedIO;
   allowedIO[InputType::Digits] = std::vector<OutputType>{OutputType::Cells, OutputType::Clusters, OutputType::AnalysisClusters};
-  allowedIO[InputType::Cells] = std::vector<OutputType>{OutputType::Clusters, OutputType::AnalysisClusters};
+  allowedIO[InputType::Cells] = std::vector<OutputType>{OutputType::Cells, OutputType::Clusters, OutputType::AnalysisClusters};
   allowedIO[InputType::Raw] = std::vector<OutputType>{OutputType::Cells};
 
   InputType inputType;
@@ -164,7 +164,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
     // add converter for cells
     if (inputType == InputType::Digits) {
       specs.emplace_back(o2::emcal::reco_workflow::getCellConverterSpec(propagateMC));
-    } else {
+    } else if (inputType == InputType::Raw) {
       // raw data will come from upstream
       specs.emplace_back(o2::emcal::reco_workflow::getRawToCellConverterSpec());
     }
