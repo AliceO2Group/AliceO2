@@ -12,7 +12,7 @@
 //#pragma link C++ class o2::align::AliAlgDetTRD + ;
 //#pragma link C++ class o2::align::AliAlgDetHMPID + ;
 //#pragma link C++ class o2::align::AliAlgMPRecord + ;
-//#pragma link C++ class o2::align::AliAlgPoint + ;
+#pragma link C++ class o2::align::AliAlgPoint + ;
 //#pragma link C++ class o2::align::AliAlgSens + ;
 //#pragma link C++ class o2::align::AliAlgSensITS + ;
 //#pragma link C++ class o2::align::AliAlgSensTOF + ;

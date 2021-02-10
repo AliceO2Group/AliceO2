@@ -13,12 +13,10 @@
 /// @since  2021-02-01
 /// @brief  Meausered point in the sensor.
 
-#include <stdio.h>
+#include <cstdio>
 #include <TMath.h>
 #include <TString.h>
 #include "Align/AliAlgPoint.h"
-#include "Align/AliAlgAux.h"
-//#include "AliExternalTrackParam.h"
 
 using namespace o2::align::AliAlgAux;
 using namespace TMath;
@@ -30,7 +28,7 @@ namespace align
 
 //_____________________________________
 AliAlgPoint::AliAlgPoint()
-  : fMinLocVarID(0), fMaxLocVarID(0), fDetID(-1), fSID(-1), fAlphaSens(0), fXSens(0), fCosDiagErr(0), fSinDiagErr(0), fX2X0(0), fXTimesRho(0), fNGloDOFs(0), fDGloOffs(0), fSensor(0)
+  : fMinLocVarID(0), fMaxLocVarID(0), fDetID(-1), fSID(-1), fAlphaSens(0), fXSens(0), fCosDiagErr(0), fSinDiagErr(0), fX2X0(0), fXTimesRho(0), fNGloDOFs(0), fDGloOffs(0) //, fSensor(0) FIXME(milettri): Needs AliAlgSens
 {
   // def c-tor
   for (int i = 3; i--;) {
@@ -90,10 +88,12 @@ void AliAlgPoint::Init()
 }
 
 //_____________________________________
-void AliAlgPoint::UpdatePointByTrackInfo(const AliExternalTrackParam* t)
+void AliAlgPoint::UpdatePointByTrackInfo(const trackParam_t* t)
 {
-  // recalculate point errors using info about the track in the sensor tracking frame
-  fSensor->UpdatePointByTrackInfo(this, t);
+  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  //FIXME(milettri): needs AliAlgSens
+  //  // recalculate point errors using info about the track in the sensor tracking frame
+  //  fSensor->UpdatePointByTrackInfo(this, t);
 }
 
 //_____________________________________
@@ -176,29 +176,34 @@ void AliAlgPoint::DumpCoordinates() const
 {
   // dump various corrdinates for inspection
   // global xyz
-  double xyz[3];
-  GetXYZGlo(xyz);
-  for (int i = 0; i < 3; i++)
-    printf("%+.4e ", xyz[i]);
-  //
-  AliExternalTrackParam wsb;
-  AliExternalTrackParam wsa;
+  dim3_t xyz;
+  GetXYZGlo(xyz.data());
+
+  auto print3d = [](dim3_t& xyz) {
+    for (auto i : xyz) {
+      printf("%+.4e ", i);
+    }
+  };
+
+  print3d(xyz);
+  trackParam_t wsb;
+  trackParam_t wsa;
   GetTrWSB(wsb);
   GetTrWSA(wsa);
-  wsb.GetXYZ(xyz);
-  for (int i = 0; i < 3; i++)
-    printf("%+.4e ", xyz[i]); // track before mat corr
-  wsa.GetXYZ(xyz);
-  for (int i = 0; i < 3; i++)
-    printf("%+.4e ", xyz[i]); // track after mat corr
-  //
+
+  wsb.getXYZGlo(xyz);
+  print3d(xyz); // track before mat corr
+
+  wsa.getXYZGlo(xyz);
+  print3d(xyz); // track after mat corr
+
   printf("%+.4f ", fAlphaSens);
   printf("%+.4e ", GetXPoint());
   printf("%+.4e ", GetYTracking());
   printf("%+.4e ", GetZTracking());
   //
-  printf("%+.4e %.4e ", wsb.GetY(), wsb.GetZ());
-  printf("%+.4e %.4e ", wsa.GetY(), wsa.GetZ());
+  printf("%+.4e %.4e ", wsb.getY(), wsb.getZ());
+  printf("%+.4e %.4e ", wsa.getY(), wsa.getZ());
   //
   printf("%4e %4e", Sqrt(fErrYZTracking[0]), Sqrt(fErrYZTracking[2]));
   printf("\n");
@@ -215,7 +220,7 @@ void AliAlgPoint::Clear(Option_t*)
   fNGloDOFs = 0;
   fDGloOffs = 0;
   //
-  fSensor = 0;
+  //  fSensor = 0; FIXME(milettri): needs AliAlgSens
 }
 
 //__________________________________________________________________
@@ -355,29 +360,35 @@ void AliAlgPoint::DiagMatCorr(const float* nodiag, float* diag) const
 }
 
 //__________________________________________________________________
-void AliAlgPoint::GetTrWSA(AliExternalTrackParam& etp) const
+void AliAlgPoint::GetTrWSA(trackParam_t& etp) const
 {
   // assign WSA (after material corrections) parameters to supplied track
-  double covDum[15] = {
+  const trackParam_t::covMat_t covDum{
     1.e-4,
     0, 1.e-4,
     0, 0, 1.e-4,
     0, 0, 0, 1.e-4,
     0, 0, 0, 0, 1e-4};
-  etp.Set(GetXPoint(), GetAlphaSens(), fTrParamWSA, covDum);
+  params_t tmp;
+  std::copy(std::begin(fTrParamWSA), std::end(fTrParamWSA), std::begin(tmp));
+
+  etp.set(GetXPoint(), GetAlphaSens(), tmp, covDum);
 }
 
 //__________________________________________________________________
-void AliAlgPoint::GetTrWSB(AliExternalTrackParam& etp) const
+void AliAlgPoint::GetTrWSB(trackParam_t& etp) const
 {
   // assign WSB parameters (before material corrections) to supplied track
-  double covDum[15] = {
+  const trackParam_t::covMat_t covDum{
     1.e-4,
     0, 1.e-4,
     0, 0, 1.e-4,
     0, 0, 0, 1.e-4,
     0, 0, 0, 0, 1e-4};
-  etp.Set(GetXPoint(), GetAlphaSens(), fTrParamWSB, covDum);
+  params_t tmp;
+  std::copy(std::begin(fTrParamWSB), std::end(fTrParamWSB), std::begin(tmp));
+
+  etp.set(GetXPoint(), GetAlphaSens(), tmp, covDum);
 }
 
 } // namespace align

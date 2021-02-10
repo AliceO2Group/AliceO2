@@ -18,6 +18,7 @@
 
 #include <TMath.h>
 #include <TString.h>
+#include "ReconstructionDataFormats/Track.h"
 // class AliCDBId;
 class TMap;
 class TList;
@@ -28,6 +29,13 @@ namespace o2
 {
 namespace align
 {
+
+using trackParam_t = typename track::TrackParametrizationWithError<double>;
+using value_t = typename trackParam_t::value_t;
+using dim2_t = typename trackParam_t::dim2_t;
+using dim3_t = typename trackParam_t::dim3_t;
+using params_t = typename trackParam_t::params_t;
+using covMat_t = typename trackParam_t::covMat_t;
 
 namespace AliAlgAux
 {

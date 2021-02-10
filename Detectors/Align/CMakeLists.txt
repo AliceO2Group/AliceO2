@@ -19,7 +19,7 @@ o2_add_library(Align
                         #src/AliAlgDetTRD.cxx
                         src/AliAlgDOFStat.cxx
                         #src/AliAlgMPRecord.cxx
-                        #src/AliAlgPoint.cxx
+                        src/AliAlgPoint.cxx
                         #src/AliAlgRes.cxx
                         #src/AliAlgResFast.cxx
                         #src/AliAlgSens.cxx
@@ -34,6 +34,7 @@ o2_add_library(Align
                         #src/AliAlgVtx.cxx
                         #src/Mille.cxx
                PUBLIC_LINK_LIBRARIES O2::FrameworkLogger
+               						 O2::ReconstructionDataFormats
                                      ROOT::Core
                                      ROOT::Geom
                                      ROOT::Gpad
@@ -53,7 +54,7 @@ o2_target_root_dictionary(
           #include/Align/AliAlgDetTRD.h
           #include/Align/AliAlgDetHMPID.h
           #include/Align/AliAlgMPRecord.h
-          #include/Align/AliAlgPoint.h
+          include/Align/AliAlgPoint.h
           #include/Align/AliAlgSens.h
           #include/Align/AliAlgSensITS.h
           #include/Align/AliAlgSensTOF.h

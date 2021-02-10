@@ -26,9 +26,10 @@
 #include <TObject.h>
 #include <TMatrixD.h>
 #include <TVectorD.h>
-#include "Align/AliAlgSens.h"
-
-//class AliExternalTrackParam;
+//#include "Align/AliAlgSens.h"
+#include "ReconstructionDataFormats/Track.h"
+#include "Framework/Logger.h"
+#include "Align/AliAlgAux.h"
 
 namespace o2
 {
@@ -38,19 +39,13 @@ namespace align
 class AliAlgPoint : public TObject
 {
  public:
-  enum { kMaterialBit = BIT(14) // point contains material
-         ,
-         kMeasurementBit = BIT(15) // point contains measurement
-         ,
-         kUpdateFromTrackBit = BIT(16) // point needs to recalculate itself using track info
-         ,
-         kVaryELossBit = BIT(17) // ELoss variation allowed
-         ,
-         kUseBzOnly = BIT(18) // use only Bz component (ITS)
-         ,
-         kInvDir = BIT(19) // propagation via this point is in decreasing X direction (upper cosmic leg)
-         ,
-         kStatOK = BIT(20) // point is accounted in global statistics
+  enum { kMaterialBit = BIT(14),        // point contains material
+         kMeasurementBit = BIT(15),     // point contains measurement
+         kUpdateFromTrackBit = BIT(16), // point needs to recalculate itself using track info
+         kVaryELossBit = BIT(17),       // ELoss variation allowed
+         kUseBzOnly = BIT(18),          // use only Bz component (ITS)
+         kInvDir = BIT(19),             // propagation via this point is in decreasing X direction (upper cosmic leg)
+         kStatOK = BIT(20)              // point is accounted in global statistics
   };
   enum { kParY = 0 // track parameters
          ,
@@ -69,7 +64,7 @@ class AliAlgPoint : public TObject
   virtual ~AliAlgPoint() {}
   //
   void Init();
-  void UpdatePointByTrackInfo(const AliExternalTrackParam* t);
+  void UpdatePointByTrackInfo(const trackParam_t* t);
   //
   Double_t GetAlphaSens() const { return fAlphaSens; }
   Double_t GetXSens() const { return fXSens; }
@@ -81,9 +76,9 @@ class AliAlgPoint : public TObject
   const Double_t* GetXYZTracking() const { return fXYZTracking; }
   const Double_t* GetYZErrTracking() const { return fErrYZTracking; }
   //
-  const AliAlgSens* GetSensor() const { return fSensor; }
-  UInt_t GetVolID() const { return fSensor->GetVolID(); }
-  void SetSensor(AliAlgSens* s) { fSensor = s; }
+  //  const AliAlgSens* GetSensor() const { return fSensor; } FIXME(milettri): needs AliAlgSens
+  //  UInt_t GetVolID() const { return fSensor->GetVolID(); } FIXME(milettri): needs AliAlgSens
+  //  void SetSensor(AliAlgSens* s) { fSensor = s; } FIXME(milettri): needs AliAlgSens
   Int_t GetDetID() const { return fDetID; }
   Int_t GetSID() const { return fSID; }
   Int_t GetMinLocVarID() const { return fMinLocVarID; }
@@ -138,8 +133,8 @@ class AliAlgPoint : public TObject
   Double_t* GetTrParamWSB() const { return (Double_t*)fTrParamWSB; }
   Double_t GetTrParamWSA(int ip) const { return fTrParamWSA[ip]; }
   Double_t GetTrParamWSB(int ip) const { return fTrParamWSB[ip]; }
-  void GetTrWSA(AliExternalTrackParam& etp) const;
-  void GetTrWSB(AliExternalTrackParam& etp) const;
+  void GetTrWSA(trackParam_t& etp) const;
+  void GetTrWSB(trackParam_t& etp) const;
   void SetTrParamWSA(const double* param)
   {
     for (int i = 5; i--;)
@@ -222,7 +217,7 @@ class AliAlgPoint : public TObject
   Double_t fTrParamWSA[kNMatDOFs]; // workspace for tracks params at this point AFTER material correction
   Double_t fTrParamWSB[kNMatDOFs]; // workspace for tracks params at this point BEFORE material correction
   //
-  AliAlgSens* fSensor; // sensor of this point
+  //  AliAlgSens* fSensor; // sensor of this point FIXME(milettri): Needs AliAlgSens
   //
   ClassDef(AliAlgPoint, 1)
 };
@@ -272,9 +267,11 @@ inline void AliAlgPoint::GetResidualsDiag(const double* pos, double& resU, doubl
 //__________________________________________________________________
 inline void AliAlgPoint::IncrementStat()
 {
-  // increment statistics for detectors this point depends on
-  fSensor->IncrementStat();
-  SetStatOK();
+  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  // FIXME(milettri): needs AliAlgSens
+  //  // increment statistics for detectors this point depends on
+  //  fSensor->IncrementStat();
+  //  SetStatOK();
 }
 } // namespace align
 } // namespace o2
