@@ -45,7 +45,7 @@ class NoiseSlotCalibrator : public o2::calibration::TimeSlotCalibration<o2::itsm
     mProbabilityThreshold = prob;
     setUpdateAtTheEndOfRunOnly();
   }
-  ~NoiseSlotCalibrator() = default;
+  ~NoiseSlotCalibrator() final = default;
 
   void setThreshold(unsigned int t) { mThreshold = t; }
 
