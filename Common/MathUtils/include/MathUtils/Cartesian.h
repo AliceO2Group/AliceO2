@@ -32,7 +32,11 @@
 #else
 #include "GPUCommonMath.h"
 #include "CartesianGPU.h"
+
+#ifndef __OPENCL__
 #include "SMatrixGPU.h"
+#endif
+
 #endif
 #include "GPUROOTCartesianFwd.h"
 #include "GPUROOTSMatrixFwd.h"
