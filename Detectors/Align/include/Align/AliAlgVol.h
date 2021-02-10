@@ -26,11 +26,11 @@
 #include <TNamed.h>
 #include <TObjArray.h>
 #include <TGeoMatrix.h>
-#include <stdio.h>
+#include <cstdio>
+#include "Align/AliAlgDOFStat.h"
 
 class TObjArray;
 class TClonesArray;
-class AliAlgDOFStat;
 class TH1;
 
 namespace o2

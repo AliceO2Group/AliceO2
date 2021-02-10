@@ -21,7 +21,7 @@
 //#pragma link C++ class o2::align::AliAlgSensHMPID + ;
 //#pragma link C++ class o2::align::AliAlgSteer + ;
 //#pragma link C++ class o2::align::AliAlgTrack + ;
-//#pragma link C++ class o2::align::AliAlgVol + ;
+#pragma link C++ class o2::align::AliAlgVol + ;
 //#pragma link C++ class o2::align::AliAlgVtx + ;
 //#pragma link C++ class o2::align::AliAlgRes + ;
 //#pragma link C++ class o2::align::AliAlgResFast + ;
