@@ -15,6 +15,8 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
+#include "CCDB/CcdbApi.h"
+
 #include "HMPIDBase/Common.h"
 #include "HMPIDReconstruction/HmpidDecodeRawMem.h"
 
@@ -36,11 +38,20 @@ namespace hmpid
       void endOfStream(framework::EndOfStreamContext& ec) override;
 
     private:
+      void recordPedInCcdb();
+
+    private:
       HmpidDecodeRawMem *mDeco;
       long mTotalDigits;
       long mTotalFrames;
       std::string mPedestalsBasePath;
       float mSigmaCut;
+      std::string mPedestalTag;
+
+      o2::ccdb::CcdbApi mDBapi;
+      std::map<std::string, std::string> mDbMetadata; // can be empty
+      bool mWriteToDB;
+
       ExecutionTimer mExTimer;
   };
 

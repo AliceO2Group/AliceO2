@@ -17,6 +17,7 @@ o2_add_library(HMPIDWorkflow
                        src/WriteRawFromDigitsSpec.cxx
                        src/PedestalsCalculationSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
+                                     O2::CCDB
                                      O2::DPLUtils
                                      O2::DetectorsRaw
                                      O2::HMPIDBase
