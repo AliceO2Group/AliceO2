@@ -138,8 +138,8 @@ class Geometry
   static constexpr float sDzHalvesSeparation = 0;              ///< z-position of the right detector part relative to the left part
 
   /// Cell and scintillator constants
-  static constexpr int sNumberOfCellSectors = 4; ///< Number of cell sectors for one half of the detector
-  static constexpr int sNumberOfCellRings = 5;   ///< Number of cell rings
+  static constexpr int sNumberOfCellSectors = 4;                                             ///< Number of cell sectors for one half of the detector
+  static constexpr int sNumberOfCellRings = 5;                                               ///< Number of cell rings
   static constexpr int sNumberOfCells = sNumberOfCellRings * sNumberOfCellSectors * 2;       ///< Number of cells
   static constexpr int sNumberOfReadoutChannels = sNumberOfCells + sNumberOfCellSectors * 2; ///< Number of ch (2 ch per cell in r5)
 

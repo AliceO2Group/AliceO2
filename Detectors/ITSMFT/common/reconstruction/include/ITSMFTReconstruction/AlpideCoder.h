@@ -88,9 +88,9 @@ class AlpideCoder
   static constexpr uint8_t MaskErrBusyViolation = 0x1 << 3;
   static constexpr uint8_t MaskErrDataOverrun = 0x3 << 2;
   static constexpr uint8_t MaskErrFatal = 0x7 << 1;
-  static constexpr uint32_t MaskTimeStamp = 0xff;                 // Time stamps as BUNCH_COUNTER[10:3] bits
-  static constexpr uint32_t MaskReserved = 0xff;                  // mask for reserved byte
-  static constexpr uint32_t MaskHitMap = 0x7f;                    // mask for hit map: at most 7 hits in bits (0:6)
+  static constexpr uint32_t MaskTimeStamp = 0xff; // Time stamps as BUNCH_COUNTER[10:3] bits
+  static constexpr uint32_t MaskReserved = 0xff;  // mask for reserved byte
+  static constexpr uint32_t MaskHitMap = 0x7f;    // mask for hit map: at most 7 hits in bits (0:6)
   //
   // flags for data records
   static constexpr uint32_t REGION = 0xc0;      // flag for region

@@ -89,7 +89,6 @@ class PrimaryVertexContext
   std::vector<std::pair<unsigned long long, bool>> mRoadLabels;
 };
 
-
 inline void PrimaryVertexContext::markUsedCluster(int layer, int clusterId) { mUsedClusters[layer][clusterId] = true; }
 
 inline void PrimaryVertexContext::initialiseRoadLabels()

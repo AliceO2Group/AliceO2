@@ -32,12 +32,12 @@ struct RUDecodeData {
   static constexpr int MaxChipsPerRU = 196; // max number of chips the RU can readout
   static constexpr int MaxLinksPerRU = 3;   // max number of GBT links per RU
 
-  std::array<PayLoadCont, MaxCablesPerRU> cableData;       // cable data in compressed ALPIDE format
-  std::vector<o2::itsmft::ChipPixelData> chipsData;        // fully decoded data in 1st nChipsFired chips
-  std::array<int, MaxLinksPerRU> links;                    // link entry RSTODO: consider removing this and using pointer
-  std::array<uint8_t, MaxCablesPerRU> cableHWID;           // HW ID of cable whose data is in the corresponding slot of cableData
-  std::array<uint8_t, MaxCablesPerRU> cableLinkID;         // ID of the GBT link transmitting this cable data
-  std::array<GBTLink*, MaxCablesPerRU> cableLinkPtr;       // Ptr of the GBT link transmitting this cable data
+  std::array<PayLoadCont, MaxCablesPerRU> cableData; // cable data in compressed ALPIDE format
+  std::vector<o2::itsmft::ChipPixelData> chipsData;  // fully decoded data in 1st nChipsFired chips
+  std::array<int, MaxLinksPerRU> links;              // link entry RSTODO: consider removing this and using pointer
+  std::array<uint8_t, MaxCablesPerRU> cableHWID;     // HW ID of cable whose data is in the corresponding slot of cableData
+  std::array<uint8_t, MaxCablesPerRU> cableLinkID;   // ID of the GBT link transmitting this cable data
+  std::array<GBTLink*, MaxCablesPerRU> cableLinkPtr; // Ptr of the GBT link transmitting this cable data
 
   int ruSWID = -1;         // SW (stave) ID
   int nCables = 0;         // total number of cables decoded for single trigger

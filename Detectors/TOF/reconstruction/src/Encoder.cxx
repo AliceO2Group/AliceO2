@@ -383,6 +383,6 @@ int Encoder::getSize(void* first, void* last)
   return int(out - in);
 }
 
-} // namespace compressed
+} // namespace raw
 } // namespace tof
 } // namespace o2

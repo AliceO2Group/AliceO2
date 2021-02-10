@@ -832,18 +832,19 @@ void MatchTOF::doMatching(int sec)
     auto& intLT = mLTinfos[cacheTrk[itrk]];
 
     //    Printf("intLT (before doing anything): length = %f, time (Pion) = %f", intLT.getL(), intLT.getTOF(o2::track::PID::Pion));
-    float minTrkTime = (trackWork.second.getTimeStamp() - mSigmaTimeCut * trackWork.second.getTimeStampError()) * 1.E6;             // minimum time in ps
-    float maxTrkTime = (trackWork.second.getTimeStamp() + mSigmaTimeCut * trackWork.second.getTimeStampError()) * 1.E6;             // maximum time in ps
-    int istep = 1;                                                                                                                  // number of steps
-    float step = 1.0;                                                                                                               // step size in cm
-                                                                                                                                    //uncomment for local debug
-                                                                                                                                    /*
-																//trefTrk.getXYZGlo(posBeforeProp);
-																//float posBeforeProp[3] = {trefTrk.getX(), trefTrk.getY(), trefTrk.getZ()}; // in local ref system
-																//printf("Global coordinates: posBeforeProp[0] = %f, posBeforeProp[1] = %f, posBeforeProp[2] = %f\n", posBeforeProp[0], posBeforeProp[1], posBeforeProp[2]);
-																//Printf("Radius xy = %f", TMath::Sqrt(posBeforeProp[0]*posBeforeProp[0] + posBeforeProp[1]*posBeforeProp[1]));
-																//Printf("Radius xyz = %f", TMath::Sqrt(posBeforeProp[0]*posBeforeProp[0] + posBeforeProp[1]*posBeforeProp[1] + posBeforeProp[2]*posBeforeProp[2]));
-																*/
+    float minTrkTime = (trackWork.second.getTimeStamp() - mSigmaTimeCut * trackWork.second.getTimeStampError()) * 1.E6; // minimum time in ps
+    float maxTrkTime = (trackWork.second.getTimeStamp() + mSigmaTimeCut * trackWork.second.getTimeStampError()) * 1.E6; // maximum time in ps
+    int istep = 1;                                                                                                      // number of steps
+    float step = 1.0;                                                                                                   // step size in cm
+
+    //uncomment for local debug
+    /*
+    //trefTrk.getXYZGlo(posBeforeProp);
+    //float posBeforeProp[3] = {trefTrk.getX(), trefTrk.getY(), trefTrk.getZ()}; // in local ref system
+    //printf("Global coordinates: posBeforeProp[0] = %f, posBeforeProp[1] = %f, posBeforeProp[2] = %f\n", posBeforeProp[0], posBeforeProp[1], posBeforeProp[2]);
+    //Printf("Radius xy = %f", TMath::Sqrt(posBeforeProp[0]*posBeforeProp[0] + posBeforeProp[1]*posBeforeProp[1]));
+    //Printf("Radius xyz = %f", TMath::Sqrt(posBeforeProp[0]*posBeforeProp[0] + posBeforeProp[1]*posBeforeProp[1] + posBeforeProp[2]*posBeforeProp[2]));
+    */
 
 #ifdef _ALLOW_TOF_DEBUG_
     if (mDBGFlags) {
@@ -892,8 +893,8 @@ void MatchTOF::doMatching(int sec)
       // to reduce the active region of the strip -> uncomment these lines
       // float yresidual = TMath::Abs(deltaPosTemp[1]);
       // if(yresidual > 0.55){
-      // 	reachedPoint += step;
-      // 	continue;
+      //   reachedPoint += step;
+      //   continue;
       // }
 
       //      printf("res %f %f %f -- %f %f %f (%d)\n",deltaPosTemp[0],deltaPosTemp[1],deltaPosTemp[2],pos[0],pos[1],pos[2],detIdTemp[2]);
@@ -1240,9 +1241,9 @@ void MatchTOF::doMatchingForTPC(int sec)
       }
       // uncomment below only for local debug; this will produce A LOT of output - one print per propagation step
       /*
-	Printf("posFloat[0] = %f, posFloat[1] = %f, posFloat[2] = %f", posFloat[0], posFloat[1], posFloat[2]);
-	Printf("radius xy = %f", TMath::Sqrt(posFloat[0]*posFloat[0] + posFloat[1]*posFloat[1]));
-	Printf("radius xyz = %f", TMath::Sqrt(posFloat[0]*posFloat[0] + posFloat[1]*posFloat[1] + posFloat[2]*posFloat[2]));
+      Printf("posFloat[0] = %f, posFloat[1] = %f, posFloat[2] = %f", posFloat[0], posFloat[1], posFloat[2]);
+      Printf("radius xy = %f", TMath::Sqrt(posFloat[0]*posFloat[0] + posFloat[1]*posFloat[1]));
+      Printf("radius xyz = %f", TMath::Sqrt(posFloat[0]*posFloat[0] + posFloat[1]*posFloat[1] + posFloat[2]*posFloat[2]));
       */
 
       reachedPoint += step;
@@ -1527,7 +1528,7 @@ bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float st
       //Printf("propagateToRefX: changing sector");
       auto alphaNew = o2::math_utils::angle2Alpha(trc.getPhiPos());
       if (!trc.rotate(alphaNew) != 0) {
-        //	Printf("propagateToRefX: failed to rotate");
+        //  Printf("propagateToRefX: failed to rotate");
         break; // failed (this line is taken from MatchTPCITS and the following comment too: RS: check effect on matching tracks to neighbouring sector)
       }
     }
@@ -1567,7 +1568,7 @@ bool MatchTOF::propagateToRefXWithoutCov(o2::track::TrackParCov& trc, float xRef
       //Printf("propagateToRefX: changing sector");
       auto alphaNew = o2::math_utils::angle2Alpha(trcNoCov.getPhiPos());
       if (!trcNoCov.rotateParam(alphaNew) != 0) {
-        //	Printf("propagateToRefX: failed to rotate");
+        //  Printf("propagateToRefX: failed to rotate");
         break; // failed (this line is taken from MatchTPCITS and the following comment too: RS: check effect on matching tracks to neighbouring sector)
       }
     }

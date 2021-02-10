@@ -28,8 +28,8 @@ struct DigitizationParameters {
   float mAmp_trsh = 100;                                     // [ph.e]
   float mAmpRecordLow = -4;                                  // integrate charge from
 
-  float mAmpRecordUp = 15;                                   // to [ns]
-  int mTime_trg_gate = 192;                                  // #channels
+  float mAmpRecordUp = 15;  // to [ns]
+  int mTime_trg_gate = 192; // #channels
   // int mTime_trg_gate = 2000;                                  //2000/13; (+-2ns)  #channels no limits
   float mTimeDiffAC = (Geometry::ZdetA - Geometry::ZdetC) * TMath::C();
   float C_side_cable_cmps = 2.86;   //ns
@@ -37,14 +37,14 @@ struct DigitizationParameters {
   int mtrg_central_trh = 600.;      // channels
   int mtrg_semicentral_trh = 300.;  // channels
 
-  float mMip_in_V = 7;              //MIP to mV
-  float mPe_in_mip = 0.004;         // invserse Np.e. in MIP 1./250.
-  float mCfdShift = 1.66;           //ns
-  float mCFDShiftPos = 1.47;        //// shift positive part of CFD signal; distance between 0.3 of max amplitude  to max
-  float mCFDdeadTime = 15.6;        // ns
-  float AmpIntegrationTime = 19;    //ns
-  float IntegWindowDelayA = 6;      // ns, A side
-  float IntegWindowDelayC = -1.6;   // ns, C side
+  float mMip_in_V = 7;            //MIP to mV
+  float mPe_in_mip = 0.004;       // invserse Np.e. in MIP 1./250.
+  float mCfdShift = 1.66;         //ns
+  float mCFDShiftPos = 1.47;      //// shift positive part of CFD signal; distance between 0.3 of max amplitude  to max
+  float mCFDdeadTime = 15.6;      // ns
+  float AmpIntegrationTime = 19;  //ns
+  float IntegWindowDelayA = 6;    // ns, A side
+  float IntegWindowDelayC = -1.6; // ns, C side
   float charge2amp = 0.22;
   float mNoiseVar = 0.1;            //noise level
   float mNoisePeriod = 1 / 0.9;     // GHz low frequency noise period;

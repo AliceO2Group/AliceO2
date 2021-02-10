@@ -28,7 +28,6 @@ class CalPad
 {
 
  public:
-
   CalPad();
   CalPad(const std::string& name, const std::String& title);
   CalPad(const CalPad& c);

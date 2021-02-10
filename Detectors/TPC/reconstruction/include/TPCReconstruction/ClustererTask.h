@@ -65,11 +65,11 @@ class ClustererTask : public FairTask
   std::unique_ptr<HwClusterer> mHwClusterer; ///< Hw Clusterfinder instance
 
   // Digit arrays
-  std::unique_ptr<const std::vector<Digit>> mDigitsArray;     ///< Array of TPC digits
+  std::unique_ptr<const std::vector<Digit>> mDigitsArray;                               ///< Array of TPC digits
   std::unique_ptr<const o2::dataformats::ConstMCLabelContainerView> mDigitMCTruthArray; ///< Array for MCTruth information associated to digits in mDigitsArrray
 
   // Cluster arrays
-  std::unique_ptr<std::vector<OutputType>> mHwClustersArray; ///< Array of clusters found by Hw Clusterfinder
+  std::unique_ptr<std::vector<OutputType>> mHwClustersArray;                  ///< Array of clusters found by Hw Clusterfinder
   std::unique_ptr<o2::dataformats::MCLabelContainer> mHwClustersMCTruthArray; ///< Array for MCTruth information associated to cluster in mHwClustersArrays
 
   ClassDefOverride(ClustererTask, 1);

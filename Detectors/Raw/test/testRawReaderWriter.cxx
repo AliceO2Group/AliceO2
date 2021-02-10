@@ -256,7 +256,7 @@ struct TestRawReader { // simple class to read detector raw data for multiple li
             }
             auto memSize = RDHUtils::getMemorySize(rdhi);
             auto rdhSize = RDHUtils::getHeaderSize(rdhi);
-            BOOST_CHECK(RDHUtils::checkRDH(rdhi));                             // check RDH validity
+            BOOST_CHECK(RDHUtils::checkRDH(rdhi)); // check RDH validity
 
             if (!(RDHUtils::getHeartBeatIR(rdhRef) == RDHUtils::getHeartBeatIR(rdhi))) {
               RDHUtils::printRDH(rdhRef);
@@ -287,8 +287,8 @@ struct TestRawReader { // simple class to read detector raw data for multiple li
               } else { // for the special CRU with preformatted data make sure the page sizes were not modified
                 if (memSize > rdhSize + RDHUtils::GBTWord) {
                   auto tfhb = HBFUtils::Instance().getTFandHBinTF({RDHUtils::getHeartBeatBC(rdhi), RDHUtils::getHeartBeatOrbit(rdhi)}); // TF and HBF relative to TF
-                  BOOST_CHECK(tfhb.second % (HBFUtils::Instance().getNOrbitsPerTF() / NPreformHBFPerTF) == 0);            // we were filling only every NPreformHBFPerTF-th HBF
-                  BOOST_CHECK(memSize == SpecSize[RDHUtils::getLinkID(rdhi)]);                                            // check if the size is correct
+                  BOOST_CHECK(tfhb.second % (HBFUtils::Instance().getNOrbitsPerTF() / NPreformHBFPerTF) == 0);                          // we were filling only every NPreformHBFPerTF-th HBF
+                  BOOST_CHECK(memSize == SpecSize[RDHUtils::getLinkID(rdhi)]);                                                          // check if the size is correct
                   nPreformatRead++;
                 }
               }

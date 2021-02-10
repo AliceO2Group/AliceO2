@@ -48,11 +48,11 @@ struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParam
   float slowConvergenceFactor = 0.5; ///< consider convergence as slow if ratio new/old scale2 exceeds it
   //
   // validation with externally provided InteractionRecords (e.g. from FT0)
-  int minNContributorsForIRcut = 4;     ///< do not apply IR cut to vertices below IR tagging efficiency threshold
-  float maxTError = 0.2;                ///< use min of vertex time error or this for nsigma evaluation
-  float minTError = 0.003;              ///< don't use error smaller than that (~BC/2/minNContributorsForFT0cut)
-  float nSigmaTimeCut = 4.;             ///< eliminate vertex if there is no FT0 signal within this cut
-  float timeBiasMS = 0;                 ///< relative bias in ms to add to TPCITS-based time stamp
+  int minNContributorsForIRcut = 4; ///< do not apply IR cut to vertices below IR tagging efficiency threshold
+  float maxTError = 0.2;            ///< use min of vertex time error or this for nsigma evaluation
+  float minTError = 0.003;          ///< don't use error smaller than that (~BC/2/minNContributorsForFT0cut)
+  float nSigmaTimeCut = 4.;         ///< eliminate vertex if there is no FT0 signal within this cut
+  float timeBiasMS = 0;             ///< relative bias in ms to add to TPCITS-based time stamp
 
   //
   // stopping condition params

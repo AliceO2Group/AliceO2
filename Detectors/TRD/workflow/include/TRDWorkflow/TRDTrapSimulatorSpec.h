@@ -56,16 +56,16 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
   //  std::unique_ptr<TrapConfigHandler> mTrapConfigHandler;
   int mNumThreads = 8;
   unsigned long mRunNumber = 297595; //run number to anchor simulation to.
-  bool mDriveFromConfig{false};     // option to disable using the trapconfig to drive the simulation
-  int mPrintTrackletOptions = 0;    // print the trap chips adc vs timebin to the screen, ascii art
-  int mDrawTrackletOptions = 0;     //draw the tracklets 1 per file
-  int mShowTrackletStats = 25000;   //how frequencly to show the trapsimulator stats
+  bool mDriveFromConfig{false};      // option to disable using the trapconfig to drive the simulation
+  int mPrintTrackletOptions = 0;     // print the trap chips adc vs timebin to the screen, ascii art
+  int mDrawTrackletOptions = 0;      //draw the tracklets 1 per file
+  int mShowTrackletStats = 25000;    //how frequencly to show the trapsimulator stats
   bool mPrintOutTrapConfig{false};
   bool mDebugRejectedTracklets{false};
   bool mEnableOnlineGainCorrection{false};
   bool mEnableTrapConfigDump{false};
   std::vector<Tracklet64> mTracklets; // store of found tracklets
-  std::string mTrapConfigName;      // the name of the config to be used.
+  std::string mTrapConfigName;        // the name of the config to be used.
   std::string mTrapConfigBaseName = "TRD_test/TrapConfig/";
   std::unique_ptr<CalOnlineGainTables> mGainTable; //this will probably not be used in run3.
   std::string mOnlineGainTableName;

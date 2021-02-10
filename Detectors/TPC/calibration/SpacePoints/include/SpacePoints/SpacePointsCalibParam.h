@@ -28,15 +28,15 @@ namespace param
 {
 #ifdef TPC_RUN2
 /// TPC geometric constants for Run 1+2
-static constexpr int NPadRows = 159;                                 ///< total number of TPC pad rows
-static constexpr int NROCTypes = 3;                                  ///< how many different pitches we have between the pad rows
-static constexpr int NRowsPerROC[NROCTypes] = {63, 64, 32};          ///< number of rows for the different pitches
-static constexpr int NRowsAccumulated[NROCTypes] = {63, 127, 159};   ///< accumulate number of rows (only used as abbreviation)
-static constexpr float ZLimit[2] = {2.49725e2f, 2.49698e2f};         ///< max z-positions for A/C side
-static constexpr float RowDX[NROCTypes] = {.75f, 1.f, 1.5f};         ///< row pitches
-static constexpr float MinX = 84.85f;                                ///< x-position of inner radius of first pad row ( = RowX[0] - 0.5 * RowDX[0])
-static constexpr float MaxX = 246.f;                                 ///< max radius for the TPC ( = RowX[NPadRows-1] + 0.5 * RowDX[NROCTypes-1] )
-static constexpr float RowX[NPadRows] = {                            ///< x-position for the center of each pad row
+static constexpr int NPadRows = 159;                               ///< total number of TPC pad rows
+static constexpr int NROCTypes = 3;                                ///< how many different pitches we have between the pad rows
+static constexpr int NRowsPerROC[NROCTypes] = {63, 64, 32};        ///< number of rows for the different pitches
+static constexpr int NRowsAccumulated[NROCTypes] = {63, 127, 159}; ///< accumulate number of rows (only used as abbreviation)
+static constexpr float ZLimit[2] = {2.49725e2f, 2.49698e2f};       ///< max z-positions for A/C side
+static constexpr float RowDX[NROCTypes] = {.75f, 1.f, 1.5f};       ///< row pitches
+static constexpr float MinX = 84.85f;                              ///< x-position of inner radius of first pad row ( = RowX[0] - 0.5 * RowDX[0])
+static constexpr float MaxX = 246.f;                               ///< max radius for the TPC ( = RowX[NPadRows-1] + 0.5 * RowDX[NROCTypes-1] )
+static constexpr float RowX[NPadRows] = {                          ///< x-position for the center of each pad row
   85.225, 85.975, 86.725, 87.475, 88.225, 88.975, 89.725, 90.475, 91.225, 91.975, 92.725, 93.475, 94.225, 94.975, 95.725, 96.475,
   97.225, 97.975, 98.725, 99.475, 100.225, 100.975, 101.725, 102.475, 103.225, 103.975, 104.725, 105.475, 106.225, 106.975, 107.725,
   108.475, 109.225, 109.975, 110.725, 111.475, 112.225, 112.975, 113.725, 114.475, 115.225, 115.975, 116.725, 117.475, 118.225, 118.975,

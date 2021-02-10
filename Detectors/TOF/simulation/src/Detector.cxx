@@ -1019,7 +1019,7 @@ void Detector::createBackZone(Float_t xtof, Float_t ytof, Float_t zlenA) const
   if (mTOFHoles) {
     TVirtualMC::GetMC()->Gsvolu("FAIB", "BOX ", getMediumID(kAir), par, 3); // Air
   }
-  TVirtualMC::GetMC()->Gsvolu("FAIC", "BOX ", getMediumID(kAir), par, 3);   // Air
+  TVirtualMC::GetMC()->Gsvolu("FAIC", "BOX ", getMediumID(kAir), par, 3); // Air
 
   Float_t feaParam[3] = {Geo::FEAPARAMETERS[0], Geo::FEAPARAMETERS[1], Geo::FEAPARAMETERS[2]};
   Float_t feaRoof1[3] = {Geo::ROOF1PARAMETERS[0], Geo::ROOF1PARAMETERS[1], Geo::ROOF1PARAMETERS[2]};

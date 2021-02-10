@@ -352,8 +352,8 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
   } // loop over layers
 
   if (rval.length != 0.f) {
-    rval.meanRho /= rval.length;                                       // average
-    rval.meanX2X0 *= ray.getDist();                                    // normalize
+    rval.meanRho /= rval.length;    // average
+    rval.meanX2X0 *= ray.getDist(); // normalize
   }
   rval.length = ray.getDist();
 

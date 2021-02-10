@@ -25,7 +25,7 @@
 #define ALICEO2_PASSIVE_MAGNET_H
 
 #include "DetectorsPassive/PassiveBase.h"
-#include "Rtypes.h"     // for Magnet::Class, Bool_t, etc
+#include "Rtypes.h" // for Magnet::Class, Bool_t, etc
 
 namespace o2
 {

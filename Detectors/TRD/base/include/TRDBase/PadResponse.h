@@ -26,12 +26,12 @@ class PadResponse
   int getPRF(double, double, int, double*) const; // Get the Pad Response Function (PRF)
 
  private:
-  void samplePRF();                               // Initialized the PRF
-  static constexpr int mPRFbin{500};              // Number of bins for the PRF
-  static constexpr float mPRFlo{-1.5};            // Lower boundary of the PRF
-  static constexpr float mPRFhi{1.5};             // Higher boundary of the PRF
-  float mPRFwid;                                  // Bin width of the sampled PRF
-  int mPRFpad;                                    // Distance to next pad in PRF
+  void samplePRF();                                         // Initialized the PRF
+  static constexpr int mPRFbin{500};                        // Number of bins for the PRF
+  static constexpr float mPRFlo{-1.5};                      // Lower boundary of the PRF
+  static constexpr float mPRFhi{1.5};                       // Higher boundary of the PRF
+  float mPRFwid;                                            // Bin width of the sampled PRF
+  int mPRFpad;                                              // Distance to next pad in PRF
   std::array<float, constants::NLAYER * mPRFbin> mPRFsmp{}; // Sampled pad response
 };
 } // namespace trd

@@ -137,7 +137,6 @@ class TrackInterpolation
   /// \return Flag if quality criteria are met
   bool trackPassesQualityCuts(const o2::dataformats::TrackTPCITS& matchITSTPC, bool hasOuterPoint = true) const;
 
-
   /// Reset cache and output vectors
   void reset();
 
@@ -175,12 +174,12 @@ class TrackInterpolation
 
  private:
   // parameters + settings
-  float mTPCTimeBinMUS{.2f}; ///< TPC time bin duration in us
-  float mSigYZ2TOF{.75f};    ///< for now assume cluster error for TOF equal for all clusters in both Y and Z
-  float mMaxSnp{.85f};          ///< max snp when propagating ITS tracks
-  float mMaxStep{2.f};          ///< maximum step for propagation
+  float mTPCTimeBinMUS{.2f};                         ///< TPC time bin duration in us
+  float mSigYZ2TOF{.75f};                            ///< for now assume cluster error for TOF equal for all clusters in both Y and Z
+  float mMaxSnp{.85f};                               ///< max snp when propagating ITS tracks
+  float mMaxStep{2.f};                               ///< maximum step for propagation
   MatCorrType mMatCorr{MatCorrType::USEMatCorrNONE}; ///< if material correction should be done
-  bool mDoITSOnlyTracks{false}; ///< if ITS only tracks should be processed or not
+  bool mDoITSOnlyTracks{false};                      ///< if ITS only tracks should be processed or not
 
   // input
   gsl::span<const o2::dataformats::TrackTPCITS> mITSTPCTracksArray; ///< input ITS-TPC matched tracks from span
@@ -193,8 +192,8 @@ class TrackInterpolation
   const ClusterNativeAccess* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
 
   // output
-  std::vector<TrackData> mTrackData{};                  ///< this vector is used to store the track quality information on a per track basis
-  std::vector<TPCClusterResiduals> mClRes{};            ///< residuals for each available TPC cluster of all tracks
+  std::vector<TrackData> mTrackData{};       ///< this vector is used to store the track quality information on a per track basis
+  std::vector<TPCClusterResiduals> mClRes{}; ///< residuals for each available TPC cluster of all tracks
 
   // cache
   std::array<CacheStruct, constants::MAXGLOBALPADROW> mCache{{}}; ///< caching positions, covariances and angles for track extrapolations and interpolation

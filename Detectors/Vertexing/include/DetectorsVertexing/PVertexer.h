@@ -136,13 +136,13 @@ class PVertexer
   //
   o2::math_utils::StatAccumulator mStatZErr;
   o2::math_utils::StatAccumulator mStatTErr;
-  std::vector<TrackVF> mTracksPool;        ///< tracks in internal representation used for vertexing
-  std::vector<int> mSortedTrackID;         ///< indices of tracks sorted in time
+  std::vector<TrackVF> mTracksPool;         ///< tracks in internal representation used for vertexing
+  std::vector<int> mSortedTrackID;          ///< indices of tracks sorted in time
   std::vector<TimeZCluster> mTimeZClusters; ///< set of time clusters
   std::vector<int> mClusterTrackIDs;        ///< IDs of tracks making the clusters
 
-  float mBz = 0.;                          ///< mag.field at beam line
-  bool mValidateWithIR = false;            ///< require vertex validation with InteractionRecords (if available)
+  float mBz = 0.;               ///< mag.field at beam line
+  bool mValidateWithIR = false; ///< require vertex validation with InteractionRecords (if available)
 
   o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
 

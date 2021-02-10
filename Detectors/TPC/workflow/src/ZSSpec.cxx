@@ -124,7 +124,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& inputIds, bool zs10bi
         // ===| set up raw writer |===================================================
         std::string inputGRP = o2::base::NameConf::getGRPFileName();
         const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
-        o2::raw::RawFileWriter writer{"TPC"}; // to set the RDHv6.sourceID if V6 is used
+        o2::raw::RawFileWriter writer{"TPC"};                                                // to set the RDHv6.sourceID if V6 is used
         writer.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::TPC)); // must be set explicitly
         uint32_t rdhV = o2::raw::RDHUtils::getVersion<o2::gpu::RAWDataHeaderGPU>();
         writer.useRDHVersion(rdhV);

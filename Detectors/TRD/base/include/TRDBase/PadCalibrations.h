@@ -46,6 +46,7 @@ class PadCalibrations
   void setPadValue(int roc, int channel, T value) { mreadOutChamber[roc].setValue(channel, value); }
   void reset(int roc, int col, int row, std::vector<T>& data);
   void init();
+
  protected:
   std::array<PadParameters<T>, constants::MAXCHAMBER> mreadOutChamber;
 };

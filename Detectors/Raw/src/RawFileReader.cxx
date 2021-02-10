@@ -687,7 +687,7 @@ bool RawFileReader::init()
     }
   }
   std::sort(mOrderedIDs.begin(), mOrderedIDs.end(),
-            [& links = mLinksData](int a, int b) { return links[a].spec < links[b].spec; });
+            [&links = mLinksData](int a, int b) { return links[a].spec < links[b].spec; });
 
   size_t maxSP = 0, maxTF = 0;
 

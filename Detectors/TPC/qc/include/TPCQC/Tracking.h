@@ -80,7 +80,7 @@ class Tracking
 
  private:
   std::unique_ptr<o2::gpu::GPUO2InterfaceConfiguration> mQAConfig; //!
-  std::unique_ptr<o2::gpu::GPUO2InterfaceQA> mQA; //!
+  std::unique_ptr<o2::gpu::GPUO2InterfaceQA> mQA;                  //!
   outputModes mOutputMode;
 
   ClassDefNV(Tracking, 1)

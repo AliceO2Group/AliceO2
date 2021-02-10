@@ -89,13 +89,13 @@ class AnalyticalFields
   DataT evalDensity(DataT z, DataT r, DataT phi) const { return mDensityFunc(z, r, phi); }
 
   /// analytical potential
-  std::function<DataT(DataT, DataT, DataT)> mPotentialFunc = [& mParA = mParA, &mParB = mParB, &mParC = mParC](const DataT z, const DataT r, const DataT phi) {
+  std::function<DataT(DataT, DataT, DataT)> mPotentialFunc = [&mParA = mParA, &mParB = mParB, &mParC = mParC](const DataT z, const DataT r, const DataT phi) {
     const DataT zz = std::abs(z);
     return -mParA * (std::pow((-r + 254.5 + 83.5), 4) - 338.0 * std::pow((-r + 254.5 + 83.5), 3) + 21250.75 * std::pow((-r + 254.5 + 83.5), 2)) * std::cos(mParB * phi) * std::cos(mParB * phi) * std::exp(-1 * mParC * (zz - 125) * (zz - 125));
   };
 
   /// analytical space charge - NOTE: if the space charge density is calculated analytical there would be a - sign in the formula (-mParA)  - however since its an e- the sign is flipped (IS THIS CORRECT??? see for minus sign: AliTPCSpaceCharge3DCalc::SetPotentialBoundaryAndChargeFormula)-
-  std::function<DataT(DataT, DataT, DataT)> mDensityFunc = [& mParA = mParA, &mParB = mParB, &mParC = mParC](const DataT z, const DataT r, const DataT phi) {
+  std::function<DataT(DataT, DataT, DataT)> mDensityFunc = [&mParA = mParA, &mParB = mParB, &mParC = mParC](const DataT z, const DataT r, const DataT phi) {
     const DataT zz = std::abs(z);
     return mParA * ((1 / r * 16 * (-3311250 + 90995.5 * r - 570.375 * r * r + r * r * r)) * std::cos(mParB * phi) * std::cos(mParB * phi) * std::exp(-1 * mParC * (zz - 125) * (zz - 125)) +
                     (std::pow(-r + 254.5 + 83.5, 4) - 338.0 * std::pow(-r + 254.5 + 83.5, 3) + 21250.75 * std::pow(-r + 254.5 + 83.5, 2)) / (r * r) * std::exp(-1 * mParC * (zz - 125) * (zz - 125)) * -2 * mParB * mParB * std::cos(2 * mParB * phi) +
@@ -103,19 +103,19 @@ class AnalyticalFields
   };
 
   /// analytical electric field Er
-  std::function<DataT(DataT, DataT, DataT)> mErFunc = [& mParA = mParA, &mParB = mParB, &mParC = mParC](const DataT z, const DataT r, const DataT phi) {
+  std::function<DataT(DataT, DataT, DataT)> mErFunc = [&mParA = mParA, &mParB = mParB, &mParC = mParC](const DataT z, const DataT r, const DataT phi) {
     const DataT zz = std::abs(z);
     return mParA * 4 * (r * r * r - 760.5 * r * r + 181991 * r - 1.3245 * std::pow(10, 7)) * std::cos(mParB * phi) * std::cos(mParB * phi) * std::exp(-1 * mParC * (zz - 125) * (zz - 125));
   };
 
   /// analytical electric field Ephi
-  std::function<DataT(DataT, DataT, DataT)> mEphiFunc = [& mParA = mParA, &mParB = mParB, &mParC = mParC](const DataT z, const DataT r, const DataT phi) {
+  std::function<DataT(DataT, DataT, DataT)> mEphiFunc = [&mParA = mParA, &mParB = mParB, &mParC = mParC](const DataT z, const DataT r, const DataT phi) {
     const DataT zz = std::abs(z);
     return mParA * (std::pow(-r + 254.5 + 83.5, 4) - 338.0 * std::pow(-r + 254.5 + 83.5, 3) + 21250.75 * (-r + 254.5 + 83.5) * (-r + 254.5 + 83.5)) / r * std::exp(-1 * mParC * (zz - 125) * (zz - 125)) * -mParB * std::sin(2 * mParB * phi);
   };
 
   /// analytical electric field Ez
-  std::function<DataT(DataT, DataT, DataT)> mEzFunc = [& mParA = mParA, &mParB = mParB, &mParC = mParC](const DataT z, const DataT r, const DataT phi) {
+  std::function<DataT(DataT, DataT, DataT)> mEzFunc = [&mParA = mParA, &mParB = mParB, &mParC = mParC](const DataT z, const DataT r, const DataT phi) {
     const DataT zz = std::abs(z);
     return mParA * (std::pow(-r + 254.5 + 83.5, 4) - 338.0 * std::pow(-r + 254.5 + 83.5, 3) + 21250.75 * (-r + 254.5 + 83.5) * (-r + 254.5 + 83.5)) * std::cos(mParB * phi) * std::cos(mParB * phi) * -2 * mParC * (zz - 125) * std::exp(-1 * mParC * (zz - 125) * (zz - 125));
   };

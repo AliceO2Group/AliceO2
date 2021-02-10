@@ -36,8 +36,8 @@ class PrimaryVertexingSpec : public Task
 
  private:
   o2::vertexing::PVertexer mVertexer;
-  bool mUseMC{false};           ///< MC flag
-  bool mValidateWithIR{false};  ///< require vertex validation with IR (e.g. from FT0)
+  bool mUseMC{false};          ///< MC flag
+  bool mValidateWithIR{false}; ///< require vertex validation with IR (e.g. from FT0)
   TStopwatch mTimer;
 };
 
