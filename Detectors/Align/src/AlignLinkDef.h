@@ -25,7 +25,7 @@
 //#pragma link C++ class o2::align::AliAlgVtx + ;
 //#pragma link C++ class o2::align::AliAlgRes + ;
 //#pragma link C++ class o2::align::AliAlgResFast + ;
-//#pragma link C++ class o2::align::AliAlgConstraint + ;
+#pragma link C++ class o2::align::AliAlgConstraint + ;
 #pragma link C++ class o2::align::AliAlgDOFStat + ;
 #pragma link C++ class o2::align::AliAlgAux;
 
