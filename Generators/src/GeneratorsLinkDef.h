@@ -35,14 +35,14 @@
 #ifdef GENERATORS_WITH_PYTHIA6
 #pragma link C++ class o2::eventgen::GeneratorPythia6 + ;
 #pragma link C++ class o2::eventgen::GeneratorPythia6Param + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::GeneratorPythia6Param > +;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::GeneratorPythia6Param> + ;
 #endif
 #ifdef GENERATORS_WITH_PYTHIA8
 #pragma link C++ class o2::eventgen::GeneratorPythia8 + ;
 #pragma link C++ class o2::eventgen::DecayerPythia8 + ;
 #pragma link C++ class o2::eventgen::GeneratorPythia8Param + ;
 #pragma link C++ class o2::eventgen::DecayerPythia8Param + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::GeneratorPythia8Param > +;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::GeneratorPythia8Param> + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::DecayerPythia8Param> + ;
 #pragma link C++ class o2::eventgen::GeneratorFactory + ;
 #endif
@@ -55,15 +55,15 @@
 
 #pragma link C++ enum o2::eventgen::EVertexDistribution;
 #pragma link C++ class o2::eventgen::InteractionDiamondParam + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::InteractionDiamondParam > +;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::InteractionDiamondParam> + ;
 #pragma link C++ class o2::eventgen::TriggerExternalParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::TriggerExternalParam> + ;
 #pragma link C++ class o2::eventgen::TriggerParticleParam + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::TriggerParticleParam > +;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::TriggerParticleParam> + ;
 #pragma link C++ class o2::eventgen::BoxGunParam + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::BoxGunParam > +;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::BoxGunParam> + ;
 #pragma link C++ class o2::eventgen::QEDGenParam + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::QEDGenParam > +;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::QEDGenParam> + ;
 #pragma link C++ class o2::eventgen::GenCosmicsParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::GenCosmicsParam> + ;
 

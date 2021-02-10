@@ -19,4 +19,3 @@ namespace eventgen
 
 } /* namespace eventgen */
 } /* namespace o2 */
-
