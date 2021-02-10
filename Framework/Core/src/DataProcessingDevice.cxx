@@ -296,7 +296,7 @@ void on_signal_callback(uv_signal_t* handle, int signum)
 void DataProcessingDevice::InitTask()
 {
   for (auto& channel : fChannels) {
-    channel.second.at(0).Transport()->SubscribeToRegionEvents([& pendingRegionInfos = mPendingRegionInfos, &regionInfoMutex = mRegionInfoMutex](FairMQRegionInfo info) {
+    channel.second.at(0).Transport()->SubscribeToRegionEvents([&pendingRegionInfos = mPendingRegionInfos, &regionInfoMutex = mRegionInfoMutex](FairMQRegionInfo info) {
       std::lock_guard<std::mutex> lock(regionInfoMutex);
       LOG(debug) << ">>> Region info event" << info.event;
       LOG(debug) << "id: " << info.id;
@@ -553,7 +553,7 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
 
 void DataProcessingDevice::doRun(DataProcessorContext& context)
 {
-  auto switchState = [& registry = context.registry,
+  auto switchState = [&registry = context.registry,
                       &state = context.state](StreamingState newState) {
     LOG(debug) << "New state " << (int)newState << " old state " << (int)state->streaming;
     state->streaming = newState;
@@ -799,7 +799,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   // indicate a complete set of inputs. Notice how I fill the completed
   // vector and return it, so that I can have a nice for loop iteration later
   // on.
-  auto getReadyActions = [& relayer = context.relayer,
+  auto getReadyActions = [&relayer = context.relayer,
                           &completed,
                           &stats = context.registry->get<DataProcessingStats>()]() -> std::vector<DataRelayer::RecordAction> {
     stats.pendingInputs = (int)relayer->getParallelTimeslices() - completed.size();
@@ -810,7 +810,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   // This is needed to convert from a pair of pointers to an actual DataRef
   // and to make sure the ownership is moved from the cache in the relayer to
   // the execution.
-  auto fillInputs = [& relayer = context.relayer,
+  auto fillInputs = [&relayer = context.relayer,
                      &spec = context.spec,
                      &currentSetOfInputs](TimesliceSlot slot) -> InputRecord {
     currentSetOfInputs = std::move(relayer->getInputsForTimeslice(slot));
@@ -833,7 +833,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   // propagates it to the various contextes (i.e. the actual entities which
   // create messages) because the messages need to have the timeslice id into
   // it.
-  auto prepareAllocatorForCurrentTimeSlice = [& timingInfo = context.timingInfo,
+  auto prepareAllocatorForCurrentTimeSlice = [&timingInfo = context.timingInfo,
                                               &relayer = context.relayer](TimesliceSlot i) {
     ZoneScopedN("DataProcessingDevice::prepareForCurrentTimeslice");
     auto timeslice = relayer->getTimesliceForSlot(i);
@@ -942,7 +942,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
             LOG(ERROR) << "Forwarded data does not have a DataHeader";
             continue;
           }
-     
+
           forwardedParts[forward.channel].AddPart(std::move(header));
           forwardedParts[forward.channel].AddPart(std::move(payload));
         }
@@ -959,7 +959,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     }
   };
 
-  auto switchState = [& control = context.registry->get<ControlService>(),
+  auto switchState = [&control = context.registry->get<ControlService>(),
                       &state = context.state](StreamingState newState) {
     state->streaming = newState;
     control.notifyStreamingState(state->streaming);
@@ -969,7 +969,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     return false;
   }
 
-  auto postUpdateStats = [& stats = context.registry->get<DataProcessingStats>()](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart) {
+  auto postUpdateStats = [&stats = context.registry->get<DataProcessingStats>()](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart) {
     std::atomic_thread_fence(std::memory_order_release);
     for (size_t ai = 0; ai != record.size(); ai++) {
       auto cacheId = action.slot.index * record.size() + ai;
@@ -984,7 +984,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     stats.lastLatency = calculateInputRecordLatency(record, tStart);
   };
 
-  auto preUpdateStats = [& stats = context.registry->get<DataProcessingStats>()](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart) {
+  auto preUpdateStats = [&stats = context.registry->get<DataProcessingStats>()](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart) {
     std::atomic_thread_fence(std::memory_order_release);
     for (size_t ai = 0; ai != record.size(); ai++) {
       auto cacheId = action.slot.index * record.size() + ai;
@@ -1055,7 +1055,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         forwardInputs(action.slot, record);
       }
 #ifdef TRACY_ENABLE
-        cleanupRecord(record);
+      cleanupRecord(record);
 #endif
     } else if (action.op == CompletionPolicy::CompletionOp::Process) {
       cleanTimers(action.slot, record);

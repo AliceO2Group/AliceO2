@@ -23,7 +23,7 @@ struct SubspecRange {
 };
 
 o2::framework::DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::string>& simprefixes, const std::vector<int>& tpcsectors);
-}
+} // namespace steer
 } // namespace o2
 
 #endif // O2_STEER_SIMREADERSPEC_H

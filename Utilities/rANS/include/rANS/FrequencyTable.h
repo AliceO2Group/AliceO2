@@ -108,7 +108,7 @@ void FrequencyTable::addSamples(Source_IT begin, Source_IT end, value_t min, val
   t.start();
 
   if (begin == end) {
-    LOG(debug) << "Passed empty message to " << __func__;  // RS this is ok for empty columns
+    LOG(debug) << "Passed empty message to " << __func__; // RS this is ok for empty columns
     return;
   }
 
@@ -145,7 +145,7 @@ void FrequencyTable::addFrequencies(Freq_IT begin, Freq_IT end, value_t min, val
   t.start();
 
   if (begin == end) {
-    LOG(debug) << "Passed empty FrequencyTable to " << __func__;  // RS this is ok for empty columns
+    LOG(debug) << "Passed empty FrequencyTable to " << __func__; // RS this is ok for empty columns
     return;
   }
 
@@ -253,7 +253,7 @@ inline size_t FrequencyTable::getNumSamples() const
   return mNumSamples;
 }
 
-}  // namespace rans
-}  // namespace o2
+} // namespace rans
+} // namespace o2
 
 #endif /* INCLUDE_RANS_FREQUENCYTABLE_H_ */

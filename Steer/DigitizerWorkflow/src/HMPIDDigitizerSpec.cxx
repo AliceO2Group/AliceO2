@@ -32,7 +32,6 @@
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
-
 namespace o2
 {
 namespace hmpid

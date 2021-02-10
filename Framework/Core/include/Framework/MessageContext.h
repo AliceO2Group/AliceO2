@@ -271,9 +271,9 @@ class MessageContext
     }
 
    private:
-    FairMQTransportFactory* mFactory = nullptr;     /// pointer to transport factory
-    AlignedMemoryResource mResource;                /// message resource
-    buffer_type mData;                              /// the data buffer
+    FairMQTransportFactory* mFactory = nullptr; /// pointer to transport factory
+    AlignedMemoryResource mResource;            /// message resource
+    buffer_type mData;                          /// the data buffer
   };
 
   /// VectorObject handles a message object holding std::vector with polymorphic_allocator

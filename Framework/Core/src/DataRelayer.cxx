@@ -205,7 +205,7 @@ DataRelayer::RelayChoice
   // This returns the identifier for the given input. We use a separate
   // function because while it's trivial now, the actual matchmaking will
   // become more complicated when we will start supporting ranges.
-  auto getInputTimeslice = [& matchers = mInputMatchers,
+  auto getInputTimeslice = [&matchers = mInputMatchers,
                             &distinctRoutes = mDistinctRoutesIndex,
                             &header,
                             &index](VariableContext& context)
@@ -270,7 +270,7 @@ DataRelayer::RelayChoice
     assert(header.get() == nullptr && payload.get() == nullptr);
   };
 
-  auto updateStatistics = [& stats = mStats](TimesliceIndex::ActionTaken action) {
+  auto updateStatistics = [&stats = mStats](TimesliceIndex::ActionTaken action) {
     // Update statistics for what happened
     switch (action) {
       case TimesliceIndex::ActionTaken::DropObsolete:

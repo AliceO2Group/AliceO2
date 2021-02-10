@@ -43,21 +43,16 @@ using namespace o2::alice_hlt;
 
 using std::endl;
 using std::string;
+using std::stringstream;
 using std::unique_ptr;
 using std::vector;
-using std::stringstream;
 
 Component::Component()
-  : mOutputBuffer()
-  , mpSystem(nullptr)
-  , mProcessor(kEmptyHLTComponentHandle)
-  , mFormatHandler()
-  , mEventCount(-1)
+  : mOutputBuffer(), mpSystem(nullptr), mProcessor(kEmptyHLTComponentHandle), mFormatHandler(), mEventCount(-1)
 {
 }
 
-Component::~Component()
-= default;
+Component::~Component() = default;
 
 constexpr const char* Component::OptionKeys[];
 
@@ -97,10 +92,9 @@ int Component::init(int argc, char** argv)
 
   // the hidden options are not exposed to the outside
   bpo::options_description od("component options");
-  od.add_options()
-    (OptionKeys[OptionKeyInstanceId],
-     bpo::value<string>()->required(),
-     "internal instance id");
+  od.add_options()(OptionKeys[OptionKeyInstanceId],
+                   bpo::value<string>()->required(),
+                   "internal instance id");
   // now add all the visible options
   od.add(GetOptionsDescription());
 
@@ -124,33 +118,36 @@ int Component::init(int argc, char** argv)
       continue;
     }
     switch (option) {
-    case OptionKeyLibrary: break;
-    case OptionKeyComponent: break;
-    case OptionKeyParameter:
-      componentParameter = varmap[OptionKeys[option]].as<string>();
-      break;
-    case OptionKeyRun:
-      stringstream(varmap[OptionKeys[option]].as<string>()) >> runNumber;
-      break;
-    case OptionKeyOCDB:
-      if (getenv("ALIHLT_HCDBDIR") != nullptr) {
-        LOG(WARN) << "overriding value of ALICEHLT_HCDBDIR by --ocdb command option";
-      }
-      setenv("ALIHLT_HCDBDIR", varmap[OptionKeys[option]].as<string>().c_str(), 1);
-      break;
-    case OptionKeyMsgsize: {
-      unsigned size = 0;
-      stringstream(varmap[OptionKeys[option]].as<string>()) >> size;
-      mOutputBuffer.resize(size);
-    } break;
-    case OptionKeyOutputMode: {
-      unsigned mode;
-      stringstream(varmap[OptionKeys[option]].as<string>()) >> mode;
-      mFormatHandler.setOutputMode(mode);
-    } break;
-    case OptionKeyInstanceId: break;
-      instanceId = varmap[OptionKeys[option]].as<string>();
-      break;
+      case OptionKeyLibrary:
+        break;
+      case OptionKeyComponent:
+        break;
+      case OptionKeyParameter:
+        componentParameter = varmap[OptionKeys[option]].as<string>();
+        break;
+      case OptionKeyRun:
+        stringstream(varmap[OptionKeys[option]].as<string>()) >> runNumber;
+        break;
+      case OptionKeyOCDB:
+        if (getenv("ALIHLT_HCDBDIR") != nullptr) {
+          LOG(WARN) << "overriding value of ALICEHLT_HCDBDIR by --ocdb command option";
+        }
+        setenv("ALIHLT_HCDBDIR", varmap[OptionKeys[option]].as<string>().c_str(), 1);
+        break;
+      case OptionKeyMsgsize: {
+        unsigned size = 0;
+        stringstream(varmap[OptionKeys[option]].as<string>()) >> size;
+        mOutputBuffer.resize(size);
+      } break;
+      case OptionKeyOutputMode: {
+        unsigned mode;
+        stringstream(varmap[OptionKeys[option]].as<string>()) >> mode;
+        mFormatHandler.setOutputMode(mode);
+      } break;
+      case OptionKeyInstanceId:
+        break;
+        instanceId = varmap[OptionKeys[option]].as<string>();
+        break;
     }
   }
 
@@ -213,8 +210,8 @@ int Component::init(int argc, char** argv)
 
   // create component
   string description;
-  description+=" chainid=" + instanceId;
-  if ((iResult=mpSystem->createComponent(varmap[OptionKeys[OptionKeyComponent]].as<string>().c_str(), nullptr, parameters.size(), &parameters[0], &mProcessor, description.c_str()))<0) {
+  description += " chainid=" + instanceId;
+  if ((iResult = mpSystem->createComponent(varmap[OptionKeys[OptionKeyComponent]].as<string>().c_str(), nullptr, parameters.size(), &parameters[0], &mProcessor, description.c_str())) < 0) {
     // the ALICE HLT external interface uses the following error definition
     // 0 success
     // >0 error number
@@ -263,14 +260,14 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
   }
   dataArray.clear();
 
-  if (mFormatHandler.getEvtDataList().size()>0) {
+  if (mFormatHandler.getEvtDataList().size() > 0) {
     // copy the oldest event header
     memcpy(&evtData, &mFormatHandler.getEvtDataList().front(), sizeof(AliHLTComponentEventData));
   }
 
   // determine the total input size, needed later on for the calculation of the output buffer size
   int totalInputSize = 0;
-  for (auto & ci : inputBlocks) {
+  for (auto& ci : inputBlocks) {
     totalInputSize += ci.fSize;
   }
 
@@ -289,7 +286,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
     double inputBlockMultiplier = 0.;
     mpSystem->getOutputSize(mProcessor, &constEventBase, &constBlockBase, &inputBlockMultiplier);
     outputBufferSize = constEventBase + nofInputBlocks * constBlockBase + totalInputSize * inputBlockMultiplier;
-    outputBufferSize+=sizeof(AliHLTComponentStatistics) + sizeof(AliHLTComponentTableEntry);
+    outputBufferSize += sizeof(AliHLTComponentStatistics) + sizeof(AliHLTComponentTableEntry);
     // take the full available buffer and increase if that
     // is too little
     mOutputBuffer.resize(mOutputBuffer.capacity());
@@ -369,7 +366,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
 
       // possibly a forwarded data block, try the input buffers
       if (!bValid) {
-        for (auto & ci : inputBlocks) {
+        for (auto& ci : inputBlocks) {
           uint8_t* pInputBufferStart = reinterpret_cast<uint8_t*>(ci.fPtr);
           uint8_t* pInputBufferEnd = pInputBufferStart + ci.fSize;
           if ((bValid = (pStart >= pInputBufferStart && pEnd <= pInputBufferEnd))) {
@@ -387,7 +384,7 @@ int Component::process(vector<MessageFormat::BufferDesc_t>& dataArray,
         LOG(ERROR) << "Inconsistent data reference in output block " << blockIndex;
       }
     }
-    evtData.fBlockCnt=validBlocks;
+    evtData.fBlockCnt = validBlocks;
 
     // create the messages
     // TODO: for now there is an extra copy of the data, but it should be

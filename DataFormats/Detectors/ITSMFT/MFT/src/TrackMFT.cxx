@@ -39,6 +39,5 @@ void TrackMFT::print() const
             << " chi2 = " << std::setw(5) << std::setprecision(3) << getTrackChi2() << std::endl;
 }
 
-
 } // namespace mft
 } // namespace o2

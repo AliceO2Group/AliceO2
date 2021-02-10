@@ -17,9 +17,9 @@
 #pragma link C++ struct o2::mid::Cluster2D + ;
 #pragma link C++ struct o2::mid::Cluster3D + ;
 #pragma link C++ struct o2::mid::ColumnData + ;               // This is needed for the derived classes
-#pragma link C++ class std::vector < o2::mid::ColumnData > +; // This is needed for the derived classes
+#pragma link C++ class std::vector < o2::mid::ColumnData> + ; // This is needed for the derived classes
 #pragma link C++ struct o2::mid::ROFRecord + ;
-#pragma link C++ class std::vector < o2::mid::ROFRecord > +;
+#pragma link C++ class std::vector < o2::mid::ROFRecord> + ;
 #pragma link C++ struct o2::mid::Track + ;
 
 #pragma link C++ struct o2::mid::CTFHeader + ;

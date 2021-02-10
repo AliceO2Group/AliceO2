@@ -105,6 +105,6 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* label,
                                                       Inputs const& inputSpecs,
                                                       const char* defaultChannelConfig);
 
-} // namespace o2
+} // namespace o2::framework
 
 #endif // FRAMEWORK_RAWDEVICESOURCE_H

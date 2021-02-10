@@ -21,7 +21,7 @@ struct O2_VISIBILITY_HIDDEN overloaded : Ts... {
 };
 
 template <class... Ts>
-overloaded(Ts...)->overloaded<Ts...>;
+overloaded(Ts...) -> overloaded<Ts...>;
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_VARIANTHELPERS_H_

@@ -89,7 +89,7 @@ class HitProcessingManager
 
   o2::steer::InteractionSampler mInteractionSampler;
 
-  int mNumberOfCollisions; // how many collisions we want to generate and process
+  int mNumberOfCollisions;                // how many collisions we want to generate and process
   bool mSampleCollisionsRandomly = false; // if we sample the sequence of event ids randomly (with possible repetition)
 
   std::vector<TChain*> mSimChains;

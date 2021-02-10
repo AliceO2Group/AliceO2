@@ -37,7 +37,7 @@ enum class MergedObjectTimespan {
 };
 
 enum class PublicationDecision {
-  EachNSeconds,       // Merged object is published each N seconds.
+  EachNSeconds, // Merged object is published each N seconds.
 };
 
 enum class TopologySize {

@@ -525,7 +525,7 @@ Int_t Chebyshev3D::chebyshevFit(int dmOut)
 
   Float_t prec = cheb->getPrecision();
   if (prec < sMinimumPrecision) {
-    prec = mPrecision;                          // no specific precision for this dim.
+    prec = mPrecision; // no specific precision for this dim.
   }
   Float_t rTiny = 0.1 * prec / Float_t(maxDim); // neglect coefficient below this threshold
 

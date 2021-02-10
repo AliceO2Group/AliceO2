@@ -24,8 +24,8 @@ using namespace o2::itsmft;
 ClassImp(o2::itsmft::Cluster);
 
 #ifdef _ClusterTopology_
-  //______________________________________________________________________________
-  void Cluster::resetPattern()
+//______________________________________________________________________________
+void Cluster::resetPattern()
 {
   // reset pixels pattern
   memset(mPattern, 0, kMaxPatternBytes * sizeof(UChar_t));
