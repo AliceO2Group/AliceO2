@@ -4,7 +4,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-//#pragma link C++ class o2::align::AliAlgDet + ;
+#pragma link C++ class o2::align::AliAlgDet + ;
 //#pragma link C++ class o2::align::AliAlgDetITS + ;
 //#pragma link C++ class o2::align::AliAlgDetTOF + ;
 //#pragma link C++ class o2::align::AliAlgDetTPC + ;

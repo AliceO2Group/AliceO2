@@ -16,8 +16,8 @@
 #include "Align/AliAlgDet.h"
 #include "Align/AliAlgSens.h"
 #include "Align/AliAlgDet.h"
-#include "Align/AliAlgSteer.h"
-#include "Align/AliAlgTrack.h"
+//#include "Align/AliAlgSteer.h" FIXME(milettri): needs AliAlgSteer
+//#include "Align/AliAlgTrack.h" FIXME(milettri): needs AliAlgTrack
 #include "Align/AliAlgDOFStat.h"
 #include "Align/AliAlgConstraint.h"
 #include "Framework/Logger.h"
@@ -66,11 +66,12 @@ AliAlgDet::AliAlgDet()
     fNPoints(0),
     fPoolNPoints(0),
     fPoolFreePointID(0),
-    fPointsPool(),
-    fAlgSteer(0)
+    fPointsPool() //,
+//    fAlgSteer(0) FIXME(milettri): needs AliAlgSteer
 {
   // def c-tor
-  SetUniqueID(AliAlgSteer::kUndefined); // derived detectors must override this
+  //  SetUniqueID(AliAlgSteer::kUndefined); // derived detectors must override this FIXME(milettri): needs AliAlgSteer;
+  SetUniqueID(6);
   fAddError[0] = fAddError[1] = 0;
   //
   for (int i = 0; i < kNTrackTypes; i++) {
@@ -91,36 +92,37 @@ AliAlgDet::~AliAlgDet()
   fPointsPool.Delete();
 }
 
-//____________________________________________
-Int_t AliAlgDet::ProcessPoints(const AliESDtrack* esdTr, AliAlgTrack* algTrack, Bool_t inv)
-{
-  // Extract the points corresponding to this detector, recalibrate/realign them to the
-  // level of the "starting point" for the alignment/calibration session.
-  // If inv==true, the track propagates in direction of decreasing tracking X
-  // (i.e. upper leg of cosmic track)
-  //
-  const AliESDfriendTrack* trF(esdTr->GetFriendTrack());
-  const AliTrackPointArray* trP(trF->GetTrackPointArray());
-  //
-  int np(trP->GetNPoints());
-  int npSel(0);
-  AliAlgPoint* apnt(0);
-  for (int ip = 0; ip < np; ip++) {
-    int vid = trP->GetVolumeID()[ip];
-    if (!SensorOfDetector(vid))
-      continue;
-    apnt = GetSensorByVolId(vid)->TrackPoint2AlgPoint(ip, trP, esdTr);
-    if (!apnt)
-      continue;
-    algTrack->AddPoint(apnt);
-    if (inv)
-      apnt->SetInvDir();
-    npSel++;
-    fNPoints++;
-  }
-  //
-  return npSel;
-}
+//FIXME(milettri): needs AliESDtrack
+////____________________________________________
+//Int_t AliAlgDet::ProcessPoints(const AliESDtrack* esdTr, AliAlgTrack* algTrack, Bool_t inv)
+//{
+//  // Extract the points corresponding to this detector, recalibrate/realign them to the
+//  // level of the "starting point" for the alignment/calibration session.
+//  // If inv==true, the track propagates in direction of decreasing tracking X
+//  // (i.e. upper leg of cosmic track)
+//  //
+//  const AliESDfriendTrack* trF(esdTr->GetFriendTrack());
+//  const AliTrackPointArray* trP(trF->GetTrackPointArray());
+//  //
+//  int np(trP->GetNPoints());
+//  int npSel(0);
+//  AliAlgPoint* apnt(0);
+//  for (int ip = 0; ip < np; ip++) {
+//    int vid = trP->GetVolumeID()[ip];
+//    if (!SensorOfDetector(vid))
+//      continue;
+//    apnt = GetSensorByVolId(vid)->TrackPoint2AlgPoint(ip, trP, esdTr);
+//    if (!apnt)
+//      continue;
+//    algTrack->AddPoint(apnt);
+//    if (inv)
+//      apnt->SetInvDir();
+//    npSel++;
+//    fNPoints++;
+//  }
+//  //
+//  return npSel;
+//}
 
 //_________________________________________________________
 void AliAlgDet::AcknowledgeNewRun(Int_t run)
@@ -134,27 +136,29 @@ void AliAlgDet::AcknowledgeNewRun(Int_t run)
 //_________________________________________________________
 void AliAlgDet::UpdateL2GRecoMatrices()
 {
-  // Update L2G matrices used for data reconstruction
-  //
-  AliCDBManager* man = AliCDBManager::Instance();
-  AliCDBEntry* ent = man->Get(Form("%s/Align/Data", GetName()));
-  const TClonesArray* algArr = (const TClonesArray*)ent->GetObject();
-  //
-  int nvol = GetNVolumes();
-  for (int iv = 0; iv < nvol; iv++) {
-    AliAlgVol* vol = GetVolume(iv);
-    // call init for root level volumes, they will take care of their children
-    if (!vol->GetParent())
-      vol->UpdateL2GRecoMatrices(algArr, 0);
-  }
-  //
+  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  //FIXME(milettri): needs OCDB
+  //  // Update L2G matrices used for data reconstruction
+  //  //
+  //  AliCDBManager* man = AliCDBManager::Instance();
+  //  AliCDBEntry* ent = man->Get(Form("%s/Align/Data", GetName()));
+  //  const TClonesArray* algArr = (const TClonesArray*)ent->GetObject();
+  //  //
+  //  int nvol = GetNVolumes();
+  //  for (int iv = 0; iv < nvol; iv++) {
+  //    AliAlgVol* vol = GetVolume(iv);
+  //    // call init for root level volumes, they will take care of their children
+  //    if (!vol->GetParent())
+  //      vol->UpdateL2GRecoMatrices(algArr, 0);
+  //  }
+  //  //
 }
 
 //_________________________________________________________
 void AliAlgDet::ApplyAlignmentFromMPSol()
 {
   // apply alignment from millepede solution array to reference alignment level
-  AliInfo("Applying alignment from Millepede solution");
+  LOG(INFO) << "Applying alignment from Millepede solution";
   for (int isn = GetNSensors(); isn--;)
     GetSensor(isn)->ApplyAlignmentFromMPSol();
 }
@@ -162,23 +166,25 @@ void AliAlgDet::ApplyAlignmentFromMPSol()
 //_________________________________________________________
 void AliAlgDet::CacheReferenceOCDB()
 {
-  // if necessary, detector may fetch here some reference OCDB data
-  //
-  // cache global deltas to avoid preicision problem
-  AliCDBManager* man = AliCDBManager::Instance();
-  AliCDBEntry* ent = man->Get(Form("%s/Align/Data", GetName()));
-  TObjArray* arr = (TObjArray*)ent->GetObject();
-  for (int i = arr->GetEntriesFast(); i--;) {
-    const AliAlignObjParams* par = (const AliAlignObjParams*)arr->At(i);
-    AliAlgVol* vol = GetVolume(par->GetSymName());
-    if (!vol) {
-      AliErrorF("Volume %s not found", par->GetSymName());
-      continue;
-    }
-    TGeoHMatrix delta;
-    par->GetMatrix(delta);
-    vol->SetGlobalDeltaRef(delta);
-  }
+  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  //FIXME(milettri): needs OCDB
+  //  // if necessary, detector may fetch here some reference OCDB data
+  //  //
+  //  // cache global deltas to avoid preicision problem
+  //  AliCDBManager* man = AliCDBManager::Instance();
+  //  AliCDBEntry* ent = man->Get(Form("%s/Align/Data", GetName()));
+  //  TObjArray* arr = (TObjArray*)ent->GetObject();
+  //  for (int i = arr->GetEntriesFast(); i--;) {
+  //    const AliAlignObjParams* par = (const AliAlignObjParams*)arr->At(i);
+  //    AliAlgVol* vol = GetVolume(par->GetSymName());
+  //    if (!vol) {
+  //      AliErrorF("Volume %s not found", par->GetSymName());
+  //      continue;
+  //    }
+  //    TGeoHMatrix delta;
+  //    par->GetMatrix(delta);
+  //    vol->SetGlobalDeltaRef(delta);
+  //  }
 }
 
 //_________________________________________________________
@@ -209,7 +215,7 @@ void AliAlgDet::ResetPool()
 void AliAlgDet::DefineVolumes()
 {
   // dummy method
-  AliError("This method must be implemented by specific detector");
+  LOG(ERROR) << "This method must be implemented by specific detector";
 }
 
 //_________________________________________________________
@@ -217,7 +223,7 @@ void AliAlgDet::AddVolume(AliAlgVol* vol)
 {
   // add volume
   if (GetVolume(vol->GetSymName())) {
-    AliFatalF("Volume %s was already added to %s", vol->GetName(), GetName());
+    LOG(FATAL) << "Volume " << vol->GetName() << " was already added to " << GetName();
   }
   fVolumes.AddLast(vol);
   if (vol->IsSensor()) {
@@ -268,7 +274,7 @@ void AliAlgDet::SortSensors()
   // build local tables for internal numbering
   fNSensors = fSensors.GetEntriesFast();
   if (!fNSensors) {
-    AliWarning("No sensors defined");
+    LOG(WARNING) << "No sensors defined";
     return;
   }
   fSensors.Sort();
@@ -307,36 +313,34 @@ Int_t AliAlgDet::InitGeom()
 //_________________________________________________________
 Int_t AliAlgDet::AssignDOFs()
 {
-  // assign DOFs IDs, parameters
-  //
-  int gloCount0(fAlgSteer->GetNDOFs()), gloCount(fAlgSteer->GetNDOFs());
-  Float_t* pars = fAlgSteer->GetGloParVal();
-  Float_t* errs = fAlgSteer->GetGloParErr();
-  Int_t* labs = fAlgSteer->GetGloParLab();
-  //
-  // assign calibration DOFs
-  fFirstParGloID = gloCount;
-  fParVals = pars + gloCount;
-  fParErrs = errs + gloCount;
-  fParLabs = labs + gloCount;
-  for (int icl = 0; icl < fNCalibDOF; icl++) {
-    fParLabs[icl] = (GetDetLabel() + 10000) * 100 + icl;
-    gloCount++;
-  }
-  //
-  int nvol = GetNVolumes();
-  for (int iv = 0; iv < nvol; iv++) {
-    AliAlgVol* vol = GetVolume(iv);
-    // call init for root level volumes, they will take care of their children
-    if (!vol->GetParent())
-      vol->AssignDOFs(gloCount, pars, errs, labs);
-  }
-  //
-
-  if (fNDOFs != gloCount - gloCount0)
-    AliFatalF("Mismatch between declared %d and initialized %d DOFs for %s",
-              fNDOFs, gloCount - gloCount0, GetName());
-
+  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  //FIXME(milettri): needs AliAlgSteer
+  //  // assign DOFs IDs, parameters
+  //  //
+  //  int gloCount0(fAlgSteer->GetNDOFs()), gloCount(fAlgSteer->GetNDOFs());
+  //  Float_t* pars = fAlgSteer->GetGloParVal();
+  //  Float_t* errs = fAlgSteer->GetGloParErr();
+  //  Int_t* labs = fAlgSteer->GetGloParLab();
+  //  //
+  //  // assign calibration DOFs
+  //  fFirstParGloID = gloCount;
+  //  fParVals = pars + gloCount;
+  //  fParErrs = errs + gloCount;
+  //  fParLabs = labs + gloCount;
+  //  for (int icl = 0; icl < fNCalibDOF; icl++) {
+  //    fParLabs[icl] = (GetDetLabel() + 10000) * 100 + icl;
+  //    gloCount++;
+  //  }
+  //  //
+  //  int nvol = GetNVolumes();
+  //  for (int iv = 0; iv < nvol; iv++) {
+  //    AliAlgVol* vol = GetVolume(iv);
+  //    // call init for root level volumes, they will take care of their children
+  //    if (!vol->GetParent())
+  //      vol->AssignDOFs(gloCount, pars, errs, labs);
+  //  }
+  //  if (fNDOFs != gloCount - gloCount0)
+  //    LOG(FATAL) << "Mismatch between declared " << fNDOFs << " and initialized " << (gloCount - gloCount0) << " DOFs for " << GetName();
   return fNDOFs;
 }
 
@@ -345,7 +349,7 @@ void AliAlgDet::InitDOFs()
 {
   // initialize free parameters
   if (GetInitDOFsDone())
-    AliFatalF("Something is wrong, DOFs are already initialized for %s", GetName());
+    LOG(FATAL) << "DOFs are already initialized for " << GetName();
   //
   // process calibration DOFs
   for (int i = 0; i < fNCalibDOF; i++)
@@ -420,9 +424,11 @@ void AliAlgDet::Print(const Option_t* opt) const
 void AliAlgDet::SetDetID(UInt_t tp)
 {
   // assign type
-  if (tp >= AliAlgSteer::kNDetectors)
-    AliFatalF("Detector typeID %d exceeds allowed range %d:%d",
-              tp, 0, AliAlgSteer::kNDetectors - 1);
+  //FIXME(milettri): needs AliAlgSteer
+  //  if (tp >= AliAlgSteer::kNDetectors)
+  //    LOG(FATAL) << "Detector typeID " << tp << "exceeds allowed range" << 0 << ":" << (AliAlgSteer::kNDetectors - 1);
+  if (tp >= 5)
+    LOG(FATAL) << "Detector typeID " << tp << "exceeds allowed range" << 0 << ":" << (5 - 1);
   SetUniqueID(tp);
 }
 
@@ -430,7 +436,7 @@ void AliAlgDet::SetDetID(UInt_t tp)
 void AliAlgDet::SetAddError(double sigy, double sigz)
 {
   // add syst error to all sensors
-  AliInfoF("Adding sys.error %.4e %.4e to all sensors", sigy, sigz);
+  LOG(INFO) << "Adding sys.error " << std::fixed << std::setprecision(4) << sigy << " " << sigz << " to all sensors";
   fAddError[0] = sigy;
   fAddError[1] = sigz;
   for (int isn = GetNSensors(); isn--;)
@@ -442,23 +448,25 @@ void AliAlgDet::SetAddError(double sigy, double sigz)
 void AliAlgDet::SetUseErrorParam(Int_t v)
 {
   // set type of points error parameterization
-  AliFatal("UpdatePointByTrackInfo is not implemented for this detector");
+  LOG(FATAL) << "UpdatePointByTrackInfo is not implemented for this detector";
   //
 }
 
 //____________________________________________
-void AliAlgDet::UpdatePointByTrackInfo(AliAlgPoint* pnt, const AliExternalTrackParam* t) const
+void AliAlgDet::UpdatePointByTrackInfo(AliAlgPoint* pnt, const trackParam_t* t) const
 {
   // update point using specific error parameterization
-  AliFatal("If needed, this method has to be implemented for specific detector");
+  LOG(FATAL) << "If needed, this method has to be implemented for specific detector";
 }
 
 //____________________________________________
 void AliAlgDet::SetObligatory(Int_t tp, Bool_t v)
 {
-  // mark detector presence obligatory in the track
-  fObligatory[tp] = v;
-  fAlgSteer->SetObligatoryDetector(GetDetID(), tp, v);
+  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  //FIXME(lettrich): needs AliAlgSteer
+  //  // mark detector presence obligatory in the track
+  //  fObligatory[tp] = v;
+  //  fAlgSteer->SetObligatoryDetector(GetDetID(), tp, v);
 }
 
 //______________________________________________________
@@ -489,26 +497,28 @@ void AliAlgDet::WriteCalibrationResults() const
 //______________________________________________________
 void AliAlgDet::WriteAlignmentResults() const
 {
-  // store updated alignment
-  TClonesArray* arr = new TClonesArray("AliAlignObjParams", 10);
-  //
-  int nvol = GetNVolumes();
-  for (int iv = 0; iv < nvol; iv++) {
-    AliAlgVol* vol = GetVolume(iv);
-    // call only for top level objects, they will take care of children
-    if (!vol->GetParent())
-      vol->CreateAlignmentObjects(arr);
-  }
-  //
-  AliCDBManager* man = AliCDBManager::Instance();
-  AliCDBMetaData* md = new AliCDBMetaData();
-  md->SetResponsible(fAlgSteer->GetOutCDBResponsible());
-  md->SetComment(fAlgSteer->GetOutCDBResponsible());
-  //
-  AliCDBId id(Form("%s/Align/Data", GetName()), fAlgSteer->GetOutCDBRunMin(), fAlgSteer->GetOutCDBRunMax());
-  man->Put(arr, id, md);
-  //
-  delete arr;
+  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  //FIXME(lettrich): needs OCDB
+  //  // store updated alignment
+  //  TClonesArray* arr = new TClonesArray("AliAlignObjParams", 10);
+  //  //
+  //  int nvol = GetNVolumes();
+  //  for (int iv = 0; iv < nvol; iv++) {
+  //    AliAlgVol* vol = GetVolume(iv);
+  //    // call only for top level objects, they will take care of children
+  //    if (!vol->GetParent())
+  //      vol->CreateAlignmentObjects(arr);
+  //  }
+  //  //
+  //  AliCDBManager* man = AliCDBManager::Instance();
+  //  AliCDBMetaData* md = new AliCDBMetaData();
+  //  md->SetResponsible(fAlgSteer->GetOutCDBResponsible());
+  //  md->SetComment(fAlgSteer->GetOutCDBResponsible());
+  //  //
+  //  AliCDBId id(Form("%s/Align/Data", GetName()), fAlgSteer->GetOutCDBRunMin(), fAlgSteer->GetOutCDBRunMax());
+  //  man->Put(arr, id, md);
+  //  //
+  //  delete arr;
 }
 
 //______________________________________________________
@@ -544,30 +554,34 @@ AliAlgVol* AliAlgDet::GetVolOfDOFID(Int_t id) const
 //______________________________________________________
 void AliAlgDet::Terminate()
 {
-  // called at the end of processing
-  //  if (IsDisabled()) return;
-  int nvol = GetNVolumes();
-  fNProcPoints = 0;
-  AliAlgDOFStat* st = fAlgSteer->GetDOFStat();
-  for (int iv = 0; iv < nvol; iv++) {
-    AliAlgVol* vol = GetVolume(iv);
-    // call init for root level volumes, they will take care of their children
-    if (!vol->GetParent())
-      fNProcPoints += vol->FinalizeStat(st);
-  }
-  FillDOFStat(st); // fill stat for calib dofs
+  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  //FIXME(lettrich): needs AliAlgSteer
+  //  // called at the end of processing
+  //  //  if (IsDisabled()) return;
+  //  int nvol = GetNVolumes();
+  //  fNProcPoints = 0;
+  //  AliAlgDOFStat* st = fAlgSteer->GetDOFStat();
+  //  for (int iv = 0; iv < nvol; iv++) {
+  //    AliAlgVol* vol = GetVolume(iv);
+  //    // call init for root level volumes, they will take care of their children
+  //    if (!vol->GetParent())
+  //      fNProcPoints += vol->FinalizeStat(st);
+  //  }
+  //  FillDOFStat(st); // fill stat for calib dofs
 }
 
 //________________________________________
 void AliAlgDet::AddAutoConstraints() const
 {
-  // adds automatic constraints
-  int nvol = GetNVolumes();
-  for (int iv = 0; iv < nvol; iv++) { // call for root level volumes, they will take care of their children
-    AliAlgVol* vol = GetVolume(iv);
-    if (!vol->GetParent())
-      vol->AddAutoConstraints((TObjArray*)fAlgSteer->GetConstraints());
-  }
+  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  //FIXME(lettrich): needs AliAlgSteer
+  //  // adds automatic constraints
+  //  int nvol = GetNVolumes();
+  //  for (int iv = 0; iv < nvol; iv++) { // call for root level volumes, they will take care of their children
+  //    AliAlgVol* vol = GetVolume(iv);
+  //    if (!vol->GetParent())
+  //      vol->AddAutoConstraints((TObjArray*)fAlgSteer->GetConstraints());
+  //}
 }
 
 //________________________________________
@@ -673,10 +687,13 @@ void AliAlgDet::ConstrainOrphans(const double* sigma, const char* match)
   }
   //
   if (!constr->GetNChildren()) {
-    AliInfoF("No volume passed filter %s", match);
+    LOG(INFO) << "No volume passed filter " << match;
     delete constr;
-  } else
-    ((TObjArray*)fAlgSteer->GetConstraints())->Add(constr);
+  } else {
+    LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+    //FIXME(lettrich): needs AliAlgSteer
+    //    ((TObjArray*)fAlgSteer->GetConstraints())->Add(constr);
+  }
   //
 }
 
@@ -685,7 +702,7 @@ void AliAlgDet::SetFreeDOF(Int_t dof)
 {
   // set detector free dof
   if (dof >= kNMaxKalibDOF) {
-    AliFatalF("Detector CalibDOFs limited to %d, requested %d", kNMaxKalibDOF, dof);
+    LOG(FATAL) << "Detector CalibDOFs limited to " << kNMaxKalibDOF << ", requested " << dof;
   }
   fCalibDOF |= 0x1 << dof;
   CalcFree();
@@ -696,7 +713,7 @@ void AliAlgDet::FixDOF(Int_t dof)
 {
   // fix detector dof
   if (dof >= kNMaxKalibDOF) {
-    AliFatalF("Detector CalibDOFs limited to %d, requested %d", kNMaxKalibDOF, dof);
+    LOG(FATAL) << "Detector CalibDOFs limited to " << kNMaxKalibDOF << ", requested " << dof;
   }
   fCalibDOF &= ~(0x1 << dof);
   CalcFree();

@@ -20,15 +20,15 @@
 #include <TObjArray.h>
 #include <stdio.h>
 #include "Align/AliAlgAux.h"
+//#include "Align/AliAlgTrack.h" FIXME(milettri): needs AliAlgTrack
+#include "Align/AliAlgDOFStat.h"
+#include "Align/AliAlgPoint.h"
+#include "Align/AliAlgSens.h"
+#include "Align/AliAlgVol.h"
+//#include "Align/AliAlgSteer.h" FIXME(milettri): needs AliAlgSteer
 //#include "AliESDtrack.h"
-class AliAlgTrack;
-class AliAlgDOFStat;
-class AliAlgPoint;
-class AliAlgSens;
-class AliAlgVol;
-class AliAlgSteer;
 //class AliTrackPointArray;
-//class AliExternalTrackParam;
+
 class TH1;
 
 namespace o2
@@ -44,7 +44,7 @@ class AliAlgDet : public TNamed
   enum { kNMaxKalibDOF = 64 };
   //
   AliAlgDet();
-  AliAlgDet(const char* name, const char* title = "");
+  AliAlgDet(const char* name, const char* title = "") : TNamed(name, title) {}
   virtual ~AliAlgDet();
   Int_t GetDetID() const { return GetUniqueID(); }
   void SetDetID(UInt_t tp);
@@ -66,7 +66,7 @@ class AliAlgDet : public TNamed
   //
   Int_t GetNPoints() const { return fNPoints; }
   //
-  void SetAlgSteer(AliAlgSteer* s) { fAlgSteer = s; }
+  //  void SetAlgSteer(AliAlgSteer* s) { fAlgSteer = s; } FIXME(milettri): needs AliAlgSteer
   AliAlgSens* GetSensor(Int_t id) const { return (AliAlgSens*)fSensors.UncheckedAt(id); }
   AliAlgSens* GetSensorByVolId(Int_t vid) const
   {
@@ -105,13 +105,13 @@ class AliAlgDet : public TNamed
   virtual void DefineVolumes();
   virtual void DefineMatrices();
   virtual void Print(const Option_t* opt = "") const;
-  virtual Int_t ProcessPoints(const AliESDtrack* esdTr, AliAlgTrack* algTrack, Bool_t inv = kFALSE);
-  virtual void UpdatePointByTrackInfo(AliAlgPoint* pnt, const AliExternalTrackParam* t) const;
+  //  virtual Int_t ProcessPoints(const AliESDtrack* esdTr, AliAlgTrack* algTrack, Bool_t inv = kFALSE); FIXME(milettri): needs AliESDtrack
+  virtual void UpdatePointByTrackInfo(AliAlgPoint* pnt, const trackParam_t* t) const;
   virtual void SetUseErrorParam(Int_t v = 0);
   Int_t GetUseErrorParam() const { return fUseErrorParam; }
   //
-  virtual Bool_t AcceptTrack(const AliESDtrack* trc, Int_t trtype) const = 0;
-  Bool_t CheckFlags(const AliESDtrack* trc, Int_t trtype) const;
+  //  virtual Bool_t AcceptTrack(const AliESDtrack* trc, Int_t trtype) const = 0; FIXME(milettri): needs AliESDtrack
+  //  Bool_t CheckFlags(const AliESDtrack* trc, Int_t trtype) const; FIXME(milettri): needs AliESDtrack
   //
   virtual AliAlgPoint* GetPointFromPool();
   virtual void ResetPool();
@@ -233,17 +233,18 @@ class AliAlgDet : public TNamed
   Int_t fPoolFreePointID; //! id of the last free point in the pool
   TObjArray fPointsPool;  //! pool of aligment points
   //
-  AliAlgSteer* fAlgSteer; // pointer to alignment steering object
+  //  AliAlgSteer* fAlgSteer; // pointer to alignment steering object FIXME(milettri): needs AliAlgSteer
   //
   ClassDef(AliAlgDet, 1); // base class for detector global alignment
 };
 
-//_____________________________________________________
-inline Bool_t AliAlgDet::CheckFlags(const AliESDtrack* trc, Int_t trtype) const
-{
-  // check if flags are ok
-  return (trc->GetStatus() & fTrackFlagSel[trtype]) == fTrackFlagSel[trtype];
-}
+//FIXME(milettri): needs AliESDtrack
+////_____________________________________________________
+//inline Bool_t AliAlgDet::CheckFlags(const AliESDtrack* trc, Int_t trtype) const
+//{
+//  // check if flags are ok
+//  return (trc->GetStatus() & fTrackFlagSel[trtype]) == fTrackFlagSel[trtype];
+//}
 } // namespace align
 } // namespace o2
 #endif

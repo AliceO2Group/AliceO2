@@ -11,7 +11,7 @@
 o2_add_library(Align
                SOURCES  src/AliAlgAux.cxx
                         src/AliAlgConstraint.cxx
-                        #src/AliAlgDet.cxx
+                        src/AliAlgDet.cxx
                         #src/AliAlgDetHMPID.cxx
                         #src/AliAlgDetITS.cxx
                         #src/AliAlgDetTOF.cxx
@@ -47,7 +47,7 @@ o2_add_library(Align
 
 o2_target_root_dictionary(
   Align
-  HEADERS #include/Align/AliAlgDet.h
+  HEADERS include/Align/AliAlgDet.h
           #include/Align/AliAlgDetITS.h
           #include/Align/AliAlgDetTOF.h
           #include/Align/AliAlgDetTPC.h
