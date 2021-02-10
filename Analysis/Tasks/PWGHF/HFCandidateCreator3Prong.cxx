@@ -198,6 +198,15 @@ struct HFCandidateCreator3ProngMC {
         }
       }
 
+      // Ξc± → p± K∓ π±
+      if (flag == 0) {
+        //Printf("Checking Ξc± → p± K∓ π±");
+        auto indexRecXic = RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), 4232, array{+kProton, -kKPlus, +kPiPlus}, true, &sign);
+        if (indexRecXic > -1) {
+          flag = sign * (1 << XicToPKPi);
+        }
+      }
+
       rowMCMatchRec(flag, DecayChannel);
     }
 
@@ -236,6 +245,15 @@ struct HFCandidateCreator3ProngMC {
               DecayChannel = 3;
             }
           }
+        }
+      }
+
+      // Ξc± → p± K∓ π±
+      if (flag == 0) {
+        //Printf("Checking Ξc± → p± K∓ π±");
+        auto indexRecXic = RecoDecay::isMatchedMCGen(particlesMC, particle, 4232, array{+kProton, -kKPlus, +kPiPlus}, true, &sign);
+        if (indexRecXic > -1) {
+          flag = sign * (1 << XicToPKPi);
         }
       }
 
