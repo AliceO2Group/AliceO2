@@ -22,7 +22,8 @@
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong2;
-using namespace o2::analysis::HF_cuts_D0_topiK;
+using namespace o2::analysis;
+using namespace o2::analysis::HF_cuts_D0ToPiK;
 
 /// Struct for applying D0 selection cuts
 
@@ -137,11 +138,11 @@ struct HFD0CandidateSelector {
     }
 
     if (trackPion.charge() > 0) { //invariant mass cut
-      if (TMath::Abs(InvMassD0(hfCandProng2) - RecoDecay::getMassPDG(kD0)) > cuts->get(pTBin, "m")) {
+      if (TMath::Abs(InvMassD0(hfCandProng2) - RecoDecay::getMassPDG(PDG::code::kD0)) > cuts->get(pTBin, "m")) {
         return false;
       }
     } else {
-      if (TMath::Abs(InvMassD0bar(hfCandProng2) - RecoDecay::getMassPDG(kD0)) > cuts->get(pTBin, "m")) {
+      if (TMath::Abs(InvMassD0bar(hfCandProng2) - RecoDecay::getMassPDG(PDG::code::kD0)) > cuts->get(pTBin, "m")) {
         return false;
       }
     }

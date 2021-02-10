@@ -8,21 +8,25 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef HF_D0_SELECTOR_HELPERS_H_
-#define HF_D0_SELECTOR_HELPERS_H_
+#ifndef HF_SELECTOR_CUTS_H_
+#define HF_SELECTOR_CUTS_H_
 #include <vector>
 #include <string>
 namespace o2::analysis
 {
-// namespace per channel?
-namespace HF_cuts_D0_topiK
+namespace PDG
+{
+enum code {
+  kD0 = 421,
+  kD0bar = -421
+};
+}
+
+// namespace per channel
+namespace HF_cuts_D0ToPiK
 {
 static constexpr int npTBins = 25;
 static constexpr int nCutVars = 11 + 2;
-
-// not defined in ROOT's enum
-static constexpr int kD0 = 421;
-static constexpr int kD0bar = -421;
 
 // default values for the cuts
 constexpr double D0_cuts[npTBins][nCutVars] = {{0.0, 0.5, 0.400, 350. * 1E-4, 0.8, 0.5, 0.5, 1000. * 1E-4, 1000. * 1E-4, -5000. * 1E-8, 0.80, 0., 0.},      /* pt<0.5*/
