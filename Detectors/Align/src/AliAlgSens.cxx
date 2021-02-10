@@ -18,6 +18,8 @@
 
 #include "Align/AliAlgSens.h"
 #include "Framework/Logger.h"
+#include "Align/AliAlgPoint.h"
+#include "Align/AliAlgDet.h"
 //#include "AliGeomManager.h"
 
 ClassImp(o2::align::AliAlgSens);
@@ -32,7 +34,7 @@ namespace align
 
 //_________________________________________________________
 AliAlgSens::AliAlgSens(const char* name, Int_t vid, Int_t iid)
-  : AliAlgVol(name, iid), fSID(0), /*fDet(0), */ fMatClAlg(), fMatClAlgReco() // FIXME(milettri): needs AliAlgDet
+  : AliAlgVol(name, iid), fSID(0), fDet(0), fMatClAlg(), fMatClAlgReco()
 {
   // def c-tor
   SetVolID(vid);
@@ -398,10 +400,8 @@ void AliAlgSens::PrepareMatrixClAlgReco()
 //____________________________________________
 void AliAlgSens::UpdatePointByTrackInfo(AliAlgPoint* pnt, const trackParam_t* t) const
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
-  // FIXME(milettri) needs AliAlgDet;
-  //  // update
-  //  fDet->UpdatePointByTrackInfo(pnt, t);
+  // update
+  fDet->UpdatePointByTrackInfo(pnt, t);
 }
 
 //____________________________________________
