@@ -39,6 +39,15 @@
  */
 
 /**
+ * @defgroup EMCALCalib EMCAL calib
+ * @brief EMCAL bad channel calibration
+ * @ingroup DetectorEMCAL
+ * 
+ * Performs the EMCal bad channel calibration. 
+ * 
+ */
+
+/**
  * @defgroup EMCALsimulation EMCAL simulation
  * @brief EMCAL simulation code
  * @ingroup DetectorEMCAL
