@@ -17,7 +17,7 @@ o2_add_library(Align
                         #src/AliAlgDetTOF.cxx
                         #src/AliAlgDetTPC.cxx
                         #src/AliAlgDetTRD.cxx
-                        #src/AliAlgDOFStat.cxx
+                        src/AliAlgDOFStat.cxx
                         #src/AliAlgMPRecord.cxx
                         #src/AliAlgPoint.cxx
                         #src/AliAlgRes.cxx
@@ -67,6 +67,6 @@ o2_target_root_dictionary(
           #include/Align/AliAlgRes.h
           #include/Align/AliAlgResFast.h
           #include/Align/AliAlgConstraint.h
-          #include/Align/AliAlgDOFStat.h
+          include/Align/AliAlgDOFStat.h
           include/Align/AliAlgAux.h
           )
