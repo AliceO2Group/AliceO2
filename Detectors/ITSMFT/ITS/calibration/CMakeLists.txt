@@ -19,6 +19,7 @@ o2_add_library(ITSCalibration
                                      O2::CCDB)
 
 o2_target_root_dictionary(ITSCalibration
+                          HEADERS include/ITSCalibration/NoiseCalibrator.h
                           HEADERS include/ITSCalibration/NoiseSlotCalibrator.h
                           LINKDEF src/ITSCalibrationLinkDef.h)
 
