@@ -26,7 +26,7 @@
 #include <TObject.h>
 #include <TMatrixD.h>
 #include <TVectorD.h>
-//#include "Align/AliAlgSens.h"
+#include "Align/AliAlgSens.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "Framework/Logger.h"
 #include "Align/AliAlgAux.h"
@@ -75,10 +75,11 @@ class AliAlgPoint : public TObject
   const Double_t* GetYZTracking() const { return &fXYZTracking[1]; }
   const Double_t* GetXYZTracking() const { return fXYZTracking; }
   const Double_t* GetYZErrTracking() const { return fErrYZTracking; }
-  //
-  //  const AliAlgSens* GetSensor() const { return fSensor; } FIXME(milettri): needs AliAlgSens
-  //  UInt_t GetVolID() const { return fSensor->GetVolID(); } FIXME(milettri): needs AliAlgSens
-  //  void SetSensor(AliAlgSens* s) { fSensor = s; } FIXME(milettri): needs AliAlgSens
+
+  const AliAlgSens* GetSensor() const { return fSensor; }
+  UInt_t GetVolID() const { return fSensor->GetVolID(); }
+  void SetSensor(AliAlgSens* s) { fSensor = s; }
+
   Int_t GetDetID() const { return fDetID; }
   Int_t GetSID() const { return fSID; }
   Int_t GetMinLocVarID() const { return fMinLocVarID; }
@@ -216,9 +217,9 @@ class AliAlgPoint : public TObject
   //
   Double_t fTrParamWSA[kNMatDOFs]; // workspace for tracks params at this point AFTER material correction
   Double_t fTrParamWSB[kNMatDOFs]; // workspace for tracks params at this point BEFORE material correction
-  //
-  //  AliAlgSens* fSensor; // sensor of this point FIXME(milettri): Needs AliAlgSens
-  //
+
+  AliAlgSens* fSensor; // sensor of this point
+
   ClassDef(AliAlgPoint, 1)
 };
 
@@ -267,11 +268,9 @@ inline void AliAlgPoint::GetResidualsDiag(const double* pos, double& resU, doubl
 //__________________________________________________________________
 inline void AliAlgPoint::IncrementStat()
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
-  // FIXME(milettri): needs AliAlgSens
-  //  // increment statistics for detectors this point depends on
-  //  fSensor->IncrementStat();
-  //  SetStatOK();
+  // increment statistics for detectors this point depends on
+  fSensor->IncrementStat();
+  SetStatOK();
 }
 } // namespace align
 } // namespace o2
