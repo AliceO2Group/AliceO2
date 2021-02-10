@@ -308,7 +308,7 @@ DataProcessorSpec
       // loop over the DataRefs which are contained in pc.inputs()
       for (const auto& ref : pc.inputs()) {
         if (!ref.spec || !ref.payload) {
-          LOGP(WARNING, "The input \"{}\" is not valid and will be skipped!", ref.spec->binding);
+          LOGP(DEBUG, "The input \"{}\" is not valid and will be skipped!", ref.spec->binding);
           continue;
         }
 
