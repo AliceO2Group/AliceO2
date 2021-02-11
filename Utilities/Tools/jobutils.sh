@@ -177,6 +177,7 @@ taskwrapper() {
              -e \"error while setting up workflow\" \
              -e \"bus error\"                       \
              -e \"Assertion.*failed\"               \
+             -e \"Fatal in\"                        \
              -e \"There was a crash.\""
       
     grepcommand="grep -H ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} >> encountered_exceptions_list 2>/dev/null"
@@ -219,7 +220,7 @@ taskwrapper() {
     if [ "${JOBUTILS_MONITORMEM}" ]; then
       if [ "${JOBUTILS_INTERNAL_DPL_SESSION}" ]; then
         MAX_FMQ_SHM=${MAX_FMQ_SHM:-0}
-        text=$(timeout 1 fairmq-shmmonitor --interval 100 -v -s ${JOBUTILS_INTERNAL_DPL_SESSION})
+        text=$(fairmq-shmmonitor -v -s ${JOBUTILS_INTERNAL_DPL_SESSION})
         line=$(echo ${text} | tr '[' '\n[' | grep "^0" | tail -n1)
         CURRENT_FMQ_SHM=$(echo ${line} | sed 's/.*used://g')
         # echo "current shm ${CURRENT_FMQ_SHM}"
