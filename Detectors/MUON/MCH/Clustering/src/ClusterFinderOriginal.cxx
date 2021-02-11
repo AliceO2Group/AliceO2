@@ -123,11 +123,12 @@ void ClusterFinderOriginal::findClusters(gsl::span<const Digit> digits)
       }
       int nNewDigits = mUsedDigits.size() - iFirstNewDigit;
 
-      // give the new clusters a unique ID and make them point to these digits
+      // give the new clusters a unique ID, make them point to these digits then set their resolution
       for (; iNewCluster < mClusters.size(); ++iNewCluster) {
         mClusters[iNewCluster].uid = ClusterStruct::buildUniqueId(digits[0].getDetID() / 100 - 1, digits[0].getDetID(), iNewCluster);
         mClusters[iNewCluster].firstDigit = iFirstNewDigit;
         mClusters[iNewCluster].nDigits = nNewDigits;
+        setClusterResolution(mClusters[iNewCluster]);
       }
     }
   }
@@ -2028,6 +2029,42 @@ void ClusterFinderOriginal::updatePads(const double fitParam[SNFitParamMax + 1],
       // reset the pad status to further use it if its charge is high enough
       pad.setStatus((pad.charge() > SLowestPadCharge) ? PadOriginal::kZero : PadOriginal::kOver);
     }
+  }
+}
+
+//_________________________________________________________________________________________________
+void ClusterFinderOriginal::setClusterResolution(ClusterStruct& cluster) const
+{
+  /// set the cluster resolution in both directions depending on whether its position
+  /// lies on top of a fired digit in both planes or not (e.g. mono-cathode)
+
+  if (cluster.getChamberId() < 4) {
+
+    // do not consider mono-cathode clusters in stations 1 and 2
+    cluster.ex = SDefaultClusterResolution;
+    cluster.ey = SDefaultClusterResolution;
+
+  } else {
+
+    // find pads below the cluster
+    int padIDNB(-1), padIDB(-1);
+    bool padsFound = mSegmentation->findPadPairByPosition(cluster.x, cluster.y, padIDB, padIDNB);
+
+    // look for these pads (if any) in the list of digits associated to this cluster
+    auto itPadNB = mUsedDigits.end();
+    if (padsFound || mSegmentation->isValid(padIDNB)) {
+      itPadNB = std::find_if(mUsedDigits.begin() + cluster.firstDigit, mUsedDigits.end(),
+                             [padIDNB](const Digit& digit) { return digit.getPadID() == padIDNB; });
+    }
+    auto itPadB = mUsedDigits.end();
+    if (padsFound || mSegmentation->isValid(padIDB)) {
+      itPadB = std::find_if(mUsedDigits.begin() + cluster.firstDigit, mUsedDigits.end(),
+                            [padIDB](const Digit& digit) { return digit.getPadID() == padIDB; });
+    }
+
+    // set the cluster resolution accordingly
+    cluster.ex = (itPadNB == mUsedDigits.end()) ? SBadClusterResolution : SDefaultClusterResolution;
+    cluster.ey = (itPadB == mUsedDigits.end()) ? SBadClusterResolution : SDefaultClusterResolution;
   }
 }
 
