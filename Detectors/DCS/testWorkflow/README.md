@@ -51,7 +51,7 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
 
 A concrete example can be found in the `Detectors/TOF/calibration/testWorkflow` dir : `tof-calibration-dcs-sim-workflow`.
 
-#dcs-proxy
+# dcs-proxy
 
 It is the proxy to connect to the DCS machine.
 For test purposes, you can run with either hard-coded DPs (--test-mode), or reading a configuration entry from CCDB, which can be created with `testWorkflow/macros/makeCCDBEntryForDCS.C`. To validate the retrieval of data, you can attach the workflow `o2-dcs-data-client`, e.g.:
