@@ -18,6 +18,7 @@
 #pragma link C++ namespace o2::mch;
 
 #pragma link C++ class o2::mch::Digit + ;
+#pragma link C++ class o2::mch::Digit::Time + ;
 #pragma link C++ class std::vector < o2::mch::Digit > +;
 
 #endif
