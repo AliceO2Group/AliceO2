@@ -301,32 +301,21 @@ int RawWriter::carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> 
                                const char* ptr, int maxSize, int splitID,
                                std::vector<char>& trailer, std::vector<char>& header) const
 {
-  int offs = ptr - &data[0]; // offset wrt the head of the payload
-  // make sure ptr and end of the suggested block are within the payload
-  assert(offs >= 0 && size_t(offs + maxSize) <= data.size());
 
-  // Read trailer template from the end of payload
+  int bytesLeft = data.data() + data.size() - ptr;
+  int leftAfterSplit = bytesLeft - maxSize;
+
   gsl::span<const uint32_t> payloadwords(reinterpret_cast<const uint32_t*>(data.data()), data.size() / sizeof(uint32_t));
   auto rcutrailer = RCUTrailer::constructFromPayloadWords(payloadwords);
+  int trailerSize = rcutrailer.getTrailerSize() * sizeof(uint32_t);
 
-  int sizeNoTrailer = maxSize - rcutrailer.getTrailerSize() * sizeof(uint32_t);
-  // calculate payload size for RCU trailer:
-  // assume actualsize is in byte
-  // Payload size is defined as the number of 32-bit payload words
-  // -> actualSize to be converted to size of 32 bit words
-  auto payloadsize = sizeNoTrailer / sizeof(uint32_t);
-  rcutrailer.setPayloadSize(payloadsize);
-  auto trailerwords = rcutrailer.encode();
-  trailer.resize(trailerwords.size() * sizeof(uint32_t));
-  memcpy(trailer.data(), trailerwords.data(), trailer.size());
-  // Size to return differs between intermediate pages and last page
-  // - intermediate page: Size of the trailer needs to be removed as the trailer gets appended
-  // - last page: Size of the trailer needs to be included as the trailer gets replaced
-  int bytesLeft = data.size() - (ptr - &data[0]);
-  bool lastPage = bytesLeft <= maxSize;
-  int actualSize = maxSize;
-  if (!lastPage) {
-    actualSize = sizeNoTrailer;
+  int Margin = 0;
+
+  if (leftAfterSplit < trailerSize + Margin) {
+
+    // 0 will force closing current page and carrying the rest on new one
+    return std::max(0, bytesLeft - (trailerSize + Margin));
   }
-  return actualSize;
+
+  return maxSize;
 }
