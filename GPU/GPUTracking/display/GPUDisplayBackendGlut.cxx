@@ -26,13 +26,13 @@
 using namespace GPUCA_NAMESPACE::gpu;
 static GPUDisplayBackendGlut* me = nullptr;
 
-void GPUDisplayBackendGlut::displayFunc(void)
+void GPUDisplayBackendGlut::displayFunc()
 {
   me->DrawGLScene();
   glutSwapBuffers();
 }
 
-void GPUDisplayBackendGlut::glutLoopFunc(void)
+void GPUDisplayBackendGlut::glutLoopFunc()
 {
   me->HandleSendKey();
   displayFunc();
