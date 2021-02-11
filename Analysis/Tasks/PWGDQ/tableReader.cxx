@@ -543,7 +543,7 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses)
 
     if (classStr.Contains("Event")) {
       histMan->AddHistClass(classStr.Data());
-      histMan->AddHistogram(classStr.Data(), "VtxZ", "Vtx Z", false, 60, -15.0, 15.0, VarManager::kVtxZ); // TH1F histogram
+      histMan->AddHistogram(classStr.Data(), "VtxZ", "Vtx Z", false, 60, -15.0, 15.0, VarManager::kVtxZ);                                                          // TH1F histogram
       histMan->AddHistogram(classStr.Data(), "CentV0M_vtxZ", "CentV0M vs Vtx Z", false, 60, -15.0, 15.0, VarManager::kVtxZ, 20, 0., 100., VarManager::kCentVZERO); // TH2F histogram
       continue;
     } // end if(Event)
@@ -557,17 +557,17 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses)
       if (classStr.Contains("Barrel")) {
         histMan->AddHistogram(classStr.Data(), "TPCncls", "Number of cluster in TPC", false, 160, -0.5, 159.5, VarManager::kTPCncls); // TH1F histogram
         histMan->AddHistogram(classStr.Data(), "TPCncls_Run", "Number of cluster in TPC", true, kNRuns, 0.5, 0.5 + kNRuns, VarManager::kRunId,
-                              10, -0.5, 159.5, VarManager::kTPCncls, 10, 0., 1., VarManager::kNothing, runsStr.Data());               // TH1F histogram
-        histMan->AddHistogram(classStr.Data(), "ITSncls", "Number of cluster in ITS", false, 8, -0.5, 7.5, VarManager::kITSncls);     // TH1F histogram
-        histMan->AddHistogram(classStr.Data(), "ITSchi2", "ITS chi2", false, 100, 0.0, 50.0, VarManager::kITSchi2);                   // TH1F histogram
-        histMan->AddHistogram(classStr.Data(), "IsITSrefit", "", false, 2, -0.5, 1.5, VarManager::kIsITSrefit);                       // TH1F histogram
-        histMan->AddHistogram(classStr.Data(), "IsTPCrefit", "", false, 2, -0.5, 1.5, VarManager::kIsTPCrefit);                       // TH1F histogram
-        histMan->AddHistogram(classStr.Data(), "IsSPDany", "", false, 2, -0.5, 1.5, VarManager::kIsSPDany);                           // TH1F histogram
+                              10, -0.5, 159.5, VarManager::kTPCncls, 10, 0., 1., VarManager::kNothing, runsStr.Data());           // TH1F histogram
+        histMan->AddHistogram(classStr.Data(), "ITSncls", "Number of cluster in ITS", false, 8, -0.5, 7.5, VarManager::kITSncls); // TH1F histogram
+        histMan->AddHistogram(classStr.Data(), "ITSchi2", "ITS chi2", false, 100, 0.0, 50.0, VarManager::kITSchi2);               // TH1F histogram
+        histMan->AddHistogram(classStr.Data(), "IsITSrefit", "", false, 2, -0.5, 1.5, VarManager::kIsITSrefit);                   // TH1F histogram
+        histMan->AddHistogram(classStr.Data(), "IsTPCrefit", "", false, 2, -0.5, 1.5, VarManager::kIsTPCrefit);                   // TH1F histogram
+        histMan->AddHistogram(classStr.Data(), "IsSPDany", "", false, 2, -0.5, 1.5, VarManager::kIsSPDany);                       // TH1F histogram
         //for TPC PID
-        histMan->AddHistogram(classStr.Data(), "TPCdedx_pIN", "TPC dE/dx vs pIN", false, 200, 0.0, 20.0, VarManager::kPin, 200, 0.0, 200., VarManager::kTPCsignal);                    // TH2F histogram
-        histMan->AddHistogram(classStr.Data(), "TPCchi2", "TPC chi2", false, 100, 0.0, 10.0, VarManager::kTPCchi2);                                                                    // TH1F histogram
-        histMan->AddHistogram(classStr.Data(), "DCAxy", "DCAxy", false, 100, -3.0, 3.0, VarManager::kTrackDCAxy); // TH1F histogram
-        histMan->AddHistogram(classStr.Data(), "DCAz", "DCAz", false, 100, -5.0, 5.0, VarManager::kTrackDCAz);    // TH1F histogram
+        histMan->AddHistogram(classStr.Data(), "TPCdedx_pIN", "TPC dE/dx vs pIN", false, 200, 0.0, 20.0, VarManager::kPin, 200, 0.0, 200., VarManager::kTPCsignal); // TH2F histogram
+        histMan->AddHistogram(classStr.Data(), "TPCchi2", "TPC chi2", false, 100, 0.0, 10.0, VarManager::kTPCchi2);                                                 // TH1F histogram
+        histMan->AddHistogram(classStr.Data(), "DCAxy", "DCAxy", false, 100, -3.0, 3.0, VarManager::kTrackDCAxy);                                                   // TH1F histogram
+        histMan->AddHistogram(classStr.Data(), "DCAz", "DCAz", false, 100, -5.0, 5.0, VarManager::kTrackDCAz);                                                      // TH1F histogram
       }
 
       if (classStr.Contains("Muon")) {
