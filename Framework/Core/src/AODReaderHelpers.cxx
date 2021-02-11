@@ -208,12 +208,28 @@ AlgorithmSpec AODReaderHelpers::pidBuilderCallback(std::vector<InputSpec> reques
           auto cursor = framework::FFL(builder.cursor<typename metadata_t::table_t>());
           auto table = extractOriginalsTuple(sources{}, pc);
           // Here I fill the cursor as a table
-          cursor(0, 1.);
+          cursor(0, 1., 2.);
           return builder.finalize();
         };
         // Dispatch
-        if (description == header::DataDescription{"pidRespTOFEl"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::pidRespTestMetadata{}));
+        if (description == header::DataDescription{"AutoPIDTPCEl"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::AutoPIDTPCElMetadata{}));
+        } else if (description == header::DataDescription{"AutoPIDTPCMu"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::AutoPIDTPCMuMetadata{}));
+        } else if (description == header::DataDescription{"AutoPIDTPCPi"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::AutoPIDTPCPiMetadata{}));
+        } else if (description == header::DataDescription{"AutoPIDTPCKa"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::AutoPIDTPCKaMetadata{}));
+        } else if (description == header::DataDescription{"AutoPIDTPCPr"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::AutoPIDTPCPrMetadata{}));
+        } else if (description == header::DataDescription{"AutoPIDTPCDe"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::AutoPIDTPCDeMetadata{}));
+        } else if (description == header::DataDescription{"AutoPIDTPCTr"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::AutoPIDTPCTrMetadata{}));
+        } else if (description == header::DataDescription{"AutoPIDTPCHe"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::AutoPIDTPCHeMetadata{}));
+        } else if (description == header::DataDescription{"AutoPIDTPCAl"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::AutoPIDTPCAlMetadata{}));
         } else {
           throw std::runtime_error("Not a PID table");
         }
