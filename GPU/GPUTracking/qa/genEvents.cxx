@@ -13,7 +13,7 @@
 
 #include <iostream>
 #include <fstream>
-#include <string.h>
+#include <cstring>
 #include <sys/stat.h>
 
 #include "Rtypes.h"
