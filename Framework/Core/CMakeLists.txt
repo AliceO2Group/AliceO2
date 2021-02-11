@@ -266,6 +266,7 @@ foreach(w
         Forwarding
         ParallelPipeline
         ParallelProducer
+        SlowConsumer 
         SimpleDataProcessingDevice01
         SimpleRDataFrameProcessing
         SimpleStatefulProcessing01
