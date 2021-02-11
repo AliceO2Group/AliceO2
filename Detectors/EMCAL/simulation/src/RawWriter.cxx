@@ -112,8 +112,9 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
 
   // Create and fill DMA pages for each channel
   std::cout << "encode data" << std::endl;
-  std::vector<char> payload;
   for (auto srucont : mSRUdata) {
+
+    std::vector<char> payload; // this must be initialized per SRU, becuase pages are per SRU, therefore the payload was not reset.
 
     for (const auto& [tower, channel] : srucont.mChannels) {
       // Find out hardware address of the channel
