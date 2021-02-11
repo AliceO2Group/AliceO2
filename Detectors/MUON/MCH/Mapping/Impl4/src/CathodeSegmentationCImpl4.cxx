@@ -107,7 +107,7 @@ O2MCHMAPPINGIMPL4_EXPORT void
 O2MCHMAPPINGIMPL4_EXPORT int mchCathodeSegmentationIsPadValid(
   MchCathodeSegmentationHandle segHandle, int catPadIndex)
 {
-  return catPadIndex != segHandle->impl->InvalidCatPadIndex;
+  return segHandle->impl->isValid(catPadIndex);
 }
 
 O2MCHMAPPINGIMPL4_EXPORT void mchCathodeSegmentationForEachPadInDualSampa(

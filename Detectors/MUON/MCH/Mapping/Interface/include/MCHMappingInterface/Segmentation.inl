@@ -65,10 +65,7 @@ inline int Segmentation::findPadByFEE(int dualSampaId, int dualSampaChannel) con
 
 inline bool Segmentation::isValid(int dePadIndex) const
 {
-  if (dePadIndex < mPadIndexOffset) {
-    return mBending.isValid(dePadIndex);
-  }
-  return mNonBending.isValid(dePadIndex - mPadIndexOffset);
+  return dePadIndex >= 0 && dePadIndex < nofPads();
 }
 
 inline int Segmentation::padC2DE(int catPadIndex, bool isBending) const
@@ -99,7 +96,9 @@ inline bool Segmentation::findPadPairByPosition(double x, double y, int& b, int&
   b = mBending.findPadByPosition(x, y);
   nb = mNonBending.findPadByPosition(x, y);
   if (!mBending.isValid(b)) {
-    nb = padC2DE(nb, false);
+    if (mNonBending.isValid(nb)) {
+      nb = padC2DE(nb, false);
+    }
     return false;
   }
   if (!mNonBending.isValid(nb)) {

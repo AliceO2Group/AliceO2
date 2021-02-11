@@ -172,6 +172,11 @@ std::vector<int> CathodeSegmentation::getNeighbouringCatPadIndexs(
   return pads;
 }
 
+bool CathodeSegmentation::isValid(int catPadIndex) const
+{
+  return catPadIndex >= 0 && catPadIndex < static_cast<int>(mCatPadIndex2PadGroupIndex.size());
+}
+
 double CathodeSegmentation::squaredDistance(int catPadIndex, double x,
                                             double y) const
 {
