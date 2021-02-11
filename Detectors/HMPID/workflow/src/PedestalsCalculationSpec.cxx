@@ -142,7 +142,6 @@ void PedestalsCalculationTask::endOfStream(framework::EndOfStreamContext& ec)
 
   mExTimer.stop();
   return;
-
 }
 
 
@@ -153,7 +152,6 @@ void PedestalsCalculationTask::recordPedInCcdb()
   LOG(INFO) << "Store Pedestals in ccdb " ;
 
   float xb,yb, ch;
-  float Ped,Thr;
   double Samples,SumOfCharge,SumOfSquares,Average,Variance;
 
   TTree *theObj;
@@ -164,8 +162,8 @@ void PedestalsCalculationTask::recordPedInCcdb()
     theObj->Branch("chamber", &ch,"s");
     theObj->Branch("x", &xb,"s");
     theObj->Branch("y", &yb,"s");
-    theObj->Branch("Pedestal", &Ped,"i");
-    theObj->Branch("Threshold", &Thr,"i");
+    theObj->Branch("Average", &Average,"f");
+    theObj->Branch("Sigma", &Variance,"f");
   }
 
   for(int m=0; m < o2::hmpid::Geo::N_MODULES; m++)
@@ -182,8 +180,6 @@ void PedestalsCalculationTask::recordPedInCcdb()
           Variance = sqrt( abs( (Samples * SumOfSquares) - (SumOfCharge * SumOfCharge) ) ) / Samples;
         else
           Variance = 0;
-        Ped = (uint32_t) Average;
-        Thr = (uint32_t) (Variance * mSigmaCut + Average);
         theObj->Fill();
       }
 
@@ -196,7 +192,6 @@ void PedestalsCalculationTask::recordPedInCcdb()
   TString filename = TString::Format("HMP/Pedestals/%s", mPedestalTag.c_str());
   mDbMetadata.emplace("Tag", mPedestalTag.c_str() );
   mDBapi.storeAsTFileAny(theObj, filename.Data(), mDbMetadata, minTimeStamp, maxTimeStamp);
-
 
   return;
 }
@@ -290,7 +285,7 @@ o2::framework::DataProcessorSpec getPedestalsCalculationSpec(std::string inputSp
             {"use-ccdb", VariantType::Bool, false, {"Register the Pedestals/Threshold values into the CCDB"}},
             {"ccdb-uri", VariantType::String, "http://ccdb-test.cern.ch:8080", {"URI for the CCDB access."}},
 	    {"pedestals-tag", VariantType::String, "Latest", {"The tag applied to this set of pedestals/threshold values"}},
-            {"sigmacut", VariantType::Float, 3.0f, {"Sigma values for the Thresholds calculation."}} }};
+            {"sigmacut", VariantType::Float, 4.0f, {"Sigma values for the Thresholds calculation."}} }};
 }
 
 } // namespace hmpid
