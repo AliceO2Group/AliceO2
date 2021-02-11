@@ -21,7 +21,7 @@
 
 using DPID = o2::dcs::DataPointIdentifier;
 
-int makeCCDBEntryForDCS(const std::string url = "http://localhost:8080")
+int makeTOFCCDBEntryForDCS(const std::string url = "http://localhost:8080")
 {
 
   //  std::string url(argv[0]);
