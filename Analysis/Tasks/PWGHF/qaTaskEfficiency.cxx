@@ -63,6 +63,25 @@ struct QATrackingEfficiencyPt {
   o2fw::OutputObj<TList> list{"Efficiency"};
   o2fw::HistogramRegistry histos{"Histos", {}, o2fw::OutputObjHandlingPolicy::AnalysisObject};
 
+  template <typename T>
+  void makelogaxis(T h)
+  {
+    const int nbins = h->GetNbinsX();
+    double binp[nbins + 1];
+    double max = h->GetXaxis()->GetBinUpEdge(nbins);
+    double min = h->GetXaxis()->GetBinLowEdge(1);
+    if (min <= 0) {
+      min = 0.00001;
+    }
+    double lmin = TMath::Log10(min);
+    double ldelta = (TMath::Log10(max) - lmin) / ((double)nbins);
+    for (int i = 0; i < nbins; i++) {
+      binp[i] = TMath::Exp(TMath::Log(10) * (lmin + i * ldelta));
+    }
+    binp[nbins] = max + 1;
+    h->GetXaxis()->Set(nbins, binp);
+  }
+
   void init(o2fw::InitContext&)
   {
     const TString tag = Form("%s Eta [%.2f,%.2f] Phi [%.2f,%.2f] Prim %i",
@@ -71,17 +90,21 @@ struct QATrackingEfficiencyPt {
                              phiMin.value, phiMax.value,
                              selPrim.value);
     const TString xaxis = "#it{p}_{T} GeV/#it{c}";
+    o2fw::AxisSpec axis_pt{ptBins.value, ptMin.value, ptMax.value};
 
     histos.add("num", "Numerator " + tag + ";" + xaxis,
-               o2fw::kTH1D, {{ptBins.value, ptMin.value, ptMax.value}});
+               o2fw::kTH1D, {axis_pt});
+    makelogaxis(histos.get<TH1>(HIST("num")));
 
     histos.add("den", "Denominator " + tag + ";" + xaxis,
-               o2fw::kTH1D, {{ptBins.value, ptMin.value, ptMax.value}});
+               o2fw::kTH1D, {axis_pt});
+    makelogaxis(histos.get<TH1>(HIST("den")));
 
     list.setObject(new TList);
     if (makeEff.value) {
       list->Add(new TEfficiency("efficiency", "Efficiency " + tag + ";" + xaxis + ";Efficiency",
-                                ptBins.value, ptMin.value, ptMax.value));
+                                histos.get<TH1>(HIST("num"))->GetNbinsX() - 1,
+                                histos.get<TH1>(HIST("num"))->GetXaxis()->GetXbins()->GetArray()));
     }
   }
 
