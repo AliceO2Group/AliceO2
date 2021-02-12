@@ -1574,26 +1574,26 @@ constexpr auto is_binding_compatible_v()
   DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, "AOD", _Description_, true, __VA_ARGS__)
 
 // Table for the PID
-#define DECLARE_SOA_PID_TABLE_FULL(_Name_, _Origin_, _Description_, ...)               \
-  using _Name_ = o2::soa::Table<__VA_ARGS__>;                                          \
-                                                                                       \
-  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {                 \
-    using table_t = _Name_;                                                            \
-    using sources_t = framework::pack<aod::Collisions, aod::Tracks, aod::TracksExtra>; \
-    using is_pid_t = std::true_type;                                                   \
-    static constexpr char const* mLabel = #_Name_;                                      \
-    static constexpr char const mOrigin[4] = _Origin_;                                 \
-    static constexpr char const mDescription[16] = _Description_;                      \
-  };                                                                                   \
-                                                                                       \
-  template <>                                                                          \
-  struct MetadataTrait<_Name_> {                                                       \
-    using metadata = _Name_##Metadata;                                                 \
-  };                                                                                   \
-                                                                                       \
-  template <>                                                                          \
-  struct MetadataTrait<_Name_::unfiltered_iterator> {                                  \
-    using metadata = _Name_##Metadata;                                                 \
+#define DECLARE_SOA_PID_TABLE_FULL(_Name_, _Origin_, _Description_, ...)                         \
+  using _Name_ = o2::soa::Table<__VA_ARGS__>;                                                    \
+                                                                                                 \
+  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {                           \
+    using table_t = _Name_;                                                                      \
+    using sources_t = framework::pack<aod::Collisions, aod::StoredTracks, aod::TracksExtension>; \
+    using is_pid_t = std::true_type;                                                             \
+    static constexpr char const* mLabel = #_Name_;                                               \
+    static constexpr char const mOrigin[4] = _Origin_;                                           \
+    static constexpr char const mDescription[16] = _Description_;                                \
+  };                                                                                             \
+                                                                                                 \
+  template <>                                                                                    \
+  struct MetadataTrait<_Name_> {                                                                 \
+    using metadata = _Name_##Metadata;                                                           \
+  };                                                                                             \
+                                                                                                 \
+  template <>                                                                                    \
+  struct MetadataTrait<_Name_::unfiltered_iterator> {                                            \
+    using metadata = _Name_##Metadata;                                                           \
   };
 
 #define DECLARE_SOA_PID_TABLE(_Name_, _Description_, ...) \

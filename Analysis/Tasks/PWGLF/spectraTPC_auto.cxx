@@ -24,7 +24,7 @@ using namespace o2::track::pid_constants;
 using namespace o2::track;
 
 struct TPCSpectraTaskAuto {
-  static constexpr ID id = PID::kPion;
+  static constexpr ID id = PID::Pion;
   static constexpr int Np = 9;
   static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
   HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::AnalysisObject};
@@ -52,6 +52,7 @@ struct TPCSpectraTaskAuto {
     histos.fill(HIST("p/Unselected"), track.p());
     histos.fill(HIST("pt/Unselected"), track.pt());
 
+    const float nsigma = -999.f;
     // const float nsigma = track.AutoTPCNSigmaPi();
     // if constexpr (id == PID::kElectron) {
     //   sigma = track.tpcNSigmaEl();
