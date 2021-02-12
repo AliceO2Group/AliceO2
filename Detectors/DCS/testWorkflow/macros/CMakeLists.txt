@@ -11,3 +11,7 @@
 o2_add_test_root_macro(
   makeCCDBEntryForDCS.C
   PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB)
+
+install(FILES makeCCDBEntryForDCS.C
+              DESTINATION share/macro/)
+              
