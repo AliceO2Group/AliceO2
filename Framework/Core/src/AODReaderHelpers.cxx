@@ -27,6 +27,7 @@
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/ChannelInfo.h"
 #include "Framework/Logger.h"
+#include "Framework/DetectorResponse.h"
 
 #include <Monitoring/Monitoring.h>
 
@@ -201,35 +202,71 @@ AlgorithmSpec AODReaderHelpers::pidBuilderCallback(std::vector<InputSpec> reques
             [](auto&&) { return header::DataOrigin{""}; }},
           input.matcher);
 
-        auto maker = [&](auto metadata) {
+        auto maker = [&](const o2::track::pid_constants::ID id, auto metadata) {
           using metadata_t = decltype(metadata);
           using sources = typename metadata_t::sources_t;
+          using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
+          using Coll = aod::Collisions;
+
           TableBuilder builder;
+          // The cursor will be filled as a table
           auto cursor = framework::FFL(builder.cursor<typename metadata_t::table_t>());
-          auto table = extractOriginalsTuple(sources{}, pc);
-          // Here I fill the cursor as a table
-          cursor(0, 1., 2.);
+          // These are the input tables
+          auto tables = extractOriginalsTuple(sources{}, pc);
+          // Getting the sub-tables
+          auto collisions = std::get<Coll>(tables);
+          auto tracks = std::get<aod::Tracks>(tables);
+          // auto tracksstored = std::get<aod::StoredTracks>(tables);
+          // auto tracksextension = std::get<aod::TracksExtension>(tables);
+          auto tracksextra = std::get<aod::TracksExtra>(tables);
+          auto full_trks = join(tracks, tracksextra);
+
+          // Setting up the response
+          o2::pid::DetectorResponse response;
+          response.LoadParamFromFile("/tmp/TPCParam.root", "BetheBloch", response.kSignal);
+          response.LoadParamFromFile("/tmp/TPCParam.root", "TPCReso", response.kSigma);
+          // const std::string path = "Analysis/PID/TPC";
+          // response.LoadParam(response.kSignal, ccdb->getForTimeStamp<Parametrization>(path + "/" + signalname.value, timestamp.value));
+          // response.LoadParam(response.kSigma, ccdb->getForTimeStamp<Parametrization>(path + "/" + sigmaname.value, timestamp.value));
+          // Service<o2::ccdb::BasicCCDBManager> ccdb;
+          // Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
+          // Configurable<std::string> signalname{"param-signal", "BetheBloch", "Name of the parametrization for the expected signal, used in both file and CCDB mode"};
+          // Configurable<std::string> sigmaname{"param-sigma", "TPCReso", "Name of the parametrization for the expected sigma, used in both file and CCDB mode"};
+          // Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
+          // Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
+
+          for (auto& col : collisions) {
+          }
+
+          for (auto& trk : full_trks) {
+            const float xsignal[2] = {trk.tpcInnerParam() / o2::track::PID::getMass(id), (float)o2::track::PID::getCharge(id)};
+            const float exp_signal = response(response.kSignal, xsignal);
+            const float xsigma[2] = {trk.tpcSignal(), (float)trk.tpcNClsFound()};
+            cursor(0, exp_signal,
+                   (trk.tpcSignal() - exp_signal) / response(response.kSigma, xsigma));
+          }
+
           return builder.finalize();
         };
         // Dispatch
         if (description == header::DataDescription{"AutoPIDTPCEl"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::AutoPIDTPCElMetadata{}));
+          outputs.adopt(Output{origin, description}, maker(o2::track::PID::Electron, o2::aod::AutoPIDTPCElMetadata{}));
         } else if (description == header::DataDescription{"AutoPIDTPCMu"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::AutoPIDTPCMuMetadata{}));
+          outputs.adopt(Output{origin, description}, maker(o2::track::PID::Muon, o2::aod::AutoPIDTPCMuMetadata{}));
         } else if (description == header::DataDescription{"AutoPIDTPCPi"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::AutoPIDTPCPiMetadata{}));
+          outputs.adopt(Output{origin, description}, maker(o2::track::PID::Pion, o2::aod::AutoPIDTPCPiMetadata{}));
         } else if (description == header::DataDescription{"AutoPIDTPCKa"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::AutoPIDTPCKaMetadata{}));
+          outputs.adopt(Output{origin, description}, maker(o2::track::PID::Kaon, o2::aod::AutoPIDTPCKaMetadata{}));
         } else if (description == header::DataDescription{"AutoPIDTPCPr"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::AutoPIDTPCPrMetadata{}));
+          outputs.adopt(Output{origin, description}, maker(o2::track::PID::Proton, o2::aod::AutoPIDTPCPrMetadata{}));
         } else if (description == header::DataDescription{"AutoPIDTPCDe"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::AutoPIDTPCDeMetadata{}));
+          outputs.adopt(Output{origin, description}, maker(o2::track::PID::Deuteron, o2::aod::AutoPIDTPCDeMetadata{}));
         } else if (description == header::DataDescription{"AutoPIDTPCTr"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::AutoPIDTPCTrMetadata{}));
+          outputs.adopt(Output{origin, description}, maker(o2::track::PID::Triton, o2::aod::AutoPIDTPCTrMetadata{}));
         } else if (description == header::DataDescription{"AutoPIDTPCHe"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::AutoPIDTPCHeMetadata{}));
+          outputs.adopt(Output{origin, description}, maker(o2::track::PID::Helium3, o2::aod::AutoPIDTPCHeMetadata{}));
         } else if (description == header::DataDescription{"AutoPIDTPCAl"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::AutoPIDTPCAlMetadata{}));
+          outputs.adopt(Output{origin, description}, maker(o2::track::PID::Alpha, o2::aod::AutoPIDTPCAlMetadata{}));
         } else {
           throw std::runtime_error("Not a PID table");
         }
