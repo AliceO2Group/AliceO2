@@ -24,7 +24,6 @@ void RawWriter::init()
 {
   mRawWriter = std::make_unique<o2::raw::RawFileWriter>(o2::header::gDataOriginEMC, false);
   mRawWriter->setCarryOverCallBack(this);
-  mRawWriter->setApplyCarryOverToLastPage(true);
   for (auto iddl = 0; iddl < 40; iddl++) {
     // For EMCAL set
     // - FEE ID = DDL ID
@@ -301,20 +300,12 @@ int RawWriter::carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> 
                                const char* ptr, int maxSize, int splitID,
                                std::vector<char>& trailer, std::vector<char>& header) const
 {
-
+  constexpr int TrailerSize = 9 * sizeof(uint32_t);
   int bytesLeft = data.data() + data.size() - ptr;
   int leftAfterSplit = bytesLeft - maxSize;
 
-  gsl::span<const uint32_t> payloadwords(reinterpret_cast<const uint32_t*>(data.data()), data.size() / sizeof(uint32_t));
-  auto rcutrailer = RCUTrailer::constructFromPayloadWords(payloadwords);
-  int trailerSize = rcutrailer.getTrailerSize() * sizeof(uint32_t);
-
-  int Margin = 0;
-
-  if (leftAfterSplit < trailerSize + Margin) {
-
-    // 0 will force closing current page and carrying the rest on new one
-    return std::max(0, bytesLeft - (trailerSize + Margin));
+  if (leftAfterSplit < TrailerSize) {
+    return std::max(0, bytesLeft - TrailerSize);
   }
 
   return maxSize;
