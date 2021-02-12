@@ -1,4 +1,9 @@
 #!/bin/bash
+
+echo FULL SYSTEM TEST DEBUG
+df -h
+ls -al /opt
+
 #
 # A workflow performing a full system test:
 # - simulation of digits
