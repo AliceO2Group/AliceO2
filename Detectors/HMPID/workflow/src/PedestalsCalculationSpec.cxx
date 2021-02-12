@@ -26,6 +26,8 @@
 
 #include "TTree.h"
 #include "TFile.h"
+#include "TMath.h"
+#include "TMatrixF.h"
 
 #include <gsl/span>
 
@@ -106,6 +108,7 @@ void PedestalsCalculationTask::endOfStream(framework::EndOfStreamContext& ec)
   char padsFileName[1024];
 
   for(int e=0; e<Geo::MAXEQUIPMENTS; e++) {
+    if(mDeco->getAverageEventSize(e) == 0) continue;
     sprintf(padsFileName, "%s_%d.dat", mPedestalsBasePath.c_str(), e );
     FILE *fpads = fopen( padsFileName, "w" );
     // TODO: Add controls on the file open
@@ -116,11 +119,13 @@ void PedestalsCalculationTask::endOfStream(framework::EndOfStreamContext& ec)
           SumOfCharge = mDeco->getChannelSum(e, c, d, h);
           SumOfSquares = mDeco->getChannelSquare(e, c, d, h);
 
-          Average = SumOfCharge / Samples;
-          if(Samples > 0)
+          if(Samples > 0) {
+            Average = SumOfCharge / Samples;
             Variance = sqrt( abs( (Samples * SumOfSquares) - (SumOfCharge * SumOfCharge) ) ) / Samples;
-          else
+          } else {
+            Average = 0;
             Variance = 0;
+          }
           Pedestal = (uint32_t) Average;
           Threshold = (uint32_t) (Variance * mSigmaCut + Average);
           Buffer = ((Threshold & 0x001FF) << 9) | (Pedestal & 0x001FF);
@@ -154,45 +159,54 @@ void PedestalsCalculationTask::recordPedInCcdb()
   float xb,yb, ch;
   double Samples,SumOfCharge,SumOfSquares,Average,Variance;
 
-  TTree *theObj;
-  TString tit = TString::Format("Pedestals / Thresholds ");
-  theObj = new TTree("o2hmp", tit);
 
-  for(int i=0; i<Geo::N_MODULES; i++) { // Create the TTree array
-    theObj->Branch("chamber", &ch,"s");
-    theObj->Branch("x", &xb,"s");
-    theObj->Branch("y", &yb,"s");
-    theObj->Branch("Average", &Average,"f");
-    theObj->Branch("Sigma", &Variance,"f");
+  TObjArray aSigmas(Geo::N_MODULES);
+  TObjArray aPedestals(Geo::N_MODULES);
+
+  for(int i=0; i<Geo::N_MODULES; i++) {
+    aSigmas.AddAt(new TMatrixF(160,144),i);
+    aPedestals.AddAt(new TMatrixF(160,144),i);
   }
 
-  for(int m=0; m < o2::hmpid::Geo::N_MODULES; m++)
+  for(int m=0; m < o2::hmpid::Geo::N_MODULES; m++) {
+    if(mDeco->getAverageEventSize(m*2) == 0 && mDeco->getAverageEventSize(m*2+1) == 0) continue; // If no events skip the chamber
+    TMatrixF *pS=(TMatrixF*)aSigmas.At(m);
+    TMatrixF *pP=(TMatrixF*)aPedestals.At(m);
+
     for(int x=0; x < o2::hmpid::Geo::N_XROWS; x++ )
       for(int y=0; y < o2::hmpid::Geo::N_YCOLS; y++) {
-        xb = x;
-        yb = y;
-        ch = m;
+
         Samples = (double)mDeco->getPadSamples(m, x, y);
         SumOfCharge = mDeco->getPadSum(m, x, y);
         SumOfSquares = mDeco->getPadSquares(m, x, y);
-        Average = SumOfCharge / Samples;
-        if(Samples > 0)
-          Variance = sqrt( abs( (Samples * SumOfSquares) - (SumOfCharge * SumOfCharge) ) ) / Samples;
-        else
-          Variance = 0;
-        theObj->Fill();
+        if(Samples > 0) {
+          (*pP)(x,y) = SumOfCharge / Samples;
+          (*pS)(x,y) = sqrt( abs( (Samples * SumOfSquares) - (SumOfCharge * SumOfCharge) ) ) / Samples;
+        } else {
+          (*pP)(x,y) = 0;
+          (*pS)(x,y) = 0;
+        }
       }
-
+  }
   struct timeval tp;
   gettimeofday(&tp, NULL);
   uint64_t ms = tp.tv_sec * 1000 + tp.tv_usec / 1000;
 
   uint64_t minTimeStamp = ms;
   uint64_t maxTimeStamp = ms+1;
-  TString filename = TString::Format("HMP/Pedestals/%s", mPedestalTag.c_str());
-  mDbMetadata.emplace("Tag", mPedestalTag.c_str() );
-  mDBapi.storeAsTFileAny(theObj, filename.Data(), mDbMetadata, minTimeStamp, maxTimeStamp);
 
+  for(int i=0; i<Geo::N_MODULES; i++) {
+    if(mDeco->getAverageEventSize(i*2) == 0 && mDeco->getAverageEventSize(i*2+1) == 0) continue; // If no events skip the chamber
+    TString filename = TString::Format("HMP/Pedestals/%s/Mean_%d", mPedestalTag.c_str(),i);
+    mDbMetadata.emplace("Tag", mPedestalTag.c_str() );
+    mDBapi.storeAsTFileAny(aPedestals.At(i), filename.Data(), mDbMetadata, minTimeStamp, maxTimeStamp);
+  }
+  for(int i=0; i<Geo::N_MODULES; i++) {
+    if(mDeco->getAverageEventSize(i*2) == 0 && mDeco->getAverageEventSize(i*2+1) == 0) continue; // If no events skip the chamber
+    TString filename = TString::Format("HMP/Pedestals/%s/Sigma_%d", mPedestalTag.c_str(),i);
+    mDbMetadata.emplace("Tag", mPedestalTag.c_str() );
+    mDBapi.storeAsTFileAny(aSigmas.At(i), filename.Data(), mDbMetadata, minTimeStamp, maxTimeStamp);
+  }
   return;
 }
 
