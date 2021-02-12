@@ -41,19 +41,6 @@ o2_add_executable(ccdb-populator-workflow
 	                                O2::DetectorsCalibration
 					O2::DataFormatsTOF
 					O2::CCDB)
-
-install(FILES testMacros/populateCCDB.C
-        DESTINATION share/macro/)
-		
-o2_add_test_root_macro(testMacros/populateCCDB.C
-                       PUBLIC_LINK_LIBRARIES O2::CCDB
-                                             O2::Framework)
-
-o2_add_executable(populate-ccdb
-                  COMPONENT_NAME calibration
-                  SOURCES testMacros/populateCCDB.cxx
-		  PUBLIC_LINK_LIBRARIES ROOT::MathCore
-		  O2::Framework
-		  O2::CCDB)
 		
 add_subdirectory(workflow)
+add_subdirectory(testMacros)

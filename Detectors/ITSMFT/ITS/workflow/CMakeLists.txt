@@ -39,3 +39,8 @@ o2_add_executable(cluster-writer-workflow
                   COMPONENT_NAME its
                   PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
 
+o2_add_executable(cluster-reader-workflow
+                  SOURCES src/its-cluster-reader-workflow.cxx
+                  COMPONENT_NAME its
+                  PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
+

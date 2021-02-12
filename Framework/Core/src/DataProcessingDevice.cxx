@@ -32,7 +32,6 @@
 #include "Framework/Signpost.h"
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/Logger.h"
-#include "Framework/Monitoring.h"
 #include "Framework/DriverClient.h"
 #include "PropertyTreeHelpers.h"
 #include "DataProcessingStatus.h"
@@ -61,15 +60,8 @@
 #include <boost/property_tree/json_parser.hpp>
 
 using namespace o2::framework;
-using Key = o2::monitoring::tags::Key;
-using Value = o2::monitoring::tags::Value;
-using Metric = o2::monitoring::Metric;
-using Monitoring = o2::monitoring::Monitoring;
 using ConfigurationInterface = o2::configuration::ConfigurationInterface;
 using DataHeader = o2::header::DataHeader;
-
-constexpr unsigned int MONITORING_QUEUE_SIZE = 100;
-constexpr unsigned int MIN_RATE_LOGGING = 60;
 
 namespace o2::framework
 {
@@ -105,7 +97,7 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
       auto& err = error_from_ref(e);
       LOGP(ERROR, "Exception caught: {} ", err.what);
       backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
-      serviceRegistry.get<Monitoring>().send({1, "error"});
+      serviceRegistry.get<DataProcessingStats>().exceptionCount++;
       ErrorContext errorContext{record, serviceRegistry, e};
       errorCallback(errorContext);
     };
@@ -116,7 +108,7 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
       auto& err = error_from_ref(e);
       LOGP(ERROR, "Exception caught: {} ", err.what);
       backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
-      serviceRegistry.get<Monitoring>().send({1, "error"});
+      serviceRegistry.get<DataProcessingStats>().exceptionCount++;
       switch (errorPolicy) {
         case TerminationPolicy::QUIT:
           throw e;
@@ -190,15 +182,6 @@ void DataProcessingDevice::Init()
   TracyAppInfo(mSpec.name.data(), mSpec.name.size());
   ZoneScopedN("DataProcessingDevice::Init");
   mRelayer = &mServiceRegistry.get<DataRelayer>();
-  // For some reason passing rateLogging does not work anymore.
-  // This makes sure we never have more than one notification per minute.
-  for (auto& x : fChannels) {
-    for (auto& c : x.second) {
-      if (c.GetRateLogging() < MIN_RATE_LOGGING) {
-        c.UpdateRateLogging(MIN_RATE_LOGGING);
-      }
-    }
-  }
   // If available use the ConfigurationInterface, otherwise go for
   // the command line options.
   bool hasConfiguration = false;
@@ -262,12 +245,6 @@ void DataProcessingDevice::Init()
       route.configurator->expirationConfigurator(mState, *mConfigRegistry)};
     mExpirationHandlers.emplace_back(std::move(handler));
   }
-
-  auto& monitoring = mServiceRegistry.get<Monitoring>();
-  monitoring.enableBuffering(MONITORING_QUEUE_SIZE);
-  static const std::string dataProcessorIdMetric = "dataprocessor_id";
-  static const std::string dataProcessorIdValue = mSpec.name;
-  monitoring.addGlobalTag("dataprocessor_id", dataProcessorIdValue);
 
   if (mInit) {
     InitContext initContext{*mConfigRegistry, mServiceRegistry};

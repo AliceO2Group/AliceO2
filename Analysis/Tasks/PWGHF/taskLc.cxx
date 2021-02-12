@@ -55,7 +55,7 @@ struct TaskLc {
      {"hdca2", "3-prong candidates;prong DCA to sec. vertex (cm);entries", {HistType::kTH1F, {{100, 0., 1.}}}}}};
 
   Configurable<int> d_selectionFlagLc{"d_selectionFlagLc", 1, "Selection Flag for Lc"};
-  Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
+  Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_lc::isSelLcpKpi >= d_selectionFlagLc || aod::hf_selcandidate_lc::isSelLcpiKp >= d_selectionFlagLc);
 
@@ -66,8 +66,8 @@ struct TaskLc {
       if (!(candidate.hfflag() & 1 << LcToPKPi)) {
         continue;
       }
-      if (cutEtaCandMax >= 0. && std::abs(candidate.eta()) > cutEtaCandMax) {
-        //Printf("Candidate: eta rejection: %g", candidate.eta());
+      if (cutYCandMax >= 0. && std::abs(YLc(candidate)) > cutYCandMax) {
+        //Printf("Candidate: Y rejection: %g", YLc(candidate));
         continue;
       }
       if (candidate.isSelLcpKpi() >= d_selectionFlagLc) {
@@ -105,6 +105,7 @@ struct TaskLcMC {
     {{"hPtRecSig", "3-prong candidates (rec. matched);#it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hPtRecBg", "3-prong candidates (rec. unmatched);#it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hPtGen", "3-prong candidates (gen. matched);#it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
+     {"hPtGenSig", "3-prong candidates (rec. matched);#it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hCPARecSig", "3-prong candidates (rec. matched);cosine of pointing angle;entries", {HistType::kTH1F, {{110, -1.1, 1.1}}}},
      {"hCPARecBg", "3-prong candidates (rec. unmatched);cosine of pointing angle;entries", {HistType::kTH1F, {{110, -1.1, 1.1}}}},
      {"hEtaRecSig", "3-prong candidates (rec. matched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}},
@@ -113,25 +114,31 @@ struct TaskLcMC {
 
   Configurable<int> d_selectionFlagLc{"d_selectionFlagLc", 1, "Selection Flag for Lc"};
   Configurable<int> d_selectionFlagLcbar{"d_selectionFlagLcbar", 1, "Selection Flag for Lcbar"};
-  Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
+  Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_lc::isSelLcpKpi >= d_selectionFlagLc || aod::hf_selcandidate_lc::isSelLcpiKp >= d_selectionFlagLc);
 
   void process(soa::Filtered<soa::Join<aod::HfCandProng3, aod::HFSelLcCandidate, aod::HfCandProng3MCRec>> const& candidates,
-               soa::Join<aod::McParticles, aod::HfCandProng3MCGen> const& particlesMC)
+               soa::Join<aod::McParticles, aod::HfCandProng3MCGen> const& particlesMC, aod::BigTracksMC const& tracks)
   {
     // MC rec.
     //Printf("MC Candidates: %d", candidates.size());
+
     for (auto& candidate : candidates) {
       if (!(candidate.hfflag() & 1 << LcToPKPi)) {
         continue;
       }
-      if (cutEtaCandMax >= 0. && std::abs(candidate.eta()) > cutEtaCandMax) {
-        //Printf("MC Rec.: eta rejection: %g", candidate.eta());
+      if (cutYCandMax >= 0. && std::abs(YLc(candidate)) > cutYCandMax) {
+        //Printf("MC Rec.: Y rejection: %g", YLc(candidate));
         continue;
       }
+
       if (std::abs(candidate.flagMCMatchRec()) == 1 << LcToPKPi) {
-        registry.fill(HIST("hPtRecSig"), candidate.pt());
+        // Get the corresponding MC particle.
+        auto indexMother = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().label_as<soa::Join<aod::McParticles, aod::HfCandProng3MCGen>>(), 4122, true);
+        auto particleMother = particlesMC.iteratorAt(indexMother);
+        registry.fill(HIST("hPtGenSig"), particleMother.pt()); //gen. level pT
+        registry.fill(HIST("hPtRecSig"), candidate.pt());      //rec. level pT
         registry.fill(HIST("hCPARecSig"), candidate.cpa());
         registry.fill(HIST("hEtaRecSig"), candidate.eta());
       } else {
@@ -143,11 +150,11 @@ struct TaskLcMC {
     // MC gen.
     //Printf("MC Particles: %d", particlesMC.size());
     for (auto& particle : particlesMC) {
-      if (cutEtaCandMax >= 0. && std::abs(particle.eta()) > cutEtaCandMax) {
-        //Printf("MC Gen.: eta rejection: %g", particle.eta());
-        continue;
-      }
       if (std::abs(particle.flagMCMatchGen()) == 1 << LcToPKPi) {
+        if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(particle.pdgCode()))) > cutYCandMax) {
+          //Printf("MC Gen.: Y rejection: %g", RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(particle.pdgCode())));
+          continue;
+        }
         registry.fill(HIST("hPtGen"), particle.pt());
         registry.fill(HIST("hEtaGen"), particle.eta());
       }

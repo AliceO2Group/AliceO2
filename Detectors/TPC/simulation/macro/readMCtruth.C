@@ -18,9 +18,11 @@
 #include "TFile.h"
 #include "TTree.h"
 #include "DataFormatsTPC/Digit.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
+#include "SimulationDataFormat/IOMCTruthContainerView.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include <iostream>
+#include "Framework/Logger.h"
 #endif
 
 void readMCtruth(std::string filename)
@@ -28,25 +30,58 @@ void readMCtruth(std::string filename)
   TFile* digitFile = TFile::Open(filename.data());
   TTree* digitTree = (TTree*)digitFile->Get("o2sim");
 
-  std::vector<o2::tpc::Digit>* digits = nullptr;
-  digitTree->SetBranchAddress("TPCDigit", &digits);
-
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthArray;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mcTruthArray(&mMCTruthArray);
-  digitTree->SetBranchAddress("TPCDigitMCTruth", &mcTruthArray);
+  o2::dataformats::IOMCTruthContainerView* plabels[36] = {0};
+  std::vector<o2::tpc::Digit>* digits[36] = {0};
+  int nBranches = 0;
+  bool mcPresent = false, perSector = false;
+  if (digitTree->GetBranch("TPPCDigit")) {
+    LOG(INFO) << "Joint digit branch is found";
+    nBranches = 1;
+    digitTree->SetBranchAddress("TPCDigit", &digits[0]);
+    if (digitTree->GetBranch("TPCDigitMCTruth")) {
+      mcPresent = true;
+      digitTree->SetBranchAddress("TPCDigitMCTruth", &plabels[0]);
+    }
+  } else {
+    nBranches = 36;
+    perSector = true;
+    for (int i = 0; i < 36; i++) {
+      std::string digBName = fmt::format("TPCDigit_{:d}", i).c_str();
+      if (digitTree->GetBranch(digBName.c_str())) {
+        digitTree->SetBranchAddress(digBName.c_str(), &digits[i]);
+        std::string digMCBName = fmt::format("TPCDigitMCTruth_{:d}", i).c_str();
+        if (digitTree->GetBranch(digMCBName.c_str())) {
+          mcPresent = true;
+          digitTree->SetBranchAddress(digMCBName.c_str(), &plabels[i]);
+        }
+      }
+    }
+  }
+  o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel> labels[36];
 
   for (int iEvent = 0; iEvent < digitTree->GetEntriesFast(); ++iEvent) {
-    int digit = 0;
     digitTree->GetEntry(iEvent);
-    for (auto& inputdigit : *digits) {
-      gsl::span<const o2::MCCompLabel> mcArray = mMCTruthArray.getLabels(digit);
-      for (int j = 0; j < static_cast<int>(mcArray.size()); ++j) {
-        std::cout << "Digit " << digit << " from Event "
-                  << mMCTruthArray.getElement(mMCTruthArray.getMCTruthHeader(digit).index + j).getEventID()
-                  << " with Track ID "
-                  << mMCTruthArray.getElement(mMCTruthArray.getMCTruthHeader(digit).index + j).getTrackID() << "\n";
+    for (int ib = 0; ib < nBranches; ib++) {
+      if (plabels[ib]) {
+        plabels[ib]->copyandflatten(labels[ib]);
+        delete plabels[ib];
+        plabels[ib] = nullptr;
       }
-      ++digit;
+    }
+
+    for (int ib = 0; ib < nBranches; ib++) {
+      if (!digits[ib]) {
+        continue;
+      }
+      int nd = digits[ib]->size();
+      for (int idig = 0; idig < nd; idig++) {
+        const auto& digit = (*digits[ib])[idig];
+        o2::MCCompLabel lab;
+        if (mcPresent) {
+          lab = labels[ib].getLabels(idig)[0];
+        }
+        std::cout << "Digit " << digit << " from " << lab << "\n";
+      }
     }
   }
 }

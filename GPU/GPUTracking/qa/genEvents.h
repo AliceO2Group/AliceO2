@@ -54,7 +54,7 @@ class genEvents
   int RecalculateSlice(GPUTPCGMPhysicalTrackModel& t, int& iSlice);
   double GetGaus(double sigma);
 
-  TH1F* mClusterError[3][2] = {{0, 0}, {0, 0}, {0, 0}};
+  TH1F* mClusterError[3][2] = {{nullptr, nullptr}, {nullptr, nullptr}, {nullptr, nullptr}};
 
   struct GenCluster {
     int sector;

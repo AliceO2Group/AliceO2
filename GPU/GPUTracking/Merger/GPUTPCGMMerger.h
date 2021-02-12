@@ -231,8 +231,8 @@ class GPUTPCGMMerger : public GPUProcessor
   unsigned short mMemoryResOutputO2Clus;
   unsigned short mMemoryResOutputO2MC;
 
-  int mNClusters;                     // Total number of incoming clusters (from slice tracks)
-  GPUTPCGMMergedTrack* mOutputTracks; //* array of output merged tracks
+  int mNClusters;                       // Total number of incoming clusters (from slice tracks)
+  GPUTPCGMMergedTrack* mOutputTracks;   //* array of output merged tracks
   GPUTPCGMSliceTrack* mSliceTrackInfos; //* additional information for slice tracks
   int* mSliceTrackInfoIndex;
   GPUTPCGMMergedTrackHit* mClusters;

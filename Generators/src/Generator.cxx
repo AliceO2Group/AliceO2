@@ -32,7 +32,6 @@ Generator::Generator() : FairGenerator("ALICEo2", "ALICEo2 Generator"),
                          mBoost(0.)
 {
   /** default constructor **/
-
 }
 
 /*****************************************************************/
@@ -41,7 +40,6 @@ Generator::Generator(const Char_t* name, const Char_t* title) : FairGenerator(na
                                                                 mBoost(0.)
 {
   /** constructor **/
-
 }
 
 /*****************************************************************/

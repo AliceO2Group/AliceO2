@@ -160,7 +160,11 @@ inline std::unique_ptr<T> TMessageSerializer::deserialize(gsl::span<o2::byte> bu
 template <typename T>
 inline std::unique_ptr<T> TMessageSerializer::deserialize(byte* buffer, size_t size)
 {
+#ifdef MS_GSL_V3
+  return deserialize<T>(gsl::span<o2::byte>(buffer, gsl::narrow<gsl::span<o2::byte>::size_type>(size)));
+#else
   return deserialize<T>(gsl::span<o2::byte>(buffer, gsl::narrow<gsl::span<o2::byte>::index_type>(size)));
+#endif
 }
 
 inline void FairTMessage::free(void* /*data*/, void* hint)
@@ -213,13 +217,22 @@ inline TMessageSerializer::StreamerList TMessageSerializer::getStreamers()
 // we would probably be fine with e.g. gsl::narrow_cast (or just a static_cast)
 inline gsl::span<o2::byte> as_span(const FairMQMessage& msg)
 {
+#ifdef MS_GSL_V3
+  return gsl::span<o2::byte>{static_cast<o2::byte*>(msg.GetData()), gsl::narrow<gsl::span<o2::byte>::size_type>(msg.GetSize())};
+#else
   return gsl::span<o2::byte>{static_cast<o2::byte*>(msg.GetData()), gsl::narrow<gsl::span<o2::byte>::index_type>(msg.GetSize())};
+#endif
 }
 
 inline gsl::span<o2::byte> as_span(const FairTMessage& msg)
 {
+#ifdef MS_GSL_V3
+  return gsl::span<o2::byte>{reinterpret_cast<o2::byte*>(msg.Buffer()),
+                             gsl::narrow<gsl::span<o2::byte>::size_type>(msg.BufferSize())};
+#else
   return gsl::span<o2::byte>{reinterpret_cast<o2::byte*>(msg.Buffer()),
                              gsl::narrow<gsl::span<o2::byte>::index_type>(msg.BufferSize())};
+#endif
 }
 
 } // namespace framework

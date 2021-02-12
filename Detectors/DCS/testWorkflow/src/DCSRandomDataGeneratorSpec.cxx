@@ -47,7 +47,7 @@ std::vector<int> generateIntegers(size_t size, int min, int max)
   }
   std::shuffle(begin(data), end(data), generator);
   for (auto i = 0; i < data.size(); ++i) {
-    LOG(INFO) << "Generating randomly DP at index " << data[i];
+    LOG(DEBUG) << "Generating randomly DP at index " << data[i];
   }
   return data;
 }
@@ -147,7 +147,7 @@ void DCSRandomDataGenerator::run(o2::framework::ProcessingContext& pc)
   TDatime d;
   auto dpcoms = generate(mDataPointHints, fraction, tfid);
 
-  LOG(INFO) << "***************** TF " << tfid << " has generated " << dpcoms.size() << " DPs for TOF";
+  LOG(INFO) << "***************** TF " << tfid << " has generated " << dpcoms.size() << " DPs";
   pc.outputs().snapshot(Output{"DCS", mDataDescription, 0, Lifetime::Timeframe}, dpcoms);
   mTFs++;
 }

@@ -12,5 +12,41 @@
 /// \brief Implementation of the ITSMFT NoiseMap
 
 #include "DataFormatsITSMFT/NoiseMap.h"
+#include "DataFormatsITSMFT/CompCluster.h"
+#include "Framework/Logger.h"
 
 ClassImp(o2::itsmft::NoiseMap);
+
+using namespace o2::itsmft;
+
+void NoiseMap::print()
+{
+  int nc = 0, np = 0;
+  for (const auto& map : mNoisyPixels) {
+    if (!map.empty()) {
+      nc++;
+    }
+    np += map.size();
+  }
+  LOG(INFO) << "Number of noisy chips: " << nc;
+  LOG(INFO) << "Number of noisy pixels: " << np;
+  LOG(INFO) << "Number of of strobes: " << mNumOfStrobes;
+  LOG(INFO) << "Probability threshold: " << mProbThreshold;
+}
+
+void NoiseMap::fill(const gsl::span<const CompClusterExt> data)
+{
+  for (const auto& c : data) {
+    if (c.getPatternID() != o2::itsmft::CompCluster::InvalidPatternID) {
+      // For the noise calibration, we use "pass1" clusters...
+      continue;
+    }
+
+    auto id = c.getSensorID();
+    auto row = c.getRow();
+    auto col = c.getCol();
+
+    // A simplified 1-pixel calibration
+    increaseNoiseCount(id, row, col);
+  }
+}

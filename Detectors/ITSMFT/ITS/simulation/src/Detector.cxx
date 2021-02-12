@@ -117,7 +117,7 @@ static void configITS(Detector* its)
 
   const int kNWrapVol = 3;
   const double wrpRMin[kNWrapVol] = {2.1, 19.3, 33.32};
-  const double wrpRMax[kNWrapVol] = {15.4, 29.14, 46.0};
+  const double wrpRMax[kNWrapVol] = {15.4, 29.14, 44.9};
   const double wrpZSpan[kNWrapVol] = {70., 93., 163.6};
 
   for (int iw = 0; iw < kNWrapVol; iw++) {
@@ -890,10 +890,6 @@ void Detector::constructDetectorGeometry()
   createOuterBarrelServices(wrapVols[2]);
   createOuterBarrelSupports(vITSV);
 
-  // TEMPORARY - These routines will be obsoleted once the new services are completed - TEMPORARY
-  //  createServiceBarrel(kTRUE, wrapVols[0]);
-  //  createServiceBarrel(kFALSE, wrapVols[2]);
-
   delete[] wrapVols; // delete pointer only, not the volumes
 }
 
@@ -988,6 +984,7 @@ void Detector::createOuterBarrelSupports(TGeoVolume* motherVolume)
   // Return:
   //
   // Created:      26 Jan 2020  Mario Sitta
+  // Updated:      02 Mar 2020  Mario Sitta
   //
 
   // Create the Cone on Side A
@@ -995,42 +992,9 @@ void Detector::createOuterBarrelSupports(TGeoVolume* motherVolume)
 
   // Create the Cone on Side C
   mServicesGeometry->createOBConeSideC(motherVolume);
-}
 
-// Service Barrel
-void Detector::createServiceBarrel(const Bool_t innerBarrel, TGeoVolume* dest, const TGeoManager* mgr)
-{
-  // Creates the Service Barrel (as a simple cylinder) for IB and OB
-  // Inputs:
-  //         innerBarrel : if true, build IB service barrel, otherwise for OB
-  //         dest        : the mother volume holding the service barrel
-  //         mgr         : the gGeoManager pointer (used to get the material)
-  //
-
-  Double_t rminIB = 4.7;
-  Double_t rminOB = 43.9;
-  Double_t zLenOB;
-  Double_t cInt = 0.22; // dimensioni cilindro di supporto interno
-  Double_t cExt = 1.00; // dimensioni cilindro di supporto esterno
-  //  Double_t phi1   =  180;
-  //  Double_t phi2   =  360;
-
-  TGeoMedium* medCarbonFleece = mgr->GetMedium("ITS_CarbonFleece$");
-
-  if (innerBarrel) {
-    zLenOB = ((TGeoTube*)(dest->GetShape()))->GetDz();
-    //    TGeoTube*ibSuppSh = new TGeoTubeSeg(rminIB,rminIB+cInt,zLenOB,phi1,phi2);
-    auto* ibSuppSh = new TGeoTube(rminIB, rminIB + cInt, zLenOB);
-    auto* ibSupp = new TGeoVolume("ibSuppCyl", ibSuppSh, medCarbonFleece);
-    dest->AddNode(ibSupp, 1);
-  } else {
-    zLenOB = ((TGeoTube*)(dest->GetShape()))->GetDz();
-    auto* obSuppSh = new TGeoTube(rminOB, rminOB + cExt, zLenOB);
-    auto* obSupp = new TGeoVolume("obSuppCyl", obSuppSh, medCarbonFleece);
-    dest->AddNode(obSupp, 1);
-  }
-
-  return;
+  // Create the CYSS Cylinder
+  mServicesGeometry->createOBCYSSCylinder(motherVolume);
 }
 
 void Detector::addAlignableVolumes() const

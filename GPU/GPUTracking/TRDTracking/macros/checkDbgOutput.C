@@ -852,8 +852,6 @@ void TwoTrackletEfficiency(Int_t nEntries = -1)
   fOut = 0x0;
 }
 
-
-
 void PlotTRDEfficiency(Int_t nEntries = -1, Bool_t writeToFile = kTRUE)
 {
   // plot fraction of tracks with at least 4/5/6 online/offline tracklets

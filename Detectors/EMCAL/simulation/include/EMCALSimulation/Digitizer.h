@@ -57,11 +57,8 @@ class Digitizer : public TObject
   void setEventTime(double t);
   double getTriggerTime() const { return mTriggerTime; }
   double getEventTime() const { return mEventTime; }
-  bool isLive(double t) const { return (t < mLiveTime); }
+  bool isLive(double t) const { return (t - mTriggerTime < mLiveTime); }
   bool isLive() const { return (mEventTime < mLiveTime); }
-
-  void setContinuous(bool v) { mContinuous = v; }
-  bool isContinuous() const { return mContinuous; }
 
   bool isEmpty() const { return mEmpty; }
 
@@ -97,7 +94,6 @@ class Digitizer : public TObject
   short mEventTimeOffset = 0;              ///< event time difference from trigger time (in number of bins)
   short mPhase = 0;                        ///< event phase
   double mCoeffToNanoSecond = 1.0;         ///< coefficient to convert event time (Fair) to ns
-  bool mContinuous = false;                ///< flag for continuous simulation
   UInt_t mROFrameMin = 0;                  ///< lowest RO frame of current digits
   UInt_t mROFrameMax = 0;                  ///< highest RO frame of current digits
   int mCurrSrcID = 0;                      ///< current MC source from the manager
@@ -109,12 +105,12 @@ class Digitizer : public TObject
   const SimParam* mSimParam = nullptr;     ///< SimParam object
   bool mEmpty = true;                      ///< Digitizer contains no digits/labels
 
-  std::vector<Digit> mTempDigitVector;                          ///< temporary digit storage
-  std::unordered_map<Int_t, std::list<LabeledDigit>> mDigits;   ///< used to sort digits and labels by tower
+  std::vector<Digit> mTempDigitVector;                        ///< temporary digit storage
+  std::unordered_map<Int_t, std::list<LabeledDigit>> mDigits; ///< used to sort digits and labels by tower
 
-  TRandom3* mRandomGenerator = nullptr;                       // random number generator
-  std::vector<int> mTimeBinOffset;                            // offset of first time bin
-  std::vector<std::vector<double>> mAmplitudeInTimeBins;      // amplitude of signal for each time bin
+  TRandom3* mRandomGenerator = nullptr;                  // random number generator
+  std::vector<int> mTimeBinOffset;                       // offset of first time bin
+  std::vector<std::vector<double>> mAmplitudeInTimeBins; // amplitude of signal for each time bin
 
   float mLiveTime = 1500;  // EMCal live time (ns)
   float mBusyTime = 35000; // EMCal busy time (ns)

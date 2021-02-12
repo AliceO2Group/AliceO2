@@ -14,6 +14,7 @@
 
 #include <TRandom.h>
 #include <algorithm>
+#include <numeric>
 
 ClassImp(o2::fv0::Digitizer);
 

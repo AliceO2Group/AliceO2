@@ -85,21 +85,27 @@ namespace internal
 template <typename I, typename F>
 auto forEach(I begin, I end, F&& function)
 {
+
   using span = gsl::span<const o2::byte>;
+#ifdef MS_GSL_V3
+  using SPAN_SIZE_TYPE = span::size_type;
+#else
+  using SPAN_SIZE_TYPE = span::index_type;
+#endif
   using gsl::narrow_cast;
   for (auto it = begin; it != end; ++it) {
     o2::byte* headerBuffer{nullptr};
-    span::index_type headerBufferSize{0};
+    SPAN_SIZE_TYPE headerBufferSize{0};
     if (*it != nullptr) {
       headerBuffer = reinterpret_cast<o2::byte*>((*it)->GetData());
-      headerBufferSize = narrow_cast<span::index_type>((*it)->GetSize());
+      headerBufferSize = narrow_cast<SPAN_SIZE_TYPE>((*it)->GetSize());
     }
     ++it;
     o2::byte* dataBuffer{nullptr};
-    span::index_type dataBufferSize{0};
+    SPAN_SIZE_TYPE dataBufferSize{0};
     if (*it != nullptr) {
       dataBuffer = reinterpret_cast<o2::byte*>((*it)->GetData());
-      dataBufferSize = narrow_cast<span::index_type>((*it)->GetSize());
+      dataBufferSize = narrow_cast<SPAN_SIZE_TYPE>((*it)->GetSize());
     }
 
     // call the user provided function
