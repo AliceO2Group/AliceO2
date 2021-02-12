@@ -9,16 +9,13 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(AnalysisDataModel
-               SOURCES src/ParamBase.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
                PUBLIC_LINK_LIBRARIES O2::Framework O2::ReconstructionDataFormats O2::TPCSimulation
               )
 
 
 o2_target_root_dictionary(AnalysisDataModel
-                          HEADERS include/AnalysisDataModel/PID/ParamBase.h
-                                  include/AnalysisDataModel/PID/DetectorResponse.h
-                                  include/AnalysisDataModel/PID/PIDTOF.h
+                          HEADERS include/AnalysisDataModel/PID/PIDTOF.h
                                   include/AnalysisDataModel/PID/TOFReso.h
                                   include/AnalysisDataModel/PID/PIDTPC.h
                                   include/AnalysisDataModel/PID/BetheBloch.h

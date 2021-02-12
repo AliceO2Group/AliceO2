@@ -18,6 +18,7 @@ o2_add_library(Framework
                SOURCES src/AODReaderHelpers.cxx
                        src/ASoA.cxx
                        src/AnalysisHelpers.cxx
+                       src/ParamBase.cxx
                        src/AnalysisDataModelHelpers.cxx
                        src/BoostOptionsRetriever.cxx
                        src/ChannelConfigurationPolicy.cxx
@@ -118,6 +119,7 @@ o2_add_library(Framework
                                      O2::Headers
                                      O2::MemoryResources
                                      O2::PCG
+                                     O2::ReconstructionDataFormats
                                      RapidJSON::RapidJSON
                                      arrow::arrow_shared
                                      ms_gsl::ms_gsl
@@ -132,6 +134,8 @@ o2_add_library(Framework
 o2_target_root_dictionary(Framework
                           HEADERS test/TestClasses.h
                           include/Framework/StepTHn.h
+                          include/Framework/ParamBase.h
+                          include/Framework/DetectorResponse.h
                           LINKDEF test/FrameworkCoreTestLinkDef.h)
 
 foreach(t

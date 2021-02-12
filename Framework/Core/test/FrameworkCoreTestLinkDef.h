@@ -24,3 +24,6 @@
 #pragma link C++ class StepTHnT < TArrayD> + ;
 #pragma link C++ typedef StepTHnF;
 #pragma link C++ typedef StepTHnD;
+
+#pragma link C++ class o2::pid::Parameters + ;
+#pragma link C++ class o2::pid::Parametrization + ;

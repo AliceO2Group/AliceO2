@@ -12,9 +12,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::pid::Parameters + ;
-#pragma link C++ class o2::pid::Parametrization + ;
-
 #pragma link C++ class o2::pid::tof::TOFReso + ;
 
 #pragma link C++ class o2::pid::tpc::BetheBloch + ;

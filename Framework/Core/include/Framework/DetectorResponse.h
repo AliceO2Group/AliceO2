@@ -29,7 +29,7 @@
 
 // O2 includes
 #include "ReconstructionDataFormats/PID.h"
-#include "AnalysisDataModel/PID/ParamBase.h"
+#include "Framework/ParamBase.h"
 
 namespace o2::pid
 {
