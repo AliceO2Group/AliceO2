@@ -372,6 +372,20 @@ namespace hf_cand_casc
 DECLARE_SOA_EXPRESSION_COLUMN(Px, px, float, 1.f * aod::hf_cand::pxProng0 + 1.f * aod::hf_cand::pxProng1);
 DECLARE_SOA_EXPRESSION_COLUMN(Py, py, float, 1.f * aod::hf_cand::pyProng0 + 1.f * aod::hf_cand::pyProng1);
 DECLARE_SOA_EXPRESSION_COLUMN(Pz, pz, float, 1.f * aod::hf_cand::pzProng0 + 1.f * aod::hf_cand::pzProng1);
+DECLARE_SOA_DYNAMIC_COLUMN(M, m, [](float px0, float py0, float pz0, float px1, float py1, float pz1, const array<double, 2>& m) { return RecoDecay::M(array{array{px0, py0, pz0}, array{px1, py1, pz1}}, m); });
+
+template <typename T>
+auto InvMassLc(const T& candidate)
+{
+  return candidate.m(array{RecoDecay::getMassPDG(kK0Short), RecoDecay::getMassPDG(kProton)}); // first daughter is K0s
+}
+
+template <typename T>
+auto InvMassGamma(const T& candidate)
+{
+  return candidate.m(array{RecoDecay::getMassPDG(kElectron), RecoDecay::getMassPDG(kElectron)});
+}
+
 } // namespace hf_cand_casc
 
 DECLARE_SOA_TABLE(HfCandCascBase, "AOD", "HFCANDCASCBASE",
@@ -387,7 +401,10 @@ DECLARE_SOA_TABLE(HfCandCascBase, "AOD", "HFCANDCASCBASE",
                   hf_track_index::HFflag,
                   // V0
                   v0data::X, v0data::Y, v0data::Z,
+                  v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg,
                   v0data::DCAV0Daughters,
+                  v0data::DCAPosToPV, // this is the impact param wrt prim vtx in xy!
+                  v0data::DCANegToPV, // this is the impact param wrt prim vtx in xy!
                   /* dynamic columns */
                   hf_cand_prong2::M<hf_cand::PxProng0, hf_cand::PyProng0, hf_cand::PzProng0, hf_cand::PxProng1, hf_cand::PyProng1, hf_cand::PzProng1>,
                   hf_cand_prong2::M2<hf_cand::PxProng0, hf_cand::PyProng0, hf_cand::PzProng0, hf_cand::PxProng1, hf_cand::PyProng1, hf_cand::PzProng1>,
@@ -412,8 +429,15 @@ DECLARE_SOA_TABLE(HfCandCascBase, "AOD", "HFCANDCASCBASE",
                   hf_cand::E2<hf_cand_casc::Px, hf_cand_casc::Py, hf_cand_casc::Pz>,
                   // dynamic columns from V0
                   v0data::V0Radius<v0data::X, v0data::Y>,
-                  v0data::V0CosPA<v0data::X, v0data::Y, v0data::Z, hf_cand::PxProng0, hf_cand::PyProng0, hf_cand::PzProng0>);
-
+                  v0data::V0CosPA<v0data::X, v0data::Y, v0data::Z, hf_cand::PxProng0, hf_cand::PyProng0, hf_cand::PzProng0>,
+                  v0data::MLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
+                  v0data::MAntiLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
+                  v0data::MK0Short<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>);
+/*,
+		  v0data::MLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
+		  v0data::MAntiLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
+		  v0data::MK0Short<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>);
+*/
 // extended table with expression columns that can be used as arguments of dynamic columns
 DECLARE_SOA_EXTENDED_TABLE_USER(HfCandCascExt, HfCandCascBase, "HFCANDCASCEXT",
                                 hf_cand_casc::Px, hf_cand_casc::Py, hf_cand_casc::Pz);

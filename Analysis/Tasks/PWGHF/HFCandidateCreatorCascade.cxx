@@ -132,7 +132,11 @@ struct HFCandidateCreatorCascade {
                        casc.indexV0Id(), casc.index0Id(),
                        casc.hfflag(),
                        v0.x(), v0.y(), v0.z(),
-                       v0.dcaV0daughters());
+                       v0.pxpos(), v0.pypos(), v0.pzpos(),
+                       v0.pxneg(), v0.pyneg(), v0.pzneg(),
+                       v0.dcaV0daughters(),
+                       v0.dcapostopv(),
+                       v0.dcanegtopv());
 
       //--> Missing: DCA between V0 daughters; radius V0; cosPA --> can these be dynamic? to be checked
 
