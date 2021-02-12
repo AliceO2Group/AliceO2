@@ -2,7 +2,7 @@
 \page refHMPworkflow HMP workflow
 /doxy -->
 
-# DPL workflows for the HMPID
+# DPL workflows for the HMPID  v.0.3
 
 ## HMPID DPL processors
 
