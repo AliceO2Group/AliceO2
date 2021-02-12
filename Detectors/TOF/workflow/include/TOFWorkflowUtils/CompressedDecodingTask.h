@@ -66,6 +66,7 @@ class CompressedDecodingTask : public DecoderBase, public Task
   bool mHasToBePosted = false;
   bool mConetMode = false;
   uint32_t mInitOrbit = 0;
+  uint32_t mCurrentOrbit = 0;
   bool mRowFilter = false;
   bool mMaskNoise = false;
   int mNoiseRate = 1000;

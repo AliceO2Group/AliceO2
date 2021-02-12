@@ -42,7 +42,7 @@ class VertexTrackMatcher
   using TrackITS = o2::its::TrackITS;
   using ITSROFR = o2::itsmft::ROFRecord;
   using TrackTPC = o2::tpc::TrackTPC;
-  using TmpMap = std::unordered_map<int, std::vector<GIndex>>;
+  using TmpMap = std::vector<std::vector<GIndex>>;
   using TimeEst = o2::dataformats::TimeStampWithError<float, float>;
   using TBracket = o2::math_utils::Bracketf_t;
 

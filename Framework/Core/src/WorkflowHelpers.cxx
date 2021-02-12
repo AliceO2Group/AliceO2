@@ -427,14 +427,20 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     result = uv_dlopen("libO2FrameworkAnalysisSupport.so", &supportLib);
 #endif
     if (result == -1) {
-      LOG(ERROR) << uv_dlerror(&supportLib);
+      LOG(FATAL) << uv_dlerror(&supportLib);
+      return;
     }
     void* callback = nullptr;
     DPLPluginHandle* (*dpl_plugin_callback)(DPLPluginHandle*);
 
     result = uv_dlsym(&supportLib, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
     if (result == -1) {
-      LOG(ERROR) << uv_dlerror(&supportLib);
+      LOG(FATAL) << uv_dlerror(&supportLib);
+      return;
+    }
+    if (dpl_plugin_callback == nullptr) {
+      LOG(FATAL) << "Could not find the AnalysisSupport plugin.";
+      return;
     }
     DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
     AlgorithmPlugin* creator = PluginManager::getByName<AlgorithmPlugin>(pluginInstance, "ROOTFileReader");

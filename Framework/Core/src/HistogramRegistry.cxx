@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/HistogramRegistry.h"
+#include <regex>
 
 namespace o2::framework
 {
@@ -29,15 +30,14 @@ const std::map<HistType, std::function<HistPtr(const HistogramSpec&)>> HistFacto
   CALLB(THnD), CALLB(THnF), CALLB(THnI), CALLB(THnC), CALLB(THnS), CALLB(THnL),
   CALLB(THnSparseD), CALLB(THnSparseF), CALLB(THnSparseI), CALLB(THnSparseC), CALLB(THnSparseS), CALLB(THnSparseL),
   CALLB(TProfile), CALLB(TProfile2D), CALLB(TProfile3D),
-  //CALLB(StepTHnF), CALLB(StepTHnD)
-};
+  CALLB(StepTHnF), CALLB(StepTHnD)};
 
 #undef CALLB
 
 // create histogram from specification and insert it into the registry
 void HistogramRegistry::insert(const HistogramSpec& histSpec)
 {
-  validateHash(histSpec.hash, histSpec.name.data());
+  validateHistName(histSpec.name.data(), histSpec.hash);
   const uint32_t idx = imask(histSpec.hash);
   for (auto i = 0u; i < MAX_REGISTRY_SIZE; ++i) {
     TObject* rawPtr = nullptr;
@@ -53,8 +53,10 @@ void HistogramRegistry::insert(const HistogramSpec& histSpec)
   LOGF(FATAL, R"(Internal array of HistogramRegistry "%s" is full.)", mName);
 }
 
-void HistogramRegistry::validateHash(const uint32_t hash, const char* name)
+// helper function that checks if histogram name can be used in registry
+void HistogramRegistry::validateHistName(const char* name, const uint32_t hash)
 {
+  // validate that hash is unique
   auto it = std::find(mRegistryKey.begin(), mRegistryKey.end(), hash);
   if (it != mRegistryKey.end()) {
     auto idx = it - mRegistryKey.begin();
@@ -62,6 +64,13 @@ void HistogramRegistry::validateHash(const uint32_t hash, const char* name)
     std::visit([&](const auto& hist) { collidingName = hist->GetName(); }, mRegistryValue[idx]);
     LOGF(FATAL, R"(Hash collision in HistogramRegistry "%s"! Please rename histogram "%s" or "%s".)", mName, name, collidingName);
   }
+  // validate that name contains only allowed characters
+  /*
+   TODO: exactly determine constraints for valid histogram names
+  if (!std::regex_match(name, std::regex("[A-Za-z0-9\-_/]+"))) {
+    LOGF(FATAL, R"(Histogram name "%s" contains invalid characters.)", name);
+  }
+   */
 }
 
 void HistogramRegistry::add(const HistogramSpec& histSpec)

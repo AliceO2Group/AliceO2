@@ -39,4 +39,9 @@ bool operator!=(const OrbitInfo& o1, const OrbitInfo& o2)
   return !(o1 == o2);
 }
 
+bool operator<(const OrbitInfo& o1, const OrbitInfo& o2)
+{
+  return (o1.mOrbitInfo < o2.mOrbitInfo);
+}
+
 } // namespace o2::mch

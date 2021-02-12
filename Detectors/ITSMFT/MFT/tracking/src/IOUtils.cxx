@@ -58,7 +58,7 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
         locXYZ = dict.getClusterCoordinates(c);
       } else {
         o2::itsmft::ClusterPattern patt(pattIt);
-        locXYZ = dict.getClusterCoordinates(c, patt);
+        locXYZ = dict.getClusterCoordinates(c, patt, false);
       }
     } else {
       o2::itsmft::ClusterPattern patt(pattIt);

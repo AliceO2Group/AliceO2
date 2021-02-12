@@ -29,8 +29,11 @@ using namespace o2::gpu;
 #include <FairRunAna.h> // eventually will get rid of it
 #include <TGeoGlobalMagField.h>
 
-Propagator::Propagator()
+Propagator::Propagator(bool uninitialized)
 {
+  if (uninitialized) {
+    return;
+  }
   ///< construct checking if needed components were initialized
 
   // we need the geoemtry loaded
@@ -99,7 +102,7 @@ int Propagator::initFieldFromGRP(const o2::parameters::GRPObject* grp, bool verb
   return 0;
 }
 #elif !defined(GPUCA_GPUCODE)
-Propagator::Propagator()
+Propagator::Propagator(bool uninitialized)
 {
 } // empty dummy constructor for standalone benchmark
 #endif
@@ -160,6 +163,7 @@ GPUd() bool Propagator::PropagateToXBxByBz(o2::track::TrackParCov& track, float 
     }
     dx = xToGo - track.getX();
   }
+  track.setX(xToGo);
   return true;
 }
 
@@ -218,6 +222,7 @@ GPUd() bool Propagator::PropagateToXBxByBz(o2::track::TrackPar& track, float xTo
     }
     dx = xToGo - track.getX();
   }
+  track.setX(xToGo);
   return true;
 }
 
@@ -276,6 +281,7 @@ GPUd() bool Propagator::propagateToX(o2::track::TrackParCov& track, float xToGo,
     }
     dx = xToGo - track.getX();
   }
+  track.setX(xToGo);
   return true;
 }
 
@@ -334,6 +340,7 @@ GPUd() bool Propagator::propagateToX(o2::track::TrackPar& track, float xToGo, fl
     }
     dx = xToGo - track.getX();
   }
+  track.setX(xToGo);
   return true;
 }
 

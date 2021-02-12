@@ -30,7 +30,8 @@ enum attachTypes { attachAttached = 0x40000000,
                    attachTube = 0x08000000,
                    attachHighIncl = 0x04000000,
                    attachTrackMask = 0x03FFFFFF,
-                   attachFlagMask = 0xFC000000 };
+                   attachFlagMask = 0xFC000000,
+                   attachZero = 0 };
 
 struct InterpolationErrorHit {
   float posY, posZ;

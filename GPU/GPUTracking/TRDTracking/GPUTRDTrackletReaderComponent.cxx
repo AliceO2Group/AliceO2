@@ -63,7 +63,7 @@ ClassImp(GPUTRDTrackletReaderComponent);
     }                               \
   }
 
-  GPUTRDTrackletReaderComponent::GPUTRDTrackletReaderComponent()
+GPUTRDTrackletReaderComponent::GPUTRDTrackletReaderComponent()
   : AliHLTProcessor(), fDebugLevel(0), fEventId(fgkInvalidEventId), fTrackletArray(nullptr), fRawReaderMem(nullptr), fRawReaderTrd(nullptr)
 {
   // constructor

@@ -192,18 +192,23 @@ void GPUChainTracking::PrintDebugOutput()
 void GPUChainTracking::PrintOutputStat()
 {
   int nTracks = 0, nAttachedClusters = 0, nAttachedClustersFitted = 0, nAdjacentClusters = 0;
-  for (unsigned int k = 0; k < mIOPtrs.nMergedTracks; k++) {
-    if (mIOPtrs.mergedTracks[k].OK()) {
-      nTracks++;
-      nAttachedClusters += mIOPtrs.mergedTracks[k].NClusters();
-      nAttachedClustersFitted += mIOPtrs.mergedTracks[k].NClustersFitted();
-    }
-  }
   unsigned int nCls = GetProcessingSettings().doublePipeline ? mIOPtrs.clustersNative->nClustersTotal : GetTPCMerger().NMaxClusters();
-  for (unsigned int k = 0; k < nCls; k++) {
-    int attach = mIOPtrs.mergedTrackHitAttachment[k];
-    if (attach & gputpcgmmergertypes::attachFlagMask) {
-      nAdjacentClusters++;
+  if (ProcessingSettings().createO2Output > 1) {
+    nTracks = mIOPtrs.nOutputTracksTPCO2;
+    nAttachedClusters = mIOPtrs.nMergedTrackHits;
+  } else {
+    for (unsigned int k = 0; k < mIOPtrs.nMergedTracks; k++) {
+      if (mIOPtrs.mergedTracks[k].OK()) {
+        nTracks++;
+        nAttachedClusters += mIOPtrs.mergedTracks[k].NClusters();
+        nAttachedClustersFitted += mIOPtrs.mergedTracks[k].NClustersFitted();
+      }
+    }
+    for (unsigned int k = 0; k < nCls; k++) {
+      int attach = mIOPtrs.mergedTrackHitAttachment[k];
+      if (attach & gputpcgmmergertypes::attachFlagMask) {
+        nAdjacentClusters++;
+      }
     }
   }
 

@@ -1,27 +1,40 @@
 #if !defined(__CINT__) || defined(__MAKECINT__)
-#include <TClonesArray.h>
 
+// ROOT
+#include "TClonesArray.h"
+#include "TH1F.h"
+#include "TCanvas.h"
+#include "TFile.h"
+
+// AliRoot
 #include <AliRunLoader.h>
 #include <AliLoader.h>
 #include <AliDataLoader.h>
 #include <AliTreeLoader.h>
 #include <AliTRDarrayADC.h>
-
-#include <iostream>
-
-#include "TH1F.h"
-#include "TRDBase/Digit.h"
-#include "TRDBase/Tracklet.h"
-
 #include <AliRawReaderRoot.h>
 #include <AliRawReaderDateOnline.h>
 #include <AliTRDrawStream.h>
 #include <AliRawReader.h>
+#include <AliTRDdigitsManager.h>
+#include <AliTRDCommonParam.h>
+#include <AliTRDSignalIndex.h>
+#include <AliTRDfeeParam.h>
+
+// O2
+#include "TRDBase/Digit.h"
+#include "DataFormatsTRD/TriggerRecord.h"
+#include "TRDBase/MCLabel.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
+
+// other
+#include <iostream>
+
 #endif
 
-using namespace o2;
-using namespace trd;
 using namespace std;
+using namespace o2::trd;
 
 // qa.root
 // 18000283989033.808.root
@@ -30,10 +43,11 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
                              TString rawDataInPath = "",
                              TString run2DigitsInPath = "",
                              TString run3DigitsOutPath = "trddigits.root",
-                             int nRawEvents = 1000)
+                             int nRawEvents = 5000)
 {
-  vector<o2::trd::Digit> run3Digits;
-  vector<o2::trd::TriggerRecord> triggerRecords;
+  vector<Digit> run3Digits;
+  vector<TriggerRecord> triggerRecords;
+  o2::dataformats::MCTruthContainer<MCLabel> mcLabels;
 
   TH1F* hAdc = new TH1F("hADC", "ADC spectrum", 1024, -0.5, 1023.5);
   TH1F* hTBsum = new TH1F("hTBsum", "TBsum", 3000, -0.5, 2999.5);
@@ -68,8 +82,9 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
     rawStream->SetTrackletArray(&trkl);
 
     int ievent = 0;
+    uint64_t triggerRecordsStart = 0;
+    int recordSize = 0;
     while (reader->NextEvent()) {
-      ievent++;
       int eventtime = ievent * 12;
 
       if (ievent >= nRawEvents)
@@ -107,13 +122,17 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
           }
 
           if (tbsum > 0) {
-            run3Digits.push_back(o2::trd::Digit(det, row, col, adctimes, eventtime));
+            run3Digits.push_back(Digit(det, row, col, adctimes));
           }
 
           hTBsum->Fill(tbsum);
         }
       }
       trkl.Clear();
+      recordSize = run3Digits.size() - triggerRecordsStart;
+      triggerRecords.emplace_back(ievent, triggerRecordsStart, recordSize);
+      triggerRecordsStart = run3Digits.size();
+      ievent++;
     }
 
     delete rawStream;
@@ -189,7 +208,7 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
             }
 
             if (tbsum > 0) {
-              run3Digits.push_back(o2::trd::Digit(det, row, col, adctimes, eventTime));
+              run3Digits.push_back(Digit(det, row, col, adctimes));
             }
 
             if (tbsum > 0) {
@@ -197,11 +216,11 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
             }
           }
         }
-        recordSize = run3Digits.size() - triggerRecordsStart;
-        triggerRecords.emplace_back(ievent, triggerRecordsStart, recordSize);
-        triggerRecordsStart = run3Digits.size();
-        ievent++;
       }
+      recordSize = run3Digits.size() - triggerRecordsStart;
+      triggerRecords.emplace_back(ievent, triggerRecordsStart, recordSize);
+      triggerRecordsStart = run3Digits.size();
+      ievent++;
     }
   }
 
@@ -229,9 +248,10 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
   if (run3Digits.size() != 0) {
     TFile* digitsFile = new TFile(run3DigitsOutPath, "RECREATE");
     TTree* digitTree = new TTree("o2sim", "run2 digits");
-    std::vector<o2::trd::Digit>* run3pdigits = &run3Digits;
+    std::vector<Digit>* run3pdigits = &run3Digits;
     digitTree->Branch("TRDDigit", &run3pdigits);
     digitTree->Branch("TriggerRecord", &triggerRecords);
+    digitTree->Branch("TRDMCLabels", &mcLabels);
     digitTree->Fill();
     cout << run3Digits.size() << " run3 digits written to: " << run3DigitsOutPath << endl;
     digitTree->Write();

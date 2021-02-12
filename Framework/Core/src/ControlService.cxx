@@ -55,6 +55,7 @@ void ControlService::readyToQuit(QuitRequest what)
       mDriverClient.tell("CONTROL_ACTION: READY_TO_QUIT_ME");
       break;
   }
+  mDriverClient.flushPending();
 }
 
 void ControlService::notifyStreamingState(StreamingState state)
@@ -73,17 +74,7 @@ void ControlService::notifyStreamingState(StreamingState state)
     default:
       throw std::runtime_error("Unknown streaming state");
   }
-}
-
-bool parseControl(std::string const& s, std::smatch& match)
-{
-  char const* action = strstr(s.data(), "CONTROL_ACTION:");
-  if (action == nullptr) {
-    return false;
-  }
-  const static std::regex controlRE1(".*CONTROL_ACTION: READY_TO_(QUIT)_(ME|ALL)", std::regex::optimize);
-  const static std::regex controlRE2(".*CONTROL_ACTION: (NOTIFY_STREAMING_STATE) (IDLE|STREAMING|EOS)", std::regex::optimize);
-  return std::regex_search(s, match, controlRE1) || std::regex_search(s, match, controlRE2);
+  mDriverClient.flushPending();
 }
 
 } // namespace o2::framework

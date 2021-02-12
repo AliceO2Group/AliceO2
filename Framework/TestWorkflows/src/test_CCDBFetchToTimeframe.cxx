@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/runDataProcessing.h"
+#include "Framework/Logger.h"
 #include "Framework/ControlService.h"
 
 #include <chrono>

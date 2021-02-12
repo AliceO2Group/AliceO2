@@ -142,9 +142,9 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
     digitsOut.push_back(digit);
   }
 
-  //Add noisy channels to the end of PHOS
+  //Add noisy channels to the end of CPV
   if (addNoise) {
-    addNoisyChannels(currentId, 56 * 64 * 4, digitsOut);
+    addNoisyChannels(currentId, 128 * 60 * 3, digitsOut);
   }
 }
 

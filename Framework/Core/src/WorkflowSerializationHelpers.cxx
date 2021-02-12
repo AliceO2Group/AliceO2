@@ -12,6 +12,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataDescriptorQueryBuilder.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/VariantJSONHelpers.h"
 
 #include <rapidjson/reader.h>
 #include <rapidjson/prettywriter.h>
@@ -265,6 +266,8 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       std::unique_ptr<ConfigParamSpec> opt{nullptr};
 
       using HelpString = ConfigParamSpec::HelpString;
+      std::stringstream is;
+      is.str(optionDefault);
       switch (optionType) {
         case VariantType::String:
           opt = std::make_unique<ConfigParamSpec>(optionName, optionType, optionDefault.c_str(), HelpString{optionHelp});
@@ -283,6 +286,39 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
           break;
         case VariantType::Bool:
           opt = std::make_unique<ConfigParamSpec>(optionName, optionType, (bool)std::stoi(optionDefault, nullptr), HelpString{optionHelp});
+          break;
+        case VariantType::ArrayInt:
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::ArrayInt>(is), HelpString{optionHelp});
+          break;
+        case VariantType::ArrayFloat:
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::ArrayFloat>(is), HelpString{optionHelp});
+          break;
+        case VariantType::ArrayDouble:
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::ArrayDouble>(is), HelpString{optionHelp});
+          break;
+          //        case VariantType::ArrayBool:
+          //          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::ArrayBool>(is), HelpString{optionHelp});
+          //          break;
+        case VariantType::ArrayString:
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::ArrayString>(is), HelpString{optionHelp});
+          break;
+        case VariantType::Array2DInt:
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::Array2DInt>(is), HelpString{optionHelp});
+          break;
+        case VariantType::Array2DFloat:
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::Array2DFloat>(is), HelpString{optionHelp});
+          break;
+        case VariantType::Array2DDouble:
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::Array2DDouble>(is), HelpString{optionHelp});
+          break;
+        case VariantType::LabeledArrayInt:
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::LabeledArrayInt>(is), HelpString{optionHelp});
+          break;
+        case VariantType::LabeledArrayFloat:
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::LabeledArrayFloat>(is), HelpString{optionHelp});
+          break;
+        case VariantType::LabeledArrayDouble:
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::LabeledArrayDouble>(is), HelpString{optionHelp});
           break;
         default:
           opt = std::make_unique<ConfigParamSpec>(optionName, optionType, optionDefault, HelpString{optionHelp});
@@ -692,7 +728,24 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
       w.Key("type");
       w.String(s.c_str());
       std::ostringstream oss;
-      oss << option.defaultValue;
+      switch (option.type) {
+        case VariantType::ArrayInt:
+        case VariantType::ArrayFloat:
+        case VariantType::ArrayDouble:
+        case VariantType::ArrayBool:
+        case VariantType::ArrayString:
+        case VariantType::Array2DInt:
+        case VariantType::Array2DFloat:
+        case VariantType::Array2DDouble:
+        case VariantType::LabeledArrayInt:
+        case VariantType::LabeledArrayFloat:
+        case VariantType::LabeledArrayDouble:
+          VariantJSONHelpers::write(oss, option.defaultValue);
+          break;
+        default:
+          oss << option.defaultValue;
+          break;
+      }
       w.Key("defaultValue");
       w.String(oss.str().c_str());
       w.Key("help");

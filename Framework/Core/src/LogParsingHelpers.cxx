@@ -20,6 +20,7 @@ char const* const LogParsingHelpers::LOG_LEVELS[(int)LogParsingHelpers::LogLevel
   "INFO",
   "WARNING",
   "ERROR",
+  "FATAL",
   "UNKNOWN"};
 using LogLevel = o2::framework::LogParsingHelpers::LogLevel;
 
@@ -52,6 +53,8 @@ LogLevel LogParsingHelpers::parseTokenLevel(std::string_view const s)
     return LogLevel::Warning;
   } else if (s.compare(LABELPOS, 8, "[ERROR] ") == 0) {
     return LogLevel::Error;
+  } else if (s.compare(LABELPOS, 8, "[FATAL] ") == 0) {
+    return LogLevel::Fatal;
   }
   return LogLevel::Unknown;
 }

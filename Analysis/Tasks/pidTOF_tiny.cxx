@@ -77,13 +77,13 @@ struct pidTOFTaskTiny {
       const float exp_sigma = resp_PID.GetExpectedSigma(resp, trk.collision(), trk);
       const float separation = resp_PID.GetSeparation(resp, trk.collision(), trk);
       if (separation <= o2::aod::pidtof_tiny::binned_min) {
-        tofpid(exp_sigma, o2::aod::pidtof_tiny::lower_bin);
+        tofpid(o2::aod::pidtof_tiny::lower_bin);
       } else if (separation >= o2::aod::pidtof_tiny::binned_max) {
-        tofpid(exp_sigma, o2::aod::pidtof_tiny::upper_bin);
+        tofpid(o2::aod::pidtof_tiny::upper_bin);
       } else if (separation >= 0) {
-        tofpid(exp_sigma, separation / o2::aod::pidtof_tiny::bin_width + 0.5f);
+        tofpid(separation / o2::aod::pidtof_tiny::bin_width + 0.5f);
       } else {
-        tofpid(exp_sigma, separation / o2::aod::pidtof_tiny::bin_width - 0.5f);
+        tofpid(separation / o2::aod::pidtof_tiny::bin_width - 0.5f);
       }
     }
   }

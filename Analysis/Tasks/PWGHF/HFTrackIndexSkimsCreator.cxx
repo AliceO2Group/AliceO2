@@ -55,7 +55,7 @@ struct SelectTracks {
 
   HistogramRegistry registry{
     "registry",
-    {{"hpt_nocuts", "all tracks;#it{p}_{T}^{track} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 100.}}}},
+    {{"hpt_nocuts", "all tracks;#it{p}_{T}^{track} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      // 2-prong histograms
      {"hpt_cuts_2prong", "tracks selected for 2-prong vertexing;#it{p}_{T}^{track} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hdcatoprimxy_cuts_2prong", "tracks selected for 2-prong vertexing;DCAxy to prim. vtx. (cm);entries", {HistType::kTH1F, {{static_cast<int>(1.2 * dcatoprimxymax_2prong * 100), -1.2 * dcatoprimxymax_2prong, 1.2 * dcatoprimxymax_2prong}}}},
@@ -74,7 +74,7 @@ struct SelectTracks {
       int status_prong = 3; // selection flag , 2 bits on
 
       auto trackPt = track.pt();
-      if (b_dovalplots) {
+      if (b_dovalplots.value) {
         registry.get<TH1>(HIST("hpt_nocuts"))->Fill(trackPt);
       }
 
@@ -96,9 +96,9 @@ struct SelectTracks {
       }
 
       // quality cut
-      if (doCutQuality && status_prong > 0) { // FIXME to make a more complete selection e.g track.flags() & o2::aod::track::TPCrefit && track.flags() & o2::aod::track::GoldenChi2 &&
+      if (doCutQuality.value && status_prong > 0) { // FIXME to make a more complete selection e.g track.flags() & o2::aod::track::TPCrefit && track.flags() & o2::aod::track::GoldenChi2 &&
         UChar_t clustermap = track.itsClusterMap();
-        if (!(track.tpcNClsFound() >= d_tpcnclsfound &&
+        if (!(track.tpcNClsFound() >= d_tpcnclsfound.value &&
               track.flags() & o2::aod::track::ITSrefit &&
               (TESTBIT(clustermap, 0) || TESTBIT(clustermap, 1)))) {
           status_prong = 0;
@@ -182,7 +182,7 @@ struct HFTrackIndexSkimsCreator {
      {"hNCand3Prong", "3-prong candidates preselected;# of candidates;entries", {HistType::kTH1F, {{5000, 0., 500000.}}}},
      {"hNCand3ProngVsNTracks", "3-prong candidates preselected;# of selected tracks;# of candidates;entries", {HistType::kTH2F, {{2500, 0., 25000.}, {5000, 0., 500000.}}}},
      {"hmassDPlusToPiKPi", "D+ candidates;inv. mass (#pi K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
-     {"hmassLctoPKPi", "Lc candidates;inv. mass (p K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
+     {"hmassLcToPKPi", "Lc candidates;inv. mass (p K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
      {"hmassDsToPiKK", "Ds candidates;inv. mass (K K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}}}};
 
   Filter filterSelectTracks = (aod::hf_seltrack::isSelProng > 0);

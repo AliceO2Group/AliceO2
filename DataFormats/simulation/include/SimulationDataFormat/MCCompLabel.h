@@ -86,13 +86,16 @@ class MCCompLabel
     return (tr1 == tr2) ? ((isCorrect() && other.isCorrect()) ? 1 : 0) : -1;
   }
 
-  // conversion operator
-  operator ULong64_t() const { return mLabel; }
   // allow to retrieve bare label
   ULong64_t getRawValue() const { return mLabel; }
 
   // comparison operator, compares only label, not eventual weight or correctness info
   bool operator==(const MCCompLabel& other) const { return (mLabel & maskFull) == (other.mLabel & maskFull); }
+  bool operator!=(const MCCompLabel& other) const { return (mLabel & maskFull) != (other.mLabel & maskFull); }
+  // relation operators needed for some sorting methods
+  bool operator<(const MCCompLabel& other) const { return (mLabel & maskFull) < (other.mLabel & maskFull); }
+  bool operator>(const MCCompLabel& other) const { return (mLabel & maskFull) > (other.mLabel & maskFull); }
+
   // invalidate
   void unset() { mLabel = NotSet; }
   void setNoise() { mLabel = Noise; }
@@ -137,9 +140,10 @@ class MCCompLabel
   static constexpr int maxTrackID() { return maskTrackID; }
   ClassDefNV(MCCompLabel, 1);
 };
-} // namespace o2
 
-std::ostream& operator<<(std::ostream& os, const o2::MCCompLabel& c);
+std::ostream& operator<<(std::ostream& os, MCCompLabel const& c);
+
+} // namespace o2
 
 namespace std
 {
@@ -149,7 +153,7 @@ struct hash<o2::MCCompLabel> {
  public:
   size_t operator()(o2::MCCompLabel const& label) const
   {
-    return static_cast<uint64_t>(label);
+    return label.getRawValue();
   }
 };
 } // namespace std

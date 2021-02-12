@@ -343,7 +343,10 @@ class O2HitMerger : public FairMQDevice
       originbr->GetEntry(index);
       for (Int_t i = 0; i < nprimaries[index]; i++) {
         auto& track = incomingdata->at(i);
-        track.SetFirstDaughterTrackId(-1);
+        if (track.isTransported()) { // reset daughters only if track was transported, it will be fixed below
+          track.SetFirstDaughterTrackId(-1);
+          track.SetLastDaughterTrackId(-1);
+        }
         targetdata->push_back(track);
       }
       incomingdata->clear();

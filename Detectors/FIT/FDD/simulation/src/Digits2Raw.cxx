@@ -23,6 +23,7 @@ ClassImp(Digits2Raw);
 void Digits2Raw::readDigits(const std::string& outDir, const std::string& fileDigitsName)
 {
   LOG(INFO) << "==============FDD: Digits2Raw::convertDigits" << std::endl;
+  mWriter.setCarryOverCallBack(this);
   LookUpTable lut(true);
 
   std::string outd = outDir;
@@ -62,9 +63,8 @@ void Digits2Raw::readDigits(const std::string& outDir, const std::string& fileDi
       auto channels = bcd.getBunchChannelData(digitsCh);
 
       if (!channels.empty()) {
-        LOG(DEBUG);
-        LOG(INFO) << "o2::fdd::Digits2Raw::readDigits(): Start to convertDigits() at ibc = " << ibc << "  " << bcd.mIntRecord
-                  << " iCh0:" << bcd.ref.getFirstEntry() << "  nentries:" << bcd.ref.getEntries();
+        LOG(DEBUG) << "o2::fdd::Digits2Raw::readDigits(): Start to convertDigits() at ibc = " << ibc << "  " << bcd.mIntRecord
+                   << " iCh0:" << bcd.ref.getFirstEntry() << "  nentries:" << bcd.ref.getEntries();
         convertDigits(bcd, channels, lut);
       }
     }
@@ -170,4 +170,12 @@ void Digits2Raw::fillSecondHalfWordAndAddData(int iChannelPerLink, int prevPmLin
   mWriter.addData(feeId, sCruId, linkId, sEndPointId, ir, data);
   LOG(DEBUG) << "  Switch prevPmLink:  " << prevPmLink << ". Save data with nGBTWords="
              << nGBTWords << " in header. Last channel: " << iChannelPerLink;
+}
+
+//_____________________________________________________________________________________
+int Digits2Raw::carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> data,
+                                const char* ptr, int maxSize, int splitID,
+                                std::vector<char>& trailer, std::vector<char>& header) const
+{
+  return 0; // do not split, always start new CRU page
 }

@@ -202,6 +202,8 @@ class MCTrackT
   }
   bool getInhibited() const { return ((PropEncoding)mProp).inhibited; }
 
+  bool isTransported() const { return getToBeDone() && !getInhibited(); };
+
   /// get the string representation of the production process
   const char* getProdProcessAsString() const;
 
@@ -327,6 +329,8 @@ inline MCTrackT<T>::MCTrackT(const TParticle& part)
 {
   // our convention is to communicate the process as (part) of the unique ID
   setProcess(part.GetUniqueID());
+  // extract storage flag
+  setStore(part.TestBit(ParticleStatus::kKeep));
   // extract toBeDone flag
   setToBeDone(part.TestBit(ParticleStatus::kToBeDone));
   // extract inhibited flag

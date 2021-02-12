@@ -80,6 +80,16 @@ export O2DPLDEBUG='xterm -hold -e sudo gdb attach $O2DEBUGGEDPID &'
 Be sure to use single quotes to avoid direct expansion of O2DEBUGGEDPID variable.
 The `&` character add the end is needed to start gdb in a separate process.
 
+### Dumping stacktraces on a signal
+
+If you are on linux you can get stacktraces on a various signals via the:
+
+```
+--stacktrace-on-signal "<signal> [<signal>..]"
+```
+
+option, where `<signal>` can be: all, segv, bus, ill, abrt, fpe and sys.
+
 
 ### Debug GUI
 

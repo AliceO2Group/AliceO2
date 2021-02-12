@@ -22,7 +22,6 @@
 #include "GPUTRDTrackletWord.h"
 #include "GPUTRDGeometry.h"
 #include "GPUTRDTrackerDebug.h"
-#include "GPUMemoryResource.h"
 #include "GPUCommonMath.h"
 #include "GPUCommonAlgorithm.h"
 
@@ -31,15 +30,13 @@ using namespace GPUCA_NAMESPACE::gpu;
 class GPUTPCGMPolynomialField;
 
 #ifndef GPUCA_GPUCODE
-
-#ifndef GPUCA_GPUCODE_DEVICE
+#include "GPUMemoryResource.h"
 #include "GPUReconstruction.h"
 #ifdef WITH_OPENMP
 #include <omp.h>
 #endif
 #include <chrono>
 #include <vector>
-#endif
 #ifdef GPUCA_ALIROOT_LIB
 #include "TDatabasePDG.h"
 #include "AliMCParticle.h"
@@ -1035,7 +1032,6 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
   //GPUInfo("Attached %i tracklets", t->GetNtracklets());
   return true;
 }
-
 
 template <class TRDTRK, class PROP>
 GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::InsertHypothesis(Hypothesis hypo, int& nCurrHypothesis, int idxOffset)

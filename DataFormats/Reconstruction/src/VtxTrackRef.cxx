@@ -17,6 +17,7 @@
 #include <fmt/printf.h>
 #include <iostream>
 #include <bitset>
+#include <climits>
 
 using namespace o2::dataformats;
 
@@ -29,14 +30,32 @@ std::string VtxTrackRef::asString() const
   return str;
 }
 
+// set the last +1 element index and finalize all references
+void VtxTrackRef::print() const
+{
+  LOG(INFO) << asString();
+}
+
+// set the last +1 element index and check consistency
+void VtxTrackRef::setEnd(int end)
+{
+  if (end <= 0) {
+    return; // empty
+  }
+  setEntries(end - getFirstEntry());
+  for (int i = VtxTrackIndex::NSources - 1; i--;) {
+    if (getFirstEntryOfSource(i) < 0) {
+      throw std::runtime_error(fmt::format("1st entry for source {:d} was not set", i));
+    }
+    if (getEntriesOfSource(i) < 0) {
+      throw std::runtime_error(fmt::format("Source {:d} has negative number of entrie", getEntriesOfSource(i)));
+    }
+  }
+}
+
 std::ostream& o2::dataformats::operator<<(std::ostream& os, const o2::dataformats::VtxTrackRef& v)
 {
   // stream itself
   os << v.asString();
   return os;
-}
-
-void VtxTrackRef::print() const
-{
-  LOG(INFO) << asString();
 }

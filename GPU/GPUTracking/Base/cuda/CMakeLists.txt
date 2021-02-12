@@ -29,12 +29,12 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   set(CURTC_DEFINES "-D$<JOIN:$<TARGET_PROPERTY:${defineIncludeSrc},COMPILE_DEFINITIONS>,$<SEMICOLON>-D>"
                     -DGPUCA_GPUCODE_GENRTC
   )
-  set(CURTC_INCLUDES "-I$<JOIN:$<TARGET_PROPERTY:${defineIncludeSrc},INCLUDE_DIRECTORIES>,$<SEMICOLON>-I>"
+  set(CURTC_INCLUDES "-I$<JOIN:$<FILTER:$<TARGET_PROPERTY:${defineIncludeSrc},INCLUDE_DIRECTORIES>,EXCLUDE,^/usr/include/?>,$<SEMICOLON>-I>"
                     -I${CMAKE_SOURCE_DIR}/Detectors/Base/src
                     -I${CMAKE_SOURCE_DIR}/Detectors/TRD/base/src
   )
   if(ALIGPU_BUILD_TYPE STREQUAL "O2")
-    set(CURTC_INCLUDES ${CURTC_INCLUDES} "-I$<JOIN:$<TARGET_PROPERTY:O2::ITStrackingCUDA,INCLUDE_DIRECTORIES>,$<SEMICOLON>-I>")
+    set(CURTC_INCLUDES ${CURTC_INCLUDES} "-I$<JOIN:$<FILTER:$<TARGET_PROPERTY:O2::ITStrackingCUDA,INCLUDE_DIRECTORIES>,EXCLUDE,^/usr/include/?>,$<SEMICOLON>-I>")
   endif()
   #set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -keep")
 
@@ -68,8 +68,8 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   
   add_custom_command(
       OUTPUT ${CURTC_BIN}.src.S
-      COMMAND cat ${GPUDIR}/Standalone/makefiles/include.S | sed "s/FILENAMEMOD/_curtc_GPUReconstructionCUDArtc_cu_src/g" | sed "s,FILENAMENORMAL,${CURTC_BIN}.src,g" > ${CURTC_BIN}.src.S
-      MAIN_DEPENDENCY ${GPUDIR}/Standalone/makefiles/include.S
+      COMMAND cat ${GPUDIR}/utils/include.S | sed "s/FILENAMEMOD/_curtc_GPUReconstructionCUDArtc_cu_src/g" | sed "s,FILENAMENORMAL,${CURTC_BIN}.src,g" > ${CURTC_BIN}.src.S
+      MAIN_DEPENDENCY ${GPUDIR}/utils/include.S
   )
 
   add_custom_command(
@@ -81,8 +81,8 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   
   add_custom_command(
       OUTPUT ${CURTC_BIN}.command.S
-      COMMAND cat ${GPUDIR}/Standalone/makefiles/include.S | sed "s/FILENAMEMOD/_curtc_GPUReconstructionCUDArtc_cu_command/g" | sed "s,FILENAMENORMAL,${CURTC_BIN}.command,g" > ${CURTC_BIN}.command.S
-      MAIN_DEPENDENCY ${GPUDIR}/Standalone/makefiles/include.S
+      COMMAND cat ${GPUDIR}/utils/include.S | sed "s/FILENAMEMOD/_curtc_GPUReconstructionCUDArtc_cu_command/g" | sed "s,FILENAMENORMAL,${CURTC_BIN}.command,g" > ${CURTC_BIN}.command.S
+      MAIN_DEPENDENCY ${GPUDIR}/utils/include.S
       DEPENDS ${CURTC_BIN}.command
   )
   # cmake-format: on
@@ -95,7 +95,7 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
     LANGUAGE
     ASM
     OBJECT_DEPENDS
-    "${CURTC_BIN}.src;${GPUDIR}/Standalone/makefiles/include.S")
+    "${CURTC_BIN}.src;${GPUDIR}/utils/include.S")
     
   set_source_files_properties(
     ${CURTC_BIN}.command.S

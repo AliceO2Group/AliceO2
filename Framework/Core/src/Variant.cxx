@@ -28,7 +28,7 @@ void printArray(std::ostream& oss, T* array, size_t size)
 }
 
 template <typename T>
-void printMatrix(std::ostream& oss, Array2D<T> m)
+void printMatrix(std::ostream& oss, Array2D<T> const& m)
 {
   oss << variant_array_symbol<T>::symbol << "[[";
   oss << m(0, 0);
@@ -84,13 +84,13 @@ std::ostream& operator<<(std::ostream& oss, Variant const& val)
     case VariantType::ArrayString:
       printArray<std::string>(oss, val.get<std::string*>(), val.size());
       break;
-    case VariantType::MatrixInt:
+    case VariantType::Array2DInt:
       printMatrix<int>(oss, val.get<Array2D<int>>());
       break;
-    case VariantType::MatrixFloat:
+    case VariantType::Array2DFloat:
       printMatrix<float>(oss, val.get<Array2D<float>>());
       break;
-    case VariantType::MatrixDouble:
+    case VariantType::Array2DDouble:
       printMatrix<double>(oss, val.get<Array2D<double>>());
       break;
     case VariantType::Empty:

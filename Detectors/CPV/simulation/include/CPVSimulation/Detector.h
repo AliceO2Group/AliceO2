@@ -152,7 +152,7 @@ class Detector : public o2::base::DetImpl<Detector>
   void defineSensitiveVolumes();
 
   // Geometry parameters
-  Bool_t mActiveModule[6]; // list of modules to create
+  Bool_t mActiveModule[5]; // list of modules to create
 
   // Simulation
   std::vector<Hit>* mHits = nullptr; //! Collection of CPV hits

@@ -27,6 +27,7 @@ o2_add_library(
     O2::TOFWorkflow
     O2::TPCWorkflow
     O2::CCDB
+    O2::MathUtils
 )
 
 o2_add_executable(
@@ -49,7 +50,6 @@ o2_add_executable(
     O2::ITSReconstruction
     O2::FT0Reconstruction
     O2::TPCFastTransformation
-    O2::GPUTracking
     O2::TPCBase
     O2::TPCReconstruction
     O2::TOFBase

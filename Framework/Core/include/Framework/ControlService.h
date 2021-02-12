@@ -11,7 +11,6 @@
 #define O2_FRAMEWORK_CONTROLSERVICE_H_
 
 #include "Framework/ServiceHandle.h"
-#include <regex>
 #include <mutex>
 
 namespace o2::framework
@@ -57,8 +56,6 @@ class ControlService
   DriverClient& mDriverClient;
   std::mutex mMutex;
 };
-
-bool parseControl(std::string const& s, std::smatch& match);
 
 } // namespace o2::framework
 #endif // O2_FRAMEWORK_CONTROLSERVICE_H_

@@ -105,6 +105,9 @@ class CalibPedestal : public CalibRawBase
   /// \return noise calibration object
   const CalPad& getNoise() const { return mNoise; }
 
+  /// return all pad clibrations as vector
+  const std::vector<const o2::tpc::CalDet<float>*> getCalDets() const { return std::vector<const o2::tpc::CalDet<float>*>{&mPedestal, &mNoise}; }
+
   /// Get the statistics type
   StatisticsType getStatisticsType() const { return mStatisticsType; }
 

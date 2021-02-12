@@ -13,6 +13,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsTOF/Cluster.h"
+#include "FairLogger.h"
 #endif
 
 //#define DEBUG
@@ -37,11 +38,11 @@ void checkTOFMatching(bool batchMode = true)
 
   // getting the TPC tracks
   TFile* ftracksTPC = new TFile("tpctracks.root");
-  TTree* tpcTree = (TTree*)ftracksTPC->Get("events");
+  TTree* tpcTree = (TTree*)ftracksTPC->Get("tpcrec");
   std::vector<o2::tpc::TrackTPC>* mTPCTracksArrayInp = new std::vector<o2::tpc::TrackTPC>;
-  tpcTree->SetBranchAddress("Tracks", &mTPCTracksArrayInp);
+  tpcTree->SetBranchAddress("TPCTracks", &mTPCTracksArrayInp);
   std::vector<o2::MCCompLabel>* mcTPC = new std::vector<o2::MCCompLabel>();
-  tpcTree->SetBranchAddress("TracksMCTruth", &mcTPC);
+  tpcTree->SetBranchAddress("TPCTracksMCTruth", &mcTPC);
 
   // getting the ITS tracks
   TFile* ftracksITS = new TFile("o2trac_its.root");
@@ -129,20 +130,20 @@ void checkTOFMatching(bool batchMode = true)
       int tofClIndex = infoTOF.getTOFClIndex();
       float chi2 = infoTOF.getChi2();
 #ifdef DEBUG
-      Printf("\nentry in tree %d, matching %d, indexITSTPCtrack = %d, tofClIndex = %d, chi2 = %f", ientry, imatch, indexITSTPCtrack, tofClIndex, chi2);
+      LOGF(INFO, "nentry in tree %d, matching %d, indexITSTPCtrack = %d, tofClIndex = %d, chi2 = %f", ientry, imatch, indexITSTPCtrack, tofClIndex, chi2);
 #endif
 
       float matBud = infoTOF.getLTIntegralOut().getX2X0();
 
       //      o2::MCCompLabel label = mcTOF->getElement(mcTOF->getMCTruthHeader(tofClIndex).index);
       const auto& labelsTOF = mcTOF->getLabels(tofClIndex);
-      int trackIdTOF;
-      int eventIdTOF;
-      int sourceIdTOF;
+      int trackIdTOF = -1;
+      int eventIdTOF = -1;
+      int sourceIdTOF = -1;
 
       for (uint ilabel = 0; ilabel < labelsTOF.size(); ilabel++) {
 #ifdef DEBUG
-        Printf("TOF label %d: trackID = %d, eventID = %d, sourceID = %d", ilabel, labelsTOF[ilabel].getTrackID(), labelsTOF[ilabel].getEventID(), labelsTOF[ilabel].getSourceID());
+        LOGF(INFO, "TOF label %d: trackID = %d, eventID = %d, sourceID = %d", ilabel, labelsTOF[ilabel].getTrackID(), labelsTOF[ilabel].getEventID(), labelsTOF[ilabel].getSourceID());
 #endif
         if (ilabel == 0) {
           trackIdTOF = labelsTOF[ilabel].getTrackID();
@@ -154,12 +155,12 @@ void checkTOFMatching(bool batchMode = true)
       int nContributingChannels = tofCluster.getNumOfContributingChannels();
       int mainContributingChannel = tofCluster.getMainContributingChannel();
 #ifdef DEBUG
-      Printf("The TOF cluster has %d contributing channels, and the main one is %d", nContributingChannels, mainContributingChannel);
+      LOGF(INFO, "The TOF cluster has %d contributing channels, and the main one is %d", nContributingChannels, mainContributingChannel);
 #endif
       int* indices = new int();
       o2::tof::Geo::getVolumeIndices(mainContributingChannel, indices);
 #ifdef DEBUG
-      Printf("Indices of main contributing channel are %d, %d, %d, %d, %d", indices[0], indices[1], indices[2], indices[3], indices[4]);
+      LOGF(INFO, "Indices of main contributing channel are %d, %d, %d, %d, %d", indices[0], indices[1], indices[2], indices[3], indices[4]);
 #endif
       bool isUpLeft = tofCluster.isAdditionalChannelSet(o2::tof::Cluster::kUpLeft);
       bool isUp = tofCluster.isAdditionalChannelSet(o2::tof::Cluster::kUp);
@@ -170,7 +171,7 @@ void checkTOFMatching(bool batchMode = true)
       bool isDownLeft = tofCluster.isAdditionalChannelSet(o2::tof::Cluster::kDownLeft);
       bool isLeft = tofCluster.isAdditionalChannelSet(o2::tof::Cluster::kLeft);
 #ifdef DEBUG
-      Printf("isUpLeft = %d, isUp = %d, isUpRight = %d, isRight = %d, isDownRight = %d, isDown = %d, isDownLeft = %d, isLeft = %d", isUpLeft, isUp, isUpRight, isRight, isDownRight, isDown, isDownLeft, isLeft);
+      LOGF(INFO, "isUpLeft = %d, isUp = %d, isUpRight = %d, isRight = %d, isDownRight = %d, isDown = %d, isDownLeft = %d, isLeft = %d", isUpLeft, isUp, isUpRight, isRight, isDownRight, isDown, isDownLeft, isLeft);
 #endif
       int* indexCont = new int();
       indexCont[0] = indices[0];
@@ -185,7 +186,7 @@ void checkTOFMatching(bool batchMode = true)
         numberOfSecondaryContributingChannels++;
         secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
 #ifdef DEBUG
-        Printf("secondaryContributingChannel[down] = %d", secondaryContributingChannel);
+        LOGF(INFO, "secondaryContributingChannel[down] = %d", secondaryContributingChannel);
 #endif
         indexCont[3] = indices[3];
       }
@@ -195,7 +196,7 @@ void checkTOFMatching(bool batchMode = true)
         numberOfSecondaryContributingChannels++;
         secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
 #ifdef DEBUG
-        Printf("secondaryContributingChannel[downright] = %d", secondaryContributingChannel);
+        LOGF(INFO, "secondaryContributingChannel[downright] = %d", secondaryContributingChannel);
 #endif
         indexCont[3] = indices[3];
         indexCont[4] = indices[4];
@@ -206,7 +207,7 @@ void checkTOFMatching(bool batchMode = true)
         numberOfSecondaryContributingChannels++;
         secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
 #ifdef DEBUG
-        Printf("secondaryContributingChannel[downleft] = %d", secondaryContributingChannel);
+        LOGF(INFO, "secondaryContributingChannel[downleft] = %d", secondaryContributingChannel);
 #endif
         indexCont[3] = indices[3];
         indexCont[4] = indices[4];
@@ -216,7 +217,7 @@ void checkTOFMatching(bool batchMode = true)
         numberOfSecondaryContributingChannels++;
         secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
 #ifdef DEBUG
-        Printf("secondaryContributingChannel[up] = %d", secondaryContributingChannel);
+        LOGF(INFO, "secondaryContributingChannel[up] = %d", secondaryContributingChannel);
 #endif
         indexCont[3] = indices[3];
       }
@@ -226,7 +227,7 @@ void checkTOFMatching(bool batchMode = true)
         numberOfSecondaryContributingChannels++;
         secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
 #ifdef DEBUG
-        Printf("secondaryContributingChannel[upright] = %d", secondaryContributingChannel);
+        LOGF(INFO, "secondaryContributingChannel[upright] = %d", secondaryContributingChannel);
 #endif
         indexCont[3] = indices[3];
         indexCont[4] = indices[4];
@@ -237,7 +238,7 @@ void checkTOFMatching(bool batchMode = true)
         numberOfSecondaryContributingChannels++;
         secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
 #ifdef DEBUG
-        Printf("secondaryContributingChannel[upleft] = %d", secondaryContributingChannel);
+        LOGF(INFO, "secondaryContributingChannel[upleft] = %d", secondaryContributingChannel);
 #endif
         indexCont[3] = indices[3];
         indexCont[4] = indices[4];
@@ -247,7 +248,7 @@ void checkTOFMatching(bool batchMode = true)
         numberOfSecondaryContributingChannels++;
         secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
 #ifdef DEBUG
-        Printf("secondaryContributingChannel[right] = %d", secondaryContributingChannel);
+        LOGF(INFO, "secondaryContributingChannel[right] = %d", secondaryContributingChannel);
 #endif
         indexCont[4] = indices[4];
       }
@@ -256,33 +257,33 @@ void checkTOFMatching(bool batchMode = true)
         numberOfSecondaryContributingChannels++;
         secondaryContributingChannel = o2::tof::Geo::getIndex(indexCont);
 #ifdef DEBUG
-        Printf("secondaryContributingChannel[left] = %d", secondaryContributingChannel);
+        LOGF(INFO, "secondaryContributingChannel[left] = %d", secondaryContributingChannel);
 #endif
         indexCont[4] = indices[4];
       }
 #ifdef DEBUG
-      Printf("Total number of secondary channels= %d", numberOfSecondaryContributingChannels);
+      LOGF(INFO, "Total number of secondary channels= %d", numberOfSecondaryContributingChannels);
 #endif
       o2::dataformats::TrackTPCITS trackITSTPC = mTracksArrayInp->at(indexITSTPCtrack);
 
       const auto evIdxTPC = trackITSTPC.getRefTPC();
 #ifdef DEBUG
-      Printf("matched TPCtrack index = %d", evIdxTPC);
+      LOG(INFO) << "matched TPCtrack index:", evIdxTPC;
 #endif
       const auto evIdxITS = trackITSTPC.getRefITS();
 #ifdef DEBUG
-      Printf("matched ITStrack index = %d", evIdxITS);
+      LOG(INFO) << "matched ITStrack index: ", evIdxITS;
 #endif
       // getting the TPC labels
       const auto& labelsTPC = (*mcTPC)[evIdxTPC];
 #ifdef DEBUG
-      Printf("TPC label: trackID = %d, eventID = %d, sourceID = %d", labelsTPC.getTrackID(), labelsTPC.getEventID(), labelsTPC.getSourceID());
+      LOGF(INFO, "TPC label: trackID = %d, eventID = %d, sourceID = %d", labelsTPC.getTrackID(), labelsTPC.getEventID(), labelsTPC.getSourceID());
 #endif
 
       // getting the ITS labels
       const auto& labelsITS = (*mcITS)[evIdxITS];
 #ifdef DEBUG
-      Printf("ITS label: trackID = %d, eventID = %d, sourceID = %d", ilabel, labelsITS.getTrackID(), labelsITS.getEventID(), labelsITS.getSourceID());
+      LOGF(INFO, "ITS label: trackID = %d, eventID = %d, sourceID = %d", labelsITS.getTrackID(), labelsITS.getEventID(), labelsITS.getSourceID());
 #endif
       bool bMatched = kFALSE;
       for (uint ilabel = 0; ilabel < labelsTOF.size(); ilabel++) {
@@ -346,37 +347,37 @@ void checkTOFMatching(bool batchMode = true)
       bool ITSfound = false;
       for (uint i = 0; i < mTracksArrayInp->size(); i++) {
         o2::dataformats::TrackTPCITS trackITSTPC = mTracksArrayInp->at(i);
-        const auto evIdxTPCcheck = trackITSTPC.getRefTPC();
-        const auto evIdxITScheck = trackITSTPC.getRefITS();
-        const auto& labelsTPCcheck = (*mcTPC)[evIdxTPCcheck];
+        const auto idxTPCcheck = trackITSTPC.getRefTPC();
+        const auto idxITScheck = trackITSTPC.getRefITS();
+        const auto& labelsTPCcheck = (*mcTPC)[idxTPCcheck.getIndex()];
         if (abs(labelsTPCcheck.getTrackID()) == trackIdTOF && labelsTPCcheck.getEventID() == eventIdTOF && labelsTPCcheck.getSourceID() == sourceIdTOF) {
 #ifdef DEBUG
-          Printf("The TPC track that should have been matched to TOF is number %d", i);
+          LOGF(INFO, "The TPC track that should have been matched to TOF is number %d", i);
 #endif
           TPCfound = true;
         }
-        const auto& labelsITScheck = (*mcITS)[evIdxITScheck];
+        const auto& labelsITScheck = (*mcITS)[idxITScheck.getIndex()];
         if (labelsITScheck.getTrackID() == trackIdTOF && labelsITScheck.getEventID() == eventIdTOF && labelsITScheck.getSourceID() == sourceIdTOF) {
 #ifdef DEBUG
-          Printf("The ITS track that should have been matched to TOF is number %d", i);
+          LOGF(INFO, "The ITS track that should have been matched to TOF is number %d", i);
 #endif
           ITSfound = true;
         }
       }
 #ifdef DEBUG
       if (!TPCfound)
-        Printf("There is no TPC track found that should have corresponded to this TOF cluster!");
+        LOGF(INFO, "There is no TPC track found that should have corresponded to this TOF cluster!");
       if (!ITSfound)
-        Printf("There is no ITS track found that should have corresponded to this TOF cluster!");
+        LOGF(INFO, "There is no ITS track found that should have corresponded to this TOF cluster!");
 #endif
     }
   }
 
   new TCanvas;
 
-  Printf("Number of      matches = %d", nMatches);
-  Printf("Number of GOOD matches = %d (%.2f)", nGoodMatches, (float)nGoodMatches / nMatches);
-  Printf("Number of BAD  matches = %d (%.2f)", nBadMatches, (float)nBadMatches / nMatches);
+  LOGF(INFO, "Number of      matches = %d", nMatches);
+  LOGF(INFO, "Number of GOOD matches = %d (%.2f)", nGoodMatches, (float)nGoodMatches / nMatches);
+  LOGF(INFO, "Number of BAD  matches = %d (%.2f)", nBadMatches, (float)nBadMatches / nMatches);
 
   TFile* fout = nullptr;
   if (batchMode)
@@ -489,7 +490,7 @@ void checkTOFMatching(bool batchMode = true)
 
   float fraction = hchi2dh->GetEntries() * 1. / hchi2->GetEntries();
   float fractionErr = TMath::Sqrt(fraction * (1 - fraction) / hchi2->GetEntries());
-  printf("Fraction of multiple hits = (%.1f +/- %.1f)%c\n", fraction * 100, fractionErr * 100, '%');
+  LOGF(INFO, "Fraction of multiple hits = (%.1f +/- %.1f)%c", fraction * 100, fractionErr * 100, '%');
 
   htof->Fit("pol0", "", "", 1, 5);
   float effMatch = 0;
@@ -498,7 +499,7 @@ void checkTOFMatching(bool batchMode = true)
   float effMatchErr = 0;
   if (htof->GetListOfFunctions()->At(0))
     effMatchErr = ((TF1*)htof->GetListOfFunctions()->At(0))->GetParError(0);
-  printf("TOF matching eff (pt > 1) = %f +/- %f\n", effMatch, effMatchErr);
+  LOGF(INFO, "TOF matching eff (pt > 1) = %f +/- %f", effMatch, effMatchErr);
 
   htofMism->Fit("pol0", "", "", 1, 5);
   float mismMatch = 0;
@@ -507,7 +508,7 @@ void checkTOFMatching(bool batchMode = true)
   float mismMatchErr = 0;
   if (htofMism->GetListOfFunctions()->At(0))
     mismMatchErr = ((TF1*)htofMism->GetListOfFunctions()->At(0))->GetParError(0);
-  printf("TOF-track mismatch (pt > 1) = %f +/- %f\n", mismMatch, mismMatchErr);
+  LOGF(INFO, "TOF-track mismatch (pt > 1) = %f +/- %f", mismMatch, mismMatchErr);
 
   if (fout)
     fout->Close();

@@ -17,9 +17,7 @@
 #include <vector>
 #include <functional>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// A callback function to retrieve the FairMQChannel name to be used for sending
@@ -82,6 +80,9 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* label,
                                                    const char* defaultChannelConfig,
                                                    InjectorFunction converter);
 
+DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* label,
+                                                 Inputs const& inputSpecs,
+                                                 const char* defaultChannelConfig);
 /// Create a DataProcessorSpec for a DPL processor with an out-of-band channel to relay DPL
 /// workflow data to an external FairMQDevice channel.
 ///
@@ -100,11 +101,10 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* label,
 ///        by command line option '--channel-config'
 ///        notice that the name of the device will be added as the name of the channel if the
 ///        name tag is not yet in the configuration
-DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* label,
-                                                 Inputs const& inputSpecs,
-                                                 const char* defaultChannelConfig);
+DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* label,
+                                                      Inputs const& inputSpecs,
+                                                      const char* defaultChannelConfig);
 
-} // namespace framework
 } // namespace o2
 
 #endif // FRAMEWORK_RAWDEVICESOURCE_H

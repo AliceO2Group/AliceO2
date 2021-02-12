@@ -74,8 +74,8 @@ class Clusterer
 
  protected:
   Geometry* mPHOSGeom = nullptr;             ///< PHOS geometry
-  const CalibParams* mCalibParams = nullptr; //! Calibration coefficients
-  const BadChannelMap* mBadMap = nullptr;    //! Calibration coefficients
+  std::unique_ptr<CalibParams> mCalibParams; ///! Calibration coefficients
+  std::unique_ptr<BadChannelMap> mBadMap;    ///! Bad map
 
   std::vector<FullCluster> mClusters; ///< internal vector of clusters
   int mFirstDigitInEvent;             ///< Range of digits from one event

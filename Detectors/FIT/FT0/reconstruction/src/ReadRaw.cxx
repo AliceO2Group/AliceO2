@@ -60,7 +60,9 @@ Continueous mode  :   for only bunches with data at least in 1 channel.
 #include "TBranch.h"
 #include "CommonConstants/LHCConstants.h"
 #include "DetectorsRaw/RDHUtils.h"
-
+#ifdef MS_GSL_V3
+#include <gsl/span_ext>
+#endif
 using namespace o2::ft0;
 using RDHUtils = o2::raw::RDHUtils;
 

@@ -47,7 +47,7 @@ class VertexerTraitsGPU : public VertexerTraits
   ~VertexerTraitsGPU() override;
 #else
   VertexerTraitsGPU();
-  ~VertexerTraitsGPU() = default;
+  ~VertexerTraitsGPU() override;
 #endif
   void initialise(ROframe*) override;
   void computeTracklets() override;

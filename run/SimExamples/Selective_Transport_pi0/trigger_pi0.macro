@@ -1,0 +1,44 @@
+#include "Generators/Trigger.h"
+#include "TParticle.h"
+
+int counterAll = 0;
+int counterSel = 0;
+
+bool has_gamma_converted(const TParticle& gamma, const std::vector<TParticle>& particles)
+{
+  if (gamma.GetPdgCode() != 22) return false; // not a photon
+  if (gamma.GetNDaughters() != 2) return false; // did not produce 2 particles
+  auto& d1 = particles[gamma.GetFirstDaughter()];
+  auto& d2 = particles[gamma.GetLastDaughter()];
+  if (abs(d1.GetPdgCode()) != 11 || abs(d2.GetPdgCode()) != 11) return false; // not e+e- pair;
+  if (d1.R() > 100. || d2.R() > 100.) return false; // both at R < 100 cm
+  return true;
+};
+
+bool has_pi0_converted(const TParticle& pi0, const std::vector<TParticle>& particles)
+{  
+  if (pi0.GetPdgCode() != 111) return false;
+  if (std::fabs(pi0.Eta()) > 1.0) return false;
+  if (pi0.GetNDaughters() != 2) return false;
+  auto& d1 = particles[pi0.GetFirstDaughter()];
+  auto& d2 = particles[pi0.GetLastDaughter()];
+  return ( has_gamma_converted(d1, particles) && has_gamma_converted(d2, particles) );
+};
+		     		     
+o2::eventgen::Trigger
+  trigger_pi0()
+{
+  auto trigger = [](const std::vector<TParticle>& particles) -> bool {		   
+		   counterAll++;
+		   for (const auto& particle : particles)
+		     if (has_pi0_converted(particle, particles)) {
+		       counterSel++;
+		       std::cout << " --- event selected: " << counterSel << " / " << counterAll << std::endl;
+		       return true;
+		     }
+		   std::cout << " --- event rejected: " << counterSel << " / " << counterAll << std::endl;
+		   return false;
+		 };
+  
+  return trigger;
+}

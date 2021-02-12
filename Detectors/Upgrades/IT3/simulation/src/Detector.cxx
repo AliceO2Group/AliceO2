@@ -161,7 +161,10 @@ void Detector::configITS(Detector* its)
     its->defineInnerLayerITS3(idLayer, layerData[0], layerData[1], SensorLayerThickness, 0, 0);
     ++idLayer;
   }
-  its->createOuterBarrel(kTRUE);
+
+  // Redefine Wrapper Volume 0 using information on IB radii
+  static constexpr float safety = 0.5; // Educated guess, may be improved
+  its->defineWrapperVolume(0, tdr5data[0][0] - safety, tdr5data[3][0] + safety, wrpZSpan[0]);
 }
 
 // Detector::Detector(Bool_t active)
@@ -972,9 +975,9 @@ void Detector::constructDetectorGeometry()
   // Create the wrapper volumes
   TGeoVolume** wrapVols = nullptr;
 
-  if (sNumberOfWrapperVolumes && mCreateOuterBarrel) {
+  if (sNumberOfWrapperVolumes) {
     wrapVols = new TGeoVolume*[sNumberOfWrapperVolumes];
-    for (int id = 1; id < sNumberOfWrapperVolumes; id++) {
+    for (int id = 0; id < sNumberOfWrapperVolumes; id++) {
       wrapVols[id] = createWrapperVolume(id);
       vITSV->AddNode(wrapVols[id], 1, nullptr);
     }
@@ -1025,17 +1028,16 @@ void Detector::constructDetectorGeometry()
       mGeometry[j]->setSensorThick(mDetectorThickness[j]);
     }
 
-    if (mCreateOuterBarrel && j >= mNumberOfInnerLayers) {
-      for (int iw = 0; iw < sNumberOfWrapperVolumes; iw++) {
-        if (mLayerRadii[j] > mWrapperMinRadius[iw] && mLayerRadii[j] < mWrapperMaxRadius[iw]) {
-          LOG(DEBUG) << "Will embed layer " << j << " in wrapper volume " << iw;
+    for (int iw = 0; iw < sNumberOfWrapperVolumes; iw++) {
+      if (mLayerRadii[j] > mWrapperMinRadius[iw] && mLayerRadii[j] < mWrapperMaxRadius[iw]) {
+        LOG(DEBUG) << "Will embed layer " << j << " in wrapper volume " << iw;
 
-          dest = wrapVols[iw];
-          mWrapperLayerId[j] = iw;
-          break;
-        }
+        dest = wrapVols[iw];
+        mWrapperLayerId[j] = iw;
+        break;
       }
     }
+
     mGeometry[j]->createLayer(dest);
   }
 
@@ -1233,11 +1235,7 @@ void Detector::addAlignableVolumesLayer(int lr, TString& parent, Int_t& lastUID)
   TString wrpV =
     mWrapperLayerId[lr] != -1 ? Form("%s%d_1", GeometryTGeo::getITSWrapVolPattern(), mWrapperLayerId[lr]) : "";
   TString path;
-  if (mCreateOuterBarrel && (lr >= mNumberOfInnerLayers)) {
-    path = Form("%s/%s/%s%d_1", parent.Data(), wrpV.Data(), GeometryTGeo::getITSLayerPattern(), lr);
-  } else {
-    path = Form("%s/%s%d_1", parent.Data(), GeometryTGeo::getITSLayerPattern(), lr);
-  }
+  path = Form("%s/%s/%s%d_1", parent.Data(), wrpV.Data(), GeometryTGeo::getITSLayerPattern(), lr);
   TString sname = GeometryTGeo::composeSymNameLayer(lr);
 
   LOG(DEBUG) << "Add " << sname << " <-> " << path;

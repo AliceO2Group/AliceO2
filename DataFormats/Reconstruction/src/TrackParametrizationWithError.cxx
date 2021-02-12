@@ -30,7 +30,9 @@
 
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <iostream>
+#ifndef GPUCA_STANDALONE
 #include "Math/SMatrix.h"
+#endif
 #endif
 
 #ifndef GPUCA_ALIGPUCODE
@@ -260,7 +262,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateToDCA(const o2::dat
 //______________________________________________________________
 template <typename value_T>
 GPUd() TrackParametrizationWithError<value_T>::TrackParametrizationWithError(const dim3_t& xyz, const dim3_t& pxpypz,
-                                                                             const gpu::gpustd::array<value_t, kLabCovMatSize>& cv, int charge, bool sectorAlpha)
+                                                                             const gpu::gpustd::array<value_t, kLabCovMatSize>& cv, int charge, bool sectorAlpha, const PID pid)
 {
   // construct track param and covariance from kinematics and lab errors
 
@@ -318,6 +320,7 @@ GPUd() TrackParametrizationWithError<value_T>::TrackParametrizationWithError(con
   this->setTgl(mom[2] * ptI); // tg(lambda)
   this->setAbsCharge(gpu::CAMath::Abs(charge));
   this->setQ2Pt(charge ? ptI * charge : ptI);
+  this->setPID(pid);
   //
   if (gpu::CAMath::Abs(1.f - this->getSnp()) < kSafe) {
     this->setSnp(1.f - kSafe); // Protection
@@ -565,7 +568,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, cons
 
   // Calculate the track parameters
   t = 1.f / gpu::CAMath::Sqrt(vecLab[3] * vecLab[3] + vecLab[4] * vecLab[4]);
-  this->setX(x);
+  this->setX(xk);
   this->setY(y);
   this->setZ(z);
   this->setSnp(vecLab[4] * t);
@@ -688,7 +691,7 @@ GPUd() typename TrackParametrizationWithError<value_T>::value_t TrackParametriza
   return (d * (szz * d - sdz * z) + z * (sdd * z - d * sdz)) / det;
 }
 
-#ifndef GPUCA_GPUCODE // Disable function relying on ROOT SMatrix on GPU
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // Disable function relying on ROOT SMatrix on GPU
 
 //______________________________________________
 template <typename value_T>

@@ -20,7 +20,7 @@
 using namespace o2::gpu;
 using namespace o2::tpc;
 
-void GPUTPCO2InterfaceRefit::fillSharedClustersMap(const ClusterNativeAccess* cl, const gsl::span<const TrackTPC> trks, const TPCClRefElem* trackRef, unsigned char* shmap)
+void GPUO2InterfaceRefit::fillSharedClustersMap(const ClusterNativeAccess* cl, const gsl::span<const TrackTPC> trks, const TPCClRefElem* trackRef, unsigned char* shmap)
 {
   if (!cl || !shmap) {
     throw std::runtime_error("Must provide clusters access and preallocated recepient for shared map");
@@ -37,7 +37,7 @@ void GPUTPCO2InterfaceRefit::fillSharedClustersMap(const ClusterNativeAccess* cl
   }
 }
 
-GPUTPCO2InterfaceRefit::GPUTPCO2InterfaceRefit(const ClusterNativeAccess* cl, const TPCFastTransform* trans, float bz, const TPCClRefElem* trackRef, const unsigned char* sharedmap, const std::vector<TrackTPC>* trks, o2::base::Propagator* p) : mRefit(), mParam(new GPUParam)
+GPUO2InterfaceRefit::GPUO2InterfaceRefit(const ClusterNativeAccess* cl, const TPCFastTransform* trans, float bz, const TPCClRefElem* trackRef, const unsigned char* sharedmap, const std::vector<TrackTPC>* trks, o2::base::Propagator* p) : mRefit(), mParam(new GPUParam)
 {
   if (sharedmap == nullptr && trks == nullptr) {
     throw std::runtime_error("Must provide either shared cluster map or vector of tpc tracks to build the map");
@@ -57,7 +57,7 @@ GPUTPCO2InterfaceRefit::GPUTPCO2InterfaceRefit(const ClusterNativeAccess* cl, co
   mRefit.SetFastTransform(trans);
 }
 
-void GPUTPCO2InterfaceRefit::setGPUTrackFitInProjections(bool v) { mParam->rec.fitInProjections = v; }
-void GPUTPCO2InterfaceRefit::setTrackReferenceX(float v) { mParam->rec.TrackReferenceX = v; }
+void GPUO2InterfaceRefit::setGPUTrackFitInProjections(bool v) { mParam->rec.fitInProjections = v; }
+void GPUO2InterfaceRefit::setTrackReferenceX(float v) { mParam->rec.TrackReferenceX = v; }
 
-GPUTPCO2InterfaceRefit::~GPUTPCO2InterfaceRefit() = default;
+GPUO2InterfaceRefit::~GPUO2InterfaceRefit() = default;

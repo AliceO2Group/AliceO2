@@ -21,7 +21,7 @@ o2_add_library(
     O2::ITSReconstruction
     O2::FT0Reconstruction
     O2::TPCFastTransformation
-    O2::GPUTracking
+    O2::GPUO2Interface
     O2::TPCBase
     O2::TPCReconstruction
     O2::TOFBase

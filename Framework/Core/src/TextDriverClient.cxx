@@ -17,9 +17,13 @@ TextDriverClient::TextDriverClient(ServiceRegistry& registry, DeviceState& devic
 {
 }
 
-void TextDriverClient::tell(const char* msg)
+void TextDriverClient::tell(const char* msg, size_t s, bool flush)
 {
-  LOG(INFO) << msg;
+  LOG(INFO) << std::string_view{msg, s};
+}
+
+void TextDriverClient::flushPending()
+{
 }
 
 } // namespace o2::framework

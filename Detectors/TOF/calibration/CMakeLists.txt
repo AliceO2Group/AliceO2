@@ -16,6 +16,8 @@ o2_add_library(TOFCalibration
 		       src/TOFChannelCalibrator.cxx
 		       src/TOFCalibCollector.cxx
 		       src/TOFDCSProcessor.cxx
+		       src/TOFFEElightReader.cxx
+		       src/TOFFEElightConfig.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsTOF O2::TOFBase
                                      O2::CCDB
 	                             O2::DetectorsCalibration
@@ -31,7 +33,9 @@ o2_target_root_dictionary(TOFCalibration
                                   include/TOFCalibration/TOFChannelCalibrator.h
                                   include/TOFCalibration/TOFCalibCollector.h
                                   include/TOFCalibration/CollectCalibInfoTOF.h
-				  include/TOFCalibration/TOFDCSProcessor.h)
+				  include/TOFCalibration/TOFDCSProcessor.h
+				  include/TOFCalibration/TOFFEElightReader.h
+				  include/TOFCalibration/TOFFEElightConfig.h)
 
 
 o2_add_executable(data-generator-workflow
@@ -83,3 +87,9 @@ o2_add_executable(tof-dcs-workflow
                   PUBLIC_LINK_LIBRARIES O2::Framework
                                        O2::TOFCalibration
                                        O2::DetectorsDCS)
+
+o2_add_executable(tof-dcs-sim-workflow
+                  COMPONENT_NAME calibration
+                  SOURCES testWorkflow/tof-dcs-sim-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::DCStestWorkflow)
+
