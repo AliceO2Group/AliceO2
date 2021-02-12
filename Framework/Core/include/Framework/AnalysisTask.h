@@ -89,7 +89,7 @@ struct AnalysisDataProcessorBuilder {
       inputSources.erase(last, inputSources.end());
       inputs.push_back(InputSpec{metadata::tableLabel(), metadata::origin(), metadata::description(), Lifetime::Timeframe, inputSources});
     } else if constexpr (soa::is_pid_table_v<metadata>) {
-      auto inputSources = getIndexSources<std::decay_t<Arg>>();
+      auto inputSources = getIndexSources<typename aod::MetadataTrait<std::decay_t<Arg>>::metadata>();
       std::sort(inputSources.begin(), inputSources.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name < b.name; });
       auto last = std::unique(inputSources.begin(), inputSources.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name == b.name; });
       inputSources.erase(last, inputSources.end());
