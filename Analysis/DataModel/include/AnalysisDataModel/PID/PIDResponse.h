@@ -111,45 +111,43 @@ DEFINE_UNWRAP_NSIGMA_COLUMN(TOFNSigmaAl, tofNSigmaAl);
 
 } // namespace pidtof_tiny
 
-using namespace pidtofbeta;
 DECLARE_SOA_TABLE(pidRespTOFbeta, "AOD", "pidRespTOFbeta",
-                  Beta, BetaError,
-                  ExpBetaEl, ExpBetaElError,
-                  SeparationBetaEl,
-                  DiffBetaEl<Beta, ExpBetaEl>);
+                  pidtofbeta::Beta, pidtofbeta::BetaError,
+                  pidtofbeta::ExpBetaEl, pidtofbeta::ExpBetaElError,
+                  pidtofbeta::SeparationBetaEl,
+                  pidtofbeta::DiffBetaEl<pidtofbeta::Beta, pidtofbeta::ExpBetaEl>);
 
-using namespace pidtof;
 // Table with the full information for all particles
 DECLARE_SOA_TABLE(pidRespTOF, "AOD", "pidRespTOF",
                   // Expected signals
-                  TOFExpSignalDiffEl<TOFNSigmaEl, TOFExpSigmaEl>,
-                  TOFExpSignalDiffMu<TOFNSigmaMu, TOFExpSigmaMu>,
-                  TOFExpSignalDiffPi<TOFNSigmaPi, TOFExpSigmaPi>,
-                  TOFExpSignalDiffKa<TOFNSigmaKa, TOFExpSigmaKa>,
-                  TOFExpSignalDiffPr<TOFNSigmaPr, TOFExpSigmaPr>,
-                  TOFExpSignalDiffDe<TOFNSigmaDe, TOFExpSigmaDe>,
-                  TOFExpSignalDiffTr<TOFNSigmaTr, TOFExpSigmaTr>,
-                  TOFExpSignalDiffHe<TOFNSigmaHe, TOFExpSigmaHe>,
-                  TOFExpSignalDiffAl<TOFNSigmaAl, TOFExpSigmaAl>,
+                  pidtof::TOFExpSignalDiffEl<pidtof::TOFNSigmaEl, pidtof::TOFExpSigmaEl>,
+                  pidtof::TOFExpSignalDiffMu<pidtof::TOFNSigmaMu, pidtof::TOFExpSigmaMu>,
+                  pidtof::TOFExpSignalDiffPi<pidtof::TOFNSigmaPi, pidtof::TOFExpSigmaPi>,
+                  pidtof::TOFExpSignalDiffKa<pidtof::TOFNSigmaKa, pidtof::TOFExpSigmaKa>,
+                  pidtof::TOFExpSignalDiffPr<pidtof::TOFNSigmaPr, pidtof::TOFExpSigmaPr>,
+                  pidtof::TOFExpSignalDiffDe<pidtof::TOFNSigmaDe, pidtof::TOFExpSigmaDe>,
+                  pidtof::TOFExpSignalDiffTr<pidtof::TOFNSigmaTr, pidtof::TOFExpSigmaTr>,
+                  pidtof::TOFExpSignalDiffHe<pidtof::TOFNSigmaHe, pidtof::TOFExpSigmaHe>,
+                  pidtof::TOFExpSignalDiffAl<pidtof::TOFNSigmaAl, pidtof::TOFExpSigmaAl>,
                   // Expected sigma
-                  TOFExpSigmaEl, TOFExpSigmaMu, TOFExpSigmaPi,
-                  TOFExpSigmaKa, TOFExpSigmaPr, TOFExpSigmaDe,
-                  TOFExpSigmaTr, TOFExpSigmaHe, TOFExpSigmaAl,
+                  pidtof::TOFExpSigmaEl, pidtof::TOFExpSigmaMu, pidtof::TOFExpSigmaPi,
+                  pidtof::TOFExpSigmaKa, pidtof::TOFExpSigmaPr, pidtof::TOFExpSigmaDe,
+                  pidtof::TOFExpSigmaTr, pidtof::TOFExpSigmaHe, pidtof::TOFExpSigmaAl,
                   // NSigma
-                  TOFNSigmaEl, TOFNSigmaMu, TOFNSigmaPi,
-                  TOFNSigmaKa, TOFNSigmaPr, TOFNSigmaDe,
-                  TOFNSigmaTr, TOFNSigmaHe, TOFNSigmaAl);
+                  pidtof::TOFNSigmaEl, pidtof::TOFNSigmaMu, pidtof::TOFNSigmaPi,
+                  pidtof::TOFNSigmaKa, pidtof::TOFNSigmaPr, pidtof::TOFNSigmaDe,
+                  pidtof::TOFNSigmaTr, pidtof::TOFNSigmaHe, pidtof::TOFNSigmaAl);
 
 // Per particle tables
-DECLARE_SOA_TABLE(pidRespTOFEl, "AOD", "pidRespTOFEl", TOFExpSignalDiffEl<TOFNSigmaEl, TOFExpSigmaEl>, TOFExpSigmaEl, TOFNSigmaEl);
-DECLARE_SOA_TABLE(pidRespTOFMu, "AOD", "pidRespTOFMu", TOFExpSignalDiffMu<TOFNSigmaMu, TOFExpSigmaMu>, TOFExpSigmaMu, TOFNSigmaMu);
-DECLARE_SOA_TABLE(pidRespTOFPi, "AOD", "pidRespTOFPi", TOFExpSignalDiffPi<TOFNSigmaPi, TOFExpSigmaPi>, TOFExpSigmaPi, TOFNSigmaPi);
-DECLARE_SOA_TABLE(pidRespTOFKa, "AOD", "pidRespTOFKa", TOFExpSignalDiffKa<TOFNSigmaKa, TOFExpSigmaKa>, TOFExpSigmaKa, TOFNSigmaKa);
-DECLARE_SOA_TABLE(pidRespTOFPr, "AOD", "pidRespTOFPr", TOFExpSignalDiffPr<TOFNSigmaPr, TOFExpSigmaPr>, TOFExpSigmaPr, TOFNSigmaPr);
-DECLARE_SOA_TABLE(pidRespTOFDe, "AOD", "pidRespTOFDe", TOFExpSignalDiffDe<TOFNSigmaDe, TOFExpSigmaDe>, TOFExpSigmaDe, TOFNSigmaDe);
-DECLARE_SOA_TABLE(pidRespTOFTr, "AOD", "pidRespTOFTr", TOFExpSignalDiffTr<TOFNSigmaTr, TOFExpSigmaTr>, TOFExpSigmaTr, TOFNSigmaTr);
-DECLARE_SOA_TABLE(pidRespTOFHe, "AOD", "pidRespTOFHe", TOFExpSignalDiffHe<TOFNSigmaHe, TOFExpSigmaHe>, TOFExpSigmaHe, TOFNSigmaHe);
-DECLARE_SOA_TABLE(pidRespTOFAl, "AOD", "pidRespTOFAl", TOFExpSignalDiffAl<TOFNSigmaAl, TOFExpSigmaAl>, TOFExpSigmaAl, TOFNSigmaAl);
+DECLARE_SOA_TABLE(pidRespTOFEl, "AOD", "pidRespTOFEl", pidtof::TOFExpSignalDiffEl<pidtof::TOFNSigmaEl, pidtof::TOFExpSigmaEl>, pidtof::TOFExpSigmaEl, pidtof::TOFNSigmaEl);
+DECLARE_SOA_TABLE(pidRespTOFMu, "AOD", "pidRespTOFMu", pidtof::TOFExpSignalDiffMu<pidtof::TOFNSigmaMu, pidtof::TOFExpSigmaMu>, pidtof::TOFExpSigmaMu, pidtof::TOFNSigmaMu);
+DECLARE_SOA_TABLE(pidRespTOFPi, "AOD", "pidRespTOFPi", pidtof::TOFExpSignalDiffPi<pidtof::TOFNSigmaPi, pidtof::TOFExpSigmaPi>, pidtof::TOFExpSigmaPi, pidtof::TOFNSigmaPi);
+DECLARE_SOA_TABLE(pidRespTOFKa, "AOD", "pidRespTOFKa", pidtof::TOFExpSignalDiffKa<pidtof::TOFNSigmaKa, pidtof::TOFExpSigmaKa>, pidtof::TOFExpSigmaKa, pidtof::TOFNSigmaKa);
+DECLARE_SOA_TABLE(pidRespTOFPr, "AOD", "pidRespTOFPr", pidtof::TOFExpSignalDiffPr<pidtof::TOFNSigmaPr, pidtof::TOFExpSigmaPr>, pidtof::TOFExpSigmaPr, pidtof::TOFNSigmaPr);
+DECLARE_SOA_TABLE(pidRespTOFDe, "AOD", "pidRespTOFDe", pidtof::TOFExpSignalDiffDe<pidtof::TOFNSigmaDe, pidtof::TOFExpSigmaDe>, pidtof::TOFExpSigmaDe, pidtof::TOFNSigmaDe);
+DECLARE_SOA_TABLE(pidRespTOFTr, "AOD", "pidRespTOFTr", pidtof::TOFExpSignalDiffTr<pidtof::TOFNSigmaTr, pidtof::TOFExpSigmaTr>, pidtof::TOFExpSigmaTr, pidtof::TOFNSigmaTr);
+DECLARE_SOA_TABLE(pidRespTOFHe, "AOD", "pidRespTOFHe", pidtof::TOFExpSignalDiffHe<pidtof::TOFNSigmaHe, pidtof::TOFExpSigmaHe>, pidtof::TOFExpSigmaHe, pidtof::TOFNSigmaHe);
+DECLARE_SOA_TABLE(pidRespTOFAl, "AOD", "pidRespTOFAl", pidtof::TOFExpSignalDiffAl<pidtof::TOFNSigmaAl, pidtof::TOFExpSigmaAl>, pidtof::TOFExpSigmaAl, pidtof::TOFNSigmaAl);
 
 // Tiny size tables
 DECLARE_SOA_TABLE(pidRespTOFTEl, "AOD", "pidRespTOFTEl", pidtof_tiny::TOFNSigmaStoreEl, pidtof_tiny::TOFNSigmaEl<pidtof_tiny::TOFNSigmaStoreEl>);
@@ -228,38 +226,37 @@ DEFINE_UNWRAP_NSIGMA_COLUMN(TPCNSigmaAl, tpcNSigmaAl);
 
 } // namespace pidtpc_tiny
 
-using namespace pidtpc;
 // Table with the full information for all particles
 DECLARE_SOA_TABLE(pidRespTPC, "AOD", "pidRespTPC",
                   // Expected signals
-                  TPCExpSignalDiffEl<TPCNSigmaEl, TPCExpSigmaEl>,
-                  TPCExpSignalDiffMu<TPCNSigmaMu, TPCExpSigmaMu>,
-                  TPCExpSignalDiffPi<TPCNSigmaPi, TPCExpSigmaPi>,
-                  TPCExpSignalDiffKa<TPCNSigmaKa, TPCExpSigmaKa>,
-                  TPCExpSignalDiffPr<TPCNSigmaPr, TPCExpSigmaPr>,
-                  TPCExpSignalDiffDe<TPCNSigmaDe, TPCExpSigmaDe>,
-                  TPCExpSignalDiffTr<TPCNSigmaTr, TPCExpSigmaTr>,
-                  TPCExpSignalDiffHe<TPCNSigmaHe, TPCExpSigmaHe>,
-                  TPCExpSignalDiffAl<TPCNSigmaAl, TPCExpSigmaAl>,
+                  pidtpc::TPCExpSignalDiffEl<pidtpc::TPCNSigmaEl, pidtpc::TPCExpSigmaEl>,
+                  pidtpc::TPCExpSignalDiffMu<pidtpc::TPCNSigmaMu, pidtpc::TPCExpSigmaMu>,
+                  pidtpc::TPCExpSignalDiffPi<pidtpc::TPCNSigmaPi, pidtpc::TPCExpSigmaPi>,
+                  pidtpc::TPCExpSignalDiffKa<pidtpc::TPCNSigmaKa, pidtpc::TPCExpSigmaKa>,
+                  pidtpc::TPCExpSignalDiffPr<pidtpc::TPCNSigmaPr, pidtpc::TPCExpSigmaPr>,
+                  pidtpc::TPCExpSignalDiffDe<pidtpc::TPCNSigmaDe, pidtpc::TPCExpSigmaDe>,
+                  pidtpc::TPCExpSignalDiffTr<pidtpc::TPCNSigmaTr, pidtpc::TPCExpSigmaTr>,
+                  pidtpc::TPCExpSignalDiffHe<pidtpc::TPCNSigmaHe, pidtpc::TPCExpSigmaHe>,
+                  pidtpc::TPCExpSignalDiffAl<pidtpc::TPCNSigmaAl, pidtpc::TPCExpSigmaAl>,
                   // Expected sigma
-                  TPCExpSigmaEl, TPCExpSigmaMu, TPCExpSigmaPi,
-                  TPCExpSigmaKa, TPCExpSigmaPr, TPCExpSigmaDe,
-                  TPCExpSigmaTr, TPCExpSigmaHe, TPCExpSigmaAl,
+                  pidtpc::TPCExpSigmaEl, pidtpc::TPCExpSigmaMu, pidtpc::TPCExpSigmaPi,
+                  pidtpc::TPCExpSigmaKa, pidtpc::TPCExpSigmaPr, pidtpc::TPCExpSigmaDe,
+                  pidtpc::TPCExpSigmaTr, pidtpc::TPCExpSigmaHe, pidtpc::TPCExpSigmaAl,
                   // NSigma
-                  TPCNSigmaEl, TPCNSigmaMu, TPCNSigmaPi,
-                  TPCNSigmaKa, TPCNSigmaPr, TPCNSigmaDe,
-                  TPCNSigmaTr, TPCNSigmaHe, TPCNSigmaAl);
+                  pidtpc::TPCNSigmaEl, pidtpc::TPCNSigmaMu, pidtpc::TPCNSigmaPi,
+                  pidtpc::TPCNSigmaKa, pidtpc::TPCNSigmaPr, pidtpc::TPCNSigmaDe,
+                  pidtpc::TPCNSigmaTr, pidtpc::TPCNSigmaHe, pidtpc::TPCNSigmaAl);
 
 // Per particle tables
-DECLARE_SOA_TABLE(pidRespTPCEl, "AOD", "pidRespTPCEl", TPCExpSignalDiffEl<TPCNSigmaEl, TPCExpSigmaEl>, TPCExpSigmaEl, TPCNSigmaEl);
-DECLARE_SOA_TABLE(pidRespTPCMu, "AOD", "pidRespTPCMu", TPCExpSignalDiffMu<TPCNSigmaMu, TPCExpSigmaMu>, TPCExpSigmaMu, TPCNSigmaMu);
-DECLARE_SOA_TABLE(pidRespTPCPi, "AOD", "pidRespTPCPi", TPCExpSignalDiffPi<TPCNSigmaPi, TPCExpSigmaPi>, TPCExpSigmaPi, TPCNSigmaPi);
-DECLARE_SOA_TABLE(pidRespTPCKa, "AOD", "pidRespTPCKa", TPCExpSignalDiffKa<TPCNSigmaKa, TPCExpSigmaKa>, TPCExpSigmaKa, TPCNSigmaKa);
-DECLARE_SOA_TABLE(pidRespTPCPr, "AOD", "pidRespTPCPr", TPCExpSignalDiffPr<TPCNSigmaPr, TPCExpSigmaPr>, TPCExpSigmaPr, TPCNSigmaPr);
-DECLARE_SOA_TABLE(pidRespTPCDe, "AOD", "pidRespTPCDe", TPCExpSignalDiffDe<TPCNSigmaDe, TPCExpSigmaDe>, TPCExpSigmaDe, TPCNSigmaDe);
-DECLARE_SOA_TABLE(pidRespTPCTr, "AOD", "pidRespTPCTr", TPCExpSignalDiffTr<TPCNSigmaTr, TPCExpSigmaTr>, TPCExpSigmaTr, TPCNSigmaTr);
-DECLARE_SOA_TABLE(pidRespTPCHe, "AOD", "pidRespTPCHe", TPCExpSignalDiffHe<TPCNSigmaHe, TPCExpSigmaHe>, TPCExpSigmaHe, TPCNSigmaHe);
-DECLARE_SOA_TABLE(pidRespTPCAl, "AOD", "pidRespTPCAl", TPCExpSignalDiffAl<TPCNSigmaAl, TPCExpSigmaAl>, TPCExpSigmaAl, TPCNSigmaAl);
+DECLARE_SOA_TABLE(pidRespTPCEl, "AOD", "pidRespTPCEl", pidtpc::TPCExpSignalDiffEl<pidtpc::TPCNSigmaEl, pidtpc::TPCExpSigmaEl>, pidtpc::TPCExpSigmaEl, pidtpc::TPCNSigmaEl);
+DECLARE_SOA_TABLE(pidRespTPCMu, "AOD", "pidRespTPCMu", pidtpc::TPCExpSignalDiffMu<pidtpc::TPCNSigmaMu, pidtpc::TPCExpSigmaMu>, pidtpc::TPCExpSigmaMu, pidtpc::TPCNSigmaMu);
+DECLARE_SOA_TABLE(pidRespTPCPi, "AOD", "pidRespTPCPi", pidtpc::TPCExpSignalDiffPi<pidtpc::TPCNSigmaPi, pidtpc::TPCExpSigmaPi>, pidtpc::TPCExpSigmaPi, pidtpc::TPCNSigmaPi);
+DECLARE_SOA_TABLE(pidRespTPCKa, "AOD", "pidRespTPCKa", pidtpc::TPCExpSignalDiffKa<pidtpc::TPCNSigmaKa, pidtpc::TPCExpSigmaKa>, pidtpc::TPCExpSigmaKa, pidtpc::TPCNSigmaKa);
+DECLARE_SOA_TABLE(pidRespTPCPr, "AOD", "pidRespTPCPr", pidtpc::TPCExpSignalDiffPr<pidtpc::TPCNSigmaPr, pidtpc::TPCExpSigmaPr>, pidtpc::TPCExpSigmaPr, pidtpc::TPCNSigmaPr);
+DECLARE_SOA_TABLE(pidRespTPCDe, "AOD", "pidRespTPCDe", pidtpc::TPCExpSignalDiffDe<pidtpc::TPCNSigmaDe, pidtpc::TPCExpSigmaDe>, pidtpc::TPCExpSigmaDe, pidtpc::TPCNSigmaDe);
+DECLARE_SOA_TABLE(pidRespTPCTr, "AOD", "pidRespTPCTr", pidtpc::TPCExpSignalDiffTr<pidtpc::TPCNSigmaTr, pidtpc::TPCExpSigmaTr>, pidtpc::TPCExpSigmaTr, pidtpc::TPCNSigmaTr);
+DECLARE_SOA_TABLE(pidRespTPCHe, "AOD", "pidRespTPCHe", pidtpc::TPCExpSignalDiffHe<pidtpc::TPCNSigmaHe, pidtpc::TPCExpSigmaHe>, pidtpc::TPCExpSigmaHe, pidtpc::TPCNSigmaHe);
+DECLARE_SOA_TABLE(pidRespTPCAl, "AOD", "pidRespTPCAl", pidtpc::TPCExpSignalDiffAl<pidtpc::TPCNSigmaAl, pidtpc::TPCExpSigmaAl>, pidtpc::TPCExpSigmaAl, pidtpc::TPCNSigmaAl);
 
 // Tiny size tables
 DECLARE_SOA_TABLE(pidRespTPCTEl, "AOD", "pidRespTPCTEl", pidtpc_tiny::TPCNSigmaStoreEl, pidtpc_tiny::TPCNSigmaEl<pidtpc_tiny::TPCNSigmaStoreEl>);
