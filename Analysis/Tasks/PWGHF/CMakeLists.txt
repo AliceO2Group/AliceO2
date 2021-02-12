@@ -88,7 +88,7 @@ o2_add_dpl_workflow(hf-task-bplus
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(hf-ddbar_corr
+o2_add_dpl_workflow(hf-task-ddbar-corr
                     SOURCES HFDDbar_corr.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)

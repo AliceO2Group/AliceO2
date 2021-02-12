@@ -807,17 +807,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
     adaptAnalysisTask<CreateBig2Prong>("add-collision-id"),
-    adaptAnalysisTask<TaskD0>("hf-task-d0"),
-    adaptAnalysisTask<TaskD0_LS>("hf-task-d0-ls")};
+    adaptAnalysisTask<TaskD0>("hf-task-d0d0bar"),
+    adaptAnalysisTask<TaskD0_LS>("hf-task-d0d0bar-ls")};
   //MC-based tasks
   const bool doMC = cfgc.options().get<bool>("doMC");
   if (doMC) {
-    workflow.push_back(adaptAnalysisTask<TaskD0MCrec>("hf-task-d0-mc-rec"));
-    workflow.push_back(adaptAnalysisTask<TaskD0MCgen>("hf-task-d0-mc-gen"));
-    workflow.push_back(adaptAnalysisTask<TaskD0MCrec_LS>("hf-task-d0-mc-rec-ls"));
-    workflow.push_back(adaptAnalysisTask<TaskD0MCgen_LS>("hf-task-d0-mc-gen-ls"));
+    workflow.push_back(adaptAnalysisTask<TaskD0MCrec>("hf-task-d0d0bar-mc-rec"));
+    workflow.push_back(adaptAnalysisTask<TaskD0MCgen>("hf-task-d0d0bar-mc-gen"));
+    workflow.push_back(adaptAnalysisTask<TaskD0MCrec_LS>("hf-task-d0d0bar-mc-rec-ls"));
+    workflow.push_back(adaptAnalysisTask<TaskD0MCgen_LS>("hf-task-d0d0bar-mc-gen-ls"));
     workflow.push_back(adaptAnalysisTask<TaskCCbarMCgen>("hf-task-ccbar-mc-gen"));
-    workflow.push_back(adaptAnalysisTask<TaskD0_CheckPhiResolution>("hf-task-d0-crosscheck-phi"));
+    workflow.push_back(adaptAnalysisTask<TaskD0_CheckPhiResolution>("hf-task-d0d0bar-crosscheck-phi"));
   }
   return workflow;
 }
