@@ -62,7 +62,8 @@ struct TaskX {
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsiToEE >= d_selectionFlagJpsi);
 
-  void process(aod::Collision const&, soa::Filtered<aod::BigTracks> const& tracks, soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiToEECandidate, aod::Colls>> const& candidates)
+/// aod::BigTracks is not soa::Filtered, should be added when filters are added
+  void process(aod::Collision const&, aod::BigTracks const& tracks, soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiToEECandidate, aod::Colls>> const& candidates)
   {
     for (auto& candidate : candidates) {
       if (!(candidate.hfflag() & 1 << JpsiToEE)) {
