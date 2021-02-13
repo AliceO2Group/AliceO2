@@ -246,7 +246,7 @@ struct ExpirationHandlerHelpers {
 /// FIXME: support shared memory
 std::string DeviceSpecHelpers::inputChannel2String(const InputChannelSpec& channel)
 {
-  return fmt::format("{}type={},method={},address={},rateLogging={},recvBufferSize={},sendBufferSize={}",
+  return fmt::format("{}type={},method={},address={},rateLogging={},rcvBufSize={},sndBufSize={}",
                      channel.name.empty() ? "" : "name=" + channel.name + ",",
                      ChannelSpecHelpers::typeAsString(channel.type),
                      ChannelSpecHelpers::methodAsString(channel.method),
@@ -258,7 +258,7 @@ std::string DeviceSpecHelpers::inputChannel2String(const InputChannelSpec& chann
 
 std::string DeviceSpecHelpers::outputChannel2String(const OutputChannelSpec& channel)
 {
-  return fmt::format("{}type={},method={},address={},rateLogging={},recvBufferSize={},sendBufferSize={}",
+  return fmt::format("{}type={},method={},address={},rateLogging={},rcvBufSize={},sndBufSize={}",
                      channel.name.empty() ? "" : "name=" + channel.name + ",",
                      ChannelSpecHelpers::typeAsString(channel.type),
                      ChannelSpecHelpers::methodAsString(channel.method),
