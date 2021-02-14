@@ -18,6 +18,7 @@
 #include <TGeoMatrix.h>
 #include <TVector3.h>
 #include <TMath.h>
+#include <array>
 
 namespace o2
 {
