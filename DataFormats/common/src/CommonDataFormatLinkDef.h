@@ -42,7 +42,7 @@
 
 #pragma link C++ class std::vector < o2::dataformats::RangeReference < int, int>> + ;
 
-#pragma link C++ class o2::dataformats::AbstractRef < 25, 4, 3> + ;
+#pragma link C++ class o2::dataformats::AbstractRef < 25, 5, 2> + ;
 
 #pragma link C++ class o2::InteractionRecord + ;
 #pragma link C++ class o2::InteractionTimeRecord + ;

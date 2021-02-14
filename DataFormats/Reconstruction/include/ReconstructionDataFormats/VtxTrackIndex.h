@@ -31,7 +31,6 @@ class VtxTrackIndex : public GlobalTrackID
  public:
   enum Flags : uint8_t {
     Contributor, // flag that it contributes to vertex fit
-    Reserved,    //
     Ambiguous,   // flag that attachment is ambiguous
     NFlags
   };
