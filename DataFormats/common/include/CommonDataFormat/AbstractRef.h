@@ -66,12 +66,15 @@ class AbstractRef
   bool testBit(int i) const { return (mRef >> (NBIdx + NBSrc)) & ((0x1U << i) & FlgMask); }
   void setBit(int i) { mRef = (mRef & (BaseMask & ~(0x1U << (i + NBIdx + NBSrc)))) | (((0x1U << i) & FlgMask) << (NBIdx + NBSrc)); }
   void resetBit(int i) { mRef = (mRef & (BaseMask & ~(0x1U << (i + NBIdx + NBSrc)))); }
-  void set(Idx_t idx, Src_t src) { mRef = (mRef & (BaseMask & ~((SrcMask << NBIdx) | (BaseMask & ~IdxMask)))) | ((SrcMask & Src_t(src)) << NBIdx) | (IdxMask & Idx_t(idx)); }
+  void set(Idx_t idx, Src_t src) { mRef = (mRef & (FlgMask << (NBIdx + NBSrc))) | ((SrcMask & Src_t(src)) << NBIdx) | (IdxMask & Idx_t(idx)); }
 
   Base_t getRaw() const { return mRef; }
 
+  bool isIndexSet() const { return getIndex() != IdxMask; }
+  bool isSourceSet() const { return getSource() != SrcMask; }
+
  protected:
-  Base_t mRef = 0; // packed reference
+  Base_t mRef = IdxMask | (SrcMask << NBIdx); // packed reference, dummy by default
 
   ClassDefNV(AbstractRef, 1);
 };
