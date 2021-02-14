@@ -9,7 +9,7 @@ if [ "0$O2_ROOT" == "0" ]; then
 fi
 
 # Set general arguments
-ARGS_ALL="--session default --severity $SEVERITY --shm-segment-id $NUMAID --shm-segment-size $SHMSIZE"
+ARGS_ALL="--session default --severity $SEVERITY --shm-segment-id $NUMAID --shm-segment-size $SHMSIZE --driver-client-backend ws://"
 if [ $EXTINPUT == 1 ] || [ $NUMAGPUIDS == 1 ]; then
   ARGS_ALL+=" --no-cleanup"
 fi
