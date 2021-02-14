@@ -65,9 +65,11 @@ class TrackTPC : public o2::track::TrackParCov
 
   GPUd() float getChi2() const { return mChi2; }
   GPUd() const o2::track::TrackParCov& getOuterParam() const { return mOuterParam; }
+  GPUd() const o2::track::TrackParCov& getParamOut() const { return mOuterParam; } // to have method with same name as other tracks
   GPUd() void setTime0(float v) { mTime0 = v; }
   GPUd() void setChi2(float v) { mChi2 = v; }
   GPUd() void setOuterParam(o2::track::TrackParCov&& v) { mOuterParam = v; }
+  GPUd() void setParamOut(o2::track::TrackParCov&& v) { mOuterParam = v; } // to have method with same name as other tracks
   GPUd() const ClusRef& getClusterRef() const { return mClustersReference; }
   GPUd() void shiftFirstClusterRef(int dif) { mClustersReference.setFirstEntry(dif + mClustersReference.getFirstEntry()); }
   GPUd() int getNClusters() const { return mClustersReference.getEntries(); }
