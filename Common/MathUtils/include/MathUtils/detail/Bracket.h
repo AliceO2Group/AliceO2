@@ -59,6 +59,13 @@ class Bracket
   T getMin() const;
   T mean() const;
   T delta() const;
+
+  void scale(T c)
+  {
+    mMin *= c;
+    mMax *= c;
+  }
+
   bool isValid() const;
   bool isInvalid() const;
   void update(T v);
