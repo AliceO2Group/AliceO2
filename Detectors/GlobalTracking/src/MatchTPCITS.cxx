@@ -418,7 +418,6 @@ void MatchTPCITS::selectBestMatches()
   do {
     nValidated = 0;
     int ntpc = mTPCWork.size(), nremaining = 0;
-    ;
     for (int it = 0; it < ntpc; it++) {
       auto& tTPC = mTPCWork[it];
       if (isDisabledTPC(tTPC) || isValidatedTPC(tTPC)) {

@@ -48,7 +48,7 @@ class TPCITSMatchingDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getTPCITSMatchingSpec(bool useFT0, bool calib, bool useMC, const std::vector<int>& tpcClusLanes);
+framework::DataProcessorSpec getTPCITSMatchingSpec(bool useFT0, bool calib, bool useMC);
 
 } // namespace globaltracking
 } // namespace o2

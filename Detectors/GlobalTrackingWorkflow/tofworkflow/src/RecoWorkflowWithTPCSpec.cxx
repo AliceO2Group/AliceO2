@@ -97,7 +97,7 @@ class TOFDPLRecoWorkflowWithTPCTask
       toflab = std::move(*toflabel);
     }
 
-    auto inputsTPCclusters = o2::tpc::getWorkflowTPCInputEmpryPtr();
+    std::decay_t<decltype(o2::tpc::getWorkflowTPCInput(pc))> inputsTPCclusters;
     if (mDoTPCRefit) {
       mMatcher.setTPCTrackClusIdxInp(pc.inputs().get<gsl::span<o2::tpc::TPCClRefElem>>("trackTPCClRefs"));
       mMatcher.setTPCClustersSharingMap(pc.inputs().get<gsl::span<unsigned char>>("clusTPCshmap"));
