@@ -21,9 +21,9 @@
 #ifndef ALIALGSTEER_H
 #define ALIALGSTEER_H
 
-// #include "AliGeomManager.h"
+// #include "AliGeomManager.h" FIXME(milettri): needs AliGeomManager
 #include "Align/AliAlgTrack.h"
-// #include "AliSymMatrix.h"
+// #include "AliSymMatrix.h" FIXME(milettri): needs AliSymMatrix
 
 #include <TMatrixDSym.h>
 #include <TVectorD.h>
@@ -34,10 +34,22 @@
 #include <TH1F.h>
 #include "Align/AliAlgAux.h"
 
-//class AliESDEvent;
-//class AliESDtrack;
-//class AliESDCosmicTrack;
-//class AliESDVertex;
+//class AliESDEvent; FIXME(milettri): needs AliESDEvent
+//class AliESDtrack; FIXME(milettri): needs AliESDtrack
+//class AliESDCosmicTrack; FIXME(milettri): needs AliESDCosmicTrack
+//class AliESDVertex; FIXME(milettri): needs AliESDVertex
+
+class TTree;
+class TFile;
+//
+
+namespace o2
+{
+namespace align
+{
+
+class Mille;
+
 class AliAlgDet;
 class AliAlgVol;
 class AliAlgVtx;
@@ -47,15 +59,6 @@ class AliAlgRes;
 class AliAlgResFast;
 class AliAlgConstraint;
 class AliAlgDOFStat;
-class TTree;
-class TFile;
-//
-class Mille;
-
-namespace o2
-{
-namespace align
-{
 
 class AliAlgSteer : public TObject
 {
@@ -117,8 +120,8 @@ class AliAlgSteer : public TObject
   //
   AliAlgSteer(const char* configMacro = 0, int refRun = -1);
   virtual ~AliAlgSteer();
-  Bool_t LoadRefOCDB();
-  Bool_t LoadRecoTimeOCDB();
+  //  Bool_t LoadRefOCDB(); FIXME(milettri): needs OCDB
+  //  Bool_t LoadRecoTimeOCDB(); FIXME(milettri): needs OCDB
   Bool_t GetUseRecoOCDB() const { return fUseRecoOCDB; }
   void SetUseRecoOCDB(Bool_t v = kTRUE) { fUseRecoOCDB = v; }
 
@@ -161,10 +164,10 @@ class AliAlgSteer : public TObject
   //
   void SetESDTree(const TTree* tr) { fESDTree = tr; }
   const TTree* GetESDTree() const { return fESDTree; }
-  void SetESDEvent(const AliESDEvent* ev);
-  const AliESDEvent* GetESDEvent() const { return fESDEvent; }
-  void SetESDtrack(const AliESDtrack* tr, int i = 0) { fESDTrack[i] = tr; }
-  const AliESDtrack* GetESDtrack(int i = 0) const { return fESDTrack[i]; }
+  //  void SetESDEvent(const AliESDEvent* ev); FIXME(milettri): needs AliESDEvent
+  //  const AliESDEvent* GetESDEvent() const { return fESDEvent; } FIXME(milettri): needs AliESDEvent
+  //  void SetESDtrack(const AliESDtrack* tr, int i = 0) { fESDTrack[i] = tr; } FIXME(milettri): needs AliESDtrack
+  //  const AliESDtrack* GetESDtrack(int i = 0) const { return fESDTrack[i]; } FIXME(milettri): needs AliESDtrack
   //
   // Track selection
   void SetCosmicSelStrict(Bool_t v = kTRUE) { fCosmicSelStrict = v; }
@@ -226,8 +229,8 @@ class AliAlgSteer : public TObject
   void SetEventSpeciiSelection(UInt_t sel) { fSelEventSpecii = sel; }
   UInt_t GetEventSpeciiSelection() const { return fSelEventSpecii; }
   //
-  void SetVertex(const AliESDVertex* v) { fVertex = v; }
-  const AliESDVertex* GetVertex() const { return fVertex; }
+  //  void SetVertex(const AliESDVertex* v) { fVertex = v; } FIXME(milettri): needs AliESDVertex
+  //  const AliESDVertex* GetVertex() const { return fVertex; } FIXME(milettri): needs AliESDVertex
   //
   //----------------------------------------
   Bool_t ReadParameters(const char* parfile = "millepede.res", Bool_t useErrors = kTRUE);
@@ -246,12 +249,12 @@ class AliAlgSteer : public TObject
   AliAlgMPRecord* GetMPRecord() const { return (AliAlgMPRecord*)fMPRecord; }
   TTree* GetMPRecTree() const { return fMPRecTree; }
   AliAlgTrack* GetAlgTrack() const { return (AliAlgTrack*)fAlgTrack; }
-  Bool_t ProcessEvent(const AliESDEvent* esdEv);
-  Bool_t ProcessTrack(const AliESDtrack* esdTr);
-  Bool_t ProcessTrack(const AliESDCosmicTrack* esdCTr);
-  UInt_t AcceptTrack(const AliESDtrack* esdTr, Bool_t strict = kTRUE) const;
-  UInt_t AcceptTrackCosmic(const AliESDtrack* esdPairCosm[kNCosmLegs]) const;
-  Bool_t CheckSetVertex(const AliESDVertex* vtx);
+  //  Bool_t ProcessEvent(const AliESDEvent* esdEv); FIXME(milettri): needs AliESDEvent
+  //  Bool_t ProcessTrack(const AliESDtrack* esdTr); FIXME(milettri): needs AliESDtrack
+  //  Bool_t ProcessTrack(const AliESDCosmicTrack* esdCTr); FIXME(milettri): needs AliESDCosmicTrack
+  //  UInt_t AcceptTrack(const AliESDtrack* esdTr, Bool_t strict = kTRUE) const; FIXME(milettri): needs AliESDtrack
+  //  UInt_t AcceptTrackCosmic(const AliESDtrack* esdPairCosm[kNCosmLegs]) const; FIXME(milettri): needs AliESDtrack
+  //  Bool_t CheckSetVertex(const AliESDVertex* vtx); FIXME(milettri): needs AliESDVertex
   Bool_t AddVertexConstraint();
   Int_t GetNDetectors() const { return fNDet; }
   AliAlgDet* GetDetector(Int_t i) const { return fDetectors[i]; }
@@ -273,13 +276,13 @@ class AliAlgSteer : public TObject
   void SetOutCDBPath(const char* name = "local://outOCDB");
   void SetOutCDBComment(const char* cm = 0) { fOutCDBComment = cm; }
   void SetOutCDBResponsible(const char* v = 0) { fOutCDBResponsible = v; }
-  void SetOutCDBRunRange(int rmin = 0, int rmax = 999999999);
+  //  void SetOutCDBRunRange(int rmin = 0, int rmax = 999999999); FIXME(milettri): needs OCDB
   Int_t* GetOutCDBRunRange() const { return (int*)fOutCDBRunRange; }
   Int_t GetOutCDBRunMin() const { return fOutCDBRunRange[0]; }
   Int_t GetOutCDBRunMax() const { return fOutCDBRunRange[1]; }
   Float_t GetControlFrac() const { return fControlFrac; }
   void SetControlFrac(float v = 1.) { fControlFrac = v; }
-  void WriteCalibrationResults() const;
+  //  void WriteCalibrationResults() const; FIXME(milettri): needs OCDB
   void ApplyAlignmentFromMPSol();
   const char* GetOutCDBComment() const { return fOutCDBComment.Data(); }
   const char* GetOutCDBResponsible() const { return fOutCDBResponsible.Data(); }
@@ -365,7 +368,7 @@ class AliAlgSteer : public TObject
   static void MPRec2Mille(const char* mprecfile, const char* millefile = "mpData.mille", Bool_t bindata = kTRUE);
   static void MPRec2Mille(TTree* mprTree, const char* millefile = "mpData.mille", Bool_t bindata = kTRUE);
   //
-  AliSymMatrix* BuildMatrix(TVectorD& vec);
+  //  AliSymMatrix* BuildMatrix(TVectorD& vec); FIXME(milettri): needs AliSymMatrix
   Bool_t TestLocalSolution();
   //
   // fast check of solution using derivatives
@@ -418,10 +421,10 @@ class AliAlgSteer : public TObject
   //
   AliAlgPoint* fRefPoint; // reference point for track definition
   //
-  const TTree* fESDTree;                    //! externally set esdTree, needed to access UserInfo list
-  const AliESDEvent* fESDEvent;             //! externally set event
-  const AliESDtrack* fESDTrack[kNCosmLegs]; //! externally set ESD tracks
-  const AliESDVertex* fVertex;              //! event vertex
+  const TTree* fESDTree; //! externally set esdTree, needed to access UserInfo list
+                         //  const AliESDEvent* fESDEvent;             //! externally set event  FIXME(milettri): needs AliESDEvent
+                         //  const AliESDtrack* fESDTrack[kNCosmLegs]; //! externally set ESD tracks  FIXME(milettri): needs AliESDtrack
+                         //  const AliESDVertex* fVertex;              //! event vertex FIXME(milettri): needs AliESDVertex
   //
   // statistics
   Float_t fStat[kNStatCl][kMaxStat];            // processing statistics

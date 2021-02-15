@@ -16,7 +16,7 @@
 #include "Align/AliAlgDet.h"
 #include "Align/AliAlgSens.h"
 #include "Align/AliAlgDet.h"
-//#include "Align/AliAlgSteer.h" FIXME(milettri): needs AliAlgSteer
+#include "Align/AliAlgSteer.h"
 #include "Align/AliAlgTrack.h"
 #include "Align/AliAlgDOFStat.h"
 #include "Align/AliAlgConstraint.h"
@@ -66,11 +66,11 @@ AliAlgDet::AliAlgDet()
     fNPoints(0),
     fPoolNPoints(0),
     fPoolFreePointID(0),
-    fPointsPool() //,
-//    fAlgSteer(0) FIXME(milettri): needs AliAlgSteer
+    fPointsPool(),
+    fAlgSteer(0)
 {
   // def c-tor
-  //  SetUniqueID(AliAlgSteer::kUndefined); // derived detectors must override this FIXME(milettri): needs AliAlgSteer;
+  SetUniqueID(AliAlgSteer::kUndefined); // derived detectors must override this
   SetUniqueID(6);
   fAddError[0] = fAddError[1] = 0;
   //
@@ -313,34 +313,32 @@ Int_t AliAlgDet::InitGeom()
 //_________________________________________________________
 Int_t AliAlgDet::AssignDOFs()
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
-  //FIXME(milettri): needs AliAlgSteer
-  //  // assign DOFs IDs, parameters
-  //  //
-  //  int gloCount0(fAlgSteer->GetNDOFs()), gloCount(fAlgSteer->GetNDOFs());
-  //  Float_t* pars = fAlgSteer->GetGloParVal();
-  //  Float_t* errs = fAlgSteer->GetGloParErr();
-  //  Int_t* labs = fAlgSteer->GetGloParLab();
-  //  //
-  //  // assign calibration DOFs
-  //  fFirstParGloID = gloCount;
-  //  fParVals = pars + gloCount;
-  //  fParErrs = errs + gloCount;
-  //  fParLabs = labs + gloCount;
-  //  for (int icl = 0; icl < fNCalibDOF; icl++) {
-  //    fParLabs[icl] = (GetDetLabel() + 10000) * 100 + icl;
-  //    gloCount++;
-  //  }
-  //  //
-  //  int nvol = GetNVolumes();
-  //  for (int iv = 0; iv < nvol; iv++) {
-  //    AliAlgVol* vol = GetVolume(iv);
-  //    // call init for root level volumes, they will take care of their children
-  //    if (!vol->GetParent())
-  //      vol->AssignDOFs(gloCount, pars, errs, labs);
-  //  }
-  //  if (fNDOFs != gloCount - gloCount0)
-  //    LOG(FATAL) << "Mismatch between declared " << fNDOFs << " and initialized " << (gloCount - gloCount0) << " DOFs for " << GetName();
+  // assign DOFs IDs, parameters
+  //
+  int gloCount0(fAlgSteer->GetNDOFs()), gloCount(fAlgSteer->GetNDOFs());
+  Float_t* pars = fAlgSteer->GetGloParVal();
+  Float_t* errs = fAlgSteer->GetGloParErr();
+  Int_t* labs = fAlgSteer->GetGloParLab();
+  //
+  // assign calibration DOFs
+  fFirstParGloID = gloCount;
+  fParVals = pars + gloCount;
+  fParErrs = errs + gloCount;
+  fParLabs = labs + gloCount;
+  for (int icl = 0; icl < fNCalibDOF; icl++) {
+    fParLabs[icl] = (GetDetLabel() + 10000) * 100 + icl;
+    gloCount++;
+  }
+  //
+  int nvol = GetNVolumes();
+  for (int iv = 0; iv < nvol; iv++) {
+    AliAlgVol* vol = GetVolume(iv);
+    // call init for root level volumes, they will take care of their children
+    if (!vol->GetParent())
+      vol->AssignDOFs(gloCount, pars, errs, labs);
+  }
+  if (fNDOFs != gloCount - gloCount0)
+    LOG(FATAL) << "Mismatch between declared " << fNDOFs << " and initialized " << (gloCount - gloCount0) << " DOFs for " << GetName();
   return fNDOFs;
 }
 
@@ -424,9 +422,8 @@ void AliAlgDet::Print(const Option_t* opt) const
 void AliAlgDet::SetDetID(UInt_t tp)
 {
   // assign type
-  //FIXME(milettri): needs AliAlgSteer
-  //  if (tp >= AliAlgSteer::kNDetectors)
-  //    LOG(FATAL) << "Detector typeID " << tp << "exceeds allowed range" << 0 << ":" << (AliAlgSteer::kNDetectors - 1);
+  if (tp >= AliAlgSteer::kNDetectors)
+    LOG(FATAL) << "Detector typeID " << tp << "exceeds allowed range" << 0 << ":" << (AliAlgSteer::kNDetectors - 1);
   if (tp >= 5)
     LOG(FATAL) << "Detector typeID " << tp << "exceeds allowed range" << 0 << ":" << (5 - 1);
   SetUniqueID(tp);
@@ -462,11 +459,9 @@ void AliAlgDet::UpdatePointByTrackInfo(AliAlgPoint* pnt, const trackParam_t* t) 
 //____________________________________________
 void AliAlgDet::SetObligatory(Int_t tp, Bool_t v)
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
-  //FIXME(lettrich): needs AliAlgSteer
-  //  // mark detector presence obligatory in the track
-  //  fObligatory[tp] = v;
-  //  fAlgSteer->SetObligatoryDetector(GetDetID(), tp, v);
+  // mark detector presence obligatory in the track
+  fObligatory[tp] = v;
+  fAlgSteer->SetObligatoryDetector(GetDetID(), tp, v);
 }
 
 //______________________________________________________
@@ -554,34 +549,30 @@ AliAlgVol* AliAlgDet::GetVolOfDOFID(Int_t id) const
 //______________________________________________________
 void AliAlgDet::Terminate()
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
-  //FIXME(lettrich): needs AliAlgSteer
-  //  // called at the end of processing
-  //  //  if (IsDisabled()) return;
-  //  int nvol = GetNVolumes();
-  //  fNProcPoints = 0;
-  //  AliAlgDOFStat* st = fAlgSteer->GetDOFStat();
-  //  for (int iv = 0; iv < nvol; iv++) {
-  //    AliAlgVol* vol = GetVolume(iv);
-  //    // call init for root level volumes, they will take care of their children
-  //    if (!vol->GetParent())
-  //      fNProcPoints += vol->FinalizeStat(st);
-  //  }
-  //  FillDOFStat(st); // fill stat for calib dofs
+  // called at the end of processing
+  //  if (IsDisabled()) return;
+  int nvol = GetNVolumes();
+  fNProcPoints = 0;
+  AliAlgDOFStat* st = fAlgSteer->GetDOFStat();
+  for (int iv = 0; iv < nvol; iv++) {
+    AliAlgVol* vol = GetVolume(iv);
+    // call init for root level volumes, they will take care of their children
+    if (!vol->GetParent())
+      fNProcPoints += vol->FinalizeStat(st);
+  }
+  FillDOFStat(st); // fill stat for calib dofs
 }
 
 //________________________________________
 void AliAlgDet::AddAutoConstraints() const
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
-  //FIXME(lettrich): needs AliAlgSteer
-  //  // adds automatic constraints
-  //  int nvol = GetNVolumes();
-  //  for (int iv = 0; iv < nvol; iv++) { // call for root level volumes, they will take care of their children
-  //    AliAlgVol* vol = GetVolume(iv);
-  //    if (!vol->GetParent())
-  //      vol->AddAutoConstraints((TObjArray*)fAlgSteer->GetConstraints());
-  //}
+  // adds automatic constraints
+  int nvol = GetNVolumes();
+  for (int iv = 0; iv < nvol; iv++) { // call for root level volumes, they will take care of their children
+    AliAlgVol* vol = GetVolume(iv);
+    if (!vol->GetParent())
+      vol->AddAutoConstraints((TObjArray*)fAlgSteer->GetConstraints());
+  }
 }
 
 //________________________________________
@@ -690,11 +681,8 @@ void AliAlgDet::ConstrainOrphans(const double* sigma, const char* match)
     LOG(INFO) << "No volume passed filter " << match;
     delete constr;
   } else {
-    LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
-    //FIXME(lettrich): needs AliAlgSteer
-    //    ((TObjArray*)fAlgSteer->GetConstraints())->Add(constr);
+    ((TObjArray*)fAlgSteer->GetConstraints())->Add(constr);
   }
-  //
 }
 
 //________________________________________

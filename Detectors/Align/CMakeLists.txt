@@ -28,7 +28,7 @@ o2_add_library(Align
                         #src/AliAlgSensTOF.cxx
                         #src/AliAlgSensTPC.cxx
                         #src/AliAlgSensTRD.cxx
-                        #src/AliAlgSteer.cxx
+                        src/AliAlgSteer.cxx
                         src/AliAlgTrack.cxx
                         src/AliAlgVol.cxx
                         src/AliAlgVtx.cxx
@@ -61,7 +61,7 @@ o2_target_root_dictionary(
           #include/Align/AliAlgSensTPC.h
           #include/Align/AliAlgSensTRD.h
           #include/Align/AliAlgSensHMPID.h
-          #include/Align/AliAlgSteer.h
+          include/Align/AliAlgSteer.h
           include/Align/AliAlgTrack.h
           include/Align/AliAlgVol.h
           include/Align/AliAlgVtx.h

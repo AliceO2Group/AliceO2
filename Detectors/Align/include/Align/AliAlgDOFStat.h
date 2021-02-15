@@ -17,7 +17,6 @@
 #define ALIALGDOFSTAT_H
 
 #include <TNamed.h>
-//class AliAlgSteer;
 class TH1F;
 class TCollection;
 
@@ -25,6 +24,8 @@ namespace o2
 {
 namespace align
 {
+
+class AliAlgSteer;
 
 class AliAlgDOFStat : public TNamed
 {
@@ -38,8 +39,7 @@ class AliAlgDOFStat : public TNamed
   void SetStat(int idf, int v) { fStat[idf] = v; }
   void AddStat(int idf, int v) { fStat[idf] += v; }
   Int_t GetNMerges() const { return fNMerges; }
-  // FIXME(milettri): needs AliAlgSteer
-  //  TH1F* CreateHisto(AliAlgSteer* st) const;
+  TH1F* CreateHisto(AliAlgSteer* st) const;
   virtual void Print(Option_t* opt) const;
   virtual Long64_t Merge(TCollection* list);
   //
