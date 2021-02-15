@@ -9,6 +9,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file   WriteRawFromDigitsSpec.cxx
+/// \author Antonio Franco - INFN Bari
+/// \version 1.0
+/// \date 01 feb 2021
+/// \brief Implementation of a data processor to produce raw files from a Digits stream
+///
+
+
 #include <random>
 #include <iostream>
 #include <fstream>

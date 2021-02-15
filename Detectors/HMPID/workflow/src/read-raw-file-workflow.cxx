@@ -8,6 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file   read-raw-file-workflow.cxx
+/// \author Antonio Franco - INFN Bari
+/// \version 1.0
+/// \date 01 feb 2021
+///
+
+
 #include <iostream>
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataSpecUtils.h"

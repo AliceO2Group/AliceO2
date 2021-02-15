@@ -9,11 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-///
-/// \file    DatDecoderSpec.cxx
-/// \author
-///
-/// \brief Implementation of a data processor to run the HMPID raw decoding
+/// \file   PedestalsCalculationSpec.cxx
+/// \author Antonio Franco - INFN Bari
+/// \version 1.0
+/// \date 01 feb 2021
+/// \brief Implementation of a data processor to read a raw file and produce Pedestals/Threshold files
 ///
 
 #include <random>
