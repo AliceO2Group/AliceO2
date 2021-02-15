@@ -32,6 +32,7 @@ o2_add_library(Framework
                        src/ComputingResourceHelpers.cxx
                        src/ConfigContext.cxx
                        src/ControlService.cxx
+                       src/ControlServiceHelpers.cxx
                        src/DispatchPolicy.cxx
                        src/ConfigParamStore.cxx
                        src/ConfigParamsHelper.cxx
@@ -279,6 +280,7 @@ foreach(w
   o2_add_test(${w} NAME test_Framework_test_${w}
               SOURCES test/test_${w}.cxx
               COMPONENT_NAME Framework
+              MAX_ATTEMPTS 1
               LABELS framework workflow
               PUBLIC_LINK_LIBRARIES O2::Framework
               TIMEOUT 30
@@ -299,6 +301,7 @@ o2_add_test(
   ProcessorOptions NAME test_Framework_test_ProcessorOptions
   SOURCES test/test_ProcessorOptions.cxx
   COMPONENT_NAME Framework
+  MAX_ATTEMPTS 1
   LABELS framework workflow
   TIMEOUT 60
   PUBLIC_LINK_LIBRARIES O2::Framework

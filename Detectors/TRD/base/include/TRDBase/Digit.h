@@ -32,11 +32,11 @@ using ArrayADC = std::array<ADC_t, constants::TIMEBINS>;
 // Digit class for TRD
 // Notes:
 //    Shared pads:
-//        the lowe mcm and rob is chosen for a given shared pad.
+//        the lower mcm and rob is chosen for a given shared pad.
 //        this negates the need for need alternate indexing strategies.
-//        it does however mean that if you are trying to go from pad/row to mcm/rob you need to remember to manually do the shared ones.
-//        TODO we could change the get methods to return the value in negaitve to indicate a shared pad, but I feel this is just added complexity? Comments?
-//        if you are going to have to check for negative you may as well check for it being shared.
+//        if you are trying to go from mcm/rob/adc to pad/row and back to mcm/rob/adc ,
+//        you may not end up in the same place, you need to remember to manually check for shared pads.
+
 class Digit
 {
  public:
@@ -60,22 +60,22 @@ class Digit
   void setDetector(int det) { mDetector = det; }
   void setADC(ArrayADC const& adc) { mADC = adc; }
   // Get methods
-  int getDetector() const { return mROB; }
+  int getDetector() const { return mDetector; }
   int getRow() const { return FeeParam::getPadRowFromMCM(mROB, mMCM); }
   int getPad() const { return FeeParam::getPadColFromADC(mROB, mMCM, mChannel); }
   int getROB() const { return mROB; }
   int getMCM() const { return mMCM; }
   int getChannel() const { return mChannel; }
-  int isSharedDigit();
+  bool isSharedDigit();
 
   ArrayADC const& getADC() const { return mADC; }
   ADC_t getADCsum() const { return std::accumulate(mADC.begin(), mADC.end(), (ADC_t)0); }
 
  private:
-  std::uint16_t mDetector{0}; // detector, the chamber
-  std::uint8_t mROB{0};       // read out board with in chamber
-  std::uint8_t mMCM{0};       // MCM chip this digit is attached to
-  std::uint8_t mChannel{0};   // channel of this chip the digit is attached to.
+  std::uint16_t mDetector{0}; // detector, the chamber [0-539]
+  std::uint8_t mROB{0};       // read out board within chamber [0-7] [0-5] depending on C0 or C1
+  std::uint8_t mMCM{0};       // MCM chip this digit is attached [0-15]
+  std::uint8_t mChannel{0};   // channel of this chip the digit is attached to, see TDP chapter ?? TODO fill in later the figure number of ROB to MCM mapping picture
 
   ArrayADC mADC{}; // ADC vector (30 time-bins)
   ClassDefNV(Digit, 3);

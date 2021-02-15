@@ -405,7 +405,13 @@ int GPUChainTracking::PrepareEvent()
 
 int GPUChainTracking::ForceInitQA()
 {
-  return mQA->InitQA();
+  if (!mQA) {
+    mQA.reset(new GPUQA(this));
+  }
+  if (!mQA->IsInitialized()) {
+    return mQA->InitQA();
+  }
+  return 0;
 }
 
 int GPUChainTracking::Finalize()

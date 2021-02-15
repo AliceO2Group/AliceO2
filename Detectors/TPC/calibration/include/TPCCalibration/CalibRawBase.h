@@ -130,7 +130,7 @@ class CalibRawBase
   size_t getPresentEventNumber() const { return mPresentEventNumber; }
 
   /// return number of events
-  int getNumberOfEvents() const { return mRawReaderCRUManager.getNumberOfEvents(); }
+  int getNumberOfEvents() const;
 
   /// check if present event is complete
   bool isPresentEventComplete() const { return mRawReaderCRUManager.isEventComplete(mPresentEventNumber); }
@@ -189,6 +189,21 @@ class CalibRawBase
 //----------------------------------------------------------------
 // Inline Functions
 //----------------------------------------------------------------
+inline int CalibRawBase::getNumberOfEvents() const
+{
+  if (mGBTFrameContainers.size()) {
+    return 0; // to be checked
+  } else if (mRawReaders.size()) {
+    return 0; // to be checked
+  } else if (mRawReaderCRUManager.getNumberOfReaders()) {
+    return mRawReaderCRUManager.getNumberOfEvents();
+  } else if (mDigitTree) {
+    return mDigitTree->GetEntries();
+  } else {
+    return 0;
+  }
+}
+
 inline CalibRawBase::ProcessStatus CalibRawBase::processEvent(int eventNumber)
 {
   if (mGBTFrameContainers.size()) {
@@ -407,7 +422,6 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int ev
   ProcessStatus status = ProcessStatus::Ok;
 
   mProcessedTimeBins = 0;
-  size_t processedReaders = 0;
   bool hasData = false;
 
   const int64_t numberOfEvents = mRawReaderCRUManager.getNumberOfEvents();
@@ -436,8 +450,6 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int ev
     // set status, don't overwrite decision
     if (!hasData) {
       return ProcessStatus::NoMoreData;
-    } else if (processedReaders < mRawReaderCRUManager.getNumberOfReaders()) {
-      status = ProcessStatus::Truncated;
     } else if (!isPresentEventComplete()) {
       status = ProcessStatus::IncompleteEvent;
     } else if (mPresentEventNumber == size_t(lastEvent)) {

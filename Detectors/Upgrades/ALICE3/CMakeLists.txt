@@ -10,3 +10,4 @@
 
 add_subdirectory(Passive)
 add_subdirectory(TRK)
+add_subdirectory(AOD)

@@ -15,8 +15,10 @@
 
 namespace o2::framework
 {
+namespace
+{
 template <typename T>
-auto vectorToBranch(T* values, size_t size)
+auto basicVectorToBranch(T* values, size_t size)
 {
   boost::property_tree::ptree branch;
   for (auto i = 0u; i < size; ++i) {
@@ -28,19 +30,30 @@ auto vectorToBranch(T* values, size_t size)
 }
 
 template <typename T>
-auto vectorToBranch(std::vector<T>&& values)
+auto basicVectorToBranch(std::vector<T>&& values)
 {
-  boost::property_tree::ptree branch;
-  for (auto i = 0u; i < values.size(); ++i) {
-    boost::property_tree::ptree leaf;
-    leaf.put("", values[i]);
-    branch.push_back(std::make_pair("", leaf));
-  }
-  return branch;
+  return basicVectorToBranch(values.data(), values.size());
 }
 
 template <typename T>
-auto array2DToBranch(Array2D<T>&& array)
+auto vectorToBranch(T* values, size_t size)
+{
+  boost::property_tree::ptree branch;
+  branch.put_child("values", basicVectorToBranch(values, size));
+  return branch;
+}
+} // namespace
+
+template <typename T>
+auto vectorToBranch(std::vector<T>&& values)
+{
+  return vectorToBranch(values.data(), values.size());
+}
+
+namespace
+{
+template <typename T>
+auto basicArray2DToBranch(Array2D<T>&& array)
 {
   boost::property_tree::ptree subtree;
   for (auto i = 0u; i < array.rows; ++i) {
@@ -54,9 +67,20 @@ auto array2DToBranch(Array2D<T>&& array)
   }
   return subtree;
 }
+} // namespace
 
 template <typename T>
-auto vectorFromBranch(boost::property_tree::ptree const& branch)
+auto array2DToBranch(Array2D<T>&& array)
+{
+  boost::property_tree::ptree subtree;
+  subtree.put_child("values", basicArray2DToBranch(std::forward<Array2D<T>>(array)));
+  return subtree;
+}
+
+namespace
+{
+template <typename T>
+auto basicVectorFromBranch(boost::property_tree::ptree const& branch)
 {
   std::vector<T> result(branch.size());
   auto count = 0U;
@@ -65,9 +89,18 @@ auto vectorFromBranch(boost::property_tree::ptree const& branch)
   }
   return result;
 }
+} // namespace
 
 template <typename T>
-auto array2DFromBranch(boost::property_tree::ptree const& branch)
+auto vectorFromBranch(boost::property_tree::ptree const& branch)
+{
+  return basicVectorFromBranch<T>(branch.get_child("values"));
+}
+
+namespace
+{
+template <typename T>
+auto basicArray2DFromBranch(boost::property_tree::ptree const& branch)
 {
   std::vector<T> cache;
   uint32_t nrows = branch.size();
@@ -88,13 +121,20 @@ auto array2DFromBranch(boost::property_tree::ptree const& branch)
   }
   return Array2D<T>{cache, nrows, ncols};
 }
+} // namespace
+
+template <typename T>
+auto array2DFromBranch(boost::property_tree::ptree const& ptree)
+{
+  return basicArray2DFromBranch<T>(ptree.get_child("values"));
+}
 
 template <typename T>
 auto labeledArrayFromBranch(boost::property_tree::ptree const& tree)
 {
-  auto labels_rows = vectorFromBranch<std::string>(tree.get_child(labels_rows_str));
-  auto labels_cols = vectorFromBranch<std::string>(tree.get_child(labels_cols_str));
-  auto values = array2DFromBranch<T>(tree.get_child("values"));
+  auto labels_rows = basicVectorFromBranch<std::string>(tree.get_child(labels_rows_str));
+  auto labels_cols = basicVectorFromBranch<std::string>(tree.get_child(labels_cols_str));
+  auto values = basicArray2DFromBranch<T>(tree.get_child("values"));
 
   return LabeledArray<T>{values, labels_rows, labels_cols};
 }
@@ -103,9 +143,9 @@ template <typename T>
 auto labeledArrayToBranch(LabeledArray<T>&& array)
 {
   boost::property_tree::ptree subtree;
-  subtree.put_child(labels_rows_str, vectorToBranch(array.getLabelsRows()));
-  subtree.put_child(labels_cols_str, vectorToBranch(array.getLabelsCols()));
-  subtree.put_child("values", array2DToBranch(array.getData()));
+  subtree.put_child(labels_rows_str, basicVectorToBranch(array.getLabelsRows()));
+  subtree.put_child(labels_cols_str, basicVectorToBranch(array.getLabelsCols()));
+  subtree.put_child("values", basicArray2DToBranch(array.getData()));
 
   return subtree;
 }

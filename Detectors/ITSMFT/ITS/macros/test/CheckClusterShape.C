@@ -259,11 +259,11 @@ void CheckClusterShape(std::string digifile = "o2digi_its.root", std::string inp
       UInt_t layer = gman->getLayer(chipID);
 
       Pixel pixels(ix, iz);
-      if (clusters.find(labs[0]) == clusters.end()) {
+      if (clusters.find(labs[0].getRawValue()) == clusters.end()) {
         Cluster c;
-        clusters[labs[0]] = c;
+        clusters[labs[0].getRawValue()] = c;
       }
-      clusters[labs[0]].AddPixel(layer, pixels);
+      clusters[labs[0].getRawValue()].AddPixel(layer, pixels);
     }
     AnalyzeClusters(nev, clusters, freqDist, cSizeDist);
   }

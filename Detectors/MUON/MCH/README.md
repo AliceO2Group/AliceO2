@@ -14,4 +14,5 @@ This is a top page for the MCH detector documentation.
 \subpage refDetectorsMUONMCHTracking
 \subpage refDetectorsMUONMCHWorkflow
 \subpage refDetectorsMUONMCHGeometry
+\subpage refDetectorsMUONMCHConditions
 /doxy -->

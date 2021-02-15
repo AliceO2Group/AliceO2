@@ -69,7 +69,7 @@ void runPulser(std::vector<std::string_view> fileInfos, TString outputFileName =
       if (status == CalibRawBase::ProcessStatus::IncompleteEvent) {
         continue;
       } else if (status != CalibRawBase::ProcessStatus::Ok) {
-        break;
+        //break;
       }
     }
   }

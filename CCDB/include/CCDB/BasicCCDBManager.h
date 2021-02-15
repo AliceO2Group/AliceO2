@@ -26,9 +26,17 @@
 namespace o2::ccdb
 {
 
-/// A simple (singleton) class offering simplified access to CCDB (mainly for MC simulation)
+/// A simple class offering simplified access to CCDB (mainly for MC simulation)
 /// The class encapsulates timestamp and URL and is easily usable from detector code.
-class BasicCCDBManager
+///
+/// The CDBManager allowing caching of retrieved objects is by definition not thread safe,
+/// therefore, to provide a possibility of multithread processing, one should foresee possibility
+/// of multiple instances of the manager. CCDBManagerInstance serves to this purpose
+///
+/// In cases where caching is not needed or just 1 instance of the manager is enough, one case use
+/// a singleton version BasicCCDBManager
+
+class CCDBManagerInstance
 {
   struct CachedObject {
     std::shared_ptr<void> objPtr;
@@ -39,11 +47,9 @@ class BasicCCDBManager
   };
 
  public:
-  static BasicCCDBManager& instance()
+  CCDBManagerInstance(std::string const& path) : mCCDBAccessor{}
   {
-    const std::string ccdbUrl{"http://ccdb-test.cern.ch:8080"};
-    static BasicCCDBManager inst{ccdbUrl};
-    return inst;
+    mCCDBAccessor.init(path);
   }
 
   /// set a URL to query from
@@ -120,11 +126,6 @@ class BasicCCDBManager
   void resetCreatedNotBefore() { mCreatedNotBefore = 0; }
 
  private:
-  BasicCCDBManager(std::string const& path) : mCCDBAccessor{}
-  {
-    mCCDBAccessor.init(path);
-  }
-
   // we access the CCDB via the CURL based C++ API
   o2::ccdb::CcdbApi mCCDBAccessor;
   std::unordered_map<std::string, CachedObject> mCache; //! map for {path, CachedObject} associations
@@ -139,7 +140,7 @@ class BasicCCDBManager
 };
 
 template <typename T>
-T* BasicCCDBManager::getForTimeStamp(std::string const& path, long timestamp)
+T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp)
 {
   if (!isCachingEnabled()) {
     return mCCDBAccessor.retrieveFromTFileAny<T>(path, mMetaData, timestamp, nullptr, "",
@@ -167,6 +168,20 @@ T* BasicCCDBManager::getForTimeStamp(std::string const& path, long timestamp)
   mHeaders.clear();
   return ptr;
 }
+
+class BasicCCDBManager : public CCDBManagerInstance
+{
+ public:
+  static BasicCCDBManager& instance()
+  {
+    const std::string ccdbUrl{"http://ccdb-test.cern.ch:8080"};
+    static BasicCCDBManager inst{ccdbUrl};
+    return inst;
+  }
+
+ private:
+  using CCDBManagerInstance::CCDBManagerInstance;
+};
 
 } // namespace o2::ccdb
 

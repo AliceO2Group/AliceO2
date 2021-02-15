@@ -32,7 +32,7 @@
 #include "Framework/Signpost.h"
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/Logger.h"
-#include "Framework/Monitoring.h"
+#include "Framework/DriverClient.h"
 #include "PropertyTreeHelpers.h"
 #include "DataProcessingStatus.h"
 #include "DataProcessingHelpers.h"
@@ -60,15 +60,8 @@
 #include <boost/property_tree/json_parser.hpp>
 
 using namespace o2::framework;
-using Key = o2::monitoring::tags::Key;
-using Value = o2::monitoring::tags::Value;
-using Metric = o2::monitoring::Metric;
-using Monitoring = o2::monitoring::Monitoring;
 using ConfigurationInterface = o2::configuration::ConfigurationInterface;
 using DataHeader = o2::header::DataHeader;
-
-constexpr unsigned int MONITORING_QUEUE_SIZE = 100;
-constexpr unsigned int MIN_RATE_LOGGING = 60;
 
 namespace o2::framework
 {
@@ -94,8 +87,7 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
     mError{spec.algorithm.onError},
     mConfigRegistry{nullptr},
     mAllocator{&mTimingInfo, &registry, spec.outputs},
-    mServiceRegistry{registry},
-    mErrorCount{0}
+    mServiceRegistry{registry}
 {
   /// FIXME: move erro handling to a service?
   if (mError != nullptr) {
@@ -105,7 +97,7 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
       auto& err = error_from_ref(e);
       LOGP(ERROR, "Exception caught: {} ", err.what);
       backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
-      serviceRegistry.get<Monitoring>().send({1, "error"});
+      serviceRegistry.get<DataProcessingStats>().exceptionCount++;
       ErrorContext errorContext{record, serviceRegistry, e};
       errorCallback(errorContext);
     };
@@ -116,7 +108,7 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
       auto& err = error_from_ref(e);
       LOGP(ERROR, "Exception caught: {} ", err.what);
       backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
-      serviceRegistry.get<Monitoring>().send({1, "error"});
+      serviceRegistry.get<DataProcessingStats>().exceptionCount++;
       switch (errorPolicy) {
         case TerminationPolicy::QUIT:
           throw e;
@@ -190,15 +182,6 @@ void DataProcessingDevice::Init()
   TracyAppInfo(mSpec.name.data(), mSpec.name.size());
   ZoneScopedN("DataProcessingDevice::Init");
   mRelayer = &mServiceRegistry.get<DataRelayer>();
-  // For some reason passing rateLogging does not work anymore.
-  // This makes sure we never have more than one notification per minute.
-  for (auto& x : fChannels) {
-    for (auto& c : x.second) {
-      if (c.GetRateLogging() < MIN_RATE_LOGGING) {
-        c.UpdateRateLogging(MIN_RATE_LOGGING);
-      }
-    }
-  }
   // If available use the ConfigurationInterface, otherwise go for
   // the command line options.
   bool hasConfiguration = false;
@@ -238,7 +221,8 @@ void DataProcessingDevice::Init()
     } else {
       str = entry.second.get_value<std::string>();
     }
-    LOG(INFO) << "[CONFIG] " << entry.first << "=" << str << " 1 " << configStore->provenance(entry.first.c_str());
+    std::string configString = fmt::format("[CONFIG];{}={};1;{}", entry.first, str, configStore->provenance(entry.first.c_str())).c_str();
+    mServiceRegistry.get<DriverClient>().tell(configString.c_str());
   }
 
   mConfigRegistry = std::make_unique<ConfigParamRegistry>(std::move(configStore));
@@ -261,12 +245,6 @@ void DataProcessingDevice::Init()
       route.configurator->expirationConfigurator(mState, *mConfigRegistry)};
     mExpirationHandlers.emplace_back(std::move(handler));
   }
-
-  auto& monitoring = mServiceRegistry.get<Monitoring>();
-  monitoring.enableBuffering(MONITORING_QUEUE_SIZE);
-  static const std::string dataProcessorIdMetric = "dataprocessor_id";
-  static const std::string dataProcessorIdValue = mSpec.name;
-  monitoring.addGlobalTag("dataprocessor_id", dataProcessorIdValue);
 
   if (mInit) {
     InitContext initContext{*mConfigRegistry, mServiceRegistry};
@@ -427,7 +405,6 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context)
   context.error = &mError;
   /// Callback for the error handling
   context.errorHandling = &mErrorHandling;
-  context.errorCount = &mErrorCount;
 }
 
 void DataProcessingDevice::PreRun()
@@ -684,9 +661,8 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, FairMQParts
     return results;
   };
 
-  auto reportError = [& registry = *context.registry, &context](const char* message) {
-    context.errorCount++;
-    registry.get<Monitoring>().send(Metric{*context.errorCount, "errors"}.addTag(Key::Subsystem, Value::DPL));
+  auto reportError = [&registry = *context.registry, &context](const char* message) {
+    registry.get<DataProcessingStats>().errorCount++;
   };
 
   auto handleValidMessages = [&parts, &context = context, &relayer = *context.relayer, &reportError](std::vector<InputType> const& types) {
@@ -782,9 +758,8 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   // should work just fine.
   std::vector<MessageSet> currentSetOfInputs;
 
-  auto reportError = [& registry = *context.registry, &context](const char* message) {
-    context.errorCount++;
-    registry.get<Monitoring>().send(Metric{*context.errorCount, "errors"}.addTag(Key::Subsystem, Value::DPL));
+  auto reportError = [&registry = *context.registry, &context](const char* message) {
+    registry.get<DataProcessingStats>().errorCount++;
   };
 
   // For the moment we have a simple "immediately dispatch" policy for stuff
@@ -1077,8 +1052,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
 void DataProcessingDevice::error(const char* msg)
 {
   LOG(ERROR) << msg;
-  mErrorCount++;
-  mServiceRegistry.get<Monitoring>().send(Metric{mErrorCount, "errors"}.addTag(Key::Subsystem, Value::DPL));
+  mServiceRegistry.get<DataProcessingStats>().errorCount++;
 }
 
 } // namespace o2::framework

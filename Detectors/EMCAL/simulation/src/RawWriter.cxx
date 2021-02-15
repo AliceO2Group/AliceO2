@@ -24,7 +24,6 @@ void RawWriter::init()
 {
   mRawWriter = std::make_unique<o2::raw::RawFileWriter>(o2::header::gDataOriginEMC, false);
   mRawWriter->setCarryOverCallBack(this);
-  mRawWriter->setApplyCarryOverToLastPage(true);
   for (auto iddl = 0; iddl < 40; iddl++) {
     // For EMCAL set
     // - FEE ID = DDL ID
@@ -112,8 +111,9 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
 
   // Create and fill DMA pages for each channel
   std::cout << "encode data" << std::endl;
-  std::vector<char> payload;
   for (auto srucont : mSRUdata) {
+
+    std::vector<char> payload; // this must be initialized per SRU, becuase pages are per SRU, therefore the payload was not reset.
 
     for (const auto& [tower, channel] : srucont.mChannels) {
       // Find out hardware address of the channel
@@ -300,32 +300,13 @@ int RawWriter::carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> 
                                const char* ptr, int maxSize, int splitID,
                                std::vector<char>& trailer, std::vector<char>& header) const
 {
-  int offs = ptr - &data[0]; // offset wrt the head of the payload
-  // make sure ptr and end of the suggested block are within the payload
-  assert(offs >= 0 && size_t(offs + maxSize) <= data.size());
+  constexpr int TrailerSize = 9 * sizeof(uint32_t);
+  int bytesLeft = data.data() + data.size() - ptr;
+  int leftAfterSplit = bytesLeft - maxSize;
 
-  // Read trailer template from the end of payload
-  gsl::span<const uint32_t> payloadwords(reinterpret_cast<const uint32_t*>(data.data()), data.size() / sizeof(uint32_t));
-  auto rcutrailer = RCUTrailer::constructFromPayloadWords(payloadwords);
-
-  int sizeNoTrailer = maxSize - rcutrailer.getTrailerSize() * sizeof(uint32_t);
-  // calculate payload size for RCU trailer:
-  // assume actualsize is in byte
-  // Payload size is defined as the number of 32-bit payload words
-  // -> actualSize to be converted to size of 32 bit words
-  auto payloadsize = sizeNoTrailer / sizeof(uint32_t);
-  rcutrailer.setPayloadSize(payloadsize);
-  auto trailerwords = rcutrailer.encode();
-  trailer.resize(trailerwords.size() * sizeof(uint32_t));
-  memcpy(trailer.data(), trailerwords.data(), trailer.size());
-  // Size to return differs between intermediate pages and last page
-  // - intermediate page: Size of the trailer needs to be removed as the trailer gets appended
-  // - last page: Size of the trailer needs to be included as the trailer gets replaced
-  int bytesLeft = data.size() - (ptr - &data[0]);
-  bool lastPage = bytesLeft <= maxSize;
-  int actualSize = maxSize;
-  if (!lastPage) {
-    actualSize = sizeNoTrailer;
+  if (leftAfterSplit < TrailerSize) {
+    return std::max(0, bytesLeft - TrailerSize);
   }
-  return actualSize;
+
+  return maxSize;
 }

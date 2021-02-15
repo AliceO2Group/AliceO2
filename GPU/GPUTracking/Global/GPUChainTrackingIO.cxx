@@ -77,17 +77,17 @@ void GPUChainTracking::DumpData(const char* filename)
   DumpData(fp, mIOPtrs.rawClusters, mIOPtrs.nRawClusters, InOutPointerType::RAW_CLUSTERS);
 #ifdef HAVE_O2HEADERS
   if (mIOPtrs.clustersNative) {
-    DumpData(fp, &mIOPtrs.clustersNative->clustersLinear, &mIOPtrs.clustersNative->nClustersTotal, InOutPointerType::CLUSTERS_NATIVE);
-    fwrite(&mIOPtrs.clustersNative->nClusters[0][0], sizeof(mIOPtrs.clustersNative->nClusters[0][0]), NSLICES * GPUCA_ROW_COUNT, fp);
-    if (mIOPtrs.clustersNative->clustersMCTruth) {
-      const auto& buffer = mIOPtrs.clustersNative->clustersMCTruth->getBuffer();
-      std::pair<const char*, size_t> tmp = {buffer.data(), buffer.size()};
-      DumpData(fp, &tmp.first, &tmp.second, InOutPointerType::CLUSTER_NATIVE_MC);
+    if (DumpData(fp, &mIOPtrs.clustersNative->clustersLinear, &mIOPtrs.clustersNative->nClustersTotal, InOutPointerType::CLUSTERS_NATIVE)) {
+      fwrite(&mIOPtrs.clustersNative->nClusters[0][0], sizeof(mIOPtrs.clustersNative->nClusters[0][0]), NSLICES * GPUCA_ROW_COUNT, fp);
+      if (mIOPtrs.clustersNative->clustersMCTruth) {
+        const auto& buffer = mIOPtrs.clustersNative->clustersMCTruth->getBuffer();
+        std::pair<const char*, size_t> tmp = {buffer.data(), buffer.size()};
+        DumpData(fp, &tmp.first, &tmp.second, InOutPointerType::CLUSTER_NATIVE_MC);
+      }
     }
   }
   if (mIOPtrs.tpcPackedDigits) {
-    DumpData(fp, mIOPtrs.tpcPackedDigits->tpcDigits, mIOPtrs.tpcPackedDigits->nTPCDigits, InOutPointerType::TPC_DIGIT);
-    if (mIOPtrs.tpcPackedDigits->tpcDigitsMC) {
+    if (DumpData(fp, mIOPtrs.tpcPackedDigits->tpcDigits, mIOPtrs.tpcPackedDigits->nTPCDigits, InOutPointerType::TPC_DIGIT) && mIOPtrs.tpcPackedDigits->tpcDigitsMC) {
       const char* ptrs[NSLICES];
       size_t sizes[NSLICES];
       for (unsigned int i = 0; i < NSLICES; i++) {
@@ -121,8 +121,9 @@ void GPUChainTracking::DumpData(const char* filename)
       }
     }
     total *= TPCZSHDR::TPC_ZS_PAGE_SIZE;
-    DumpData(fp, &ptr, &total, InOutPointerType::TPC_ZS);
-    fwrite(&counts, sizeof(counts), 1, fp);
+    if (DumpData(fp, &ptr, &total, InOutPointerType::TPC_ZS)) {
+      fwrite(&counts, sizeof(counts), 1, fp);
+    }
   }
 #endif
   DumpData(fp, mIOPtrs.sliceTracks, mIOPtrs.nSliceTracks, InOutPointerType::SLICE_OUT_TRACK);
@@ -222,7 +223,15 @@ int GPUChainTracking::ReadData(const char* filename)
   ReadData(fp, &mIOPtrs.trdTracks, &mIOPtrs.nTRDTracks, &mIOMem.trdTracks, InOutPointerType::TRD_TRACK);
   ReadData(fp, &mIOPtrs.trdTracklets, &mIOPtrs.nTRDTracklets, &mIOMem.trdTracklets, InOutPointerType::TRD_TRACKLET);
   ReadData(fp, &mIOPtrs.trdTrackletsMC, &mIOPtrs.nTRDTrackletsMC, &mIOMem.trdTrackletsMC, InOutPointerType::TRD_TRACKLET_MC);
+
+  size_t fptr = ftell(fp);
+  fseek(fp, 0, SEEK_END);
+  size_t fend = ftell(fp);
   fclose(fp);
+  if (fptr != fend) {
+    GPUError("Error reading data file, reading incomplete");
+    return 1;
+  }
   (void)r;
   for (unsigned int i = 0; i < NSLICES; i++) {
     for (unsigned int j = 0; j < mIOPtrs.nClusterData[i]; j++) {

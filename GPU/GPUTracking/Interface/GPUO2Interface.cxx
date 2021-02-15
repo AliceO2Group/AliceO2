@@ -98,6 +98,13 @@ int GPUO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutp
     mChain->DumpData(fname);
     if (nEvent == 0) {
       mRec->DumpSettings();
+#ifdef GPUCA_BUILD_QA
+      if (mConfig->configProcessing.runMC) {
+        mChain->ForceInitQA();
+        sprintf(fname, "mc.%d.dump", nEvent);
+        mChain->GetQA()->DumpO2MCData(fname);
+      }
+#endif
     }
     nEvent++;
     if (mConfig->configInterface.dumpEvents >= 2) {

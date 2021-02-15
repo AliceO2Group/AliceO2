@@ -38,4 +38,10 @@
 #pragma link C++ struct o2::tof::TOFDCSinfo + ;
 #pragma link C++ class std::unordered_map < o2::dcs::DataPointIdentifier, o2::tof::TOFDCSinfo> + ;
 
+#pragma link C++ struct TOFFEElightInfo + ;
+#pragma link C++ struct TOFFEEchannelConfig + ;
+#pragma link C++ struct TOFFEEtriggerConfig + ;
+#pragma link C++ struct TOFFEElightConfig + ;
+#pragma link C++ struct TOFFEElightReader + ;
+
 #endif

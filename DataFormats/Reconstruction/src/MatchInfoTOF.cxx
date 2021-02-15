@@ -16,3 +16,10 @@
 using namespace o2::dataformats;
 
 ClassImp(o2::dataformats::MatchInfoTOF);
+
+void MatchInfoTOF::print() const
+{
+  printf("Match of GlobalID %s and TOF cl %d with chi2 = %.3f\n", getEvIdxTrack().getIndex().asString().c_str(),
+         getTOFClIndex(), mChi2);
+  mIntLT.print();
+}

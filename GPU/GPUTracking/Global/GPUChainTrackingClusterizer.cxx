@@ -407,7 +407,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   ClusterNativeAccess* tmpNative = mClusterNativeAccess.get();
 
   // setup MC Labels
-  bool propagateMCLabels = GetProcessingSettings().runMC && processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC != nullptr;
+  bool propagateMCLabels = GetProcessingSettings().runMC && processors()->ioPtrs.tpcPackedDigits && processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC;
 
   auto* digitsMC = propagateMCLabels ? processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC : nullptr;
 
@@ -622,6 +622,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
       SynchronizeStream(lane);
       GPUTPCClusterFinder& clusterer = processors()->tpcClusterer[iSlice];
       GPUTPCClusterFinder& clustererShadow = doGPU ? processorsShadow()->tpcClusterer[iSlice] : clusterer;
+
       if (laneHasData[lane]) {
         anyLaneHasData = true;
         if (buildNativeGPU && GetProcessingSettings().tpccfGatherKernel) {
@@ -645,7 +646,8 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         transferRunning[lane] = 1;
       }
 
-      if (not propagateMCLabels || clusterer.mPmemory->counters.nClusters == 0) {
+      if (not propagateMCLabels || not laneHasData[lane]) {
+        assert(propagateMCLabels ? mcLinearLabels.header.size() == nClsTotal : true);
         continue;
       }
 
@@ -653,6 +655,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
       GPUTPCCFMCLabelFlattener::setGlobalOffsetsAndAllocate(clusterer, mcLinearLabels);
       runKernel<GPUTPCCFMCLabelFlattener, GPUTPCCFMCLabelFlattener::flatten>(GetGrid(GPUCA_ROW_COUNT, lane, GPUReconstruction::krnlDeviceType::CPU), {iSlice}, {}, &mcLinearLabels);
       clusterer.clearMCMemory();
+      assert(propagateMCLabels ? mcLinearLabels.header.size() == nClsTotal : true);
     }
     if (buildNativeHost && buildNativeGPU && anyLaneHasData) {
       if (GetProcessingSettings().delayedOutput) {

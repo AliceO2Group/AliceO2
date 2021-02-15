@@ -64,6 +64,7 @@ void websocket_server_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_
   }
   try {
     parse_http_request(buf->base, nread, server);
+    free(buf->base);
   } catch (RuntimeErrorRef& ref) {
     auto& err = o2::framework::error_from_ref(ref);
     LOG(ERROR) << "Error while parsing request: " << err.what;
@@ -190,10 +191,11 @@ void websocket_client_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_
 }
 
 // FIXME: mNonce should be random
-WSDPLClient::WSDPLClient(uv_stream_t* s, DeviceSpec const& spec)
+WSDPLClient::WSDPLClient(uv_stream_t* s, DeviceSpec const& spec, std::function<void()> handshake)
   : mStream{s},
     mNonce{"dGhlIHNhbXBsZSBub25jZQ=="},
-    mSpec{spec}
+    mSpec{spec},
+    mHandshake{handshake}
 {
   s->data = this;
   uv_read_start((uv_stream_t*)s, (uv_alloc_cb)my_alloc_cb, websocket_client_callback);
@@ -256,6 +258,7 @@ void WSDPLClient::endHeaders()
   LOG(INFO) << "Correctly handshaken websocket connection.";
   /// Create an appropriate reply
   mHandshaken = true;
+  mHandshake();
 }
 
 void ws_client_write_callback(uv_write_t* h, int status)
@@ -270,6 +273,22 @@ void ws_client_write_callback(uv_write_t* h, int status)
   }
 }
 
+void ws_client_bulk_write_callback(uv_write_t* h, int status)
+{
+  if (status) {
+    LOG(ERROR) << "uv_write error: " << uv_err_name(status);
+    free(h);
+    return;
+  }
+  std::vector<uv_buf_t>* buffers = (std::vector<uv_buf_t>*)h->data;
+  if (buffers) {
+    for (auto& b : *buffers) {
+      free(b.base);
+    }
+  }
+  delete buffers;
+}
+
 /// Helper to return an error
 void WSDPLClient::write(char const* message, size_t s)
 {
@@ -281,11 +300,14 @@ void WSDPLClient::write(char const* message, size_t s)
 
 void WSDPLClient::write(std::vector<uv_buf_t>& outputs)
 {
-  for (auto& msg : outputs) {
-    uv_write_t* write_req = (uv_write_t*)malloc(sizeof(uv_write_t));
-    write_req->data = msg.base;
-    uv_write(write_req, (uv_stream_t*)mStream, &msg, 1, ws_client_write_callback);
+  if (outputs.empty()) {
+    return;
   }
+  uv_write_t* write_req = (uv_write_t*)malloc(sizeof(uv_write_t));
+  std::vector<uv_buf_t>* buffers = new std::vector<uv_buf_t>;
+  buffers->swap(outputs);
+  write_req->data = buffers;
+  uv_write(write_req, (uv_stream_t*)mStream, &buffers->at(0), buffers->size(), ws_client_bulk_write_callback);
 }
 
 } // namespace o2::framework

@@ -22,10 +22,10 @@
 #include "DataFormatsFT0/LookUpTable.h"
 #include <CommonDataFormat/InteractionRecord.h>
 #include <Framework/Logger.h>
-#include <iostream>
 #include <utility>
 #include <cstring>
 #include "Rtypes.h"
+
 namespace o2
 {
 namespace ft0
@@ -56,18 +56,9 @@ struct EventHeader {
   };
   InteractionRecord getIntRec() const { return InteractionRecord{(uint16_t)bc, (uint32_t)orbit}; }
 
-  void print() const
-  {
-    std::cout << std::hex;
-    std::cout << "################EventHeader###############" << std::endl;
-    std::cout << "startDescriptor: " << startDescriptor << std::endl;
-    std::cout << "nGBTWords: " << nGBTWords << std::endl;
-    std::cout << "BC: " << bc << std::endl;
-    std::cout << "Orbit: " << orbit << std::endl;
-    std::cout << "##########################################" << std::endl;
-    std::cout << std::dec;
-  }
+  void print() const;
 };
+
 struct EventData {
   static constexpr size_t PayloadSize = 5;
   static constexpr size_t PayloadPerGBTword = 10;
@@ -108,24 +99,7 @@ struct EventData {
   {
     return uint8_t(word >> BitFlagPos);
   }
-  void print() const
-  {
-    std::cout << std::hex;
-    std::cout << "###############EventData(PM)##############" << std::endl;
-    std::cout << "------------Channel " << channelID << "------------" << std::endl;
-    std::cout << "Charge: " << charge << std::endl;
-    std::cout << "Time: " << time << std::endl;
-    std::cout << "numberADC: " << numberADC << std::endl;
-    std::cout << "isDoubleEvent: " << isDoubleEvent << std::endl;
-    std::cout << "isTimeInfoNOTvalid: " << isTimeInfoNOTvalid << std::endl;
-    std::cout << "isCFDinADCgate: " << isCFDinADCgate << std::endl;
-    std::cout << "isTimeInfoLate: " << isTimeInfoLate << std::endl;
-    std::cout << "isAmpHigh: " << isAmpHigh << std::endl;
-    std::cout << "isEventInTVDC: " << isEventInTVDC << std::endl;
-    std::cout << "isTimeInfoLost: " << isTimeInfoLost << std::endl;
-    std::cout << "##########################################" << std::endl;
-    std::cout << std::dec;
-  }
+  void print() const;
 
   //temporary, this method should be in ChannelData struct, TODO
   void fillChannelData(ChannelData& channelData) const
@@ -165,25 +139,7 @@ struct TCMdata {
     reservedField7 : 1,  //79 bit
     reservedField8 : 48; //80 bit
 
-  void print() const
-  {
-    std::cout << std::hex;
-    std::cout << "################TCMdata###################" << std::endl;
-    std::cout << "orC: " << orC << std::endl;
-    std::cout << "orA: " << orA << std::endl;
-    std::cout << "sCen: " << sCen << std::endl;
-    std::cout << "cen: " << cen << std::endl;
-    std::cout << "vertex: " << vertex << std::endl;
-    std::cout << "nChanA: " << nChanA << std::endl;
-    std::cout << "nChanC: " << nChanC << std::endl;
-    std::cout << "amplA: " << amplA << std::endl;
-    std::cout << "amplC: " << amplC << std::endl;
-    std::cout << "timeA: " << timeA << std::endl;
-    std::cout << "timeC: " << timeC << std::endl;
-    std::cout << "##########################################" << std::endl;
-
-    std::cout << std::dec;
-  }
+  void print() const;
 
   //temporary, this method should be in Triggers struct, TODO
   void fillTrigger(Triggers& trg)
@@ -212,23 +168,14 @@ struct TCMdataExtended {
     uint32_t triggerWord;
   };
 
-  void print() const
-  {
-
-    std::cout << std::hex;
-    std::cout << "############TCMdataExtended###############" << std::endl;
-    std::cout << "triggerWord: " << triggerWord << std::endl;
-    std::cout << "##########################################" << std::endl;
-
-    std::cout << std::dec;
-  }
+  void print() const;
 };
 
 class RawEventData
 {
  public:
   RawEventData() = default;
-  void print();
+  void print() const;
   const static int gStartDescriptor = 0x0000000f;
 
   int size() const

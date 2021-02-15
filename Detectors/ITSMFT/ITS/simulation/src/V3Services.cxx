@@ -291,6 +291,28 @@ void V3Services::createOBConeSideC(TGeoVolume* mother, const TGeoManager* mgr)
   obConeSideC(mother, mgr);
 }
 
+void V3Services::createOBCYSSCylinder(TGeoVolume* mother, const TGeoManager* mgr)
+{
+  //
+  // Creates the Outer Barrel CYSS Cylinder
+  // Volume and method names correspond to element names in blueprints
+  //
+  // Input:
+  //         mother : the volume hosting the cones
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      02 Mar 2020  Mario Sitta
+  //
+
+  TGeoVolumeAssembly* cyss = new TGeoVolumeAssembly("CYSS");
+
+  obCYSS11(mother, mgr);
+}
+
 void V3Services::ibEndWheelSideA(const Int_t iLay, TGeoVolume* endWheel, const TGeoManager* mgr)
 {
   //
@@ -2351,4 +2373,117 @@ void V3Services::obConeSideC(TGeoVolume* mother, const TGeoManager* mgr)
 
   mother->AddNode(obConeRibVol, 3, new TGeoCombiTrans(xpos, ypos, -zpos, new TGeoRotation("", 0, -90, 0)));
   mother->AddNode(obConeRibVol, 4, new TGeoCombiTrans(-xpos, -ypos, -zpos, new TGeoRotation("", 0, 90, 180)));
+}
+
+void V3Services::obCYSS11(TGeoVolume* mother, const TGeoManager* mgr)
+{
+  //
+  // Creates the CYSS element 11 with all its sub-elements
+  // OB CYSS 11 : ALIITSUP0564 (the whole assembly)
+  // OB CYSS 12 : ALIITSUP0565 (the outermost cylinder)
+  // OB CYSS 13 : ALIITSUP0566 (the intermediate cylinder)
+  // OB CYSS 14 : ALIITSUP0567 (the innermost cylinder)
+  //
+  // Input:
+  //         mother : the volume where to place the current created cylinder
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      02 Mar 2020  Mario Sitta
+  //
+
+  static const Double_t sOBCYSS14Zlen = 1556.8 * sMm;
+  static const Double_t sOBCYSS14DInt = 898.0 * sMm;
+  static const Double_t sOBCYSS14DExt = 900.5 * sMm;
+  static const Double_t sOBCYSS14PhiCut = 4.0 * sMm;
+
+  static const Double_t sOBCYSS13Zlen = 1481.0 * sMm;
+  static const Double_t sOBCYSS13DInt = sOBCYSS14DExt;
+  static const Double_t sOBCYSS13DExt = 915.5 * sMm;
+  static const Double_t sOBCYSS13PhiCut = 10.55 * sMm;
+
+  static const Double_t sOBCYSS12Zlen = 1520.6 * sMm;
+  static const Double_t sOBCYSS12DInt = sOBCYSS13DExt;
+  static const Double_t sOBCYSS12DExt = 918.0 * sMm;
+  static const Double_t sOBCYSS12PhiCut = 4.0 * sMm;
+
+  static const Double_t sOBCYSS20Zlen = 1500.6 * sMm;
+  static const Double_t sOBCYSS20Width = 7.1 * sMm;
+  static const Double_t sOBCYSS20Height = 6.35 * sMm;
+
+  // Local variables
+  Double_t rmin, rmax, phi;
+  Double_t xpos, ypos, zpos;
+
+  // The OB CYSS is made by three cylinders plus other elements
+  // (rings, bars, etc) fixed together
+
+  // The three cylinders
+  rmin = sOBCYSS14DInt / 2;
+  rmax = sOBCYSS14DExt / 2;
+
+  phi = sOBCYSS14PhiCut / rmin;
+  phi *= TMath::RadToDeg();
+
+  TGeoTubeSeg* obCyss14Sh = new TGeoTubeSeg(rmin, rmax, sOBCYSS14Zlen / 2, phi, 180. - phi);
+
+  //
+  rmin = sOBCYSS13DInt / 2;
+  rmax = sOBCYSS13DExt / 2;
+
+  phi = sOBCYSS13PhiCut / rmin;
+  phi *= TMath::RadToDeg();
+
+  TGeoTubeSeg* obCyss13Sh = new TGeoTubeSeg(rmin, rmax, sOBCYSS13Zlen / 2, phi, 180. - phi);
+
+  //
+  rmin = sOBCYSS12DInt / 2;
+  rmax = sOBCYSS12DExt / 2;
+
+  phi = sOBCYSS12PhiCut / rmin;
+  phi *= TMath::RadToDeg();
+
+  TGeoTubeSeg* obCyss12Sh = new TGeoTubeSeg(rmin, rmax, sOBCYSS12Zlen / 2, phi, 180. - phi);
+
+  // The middle bar
+  TGeoBBox* obCyss20Sh = new TGeoBBox(sOBCYSS20Width / 2, sOBCYSS20Height / 2, sOBCYSS20Zlen / 2);
+
+  // We have all shapes: now create the real volumes
+  TGeoMedium* medCarbon = mgr->GetMedium("ITS_M55J6K$"); // TO BE CHECKED
+
+  TGeoVolume* obCyss14Vol = new TGeoVolume("OBCYSS14", obCyss14Sh, medCarbon);
+  obCyss14Vol->SetFillColor(kBlue);
+  obCyss14Vol->SetLineColor(kBlue);
+
+  TGeoVolume* obCyss13Vol = new TGeoVolume("OBCYSS13", obCyss13Sh, medCarbon);
+  obCyss13Vol->SetFillColor(kBlue);
+  obCyss13Vol->SetLineColor(kBlue);
+
+  TGeoVolume* obCyss12Vol = new TGeoVolume("OBCYSS12", obCyss12Sh, medCarbon);
+  obCyss12Vol->SetFillColor(kBlue);
+  obCyss12Vol->SetLineColor(kBlue);
+
+  TGeoVolume* obCyss20Vol = new TGeoVolume("OBCYSS20", obCyss20Sh, medCarbon);
+  obCyss20Vol->SetFillColor(kYellow);
+  obCyss20Vol->SetLineColor(kYellow);
+
+  // Finally put everything in the mother volume
+  mother->AddNode(obCyss14Vol, 1, nullptr);
+  mother->AddNode(obCyss14Vol, 2, new TGeoRotation("", 180, 0, 0));
+
+  mother->AddNode(obCyss13Vol, 1, nullptr);
+  mother->AddNode(obCyss13Vol, 2, new TGeoRotation("", 180, 0, 0));
+
+  mother->AddNode(obCyss12Vol, 1, nullptr);
+  mother->AddNode(obCyss12Vol, 2, new TGeoRotation("", 180, 0, 0));
+
+  xpos = (obCyss13Sh->GetRmin() + obCyss13Sh->GetRmax()) / 2;
+  ypos = sOBCYSS13PhiCut - obCyss20Sh->GetDY();
+  mother->AddNode(obCyss20Vol, 1, new TGeoTranslation(xpos, ypos, 0));
+  mother->AddNode(obCyss20Vol, 2, new TGeoTranslation(-xpos, ypos, 0));
+  mother->AddNode(obCyss20Vol, 3, new TGeoTranslation(xpos, -ypos, 0));
+  mother->AddNode(obCyss20Vol, 4, new TGeoTranslation(-xpos, -ypos, 0));
 }

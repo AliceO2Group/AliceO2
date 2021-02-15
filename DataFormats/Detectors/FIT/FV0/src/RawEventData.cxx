@@ -10,12 +10,25 @@
 
 #include "DataFormatsFV0/RawEventData.h"
 #include <sstream>
+#include <iostream>
 
 using namespace o2::fv0;
 
 ClassImp(RawEventData);
 
-void RawEventData::print()
+void EventHeader::print() const
+{
+  std::cout << std::hex;
+  std::cout << "################EventHeader###############" << std::endl;
+  std::cout << "startDescriptor: " << startDescriptor << std::endl;
+  std::cout << "nGBTWords: " << nGBTWords << std::endl;
+  std::cout << "BC: " << bc << std::endl;
+  std::cout << "Orbit: " << orbit << std::endl;
+  std::cout << "##########################################" << std::endl;
+  std::cout << std::dec;
+}
+
+void RawEventData::print() const
 {
   std::cout << "==================Raw event data==================" << std::endl;
   std::cout << "##################Header##################" << std::endl;
@@ -42,7 +55,7 @@ void RawEventData::print()
   std::cout << "##########################################" << std::endl;
 }
 
-void RawEventData::printHexEventHeader()
+void RawEventData::printHexEventHeader() const
 {
   std::stringstream ssheader;
   ssheader << std::setfill('0') << std::setw(16) << std::hex << mEventHeader.word[0] << " " << std::setw(16) << mEventHeader.word[1] << "\n       ";
@@ -56,7 +69,7 @@ void RawEventData::printHexEventHeader()
   LOG(DEBUG) << ssheader.str();
 }
 
-void RawEventData::printHexEventData(uint64_t i)
+void RawEventData::printHexEventData(uint64_t i) const
 {
   std::stringstream ssdata;
   ssdata << "D0:0x ";

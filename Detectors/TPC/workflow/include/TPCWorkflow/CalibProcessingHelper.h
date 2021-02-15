@@ -28,7 +28,7 @@ class RawReaderCRU;
 namespace calib_processing_helper
 {
 
-uint64_t processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<RawReaderCRU>& reader, bool useOldSubspec = false);
+uint64_t processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<RawReaderCRU>& reader, bool useOldSubspec = false, const std::vector<int>& sectors = {});
 } // namespace calib_processing_helper
 } // namespace tpc
 } // namespace o2

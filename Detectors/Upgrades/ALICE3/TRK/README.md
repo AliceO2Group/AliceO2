@@ -10,11 +10,12 @@ Provided O2 has been compiled with upgrades enabled, it is possible to simulate 
 
 ## Simulation
 TRK module is enabled via the `-m TRK` parameter.
-In case of `PIPE` to be enabled, the size of the beam pipe is automatically scaled to what is foreseen for the upgrades.
+New beampipe is currently represented by two cylindrical concentric beryllium pipes that cover by default the interaction point region.
+It is generally configurable in the code and can be activated passing `-m A3IP` to the `o2-sim` command.
 
 Typical command to generate MC data:
 ```bash
-o2-sim -m PIPE TRK [...]
+o2-sim -m A3IP TRK [...]
 ```
 
 ## Reconstruction

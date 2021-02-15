@@ -90,6 +90,8 @@ class Detector : public o2::base::DetImpl<Detector>
   /// copy constructor (used in MT)
   Detector(const Detector& rhs);
 
+  void InitializeParams();
+
   // defines/sets-up the sensitive volumes
   void defineSensitiveVolumes();
 
@@ -105,6 +107,8 @@ class Detector : public o2::base::DetImpl<Detector>
   float mFoilDensity;
   float mGasNobleFraction;
   float mGasDensity;
+
+  float mMaxMCStepDef;
 
   bool mTRon; // Switch for TR simulation
   TRsim* mTR; // Access to TR simulation

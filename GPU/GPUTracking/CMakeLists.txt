@@ -484,6 +484,6 @@ endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   if(NOT ${CMAKE_SYSTEM} MATCHES Darwin AND (NOT GPUCA_EVENT_DISPLAY OR (GLUT_FOUND AND GLEW_FOUND AND X11_FOUND)))
-    add_subdirectory(Standalone/Benchmark)
+    add_subdirectory(Benchmark)
   endif()
 endif()

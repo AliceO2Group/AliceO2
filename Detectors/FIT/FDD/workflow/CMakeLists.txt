@@ -32,7 +32,8 @@ o2_add_library(FDDWorkflow
 o2_add_executable(reco-workflow
                   COMPONENT_NAME fdd
                   SOURCES src/fdd-reco-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::FDDWorkflow)
+                  PUBLIC_LINK_LIBRARIES O2::FDDWorkflow
+                  TARGETVARNAME fddrecoexe)
 		  
 o2_add_executable(entropy-encoder-workflow
                   SOURCES src/entropy-encoder-workflow.cxx
@@ -49,3 +50,9 @@ o2_add_executable(flp-dpl-workflow
                   SOURCES src/fdd-flp-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::FDDWorkflow
                   TARGETVARNAME fddflpexe)
+
+if(NOT APPLE)
+
+ set_property(TARGET ${fddrecoexe} PROPERTY LINK_WHAT_YOU_USE ON)
+
+endif()

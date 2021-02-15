@@ -460,6 +460,7 @@ Other helpful resources are the scripts used for regression testing in [prodtest
 | [HepMC_STARlight](../run/SimExamples/HepMC_STARlight) | Simple example showing **generator configuration** that runs a standalone `STARlight` generation that couples to the `o2` via a `HepMC` file |
 | [Jet_Embedding_Pythia](../run/SimExamples/Jet_Embedding_Pythia8) | Complex example showing **generator configuration**, **digitization embedding**, **MCTrack access** |
 | [Selective_Transport](../run/SimExamples/Selective_Transport) | Simple example showing how to run simulation transporting only a custumisable set of particles |
+| [Selective_Transport_pi0](../run/SimExamples/Selective_Transport_pi0) | Complex example showing how to run simulation within the inhibit-pause-trigger-continue approach |
 | [Custom_EventInfo](../run/SimExamples/Custom_EventInfo) | Simple example showing how to add custom information to the MC event header |
 | [sim_challenge.sh](../prodtests/sim_challenge.sh) | Basic example doing a **simple transport, digitization, reconstruction pipeline** on the full dectector. All stages use parallelism. |
 | [sim_performance.sh](../prodtests/sim_performance_test.sh) | Basic example for serial transport and linearized digitization sequence (one detector after the other). Serves as standard performance candle. |  

@@ -63,6 +63,9 @@ class Digits2Raw
 
   void setVerbosity(int v) { mVerbosity = v; }
   int getVerbosity() const { return mVerbosity; }
+  int carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> data,
+                      const char* ptr, int maxSize, int splitID,
+                      std::vector<char>& trailer, std::vector<char>& header) const;
 
  private:
   EventHeader makeGBTHeader(int link, o2::InteractionRecord const& mIntRecord);

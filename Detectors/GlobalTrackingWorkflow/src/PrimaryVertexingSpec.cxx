@@ -12,6 +12,7 @@
 
 #include <vector>
 #include "ReconstructionDataFormats/TrackTPCITS.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "GlobalTrackingWorkflow/PrimaryVertexingSpec.h"
@@ -19,7 +20,9 @@
 #include "CommonDataFormat/BunchFilling.h"
 #include "SimulationDataFormat/DigitizationContext.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include "DataFormatsFT0/RecPoints.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "FT0Reconstruction/InteractionTag.h"
 
 using namespace o2::framework;
 
@@ -45,7 +48,7 @@ void PrimaryVertexingSpec::init(InitContext& ic)
   }
   mTimer.Stop();
   mTimer.Reset();
-  mVertexer.setValidateWithFT0(mValidateWithFT0);
+  mVertexer.setValidateWithIR(mValidateWithIR);
 
   // set bunch filling. Eventually, this should come from CCDB
   const auto* digctx = o2::steer::DigitizationContext::loadFromFile("collisioncontext.root");
@@ -59,14 +62,9 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
   double timeCPU0 = mTimer.CpuTime(), timeReal0 = mTimer.RealTime();
   mTimer.Start(false);
   const auto tracksITSTPC = pc.inputs().get<gsl::span<o2::dataformats::TrackTPCITS>>("match");
-  gsl::span<const o2::MCCompLabel> lblITS, lblTPC;
-  gsl::span<const o2::ft0::RecPoints> ft0Data;
-  if (mValidateWithFT0) {
-    ft0Data = pc.inputs().get<gsl::span<o2::ft0::RecPoints>>("fitInfo");
-  }
+  gsl::span<const o2::MCCompLabel> lblTPCITS;
   if (mUseMC) {
-    lblITS = pc.inputs().get<gsl::span<o2::MCCompLabel>>("lblITS");
-    lblTPC = pc.inputs().get<gsl::span<o2::MCCompLabel>>("lblTPC");
+    lblTPCITS = pc.inputs().get<gsl::span<o2::MCCompLabel>>("lblTPCITS");
   }
   std::vector<PVertex> vertices;
   std::vector<GIndex> vertexTrackIDs;
@@ -76,8 +74,26 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
   // RS FIXME this will not have effect until the 1st orbit is propagated, until that will work only for TF starting at orbit 0
   const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().get("match").header);
   mVertexer.setStartIR({0, dh->firstTForbit});
+  std::vector<o2::dataformats::GlobalTrackID> idxVec; // here we will the global IDs of all used tracks
 
-  mVertexer.process(tracksITSTPC, ft0Data, vertices, vertexTrackIDs, v2tRefs, lblITS, lblTPC, lblVtx);
+  // eventually we will mix here the tracks from different sources
+  idxVec.reserve(tracksITSTPC.size());
+  for (unsigned i = 0; i < tracksITSTPC.size(); i++) {
+    idxVec.emplace_back(i, o2::dataformats::GlobalTrackID::ITSTPC);
+  }
+
+  std::vector<o2::ft0::RecPoints> ft0Data;
+  if (mValidateWithIR) { // select BCs for validation
+    const o2::ft0::InteractionTag& ft0Params = o2::ft0::InteractionTag::Instance();
+    auto ftall = pc.inputs().get<gsl::span<o2::ft0::RecPoints>>("fitInfo");
+    for (const auto& ftRP : ftall) {
+      if (ft0Params.isSelected(ftRP)) {
+        ft0Data.push_back(ftRP);
+      }
+    }
+  }
+
+  mVertexer.process(tracksITSTPC, idxVec, ft0Data, vertices, vertexTrackIDs, v2tRefs, lblTPCITS, lblVtx);
   pc.outputs().snapshot(Output{"GLO", "PVTX", 0, Lifetime::Timeframe}, vertices);
   pc.outputs().snapshot(Output{"GLO", "PVTX_CONTIDREFS", 0, Lifetime::Timeframe}, v2tRefs);
   pc.outputs().snapshot(Output{"GLO", "PVTX_CONTID", 0, Lifetime::Timeframe}, vertexTrackIDs);
@@ -112,8 +128,7 @@ DataProcessorSpec getPrimaryVertexingSpec(bool validateWithFT0, bool useMC)
   outputs.emplace_back("GLO", "PVTX_CONTIDREFS", 0, Lifetime::Timeframe);
 
   if (useMC) {
-    inputs.emplace_back("lblITS", "GLO", "TPCITS_ITSMC", 0, Lifetime::Timeframe);
-    inputs.emplace_back("lblTPC", "GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe);
+    inputs.emplace_back("lblTPCITS", "GLO", "TPCITS_MC", 0, Lifetime::Timeframe);
     outputs.emplace_back("GLO", "PVTX_MCTR", 0, Lifetime::Timeframe);
   }
 

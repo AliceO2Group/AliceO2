@@ -9,16 +9,18 @@
 // or submit itself to any jurisdiction.
 #ifndef FRAMEWORK_ARRAY2D_H
 #define FRAMEWORK_ARRAY2D_H
+
+#include <Framework/RuntimeError.h>
+
 #include <cstdint>
 #include <vector>
 #include <unordered_map>
 #include <memory>
 #include <string>
-#include <cassert>
 
 namespace o2::framework
 {
-// matrix-like wrapper for std::vector
+// matrix-like wrapper for C-array
 // has no range checks
 template <typename T>
 struct Array2D {
@@ -122,76 +124,95 @@ struct Array2D {
 static constexpr const char* const labels_rows_str = "labels_rows";
 static constexpr const char* const labels_cols_str = "labels_cols";
 
+using labelmap_t = std::unordered_map<std::string, uint32_t>;
+struct LabelMap {
+  LabelMap()
+    : rowmap{},
+      colmap{},
+      labels_rows{},
+      labels_cols{}
+  {
+  }
+  LabelMap(uint32_t rows, uint32_t cols, std::vector<std::string> labels_rows_, std::vector<std::string> labels_cols_)
+    : rowmap{populate(rows, labels_rows_)},
+      colmap{populate(cols, labels_cols_)},
+      labels_rows{labels_rows_},
+      labels_cols{labels_cols_}
+  {
+  }
+
+  LabelMap(uint32_t size, std::vector<std::string> labels)
+    : rowmap{},
+      colmap{populate(size, labels)},
+      labels_rows{},
+      labels_cols{labels}
+  {
+  }
+
+  LabelMap(LabelMap const& other) = default;
+  LabelMap(LabelMap&& other) = default;
+  LabelMap& operator=(LabelMap const& other) = default;
+  LabelMap& operator=(LabelMap&& other) = default;
+
+  labelmap_t rowmap;
+  labelmap_t colmap;
+
+  std::vector<std::string> labels_rows;
+  std::vector<std::string> labels_cols;
+
+  labelmap_t populate(uint32_t size, std::vector<std::string> labels)
+  {
+    labelmap_t map;
+    if (labels.empty() == false) {
+      if (labels.size() != size) {
+        throw runtime_error("labels array size != array dimension");
+      }
+      for (auto i = 0u; i < size; ++i) {
+        map.emplace(labels[i], (uint32_t)i);
+      }
+    }
+    return map;
+  }
+
+  auto getLabelsRows()
+  {
+    return labels_rows;
+  }
+
+  auto getLabelsCols()
+  {
+    return labels_cols;
+  }
+};
+
 template <typename T>
-class LabeledArray
+class LabeledArray : public LabelMap
 {
  public:
   using element_t = T;
 
   LabeledArray()
     : values{},
-      labels_rows{},
-      labels_cols{},
-      rowmap{},
-      colmap{}
+      LabelMap{}
   {
   }
 
-  LabeledArray(T const* data, uint32_t rows, uint32_t cols, std::vector<std::string> labels_rows_ = {}, std::vector<std::string> labels_cols_ = {})
-    : values{data, rows, cols},
-      labels_rows{labels_rows_},
-      labels_cols{labels_cols_},
-      rowmap{},
-      colmap{}
+  LabeledArray(T const* data, uint32_t rows_, uint32_t cols_, std::vector<std::string> labels_rows_ = {}, std::vector<std::string> labels_cols_ = {})
+    : values{data, rows_, cols_},
+      LabelMap{rows_, cols_, labels_rows_, labels_cols_}
   {
-    if (labels_rows.empty() == false) {
-      assert(labels_rows.size() == rows);
-      for (auto i = 0u; i < labels_rows.size(); ++i) {
-        rowmap.emplace(labels_rows[i], (uint32_t)i);
-      }
-    }
-    if (labels_cols.empty() == false) {
-      assert(labels_cols.size() == cols);
-      for (auto i = 0u; i < labels_cols.size(); ++i) {
-        colmap.emplace(labels_cols[i], (uint32_t)i);
-      }
-    }
   }
 
   LabeledArray(T const* data, uint32_t size, std::vector<std::string> labels_ = {})
     : values{data, 1, size},
-      labels_rows{},
-      labels_cols{labels_},
-      rowmap{},
-      colmap{}
+      LabelMap{size, labels_}
   {
-    if (labels_cols.empty() == false) {
-      assert(labels_cols.size() == size);
-      for (auto i = 0u; i < labels_cols.size(); ++i) {
-        colmap.emplace(labels_cols[i], (uint32_t)i);
-      }
-    }
   }
 
   LabeledArray(Array2D<T> const& data, std::vector<std::string> labels_rows_ = {}, std::vector<std::string> labels_cols_ = {})
     : values{data},
-      labels_rows{labels_rows_},
-      labels_cols{labels_cols_},
-      rowmap{},
-      colmap{}
+      LabelMap{data.rows, data.cols, labels_rows_, labels_cols_}
   {
-    if (labels_rows.empty() == false) {
-      assert(labels_rows.size() == values.rows);
-      for (auto i = 0u; i < labels_rows.size(); ++i) {
-        rowmap.emplace(labels_rows[i], (uint32_t)i);
-      }
-    }
-    if (labels_cols.empty() == false) {
-      assert(labels_cols.size() == values.cols);
-      for (auto i = 0u; i < labels_cols.size(); ++i) {
-        colmap.emplace(labels_cols[i], (uint32_t)i);
-      }
-    }
   }
 
   LabeledArray(LabeledArray<T> const& other) = default;
@@ -206,9 +227,19 @@ class LabeledArray
     return values(y, x);
   }
 
-  T get(std::string y, std::string x) const
+  T get(const char* y, const char* x) const
   {
     return values(rowmap.find(y)->second, colmap.find(x)->second);
+  }
+
+  T get(const char* y, uint32_t x) const
+  {
+    return values(rowmap.find(y)->second, x);
+  }
+
+  T get(uint32_t y, const char* x) const
+  {
+    return values(y, colmap.find(x)->second);
   }
 
   T get(uint32_t x) const
@@ -224,16 +255,6 @@ class LabeledArray
   T* operator[](uint32_t y) const
   {
     return values[y];
-  }
-
-  auto getLabelsRows()
-  {
-    return labels_rows;
-  }
-
-  auto getLabelsCols()
-  {
-    return labels_cols;
   }
 
   auto getData()
@@ -253,10 +274,6 @@ class LabeledArray
 
  private:
   Array2D<T> values;
-  std::vector<std::string> labels_rows;
-  std::vector<std::string> labels_cols;
-  std::unordered_map<std::string, uint32_t> rowmap;
-  std::unordered_map<std::string, uint32_t> colmap;
 };
 } // namespace o2::framework
 

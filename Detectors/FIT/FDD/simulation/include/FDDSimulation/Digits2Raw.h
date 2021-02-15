@@ -48,6 +48,10 @@ class Digits2Raw
   void setFilePerLink(bool v) { mOutputPerLink = v; }
   bool getFilePerLink() const { return mOutputPerLink; }
 
+  int carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> data,
+                      const char* ptr, int maxSize, int splitID,
+                      std::vector<char>& trailer, std::vector<char>& header) const;
+
  private:
   static constexpr uint32_t sTcmLink = 2;
   static constexpr uint16_t sCruId = 0;

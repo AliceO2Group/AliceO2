@@ -19,11 +19,16 @@
 #include <vector>
 #include <map>
 
+#include "gsl/span"
+
 namespace o2
 {
 
 namespace itsmft
 {
+
+class CompClusterExt;
+
 /// \class NoiseMap
 /// \brief NoiseMap class for the ITS and MFT
 ///
@@ -123,6 +128,11 @@ class NoiseMap
     }
     return false;
   }
+
+  // Methods required by the calibration framework
+  void print();
+  void fill(const gsl::span<const CompClusterExt> data);
+  void merge(const NoiseMap* prev) {}
 
  private:
   std::vector<std::map<int, int>> mNoisyPixels; ///< Internal noise map representation

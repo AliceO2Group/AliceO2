@@ -262,7 +262,7 @@ void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, 
     const float phiRot = gRandom->Uniform(0, ::TWOPI);
 
     // z position of ions
-    float zIonsIBF = mZROC - driftLIons;
+    const float zIonsIBF = mZROC - driftLIons;
     const int zbinIDC = static_cast<int>(zIonsIBF / mZROC * ionDriftTime);
 
     // in case driftLIons = 0 avoid seg fault
@@ -301,8 +301,9 @@ void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, 
 
           // z position of ions
           float zIonsPI = std::abs(posHit.Z()) - driftLIons;
+          float zIonsIBFTmp = zIonsIBF;
           if (posHit.Z() < 0) {
-            zIonsIBF *= -1;
+            zIonsIBFTmp *= -1;
             zIonsPI *= -1;
           }
 
@@ -347,8 +348,8 @@ void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, 
             const int epsilon = static_cast<int>(gain * ibfMap.getValue(cru, row, pad) * 0.01); // IBF value is in % -> convert to absolute value
             epsilonSum += epsilon;
 
-            hisSCRandom.Fill(phiHitDiff, posHitDiff.rho(), zIonsIBF, epsilon);
-            hisIBF.Fill(phiHitDiff, posHitDiff.rho(), zIonsIBF, epsilon);
+            hisSCRandom.Fill(phiHitDiff, posHitDiff.rho(), zIonsIBFTmp, epsilon);
+            hisIBF.Fill(phiHitDiff, posHitDiff.rho(), zIonsIBFTmp, epsilon);
 
             // fill pads with adc value
             auto padPosGlobal = digiPadPos.getGlobalPadPos();
@@ -499,21 +500,21 @@ CalPad loadMap(std::string mapfile, std::string mapName)
   return *map;
 }
 
-/// merge the idc values from different root files
+/// create average IDCs from random maps
 /// \param files vetor of paths to files containing the IDCs which will be averaged
 /// \param outFile output filename
 void makeAverageIDCs(const std::vector<std::string>& files, const char* outFile = outfnameIDC)
 {
-  // vector containing the path of the relevant files which will be merged
+  // vector containing the path of the relevant files which will be averaged
   std::cout << "merge IDCs for average map" << std::endl;
 
-  // merged idc CalPads
-  std::vector<CalPad> idc3D;     // 3D-merged idc
-  std::vector<float> idc1DASide; // 1D-merged idc
-  std::vector<float> idc1DCSide; // 1D-merged idc
+  // average idc CalPads
+  std::vector<CalPad> idc3D;     // 3D-average idc
+  std::vector<float> idc1DASide; // 1D-average idc
+  std::vector<float> idc1DCSide; // 1D-average idc
 
-  std::vector<float> idc0DASide(1); // 0D-merged idc (A single float value cannot be written to file) TODO find better solution
-  std::vector<float> idc0DCSide(1); // 0D-merged idc (A single float value cannot be written to file) TODO find better solution
+  std::vector<float> idc0DASide(1); // 0D-average idc (A single float value cannot be written to file) TODO find better solution
+  std::vector<float> idc0DCSide(1); // 0D-average idc (A single float value cannot be written to file) TODO find better solution
 
   // merge the 3D IDC values
   const int nMaps = files.size();
@@ -545,7 +546,7 @@ void makeAverageIDCs(const std::vector<std::string>& files, const char* outFile 
     delete idcTmp;
   }
 
-  // if the average IDCs are calculated the IDCs have to be normalized to the number of maps
+  // IDCs have to be normalized to the number of maps
   const int nSlices = idc3D.size();
 
   // sum up all z-slices for A- and C-side
@@ -637,7 +638,8 @@ void makeDistortionsCorrections(const char* outFileDistortions = "distortions.ro
 /// make average distortion map from random maps
 /// \param files vector with files which contain the random space charge maps
 /// \param histName name of the space charge histogram in the root files
-void makeAverageDensityMap(const std::vector<std::string> files, const char* histName = hisSCRandomName)
+/// \param outFileName name of the output file
+void makeAverageDensityMap(const std::vector<std::string> files, const char* histName = hisSCRandomName, const char* outFileName = "spaceChargeDensityHist_average.root")
 {
   // 1. loop over the maps and create the average map (still z dependent)
   TH3F averageMap;
@@ -683,7 +685,7 @@ void makeAverageDensityMap(const std::vector<std::string> files, const char* his
     }
   }
 
-  TFile fOut("spaceChargeDensityHist_average.root", "RECREATE");
+  TFile fOut(outFileName, "RECREATE");
   averageMap.Write();
   fOut.Close();
 }
@@ -741,9 +743,9 @@ void createScaledMeanMap(const std::string inpFile, const std::string outFile, c
   }
 
   // dump distortion object to file if output file is specified
+  TFile fOut(outFile.data(), "RECREATE");
   for (int iSide = sideStart; iSide < sideEnd; ++iSide) {
     const Side side = iSide == 0 ? Side::A : Side::C;
-    TFile fOut(outFile.data(), "RECREATE");
     scScaled.dumpGlobalCorrections(fOut, side);
     scScaled.dumpGlobalDistortions(fOut, side);
     scScaled.dumpLocalCorrections(fOut, side);

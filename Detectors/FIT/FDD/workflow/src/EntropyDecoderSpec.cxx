@@ -64,8 +64,8 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 DataProcessorSpec getEntropyDecoderSpec()
 {
   std::vector<OutputSpec> outputs{
-    OutputSpec{{"digits"}, "FDD", "FDDDigit", 0, Lifetime::Timeframe},
-    OutputSpec{{"channels"}, "FDD", "FDDDigitCh", 0, Lifetime::Timeframe}};
+    OutputSpec{{"digits"}, "FDD", "DIGITSBC", 0, Lifetime::Timeframe},
+    OutputSpec{{"channels"}, "FDD", "DIGITSCH", 0, Lifetime::Timeframe}};
 
   return DataProcessorSpec{
     "fdd-entropy-decoder",

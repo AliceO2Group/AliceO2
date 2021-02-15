@@ -88,3 +88,11 @@ o2_add_test(RawData
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
             LABELS trd
             )
+o2_add_test(Digit
+            COMPONENT_NAME trd
+            PUBLIC_LINK_LIBRARIES O2::TRDBase O2::DataFormatsTRD
+            SOURCES test/testDigit.cxx
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+            LABELS trd
+            )
+

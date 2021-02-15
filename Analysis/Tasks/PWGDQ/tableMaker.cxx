@@ -107,7 +107,7 @@ struct TableMaker {
     fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
 
     DefineHistograms("Event_BeforeCuts;Event_AfterCuts;TrackBarrel_BeforeCuts;TrackBarrel_AfterCuts"); // define all histograms
-    VarManager::SetUseVars(fHistMan->GetUsedVars()); // provide the list of required variables so that VarManager knows what to fill
+    VarManager::SetUseVars(fHistMan->GetUsedVars());                                                   // provide the list of required variables so that VarManager knows what to fill
     fOutputList.setObject(fHistMan->GetMainHistogramList());
     DefineCuts();
   }
@@ -140,8 +140,8 @@ struct TableMaker {
     }
 
     VarManager::ResetValues(0, VarManager::kNEventWiseVariables, fValues);
-    VarManager::FillEvent<eventFillMap>(collision, fValues);   // extract event information and place it in the fgValues array
-    fHistMan->FillHistClass("Event_BeforeCuts", fValues);      // automatically fill all the histograms in the class Event
+    VarManager::FillEvent<eventFillMap>(collision, fValues); // extract event information and place it in the fgValues array
+    fHistMan->FillHistClass("Event_BeforeCuts", fValues);    // automatically fill all the histograms in the class Event
 
     if (!fEventCut->IsSelected(fValues)) {
       return;

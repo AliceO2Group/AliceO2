@@ -49,7 +49,7 @@ namespace painter
 /// \param CalDet object to draw
 /// \return TCanvas containing CalDet content
 template <class T>
-TCanvas* draw(const CalDet<T>& calDet, int nbins1D = 300, float xMin1D = 0, float xMax1D = 0);
+TCanvas* draw(const CalDet<T>& calDet, int nbins1D = 300, float xMin1D = 0, float xMax1D = 0, TCanvas* outputCanvas = nullptr);
 
 /// Drawing of a CalDet object
 /// \param CalArray object to draw
@@ -93,9 +93,10 @@ TH2* getHistogram2D(const CalArray<T>& calArray);
 /// \param nbins1D number of bins used for the 1D projections
 /// \param xMin1D minimum value for 1D distribution (xMin = 0 and xMax = 0 for auto scaling)
 /// \param xMax1D maximum value for 1D distribution (xMin = 0 and xMax = 0 for auto scaling)
+/// \param outputCanvases if outputCanvases are given, use them instead of creating new ones, 3 are required
 /// \return TCanvas containing CalDet content
 template <class T>
-std::vector<TCanvas*> makeSummaryCanvases(const CalDet<T>& calDet, int nbins1D = 300, float xMin1D = 0, float xMax1D = 0, bool onlyFilled = true);
+std::vector<TCanvas*> makeSummaryCanvases(const CalDet<T>& calDet, int nbins1D = 300, float xMin1D = 0, float xMax1D = 0, bool onlyFilled = true, std::vector<TCanvas*>* outputCanvases = nullptr);
 
 /// Create summary canvases for a CalDet object
 ///

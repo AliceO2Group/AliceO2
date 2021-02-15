@@ -138,7 +138,7 @@ TObjArray* drawPulser(TString pulserFile, int mode = 0, std::string_view outDir 
     const auto medianWidth = TMath::Median(rocWidth.getData().size(), rocWidth.getData().data());
     const auto medianQtot = TMath::Median(rocQtot.getData().size(), rocQtot.getData().data());
 
-    const float rangeT0 = 0.5;
+    const float rangeT0 = 1.5;
     const float minT0 = medianT0 - rangeT0;
     const float maxT0 = medianT0 + rangeT0;
 

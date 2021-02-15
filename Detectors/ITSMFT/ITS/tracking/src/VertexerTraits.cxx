@@ -22,12 +22,10 @@
 #include "ITStracking/ClusterLines.h"
 #include "ITStracking/Tracklet.h"
 
-// debug
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-#include "CommonUtils/TreeStreamRedirector.h"
+#include "ITStracking/StandaloneDebugger.h"
 #include <unordered_map>
 #endif
-// \debug
 
 #define LAYER0_TO_LAYER1 0
 #define LAYER1_TO_LAYER2 1
@@ -137,9 +135,9 @@ void trackletSelectionKernelSerial(
 VertexerTraits::VertexerTraits() : mAverageClustersRadii{std::array<float, 3>{0.f, 0.f, 0.f}},
                                    mMaxDirectorCosine3{0.f}
 {
-  mVrtParams.phiSpan = static_cast<int>(std::ceil(constants::index_table::PhiBins * mVrtParams.phiCut /
+  mVrtParams.phiSpan = static_cast<int>(std::ceil(constants::its2::PhiBins * mVrtParams.phiCut /
                                                   constants::math::TwoPi));
-  mVrtParams.zSpan = static_cast<int>(std::ceil(mVrtParams.zCut * constants::index_table::InverseZBinSize()[0]));
+  mVrtParams.zSpan = static_cast<int>(std::ceil(mVrtParams.zCut * constants::its2::InverseZBinSize()[0]));
   setIsGPU(false);
 
   std::cout << "[DEBUG] Creating file: dbg_ITSVertexerCPU.root" << std::endl;

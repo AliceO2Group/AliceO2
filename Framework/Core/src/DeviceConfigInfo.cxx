@@ -24,7 +24,7 @@ bool DeviceConfigHelper::parseConfig(std::string_view s, ParsedConfigMatch& matc
 {
   const char* begin = s.begin();
   const char* end = s.end();
-  if (s.size() > 17 && (strncmp("[CONFIG] ", begin + 17, 9) != 0)) {
+  if (s.size() > 17 && (strncmp("[CONFIG];", begin + 17, 9) != 0)) {
     return false;
   }
   if (s.size() < 17 + 9) {
@@ -36,14 +36,15 @@ bool DeviceConfigHelper::parseConfig(std::string_view s, ParsedConfigMatch& matc
     return false;
   }
   match.beginValue = match.endKey + 1;
-  match.endValue = (char const*)memchr(match.beginValue, ' ', end - match.beginValue);
+  match.endValue = (char const*)memchr(match.beginValue, ';', end - match.beginValue);
   if (match.endValue == nullptr) {
     return false;
   }
-  char* next = nullptr;
-  match.timestamp = strtoll(match.endValue, &next, 10);
 
-  if (!next || *next != ' ') {
+  char* next = nullptr;
+  match.timestamp = strtoll(match.endValue + 1, &next, 10);
+
+  if (!next || *next != ';') {
     return false;
   }
 

@@ -32,7 +32,7 @@ struct TPCSpectraProviderTask {
   Produces<aod::LFTracks> outputTracks;
 
   Configurable<float> vertexZCut{"vertexZCut", 10.0f, "Accepted z-vertex range"};
-  Configurable<float> trackEtaCut{"trackEtaCut", 0.9f, "Eta range for tracks"};
+  Configurable<float> trackEtaCut{"trackEtaCut", 0.8f, "Eta range for tracks"};
   Configurable<float> trackPtCut{"trackPtCut", 0.0f, "Pt range for tracks"};
 
   Filter collisionFilter = nabs(aod::collision::posZ) < vertexZCut;
@@ -46,14 +46,14 @@ struct TPCSpectraProviderTask {
     uint32_t pNsigma = 0xFFFFFF00; //15 bit precision for Nsigma
     outputTracks.reserve(tracks.size());
     for (auto track : tracks) {
-      float nsigma[9] = {truncateFloatFraction(track.tpcNSigmaEl(), pNsigma), truncateFloatFraction(track.tpcNSigmaMu(), pNsigma),
-                         truncateFloatFraction(track.tpcNSigmaPi(), pNsigma), truncateFloatFraction(track.tpcNSigmaKa(), pNsigma),
-                         truncateFloatFraction(track.tpcNSigmaPr(), pNsigma), truncateFloatFraction(track.tpcNSigmaDe(), pNsigma),
-                         truncateFloatFraction(track.tpcNSigmaTr(), pNsigma), truncateFloatFraction(track.tpcNSigmaHe(), pNsigma),
-                         truncateFloatFraction(track.tpcNSigmaAl(), pNsigma)}; //the significance needs to be discussed
 
       //outputTracks(outputCollisions.lastIndex(), track.pt(), track.p(), track.eta(), nsigma);
-      outputTracks(track.pt(), track.p(), track.eta(), nsigma);
+      outputTracks(track.pt(), track.p(), track.eta(),
+                   truncateFloatFraction(track.tpcNSigmaEl(), pNsigma), truncateFloatFraction(track.tpcNSigmaMu(), pNsigma),
+                   truncateFloatFraction(track.tpcNSigmaPi(), pNsigma), truncateFloatFraction(track.tpcNSigmaKa(), pNsigma),
+                   truncateFloatFraction(track.tpcNSigmaPr(), pNsigma), truncateFloatFraction(track.tpcNSigmaDe(), pNsigma),
+                   truncateFloatFraction(track.tpcNSigmaTr(), pNsigma), truncateFloatFraction(track.tpcNSigmaHe(), pNsigma),
+                   truncateFloatFraction(track.tpcNSigmaAl(), pNsigma));
     }
   }
 };

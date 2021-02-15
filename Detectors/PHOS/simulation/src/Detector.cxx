@@ -175,7 +175,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   fMC->CurrentVolOffID(3, strip); // 3: number of geom levels between PXTL and strip: get strip number in PHOS module
   Int_t cell;
   fMC->CurrentVolOffID(2, cell); // 2: number of geom levels between PXTL and cell: get sell in strip number.
-  Int_t detID = Geometry::relToAbsId(moduleNumber, strip, cell);
+  Int_t detID = Geometry::relToAbsId(moduleNumber - 1, strip, cell);
 
   if (superParent == mCurentSuperParent && detID == mCurrentCellID && mCurrentHit) {
     // continue with current hit

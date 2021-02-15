@@ -67,6 +67,8 @@ class GeneratorFromO2Kine : public o2::eventgen::Generator
   GeneratorFromO2Kine() = default;
   GeneratorFromO2Kine(const char* name);
 
+  bool Init() override;
+
   // the o2 Generator interface methods
   bool generateEvent() override
   { /* trivial - actual work in importParticles */
@@ -78,11 +80,15 @@ class GeneratorFromO2Kine : public o2::eventgen::Generator
   void SetStartEvent(int start);
 
  private:
+  /** methods that can be overridden **/
+  void updateHeader(o2::dataformats::MCEventHeader* eventHeader) override;
+
   TFile* mEventFile = nullptr;     //! the file containing the persistent events
   TBranch* mEventBranch = nullptr; //! the branch containing the persistent events
   int mEventCounter = 0;
   int mEventsAvailable = 0;
   bool mSkipNonTrackable = true; //! whether to pass non-trackable (decayed particles) to the MC stack
+  bool mContinueMode = false;    //! whether we want to continue simulation of previously inhibited tracks
   ClassDefOverride(GeneratorFromO2Kine, 1);
 };
 

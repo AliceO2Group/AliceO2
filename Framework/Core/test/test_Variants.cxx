@@ -225,7 +225,9 @@ BOOST_AUTO_TEST_CASE(LabeledArrayTest)
   LabeledArray<float> laf{&m[0][0], 3, 4, {"r1", "r2", "r3"}, {"c1", "c2", "c3", "c4"}};
   for (auto i = 0u; i < 3; ++i) {
     for (auto j = 0u; j < 4; ++j) {
-      BOOST_CHECK(laf.get(yl[i], xl[j]) == laf.get(i, j));
+      BOOST_CHECK(laf.get(yl[i].c_str(), xl[j].c_str()) == laf.get(i, j));
+      BOOST_CHECK(laf.get(i, xl[j].c_str()) == laf.get(i, j));
+      BOOST_CHECK(laf.get(yl[i].c_str(), j) == laf.get(i, j));
     }
   }
 }

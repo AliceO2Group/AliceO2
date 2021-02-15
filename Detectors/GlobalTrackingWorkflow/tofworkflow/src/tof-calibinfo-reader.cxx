@@ -34,6 +34,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.push_back(ConfigParamSpec{"collection-infile", o2::framework::VariantType::String, "list-calibfile", {"Name of the collection input file"}});
   workflowOptions.push_back(ConfigParamSpec{"ninstances", o2::framework::VariantType::Int, 1, {"Number of reader instances"}});
+  workflowOptions.push_back(ConfigParamSpec{"tpc-matches", o2::framework::VariantType::Bool, false, {"Made from TOF-TPC matches"}});
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}});
 }
 
@@ -65,6 +66,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   int ninstances = cfgc.options().get<int>("ninstances");
   auto listname = cfgc.options().get<std::string>("collection-infile");
+  auto toftpc = cfgc.options().get<bool>("tpc-matches");
 
   char* stringTBP = new char[listname.size()];
   sprintf(stringTBP, "%s", listname.c_str());
@@ -74,7 +76,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   // std::vector<int> laneConfiguration = tofSectors;
 
   for (int i = 0; i < ninstances; i++) {
-    specs.emplace_back(o2::tof::getCalibInfoReaderSpec(i, ninstances, stringTBP));
+    specs.emplace_back(o2::tof::getCalibInfoReaderSpec(i, ninstances, stringTBP, toftpc));
   }
 
   LOG(INFO) << "Number of active devices = " << specs.size();
