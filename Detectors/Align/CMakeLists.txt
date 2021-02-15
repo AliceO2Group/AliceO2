@@ -32,7 +32,7 @@ o2_add_library(Align
                         src/AliAlgTrack.cxx
                         src/AliAlgVol.cxx
                         src/AliAlgVtx.cxx
-                        #src/Mille.cxx
+                        src/Mille.cxx
                PUBLIC_LINK_LIBRARIES O2::FrameworkLogger
                						 O2::ReconstructionDataFormats
                                      ROOT::Core
