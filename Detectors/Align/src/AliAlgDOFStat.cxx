@@ -14,7 +14,7 @@
 /// @brief  Mergable bbject for statistics of points used by each DOF
 
 #include "Align/AliAlgDOFStat.h"
-//#include "Align/AliAlgSteer.h" FIXME(milettri): needs AliAlgSteer
+#include "Align/AliAlgSteer.h"
 #include "Framework/Logger.h"
 #include <TMath.h>
 #include <TCollection.h>
@@ -55,21 +55,20 @@ void AliAlgDOFStat::Print(Option_t*) const
   //
 }
 
-//FIXME(milettri): needs AliAlgSteer
-////____________________________________________
-//TH1F* AliAlgDOFStat::CreateHisto(AliAlgSteer* st) const
-//{
-//  // create histo with stat. If steer object is supplied, build labels
-//  if (!fNDOFs)
-//    return 0;
-//  TH1F* h = new TH1F("DOFstat", "statistics per DOF", fNDOFs, 0, fNDOFs);
-//  for (int i = fNDOFs; i--;) {
-//    h->SetBinContent(i + 1, fStat[i]);
-//    if (st)
-//      h->GetXaxis()->SetBinLabel(i + 1, st->GetDOFLabelTxt(i));
-//  }
-//  return h;
-//}
+//____________________________________________
+TH1F* AliAlgDOFStat::CreateHisto(AliAlgSteer* st) const
+{
+  // create histo with stat. If steer object is supplied, build labels
+  if (!fNDOFs)
+    return 0;
+  TH1F* h = new TH1F("DOFstat", "statistics per DOF", fNDOFs, 0, fNDOFs);
+  for (int i = fNDOFs; i--;) {
+    h->SetBinContent(i + 1, fStat[i]);
+    if (st)
+      h->GetXaxis()->SetBinLabel(i + 1, st->GetDOFLabelTxt(i));
+  }
+  return h;
+}
 
 //______________________________________________________________________________
 Long64_t AliAlgDOFStat::Merge(TCollection* list)
