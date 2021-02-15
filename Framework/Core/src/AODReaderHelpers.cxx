@@ -63,7 +63,7 @@ auto setEOSCallback(InitContext& ic)
 }
 
 template <typename... Ts>
-static inline auto doExtractTypedOriginal(framework::pack<Ts...>, ProcessingContext& pc)
+static inline auto doExtractOriginal(framework::pack<Ts...>, ProcessingContext& pc)
 {
   if constexpr (sizeof...(Ts) == 1) {
     return pc.inputs().get<TableConsumer>(aod::MetadataTrait<framework::pack_element_t<0, framework::pack<Ts...>>>::metadata::tableLabel())->asArrowTable();
@@ -75,13 +75,25 @@ static inline auto doExtractTypedOriginal(framework::pack<Ts...>, ProcessingCont
 template <typename O>
 static inline auto extractTypedOriginal(ProcessingContext& pc)
 {
-  return O{doExtractTypedOriginal(soa::make_originals_from_type<O>(), pc)};
+  return O{doExtractOriginal(soa::make_originals_from_type<O>(), pc)};
 }
 
 template <typename... Os>
-static inline auto extractOriginalsTuple(framework::pack<Os...>, ProcessingContext& pc)
+static inline auto extractTypedOriginalsTuple(framework::pack<Os...>, ProcessingContext& pc)
 {
   return std::make_tuple(extractTypedOriginal<Os>(pc)...);
+}
+
+template <typename O>
+static inline auto extractOriginal(ProcessingContext& pc)
+{
+  return doExtractOriginal(soa::make_originals_from_type<O>(), pc);
+}
+
+template <typename... Os>
+static inline auto extractOriginals(framework::pack<Os...>, ProcessingContext& pc)
+{
+  return std::vector{extractOriginal<Os>(pc)...};
 }
 
 AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec> requested)
@@ -111,11 +123,11 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec> requ
           if constexpr (metadata_t::exclusive == true) {
             return o2::framework::IndexExclusive::indexBuilder(index_pack_t{},
                                                                extractTypedOriginal<Key>(pc),
-                                                               extractOriginalsTuple(sources{}, pc));
+                                                               extractTypedOriginalsTuple(sources{}, pc));
           } else {
             return o2::framework::IndexSparse::indexBuilder(index_pack_t{},
                                                             extractTypedOriginal<Key>(pc),
-                                                            extractOriginalsTuple(sources{}, pc));
+                                                            extractTypedOriginalsTuple(sources{}, pc));
           }
         };
 
@@ -186,6 +198,9 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
 AlgorithmSpec AODReaderHelpers::pidBuilderCallback(std::vector<InputSpec> requested)
 {
   return AlgorithmSpec::InitCallback{[requested](InitContext& ic) {
+    // what.value = context.options().get<T>(what.name.c_str());
+    // std::string signalname = ic.options().get<std::string>("signalname");
+    // return [requested, signalname](ProcessingContext& pc) {
     return [requested](ProcessingContext& pc) {
       auto outputs = pc.outputs();
       // spawn tables
@@ -212,14 +227,11 @@ AlgorithmSpec AODReaderHelpers::pidBuilderCallback(std::vector<InputSpec> reques
           // The cursor will be filled as a table
           auto cursor = framework::FFL(builder.cursor<typename metadata_t::table_t>());
           // These are the input tables
-          auto tables = extractOriginalsTuple(sources{}, pc);
+          auto tables = extractOriginals(sources{}, pc);
           // Getting the sub-tables
-          auto collisions = std::get<Coll>(tables);
-          auto tracks = std::get<aod::Tracks>(tables);
-          // auto tracksstored = std::get<aod::StoredTracks>(tables);
-          // auto tracksextension = std::get<aod::TracksExtension>(tables);
-          auto tracksextra = std::get<aod::TracksExtra>(tables);
-          auto full_trks = join(tracks, tracksextra);
+          auto collisions = Coll{tables[0]};
+          auto tracks = Trks{{tables[1], tables[2]}};
+          tracks.bindExternalIndices(&collisions);
 
           // Setting up the response
           o2::pid::DetectorResponse response;
@@ -229,16 +241,8 @@ AlgorithmSpec AODReaderHelpers::pidBuilderCallback(std::vector<InputSpec> reques
           // response.LoadParam(response.kSignal, ccdb->getForTimeStamp<Parametrization>(path + "/" + signalname.value, timestamp.value));
           // response.LoadParam(response.kSigma, ccdb->getForTimeStamp<Parametrization>(path + "/" + sigmaname.value, timestamp.value));
           // Service<o2::ccdb::BasicCCDBManager> ccdb;
-          // Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
-          // Configurable<std::string> signalname{"param-signal", "BetheBloch", "Name of the parametrization for the expected signal, used in both file and CCDB mode"};
-          // Configurable<std::string> sigmaname{"param-sigma", "TPCReso", "Name of the parametrization for the expected sigma, used in both file and CCDB mode"};
-          // Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
-          // Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
 
-          for (auto& col : collisions) {
-          }
-
-          for (auto& trk : full_trks) {
+          for (auto& trk : tracks) {
             const float xsignal[2] = {trk.tpcInnerParam() / o2::track::PID::getMass(id), (float)o2::track::PID::getCharge(id)};
             const float exp_signal = response(response.kSignal, xsignal);
             const float xsigma[2] = {trk.tpcSignal(), (float)trk.tpcNClsFound()};
