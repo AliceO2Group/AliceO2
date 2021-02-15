@@ -70,9 +70,6 @@ fi
 STAGES+=" ASYNC"
 for STAGE in $STAGES; do
   logfile=reco_${STAGE}.log
-  export SHMSIZE
-  export NTIMEFRAMES
-  export TFDELAY
   export GLOBALDPLOPT
 
   # run each of the reco but in strictly serial mode
