@@ -8,7 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 #ifndef DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_DATADECODERSPEC_H_
 #define DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_DATADECODERSPEC_H_
 
@@ -23,26 +22,26 @@ namespace o2
 namespace hmpid
 {
 
-  class DataDecoderTask : public framework::Task
-  {
-    public:
-      DataDecoderTask() = default;
-      ~DataDecoderTask() override = default;
-      void init(framework::InitContext& ic) final;
-      void run(framework::ProcessingContext& pc) final;
-      void decodeTF(framework::ProcessingContext& pc);
-      void decodeReadout(framework::ProcessingContext& pc);
-      void decodeRawFile(framework::ProcessingContext& pc);
-      void endOfStream(framework::EndOfStreamContext& ec) override;
+class DataDecoderTask : public framework::Task
+{
+ public:
+  DataDecoderTask() = default;
+  ~DataDecoderTask() override = default;
+  void init(framework::InitContext& ic) final;
+  void run(framework::ProcessingContext& pc) final;
+  void decodeTF(framework::ProcessingContext& pc);
+  void decodeReadout(framework::ProcessingContext& pc);
+  void decodeRawFile(framework::ProcessingContext& pc);
+  void endOfStream(framework::EndOfStreamContext& ec) override;
 
-    private:
-      HmpidDecodeRawDigit *mDeco;
-      long mTotalDigits;
-      long mTotalFrames;
-      std::string mRootStatFile;
+ private:
+  HmpidDecodeRawDigit* mDeco;
+  long mTotalDigits;
+  long mTotalFrames;
+  std::string mRootStatFile;
 
-      ExecutionTimer mExTimer;
-  };
+  ExecutionTimer mExTimer;
+};
 
 o2::framework::DataProcessorSpec getDecodingSpec(std::string inputSpec = "TF:HMP/RAWDATA");
 //o2::framework::DataProcessorSpec getDecodingSpec();

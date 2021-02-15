@@ -61,75 +61,69 @@ const int TH_WRONGBUFFERDIM = 11;
 
 const uint64_t OUTRANGEEVENTNUMBER = 0x1FFFFFFFFFFF;
 
-
 class HmpidEquipment
 {
 
-  private:
+ private:
+  uint32_t mEquipmentId;
+  uint32_t mCruId;
+  uint32_t mLinkId;
 
-    uint32_t mEquipmentId;
-    uint32_t mCruId;
-    uint32_t mLinkId;
+ public:
+  uint32_t mPadSamples[Geo::N_COLUMNS][Geo::N_DILOGICS][Geo::N_CHANNELS];
+  double mPadSum[Geo::N_COLUMNS][Geo::N_DILOGICS][Geo::N_CHANNELS];
+  double mPadSquares[Geo::N_COLUMNS][Geo::N_DILOGICS][Geo::N_CHANNELS];
 
-  public:
+  int mErrors[MAXERRORS];
 
-    uint32_t mPadSamples[Geo::N_COLUMNS][Geo::N_DILOGICS][Geo::N_CHANNELS];
-    double mPadSum[Geo::N_COLUMNS][Geo::N_DILOGICS][Geo::N_CHANNELS];
-    double mPadSquares[Geo::N_COLUMNS][Geo::N_DILOGICS][Geo::N_CHANNELS];
+  int mWillBeRowMarker;
+  int mWillBeSegmentMarker;
+  int mWillBeEoE;
+  int mWillBePad;
+  int mRowSize;
+  int mSegment;
+  int mColumnCounter;
+  int mWordsPerRowCounter;
+  int mWordsPerSegCounter;
+  int mWordsPerDilogicCounter;
 
-    int mErrors[MAXERRORS];
+  int mErrorsCounter;
+  int mErrorPadsPerEvent;
 
-    int mWillBeRowMarker;
-    int mWillBeSegmentMarker;
-    int mWillBeEoE;
-    int mWillBePad;
-    int mRowSize;
-    int mSegment;
-    int mColumnCounter;
-    int mWordsPerRowCounter;
-    int mWordsPerSegCounter;
-    int mWordsPerDilogicCounter;
+  uint64_t mEventNumber;
+  int mNumberOfEvents;
+  float mEventSizeAverage;
+  int mEventSize;
 
-    int mErrorsCounter;
-    int mErrorPadsPerEvent;
+  int mSampleNumber;
+  float mPadsPerEventAverage;
 
-    uint64_t mEventNumber;
-    int mNumberOfEvents;
-    float mEventSizeAverage;
-    int mEventSize;
+  float mBusyTimeValue;
+  float mBusyTimeAverage;
+  int mBusyTimeSamples;
+  int mNumberOfEmptyEvents;
+  int mNumberOfWrongEvents;
+  int mTotalPads;
+  int mTotalErrors;
 
-    int mSampleNumber;
-    float mPadsPerEventAverage;
+ public:
+  HmpidEquipment(int Equipment, int Cru, int Link);
+  ~HmpidEquipment();
 
-    float mBusyTimeValue;
-    float mBusyTimeAverage;
-    int mBusyTimeSamples;
-    int mNumberOfEmptyEvents;
-    int mNumberOfWrongEvents;
-    int mTotalPads;
-    int mTotalErrors;
+  int getEquipmentId()
+  {
+    return (mEquipmentId);
+  };
+  int getEquipmentId(int cru, int link);
 
-  public:
-    HmpidEquipment(int Equipment, int Cru, int Link);
-    ~HmpidEquipment();
-
-    int getEquipmentId()
-    {
-      return (mEquipmentId);
-    }
-    ;
-    int getEquipmentId(int cru, int link);
-
-    void init();
-    void resetPadMap();
-    void resetErrors();
-    void setError(int ErrType);
-    void setPad(int col, int dil, int cha, uint16_t charge);
-
+  void init();
+  void resetPadMap();
+  void resetErrors();
+  void setError(int ErrType);
+  void setPad(int col, int dil, int cha, uint16_t charge);
 };
 
 } // namespace hmpid
 } // namespace o2
-
 
 #endif /* COMMON_HMPIDEQUIPMENT_H_ */

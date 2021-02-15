@@ -87,8 +87,7 @@ class HMPIDDigitizer
   double mCurrentTriggerTime = 0.;
   uint32_t mOrbit = 0;
   uint16_t mBc = 0;
-  
-  
+
   int mEventID = 0;
   int mSrcID = 0;
 

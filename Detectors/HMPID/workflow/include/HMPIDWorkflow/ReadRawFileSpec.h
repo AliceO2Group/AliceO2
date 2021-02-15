@@ -8,7 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 #ifndef DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_READRAWFILESPEC_H_
 #define DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_READRAWFILESPEC_H_
 
@@ -23,20 +22,20 @@ namespace o2
 namespace hmpid
 {
 
-  class RawFileReaderTask : public framework::Task
-  {
-    public:
-      RawFileReaderTask() = default;
-     ~RawFileReaderTask() override = default;
-      void init(framework::InitContext& ic) final;
-      void run(framework::ProcessingContext& pc) final;
+class RawFileReaderTask : public framework::Task
+{
+ public:
+  RawFileReaderTask() = default;
+  ~RawFileReaderTask() override = default;
+  void init(framework::InitContext& ic) final;
+  void run(framework::ProcessingContext& pc) final;
 
-    private:
-      std::ifstream mInputFile{}; ///< input file
-      bool mPrint = false;        ///< print debug messages
+ private:
+  std::ifstream mInputFile{}; ///< input file
+  bool mPrint = false;        ///< print debug messages
 
-      ExecutionTimer mExTimer;
-  };
+  ExecutionTimer mExTimer;
+};
 
 o2::framework::DataProcessorSpec getReadRawFileSpec(std::string inputSpec = "HMP/RAWDATA");
 

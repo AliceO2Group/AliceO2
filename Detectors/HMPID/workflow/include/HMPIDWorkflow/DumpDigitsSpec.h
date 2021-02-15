@@ -29,27 +29,27 @@ namespace o2
 namespace hmpid
 {
 
-  class DumpDigitsTask : public framework::Task
-  {
-    public:
-      DumpDigitsTask() = default;
-      ~DumpDigitsTask() override = default;
-      void init(framework::InitContext& ic) final;
-      void run(framework::ProcessingContext& pc) final;
-      void endOfStream(framework::EndOfStreamContext& ec) override;
+class DumpDigitsTask : public framework::Task
+{
+ public:
+  DumpDigitsTask() = default;
+  ~DumpDigitsTask() override = default;
+  void init(framework::InitContext& ic) final;
+  void run(framework::ProcessingContext& pc) final;
+  void endOfStream(framework::EndOfStreamContext& ec) override;
 
-    private:
-      bool mPrintDigits = false;
-      bool mIsOutputOnFile = false;
-      std::string mOutputFileName = "";
-      std::ofstream mOsFile;
+ private:
+  bool mPrintDigits = false;
+  bool mIsOutputOnFile = false;
+  std::string mOutputFileName = "";
+  std::ofstream mOsFile;
 
-      int mOrbit;
-      int mBc;
-      long mDigitsReceived;
+  int mOrbit;
+  int mBc;
+  long mDigitsReceived;
 
-      ExecutionTimer mExTimer;
-  };
+  ExecutionTimer mExTimer;
+};
 
 o2::framework::DataProcessorSpec getDumpDigitsSpec(std::string inputSpec = "HMP/DIGITS");
 

@@ -8,7 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 #ifndef DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_DATADECODERSPEC_H_
 #define DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_DATADECODERSPEC_H_
 
@@ -25,35 +24,35 @@ namespace o2
 namespace hmpid
 {
 
-  class PedestalsCalculationTask : public framework::Task
-  {
-    public:
-    PedestalsCalculationTask() = default;
-      ~PedestalsCalculationTask() override = default;
-      void init(framework::InitContext& ic) final;
-      void run(framework::ProcessingContext& pc) final;
-      void decodeTF(framework::ProcessingContext& pc);
-      void decodeReadout(framework::ProcessingContext& pc);
-      void decodeRawFile(framework::ProcessingContext& pc);
-      void endOfStream(framework::EndOfStreamContext& ec) override;
+class PedestalsCalculationTask : public framework::Task
+{
+ public:
+  PedestalsCalculationTask() = default;
+  ~PedestalsCalculationTask() override = default;
+  void init(framework::InitContext& ic) final;
+  void run(framework::ProcessingContext& pc) final;
+  void decodeTF(framework::ProcessingContext& pc);
+  void decodeReadout(framework::ProcessingContext& pc);
+  void decodeRawFile(framework::ProcessingContext& pc);
+  void endOfStream(framework::EndOfStreamContext& ec) override;
 
-    private:
-      void recordPedInCcdb();
+ private:
+  void recordPedInCcdb();
 
-    private:
-      HmpidDecodeRawMem *mDeco;
-      long mTotalDigits;
-      long mTotalFrames;
-      std::string mPedestalsBasePath;
-      float mSigmaCut;
-      std::string mPedestalTag;
+ private:
+  HmpidDecodeRawMem* mDeco;
+  long mTotalDigits;
+  long mTotalFrames;
+  std::string mPedestalsBasePath;
+  float mSigmaCut;
+  std::string mPedestalTag;
 
-      o2::ccdb::CcdbApi mDBapi;
-      std::map<std::string, std::string> mDbMetadata; // can be empty
-      bool mWriteToDB;
+  o2::ccdb::CcdbApi mDBapi;
+  std::map<std::string, std::string> mDbMetadata; // can be empty
+  bool mWriteToDB;
 
-      ExecutionTimer mExTimer;
-  };
+  ExecutionTimer mExTimer;
+};
 
 o2::framework::DataProcessorSpec getPedestalsCalculationSpec(std::string inputSpec = "TF:HMP/RAWDATA");
 //o2::framework::DataProcessorSpec getDecodingSpec();

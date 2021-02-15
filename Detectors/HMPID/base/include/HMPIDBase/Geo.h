@@ -68,17 +68,16 @@ class Geo
 {
  public:
   // From AliTOFGeometry
-//  static void translate(Float_t* xyz, Float_t translationVector[3]);
-//  enum {
-//    // DAQ characteristics
-//    kNDDL = 4,    // Number of DDL (Detector Data Link) per sector
-//    kNTRM = 12,   // Number of TRM ( Readout Module) per DDL
-//    kNTdc = 15,   // Number of Tdc (Time to Digital Converter) per TRM
-//    kNChain = 2,  // Number of chains per TRM
-//    kNCrate = 72, // Number of Crates
-//    kNCh = 8      // Number of channels per Tdc
-//  };
-
+  //  static void translate(Float_t* xyz, Float_t translationVector[3]);
+  //  enum {
+  //    // DAQ characteristics
+  //    kNDDL = 4,    // Number of DDL (Detector Data Link) per sector
+  //    kNTRM = 12,   // Number of TRM ( Readout Module) per DDL
+  //    kNTdc = 15,   // Number of Tdc (Time to Digital Converter) per TRM
+  //    kNChain = 2,  // Number of chains per TRM
+  //    kNCrate = 72, // Number of Crates
+  //    kNCh = 8      // Number of channels per Tdc
+  //  };
 
   // ---- HMPID geometry -------
   static constexpr int MAXEQUIPMENTS = 14;
@@ -111,11 +110,9 @@ class Geo
   static constexpr int MAXXPHOTO = 79;
   static constexpr int MAXYPHOTO = 47;
 
+  static void Module2Equipment(int Mod, int Row, int Col, int* Equi, int* Colu, int* Dilo, int* Chan);
+  static void Equipment2Module(int Equi, int Colu, int Dilo, int Chan, int* Mod, int* Row, int* Col);
 
-  static void Module2Equipment(int Mod, int Row, int Col, int *Equi, int *Colu, int *Dilo, int *Chan);
-  static void Equipment2Module(int Equi, int Colu, int Dilo, int Chan, int *Mod, int *Row, int *Col);
-  
-  
   // from
   //static constexpr Bool_t FEAWITHMASKS[NSECTORS] =
   //  // TOF sectors with Nino masks: 0, 8, 9, 10, 16
@@ -123,8 +120,7 @@ class Geo
   //   kTRUE, kTRUE, kFALSE, kFALSE, kFALSE, kFALSE, kFALSE, kTRUE, kFALSE};
   //; // Selecting TOF sectors containing FEA cooling masks
 
-
-//  static Float_t getCableLength(Int_t icrate, Int_t islot, Int_t ichain, Int_t itdc) { return CABLELENGTH[icrate][islot - 3][ichain][itdc / 3]; }
+  //  static Float_t getCableLength(Int_t icrate, Int_t islot, Int_t ichain, Int_t itdc) { return CABLELENGTH[icrate][islot - 3][ichain][itdc / 3]; }
 
  private:
   static void Init();

@@ -30,44 +30,42 @@
 #include "HMPIDBase/Geo.h"
 #include "HmpidDecoder.h"
 
-namespace o2{
-  namespace hmpid {
-
-
-class HmpidDecodeRawMem: public HmpidDecoder
+namespace o2
 {
-  public:
-    HmpidDecodeRawMem(int *EqIds, int *CruIds, int *LinkIds, int numOfEquipments);
-    HmpidDecodeRawMem(int numOfEquipments);
-    ~HmpidDecodeRawMem();
+namespace hmpid
+{
 
-    bool setUpStream(void *Buffer, long BufferLen);
+class HmpidDecodeRawMem : public HmpidDecoder
+{
+ public:
+  HmpidDecodeRawMem(int* EqIds, int* CruIds, int* LinkIds, int numOfEquipments);
+  HmpidDecodeRawMem(int numOfEquipments);
+  ~HmpidDecodeRawMem();
 
-  private:
-    bool getBlockFromStream(uint32_t **streamPtr, uint32_t Size);
-    bool getHeaderFromStream(uint32_t **streamPtr);
-    bool getWordFromStream(uint32_t *word);
-    void setPad(HmpidEquipment *eq, int col, int dil, int ch, uint16_t charge);
+  bool setUpStream(void* Buffer, long BufferLen);
 
-  private:
+ private:
+  bool getBlockFromStream(uint32_t** streamPtr, uint32_t Size);
+  bool getHeaderFromStream(uint32_t** streamPtr);
+  bool getWordFromStream(uint32_t* word);
+  void setPad(HmpidEquipment* eq, int col, int dil, int ch, uint16_t charge);
 
+ private:
 };
 
-class HmpidDecodeRawDigit: public HmpidDecodeRawMem
+class HmpidDecodeRawDigit : public HmpidDecodeRawMem
 {
-  public:
-    HmpidDecodeRawDigit(int *EqIds, int *CruIds, int *LinkIds, int numOfEquipments);
-    HmpidDecodeRawDigit(int numOfEquipments);
-    ~HmpidDecodeRawDigit();
+ public:
+  HmpidDecodeRawDigit(int* EqIds, int* CruIds, int* LinkIds, int numOfEquipments);
+  HmpidDecodeRawDigit(int numOfEquipments);
+  ~HmpidDecodeRawDigit();
 
-    std::vector<o2::hmpid::Digit> mDigits;
+  std::vector<o2::hmpid::Digit> mDigits;
 
-  private:
-    void setPad(HmpidEquipment *eq, int col, int dil, int ch, uint16_t charge);
-
-
+ private:
+  void setPad(HmpidEquipment* eq, int col, int dil, int ch, uint16_t charge);
 };
 
-}
-}
+} // namespace hmpid
+} // namespace o2
 #endif /* COMMON_HMPIDDECODERAWFILE_H_ */

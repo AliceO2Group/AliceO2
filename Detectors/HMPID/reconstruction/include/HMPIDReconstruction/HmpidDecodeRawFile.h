@@ -30,33 +30,33 @@
 #define MAXFILENAMEBUFFER 512
 #define MAXRAWFILEBUFFER RAWBLOCKDIMENSION_W * 4 + 8
 
-namespace o2 {
-  namespace hmpid {
-
-
-class HmpidDecodeRawFile: public HmpidDecoder
+namespace o2
 {
-  public:
-    HmpidDecodeRawFile(int *EqIds, int *CruIds, int *LinkIds, int numOfEquipments);
-    HmpidDecodeRawFile(int numOfEquipments);
-    ~HmpidDecodeRawFile();
+namespace hmpid
+{
 
-    bool setUpStream(void *InpuFileName, long Size);
+class HmpidDecodeRawFile : public HmpidDecoder
+{
+ public:
+  HmpidDecodeRawFile(int* EqIds, int* CruIds, int* LinkIds, int numOfEquipments);
+  HmpidDecodeRawFile(int numOfEquipments);
+  ~HmpidDecodeRawFile();
 
-  private:
-    bool getBlockFromStream(uint32_t **streamPtr, uint32_t Size);
-    bool getHeaderFromStream(uint32_t **streamPtr);
-    bool getWordFromStream(uint32_t *word);
-    int fileExists(char *filewithpath);
-    void setPad(HmpidEquipment *eq, int col, int dil, int ch, uint16_t charge);
+  bool setUpStream(void* InpuFileName, long Size);
 
-  private:
-    FILE *fh;
-    char mInputFile[MAXFILENAMEBUFFER];
-    uint32_t mFileBuffer[MAXRAWFILEBUFFER];
+ private:
+  bool getBlockFromStream(uint32_t** streamPtr, uint32_t Size);
+  bool getHeaderFromStream(uint32_t** streamPtr);
+  bool getWordFromStream(uint32_t* word);
+  int fileExists(char* filewithpath);
+  void setPad(HmpidEquipment* eq, int col, int dil, int ch, uint16_t charge);
 
+ private:
+  FILE* fh;
+  char mInputFile[MAXFILENAMEBUFFER];
+  uint32_t mFileBuffer[MAXRAWFILEBUFFER];
 };
 
-  }
-}
+} // namespace hmpid
+} // namespace o2
 #endif /* COMMON_HMPIDDECODERAWFILE_H_ */
