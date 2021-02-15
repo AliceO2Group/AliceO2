@@ -419,16 +419,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   std::vector<o2::detectors::DetID> detList; // list of participating detectors
 
-  // the TPC part
-  // we need to init this anyway since TPC is treated a bit special (for the moment)
-  if (!helpasked && ismaster) {
-    initTPC();
-  }
-
   // keeps track of which tpc sectors to process
   std::vector<int> tpcsectors;
 
   if (isEnabled(o2::detectors::DetID::TPC)) {
+    if (!helpasked && ismaster) {
+      initTPC();
+    }
+
     tpcsectors = o2::RangeTokenizer::tokenize<int>(configcontext.options().get<std::string>("tpc-sectors"));
     // only one lane for the help printout
     auto lanes = helpasked ? 1 : getNumTPCLanes(tpcsectors, configcontext);
