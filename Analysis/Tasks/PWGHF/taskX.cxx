@@ -62,7 +62,7 @@ struct TaskX {
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsiToEE >= d_selectionFlagJpsi);
 
-	/// aod::BigTracks is not soa::Filtered, should be added when filters are added
+  /// aod::BigTracks is not soa::Filtered, should be added when filters are added
   void process(aod::Collision const&, aod::BigTracks const& tracks, soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiToEECandidate, aod::Colls>> const& candidates)
   {
     for (auto& candidate : candidates) {
@@ -81,9 +81,9 @@ struct TaskX {
           if (trackNeg1.signed1Pt() > 0) {
             continue;
           }
-          registry.fill(HIST("hptcand"), candidate.pt() + trackPos1.pt() + trackNeg1.pt()); 
+          registry.fill(HIST("hptcand"), candidate.pt() + trackPos1.pt() + trackNeg1.pt());
         }
-      }	
+      }
     }
   }
 };
