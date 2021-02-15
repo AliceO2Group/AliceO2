@@ -181,6 +181,9 @@ struct DataSpecUtils {
   static std::optional<header::DataHeader::SubSpecificationType> getOptionalSubSpec(InputSpec const& spec);
 
   /// Build a DataDescriptMatcher which does not care about the subSpec.
+  static data_matcher::DataDescriptorMatcher dataDescriptorMatcherFrom(ConcreteDataMatcher const& concrete);
+
+  /// Build a DataDescriptMatcher which does not care about the subSpec.
   static data_matcher::DataDescriptorMatcher dataDescriptorMatcherFrom(ConcreteDataTypeMatcher const& dataType);
 
   /// Build a DataDescriptMatcher which does not care about the subSpec and description.
