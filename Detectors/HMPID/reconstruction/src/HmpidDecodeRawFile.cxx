@@ -25,8 +25,7 @@ using namespace o2::hmpid;
 /// Constructor with the default HMPID equipments map at P2
 /// @param[in] numOfEquipments : number of defined equipments [0..13]
 HmpidDecodeRawFile::HmpidDecodeRawFile(int numOfEquipments)
-    :
-    HmpidDecoder(numOfEquipments)
+  : HmpidDecoder(numOfEquipments)
 {
   fh = 0;
 }
@@ -36,9 +35,8 @@ HmpidDecodeRawFile::HmpidDecodeRawFile(int numOfEquipments)
 /// @param[in] *EqIds : the pointer to the Equipments ID array
 /// @param[in] *CruIds : the pointer to the CRU ID array
 /// @param[in] *LinkIds : the pointer to the Link ID array
-HmpidDecodeRawFile::HmpidDecodeRawFile(int *EqIds, int *CruIds, int *LinkIds, int numOfEquipments)
-    :
-    HmpidDecoder(EqIds, CruIds, LinkIds, numOfEquipments)
+HmpidDecodeRawFile::HmpidDecodeRawFile(int* EqIds, int* CruIds, int* LinkIds, int numOfEquipments)
+  : HmpidDecoder(EqIds, CruIds, LinkIds, numOfEquipments)
 {
   fh = 0;
 }
@@ -55,9 +53,9 @@ HmpidDecodeRawFile::~HmpidDecodeRawFile()
 /// @returns True if the file is opened
 /// @throws TH_FILENOTEXISTS Thrown if the file doesn't exists
 /// @throws TH_OPENFILE Thrown if Fails to open the file
-bool HmpidDecodeRawFile::setUpStream(void *FileName, long Size)
+bool HmpidDecodeRawFile::setUpStream(void* FileName, long Size)
 {
-  strcpy(mInputFile, (const char*) FileName);
+  strcpy(mInputFile, (const char*)FileName);
   // files section ----
   if (!fileExists(mInputFile)) {
     LOG(ERROR) << "The input file " << mInputFile << " does not exist at this time." << FairLogger::endl;
@@ -71,7 +69,7 @@ bool HmpidDecodeRawFile::setUpStream(void *FileName, long Size)
   }
 
   mActualStreamPtr = 0; // sets the pointer to the Buffer
-  mEndStreamPtr = 0; //sets the End of buffer
+  mEndStreamPtr = 0;    //sets the End of buffer
   mStartStreamPtr = 0;
 
   return (true);
@@ -87,7 +85,7 @@ bool HmpidDecodeRawFile::setUpStream(void *FileName, long Size)
 /// @param[in] Size : not used
 /// @returns True if the file is opened
 /// @throws TH_WRONGFILELEN Thrown if the file doesn't contains enough words
-bool HmpidDecodeRawFile::getBlockFromStream(uint32_t **streamPtr, uint32_t Size)
+bool HmpidDecodeRawFile::getBlockFromStream(uint32_t** streamPtr, uint32_t Size)
 {
   if (Size > MAXRAWFILEBUFFER)
     return (false);
@@ -96,8 +94,8 @@ bool HmpidDecodeRawFile::getBlockFromStream(uint32_t **streamPtr, uint32_t Size)
     throw TH_WRONGFILELEN;
   }
   Size = ((mFileBuffer[2] & 0x0000FFFF) / sizeof(int32_t)) - HEADERDIMENSION_W;
-  nr = fread(mFileBuffer+HEADERDIMENSION_W, sizeof(int32_t), Size, fh);
-  LOG(DEBUG) << " getBlockFromStream read " << nr << " of " << Size+HEADERDIMENSION_W << " words !" << FairLogger::endl;
+  nr = fread(mFileBuffer + HEADERDIMENSION_W, sizeof(int32_t), Size, fh);
+  LOG(DEBUG) << " getBlockFromStream read " << nr << " of " << Size + HEADERDIMENSION_W << " words !" << FairLogger::endl;
   if (nr != Size) {
     throw TH_WRONGFILELEN;
   }
@@ -111,17 +109,17 @@ bool HmpidDecodeRawFile::getBlockFromStream(uint32_t **streamPtr, uint32_t Size)
 /// Reads the Header from the file
 /// @param[in] **streamPtr : the pointer to the memory buffer
 /// @returns True if the header is read
-bool HmpidDecodeRawFile::getHeaderFromStream(uint32_t **streamPtr)
+bool HmpidDecodeRawFile::getHeaderFromStream(uint32_t** streamPtr)
 {
   bool flag = getBlockFromStream(streamPtr, RAWBLOCKDIMENSION_W); // reads the 8k block
-  mActualStreamPtr += HEADERDIMENSION_W; // Move forward for the first word
+  mActualStreamPtr += HEADERDIMENSION_W;                          // Move forward for the first word
   return (flag);
 }
 
 /// Read one word from the pre-load buffer
 /// @param[in] *word : the buffer for the read word
 /// @returns True every time
-bool HmpidDecodeRawFile::getWordFromStream(uint32_t *word)
+bool HmpidDecodeRawFile::getWordFromStream(uint32_t* word)
 {
   *word = *mActualStreamPtr;
   mActualStreamPtr++;
@@ -137,7 +135,7 @@ bool HmpidDecodeRawFile::getWordFromStream(uint32_t *word)
 /// @param[in] dil : the dilogic [0..9]
 /// @param[in] ch : the channel [0..47]
 /// @param[in] charge : the value of the charge
-void HmpidDecodeRawFile::setPad(HmpidEquipment *eq, int col, int dil, int ch, uint16_t charge)
+void HmpidDecodeRawFile::setPad(HmpidEquipment* eq, int col, int dil, int ch, uint16_t charge)
 {
   eq->setPad(col, dil, ch, charge);
   return;
@@ -146,7 +144,7 @@ void HmpidDecodeRawFile::setPad(HmpidEquipment *eq, int col, int dil, int ch, ui
 /// Checks if the file exists !
 /// @param[in] *filewithpath : the File Name to check
 /// @returns True if the file exists
-int HmpidDecodeRawFile::fileExists(char *filewithpath)
+int HmpidDecodeRawFile::fileExists(char* filewithpath)
 {
   if (access(filewithpath, F_OK) != -1) {
     return (true);
@@ -154,4 +152,3 @@ int HmpidDecodeRawFile::fileExists(char *filewithpath)
     return (false);
   }
 }
-

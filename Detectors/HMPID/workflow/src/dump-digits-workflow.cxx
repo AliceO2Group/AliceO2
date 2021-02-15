@@ -47,9 +47,9 @@ WorkflowSpec defineDataProcessing(const ConfigContext&)
   WorkflowSpec specs;
 
   DataProcessorSpec consumer = o2::hmpid::getDumpDigitsSpec();
-//  DataProcessorSpec consumer = o2::hmpid::getDecodingSpec();
+  //  DataProcessorSpec consumer = o2::hmpid::getDecodingSpec();
   specs.push_back(consumer);
-//  specs.push_back(consumer);
+  //  specs.push_back(consumer);
 
   return specs;
 }

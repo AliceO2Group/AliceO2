@@ -44,4 +44,3 @@ void Clusterer::process(std::vector<o2::hmpid::Digit> const& digits, std::vector
   printf("Clusterer::process:        ");
   timerProcess.Print();
 }
-

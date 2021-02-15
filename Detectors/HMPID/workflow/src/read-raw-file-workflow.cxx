@@ -16,7 +16,6 @@
 #include "Framework/DispatchPolicy.h"
 #include "Framework/Task.h"
 
-
 // customize dispatch policy, dispatch immediately what is ready
 void customize(std::vector<o2::framework::DispatchPolicy>& policies)
 {
@@ -24,24 +23,23 @@ void customize(std::vector<o2::framework::DispatchPolicy>& policies)
   // we customize all devices to dispatch data immediately
   auto readerMatcher = [](auto const& spec) {
     //
-  //  std::cout << "customize reader = " << spec.name << std::endl;
-//    std::cout << "PingReader" << std::endl;
+    //  std::cout << "customize reader = " << spec.name << std::endl;
+    //    std::cout << "PingReader" << std::endl;
     return true;
-//    return std::regex_match(spec.name.begin(), spec.name.end(), std::regex(".*-reader"));
+    //    return std::regex_match(spec.name.begin(), spec.name.end(), std::regex(".*-reader"));
   };
   auto triggerMatcher = [](auto const& query) {
     // a bit of a hack but we want this to be configurable from the command line,
     // however DispatchPolicy is inserted before all other setup. Triggering depending
     // on the global variable set from the command line option. If scheduled messages
     // are not triggered they are sent out at the end of the computation
-  //  std::cout << "customize Trigger origin = " << query.origin << " description = " << query.description << std::endl;
-   // std::cout << "PingTrig" << std::endl;
+    //  std::cout << "customize Trigger origin = " << query.origin << " description = " << query.description << std::endl;
+    // std::cout << "PingTrig" << std::endl;
     return true;
-//    return gDispatchTrigger.origin == query.origin && gDispatchTrigger.description == query.description;
+    //    return gDispatchTrigger.origin == query.origin && gDispatchTrigger.description == query.description;
   };
   policies.push_back({"pr-f-re", readerMatcher, DispatchOp::WhenReady, triggerMatcher});
 }
-
 
 #include "Framework/runDataProcessing.h"
 

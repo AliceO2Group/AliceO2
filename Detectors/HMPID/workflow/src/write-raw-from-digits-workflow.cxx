@@ -8,7 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/CallbackService.h"
@@ -38,9 +37,9 @@ WorkflowSpec defineDataProcessing(const ConfigContext&)
   WorkflowSpec specs;
 
   DataProcessorSpec consumer = o2::hmpid::getWriteRawFromDigitsSpec();
-//  DataProcessorSpec consumer = o2::hmpid::getDecodingSpec();
+  //  DataProcessorSpec consumer = o2::hmpid::getDecodingSpec();
   specs.push_back(consumer);
-//  specs.push_back(consumer);
+  //  specs.push_back(consumer);
 
   return specs;
 }

@@ -11,7 +11,7 @@
 
 ///
 /// \file    DatDecoderSpec.cxx
-/// \author  
+/// \author
 ///
 /// \brief Implementation of a data processor to run the HMPID raw decoding
 ///
@@ -61,14 +61,16 @@ void DumpDigitsTask::init(framework::InitContext& ic)
 
   mIsOutputOnFile = false;
   mOutputFileName = ic.options().get<std::string>("out-file");
-  if(mOutputFileName != "") {
+  if (mOutputFileName != "") {
     mOsFile.open(mOutputFileName, std::ios::out);
     if (mOsFile.is_open()) {
       mIsOutputOnFile = true;
     }
   }
-  if (mPrintDigits) std::cout << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
-  if (mIsOutputOnFile) mOsFile << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
+  if (mPrintDigits)
+    std::cout << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
+  if (mIsOutputOnFile)
+    mOsFile << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
 
   mOrbit = -1;
   mBc = -1;
@@ -86,21 +88,22 @@ void DumpDigitsTask::run(framework::ProcessingContext& pc)
     LOG(DEBUG) << "The size of the vector =" << digits.size();
     mDigitsReceived += digits.size();
     if (mPrintDigits) {
-      for(o2::hmpid::Digit Dig : digits) {
+      for (o2::hmpid::Digit Dig : digits) {
         std::cout << Dig << std::endl;
       }
     }
     if (mIsOutputOnFile) {
-      for(o2::hmpid::Digit Dig : digits) {
+      for (o2::hmpid::Digit Dig : digits) {
         mOsFile << Dig << std::endl;
-        if(Dig.getOrbit() != mOrbit || Dig.getBC() != mBc) {
-          mOrbit = Dig.getOrbit(); mBc = Dig.getBC();
+        if (Dig.getOrbit() != mOrbit || Dig.getBC() != mBc) {
+          mOrbit = Dig.getOrbit();
+          mBc = Dig.getBC();
           LOG(INFO) << "Event :" << mOrbit << " / " << mBc;
         }
       }
     }
   }
-  mExTimer.elapseMes( "... Dumping... Digits received = " + std::to_string(mDigitsReceived));
+  mExTimer.elapseMes("... Dumping... Digits received = " + std::to_string(mDigitsReceived));
   return;
 }
 
@@ -117,20 +120,19 @@ void DumpDigitsTask::endOfStream(framework::EndOfStreamContext& ec)
 o2::framework::DataProcessorSpec getDumpDigitsSpec(std::string inputSpec)
 //o2::framework::DataPrecessorSpec getDecodingSpec()
 {
-  
+
   std::vector<o2::framework::InputSpec> inputs;
   inputs.emplace_back("digits", o2::header::gDataOriginHMP, "DIGITS", 0, Lifetime::Timeframe);
 
   std::vector<o2::framework::OutputSpec> outputs;
 
-  
   return DataProcessorSpec{
     "HMP-DigitsDump",
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<DumpDigitsTask>()},
     Options{{"out-file", VariantType::String, "", {"name of the output file"}},
-            {"print", VariantType::Bool, false, {"print digits (default false )"}}} };
+            {"print", VariantType::Bool, false, {"print digits (default false )"}}}};
 }
 
 } // namespace hmpid

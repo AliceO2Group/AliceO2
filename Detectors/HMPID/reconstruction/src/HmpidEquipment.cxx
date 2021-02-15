@@ -120,8 +120,8 @@ void HmpidEquipment::setError(int ErrType)
 void HmpidEquipment::setPad(int col, int dil, int cha, uint16_t charge)
 {
   mPadSamples[col][dil][cha]++;
-  mPadSum[col][dil][cha] += (double) charge;
-  mPadSquares[col][dil][cha] += (double) charge * (double) charge;
+  mPadSum[col][dil][cha] += (double)charge;
+  mPadSquares[col][dil][cha] += (double)charge * (double)charge;
   return;
 }
 
@@ -136,4 +136,3 @@ int HmpidEquipment::getEquipmentId(int cru, int link)
   else
     return (-1);
 }
-

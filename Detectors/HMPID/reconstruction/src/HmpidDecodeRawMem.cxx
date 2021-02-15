@@ -30,8 +30,7 @@ using namespace o2::hmpid;
 ///               normally it is equal to 14
 /// @param[in] numOfEquipments : the number of equipments to define [1..14]
 HmpidDecodeRawMem::HmpidDecodeRawMem(int numOfEquipments)
-    :
-    HmpidDecoder(numOfEquipments)
+  : HmpidDecoder(numOfEquipments)
 {
 }
 
@@ -44,9 +43,8 @@ HmpidDecodeRawMem::HmpidDecodeRawMem(int numOfEquipments)
 /// @param[in] *EqIds : the pointer to the Equipments ID array
 /// @param[in] *CruIds : the pointer to the CRU ID array
 /// @param[in] *LinkIds : the pointer to the Link ID array
-HmpidDecodeRawMem::HmpidDecodeRawMem(int *EqIds, int *CruIds, int *LinkIds, int numOfEquipments)
-    :
-    HmpidDecoder(EqIds, CruIds, LinkIds, numOfEquipments)
+HmpidDecodeRawMem::HmpidDecodeRawMem(int* EqIds, int* CruIds, int* LinkIds, int numOfEquipments)
+  : HmpidDecoder(EqIds, CruIds, LinkIds, numOfEquipments)
 {
 }
 
@@ -64,7 +62,7 @@ HmpidDecodeRawMem::~HmpidDecodeRawMem()
 /// @throws TH_NULLBUFFERPOINTER Thrown if the pointer to the buffer is NULL
 /// @throws TH_BUFFEREMPTY Thrown if the buffer is empty
 /// @throws TH_WRONGBUFFERDIM Thrown if the buffer len is less then one header
-bool HmpidDecodeRawMem::setUpStream(void *Buffer, long BufferLen)
+bool HmpidDecodeRawMem::setUpStream(void* Buffer, long BufferLen)
 {
   long wordsBufferLen = BufferLen / (sizeof(int32_t) / sizeof(char)); // Converts the len in words
   if (Buffer == nullptr) {
@@ -80,10 +78,10 @@ bool HmpidDecodeRawMem::setUpStream(void *Buffer, long BufferLen)
     throw TH_WRONGBUFFERDIM;
   }
 
-  mActualStreamPtr = (uint32_t*) Buffer; // sets the pointer to the Buffer
-  mEndStreamPtr = ((uint32_t*) Buffer) + wordsBufferLen; //sets the End of buffer
-  mStartStreamPtr = ((uint32_t*) Buffer);
-//  std::cout << " setUpStrem : StPtr=" << mStartStreamPtr << " EndPtr=" << mEndStreamPtr << " Len=" << wordsBufferLen << std::endl;
+  mActualStreamPtr = (uint32_t*)Buffer;                 // sets the pointer to the Buffer
+  mEndStreamPtr = ((uint32_t*)Buffer) + wordsBufferLen; //sets the End of buffer
+  mStartStreamPtr = ((uint32_t*)Buffer);
+  //  std::cout << " setUpStrem : StPtr=" << mStartStreamPtr << " EndPtr=" << mEndStreamPtr << " Len=" << wordsBufferLen << std::endl;
   return (true);
 }
 
@@ -92,15 +90,15 @@ bool HmpidDecodeRawMem::setUpStream(void *Buffer, long BufferLen)
 /// @param[in] Size : the dimension of the chunk (words)
 /// @returns True every time
 /// @throw TH_WRONGBUFFERDIM Buffer length shorter then the requested
-bool HmpidDecodeRawMem::getBlockFromStream(uint32_t **streamPtr, uint32_t Size)
+bool HmpidDecodeRawMem::getBlockFromStream(uint32_t** streamPtr, uint32_t Size)
 {
   *streamPtr = mActualStreamPtr;
   mActualStreamPtr += Size;
   if (mActualStreamPtr > mEndStreamPtr) {
-//    std::cout << " getBlockFromStream : StPtr=" << mActualStreamPtr << " EndPtr=" << mEndStreamPtr << " Len=" << Size << std::endl;
-//    std::cout << "Beccato " << std::endl;
-//    throw TH_WRONGBUFFERDIM;
-      return(false);
+    //    std::cout << " getBlockFromStream : StPtr=" << mActualStreamPtr << " EndPtr=" << mEndStreamPtr << " Len=" << Size << std::endl;
+    //    std::cout << "Beccato " << std::endl;
+    //    throw TH_WRONGBUFFERDIM;
+    return (false);
   }
   return (true);
 }
@@ -108,7 +106,7 @@ bool HmpidDecodeRawMem::getBlockFromStream(uint32_t **streamPtr, uint32_t Size)
 /// Gets the Header Block from the stream.
 /// @param[in] **streamPtr : the pointer to the memory buffer
 /// @returns True if the header is read
-bool HmpidDecodeRawMem::getHeaderFromStream(uint32_t **streamPtr)
+bool HmpidDecodeRawMem::getHeaderFromStream(uint32_t** streamPtr)
 {
   return (getBlockFromStream(streamPtr, mRDHSize));
 }
@@ -116,9 +114,9 @@ bool HmpidDecodeRawMem::getHeaderFromStream(uint32_t **streamPtr)
 /// Gets a Word from the stream.
 /// @param[in] *word : the buffer for the read word
 /// @returns True if the operation end well
-bool HmpidDecodeRawMem::getWordFromStream(uint32_t *word)
+bool HmpidDecodeRawMem::getWordFromStream(uint32_t* word)
 {
-  uint32_t *appo;
+  uint32_t* appo;
   *word = *mActualStreamPtr;
   return (getBlockFromStream(&appo, 1));
 }
@@ -132,7 +130,7 @@ bool HmpidDecodeRawMem::getWordFromStream(uint32_t *word)
 /// @param[in] dil : the dilogic [0..9]
 /// @param[in] ch : the channel [0..47]
 /// @param[in] charge : the value of the charge
-void HmpidDecodeRawMem::setPad(HmpidEquipment *eq, int col, int dil, int ch, uint16_t charge)
+void HmpidDecodeRawMem::setPad(HmpidEquipment* eq, int col, int dil, int ch, uint16_t charge)
 {
   eq->setPad(col, dil, ch, charge);
   return;
@@ -146,8 +144,7 @@ void HmpidDecodeRawMem::setPad(HmpidEquipment *eq, int col, int dil, int ch, uin
 ///               normally it is equal to 14
 /// @param[in] numOfEquipments : the number of equipments to define [1..14]
 HmpidDecodeRawDigit::HmpidDecodeRawDigit(int numOfEquipments)
-    :
-    HmpidDecodeRawMem(numOfEquipments)
+  : HmpidDecodeRawMem(numOfEquipments)
 {
 }
 
@@ -160,9 +157,8 @@ HmpidDecodeRawDigit::HmpidDecodeRawDigit(int numOfEquipments)
 /// @param[in] *EqIds : the pointer to the Equipments ID array
 /// @param[in] *CruIds : the pointer to the CRU ID array
 /// @param[in] *LinkIds : the pointer to the Link ID array
-HmpidDecodeRawDigit::HmpidDecodeRawDigit(int *EqIds, int *CruIds, int *LinkIds, int numOfEquipments)
-    :
-    HmpidDecodeRawMem(EqIds, CruIds, LinkIds, numOfEquipments)
+HmpidDecodeRawDigit::HmpidDecodeRawDigit(int* EqIds, int* CruIds, int* LinkIds, int numOfEquipments)
+  : HmpidDecodeRawMem(EqIds, CruIds, LinkIds, numOfEquipments)
 {
 }
 
@@ -180,11 +176,10 @@ HmpidDecodeRawDigit::~HmpidDecodeRawDigit()
 /// @param[in] dil : the dilogic [0..9]
 /// @param[in] ch : the channel [0..47]
 /// @param[in] charge : the value of the charge
-void HmpidDecodeRawDigit::setPad(HmpidEquipment *eq, int col, int dil, int ch, uint16_t charge)
+void HmpidDecodeRawDigit::setPad(HmpidEquipment* eq, int col, int dil, int ch, uint16_t charge)
 {
   eq->setPad(col, dil, ch, charge);
   mDigits.push_back(Digit(mHeBCDI, mHeORBIT, charge, eq->getEquipmentId(), col, dil, ch));
   //std::cout << "DI " << mDigits.back() << " "<<col<<","<< dil<<","<< ch<<"="<< charge<<std::endl;
   return;
 }
-

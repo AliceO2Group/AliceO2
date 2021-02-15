@@ -9,7 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 #include <random>
 #include <iostream>
 #include <fstream>
@@ -85,7 +84,7 @@ void WriteRawFromDigitsTask::run(framework::ProcessingContext& pc)
 {
   for (auto const& ref : InputRecordWalker(pc.inputs())) {
     std::vector<o2::hmpid::Digit> digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>(ref);
-    if(mOrderTheEvents) {
+    if (mOrderTheEvents) {
       mDigits.insert(mDigits.end(), digits.begin(), digits.end());
     } else {
       mCod->addDigitsChunk(digits);
@@ -102,8 +101,8 @@ void WriteRawFromDigitsTask::run(framework::ProcessingContext& pc)
 void WriteRawFromDigitsTask::endOfStream(framework::EndOfStreamContext& ec)
 {
   mExTimer.logMes("Received an End Of Stream !");
-  if(mOrderTheEvents) {
-//    sort(mDigits.begin(), mDigits.end(), eventEquipPadsComparision);
+  if (mOrderTheEvents) {
+    //    sort(mDigits.begin(), mDigits.end(), eventEquipPadsComparision);
     sort(mDigits.begin(), mDigits.end(), o2::hmpid::Digit::eventEquipPadsComp);
     mExTimer.logMes("We sort " + std::to_string(mDigits.size()) + "  ! ");
     mCod->codeDigitsVector(mDigits);
@@ -113,7 +112,7 @@ void WriteRawFromDigitsTask::endOfStream(framework::EndOfStreamContext& ec)
   mCod->closeOutputStream();
   mCod->dumpResults();
 
-  mExTimer.logMes( "Raw File created ! Digits received = " + std::to_string(mDigitsReceived) + " Frame received =" + std::to_string(mFramesReceived));
+  mExTimer.logMes("Raw File created ! Digits received = " + std::to_string(mDigitsReceived) + " Frame received =" + std::to_string(mFramesReceived));
   mExTimer.stop();
   return;
 }
@@ -125,7 +124,7 @@ o2::framework::DataProcessorSpec getWriteRawFromDigitsSpec(std::string inputSpec
   inputs.emplace_back("digits", o2::header::gDataOriginHMP, "DIGITS", 0, Lifetime::Timeframe);
 
   std::vector<o2::framework::OutputSpec> outputs;
-  
+
   return DataProcessorSpec{
     "HMP-WriteRawFromDigits",
     inputs,

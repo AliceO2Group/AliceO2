@@ -8,7 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 #include <random>
 #include <iostream>
 #include <fstream>
@@ -39,7 +38,6 @@ using namespace o2;
 using namespace o2::framework;
 using RDH = o2::header::RDHAny;
 
-
 void RawFileReaderTask::init(framework::InitContext& ic)
 {
   LOG(INFO) << "Raw file reader init ";
@@ -62,7 +60,6 @@ void RawFileReaderTask::init(framework::InitContext& ic)
   return;
 }
 
-
 void RawFileReaderTask::run(framework::ProcessingContext& pc)
 {
 
@@ -70,7 +67,7 @@ void RawFileReaderTask::run(framework::ProcessingContext& pc)
   char* outBuffer{nullptr};
   size_t bufSize{0};
   int numberOfFrames = 0;
-  LOG(INFO)<< "Sleep 1 sec for sync";
+  LOG(INFO) << "Sleep 1 sec for sync";
   sleep(1);
 
   while (true) {
@@ -115,8 +112,8 @@ void RawFileReaderTask::run(framework::ProcessingContext& pc)
       break; // probably reached eof
     }
     bufSize = frameSize; // Set the buffer pointer
-    pc.outputs().snapshot(Output{"HMP","RAWDATA"}, outBuffer, bufSize);
-//std::cout << mExTimer.mTimer.CpuTime() << " " << mExTimer.mLastLogTime << std::endl;
+    pc.outputs().snapshot(Output{"HMP", "RAWDATA"}, outBuffer, bufSize);
+    //std::cout << mExTimer.mTimer.CpuTime() << " " << mExTimer.mLastLogTime << std::endl;
     mExTimer.elapseMes("... Reading... Number of Pages = " + std::to_string(numberOfFrames));
   } // while (true)
 
@@ -142,4 +139,3 @@ o2::framework::DataProcessorSpec getReadRawFileSpec(std::string inputSpec)
 
 } // end namespace hmpid
 } // end namespace o2
-

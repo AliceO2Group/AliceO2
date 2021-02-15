@@ -11,7 +11,7 @@
 
 ///
 /// \file    DatDecoderSpec.cxx
-/// \author  
+/// \author
 ///
 /// \brief Implementation of a data processor to run the HMPID raw decoding
 ///
@@ -78,9 +78,9 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
 {
   mDeco->mDigits.clear();
   decodeTF(pc);
-//  TODO: accept other types of Raw Streams ...
-//  decodeReadout(pc);
-// decodeRawFile(pc);
+  //  TODO: accept other types of Raw Streams ...
+  //  decodeReadout(pc);
+  // decodeRawFile(pc);
 
   mExTimer.elapseMes("... Decoding... Digits decoded = " + std::to_string(mTotalDigits) + " Frames received = " + std::to_string(mTotalFrames));
   return;
@@ -89,43 +89,43 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
 void DataDecoderTask::endOfStream(framework::EndOfStreamContext& ec)
 {
   // Records the statistics
-  float avgEventSize;//[o2::hmpid::Geo::MAXEQUIPMENTS];
-  float avgBusyTime;//[o2::hmpid::Geo::MAXEQUIPMENTS];
-  float numOfSamples;//[o2::hmpid::Geo::N_MODULES][o2::hmpid::Geo::N_YCOLS][o2::hmpid::Geo::N_XROWS];
-  float sumOfCharges;//[o2::hmpid::Geo::N_MODULES][o2::hmpid::Geo::N_YCOLS][o2::hmpid::Geo::N_XROWS];
-  float squareOfCharges;//[o2::hmpid::Geo::N_MODULES][o2::hmpid::Geo::N_YCOLS][o2::hmpid::Geo::N_XROWS];
+  float avgEventSize;    //[o2::hmpid::Geo::MAXEQUIPMENTS];
+  float avgBusyTime;     //[o2::hmpid::Geo::MAXEQUIPMENTS];
+  float numOfSamples;    //[o2::hmpid::Geo::N_MODULES][o2::hmpid::Geo::N_YCOLS][o2::hmpid::Geo::N_XROWS];
+  float sumOfCharges;    //[o2::hmpid::Geo::N_MODULES][o2::hmpid::Geo::N_YCOLS][o2::hmpid::Geo::N_XROWS];
+  float squareOfCharges; //[o2::hmpid::Geo::N_MODULES][o2::hmpid::Geo::N_YCOLS][o2::hmpid::Geo::N_XROWS];
   float xb;
   float yb;
 
   TString filename = TString::Format("%s_stat.root", mRootStatFile.c_str());
   LOG(INFO) << "Create the stat file " << filename.Data();
   TFile mfileOut(TString::Format("%s", filename.Data()), "RECREATE");
-  TTree *theObj[Geo::N_MODULES+1];
-  for(int i=0; i<Geo::N_MODULES; i++) { // Create the TTree array
-    TString tit = TString::Format("HMPID Data Decoding Statistic results Mod=%d",i);
+  TTree* theObj[Geo::N_MODULES + 1];
+  for (int i = 0; i < Geo::N_MODULES; i++) { // Create the TTree array
+    TString tit = TString::Format("HMPID Data Decoding Statistic results Mod=%d", i);
     theObj[i] = new TTree("o2hmp", tit);
-    theObj[i]->Branch("x", &xb,"s");
-    theObj[i]->Branch("y", &yb,"s");
-    theObj[i]->Branch("Samples", &numOfSamples,"i");
-    theObj[i]->Branch("Sum_of_charges", &sumOfCharges,"l");
-    theObj[i]->Branch("Sum_of_square", &squareOfCharges,"l");
+    theObj[i]->Branch("x", &xb, "s");
+    theObj[i]->Branch("y", &yb, "s");
+    theObj[i]->Branch("Samples", &numOfSamples, "i");
+    theObj[i]->Branch("Sum_of_charges", &sumOfCharges, "l");
+    theObj[i]->Branch("Sum_of_square", &squareOfCharges, "l");
   }
   theObj[Geo::N_MODULES] = new TTree("o2hmp", "HMPID Data Decoding Statistic results");
-  theObj[Geo::N_MODULES]->Branch("Average_Event_Size", &avgEventSize,"F");
-  theObj[Geo::N_MODULES]->Branch("Average_Busy_Time", &avgBusyTime,"F");
+  theObj[Geo::N_MODULES]->Branch("Average_Event_Size", &avgEventSize, "F");
+  theObj[Geo::N_MODULES]->Branch("Average_Busy_Time", &avgBusyTime, "F");
 
   char summaryFileName[254];
-  sprintf(summaryFileName,"%s_stat.txt", mRootStatFile.c_str());
+  sprintf(summaryFileName, "%s_stat.txt", mRootStatFile.c_str());
   mDeco->writeSummaryFile(summaryFileName);
   int numEqui = mDeco->getNumberOfEquipments();
-  for(int e=0;e<numEqui;e++) {
+  for (int e = 0; e < numEqui; e++) {
     avgEventSize = mDeco->getAverageEventSize(e);
     avgBusyTime = mDeco->getAverageBusyTime(e);
     theObj[Geo::N_MODULES]->Fill();
   }
-  for(int m=0; m < o2::hmpid::Geo::N_MODULES; m++)
-    for(int y=0; y < o2::hmpid::Geo::N_YCOLS; y++)
-      for(int x=0; x < o2::hmpid::Geo::N_XROWS; x++ ) {
+  for (int m = 0; m < o2::hmpid::Geo::N_MODULES; m++)
+    for (int y = 0; y < o2::hmpid::Geo::N_YCOLS; y++)
+      for (int x = 0; x < o2::hmpid::Geo::N_XROWS; x++) {
         xb = x;
         yb = y;
         numOfSamples = mDeco->getPadSamples(m, x, y);
@@ -134,7 +134,7 @@ void DataDecoderTask::endOfStream(framework::EndOfStreamContext& ec)
         theObj[m]->Fill();
       }
 
-  for(int i=0; i<=Geo::N_MODULES; i++) {
+  for (int i = 0; i <= Geo::N_MODULES; i++) {
     theObj[i]->Write();
   }
 
@@ -155,11 +155,11 @@ void DataDecoderTask::decodeTF(framework::ProcessingContext& pc)
   DPLRawParser parser(inputs, o2::framework::select("TF:HMP/RAWDATA"));
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
     mDeco->mDigits.clear();
-    uint32_t *theBuffer = (uint32_t *)it.raw();
-    mDeco->setUpStream(theBuffer, it.size()+it.offset());
+    uint32_t* theBuffer = (uint32_t*)it.raw();
+    mDeco->setUpStream(theBuffer, it.size() + it.offset());
     mDeco->decodePageFast(&theBuffer);
     mTotalFrames++;
-    pc.outputs().snapshot(o2::framework::Output{"HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mDigits);//
+    pc.outputs().snapshot(o2::framework::Output{"HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mDigits); //
     mTotalDigits += mDeco->mDigits.size();
     LOG(DEBUG) << "Writing " << mDeco->mDigits.size() << "/" << mTotalDigits << " Digits ...";
   }
@@ -175,11 +175,11 @@ void DataDecoderTask::decodeReadout(framework::ProcessingContext& pc)
   // get the input buffer
   auto& inputs = pc.inputs();
   DPLRawParser parser(inputs, o2::framework::select("readout:HMP/RAWDATA"));
-//  DPLRawParser parser(inputs, o2::framework::select("HMP/readout"));
+  //  DPLRawParser parser(inputs, o2::framework::select("HMP/readout"));
 
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
-    uint32_t *theBuffer = (uint32_t *)it.raw();
-    mDeco->setUpStream(theBuffer, it.size()+it.offset());
+    uint32_t* theBuffer = (uint32_t*)it.raw();
+    mDeco->setUpStream(theBuffer, it.size() + it.offset());
     mDeco->decodePageFast(&theBuffer);
   }
   return;
@@ -192,21 +192,21 @@ void DataDecoderTask::decodeRawFile(framework::ProcessingContext& pc)
 
   for (auto&& input : pc.inputs()) {
     if (input.spec->binding == "file") {
-     const header::DataHeader* header = o2::header::get<header::DataHeader*>(input.header);
-     if (!header) {
-       return;
-     }
+      const header::DataHeader* header = o2::header::get<header::DataHeader*>(input.header);
+      if (!header) {
+        return;
+      }
 
-     auto const* raw = input.payload;
-     size_t payloadSize = header->payloadSize;
+      auto const* raw = input.payload;
+      size_t payloadSize = header->payloadSize;
 
-     LOG(INFO) << "  payloadSize=" << payloadSize;
-     if (payloadSize == 0) {
-       return;
-     }
+      LOG(INFO) << "  payloadSize=" << payloadSize;
+      if (payloadSize == 0) {
+        return;
+      }
 
-     uint32_t *theBuffer = (uint32_t *)input.payload;
-     int pagesize = header->payloadSize;
+      uint32_t* theBuffer = (uint32_t*)input.payload;
+      int pagesize = header->payloadSize;
       mDeco->setUpStream(theBuffer, pagesize);
       mDeco->decodePageFast(&theBuffer);
     }
@@ -217,13 +217,13 @@ void DataDecoderTask::decodeRawFile(framework::ProcessingContext& pc)
 //_________________________________________________________________________________________________
 o2::framework::DataProcessorSpec getDecodingSpec(std::string inputSpec)
 {
-  
+
   std::vector<o2::framework::InputSpec> inputs;
   inputs.emplace_back("TF", o2::framework::ConcreteDataTypeMatcher{"HMP", "RAWDATA"}, o2::framework::Lifetime::Timeframe);
   inputs.emplace_back("file", o2::framework::ConcreteDataTypeMatcher{"ROUT", "RAWDATA"}, o2::framework::Lifetime::Timeframe);
-//  inputs.emplace_back("readout", o2::header::gDataOriginHMP, "RAWDATA", 0, Lifetime::Timeframe);
-//  inputs.emplace_back("readout", o2::header::gDataOriginHMP, "RAWDATA", 0, Lifetime::Timeframe);
-//  inputs.emplace_back("rawfile", o2::header::gDataOriginHMP, "RAWDATA", 0, Lifetime::Timeframe);
+  //  inputs.emplace_back("readout", o2::header::gDataOriginHMP, "RAWDATA", 0, Lifetime::Timeframe);
+  //  inputs.emplace_back("readout", o2::header::gDataOriginHMP, "RAWDATA", 0, Lifetime::Timeframe);
+  //  inputs.emplace_back("rawfile", o2::header::gDataOriginHMP, "RAWDATA", 0, Lifetime::Timeframe);
 
   std::vector<o2::framework::OutputSpec> outputs;
   outputs.emplace_back("HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe);
@@ -233,7 +233,7 @@ o2::framework::DataProcessorSpec getDecodingSpec(std::string inputSpec)
     o2::framework::select(inputSpec.c_str()),
     outputs,
     AlgorithmSpec{adaptFromTask<DataDecoderTask>()},
-    Options{{"root-file", VariantType::String, "/tmp/hmpRawDecodeResults", {"Name of the Root file with the decoding results."}}} };
+    Options{{"root-file", VariantType::String, "/tmp/hmpRawDecodeResults", {"Name of the Root file with the decoding results."}}}};
 }
 
 } // namespace hmpid
