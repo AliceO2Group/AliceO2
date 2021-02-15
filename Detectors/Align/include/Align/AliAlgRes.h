@@ -18,12 +18,13 @@
 
 #include <TObject.h>
 #include <TMath.h>
-class AliAlgTrack;
 
 namespace o2
 {
 namespace align
 {
+
+class AliAlgTrack;
 
 class AliAlgRes : public TObject
 {
