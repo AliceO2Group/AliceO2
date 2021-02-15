@@ -36,8 +36,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 struct pidTPCTask {
   using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
   using Coll = aod::Collisions;
-  Produces<aod::pidRespTPC> tpcpid;
-  DetectorResponse resp;
+  Produces<aod::pidRespTPC> tablePID;
+  DetectorResponse response;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
   Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
   Configurable<std::string> signalname{"param-signal", "BetheBloch", "Name of the parametrization for the expected signal, used in both file and CCDB mode"};
@@ -56,47 +56,49 @@ struct pidTPCTask {
     //
     const std::string fname = paramfile.value;
     if (!fname.empty()) { // Loading the parametrization from file
-      resp.LoadParamFromFile(fname.data(), signalname.value, DetectorResponse::kSignal);
-      resp.LoadParamFromFile(fname.data(), sigmaname.value, DetectorResponse::kSigma);
+      response.LoadParamFromFile(fname.data(), signalname.value, DetectorResponse::kSignal);
+      response.LoadParamFromFile(fname.data(), sigmaname.value, DetectorResponse::kSigma);
     } else { // Loading it from CCDB
       const std::string path = "Analysis/PID/TPC";
-      resp.LoadParam(DetectorResponse::kSignal, ccdb->getForTimeStamp<Parametrization>(path + "/" + signalname.value, timestamp.value));
-      resp.LoadParam(DetectorResponse::kSigma, ccdb->getForTimeStamp<Parametrization>(path + "/" + sigmaname.value, timestamp.value));
+      response.LoadParam(DetectorResponse::kSignal, ccdb->getForTimeStamp<Parametrization>(path + "/" + signalname.value, timestamp.value));
+      response.LoadParam(DetectorResponse::kSigma, ccdb->getForTimeStamp<Parametrization>(path + "/" + sigmaname.value, timestamp.value));
     }
   }
 
+  template <o2::track::PID::ID pid>
+  using ResponseImplementation = tpc::ELoss<Coll::iterator, Trks::iterator, pid>;
   void process(Coll const& collisions, Trks const& tracks)
   {
-    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Electron> resp_Electron = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Electron>();
-    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Muon> resp_Muon = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Muon>();
-    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Pion> resp_Pion = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Pion>();
-    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Kaon> resp_Kaon = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Kaon>();
-    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Proton> resp_Proton = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Proton>();
-    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Deuteron> resp_Deuteron = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Deuteron>();
-    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Triton> resp_Triton = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Triton>();
-    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Helium3> resp_Helium3 = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Helium3>();
-    constexpr tpc::ELoss<Coll::iterator, Trks::iterator, PID::Alpha> resp_Alpha = tpc::ELoss<Coll::iterator, Trks::iterator, PID::Alpha>();
+    constexpr auto responseEl = ResponseImplementation<PID::Electron>();
+    constexpr auto responseMu = ResponseImplementation<PID::Muon>();
+    constexpr auto responsePi = ResponseImplementation<PID::Pion>();
+    constexpr auto responseKa = ResponseImplementation<PID::Kaon>();
+    constexpr auto responsePr = ResponseImplementation<PID::Proton>();
+    constexpr auto responseDe = ResponseImplementation<PID::Deuteron>();
+    constexpr auto responseTr = ResponseImplementation<PID::Triton>();
+    constexpr auto responseHe = ResponseImplementation<PID::Helium3>();
+    constexpr auto responseAl = ResponseImplementation<PID::Alpha>();
 
-    tpcpid.reserve(tracks.size());
+    tablePID.reserve(tracks.size());
     for (auto const& trk : tracks) {
-      tpcpid(resp_Electron.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Muon.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Pion.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Kaon.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Proton.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Deuteron.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Triton.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Helium3.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Alpha.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Electron.GetSeparation(resp, trk.collision(), trk),
-             resp_Muon.GetSeparation(resp, trk.collision(), trk),
-             resp_Pion.GetSeparation(resp, trk.collision(), trk),
-             resp_Kaon.GetSeparation(resp, trk.collision(), trk),
-             resp_Proton.GetSeparation(resp, trk.collision(), trk),
-             resp_Deuteron.GetSeparation(resp, trk.collision(), trk),
-             resp_Triton.GetSeparation(resp, trk.collision(), trk),
-             resp_Helium3.GetSeparation(resp, trk.collision(), trk),
-             resp_Alpha.GetSeparation(resp, trk.collision(), trk));
+      tablePID(responseEl.GetExpectedSigma(response, trk.collision(), trk),
+               responseMu.GetExpectedSigma(response, trk.collision(), trk),
+               responsePi.GetExpectedSigma(response, trk.collision(), trk),
+               responseKa.GetExpectedSigma(response, trk.collision(), trk),
+               responsePr.GetExpectedSigma(response, trk.collision(), trk),
+               responseDe.GetExpectedSigma(response, trk.collision(), trk),
+               responseTr.GetExpectedSigma(response, trk.collision(), trk),
+               responseHe.GetExpectedSigma(response, trk.collision(), trk),
+               responseAl.GetExpectedSigma(response, trk.collision(), trk),
+               responseEl.GetSeparation(response, trk.collision(), trk),
+               responseMu.GetSeparation(response, trk.collision(), trk),
+               responsePi.GetSeparation(response, trk.collision(), trk),
+               responseKa.GetSeparation(response, trk.collision(), trk),
+               responsePr.GetSeparation(response, trk.collision(), trk),
+               responseDe.GetSeparation(response, trk.collision(), trk),
+               responseTr.GetSeparation(response, trk.collision(), trk),
+               responseHe.GetSeparation(response, trk.collision(), trk),
+               responseAl.GetSeparation(response, trk.collision(), trk));
     }
   }
 };

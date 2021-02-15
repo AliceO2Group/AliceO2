@@ -39,24 +39,24 @@ class ELoss
   ~ELoss() = default;
 
   /// Gets the expected signal of the measurement
-  float GetExpectedSignal(DetectorResponse& response, const Coll& col, const Trck& trk) const;
+  float GetExpectedSignal(const DetectorResponse& response, const Coll& col, const Trck& trk) const;
 
   /// Gets the expected resolution of the measurement
-  float GetExpectedSigma(DetectorResponse& response, const Coll& col, const Trck& trk) const;
+  float GetExpectedSigma(const DetectorResponse& response, const Coll& col, const Trck& trk) const;
 
   /// Gets the number of sigmas with respect the expected value
-  float GetSeparation(DetectorResponse& response, const Coll& col, const Trck& trk) const { return (trk.tpcSignal() - GetExpectedSignal(response, col, trk)) / GetExpectedSigma(response, col, trk); }
+  float GetSeparation(const DetectorResponse& response, const Coll& col, const Trck& trk) const { return (trk.tpcSignal() - GetExpectedSignal(response, col, trk)) / GetExpectedSigma(response, col, trk); }
 };
 
 template <typename Coll, typename Trck, o2::track::PID::ID id>
-float ELoss<Coll, Trck, id>::GetExpectedSignal(DetectorResponse& response, const Coll& col, const Trck& trk) const
+float ELoss<Coll, Trck, id>::GetExpectedSignal(const DetectorResponse& response, const Coll& col, const Trck& trk) const
 {
   const float x[2] = {trk.tpcInnerParam() / o2::track::PID::getMass(id), (float)o2::track::PID::getCharge(id)};
   return response(DetectorResponse::kSignal, x);
 }
 
 template <typename Coll, typename Trck, o2::track::PID::ID id>
-float ELoss<Coll, Trck, id>::GetExpectedSigma(DetectorResponse& response, const Coll& col, const Trck& trk) const
+float ELoss<Coll, Trck, id>::GetExpectedSigma(const DetectorResponse& response, const Coll& col, const Trck& trk) const
 {
   const float x[2] = {trk.tpcSignal(), (float)trk.tpcNClsFound()};
   return response(DetectorResponse::kSigma, x);
