@@ -19,7 +19,7 @@
   jeudi 30 avril 2015: added automatic buffer expansion
 */
 
-#include "Mille.h"
+#include "Align/Mille.h"
 
 #include <fstream>
 #include <iostream>
