@@ -206,7 +206,7 @@ Bool_t AliAlgRes::FillTrack(AliAlgTrack* trc, Bool_t doKalman)
   SetCosmic(trc->IsCosmic());
   //
   SetNPoints(nps);
-  fQ2Pt = trc->GetSigned1Pt();
+  fQ2Pt = trc->getQ2Pt();
   fChi2 = trc->GetChi2();
   fChi2Ini = trc->GetChi2Ini();
   int nfill = 0;
@@ -236,7 +236,7 @@ Bool_t AliAlgRes::FillTrack(AliAlgTrack* trc, Bool_t doKalman)
   }
   if (nfill != nps) {
     trc->Print("p");
-    AliFatalF("Something is wrong: %d residuals were stored instead of %d", nfill, nps);
+    LOG(FATAL) << nfill << " residuals were stored instead of " << nps;
   }
   //
   SetKalmanDone(kFALSE);
@@ -247,8 +247,7 @@ Bool_t AliAlgRes::FillTrack(AliAlgTrack* trc, Bool_t doKalman)
       if (!pnt->ContainsMeasurement())
         continue;
       if (fVolID[nfilk] != int(pnt->GetVolID())) {
-        AliFatalF("Mismatch in Kalman filling for point %d: filled VID:%d, point VID:%d",
-                  i, fVolID[nfilk], pnt->GetVolID());
+        LOG(FATAL) << "Mismatch in Kalman filling for point " << i << ": filled VID:" << fVolID[nfilk] << ", point VID:" << pnt->GetVolID();
       }
       const double* wsA = pnt->GetTrParamWSA();
       fDYK[nfilk] = pnt->GetResidY();
