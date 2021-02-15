@@ -14,8 +14,8 @@
 /// @brief  Special fake "sensor" for event vertex.
 
 #include "Align/AliAlgVtx.h"
-//#include "AliTrackPointArray.h"
-//#include "AliESDtrack.h"
+//#include "AliTrackPointArray.h" FIXME(milettri): needs AliTrackPointArray
+//#include "AliESDtrack.h" FIXME(milettri): needs AliESDtrack
 #include "Align/AliAlgPoint.h"
 #include "Align/AliAlgDet.h"
 #include "Framework/Logger.h"
@@ -63,14 +63,15 @@ void AliAlgVtx::ApplyCorrection(double* vtx) const
   //
 }
 
-//____________________________________________
-AliAlgPoint* AliAlgVtx::TrackPoint2AlgPoint(int, const AliTrackPointArray*, const AliESDtrack*)
-{
-  // convert the pntId-th point to AliAlgPoint
-  static int cnt = 0;
-  AliErrorF("This method shound not have been called, %d", cnt++);
-  return 0;
-}
+//FIXME(milettri): needs AliTrackPointArray, AliESDtrack
+////____________________________________________
+//AliAlgPoint* AliAlgVtx::TrackPoint2AlgPoint(int, const AliTrackPointArray*, const AliESDtrack*)
+//{
+//  // convert the pntId-th point to AliAlgPoint
+//  static int cnt = 0;
+//  LOG(ERROR) << "This method shound not have been called," << cnt++;
+//  return 0;
+//}
 
 } // namespace align
 } // namespace o2
