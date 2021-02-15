@@ -140,6 +140,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(
     ConfigParamSpec{"skipDet", VariantType::String, "none", {skiphelp}});
 
+  std::string onlyctxhelp("Produce only the digitization context; Don't actually digitize");
+  workflowOptions.push_back(ConfigParamSpec{"only-context", o2::framework::VariantType::Bool, false, {onlyctxhelp}});
+
   // we support only output type 'tracks' for the moment
   std::string tpcrthelp("deprecated option, please connect workflows on the command line by pipe");
   workflowOptions.push_back(
@@ -406,6 +409,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto isEnabled = [&configcontext, &filterers, accept, grp, helpasked](o2::detectors::DetID id) {
     if (helpasked) {
       return true;
+    }
+    if (configcontext.options().get<bool>("only-context")) {
+      // no detector necessary if we are asked to produce only the digitization context
+      return false;
     }
     auto accepted = accept(id);
     bool is_ingrp = grp->isDetReadOut(id);
