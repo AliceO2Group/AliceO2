@@ -28,8 +28,8 @@
 #define ALIALGVTX_H
 
 #include "Align/AliAlgSens.h"
-class AliTrackPointArray;
-class AliESDtrack;
+// class AliTrackPointArray; FIXME(milettri): needs AliTrackPointArray
+//class AliESDtrack; FIXME(milettri): needs AliESDtrack
 class AliAlgPoint;
 
 namespace o2
@@ -54,7 +54,7 @@ class AliAlgVtx : public AliAlgSens
   virtual void PrepareMatrixL2GIdeal() { fMatL2GIdeal.Clear(); } // unit matrix
   virtual void PrepareMatrixT2L();
   //
-  virtual AliAlgPoint* TrackPoint2AlgPoint(int pntId, const AliTrackPointArray* trpArr, const AliESDtrack* t);
+  //  virtual AliAlgPoint* TrackPoint2AlgPoint(int pntId, const AliTrackPointArray* trpArr, const AliESDtrack* t); FIXME(milettri): needs AliTrackPointArray, AliESDtrack
   //
  protected:
   AliAlgVtx(const AliAlgVtx&);
