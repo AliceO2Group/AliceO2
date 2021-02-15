@@ -87,7 +87,7 @@ Bool_t AliAlgMPRecord::FillTrack(const AliAlgTrack* trc, const Int_t* id2Lab)
   // fill track info, optionally substitutind glopar par ID by label
   //
   if (!trc->GetDerivDone()) {
-    AliError("Track derivatives are not yet evaluated");
+    LOG(ERROR) << "Track derivatives are not yet evaluated";
     return kFALSE;
   }
   fNVarLoc = trc->GetNLocPar(); // number of local degrees of freedom in the track
@@ -95,8 +95,8 @@ Bool_t AliAlgMPRecord::FillTrack(const AliAlgTrack* trc, const Int_t* id2Lab)
   fNDLocTot = 0;
   fNDGloTot = 0;
   fChi2Ini = trc->GetChi2Ini();
-  fQ2Pt = trc->GetSigned1Pt();
-  fTgl = trc->GetTgl();
+  fQ2Pt = trc->getQ2Pt();
+  fTgl = trc->getTgl();
   fNMeas = 0;
   SetCosmic(trc->IsCosmic());
   // 1) check sizes for buffers, expand if needed
@@ -202,7 +202,7 @@ Bool_t AliAlgMPRecord::FillTrack(const AliAlgTrack* trc, const Int_t* id2Lab)
   }
   //
   if (!fNDGloTot) {
-    AliInfo("Track does not depend on free global parameters, discard");
+    LOG(INFO) << "Track does not depend on free global parameters, discard";
     return kFALSE;
   }
   return kTRUE;

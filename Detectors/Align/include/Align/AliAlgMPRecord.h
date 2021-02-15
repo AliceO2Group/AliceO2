@@ -17,12 +17,13 @@
 #define ALIALGMPRECORD_H
 
 #include <TObject.h>
-class AliAlgTrack;
 
 namespace o2
 {
 namespace align
 {
+
+class AliAlgTrack;
 
 class AliAlgMPRecord : public TObject
 {
