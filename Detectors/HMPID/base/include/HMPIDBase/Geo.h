@@ -8,6 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+///
+/// \file   Geo.h
+/// \author Antonio Franco - INFN Bari
+/// \version 1.0
+/// \date 15/02/2021
+
 #ifndef ALICEO2_HMPID_GEO_H
 #define ALICEO2_HMPID_GEO_H
 

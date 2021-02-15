@@ -8,6 +8,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+///
+/// \file   Digit.cxx
+/// \author Antonio Franco - INFN Bari
+/// \brief Base Class to manage HMPID Digit data
+/// \version 1.0
+/// \date 15/02/2021
+
+/* ------ HISTORY ---------
+*/
+
 #include "HMPIDBase/Digit.h"
 #include "HMPIDBase/Geo.h"
 #include "HMPIDBase/Param.h"
@@ -19,7 +29,18 @@ using namespace o2::hmpid;
 
 ClassImp(o2::hmpid::Digit);
 
-// ----- Constructors ------------
+// ============= Digit Class implementation =======
+
+/// Constructor : Create the Digit structure. Accepts the trigger time (Orbit,BC)
+///               The mapping of the digit is in the Photo Cathod coords
+///               (Chamber, PhotoCathod, X, Y)
+/// @param[in] bc : the bunch crossing [0 .. 2^12-1]
+/// @param[in] orbit : the orbit number [0 .. 2^32-1]
+/// @param[in] chamber : the HMPID module [0 .. 6]
+/// @param[in] photo : the photo cathode number [0 .. 5] (left-down to right-up)
+/// @param[in] x : the horizontal in cathode displacement [0 .. 79]
+/// @param[in] y : the vertical in cathode displacement [0 .. 47]
+/// @param[in] charge : the value of the charge [0 .. 2^12-1]
 Digit::Digit(uint16_t bc, uint32_t orbit, int chamber, int photo, int x, int y, uint16_t charge)
 {
   mBc = bc;
@@ -28,6 +49,16 @@ Digit::Digit(uint16_t bc, uint32_t orbit, int chamber, int photo, int x, int y, 
   mPad = Abs(chamber, photo, x, y);
 }
 
+/// Constructor : Create the Digit structure. Accepts the trigger time (Orbit,BC)
+///               The mapping of the digit is in the Hardware coords
+///               (Equipment, Column, Dilogic, Channel)
+/// @param[in] bc : the bunch crossing [0 .. 2^12-1]
+/// @param[in] orbit : the orbit number [0 .. 2^32-1]
+/// @param[in] charge : the value of the charge [0 .. 2^12-1]
+/// @param[in] equipment : the HMPID DDL link [0 .. 13]
+/// @param[in] column : the readout column number [0 .. 23]
+/// @param[in] dilogic : the displacement in the Dilogics chain [0 .. 9]
+/// @param[in] channel : the number of gassiplexes channels [0 .. 47]
 Digit::Digit(uint16_t bc, uint32_t orbit, uint16_t charge, int equipment, int column, int dilogic, int channel)
 {
   mBc = bc;
@@ -36,6 +67,15 @@ Digit::Digit(uint16_t bc, uint32_t orbit, uint16_t charge, int equipment, int co
   mPad = Equipment2Pad(equipment, column, dilogic, channel);
 }
 
+/// Constructor : Create the Digit structure. Accepts the trigger time (Orbit,BC)
+///               The mapping of the digit is in the Logical coords
+///               (Module, X, Y)
+/// @param[in] bc : the bunch crossing [0 .. 2^12-1]
+/// @param[in] orbit : the orbit number [0 .. 2^32-1]
+/// @param[in] charge : the value of the charge [0 .. 2^12-1]
+/// @param[in] module : the HMPID Module [0 .. 6]
+/// @param[in] x : the horizontal in Module displacement [0 .. 159]
+/// @param[in] y : the vertical in Module displacement [0 .. 143]
 Digit::Digit(uint16_t bc, uint32_t orbit, uint16_t charge, int module, int x, int y)
 {
   mBc = bc;
@@ -44,7 +84,14 @@ Digit::Digit(uint16_t bc, uint32_t orbit, uint16_t charge, int module, int x, in
   mPad = Absolute2Pad(module, x, y);
 }
 
-// -----  Coordinate Conversion ----
+// -----  Coordinate Conversion -----
+
+/// Equipment2Pad : Converts the coords from Hardware to Digit Unique Id
+/// @param[in] Equi : the equipment [0 .. 13]
+/// @param[in] Colu : the readout column number [0 .. 23]
+/// @param[in] Dilo : the displacement in the Dilogics chain [0 .. 9]
+/// @param[in] Chan : the number of gassiplexes channels [0 .. 47]
+/// @return uint32_t : the Digit Unique Id [0x00CPXXYY]
 uint32_t Digit::Equipment2Pad(int Equi, int Colu, int Dilo, int Chan)
 {
   // Check the input data
@@ -68,6 +115,12 @@ uint32_t Digit::Equipment2Pad(int Equi, int Colu, int Dilo, int Chan)
   return Abs(ch, pc, px, py); // Pack the coords into the PadID word
 }
 
+/// Pad2Equipment : Converts the Digit Unique Id to Hardware coords
+/// @param[in] pad : the Digit Unique Id [0x00CPXXYY]
+/// @param[out] Equi : the equipment [0 .. 13]
+/// @param[out] Colu : the readout column number [0 .. 23]
+/// @param[out] Dilo : the displacement in the Dilogics chain [0 .. 9]
+/// @param[out] Chan : the number of gassiplexes channels [0 .. 47]
 void Digit::Pad2Equipment(uint32_t pad, int* Equi, int* Colu, int* Dilo, int* Chan)
 {
   int ch, ph, px, py;
@@ -90,6 +143,14 @@ void Digit::Pad2Equipment(uint32_t pad, int* Equi, int* Colu, int* Dilo, int* Ch
   return;
 }
 
+/// Absolute2Equipment : Converts the Module coords to Hardware coords
+/// @param[in] Module : the HMPID Module number [0..6]
+/// @param[in] x : the horizontal displacement [0..159]
+/// @param[in] y : the vertical displacement [0..143]
+/// @param[out] Equi : the equipment [0 .. 13]
+/// @param[out] Colu : the readout column number [0 .. 23]
+/// @param[out] Dilo : the displacement in the Dilogics chain [0 .. 9]
+/// @param[out] Chan : the number of gassiplexes channels [0 .. 47]
 void Digit::Absolute2Equipment(int Module, int x, int y, int* Equi, int* Colu, int* Dilo, int* Chan)
 {
   uint32_t pad = Absolute2Pad(Module, x, y);
@@ -97,6 +158,14 @@ void Digit::Absolute2Equipment(int Module, int x, int y, int* Equi, int* Colu, i
   return;
 }
 
+/// Equipment2Absolute : Converts the Module coords to Hardware coords
+/// @param[in] Equi : the equipment [0 .. 13]
+/// @param[in] Colu : the readout column number [0 .. 23]
+/// @param[in] Dilo : the displacement in the Dilogics chain [0 .. 9]
+/// @param[in] Chan : the number of gassiplexes channels [0 .. 47]
+/// @param[out] Module : the HMPID Module number [0..6]
+/// @param[out] x : the horizontal displacement [0..159]
+/// @param[out] y : the vertical displacement [0..143]
 void Digit::Equipment2Absolute(int Equi, int Colu, int Dilo, int Chan, int* Module, int* x, int* y)
 {
   uint32_t pad = Equipment2Pad(Equi, Colu, Dilo, Chan);
@@ -104,6 +173,11 @@ void Digit::Equipment2Absolute(int Equi, int Colu, int Dilo, int Chan, int* Modu
   return;
 }
 
+/// Absolute2Pad : Converts the Module coords in the Digit Unique Id
+/// @param[in] Module : the HMPID Module number [0..6]
+/// @param[in] x : the horizontal displacement [0..159]
+/// @param[in] y : the vertical displacement [0..143]
+/// @return uint32_t : the Digit Unique Id [0x00CPXXYY]
 uint32_t Digit::Absolute2Pad(int Module, int x, int y)
 {
   int ph = (y / Geo::N_PHOTOCATODSY) * 2 + ((x >= Geo::HALFXROWS) ? 1 : 0);
@@ -112,6 +186,11 @@ uint32_t Digit::Absolute2Pad(int Module, int x, int y)
   return Abs(Module, ph, px, py);
 }
 
+/// Pad2Absolute : Converts the the Digit Unique Id to Module coords
+/// @param[in] pad : the Digit Unique Id [0x00CPXXYY]
+/// @param[out] Module : the HMPID Module number [0..6]
+/// @param[out] x : the horizontal displacement [0..159]
+/// @param[out] y : the vertical displacement [0..143]
 void Digit::Pad2Absolute(uint32_t pad, int* Module, int* x, int* y)
 {
   *Module = A2C(pad);
@@ -123,6 +202,12 @@ void Digit::Pad2Absolute(uint32_t pad, int* Module, int* x, int* y)
   return;
 }
 
+/// Pad2Photo : Converts the the Digit Unique Id to Photo Cathode coords
+/// @param[in] pad : the Digit Unique Id [0x00CPXXYY]
+/// @param[out] chamber : the HMPID chamber number [0..6]
+/// @param[out] photo : the photo cathode number [0..5]
+/// @param[out] x : the horizontal displacement [0..79]
+/// @param[out] y : the vertical displacement [0..47]
 void Digit::Pad2Photo(uint32_t pad, int* chamber, int* photo, int* x, int* y)
 {
   *chamber = A2C(pad);
@@ -132,7 +217,14 @@ void Digit::Pad2Photo(uint32_t pad, int* chamber, int* photo, int* x, int* y)
   return;
 }
 
-// -----  Getter Methods ---------
+/// getPadAndTotalCharge : Extract all the info from the Hit structure
+/// and returns they in the Photo Cathode coords
+/// @param[in] hit : the HMPID Hit
+/// @param[out] chamber : the HMPID chamber number [0..6]
+/// @param[out] pc : the photo cathode number [0..5]
+/// @param[out] px : the horizontal displacement [0..79]
+/// @param[out] py : the vertical displacement [0..47]
+/// @param[out] totalcharge : the charge of the hit [0..2^12-1]
 void Digit::getPadAndTotalCharge(HitType const& hit, int& chamber, int& pc, int& px, int& py, float& totalcharge)
 {
   float localX;
@@ -146,13 +238,17 @@ void Digit::getPadAndTotalCharge(HitType const& hit, int& chamber, int& pc, int&
   return;
 }
 
+/// getFractionalContributionForPad : ...
+///
+/// @param[in] hit : the HMPID Hit
+/// @param[in] somepad : the Digit Unique Id [0x00CPXXYY]
+/// @return : the fraction of the charge ...
 float Digit::getFractionalContributionForPad(HitType const& hit, int somepad)
 {
   float localX;
   float localY;
 
-  // chamber number is in detID
-  const auto chamber = hit.GetDetectorID();
+  const auto chamber = hit.GetDetectorID(); // chamber number is in detID
   double tmp[3] = {hit.GetX(), hit.GetY(), hit.GetZ()};
   // converting chamber id and hit coordiates to local coordinates
   Param::Instance()->Mars2Lors(chamber, tmp, localX, localY);
@@ -160,11 +256,21 @@ float Digit::getFractionalContributionForPad(HitType const& hit, int somepad)
   return Digit::InMathieson(localX, localY, somepad);
 }
 
+/// QdcTot : Samples total charge associated to a hit
+///
+/// @param[in] e : hit energy [GeV] for mip Eloss for photon Etot
+/// @param[in] time : ...
+/// @param[in] pc : the photo cathode number [0..5]
+/// @param[in] px : the horizontal displacement [0..79]
+/// @param[in] py : the vertical displacement [0..47]
+/// @param[out] localX : the horizontal displacement related to Anode Wires
+/// @param[out] localY : the vertical displacement  related to Anode Wires
+/// @return : total QDC
 float Digit::QdcTot(float e, float time, int pc, int px, int py, float& localX, float& localY)
 {
-  // Samples total charge associated to a hit
-  // Arguments: e- hit energy [GeV] for mip Eloss for photon Etot
-  //  Returns: total QDC
+  //
+  // Arguments: e-
+  //  Returns:
   float Q = 0;
   if (time > 1.2e-6) {
     Q = 0;
@@ -193,57 +299,94 @@ float Digit::QdcTot(float e, float time, int pc, int px, int py, float& localX, 
   return Q;
 }
 
-float Digit::IntPartMathiX(float x, int pad)
+/// IntPartMathiX : Integration of Mathieson.
+/// This is the answer to electrostatic problem of charge distrubution in MWPC
+/// described elsewhere. (NIM A370(1988)602-603)
+///
+/// @param[in] x : position of the center of Mathieson distribution
+/// @param[in] pad : the Digit Unique Id [0x00CPXXYY]
+/// @return : a charge fraction [0-1] imposed into the pad
+Double_t Digit::IntPartMathiX(float x, int pad)
 {
-  // Integration of Mathieson.
-  // This is the answer to electrostatic problem of charge distrubution in MWPC described elsewhere. (NIM A370(1988)602-603)
-  // Arguments: x,y- position of the center of Mathieson distribution
-  //  Returns: a charge fraction [0-1] imposed into the pad
-  auto shift1 = -LorsX(pad) + 0.5 * Param::SizePadX();
-  auto shift2 = -LorsX(pad) - 0.5 * Param::SizePadX();
+  Double_t shift1 = -LorsX(pad) + 0.5 * o2::hmpid::Param::SizePadX();
+  Double_t shift2 = -LorsX(pad) - 0.5 * o2::hmpid::Param::SizePadX();
 
-  auto ux1 = Param::SqrtK3x() * TMath::TanH(Param::K2x() * (x + shift1) / Param::PitchAnodeCathode());
-  auto ux2 = Param::SqrtK3x() * TMath::TanH(Param::K2x() * (x + shift2) / o2::hmpid::Param::PitchAnodeCathode());
+  Double_t ux1 = o2::hmpid::Param::SqrtK3x() * TMath::TanH(o2::hmpid::Param::K2x() * (x + shift1) / o2::hmpid::Param::PitchAnodeCathode());
+  Double_t ux2 = o2::hmpid::Param::SqrtK3x() * TMath::TanH(o2::hmpid::Param::K2x() * (x + shift2) / o2::hmpid::Param::PitchAnodeCathode());
 
   return o2::hmpid::Param::K4x() * (TMath::ATan(ux2) - TMath::ATan(ux1));
 }
 
+/// IntPartMathiY : Integration of Mathieson.
+/// This is the answer to electrostatic problem of charge distrubution in MWPC
+/// described elsewhere. (NIM A370(1988)602-603)
+///
+/// @param[in] y : position of the center of Mathieson distribution
+/// @param[in] pad : the Digit Unique Id [0x00CPXXYY]
+/// @return : a charge fraction [0-1] imposed into the pad
 Double_t Digit::IntPartMathiY(Double_t y, int pad)
 {
-  // Integration of Mathieson.
-  // This is the answer to electrostatic problem of charge distrubution in MWPC described elsewhere. (NIM A370(1988)602-603)
-  // Arguments: x,y- position of the center of Mathieson distribution
-  //  Returns: a charge fraction [0-1] imposed into the pad
   Double_t shift1 = -LorsY(pad) + 0.5 * o2::hmpid::Param::SizePadY();
   Double_t shift2 = -LorsY(pad) - 0.5 * o2::hmpid::Param::SizePadY();
 
-  Double_t uy1 = Param::SqrtK3y() * TMath::TanH(Param::K2y() * (y + shift1) / Param::PitchAnodeCathode());
-  Double_t uy2 = Param::SqrtK3y() * TMath::TanH(Param::K2y() * (y + shift2) / Param::PitchAnodeCathode());
+  Double_t uy1 = o2::hmpid::Param::SqrtK3y() * TMath::TanH(o2::hmpid::Param::K2y() * (y + shift1) / o2::hmpid::Param::PitchAnodeCathode());
+  Double_t uy2 = o2::hmpid::Param::SqrtK3y() * TMath::TanH(o2::hmpid::Param::K2y() * (y + shift2) / o2::hmpid::Param::PitchAnodeCathode());
 
-  return Param::K4y() * (TMath::ATan(uy2) - TMath::ATan(uy1));
+  return o2::hmpid::Param::K4y() * (TMath::ATan(uy2) - TMath::ATan(uy1));
 }
 
+/// InMathieson : Integration of Mathieson.
+/// This is the answer to electrostatic problem of charge distrubution in MWPC
+/// described elsewhere. (NIM A370(1988)602-603)
+///
+/// @param[in] localX : X position of the center of Mathieson distribution
+/// @param[in] localY : Y position of the center of Mathieson distribution
+/// @param[in] pad : the Digit Unique Id [0x00CPXXYY]
+/// @return : a charge fraction [0-1] imposed into the pad
 float Digit::InMathieson(float localX, float localY, int pad)
 {
-  return 4. * Digit::IntPartMathiX(localX, pad) * Digit::IntPartMathiY(localY, pad);
+  return 4. * IntPartMathiX(localX, pad) * IntPartMathiY(localY, pad);
 }
 
-// Time conversion functions
-double Digit::OrbitBcToTimeNs(uint32_t Orbit, uint16_t BC)
+// ---- Time conversion functions ----
+
+/// OrbitBcToTimeNs : Converts the Orbit,BC pair in absolute
+/// nanoseconds time.
+///
+/// @param[in] Orbit : the Orbit number [0..2^32-1]
+/// @param[in] BC : the Bunch Crossing Number [0..2^12-1]
+/// @return : the absolute time in nanoseconds
+Double_t Digit::OrbitBcToTimeNs(uint32_t Orbit, uint16_t BC)
 {
   return (BC * o2::constants::lhc::LHCBunchSpacingNS + Orbit * o2::constants::lhc::LHCOrbitNS);
 }
 
-uint32_t Digit::TimeNsToOrbit(double TimeNs)
+/// TimeNsToOrbit : Extracts the Orbit number from the absolute
+/// nanoseconds time.
+///
+/// @param[in] TimeNs : the absolute nanoseconds time
+/// @return : the Orbit number [0..2^32-1]
+uint32_t Digit::TimeNsToOrbit(Double_t TimeNs)
 {
   return (TimeNs / o2::constants::lhc::LHCOrbitNS);
 }
 
-uint16_t Digit::TimeNsToBc(double TimeNs)
+/// TimeNsToBc : Extracts the Bunch Crossing number from the absolute
+/// nanoseconds time.
+///
+/// @param[in] TimeNs : the absolute nanoseconds time
+/// @return : the Bunch Crossing number [0..2^12-1]
+uint16_t Digit::TimeNsToBc(Double_t TimeNs)
 {
   return (std::fmod(TimeNs, o2::constants::lhc::LHCOrbitNS) / o2::constants::lhc::LHCBunchSpacingNS);
 }
 
+/// TimeNsToOrbitBc : Extracts the (Orbit,BC) pair from the absolute
+/// nanoseconds time.
+///
+/// @param[in] TimeNs : the absolute nanoseconds time
+/// @param[out] Orbit : the Orbit number [0..2^32-1]
+/// @param[out] Bc : the Bunch Crossing number [0..2^12-1]
 void Digit::TimeNsToOrbitBc(double TimeNs, uint32_t& Orbit, uint16_t& Bc)
 {
   Orbit = TimeNsToOrbit(TimeNs);
@@ -251,9 +394,14 @@ void Digit::TimeNsToOrbitBc(double TimeNs, uint32_t& Orbit, uint16_t& Bc)
   return;
 }
 
-// Functions to manage Digit vectors
+// ---- Functions to manage Digit vectors ----
 
-// Function for order digits (Event,Chamber,Photo,x,y)
+/// eventEquipPadsComp : Function for order digits (Event,Chamber,Photo,x,y)
+/// to use in sort method function overload
+/// @param[in] d1 : one Digit
+/// @param[in] d2 : one Digit
+/// @return : true if event of d1 comes before the event of d2, for
+///           same events evaluates the position into the detector
 bool Digit::eventEquipPadsComp(Digit& d1, Digit& d2)
 {
   uint64_t t1, t2;
@@ -268,6 +416,11 @@ bool Digit::eventEquipPadsComp(Digit& d1, Digit& d2)
   return false;
 };
 
+/// extractDigitsPerEvent : Function for select a sub vector of Digits of the
+/// same event
+/// @param[in] Digits : one vector of Digits
+/// @param[in] EventID : the Trigger ID [ 0000.0000.0000.0000.0000.oooo.oooo.oooo.oooo.oooo.oooo.oooo.oooo.bbbb.bbbb.bbbb ]
+/// @return : the subvector of Digits that have the same EventID
 std::vector<o2::hmpid::Digit>* Digit::extractDigitsPerEvent(std::vector<o2::hmpid::Digit>& Digits, uint64_t EventID)
 {
   std::vector<o2::hmpid::Digit>* subVector = new std::vector<o2::hmpid::Digit>();
@@ -279,13 +432,20 @@ std::vector<o2::hmpid::Digit>* Digit::extractDigitsPerEvent(std::vector<o2::hmpi
   return (subVector);
 };
 
+/// extractEvents : Function that returns the list of Event IDs from a
+/// vector of Digits
+/// @param[in] Digits : one vector of Digits
+/// @return : the vector of Event IDs
 std::vector<uint64_t>* Digit::extractEvents(std::vector<o2::hmpid::Digit>& Digits)
 {
-  std::vector<uint64_t>* subVector = new std::vector<uint64_t>();
+  std::vector<uint64_t>* eventIds = new std::vector<uint64_t>();
   for (const auto& digit : Digits) {
-    if (find(subVector->begin(), subVector->end(), digit.getTriggerID()) == subVector->end()) {
-      subVector->push_back(digit.getTriggerID());
+    if (find(eventIds->begin(), eventIds->end(), digit.getTriggerID()) == eventIds->end()) {
+	eventIds->push_back(digit.getTriggerID());
     }
   }
-  return (subVector);
+  return (eventIds);
 };
+
+
+// -------- eof -----------

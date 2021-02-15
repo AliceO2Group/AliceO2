@@ -8,6 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+///
+/// \file   Geo.h
+/// \author Antonio Franco - INFN Bari
+/// \version 1.0
+/// \date 15/02/2021
+
 #include "HMPIDBase/Geo.h"
 #include "HMPIDBase/Param.h"
 #include "TGeoManager.h"
@@ -21,6 +27,9 @@ using namespace o2::hmpid;
 
 //constexpr Bool_t Geo::FEAWITHMASKS[NSECTORS];
 
+// ============= Geo Class implementation =======
+
+/// Init :
 void Geo::Init()
 {
   LOG(INFO) << "hmpid::Geo: Initialization of HMPID parameters";
@@ -34,21 +43,13 @@ void Geo::Init()
 ///
 ///                    (0,0,0,0) Right Top   (1,0,0,0) Left Bottom
 ///
+
+/// Module2Equipment : Convert coordinates system
+///               This was replaced with that defined in DIGIT class
+///               (Module, Row, Col -> Equi, Colu, Dilo, Chan)
+///  **** OBSOLETE ****
 void Geo::Module2Equipment(int Mod, int Row, int Col, int* Equi, int* Colu, int* Dilo, int* Chan)
 {
-  /*  if (Row > MAXHALFXROWS) {
-    *Equi = Mod * EQUIPMENTSPERMODULE + 1;
-    Row = Row - HALFXROWS;
-  } else {
-    *Equi = Mod * EQUIPMENTSPERMODULE;
-    Row = MAXHALFXROWS - Row;
-    Col = MAXYCOLS - Col;
-  }
-  *Dilo = Row / DILOPADSROWS;
-  *Colu = Col / DILOPADSCOLS;
-  *Chan = (Row % DILOPADSROWS) * DILOPADSCOLS + (Col % DILOPADSCOLS);
-  return;
-*/
   int y2a[6] = {5, 3, 1, 0, 2, 4};
   int ch, ax, ay;
   if (ax > Geo::MAXHALFXROWS) {
@@ -65,29 +66,12 @@ void Geo::Module2Equipment(int Mod, int Row, int Col, int* Equi, int* Colu, int*
   return;
 }
 
-/// Functions to translate coordinates : from Equipment,Col,Dilogic,Channel to Module,Col,Row
-/// Digit coordinates " Mod,Row,Col := Mod = {0..6}  Row = {0..159}  Col = {0..143}
-///                    (0,0) Left Bottom
-///
-/// Hardware coordinates  Equ,Col,Dil,Cha := Equ = {0..13}  Col = {0..23}  Dil = {0..9}  Cha = {0..47}
-///
-///                    (0,0,0,0) Right Top   (1,0,0,0) Left Bottom
-///
+/// Equipment2Module : Convert coordinates system
+///               This was replaced with that defined in DIGIT class
+///               (Equi, Colu, Dilo, Chan -> Module, Row, Col)
+///  **** OBSOLETE ****
 void Geo::Equipment2Module(int Equi, int Colu, int Dilo, int Chan, int* Mod, int* Row, int* Col)
 {
-  /*
-
-  *Mod = Equi / EQUIPMENTSPERMODULE;
-  *Row = Dilo * DILOPADSROWS + Chan / DILOPADSROWS;
-  *Col = (Colu * DILOPADSCOLS) + Chan % DILOPADSCOLS;
-
-  if (Equi % EQUIPMENTSPERMODULE == 1) {
-    *Row += HALFXROWS;
-  } else {
-    *Row = MAXHALFXROWS - *Row;
-    *Col = MAXYCOLS - *Col;
-  }
-  */
   if (Equi < 0 || Equi >= Geo::MAXEQUIPMENTS || Colu < 0 || Colu >= Geo::N_COLUMNS ||
       Dilo < 0 || Dilo >= Geo::N_DILOGICS || Chan < 0 || Chan >= Geo::N_CHANNELS)
     return;
