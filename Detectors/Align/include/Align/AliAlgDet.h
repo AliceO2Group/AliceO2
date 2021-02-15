@@ -25,7 +25,7 @@
 #include "Align/AliAlgPoint.h"
 #include "Align/AliAlgSens.h"
 #include "Align/AliAlgVol.h"
-//#include "Align/AliAlgSteer.h" FIXME(milettri): needs AliAlgSteer
+#include "Align/AliAlgSteer.h"
 //#include "AliESDtrack.h"
 //class AliTrackPointArray;
 
@@ -66,7 +66,7 @@ class AliAlgDet : public TNamed
   //
   Int_t GetNPoints() const { return fNPoints; }
   //
-  //  void SetAlgSteer(AliAlgSteer* s) { fAlgSteer = s; } FIXME(milettri): needs AliAlgSteer
+  void SetAlgSteer(AliAlgSteer* s) { fAlgSteer = s; }
   AliAlgSens* GetSensor(Int_t id) const { return (AliAlgSens*)fSensors.UncheckedAt(id); }
   AliAlgSens* GetSensorByVolId(Int_t vid) const
   {
@@ -232,8 +232,8 @@ class AliAlgDet : public TNamed
   Int_t fPoolNPoints;     //! number of points in the pool
   Int_t fPoolFreePointID; //! id of the last free point in the pool
   TObjArray fPointsPool;  //! pool of aligment points
-  //
-  //  AliAlgSteer* fAlgSteer; // pointer to alignment steering object FIXME(milettri): needs AliAlgSteer
+                          //
+  AliAlgSteer* fAlgSteer; // pointer to alignment steering object
   //
   ClassDef(AliAlgDet, 1); // base class for detector global alignment
 };
