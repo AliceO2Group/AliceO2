@@ -17,10 +17,11 @@
 
 #include <iostream>
 #include <fstream>
-
 #include <array>
 #include <stdexcept>
 #include <vector>
+
+#include <gsl/span>
 
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -30,6 +31,7 @@
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
 
+#include "DataFormatsMCH/ROFRecord.h"
 #include "MCHBase/Digit.h"
 #include "MCHBase/ClusterBlock.h"
 #include "MCHMappingInterface/Segmentation.h"
@@ -72,42 +74,89 @@ class ClusterSinkTask
   //_________________________________________________________________________________________________
   void run(framework::ProcessingContext& pc)
   {
-    /// dump the clusters with associated digits of the current event
+    /// dump the clusters with associated digits of all events in the current TF
 
     // get the input clusters and associated digits
+    auto rofs = pc.inputs().get<gsl::span<ROFRecord>>("rofs");
     auto clusters = pc.inputs().get<gsl::span<ClusterStruct>>("clusters");
     auto digits = pc.inputs().get<gsl::span<Digit>>("digits");
 
-    if (mText) {
-      // write the clusters in ascii format
-      mOutputFile << clusters.size() << " clusters:" << endl;
-      for (const auto& cluster : clusters) {
-        mOutputFile << cluster << endl;
-      }
-    } else {
-      // write the number of clusters
-      int nClusters = clusters.size();
-      mOutputFile.write(reinterpret_cast<char*>(&nClusters), sizeof(int));
+    std::vector<ClusterStruct> eventClusters{};
+    for (const auto& rof : rofs) {
 
-      // write the total number of digits in these clusters
-      int nDigits = digits.size();
-      mOutputFile.write(reinterpret_cast<char*>(&nDigits), sizeof(int));
+      if (mText) {
 
-      // write the clusters
-      mOutputFile.write(reinterpret_cast<const char*>(clusters.data()), clusters.size_bytes());
+        // write the clusters in ascii format
+        mOutputFile << rof.getNEntries() << " clusters:" << endl;
+        for (const auto& cluster : clusters.subspan(rof.getFirstIdx(), rof.getNEntries())) {
+          mOutputFile << cluster << endl;
+        }
 
-      // write the digits (after converting the pad ID into a digit UID if requested)
-      if (mUseRun2DigitUID) {
-        std::vector<Digit> digitsCopy(digits.begin(), digits.end());
-        convertPadID2DigitUID(digitsCopy);
-        mOutputFile.write(reinterpret_cast<char*>(digitsCopy.data()), digitsCopy.size() * sizeof(Digit));
       } else {
-        mOutputFile.write(reinterpret_cast<const char*>(digits.data()), digits.size_bytes());
+
+        // get the clusters and associated digits of the current event
+        auto eventDigits = getEventClustersAndDigits(rof, clusters, digits, eventClusters);
+
+        // write the number of clusters
+        int nClusters = eventClusters.size();
+        mOutputFile.write(reinterpret_cast<char*>(&nClusters), sizeof(int));
+
+        // write the total number of digits in these clusters
+        int nDigits = eventDigits.size();
+        mOutputFile.write(reinterpret_cast<char*>(&nDigits), sizeof(int));
+
+        // write the clusters
+        mOutputFile.write(reinterpret_cast<const char*>(eventClusters.data()),
+                          eventClusters.size() * sizeof(ClusterStruct));
+
+        // write the digits (after converting the pad ID into a digit UID if requested)
+        if (mUseRun2DigitUID) {
+          std::vector<Digit> digitsCopy(eventDigits.begin(), eventDigits.end());
+          convertPadID2DigitUID(digitsCopy);
+          mOutputFile.write(reinterpret_cast<char*>(digitsCopy.data()), digitsCopy.size() * sizeof(Digit));
+        } else {
+          mOutputFile.write(reinterpret_cast<const char*>(eventDigits.data()), eventDigits.size_bytes());
+        }
       }
     }
   }
 
  private:
+  //_________________________________________________________________________________________________
+  gsl::span<const Digit> getEventClustersAndDigits(const ROFRecord& rof, gsl::span<const ClusterStruct> clusters,
+                                                   gsl::span<const Digit> digits,
+                                                   std::vector<ClusterStruct>& eventClusters) const
+  {
+    /// copy the clusters of the current event (needed to edit the clusters)
+    /// modify the references to the associated digits to start the indexing from 0
+    /// return a sub-span with the associated digits
+
+    eventClusters.clear();
+
+    if (rof.getNEntries() < 1) {
+      return {};
+    }
+
+    if (rof.getLastIdx() >= clusters.size()) {
+      throw length_error("missing clusters");
+    }
+
+    eventClusters.insert(eventClusters.end(), clusters.begin() + rof.getFirstIdx(),
+                         clusters.begin() + rof.getLastIdx() + 1);
+
+    auto digitOffset = eventClusters.front().firstDigit;
+    for (auto& cluster : eventClusters) {
+      cluster.firstDigit -= digitOffset;
+    }
+
+    auto nDigits = eventClusters.back().firstDigit + eventClusters.back().nDigits;
+    if (digitOffset + nDigits > digits.size()) {
+      throw length_error("missing digits");
+    }
+
+    return digits.subspan(digitOffset, nDigits);
+  }
+
   //_________________________________________________________________________________________________
   void convertPadID2DigitUID(std::vector<Digit>& digits)
   {
@@ -153,7 +202,8 @@ o2::framework::DataProcessorSpec getClusterSinkSpec()
 {
   return DataProcessorSpec{
     "ClusterSink",
-    Inputs{InputSpec{"clusters", "MCH", "CLUSTERS", 0, Lifetime::Timeframe},
+    Inputs{InputSpec{"rofs", "MCH", "CLUSTERROFS", 0, Lifetime::Timeframe},
+           InputSpec{"clusters", "MCH", "CLUSTERS", 0, Lifetime::Timeframe},
            InputSpec{"digits", "MCH", "CLUSTERDIGITS", 0, Lifetime::Timeframe}},
     Outputs{},
     AlgorithmSpec{adaptFromTask<ClusterSinkTask>()},
