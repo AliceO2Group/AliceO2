@@ -98,12 +98,12 @@ class TOFDCSProcessor
   const CcdbObjectInfo& getccdbLVInfo() const { return mccdbLVInfo; }
   CcdbObjectInfo& getccdbLVInfo() { return mccdbLVInfo; }
   const std::bitset<Geo::NCHANNELS>& getLVStatus() const { return mFeac; }
-  const bool isLVUpdated() const { return mUpdateFeacStatus; }
+  bool isLVUpdated() const { return mUpdateFeacStatus; }
 
   const CcdbObjectInfo& getccdbHVInfo() const { return mccdbHVInfo; }
   CcdbObjectInfo& getccdbHVInfo() { return mccdbHVInfo; }
   const std::bitset<Geo::NCHANNELS>& getHVStatus() const { return mHV; }
-  const bool isHVUpdated() const { return mUpdateHVStatus; }
+  bool isHVUpdated() const { return mUpdateHVStatus; }
 
   template <typename T>
   void prepareCCDBobjectInfo(T& obj, CcdbObjectInfo& info, const std::string& path, TFType tf,
