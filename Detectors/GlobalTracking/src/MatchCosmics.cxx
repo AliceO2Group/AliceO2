@@ -257,7 +257,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     if (mUseMC) {
       o2::MCCompLabel lbl[2] = {data.getTrackMCLabel(mSeeds[poolEntryID[btm]].origID), data.getTrackMCLabel(mSeeds[poolEntryID[top]].origID)};
       auto& tlb = mCosmicTracksLbl.emplace_back((nclBtm > nclTot - nclBtm ? lbl[0] : lbl[1]));
-      tlb.setFakeFlag(lbl[0] == lbl[1]);
+      tlb.setFakeFlag(lbl[0] != lbl[1]);
     }
   }
   LOG(INFO) << "Validated " << mCosmicTracks.size() << " top-bottom tracks";
@@ -455,6 +455,9 @@ void MatchCosmics::createSeeds(const o2::globaltracking::RecoContainer& data)
 
   std::function<void(const o2::track::TrackParCov& _tr, float t0, float terr, GTrackID _origID)> creator =
     [this](const o2::track::TrackParCov& _tr, float t0, float terr, GTrackID _origID) {
+      if (std::abs(_tr.getQ2Pt()) > this->mQ2PtCutoff) {
+        return;
+      }
       if (_origID.getSource() == GTrackID::TPC) { // convert TPC bins to \mus
         t0 *= this->mTPCTBinMUS;
         terr *= this->mTPCTBinMUS;
@@ -479,6 +482,12 @@ void MatchCosmics::updateTimeDependentParams()
   mTPCTBinMUS = elParam.ZbinWidth; // TPC bin in microseconds
   mBz = o2::base::Propagator::Instance()->getNominalBz();
   mFieldON = std::abs(mBz) > 0.01;
+  mQ2PtCutoff = 1.f / std::max(0.05f, mMatchParams->minSeedPt);
+  if (mFieldON) {
+    mQ2PtCutoff *= 5.00668 / std::abs(mBz);
+  } else {
+    mQ2PtCutoff = 1e9;
+  }
 }
 
 //________________________________________________________
