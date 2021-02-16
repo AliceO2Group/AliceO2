@@ -21,6 +21,7 @@
 #include "TOFWorkflowUtils/ClusterReaderSpec.h"
 #include "GlobalTrackingWorkflow/TrackTPCITSReaderSpec.h"
 #include "GlobalTrackingWorkflow/CosmicsMatchingSpec.h"
+#include "GlobalTrackingWorkflow/TrackCosmicsWriterSpec.h"
 #include "Algorithm/RangeTokenizer.h"
 
 using namespace o2::framework;
@@ -130,6 +131,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   specs.emplace_back(o2::globaltracking::getCosmicsMatchingSpec(dets, useMC));
 
   if (!disableRootOut) {
+    specs.emplace_back(o2::globaltracking::getTrackCosmicsWriterSpec(useMC));
   }
 
   return specs;
