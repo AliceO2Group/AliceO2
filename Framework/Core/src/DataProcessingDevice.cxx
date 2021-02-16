@@ -489,42 +489,44 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
     int64_t result = -2;
     auto& fairMQChannel = context.device->GetChannel(channel.name, 0);
     auto& socket = fairMQChannel.GetSocket();
-    uint32_t events;
-    socket.Events(&events);
-    if ((events & 1) == 0) {
-      continue;
+    // If we have pending events from a previous iteration,
+    // we do receive in any case.
+    // Otherwise we check if there is any pending event and skip
+    // this channel in case there is none.
+    if (info.hasPendingEvents == 0) {
+      socket.Events(&info.hasPendingEvents);
+      // If we do not read, we can continue.
+      if ((info.hasPendingEvents & 1) == 0) {
+        continue;
+      }
     }
     // Notice that there seems to be a difference between the documentation
     // of zeromq and the observed behavior. The fact that ZMQ_POLLIN
     // is raised does not mean that a message is immediately available to
     // read, just that it will be available soon, so the receive can
     // still return -2. To avoid this we keep receiving on the socket until
-    // we get a message, consume all the consecutive messages, and then go back
-    // to the usual loop.
-    do {
-      if (events & 1) {
-        bool oneMessage = false;
-        while (true) {
-          FairMQParts parts;
-          result = fairMQChannel.Receive(parts, 0);
-          if (result >= 0) {
-            // Receiving data counts as activity now, so that
-            // We can make sure we process all the pending
-            // messages without hanging on the uv_run.
-            *context.wasActive = true;
-            DataProcessingDevice::handleData(context, parts, info);
-            oneMessage = true;
-          } else {
-            if (oneMessage) {
-              break;
-            }
-          }
-        }
-      } else {
+    // we get a message. In order not to overflow the DPL queue we process
+    // one message at the time and we keep track of wether there were more
+    // to process.
+    while (true) {
+      FairMQParts parts;
+      result = fairMQChannel.Receive(parts, 0);
+      if (result >= 0) {
+        DataProcessingDevice::handleData(context, parts, info);
+        // Receiving data counts as activity now, so that
+        // We can make sure we process all the pending
+        // messages without hanging on the uv_run.
         break;
       }
-      socket.Events(&events);
-    } while (events & 1);
+    }
+    // We check once again for pending events, keeping track if this was the
+    // case so that we can immediately repeat this loop and avoid remaining
+    // stuck in uv_run. This is because we will not get notified on the socket
+    // if more events are pending due to zeromq level triggered approach.
+    socket.Events(&info.hasPendingEvents);
+    if (info.hasPendingEvents) {
+      *context.wasActive |= true;
+    }
   }
 }
 
