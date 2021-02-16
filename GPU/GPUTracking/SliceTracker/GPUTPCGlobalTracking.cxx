@@ -23,7 +23,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
 
-GPUd() int GPUTPCGlobalTracking::PerformGlobalTrackingRun(GPUTPCTracker& tracker, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() smem, const GPUTPCTracker& GPUrestrict() sliceSource, int iTrack, int rowIndex, float angle, int direction)
+GPUd() int GPUTPCGlobalTracking::PerformGlobalTrackingRun(GPUTPCTracker& tracker, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, const GPUTPCTracker& GPUrestrict() sliceSource, int iTrack, int rowIndex, float angle, int direction)
 {
   /*for (int j = 0;j < Tracks()[j].NHits();j++)
   {
@@ -113,7 +113,7 @@ GPUd() int GPUTPCGlobalTracking::PerformGlobalTrackingRun(GPUTPCTracker& tracker
   return (nHits >= GPUCA_GLOBAL_TRACKING_MIN_HITS);
 }
 
-GPUd() void GPUTPCGlobalTracking::PerformGlobalTracking(int nBlocks, int nThreads, int iBlock, int iThread, const GPUTPCTracker& tracker, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() smem, GPUTPCTracker& GPUrestrict() sliceTarget, bool right)
+GPUd() void GPUTPCGlobalTracking::PerformGlobalTracking(int nBlocks, int nThreads, int iBlock, int iThread, const GPUTPCTracker& tracker, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, GPUTPCTracker& GPUrestrict() sliceTarget, bool right)
 {
   for (int i = iBlock * nThreads + iThread; i < tracker.CommonMemory()->nLocalTracks; i += nThreads * nBlocks) {
     {
@@ -161,7 +161,7 @@ GPUd() void GPUTPCGlobalTracking::PerformGlobalTracking(int nBlocks, int nThread
 }
 
 template <>
-GPUdii() void GPUTPCGlobalTracking::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() smem, processorType& GPUrestrict() tracker)
+GPUdii() void GPUTPCGlobalTracking::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, processorType& GPUrestrict() tracker)
 {
   CA_SHARED_CACHE(&smem.mRows[0], tracker.SliceDataRows(), GPUCA_ROW_COUNT * sizeof(MEM_PLAIN(GPUTPCRow)));
   GPUbarrier();
@@ -204,7 +204,7 @@ GPUd() void GPUTPCGlobalTracking::GlobalTrackingSliceLeftRight(unsigned int iSli
 #endif // !__OPENCL__ || __OPENCLCPP__
 
 template <>
-GPUdii() void GPUTPCGlobalTrackingCopyNumbers::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() smem, processorType& GPUrestrict() tracker, int n)
+GPUdii() void GPUTPCGlobalTrackingCopyNumbers::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, processorType& GPUrestrict() tracker, int n)
 {
   for (int i = get_global_id(0); i < n; i += get_global_size(0)) {
     GPUconstantref() MEM_GLOBAL(GPUTPCTracker) & GPUrestrict() trk = (&tracker)[i];
