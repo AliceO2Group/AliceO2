@@ -17,7 +17,7 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <int I>
-GPUdii() void GPUTrackingRefitKernel::Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors)
+GPUdii() void GPUTrackingRefitKernel::Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors)
 {
   auto& refit = processors.trackingRefit;
   for (unsigned int i = get_global_id(0); i < processors.ioPtrs.nMergedTracks; i += get_global_size(0)) {
@@ -37,5 +37,5 @@ GPUdii() void GPUTrackingRefitKernel::Thread(int nBlocks, int nThreads, int iBlo
     }
   }
 }
-template GPUd() void GPUTrackingRefitKernel::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors);
-template GPUd() void GPUTrackingRefitKernel::Thread<1>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors);
+template GPUd() void GPUTrackingRefitKernel::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors);
+template GPUd() void GPUTrackingRefitKernel::Thread<1>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors);
