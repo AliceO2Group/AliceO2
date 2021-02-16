@@ -104,7 +104,7 @@ TGeoVolume* V3Services::createInnerBarrelSupports(const TGeoManager* mgr)
   zlen = sIBSuppCylZLen / 2;
   rmin = sIBSuppCylRint;
   rmax = rmin + sIBSuppCylThick;
-  
+
   TGeoTubeSeg* suppCylSh = new TGeoTubeSeg(rmin, rmax, zlen, phi, 180. - phi);
 
   // The foam wedges: three TubeSeg's
@@ -122,9 +122,9 @@ TGeoVolume* V3Services::createInnerBarrelSupports(const TGeoManager* mgr)
     layerSh = (TGeoTube*)layerVol->GetShape();
     rmin = layerSh->GetRmax();
 
-    if (j == 2)
+    if (j == 2) {
       rmax = sIBSuppCylRint;
-    else {
+    } else {
       layerVol = mgr->GetVolume(Form("%s%d", o2::its3::GeometryTGeo::getITSLayerPattern(), j + 1));
       if (!layerVol) { // Should really never happen
         LOG(FATAL) << "While building services: ITSU Layer " << j + 1 << " does not exist";

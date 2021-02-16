@@ -627,7 +627,7 @@ void Detector::createMaterials()
   // ERG Duocel
   o2::base::Detector::Material(33, "ERGDUOCEL$", 12.0107, 6, 0.06, 999, 999);
   o2::base::Detector::Medium(33, "ERGDUOCEL$", 33, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
-  
+
   // PEEK CF30
   o2::base::Detector::Mixture(19, "PEEKCF30$", aPEEK, zPEEK, dPEEK, -3, wPEEK);
   o2::base::Detector::Medium(19, "PEEKCF30$", 19, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
