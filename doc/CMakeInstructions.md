@@ -6,20 +6,20 @@
 
 <!-- vim-markdown-toc GFM -->
 
-- [CMake and CTest tips for AliceO2](#cmake-and-ctest-tips-for-aliceo2)
-  - [CMake](#cmake)
-    - [Instructions for contributors (aka developers' documentation)](#instructions-for-contributors-aka-developers-documentation)
-    - [Typical CMakeLists.txt](#typical-cmakeliststxt)
-    - [Examples](#examples)
-      - [Ex1 Adding a basic library](#ex1-adding-a-basic-library)
-      - [Ex2 Adding a basic library with a Root dictionary](#ex2-adding-a-basic-library-with-a-root-dictionary)
-      - [Ex3 Adding an executable](#ex3-adding-an-executable)
-      - [Ex4 Adding a couple of tests](#ex4-adding-a-couple-of-tests)
-      - [Ex5 Adding a man page](#ex5-adding-a-man-page)
-  - [CTest](#ctest)
-    - [Selecting/excluding by test name (-R/-E)](#selectingexcluding-by-test-name--r-e)
-    - [Selecting/excluding by label (-L/-LE)](#selectingexcluding-by-label--l-le)
-    - [Speeding up ctest execution](#speeding-up-ctest-execution)
+* [CMake and CTest tips for AliceO2](#cmake-and-ctest-tips-for-aliceo2)
+  * [CMake](#cmake)
+    * [Instructions for contributors (aka developers' documentation)](#instructions-for-contributors-aka-developers-documentation)
+    * [Typical CMakeLists.txt](#typical-cmakeliststxt)
+    * [Examples](#examples)
+      * [Ex1 Adding a basic library](#ex1-adding-a-basic-library)
+      * [Ex2 Adding a basic library with a Root dictionary](#ex2-adding-a-basic-library-with-a-root-dictionary)
+      * [Ex3 Adding an executable](#ex3-adding-an-executable)
+      * [Ex4 Adding a couple of tests](#ex4-adding-a-couple-of-tests)
+      * [Ex5 Adding a man page](#ex5-adding-a-man-page)
+  * [CTest](#ctest)
+    * [Selecting/excluding by test name (-R/-E)](#selectingexcluding-by-test-name--r-e)
+    * [Selecting/excluding by label (-L/-LE)](#selectingexcluding-by-label--l-le)
+    * [Speeding up ctest execution](#speeding-up-ctest-execution)
 
 <!-- vim-markdown-toc -->
 
@@ -339,6 +339,15 @@ Tests can also be _excluded_ based on label (`-LE`) or name (`-RE`).
     Label Time Summary:
     dummy    =   0.07 sec*proc (1 test)
     fast     =   0.07 sec*proc (1 test)
+
+Note as well that some (very few) tests are ran only for some configurations
+(aka build types).  Those tests are _not_ ran automatically when using the bare
+`ctest` command.  One has to explicitely specify the build type for those, e.g.
+:
+
+```
+ctest -C RelWithDebInfo
+```
 
 #### [Ex5](../Examples/Ex5) Adding a man page
 
