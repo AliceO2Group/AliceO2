@@ -28,7 +28,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 void GPUTPCTracker::DumpOutput(std::ostream& out)
 {
   if (Param().par.earlyTpcTransform) {
-    out << "Slice " << mISlice << "\n";
+    out << "\nSlice " << mISlice << "\n";
     const GPUTPCTrack* track = (Output())->GetFirstTrack();
     for (unsigned int j = 0; j < (Output())->NTracks(); j++) {
       out << "Track " << j << " (" << track->NHits() << "): ";
@@ -44,7 +44,7 @@ void GPUTPCTracker::DumpOutput(std::ostream& out)
 void GPUTPCTracker::DumpSliceData(std::ostream& out)
 {
   // Dump Slice Input Data to File
-  out << "Slice Data (Slice" << mISlice << "):" << std::endl;
+  out << "\nSlice Data (Slice" << mISlice << "):" << std::endl;
   for (int i = 0; i < GPUCA_ROW_COUNT; i++) {
     if (Row(i).NHits() == 0) {
       continue;
@@ -60,10 +60,10 @@ void GPUTPCTracker::DumpSliceData(std::ostream& out)
   }
 }
 
-void GPUTPCTracker::DumpLinks(std::ostream& out)
+void GPUTPCTracker::DumpLinks(std::ostream& out, int phase)
 {
   // Dump Links (after Neighbours Finder / Cleaner) to file
-  out << "Hit Links(Slice" << mISlice << "):" << std::endl;
+  out << "\nHit Links (Phase " << phase << ", Slice" << mISlice << "):" << std::endl;
   for (int i = 0; i < GPUCA_ROW_COUNT; i++) {
     if (Row(i).NHits() == 0) {
       continue;
@@ -82,7 +82,7 @@ void GPUTPCTracker::DumpLinks(std::ostream& out)
 void GPUTPCTracker::DumpHitWeights(std::ostream& out)
 {
   // dump hit weights to file
-  out << "Hit Weights(Slice" << mISlice << "):" << std::endl;
+  out << "\nHit Weights(Slice" << mISlice << "):" << std::endl;
   for (int i = 0; i < GPUCA_ROW_COUNT; i++) {
     if (Row(i).NHits() == 0) {
       continue;
@@ -113,7 +113,7 @@ int GPUTPCTracker::StarthitSortComparison(const void* a, const void* b)
 void GPUTPCTracker::DumpStartHits(std::ostream& out)
 {
   // sort start hits and dump to file
-  out << "Start Hits: (Slice" << mISlice << ") (" << *NStartHits() << ")" << std::endl;
+  out << "\nStart Hits: (Slice" << mISlice << ") (" << *NStartHits() << ")" << std::endl;
   if (mRec->GetProcessingSettings().comparableDebutOutput) {
     qsort(TrackletStartHits(), *NStartHits(), sizeof(GPUTPCHitId), StarthitSortComparison);
   }
@@ -126,7 +126,7 @@ void GPUTPCTracker::DumpStartHits(std::ostream& out)
 void GPUTPCTracker::DumpTrackHits(std::ostream& out)
 {
   // dump tracks to file
-  out << "Tracks: (Slice" << mISlice << ") (" << *NTracks() << ")" << std::endl;
+  out << "\nTracks: (Slice" << mISlice << ") (" << *NTracks() << ")" << std::endl;
   for (int k = 0; k < GPUCA_ROW_COUNT; k++) {
     for (int l = 0; l < Row(k).NHits(); l++) {
       for (unsigned int j = 0; j < *NTracks(); j++) {
@@ -154,7 +154,7 @@ void GPUTPCTracker::DumpTrackletHits(std::ostream& out)
   if (nTracklets < 0) {
     nTracklets = 0;
   }
-  out << "Tracklets: (Slice" << mISlice << ") (" << nTracklets << ")" << std::endl;
+  out << "\nTracklets: (Slice" << mISlice << ") (" << nTracklets << ")" << std::endl;
   std::vector<int> Ids(nTracklets);
   std::iota(Ids.begin(), Ids.end(), 0);
   if (mRec->GetProcessingSettings().comparableDebutOutput) {
