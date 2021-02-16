@@ -23,6 +23,8 @@ o2_add_library(GlobalTrackingWorkflow
                        src/SecondaryVertexWriterSpec.cxx
                        src/SecondaryVertexReaderSpec.cxx
                        src/CosmicsMatchingSpec.cxx
+		       src/TrackCosmicsWriterSpec.cxx
+		       src/TrackCosmicsReaderSpec.cxx		       
                PUBLIC_LINK_LIBRARIES O2::GlobalTracking
                                      O2::ITStracking
                                      O2::ITSWorkflow

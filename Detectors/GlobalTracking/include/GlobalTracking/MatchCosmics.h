@@ -92,6 +92,7 @@ class MatchCosmics
   bool mFieldON = true;
   bool mUseMC = true;
   float mITSROFrameLengthMUS = 0.;
+  float mQ2PtCutoff = 1e9;
   const MatchCosmicsParams* mMatchParams = nullptr;
 
   std::vector<o2d::TrackCosmics> mCosmicTracks;
