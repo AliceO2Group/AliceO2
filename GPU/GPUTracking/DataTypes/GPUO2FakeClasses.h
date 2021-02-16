@@ -81,6 +81,10 @@ template <class T>
 class ConstMCTruthContainerView
 {
 };
+template <class T>
+class ConstMCTruthContainer
+{
+};
 } // namespace dataformats
 } // namespace o2
 
