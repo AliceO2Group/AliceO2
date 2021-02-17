@@ -416,7 +416,7 @@ auto InvMassXicpKpi(const T& candidate)
 template <typename T>
 auto InvMassXicpiKp(const T& candidate)
 {
-  return InvMassLcpiKpi(candidate);
+  return InvMassLcpiKp(candidate);
 }
 } // namespace hf_cand_prong3
 
