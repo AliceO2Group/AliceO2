@@ -27,7 +27,7 @@ using DPID = o2::dcs::DataPointIdentifier;
 using DPVAL = o2::dcs::DataPointValue;
 using DPMAP = std::unordered_map<DPID, std::vector<DPVAL>>;
 
-const char* CCDB_DPCONF_NAME = "MCH/DCSConfig";
+const char* CCDB_DPCONF_NAME = "MCH/DCSconfig";
 
 bool verbose;
 
