@@ -183,6 +183,8 @@ o2::ccdb::CcdbObjectInfo addTFInfo(o2::ccdb::CcdbObjectInfo inf,
   auto md = inf.getMetaData();
   md["tf range"] = fmt::format("{}-{}", t0, t1);
   inf.setMetaData(md);
+  inf.setStartValidityTimestamp(t0);
+  inf.setEndValidityTimestamp(t1);
   return inf;
 }
 
