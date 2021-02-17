@@ -36,6 +36,7 @@ class VtxTrackIndex : public GlobalTrackID
   };
 
   using GlobalTrackID::GlobalTrackID;
+  VtxTrackIndex(const GlobalTrackID& src) : GlobalTrackID(src) {}
 
   bool isPVContributor() const { return testBit(Contributor); }
   void setPVContributor() { setBit(Contributor); }
