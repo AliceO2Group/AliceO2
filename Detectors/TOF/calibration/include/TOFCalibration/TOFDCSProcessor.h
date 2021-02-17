@@ -75,6 +75,7 @@ class TOFDCSProcessor
   using DQDoubles = std::deque<double>;
 
   static constexpr int NFEACS = 8;
+  static constexpr int NDDLS = Geo::kNDDL * Geo::NSECTORS;
 
   TOFDCSProcessor() = default;
   ~TOFDCSProcessor() = default;
@@ -119,8 +120,8 @@ class TOFDCSProcessor
   std::unordered_map<DPID, std::vector<DPVAL>> mDpsdoublesmap; // this is the map that will hold the DPs for the
                                                                // double type (voltages and currents)
 
-  std::array<std::array<TOFFEACinfo, NFEACS>, Geo::kNDDL> mFeacInfo;                  // contains the strip/pad info per FEAC
-  std::array<std::bitset<8>, Geo::kNDDL> mPrevFEACstatus;                             // previous FEAC status
+  std::array<std::array<TOFFEACinfo, NFEACS>, NDDLS> mFeacInfo;                       // contains the strip/pad info per FEAC
+  std::array<std::bitset<8>, NDDLS> mPrevFEACstatus;                                  // previous FEAC status
   std::bitset<Geo::NCHANNELS> mFeac;                                                  // bitset with feac status per channel
   bool mUpdateFeacStatus = false;                                                     // whether to update the FEAC status in CCDB or not
   std::bitset<Geo::NCHANNELS> mHV;                                                    // bitset with HV status per channel
