@@ -24,12 +24,12 @@ void RCUTrailer::reset()
   mPayloadSize = 0;
   mFECERRA = 0;
   mFECERRB = 0;
-  mERRREG2 = 0;
-  mERRREG3 = 0;
+  mErrorCounter.mErrorRegister2 = 0;
+  mErrorCounter.mErrorRegister3 = 0;
   mActiveFECsA = 0;
   mActiveFECsB = 0;
-  mAltroCFG1 = 0;
-  mAltroCFG2 = 0;
+  mAltroConfig.mWord1 = 0;
+  mAltroConfig.mWord2 = 0;
   mIsInitialized = false;
 }
 
@@ -68,11 +68,11 @@ void RCUTrailer::constructFromRawPayload(const gsl::span<const uint32_t> payload
         break;
       case 2:
         // ERR_REG2
-        mERRREG2 = parData & 0x1FF;
+        mErrorCounter.mErrorRegister2 = parData & 0x1FF;
         break;
       case 3:
         // ERR_REG3
-        mERRREG3 = parData & 0x1FFFFFF;
+        mErrorCounter.mErrorRegister3 = parData & 0x1FFFFFF;
         break;
       case 4:
         // FEC_RO_A
@@ -84,11 +84,11 @@ void RCUTrailer::constructFromRawPayload(const gsl::span<const uint32_t> payload
         break;
       case 6:
         // RDO_CFG1
-        mAltroCFG1 = parData & 0xFFFFF;
+        mAltroConfig.mWord1 = parData & 0xFFFFF;
         break;
       case 7:
         // RDO_CFG2
-        mAltroCFG2 = parData & 0x1FFFFFF;
+        mAltroConfig.mWord2 = parData & 0x1FFFFFF;
         break;
       default:
         std::cerr << "Undefined parameter code " << parCode << ", ignore it !\n";
@@ -101,7 +101,7 @@ void RCUTrailer::constructFromRawPayload(const gsl::span<const uint32_t> payload
 
 double RCUTrailer::getTimeSample() const
 {
-  unsigned char fq = (mAltroCFG2 >> 5) & 0xF;
+  uint8_t fq = mAltroConfig.mSampleTime;
   double tSample;
   switch (fq) {
     case 0:
@@ -135,13 +135,13 @@ void RCUTrailer::setTimeSample(double timesample)
   } else {
     throw Error(Error::ErrorType_t::SAMPLINGFREQ_INVALID, fmt::format("invalid time sample: %f", timesample).data());
   }
-  mAltroCFG2 = (mAltroCFG2 & 0x1F) | fq << 5;
+  mAltroConfig.mSampleTime = fq;
 }
 
 double RCUTrailer::getL1Phase() const
 {
   double tSample = getTimeSample(),
-         phase = ((double)(mAltroCFG2 & 0x1F)) * o2::constants::lhc::LHCBunchSpacingNS * 1.e-9;
+         phase = static_cast<double>(mAltroConfig.mL1Phase) * o2::constants::lhc::LHCBunchSpacingNS * 1.e-9;
   if (phase >= tSample) {
     throw Error(Error::ErrorType_t::L1PHASE_INVALID, fmt::format("Invalid L1 trigger phase (%e s (phase) >= %e s (sampling time)) !", phase, tSample).data());
   }
@@ -151,19 +151,19 @@ double RCUTrailer::getL1Phase() const
 void RCUTrailer::setL1Phase(double l1phase)
 {
   int phase = l1phase / 25.;
-  mAltroCFG2 = (mAltroCFG2 & 0x1E0) | phase;
+  mAltroConfig.mL1Phase = phase;
 }
 
 std::vector<uint32_t> RCUTrailer::encode() const
 {
   std::vector<uint32_t> encoded;
   encoded.emplace_back(mPayloadSize | 2 << 30);
-  encoded.emplace_back(mAltroCFG2 | 7 << 26 | 2 << 30);
-  encoded.emplace_back(mAltroCFG1 | 6 << 26 | 2 << 30);
+  encoded.emplace_back(mAltroConfig.mWord2 | 7 << 26 | 2 << 30);
+  encoded.emplace_back(mAltroConfig.mWord1 | 6 << 26 | 2 << 30);
   encoded.emplace_back(mActiveFECsB | 5 << 26 | 2 << 30);
   encoded.emplace_back(mActiveFECsA | 4 << 26 | 2 << 30);
-  encoded.emplace_back(mERRREG3 | 3 << 26 | 2 << 30);
-  encoded.emplace_back(mERRREG2 | 2 << 26 | 2 << 30);
+  encoded.emplace_back(mErrorCounter.mErrorRegister3 | 3 << 26 | 2 << 30);
+  encoded.emplace_back(mErrorCounter.mErrorRegister2 | 2 << 26 | 2 << 30);
   encoded.emplace_back(mFECERRB >> 7 | (mFECERRA >> 7) << 13 | 1 << 26 | 2 << 30);
 
   uint32_t lasttrailerword = 3 << 30 | mFirmwareVersion << 16 | mRCUId << 7 | (encoded.size() + 1);
@@ -195,24 +195,24 @@ void RCUTrailer::printStream(std::ostream& stream) const
          << "Payload size:                              " << mPayloadSize << "\n"
          << "FECERRA:                                   0x" << std::hex << mFECERRA << "\n"
          << "FECERRB:                                   0x" << std::hex << mFECERRB << "\n"
-         << "ERRREG2:                                   0x" << std::hex << mERRREG2 << "\n"
+         << "ERRREG2:                                   0x" << std::hex << mErrorCounter.mErrorRegister2 << "\n"
          << "#channels skipped due to address mismatch: " << std::dec << getNumberOfChannelAddressMismatch() << "\n"
          << "#channels skipped due to bad block length: " << std::dec << getNumberOfChannelLengthMismatch() << "\n"
          << "Active FECs (branch A):                    0x" << std::hex << mActiveFECsA << "\n"
          << "Active FECs (branch B):                    0x" << std::hex << mActiveFECsB << "\n"
-         << "Baseline corr:                             0x" << std::hex << int(getBaselineCorrection()) << "\n"
-         << "Number of presamples:                      " << std::dec << int(getNumberOfPresamples()) << "\n"
-         << "Number of postsamples:                     " << std::dec << int(getNumberOfPostsamples()) << "\n"
+         << "Baseline corr:                             " << std::hex << getBaselineCorrection() << "\n"
+         << "Number of presamples:                      " << std::dec << getNumberOfPresamples() << "\n"
+         << "Number of postsamples:                     " << std::dec << getNumberOfPostsamples() << "\n"
          << "Second baseline corr:                      " << (hasSecondBaselineCorr() ? "yes" : "no") << "\n"
-         << "GlitchFilter:                              " << std::dec << int(getGlitchFilter()) << "\n"
-         << "Number of non-ZS postsamples:              " << std::dec << int(getNumberOfNonZeroSuppressedPostsamples()) << "\n"
-         << "Number of non-ZS presamples:               " << std::dec << int(getNumberOfNonZeroSuppressedPresamples()) << "\n"
+         << "Glitch filter:                             " << std::dec << getGlitchFilter() << "\n"
+         << "Number of non-ZS postsamples:              " << std::dec << getNumberOfNonZeroSuppressedPostsamples() << "\n"
+         << "Number of non-ZS presamples:               " << std::dec << getNumberOfNonZeroSuppressedPresamples() << "\n"
          << "Number of ALTRO buffers:                   " << std::dec << getNumberOfAltroBuffers() << "\n"
-         << "Number of pretrigger samples:              " << std::dec << int(getNumberOfPretriggerSamples()) << "\n"
+         << "Number of pretrigger samples:              " << std::dec << getNumberOfPretriggerSamples() << "\n"
          << "Number of samples per channel:             " << std::dec << getNumberOfSamplesPerChannel() << "\n"
          << "Sparse readout:                            " << (isSparseReadout() ? "yes" : "no") << "\n"
-         << "AltroCFG1:                                 0x" << std::hex << mAltroCFG1 << "\n"
-         << "AltroCFG2:                                 0x" << std::hex << mAltroCFG2 << "\n"
+         << "AltroCFG1:                                 0x" << std::hex << mAltroConfig.mWord1 << "\n"
+         << "AltroCFG2:                                 0x" << std::hex << mAltroConfig.mWord2 << "\n"
          << "Sampling time:                             " << std::scientific << timesample << " s\n"
          << "L1 Phase:                                  " << std::scientific << l1phase << " s\n"
          << std::dec << std::fixed;
