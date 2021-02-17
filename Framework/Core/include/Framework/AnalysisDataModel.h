@@ -325,13 +325,15 @@ DECLARE_SOA_EXPRESSION_COLUMN(C1PtTgl, c1PtTgl, float, (aod::trackfwd::rho1PtTgl
 DECLARE_SOA_EXPRESSION_COLUMN(C1Pt21Pt2, c1Pt21Pt2, float, aod::trackfwd::sigma1Pt* aod::trackfwd::sigma1Pt);
 
 // TRACKFWDEXTRA TABLE definition
+DECLARE_SOA_COLUMN(NClusters, nClusters, int8_t);
 DECLARE_SOA_COLUMN(Chi2, chi2, float);
 DECLARE_SOA_COLUMN(PDca, pDca, float);                         // PDca for MUONStandalone tracks
 DECLARE_SOA_COLUMN(RAtAbsorberEnd, rAtAbsorberEnd, float);     // RAtAbsorberEnd for MUONStandalone tracks
-DECLARE_SOA_COLUMN(Chi2MatchMCHMID, chi2matchmchmid, float);   // MCH-MID Match Chi2 for MUONStandalone tracks
-DECLARE_SOA_COLUMN(Chi2MatchMCHMFT, chi2matchmchmft, float);   // MCH-MFT Match Chi2 for GlobalMuonTracks
-DECLARE_SOA_COLUMN(MatchScoreMCHMFT, matchscoremchmft, float); // MCH-MFT ML Matching Score for GlobalMuonTracks
-DECLARE_SOA_COLUMN(MatchingTrackID, MatchingTrackID, int32_t); // ID(s) of matching track(s).
+DECLARE_SOA_COLUMN(Chi2MatchMCHMID, chi2MatchMCHMID, float);   // MCH-MID Match Chi2 for MUONStandalone tracks
+DECLARE_SOA_COLUMN(Chi2MatchMCHMFT, chi2MatchMCHMFT, float);   // MCH-MFT Match Chi2 for GlobalMuonTracks
+DECLARE_SOA_COLUMN(MatchScoreMCHMFT, matchScoreMCHMFT, float); // MCH-MFT Machine Learning Matching Score for GlobalMuonTracks
+DECLARE_SOA_COLUMN(MatchMFTTrackID, matchMFTTrackID, int16_t); // ID of matching MFT track for GlobalMuonTracks
+DECLARE_SOA_COLUMN(MatchMCHTrackID, matchMCHTrackID, int8_t);  // ID of matching MCH track for GlobalMuonTracks
 } // namespace trackfwd
 
 DECLARE_SOA_TABLE_FULL(StoredTracksFwd, "TracksFwd", "AOD", "TRACKFWD:PAR",
