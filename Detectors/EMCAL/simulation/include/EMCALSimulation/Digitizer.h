@@ -60,6 +60,13 @@ class Digitizer : public TObject
   bool isLive(double t) const { return (t - mTriggerTime < mLiveTime); }
   bool isLive() const { return (mEventTime < mLiveTime); }
 
+  // function returns true if the collision occurs 600ns before the readout window is open
+  // Look here for more details https://alice.its.cern.ch/jira/browse/EMCAL-681
+  double preTriggerCollision() const { return (mEventTime > (mLiveTime + mBusyTime - mPreTriggerTime)); }
+
+  // function returns true if the collision occurs 900ns after the readout window is open
+  double afterTriggerCollision() const { return (mEventTime > mAfterTriggerTime); }
+
   bool isEmpty() const { return mEmpty; }
 
   void fillOutputContainer(std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>& labels);
@@ -112,9 +119,11 @@ class Digitizer : public TObject
   std::vector<int> mTimeBinOffset;                       // offset of first time bin
   std::vector<std::vector<double>> mAmplitudeInTimeBins; // amplitude of signal for each time bin
 
-  float mLiveTime = 1500;  // EMCal live time (ns)
-  float mBusyTime = 35000; // EMCal busy time (ns)
-  int mDelay = 7;          // number of (full) time bins corresponding to the signal time delay
+  float mLiveTime = 1500;        // EMCal live time (ns)
+  float mBusyTime = 35000;       // EMCal busy time (ns)
+  float mAfterTriggerTime = 900; // The time (ns) after the readout window is open in which collisions that occurs will be discarded
+  float mPreTriggerTime = 600;   // The time (ns) before the readout window is open in which collisions that occurs before the readout window is open and make hits during the live time
+  int mDelay = 7;                // number of (full) time bins corresponding to the signal time delay
 
   ClassDefOverride(Digitizer, 1);
 };
