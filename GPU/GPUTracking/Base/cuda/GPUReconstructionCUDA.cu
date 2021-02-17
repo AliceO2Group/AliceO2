@@ -170,6 +170,9 @@ void GPUReconstructionCUDABackend::runKernelBackendInternal(krnlSetup& _xyz, con
   } else {
     backendInternal<T, I>::runKernelBackendMacro(_xyz, this, args...);
   }
+  if (mProcessingSettings.checkKernelFailures) {
+    GPUDebug(GetKernelName<T, I>(), _xyz.x.stream);
+  }
 }
 
 template <class T, int I, typename... Args>
