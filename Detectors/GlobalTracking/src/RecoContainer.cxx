@@ -402,12 +402,12 @@ RecoContainer::GlobalIDSet RecoContainer::getSingleDetectorRefs(GTrackID gidx) c
     const auto& parent0 = getTOFMatch<o2d::MatchInfoTOF>(gidx); //ITS/TPC : TOF
     const auto& parent1 = getTPCITSTrack<o2d::TrackTPCITS>(parent0.getEvIdxTrack().getIndex());
     table[GTrackID::ITSTPC] = parent0.getEvIdxTrack().getIndex();
-    table[GTrackID::TOF] = parent0.getEvIdxTOFCl().getIndex();
+    table[GTrackID::TOF] = {unsigned(parent0.getEvIdxTOFCl().getIndex()), GTrackID::TOF};
     table[GTrackID::ITS] = parent1.getRefITS();
     table[GTrackID::TPC] = parent1.getRefTPC();
   } else if (src == GTrackID::TPCTOF) {
     const auto& parent0 = getTPCTOFMatch<o2d::MatchInfoTOF>(gidx); //TPC : TOF
-    table[GTrackID::TOF] = parent0.getEvIdxTOFCl().getIndex();
+    table[GTrackID::TOF] = {unsigned(parent0.getEvIdxTOFCl().getIndex()), GTrackID::TOF};
     table[GTrackID::TPC] = parent0.getEvIdxTrack().getIndex();
   } else if (src == GTrackID::ITSTPC) {
     const auto& parent0 = getTPCITSTrack<o2d::TrackTPCITS>(gidx);
