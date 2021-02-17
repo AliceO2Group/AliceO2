@@ -27,6 +27,8 @@ using DPID = o2::dcs::DataPointIdentifier;
 using DPVAL = o2::dcs::DataPointValue;
 using DPMAP = std::unordered_map<DPID, std::vector<DPVAL>>;
 
+const char* CCDB_DPCONF_NAME = "MCH/DCSConfig";
+
 bool verbose;
 
 void doQueryHVLV(const std::string ccdbUrl, uint64_t timestamp, bool hv, bool lv)
@@ -75,7 +77,7 @@ void doQueryDataPointConfig(const std::string ccdbUrl, uint64_t timestamp)
   api.init(ccdbUrl);
   using DPCONF = std::unordered_map<DPID, std::string>;
   std::map<std::string, std::string> metadata;
-  auto* m = api.retrieveFromTFileAny<DPCONF>("MCH/DCSConfig", metadata, timestamp);
+  auto* m = api.retrieveFromTFileAny<DPCONF>(CCDB_DPCONF_NAME, metadata, timestamp);
   std::cout << "size of dpconf map = " << m->size() << std::endl;
   if (verbose) {
     for (auto& i : *m) {
@@ -98,7 +100,9 @@ void makeCCDBEntryForDCS(const std::string ccdbUrl, uint64_t timestamp)
   o2::ccdb::CcdbApi api;
   api.init(ccdbUrl);
   std::map<std::string, std::string> md;
-  api.storeAsTFileAny(&dpid2DataDesc, "MCH/DCSconfig", md, timestamp);
+  std::cout << "storing config of " << dpid2DataDesc.size() << " MCH data points to " << CCDB_DPCONF_NAME << "\n";
+
+  api.storeAsTFileAny(&dpid2DataDesc, CCDB_DPCONF_NAME, md, timestamp);
 }
 
 bool match(const std::vector<std::string>& queries, const char* pattern)
