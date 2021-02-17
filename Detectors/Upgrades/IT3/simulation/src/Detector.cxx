@@ -624,6 +624,10 @@ void Detector::createMaterials()
   o2::base::Detector::Mixture(32, "ROHACELL$", aRohac, zRohac, dRohac, -4, wRohac);
   o2::base::Detector::Medium(32, "ROHACELL$", 32, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 
+  // ERG Duocel
+  o2::base::Detector::Material(33, "ERGDUOCEL$", 12.0107, 6, 0.06, 999, 999);
+  o2::base::Detector::Medium(33, "ERGDUOCEL$", 33, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+
   // PEEK CF30
   o2::base::Detector::Mixture(19, "PEEKCF30$", aPEEK, zPEEK, dPEEK, -3, wPEEK);
   o2::base::Detector::Medium(19, "PEEKCF30$", 19, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
@@ -1044,7 +1048,7 @@ void Detector::constructDetectorGeometry()
   // Finally create the services
   mServicesGeometry = new V3Services();
 
-  //  createInnerBarrelServices(wrapVols[0]);
+  createInnerBarrelServices(wrapVols[0]);
   //  createMiddlBarrelServices(wrapVols[1]);
   //  createOuterBarrelServices(wrapVols[2]);
   //  createOuterBarrelSupports(vITSV);
@@ -1067,26 +1071,15 @@ void Detector::createInnerBarrelServices(TGeoVolume* motherVolume)
   //
   // Return:
   //
-  // Created:      15 May 2019  Mario Sitta
-  //               (partially based on P.Namwongsa implementation in AliRoot)
-  // Updated:      19 Jun 2019  Mario Sitta  IB Side A added
-  // Updated:      21 Oct 2019  Mario Sitta  CYSS added
+  // Created:      11 Feb 2021  Mario Sitta
+  //               (Version rewritten for ITS3 geometry)
   //
 
-  // Create the End Wheels on Side A
-  TGeoVolume* endWheelsA = mServicesGeometry->createIBEndWheelsSideA();
+  // Create and insert the IB Layer supports (cylinder and foam wedges)
+  TGeoVolume* ibSupports = mServicesGeometry->createInnerBarrelSupports();
 
-  motherVolume->AddNode(endWheelsA, 1, nullptr);
-
-  // Create the End Wheels on Side C
-  TGeoVolume* endWheelsC = mServicesGeometry->createIBEndWheelsSideC();
-
-  motherVolume->AddNode(endWheelsC, 1, nullptr);
-
-  // Create the CYSS Assembly (i.e. the supporting half cylinder and cone)
-  TGeoVolume* cyss = mServicesGeometry->createCYSSAssembly();
-
-  motherVolume->AddNode(cyss, 1, nullptr);
+  motherVolume->AddNode(ibSupports, 1, nullptr);
+  motherVolume->AddNode(ibSupports, 2, new TGeoRotation("", 180, 0, 0));
 }
 
 void Detector::createMiddlBarrelServices(TGeoVolume* motherVolume)

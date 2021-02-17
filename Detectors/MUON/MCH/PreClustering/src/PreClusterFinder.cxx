@@ -178,8 +178,8 @@ void PreClusterFinder::getPreClusters(std::vector<o2::mch::PreCluster>& preClust
         }
 
         // add this precluster
-        uint16_t firstDigit = digits.size();
-        uint16_t nDigits = cluster->lastPad - cluster->firstPad + 1;
+        uint32_t firstDigit = digits.size();
+        uint32_t nDigits = cluster->lastPad - cluster->firstPad + 1;
         preClusters.push_back({firstDigit, nDigits});
 
         // add the digits of this precluster

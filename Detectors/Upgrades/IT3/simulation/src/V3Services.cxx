@@ -61,6 +61,120 @@ V3Services::V3Services()
 
 V3Services::~V3Services() = default;
 
+TGeoVolume* V3Services::createInnerBarrelSupports(const TGeoManager* mgr)
+{
+  //
+  // Creates the ITS3 Inner Barrel support half cylinder and foam wedges
+  //
+  // Input:
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //         a TGeoVolume(Assembly) with the half cylinder and wedges
+  //
+  // Created:      11 Feb 2021  Mario Sitta
+  //
+
+  // For the time being we put all relevant parameters here
+  // May be changed into static const's when definitively set
+  const Double_t sIBSuppCylRint = 40.0 * sMm;
+  const Double_t sIBSuppCylThick = 2.20 * sMm;
+  const Double_t sIBSuppCylYvoid = 0.50 * sMm;
+  const Double_t sIBSuppCylZLen = 331.20 * sMm;
+
+  const Int_t sNFoamWedges = 12;
+  const Double_t sFoamZLen = 10.0 * sMm;
+  const Double_t sFoamEdgeZDist = 5.20 * sMm;
+  const Double_t sFoamBaseWidth = 4.19 * sMm;
+  const Double_t sFoamYTrans = 1.59 * sMm;
+
+  // Local variables
+  TGeoVolume* layerVol;
+  TGeoVolume* foamVol[3];
+  TGeoTube* layerSh;
+  TGeoTubeSeg* foamSh[3];
+
+  Double_t rmin, rmax, zlen, alpha, phi;
+  Double_t xpos, ypos, zpos;
+
+  // The support half cylinder: a TubeSeg
+  phi = (sIBSuppCylYvoid / sIBSuppCylRint) * TMath::RadToDeg();
+  zlen = sIBSuppCylZLen / 2;
+  rmin = sIBSuppCylRint;
+  rmax = rmin + sIBSuppCylThick;
+
+  TGeoTubeSeg* suppCylSh = new TGeoTubeSeg(rmin, rmax, zlen, phi, 180. - phi);
+
+  // The foam wedges: three TubeSeg's
+  phi = (sFoamBaseWidth / sIBSuppCylRint) * TMath::RadToDeg();
+  zlen = sFoamZLen / 2;
+
+  // The inner and outer radii of each foam wedge are the outer and inner
+  // radii of the IB Layers where they are located
+  // (except the last one which extends till the support cylinder)
+  for (Int_t j = 0; j < 3; j++) {
+    layerVol = mgr->GetVolume(Form("%s%d", o2::its3::GeometryTGeo::getITSLayerPattern(), j));
+    if (!layerVol) { // Should really never happen
+      LOG(FATAL) << "While building services: ITSU Layer " << j << " does not exist";
+    }
+    layerSh = (TGeoTube*)layerVol->GetShape();
+    rmin = layerSh->GetRmax();
+
+    if (j == 2) {
+      rmax = sIBSuppCylRint;
+    } else {
+      layerVol = mgr->GetVolume(Form("%s%d", o2::its3::GeometryTGeo::getITSLayerPattern(), j + 1));
+      if (!layerVol) { // Should really never happen
+        LOG(FATAL) << "While building services: ITSU Layer " << j + 1 << " does not exist";
+      }
+      layerSh = (TGeoTube*)layerVol->GetShape();
+      rmax = layerSh->GetRmin();
+    }
+
+    foamSh[j] = new TGeoTubeSeg(rmin, rmax, zlen, 0, phi);
+  }
+
+  // We have all shapes: now create the real volumes
+  TGeoMedium* medCarbon = mgr->GetMedium("IT3_F6151B05M$");
+  TGeoMedium* medFoam = mgr->GetMedium("ERGDUOCEL$");
+
+  TGeoVolume* suppCylVol = new TGeoVolume("IBSupportCylinder", suppCylSh, medCarbon);
+  suppCylVol->SetFillColor(kBlue);
+  suppCylVol->SetLineColor(kBlue);
+
+  for (Int_t j = 0; j < 3; j++) {
+    foamVol[j] = new TGeoVolume(Form("IBSupportFoam%d", j), foamSh[j], medFoam);
+    foamVol[j]->SetFillColor(kGreen);
+    foamVol[j]->SetLineColor(kGreen);
+  }
+
+  // Finally put everything in the container volume
+  TGeoVolumeAssembly* ibSupport = new TGeoVolumeAssembly("IBCylinderSupport");
+
+  // The support cylinder is aligned to the end of the IB Layers
+  // (layerSh points to the last Layer inside the support cylinder)
+  zpos = -layerSh->GetDz() + suppCylSh->GetDz();
+  ibSupport->AddNode(suppCylVol, 1, new TGeoTranslation(0, 0, zpos));
+
+  alpha = ((sIBSuppCylYvoid + sFoamYTrans) / sIBSuppCylRint) * TMath::RadToDeg();
+
+  Double_t emptySpace = 2 * layerSh->GetDz() - sNFoamWedges * sFoamZLen - 2 * sFoamEdgeZDist;
+  emptySpace /= (sNFoamWedges - 1);
+
+  for (Int_t j = 0; j < sNFoamWedges; j++) {
+    zpos = -layerSh->GetDz() + sFoamEdgeZDist + j * (sFoamZLen + emptySpace) + 0.5 * sFoamZLen;
+    for (Int_t i = 0; i < 3; i++) {
+      ibSupport->AddNode(foamVol[i], j + 1, new TGeoCombiTrans(0, 0, zpos, new TGeoRotation("", alpha, 0, 0)));
+      ibSupport->AddNode(foamVol[i], sNFoamWedges + j + 1, new TGeoCombiTrans(0, 0, zpos, new TGeoRotation("", 180. - alpha - phi, 0, 0)));
+      ibSupport->AddNode(foamVol[i], 2 * sNFoamWedges + j + 1, new TGeoCombiTrans(0, 0, zpos, new TGeoRotation("", 90. - phi / 2, 0, 0)));
+    }
+  }
+  //
+  return ibSupport;
+}
+
 TGeoVolume* V3Services::createIBEndWheelsSideA(const TGeoManager* mgr)
 {
   //

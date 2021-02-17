@@ -31,6 +31,7 @@ enum struct InputChannelState {
 /// updated by Control or by the by the incoming flow of messages.
 struct InputChannelInfo {
   InputChannelState state = InputChannelState::Running;
+  uint32_t hasPendingEvents = 0;
 };
 
 } // namespace o2::framework

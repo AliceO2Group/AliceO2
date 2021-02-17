@@ -102,7 +102,7 @@ int main(int argc, const char** argv)
   rawwriter.setFileFor(granularity);
   rawwriter.setGeometry(o2::emcal::Geometry::GetInstanceFromRunNumber(300000));
   rawwriter.setNumberOfADCSamples(15); // @TODO Needs to come from CCDB
-  rawwriter.setPedestal(0);            // @TODO Needs to come from CCDB
+  rawwriter.setPedestal(3);            // @TODO Needs to come from CCDB
   rawwriter.init();
 
   // Loop over all entries in the tree, where each tree entry corresponds to a time frame

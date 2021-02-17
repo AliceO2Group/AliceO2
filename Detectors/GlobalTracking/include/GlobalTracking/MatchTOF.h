@@ -260,8 +260,8 @@ class MatchTOF
 
   float mXRef = Geo::RMIN; ///< reference radius to propage tracks for matching
 
-  int mCurrTracksTreeEntry = -1;      ///< current tracks tree entry loaded to memory
-  int mCurrTOFClustersTreeEntry = -1; ///< current TOF clusters tree entry loaded to memory
+  int mCurrTracksTreeEntry = 0;      ///< current tracks tree entry loaded to memory
+  int mCurrTOFClustersTreeEntry = 0; ///< current TOF clusters tree entry loaded to memory
 
   bool mMCTruthON = false; ///< flag availability of MC truth
 

@@ -26,38 +26,52 @@ namespace o2
 namespace dataformats
 {
 
-class GlobalTrackID : public AbstractRef<25, 4, 3>
+class GlobalTrackID : public AbstractRef<25, 5, 2>
 {
  public:
   enum Source : uint8_t { // provenance of the
-    ITS,
+    ITS,                  // standalone detectors
     TPC,
-    TRD, // standalone tracks
-    ITSTPC,
+    TRD,
+    TOF,
+    PHS,
+    CPV,
+    EMC,
+    HMP,
+    MFT,
+    MCH,
+    MID,
+    ZDC,
+    FT0,
+    FV0,
+    FDD,
+    ITSTPC, // 2-detector tracks
     TPCTOF,
-    TPCTRD, // 2-detector tracks
-    ITSTPCTRD,
+    TPCTRD,
+    ITSTPCTRD, // 3-detector tracks
     ITSTPCTOF,
-    TPCTRDTOF,    // 3-detector tracks
+    TPCTRDTOF,
     ITSTPCTRDTOF, // full barrel track
+    //
     NSources
   };
   static constexpr std::array<std::string_view, NSources> SourceNames = {
-    "ITS", "TPC", "TRD",                   // standalone tracks
-    "ITSTPC", "TPCTOF", "TPCTRD",          // 2-detector tracks
-    "ITSTPCTRD", "ITSTPCTOF", "TPCTRDTOF", // 3-detector tracks
-    "ITSTPCTRDTOF"                         // full barrel track
+    "ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", // standalone tracks
+    "ITSTPC", "TPCTOF", "TPCTRD",                                                                            // 2-detector tracks
+    "ITSTPCTRD", "ITSTPCTOF", "TPCTRDTOF",                                                                   // 3-detector tracks
+    "ITSTPCTRDTOF"                                                                                           // full barrel track
+    //
   };
 
-  using AbstractRef<25, 4, 3>::AbstractRef;
+  using AbstractRef<25, 5, 2>::AbstractRef;
 
-  static constexpr std::string_view getSourceName(int i) { return SourceNames[i]; }
+  static auto getSourceName(int i) { return SourceNames[i]; }
   void print() const;
   std::string asString() const;
-
+  auto getSourceName() const { return getSourceName(getSource()); }
   operator int() const { return int(getIndex()); }
 
-  ClassDefNV(GlobalTrackID, 1);
+  ClassDefNV(GlobalTrackID, 2);
 };
 
 std::ostream& operator<<(std::ostream& os, const o2::dataformats::GlobalTrackID& v);

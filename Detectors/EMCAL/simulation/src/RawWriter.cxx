@@ -74,7 +74,7 @@ void RawWriter::digitsToRaw(gsl::span<o2::emcal::Digit> digitsbranch, gsl::span<
 
 bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
 {
-  for (auto srucont : mSRUdata) {
+  for (auto& srucont : mSRUdata) {
     srucont.mChannels.clear();
   }
   std::vector<o2::emcal::Digit*>* bunchDigits;
@@ -183,6 +183,10 @@ std::vector<AltroBunch> RawWriter::findBunches(const std::vector<o2::emcal::Digi
   for (itime = channelDigits.size() - 1; itime >= 0; itime--) {
     auto dig = channelDigits[itime];
     if (!dig) {
+      if (currentBunch) {
+        currentBunch->mStarttime = itime + 1;
+        currentBunch = nullptr;
+      }
       continue;
     }
     int adc = dig->getAmplitudeADC();

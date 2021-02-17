@@ -53,7 +53,8 @@ class TrackITS : public o2::track::TrackParCov
 
   // Other functions
   float getChi2() const { return mChi2; }
-  int getNumberOfClusters() const { return mClusRef.getEntries(); }
+  int getNClusters() const { return mClusRef.getEntries(); }
+  int getNumberOfClusters() const { return getNClusters(); }
   int getFirstClusterEntry() const { return mClusRef.getFirstEntry(); }
   int getClusterEntry(int i) const { return getFirstClusterEntry() + i; }
   void shiftFirstClusterEntry(int bias)
