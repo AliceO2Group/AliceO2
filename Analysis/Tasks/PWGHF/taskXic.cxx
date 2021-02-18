@@ -59,7 +59,7 @@ struct TaskXic {
   Filter filterSelectCandidates = (aod::hf_selcandidate_xic::isSelXicToPKPi >= d_selectionFlagXic || aod::hf_selcandidate_xic::isSelXicToPiKP >= d_selectionFlagXic);
 
   //void process(aod::HfCandProng3 const& candidates)
-  void process(soa::Filtered<soa::Join<aod::HfCandProng3, aod::HFSelXicpKpiCandidate>> const& candidates)
+  void process(soa::Filtered<soa::Join<aod::HfCandProng3, aod::HFSelXicToPKPiCandidate>> const& candidates)
   {
     for (auto& candidate : candidates) {
       if (!(candidate.hfflag() & 1 << XicToPKPi)) {
@@ -70,10 +70,10 @@ struct TaskXic {
         continue;
       }
       if (candidate.isSelXicToPKPi() >= d_selectionFlagXic) {
-        registry.fill(HIST("hmass"), InvMassXicpKpi(candidate));
+        registry.fill(HIST("hmass"), InvMassXicToPKPi(candidate));
       }
       if (candidate.isSelXicToPiKP() >= d_selectionFlagXic) {
-        registry.fill(HIST("hmass"), InvMassXicpiKp(candidate));
+        registry.fill(HIST("hmass"), InvMassXicToPiKP(candidate));
       }
       registry.fill(HIST("hptcand"), candidate.pt());
       registry.fill(HIST("hptprong0"), candidate.ptProng0());
@@ -117,7 +117,7 @@ struct TaskXicMC {
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_xic::isSelXicToPKPi >= d_selectionFlagXic || aod::hf_selcandidate_xic::isSelXicToPiKP >= d_selectionFlagXic);
 
-  void process(soa::Filtered<soa::Join<aod::HfCandProng3, aod::HFSelXicpKpiCandidate, aod::HfCandProng3MCRec>> const& candidates,
+  void process(soa::Filtered<soa::Join<aod::HfCandProng3, aod::HFSelXicToPKPiCandidate, aod::HfCandProng3MCRec>> const& candidates,
                soa::Join<aod::McParticles, aod::HfCandProng3MCGen> const& particlesMC, aod::BigTracksMC const& tracks)
   {
     // MC rec.

@@ -8,9 +8,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file HFXicCandidateSelector.cxx
+/// \file HFXicToPKPiCandidateSelector.cxx
 /// \brief Xic->pKpi selection task.
-/// \note Inspired from HFXicCandidateSelector.cxx
+/// \note Inspired from HFXicToPKPiCandidateSelector.cxx
 ///
 /// \author Mattia Faggin <mattia.faggin@cern.ch>, University and INFN PADOVA
 
@@ -39,9 +39,9 @@ constexpr double cuts[npTBins][nCutVars] = {{0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0
                                             {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.}}; /* 24<pt<36 */
 
 /// Struct for applying Xic selection cuts
-struct HFXicCandidateSelector {
+struct HFXicToPKPiCandidateSelector {
 
-  Produces<aod::HFSelXicpKpiCandidate> hfSelXicCandidate;
+  Produces<aod::HFSelXicToPKPiCandidate> hfSelXicToPKPiCandidate;
 
   Configurable<bool> d_FilterPID{"d_FilterPID", true, "Bool to use or not the PID at filtering level"};
 
@@ -144,11 +144,11 @@ struct HFXicCandidateSelector {
     }
 
     if (trackProton.globalIndex() == hfCandProng3.index0Id()) {
-      if (TMath::Abs(InvMassXicpKpi(hfCandProng3) - RecoDecay::getMassPDG(4232)) > cuts[pTBin][0]) {
+      if (TMath::Abs(InvMassXicToPKPi(hfCandProng3) - RecoDecay::getMassPDG(4232)) > cuts[pTBin][0]) {
         return false;
       }
     } else {
-      if (TMath::Abs(InvMassXicpiKp(hfCandProng3) - RecoDecay::getMassPDG(4232)) > cuts[pTBin][0]) {
+      if (TMath::Abs(InvMassXicToPiKP(hfCandProng3) - RecoDecay::getMassPDG(4232)) > cuts[pTBin][0]) {
         return false;
       }
     }
@@ -324,17 +324,17 @@ struct HFXicCandidateSelector {
 
   void process(aod::HfCandProng3 const& hfCandProng3s, aod::BigTracksPID const& tracks)
   {
-    int statusXicpKpi, statusXicpiKp; // final selection flag : 0-rejected  1-accepted
-    bool topolXicpKpi, topolXicpiKp;
-    int pidXicPKPi, pidXicPiKP, kaonNeg, prot1, prot2, pion1, pion2; // proton, kaonMinus, pionPlus;
+    int statusXicToPKPi, statusXicToPiKP; // final selection flag : 0-rejected  1-accepted
+    bool topolXicToPKPi, topolXicToPiKP;
+    int pidXicToPKPi, pidXicToPiKP, kaonNeg, prot1, prot2, pion1, pion2; // proton, kaonMinus, pionPlus;
 
     for (auto& hfCandProng3 : hfCandProng3s) { //looping over 3 prong candidates
 
-      statusXicpKpi = 0;
-      statusXicpiKp = 0;
+      statusXicToPKPi = 0;
+      statusXicToPiKP = 0;
 
       if (!(hfCandProng3.hfflag() & 1 << XicToPKPi)) {
-        hfSelXicCandidate(statusXicpKpi, statusXicpiKp);
+        hfSelXicToPKPiCandidate(statusXicToPKPi, statusXicToPiKP);
         continue;
       }
 
@@ -342,10 +342,10 @@ struct HFXicCandidateSelector {
       auto trackNeg1 = hfCandProng3.index1_as<aod::BigTracksPID>(); //negative daughter (positive for the antiparticles)
       auto trackPos2 = hfCandProng3.index2_as<aod::BigTracksPID>(); //positive daughter (negative for the antiparticles)
 
-      topolXicpKpi = true;
-      topolXicpiKp = true;
-      pidXicPKPi = -1;
-      pidXicPiKP = -1;
+      topolXicToPKPi = true;
+      topolXicToPiKP = true;
+      pidXicToPKPi = -1;
+      pidXicToPiKP = -1;
       kaonNeg = -1;
       prot1 = -1;
       prot2 = -1;
@@ -357,7 +357,7 @@ struct HFXicCandidateSelector {
 
       // daughter track validity selection
       if (!daughterSelection(trackPos1) || !daughterSelection(trackNeg1) || !daughterSelection(trackPos2)) {
-        hfSelXicCandidate(statusXicpKpi, statusXicpiKp);
+        hfSelXicToPKPiCandidate(statusXicToPKPi, statusXicToPiKP);
         continue;
       }
 
@@ -365,17 +365,17 @@ struct HFXicCandidateSelector {
 
       //conjugate independent topological selection
       if (!selectionTopol(hfCandProng3)) {
-        hfSelXicCandidate(statusXicpKpi, statusXicpiKp);
+        hfSelXicToPKPiCandidate(statusXicToPKPi, statusXicToPiKP);
         continue;
       }
 
       //conjugate dependent topplogical selection for Xic
 
-      topolXicpKpi = selectionTopolConjugate(hfCandProng3, trackPos1, trackNeg1, trackPos2);
-      topolXicpiKp = selectionTopolConjugate(hfCandProng3, trackPos2, trackNeg1, trackPos1);
+      topolXicToPKPi = selectionTopolConjugate(hfCandProng3, trackPos1, trackNeg1, trackPos2);
+      topolXicToPiKP = selectionTopolConjugate(hfCandProng3, trackPos2, trackNeg1, trackPos1);
 
-      if (!topolXicpKpi && !topolXicpiKp) {
-        hfSelXicCandidate(statusXicpKpi, statusXicpiKp);
+      if (!topolXicToPKPi && !topolXicToPiKP) {
+        hfSelXicToPKPiCandidate(statusXicToPKPi, statusXicToPiKP);
         continue;
       }
 
@@ -413,29 +413,29 @@ struct HFXicCandidateSelector {
       if (!d_FilterPID) {
         /// PID not applied at filtering level
         /// set the PID flags to 1
-        pidXicPKPi = 1;
-        pidXicPiKP = 1;
+        pidXicToPKPi = 1;
+        pidXicToPiKP = 1;
       } else {
         /// PID applied at filtering level
         /// Accept only candidates recognised either at least as pKpi or as piKp
         if (std::abs(kaonNeg) == 1) {
           if (std::abs(prot1) == 1 && std::abs(pion2) == 1) {
-            pidXicPKPi = 1;
+            pidXicToPKPi = 1;
           }
           if (std::abs(pion1) == 1 && std::abs(prot2) == 1) {
-            pidXicPiKP = 1;
+            pidXicToPiKP = 1;
           }
         }
       }
 
-      if ((pidXicPKPi == 1) && topolXicpKpi) {
-        statusXicpKpi = 1; //identified as Xic->pKpi
+      if ((pidXicToPKPi == 1) && topolXicToPKPi) {
+        statusXicToPKPi = 1; //identified as Xic->pKpi
       }
-      if ((pidXicPiKP == 1) && topolXicpiKp) {
-        statusXicpiKp = 1; //identified as Xic->piKp
+      if ((pidXicToPiKP == 1) && topolXicToPiKP) {
+        statusXicToPiKP = 1; //identified as Xic->piKp
       }
 
-      hfSelXicCandidate(statusXicpKpi, statusXicpiKp);
+      hfSelXicToPKPiCandidate(statusXicToPKPi, statusXicToPiKP);
     }
   }
 };
@@ -443,5 +443,5 @@ struct HFXicCandidateSelector {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HFXicCandidateSelector>("hf-xic-candidate-selector")};
+    adaptAnalysisTask<HFXicToPKPiCandidateSelector>("hf-xic-topkpi-candidate-selector")};
 }

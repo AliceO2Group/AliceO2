@@ -55,7 +55,7 @@ DECLARE_SOA_COLUMN(JpsiToEEFlag, jpsiToEEFlag, uint8_t);
 DECLARE_SOA_COLUMN(DPlusPiKPiFlag, dPlusPiKPiFlag, uint8_t);
 DECLARE_SOA_COLUMN(LcPKPiFlag, lcPKPiFlag, uint8_t);
 DECLARE_SOA_COLUMN(DsKKPiFlag, dsKKPiFlag, uint8_t);
-DECLARE_SOA_COLUMN(XicPKPiFlag, xicPKPiFlag, uint8_t);
+DECLARE_SOA_COLUMN(XicToPKPiFlag, xicToPKPiFlag, uint8_t);
 } // namespace hf_track_index
 
 DECLARE_SOA_TABLE(HfTrackIndexProng2, "AOD", "HFTRACKIDXP2",
@@ -77,7 +77,7 @@ DECLARE_SOA_TABLE(HfCutStatusProng3, "AOD", "HFCUTSTATUSP3",
                   hf_track_index::DPlusPiKPiFlag,
                   hf_track_index::LcPKPiFlag,
                   hf_track_index::DsKKPiFlag,
-                  hf_track_index::XicPKPiFlag);
+                  hf_track_index::XicToPKPiFlag);
 
 // general decay properties
 namespace hf_cand
@@ -408,13 +408,13 @@ auto EXic(const T& candidate)
 }
 
 template <typename T>
-auto InvMassXicpKpi(const T& candidate)
+auto InvMassXicToPKPi(const T& candidate)
 {
   return InvMassLcpKpi(candidate);
 }
 
 template <typename T>
-auto InvMassXicpiKp(const T& candidate)
+auto InvMassXicToPiKP(const T& candidate)
 {
   return InvMassLcpiKp(candidate);
 }

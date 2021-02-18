@@ -63,8 +63,8 @@ o2_add_dpl_workflow(hf-jpsi-toee-candidate-selector
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(hf-xic-candidate-selector
-                    SOURCES HFXicCandidateSelector.cxx
+o2_add_dpl_workflow(hf-xic-topkpi-candidate-selector
+                    SOURCES HFXicToPKPiCandidateSelector.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
