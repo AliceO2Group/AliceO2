@@ -159,7 +159,7 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
     }
 
     // Create RCU trailer
-    auto trailerwords = createRCUTrailer(payload.size() / 4, 16, 16, 100., 0.);
+    auto trailerwords = createRCUTrailer(payload.size() / 4, 16, 16, 100., trg.getBCData().toLong());
     for (auto word : trailerwords) {
       payload.emplace_back(word);
     }
@@ -286,14 +286,13 @@ ChannelHeader RawWriter::createChannelHeader(int hardwareAddress, int payloadSiz
   return header;
 }
 
-std::vector<char> RawWriter::createRCUTrailer(int payloadsize, int feca, int fecb, double timesample, double l1phase)
+std::vector<char> RawWriter::createRCUTrailer(int payloadsize, int feca, int fecb, double timesample, uint64_t triggertime)
 {
   RCUTrailer trailer;
   trailer.setActiveFECsA(feca);
   trailer.setActiveFECsB(fecb);
   trailer.setPayloadSize(payloadsize);
-  trailer.setL1Phase(l1phase);
-  trailer.setTimeSample(timesample);
+  trailer.setTimeSamplePhaseNS(triggertime, timesample);
   auto trailerwords = trailer.encode();
   std::vector<char> encoded(trailerwords.size() * sizeof(uint32_t));
   memcpy(encoded.data(), trailerwords.data(), trailerwords.size() * sizeof(uint32_t));
