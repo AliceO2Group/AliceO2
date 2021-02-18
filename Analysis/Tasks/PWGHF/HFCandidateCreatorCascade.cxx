@@ -138,8 +138,6 @@ struct HFCandidateCreatorCascade {
                        v0.dcapostopv(),
                        v0.dcanegtopv());
 
-      //--> Missing: DCA between V0 daughters; radius V0; cosPA --> can these be dynamic? to be checked
-
       // fill histograms
       if (b_dovalplots) {
         // calculate invariant masses

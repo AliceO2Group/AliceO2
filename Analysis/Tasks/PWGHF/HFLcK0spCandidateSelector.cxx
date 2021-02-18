@@ -27,15 +27,15 @@ using namespace o2::aod::hf_cand_casc;
 static const int npTBins = 8;
 static const int nCutVars = 8;
 //temporary until 2D array in configurable is solved - then move to json
-//mK0s(MeV)     mLambdas(MeV)    mGammas(MeV)    ptp     ptK0sdau     pTLc     d0p     d0K0sdau
-constexpr double cuts[npTBins][nCutVars] = {{8.0, 5., 100, 0.5, 0.3, 0.6, 0.05, 999999},   // 1 < pt < 2
-                                            {8.0, 5., 100, 0.5, 0.4, 1.3, 0.05, 999999},   // 2 < pt < 3
-                                            {9.0, 5., 100, 0.6, 0.4, 1.3, 0.05, 999999},   // 3 < pt < 4
-                                            {11.0, 5., 100, 0.6, 0.4, 1.4, 0.05, 999999},  // 4 < pt < 5
-                                            {13.0, 5., 100, 0.6, 0.4, 1.4, 0.06, 999999},  // 5 < pt < 6
-                                            {13.0, 5., 100, 0.9, 0.4, 1.6, 0.09, 999999},  // 6 < pt < 8
-                                            {16.0, 5., 100, 0.9, 0.4, 1.7, 0.10, 999999},  // 8 < pt < 12
-                                            {19.0, 5., 100, 1.0, 0.4, 1.9, 0.20, 999999}}; // 12 < pt < 24
+//mK0s(GeV)     mLambdas(GeV)    mGammas(GeV)    ptp     ptK0sdau     pTLc     d0p     d0K0
+constexpr double cuts[npTBins][nCutVars] = {{0.008, 0.005, 0.1, 0.5, 0.3, 0.6, 0.05, 999999},  // 1 < pt < 2
+                                            {0.008, 0.005, 0.1, 0.5, 0.4, 1.3, 0.05, 999999},  // 2 < pt < 3
+                                            {0.009, 0.005, 0.1, 0.6, 0.4, 1.3, 0.05, 999999},  // 3 < pt < 4
+                                            {0.011, 0.005, 0.1, 0.6, 0.4, 1.4, 0.05, 999999},  // 4 < pt < 5
+                                            {0.013, 0.005, 0.1, 0.6, 0.4, 1.4, 0.06, 999999},  // 5 < pt < 6
+                                            {0.013, 0.005, 0.1, 0.9, 0.4, 1.6, 0.09, 999999},  // 6 < pt < 8
+                                            {0.016, 0.005, 0.1, 0.9, 0.4, 1.7, 0.10, 999999},  // 8 < pt < 12
+                                            {0.019, 0.005, 0.1, 1.0, 0.4, 1.9, 0.20, 999999}}; // 12 < pt < 24
 /// Struct for applying D0 selection cuts
 
 struct HFLcK0spCandidateSelector {
@@ -104,39 +104,55 @@ struct HFLcK0spCandidateSelector {
     }
 
     if (candpT < d_pTCandMin || candpT >= d_pTCandMax) {
+      LOG(DEBUG) << "cand pt (first check) cut failed: from cascade --> " << candpT << ", cut --> " << d_pTCandMax;
       return false; //check that the candidate pT is within the analysis range
     }
 
     if (std::abs(hfCandCascade.mK0Short() - RecoDecay::getMassPDG(kK0Short)) > cuts[pTBin][0]) {
+      LOG(DEBUG) << "massK0s cut failed: from v0 in cascade, K0s --> " << hfCandCascade.mK0Short() << ", in PDG K0s --> " << RecoDecay::getMassPDG(kK0Short) << ", cut --> " << cuts[pTBin][0];
       return false; // mass of the K0s
     }
 
     if ((std::abs(hfCandCascade.mLambda() - RecoDecay::getMassPDG(kLambda0)) < cuts[pTBin][1]) || (std::abs(hfCandCascade.mAntiLambda() - RecoDecay::getMassPDG(kLambda0)) < cuts[pTBin][1])) {
+      LOG(DEBUG) << "mass L cut failed: from v0 in cascade, Lambda --> " << hfCandCascade.mLambda() << ", AntiLambda --> " << hfCandCascade.mAntiLambda() << ", in PDG, Lambda --> " << RecoDecay::getMassPDG(kLambda0) << ", cut --> " << cuts[pTBin][1];
       return false; // mass of the Lambda
     }
 
     if (std::abs(InvMassGamma(hfCandCascade) - RecoDecay::getMassPDG(kGamma)) < cuts[pTBin][2]) {
+      LOG(DEBUG) << "mass gamma cut failed: from v0 in cascade, gamma --> " << InvMassGamma(hfCandCascade) << ", cut --> " << cuts[pTBin][2];
       return false; // mass of the Gamma
     }
 
-    if (hfCandCascade.ptProng0() > cuts[pTBin][3]) {
+    if (hfCandCascade.ptProng0() < cuts[pTBin][3]) {
+      LOG(DEBUG) << "v0 pt cut failed, from cascade --> " << hfCandCascade.ptProng0() << ", cut --> " << cuts[pTBin][3];
       return false; // pt of the K0
     }
 
-    if (hfCandCascade.ptProng1() > cuts[pTBin][4]) {
+    if (hfCandCascade.ptProng1() < cuts[pTBin][4]) {
+      LOG(DEBUG) << "bach pt cut failed, from cascade --> " << hfCandCascade.ptProng1() << " , cut --> " << cuts[pTBin][4];
       return false; // pt of the p
     }
 
-    if (hfCandCascade.pt() > cuts[pTBin][5]) {
+    if (hfCandCascade.pt() < cuts[pTBin][5]) {
+      LOG(DEBUG) << "cand pt cut failed, from cascade --> " << hfCandCascade.pt() << ", cut --> " << cuts[pTBin][5];
       return false; // pt of the Lc
     }
 
     if (std::abs(hfCandCascade.impactParameter1()) > cuts[pTBin][6]) {
+      LOG(DEBUG) << "d0 bach cut failed, in cascade --> " << hfCandCascade.impactParameter1() << ", cut --> " << cuts[pTBin][6];
       return false; // d0 of the bachelor
     }
 
+    /*
     if ((std::abs(hfCandCascade.dcapostopv()) > cuts[pTBin][7]) || (std::abs(hfCandCascade.dcanegtopv()) > cuts[pTBin][7])) {
+      LOG(DEBUG) << "v0 daugh cut failed, positive v0 daugh --> " << hfCandCascade.dcapostopv() << ", negative v0 daugh --> " << hfCandCascade.dcanegtopv() << " , cut --> " << cuts[pTBin][7];
       return false; // d0 of the K0s daughters
+    }
+    */
+
+    if (std::abs(hfCandCascade.impactParameter0()) > cuts[pTBin][6]) {
+      LOG(DEBUG) << "d0 v0 cut failed, in cascade --> " << hfCandCascade.impactParameter0() << ", cut --> " << cuts[pTBin][7];
+      return false; // d0 of the v0
     }
 
     return true;
@@ -286,6 +302,7 @@ struct HFLcK0spCandidateSelector {
       pidProton = -1;
 
       // daughter track validity selection
+      LOG(DEBUG) << "daughterSelection(bach) = " << daughterSelection(bach);
       if (!daughterSelection(bach)) {
         hfSelLcK0spCandidate(statusLc);
         continue;
@@ -293,13 +310,15 @@ struct HFLcK0spCandidateSelector {
 
       //implement filter bit 4 cut - should be done before this task at the track selection level
       //need to add special cuts (additional cuts on decay length and d0 norm)
-
+      LOG(DEBUG) << "selectionTopol(hfCandCasc) = " << selectionTopol(hfCandCasc);
       if (!selectionTopol(hfCandCasc)) {
         hfSelLcK0spCandidate(statusLc);
         continue;
       }
 
       pidProton = selectionPID(bach);
+
+      LOG(DEBUG) << "pidProton = " << pidProton;
 
       if (pidProton == 1) {
         statusLc = 1;

@@ -122,3 +122,8 @@ o2_add_dpl_workflow(hf-mc-validation
                     SOURCES HFMCValidation.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(hf-task-lck0sp
+                    SOURCES taskLcK0sp.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
+                    COMPONENT_NAME Analysis)

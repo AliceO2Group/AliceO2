@@ -429,7 +429,7 @@ DECLARE_SOA_TABLE(HfCandCascBase, "AOD", "HFCANDCASCBASE",
                   hf_cand::E2<hf_cand_casc::Px, hf_cand_casc::Py, hf_cand_casc::Pz>,
                   // dynamic columns from V0
                   v0data::V0Radius<v0data::X, v0data::Y>,
-                  v0data::V0CosPA<v0data::X, v0data::Y, v0data::Z, hf_cand::PxProng0, hf_cand::PyProng0, hf_cand::PzProng0>,
+                  v0data::V0CosPA<v0data::X, v0data::Y, v0data::Z, hf_cand::PxProng0, hf_cand::PyProng0, hf_cand::PzProng0, collision::PosX, collision::PosY, collision::PosZ>,
                   v0data::MLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
                   v0data::MAntiLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
                   v0data::MK0Short<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>);
