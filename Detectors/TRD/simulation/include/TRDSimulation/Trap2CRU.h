@@ -23,6 +23,7 @@
 #include "DataFormatsTRD/LinkRecord.h"
 #include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/Tracklet64.h"
+#include "TRDBase/Digit.h"
 //#include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RawFileWriter.h"
 
@@ -33,63 +34,84 @@ namespace trd
 
 class Trap2CRU
 {
-  static constexpr int NumberOfCRU = 36;
-  static constexpr int NumberOfHalfCRU = 72;
-  static constexpr int NumberOfFLP = 12;
-  static constexpr int CRUperFLP = 3;
-  static constexpr int WordSizeInBytes = 256;  // word size in bits, everything is done in 256 bit blocks.
-  static constexpr int WordSize = 8;           // 8 standard 32bit words.
-  static constexpr int NLinksPerHalfCRU = 15;  // number of fibers per each half cru
-  static constexpr int TRDLinkID = 15;         // hard coded link id. TODO give reason?
-  static constexpr uint32_t PaddWord = 0xeeee; // pad word to fill 256bit blocks or entire block for no data case.
-  static constexpr bool DebugDataWriting = false; //dump put very first vector of data to see if the thing going into the rawwriter is correct.
-                                                  //TODO come back and change the mapping of 1077 channels to a lut addnd probably configurable.
-                                                  //
  public:
   Trap2CRU() = default;
-  Trap2CRU(const std::string& outputDir, const std::string& inputFilename);
-  void readTrapData(const std::string& otuputDir, const std::string& inputFilename, int superPageSizeInB);
-  void convertTrapData(o2::trd::TriggerRecord const& TrigRecord);
+  Trap2CRU(const std::string& outputDir, const std::string& inputDigitsFilename, const std::string& inputTrackletsFilename);
+  //Trap2CRU(const std::string& outputDir, const std::string& inputFilename, const std::string& inputDigitsFilename, const std::string& inputTrackletsFilename);
+  void readTrapData();
+  void convertTrapData(o2::trd::TriggerRecord const& trackletTrigRecord, o2::trd::TriggerRecord const& digitTriggerRecord);
   // default for now will be file per half cru as per the files Guido did for us.
-  // TODO come back and give users a choice.
-  //       void setFilePerLink(){mfileGranularity = mgkFilesPerLink;};
-  //       bool getFilePerLink(){return (mfileGranularity==mgkFilesPerLink);};
-  //       void setFilePerHalfCRU(){mfileGranularity = mgkFilesPerHalfCRU;};
-  //       bool getFilePerHalfCRU(){return (mfileGranularity==mgkFilesPerHalfCRU);};  //
+  void setFilePer(std::string fileper) { mFilePer = fileper; };
+  std::string getFilePer() { return mFilePer; };
+  void setOutputDir(std::string outdir) { mOutputDir = outdir; };
+  std::string getOutputDir() { return mOutputDir; };
   int getVerbosity() { return mVerbosity; }
   void setVerbosity(int verbosity) { mVerbosity = verbosity; }
-  void buildCRUPayLoad();
-  int sortByORI();
+  void sortDataToLinks();
   o2::raw::RawFileWriter& getWriter() { return mWriter; }
-  uint32_t buildCRUHeader(HalfCRUHeader& header, uint32_t bc, uint32_t halfcru, int startlinkrecord);
-  void linkSizePadding(uint32_t linksize, uint32_t& crudatasize, uint32_t& padding);
+  uint32_t buildHalfCRUHeader(HalfCRUHeader& header, const uint32_t bc, const uint32_t halfcru); // build the half cru header holding the lengths of all links amongst other things.
+  void linkSizePadding(uint32_t linksize, uint32_t& crudatasize, uint32_t& padding);             // pad the link data stream to align with 256 bit words.
+  void openInputFiles();
+  void setTrackletHCHeader(bool tracklethcheader) { mUseTrackletHCHeader = tracklethcheader; }
+  bool isTrackletOnLink(int link, int trackletpos); // is the current tracklet on the the current link
+  bool isDigitOnLink(int link, int digitpos);       // is the current digit on the current link
+  int buildDigitRawData(const int digitindex, const std::array<int64_t, 21>& localParseDigits, const uint32_t bc);
+  int buildTrackletRawData(const int trackletindex, const int linkid); // from the current position in the tracklet vector, build the outgoing data for the current mcm the tracklet is on.
+  int writeDigitEndMarker();                                           // write the digit end marker 0x0 0x0
+  int writeTrackletEndMarker();                                        // write the tracklet end maker 0x10001000 0x10001000
+  int writeHCHeader(uint64_t bc, uint32_t linkid);                     // write the HalfChamberHeader into the stream, after the tracklet endmarker and before the digits.
+
+  bool digitindexcompare(const o2::trd::Digit& A, const o2::trd::Digit& B);
+  //boohhl digitindexcompare(const unsigned int A, const unsigned int B);
+  o2::trd::Digit& getDigitAt(const int i) { return mDigits[mDigitsIndex[i]]; };
 
  private:
   int mfileGranularity; /// per link or per half cru for each file
-  uint32_t mLinkID;
-  uint16_t mCruID;
-  uint64_t mFeeID;
-  uint32_t mEndPointID;
-  std::string mInputFilename;
-  std::string mOutputFilename;
+  uint32_t mLinkID;     // always 15 for TRD
+  uint16_t mCruID;      // built into the FeeID
+  uint64_t mFeeID;      // front end id defining the cru sm:8 bits, blank 3 bits, side:1,blank 3 bits, end point:1
+  uint32_t mEndPointID; // end point on the cru in question, there are 2 pci end points per cru
+  std::string mFilePer; // how to split up the raw data files, sm:per supermodule, halfcru: per half cru, cru: per cru, all: singular file.
+  //  std::string mInputFileName;
+  std::string mOutputFileName;
   int mVerbosity = 0;
-  HalfCRUHeader mHalfCRUHeader;
-  TrackletMCMHeader mTrackletMCMHeader;
-  TrackletMCMData mTrackletMCMData;
-
+  std::string mOutputDir;
+  uint32_t mSuperPageSizeInB;
+  //HalfCRUHeader mHalfCRUHeader;
+  //TrackletMCMHeader mTrackletMCMHeader;
+  // TrackletMCMData mTrackletMCMData;
+  bool mUseTrackletHCHeader{false};
   std::vector<char> mRawData; // store for building data event for a single half cru
   uint32_t mRawDataPos = 0;
-  TFile* mTrapRawFile;
-  TTree* mTrapRawTree; // incoming data tree
+  char* mRawDataPtr{nullptr};
   // locations to store the incoming data branches
-  std::vector<o2::trd::LinkRecord> mLinkRecords, *mLinkRecordsPtr = &mLinkRecords;
-  std::vector<o2::trd::TriggerRecord> mTriggerRecords, *mTriggerRecordsPtr = &mTriggerRecords;
-  std::vector<uint32_t> mTrapRawData, *mTrapRawDataPtr = &mTrapRawData;
+
+  // incoming digit information
+  std::string mInputDigitsFileName;
+  TFile* mDigitsFile;
+  TTree* mDigitsTree;
+  std::vector<Digit> mDigits, *mDigitsPtr = &mDigits;
+  std::vector<uint32_t> mDigitsIndex;
+  std::vector<o2::trd::TriggerRecord> mDigitTriggerRecords;
+  std::vector<o2::trd::TriggerRecord>* mDigitTriggerRecordsPtr = &mDigitTriggerRecords;
+
+  //incoming tracklet information
+  std::string mInputTrackletsFileName;
+  TFile* mTrackletsFile;
+  TTree* mTrackletsTree;
+  std::vector<Tracklet64> mTracklets;
+  std::vector<Tracklet64>* mTrackletsPtr = &mTracklets;
+  std::vector<uint32_t> mTrackletsIndex;
+  std::vector<o2::trd::TriggerRecord> mTrackletTriggerRecords;
+  std::vector<o2::trd::TriggerRecord>* mTrackletTriggerRecordsPtr = &mTrackletTriggerRecords;
+
+  uint64_t mCurrentTracklet{0}; //the tracklet we are currently busy adding
+  uint64_t mCurrentDigit{0};    //the digit we are currently busy adding
 
   const o2::raw::HBFUtils& mSampler = o2::raw::HBFUtils::Instance();
   o2::raw::RawFileWriter mWriter{"TRD"};
 
-  ClassDefNV(Trap2CRU, 1);
+  ClassDefNV(Trap2CRU, 3);
 };
 
 } // end namespace trd
