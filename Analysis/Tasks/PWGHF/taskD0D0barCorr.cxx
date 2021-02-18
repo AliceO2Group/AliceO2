@@ -85,7 +85,7 @@ double EvaluatePhiByVertex(double x_vtx1, double x_vtx2, double y_vtx1, double y
 }
 
 /// D0 analysis task - for real data and data-like analysis (i.e. reco-level w/o matching request via MC truth)
-struct TaskD0 {
+struct TaskD0D0barCorr {
 
   double maxEtaCut = 5., PtTrh_forMaxEtaCut = 10.; //for hDDbar_vs_EtaCut, gives eta increment of 0.1 and pt thr increments of 0.5
 
@@ -195,7 +195,7 @@ struct TaskD0 {
 };
 
 /// D0 analysis task - for MC reco-level analysis (candidates matched to true signal only)
-struct TaskD0MCrec {
+struct TaskD0D0barCorr_MCrec {
 
   double maxEtaCut = 5., PtTrh_forMaxEtaCut = 10.; //for hDDbar_vs_EtaCut, gives eta increment of 0.1 and pt thr increments of 0.5
 
@@ -297,7 +297,7 @@ struct TaskD0MCrec {
 };
 
 /// D0 analysis task - for MC gen-level analysis (no filter/selection, only true signal)
-struct TaskD0MCgen {
+struct TaskD0D0barCorr_MCgen {
 
   double maxEtaCut = 5., PtTrh_forMaxEtaCut = 10.; //for hDDbar_vs_EtaCut, gives eta increment of 0.1 and pt thr increments of 0.5
 
@@ -380,7 +380,7 @@ struct TaskD0MCgen {
 };
 
 /// D0 analysis task - LIKE SIGN - for real data and data-like analysis (i.e. reco-level w/o matching request via MC truth)
-struct TaskD0_LS {
+struct TaskD0D0barCorr_LS {
 
   HistogramRegistry registry{
     "registry",
@@ -477,7 +477,7 @@ struct TaskD0_LS {
 };
 
 /// D0 analysis task - LIKE SIGN - for MC reco analysis (data-like but matching to true DO and D0bar)
-struct TaskD0MCrec_LS {
+struct TaskD0D0barCorr_MCrec_LS {
 
   HistogramRegistry registry{
     "registry",
@@ -570,7 +570,7 @@ struct TaskD0MCrec_LS {
 };
 
 /// D0 analysis task - for MC gen-level analysis, like sign particles
-struct TaskD0MCgen_LS {
+struct TaskD0D0barCorr_MCgen_LS {
 
   HistogramRegistry registry{
     "registry",
@@ -641,7 +641,7 @@ struct TaskD0MCgen_LS {
 };
 
 /// c-cbar correlation task analysis task - for MC gen-level analysis
-struct TaskCCbarMCgen {
+struct TaskCCbarCorr_MCgen {
 
   HistogramRegistry registry{
     "registry",
@@ -720,7 +720,7 @@ struct TaskCCbarMCgen {
 };
 
 /// checks phi resolution for standard definition and sec-vtx based definition
-struct TaskD0_CheckPhiResolution {
+struct TaskD0D0barCorr_CheckPhiResolution {
 
   HistogramRegistry registry{
     "registry",
@@ -807,17 +807,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
     adaptAnalysisTask<CreateBig2Prong>("add-collision-id"),
-    adaptAnalysisTask<TaskD0>("hf-task-d0d0bar"),
-    adaptAnalysisTask<TaskD0_LS>("hf-task-d0d0bar-ls")};
+    adaptAnalysisTask<TaskD0D0barCorr>("hf-task-d0d0bar-corr"),
+    adaptAnalysisTask<TaskD0D0barCorr_LS>("hf-task-d0d0bar-corr-ls")};
   //MC-based tasks
   const bool doMC = cfgc.options().get<bool>("doMC");
   if (doMC) {
-    workflow.push_back(adaptAnalysisTask<TaskD0MCrec>("hf-task-d0d0bar-mc-rec"));
-    workflow.push_back(adaptAnalysisTask<TaskD0MCgen>("hf-task-d0d0bar-mc-gen"));
-    workflow.push_back(adaptAnalysisTask<TaskD0MCrec_LS>("hf-task-d0d0bar-mc-rec-ls"));
-    workflow.push_back(adaptAnalysisTask<TaskD0MCgen_LS>("hf-task-d0d0bar-mc-gen-ls"));
-    workflow.push_back(adaptAnalysisTask<TaskCCbarMCgen>("hf-task-ccbar-mc-gen"));
-    workflow.push_back(adaptAnalysisTask<TaskD0_CheckPhiResolution>("hf-task-d0d0bar-crosscheck-phi"));
+    workflow.push_back(adaptAnalysisTask<TaskD0D0barCorr_MCrec>("hf-task-d0d0bar-corr-mc-rec"));
+    workflow.push_back(adaptAnalysisTask<TaskD0D0barCorr_MCgen>("hf-task-d0d0bar-corr-mc-gen"));
+    workflow.push_back(adaptAnalysisTask<TaskD0D0barCorr_MCrec_LS>("hf-task-d0d0bar-corr-mc-rec-ls"));
+    workflow.push_back(adaptAnalysisTask<TaskD0D0barCorr_MCgen_LS>("hf-task-d0d0bar-corr-mc-gen-ls"));
+    workflow.push_back(adaptAnalysisTask<TaskCCbarCorr_MCgen>("hf-task-ccbar-corr-mc-gen"));
+    workflow.push_back(adaptAnalysisTask<TaskD0D0barCorr_CheckPhiResolution>("hf-task-d0d0bar-corr-crosscheck-phi"));
   }
   return workflow;
 }
