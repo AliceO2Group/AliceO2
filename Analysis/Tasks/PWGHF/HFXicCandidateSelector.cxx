@@ -418,7 +418,7 @@ struct HFXicCandidateSelector {
       } else {
         /// PID applied at filtering level
         /// Accept only candidates recognised either at least as pKpi or as piKp
-        if (kaonNeg == 1) {
+        if (std::abs(kaonNeg) == 1) {
           if (std::abs(prot1) == 1 && std::abs(pion2) == 1) {
             pidXicPKPi = 1;
           }
