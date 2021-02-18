@@ -55,114 +55,68 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
   // Add hits with ampl deposition in same pad and same time
   // Add ampl corrections
   // Apply time smearing
+  // //Despite sorting in Detector::EndEvent(), hits still can be unsorted due to splitting of processing different bunches of primary
+  for (int i = NCHANNELS; i--;) {
+    mArrayD[i].reset();
+  }
 
-  std::vector<Digit>::const_iterator dBg = digitsBg.cbegin();
-  std::vector<Hit>::const_iterator hBg = hits->cbegin();
+  if (digitsBg.size() == 0) { // no digits provided: try simulate noise
+    for (int i = NCHANNELS; i--;) {
+      float energy = simulateNoise();
+      energy = uncalibrate(energy, i);
+      if (energy > o2::cpv::CPVSimParams::Instance().mZSthreshold) {
+        mArrayD[i].setAmplitude(energy);
+        mArrayD[i].setAbsId(i);
+      }
+    }
+  } else {                       //if digits exist, no noise should be added
+    for (auto& dBg : digitsBg) { //digits are sorted and unique
+      mArrayD[dBg.getAbsId()] = dBg;
+    }
+  }
 
-  bool addNoise = !(digitsBg.size()); //If digits list not empty, noise already there
-
-  int currentId = 0; //first digit
-
-  while (dBg != digitsBg.cend() && hBg != hits->cend()) {
-    if (dBg->getAbsId() < hBg->GetDetectorID()) { // copy digit
-      //Digits already contain noise, no need to add it in this branch
-      //Digits have correct time, no need to add event time
-      digitsOut.emplace_back(dBg->getAbsId(), dBg->getAmplitude(), dBg->getLabel());
-      currentId = dBg->getAbsId();
-      dBg++;
+  //add Hits
+  for (auto& h : *hits) {
+    int i = h.GetDetectorID();
+    if (mArrayD[i].getAmplitude() > 0) {
+      mArrayD[i].setAmplitude(mArrayD[i].getAmplitude() + uncalibrate(h.GetEnergyLoss(), i));
     } else {
-      if (addNoise) {
-        addNoisyChannels(currentId, hBg->GetDetectorID(), digitsOut);
-      }
-      currentId = hBg->GetDetectorID();
-      int labelIndex = -1;
-      if (dBg->getAbsId() == hBg->GetDetectorID()) {
-        labelIndex = dBg->getLabel();
-      }
+      mArrayD[i].setAmplitude(uncalibrate(h.GetEnergyLoss(), i));
+      mArrayD[i].setAbsId(i);
+    }
+    if (mArrayD[i].getAmplitude() > o2::cpv::CPVSimParams::Instance().mZSthreshold) {
+      int labelIndex = mArrayD[i].getLabel();
       if (labelIndex == -1) { //no digit or noisy
         labelIndex = labels.getIndexedSize();
+        o2::MCCompLabel label(h.GetTrackID(), collId, source, true);
+        labels.addElement(labelIndex, label);
+        mArrayD[i].setLabel(labelIndex);
+      } else { //check if lable already exist
+        gsl::span<MCCompLabel> sp = labels.getLabels(labelIndex);
+        bool found = false;
+        for (MCCompLabel& te : sp) {
+          if (te.getTrackID() == h.GetTrackID() && te.getEventID() == collId && te.getSourceID() == source) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          o2::MCCompLabel label(h.GetTrackID(), collId, source, true);
+          //Highly inefficient management of Labels: commenting  line below reeduces WHOLE digitization time by factor ~30
+          labels.addElementRandomAccess(labelIndex, label);
+        }
       }
-      Digit digit(*hBg, labelIndex);
-      // Add Electroinc noise, apply non-linearity, digitize, de-calibrate, time resolution
-      float energy = hBg->GetEnergyLoss();
-      // Simulate electronic noise
-      short absId = hBg->GetDetectorID();
-      energy += simulateNoise();
-
-      energy = uncalibrate(energy, absId);
-
-      // Merge with existing digit if any
-      if (dBg->getAbsId() == hBg->GetDetectorID()) {
-        digit += *dBg;
-        dBg++;
-      }
-
-      hBg++;
-      if (energy <= o2::cpv::CPVSimParams::Instance().mZSthreshold) {
-        continue;
-      }
-
-      //Add primary info: create new MCLabels entry
-      o2::MCCompLabel label(hBg->GetTrackID(), collId, source, true);
-      labels.addElementRandomAccess(labelIndex, label);
-
-      digitsOut.push_back(digit);
     }
   }
 
-  //Fill remainder
-  while (dBg != digitsBg.cend()) {
-    digitsOut.push_back(*dBg);
-    dBg++;
-  }
-
-  while (hBg != hits->cend()) {
-    if (addNoise) {
-      addNoisyChannels(currentId, hBg->GetDetectorID(), digitsOut);
+  for (int i = 0; i < NCHANNELS; i++) {
+    if (mArrayD[i].getAmplitude() > o2::cpv::CPVSimParams::Instance().mZSthreshold) {
+      digitsOut.push_back(mArrayD[i]);
     }
-    currentId = hBg->GetDetectorID();
-    int labelIndex = labels.getIndexedSize();
-
-    Digit digit(*hBg, labelIndex);
-    // Add Electroinc noise
-    float energy = hBg->GetEnergyLoss();
-    // Simulate electronic noise
-    short absId = hBg->GetDetectorID();
-    energy += simulateNoise();
-    energy = uncalibrate(energy, absId);
-    hBg++;
-    if (energy <= o2::cpv::CPVSimParams::Instance().mZSthreshold) {
-      continue;
-    }
-
-    //Add primary info: create new MCLabels entry
-    o2::MCCompLabel label(hBg->GetTrackID(), collId, source, true);
-    labels.addElement(labelIndex, label);
-
-    digitsOut.push_back(digit);
-  }
-
-  //Add noisy channels to the end of CPV
-  if (addNoise) {
-    addNoisyChannels(currentId, 128 * 60 * 3, digitsOut);
   }
 }
 
 float Digitizer::simulateNoise() { return gRandom->Gaus(0., o2::cpv::CPVSimParams::Instance().mNoise); }
-
-//_______________________________________________________________________
-void Digitizer::addNoisyChannels(int start, int end, std::vector<Digit>& digitsOut)
-{
-
-  // Simulate noise
-  for (int absId = start + 1; absId < end; absId++) {
-    float energy = simulateNoise();
-    energy = uncalibrate(energy, absId);
-    if (energy > o2::cpv::CPVSimParams::Instance().mZSthreshold) {
-      digitsOut.emplace_back(absId, energy, -1); // current AbsId, energy, random time, no primary
-    }
-  }
-}
 
 //_______________________________________________________________________
 float Digitizer::uncalibrate(const float e, const int absId)
@@ -170,7 +124,7 @@ float Digitizer::uncalibrate(const float e, const int absId)
   // Decalibrate CPV digit, i.e. transform from amplitude to ADC counts a factor read from CDB
   float calib = mCalibParams->getGain(absId);
   if (calib > 0) {
-    return floor(e / calib);
+    return e / calib;
   } else {
     return 0; // TODO apply de-calibration from OCDB
   }

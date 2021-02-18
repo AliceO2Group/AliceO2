@@ -81,7 +81,7 @@ class RawReaderMemory
 
   /// \brief access to the full raw payload (single or multiple DMA pages)
   /// \return Raw Payload of the data until the stop bit is received.
-  const std::vector<uint32_t>& getPayload() const { return mRawPayload; }
+  const std::vector<char>& getPayload() const { return mRawPayload; }
 
   /// \brief Return size of the payload
   /// \return size of the payload
@@ -106,7 +106,7 @@ class RawReaderMemory
  private:
   gsl::span<const char> mRawMemoryBuffer; ///< Memory block with multiple DMA pages
   o2::header::RDHAny mRawHeader;          ///< Raw header
-  std::vector<uint32_t> mRawPayload;      ///< Raw payload (can consist of multiple pages)
+  std::vector<char> mRawPayload;          ///< Raw payload (can consist of multiple pages)
   RCUTrailer mCurrentTrailer;             ///< RCU trailer
   uint64_t mTrailerPayloadWords = 0;      ///< Payload words in common trailer
   int mCurrentPosition = 0;               ///< Current page in file

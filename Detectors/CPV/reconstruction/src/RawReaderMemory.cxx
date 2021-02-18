@@ -84,7 +84,7 @@ RawErrorType_t RawReaderMemory::next()
     // Check if the data continues
   } while (!isDataTerminated);
   try {
-    mCurrentTrailer.constructFromPayloadWords(mRawPayload);
+    mCurrentTrailer.constructFromPayloadWords(gsl::span<const uint32_t>(reinterpret_cast<uint32_t*>(mRawPayload.data()), mRawPayload.size() / sizeof(uint32_t)));
   } catch (...) {
     return RawErrorType_t::kHEADER_DECODING;
   }
@@ -118,25 +118,14 @@ RawErrorType_t RawReaderMemory::nextPage()
     return RawErrorType_t::kPAYLOAD_DECODING;
   }
 
-  auto tmp = reinterpret_cast<const uint32_t*>(mRawMemoryBuffer.data());
-  int start = (mCurrentPosition + RDHDecoder::getHeaderSize(mRawHeader)) / sizeof(uint32_t);
-  int end = start + (RDHDecoder::getMemorySize(mRawHeader) - RDHDecoder::getHeaderSize(mRawHeader)) / sizeof(uint32_t);
+  auto tmp = mRawMemoryBuffer.data();
+  int start = (mCurrentPosition + RDHDecoder::getHeaderSize(mRawHeader));
+  int end = start + (RDHDecoder::getMemorySize(mRawHeader) - RDHDecoder::getHeaderSize(mRawHeader));
   for (auto iword = start; iword < end; iword++) {
     mRawPayload.push_back(tmp[iword]);
   }
 
   mCurrentPosition += RDHDecoder::getOffsetToNext(mRawHeader); /// Assume fixed 8 kB page size
-                                                               /*
-      mCurrentTrailer.setPayloadSize(mCurrentTrailer.getPayloadSize() + trailer.getPayloadSize());
-      tralersize = trailer.getTrailerSize();
-    }
 
-    gsl::span<const uint32_t> payloadWithoutTrailer(mRawBuffer.getDataWords().data(), mRawBuffer.getDataWords().size() - tralersize);
-
-    mRawPayload.appendPayloadWords(payloadWithoutTrailer);
-    mRawPayload.increasePageCount();
-  }
-  mCurrentPosition += RDHDecoder::getOffsetToNext(mRawHeader); /// Assume fixed 8 kB page size
-*/
   return RawErrorType_t::kOK;
 }

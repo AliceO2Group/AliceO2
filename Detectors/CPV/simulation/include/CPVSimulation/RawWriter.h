@@ -33,10 +33,10 @@ namespace o2
 namespace cpv
 {
 
-static constexpr short kNMod = 3;      ///< Total number of modules
-static constexpr short kFirstMod = 2;  ///< First available module
+static constexpr short kNcc = 24;      ///< Total number of column controllers
 static constexpr short kNPAD = 48;     ///< Nuber of pads per dilogic
-static constexpr short kNDilogic = 10; ///< Number of dilogic per row
+static constexpr short kNDilogic = 4;  ///< Number of dilogics
+static constexpr short kNGasiplex = 5; ///< Number of dilogic per row
 static constexpr short kNRow = 48;     ///< number of rows 16*3 mod
 
 struct padCharge {
@@ -74,13 +74,13 @@ class RawWriter
                       std::vector<char>& trailer, std::vector<char>& header) const;
 
  private:
-  std::vector<padCharge> mPadCharge[kNRow][kNDilogic]; ///< list of signals per event
-  FileFor_t mFileFor = FileFor_t::kFullDet;            ///< Granularity of the output files
-  std::string mOutputLocation = "./";                  ///< Rawfile name
-  std::unique_ptr<CalibParams> mCalibParams;           ///< CPV calibration
-  std::vector<uint32_t> mPayload;                      ///< Payload to be written
-  gsl::span<o2::cpv::Digit> mDigits;                   ///< Digits input vector - must be in digitized format including the time response
-  std::unique_ptr<o2::raw::RawFileWriter> mRawWriter;  ///< Raw writer
+  std::vector<padCharge> mPadCharge[kNcc][kNDilogic][kNGasiplex]; ///< list of signals per event
+  FileFor_t mFileFor = FileFor_t::kFullDet;                       ///< Granularity of the output files
+  std::string mOutputLocation = "./";                             ///< Rawfile name
+  std::unique_ptr<CalibParams> mCalibParams;                      ///< CPV calibration
+  std::vector<char> mPayload;                                     ///< Payload to be written
+  gsl::span<o2::cpv::Digit> mDigits;                              ///< Digits input vector - must be in digitized format including the time response
+  std::unique_ptr<o2::raw::RawFileWriter> mRawWriter;             ///< Raw writer
 
   ClassDefNV(RawWriter, 1);
 };

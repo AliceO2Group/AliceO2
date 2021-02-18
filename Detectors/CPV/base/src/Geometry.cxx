@@ -101,52 +101,52 @@ bool Geometry::relToAbsNumbering(const short* relId, unsigned short& absId)
 
   return true;
 }
-void Geometry::hwaddressToAbsId(short /*ddl*/, short row, short dilog, short hw, unsigned short& absId)
+void Geometry::hwaddressToAbsId(short ccId, short dil, short gas, short pad, unsigned short& absId)
 {
-  short mod = row / 16;
-  row = row % 16;
-  short relid[3] = {short(mod + 2), short(8 * row + hw % 8), short(6 * dilog + hw / 8)};
+
+  short pZ = mPadToZ[pad];
+  short pPhi = mPadToPhi[pad];
+  short relid[3] = {short(ccId / 8 + 2), short((ccId % 8) * 16 + (dil / 2) * 8 + 7 - pPhi), short((dil % 2) * 30 + gas * 6 + pZ)};
 
   relToAbsNumbering(relid, absId);
 }
 
-void Geometry::absIdToHWaddress(unsigned short absId, short& mod, short& row, short& dilogic, short& hw)
+void Geometry::absIdToHWaddress(unsigned short absId, short& ccId, short& dil, short& gas, short& pad)
 {
   // Convert absId to hw address
-  // Arguments: w32,mod,row,dilogic,address where to write the results
-  // return row in range 0...47, packing rows from all modules in common numeration
+  // Arguments: ccId:  0 -- 7 - mod 2;  8...15 mod 3; 16...23 mod 4
+  //dilogic: 0..3, gas=0..5, pad:0..47
 
   short relid[3];
   absToRelNumbering(absId, relid);
 
-  mod = relid[0];                         // DDL# 2..4
-  row = relid[1] / 8;                     // row# 0..16
-  dilogic = relid[2] / 6;                 // Dilogic# 0..10
-  hw = relid[1] % 8 + 8 * (relid[2] % 6); // Address 0..47
+  ccId = (relid[0] - 2) * 8 + relid[1] / 16;
+  dil = 2 * ((relid[1] % 16) / 8) + relid[2] / 30; // Dilogic# 0..3
+  gas = (relid[2] % 30) / 6;                       // gasiplex# 0..4
+  pad = mPadMap[relid[2] % 6][7 - relid[1] % 8];   // pad 0..47
 
-  if (hw < 0 || hw > kNPAD) {
-    LOG(ERROR) << "Wrong hw address: hw=" << hw << " > kNPAD=" << kNPAD;
-    hw = 0;
-    dilogic = 0;
-    row = 0;
-    mod = 0;
+  if (pad < 0 || pad > kNPAD) {
+    LOG(ERROR) << "Wrong pad address: pad=" << pad << " > kNPAD=" << kNPAD;
+    pad = 0;
+    dil = 0;
+    gas = 0;
+    ccId = 0;
     return;
   }
-  if (dilogic < 0 || dilogic > kNDilogic) {
-    LOG(ERROR) << "Wrong dilogic address: dilogic=" << dilogic << " > kNDilogic=" << kNDilogic;
-    hw = 0;
-    dilogic = 0;
-    row = 0;
-    mod = 0;
+  if (dil < 0 || dil >= kNDilogic) {
+    LOG(ERROR) << "Wrong dil address: dil=" << dil << " > kNDilogic=" << kNDilogic;
+    pad = 0;
+    dil = 0;
+    gas = 0;
+    ccId = 0;
     return;
   }
-  if (row < 0 || row > kNRow) {
-    LOG(ERROR) << "Wrong row address: row=" << row << " > kNRow=" << kNRow;
-    hw = 0;
-    dilogic = 0;
-    row = 0;
-    mod = 0;
+  if (gas < 0 || gas >= kNGas) {
+    LOG(ERROR) << "Wrong gasiplex address: gas=" << gas << " > kNGas=" << kNGas;
+    pad = 0;
+    dil = 0;
+    gas = 0;
+    ccId = 0;
     return;
   }
-  row += (mod - 2) * 16;
 }

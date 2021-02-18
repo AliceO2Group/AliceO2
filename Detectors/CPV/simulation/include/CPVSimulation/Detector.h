@@ -68,13 +68,13 @@ class Detector : public o2::base::DetImpl<Detector>
   ///
   /// Initializing detector
   ///
-  void InitializeO2Detector() override;
+  void InitializeO2Detector() final;
 
   ///
   /// Processing hit creation in the CPV crystalls
   ///
   /// \param[in] v Current sensitive volume
-  Bool_t ProcessHits(FairVolume* v = nullptr) override;
+  Bool_t ProcessHits(FairVolume* v = nullptr) final;
 
   ///
   /// Add CPV hit
@@ -109,16 +109,16 @@ class Detector : public o2::base::DetImpl<Detector>
   /// Reset
   /// Clean Hits collection
   ///
-  void Reset() override;
+  void Reset() final;
 
   /// Sort final hist
-  void FinishEvent() override;
+  void FinishEvent() final;
 
   ///
   /// Steps to be carried out at the end of the event
   /// For CPV cleaning the hit collection and the lookup table
   ///
-  void EndOfEvent() override;
+  void EndOfEvent() final;
 
   ///
   /// Specifies CPV modules as alignable volumes
@@ -146,7 +146,7 @@ class Detector : public o2::base::DetImpl<Detector>
  private:
   /// copy constructor (used in MT)
   Detector(const Detector& rhs);
-  Detector& operator=(const Detector&);
+  Detector& operator=(const Detector& rhs);
 
   /// Define the sensitive volumes of the geometry
   void defineSensitiveVolumes();
