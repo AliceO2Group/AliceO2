@@ -44,9 +44,9 @@ namespace o2::aod
 {
 namespace hf_selcandidate_xic
 {
-DECLARE_SOA_COLUMN(IsSelXicpKpi, isSelXicpKpi, int);
-DECLARE_SOA_COLUMN(IsSelXicpiKp, isSelXicpiKp, int);
+DECLARE_SOA_COLUMN(IsSelXicToPKPi, isSelXicToPKPi, int);
+DECLARE_SOA_COLUMN(IsSelXicToPiKP, isSelXicToPiKP, int);
 } // namespace hf_selcandidate_xic
-DECLARE_SOA_TABLE(HFSelXicpKpiCandidate, "AOD", "HFSELXICCAND", hf_selcandidate_xic::IsSelXicpKpi, hf_selcandidate_xic::IsSelXicpiKp);
+DECLARE_SOA_TABLE(HFSelXicpKpiCandidate, "AOD", "HFSELXICCAND", hf_selcandidate_xic::IsSelXicToPKPi, hf_selcandidate_xic::IsSelXicToPiKP);
 } // namespace o2::aod
 #endif // O2_ANALYSIS_HFCANDIDATESELECTIONTABLES_H_

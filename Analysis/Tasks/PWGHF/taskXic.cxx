@@ -56,7 +56,7 @@ struct TaskXic {
   Configurable<int> d_selectionFlagXic{"d_selectionFlagXic", 1, "Selection Flag for Xic"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
 
-  Filter filterSelectCandidates = (aod::hf_selcandidate_xic::isSelXicpKpi >= d_selectionFlagXic || aod::hf_selcandidate_xic::isSelXicpiKp >= d_selectionFlagXic);
+  Filter filterSelectCandidates = (aod::hf_selcandidate_xic::isSelXicToPKPi >= d_selectionFlagXic || aod::hf_selcandidate_xic::isSelXicToPiKP >= d_selectionFlagXic);
 
   //void process(aod::HfCandProng3 const& candidates)
   void process(soa::Filtered<soa::Join<aod::HfCandProng3, aod::HFSelXicpKpiCandidate>> const& candidates)
@@ -69,10 +69,10 @@ struct TaskXic {
         //Printf("Candidate: Y rejection: %g", YXic(candidate));
         continue;
       }
-      if (candidate.isSelXicpKpi() >= d_selectionFlagXic) {
+      if (candidate.isSelXicToPKPi() >= d_selectionFlagXic) {
         registry.fill(HIST("hmass"), InvMassXicpKpi(candidate));
       }
-      if (candidate.isSelXicpiKp() >= d_selectionFlagXic) {
+      if (candidate.isSelXicToPiKP() >= d_selectionFlagXic) {
         registry.fill(HIST("hmass"), InvMassXicpiKp(candidate));
       }
       registry.fill(HIST("hptcand"), candidate.pt());
@@ -86,8 +86,8 @@ struct TaskXic {
       registry.fill(HIST("hCt"), CtXic(candidate));
       registry.fill(HIST("hCPA"), candidate.cpa());
       registry.fill(HIST("hEta"), candidate.eta());
-      registry.fill(HIST("hselectionstatus"), candidate.isSelXicpKpi());
-      registry.fill(HIST("hselectionstatus"), candidate.isSelXicpiKp());
+      registry.fill(HIST("hselectionstatus"), candidate.isSelXicToPKPi());
+      registry.fill(HIST("hselectionstatus"), candidate.isSelXicToPiKP());
       registry.fill(HIST("hImpParErr"), candidate.errorImpactParameter0());
       registry.fill(HIST("hImpParErr"), candidate.errorImpactParameter1());
       registry.fill(HIST("hImpParErr"), candidate.errorImpactParameter2());
@@ -115,7 +115,7 @@ struct TaskXicMC {
   Configurable<int> d_selectionFlagXicbar{"d_selectionFlagXicbar", 1, "Selection Flag for Xicbar"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
 
-  Filter filterSelectCandidates = (aod::hf_selcandidate_xic::isSelXicpKpi >= d_selectionFlagXic || aod::hf_selcandidate_xic::isSelXicpiKp >= d_selectionFlagXic);
+  Filter filterSelectCandidates = (aod::hf_selcandidate_xic::isSelXicToPKPi >= d_selectionFlagXic || aod::hf_selcandidate_xic::isSelXicToPiKP >= d_selectionFlagXic);
 
   void process(soa::Filtered<soa::Join<aod::HfCandProng3, aod::HFSelXicpKpiCandidate, aod::HfCandProng3MCRec>> const& candidates,
                soa::Join<aod::McParticles, aod::HfCandProng3MCGen> const& particlesMC, aod::BigTracksMC const& tracks)
