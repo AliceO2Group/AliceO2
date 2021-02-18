@@ -875,7 +875,6 @@ void TreeToTable::fill(TTree* tree)
     columnIterators.push_back(std::move(colit));
   }
   tree->StopCacheLearningPhase();
-  
   auto numEntries = treeReader.GetEntries(true);
   if (numEntries > 0) {
     for (auto&& column : columnIterators) {
