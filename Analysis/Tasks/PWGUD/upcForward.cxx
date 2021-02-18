@@ -63,7 +63,6 @@ struct UPCForward {
     "hSelectionCounter",
     ";#it{Selection},..;", 30, 0., 30.)};
 
-
   void process(aod::BC const& bc, aod::Muons const& tracksMuon)
 
   {
@@ -95,7 +94,6 @@ struct UPCForward {
 
       for (auto& muon : tracksMuon) {
 
-
         hCharge->Fill(muon.charge());
 
         muontracknumber++;
@@ -103,15 +101,12 @@ struct UPCForward {
         if (muon.charge() > 0) {
           p1.SetXYZM(muon.px(), muon.py(), muon.pz(), mmuon);
           ispositive = kTRUE;
-
         }
 
         if (muon.charge() < 0) {
           p2.SetXYZM(muon.px(), muon.py(), muon.pz(), mmuon);
           isnegative = kTRUE;
-
         }
-
       }
       if (muontracknumber != 2) {
         return;
@@ -134,7 +129,6 @@ struct UPCForward {
       hPt->Fill(p.Pt());
       hRap->Fill(p.Rapidity());
       hMass->Fill(p.M());
-
 
     } // end of cmup trigger
   }   //end of process
