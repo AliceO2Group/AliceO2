@@ -36,13 +36,13 @@ inline int numberOfBitsSet(uint32_t x)
 
 // recursive creation of bitmask
 template <typename T>
-constexpr int bit2Mask(T v)
+constexpr uint32_t bit2Mask(T v)
 {
   return 0x1 << v;
 }
 
 template <typename T, typename... Args>
-constexpr int bit2Mask(T first, Args... args)
+constexpr uint32_t bit2Mask(T first, Args... args)
 {
   return (0x1 << first) | bit2Mask(args...);
 }
