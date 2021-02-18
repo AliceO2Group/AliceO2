@@ -48,10 +48,9 @@ class AbstractRef
 
   AbstractRef() = default;
 
-  AbstractRef(Idx_t idx) { setIndex(idx); }
-
   AbstractRef(Idx_t idx, Src_t src) { set(idx, src); }
 
+  AbstractRef(const AbstractRef& src) = default;
   //
   Idx_t getIndex() const { return static_cast<Idx_t>(mRef & IdxMask); }
   void setIndex(Idx_t idx) { mRef = (mRef & (BaseMask & ~IdxMask)) | (IdxMask & idx); }

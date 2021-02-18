@@ -107,7 +107,7 @@ void VertexTrackMatcher::process(const gsl::span<const PVertex>& vertices,
   memset(idTPCITS.data(), 0, sizeof(int) * idTPCITS.size());
   memset(idTPC.data(), 0, sizeof(int) * idTPC.size());
   memset(flgITS.data(), 0, sizeof(int) * flgITS.size());
-  std::array<std::vector<int>*, GIndex::NSources> vptr;
+  std::array<std::vector<int>*, GIndex::NSources> vptr{};
   vptr[GIndex::ITSTPC] = &idTPCITS;
   vptr[GIndex::ITS] = &flgITS;
   vptr[GIndex::TPC] = &idTPC;

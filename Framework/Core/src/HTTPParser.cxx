@@ -89,8 +89,7 @@ void encode_websocket_frames(std::vector<uv_buf_t>& outputs, char const* src, si
 
 void decode_websocket(char* start, size_t size, WebSocketHandler& handler)
 {
-  // Handle the case in whiche the header was cut in half in the
-  // last invokation.
+  // Handle the case in whiche the header is cut
   if (handler.pendingHeaderSize) {
     assert(handler.pendingHeader);
     size_t pendingFullSize = handler.pendingHeaderSize + size;
@@ -111,13 +110,16 @@ void decode_websocket(char* start, size_t size, WebSocketHandler& handler)
   char* cur = start + handler.remainingSize;
   if (handler.remainingSize) {
     assert(handler.pendingBuffer);
-    memcpy(handler.pendingBuffer + handler.pendingSize, start, handler.remainingSize);
-    size_t pendingProcessingSize = handler.pendingSize + handler.remainingSize;
-    handler.remainingSize = 0;
-    // One recursion should be enough.
-    decode_websocket(handler.pendingBuffer, pendingProcessingSize, handler);
-    delete[] handler.pendingBuffer;
-    handler.pendingBuffer = nullptr;
+    auto newChunkSize = std::min(handler.remainingSize, size);
+    memcpy(handler.pendingBuffer + handler.pendingSize, start, newChunkSize);
+    handler.pendingSize += newChunkSize;
+    handler.remainingSize -= newChunkSize;
+    if (handler.remainingSize == 0) {
+      // One recursion should be enough.
+      decode_websocket(handler.pendingBuffer, handler.pendingSize, handler);
+      delete[] handler.pendingBuffer;
+      handler.pendingBuffer = nullptr;
+    }
   }
   handler.beginChunk();
   // The + 2 is there because we need at least 2 bytes.

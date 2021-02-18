@@ -220,7 +220,12 @@ void PVertexer::createTracksPool(const TR& tracks, gsl::span<const o2d::GlobalTr
   std::sort(mSortedTrackID.begin(), mSortedTrackID.end(), [this](int i, int j) {
     return this->mTracksPool[i].timeEst.getTimeStamp() < this->mTracksPool[j].timeEst.getTimeStamp();
   });
-
+  int cnt = 0;
+  for (auto& vv : gids) {
+    LOG(INFO) << "got in matching " << cnt << " " << vv;
+    if (++cnt > 1000)
+      break;
+  }
   auto tMin = mTracksPool[mSortedTrackID.front()].timeEst.getTimeStamp();
   auto tMax = mTracksPool[mSortedTrackID.back()].timeEst.getTimeStamp();
 }
