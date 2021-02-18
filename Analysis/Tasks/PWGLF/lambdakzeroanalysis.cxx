@@ -107,10 +107,9 @@ struct lambdakzeroanalysis {
   Configurable<float> rapidity{"rapidity", 0.5, "rapidity"};
   Configurable<int> saveDcaHist{"saveDcaHist", 0, "saveDcaHist"};
 
-  // Filter preFilterV0 = aod::v0data::dcapostopv > dcapostopv&&
-  //                                                  aod::v0data::dcanegtopv > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau; we can use this again once (and if) math expressions can be used there
+  Filter preFilterV0 = nabs(aod::v0data::dcapostopv) > dcapostopv && nabs(aod::v0data::dcanegtopv) > dcanegtopv && aod::v0data::dcaV0daughters < dcav0dau;
 
-  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision, aod::V0DataExt const& fullV0s)
+  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision, soa::Filtered<aod::V0DataExt> const& fullV0s)
   {
     if (!collision.alias()[kINT7]) {
       return;
@@ -122,19 +121,9 @@ struct lambdakzeroanalysis {
     for (auto& v0 : fullV0s) {
       //FIXME: could not find out how to filter cosPA and radius variables (dynamic columns)
       if (v0.v0radius() > v0radius && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospa) {
-        if (fabs(v0.dcapostopv()) < dcapostopv) {
-          continue;
-        }
-        if (fabs(v0.dcanegtopv()) < dcanegtopv) {
-          continue;
-        }
-        if (fabs(v0.dcaV0daughters()) > dcav0dau) {
-          continue;
-        }
         if (TMath::Abs(v0.yLambda()) < rapidity) {
           registry.fill(HIST("h3dMassLambda"), collision.centV0M(), v0.pt(), v0.mLambda());
           registry.fill(HIST("h3dMassAntiLambda"), collision.centV0M(), v0.pt(), v0.mAntiLambda());
-
           if (saveDcaHist == 1) {
             registry.fill(HIST("h3dMassLambdaDca"), v0.dcaV0daughters(), v0.pt(), v0.mLambda());
             registry.fill(HIST("h3dMassAntiLambdaDca"), v0.dcaV0daughters(), v0.pt(), v0.mAntiLambda());

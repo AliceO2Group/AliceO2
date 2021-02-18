@@ -237,14 +237,11 @@ struct lambdakzerofinderQA {
     },
   };
 
-  //FIXME: figure out why this does not work?
-  //Filter preFilter1 = aod::v0data::dcapostopv > dcapostopv;
-  //Filter preFilter2 = aod::v0data::dcanegtopv > dcanegtopv;
-  //Filter preFilter3 = aod::v0data::dcaV0daughters < dcav0dau;
+  Filter preFilterV0 = nabs(aod::v0data::dcapostopv) > dcapostopv && nabs(aod::v0data::dcanegtopv) > dcanegtopv && aod::v0data::dcaV0daughters < dcav0dau;
 
   ///Connect to V0Data: newly indexed, note: V0DataExt table incompatible with standard V0 table!
   void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision,
-               aod::V0DataExt const& fullV0s)
+               soa::Filtered<aod::V0DataExt> const& fullV0s)
   {
     if (!collision.alias()[kINT7]) {
       return;
@@ -255,7 +252,7 @@ struct lambdakzerofinderQA {
 
     Long_t lNCand = 0;
     for (auto& v0 : fullV0s) {
-      if (v0.v0radius() > v0radius && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospa && fabs(v0.dcapostopv()) > dcapostopv && fabs(v0.dcanegtopv()) > dcanegtopv && v0.dcaV0daughters() < dcav0dau) {
+      if (v0.v0radius() > v0radius && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospa) {
         registry.fill(HIST("hV0Radius"), v0.v0radius());
         registry.fill(HIST("hV0CosPA"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()));
         registry.fill(HIST("hDCAPosToPV"), v0.dcapostopv());
