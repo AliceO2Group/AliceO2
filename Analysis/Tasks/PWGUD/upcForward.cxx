@@ -31,7 +31,7 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 #define mmuon 0.1057 //mass of muon
 struct UPCForward {
-//defining histograms
+  //defining histograms
   OutputObj<TH1D> hMass{TH1D(
     "hMass",
     ";#it{m_{#mu#mu}}, GeV/c^{2};", 500, 0, 10)};
@@ -62,44 +62,46 @@ struct UPCForward {
     this code is now hardcoded for run 246392 as we are not sure if trigger id is same for all the runs*/
     uint64_t classIndexMUP11 = 54; // 246392
     bool isMUP11fired = bc.triggerMask() & (1ull << classIndexMUP11);
-    if (!isMUP11fired) {return;}
-      LOGF(info,
-           "mup11 fired");
-      hSelectionCounter->Fill(iSelectionCounter);
-      iSelectionCounter++;
-      hSelectionCounter->GetXaxis()->SetBinLabel(iSelectionCounter,
-                                                 "CMup11Trigger");
-      for (auto& muon : tracksMuon) {
-        hCharge->Fill(muon.charge());
-        iMuonTracknumber++;
-        if (muon.charge() > 0) {
-          p1.SetXYZM(muon.px(), muon.py(), muon.pz(), mmuon);
-          ispositive = kTRUE;
-        }
-        if (muon.charge() < 0) {
-          p2.SetXYZM(muon.px(), muon.py(), muon.pz(), mmuon);
-          isnegative = kTRUE;
-        }
+    if (!isMUP11fired) {
+      return;
+    }
+    LOGF(info,
+         "mup11 fired");
+    hSelectionCounter->Fill(iSelectionCounter);
+    iSelectionCounter++;
+    hSelectionCounter->GetXaxis()->SetBinLabel(iSelectionCounter,
+                                               "CMup11Trigger");
+    for (auto& muon : tracksMuon) {
+      hCharge->Fill(muon.charge());
+      iMuonTracknumber++;
+      if (muon.charge() > 0) {
+        p1.SetXYZM(muon.px(), muon.py(), muon.pz(), mmuon);
+        ispositive = kTRUE;
       }
-      if (iMuonTracknumber != 2) {
-        return;
+      if (muon.charge() < 0) {
+        p2.SetXYZM(muon.px(), muon.py(), muon.pz(), mmuon);
+        isnegative = kTRUE;
       }
-      hSelectionCounter->Fill(iSelectionCounter);
-      iSelectionCounter++;
-      hSelectionCounter->GetXaxis()->SetBinLabel(iSelectionCounter,
-                                                 "twotracks");
-      if (!ispositive || !isnegative) {
-        return;
-      }
-      hSelectionCounter->Fill(iSelectionCounter);
-      iSelectionCounter++;
-      hSelectionCounter->GetXaxis()->SetBinLabel(iSelectionCounter,
-                                                 "oppositecharge");
-      p = p1 + p2;
-      hPt->Fill(p.Pt());
-      hRap->Fill(p.Rapidity());
-      hMass->Fill(p.M());
-  }   //end of process
+    }
+    if (iMuonTracknumber != 2) {
+      return;
+    }
+    hSelectionCounter->Fill(iSelectionCounter);
+    iSelectionCounter++;
+    hSelectionCounter->GetXaxis()->SetBinLabel(iSelectionCounter,
+                                               "twotracks");
+    if (!ispositive || !isnegative) {
+      return;
+    }
+    hSelectionCounter->Fill(iSelectionCounter);
+    iSelectionCounter++;
+    hSelectionCounter->GetXaxis()->SetBinLabel(iSelectionCounter,
+                                               "oppositecharge");
+    p = p1 + p2;
+    hPt->Fill(p.Pt());
+    hRap->Fill(p.Rapidity());
+    hMass->Fill(p.M());
+  } //end of process
 };
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
