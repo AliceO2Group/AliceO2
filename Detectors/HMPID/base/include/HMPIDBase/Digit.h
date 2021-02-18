@@ -144,7 +144,7 @@ class Digit
   // determines the total charge created by a hit
   // might modify the localX, localY coordiates associated to the hit
   static float QdcTot(float e, float time, int pc, int px, int py, float& localX, float& localY);
-  static float IntPartMathiX(float x, int pad);
+  static Double_t IntPartMathiX(float x, int pad);
   static Double_t IntPartMathiY(Double_t y, int pad);
   static float InMathieson(float localX, float localY, int pad);
 
