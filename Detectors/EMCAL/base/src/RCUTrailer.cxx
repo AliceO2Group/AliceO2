@@ -159,13 +159,13 @@ std::vector<uint32_t> RCUTrailer::encode() const
 {
   std::vector<uint32_t> encoded;
   encoded.emplace_back(mPayloadSize | 2 << 30);
-  encoded.emplace_back(mAltroConfig.mWord2 | 7 << 26 | 2 << 30);
-  encoded.emplace_back(mAltroConfig.mWord1 | 6 << 26 | 2 << 30);
-  encoded.emplace_back(mActiveFECsB | 5 << 26 | 2 << 30);
-  encoded.emplace_back(mActiveFECsA | 4 << 26 | 2 << 30);
-  encoded.emplace_back(mErrorCounter.mErrorRegister3 | 3 << 26 | 2 << 30);
-  encoded.emplace_back(mErrorCounter.mErrorRegister2 | 2 << 26 | 2 << 30);
   encoded.emplace_back(mFECERRB >> 7 | (mFECERRA >> 7) << 13 | 1 << 26 | 2 << 30);
+  encoded.emplace_back(mErrorCounter.mErrorRegister2 | 2 << 26 | 2 << 30);
+  encoded.emplace_back(mErrorCounter.mErrorRegister3 | 3 << 26 | 2 << 30);
+  encoded.emplace_back(mActiveFECsA | 4 << 26 | 2 << 30);
+  encoded.emplace_back(mActiveFECsB | 5 << 26 | 2 << 30);
+  encoded.emplace_back(mAltroConfig.mWord1 | 6 << 26 | 2 << 30);
+  encoded.emplace_back(mAltroConfig.mWord2 | 7 << 26 | 2 << 30);
 
   uint32_t lasttrailerword = 3 << 30 | mFirmwareVersion << 16 | mRCUId << 7 | (encoded.size() + 1);
   encoded.emplace_back(lasttrailerword);
@@ -197,6 +197,7 @@ void RCUTrailer::printStream(std::ostream& stream) const
          << "FECERRA:                                   0x" << std::hex << mFECERRA << "\n"
          << "FECERRB:                                   0x" << std::hex << mFECERRB << "\n"
          << "ERRREG2:                                   0x" << std::hex << mErrorCounter.mErrorRegister2 << "\n"
+         << "ERRREG3:                                   0x" << std::hex << mErrorCounter.mErrorRegister3 << "\n"
          << "#channels skipped due to address mismatch: " << std::dec << getNumberOfChannelAddressMismatch() << "\n"
          << "#channels skipped due to bad block length: " << std::dec << getNumberOfChannelLengthMismatch() << "\n"
          << "Active FECs (branch A):                    0x" << std::hex << mActiveFECsA << "\n"
