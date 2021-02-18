@@ -43,7 +43,6 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) override;
 
  protected:
-  void fixTriggerRecords(std::vector<o2::trd::TriggerRecord>& trigRecord); // should be temporary.
   void setTriggerRecord(std::vector<o2::trd::TriggerRecord>& triggerrecord, uint32_t currentrecord, uint64_t recordsize);
   void setTrapSimulatorData(int adc, std::vector<o2::trd::Digit>& digits, int digitposition);
   // TODO LABELS, o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels)
@@ -54,7 +53,6 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
   TrapConfig* mTrapConfig = nullptr;
   std::unique_ptr<Geometry> mGeo;
   //  std::unique_ptr<TrapConfigHandler> mTrapConfigHandler;
-  int mNumThreads = 8;
   unsigned long mRunNumber = 297595; //run number to anchor simulation to.
   bool mDriveFromConfig{false};     // option to disable using the trapconfig to drive the simulation
   int mPrintTrackletOptions = 0;    // print the trap chips adc vs timebin to the screen, ascii art
