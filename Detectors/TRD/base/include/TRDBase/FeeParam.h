@@ -60,7 +60,7 @@ class FeeParam
   static int getMCMfromSharedPad(int irow, int icol);
   static int getROBfromPad(int irow, int icol);
   static int getROBfromSharedPad(int irow, int icol);
-  static int getRobSide(int irob);
+  static int getROBSide(int irob);
   static int getColSide(int icol);
 
   // SCSN-related
