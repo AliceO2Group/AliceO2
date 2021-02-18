@@ -223,7 +223,7 @@ struct UPCForward {
     iSelectionCounter++;
     hSelectionCounter->GetXaxis()->SetBinLabel(iSelectionCounter,"oppositecharge");
     p = p1 + p2;
-    cout<< "printing values"<< p.M()<< p1.M() <<p2.M()<<endl;
+    //cout<< "printing values"<< p.M()<< p1.M() <<p2.M()<<endl;
     hPt->Fill(p.Pt());
     hRap->Fill(p.Rapidity());
     hMass->Fill(p.M());
