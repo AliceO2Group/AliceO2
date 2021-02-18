@@ -72,13 +72,13 @@ o2_add_executable(
 
 o2_add_executable(
         clusters-sink-workflow
-        SOURCES src/ClusterSinkSpec.cxx src/clusters-sink-workflow.cxx
+        SOURCES src/clusters-sink-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase O2::MCHMappingImpl3)
 
 o2_add_executable(
         clusters-sampler-workflow
-        SOURCES src/ClusterSamplerSpec.cxx src/clusters-sampler-workflow.cxx
+        SOURCES src/clusters-sampler-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase)
 
@@ -123,3 +123,10 @@ o2_add_executable(
         SOURCES src/TrackFitterSpec.cxx src/tracks-to-tracks-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHTracking)
+
+o2_add_executable(
+        clusters-transformer-workflow
+        SOURCES src/clusters-transformer-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHGeometryTransformer)
+
