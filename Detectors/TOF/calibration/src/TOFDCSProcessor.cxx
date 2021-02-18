@@ -320,7 +320,7 @@ uint64_t TOFDCSProcessor::processFlags(const uint64_t flags, const char* pid)
 
 //______________________________________________________________________
 
-void TOFDCSProcessor::finalize()
+void TOFDCSProcessor::updateDPsCCDB()
 {
 
   // here we create the object to then be sent to CCDB
@@ -390,7 +390,8 @@ void TOFDCSProcessor::finalize()
     }
   }
   std::map<std::string, std::string> md;
-  prepareCCDBobjectInfo(mTOFDCS, mccdbDPsInfo, "TOF/DCSDPs", mStartTF, md);
+  md["responsible"] = "Chiara Zampolli";
+  prepareCCDBobjectInfo(mTOFDCS, mccdbDPsInfo, "TOF/Calib/DCSDPs", mTF, md);
 
   return;
 }
@@ -406,7 +407,8 @@ void TOFDCSProcessor::updateFEACCCDB()
     LOG(INFO) << "At least one FEAC changed status --> we will update CCDB";
   }
   std::map<std::string, std::string> md;
-  prepareCCDBobjectInfo(mFeac, mccdbLVInfo, "TOF/LVStatus", mTF, md);
+  md["responsible"] = "Chiara Zampolli";
+  prepareCCDBobjectInfo(mFeac, mccdbLVInfo, "TOF/Calib/LVStatus", mTF, md);
   return;
 }
 
@@ -421,7 +423,8 @@ void TOFDCSProcessor::updateHVCCDB()
     LOG(INFO) << "At least one HV changed status --> we will update CCDB";
   }
   std::map<std::string, std::string> md;
-  prepareCCDBobjectInfo(mHV, mccdbHVInfo, "TOF/HVStatus", mTF, md);
+  md["responsible"] = "Chiara Zampolli";
+  prepareCCDBobjectInfo(mHV, mccdbHVInfo, "TOF/Calib/HVStatus", mTF, md);
   return;
 }
 

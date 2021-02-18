@@ -46,6 +46,9 @@ using DPCOM = o2::dcs::DataPointCompositeObject;
 using namespace o2::ccdb;
 using CcdbManager = o2::ccdb::BasicCCDBManager;
 using clbUtils = o2::calibration::Utils;
+using Timer = std::chrono::high_resolution_clock;
+using TimePoint = std::chrono::system_clock::time_point;
+using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
 
 class TOFDCSDataProcessor : public o2::framework::Task
 {
@@ -54,6 +57,11 @@ class TOFDCSDataProcessor : public o2::framework::Task
   {
 
     std::vector<DPID> vect;
+    mDPsUpdateInterval = ic.options().get<int64_t>("DPs-update-interval");
+    if (mDPsUpdateInterval == 0) {
+      LOG(ERROR) << "TOF DPs update interval set to zero seconds --> changed to 60";
+      mDPsUpdateInterval = 60;
+    }
     bool useCCDBtoConfigure = ic.options().get<bool>("use-ccdb-to-configure");
     if (useCCDBtoConfigure) {
       LOG(INFO) << "Configuring via CCDB";
@@ -93,6 +101,7 @@ class TOFDCSDataProcessor : public o2::framework::Task
       mProcessor->useVerboseMode();
     }
     mProcessor->init(vect);
+    mTimer = Timer::now();
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -101,29 +110,45 @@ class TOFDCSDataProcessor : public o2::framework::Task
     auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
     mProcessor->setTF(tfid);
     mProcessor->process(dps);
-    sendOutput(pc.outputs());
+    auto timeNow = Timer::now();
+    Duration elapsedTime = timeNow - mTimer; // in seconds
+    if (elapsedTime.count() >= mDPsUpdateInterval) {
+      sendDPsoutput(pc.outputs());
+      mTimer = timeNow;
+    }
+    sendLVandHVoutput(pc.outputs());
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
-    mProcessor->finalize();
-    sendOutput(ec.outputs());
+    sendDPsoutput(ec.outputs());
+    sendLVandHVoutput(ec.outputs());
+  }
+
+ private:
+  std::unique_ptr<TOFDCSProcessor> mProcessor;
+  TimePoint mTimer;
+  int64_t mDPsUpdateInterval;
+
+  //________________________________________________________________
+  void sendDPsoutput(DataAllocator& output)
+  {
+    // extract CCDB infos and calibration object for DPs
+    mProcessor->updateDPsCCDB();
     const auto& payload = mProcessor->getTOFDPsInfo();
     auto& info = mProcessor->getccdbDPsInfo();
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
     LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
               << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
-    ec.outputs().snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, 0}, *image.get());
-    ec.outputs().snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, 0}, info);
+    output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, 0}, *image.get());
+    output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, 0}, info);
+    mProcessor->clearDPsinfo();
   }
 
- private:
-  std::unique_ptr<TOFDCSProcessor> mProcessor;
-
   //________________________________________________________________
-  void sendOutput(DataAllocator& output)
+  void sendLVandHVoutput(DataAllocator& output)
   {
-    // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
+    // extract CCDB infos and calibration objects for LV and HV, convert it to TMemFile and send them to the output
 
     if (mProcessor->isLVUpdated()) {
       const auto& payload = mProcessor->getLVStatus();
@@ -167,7 +192,8 @@ DataProcessorSpec getTOFDCSDataProcessorSpec()
     AlgorithmSpec{adaptFromTask<o2::tof::TOFDCSDataProcessor>()},
     Options{{"ccdb-path", VariantType::String, "http://localhost:8080", {"Path to CCDB"}},
             {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
-            {"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}}}};
+            {"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
+            {"DPs-update-interval", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry"}}}};
 }
 
 } // namespace framework
