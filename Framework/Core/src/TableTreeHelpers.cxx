@@ -420,7 +420,7 @@ bool TableToTree::addAllBranches()
 TTree* TableToTree::process()
 {
 
-  bool togo = true;
+  bool togo = mTreePtr->GetNbranches() > 0;
   while (togo) {
     // fill the tree
     mTreePtr->Fill();
@@ -875,16 +875,18 @@ void TreeToTable::fill(TTree* tree)
     columnIterators.push_back(std::move(colit));
   }
   tree->StopCacheLearningPhase();
+  
   auto numEntries = treeReader.GetEntries(true);
-
-  for (auto&& column : columnIterators) {
-    column->reserve(numEntries);
-  }
-  // copy all values from the tree to the table builders
-  treeReader.Restart();
-  while (treeReader.Next()) {
+  if (numEntries > 0) {
     for (auto&& column : columnIterators) {
-      column->push();
+      column->reserve(numEntries);
+    }
+    // copy all values from the tree to the table builders
+    treeReader.Restart();
+    while (treeReader.Next()) {
+      for (auto&& column : columnIterators) {
+        column->push();
+      }
     }
   }
 
