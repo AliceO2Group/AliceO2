@@ -72,15 +72,9 @@ void KrBoxClusterFinder::fillAndCorrectMap(std::vector<o2::tpc::Digit>& eventSec
 
     float correctionFactor = 1.0;
 
-    int padNum = 0;
     if (correctionFactorCalDet) {
-      if (row >= MaxRowsIROC) {
-        padNum = mMapperInstance.globalPadNumber(PadPos(row, pad)) - mMapperInstance.getPadsInIROC();
-        correctionFactor = correctionFactorCalDet->getValue(sector, padNum);
-      } else {
-        padNum = mMapperInstance.globalPadNumber(PadPos(row, pad));
-        correctionFactor = correctionFactorCalDet->getValue(sector, padNum);
-      }
+      int padNum = mMapperInstance.globalPadNumber(PadPos(row, pad));
+      correctionFactor = correctionFactorCalDet->getValue(sector, padNum);
     }
     // Every row starts at pad zero. But the number of pads in a row is not a constant.
     // If we would just fill the map naively, we would put pads next to each other, which are not neighbours on the pad plane.
