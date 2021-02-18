@@ -15,7 +15,7 @@
 
 #include "ITS3Simulation/V3Layer.h"
 #include "ITS3Base/GeometryTGeo.h"
-#include "ITS3Simulation/Detector.h"
+// #include "ITS3Simulation/Detector.h"
 #include "ITSMFTSimulation/AlpideChip.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 
@@ -543,8 +543,6 @@ TGeoVolume* V3Layer::createStave(const TGeoManager* /*mgr*/)
     staveVol->AddNode(modVol, 0, new TGeoTranslation(0, ypos, 0));
     mHierarchy[kHalfStave] = 1;
 
-    // Mechanical stave structure
-    //    mechStaveVol = createStaveStructInnerB();
     if (mechStaveVol) {
       ypos = (static_cast<TGeoBBox*>(modVol->GetShape()))->GetDY() - ypos;
       if (mStaveModel != Detector::kIBModel4) {
@@ -553,7 +551,7 @@ TGeoVolume* V3Layer::createStave(const TGeoManager* /*mgr*/)
       staveVol->AddNode(mechStaveVol, 1, new TGeoCombiTrans(0, -ypos, 0, new TGeoRotation("", 0, 0, 180)));
     }
   } else {
-    TGeoVolume* hstaveVol = createStaveOuterB();
+    TGeoVolume* hstaveVol = createStaveModelOuterB2();
     if (mStaveModel == Detector::kOBModel0) { // Create simplified stave struct as in v0
       staveVol->AddNode(hstaveVol, 0);
       mHierarchy[kHalfStave] = 1;
@@ -564,7 +562,7 @@ TGeoVolume* V3Layer::createStave(const TGeoManager* /*mgr*/)
       staveVol->AddNode(hstaveVol, 0, new TGeoTranslation(-xpos, ypos, 0));
       staveVol->AddNode(hstaveVol, 1, new TGeoTranslation(xpos, ypos + sOBHalfStaveYTrans, 0));
       mHierarchy[kHalfStave] = 2; // RS
-      mechStaveVol = createSpaceFrameOuterB();
+      mechStaveVol = createSpaceFrameOuterB2();
 
       if (mechStaveVol) {
         if (mBuildLevel < 6) { // Carbon
@@ -933,40 +931,6 @@ TGeoVolume* V3Layer::createIBFPCAlAnode(const Double_t xcable, const Double_t zc
   }
 
   return coverlayVol;
-}
-
-TGeoVolume* V3Layer::createStaveStructInnerB(const TGeoManager* mgr)
-{
-  //
-  // Create the mechanical stave structure
-  //
-  // Created:      22 Mar 2013  Chinorat Kobdaj
-  // Updated:      26 Apr 2013  Mario Sitta
-  // Updated:      04 Apr 2017  Mario Sitta  O2 version - All models obsolete except last one
-  // Updated:      25 Jan 2018  Mario Sitta  Stave width is now a constant
-  //
-
-  TGeoVolume* mechStavVol = nullptr;
-
-  switch (mStaveModel) {
-    case Detector::kIBModelDummy:
-      mechStavVol = createStaveModelInnerBDummy(mgr);
-      break;
-    case Detector::kIBModel0:
-    case Detector::kIBModel1:
-    case Detector::kIBModel21:
-    case Detector::kIBModel22:
-    case Detector::kIBModel3:
-      LOG(FATAL) << "Stave model " << mStaveModel << " obsolete and no longer supported";
-      break;
-    case Detector::kIBModel4:
-      mechStavVol = createStaveModelInnerB4(mgr);
-      break;
-    default:
-      LOG(FATAL) << "Unknown stave model " << mStaveModel;
-      break;
-  }
-  return mechStavVol;
 }
 
 TGeoVolume* V3Layer::createStaveModelInnerBDummy(const TGeoManager*) const
@@ -1810,41 +1774,6 @@ void V3Layer::createIBConnectorsCSide(const TGeoManager* mgr)
   ypos = -sIBConnectorYTot / 2 + sIBConnTubesYPos;
   zpos = connBody->GetDZ() - (sIBConnectBlockZLen - sIBConnTubeHole3ZPos);
   connBoxCSide->AddNode(connPlug, 1, new TGeoCombiTrans(xpos, ypos, zpos, new TGeoRotation("", 90, -90, 90)));
-}
-
-TGeoVolume* V3Layer::createStaveOuterB(const TGeoManager* mgr)
-{
-  // Create the chip stave for the Outer Barrel
-  //
-  // Input:
-  //         mgr  : the GeoManager (used only to get the proper material)
-  //
-  // Output:
-  //
-  // Return:
-  //
-  // Created:      20 Dec 2013  Mario Sitta
-  // Updated:      12 Mar 2014  Mario Sitta
-  // Updated:      19 Jul 2017  Mario Sitta  O2 version
-  //
-  TGeoVolume* mechStavVol = nullptr;
-
-  switch (mStaveModel) {
-    case Detector::kOBModelDummy:
-      mechStavVol = createStaveModelOuterBDummy(mgr);
-      break;
-    case Detector::kOBModel0:
-    case Detector::kOBModel1:
-      LOG(FATAL) << "Stave model " << mStaveModel << " obsolete and no longer supported";
-      break;
-    case Detector::kOBModel2:
-      mechStavVol = createStaveModelOuterB2(mgr);
-      break;
-    default:
-      LOG(FATAL) << "Unknown stave model " << mStaveModel;
-      break;
-  }
-  return mechStavVol;
 }
 
 TGeoVolume* V3Layer::createStaveModelOuterBDummy(const TGeoManager*) const

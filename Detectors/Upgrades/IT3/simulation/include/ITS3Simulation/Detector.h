@@ -79,9 +79,10 @@ class Detector : public o2::base::DetImpl<Detector>
     kOBModel2 = 9
   };
 
-  static constexpr Int_t sNumberLayers = 7;           ///< Number of layers in ITSU
-  static constexpr Int_t sNumberInnerLayers = 3;      ///< Number of inner layers in ITSU
-  static constexpr Int_t sNumberOfWrapperVolumes = 3; ///< Number of wrapper volumes
+  static constexpr Int_t sNumberInnerLayers = 4;                                  ///< Number of inner layers in ITS3
+  static constexpr Int_t sNumberOuterLayers = 4;                                  ///< Number of outer layers in ITS3
+  static constexpr Int_t sNumberLayers = sNumberInnerLayers + sNumberOuterLayers; ///< Total number of layers in ITS3
+  static constexpr Int_t sNumberOfWrapperVolumes = 3;                             ///< Number of wrapper volumes
 
   /// Name : Detector Name
   /// Active: kTRUE for active detectors (ProcessHits() will be called)
@@ -122,12 +123,6 @@ class Detector : public o2::base::DetImpl<Detector>
   /// Base class to create the detector geometry
   void ConstructGeometry() override;
 
-  /// Creates the Service Barrel (as a simple cylinder) for IB and OB
-  /// \param innerBarrel if true, build IB service barrel, otherwise for OB
-  /// \param dest the mother volume holding the service barrel
-  /// \param mgr  the gGeoManager pointer (used to get the material)
-  void createServiceBarrel(const Bool_t innerBarrel, TGeoVolume* dest, const TGeoManager* mgr = gGeoManager);
-
   /// Sets the layer parameters
   /// \param nlay layer number
   /// \param phi0 layer phi0
@@ -141,23 +136,6 @@ class Detector : public o2::base::DetImpl<Detector>
   /// \param buildLevel (if 0, all geometry is build, used for material budget studies)
   void defineLayer(Int_t nlay, Double_t phi0, Double_t r, Int_t nladd, Int_t nmod, Double_t lthick = 0.,
                    Double_t dthick = 0., UInt_t detType = 0, Int_t buildFlag = 0) override;
-
-  /// Sets the layer parameters for a "turbo" layer
-  /// (i.e. a layer whose staves overlap in phi)
-  /// \param nlay layer number
-  /// \param phi0 phi of 1st stave
-  /// \param r layer radius
-  /// \param nstav number of staves
-  /// \param nunit IB: number of chips per stave
-  /// \param OB: number of modules per half stave
-  /// \param width stave width
-  /// \param tilt layer tilt angle (degrees)
-  /// \param lthick stave thickness (if omitted, defaults to 0)
-  /// \param dthick detector thickness (if omitted, defaults to 0)
-  /// \param dettypeID ??
-  /// \param buildLevel (if 0, all geometry is build, used for material budget studies)
-  void defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Int_t nladd, Int_t nmod, Double_t width, Double_t tilt,
-                        Double_t lthick = 0., Double_t dthick = 0., UInt_t detType = 0, Int_t buildFlag = 0) override;
 
   /// Sets the layer parameters for new ITS3 geo
   /// \param nlay layer number
@@ -181,8 +159,7 @@ class Detector : public o2::base::DetImpl<Detector>
   /// \param lthick stave thickness
   /// \param dthick detector thickness
   /// \param dettype detector type
-  virtual void getLayerParameters(Int_t nlay, Double_t& phi0, Double_t& r, Int_t& nladd, Int_t& nmod, Double_t& width,
-                                  Double_t& tilt, Double_t& lthick, Double_t& mthick, UInt_t& dettype) const;
+  virtual void getLayerParameters(Int_t nlay, Double_t& phi0, Double_t& r, Int_t& nladd, Int_t& nmod, Double_t& lthick, Double_t& mthick, UInt_t& dettype) const;
 
   /// This method is an example of how to add your own point of type Hit to the clones array
   o2::itsmft::Hit* addHit(int trackID, int detID, const TVector3& startPos, const TVector3& endPos,
@@ -247,20 +224,9 @@ class Detector : public o2::base::DetImpl<Detector>
   void BeginPrimary() override { ; }
   void PostTrack() override { ; }
   void PreTrack() override { ; }
-  /// Prints out the content of this class in ASCII format
-  /// \param ostream *os The output stream
-  void Print(std::ostream* os) const;
-
-  /// Reads in the content of this class in the format of Print
-  /// \param istream *is The input stream
-  void Read(std::istream* is);
 
   /// Returns the number of layers
   Int_t getNumberOfLayers() const { return sNumberLayers; }
-  virtual void setStaveModelIB(Model model) { mStaveModelInnerBarrel = model; }
-  virtual void setStaveModelOB(Model model) { mStaveModelOuterBarrel = model; }
-  virtual Model getStaveModelIB() const { return mStaveModelInnerBarrel; }
-  virtual Model getStaveModelOB() const { return mStaveModelOuterBarrel; }
 
   void createOuterBarrel(const Bool_t ob) { mCreateOuterBarrel = ob; };
   Bool_t isCreateOuterBarrel() { return mCreateOuterBarrel; };
@@ -294,7 +260,6 @@ class Detector : public o2::base::DetImpl<Detector>
   Double_t mWrapperZSpan[sNumberOfWrapperVolumes];     //! Z span of wrapper volume
   Int_t* mWrapperLayerId;                              //! Id of wrapper layer to which layer belongs (-1 if not wrapped)
 
-  Bool_t* mTurboLayer;          //! True for "turbo" layers
   Bool_t* mITS3Layer;           //! True for new ITS3 layers
   Double_t* mLayerPhi0;         //! Vector of layer's 1st stave phi in lab
   Double_t* mLayerRadii;        //! Vector of layer radii
@@ -302,8 +267,6 @@ class Detector : public o2::base::DetImpl<Detector>
   Int_t* mStavePerLayer;        //! Vector of number of staves per layer
   Int_t* mUnitPerStave;         //! Vector of number of "units" per stave
   Double_t* mChipThickness;     //! Vector of chip thicknesses
-  Double_t* mStaveWidth;        //! Vector of stave width (only used for turbo)
-  Double_t* mStaveTilt;         //! Vector of stave tilt (only used for turbo)
   Double_t* mDetectorThickness; //! Vector of detector thicknesses
   UInt_t* mChipTypeID;          //! Vector of detector type id
   Int_t* mBuildLevel;           //! Vector of Material Budget Studies
@@ -312,7 +275,7 @@ class Detector : public o2::base::DetImpl<Detector>
   std::vector<o2::itsmft::Hit>* mHits;
 
   /// We need this as a method to access members
-  void configITS(Detector* its);
+  void configITS3();
 
   /// Creates all needed arrays
   void createAllArrays();
@@ -349,8 +312,6 @@ class Detector : public o2::base::DetImpl<Detector>
 
   Detector& operator=(const Detector&);
 
-  Model mStaveModelInnerBarrel;  //! The stave model for the Inner Barrel
-  Model mStaveModelOuterBarrel;  //! The stave model for the Outer Barrel
   V3Layer** mGeometry;           //! Geometry
   V3Services* mServicesGeometry; //! Services Geometry
 
@@ -358,11 +319,6 @@ class Detector : public o2::base::DetImpl<Detector>
   friend class o2::base::DetImpl;
   ClassDefOverride(Detector, 1);
 };
-
-// Input and output function for standard C++ input/output.
-std::ostream& operator<<(std::ostream& os, Detector& source);
-
-std::istream& operator>>(std::istream& os, Detector& source);
 } // namespace its3
 } // namespace o2
 
