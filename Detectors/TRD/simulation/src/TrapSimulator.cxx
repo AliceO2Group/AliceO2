@@ -1901,13 +1901,13 @@ void TrapSimulator::fitTracklet()
   // else if (decPlaces == 1)
   //   rndAdd = 1;
   int ndriftDp = 5; // decimal places for drift time
-  long shift = ((long)1 << 32);
+  long shift = 1L << 32;
 
   // calculated in fitred.asm
-  int padrow = ((mRobPos >> 1) << 2) | (mMcmPos >> 2);
+  uint64_t padrow = ((mRobPos >> 1) << 2) | (mMcmPos >> 2);
   //int yoffs = (((((mRobPos & 0x1) << 2) + (mMcmPos & 0x3)) * 18) << 8) -
   //            ((18 * 4 * 2 - 18 * 2 - 1) << 7);
-  int yoffs = 0; // we do the shift to the MCM center in the tracklet transformer
+  int yoffs = (9 << 8); // we need to shift to the MCM center (adc channel 10)
   // TODO we dont need the stuff calculated in fitred.asm because we are now all relative to the mcm ?? check this statement
   LOG(debug) << "padrow:" << padrow << " yoffs:" << yoffs << " and rndAdd:" << rndAdd;
 
@@ -1918,11 +1918,11 @@ void TrapSimulator::fitTracklet()
   }
 
   yoffs = yoffs << decPlaces; // holds position of ADC channel 1
-  int layer = mDetector % 6;
-  // we need to scale the offset since we want to store it in units of 1/75 pad and the calculation is done in 1/256 pad width granularity
-  // TODO correct the scaling factors for desired granularity
-  unsigned int scaleY = (UInt_t)((0.635 + 0.03 * layer) / (256.0 * 160.0e-4) * shift);
-  unsigned int scaleD = (UInt_t)((0.635 + 0.03 * layer) / (256.0 * 140.0e-4) * shift);
+
+  // we need to scale the offset since we want to store it in units of 1/80 pad and the calculation is done in 1/256 pad width granularity
+  unsigned int scaleY = (unsigned int)(80. / 256. * shift);
+  // the slope is given in units of 1/1000 pads/timebin
+  unsigned long scaleD = (unsigned long)(1000. / 256. * shift);
   LOG(debug) << "scaleY : " << scaleY << "  scaleD=" << scaleD << " shift:" << std::hex << shift << std::dec;
   int deflCorr = (int)mTrapConfig->getDmemUnsigned(mgkDmemAddrDeflCorr, mDetector, mRobPos, mMcmPos);
   int ndrift = (int)mTrapConfig->getDmemUnsigned(mgkDmemAddrNdrift, mDetector, mRobPos, mMcmPos);
@@ -1998,14 +1998,12 @@ void TrapSimulator::fitTracklet()
       position += yoffs;
 
       LOG(debug) << "slope = " << slope;
-      //slope = slope;//this is here as a reference for what was done in run2 //* ndrift) >> ndriftDp) + deflCorr;
-      //slope = ((slope * ndrift) >> ndriftDp) + deflCorr;
-      auto oldpos = position;
+
+      slope = slope + ((deflCorr / ndrift) << ndriftDp);
       LOG(debug) << "position = position - (mFitPtr[cpu] << (8 + decPlaces));";
       position = position - (mFitPtr[cpu] << (8 + decPlaces));
       LOG(debug) << "position = " << position << " - " << mFitPtr[cpu] << " << (8+" << decPlaces << ")";
 
-      LOG(debug) << "position = " << position << " : " << oldpos;
       LOG(debug) << "slope before scale of " << scaleD << " is = " << slope;
       temp = slope;
       temp = temp * scaleD;
@@ -2063,7 +2061,7 @@ void TrapSimulator::fitTracklet()
 
         slope = slope & 0xff; // 8 bit
 
-        if (position > 0x7ff || position < -0x7ff) { // 11 bits.
+        if (position > 0x3ff || position < -0x400) {
           LOG(warning) << "Overflow in position with position of " << position << " in hex 0x" << std::hex << position;
         }
         position = position & 0x7ff; // 11 bits
@@ -2134,12 +2132,9 @@ void TrapSimulator::fitTracklet()
         //labels come in via adc, now loop over ADC and see which contribute to the hits.
 
         LOG(debug) << "TrapSim Trackletarray size is : " << mTrackletArray64.size() << "  :: adding a track at " << mMCMT[cpu] << ":" << mDetector * 2 + mRobPos % 2 << ":" << mRobPos << ":" << mMcmPos << " LABELS size: " << localTrackletLabels.size();
-        uint32_t format = 0;
-        uint32_t hcid = mDetector * 2 + mRobPos % 2;
-        uint32_t padrow = ((mRobPos >> 1) << 2) | (mMcmPos >> 2);
-        uint32_t col = mMcmPos % NMCMROBINCOL;
-        //defined above uint32_t position = ;
-        //uint32_t s
+        uint64_t format = 1;
+        uint64_t hcid = mDetector * 2 + mRobPos % 2;
+        uint64_t col = mMcmPos % NMCMROBINCOL;
         mTrackletArray64.emplace_back(format, hcid, padrow, col, position, slope, q0, q1, q2);
         if (mdebugStream) {
           mTrackletDetails.emplace_back(position, slope, q0, q1, q2, nHits, fitError);
@@ -2149,6 +2144,7 @@ void TrapSimulator::fitTracklet()
         mTrackletLabels.addElements(mTrackletLabels.getIndexedSize(), localTrackletLabels);
         LOG(debug) << "elements in mTrackletLabels is size " << mTrackletLabels.getIndexedSize() << "::" << mTrackletLabels.getNElements() << " labels for additional labels vector of :" << localTrackletLabels.size() << " labels";
         // store cluster information (if requested)
+        /*
         if (mgStoreClusters && mdebugStream) {
           std::vector<float> res(getNumberOfTimeBins());
           std::vector<float> qtot(getNumberOfTimeBins());
@@ -2299,6 +2295,7 @@ void TrapSimulator::fitTracklet()
             }
           }
         }
+        */
         LOG(debug) << "LEAVING : " << __FILE__ << ":" << __func__ << ":" << __LINE__ << " :: " << getDetector() << ":" << getRobPos() << ":" << getMcmPos() << " and  Tracklet array size is : " << mTrackletArray64.size();
       }
     }

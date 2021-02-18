@@ -54,74 +54,75 @@ class Tracklet64
   Tracklet64(uint64_t format, uint64_t hcid, uint64_t padrow, uint64_t col, uint64_t position,
              uint64_t slope, uint64_t Q0, uint64_t Q1, uint64_t Q2)
   {
-    buildTrackletWord(format, hcid, padrow, col, position, slope, Q0, Q1, Q2);
+    mtrackletWord = ((format << formatbs) & formatmask) |
+                    ((hcid << hcidbs) & hcidmask) |
+                    ((padrow << padrowbs) & padrowmask) |
+                    ((col << colbs) & colmask) |
+                    ((position << posbs) & posmask) |
+                    ((slope << slopebs) & slopemask) |
+                    ((Q2 << Q2bs) & Q2mask) |
+                    ((Q1 << Q1bs) & Q1mask) |
+                    ((Q0 << Q0bs) & Q0mask);
   }
 
   ~Tracklet64() = default;
   Tracklet64& operator=(const Tracklet64& rhs) = default;
 
-  //TODO convert to the actual number  regarding compliments.
   // ----- Getters for contents of tracklet word -----
   uint64_t getHCID() const { return ((mtrackletWord & hcidmask) >> hcidbs); };       // no units 0..1077
-  uint64_t getPadRow() const { return ((mtrackletWord & padrowmask) >> padrowbs); }; // in units of
-  uint64_t getColumn() const { return ((mtrackletWord & colmask) >> colbs); };       // in units of
-  uint64_t getPosition() const { return ((mtrackletWord & posmask) >> posbs); };     // in units of 0.02 pads [10bits] .. -10.22 to 10.22
-  uint64_t getSlope() const { return ((mtrackletWord & slopemask) >> slopebs); };    // in units of -127 .. 127
-  uint64_t getPID() const { return ((mtrackletWord & PIDmask)); };                   // in units of counts all 3 together
-  uint64_t getQ0() const { return ((mtrackletWord & Q0mask) >> Q0bs); };             // in units of counts all 3 together
-  uint64_t getQ1() const { return ((mtrackletWord & Q1mask) >> Q1bs); };             // in units of counts all 3 together
-  uint64_t getQ2() const { return ((mtrackletWord & Q2mask) >> Q2bs); };             // in units of counts all 3 together
+  uint64_t getPadRow() const { return ((mtrackletWord & padrowmask) >> padrowbs); }; // pad row number [0..15]
+  uint64_t getColumn() const { return ((mtrackletWord & colmask) >> colbs); };       // column refers to MCM position in column direction on readout board [0..3]
+  uint64_t getPosition() const { return ((mtrackletWord & posmask) >> posbs); };     // in units of 1/80 pads, 11 bit granularity [-12.8..12.8] relative to MCM center
+  uint64_t getSlope() const { return ((mtrackletWord & slopemask) >> slopebs); };    // in units of 1/1000 pads/timebin, 8 bit granularity [-0.128 to 0.128]
+  uint64_t getPID() const { return ((mtrackletWord & PIDmask)); };                   // no unit, all 3 charge windows combined
+  uint64_t getQ0() const { return ((mtrackletWord & Q0mask) >> Q0bs); };             // no unit
+  uint64_t getQ1() const { return ((mtrackletWord & Q1mask) >> Q1bs); };             // no unit
+  uint64_t getQ2() const { return ((mtrackletWord & Q2mask) >> Q2bs); };             // no unit
 
-  uint64_t buildTrackletWord(uint64_t format, uint64_t hcid, uint64_t padrow, uint64_t col, uint64_t position, uint64_t slope, uint64_t Q2, uint64_t Q1, uint64_t Q0)
-  {
-    LOG(debug) << "Build tracklet with format:" << format << " hcid:" << hcid << " padrow: " << padrow << " col:" << col << " position:" << position << " slope:" << slope << " Q0:1:2:: " << Q0 << ":" << Q1 << ":" << Q2;
-    mtrackletWord = ((format << formatbs) & formatmask) + ((hcid << hcidbs) & hcidmask) + ((padrow << padrowbs) & padrowmask) + ((col << colbs) & colmask) + ((position << posbs) & posmask) + ((slope << slopebs) & slopemask) + ((Q2 << Q2bs) & Q2mask) + ((Q1 << Q1bs) & Q1mask) + ((Q0 << Q0bs) & Q0mask);
-    return 0;
-  }
-  uint64_t setTrackletWord(uint64_t trackletword)
-  {
-    mtrackletWord = trackletword;
-    return 0;
-  }
+  void setTrackletWord(uint64_t trackletword) { mtrackletWord = trackletword; }
 
   // ----- Getters for tracklet information -----
-  int getMCM() const
-  {
-    return (getColumn() % (72)) / 18 + 4 * (getPadRow() % 4);
-  }
-  int getROB() const
-  {
-    int side = getColumn() / 72;
-    return (int)((int)getPadRow() / 8 + side);
-  }
+  int getMCM() const { return 4 * (getPadRow() % 4) + getColumn(); }                                 // returns MCM position on ROB [0..15]
+  int getROB() const { return (getHCID() % 2) ? (getPadRow() / 4) * 2 + 1 : (getPadRow() / 4) * 2; } // returns ROB number [0..5] for C0 chamber and [0..7] for C1 chamber
 
   // ----- Getters for offline corresponding values -----
   int getDetector() const { return getHCID() / 2; }
 
-  uint64_t getTrackletWord() const { return mtrackletWord; };
+  uint64_t getTrackletWord() const { return mtrackletWord; }
   uint32_t getTrackletWord32() const;
 
-  //  void setDetector(int id) { uint64_t hcid= 2* id; uint64_t side=1;mtrackletWord = hcid << hcidbs + ; }
-  //  void setHCId(int id) { mHCId = id; }
-  // TODO row and mcm to col and padrow mapping.
-  uint64_t setQ0(int charge)
+  void setQ0(int charge)
   {
+    mtrackletWord &= ~Q0mask;
     mtrackletWord |= ((charge << Q0bs) & Q0mask);
-    return mtrackletWord;
   }
-  uint64_t setQ1(int charge)
+  void setQ1(int charge)
   {
+    mtrackletWord &= ~Q1mask;
     mtrackletWord |= ((charge << Q1bs) & Q1mask);
-    return mtrackletWord;
   }
-  uint64_t setQ2(int charge)
+  void setQ2(int charge)
   {
+    mtrackletWord &= ~Q2mask;
     mtrackletWord |= ((charge << Q2bs) & Q2mask);
-    return mtrackletWord;
   }
-  void setPID(uint64_t pid) { mtrackletWord |= ((((uint64_t)pid) << PIDbs) & PIDmask); } // set the entire pid area of the trackletword, all the 3 Q's
-  void setPosition(uint64_t position) { mtrackletWord |= ((((uint64_t)position) << posbs) & posmask); }
-  void setSlope(uint64_t slope) { mtrackletWord |= ((((uint64_t)slope) << slopebs) & slopemask); }
+  void setPID(uint64_t pid)
+  {
+    // set the entire pid area of the trackletword, all the 3 Q's
+    mtrackletWord &= ~PIDmask;
+    mtrackletWord |= ((pid << PIDbs) & PIDmask);
+  }
+  void setPosition(uint64_t position)
+  {
+    mtrackletWord &= ~posmask;
+    mtrackletWord |= ((position << posbs) & posmask);
+  }
+  void setSlope(uint64_t slope)
+  {
+    mtrackletWord &= ~slopemask;
+    mtrackletWord |= ((slope << slopebs) & slopemask);
+  }
+
   void printStream(std::ostream& stream) const;
 
   // bit masks for the above raw data;
