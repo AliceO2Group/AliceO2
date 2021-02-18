@@ -187,9 +187,9 @@ struct TrackletMCMData {
     uint32_t word;
     struct {
       uint8_t checkbit : 1; //
-      uint16_t slope : 6;   // Deflection angle of tracklet
-      uint16_t pid : 15;    // Particle Identity
-      uint16_t pos : 10;    // Position of tracklet, signed 10 bits, granularity 0.02 pad widths, -10.22 to +10.22, relative to centre of pad 10
+      uint16_t slope : 8;   // Deflection angle of tracklet
+      uint16_t pid : 12;    // Particle Identity
+      uint16_t pos : 11;    // Position of tracklet, signed 11 bits, granularity 1/80 pad widths, -12.80 to +12.80, relative to centre of pad 10
     } __attribute__((__packed__));
   };
 };
