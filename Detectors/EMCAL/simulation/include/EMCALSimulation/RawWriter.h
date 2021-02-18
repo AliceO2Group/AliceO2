@@ -14,6 +14,7 @@
 #include <gsl/span>
 
 #include <array>
+#include <cstdint>
 #include <fstream>
 #include <memory>
 #include <string>
@@ -107,7 +108,7 @@ class RawWriter
   std::tuple<int, int> getLinkAssignment(int ddlID);
 
   ChannelHeader createChannelHeader(int hardwareAddress, int payloadSize, bool isBadChannel);
-  std::vector<char> createRCUTrailer(int payloadsize, int feca, int fecb, double timesample, double l1phase);
+  std::vector<char> createRCUTrailer(int payloadsize, int feca, int fecb, double timesample, uint64_t triggertime);
   std::vector<int> encodeBunchData(const std::vector<int>& data);
 
  private:

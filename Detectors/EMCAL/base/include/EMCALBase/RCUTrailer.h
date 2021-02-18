@@ -167,19 +167,19 @@ class RCUTrailer
   /// \brief Access to the sampling time
   /// \return Sampling time in seconds.
   /// \throw Error if the RCU trailer was not properly initializied
-  double getTimeSample() const;
-
-  /// \brief set time sample
-  /// \param timesample Time sample (in ns)
-  void setTimeSample(double timesample);
+  double getTimeSampleNS() const;
 
   /// \brief Access to the L1 phase
   /// \return L1 phase w.r.t to the LHC clock
-  double getL1Phase() const;
+  double getL1PhaseNS() const;
 
-  /// \brief Set the L1 phase
-  /// \param l1phase L1 phase (in ns)
-  void setL1Phase(double l1phase);
+  /// \brief Set the time sample length and L1 phase based on the trigger time
+  /// \param time Trigger time (in ns)
+  /// \param timesample Time sample (in ns)
+  ///
+  /// L1 phase: Collision time with respect to the sample length. Number
+  /// of phases: Sample length / bunch spacing (25 ns)
+  void setTimeSamplePhaseNS(uint64_t triggertime, uint64_t timesample);
 
   //
   // Error counters

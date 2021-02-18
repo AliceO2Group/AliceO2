@@ -60,6 +60,7 @@ void RCUTrailer::constructFromRawPayload(const gsl::span<const uint32_t> payload
     }
     int parCode = (word >> 26) & 0xF;
     int parData = word & 0x3FFFFFF;
+    // std::cout << "Found trailer word 0x" << std::hex << word << "(Par code: " << std::dec << parCode << ", Par data: 0x" << std::hex << parData << std::dec << ")";
     switch (parCode) {
       case 1:
         // ERR_REG1
@@ -99,7 +100,7 @@ void RCUTrailer::constructFromRawPayload(const gsl::span<const uint32_t> payload
   mIsInitialized = true;
 }
 
-double RCUTrailer::getTimeSample() const
+double RCUTrailer::getTimeSampleNS() const
 {
   uint8_t fq = mAltroConfig.mSampleTime;
   double tSample;
@@ -120,38 +121,38 @@ double RCUTrailer::getTimeSample() const
       throw Error(Error::ErrorType_t::SAMPLINGFREQ_INVALID, fmt::format("Invalid sampling frequency value %d !", int(fq)).data());
   }
 
-  return tSample * o2::constants::lhc::LHCBunchSpacingNS * 1.e-9;
+  return tSample * o2::constants::lhc::LHCBunchSpacingNS;
 }
 
-void RCUTrailer::setTimeSample(double timesample)
+void RCUTrailer::setTimeSamplePhaseNS(uint64_t triggertime, uint64_t timesample)
 {
-  int fq = 0;
-  if (std::abs(timesample - 50) < DBL_EPSILON) {
-    fq = 0;
-  } else if (std::abs(timesample - 100) < DBL_EPSILON) {
-    fq = 1;
-  } else if (std::abs(timesample - 200) < DBL_EPSILON) {
-    fq = 2;
-  } else {
-    throw Error(Error::ErrorType_t::SAMPLINGFREQ_INVALID, fmt::format("invalid time sample: %f", timesample).data());
-  }
-  mAltroConfig.mSampleTime = fq;
+  int sample = 0;
+  switch (timesample) {
+    case 50:
+      sample = 0;
+      break;
+    case 100:
+      sample = 1;
+      break;
+    case 200:
+      sample = 2;
+      break;
+    default:
+      throw Error(Error::ErrorType_t::SAMPLINGFREQ_INVALID, fmt::format("invalid time sample: %f", timesample).data());
+  };
+  mAltroConfig.mSampleTime = sample;
+  // calculate L1 phase
+  mAltroConfig.mL1Phase = (triggertime % timesample) / 25;
 }
 
-double RCUTrailer::getL1Phase() const
+double RCUTrailer::getL1PhaseNS() const
 {
-  double tSample = getTimeSample(),
-         phase = static_cast<double>(mAltroConfig.mL1Phase) * o2::constants::lhc::LHCBunchSpacingNS * 1.e-9;
+  double tSample = getTimeSampleNS(),
+         phase = static_cast<double>(mAltroConfig.mL1Phase) * o2::constants::lhc::LHCBunchSpacingNS;
   if (phase >= tSample) {
-    throw Error(Error::ErrorType_t::L1PHASE_INVALID, fmt::format("Invalid L1 trigger phase (%e s (phase) >= %e s (sampling time)) !", phase, tSample).data());
+    throw Error(Error::ErrorType_t::L1PHASE_INVALID, fmt::format("Invalid L1 trigger phase (%e ns (phase) >= %e ns (sampling time)) !", phase, tSample).data());
   }
   return phase;
-}
-
-void RCUTrailer::setL1Phase(double l1phase)
-{
-  int phase = l1phase / 25.;
-  mAltroConfig.mL1Phase = phase;
 }
 
 std::vector<uint32_t> RCUTrailer::encode() const
@@ -177,12 +178,12 @@ void RCUTrailer::printStream(std::ostream& stream) const
   std::vector<std::string> errors;
   double timesample = -1., l1phase = -1.;
   try {
-    timesample = getTimeSample();
+    timesample = getTimeSampleNS();
   } catch (Error& e) {
     errors.push_back(e.what());
   }
   try {
-    l1phase = getL1Phase();
+    l1phase = getL1PhaseNS();
   } catch (Error& e) {
     errors.push_back(e.what());
   }
@@ -201,20 +202,22 @@ void RCUTrailer::printStream(std::ostream& stream) const
          << "Active FECs (branch A):                    0x" << std::hex << mActiveFECsA << "\n"
          << "Active FECs (branch B):                    0x" << std::hex << mActiveFECsB << "\n"
          << "Baseline corr:                             " << std::hex << getBaselineCorrection() << "\n"
+         << "Polarity:                                  " << (getPolarity() ? "yes" : "no") << "\n"
          << "Number of presamples:                      " << std::dec << getNumberOfPresamples() << "\n"
          << "Number of postsamples:                     " << std::dec << getNumberOfPostsamples() << "\n"
          << "Second baseline corr:                      " << (hasSecondBaselineCorr() ? "yes" : "no") << "\n"
          << "Glitch filter:                             " << std::dec << getGlitchFilter() << "\n"
          << "Number of non-ZS postsamples:              " << std::dec << getNumberOfNonZeroSuppressedPostsamples() << "\n"
          << "Number of non-ZS presamples:               " << std::dec << getNumberOfNonZeroSuppressedPresamples() << "\n"
+         << "Zero suppression:                          " << (hasZeroSuppression() ? "yes" : "no") << "\n"
          << "Number of ALTRO buffers:                   " << std::dec << getNumberOfAltroBuffers() << "\n"
          << "Number of pretrigger samples:              " << std::dec << getNumberOfPretriggerSamples() << "\n"
          << "Number of samples per channel:             " << std::dec << getNumberOfSamplesPerChannel() << "\n"
          << "Sparse readout:                            " << (isSparseReadout() ? "yes" : "no") << "\n"
          << "AltroCFG1:                                 0x" << std::hex << mAltroConfig.mWord1 << "\n"
          << "AltroCFG2:                                 0x" << std::hex << mAltroConfig.mWord2 << "\n"
-         << "Sampling time:                             " << std::scientific << timesample << " s\n"
-         << "L1 Phase:                                  " << std::scientific << l1phase << " s\n"
+         << "Sampling time:                             " << timesample << " ns\n"
+         << "L1 Phase:                                  " << l1phase << " ns\n"
          << std::dec << std::fixed;
   if (errors.size()) {
     stream << "Errors: \n"
