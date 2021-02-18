@@ -82,8 +82,8 @@ BOOST_AUTO_TEST_CASE(TRDRawDataHeaderInternals)
   mcmrawdataheader.word = 0x01fe;
   BOOST_CHECK_EQUAL(mcmrawdataheader.pid0, 0xff); // 8 bits
   //check tracklet
-  tracklet.word = 0xffc00000;
-  BOOST_CHECK_EQUAL((uint32_t)tracklet.pos, 0x3ff);
+  tracklet.word = 0xffe00000;
+  BOOST_CHECK_EQUAL((uint32_t)tracklet.pos, 0x7ff);
 }
 } // namespace trd
 } // namespace o2
