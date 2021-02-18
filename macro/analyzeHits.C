@@ -5,7 +5,7 @@
 #include "ITSMFTSimulation/Hit.h"
 #include "TOFSimulation/Detector.h"
 #include "EMCALBase/Hit.h"
-#include "TRDSimulation/Detector.h" // For TRD Hit
+#include "DataFormatsTRD/Hit.h"
 #include "FT0Simulation/Detector.h" // for Fit Hit
 #include "DataFormatsFV0/Hit.h"
 #include "HMPIDBase/Hit.h"
@@ -113,7 +113,7 @@ struct HitStats : public HitStatsBase {
 
 struct TRDHitStats : public HitStatsBase {
   // adds a hit to the statistics
-  void addHit(o2::trd::HitType const& hit)
+  void addHit(o2::trd::Hit const& hit)
   {
     NHits++;
     auto x = hit.GetX();
@@ -245,7 +245,7 @@ void analyzeTRD(TTree* reftree)
 {
   if (!reftree)
     return;
-  auto refresult = analyse<o2::trd::HitType, TRDHitStats>(reftree, "TRDHit");
+  auto refresult = analyse<o2::trd::Hit, TRDHitStats>(reftree, "TRDHit");
   std::cout << gPrefix << " TRD ";
   refresult.print();
 }
