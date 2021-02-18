@@ -43,7 +43,7 @@ namespace trd
 class TrapSimulator
 {
  public:
-  TrapSimulator();
+  TrapSimulator() = default;
   ~TrapSimulator() = default;
 
   enum { PRINTRAW = 1,
@@ -54,12 +54,11 @@ class TrapSimulator
          PLOTHITS = 2,
          PLOTTRACKLETS = 4 };
 
-  void init(TrapConfig* trapconfig, int det, int rob, int mcm);
   // Initialize MCM by the position parameters
+  void init(TrapConfig* trapconfig, int det, int rob, int mcm);
 
-  void reset();
   // clears filter registers and internal data
-  void clear();
+  void reset();
   //  void setDebugStream(TTreeSRedirector* stream) { mDebugStream = stream; }
   //  TTreeSRedirector* getDebugStream() const { return mDebugStream; }
 
@@ -67,32 +66,13 @@ class TrapSimulator
 
   void noiseTest(int nsamples, int mean, int sigma, int inputGain = 1, int inputTail = 2);
 
-  bool CalibrateRun2();
   int getDataRaw(int iadc, int timebin) const { return (mADCR[iadc * mNTimeBin + timebin]); } // >> 2); }
   // get unfiltered ADC data
   int getDataFiltered(int iadc, int timebin) const { return (mADCF[iadc * mNTimeBin + timebin]); } // >> 2); }
   // get filtered ADC data
   int getZeroSupressionMap(int iadc) const { return (mZSMap[iadc]); }
   bool isDataSet() { return mDataIsSet; };
-  void unsetData()
-  {
-    mDataIsSet = false;
-    for (auto& fitreg : mFitReg) {
-      fitreg.ClearReg();
-    }
-    mNHits = 0;
-    mADCFilled = 0;
-    for (auto& tmplabel : mADCLabels) {
-      tmplabel.clear();      // clear MC Labels sent in from the digits coming in.
-    }
-    mTrackletLabels.clear(); // clear the stored labels.
-    mTrackletArray64.clear();
-    for (auto& trackletdetail : mTrackletDetails) {
-      trackletdetail.clear();
-    }
-  };
   // set ADC data with array
-  //  void setData(int iadc, const std::vector<int>& adc);
   void setData(int iadc, const ArrayADC& adc, std::vector<o2::MCCompLabel>& labels);
   // set ADC data with array
   //void setData(int iadc, const ArrayADC& adc, gsl::span<o2::MCCompLabel,-1>& labels);
@@ -124,8 +104,6 @@ class TrapSimulator
   // for the ADC/Col mapping, see: http://wiki.kip.uni-heidelberg.de/ti/TRD/index.php/Image:ROB_MCM_numbering.pdf
   const int getNumberOfTimeBins() const { return mNTimeBin; };
   bool storeTracklets(); // Stores tracklets to file -- debug purposes
-  std::string getTrklBranchName() const { return mTrklBranchName; }
-  void setTrklBranchName(std::string name) { mTrklBranchName = name; }
 
   int packData(std::vector<uint32_t>& rawdata, uint32_t offset);
   int getRawStream(std::vector<uint32_t>& buf, uint32_t offset, unsigned int iEv = 0) const; // Produce raw data stream - Real data format
@@ -351,12 +329,12 @@ class TrapSimulator
  protected:
   void setNTimebins(int ntimebins); // allocate data arrays corr. to the no. of timebins
 
-  bool mInitialized;      // memory is allocated if initialized
-  int mDetector;          // Chamber ID
-  int mRobPos;            // ROB Position on chamber
-  int mMcmPos;            // MCM Position on chamber
-  int mRow;               // Pad row number (0-11 or 0-15) of the MCM on chamber
-  int mNTimeBin;          // Number of timebins currently allocated
+  bool mInitialized{false}; // memory is allocated if initialized
+  int mDetector{-1};        // Chamber ID
+  int mRobPos{-1};          // ROB Position on chamber
+  int mMcmPos{-1};          // MCM Position on chamber
+  int mRow{-1};             // Pad row number (0-11 or 0-15) of the MCM on chamber
+  int mNTimeBin{-1};        // Number of timebins currently allocated
 
   //TODO adcr adcf labels zerosupressionmap can all go into their own class. Refactor when stable.
   std::vector<int> mADCR; // Array with MCM ADC values (Raw, 12 bit) 2d with dimension mNTimeBin
@@ -370,18 +348,16 @@ class TrapSimulator
 
   std::array<int, mgkNCPU> mFitPtr{}; // pointer to the tracklet to be calculated by CPU i
 
-  std::string mTrklBranchName; // name of the tracklet branch to write to
-
   // Parameter classes
-  FeeParam* mFeeParam;     // FEE parameters, a singleton
-  TrapConfig* mTrapConfig; // TRAP config
+  FeeParam* mFeeParam{FeeParam::instance()}; // FEE parameters, a singleton
+  TrapConfig* mTrapConfig{nullptr};          // TRAP config
   //  CalOnlineGainTables mGainTable;
 
   static const int NOfAdcPerMcm = constants::NADCMCM;
 
   std::array<FilterReg, constants::NADCMCM> mInternalFilterRegisters;
   int mADCFilled = 0; // stores bitpattern of fillted adc, for know when to fill with pure baseline, for use with setData(int iadc, const ArrayADC& adc);
-  int mNHits; // Number of detected hits
+  int mNHits{0};      // Number of detected hits
 
   // Sort functions as in TRAP
   void sort2(unsigned short idx1i, unsigned short idx2i, unsigned short val1i, unsigned short val2i,
@@ -413,7 +389,6 @@ class TrapSimulator
   bool mdebugStream = false; // whether or not to keep all the additional info for eventual dumping to a tree.
 
   bool mDataIsSet = false;
-  Calibrations* mCalib; // connection to caiibrations class to pull in info from ccdb.
 
   std::array<TrackletMCMData, 3> mTracklets;
   TrackletMCMHeader mMCMHeader;
