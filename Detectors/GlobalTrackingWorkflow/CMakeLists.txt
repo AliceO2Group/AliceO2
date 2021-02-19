@@ -47,7 +47,7 @@ o2_add_executable(match-workflow
 o2_add_executable(vertexing-workflow
                   COMPONENT_NAME primary
                   SOURCES src/primary-vertexing-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow )
+                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow O2::TOFWorkflow O2::TOFWorkflowUtils)
                 
 o2_add_executable(vertex-reader-workflow
                   COMPONENT_NAME primary

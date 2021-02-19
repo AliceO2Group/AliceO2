@@ -51,25 +51,17 @@ class PVertexer
 
   void init();
 
-  template <typename TR, typename BC>
-  int process(const TR& tracks, const gsl::span<o2d::GlobalTrackID> gids, const BC& bcData,
+  template <typename TR>
+  int process(const TR& tracks, const gsl::span<o2d::GlobalTrackID> gids, const gsl::span<o2::InteractionRecord> bcData,
               std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs,
-              gsl::span<const o2::MCCompLabel> lblTracks, std::vector<o2::MCEventLabel>& lblVtx)
-  {
-    auto nv = process(tracks, gids, bcData, vertices, vertexTrackIDs, v2tRefs);
-    if (lblTracks.size()) {
-      createMCLabels(lblTracks, vertices, vertexTrackIDs, v2tRefs, lblVtx);
-    }
-    return nv;
-  }
+              const gsl::span<const o2::MCCompLabel> lblTracks, std::vector<o2::MCEventLabel>& lblVtx);
 
-  template <typename TR, typename BC>
-  int process(const TR& tracks, const gsl::span<o2d::GlobalTrackID> gids, const BC& bcData,
-              std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs);
+  int runVertexing(gsl::span<o2d::GlobalTrackID> gids, const gsl::span<o2::InteractionRecord> bcData,
+                   std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs,
+                   gsl::span<const o2::MCCompLabel> lblTracks, std::vector<o2::MCEventLabel>& lblVtx);
 
-  static void createMCLabels(gsl::span<const o2::MCCompLabel> lblTracks,
-                             const std::vector<PVertex> vertices, const std::vector<o2d::VtxTrackIndex> vertexTrackIDs, const std::vector<V2TRef> v2tRefs,
-                             std::vector<o2::MCEventLabel>& lblVtx);
+  static void createMCLabels(gsl::span<const o2::MCCompLabel> lblTracks, const std::vector<PVertex> vertices,
+                             const std::vector<uint32_t> trackIDs, const std::vector<V2TRef> v2tRefs, std::vector<o2::MCEventLabel>& lblVtx);
   bool findVertex(const VertexingInput& input, PVertex& vtx);
 
   void setStartIR(const o2::InteractionRecord& ir) { mStartIR = ir; } ///< set InteractionRecods for the beginning of the TF
@@ -80,7 +72,7 @@ class PVertexer
   }
   float getTukey() const;
 
-  void finalizeVertex(const VertexingInput& input, const PVertex& vtx, std::vector<PVertex>& vertices, std::vector<V2TRef>& v2tRefs, std::vector<GTrackID>& vertexTrackIDs, SeedHisto& histo);
+  void finalizeVertex(const VertexingInput& input, const PVertex& vtx, std::vector<PVertex>& vertices, std::vector<V2TRef>& v2tRefs, std::vector<uint32_t>& trackIDs, SeedHisto& histo);
   bool setCompatibleIR(PVertex& vtx);
 
   void setBunchFilling(const o2::BunchFilling& bf);
@@ -120,10 +112,9 @@ class PVertexer
   template <typename TR>
   void createTracksPool(const TR& tracks, gsl::span<const o2d::GlobalTrackID> gids);
 
-  int findVertices(const VertexingInput& input, std::vector<PVertex>& vertices, std::vector<GTrackID>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs);
+  int findVertices(const VertexingInput& input, std::vector<PVertex>& vertices, std::vector<uint32_t>& trackIDs, std::vector<V2TRef>& v2tRefs);
 
-  template <typename BC>
-  std::pair<int, int> getBestIR(const PVertex& vtx, const BC& bcData, int& currEntry) const;
+  std::pair<int, int> getBestIR(const PVertex& vtx, const gsl::span<o2::InteractionRecord> bcData, int& currEntry) const;
 
   int dbscan_RangeQuery(int idxs, std::vector<int>& cand, const std::vector<int>& status);
   void dbscan_clusterize();
@@ -201,7 +192,7 @@ void PVertexer::createTracksPool(const TR& tracks, gsl::span<const o2d::GlobalTr
         dca.getY() * dca.getY() / (dca.getSigmaY2() + vtxErr2) > mPVParams->pullIniCut) {
       continue;
     }
-    auto& tvf = mTracksPool.emplace_back(trc, tracks[i].getTimeMUS(), gids[i]);
+    auto& tvf = mTracksPool.emplace_back(trc, tracks[i].getTimeMUS(), i);
     mStatZErr.add(std::sqrt(trc.getSigmaZ2()));
     mStatTErr.add(tvf.timeEst.getTimeStampError());
   }
@@ -220,112 +211,18 @@ void PVertexer::createTracksPool(const TR& tracks, gsl::span<const o2d::GlobalTr
   std::sort(mSortedTrackID.begin(), mSortedTrackID.end(), [this](int i, int j) {
     return this->mTracksPool[i].timeEst.getTimeStamp() < this->mTracksPool[j].timeEst.getTimeStamp();
   });
-  int cnt = 0;
-  for (auto& vv : gids) {
-    LOG(INFO) << "got in matching " << cnt << " " << vv;
-    if (++cnt > 1000)
-      break;
-  }
   auto tMin = mTracksPool[mSortedTrackID.front()].timeEst.getTimeStamp();
   auto tMax = mTracksPool[mSortedTrackID.back()].timeEst.getTimeStamp();
 }
 
 //___________________________________________________________________
-template <typename TR, typename BC>
-int PVertexer::process(const TR& tracks, gsl::span<o2d::GlobalTrackID> gids, const BC& bcData,
-                       std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs)
+template <typename TR>
+int PVertexer::process(const TR& tracks, const gsl::span<o2d::GlobalTrackID> gids, const gsl::span<o2::InteractionRecord> bcData,
+                       std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs,
+                       const gsl::span<const o2::MCCompLabel> lblTracks, std::vector<o2::MCEventLabel>& lblVtx)
 {
   createTracksPool(tracks, gids);
-  dbscan_clusterize();
-
-  std::vector<PVertex> verticesLoc;
-  std::vector<GTrackID> vertexTrackIDsLoc;
-  std::vector<V2TRef> v2tRefsLoc;
-  std::vector<float> validationTimes;
-
-  for (auto tc : mTimeZClusters) {
-    VertexingInput inp;
-    //    inp.idRange = gsl::span<int>((int*)&mSortedTrackID[tc.first], tc.count);
-    inp.idRange = gsl::span<int>((int*)&mClusterTrackIDs[tc.first], tc.count);
-    inp.scaleSigma2 = 3. * estimateScale2();
-    inp.timeEst = tc.timeEst;
-    findVertices(inp, verticesLoc, vertexTrackIDsLoc, v2tRefsLoc);
-  }
-
-  // sort in time
-  std::vector<int> vtTimeSortID(verticesLoc.size());
-  std::iota(vtTimeSortID.begin(), vtTimeSortID.end(), 0);
-  std::sort(vtTimeSortID.begin(), vtTimeSortID.end(), [&verticesLoc](int i, int j) {
-    return verticesLoc[i].getTimeStamp().getTimeStamp() < verticesLoc[j].getTimeStamp().getTimeStamp();
-  });
-
-  vertices.clear();
-  v2tRefs.clear();
-  vertexTrackIDs.clear();
-  vertices.reserve(verticesLoc.size());
-  v2tRefs.reserve(v2tRefsLoc.size());
-  vertexTrackIDs.reserve(vertexTrackIDsLoc.size());
-
-  int trCopied = 0, count = 0, vtimeID = 0;
-  for (auto i : vtTimeSortID) {
-    auto& vtx = verticesLoc[i];
-
-    bool irSet = setCompatibleIR(vtx);
-    if (!irSet) {
-      continue;
-    }
-    // do we need to validate by Int. records ?
-    if (mValidateWithIR) {
-      auto bestMatch = getBestIR(vtx, bcData, vtimeID);
-      if (bestMatch.first >= 0) {
-        vtx.setFlags(PVertex::TimeValidated);
-        if (bestMatch.second == 1) {
-          vtx.setIR(bcData[bestMatch.first].getInteractionRecord());
-        }
-        LOG(DEBUG) << "Validated with t0 " << bestMatch.first << " with " << bestMatch.second << " candidates";
-      } else if (vtx.getNContributors() >= mPVParams->minNContributorsForIRcut) {
-        LOG(DEBUG) << "Discarding " << vtx;
-        continue; // reject
-      }
-    }
-    vertices.push_back(vtx);
-    int it = v2tRefsLoc[i].getFirstEntry(), itEnd = it + v2tRefsLoc[i].getEntries(), dest0 = vertexTrackIDs.size();
-    for (; it < itEnd; it++) {
-      auto& gid = vertexTrackIDs.emplace_back(vertexTrackIDsLoc[it]);
-      gid.setPVContributor();
-    }
-    v2tRefs.emplace_back(dest0, v2tRefsLoc[i].getEntries());
-    LOG(DEBUG) << "#" << count++ << " " << vertices.back() << " | " << v2tRefs.back().getEntries() << " indices from " << v2tRefs.back().getFirstEntry(); // RS REM
-  }
-
-  return vertices.size();
-}
-
-//___________________________________________________________________
-template <typename BC>
-std::pair<int, int> PVertexer::getBestIR(const PVertex& vtx, const BC& bcData, int& currEntry) const
-{
-  // select best matching interaction record
-  int best = -1, n = bcData.size();
-  while (currEntry < n && bcData[currEntry].getInteractionRecord() < vtx.getIRMin()) {
-    currEntry++; // skip all times which have no chance to be matched
-  }
-  int i = currEntry, nCompatible = 0;
-  float bestDf = 1e12;
-  auto tVtxNS = (vtx.getTimeStamp().getTimeStamp() + mPVParams->timeBiasMS) * 1e3; // time in ns
-  while (i < n) {
-    if (bcData[i].getInteractionRecord() > vtx.getIRMax()) {
-      break;
-    }
-    nCompatible++;
-    auto dfa = std::abs(bcData[i].getInteractionRecord().differenceInBCNS(mStartIR) - tVtxNS);
-    if (dfa <= bestDf) {
-      bestDf = dfa;
-      best = i;
-    }
-    i++;
-  }
-  return {best, nCompatible};
+  return runVertexing(gids, bcData, vertices, vertexTrackIDs, v2tRefs, lblTracks, lblVtx);
 }
 
 } // namespace vertexing
