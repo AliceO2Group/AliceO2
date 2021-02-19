@@ -38,8 +38,18 @@ o2_add_dpl_workflow(spectra-tpc-split
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
 
+o2_add_dpl_workflow(spectra-tpc-split-pikapr
+                    SOURCES spectraTPCsplitPiKaPr.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
+                    COMPONENT_NAME Analysis)
+
 o2_add_dpl_workflow(spectra-tpc-tiny
                     SOURCES spectraTPC_tiny.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(spectra-tpc-tiny-pikapr
+                    SOURCES spectraTPCtinyPiKaPr.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
 

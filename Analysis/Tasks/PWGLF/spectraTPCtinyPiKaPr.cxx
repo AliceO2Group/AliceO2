@@ -21,7 +21,7 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-struct TPCSpectraTaskSplit {
+struct TPCSpectraTaskTinyPiKaPr {
   static constexpr int Np = 9;
   static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
   static constexpr std::string_view hp[Np] = {"p/El", "p/Mu", "p/Pi", "p/Ka", "p/Pr", "p/De", "p/Tr", "p/He", "p/Al"};
@@ -32,7 +32,7 @@ struct TPCSpectraTaskSplit {
   {
     histos.add("p/Unselected", "Unselected;#it{p} (GeV/#it{c})", kTH1F, {{100, 0, 20}});
     histos.add("pt/Unselected", "Unselected;#it{p}_{T} (GeV/#it{c})", kTH1F, {{100, 0, 20}});
-    for (int i = 0; i < Np; i++) {
+    for (int i = 2; i < 5; i++) {
       histos.add(hp[i].data(), Form("%s;#it{p} (GeV/#it{c})", pT[i]), kTH1F, {{100, 0, 20}});
       histos.add(hpt[i].data(), Form("%s;#it{p}_{T} (GeV/#it{c})", pT[i]), kTH1F, {{100, 0, 20}});
     }
@@ -55,9 +55,7 @@ struct TPCSpectraTaskSplit {
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
   Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == (uint8_t) true);
   using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra,
-                                                  aod::pidRespTPCEl, aod::pidRespTPCMu, aod::pidRespTPCPi,
-                                                  aod::pidRespTPCKa, aod::pidRespTPCPr, aod::pidRespTPCDe,
-                                                  aod::pidRespTPCTr, aod::pidRespTPCHe, aod::pidRespTPCAl,
+                                                  aod::pidRespTPCTPi, aod::pidRespTPCTKa, aod::pidRespTPCTPr,
                                                   aod::TrackSelection>>;
 
   void process(TrackCandidates::iterator const& track)
@@ -65,20 +63,14 @@ struct TPCSpectraTaskSplit {
     histos.fill(HIST("p/Unselected"), track.p());
     histos.fill(HIST("pt/Unselected"), track.pt());
 
-    fillParticleHistos<0>(track, track.tpcNSigmaEl());
-    fillParticleHistos<1>(track, track.tpcNSigmaMu());
     fillParticleHistos<2>(track, track.tpcNSigmaPi());
     fillParticleHistos<3>(track, track.tpcNSigmaKa());
     fillParticleHistos<4>(track, track.tpcNSigmaPr());
-    fillParticleHistos<5>(track, track.tpcNSigmaDe());
-    fillParticleHistos<6>(track, track.tpcNSigmaTr());
-    fillParticleHistos<7>(track, track.tpcNSigmaHe());
-    fillParticleHistos<8>(track, track.tpcNSigmaAl());
   }
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
-  WorkflowSpec workflow{adaptAnalysisTask<TPCSpectraTaskSplit>("tpcspectra-split-task")};
+  WorkflowSpec workflow{adaptAnalysisTask<TPCSpectraTaskTinyPiKaPr>("tpcspectra-tiny-pikapr-task")};
   return workflow;
 }
