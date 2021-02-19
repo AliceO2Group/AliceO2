@@ -421,12 +421,9 @@ void AliAlgDet::Print(const Option_t* opt) const
 //____________________________________________
 void AliAlgDet::SetDetID(UInt_t tp)
 {
-  // assign type
-  if (tp >= AliAlgSteer::kNDetectors)
-    LOG(FATAL) << "Detector typeID " << tp << "exceeds allowed range" << 0 << ":" << (AliAlgSteer::kNDetectors - 1);
-  if (tp >= 5)
-    LOG(FATAL) << "Detector typeID " << tp << "exceeds allowed range" << 0 << ":" << (5 - 1);
-  SetUniqueID(tp);
+  o2::detectors::DetID detID(tp);
+  SetUniqueID(detID);
+  LOG(WARNING) << __PRETTY_FUNCTION__ << "Possible discrepancies with o2 detector ID";
 }
 
 //____________________________________________

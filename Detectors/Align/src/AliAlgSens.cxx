@@ -365,13 +365,20 @@ void AliAlgSens::Print(const Option_t* opt) const
 //____________________________________________
 void AliAlgSens::PrepareMatrixT2L()
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
-  // TODO(milettri): depends on AliGeomManager;
-  //  // extract from geometry T2L matrix
+  // extract geometry T2L matrix
+  TGeoHMatrix t2l;
+  t2l.Clear();
+  t2l.RotateZ(fAlp * RadToDeg()); // rotate in direction of normal to the sensor plane
+  const TGeoHMatrix* matL2G = base::GeometryManager::getMatrix(fDet->GetO2DetID(), GetSID());
+  const TGeoHMatrix& matL2Gi = matL2G->Inverse();
+  t2l.MultiplyLeft(&matL2Gi);
+  SetMatrixT2L(t2l);
+
   //  const TGeoHMatrix* t2l = AliGeomManager::GetTracking2LocalMatrix(GetVolID());
-  //  if (!t2l) {
+  //  const if (!t2l)
+  //  {
   //    Print("long");
-  //    AliFatalF("Failed to find T2L matrix for VID:%d %s", GetVolID(), GetSymName());
+  //    LOG(FATAL) << "Failed to find T2L matrix for VID: " << GetVolID() << ", " << GetSymName();
   //  }
   //  SetMatrixT2L(*t2l);
   //  //

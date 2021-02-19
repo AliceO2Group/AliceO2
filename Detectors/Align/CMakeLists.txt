@@ -35,6 +35,7 @@ o2_add_library(Align
                         src/Mille.cxx
                PUBLIC_LINK_LIBRARIES O2::FrameworkLogger
                						 O2::ReconstructionDataFormats
+               						 O2::DetectorsBase
                                      ROOT::Core
                                      ROOT::Geom
                                      ROOT::Gpad
