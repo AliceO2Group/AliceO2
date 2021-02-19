@@ -99,7 +99,7 @@
 #include "Align/AliAlgDOFStat.h"
 #include "Align/AliAlgConstraint.h"
 //#include "AliAlignObjParams.h"
-//#include "AliGeomManager.h"
+#include "DetectorsBase/GeometryManager.h"
 #include "Align/AliAlgAux.h"
 #include "Framework/Logger.h"
 #include <TString.h>
@@ -297,43 +297,39 @@ void AliAlgVol::Print(const Option_t* opt) const
 //____________________________________________
 void AliAlgVol::PrepareMatrixL2G(Bool_t reco)
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
-  // FIXME(milettri): needs AliGeomManager
-  //  // extract from geometry L2G matrix, depending on reco flag, set it as a reco-time
-  //  // or current alignment matrix
-  //  const char* path = GetSymName();
-  //  if (gGeoManager->GetAlignableEntry(path)) {
-  //    const TGeoHMatrix* l2g = AliGeomManager::GetMatrix(path);
-  //    if (!l2g)
-  //      LOG(FATAL) << "Failed to find L2G matrix for alignable " << path;
-  //    reco ? SetMatrixL2GReco(*l2g) : SetMatrixL2G(*l2g);
-  //  } else { // extract from path
-  //    if (!gGeoManager->CheckPath(path))
-  //      LOG(FATAL) << "Volume path " << path << " is not valid!";
-  //    TGeoPhysicalNode* node = (TGeoPhysicalNode*)gGeoManager->GetListOfPhysicalNodes()->FindObject(path);
-  //    TGeoHMatrix l2g;
-  //    if (!node) {
-  //      LOG(WARNING) << "volume " << path << " was not misaligned, extracting original matrix";
-  //      if (!AliGeomManager::GetOrigGlobalMatrix(path, l2g)) {
-  //        LOG(FATAL) << "Failed to find ideal L2G matrix for " << path;
-  //      }
-  //    } else {
-  //      l2g = *node->GetMatrix();
-  //    }
-  //    reco ? SetMatrixL2GReco(l2g) : SetMatrixL2G(l2g);
-  //  }
+  // extract from geometry L2G matrix, depending on reco flag, set it as a reco-time
+  // or current alignment matrix
+  const char* path = GetSymName();
+  if (gGeoManager->GetAlignableEntry(path)) {
+    const TGeoHMatrix* l2g = base::GeometryManager::getMatrix(path);
+    if (!l2g)
+      LOG(FATAL) << "Failed to find L2G matrix for alignable " << path;
+    reco ? SetMatrixL2GReco(*l2g) : SetMatrixL2G(*l2g);
+  } else { // extract from path
+    if (!gGeoManager->CheckPath(path))
+      LOG(FATAL) << "Volume path " << path << " is not valid!";
+    TGeoPhysicalNode* node = (TGeoPhysicalNode*)gGeoManager->GetListOfPhysicalNodes()->FindObject(path);
+    TGeoHMatrix l2g;
+    if (!node) {
+      LOG(WARNING) << "volume " << path << " was not misaligned, extracting original matrix";
+      if (!base::GeometryManager::getOriginalMatrix(path, l2g)) {
+        LOG(FATAL) << "Failed to find ideal L2G matrix for " << path;
+      }
+    } else {
+      l2g = *node->GetMatrix();
+    }
+    reco ? SetMatrixL2GReco(l2g) : SetMatrixL2G(l2g);
+  }
 }
 
 //____________________________________________
 void AliAlgVol::PrepareMatrixL2GIdeal()
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
-  //  FIXME(milettri): needs AliGeomManager
-  //  // extract from geometry ideal L2G matrix
-  //  TGeoHMatrix mtmp;
-  //  if (!AliGeomManager::GetOrigGlobalMatrix(GetSymName(), mtmp))
-  //    LOG(FATAL) << "Failed to find ideal L2G matrix for " << GetSymName();
-  //  SetMatrixL2GIdeal(mtmp);
+  // extract from geometry ideal L2G matrix
+  TGeoHMatrix mtmp;
+  if (!base::GeometryManager::getOriginalMatrix(GetSymName(), mtmp))
+    LOG(FATAL) << "Failed to find ideal L2G matrix for " << GetSymName();
+  SetMatrixL2GIdeal(mtmp);
 }
 
 //____________________________________________

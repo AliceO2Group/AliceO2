@@ -21,7 +21,7 @@
 #ifndef ALIALGSTEER_H
 #define ALIALGSTEER_H
 
-// #include "AliGeomManager.h" FIXME(milettri): needs AliGeomManager
+#include "DetectorsBase/GeometryManager.h"
 #include "Align/AliAlgTrack.h"
 // #include "AliSymMatrix.h" FIXME(milettri): needs AliSymMatrix
 
