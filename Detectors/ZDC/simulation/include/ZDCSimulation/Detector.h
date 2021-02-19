@@ -18,7 +18,7 @@
 #include "DetectorsBase/Detector.h"           // for Detector
 #include "DetectorsCommonDataFormats/DetID.h" // for Detector
 #include "ZDCBase/Geometry.h"
-#include "ZDCSimulation/Hit.h"
+#include "DataFormatsZDC/Hit.h"
 #include "ZDCSimulation/SpatialPhotonResponse.h"
 #include "TParticle.h"
 #include <utility>
