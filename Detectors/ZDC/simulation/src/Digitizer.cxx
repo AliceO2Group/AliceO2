@@ -576,3 +576,21 @@ void Digitizer::assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData)
     }
   }
 }
+
+//______________________________________________________________________________
+void Digitizer::findEmptyBunches(std::bitset<o2::constants::lhc::LHCMaxBunches>& bunchPattern)
+{
+  mNEmptyBCs = 0;
+  for (int ib = 0; ib < o2::constants::lhc::LHCMaxBunches; ib++) {
+    int mb = (ib + 31) % o2::constants::lhc::LHCMaxBunches; // beam gas from back of calorimeter
+    int m1 = ib ? ((ib - 1) % o2::constants::lhc::LHCMaxBunches) : (o2::constants::lhc::LHCMaxBunches-1);  // previous bunch
+    int cb = ib;                        // current bunch crossing
+    int p1 = (ib + 1) % o2::constants::lhc::LHCMaxBunches;  // colliding + 1
+    int p2 = (ib + 2) % o2::constants::lhc::LHCMaxBunches;  // colliding + 2
+    int p3 = (ib + 3) % o2::constants::lhc::LHCMaxBunches;  // colliding + 3
+    if (!(bunchPattern[mb] || bunchPattern[m1] || bunchPattern[cb] || bunchPattern[p1] || bunchPattern[p2] || bunchPattern[p3])) {
+      mNEmptyBCs++;
+    }
+  }
+  LOG(INFO) << "There are " << mNEmptyBCs << " clean empty bunches";
+}
