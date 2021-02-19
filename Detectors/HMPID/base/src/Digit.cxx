@@ -227,8 +227,8 @@ void Digit::Pad2Photo(uint32_t pad, int* chamber, int* photo, int* x, int* y)
 /// @param[out] totalcharge : the charge of the hit [0..2^12-1]
 void Digit::getPadAndTotalCharge(HitType const& hit, int& chamber, int& pc, int& px, int& py, float& totalcharge)
 {
-  float localX;
-  float localY;
+  double localX;
+  double localY;
   chamber = hit.GetDetectorID();
   double tmp[3] = {hit.GetX(), hit.GetY(), hit.GetZ()};
   Param::Instance()->Mars2Lors(chamber, tmp, localX, localY);
@@ -245,8 +245,8 @@ void Digit::getPadAndTotalCharge(HitType const& hit, int& chamber, int& pc, int&
 /// @return : the fraction of the charge ...
 float Digit::getFractionalContributionForPad(HitType const& hit, int somepad)
 {
-  float localX;
-  float localY;
+  double localX;
+  double localY;
 
   const auto chamber = hit.GetDetectorID(); // chamber number is in detID
   double tmp[3] = {hit.GetX(), hit.GetY(), hit.GetZ()};
@@ -266,23 +266,23 @@ float Digit::getFractionalContributionForPad(HitType const& hit, int somepad)
 /// @param[out] localX : the horizontal displacement related to Anode Wires
 /// @param[out] localY : the vertical displacement  related to Anode Wires
 /// @return : total QDC
-float Digit::QdcTot(float e, float time, int pc, int px, int py, float& localX, float& localY)
+Double_t Digit::QdcTot(Double_t e, Double_t time, Int_t pc, Int_t px, Int_t py, Double_t& localX, Double_t& localY)
 {
   //
   // Arguments: e-
   //  Returns:
-  float Q = 0;
+  double Q = 0;
   if (time > 1.2e-6) {
     Q = 0;
   }
   if (py < 0) {
     return 0;
   } else {
-    float y = Param::LorsY(pc, py);
+    double y = Param::LorsY(pc, py);
     localY = ((y - localY) > 0) ? y - 0.2 : y + 0.2; //shift to the nearest anod wire
 
-    float x = (localX > 66.6) ? localX - 66.6 : localX;                                                                      //sagita is for PC (0-64) and not for chamber
-    float qdcEle = 34.06311 + 0.2337070 * x + 5.807476e-3 * x * x - 2.956471e-04 * x * x * x + 2.310001e-06 * x * x * x * x; //reparametrised from DiMauro
+    double x = (localX > 66.6) ? localX - 66.6 : localX;                                                                      //sagita is for PC (0-64) and not for chamber
+    double qdcEle = 34.06311 + 0.2337070 * x + 5.807476e-3 * x * x - 2.956471e-04 * x * x * x + 2.310001e-06 * x * x * x * x; //reparametrised from DiMauro
 
     int iNele = int((e / 26e-9) * 0.8);
     if (iNele < 1) {
@@ -306,7 +306,7 @@ float Digit::QdcTot(float e, float time, int pc, int px, int py, float& localX, 
 /// @param[in] x : position of the center of Mathieson distribution
 /// @param[in] pad : the Digit Unique Id [0x00CPXXYY]
 /// @return : a charge fraction [0-1] imposed into the pad
-Double_t Digit::IntPartMathiX(float x, int pad)
+Double_t Digit::IntPartMathiX(Double_t x, int pad)
 {
   Double_t shift1 = -LorsX(pad) + 0.5 * o2::hmpid::Param::SizePadX();
   Double_t shift2 = -LorsX(pad) - 0.5 * o2::hmpid::Param::SizePadX();
@@ -343,7 +343,7 @@ Double_t Digit::IntPartMathiY(Double_t y, int pad)
 /// @param[in] localY : Y position of the center of Mathieson distribution
 /// @param[in] pad : the Digit Unique Id [0x00CPXXYY]
 /// @return : a charge fraction [0-1] imposed into the pad
-float Digit::InMathieson(float localX, float localY, int pad)
+Double_t Digit::InMathieson(Double_t localX, Double_t localY, Int_t pad)
 {
   return 4. * IntPartMathiX(localX, pad) * IntPartMathiY(localY, pad);
 }

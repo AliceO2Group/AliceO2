@@ -186,7 +186,7 @@ class Param
   static Int_t StackCount(Int_t pid, Int_t evt);        //Counts stack particles of given sort in given event
   static void IdealPosition(Int_t iCh, TGeoHMatrix* m); //ideal position of given chamber
   //trasformation methodes
-  void Lors2Mars(Int_t c, float x, float y, double* m, Int_t pl = kPc) const
+  void Lors2Mars(Int_t c, double x, double y, double* m, Int_t pl = kPc) const
   {
     double z = 0;
     switch (pl) {
@@ -203,20 +203,20 @@ class Param
     double l[3] = {x - mX, y - mY, z};
     mM[c]->LocalToMaster(l, m);
   }
-  TVector3 Lors2Mars(Int_t c, float x, float y, Int_t pl = kPc) const
+  TVector3 Lors2Mars(Int_t c, double x, double y, Int_t pl = kPc) const
   {
     double m[3];
     Lors2Mars(c, x, y, m, pl);
     return TVector3(m);
   } //MRS->LRS
-  void Mars2Lors(Int_t c, double* m, float& x, float& y) const
+  void Mars2Lors(Int_t c, double* m, double& x, double& y) const
   {
     double l[3];
     mM[c]->MasterToLocal(m, l);
     x = l[0] + mX;
     y = l[1] + mY;
   } //MRS->LRS
-  void Mars2LorsVec(Int_t c, double* m, float& th, float& ph) const
+  void Mars2LorsVec(Int_t c, double* m, double& th, double& ph) const
   {
     double l[3];
     mM[c]->MasterToLocalVect(m, l);
