@@ -54,6 +54,8 @@ struct Header {
     return std::bitset<80>((std::bitset<80>(bitMaskHigh) << 64) | std::bitset<80>(bitMaskLow));
   }
 
+  bool isFillWord() const { return (word0 == 0xffffffffffffffff) && (word1 == 0xffffffffffffffff); }
+
   bool hasCorrectMagicWord() const { return magicWord == MagicWord; }
 };
 
