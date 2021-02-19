@@ -367,7 +367,7 @@ struct HFTrackIndexSkimsCreatorCascades {
         const std::array<float, 3> momentumV0 = {v0.px(), v0.py(), v0.pz()};
 
         // we build the neutral track to then build the cascade
-        auto trackV0 = o2::dataformats::V0(vertexV0, momentumV0, posTrackParCov, negTrackParCov, posTrack.globalIndex(), negTrack.globalIndex()); // build the V0 track
+        auto trackV0 = o2::dataformats::V0(vertexV0, momentumV0, posTrackParCov, negTrackParCov, {0, 0}, {0, 0}); // build the V0 track
 
         // now we find the DCA between the V0 and the bachelor, for the cascade
         int nCand2 = fitter.process(trackV0, bachTrack);
