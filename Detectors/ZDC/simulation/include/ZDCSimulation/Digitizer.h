@@ -116,10 +116,10 @@ class Digitizer
     return std::bitset<NChannels>(v);
   }
   void phe2Sample(int nphe, int parID, double timeHit, std::array<o2::InteractionRecord, NBC2Cache> const& cachedIR, int nCachedIR, int channel);
-
+  void assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData);
   BCCache& getCreateBCCache(const o2::InteractionRecord& ir);
   BCCache* getBCCache(const o2::InteractionRecord& ir);
-
+  void setTriggerMask();
   void generatePedestal();
   void digitizeBC(BCCache& bc);
   bool triggerBC(int ibc);
@@ -139,7 +139,7 @@ class Digitizer
   int mTrigBinMin = 0xffff;                                      // prefetched min and max
   int mTrigBinMax = -0xffff;                                     // bins to be checked for trigger
   int mNBCAHead = 0;                                             // when storing triggered BC, store also mNBCAHead BCs
-
+  uint32_t mTriggerMask = 0;                                     // Trigger mask from ModuleConfig
   std::string mCCDBServer = "";
   const SimCondition* mSimCondition = nullptr;      ///< externally set SimCondition
   const ModuleConfig* mModuleConfig = nullptr;      ///< externally set ModuleConfig
