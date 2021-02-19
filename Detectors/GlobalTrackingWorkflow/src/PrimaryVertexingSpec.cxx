@@ -11,6 +11,8 @@
 /// @file  PrimaryVertexingSpec.cxx
 
 #include <vector>
+#include "GlobalTracking/RecoContainer.h"
+
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsBase/Propagator.h"
@@ -23,6 +25,7 @@
 #include "DataFormatsFT0/RecPoints.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "FT0Reconstruction/InteractionTag.h"
+#include "ITSMFTBase/DPLAlpideParam.h"
 
 using namespace o2::framework;
 
@@ -30,12 +33,23 @@ namespace o2
 {
 namespace vertexing
 {
+o2::globaltracking::DataRequest dataRequest;
+namespace o2d = o2::dataformats;
 
 void PrimaryVertexingSpec::init(InitContext& ic)
 {
   //-------- init geometry and field --------//
   o2::base::GeometryManager::loadGeometry();
   o2::base::Propagator::initFieldFromGRP("o2sim_grp.root");
+
+  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName())};
+  const auto& alpParams = o2::itsmft::DPLAlpideParam<DetID::ITS>::Instance();
+  if (!grp->isDetContinuousReadOut(DetID::ITS)) {
+    mITSROFrameLengthMUS = alpParams.roFrameLengthTrig / 1.e3; // ITS ROFrame duration in \mus
+  } else {
+    mITSROFrameLengthMUS = alpParams.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS * 1e-3; // ITS ROFrame duration in \mus
+  }
+
   // this is a hack to provide Mat.LUT from the local file, in general will be provided by the framework from CCDB
   std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
   std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
@@ -61,10 +75,35 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
 {
   double timeCPU0 = mTimer.CpuTime(), timeReal0 = mTimer.RealTime();
   mTimer.Start(false);
-  const auto tracksITSTPC = pc.inputs().get<gsl::span<o2::dataformats::TrackTPCITS>>("match");
-  gsl::span<const o2::MCCompLabel> lblTPCITS;
+
+  o2::globaltracking::RecoContainer recoData;
+  recoData.collectData(pc, dataRequest);
+  // select tracks of needed type, with minimal cuts, the real selected will be done in the vertexer
+
+  std::vector<TrackWithTimeStamp> tracks;
+  std::vector<o2::MCCompLabel> tracksMCInfo;
+  std::vector<o2d::GlobalTrackID> gids;
+  auto maxTrackTimeError = PVertexerParams::Instance().maxTimeErrorMUS;
+  auto hw2ErrITS = 2.f / std::sqrt(12.f) * mITSROFrameLengthMUS; // conversion from half-width to error for ITS
+
+  std::function<void(const o2::track::TrackParCov& _tr, float t0, float terr, GTrackID _origID)> creator =
+    [maxTrackTimeError, hw2ErrITS, &tracks, &gids](const o2::track::TrackParCov& _tr, float t0, float terr, GTrackID _origID) {
+      if (!_origID.includesDet(DetID::ITS)) {
+        return; // just in case this selection was not done on RecoContainer filling level
+      }
+      if (_origID.getSource() == GTrackID::ITS) { // error is supplied a half-ROF duration, convert to \mus
+        terr *= hw2ErrITS;
+      }
+      if (terr > maxTrackTimeError) {
+        return;
+      }
+      tracks.emplace_back(TrackWithTimeStamp{_tr, {t0, terr}});
+      gids.emplace_back(_origID);
+    };
+
+  recoData.createTracks(creator); // create track sample considered for vertexing
   if (mUseMC) {
-    lblTPCITS = pc.inputs().get<gsl::span<o2::MCCompLabel>>("lblTPCITS");
+    recoData.fillTrackMCLabels(gids, tracksMCInfo);
   }
   std::vector<PVertex> vertices;
   std::vector<GIndex> vertexTrackIDs;
@@ -72,28 +111,20 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
   std::vector<o2::MCEventLabel> lblVtx;
 
   // RS FIXME this will not have effect until the 1st orbit is propagated, until that will work only for TF starting at orbit 0
-  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().get("match").header);
-  mVertexer.setStartIR({0, dh->firstTForbit});
-  std::vector<o2::dataformats::GlobalTrackID> idxVec; // here we will the global IDs of all used tracks
+  mVertexer.setStartIR({0, DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getByPos(0))->firstTForbit});
 
-  // eventually we will mix here the tracks from different sources
-  idxVec.reserve(tracksITSTPC.size());
-  for (unsigned i = 0; i < tracksITSTPC.size(); i++) {
-    idxVec.emplace_back(i, o2::dataformats::GlobalTrackID::ITSTPC);
-  }
-
-  std::vector<o2::ft0::RecPoints> ft0Data;
+  std::vector<o2::InteractionRecord> ft0Data;
   if (mValidateWithIR) { // select BCs for validation
     const o2::ft0::InteractionTag& ft0Params = o2::ft0::InteractionTag::Instance();
-    auto ftall = pc.inputs().get<gsl::span<o2::ft0::RecPoints>>("fitInfo");
-    for (const auto& ftRP : ftall) {
+    auto ft0all = recoData.getFT0RecPoints<o2::ft0::RecPoints>();
+    for (const auto& ftRP : ft0all) {
       if (ft0Params.isSelected(ftRP)) {
-        ft0Data.push_back(ftRP);
+        ft0Data.push_back(ftRP.getInteractionRecord());
       }
     }
   }
 
-  mVertexer.process(tracksITSTPC, idxVec, ft0Data, vertices, vertexTrackIDs, v2tRefs, lblTPCITS, lblVtx);
+  mVertexer.process(tracks, gids, ft0Data, vertices, vertexTrackIDs, v2tRefs, tracksMCInfo, lblVtx);
   pc.outputs().snapshot(Output{"GLO", "PVTX", 0, Lifetime::Timeframe}, vertices);
   pc.outputs().snapshot(Output{"GLO", "PVTX_CONTIDREFS", 0, Lifetime::Timeframe}, v2tRefs);
   pc.outputs().snapshot(Output{"GLO", "PVTX_CONTID", 0, Lifetime::Timeframe}, vertexTrackIDs);
@@ -113,14 +144,24 @@ void PrimaryVertexingSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getPrimaryVertexingSpec(bool validateWithFT0, bool useMC)
+DataProcessorSpec getPrimaryVertexingSpec(DetID::mask_t dets, bool validateWithFT0, bool useMC)
 {
-  std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
-
-  inputs.emplace_back("match", "GLO", "TPCITS", 0, Lifetime::Timeframe);
-  if (validateWithFT0) {
-    inputs.emplace_back("fitInfo", "FT0", "RECPOINTS", 0, Lifetime::Timeframe);
+  if (dets[DetID::ITS]) {
+    dataRequest.requestITSTracks(useMC);
+  }
+  if (dets[DetID::TPC]) {
+    dataRequest.requestITSTPCTracks(useMC);
+    if (dets[DetID::TRD]) {
+      // RSTODO will add once TRD tracking available
+    }
+    if (dets[DetID::TOF]) {
+      dataRequest.requestTOFMatches(useMC);
+      dataRequest.requestTOFClusters(false);
+    }
+  }
+  if (validateWithFT0 && dets[DetID::FT0]) {
+    dataRequest.requestFT0RecPoints(false);
   }
 
   outputs.emplace_back("GLO", "PVTX", 0, Lifetime::Timeframe);
@@ -128,13 +169,12 @@ DataProcessorSpec getPrimaryVertexingSpec(bool validateWithFT0, bool useMC)
   outputs.emplace_back("GLO", "PVTX_CONTIDREFS", 0, Lifetime::Timeframe);
 
   if (useMC) {
-    inputs.emplace_back("lblTPCITS", "GLO", "TPCITS_MC", 0, Lifetime::Timeframe);
     outputs.emplace_back("GLO", "PVTX_MCTR", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{
     "primary-vertexing",
-    inputs,
+    dataRequest.inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<PrimaryVertexingSpec>(validateWithFT0, useMC)},
     Options{{"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};

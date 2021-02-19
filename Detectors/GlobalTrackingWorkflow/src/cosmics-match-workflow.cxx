@@ -120,7 +120,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       // TPC-TOF matches
       specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(true, true, true)); // MC info here is redundant
       // TOF clusters
-      specs.emplace_back(o2::tof::getClusterReaderSpec(false));
+      specs.emplace_back(o2::tof::getClusterReaderSpec(false)); // RSTODO Needed just to set the time of ITSTPC track, consider moving to MatchInfoTOF
       // ITS-TPC-TOF matches
       if (dets[DetID::ITS]) {
         specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(true, false, false)); // MC info here is redundant

@@ -36,6 +36,7 @@ struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParam
   // track selection
   float dcaTolerance = 1.3; ///< consider tracks within this abs DCA to mean vertex
   float pullIniCut = 9;     ///< cut on pull (n^2 sigma) on dca to mean vertex
+  float maxTimeErrorMUS = 10.0; ///< max time error in ms of the track to account
 
   // parameters
   float zHistoRange = 20.;           ///< +-range of the Zseed histo
