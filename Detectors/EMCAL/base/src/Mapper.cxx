@@ -12,7 +12,6 @@
 #include <iostream>
 #include <sstream>
 #include <TSystem.h>
-#include "EMCALBase/Geometry.h"
 #include "EMCALBase/Mapper.h"
 
 using namespace o2::emcal;
