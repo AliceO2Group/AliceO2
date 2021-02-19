@@ -10,6 +10,9 @@
 
 o2_add_library(ZDCWorkflow
                SOURCES src/DigitReaderSpec.cxx
+	               src/EntropyEncoderSpec.cxx
+		       src/EntropyDecoderSpec.cxx
 	       PUBLIC_LINK_LIBRARIES O2::Framework
 	                             O2::SimulationDataFormat
+				     O2::ZDCReconstruction
 				     O2::DataFormatsZDC)

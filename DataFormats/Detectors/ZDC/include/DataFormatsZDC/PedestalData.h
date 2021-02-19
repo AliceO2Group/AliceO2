@@ -28,10 +28,11 @@ namespace zdc
 struct PedestalData {
   o2::InteractionRecord ir;
   std::array<int16_t, NChannels> data{};
+
   float asFloat(int i) const { return data[i] / 8.; }
   void print() const;
 
-  ClassDefNV(PedestalData, 2);
+  ClassDefNV(PedestalData, 1);
 };
 } // namespace zdc
 } // namespace o2
