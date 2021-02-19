@@ -70,8 +70,17 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   std::map<o2::InteractionRecord, std::shared_ptr<std::vector<o2::emcal::Cell>>> cellBuffer; // Internal cell buffer
   std::map<o2::InteractionRecord, uint32_t> triggerBuffer;
 
+  mOutputDecoderErrors.clear();
+
   int firstEntry = 0;
   for (const auto& rawData : framework::InputRecordWalker(ctx.inputs())) {
+
+    // Skip SOX headers
+    auto rdhblock = reinterpret_cast<const o2::header::RDHAny*>(rawData.payload);
+    if (o2::raw::RDHUtils::getHeaderSize(rdhblock) == static_cast<int>(o2::framework::DataRefUtils::getPayloadSize(rawData))) {
+      continue;
+    }
+
     //o2::emcal::RawReaderMemory<o2::header::RAWDataHeaderV4> rawreader(gsl::span(rawData.payload, o2::framework::DataRefUtils::getPayloadSize(rawData)));
 
     o2::emcal::RawReaderMemory rawreader(o2::framework::DataRefUtils::as<const char>(rawData));
@@ -107,7 +116,55 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 
       // use the altro decoder to decode the raw data, and extract the RCU trailer
       o2::emcal::AltroDecoder decoder(rawreader);
-      decoder.decode();
+      //check the words of the payload exception in altrodecoder
+      try {
+        decoder.decode();
+      } catch (AltroDecoderError& e) {
+        std::stringstream errormessage;
+        using AltroErrType = o2::emcal::AltroDecoderError::ErrorType_t;
+        int errornum = -1;
+        switch (e.getErrorType()) {
+          case AltroErrType::RCU_TRAILER_ERROR:
+            errornum = 0;
+            errormessage << " RCU Trailer Error ";
+            break;
+          case AltroErrType::RCU_VERSION_ERROR:
+            errornum = 1;
+            errormessage << " RCU Version Error ";
+            break;
+          case AltroErrType::RCU_TRAILER_SIZE_ERROR:
+            errornum = 2;
+            errormessage << " RCU Trailer Size Error ";
+            break;
+          case AltroErrType::ALTRO_BUNCH_HEADER_ERROR:
+            errornum = 3;
+            errormessage << " ALTRO Bunch Header Error ";
+            break;
+          case AltroErrType::ALTRO_BUNCH_LENGTH_ERROR:
+            errornum = 4;
+            errormessage << " ALTRO Bunch Length Error ";
+            break;
+          case AltroErrType::ALTRO_PAYLOAD_ERROR:
+            errornum = 5;
+            errormessage << " ALTRO Payload Error ";
+            break;
+          case AltroErrType::ALTRO_MAPPING_ERROR:
+            errornum = 6;
+            errormessage << " ALTRO Mapping Error ";
+            break;
+          case AltroErrType::CHANNEL_ERROR:
+            errornum = 7;
+            errormessage << " Channel Error ";
+            break;
+          default:
+            break;
+        }
+        errormessage << " in Supermodule " << feeID;
+        std::cout << " EMCAL raw task: " << errormessage.str() << std::endl;
+        //fill histograms  with error types
+        mOutputDecoderErrors.push_back(errornum);
+        continue;
+      }
 
       LOG(DEBUG) << decoder.getRCUTrailer();
 
@@ -160,6 +217,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   LOG(DEBUG) << "[EMCALRawToCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
   ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLS", 0, o2::framework::Lifetime::Timeframe}, mOutputCells);
   ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLSTRGR", 0, o2::framework::Lifetime::Timeframe}, mOutputTriggerRecords);
+  ctx.outputs().snapshot(o2::framework::Output{"EMC", "DECODERERR", 0, o2::framework::Lifetime::Timeframe}, mOutputDecoderErrors);
 }
 
 o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverterSpec()
@@ -169,6 +227,7 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverter
 
   outputs.emplace_back("EMC", "CELLS", 0, o2::framework::Lifetime::Timeframe);
   outputs.emplace_back("EMC", "CELLSTRGR", 0, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("EMC", "DECODERERR", 0, o2::framework::Lifetime::Timeframe);
 
   return o2::framework::DataProcessorSpec{"EMCALRawToCellConverterSpec",
                                           o2::framework::select("A:EMC/RAWDATA"),
