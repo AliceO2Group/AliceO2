@@ -100,7 +100,6 @@ int main(int argc, const char** argv)
   o2::emcal::RawWriter rawwriter;
   rawwriter.setOutputLocation(outputdir.data());
   rawwriter.setFileFor(granularity);
-  rawwriter.setGeometry(o2::emcal::Geometry::GetInstanceFromRunNumber(300000));
   rawwriter.setNumberOfADCSamples(15); // @TODO Needs to come from CCDB
   rawwriter.setPedestal(3);            // @TODO Needs to come from CCDB
   rawwriter.init();

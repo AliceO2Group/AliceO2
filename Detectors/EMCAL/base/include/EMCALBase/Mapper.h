@@ -339,8 +339,26 @@ class MappingHandler
   /// \throw DDLInvalid if DDL is invalid for EMCAL
   Mapper& getMappingForDDL(int ddl);
 
+  /// \brief Get link ID, row and column from cell ID, have a look here: https://alice.its.cern.ch/jira/browse/EMCAL-660
+  /// \param towerID Cell ID
+  /// \return link ID
+  /// \return row
+  /// \return col
+  std::tuple<int, int, int> getOnlineID(int towerID);
+
+  /// \brief Temporary link assignment (till final link assignment is known -
+  /// \brief eventually taken from CCDB)
+  /// \brief Current mapping can be found under https://alice.its.cern.ch/jira/browse/EMCAL-660
+  /// \param ddlID DDL ID
+  /// \return CRORC ID
+  /// \return CRORC Link
+  std::tuple<int, int> getLinkAssignment(int ddlID) const { return std::make_tuple(mCRORCID[ddlID / 2], mCRORCLink[ddlID]); };
+
  private:
   std::array<Mapper, 4> mMappings; ///< Mapping container
+
+  std::array<int, 20> mCRORCID = {110, 112, 110, 112, 110, 112, 111, 113, 111, 113, 111, 113, 114, 116, 114, 116, 115, 117, 115, 117};                         // CRORC ID w.r.t SM
+  std::array<int, 40> mCRORCLink = {0, 1, 0, 1, 2, 3, 2, 3, 4, 5, 4, 5, 0, 1, 0, 1, 2, 3, 2, 3, 4, -1, 4, 5, 0, 1, 0, 1, 2, 3, 2, 3, 0, 1, 0, 1, 2, 3, 2, -1}; // CRORC limk w.r.t FEE ID
 
   ClassDefNV(MappingHandler, 1);
 };

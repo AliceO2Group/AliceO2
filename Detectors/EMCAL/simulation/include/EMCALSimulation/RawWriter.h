@@ -34,8 +34,6 @@ namespace o2
 namespace emcal
 {
 
-class Geometry;
-
 struct AltroBunch {
   int mStarttime;
   std::vector<int> mADCs;
@@ -92,7 +90,6 @@ class RawWriter
   void setFileFor(FileFor_t filefor) { mFileFor = filefor; }
   void setNumberOfADCSamples(int nsamples) { mNADCSamples = nsamples; }
   void setPedestal(int pedestal) { mPedestal = pedestal; }
-  void setGeometry(o2::emcal::Geometry* geo) { mGeometry = geo; }
 
   void init();
   void digitsToRaw(gsl::span<o2::emcal::Digit> digits, gsl::span<o2::emcal::TriggerRecord> triggers);
@@ -104,18 +101,15 @@ class RawWriter
 
  protected:
   std::vector<AltroBunch> findBunches(const std::vector<o2::emcal::Digit*>& channelDigits);
-  std::tuple<int, int, int> getOnlineID(int towerID);
-  std::tuple<int, int> getLinkAssignment(int ddlID);
 
   ChannelHeader createChannelHeader(int hardwareAddress, int payloadSize, bool isBadChannel);
-  std::vector<char> createRCUTrailer(int payloadsize, int feca, int fecb, double timesample, uint64_t triggertime);
+  std::vector<char> createRCUTrailer(int payloadsize, double timesample, uint64_t triggertime, int feeID);
   std::vector<int> encodeBunchData(const std::vector<int>& data);
 
  private:
   int mNADCSamples = 15;                                      ///< Number of time samples
   int mPedestal = 0;                                          ///< Pedestal
   FileFor_t mFileFor = FileFor_t::kFullDet;                   ///< Granularity of the output files
-  o2::emcal::Geometry* mGeometry = nullptr;                   ///< EMCAL geometry
   std::string mOutputLocation;                                ///< Rawfile name
   std::unique_ptr<o2::emcal::MappingHandler> mMappingHandler; ///< Mapping handler
   gsl::span<o2::emcal::Digit> mDigits;                        ///< Digits input vector - must be in digitized format including the time response

@@ -24,13 +24,31 @@ void RawWriter::init()
 {
   mRawWriter = std::make_unique<o2::raw::RawFileWriter>(o2::header::gDataOriginEMC, false);
   mRawWriter->setCarryOverCallBack(this);
+
+  // initialize mappers
+  if (!mMappingHandler) {
+    mMappingHandler = std::make_unique<o2::emcal::MappingHandler>();
+  }
+
   for (auto iddl = 0; iddl < 40; iddl++) {
     // For EMCAL set
     // - FEE ID = DDL ID
     // - C-RORC and link increasing with DDL ID
     // @TODO replace with link assignment on production FLPs,
     // eventually storing in CCDB
-    auto [crorc, link] = getLinkAssignment(iddl);
+
+    // initialize containers for SRU
+    SRUDigitContainer srucont;
+    srucont.mSRUid = iddl;
+    mSRUdata.push_back(srucont);
+
+    // Skip empty links with these ddl IDs,
+    // ddl ID 21 and 39 are empty links, while 23 and 36 are connected to LEDmon only
+    if (iddl == 21 || iddl == 22 || iddl == 36 || iddl == 39) {
+      continue;
+    }
+
+    auto [crorc, link] = mMappingHandler->getLinkAssignment(iddl);
     std::string rawfilename = mOutputLocation;
     switch (mFileFor) {
       case FileFor_t::kFullDet:
@@ -50,17 +68,6 @@ void RawWriter::init()
         rawfilename += fmt::format("/emcal_{:d}_{:d}.raw", crorc, link);
     }
     mRawWriter->registerLink(iddl, crorc, link, 0, rawfilename.data());
-  }
-  // initialize mappers
-  if (!mMappingHandler) {
-    mMappingHandler = std::make_unique<o2::emcal::MappingHandler>();
-  }
-
-  // initialize containers for SRU
-  for (auto isru = 0; isru < 40; isru++) {
-    SRUDigitContainer srucont;
-    srucont.mSRUid = isru;
-    mSRUdata.push_back(srucont);
   }
 }
 
@@ -86,7 +93,7 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
       if (tower > 20000) {
         std::cout << "Wrong cell ID " << tower << std::endl;
       }
-      auto onlineindices = getOnlineID(tower);
+      auto onlineindices = mMappingHandler->getOnlineID(tower);
       int sruID = std::get<0>(onlineindices);
       auto towerdata = mSRUdata[sruID].mChannels.find(tower);
       if (towerdata == mSRUdata[sruID].mChannels.end()) {
@@ -114,6 +121,10 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
   for (auto srucont : mSRUdata) {
 
     std::vector<char> payload; // this must be initialized per SRU, becuase pages are per SRU, therefore the payload was not reset.
+
+    if (srucont.mSRUid == 21 || srucont.mSRUid == 22 || srucont.mSRUid == 36 || srucont.mSRUid == 39) {
+      continue;
+    }
 
     for (const auto& [tower, channel] : srucont.mChannels) {
       // Find out hardware address of the channel
@@ -159,14 +170,14 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
     }
 
     // Create RCU trailer
-    auto trailerwords = createRCUTrailer(payload.size() / 4, 16, 16, 100., trg.getBCData().toLong());
+    auto trailerwords = createRCUTrailer(payload.size() / 4, 100., trg.getBCData().toLong(), srucont.mSRUid);
     for (auto word : trailerwords) {
       payload.emplace_back(word);
     }
 
     // register output data
     auto ddlid = srucont.mSRUid;
-    auto [crorc, link] = getLinkAssignment(ddlid);
+    auto [crorc, link] = mMappingHandler->getLinkAssignment(ddlid);
     LOG(DEBUG1) << "Adding payload with size " << payload.size() << " (" << payload.size() / 4 << " ALTRO words)";
     mRawWriter->addData(ddlid, crorc, link, 0, trg.getBCData(), payload, false, trg.getTriggerBits());
   }
@@ -212,39 +223,6 @@ std::vector<AltroBunch> RawWriter::findBunches(const std::vector<o2::emcal::Digi
   return result;
 }
 
-std::tuple<int, int, int> RawWriter::getOnlineID(int towerID)
-{
-  auto cellindex = mGeometry->GetCellIndex(towerID);
-  auto supermoduleID = std::get<0>(cellindex);
-  auto etaphi = mGeometry->GetCellPhiEtaIndexInSModule(supermoduleID, std::get<1>(cellindex), std::get<2>(cellindex), std::get<3>(cellindex));
-  auto etaphishift = mGeometry->ShiftOfflineToOnlineCellIndexes(supermoduleID, std::get<0>(etaphi), std::get<1>(etaphi));
-  int row = std::get<0>(etaphishift), col = std::get<1>(etaphishift);
-
-  int ddlInSupermoudel = -1;
-  if (0 <= row && row < 8) {
-    ddlInSupermoudel = 0; // first cable row
-  } else if (8 <= row && row < 16 && 0 <= col && col < 24) {
-    ddlInSupermoudel = 0; // first half;
-  } else if (8 <= row && row < 16 && 24 <= col && col < 48) {
-    ddlInSupermoudel = 1; // second half;
-  } else if (16 <= row && row < 24) {
-    ddlInSupermoudel = 1; // third cable row
-  }
-  if (supermoduleID % 2 == 1) {
-    ddlInSupermoudel = 1 - ddlInSupermoudel; // swap for odd=C side, to allow us to cable both sides the same
-  }
-
-  return std::make_tuple(supermoduleID * 2 + ddlInSupermoudel, row, col);
-}
-
-std::tuple<int, int> RawWriter::getLinkAssignment(int ddlID)
-{
-  // Temporary link assignment (till final link assignment is known -
-  // eventually taken from CCDB)
-  // - Link (0-5) and C-RORC ID linear with ddlID
-  return std::make_tuple(ddlID / 6, ddlID % 6);
-}
-
 std::vector<int> RawWriter::encodeBunchData(const std::vector<int>& data)
 {
   std::vector<int> encoded;
@@ -286,13 +264,31 @@ ChannelHeader RawWriter::createChannelHeader(int hardwareAddress, int payloadSiz
   return header;
 }
 
-std::vector<char> RawWriter::createRCUTrailer(int payloadsize, int feca, int fecb, double timesample, uint64_t triggertime)
+std::vector<char> RawWriter::createRCUTrailer(int payloadsize, double timesample, uint64_t triggertime, int feeID)
 {
   RCUTrailer trailer;
-  trailer.setActiveFECsA(feca);
-  trailer.setActiveFECsB(fecb);
   trailer.setPayloadSize(payloadsize);
   trailer.setTimeSamplePhaseNS(triggertime, timesample);
+
+  // You can find details about these settings here https://alice.its.cern.ch/jira/browse/EMCAL-650
+  trailer.setRCUID(feeID);
+  trailer.setFirmwareVersion(2);
+  trailer.setActiveFECsA(0x0);
+  trailer.setActiveFECsB(0x1);
+  trailer.setBaselineCorrection(0);
+  trailer.setPolarity(false);
+  trailer.setNumberOfPresamples(0);
+  trailer.setNumberOfPostsamples(0);
+  trailer.setSecondBaselineCorrection(false);
+  trailer.setGlitchFilter(0);
+  trailer.setNumberOfNonZeroSuppressedPostsamples(1);
+  trailer.setNumberOfNonZeroSuppressedPresamples(1);
+  trailer.setNumberOfPretriggerSamples(0);
+  trailer.setNumberOfSamplesPerChannel(15);
+  trailer.setZeroSuppression(true);
+  trailer.setSparseReadout(true);
+  trailer.setNumberOfAltroBuffers(RCUTrailer::BufferMode_t::NBUFFERS4);
+
   auto trailerwords = trailer.encode();
   std::vector<char> encoded(trailerwords.size() * sizeof(uint32_t));
   memcpy(encoded.data(), trailerwords.data(), trailerwords.size() * sizeof(uint32_t));
