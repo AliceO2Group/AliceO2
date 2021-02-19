@@ -34,7 +34,7 @@ namespace globaltracking
 struct DataRequest {
   std::vector<o2::framework::InputSpec> inputs;
   std::unordered_map<std::string, bool> requestMap;
-
+  void addInput(const o2::framework::InputSpec&& isp);
   void requestITSTracks(bool mc);
   void requestTPCTracks(bool mc);
   void requestITSTPCTracks(bool mc);
@@ -74,6 +74,7 @@ struct RecoContainer {
 
   void collectData(o2::framework::ProcessingContext& pc, const DataRequest& request);
   void createTracks(std::function<void(const o2::track::TrackParCov&, float, float, GTrackID)> const& creator) const;
+  void fillTrackMCLabels(const gsl::span<GTrackID> gids, std::vector<o2::MCCompLabel>& mcinfo) const;
 
   void addITSTracks(o2::framework::ProcessingContext& pc, bool mc);
   void addTPCTracks(o2::framework::ProcessingContext& pc, bool mc);
@@ -225,6 +226,13 @@ struct RecoContainer {
   o2::MCCompLabel getTrackMCLabel(GTrackID id) const
   {
     return tracksMCPool.get(id);
+  }
+
+  // FT0
+  template <typename U> // o2::ft0::RecPoints
+  auto getFT0RecPoints() const
+  {
+    return miscPool.getSpan<U>(GTrackID::FT0);
   }
 };
 
