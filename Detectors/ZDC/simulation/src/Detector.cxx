@@ -15,7 +15,7 @@
 #include "DetectorsBase/MaterialManager.h"
 #include "SimulationDataFormat/Stack.h"
 #include "ZDCSimulation/Detector.h"
-#include "ZDCSimulation/Hit.h"
+#include "DataFormatsZDC/Hit.h"
 
 #include "TMath.h"
 #include "TGeoManager.h"        // for TGeoManager, gGeoManager

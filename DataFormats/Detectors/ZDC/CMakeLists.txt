@@ -13,10 +13,12 @@ o2_add_library(DataFormatsZDC
 	       	       src/OrbitRawData.cxx src/OrbitRecData.cxx  src/PedestalData.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonConstants O2::CommonDataFormat
 	       			     O2::ZDCBase ROOT::MathCore FairRoot::Base
+				     O2::SimulationDataFormat
 				     O2::MathUtils ms_gsl::ms_gsl)
 
 o2_target_root_dictionary(DataFormatsZDC
-               HEADERS include/DataFormatsZDC/BCData.h include/DataFormatsZDC/ChannelData.h
+               HEADERS include/DataFormatsZDC/Hit.h include/DataFormatsZDC/MCLabel.h
+                       include/DataFormatsZDC/BCData.h include/DataFormatsZDC/ChannelData.h
 	               include/DataFormatsZDC/PedestalData.h
 	       	       include/DataFormatsZDC/RecEvent.h include/DataFormatsZDC/OrbitRawData.h
 		       include/DataFormatsZDC/OrbitRecData.h include/DataFormatsZDC/RawEventData.h)

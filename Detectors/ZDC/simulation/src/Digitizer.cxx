@@ -12,7 +12,6 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "ZDCSimulation/Digitizer.h"
-#include "ZDCSimulation/Hit.h"
 #include "ZDCSimulation/SimCondition.h"
 #include "ZDCSimulation/ZDCSimParam.h"
 #include <TRandom.h>
@@ -422,7 +421,6 @@ void Digitizer::init()
   auto& sopt = ZDCSimParam::Instance();
   mIsContinuous = sopt.continuous;
   mNBCAHead = mIsContinuous ? sopt.nBCAheadCont : sopt.nBCAheadTrig;
-  setTriggerMask();
   LOG(INFO) << "Initialized in " << (mIsContinuous ? "Cont" : "Trig") << " mode, " << mNBCAHead
             << " BCs will be stored ahead of Trigger";
 }
@@ -487,6 +485,8 @@ void Digitizer::refreshCCDB()
     LOG(INFO) << "Loaded simulation configuration for timestamp " << mTimeStamp;
     mSimCondition->print();
   }
+
+  setTriggerMask();
 }
 
 //______________________________________________________________________________
@@ -564,7 +564,6 @@ void Digitizer::assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData)
       }
       triggers[diffBC] = otherBC.triggers;
     }
-
     // Assign trigger bits in payload
     for (int im = 0; im < NModules; im++) {
       uint32_t tmask = (0xf << (im * NChPerModule)) & mTriggerMask;
@@ -578,19 +577,39 @@ void Digitizer::assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData)
 }
 
 //______________________________________________________________________________
-void Digitizer::findEmptyBunches(std::bitset<o2::constants::lhc::LHCMaxBunches>& bunchPattern)
+void Digitizer::findEmptyBunches(const std::bitset<o2::constants::lhc::LHCMaxBunches>& bunchPattern)
 {
   mNEmptyBCs = 0;
   for (int ib = 0; ib < o2::constants::lhc::LHCMaxBunches; ib++) {
-    int mb = (ib + 31) % o2::constants::lhc::LHCMaxBunches; // beam gas from back of calorimeter
-    int m1 = ib ? ((ib - 1) % o2::constants::lhc::LHCMaxBunches) : (o2::constants::lhc::LHCMaxBunches-1);  // previous bunch
-    int cb = ib;                        // current bunch crossing
-    int p1 = (ib + 1) % o2::constants::lhc::LHCMaxBunches;  // colliding + 1
-    int p2 = (ib + 2) % o2::constants::lhc::LHCMaxBunches;  // colliding + 2
-    int p3 = (ib + 3) % o2::constants::lhc::LHCMaxBunches;  // colliding + 3
+    int mb = (ib + 31) % o2::constants::lhc::LHCMaxBunches;                                                 // beam gas from back of calorimeter
+    int m1 = ib ? ((ib - 1) % o2::constants::lhc::LHCMaxBunches) : (o2::constants::lhc::LHCMaxBunches - 1); // previous bunch
+    int cb = ib;                                                                                            // current bunch crossing
+    int p1 = (ib + 1) % o2::constants::lhc::LHCMaxBunches;                                                  // colliding + 1
+    int p2 = (ib + 2) % o2::constants::lhc::LHCMaxBunches;                                                  // colliding + 2
+    int p3 = (ib + 3) % o2::constants::lhc::LHCMaxBunches;                                                  // colliding + 3
     if (!(bunchPattern[mb] || bunchPattern[m1] || bunchPattern[cb] || bunchPattern[p1] || bunchPattern[p2] || bunchPattern[p3])) {
       mNEmptyBCs++;
     }
   }
   LOG(INFO) << "There are " << mNEmptyBCs << " clean empty bunches";
+}
+
+//______________________________________________________________________________
+void Digitizer::updatePedestalReference(PedestalData& pdata)
+{
+  // Compute or update baseline reference
+  for (uint32_t id = 0; id < NChannels; id++) {
+    auto base_m = mSimCondition->channels[id].pedestal;                                                   // Average pedestal
+    auto base_s = mSimCondition->channels[id].pedestalFluct;                                              // Baseline oscillations
+    auto base_n = mSimCondition->channels[id].pedestalNoise;                                              // Electronic noise
+    float ped = gRandom->Gaus(12. * mNEmptyBCs * base_m, 12. * 2. * base_s * std::sqrt(0.5 * mNEmptyBCs)) // 2 for fluctuation every 2 BCs
+                + gRandom->Gaus(0, base_n * std::sqrt(12. * mNEmptyBCs));
+    int16_t peds = std::round(8. * ped / mNEmptyBCs / 12.);
+    if (peds < SHRT_MIN) {
+      peds = SHRT_MIN;
+    } else if (peds > SHRT_MAX) {
+      peds = SHRT_MAX;
+    }
+    pdata.data[id] = peds;
+  }
 }
