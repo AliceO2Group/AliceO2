@@ -140,6 +140,8 @@ class Digitizer
   int mTrigBinMax = -0xffff;                                     // bins to be checked for trigger
   int mNBCAHead = 0;                                             // when storing triggered BC, store also mNBCAHead BCs
   uint32_t mTriggerMask = 0;                                     // Trigger mask from ModuleConfig
+  int32_t mNEmptyBCs = -1;                                       // Number of clean empty bunches for pedestal evaluation
+  
   std::string mCCDBServer = "";
   const SimCondition* mSimCondition = nullptr;      ///< externally set SimCondition
   const ModuleConfig* mModuleConfig = nullptr;      ///< externally set ModuleConfig
