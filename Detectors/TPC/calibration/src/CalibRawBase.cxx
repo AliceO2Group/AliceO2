@@ -14,6 +14,7 @@
 #include "TSystem.h"
 #include "TObjString.h"
 #include "TObjArray.h"
+#include "TPCBase/RDHUtils.h"
 
 #include "TPCCalibration/CalibRawBase.h"
 
@@ -74,6 +75,11 @@ void CalibRawBase::setupContainers(TString fileInfo, uint32_t verbosity, uint32_
         mProcessedTimeBins = std::max(mProcessedTimeBins, size_t(timeBins));
         return timeBins;
       });
+      mRawReaderCRUManager.setLinkZSCallback([this](int cru, int rowInSector, int padInRow, int timeBin, float adcValue) -> bool {
+        updateROC(CRU(cru).roc(), rowInSector - (rowInSector > 62) * 63, padInRow, timeBin, adcValue);
+        return true;
+      });
+
       for (auto file : *arr) {
         // fix the number of time bins
         auto& reader = mRawReaderCRUManager.createReader(file->GetName(), timeBins);

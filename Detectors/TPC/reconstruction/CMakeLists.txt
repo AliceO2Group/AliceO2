@@ -27,6 +27,7 @@ o2_add_library(TPCReconstruction
                        src/DigitalCurrentClusterIntegrator.cxx
                        src/TPCFastTransformHelperO2.cxx
                        src/CTFCoder.cxx
+                       src/RawProcessingHelpers.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
                                      O2::SimulationDataFormat
                                      O2::TPCBase
@@ -54,7 +55,8 @@ o2_target_root_dictionary(
           include/TPCReconstruction/HardwareClusterDecoder.h
           include/TPCReconstruction/DigitalCurrentClusterIntegrator.h
           include/TPCReconstruction/TPCFastTransformHelperO2.h
-          include/TPCReconstruction/CTFCoder.h)
+          include/TPCReconstruction/CTFCoder.h
+          include/TPCReconstruction/RawProcessingHelpers.h)
 
 o2_add_executable(read-gbtframes
                   COMPONENT_NAME tpc
