@@ -492,6 +492,18 @@ void Detector::createMaterials()
   o2::base::Detector::Medium(matId, "Polyurethane$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
   matId++;
 
+  //Halfcone Materials
+  // Alu5083 mixture
+  const Int_t nAlu5083 = 9; //iron, silicon, copper, Manganese, Magnesium, Zinc, Titanium, Chromium, Aluminium
+  Float_t aAlu5083[nAlu5083] = {55.845, 28.0855, 63.546, 54.938049, 24.3050, 65.39, 47.867, 51.9961, 26.981538};
+  Float_t zAlu5083[nAlu5083] = {26., 14., 29., 25., 12., 30., 22., 24., 13.};
+  Float_t wAlu5083[nAlu5083] = {0.004, 0.004, 0.001, 0.002, 0.0025, 0.0025, 0.0015, 0.0010, 0.9815};
+  Float_t dAlu5083 = 2.65;
+
+  o2::base::Detector::Mixture(matId, "Alu5083$", aAlu5083, zAlu5083, dAlu5083, nAlu5083, wAlu5083);
+  o2::base::Detector::Medium(matId, "Alu5083$", matId, unsens, itgfld, maxfld, tmaxfd, stemax, deemax, epsil, stmin);
+  matId++;
+
   LOG(DEBUG) << "Detector::createMaterials -----> matId = " << matId;
 }
 
