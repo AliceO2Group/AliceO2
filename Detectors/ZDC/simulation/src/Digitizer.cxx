@@ -422,6 +422,7 @@ void Digitizer::init()
   auto& sopt = ZDCSimParam::Instance();
   mIsContinuous = sopt.continuous;
   mNBCAHead = mIsContinuous ? sopt.nBCAheadCont : sopt.nBCAheadTrig;
+  setTriggerMask();
   LOG(INFO) << "Initialized in " << (mIsContinuous ? "Cont" : "Trig") << " mode, " << mNBCAHead
             << " BCs will be stored ahead of Trigger";
 }
@@ -500,5 +501,78 @@ void Digitizer::BCCache::print() const
       printf("%+8.1f ", data[ic][ib]);
     }
     printf("\n");
+  }
+}
+
+//______________________________________________________________________________
+void Digitizer::setTriggerMask()
+{
+  mTriggerMask = 0;
+  std::string printTriggerMask{};
+
+  for (int im = 0; im < NModules; im++) {
+    if (im > 0) {
+      printTriggerMask += " ";
+    }
+    printTriggerMask += std::to_string(im);
+    printTriggerMask += "[";
+    for (int ic = 0; ic < NChPerModule; ic++) {
+      if (mModuleConfig->modules[im].trigChannel[ic]) {
+        uint32_t tmask = 0x1 << (im * NChPerModule + ic);
+        mTriggerMask = mTriggerMask | tmask;
+        printTriggerMask += "T";
+      } else {
+        printTriggerMask += " ";
+      }
+    }
+    printTriggerMask += "]";
+    uint32_t mytmask = mTriggerMask >> (im * NChPerModule);
+    LOGF(INFO, "Trigger mask for module %d 0123 %c%c%c%c\n", im,
+         mytmask & 0x1 ? 'T' : 'N', mytmask & 0x2 ? 'T' : 'N', mytmask & 0x4 ? 'T' : 'N', mytmask & 0x8 ? 'T' : 'N');
+  }
+  LOGF(INFO, "trigger_mask=0x%08x %s\n", mTriggerMask, printTriggerMask.c_str());
+}
+
+//______________________________________________________________________________
+void Digitizer::assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData)
+{
+  // Triggers refer to the HW trigger conditions (32 possible channels)
+
+  uint32_t nbcTot = bcData.size();
+  auto currBC = bcData[ibc];
+
+  uint32_t triggers[5] = {0};
+  for (int is = -1; is < 4; is++) {
+    int ibc_peek = ibc + is;
+    if (ibc_peek < 0) {
+      continue;
+    }
+    if (ibc_peek >= nbcTot) {
+      break;
+    }
+    const auto& otherBC = bcData[ibc_peek];
+    if (otherBC.triggers) {
+      auto diffBC = otherBC.ir.differenceInBC(currBC.ir);
+      if (diffBC < -1 || diffBC > 3) {
+        continue;
+      }
+      diffBC++;
+      if (otherBC.ext_triggers) {
+        for (int im = 0; im < NModules; im++) {
+          currBC.moduleTriggers[im] |= 0x1 << diffBC;
+        }
+      }
+      triggers[diffBC] = otherBC.triggers;
+    }
+
+    // Assign trigger bits in payload
+    for (int im = 0; im < NModules; im++) {
+      uint32_t tmask = (0xf << (im * NChPerModule)) & mTriggerMask;
+      for (int it = 0; it < 5; it++) {
+        if (triggers[it] & tmask) {
+          currBC.moduleTriggers[im] |= 0x1 << (5 + it);
+        }
+      }
+    }
   }
 }

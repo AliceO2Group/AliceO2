@@ -101,6 +101,10 @@ class ZDCDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     mDigitizer.setInteractionRecord(terminateIR);
     mDigitizer.flush(mDigitsBC, mDigitsCh, mLabels);
 
+    for (uint32_t ib = 0; ib < mDigitsBC.size(); ib++) {
+      mDigitizer.assignTriggerBits(ib, mDigitsBC);
+    }
+
     // send out to next stage
     pc.outputs().snapshot(Output{"ZDC", "DIGITSBC", 0, Lifetime::Timeframe}, mDigitsBC);
     pc.outputs().snapshot(Output{"ZDC", "DIGITSCH", 0, Lifetime::Timeframe}, mDigitsCh);
