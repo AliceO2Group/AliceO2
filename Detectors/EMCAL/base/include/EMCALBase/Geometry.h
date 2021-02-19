@@ -501,6 +501,21 @@ class Geometry
   /// \throw InvalidCellIDException if cell ID does not exist
   math_utils::Point3D<double> RelPosCellInSModule(Int_t absId) const;
 
+  /// \brief Get link ID, row and column from cell ID, have a look here: https://alice.its.cern.ch/jira/browse/EMCAL-660
+  /// \param towerID Cell ID
+  /// \return link ID
+  /// \return row
+  /// \return col
+  std::tuple<int, int, int> getOnlineID(int towerID);
+
+  /// \brief Temporary link assignment (till final link assignment is known -
+  /// \brief eventually taken from CCDB)
+  /// \brief Current mapping can be found under https://alice.its.cern.ch/jira/browse/EMCAL-660
+  /// \param ddlID DDL ID
+  /// \return CRORC ID
+  /// \return CRORC Link
+  std::tuple<int, int> getLinkAssignment(int ddlID) const { return std::make_tuple(mCRORCID[ddlID / 2], mCRORCLink[ddlID]); };
+
   std::vector<EMCALSMType> GetEMCSystem() const { return mEMCSMSystem; } // EMC System, SM type list
   // Local Coordinates of SM
   std::vector<Double_t> GetCentersOfCellsEtaDir() const
@@ -669,6 +684,9 @@ class Geometry
   Int_t mIHADR; ///< Options for Geant (MIP business) - will call in AliEMCAL
 
   Float_t mSteelFrontThick; ///< Thickness of the front stell face of the support box - 9-sep-04; obsolete?
+
+  std::array<int, 20> mCRORCID = {110, 112, 110, 112, 110, 112, 111, 113, 111, 113, 111, 113, 114, 116, 114, 116, 115, 117, 115, 117};                         // CRORC ID w.r.t SM
+  std::array<int, 40> mCRORCLink = {0, 1, 0, 1, 2, 3, 2, 3, 4, 5, 4, 5, 0, 1, 0, 1, 2, 3, 2, 3, 4, -1, 4, 5, 0, 1, 0, 1, 2, 3, 2, 3, 0, 1, 0, 1, 2, 3, 2, -1}; // CRORC limk w.r.t FEE ID
 
   mutable const TGeoHMatrix* SMODULEMATRIX[EMCAL_MODULES];      ///< Orientations of EMCAL super modules
   std::vector<std::tuple<int, int, int, int>> mCellIndexLookup; ///< Lookup table for cell indices
