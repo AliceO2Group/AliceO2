@@ -898,11 +898,14 @@ void doDPLException(RuntimeErrorRef& e)
 {
   auto& err = o2::framework::error_from_ref(e);
   if (err.maxBacktrace != 0) {
-    LOG(ERROR) << "Unhandled o2::framework::runtime_error reached the top of main, device shutting down. Details follow: \n";
+    LOG(ERROR) << "Unhandled o2::framework::runtime_error reached the top of main, device shutting down."
+               << "\n Reason: " << err.what
+               << "\n Backtrace follow: \n";
     backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
   } else {
     LOG(ERROR) << "Unhandled o2::framework::runtime_error reached the top of main, device shutting down."
-                  " Recompile with DPL_ENABLE_BACKTRACE=1 to get more information.";
+               << "\n Reason: " << err.what
+               << "\n Recompile with DPL_ENABLE_BACKTRACE=1 to get more information.";
   }
 }
 
