@@ -73,10 +73,12 @@ struct TaskX {
         continue;
       }
       registry.fill(HIST("hmassJpsi"), InvMassJpsiToEE(candidate));
+      printf("Jpsi index 0 %d \n Jpsi index 1 %d \n", candidate.index0(), candidate.index1());
       for (auto trackPos1 = tracks.begin(); trackPos1 != tracks.end(); ++trackPos1) {
         if (trackPos1.signed1Pt() < 0) {
           continue;
         }
+        // TrackPos1.index0();
         for (auto trackNeg1 = tracks.begin(); trackNeg1 != tracks.end(); ++trackNeg1) {
           if (trackNeg1.signed1Pt() > 0) {
             continue;
