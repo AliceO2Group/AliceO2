@@ -34,6 +34,7 @@ namespace o2
 namespace emcal
 {
 
+class Geometry;
 struct AltroBunch {
   int mStarttime;
   std::vector<int> mADCs;
@@ -90,6 +91,7 @@ class RawWriter
   void setFileFor(FileFor_t filefor) { mFileFor = filefor; }
   void setNumberOfADCSamples(int nsamples) { mNADCSamples = nsamples; }
   void setPedestal(int pedestal) { mPedestal = pedestal; }
+  void setGeometry(o2::emcal::Geometry* geo) { mGeometry = geo; }
 
   void init();
   void digitsToRaw(gsl::span<o2::emcal::Digit> digits, gsl::span<o2::emcal::TriggerRecord> triggers);
@@ -110,6 +112,7 @@ class RawWriter
   int mNADCSamples = 15;                                      ///< Number of time samples
   int mPedestal = 0;                                          ///< Pedestal
   FileFor_t mFileFor = FileFor_t::kFullDet;                   ///< Granularity of the output files
+  o2::emcal::Geometry* mGeometry = nullptr;                   ///< EMCAL geometry
   std::string mOutputLocation;                                ///< Rawfile name
   std::unique_ptr<o2::emcal::MappingHandler> mMappingHandler; ///< Mapping handler
   gsl::span<o2::emcal::Digit> mDigits;                        ///< Digits input vector - must be in digitized format including the time response

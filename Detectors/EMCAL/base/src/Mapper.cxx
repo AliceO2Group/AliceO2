@@ -120,32 +120,6 @@ Mapper& MappingHandler::getMappingForDDL(int ddl)
   return mMappings[sideID * NDDLSM + ddlInSM];
 }
 
-std::tuple<int, int, int> MappingHandler::getOnlineID(int towerID)
-{
-  o2::emcal::Geometry* geometry = o2::emcal::Geometry::GetInstanceFromRunNumber(300000);
-  auto cellindex = geometry->GetCellIndex(towerID);
-  auto supermoduleID = std::get<0>(cellindex);
-  auto etaphi = geometry->GetCellPhiEtaIndexInSModule(supermoduleID, std::get<1>(cellindex), std::get<2>(cellindex), std::get<3>(cellindex));
-  auto etaphishift = geometry->ShiftOfflineToOnlineCellIndexes(supermoduleID, std::get<0>(etaphi), std::get<1>(etaphi));
-  int row = std::get<0>(etaphishift), col = std::get<1>(etaphishift);
-
-  int ddlInSupermoudel = -1;
-  if (0 <= row && row < 8) {
-    ddlInSupermoudel = 0; // first cable row
-  } else if (8 <= row && row < 16 && 0 <= col && col < 24) {
-    ddlInSupermoudel = 0; // first half;
-  } else if (8 <= row && row < 16 && 24 <= col && col < 48) {
-    ddlInSupermoudel = 1; // second half;
-  } else if (16 <= row && row < 24) {
-    ddlInSupermoudel = 1; // third cable row
-  }
-  if (supermoduleID % 2 == 1) {
-    ddlInSupermoudel = 1 - ddlInSupermoudel; // swap for odd=C side, to allow us to cable both sides the same
-  }
-
-  return std::make_tuple(supermoduleID * 2 + ddlInSupermoudel, row, col);
-}
-
 std::ostream& o2::emcal::operator<<(std::ostream& stream, const Mapper::ChannelID& channel)
 {
   stream << "Row " << static_cast<int>(channel.mRow) << ", Column " << static_cast<int>(channel.mColumn) << ", type " << o2::emcal::channelTypeToString(channel.mChannelType);

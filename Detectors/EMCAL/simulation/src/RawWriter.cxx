@@ -48,7 +48,7 @@ void RawWriter::init()
       continue;
     }
 
-    auto [crorc, link] = mMappingHandler->getLinkAssignment(iddl);
+    auto [crorc, link] = mGeometry->getLinkAssignment(iddl);
     std::string rawfilename = mOutputLocation;
     switch (mFileFor) {
       case FileFor_t::kFullDet:
@@ -93,7 +93,7 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
       if (tower > 20000) {
         std::cout << "Wrong cell ID " << tower << std::endl;
       }
-      auto onlineindices = mMappingHandler->getOnlineID(tower);
+      auto onlineindices = mGeometry->getOnlineID(tower);
       int sruID = std::get<0>(onlineindices);
       auto towerdata = mSRUdata[sruID].mChannels.find(tower);
       if (towerdata == mSRUdata[sruID].mChannels.end()) {
@@ -177,7 +177,7 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
 
     // register output data
     auto ddlid = srucont.mSRUid;
-    auto [crorc, link] = mMappingHandler->getLinkAssignment(ddlid);
+    auto [crorc, link] = mGeometry->getLinkAssignment(ddlid);
     LOG(DEBUG1) << "Adding payload with size " << payload.size() << " (" << payload.size() / 4 << " ALTRO words)";
     mRawWriter->addData(ddlid, crorc, link, 0, trg.getBCData(), payload, false, trg.getTriggerBits());
   }
