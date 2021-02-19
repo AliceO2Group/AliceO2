@@ -237,11 +237,12 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
   };
 
   auto makeWriterSpec_CellsTR = [checkReady](const char* processName, const char* defaultFileName, const char* defaultTreeName,
-                                             auto&& CellsBranch, auto&& TriggerRecordBranch) {
+                                             auto&& CellsBranch, auto&& TriggerRecordBranch, auto&& DecoderErrorsBranch) {
     return std::move(o2::framework::MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,
                                                            o2::framework::MakeRootTreeWriterSpec::TerminationCondition{checkReady},
                                                            std::move(CellsBranch),
-                                                           std::move(TriggerRecordBranch)));
+                                                           std::move(TriggerRecordBranch),
+                                                           std::move(DecoderErrorsBranch)));
   };
   /*
     // RS getting input digits and outputing them under the same outputspec will create dependency loop when piping the workflows
@@ -279,6 +280,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
     } else {
       using CellsDataType = std::vector<o2::emcal::Cell>;
       using TriggerRecordDataType = std::vector<o2::emcal::TriggerRecord>;
+      using DecoderErrorsDataType = std::vector<int>;
       specs.push_back(makeWriterSpec_CellsTR("emcal-cells-writer",
                                              "emccells.root",
                                              "o2sim",
@@ -287,7 +289,10 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                                                              "cell-branch-name"},
                                              BranchDefinition<TriggerRecordDataType>{o2::framework::InputSpec{"trigger", "EMC", "CELLSTRGR", 0},
                                                                                      "EMCALCellTRGR",
-                                                                                     "celltrigger-branch-name"})());
+                                                                                     "celltrigger-branch-name"},
+                                             BranchDefinition<DecoderErrorsDataType>{o2::framework::InputSpec{"errors", "EMC", "DECODERERR", 0},
+                                                                                     "EMCALDECODERERR",
+                                                                                     "decodererror-branch-name"})());
     }
   }
 
