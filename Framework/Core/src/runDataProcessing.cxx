@@ -1138,7 +1138,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   uv_tcp_t serverHandle;
   serverHandle.data = &serverContext;
   uv_tcp_init(loop, &serverHandle);
-  driverInfo.port = 8080;
+  driverInfo.port = 8080 + (getpid() % 30000);
   int result = 0;
   struct sockaddr_in* serverAddr = nullptr;
 
@@ -1160,11 +1160,13 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       auto bindResult = uv_tcp_bind(&serverHandle, (const struct sockaddr*)serverAddr, 0);
       if (bindResult != 0) {
         driverInfo.port++;
+        usleep(1000);
         continue;
       }
       result = uv_listen((uv_stream_t*)&serverHandle, 100, ws_connect_callback);
       if (result != 0) {
         driverInfo.port++;
+        usleep(1000);
         continue;
       }
     } while (result != 0);
