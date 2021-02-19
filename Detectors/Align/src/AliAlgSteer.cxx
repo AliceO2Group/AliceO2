@@ -65,8 +65,8 @@ namespace align
 const Char_t* AliAlgSteer::fgkMPDataExt = ".mille";
 const Char_t* AliAlgSteer::fgkDetectorName[AliAlgSteer::kNDetectors] = {"ITS", "TPC", "TRD", "TOF", "HMPID"};
 //const Int_t AliAlgSteer::fgkSkipLayers[AliAlgSteer::kNLrSkip] = {AliGeomManager::kPHOS1, AliGeomManager::kPHOS2,
-//                                                                 AliGeomManager::kMUON, AliGeomManager::kEMCAL}; FIXME(milettri): needs AliGeomManager
-const Int_t AliAlgSteer::fgkSkipLayers[AliAlgSteer::kNLrSkip] = {0, 0, 0, 0}; // FIXME(milettri): needs AliGeomManager
+//                                                                 AliGeomManager::kMUON, AliGeomManager::kEMCAL}; TODO(milettri, shahoian): needs detector IDs previously stored in AliGeomManager
+const Int_t AliAlgSteer::fgkSkipLayers[AliAlgSteer::kNLrSkip] = {0, 0, 0, 0}; // TODO(milettri, shahoian): needs AliGeomManager - remove this line after fix.
 
 const Char_t* AliAlgSteer::fgkStatClName[AliAlgSteer::kNStatCl] = {"Inp: ", "Acc: "};
 const Char_t* AliAlgSteer::fgkStatName[AliAlgSteer::kMaxStat] =

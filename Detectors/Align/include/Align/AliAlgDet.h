@@ -36,6 +36,7 @@ namespace o2
 namespace align
 {
 
+//TODO(milettri) : fix possibly incompatible Detector IDs of O2 and AliROOT
 class AliAlgDet : public TNamed
 {
  public:
@@ -44,10 +45,12 @@ class AliAlgDet : public TNamed
   enum { kNMaxKalibDOF = 64 };
   //
   AliAlgDet();
-  AliAlgDet(const char* name, const char* title = "") : TNamed(name, title) {}
+  AliAlgDet(const char* name, const char* title = "", Int_t id = -1) : TNamed(name, title) { SetUniqueID(id); };
   virtual ~AliAlgDet();
   Int_t GetDetID() const { return GetUniqueID(); }
+  detectors::DetID GetO2DetID() const { return detectors::DetID(GetUniqueID()); };
   void SetDetID(UInt_t tp);
+  void SetDetID(detectors::DetID id) { SetUniqueID(id); }
   //
   virtual void CacheReferenceOCDB();
   virtual void AcknowledgeNewRun(Int_t run);
