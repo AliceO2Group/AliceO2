@@ -395,16 +395,28 @@ void log_callback(uv_poll_t* handle, int status, int events)
   }
 }
 
+void close_websocket(uv_handle_t* handle)
+{
+  LOG(debug) << "Handle is being closed";
+  delete (WSDPLHandler*)handle->data;
+}
+
 void websocket_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf)
 {
   WSDPLHandler* handler = (WSDPLHandler*)stream->data;
   if (nread == 0) {
     return;
   }
+  if (nread == UV_EOF) {
+    uv_read_stop(stream);
+    uv_close((uv_handle_t*)stream, close_websocket);
+    return;
+  }
   if (nread < 0) {
-    // FIXME: improve error message
     // FIXME: should I close?
     LOG(ERROR) << "websocket_callback: Error while reading from websocket";
+    uv_read_stop(stream);
+    uv_close((uv_handle_t*)stream, close_websocket);
     return;
   }
   try {
