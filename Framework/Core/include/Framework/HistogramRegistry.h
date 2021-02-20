@@ -306,10 +306,15 @@ struct HistFactory {
     if constexpr (std::is_base_of_v<THnBase, T> || std::is_base_of_v<StepTHn, T>) {
       return hist->GetAxis(i);
     } else {
-      return (i == 0)   ? hist->GetXaxis()
-             : (i == 1) ? hist->GetYaxis()
-             : (i == 2) ? hist->GetZaxis()
-                        : nullptr;
+      if (i == 0) {
+        return hist->GetXaxis();
+      } else if (i == 1) {
+        return hist->GetYaxis();
+      } else if (i == 2) {
+        return hist->GetZaxis();
+      } else {
+        return nullptr;
+      }
     }
   }
 
