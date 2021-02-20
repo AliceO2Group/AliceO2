@@ -266,8 +266,8 @@ struct GTask {
   Configurable<std::vector<double>> centBinning{"cent-binning", {9., 0., 90}, ""};               // fixed size bins
 
   // best would be to make it work with the actual AxisSpec and its ctors:
-  //Configurable<AxisSpec> phiAxis{"phi-axis", {0., 0.25, 0.5, 0.75, 1., 1.6, 2.}, ""};
-  //Configurable<AxisSpec> etaAxis{"eta-axis", {8, -1., 1.}, ""};
+  //Configurable<AxisSpec> phiAxis{"phi-axis", {{0., 0.25, 0.5, 0.75, 1., 1.6, 2.}}, ""};
+  //Configurable<AxisSpec> etaAxis{"eta-axis", {{8, -1., 1.}}, ""};
 
   void init(InitContext const&)
   {

@@ -113,8 +113,9 @@ struct AxisSpec {
       title(title_),
       name(name_)
   {
-    if (!isFromConfig_)
+    if (!isFromConfig_ || binEdges.empty()) {
       return; // just treat bin edges vector as bin edges...
+    }
     if (binEdges_[0] != 0.) {
       nBins = static_cast<int>(binEdges_[0]);
       binEdges.resize(3); // nBins, lowerBound, upperBound, disregard whatever else is stored in vecotr
@@ -305,10 +306,10 @@ struct HistFactory {
     if constexpr (std::is_base_of_v<THnBase, T> || std::is_base_of_v<StepTHn, T>) {
       return hist->GetAxis(i);
     } else {
-      return (i == 0) ? hist->GetXaxis()
-                      : (i == 1) ? hist->GetYaxis()
-                                 : (i == 2) ? hist->GetZaxis()
-                                            : nullptr;
+      return (i == 0)   ? hist->GetXaxis()
+             : (i == 1) ? hist->GetYaxis()
+             : (i == 2) ? hist->GetZaxis()
+                        : nullptr;
     }
   }
 
