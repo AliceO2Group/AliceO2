@@ -10,7 +10,7 @@
 
 o2_add_library(PHOSWorkflow
                SOURCES src/RecoWorkflow.cxx
-                       src/PublisherSpec.cxx
+                       src/ReaderSpec.cxx
                        src/CellConverterSpec.cxx
                        src/RawToCellConverterSpec.cxx
                        src/ClusterizerSpec.cxx
@@ -18,6 +18,7 @@ o2_add_library(PHOSWorkflow
                        src/RawWriterSpec.cxx
                        src/EntropyEncoderSpec.cxx
                        src/EntropyDecoderSpec.cxx
+                       src/WriterSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsPHOS 
                                      O2::DPLUtils 
                                      O2::PHOSBase 

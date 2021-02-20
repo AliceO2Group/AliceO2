@@ -10,7 +10,8 @@
 
 o2_add_library(CPVWorkflow
                SOURCES src/RecoWorkflow.cxx
-                       src/PublisherSpec.cxx
+                       src/ReaderSpec.cxx
+                       src/WriterSpec.cxx
                        src/ClusterizerSpec.cxx
                        src/DigitsPrinterSpec.cxx
                        src/RawToDigitConverterSpec.cxx

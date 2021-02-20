@@ -25,7 +25,8 @@
 #include "PHOSWorkflow/CellConverterSpec.h"
 #include "PHOSWorkflow/ClusterizerSpec.h"
 #include "PHOSWorkflow/DigitsPrinterSpec.h"
-#include "PHOSWorkflow/PublisherSpec.h"
+#include "PHOSWorkflow/ReaderSpec.h"
+#include "PHOSWorkflow/WriterSpec.h"
 #include "PHOSWorkflow/RawToCellConverterSpec.h"
 #include "PHOSWorkflow/RawWriterSpec.h"
 #include "Framework/DataSpecUtils.h"
@@ -44,18 +45,17 @@ namespace reco_workflow
 {
 
 const std::unordered_map<std::string, InputType> InputMap{
-  {"hits", InputType::Hits},
+  {"raw", InputType::Raw},
   {"digits", InputType::Digits},
-  {"cells", InputType::Cells},
-  {"raw", InputType::Raw}};
+  {"cells", InputType::Cells}};
 
 const std::unordered_map<std::string, OutputType> OutputMap{
-  {"digits", OutputType::Digits},
   {"cells", OutputType::Cells},
-  {"raw", OutputType::Raw},
   {"clusters", OutputType::Clusters}};
 
-o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
+o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
+                                        bool disableRootOut,
+                                        bool propagateMC,
                                         bool enableDigitsPrinter,
                                         std::string const& cfgInput,
                                         std::string const& cfgOutput)
@@ -79,63 +79,57 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
 
   o2::framework::WorkflowSpec specs;
 
-  // if (isEnabled(OutputType::Raw)) {
-  //   // add Raw encoder
-  //   specs.emplace_back(o2::phos::reco_workflow::getRawWriterSpec());
-  // }
-
+  //Raw to ....
   if (inputType == InputType::Raw) {
-    //no explicit raw reader
+    //no explicit raw reader ??
 
     if (isEnabled(OutputType::Cells)) {
       specs.emplace_back(o2::phos::reco_workflow::getRawToCellConverterSpec());
+      if (!disableRootOut) {
+        specs.emplace_back(o2::phos::getCellWriterSpec(false));
+      }
+    }
+    if (isEnabled(OutputType::Clusters)) {
+      specs.emplace_back(o2::phos::reco_workflow::getRawToCellConverterSpec());
+      specs.emplace_back(o2::phos::reco_workflow::getClusterizerSpec(false)); //no MC propagation
+      if (!disableRootOut) {
+        specs.emplace_back(o2::phos::getClusterWriterSpec(propagateMC));
+      }
     }
   }
 
+  // Digits to ....
   if (inputType == InputType::Digits) {
+    if (!disableRootInp) {
+      specs.emplace_back(o2::phos::getDigitsReaderSpec(propagateMC));
+    }
     if (isEnabled(OutputType::Cells)) {
-      specs.emplace_back(o2::phos::getPublisherSpec(PublisherConf{
-                                                      "phos-digit-reader",
-                                                      "o2sim",
-                                                      {"digitbranch", "PHOSDigit", "Digit branch"},
-                                                      {"digittrigger", "PHOSDigitTrigRecords", "TrigRecords branch"},
-                                                      {"mcbranch", "PHOSDigitMCTruth", "MC label branch"},
-                                                      {"mcmapbranch", "", "Dummy branch"},
-                                                      o2::framework::OutputSpec{"PHS", "DIGITS"},
-                                                      o2::framework::OutputSpec{"PHS", "DIGITTRIGREC"},
-                                                      o2::framework::OutputSpec{"PHS", "DIGITSMCTR"},
-                                                      o2::framework::OutputSpec{"PHS", ""}}, // it empty, do not create
-                                                    propagateMC, false));
       // add converter for cells
       specs.emplace_back(o2::phos::reco_workflow::getCellConverterSpec(propagateMC));
-    }
-
-    if (isEnabled(OutputType::Clusters)) {
-      specs.emplace_back(o2::phos::getPublisherSpec(PublisherConf{
-                                                      "phos-digit-reader",
-                                                      "o2sim",
-                                                      {"digitbranch", "PHOSDigit", "Digit branch"},
-                                                      {"digittrigger", "PHOSDigitTrigRecords", "TrigRecords branch"},
-                                                      {"mcbranch", "PHOSDigitMCTruth", "MC label branch"},
-                                                      {"mcmapbranch", "", "Dummy branch"},
-                                                      o2::framework::OutputSpec{"PHS", "DIGITS"},
-                                                      o2::framework::OutputSpec{"PHS", "DIGITTRIGREC"},
-                                                      o2::framework::OutputSpec{"PHS", "DIGITSMCTR"},
-                                                      o2::framework::OutputSpec{"PHS", ""}}, // it empty, do not create
-                                                    propagateMC, false));
-      // add clusterizer
-      specs.emplace_back(o2::phos::reco_workflow::getClusterizerSpec(propagateMC));
-    }
-
-    if (enableDigitsPrinter) {
-      specs.emplace_back(o2::phos::reco_workflow::getPhosDigitsPrinterSpec());
+      if (!disableRootOut) {
+        specs.emplace_back(o2::phos::getCellWriterSpec(propagateMC));
+      }
+    } else {
+      if (isEnabled(OutputType::Clusters)) {
+        specs.emplace_back(o2::phos::reco_workflow::getClusterizerSpec(propagateMC));
+        if (!disableRootOut) {
+          specs.emplace_back(o2::phos::getClusterWriterSpec(propagateMC));
+        }
+      }
     }
   }
 
+  //Cells to
   if (inputType == InputType::Cells) {
+    if (!disableRootInp) {
+      specs.emplace_back(o2::phos::getCellReaderSpec(propagateMC));
+    }
     if (isEnabled(OutputType::Clusters)) {
       // add clusterizer
       specs.emplace_back(o2::phos::reco_workflow::getCellClusterizerSpec(propagateMC));
+      if (!disableRootOut) {
+        specs.emplace_back(o2::phos::getClusterWriterSpec(propagateMC));
+      }
     }
   }
 

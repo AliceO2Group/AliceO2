@@ -16,29 +16,13 @@
 namespace o2
 {
 
-namespace cpv
+namespace phos
 {
 
 using OutputSpec = framework::OutputSpec;
 
-struct PublisherConf {
-  struct BranchOptionConfig {
-    std::string option;
-    std::string defval;
-    std::string help;
-  };
+framework::DataProcessorSpec getDigitsReaderSpec(bool propagateMC = true);
+framework::DataProcessorSpec getCellReaderSpec(bool propagateMC = true);
 
-  std::string processName;
-  std::string defaultTreeName;
-  BranchOptionConfig databranch;
-  BranchOptionConfig datatrbranch;
-  BranchOptionConfig mcbranch;
-  OutputSpec dataoutput;
-  OutputSpec datatroutput;
-  OutputSpec mcoutput;
-};
-
-framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool propagateMC = true);
-
-} // namespace cpv
+} // namespace phos
 } // end namespace o2

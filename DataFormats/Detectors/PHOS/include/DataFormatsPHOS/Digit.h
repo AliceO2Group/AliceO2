@@ -92,6 +92,8 @@ class Digit : public DigitBase
   /// \return digit with sum of energies and longer list of primaries
   Digit& operator+=(const Digit& other); //
 
+  void addEnergyTime(float energy, float time);
+
   /// \brief Absolute sell id
   short getAbsId() const { return mAbsId; }
   void setAbsId(short cellId) { mAbsId = cellId; }
@@ -111,6 +113,16 @@ class Digit : public DigitBase
   /// \brief index of entry in MCLabels array
   /// \return ndex of entry in MCLabels array
   int getLabel() const { return mLabel; }
+  void setLabel(int l) { mLabel = l; }
+
+  void reset()
+  {
+    mIsHighGain = true;
+    mAbsId = 0;
+    mLabel = -1;
+    mAmplitude = 0;
+    mTime = 0;
+  }
 
   void PrintStream(std::ostream& stream) const;
 

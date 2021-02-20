@@ -48,6 +48,19 @@ class Pedestals
   /// \brief Constructor for tests
   Pedestals(int test);
 
+  Pedestals(Pedestals* other)
+  {
+    mHGPedestals = other->mHGPedestals;
+    mLGPedestals = other->mLGPedestals;
+  }
+
+  Pedestals& operator=(const Pedestals& other)
+  {
+    mHGPedestals = other.mHGPedestals;
+    mLGPedestals = other.mLGPedestals;
+    return *this;
+  }
+
   /// \brief Destructor
   ~Pedestals() = default;
 

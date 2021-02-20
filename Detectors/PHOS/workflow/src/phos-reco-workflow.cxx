@@ -31,6 +31,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"output-type", o2::framework::VariantType::String, "digits", {"digits, raw, clusters, cells"}},
     {"enable-digits-printer", o2::framework::VariantType::Bool, false, {"enable digits printer component"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information"}},
+    {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
+    {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
   };
   std::swap(workflowOptions, options);
 }
@@ -52,7 +54,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& cfgc)
 {
   //
-  return o2::phos::reco_workflow::getWorkflow(not cfgc.options().get<bool>("disable-mc"),        //
+  return o2::phos::reco_workflow::getWorkflow(cfgc.options().get<bool>("disable-root-input"),
+                                              cfgc.options().get<bool>("disable-root-output"),
+                                              !cfgc.options().get<bool>("disable-mc"),           //
                                               cfgc.options().get<bool>("enable-digits-printer"), //
                                               cfgc.options().get<std::string>("input-type"),     //
                                               cfgc.options().get<std::string>("output-type")     //
