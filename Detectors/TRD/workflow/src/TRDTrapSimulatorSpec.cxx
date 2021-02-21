@@ -8,7 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//#include "Framework/runDataProcessing.h"
 #include "TRDWorkflow/TRDTrapSimulatorSpec.h"
 
 #include <cstdlib>
@@ -34,7 +33,6 @@
 #include "Framework/Lifetime.h"
 #include "Framework/Task.h"
 #include "Headers/DataHeader.h"
-#include "TStopwatch.h"
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "TChain.h"
 #include <SimulationDataFormat/MCCompLabel.h>
@@ -43,21 +41,14 @@
 #include "CCDB/BasicCCDBManager.h"
 
 #include "DataFormatsParameters/GRPObject.h"
-#include "TRDSimulation/TrapSimulator.h"
-#include "TRDSimulation/Digitizer.h"
-#include "TRDSimulation/Detector.h"
-#include "TRDBase/Digit.h" // for the Digit type
-#include "TRDBase/FeeParam.h"
+#include "TRDBase/Digit.h"
 #include "TRDBase/Calibrations.h"
 #include "TRDSimulation/TrapSimulator.h"
 #include "DataFormatsTRD/TriggerRecord.h"
-#include "DataFormatsTRD/LinkRecord.h"
 #include "DataFormatsTRD/Tracklet64.h"
-#include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/Constants.h"
 
 using namespace o2::framework;
-using namespace std::placeholders; // this is for std::bind to build the comparator for the indexed sort of digits.
 
 namespace o2
 {
@@ -175,7 +166,6 @@ void TRDDPLTrapSimulatorTask::setOnlineGainTables()
 void TRDDPLTrapSimulatorTask::init(o2::framework::InitContext& ic)
 {
   LOG(debug) << "entering init";
-  mFeeParam = FeeParam::instance();
   mPrintTrackletOptions = ic.options().get<int>("trd-printtracklets");
   mDrawTrackletOptions = ic.options().get<int>("trd-drawtracklets");
   mShowTrackletStats = ic.options().get<int>("show-trd-trackletstats");
@@ -194,40 +184,6 @@ void TRDDPLTrapSimulatorTask::init(o2::framework::InitContext& ic)
   LOG(info) << "Trap Simulator Device initialised for config : " << mTrapConfigName;
 }
 
-bool digitindexcompare(unsigned int A, unsigned int B, const std::vector<o2::trd::Digit>& originalDigits)
-{
-  // sort into ROC:padrow
-  const o2::trd::Digit *a, *b;
-  a = &originalDigits[A];
-  b = &originalDigits[B];
-  if (a->getDetector() < b->getDetector()) {
-    return 1;
-  }
-  if (a->getDetector() > b->getDetector()) {
-    return 0;
-  }
-  if (a->getRow() < b->getRow()) {
-    return 1;
-  }
-  if (a->getRow() > b->getRow()) {
-    return 0;
-  }
-  return 0;
-}
-
-void TRDDPLTrapSimulatorTask::setTriggerRecord(std::vector<o2::trd::TriggerRecord>& triggerrecord, uint32_t currentrecord, uint64_t recordsize)
-{
-  // so increment the tracklet trigger records and fill accordingly for the now completed prior triggerrecord.
-  uint64_t triggerrecordstart = 0;
-  if (currentrecord == 0) { // for not the first one we can simply look back to the previous one to get the start.
-    triggerrecordstart = 0;
-    triggerrecord[currentrecord].setDataRange(triggerrecordstart, recordsize);
-  } else {
-    triggerrecordstart = triggerrecord[currentrecord - 1].getFirstEntry() + triggerrecord[currentrecord - 1].getNumberOfObjects();
-    triggerrecord[currentrecord].setDataRange(triggerrecordstart, recordsize - triggerrecordstart);
-  }
-}
-
 void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
 {
   LOG(info) << "TRD Trap Simulator Device running over incoming message";
@@ -242,11 +198,10 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
    ********/
 
   auto inputDigits = pc.inputs().get<gsl::span<o2::trd::Digit>>("digitinput");
-  std::vector<o2::trd::Digit> msgDigits(inputDigits.begin(), inputDigits.end()); // TODO: check if sorting the digits is still required. If not, this copy can be removed
   auto digitMCLabels = pc.inputs().get<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>("labelinput");
   auto inputTriggerRecords = pc.inputs().get<gsl::span<o2::trd::TriggerRecord>>("triggerrecords");
 
-  if (msgDigits.size() == 0 || inputTriggerRecords.size() == 0) {
+  if (inputDigits.size() == 0 || inputTriggerRecords.size() == 0) {
     LOG(WARNING) << "Did not receive any digits, trigger records, or neither one nor the other. Aborting.";
     return;
   }
@@ -257,303 +212,115 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
 
   // trigger records to index the 64bit tracklets.yy
   std::vector<o2::trd::TriggerRecord> trackletTriggerRecords(inputTriggerRecords.begin(), inputTriggerRecords.end()); // copy over the whole thing but we only really want the bunch crossing info.
-  std::vector<o2::trd::TriggerRecord> rawTriggerRecords = trackletTriggerRecords;                                     // as we have the option of having tracklets and/or raw data, we need both triggerrecords.
-                                                                                                                      // of course we dont *actually* need it we could simply walk through all the raw data header to header.
-  //  auto rawDataOut = pc.outputs().make<char>(Output{"TRD", "RAWDATA", 0, Lifetime::Timeframe}, 1000); //TODO number is just a place holder until we start using it.
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackletMCLabels;
   //index of digits, TODO refactor to a digitindex class.
-  std::vector<unsigned int> msgDigitsIndex(msgDigits.size());
+  std::vector<unsigned int> digitIndices(inputDigits.size());
   //set up structures to hold the returning tracklets.
-  std::vector<Tracklet64> trapTracklets; //vector to store the retrieved tracklets from an trapsim object
   std::vector<Tracklet64> trapTrackletsAccum;
-  std::vector<uint32_t> rawdata;
-  // trigger records to index the "raw" data
-  uint64_t currentTriggerRecord = 0;
 
   /* *******
    * reserve sizes
    * *******/
-  mLinkRecords.reserve(2 * MAXCHAMBER * inputTriggerRecords.size()); // worse case scenario is all links for all events
-  LOG(debug) << "Read in msgDigits with size of : " << msgDigits.size() << " labels contain : " << digitMCLabels.getNElements() << " with and index size of  : " << digitMCLabels.getIndexedSize() << " and triggerrecord count of :" << inputTriggerRecords.size();
-  if (digitMCLabels.getIndexedSize() != msgDigits.size()) {
-    LOG(warn) << "Digits and Labels coming into TrapSimulator are of differing sizes, labels will be jibberish. " << digitMCLabels.getIndexedSize() << "!=" << msgDigits.size();
+
+  LOG(debug) << "Read in digits with size of : " << inputDigits.size() << ". Labels contain : " << digitMCLabels.getNElements() << " elements with and index size of  : " << digitMCLabels.getIndexedSize() << " and triggerrecord count of :" << inputTriggerRecords.size();
+  if (digitMCLabels.getIndexedSize() != inputDigits.size()) {
+    LOG(warn) << "Digits and Labels coming into TrapSimulator are of differing sizes, labels will be jibberish. " << digitMCLabels.getIndexedSize() << "!=" << inputDigits.size();
   }
-  trapTracklets.reserve(30);
-  trapTrackletsAccum.reserve(msgDigits.size() / 3);
-  //msgDigitsIndex.reserve(msgDigits.size());
-  // worse case scenario is header and single tracklet word, hence 2, for higher tracklet count the factors reduces relative to tracklet count. Remember 3 digits per tracklet.
-  rawdata.reserve(msgDigits.size() * 2);
+  trapTrackletsAccum.reserve(inputDigits.size() / 500);
 
   //Build the digits index.
-  std::iota(msgDigitsIndex.begin(), msgDigitsIndex.end(), 0);
+  std::iota(digitIndices.begin(), digitIndices.end(), 0);
   //sort the digits array TODO refactor this intoa vector index sort and possibly generalise past merely digits.
   auto sortstart = std::chrono::high_resolution_clock::now();
   // TODO check if sorting is still needed
   for (auto& trig : inputTriggerRecords) {
-    std::stable_sort(std::begin(msgDigitsIndex) + trig.getFirstEntry(), std::begin(msgDigitsIndex) + trig.getNumberOfObjects() + trig.getFirstEntry(),
-                     [&msgDigits](auto&& PH1, auto&& PH2) { return digitindexcompare(PH1, PH2, msgDigits); });
+    std::stable_sort(std::begin(digitIndices) + trig.getFirstEntry(), std::begin(digitIndices) + trig.getNumberOfObjects() + trig.getFirstEntry(),
+                     [&inputDigits](unsigned int i, unsigned int j) { return inputDigits[i].getDetector() < inputDigits[j].getDetector(); });
   }
 
   mSortingTime = std::chrono::high_resolution_clock::now() - sortstart;
-  LOG(debug) << "TRD Digit Sorting took " << mSortingTime.count();
-  //print digits to check the sorting.
-  LOG(debug) << " Digits : ";
-  //for (auto& digit : msgDigits) {
-  for (auto& digitindex : msgDigitsIndex) {
-    Digit digit = msgDigits[digitindex];
-    LOG(debug) << "sorted digit detector:row:pad:rob:mcm ::"
-               << digit.getDetector() << ":" << digit.getRow() << ":" << digit.getPad() << ":"
-               << mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()) << ":"
-               << mFeeParam->getMCMfromPad(digit.getRow(), digit.getPad())
-               << " LinkId:" << LinkRecord::getHalfChamberLinkId(digit.getDetector(), mFeeParam->getROBfromPad(digit.getRow(), digit.getPad())) << "\t\t  SM:stack:layer:side  "
-               << digit.getDetector() / 30 << ":" << Geometry::getStack(digit.getDetector())
-               << ":" << Geometry::getLayer(digit.getDetector()) << ":" << FeeParam::instance()->getRobSide(mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()))
-               << " with ORI# : " << mFeeParam->getORI(digit.getDetector(), mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()))
-               << " within SM ori#:" << mFeeParam->getORIinSM(digit.getDetector(), mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()));
-  }
-
-  //accounting variables for various things.
-  int loopindex = 0;
-  int counttrackletadditions = 0;
-  int oldsize = 0;
-  unsigned long oldtrackletcount = 0;
-  mTotalRawWordsWritten = 0; // words written for the raw format of 4x32bits, where 4 can be 2 to 4 depending on # of tracklets in the block.
-  mOldHalfChamberLinkId = 0;
-  mNewTrackletHCHeaderHasBeenWritten = false;
-  int countProcessedTraps = 0;
+  LOG(warn) << "TRD Digit Sorting took " << mSortingTime.count();
 
   // now to loop over the incoming digits.
-  auto digitloopstart = std::chrono::high_resolution_clock::now();
-  uint64_t digitcounter = 0;
+  auto timeDigitLoopStart = std::chrono::high_resolution_clock::now();
+  //uint64_t digitcounter = 0;
+
   // set current detector and row for the first digit
-  int currDetector = msgDigits[msgDigitsIndex[0]].getDetector();
-  int currRow = msgDigits[msgDigitsIndex[0]].getRow();
-  mOldHalfChamberLinkId = LinkRecord::getHalfChamberLinkId(msgDigits[msgDigitsIndex[0]].getDetector(), msgDigits[msgDigitsIndex[0]].getROB());
-  for (const auto digitIdx : msgDigitsIndex) {
-    // while on a single padrow, populate data structures in the 8 trap simulators
-    // on change of padrow fire up trap simulators, do its thing with the data which has been written for the previous padrow
-    auto digit = &msgDigits[digitIdx];
+  int currDetector = -1;
 
-    //Are we on a new half chamber ?
-    if (mOldHalfChamberLinkId != LinkRecord::getHalfChamberLinkId(digit->getDetector(), digit->getROB())) {
-      // OS: I do not understand this block. What do we need it for? digit -> raw conversion?
-      // If we don't sort the digits column-wise we might switch back and forth between half chambers -> so maybe sort digits by pad column again if this block is needed?
-      //     hcid= detector*2 + robpos%2;
-      // new half chamber so add the header to the raw data stream.
-      buildTrackletHCHeaderd(mTrackletHCHeader, digit->getDetector(), digit->getROB(), currentTriggerRecord * 42, 4);
-      //buildTrackletHCHeader(mTrackletHCHeader,sector,stack,layer,side,currentTriggerRecord*42,4);
-      mOldHalfChamberLinkId = LinkRecord::getHalfChamberLinkId(digit->getDetector(), digit->getROB());
-      // now we have a problem. We must only write the halfchamberheader if a tracklet is written i.e. if the digits for this half chamber actually produce 1 or more tracklets!
-      mNewTrackletHCHeaderHasBeenWritten = false;
-    }
-    //figure out which trigger record from digits we are on
-    if (digitcounter >= inputTriggerRecords[currentTriggerRecord].getFirstEntry() + inputTriggerRecords[currentTriggerRecord].getNumberOfObjects()) {
-      //trigger record changed.
-      //Now we know the ranges so populate the triggerrecord related to the previously block of data.
-      // what if the trigger record changes, but we only simulate one chamber (particle gun)..
-      // then all data also from different collisions is fed into the MCMs and processed at the same time -> ERROR -> need to initiate TRAP processing for already loaded data on change of trigger record
-      setTriggerRecord(trackletTriggerRecords, currentTriggerRecord, trapTrackletsAccum.size());
-      setTriggerRecord(rawTriggerRecords, currentTriggerRecord, mTotalRawWordsWritten);
-      currentTriggerRecord++;
-      LOG(debug) << "changing trigger records : " << currentTriggerRecord;
-    }
-
-    if (currDetector != digit->getDetector() || currRow != digit->getRow()) {
-      // we have gone over the pad row. //TODO ??? do we need to check for change of time as well?
-      // -> change of time would mean new trigger record. But in case of pile up...? Basically in real data taking pile up cannot be separated from the signal, so I think it is not needed to check the time
-      // the labels might tell in the end if the digit is from pile up or not..
-      //all data is inside the 8 relavent trapsimulators
-      //fireup Trapsim.
-      auto traploopstart = std::chrono::high_resolution_clock::now();
-      unsigned long numberofusedtraps = 0;
-      for (int trapcounter = 0; trapcounter < 8; trapcounter++) {
-        if (!mTrapSimulator[trapcounter].checkInitialized()) {
-          LOG(debug) << "TRAP chip not initialized, as there is no input data set. Skipping it.";
-          continue;
-        }
-        if (!mTrapSimulator[trapcounter].isDataSet()) {
-          LOG(debug) << "TRAP chip initialized, but no data for this pad row. Skipping it.";
-          continue;
-        }
-        countProcessedTraps++;
-        //this one has been filled with data for the now previous pad row.
-        auto trapsimtimerstart = std::chrono::high_resolution_clock::now();
-        mTrapUsedCounter[trapcounter]++;
-        numberofusedtraps++;
-        mTrapSimulator[trapcounter].filter();
-        mTrapSimulator[trapcounter].tracklet();
-
-        trapTracklets = mTrapSimulator[trapcounter].getTrackletArray64(); //TODO remove the copy and send the Accumulated array into the Trapsimulator
-        auto trapLabels = mTrapSimulator[trapcounter].getTrackletLabels();
-        if (!mNewTrackletHCHeaderHasBeenWritten && trapTracklets.size() != 0) { // take account of the case where we have data in the trapchip adc but no tracklets // OS: Is this a TODO??
-          //we have a tracklet for said half chamber, but the halfchamber ID has not been written yet
-          // .. fix the previous linkrecord to note its end of range.
-          if (mLinkRecords.size() == 0) { // special case for the first entry into the linkrecords vector.
-            mLinkRecords.emplace_back(mTrackletHCHeader.word, 0, -1);
-            //   LOG(debug) << " added HCID :[record.size==0] " << mTrackletHCHeader.HCID << " with number of bytes : " << mTotalRawWordsWritten << "-" << mLinkRecords.back().getFirstEntry();
-          } else {
-            mLinkRecords.back().setNumberOfObjects(mTotalRawWordsWritten - mLinkRecords.back().getFirstEntry()); // current number of words written - the start of this index record.
-                                                                                                                 //  LOG(debug) << " added HCID : " << mTrackletHCHeader.HCID << " with number of bytes : " << mTotalRawWordsWritten << "-" << mLinkRecords.back().getFirstEntry();
-            //..... so write the new one thing
-            mLinkRecords.emplace_back(mTrackletHCHeader.word, mTotalRawWordsWritten, -1); // set the number of elements to -1 for an error condition
+  for (int iTrig = 0; iTrig < inputTriggerRecords.size(); ++iTrig) {
+    int nTrackletsInTrigRec = 0;
+    for (auto digitIdx : digitIndices) {
+      const auto& digit = &inputDigits[digitIdx];
+      if (currDetector < 0) {
+        currDetector = digit->getDetector();
+      }
+      if (currDetector != digit->getDetector()) {
+        // we switch to a new chamber, process all TRAPs of the last chamber which contain data
+        int currStack = (currDetector % NCHAMBERPERSEC) / NLAYER;
+        int nTrapsMax = (currStack == 2) ? NROBC0 * NMCMROB : NROBC1 * NMCMROB;
+        for (int iTrap = 0; iTrap < nTrapsMax; ++iTrap) {
+          if (!mTrapSimulator[iTrap].isDataSet()) {
+            continue;
           }
-          mNewTrackletHCHeaderHasBeenWritten = true;
-          LOG(debug) << mTrackletHCHeader;
+          auto timeTrapProcessingStart = std::chrono::high_resolution_clock::now();
+          mTrapSimulator[iTrap].filter();
+          mTrapSimulator[iTrap].tracklet();
+          mTrapSimAccumulatedTime += std::chrono::high_resolution_clock::now() - timeTrapProcessingStart;
+          nTrackletsInTrigRec += mTrapSimulator[iTrap].getTrackletArray64().size();
+          trapTrackletsAccum.insert(trapTrackletsAccum.end(), mTrapSimulator[iTrap].getTrackletArray64().begin(), mTrapSimulator[iTrap].getTrackletArray64().end());
+          // TODO get and output MC labels
+          mTrapSimulator[iTrap].reset();
         }
-        LOG(debug) << "getting trackletsteram for trapcounter = " << trapcounter;
-        auto wordswritten = mTrapSimulator[trapcounter].getTrackletStream(rawdata, mTotalRawWordsWritten); // view of data from current marker and only 5 words long (can only have 4 words at most in the trackletstream for 1 MCM)
-        mTotalRawWordsWritten += wordswritten;
-        LOG(debug) << "Tracklets accumulated before addition of new ones :" << trapTrackletsAccum.size()
-                   << " :: about to add " << trapTracklets.size() << " count tracklets, labels coming in index of: "
-                   << trapLabels.getIndexedSize() << " and elements of : "
-                   << trapLabels.getNElements() << " with countrackletadditions :  " << counttrackletadditions;
-        counttrackletadditions++;
-        trapTrackletsAccum.insert(trapTrackletsAccum.end(), trapTracklets.begin(), trapTracklets.end());
-        trackletMCLabels.mergeAtBack(trapLabels);
-        mTrapSimAccumulatedTime += std::chrono::high_resolution_clock::now() - trapsimtimerstart;
-        if (mShowTrackletStats > 0) {
-          if (trapTrackletsAccum.size() - oldsize > mShowTrackletStats) {
-            LOG(debug) << "TrapSim Accumulated tracklets: " << trapTrackletsAccum.size() << " :: " << trapTracklets.size();
-            oldsize = trapTrackletsAccum.size();
-          }
-        }
-
-        // mTrapSimulator[trapcounter].zeroSupressionMapping();
-
-        if (mDrawTrackletOptions != 0) {
-          mTrapSimulator[trapcounter].draw(mDrawTrackletOptions, loopindex);
-        }
-        if (mDebugRejectedTracklets) {                    //&& trapTracklets.size()==0) {
-          mTrapSimulator[trapcounter].draw(7, loopindex); //draw adc when no tracklets are found.A
-          LOG(debug) << "loop index  : " << loopindex;
-          //mTrapSimulator[trapcounter].print(1);
-        }
-        if (mPrintTrackletOptions != 0) {
-          mTrapSimulator[trapcounter].print(mPrintTrackletOptions);
-        }
-
-        loopindex++;
-        // reset trap sim object
-        mTrapSimulator[trapcounter].reset();
+        currDetector = digit->getDetector();
       }
-      //timing info
-      mTrapLoopTime += std::chrono::high_resolution_clock::now() - traploopstart;
-      mTrapUsedFrequency[numberofusedtraps]++;
-
-      LOG(debug) << "Row change ... Tracklets so far: " << trapTrackletsAccum.size();
-      if (mShowTrackletStats > 0) {
-        if (trapTrackletsAccum.size() - oldtrackletcount > mShowTrackletStats) {
-          oldtrackletcount = trapTrackletsAccum.size();
-          unsigned long mcmTrackletsize = trapTrackletsAccum.size();
-          mTrackletTime = std::chrono::high_resolution_clock::now() - digitloopstart;
-          double trackletrate = mcmTrackletsize / mTrackletTime.count();
-          LOG(info) << "Getting tracklets at the rate of : " << trackletrate << " Tracklets/s ... Accumulated tracklets : " << trapTrackletsAccum.size();
-        }
+      int trapIdx = digit->getROB() * NMCMROB + digit->getMCM();
+      if (!mTrapSimulator[trapIdx].isDataSet()) {
+        mTrapSimulator[trapIdx].init(mTrapConfig, digit->getDetector(), digit->getROB(), digit->getMCM());
       }
-      currDetector = digit->getDetector();
-      currRow = digit->getRow();
-    } // end processing of TRAP chips in given padrow
-
-    //we are still on the same detector and row.
-    //add the digits to the padrow.
-    //copy pad time data into where they belong in the 8 TrapSimulators for this padrow.
-    int trapindex = (digit->getMCM() % NMCMROBINCOL) + (digit->getROB() % 2) * NMCMROBINCOL; // index of TRAP chip within padrow [0..7]
-    //check trap is initialised.
-    if (!mTrapSimulator[trapindex].isDataSet()) {
-      LOG(debug) << "Initialising trapsimulator for det:rob:mcm " << digit->getDetector() << ":" << digit->getROB() << ":"
-                 << digit->getMCM() << " as this is the first ADC data to be set for this mcm";
-      mTrapSimulator[trapindex].init(mTrapConfig, digit->getDetector(), digit->getROB(), digit->getMCM());
-    }
-    std::vector<o2::MCCompLabel> tmplabels;
-    auto digitslabels = digitMCLabels.getLabels(digitcounter);
-    for (auto& tmplabel : digitslabels) {
-      tmplabels.push_back(tmplabel);
-    }
-    LOG(debug) << "tmplabels for set data : " << tmplabels.size() << " and gslspan digitlabels size of : " << digitslabels.size();
-    LOG(debug) << " setting data with pad=" << digit->getPad() << " ti=" << trapindex + 1;
-    mTrapSimulator[trapindex].setData(digit->getChannel(), digit->getADC(), tmplabels);
-
-    digitcounter++;
-  } // end of loop over digits.
-  // don't forget about the last pad row..
-  for (int trapcounter = 0; trapcounter < 8; trapcounter++) {
-    if (!mTrapSimulator[trapcounter].checkInitialized()) {
-      LOG(debug) << "TRAP chip not initialized, as there is no input data set. Skipping it.";
-      continue;
-    }
-    if (!mTrapSimulator[trapcounter].isDataSet()) {
-      LOG(debug) << "TRAP chip initialized, but no data for this pad row. Skipping it.";
-      continue;
-    }
-    countProcessedTraps++;
-    //this one has been filled with data for the last pad row.
-    auto trapsimtimerstart = std::chrono::high_resolution_clock::now();
-    mTrapUsedCounter[trapcounter]++;
-    mTrapSimulator[trapcounter].filter();
-    mTrapSimulator[trapcounter].tracklet();
-
-    trapTracklets = mTrapSimulator[trapcounter].getTrackletArray64(); //TODO remove the copy and send the Accumulated array into the Trapsimulator
-    auto trapLabels = mTrapSimulator[trapcounter].getTrackletLabels();
-    if (!mNewTrackletHCHeaderHasBeenWritten && trapTracklets.size() != 0) { // take account of the case where we have data in the trapchip adc but no tracklets OS: Is this a TODO?
-      //we have a tracklet for said half chamber, but the halfchamber ID has not been written yet
-      // .. fix the previous linkrecord to note its end of range.
-      if (mLinkRecords.size() == 0) { // special case for the first entry into the linkrecords vector.
-        mLinkRecords.emplace_back(mTrackletHCHeader.word, 0, -1);
-        //   LOG(debug) << " added HCID :[record.size==0] " << mTrackletHCHeader.HCID << " with number of bytes : " << mTotalRawWordsWritten << "-" << mLinkRecords.back().getFirstEntry();
-      } else {
-        mLinkRecords.back().setNumberOfObjects(mTotalRawWordsWritten - mLinkRecords.back().getFirstEntry()); // current number of words written - the start of this index record.
-                                                                                                             //  LOG(debug) << " added HCID : " << mTrackletHCHeader.HCID << " with number of bytes : " << mTotalRawWordsWritten << "-" << mLinkRecords.back().getFirstEntry();
-        //..... so write the new one thing
-        mLinkRecords.emplace_back(mTrackletHCHeader.word, mTotalRawWordsWritten, -1); // set the number of elements to -1 for an error condition
+      // TODO check MC label part
+      std::vector<o2::MCCompLabel> dummyLabels;
+      /*
+      auto digitslabels = digitMCLabels.getLabels(digitcounter);
+      for (auto& tmplabel : digitslabels) {
+        tmplabels.push_back(tmplabel);
       }
-      mNewTrackletHCHeaderHasBeenWritten = true;
-      LOG(debug) << mTrackletHCHeader;
+      ++digitcounter;
+      */
+      // end MC label part
+      mTrapSimulator[trapIdx].setData(digit->getChannel(), digit->getADC(), dummyLabels);
     }
+    // take care of the TRAPs for the last chamber
+    int currStack = (currDetector % NCHAMBERPERSEC) / NLAYER;
+    int nTrapsMax = (currStack == 2) ? NROBC0 * NMCMROB : NROBC1 * NMCMROB;
+    for (int iTrap = 0; iTrap < nTrapsMax; ++iTrap) {
+      if (!mTrapSimulator[iTrap].isDataSet()) {
+        continue;
+      }
+      auto timeTrapProcessingStart = std::chrono::high_resolution_clock::now();
+      mTrapSimulator[iTrap].filter();
+      mTrapSimulator[iTrap].tracklet();
+      mTrapSimAccumulatedTime += std::chrono::high_resolution_clock::now() - timeTrapProcessingStart;
+      nTrackletsInTrigRec += mTrapSimulator[iTrap].getTrackletArray64().size();
+      trapTrackletsAccum.insert(trapTrackletsAccum.end(), mTrapSimulator[iTrap].getTrackletArray64().begin(), mTrapSimulator[iTrap].getTrackletArray64().end());
+      // TODO get and output MC labels
+      mTrapSimulator[iTrap].reset();
+    }
+    trackletTriggerRecords[iTrig].setDataRange(trapTrackletsAccum.size() - nTrackletsInTrigRec, nTrackletsInTrigRec);
+    currDetector = -1;
+  }
 
-    auto wordswritten = mTrapSimulator[trapcounter].getTrackletStream(rawdata, mTotalRawWordsWritten); // view of data from current marker and only 5 words long (can only have 4 words at most in the trackletstream for 1 MCM)
-    mTotalRawWordsWritten += wordswritten;
-
-    trapTrackletsAccum.insert(trapTrackletsAccum.end(), trapTracklets.begin(), trapTracklets.end());
-    trackletMCLabels.mergeAtBack(trapLabels);
-    mTrapSimAccumulatedTime += std::chrono::high_resolution_clock::now() - trapsimtimerstart;
-
-    // reset trap sim object
-    mTrapSimulator[trapcounter].reset();
-  } // done with last padrow
-
-  // now finalise
-  auto triggerrecordstart = trackletTriggerRecords[currentTriggerRecord - 1].getFirstEntry() + trackletTriggerRecords[currentTriggerRecord - 1].getNumberOfObjects();
-  trackletTriggerRecords[currentTriggerRecord].setDataRange(triggerrecordstart, trapTrackletsAccum.size() - triggerrecordstart);
-  mLinkRecords.back().setNumberOfObjects(mTotalRawWordsWritten - mLinkRecords.back().getFirstEntry()); // set the final link entry
-  LOG(info) << "Trap simulator found " << trapTrackletsAccum.size() << " tracklets from " << msgDigits.size() << " Digits and " << trackletMCLabels.getIndexedSize() << " associated MC Label indexes and " << trackletMCLabels.getNElements() << " associated MC Labels";
+  LOG(info) << "Trap simulator found " << trapTrackletsAccum.size() << " tracklets from " << inputDigits.size() << " Digits and " << trackletMCLabels.getIndexedSize() << " associated MC Label indexes and " << trackletMCLabels.getNElements() << " associated MC Labels";
   if (mShowTrackletStats > 0) {
-    mDigitLoopTime = std::chrono::high_resolution_clock::now() - digitloopstart;
+    mDigitLoopTime = std::chrono::high_resolution_clock::now() - timeDigitLoopStart;
     LOG(info) << "Trap Simulator done ";
-#ifdef TRDTIMESORT
-    LOG(info) << "Sorting took " << mSortingTime.count() << "s";
-#endif
     LOG(info) << "Digit loop took : " << mDigitLoopTime.count() << "s";
-    LOG(info) << "Trapsim took : " << mTrapSimAccumulatedTime.count() << "s";
-    LOG(info) << "Traploop took : " << mTrapLoopTime.count() << "s";
-    for (auto trapcount : mTrapUsedFrequency) {
-      LOG(info) << "# traps fired Traploop are : " << trapcount;
-    }
-    for (auto trapcount : mTrapUsedCounter) {
-      LOG(info) << "each trap position fired   : " << trapcount;
-    }
-    LOG(info) << "Raw data words written = " << mTotalRawWordsWritten << " with a vector size = " << rawdata.size();
-    LOG(info) << "Raw data words written = " << mTotalRawWordsWritten << " with a vector size = " << rawdata.size();
+    LOG(info) << "TRAP processing (filter+tracklet) took : " << mTrapSimAccumulatedTime.count() << "s";
   }
   LOG(debug) << "END OF RUN .............";
-  //TODO does anyone care to have the digits to tracklet mapping. Do we then presort the digits inline with the index or send both digits and sorted index.
-  //TODO is is available for post processing via the debug stream output.
   pc.outputs().snapshot(Output{"TRD", "TRACKLETS", 0, Lifetime::Timeframe}, trapTrackletsAccum);
   pc.outputs().snapshot(Output{"TRD", "TRKTRGRD", 0, Lifetime::Timeframe}, trackletTriggerRecords);
-  /*pc.outputs().snapshot(Output{"TRD", "TRKLABELS", 0, Lifetime::Timeframe}, trackletMCLabels);  */
-  // LOG(info) << "digit MCLabels is of type : " << type_id_with_cvr<decltype(digitMCLabels)>().pretty_name();
-  pc.outputs().snapshot(Output{"TRD", "RAWDATA", 0, Lifetime::Timeframe}, rawdata);
-  pc.outputs().snapshot(Output{"TRD", "RAWTRGRD", 0, Lifetime::Timeframe}, rawTriggerRecords);
-  pc.outputs().snapshot(Output{"TRD", "RAWLNKRD", 0, Lifetime::Timeframe}, mLinkRecords);
+  //pc.outputs().snapshot(Output{"TRD", "TRKLABELS", 0, Lifetime::Timeframe}, trackletMCLabels);
 
   LOG(debug) << "exiting the trap sim run method ";
   pc.services().get<ControlService>().endOfStream();
@@ -567,11 +334,7 @@ o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec()
                            Outputs{OutputSpec{"TRD", "TRACKLETS", 0, Lifetime::Timeframe}, // this is the 64 tracklet words
                                    OutputSpec{"TRD", "TRKTRGRD", 0, Lifetime::Timeframe},
                                    /*OutputSpec{"TRD", "TRKDIGITS", 0, Lifetime::Timeframe},*/
-                                   OutputSpec{"TRD", "TRKLABELS", 0, Lifetime::Timeframe},
-                                   /*OutputSpec{"TRD", "TRAPRAWDUMP", 0, Lifetime::Timeframe},*/
-                                   OutputSpec{"TRD", "RAWTRGRD", 0, Lifetime::Timeframe}, // offsets for each event in the rawdata
-                                   OutputSpec{"TRD", "RAWLNKRD", 0, Lifetime::Timeframe}, // offsets for each link/halfchamberheader in the rawdata, halfchamberheader sitting in here.
-                                   OutputSpec{"TRD", "RAWDATA", 0, Lifetime::Timeframe}}, // this is the mcmheader,traprawtracklet, repeat in varying quantities.
+                                   OutputSpec{"TRD", "TRKLABELS", 0, Lifetime::Timeframe}},
                            AlgorithmSpec{adaptFromTask<TRDDPLTrapSimulatorTask>()},
                            Options{
                              {"show-trd-trackletstats", VariantType::Int, 25000, {"Display the accumulated size and capacity at number of track intervals"}},
