@@ -35,7 +35,6 @@ namespace emcal
 {
 
 class Geometry;
-
 struct AltroBunch {
   int mStarttime;
   std::vector<int> mADCs;
@@ -104,11 +103,9 @@ class RawWriter
 
  protected:
   std::vector<AltroBunch> findBunches(const std::vector<o2::emcal::Digit*>& channelDigits);
-  std::tuple<int, int, int> getOnlineID(int towerID);
-  std::tuple<int, int> getLinkAssignment(int ddlID);
 
   ChannelHeader createChannelHeader(int hardwareAddress, int payloadSize, bool isBadChannel);
-  std::vector<char> createRCUTrailer(int payloadsize, int feca, int fecb, double timesample, uint64_t triggertime);
+  std::vector<char> createRCUTrailer(int payloadsize, double timesample, uint64_t triggertime, int feeID);
   std::vector<int> encodeBunchData(const std::vector<int>& data);
 
  private:

@@ -160,6 +160,10 @@ class RCUTrailer
   /// \param version Firmware version
   void setFirmwareVersion(uint8_t version) { mFirmwareVersion = version; }
 
+  /// \brief Set the ID of the RCU
+  /// \param rcuid ID of the RCU
+  void setRCUID(int rcuid) { mRCUId = rcuid; }
+
   /// \brief set the payload size in number of DDL (32-bit) words
   /// \param size Payload size
   void setPayloadSize(uint32_t size) { mPayloadSize = size; }

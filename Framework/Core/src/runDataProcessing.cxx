@@ -395,16 +395,28 @@ void log_callback(uv_poll_t* handle, int status, int events)
   }
 }
 
+void close_websocket(uv_handle_t* handle)
+{
+  LOG(debug) << "Handle is being closed";
+  delete (WSDPLHandler*)handle->data;
+}
+
 void websocket_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf)
 {
   WSDPLHandler* handler = (WSDPLHandler*)stream->data;
   if (nread == 0) {
     return;
   }
+  if (nread == UV_EOF) {
+    uv_read_stop(stream);
+    uv_close((uv_handle_t*)stream, close_websocket);
+    return;
+  }
   if (nread < 0) {
-    // FIXME: improve error message
     // FIXME: should I close?
     LOG(ERROR) << "websocket_callback: Error while reading from websocket";
+    uv_read_stop(stream);
+    uv_close((uv_handle_t*)stream, close_websocket);
     return;
   }
   try {
@@ -898,11 +910,14 @@ void doDPLException(RuntimeErrorRef& e)
 {
   auto& err = o2::framework::error_from_ref(e);
   if (err.maxBacktrace != 0) {
-    LOG(ERROR) << "Unhandled o2::framework::runtime_error reached the top of main, device shutting down. Details follow: \n";
+    LOG(ERROR) << "Unhandled o2::framework::runtime_error reached the top of main, device shutting down."
+               << "\n Reason: " << err.what
+               << "\n Backtrace follow: \n";
     backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
   } else {
     LOG(ERROR) << "Unhandled o2::framework::runtime_error reached the top of main, device shutting down."
-                  " Recompile with DPL_ENABLE_BACKTRACE=1 to get more information.";
+               << "\n Reason: " << err.what
+               << "\n Recompile with DPL_ENABLE_BACKTRACE=1 to get more information.";
   }
 }
 
@@ -1138,7 +1153,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   uv_tcp_t serverHandle;
   serverHandle.data = &serverContext;
   uv_tcp_init(loop, &serverHandle);
-  driverInfo.port = 8080;
+  driverInfo.port = 8080 + (getpid() % 30000);
   int result = 0;
   struct sockaddr_in* serverAddr = nullptr;
 
@@ -1160,11 +1175,13 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       auto bindResult = uv_tcp_bind(&serverHandle, (const struct sockaddr*)serverAddr, 0);
       if (bindResult != 0) {
         driverInfo.port++;
+        usleep(1000);
         continue;
       }
       result = uv_listen((uv_stream_t*)&serverHandle, 100, ws_connect_callback);
       if (result != 0) {
         driverInfo.port++;
+        usleep(1000);
         continue;
       }
     } while (result != 0);

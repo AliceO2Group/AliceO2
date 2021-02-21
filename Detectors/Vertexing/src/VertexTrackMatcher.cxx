@@ -63,7 +63,9 @@ void VertexTrackMatcher::process(const gsl::span<const PVertex>& vertices,
       auto gid = v2tfitIDs[id];
       vtxIds.push_back(gid);
       // flag already accounted tracks
-      idTPCITS[gid.getIndex()] = -1; // RS Attention: this will not work once not only ITSTPC contributes to vertex, FIXME!!!
+      if (gid.getSource() == GIndex::ITSTPC) {
+        idTPCITS[gid.getIndex()] = -1; // RS Attention: this will not work once not only ITSTPC contributes to vertex, FIXME!!!
+      }
     }
   }
 
@@ -115,7 +117,9 @@ void VertexTrackMatcher::process(const gsl::span<const PVertex>& vertices,
   for (int iv = 0; iv < nv; iv++) {
     const auto& trvec = tmpMap[iv];
     for (auto gid : trvec) {
-      (*vptr[gid.getSource()])[gid.getIndex()]++;
+      if (vptr[gid.getSource()]) { // in case this source was not provided
+        (*vptr[gid.getSource()])[gid.getIndex()]++;
+      }
     }
   }
 
@@ -134,7 +138,7 @@ void VertexTrackMatcher::process(const gsl::span<const PVertex>& vertices,
         vr.setFirstEntryOfSource(oldSrc, trackIndex.size()); // register start of new source
       }
       auto& gid = trackIndex.emplace_back(gid0);
-      if ((*vptr[src])[gid.getIndex()] > 1) {
+      if (vptr[src] && (*vptr[src])[gid.getIndex()] > 1) { // check if source was provided
         gid.setAmbiguous();
       }
     }

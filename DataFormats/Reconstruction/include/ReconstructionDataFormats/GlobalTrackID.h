@@ -16,6 +16,7 @@
 #define O2_GLOBAL_TRACK_ID
 
 #include "CommonDataFormat/AbstractRef.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 #include <iosfwd>
 #include <string>
 #include <array>
@@ -29,13 +30,15 @@ namespace dataformats
 class GlobalTrackID : public AbstractRef<25, 5, 2>
 {
  public:
+  using DetID = o2::detectors::DetID;
+
   enum Source : uint8_t { // provenance of the
     ITS,                  // standalone detectors
     TPC,
     TRD,
     TOF,
-    PHS,
-    CPV,
+    PHS, // FIXME Not sure PHS ... FDD should be kept here, at the moment
+    CPV, // they are here for completeness
     EMC,
     HMP,
     MFT,
@@ -55,21 +58,21 @@ class GlobalTrackID : public AbstractRef<25, 5, 2>
     //
     NSources
   };
-  static constexpr std::array<std::string_view, NSources> SourceNames = {
-    "ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", // standalone tracks
-    "ITSTPC", "TPCTOF", "TPCTRD",                                                                            // 2-detector tracks
-    "ITSTPCTRD", "ITSTPCTOF", "TPCTRDTOF",                                                                   // 3-detector tracks
-    "ITSTPCTRDTOF"                                                                                           // full barrel track
-    //
-  };
 
+  static const std::array<DetID::mask_t, NSources> DetectorMasks; // RS cannot be made constexpr since operator| is not constexpr
   using AbstractRef<25, 5, 2>::AbstractRef;
 
-  static auto getSourceName(int i) { return SourceNames[i]; }
-  void print() const;
-  std::string asString() const;
+  static const auto getSourceMask(int i) { return DetectorMasks[i]; }
+  static auto getSourceName(int i) { return DetID::getNames(getSourceMask(i)); }
+
   auto getSourceName() const { return getSourceName(getSource()); }
+  auto getSourceMask() const { return getSourceMask(getSource()); }
+  bool includesDet(DetID id) const { return (getSourceMask() & DetID::getMask(id)).any(); }
+
   operator int() const { return int(getIndex()); }
+
+  std::string asString() const;
+  void print() const;
 
   ClassDefNV(GlobalTrackID, 2);
 };

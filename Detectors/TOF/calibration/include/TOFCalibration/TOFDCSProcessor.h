@@ -87,7 +87,7 @@ class TOFDCSProcessor
   int processDP(const DPCOM& dpcom);
   virtual uint64_t processFlags(uint64_t flag, const char* pid);
 
-  void finalize();
+  void updateDPsCCDB();
   void getStripsConnectedToFEAC(int nDDL, int nFEAC, TOFFEACinfo& info) const;
   void updateFEACCCDB();
   void updateHVCCDB();
@@ -112,6 +112,12 @@ class TOFDCSProcessor
 
   void setTF(TFType tf) { mTF = tf; }
   void useVerboseMode() { mVerbose = true; }
+
+  void clearDPsinfo()
+  {
+    mDpsdoublesmap.clear();
+    mTOFDCS.clear();
+  }
 
  private:
   std::unordered_map<DPID, TOFDCSinfo> mTOFDCS;                // this is the object that will go to the CCDB
