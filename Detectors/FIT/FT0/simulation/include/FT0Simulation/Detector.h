@@ -48,15 +48,15 @@ class Detector : public o2::base::DetImpl<Detector>
     kVac = 3,
     kCeramic = 4,
     kGlass = 6,
-    kOpAir = 7,
+    //   kOpAir = 7,
     kAl = 15,
     kOpGlass = 16,
     kOptAl = 17,
     kOptBlack = 18,
     kOpGlassCathode = 19,
-    kSensAir = 22,
+    //   kSensAir = 22,
     kCable = 23,
-    kMCPwalls = 24
+    kMCPwalls = 25
   }; // materials
 
   /// Name : Detector Name
@@ -175,6 +175,9 @@ class Detector : public o2::base::DetImpl<Detector>
   float mPosModuleCx[Geometry::NCellsC];
   float mPosModuleCy[Geometry::NCellsC];
   float mPosModuleCz[Geometry::NCellsC];
+  Float_t mStartC[3] = {20., 20, 5.5};
+  Float_t mStartA[3] = {20., 20., 5};
+  Float_t mInStart[3] = {2.9491, 2.9491, 2.75};
 
   ClassDefOverride(Detector, 4);
 };

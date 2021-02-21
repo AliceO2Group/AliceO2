@@ -94,10 +94,6 @@ void Detector::ConstructGeometry()
 
   Int_t idrotm[999];
   Double_t x, y, z;
-  Float_t pstartC[3] = {20., 20, 5.5};
-  Float_t pstartA[3] = {20, 20, 5};
-  Float_t pinstart[3] = {2.9491, 2.9491, 2.5};
-  Float_t pmcp[3] = {2.949, 2.949, 1.}; // MCP
 
   int nCellsA = Geometry::NCellsA;
   int nCellsC = Geometry::NCellsC;
@@ -110,7 +106,7 @@ void Detector::ConstructGeometry()
 
   Double_t crad = Geometry::ZdetC; // define concave c-side radius here
 
-  Double_t dP = pmcp[0]; // side length of mcp divided by 2
+  Double_t dP = mInStart[0]; // side length of mcp divided by 2
 
   // uniform angle between detector faces==
   Double_t btta = 2 * TMath::ATan(dP / crad);
@@ -153,7 +149,7 @@ void Detector::ConstructGeometry()
 
   // compensation based on node position within individual detector geometries
   // determine compensated radius
-  Double_t rcomp = crad + pstartC[2] / 2.0; //
+  Double_t rcomp = crad + mStartC[2] / 2.0; //
   for (Int_t i = 0; i < Geometry::NCellsC; i++) {
     // Get compensated translation data
     xc2[i] = rcomp * TMath::Cos(ac[i] + TMath::Pi() / 2) * TMath::Sin(-1 * bc[i]);
@@ -170,7 +166,7 @@ void Detector::ConstructGeometry()
   TGeoVolumeAssembly* stlinC = new TGeoVolumeAssembly("0STR"); // C side mother
 
   // FIT interior
-  TVirtualMC::GetMC()->Gsvolu("0INS", "BOX", getMediumID(kAir), pinstart, 3);
+  TVirtualMC::GetMC()->Gsvolu("0INS", "BOX", getMediumID(kAir), mInStart, 3);
   TGeoVolume* ins = gGeoManager->GetVolume("0INS");
   //
   TGeoTranslation* tr[Geometry::NCellsA + Geometry::NCellsC];
@@ -179,7 +175,7 @@ void Detector::ConstructGeometry()
   // A side Translations
   for (Int_t itr = 0; itr < Geometry::NCellsA; itr++) {
     nameTr = Form("0TR%i", itr + 1);
-    z = -pstartA[2] + pinstart[2];
+    z = -mStartA[2] + mInStart[2];
     tr[itr] = new TGeoTranslation(nameTr.Data(), mPosModuleAx[itr], mPosModuleAy[itr], z);
     tr[itr]->RegisterYourself();
     stlinA->AddNode(ins, itr, tr[itr]);
@@ -215,8 +211,7 @@ void Detector::ConstructGeometry()
     stlinC->AddNode(ins, itr, ph);
     //cables
     TGeoVolume* cables = SetCablesSize(itr);
-    comCable[ic] = new TGeoCombiTrans(mPosModuleCx[ic], mPosModuleCy[ic], mPosModuleCz[ic] +  pinstart[2] + 0.2
-                                      , rot[ic]);
+    comCable[ic] = new TGeoCombiTrans(mPosModuleCx[ic], mPosModuleCy[ic], mPosModuleCz[ic] + mInStart[2] + 0.2, rot[ic]);
     TGeoHMatrix hmCable = *comCable[ic];
     TGeoHMatrix* phCable = new TGeoHMatrix(hmCable);
     stlinC->AddNode(cables, itr, comCable[ic]);
@@ -245,25 +240,22 @@ void Detector::SetOneMCP(TGeoVolume* ins)
 
   Double_t x, y, z;
 
-  Float_t pinstart[3] = {2.9491, 2.9491, 2.5};
-  Float_t ptop[3] = {1.324, 1.324, 1.}; // Cherenkov radiator
-  //  Float_t ptopblack[3] = {1.324, 1.324, 0.0002}; // black paper on the top on radiator
+  Float_t ptop[3] = {1.324, 1.324, 1.};      // Cherenkov radiator
   Float_t ptopref[3] = {1.3241, 1.3241, 1.}; // Cherenkov radiator wrapped with reflector
   Double_t prfv[3] = {0.0002, 1.323, 1.};    // Vertical refracting layer bettwen radiators and between radiator and not optical Air
   Double_t prfh[3] = {1.323, 0.0002, 1.};    // Horizontal refracting layer bettwen radiators and ...
-  Float_t pmcp[3] = {2.949, 2.949, 1.};      // MCP
+  Float_t pmcp[3] = {2.949, 2.949, 0.66};    // MCP
   Float_t pmcpinner[3] = {2.749, 2.749, 0.1};
-  Float_t pmcpbase[3] = {2.949, 2.949, 0.1};
-  // Float_t pmcpside[3] = {0.65, 2.949, 0.1};
-  Float_t pmcpside[3] = {0.1, 2.949, 1};
+  Float_t pmcpbase[3] = {2.949, 2.949, 0.675};
+  Float_t pmcpside[3] = {0.15, 2.949, 0.65};
   Float_t pmcptopglass[3] = {2.949, 2.949, 0.1}; // MCP top glass optical
-
-  Float_t preg[3] = {1.324, 1.324, 0.005}; // Photcathode
-  Double_t pal[3] = {2.648, 2.648, 0.25};  // 5mm Al on top of each radiator
+  Float_t preg[3] = {1.324, 1.324, 0.005};       // Photcathode
+  Double_t pal[3] = {2.648, 2.648, 0.25};        // 5mm Al on top of each radiator
 
   // Entry window (glass)
   TVirtualMC::GetMC()->Gsvolu("0TOP", "BOX", getMediumID(kOpGlass), ptop, 3); // Glass radiator
   TGeoVolume* top = gGeoManager->GetVolume("0TOP");
+  top->Print();
   // TVirtualMC::GetMC()->Gsvolu("0TBL", "BOX", getMediumID(kOptBlack), ptopblack, 3); // Glass radiator
   //  TGeoVolume* topblack = gGeoManager->GetVolume("0TBL");
   TVirtualMC::GetMC()->Gsvolu("0TRE", "BOX", getMediumID(kAir), ptopref, 3); // Air: wrapped  radiator
@@ -275,14 +267,13 @@ void Detector::SetOneMCP(TGeoVolume* ins)
 
   TVirtualMC::GetMC()->Gsvolu("0PAL", "BOX", getMediumID(kAl), pal, 3); // 5mm Al on top of the radiator
   TGeoVolume* altop = gGeoManager->GetVolume("0PAL");
-
+  altop->Print();
   TVirtualMC::GetMC()->Gsvolu("0REG", "BOX", getMediumID(kOpGlassCathode), preg, 3);
   TGeoVolume* cat = gGeoManager->GetVolume("0REG");
 
   //wrapped radiator +  reflecting layers
 
   Int_t ntops = 0, nrfvs = 0, nrfhs = 0;
-  //  Float_t yin = 0, xinv = 0, yinv = 0;
   x = y = z = 0;
   topref->AddNode(top, 1, new TGeoTranslation(0, 0, 0));
   float xinv = -ptop[0] - prfv[0];
@@ -293,16 +284,13 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   topref->AddNode(rfh, 1, new TGeoTranslation(0, yinv, 0));
   yinv = ptop[1] + prfh[1];
   topref->AddNode(rfh, 2, new TGeoTranslation(0, yinv, 0));
-  //  zin = -ptop[2] - ptopblack[2];
-  //  printf(" GEOGEO  refh  ,  0, 0, %f \n", zin);
-  //  topref->AddNode(topblack, 1, new TGeoTranslation(0, 0, zin));
 
   //container for radiator, cathode
   for (Int_t ix = 0; ix < 2; ix++) {
-    float xin = -pinstart[0] + 0.3 + (ix + 0.5) * 2 * ptopref[0];
+    float xin = -mInStart[0] + 0.3 + (ix + 0.5) * 2 * ptopref[0];
     for (Int_t iy = 0; iy < 2; iy++) {
-      z = -pinstart[2] + 2 * pal[2] + ptopref[2];
-      float yin = -pinstart[1] + 0.3 + (iy + 0.5) * 2 * ptopref[1];
+      z = -mInStart[2] + 2 * pal[2] + ptopref[2];
+      float yin = -mInStart[1] + 0.3 + (iy + 0.5) * 2 * ptopref[1];
       ntops++;
       ins->AddNode(topref, ntops, new TGeoTranslation(xin, yin, z));
       z += ptopref[2] + 2. * pmcptopglass[2] + preg[2];
@@ -311,25 +299,26 @@ void Detector::SetOneMCP(TGeoVolume* ins)
     }
   }
   //Al top
-  z = -pinstart[2] + pal[2];
+  z = -mInStart[2] + pal[2];
   ins->AddNode(altop, 1, new TGeoTranslation(0, 0, z));
-
   // MCP
   TVirtualMC::GetMC()->Gsvolu("0MTO", "BOX", getMediumID(kOpGlass), pmcptopglass, 3); //Op  Glass
   TGeoVolume* mcptop = gGeoManager->GetVolume("0MTO");
-  z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + pmcptopglass[2];
+  mcptop->Print();
+  z = -mInStart[2] + 2 * pal[2] + 2 * ptopref[2] + pmcptopglass[2];
   ins->AddNode(mcptop, 1, new TGeoTranslation(0, 0, z));
 
   TVirtualMC::GetMC()->Gsvolu("0MCP", "BOX", getMediumID(kAir), pmcp, 3); //glass
   TGeoVolume* mcp = gGeoManager->GetVolume("0MCP");
-  z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + 2 * pmcptopglass[2] + 2 * preg[2] + pmcp[2];
+  z = -mInStart[2] + 2 * pal[2] + 2 * ptopref[2] + 2 * pmcptopglass[2] + 2 * preg[2] + pmcp[2];
   ins->AddNode(mcp, 1, new TGeoTranslation(0, 0, z));
-  TVirtualMC::GetMC()->Gsvolu("0MIN", "BOX", getMediumID(kGlass), pmcpinner, 3); //glass
+  // TVirtualMC::GetMC()->Gsvolu("0MIN", "BOX", getMediumID(kGlass), pmcpinner, 3); //glass
   // TGeoVolume* mcpinner = gGeoManager->GetVolume("0MIN");
   //  mcp->AddNode(mcpinner, 1, new TGeoTranslation(0, 0, 0));
 
   TVirtualMC::GetMC()->Gsvolu("0MSI", "BOX", getMediumID(kMCPwalls), pmcpside, 3); //glass
   TGeoVolume* mcpside = gGeoManager->GetVolume("0MSI");
+  mcpside->Print();
   x = -pmcp[0] + pmcpside[0];
   y = -pmcp[1] + pmcpside[1];
   mcp->AddNode(mcpside, 1, new TGeoTranslation(x, y, 0));
@@ -345,7 +334,8 @@ void Detector::SetOneMCP(TGeoVolume* ins)
 
   TVirtualMC::GetMC()->Gsvolu("0MBA", "BOX", getMediumID(kCeramic), pmcpbase, 3); //glass
   TGeoVolume* mcpbase = gGeoManager->GetVolume("0MBA");
-  z = -pinstart[2] + 2 * pal[2] + 2 * ptopref[2] + pmcptopglass[2] + 2 * pmcp[2] + pmcpbase[2];
+  mcpbase->Print();
+  z = -mInStart[2] + 2 * pal[2] + 2 * ptopref[2] + pmcptopglass[2] + 2 * pmcp[2] + pmcpbase[2];
   ins->AddNode(mcpbase, 1, new TGeoTranslation(0, 0, z));
 }
 
@@ -353,43 +343,38 @@ void Detector::SetOneMCP(TGeoVolume* ins)
 void Detector::SetCablesA(TGeoVolume* stl)
 {
 
-  Float_t pstartA[3] = {20, 20, 5};
-  Float_t pcableplane[3] = {20, 20, 0.25}; //
-  Float_t pinstart[3] = {2.9491, 2.9491, 2.5};
+  float pcableplane[3] = {20, 20, 0.25}; //
 
   TVirtualMC::GetMC()->Gsvolu("0CAA", "BOX", getMediumID(kAir), pcableplane, 3); //container for cables
   TGeoVolume* cableplane = gGeoManager->GetVolume("0CAA");
-
-  // cable radius= 0.257 cm, weight=0.19g/cm, den = 0.19 / 0.257*0.257 = 2.957 g/cm^3
-  // 1 short cable cilinder -> box = sqrt(0.257×0.257×π) = 0.455 ; length 1.48
-  // 2 short cables 0.455*2; length 1.48
-  // 2 long cables 0.455*2; length 2.949......
-  // 3 long cables 0.455*3; length 2.949......
-
+  float zcableplane = -mStartA[2] + 2 * mInStart[2] + pcableplane[2];
   int na = 0;
-  /*
-  int mcpcables[96] = {4, 5, 3, 4, 2, 3, 1, 2, 3, 4,
-                       4, 5, 1, 2, 2, 3, 3, 4, 4, 5,
-                       4, 5, 3, 4, 2, 3, 1, 2, 1, 2,
-                       2, 3, 1, 2, 2, 3, 3, 4, 4, 5,
-                       4, 5, 3, 4, 2, 3, 1, 2, 1, 2,
-                       2, 3, 3, 4, 4, 5, 4, 5, 3, 4,
-                       2, 3, 1, 2, 2, 1, 3, 2, 2, 1,
-                       3, 2, 4, 3, 5, 4, 5, 4, 3, 4,
-                       3, 2, 2, 1, 5, 4, 4, 3, 2, 1,
-                       3, 2, 4, 3, 5, 4};
-  */
 
   double xcell[24], ycell[24];
- 
+
   for (int imcp = 0; imcp < 24; imcp++) {
-    xcell[na] = mPosModuleAx[imcp] /* + xshift[ix]*/;
-    ycell[na] = mPosModuleAy[imcp] /*+ yshift[ix]*/;
+    xcell[na] = mPosModuleAx[imcp];
+    ycell[na] = mPosModuleAy[imcp];
     TGeoVolume* vol = SetCablesSize(imcp);
     cableplane->AddNode(vol, na, new TGeoTranslation(xcell[na], ycell[na], 0));
     na++;
   }
-  stl->AddNode(cableplane, 1, new TGeoTranslation(0, 0, -pstartA[2] + 2 * pinstart[2] + pcableplane[2]));
+
+  //12 cables extending beyond the frame
+  Float_t pcablesextend[3] = {2, 15, 0.245};
+  Float_t pcablesextendsmall[3] = {3, 2, 0.245};
+  Float_t* ppcablesextend[] = {pcablesextend, pcablesextend, pcablesextendsmall, pcablesextendsmall};
+  //left side
+  double xcell_side[] = {-mStartA[0] + pcablesextend[0], mStartA[0] - pcablesextend[0], 0, 0};
+  double ycell_side[] = {0, 0, -mStartA[1] + pcablesextendsmall[1], +mStartA[1] - pcablesextendsmall[1]};
+
+  for (int icab = 0; icab < 4; icab++) {
+    const std::string volName = Form("CAB%2.i", 52 + icab);
+    TVirtualMC::GetMC()->Gsvolu(volName.c_str(), " BOX", getMediumID(kCable), ppcablesextend[icab], 3); // cables
+    TGeoVolume* vol = gGeoManager->GetVolume(volName.c_str());
+    cableplane->AddNode(vol, 1, new TGeoTranslation(xcell_side[icab], ycell_side[icab], 0));
+  }
+  stl->AddNode(cableplane, 1, new TGeoTranslation(0, 0, zcableplane));
 }
 //------------------------------------------
 
@@ -423,11 +408,10 @@ TGeoVolume* Detector::SetCablesSize(int mod)
   calblesize[1] = ysize[ic - 1];
   calblesize[2] = zsize[ic - 1];
   const std::string volName = Form("CAB%2.i", mod);
-  LOG(INFO) << " Detector::SetCablesC(int mod) " << mod << " size " << ic << " x " << xsize[ic - 1] << " y " << ysize[ic - 1] << " z " << ysize[ic - 1];
   TVirtualMC::GetMC()->Gsvolu(volName.c_str(), "BOX", getMediumID(kCable), calblesize, 3); // cables
   TGeoVolume* vol = gGeoManager->GetVolume(volName.c_str());
-  vol->Print();
-  vol->Weight();
+  //  vol->Print();
+  //  vol->Weight();
   return vol;
 }
 
@@ -545,11 +529,12 @@ void Detector::CreateMaterials()
    -  MCP electrods thickness 1 mm with density 4.2 g/cm3
    -  Backplane PCBs thickness 4.5 mm with density 1.85 g/cm3
    -  electromagnetic shielding 1 mm  with density 2.8 g/cm3
+   -  Al back cover 5mm  2.7 g/cm3
   */
   Float_t aCeramic[2] = {26.981539, 15.9994};
   Float_t zCeramic[2] = {13., 8.};
   Float_t wCeramic[2] = {2., 3.};
-  Float_t denscer = 1.893;
+  Float_t denscer = 2.37;
 
   //MCP walls Ceramic+Nickel (50//50)
   const Int_t nCeramicNice = 3;
@@ -563,8 +548,8 @@ void Detector::CreateMaterials()
   const Int_t nPlast = 4;
   Float_t aPlast[nPlast] = {1.00784, 12.0107, 15.999, 63.54};
   Float_t zPlast[nPlast] = {1, 6, 8, 29};
-  Float_t wPlast[nPlast] = {0.08, 0.58, 0.29, 0.05};
-  const Float_t denCable = 3.69;
+  Float_t wPlast[nPlast] = {0.08, 0.53, 0.22, 0.17}; ////!!!!!
+  const Float_t denCable = 3.66;
 
   //*** Definition Of avaible FIT materials ***
   Material(11, "Aliminium$", 26.98, 13.0, 2.7, 8.9, 999);
@@ -574,21 +559,21 @@ void Detector::CreateMaterials()
   Mixture(24, "Radiator Optical glass$", aglass, zglass, dglass, -2, wglass);
   Mixture(3, "Ceramic$", aCeramic, zCeramic, denscer, -2, wCeramic);
   Mixture(23, "CablePlasticCooper$", aPlast, zPlast, denCable, 4, wPlast);
-  Mixture(24, "MCPwalls $", aCeramicNicel, zCeramicNicel, denscerCeramicNickel, 3, wCeramicNicel);
+  Mixture(25, "MCPwalls $", aCeramicNicel, zCeramicNicel, denscerCeramicNickel, 3, wCeramicNicel);
 
   Medium(1, "Air$", 2, 0, isxfld, sxmgmx, 10., .1, 1., .003, .003);
   Medium(3, "Vacuum$", 1, 0, isxfld, sxmgmx, 10., .01, .1, .003, .003);
   Medium(4, "Ceramic$", 3, 0, isxfld, sxmgmx, 10., .01, .1, .003, .003);
   Medium(6, "Glass$", 4, 0, isxfld, sxmgmx, 10., .01, .1, .003, .003);
-  Medium(7, "OpAir$", 2, 0, isxfld, sxmgmx, 10., .1, 1., .003, .003);
-  Medium(18, "OpBlack$", 2, 0, isxfld, sxmgmx, 10., .1, 1., .003, .003);
+  //  Medium(7, "OpAir$", 2, 0, isxfld, sxmgmx, 10., .1, 1., .003, .003);
+  //  Medium(18, "OpBlack$", 2, 0, isxfld, sxmgmx, 10., .1, 1., .003, .003);
   Medium(15, "Aluminium$", 11, 0, isxfld, sxmgmx, 10., .01, 1., .003, .003);
   Medium(17, "OptAluminium$", 11, 0, isxfld, sxmgmx, 10., .01, 1., .003, .003);
   Medium(16, "OpticalGlass$", 24, 1, isxfld, sxmgmx, 10., .01, .1, .003, .01);
   Medium(19, "OpticalGlassCathode$", 24, 1, isxfld, sxmgmx, 10., .01, .1, .003, .003);
-  Medium(22, "SensAir$", 2, 1, isxfld, sxmgmx, 10., .1, 1., .003, .003);
+  //  Medium(22, "SensAir$", 2, 1, isxfld, sxmgmx, 10., .1, 1., .003, .003);
   Medium(23, "Cables$", 23, 1, isxfld, sxmgmx, 10., .1, 1., .003, .003);
-  Medium(24, "MCPWalls", 24, 1, isxfld, sxmgmx, 10., .1, 1., .003, .003);
+  Medium(25, "MCPWalls", 25, 1, isxfld, sxmgmx, 10., .1, 1., .003, .003);
 }
 
 //-------------------------------------------------------------------
