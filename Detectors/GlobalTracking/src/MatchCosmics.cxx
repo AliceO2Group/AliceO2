@@ -167,6 +167,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
         LOG(DEBUG) << "Inward refit of btm TPC track failed.";
         continue;
       }
+      nclTot += retVal;
       LOG(DEBUG) << "chi2 after btm TPC refit with " << retVal << " clusters : " << chi2 << " orig.chi2 was " << tpcTrOrig.getChi2();
     } else { // just collect NClusters and chi2
       auto gidxListBtm = data.getSingleDetectorRefs(mSeeds[poolEntryID[btm]].origID);
@@ -218,6 +219,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
         continue;
       } // outward refit in TPC
       LOG(DEBUG) << "chi2 after top TPC refit with " << retVal << " clusters : " << chi2 << " orig.chi2 was " << tpcTrOrig.getChi2();
+      nclTot += retVal;
     }
 
     // inward refit of top leg for evaluation in DCA
