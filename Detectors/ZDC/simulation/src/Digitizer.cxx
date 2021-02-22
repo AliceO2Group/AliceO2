@@ -64,8 +64,9 @@ void Digitizer::process(const std::vector<o2::zdc::Hit>& hits,
     int detID = hit.GetDetectorID();
     int secID = hit.getSector();
     float nPhotons;
-    if (detID == ZEM) { // TODO: ZEMCh1 and Common are both 0, could skip the check for detID
-      nPhotons = (secID == ZEMCh1) ? hit.getPMCLightYield() : hit.getPMQLightYield();
+    if (detID == ZEM) {
+      // ZEM calorimeters have only common PM
+      nPhotons = hit.getPMCLightYield();
     } else {
       nPhotons = (secID == Common) ? hit.getPMCLightYield() : hit.getPMQLightYield();
     }
@@ -256,8 +257,9 @@ bool Digitizer::triggerBC(int ibc)
         int id = trigCh.id;
         if (id >= 0 && id < NChannels) {
           auto ipos = NChPerModule * md.id + ic;
+          int last1 = trigCh.last + 2;
           bool okPrev = false;
-          int last1 = trigCh.last + 2; // To be modified. The new requirement is 3 consecutive samples
+#ifdef ZDC_DOUBLE_TRIGGER_CONDITION
           // look for 2 consecutive bins (the 1st one spanning trigCh.first : trigCh.last range) so that
           // signal[bin]-signal[bin+trigCh.shift] > trigCh.threshold
           for (int ib = trigCh.first; ib < last1; ib++) { // ib may be negative, so we shift by offs and look in the ADC cache
@@ -274,6 +276,26 @@ bool Digitizer::triggerBC(int ibc)
             }
             okPrev = ok;
           }
+#else
+          bool okPPrev = false;
+          // look for 3 consecutive bins (the 1st one spanning trigCh.first : trigCh.last range) so that
+          // signal[bin]-signal[bin+trigCh.shift] > trigCh.threshold
+          for (int ib = trigCh.first - 1; ib < last1; ib++) { // ib may be negative, so we shift by offs and look in the ADC cache
+            int binF, bcFidx = ibc + binHelper(ib, binF);
+            int binL, bcLidx = ibc + binHelper(ib + trigCh.shift, binL);
+            const auto& bcF = (bcFidx < 0 || !mFastCache[bcFidx]) ? mDummyBC : *mFastCache[bcFidx];
+            const auto& bcL = (bcLidx < 0 || !mFastCache[bcLidx]) ? mDummyBC : *mFastCache[bcLidx];
+            bool ok = bcF.digi[ipos][binF] - bcL.digi[ipos][binL] > trigCh.threshold;
+            if (ok && okPrev && okPPrev) {                                 // trigger ok!
+              bcCached.trigChanMask |= 0x1 << (NChPerModule * md.id + ic); // register trigger mask
+              LOG(DEBUG) << bcF.digi[ipos][binF] << " - " << bcL.digi[ipos][binL] << " = " << bcF.digi[ipos][binF] - bcL.digi[ipos][binL] << " > " << trigCh.threshold;
+              LOG(DEBUG) << " hit [" << md.id << "," << ic << "] " << int(id) << "(" << ChannelNames[id] << ") => " << bcCached.trigChanMask;
+              break;
+            }
+            okPPrev = okPrev;
+            okPrev = ok;
+          }
+#endif
         }
       }
     }
@@ -541,7 +563,6 @@ void Digitizer::assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData)
   uint32_t nbcTot = bcData.size();
   auto currBC = bcData[ibc];
 
-  uint32_t triggers[5] = {0};
   for (int is = -1; is < 4; is++) {
     int ibc_peek = ibc + is;
     if (ibc_peek < 0) {
@@ -551,29 +572,29 @@ void Digitizer::assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData)
       break;
     }
     const auto& otherBC = bcData[ibc_peek];
-    if (otherBC.triggers) {
-      auto diffBC = otherBC.ir.differenceInBC(currBC.ir);
-      if (diffBC < -1 || diffBC > 3) {
-        continue;
-      }
-      diffBC++;
-      if (otherBC.ext_triggers) {
-        for (int im = 0; im < NModules; im++) {
-          currBC.moduleTriggers[im] |= 0x1 << diffBC;
-        }
-      }
-      triggers[diffBC] = otherBC.triggers;
+    auto diffBC = otherBC.ir.differenceInBC(currBC.ir);
+    if (diffBC < -1) {
+      continue;
     }
-    // Assign trigger bits in payload
-    for (int im = 0; im < NModules; im++) {
-      uint32_t tmask = (0xf << (im * NChPerModule)) & mTriggerMask;
-      for (int it = 0; it < 5; it++) {
-        if (triggers[it] & tmask) {
-          currBC.moduleTriggers[im] |= 0x1 << (5 + it);
+    if(diffBC > 3){
+      break;
+    }
+    if(otherBC.ext_triggers && diffBC>=0){
+      for (int im = 0; im < NModules; im++) {
+        currBC.moduleTriggers[im] |= 0x1 << diffBC;
+      }
+    }
+    if (otherBC.triggers) {
+      // Assign trigger bits in payload
+      for (int im = 0; im < NModules; im++) {
+	uint32_t tmask = (0xf << (im * NChPerModule)) & mTriggerMask;
+        if (otherBC.triggers & tmask) {
+          currBC.moduleTriggers[im] |= 0x1 << (5 + diffBC);
         }
       }
     }
   }
+  currBC.print(mTriggerMask);
 }
 
 //______________________________________________________________________________

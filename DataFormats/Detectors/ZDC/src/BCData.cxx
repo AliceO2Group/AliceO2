@@ -14,7 +14,7 @@
 
 using namespace o2::zdc;
 
-void BCData::print() const
+void BCData::print(uint32_t triggerMask) const
 {
   printf("Orbit %9u bc %4u nch %2d pos %d\n", ir.orbit, ir.bc, ref.getEntries(), ref.getFirstEntry());
   printf("Read:");
@@ -32,15 +32,6 @@ void BCData::print() const
       printf(" ");
     }
   }
-  printf("]\nTrigs:");
-  for (int i = 0; i < NChannels; i++) {
-    std::bitset<10> bb(moduleTriggers[i]);
-    printf("[%2d: %s]", i, bb.to_string().c_str());
-    if (i % (NChannels / 3) == 0 && i) {
-      printf("\n");
-    }
-  }
-
   printf("]\nHits:");
   for (int ic = 0; ic < NDigiChannels; ic++) {
     if (ic % NChPerModule == 0) {
@@ -50,13 +41,33 @@ void BCData::print() const
         printf("] %d[", ic / NChPerModule);
       }
     }
-    if (triggers & (0x1 << ic)) {
-      printf("H");
+    bool is_hit=triggers & (0x1 << ic);
+    bool is_trig=triggerMask & (0x1 << ic);
+    if (is_trig){
+      if (is_hit){
+        printf("T");
+      }else{
+        printf(".");
+      }
     } else {
-      printf(" ");
+      if (is_hit){
+        printf("H");
+      }else{
+        printf(" ");
+      }
     }
   }
-  printf("]\n");
+  printf("]\nAUTO:");
+  for (int i = 0; i < NModules; i++) {
+    std::bitset<10> bb(moduleTriggers[i]);
+    printf(" %d %s%s%s%s%s",i,bb[8]?"3":"-",bb[7]?"2":"-",bb[6]?"1":"-",bb[5]?"0":"-",bb[4]?"M":"-");
+  }
+  printf("\nALIT:");
+  for (int i = 0; i < NModules; i++) {
+    std::bitset<10> bb(moduleTriggers[i]);
+    printf(" %d %s%s%s%s ",i,bb[3]?"3":"-",bb[2]?"2":"-",bb[1]?"1":"-",bb[0]?"0":"-");
+  }
+  printf("\n");
 }
 
 gsl::span<const ChannelData> BCData::getBunchChannelData(const gsl::span<const ChannelData> tfdata) const
