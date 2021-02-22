@@ -98,7 +98,7 @@
 #include "Align/AliAlgVol.h"
 #include "Align/AliAlgDOFStat.h"
 #include "Align/AliAlgConstraint.h"
-//#include "AliAlignObjParams.h"
+#include "DetectorsCommonDataFormats/AlignParam.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "Align/AliAlgAux.h"
 #include "Framework/Logger.h"
@@ -166,16 +166,19 @@ AliAlgVol::~AliAlgVol()
 //_________________________________________________________
 void AliAlgVol::Delta2Matrix(TGeoHMatrix& deltaM, const Double_t* delta) const
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
-  //FIXME(milettri): needs AliAlignObj
-  //  // prepare delta matrix for the volume from its
-  //  // local delta vector (AliAlignObj convension): dx,dy,dz,,theta,psi,phi
-  //  const double *tr = &delta[0], *rt = &delta[3]; // translation(cm) and rotation(degree)
-  //
-  //  AliAlignObjParams tempAlignObj;
-  //  tempAlignObj.SetRotation(rt[0], rt[1], rt[2]);
-  //  tempAlignObj.SetTranslation(tr[0], tr[1], tr[2]);
-  //  tempAlignObj.GetMatrix(deltaM);
+  // prepare delta matrix for the volume from its
+  // local delta vector (AliAlignObj convension): dx,dy,dz,,theta,psi,phi
+  const double *tr = &delta[0], *rt = &delta[3]; // translation(cm) and rotation(degree)
+
+  //    AliAlignObjParams tempAlignObj;
+  //    tempAlignObj.SetRotation(rt[0], rt[1], rt[2]);
+  //    tempAlignObj.SetTranslation(tr[0], tr[1], tr[2]);
+  //    tempAlignObj.GetMatrix(deltaM);
+
+  detectors::AlignParam tempAlignObj;
+  tempAlignObj.setRotation(rt[0], rt[1], rt[2]);
+  tempAlignObj.setTranslation(tr[0], tr[1], tr[2]);
+  deltaM = tempAlignObj.createMatrix();
 }
 
 //__________________________________________________________________
@@ -760,52 +763,53 @@ void AliAlgVol::CreateAlignmenMatrix(TGeoHMatrix& alg) const
 //_________________________________________________________________
 void AliAlgVol::CreateAlignmentObjects(TClonesArray* arr) const
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
-  // FIXME(milettri): needs AliAlignObjParams
   // add to supplied array alignment object for itself and children
-  //  TClonesArray& parr = *arr;
-  //  TGeoHMatrix algM;
-  //  CreateAlignmenMatrix(algM);
+  TClonesArray& parr = *arr;
+  TGeoHMatrix algM;
+  CreateAlignmenMatrix(algM);
   //  new (parr[parr.GetEntriesFast()]) AliAlignObjParams(GetName(), GetVolID(), algM, kTRUE);
-  //  int nch = GetNChildren();
-  //  for (int ich = 0; ich < nch; ich++)
-  //    GetChild(ich)->CreateAlignmentObjects(arr);
-  //
+  const Double_t* translation = algM.GetTranslation();
+  const Double_t* rotation = algM.GetRotationMatrix();
+  new (parr[parr.GetEntriesFast()]) detectors::AlignParam(GetName(), GetVolID(),
+                                                          translation[0], translation[1], translation[2],
+                                                          rotation[0], rotation[1], rotation[2], kTRUE);
+  int nch = GetNChildren();
+  for (int ich = 0; ich < nch; ich++)
+    GetChild(ich)->CreateAlignmentObjects(arr);
 }
 
 //_________________________________________________________________
 void AliAlgVol::UpdateL2GRecoMatrices(const TClonesArray* algArr, const TGeoHMatrix* cumulDelta)
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
-  // FIXME(milettri): needs AliAlignObjParams
-  //  // recreate fMatL2GReco matrices from ideal L2G matrix and alignment objects
-  //  // used during data reconstruction. For the volume at level J we have
-  //  // L2G' = Delta_J * Delta_{J-1} *...* Delta_0 * L2GIdeal
-  //  // cumulDelta is Delta_{J-1} * ... * Delta_0, supplied by the parent
-  //  //
-  //  fMatL2GReco = fMatL2GIdeal;
-  //  // find alignment object for this volume
-  //  int nalg = algArr->GetEntriesFast();
-  //  const AliAlignObjParams* par = 0;
-  //  for (int i = 0; i < nalg; i++) {
-  //    par = (AliAlignObjParams*)algArr->At(i);
-  //    if (!strcmp(par->GetSymName(), GetSymName()))
-  //      break;
-  //    par = 0;
-  //  }
-  //  TGeoHMatrix delta;
-  //  if (!par)
-  //    LOG(INFO) << "Alignment for " << GetSymName() << " is absent in Reco-Time alignment object";
-  //  else
+  // recreate fMatL2GReco matrices from ideal L2G matrix and alignment objects
+  // used during data reconstruction. For the volume at level J we have
+  // L2G' = Delta_J * Delta_{J-1} *...* Delta_0 * L2GIdeal
+  // cumulDelta is Delta_{J-1} * ... * Delta_0, supplied by the parent
+  //
+  fMatL2GReco = fMatL2GIdeal;
+  // find alignment object for this volume
+  int nalg = algArr->GetEntriesFast();
+  const detectors::AlignParam* par = nullptr;
+  for (int i = 0; i < nalg; i++) {
+    par = (detectors::AlignParam*)algArr->At(i);
+    if (!strcmp(par->getSymName(), GetSymName()))
+      break;
+    par = 0;
+  }
+  TGeoHMatrix delta;
+  if (!par)
+    LOG(INFO) << "Alignment for " << GetSymName() << " is absent in Reco-Time alignment object";
+  else
+    delta = par->createMatrix();
   //    par->GetMatrix(delta);
-  //  if (cumulDelta)
-  //    delta *= *cumulDelta;
-  //  //
-  //  fMatL2GReco.MultiplyLeft(&delta);
-  //  // propagate to children
-  //  for (int ich = GetNChildren(); ich--;)
-  //    GetChild(ich)->UpdateL2GRecoMatrices(algArr, &delta);
-  //  //
+  if (cumulDelta)
+    delta *= *cumulDelta;
+  //
+  fMatL2GReco.MultiplyLeft(&delta);
+  // propagate to children
+  for (int ich = GetNChildren(); ich--;)
+    GetChild(ich)->UpdateL2GRecoMatrices(algArr, &delta);
+  //
 }
 
 //______________________________________________________
