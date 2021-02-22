@@ -57,6 +57,7 @@ class GeometryManager : public TObject
   ///< performed before alignment.
   static Bool_t getOriginalMatrix(o2::detectors::DetID detid, int sensid, TGeoHMatrix& m);
   static Bool_t getOriginalMatrix(const char* symname, TGeoHMatrix& m);
+  static TGeoHMatrix* getMatrix(const char* symname);
   static const char* getSymbolicName(o2::detectors::DetID detid, int sensid);
   static TGeoPNEntry* getPNEntry(o2::detectors::DetID detid, Int_t sensid);
   static TGeoHMatrix* getMatrix(o2::detectors::DetID detid, Int_t sensid);
@@ -114,7 +115,7 @@ class GeometryManager : public TObject
  private:
   /// Default constructor
   GeometryManager() = default;
-
+  static TGeoHMatrix* getMatrix(TGeoPNEntry* pne);
   static void accountMaterial(const TGeoMaterial* material, MatBudgetExt& bd);
   static void accountMaterial(const TGeoMaterial* material, o2::base::MatBudget& bd)
   {
