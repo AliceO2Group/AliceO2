@@ -15,6 +15,7 @@
 #include "Headers/DataHeader.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "fairlogger/Logger.h"
 
 using namespace o2::framework;
 
