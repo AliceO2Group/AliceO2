@@ -96,6 +96,6 @@ static const std::vector<std::string> pTBinLabels = {
 
 // column labels
 static const std::vector<std::string> cutVarLabels = {"pT upper", "m", "DCA", "cos theta*", "pT K", "pT Pi", "d0K", "d0pi", "d0d0", "cos pointing angle", "cos pointing angle xy", "normalized decay length XY"};
-} // namespace HF_cuts_D0_topiK
+} // namespace HF_cuts_D0ToPiK
 } // namespace o2::analysis
 #endif
