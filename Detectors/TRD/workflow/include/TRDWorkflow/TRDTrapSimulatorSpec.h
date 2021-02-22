@@ -13,18 +13,12 @@
 
 #include <vector>
 #include <array>
-#include <iostream>
+#include <string>
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "TRDBase/FeeParam.h"
 #include "TRDSimulation/TrapSimulator.h"
-#include "DataFormatsTRD/TriggerRecord.h"
-#include "DataFormatsTRD/LinkRecord.h"
-#include "DataFormatsTRD/Tracklet64.h"
-#include "DataFormatsTRD/RawData.h"
 #include "TRDSimulation/TrapConfig.h"
-#include "CCDB/BasicCCDBManager.h"
 
 class Calibrations;
 
@@ -46,30 +40,14 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
  private:
   std::array<TrapSimulator, 128> mTrapSimulator; //the up to 128 trap simulators for a single chamber
   TrapConfig* mTrapConfig = nullptr;
-  //  std::unique_ptr<TrapConfigHandler> mTrapConfigHandler;
   unsigned long mRunNumber = 297595; //run number to anchor simulation to.
-  bool mDriveFromConfig{false};     // option to disable using the trapconfig to drive the simulation
-  int mPrintTrackletOptions = 0;    // print the trap chips adc vs timebin to the screen, ascii art
-  int mDrawTrackletOptions = 0;     //draw the tracklets 1 per file
-  int mShowTrackletStats = 1;       // show some statistics for each run
-  bool mPrintOutTrapConfig{false};
-  bool mDebugRejectedTracklets{false};
+  int mShowTrackletStats = 1;        // show some statistics for each run
   bool mEnableOnlineGainCorrection{false};
   bool mEnableTrapConfigDump{false};
   std::string mTrapConfigName;      // the name of the config to be used.
-  std::string mTrapConfigBaseName = "TRD_test/TrapConfig/";
-  std::unique_ptr<CalOnlineGainTables> mGainTable; //this will probably not be used in run3.
   std::string mOnlineGainTableName;
   std::unique_ptr<Calibrations> mCalib; // store the calibrations connection to CCDB. Used primarily for the gaintables in line above.
 
-
-  //various timers so we can see how long things take
-  std::chrono::duration<double> mTrapSimAccumulatedTime{0}; ///< full timer
-  std::chrono::duration<double> mDigitLoopTime{0};          ///< full timer
-  std::chrono::duration<double> mTrapLoopTime{0};           ///< full timer
-  std::chrono::duration<double> moldelse{0};                ///< full timer
-  std::chrono::duration<double> mTrackletTime{0};           ///< full timer
-  std::chrono::duration<double> mSortingTime{0};            ///< full timer
 
   TrapConfig* getTrapConfig();
   void loadTrapConfig();
