@@ -8,7 +8,9 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(Passive)
-add_subdirectory(TRK)
-add_subdirectory(EC0)
-add_subdirectory(AOD)
+o2_add_library(EC0Base
+               SOURCES src/GeometryTGeo.cxx
+               PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::ITSMFTBase)
+
+o2_target_root_dictionary(EC0Base
+                          HEADERS include/EC0Base/GeometryTGeo.h)
