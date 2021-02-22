@@ -23,6 +23,7 @@ alien_cp alien:/alice/data/2015/LHC15o/000246392/pass5_lowIR/PWGZZ/Run3_Conversi
 #include "AnalysisDataModel/EventSelection.h"
 #include <TH1D.h>
 #include <TH2D.h>
+#include <TString.h>
 #include "TLorentzVector.h"
 #include "AnalysisCore/TriggerAliases.h"
 using namespace std;
@@ -32,28 +33,27 @@ using namespace o2::framework::expressions;
 #define mmuon 0.1057 //mass of muon
 struct UPCForward {
   //defining histograms
-  OutputObj<TH1D> hMass{TH1D(
-    "hMass",
-    ";#it{m_{#mu#mu}}, GeV/c^{2};", 500, 0, 10)};
-  OutputObj<TH1D> hPt{TH1D(
-    "hPt",
-    ";#it{p_{T}}, GeV/c;", 500, 0., 1.)};
-  OutputObj<TH1D> hRap{TH1D(
-    "hRap",
-    ";#it{y},..;", 500, -10., 10.)};
-  OutputObj<TH1D> hCharge{TH1D(
-    "hCharge",
-    ";#it{charge},..;", 500, -10., 10.)};
-  OutputObj<TH1D> hSelectionCounter{TH1D(
-    "hSelectionCounter",
-    ";#it{Selection},..;", 30, 0., 30.)};
+  OutputObj<TH1D> hMass{TH1D("hMass", ";#it{m_{#mu#mu}}, GeV/c^{2};", 500, 0, 10)};
+  OutputObj<TH1D> hPt{TH1D("hPt", ";#it{p_{t}}, GeV/c;", 500, 0., 5.)};
+  OutputObj<TH1D> hPx{TH1D("hPx", ";#it{p_{x}}, GeV/c;", 500, 0., 5.)};
+  OutputObj<TH1D> hPy{TH1D("hPy", ";#it{p_{y}}, GeV/c;", 500, 0., 5.)};
+  OutputObj<TH1D> hPz{TH1D("hPz", ";#it{p_{z}}, GeV/c;", 500, 0., 5.)};
+  OutputObj<TH1D> hRap{TH1D("hRap", ";#it{y},..;", 500, -10., 10.)};
+  OutputObj<TH1D> hCharge{TH1D("hCharge", ";#it{charge},..;", 500, -10., 10.)};
+  OutputObj<TH1D> hSelectionCounter{TH1D("hSelectionCounter", ";#it{Selection},..;", 30, 0., 30.)};
+  OutputObj<TH1D> hPhi{TH1D("hPhi", ";#it{#Phi},;", 500, -6., 6.)};
+
+  void init(o2::framework::InitContext&)
+  {
+    TString SelectionCuts[6] = {"NoSelection", "CMup11Trigger", "twotracks", "oppositecharge", "-2.5<Eta<-4", "Pt<1"};
+    for (int i = 0; i < 6; i++) {
+      hSelectionCounter->GetXaxis()->SetBinLabel(i + 1, SelectionCuts[i].Data());
+    }
+  }
   void process(aod::BC const& bc, aod::Muons const& tracksMuon)
   {
-    int iSelectionCounter = 0;
-    hSelectionCounter->Fill(iSelectionCounter);
-    iSelectionCounter++;
-    hSelectionCounter->GetXaxis()->SetBinLabel(iSelectionCounter,
-                                               "NoSelection");
+    hSelectionCounter->Fill(0);
+
     int iMuonTracknumber = 0;
     TLorentzVector p1, p2, p;
     bool ispositive = kFALSE;
@@ -65,12 +65,8 @@ struct UPCForward {
     if (!isMUP11fired) {
       return;
     }
-    LOGF(info,
-         "mup11 fired");
-    hSelectionCounter->Fill(iSelectionCounter);
-    iSelectionCounter++;
-    hSelectionCounter->GetXaxis()->SetBinLabel(iSelectionCounter,
-                                               "CMup11Trigger");
+    LOGF(info, "mup11 fired");
+    hSelectionCounter->Fill(1);
     for (auto& muon : tracksMuon) {
       hCharge->Fill(muon.charge());
       iMuonTracknumber++;
@@ -86,21 +82,29 @@ struct UPCForward {
     if (iMuonTracknumber != 2) {
       return;
     }
-    hSelectionCounter->Fill(iSelectionCounter);
-    iSelectionCounter++;
-    hSelectionCounter->GetXaxis()->SetBinLabel(iSelectionCounter,
-                                               "twotracks");
+    hSelectionCounter->Fill(2);
     if (!ispositive || !isnegative) {
       return;
     }
-    hSelectionCounter->Fill(iSelectionCounter);
-    iSelectionCounter++;
-    hSelectionCounter->GetXaxis()->SetBinLabel(iSelectionCounter,
-                                               "oppositecharge");
+    hSelectionCounter->Fill(3);
+
+    if (-4 < p1.Eta() < -2.5 || -4 < p2.Eta() < -2.5) {
+      return;
+    }
+    hSelectionCounter->Fill(4);
     p = p1 + p2;
+    if (p.Pt() > 1) {
+      return;
+    }
+    hSelectionCounter->Fill(5);
     hPt->Fill(p.Pt());
+    hPx->Fill(p.Px());
+    hPy->Fill(p.Py());
+    hPz->Fill(p.Pz());
     hRap->Fill(p.Rapidity());
     hMass->Fill(p.M());
+    hPhi->Fill(p.Phi());
+
   } //end of process
 };
 WorkflowSpec defineDataProcessing(ConfigContext const&)
