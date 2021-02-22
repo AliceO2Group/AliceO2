@@ -14,7 +14,6 @@
 /// \date 01 feb 2021
 ///
 
-
 #include <iostream>
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataSpecUtils.h"

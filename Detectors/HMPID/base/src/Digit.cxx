@@ -441,7 +441,7 @@ std::vector<uint64_t>* Digit::extractEvents(std::vector<o2::hmpid::Digit>& Digit
   std::vector<uint64_t>* eventIds = new std::vector<uint64_t>();
   for (const auto& digit : Digits) {
     if (find(eventIds->begin(), eventIds->end(), digit.getTriggerID()) == eventIds->end()) {
-	eventIds->push_back(digit.getTriggerID());
+      eventIds->push_back(digit.getTriggerID());
     }
   }
   return (eventIds);

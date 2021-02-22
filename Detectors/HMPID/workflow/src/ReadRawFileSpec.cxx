@@ -15,7 +15,6 @@
 /// \brief Implementation of a data processor to read a raw file and produce Digits stream
 ///
 
-
 #include <random>
 #include <iostream>
 #include <fstream>

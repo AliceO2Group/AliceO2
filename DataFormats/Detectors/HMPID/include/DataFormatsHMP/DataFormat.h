@@ -20,11 +20,10 @@ namespace o2
 {
 namespace hmpid
 {
-
 namespace raw
 {
 
-  /** generic word *
+/** generic word *
 
   struct Word_t {
     uint32_t undefined : 31;
@@ -41,6 +40,6 @@ namespace raw
   };
 */
 } // namespace raw
-} // namespace tof
+} // namespace hmpid
 } // namespace o2
 #endif

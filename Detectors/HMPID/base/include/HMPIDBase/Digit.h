@@ -87,9 +87,15 @@ class Digit
 
   // Getter & Setters
   uint16_t getCharge() const { return mQ; }
-  void setCharge(uint16_t Q) { mQ = Q; return; };
+  void setCharge(uint16_t Q) {
+    mQ = Q;
+    return;
+  };
   int getPadID() const { return mPad; }
-  void setPadID(uint32_t pad) { mPad = pad; return; };
+  void setPadID(uint32_t pad) {
+    mPad = pad;
+    return;
+  };
   uint32_t getOrbit() const { return mOrbit; }
   uint16_t getBC() const { return mBc; }
   uint64_t getTriggerID() const { return OrbitBcToEventId(mOrbit, mBc); }
@@ -110,7 +116,10 @@ class Digit
     return;
   }
   bool isValid() { return (mPad == 0xFFFFFFFF ? true : false); };
-  void setInvalid() { mPad = 0xFFFFFFFF; return; };
+  void setInvalid() {
+    mPad = 0xFFFFFFFF;
+    return;
+  };
 
   // convenience wrapper function for conversion to x-y pad coordinates
   int getPx() const { return A2X(mPad); }
