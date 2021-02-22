@@ -193,7 +193,6 @@ void Detector::InitializeO2Detector()
   mGeometryTGeo = GeometryTGeo::Instance();
 
   defineSensitiveVolumes();
-
 }
 
 //_________________________________________________________________________________________________
