@@ -78,8 +78,8 @@ o2_add_dpl_workflow(hf-xic-topkpi-candidate-selector
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(hf-lck0sp-candidate-selector
-                    SOURCES HFLcK0spCandidateSelector.cxx
+o2_add_dpl_workflow(hf-lc-tok0sp-candidate-selector
+                    SOURCES HFLcK0sPCandidateSelector.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 		  
@@ -123,7 +123,7 @@ o2_add_dpl_workflow(hf-mc-validation
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(hf-task-lck0sp
-                    SOURCES taskLcK0sp.cxx
+o2_add_dpl_workflow(hf-task-lc-tok0sp
+                    SOURCES taskLcK0sP.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)

@@ -36,13 +36,13 @@ struct HFCandidateCreatorCascade {
 
   Produces<aod::HfCandCascBase> rowCandidateBase;
 
-  Configurable<double> d_bz{"d_bz", 5., "magnetic field"};
-  Configurable<bool> b_propdca{"b_propdca", true, "create tracks version propagated to PCA"};
-  Configurable<double> d_maxr{"d_maxr", 200., "reject PCA's above this radius"};
-  Configurable<double> d_maxdzini{"d_maxdzini", 4., "reject (if>0) PCA candidate if tracks DZ exceeds threshold"};
-  Configurable<double> d_minparamchange{"d_minparamchange", 1.e-3, "stop iterations if largest change of any X is smaller than this"};
-  Configurable<double> d_minrelchi2change{"d_minrelchi2change", 0.9, "stop iterations is chi2/chi2old > this"};
-  Configurable<bool> b_dovalplots{"b_dovalplots", true, "do validation plots"};
+  Configurable<double> d_bZ{"d_bZ", 5., "magnetic field"};
+  Configurable<bool> b_propDCA{"b_propDCA", true, "create tracks version propagated to PCA"};
+  Configurable<double> d_maxR{"d_maxR", 200., "reject PCA's above this radius"};
+  Configurable<double> d_maxDZIni{"d_maxDZIni", 4., "reject (if>0) PCA candidate if tracks DZ exceeds threshold"};
+  Configurable<double> d_minParamChange{"d_minParamChange", 1.e-3, "stop iterations if largest change of any X is smaller than this"};
+  Configurable<double> d_minRelChi2Change{"d_minRelChi2Change", 0.9, "stop iterations is chi2/chi2old > this"};
+  Configurable<bool> b_doValPlots{"b_doValPlots", true, "do validation plots"};
 
   OutputObj<TH1F> hmass2{TH1F("hmass2", "2-prong candidates;inv. mass (#pi K) (GeV/#it{c}^{2});entries", 500, 0., 5.)};
   OutputObj<TH1F> hCovPVXX{TH1F("hCovPVXX", "2-prong candidates;XX element of cov. matrix of prim. vtx. position (cm^{2});entries", 100, 0., 1.e-4)};
@@ -61,12 +61,12 @@ struct HFCandidateCreatorCascade {
   {
     // 2-prong vertex fitter
     o2::vertexing::DCAFitterN<2> df;
-    df.setBz(d_bz);
-    df.setPropagateToPCA(b_propdca);
-    df.setMaxR(d_maxr);
-    df.setMaxDZIni(d_maxdzini);
-    df.setMinParamChange(d_minparamchange);
-    df.setMinRelChi2Change(d_minrelchi2change);
+    df.setBz(d_bZ);
+    df.setPropagateToPCA(b_propDCA);
+    df.setMaxR(d_maxR);
+    df.setMaxDZIni(d_maxDZIni);
+    df.setMinParamChange(d_minParamChange);
+    df.setMinRelChi2Change(d_minRelChi2Change);
     df.setUseAbsDCA(true);
 
     // loop over pairs of track indeces
@@ -77,8 +77,8 @@ struct HFCandidateCreatorCascade {
       const auto& negTrack = v0.negTrack_as<aod::BigTracks>();
       auto posTrackParCov = getTrackParCov(posTrack); // check that BigTracks does not need TracksExtended!
       auto negTrackParCov = getTrackParCov(negTrack); // check that BigTracks does not need TracksExtended!
-      posTrackParCov.propagateTo(v0.posX(), d_bz);    // propagate the track to the X closest to the V0 vertex
-      negTrackParCov.propagateTo(v0.negX(), d_bz);    // propagate the track to the X closest to the V0 vertex
+      posTrackParCov.propagateTo(v0.posX(), d_bZ);    // propagate the track to the X closest to the V0 vertex
+      negTrackParCov.propagateTo(v0.negX(), d_bZ);    // propagate the track to the X closest to the V0 vertex
       const std::array<float, 3> vertexV0 = {v0.x(), v0.y(), v0.z()};
       const std::array<float, 3> momentumV0 = {v0.px(), v0.py(), v0.pz()};
       // we build the neutral track to then build the cascade
@@ -95,24 +95,24 @@ struct HFCandidateCreatorCascade {
       auto covMatrixPCA = df.calcPCACovMatrix().Array();
       hCovSVXX->Fill(covMatrixPCA[0]); // FIXME: Calculation of errorDecayLength(XY) gives wrong values without this line.
       // do I have to call "df.propagateTracksToVertex();"?
-      auto trackParVarv0 = df.getTrack(0);
-      auto trackParVarbach = df.getTrack(1);
+      auto trackParVarV0 = df.getTrack(0);
+      auto trackParVarBach = df.getTrack(1);
 
       // get track momenta
-      array<float, 3> pvecv0;
-      array<float, 3> pvecbach;
-      trackParVarv0.getPxPyPzGlo(pvecv0);
-      trackParVarbach.getPxPyPzGlo(pvecbach);
+      array<float, 3> pVecV0;
+      array<float, 3> pVecBach;
+      trackParVarV0.getPxPyPzGlo(pVecV0);
+      trackParVarBach.getPxPyPzGlo(pVecBach);
 
       // get track impact parameters
       // This modifies track momenta!
       auto primaryVertex = getPrimaryVertex(collision);
       auto covMatrixPV = primaryVertex.getCov();
       hCovPVXX->Fill(covMatrixPV[0]);
-      o2::dataformats::DCA impactParameterv0;
-      o2::dataformats::DCA impactParameterbach;
-      trackParVarv0.propagateToDCA(primaryVertex, d_bz, &impactParameterv0); // we do this wrt the primary vtx
-      trackParVarbach.propagateToDCA(primaryVertex, d_bz, &impactParameterbach);
+      o2::dataformats::DCA impactParameterV0;
+      o2::dataformats::DCA impactParameterBach;
+      trackParVarV0.propagateToDCA(primaryVertex, d_bZ, &impactParameterV0); // we do this wrt the primary vtx
+      trackParVarBach.propagateToDCA(primaryVertex, d_bZ, &impactParameterBach);
 
       // get uncertainty of the decay length
       double phi, theta;
@@ -125,10 +125,10 @@ struct HFCandidateCreatorCascade {
                        secondaryVertex[0], secondaryVertex[1], secondaryVertex[2],
                        errorDecayLength, errorDecayLengthXY,
                        chi2PCA,
-                       pvecv0[0], pvecv0[1], pvecv0[2],
-                       pvecbach[0], pvecbach[1], pvecbach[2],
-                       impactParameterv0.getY(), impactParameterbach.getY(),
-                       std::sqrt(impactParameterv0.getSigmaY2()), std::sqrt(impactParameterbach.getSigmaY2()),
+                       pVecV0[0], pVecV0[1], pVecV0[2],
+                       pVecBach[0], pVecBach[1], pVecBach[2],
+                       impactParameterV0.getY(), impactParameterBach.getY(),
+                       std::sqrt(impactParameterV0.getSigmaY2()), std::sqrt(impactParameterBach.getSigmaY2()),
                        casc.indexV0Id(), casc.index0Id(),
                        casc.hfflag(),
                        v0.x(), v0.y(), v0.z(),
@@ -139,9 +139,9 @@ struct HFCandidateCreatorCascade {
                        v0.dcanegtopv());
 
       // fill histograms
-      if (b_dovalplots) {
+      if (b_doValPlots) {
         // calculate invariant masses
-        auto arrayMomenta = array{pvecv0, pvecbach};
+        auto arrayMomenta = array{pVecV0, pVecBach};
         mass2K0sP = RecoDecay::M(arrayMomenta, array{massK0s, massP});
         hmass2->Fill(mass2K0sP);
       }

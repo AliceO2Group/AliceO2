@@ -34,7 +34,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h"
 
 /// LcK0sp analysis task
-struct TaskLcK0sp {
+struct TaskLcK0sP {
   HistogramRegistry registry{
     "registry",
     {{"hmass", "cascade candidates;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
@@ -51,9 +51,9 @@ struct TaskLcK0sp {
   Configurable<int> d_selectionFlagLcK0sp{"d_selectionFlagLcK0sp", 1, "Selection Flag for LcK0sp"};
   Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
 
-  Filter filterSelectCandidates = (aod::hf_selcandidate_lc_k0sp::isSelLcK0sp >= d_selectionFlagLcK0sp);
+  Filter filterSelectCandidates = (aod::hf_selcandidate_lc_k0sp::isSelLcK0sP >= d_selectionFlagLcK0sp);
 
-  void process(soa::Filtered<soa::Join<aod::HfCandCascExt, aod::HFSelLcK0spCandidate>> const& candidates)
+  void process(soa::Filtered<soa::Join<aod::HfCandCascExt, aod::HFSelLcK0sPCandidate>> const& candidates)
   {
     //Printf("Candidates: %d", candidates.size());
     for (auto& candidate : candidates) {
@@ -67,7 +67,7 @@ struct TaskLcK0sp {
         //Printf("Candidate: eta rejection: %g", candidate.eta());
         continue;
       }
-      registry.fill(HIST("hmass"), InvMassLc(candidate));
+      registry.fill(HIST("hmass"), InvMassLcToK0sP(candidate));
       registry.fill(HIST("hptcand"), candidate.pt());
       registry.fill(HIST("hptv0"), candidate.ptProng0());
       registry.fill(HIST("hptbach"), candidate.ptProng1());
@@ -76,7 +76,7 @@ struct TaskLcK0sp {
       registry.fill(HIST("hd0v0neg"), candidate.dcanegtopv());
       registry.fill(HIST("hv0CPA"), candidate.v0cosPA());
       registry.fill(HIST("hEta"), candidate.eta());
-      registry.fill(HIST("hselectionstatus"), candidate.isSelLcK0sp());
+      registry.fill(HIST("hselectionstatus"), candidate.isSelLcK0sP());
     }
   }
 };
@@ -146,7 +146,7 @@ struct TaskD0MC {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<TaskLcK0sp>("hf-task-lck0sp")};
+    adaptAnalysisTask<TaskLcK0sP>("hf-task-lc-tok0sP")};
   const bool doMC = cfgc.options().get<bool>("doMC");
   /*
   if (doMC) {
