@@ -63,20 +63,6 @@ struct HFD0CandidateSelector {
     return true;
   }
 
-  template <typename T>
-  int findPTBin(T pT)
-  {
-    if ((pT < cuts->get((int)0, "pT lo")) || (pT >= cuts->get(cuts->rows() - 1, "pT hi"))) {
-      return -1;
-    }
-    for (auto i = 0u; i < cuts->rows(); ++i) {
-      if (pT < cuts->get(i, "pT hi")) {
-        return i;
-      }
-    }
-    return -1;
-  }
-
   /// Conjugate independent toplogical cuts
   /// \param hfCandProng2 is candidate
   /// \return true if candidate passes all cuts
@@ -84,7 +70,7 @@ struct HFD0CandidateSelector {
   bool selectionTopol(const T& hfCandProng2)
   {
     auto candpT = hfCandProng2.pt();
-    auto pTBin = findPTBin(candpT);
+    auto pTBin = findPTBin(cuts, candpT);
     if (pTBin == -1) {
       return false;
     }
@@ -132,7 +118,7 @@ struct HFD0CandidateSelector {
   bool selectionTopolConjugate(const T1& hfCandProng2, const T2& trackPion, const T2& trackKaon)
   {
     auto candpT = hfCandProng2.pt();
-    auto pTBin = findPTBin(candpT);
+    auto pTBin = findPTBin(cuts, candpT);
     if (pTBin == -1) {
       return false;
     }
@@ -147,7 +133,7 @@ struct HFD0CandidateSelector {
       }
     }
 
-    if (trackPion.pt() < cuts->get(pTBin, "pT pi") || trackKaon.pt() < cuts->get(pTBin, "pT K")) {
+    if (trackPion.pt() < cuts->get(pTBin, "pT Pi") || trackKaon.pt() < cuts->get(pTBin, "pT K")) {
       return false; //cut on daughter pT
     }
     if (TMath::Abs(trackPion.dcaPrim0()) > cuts->get(pTBin, "d0pi") || TMath::Abs(trackKaon.dcaPrim0()) > cuts->get(pTBin, "d0K")) {
