@@ -14,7 +14,7 @@
 /// @brief  Descriptor of geometrical constraint
 
 #include "Align/AliAlgConstraint.h"
-//#include "AliAlignObjParams.h"
+#include "DetectorsCommonDataFormats/AlignParam.h"
 #include "Align/AliAlgAux.h"
 #include "Framework/Logger.h"
 #include <TGeoMatrix.h>
@@ -170,129 +170,137 @@ void AliAlgConstraint::WriteChildrenConstraints(FILE* conOut) const
 //______________________________________________________
 void AliAlgConstraint::CheckConstraint() const
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
-  //FIXME(milettri) needs AliAlignObjParams
-  //  // check how the constraints are satysfied
-  //  //
-  //  int nch = GetNChildren();
-  //  if (!nch)
-  //    return;
-  //  //
-  //  Bool_t doJac = !GetNoJacobian(); // do we need jacobian evaluation?
-  //  float* cstrArr = new float[nch * kNDOFGeom * kNDOFGeom];
-  //  memset(cstrArr, 0, nch * kNDOFGeom * kNDOFGeom * sizeof(float));
-  //  // we need for each children the matrix for vector transformation from children frame
-  //  // (in which its DOFs are defined, LOC or TRA) to this parent variation frame
-  //  // matRel = mPar^-1*mChild
-  //  TGeoHMatrix mPar;
-  //  // in case of parent assigned use its matrix,
-  //  // otherwise Alice global frame is assumed to be the parent -> Unit matrix
-  //  if (fParent && doJac) {
-  //    if (fParent->IsFrameTRA())
-  //      fParent->GetMatrixT2G(mPar); // tracking to global
-  //    else
-  //      mPar = fParent->GetMatrixL2GIdeal(); // local to global
-  //    mPar = mPar.Inverse();
-  //  }
-  //  //
-  //  float* jac = cstrArr;
-  //  double parsTotEx[kNDOFGeom] = {0}; // explicitly calculated total modification
-  //  double parsTotAn[kNDOFGeom] = {0}; // analyticaly calculated total modification
-  //  //
-  //  printf("\n\n ----- Constraints Validation for %s %s ------\n", GetName(), GetTitle());
-  //  printf(" chld| ");
-  //  for (int jp = 0; jp < kNDOFGeom; jp++)
-  //    printf("  %3s:%3s An/Ex  |", GetDOFName(jp), IsDOFConstrained(jp) ? "ON " : "OFF");
-  //  printf(" | ");
-  //  for (int jp = 0; jp < kNDOFGeom; jp++)
-  //    printf("  D%3s   ", GetDOFName(jp));
-  //  printf(" ! %s\n", GetName());
-  //  for (int ich = 0; ich < nch; ich++) {
-  //    AliAlgVol* child = GetChild(ich);
-  //    double parsC[kNDOFGeom] = {0}, parsPAn[kNDOFGeom] = {0}, parsPEx[kNDOFGeom] = {0};
-  //    for (int jc = kNDOFGeom; jc--;)
-  //      parsC[jc] = child->GetParVal(jc); // child params in child frame
-  //    printf("#%3d | ", ich);
-  //    //
-  //    if (doJac) {
-  //      TGeoHMatrix matRel;
-  //      if (child->IsFrameTRA())
-  //        child->GetMatrixT2G(matRel); // tracking to global
-  //      else
-  //        matRel = child->GetMatrixL2GIdeal(); // local to global
-  //      //
-  //      matRel.MultiplyLeft(&mPar);
-  //      ConstrCoefGeom(matRel, jac); // Jacobian for analytical constraint used by MillePeded
-  //                                   //
-  //      TGeoHMatrix tau;
-  //      child->Delta2Matrix(tau, parsC); // child correction matrix in the child frame
-  //      const TGeoHMatrix& matreli = matRel.Inverse();
-  //      tau.Multiply(&matreli);
-  //      tau.MultiplyLeft(&matRel); //  child correction matrix in the parent frame
-  //      AliAlignObjParams tmpPar;
-  //      tmpPar.SetMatrix(tau);
-  //      tmpPar.GetTranslation(&parsPEx[0]);
-  //      tmpPar.GetAngles(&parsPEx[3]); // explicitly calculated child params in parent frame
-  //      //
-  //      // analytically calculated child params in parent frame
-  //      for (int jp = 0; jp < kNDOFGeom; jp++) {
-  //        for (int jc = 0; jc < kNDOFGeom; jc++)
-  //          parsPAn[jp] += jac[jp * kNDOFGeom + jc] * parsC[jc];
-  //        parsTotAn[jp] += parsPAn[jp]; // analyticaly calculated total modification
-  //        parsTotEx[jp] += parsPEx[jp]; // explicitly calculated total modification
-  //        //
-  //        printf("%+.1e/%+.1e ", parsPAn[jp], parsPEx[jp]);
-  //        //
-  //      }
-  //      //
-  //      jac += kNDOFGeom * kNDOFGeom; // matrix for next slot
-  //    } else {
-  //      for (int jc = 0; jc < kNDOFGeom; jc++) {
-  //        Bool_t acc = child->IsFreeDOF(jc) && child->GetParErr(jc) >= 0;
-  //        if (acc) {
-  //          printf("    %+.3e    ", parsC[jc]);
-  //          parsTotAn[jc] += parsC[jc];
-  //        } else
-  //          printf(" /* %+.3e */ ", parsC[jc]); // just for info, not in the constraint
-  //      }
-  //    }
-  //    printf(" | ");
-  //    for (int jc = 0; jc < kNDOFGeom; jc++)
-  //      printf("%+.1e ", parsC[jc]); // child proper corrections
-  //    printf(" ! %s\n", child->GetSymName());
-  //  }
-  //  //
-  //  printf(" Tot | ");
-  //  for (int jp = 0; jp < kNDOFGeom; jp++) {
-  //    if (doJac)
-  //      printf("%+.1e/%+.1e ", parsTotAn[jp], parsTotEx[jp]);
-  //    else {
-  //      if (IsDOFConstrained(jp))
-  //        printf("    %+.3e    ", parsTotAn[jp]);
-  //      else
-  //        printf(" /* %+.3e */ ", parsTotAn[jp]);
-  //    }
-  //  }
-  //  printf(" | ");
-  //  if (fParent)
-  //    for (int jp = 0; jp < kNDOFGeom; jp++)
-  //      printf("%+.1e ", fParent->GetParVal(jp)); // parent proper corrections
-  //  else
-  //    printf(" no parent -> %s ", doJac ? "Global" : "Simple");
-  //  printf(" ! <----- %s\n", GetName());
-  //  //
-  //  printf(" Sig | ");
-  //  for (int jp = 0; jp < kNDOFGeom; jp++) {
-  //    if (IsDOFConstrained(jp))
-  //      printf("    %+.3e    ", fSigma[jp]);
-  //    else
-  //      printf(" /* %+.3e */ ", fSigma[jp]);
-  //  }
-  //  printf(" ! <----- \n");
+  // check how the constraints are satysfied
+  int nch = GetNChildren();
+  if (!nch)
+    return;
   //
-  //  //
-  //  delete[] cstrArr;
-  //  //
+  Bool_t doJac = !GetNoJacobian(); // do we need jacobian evaluation?
+  float* cstrArr = new float[nch * kNDOFGeom * kNDOFGeom];
+  memset(cstrArr, 0, nch * kNDOFGeom * kNDOFGeom * sizeof(float));
+  // we need for each children the matrix for vector transformation from children frame
+  // (in which its DOFs are defined, LOC or TRA) to this parent variation frame
+  // matRel = mPar^-1*mChild
+  TGeoHMatrix mPar;
+  // in case of parent assigned use its matrix,
+  // otherwise Alice global frame is assumed to be the parent -> Unit matrix
+  if (fParent && doJac) {
+    if (fParent->IsFrameTRA())
+      fParent->GetMatrixT2G(mPar); // tracking to global
+    else
+      mPar = fParent->GetMatrixL2GIdeal(); // local to global
+    mPar = mPar.Inverse();
+  }
+  //
+  float* jac = cstrArr;
+  double parsTotEx[kNDOFGeom] = {0}; // explicitly calculated total modification
+  double parsTotAn[kNDOFGeom] = {0}; // analyticaly calculated total modification
+  //
+  printf("\n\n ----- Constraints Validation for %s %s ------\n", GetName(), GetTitle());
+  printf(" chld| ");
+  for (int jp = 0; jp < kNDOFGeom; jp++)
+    printf("  %3s:%3s An/Ex  |", GetDOFName(jp), IsDOFConstrained(jp) ? "ON " : "OFF");
+  printf(" | ");
+  for (int jp = 0; jp < kNDOFGeom; jp++)
+    printf("  D%3s   ", GetDOFName(jp));
+  printf(" ! %s\n", GetName());
+  for (int ich = 0; ich < nch; ich++) {
+    AliAlgVol* child = GetChild(ich);
+    double parsC[kNDOFGeom] = {0}, parsPAn[kNDOFGeom] = {0}, parsPEx[kNDOFGeom] = {0};
+    for (int jc = kNDOFGeom; jc--;)
+      parsC[jc] = child->GetParVal(jc); // child params in child frame
+    printf("#%3d | ", ich);
+    //
+    if (doJac) {
+      TGeoHMatrix matRel;
+      if (child->IsFrameTRA())
+        child->GetMatrixT2G(matRel); // tracking to global
+      else
+        matRel = child->GetMatrixL2GIdeal(); // local to global
+      //
+      matRel.MultiplyLeft(&mPar);
+      ConstrCoefGeom(matRel, jac); // Jacobian for analytical constraint used by MillePeded
+                                   //
+      TGeoHMatrix tau;
+      child->Delta2Matrix(tau, parsC); // child correction matrix in the child frame
+      const TGeoHMatrix& matreli = matRel.Inverse();
+      tau.Multiply(&matreli);
+      tau.MultiplyLeft(&matRel); //  child correction matrix in the parent frame
+      detectors::AlignParam tmpPar;
+      //      tmpPar.SetMatrix(tau);
+      // SetMatrix does setTranslation and setRotation afterwars;
+      tmpPar.setTranslation(tau);
+      tmpPar.setRotation(tau);
+      //tmpPar.GetTranslation(&parsPEx[0]);
+      // get Translation gets x,y,z;
+      parsPEx[0] = tmpPar.getX();
+      parsPEx[1] = tmpPar.getY();
+      parsPEx[2] = tmpPar.getZ();
+      //tmpPar.GetAngles(&parsPEx[3]); // explicitly calculated child params in parent frame
+      // gets angles
+      parsPEx[3] = tmpPar.getPsi();
+      parsPEx[4] = tmpPar.getTheta();
+      parsPEx[5] = tmpPar.getPhi();
+      //
+      // analytically calculated child params in parent frame
+      for (int jp = 0; jp < kNDOFGeom; jp++) {
+        for (int jc = 0; jc < kNDOFGeom; jc++)
+          parsPAn[jp] += jac[jp * kNDOFGeom + jc] * parsC[jc];
+        parsTotAn[jp] += parsPAn[jp]; // analyticaly calculated total modification
+        parsTotEx[jp] += parsPEx[jp]; // explicitly calculated total modification
+        //
+        printf("%+.1e/%+.1e ", parsPAn[jp], parsPEx[jp]);
+        //
+      }
+      //
+      jac += kNDOFGeom * kNDOFGeom; // matrix for next slot
+    } else {
+      for (int jc = 0; jc < kNDOFGeom; jc++) {
+        Bool_t acc = child->IsFreeDOF(jc) && child->GetParErr(jc) >= 0;
+        if (acc) {
+          printf("    %+.3e    ", parsC[jc]);
+          parsTotAn[jc] += parsC[jc];
+        } else
+          printf(" /* %+.3e */ ", parsC[jc]); // just for info, not in the constraint
+      }
+    }
+    printf(" | ");
+    for (int jc = 0; jc < kNDOFGeom; jc++)
+      printf("%+.1e ", parsC[jc]); // child proper corrections
+    printf(" ! %s\n", child->GetSymName());
+  }
+  //
+  printf(" Tot | ");
+  for (int jp = 0; jp < kNDOFGeom; jp++) {
+    if (doJac)
+      printf("%+.1e/%+.1e ", parsTotAn[jp], parsTotEx[jp]);
+    else {
+      if (IsDOFConstrained(jp))
+        printf("    %+.3e    ", parsTotAn[jp]);
+      else
+        printf(" /* %+.3e */ ", parsTotAn[jp]);
+    }
+  }
+  printf(" | ");
+  if (fParent)
+    for (int jp = 0; jp < kNDOFGeom; jp++)
+      printf("%+.1e ", fParent->GetParVal(jp)); // parent proper corrections
+  else
+    printf(" no parent -> %s ", doJac ? "Global" : "Simple");
+  printf(" ! <----- %s\n", GetName());
+  //
+  printf(" Sig | ");
+  for (int jp = 0; jp < kNDOFGeom; jp++) {
+    if (IsDOFConstrained(jp))
+      printf("    %+.3e    ", fSigma[jp]);
+    else
+      printf(" /* %+.3e */ ", fSigma[jp]);
+  }
+  printf(" ! <----- \n");
+
+  //
+  delete[] cstrArr;
+  //
 }
 
 //_________________________________________________________________
