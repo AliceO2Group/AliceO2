@@ -14,6 +14,7 @@
 #include "ITSWorkflow/TrackReaderSpec.h"
 #include "TPCWorkflow/TrackReaderSpec.h"
 #include "TPCWorkflow/PublisherSpec.h"
+#include "TPCWorkflow/ClusterSharingMapSpec.h"
 #include "FT0Workflow/RecPointReaderSpec.h"
 #include "GlobalTrackingWorkflow/TPCITSMatchingSpec.h"
 #include "GlobalTrackingWorkflow/MatchTPCITSWorkflow.h"
@@ -31,19 +32,16 @@ framework::WorkflowSpec getMatchTPCITSWorkflow(bool useFT0, bool useMC, bool dis
 {
   framework::WorkflowSpec specs;
 
-  bool passFullITSClusters = false; // temporarily pass full clusters,
-  bool passCompITSClusters = true;  // eventually only compact of recpoints will be passed
-  bool passITSClusPatterns = true;
-
   std::vector<int> tpcClusSectors = o2::RangeTokenizer::tokenize<int>("0-35");
   std::vector<int> tpcClusLanes = tpcClusSectors;
 
   if (!disableRootInp) {
     specs.emplace_back(o2::its::getITSTrackReaderSpec(useMC));
-    specs.emplace_back(o2::itsmft::getITSClusterReaderSpec(useMC, passITSClusPatterns));
+    specs.emplace_back(o2::itsmft::getITSClusterReaderSpec(useMC, true));
     specs.emplace_back(o2::tpc::getTPCTrackReaderSpec(useMC));
     specs.emplace_back(o2::tpc::getPublisherSpec(o2::tpc::PublisherConf{
                                                    "tpc-native-cluster-reader",
+                                                   "tpc-native-clusters.root",
                                                    "tpcrec",
                                                    {"clusterbranch", "TPCClusterNative", "Branch with TPC native clusters"},
                                                    {"clustermcbranch", "TPCClusterNativeMCTruth", "MC label branch"},
@@ -52,12 +50,14 @@ framework::WorkflowSpec getMatchTPCITSWorkflow(bool useFT0, bool useMC, bool dis
                                                    tpcClusSectors,
                                                    tpcClusLanes},
                                                  useMC));
+    specs.emplace_back(o2::tpc::getClusterSharingMapSpec());
 
     if (useFT0) {
       specs.emplace_back(o2::ft0::getRecPointReaderSpec(useMC));
     }
   }
-  specs.emplace_back(o2::globaltracking::getTPCITSMatchingSpec(useFT0, calib, useMC, tpcClusLanes));
+
+  specs.emplace_back(o2::globaltracking::getTPCITSMatchingSpec(useFT0, calib, useMC));
 
   if (!disableRootOut) {
     specs.emplace_back(o2::globaltracking::getTrackWriterTPCITSSpec(useMC));

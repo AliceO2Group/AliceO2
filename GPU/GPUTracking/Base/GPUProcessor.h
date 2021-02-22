@@ -59,6 +59,11 @@ class GPUProcessor
 #ifndef __OPENCL__
   void InitGPUProcessor(GPUReconstruction* rec, ProcessorType type = PROCESSOR_TYPE_CPU, GPUProcessor* slaveProcessor = nullptr);
   void Clear();
+  template <class T>
+  T& HostProcessor(T*)
+  {
+    return *(T*)(mGPUProcessorType == PROCESSOR_TYPE_DEVICE ? mLinkedProcessor : this);
+  }
 
   template <size_t alignment = GPUCA_BUFFER_ALIGNMENT>
   static inline size_t getAlignmentMod(size_t addr)
@@ -138,7 +143,7 @@ class GPUProcessor
 
   GPUReconstruction* mRec;
   ProcessorType mGPUProcessorType;
-  GPUProcessor* mDeviceProcessor;
+  GPUProcessor* mLinkedProcessor;
   GPUconstantref() const MEM_CONSTANT(GPUConstantMem) * mConstantMem;
 
  private:

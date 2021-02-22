@@ -8,12 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef CLUSTERNATIVEHELPER_H
-#define CLUSTERNATIVEHELPER_H
 /// @file ClusterNativeHelper.h
 /// @brief Helper class to read the binary format of TPC ClusterNative
 /// @since 2019-01-23
 /// @author Matthias Richter
+
+#ifndef CLUSTERNATIVEHELPER_H
+#define CLUSTERNATIVEHELPER_H
 
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/ClusterGroupAttribute.h"
@@ -381,7 +382,11 @@ int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex,
       continue;
     }
     o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> const* labelsptr = nullptr;
+#ifdef MS_GSL_V3
+    std::size_t extent = 0;
+#else
     int extent = 0;
+#endif
     if (index < mcinputs.size()) {
       labelsptr = &mcinputs[index];
       extent = 1;

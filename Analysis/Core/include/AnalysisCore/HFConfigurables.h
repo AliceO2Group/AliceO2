@@ -23,36 +23,36 @@ class HFTrackIndexSkimsCreatorConfigs
   HFTrackIndexSkimsCreatorConfigs() = default;
   ~HFTrackIndexSkimsCreatorConfigs() = default;
 
-  // 2-prong cuts D0
-  double mPtD0Min = 0.;
-  double mInvMassD0Min = 1.46;
-  double mInvMassD0Max = 2.26;
-  double mCPAD0Min = 0.75;
-  double mImpParProductD0Max = -0.00005;
-  // 2-prong cuts Jpsi
-  double mPtJpsiMin = 0.;
-  double mInvMassJpsiMin = 2.5;
-  double mInvMassJpsiMax = 4.1;
-  double mCPAJpsiMin = -2;
-  double mImpParProductJpsiMax = 1000.;
-  // 3-prong cuts - D+
-  double mPtDPlusMin = 0.;
-  double mInvMassDPlusMin = 1.7;
-  double mInvMassDPlusMax = 2.05;
-  double mCPADPlusMin = 0.5;
-  double mDecLenDPlusMin = 0.;
-  // 3-prong cuts - Lc
-  double mPtLcMin = 0.;
-  double mInvMassLcMin = 2.1;
-  double mInvMassLcMax = 2.5;
-  double mCPALcMin = 0.5;
-  double mDecLenLcMin = 0.;
-  // 3-prong cuts - Ds
-  double mPtDsMin = 0.;
-  double mInvMassDsMin = 1.7;
-  double mInvMassDsMax = 2.2;
-  double mCPADsMin = 0.5;
-  double mDecLenDsMin = 0.;
+  // 2-prong cuts D0ToPiK
+  double mPtD0ToPiKMin = 4.; //original value 0.
+  double mInvMassD0ToPiKMin = 1.46;
+  double mInvMassD0ToPiKMax = 2.26;
+  double mCPAD0ToPiKMin = 0.75;
+  double mImpParProductD0ToPiKMax = -0.00005;
+  // 2-prong cuts JpsiToEE
+  double mPtJpsiToEEMin = 4.; //original value 0.
+  double mInvMassJpsiToEEMin = 2.5;
+  double mInvMassJpsiToEEMax = 4.1;
+  double mCPAJpsiToEEMin = -2;
+  double mImpParProductJpsiToEEMax = 1000.;
+  // 3-prong cuts - DPlusToPiKPi
+  double mPtDPlusToPiKPiMin = 4.;        //original value 0.
+  double mInvMassDPlusToPiKPiMin = 1.75; //original value 1.7
+  double mInvMassDPlusToPiKPiMax = 2.0;  //original value 2.05
+  double mCPADPlusToPiKPiMin = 0.5;
+  double mDecLenDPlusToPiKPiMin = 0.;
+  // 3-prong cuts - LcToPKPi
+  double mPtLcToPKPiMin = 4.;        //original value 0.
+  double mInvMassLcToPKPiMin = 2.15; //original value 2.1
+  double mInvMassLcToPKPiMax = 2.45; //original value 2.5
+  double mCPALcToPKPiMin = 0.5;
+  double mDecLenLcToPKPiMin = 0.;
+  // 3-prong cuts - DsToPiKK
+  double mPtDsToPiKKMin = 4.;        //original value 0.
+  double mInvMassDsToPiKKMin = 1.75; //original value 1.7
+  double mInvMassDsToPiKKMax = 2.15; //original value 2.2
+  double mCPADsToPiKKMin = 0.5;
+  double mDecLenDsToPiKKMin = 0.;
 
  private:
   ClassDef(HFTrackIndexSkimsCreatorConfigs, 1);

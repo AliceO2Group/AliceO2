@@ -25,7 +25,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include <typeinfo>
 #include <cstdlib>
 
-#include "../makefiles/opencl_obtain_program.h"
+#include "utils/opencl_obtain_program.h"
 extern "C" char _makefile_opencl_program_Base_opencl_common_GPUReconstructionOCL_cl[];
 
 GPUReconstruction* GPUReconstruction_Create_OCL(const GPUSettingsDeviceBackend& cfg) { return new GPUReconstructionOCL1(cfg); }

@@ -207,7 +207,7 @@ BOOST_AUTO_TEST_CASE(GroupSlicerMismatchedGroups)
   TableBuilder builderT;
   auto trksWriter = builderT.cursor<aod::TrksX>();
   for (auto i = 0; i < 20; ++i) {
-    if (i == 3 || i == 10 || i == 12 || i == 16) {
+    if (i == 3 || i == 10 || i == 12 || i == 16 || i == 19) {
       continue;
     }
     for (auto j = 0.f; j < 5; j += 0.5f) {
@@ -218,7 +218,7 @@ BOOST_AUTO_TEST_CASE(GroupSlicerMismatchedGroups)
   aod::Events e{evtTable};
   aod::TrksX t{trkTable};
   BOOST_CHECK_EQUAL(e.size(), 20);
-  BOOST_CHECK_EQUAL(t.size(), 10 * (20 - 4));
+  BOOST_CHECK_EQUAL(t.size(), 10 * (20 - 5));
 
   auto tt = std::make_tuple(t);
   o2::framework::AnalysisDataProcessorBuilder::GroupSlicer g(e, tt);
@@ -229,7 +229,7 @@ BOOST_AUTO_TEST_CASE(GroupSlicerMismatchedGroups)
     auto gg = slice.groupingElement();
     BOOST_CHECK_EQUAL(gg.globalIndex(), count);
     auto trks = std::get<aod::TrksX>(as);
-    if (count == 3 || count == 10 || count == 12 || count == 16) {
+    if (count == 3 || count == 10 || count == 12 || count == 16 || count == 19) {
       BOOST_CHECK_EQUAL(trks.size(), 0);
     } else {
       BOOST_CHECK_EQUAL(trks.size(), 10);

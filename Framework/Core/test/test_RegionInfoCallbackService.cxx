@@ -15,6 +15,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/runDataProcessing.h"
+#include "Framework/Logger.h"
 
 #include <chrono>
 #include <iostream>

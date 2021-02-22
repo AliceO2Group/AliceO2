@@ -27,6 +27,25 @@ namespace o2
 {
 namespace ctf
 {
+
+namespace detail
+{
+
+template <class, class Enable = void>
+struct is_iterator : std::false_type {
+};
+
+template <class T>
+struct is_iterator<T, std::enable_if_t<
+                        std::is_base_of_v<std::input_iterator_tag, typename std::iterator_traits<T>::iterator_category> ||
+                        std::is_same_v<std::output_iterator_tag, typename std::iterator_traits<T>::iterator_category>>>
+  : std::true_type {
+};
+
+template <class T>
+inline constexpr bool is_iterator_v = is_iterator<T>::value;
+} // namespace detail
+
 using namespace o2::rans;
 constexpr size_t Alignment = 16;
 
@@ -376,7 +395,7 @@ class EncodedBlocks
   template <typename VE, typename VB>
   inline void encode(const VE& src, int slot, uint8_t probabilityBits, Metadata::OptStore opt, VB* buffer = nullptr, const void* encoderExt = nullptr)
   {
-    encode(&(*src.begin()), &(*src.end()), slot, probabilityBits, opt, buffer, encoderExt);
+    encode(std::begin(src), std::end(src), slot, probabilityBits, opt, buffer, encoderExt);
   }
 
   /// encode vector src to bloc at provided slot
@@ -384,12 +403,12 @@ class EncodedBlocks
   void encode(const S_IT srcBegin, const S_IT srcEnd, int slot, uint8_t probabilityBits, Metadata::OptStore opt, VB* buffer = nullptr, const void* encoderExt = nullptr);
 
   /// decode block at provided slot to destination vector (will be resized as needed)
-  template <typename VD>
-  void decode(VD& dest, int slot, const void* decoderExt = nullptr) const;
+  template <class container_T, class container_IT = typename container_T::iterator>
+  void decode(container_T& dest, int slot, const void* decoderExt = nullptr) const;
 
   /// decode block at provided slot to destination pointer, the needed space assumed to be available
-  template <typename D>
-  void decode(D* dest, int slot, const void* decoderExt = nullptr) const;
+  template <typename D_IT, std::enable_if_t<detail::is_iterator_v<D_IT>, bool> = true>
+  void decode(D_IT dest, int slot, const void* decoderExt = nullptr) const;
 
   /// create a special EncodedBlocks containing only dictionaries made from provided vector of frequency tables
   static std::vector<char> createDictionaryBlocks(const std::vector<o2::rans::FrequencyTable>& vfreq, const std::vector<Metadata>& prbits);
@@ -666,25 +685,27 @@ void EncodedBlocks<H, N, W>::print(const std::string& prefix) const
 
 ///_____________________________________________________________________________
 template <typename H, int N, typename W>
-template <typename VD>
-inline void EncodedBlocks<H, N, W>::decode(VD& dest,                     // destination container
+template <class container_T, class container_IT>
+inline void EncodedBlocks<H, N, W>::decode(container_T& dest,            // destination container
                                            int slot,                     // slot of the block to decode
                                            const void* decoderExt) const // optional externally provided decoder
 {
   dest.resize(mMetadata[slot].messageLength); // allocate output buffer
-  decode(dest.data(), slot, decoderExt);
+  decode(std::begin(dest), slot, decoderExt);
 }
 
 ///_____________________________________________________________________________
 template <typename H, int N, typename W>
-template <typename D>
-void EncodedBlocks<H, N, W>::decode(D* dest,                      // destination pointer
+template <typename D_IT, std::enable_if_t<detail::is_iterator_v<D_IT>, bool>>
+void EncodedBlocks<H, N, W>::decode(D_IT dest,                    // iterator to destination
                                     int slot,                     // slot of the block to decode
                                     const void* decoderExt) const // optional externally provided decoder
 {
   // get references to the right data
   const auto& block = mBlocks[slot];
   const auto& md = mMetadata[slot];
+
+  using dest_t = typename std::iterator_traits<D_IT>::value_type;
 
   // decode
   if (block.getNStored()) {
@@ -693,12 +714,12 @@ void EncodedBlocks<H, N, W>::decode(D* dest,                      // destination
         LOG(ERROR) << "Dictionaty is not saved for slot " << slot << " and no external decoder is provided";
         throw std::runtime_error("Dictionary is not saved and no external decoder provided");
       }
-      const o2::rans::LiteralDecoder64<D>* decoder = reinterpret_cast<const o2::rans::LiteralDecoder64<D>*>(decoderExt);
-      std::unique_ptr<o2::rans::LiteralDecoder64<D>> decoderLoc;
+      const o2::rans::LiteralDecoder64<dest_t>* decoder = reinterpret_cast<const o2::rans::LiteralDecoder64<dest_t>*>(decoderExt);
+      std::unique_ptr<o2::rans::LiteralDecoder64<dest_t>> decoderLoc;
       if (block.getNDict()) { // if dictionaty is saved, prefer it
         o2::rans::FrequencyTable frequencies;
         frequencies.addFrequencies(block.getDict(), block.getDict() + block.getNDict(), md.min, md.max);
-        decoderLoc = std::make_unique<o2::rans::LiteralDecoder64<D>>(frequencies, md.probabilityBits);
+        decoderLoc = std::make_unique<o2::rans::LiteralDecoder64<dest_t>>(frequencies, md.probabilityBits);
         decoder = decoderLoc.get();
       } else { // verify that decoded corresponds to stored metadata
         if (md.min != decoder->getMinSymbol() || md.max != decoder->getMaxSymbol()) {
@@ -708,16 +729,20 @@ void EncodedBlocks<H, N, W>::decode(D* dest,                      // destination
         }
       }
       // load incompressible symbols if they existed
-      std::vector<D> literals;
+      std::vector<dest_t> literals;
       if (block.getNLiterals()) {
         // note: here we have to use md.nLiterals (original number of literal words) rather than md.nLiteralWords == block.getNLiterals()
         // (number of W-words in the EncodedBlock occupied by literals) as we cast literals stored in W-word array
         // to D-word array
-        literals = std::vector<D>{reinterpret_cast<const D*>(block.getLiterals()), reinterpret_cast<const D*>(block.getLiterals()) + md.nLiterals};
+        literals = std::vector<dest_t>{reinterpret_cast<const dest_t*>(block.getLiterals()), reinterpret_cast<const dest_t*>(block.getLiterals()) + md.nLiterals};
       }
       decoder->process(dest, block.getData() + block.getNData(), md.messageLength, literals);
     } else { // data was stored as is
-      std::memcpy(dest, block.payload, md.messageLength * sizeof(D));
+      using destPtr_t = typename std::iterator_traits<D_IT>::pointer;
+      destPtr_t srcBegin = reinterpret_cast<destPtr_t>(block.payload);
+      destPtr_t srcEnd = srcBegin + md.messageLength * sizeof(dest_t);
+      std::copy(srcBegin, srcEnd, dest);
+      //std::memcpy(dest, block.payload, md.messageLength * sizeof(dest_t));
     }
   }
 }
@@ -738,7 +763,7 @@ void EncodedBlocks<H, N, W>::encode(const S_IT srcBegin,     // iterator begin o
   mRegistry.nFilledBlocks++;
   using STYP = typename std::iterator_traits<S_IT>::value_type;
   using stream_t = typename o2::rans::Encoder64<STYP>::stream_t;
-  ;
+
   const size_t messageLength = std::distance(srcBegin, srcEnd);
   // cover three cases:
   // * empty source message: no entropy coding
@@ -775,7 +800,8 @@ void EncodedBlocks<H, N, W>::encode(const S_IT srcBegin,     // iterator begin o
   // case 3: message where entropy coding should be applied
   if (opt == Metadata::OptStore::EENCODE) {
     // build symbol statistics
-    constexpr size_t SizeEstMargin = 10 * 1024;
+    constexpr size_t SizeEstMarginAbs = 10 * 1024;
+    constexpr float SizeEstMarginRel = 1.05;
     const o2::rans::LiteralEncoder64<STYP>* encoder = reinterpret_cast<const o2::rans::LiteralEncoder64<STYP>*>(encoderExt);
     std::unique_ptr<o2::rans::LiteralEncoder64<STYP>> encoderLoc;
     std::unique_ptr<o2::rans::FrequencyTable> frequencies = nullptr;
@@ -791,7 +817,7 @@ void EncodedBlocks<H, N, W>::encode(const S_IT srcBegin,     // iterator begin o
     // estimate size of encode buffer
     int dataSize = rans::calculateMaxBufferSize(messageLength, encoder->getAlphabetRangeBits(), sizeof(STYP)); // size in bytes
     // preliminary expansion of storage based on dict size + estimated size of encode buffer
-    dataSize = SizeEstMargin + dataSize / sizeof(W) + (sizeof(STYP) < sizeof(W)); // size in words of output stream
+    dataSize = SizeEstMarginAbs + int(SizeEstMarginRel * (dataSize / sizeof(W))) + (sizeof(STYP) < sizeof(W)); // size in words of output stream
     expandStorage(dictSize + dataSize);
     //store dictionary first
     if (dictSize) {
@@ -800,7 +826,9 @@ void EncodedBlocks<H, N, W>::encode(const S_IT srcBegin,     // iterator begin o
     // vector of incompressible literal symbols
     std::vector<STYP> literals;
     // directly encode source message into block buffer.
-    const auto encodedMessageEnd = encoder->process(bl->getCreateData(), bl->getCreateData() + dataSize, srcBegin, srcEnd, literals);
+    auto blIn = bl->getCreateData();
+    auto frSize = bl->registry->getFreeSize(); // note: "this" might be not valid after expandStorage call!!!
+    const auto encodedMessageEnd = encoder->process(blIn, blIn + frSize, srcBegin, srcEnd, literals);
     dataSize = encodedMessageEnd - bl->getData();
     bl->setNData(dataSize);
     bl->realignBlock();
@@ -822,6 +850,7 @@ void EncodedBlocks<H, N, W>::encode(const S_IT srcBegin,     // iterator begin o
     // no dictionary needed
     expandStorage(dataSize);
     *meta = Metadata{messageLength, 0, sizeof(uint64_t), sizeof(stream_t), probabilityBits, opt, 0, 0, 0, dataSize, 0};
+    //FIXME: no we don't need an intermediate vector.
     // provided iterator is not necessarily pointer, need to use intermediate vector!!!
     std::vector<STYP> vtmp(srcBegin, srcEnd);
     bl->storeData(meta->nDataWords, reinterpret_cast<const W*>(vtmp.data()));

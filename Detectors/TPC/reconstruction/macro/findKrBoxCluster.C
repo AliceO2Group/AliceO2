@@ -27,7 +27,7 @@
 #include <vector>
 #endif
 
-void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1)
+void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1, std::string_view gainMapFile = "")
 {
   // Read the digits:
   TFile* file = new TFile("tpcdigits.root");
@@ -51,22 +51,32 @@ void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1)
     tree->SetBranchAddress(Form("TPCDigit_%zu", iSec), &digitizedSignal[iSec]);
   }
 
+  // Create KrBoxClusterFinder object, memory is only allocated once
+  auto clFinder = std::make_unique<o2::tpc::KrBoxClusterFinder>();
+  if (gainMapFile.size()) {
+    clFinder->loadGainMapFromFile(gainMapFile);
+  }
+
   // Now everything can get processed
   // Loop over all events
   for (int iEvent = 0; iEvent < nEntries; ++iEvent) {
     std::cout << iEvent + 1 << "/" << nEntries << std::endl;
     tree->GetEntry(iEvent);
     // Each event consists of sectors (atm only two)
+
     for (int i = 0; i < 36; i++) {
       auto sector = digitizedSignal[i];
       if (sector->size() == 0) {
         continue;
       }
-      // Create ClusterFinder Object on Heap since creation on stack fails
-      // Probably due to too much memory consumption
-      auto clFinder = std::make_unique<o2::tpc::KrBoxClusterFinder>(*sector);
+
+      // Fill map and (if specified) correct with existing gain map
+      clFinder->fillAndCorrectMap(*sector, i);
+
+      // Find all local maxima in sector
       std::vector<std::tuple<int, int, int>> localMaxima = clFinder->findLocalMaxima();
-      // Loop over cluster centers
+
+      // Loop over cluster centers = local maxima
       for (const std::tuple<int, int, int>& coords : localMaxima) {
         int padMax = std::get<0>(coords);
         int rowMax = std::get<1>(coords);
@@ -78,6 +88,7 @@ void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1)
         // Build total cluster
         o2::tpc::KrCluster tempCluster = clFinder->buildCluster(padMax, rowMax, timeMax);
         tempCluster.sector = i;
+
         clusters.emplace_back(tempCluster);
       }
     }
@@ -89,4 +100,10 @@ void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1)
   fOut->Write();
   fOut->Close();
   return;
+}
+
+int main()
+{
+  findKrBoxCluster();
+  return 0;
 }

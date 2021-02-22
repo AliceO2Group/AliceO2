@@ -93,7 +93,7 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
       const int nRows = (endpoint & 1) ? (s.nRowsRegion - s.nRowsRegion / 2) : (s.nRowsRegion / 2);
 
       for (int l = 0; l < hdr->nTimeBins; l++) { // TODO: Parallelize over time bins
-        pagePtr += (pagePtr - page) & 1; //Ensure 16 bit alignment
+        pagePtr += (pagePtr - page) & 1;         //Ensure 16 bit alignment
         const TPCZSTBHDR* tbHdr = reinterpret_cast<const TPCZSTBHDR*>(pagePtr);
         if ((tbHdr->rowMask & 0x7FFF) == 0) {
           pagePtr += 2;
@@ -185,8 +185,8 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
         if (nRowsUsed > 1) {
           pagePtr = page + tbHdr->rowAddr1()[nRowsUsed - 2];
         }
-        pagePtr += 2 * *pagePtr;                          // Go to entry for last sequence length
-        pagePtr += 1 + (*pagePtr * decodeBits + 7) / 8;   // Go to beginning of next time bin
+        pagePtr += 2 * *pagePtr;                        // Go to entry for last sequence length
+        pagePtr += 1 + (*pagePtr * decodeBits + 7) / 8; // Go to beginning of next time bin
       }
     }
   }

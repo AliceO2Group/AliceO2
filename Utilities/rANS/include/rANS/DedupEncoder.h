@@ -46,13 +46,13 @@ class DedupEncoder : public Encoder<coder_T, stream_T, source_T>
  public:
   using duplicatesMap_t = std::map<uint32_t, uint32_t>;
 
-  template <typename stream_IT, typename source_IT>
+  template <typename stream_IT, typename source_IT, std::enable_if_t<internal::isCompatibleIter_v<stream_T, stream_IT> && internal::isCompatibleIter_v<source_T, source_IT>, bool> = true>
   const stream_IT process(const stream_IT outputBegin, const stream_IT outputEnd,
                           const source_IT inputBegin, source_IT inputEnd, duplicatesMap_t& duplicates) const;
 };
 
 template <typename coder_T, typename stream_T, typename source_T>
-template <typename stream_IT, typename source_IT>
+template <typename stream_IT, typename source_IT, std::enable_if_t<internal::isCompatibleIter_v<stream_T, stream_IT> && internal::isCompatibleIter_v<source_T, source_IT>, bool>>
 const stream_IT DedupEncoder<coder_T, stream_T, source_T>::process(const stream_IT outputBegin, const stream_IT outputEnd, const source_IT inputBegin, const source_IT inputEnd, duplicatesMap_t& duplicates) const
 {
   using namespace internal;
@@ -107,7 +107,7 @@ const stream_IT DedupEncoder<coder_T, stream_T, source_T>::process(const stream_
     return std::tuple(++dedupIT, coder.putSymbol(outputIter, encoderSymbol, this->mProbabilityBits));
   };
 
-  while (inputIT > inputBegin) { // NB: working in reverse!
+  while (inputIT != inputBegin) { // NB: working in reverse!
     std::tie(inputIT, outputIter) = encode(--inputIT, outputIter, rans);
     assert(outputIter < outputEnd);
   }

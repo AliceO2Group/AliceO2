@@ -78,9 +78,9 @@ struct TPCSpectraTask {
   Configurable<float> nsigmacut{"nsigmacut", 3, "Value of the Nsigma cut"};
 
   template <std::size_t i, typename T>
-  void fillParticleHistos(const T& track, const float nsigma[])
+  void fillParticleHistos(const T& track, const float& nsigma)
   {
-    if (abs(nsigma[i]) > nsigmacut.value) {
+    if (abs(nsigma) > nsigmacut.value) {
       return;
     }
     histos.fill(HIST(hp[i]), track.p());
@@ -90,21 +90,18 @@ struct TPCSpectraTask {
   using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::TrackSelection>>;
   void process(TrackCandidates::iterator const& track)
   {
-    const float nsigma[Np] = {track.tpcNSigmaEl(), track.tpcNSigmaMu(), track.tpcNSigmaPi(),
-                              track.tpcNSigmaKa(), track.tpcNSigmaPr(), track.tpcNSigmaDe(),
-                              track.tpcNSigmaTr(), track.tpcNSigmaHe(), track.tpcNSigmaAl()};
     histos.fill(HIST("p/Unselected"), track.p());
     histos.fill(HIST("pt/Unselected"), track.pt());
 
-    fillParticleHistos<0>(track, nsigma);
-    fillParticleHistos<1>(track, nsigma);
-    fillParticleHistos<2>(track, nsigma);
-    fillParticleHistos<3>(track, nsigma);
-    fillParticleHistos<4>(track, nsigma);
-    fillParticleHistos<5>(track, nsigma);
-    fillParticleHistos<6>(track, nsigma);
-    fillParticleHistos<7>(track, nsigma);
-    fillParticleHistos<8>(track, nsigma);
+    fillParticleHistos<0>(track, track.tpcNSigmaEl());
+    fillParticleHistos<1>(track, track.tpcNSigmaMu());
+    fillParticleHistos<2>(track, track.tpcNSigmaPi());
+    fillParticleHistos<3>(track, track.tpcNSigmaKa());
+    fillParticleHistos<4>(track, track.tpcNSigmaPr());
+    fillParticleHistos<5>(track, track.tpcNSigmaDe());
+    fillParticleHistos<6>(track, track.tpcNSigmaTr());
+    fillParticleHistos<7>(track, track.tpcNSigmaHe());
+    fillParticleHistos<8>(track, track.tpcNSigmaAl());
   }
 };
 
@@ -143,16 +140,16 @@ struct TPCPIDQASignalwTOFTask {
   void process(TrackCandidates::iterator const& track)
   {
     // const float mom = track.p();
-    const float mom = track.tpcInnerParam();
-    histos.fill(HIST(htpcsignal[0]), mom, track.tpcSignal(), track.tofNSigmaEl());
-    histos.fill(HIST(htpcsignal[1]), mom, track.tpcSignal(), track.tofNSigmaMu());
-    histos.fill(HIST(htpcsignal[2]), mom, track.tpcSignal(), track.tofNSigmaPi());
-    histos.fill(HIST(htpcsignal[3]), mom, track.tpcSignal(), track.tofNSigmaKa());
-    histos.fill(HIST(htpcsignal[4]), mom, track.tpcSignal(), track.tofNSigmaPr());
-    histos.fill(HIST(htpcsignal[5]), mom, track.tpcSignal(), track.tofNSigmaDe());
-    histos.fill(HIST(htpcsignal[6]), mom, track.tpcSignal(), track.tofNSigmaTr());
-    histos.fill(HIST(htpcsignal[7]), mom, track.tpcSignal(), track.tofNSigmaHe());
-    histos.fill(HIST(htpcsignal[8]), mom, track.tpcSignal(), track.tofNSigmaAl());
+    // const float mom = track.tpcInnerParam();
+    histos.fill(HIST(htpcsignal[0]), track.tpcInnerParam(), track.tpcSignal(), track.tofNSigmaEl());
+    histos.fill(HIST(htpcsignal[1]), track.tpcInnerParam(), track.tpcSignal(), track.tofNSigmaMu());
+    histos.fill(HIST(htpcsignal[2]), track.tpcInnerParam(), track.tpcSignal(), track.tofNSigmaPi());
+    histos.fill(HIST(htpcsignal[3]), track.tpcInnerParam(), track.tpcSignal(), track.tofNSigmaKa());
+    histos.fill(HIST(htpcsignal[4]), track.tpcInnerParam(), track.tpcSignal(), track.tofNSigmaPr());
+    histos.fill(HIST(htpcsignal[5]), track.tpcInnerParam(), track.tpcSignal(), track.tofNSigmaDe());
+    histos.fill(HIST(htpcsignal[6]), track.tpcInnerParam(), track.tpcSignal(), track.tofNSigmaTr());
+    histos.fill(HIST(htpcsignal[7]), track.tpcInnerParam(), track.tpcSignal(), track.tofNSigmaHe());
+    histos.fill(HIST(htpcsignal[8]), track.tpcInnerParam(), track.tpcSignal(), track.tofNSigmaAl());
   }
 };
 

@@ -24,6 +24,7 @@
 #include <fstream>
 #include <iostream>
 #include "TestParameters.h"
+#include <fmt/format.h>
 
 using namespace o2::mch::mapping;
 namespace bdata = boost::unit_test::data;
@@ -186,7 +187,7 @@ BOOST_AUTO_TEST_CASE(CheckPadOffsetsAfterCopy)
   });
 }
 
-struct SEG {
+struct SEG100 {
   Segmentation seg{100};
 };
 
@@ -210,9 +211,60 @@ BOOST_AUTO_TEST_CASE(TestForEachPadAndPadIndexRange)
   });
 }
 
-// All the remaining tests of this file are using seg (DE100).
+BOOST_AUTO_TEST_CASE(CheckOnePadPositionPresentOnOnlyBendingPlaneDE600)
+{
+  Segmentation de600(600);
+  double x = 54.34;
+  double y = -12.40;
+  int b, nb;
+  bool ok = de600.findPadPairByPosition(x, y, b, nb);
+  TestParameters params;
+  int testChannel = 12;
+  if (params.isSegmentationRun3) {
+    testChannel = 44;
+  }
+  BOOST_CHECK_EQUAL(ok, false);
+  int p = de600.findPadByFEE(307, testChannel);
+  BOOST_CHECK_EQUAL(p, b);
+  BOOST_CHECK_EQUAL(de600.isValid(b), true);
+  BOOST_CHECK_EQUAL(de600.isValid(nb), false);
+}
 
-BOOST_FIXTURE_TEST_SUITE(DE100, SEG)
+BOOST_AUTO_TEST_CASE(CheckOnePadPositionPresentOnOnlyBendingPlaneDE825)
+{
+  Segmentation de825(825);
+  double x = 110.09;
+  double y = -1.25;
+  int b, nb;
+  bool ok = de825.findPadPairByPosition(x, y, b, nb);
+  TestParameters params;
+  int testChannel{55};
+  if (params.isSegmentationRun3) {
+    testChannel = 23;
+  }
+  BOOST_CHECK_EQUAL(ok, false);
+  int p = de825.findPadByFEE(1333, testChannel);
+  BOOST_CHECK_EQUAL(p, nb);
+  BOOST_CHECK_EQUAL(de825.isValid(b), false);
+  BOOST_CHECK_EQUAL(de825.isValid(nb), true);
+}
+
+BOOST_AUTO_TEST_CASE(CheckOnePadPositionTotallyAbsentDE604)
+{
+  Segmentation de604(604);
+  double x = -19.25;
+  double y = 20.04;
+  int b, nb;
+  bool ok = de604.findPadPairByPosition(x, y, b, nb);
+  BOOST_CHECK_EQUAL(ok, false);
+  BOOST_CHECK_EQUAL(de604.isValid(nb), false);
+  BOOST_CHECK_EQUAL(de604.isValid(b), false);
+}
+
+// All the remaining tests of this file are using specific
+// detection elements DE100
+
+BOOST_FIXTURE_TEST_SUITE(DE100, SEG100)
 
 BOOST_TEST_DECORATOR(*boost::unit_test::tolerance(1E-3))
 BOOST_AUTO_TEST_CASE(CheckOnePosition)
@@ -373,6 +425,17 @@ BOOST_AUTO_TEST_CASE(ReturnsFalseIfPadIsNotConnected)
   BOOST_CHECK_EQUAL(seg.isValid(seg.findPadByFEE(214, testChannel)), false);
 }
 
+BOOST_AUTO_TEST_CASE(ReturnsFalseIfCatPadIdIsOutOfRange)
+{
+  forOneDetectionElementOfEachSegmentationType([](int detElemId) {
+    Segmentation seg{detElemId};
+    BOOST_TEST_INFO_SCOPE(fmt::format("DeId {}", detElemId));
+    BOOST_CHECK_EQUAL(seg.isValid(0), true);
+    BOOST_CHECK_EQUAL(seg.isValid(seg.nofPads() - 1), true);
+    BOOST_CHECK_EQUAL(seg.isValid(-1), false);
+    BOOST_CHECK_EQUAL(seg.isValid(seg.nofPads()), false);
+  });
+}
 BOOST_AUTO_TEST_CASE(HasPadByPosition)
 {
   int b, nb;

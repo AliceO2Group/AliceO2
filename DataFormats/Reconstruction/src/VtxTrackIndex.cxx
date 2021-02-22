@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// @file  VtxTrackIndex.h
-/// \brief Index of track attached to vertx: index in its proper container, container source and flags
+/// \brief Extention of GlobalTrackID by flags relevant for verter-track association
 /// \author ruben.shahoyan@cern.ch
 
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
@@ -19,21 +19,3 @@
 #include <bitset>
 
 using namespace o2::dataformats;
-
-std::string VtxTrackIndex::asString() const
-{
-  std::bitset<NBitsFlags()> bits{getFlags()};
-  return fmt::format("[{:d}/{:d}/{:s}]", getIndex(), getSource(), bits.to_string());
-}
-
-std::ostream& o2::dataformats::operator<<(std::ostream& os, const o2::dataformats::VtxTrackIndex& v)
-{
-  // stream itself
-  os << v.asString();
-  return os;
-}
-
-void VtxTrackIndex::print() const
-{
-  LOG(INFO) << asString();
-}

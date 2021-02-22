@@ -53,7 +53,6 @@ class DigitBlockFT0 : public DigitBlockBase<DigitBlockFT0>
   void setIntRec(o2::InteractionRecord intRec) { mDigit.mIntRecord = intRec; }
   Digit mDigit;
   std::vector<ChannelData> mVecChannelData;
-  static o2::ft0::LookUpTable sLookupTable;
   static int sEventID;
 
   template <class DataBlockType>
@@ -61,7 +60,7 @@ class DigitBlockFT0 : public DigitBlockBase<DigitBlockFT0>
   {
     if constexpr (std::is_same<DataBlockType, DataBlockPM>::value) { //Filling data from PM
       for (int iEventData = 0; iEventData < dataBlock.DataBlockWrapper<RawDataPM>::mNelements; iEventData++) {
-        mVecChannelData.emplace_back(uint8_t(sLookupTable.getChannel(linkID, dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].channelID)),
+        mVecChannelData.emplace_back(uint8_t(o2::ft0::SingleLUT::Instance().getChannel(linkID, dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].channelID)),
                                      int(dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].time),
                                      int(dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].charge),
                                      dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].getFlagWord());
@@ -141,8 +140,6 @@ class DigitBlockFT0ext : public DigitBlockBase<DigitBlockFT0ext>
   DigitExt mDigit;
   std::vector<ChannelData> mVecChannelData;
   std::vector<TriggersExt> mVecTriggersExt;
-
-  static o2::ft0::LookUpTable sLookupTable;
   static int sEventID;
 
   template <class DataBlockType>
@@ -150,7 +147,7 @@ class DigitBlockFT0ext : public DigitBlockBase<DigitBlockFT0ext>
   {
     if constexpr (std::is_same<DataBlockType, DataBlockPM>::value) { //Filling data from PM
       for (int iEventData = 0; iEventData < dataBlock.DataBlockWrapper<RawDataPM>::mNelements; iEventData++) {
-        mVecChannelData.emplace_back(uint8_t(sLookupTable.getChannel(linkID, dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].channelID)),
+        mVecChannelData.emplace_back(uint8_t(o2::ft0::SingleLUT::Instance().getChannel(linkID, dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].channelID)),
                                      int(dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].time),
                                      int(dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].charge),
                                      dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].getFlagWord());

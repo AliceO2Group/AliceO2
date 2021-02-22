@@ -19,6 +19,7 @@
 #include <typeindex>
 #include <TBufferFile.h>
 #include <type_traits>
+#include <cstring>
 
 namespace o2
 {
@@ -36,6 +37,25 @@ class RootSerializableKeyValueStore
  public:
   /// Structure encapsulating the stored information: raw buffers and attached type information (combination of type_index_hash and TClass information)
   struct SerializedInfo {
+    SerializedInfo() = default;
+    SerializedInfo(void* o, int N, char* b, TClass* cl, std::string const& s) : objptr(o), N(N), bufferptr(b), cl(cl), typeinfo_name(s) {}
+    SerializedInfo(SerializedInfo const& other)
+    {
+      // we do a deep copy
+      N = other.N;
+      bufferptr = new char[N];
+      std::memcpy(bufferptr, other.bufferptr, sizeof(char) * N);
+      objptr = nullptr;
+      cl = other.cl;
+      typeinfo_name = other.typeinfo_name;
+    }
+    SerializedInfo& operator=(SerializedInfo const& other)
+    {
+      SerializedInfo temp(other);
+      std::swap(*this, temp);
+      return *this;
+    }
+
     void* objptr = nullptr; //! pointer to existing object in memory
     Int_t N = 0;
     char* bufferptr = nullptr; //[N]  pointer to serialized buffer
@@ -124,7 +144,7 @@ class RootSerializableKeyValueStore
   void print() const;
 
  private:
-  std::map<std::string, SerializedInfo*> mStore;
+  std::map<std::string, SerializedInfo> mStore;
 
   // generic implementation for put relying on TClass
   template <typename T>
@@ -146,7 +166,7 @@ class RootSerializableKeyValueStore
     memcpy(bufferptr, buff.Buffer(), sizeof(char) * N);
 
     auto name = std::type_index(typeid(value)).name();
-    mStore.insert(std::pair<std::string, SerializedInfo*>(key, new SerializedInfo{(void*)ptr, N, (char*)bufferptr, cl, name}));
+    mStore.insert(std::pair<std::string, SerializedInfo>(key, SerializedInfo((void*)ptr, N, (char*)bufferptr, cl, name)));
   }
 
   // implementation for put for trivial types
@@ -162,7 +182,7 @@ class RootSerializableKeyValueStore
     memcpy(bufferptr, (char*)ptr, sizeof(char) * N);
 
     auto name = std::type_index(typeid(value)).name();
-    mStore.insert(std::pair<std::string, SerializedInfo*>(key, new SerializedInfo{(void*)ptr, N, (char*)bufferptr, nullptr, name}));
+    mStore.insert(std::pair<std::string, SerializedInfo>(key, SerializedInfo((void*)ptr, N, (char*)bufferptr, nullptr, name)));
   }
 
   // generic implementation for get relying on TClass
@@ -172,23 +192,23 @@ class RootSerializableKeyValueStore
     state = GetState::kOK;
     auto iter = mStore.find(key);
     if (iter != mStore.end()) {
-      auto value = iter->second;
+      auto& info = const_cast<SerializedInfo&>(iter->second);
       auto cl = TClass::GetClass(typeid(T));
       if (!cl) {
         state = GetState::kNOTCLASS;
         return nullptr;
       }
-      if (value->cl && strcmp(cl->GetName(), value->cl->GetName()) == 0) {
+      if (info.cl && strcmp(cl->GetName(), info.cl->GetName()) == 0) {
         // if there is a (cached) object pointer ... we return it
-        if (value->objptr) {
-          return (T*)value->objptr;
+        if (info.objptr) {
+          return (T*)info.objptr;
         }
-        // do this only once and cache instance into value.objptr
-        TBufferFile buff(TBuffer::kRead, value->N, value->bufferptr, false, nullptr);
+        // do this only once and cache instance into info.objptr
+        TBufferFile buff(TBuffer::kRead, info.N, info.bufferptr, false, nullptr);
         buff.Reset();
         auto instance = (T*)buff.ReadObjectAny(cl);
-        value->objptr = instance;
-        return (T*)value->objptr;
+        info.objptr = instance;
+        return (T*)info.objptr;
       } else {
         state = GetState::kWRONGTYPE;
         return nullptr;
@@ -205,14 +225,14 @@ class RootSerializableKeyValueStore
     state = GetState::kOK;
     auto iter = mStore.find(key);
     if (iter != mStore.end()) {
-      auto value = iter->second;
-      if (strcmp(std::type_index(typeid(T)).name(), value->typeinfo_name.c_str()) == 0) {
+      auto& info = const_cast<SerializedInfo&>(iter->second);
+      if (strcmp(std::type_index(typeid(T)).name(), info.typeinfo_name.c_str()) == 0) {
         // if there is a (cached) object pointer ... we return it
-        if (value->objptr) {
-          return (T*)value->objptr;
+        if (info.objptr) {
+          return (T*)info.objptr;
         }
-        value->objptr = (T*)value->bufferptr;
-        return (T*)value->objptr;
+        info.objptr = (T*)info.bufferptr;
+        return (T*)info.objptr;
       } else {
         state = GetState::kWRONGTYPE;
         return nullptr;
@@ -227,12 +247,11 @@ class RootSerializableKeyValueStore
   {
     auto iter = mStore.find(key);
     if (iter != mStore.end()) {
-      delete iter->second;
       mStore.erase(iter);
     }
   }
 
-  ClassDefNV(RootSerializableKeyValueStore, 1);
+  ClassDefNV(RootSerializableKeyValueStore, 2);
 };
 
 } // namespace utils

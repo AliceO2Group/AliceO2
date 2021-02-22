@@ -1122,7 +1122,7 @@ void TrackFinder::improveTracks()
       }
 
       // Identify removable clusters
-      itTrack->tagRemovableClusters(requestedStationMask());
+      itTrack->tagRemovableClusters(requestedStationMask(), !mMoreCandidates);
 
       // Look for the cluster with the worst local chi2
       double worstLocalChi2(-1.);
@@ -1176,7 +1176,7 @@ void TrackFinder::removeConnectedTracks(int stMin, int stMax)
 {
   /// Find and remove tracks sharing 1 cluster or more in station(s) [stMin, stMax]
   /// For each couple of connected tracks, one removes the one with the smallest
-  /// number of clusters or with the highest chi2 value in case of equality
+  /// number of fired chambers or with the highest chi2/(ndf-1) value in case of equality
 
   if (mTracks.size() < 2) {
     return;
@@ -1186,30 +1186,36 @@ void TrackFinder::removeConnectedTracks(int stMin, int stMax)
   int chMax = 2 * stMax + 1;
   int nPlane = 2 * (chMax - chMin + 1);
 
-  // first loop to fill the array of cluster Ids
-  std::vector<uint32_t> ClIds{};
-  ClIds.resize(nPlane * mTracks.size());
+  // first loop to fill the arrays of cluster Ids and number of fired chambers
+  std::vector<uint32_t> ClIds(nPlane * mTracks.size());
+  std::vector<uint8_t> nFiredCh(mTracks.size());
+  int previousCh(-1);
   int iTrack(0);
   for (auto itTrack = mTracks.begin(); itTrack != mTracks.end(); ++itTrack, ++iTrack) {
     for (auto itParam = itTrack->rbegin(); itParam != itTrack->rend(); ++itParam) {
       int ch = itParam->getClusterPtr()->getChamberId();
-      if (ch > chMax) {
-        continue;
-      } else if (ch < chMin) {
-        break;
+      if (ch != previousCh) {
+        ++nFiredCh[iTrack];
+        previousCh = ch;
       }
-      ClIds[nPlane * iTrack + 2 * (ch - chMin) + itParam->getClusterPtr()->getDEId() % 2] = itParam->getClusterPtr()->getUniqueId();
+      if (ch >= chMin && ch <= chMax) {
+        ClIds[nPlane * iTrack + 2 * (ch - chMin) + itParam->getClusterPtr()->getDEId() % 2] = itParam->getClusterPtr()->getUniqueId();
+      }
     }
   }
 
   // second loop to tag the tracks to remove
+  int iTrack1 = mTracks.size() - 1;
   int iindex = ClIds.size() - 1;
-  for (auto itTrack1 = mTracks.rbegin(); itTrack1 != mTracks.rend(); ++itTrack1, iindex -= nPlane) {
+  for (auto itTrack1 = mTracks.rbegin(); itTrack1 != mTracks.rend(); ++itTrack1, iindex -= nPlane, --iTrack1) {
+    int iTrack2 = iTrack1 - 1;
     int jindex = iindex - nPlane;
-    for (auto itTrack2 = std::next(itTrack1); itTrack2 != mTracks.rend(); ++itTrack2) {
+    for (auto itTrack2 = std::next(itTrack1); itTrack2 != mTracks.rend(); ++itTrack2, --iTrack2) {
       for (int iPlane = nPlane; iPlane > 0; --iPlane) {
         if (ClIds[iindex] > 0 && ClIds[iindex] == ClIds[jindex]) {
-          if (itTrack2->isBetter(*itTrack1)) {
+          if ((nFiredCh[iTrack2] > nFiredCh[iTrack1]) ||
+              ((nFiredCh[iTrack2] == nFiredCh[iTrack1]) &&
+               (itTrack2->first().getTrackChi2() / (itTrack2->getNDF() - 1) < itTrack1->first().getTrackChi2() / (itTrack1->getNDF() - 1)))) {
             itTrack1->connected();
           } else {
             itTrack2->connected();

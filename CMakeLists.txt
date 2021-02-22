@@ -25,6 +25,10 @@ set(ALIGPU_BUILD_TYPE "O2")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set_property(GLOBAL PROPERTY REPORT_UNDEFINED_PROPERTIES)
+
+set(ANALYSIS_COMPILE_POOL 1 CACHE STRING "How many parallel analysis compilation jobs")
+set_property(GLOBAL PROPERTY JOB_POOLS analysis=${ANALYSIS_COMPILE_POOL})
+
 include(O2BuildSanityChecks)
 o2_build_sanity_checks()
 set(CMAKE_CXX_STANDARD 17)
@@ -84,7 +88,9 @@ add_subdirectory(EventVisualisation)
 add_subdirectory(Generators)
 add_subdirectory(Steer) # consider building this only for simulation ?
 add_subdirectory(prodtests)
+if(BUILD_ANALYSIS)
 add_subdirectory(Analysis)
+endif()
 add_subdirectory(scripts)
 
 if(BUILD_EXAMPLES)

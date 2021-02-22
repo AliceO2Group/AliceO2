@@ -71,9 +71,7 @@ const std::unordered_map<std::string, InputType> InputMap{
   {"clusters", InputType::Clusters},
   {"zsraw", InputType::ZSRaw},
   {"compressed-clusters", InputType::CompClusters},
-  {"compressed-clusters-ctf", InputType::CompClustersCTF},
-  {"encoded-clusters", InputType::EncodedClusters},
-};
+  {"compressed-clusters-ctf", InputType::CompClustersCTF}};
 
 const std::unordered_map<std::string, OutputType> OutputMap{
   {"digits", OutputType::Digits},
@@ -85,7 +83,8 @@ const std::unordered_map<std::string, OutputType> OutputMap{
   {"disable-writer", OutputType::DisableWriter},
   {"send-clusters-per-sector", OutputType::SendClustersPerSector},
   {"zsraw", OutputType::ZSRaw},
-  {"qa", OutputType::QA}};
+  {"qa", OutputType::QA},
+  {"no-shared-cluster-map", OutputType::NoSharedClusterMap}};
 
 framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vector<int> const& tpcSectors, std::vector<int> const& laneConfiguration,
                                     bool propagateMC, unsigned nLanes, std::string const& cfgInput, std::string const& cfgOutput,
@@ -152,7 +151,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
       auto storedlabels = reinterpret_cast<o2::dataformats::IOMCTruthContainerView const*>(data);
       o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel> flatlabels;
       storedlabels->copyandflatten(flatlabels);
-      LOG(INFO) << "PUBLISHING CONST LABELS " << flatlabels.getNElements();
+      //LOG(INFO) << "PUBLISHING CONST LABELS " << flatlabels.getNElements();
       context.outputs().snapshot(output, flatlabels);
       return true;
     }
@@ -168,6 +167,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
 
     specs.emplace_back(o2::tpc::getPublisherSpec<Type>(PublisherConf{
                                                          "tpc-digit-reader",
+                                                         "tpcdigits.root",
                                                          "o2sim",
                                                          {"digitbranch", "TPCDigit", "Digit branch"},
                                                          {"mcbranch", "TPCDigitMCTruth", "MC label branch"},
@@ -180,6 +180,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   } else if (inputType == InputType::ClustersHardware) {
     specs.emplace_back(o2::tpc::getPublisherSpec(PublisherConf{
                                                    "tpc-clusterhardware-reader",
+                                                   "tpc-clusterhardware.root",
                                                    "tpcclustershardware",
                                                    {"databranch", "TPCClusterHw", "Branch with TPC ClustersHardware"},
                                                    {"mcbranch", "TPCClusterHwMCTruth", "MC label branch"},
@@ -192,6 +193,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   } else if (inputType == InputType::Clusters) {
     specs.emplace_back(o2::tpc::getPublisherSpec(PublisherConf{
                                                    "tpc-native-cluster-reader",
+                                                   "tpc-native-clusters.root",
                                                    "tpcrec",
                                                    {"clusterbranch", "TPCClusterNative", "Branch with TPC native clusters"},
                                                    {"clustermcbranch", "TPCClusterNativeMCTruth", "MC label branch"},
@@ -208,25 +210,12 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     // PublisherSpec with only sector 0, '_0' is thus appended to the branch name
     specs.emplace_back(o2::tpc::getPublisherSpec(PublisherConf{
                                                    "tpc-compressed-cluster-reader",
+                                                   "tpc-compclusters.root",
                                                    "tpcrec",
                                                    {"clusterbranch", "TPCCompClusters", "Branch with TPC compressed clusters"},
-                                                   {"clustermcbranch", "TPCClusterNativeMCTruth", "MC label branch"},
+                                                   {"", "", ""}, // No MC labels
                                                    OutputSpec{"TPC", "COMPCLUSTERS"},
-                                                   OutputSpec{"TPC", "CLNATIVEMCLBL"}, // This does not work with labels!
-                                                   std::vector<int>(1, 0),
-                                                   std::vector<int>(1, 0),
-                                                   &hook},
-                                                 false));
-  } else if (inputType == InputType::EncodedClusters) {
-    // TODO: need to check if we want to store the MC labels alongside with encoded clusters
-    // for the moment reading of labels is disabled (last parameter is false)
-    specs.emplace_back(o2::tpc::getPublisherSpec(PublisherConf{
-                                                   "tpc-encoded-cluster-reader",
-                                                   "tpcrec",
-                                                   {"clusterbranch", "TPCEncodedClusters", "Branch with TPC encoded clusters"},
-                                                   {"clustermcbranch", "TPCClusterNativeMCTruth", "MC label branch"},
-                                                   OutputSpec{"TPC", "ENCCLUSTERS"},
-                                                   OutputSpec{"TPC", "CLNATIVEMCLBL"}, // This does not work with labels!
+                                                   OutputSpec{"", ""}, // No MC labels
                                                    std::vector<int>(1, 0),
                                                    std::vector<int>(1, 0),
                                                    &hook},
@@ -323,7 +312,8 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   auto fillLabels = [](TBranch& branch, std::vector<char> const& labelbuffer, DataRef const& /*ref*/) {
     o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> labels(labelbuffer);
     o2::dataformats::IOMCTruthContainerView outputcontainer;
-    auto br = framework::RootTreeWriter::remapBranch(branch, &outputcontainer);
+    auto ptr = &outputcontainer;
+    auto br = framework::RootTreeWriter::remapBranch(branch, &ptr);
     outputcontainer.adopt(labelbuffer);
     br->Fill();
     br->ResetAddress();
@@ -444,6 +434,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
                                                                isEnabled(OutputType::SendClustersPerSector) ? ca::Operation::SendClustersPerSector : ca::Operation::Noop,
                                                                isEnabled(OutputType::QA) ? ca::Operation::OutputQA : ca::Operation::Noop,
                                                                isEnabled(OutputType::Clusters) && (caClusterer || decompressTPC) ? ca::Operation::OutputCAClusters : ca::Operation::Noop,
+                                                               isEnabled(OutputType::Clusters) && isEnabled(OutputType::Tracks) && !isEnabled(OutputType::NoSharedClusterMap) ? ca::Operation::OutputSharedClusterMap : ca::Operation::Noop,
                                                              },
                                                  tpcSectors));
   }

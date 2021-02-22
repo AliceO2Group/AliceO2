@@ -144,6 +144,7 @@ bool DataContainer3D<DataT, Nx, Ny, Nz>::initFromFile(TFile& inpf, const char* n
     return false;
   }
   mData = dataCont->mData;
+  delete dataCont;
   return true;
 }
 

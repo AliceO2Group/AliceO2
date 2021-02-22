@@ -12,7 +12,7 @@ o2_add_library(AnalysisCore
                SOURCES  src/CorrelationContainer.cxx
                         src/TrackSelection.cxx
                         src/TriggerAliases.cxx
-			src/HFConfigurables.cxx
+                        src/HFConfigurables.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel)
 
 o2_target_root_dictionary(AnalysisCore
@@ -21,7 +21,7 @@ o2_target_root_dictionary(AnalysisCore
                       include/AnalysisCore/TrackSelectionDefaults.h
                       include/AnalysisCore/TriggerAliases.h
                       include/AnalysisCore/MC.h
-		      include/AnalysisCore/HFConfigurables.h
+                      include/AnalysisCore/HFConfigurables.h
               LINKDEF src/AnalysisCoreLinkDef.h)
 
 if(FastJet_FOUND)

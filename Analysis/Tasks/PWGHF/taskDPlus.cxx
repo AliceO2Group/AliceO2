@@ -62,30 +62,35 @@ struct TaskDPlus {
   void process(aod::HfCandProng3 const& candidates)
   {
     for (auto& candidate : candidates) {
-      registry.get<TH1>(HIST("hMass"))->Fill(InvMassDPlus(candidate));
-      registry.get<TH1>(HIST("hPt"))->Fill(candidate.pt());
-      registry.get<TH1>(HIST("hEta"))->Fill(candidate.eta());
-      registry.get<TH1>(HIST("hCt"))->Fill(CtDPlus(candidate));
-      registry.get<TH1>(HIST("hDecayLength"))->Fill(candidate.decayLength());
-      registry.get<TH1>(HIST("hDecayLengthXY"))->Fill(candidate.decayLengthXY());
-      registry.get<TH1>(HIST("hNormalisedDecayLengthXY"))->Fill(candidate.decayLengthXYNormalised());
-      registry.get<TH1>(HIST("hCPA"))->Fill(candidate.cpa());
-      registry.get<TH1>(HIST("hCPAxy"))->Fill(candidate.cpaXY());
-      registry.get<TH1>(HIST("hImpactParameterXY"))->Fill(candidate.impactParameterXY());
-      registry.get<TH1>(HIST("hMaxNormalisedDeltaIP"))->Fill(candidate.maxNormalisedDeltaIP());
-      registry.get<TH1>(HIST("hImpactParameterProngSqSum"))->Fill(candidate.impactParameterProngSqSum());
-      registry.get<TH1>(HIST("hDecayLengthError"))->Fill(candidate.errorDecayLength());
-      registry.get<TH1>(HIST("hDecayLengthXYError"))->Fill(candidate.errorDecayLengthXY());
-      registry.get<TH1>(HIST("hImpactParameterError"))->Fill(candidate.errorImpactParameter0());
-      registry.get<TH1>(HIST("hImpactParameterError"))->Fill(candidate.errorImpactParameter1());
-      registry.get<TH1>(HIST("hImpactParameterError"))->Fill(candidate.errorImpactParameter2());
-      registry.get<TH1>(HIST("hPtProng0"))->Fill(candidate.ptProng0());
-      registry.get<TH1>(HIST("hPtProng1"))->Fill(candidate.ptProng1());
-      registry.get<TH1>(HIST("hPtProng2"))->Fill(candidate.ptProng2());
-      registry.get<TH1>(HIST("hd0Prong0"))->Fill(candidate.impactParameter0());
-      registry.get<TH1>(HIST("hd0Prong1"))->Fill(candidate.impactParameter1());
-      registry.get<TH1>(HIST("hd0Prong2"))->Fill(candidate.impactParameter2());
-      //registry.get<TH1>(HIST("hSelectionStatus"))->Fill(candidate.isSelDPlus());
+      //apply only candidate pre-selections for the moment, not possible in Filter
+      //since expressions do not support binary operators
+      if (!(candidate.hfflag() & 1 << DPlusToPiKPi)) {
+        continue;
+      }
+      registry.fill(HIST("hMass"), InvMassDPlus(candidate));
+      registry.fill(HIST("hPt"), candidate.pt());
+      registry.fill(HIST("hEta"), candidate.eta());
+      registry.fill(HIST("hCt"), CtDPlus(candidate));
+      registry.fill(HIST("hDecayLength"), candidate.decayLength());
+      registry.fill(HIST("hDecayLengthXY"), candidate.decayLengthXY());
+      registry.fill(HIST("hNormalisedDecayLengthXY"), candidate.decayLengthXYNormalised());
+      registry.fill(HIST("hCPA"), candidate.cpa());
+      registry.fill(HIST("hCPAxy"), candidate.cpaXY());
+      registry.fill(HIST("hImpactParameterXY"), candidate.impactParameterXY());
+      registry.fill(HIST("hMaxNormalisedDeltaIP"), candidate.maxNormalisedDeltaIP());
+      registry.fill(HIST("hImpactParameterProngSqSum"), candidate.impactParameterProngSqSum());
+      registry.fill(HIST("hDecayLengthError"), candidate.errorDecayLength());
+      registry.fill(HIST("hDecayLengthXYError"), candidate.errorDecayLengthXY());
+      registry.fill(HIST("hImpactParameterError"), candidate.errorImpactParameter0());
+      registry.fill(HIST("hImpactParameterError"), candidate.errorImpactParameter1());
+      registry.fill(HIST("hImpactParameterError"), candidate.errorImpactParameter2());
+      registry.fill(HIST("hPtProng0"), candidate.ptProng0());
+      registry.fill(HIST("hPtProng1"), candidate.ptProng1());
+      registry.fill(HIST("hPtProng2"), candidate.ptProng2());
+      registry.fill(HIST("hd0Prong0"), candidate.impactParameter0());
+      registry.fill(HIST("hd0Prong1"), candidate.impactParameter1());
+      registry.fill(HIST("hd0Prong2"), candidate.impactParameter2());
+      //registry.fill(HIST("hSelectionStatus"), candidate.isSelDPlus());
     }
   }
 };

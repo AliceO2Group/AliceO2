@@ -52,6 +52,7 @@ auto printMatrix(Array2D<T> const& m)
 }
 
 static constexpr float defaultm[3][4] = {{1.1, 1.2, 1.3, 1.4}, {2.1, 2.2, 2.3, 2.4}, {3.1, 3.2, 3.3, 3.4}};
+static LabeledArray<float> la{&defaultm[0][0], 3, 4, {"r 1", "r 2", "r 3"}, {"c 1", "c 2", "c 3", "c 4"}};
 
 struct ConfigurableObjectDemo {
   Configurable<configurableCut> cut{"cut", {0.5, 1, true}, "generic cut"};
@@ -60,6 +61,7 @@ struct ConfigurableObjectDemo {
   // note that size is fixed by this declaration - externally supplied vector needs to be the same size!
   Configurable<std::vector<int>> array{"array", {0, 0, 0, 0, 0, 0, 0}, "generic array"};
   Configurable<Array2D<float>> vmatrix{"matrix", {&defaultm[0][0], 3, 4}, "generic matrix"};
+  Configurable<LabeledArray<float>> vla{"vla", {defaultm[0], 3, 4, {"r 1", "r 2", "r 3"}, {"c 1", "c 2", "c 3", "c 4"}}, "labeled array"};
 
   void init(InitContext const&){};
   void process(aod::Collision const&, aod::Tracks const& tracks)

@@ -14,6 +14,7 @@
 /// @file PrimaryVertexingSpec.h
 
 #include "DetectorsVertexing/PVertexer.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "TStopwatch.h"
@@ -24,11 +25,12 @@ namespace vertexing
 {
 
 using namespace o2::framework;
+using DetID = o2::detectors::DetID;
 
 class PrimaryVertexingSpec : public Task
 {
  public:
-  PrimaryVertexingSpec(bool validateWithFT0, bool useMC) : mUseMC(useMC), mValidateWithFT0(validateWithFT0) {}
+  PrimaryVertexingSpec(bool validateWithIR, bool useMC) : mUseMC(useMC), mValidateWithIR(validateWithIR) {}
   ~PrimaryVertexingSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -37,12 +39,13 @@ class PrimaryVertexingSpec : public Task
  private:
   o2::vertexing::PVertexer mVertexer;
   bool mUseMC{false};           ///< MC flag
-  bool mValidateWithFT0{false}; ///< require vertex validation with FT0
+  bool mValidateWithIR{false};  ///< require vertex validation with IR (e.g. from FT0)
+  float mITSROFrameLengthMUS = 0.;
   TStopwatch mTimer;
 };
 
 /// create a processor spec
-DataProcessorSpec getPrimaryVertexingSpec(bool validateWithFT0, bool useMC);
+DataProcessorSpec getPrimaryVertexingSpec(DetID::mask_t dets, bool validateWithFT0, bool useMC);
 
 } // namespace vertexing
 } // namespace o2

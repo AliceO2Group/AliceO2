@@ -351,11 +351,10 @@ void Detector::ConstructGeometry()
   // Configure geometry So far we have only one: Run3
   {
     mActiveModule[0] = kFALSE;
-    mActiveModule[1] = kTRUE;
+    mActiveModule[1] = kFALSE;
     mActiveModule[2] = kTRUE;
     mActiveModule[3] = kTRUE;
-    mActiveModule[4] = kFALSE;
-    mActiveModule[5] = kFALSE;
+    mActiveModule[4] = kTRUE;
   }
 
   // First create necessary materials
@@ -375,7 +374,7 @@ void Detector::ConstructGeometry()
   int iXYZ, iAngle;
   char im[5];
   for (int iModule = 0; iModule < 5; iModule++) {
-    if (!mActiveModule[iModule + 1]) {
+    if (!mActiveModule[iModule]) {
       continue;
     }
     float angle[3][2] = {0};
@@ -385,7 +384,7 @@ void Detector::ConstructGeometry()
     float pos[3] = {0};
     geomParams->GetModuleCenter(iModule, pos);
 
-    fMC->Gspos("CPV", iModule + 1, "barrel", pos[0], pos[1] + 30., pos[2], idrotm[iModule], "ONLY");
+    fMC->Gspos("CPV", iModule, "barrel", pos[0], pos[1] + 30., pos[2], idrotm[iModule], "ONLY");
   }
 
   //start filling CPV moodules
@@ -563,15 +562,18 @@ void Detector::addAlignableVolumes() const
 
   TString symbModuleName = "CPV/Module";
 
-  for (Int_t iModule = 1; iModule <= geom->GetNModules(); iModule++) {
+  for (Int_t iModule = 0; iModule < geom->GetNModules(); iModule++) {
 
+    if (!mActiveModule[iModule]) {
+      continue;
+    }
     TString volPath(physModulePath);
     volPath += iModule;
 
     TString symName(symbModuleName);
     symName += iModule;
 
-    int modUID = o2::base::GeometryManager::getSensID(idCPV, iModule - 1);
+    int modUID = o2::base::GeometryManager::getSensID(idCPV, iModule);
 
     LOG(DEBUG) << "--------------------------------------------"
                << "\n";

@@ -11,11 +11,12 @@
 #ifndef DETECTORS_ZDC_DIGITIZER_H_
 #define DETECTORS_ZDC_DIGITIZER_H_
 
-#include "ZDCSimulation/Hit.h" // for the hit
-#include "ZDCSimulation/MCLabel.h"
+#include "DataFormatsZDC/Hit.h" // for the hit
+#include "DataFormatsZDC/MCLabel.h"
 #include "ZDCBase/ModuleConfig.h"
 #include "DataFormatsZDC/ChannelData.h"
 #include "DataFormatsZDC/BCData.h"
+#include "DataFormatsZDC/PedestalData.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include <vector>
@@ -104,9 +105,12 @@ class Digitizer
 
   void setContinuous(bool v = true) { mIsContinuous = v; }
   bool isContinuous() const { return mIsContinuous; }
-
+  void updatePedestalReference(PedestalData& pdata);
   void refreshCCDB();
   void setCCDBServer(const std::string& s) { mCCDBServer = s; }
+  void findEmptyBunches(const std::bitset<o2::constants::lhc::LHCMaxBunches>& bunchPattern);
+  int getNEmptyBunches() const { return mNEmptyBCs; }
+  void assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData);
 
  private:
   static constexpr int BCCacheMin = -1, BCCacheMax = 5, NBC2Cache = 1 + BCCacheMax - BCCacheMin;
@@ -116,10 +120,9 @@ class Digitizer
     return std::bitset<NChannels>(v);
   }
   void phe2Sample(int nphe, int parID, double timeHit, std::array<o2::InteractionRecord, NBC2Cache> const& cachedIR, int nCachedIR, int channel);
-
   BCCache& getCreateBCCache(const o2::InteractionRecord& ir);
   BCCache* getBCCache(const o2::InteractionRecord& ir);
-
+  void setTriggerMask();
   void generatePedestal();
   void digitizeBC(BCCache& bc);
   bool triggerBC(int ibc);
@@ -139,6 +142,8 @@ class Digitizer
   int mTrigBinMin = 0xffff;                                      // prefetched min and max
   int mTrigBinMax = -0xffff;                                     // bins to be checked for trigger
   int mNBCAHead = 0;                                             // when storing triggered BC, store also mNBCAHead BCs
+  uint32_t mTriggerMask = 0;                                     // Trigger mask from ModuleConfig
+  int32_t mNEmptyBCs = -1;                                       // Number of clean empty bunches for pedestal evaluation
 
   std::string mCCDBServer = "";
   const SimCondition* mSimCondition = nullptr;      ///< externally set SimCondition

@@ -47,6 +47,7 @@ o2_add_executable(benchmark-empty-loop
                   COMPONENT_NAME mergers
                   PUBLIC_LINK_LIBRARIES O2::Mergers)
 
+if (TARGET benchmark::benchmark)
 o2_add_executable(benchmark-miscellaneous
                   SOURCES test/benchmark_Miscellaneous.cxx
                   COMPONENT_NAME mergers
@@ -66,6 +67,7 @@ o2_add_executable(benchmark-types
                   SOURCES test/benchmark_Types.cxx
                   COMPONENT_NAME mergers
                   PUBLIC_LINK_LIBRARIES O2::Mergers benchmark::benchmark)
+endif()
 
 o2_add_test(InfrastructureBuilder
             SOURCES test/test_InfrastructureBuilder.cxx

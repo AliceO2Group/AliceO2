@@ -15,7 +15,7 @@
 using namespace o2::phos;
 
 // split 40 bits as following:
-// 14 bits: address, normal cells. starting from NmaxCell=3.5*56*64+1=12 544 will be TRU cells (3 136 addresses)
+// 14 bits: address, normal cells. starting from NmaxCell=3.5*56*64+1=14 337 will be TRU cells (3 136 addresses)
 // 10 bits: time
 // 15 bits: Energy
 // 1 bit:    High/low gain
@@ -35,10 +35,10 @@ Cell::Cell(short absId, float energy, float time, ChannelType_t ctype)
 void Cell::setAbsId(short absId)
 {
   //14 bits available
-  if (absId > kNmaxCell || absId < 0) {
+  if (absId > kNmaxCell || absId < kOffset) {
     absId = kNmaxCell;
   }
-  ULong_t t = (ULong_t)absId;
+  ULong_t t = (ULong_t)(absId - kOffset);
 
   ULong_t b = getLong() & 0xffffffc000; // 1111 1111 1111 1111 1111 1111 1100 0000 0000 0000
   mBits = b + t;
@@ -46,9 +46,7 @@ void Cell::setAbsId(short absId)
 void Cell::setTRUId(short absId)
 {
   //14 bits available
-  absId += kNmaxCell + 1;
-  //  if (absId > kNmaxCell || absId < 0)
-  //    absId = kNmaxCell;
+  absId += kNmaxCell - kOffset + 1;
   ULong_t t = (ULong_t)absId;
 
   ULong_t b = getLong() & 0xffffffc000; // 1111 1111 1111 1111 1111 1111 1100 0000 0000 0000
@@ -58,7 +56,7 @@ void Cell::setTRUId(short absId)
 short Cell::getAbsId() const
 {
   ULong_t t = getLong() & 0x3fff; //14 bits
-  short a = (short)t;
+  short a = kOffset + (short)t;
   if (a <= kNmaxCell) {
     return a;
   } else {
@@ -69,7 +67,7 @@ short Cell::getAbsId() const
 short Cell::getTRUId() const
 {
   ULong_t t = getLong() & 0x3fff; //14 bits
-  short a = (short)t;
+  short a = kOffset + (short)t;
   if (a > kNmaxCell) {
     return a - kNmaxCell - 1;
   } else {
@@ -182,7 +180,7 @@ Bool_t Cell::getTRU() const
 {
   ULong_t t = getLong();
   t &= 0x3fff; //14 bits
-  int a = (int)t;
+  int a = kOffset + (int)t;
   return (a > kNmaxCell); //TRU addresses
 }
 

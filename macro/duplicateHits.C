@@ -15,7 +15,7 @@
 #include "MCHSimulation/Hit.h"
 #include "MIDSimulation/Hit.h"
 #include "CPVBase/Hit.h"
-#include "ZDCSimulation/Hit.h"
+#include "DataFormatsZDC/Hit.h"
 #include "SimulationDataFormat/MCEventHeader.h"
 #endif
 

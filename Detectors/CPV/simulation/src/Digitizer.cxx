@@ -28,17 +28,17 @@ void Digitizer::init()
 {
   if (!mCalibParams) {
     if (o2::cpv::CPVSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-      mCalibParams = new CalibParams(1); // test default calibration
+      mCalibParams.reset(new CalibParams(1)); // test default calibration
       LOG(INFO) << "[CPVDigitizer] No reading calibration from ccdb requested, set default";
     } else {
-      LOG(INFO) << "[CPVDigitizer] getting calibration object from ccdb";
-      o2::ccdb::CcdbApi ccdb;
-      std::map<std::string, std::string> metadata; // do we want to store any meta data?
-      ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
-      mCalibParams = ccdb.retrieveFromTFileAny<o2::cpv::CalibParams>("CPV/Calib", metadata, mEventTime);
-      if (!mCalibParams) {
-        LOG(FATAL) << "[CPVDigitizer] can not get calibration object from ccdb";
-      }
+      LOG(INFO) << "[CPVDigitizer] can not gey calibration object from ccdb yet";
+      //      o2::ccdb::CcdbApi ccdb;
+      //      std::map<std::string, std::string> metadata; // do we want to store any meta data?
+      //      ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
+      //      mCalibParams = ccdb.retrieveFromTFileAny<o2::cpv::CalibParams>("CPV/Calib", metadata, mEventTime);
+      //      if (!mCalibParams) {
+      //        LOG(FATAL) << "[CPVDigitizer] can not get calibration object from ccdb";
+      //      }
     }
   }
 }
@@ -47,153 +47,122 @@ void Digitizer::init()
 void Digitizer::finish() {}
 
 //_______________________________________________________________________
-void Digitizer::process(const std::vector<Hit>* hitsBg, const std::vector<Hit>* hitsS, std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels)
+void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digit>& digitsBg,
+                            std::vector<Digit>& digitsOut, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels,
+                            int collId, int source, double dt)
 {
   // Convert list of hits to digits:
   // Add hits with ampl deposition in same pad and same time
   // Add ampl corrections
   // Apply time smearing
 
-  std::vector<Hit>::const_iterator hitBg = hitsBg->cbegin();
-  std::vector<Hit>::const_iterator hitS = hitsS->cbegin();
-  std::vector<Hit>::const_iterator hit;
-  const short kBigAbsID = 32767; //Far above maximal CPV absId
-  short hitAbsId = kBigAbsID;
-  short hitBgAbsId = kBigAbsID;
-  short hitSAbsId = kBigAbsID;
+  std::vector<Digit>::const_iterator dBg = digitsBg.cbegin();
+  std::vector<Hit>::const_iterator hBg = hits->cbegin();
 
-  if (hitBg != hitsBg->end()) {
-    hitBgAbsId = hitBg->GetDetectorID();
-  }
-  if (hitS != hitsS->end()) {
-    hitSAbsId = hitS->GetDetectorID();
-  }
-  if (hitBgAbsId < hitSAbsId) { // Bg hit exists and smaller than signal
-    hitAbsId = hitBgAbsId;
-    hit = hitBg;
-    mCurrSrcID = 0;
-    ++hitBg;
-  } else {
-    if (hitSAbsId < kBigAbsID) { //Signal hit exists and smaller than Bg
-      hitAbsId = hitSAbsId;
-      hit = hitS;
-      mCurrSrcID = 1;
-      ++hitS;
-    }
-  }
+  bool addNoise = !(digitsBg.size()); //If digits list not empty, noise already there
 
-  short nTotPads = Geometry::getTotalNPads();
-  for (short absId = 1; absId < nTotPads; absId++) {
+  int currentId = 0; //first digit
 
-    // If signal exist in this pad, add noise to it, otherwise just create noise digit
-    if (absId == hitAbsId) {
-      int labelIndex = labels.getIndexedSize();
-      //Add primary info: create new MCLabels entry
-      o2::MCCompLabel label(hit->GetTrackID(), mCurrEvID, mCurrSrcID, true);
-      labels.addElement(labelIndex, label);
-
-      Digit digit((*hit), labelIndex);
-
-      //May be add more hits to this digit?
-      if (hitBg == hitsBg->end()) {
-        hitBgAbsId = kBigAbsID;
-      } else {
-        hitBgAbsId = hitBg->GetDetectorID();
+  while (dBg != digitsBg.cend() && hBg != hits->cend()) {
+    if (dBg->getAbsId() < hBg->GetDetectorID()) { // copy digit
+      //Digits already contain noise, no need to add it in this branch
+      //Digits have correct time, no need to add event time
+      digitsOut.emplace_back(dBg->getAbsId(), dBg->getAmplitude(), dBg->getLabel());
+      currentId = dBg->getAbsId();
+      dBg++;
+    } else {
+      if (addNoise) {
+        addNoisyChannels(currentId, hBg->GetDetectorID(), digitsOut);
       }
-      if (hitS == hitsS->end()) {
-        hitSAbsId = kBigAbsID;
-      } else {
-        hitSAbsId = hitS->GetDetectorID();
+      currentId = hBg->GetDetectorID();
+      int labelIndex = -1;
+      if (dBg->getAbsId() == hBg->GetDetectorID()) {
+        labelIndex = dBg->getLabel();
       }
-      if (hitBgAbsId < hitSAbsId) { // Bg hit exists and smaller than signal
-        hitAbsId = hitBgAbsId;
-        hit = hitBg;
-        mCurrSrcID = 0;
-        ++hitBg;
-      } else {
-        if (hitSAbsId < kBigAbsID) { //Signal hit exists and smaller than Bg
-          hitAbsId = hitSAbsId;
-          hit = hitS;
-          mCurrSrcID = 1;
-          ++hitS;
-        } else { //no hits left
-          hitAbsId = kBigAbsID;
-          continue;
-        }
+      if (labelIndex == -1) { //no digit or noisy
+        labelIndex = labels.getIndexedSize();
       }
-
-      while (absId == hitAbsId) {
-        Digit digitNext((*hit), labelIndex); //Use same MCTruth entry so far
-        digit += digitNext;
-
-        //add MCLabel to list (add energy if same primary or add another label)
-        o2::MCCompLabel label(hit->GetTrackID(), mCurrEvID, mCurrSrcID, true);
-        labels.addElement(labelIndex, label);
-
-        //next hit?
-        if (hitBg == hitsBg->end()) {
-          hitBgAbsId = kBigAbsID;
-        } else {
-          hitBgAbsId = hitBg->GetDetectorID();
-        }
-        if (hitS == hitsS->end()) {
-          hitSAbsId = kBigAbsID;
-        } else {
-          hitSAbsId = hitS->GetDetectorID();
-        }
-        if (hitBgAbsId < hitSAbsId) { // Bg hit exists and smaller than signal
-          hitAbsId = hitBgAbsId;
-          hit = hitBg;
-          mCurrSrcID = 0;
-          ++hitBg;
-        } else {
-          if (hitSAbsId < kBigAbsID) { //Signal hit exists and smaller than Bg
-            hitAbsId = hitSAbsId;
-            hit = hitS;
-            mCurrSrcID = 1;
-            ++hitS;
-          } else { //no hits left
-            hitAbsId = kBigAbsID;
-            digitNext.setAbsId(kBigAbsID);
-            continue;
-          }
-        }
-
-        digitNext.fillFromHit(*hit);
-      }
-      //      //Current digit finished, sort MCLabels according to eDeposited
-      //      auto lbls = labels.getLabels(labelIndex);
-      //      std::sort(lbls.begin(), lbls.end(),
-      //                [](o2::MCCompLabel a, o2::MCCompLabel b) { return a.getEdep() > b.getEdep(); });
-
+      Digit digit(*hBg, labelIndex);
       // Add Electroinc noise, apply non-linearity, digitize, de-calibrate, time resolution
-      float ampl = digit.getAmplitude();
+      float energy = hBg->GetEnergyLoss();
       // Simulate electronic noise
-      ampl += simulateNoise();
+      short absId = hBg->GetDetectorID();
+      energy += simulateNoise();
 
-      ampl = uncalibrate(ampl, absId);
+      energy = uncalibrate(energy, absId);
 
-      if (ampl < o2::cpv::CPVSimParams::Instance().mZSthreshold) {
+      // Merge with existing digit if any
+      if (dBg->getAbsId() == hBg->GetDetectorID()) {
+        digit += *dBg;
+        dBg++;
+      }
+
+      hBg++;
+      if (energy <= o2::cpv::CPVSimParams::Instance().mZSthreshold) {
         continue;
       }
-      digit.setAmplitude(ampl);
 
-      digits.push_back(digit);
-    } else { // No signal in this pad,
-      if (!Geometry::IsPadExists(absId)) {
-        continue;
-      }
-      // Simulate noise
-      float ampl = simulateNoise();
-      ampl = uncalibrate(ampl, absId);
-      if (ampl > o2::cpv::CPVSimParams::Instance().mZSthreshold) {
-        digits.emplace_back(absId, ampl, -1); // current AbsId, energy, no primary
-      }
+      //Add primary info: create new MCLabels entry
+      o2::MCCompLabel label(hBg->GetTrackID(), collId, source, true);
+      labels.addElementRandomAccess(labelIndex, label);
+
+      digitsOut.push_back(digit);
     }
+  }
+
+  //Fill remainder
+  while (dBg != digitsBg.cend()) {
+    digitsOut.push_back(*dBg);
+    dBg++;
+  }
+
+  while (hBg != hits->cend()) {
+    if (addNoise) {
+      addNoisyChannels(currentId, hBg->GetDetectorID(), digitsOut);
+    }
+    currentId = hBg->GetDetectorID();
+    int labelIndex = labels.getIndexedSize();
+
+    Digit digit(*hBg, labelIndex);
+    // Add Electroinc noise
+    float energy = hBg->GetEnergyLoss();
+    // Simulate electronic noise
+    short absId = hBg->GetDetectorID();
+    energy += simulateNoise();
+    energy = uncalibrate(energy, absId);
+    hBg++;
+    if (energy <= o2::cpv::CPVSimParams::Instance().mZSthreshold) {
+      continue;
+    }
+
+    //Add primary info: create new MCLabels entry
+    o2::MCCompLabel label(hBg->GetTrackID(), collId, source, true);
+    labels.addElement(labelIndex, label);
+
+    digitsOut.push_back(digit);
+  }
+
+  //Add noisy channels to the end of CPV
+  if (addNoise) {
+    addNoisyChannels(currentId, 128 * 60 * 3, digitsOut);
   }
 }
 
 float Digitizer::simulateNoise() { return gRandom->Gaus(0., o2::cpv::CPVSimParams::Instance().mNoise); }
+
+//_______________________________________________________________________
+void Digitizer::addNoisyChannels(int start, int end, std::vector<Digit>& digitsOut)
+{
+
+  // Simulate noise
+  for (int absId = start + 1; absId < end; absId++) {
+    float energy = simulateNoise();
+    energy = uncalibrate(energy, absId);
+    if (energy > o2::cpv::CPVSimParams::Instance().mZSthreshold) {
+      digitsOut.emplace_back(absId, energy, -1); // current AbsId, energy, random time, no primary
+    }
+  }
+}
 
 //_______________________________________________________________________
 float Digitizer::uncalibrate(const float e, const int absId)
@@ -205,25 +174,4 @@ float Digitizer::uncalibrate(const float e, const int absId)
   } else {
     return 0; // TODO apply de-calibration from OCDB
   }
-}
-
-void Digitizer::setEventTime(double t)
-{
-  // assign event time, it should be in a strictly increasing order
-  // convert to ns
-
-  if (t < mEventTime) {
-    LOG(FATAL) << "New event time (" << t << ") is < previous event time (" << mEventTime << ")";
-  }
-  mEventTime = t;
-}
-
-//_______________________________________________________________________
-void Digitizer::setCurrEvID(int v)
-{
-  // set current MC event ID
-  if (v > MCCompLabel::maxEventID()) {
-    LOG(FATAL) << "MC event id " << v << " exceeds max storable in the label " << MCCompLabel::maxEventID();
-  }
-  mCurrEvID = v;
 }

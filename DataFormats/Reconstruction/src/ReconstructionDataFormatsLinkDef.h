@@ -28,8 +28,15 @@
 #pragma link C++ class o2::BaseCluster < float> + ;
 #pragma link C++ class o2::dataformats::TrackTPCITS + ;
 #pragma link C++ class std::vector < o2::dataformats::TrackTPCITS> + ;
+
 #pragma link C++ class o2::dataformats::MatchInfoTOF + ;
 #pragma link C++ class std::vector < o2::dataformats::MatchInfoTOF> + ;
+
+#pragma link C++ class o2::dataformats::TrackTPCTOF + ;
+#pragma link C++ class std::vector < o2::dataformats::TrackTPCTOF> + ;
+
+#pragma link C++ class o2::dataformats::TrackCosmics + ;
+#pragma link C++ class std::vector < o2::dataformats::TrackCosmics> + ;
 
 #pragma link C++ class std::vector < std::pair < float, float>> + ;
 #pragma link C++ class std::vector < std::pair < int, float>> + ;
@@ -44,6 +51,10 @@
 #pragma link C++ class std::vector < o2::dataformats::Vertex < o2::dataformats::TimeStamp < int>>> + ;
 #pragma link C++ class std::vector < o2::dataformats::Vertex < o2::dataformats::TimeStampWithError < float, float>>> + ;
 #pragma link C++ class std::vector < o2::dataformats::PrimaryVertex> + ;
+
+#pragma link C++ class o2::dataformats::GlobalTrackID + ;
+#pragma link C++ class std::vector < o2::dataformats::GlobalTrackID> + ;
+#pragma link C++ class o2::dataformats::EvIndex < int, o2::dataformats::GlobalTrackID> + ;
 
 #pragma link C++ class o2::dataformats::VtxTrackIndex + ;
 #pragma link C++ class std::vector < o2::dataformats::VtxTrackIndex> + ;

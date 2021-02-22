@@ -91,6 +91,8 @@ void CTFCoder::setCompClusAddresses(CompressedClusters& c, void*& buff)
 ///________________________________
 void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op)
 {
+  using namespace detail;
+
   bool mayFail = true; // RS FIXME if the dictionary file is not there, do not produce exception
   auto buff = readDictionaryFromFile<CTF>(dictPath, mayFail);
   if (!buff.size()) {
@@ -99,73 +101,55 @@ void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::
     }
     throw std::runtime_error("Failed to create CTF dictionaty");
   }
-  const auto* ctf = CTF::get(buff.data());
+  const CTF::container_t* ctf = CTF::get(buff.data());
   mCombineColumns = ctf->getHeader().flags & CTFHeader::CombinedColumns;
   LOG(INFO) << "TPC CTF Columns Combining " << (mCombineColumns ? "ON" : "OFF");
 
-  auto getFreq = [ctf](CTF::Slots slot) -> o2::rans::FrequencyTable {
-    o2::rans::FrequencyTable ft;
-    auto bl = ctf->getBlock(slot);
-    auto md = ctf->getMetadata(slot);
-    ft.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min, md.max);
-    return std::move(ft);
-  };
-  auto getProbBits = [ctf](CTF::Slots slot) -> int {
-    return ctf->getMetadata(slot).probabilityBits;
-  };
+  const CompressedClusters cc; // just to get member types
+  if (mCombineColumns) {
+    buildCoder<combinedType_t<CTF::NBitsQTot, CTF::NBitsQMax>>(op, *ctf, CTF::BLCqTotA);
+  } else {
+    buildCoder<std::remove_pointer_t<decltype(cc.qTotA)>>(op, *ctf, CTF::BLCqTotA);
+  }
+  buildCoder<std::remove_pointer_t<decltype(cc.qMaxA)>>(op, *ctf, CTF::BLCqMaxA);
+  buildCoder<std::remove_pointer_t<decltype(cc.flagsA)>>(op, *ctf, CTF::BLCflagsA);
+  if (mCombineColumns) {
+    buildCoder<combinedType_t<CTF::NBitsRowDiff, CTF::NBitsSliceLegDiff>>(op, *ctf, CTF::BLCrowDiffA); // merged rowDiffA and sliceLegDiffA
 
-  CompressedClusters cc; // just to get member types
-#define MAKECODER(part, slot) createCoder<std::remove_pointer<decltype(part)>::type>(op, getFreq(slot), getProbBits(slot), int(slot))
-  // clang-format off
+  } else {
+    buildCoder<std::remove_pointer_t<decltype(cc.rowDiffA)>>(op, *ctf, CTF::BLCrowDiffA);
+  }
+  buildCoder<std::remove_pointer_t<decltype(cc.sliceLegDiffA)>>(op, *ctf, CTF::BLCsliceLegDiffA);
+  buildCoder<std::remove_pointer_t<decltype(cc.padResA)>>(op, *ctf, CTF::BLCpadResA);
+  buildCoder<std::remove_pointer_t<decltype(cc.timeResA)>>(op, *ctf, CTF::BLCtimeResA);
   if (mCombineColumns) {
-    MAKECODER( (MPTR<CTF::NBitsQTot, CTF::NBitsQMax>()),             CTF::BLCqTotA); //  merged qTotA and qMaxA
+    buildCoder<combinedType_t<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>>(op, *ctf, CTF::BLCsigmaPadA); // merged sigmaPadA and sigmaTimeA
+  } else {
+    buildCoder<std::remove_pointer_t<decltype(cc.sigmaPadA)>>(op, *ctf, CTF::BLCsigmaPadA);
   }
-  else {
-    MAKECODER(cc.qTotA,           CTF::BLCqTotA);
-  }
-  MAKECODER(cc.qMaxA,             CTF::BLCqMaxA);
-  MAKECODER(cc.flagsA,            CTF::BLCflagsA);
+  buildCoder<std::remove_pointer_t<decltype(cc.sigmaTimeA)>>(op, *ctf, CTF::BLCsigmaTimeA);
+  buildCoder<std::remove_pointer_t<decltype(cc.qPtA)>>(op, *ctf, CTF::BLCqPtA);
+  buildCoder<std::remove_pointer_t<decltype(cc.rowA)>>(op, *ctf, CTF::BLCrowA);
+  buildCoder<std::remove_pointer_t<decltype(cc.sliceA)>>(op, *ctf, CTF::BLCsliceA);
+  buildCoder<std::remove_pointer_t<decltype(cc.timeA)>>(op, *ctf, CTF::BLCtimeA);
+  buildCoder<std::remove_pointer_t<decltype(cc.padA)>>(op, *ctf, CTF::BLCpadA);
   if (mCombineColumns) {
-    MAKECODER( (MPTR<CTF::NBitsRowDiff, CTF::NBitsSliceLegDiff>()),  CTF::BLCrowDiffA); // merged rowDiffA and sliceLegDiffA
+    buildCoder<combinedType_t<CTF::NBitsQTot, CTF::NBitsQMax>>(op, *ctf, CTF::BLCqTotU); // merged qTotU and qMaxU
+  } else {
+    buildCoder<std::remove_pointer_t<decltype(cc.qTotU)>>(op, *ctf, CTF::BLCqTotU);
   }
-  else {
-    MAKECODER(cc.rowDiffA,        CTF::BLCrowDiffA);
-  }
-  MAKECODER(cc.sliceLegDiffA,     CTF::BLCsliceLegDiffA);
-  MAKECODER(cc.padResA,           CTF::BLCpadResA);
-  MAKECODER(cc.timeResA,          CTF::BLCtimeResA);
+  buildCoder<std::remove_pointer_t<decltype(cc.qMaxU)>>(op, *ctf, CTF::BLCqMaxU);
+  buildCoder<std::remove_pointer_t<decltype(cc.flagsU)>>(op, *ctf, CTF::BLCflagsU);
+  buildCoder<std::remove_pointer_t<decltype(cc.padDiffU)>>(op, *ctf, CTF::BLCpadDiffU);
+  buildCoder<std::remove_pointer_t<decltype(cc.timeDiffU)>>(op, *ctf, CTF::BLCtimeDiffU);
   if (mCombineColumns) {
-    MAKECODER( (MPTR<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>()),    CTF::BLCsigmaPadA); // merged sigmaPadA and sigmaTimeA
+    buildCoder<combinedType_t<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>>(op, *ctf, CTF::BLCsigmaPadU); // merged sigmaPadU and sigmaTimeU
+  } else {
+    buildCoder<std::remove_pointer_t<decltype(cc.sigmaPadU)>>(op, *ctf, CTF::BLCsigmaPadU);
   }
-  else {
-    MAKECODER(cc.sigmaPadA,       CTF::BLCsigmaPadA);
-  }
-  MAKECODER(cc.sigmaTimeA,        CTF::BLCsigmaTimeA);  
-  MAKECODER(cc.qPtA,              CTF::BLCqPtA);
-  MAKECODER(cc.rowA,              CTF::BLCrowA);
-  MAKECODER(cc.sliceA,            CTF::BLCsliceA);
-  MAKECODER(cc.timeA,             CTF::BLCtimeA);
-  MAKECODER(cc.padA,              CTF::BLCpadA);
-  if (mCombineColumns) {
-    MAKECODER( (MPTR<CTF::NBitsQTot, CTF::NBitsQMax>()),             CTF::BLCqTotU); // merged qTotU and qMaxU
-  }
-  else {
-    MAKECODER(cc.qTotU,           CTF::BLCqTotU);
-  }
-  MAKECODER(cc.qMaxU,             CTF::BLCqMaxU);
-  MAKECODER(cc.flagsU,            CTF::BLCflagsU);
-  MAKECODER(cc.padDiffU,          CTF::BLCpadDiffU);
-  MAKECODER(cc.timeDiffU,         CTF::BLCtimeDiffU);
-  if (mCombineColumns) {
-    MAKECODER( (MPTR<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>()),    CTF::BLCsigmaPadU); // merged sigmaPadA and sigmaTimeA
-  }
-  else {
-    MAKECODER(cc.sigmaPadU,       CTF::BLCsigmaPadU);
-  }
-  MAKECODER(cc.sigmaTimeU,        CTF::BLCsigmaTimeU);
-  MAKECODER(cc.nTrackClusters,    CTF::BLCnTrackClusters);
-  MAKECODER(cc.nSliceRowClusters, CTF::BLCnSliceRowClusters);
-  // clang-format on
+  buildCoder<std::remove_pointer_t<decltype(cc.sigmaTimeU)>>(op, *ctf, CTF::BLCsigmaTimeU);
+  buildCoder<std::remove_pointer_t<decltype(cc.nTrackClusters)>>(op, *ctf, CTF::BLCnTrackClusters);
+  buildCoder<std::remove_pointer_t<decltype(cc.nSliceRowClusters)>>(op, *ctf, CTF::BLCnSliceRowClusters);
 }
 
 /// make sure loaded dictionaries (if any) are consistent with data
@@ -215,7 +199,7 @@ size_t CTFCoder::estimateCompressedSize(const CompressedClusters& ccl)
   sz += ESTSIZE(CTF::BLCnTrackClusters,    ccl.nTrackClusters,    ccl.nTracks);
   sz += ESTSIZE(CTF::BLCnSliceRowClusters, ccl.nSliceRowClusters, ccl.nSliceRows);
   // clang-format on
-
+  sz *= 2. / 3; // if needed, will be autoexpanded
   LOG(INFO) << "Estimated output size is " << sz << " bytes";
   return sz;
 }

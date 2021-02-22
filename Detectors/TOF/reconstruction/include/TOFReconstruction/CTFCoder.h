@@ -39,7 +39,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   /// entropy-encode clusters to buffer with CTF
   template <typename VEC>
-  void encode(VEC& buff, const gsl::span<const ReadoutWindowData>& rofRecVec, const gsl::span<const Digit>& cdigVec, const gsl::span<const uint32_t>& pattVec);
+  void encode(VEC& buff, const gsl::span<const ReadoutWindowData>& rofRecVec, const gsl::span<const Digit>& cdigVec, const gsl::span<const uint8_t>& pattVec);
 
   /// entropy decode clusters from buffer with CTF
   template <typename VROF, typename VDIG, typename VPAT>
@@ -49,14 +49,14 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
  private:
   /// compres compact clusters to CompressedInfos
-  void compress(CompressedInfos& cc, const gsl::span<const ReadoutWindowData>& rofRecVec, const gsl::span<const Digit>& cdigVec, const gsl::span<const uint32_t>& pattVec);
+  void compress(CompressedInfos& cc, const gsl::span<const ReadoutWindowData>& rofRecVec, const gsl::span<const Digit>& cdigVec, const gsl::span<const uint8_t>& pattVec);
   size_t estimateCompressedSize(const CompressedInfos& cc);
   /// decompress CompressedInfos to compact clusters
   template <typename VROF, typename VDIG, typename VPAT>
   void decompress(const CompressedInfos& cc, VROF& rofRecVec, VDIG& cdigVec, VPAT& pattVec);
 
   void appendToTree(TTree& tree, CTF& ec);
-  void readFromTree(TTree& tree, int entry, std::vector<ReadoutWindowData>& rofRecVec, std::vector<Digit>& cdigVec, std::vector<uint32_t>& pattVec);
+  void readFromTree(TTree& tree, int entry, std::vector<ReadoutWindowData>& rofRecVec, std::vector<Digit>& cdigVec, std::vector<uint8_t>& pattVec);
 
  protected:
   ClassDefNV(CTFCoder, 1);
@@ -65,7 +65,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 ///___________________________________________________________________________________
 /// entropy-encode digits to buffer with CTF
 template <typename VEC>
-void CTFCoder::encode(VEC& buff, const gsl::span<const ReadoutWindowData>& rofRecVec, const gsl::span<const Digit>& cdigVec, const gsl::span<const uint32_t>& pattVec)
+void CTFCoder::encode(VEC& buff, const gsl::span<const ReadoutWindowData>& rofRecVec, const gsl::span<const Digit>& cdigVec, const gsl::span<const uint8_t>& pattVec)
 {
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
@@ -180,7 +180,7 @@ void CTFCoder::decompress(const CompressedInfos& cc, VROF& rofRecVec, VDIG& cdig
 
     int firstDig = digCount;
 
-    int BCrow = prevIR.orbit * Geo::BC_IN_ORBIT + prevIR.bc;
+    int64_t BCrow = prevIR.toLong();
 
     digCopy.resize(cc.ndigROF[irof]);
     for (uint32_t idig = 0; idig < cc.ndigROF[irof]; idig++) {
@@ -192,7 +192,7 @@ void CTFCoder::decompress(const CompressedInfos& cc, VROF& rofRecVec, VDIG& cdig
       } else {
         ctdc += cc.timeTDCInc[digCount];
       }
-      LOGF(DEBUG, "BC=%d, TDC=%d, TOT=%d, CH=%d", uint32_t(ctimeframe) * 64 + ctdc / 1024 + BCrow, ctdc % 1024, cc.tot[digCount], uint32_t(cc.stripID[digCount]) * 96 + cc.chanInStrip[digCount]);
+      LOGF(DEBUG, "BC=%ld, TDC=%d, TOT=%d, CH=%d", uint32_t(ctimeframe) * 64 + ctdc / 1024 + BCrow, ctdc % 1024, cc.tot[digCount], uint32_t(cc.stripID[digCount]) * 96 + cc.chanInStrip[digCount]);
 
       digit.setBC(uint32_t(ctimeframe) * 64 + ctdc / 1024 + BCrow);
       digit.setTDC(ctdc % 1024);

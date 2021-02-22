@@ -19,6 +19,7 @@
 #include <iterator>
 #include <string>
 #include <cassert>
+#include <tuple>
 #include <type_traits>
 #include <typeinfo>
 #include <vector>
@@ -27,6 +28,7 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/CTFCoderBase.h"
 #include "rANS/rans.h"
+#include "rANS/utils.h"
 
 class TTree;
 
@@ -35,11 +37,71 @@ namespace o2
 namespace tpc
 {
 
+namespace detail
+{
+
+template <int A, int B>
+struct combinedType {
+  using type = std::conditional_t<(A + B > 16), uint32_t, std::conditional_t<(A + B > 8), uint16_t, uint8_t>>;
+};
+
+template <int A, int B>
+using combinedType_t = typename combinedType<A, B>::type;
+
+template <typename value_T, size_t shift>
+class ShiftFunctor
+{
+ public:
+  template <typename iterA_T, typename iterB_T>
+  inline value_T operator()(iterA_T iterA, iterB_T iterB) const
+  {
+    return *iterB + (static_cast<value_T>(*iterA) << shift);
+  };
+
+  template <typename iterA_T, typename iterB_T>
+  inline void operator()(iterA_T iterA, iterB_T iterB, value_T value) const
+  {
+    *iterA = value >> shift;
+    *iterB = value & ((0x1 << shift) - 0x1);
+  };
+};
+
+template <typename iterA_T, typename iterB_T, typename F>
+auto makeInputIterators(iterA_T iterA, iterB_T iterB, size_t nElements, F functor)
+{
+  using namespace o2::rans::utils;
+
+  auto advanceIter = [](auto iter, size_t nElements) {
+    auto tmp = iter;
+    std::advance(tmp, nElements);
+    return tmp;
+  };
+
+  return std::make_tuple(CombinedInputIterator{iterA, iterB, functor},
+                         CombinedInputIterator{advanceIter(iterA, nElements), advanceIter(iterB, nElements), functor});
+};
+
+template <int bits_A, int bits_B>
+struct MergedColumnsDecoder {
+
+  using combined_t = combinedType_t<bits_A, bits_B>;
+
+  template <typename iterA_T, typename iterB_T, typename F>
+  static void decode(iterA_T iterA, iterB_T iterB, CTF::Slots slot, F decodingFunctor)
+  {
+    ShiftFunctor<combined_t, bits_B> f{};
+    auto iter = rans::utils::CombinedOutputIteratorFactory<combined_t>::makeIter(iterA, iterB, f);
+
+    decodingFunctor(iter, slot);
+  }
+};
+
+} // namespace detail
+
 class CTFCoder : public o2::ctf::CTFCoderBase
 {
  public:
   CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks(), o2::detectors::DetID::TPC) {}
-  ~CTFCoder() = default;
 
   /// entropy-encode compressed clusters to flat buffer
   template <typename VEC>
@@ -79,55 +141,32 @@ class CTFCoder : public o2::ctf::CTFCoderBase
  private:
   void checkDataDictionaryConsistency(const CTFHeader& h);
 
-  template <int NU, int NL>
-  static constexpr auto MVAR()
-  {
-    typename std::conditional<(NU + NL > 16), uint32_t, typename std::conditional<(NU + NL > 8), uint16_t, uint8_t>::type>::type tp = 0;
-    return tp;
-  }
-  template <int NU, int NL>
-  static constexpr auto MPTR()
-  {
-    typename std::conditional<(NU + NL > 16), uint32_t, typename std::conditional<(NU + NL > 8), uint16_t, uint8_t>::type>::type* tp = nullptr;
-    return tp;
-  }
-#define MTYPE(A, B) decltype(CTFCoder::MVAR<A, B>())
-
   template <int NU, int NL, typename CU, typename CL>
-  static void splitColumns(const std::vector<MTYPE(NU, NL)>& vm, CU*& vu, CL*& vl);
+  static void splitColumns(const std::vector<detail::combinedType_t<NU, NL>>& vm, CU*& vu, CL*& vl);
 
-  template <int NU, int NL, typename CU, typename CL>
-  static auto mergeColumns(const CU* vu, const CL* vl, size_t nelem);
+  template <typename source_T>
+  void buildCoder(ctf::CTFCoderBase::OpType coderType, const CTF::container_t& ctf, CTF::Slots slot);
 
   bool mCombineColumns = false; // combine correlated columns
 
   ClassDefNV(CTFCoder, 1);
 };
 
-/// split words of input vector to columns assigned to provided pointers (memory must be allocated in advance)
-template <int NU, int NL, typename CU, typename CL>
-void CTFCoder::splitColumns(const std::vector<MTYPE(NU, NL)>& vm, CU*& vu, CL*& vl)
+template <typename source_T>
+void CTFCoder::buildCoder(ctf::CTFCoderBase::OpType coderType, const CTF::container_t& ctf, CTF::Slots slot)
 {
-  static_assert(NU <= sizeof(CU) * 8 && NL <= sizeof(CL) * 8, "output columns bit count is wrong");
-  size_t n = vm.size();
-  for (size_t i = 0; i < n; i++) {
-    vu[i] = static_cast<CU>(vm[i] >> NL);
-    vl[i] = static_cast<CL>(vm[i] & ((0x1 << NL) - 1));
-  }
-}
+  auto buildFrequencyTable = [](const CTF::container_t& ctf, CTF::Slots slot) -> rans::FrequencyTable {
+    rans::FrequencyTable frequencyTable;
+    auto block = ctf.getBlock(slot);
+    auto metaData = ctf.getMetadata(slot);
+    frequencyTable.addFrequencies(block.getDict(), block.getDict() + block.getNDict(), metaData.min, metaData.max);
+    return frequencyTable;
+  };
+  auto getProbabilityBits = [](const CTF::container_t& ctf, CTF::Slots slot) -> int {
+    return ctf.getMetadata(slot).probabilityBits;
+  };
 
-/// merge elements of 2 columns pointed by vu and vl to a single vector with wider field
-template <int NU, int NL, typename CU, typename CL>
-auto CTFCoder::mergeColumns(const CU* vu, const CL* vl, size_t nelem)
-{
-  // merge 2 columns to 1
-  static_assert(NU <= sizeof(NU) * 8 && NL <= sizeof(NL) * 8, "input columns bit count is wrong");
-  std::vector<MTYPE(NU, NL)> outv;
-  outv.reserve(nelem);
-  for (size_t i = 0; i < nelem; i++) {
-    outv.push_back((static_cast<MTYPE(NU, NL)>(vu[i]) << NL) | static_cast<MTYPE(NU, NL)>(vl[i]));
-  }
-  return std::move(outv);
+  this->createCoder<source_T>(coderType, buildFrequencyTable(ctf, slot), getProbabilityBits(ctf, slot), static_cast<int>(slot));
 }
 
 /// entropy-encode clusters to buffer with CTF
@@ -135,6 +174,7 @@ template <typename VEC>
 void CTFCoder::encode(VEC& buff, const CompressedClusters& ccl)
 {
   using MD = o2::ctf::Metadata::OptStore;
+  using namespace detail;
   // what to do which each field: see o2::ctf::Metadata explanation
   constexpr MD optField[CTF::getNBlocks()] = {
     MD::EENCODE, //qTotA
@@ -174,73 +214,75 @@ void CTFCoder::encode(VEC& buff, const CompressedClusters& ccl)
   ec->setHeader(CTFHeader{reinterpret_cast<const CompressedClustersCounters&>(ccl), flags});
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
-  // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
-#define ENCODETPC(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get());
-  // clang-format off
+
+  auto encodeTPC = [&buff, &optField, &coders = mCoders](auto begin, auto end, CTF::Slots slot, size_t probabilityBits) {
+    // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
+    const auto slotVal = static_cast<int>(slot);
+    CTF::get(buff.data())->encode(begin, end, slotVal, probabilityBits, optField[slotVal], &buff, coders[slotVal].get());
+  };
 
   if (mCombineColumns) {
-    auto mrg = mergeColumns<CTF::NBitsQTot, CTF::NBitsQMax>(ccl.qTotA, ccl.qMaxA, ccl.nAttachedClusters);
-    ENCODETPC(&mrg[0],             (&mrg[0]) + ccl.nAttachedClusters,                CTF::BLCqTotA,             0);
+    const auto [begin, end] = makeInputIterators(ccl.qTotA, ccl.qMaxA, ccl.nAttachedClusters,
+                                                 ShiftFunctor<combinedType_t<CTF::NBitsQTot, CTF::NBitsQMax>, CTF::NBitsQMax>{});
+    encodeTPC(begin, end, CTF::BLCqTotA, 0);
+  } else {
+    encodeTPC(ccl.qTotA, ccl.qTotA + ccl.nAttachedClusters, CTF::BLCqTotA, 0);
   }
-  else {
-    ENCODETPC(ccl.qTotA,           ccl.qTotA + ccl.nAttachedClusters,                CTF::BLCqTotA,             0);
-  }
-  ENCODETPC(ccl.qMaxA,             ccl.qMaxA + (mCombineColumns ? 0 : ccl.nAttachedClusters), CTF::BLCqMaxA,    0);
-  
-  ENCODETPC(ccl.flagsA,            ccl.flagsA + ccl.nAttachedClusters,               CTF::BLCflagsA,            0);
-  
-  if (mCombineColumns) {
-    auto mrg = mergeColumns<CTF::NBitsRowDiff, CTF::NBitsSliceLegDiff>(ccl.rowDiffA, ccl.sliceLegDiffA, ccl.nAttachedClustersReduced);    
-    ENCODETPC(&mrg[0],             (&mrg[0]) + ccl.nAttachedClustersReduced,         CTF::BLCrowDiffA,          0);
-  }
-  else {
-    ENCODETPC(ccl.rowDiffA,        ccl.rowDiffA + ccl.nAttachedClustersReduced,      CTF::BLCrowDiffA,          0);
-  }
-  ENCODETPC(ccl.sliceLegDiffA,     ccl.sliceLegDiffA + (mCombineColumns ? 0 : ccl.nAttachedClustersReduced), CTF::BLCsliceLegDiffA, 0);
+  encodeTPC(ccl.qMaxA, ccl.qMaxA + (mCombineColumns ? 0 : ccl.nAttachedClusters), CTF::BLCqMaxA, 0);
 
-  ENCODETPC(ccl.padResA,           ccl.padResA + ccl.nAttachedClustersReduced,       CTF::BLCpadResA,           0);
-  ENCODETPC(ccl.timeResA,          ccl.timeResA + ccl.nAttachedClustersReduced,      CTF::BLCtimeResA,          0);
+  encodeTPC(ccl.flagsA, ccl.flagsA + ccl.nAttachedClusters, CTF::BLCflagsA, 0);
 
   if (mCombineColumns) {
-    auto mrg = mergeColumns<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>(ccl.sigmaPadA, ccl.sigmaTimeA, ccl.nAttachedClusters);
-    ENCODETPC(&mrg[0],             &mrg[0] + ccl.nAttachedClusters,                  CTF::BLCsigmaPadA,         0);
+    const auto [begin, end] = makeInputIterators(ccl.rowDiffA, ccl.sliceLegDiffA, ccl.nAttachedClustersReduced,
+                                                 ShiftFunctor<combinedType_t<CTF::NBitsRowDiff, CTF::NBitsSliceLegDiff>, CTF::NBitsSliceLegDiff>{});
+    encodeTPC(begin, end, CTF::BLCrowDiffA, 0);
+  } else {
+    encodeTPC(ccl.rowDiffA, ccl.rowDiffA + ccl.nAttachedClustersReduced, CTF::BLCrowDiffA, 0);
   }
-  else {
-    ENCODETPC(ccl.sigmaPadA,       ccl.sigmaPadA + ccl.nAttachedClusters,            CTF::BLCsigmaPadA,         0);
-  }
-  ENCODETPC(ccl.sigmaTimeA,        ccl.sigmaTimeA + (mCombineColumns ? 0 : ccl.nAttachedClusters), CTF::BLCsigmaTimeA, 0);  
+  encodeTPC(ccl.sliceLegDiffA, ccl.sliceLegDiffA + (mCombineColumns ? 0 : ccl.nAttachedClustersReduced), CTF::BLCsliceLegDiffA, 0);
 
-  ENCODETPC(ccl.qPtA,              ccl.qPtA + ccl.nTracks,                           CTF::BLCqPtA,              0);
-  ENCODETPC(ccl.rowA,              ccl.rowA + ccl.nTracks,                           CTF::BLCrowA,              0);
-  ENCODETPC(ccl.sliceA,            ccl.sliceA + ccl.nTracks,                         CTF::BLCsliceA,            0);
-  ENCODETPC(ccl.timeA,             ccl.timeA + ccl.nTracks,                          CTF::BLCtimeA,             0);
-  ENCODETPC(ccl.padA,              ccl.padA + ccl.nTracks,                           CTF::BLCpadA,              0);
+  encodeTPC(ccl.padResA, ccl.padResA + ccl.nAttachedClustersReduced, CTF::BLCpadResA, 0);
+  encodeTPC(ccl.timeResA, ccl.timeResA + ccl.nAttachedClustersReduced, CTF::BLCtimeResA, 0);
 
   if (mCombineColumns) {
-    auto mrg = mergeColumns<CTF::NBitsQTot, CTF::NBitsQMax>(ccl.qTotU,ccl.qMaxU,ccl.nUnattachedClusters);
-    ENCODETPC(&mrg[0],             &mrg[0] + ccl.nUnattachedClusters,                CTF::BLCqTotU,             0);
+    const auto [begin, end] = makeInputIterators(ccl.sigmaPadA, ccl.sigmaTimeA, ccl.nAttachedClusters,
+                                                 ShiftFunctor<combinedType_t<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>, CTF::NBitsSigmaTime>{});
+    encodeTPC(begin, end, CTF::BLCsigmaPadA, 0);
+  } else {
+    encodeTPC(ccl.sigmaPadA, ccl.sigmaPadA + ccl.nAttachedClusters, CTF::BLCsigmaPadA, 0);
   }
-  else {    
-    ENCODETPC(ccl.qTotU,           ccl.qTotU + ccl.nUnattachedClusters,              CTF::BLCqTotU,             0);
-  }
-  ENCODETPC(ccl.qMaxU,             ccl.qMaxU + (mCombineColumns ? 0 : ccl.nUnattachedClusters), CTF::BLCqMaxU,  0);
+  encodeTPC(ccl.sigmaTimeA, ccl.sigmaTimeA + (mCombineColumns ? 0 : ccl.nAttachedClusters), CTF::BLCsigmaTimeA, 0);
 
-  ENCODETPC(ccl.flagsU,            ccl.flagsU + ccl.nUnattachedClusters,             CTF::BLCflagsU,            0);
-  ENCODETPC(ccl.padDiffU,          ccl.padDiffU + ccl.nUnattachedClusters,           CTF::BLCpadDiffU,          0);
-  ENCODETPC(ccl.timeDiffU,         ccl.timeDiffU + ccl.nUnattachedClusters,          CTF::BLCtimeDiffU,         0);
+  encodeTPC(ccl.qPtA, ccl.qPtA + ccl.nTracks, CTF::BLCqPtA, 0);
+  encodeTPC(ccl.rowA, ccl.rowA + ccl.nTracks, CTF::BLCrowA, 0);
+  encodeTPC(ccl.sliceA, ccl.sliceA + ccl.nTracks, CTF::BLCsliceA, 0);
+  encodeTPC(ccl.timeA, ccl.timeA + ccl.nTracks, CTF::BLCtimeA, 0);
+  encodeTPC(ccl.padA, ccl.padA + ccl.nTracks, CTF::BLCpadA, 0);
 
   if (mCombineColumns) {
-    auto mrg = mergeColumns<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>(ccl.sigmaPadU, ccl.sigmaTimeU, ccl.nUnattachedClusters);
-    ENCODETPC(&mrg[0],             &mrg[0] + ccl.nUnattachedClusters,                CTF::BLCsigmaPadU,         0);
+    const auto [begin, end] = makeInputIterators(ccl.qTotU, ccl.qMaxU, ccl.nUnattachedClusters,
+                                                 ShiftFunctor<combinedType_t<CTF::NBitsQTot, CTF::NBitsQMax>, CTF::NBitsQMax>{});
+    encodeTPC(begin, end, CTF::BLCqTotU, 0);
+  } else {
+    encodeTPC(ccl.qTotU, ccl.qTotU + ccl.nUnattachedClusters, CTF::BLCqTotU, 0);
   }
-  else {
-    ENCODETPC(ccl.sigmaPadU,       ccl.sigmaPadU + ccl.nUnattachedClusters,          CTF::BLCsigmaPadU,         0);
-  }
-  ENCODETPC(ccl.sigmaTimeU,        ccl.sigmaTimeU + (mCombineColumns ? 0 : ccl.nUnattachedClusters), CTF::BLCsigmaTimeU, 0);
+  encodeTPC(ccl.qMaxU, ccl.qMaxU + (mCombineColumns ? 0 : ccl.nUnattachedClusters), CTF::BLCqMaxU, 0);
 
-  ENCODETPC(ccl.nTrackClusters,    ccl.nTrackClusters + ccl.nTracks,                 CTF::BLCnTrackClusters,    0);
-  ENCODETPC(ccl.nSliceRowClusters, ccl.nSliceRowClusters + ccl.nSliceRows,           CTF::BLCnSliceRowClusters, 0);
-  // clang-format on
+  encodeTPC(ccl.flagsU, ccl.flagsU + ccl.nUnattachedClusters, CTF::BLCflagsU, 0);
+  encodeTPC(ccl.padDiffU, ccl.padDiffU + ccl.nUnattachedClusters, CTF::BLCpadDiffU, 0);
+  encodeTPC(ccl.timeDiffU, ccl.timeDiffU + ccl.nUnattachedClusters, CTF::BLCtimeDiffU, 0);
+
+  if (mCombineColumns) {
+    const auto [begin, end] = makeInputIterators(ccl.sigmaPadU, ccl.sigmaTimeU, ccl.nUnattachedClusters,
+                                                 ShiftFunctor<combinedType_t<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>, CTF::NBitsSigmaTime>{});
+    encodeTPC(begin, end, CTF::BLCsigmaPadU, 0);
+  } else {
+    encodeTPC(ccl.sigmaPadU, ccl.sigmaPadU + ccl.nUnattachedClusters, CTF::BLCsigmaPadU, 0);
+  }
+  encodeTPC(ccl.sigmaTimeU, ccl.sigmaTimeU + (mCombineColumns ? 0 : ccl.nUnattachedClusters), CTF::BLCsigmaTimeU, 0);
+
+  encodeTPC(ccl.nTrackClusters, ccl.nTrackClusters + ccl.nTracks, CTF::BLCnTrackClusters, 0);
+  encodeTPC(ccl.nSliceRowClusters, ccl.nSliceRowClusters + ccl.nSliceRows, CTF::BLCnSliceRowClusters, 0);
   CTF::get(buff.data())->print(getPrefix());
 }
 
@@ -248,6 +290,7 @@ void CTFCoder::encode(VEC& buff, const CompressedClusters& ccl)
 template <typename VEC>
 void CTFCoder::decode(const CTF::base& ec, VEC& buffVec)
 {
+  using namespace detail;
   CompressedClusters cc;
   CompressedClustersCounters& ccCount = cc;
   auto& header = ec.getHeader();
@@ -266,78 +309,64 @@ void CTFCoder::decode(const CTF::base& ec, VEC& buffVec)
   ec.print(getPrefix());
 
   // decode encoded data directly to destination buff
-#define DECODETPC(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
-  // clang-format off
-  if (mCombineColumns) {
-    std::vector<MTYPE(CTF::NBitsQTot, CTF::NBitsQMax)> mrg;
-    DECODETPC(mrg,                  CTF::BLCqTotA);
-    splitColumns<CTF::NBitsQTot, CTF::NBitsQMax>(mrg, cc.qTotA, cc.qMaxA);
-  }
-  else {
-    DECODETPC(cc.qTotA,             CTF::BLCqTotA);
-    DECODETPC(cc.qMaxA,             CTF::BLCqMaxA);
-  }
-  
-  DECODETPC(cc.flagsA,              CTF::BLCflagsA);
-  
-  if (mCombineColumns) {
-    std::vector<MTYPE(CTF::NBitsRowDiff, CTF::NBitsSliceLegDiff)> mrg;
-    DECODETPC(mrg,                  CTF::BLCrowDiffA);
-    splitColumns<CTF::NBitsRowDiff, CTF::NBitsSliceLegDiff>(mrg, cc.rowDiffA, cc.sliceLegDiffA);
-  }
-  else {
-    DECODETPC(cc.rowDiffA,          CTF::BLCrowDiffA);
-    DECODETPC(cc.sliceLegDiffA,     CTF::BLCsliceLegDiffA);
-  }
-  
-  DECODETPC(cc.padResA,             CTF::BLCpadResA);
-  DECODETPC(cc.timeResA,            CTF::BLCtimeResA);
+  auto decodeTPC = [&ec, &coders = mCoders](auto begin, CTF::Slots slot) {
+    const auto slotVal = static_cast<int>(slot);
+    ec.decode(begin, slotVal, coders[slotVal].get());
+  };
 
   if (mCombineColumns) {
-    std::vector<MTYPE(CTF::NBitsSigmaPad, CTF::NBitsSigmaTime)> mrg;
-    DECODETPC(mrg,                  CTF::BLCsigmaPadA);
-    splitColumns<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>(mrg, cc.sigmaPadA, cc.sigmaTimeA);
+    detail::MergedColumnsDecoder<CTF::NBitsQTot, CTF::NBitsQMax>::decode(cc.qTotA, cc.qMaxA, CTF::BLCqTotA, decodeTPC);
+  } else {
+    decodeTPC(cc.qTotA, CTF::BLCqTotA);
+    decodeTPC(cc.qMaxA, CTF::BLCqMaxA);
   }
-  else { 
-    DECODETPC(cc.sigmaPadA,         CTF::BLCsigmaPadA);
-    DECODETPC(cc.sigmaTimeA,        CTF::BLCsigmaTimeA);
-  }
-  
-  DECODETPC(cc.qPtA,                CTF::BLCqPtA);
-  DECODETPC(cc.rowA,                CTF::BLCrowA);
-  DECODETPC(cc.sliceA,              CTF::BLCsliceA);
-  DECODETPC(cc.timeA,               CTF::BLCtimeA);
-  DECODETPC(cc.padA,                CTF::BLCpadA);
+
+  decodeTPC(cc.flagsA, CTF::BLCflagsA);
 
   if (mCombineColumns) {
-    std::vector<MTYPE(CTF::NBitsQTot, CTF::NBitsQMax)> mrg;
-    DECODETPC(mrg,                  CTF::BLCqTotU);
-    splitColumns<CTF::NBitsQTot, CTF::NBitsQMax>(mrg, cc.qTotU, cc.qMaxU);
-  }
-  else {
-    DECODETPC(cc.qTotU,             CTF::BLCqTotU);
-    DECODETPC(cc.qMaxU,             CTF::BLCqMaxU);
+    detail::MergedColumnsDecoder<CTF::NBitsRowDiff, CTF::NBitsSliceLegDiff>::decode(cc.rowDiffA, cc.sliceLegDiffA, CTF::BLCrowDiffA, decodeTPC);
+  } else {
+    decodeTPC(cc.rowDiffA, CTF::BLCrowDiffA);
+    decodeTPC(cc.sliceLegDiffA, CTF::BLCsliceLegDiffA);
   }
 
-  DECODETPC(cc.flagsU,              CTF::BLCflagsU);
-  DECODETPC(cc.padDiffU,            CTF::BLCpadDiffU);
-  DECODETPC(cc.timeDiffU,           CTF::BLCtimeDiffU);
+  decodeTPC(cc.padResA, CTF::BLCpadResA);
+  decodeTPC(cc.timeResA, CTF::BLCtimeResA);
 
   if (mCombineColumns) {
-    std::vector<MTYPE(CTF::NBitsSigmaPad, CTF::NBitsSigmaTime)> mrg;
-    DECODETPC(mrg,                  CTF::BLCsigmaPadU);
-    splitColumns<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>(mrg, cc.sigmaPadU, cc.sigmaTimeU);
+    detail::MergedColumnsDecoder<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>::decode(cc.sigmaPadA, cc.sigmaTimeA, CTF::BLCsigmaPadA, decodeTPC);
+  } else {
+    decodeTPC(cc.sigmaPadA, CTF::BLCsigmaPadA);
+    decodeTPC(cc.sigmaTimeA, CTF::BLCsigmaTimeA);
   }
-  else {
-    DECODETPC(cc.sigmaPadU,         CTF::BLCsigmaPadU);
-    DECODETPC(cc.sigmaTimeU,        CTF::BLCsigmaTimeU);
+
+  decodeTPC(cc.qPtA, CTF::BLCqPtA);
+  decodeTPC(cc.rowA, CTF::BLCrowA);
+  decodeTPC(cc.sliceA, CTF::BLCsliceA);
+  decodeTPC(cc.timeA, CTF::BLCtimeA);
+  decodeTPC(cc.padA, CTF::BLCpadA);
+
+  if (mCombineColumns) {
+    detail::MergedColumnsDecoder<CTF::NBitsQTot, CTF::NBitsQMax>::decode(cc.qTotU, cc.qMaxU, CTF::BLCqTotU, decodeTPC);
+  } else {
+    decodeTPC(cc.qTotU, CTF::BLCqTotU);
+    decodeTPC(cc.qMaxU, CTF::BLCqMaxU);
   }
-  
-  DECODETPC(cc.nTrackClusters,      CTF::BLCnTrackClusters);
-  DECODETPC(cc.nSliceRowClusters,   CTF::BLCnSliceRowClusters);
-  // clang-format on
+
+  decodeTPC(cc.flagsU, CTF::BLCflagsU);
+  decodeTPC(cc.padDiffU, CTF::BLCpadDiffU);
+  decodeTPC(cc.timeDiffU, CTF::BLCtimeDiffU);
+
+  if (mCombineColumns) {
+    detail::MergedColumnsDecoder<CTF::NBitsSigmaPad, CTF::NBitsSigmaTime>::decode(cc.sigmaPadU, cc.sigmaTimeU, CTF::BLCsigmaPadU, decodeTPC);
+  } else {
+    decodeTPC(cc.sigmaPadU, CTF::BLCsigmaPadU);
+    decodeTPC(cc.sigmaTimeU, CTF::BLCsigmaTimeU);
+  }
+
+  decodeTPC(cc.nTrackClusters, CTF::BLCnTrackClusters);
+  decodeTPC(cc.nSliceRowClusters, CTF::BLCnSliceRowClusters);
 }
-#undef MTYPE
 
 } // namespace tpc
 } // namespace o2

@@ -46,13 +46,14 @@ class RawReaderBase
   {
     size_t srcPos = 0;
     while (srcPos < binaryPayload.size()) { //checking element
-      DataBlockType dataBlock;
+      DataBlockType dataBlock{};
       dataBlock.decodeBlock(binaryPayload, srcPos);
       srcPos += dataBlock.mSize;
       if (dataBlock.isCorrect()) {
         vecDataBlocks.push_back(dataBlock); //change to in-place construction? TODO
       } else {
-        LOG(INFO) << "WARNING! INCORRECT DATA BLOCK!";
+        LOG(WARNING) << "INCORRECT DATA BLOCK! Byte position: " << srcPos - dataBlock.mSize << " | " << binaryPayload.size() << " | " << dataBlock.mSize;
+        dataBlock.print();
       }
     }
     return srcPos;

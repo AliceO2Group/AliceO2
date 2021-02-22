@@ -18,7 +18,7 @@ ClassImp(Geometry);
 unsigned short Geometry::relToAbsId(short moduleNumber, short iphi, short iz)
 {
   //converts module number, phi and z coordunates to absId
-  return kNumberOfCPVPadsPhi * kNumberOfCPVPadsZ * (moduleNumber - 1) + kNumberOfCPVPadsZ * iz + iphi;
+  return kNumberOfCPVPadsPhi * kNumberOfCPVPadsZ * (moduleNumber - 2) + kNumberOfCPVPadsZ * iphi + iz;
 }
 
 bool Geometry::absToRelNumbering(unsigned short absId, short* relid)
@@ -29,8 +29,8 @@ bool Geometry::absToRelNumbering(unsigned short absId, short* relid)
   //  relid[2] = Row number inside a CPV module (Z coordinate)
 
   const short nCPV = kNumberOfCPVPadsPhi * kNumberOfCPVPadsZ;
-  relid[0] = absId / nCPV + 1;
-  absId -= (relid[0] - 1) * nCPV;
+  relid[0] = absId / nCPV + 2;
+  absId -= (relid[0] - 2) * nCPV;
   relid[1] = absId / kNumberOfCPVPadsZ;
   relid[2] = absId % kNumberOfCPVPadsZ;
 
@@ -39,7 +39,7 @@ bool Geometry::absToRelNumbering(unsigned short absId, short* relid)
 short Geometry::absIdToModule(unsigned short absId)
 {
 
-  return 1 + absId / (kNumberOfCPVPadsPhi * kNumberOfCPVPadsZ);
+  return 2 + absId / (kNumberOfCPVPadsPhi * kNumberOfCPVPadsZ);
 }
 
 short Geometry::areNeighbours(unsigned short absId1, unsigned short absId2)
@@ -95,29 +95,31 @@ bool Geometry::relToAbsNumbering(const short* relId, unsigned short& absId)
 {
 
   absId =
-    (relId[0] - 1) * kNumberOfCPVPadsPhi * kNumberOfCPVPadsZ + // the offset of PHOS modules
+    (relId[0] - 2) * kNumberOfCPVPadsPhi * kNumberOfCPVPadsZ + // the offset of PHOS modules
     relId[1] * kNumberOfCPVPadsZ +                             // the offset along phi
     relId[2];                                                  // the offset along z
 
   return true;
 }
-void Geometry::hwaddressToAbsId(short ddl, short row, short dilog, short hw, unsigned short& absId)
+void Geometry::hwaddressToAbsId(short /*ddl*/, short row, short dilog, short hw, unsigned short& absId)
 {
-
-  short relid[3] = {short(ddl + 1), short(8 * row + hw % 8), short(6 * dilog + hw / 8)};
+  short mod = row / 16;
+  row = row % 16;
+  short relid[3] = {short(mod + 2), short(8 * row + hw % 8), short(6 * dilog + hw / 8)};
 
   relToAbsNumbering(relid, absId);
 }
 
-void Geometry::absIdToHWaddress(unsigned short absId, short& ddl, short& row, short& dilogic, short& hw)
+void Geometry::absIdToHWaddress(unsigned short absId, short& mod, short& row, short& dilogic, short& hw)
 {
   // Convert absId to hw address
-  // Arguments: w32,ddl,row,dilogic,address where to write the results
+  // Arguments: w32,mod,row,dilogic,address where to write the results
+  // return row in range 0...47, packing rows from all modules in common numeration
 
   short relid[3];
   absToRelNumbering(absId, relid);
 
-  ddl = relid[0] - 1;                     // DDL# 0..2
+  mod = relid[0];                         // DDL# 2..4
   row = relid[1] / 8;                     // row# 0..16
   dilogic = relid[2] / 6;                 // Dilogic# 0..10
   hw = relid[1] % 8 + 8 * (relid[2] % 6); // Address 0..47
@@ -127,7 +129,7 @@ void Geometry::absIdToHWaddress(unsigned short absId, short& ddl, short& row, sh
     hw = 0;
     dilogic = 0;
     row = 0;
-    ddl = 0;
+    mod = 0;
     return;
   }
   if (dilogic < 0 || dilogic > kNDilogic) {
@@ -135,7 +137,7 @@ void Geometry::absIdToHWaddress(unsigned short absId, short& ddl, short& row, sh
     hw = 0;
     dilogic = 0;
     row = 0;
-    ddl = 0;
+    mod = 0;
     return;
   }
   if (row < 0 || row > kNRow) {
@@ -143,7 +145,8 @@ void Geometry::absIdToHWaddress(unsigned short absId, short& ddl, short& row, sh
     hw = 0;
     dilogic = 0;
     row = 0;
-    ddl = 0;
+    mod = 0;
     return;
   }
+  row += (mod - 2) * 16;
 }

@@ -34,9 +34,7 @@
 #include <sstream>
 #include <stdexcept>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 using DataHeader = o2::header::DataHeader;
@@ -397,6 +395,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
 
 namespace
 {
+static char const* gDefaultChannel = "downstream";
 // Decide where to sent the output. Everything to "downstream" if there is such a channel.
 std::string decideChannel(InputSpec const& input, const std::unordered_map<std::string, std::vector<FairMQChannel>>& channels)
 {
@@ -407,6 +406,72 @@ std::string decideChannel(InputSpec const& input, const std::unordered_map<std::
 DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
                                                  Inputs const& inputSpecs,
                                                  const char* defaultChannelConfig)
+{
+  DataProcessorSpec spec;
+  spec.name = name;
+  spec.inputs = inputSpecs;
+  spec.outputs = {};
+  spec.algorithm = adaptStateful([inputSpecs](CallbackService& callbacks, RawDeviceService& rds) {
+    auto device = rds.device();
+    // check that the input spec bindings have corresponding output channels
+    // FairMQDevice calls the custom init before the channels have been configured
+    // so we do the check before starting in a dedicated callback
+    auto channelConfigurationChecker = [inputSpecs = std::move(inputSpecs), device]() {
+      LOG(INFO) << "checking channel configuration";
+      if (device->fChannels.count("downstream") == 0) {
+        throw std::runtime_error("no corresponding output channel found for input 'downstream'");
+      }
+    };
+    callbacks.set(CallbackService::Id::Start, channelConfigurationChecker);
+    return adaptStateless([](RawDeviceService& rds, InputRecord& inputs) {
+      FairMQParts outputs;
+      auto& device = *rds.device();
+      for (size_t ii = 0; ii != inputs.size(); ++ii) {
+        auto first = inputs.getByPos(ii, 0);
+        // we could probably do something like this but we do not know when the message is going to be sent
+        // and if DPL is still owning a valid copy.
+        //auto headerMessage = device.NewMessageFor(input.spec->binding, input.header, headerMsgSize, [](void*, void*) {});
+
+        // Note: DPL is only setting up one instance of a channel while FairMQ allows to have an
+        // array of channels, the index is 0 in the call
+        constexpr auto index = 0;
+        for (size_t pi = 0; pi < inputs.getNofParts(ii); ++pi) {
+          auto part = inputs.getByPos(ii, pi);
+          // TODO: we need to make a copy of the messages, maybe we can implement functionality in
+          // the RawDeviceService to forward messages, but this also needs to take into account that
+          // other consumers might exist
+          size_t headerMsgSize = o2::header::Stack::headerStackSize(reinterpret_cast<o2::byte const*>(part.header));
+          auto* dh = o2::header::get<DataHeader*>(part.header);
+          if (!dh) {
+            std::stringstream errorMessage;
+            errorMessage << "no data header in " << *first.spec;
+            throw std::runtime_error(errorMessage.str());
+          }
+          size_t payloadMsgSize = dh->payloadSize;
+
+          // FIXME: there is a copy here. Why?????
+          auto headerMessage = device.NewMessageFor("downstream", index, headerMsgSize);
+          memcpy(headerMessage->GetData(), part.header, headerMsgSize);
+          auto payloadMessage = device.NewMessageFor("downstream", index, payloadMsgSize);
+          memcpy(payloadMessage->GetData(), part.payload, payloadMsgSize);
+          outputs.AddPart(std::move(headerMessage));
+          outputs.AddPart(std::move(payloadMessage));
+        }
+      }
+      sendOnChannel(device, outputs, "downstream");
+    });
+  });
+  const char* d = strdup(((std::string(defaultChannelConfig).find("name=") == std::string::npos ? (std::string("name=") + name + ",") : "") + std::string(defaultChannelConfig)).c_str());
+  spec.options = {
+    ConfigParamSpec{"channel-config", VariantType::String, d, {"Out-of-band channel config"}},
+  };
+
+  return spec;
+}
+
+DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
+                                                      Inputs const& inputSpecs,
+                                                      const char* defaultChannelConfig)
 {
   DataProcessorSpec spec;
   spec.name = name;
@@ -478,5 +543,4 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
   return spec;
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

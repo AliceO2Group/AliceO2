@@ -53,7 +53,8 @@ using o2::its::TrackingParameters;
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 using MCLabCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
-void run_trac_ca_its(std::string path = "./",
+void run_trac_ca_its(bool cosmics = false,
+                     std::string path = "./",
                      std::string outputfile = "o2trac_its.root",
                      std::string inputClustersITS = "o2clus_its.root",
                      std::string dictfile = "",
@@ -183,13 +184,29 @@ void run_trac_ca_its(std::string path = "./",
   std::vector<double> ncls;
   std::vector<double> time;
 
-  std::vector<TrackingParameters> trackParams(3);
-  trackParams[0].TrackletMaxDeltaPhi = 0.05f;
-  trackParams[1].TrackletMaxDeltaPhi = 0.1f;
-  trackParams[2].MinTrackLength = 4;
-  trackParams[2].TrackletMaxDeltaPhi = 0.3;
-
-  std::vector<MemoryParameters> memParams(3);
+  std::vector<TrackingParameters> trackParams(1);
+  std::vector<MemoryParameters> memParams(1);
+  if (cosmics) {
+    trackParams[0].MinTrackLength = 3;
+    trackParams[0].TrackletMaxDeltaPhi = o2::its::constants::math::Pi * 0.5f;
+    for (int iLayer = 0; iLayer < o2::its::constants::its2::TrackletsPerRoad; iLayer++) {
+      trackParams[0].TrackletMaxDeltaZ[iLayer] = o2::its::constants::its2::LayersZCoordinate()[iLayer + 1];
+      memParams[0].TrackletsMemoryCoefficients[iLayer] = 0.5f;
+      // trackParams[0].TrackletMaxDeltaZ[iLayer] = 10.f;
+    }
+    for (int iLayer = 0; iLayer < o2::its::constants::its2::CellsPerRoad; iLayer++) {
+      trackParams[0].CellMaxDCA[iLayer] = 10000.f;    //cm
+      trackParams[0].CellMaxDeltaZ[iLayer] = 10000.f; //cm
+      memParams[0].CellsMemoryCoefficients[iLayer] = 0.001f;
+    }
+  } else {
+    trackParams.resize(3);
+    memParams.resize(3);
+    trackParams[0].TrackletMaxDeltaPhi = 0.05f;
+    trackParams[1].TrackletMaxDeltaPhi = 0.1f;
+    trackParams[2].MinTrackLength = 4;
+    trackParams[2].TrackletMaxDeltaPhi = 0.3;
+  }
 
   tracker.setParameters(memParams, trackParams);
 

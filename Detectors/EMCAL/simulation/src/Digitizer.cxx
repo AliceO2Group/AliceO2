@@ -174,7 +174,7 @@ void Digitizer::setEventTime(double t)
   // convert to ns
   t *= mCoeffToNanoSecond;
 
-  if (t < mEventTime && mContinuous) {
+  if (t < mEventTime) {
     LOG(FATAL) << "New event time (" << t << ") is < previous event time (" << mEventTime << ")";
   }
 

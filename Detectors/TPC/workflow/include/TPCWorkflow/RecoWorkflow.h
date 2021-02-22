@@ -61,6 +61,7 @@ enum struct OutputType { Digits,
                          SendClustersPerSector,
                          ZSRaw,
                          QA,
+                         NoSharedClusterMap,
 };
 
 using CompletionPolicyData = std::vector<framework::InputSpec>;

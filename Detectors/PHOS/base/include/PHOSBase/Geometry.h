@@ -15,7 +15,10 @@
 
 #include <Rtypes.h>
 #include <RStringView.h>
+#include <TGeoMatrix.h>
+#include <TVector3.h>
 #include <TMath.h>
+#include <array>
 
 namespace o2
 {
@@ -101,7 +104,12 @@ class Geometry
   static char absIdToModule(short absId);
   static void absIdToRelPosInModule(short absId, float& x, float& z);
   static bool relToAbsNumbering(const char* RelId, short& AbsId);
-  // converts the absolute PHOS numbering to a relative
+
+  //local position to absId
+  static void relPosToAbsId(char module, float x, float z, short& absId);
+
+  // convert local position in module to global position in ALICE
+  void local2Global(char module, float x, float z, TVector3& globaPos) const;
 
   static int getTotalNCells() { return 56 * 64 * 4; } // TODO: evaluate from real geometry
   static bool isCellExists(short absId)
@@ -112,7 +120,8 @@ class Geometry
   const std::string& GetName() const { return mGeoName; }
 
  private:
-  static Geometry* sGeom; // Pointer to the unique instance of the singleton
+  static Geometry* sGeom;           // Pointer to the unique instance of the singleton
+  std::array<TGeoHMatrix, 5> mPHOS; //Rotation/shift matrices
 
   std::string mGeoName; ///< Geometry name string
 

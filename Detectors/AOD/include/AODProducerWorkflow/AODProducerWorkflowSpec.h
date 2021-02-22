@@ -102,7 +102,7 @@ class AODProducerWorkflowDPL : public Task
 
  private:
   int mFillTracksITS = 1;
-  int mFillTracksTPC = 1;
+  int mFillTracksTPC = 0;
   int mFillTracksITSTPC = 1;
   int mTFNumber = -1;
   int mTruncate = 1;
@@ -150,8 +150,6 @@ class AODProducerWorkflowDPL : public Task
 
   template <typename TracksType, typename TracksCursorType>
   void fillTracksTable(const TracksType& tracks, std::vector<int>& vCollRefs, const TracksCursorType& tracksCursor, int trackType);
-
-  float TruncateFloatFraction(float x, uint32_t mask);
 };
 
 /// create a processor spec

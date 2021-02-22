@@ -40,6 +40,7 @@
 #include "GPUTPCCompressionKernels.h"
 #include "GPUTPCClusterFinderKernels.h"
 #include "GPUTrackingRefitKernel.h"
+#include "GPUTPCGMO2Output.h"
 #endif
 
 namespace GPUCA_NAMESPACE
@@ -280,7 +281,7 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
   }
   if (mProcessingSettings.debugLevel >= 1) {
     t = &getKernelTimer<S, I, J>(myStep, !IsGPU() || cpuFallback ? getOMPThreadNum() : x.stream);
-    if (!mProcessingSettings.deviceTimers || !IsGPU() || cpuFallback) {
+    if ((!mProcessingSettings.deviceTimers || !IsGPU() || cpuFallback) && (mNestedLoopOmpFactor < 2 || getOMPThreadNum() == 0)) {
       t->Start();
     }
   }
@@ -299,10 +300,10 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
   }
   if (mProcessingSettings.debugLevel >= 1) {
     if (t) {
-      if (!mProcessingSettings.deviceTimers || !IsGPU() || cpuFallback) {
-        t->Stop();
-      } else {
+      if (!(!mProcessingSettings.deviceTimers || !IsGPU() || cpuFallback)) {
         t->AddTime(setup.t);
+      } else if (mNestedLoopOmpFactor < 2 || getOMPThreadNum() == 0) {
+        t->Stop();
       }
     }
     if (CheckErrorCodes(cpuFallback)) {
@@ -351,7 +352,7 @@ HighResTimer& GPUReconstructionCPU::getTimer(const char* name, int num)
   static int id = getNextTimerId();
   timerMeta* timer = getTimerById(id);
   if (timer == nullptr) {
-    int max = std::max({getOMPMaxThreads(), mProcessingSettings.nDeviceHelperThreads + 1, mProcessingSettings.nStreams});
+    int max = std::max<int>({getOMPMaxThreads(), mProcessingSettings.nDeviceHelperThreads + 1, mProcessingSettings.nStreams});
     timer = insertTimer(id, name, J, max, 1, RecoStep::NoRecoStep);
   }
   if (num == -1) {

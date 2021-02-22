@@ -29,6 +29,7 @@
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
 
+#include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
 #include "MCHBase/ClusterBlock.h"
 #include "MCHTracking/TrackParam.h"
@@ -63,46 +64,53 @@ class TrackFitterTask
   //_________________________________________________________________________________________________
   void run(framework::ProcessingContext& pc)
   {
-    /// read the tracks with attached clusters, refit them and send the new version
+    /// for each event in the current TF, read the tracks with attached clusters, refit them and send the new version
 
-    // get the input tracks and attached clusters
-    auto tracksIn = pc.inputs().get<gsl::span<TrackMCH>>("tracks");
-    auto clustersIn = pc.inputs().get<gsl::span<ClusterStruct>>("clusters");
+    // get the input ROFs, tracks and attached clusters
+    auto rofsIn = pc.inputs().get<gsl::span<ROFRecord>>("rofsin");
+    auto tracksIn = pc.inputs().get<gsl::span<TrackMCH>>("tracksin");
+    auto clustersIn = pc.inputs().get<gsl::span<ClusterStruct>>("clustersin");
 
-    // create the output messages for refitted tracks and attached clusters
-    auto& tracksOut = pc.outputs().make<std::vector<TrackMCH>>(Output{"MCH", "TRACKS", 0, Lifetime::Timeframe});
-    auto& clustersOut = pc.outputs().make<std::vector<ClusterStruct>>(Output{"MCH", "TRACKCLUSTERS", 0, Lifetime::Timeframe});
+    // create the output messages for ROFs, refitted tracks and attached clusters
+    auto& rofsOut = pc.outputs().make<std::vector<ROFRecord>>(OutputRef{"rofsout"});
+    auto& tracksOut = pc.outputs().make<std::vector<TrackMCH>>(OutputRef{"tracksout"});
+    auto& clustersOut = pc.outputs().make<std::vector<ClusterStruct>>(OutputRef{"clustersout"});
 
-    // avoid memory reallocation
-    tracksOut.reserve(tracksIn.size());
-    clustersOut.reserve(clustersIn.size());
+    rofsOut.reserve(rofsIn.size());
+    for (const auto& rof : rofsIn) {
 
-    for (const auto& mchTrack : tracksIn) {
+      // loop over tracks of the current ROF
+      int trackOffset(tracksOut.size());
+      for (const auto& mchTrack : tracksIn.subspan(rof.getFirstIdx(), rof.getNEntries())) {
 
-      // get the clusters attached to the track
-      auto trackClusters = clustersIn.subspan(mchTrack.getFirstClusterIdx(), mchTrack.getNClusters());
+        // get the clusters attached to the track
+        auto trackClusters = clustersIn.subspan(mchTrack.getFirstClusterIdx(), mchTrack.getNClusters());
 
-      // create the internal track
-      Track track{};
-      std::list<Cluster> clusters{};
-      for (const auto& cluster : trackClusters) {
-        clusters.emplace_back(cluster);
-        track.createParamAtCluster(clusters.back());
+        // create the internal track
+        Track track{};
+        std::list<Cluster> clusters{};
+        for (const auto& cluster : trackClusters) {
+          clusters.emplace_back(cluster);
+          track.createParamAtCluster(clusters.back());
+        }
+
+        // refit the track
+        try {
+          mTrackFitter.fit(track);
+        } catch (exception const& e) {
+          LOG(ERROR) << "Track fit failed: " << e.what();
+          continue;
+        }
+
+        // write the refitted track and attached clusters (same as those of the input track)
+        const auto& param = track.first();
+        tracksOut.emplace_back(param.getZ(), param.getParameters(), param.getCovariances(),
+                               param.getTrackChi2(), clustersOut.size(), track.getNClusters());
+        clustersOut.insert(clustersOut.end(), trackClusters.begin(), trackClusters.end());
       }
 
-      // refit the track
-      try {
-        mTrackFitter.fit(track);
-      } catch (exception const& e) {
-        LOG(ERROR) << "Track fit failed: " << e.what();
-        continue;
-      }
-
-      // write the refitted track and attached clusters (same as those of the input track)
-      const auto& param = track.first();
-      tracksOut.emplace_back(param.getZ(), param.getParameters(), param.getCovariances(),
-                             param.getTrackChi2(), clustersOut.size(), track.getNClusters());
-      clustersOut.insert(clustersOut.end(), trackClusters.begin(), trackClusters.end());
+      // write the current ROF with references to the associated tracks
+      rofsOut.emplace_back(rof.getBCData(), trackOffset, tracksOut.size() - trackOffset);
     }
   }
 
@@ -115,10 +123,12 @@ o2::framework::DataProcessorSpec getTrackFitterSpec()
 {
   return DataProcessorSpec{
     "TrackFitter",
-    Inputs{InputSpec{"tracks", "MCH", "TRACKSIN", 0, Lifetime::Timeframe},
-           InputSpec{"clusters", "MCH", "TRACKCLUSTERSIN", 0, Lifetime::Timeframe}},
-    Outputs{OutputSpec{"MCH", "TRACKS", 0, Lifetime::Timeframe},
-            OutputSpec{"MCH", "TRACKCLUSTERS", 0, Lifetime::Timeframe}},
+    Inputs{InputSpec{"rofsin", "MCH", "TRACKROFSIN", 0, Lifetime::Timeframe},
+           InputSpec{"tracksin", "MCH", "TRACKSIN", 0, Lifetime::Timeframe},
+           InputSpec{"clustersin", "MCH", "TRACKCLUSTERSIN", 0, Lifetime::Timeframe}},
+    Outputs{OutputSpec{OutputLabel{"rofsout"}, "MCH", "TRACKROFS", 0, Lifetime::Timeframe},
+            OutputSpec{OutputLabel{"tracksout"}, "MCH", "TRACKS", 0, Lifetime::Timeframe},
+            OutputSpec{OutputLabel{"clustersout"}, "MCH", "TRACKCLUSTERS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<TrackFitterTask>()},
     Options{{"l3Current", VariantType::Float, -30000.0f, {"L3 current"}},
             {"dipoleCurrent", VariantType::Float, -6000.0f, {"Dipole current"}}}};

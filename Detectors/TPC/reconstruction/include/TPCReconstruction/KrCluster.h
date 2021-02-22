@@ -22,33 +22,37 @@ namespace tpc
 
 struct KrCluster {
  public:
-  float totCharge = 0; ///< Total charge of the cluster (ADC counts)
-  float maxCharge = 0; ///< Maximum charge of the cluster (ADC counts)
-  int size = 0;        ///< Size of the cluster (TPCDigits)
-  float meanPad = 0;   ///< Center of gravity (Pad number)
-  float meanRow = 0;   ///< Center of gravity (Row number)
-  float meanTime = 0;  ///< Center of gravity (Time)
-  float sigmaPad = 0;  ///< RMS of cluster in pad direction
-  float sigmaRow = 0;  ///< RMS of cluster in row direction
-  float sigmaTime = 0; ///< RMS of cluster in time direction
-  int sector = 0;      ///< Sector number
+  unsigned char size = 0;         ///< Size of the cluster (TPCDigits)
+  unsigned char sector = 0;       ///< Sector number
+  unsigned char maxChargePad = 0; ///< Pad with max. charge in cluster (for leader pad method)
+  unsigned char maxChargeRow = 0; ///< Row with max. charge in cluster (for leader pad method)
+  float totCharge = 0;            ///< Total charge of the cluster (ADC counts)
+  float maxCharge = 0;            ///< Maximum charge of the cluster (ADC counts)
+  float meanPad = 0;              ///< Center of gravity (Pad number)
+  float meanRow = 0;              ///< Center of gravity (Row number)
+  float meanTime = 0;             ///< Center of gravity (Time)
+  float sigmaPad = 0;             ///< RMS of cluster in pad direction
+  float sigmaRow = 0;             ///< RMS of cluster in row direction
+  float sigmaTime = 0;            ///< RMS of cluster in time direction
 
   /// Used to set all Cluster variables to zero.
   void reset()
   {
+    size = 0;
+    sector = 0;
+    maxChargePad = 0;
+    maxChargeRow = 0;
     totCharge = 0;
     maxCharge = 0;
-    size = 0;
     meanPad = 0;
     meanRow = 0;
     meanTime = 0;
     sigmaPad = 0;
     sigmaRow = 0;
     sigmaTime = 0;
-    sector = 0;
   }
 
-  ClassDefNV(KrCluster, 1);
+  ClassDefNV(KrCluster, 2);
 };
 
 } // namespace tpc

@@ -42,10 +42,6 @@ void DigitReader::init(InitContext& ic)
 
 void DigitReader::run(ProcessingContext& pc)
 {
-  if (mFinished) {
-    return;
-  }
-
   std::vector<o2::fdd::Digit>* digitsBC = nullptr;
   std::vector<o2::fdd::ChannelData>* digitsCh = nullptr;
   o2::dataformats::IOMCTruthContainerView* mcTruthRootBuffer = nullptr;
@@ -89,7 +85,7 @@ void DigitReader::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{mOrigin, "DIGITLBL", 0, Lifetime::Timeframe}, mcTruth);
   }
 
-  mFinished = true;
+  pc.services().get<ControlService>().endOfStream();
   pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 

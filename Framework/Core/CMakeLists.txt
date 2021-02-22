@@ -31,6 +31,8 @@ o2_add_library(Framework
                        src/CompletionPolicyHelpers.cxx
                        src/ComputingResourceHelpers.cxx
                        src/ConfigContext.cxx
+                       src/ControlService.cxx
+                       src/ControlServiceHelpers.cxx
                        src/DispatchPolicy.cxx
                        src/ConfigParamStore.cxx
                        src/ConfigParamsHelper.cxx
@@ -50,6 +52,7 @@ o2_add_library(Framework
                        src/DeviceMetricsInfo.cxx
                        src/DeviceSpec.cxx
                        src/DeviceSpecHelpers.cxx
+                       src/DPLMonitoringBackend.cxx
                        src/DriverControl.cxx
                        src/DriverInfo.cxx
                        src/Expressions.cxx
@@ -59,6 +62,7 @@ o2_add_library(Framework
                        src/ConfigurationOptionsRetriever.cxx
                        src/FreePortFinder.cxx
                        src/GraphvizHelpers.cxx
+                       src/HTTPParser.cxx
                        src/InputRecord.cxx
                        src/InputSpec.cxx
                        src/OutputSpec.cxx
@@ -83,19 +87,23 @@ o2_add_library(Framework
                        src/TableBuilder.cxx
                        src/TableConsumer.cxx
                        src/TableTreeHelpers.cxx
+                       src/TextDriverClient.cxx
                        src/DataInputDirector.cxx
                        src/DataOutputDirector.cxx
                        src/Task.cxx
-                       src/TextControlService.cxx
                        src/Variant.cxx
                        src/WorkflowCustomizationHelpers.cxx
                        src/WorkflowHelpers.cxx
                        src/WorkflowSerializationHelpers.cxx
                        src/WorkflowSpec.cxx
+                       src/WSDriverClient.cxx
                        src/runDataProcessing.cxx
                        src/ExternalFairMQDeviceProxy.cxx
                        src/HistogramRegistry.cxx
                        src/StepTHn.cxx
+                       src/SHA1.cxx
+                       src/Base64.cxx
+                       src/DPLWebSocket.cxx
                        test/TestClasses.cxx
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
                PUBLIC_LINK_LIBRARIES AliceO2::Common
@@ -156,6 +164,7 @@ foreach(t
         Graphviz
         GroupSlicer
         HistogramRegistry
+        HTTPParser
         IndexBuilder
         InfoLogger
         InputRecord
@@ -257,6 +266,7 @@ foreach(w
         Forwarding
         ParallelPipeline
         ParallelProducer
+        SlowConsumer 
         SimpleDataProcessingDevice01
         SimpleRDataFrameProcessing
         SimpleStatefulProcessing01
@@ -271,6 +281,7 @@ foreach(w
   o2_add_test(${w} NAME test_Framework_test_${w}
               SOURCES test/test_${w}.cxx
               COMPONENT_NAME Framework
+              MAX_ATTEMPTS 1
               LABELS framework workflow
               PUBLIC_LINK_LIBRARIES O2::Framework
               TIMEOUT 30
@@ -291,6 +302,7 @@ o2_add_test(
   ProcessorOptions NAME test_Framework_test_ProcessorOptions
   SOURCES test/test_ProcessorOptions.cxx
   COMPONENT_NAME Framework
+  MAX_ATTEMPTS 1
   LABELS framework workflow
   TIMEOUT 60
   PUBLIC_LINK_LIBRARIES O2::Framework

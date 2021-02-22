@@ -52,6 +52,8 @@ void MCKinematicsReader::loadTracksForSource(int source) const
         br->GetEntry(event);
         mTracks[source][event] = *loadtracks;
       }
+      delete loadtracks;
+      loadtracks = nullptr;
     }
   }
 }
@@ -70,6 +72,8 @@ void MCKinematicsReader::loadHeadersForSource(int source) const
         br->GetEntry(event);
         mHeaders[source][event] = *header;
       }
+      delete header;
+      header = nullptr;
     } else {
       LOG(WARN) << "MCHeader branch not found";
     }

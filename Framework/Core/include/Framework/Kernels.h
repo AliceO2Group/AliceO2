@@ -76,6 +76,7 @@ auto sliceByColumn(char const* key,
     }
   }
   makeSlice(counts.Value(size - 1));
+  offset += counts.Value(size - 1);
 
   if (values.Value(size - 1) < fullSize - 1) {
     for (auto v = values.Value(size - 1) + 1; v < fullSize; ++v) {

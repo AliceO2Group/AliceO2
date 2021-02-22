@@ -95,6 +95,11 @@ class LookUpTable
     }
   }
 
+  static o2::fdd::LookUpTable linear()
+  {
+    return o2::fdd::LookUpTable{1};
+  }
+
  private:
   std::vector<Topo> mTopoVector; // iterator of each vector element gives the global channel number
   std::vector<int> mInvTopo;     // each element is an iterator of mTopoVector

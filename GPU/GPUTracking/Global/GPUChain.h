@@ -127,9 +127,9 @@ class GPUChain
     mRec->AllocateIOMemoryHelper<T>(n, ptr, u);
   }
   template <class T, class S>
-  inline void DumpData(FILE* fp, const T* const* entries, const S* num, InOutPointerType type)
+  inline unsigned int DumpData(FILE* fp, const T* const* entries, const S* num, InOutPointerType type)
   {
-    mRec->DumpData<T>(fp, entries, num, type);
+    return mRec->DumpData<T>(fp, entries, num, type);
   }
   template <class T, class S>
   inline size_t ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[]>* mem, InOutPointerType type, T** nonConstPtrs = nullptr)

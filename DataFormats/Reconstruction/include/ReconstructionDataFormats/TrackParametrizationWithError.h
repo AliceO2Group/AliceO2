@@ -26,8 +26,6 @@ namespace track
 template <typename value_T = float>
 class TrackParametrizationWithError : public TrackParametrization<value_T>
 { // track+error parameterization
-  using MatrixDSym5 = ROOT::Math::SMatrix<double, kNParams, kNParams, ROOT::Math::MatRepSym<double, kNParams>>;
-  using MatrixD5 = ROOT::Math::SMatrix<double, kNParams, kNParams, ROOT::Math::MatRepStd<double, kNParams, kNParams>>;
 
   using typename TrackParametrization<value_T>::value_t;
   using typename TrackParametrization<value_T>::dim3_t;
@@ -40,11 +38,13 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
 
  public:
   using covMat_t = gpu::gpustd::array<value_t, kCovMatSize>;
+  using MatrixDSym5 = ROOT::Math::SMatrix<double, kNParams, kNParams, ROOT::Math::MatRepSym<double, kNParams>>;
+  using MatrixD5 = ROOT::Math::SMatrix<double, kNParams, kNParams, ROOT::Math::MatRepStd<double, kNParams, kNParams>>;
 
   GPUd() TrackParametrizationWithError();
-  GPUd() TrackParametrizationWithError(value_t x, value_t alpha, const params_t& par, const covMat_t& cov, int charge = 1);
+  GPUd() TrackParametrizationWithError(value_t x, value_t alpha, const params_t& par, const covMat_t& cov, int charge = 1, const PID pid = PID::Pion);
   GPUd() TrackParametrizationWithError(const dim3_t& xyz, const dim3_t& pxpypz,
-                                       const gpu::gpustd::array<value_t, kLabCovMatSize>& cv, int sign, bool sectorAlpha = true);
+                                       const gpu::gpustd::array<value_t, kLabCovMatSize>& cv, int sign, bool sectorAlpha = true, const PID pid = PID::Pion);
 
   GPUdDefault() TrackParametrizationWithError(const TrackParametrizationWithError& src) = default;
   GPUdDefault() TrackParametrizationWithError(TrackParametrizationWithError&& src) = default;
@@ -53,7 +53,7 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   GPUdDefault() ~TrackParametrizationWithError() = default;
   using TrackParametrization<value_T>::TrackParametrization;
 
-  GPUd() void set(value_t x, value_t alpha, const params_t& par, const covMat_t& cov, int charge = 1);
+  GPUd() void set(value_t x, value_t alpha, const params_t& par, const covMat_t& cov, int charge = 1, const PID pid = PID::Pion);
   GPUd() const value_t* getCov() const;
   GPUd() value_t getSigmaY2() const;
   GPUd() value_t getSigmaZY() const;
@@ -127,8 +127,8 @@ GPUdi() TrackParametrizationWithError<value_T>::TrackParametrizationWithError() 
 //__________________________________________________________________________
 template <typename value_T>
 GPUdi() TrackParametrizationWithError<value_T>::TrackParametrizationWithError(value_t x, value_t alpha, const params_t& par,
-                                                                              const covMat_t& cov, int charge)
-  : TrackParametrization<value_T>{x, alpha, par, charge}
+                                                                              const covMat_t& cov, int charge, const PID pid)
+  : TrackParametrization<value_T>{x, alpha, par, charge, pid}
 {
   // explicit constructor
   for (int i = 0; i < kCovMatSize; i++) {
@@ -138,9 +138,9 @@ GPUdi() TrackParametrizationWithError<value_T>::TrackParametrizationWithError(va
 
 //__________________________________________________________________________
 template <typename value_T>
-GPUdi() void TrackParametrizationWithError<value_T>::set(value_t x, value_t alpha, const params_t& par, const covMat_t& cov, int charge)
+GPUdi() void TrackParametrizationWithError<value_T>::set(value_t x, value_t alpha, const params_t& par, const covMat_t& cov, int charge, const PID pid)
 {
-  TrackParametrization<value_T>::set(x, alpha, par, charge);
+  TrackParametrization<value_T>::set(x, alpha, par, charge, pid);
   for (int i = 0; i < kCovMatSize; i++) {
     mC[i] = cov[i];
   }

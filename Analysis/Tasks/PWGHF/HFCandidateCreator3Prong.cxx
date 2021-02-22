@@ -66,7 +66,7 @@ struct HFCandidateCreator3Prong {
     df.setMinRelChi2Change(d_minrelchi2change);
     df.setUseAbsDCA(true);
 
-    // loop over pairs of track indeces
+    // loop over triplets of track indices
     for (const auto& rowTrackIndexProng3 : rowsTrackIndexProng3) {
       auto trackParVar0 = getTrackParCov(rowTrackIndexProng3.index0());
       auto trackParVar1 = getTrackParCov(rowTrackIndexProng3.index1());
@@ -151,43 +151,95 @@ struct HFCandidateCreator3ProngMC {
                aod::McParticles const& particlesMC)
   {
     int8_t sign = 0;
-    int8_t result = 0;
+    int8_t flag = 0;
+    int8_t DecayChannel = 0;
+    std::vector<int> arrDaughIndex;
+    std::array<int, 2> arrPDGDaugh;
+    std::array<int, 2> arrPDGResonant1 = {2212, 313}; // Λc± → p± K*
+    std::array<int, 2> arrPDGResonant2 = {2224, 321}; // Λc± → Δ(1232)±± K∓
+    std::array<int, 2> arrPDGResonant3 = {3124, 211}; // Λc± → Λ(1520) π±
 
     // Match reconstructed candidates.
     for (auto& candidate : candidates) {
       //Printf("New rec. candidate");
-      result = 0;
+      flag = 0;
+      DecayChannel = 0;
+      arrDaughIndex.clear();
       auto arrayDaughters = array{candidate.index0_as<aod::BigTracksMC>(), candidate.index1_as<aod::BigTracksMC>(), candidate.index2_as<aod::BigTracksMC>()};
 
       // D± → π± K∓ π±
       //Printf("Checking D± → π± K∓ π±");
-      auto indexRecDPlus = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, 411, array{+kPiPlus, -kKPlus, +kPiPlus}, true, &sign);
-      result += sign * DPlusToPiKPi * int8_t(indexRecDPlus > -1);
+      if (RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, 411, array{+kPiPlus, -kKPlus, +kPiPlus}, true, &sign) > -1) {
+        flag = sign * (1 << DPlusToPiKPi);
+      }
 
       // Λc± → p± K∓ π±
-      //Printf("Checking Λc± → p± K∓ π±");
-      auto indexRecLc = RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), 4122, array{+kProton, -kKPlus, +kPiPlus}, true, &sign);
-      result += sign * LcToPKPi * int8_t(indexRecLc > -1);
+      if (flag == 0) {
+        //Printf("Checking Λc± → p± K∓ π±");
+        auto indexRecLc = RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), 4122, array{+kProton, -kKPlus, +kPiPlus}, true, &sign, 2);
+        if (indexRecLc > -1) {
+          flag = sign * (1 << LcToPKPi);
 
-      rowMCMatchRec(result);
+          //Printf("Flagging the different Λc± → p± K∓ π± decay channels");
+          RecoDecay::getDaughters(particlesMC, indexRecLc, &arrDaughIndex, array{0}, 1);
+          if (arrDaughIndex.size() == 2) {
+            for (auto iProng = 0; iProng < arrDaughIndex.size(); ++iProng) {
+              auto daughI = particlesMC.iteratorAt(arrDaughIndex[iProng]);
+              arrPDGDaugh[iProng] = std::abs(daughI.pdgCode());
+            }
+            if (arrPDGDaugh[0] == arrPDGResonant1[0] && arrPDGDaugh[1] == arrPDGResonant1[1]) {
+              DecayChannel = 1;
+            } else if (arrPDGDaugh[0] == arrPDGResonant2[0] && arrPDGDaugh[1] == arrPDGResonant2[1]) {
+              DecayChannel = 2;
+            } else if (arrPDGDaugh[0] == arrPDGResonant3[0] && arrPDGDaugh[1] == arrPDGResonant3[1]) {
+              DecayChannel = 3;
+            }
+          }
+        }
+      }
+
+      rowMCMatchRec(flag, DecayChannel);
     }
 
     // Match generated particles.
     for (auto& particle : particlesMC) {
       //Printf("New gen. candidate");
-      result = 0;
+      flag = 0;
+      DecayChannel = 0;
+      arrDaughIndex.clear();
 
       // D± → π± K∓ π±
       //Printf("Checking D± → π± K∓ π±");
-      auto isMatchedGenDPlus = RecoDecay::isMatchedMCGen(particlesMC, particle, 411, array{+kPiPlus, -kKPlus, +kPiPlus}, true, &sign);
-      result += sign * DPlusToPiKPi * int8_t(isMatchedGenDPlus);
+      if (RecoDecay::isMatchedMCGen(particlesMC, particle, 411, array{+kPiPlus, -kKPlus, +kPiPlus}, true, &sign)) {
+        flag = sign * (1 << DPlusToPiKPi);
+      }
 
       // Λc± → p± K∓ π±
-      //Printf("Checking Λc± → p± K∓ π±");
-      auto isMatchedGenLc = RecoDecay::isMatchedMCGen(particlesMC, particle, 4122, array{+kProton, -kKPlus, +kPiPlus}, true, &sign);
-      result += sign * LcToPKPi * int8_t(isMatchedGenLc);
+      if (flag == 0) {
+        //Printf("Checking Λc± → p± K∓ π±");
+        auto isMatchedGenLc = RecoDecay::isMatchedMCGen(particlesMC, particle, 4122, array{+kProton, -kKPlus, +kPiPlus}, true, &sign, 2);
+        if (isMatchedGenLc) {
+          flag = sign * (1 << LcToPKPi);
 
-      rowMCMatchGen(result);
+          //Printf("Flagging the different Λc± → p± K∓ π± decay channels");
+          RecoDecay::getDaughters(particlesMC, particle.globalIndex(), &arrDaughIndex, array{0}, 1);
+          if (arrDaughIndex.size() == 2) {
+            for (auto jProng = 0; jProng < arrDaughIndex.size(); ++jProng) {
+              auto daughJ = particlesMC.iteratorAt(arrDaughIndex[jProng]);
+              arrPDGDaugh[jProng] = std::abs(daughJ.pdgCode());
+            }
+            if (arrPDGDaugh[0] == arrPDGResonant1[0] && arrPDGDaugh[1] == arrPDGResonant1[1]) {
+              DecayChannel = 1;
+            } else if (arrPDGDaugh[0] == arrPDGResonant2[0] && arrPDGDaugh[1] == arrPDGResonant2[1]) {
+              DecayChannel = 2;
+            } else if (arrPDGDaugh[0] == arrPDGResonant3[0] && arrPDGDaugh[1] == arrPDGResonant3[1]) {
+              DecayChannel = 3;
+            }
+          }
+        }
+      }
+
+      rowMCMatchGen(flag, DecayChannel);
     }
   }
 };

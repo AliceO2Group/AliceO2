@@ -711,7 +711,7 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
   auto& registry = driverInfo.configContext->options();
   ImGui::Columns();
 
-  ImGui::Text("PID: %d", pid);
+  ImGui::Text("PID: %d - Control port %d", pid, driverInfo.port);
   ImGui::Text("Frame cost (latency): %.1f(%.1f)ms", driverInfo.frameCost, driverInfo.frameLatency);
   ImGui::Text("Input parsing cost (latency): %.1f(%.1f)ms", driverInfo.inputProcessingCost, driverInfo.inputProcessingLatency);
   ImGui::Text("State stack (depth %lu)", driverInfo.states.size());

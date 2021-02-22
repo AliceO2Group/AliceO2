@@ -25,10 +25,10 @@ struct CPVSimParams : public o2::conf::ConfigurableParamHelper<CPVSimParams> {
   std::string mCCDBPath = "localtest"; ///< use "localtest" to avoid connecting ccdb server, otherwise use ccdb-test.cern.ch
 
   //Parameters used in conversion of deposited energy to APD response
-  int mnCellZ = 128;
-  int mnCellX = 60;
-  float mPadSizeZ = 1.13;       ///<  overall size of CPV active size
-  float mPadSizeX = 2.1093;     ///<  in phi and z directions
+  int mnCellX = 128;
+  int mnCellZ = 60;
+  float mPadSizeX = 1.13;       ///<  overall size of CPV active size
+  float mPadSizeZ = 2.1093;     ///<  in phi and z directions
   float mDetR = 0.1;            ///<  Relative energy fluctuation in track for 100 e-
   float mdEdx = 4.0;            ///<  Average energy loss in CPV;
   int mNgamz = 5;               ///<  Ionization size in Z
@@ -38,6 +38,10 @@ struct CPVSimParams : public o2::conf::ConfigurableParamHelper<CPVSimParams> {
   float mB = 0.7;               ///<  Parameter to model CPV response
 
   //Parameters used in electronic noise calculation and thresholds (Digitizer)
+  float mReadoutTime = 5.;          ///< Read-out time in ns for default simulaionts
+  float mDeadTime = 20.;            ///< PHOS dead time (includes Read-out time i.e. mDeadTime>=mReadoutTime)
+  float mReadoutTimePU = 2000.;     ///< Read-out time in ns if pileup simulation on in DigitizerSpec
+  float mDeadTimePU = 30000.;       ///< PHOS dead time if pileup simulation on in DigitizerSpec
   bool mApplyDigitization = true;   ///< if energy digitization should be applied
   float mZSthreshold = 0.01;        ///< Zero Suppression threshold
   float mADCWidth = 0.005;          ///< Widht of ADC channel used for energy digitization

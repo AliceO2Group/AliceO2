@@ -76,12 +76,12 @@ enum HistType : unsigned int {
   kTProfile,
   kTProfile2D,
   kTProfile3D,
-  kStepTHnF, // FIXME: for these two to work we need to align StepTHn ctors with the root THn ones
+  kStepTHnF,
   kStepTHnD
 };
 
 // variant of all possible root pointers; here we use only the interface types since the underlying data representation (int,float,double,long,char) is irrelevant
-using HistPtr = std::variant<std::shared_ptr<THn>, std::shared_ptr<THnSparse>, std::shared_ptr<TH3>, std::shared_ptr<TH2>, std::shared_ptr<TH1>, std::shared_ptr<TProfile3D>, std::shared_ptr<TProfile2D>, std::shared_ptr<TProfile>>;
+using HistPtr = std::variant<std::shared_ptr<THn>, std::shared_ptr<THnSparse>, std::shared_ptr<TH3>, std::shared_ptr<TH2>, std::shared_ptr<TH1>, std::shared_ptr<TProfile3D>, std::shared_ptr<TProfile2D>, std::shared_ptr<TProfile>, std::shared_ptr<StepTHn>>;
 
 //**************************************************************************************************
 /**
@@ -117,9 +117,10 @@ struct AxisSpec {
  */
 //**************************************************************************************************
 struct HistogramConfigSpec {
-  HistogramConfigSpec(HistType type_, std::vector<AxisSpec> axes_)
+  HistogramConfigSpec(HistType type_, std::vector<AxisSpec> axes_, uint8_t nSteps_ = 1)
     : type(type_),
-      axes(axes_)
+      axes(axes_),
+      nSteps(nSteps_)
   {
   }
   HistogramConfigSpec() = default;
@@ -154,6 +155,7 @@ struct HistogramConfigSpec {
 
   HistType type{HistType::kUndefinedHist};
   std::vector<AxisSpec> axes{};
+  uint32_t nSteps{1}; // variable used only in StepTHn
 };
 
 //**************************************************************************************************
@@ -218,7 +220,7 @@ struct HistFactory {
     }
 
     // create histogram
-    std::shared_ptr<T> hist{generateHist<T>(histSpec.name, histSpec.title, nAxes, nBins, lowerBounds, upperBounds)};
+    std::shared_ptr<T> hist{generateHist<T>(histSpec.name, histSpec.title, nAxes, nBins, lowerBounds, upperBounds, histSpec.config.nSteps)};
     if (!hist) {
       LOGF(FATAL, "The number of dimensions specified for histogram %s does not match the type.", histSpec.name);
       return nullptr;
@@ -280,7 +282,7 @@ struct HistFactory {
   template <typename T>
   static TAxis* getAxis(const int i, std::shared_ptr<T>& hist)
   {
-    if constexpr (std::is_base_of_v<THnBase, T>) {
+    if constexpr (std::is_base_of_v<THnBase, T> || std::is_base_of_v<StepTHn, T>) {
       return hist->GetAxis(i);
     } else {
       return (i == 0) ? hist->GetXaxis()
@@ -296,9 +298,11 @@ struct HistFactory {
   // helper function to generate the actual histograms
   template <typename T>
   static T* generateHist(const std::string& name, const std::string& title, const std::size_t nDim,
-                         const int nBins[], const double lowerBounds[], const double upperBounds[])
+                         const int nBins[], const double lowerBounds[], const double upperBounds[], const int nSteps = 1)
   {
-    if constexpr (std::is_base_of_v<THnBase, T>) {
+    if constexpr (std::is_base_of_v<StepTHn, T>) {
+      return new T(name.data(), title.data(), nSteps, nDim, nBins, lowerBounds, upperBounds);
+    } else if constexpr (std::is_base_of_v<THnBase, T>) {
       return new T(name.data(), title.data(), nDim, nBins, lowerBounds, upperBounds);
     } else if constexpr (std::is_base_of_v<TH3, T>) {
       return (nDim != 3) ? nullptr
@@ -340,7 +344,7 @@ struct HistFactory {
   {
     if (obj) {
       // TProfile3D is TH3, TProfile2D is TH2, TH3 is TH1, TH2 is TH1, TProfile is TH1
-      return castToVariant<THn, THnSparse, TProfile3D, TH3, TProfile2D, TH2, TProfile, TH1>(obj);
+      return castToVariant<THn, THnSparse, TProfile3D, TH3, TProfile2D, TH2, TProfile, TH1, StepTHn>(obj);
     }
     return std::nullopt;
   }
@@ -369,9 +373,12 @@ struct HistFiller {
     constexpr bool validSimpleFill = validTH1 || validTH2 || validTH3 || validTProfile || validTProfile2D || validTProfile3D;
     // unfortunately we dont know at compile the dimension of THn(Sparse)
     constexpr bool validComplexFill = std::is_base_of_v<THnBase, T>;
+    constexpr bool validComplexFillStep = std::is_base_of_v<StepTHn, T>;
 
     if constexpr (validSimpleFill) {
       hist->Fill(static_cast<double>(positionAndWeight)...);
+    } else if constexpr (validComplexFillStep) {
+      hist->Fill(positionAndWeight...); // first argument in pack is iStep, dimension check is done in StepTHn itself
     } else if constexpr (validComplexFill) {
       double tempArray[] = {static_cast<double>(positionAndWeight)...};
       double weight{1.};
@@ -391,6 +398,10 @@ struct HistFiller {
   template <typename... Cs, typename R, typename T>
   static void fillHistAny(std::shared_ptr<R>& hist, const T& table, const o2::framework::expressions::Filter& filter)
   {
+    if constexpr (std::is_base_of_v<StepTHn, T>) {
+      LOGF(FATAL, "Table filling is not (yet?) supported for StepTHn.");
+      return;
+    }
     auto filtered = o2::soa::Filtered<T>{{table.asArrowTable()}, o2::framework::expressions::createSelection(table.asArrowTable(), filter)};
     for (auto& t : filtered) {
       fillHistAny(hist, (*(static_cast<Cs>(t).getIterator()))...);
@@ -615,7 +626,7 @@ class HistogramRegistry
   template <typename T>
   void insertClone(const HistName& histName, const std::shared_ptr<T>& originalHist)
   {
-    validateHash(histName.hash, histName.str);
+    validateHistName(histName.str, histName.hash);
     for (auto i = 0u; i < MAX_REGISTRY_SIZE; ++i) {
       TObject* rawPtr = nullptr;
       std::visit([&](const auto& sharedPtr) { rawPtr = sharedPtr.get(); }, mRegistryValue[imask(histName.idx + i)]);
@@ -627,10 +638,11 @@ class HistogramRegistry
         return;
       }
     }
-    LOGF(FATAL, "Internal array of HistogramRegistry %s is full.", mName);
+    LOGF(FATAL, R"(Internal array of HistogramRegistry "%s" is full.)", mName);
   }
 
-  void validateHash(const uint32_t hash, const char* name);
+  // helper function that checks if histogram name can be used in registry
+  void validateHistName(const char* name, const uint32_t hash);
 
   // helper function to find the histogram position in the registry
   template <typename T>

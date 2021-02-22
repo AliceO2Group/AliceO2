@@ -94,6 +94,8 @@ struct ServiceRegistry {
   std::vector<ServiceEOSHandle> mPostEOSHandles;
   /// Callbacks for services to be executed after every dispatching
   std::vector<ServiceDispatchingHandle> mPostDispatchingHandles;
+  /// Callbacks for services to be executed on exit
+  std::vector<ServiceExitHandle> mPreExitHandles;
 
  public:
   using hash_type = decltype(TypeIdHelpers::uniqueId<void>());
@@ -135,6 +137,8 @@ struct ServiceRegistry {
   /// Invoke callbacks to monitor inputs after dispatching, regardless of them
   /// being discarded, consumed or processed.
   void postDispatchingCallbacks(ProcessingContext&);
+  /// Invoke callbacks on exit.
+  void preExitCallbacks();
 
   /// Declare a service by its ServiceSpec. If of type Global
   /// / Serial it will be immediately registered for tid 0,

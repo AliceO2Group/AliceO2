@@ -501,7 +501,12 @@ class RecoDecay
       }
     }
     // Get the mass of the new particle and add it in the list.
-    auto newMass = TDatabasePDG::Instance()->GetParticle(pdg)->Mass();
+    const TParticlePDG* particle = TDatabasePDG::Instance()->GetParticle(pdg);
+    if (!particle) { // Check that it's there
+      LOGF(fatal, "Cannot find particle mass for PDG code %i", pdg);
+      return 999.;
+    }
+    auto newMass = particle->Mass();
     mListMass.push_back(std::make_tuple(pdg, newMass));
     return newMass;
   }
@@ -513,8 +518,8 @@ class RecoDecay
   /// \param acceptAntiParticles  switch to accept the antiparticle of the expected mother
   /// \param sign  antiparticle indicator of the found mother w.r.t. PDGMother; 1 if particle, -1 if antiparticle, 0 if mother not found
   /// \return index of the mother particle if found, -1 otherwise
-  template <typename T, typename U>
-  static int getMother(const T& particlesMC, const U& particle, int PDGMother, bool acceptAntiParticles = false, int8_t* sign = nullptr)
+  template <typename T>
+  static int getMother(const T& particlesMC, const typename T::iterator& particle, int PDGMother, bool acceptAntiParticles = false, int8_t* sign = nullptr)
   {
     int8_t sgn = 0;                 // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGMother)
     int indexMother = -1;           // index of the final matched mother, if found
@@ -557,12 +562,13 @@ class RecoDecay
   /// \param depthMax  maximum decay tree level; Daughters at this level (or beyond) will be considered final. If -1, all levels are considered.
   /// \param stage  decay tree level; If different from 0, the particle itself will be added in the list in case it has no daughters.
   /// \note Final state is defined as particles from arrPDGFinal plus final daughters of any other decay branch.
+  /// \note Antiparticles of particles in arrPDGFinal are accepted as well.
   template <std::size_t N, typename T>
   static void getDaughters(const T& particlesMC,
                            int index,
                            std::vector<int>* list,
                            const array<int, N>& arrPDGFinal,
-                           int depthMax = -1,
+                           int8_t depthMax = -1,
                            int8_t stage = 0)
   {
     if (index <= -1) {
@@ -592,11 +598,12 @@ class RecoDecay
       // If this is not the original particle, we are at the end of this branch and this particle is final.
       isFinal = true;
     }
-    // If the particle has daughters but is considered to be final, we label it as final.
-    auto PDGParticle = particle.pdgCode();
-    if (!isFinal) {
+    auto PDGParticle = std::abs(particle.pdgCode());
+    // If this is not the original particle, check its PDG code.
+    if (!isFinal && stage > 0) {
+      // If the particle has daughters but is considered to be final, we label it as final.
       for (auto PDGi : arrPDGFinal) {
-        if (std::abs(PDGParticle) == std::abs(PDGi)) { // Accept antiparticles.
+        if (PDGParticle == std::abs(PDGi)) { // Accept antiparticles.
           isFinal = true;
           break;
         }
@@ -739,12 +746,13 @@ class RecoDecay
   /// \param candidate  candidate MC particle
   /// \param PDGParticle  expected particle PDG code
   /// \param acceptAntiParticles  switch to accept the antiparticle
+  /// \param sign  antiparticle indicator of the candidate w.r.t. PDGParticle; 1 if particle, -1 if antiparticle, 0 if not matched
   /// \return true if PDG code of the particle is correct, false otherwise
   template <typename T, typename U>
-  static int isMatchedMCGen(const T& particlesMC, const U& candidate, int PDGParticle, bool acceptAntiParticles = false)
+  static int isMatchedMCGen(const T& particlesMC, const U& candidate, int PDGParticle, bool acceptAntiParticles = false, int8_t* sign = nullptr)
   {
     array<int, 0> arrPDGDaughters;
-    return isMatchedMCGen(particlesMC, candidate, PDGParticle, std::move(arrPDGDaughters), acceptAntiParticles);
+    return isMatchedMCGen(particlesMC, candidate, PDGParticle, std::move(arrPDGDaughters), acceptAntiParticles, sign);
   }
 
   /// Check whether the MC particle is the expected one and whether it decayed via the expected decay channel.
@@ -771,8 +779,7 @@ class RecoDecay
       sgn = 1;
     } else if (acceptAntiParticles && PDGCandidate == -PDGParticle) { // antiparticle PDG match
       sgn = -1;
-    }
-    if (sgn == 0) {
+    } else {
       //Printf("MC Gen: Rejected: bad particle PDG: %s%d != %d", acceptAntiParticles ? "abs " : "", PDGCandidate, std::abs(PDGParticle));
       return false;
     }

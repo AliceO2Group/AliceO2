@@ -9,3 +9,52 @@
 // or submit itself to any jurisdiction.
 
 #include "TRDBase/Digit.h"
+namespace o2::trd
+{
+
+using namespace constants;
+
+Digit::Digit(const int det, const int row, const int pad, const ArrayADC adc)
+{
+  setDetector(det);
+  setROB(row, pad);
+  setMCM(row, pad);
+  setADC(adc);
+  setChannel(NADCMCM - 2 - (pad % NCOLMCM));
+}
+
+Digit::Digit(const int det, const int row, const int pad) // add adc data in a seperate step
+{
+  setDetector(det);
+  setROB(row, pad);
+  setMCM(row, pad);
+  setChannel(NADCMCM - 2 - (pad % NCOLMCM));
+}
+
+Digit::Digit(const int det, const int rob, const int mcm, const int channel, const ArrayADC adc)
+{
+  setDetector(det);
+  setROB(rob);
+  setMCM(mcm);
+  setChannel(channel);
+  setADC(adc);
+}
+
+Digit::Digit(const int det, const int rob, const int mcm, const int channel) // add adc data in a seperate step
+{
+  setDetector(det);
+  setROB(rob);
+  setMCM(mcm);
+  setChannel(channel);
+}
+
+bool Digit::isSharedDigit()
+{
+  if (mChannel == 0 || mChannel == 1 || mChannel == NADCMCM - 1) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+} // namespace o2::trd

@@ -211,7 +211,6 @@ bool digitindexcompare(unsigned int A, unsigned int B, const std::vector<o2::trd
   const o2::trd::Digit *a, *b;
   a = &originalDigits[A];
   b = &originalDigits[B];
-  // timestamps are equal
   if (a->getDetector() < b->getDetector()) {
     return 1;
   }
@@ -365,7 +364,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   //for (auto& digit : msgDigits) {
   for (auto& digitindex : msgDigitsIndex) {
     Digit digit = msgDigits[digitindex];
-    LOG(debug) << "sorted digit time:" << digit.getTimeStamp() << " detector:row:pad:rob:mcm ::"
+    LOG(debug) << "sorted digit detector:row:pad:rob:mcm ::"
                << digit.getDetector() << ":" << digit.getRow() << ":" << digit.getPad() << ":"
                << mFeeParam->getROBfromPad(digit.getRow(), digit.getPad()) << ":"
                << mFeeParam->getMCMfromPad(digit.getRow(), digit.getPad())
@@ -402,7 +401,6 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
     //  fireup trapsim, do its thing with each 18 sequence of pads data that already exists inside the class from previous iterations of the loop
     LOG(debug) << "Digit iterator is : " << *digititerator;
     Digit* digit = &msgDigits[*digititerator];
-    double digittime = digit->getTimeStamp();
     int pad = digit->getPad();
     int row = digit->getRow();
     int detector = digit->getDetector();
@@ -416,7 +414,6 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
                << detector << ":" << row << ":" << pad << ":" << rob << ":" << mcm
                << " LinkId:" << LinkRecord::getHalfChamberLinkId(detector, rob) << "\t\t  SM:stack:layer:side  " << detector / 30 << ":" << trdstack << ":" << trdlayer << ":" << fibreside
                << " with ORI : " << mFeeParam->getORI(detector, rob) << " and within supermodule ori index:" << mFeeParam->getORIinSM(detector, rob);
-    LOG(debug) << "digit time :  " << digittime;
     if (digititerator == msgDigitsIndex.begin()) { // first time in loop
       oldrow = row;
       olddetector = detector;

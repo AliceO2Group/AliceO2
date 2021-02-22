@@ -43,8 +43,7 @@ class TrackTPCITSReader : public Task
   std::unique_ptr<TTree> mTree;
   std::string mFileName = "";
   std::vector<o2::dataformats::TrackTPCITS> mTracks, *mTracksPtr = &mTracks;
-  std::vector<o2::MCCompLabel> mTPCLabels, *mTPCLabelsPtr = &mTPCLabels;
-  std::vector<o2::MCCompLabel> mITSLabels, *mITSLabelsPtr = &mITSLabels;
+  std::vector<o2::MCCompLabel> mLabels, *mLabelsPtr = &mLabels;
 };
 
 /// create a processor spec

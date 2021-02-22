@@ -56,8 +56,8 @@ FairRunSim* o2sim_init(bool asservice)
   // update the parameters from stuff given at command line (overrides file-based version)
   o2::conf::ConfigurableParam::updateFromString(confref.getKeyValueString());
 
-  // write the configuration file
-  o2::conf::ConfigurableParam::writeINI("o2sim_configuration.ini");
+  // write the final configuration file
+  o2::conf::ConfigurableParam::writeINI(o2::base::NameConf::getMCConfigFileName(confref.getOutPrefix()));
 
   // we can update the binary CCDB entry something like this ( + timestamp key )
   // o2::conf::ConfigurableParam::toCCDB("params_ccdb.root");

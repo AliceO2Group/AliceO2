@@ -120,9 +120,9 @@ struct ConfigParamsHelper {
                          V == VariantType::ArrayDouble ||
                          V == VariantType::ArrayBool ||
                          V == VariantType::ArrayString ||
-                         V == VariantType::MatrixInt ||
-                         V == VariantType::MatrixFloat ||
-                         V == VariantType::MatrixDouble) {
+                         V == VariantType::Array2DInt ||
+                         V == VariantType::Array2DFloat ||
+                         V == VariantType::Array2DDouble) {
       auto value = boost::program_options::value<std::string>();
       value = value->default_value(spec.defaultValue.asString());
       if constexpr (V != VariantType::String) {

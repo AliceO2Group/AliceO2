@@ -45,9 +45,9 @@ struct TOFSpectraTask {
   }
 
   template <std::size_t i, typename T>
-  void fillParticleHistos(const T& track, const float nsigma[])
+  void fillParticleHistos(const T& track, const float& nsigma)
   {
-    if (abs(nsigma[i]) > nsigmacut.value) {
+    if (abs(nsigma) > nsigmacut.value) {
       return;
     }
     histos.fill(HIST(hp[i]), track.p());
@@ -63,21 +63,18 @@ struct TOFSpectraTask {
   using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOF, aod::pidRespTOFbeta, aod::TrackSelection>>;
   void process(TrackCandidates::iterator const& track)
   {
-    const float nsigma[Np] = {track.tofNSigmaEl(), track.tofNSigmaMu(), track.tofNSigmaPi(),
-                              track.tofNSigmaKa(), track.tofNSigmaPr(), track.tofNSigmaDe(),
-                              track.tofNSigmaTr(), track.tofNSigmaHe(), track.tofNSigmaAl()};
     histos.fill(HIST("p/Unselected"), track.p());
     histos.fill(HIST("pt/Unselected"), track.pt());
 
-    fillParticleHistos<0>(track, nsigma);
-    fillParticleHistos<1>(track, nsigma);
-    fillParticleHistos<2>(track, nsigma);
-    fillParticleHistos<3>(track, nsigma);
-    fillParticleHistos<4>(track, nsigma);
-    fillParticleHistos<5>(track, nsigma);
-    fillParticleHistos<6>(track, nsigma);
-    fillParticleHistos<7>(track, nsigma);
-    fillParticleHistos<8>(track, nsigma);
+    fillParticleHistos<0>(track, track.tofNSigmaEl());
+    fillParticleHistos<1>(track, track.tofNSigmaMu());
+    fillParticleHistos<2>(track, track.tofNSigmaPi());
+    fillParticleHistos<3>(track, track.tofNSigmaKa());
+    fillParticleHistos<4>(track, track.tofNSigmaPr());
+    fillParticleHistos<5>(track, track.tofNSigmaDe());
+    fillParticleHistos<6>(track, track.tofNSigmaTr());
+    fillParticleHistos<7>(track, track.tofNSigmaHe());
+    fillParticleHistos<8>(track, track.tofNSigmaAl());
 
     //
     if (TMath::Abs(track.separationbetael() < 1.f)) {

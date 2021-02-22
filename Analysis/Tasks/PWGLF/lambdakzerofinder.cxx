@@ -122,7 +122,12 @@ struct lambdakzeroprefilter {
 struct lambdakzerofinder {
   Produces<aod::V0Data> v0data;
 
-  OutputObj<TH1F> hCandPerEvent{TH1F("hCandPerEvent", "", 1000, 0, 1000)};
+  HistogramRegistry registry{
+    "registry",
+    {
+      {"hCandPerEvent", "hCandPerEvent", {HistType::kTH1F, {{1000, 0.0f, 1000.0f}}}},
+    },
+  };
 
   //Configurables
   Configurable<double> d_bz{"d_bz", +5.0, "bz field"};
@@ -202,7 +207,7 @@ struct lambdakzerofinder {
                t0id.dcaXY(), t1id.dcaXY());
       }
     }
-    hCandPerEvent->Fill(lNCand);
+    registry.fill(HIST("hCandPerEvent"), lNCand);
   }
 };
 
@@ -215,26 +220,28 @@ struct lambdakzerofinderQA {
   Configurable<float> dcapostopv{"dcapostopv", .1, "DCA Pos To PV"};
   Configurable<float> v0radius{"v0radius", 5.0, "v0radius"};
 
-  OutputObj<TH1F> hCandPerEvent{TH1F("hCandPerEvent", "", 1000, 0, 1000)};
+  HistogramRegistry registry{
+    "registry",
+    {
+      {"hCandPerEvent", "hCandPerEvent", {HistType::kTH1F, {{1000, 0.0f, 1000.0f}}}},
 
-  OutputObj<TH1F> hV0Radius{TH1F("hV0Radius", "", 1000, 0.0, 100)};
-  OutputObj<TH1F> hV0CosPA{TH1F("hV0CosPA", "", 1000, 0.95, 1.0)};
-  OutputObj<TH1F> hDCAPosToPV{TH1F("hDCAPosToPV", "", 1000, 0.0, 10.0)};
-  OutputObj<TH1F> hDCANegToPV{TH1F("hDCANegToPV", "", 1000, 0.0, 10.0)};
-  OutputObj<TH1F> hDCAV0Dau{TH1F("hDCAV0Dau", "", 1000, 0.0, 10.0)};
+      {"hV0Radius", "hV0Radius", {HistType::kTH1F, {{1000, 0.0f, 100.0f}}}},
+      {"hV0CosPA", "hV0CosPA", {HistType::kTH1F, {{1000, 0.95f, 1.0f}}}},
+      {"hDCAPosToPV", "hDCAPosToPV", {HistType::kTH1F, {{1000, 0.0f, 10.0f}}}},
+      {"hDCANegToPV", "hDCANegToPV", {HistType::kTH1F, {{1000, 0.0f, 10.0f}}}},
+      {"hDCAV0Dau", "hDCAV0Dau", {HistType::kTH1F, {{1000, 0.0f, 10.0f}}}},
 
-  OutputObj<TH3F> h3dMassK0Short{TH3F("h3dMassK0Short", "", 20, 0, 100, 200, 0, 10, 200, 0.450, 0.550)};
-  OutputObj<TH3F> h3dMassLambda{TH3F("h3dMassLambda", "", 20, 0, 100, 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
-  OutputObj<TH3F> h3dMassAntiLambda{TH3F("h3dMassAntiLambda", "", 20, 0, 100, 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
+      {"h3dMassK0Short", "h3dMassK0Short", {HistType::kTH3F, {{20, 0.0f, 100.0f}, {200, 0.0f, 10.0f}, {200, 0.450f, 0.550f}}}},
+      {"h3dMassLambda", "h3dMassLambda", {HistType::kTH3F, {{20, 0.0f, 100.0f}, {200, 0.0f, 10.0f}, {200, 1.015f, 1.215f}}}},
+      {"h3dMassAntiLambda", "h3dMassAntiLambda", {HistType::kTH3F, {{20, 0.0f, 100.0f}, {200, 0.0f, 10.0f}, {200, 1.015f, 1.215f}}}},
+    },
+  };
 
-  //FIXME: figure out why this does not work?
-  //Filter preFilter1 = aod::v0data::dcapostopv > dcapostopv;
-  //Filter preFilter2 = aod::v0data::dcanegtopv > dcanegtopv;
-  //Filter preFilter3 = aod::v0data::dcaV0daughters < dcav0dau;
+  Filter preFilterV0 = nabs(aod::v0data::dcapostopv) > dcapostopv&& nabs(aod::v0data::dcanegtopv) > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;
 
   ///Connect to V0Data: newly indexed, note: V0DataExt table incompatible with standard V0 table!
   void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision,
-               aod::V0DataExt const& fullV0s)
+               soa::Filtered<aod::V0DataExt> const& fullV0s)
   {
     if (!collision.alias()[kINT7]) {
       return;
@@ -245,24 +252,24 @@ struct lambdakzerofinderQA {
 
     Long_t lNCand = 0;
     for (auto& v0 : fullV0s) {
-      if (v0.v0radius() > v0radius && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospa && v0.dcapostopv() > dcapostopv && v0.dcanegtopv() > dcanegtopv && v0.dcaV0daughters() > dcav0dau) {
-        hV0Radius->Fill(v0.v0radius());
-        hV0CosPA->Fill(v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()));
-        hDCAPosToPV->Fill(v0.dcapostopv());
-        hDCANegToPV->Fill(v0.dcanegtopv());
-        hDCAV0Dau->Fill(v0.dcaV0daughters());
+      if (v0.v0radius() > v0radius && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospa) {
+        registry.fill(HIST("hV0Radius"), v0.v0radius());
+        registry.fill(HIST("hV0CosPA"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()));
+        registry.fill(HIST("hDCAPosToPV"), v0.dcapostopv());
+        registry.fill(HIST("hDCANegToPV"), v0.dcanegtopv());
+        registry.fill(HIST("hDCAV0Dau"), v0.dcaV0daughters());
 
         if (TMath::Abs(v0.yLambda()) < 0.5) {
-          h3dMassLambda->Fill(collision.centV0M(), v0.pt(), v0.mLambda());
-          h3dMassAntiLambda->Fill(collision.centV0M(), v0.pt(), v0.mAntiLambda());
+          registry.fill(HIST("h3dMassLambda"), collision.centV0M(), v0.pt(), v0.mLambda());
+          registry.fill(HIST("h3dMassAntiLambda"), collision.centV0M(), v0.pt(), v0.mAntiLambda());
         }
         if (TMath::Abs(v0.yK0Short()) < 0.5) {
-          h3dMassK0Short->Fill(collision.centV0M(), v0.pt(), v0.mK0Short());
+          registry.fill(HIST("h3dMassK0Short"), collision.centV0M(), v0.pt(), v0.mK0Short());
         }
         lNCand++;
       }
     }
-    hCandPerEvent->Fill(lNCand);
+    registry.fill(HIST("hCandPerEvent"), lNCand);
   }
 };
 
@@ -277,6 +284,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   return WorkflowSpec{
     adaptAnalysisTask<lambdakzeroprefilter>("lf-lambdakzeroprefilter"),
     adaptAnalysisTask<lambdakzerofinder>("lf-lambdakzerofinder"),
-    adaptAnalysisTask<lambdakzeroinitializer>("lf-lambdakzeroinitializer"),
-    adaptAnalysisTask<lambdakzerofinderQA>("lf-lambdakzerofinderQA")};
+    adaptAnalysisTask<lambdakzerofinderQA>("lf-lambdakzerofinderQA"),
+    adaptAnalysisTask<lambdakzeroinitializer>("lf-lambdakzeroinitializer")};
 }

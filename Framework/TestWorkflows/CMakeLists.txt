@@ -43,10 +43,6 @@ o2_add_dpl_workflow(sync-reconstruction-dummy
                   SOURCES src/o2SyncReconstructionDummy.cxx
                   COMPONENT_NAME TestWorkflows)
 
-o2_add_dpl_workflow(aod-dummy-workflow
-                  SOURCES src/o2AODDummy.cxx
-                  COMPONENT_NAME TestWorkflows)
-
 o2_add_dpl_workflow(d0-analysis
                   SOURCES src/o2D0Analysis.cxx
                   COMPONENT_NAME TestWorkflows)

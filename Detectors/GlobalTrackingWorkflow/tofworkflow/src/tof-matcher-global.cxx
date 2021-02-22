@@ -26,9 +26,6 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 
-// GRP
-#include "DataFormatsParameters/GRPObject.h"
-
 // FIT
 #include "FT0Workflow/RecPointReaderSpec.h"
 
@@ -75,20 +72,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec specs;
 
-  if (!cfgc.helpOnCommandLine()) {
-    std::string inputGRP = o2::base::NameConf::getGRPFileName();
-    o2::base::Propagator::initFieldFromGRP(inputGRP);
-    const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
-    if (!grp) {
-      LOG(ERROR) << "This workflow needs a valid GRP file to start";
-      return specs;
-    }
-    o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
-    //  o2::conf::ConfigurableParam::writeINI("o2tofrecoflow_configuration.ini");
-  }
   // the lane configuration defines the subspecification ids to be distributed among the lanes.
-  // auto tofSectors = o2::RangeTokenizer::tokenize<int>(cfgc.options().get<std::string>("tof-sectors"));
-  // std::vector<int> laneConfiguration = tofSectors;
   auto nLanes = cfgc.options().get<int>("tof-lanes");
   auto inputType = cfgc.options().get<std::string>("input-type");
   auto outputType = cfgc.options().get<std::string>("output-type");
@@ -135,32 +119,34 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   LOG(INFO) << "TOF disable-root-input = " << disableRootInput;
   LOG(INFO) << "TOF disable-root-output = " << disableRootOutput;
 
-  if (clusterinput) {
-    LOG(INFO) << "Insert TOF Cluster Reader";
-    specs.emplace_back(o2::tof::getClusterReaderSpec(useMC));
-  }
-  if (trackinput) {
-    LOG(INFO) << "Insert ITS-TPC Track Reader";
-    specs.emplace_back(o2::globaltracking::getTrackTPCITSReaderSpec(useMC));
-  }
+  if (!disableRootInput) { // input data loaded from root files
+    if (clusterinput) {
+      LOG(INFO) << "Insert TOF Cluster Reader";
+      specs.emplace_back(o2::tof::getClusterReaderSpec(useMC));
+    }
+    if (trackinput) {
+      LOG(INFO) << "Insert ITS-TPC Track Reader";
+      specs.emplace_back(o2::globaltracking::getTrackTPCITSReaderSpec(useMC));
+    }
 
-  if (fitinput) {
-    LOG(INFO) << "Insert FIT RecPoint Reader";
-    specs.emplace_back(o2::ft0::getRecPointReaderSpec(useMC));
+    if (fitinput) {
+      LOG(INFO) << "Insert FIT RecPoint Reader";
+      specs.emplace_back(o2::ft0::getRecPointReaderSpec(useMC));
+    }
   }
-
   LOG(INFO) << "Insert TOF Matching";
   specs.emplace_back(o2::tof::getTOFRecoWorkflowSpec(useMC, useFIT));
 
-  if (writematching && !disableRootOutput) {
-    LOG(INFO) << "Insert TOF Matched Info Writer";
-    specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC));
+  if (!disableRootOutput) {
+    if (writematching) {
+      LOG(INFO) << "Insert TOF Matched Info Writer";
+      specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC));
+    }
+    if (writecalib) {
+      LOG(INFO) << "Insert TOF Calib Info Writer";
+      specs.emplace_back(o2::tof::getTOFCalibWriterSpec());
+    }
   }
-  if (writecalib) {
-    LOG(INFO) << "Insert TOF Calib Info Writer";
-    specs.emplace_back(o2::tof::getTOFCalibWriterSpec());
-  }
-
   LOG(INFO) << "Number of active devices = " << specs.size();
 
   return std::move(specs);

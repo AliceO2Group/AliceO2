@@ -14,19 +14,11 @@
 #include <iostream>
 #include <cassert>
 
-using namespace o2;
-
-ClassImp(o2::MCCompLabel);
-
-//_____________________________________________
-void MCCompLabel::print() const
+namespace o2
 {
-  // print itself
-  std::cout << (MCCompLabel) * this << std::endl;
-}
 
 //_____________________________________________
-std::ostream& operator<<(std::ostream& os, const o2::MCCompLabel& c)
+std::ostream& operator<<(std::ostream& os, MCCompLabel const& c)
 {
   // stream itself
   if (c.isValid()) {
@@ -37,3 +29,12 @@ std::ostream& operator<<(std::ostream& os, const o2::MCCompLabel& c)
   }
   return os;
 }
+
+//_____________________________________________
+void MCCompLabel::print() const
+{
+  // print itself
+  std::cout << (MCCompLabel) * this << std::endl;
+}
+
+} // namespace o2

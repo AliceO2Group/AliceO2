@@ -44,12 +44,12 @@ class DedupDecoder : public Decoder<coder_T, stream_T, source_T>
  public:
   using duplicatesMap_t = std::map<uint32_t, uint32_t>;
 
-  template <typename stream_IT, typename source_IT>
+  template <typename stream_IT, typename source_IT, std::enable_if_t<internal::isCompatibleIter_v<stream_T, stream_IT> && internal::isCompatibleIter_v<source_T, source_IT>, bool> = true>
   void process(const source_IT outputBegin, const stream_IT inputEnd, size_t messageLength, duplicatesMap_t& duplicates) const;
 };
 
 template <typename coder_T, typename stream_T, typename source_T>
-template <typename stream_IT, typename source_IT>
+template <typename stream_IT, typename source_IT, std::enable_if_t<internal::isCompatibleIter_v<stream_T, stream_IT> && internal::isCompatibleIter_v<source_T, source_IT>, bool>>
 void DedupDecoder<coder_T, stream_T, source_T>::process(const source_IT outputBegin, const stream_IT inputEnd, size_t messageLength, duplicatesMap_t& duplicates) const
 {
   using namespace internal;

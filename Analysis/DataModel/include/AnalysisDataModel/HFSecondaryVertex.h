@@ -155,7 +155,9 @@ DECLARE_SOA_COLUMN(FlagMCMatchRec, flagMCMatchRec, int8_t); // reconstruction le
 DECLARE_SOA_COLUMN(FlagMCMatchGen, flagMCMatchGen, int8_t); // generator level
 
 // mapping of decay types
-enum DecayType { D0ToPiK = 1 };
+enum DecayType { D0ToPiK = 0,
+                 JpsiToEE,
+                 N2ProngDecays }; //always keep N2ProngDecays at the end
 
 // functions for specific particles
 
@@ -201,6 +203,31 @@ template <typename T>
 auto CosThetaStarD0bar(const T& candidate)
 {
   return candidate.cosThetaStar(array{RecoDecay::getMassPDG(kKPlus), RecoDecay::getMassPDG(kPiPlus)}, RecoDecay::getMassPDG(421), 0);
+}
+
+// Jpsi → e+e-
+template <typename T>
+auto CtJpsi(const T& candidate)
+{
+  return candidate.ct(RecoDecay::getMassPDG(443));
+}
+
+template <typename T>
+auto YJpsi(const T& candidate)
+{
+  return candidate.y(RecoDecay::getMassPDG(443));
+}
+
+template <typename T>
+auto EJpsi(const T& candidate)
+{
+  return candidate.e(RecoDecay::getMassPDG(443));
+}
+
+template <typename T>
+auto InvMassJpsiToEE(const T& candidate)
+{
+  return candidate.m(array{RecoDecay::getMassPDG(kElectron), RecoDecay::getMassPDG(kElectron)});
 }
 } // namespace hf_cand_prong2
 
@@ -285,12 +312,16 @@ DECLARE_SOA_DYNAMIC_COLUMN(MaxNormalisedDeltaIP, maxNormalisedDeltaIP, [](float 
 // MC matching result:
 // - ±DPlusToPiKPi: D± → π± K∓ π±
 // - ±LcToPKPi: Λc± → p± K∓ π±
-DECLARE_SOA_COLUMN(FlagMCMatchRec, flagMCMatchRec, int8_t); // reconstruction level
-DECLARE_SOA_COLUMN(FlagMCMatchGen, flagMCMatchGen, int8_t); // generator level
+DECLARE_SOA_COLUMN(FlagMCMatchRec, flagMCMatchRec, int8_t);         // reconstruction level
+DECLARE_SOA_COLUMN(FlagMCMatchGen, flagMCMatchGen, int8_t);         // generator level
+DECLARE_SOA_COLUMN(FlagMCDecayChanRec, flagMCDecayChanRec, int8_t); // Resonant decay channel flag, reconstruction level
+DECLARE_SOA_COLUMN(FlagMCDecayChanGen, flagMCDecayChanGen, int8_t); // Resonant decay channel flag, generator level
 
 // mapping of decay types
-enum DecayType { DPlusToPiKPi = 1,
-                 LcToPKPi };
+enum DecayType { DPlusToPiKPi = 0,
+                 LcToPKPi,
+                 DsToPiKK,
+                 N3ProngDecays }; //always keep N3ProngDecays at the end
 
 // functions for specific particles
 
@@ -399,11 +430,13 @@ using HfCandProng3 = HfCandProng3Ext;
 
 // table with results of reconstruction level MC matching
 DECLARE_SOA_TABLE(HfCandProng3MCRec, "AOD", "HFCANDP3MCREC",
-                  hf_cand_prong3::FlagMCMatchRec);
+                  hf_cand_prong3::FlagMCMatchRec,
+                  hf_cand_prong3::FlagMCDecayChanRec);
 
 // table with results of generator level MC matching
 DECLARE_SOA_TABLE(HfCandProng3MCGen, "AOD", "HFCANDP3MCGEN",
-                  hf_cand_prong3::FlagMCMatchGen);
+                  hf_cand_prong3::FlagMCMatchGen,
+                  hf_cand_prong3::FlagMCDecayChanGen);
 
 } // namespace o2::aod
 

@@ -10,12 +10,63 @@
 
 #include "DataFormatsFDD/RawEventData.h"
 #include <sstream>
+#include <iostream>
 
 using namespace o2::fdd;
 
-ClassImp(RawEventData);
+void EventHeader::print() const
+{
+  std::cout << std::hex;
+  std::cout << "################EventHeader###############" << std::endl;
+  std::cout << "startDescriptor: " << startDescriptor << std::endl;
+  std::cout << "nGBTWords: " << nGBTWords << std::endl;
+  std::cout << "BC: " << bc << std::endl;
+  std::cout << "Orbit: " << orbit << std::endl;
+  std::cout << "##########################################" << std::endl;
+  std::cout << std::dec;
+}
 
-void RawEventData::print()
+void EventData::print() const
+{
+  std::cout << std::hex;
+  std::cout << "###############EventData(PM)##############" << std::endl;
+  std::cout << "------------Channel " << channelID << "------------" << std::endl;
+  std::cout << "Charge: " << charge << std::endl;
+  std::cout << "Time: " << time << std::endl;
+  std::cout << "numberADC: " << numberADC << std::endl;
+  std::cout << "isDoubleEvent: " << isDoubleEvent << std::endl;
+  std::cout << "is1TimeLostEvent: " << is1TimeLostEvent << std::endl;
+  std::cout << "is2TimeLostEvent: " << is2TimeLostEvent << std::endl;
+  std::cout << "isADCinGate : " << isADCinGate << std::endl;
+  std::cout << "isTimeInfoLate: " << isTimeInfoLate << std::endl;
+  std::cout << "isAmpHigh: " << isAmpHigh << std::endl;
+  std::cout << "isEventInTVDC: " << isEventInTVDC << std::endl;
+  std::cout << "isTimeInfoLost: " << isTimeInfoLost << std::endl;
+  std::cout << "channelID: " << channelID << std::endl;
+  std::cout << "##########################################" << std::endl;
+  std::cout << std::dec;
+}
+
+void TCMdata::print() const
+{
+  std::cout << std::hex;
+  std::cout << "################TCMdata###################" << std::endl;
+  std::cout << "orC: " << orC << std::endl;
+  std::cout << "orA: " << orA << std::endl;
+  std::cout << "sCen: " << sCen << std::endl;
+  std::cout << "cen: " << cen << std::endl;
+  std::cout << "vertex: " << vertex << std::endl;
+  std::cout << "nChanA: " << nChanA << std::endl;
+  std::cout << "nChanC: " << nChanC << std::endl;
+  std::cout << "amplA: " << amplA << std::endl;
+  std::cout << "amplC: " << amplC << std::endl;
+  std::cout << "timeA: " << timeA << std::endl;
+  std::cout << "timeC: " << timeC << std::endl;
+  std::cout << "##########################################" << std::endl;
+  std::cout << std::dec;
+}
+
+void RawEventData::print() const
 {
   std::cout << "==================Raw event data==================" << std::endl;
   std::cout << "##################Header##################" << std::endl;
@@ -42,7 +93,7 @@ void RawEventData::print()
   std::cout << "##########################################" << std::endl;
 }
 
-void RawEventData::printHexEventHeader()
+void RawEventData::printHexEventHeader() const
 {
   std::stringstream ssheader;
   ssheader << std::setfill('0') << std::setw(16) << std::hex << mEventHeader.word[0] << " " << std::setw(16) << mEventHeader.word[1] << "\n       ";
@@ -56,7 +107,7 @@ void RawEventData::printHexEventHeader()
   LOG(DEBUG) << ssheader.str();
 }
 
-void RawEventData::printHexEventData(uint64_t i)
+void RawEventData::printHexEventData(uint64_t i) const
 {
   std::stringstream ssdata;
   ssdata << "D0:0x ";

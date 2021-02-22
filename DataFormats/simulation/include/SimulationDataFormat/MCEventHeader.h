@@ -94,7 +94,7 @@ class MCEventHeader : public FairMCEventHeader
   MCEventStats mEventStats{};
   o2::utils::RootSerializableKeyValueStore mEventInfo;
 
-  ClassDefOverride(MCEventHeader, 2);
+  ClassDefOverride(MCEventHeader, 3);
 
 }; /** class MCEventHeader **/
 

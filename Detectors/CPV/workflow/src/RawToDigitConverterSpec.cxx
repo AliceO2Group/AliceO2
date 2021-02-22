@@ -121,8 +121,11 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       auto& header = rawreader.getRawHeader();
       auto triggerBC = o2::raw::RDHUtils::getTriggerBC(header);
       auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(header);
-      auto ddl = o2::raw::RDHUtils::getFEEID(header);
-      ddl -= mDDL;
+      // auto ddl = o2::raw::RDHUtils::getFEEID(header);
+      auto mod = o2::raw::RDHUtils::getLinkID(header) + 2; //ddl=0,1,2 -> mod=2,3,4
+      // if(ddl != mDDL){
+      //   LOG(ERROR) << "DDL from header "<< ddl << " != configured DDL=" << mDDL;
+      // }
 
       o2::InteractionRecord currentIR(triggerBC, triggerOrbit);
       std::shared_ptr<std::vector<o2::cpv::Digit>> currentDigitContainer;
@@ -134,10 +137,10 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
         currentDigitContainer = found->second;
       }
       //
-      if (ddl > o2::cpv::Geometry::kNDDL) { //only 4 correct DDLs
-        LOG(ERROR) << "DDL=" << ddl;
-        mOutputHWErrors.emplace_back(6, ddl, 0, 0, kHEADER_INVALID); //Add non-existing DDL as DDL 5
-        continue;                                                    //skip STU ddl
+      if (mod > o2::cpv::Geometry::kNMod) { //only 3 correct modules:2,3,4
+        LOG(ERROR) << "module=" << mod << "do not exist";
+        mOutputHWErrors.emplace_back(6, mod, 0, 0, kHEADER_INVALID); //Add non-existing DDL as DDL 5
+        continue;                                                    //skip STU mod
       }
       // use the altro decoder to decode the raw data, and extract the RCU trailer
       o2::cpv::RawDecoder decoder(rawreader);
@@ -146,7 +149,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       if (err != kOK) {
         //TODO handle severe errors
         //TODO: probably careful conversion of decoder errors to Fitter errors?
-        mOutputHWErrors.emplace_back(ddl, 1, 0, 0, err); //assign general header errors to non-existing FEE 16
+        mOutputHWErrors.emplace_back(mod, 1, 0, 0, err); //assign general header errors to non-existing FEE 16
       }
       // Loop over all the channels
       for (uint32_t adch : decoder.getDigits()) {

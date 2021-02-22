@@ -16,8 +16,7 @@
 #ifndef _ALICEO2_DCA_FITTERN_
 #define _ALICEO2_DCA_FITTERN_
 #include <TMath.h>
-#include <Math/SMatrix.h>
-#include <Math/SVector.h>
+#include "MathUtils/Cartesian.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "DetectorsVertexing/HelixHelper.h"
 
@@ -201,7 +200,7 @@ class DCAFitterN
     mat(0, 0) = mat(1, 1) = mTrAux[i].c;
     mat(0, 1) = -mTrAux[i].s;
     mat(1, 0) = mTrAux[i].s;
-    return std::move(mat);
+    return mat;
   }
 
   MatSym3D getTrackCovMatrix(int i, int cand = 0) const // generate covariance matrix of track position, adding fake X error
@@ -212,7 +211,7 @@ class DCAFitterN
     mat(1, 1) = trc.getSigmaY2();
     mat(2, 2) = trc.getSigmaZ2();
     mat(2, 1) = trc.getSigmaZY();
-    return std::move(mat);
+    return mat;
   }
 
   void assign(int) {}
@@ -614,7 +613,7 @@ ROOT::Math::SMatrix<double, 3, 3, ROOT::Math::MatRepSym<double, 3>> DCAFitterN<N
   for (int i = N; i--;) {
     covm += ROOT::Math::Similarity(mUseAbsDCA ? getTrackRotMatrix(i) : mTrCFVT[mOrder[cand]][i], getTrackCovMatrix(i, cand));
   }
-  return std::move(covm);
+  return covm;
 }
 
 //___________________________________________________________________

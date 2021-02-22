@@ -111,11 +111,11 @@ fi
 if [ "$doreco" == "1" ]; then
   echo "Running TPC reco flow"
   #needs TPC digitized data
-  taskwrapper tpcreco.log o2-tpc-reco-workflow $gloOpt --tpc-digit-reader \"--infile tpcdigits.root\" --input-type digits --output-type clusters,tracks  --tpc-track-writer \"--treename events --track-branch-name Tracks --trackmc-branch-name TracksMCTruth\"
+  taskwrapper tpcreco.log o2-tpc-reco-workflow $gloOpt --input-type digits --output-type clusters,tracks
   echo "Return status of tpcreco: $?"
 
   echo "Running ITS reco flow"
-  taskwrapper itsreco.log  o2-its-reco-workflow --trackerCA --async-phase $gloOpt
+  taskwrapper itsreco.log  o2-its-reco-workflow --trackerCA --tracking-mode async $gloOpt
   echo "Return status of itsreco: $?"
 
   # existing checks
@@ -134,7 +134,7 @@ if [ "$doreco" == "1" ]; then
 
   echo "Running ITS-TPC macthing flow"
   #needs results of o2-tpc-reco-workflow, o2-its-reco-workflow and o2-fit-reco-workflow
-  taskwrapper itstpcMatch.log o2-tpcits-match-workflow $gloOpt --tpc-track-reader \"tpctracks.root\" --tpc-native-cluster-reader \"--infile tpc-native-clusters.root\"
+  taskwrapper itstpcMatch.log o2-tpcits-match-workflow $gloOpt
   echo "Return status of itstpcMatch: $?"
 
   echo "Running ITSTPC-TOF macthing flow"

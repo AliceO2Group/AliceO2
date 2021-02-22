@@ -32,10 +32,8 @@ void RawWriter::init()
   std::string rawfilename = mOutputLocation;
   rawfilename += "/cpv.raw";
 
-  for (int ddl = 0; ddl < kNDDL; ddl++) {
-    short crorc = 0, link = ddl;
-    mRawWriter->registerLink(ddl, crorc, link, 0, rawfilename.data());
-  }
+  //ddl,crorc, link,...
+  mRawWriter->registerLink(0, 0, 0, 0, rawfilename.data());
 }
 
 void RawWriter::digitsToRaw(gsl::span<o2::cpv::Digit> digitsbranch, gsl::span<o2::cpv::TriggerRecord> triggerbranch)
@@ -71,84 +69,79 @@ bool RawWriter::processTrigger(const gsl::span<o2::cpv::Digit> digitsbranch, con
 {
 
   //Array used to sort properly digits
-  for (int i = kNDDL; i--;) {
-    for (int j = kNRow; j--;) {
-      for (int k = kNDilogic; k--;) {
-        mPadCharge[i][j][k].clear();
-      }
+  for (int j = kNRow; j--;) {
+    for (int k = kNDilogic; k--;) {
+      mPadCharge[j][k].clear();
     }
   }
 
   for (auto& dig : gsl::span(digitsbranch.data() + trg.getFirstEntry(), trg.getNumberOfObjects())) {
+
     short absId = dig.getAbsId();
-    short ddl, dilogic, row, hwAddr;
-    o2::cpv::Geometry::absIdToHWaddress(absId, ddl, row, dilogic, hwAddr);
+    short mod, dilogic, row, hwAddr;
+    o2::cpv::Geometry::absIdToHWaddress(absId, mod, row, dilogic, hwAddr);
 
     //Convert Amp to ADC counts
     short charge = dig.getAmplitude() / mCalibParams->getGain(absId);
     if (charge > 2047) {
       charge = 2047;
     }
-    mPadCharge[ddl][row][dilogic].emplace_back(charge, hwAddr);
+    mPadCharge[row][dilogic].emplace_back(charge, hwAddr);
   }
 
   //Do through DLLs and fill raw words in proper order
-  for (int ddl = 0; ddl < kNDDL; ddl++) {
-    mPayload.clear();
-    //write empty header, later will be updated ?
+  mPayload.clear();
+  //write empty header, later will be updated ?
 
-    int nwInSegment = 0;
-    int posRowMarker = 0;
-    for (int row = 0; row < kNRow; row++) {
-      //reserve place for row header
-      mPayload.emplace_back(uint32_t(0));
-      posRowMarker = mPayload.size() - 1;
-      nwInSegment++;
-      int nwRow = 0;
-      for (Int_t dilogic = 0; dilogic < kNDilogic; dilogic++) {
-        int nPad = 0;
-        for (padCharge& pc : mPadCharge[ddl][row][dilogic]) {
-          PadWord currentword = {0};
-          currentword.charge = pc.charge;
-          currentword.address = pc.pad;
-          currentword.dilogic = dilogic;
-          currentword.row = row;
-          mPayload.push_back(currentword.mDataWord);
-          nwInSegment++;
-          nPad++;
-          nwRow++;
-        }
-        EoEWord we = {0};
-        we.nword = nPad;
-        we.dilogic = dilogic;
-        we.row = row;
-        we.checkbit = 1;
-        mPayload.push_back(we.mDataWord);
+  int nwInSegment = 0;
+  int posRowMarker = 0;
+  for (int row = 0; row < kNRow; row++) {
+    //reserve place for row header
+    mPayload.emplace_back(uint32_t(0));
+    posRowMarker = mPayload.size() - 1;
+    nwInSegment++;
+    int nwRow = 0;
+    for (Int_t dilogic = 0; dilogic < kNDilogic; dilogic++) {
+      int nPad = 0;
+      for (padCharge& pc : mPadCharge[row][dilogic]) {
+        PadWord currentword = {0};
+        currentword.charge = pc.charge;
+        currentword.address = pc.pad;
+        currentword.dilogic = dilogic;
+        currentword.row = row;
+        mPayload.push_back(currentword.mDataWord);
         nwInSegment++;
+        nPad++;
         nwRow++;
       }
-      if (row % 8 == 7) {
-        SegMarkerWord w = {0};
-        w.row = row;
-        w.nwords = nwInSegment;
-        w.marker = 2736;
-        mPayload.push_back(w.mDataWord);
-        nwInSegment = 0;
-        nwRow++;
-      }
-      //Now we know number of words, update rawMarker
-      RowMarkerWord wr = {0};
-      wr.marker = 13992;
-      wr.nwords = nwRow - 1;
-      mPayload[posRowMarker] = wr.mDataWord;
+      EoEWord we = {0};
+      we.nword = nPad;
+      we.dilogic = dilogic;
+      we.row = row;
+      we.checkbit = 1;
+      mPayload.push_back(we.mDataWord);
+      nwInSegment++;
+      nwRow++;
     }
-
-    // register output data
-    LOG(DEBUG1) << "Adding payload with size " << mPayload.size() << " (" << mPayload.size() / 4 << " ALTRO words)";
-
-    short crorc = 0, link = ddl;
-    mRawWriter->addData(ddl, crorc, link, 0, trg.getBCData(), gsl::span<char>(reinterpret_cast<char*>(mPayload.data()), mPayload.size() * sizeof(uint32_t)));
+    if (row % 2 == 1) {
+      SegMarkerWord w = {0};
+      w.row = row;
+      w.nwords = nwInSegment;
+      w.marker = 2736;
+      mPayload.push_back(w.mDataWord);
+      nwInSegment = 0;
+      nwRow++;
+    }
+    //Now we know number of words, update rawMarker
+    RowMarkerWord wr = {0};
+    wr.marker = 13992;
+    wr.nwords = nwRow - 1;
+    mPayload[posRowMarker] = wr.mDataWord;
   }
+
+  // register output data
+  LOG(DEBUG1) << "Adding payload with size " << mPayload.size() << " (" << mPayload.size() << " ALTRO words)";
+  mRawWriter->addData(0, 0, 0, 0, trg.getBCData(), gsl::span<char>(reinterpret_cast<char*>(mPayload.data()), mPayload.size() * sizeof(uint32_t)));
   return true;
 }
 int RawWriter::carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> data,

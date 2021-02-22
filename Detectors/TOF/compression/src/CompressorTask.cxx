@@ -38,6 +38,7 @@ void CompressorTask<RDH, verbose>::init(InitContext& ic)
   auto decoderVerbose = ic.options().get<bool>("tof-compressor-decoder-verbose");
   auto encoderVerbose = ic.options().get<bool>("tof-compressor-encoder-verbose");
   auto checkerVerbose = ic.options().get<bool>("tof-compressor-checker-verbose");
+  mOutputBufferSize = ic.options().get<bool>("tof-compressor-output-buffer-size");
 
   mCompressor.setDecoderCONET(decoderCONET);
   mCompressor.setDecoderVerbose(decoderVerbose);
@@ -56,13 +57,14 @@ void CompressorTask<RDH, verbose>::run(ProcessingContext& pc)
 {
   LOG(DEBUG) << "Compressor run";
 
-  /** set encoder output buffer **/
-  mCompressor.setEncoderBuffer(mBufferOut);
-  mCompressor.setEncoderBufferSize(mBufferOutSize);
-
   auto device = pc.services().get<o2::framework::RawDeviceService>().device();
   auto outputRoutes = pc.services().get<o2::framework::RawDeviceService>().spec().outputs;
   auto fairMQChannel = outputRoutes.at(0).channel;
+  FairMQParts partsOut;
+
+  /** to store data sorted by subspec id **/
+  std::map<int, std::vector<o2::framework::DataRef>> subspecPartMap;
+  std::map<int, int> subspecBufferSize;
 
   /** loop over inputs routes **/
   for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
@@ -70,42 +72,76 @@ void CompressorTask<RDH, verbose>::run(ProcessingContext& pc)
       continue;
     }
 
-    /** prepare output parts **/
-    FairMQParts parts;
-
     /** loop over input parts **/
     for (auto const& ref : iit) {
 
+      /** store parts in map **/
+      auto headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+      auto subspec = headerIn->subSpecification;
+      subspecPartMap[subspec].push_back(ref);
+
+      /** increase subspec buffer size **/
+      if (!subspecBufferSize.count(subspec)) {
+        subspecBufferSize[subspec] = 0;
+      }
+      subspecBufferSize[subspec] += headerIn->payloadSize;
+    }
+  }
+
+  /** loop over subspecs **/
+  for (auto& subspecPartEntry : subspecPartMap) {
+
+    auto subspec = subspecPartEntry.first;
+    auto parts = subspecPartEntry.second;
+    auto& firstPart = parts.at(0);
+
+    /** use the first part to define output headers **/
+    auto headerOut = *DataRefUtils::getHeader<o2::header::DataHeader*>(firstPart);
+    auto dataProcessingHeaderOut = *DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(firstPart);
+    headerOut.dataDescription = "CRAWDATA";
+    headerOut.payloadSize = 0;
+
+    /** initialise output message **/
+    auto bufferSize = mOutputBufferSize > 0 ? mOutputBufferSize : subspecBufferSize[subspec];
+    auto payloadMessage = device->NewMessage(bufferSize);
+    auto bufferPointer = (char*)payloadMessage->GetData();
+
+    /** loop over subspec parts **/
+    for (const auto& ref : parts) {
+
+      /** input **/
       auto headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       auto dataProcessingHeaderIn = DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(ref);
       auto payloadIn = ref.payload;
       auto payloadInSize = headerIn->payloadSize;
+
+      /** prepare compressor **/
       mCompressor.setDecoderBuffer(payloadIn);
       mCompressor.setDecoderBufferSize(payloadInSize);
+      mCompressor.setEncoderBuffer(bufferPointer);
+      mCompressor.setEncoderBufferSize(bufferSize);
 
       /** run **/
       mCompressor.run();
       auto payloadOutSize = mCompressor.getEncoderByteCounter();
-      auto payloadMessage = device->NewMessage(payloadOutSize);
-      std::memcpy(payloadMessage->GetData(), mBufferOut, payloadOutSize);
-
-      /** output **/
-      auto headerOut = *headerIn;
-      auto dataProcessingHeaderOut = *dataProcessingHeaderIn;
-      headerOut.dataDescription = "CRAWDATA";
-      headerOut.payloadSize = payloadOutSize;
-      o2::header::Stack headerStack{headerOut, dataProcessingHeaderOut};
-      auto headerMessage = device->NewMessage(headerStack.size());
-      std::memcpy(headerMessage->GetData(), headerStack.data(), headerStack.size());
-
-      /** add parts **/
-      parts.AddPart(std::move(headerMessage));
-      parts.AddPart(std::move(payloadMessage));
+      bufferPointer += payloadOutSize;
+      bufferSize -= payloadOutSize;
+      headerOut.payloadSize += payloadOutSize;
     }
 
-    /** send message **/
-    device->Send(parts, fairMQChannel);
+    /** finalise output message **/
+    payloadMessage->SetUsedSize(headerOut.payloadSize);
+    o2::header::Stack headerStack{headerOut, dataProcessingHeaderOut};
+    auto headerMessage = device->NewMessage(headerStack.size());
+    std::memcpy(headerMessage->GetData(), headerStack.data(), headerStack.size());
+
+    /** add parts **/
+    partsOut.AddPart(std::move(headerMessage));
+    partsOut.AddPart(std::move(payloadMessage));
   }
+
+  /** send message **/
+  device->Send(partsOut, fairMQChannel);
 }
 
 template class CompressorTask<o2::header::RAWDataHeaderV4, true>;

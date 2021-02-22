@@ -107,7 +107,7 @@ void fillCollisionAndTrackTable()
   auto t = (TTree*)f.Get("o2sim");
 
   // fetch the tracks (these names are not following any convention!!)
-  auto tpctracks = fetchTracks<o2::tpc::TrackTPC>("tpctracks.root", "events", "Tracks");
+  auto tpctracks = fetchTracks<o2::tpc::TrackTPC>("tpctracks.root", "tpcrec", "TPCTracks");
   auto itstracks = fetchTracks<o2::its::TrackITS>("o2trac_its.root", "o2sim", "ITSTrack");
   auto itstpctracks = fetchTracks<o2::dataformats::TrackTPCITS>("o2match_itstpc.root", "matchTPCITS", "TPCITS");
   LOG(INFO) << "FOUND " << tpctracks->size() << " TPC tracks";
@@ -169,7 +169,7 @@ void fillCollisionAndTrackTable()
             track = &((*tpctracks)[trackindex.getIndex()]);
           } else if (source == o2::dataformats::VtxTrackIndex::Source::ITS) {
             track = &((*itstracks)[trackindex.getIndex()]);
-          } else if (source == o2::dataformats::VtxTrackIndex::Source::TPCITS) {
+          } else if (source == o2::dataformats::VtxTrackIndex::Source::ITSTPC) {
             track = &((*itstpctracks)[trackindex.getIndex()]);
           } else {
             LOG(WARNING) << "Unsupported track source";

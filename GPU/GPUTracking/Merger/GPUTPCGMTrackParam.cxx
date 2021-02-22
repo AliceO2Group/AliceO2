@@ -228,7 +228,7 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* GPUrestrict() merger, 
 
       if (err == 0 && changeDirection) {
         const float mirrordY = prop.GetMirroredYTrack();
-        CADEBUG(printf(" -- MiroredY: %f --> %f", mP[0], mirrordY));
+        CADEBUG(printf(" -- MirroredY: %f --> %f", mP[0], mirrordY));
         if (CAMath::Abs(yy - mP[0]) > CAMath::Abs(yy - mirrordY)) {
           CADEBUG(printf(" - Mirroring!!!"));
           if (allowModification) {
@@ -341,25 +341,26 @@ GPUd() bool GPUTPCGMTrackParam::Fit(const GPUTPCGMMerger* GPUrestrict() merger, 
   return (true);
 }
 
-GPUd() void GPUTPCGMTrackParam::MoveToReference(GPUTPCGMPropagator& prop, const GPUParam& param, float& Alpha)
+GPUdni() void GPUTPCGMTrackParam::MoveToReference(GPUTPCGMPropagator& prop, const GPUParam& param, float& Alpha)
 {
   if (param.rec.TrackReferenceX <= 500) {
-    for (int k = 0; k < 3; k++) // max 3 attempts
-    {
-      int err = prop.PropagateToXAlpha(param.rec.TrackReferenceX, Alpha, 0);
-      ConstrainSinPhi();
-      if (CAMath::Abs(mP[0]) <= mX * CAMath::Tan(kSectAngle / 2.f)) {
-        break;
-      }
+    GPUTPCGMTrackParam save = *this;
+    float saveAlpha = Alpha;
+    for (int attempt = 0; attempt < 3; attempt++) {
       float dAngle = floor(CAMath::ATan2(mP[0], mX) / kDeg2Rad / 20.f + 0.5f) * kSectAngle;
       Alpha += dAngle;
-      if (err || k == 2) {
-        Rotate(dAngle);
-        ConstrainSinPhi();
+      if (prop.PropagateToXAlpha(param.rec.TrackReferenceX, Alpha, 0)) {
         break;
       }
+      ConstrainSinPhi();
+      if (CAMath::Abs(mP[0]) <= mX * CAMath::Tan(kSectAngle / 2.f)) {
+        return;
+      }
     }
-  } else if (CAMath::Abs(mP[0]) > mX * CAMath::Tan(kSectAngle / 2.f)) {
+    *this = save;
+    Alpha = saveAlpha;
+  }
+  if (CAMath::Abs(mP[0]) > mX * CAMath::Tan(kSectAngle / 2.f)) {
     float dAngle = floor(CAMath::ATan2(mP[0], mX) / kDeg2Rad / 20.f + 0.5f) * kSectAngle;
     Rotate(dAngle);
     ConstrainSinPhi();
@@ -527,8 +528,7 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict
     const unsigned int hitLst = CA_TEXTURE_FETCH(calink, gAliTexRefu, firsthit, mybin + ny + 1);
     for (unsigned int ih = hitFst; ih < hitLst; ih++) {
       int id = idOffset + ids[ih];
-      GPUAtomic(unsigned int) * GPUrestrict() const weight = weights + id;
-      ;
+      GPUAtomic(unsigned int)* const weight = weights + id;
 #if !defined(GPUCA_NO_ATOMIC_PRECHECK) && GPUCA_NO_ATOMIC_PRECHECK < 1
       if (myWeight <= *weight) {
         continue;
@@ -889,7 +889,7 @@ GPUd() bool GPUTPCGMTrackParam::CheckNumericalQuality(float overrideCovYY) const
   //* Check that the track parameters and covariance matrix are reasonable
   bool ok = CAMath::Finite(mX) && CAMath::Finite(mChi2);
   CADEBUG(
-    printf("OK %d - ", (int)ok); for (int i = 0; i < 5; i++) { printf("%f ", mP[i]); } printf(" - "); for (int i = 0; i < 15; i++) { printf("%f ", mC[i]); } printf("\n"));
+    printf("OK %d - %f - ", (int)ok, mX); for (int i = 0; i < 5; i++) { printf("%f ", mP[i]); } printf(" - "); for (int i = 0; i < 15; i++) { printf("%f ", mC[i]); } printf("\n"));
   const float* c = mC;
   for (int i = 0; i < 15; i++) {
     ok = ok && CAMath::Finite(c[i]);
@@ -1007,6 +1007,8 @@ GPUd() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() tr
     t.QPt() = 1.e-4f;
   }
 
+  CADEBUG(if (t.GetX() > 250) { printf("ERROR, Track %d at impossible X %f, Pt %f, Looper %d\n", iTrk, t.GetX(), CAMath::Abs(1.f / t.QPt()), (int)merger->OutputTracks()[iTrk].Looper()); });
+
   track.SetOK(ok);
   track.SetNClustersFitted(nTrackHits);
   track.Param() = t;
@@ -1033,7 +1035,7 @@ GPUd() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() tr
   }
 }
 
-GPUd() bool GPUTPCGMTrackParam::Rotate(float alpha)
+GPUd() void GPUTPCGMTrackParam::Rotate(float alpha)
 {
   float cA, sA;
   CAMath::SinCos(alpha, sA, cA);
@@ -1068,5 +1070,4 @@ GPUd() bool GPUTPCGMTrackParam::Rotate(float alpha)
     mC[10] = -mC[10];
     mC[11] = -mC[11];
   }
-  return true;
 }

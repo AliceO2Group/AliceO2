@@ -20,6 +20,8 @@
 #pragma link C++ class vector < o2::fdd::ChannelData> + ;
 #pragma link C++ class o2::fdd::Triggers + ;
 #pragma link C++ class vector < o2::fdd::Triggers> + ;
+#pragma link C++ class o2::fdd::DetTrigInput + ;
+#pragma link C++ class vector < o2::fdd::DetTrigInput> + ;
 
 #pragma link C++ class o2::fdd::MCLabel + ;
 #pragma link C++ class vector < o2::fdd::MCLabel> + ;

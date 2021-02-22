@@ -26,6 +26,7 @@
 #endif
 
 #include <memory>
+#include <vector>
 #include "GPUCommonDef.h"
 #include "GPUDataTypes.h"
 namespace o2::tpc
@@ -40,13 +41,13 @@ class GPUReconstruction;
 class GPUChainTracking;
 struct GPUO2InterfaceConfiguration;
 struct GPUInterfaceOutputs;
-struct GPUOutputControl;
+struct GPUTrackingOutputs;
 
-class GPUTPCO2Interface
+class GPUO2Interface
 {
  public:
-  GPUTPCO2Interface();
-  ~GPUTPCO2Interface();
+  GPUO2Interface();
+  ~GPUO2Interface();
 
   int Initialize(const GPUO2InterfaceConfiguration& config);
   void Deinitialize();
@@ -63,19 +64,16 @@ class GPUTPCO2Interface
   const GPUO2InterfaceConfiguration& getConfig() const { return *mConfig; }
 
  private:
-  GPUTPCO2Interface(const GPUTPCO2Interface&);
-  GPUTPCO2Interface& operator=(const GPUTPCO2Interface&);
+  GPUO2Interface(const GPUO2Interface&);
+  GPUO2Interface& operator=(const GPUO2Interface&);
 
   bool mInitialized = false;
   bool mContinuous = false;
 
-  std::unique_ptr<GPUReconstruction> mRec;
-  GPUChainTracking* mChain = nullptr;
-  std::unique_ptr<GPUO2InterfaceConfiguration> mConfig;
-  std::unique_ptr<GPUOutputControl> mOutputCompressedClusters;
-  std::unique_ptr<GPUOutputControl> mOutputClustersNative;
-  std::unique_ptr<GPUOutputControl> mOutputTPCTracks;
-  std::unique_ptr<GPUOutputControl> mOutputTPCClusterLabels;
+  std::unique_ptr<GPUReconstruction> mRec;              //!
+  GPUChainTracking* mChain = nullptr;                   //!
+  std::unique_ptr<GPUO2InterfaceConfiguration> mConfig; //!
+  std::unique_ptr<GPUTrackingOutputs> mOutputRegions;   //!
 };
 } // namespace o2::gpu
 

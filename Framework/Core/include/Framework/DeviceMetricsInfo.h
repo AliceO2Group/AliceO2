@@ -43,7 +43,7 @@ struct MetricInfo {
 // We keep only fixed lenght strings for metrics, as in the end this is not
 // really needed. They should be nevertheless 0 terminated.
 struct StringMetric {
-  static constexpr ptrdiff_t MAX_SIZE = 128;
+  static constexpr ptrdiff_t MAX_SIZE = 512;
   char data[MAX_SIZE];
 };
 

@@ -21,13 +21,17 @@ namespace o2
 namespace fdd
 {
 
-framework::WorkflowSpec getRecoWorkflow(bool useMC)
+framework::WorkflowSpec getRecoWorkflow(bool useMC, bool disableRootInp, bool disableRootOut)
 {
   framework::WorkflowSpec specs;
 
-  specs.emplace_back(o2::fdd::getFDDRecPointWriterSpec(useMC));
+  if (!disableRootInp) {
+    specs.emplace_back(o2::fdd::getFDDRecPointWriterSpec(useMC));
+  }
   specs.emplace_back(o2::fdd::getFDDReconstructorSpec(useMC));
-  specs.emplace_back(o2::fdd::getFDDDigitReaderSpec(useMC));
+  if (!disableRootOut) {
+    specs.emplace_back(o2::fdd::getFDDDigitReaderSpec(useMC));
+  }
 
   return specs;
 }

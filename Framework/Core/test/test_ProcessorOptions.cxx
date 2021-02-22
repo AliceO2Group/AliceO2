@@ -10,6 +10,7 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
+#include "Framework/Logger.h"
 
 #include <memory>
 

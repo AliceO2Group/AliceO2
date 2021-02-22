@@ -18,6 +18,7 @@
 #include "TPCBase/ParameterElectronics.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/Defs.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 
 #include <fairlogger/Logger.h>
 #include <set>

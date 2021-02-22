@@ -3,13 +3,13 @@
 MYDIR="$(dirname $(readlink -f $0))"
 source $MYDIR/setenv.sh
 
-if [ "0$ALIENVLVL" == "0" ]; then
+if [ "0$O2_ROOT" == "0" ]; then
   eval "`alienv shell-helper`"
   alienv --no-refresh load O2/latest
 fi
 
 # Set general arguments
-ARGS_ALL="--session default --severity $SEVERITY --shm-segment-id $NUMAID --shm-segment-size $SHMSIZE"
+ARGS_ALL="--session default --severity $SEVERITY --shm-segment-id $NUMAID --shm-segment-size $SHMSIZE --driver-client-backend ws://"
 if [ $EXTINPUT == 1 ] || [ $NUMAGPUIDS == 1 ]; then
   ARGS_ALL+=" --no-cleanup"
 fi
@@ -21,6 +21,7 @@ if [ $NORATELOG == 1 ]; then
 fi
 
 # Set some individual workflow arguments depending on configuration
+CTF_DETECTORS=ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS,CPV
 TPC_INPUT=zsraw
 TPC_OUTPUT=tracks,clusters,disable-writer
 TPC_CONFIG=
@@ -34,7 +35,7 @@ if [ $SYNCMODE == 1 ]; then
   TPC_CONFIG_KEY+=" GPU_global.synchronousProcessing=1;"
 fi
 if [ $CTFINPUT == 1 ]; then
-  ITS_CONFIG+=" --async-phase"
+  ITS_CONFIG+=" --tracking-mode async"
 else
   ITS_CONFIG+=" --entropy-encoding"
   TOF_OUTPUT+=",ctf"
@@ -79,7 +80,7 @@ fi
 if [ $CTFINPUT == 1 ]; then
   TPC_INPUT=compressed-clusters-ctf
   TOF_INPUT=digits
-  WORKFLOW="o2-ctf-reader-workflow --ctf-input o2_ctf_0000000000.root $ARGS_ALL | "
+  WORKFLOW="o2-ctf-reader-workflow --ctf-input o2_ctf_0000000000.root --onlyDet $CTF_DETECTORS $ARGS_ALL | "
 elif [ $EXTINPUT == 1 ]; then
   WORKFLOW="o2-dpl-raw-proxy $ARGS_ALL --dataspec \"B:TPC/RAWDATA;C:ITS/RAWDATA;D:TOF/RAWDATA;D:MFT/RAWDATA;E:FT0/RAWDATA;F:MID/RAWDATA;G:EMC/RAWDATA;H:PHS/RAWDATA;I:CPV/RAWDATA\" --channel-config \"name=readout-proxy,type=pull,method=connect,address=ipc://@stfb-to-dpl,transport=shmem,rateLogging=0\" | "
 else
@@ -104,6 +105,7 @@ WORKFLOW+="o2-tof-reco-workflow $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF
 
 # Workflows disabled in sync mode
 if [ $SYNCMODE == 0 ]; then
+  WORKFLOW+="o2-tof-matcher-tpc $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=$NHBPERTF\" --disable-root-input --disable-root-output $DISABLE_MC | "  
   WORKFLOW+="o2-mid-reco-workflow $ARGS_ALL --disable-root-output $DISABLE_MC | "
   WORKFLOW+="o2-mft-reco-workflow $ARGS_ALL --clusters-from-upstream $DISABLE_MC --disable-root-output --configKeyValues \"HBFUtils.nHBFPerTF=128;\" | "
   WORKFLOW+="o2-primary-vertexing-workflow $ARGS_ALL $DISABLE_MC --disable-root-input --disable-root-output --validate-with-ft0 | "
@@ -131,9 +133,9 @@ if [ $CTFINPUT == 0 ]; then
   if [ $CREATECTFDICT == 1 ] && [ $SAVECTF == 1 ]; then CTF_OUTPUT_TYPE="both"; fi
   if [ $CREATECTFDICT == 1 ] && [ $SAVECTF == 0 ]; then CTF_OUTPUT_TYPE="dict"; fi
   if [ $CREATECTFDICT == 0 ] && [ $SAVECTF == 1 ]; then CTF_OUTPUT_TYPE="ctf"; fi
-  CMD_CTF="o2-ctf-writer-workflow $ARGS_ALL --output-type $CTF_OUTPUT_TYPE --onlyDet ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS,CPV"
-  if [ $CREATECTFDICT == 1 ] && [ $; then
-    CMD_CTF+=" --save-dict-after 1"
+  CMD_CTF="o2-ctf-writer-workflow $ARGS_ALL --output-type $CTF_OUTPUT_TYPE --onlyDet $CTF_DETECTORS"
+  if [ $CREATECTFDICT == 1 ] && [ $EXTINPUT == 1 ]; then
+    CMD_CTF+=" --save-dict-after $NTIMEFRAMES"
   fi
   WORKFLOW+="$CMD_CTF | "
 fi

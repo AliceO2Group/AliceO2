@@ -246,7 +246,7 @@ struct ExpirationHandlerHelpers {
 /// FIXME: support shared memory
 std::string DeviceSpecHelpers::inputChannel2String(const InputChannelSpec& channel)
 {
-  return fmt::format("{}type={},method={},address={},rateLogging={},recvBufferSize={},sendBufferSize={}",
+  return fmt::format("{}type={},method={},address={},rateLogging={},rcvBufSize={},sndBufSize={}",
                      channel.name.empty() ? "" : "name=" + channel.name + ",",
                      ChannelSpecHelpers::typeAsString(channel.type),
                      ChannelSpecHelpers::methodAsString(channel.method),
@@ -258,7 +258,7 @@ std::string DeviceSpecHelpers::inputChannel2String(const InputChannelSpec& chann
 
 std::string DeviceSpecHelpers::outputChannel2String(const OutputChannelSpec& channel)
 {
-  return fmt::format("{}type={},method={},address={},rateLogging={},recvBufferSize={},sendBufferSize={}",
+  return fmt::format("{}type={},method={},address={},rateLogging={},rcvBufSize={},sndBufSize={}",
                      channel.name.empty() ? "" : "name=" + channel.name + ",",
                      ChannelSpecHelpers::typeAsString(channel.type),
                      ChannelSpecHelpers::methodAsString(channel.method),
@@ -852,6 +852,67 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
   }
 }
 
+void DeviceSpecHelpers::reworkHomogeneousOption(std::vector<DataProcessorInfo>& infos, char const* name, char const* defaultValue)
+{
+  std::string finalValue;
+  for (auto& info : infos) {
+    auto it = std::find(info.cmdLineArgs.begin(), info.cmdLineArgs.end(), name);
+    if (it == info.cmdLineArgs.end()) {
+      continue;
+    }
+    auto value = it + 1;
+    if (value == info.cmdLineArgs.end()) {
+      throw runtime_error_f("%s requires an argument", name);
+    }
+    if (!finalValue.empty() && finalValue != *value) {
+      throw runtime_error_f("Found incompatible %s values: %s amd %s", name, finalValue.c_str(), value->c_str());
+    }
+    finalValue = *value;
+    info.cmdLineArgs.erase(it, it + 2);
+  }
+  if (finalValue.empty() && defaultValue == nullptr) {
+    return;
+  }
+  if (finalValue.empty()) {
+    finalValue = defaultValue;
+  }
+  for (auto& info : infos) {
+    info.cmdLineArgs.push_back(name);
+    info.cmdLineArgs.push_back(finalValue);
+  }
+}
+
+void DeviceSpecHelpers::reworkIntegerOption(std::vector<DataProcessorInfo>& infos, char const* name, std::function<long long()> defaultValueCallback, long long startValue, std::function<long long(long long, long long)> bestValue)
+{
+  int64_t finalValue = startValue;
+  bool wasModified = false;
+  for (auto& info : infos) {
+    auto it = std::find(info.cmdLineArgs.begin(), info.cmdLineArgs.end(), name);
+    if (it == info.cmdLineArgs.end()) {
+      continue;
+    }
+    auto valueS = it + 1;
+    if (valueS == info.cmdLineArgs.end()) {
+      throw runtime_error_f("%s requires an integer argument", name);
+    }
+    char* err = nullptr;
+    long long value = strtoll(valueS->c_str(), &err, 10);
+    finalValue = bestValue(value, finalValue);
+    wasModified = true;
+    info.cmdLineArgs.erase(it, it + 2);
+  }
+  if (!wasModified && defaultValueCallback == nullptr) {
+    return;
+  }
+  if (!wasModified) {
+    finalValue = defaultValueCallback();
+  }
+  for (auto& info : infos) {
+    info.cmdLineArgs.push_back(name);
+    info.cmdLineArgs.push_back(std::to_string(finalValue));
+  }
+}
+
 void DeviceSpecHelpers::reworkShmSegmentSize(std::vector<DataProcessorInfo>& infos)
 {
   int64_t segmentSize = 0;
@@ -900,7 +961,7 @@ void split(const std::string& str, Container& cont)
 }
 } // namespace
 
-void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
+void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped, unsigned short driverPort,
                                          std::vector<DataProcessorInfo> const& processorInfos,
                                          std::vector<DeviceSpec> const& deviceSpecs,
                                          std::vector<DeviceExecution>& deviceExecutions,
@@ -923,20 +984,16 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     /// Lookup the executable name in the metadata associated with the workflow.
     /// If we find it, we rewrite the command line arguments to be processed
     /// so that they look like the ones passed to the merged workflow.
-    for (auto& processorInfo : processorInfos) {
-      if (processorInfo.name == spec.id) {
-        argc = processorInfo.cmdLineArgs.size() + 1;
-        argv = (char**)malloc(sizeof(char**) * (argc + 1));
-        argv[0] = strdup(processorInfo.executable.data());
-        for (size_t ai = 0; ai < processorInfo.cmdLineArgs.size(); ++ai) {
-          auto& arg = processorInfo.cmdLineArgs[ai];
-          argv[ai + 1] = strdup(arg.data());
-        }
-        argv[argc] = nullptr;
-        workflowOptions = processorInfo.workflowOptions;
-        break;
-      }
+    auto pi = std::find_if(processorInfos.begin(), processorInfos.end(), [&](auto const& x) { return x.name == spec.id; });
+    argc = pi->cmdLineArgs.size() + 1;
+    argv = (char**)malloc(sizeof(char**) * (argc + 1));
+    argv[0] = strdup(pi->executable.data());
+    for (size_t ai = 0; ai < pi->cmdLineArgs.size(); ++ai) {
+      auto const& arg = pi->cmdLineArgs[ai];
+      argv[ai + 1] = strdup(arg.data());
     }
+    argv[argc] = nullptr;
+    workflowOptions = pi->workflowOptions;
 
     // We duplicate the list of options, filtering only those
     // which are actually relevant for the given device. The additional
@@ -980,6 +1037,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     // has option --session been specified on the command line?
     bool haveSessionArg = false;
     using FilterFunctionT = std::function<void(decltype(argc), decltype(argv), decltype(od))>;
+    bool useDefaultWS = false;
 
     // the filter function will forward command line arguments based on the option
     // definition passed to it. All options of the program option definition will be forwarded
@@ -1001,6 +1059,17 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         split(environment, tmpEnv);
       }
 
+      /// Add libSegFault to the stack if provided.
+      if (varmap.count("stacktrace-on-signal") && varmap["stacktrace-on-signal"].as<std::string>() != "none") {
+        char const* preload = getenv("LD_PRELOAD");
+        if (preload == nullptr) {
+          tmpEnv.push_back("LD_PRELOAD=libSegFault.so");
+        } else {
+          tmpEnv.push_back(fmt::format("LD_PRELOAD=\"{}:libSegFault.so\"", preload));
+        }
+        tmpEnv.push_back(fmt::format("SEGFAULT_SIGNALS=\"{}\"", varmap["stacktrace-on-signal"].as<std::string>()));
+      }
+
       // options can be grouped per processor spec, the group is entered by
       // the option created from the actual processor spec name
       // if specified, the following string is interpreted as a sequence
@@ -1017,6 +1086,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         realOdesc.add_options()("child-driver", bpo::value<std::string>());
         realOdesc.add_options()("rate", bpo::value<std::string>());
         realOdesc.add_options()("environment", bpo::value<std::string>());
+        realOdesc.add_options()("stacktrace-on-signal", bpo::value<std::string>());
         realOdesc.add_options()("post-fork-command", bpo::value<std::string>());
         realOdesc.add_options()("shm-segment-size", bpo::value<std::string>());
         realOdesc.add_options()("shm-mlock-segment", bpo::value<std::string>());
@@ -1040,6 +1110,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
       }
 
       haveSessionArg = haveSessionArg || varmap.count("session") != 0;
+      useDefaultWS = useDefaultWS || (varmap.count("driver-client-backend") != 0) && varmap["driver-client-backend"].as<std::string>() == "ws://";
 
       for (const auto varit : varmap) {
         // find the option belonging to key, add if the option has been parsed
@@ -1090,6 +1161,16 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     if (!haveSessionArg) {
       tmpArgs.emplace_back(std::string("--session"));
       tmpArgs.emplace_back("dpl_" + uniqueWorkflowId);
+    }
+    // In case we use only ws://, we need to expand the address
+    // with the correct port.
+    if (useDefaultWS) {
+      auto it = std::find(tmpArgs.begin(), tmpArgs.end(), "--driver-client-backend");
+      if ((it != tmpArgs.end()) && (it + 1 != tmpArgs.end())) {
+        tmpArgs.erase(it, it + 2);
+      }
+      tmpArgs.emplace_back(std::string("--driver-client-backend"));
+      tmpArgs.emplace_back("ws://0.0.0.0:" + std::to_string(driverPort));
     }
 
     if (spec.resourceMonitoringInterval > 0) {
@@ -1142,9 +1223,12 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("shm-throw-bad-alloc", bpo::value<std::string>()->default_value("true"), "throw if insufficient shm memory")                             //
     ("shm-segment-id", bpo::value<std::string>()->default_value("0"), "shm segment id")                                                       //
     ("environment", bpo::value<std::string>(), "comma separated list of environment variables to set for the device")                         //
+    ("stacktrace-on-signal", bpo::value<std::string>()->default_value("all"),                                                                 //
+     "dump stacktrace on specified signal(s) (any of `all`, `segv`, `bus`, `ill`, `abrt`, `fpe`, `sys`.)")                                    //
     ("post-fork-command", bpo::value<std::string>(), "post fork command to execute (e.g. numactl {pid}")                                      //
     ("session", bpo::value<std::string>(), "unique label for the shared memory session")                                                      //
     ("configuration,cfg", bpo::value<std::string>(), "configuration connection string")                                                       //
+    ("driver-client-backend", bpo::value<std::string>(), "driver connection string")                                                          //
     ("monitoring-backend", bpo::value<std::string>(), "monitoring connection string")                                                         //
     ("infologger-mode", bpo::value<std::string>(), "INFOLOGGER_MODE override")                                                                //
     ("infologger-severity", bpo::value<std::string>(), "minimun FairLogger severity which goes to info logger")                               //

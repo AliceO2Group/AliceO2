@@ -58,8 +58,8 @@ class CalibParams
   bool setGain(TH2* h, short module);
 
  private:
-  static constexpr unsigned short NCHANNELS = 30720; ///< Number of channels starting from 1
-  std::array<float, NCHANNELS> mGainCalib;           ///< Container for the gain calibration coefficients
+  static constexpr short NCHANNELS = 28673; ///< Number of channels starting from 1
+  std::array<float, NCHANNELS> mGainCalib;  ///< Container for the gain calibration coefficients
   ClassDefNV(CalibParams, 1);
 };
 

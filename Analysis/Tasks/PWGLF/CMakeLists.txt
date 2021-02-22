@@ -18,23 +18,53 @@ o2_add_dpl_workflow(spectra-tof
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
 
+o2_add_dpl_workflow(spectra-tof-split
+                    SOURCES spectraTOF_split.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(spectra-tof-tiny
+                    SOURCES spectraTOF_tiny.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
+                    COMPONENT_NAME Analysis)
+
 o2_add_dpl_workflow(spectra-tpc
                     SOURCES spectraTPC.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(nuclei-spectra
-                    SOURCES NucleiSpectraTask.cxx
+o2_add_dpl_workflow(spectra-tpc-split
+                    SOURCES spectraTPC_split.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(lambdakzeroproducer
-                    SOURCES lambdakzeroproducer
+o2_add_dpl_workflow(spectra-tpc-split-pikapr
+                    SOURCES spectraTPCsplitPiKaPr.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(spectra-tpc-tiny
+                    SOURCES spectraTPC_tiny.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(spectra-tpc-tiny-pikapr
+                    SOURCES spectraTPCtinyPiKaPr.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(nuclei-spectra
+                    SOURCES NucleiSpectraTask.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(lambdakzerobuilder
+                    SOURCES lambdakzerobuilder
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(lambdakzeroconsumer
-                    SOURCES lambdakzeroconsumer
+o2_add_dpl_workflow(lambdakzeroanalysis
+                    SOURCES lambdakzeroanalysis
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
@@ -43,13 +73,13 @@ o2_add_dpl_workflow(lambdakzerofinder
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(cascadeproducer
-                    SOURCES cascadeproducer
+o2_add_dpl_workflow(cascadebuilder
+                    SOURCES cascadebuilder
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(cascadeconsumer
-                    SOURCES cascadeconsumer
+o2_add_dpl_workflow(cascadeanalysis
+                    SOURCES cascadeanalysis
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 

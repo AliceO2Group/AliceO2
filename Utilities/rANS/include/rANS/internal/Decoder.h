@@ -49,21 +49,21 @@ class Decoder
 
   // Initializes a rANS decoder.
   // Unlike the encoder, the decoder works forwards as you'd expect.
-  template <typename Stream_IT>
+  template <typename Stream_IT, std::enable_if_t<isCompatibleIter_v<Stream_T, Stream_IT>, bool> = true>
   Stream_IT init(Stream_IT iter);
 
   // Returns the current cumulative frequency (map it to a symbol yourself!)
   uint32_t get(uint32_t scale_bits);
 
   // Equivalent to Rans32DecAdvance that takes a symbol.
-  template <typename Stream_IT>
+  template <typename Stream_IT, std::enable_if_t<isCompatibleIter_v<Stream_T, Stream_IT>, bool> = true>
   Stream_IT advanceSymbol(Stream_IT iter, const DecoderSymbol& sym, uint32_t scale_bits);
 
  private:
   State_T mState;
 
   // Renormalize.
-  template <typename Stream_IT>
+  template <typename Stream_IT, std::enable_if_t<isCompatibleIter_v<Stream_T, Stream_IT>, bool> = true>
   std::tuple<State_T, Stream_IT> renorm(State_T x, Stream_IT iter);
 
   // L ('l' in the paper) is the lower bound of our normalization interval.
@@ -79,10 +79,9 @@ template <typename State_T, typename Stream_T>
 Decoder<State_T, Stream_T>::Decoder() : mState(0){};
 
 template <typename State_T, typename Stream_T>
-template <typename Stream_IT>
+template <typename Stream_IT, std::enable_if_t<isCompatibleIter_v<Stream_T, Stream_IT>, bool>>
 Stream_IT Decoder<State_T, Stream_T>::init(Stream_IT iter)
 {
-  static_assert(std::is_same<typename std::iterator_traits<Stream_IT>::value_type, Stream_T>::value);
 
   State_T x = 0;
   Stream_IT streamPos = iter;
@@ -116,7 +115,7 @@ uint32_t Decoder<State_T, Stream_T>::get(uint32_t scale_bits)
 };
 
 template <typename State_T, typename Stream_T>
-template <typename Stream_IT>
+template <typename Stream_IT, std::enable_if_t<isCompatibleIter_v<Stream_T, Stream_IT>, bool>>
 Stream_IT Decoder<State_T, Stream_T>::advanceSymbol(Stream_IT iter, const DecoderSymbol& sym, uint32_t scale_bits)
 {
   static_assert(std::is_same<typename std::iterator_traits<Stream_IT>::value_type, Stream_T>::value);
@@ -134,7 +133,7 @@ Stream_IT Decoder<State_T, Stream_T>::advanceSymbol(Stream_IT iter, const Decode
 };
 
 template <typename State_T, typename Stream_T>
-template <typename Stream_IT>
+template <typename Stream_IT, std::enable_if_t<isCompatibleIter_v<Stream_T, Stream_IT>, bool>>
 inline std::tuple<State_T, Stream_IT> Decoder<State_T, Stream_T>::renorm(State_T x, Stream_IT iter)
 {
   static_assert(std::is_same<typename std::iterator_traits<Stream_IT>::value_type, Stream_T>::value);

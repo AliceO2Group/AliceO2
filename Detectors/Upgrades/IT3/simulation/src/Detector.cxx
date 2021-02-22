@@ -161,7 +161,10 @@ void Detector::configITS(Detector* its)
     its->defineInnerLayerITS3(idLayer, layerData[0], layerData[1], SensorLayerThickness, 0, 0);
     ++idLayer;
   }
-  its->createOuterBarrel(kTRUE);
+
+  // Redefine Wrapper Volume 0 using information on IB radii
+  static constexpr float safety = 0.5; // Educated guess, may be improved
+  its->defineWrapperVolume(0, tdr5data[0][0] - safety, tdr5data[3][0] + safety, wrpZSpan[0]);
 }
 
 // Detector::Detector(Bool_t active)
@@ -621,6 +624,10 @@ void Detector::createMaterials()
   o2::base::Detector::Mixture(32, "ROHACELL$", aRohac, zRohac, dRohac, -4, wRohac);
   o2::base::Detector::Medium(32, "ROHACELL$", 32, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 
+  // ERG Duocel
+  o2::base::Detector::Material(33, "ERGDUOCEL$", 12.0107, 6, 0.06, 999, 999);
+  o2::base::Detector::Medium(33, "ERGDUOCEL$", 33, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+
   // PEEK CF30
   o2::base::Detector::Mixture(19, "PEEKCF30$", aPEEK, zPEEK, dPEEK, -3, wPEEK);
   o2::base::Detector::Medium(19, "PEEKCF30$", 19, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
@@ -972,9 +979,9 @@ void Detector::constructDetectorGeometry()
   // Create the wrapper volumes
   TGeoVolume** wrapVols = nullptr;
 
-  if (sNumberOfWrapperVolumes && mCreateOuterBarrel) {
+  if (sNumberOfWrapperVolumes) {
     wrapVols = new TGeoVolume*[sNumberOfWrapperVolumes];
-    for (int id = 1; id < sNumberOfWrapperVolumes; id++) {
+    for (int id = 0; id < sNumberOfWrapperVolumes; id++) {
       wrapVols[id] = createWrapperVolume(id);
       vITSV->AddNode(wrapVols[id], 1, nullptr);
     }
@@ -1025,24 +1032,23 @@ void Detector::constructDetectorGeometry()
       mGeometry[j]->setSensorThick(mDetectorThickness[j]);
     }
 
-    if (mCreateOuterBarrel && j >= mNumberOfInnerLayers) {
-      for (int iw = 0; iw < sNumberOfWrapperVolumes; iw++) {
-        if (mLayerRadii[j] > mWrapperMinRadius[iw] && mLayerRadii[j] < mWrapperMaxRadius[iw]) {
-          LOG(DEBUG) << "Will embed layer " << j << " in wrapper volume " << iw;
+    for (int iw = 0; iw < sNumberOfWrapperVolumes; iw++) {
+      if (mLayerRadii[j] > mWrapperMinRadius[iw] && mLayerRadii[j] < mWrapperMaxRadius[iw]) {
+        LOG(DEBUG) << "Will embed layer " << j << " in wrapper volume " << iw;
 
-          dest = wrapVols[iw];
-          mWrapperLayerId[j] = iw;
-          break;
-        }
+        dest = wrapVols[iw];
+        mWrapperLayerId[j] = iw;
+        break;
       }
     }
+
     mGeometry[j]->createLayer(dest);
   }
 
   // Finally create the services
   mServicesGeometry = new V3Services();
 
-  //  createInnerBarrelServices(wrapVols[0]);
+  createInnerBarrelServices(wrapVols[0]);
   //  createMiddlBarrelServices(wrapVols[1]);
   //  createOuterBarrelServices(wrapVols[2]);
   //  createOuterBarrelSupports(vITSV);
@@ -1065,26 +1071,15 @@ void Detector::createInnerBarrelServices(TGeoVolume* motherVolume)
   //
   // Return:
   //
-  // Created:      15 May 2019  Mario Sitta
-  //               (partially based on P.Namwongsa implementation in AliRoot)
-  // Updated:      19 Jun 2019  Mario Sitta  IB Side A added
-  // Updated:      21 Oct 2019  Mario Sitta  CYSS added
+  // Created:      11 Feb 2021  Mario Sitta
+  //               (Version rewritten for ITS3 geometry)
   //
 
-  // Create the End Wheels on Side A
-  TGeoVolume* endWheelsA = mServicesGeometry->createIBEndWheelsSideA();
+  // Create and insert the IB Layer supports (cylinder and foam wedges)
+  TGeoVolume* ibSupports = mServicesGeometry->createInnerBarrelSupports();
 
-  motherVolume->AddNode(endWheelsA, 1, nullptr);
-
-  // Create the End Wheels on Side C
-  TGeoVolume* endWheelsC = mServicesGeometry->createIBEndWheelsSideC();
-
-  motherVolume->AddNode(endWheelsC, 1, nullptr);
-
-  // Create the CYSS Assembly (i.e. the supporting half cylinder and cone)
-  TGeoVolume* cyss = mServicesGeometry->createCYSSAssembly();
-
-  motherVolume->AddNode(cyss, 1, nullptr);
+  motherVolume->AddNode(ibSupports, 1, nullptr);
+  motherVolume->AddNode(ibSupports, 2, new TGeoRotation("", 180, 0, 0));
 }
 
 void Detector::createMiddlBarrelServices(TGeoVolume* motherVolume)
@@ -1233,11 +1228,7 @@ void Detector::addAlignableVolumesLayer(int lr, TString& parent, Int_t& lastUID)
   TString wrpV =
     mWrapperLayerId[lr] != -1 ? Form("%s%d_1", GeometryTGeo::getITSWrapVolPattern(), mWrapperLayerId[lr]) : "";
   TString path;
-  if (mCreateOuterBarrel && (lr >= mNumberOfInnerLayers)) {
-    path = Form("%s/%s/%s%d_1", parent.Data(), wrpV.Data(), GeometryTGeo::getITSLayerPattern(), lr);
-  } else {
-    path = Form("%s/%s%d_1", parent.Data(), GeometryTGeo::getITSLayerPattern(), lr);
-  }
+  path = Form("%s/%s/%s%d_1", parent.Data(), wrpV.Data(), GeometryTGeo::getITSLayerPattern(), lr);
   TString sname = GeometryTGeo::composeSymNameLayer(lr);
 
   LOG(DEBUG) << "Add " << sname << " <-> " << path;

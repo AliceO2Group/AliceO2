@@ -46,7 +46,9 @@ struct ConfigParamSpec {
 
   ConfigParamSpec(std::string _name, ParamType _type,
                   Variant _defaultValue, HelpString _help)
-    : name(_name), type(_type), defaultValue(_defaultValue), help(_help) {}
+    : name(_name), type(_type), defaultValue(_defaultValue), help(_help)
+  {
+  }
 
   /// config spec without default value, explicitely marked as 'empty'
   /// and will be ignored at other places

@@ -25,8 +25,6 @@
 #include "Framework/ChannelInfo.h"
 #include "Framework/Logger.h"
 
-#include <Monitoring/Monitoring.h>
-
 #include <ROOT/RDataFrame.hxx>
 #if __has_include(<TJAlienFile.h>)
 #include <TJAlienFile.h>
@@ -34,7 +32,6 @@
 #include <TGrid.h>
 #include <TFile.h>
 #include <TTreeCache.h>
-#include <TTreePerfStats.h>
 
 #include <arrow/ipc/reader.h>
 #include <arrow/ipc/writer.h>
@@ -147,6 +144,24 @@ static inline auto extractOriginalsTuple(framework::pack<Os...>, ProcessingConte
   return std::make_tuple(extractTypedOriginal<Os>(pc)...);
 }
 
+void AODJAlienReaderHelpers::dumpFileMetrics(Monitoring& monitoring, TFile* currentFile, uint64_t startedAt, uint64_t ioTime, int tfPerFile, int tfRead)
+{
+  if (currentFile == nullptr) {
+    return;
+  }
+  std::string monitoringInfo(fmt::format("lfn={},size={},total_tf={},read_tf={},read_bytes={},read_calls={},io_time={:.1f},wait_time={:.1f}", currentFile->GetName(),
+                                         currentFile->GetSize(), tfPerFile, tfRead, currentFile->GetBytesRead(), currentFile->GetReadCalls(),
+                                         ((float)ioTime / 1e9), ((float)(uv_hrtime() - startedAt - ioTime) / 1e9)));
+#if __has_include(<TJAlienFile.h>)
+  auto alienFile = dynamic_cast<TJAlienFile*>(currentFile);
+  if (alienFile) {
+    monitoringInfo += fmt::format(",se={},open_time={:.1f}", alienFile->GetSE(), alienFile->GetElapsed());
+  }
+#endif
+  monitoring.send(Metric{monitoringInfo, "aod-file-read-info"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
+  LOGP(INFO, "Read info: {}", monitoringInfo);
+}
+
 AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
 {
   auto callback = AlgorithmSpec{adaptStateful([](ConfigParamRegistry const& options,
@@ -159,7 +174,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
     monitoring.flushBuffer();
 
     if (!options.isSet("aod-file")) {
-      LOGP(ERROR, "No input file defined!");
+      LOGP(FATAL, "No input file defined!");
       throw std::runtime_error("Processing is stopped!");
     }
 
@@ -199,24 +214,12 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
                            numTF,
                            watchdog,
                            didir](Monitoring& monitoring, DataAllocator& outputs, ControlService& control, DeviceSpec const& device) {
-      // check if RuntimeLimit is reached
-      if (!watchdog->update()) {
-        LOGP(INFO, "Run time exceeds run time limit of {} seconds!", watchdog->runTimeLimit);
-        LOGP(INFO, "Stopping reader {} after time frame {}.", device.inputTimesliceId, watchdog->numberTimeFrames - 1);
-        monitoring.flushBuffer();
-        didir->closeInputFiles();
-        control.endOfStream();
-        control.readyToQuit(QuitRequest::Me);
-        return;
-      }
-
       // Each parallel reader device.inputTimesliceId reads the files fileCounter*device.maxInputTimeslices+device.inputTimesliceId
       // the TF to read is numTF
       assert(device.inputTimesliceId < device.maxInputTimeslices);
       uint64_t timeFrameNumber = 0;
       int fcnt = (*fileCounter * device.maxInputTimeslices) + device.inputTimesliceId;
       int ntf = *numTF + 1;
-      monitoring.send(Metric{(uint64_t)ntf, "tf-sent"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
       static int currentFileCounter = -1;
       static int filesProcessed = 0;
       if (currentFileCounter != *fileCounter) {
@@ -225,11 +228,27 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
       }
 
       // loop over requested tables
-      TTree* tr = nullptr;
       bool first = true;
       static size_t totalSizeUncompressed = 0;
       static size_t totalSizeCompressed = 0;
-      static size_t totalReadCalls = 0;
+      static TFile* currentFile = nullptr;
+      static int tfCurrentFile = -1;
+      static auto currentFileStartedAt = uv_hrtime();
+      static uint64_t currentFileIOTime = 0;
+
+      // check if RuntimeLimit is reached
+      if (!watchdog->update()) {
+        LOGP(INFO, "Run time exceeds run time limit of {} seconds!", watchdog->runTimeLimit);
+        LOGP(INFO, "Stopping reader {} after time frame {}.", device.inputTimesliceId, watchdog->numberTimeFrames - 1);
+        dumpFileMetrics(monitoring, currentFile, currentFileStartedAt, currentFileIOTime, tfCurrentFile, ntf);
+        monitoring.flushBuffer();
+        didir->closeInputFiles();
+        control.endOfStream();
+        control.readyToQuit(QuitRequest::Me);
+        return;
+      }
+
+      auto ioStart = uv_hrtime();
 
       for (auto route : requestedTables) {
 
@@ -238,11 +257,15 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
         auto dh = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
 
         // create a TreeToTable object
-        auto info = didir->getFileFolder(dh, fcnt, ntf);
-        size_t before = 0;
-        tr = didir->getDataTree(dh, fcnt, ntf);
+        TTree* tr = didir->getDataTree(dh, fcnt, ntf);
         if (!tr) {
           if (first) {
+            // dump metrics of file which is done for reading
+            dumpFileMetrics(monitoring, currentFile, currentFileStartedAt, currentFileIOTime, tfCurrentFile, ntf);
+            currentFile = nullptr;
+            currentFileStartedAt = uv_hrtime();
+            currentFileIOTime = 0;
+
             // check if there is a next file to read
             fcnt += device.maxInputTimeslices;
             if (didir->atEnd(fcnt)) {
@@ -264,7 +287,6 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
             throw std::runtime_error("Processing is stopped!");
           }
         }
-        TTreePerfStats ps("ioperf", tr);
 
         if (first) {
           timeFrameNumber = didir->getTimeFrameNumber(dh, fcnt, ntf);
@@ -278,7 +300,6 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
 
         // add branches to read
         // fill the table
-
         auto colnames = getColumnNames(dh);
         if (colnames.size() == 0) {
           totalSizeCompressed += tr->GetZipBytes();
@@ -293,39 +314,24 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
           }
         }
         t2t.fill(tr);
-        if (info.file) {
-          totalReadCalls += info.file->GetReadCalls() - before;
-          static std::string currentFileRead = "";
-          std::string nextFileRead = info.file->GetPath();
-          if (currentFileRead != nextFileRead) {
-            currentFileRead = nextFileRead;
-            std::string monitoringInfo(currentFileRead);
-            monitoringInfo += ",";
-            monitoringInfo += std::to_string(info.file->GetSize());
-#if __has_include(<TJAlienFile.h>)
-            auto alienFile = dynamic_cast<TJAlienFile*>(info.file);
-            if (alienFile) {
-              monitoringInfo += ",";
-              monitoringInfo += alienFile->GetSE();
-            }
-#endif
-            monitoring.send(Metric{monitoringInfo, "aod-file-read-info"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
-            LOGP(INFO, "File read info: {}", monitoringInfo);
-            // TODO extend to publish at the end of the file (or on each TF?) the sizes read *per file*
-          }
-        }
-        monitoring.send(Metric{(double)ps.GetReadCalls(), "aod-tree-read-calls"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
         delete tr;
+
+        // needed for metrics dumping (upon next file read, or terminate due to watchdog)
+        if (currentFile == nullptr) {
+          currentFile = didir->getFileFolder(dh, fcnt, ntf).file;
+          tfCurrentFile = didir->getTimeFramesInFile(dh, fcnt);
+        }
 
         first = false;
       }
+      monitoring.send(Metric{(uint64_t)ntf, "tf-sent"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
       monitoring.send(Metric{(uint64_t)totalSizeUncompressed / 1000, "aod-bytes-read-uncompressed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
       monitoring.send(Metric{(uint64_t)totalSizeCompressed / 1000, "aod-bytes-read-compressed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
-      monitoring.send(Metric{(uint64_t)totalReadCalls, "aod-total-read-calls"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
 
       // save file number and time frame
       *fileCounter = (fcnt - device.inputTimesliceId) / device.maxInputTimeslices;
       *numTF = ntf;
+      currentFileIOTime += (uv_hrtime() - ioStart);
     });
   })};
 

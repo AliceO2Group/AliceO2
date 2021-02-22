@@ -75,6 +75,7 @@ Digits2Raw::Digits2Raw(const std::string& fileRaw, const std::string& fileDigits
 void Digits2Raw::readDigits(const std::string& outDir, const std::string& fileDigitsName)
 {
   LOG(INFO) << "**********Digits2Raw::convertDigits" << std::endl;
+  mWriter.setCarryOverCallBack(this);
 
   /*
   std::string inputDir;
@@ -251,4 +252,12 @@ EventHeader Digits2Raw::makeGBTHeader(int link, o2::InteractionRecord const& mIn
     LOG(INFO) << " makeGBTHeader " << link << " orbit " << mEventHeader.orbit << " BC " << mEventHeader.bc;
   }
   return mEventHeader;
+}
+
+//_____________________________________________________________________________________
+int Digits2Raw::carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> data,
+                                const char* ptr, int maxSize, int splitID,
+                                std::vector<char>& trailer, std::vector<char>& header) const
+{
+  return 0; // do not split, always start new CRU page
 }

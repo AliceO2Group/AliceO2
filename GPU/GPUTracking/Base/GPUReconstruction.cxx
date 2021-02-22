@@ -121,6 +121,19 @@ void GPUReconstruction::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* tr
   }
 }
 
+int GPUReconstruction::SetNOMPThreads(int n)
+{
+#ifdef WITH_OPENMP
+  omp_set_num_threads(mProcessingSettings.ompThreads = std::max(1, n < 0 ? mMaxOMPThreads : std::min(n, mMaxOMPThreads)));
+  if (mProcessingSettings.debugLevel >= 3) {
+    GPUInfo("Set number of OpenMP threads to %d (%d requested)", mProcessingSettings.ompThreads, n);
+  }
+  return n > mMaxOMPThreads;
+#else
+  return 1;
+#endif
+}
+
 int GPUReconstruction::Init()
 {
   if (mMaster) {
@@ -190,6 +203,7 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   mRecoSteps.setBits(RecoStep::TPCConversion, false);
   mRecoSteps.setBits(RecoStep::TPCCompression, false);
   mRecoSteps.setBits(RecoStep::TPCdEdx, false);
+  mProcessingSettings.createO2Output = false;
 #endif
   mRecoStepsGPU &= mRecoSteps;
   mRecoStepsGPU &= AvailableRecoSteps();
@@ -233,6 +247,9 @@ int GPUReconstruction::InitPhaseBeforeDevice()
       mProcessingSettings.trackletSelectorSlices = 1;
     }
   }
+  if (mProcessingSettings.createO2Output > 1 && mProcessingSettings.runQA) {
+    mProcessingSettings.createO2Output = 1;
+  }
   if (!(mRecoStepsGPU & GPUDataTypes::RecoStep::TPCMerging)) {
     mProcessingSettings.mergerSortTracks = false;
   }
@@ -266,14 +283,16 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (mProcessingSettings.ompThreads <= 0) {
     mProcessingSettings.ompThreads = omp_get_max_threads();
   } else {
+    mProcessingSettings.ompAutoNThreads = false;
     omp_set_num_threads(mProcessingSettings.ompThreads);
   }
 #else
   mProcessingSettings.ompThreads = 1;
 #endif
+  mMaxOMPThreads = mProcessingSettings.ompThreads;
   mMaxThreads = std::max(mMaxThreads, mProcessingSettings.ompThreads);
   if (IsGPU()) {
-    mNStreams = std::max(mProcessingSettings.nStreams, 3);
+    mNStreams = std::max<int>(mProcessingSettings.nStreams, 3);
   }
 
   if (mProcessingSettings.doublePipeline && (mChains.size() != 1 || mChains[0]->SupportsDoublePipeline() == false || !IsGPU() || mProcessingSettings.memoryAllocationStrategy != GPUMemoryResource::ALLOCATION_GLOBAL)) {
@@ -290,7 +309,7 @@ int GPUReconstruction::InitPhaseBeforeDevice()
     mChains[i]->RegisterPermanentMemoryAndProcessors();
     size_t memPrimary, memPageLocked;
     mChains[i]->MemorySize(memPrimary, memPageLocked);
-    if (!IsGPU() || mOutputControl.OutputType == GPUOutputControl::AllocateInternal) {
+    if (!IsGPU() || mOutputControl.useInternal()) {
       memPageLocked = memPrimary;
     }
     mDeviceMemorySize += memPrimary;
@@ -300,7 +319,7 @@ int GPUReconstruction::InitPhaseBeforeDevice()
     mDeviceMemorySize = mProcessingSettings.forceMemoryPoolSize;
   } else if (mProcessingSettings.forceMemoryPoolSize > 2) {
     mDeviceMemorySize = mProcessingSettings.forceMemoryPoolSize;
-    if (!IsGPU() || mOutputControl.OutputType == GPUOutputControl::AllocateInternal) {
+    if (!IsGPU() || mOutputControl.useInternal()) {
       mHostMemorySize = mDeviceMemorySize;
     }
   }
@@ -502,7 +521,7 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
 
 void GPUReconstruction::AllocateRegisteredMemoryInternal(GPUMemoryResource* res, GPUOutputControl* control, GPUReconstruction* recPool)
 {
-  if (mProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL && (control == nullptr || control->OutputType == GPUOutputControl::AllocateInternal)) {
+  if (mProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL && (control == nullptr || control->useInternal())) {
     if (!(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) {
       if (res->mPtrDevice && res->mReuse < 0) {
         operator delete(res->mPtrDevice GPUCA_OPERATOR_NEW_ALIGNMENT);
@@ -525,6 +544,10 @@ void GPUReconstruction::AllocateRegisteredMemoryInternal(GPUMemoryResource* res,
       if (res->mType & GPUMemoryResource::MEMORY_STACK) {
         mNonPersistentIndividualAllocations.emplace_back(res);
       }
+      if ((size_t)res->mPtr % GPUCA_BUFFER_ALIGNMENT) {
+        GPUError("Got buffer with insufficient alignment");
+        throw std::bad_alloc();
+      }
     }
   } else {
     if (res->mPtr != nullptr) {
@@ -535,21 +558,25 @@ void GPUReconstruction::AllocateRegisteredMemoryInternal(GPUMemoryResource* res,
       res->mOverrideSize = GPUCA_BUFFER_ALIGNMENT;
     }
     if ((!IsGPU() || (res->mType & GPUMemoryResource::MEMORY_HOST) || mProcessingSettings.keepDisplayMemory) && !(res->mType & GPUMemoryResource::MEMORY_EXTERNAL)) { // keepAllMemory --> keepDisplayMemory
-      if (control && control->OutputType == GPUOutputControl::UseExternalBuffer) {
-        if (control->OutputAllocator) {
+      if (control && control->useExternal()) {
+        if (control->allocator) {
           res->mSize = std::max((size_t)res->SetPointers((void*)1) - 1, res->mOverrideSize);
-          res->mPtr = control->OutputAllocator(res->mSize);
+          res->mPtr = control->allocator(CAMath::nextMultipleOf<GPUCA_BUFFER_ALIGNMENT>(res->mSize));
           res->mSize = std::max<size_t>((char*)res->SetPointers(res->mPtr) - (char*)res->mPtr, res->mOverrideSize);
         } else {
           void* dummy = nullptr;
-          res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, control->OutputPtr, control->OutputBase, control->OutputMaxSize, &GPUMemoryResource::SetPointers, dummy);
+          res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, control->ptrCurrent, control->ptrBase, control->size, &GPUMemoryResource::SetPointers, dummy);
         }
       } else {
         res->mSize = AllocateRegisteredMemoryHelper(res, res->mPtr, recPool->mHostMemoryPool, recPool->mHostMemoryBase, recPool->mHostMemorySize, &GPUMemoryResource::SetPointers, recPool->mHostMemoryPoolEnd);
       }
+      if ((size_t)res->mPtr % GPUCA_BUFFER_ALIGNMENT) {
+        GPUError("Got buffer with insufficient alignment");
+        throw std::bad_alloc();
+      }
     }
     if (IsGPU() && (res->mType & GPUMemoryResource::MEMORY_GPU)) {
-      if (res->mProcessor->mDeviceProcessor == nullptr) {
+      if (res->mProcessor->mLinkedProcessor == nullptr) {
         GPUError("Device Processor not set (%s)", res->mName);
         throw std::bad_alloc();
       }
@@ -559,6 +586,10 @@ void GPUReconstruction::AllocateRegisteredMemoryInternal(GPUMemoryResource* res,
         res->mSize = size;
       } else if (size != res->mSize) {
         GPUError("Inconsistent device memory allocation (%s: device %lu vs %lu)", res->mName, size, res->mSize);
+        throw std::bad_alloc();
+      }
+      if ((size_t)res->mPtrDevice % GPUCA_BUFFER_ALIGNMENT) {
+        GPUError("Got buffer with insufficient alignment");
         throw std::bad_alloc();
       }
     }
@@ -902,8 +933,8 @@ void GPUReconstruction::PrepareEvent() // TODO: Clean this up, this should not b
       continue;
     }
     (mProcessors[i].proc->*(mProcessors[i].SetMaxData))(mHostConstantMem->ioPtrs);
-    if (mProcessors[i].proc->mDeviceProcessor) {
-      (mProcessors[i].proc->mDeviceProcessor->*(mProcessors[i].SetMaxData))(mHostConstantMem->ioPtrs);
+    if (mProcessors[i].proc->mGPUProcessorType != GPUProcessor::PROCESSOR_TYPE_DEVICE && mProcessors[i].proc->mLinkedProcessor) {
+      (mProcessors[i].proc->mLinkedProcessor->*(mProcessors[i].SetMaxData))(mHostConstantMem->ioPtrs);
     }
   }
   ComputeReuseMax(nullptr);
@@ -960,7 +991,7 @@ void GPUReconstruction::SetSettings(float solenoidBz, const GPURecoStepConfigura
 {
 #ifdef GPUCA_O2_LIB
   GPUO2InterfaceConfiguration config;
-  config.ReadConfigurableParam();
+  config.ReadConfigurableParam_internal();
   if (config.configEvent.solenoidBz <= -1e6f) {
     config.configEvent.solenoidBz = solenoidBz;
   }

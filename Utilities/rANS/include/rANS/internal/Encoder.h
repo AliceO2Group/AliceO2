@@ -55,25 +55,25 @@ class Encoder
   // NOTE: With rANS, you need to encode symbols in *reverse order*, i.e. from
   // beginning to end! Likewise, the output bytestream is written *backwards*:
   // ptr starts pointing at the end of the output buffer and keeps decrementing.
-  template <typename Stream_IT>
+  template <typename Stream_IT, std::enable_if_t<isCompatibleIter_v<Stream_T, Stream_IT>, bool> = true>
   Stream_IT put(Stream_IT iter, uint32_t start, uint32_t freq, uint32_t scale_bits);
 
   // Flushes the rANS encoder.
-  template <typename Stream_IT>
+  template <typename Stream_IT, std::enable_if_t<isCompatibleIter_v<Stream_T, Stream_IT>, bool> = true>
   Stream_IT flush(Stream_IT iter);
 
   // Encodes a given symbol. This is faster than straight RansEnc since we can do
   // multiplications instead of a divide.
   //
   // See Rans32EncSymbolInit for a description of how this works.
-  template <typename Stream_IT>
+  template <typename Stream_IT, std::enable_if_t<isCompatibleIter_v<Stream_T, Stream_IT>, bool> = true>
   Stream_IT putSymbol(Stream_IT iter, const EncoderSymbol<State_T>& sym, uint32_t scale_bits);
 
  private:
   State_T mState;
 
   // Renormalize the encoder.
-  template <typename Stream_IT>
+  template <typename Stream_IT, std::enable_if_t<isCompatibleIter_v<Stream_T, Stream_IT>, bool> = true>
   std::tuple<State_T, Stream_IT> renorm(State_T x, Stream_IT iter, uint32_t freq, uint32_t scale_bits);
 
   // L ('l' in the paper) is the lower bound of our normalization interval.
@@ -89,10 +89,9 @@ template <typename State_T, typename Stream_T>
 Encoder<State_T, Stream_T>::Encoder() : mState(LOWER_BOUND){};
 
 template <typename State_T, typename Stream_T>
-template <typename Stream_IT>
+template <typename Stream_IT, std::enable_if_t<isCompatibleIter_v<Stream_T, Stream_IT>, bool>>
 Stream_IT Encoder<State_T, Stream_T>::put(Stream_IT iter, uint32_t start, uint32_t freq, uint32_t scale_bits)
 {
-  static_assert(std::is_same<typename std::iterator_traits<Stream_IT>::value_type, Stream_T>::value);
   // renormalize
   Stream_IT streamPos;
   State_T x;
@@ -104,10 +103,9 @@ Stream_IT Encoder<State_T, Stream_T>::put(Stream_IT iter, uint32_t start, uint32
 };
 
 template <typename State_T, typename Stream_T>
-template <typename Stream_IT>
+template <typename Stream_IT, std::enable_if_t<isCompatibleIter_v<Stream_T, Stream_IT>, bool>>
 Stream_IT Encoder<State_T, Stream_T>::flush(Stream_IT iter)
 {
-  static_assert(std::is_same<typename std::iterator_traits<Stream_IT>::value_type, Stream_T>::value);
 
   Stream_IT streamPos = iter;
 
@@ -134,10 +132,9 @@ Stream_IT Encoder<State_T, Stream_T>::flush(Stream_IT iter)
 };
 
 template <typename State_T, typename Stream_T>
-template <typename Stream_IT>
+template <typename Stream_IT, std::enable_if_t<isCompatibleIter_v<Stream_T, Stream_IT>, bool>>
 Stream_IT Encoder<State_T, Stream_T>::putSymbol(Stream_IT iter, const EncoderSymbol<State_T>& sym, uint32_t scale_bits)
 {
-  static_assert(std::is_same<typename std::iterator_traits<Stream_IT>::value_type, Stream_T>::value);
 
   assert(sym.freq != 0); // can't encode symbol with freq=0
 
@@ -163,11 +160,9 @@ Stream_IT Encoder<State_T, Stream_T>::putSymbol(Stream_IT iter, const EncoderSym
 };
 
 template <typename State_T, typename Stream_T>
-template <typename Stream_IT>
+template <typename Stream_IT, std::enable_if_t<isCompatibleIter_v<Stream_T, Stream_IT>, bool>>
 inline std::tuple<State_T, Stream_IT> Encoder<State_T, Stream_T>::renorm(State_T x, Stream_IT iter, uint32_t freq, uint32_t scale_bits)
 {
-  static_assert(std::is_same<typename std::iterator_traits<Stream_IT>::value_type, Stream_T>::value);
-
   Stream_IT streamPos = iter;
 
   State_T x_max = ((LOWER_BOUND >> scale_bits) << STREAM_BITS) * freq; // this turns into a shift.

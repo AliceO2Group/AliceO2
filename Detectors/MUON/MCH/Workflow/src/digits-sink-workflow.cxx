@@ -84,11 +84,13 @@ class DigitsSinkTask
     // get the input digits
     auto digits = pc.inputs().get<gsl::span<Digit>>("digits");
     auto orbits = pc.inputs().get<gsl::span<OrbitInfo>>("orbits");
+    std::set<OrbitInfo> ordered_orbits(orbits.begin(), orbits.end());
 
     if (mText) {
-      for (auto o : orbits) {
-        mOutputFile << std::endl
-                    << " FEEID " << o.getFeeID() << "  LINK " << (int)o.getLinkID() << "  ORBIT " << o.getOrbit() << std::endl;
+      mOutputFile << std::endl
+                  << "=======================" << std::endl;
+      for (auto o : ordered_orbits) {
+        mOutputFile << " FEEID " << o.getFeeID() << "  LINK " << (int)o.getLinkID() << "  ORBIT " << o.getOrbit() << std::endl;
       }
       mOutputFile << "---------------" << std::endl;
       for (auto d : digits) {

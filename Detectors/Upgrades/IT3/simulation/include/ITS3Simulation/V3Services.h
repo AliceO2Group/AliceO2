@@ -49,6 +49,10 @@ class V3Services : public V11Geometry
   /// Default destructor
   ~V3Services() override;
 
+  /// Creates the supports for IB Layers (cylinder and foam wedges)
+  /// \param mgr The GeoManager (used only to get the proper material)
+  TGeoVolume* createInnerBarrelSupports(const TGeoManager* mgr = gGeoManager);
+
   /// Creates the Inner Barrel End Wheels on Side A
   /// \param mgr  The GeoManager (used only to get the proper material)
   TGeoVolume* createIBEndWheelsSideA(const TGeoManager* mgr = gGeoManager);

@@ -37,6 +37,19 @@ o2_add_test_root_macro(macro/createResidualDistortionObject.C
                                             O2::CommonUtils
                       LABELS tpc)
 
+
+install(FILES macro/createSCHistosFromHits.C
+	DESTINATION share/macro/)
+
+o2_add_test_root_macro(macro/createSCHistosFromHits.C
+                      PUBLIC_LINK_LIBRARIES O2::TPCSpaceCharge
+                                            O2::CommonUtils
+                                            O2::TPCBase
+                                            O2::TPCSimulation
+                                            O2::DataFormatsTPC
+                                            O2::MathUtils
+                      LABELS tpc COMPILE_ONLY)
+
 o2_add_test(PoissonSolver
             COMPONENT_NAME spacecharge
             PUBLIC_LINK_LIBRARIES O2::TPCSpaceCharge

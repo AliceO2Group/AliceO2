@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "TOFWorkflow/RecoWorkflowSpec.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataRefUtils.h"
@@ -21,6 +22,7 @@
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include <gsl/span>
 #include "TStopwatch.h"
 
@@ -55,6 +57,16 @@ class TOFDPLRecoWorkflowTask
     // nothing special to be set up
     o2::base::GeometryManager::loadGeometry();
     o2::base::Propagator::initFieldFromGRP("o2sim_grp.root");
+    std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
+    std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
+    if (o2::base::NameConf::pathExists(matLUTFile)) {
+      auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
+      o2::base::Propagator::Instance()->setMatLUT(lut);
+      LOG(INFO) << "Loaded material LUT from " << matLUTFile;
+    } else {
+      LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
+    }
+
     mTimer.Stop();
     mTimer.Reset();
   }
@@ -90,17 +102,15 @@ class TOFDPLRecoWorkflowTask
 
     // we do a copy of the input but we are looking for a way to avoid it (current problem in conversion form unique_ptr to *)
 
-    gsl::span<const o2::MCCompLabel> itslab;
-    gsl::span<const o2::MCCompLabel> tpclab;
+    gsl::span<const o2::MCCompLabel> itstpclab;
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> toflab;
     if (mUseMC) {
       const auto toflabel = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("tofclusterlabel");
-      itslab = pc.inputs().get<gsl::span<o2::MCCompLabel>>("itstracklabel");
-      tpclab = pc.inputs().get<gsl::span<o2::MCCompLabel>>("tpctracklabel");
+      itstpclab = pc.inputs().get<gsl::span<o2::MCCompLabel>>("itstpclabel");
       toflab = std::move(*toflabel);
     }
 
-    mMatcher.run(tracksRO, clustersRO, toflab, itslab, tpclab);
+    mMatcher.run(tracksRO, clustersRO, toflab, itstpclab);
 
     // in run_match_tof aggiugnere esplicitamente la chiamata a fill del tree (nella classe MatchTOF) e il metodo per leggere i vettori di output
 
@@ -111,9 +121,7 @@ class TOFDPLRecoWorkflowTask
     // send matching-info
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFOS", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector());
     if (mUseMC) {
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHTOFINFOSMC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector());
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHTPCINFOSMC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTPCLabelsVector());
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHITSINFOSMC", 0, Lifetime::Timeframe}, mMatcher.getMatchedITSLabelsVector());
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHTOF", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector());
     }
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CALIBDATA", 0, Lifetime::Timeframe}, mMatcher.getCalibVector());
     mTimer.Stop();
@@ -138,8 +146,7 @@ o2::framework::DataProcessorSpec getTOFRecoWorkflowSpec(bool useMC, bool useFIT)
   inputs.emplace_back("globaltrack", "GLO", "TPCITS", 0, Lifetime::Timeframe);
   if (useMC) {
     inputs.emplace_back("tofclusterlabel", o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    inputs.emplace_back("itstracklabel", "GLO", "TPCITS_ITSMC", 0, Lifetime::Timeframe);
-    inputs.emplace_back("tpctracklabel", "GLO", "TPCITS_TPCMC", 0, Lifetime::Timeframe);
+    inputs.emplace_back("itstpclabel", "GLO", "TPCITS_MC", 0, Lifetime::Timeframe);
   }
 
   if (useFIT) {
@@ -148,9 +155,7 @@ o2::framework::DataProcessorSpec getTOFRecoWorkflowSpec(bool useMC, bool useFIT)
 
   outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFOS", 0, Lifetime::Timeframe);
   if (useMC) {
-    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHTOFINFOSMC", 0, Lifetime::Timeframe);
-    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHTPCINFOSMC", 0, Lifetime::Timeframe);
-    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHITSINFOSMC", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHTOF", 0, Lifetime::Timeframe);
   }
   outputs.emplace_back(o2::header::gDataOriginTOF, "CALIBDATA", 0, Lifetime::Timeframe);
 
@@ -159,7 +164,8 @@ o2::framework::DataProcessorSpec getTOFRecoWorkflowSpec(bool useMC, bool useFIT)
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TOFDPLRecoWorkflowTask>(useMC, useFIT)},
-    Options{/* for the moment no options */}};
+    Options{
+      {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
 }
 
 } // end namespace tof

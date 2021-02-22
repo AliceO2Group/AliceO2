@@ -4,7 +4,8 @@ on: [pull_request_target]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    # We need at least 20.04 to install clang-format-11.
+    runs-on: ubuntu-20.04
 
     steps:
     - uses: actions/checkout@v2
@@ -15,6 +16,16 @@ jobs:
         # diverged. We're fetching everything here, as we don't know how many
         # commits back that point is.
         fetch-depth: 0
+
+    - name: Install prerequisites
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        sudo apt update -y
+        sudo apt install -y clang-format-11
+        sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-11 100
+        sudo update-alternatives --install /usr/bin/git-clang-format git-clang-format /usr/bin/git-clang-format-11 100
+
     - name: Run clang format
       id: clang_format
       env:
@@ -22,8 +33,8 @@ jobs:
       run: |
         set -x
         # We need to fetch the other commit.
-        git fetch origin ${{ github.event.pull_request.base.ref }}
-        git fetch origin pull/${{ github.event.pull_request.number }}/head:${{ github.event.pull_request.head.ref }}
+        git fetch origin ${{ github.event.pull_request.base.ref }} \
+                         pull/${{ github.event.pull_request.number }}/head:${{ github.event.pull_request.head.ref }}
 
         # We create a new branch which we will use for the eventual PR.
         git config --global user.email "alibuild@cern.ch"
@@ -35,41 +46,32 @@ jobs:
         # that, we need to find the latest common ancestor between the PR and
         # the branch we are merging into.
         BASE_COMMIT=$(git merge-base HEAD ${{ github.event.pull_request.base.sha }})
-        echo "Running clang-format-8 against branch ${{ github.event.pull_request.base.ref }} , with hash ${{ github.event.pull_request.base.sha }}"
+        echo "Running clang-format against branch ${{ github.event.pull_request.base.ref }}, with hash ${{ github.event.pull_request.base.sha }}"
         COMMIT_FILES=$(git diff --name-only $BASE_COMMIT | grep -ivE 'LinkDef|Utilities/PCG/')
         [ "X$COMMIT_FILES" = X ] && { echo "No files to check" ; exit 0; }
-        RESULT_OUTPUT="$(git-clang-format-8 --commit $BASE_COMMIT --diff --binary `which clang-format-8` $COMMIT_FILES)"
+        RESULT_OUTPUT="$(git-clang-format --commit $BASE_COMMIT --diff --style file $COMMIT_FILES)"
 
         for x in $COMMIT_FILES; do
           case $x in
-            # *.h|*.cxx)
-              # We remove the header from the diff as it contains +++ then
-              # we only select the added lines to check for the long ones.
-              # We do not need to check for the lines which have been removed
-              # and we do not want to check for the lines which were not changed
-              # to avoid extra work.
-              # 120 characters are allowed, meaning the error should start with 122,
-              # to allow for the starting + at the end of the line.
-              # Disabled for now, since people don't like the convention.
-              # git diff $BASE_COMMIT $x | tail -n +6 | grep -e '^+' | grep '.\{122,\}' && { echo "Line longer than 120 chars in $x." && exit 1; } || true ;;
             *.hxx|*.cc|*.hpp) echo "$x uses non-allowed extension." && exit 1 ;;
             *) ;;
           esac
         done
 
-        if [ "$RESULT_OUTPUT" == "no modified files to format" ] \
-          || [ "$RESULT_OUTPUT" == "clang-format did not modify any files" ] ; then
+        if [ "$RESULT_OUTPUT" == 'no modified files to format' ] ||
+           [ "$RESULT_OUTPUT" == 'clang-format did not modify any files' ]
+        then
           echo "clang-format passed."
           git push --set-upstream https://alibuild:$ALIBUILD_GITHUB_TOKEN@github.com/alibuild/AliceO2.git :alibot-cleanup-${{ github.event.pull_request.number }} -f || true
           echo ::set-output name=clean::true
         else
-          git-clang-format-8 --commit $BASE_COMMIT                     \
-                             --diff --binary `which                    \
-                             clang-format-8` $COMMIT_FILES | patch -p1
+          git-clang-format --diff --commit $BASE_COMMIT --style file $COMMIT_FILES |
+            patch -p1
           echo "clang-format failed."
           echo "To reproduce it locally please run"
-          echo -e "\tgit checkout $TRAVIS_BRANCH"
-          echo -e "\tgit-clang-format --commit $BASE_COMMIT --diff --binary $(which clang-format)"
+          echo -e "\tgit checkout ${{ github.event.pull_request.head.ref }}"
+          echo -e "\tgit-clang-format --commit $BASE_COMMIT --diff --style file"
+          echo "Note: using clang-format version $(clang-format --version)"
           echo "Opening a PR to your branch with the fixes"
           git commit -m "Please consider the following formatting changes" -a
           git show | cat

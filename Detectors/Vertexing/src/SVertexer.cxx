@@ -14,10 +14,16 @@
 
 #include "DetectorsVertexing/SVertexer.h"
 #include "DetectorsBase/Propagator.h"
+#include "ReconstructionDataFormats/TrackTPCITS.h"
+#include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsITS/TrackITS.h"
 
 using namespace o2::vertexing;
 
 using PID = o2::track::PID;
+using TrackTPCITS = o2::dataformats::TrackTPCITS;
+using TrackITS = o2::its::TrackITS;
+using TrackTPC = o2::tpc::TrackTPC;
 
 void SVertexer::init()
 {
@@ -51,9 +57,7 @@ void SVertexer::init()
 void SVertexer::process(const gsl::span<const PVertex>& vertices,   // primary vertices
                         const gsl::span<const GIndex>& trackIndex,  // Global ID's for associated tracks
                         const gsl::span<const VRef>& vtxRefs,       // references from vertex to these track IDs
-                        const gsl::span<const TrackTPCITS>& tpcits, // global tracks
-                        const gsl::span<const TrackITS>& its,       // ITS tracks
-                        const gsl::span<const TrackTPC>& tpc,       // TPC tracks
+                        const o2d::GlobalTrackAccessor& tracksPool, // accessor to various tracks
                         std::vector<V0>& v0s,                       // found V0s
                         std::vector<RRef>& vtx2V0refs               // references from PVertex to V0
 )
@@ -62,16 +66,16 @@ void SVertexer::process(const gsl::span<const PVertex>& vertices,   // primary v
   std::vector<V0> v0sTmp(1);               // 1st one is dummy!
   std::vector<int> v0sIdx;                 // id's in v0sTmp used attached to p.vertices
   std::vector<RRef> pv2v0sRefs;            // p.vertex to v0 index references
+  std::vector<char> selQ(trackIndex.size(), 0);
 
-  TrackAccessor tracksPool(tpcits, its, tpc);
-
-  auto rejectTrack = [&tracksPool](GIndex id, char wantCharge) {
-    if (id.isPVContributor()) {
-      return true;
-    }
-    auto s = id.getSource();
-    return (s != GIndex::TPCITS && s != GIndex::ITS) || tracksPool.getCharge(id) != wantCharge;
+  auto selTrack = [&tracksPool, &trackIndex](int i) -> char {
+    auto id = trackIndex[i];
+    return id.isPVContributor() || (id.getSource() != GIndex::ITSTPC && id.getSource() != GIndex::ITS) ? 0 : tracksPool.get(id).getCharge();
   };
+
+  for (size_t i = 0; i < trackIndex.size(); i++) {
+    selQ[i] = selTrack(i);
+  }
 
   int nv = vertices.size();
   size_t countTot = 0, countTotUnique = 0;
@@ -85,25 +89,23 @@ void SVertexer::process(const gsl::span<const PVertex>& vertices,   // primary v
     }
     //
     const auto& vtref = vtxRefs[iv];
-    //LOG(INFO) << "P.Vertex " << iv << pv;
-    //LOG(INFO) << "P.V. -> tracks " << vtref;
     //
     int first = vtref.getFirstEntry();
     int last = first + vtref.getEntries();
     size_t count = 0, countUnique = 0;
     for (int ipos = first; ipos < last; ipos++) {
-      auto idpos = trackIndex[ipos];
-      if (rejectTrack(idpos, 1)) { // skip at the moment TPC only tracks
+      if (selQ[ipos] != 1) {
         continue;
       }
+      auto idpos = trackIndex[ipos];
       bool ambiguousPos = idpos.isAmbiguous(); // is this track compatible also with other vertex?
-      const auto& trPos = tracksPool.getTrack(idpos);
+      const auto& trPos = tracksPool.get(idpos);
 
       for (int ineg = first; ineg < last; ineg++) {
-        auto idneg = trackIndex[ineg];
-        if (rejectTrack(idneg, -1)) { // skip at the moment TPC only tracks
+        if (selQ[ineg] != -1) {
           continue;
         }
+        auto idneg = trackIndex[ineg];
         count++;
         bool accept = false, newPair = true, ambiguousV0 = ambiguousPos && idneg.isAmbiguous(); // V0 is ambiguous if both tracks are compatible with other vertices
         uint64_t idPosNeg = getPairIdx(idpos, idneg);
@@ -120,7 +122,7 @@ void SVertexer::process(const gsl::span<const PVertex>& vertices,   // primary v
           }
         }
         if (newPair) {
-          auto trNeg = tracksPool.getTrack(idneg);
+          auto trNeg = tracksPool.get(idneg);
           //          LOG(INFO) << "0: " << idpos << " " << tr0.o2::track::TrackPar::asString();
           //          LOG(INFO) << "1: " << idneg << " " << tr1.o2::track::TrackPar::asString();
           int nCand = mFitter2Prong.process(trPos, trNeg);

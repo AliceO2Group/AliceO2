@@ -61,6 +61,12 @@ class NameConf
     return o2::utils::concat_string(prefix, "_", KINE_STRING, ".root");
   }
 
+  // Filename to store final MC configuration file
+  static std::string getMCConfigFileName(const std::string_view prefix = STANDARDSIMPREFIX)
+  {
+    return o2::utils::concat_string(prefix, "_", CONFIG_STRING, ".ini");
+  }
+
   // Filename to store geometry file
   static std::string getGeomFileName(const std::string_view prefix = "");
 
@@ -85,11 +91,6 @@ class NameConf
   // public standard CTF dictionary
   static constexpr std::string_view CTFDICT = "ctf_dictionary"; // hardcoded
 
-  // Block for ITS/TPC matching
-  static constexpr std::string_view TPCITS_TracksBranchName = "TPCITS";              ///< name of branch containing output matched tracks
-  static constexpr std::string_view TPCITS_TPCMCTruthBranchName = "MatchTPCMCTruth"; ///< name of branch for output matched tracks TPC MC
-  static constexpr std::string_view TPCITS_ITSMCTruthBranchName = "MatchITSMCTruth"; ///< name of branch for output matched tracks ITS MC
-
   // CTF tree name
   static constexpr std::string_view CTFTREENAME = "ctf"; // hardcoded
 
@@ -105,6 +106,7 @@ class NameConf
   static constexpr std::string_view KINE_STRING = "Kine";     // hardcoded
   static constexpr std::string_view GEOM_FILE_STRING = "geometry";
   static constexpr std::string_view CUT_FILE_STRING = "proc-cut";
+  static constexpr std::string_view CONFIG_STRING = "configuration";
 
   static constexpr std::string_view DICTFILENAME = "dictionary";
   static constexpr std::string_view MATBUDLUT = "matbud";

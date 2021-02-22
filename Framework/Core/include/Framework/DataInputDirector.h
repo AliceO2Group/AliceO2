@@ -69,6 +69,7 @@ struct DataInputDescriptor {
 
   uint64_t getTimeFrameNumber(int counter, int numTF);
   FileAndFolder getFileFolder(int counter, int numTF);
+  int getTimeFramesInFile(int counter);
 
   void closeInputFile();
   bool isAlienSupportOn() { return mAlienSupport; }
@@ -114,6 +115,7 @@ struct DataInputDirector {
   TTree* getDataTree(header::DataHeader dh, int counter, int numTF);
   uint64_t getTimeFrameNumber(header::DataHeader dh, int counter, int numTF);
   FileAndFolder getFileFolder(header::DataHeader dh, int counter, int numTF);
+  int getTimeFramesInFile(header::DataHeader dh, int counter);
 
  private:
   std::string minputfilesFile;

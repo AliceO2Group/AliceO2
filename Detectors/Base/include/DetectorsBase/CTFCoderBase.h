@@ -59,10 +59,13 @@ class CTFCoderBase
   template <typename S>
   void createCoder(OpType op, const o2::rans::FrequencyTable& freq, uint8_t probabilityBits, int slot)
   {
-    if (op == OpType::Encoder) {
-      mCoders[slot].reset(new o2::rans::LiteralEncoder64<S>(freq, probabilityBits));
-    } else {
-      mCoders[slot].reset(new o2::rans::LiteralDecoder64<S>(freq, probabilityBits));
+    switch (op) {
+      case OpType::Encoder:
+        mCoders[slot].reset(new o2::rans::LiteralEncoder64<S>(freq, probabilityBits));
+        break;
+      case OpType::Decoder:
+        mCoders[slot].reset(new o2::rans::LiteralDecoder64<S>(freq, probabilityBits));
+        break;
     }
   }
 

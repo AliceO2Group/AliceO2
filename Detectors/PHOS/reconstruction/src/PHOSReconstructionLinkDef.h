@@ -16,5 +16,6 @@
 
 #pragma link C++ class o2::phos::Clusterer + ;
 #pragma link C++ class o2::phos::FullCluster + ;
+#pragma link C++ class std::vector < o2::phos::FullCluster> + ;
 
 #endif

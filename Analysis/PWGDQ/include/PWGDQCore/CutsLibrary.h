@@ -57,6 +57,62 @@ AnalysisCompositeCut* o2::aod::dqcuts::GetCompositeCut(const char* cutName)
     return cut;
   }
 
+  if (!nameStr.compare("lmeePID_TPChadrejTOFrec")) {
+    cut->AddCut(GetAnalysisCut("lmeeStandardKine"));
+    cut->AddCut(GetAnalysisCut("TightGlobalTrack"));
+    cut->AddCut(GetAnalysisCut("standardPrimaryTrack"));
+
+    AnalysisCompositeCut* cut_tpc_hadrej = new AnalysisCompositeCut("pid_TPChadrej", "pid_TPChadrej", kTRUE);
+    cut_tpc_hadrej->AddCut(GetAnalysisCut("tpc_electron"));
+    cut_tpc_hadrej->AddCut(GetAnalysisCut("tpc_pion_rejection"));
+    cut_tpc_hadrej->AddCut(GetAnalysisCut("tpc_kaon_rejection"));
+    cut_tpc_hadrej->AddCut(GetAnalysisCut("tpc_proton_rejection"));
+
+    AnalysisCompositeCut* cut_tof_rec = new AnalysisCompositeCut("pid_tof_rec", "pid_tof_rec", kTRUE);
+    cut_tof_rec->AddCut(GetAnalysisCut("tpc_electron"));
+    cut_tof_rec->AddCut(GetAnalysisCut("tof_electron"));
+
+    AnalysisCompositeCut* cut_pid_OR = new AnalysisCompositeCut("pid_TPChadrejTOFrec", "pid_TPChadrejTOFrec", kFALSE);
+    cut_pid_OR->AddCut(cut_tpc_hadrej);
+    cut_pid_OR->AddCut(cut_tof_rec);
+    cut->AddCut(cut_pid_OR);
+    return cut;
+  }
+
+  if (!nameStr.compare("lmeePID_TPChadrej")) {
+    cut->AddCut(GetAnalysisCut("lmeeStandardKine"));
+    cut->AddCut(GetAnalysisCut("TightGlobalTrack"));
+    cut->AddCut(GetAnalysisCut("standardPrimaryTrack"));
+
+    AnalysisCompositeCut* cut_tpc_hadrej = new AnalysisCompositeCut("pid_TPChadrej", "pid_TPChadrej", kTRUE);
+    cut_tpc_hadrej->AddCut(GetAnalysisCut("tpc_electron"));
+    cut_tpc_hadrej->AddCut(GetAnalysisCut("tpc_pion_rejection"));
+    cut_tpc_hadrej->AddCut(GetAnalysisCut("tpc_kaon_rejection"));
+    cut_tpc_hadrej->AddCut(GetAnalysisCut("tpc_proton_rejection"));
+    cut->AddCut(cut_tpc_hadrej);
+    return cut;
+  }
+
+  if (!nameStr.compare("lmeePID_TOFrec")) {
+    cut->AddCut(GetAnalysisCut("lmeeStandardKine"));
+    cut->AddCut(GetAnalysisCut("TightGlobalTrack"));
+    cut->AddCut(GetAnalysisCut("standardPrimaryTrack"));
+
+    AnalysisCompositeCut* cut_tof_rec = new AnalysisCompositeCut("pid_tof_rec", "pid_tof_rec", kTRUE);
+    cut_tof_rec->AddCut(GetAnalysisCut("tpc_electron"));
+    cut_tof_rec->AddCut(GetAnalysisCut("tof_electron"));
+
+    cut->AddCut(cut_tof_rec);
+    return cut;
+  }
+
+  if (!nameStr.compare("lmee_GlobalTrack")) {
+    cut->AddCut(GetAnalysisCut("lmeeStandardKine"));
+    cut->AddCut(GetAnalysisCut("TightGlobalTrack"));
+    cut->AddCut(GetAnalysisCut("standardPrimaryTrack"));
+    return cut;
+  }
+
   if (!nameStr.compare("pairNoCut")) {
     cut->AddCut(GetAnalysisCut("pairNoCut"));
     return cut;
@@ -124,6 +180,29 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
     return cut;
   }
 
+  if (!nameStr.compare("lmeeStandardKine")) {
+    cut->AddCut(VarManager::kPt, 0.2, 10.0);
+    cut->AddCut(VarManager::kEta, -0.8, 0.8);
+    return cut;
+  }
+
+  if (!nameStr.compare("lmeeLowBKine")) {
+    cut->AddCut(VarManager::kPt, 0.075, 10.0);
+    cut->AddCut(VarManager::kEta, -0.8, 0.8);
+    return cut;
+  }
+
+  if (!nameStr.compare("TightGlobalTrack")) {
+    cut->AddCut(VarManager::kIsSPDfirst, 0.5, 1.5);
+    cut->AddCut(VarManager::kIsITSrefit, 0.5, 1.5);
+    cut->AddCut(VarManager::kIsTPCrefit, 0.5, 1.5);
+    cut->AddCut(VarManager::kTPCchi2, 0.0, 4.0);
+    cut->AddCut(VarManager::kITSchi2, 0.0, 5.0);
+    cut->AddCut(VarManager::kTPCnclsCR, 80.0, 161.);
+    cut->AddCut(VarManager::kITSncls, 3.5, 7.5);
+    return cut;
+  }
+
   if (!nameStr.compare("electronStandardQuality")) {
     cut->AddCut(VarManager::kIsSPDany, 0.5, 1.5);
     cut->AddCut(VarManager::kIsITSrefit, 0.5, 1.5);
@@ -151,6 +230,41 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
   if (!nameStr.compare("electronPID2")) {
     cut->AddCut(VarManager::kTPCsignal, 73., 100.);
     cut->AddCut(VarManager::kTPCsignal, cutLow1, 100.0, false, VarManager::kPin, 0.5, 3.0);
+    return cut;
+  }
+
+  if (!nameStr.compare("tpc_pion_rejection")) {
+    TF1* f1maxPi = new TF1("f1maxPi", "[0]+[1]*x", 0, 10);
+    f1maxPi->SetParameters(85, -50);
+    cut->AddCut(VarManager::kTPCsignal, 70, f1maxPi, true, VarManager::kPin, 0.0, 0.4, false);
+    return cut;
+  }
+
+  if (!nameStr.compare("tpc_kaon_rejection")) {
+    TF1* f1minKa = new TF1("f1minKa", "[0]+[1]*x", 0, 10);
+    f1minKa->SetParameters(220, -300);
+    TF1* f1maxKa = new TF1("f1maxKa", "[0]+[1]*x", 0, 10);
+    f1maxKa->SetParameters(182.5, -150);
+    cut->AddCut(VarManager::kTPCsignal, f1minKa, f1maxKa, true, VarManager::kPin, 0.4, 0.8, false);
+    return cut;
+  }
+
+  if (!nameStr.compare("tpc_proton_rejection")) {
+    TF1* f1minPr = new TF1("f1minPr", "[0]+[1]*x", 0, 10);
+    f1minPr->SetParameters(170, -100);
+    TF1* f1maxPr = new TF1("f1maxPr", "[0]+[1]*x", 0, 10);
+    f1maxPr->SetParameters(175, -75);
+    cut->AddCut(VarManager::kTPCsignal, f1minPr, f1maxPr, true, VarManager::kPin, 0.8, 1.4, false);
+    return cut;
+  }
+
+  if (!nameStr.compare("tpc_electron")) {
+    cut->AddCut(VarManager::kTPCsignal, 70, 90, false, VarManager::kPin, 0.0, 1e+10, false);
+    return cut;
+  }
+
+  if (!nameStr.compare("tof_electron")) {
+    cut->AddCut(VarManager::kTOFbeta, 0.99, 1.01, false, VarManager::kPin, 0.0, 1e+10, false);
     return cut;
   }
 
