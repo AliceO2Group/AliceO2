@@ -241,17 +241,14 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   mSortingTime = std::chrono::high_resolution_clock::now() - sortstart;
   LOG(warn) << "TRD Digit Sorting took " << mSortingTime.count();
 
-  // now to loop over the incoming digits.
   auto timeDigitLoopStart = std::chrono::high_resolution_clock::now();
-  //uint64_t digitcounter = 0;
 
-  // set current detector and row for the first digit
   int currDetector = -1;
 
   for (int iTrig = 0; iTrig < inputTriggerRecords.size(); ++iTrig) {
     int nTrackletsInTrigRec = 0;
-    for (auto digitIdx : digitIndices) {
-      const auto& digit = &inputDigits[digitIdx];
+    for (int iDigit = inputTriggerRecords[iTrig].getFirstEntry(); iDigit < (inputTriggerRecords[iTrig].getFirstEntry() + inputTriggerRecords[iTrig].getNumberOfObjects()); ++iDigit) {
+      const auto& digit = &inputDigits[digitIndices[iDigit]];
       if (currDetector < 0) {
         currDetector = digit->getDetector();
       }
@@ -281,11 +278,10 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
       // TODO check MC label part
       std::vector<o2::MCCompLabel> dummyLabels;
       /*
-      auto digitslabels = digitMCLabels.getLabels(digitcounter);
+      auto digitslabels = digitMCLabels.getLabels(iDigit);
       for (auto& tmplabel : digitslabels) {
         tmplabels.push_back(tmplabel);
       }
-      ++digitcounter;
       */
       // end MC label part
       mTrapSimulator[trapIdx].setData(digit->getChannel(), digit->getADC(), dummyLabels);
