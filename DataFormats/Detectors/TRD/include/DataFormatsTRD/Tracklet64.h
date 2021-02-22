@@ -25,11 +25,8 @@
 //  Sean Murray (murrays@cern.ch)                                         //
 //
 ////////////////////////////////////////////////////////////////////////////
-#include <vector>
-#include <array>
-#include <memory>   // for std::unique_ptr
+
 #include "Rtypes.h" // for ClassDef
-#include "fairlogger/Logger.h"
 
 namespace o2
 {
@@ -89,7 +86,6 @@ class Tracklet64
   int getDetector() const { return getHCID() / 2; }
 
   uint64_t getTrackletWord() const { return mtrackletWord; }
-  uint32_t getTrackletWord32() const;
 
   void setQ0(int charge)
   {
