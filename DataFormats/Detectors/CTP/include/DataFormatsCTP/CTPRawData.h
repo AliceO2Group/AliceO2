@@ -15,6 +15,7 @@ namespace o2
   std::bitset<NumberOfL0inputs> inputsMaskL0;
   std::bitset<NumberOfL1inputs> inputsMaskL1;
   std::bitset<NumberOfClasses> triggerClassMask;
+
   CTPRawData() = default;
   CTPRawData(const CTPRawData& src) = default;
   InteractionRecord getInteractionRecord()
@@ -25,7 +26,8 @@ namespace o2
   {
       return std::bitset<NumberOfLMinputs>;
   }
-  }
+  ClassDefNV(CTPRawData,1);
+  };
  } // namespace ctp
 }
  // namespace o2
