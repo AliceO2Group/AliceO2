@@ -412,7 +412,11 @@ void DataProcessingDevice::PreRun()
   mServiceRegistry.get<CallbackService>()(CallbackService::Id::Start);
 }
 
-void DataProcessingDevice::PostRun() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Stop); }
+void DataProcessingDevice::PostRun()
+{
+  mServiceRegistry.get<CallbackService>()(CallbackService::Id::Stop);
+  mServiceRegistry.preExitCallbacks();
+}
 
 void DataProcessingDevice::Reset() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Reset); }
 
