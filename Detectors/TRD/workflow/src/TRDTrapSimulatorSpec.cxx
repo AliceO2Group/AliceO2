@@ -10,40 +10,22 @@
 
 #include "TRDWorkflow/TRDTrapSimulatorSpec.h"
 
-#include <cstdlib>
-#include <thread> // to detect number of hardware threads
-#include <string>
-#include <sstream>
-#include <iostream>
-#include <fstream>
-#include <cmath>
-#include <unistd.h> // for getppid
 #include <chrono>
 #include <gsl/span>
-#include <iostream>
-#include <fstream>
 
-#include "TChain.h"
 #include "TFile.h"
 
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
-#include "Framework/Task.h"
-#include "Headers/DataHeader.h"
-#include "Steer/HitProcessingManager.h" // for DigitizationContext
-#include "TChain.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/ConstMCTruthContainer.h>
 #include "fairlogger/Logger.h"
 #include "CCDB/BasicCCDBManager.h"
 
-#include "DataFormatsParameters/GRPObject.h"
 #include "TRDBase/Digit.h"
 #include "TRDBase/Calibrations.h"
-#include "TRDSimulation/TrapSimulator.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/Constants.h"
@@ -166,11 +148,8 @@ void TRDDPLTrapSimulatorTask::setOnlineGainTables()
 void TRDDPLTrapSimulatorTask::init(o2::framework::InitContext& ic)
 {
   LOG(debug) << "entering init";
-  mPrintTrackletOptions = ic.options().get<int>("trd-printtracklets");
-  mDrawTrackletOptions = ic.options().get<int>("trd-drawtracklets");
   mShowTrackletStats = ic.options().get<int>("show-trd-trackletstats");
   mTrapConfigName = ic.options().get<std::string>("trd-trapconfig");
-  mDebugRejectedTracklets = ic.options().get<bool>("trd-debugrejectedtracklets");
   mEnableOnlineGainCorrection = ic.options().get<bool>("trd-onlinegaincorrection");
   mOnlineGainTableName = ic.options().get<std::string>("trd-onlinegaintable");
   mRunNumber = ic.options().get<int>("trd-runnum");
@@ -231,22 +210,22 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   //Build the digits index.
   std::iota(digitIndices.begin(), digitIndices.end(), 0);
   //sort the digits array TODO refactor this intoa vector index sort and possibly generalise past merely digits.
-  auto sortstart = std::chrono::high_resolution_clock::now();
+  auto sortStart = std::chrono::high_resolution_clock::now();
   // TODO check if sorting is still needed
   for (auto& trig : inputTriggerRecords) {
     std::stable_sort(std::begin(digitIndices) + trig.getFirstEntry(), std::begin(digitIndices) + trig.getNumberOfObjects() + trig.getFirstEntry(),
                      [&inputDigits](unsigned int i, unsigned int j) { return inputDigits[i].getDetector() < inputDigits[j].getDetector(); });
   }
 
-  mSortingTime = std::chrono::high_resolution_clock::now() - sortstart;
-  LOG(warn) << "TRD Digit Sorting took " << mSortingTime.count();
+  std::chrono::duration<double> sortTime = std::chrono::high_resolution_clock::now() - sortStart;
+  LOG(warn) << "TRD Digit Sorting took " << sortTime.count();
 
   auto timeDigitLoopStart = std::chrono::high_resolution_clock::now();
-
-  int currDetector = -1;
+  std::chrono::duration<double> trapSimAccumulatedTime{};
 
   for (int iTrig = 0; iTrig < inputTriggerRecords.size(); ++iTrig) {
     int nTrackletsInTrigRec = 0;
+    int currDetector = -1;
     for (int iDigit = inputTriggerRecords[iTrig].getFirstEntry(); iDigit < (inputTriggerRecords[iTrig].getFirstEntry() + inputTriggerRecords[iTrig].getNumberOfObjects()); ++iDigit) {
       const auto& digit = &inputDigits[digitIndices[iDigit]];
       if (currDetector < 0) {
@@ -263,7 +242,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
           auto timeTrapProcessingStart = std::chrono::high_resolution_clock::now();
           mTrapSimulator[iTrap].filter();
           mTrapSimulator[iTrap].tracklet();
-          mTrapSimAccumulatedTime += std::chrono::high_resolution_clock::now() - timeTrapProcessingStart;
+          trapSimAccumulatedTime += std::chrono::high_resolution_clock::now() - timeTrapProcessingStart;
           nTrackletsInTrigRec += mTrapSimulator[iTrap].getTrackletArray64().size();
           trapTrackletsAccum.insert(trapTrackletsAccum.end(), mTrapSimulator[iTrap].getTrackletArray64().begin(), mTrapSimulator[iTrap].getTrackletArray64().end());
           // TODO get and output MC labels
@@ -296,22 +275,21 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
       auto timeTrapProcessingStart = std::chrono::high_resolution_clock::now();
       mTrapSimulator[iTrap].filter();
       mTrapSimulator[iTrap].tracklet();
-      mTrapSimAccumulatedTime += std::chrono::high_resolution_clock::now() - timeTrapProcessingStart;
+      trapSimAccumulatedTime += std::chrono::high_resolution_clock::now() - timeTrapProcessingStart;
       nTrackletsInTrigRec += mTrapSimulator[iTrap].getTrackletArray64().size();
       trapTrackletsAccum.insert(trapTrackletsAccum.end(), mTrapSimulator[iTrap].getTrackletArray64().begin(), mTrapSimulator[iTrap].getTrackletArray64().end());
       // TODO get and output MC labels
       mTrapSimulator[iTrap].reset();
     }
     trackletTriggerRecords[iTrig].setDataRange(trapTrackletsAccum.size() - nTrackletsInTrigRec, nTrackletsInTrigRec);
-    currDetector = -1;
   }
 
   LOG(info) << "Trap simulator found " << trapTrackletsAccum.size() << " tracklets from " << inputDigits.size() << " Digits and " << trackletMCLabels.getIndexedSize() << " associated MC Label indexes and " << trackletMCLabels.getNElements() << " associated MC Labels";
   if (mShowTrackletStats > 0) {
-    mDigitLoopTime = std::chrono::high_resolution_clock::now() - timeDigitLoopStart;
+    std::chrono::duration<double> digitLoopTime = std::chrono::high_resolution_clock::now() - timeDigitLoopStart;
     LOG(info) << "Trap Simulator done ";
-    LOG(info) << "Digit loop took : " << mDigitLoopTime.count() << "s";
-    LOG(info) << "TRAP processing (filter+tracklet) took : " << mTrapSimAccumulatedTime.count() << "s";
+    LOG(info) << "Digit loop took : " << digitLoopTime.count() << "s";
+    LOG(info) << "TRAP processing (filter+tracklet) took : " << trapSimAccumulatedTime.count() << "s";
   }
   LOG(debug) << "END OF RUN .............";
   pc.outputs().snapshot(Output{"TRD", "TRACKLETS", 0, Lifetime::Timeframe}, trapTrackletsAccum);
@@ -333,13 +311,10 @@ o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec()
                                    OutputSpec{"TRD", "TRKLABELS", 0, Lifetime::Timeframe}},
                            AlgorithmSpec{adaptFromTask<TRDDPLTrapSimulatorTask>()},
                            Options{
-                             {"show-trd-trackletstats", VariantType::Int, 25000, {"Display the accumulated size and capacity at number of track intervals"}},
+                             {"show-trd-trackletstats", VariantType::Int, 1, {"Display the processing time of the tracklet processing in the TRAPs"}},
                              {"trd-trapconfig", VariantType::String, "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549", {"Name of the trap config from the CCDB default:cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549"}},
-                             {"trd-drawtracklets", VariantType::Int, 0, {"Bitpattern of input to TrapSimulator Draw method one histogram per chip not per tracklet, 1=raw,2=hits,4=tracklets, 7 for all"}},
-                             {"trd-printtracklets", VariantType::Int, 0, {"Bitpattern of input to TrapSimulator print method, "}},
                              {"trd-onlinegaincorrection", VariantType::Bool, false, {"Apply online gain calibrations, mostly for back checking to run2 by setting FGBY to 0"}},
                              {"trd-onlinegaintable", VariantType::String, "Krypton_2015-02", {"Online gain table to be use, names found in CCDB, obviously trd-onlinegaincorrection must be set as well."}},
-                             {"trd-debugrejectedtracklets", VariantType::Bool, false, {"Output all MCM where tracklets were not identified"}},
                              {"trd-dumptrapconfig", VariantType::Bool, false, {"Dump the selected trap configuration at loading time, to text file"}},
                              {"trd-runnum", VariantType::Int, 297595, {"Run number to use to anchor simulation to, defaults to 297595"}}}};
 };
