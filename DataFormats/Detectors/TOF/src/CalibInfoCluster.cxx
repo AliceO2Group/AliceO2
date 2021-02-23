@@ -8,19 +8,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef STEER_DIGITIZERWORKFLOW_TOFCLUSTERIZER_H_
-#define STEER_DIGITIZERWORKFLOW_TOFCLUSTERIZER_H_
+/// \file CalibInfoCluster.cxx
+/// \brief Implementation of the TOF cluster calib info
 
-#include "Framework/DataProcessorSpec.h"
+#include "DataFormatsTOF/CalibInfoCluster.h"
 
-namespace o2
-{
-namespace tof
-{
-
-o2::framework::DataProcessorSpec getTOFClusterizerSpec(bool useMC, bool useCCDB = 0, bool doCalib = 0);
-
-} // end namespace tof
-} // end namespace o2
-
-#endif /* STEER_DIGITIZERWORKFLOW_TOFCLUSTERIZERSPEC_H_ */
+ClassImp(o2::tof::CalibInfoCluster);
