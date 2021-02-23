@@ -94,7 +94,7 @@ class DigitsSinkTask
       }
       mOutputFile << "---------------" << std::endl;
       for (auto d : digits) {
-        mOutputFile << " DE# " << d.getDetID() << " PadId " << d.getPadID() << " ADC " << d.getADC() << " time " << d.getTime().sampaTime << std::endl;
+        mOutputFile << " DE# " << d.getDetID() << "  PadId " << d.getPadID() << "  ADC " << d.getADC() << "  time " << d.getTime() << "  TF index " << (int)d.getTFindex() << std::endl;
       }
     } else {
       int nDigits = digits.size();

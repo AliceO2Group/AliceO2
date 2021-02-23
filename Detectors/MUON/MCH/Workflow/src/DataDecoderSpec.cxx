@@ -147,19 +147,27 @@ class DataDecoderTask
     };
 
     mDecoder->reset();
-    decodeTF(pc);
     for (auto&& input : pc.inputs()) {
+      //std::cout << "input: " << input.spec->binding << std::endl;
       if (input.spec->binding == "readout") {
         decodeReadout(input);
       }
+      if (input.spec->binding == "TF") {
+        decodeTF(pc);
+      }
     }
+    mDecoder->computeDigitsTime();
 
     auto& digits = mDecoder->getOutputDigits();
     auto& orbits = mDecoder->getOrbits();
+    std::set<OrbitInfo> ordered_orbits(orbits.begin(), orbits.end());
 
     if (mDebug) {
+      for (auto o : ordered_orbits) {
+        std::cout << " FEEID " << o.getFeeID() << "  LINK " << (int)o.getLinkID() << "  ORBIT " << o.getOrbit() << std::endl;
+      }
       for (auto d : digits) {
-        std::cout << " DE# " << d.getDetID() << " PadId " << d.getPadID() << " ADC " << d.getADC() << " time " << d.getTime().sampaTime << std::endl;
+        std::cout << " DE# " << d.getDetID() << " PadId " << d.getPadID() << " ADC " << d.getADC() << " time " << d.getTime() << std::endl;
       }
     }
     // send the output buffer via DPL

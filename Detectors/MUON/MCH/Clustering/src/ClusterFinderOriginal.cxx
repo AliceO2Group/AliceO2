@@ -174,7 +174,7 @@ void ClusterFinderOriginal::resetPreCluster(gsl::span<const Digit>& digits)
     double dx = mSegmentation->padSizeX(padID) / 2.;
     double dy = mSegmentation->padSizeY(padID) / 2.;
     double charge = static_cast<double>(digit.getADC()) / static_cast<double>(std::numeric_limits<unsigned long>::max()) * 1024;
-    bool isSaturated = digit.getTime().time > 0;
+    bool isSaturated = false;
     int plane = mSegmentation->isBendingPad(padID) ? 0 : 1;
 
     if (charge <= 0.) {
