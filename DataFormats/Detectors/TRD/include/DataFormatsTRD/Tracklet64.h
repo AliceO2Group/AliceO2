@@ -81,6 +81,8 @@ class Tracklet64
   // ----- Getters for tracklet information -----
   int getMCM() const { return 4 * (getPadRow() % 4) + getColumn(); }                                 // returns MCM position on ROB [0..15]
   int getROB() const { return (getHCID() % 2) ? (getPadRow() / 4) * 2 + 1 : (getPadRow() / 4) * 2; } // returns ROB number [0..5] for C0 chamber and [0..7] for C1 chamber
+  float getY() const;                                                                                // translate local position into global y (in cm)
+  float getDy(float nTbDrift = 19.4f) const;                                                         // translate local slope into dy/dx with dx=3m (drift length) and default drift time in time bins (19.4 timebins / 3cm)
 
   // ----- Getters for offline corresponding values -----
   int getDetector() const { return getHCID() / 2; }

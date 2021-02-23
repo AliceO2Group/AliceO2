@@ -1920,9 +1920,9 @@ void TrapSimulator::fitTracklet()
   yoffs = yoffs << decPlaces; // holds position of ADC channel 1
 
   // we need to scale the offset since we want to store it in units of 1/80 pad and the calculation is done in 1/256 pad width granularity
-  unsigned int scaleY = (unsigned int)(80. / 256. * shift);
+  unsigned int scaleY = (unsigned int)(PADGRANULARITYTRKLPOS / 256. * shift);
   // the slope is given in units of 1/1000 pads/timebin
-  unsigned long scaleD = (unsigned long)(1000. / 256. * shift);
+  unsigned long scaleD = (unsigned long)(PADGRANULARITYTRKLSLOPE / 256. * shift);
   LOG(debug) << "scaleY : " << scaleY << "  scaleD=" << scaleD << " shift:" << std::hex << shift << std::dec;
   int deflCorr = (int)mTrapConfig->getDmemUnsigned(mgkDmemAddrDeflCorr, mDetector, mRobPos, mMcmPos);
   int ndrift = (int)mTrapConfig->getDmemUnsigned(mgkDmemAddrNdrift, mDetector, mRobPos, mMcmPos);
