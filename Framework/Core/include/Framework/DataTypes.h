@@ -27,13 +27,16 @@ enum TrackFlagsRun2Enum {
 };
 } // namespace o2::aod::track
 
-namespace o2::aod::trackfwd
+namespace o2::aod::fwdtrack
 {
 enum ForwardTrackTypeEnum : uint8_t {
-  GlobalMuonTrack = 0,
-  MUONStandalone,
+  MUONStandalone = 0,
   MFTStandalone,
+  GlobalMuonTrack,
+  GlobalMuonTrackBestMatch,
+  MCHStandalone,
+  GlobalForwardTrack
 };
-} // namespace o2::aod::trackfwd
+} // namespace o2::aod::fwdtrack
 
 #endif // O2_FRAMEWORK_DATATYPES_H_
