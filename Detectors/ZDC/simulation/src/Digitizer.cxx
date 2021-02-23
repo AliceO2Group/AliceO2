@@ -561,7 +561,7 @@ void Digitizer::assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData)
   // Triggers refer to the HW trigger conditions (32 possible channels)
 
   uint32_t nbcTot = bcData.size();
-  auto currBC = bcData[ibc];
+  auto &currBC = bcData[ibc];
 
   for (int is = -1; is < 4; is++) {
     int ibc_peek = ibc + is;
