@@ -72,6 +72,7 @@ class UserLogicElinkDecoder
   void oneLess10BitWord();
   void prepareAndSendCluster();
   void sendCluster(const SampaCluster& sc) const;
+  void sendHBPacket();
   void sendError(int8_t chip, uint32_t error) const;
   void setClusterSize(uint10_t value);
   void setClusterTime(uint10_t value);
@@ -185,6 +186,7 @@ bool UserLogicElinkDecoder<CHARGESUM>::append10(uint10_t data10)
         if (isSync(mSampaHeader.uint64())) {
           reset();
         } else if (mSampaHeader.packetType() == SampaPacketType::HeartBeat) {
+          sendHBPacket();
           transition(State::WaitingHeader);
           result = true;
         } else {
@@ -411,6 +413,15 @@ void UserLogicElinkDecoder<CHARGESUM>::setSample(uint10_t sample)
 
   if (mSamplesToRead == 0) {
     prepareAndSendCluster();
+  }
+}
+
+template <typename CHARGESUM>
+void UserLogicElinkDecoder<CHARGESUM>::sendHBPacket()
+{
+  SampaHeartBeatHandler handler = mDecodedDataHandlers.sampaHeartBeatHandler;
+  if (handler) {
+    handler(mDsId, mSampaHeader.chipAddress() % 2, mSampaHeader.bunchCrossingCounter());
   }
 }
 

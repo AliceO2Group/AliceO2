@@ -30,12 +30,19 @@ using SampaChannelHandler = std::function<void(DsElecId dsId,
 
 /// A SampaChannSampaHeartBeatHandler is a function that takes a chip index and
 /// a bunch crossing counter value found in a HeartBeat packet
+using SampaHeartBeatHandler = std::function<void(DsElecId dsId,
+                                                 uint8_t chip,
+                                                 uint20_t bunchCrossing)>;
+
+/// A SampaChannSampaHeartBeatHandler is a function that takes a chip index and
+/// a bunch crossing counter value found in a HeartBeat packet
 using SampaErrorHandler = std::function<void(DsElecId dsId,
                                              int8_t chip,
                                              uint32_t error)>;
 
 struct DecodedDataHandlers {
   SampaChannelHandler sampaChannelHandler;
+  SampaHeartBeatHandler sampaHeartBeatHandler;
   SampaErrorHandler sampaErrorHandler;
 };
 
