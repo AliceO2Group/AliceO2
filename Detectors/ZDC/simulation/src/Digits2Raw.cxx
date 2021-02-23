@@ -67,27 +67,34 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
 
   std::unique_ptr<TFile> digiFile(TFile::Open(fileDigitsName.c_str()));
   if (!digiFile || digiFile->IsZombie()) {
-    LOG(ERROR) << "Failed to open input digits file " << fileDigitsName;
+    LOG(FATAL) << "Failed to open input digits file " << fileDigitsName;
     return;
   }
 
   TTree* digiTree = (TTree*)digiFile->Get("o2sim");
   if (!digiTree) {
-    LOG(ERROR) << "Failed to get digits tree";
+    LOG(FATAL) << "Failed to get digits tree";
     return;
   }
 
   if (digiTree->GetBranch("ZDCDigitBC")) {
     digiTree->SetBranchAddress("ZDCDigitBC", &mzdcBCDataPtr);
   } else {
-    LOG(ERROR) << "Branch ZDCDigitBC is missing";
+    LOG(FATAL) << "Branch ZDCDigitBC is missing";
     return;
   }
 
   if (digiTree->GetBranch("ZDCDigitCh")) {
     digiTree->SetBranchAddress("ZDCDigitCh", &mzdcChDataPtr);
   } else {
-    LOG(ERROR) << "Branch ZDCDigitCh is missing";
+    LOG(FATAL) << "Branch ZDCDigitCh is missing";
+    return;
+  }
+
+  if (digiTree->GetBranch("ZDCDigitPed")) {
+    digiTree->SetBranchAddress("ZDCDigitPed", &mzdcPedDataPtr);
+  } else {
+    LOG(FATAL) << "Branch ZDCDigitPed is missing";
     return;
   }
 
@@ -175,7 +182,37 @@ inline void Digits2Raw::resetSums(uint32_t orbit)
 inline void Digits2Raw::updatePedestalReference(int bc)
 {
   // Compute or update baseline reference
-  if (mEmpty[bc] > 0 && mEmpty[bc] != mLastNEmpty) {
+  // In the last BC we copy what is stored in the digits
+  if(bc==3563){
+    int io=0;
+    for(; io<mzdcPedData.size(); io++){
+      UInt_t orbit = mBCD.ir.orbit;
+      if(orbit==mzdcPedData[io].ir.orbit){
+	break;
+      }
+    }
+    if(io==mzdcPedData.size()){
+      LOG(FATAL) << "Cannot find orbit";
+    }
+		    
+    for (Int_t im = 0; im < NModules; im++) {
+      for (Int_t ic = 0; ic < NChPerModule; ic++) {
+        // Identify connected channel
+        auto id = mModuleConfig->modules[im].channelID[ic];
+        Double_t myped = mzdcPedData[io].data[id] + 32768.;
+        if (myped < 0) {
+          myped = 0;
+        }
+        if (myped > 65535) {
+          myped = 65535;
+        }
+        mPed[im][ic] = myped;
+      }
+    }
+  }else if (mEmpty[bc] > 0 && mEmpty[bc] != mLastNEmpty) {
+    // For the preceding bunch crossing we make-up the fields in a random walk
+    // fashion like in the hardware. The result however cannot be coherent with
+    // what is stored in the last bunch
     for (Int_t im = 0; im < NModules; im++) {
       for (Int_t ic = 0; ic < NChPerModule; ic++) {
         // Identify connected channel
@@ -247,145 +284,21 @@ inline void Digits2Raw::assignTriggerBits(int ibc, UShort_t bc, UInt_t orbit, bo
 {
   // Triggers refer to the HW trigger conditions (32 possible channels)
   // Autotrigger, current bunch crossing
-  UInt_t triggers_0 = 0;
+  ModuleTriggerMapData triggers;
   // Autotrigger and ALICE trigger bits are zero for a dummy bunch crossing
   if (!is_dummy) {
-    triggers_0 = mBCD.triggers;
-    // ALICE current bunch crossing
-    if (mBCD.ext_triggers) {
-      for (UInt_t im = 0; im < NModules; im++) {
-        for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-          mZDC.data[im][ic].f.Alice_0 = 1;
-        }
-      }
-    }
-  }
-
-  // Next bunch crossings (ALICE and autotrigger)
-  UInt_t triggers_1 = 0, triggers_2 = 0, triggers_3 = 0, triggers_m = 0;
-  for (Int_t is = 1; is < 4; is++) {
-    Int_t ibc_peek = ibc + is;
-    if (ibc_peek >= mNbc) {
-      break;
-    }
-    const auto& bcd_peek = mzdcBCData[ibc_peek];
-    UShort_t bc_peek = bcd_peek.ir.bc;
-    UInt_t orbit_peek = bcd_peek.ir.orbit;
-    if (bcd_peek.triggers) {
-      if (orbit_peek == orbit) {
-        if ((bc_peek - bc) == 1) {
-          triggers_1 = bcd_peek.triggers;
-          if (bcd_peek.ext_triggers) {
-            for (UInt_t im = 0; im < NModules; im++) {
-              for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-                mZDC.data[im][ic].f.Alice_1 = 1;
-              }
-            }
-          }
-        } else if ((bc_peek - bc) == 2) {
-          triggers_2 = bcd_peek.triggers;
-          if (bcd_peek.ext_triggers) {
-            for (UInt_t im = 0; im < NModules; im++) {
-              for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-                mZDC.data[im][ic].f.Alice_2 = 1;
-              }
-            }
-          }
-        } else if ((bc_peek - bc) == 3) {
-          triggers_3 = bcd_peek.triggers;
-          if (bcd_peek.ext_triggers) {
-            for (UInt_t im = 0; im < NModules; im++) {
-              for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-                mZDC.data[im][ic].f.Alice_3 = 1;
-              }
-            }
-          }
-          break;
-        }
-      } else if (orbit_peek == (orbit + 1)) {
-        if ((bc_peek + 3564 - bc) == 1) {
-          triggers_1 = bcd_peek.triggers;
-          if (bcd_peek.ext_triggers) {
-            for (UInt_t im = 0; im < NModules; im++) {
-              for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-                mZDC.data[im][ic].f.Alice_1 = 1;
-              }
-            }
-          }
-        } else if ((bc_peek + 3564 - bc) == 2) {
-          triggers_2 = bcd_peek.triggers;
-          if (bcd_peek.ext_triggers) {
-            for (UInt_t im = 0; im < NModules; im++) {
-              for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-                mZDC.data[im][ic].f.Alice_2 = 1;
-              }
-            }
-          }
-        } else if ((bc_peek + 3564 - bc) == 3) {
-          triggers_3 = bcd_peek.triggers;
-          if (bcd_peek.ext_triggers) {
-            for (UInt_t im = 0; im < NModules; im++) {
-              for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-                mZDC.data[im][ic].f.Alice_3 = 1;
-              }
-            }
-          }
-          break;
-        }
-      } else {
-        break;
-      }
-    }
-  }
-
-  // Previous bunch crossing just for autotrigger
-  // For a dummy last bunch crossing previous bunch is the one pointed by ibc
-  {
-    Int_t ibc_peek = is_dummy ? ibc : ibc - 1;
-    if (ibc_peek >= 0) {
-      const auto& bcd_peek = mzdcBCData[ibc - 1];
-      UShort_t bc_peek = bcd_peek.ir.bc;
-      UInt_t orbit_peek = bcd_peek.ir.orbit;
-      if (bcd_peek.triggers) {
-        if (orbit_peek == orbit) {
-          if ((bc - bc_peek) == 1) {
-            triggers_m = bcd_peek.triggers;
-          }
-        } else if (orbit_peek == (orbit - 1)) {
-          if (bc == 0 && bc_peek == 3563) {
-            triggers_m = bcd_peek.triggers;
-          }
-        }
-      }
-    }
-  }
-
-  // Assign trigger bits in payload
-  for (Int_t im = 0; im < NModules; im++) {
-    UInt_t tmask = (0xf << (im * NChPerModule)) & mTriggerMask;
-    if (triggers_m & tmask) {
+    for (UInt_t im = 0; im < NModules; im++) {
+      triggers.w=mzdcBCData[ibc].moduleTriggers[im];
       for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-        mZDC.data[im][ic].f.Auto_m = 1;
-      }
-    }
-    if (triggers_0 & tmask) {
-      for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-        mZDC.data[im][ic].f.Auto_0 = 1;
-      }
-    }
-    if (triggers_1 & tmask) {
-      for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-        mZDC.data[im][ic].f.Auto_1 = 1;
-      }
-    }
-    if (triggers_2 & tmask) {
-      for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-        mZDC.data[im][ic].f.Auto_2 = 1;
-      }
-    }
-    if (triggers_3 & tmask) {
-      for (UInt_t ic = 0; ic < NChPerModule; ic++) {
-        mZDC.data[im][ic].f.Auto_3 = 1;
+        mZDC.data[im][ic].f.Alice_0 = triggers.f.Alice_0;
+        mZDC.data[im][ic].f.Alice_1 = triggers.f.Alice_1;
+        mZDC.data[im][ic].f.Alice_2 = triggers.f.Alice_2;
+        mZDC.data[im][ic].f.Alice_3 = triggers.f.Alice_3;
+        mZDC.data[im][ic].f.Auto_m = triggers.f.Auto_m;
+        mZDC.data[im][ic].f.Auto_0 = triggers.f.Auto_0;
+        mZDC.data[im][ic].f.Auto_1 = triggers.f.Auto_1;
+        mZDC.data[im][ic].f.Auto_2 = triggers.f.Auto_2;
+        mZDC.data[im][ic].f.Auto_3 = triggers.f.Auto_3;
       }
     }
   }
@@ -483,8 +396,7 @@ void Digits2Raw::convertDigits(int ibc)
   assignTriggerBits(ibc, bc, orbit, false);
 
   if (mVerbosity > 0) {
-    mBCD.print();
-    printf("Mask: %s\n", mPrintTriggerMask.data());
+    mBCD.print(mTriggerMask);
   }
 
   int chEnt = mBCD.ref.getFirstEntry();

@@ -27,6 +27,26 @@ namespace zdc
 {
 class ChannelData;
 
+struct __attribute__((__packed__)) ModuleTriggerMap {
+  unsigned Alice_0 : 1;
+  unsigned Alice_1 : 1;
+  unsigned Alice_2 : 1;
+  unsigned Alice_3 : 1;
+  unsigned Auto_m : 1;
+  unsigned Auto_0 : 1;
+  unsigned Auto_1 : 1;
+  unsigned Auto_2 : 1;
+  unsigned Auto_3 : 1;
+  unsigned empty : 7;
+};
+
+union ModuleTriggerMapData {
+  uint16_t w;
+  struct ModuleTriggerMap f;
+  void reset();
+};
+
+
 struct BCData {
   /// we are going to refer to at most 26 channels, so 5 bits for the NChannels and 27 for the reference
   o2::dataformats::RangeRefComp<5> ref;
