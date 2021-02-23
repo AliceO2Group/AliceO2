@@ -199,7 +199,7 @@ int GPUDisplayBackendX11::OpenGLMain()
                    //		GLX_SAMPLES         , MSAA_SAMPLES,
                    None};
 
-  GLXFBConfig fbconfig = 0;
+  GLXFBConfig fbconfig = nullptr;
   int fbcount;
   GLXFBConfig* fbc = glXChooseFBConfig(mDisplay, DefaultScreen(mDisplay), attribs, &fbcount);
   if (fbc == nullptr || fbcount == 0) {
