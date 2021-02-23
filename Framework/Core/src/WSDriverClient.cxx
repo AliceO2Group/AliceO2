@@ -76,6 +76,9 @@ void WSDriverClient::observe(const char*, std::function<void(char const*)>)
 
 void WSDriverClient::tell(const char* msg, size_t s, bool flush)
 {
+  static std::mutex tellMutex;
+  std::lock_guard<std::mutex> guard(tellMutex);
+
   static bool printed1 = false;
   static bool printed2 = false;
   if (mClient && mClient->isConnected() && flush) {
