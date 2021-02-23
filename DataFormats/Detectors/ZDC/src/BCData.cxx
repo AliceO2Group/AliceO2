@@ -41,18 +41,18 @@ void BCData::print(uint32_t triggerMask) const
         printf("] %d[", ic / NChPerModule);
       }
     }
-    bool is_hit=triggers & (0x1 << ic);
-    bool is_trig=triggerMask & (0x1 << ic);
-    if (is_trig){
-      if (is_hit){
+    bool is_hit = triggers & (0x1 << ic);
+    bool is_trig = triggerMask & (0x1 << ic);
+    if (is_trig) {
+      if (is_hit) {
         printf("T");
-      }else{
+      } else {
         printf(".");
       }
     } else {
-      if (is_hit){
+      if (is_hit) {
         printf("H");
-      }else{
+      } else {
         printf(" ");
       }
     }
@@ -60,12 +60,12 @@ void BCData::print(uint32_t triggerMask) const
   printf("]\nAUTO:");
   for (int i = 0; i < NModules; i++) {
     std::bitset<10> bb(moduleTriggers[i]);
-    printf(" %d %s%s%s%s%s",i,bb[8]?"3":"-",bb[7]?"2":"-",bb[6]?"1":"-",bb[5]?"0":"-",bb[4]?"M":"-");
+    printf(" %d %s%s%s%s%s", i, bb[8] ? "3" : "-", bb[7] ? "2" : "-", bb[6] ? "1" : "-", bb[5] ? "0" : "-", bb[4] ? "M" : "-");
   }
   printf("\nALIT:");
   for (int i = 0; i < NModules; i++) {
     std::bitset<10> bb(moduleTriggers[i]);
-    printf(" %d %s%s%s%s ",i,bb[3]?"3":"-",bb[2]?"2":"-",bb[1]?"1":"-",bb[0]?"0":"-");
+    printf(" %d %s%s%s%s ", i, bb[3] ? "3" : "-", bb[2] ? "2" : "-", bb[1] ? "1" : "-", bb[0] ? "0" : "-");
   }
   printf("\n");
 }
