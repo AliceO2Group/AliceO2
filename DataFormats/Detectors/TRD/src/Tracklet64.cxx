@@ -8,8 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <iostream>
 #include "DataFormatsTRD/Tracklet64.h"
+
+#include "fairlogger/Logger.h"
+#include <iostream>
 
 namespace o2
 {

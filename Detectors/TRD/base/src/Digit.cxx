@@ -48,7 +48,7 @@ Digit::Digit(const int det, const int rob, const int mcm, const int channel) // 
   setChannel(channel);
 }
 
-bool Digit::isSharedDigit()
+bool Digit::isSharedDigit() const
 {
   if (mChannel == 0 || mChannel == 1 || mChannel == NADCMCM - 1) {
     return 1;

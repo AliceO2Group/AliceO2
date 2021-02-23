@@ -1762,3 +1762,28 @@ std::tuple<double, double> Geometry::GetPhiBoundariesOfSMGap(Int_t nPhiSec) cons
   }
   return std::make_tuple(mPhiBoundariesOfSM[2 * nPhiSec + 1], mPhiBoundariesOfSM[2 * nPhiSec + 2]);
 }
+
+std::tuple<int, int, int> Geometry::getOnlineID(int towerID)
+{
+  auto cellindex = GetCellIndex(towerID);
+  auto supermoduleID = std::get<0>(cellindex);
+  auto etaphi = GetCellPhiEtaIndexInSModule(supermoduleID, std::get<1>(cellindex), std::get<2>(cellindex), std::get<3>(cellindex));
+  auto etaphishift = ShiftOfflineToOnlineCellIndexes(supermoduleID, std::get<0>(etaphi), std::get<1>(etaphi));
+  int row = std::get<0>(etaphishift), col = std::get<1>(etaphishift);
+
+  int ddlInSupermoudel = -1;
+  if (0 <= row && row < 8) {
+    ddlInSupermoudel = 0; // first cable row
+  } else if (8 <= row && row < 16 && 0 <= col && col < 24) {
+    ddlInSupermoudel = 0; // first half;
+  } else if (8 <= row && row < 16 && 24 <= col && col < 48) {
+    ddlInSupermoudel = 1; // second half;
+  } else if (16 <= row && row < 24) {
+    ddlInSupermoudel = 1; // third cable row
+  }
+  if (supermoduleID % 2 == 1) {
+    ddlInSupermoudel = 1 - ddlInSupermoudel; // swap for odd=C side, to allow us to cable both sides the same
+  }
+
+  return std::make_tuple(supermoduleID * 2 + ddlInSupermoudel, row, col);
+}

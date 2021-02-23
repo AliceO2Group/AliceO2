@@ -37,6 +37,7 @@ class DanglingContext;
 
 /// A callback to create a given Service.
 using ServiceInit = std::function<ServiceHandle(ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&)>;
+using ServiceExitCallback = std::function<void(ServiceRegistry&, void*)>;
 
 /// A callback to configure a given Service. Notice that the
 /// service itself is type erased and it's responsibility of
@@ -129,6 +130,9 @@ struct ServiceSpec {
   /// dispatched.
   ServicePostDispatching postDispatching = nullptr;
 
+  /// Callback invoked on exit
+  ServiceExitCallback exit = nullptr;
+
   /// Kind of service being specified.
   ServiceKind kind;
 };
@@ -155,6 +159,11 @@ struct ServiceEOSHandle {
 
 struct ServiceDispatchingHandle {
   ServicePostDispatching callback;
+  void* service;
+};
+
+struct ServiceExitHandle {
+  ServiceExitCallback callback;
   void* service;
 };
 

@@ -17,7 +17,6 @@
 #include "ZDCBase/ModuleConfig.h"
 #include "ZDCSimulation/Digitizer.h"
 #include "ZDCSimulation/Digits2Raw.h"
-#include "ZDCSimulation/MCLabel.h"
 #include "ZDCSimulation/ZDCSimParam.h"
 #include "CommonUtils/StringUtils.h"
 #include "FairLogger.h"

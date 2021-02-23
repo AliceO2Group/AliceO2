@@ -16,9 +16,9 @@
 #include "Framework/InputSpec.h"
 #include "DataFormatsZDC/ChannelData.h"
 #include "DataFormatsZDC/BCData.h"
-#include "ZDCSimulation/MCLabel.h"
+#include "DataFormatsZDC/PedestalData.h"
+#include "DataFormatsZDC/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "SimulationDataFormat/MCCompLabel.h"
 
 namespace o2
 {
@@ -38,7 +38,8 @@ o2::framework::DataProcessorSpec getZDCDigitWriterSpec(bool mctruth = true)
                                 1,
                                 BranchDefinition<std::vector<o2::zdc::BCData>>{InputSpec{"digitBCinput", "ZDC", "DIGITSBC"}, "ZDCDigitBC"},
                                 BranchDefinition<std::vector<o2::zdc::ChannelData>>{InputSpec{"digitChinput", "ZDC", "DIGITSCH"}, "ZDCDigitCh"},
-                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::zdc::MCLabel>>{InputSpec{"labelinput", "ZDC", "DIGITLBL"}, "ZDCDigitLabels", mctruth ? 1 : 0})();
+                                BranchDefinition<std::vector<o2::zdc::ChannelData>>{InputSpec{"digitPDinput", "ZDC", "DIGITSPD"}, "ZDCDigitPed"},
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::zdc::MCLabel>>{InputSpec{"labelinput", "ZDC", "DIGITSLBL"}, "ZDCDigitLabels", mctruth ? 1 : 0})();
 }
 
 } // end namespace zdc

@@ -133,7 +133,7 @@ DataProcessorSpec getCosmicsMatchingSpec(DetID::mask_t dets, bool useMC)
   }
   if (dets[DetID::TPC] && dets[DetID::TOF]) {
     dataRequest.requestTPCTOFTracks(useMC);
-    dataRequest.requestTOFClusters(false);
+    dataRequest.requestTOFClusters(false); // RSTODO Needed just to set the time of ITSTPC track, consider moving to MatchInfoTOF
     if (dets[DetID::ITS]) {
       dataRequest.requestTOFMatches(useMC);
     }

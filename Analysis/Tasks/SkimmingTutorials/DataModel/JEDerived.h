@@ -7,6 +7,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+/// \author Nima Zardoshti <nima.zardoshti@cern.ch>, CERN
+
 #ifndef O2_ANALYSIS_JEDERIVED_H
 #define O2_ANALYSIS_JEDERIVED_H
 
