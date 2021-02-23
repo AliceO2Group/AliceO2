@@ -24,7 +24,6 @@
 #include "PHOSWorkflow/RecoWorkflow.h"
 #include "PHOSWorkflow/CellConverterSpec.h"
 #include "PHOSWorkflow/ClusterizerSpec.h"
-#include "PHOSWorkflow/DigitsPrinterSpec.h"
 #include "PHOSWorkflow/ReaderSpec.h"
 #include "PHOSWorkflow/WriterSpec.h"
 #include "PHOSWorkflow/RawToCellConverterSpec.h"
@@ -56,7 +55,6 @@ const std::unordered_map<std::string, OutputType> OutputMap{
 o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
                                         bool disableRootOut,
                                         bool propagateMC,
-                                        bool enableDigitsPrinter,
                                         std::string const& cfgInput,
                                         std::string const& cfgOutput)
 {
