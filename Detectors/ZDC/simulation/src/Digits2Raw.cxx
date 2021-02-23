@@ -183,18 +183,18 @@ inline void Digits2Raw::updatePedestalReference(int bc)
 {
   // Compute or update baseline reference
   // In the last BC we copy what is stored in the digits
-  if(bc==3563){
-    int io=0;
-    for(; io<mzdcPedData.size(); io++){
+  if (bc == 3563) {
+    int io = 0;
+    for (; io < mzdcPedData.size(); io++) {
       UInt_t orbit = mBCD.ir.orbit;
-      if(orbit==mzdcPedData[io].ir.orbit){
-	break;
+      if (orbit == mzdcPedData[io].ir.orbit) {
+        break;
       }
     }
-    if(io==mzdcPedData.size()){
+    if (io == mzdcPedData.size()) {
       LOG(FATAL) << "Cannot find orbit";
     }
-		    
+
     for (Int_t im = 0; im < NModules; im++) {
       for (Int_t ic = 0; ic < NChPerModule; ic++) {
         // Identify connected channel
@@ -209,7 +209,7 @@ inline void Digits2Raw::updatePedestalReference(int bc)
         mPed[im][ic] = myped;
       }
     }
-  }else if (mEmpty[bc] > 0 && mEmpty[bc] != mLastNEmpty) {
+  } else if (mEmpty[bc] > 0 && mEmpty[bc] != mLastNEmpty) {
     // For the preceding bunch crossing we make-up the fields in a random walk
     // fashion like in the hardware. The result however cannot be coherent with
     // what is stored in the last bunch
@@ -288,7 +288,7 @@ inline void Digits2Raw::assignTriggerBits(int ibc, UShort_t bc, UInt_t orbit, bo
   // Autotrigger and ALICE trigger bits are zero for a dummy bunch crossing
   if (!is_dummy) {
     for (UInt_t im = 0; im < NModules; im++) {
-      triggers.w=mzdcBCData[ibc].moduleTriggers[im];
+      triggers.w = mzdcBCData[ibc].moduleTriggers[im];
       for (UInt_t ic = 0; ic < NChPerModule; ic++) {
         mZDC.data[im][ic].f.Alice_0 = triggers.f.Alice_0;
         mZDC.data[im][ic].f.Alice_1 = triggers.f.Alice_1;
