@@ -38,7 +38,6 @@ enum struct OutputType { Digits,
 framework::WorkflowSpec getWorkflow(bool disableRootInp,
                                     bool disableRootOut,
                                     bool propagateMC = true,
-                                    bool enableDigitsPrinter = false,
                                     std::string const& cfgInput = "digits",   //
                                     std::string const& cfgOutput = "clusters" //
 );

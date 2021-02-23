@@ -57,7 +57,6 @@ const std::unordered_map<std::string, OutputType> OutputMap{
 o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
                                         bool disableRootOut,
                                         bool propagateMC,
-                                        bool enableDigitsPrinter,
                                         std::string const& cfgInput,
                                         std::string const& cfgOutput)
 {
@@ -105,10 +104,6 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
     if (!disableRootInp) {
       specs.emplace_back(o2::cpv::getDigitsReaderSpec(propagateMC));
     }
-
-    // if (enableDigitsPrinter) {
-    //   specs.emplace_back(o2::cpv::reco_workflow::getDigitsPrinterSpec());
-    // }
 
     if (isEnabled(OutputType::Clusters)) {
       // add clusterizer
