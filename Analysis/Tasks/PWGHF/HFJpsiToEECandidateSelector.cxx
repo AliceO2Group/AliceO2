@@ -189,10 +189,11 @@ struct HFJpsiToEECandidateSelector {
         continue;
       }
 
-      if (selectionPID(trackPos) == 0 || selectionPID(trackNeg) == 0) {
-        hfSelJpsiToEECandidate(0);
-        continue;
-      }
+      // no tpc in run5, commented out
+      // if (selectionPID(trackPos) == 0 || selectionPID(trackNeg) == 0) {
+      //   hfSelJpsiToEECandidate(0);
+      //   continue;
+      // }
 
       hfSelJpsiToEECandidate(1);
     }

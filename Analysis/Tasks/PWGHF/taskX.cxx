@@ -73,14 +73,24 @@ struct TaskX {
         continue;
       }
       registry.fill(HIST("hmassJpsi"), InvMassJpsiToEE(candidate));
-      printf("Jpsi index 0 %d \n Jpsi index 1 %d \n", candidate.index0(), candidate.index1());
+      int index0jpsi = candidate.index0Id();
+      int index1jpsi = candidate.index1Id();
+      auto trackJpsiParVarPos1 = getTrackParCov(candidate.index0());
+      auto trackJpsiParVarNeg1 = getTrackParCov(candidate.index1());
       for (auto trackPos1 = tracks.begin(); trackPos1 != tracks.end(); ++trackPos1) {
         if (trackPos1.signed1Pt() < 0) {
           continue;
         }
-        // TrackPos1.index0();
+        if (trackPos1.globalIndex() == index0jpsi){
+          printf("pos track pt check: trackJpsiParVarPos1.pt(), trackPos1.pt()\n");
+          continue;
+        }
         for (auto trackNeg1 = tracks.begin(); trackNeg1 != tracks.end(); ++trackNeg1) {
           if (trackNeg1.signed1Pt() > 0) {
+            continue;
+          }
+          if (trackNeg1.globalIndex() == index1jpsi){
+            printf("neg track pt check: trackJpsiParVarNeg1.pt(), trackNeg1.pt()\n");
             continue;
           }
           registry.fill(HIST("hptcand"), candidate.pt() + trackPos1.pt() + trackNeg1.pt());
