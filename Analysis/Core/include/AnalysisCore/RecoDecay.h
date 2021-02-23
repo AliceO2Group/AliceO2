@@ -182,22 +182,41 @@ class RecoDecay
     return std::atanh(mom[2] / E(mom, mass));
   }
 
-  /// Calculates azimuthal angle from x and y momentum components.
-  /// \param px,py  {x, y} momentum components
-  /// \return azimuthal angle
-  static double Phi(double px, double py)
+  /// Calculates azimuth from x and y components.
+  /// \param x,y  {x, y} components
+  /// \return azimuth within [0, 2π]
+  template <typename T, typename U>
+  static double Phi(T x, U y)
   {
-    // phi = pi+TMath::Atan2(-py,-px)
-    return (double)(o2::constants::math::PI + std::atan2(-py, -px));
+    // conversion from [-π, +π] returned by atan2 to [0, 2π]
+    return std::atan2((double)(-y), (double)(-x)) + o2::constants::math::PI;
   }
 
-  /// Calculates azimuthal angle from 3-(or 2-)momenta.
-  /// \param args  pack of 3-(or 2-)momentum arrays
-  /// \return azimuthal angle
-  template <std::size_t N, typename T>
-  static double Phi(const array<T, N>& vec)
+  /// Calculates azimuth of a vector.
+  /// \note Elements 0 and 1 are expected to represent the x and y vector components, respectively.
+  /// \param vec  vector (container of elements accessible by index)
+  /// \return azimuth within [0, 2π]
+  template <typename T>
+  static double Phi(const T& vec)
   {
     return Phi(vec[0], vec[1]);
+  }
+
+  /// Constrains angle to be within a range.
+  /// \note Inspired by TVector2::Phi_0_2pi in ROOT.
+  /// \param angle  angle
+  /// \param min  minimum of the range
+  /// \return value within [min, min + 2π).
+  template <typename T, typename U = float>
+  static T constrainAngle(T angle, U min = 0.)
+  {
+    while (angle < min) {
+      angle += o2::constants::math::TwoPI;
+    }
+    while (angle >= min + o2::constants::math::TwoPI) {
+      angle -= o2::constants::math::TwoPI;
+    }
+    return (T)angle;
   }
 
   /// Calculates cosine of pointing angle.
@@ -331,7 +350,7 @@ class RecoDecay
   }
 
   /// Calculates (total) transverse momentum.
-  /// \param args  {x, y} momentum components or pack of 3-momentum arrays
+  /// \param args  {x, y} momentum components or pack of 3-(or 2-)momentum arrays
   /// \return (total) transverse momentum
   template <typename... T>
   static double Pt(const T&... args)
