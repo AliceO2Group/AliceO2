@@ -37,16 +37,16 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 struct TaskLcK0sP {
   HistogramRegistry registry{
     "registry",
-    {{"hmass", "cascade candidates;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
-     {"hptcand", "cascade candidates;candidate #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
-     {"hptv0", "cascade candidates;v0 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
-     {"hptbach", "cascade candidates;bachelor #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
-     {"hd0bach", "cascade candidates;bachelor DCAxy to prim. vertex (cm);entries", {HistType::kTH1F, {{100, -1., 1.}}}},
-     {"hd0v0pos", "cascade candidates;pos daugh v0 DCAxy to prim. vertex (cm);entries", {HistType::kTH1F, {{100, -1., 1.}}}},
-     {"hd0v0neg", "cascade candidates;neg daugh v0 DCAxy to prim. vertex (cm);entries", {HistType::kTH1F, {{100, -1., 1.}}}},
-     {"hv0CPA", "cascade candidates;v0 cosine of pointing angle;entries", {HistType::kTH1F, {{110, 0.998, 1.1}}}},
-     {"hEta", "cascade candidates;candidate #it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}},
-     {"hselectionstatus", "cascade candidates;selection status;entries", {HistType::kTH1F, {{5, -0.5, 4.5}}}}}};
+    {{"hmass", "cascade candidates;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0.0f, 5.0f}}}},
+     {"hptcand", "cascade candidates;candidate #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0.0f, 10.0f}}}},
+     {"hptbach", "cascade candidates;bachelor #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0.0f, 10.0f}}}},
+     {"hptv0", "cascade candidates;v0 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0.0f, 10.0f}}}},
+     {"hd0bach", "cascade candidates;bachelor DCAxy to prim. vertex (cm);entries", {HistType::kTH1F, {{100, -1.0f, 1.0f}}}},
+     {"hd0v0pos", "cascade candidates;pos daugh v0 DCAxy to prim. vertex (cm);entries", {HistType::kTH1F, {{100, -5.0f, 5.0f}}}},
+     {"hd0v0neg", "cascade candidates;neg daugh v0 DCAxy to prim. vertex (cm);entries", {HistType::kTH1F, {{100, -5.0f, 5.0f}}}},
+     {"hv0CPA", "cascade candidates;v0 cosine of pointing angle;entries", {HistType::kTH1F, {{110, -0.98f, 1.1f}}}},
+     {"hEta", "cascade candidates;candidate #it{#eta};entries", {HistType::kTH1F, {{100, -2.0f, 2.0f}}}},
+     {"hselectionstatus", "cascade candidates;selection status;entries", {HistType::kTH1F, {{5, -0.5f, 4.5f}}}}}};
 
   Configurable<int> d_selectionFlagLcK0sp{"d_selectionFlagLcK0sp", 1, "Selection Flag for LcK0sp"};
   Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
@@ -67,11 +67,12 @@ struct TaskLcK0sP {
         //Printf("Candidate: eta rejection: %g", candidate.eta());
         continue;
       }
+
       registry.fill(HIST("hmass"), InvMassLcToK0sP(candidate));
       registry.fill(HIST("hptcand"), candidate.pt());
-      registry.fill(HIST("hptv0"), candidate.ptProng0());
-      registry.fill(HIST("hptbach"), candidate.ptProng1());
-      registry.fill(HIST("hd0bach"), candidate.impactParameter1());
+      registry.fill(HIST("hptbach"), candidate.ptProng0());
+      registry.fill(HIST("hptv0"), candidate.ptProng1());
+      registry.fill(HIST("hd0bach"), candidate.impactParameter0());
       registry.fill(HIST("hd0v0pos"), candidate.dcapostopv());
       registry.fill(HIST("hd0v0neg"), candidate.dcanegtopv());
       registry.fill(HIST("hv0CPA"), candidate.v0cosPA());

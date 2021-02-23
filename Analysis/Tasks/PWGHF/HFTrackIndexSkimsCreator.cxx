@@ -1150,8 +1150,8 @@ struct HFTrackIndexSkimsCreatorCascades {
         }
 
         // fill table row
-        rowTrackIndexCasc(v0.globalIndex(),
-                          bach.globalIndex(),
+        rowTrackIndexCasc(bach.globalIndex(),
+                          v0.globalIndex(),
                           1); // 1 should be the value for the Lc
         // fill histograms
         if (b_doValPlots) {

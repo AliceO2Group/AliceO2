@@ -124,13 +124,18 @@ struct HFLcK0sPCandidateSelector {
     }
 
     if (hfCandCascade.ptProng0() < cuts[ptBin][3]) {
-      LOG(DEBUG) << "v0 pt cut failed, from cascade --> " << hfCandCascade.ptProng0() << ", cut --> " << cuts[ptBin][3];
+      LOG(DEBUG) << "bach pt cut failed, from cascade --> " << hfCandCascade.ptProng0() << " , cut --> " << cuts[ptBin][3];
+      return false; // pt of the p
+    }
+
+    if (hfCandCascade.ptV0Pos() < cuts[ptBin][4]) {
+      LOG(DEBUG) << "v0 pos daugh pt cut failed, from cascade --> " << hfCandCascade.ptV0Pos() << ", cut --> " << cuts[ptBin][4];
       return false; // pt of the K0
     }
 
-    if (hfCandCascade.ptProng1() < cuts[ptBin][4]) {
-      LOG(DEBUG) << "bach pt cut failed, from cascade --> " << hfCandCascade.ptProng1() << " , cut --> " << cuts[ptBin][4];
-      return false; // pt of the p
+    if (hfCandCascade.ptV0Neg() < cuts[ptBin][4]) {
+      LOG(DEBUG) << "v0 neg daugh pt cut failed, from cascade --> " << hfCandCascade.ptV0Neg() << ", cut --> " << cuts[ptBin][4];
+      return false; // pt of the K0
     }
 
     if (hfCandCascade.pt() < cuts[ptBin][5]) {
@@ -138,8 +143,8 @@ struct HFLcK0sPCandidateSelector {
       return false; // pt of the Lc
     }
 
-    if (std::abs(hfCandCascade.impactParameter1()) > cuts[ptBin][6]) {
-      LOG(DEBUG) << "d0 bach cut failed, in cascade --> " << hfCandCascade.impactParameter1() << ", cut --> " << cuts[ptBin][6];
+    if (std::abs(hfCandCascade.impactParameter0()) > cuts[ptBin][6]) {
+      LOG(DEBUG) << "d0 bach cut failed, in cascade --> " << hfCandCascade.impactParameter0() << ", cut --> " << cuts[ptBin][6];
       return false; // d0 of the bachelor
     }
 
@@ -150,8 +155,8 @@ struct HFLcK0sPCandidateSelector {
     }
     */
 
-    if (std::abs(hfCandCascade.impactParameter0()) > cuts[ptBin][6]) {
-      LOG(DEBUG) << "d0 v0 cut failed, in cascade --> " << hfCandCascade.impactParameter0() << ", cut --> " << cuts[ptBin][7];
+    if (std::abs(hfCandCascade.impactParameter1()) > cuts[ptBin][6]) {
+      LOG(DEBUG) << "d0 v0 cut failed, in cascade --> " << hfCandCascade.impactParameter1() << ", cut --> " << cuts[ptBin][7];
       return false; // d0 of the v0
     }
 

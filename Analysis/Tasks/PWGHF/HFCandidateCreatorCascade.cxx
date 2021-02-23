@@ -120,18 +120,23 @@ struct HFCandidateCreatorCascade {
       auto errorDecayLength = std::sqrt(getRotatedCovMatrixXX(covMatrixPV, phi, theta) + getRotatedCovMatrixXX(covMatrixPCA, phi, theta));
       auto errorDecayLengthXY = std::sqrt(getRotatedCovMatrixXX(covMatrixPV, phi, 0.) + getRotatedCovMatrixXX(covMatrixPCA, phi, 0.));
 
+      LOG(INFO) << "v0.dcapostopv() = " << v0.dcapostopv();
+      LOG(INFO) << "v0.dcanegtopv() = " << v0.dcanegtopv();
+      LOG(INFO) << "v0.cosPA() = " << v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ());
+
       // fill candidate table rows
       rowCandidateBase(collision.posX(), collision.posY(), collision.posZ(),
                        secondaryVertex[0], secondaryVertex[1], secondaryVertex[2],
                        errorDecayLength, errorDecayLengthXY,
                        chi2PCA,
-                       pVecV0[0], pVecV0[1], pVecV0[2],
                        pVecBach[0], pVecBach[1], pVecBach[2],
-                       impactParameterV0.getY(), impactParameterBach.getY(),
-                       std::sqrt(impactParameterV0.getSigmaY2()), std::sqrt(impactParameterBach.getSigmaY2()),
-                       casc.indexV0Id(), casc.index0Id(),
+                       pVecV0[0], pVecV0[1], pVecV0[2],
+                       impactParameterBach.getY(), impactParameterV0.getY(),
+                       std::sqrt(impactParameterBach.getSigmaY2()), std::sqrt(impactParameterV0.getSigmaY2()),
+                       casc.index0Id(), casc.indexV0Id(),
                        casc.hfflag(),
                        v0.x(), v0.y(), v0.z(),
+                       v0.posTrack(), v0.negTrack(),
                        v0.pxpos(), v0.pypos(), v0.pzpos(),
                        v0.pxneg(), v0.pyneg(), v0.pzneg(),
                        v0.dcaV0daughters(),
@@ -141,8 +146,8 @@ struct HFCandidateCreatorCascade {
       // fill histograms
       if (b_doValPlots) {
         // calculate invariant masses
-        auto arrayMomenta = array{pVecV0, pVecBach};
-        mass2K0sP = RecoDecay::M(arrayMomenta, array{massK0s, massP});
+        auto arrayMomenta = array{pVecBach, pVecV0};
+        mass2K0sP = RecoDecay::M(arrayMomenta, array{massP, massK0s});
         hmass2->Fill(mass2K0sP);
       }
     }
@@ -154,50 +159,70 @@ struct HFCandidateCreatorCascadeExpressions {
   Spawns<aod::HfCandCascExt> rowCandidateCasc;
   void init(InitContext const&) {}
 };
+
+//___________________________________________________________________________________________
 /*
 /// Performs MC matching.
-struct HFCandidateCreator2ProngMC {
-  Produces<aod::HfCandProng2MCRec> rowMCMatchRec;
-  Produces<aod::HfCandProng2MCGen> rowMCMatchGen;
+struct HFCandidateCreatorCascadeMC {
+  Produces<aod::HfCandCascadeMCRec> rowMCMatchRec;
+  Produces<aod::HfCandCascadeMCGen> rowMCMatchGen;
 
-  void process(aod::HfCandProng2 const& candidates,
+  void process(aod::HfCandCascade const& candidates,
                aod::BigTracksMC const& tracks,
                aod::McParticles const& particlesMC)
   {
     int8_t sign = 0;
-    int8_t result = N2ProngDecays;
+    int8_t flag = 0;
 
     // Match reconstructed candidates.
     for (auto& candidate : candidates) {
       //Printf("New rec. candidate");
-      result = N2ProngDecays;
-      auto arrayDaughters = array{candidate.index0_as<aod::BigTracksMC>(), candidate.index1_as<aod::BigTracksMC>()};
+      flag = 0;
+      auto arrayDaughtersV0 = array{candidate.posTrack_as<aod::BigTracksMC>(), candidate.negTrack_as<aod::BigTracksMC>()};
 
-      // D0(bar) → π± K∓
+      // K0S --> pi+pi-
       //Printf("Checking D0(bar) → π± K∓");
-      if (RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), 421, array{+kPiPlus, -kKPlus}, true, &sign) > -1) {
-        result = sign * D0ToPiK;
+      if (RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, 421, array{+kPiPlus, -kKPlus}, true, &sign) > -1) {
+        flag = sign * (1 << D0ToPiK);
       }
 
-      rowMCMatchRec(result);
+      // J/ψ → e+ e-
+      if (flag == 0) {
+        //Printf("Checking J/ψ → e+ e-");
+        if (RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), 443, array{+kElectron, -kElectron}, true) > -1) {
+          flag = 1 << JpsiToEE;
+        }
+      }
+
+      rowMCMatchRec(flag);
     }
 
     // Match generated particles.
     for (auto& particle : particlesMC) {
       //Printf("New gen. candidate");
-      result = N2ProngDecays;
+      flag = 0;
 
       // D0(bar) → π± K∓
       //Printf("Checking D0(bar) → π± K∓");
       if (RecoDecay::isMatchedMCGen(particlesMC, particle, 421, array{+kPiPlus, -kKPlus}, true, &sign)) {
-        result = sign * D0ToPiK;
+        flag = sign * (1 << D0ToPiK);
       }
 
-      rowMCMatchGen(result);
+      // J/ψ → e+ e-
+      if (flag == 0) {
+        //Printf("Checking J/ψ → e+ e-");
+        if (RecoDecay::isMatchedMCGen(particlesMC, particle, 443, array{+kElectron, -kElectron}, true)) {
+          flag = 1 << JpsiToEE;
+        }
+      }
+
+      rowMCMatchGen(flag);
     }
   }
 };
 */
+//____________________________________________________________________
+
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
