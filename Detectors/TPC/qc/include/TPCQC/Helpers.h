@@ -18,6 +18,7 @@
 #define AliceO2_TPC_HELPERS_H
 
 #include <vector>
+#include "TPCBase/CalDet.h"
 
 class TH1F;
 class TH2F;
@@ -48,6 +49,13 @@ void setStyleHistogram2D(TH2& histo);
 
 /// Set nice style for vector of 2D histograms
 void setStyleHistogram2D(std::vector<TH2F>& histos);
+
+/// Check if at least one pad in refPedestal and pedestal differs by 3*refNoise to see if new ZS calibration data should be uploaded to the FECs.
+/// @param refPedestal
+/// @param refNoise
+/// @param pedestal
+/// @return true if refPedestal - pedestal > 3*refNoise on at least one pad
+bool newZSCalib(const o2::tpc::CalDet<float>& refPedestal, const o2::tpc::CalDet<float>& refNoise, const o2::tpc::CalDet<float>& pedestal);
 
 } // namespace helpers
 } // namespace qc

@@ -122,12 +122,6 @@ class CDBInterface
   /// \return gain map object
   const CalPad& getGainMap();
 
-  /// Return any CalPad object
-  ///
-  /// The function returns the CalPad object stored at the given path in the CCDB
-  /// \return CalPad object
-  const CalPad& getCalPad(const std::string_view path);
-
   /// Return the Detector parameters
   ///
   /// The function checks if the object is already loaded and returns it
@@ -155,6 +149,17 @@ class CDBInterface
   /// otherwise the object will be loaded first depending on the configuration
   /// \return GEM parameters
   const ParameterGEM& getParameterGEM();
+
+  /// Return a CalPad object form the CCDB
+  /// Deprecated
+  const CalPad& getCalPad(const std::string_view path);
+
+  /// Return any templated object
+  ///
+  /// The function returns the object stored at the given path, timestamp and metaData in the CCDB
+  /// \return object
+  template <typename T>
+  T& getSpecificObjectFromCDB(const std::string_view path, long timestamp = -1, const std::map<std::string, std::string>& metaData = std::map<std::string, std::string>());
 
   /// Set noise and pedestal object from file
   ///
@@ -237,6 +242,25 @@ inline T& CDBInterface::getObjectFromCDB(std::string_view path)
   auto* object = cdb.get<T>(path.data());
   return *object;
 }
+
+/// Get a CalPad object stored in templated formats from the CCDB.
+/// @tparam T
+/// @param path
+/// @param timestamp
+/// @param metaData
+/// @return The object from the CCDB, ownership is transferred to the caller.
+/// @todo Consider removing in favour of calling directly the manager::get method.
+template <typename T>
+inline T& CDBInterface::getSpecificObjectFromCDB(std::string_view path, long timestamp, const std::map<std::string, std::string>& metaData)
+{
+  static auto& cdb = o2::ccdb::BasicCCDBManager::instance();
+  auto* object = cdb.getSpecific<T>(path.data(), timestamp, metaData);
+  return *object;
+}
+
+template CalPad& CDBInterface::getSpecificObjectFromCDB(const std::string_view path, long timestamp, const std::map<std::string, std::string>& metaData);
+template std::vector<CalPad>& CDBInterface::getSpecificObjectFromCDB(const std::string_view path, long timestamp, const std::map<std::string, std::string>& metaData);
+template std::unordered_map<std::string, o2::tpc::CalPad>& CDBInterface::getSpecificObjectFromCDB(const std::string_view path, long timestamp, const std::map<std::string, std::string>& metaData);
 
 /// \class CDBStorage
 /// Simple interface to store TPC CCDB types. Also provide interface functions to upload data from
