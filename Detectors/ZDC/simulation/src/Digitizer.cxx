@@ -561,7 +561,7 @@ void Digitizer::assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData)
   // Triggers refer to the HW trigger conditions (32 possible channels)
 
   uint32_t nbcTot = bcData.size();
-  auto &currBC = bcData[ibc];
+  auto& currBC = bcData[ibc];
 
   for (int is = -1; is < 4; is++) {
     int ibc_peek = ibc + is;
@@ -576,10 +576,10 @@ void Digitizer::assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData)
     if (diffBC < -1) {
       continue;
     }
-    if(diffBC > 3){
+    if (diffBC > 3) {
       break;
     }
-    if(otherBC.ext_triggers && diffBC>=0){
+    if (otherBC.ext_triggers && diffBC >= 0) {
       for (int im = 0; im < NModules; im++) {
         currBC.moduleTriggers[im] |= 0x1 << diffBC;
       }
@@ -587,7 +587,7 @@ void Digitizer::assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData)
     if (otherBC.triggers) {
       // Assign trigger bits in payload
       for (int im = 0; im < NModules; im++) {
-	uint32_t tmask = (0xf << (im * NChPerModule)) & mTriggerMask;
+        uint32_t tmask = (0xf << (im * NChPerModule)) & mTriggerMask;
         if (otherBC.triggers & tmask) {
           currBC.moduleTriggers[im] |= 0x1 << (5 + diffBC);
         }

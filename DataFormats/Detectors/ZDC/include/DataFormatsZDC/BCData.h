@@ -46,7 +46,6 @@ union ModuleTriggerMapData {
   void reset();
 };
 
-
 struct BCData {
   /// we are going to refer to at most 26 channels, so 5 bits for the NChannels and 27 for the reference
   o2::dataformats::RangeRefComp<5> ref;
@@ -68,7 +67,7 @@ struct BCData {
   }
 
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
-  void print(uint32_t triggerMask=0) const;
+  void print(uint32_t triggerMask = 0) const;
 
   ClassDefNV(BCData, 2);
 };
