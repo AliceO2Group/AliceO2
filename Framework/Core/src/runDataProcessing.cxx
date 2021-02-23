@@ -935,7 +935,10 @@ void doDefaultWorkflowTerminationHook()
   //LOG(INFO) << "Process " << getpid() << " is exiting.";
 }
 
-int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry, const o2::framework::DeviceSpec& spec, TerminationPolicy errorPolicy,
+int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
+            const o2::framework::DeviceSpec& spec,
+            TerminationPolicy errorPolicy,
+            std::string const& defaultDriverClient,
             uv_loop_t* loop)
 {
   fair::Logger::SetConsoleColor(false);
@@ -946,13 +949,13 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry, const o2::f
 
     // Populate options from the command line. Notice that only the options
     // declared in the workflow definition are allowed.
-    runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec](fair::mq::DeviceRunner& r) {
+    runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec, defaultDriverClient](fair::mq::DeviceRunner& r) {
       boost::program_options::options_description optsDesc;
       ConfigParamsHelper::populateBoostProgramOptions(optsDesc, spec.options, gHiddenDeviceOptions);
-      optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("default"), "monitoring backend info")                                                   //
-        ("driver-client-backend", bpo::value<std::string>()->default_value("stdout://"), "backend for device -> driver communicataon: stdout://: use stdout, ws://: use websockets") //
-        ("infologger-severity", bpo::value<std::string>()->default_value(""), "minimum FairLogger severity to send to InfoLogger")                                                   //
-        ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                                                                     //
+      optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("default"), "monitoring backend info")                                                           //
+        ("driver-client-backend", bpo::value<std::string>()->default_value(defaultDriverClient), "backend for device -> driver communicataon: stdout://: use stdout, ws://: use websockets") //
+        ("infologger-severity", bpo::value<std::string>()->default_value(""), "minimum FairLogger severity to send to InfoLogger")                                                           //
+        ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                                                                             //
         ("infologger-mode", bpo::value<std::string>()->default_value(""), "INFOLOGGER_MODE override");
       r.fConfig.AddToCmdLineOptions(optsDesc, true);
     });
@@ -1363,7 +1366,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           if (spec.id == frameworkId) {
             return doChild(driverInfo.argc, driverInfo.argv,
                            serviceRegistry, spec,
-                           driverInfo.errorPolicy, loop);
+                           driverInfo.errorPolicy,
+                           driverInfo.defaultDriverClient,
+                           loop);
           }
         }
         {
@@ -2226,8 +2231,10 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   if (varmap.count("id")) {
     frameworkId = varmap["id"].as<std::string>();
     driverInfo.uniqueWorkflowId = fmt::format("{}", getppid());
+    driverInfo.defaultDriverClient = "stdout://";
   } else {
     driverInfo.uniqueWorkflowId = fmt::format("{}", getpid());
+    driverInfo.defaultDriverClient = "ws://";
   }
   return runStateMachine(physicalWorkflow,
                          currentWorkflow,
