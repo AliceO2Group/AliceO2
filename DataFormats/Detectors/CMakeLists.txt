@@ -21,6 +21,7 @@ add_subdirectory(ZDC)
 add_subdirectory(TRD)
 add_subdirectory(PHOS)
 add_subdirectory(CPV)
+add_subdirectory(CTP)
 
 if(ENABLE_UPGRADES)
   add_subdirectory(Upgrades)
