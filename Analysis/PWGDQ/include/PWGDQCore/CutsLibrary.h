@@ -112,6 +112,11 @@ AnalysisCompositeCut* o2::aod::dqcuts::GetCompositeCut(const char* cutName)
     cut->AddCut(GetAnalysisCut("standardPrimaryTrack"));
     return cut;
   }
+  
+  if (!nameStr.compare("muonQualityCuts")) {
+    cut->AddCut(GetAnalysisCut("muonQualityCuts"));
+    return cut;
+  }
 
   if (!nameStr.compare("pairNoCut")) {
     cut->AddCut(GetAnalysisCut("pairNoCut"));
@@ -265,6 +270,13 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
 
   if (!nameStr.compare("tof_electron")) {
     cut->AddCut(VarManager::kTOFbeta, 0.99, 1.01, false, VarManager::kPin, 0.0, 1e+10, false);
+    return cut;
+  }
+  
+  if (!nameStr.compare("muonQualityCuts")) {
+    cut->AddCut(VarManager::kEta, -4.0, -2.5);
+    cut->AddCut(VarManager::kMuonRAtAbsorberEnd, 200.0, 900.0);
+    cut->AddCut(VarManager::kMuonPDca, 0.0, 300.0);
     return cut;
   }
 
