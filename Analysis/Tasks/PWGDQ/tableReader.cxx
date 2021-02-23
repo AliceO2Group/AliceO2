@@ -98,19 +98,19 @@ struct EventSelection {
   float* fValues;
 
   // TODO: make mixing binning configurable
-  std::vector<float> fCentLimsHashing {0.0f,10.0f,20.0f,30.0f,50.0f,70.0f,90.0f};
-  
+  std::vector<float> fCentLimsHashing{0.0f, 10.0f, 20.0f, 30.0f, 50.0f, 70.0f, 90.0f};
+
   Configurable<std::string> fConfigEventCuts{"cfgEventCuts", "eventStandard", "Event selection"};
-  
+
   int getHash(float centrality)
   {
-     if ((centrality < *fCentLimsHashing.begin()) || (centrality > *(fCentLimsHashing.end()-1))) {
-       return -1;
-     }
-     auto cent = std::lower_bound(fCentLimsHashing.begin(), fCentLimsHashing.end(), centrality);
-     return (cent-fCentLimsHashing.begin());
+    if ((centrality < *fCentLimsHashing.begin()) || (centrality > *(fCentLimsHashing.end() - 1))) {
+      return -1;
+    }
+    auto cent = std::lower_bound(fCentLimsHashing.begin(), fCentLimsHashing.end(), centrality);
+    return (cent - fCentLimsHashing.begin());
   }
-  
+
   void init(o2::framework::InitContext&)
   {
     fValues = new float[VarManager::kNVars];
@@ -160,9 +160,9 @@ struct BarrelTrackSelection {
   std::vector<AnalysisCompositeCut> fTrackCuts;
 
   float* fValues; // array to be used by the VarManager
-  
+
   Configurable<std::string> fConfigElectronCuts{"cfgElectronCuts", "jpsiPID1", "Comma separated list of barrel track cuts"};
-    
+
   void init(o2::framework::InitContext&)
   {
     DefineCuts();
@@ -201,7 +201,7 @@ struct BarrelTrackSelection {
     hadronKine.AddCut(VarManager::kPt, 4.0, 100.0);
     correlationsHadronCut.AddCut(&hadronKine);
     fTrackCuts.push_back(correlationsHadronCut);
-    
+
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
 
@@ -240,7 +240,7 @@ struct MuonTrackSelection {
   AnalysisCompositeCut* fTrackCut;
 
   float* fValues;
-  
+
   Configurable<float> fConfigMuonPtLow{"cfgMuonLowPt", 1.0f, "Low pt cut for muons"};
 
   void init(o2::framework::InitContext&)
@@ -291,17 +291,17 @@ struct EventMixing {
   OutputObj<THashList> fOutputList{"output"};
   HistogramManager* fHistMan;
   float* fValues;
-  // NOTE: The track filter produced by the barrel track selection contain a number of electron cut decisions and one last cut for hadrons used in the 
+  // NOTE: The track filter produced by the barrel track selection contain a number of electron cut decisions and one last cut for hadrons used in the
   //           dilepton - hadron task downstream. So the bit mask is required to select pairs just based on the electron cuts
   uint8_t fTwoTrackFilterMask = 0;
   std::vector<TString> fCutNames;
-  
+
   Configurable<std::string> fConfigElectronCuts{"cfgElectronCuts", "jpsiPID1", "Comma separated list of barrel track cuts"};
-  
+
   Filter filterEventSelected = aod::reducedevent::isEventSelected == 1;
   Filter filterTrackSelected = aod::reducedtrack::isBarrelSelected > uint8_t(0);
   Filter filterMuonTrackSelected = aod::reducedtrack::isMuonSelected > uint8_t(0);
-  
+
   void init(o2::framework::InitContext&)
   {
     fValues = new float[VarManager::kNVars];
@@ -321,30 +321,30 @@ struct EventMixing {
       }
     }
     histNames += "PairsMuonMEPM;PairsMuonMEPP;PairsMuonMEMM;";
-    
+
     DefineHistograms(fHistMan, histNames.Data());    // define all histograms
     VarManager::SetUseVars(fHistMan->GetUsedVars()); // provide the list of required variables so that VarManager knows what to fill
     fOutputList.setObject(fHistMan->GetMainHistogramList());
   }
-  
+
   void process(soa::Filtered<MyEventsHashSelected>& events, soa::Filtered<MyBarrelTracksSelected> const& tracks, soa::Filtered<MyMuonTracksSelected> const& muons)
   {
     uint8_t twoTrackFilter = 0;
-    
+
     events.bindExternalIndices(&tracks);
     events.bindExternalIndices(&muons);
     auto tracksTuple = std::make_tuple(tracks);
     auto muonsTuple = std::make_tuple(muons);
     AnalysisDataProcessorBuilder::GroupSlicer slicerTracks(events, tracksTuple);
     AnalysisDataProcessorBuilder::GroupSlicer slicerMuons(events, muonsTuple);
-    
+
     // Strictly upper categorised collisions, for 100 combinations per bin, skipping those in entry -1
     for (auto& [event1, event2] : selfCombinations("fMixingHash", 100, -1, events, events)) {
 
       // event informaiton is required to fill histograms where both event and pair information is required (e.g. inv.mass vs centrality)
       VarManager::ResetValues(0, VarManager::kNVars, fValues);
       VarManager::FillEvent<gkEventFillMap>(event1, fValues);
-      
+
       auto it1 = slicerTracks.begin();
       auto it2 = slicerTracks.begin();
       for (auto& slice : slicerTracks) {
@@ -364,19 +364,19 @@ struct EventMixing {
       tracks1.bindExternalIndices(&events);
       auto tracks2 = std::get<soa::Filtered<MyBarrelTracksSelected>>(it2.associatedTables());
       tracks2.bindExternalIndices(&events);
-            
+
       for (auto& track1 : tracks1) {
         for (auto& track2 : tracks2) {
           twoTrackFilter = track1.isBarrelSelected() & track2.isBarrelSelected() & fTwoTrackFilterMask;
-          
+
           if (!twoTrackFilter) { // the tracks must have at least one filter bit in common to continue
             continue;
           }
           VarManager::FillPair(track1, track2, fValues);
-         
+
           for (int i = 0; i < fCutNames.size(); ++i) {
             if (twoTrackFilter & (uint8_t(1) << i)) {
-              if (track1.charge()*track2.charge() < 0) {
+              if (track1.charge() * track2.charge() < 0) {
                 fHistMan->FillHistClass(Form("PairsBarrelMEPM_%s", fCutNames[i].Data()), fValues);
               } else {
                 if (track1.charge() > 0) {
@@ -385,11 +385,11 @@ struct EventMixing {
                   fHistMan->FillHistClass(Form("PairsBarrelMEMM_%s", fCutNames[i].Data()), fValues);
                 }
               }
-            }  // end if (filter bits)
-          }  // end for (cuts)
-        }  // end for (track2)
-      }  // end for (track1)
-      
+            } // end if (filter bits)
+          }   // end for (cuts)
+        }     // end for (track2)
+      }       // end for (track1)
+
       auto im1 = slicerMuons.begin();
       auto im2 = slicerMuons.begin();
       for (auto& slice : slicerMuons) {
@@ -409,15 +409,15 @@ struct EventMixing {
       muons1.bindExternalIndices(&events);
       auto muons2 = std::get<soa::Filtered<MyMuonTracksSelected>>(im2.associatedTables());
       muons2.bindExternalIndices(&events);
-      
+
       for (auto& muon1 : muons1) {
         for (auto& muon2 : muons2) {
-          twoTrackFilter = muon1.isMuonSelected() & muon2.isMuonSelected();          
+          twoTrackFilter = muon1.isMuonSelected() & muon2.isMuonSelected();
           if (!twoTrackFilter) { // the tracks must have at least one filter bit in common to continue
             continue;
           }
           VarManager::FillPair(muon1, muon2, fValues);
-          if (muon1.charge()*muon2.charge() < 0) {
+          if (muon1.charge() * muon2.charge() < 0) {
             fHistMan->FillHistClass("PairsMuonMEPM", fValues);
           } else {
             if (muon1.charge() > 0) {
@@ -426,10 +426,10 @@ struct EventMixing {
               fHistMan->FillHistClass("PairsMuonMEMM", fValues);
             }
           }
-        }  // end for (muon2)
-      }  // end for (muon1)
-    }  // end for (event combinations)
-  }  // end process()
+        } // end for (muon2)
+      }   // end for (muon1)
+    }     // end for (event combinations)
+  }       // end process()
 };
 
 struct TableReader {
@@ -439,16 +439,16 @@ struct TableReader {
   //NOTE: one could define also a dilepton cut, but for now basic selections can be supported using Partition
 
   float* fValues;
-  // NOTE: The track filter produced by the barrel track selection contain a number of electron cut decisions and one last cut for hadrons used in the 
+  // NOTE: The track filter produced by the barrel track selection contain a number of electron cut decisions and one last cut for hadrons used in the
   //           dilepton - hadron task downstream. So the bit mask is required to select pairs just based on the electron cuts
   uint8_t fTwoTrackFilterMask = 0;
   std::vector<TString> fCutNames;
-  
+
   Filter filterEventSelected = aod::reducedevent::isEventSelected == 1;
   // NOTE: the barrel filter map contains decisions for both electrons and hadrons used in the correlation task
   Filter filterBarrelTrackSelected = aod::reducedtrack::isBarrelSelected > uint8_t(0);
   Filter filterMuonTrackSelected = aod::reducedtrack::isMuonSelected > uint8_t(0);
-  
+
   Configurable<std::string> fConfigElectronCuts{"cfgElectronCuts", "jpsiPID1", "Comma separated list of barrel track cuts"};
 
   void init(o2::framework::InitContext&)
@@ -491,14 +491,14 @@ struct TableReader {
     for (auto& [t1, t2] : combinations(tracks, tracks)) {
       twoTrackFilter = t1.isBarrelSelected() & t2.isBarrelSelected() & fTwoTrackFilterMask;
       if (!twoTrackFilter) { // the tracks must have at least one filter bit in common to continue
-          continue;
+        continue;
       }
       dileptonFilterMap = uint16_t(twoTrackFilter);
       VarManager::FillPair(t1, t2, fValues);
-      dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], t1.charge()+t2.charge(), dileptonFilterMap);
+      dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], t1.charge() + t2.charge(), dileptonFilterMap);
       for (int i = 0; i < fCutNames.size(); ++i) {
         if (twoTrackFilter & (uint8_t(1) << i)) {
-          if (t1.charge()*t2.charge() < 0) {
+          if (t1.charge() * t2.charge() < 0) {
             fHistMan->FillHistClass(Form("PairsBarrelSEPM_%s", fCutNames[i].Data()), fValues);
           } else {
             if (t1.charge() > 0) {
@@ -509,8 +509,8 @@ struct TableReader {
           }
         }
       }
-    }  // end loop over barrel track pairs
-    
+    } // end loop over barrel track pairs
+
     // same event pairing for muons
     for (auto& [muon1, muon2] : combinations(muons, muons)) {
       twoTrackFilter = muon1.isMuonSelected() & muon2.isMuonSelected();
@@ -519,12 +519,12 @@ struct TableReader {
       }
       // NOTE: The dimuons in this task ae pushed in the same table as the dielectrons.
       //       In order to discriminate them, the dileptonFilterMap uses the first 8 bits for dielectrons and the last 8 for dimuons.
-      // TBD:  Other implementations may be possible, for example add a column to the dilepton table to specify the pair type (dielectron, dimuon, electron-muon, etc.) 
+      // TBD:  Other implementations may be possible, for example add a column to the dilepton table to specify the pair type (dielectron, dimuon, electron-muon, etc.)
       dileptonFilterMap = uint16_t(twoTrackFilter);
-      dileptonFilterMap<<8;      // shift the muon filter bits 
+      dileptonFilterMap << 8; // shift the muon filter bits
       VarManager::FillPair(muon1, muon2, fValues);
-      dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], muon1.charge()+muon2.charge(), dileptonFilterMap);
-      if (muon1.charge()*muon2.charge() < 0) {
+      dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], muon1.charge() + muon2.charge(), dileptonFilterMap);
+      if (muon1.charge() * muon2.charge() < 0) {
         fHistMan->FillHistClass("PairsMuonSEPM", fValues);
       } else {
         if (muon1.charge() > 0) {
@@ -533,7 +533,7 @@ struct TableReader {
           fHistMan->FillHistClass("PairsMuonSEMM", fValues);
         }
       }
-    }  // end loop over muon track pairs
+    } // end loop over muon track pairs
   }
 };
 
@@ -545,25 +545,25 @@ struct DileptonHadronAnalysis {
   // It requires the TableReader task to be in the workflow and produce the dilepton table
   //
   //  The barrel and muon track filtering tasks can produce multiple parallel decisions, which are used to produce
-  //   dileptons which inherit the logical intersection of the track level decisions (see the TableReader task). This can be used 
-  //   also in the dilepton-hadron correlation analysis. However, in this model of the task, we use all the dileptons produced in the 
-  //     TableReader task to combine them with the hadrons selected by the barrel track selection.  
+  //   dileptons which inherit the logical intersection of the track level decisions (see the TableReader task). This can be used
+  //   also in the dilepton-hadron correlation analysis. However, in this model of the task, we use all the dileptons produced in the
+  //     TableReader task to combine them with the hadrons selected by the barrel track selection.
   OutputObj<THashList> fOutputList{"output"};
   HistogramManager* fHistMan;
-  
+
   // use two values array to avoid mixing up the quantities
   float* fValuesDilepton;
   float* fValuesHadron;
-    
+
   Filter eventFilter = aod::reducedevent::isEventSelected == 1;
-  Filter dileptonFilter = aod::reducedpair::mass > 2.92f && aod::reducedpair::mass < 3.16f && aod::reducedpair::pt>0.0f && aod::reducedpair::charge == 0;
+  Filter dileptonFilter = aod::reducedpair::mass > 2.92f && aod::reducedpair::mass<3.16f && aod::reducedpair::pt> 0.0f && aod::reducedpair::charge == 0;
   // NOTE: the barrel track filter is shared between the filters for dilepton electron candidates (first n-bits)
   //       and the associated hadrons (n+1 bit) --> see the barrel track selection task
   //      The current condition should be replaced when bitwise operators will become available in Filter expresions
   // NOTE: the name of this configurable has to be the same as the one used in the barrel track selection task
-  Configurable<std::string> fConfigElectronCuts{"cfgElectronCuts", "jpsiPID1", "Comma separated list of barrel track cuts"};  
+  Configurable<std::string> fConfigElectronCuts{"cfgElectronCuts", "jpsiPID1", "Comma separated list of barrel track cuts"};
   int fNHadronCutBit;
-  
+
   constexpr static uint32_t fgDileptonFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::Pair;
 
   void init(o2::framework::InitContext&)
@@ -578,7 +578,7 @@ struct DileptonHadronAnalysis {
     DefineHistograms(fHistMan, "DileptonsSelected;DileptonHadronInvMass;DileptonHadronCorrelation"); // define all histograms
     VarManager::SetUseVars(fHistMan->GetUsedVars());
     fOutputList.setObject(fHistMan->GetMainHistogramList());
-    
+
     TString configCutNamesStr = fConfigElectronCuts.value;
     if (!configCutNamesStr.IsNull()) {
       std::unique_ptr<TObjArray> objArray(configCutNamesStr.Tokenize(","));
@@ -604,7 +604,7 @@ struct DileptonHadronAnalysis {
 
     // loop over hadrons
     for (auto& hadron : hadrons) {
-      if (!(hadron.isBarrelSelected() & (uint8_t(1)<<fNHadronCutBit))) {
+      if (!(hadron.isBarrelSelected() & (uint8_t(1) << fNHadronCutBit))) {
         continue;
       }
       for (auto dilepton : dileptons) {
@@ -655,11 +655,11 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses)
         dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "track", "muon");
       }
     }
-    
+
     if (classStr.Contains("Pairs")) {
       dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "pair");
     }
-    
+
     if (classStr.Contains("DileptonsSelected")) {
       dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "pair");
     }
@@ -667,13 +667,13 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses)
     if (classStr.Contains("HadronsSelected")) {
       dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "track", "kine");
     }
-    
+
     if (classStr.Contains("DileptonHadronInvMass")) {
       dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "dilepton-hadron-mass");
     }
-    
+
     if (classStr.Contains("DileptonHadronCorrelation")) {
       dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "dilepton-hadron-correlation");
     }
-  }  // end loop over histogram classes
+  } // end loop over histogram classes
 }

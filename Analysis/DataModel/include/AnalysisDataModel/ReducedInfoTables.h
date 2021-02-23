@@ -160,9 +160,9 @@ DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float pt, float phi) -> float { return pt 
 DECLARE_SOA_DYNAMIC_COLUMN(Py, py, [](float pt, float phi) -> float { return pt * std::sin(phi); });
 DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, [](float pt, float eta) -> float { return pt * std::sinh(eta); });
 DECLARE_SOA_DYNAMIC_COLUMN(Pmom, pmom, [](float pt, float eta) -> float { return pt * std::cosh(eta); });
-}
+} // namespace reducedpair
 
-DECLARE_SOA_TABLE(Dileptons, "AOD", "RTDILEPTON", 
+DECLARE_SOA_TABLE(Dileptons, "AOD", "RTDILEPTON",
                   reducedpair::ReducedEventId, reducedpair::Mass,
                   reducedpair::Pt, reducedpair::Eta, reducedpair::Phi, reducedpair::Charge,
                   reducedpair::FilterMap,

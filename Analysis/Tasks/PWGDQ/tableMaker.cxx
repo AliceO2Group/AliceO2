@@ -59,7 +59,7 @@ using MyEventsNoCent = soa::Join<aod::Collisions, aod::EvSels>;
 constexpr static uint32_t gkEventFillMap = VarManager::ObjTypes::BC | VarManager::ObjTypes::Collision | VarManager::ObjTypes::CollisionCent;
 constexpr static uint32_t gkEventFillMapNoCent = VarManager::ObjTypes::BC | VarManager::ObjTypes::Collision;
 constexpr static uint32_t gkTrackFillMap = VarManager::ObjTypes::Track | VarManager::ObjTypes::TrackExtra | VarManager::ObjTypes::TrackDCA | VarManager::ObjTypes::TrackSelection | VarManager::ObjTypes::TrackCov | VarManager::ObjTypes::TrackPID;
-constexpr static uint32_t gkMuonFillMap =  VarManager::ObjTypes::Track | VarManager::ObjTypes::ReducedTrackMuon;
+constexpr static uint32_t gkMuonFillMap = VarManager::ObjTypes::Track | VarManager::ObjTypes::ReducedTrackMuon;
 
 template <uint32_t eventFillMap, typename T>
 struct TableMaker {
@@ -99,7 +99,7 @@ struct TableMaker {
   // TODO: Use Partition to avoid the cross-talk between filters which use variables with the same name (e.g. pt for both barrel and muon tracks)
   //       Replace by Filter when the bug is fixed
   Partition<o2::aod::Muons> selectedMuons = o2::aod::muon::pt >= fConfigMuonPtLow;
-  
+
   void init(o2::framework::InitContext&)
   {
     fValues = new float[VarManager::kNVars];
@@ -119,12 +119,12 @@ struct TableMaker {
     fEventCut = new AnalysisCompositeCut(true);
     TString eventCutStr = fConfigEventCuts.value;
     fEventCut->AddCut(dqcuts::GetAnalysisCut(eventCutStr.Data()));
-    
+
     // NOTE: for now, the model of this task is that just one track cut is applied; multiple parallel cuts should be enabled in the future
     fTrackCut = new AnalysisCompositeCut(true);
     TString trackCutStr = fConfigTrackCuts.value;
     fTrackCut->AddCut(dqcuts::GetCompositeCut(trackCutStr.Data()));
-    
+
     fMuonCut = new AnalysisCompositeCut(true);
     TString muonCutStr = fConfigMuonCuts.value;
     fMuonCut->AddCut(dqcuts::GetCompositeCut(muonCutStr.Data()));
@@ -208,7 +208,7 @@ struct TableMaker {
         continue;
       }
       fHistMan->FillHistClass("Muons_AfterCuts", fValues);
-      
+
       muonBasic(event.lastIndex(), trackFilteringTag, muon.pt(), muon.eta(), muon.phi(), muon.charge());
       muonExtended(muon.inverseBendingMomentum(), muon.thetaX(), muon.thetaY(), muon.zMu(), muon.bendingCoor(), muon.nonBendingCoor(), muon.chi2(), muon.chi2MatchTrigger());
     }
