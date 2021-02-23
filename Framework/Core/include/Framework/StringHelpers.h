@@ -126,23 +126,23 @@ constexpr auto as_chars()
 }
 
 template <int N>
-constexpr const char* const get_str(const char (&str)[N])
+constexpr auto get_str(const char (&str)[N])
 {
   return str;
 }
 
 template <int N>
-constexpr const int get_size(const char (&str)[N])
+constexpr auto get_size(const char (&str)[N])
 {
   return N;
 }
 
-constexpr const char* const get_str(const std::string_view& str)
+constexpr auto get_str(const std::string_view& str)
 {
   return str.data();
 }
 
-constexpr const int get_size(const std::string_view& str)
+constexpr auto get_size(const std::string_view& str)
 {
   return str.size() + 1;
 }
