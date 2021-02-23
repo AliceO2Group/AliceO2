@@ -117,12 +117,6 @@ const CalPad& CDBInterface::getGainMap()
 }
 
 //______________________________________________________________________________
-const CalPad& CDBInterface::getCalPad(const std::string_view path)
-{
-  return getObjectFromCDB<CalPad>(path.data());
-}
-
-//______________________________________________________________________________
 const ParameterDetector& CDBInterface::getParameterDetector()
 {
   if (mUseDefaults) {
@@ -164,6 +158,12 @@ const ParameterGEM& CDBInterface::getParameterGEM()
 
   // return from CDB, assume that check for object existence are done there
   return getObjectFromCDB<ParameterGEM>(CDBTypeMap.at(CDBType::ParGEM));
+}
+
+//______________________________________________________________________________
+const CalPad& CDBInterface::getCalPad(const std::string_view path)
+{
+  return getSpecificObjectFromCDB<CalPad>(path);
 }
 
 //______________________________________________________________________________
