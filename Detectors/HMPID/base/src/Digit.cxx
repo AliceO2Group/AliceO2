@@ -447,5 +447,4 @@ std::vector<uint64_t>* Digit::extractEvents(std::vector<o2::hmpid::Digit>& Digit
   return (eventIds);
 };
 
-
 // -------- eof -----------

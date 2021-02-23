@@ -87,12 +87,14 @@ class Digit
 
   // Getter & Setters
   uint16_t getCharge() const { return mQ; }
-  void setCharge(uint16_t Q) {
+  void setCharge(uint16_t Q)
+  {
     mQ = Q;
     return;
   };
   int getPadID() const { return mPad; }
-  void setPadID(uint32_t pad) {
+  void setPadID(uint32_t pad)
+  {
     mPad = pad;
     return;
   };
@@ -116,7 +118,8 @@ class Digit
     return;
   }
   bool isValid() { return (mPad == 0xFFFFFFFF ? true : false); };
-  void setInvalid() {
+  void setInvalid()
+  {
     mPad = 0xFFFFFFFF;
     return;
   };
