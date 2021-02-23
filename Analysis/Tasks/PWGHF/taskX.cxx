@@ -49,12 +49,28 @@ struct AddCollisionId {
   }
 };
 
+// TODO: Function that calculates inv mass of X candidate
+// namespace o2::aod
+// {
+// namespace hf_cand_prong3
+// {
+// template <typename T>
+// auto InvMassXToJpsiPiPi(const T& candidate)
+// {
+//  return candidate.m(array{RecoDecay::getMassPDG(kJpsi), RecoDecay::getMassPDG(kPiPlus), RecoDecay::getMassPDG(kPiPlus)});
+// }
+// } // namespace hf_cand_prong3
+// } // namespace o2::aod
+
+// RecoDecay::M(array{array{px0, py0, pz0}, array{px1, py1, pz1}, array{px2, py2, pz2}}, m);
+
 /// X analysis task
 /// FIXME: Still need to remove track duplication!!!
 struct TaskX {
   HistogramRegistry registry{
     "registry",
     {{"hmassJpsi", "2-prong candidates;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
+     {"hmassX", "3-prong candidates;inv. mass (#J/psi pi+ pi-) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
      {"hptcand", "X candidates;candidate #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}}}};
 
   Configurable<int> d_selectionFlagJpsi{"d_selectionFlagJpsi", 1, "Selection Flag for Jpsi"};
@@ -73,16 +89,18 @@ struct TaskX {
         continue;
       }
       registry.fill(HIST("hmassJpsi"), InvMassJpsiToEE(candidate));
+
       int index0jpsi = candidate.index0Id();
       int index1jpsi = candidate.index1Id();
-      auto trackJpsiParVarPos1 = getTrackParCov(candidate.index0());
-      auto trackJpsiParVarNeg1 = getTrackParCov(candidate.index1());
+      auto JpsiTrackPos = candidate.index0();
+      auto JpsiTrackNeg = candidate.index1();
       for (auto trackPos1 = tracks.begin(); trackPos1 != tracks.end(); ++trackPos1) {
         if (trackPos1.signed1Pt() < 0) {
           continue;
         }
         if (trackPos1.globalIndex() == index0jpsi){
-          printf("pos track pt check: trackJpsiParVarPos1.pt(), trackPos1.pt()\n");
+          printf("pos track id check: %ld, %u\n", trackPos1.globalIndex(), index0jpsi);
+          printf("pos track pt check: %f, %f\n", JpsiTrackPos.pt(), trackPos1.pt());
           continue;
         }
         for (auto trackNeg1 = tracks.begin(); trackNeg1 != tracks.end(); ++trackNeg1) {
@@ -90,10 +108,17 @@ struct TaskX {
             continue;
           }
           if (trackNeg1.globalIndex() == index1jpsi){
-            printf("neg track pt check: trackJpsiParVarNeg1.pt(), trackNeg1.pt()\n");
+            printf("neg track id check: %ld, %u\n", trackNeg1.globalIndex(), index1jpsi);
+            printf("neg track pt check: %f, %f\n", JpsiTrackNeg.pt(), trackNeg1.pt());
             continue;
           }
           registry.fill(HIST("hptcand"), candidate.pt() + trackPos1.pt() + trackNeg1.pt());
+
+          // quick&dirty calculation of invariant mass
+          // auto JpsiParray = ;
+          // auto trackPos1P = array{trackPos1.px(), trackPos1.py(), trackPos1.pz()};
+          // auto trackNeg1P = array{trackNeg1.px(), trackNeg1.py(), trackNeg1.pz()};
+          // registry.fill(HIST("hmassX"), RecoDecay::M(array{candidate.p(), trackPos1P, trackNeg1P}, 3.872));
         }
       }
     }
