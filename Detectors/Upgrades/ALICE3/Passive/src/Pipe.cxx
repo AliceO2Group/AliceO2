@@ -105,7 +105,7 @@ void Alice3Pipe::ConstructGeometry()
   innerBerylliumTubeVacuumVolume->SetVisibility(0);
   innerBerylliumTubeVacuumVolume->SetLineColor(kGreen);
 
-  barrel->AddNode(innerBerylliumTubeVacuumVolume, 1, gGeoIdentity);
+  barrel->AddNode(innerBerylliumTubeVacuumVolume, 1, new TGeoTranslation(0, 30.f, 0));
 
   //---------------- Outermost Be pipe around the IP ----------
   TGeoTube* outerBeTube =
@@ -120,7 +120,7 @@ void Alice3Pipe::ConstructGeometry()
   outerBerylliumTubeVacuumVolume->SetVisibility(0);
   outerBerylliumTubeVacuumVolume->SetLineColor(kGreen);
 
-  barrel->AddNode(outerBerylliumTubeVacuumVolume, 1, gGeoIdentity);
+  barrel->AddNode(outerBerylliumTubeVacuumVolume, 1, new TGeoTranslation(0, 30.f, 0));
 }
 
 void Alice3Pipe::createMaterials()
