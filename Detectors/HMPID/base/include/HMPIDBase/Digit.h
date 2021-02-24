@@ -8,9 +8,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+///
+/// \file   Digit.h
+/// \author Antonio Franco - INFN Bari
+/// \version 1.0
+/// \date 15/02/2021
+
 #ifndef DETECTORS_HMPID_BASE_INCLUDE_HMPIDBASE_DIGIT_H_
 #define DETECTORS_HMPID_BASE_INCLUDE_HMPIDBASE_DIGIT_H_
 
+#include <vector>
 #include "CommonDataFormat/TimeStamp.h"
 #include "HMPIDBase/Hit.h"   // for hit
 #include "HMPIDBase/Param.h" // for param
@@ -22,95 +29,136 @@ namespace hmpid
 {
 
 /// \class Digit
-/// \brief HMPID digit implementation
-using DigitBase = o2::dataformats::TimeStamp<double>;
-class Digit : public DigitBase
+/// \brief HMPID Digit declaration
+class Digit
 {
  public:
+  // Coordinates Conversion Functions
+  static inline uint32_t Abs(int ch, int pc, int x, int y) { return ch << 20 | pc << 16 | x << 8 | y; }
+  static inline int DDL2C(int ddl) { return ddl >> 1; }                    //ddl -> chamber
+  static inline int A2C(uint32_t pad) { return (pad & 0x00F00000) >> 20; } //abs pad -> chamber
+  static inline int A2P(uint32_t pad) { return (pad & 0x000F0000) >> 16; } //abs pad -> pc
+  static inline int A2X(uint32_t pad) { return (pad & 0x0000FF00) >> 8; }  //abs pad -> pad X
+  static inline int A2Y(uint32_t pad) { return (pad & 0x000000FF); }       //abs pad -> pad Y
+  static inline uint32_t Photo2Pad(int ch, int pc, int x, int y) { return Abs(ch, pc, x, y); }
+  static uint32_t Equipment2Pad(int Equi, int Colu, int Dilo, int Chan);
+  static void Pad2Equipment(uint32_t pad, int* Equi, int* Colu, int* Dilo, int* Chan);
+  static void Pad2Absolute(uint32_t pad, int* Module, int* x, int* y);
+  static uint32_t Absolute2Pad(int Module, int x, int y);
+  static void Pad2Photo(uint32_t pad, int* chamber, int* photo, int* x, int* y);
+  static void Absolute2Equipment(int Module, int x, int y, int* Equi, int* Colu, int* Dilo, int* Chan);
+  static void Equipment2Absolute(int Equi, int Colu, int Dilo, int Chan, int* Module, int* x, int* y);
+
+  // Trigger time Conversion Functions
+  static inline uint64_t OrbitBcToEventId(uint32_t Orbit, uint16_t BC) { return ((Orbit << 12) || BC); };
+  static inline uint32_t EventIdToOrbit(uint64_t EventId) { return (EventId >> 12); };
+  static inline uint16_t EventIdToBc(uint64_t EventId) { return (EventId & 0x0FFF); };
+  static double OrbitBcToTimeNs(uint32_t Orbit, uint16_t BC);
+  static uint32_t TimeNsToOrbit(double TimeNs);
+  static uint16_t TimeNsToBc(double TimeNs);
+  static void TimeNsToOrbitBc(double TimeNs, uint32_t& Orbit, uint16_t& Bc);
+
+  // Operators definition !
+  friend inline bool operator<(const Digit& l, const Digit& r) { return l.mPad < r.mPad; };
+  friend inline bool operator==(const Digit& l, const Digit& r) { return l.mPad == r.mPad; };
+  friend inline bool operator>(const Digit& l, const Digit& r) { return r < l; };
+  friend inline bool operator<=(const Digit& l, const Digit& r) { return !(l > r); };
+  friend inline bool operator>=(const Digit& l, const Digit& r) { return !(l < r); };
+  friend inline bool operator!=(const Digit& l, const Digit& r) { return !(l == r); };
+
+  // Digit ASCCI format Dump := [Chamber,PhotoCathod,X,Y]@(Orbit,BunchCrossing)=Charge
+  friend std::ostream& operator<<(std::ostream& os, const Digit& d)
+  {
+    os << "[" << A2C(d.mPad) << "," << A2P(d.mPad) << "," << A2X(d.mPad) << "," << A2Y(d.mPad) << "]@(" << d.mOrbit << "," << d.mBc << ")=" << d.mQ;
+    return os;
+  };
+
+  // Functions to manage Digit Vectors
+  static bool eventEquipPadsComp(Digit& d1, Digit& d2);
+  static std::vector<o2::hmpid::Digit>* extractDigitsPerEvent(std::vector<o2::hmpid::Digit>& Digits, uint64_t EventID);
+  static std::vector<uint64_t>* extractEvents(std::vector<o2::hmpid::Digit>& Digits);
+
+ public:
   Digit() = default;
-  Digit(double time, int pad, float charge) : DigitBase(time), mPad(pad), mQ(charge) {}
+  Digit(uint16_t bc, uint32_t orbit, int pad, uint16_t charge) : mBc(bc), mOrbit(orbit), mQ(charge), mPad(pad){};
+  Digit(uint16_t bc, uint32_t orbit, int chamber, int photo, int x, int y, uint16_t charge);
+  Digit(uint16_t bc, uint32_t orbit, uint16_t, int equipment, int column, int dilogic, int channel);
+  Digit(uint16_t bc, uint32_t orbit, uint16_t, int module, int x, int y);
 
-  float getCharge() const { return mQ; }
+  // Getter & Setters
+  uint16_t getCharge() const { return mQ; }
+  void setCharge(uint16_t Q)
+  {
+    mQ = Q;
+    return;
+  };
   int getPadID() const { return mPad; }
-  // convenience conversion to x-y pad coordinates
-  int getPx() const { return Param::A2X(mPad); }
-  int getPy() const { return Param::A2Y(mPad); }
-
-  static void getPadAndTotalCharge(HitType const& hit, int& chamber, int& pc, int& px, int& py, float& totalcharge)
+  void setPadID(uint32_t pad)
   {
-    float localX;
-    float localY;
-    chamber = hit.GetDetectorID();
-    double tmp[3] = {hit.GetX(), hit.GetY(), hit.GetZ()};
-    Param::Instance()->Mars2Lors(chamber, tmp, localX, localY);
-    Param::Lors2Pad(localX, localY, pc, px, py);
-
-    totalcharge = Digit::QdcTot(hit.GetEnergyLoss(), hit.GetTime(), pc, px, py, localX, localY);
-  }
-
-  static float getFractionalContributionForPad(HitType const& hit, int somepad)
+    mPad = pad;
+    return;
+  };
+  uint32_t getOrbit() const { return mOrbit; }
+  uint16_t getBC() const { return mBc; }
+  uint64_t getTriggerID() const { return OrbitBcToEventId(mOrbit, mBc); }
+  void setOrbit(uint32_t orbit)
   {
-    float localX;
-    float localY;
-
-    // chamber number is in detID
-    const auto chamber = hit.GetDetectorID();
-    double tmp[3] = {hit.GetX(), hit.GetY(), hit.GetZ()};
-    // converting chamber id and hit coordiates to local coordinates
-    Param::Instance()->Mars2Lors(chamber, tmp, localX, localY);
-    // calculate charge fraction in given pad
-    return Digit::InMathieson(localX, localY, somepad);
+    mOrbit = orbit;
+    return;
   }
+  void setBC(uint16_t bc)
+  {
+    mBc = bc;
+    return;
+  }
+  void setTriggerID(uint64_t trigger)
+  {
+    mOrbit = (trigger >> 12);
+    mBc = (trigger & 0x0FFF);
+    return;
+  }
+  bool isValid() { return (mPad == 0xFFFFFFFF ? true : false); };
+  void setInvalid()
+  {
+    mPad = 0xFFFFFFFF;
+    return;
+  };
 
-  // add charge to existing digit
+  // convenience wrapper function for conversion to x-y pad coordinates
+  int getPx() const { return A2X(mPad); }
+  int getPy() const { return A2Y(mPad); }
+  int getPhC() const { return A2P(mPad); }
+  int getCh() const { return A2C(mPad); }
+
+  // Charge management functions
+  static void getPadAndTotalCharge(HitType const& hit, int& chamber, int& pc, int& px, int& py, float& totalcharge);
+  static float getFractionalContributionForPad(HitType const& hit, int somepad);
   void addCharge(float q) { mQ += q; }
+  void subCharge(float q) { mQ -= q; }
 
  private:
-  float mQ = 0.;
-  int mPad = 0.; // -1 indicates invalid digit
+  // Members
+  uint16_t mQ = 0;
+  uint16_t mBc = 0.;
+  uint32_t mOrbit = 0;
+  // The Pad Unique Id, code a pad inside one HMPID chamber.
+  // Bit Map : 0000.0000.cccc.pppp.xxxx.xxxx.yyyy.yyyy
+  //           cccc := chamber [0..6]
+  //           pppp := photo cathode [0..5]
+  //           xxxx.xxxx := horizontal displacement [0..79]
+  //           yyyy.yyyy := vertical displacement [0..47]
+  uint32_t mPad = 0; // 0xFFFFFFFF indicates invalid digit
 
-  static float LorsX(int pad) { return Param::LorsX(Param::A2P(pad), Param::A2X(pad)); } //center of the pad x, [cm]
-  static float LorsY(int pad) { return Param::LorsY(Param::A2P(pad), Param::A2Y(pad)); } //center of the pad y, [cm]
+  // Get the Geometric center of the pad
+  static float LorsX(int pad) { return Param::LorsX(A2P(pad), A2X(pad)); } //center of the pad x, [cm]
+  static float LorsY(int pad) { return Param::LorsY(A2P(pad), A2Y(pad)); } //center of the pad y, [cm]
 
   // determines the total charge created by a hit
   // might modify the localX, localY coordiates associated to the hit
-  static float QdcTot(float e, float time, int pc, int px, int py, float& localX, float& localY);
-
-  static float IntPartMathiX(float x, int pad)
-  {
-    // Integration of Mathieson.
-    // This is the answer to electrostatic problem of charge distrubution in MWPC described elsewhere. (NIM A370(1988)602-603)
-    // Arguments: x,y- position of the center of Mathieson distribution
-    //  Returns: a charge fraction [0-1] imposed into the pad
-    auto shift1 = -LorsX(pad) + 0.5 * Param::SizePadX();
-    auto shift2 = -LorsX(pad) - 0.5 * Param::SizePadX();
-
-    auto ux1 = Param::SqrtK3x() * TMath::TanH(Param::K2x() * (x + shift1) / Param::PitchAnodeCathode());
-    auto ux2 = Param::SqrtK3x() * TMath::TanH(Param::K2x() * (x + shift2) / o2::hmpid::Param::PitchAnodeCathode());
-
-    return o2::hmpid::Param::K4x() * (TMath::ATan(ux2) - TMath::ATan(ux1));
-  }
-  //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-  static Double_t IntPartMathiY(Double_t y, int pad)
-  {
-    // Integration of Mathieson.
-    // This is the answer to electrostatic problem of charge distrubution in MWPC described elsewhere. (NIM A370(1988)602-603)
-    // Arguments: x,y- position of the center of Mathieson distribution
-    //  Returns: a charge fraction [0-1] imposed into the pad
-    Double_t shift1 = -LorsY(pad) + 0.5 * o2::hmpid::Param::SizePadY();
-    Double_t shift2 = -LorsY(pad) - 0.5 * o2::hmpid::Param::SizePadY();
-
-    Double_t uy1 = Param::SqrtK3y() * TMath::TanH(Param::K2y() * (y + shift1) / Param::PitchAnodeCathode());
-    Double_t uy2 = Param::SqrtK3y() * TMath::TanH(Param::K2y() * (y + shift2) / Param::PitchAnodeCathode());
-
-    return Param::K4y() * (TMath::ATan(uy2) - TMath::ATan(uy1));
-  }
-
-  static float InMathieson(float localX, float localY, int pad)
-  {
-    return 4. * Digit::IntPartMathiX(localX, pad) * Digit::IntPartMathiY(localY, pad);
-  }
+  static Double_t QdcTot(Double_t e, Double_t time, Int_t pc, Int_t px, Int_t py, Double_t& localX, Double_t& localY);
+  static Double_t IntPartMathiX(Double_t x, Int_t pad);
+  static Double_t IntPartMathiY(Double_t y, Int_t pad);
+  static Double_t InMathieson(Double_t localX, Double_t localY, int pad);
 
   ClassDefNV(Digit, 2);
 };

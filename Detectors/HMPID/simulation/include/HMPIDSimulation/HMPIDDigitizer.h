@@ -44,10 +44,12 @@ class HMPIDDigitizer
       // for the first trigger no busy check necessary
       mCurrentTriggerTime = timeNS;
       mReadoutCounter++;
+      Digit::TimeNsToOrbitBc(mCurrentTriggerTime, mOrbit, mBc);
       return true;
     } else {
       if ((timeNS - mCurrentTriggerTime) > BUSYTIME) {
         mCurrentTriggerTime = timeNS;
+        Digit::TimeNsToOrbitBc(mCurrentTriggerTime, mOrbit, mBc);
         mReadoutCounter++;
         return true;
       } else {
@@ -83,6 +85,9 @@ class HMPIDDigitizer
                                                      // (using noise and other tables for pad)
 
   double mCurrentTriggerTime = 0.;
+  uint32_t mOrbit = 0;
+  uint16_t mBc = 0;
+
   int mEventID = 0;
   int mSrcID = 0;
 
