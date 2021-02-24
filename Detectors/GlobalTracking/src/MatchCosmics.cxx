@@ -464,6 +464,7 @@ void MatchCosmics::createSeeds(const o2::globaltracking::RecoContainer& data)
         t0 *= this->mTPCTBinMUS;
         terr *= this->mTPCTBinMUS;
       } else if (_origID.getSource() == GTrackID::ITS) { // error is supplied a half-ROF duration, convert to \mus
+        t0 += 0.5 * mITSROFrameLengthMUS;                // time 0 is supplied as beginning of ROF
         terr *= mITSROFrameLengthMUS;
       } else {
         terr *= this->mMatchParams->nSigmaTError;

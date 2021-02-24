@@ -84,14 +84,16 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
   std::vector<o2::MCCompLabel> tracksMCInfo;
   std::vector<o2d::GlobalTrackID> gids;
   auto maxTrackTimeError = PVertexerParams::Instance().maxTimeErrorMUS;
+  auto halfROFITS = 0.5 * mITSROFrameLengthMUS;
   auto hw2ErrITS = 2.f / std::sqrt(12.f) * mITSROFrameLengthMUS; // conversion from half-width to error for ITS
 
   std::function<void(const o2::track::TrackParCov& _tr, float t0, float terr, GTrackID _origID)> creator =
-    [maxTrackTimeError, hw2ErrITS, &tracks, &gids](const o2::track::TrackParCov& _tr, float t0, float terr, GTrackID _origID) {
+    [maxTrackTimeError, hw2ErrITS, halfROFITS, &tracks, &gids](const o2::track::TrackParCov& _tr, float t0, float terr, GTrackID _origID) {
       if (!_origID.includesDet(DetID::ITS)) {
         return; // just in case this selection was not done on RecoContainer filling level
       }
       if (_origID.getSource() == GTrackID::ITS) { // error is supplied a half-ROF duration, convert to \mus
+        t0 += halfROFITS;                         // ITS time is supplied as beginning of ROF
         terr *= hw2ErrITS;
       }
       if (terr > maxTrackTimeError) {
