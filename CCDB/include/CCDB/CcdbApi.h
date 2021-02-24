@@ -311,7 +311,7 @@ class CcdbApi //: public DatabaseInterface
    * @param curl curl handler
    * @return
    */
-  static void curlSetSSLOptions(CURL *curl);
+  void curlSetSSLOptions(CURL *curl) const;
 
  private:
   /**
@@ -420,6 +420,7 @@ class CcdbApi //: public DatabaseInterface
   bool mInSnapshotMode = false;
   mutable TGrid* mAlienInstance = nullptr;                     // a cached connection to TGrid (needed for Alien locations)
   bool mHaveAlienToken = false;                                // stores if an alien token is available
+  TJAlienCredentials mJAlienCredentials{};                     // access JAliEn credentials
 
   ClassDefNV(CcdbApi, 1);
 };

@@ -320,37 +320,31 @@ static size_t WriteToFileCallback(void* ptr, size_t size, size_t nmemb, FILE* st
  */
 static CURLcode ssl_ctx_callback(CURL *curl, void *ssl_ctx, void *parm)
 {
-	//(void)curl;
-  //(void)parm;
-
-  TJAlienSSLContext context;
-  context.SetCertAndKey((SSL_CTX*) ssl_ctx);
-  context.SetCAPath((SSL_CTX*) ssl_ctx);
-
+  cout << "Curl SSL callback" << endl;
   return CURLE_OK;
 }
 
-void CcdbApi::curlSetSSLOptions(CURL *curl)
+void CcdbApi::curlSetSSLOptions(CURL *curl_handle) const
 {
-  // Enable full error reporting
-  char errbuf[CURL_ERROR_SIZE];
-  curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
-  errbuf[0] = 0;
+  CredentialsKind cmk = getAutoCreds(mJAlienCredentials, msg);
 
-  // Turn off the default CA locations, otherwise libcurl will load CA
-  // certificates from the locations that were detected/specified at
-  // build-time
-  curl_easy_setopt(curl, CURLOPT_CAINFO, NULL);
-  curl_easy_setopt(curl, CURLOPT_CAPATH, NULL);
-
-  CURLcode ret = curl_easy_setopt(curl, CURLOPT_SSL_CTX_FUNCTION, *ssl_ctx_callback);
-  if (ret != CURLE_OK) {
-    size_t len = strlen(errbuf);
-    if (len)
-      fprintf(stderr, "%s%s", errbuf, ((errbuf[len - 1] != '\n') ? "\n" : ""));
-    else
-      fprintf(stderr, "curl_easy_setopt() failed: %s\n", curl_easy_strerror(ret));
+  /* NOTE: return early, the warning should be printed on SSL callback if needed */
+  if(cmk == cNOT_FOUND) {
+    return;
   }
+
+  TJAlienCredentialsObject cmo = mJAlienCredentials.get(cmk);
+
+  string CAPath = getenv("X509_CERT_DIR");
+  curl_easy_setopt(curl_handle, CURLOPT_CAPATH, CAPath.c_str());
+  curl_easy_setopt(curl_handle, CURLOPT_CAINFO, nullptr);
+  curl_easy_setopt(curl_handle, CURLOPT_SSLCERT, cmo.certpath.c_str());
+  curl_easy_setopt(curl_handle, CURLOPT_SSLKEY, cmo.keypath.c_str());
+
+  // NOTE: for lazy logging only
+  curl_easy_setopt(curl_handle, CURLOPT_SSL_CTX_FUNCTION, ssl_ctx_callback);
+
+  // CURLcode ret = curl_easy_setopt(curl_handle, CURLOPT_SSL_CTX_FUNCTION, *ssl_ctx_callback);
 }
 
 TObject* CcdbApi::retrieve(std::string const& path, std::map<std::string, std::string> const& metadata,
@@ -366,6 +360,9 @@ TObject* CcdbApi::retrieve(std::string const& path, std::map<std::string, std::s
     (char*)malloc(1) /*memory*/, 0 /*size*/
   };
   TObject* result = nullptr;
+
+  curlSetSSLOptions(curl_handle);
+
 
   /* init the curl session */
   curl_handle = curl_easy_init();
