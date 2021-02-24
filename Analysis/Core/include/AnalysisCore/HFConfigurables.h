@@ -16,6 +16,7 @@
 #define O2_ANALYSIS_HFCONFIGURABLES_H
 
 #include <TMath.h>
+#include <Rtypes.h>
 
 class HFTrackIndexSkimsCreatorConfigs
 {
