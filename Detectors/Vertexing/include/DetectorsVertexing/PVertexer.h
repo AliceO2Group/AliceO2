@@ -99,6 +99,8 @@ class PVertexer
   }
 
  private:
+  static constexpr int DBS_UNDEF = -2, DBS_NOISE = -1, DBS_INCHECK = -10;
+
   FitStatus fitIteration(const VertexingInput& input, VertexSeed& vtxSeed);
   void accountTrack(TrackVF& trc, VertexSeed& vtxSeed) const;
   bool solveVertex(VertexSeed& vtxSeed) const;
@@ -116,7 +118,7 @@ class PVertexer
 
   std::pair<int, int> getBestIR(const PVertex& vtx, const gsl::span<o2::InteractionRecord> bcData, int& currEntry) const;
 
-  int dbscan_RangeQuery(int idxs, std::vector<int>& cand, const std::vector<int>& status);
+  int dbscan_RangeQuery(int idxs, std::vector<int>& cand, std::vector<int>& status);
   void dbscan_clusterize();
 
   o2::BunchFilling mBunchFilling;
