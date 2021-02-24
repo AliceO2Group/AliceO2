@@ -30,6 +30,7 @@ void dumpDigits(std::vector<std::string_view> fileInfos, TString outputFileName 
   dig.setADCRange(adcMin, adcMax);
   dig.setTimeBinRange(firstTimeBin, lastTimeBin);
   dig.setNoiseThreshold(noiseThreshold);
+  dig.setSkipIncompleteEvents(false);
 
   CalibRawBase::ProcessStatus status = CalibRawBase::ProcessStatus::Ok;
   for (const auto& fileInfo : fileInfos) {

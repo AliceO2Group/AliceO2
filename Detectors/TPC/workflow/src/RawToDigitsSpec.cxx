@@ -24,6 +24,7 @@
 #include "CCDB/CcdbApi.h"
 #include "DetectorsCalibration/Utils.h"
 
+#include "TPCBase/Mapper.h"
 #include "TPCCalibration/DigitDump.h"
 #include "TPCReconstruction/RawReaderCRU.h"
 #include "TPCWorkflow/CalibProcessingHelper.h"
@@ -47,13 +48,22 @@ class TPCDigitDumpDevice : public o2::framework::Task
     mDigitDump.init();
     mDigitDump.setInMemoryOnly();
     const auto pedestalFile = ic.options().get<std::string>("pedestal-file");
-    LOGP(info, "Setting pedestal file: {}", pedestalFile);
-    mDigitDump.setPedestalAndNoiseFile(pedestalFile);
+    if (pedestalFile.length()) {
+      LOGP(info, "Setting pedestal file: {}", pedestalFile);
+      mDigitDump.setPedestalAndNoiseFile(pedestalFile);
+    }
 
     mRawReader.setADCDataCallback([this](const PadROCPos& padROCPos, const CRU& cru, const gsl::span<const uint32_t> data) -> int {
       const int timeBins = mDigitDump.update(padROCPos, cru, data);
       mDigitDump.setNumberOfProcessedTimeBins(std::max(mDigitDump.getNumberOfProcessedTimeBins(), size_t(timeBins)));
       return timeBins;
+    });
+
+    mRawReader.setLinkZSCallback([this](int cru, int rowInSector, int padInRow, int timeBin, float adcValue) -> bool {
+      CRU cruID(cru);
+      const PadRegionInfo& regionInfo = Mapper::instance().getPadRegionInfo(cruID.region());
+      mDigitDump.updateCRU(cruID, rowInSector - regionInfo.getGlobalRowOffset(), padInRow, timeBin, adcValue);
+      return true;
     });
 
     mMaxEvents = static_cast<uint32_t>(ic.options().get<int>("max-events"));

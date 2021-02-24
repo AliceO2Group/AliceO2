@@ -651,6 +651,9 @@ class RawReaderCRU
   /// set the event sync
   void setManager(RawReaderCRUManager* manager) { mManager = manager; }
 
+  /// get manager
+  RawReaderCRUManager* getManager() { return mManager; }
+
   /// copy single events to another file
   void copyEvents(const std::vector<uint32_t>& eventNumbers, std::string outputDirectory, std::ios_base::openmode mode = std::ios_base::openmode(0));
 
@@ -1041,6 +1044,9 @@ class RawReaderCRUManager
 
   /// set a callback function for decoded LinkZS data
   void setLinkZSCallback(LinkZSCallback function) { mLinkZSCallback = function; }
+
+  /// get LinkZSCallback
+  LinkZSCallback getLinkZSCallback() { return mLinkZSCallback; }
 
   /// process event calling mADCDataCallback to process values
   void processEvent(uint32_t eventNumber, EndReaderCallback endReader = nullptr);
