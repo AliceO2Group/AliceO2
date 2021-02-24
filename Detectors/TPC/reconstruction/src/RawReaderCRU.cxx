@@ -55,7 +55,7 @@ RawReaderCRUEventSync::EventInfo& RawReaderCRUEventSync::createEvent(const RDH& 
     if (hbMatch) {
       mLastEvent = &ev;
       return ev;
-    } else if (ev.HeartbeatOrbits.back() == heartbeatOrbit - 1) {
+    } else if (std::abs(long(ev.HeartbeatOrbits.back()) - long(heartbeatOrbit)) < 54) {
       ev.HeartbeatOrbits.emplace_back(heartbeatOrbit);
       mLastEvent = &ev;
       return ev;
@@ -297,6 +297,7 @@ int RawReaderCRU::scanFile()
     // ===| check if cru should be forced |=====================================
     if (!mForceCRU) {
       mCRU = rdh_utils::getCRU(feeId);
+      //mCRU = RDHUtils::getCRUID(rdh); // work-around for MW2 data
     } else {
       //overwrite cru id in rdh for further processing
       RDHUtils::setCRUID(rdh, mCRU);
@@ -763,7 +764,7 @@ void RawReaderCRU::processLinkZS()
     file.read(buffer, payloadSize);
 
     const auto globalBCOffset = (packet.getHeartBeatOrbit() - firstOrbitInEvent) * 3564;
-    o2::tpc::raw_processing_helpers::processZSdata(buffer, payloadSize, packet.getFEEID(), globalBCOffset, mManager->mLinkZSCallback);
+    o2::tpc::raw_processing_helpers::processZSdata(buffer, payloadSize, packet.getFEEID(), globalBCOffset, mManager->mLinkZSCallback, false); // last parameter should be true for MW2 data
   }
 }
 

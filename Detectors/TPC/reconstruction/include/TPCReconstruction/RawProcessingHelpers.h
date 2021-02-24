@@ -24,7 +24,7 @@ namespace raw_processing_helpers
 
 using ADCCallback = std::function<bool(int cru, int rowInSector, int padInRow, int timeBin, float adcValue)>;
 
-bool processZSdata(const char* data, size_t size, rdh_utils::FEEIDType feeId, uint32_t globalBCoffset, ADCCallback fillADC);
+bool processZSdata(const char* data, size_t size, rdh_utils::FEEIDType feeId, uint32_t globalBCoffset, ADCCallback fillADC, bool useTimeBin = false);
 
 } // namespace raw_processing_helpers
 } // namespace tpc

@@ -19,7 +19,7 @@
 using namespace o2::tpc;
 
 //______________________________________________________________________________
-bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_utils::FEEIDType feeId, uint32_t globalBCoffset, ADCCallback fillADC)
+bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_utils::FEEIDType feeId, uint32_t globalBCoffset, ADCCallback fillADC, bool useTimeBin)
 {
   const auto& mapper = Mapper::instance();
 
@@ -34,7 +34,7 @@ bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_ut
   // WARNING: This only works until the TB counter wrapped afterwards the alignment might change
   const int globalLinkID = int(link) + int(endPoint * 12);
   const int tpcGlobalLinkID = cruID * 24 + globalLinkID;
-  static std::array<uint32_t, 360 * 24> syncOffset;
+  static std::array<uint32_t, 360 * 24> syncOffsetLinks;
 
   bool hasData{false};
 
@@ -59,16 +59,20 @@ bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_ut
     const uint32_t numberOfWords = zsdata->getDataWords();
     assert(expectedWords == numberOfWords);
 
-    const uint32_t timebinHeader = header.timeBin;
     const uint32_t bunchCrossingHeader = zsdata->getBunchCrossing();
+    uint32_t syncOffset = header.syncOffsetBC % 16;
 
-    if (syncOffset[tpcGlobalLinkID] == 0) {
-      syncOffset[tpcGlobalLinkID] = (bunchCrossingHeader + 3564 - (timebinHeader * 8) % 3564) % 3564 % 16;
+    if (useTimeBin) {
+      const uint32_t timebinHeader = (header.syncOffsetCRUCycles << 8) | header.syncOffsetBC;
+      if (syncOffsetLinks[tpcGlobalLinkID] == 0) {
+        syncOffsetLinks[tpcGlobalLinkID] = (bunchCrossingHeader + 3564 - (timebinHeader * 8) % 3564) % 3564 % 16;
+      }
+      syncOffset = syncOffsetLinks[tpcGlobalLinkID];
     }
 
-    const int timebin = (int(globalBCoffset) + int(bunchCrossingHeader) - int(syncOffset[tpcGlobalLinkID])) / 8;
+    const int timebin = (int(globalBCoffset) + int(bunchCrossingHeader) - int(syncOffset)) / 8;
     if (timebin < 0) {
-      LOGP(info, "skipping negative time bin with (globalBCoffset ({}) + bunchCrossingHeader ({}) - syncOffset({})) / 8 = {}", globalBCoffset, bunchCrossingHeader, syncOffset[tpcGlobalLinkID], timebin);
+      LOGP(info, "skipping negative time bin with (globalBCoffset ({}) + bunchCrossingHeader ({}) - syncOffset({})) / 8 = {}", globalBCoffset, bunchCrossingHeader, syncOffset, timebin);
 
       // go to next time bin
       zsdata = zsdata->next();
