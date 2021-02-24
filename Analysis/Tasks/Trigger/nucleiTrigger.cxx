@@ -23,13 +23,36 @@
 
 #include "Framework/HistogramRegistry.h"
 
-#include <TLorentzVector.h>
-
 #include <cmath>
+#include <string>
 
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
+
+namespace {
+  float rapidity(float pt, float m, float eta) {
+    return std::asinh(pt / std::hypot(m, pt) * std::sinh(eta));
+  }
+
+  static constexpr int nNuclei{4};
+  static constexpr int nCutsPID{5};
+  static constexpr std::array<float, nNuclei> masses{
+    constants::physics::MassDeuteron,  constants::physics::MassTriton,
+    constants::physics::MassHelium3, constants::physics::MassAlpha
+  };
+  static constexpr std::array<int, nNuclei> charges{1, 1, 2, 2};
+  static const std::string nucleiNames[nNuclei]{"H2", "H3", "He3", "He4"};
+  static const std::string cutsNames[nCutsPID]{
+    "TPCnSigmaMin", "TPCnSigmaMax", "TOFnSigmaMin", "TOFnSigmaMax", "TOFpidStartPt"
+  };
+  static constexpr float cutsPID[nNuclei][nCutsPID]{
+    {-3.f, +3.f, -4.f, +4.f, 1.0f}, /*H2*/
+    {-3.f, +3.f, -4.f, +4.f, 1.6f}, /*H3*/
+    {-5.f, +5.f, -4.f, +4.f, 14000.f}, /*He3*/
+    {-5.f, +5.f, -4.f, +4.f, 14000.f} /*He4*/
+  };
+}
 
 struct nucleiTrigger {
 
@@ -55,8 +78,10 @@ struct nucleiTrigger {
 
   Configurable<float> cfgCutVertex{"cfgCutVertex", 10.0f, "Accepted z-vertex range"};
   Configurable<float> cfgCutEta{"cfgCutEta", 0.8f, "Eta range for tracks"};
-  Configurable<float> nsigmacutLow{"nsigmacutLow", -30.0, "Value of the Nsigma cut"};
+  Configurable<float> nsigmacutLow{"nsigmacutLow", -3., "Value of the Nsigma cut"};
   Configurable<float> nsigmacutHigh{"nsigmacutHigh", +3., "Value of the Nsigma cut"};
+
+  Configurable<LabeledArray<float>> cfgCutsPID{"nucleiCutsPID", {cutsPID[0], nNuclei, nCutsPID, nucleiNames, cutsNames}, "Nuclei PID selections"};
 
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
   Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == (uint8_t) true);
@@ -78,24 +103,35 @@ struct nucleiTrigger {
     //
     spectra.fill(HIST("fCollZpos"), collision.posZ());
     //
+
     for (auto track : tracks) { // start loop over tracks
 
-      TLorentzVector cutVector{};
-      cutVector.SetPtEtaPhiM(track.pt() * 2.0, track.eta(), track.phi(), constants::physics::MassHelium3);
-      if (cutVector.Rapidity() < yMin + yBeam || cutVector.Rapidity() > yMax + yBeam) {
-        continue;
+      const float nSigmaTPC[nNuclei]{
+        track.tpcNSigmaDe(), track.tpcNSigmaTr(), track.tpcNSigmaHe(), track.tpcNSigmaAl()}
+      ;
+      const float nSigmaTOF[nNuclei]{
+        track.tofNSigmaDe(), track.tofNSigmaTr(), track.tofNSigmaHe(), track.tofNSigmaAl()
+      };
+
+      for (int iN{0}; iN < nNuclei; ++iN) {
+        float y{rapidity(track.pt() * charges[iN], masses[iN], track.eta())};
+        if (y < yMin + yBeam || y > yMax + yBeam) {
+          continue;
+        }
+        if (nSigmaTPC[iN] < cfgCutsPID.get(iN, 0) || nSigmaTPC[iN] > cfgCutsPID.get(iN, 1)) {
+          continue;
+        }
+        if (track.pt() > cfgCutsPID.get(iN, 4) && (nSigmaTOF[iN] < cfgCutsPID.get(iN, 2) || nSigmaTOF[iN] > cfgCutsPID.get(iN, 3))) {
+          continue;
+        }
+        keepEvent = true;
       }
+
       //
       // fill QA histograms
       //
       spectra.fill(HIST("fTPCsignal"), track.tpcInnerParam(), track.tpcSignal());
       spectra.fill(HIST("fTPCcounts"), track.tpcInnerParam(), track.tpcNSigmaHe());
-      //
-      // check offline-trigger (skimming) condidition
-      //
-      if (track.tpcNSigmaHe() > nsigmacutLow && track.tpcNSigmaHe() < nsigmacutHigh) {
-        keepEvent = kTRUE;
-      }
 
     } // end loop over tracks
     //
@@ -108,5 +144,5 @@ struct nucleiTrigger {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<nucleiTrigger>("nuclei-trigger")};
+    adaptAnalysisTask<nucleiTrigger>("nuclei-spectra")};
 }

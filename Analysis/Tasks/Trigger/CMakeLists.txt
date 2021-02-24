@@ -12,4 +12,4 @@
 o2_add_dpl_workflow(nuclei-trigger
                     SOURCES nucleiTrigger.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore
-                    COMPONENT_NAME Analysis)
+                    COMPONENT_NAME Analysis) 
