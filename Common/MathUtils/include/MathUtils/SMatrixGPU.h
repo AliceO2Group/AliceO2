@@ -309,7 +309,7 @@ class MatRepSymGPU
 {
  public:
   typedef T value_type;
-  GPUdi() MatRepSymGPU() = default;
+  GPUdDefault() MatRepSymGPU() = default;
   GPUdi() T& operator()(unsigned int i, unsigned int j)
   {
     return mArray[offset(i, j)];
@@ -383,7 +383,7 @@ class MatRepStdGPU
 {
  public:
   typedef T value_type;
-  GPUdi() MatRepStdGPU() = default;
+  GPUdDefault() MatRepStdGPU() = default;
   GPUdi() const T& operator()(unsigned int i, unsigned int j) const
   {
     return mArray[i * D2 + j];
@@ -468,7 +468,7 @@ class SMatrixGPU
   typedef R rep_type;
   typedef T* iterator;
   typedef const T* const_iterator;
-  GPUd() SMatrixGPU() = default;
+  GPUdDefault() SMatrixGPU() = default;
   GPUdi() SMatrixGPU(SMatrixNoInit) {}
   GPUd() SMatrixGPU(SMatrixIdentity);
   GPUd() SMatrixGPU(const SMatrixGPU<T, D1, D2, R>& rhs);
@@ -717,7 +717,7 @@ class MatrixMulOpGPU
 {
  public:
   GPUd() MatrixMulOpGPU(const MatrixA& lhs, const MatrixB& rhs) : lhs_(lhs), rhs_(rhs) {}
-  GPUd() ~MatrixMulOpGPU() = default;
+  GPUdDefault() ~MatrixMulOpGPU() = default;
   GPUdi() T apply(unsigned int i) const
   {
     return meta_matrix_dot<D - 1>::f(lhs_, rhs_, i);
@@ -1421,7 +1421,7 @@ class TransposeOpGPU
  public:
   GPUd() TransposeOpGPU(const Matrix& rhs) : mRhs(rhs) {}
 
-  ~TransposeOpGPU() = default;
+  GPUdDefault() ~TransposeOpGPU() = default;
 
   GPUdi() T apply(unsigned int i) const
   {
