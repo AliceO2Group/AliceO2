@@ -44,4 +44,3 @@ framework::DataProcessorSpec getPublisherSpec(PublisherConf const& config, bool 
 
 } // namespace phos
 } // end namespace o2
-
