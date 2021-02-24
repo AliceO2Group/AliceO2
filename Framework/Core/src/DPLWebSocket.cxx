@@ -13,6 +13,7 @@
 #include "Framework/DeviceSpec.h"
 #include "HTTPParser.h"
 #include <algorithm>
+#include <atomic>
 #include <uv.h>
 #include <sys/types.h>
 #include <unistd.h>
