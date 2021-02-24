@@ -12,6 +12,7 @@
 /// \brief X(3872) analysis task
 ///
 /// \author Gian Michele Innocenti <gian.michele.innocenti@cern.ch>, CERN
+/// \author Rik Spijkers <r.spijkers@students.uu.nl>
 
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
@@ -48,21 +49,6 @@ struct AddCollisionId {
     }
   }
 };
-
-// TODO: Function that calculates inv mass of X candidate
-// namespace o2::aod
-// {
-// namespace hf_cand_prong3
-// {
-// template <typename T>
-// auto InvMassXToJpsiPiPi(const T& candidate)
-// {
-//  return candidate.m(array{RecoDecay::getMassPDG(kJpsi), RecoDecay::getMassPDG(kPiPlus), RecoDecay::getMassPDG(kPiPlus)});
-// }
-// } // namespace hf_cand_prong3
-// } // namespace o2::aod
-
-// RecoDecay::M(array{array{px0, py0, pz0}, array{px1, py1, pz1}, array{px2, py2, pz2}}, m);
 
 /// X analysis task
 /// FIXME: Still need to remove track duplication!!!
@@ -113,17 +99,11 @@ struct TaskX {
             continue;
           }
           registry.fill(HIST("hptcand"), candidate.pt() + trackPos1.pt() + trackNeg1.pt());
-
-          // quick&dirty calculation of invariant mass
-          // auto JpsiParray = ;
-          // auto trackPos1P = array{trackPos1.px(), trackPos1.py(), trackPos1.pz()};
-          // auto trackNeg1P = array{trackNeg1.px(), trackNeg1.py(), trackNeg1.pz()};
-          // registry.fill(HIST("hmassX"), RecoDecay::M(array{candidate.p(), trackPos1P, trackNeg1P}, 3.872));
-        }
-      }
-    }
-  }
-};
+        } // pi- loop
+      } // pi+ loop
+    } // Jpsi loop
+  } // process
+}; // struct
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
