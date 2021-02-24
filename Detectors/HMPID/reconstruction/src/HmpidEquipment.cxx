@@ -83,13 +83,15 @@ void HmpidEquipment::init()
 /// Resets the matrix that contains the results of the decoding
 void HmpidEquipment::resetPadMap()
 {
-  for (int r = 0; r < Geo::N_COLUMNS; r++)
-    for (int d = 0; d < Geo::N_DILOGICS; d++)
+  for (int r = 0; r < Geo::N_COLUMNS; r++) {
+    for (int d = 0; d < Geo::N_DILOGICS; d++) {
       for (int c = 0; c < Geo::N_CHANNELS; c++) {
         mPadSamples[r][d][c] = 0;
         mPadSum[r][d][c] = 0.0;
         mPadSquares[r][d][c] = 0.0;
       }
+    }
+  }
   return;
 }
 
@@ -131,8 +133,9 @@ void HmpidEquipment::setPad(int col, int dil, int cha, uint16_t charge)
 /// @returns the Equipment Id
 int HmpidEquipment::getEquipmentId(int cru, int link)
 {
-  if (cru == mCruId && link == mLinkId)
+  if (cru == mCruId && link == mLinkId) {
     return (mEquipmentId);
-  else
+  } else {
     return (-1);
+  }
 }

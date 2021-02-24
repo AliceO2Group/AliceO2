@@ -18,7 +18,7 @@
 #define COMMON_HMPIDDECODER_H_
 
 #include <cstdio>
-#include <stdint.h>
+#include <cstdint>
 #include <iostream>
 #include <cstring>
 

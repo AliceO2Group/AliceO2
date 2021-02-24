@@ -73,8 +73,9 @@ void Geo::Module2Equipment(int Mod, int Row, int Col, int* Equi, int* Colu, int*
 void Geo::Equipment2Module(int Equi, int Colu, int Dilo, int Chan, int* Mod, int* Row, int* Col)
 {
   if (Equi < 0 || Equi >= Geo::MAXEQUIPMENTS || Colu < 0 || Colu >= Geo::N_COLUMNS ||
-      Dilo < 0 || Dilo >= Geo::N_DILOGICS || Chan < 0 || Chan >= Geo::N_CHANNELS)
+      Dilo < 0 || Dilo >= Geo::N_DILOGICS || Chan < 0 || Chan >= Geo::N_CHANNELS) {
     return;
+  }
 
   int a2y[6] = {3, 2, 4, 1, 5, 0};          //pady for a given padress (for single DILOGIC chip)
   int ch = Equi / Geo::EQUIPMENTSPERMODULE; // The Module

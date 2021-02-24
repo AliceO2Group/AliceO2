@@ -1,4 +1,3 @@
-// draft
 // Copyright CERN and copyright holders of ALICE O2. This software is
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
@@ -67,11 +66,12 @@ void DumpDigitsTask::init(framework::InitContext& ic)
       mIsOutputOnFile = true;
     }
   }
-  if (mPrintDigits)
+  if (mPrintDigits) {
     std::cout << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
-  if (mIsOutputOnFile)
+  }
+  if (mIsOutputOnFile) {
     mOsFile << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
-
+  }
   mOrbit = -1;
   mBc = -1;
   mDigitsReceived = 0;

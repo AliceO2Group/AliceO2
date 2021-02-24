@@ -19,7 +19,7 @@
 #define COMMON_HMPIDEQUIPMENT_H_
 
 #include <cstdio>
-#include <stdint.h>
+#include <cstdint>
 #include <iostream>
 
 #include "HMPIDBase/Geo.h"

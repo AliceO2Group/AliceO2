@@ -1,4 +1,3 @@
-// draft
 // Copyright CERN and copyright holders of ALICE O2. This software is
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
@@ -108,8 +107,9 @@ void PedestalsCalculationTask::endOfStream(framework::EndOfStreamContext& ec)
   char padsFileName[1024];
 
   for (int e = 0; e < Geo::MAXEQUIPMENTS; e++) {
-    if (mDeco->getAverageEventSize(e) == 0)
+    if (mDeco->getAverageEventSize(e) == 0) {
       continue;
+    }
     sprintf(padsFileName, "%s_%d.dat", mPedestalsBasePath.c_str(), e);
     FILE* fpads = fopen(padsFileName, "w");
     // TODO: Add controls on the file open
@@ -143,9 +143,9 @@ void PedestalsCalculationTask::endOfStream(framework::EndOfStreamContext& ec)
   }
   mExTimer.logMes("End Writing the pedestals ! Digits decoded = " + std::to_string(mTotalDigits) + " Frames received = " + std::to_string(mTotalFrames));
 
-  if (mWriteToDB)
+  if (mWriteToDB) {
     recordPedInCcdb();
-
+  }
   mExTimer.stop();
   return;
 }
@@ -168,12 +168,13 @@ void PedestalsCalculationTask::recordPedInCcdb()
   }
 
   for (int m = 0; m < o2::hmpid::Geo::N_MODULES; m++) {
-    if (mDeco->getAverageEventSize(m * 2) == 0 && mDeco->getAverageEventSize(m * 2 + 1) == 0)
+    if (mDeco->getAverageEventSize(m * 2) == 0 && mDeco->getAverageEventSize(m * 2 + 1) == 0) {
       continue; // If no events skip the chamber
+    }
     TMatrixF* pS = (TMatrixF*)aSigmas.At(m);
     TMatrixF* pP = (TMatrixF*)aPedestals.At(m);
 
-    for (int x = 0; x < o2::hmpid::Geo::N_XROWS; x++)
+    for (int x = 0; x < o2::hmpid::Geo::N_XROWS; x++) {
       for (int y = 0; y < o2::hmpid::Geo::N_YCOLS; y++) {
 
         Samples = (double)mDeco->getPadSamples(m, x, y);
@@ -187,24 +188,27 @@ void PedestalsCalculationTask::recordPedInCcdb()
           (*pS)(x, y) = 0;
         }
       }
+    }
   }
   struct timeval tp;
-  gettimeofday(&tp, NULL);
+  gettimeofday(&tp, nullptr);
   uint64_t ms = tp.tv_sec * 1000 + tp.tv_usec / 1000;
 
   uint64_t minTimeStamp = ms;
   uint64_t maxTimeStamp = ms + 1;
 
   for (int i = 0; i < Geo::N_MODULES; i++) {
-    if (mDeco->getAverageEventSize(i * 2) == 0 && mDeco->getAverageEventSize(i * 2 + 1) == 0)
+    if (mDeco->getAverageEventSize(i * 2) == 0 && mDeco->getAverageEventSize(i * 2 + 1) == 0) {
       continue; // If no events skip the chamber
+    }
     TString filename = TString::Format("HMP/Pedestals/%s/Mean_%d", mPedestalTag.c_str(), i);
     mDbMetadata.emplace("Tag", mPedestalTag.c_str());
     mDBapi.storeAsTFileAny(aPedestals.At(i), filename.Data(), mDbMetadata, minTimeStamp, maxTimeStamp);
   }
   for (int i = 0; i < Geo::N_MODULES; i++) {
-    if (mDeco->getAverageEventSize(i * 2) == 0 && mDeco->getAverageEventSize(i * 2 + 1) == 0)
+    if (mDeco->getAverageEventSize(i * 2) == 0 && mDeco->getAverageEventSize(i * 2 + 1) == 0) {
       continue; // If no events skip the chamber
+    }
     TString filename = TString::Format("HMP/Pedestals/%s/Sigma_%d", mPedestalTag.c_str(), i);
     mDbMetadata.emplace("Tag", mPedestalTag.c_str());
     mDBapi.storeAsTFileAny(aSigmas.At(i), filename.Data(), mDbMetadata, minTimeStamp, maxTimeStamp);

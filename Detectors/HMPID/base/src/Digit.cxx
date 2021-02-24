@@ -96,8 +96,9 @@ uint32_t Digit::Equipment2Pad(int Equi, int Colu, int Dilo, int Chan)
 {
   // Check the input data
   if (Equi < 0 || Equi >= Geo::MAXEQUIPMENTS || Colu < 0 || Colu >= Geo::N_COLUMNS ||
-      Dilo < 0 || Dilo >= Geo::N_DILOGICS || Chan < 0 || Chan >= Geo::N_CHANNELS)
+      Dilo < 0 || Dilo >= Geo::N_DILOGICS || Chan < 0 || Chan >= Geo::N_CHANNELS) {
     return -1;
+  }
 
   int chan2y[6] = {3, 2, 4, 1, 5, 0}; // y coordinate translation for a channel address (index position) for even chamber
 
@@ -407,12 +408,15 @@ bool Digit::eventEquipPadsComp(Digit& d1, Digit& d2)
   uint64_t t1, t2;
   t1 = d1.getTriggerID();
   t2 = d2.getTriggerID();
-  if (t1 < t2)
+  if (t1 < t2) {
     return true;
-  if (t2 < t1)
+  }
+  if (t2 < t1) {
     return false;
-  if (d1.getPadID() < d2.getPadID())
+  }
+  if (d1.getPadID() < d2.getPadID()) {
     return true;
+  }
   return false;
 };
 

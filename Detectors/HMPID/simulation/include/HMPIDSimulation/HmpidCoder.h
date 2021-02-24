@@ -18,10 +18,10 @@
 #define COMMON_HMPIDCODER_H_
 
 #include <cstdio>
-#include <stdint.h>
+#include <cstdint>
 #include <iostream>
 #include <cstring>
-#include <math.h>
+#include <cmath>
 #include <cstdlib>
 #include <vector>
 

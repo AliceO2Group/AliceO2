@@ -49,9 +49,7 @@ HmpidDecodeRawMem::HmpidDecodeRawMem(int* EqIds, int* CruIds, int* LinkIds, int 
 }
 
 /// Destructor
-HmpidDecodeRawMem::~HmpidDecodeRawMem()
-{
-}
+HmpidDecodeRawMem::~HmpidDecodeRawMem() = default;
 
 /// Setup the Input Stream with a Memory Pointer
 /// the buffer length is in byte, some controls are done
@@ -163,9 +161,7 @@ HmpidDecodeRawDigit::HmpidDecodeRawDigit(int* EqIds, int* CruIds, int* LinkIds, 
 }
 
 /// Destructor
-HmpidDecodeRawDigit::~HmpidDecodeRawDigit()
-{
-}
+HmpidDecodeRawDigit::~HmpidDecodeRawDigit() = default;
 
 /// -----   Sets the Pad ! ------
 /// this is an overloaded method. In this version the value of the charge

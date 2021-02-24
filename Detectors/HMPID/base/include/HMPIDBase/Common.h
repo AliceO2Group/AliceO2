@@ -45,7 +45,7 @@ class ExecutionTimer
     mElapseLogTime = 10; // default 10 seconds
   };
 
-  ~ExecutionTimer(){};
+  ~ExecutionTimer() = default;
 
   /// getElapseLogTime : returns the seconds for the elapsed log message
   /// @return : the number of seconds for the elapsed logging

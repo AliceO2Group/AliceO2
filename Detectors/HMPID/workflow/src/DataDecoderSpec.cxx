@@ -1,4 +1,3 @@
-// draft
 // Copyright CERN and copyright holders of ALICE O2. This software is
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
@@ -123,8 +122,8 @@ void DataDecoderTask::endOfStream(framework::EndOfStreamContext& ec)
     avgBusyTime = mDeco->getAverageBusyTime(e);
     theObj[Geo::N_MODULES]->Fill();
   }
-  for (int m = 0; m < o2::hmpid::Geo::N_MODULES; m++)
-    for (int y = 0; y < o2::hmpid::Geo::N_YCOLS; y++)
+  for (int m = 0; m < o2::hmpid::Geo::N_MODULES; m++) {
+    for (int y = 0; y < o2::hmpid::Geo::N_YCOLS; y++) {
       for (int x = 0; x < o2::hmpid::Geo::N_XROWS; x++) {
         xb = x;
         yb = y;
@@ -133,7 +132,8 @@ void DataDecoderTask::endOfStream(framework::EndOfStreamContext& ec)
         squareOfCharges = mDeco->getPadSquares(m, x, y);
         theObj[m]->Fill();
       }
-
+    }
+  }
   for (int i = 0; i <= Geo::N_MODULES; i++) {
     theObj[i]->Write();
   }

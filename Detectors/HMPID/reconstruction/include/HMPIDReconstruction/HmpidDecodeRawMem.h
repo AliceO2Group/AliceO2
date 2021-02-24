@@ -18,12 +18,11 @@
 #ifndef COMMON_HMPIDDECODERAWMEM_H_
 #define COMMON_HMPIDDECODERAWMEM_H_
 
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cctype>
+#include <cstdio>
+#include <cstdlib>
 #include <unistd.h>
-#include <string.h>
-#include <unistd.h>
+#include <cstring>
 #include <vector>
 
 #include "HMPIDBase/Digit.h"
@@ -42,13 +41,13 @@ class HmpidDecodeRawMem : public HmpidDecoder
   HmpidDecodeRawMem(int numOfEquipments);
   ~HmpidDecodeRawMem();
 
-  bool setUpStream(void* Buffer, long BufferLen);
+  bool setUpStream(void* Buffer, long BufferLen) override;
 
  private:
-  bool getBlockFromStream(uint32_t** streamPtr, uint32_t Size);
-  bool getHeaderFromStream(uint32_t** streamPtr);
-  bool getWordFromStream(uint32_t* word);
-  void setPad(HmpidEquipment* eq, int col, int dil, int ch, uint16_t charge);
+  bool getBlockFromStream(uint32_t** streamPtr, uint32_t Size) override;
+  bool getHeaderFromStream(uint32_t** streamPtr) override;
+  bool getWordFromStream(uint32_t* word) override;
+  void setPad(HmpidEquipment* eq, int col, int dil, int ch, uint16_t charge) override;
 
  private:
 };
@@ -63,7 +62,7 @@ class HmpidDecodeRawDigit : public HmpidDecodeRawMem
   std::vector<o2::hmpid::Digit> mDigits;
 
  private:
-  void setPad(HmpidEquipment* eq, int col, int dil, int ch, uint16_t charge);
+  void setPad(HmpidEquipment* eq, int col, int dil, int ch, uint16_t charge) override;
 };
 
 } // namespace hmpid

@@ -120,9 +120,9 @@ void HmpidDecoder::init()
   mHeORBIT = 0;
   mHeTType = 0;
 
-  mActualStreamPtr = 0;
-  mEndStreamPtr = 0;
-  mStartStreamPtr = 0;
+  mActualStreamPtr = nullptr;
+  mEndStreamPtr = nullptr;
+  mStartStreamPtr = nullptr;
 
   for (int i = 0; i < mNumberOfEquipments; i++) {
     mTheEquipments[i]->init();
@@ -425,10 +425,12 @@ void HmpidDecoder::updateStatistics(HmpidEquipment* eq)
   eq->mPadsPerEventAverage = ((eq->mPadsPerEventAverage * (eq->mNumberOfEvents - 1)) + eq->mSampleNumber) / (eq->mNumberOfEvents);
   eq->mEventSizeAverage = ((eq->mEventSizeAverage * (eq->mNumberOfEvents - 1)) + eq->mEventSize) / (eq->mNumberOfEvents);
   eq->mBusyTimeAverage = ((eq->mBusyTimeAverage * eq->mBusyTimeSamples) + eq->mBusyTimeValue) / (++(eq->mBusyTimeSamples));
-  if (eq->mSampleNumber == 0)
+  if (eq->mSampleNumber == 0) {
     eq->mNumberOfEmptyEvents += 1;
-  if (eq->mErrorsCounter > 0)
+  }
+  if (eq->mErrorsCounter > 0) {
     eq->mNumberOfWrongEvents += 1;
+  }
   eq->mTotalPads += eq->mSampleNumber;
   eq->mTotalErrors += eq->mErrorsCounter;
 
@@ -853,8 +855,9 @@ uint16_t HmpidDecoder::getPadSamples(int Module, int Row, int Column)
   int e, c, d, h;
   Digit::Absolute2Equipment(Module, Row, Column, &e, &c, &d, &h);
   int EqInd = getEquipmentIndex(e);
-  if (EqInd < 0)
+  if (EqInd < 0) {
     return (0);
+  }
   return (mTheEquipments[EqInd]->mPadSamples[c][d][h]);
 }
 
@@ -868,8 +871,9 @@ double HmpidDecoder::getPadSum(int Module, int Row, int Column)
   int e, c, d, h;
   Digit::Absolute2Equipment(Module, Row, Column, &e, &c, &d, &h);
   int EqInd = getEquipmentIndex(e);
-  if (EqInd < 0)
+  if (EqInd < 0) {
     return (0);
+  }
   return (mTheEquipments[EqInd]->mPadSum[c][d][h]);
 }
 
@@ -883,8 +887,9 @@ double HmpidDecoder::getPadSquares(int Module, int Row, int Column)
   int e, c, d, h;
   Digit::Absolute2Equipment(Module, Row, Column, &e, &c, &d, &h);
   int EqInd = getEquipmentIndex(e);
-  if (EqInd < 0)
+  if (EqInd < 0) {
     return (0);
+  }
   return (mTheEquipments[EqInd]->mPadSquares[c][d][h]);
 }
 
@@ -897,8 +902,9 @@ double HmpidDecoder::getPadSquares(int Module, int Row, int Column)
 uint16_t HmpidDecoder::getChannelSamples(int EquipmId, int Column, int Dilogic, int Channel)
 {
   int EqInd = getEquipmentIndex(EquipmId);
-  if (EqInd < 0)
+  if (EqInd < 0) {
     return (0);
+  }
   return (mTheEquipments[EqInd]->mPadSamples[Column][Dilogic][Channel]);
 }
 
@@ -911,8 +917,9 @@ uint16_t HmpidDecoder::getChannelSamples(int EquipmId, int Column, int Dilogic, 
 double HmpidDecoder::getChannelSum(int EquipmId, int Column, int Dilogic, int Channel)
 {
   int EqInd = getEquipmentIndex(EquipmId);
-  if (EqInd < 0)
+  if (EqInd < 0) {
     return (0);
+  }
   return (mTheEquipments[EqInd]->mPadSum[Column][Dilogic][Channel]);
 }
 
@@ -925,8 +932,9 @@ double HmpidDecoder::getChannelSum(int EquipmId, int Column, int Dilogic, int Ch
 double HmpidDecoder::getChannelSquare(int EquipmId, int Column, int Dilogic, int Channel)
 {
   int EqInd = getEquipmentIndex(EquipmId);
-  if (EqInd < 0)
+  if (EqInd < 0) {
     return (0);
+  }
   return (mTheEquipments[EqInd]->mPadSquares[Column][Dilogic][Channel]);
 }
 
@@ -936,8 +944,9 @@ double HmpidDecoder::getChannelSquare(int EquipmId, int Column, int Dilogic, int
 float HmpidDecoder::getAverageEventSize(int EquipmId)
 {
   int EqInd = getEquipmentIndex(EquipmId);
-  if (EqInd < 0)
+  if (EqInd < 0) {
     return (0.0);
+  }
   return (mTheEquipments[EqInd]->mEventSizeAverage);
 }
 
@@ -947,8 +956,9 @@ float HmpidDecoder::getAverageEventSize(int EquipmId)
 float HmpidDecoder::getAverageBusyTime(int EquipmId)
 {
   int EqInd = getEquipmentIndex(EquipmId);
-  if (EqInd < 0)
+  if (EqInd < 0) {
     return (0.0);
+  }
   return (mTheEquipments[EqInd]->mBusyTimeAverage);
 }
 
@@ -961,9 +971,9 @@ float HmpidDecoder::getAverageBusyTime(int EquipmId)
 void HmpidDecoder::dumpErrors(int EquipmId)
 {
   int EqInd = getEquipmentIndex(EquipmId);
-  if (EqInd < 0)
+  if (EqInd < 0) {
     return;
-
+  }
   std::cout << "Dump Errors for the Equipment = " << EquipmId << std::endl;
   for (int i = 0; i < MAXERRORS; i++) {
     std::cout << sErrorDescription[i] << "  = " << mTheEquipments[EqInd]->mErrors[i] << std::endl;
@@ -979,9 +989,9 @@ void HmpidDecoder::dumpErrors(int EquipmId)
 void HmpidDecoder::dumpPads(int EquipmId, int type)
 {
   int EqInd = getEquipmentIndex(EquipmId);
-  if (EqInd < 0)
+  if (EqInd < 0) {
     return;
-
+  }
   int Module = EquipmId / 2;
   int StartRow = (EquipmId % 2 == 1) ? 80 : 0;
   int EndRow = (EquipmId % 2 == 1) ? 160 : 80;
@@ -1024,68 +1034,79 @@ void HmpidDecoder::dumpHmpidError(int ErrorField)
 void HmpidDecoder::writeSummaryFile(char* summaryFileName)
 {
   FILE* fs = fopen(summaryFileName, "w");
-  if (fs == 0) {
+  if (fs == nullptr) {
     printf("Error opening the file %s !\n", summaryFileName);
     throw TH_CREATEFILE;
   }
 
   fprintf(fs, "HMPID Readout Raw Data Decoding Summary File\n");
   fprintf(fs, "Equipment Id\t");
-  for (int i = 0; i < Geo::MAXEQUIPMENTS; i++)
+  for (int i = 0; i < Geo::MAXEQUIPMENTS; i++) {
     fprintf(fs, "%d\t", mTheEquipments[i]->getEquipmentId());
+  }
   fprintf(fs, "\n");
 
   fprintf(fs, "Number of events\t");
-  for (int i = 0; i < Geo::MAXEQUIPMENTS; i++)
+  for (int i = 0; i < Geo::MAXEQUIPMENTS; i++) {
     fprintf(fs, "%d\t", mTheEquipments[i]->mNumberOfEvents);
+  }
   fprintf(fs, "\n");
 
   fprintf(fs, "Average Event Size\t");
-  for (int i = 0; i < Geo::MAXEQUIPMENTS; i++)
+  for (int i = 0; i < Geo::MAXEQUIPMENTS; i++) {
     fprintf(fs, "%f\t", mTheEquipments[i]->mEventSizeAverage);
+  }
   fprintf(fs, "\n");
 
   fprintf(fs, "Total pads\t");
-  for (int i = 0; i < Geo::MAXEQUIPMENTS; i++)
+  for (int i = 0; i < Geo::MAXEQUIPMENTS; i++) {
     fprintf(fs, "%d\t", mTheEquipments[i]->mTotalPads);
+  }
   fprintf(fs, "\n");
 
   fprintf(fs, "Average pads per event\t");
-  for (int i = 0; i < Geo::MAXEQUIPMENTS; i++)
+  for (int i = 0; i < Geo::MAXEQUIPMENTS; i++) {
     fprintf(fs, "%f\t", mTheEquipments[i]->mPadsPerEventAverage);
+  }
   fprintf(fs, "\n");
 
   fprintf(fs, "Busy Time average\t");
-  for (int i = 0; i < Geo::MAXEQUIPMENTS; i++)
+  for (int i = 0; i < Geo::MAXEQUIPMENTS; i++) {
     fprintf(fs, "%e\t", mTheEquipments[i]->mBusyTimeAverage);
+  }
   fprintf(fs, "\n");
 
   fprintf(fs, "Event rate\t");
-  for (int i = 0; i < Geo::MAXEQUIPMENTS; i++)
+  for (int i = 0; i < Geo::MAXEQUIPMENTS; i++) {
     fprintf(fs, "%e\t", 1 / mTheEquipments[i]->mBusyTimeAverage);
+  }
   fprintf(fs, "\n");
 
   fprintf(fs, "Number of Empty Events\t");
-  for (int i = 0; i < Geo::MAXEQUIPMENTS; i++)
+  for (int i = 0; i < Geo::MAXEQUIPMENTS; i++) {
     fprintf(fs, "%d\t", mTheEquipments[i]->mNumberOfEmptyEvents);
+  }
   fprintf(fs, "\n");
 
   fprintf(fs, "-------------Errors--------------------\n");
   fprintf(fs, "Wrong events\t");
-  for (int i = 0; i < Geo::MAXEQUIPMENTS; i++)
+  for (int i = 0; i < Geo::MAXEQUIPMENTS; i++) {
     fprintf(fs, "%d\t", mTheEquipments[i]->mNumberOfWrongEvents);
+  }
   fprintf(fs, "\n");
 
   for (int j = 0; j < MAXERRORS; j++) {
     fprintf(fs, "%s\t", sErrorDescription[j]);
-    for (int i = 0; i < Geo::MAXEQUIPMENTS; i++)
+    for (int i = 0; i < Geo::MAXEQUIPMENTS; i++) {
       fprintf(fs, "%d\t", mTheEquipments[i]->mErrors[j]);
+    }
     fprintf(fs, "\n");
   }
 
   fprintf(fs, "Total errors\t");
-  for (int i = 0; i < Geo::MAXEQUIPMENTS; i++)
+  for (int i = 0; i < Geo::MAXEQUIPMENTS; i++) {
     fprintf(fs, "%d\t", mTheEquipments[i]->mTotalErrors);
+  }
   fprintf(fs, "\n");
 
   fclose(fs);
