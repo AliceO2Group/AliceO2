@@ -95,9 +95,9 @@ o2::framework::DataProcessorSpec getHMPIDClusterizerSpec(bool useMC)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("hmpiddigits", "HMP", "DIGITS", 0, Lifetime::Timeframe);
-  if (useMC)
+  if (useMC) {
     inputs.emplace_back("hmpiddigitlabels", "HMP", "DIGITSMCTR", 0, Lifetime::Timeframe);
-
+  }
   return DataProcessorSpec{
     "HMPClusterer",
     inputs,

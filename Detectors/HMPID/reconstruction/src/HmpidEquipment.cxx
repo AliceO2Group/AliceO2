@@ -98,8 +98,9 @@ void HmpidEquipment::resetPadMap()
 /// Resets the decoding errors statistics
 void HmpidEquipment::resetErrors()
 {
-  for (int i = 0; i < MAXERRORS; i++)
+  for (int i = 0; i < MAXERRORS; i++) {
     mErrors[i] = 0;
+  }
   return;
 }
 

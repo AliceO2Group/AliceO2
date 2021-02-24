@@ -409,7 +409,7 @@ void HmpidCoder::openOutputStream(const char* OutputFileName)
   char FileName[512];
   sprintf(FileName, "%s%d%s", OutputFileName, 160, ".dat");
   mOutStream160 = fopen(FileName, "wb");
-  if (mOutStream160 == 0) {
+  if (mOutStream160 == nullptr) {
     LOG(ERROR) << "ERROR to open Output file " << FileName;
     throw nullptr;
   }
@@ -417,7 +417,7 @@ void HmpidCoder::openOutputStream(const char* OutputFileName)
 
   sprintf(FileName, "%s%d%s", OutputFileName, 161, ".dat");
   mOutStream161 = fopen(FileName, "wb");
-  if (mOutStream161 == 0) {
+  if (mOutStream161 == nullptr) {
     LOG(ERROR) << "ERROR to open Output file " << FileName;
     throw nullptr;
   }
