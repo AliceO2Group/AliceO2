@@ -107,7 +107,6 @@ struct TrackVF {
   int16_t bin = -1; // seeds histo bin
   uint8_t flags = 0;
   int vtxID = kNoVtx; ///< assigned vertex
-
   //
   bool canAssign() const { return wgh > 0. && vtxID == kNoVtx; }
   bool canUse() const { return vtxID == kNoVtx; }
@@ -125,7 +124,9 @@ struct TrackVF {
   // weighted distance^2 to other track (accounting for own errors only)
   float getDist2(const TrackVF& o) const
   {
-    auto dtnorm2 = (timeEst.getTimeStamp() - o.timeEst.getTimeStamp()) / timeEst.getTimeStampError();
+    auto dt = timeEst.getTimeStamp() - o.timeEst.getTimeStamp();
+    auto dte2 = timeEst.getTimeStampError() * timeEst.getTimeStampError() + o.timeEst.getTimeStampError() * o.timeEst.getTimeStampError();
+    auto dtnorm2 = dt * dt / dte2;
     auto dz = z - o.z;
     return dtnorm2 + dz * dz * sig2ZI;
   }
