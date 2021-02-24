@@ -42,8 +42,8 @@ namespace {
     constants::physics::MassHelium3, constants::physics::MassAlpha
   };
   static constexpr std::array<int, nNuclei> charges{1, 1, 2, 2};
-  static const std::string nucleiNames[nNuclei]{"H2", "H3", "He3", "He4"};
-  static const std::string cutsNames[nCutsPID]{
+  static const std::vector<std::string> nucleiNames{"H2", "H3", "He3", "He4"};
+  static const std::vector<std::string> cutsNames{
     "TPCnSigmaMin", "TPCnSigmaMax", "TOFnSigmaMin", "TOFnSigmaMax", "TOFpidStartPt"
   };
   static constexpr float cutsPID[nNuclei][nCutsPID]{
@@ -78,8 +78,6 @@ struct nucleiTrigger {
 
   Configurable<float> cfgCutVertex{"cfgCutVertex", 10.0f, "Accepted z-vertex range"};
   Configurable<float> cfgCutEta{"cfgCutEta", 0.8f, "Eta range for tracks"};
-  Configurable<float> nsigmacutLow{"nsigmacutLow", -3., "Value of the Nsigma cut"};
-  Configurable<float> nsigmacutHigh{"nsigmacutHigh", +3., "Value of the Nsigma cut"};
 
   Configurable<LabeledArray<float>> cfgCutsPID{"nucleiCutsPID", {cutsPID[0], nNuclei, nCutsPID, nucleiNames, cutsNames}, "Nuclei PID selections"};
 
@@ -93,13 +91,7 @@ struct nucleiTrigger {
     //
     // collision process loop
     //
-    bool keepEvent = kFALSE;
-    if (!collision.alias()[kINT7]) {
-      return;
-    }
-    if (!collision.sel7()) {
-      return;
-    }
+    bool keepEvent = false;
     //
     spectra.fill(HIST("fCollZpos"), collision.posZ());
     //
@@ -118,10 +110,10 @@ struct nucleiTrigger {
         if (y < yMin + yBeam || y > yMax + yBeam) {
           continue;
         }
-        if (nSigmaTPC[iN] < cfgCutsPID.get(iN, 0) || nSigmaTPC[iN] > cfgCutsPID.get(iN, 1)) {
+        if (nSigmaTPC[iN] < cfgCutsPID->get(iN, 0u) || nSigmaTPC[iN] > cfgCutsPID->get(iN, 1u)) {
           continue;
         }
-        if (track.pt() > cfgCutsPID.get(iN, 4) && (nSigmaTOF[iN] < cfgCutsPID.get(iN, 2) || nSigmaTOF[iN] > cfgCutsPID.get(iN, 3))) {
+        if (track.pt() > cfgCutsPID->get(iN, 4u) && (nSigmaTOF[iN] < cfgCutsPID->get(iN, 2u) || nSigmaTOF[iN] > cfgCutsPID->get(iN, 3u))) {
           continue;
         }
         keepEvent = true;
@@ -144,5 +136,5 @@ struct nucleiTrigger {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<nucleiTrigger>("nuclei-spectra")};
+    adaptAnalysisTask<nucleiTrigger>("nuclei-trigger")};
 }
