@@ -96,12 +96,9 @@ void Detector::FinishEvent()
 
   mHits->erase(itr, mHits->end());
 
-  //       std::ostream stream(nullptr);
-  //       stream.rdbuf(std::cout.rdbuf()); // uses cout's buffer
-  //      stream.rdbuf(LOG(DEBUG2));
-  //      for (int i = 0; i < mHits->size(); i++) {
-  //         mHits->at(i).PrintStream(stream);
-  //       }
+  // printf("hits: %d \n",mHits->size()) ;
+  // int c=0;
+  // for(const Hit &h : *mHits){ if(h.GetDetectorID()<c){printf("Ht %d < %d\n",h.GetDetectorID(),c) ;} c=h.GetDetectorID() ;}
 }
 void Detector::Reset()
 {
@@ -232,7 +229,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   int nx3 = (cpvparam.mNgamx + 1) / 2;
 
   TVirtualMCStack* stack = fMC->GetStack();
-  const Int_t partID = stack->GetCurrentTrackNumber();
+  const int partID = stack->GetCurrentTrackNumber();
 
   for (int iter = 0; iter < nIter; iter++) {
 
@@ -263,19 +260,18 @@ Bool_t Detector::ProcessHits(FairVolume* v)
         float xg = (float)(ix - nx3) - xc;
 
         // Now calculate pad response
-        float qpad = padResponseFunction(qhit, zg, xg);
+        double qpad = padResponseFunction(qhit, zg, xg);
         qpad += cpvparam.mNoise * rnor2;
         if (qpad < 0) {
           continue;
         }
         // Fill hit with pad response ID and amplitude
         // hist will be sorted and merged later if necessary
-        short detID = Geometry::relToAbsId(moduleNumber, kxg, kzg);
+        int detID = Geometry::relToAbsId(moduleNumber, kxg, kzg);
         addHit(partID, detID, math_utils::Point3D<float>(xyzm[0], xyzm[1], xyzm[2]), time, qpad);
       }
     }
   }
-
   return true;
 }
 

@@ -37,20 +37,24 @@ class Digitizer : public TObject
   void processHits(const std::vector<Hit>* mHits, const std::vector<Digit>& digitsBg,
                    std::vector<Digit>& digitsOut, o2::dataformats::MCTruthContainer<MCLabel>& mLabels,
                    int source, int entry, double dt);
+  void processMC(bool mc) { mProcessMC = mc; }
 
  protected:
-  void addNoisyChannels(int start, int end, std::vector<Digit>& digitsOut);
   float nonLinearity(float e);
   float uncalibrate(float e, int absId);
-  float uncalibrateT(float t, int absId, bool isHighGain);
+  float uncalibrateT(float t, int absId);
   float timeResolution(float time, float e);
   float simulateNoiseEnergy(int absId);
   float simulateNoiseTime();
 
  private:
+  static constexpr short NCHANNELS = 12544; ///< Number of channels starting from 56*64*(4-0.5)
+  static constexpr short OFFSET = 1793;     ///< Non-existing channels 56*64*0.5+1
+  bool mProcessMC = true;
   std::unique_ptr<CalibParams> mCalibParams; /// Calibration coefficients
+  std::array<Digit, NCHANNELS> mArrayD;
 
-  ClassDefOverride(Digitizer, 3);
+  ClassDefOverride(Digitizer, 4);
 };
 } // namespace phos
 } // namespace o2

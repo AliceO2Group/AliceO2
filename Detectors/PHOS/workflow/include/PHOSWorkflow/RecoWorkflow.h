@@ -38,8 +38,9 @@ enum struct OutputType { Digits,
 };
 
 /// create the workflow for PHOS reconstruction
-framework::WorkflowSpec getWorkflow(bool propagateMC = true,
-                                    bool enableDigitsPrinter = false,
+framework::WorkflowSpec getWorkflow(bool disableRootInp,
+                                    bool disableRootOut,
+                                    bool propagateMC = true,
                                     std::string const& cfgInput = "hits",     //
                                     std::string const& cfgOutput = "clusters" //
 );

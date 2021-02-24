@@ -21,15 +21,6 @@ Digit::Digit(unsigned short absId, float amplitude, int label)
   : DigitBase(0), mAmplitude(amplitude), mAbsId(absId), mLabel(label)
 {
 }
-Digit::Digit(const Hit& hit, int label) : mAbsId(hit.GetDetectorID()), mAmplitude(hit.GetEnergyLoss()), mLabel(label)
-{
-}
-void Digit::fillFromHit(const Hit& hit)
-{
-  mAbsId = hit.GetDetectorID();
-  mAmplitude = hit.GetEnergyLoss();
-}
-
 bool Digit::canAdd(const Digit other) const
 {
   return (mAbsId == other.getAbsId() && fabs(getTimeStamp() - other.getTimeStamp()) <= kTimeGate);
