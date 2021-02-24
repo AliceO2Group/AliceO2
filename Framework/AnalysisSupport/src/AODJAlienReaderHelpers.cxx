@@ -111,8 +111,6 @@ std::vector<std::string> getColumnNames(header::DataHeader dh)
       return columnNamesTrait(typename StoredFwdTracksMetadata::table_t::persistent_columns_t{});
     } else if (description == "FWDTRACK:PARCOV") {
       return columnNamesTrait(typename StoredFwdTracksCovMetadata::table_t::persistent_columns_t{});
-    } else if (description == "FWDTRACK:MFTPAR") {
-      return columnNamesTrait(typename MFTTracksMetadata::table_t::persistent_columns_t{});
     }
   }
 

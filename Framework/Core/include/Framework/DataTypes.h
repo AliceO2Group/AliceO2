@@ -31,9 +31,8 @@ namespace o2::aod::fwdtrack
 {
 enum ForwardTrackTypeEnum : uint8_t {
   MUONStandalone = 0,
-  MFTStandalone,
   GlobalMuonTrack,
-  GlobalMuonTrackBestMatch,
+  GlobalMuonTrackOtherMatch,
   MCHStandalone,
   GlobalForwardTrack
 };

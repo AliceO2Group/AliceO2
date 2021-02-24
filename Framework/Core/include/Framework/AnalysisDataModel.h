@@ -337,7 +337,7 @@ DECLARE_SOA_EXPRESSION_COLUMN(C1Pt21Pt2, c1Pt21Pt2, float, aod::fwdtrack::sigma1
 } // namespace fwdtrack
 
 //Table for MFTStandalone tracks
-DECLARE_SOA_TABLE_FULL(MFTTracks, "MFTTracks", "AOD", "FWDTRACK:MFTPAR",
+DECLARE_SOA_TABLE_FULL(MFTTracks, "MFTTracks", "AOD", "MFTTRACK",
                        o2::soa::Index<>, fwdtrack::CollisionId, fwdtrack::BCId, fwdtrack::TrackType,
                        fwdtrack::X, fwdtrack::Y, fwdtrack::Z, fwdtrack::Phi, fwdtrack::Tgl,
                        fwdtrack::Signed1Pt,
@@ -386,7 +386,7 @@ DECLARE_SOA_EXTENDED_TABLE(FwdTracksCov, StoredFwdTracksCov, "FWDTRACK:PARCOV",
                            aod::fwdtrack::C1Pt21Pt2);
 
 using FwdTrack = FwdTracks::iterator;
-using FwdTrackCov = FwdTracksCov::iterator;
+using FwdTrackCovFwd = FwdTracksCov::iterator;
 
 using FullFwdTracks = soa::Join<FwdTracks, FwdTracksCov>;
 using FullFwdTrack = FullFwdTracks::iterator;
