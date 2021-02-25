@@ -14,6 +14,7 @@
 #include "Framework/RawBufferContext.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/ServiceRegistry.h"
+#include "Framework/DataInspector.h"
 #include "FairMQResizableBuffer.h"
 #include "CommonUtils/BoostSerializer.h"
 #include "Headers/DataHeader.h"
@@ -34,6 +35,9 @@ namespace o2::framework
 
 void DataProcessor::doSend(FairMQDevice& device, FairMQParts&& parts, const char* channel, unsigned int index)
 {
+  if (isDataInspectorActive(device)) {
+    sendCopyToDataInspector(device, parts, index);
+  }
   device.Send(parts, channel, index);
 }
 
@@ -50,13 +54,18 @@ void DataProcessor::doSend(FairMQDevice& device, MessageContext& context, Servic
       outputs[&(message->channel())].AddPart(std::move(part));
     }
   }
+  const bool shouldSendToInspector = isDataInspectorActive(device);
   for (auto& [channel, parts] : outputs) {
+    if (shouldSendToInspector) {
+      sendCopyToDataInspector(device, parts, 0);
+    }
     device.Send(parts, *channel, 0);
   }
 }
 
 void DataProcessor::doSend(FairMQDevice& device, StringContext& context, ServiceRegistry&)
 {
+  const bool shouldSendToInspector = isDataInspectorActive(device);
   for (auto& messageRef : context) {
     FairMQParts parts;
     FairMQMessagePtr payload(device.NewMessage());
@@ -70,6 +79,9 @@ void DataProcessor::doSend(FairMQDevice& device, StringContext& context, Service
     dh->payloadSize = payload->GetSize();
     parts.AddPart(std::move(messageRef.header));
     parts.AddPart(std::move(payload));
+    if (shouldSendToInspector) {
+      sendCopyToDataInspector(device, parts, 0);
+    }
     device.Send(parts, messageRef.channel, 0);
   }
 }
@@ -81,6 +93,7 @@ void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context, ServiceR
   using o2::monitoring::tags::Key;
   using o2::monitoring::tags::Value;
 
+  const bool shouldSendToInspector = isDataInspectorActive(device);
   for (auto& messageRef : context) {
     FairMQParts parts;
     // Depending on how the arrow table is constructed, we finalize
@@ -99,6 +112,9 @@ void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context, ServiceR
     context.updateMessagesSent(1);
     parts.AddPart(std::move(messageRef.header));
     parts.AddPart(std::move(payload));
+    if (shouldSendToInspector) {
+      sendCopyToDataInspector(device, parts, 0);
+    }
     device.Send(parts, messageRef.channel, 0);
   }
   auto& monitoring = registry.get<Monitoring>();
@@ -109,6 +125,7 @@ void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context, ServiceR
 
 void DataProcessor::doSend(FairMQDevice& device, RawBufferContext& context, ServiceRegistry& registry)
 {
+  const bool shouldSendToInspector = isDataInspectorActive(device);
   for (auto& messageRef : context) {
     FairMQParts parts;
     FairMQMessagePtr payload(device.NewMessage());
@@ -124,6 +141,9 @@ void DataProcessor::doSend(FairMQDevice& device, RawBufferContext& context, Serv
     dh->payloadSize = size;
     parts.AddPart(std::move(messageRef.header));
     parts.AddPart(std::move(payload));
+    if (shouldSendToInspector) {
+      sendCopyToDataInspector(device, parts, 0);
+    }
     device.Send(parts, messageRef.channel, 0);
   }
 }
