@@ -48,6 +48,13 @@ set_package_properties(ROOT PROPERTIES TYPE REQUIRED)
 find_package(fmt)
 set_package_properties(fmt PROPERTIES TYPE REQUIRED)
 
+find_package(PkgConfig)
+set_package_properties(PkgConfig PROPERTIES TYPE REQUIRED)
+
+# TODO: Pass this path as an -D cmake argument, avoiding `ubuntu2004_x86-64`
+set(ENV{PKG_CONFIG_PATH} "$ENV{ALIBUILD_WORK_DIR}/ubuntu2004_x86-64/ZeroMQ/latest/lib/pkgconfig")
+pkg_check_modules(ZeroMQ REQUIRED IMPORTED_TARGET libzmq)
+
 find_package(Boost 1.70
              COMPONENTS container
                         thread
