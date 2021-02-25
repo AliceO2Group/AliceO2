@@ -161,7 +161,7 @@ int main(int argc, char** argv)
     ConfigContext configContext(workflowOptionsRegistry, argc, argv);
     o2::framework::WorkflowSpec specs = defineDataProcessing(configContext);
     overrideCloning(configContext, specs);
-    overrideSuffix(configContext, specs);
+    //overrideSuffix(configContext, specs);
     overridePipeline(configContext, specs);
     for (auto& spec : specs) {
       UserCustomizationsHelper::userDefinedCustomization(spec.requiredServices, 0);

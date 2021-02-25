@@ -294,14 +294,15 @@ struct GTask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& ctx)
 {
+  auto suffix = ctx.options().get<std::string>("workflow-suffix");
   return WorkflowSpec{
-    adaptAnalysisTask<ETask>("output-obj-test"),
-    adaptAnalysisTask<ATask>("eta-and-phi-histograms"),
-    adaptAnalysisTask<BTask>("filtered-histograms"),
-    adaptAnalysisTask<CTask>("dimension-test"),
-    adaptAnalysisTask<DTask>("realistic-example"),
-    adaptAnalysisTask<FTask>("tlist-test"),
-    adaptAnalysisTask<GTask>("configurables-test")};
+    adaptAnalysisTask<ETask>(("output-obj-test" + suffix).c_str()),
+    adaptAnalysisTask<ATask>(("eta-and-phi-histograms" + suffix).c_str()),
+    adaptAnalysisTask<BTask>(("filtered-histograms" + suffix).c_str()),
+    adaptAnalysisTask<CTask>(("dimension-test" + suffix).c_str()),
+    adaptAnalysisTask<DTask>(("realistic-example" + suffix).c_str()),
+    adaptAnalysisTask<FTask>(("tlist-test" + suffix).c_str()),
+    adaptAnalysisTask<GTask>(("configurables-test" + suffix).c_str())};
 }
