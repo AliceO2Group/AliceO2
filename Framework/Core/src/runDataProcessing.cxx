@@ -44,6 +44,7 @@
 #include "Framework/CommandInfo.h"
 #include "Framework/RunningWorkflowInfo.h"
 #include "DriverServerContext.h"
+#include "Framework/DataInspector.h"
 #include "ControlServiceHelpers.h"
 #include "HTTPParser.h"
 #include "DPLWebSocket.h"
@@ -1007,6 +1008,9 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     std::unique_ptr<SimpleRawDeviceService> simpleRawDeviceService;
     std::unique_ptr<DeviceState> deviceState;
 
+    int index = std::distance(argv, std::find_if(argv, argv + argc, isInspectorArgument));
+    bool isInspected = index + 1 < argc && shouldBeInspected(argv[index + 1], spec);
+
     auto afterConfigParsingCallback = [&simpleRawDeviceService,
                                        &runningWorkflow,
                                        ref,
@@ -1014,7 +1018,8 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
                                        &serviceRegistry,
                                        &deviceState,
                                        &errorPolicy,
-                                       &loop](fair::mq::DeviceRunner& r) {
+                                       &loop,
+                                       &isInspected](fair::mq::DeviceRunner& r) {
       deviceState = std::make_unique<DeviceState>();
       deviceState->loop = loop;
 
@@ -1033,6 +1038,8 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
       serviceRegistry.get<RawDeviceService>().setDevice(device.get());
       r.fDevice = std::move(device);
       fair::Logger::SetConsoleColor(false);
+
+      r.fConfig.SetProperty(INSPECTOR_ACTIVATION_PROPERTY, isInspected);
 
       /// Create all the requested services and initialise them
       for (auto& service : spec.services) {
@@ -2089,6 +2096,9 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   visibleOptions.add(executorOptions);
 
   auto physicalWorkflow = workflow;
+  if (std::any_of(argv, argv + argc, isInspectorArgument)) {
+    addDataInspector(physicalWorkflow);
+  }
   std::map<std::string, size_t> rankIndex;
   // We remove the duplicates because for the moment child get themself twice:
   // once from the actual definition in the child, a second time from the
