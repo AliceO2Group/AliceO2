@@ -1244,7 +1244,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     driverInfo.states.pop_back();
     switch (current) {
       case DriverState::INIT:
-        LOG(INFO) << "Initialising O2 Data Processing Layer";
+        LOGP(info, "Initialising O2 Data Processing Layer. Driver PID: {}.", getpid());
 
         // Install signal handler for quitting children.
         driverInfo.sa_handle_child.sa_handler = &handle_sigchld;
