@@ -29,7 +29,7 @@ bool NoiseCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClusterEx
   static int nTF = 0;
   LOG(INFO) << "Processing TF# " << nTF++;
 
-  auto pattIt = patterns.cbegin();
+  auto pattIt = patterns.begin();
   for (const auto& rof : rofs) {
     auto clustersInFrame = rof.getROFData(clusters);
     for (const auto& c : clustersInFrame) {
