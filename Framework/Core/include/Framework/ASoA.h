@@ -1270,27 +1270,29 @@ constexpr auto is_binding_compatible_v()
     using metadata = std::void_t<T>; \
   }
 
-#define DECLARE_SOA_COLUMN_FULL(_Name_, _Getter_, _Type_, _Label_)             \
-  struct _Name_ : o2::soa::Column<_Type_, _Name_> {                            \
-    static constexpr const char* mLabel = _Label_;                             \
-    using base = o2::soa::Column<_Type_, _Name_>;                              \
-    using type = _Type_;                                                       \
-    using column_t = _Name_;                                                   \
-    _Name_(arrow::ChunkedArray const* column)                                  \
-      : o2::soa::Column<_Type_, _Name_>(o2::soa::ColumnIterator<type>(column)) \
-    {                                                                          \
-    }                                                                          \
-                                                                               \
-    _Name_() = default;                                                        \
-    _Name_(_Name_ const& other) = default;                                     \
-    _Name_& operator=(_Name_ const& other) = default;                          \
-                                                                               \
-    decltype(auto) _Getter_() const                                            \
-    {                                                                          \
-      return *mColumnIterator;                                                 \
-    }                                                                          \
-  };                                                                           \
-  static const o2::framework::expressions::BindingNode _Getter_ { _Label_,     \
+#define DECLARE_SOA_COLUMN_FULL(_Name_, _Getter_, _Type_, _Label_)                             \
+  struct _Name_ : o2::soa::Column<_Type_, _Name_> {                                            \
+    static constexpr const char* mLabel = _Label_;                                             \
+    static_assert(!((*(mLabel+1) == 'I' && *(mLabel+2) == 'n' && *(mLabel+3) == 'd'            \
+      && *(mLabel+4) == 'e' && *(mLabel+5) == 'x')), "Index is not a valid column name");      \
+    using base = o2::soa::Column<_Type_, _Name_>;                                              \
+    using type = _Type_;                                                                       \
+    using column_t = _Name_;                                                                   \
+    _Name_(arrow::ChunkedArray const* column)                                                  \
+      : o2::soa::Column<_Type_, _Name_>(o2::soa::ColumnIterator<type>(column))                 \
+    {                                                                                          \
+    }                                                                                          \
+                                                                                               \
+    _Name_() = default;                                                                        \
+    _Name_(_Name_ const& other) = default;                                                     \
+    _Name_& operator=(_Name_ const& other) = default;                                          \
+                                                                                               \
+    decltype(auto) _Getter_() const                                                            \
+    {                                                                                          \
+      return *mColumnIterator;                                                                 \
+    }                                                                                          \
+  };                                                                                           \
+  static const o2::framework::expressions::BindingNode _Getter_ { _Label_,                     \
                                                                   o2::framework::expressions::selectArrowType<_Type_>() }
 
 #define DECLARE_SOA_COLUMN(_Name_, _Getter_, _Type_) \
@@ -1331,7 +1333,7 @@ constexpr auto is_binding_compatible_v()
 
 /// An index column is a column of indices to elements / of another table named
 /// _Name_##s. The column name will be _Name_##Id and will always be stored in
-/// "f"#_Name__#Id . It will also have two special methods, setCurrent(...)
+/// "fIndex"#_Table_#["_"_Label_]. It will also have two special methods, setCurrent(...)
 /// and getCurrent(...) which allow you to set / retrieve associated table.
 /// It also exposes a getter _Getter_ which allows you to retrieve the pointed
 /// object.
@@ -1344,7 +1346,9 @@ constexpr auto is_binding_compatible_v()
 #define DECLARE_SOA_INDEX_COLUMN_FULL(_Name_, _Getter_, _Type_, _Table_, _Label_)  \
   struct _Name_##Id : o2::soa::Column<_Type_, _Name_##Id> {                        \
     static_assert(std::is_integral_v<_Type_>, "Index type must be integral");      \
-    static constexpr const char* mLabel = _Label_;                                 \
+    static constexpr bool isempty = (*_Label_ == '\0');                            \
+    static constexpr const char* mLabel = (isempty) ?                              \
+                  "fIndex" #_Table_ : "fIndex" #_Table_ "_" _Label_;               \
     using base = o2::soa::Column<_Type_, _Name_##Id>;                              \
     using type = _Type_;                                                           \
     using column_t = _Name_##Id;                                                   \
@@ -1404,10 +1408,10 @@ constexpr auto is_binding_compatible_v()
     void* getCurrentRaw() const { return mBinding; }                               \
     void* mBinding = nullptr;                                                      \
   };                                                                               \
-  static const o2::framework::expressions::BindingNode _Getter_##Id { _Label_,     \
+  static const o2::framework::expressions::BindingNode _Getter_##Id { "fIndex" #_Table_ _Label_, \
                                                                       o2::framework::expressions::selectArrowType<_Type_>() }
 
-#define DECLARE_SOA_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, _Name_##s, "f" #_Name_ "sID")
+#define DECLARE_SOA_INDEX_COLUMN(_Name_, _Getter_) DECLARE_SOA_INDEX_COLUMN_FULL(_Name_, _Getter_, int32_t, _Name_##s, "")
 /// A dynamic column is a column whose values are derived
 /// from those of other real columns. These can be used for
 /// example to provide different coordinate systems (e.g. polar,

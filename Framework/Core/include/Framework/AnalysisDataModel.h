@@ -386,7 +386,7 @@ using Muon = Muons::iterator;
 
 namespace muoncluster
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(Track, track, int, Muons, "fMuonsID"); // points to a muon track in the Muon table
+DECLARE_SOA_INDEX_COLUMN_FULL(Track, track, int, Muons, ""); // points to a muon track in the Muon table
 DECLARE_SOA_COLUMN(X, x, float);
 DECLARE_SOA_COLUMN(Y, y, float);
 DECLARE_SOA_COLUMN(Z, z, float);
@@ -485,8 +485,8 @@ using FDD = FDDs::iterator;
 
 namespace v0
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(PosTrack, posTrack, int, FullTracks, "fPosTrackID");
-DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, FullTracks, "fNegTrackID");
+DECLARE_SOA_INDEX_COLUMN_FULL(PosTrack, posTrack, int, Tracks, "Pos");
+DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, Tracks, "Neg");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 } // namespace v0
 
@@ -499,7 +499,7 @@ using V0 = V0s::iterator;
 namespace cascade
 {
 DECLARE_SOA_INDEX_COLUMN(V0, v0);
-DECLARE_SOA_INDEX_COLUMN_FULL(Bachelor, bachelor, int, FullTracks, "fTracksID");
+DECLARE_SOA_INDEX_COLUMN_FULL(Bachelor, bachelor, int, Tracks, "");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 } // namespace cascade
 
@@ -568,7 +568,7 @@ using McParticle = McParticles::iterator;
 
 namespace mctracklabel
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(Label, label, uint32_t, McParticles, "fLabel");
+DECLARE_SOA_INDEX_COLUMN_FULL(Label, label, uint32_t, McParticles, "");
 DECLARE_SOA_COLUMN(LabelMask, labelMask, uint16_t);
 /// Bit mask to indicate detector mismatches (bit ON means mismatch)
 /// Bit 0-6: mismatch at ITS layer
@@ -582,7 +582,7 @@ using McTrackLabel = McTrackLabels::iterator;
 
 namespace mccalolabel
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(Label, label, uint32_t, McParticles, "fLabel");
+DECLARE_SOA_INDEX_COLUMN_FULL(Label, label, uint32_t, McParticles, "");
 DECLARE_SOA_COLUMN(LabelMask, labelMask, uint16_t);
 /// Bit mask to indicate detector mismatches (bit ON means mismatch)
 /// Bit 15: indicates negative label
@@ -594,7 +594,7 @@ using McCaloLabel = McCaloLabels::iterator;
 
 namespace mccollisionlabel
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(Label, label, uint32_t, McCollisions, "fLabel");
+DECLARE_SOA_INDEX_COLUMN_FULL(Label, label, uint32_t, McCollisions, "");
 DECLARE_SOA_COLUMN(LabelMask, labelMask, uint16_t);
 /// Bit mask to indicate collision mismatches (bit ON means mismatch)
 /// Bit 15: indicates negative label
