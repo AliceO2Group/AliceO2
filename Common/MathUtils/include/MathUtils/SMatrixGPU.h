@@ -401,8 +401,9 @@ class MatRepStdGPU
   template <class R>
   GPUdi() MatRepStdGPU<T, D1, D2>& operator=(const R& rhs)
   {
-    for (unsigned int i = 0; i < kSize; ++i)
+    for (unsigned int i = 0; i < kSize; ++i) {
       mArray[i] = rhs[i];
+    }
     return *this;
   }
   template <class R>
@@ -436,7 +437,7 @@ class Expr
 {
  public:
   typedef T value_type;
-  GPUd() Expr(const ExprType& rhs) : mRhs(rhs) {}
+  GPUd() Expr(const ExprType& rhs) : mRhs(rhs) {} // NOLINT: False positive
   GPUd() ~Expr() {}
   GPUdi() T apply(unsigned int i) const
   {
