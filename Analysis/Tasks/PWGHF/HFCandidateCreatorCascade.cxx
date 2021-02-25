@@ -120,10 +120,6 @@ struct HFCandidateCreatorCascade {
       auto errorDecayLength = std::sqrt(getRotatedCovMatrixXX(covMatrixPV, phi, theta) + getRotatedCovMatrixXX(covMatrixPCA, phi, theta));
       auto errorDecayLengthXY = std::sqrt(getRotatedCovMatrixXX(covMatrixPV, phi, 0.) + getRotatedCovMatrixXX(covMatrixPCA, phi, 0.));
 
-      LOG(INFO) << "v0.dcapostopv() = " << v0.dcapostopv();
-      LOG(INFO) << "v0.dcanegtopv() = " << v0.dcanegtopv();
-      LOG(INFO) << "v0.cosPA() = " << v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ());
-
       // fill candidate table rows
       rowCandidateBase(collision.posX(), collision.posY(), collision.posZ(),
                        secondaryVertex[0], secondaryVertex[1], secondaryVertex[2],
@@ -136,7 +132,8 @@ struct HFCandidateCreatorCascade {
                        casc.index0Id(), casc.indexV0Id(),
                        casc.hfflag(),
                        v0.x(), v0.y(), v0.z(),
-                       v0.posTrack(), v0.negTrack(),
+                       //v0.posTrack(), v0.negTrack(), // why this was not fine?
+                       v0.posTrack_as<aod::BigTracks>().globalIndex(), v0.negTrack_as<aod::BigTracks>().globalIndex(),
                        v0.pxpos(), v0.pypos(), v0.pzpos(),
                        v0.pxneg(), v0.pyneg(), v0.pzneg(),
                        v0.dcaV0daughters(),
@@ -161,7 +158,7 @@ struct HFCandidateCreatorCascadeExpressions {
 };
 
 //___________________________________________________________________________________________
-/*
+
 /// Performs MC matching.
 struct HFCandidateCreatorCascadeMC {
   Produces<aod::HfCandCascadeMCRec> rowMCMatchRec;
@@ -172,55 +169,33 @@ struct HFCandidateCreatorCascadeMC {
                aod::McParticles const& particlesMC)
   {
     int8_t sign = 0;
-    int8_t flag = 0;
 
     // Match reconstructed candidates.
     for (auto& candidate : candidates) {
-      //Printf("New rec. candidate");
-      flag = 0;
       auto arrayDaughtersV0 = array{candidate.posTrack_as<aod::BigTracksMC>(), candidate.negTrack_as<aod::BigTracksMC>()};
+      auto arrayDaughtersLc = array{candidate.index0_as<aod::BigTracksMC>(), candidate.posTrack_as<aod::BigTracksMC>(), candidate.negTrack_as<aod::BigTracksMC>()};
 
-      // K0S --> pi+pi-
-      //Printf("Checking D0(bar) → π± K∓");
-      if (RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, 421, array{+kPiPlus, -kKPlus}, true, &sign) > -1) {
-        flag = sign * (1 << D0ToPiK);
+      // First we check the K0s
+      LOG(DEBUG) << "Looking for K0s";
+      RecoDecay::getMatchedMCRec(particlesMC, arrayDaughtersV0, 310, array{+kPiPlus, -kPiPlus}, true, &sign, 1); // does it matter the "acceptAntiParticle" in the K0s case? In principle, there is no anti-K0s
+      if (sign != 0) {                                                                                           // we have already positively checked the K0s
+        // then we check the Lc
+        LOG(DEBUG) << "Looking for Lc";
+        RecoDecay::getMatchedMCRec(particlesMC, arrayDaughtersLc, 4122, array{+kProton, +kPiPlus, -kPiPlus}, true, &sign, 3); // 3-levels Lc --> p + K0 --> p + K0s --> p + pi+ pi-
       }
 
-      // J/ψ → e+ e-
-      if (flag == 0) {
-        //Printf("Checking J/ψ → e+ e-");
-        if (RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), 443, array{+kElectron, -kElectron}, true) > -1) {
-          flag = 1 << JpsiToEE;
-        }
-      }
-
-      rowMCMatchRec(flag);
+      rowMCMatchRec(sign);
     }
 
     // Match generated particles.
+    // This is not enough, though, I need to check that the V0 is a K0s! Otherwise also the decay like Lc --> L + pi --> p + pi + pi will be accepted
     for (auto& particle : particlesMC) {
-      //Printf("New gen. candidate");
-      flag = 0;
-
-      // D0(bar) → π± K∓
-      //Printf("Checking D0(bar) → π± K∓");
-      if (RecoDecay::isMatchedMCGen(particlesMC, particle, 421, array{+kPiPlus, -kKPlus}, true, &sign)) {
-        flag = sign * (1 << D0ToPiK);
-      }
-
-      // J/ψ → e+ e-
-      if (flag == 0) {
-        //Printf("Checking J/ψ → e+ e-");
-        if (RecoDecay::isMatchedMCGen(particlesMC, particle, 443, array{+kElectron, -kElectron}, true)) {
-          flag = 1 << JpsiToEE;
-        }
-      }
-
-      rowMCMatchGen(flag);
+      RecoDecay::isMatchedMCGen(particlesMC, particle, 4122, array{+kProton, +kPiPlus, -kPiPlus}, true, &sign, 3);
+      rowMCMatchGen(sign);
     }
   }
 };
-*/
+
 //____________________________________________________________________
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
@@ -229,8 +204,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     adaptAnalysisTask<HFCandidateCreatorCascade>("hf-cand-creator-cascade"),
     adaptAnalysisTask<HFCandidateCreatorCascadeExpressions>("hf-cand-creator-cascade-expressions")};
   const bool doMC = cfgc.options().get<bool>("doMC");
-  //if (doMC) {
-  //  workflow.push_back(adaptAnalysisTask<HFCandidateCreator2ProngMC>("hf-cand-creator-2prong-mc"));
-  //}
+  if (doMC) {
+    workflow.push_back(adaptAnalysisTask<HFCandidateCreatorCascadeMC>("hf-cand-creator-cascade-mc"));
+  }
   return workflow;
 }

@@ -375,6 +375,8 @@ DECLARE_SOA_EXPRESSION_COLUMN(Pz, pz, float, 1.f * aod::hf_cand::pzProng0 + 1.f 
 //DECLARE_SOA_DYNAMIC_COLUMN(M, m, [](float px0, float py0, float pz0, float px1, float py1, float pz1, const array<double, 2>& m) { return RecoDecay::M(array{array{px0, py0, pz0}, array{px1, py1, pz1}}, m); });
 DECLARE_SOA_DYNAMIC_COLUMN(PtV0Pos, ptV0Pos, [](float px, float py) { return RecoDecay::Pt(px, py); });
 DECLARE_SOA_DYNAMIC_COLUMN(PtV0Neg, ptV0Neg, [](float px, float py) { return RecoDecay::Pt(px, py); });
+DECLARE_SOA_COLUMN(FlagMCMatchRec, flagMCMatchRec, int8_t); // reconstruction level
+DECLARE_SOA_COLUMN(FlagMCMatchGen, flagMCMatchGen, int8_t); // generator level
 
 template <typename T>
 auto InvMassLcToK0sP(const T& candidate)
@@ -449,15 +451,14 @@ DECLARE_SOA_EXTENDED_TABLE_USER(HfCandCascExt, HfCandCascBase, "HFCANDCASCEXT",
 
 using HfCandCascade = HfCandCascExt;
 
-/*
 // table with results of reconstruction level MC matching for Cascade
 DECLARE_SOA_TABLE(HfCandCascadeMCRec, "AOD", "HFCANDCASCMCREC",
-                  hf_cand_prong2::FlagMCMatchRec);
+                  hf_cand_casc::FlagMCMatchRec);
 
 // table with results of generator level MC matching
 DECLARE_SOA_TABLE(HfCandCascadeMCGen, "AOD", "HFCANDCASCMCGEN",
-                  hf_cand_prong2::FlagMCMatchGen);
-*/
+                  hf_cand_casc::FlagMCMatchGen);
+
 // specific 3-prong decay properties
 namespace hf_cand_prong3
 {
