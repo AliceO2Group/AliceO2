@@ -82,4 +82,17 @@ std::ostream& operator<<(std::ostream& os, const o2::dataformats::GlobalTrackID&
 } // namespace dataformats
 } // namespace o2
 
+namespace std
+{
+// defining std::hash for GlobalTrackIndex to be used with std containers
+template <>
+struct hash<o2::dataformats::GlobalTrackID> {
+ public:
+  size_t operator()(const o2::dataformats::GlobalTrackID& id) const
+  {
+    return id.getRawWOFlags();
+  }
+};
+} // namespace std
+
 #endif

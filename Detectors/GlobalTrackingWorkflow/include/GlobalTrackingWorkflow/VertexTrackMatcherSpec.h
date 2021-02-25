@@ -42,7 +42,7 @@ class VertexTrackMatcherSpec : public Task
 };
 
 /// create a processor spec
-DataProcessorSpec getVertexTrackMatcherSpec();
+DataProcessorSpec getVertexTrackMatcherSpec(o2::detectors::DetID::mask_t dets);
 
 } // namespace vertexing
 } // namespace o2
