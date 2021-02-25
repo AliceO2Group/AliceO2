@@ -42,7 +42,7 @@ class RawReaderBase
   ~RawReaderBase() = default;
 
   std::map<InteractionRecord, EventData> mMapData; /// Raw data cache
-  const ModuleConfig* mModuleConfig = nullptr;                          /// Trigger/readout configuration object
+  const ModuleConfig* mModuleConfig = nullptr;     /// Trigger/readout configuration object
   void setModuleConfig(const ModuleConfig* moduleConfig) { mModuleConfig = moduleConfig; };
   const ModuleConfig* getModuleConfig() { return mModuleConfig; };
 
@@ -92,12 +92,12 @@ class RawReaderBase
   void process(const EventChData& ch)
   {
     InteractionRecord ir(ch.f.orbit, ch.f.bc);
-    auto &mydata = mMapData[ir];
+    auto& mydata = mMapData[ir];
     Int_t im = ch.f.board;
     Int_t ic = ch.f.ch;
-    for(Int_t iwb=0; iwb<NWPerBc; iwb++){
-      for(Int_t iwg=0; iwg<NWPerGBTW; iwg++){
-	mydata.data[im][ic].w[iwb][iwg]=mCh.w[iwb][iwg];
+    for (Int_t iwb = 0; iwb < NWPerBc; iwb++) {
+      for (Int_t iwg = 0; iwg < NWPerGBTW; iwg++) {
+        mydata.data[im][ic].w[iwb][iwg] = mCh.w[iwb][iwg];
       }
     }
   }
@@ -107,8 +107,8 @@ class RawReaderBase
   {
     size_t payloadSize = payload.size();
     for (Int_t ip = 0; ip < payloadSize; ip += 16) {
-       //o2::zdc::Digits2Raw::print_gbt_word((const UInt_t*)&payload[ip]);
-       processWord((const UInt_t*)&payload[ip]);
+      //o2::zdc::Digits2Raw::print_gbt_word((const UInt_t*)&payload[ip]);
+      processWord((const UInt_t*)&payload[ip]);
     }
   }
   /*
@@ -118,125 +118,124 @@ class RawReaderBase
   }
   */
   //pop digits
-  int getDigits(std::vector<BCData> &digitsBC, std::vector<ChannelData> &digitsCh, std::vector<PedestalData> &pedestalData)
+  int getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelData>& digitsCh, std::vector<PedestalData>& pedestalData)
   {
-    if(mModuleConfig == nullptr){
+    if (mModuleConfig == nullptr) {
       LOG(FATAL) << "Missing ModuleConfig";
       return 0;
     }
     int bcCounter = mMapData.size();
-     for (auto& [ir,ev] : mMapData) {
-       // Pedestal data
-       if(ir.bc == 3563){
-	 auto &pdata=pedestalData.emplace_back();
-	 pdata.ir=ir;
-	 for (Int_t im = 0; im < NModules; im++) {
-	   for (Int_t ic = 0; ic < NChPerModule; ic++) {
-	     if (ev.data[im][ic].f.fixed_0 == Id_w0 && ev.data[im][ic].f.fixed_1 == Id_w1 && ev.data[im][ic].f.fixed_2 == Id_w2) {
-               // Identify connected channel
-	       auto id = mModuleConfig->modules[im].channelID[ic];
-	       int offset = ev.data[im][ic].f.offset - 32768;
-	       pdata.data[id] = offset;
-	     } else if (ev.data[im][ic].f.fixed_0 == 0 && ev.data[im][ic].f.fixed_1 == 0 && ev.data[im][ic].f.fixed_2 == 0) {
-               // Empty channel
-	     } else {
-               LOG(ERROR) << "Data format error";
-	     }
-	   }
-	 }
-       }
-       // BC data
-       auto &bcdata=digitsBC.emplace_back();
-       bcdata.ir=ir;
-       // Channel data
-       for (Int_t im = 0; im < NModules; im++) {
-	 ModuleTriggerMapData mt;
-	 mt.w=0;
-	 bool filled=false;
-	 for (Int_t ic = 0; ic < NChPerModule; ic++) {
-	   if (ev.data[im][ic].f.fixed_0 == Id_w0 && ev.data[im][ic].f.fixed_1 == Id_w1 && ev.data[im][ic].f.fixed_2 == Id_w2) {
-	     auto &ch=ev.data[im][ic];
-	     UShort_t us[12];
-	     us[0] = ch.f.s00;
-	     us[1] = ch.f.s01;
-	     us[2] = ch.f.s02;
-	     us[3] = ch.f.s03;
-	     us[4] = ch.f.s04;
-	     us[5] = ch.f.s05;
-	     us[6] = ch.f.s06;
-	     us[7] = ch.f.s07;
-	     us[8] = ch.f.s08;
-	     us[9] = ch.f.s09;
-	     us[10] = ch.f.s10;
-	     us[11] = ch.f.s11;
-	     // Identify connected channel
-	     auto &chd=digitsCh.emplace_back();
-             auto id = mModuleConfig->modules[im].channelID[ic];
-	     chd.id=id;
-	     for(Int_t is=0; is<NTimeBinsPerBC; is++){
-	       if (us[is] > ADCMax) {
-		 chd.data[is] = us[is] - ADCRange;
-	       } else {
-		 chd.data[is] = us[is];
-	       }
-	     }
-	     // Trigger bits
-	     if(ch.f.Hit){
-	       bcdata.triggers|=(0x1<<((im-1)*NChPerModule+ic));
-	     }
-	     // TODO: Alice trigger bits
-	     // TODO: consistency checks
-	     if(filled==false){
-	       mt.f.Alice_0 = ch.f.Alice_0;
-	       mt.f.Alice_1 = ch.f.Alice_1;
-	       mt.f.Alice_2 = ch.f.Alice_2;
-	       mt.f.Alice_3 = ch.f.Alice_3;
-	       mt.f.Auto_m  = ch.f.Auto_m;
-	       mt.f.Auto_0 =  ch.f.Auto_0;
-	       mt.f.Auto_1 =  ch.f.Auto_1;
-	       mt.f.Auto_2 =  ch.f.Auto_2;
-	       mt.f.Auto_3 =  ch.f.Auto_3;
-	       filled=true;
-	     }else{
-	       if(mt.f.Alice_0 = ch.f.Alice_0){
-		 LOG(WARNING) << "Inconsistency on Alice_0";
-	       }
-	       if(mt.f.Alice_1 = ch.f.Alice_1){
-		 LOG(WARNING) << "Inconsistency on Alice_1";
-	       }
-	       if(mt.f.Alice_2 = ch.f.Alice_2){
-		 LOG(WARNING) << "Inconsistency on Alice_2";
-	       }
-	       if(mt.f.Alice_3 = ch.f.Alice_3){
-		 LOG(WARNING) << "Inconsistency on Alice_3";
-	       }
-	       if(mt.f.Auto_m  = ch.f.Auto_m ){
-		 LOG(WARNING) << "Inconsistency on Auto_m";
-	       }
-	       if(mt.f.Auto_0 =  ch.f.Auto_0 ){
-		 LOG(WARNING) << "Inconsistency on Auto_0";
-	       }
-	       if(mt.f.Auto_1 =  ch.f.Auto_1 ){
-		 LOG(WARNING) << "Inconsistency on Auto_1";
-	       }
-	       if(mt.f.Auto_2 =  ch.f.Auto_2 ){
-		 LOG(WARNING) << "Inconsistency on Auto_2";
-	       }
-	       if(mt.f.Auto_3 =  ch.f.Auto_3 ){
-		 LOG(WARNING) << "Inconsistency on Auto_3";
-	       }
-	     }
-	   } else if (ev.data[im][ic].f.fixed_0 == 0 && ev.data[im][ic].f.fixed_1 == 0 && ev.data[im][ic].f.fixed_2 == 0) {
-             // Empty channel
-	   } else {
-             LOG(ERROR) << "Data format error";
-	   }
-	 }
-	 bcdata.moduleTriggers[im]=mt.w;
-       }
-     }
-     mMapData.clear();
-     return bcCounter;
+    for (auto& [ir, ev] : mMapData) {
+      // TODO: Error check
+      // Pedestal data
+      ir.print();
+      if (ir.bc == 3563) {
+        auto& pdata = pedestalData.emplace_back();
+        pdata.ir = ir;
+        for (Int_t im = 0; im < NModules; im++) {
+          for (Int_t ic = 0; ic < NChPerModule; ic++) {
+            if (ev.data[im][ic].f.fixed_0 == Id_w0 && ev.data[im][ic].f.fixed_1 == Id_w1 && ev.data[im][ic].f.fixed_2 == Id_w2) {
+              // Identify connected channel
+              auto id = mModuleConfig->modules[im].channelID[ic];
+              int offset = ev.data[im][ic].f.offset - 32768;
+              pdata.data[id] = offset;
+            } else if (ev.data[im][ic].f.fixed_0 == 0 && ev.data[im][ic].f.fixed_1 == 0 && ev.data[im][ic].f.fixed_2 == 0) {
+              // Empty channel
+            } else {
+              LOG(ERROR) << "Data format error";
+            }
+          }
+        }
+      }
+      // BC data
+      auto& bcdata = digitsBC.emplace_back();
+      bcdata.ir = ir;
+      // Channel data
+      bool inconsistent_event = false;
+      bool filled_event = false;
+      for (Int_t im = 0; im < NModules; im++) {
+        ModuleTriggerMapData mt;
+        mt.w = 0;
+        bool filled_module = false;
+        bool inconsistent_module = false;
+        for (Int_t ic = 0; ic < NChPerModule; ic++) {
+          if (ev.data[im][ic].f.fixed_0 == Id_w0 && ev.data[im][ic].f.fixed_1 == Id_w1 && ev.data[im][ic].f.fixed_2 == Id_w2) {
+            auto& ch = ev.data[im][ic];
+            UShort_t us[12];
+            us[0] = ch.f.s00;
+            us[1] = ch.f.s01;
+            us[2] = ch.f.s02;
+            us[3] = ch.f.s03;
+            us[4] = ch.f.s04;
+            us[5] = ch.f.s05;
+            us[6] = ch.f.s06;
+            us[7] = ch.f.s07;
+            us[8] = ch.f.s08;
+            us[9] = ch.f.s09;
+            us[10] = ch.f.s10;
+            us[11] = ch.f.s11;
+            // Identify connected channel
+            auto& chd = digitsCh.emplace_back();
+            auto id = mModuleConfig->modules[im].channelID[ic];
+            chd.id = id;
+            for (Int_t is = 0; is < NTimeBinsPerBC; is++) {
+              if (us[is] > ADCMax) {
+                chd.data[is] = us[is] - ADCRange;
+              } else {
+                chd.data[is] = us[is];
+              }
+            }
+            // Trigger bits
+            if (ch.f.Hit) {
+              bcdata.triggers |= (0x1 << ((im - 1) * NChPerModule + ic));
+            }
+            // TODO: Alice trigger bits
+            // TODO: consistency checks
+            if (filled_event == false) {
+              mt.f.Alice_0 = ch.f.Alice_0;
+              mt.f.Alice_1 = ch.f.Alice_1;
+              mt.f.Alice_2 = ch.f.Alice_2;
+              mt.f.Alice_3 = ch.f.Alice_3;
+              filled_event = true;
+            } else if (mt.f.Alice_0 != ch.f.Alice_0 || mt.f.Alice_1 != ch.f.Alice_1 || mt.f.Alice_2 != ch.f.Alice_2 || mt.f.Alice_3 != ch.f.Alice_3) {
+              inconsistent_event = true;
+            }
+            if (filled_module == false) {
+              mt.f.Auto_m = ch.f.Auto_m;
+              mt.f.Auto_0 = ch.f.Auto_0;
+              mt.f.Auto_1 = ch.f.Auto_1;
+              mt.f.Auto_2 = ch.f.Auto_2;
+              mt.f.Auto_3 = ch.f.Auto_3;
+              filled_module = true;
+            } else if (mt.f.Auto_m != ch.f.Auto_m || mt.f.Auto_0 != ch.f.Auto_0 || mt.f.Auto_1 != ch.f.Auto_1 || mt.f.Auto_2 != ch.f.Auto_2 || mt.f.Auto_3 != ch.f.Auto_3) {
+              inconsistent_module = true;
+            }
+          } else if (ev.data[im][ic].f.fixed_0 == 0 && ev.data[im][ic].f.fixed_1 == 0 && ev.data[im][ic].f.fixed_2 == 0) {
+            // Empty channel
+          } else {
+            LOG(ERROR) << "Data format error";
+          }
+        }
+        bcdata.moduleTriggers[im] = mt.w;
+        if (inconsistent_module == true) {
+          inconsistent_event = true;
+        }
+      }
+      if (inconsistent_event) {
+        LOG(ERROR) << "Inconsistent event";
+        for (Int_t im = 0; im < NModules; im++) {
+          for (Int_t ic = 0; ic < NChPerModule; ic++) {
+            if (ev.data[im][ic].f.fixed_0 == Id_w0 && ev.data[im][ic].f.fixed_1 == Id_w1 && ev.data[im][ic].f.fixed_2 == Id_w2) {
+              for (Int_t iw = 0; iw < NWPerBc; iw++) {
+                o2::zdc::Digits2Raw::print_gbt_word((const UInt_t*)&ev.data[im][ic].w[iw][0]);
+              }
+            }
+          }
+        }
+      }
+    }
+    mMapData.clear();
+    return bcCounter;
   }
 };
 
