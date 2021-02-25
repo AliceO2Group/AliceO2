@@ -49,6 +49,7 @@ struct HFJpsiToEECandidateSelector {
   Configurable<double> d_pidTPCMaxpT{"d_pidTPCMaxpT", 10., "Upper bound of track pT for TPC PID"};
 
   Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 70., "Lower bound of TPC findable clusters for good PID"};
+  Configurable<bool> b_requireTPC{"b_requireTPC", true, "Flag to require a positive Number of found clusters in TPC"};
   Configurable<double> d_nSigmaTPC{"d_nSigmaTPC", 3., "Nsigma cut on TPC only"};
 
   /// Gets corresponding pT bin from cut file array
@@ -79,7 +80,7 @@ struct HFJpsiToEECandidateSelector {
     if (track.charge() == 0) {
       return false;
     }
-    if (track.tpcNClsFound() == 0) {
+    if (b_requireTPC.value && track.tpcNClsFound() == 0) {
       return false; //is it clusters findable or found - need to check
     }
     return true;
