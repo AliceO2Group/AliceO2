@@ -13,6 +13,7 @@
 
 #include "CathodeSegmentationImpl4.h"
 #include "boost/format.hpp"
+#include <boost/geometry.hpp>
 #include "GenDetElemId2SegType.h"
 #include "PadGroup.h"
 #include "PadSize.h"
