@@ -47,7 +47,7 @@ std::string const& DataAllocator::matchDataHeader(const Output& spec, size_t tim
 {
   // FIXME: we should take timeframeId into account as well.
   for (auto& output : mAllowedOutputRoutes) {
-    if (DataSpecUtils::match(output.matcher, spec.origin, spec.description, spec.subSpec) && ((timeslice % output.maxTimeslices) == output.timeslice)) {
+    if (DataSpecUtils::match(output.matcher, spec.origin, spec.description, spec.subSpec) && (timeslice % output.maxTimeslices) == output.timeslice && output.channel.find("to_DataInspector") == std::string::npos) {
       return output.channel;
     }
   }
