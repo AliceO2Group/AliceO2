@@ -18,8 +18,7 @@
 #include "AnalysisDataModel/TrackSelectionTables.h"
 
 #include "AnalysisDataModel/EventSelection.h"
-#include "AnalysisDataModel/TrackSelectionTables.h"
-#include "AnalysisDataModel/Centrality.h"
+#include "triggerTables.h"
 
 #include "Framework/HistogramRegistry.h"
 
@@ -31,7 +30,7 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 
 namespace {
-  float rapidity(float pt, float m, float eta) {
+  float rapidity(float pt, float eta, float m) {
     return std::asinh(pt / std::hypot(m, pt) * std::sinh(eta));
   }
 
@@ -56,6 +55,17 @@ namespace {
 
 struct nucleiTrigger {
 
+  Produces<aod::NucleiTriggers> triggers;
+
+  Configurable<float> yMin{"yMin", -0.8, "Maximum rapidity"};
+  Configurable<float> yMax{"yMax", 0.8, "Minimum rapidity"};
+  Configurable<float> yBeam{"yBeam", 0., "Beam rapidity"};
+
+  Configurable<float> cfgCutVertex{"cfgCutVertex", 10.0f, "Accepted z-vertex range"};
+  Configurable<float> cfgCutEta{"cfgCutEta", 0.8f, "Eta range for tracks"};
+
+  Configurable<LabeledArray<float>> cfgCutsPID{"nucleiCutsPID", {cutsPID[0], nNuclei, nCutsPID, nucleiNames, cutsNames}, "Nuclei PID selections"};
+
   HistogramRegistry spectra{"spectra", {}, OutputObjHandlingPolicy::AnalysisObject, true, true};
 
   void init(o2::framework::InitContext&)
@@ -67,31 +77,19 @@ struct nucleiTrigger {
     AxisSpec centAxis = {centBinning, "V0M (%)"};
 
     spectra.add("fCollZpos", "collision z position", HistType::kTH1F, {{600, -20., +20., "z position (cm)"}});
-    spectra.add("fKeepEvent", "skimming histogram", HistType::kTH1F, {{2, -0.5, +1.5, "true: keep event, false: reject event"}});
     spectra.add("fTPCsignal", "Specific energy loss", HistType::kTH2F, {{600, 0., 3, "#it{p} (GeV/#it{c})"}, {1400, 0, 1400, "d#it{E} / d#it{X} (a. u.)"}});
     spectra.add("fTPCcounts", "n-sigma TPC", HistType::kTH2F, {ptAxis, {200, -100., +100., "n#sigma_{He} (a. u.)"}});
   }
 
-  Configurable<float> yMin{"yMin", -0.8, "Maximum rapidity"};
-  Configurable<float> yMax{"yMax", 0.8, "Minimum rapidity"};
-  Configurable<float> yBeam{"yBeam", 0., "Beam rapidity"};
-
-  Configurable<float> cfgCutVertex{"cfgCutVertex", 10.0f, "Accepted z-vertex range"};
-  Configurable<float> cfgCutEta{"cfgCutEta", 0.8f, "Eta range for tracks"};
-
-  Configurable<LabeledArray<float>> cfgCutsPID{"nucleiCutsPID", {cutsPID[0], nNuclei, nCutsPID, nucleiNames, cutsNames}, "Nuclei PID selections"};
-
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
-  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == (uint8_t) true);
+  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == 1u);
 
   using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::pidRespTOF, aod::pidRespTOFbeta, aod::TrackSelection>>;
 
   void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision, aod::BCsWithTimestamps const&, TrackCandidates const& tracks)
   {
-    //
     // collision process loop
-    //
-    bool keepEvent = false;
+    bool keepEvent[nNuclei]{false, false, false, false};
     //
     spectra.fill(HIST("fCollZpos"), collision.posZ());
     //
@@ -106,7 +104,7 @@ struct nucleiTrigger {
       };
 
       for (int iN{0}; iN < nNuclei; ++iN) {
-        float y{rapidity(track.pt() * charges[iN], masses[iN], track.eta())};
+        float y{rapidity(track.pt() * charges[iN], track.eta(), masses[iN])};
         if (y < yMin + yBeam || y > yMax + yBeam) {
           continue;
         }
@@ -116,7 +114,7 @@ struct nucleiTrigger {
         if (track.pt() > cfgCutsPID->get(iN, 4u) && (nSigmaTOF[iN] < cfgCutsPID->get(iN, 2u) || nSigmaTOF[iN] > cfgCutsPID->get(iN, 3u))) {
           continue;
         }
-        keepEvent = true;
+        keepEvent[iN] = true;
       }
 
       //
@@ -127,9 +125,7 @@ struct nucleiTrigger {
 
     } // end loop over tracks
     //
-    // fill trigger (skimming) results
-    //
-    spectra.fill(HIST("fKeepEvent"), keepEvent);
+    triggers(keepEvent[0], keepEvent[1], keepEvent[2], keepEvent[3]);
   }
 };
 
