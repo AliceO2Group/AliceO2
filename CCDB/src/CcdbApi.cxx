@@ -48,6 +48,7 @@ namespace ccdb
 using namespace std;
 
 std::mutex gIOMutex; // to protect TMemFile IO operations
+unique_ptr<TJAlienCredentials> CcdbApi::mJAlienCredentials = nullptr;
 
 CcdbApi::~CcdbApi()
 {
@@ -58,6 +59,9 @@ void CcdbApi::curlInit()
 {
   // todo : are there other things to initialize globally for curl ?
   curl_global_init(CURL_GLOBAL_DEFAULT);
+  CcdbApi::mJAlienCredentials.reset(new TJAlienCredentials());
+  CcdbApi::mJAlienCredentials->loadCredentials();
+  CcdbApi::mJAlienCredentials->selectPreferedCredentials();
 }
 
 void CcdbApi::init(std::string const& host)
@@ -320,20 +324,32 @@ static size_t WriteToFileCallback(void* ptr, size_t size, size_t nmemb, FILE* st
  */
 static CURLcode ssl_ctx_callback(CURL *curl, void *ssl_ctx, void *parm)
 {
-  cout << "Curl SSL callback" << endl;
+  std::string msg((const char*)parm);
+  int start = 0, end = msg.find('\n');
+
+  if(msg.length() > 0 && end == -1) {
+     LOG(WARN) << msg;
+  }
+  else if (end > 0) {
+    while(end > 0) {
+      LOG(WARN) << msg.substr(start, end-start);
+      start = end+1;
+      end = msg.find('\n', start);
+    }
+  }
   return CURLE_OK;
 }
 
-void CcdbApi::curlSetSSLOptions(CURL *curl_handle) const
+void CcdbApi::curlSetSSLOptions(CURL *curl_handle)
 {
-  CredentialsKind cmk = getAutoCreds(mJAlienCredentials, msg);
+  CredentialsKind cmk = mJAlienCredentials->getPreferedCredentials();
 
   /* NOTE: return early, the warning should be printed on SSL callback if needed */
   if(cmk == cNOT_FOUND) {
     return;
   }
 
-  TJAlienCredentialsObject cmo = mJAlienCredentials.get(cmk);
+  TJAlienCredentialsObject cmo = mJAlienCredentials->get(cmk);
 
   string CAPath = getenv("X509_CERT_DIR");
   curl_easy_setopt(curl_handle, CURLOPT_CAPATH, CAPath.c_str());
@@ -343,6 +359,7 @@ void CcdbApi::curlSetSSLOptions(CURL *curl_handle) const
 
   // NOTE: for lazy logging only
   curl_easy_setopt(curl_handle, CURLOPT_SSL_CTX_FUNCTION, ssl_ctx_callback);
+  curl_easy_setopt(curl_handle, CURLOPT_SSL_CTX_DATA, mJAlienCredentials->getMessages().c_str());
 
   // CURLcode ret = curl_easy_setopt(curl_handle, CURLOPT_SSL_CTX_FUNCTION, *ssl_ctx_callback);
 }

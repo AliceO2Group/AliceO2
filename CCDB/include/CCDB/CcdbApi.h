@@ -23,7 +23,12 @@
 #include <TObject.h>
 #include <TMessage.h>
 #include "CCDB/CcdbObjectInfo.h"
-#include <TJAlienSSLContext.h>
+
+#if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__)
+#include <TJAlienCredentials.h>
+#else
+class TJAlienCredentials;
+#endif
 
 class TFile;
 class TGrid;
@@ -311,7 +316,7 @@ class CcdbApi //: public DatabaseInterface
    * @param curl curl handler
    * @return
    */
-  void curlSetSSLOptions(CURL *curl) const;
+  static void curlSetSSLOptions(CURL *curl);
 
  private:
   /**
@@ -418,9 +423,9 @@ class CcdbApi //: public DatabaseInterface
   std::string mUrl{};
   std::string mSnapshotTopPath{};
   bool mInSnapshotMode = false;
-  mutable TGrid* mAlienInstance = nullptr;                     // a cached connection to TGrid (needed for Alien locations)
-  bool mHaveAlienToken = false;                                // stores if an alien token is available
-  TJAlienCredentials mJAlienCredentials{};                     // access JAliEn credentials
+  mutable TGrid* mAlienInstance = nullptr;                       // a cached connection to TGrid (needed for Alien locations)
+  bool mHaveAlienToken = false;                                  // stores if an alien token is available
+  static std::unique_ptr<TJAlienCredentials> mJAlienCredentials; // access JAliEn credentials
 
   ClassDefNV(CcdbApi, 1);
 };
