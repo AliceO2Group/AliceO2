@@ -16,7 +16,7 @@
 #include <vector>
 #include <Rtypes.h>
 #include "ZDCRaw/RawReaderZDCBase.h"
-#include "/DataFormatsZDC/RawEventData.h"
+#include "DataFormatsZDC/RawEventData.h"
 #include "DataFormatsZDC/ChannelData.h"
 #include "DataFormatsZDC/BCData.h"
 #include "DataFormatsZDC/PedestalData.h"
@@ -24,13 +24,14 @@
 #include "Framework/ProcessingContext.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/OutputSpec.h"
+#include "Framework/Lifetime.h"
 #include <gsl/span>
 
 namespace o2
 {
 namespace zdc
 {
-class RawReaderZDC : public RawReaderZDCBaseNorm
+class RawReaderZDC : public RawReaderZDCBase
 {
  public:
   RawReaderZDC(bool dumpData) : mDumpData(dumpData) {}
@@ -38,25 +39,32 @@ class RawReaderZDC : public RawReaderZDCBaseNorm
 
   RawReaderZDC() = default;
   ~RawReaderZDC() = default;
+
+  std::vector<o2::zdc::BCData> mDigitsBC;
+  std::vector<o2::zdc::ChannelData> mDigitsCh;
+  std::vector<o2::zdc::PedestalData> mPedestalData;
+
   void clear()
   {
-    mVecDigits.clear();
-    mVecChannelData.clear();
+    mDigitsBC.clear();
+    mDigitsCh.clear();
+    mPedestalData.clear();
   }
   void accumulateDigits()
   {
-    getDigits(mVecDigits, mVecChannelData);
-    LOG(INFO) << "Number of Digits: " << mVecDigits.size();
-    LOG(INFO) << "Number of ChannelData: " << mVecChannelData.size();
+    getDigits(mDigitsBC, mDigitsCh, mPedestalData);
+    LOG(INFO) << "Number of Digits: " << mDigitsBC.size();
+    LOG(INFO) << "Number of ChannelData: " << mDigitsCh.size();
+    LOG(INFO) << "Number of PedestalData: " << mPedestalData.size();
     if (mDumpData) {
-      DigitBlockZDC::print(mVecDigits, mVecChannelData);
+      //DigitBlockZDC::print(mVecDigits, mVecChannelData);
     }
   }
   static void prepareOutputSpec(std::vector<o2::framework::OutputSpec>& outputSpec)
   {
-    outputSpec.emplace_back("ZDC", "DIGITSBC", 0, Lifetime::Timeframe);
-    outputSpec.emplace_back("ZDC", "DIGITSCH", 0, Lifetime::Timeframe);
-    outputSpec.emplace_back("ZDC", "DIGITSPD", 0, Lifetime::Timeframe);
+    outputSpec.emplace_back("ZDC", "DIGITSBC", 0, o2::framework::Lifetime::Timeframe);
+    outputSpec.emplace_back("ZDC", "DIGITSCH", 0, o2::framework::Lifetime::Timeframe);
+    outputSpec.emplace_back("ZDC", "DIGITSPD", 0, o2::framework::Lifetime::Timeframe);
   }
   void makeSnapshot(o2::framework::ProcessingContext& pc)
   {
@@ -65,9 +73,6 @@ class RawReaderZDC : public RawReaderZDCBaseNorm
     pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginZDC, "DIGITSCH", 0, o2::framework::Lifetime::Timeframe}, mPedestalData);
   }
   bool mDumpData;
-  std::vector<o2::zdc::BCData> mDigitsBC;
-  std::vector<o2::zdc::ChannelData> mDigitsCh;
-  std::vector<o2::zdc::PedestalData> mPedestalData;
 };
 } // namespace zdc
 } // namespace o2

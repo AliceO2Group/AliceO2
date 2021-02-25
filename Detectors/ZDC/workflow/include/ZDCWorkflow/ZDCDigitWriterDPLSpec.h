@@ -8,20 +8,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_FIT_ZDCWORKFLOW_H
-#define O2_FIT_ZDCWORKFLOW_H
+/// @file   ZDCDigitWriterSpec.h
 
-/// @file   ZDCWorkflow.h
+#ifndef O2_ZDCDIGITWRITERDPL_H
+#define O2_ZDCDIGITWRITERDPL_H
 
-#include "Framework/WorkflowSpec.h"
+#include "Framework/DataProcessorSpec.h"
+
+using namespace o2::framework;
 
 namespace o2
 {
 namespace zdc
 {
-framework::WorkflowSpec getZDCWorkflow(bool useProcess,
-                                       bool dumpProcessor, bool dumpReader,
-                                       bool disableRootOut);
-} // namespace ft0
+
+/// create a processor spec
+framework::DataProcessorSpec getZDCDigitWriterDPLSpec();
+
+} // namespace zdc
 } // namespace o2
-#endif
+
+#endif /* O2_ZDCDIGITWRITER_H */

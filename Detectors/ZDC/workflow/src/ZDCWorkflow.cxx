@@ -13,30 +13,26 @@
 #include "ZDCWorkflow/ZDCWorkflow.h"
 //#include "ZDCWorkflow/ZDCDataProcessDPLSpec.h"
 #include "ZDCWorkflow/ZDCDataReaderDPLSpec.h"
-//#include "ZDCWorkflow/ZDCDigitWriterDPLSpec.h"
+#include "ZDCWorkflow/ZDCDigitWriterDPLSpec.h"
 #include "ZDCWorkflow/RawReaderZDC.h"
 namespace o2
 {
 namespace zdc
 {
 
-framework::WorkflowSpec getZDCWorkflow(bool isExtendedMode, bool useProcess,
+framework::WorkflowSpec getZDCWorkflow(bool useProcess,
                                        bool dumpProcessor, bool dumpReader,
                                        bool disableRootOut)
 {
   LOG(INFO) << "framework::WorkflowSpec getZDCWorkflow";
   framework::WorkflowSpec specs;
-//  if (isExtendedMode) {
-//    specs.emplace_back(o2::zdc::getZDCDataReaderDPLSpec(RawReaderZDCext{dumpReader}));
-//  } else {
     specs.emplace_back(o2::zdc::getZDCDataReaderDPLSpec(RawReaderZDC{dumpReader}));
-//  }
 //  if (useProcess) {
 //    specs.emplace_back(o2::zdc::getZDCDataProcessDPLSpec(dumpProcessor));
 //  }
-//  if (!disableRootOut) {
-//    specs.emplace_back(o2::zdc::getZDCDigitWriterDPLSpec());
-//  }
+  if (!disableRootOut) {
+    specs.emplace_back(o2::zdc::getZDCDigitWriterDPLSpec());
+  }
   return specs;
 }
 
