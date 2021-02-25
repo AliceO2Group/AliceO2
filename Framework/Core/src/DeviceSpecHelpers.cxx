@@ -817,6 +817,16 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
         break;
       }
     }
+    if (device.name == "DataInspector") {
+      device.completionPolicy = CompletionPolicy{
+        "data-inspector-completion",
+        [](DeviceSpec const& device) { return device.name == "DataInspector"; },
+        [](CompletionPolicy::InputSet set) { return CompletionPolicy::CompletionOp::Consume; }};
+      device.dispatchPolicy = {
+        "data-inspector-dispatch",
+        [](DeviceSpec const&) { return true; },
+        DispatchPolicy::DispatchOp::AfterComputation};
+    }
     bool hasPolicy = false;
     for (auto& policy : resourcePolicies) {
       if (policy.matcher(device) == true) {
