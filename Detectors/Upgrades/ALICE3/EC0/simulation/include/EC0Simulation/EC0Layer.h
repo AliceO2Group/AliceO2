@@ -31,7 +31,7 @@ class EC0Layer : public TObject
 {
  public:
   // Default constructor
-  EC0Layer();
+  EC0Layer() = default;
 
   // Sample layer constructor
   EC0Layer(Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t rOut, Float_t sensorThickness, Float_t Layerx2X0);
@@ -43,7 +43,7 @@ class EC0Layer : public TObject
   EC0Layer& operator=(const EC0Layer&) = default;
 
   /// Default destructor
-  ~EC0Layer() override;
+  ~EC0Layer() = default;
 
   /// Creates the actual Layer and places inside its mother volume
   /// \param motherVolume the TGeoVolume owing the volume structure

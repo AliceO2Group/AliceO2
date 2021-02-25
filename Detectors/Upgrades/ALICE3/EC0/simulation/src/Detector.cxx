@@ -239,11 +239,12 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   }
 
   // increment energy loss at all steps except entrance
-  if (!startHit)
+  if (!startHit) {
     mTrackData.mEnergyLoss += fMC->Edep();
-  if (!(startHit | stopHit))
+  }
+  if (!(startHit | stopHit)) {
     return kFALSE; // do noting
-
+  }
   if (startHit) {
     mTrackData.mEnergyLoss = 0.;
     fMC->TrackMomentum(mTrackData.mMomentumStart);

@@ -37,12 +37,6 @@ using namespace o2::itsmft;
 
 ClassImp(EC0Layer);
 
-EC0Layer::EC0Layer()
-{
-}
-
-EC0Layer::~EC0Layer() = default;
-
 EC0Layer::EC0Layer(Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t rOut, Float_t sensorThickness, Float_t Layerx2X0)
 {
   // Creates a simple parametrized EndCap layer covering the given
