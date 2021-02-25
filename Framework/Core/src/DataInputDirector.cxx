@@ -106,7 +106,7 @@ bool DataInputDescriptor::setFile(int counter)
 
   // get the directory names
   if (mfilenames[counter]->numberOfTimeFrames <= 0) {
-    std::regex TFRegex = std::regex("TF_[0-9]+");
+    std::regex TFRegex = std::regex("DF_[0-9]+");
     TList* keyList = mcurrentFile->GetListOfKeys();
 
     // extract TF numbers and sort accordingly
@@ -119,7 +119,7 @@ bool DataInputDescriptor::setFile(int counter)
     std::sort(mfilenames[counter]->listOfTimeFrameNumbers.begin(), mfilenames[counter]->listOfTimeFrameNumbers.end());
 
     for (auto folderNumber : mfilenames[counter]->listOfTimeFrameNumbers) {
-      auto folderName = "TF_" + std::to_string(folderNumber);
+      auto folderName = "DF_" + std::to_string(folderNumber);
       mfilenames[counter]->listOfTimeFrameKeys.emplace_back(folderName);
     }
     mfilenames[counter]->numberOfTimeFrames = mfilenames[counter]->listOfTimeFrameKeys.size();

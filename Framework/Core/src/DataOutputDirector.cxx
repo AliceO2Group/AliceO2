@@ -439,12 +439,12 @@ FileAndFolder DataOutputDirector::getFileFolder(DataOutputDescriptor* dodesc, ui
     int ind = std::distance(mfilenameBases.begin(), it);
     if (!mfilePtrs[ind]->IsOpen()) {
       auto fn = mfilenameBases[ind] + ".root";
-      mfilePtrs[ind] = new TFile(fn.c_str(), mfileMode.c_str());
+      mfilePtrs[ind] = new TFile(fn.c_str(), mfileMode.c_str(), "", 501);
     }
     fileAndFolder.file = mfilePtrs[ind];
 
-    // check if folder TF_* exists
-    fileAndFolder.folderName = "TF_" + std::to_string(folderNumber) + "/";
+    // check if folder DF_* exists
+    fileAndFolder.folderName = "DF_" + std::to_string(folderNumber) + "/";
     auto key = fileAndFolder.file->GetKey(fileAndFolder.folderName.c_str());
     if (!key) {
       fileAndFolder.file->mkdir(fileAndFolder.folderName.c_str());
