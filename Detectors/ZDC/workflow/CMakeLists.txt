@@ -11,20 +11,8 @@
 o2_add_library(ZDCWorkflow
                SOURCES src/DigitReaderSpec.cxx
 	               src/EntropyEncoderSpec.cxx
-                       src/ZDCDataReaderDPLSpec.cxx
 		       src/EntropyDecoderSpec.cxx
-		       src/ZDCWorkflow.cxx
-		       src/RawReaderZDC.cxx
 	       PUBLIC_LINK_LIBRARIES O2::Framework
-                                     O2::DataFormatsZDC
-                                     O2::ZDCRaw
 	                             O2::SimulationDataFormat
-                                     O2::DPLUtils
 				     O2::ZDCReconstruction
 				     O2::DataFormatsZDC)
-
-o2_add_executable(flp-dpl-workflow
-                  COMPONENT_NAME zdc
-                  SOURCES src/zdc-flp-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow
-                  TARGETVARNAME zdcflpexe)
