@@ -91,7 +91,7 @@ class RawReaderBase
 
   void process(const EventChData& ch)
   {
-    InteractionRecord ir(ch.f.orbit, ch.f.bc);
+    InteractionRecord ir(ch.f.bc, ch.f.orbit);
     auto& mydata = mMapData[ir];
     Int_t im = ch.f.board;
     Int_t ic = ch.f.ch;
@@ -125,6 +125,7 @@ class RawReaderBase
       return 0;
     }
     int bcCounter = mMapData.size();
+    LOG(INFO) << "Processing #bc " << bcCounter;
     for (auto& [ir, ev] : mMapData) {
       // TODO: Error check
       // Pedestal data
