@@ -145,11 +145,6 @@ struct DriverInfo {
   DeviceMetricsInfo metrics;
   /// Skip shared memory cleanup if set
   bool noSHMCleanup;
-  /// Default value for the --driver-client-backend. Notice that if we start from
-  /// the driver, the default backend will be the websocket one.  On the other hand,
-  /// if the device is started standalone, the default becomes the old stdout:// so
-  /// that it works as it used to in AliECS.
-  std::string defaultDriverClient = "invalid";
 };
 
 struct DriverInfoHelper {
