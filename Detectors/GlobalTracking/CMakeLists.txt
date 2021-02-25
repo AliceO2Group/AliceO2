@@ -13,8 +13,8 @@ o2_add_library(
   SOURCES src/MatchTPCITS.cxx src/MatchTOF.cxx
           src/MatchTPCITSParams.cxx
           src/MatchCosmics.cxx
-	  src/MatchCosmicsParams.cxx
-	  src/RecoContainer.cxx
+          src/MatchCosmicsParams.cxx
+          src/RecoContainer.cxx
   PUBLIC_LINK_LIBRARIES
     O2::Framework
     O2::DataFormatsTPC

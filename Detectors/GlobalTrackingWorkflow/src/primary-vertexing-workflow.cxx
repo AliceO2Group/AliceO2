@@ -87,7 +87,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
         // RSTODO will add once TRD tracking available
       }
       if (dets[DetID::TOF]) {
-        specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(true, false, false)); // MC info here is redundant
+        specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(true, false, false)); // MC, MatchInfo_glo, no TOF_TPCtracks
         readerGloTOFDone = true;
         specs.emplace_back(o2::tof::getClusterReaderSpec(false)); // RSTODO Needed just to set the time of ITSTPC track, consider moving to MatchInfoTOF
       }
@@ -100,15 +100,27 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   if (!disableMatching) {
     if (!disableRootInp) {
-      if (!readerTrackITSDone) {
-        specs.emplace_back(o2::its::getITSTrackReaderSpec(false));
+
+      if (dets[DetID::ITS]) {
+        if (!readerTrackITSDone) {
+          specs.emplace_back(o2::its::getITSTrackReaderSpec(false));
+        }
       }
-      if (!readerTrackITSTPCDone) {
-        specs.emplace_back(o2::globaltracking::getTrackTPCITSReaderSpec(false));
+      if (dets[DetID::TPC]) {
+        if (dets[DetID::ITS] && !readerTrackITSTPCDone) {
+          specs.emplace_back(o2::globaltracking::getTrackTPCITSReaderSpec(false));
+        }
+        specs.emplace_back(o2::tpc::getTPCTrackReaderSpec(false));
+        if (dets[DetID::TOF]) {
+          if (!readerGloTOFDone) {
+            specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(false, false, false)); // MC, MatchInfo_glo, no TOF_TPCtracks
+            specs.emplace_back(o2::tof::getClusterReaderSpec(false));                  // RSTODO Needed just to set the time of ITSTPC track, consider moving to MatchInfoTOF
+          }
+          specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(false, true, true)); // mc, MatchInfo_TPC, TOF_TPCtracks
+        }
       }
-      specs.emplace_back(o2::tpc::getTPCTrackReaderSpec(false));
     }
-    specs.emplace_back(o2::vertexing::getVertexTrackMatcherSpec());
+    specs.emplace_back(o2::vertexing::getVertexTrackMatcherSpec(dets));
   }
 
   if (!disableRootOut) {

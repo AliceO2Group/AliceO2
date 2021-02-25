@@ -19,13 +19,11 @@
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
-#include "ReconstructionDataFormats/TrackTPCITS.h"
-#include "DataFormatsTPC/TrackTPC.h"
-#include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DetectorsVertexing/PVertexerParams.h"
 #include "MathUtils/Primitive2D.h"
+#include "GlobalTracking/RecoContainer.h"
 
 namespace o2
 {
@@ -35,47 +33,42 @@ namespace vertexing
 class VertexTrackMatcher
 {
  public:
-  using GIndex = o2::dataformats::VtxTrackIndex;
+  using GIndex = o2::dataformats::GlobalTrackID;
+  using VTIndex = o2::dataformats::VtxTrackIndex;
   using VRef = o2::dataformats::VtxTrackRef;
   using PVertex = const o2::dataformats::PrimaryVertex;
-  using TrackTPCITS = o2::dataformats::TrackTPCITS;
-  using TrackITS = o2::its::TrackITS;
-  using ITSROFR = o2::itsmft::ROFRecord;
-  using TrackTPC = o2::tpc::TrackTPC;
-  using TmpMap = std::vector<std::vector<GIndex>>;
+  using TmpMap = std::vector<std::vector<VTIndex>>;
   using TimeEst = o2::dataformats::TimeStampWithError<float, float>;
   using TBracket = o2::math_utils::Bracketf_t;
 
+  struct TrackTBracket {
+    TBracket tBracket{}; ///< bracketing time in ns
+    GIndex origID{};     ///< track origin id
+  };
+  struct VtxTBracket {
+    TBracket tBracket{}; ///< bracketing time in ns
+    int origID = -1;     ///< vertex origin id
+  };
+
   void init();
-  void process(const gsl::span<const PVertex>& vertices,   // vertices
-               const gsl::span<const GIndex>& v2tfitIDs,   // IDs of contributor tracks used in fit
-               const gsl::span<const VRef>& v2tfitRefs,    // references on these tracks (we used special reference with multiple sources, but currently only TPCITS used)
-               const gsl::span<const TrackTPCITS>& tpcits, // global tracks
-               const gsl::span<const TrackITS>& its,       // ITS tracks
-               const gsl::span<const ITSROFR>& itsROFR,    // ITS tracks ROFRecords
-               const gsl::span<const TrackTPC>& tpc,       // TPC tracks
-               std::vector<GIndex>& trackIndex,            // Global ID's for associated tracks
-               std::vector<VRef>& vtxRefs);                // references on these tracks
+  void process(const gsl::span<const PVertex>& vertices,  // vertices
+               const gsl::span<const VTIndex>& v2tfitIDs, // IDs of contributor tracks used in fit
+               const gsl::span<const VRef>& v2tfitRefs,   // references on these tracks (we used special reference with multiple sources, but currently only TPCITS used)
+               const o2::globaltracking::RecoContainer& recoData,
+               std::vector<VTIndex>& trackIndex, // Global ID's for associated tracks
+               std::vector<VRef>& vtxRefs);      // references on these tracks
 
   ///< set InteractionRecods for the beginning of the TF
   void setStartIR(const o2::InteractionRecord& ir) { mStartIR = ir; }
-  void setITSROFrameLengthInBC(int nbc);
-  int getITSROFrameLengthInBC() const { return mITSROFrameLengthInBC; }
 
  private:
-  void attachTPCITS(TmpMap& tmpMap, const gsl::span<const TrackTPCITS>& tpcits, const std::vector<int>& idTPCITS, const gsl::span<const PVertex>& vertices);
-  void attachITS(TmpMap& tmpMap, const gsl::span<const TrackITS>& its, const gsl::span<const ITSROFR>& itsROFR, const std::vector<int>& flITS,
-                 const gsl::span<const PVertex>& vertices, std::vector<int>& idxVtx);
-  void attachTPC(TmpMap& tmpMap, const std::vector<TBracket>& tpcTimes, const std::vector<int>& idTPC, const gsl::span<const PVertex>& vertices, std::vector<int>& idVtx);
-  bool compatibleTimes(const TimeEst& vtxT, const TimeEst& trcT) const;
   void updateTPCTimeDependentParams();
-  float tpcTimeBin2MUS(float t)
-  { // convert TPC time bin to microseconds
-    return t * mTPCBin2MUS;
-  }
+  void extractTracks(const o2::globaltracking::RecoContainer& data, const std::unordered_map<GIndex, bool>& vcont);
+
+  std::vector<TrackTBracket> mTBrackets;
 
   o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
-  int mITSROFrameLengthInBC = 0;        ///< ITS RO frame in BC (for ITS cont. mode only)
+  float mITSROFrameLengthMUS = 0;       ///< ITS RO frame in mus
   float mMaxTPCDriftTimeMUS = 0;
   float mTPCBin2MUS = 0;
   const o2::vertexing::PVertexerParams* mPVParams = nullptr;
