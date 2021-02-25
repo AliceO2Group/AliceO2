@@ -49,6 +49,7 @@ echo "versions,${TAG} alidist=\"${ALIDISTCOMMIT}\",O2=\"${O2COMMIT}\" " > ${METR
 
 
 ulimit -n 4096 # Make sure we can open sufficiently many files
+[ $? == 0 ] || (echo Failed setting ulimit && exit 1)
 mkdir -p qed
 cd qed
 PbPbXSec="8."
