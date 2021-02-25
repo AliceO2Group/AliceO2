@@ -13,6 +13,8 @@
 #ifndef O2_ZDCDATAREADERDPLSPEC_H
 #define O2_ZDCDATAREADERDPLSPEC_H
 
+#include "CCDB/BasicCCDBManager.h"
+#include "CCDB/CCDBTimeStampUtils.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Framework/CallbackService.h"
@@ -23,7 +25,12 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/SerializationMethods.h"
 #include "DPLUtils/DPLRawParser.h"
-
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
+#include "Framework/InputSpec.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "ZDCBase/Constants.h"
+#include "ZDCBase/ModuleConfig.h"
+#
 #include <iostream>
 #include <vector>
 #include <gsl/span>
@@ -45,6 +52,21 @@ class ZDCDataReaderDPLSpec : public Task
   {
     DPLRawParser parser(pc.inputs());
     mRawReader.clear();
+    long timeStamp = 0;
+    std::string ccdbHost = "http://ccdb-test.cern.ch:8080";
+    auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+    mgr.setURL(ccdbHost);
+    if (timeStamp == mgr.getTimestamp()) {
+      return;
+    }
+    mgr.setTimestamp(timeStamp);
+    auto moduleConfig = mgr.get<o2::zdc::ModuleConfig>(o2::zdc::CCDBPathConfigModule);
+    if (!moduleConfig) {
+      LOG(FATAL) << "Cannot module configuratio for timestamp " << timeStamp;
+      return;
+    }
+    LOG(INFO) << "Loaded module configuration for timestamp " << timeStamp;
+    mRawReader.setModuleConfig(moduleConfig);
     LOG(INFO) << "ZDCDataReaderDPLSpec";
     uint64_t count = 0;
     for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {

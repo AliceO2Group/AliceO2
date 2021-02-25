@@ -16,7 +16,6 @@
 #include <iostream>
 #include <vector>
 #include <Rtypes.h>
-#include "DataFormatsZDC/RawEventData.h"
 #include "ZDCRaw/RawReaderBase.h"
 
 #include <boost/mpl/inherit.hpp>
@@ -33,8 +32,7 @@ namespace o2
 namespace zdc
 {
 // Common raw reader for ZDC
-template <class EventData>
-class RawReaderZDCBase : public RawReaderBase<EventData>
+class RawReaderZDCBase : public RawReaderBase
 {
  public:
   RawReaderZDCBase() = default;
@@ -44,7 +42,7 @@ class RawReaderZDCBase : public RawReaderBase<EventData>
   {
     if (0 <= linkID && linkID < 16) {
       //PM data proccessing
-      void processBinaryData<EventData>(payload, linkID);
+      processBinaryData(payload, linkID);
     } else {
       //put here code in case of bad rdh.linkID value
       LOG(INFO) << "WARNING! WRONG LINK ID! " << linkID;

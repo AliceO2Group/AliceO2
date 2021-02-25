@@ -19,12 +19,6 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
-  workflowOptions.push_back(
-    ConfigParamSpec{"tcm-extended-mode",
-                    o2::framework::VariantType::Bool,
-                    false,
-                    {"in case of extended TCM mode (1 header + 1 TCMdata + 8 "
-                     "TCMdataExtended)"}});
 
   workflowOptions.push_back(
     ConfigParamSpec{"use-process",
@@ -58,10 +52,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto useProcessor = configcontext.options().get<bool>("use-process");
   auto dumpProcessor = configcontext.options().get<bool>("dump-blocks-process");
   auto dumpReader = configcontext.options().get<bool>("dump-blocks-reader");
-  auto isExtendedMode = configcontext.options().get<bool>("tcm-extended-mode");
   auto disableRootOut =
     configcontext.options().get<bool>("disable-root-output");
   LOG(INFO) << "WorkflowSpec FLPWorkflow";
   return std::move(o2::zdc::getZDCWorkflow(
-    isExtendedMode, useProcessor, dumpProcessor, dumpReader, disableRootOut));
+    useProcessor, dumpProcessor, dumpReader, disableRootOut));
 }
