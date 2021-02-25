@@ -519,8 +519,8 @@ struct TableReader {
       }
       // NOTE: The dimuons in this task ae pushed in the same table as the dielectrons.
       //       In order to discriminate them, the dileptonFilterMap uses the first 8 bits for dielectrons and the last 8 for dimuons.
-      // TBD:  Other implementations may be possible, for example add a column to the dilepton table to specify the pair type (dielectron, dimuon, electron-muon, etc.) 
-      dileptonFilterMap = uint16_t(twoTrackFilter)<<8;
+      // TBD:  Other implementations may be possible, for example add a column to the dilepton table to specify the pair type (dielectron, dimuon, electron-muon, etc.)
+      dileptonFilterMap = uint16_t(twoTrackFilter) << 8;
       VarManager::FillPair(muon1, muon2, fValues);
       dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], muon1.charge() + muon2.charge(), dileptonFilterMap);
       if (muon1.charge() * muon2.charge() < 0) {
