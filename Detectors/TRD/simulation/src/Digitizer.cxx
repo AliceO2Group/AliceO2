@@ -251,7 +251,7 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
     }
 
     double rowOffset = padPlane->getPadRowOffsetROC(rowE, locR);
-    double offsetTilt = padPlane->getTiltOffset(rowOffset);
+    double offsetTilt = padPlane->getTiltOffset(rowE, rowOffset);
     int colE = padPlane->getPadColNumber(locC + offsetTilt);
     if (colE < 0) {
       continue;
@@ -295,7 +295,7 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
       }
       rowOffset = padPlane->getPadRowOffsetROC(rowE, locRd);
       // The pad column (rphi-direction)
-      offsetTilt = padPlane->getTiltOffset(rowOffset);
+      offsetTilt = padPlane->getTiltOffset(rowE, rowOffset);
       colE = padPlane->getPadColNumber(locCd + offsetTilt);
       if (colE < 0) {
         continue;

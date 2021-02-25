@@ -165,3 +165,23 @@ CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet)
 
   return CalibratedTracklet(sectorSpacePoint[0], sectorSpacePoint[1], sectorSpacePoint[2], dy);
 }
+
+double TrackletTransformer::getTimebin(double x)
+{
+  // calculate timebin from x position within chamber
+  // calibration parameters need to be extracted from CCDB in the future
+  double vDrift = 1.5625; // in cm/us
+  double t0 = 4.0;        // time (in timebins) of start of drift region
+
+  double timebin;
+  // x = 0 at anode plane and points toward pad plane.
+  if (x < -mGeo->camHght() / 2) {
+    // drift region
+    timebin = t0 - (x + mGeo->camHght() / 2) / (vDrift * 0.1);
+  } else {
+    // anode region: very rough guess
+    timebin = t0 - 1.0 + fabs(x);
+  }
+
+  return timebin;
+}
