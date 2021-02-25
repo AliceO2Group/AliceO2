@@ -15,6 +15,9 @@
 
 #include <stdio.h>
 #include "Align/AliAlgTrack.h"
+#include "DetectorsBase/Propagator.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DataFormatsParameters/GRPObject.h"
 //#include "AliTrackerBase.h"
 #include "Framework/Logger.h"
 #include "Align/AliAlgSens.h"
@@ -531,86 +534,94 @@ Bool_t AliAlgTrack::CalcResiduals(const double* extendedParams, Bool_t invert, i
 //______________________________________________________
 Bool_t AliAlgTrack::PropagateParamToPoint(trackParam_t* tr, int nTr, const AliAlgPoint* pnt, double maxStep)
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
-  // FIXME(milettri): needs AliTrackerBase
-  //  // Propagate set of tracks to the point  (only parameters, no error matrix)
-  //  // VECTORIZE this
-  //  //
-  //  for (int itr = nTr; itr--;) {
-  //    if (!PropagateParamToPoint(tr[itr], pnt, maxStep)) {
-  //#if DEBUG > 3
-  //      LOG(fatal) << "Failed on clone %d propagation" << itr;
-  //      tr[itr].print();
-  //      pnt->print("meas mat");
-  //#endif
-  //      return kFALSE;
-  //    }
-  //  }
+  // Propagate set of tracks to the point  (only parameters, no error matrix)
+  // VECTORIZE this
+  //
+  for (int itr = nTr; itr--;) {
+    if (!PropagateParamToPoint(tr[itr], pnt, maxStep)) {
+#if DEBUG > 3
+      LOG(fatal) << "Failed on clone " << itr << " propagation ";
+      tr[itr].print();
+      pnt->print("meas mat");
+#endif
+      return kFALSE;
+    }
+  }
   return kTRUE;
 }
 
 //______________________________________________________
 Bool_t AliAlgTrack::PropagateParamToPoint(trackParam_t& tr, const AliAlgPoint* pnt, double maxStep)
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
-  // FIXME(milettri): needs AliTrackerBase
-  //  // propagate tracks to the point (only parameters, no error matrix)
-  //  dim3_t xyz;
-  //  double bxyz[3];
-  //  //
-  //  if (!tr.rotateParam(pnt->GetAlphaSens())) {
-  //#if DEBUG > 3
-  //    LOG(error) << "Failed to rotate to alpha=" << pnt->GetAlphaSens();
-  //    tr.Print();
-  //    pnt->Print();
-  //#endif
-  //    return kFALSE;
-  //  }
-  //  //
-  //  double xTgt = pnt->GetXPoint();
-  //  double xBeg = tr.getX();
-  //  double dx = xTgt - xBeg;
-  //  int nstep = int(Abs(dx) / maxStep) + 1;
-  //  dx /= nstep;
-  //  //
-  //  for (int ist = nstep; ist--;) {
-  //    //
-  //    double xToGo = xTgt - dx * ist;
-  //    tr.getXYZGlo(xyz);
-  //    //
-  //    if (GetFieldON()) {
-  //      if (pnt->GetUseBzOnly()) {
-  //        if (!tr.propagateParamTo(xToGo, AliTrackerBase::GetBz(xyz))) {
-  //#if DEBUG > 3
-  //          LOG(error) << "Failed to propagate(BZ) to X=%" << pnt->GetXPoint();
-  //          tr.Print();
-  //          pnt->Print();
-  //#endif
-  //          return kFALSE;
-  //        }
-  //      } else {
-  //        AliTrackerBase::GetBxByBz(xyz, bxyz);
-  //        if (!tr.propagateParamTo(xToGo, bxyz)) {
-  //#if DEBUG > 3
-  //          LOG(error) << "Failed to propagate(BXYZ) to X=" << pnt->GetXPoint();
-  //          tr.Print();
-  //          pnt->Print();
-  //#endif
-  //          return kFALSE;
-  //        }
-  //      }
-  //    } else { // straigth line propagation
-  //      if (!tr.propagateParamTo(xToGo, 0)) {
-  //#if DEBUG > 3
-  //        LOG(error) << "Failed to propagate(B=0) to X=" << pnt->GetXPoint();
-  //        tr.Print();
-  //        pnt->Print();
-  //#endif
-  //        return kFALSE;
-  //      }
-  //    }
-  //  } // steps
-  //  //
+  // propagate tracks to the point (only parameters, no error matrix)
+
+  dim3_t xyzD{};
+  math_utils::Point3D<float> xyzP;
+  dim3_t bxyzV{};
+  float bxyzF[3]{0, 0, 0};
+
+  o2::base::GeometryManager::loadGeometry();
+  o2::base::Propagator::initFieldFromGRP(o2::base::NameConf::getGRPFileName());
+  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName())};
+  const auto* propagator = base::Propagator::Instance();
+  //
+  if (!tr.rotateParam(pnt->GetAlphaSens())) {
+#if DEBUG > 3
+    LOG(error) << "Failed to rotate to alpha=" << pnt->GetAlphaSens();
+    tr.Print();
+    pnt->Print();
+#endif
+    return kFALSE;
+  }
+  //
+  double xTgt = pnt->GetXPoint();
+  double xBeg = tr.getX();
+  double dx = xTgt - xBeg;
+  int nstep = int(Abs(dx) / maxStep) + 1;
+  dx /= nstep;
+  //
+  for (int ist = nstep; ist--;) {
+    //
+    double xToGo = xTgt - dx * ist;
+    tr.getXYZGlo(xyzD);
+    xyzP.SetXYZ(xyzD[0], xyzD[1], xyzD[2]);
+    //
+    if (GetFieldON()) {
+      if (pnt->GetUseBzOnly()) {
+        // if (!tr.propagateParamTo(xToGo, AliTrackerBase::GetBz(xyz))) { //TODO(milettri, shahoian): is this correct?
+        if (!tr.propagateParamTo(xToGo, propagator->getNominalBz())) {
+#if DEBUG > 3
+          LOG(error) << "Failed to propagate(BZ) to X=%" << pnt->GetXPoint();
+          tr.Print();
+          pnt->Print();
+#endif
+          return kFALSE;
+        }
+      } else {
+        //AliTrackerBase::GetBxByBz(xyz, bxyz);
+        propagator->getFiedXYZ(xyzP, bxyzF);
+        std::copy(std::begin(bxyzF), std::end(bxyzF), std::begin(bxyzV));
+        if (!tr.propagateParamTo(xToGo, bxyzV)) {
+#if DEBUG > 3
+          LOG(error) << "Failed to propagate(BXYZ) to X=" << pnt->GetXPoint();
+          tr.Print();
+          pnt->Print();
+#endif
+          return kFALSE;
+        }
+      }
+    } else { // straigth line propagation
+      if (!tr.propagateParamTo(xToGo, 0)) {
+#if DEBUG > 3
+        LOG(error) << "Failed to propagate(B=0) to X=" << pnt->GetXPoint();
+        tr.Print();
+        pnt->Print();
+#endif
+        return kFALSE;
+      }
+    }
+  } // steps
+  //
   return kTRUE;
 }
 
@@ -620,100 +631,112 @@ Bool_t AliAlgTrack::PropagateToPoint(trackParam_t& tr, const AliAlgPoint* pnt,
 {
   LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
   // FIXME(milettri): needs AliTrackerBase
-  //  // propagate tracks to the point. If matCor is true, then material corrections will be applied.
-  //  // if matPar pointer is provided, it will be filled by total x2x0 and signed xrho
-  //  if (!tr.rotate(pnt->GetAlphaSens())) {
-  //#if DEBUG > 3
-  //    LOG(WARNING) << "Failed to rotate to alpha=" << pnt->GetAlphaSens();
-  //    tr.print();
-  //#endif
-  //    return kFALSE;
-  //  }
-  //  //
-  //  dim3_t xyz0{0};
-  //  dim3_t xyz1{0};
-  //  dim3_t bxyz{0};
-  //  double matarr[7];
-  //  double xPoint = pnt->GetXPoint(), dx = xPoint - tr.getX(), dxa = Abs(dx), step = dxa / minNSteps;
-  //  if (matPar)
-  //    matPar[0] = matPar[1] = 0;
-  //  if (dxa < kTinyDist)
-  //    return kTRUE;
-  //  if (step > maxStep)
-  //    step = maxStep;
-  //  int nstep = int(dxa / step);
-  //  step = dxa / nstep;
-  //  if (dx < 0)
-  //    step = -step;
-  //  //
-  //  //  printf("-->will go from X:%e to X:%e in %d steps of %f\n",tr.GetX(),xPoint,nstep,step);
+  //   // propagate tracks to the point. If matCor is true, then material corrections will be applied.
+  //   // if matPar pointer is provided, it will be filled by total x2x0 and signed xrho
+  if (!tr.rotate(pnt->GetAlphaSens())) {
+#if DEBUG > 3
+    LOG(WARNING) << "Failed to rotate to alpha=" << pnt->GetAlphaSens();
+    tr.print();
+#endif
+    return kFALSE;
+  }
   //
-  //  // do we go along or against track direction
-  //  Bool_t alongTrackDir = (dx > 0 && !pnt->IsInvDir()) || (dx < 0 && pnt->IsInvDir());
-  //  Bool_t queryXYZ = matCor || GetFieldON();
-  //  if (queryXYZ)
-  //    tr.getXYZGlo(xyz0);
-  //  //
-  //  double x2X0Tot = 0, xrhoTot = 0;
-  //  for (int ist = nstep; ist--;) { // single propagation step >>
-  //    double xToGo = xPoint - step * ist;
-  //    //
-  //    if (GetFieldON()) {
-  //      if (pnt->GetUseBzOnly()) {
-  //        if (!tr.propagateParamTo(xToGo, AliTrackerBase::GetBz(xyz0))) {
-  //#if DEBUG > 3
-  //          LOG(WARNING) << "Failed to propagate(BZ) to X=" << xToGo;
-  //          tr.print();
-  //#endif
-  //          return kFALSE;
-  //        }
-  //      } else {
-  //        AliTrackerBase::GetBxByBz(xyz0, bxyz);
-  //        if (!tr.propagateParamTo(xToGo, bxyz)) {
-  //#if DEBUG > 3
-  //          AliWarningF("Failed to propagate(BXYZ) to X=%f", xToGo);
-  //#endif
-  //          return kFALSE;
-  //        }
-  //      }
-  //    } else { // straigth line propagation
-  //      if (!tr.propagateParamTo(xToGo, 0)) {
-  //#if DEBUG > 3
-  //        AliWarningF("Failed to propagate(B=0) to X=%f", xToGo);
-  //#endif
-  //        return kFALSE;
-  //      }
-  //    }
-  //    //
-  //    if (queryXYZ) {
-  //      tr.getXYZGlo(xyz1);
-  //      if (matCor) {
-  //        AliTrackerBase::MeanMaterialBudget(xyz0, xyz1, matarr);
-  //        Double_t xrho = matarr[0] * matarr[4], xx0 = matarr[1];
-  //        if (alongTrackDir)
-  //          xrho = -xrho; // if we go along track direction, energy correction is negative
-  //        x2X0Tot += xx0;
-  //        xrhoTot += xrho;
-  //        //	printf("MAT %+7.2f %+7.2f %+7.2f -> %+7.2f %+7.2f %+7.2f | %+e %+e | -> %+e %+e | %+e %+e %+e %+e %+e\n",
-  //        //	       xyz0[0],xyz0[1],xyz0[g2], xyz1[0],xyz1[1],xyz1[2], tr.Phi(), tr.GetAlpha(),
-  //        //	       x2X0Tot,xrhoTot, matarr[0],matarr[1],matarr[2],matarr[3],matarr[4]);
-  //        if (!tr.correctForMaterial(xx0, xrho, fMass)) {
-  //#if DEBUG > 3
-  //          LOG(WARNING) << "Failed on CorrectForMeanMaterial(" << xx0 << "," << xrho << "," << fMass << ")";
-  //          tr.print();
-  //#endif
-  //          return kFALSE;
-  //        }
-  //      }
-  //      for (int l = 3; l--;)
-  //        xyz0[l] = xyz1[l];
-  //    }
-  //  } // single propagation step <<
-  //  //
-  //  if (matPar) {
-  //    matPar[0] = x2X0Tot;
-  //    matPar[1] = xrhoTot;
-  //  }
+  base::GeometryManager::loadGeometry();
+  base::Propagator::initFieldFromGRP(base::NameConf::getGRPFileName());
+  std::unique_ptr<parameters::GRPObject> grp{parameters::GRPObject::loadFrom(base::NameConf::getGRPFileName())};
+  const auto* propagator = base::Propagator::Instance();
+
+  dim3_t xyz0{0};
+  dim3_t xyz1{0};
+  dim3_t bxyzV{0};
+  float bxyzF[3]{0, 0, 0};
+  math_utils::Point3D<float> xyzP;
+
+  double matarr[7];
+  double xPoint = pnt->GetXPoint(), dx = xPoint - tr.getX(), dxa = Abs(dx), step = dxa / minNSteps;
+  if (matPar)
+    matPar[0] = matPar[1] = 0;
+  if (dxa < kTinyDist)
+    return kTRUE;
+  if (step > maxStep)
+    step = maxStep;
+  int nstep = int(dxa / step);
+  step = dxa / nstep;
+  if (dx < 0)
+    step = -step;
+  //
+  //  printf("-->will go from X:%e to X:%e in %d steps of %f\n",tr.GetX(),xPoint,nstep,step);
+
+  // do we go along or against track direction
+  Bool_t alongTrackDir = (dx > 0 && !pnt->IsInvDir()) || (dx < 0 && pnt->IsInvDir());
+  Bool_t queryXYZ = matCor || GetFieldON();
+  if (queryXYZ)
+    tr.getXYZGlo(xyz0);
+  xyzP.SetXYZ(xyz0[0], xyz0[1], xyz0[2]);
+  //
+  double x2X0Tot = 0, xrhoTot = 0;
+  for (int ist = nstep; ist--;) { // single propagation step >>
+    double xToGo = xPoint - step * ist;
+    //
+    if (GetFieldON()) {
+      if (pnt->GetUseBzOnly()) {
+        // if (!tr.propagateParamTo(xToGo, AliTrackerBase::GetBz(xyz0))) {
+        if (!tr.propagateParamTo(xToGo, propagator->getNominalBz())) { //TODO(milettri, shahoian) - check correctness
+#if DEBUG > 3
+          LOG(WARNING) << "Failed to propagate(BZ) to X=" << xToGo;
+          tr.print();
+#endif
+          return kFALSE;
+        }
+      } else {
+        //AliTrackerBase::GetBxByBz(xyz0, bxyz);
+        propagator->getFiedXYZ(xyzP, bxyzF);
+        std::copy(std::begin(bxyzF), std::end(bxyzF), std::begin(bxyzV));
+        if (!tr.propagateParamTo(xToGo, bxyzV)) {
+#if DEBUG > 3
+          AliWarningF("Failed to propagate(BXYZ) to X=%f", xToGo);
+#endif
+          return kFALSE;
+        }
+      }
+    } else { // straigth line propagation
+      if (!tr.propagateParamTo(xToGo, 0)) {
+#if DEBUG > 3
+        AliWarningF("Failed to propagate(B=0) to X=%f", xToGo);
+#endif
+        return kFALSE;
+      }
+    }
+    //
+    if (queryXYZ) {
+      tr.getXYZGlo(xyz1);
+      if (matCor) {
+        //AliTrackerBase::MeanMaterialBudget(xyz0, xyz1, matarr); //TODO(milettri, shahoian) - t
+        Double_t xrho = matarr[0] * matarr[4], xx0 = matarr[1];
+        if (alongTrackDir)
+          xrho = -xrho; // if we go along track direction, energy correction is negative
+        x2X0Tot += xx0;
+        xrhoTot += xrho;
+        //	printf("MAT %+7.2f %+7.2f %+7.2f -> %+7.2f %+7.2f %+7.2f | %+e %+e | -> %+e %+e | %+e %+e %+e %+e %+e\n",
+        //	       xyz0[0],xyz0[1],xyz0[g2], xyz1[0],xyz1[1],xyz1[2], tr.Phi(), tr.GetAlpha(),
+        //	       x2X0Tot,xrhoTot, matarr[0],matarr[1],matarr[2],matarr[3],matarr[4]);
+        if (!tr.correctForMaterial(xx0, xrho, fMass)) {
+#if DEBUG > 3
+          LOG(WARNING) << "Failed on CorrectForMeanMaterial(" << xx0 << "," << xrho << "," << fMass << ")";
+          tr.print();
+#endif
+          return kFALSE;
+        }
+      }
+      for (int l = 3; l--;)
+        xyz0[l] = xyz1[l];
+    }
+  } // single propagation step <<
+  //
+  if (matPar) {
+    matPar[0] = x2X0Tot;
+    matPar[1] = xrhoTot;
+  }
   return kTRUE;
 }
 
