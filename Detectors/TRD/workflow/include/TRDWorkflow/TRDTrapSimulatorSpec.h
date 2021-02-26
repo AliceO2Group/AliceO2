@@ -44,7 +44,7 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
   int mShowTrackletStats = 1;        // show some statistics for each run
   bool mEnableOnlineGainCorrection{false};
   bool mEnableTrapConfigDump{false};
-  bool mShareDigitsManually{false}; // duplicate digits connected to shared pads if digitizer did not do so
+  bool mShareDigitsManually{true};  // duplicate digits connected to shared pads if digitizer did not do so
   std::string mTrapConfigName;      // the name of the config to be used.
   std::string mOnlineGainTableName;
   std::unique_ptr<Calibrations> mCalib; // store the calibrations connection to CCDB. Used primarily for the gaintables in line above.
