@@ -17,7 +17,10 @@ namespace o2::framework
 
 ServiceRegistry::ServiceRegistry()
 {
-  mServicesKey.fill(0L);
+  for (size_t i = 0; i < MAX_SERVICES; ++i) {
+    mServicesKey[i].store(0L);
+  }
+
   mServicesValue.fill(nullptr);
   for (size_t i = 0; i < mServicesBooked.size(); ++i) {
     mServicesBooked[i] = false;
@@ -163,6 +166,11 @@ void ServiceRegistry::preExitCallbacks()
   for (auto exitHandle = mPreExitHandles.rbegin(); exitHandle != mPreExitHandles.rend(); ++exitHandle) {
     exitHandle->callback(*this, exitHandle->service);
   }
+}
+
+void ServiceRegistry::throwError(RuntimeErrorRef const& ref) const
+{
+  throw ref;
 }
 
 } // namespace o2::framework
