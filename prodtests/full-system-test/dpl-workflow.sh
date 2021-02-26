@@ -105,7 +105,7 @@ WORKFLOW+="o2-tof-reco-workflow $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF
 
 # Workflows disabled in sync mode
 if [ $SYNCMODE == 0 ]; then
-  WORKFLOW+="o2-tof-matcher-tpc $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=$NHBPERTF\" --disable-root-input --disable-root-output $DISABLE_MC | "  
+  WORKFLOW+="o2-tof-matcher-tpc $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=$NHBPERTF\" --disable-root-input --disable-root-output $DISABLE_MC | "
   WORKFLOW+="o2-mid-reco-workflow $ARGS_ALL --disable-root-output $DISABLE_MC | "
   WORKFLOW+="o2-mft-reco-workflow $ARGS_ALL --clusters-from-upstream $DISABLE_MC --disable-root-output --configKeyValues \"HBFUtils.nHBFPerTF=128;\" | "
   WORKFLOW+="o2-primary-vertexing-workflow $ARGS_ALL $DISABLE_MC --disable-root-input --disable-root-output --validate-with-ft0 | "
@@ -114,9 +114,8 @@ fi
 
 # Workflows disabled in async mode
 if [ $CTFINPUT == 0 ]; then
-  WORKFLOW+="o2-phos-reco-workflow $ARGS_ALL --input-type raw --output-type cells $DISABLE_MC  | "
-  WORKFLOW+="o2-cpv-reco-workflow $ARGS_ALL --input-type raw --output-type digits $DISABLE_MC  | "
-  WORKFLOW+="o2-cpv-reco-workflow $ARGS_ALL --input-type digits --output-type clusters $DISABLE_MC | "
+  WORKFLOW+="o2-phos-reco-workflow $ARGS_ALL --input-type raw --output-type cells --disable-root-input --disable-root-output $DISABLE_MC  | "
+  WORKFLOW+="o2-cpv-reco-workflow $ARGS_ALL --input-type raw --output-type clusters --disable-root-input --disable-root-output $DISABLE_MC  | "
   WORKFLOW+="o2-emcal-reco-workflow $ARGS_ALL --input-type raw --output-type cells --disable-root-output $DISABLE_MC  | "
 
   WORKFLOW+="o2-itsmft-entropy-encoder-workflow $ARGS_ALL --runmft true | "
