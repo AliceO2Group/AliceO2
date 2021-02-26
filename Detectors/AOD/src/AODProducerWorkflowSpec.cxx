@@ -593,7 +593,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   uint16_t labelMask;
 
   if (mFillTracksITS) {
-    fillTracksTable(tracksITS, vCollRefsITS, tracksCursor, o2::vertexing::GIndex::Source::ITS); // fTrackType = 1
+    fillTracksTable(tracksITS, vCollRefsITS, tracksCursor, o2::vertexing::GIndex::Source::ITS);
     for (auto& mcTruthITS : tracksITSMCTruth) {
       labelID = std::numeric_limits<uint32_t>::max();
       // TODO: fill label mask
@@ -614,7 +614,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   if (mFillTracksTPC) {
-    fillTracksTable(tracksTPC, vCollRefsTPC, tracksCursor, o2::vertexing::GIndex::Source::TPC); // fTrackType = 2
+    fillTracksTable(tracksTPC, vCollRefsTPC, tracksCursor, o2::vertexing::GIndex::Source::TPC);
     for (auto& mcTruthTPC : tracksTPCMCTruth) {
       labelID = std::numeric_limits<uint32_t>::max();
       // TODO: fill label mask
@@ -635,7 +635,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   if (mFillTracksITSTPC) {
-    fillTracksTable(tracksITSTPC, vCollRefsTPCITS, tracksCursor, o2::vertexing::GIndex::Source::ITSTPC); // fTrackType = 0
+    fillTracksTable(tracksITSTPC, vCollRefsTPCITS, tracksCursor, o2::vertexing::GIndex::Source::ITSTPC);
     for (int i = 0; i < tracksITSTPC.size(); i++) {
       const auto& trc = tracksITSTPC[i];
       auto mcTruthITS = tracksITSMCTruth[trc.getRefITS()];
