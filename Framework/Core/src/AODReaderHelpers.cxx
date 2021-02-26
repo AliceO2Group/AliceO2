@@ -170,9 +170,9 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
           return o2::framework::spawner(expressions{}, original_table.get());
         };
 
-        if (description == header::DataDescription{"TRACK:PAR"}) {
+        if (description == header::DataDescription{"TRACK"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::TracksExtensionMetadata{}));
-        } else if (description == header::DataDescription{"TRACK:PARCOV"}) {
+        } else if (description == header::DataDescription{"TRACKCOV"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::TracksCovExtensionMetadata{}));
         } else if (description == header::DataDescription{"MUON"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::MuonsExtensionMetadata{}));
