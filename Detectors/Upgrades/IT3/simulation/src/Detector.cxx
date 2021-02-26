@@ -556,6 +556,9 @@ void Detector::createMaterials()
   Float_t wRohac[4] = {9., 13., 1., 2.};
   Float_t dRohac = 0.05;
 
+  // Araldite 2011
+  Float_t dAraldite = 1.05;
+
   o2::base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
   o2::base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir, epsilAir, stminAir);
 
@@ -627,6 +630,11 @@ void Detector::createMaterials()
   // ERG Duocel
   o2::base::Detector::Material(33, "ERGDUOCEL$", 12.0107, 6, 0.06, 999, 999);
   o2::base::Detector::Medium(33, "ERGDUOCEL$", 33, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+
+  // Impregnated carbon fleece
+  // (as educated guess we assume 50% carbon fleece 50% Araldite glue)
+  o2::base::Detector::Material(34, "IMPREG_FLEECE$", 12.0107, 6, 0.5 * (dAraldite + 0.4), 999, 999);
+  o2::base::Detector::Medium(34, "IMPREG_FLEECE$", 34, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 
   // PEEK CF30
   o2::base::Detector::Mixture(19, "PEEKCF30$", aPEEK, zPEEK, dPEEK, -3, wPEEK);
