@@ -247,11 +247,30 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
           nTrackletsInTrigRec += nTrackletsOut;
           auto digitCountOut = mTrapSimulator[iTrap].getTrackletDigitCount();
           auto digitIndicesOut = mTrapSimulator[iTrap].getTrackletDigitIndices();
-          std::vector<o2::MCCompLabel> trackletLabels;
-          int currDigitIndex = 0;
+          int currDigitIndex = 0; // count the total number of digits which are associated to tracklets for this TRAP
+          int trkltIdxStart = trapTrackletsAccum.size();
           for (int iTrklt = 0; iTrklt < nTrackletsOut; ++iTrklt) {
-            for (int iDigitIndex = currDigitIndex; iDigitIndex < digitCountOut[iTrklt]; ++iDigitIndex) {
-              trackletMCLabels.addElements(trapTrackletsAccum.size() + iTrklt, digitMCLabels.getLabels(digitIndicesOut[iDigitIndex]));
+            int tmp = currDigitIndex;
+            for (int iDigitIndex = tmp; iDigitIndex < tmp + digitCountOut[iTrklt]; ++iDigitIndex) {
+              if (iDigitIndex == tmp) {
+                // for the first digit composing the tracklet we don't need to check for duplicate labels
+                trackletMCLabels.addElements(trkltIdxStart + iTrklt, digitMCLabels.getLabels(digitIndicesOut[iDigitIndex]));
+              } else {
+                auto currentLabels = trackletMCLabels.getLabels(trkltIdxStart + iTrklt);
+                auto newLabels = digitMCLabels.getLabels(digitIndicesOut[iDigitIndex]);
+                for (const auto& newLabel : newLabels) {
+                  bool isAlreadyIn = false;
+                  for (const auto& currLabel : currentLabels) {
+                    if (currLabel.compare(newLabel)) {
+                      isAlreadyIn = true;
+                    }
+                  }
+                  if (!isAlreadyIn) {
+                    trackletMCLabels.addElement(trkltIdxStart + iTrklt, newLabel);
+                  }
+                }
+              }
+              ++currDigitIndex;
             }
           }
           trapTrackletsAccum.insert(trapTrackletsAccum.end(), trackletsOut.begin(), trackletsOut.end());
@@ -296,11 +315,30 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
       nTrackletsInTrigRec += nTrackletsOut;
       auto digitCountOut = mTrapSimulator[iTrap].getTrackletDigitCount();
       auto digitIndicesOut = mTrapSimulator[iTrap].getTrackletDigitIndices();
-      std::vector<o2::MCCompLabel> trackletLabels;
-      int currDigitIndex = 0;
+      int currDigitIndex = 0; // count the total number of digits which are associated to tracklets for this TRAP
+      int trkltIdxStart = trapTrackletsAccum.size();
       for (int iTrklt = 0; iTrklt < nTrackletsOut; ++iTrklt) {
-        for (int iDigitIndex = currDigitIndex; iDigitIndex < digitCountOut[iTrklt]; ++iDigitIndex) {
-          trackletMCLabels.addElements(trapTrackletsAccum.size() + iTrklt, digitMCLabels.getLabels(digitIndicesOut[iDigitIndex]));
+        int tmp = currDigitIndex;
+        for (int iDigitIndex = tmp; iDigitIndex < tmp + digitCountOut[iTrklt]; ++iDigitIndex) {
+          if (iDigitIndex == tmp) {
+            // for the first digit composing the tracklet we don't need to check for duplicate labels
+            trackletMCLabels.addElements(trkltIdxStart + iTrklt, digitMCLabels.getLabels(digitIndicesOut[iDigitIndex]));
+          } else {
+            auto currentLabels = trackletMCLabels.getLabels(trkltIdxStart + iTrklt);
+            auto newLabels = digitMCLabels.getLabels(digitIndicesOut[iDigitIndex]);
+            for (const auto& newLabel : newLabels) {
+              bool isAlreadyIn = false;
+              for (const auto& currLabel : currentLabels) {
+                if (currLabel.compare(newLabel)) {
+                  isAlreadyIn = true;
+                }
+              }
+              if (!isAlreadyIn) {
+                trackletMCLabels.addElement(trkltIdxStart + iTrklt, newLabel);
+              }
+            }
+          }
+          ++currDigitIndex;
         }
       }
       trapTrackletsAccum.insert(trapTrackletsAccum.end(), mTrapSimulator[iTrap].getTrackletArray64().begin(), mTrapSimulator[iTrap].getTrackletArray64().end());
