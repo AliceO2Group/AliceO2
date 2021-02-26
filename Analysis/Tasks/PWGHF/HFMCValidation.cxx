@@ -172,7 +172,7 @@ struct ValidationRecLevel {
         continue;
       }
       if (std::abs(candidate.flagMCMatchRec()) == 1 << D0ToPiK) {
-        indexParticle = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().label(), 421, true);
+        indexParticle = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().mcParticle(), 421, true);
         auto mother = particlesMC.iteratorAt(indexParticle);
         registry.fill(HIST("histPt"), candidate.pt() - mother.pt());
         registry.fill(HIST("histPx"), candidate.px() - mother.px());

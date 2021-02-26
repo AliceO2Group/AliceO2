@@ -157,7 +157,7 @@ struct QATrackingEfficiencyPt {
     std::vector<int64_t> recoTracks(tracks.size());
     int ntrks = 0;
     for (const auto& track : tracks) {
-      const auto mcParticle = track.label();
+      const auto mcParticle = track.mcParticle();
       if ((mcParticle.eta() < etaMin.value || mcParticle.eta() > etaMax.value)) { // Check eta
         continue;
       }

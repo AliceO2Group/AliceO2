@@ -285,7 +285,7 @@ struct QATrackingResolution {
 
     for (const auto& track : tracks) {
 
-      const auto mcParticle = track.label();
+      const auto mcParticle = track.mcParticle();
       if (pdgCode.value != 0 && abs(mcParticle.pdgCode()) != abs(pdgCode.value)) {
         continue;
       }

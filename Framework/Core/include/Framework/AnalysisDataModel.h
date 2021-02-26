@@ -206,7 +206,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(TPCFractionSharedCls, tpcFractionSharedCls, [](uint8_
 });
 } // namespace track
 
-DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK:PAR",
+DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK",
                        o2::soa::Index<>, track::CollisionId, track::TrackType,
                        track::X, track::Alpha,
                        track::Y, track::Z, track::Snp, track::Tgl,
@@ -217,18 +217,18 @@ DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK:PAR",
                        track::Pz<track::Signed1Pt, track::Tgl>,
                        track::Charge<track::Signed1Pt>);
 
-DECLARE_SOA_EXTENDED_TABLE(Tracks, StoredTracks, "TRACK:PAR",
+DECLARE_SOA_EXTENDED_TABLE(Tracks, StoredTracks, "TRACK",
                            aod::track::Pt,
                            aod::track::P,
                            aod::track::Eta,
                            aod::track::RawPhi);
 
-DECLARE_SOA_TABLE_FULL(StoredTracksCov, "TracksCov", "AOD", "TRACK:PARCOV",
+DECLARE_SOA_TABLE_FULL(StoredTracksCov, "TracksCov", "AOD", "TRACKCOV",
                        track::SigmaY, track::SigmaZ, track::SigmaSnp, track::SigmaTgl, track::Sigma1Pt,
                        track::RhoZY, track::RhoSnpY, track::RhoSnpZ, track::RhoTglY, track::RhoTglZ,
                        track::RhoTglSnp, track::Rho1PtY, track::Rho1PtZ, track::Rho1PtSnp, track::Rho1PtTgl);
 
-DECLARE_SOA_EXTENDED_TABLE(TracksCov, StoredTracksCov, "TRACK:PARCOV",
+DECLARE_SOA_EXTENDED_TABLE(TracksCov, StoredTracksCov, "TRACKCOV",
                            aod::track::CYY,
                            aod::track::CZY,
                            aod::track::CZZ,
@@ -245,7 +245,7 @@ DECLARE_SOA_EXTENDED_TABLE(TracksCov, StoredTracksCov, "TRACK:PARCOV",
                            aod::track::C1PtTgl,
                            aod::track::C1Pt21Pt2);
 
-DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACK:EXTRA",
+DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKEXTRA",
                   track::TPCInnerParam, track::Flags, track::ITSClusterMap,
                   track::TPCNClsFindable, track::TPCNClsFindableMinusFound, track::TPCNClsFindableMinusCrossedRows,
                   track::TPCNClsShared, track::TRDPattern, track::ITSChi2NCl,
@@ -568,8 +568,8 @@ using McParticle = McParticles::iterator;
 
 namespace mctracklabel
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(Label, label, uint32_t, McParticles, "");
-DECLARE_SOA_COLUMN(LabelMask, labelMask, uint16_t);
+DECLARE_SOA_INDEX_COLUMN(McParticle, mcParticle);
+DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);
 /// Bit mask to indicate detector mismatches (bit ON means mismatch)
 /// Bit 0-6: mismatch at ITS layer
 /// Bit 7-9: # of TPC mismatches in the ranges 0, 1, 2-3, 4-7, 8-15, 16-31, 32-63, >64
@@ -577,31 +577,31 @@ DECLARE_SOA_COLUMN(LabelMask, labelMask, uint16_t);
 } // namespace mctracklabel
 
 DECLARE_SOA_TABLE(McTrackLabels, "AOD", "MCTRACKLABEL",
-                  mctracklabel::LabelId, mctracklabel::LabelMask);
+                  mctracklabel::McParticleId, mctracklabel::McMask);
 using McTrackLabel = McTrackLabels::iterator;
 
 namespace mccalolabel
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(Label, label, uint32_t, McParticles, "");
-DECLARE_SOA_COLUMN(LabelMask, labelMask, uint16_t);
+DECLARE_SOA_INDEX_COLUMN(McParticle, mcParticle);
+DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);
 /// Bit mask to indicate detector mismatches (bit ON means mismatch)
 /// Bit 15: indicates negative label
 } // namespace mccalolabel
 
 DECLARE_SOA_TABLE(McCaloLabels, "AOD", "MCCALOLABEL",
-                  mccalolabel::LabelId, mccalolabel::LabelMask);
+                  mccalolabel::McParticleId, mccalolabel::McMask);
 using McCaloLabel = McCaloLabels::iterator;
 
 namespace mccollisionlabel
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(Label, label, uint32_t, McCollisions, "");
-DECLARE_SOA_COLUMN(LabelMask, labelMask, uint16_t);
+DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision);
+DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);
 /// Bit mask to indicate collision mismatches (bit ON means mismatch)
 /// Bit 15: indicates negative label
 } // namespace mccollisionlabel
 
 DECLARE_SOA_TABLE(McCollisionLabels, "AOD", "MCCOLLISLABEL",
-                  mccollisionlabel::LabelId, mccollisionlabel::LabelMask);
+                  mccollisionlabel::McCollisionId, mccollisionlabel::McMask);
 using McCollisionLabel = McCollisionLabels::iterator;
 
 // --- Matching between collisions and other tables through BC ---
