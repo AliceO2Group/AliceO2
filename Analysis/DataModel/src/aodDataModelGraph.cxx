@@ -73,7 +73,7 @@ static std::vector<std::pair<std::string, StyleType>> tableStyles = {
   {"Cents", StyleType::GREEN},
   {"Jet", StyleType::BLUE},
   {"Mc", StyleType::RED},
-  {"V0Data", StyleType::GREEN},
+  {"V0Datas", StyleType::GREEN},
   {"CascData", StyleType::GREEN}};
 
 template <typename T>
@@ -261,7 +261,7 @@ int main(int, char**)
   displayEntity<Jets>();
   displayEntity<JetConstituents>();
 
-  displayEntities<V0s, V0DataFull>();
+  displayEntities<V0s, V0DataExt>();
 
   displayEntities<Cascades, CascDataFull>();
 

@@ -64,8 +64,8 @@ namespace o2::aod
 {
 namespace v0goodindices
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(PosTrack, posTrack, int, FullTracks, "fPositiveTrackID");
-DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, FullTracks, "fNegativeTrackID");
+DECLARE_SOA_INDEX_COLUMN_FULL(PosTrack, posTrack, int, Tracks, "_Pos");
+DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, Tracks, "_Neg");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 } // namespace v0goodindices
 DECLARE_SOA_TABLE(V0GoodIndices, "AOD", "V0GOODINDICES", o2::soa::Index<>,
@@ -130,7 +130,7 @@ struct lambdakzeroprefilterpairs {
 /// Cascade builder task: rebuilds cascades
 struct lambdakzerobuilder {
 
-  Produces<aod::V0Data> v0data;
+  Produces<aod::V0Datas> v0data;
 
   HistogramRegistry registry{
     "registry",

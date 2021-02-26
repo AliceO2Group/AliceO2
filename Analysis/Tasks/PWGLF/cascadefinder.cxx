@@ -66,27 +66,27 @@ namespace o2::aod
 
 namespace cascgoodpostracks
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(GoodPosTrack, goodPosTrack, int, FullTracks, "fGoodPosTrackID");
+DECLARE_SOA_INDEX_COLUMN_FULL(GoodPosTrack, goodPosTrack, int, Tracks, "_GoodPos");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_COLUMN(DCAXY, dcaXY, float);
 } // namespace cascgoodpostracks
 DECLARE_SOA_TABLE(CascGoodPosTracks, "AOD", "CASCGOODPTRACKS", o2::soa::Index<>, cascgoodpostracks::GoodPosTrackId, cascgoodpostracks::CollisionId, cascgoodpostracks::DCAXY);
 namespace cascgoodnegtracks
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(GoodNegTrack, goodNegTrack, int, FullTracks, "fGoodNegTrackID");
+DECLARE_SOA_INDEX_COLUMN_FULL(GoodNegTrack, goodNegTrack, int, Tracks, "_GoodNeg");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_COLUMN(DCAXY, dcaXY, float);
 } // namespace cascgoodnegtracks
 DECLARE_SOA_TABLE(CascGoodNegTracks, "AOD", "CASCGOODNTRACKS", o2::soa::Index<>, cascgoodnegtracks::GoodNegTrackId, cascgoodnegtracks::CollisionId, cascgoodnegtracks::DCAXY);
 namespace cascgoodlambdas
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(GoodLambda, goodLambda, int, V0DataExt, "fGoodLambdaId");
+DECLARE_SOA_INDEX_COLUMN_FULL(GoodLambda, goodLambda, int, V0DataExt, "_GoodLambda"); // TODO this has to point to V0Datas
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 } // namespace cascgoodlambdas
 DECLARE_SOA_TABLE(CascGoodLambdas, "AOD", "CASCGOODLAM", o2::soa::Index<>, cascgoodlambdas::GoodLambdaId, cascgoodlambdas::CollisionId);
 namespace cascgoodantilambdas
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(GoodAntiLambda, goodAntiLambda, int, V0DataExt, "fGoodAntiLambdaId");
+DECLARE_SOA_INDEX_COLUMN_FULL(GoodAntiLambda, goodAntiLambda, int, V0DataExt, "_GoodAntiLambda"); // TODO this has to point to V0Datas
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 } // namespace cascgoodantilambdas
 DECLARE_SOA_TABLE(CascGoodAntiLambdas, "AOD", "CASCGOODALAM", o2::soa::Index<>, cascgoodantilambdas::GoodAntiLambdaId, cascgoodantilambdas::CollisionId);
@@ -217,8 +217,8 @@ struct cascadefinder {
     for (auto& v0id : lambdas) {
       //required: de-reference the tracks for cascade building
       auto v0 = v0id.goodLambda();
-      auto pTrack = getTrackParCov(v0.posTrack());
-      auto nTrack = getTrackParCov(v0.negTrack());
+      auto pTrack = getTrackParCov(v0.posTrack_as<aod::FullTracks>());
+      auto nTrack = getTrackParCov(v0.negTrack_as<aod::FullTracks>());
       //Let's do the slow part first: the V0 recalculation from scratch
       int nCand = fitterV0.process(pTrack, nTrack);
       if (nCand != 0) {
@@ -257,7 +257,7 @@ struct cascadefinder {
         tV0.setQ2Pt(0); //No bending, please
 
         for (auto& t0id : nBachtracks) {
-          auto t0 = t0id.goodNegTrack();
+          auto t0 = t0id.goodNegTrack_as<aod::FullTracks>();
           auto bTrack = getTrackParCov(t0);
 
           int nCand2 = fitterCasc.process(tV0, bTrack);
@@ -289,8 +289,8 @@ struct cascadefinder {
     for (auto& v0id : antiLambdas) {
       //required: de-reference the tracks for cascade building
       auto v0 = v0id.goodAntiLambda();
-      auto pTrack = getTrackParCov(v0.posTrack());
-      auto nTrack = getTrackParCov(v0.negTrack());
+      auto pTrack = getTrackParCov(v0.posTrack_as<aod::FullTracks>());
+      auto nTrack = getTrackParCov(v0.negTrack_as<aod::FullTracks>());
       //Let's do the slow part first: the V0 recalculation from scratch
       int nCand = fitterV0.process(pTrack, nTrack);
       if (nCand != 0) {
@@ -329,7 +329,7 @@ struct cascadefinder {
         tV0.setQ2Pt(0); //No bending, please
 
         for (auto& t0id : pBachtracks) {
-          auto t0 = t0id.goodPosTrack();
+          auto t0 = t0id.goodPosTrack_as<aod::FullTracks>();
           auto bTrack = getTrackParCov(t0);
 
           int nCand2 = fitterCasc.process(tV0, bTrack);

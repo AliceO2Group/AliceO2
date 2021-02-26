@@ -69,8 +69,8 @@ struct HFCandidateCreator2Prong {
 
     // loop over pairs of track indices
     for (const auto& rowTrackIndexProng2 : rowsTrackIndexProng2) {
-      auto trackParVarPos1 = getTrackParCov(rowTrackIndexProng2.index0());
-      auto trackParVarNeg1 = getTrackParCov(rowTrackIndexProng2.index1());
+      auto trackParVarPos1 = getTrackParCov(rowTrackIndexProng2.index0_as<aod::FullTracks>());
+      auto trackParVarNeg1 = getTrackParCov(rowTrackIndexProng2.index1_as<aod::FullTracks>());
       auto collision = rowTrackIndexProng2.index0().collision();
 
       // reconstruct the 2-prong secondary vertex

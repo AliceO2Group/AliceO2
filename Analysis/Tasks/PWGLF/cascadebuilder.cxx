@@ -64,8 +64,8 @@ namespace o2::aod
 
 namespace cascgood
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(V0, v0, int, V0DataExt, "fV0Id");
-DECLARE_SOA_INDEX_COLUMN_FULL(Bachelor, bachelor, int, FullTracks, "fTracksID");
+DECLARE_SOA_INDEX_COLUMN_FULL(V0, v0, int, V0DataExt, ""); // TODO needs to point to V0Datas
+DECLARE_SOA_INDEX_COLUMN_FULL(Bachelor, bachelor, int, Tracks, "");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 } // namespace cascgood
 DECLARE_SOA_TABLE(CascGood, "AOD", "CASCGOOD", o2::soa::Index<>,

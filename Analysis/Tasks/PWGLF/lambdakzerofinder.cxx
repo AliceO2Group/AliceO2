@@ -64,14 +64,14 @@ namespace o2::aod
 {
 namespace v0goodpostracks
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(GoodTrack, goodTrack, int, FullTracks, "fGoodTrackID");
+DECLARE_SOA_INDEX_COLUMN_FULL(GoodTrack, goodTrack, int, Tracks, "_GoodTrack");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_COLUMN(DCAXY, dcaXY, float);
 } // namespace v0goodpostracks
 DECLARE_SOA_TABLE(V0GoodPosTracks, "AOD", "V0GOODPOSTRACKS", o2::soa::Index<>, v0goodpostracks::GoodTrackId, v0goodpostracks::CollisionId, v0goodpostracks::DCAXY);
 namespace v0goodnegtracks
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(GoodTrack, goodTrack, int, FullTracks, "fGoodTrackID");
+DECLARE_SOA_INDEX_COLUMN_FULL(GoodTrack, goodTrack, int, Tracks, "_GoodTrack");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_COLUMN(DCAXY, dcaXY, float);
 } // namespace v0goodnegtracks
@@ -120,7 +120,7 @@ struct lambdakzeroprefilter {
 };
 
 struct lambdakzerofinder {
-  Produces<aod::V0Data> v0data;
+  Produces<aod::V0Datas> v0data;
 
   HistogramRegistry registry{
     "registry",
@@ -157,10 +157,10 @@ struct lambdakzerofinder {
     std::array<float, 3> pVtx = {collision.posX(), collision.posY(), collision.posZ()};
 
     for (auto& t0id : ptracks) { //FIXME: turn into combination(...)
-      auto t0 = t0id.goodTrack();
+      auto t0 = t0id.goodTrack_as<aod::FullTracks>();
       auto Track1 = getTrackParCov(t0);
       for (auto& t1id : ntracks) {
-        auto t1 = t1id.goodTrack();
+        auto t1 = t1id.goodTrack_as<aod::FullTracks>();
         auto Track2 = getTrackParCov(t1);
 
         //Try to progate to dca
