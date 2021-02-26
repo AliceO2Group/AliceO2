@@ -18,6 +18,18 @@
 
 using namespace o2::steer;
 
+MCKinematicsReader::~MCKinematicsReader()
+{
+  for (auto chain : mInputChains) {
+    delete chain;
+  }
+  mInputChains.clear();
+
+  if (mDigitizationContext) {
+    delete mDigitizationContext;
+  }
+}
+
 void MCKinematicsReader::initIndexedTrackRefs(std::vector<o2::TrackReference>& refs, o2::dataformats::MCTruthContainer<o2::TrackReference>& indexedrefs) const
 {
   // sort trackrefs according to track index then according to track length
