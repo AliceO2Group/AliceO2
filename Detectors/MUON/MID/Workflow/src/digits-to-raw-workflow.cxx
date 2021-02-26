@@ -15,6 +15,7 @@
 
 #include <string>
 #include <vector>
+#include "CommonUtils/ConfigurableParam.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/Variant.h"
 #include "MIDWorkflow/DigitReaderSpec.h"
@@ -34,7 +35,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
-
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   specs.emplace_back(o2::mid::getDigitReaderSpec(false));
   specs.emplace_back(o2::mid::getRawWriterSpec());
 
