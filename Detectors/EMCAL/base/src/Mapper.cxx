@@ -119,6 +119,16 @@ Mapper& MappingHandler::getMappingForDDL(int ddl)
   return mMappings[sideID * NDDLSM + ddlInSM];
 }
 
+int MappingHandler::getFEEForChannelInDDL(int ddl, int channelFEC, int branch)
+{
+  int ddlInSupermodule = ddl % 2;
+  int fecID = ddlInSupermodule ? 20 : 0;
+  if (branch)
+    fecID += 10;
+  fecID += channelFEC;
+  return fecID;
+}
+
 std::ostream& o2::emcal::operator<<(std::ostream& stream, const Mapper::ChannelID& channel)
 {
   stream << "Row " << static_cast<int>(channel.mRow) << ", Column " << static_cast<int>(channel.mColumn) << ", type " << o2::emcal::channelTypeToString(channel.mChannelType);
