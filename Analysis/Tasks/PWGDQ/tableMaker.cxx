@@ -34,6 +34,7 @@ using std::endl;
 
 using namespace o2;
 using namespace o2::framework;
+using namespace o2::framework::expressions;
 using namespace o2::aod;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
@@ -58,6 +59,7 @@ using MyEventsNoCent = soa::Join<aod::Collisions, aod::EvSels>;
 constexpr static uint32_t gkEventFillMap = VarManager::ObjTypes::BC | VarManager::ObjTypes::Collision | VarManager::ObjTypes::CollisionCent;
 constexpr static uint32_t gkEventFillMapNoCent = VarManager::ObjTypes::BC | VarManager::ObjTypes::Collision;
 constexpr static uint32_t gkTrackFillMap = VarManager::ObjTypes::Track | VarManager::ObjTypes::TrackExtra | VarManager::ObjTypes::TrackDCA | VarManager::ObjTypes::TrackSelection | VarManager::ObjTypes::TrackCov | VarManager::ObjTypes::TrackPID;
+constexpr static uint32_t gkMuonFillMap = VarManager::ObjTypes::Track | VarManager::ObjTypes::ReducedTrackMuon;
 
 template <uint32_t eventFillMap, typename T>
 struct TableMaker {
@@ -80,23 +82,23 @@ struct TableMaker {
   HistogramManager* fHistMan;
 
   Configurable<std::string> fConfigEventCuts{"cfgEventCuts", "eventStandard", "Event selection"};
-  Configurable<std::string> fConfigTrackCuts{"cfgBarrelTrackCuts", "jpsiPID1", "Comma separated list of barrel track cuts"};
+  Configurable<std::string> fConfigTrackCuts{"cfgBarrelTrackCuts", "jpsiPID1", "barrel track cut"};
+  Configurable<std::string> fConfigMuonCuts{"cfgMuonCuts", "muonQualityCuts", "muon cut"};
   Configurable<float> fConfigBarrelTrackPtLow{"cfgBarrelLowPt", 1.0f, "Low pt cut for tracks in the barrel"};
+  Configurable<float> fConfigMuonPtLow{"cfgMuonLowPt", 1.0f, "Low pt cut for muons"};
 
-  // TODO: Filters should be used to make lowest level selection. The additional more restrictive cuts should be defined via the AnalysisCuts
-  // TODO: Multiple event selections can be applied and decisions stored in the reducedevent::tag
+  // TODO: Enable multiple event and track selections in parallel, and decisions stored in the respective bit fields
   AnalysisCompositeCut* fEventCut;
-  // TODO: Multiple track selections can be applied and decisions stored in the reducedtrack::filteringFlags
-  //  Cuts should be defined using Configurables (prepare cut libraries, as discussed in O2 DQ meetings)
   AnalysisCompositeCut* fTrackCut;
+  AnalysisCompositeCut* fMuonCut;
 
-  // Partition will select fast a group of tracks with basic requirements
-  //   If some of the cuts cannot be included in the Partition expression, add them via AnalysisCut(s)
-  Partition<MyBarrelTracks> barrelSelectedTracks = o2::aod::track::pt >= fConfigBarrelTrackPtLow && nabs(o2::aod::track::eta) <= 0.9f && o2::aod::track::tpcSignal >= 70.0f && o2::aod::track::tpcSignal <= 100.0f && o2::aod::track::tpcChi2NCl < 4.0f && o2::aod::track::itsChi2NCl < 36.0f;
-
-  // TODO a few of the important muon variables in the central data model are dynamic columns so not usable in expressions (e.g. eta, phi)
-  //        Update the data model to have them as expression columns
-  Partition<aod::Muons> muonSelectedTracks = o2::aod::muon::pt >= 1.0f;
+  // TODO: filter on TPC dedx used temporarily until electron PID will be improved
+  Filter barrelSelectedTracks = o2::aod::track::pt >= fConfigBarrelTrackPtLow && nabs(o2::aod::track::eta) <= 0.9f && o2::aod::track::tpcSignal >= 70.0f && o2::aod::track::tpcSignal <= 100.0f && o2::aod::track::tpcChi2NCl < 4.0f && o2::aod::track::itsChi2NCl < 36.0f;
+  // TODO: some of the muon variables which could be used in the filter expression are currently DYNAMIC columns (e.g. eta)
+  //       Add more basic muon cuts
+  // TODO: Use Partition to avoid the cross-talk between filters which use variables with the same name (e.g. pt for both barrel and muon tracks)
+  //       Replace by Filter when the bug is fixed
+  Partition<o2::aod::Muons> selectedMuons = o2::aod::muon::pt >= fConfigMuonPtLow;
 
   void init(o2::framework::InitContext&)
   {
@@ -106,7 +108,7 @@ struct TableMaker {
     fHistMan->SetUseDefaultVariableNames(kTRUE);
     fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
 
-    DefineHistograms("Event_BeforeCuts;Event_AfterCuts;TrackBarrel_BeforeCuts;TrackBarrel_AfterCuts"); // define all histograms
+    DefineHistograms("Event_BeforeCuts;Event_AfterCuts;TrackBarrel_BeforeCuts;TrackBarrel_AfterCuts;Muons_BeforeCuts;Muons_AfterCuts;"); // define all histograms
     VarManager::SetUseVars(fHistMan->GetUsedVars());                                                   // provide the list of required variables so that VarManager knows what to fill
     fOutputList.setObject(fHistMan->GetMainHistogramList());
     DefineCuts();
@@ -118,18 +120,18 @@ struct TableMaker {
     TString eventCutStr = fConfigEventCuts.value;
     fEventCut->AddCut(dqcuts::GetAnalysisCut(eventCutStr.Data()));
 
-    // available cuts: jpsiKineAndQuality, jpsiPID1, jpsiPID2
     // NOTE: for now, the model of this task is that just one track cut is applied; multiple parallel cuts should be enabled in the future
     fTrackCut = new AnalysisCompositeCut(true);
     TString trackCutStr = fConfigTrackCuts.value;
     fTrackCut->AddCut(dqcuts::GetCompositeCut(trackCutStr.Data()));
 
-    // NOTE: Additional cuts to those specified via the Configurable may still be added
-
+    fMuonCut = new AnalysisCompositeCut(true);
+    TString muonCutStr = fConfigMuonCuts.value;
+    fMuonCut->AddCut(dqcuts::GetCompositeCut(muonCutStr.Data()));
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
 
-  void process(MyEvent const& collision, aod::MuonClusters const& clustersMuon, aod::Muons const& tracksMuon, aod::BCs const& bcs, MyBarrelTracks const& tracksBarrel)
+  void process(MyEvent const& collision, aod::Muons const& tracksMuon, aod::BCs const& bcs, soa::Filtered<MyBarrelTracks> const& tracksBarrel)
   {
     uint64_t tag = 0;
     uint32_t triggerAliases = 0;
@@ -154,12 +156,12 @@ struct TableMaker {
     eventVtxCov(collision.covXX(), collision.covXY(), collision.covXZ(), collision.covYY(), collision.covYZ(), collision.covZZ(), collision.chi2());
 
     uint64_t trackFilteringTag = 0;
-    trackBasic.reserve(barrelSelectedTracks.size());
-    trackBarrel.reserve(barrelSelectedTracks.size());
-    trackBarrelCov.reserve(barrelSelectedTracks.size());
-    trackBarrelPID.reserve(barrelSelectedTracks.size());
+    trackBasic.reserve(tracksBarrel.size());
+    trackBarrel.reserve(tracksBarrel.size());
+    trackBarrelCov.reserve(tracksBarrel.size());
+    trackBarrelPID.reserve(tracksBarrel.size());
 
-    for (auto& track : barrelSelectedTracks) {
+    for (auto& track : tracksBarrel) {
       VarManager::FillTrack<gkTrackFillMap>(track, fValues);
       fHistMan->FillHistClass("TrackBarrel_BeforeCuts", fValues);
       if (!fTrackCut->IsSelected(fValues)) {
@@ -191,15 +193,22 @@ struct TableMaker {
                      track.trdSignal());
     }
 
-    muonBasic.reserve(muonSelectedTracks.size());
-    muonExtended.reserve(muonSelectedTracks.size());
-    for (auto& muon : muonSelectedTracks) {
+    muonBasic.reserve(selectedMuons.size());
+    muonExtended.reserve(selectedMuons.size());
+    for (auto& muon : selectedMuons) {
       // TODO: add proper information for muon tracks
       if (muon.bcId() != collision.bcId()) {
         continue;
       }
+      VarManager::FillTrack<gkMuonFillMap>(muon, fValues);
+      fHistMan->FillHistClass("Muons_BeforeCuts", fValues);
       // TODO: the trackFilteringTag will not be needed to encode whether the track is a muon since there is a dedicated table for muons
-      trackFilteringTag |= (uint64_t(1) << 0); // this is a MUON arm track
+      trackFilteringTag |= (uint64_t(1) << 0); // this is a MUON arm track  TODO: to be taken out
+      if (!fMuonCut->IsSelected(fValues)) {
+        continue;
+      }
+      fHistMan->FillHistClass("Muons_AfterCuts", fValues);
+
       muonBasic(event.lastIndex(), trackFilteringTag, muon.pt(), muon.eta(), muon.phi(), muon.charge());
       muonExtended(muon.inverseBendingMomentum(), muon.thetaX(), muon.thetaY(), muon.zMu(), muon.bendingCoor(), muon.nonBendingCoor(), muon.chi2(), muon.chi2MatchTrigger());
     }
@@ -219,6 +228,9 @@ struct TableMaker {
 
       if (classStr.Contains("Track")) {
         dqhistograms::DefineHistograms(fHistMan, objArray->At(iclass)->GetName(), "track", "tpcpid");
+      }
+      if (classStr.Contains("Muons")) {
+        dqhistograms::DefineHistograms(fHistMan, objArray->At(iclass)->GetName(), "track", "muon");
       }
     }
   }
