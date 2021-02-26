@@ -64,12 +64,12 @@ namespace o2::aod
 
 namespace cascgood
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(V0, v0, int, V0DataExt, ""); // TODO needs to point to V0Datas
+DECLARE_SOA_INDEX_COLUMN(V0Data, v0Data);
 DECLARE_SOA_INDEX_COLUMN_FULL(Bachelor, bachelor, int, Tracks, "");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 } // namespace cascgood
 DECLARE_SOA_TABLE(CascGood, "AOD", "CASCGOOD", o2::soa::Index<>,
-                  cascgood::V0Id, cascgood::BachelorId,
+                  cascgood::V0DataId, cascgood::BachelorId,
                   cascgood::CollisionId);
 } // namespace o2::aod
 
@@ -91,35 +91,35 @@ struct cascadeprefilterpairs {
   Configurable<double> v0radius{"v0radius", 0.9, "v0radius"};
 
   Produces<aod::CascGood> cascgood;
-  void process(aod::Collision const& collision, aod::V0DataExt const& V0s, aod::Cascades const& Cascades,
+  void process(aod::Collision const& collision, aod::V0Datas const& V0s, aod::Cascades const& Cascades,
                soa::Join<aod::FullTracks, aod::TracksExtended> const& tracks)
   {
     for (auto& casc : Cascades) {
       //Single-track properties filter
       if (tpcrefit) {
-        if (!(casc.v0_as<o2::aod::V0DataExt>().posTrack_as<FullTracksExt>().trackType() & o2::aod::track::TPCrefit)) {
+        if (!(casc.v0().posTrack_as<FullTracksExt>().trackType() & o2::aod::track::TPCrefit)) {
           continue; //TPC refit
         }
-        if (!(casc.v0_as<o2::aod::V0DataExt>().negTrack_as<FullTracksExt>().trackType() & o2::aod::track::TPCrefit)) {
+        if (!(casc.v0().negTrack_as<FullTracksExt>().trackType() & o2::aod::track::TPCrefit)) {
           continue; //TPC refit
         }
         if (!(casc.bachelor_as<FullTracksExt>().trackType() & o2::aod::track::TPCrefit)) {
           continue; //TPC refit
         }
       }
-      if (casc.v0_as<o2::aod::V0DataExt>().posTrack_as<FullTracksExt>().tpcNClsCrossedRows() < mincrossedrows) {
+      if (casc.v0().posTrack_as<FullTracksExt>().tpcNClsCrossedRows() < mincrossedrows) {
         continue;
       }
-      if (casc.v0_as<o2::aod::V0DataExt>().negTrack_as<FullTracksExt>().tpcNClsCrossedRows() < mincrossedrows) {
+      if (casc.v0().negTrack_as<FullTracksExt>().tpcNClsCrossedRows() < mincrossedrows) {
         continue;
       }
       if (casc.bachelor_as<FullTracksExt>().tpcNClsCrossedRows() < mincrossedrows) {
         continue;
       }
-      if (casc.v0_as<o2::aod::V0DataExt>().posTrack_as<FullTracksExt>().dcaXY() < dcapostopv) {
+      if (casc.v0().posTrack_as<FullTracksExt>().dcaXY() < dcapostopv) {
         continue;
       }
-      if (casc.v0_as<o2::aod::V0DataExt>().negTrack_as<FullTracksExt>().dcaXY() < dcanegtopv) {
+      if (casc.v0().negTrack_as<FullTracksExt>().dcaXY() < dcanegtopv) {
         continue;
       }
       if (casc.bachelor_as<FullTracksExt>().dcaXY() < dcabachtopv) {
@@ -127,23 +127,24 @@ struct cascadeprefilterpairs {
       }
 
       //V0 selections
-      if (fabs(casc.v0_as<o2::aod::V0DataExt>().mLambda() - 1.116) > lambdamasswindow && fabs(casc.v0_as<o2::aod::V0DataExt>().mAntiLambda() - 1.116) > lambdamasswindow) {
+      auto v0 = casc.v0_as<aod::V0Datas>();
+      if (fabs(v0.mLambda() - 1.116) > lambdamasswindow && fabs(v0.mAntiLambda() - 1.116) > lambdamasswindow) {
         continue;
       }
-      if (casc.v0_as<o2::aod::V0DataExt>().dcaV0daughters() > dcav0dau) {
+      if (v0.dcaV0daughters() > dcav0dau) {
         continue;
       }
-      if (casc.v0_as<o2::aod::V0DataExt>().v0radius() < v0radius) {
+      if (v0.v0radius() < v0radius) {
         continue;
       }
-      if (casc.v0_as<o2::aod::V0DataExt>().v0cosPA(collision.posX(), collision.posY(), collision.posZ()) < cospaV0) {
+      if (v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) < cospaV0) {
         continue;
       }
-      if (casc.v0_as<o2::aod::V0DataExt>().dcav0topv(collision.posX(), collision.posY(), collision.posZ()) < dcav0topv) {
+      if (v0.dcav0topv(collision.posX(), collision.posY(), collision.posZ()) < dcav0topv) {
         continue;
       }
       cascgood(
-        casc.v0_as<o2::aod::V0DataExt>().globalIndex(),
+        casc.v0().globalIndex(),
         casc.bachelor_as<FullTracksExt>().globalIndex(),
         casc.bachelor_as<FullTracksExt>().collisionId());
     }
@@ -161,7 +162,7 @@ struct cascadebuilder {
   Configurable<double> d_bz{"d_bz", -5.0, "bz field"};
   Configurable<double> d_UseAbsDCA{"d_UseAbsDCA", kTRUE, "Use Abs DCAs"};
 
-  void process(aod::Collision const& collision, aod::V0DataExt const& V0s, aod::CascGood const& Cascades, aod::FullTracks const& tracks)
+  void process(aod::Collision const& collision, aod::V0Datas const& V0s, aod::CascGood const& Cascades, aod::FullTracks const& tracks)
   {
     //Define o2 fitter, 2-prong
     o2::vertexing::DCAFitterN<2> fitterV0, fitterCasc;
@@ -197,8 +198,8 @@ struct cascadebuilder {
       hCascCandidate->Fill(0.5);
 
       //Acquire basic tracks
-      auto pTrack = getTrackParCov(casc.v0_as<o2::aod::V0DataExt>().posTrack_as<FullTracksExt>());
-      auto nTrack = getTrackParCov(casc.v0_as<o2::aod::V0DataExt>().negTrack_as<FullTracksExt>());
+      auto pTrack = getTrackParCov(casc.v0Data().posTrack_as<FullTracksExt>());
+      auto nTrack = getTrackParCov(casc.v0Data().negTrack_as<FullTracksExt>());
       auto bTrack = getTrackParCov(casc.bachelor_as<FullTracksExt>());
       if (casc.bachelor().signed1Pt() > 0) {
         charge = +1;
@@ -253,7 +254,7 @@ struct cascadebuilder {
       }   //end if v0 recoed
       //Fill table, please
       cascdata(
-        casc.v0_as<o2::aod::V0DataExt>().globalIndex(),
+        casc.v0Data().globalIndex(),
         casc.bachelor_as<FullTracksExt>().globalIndex(),
         casc.bachelor_as<FullTracksExt>().collisionId(),
         charge, posXi[0], posXi[1], posXi[2], pos[0], pos[1], pos[2],
@@ -261,8 +262,8 @@ struct cascadebuilder {
         pvecneg[0], pvecneg[1], pvecneg[2],
         pvecbach[0], pvecbach[1], pvecbach[2],
         fitterV0.getChi2AtPCACandidate(), fitterCasc.getChi2AtPCACandidate(),
-        casc.v0().posTrack_as<FullTracksExt>().dcaXY(),
-        casc.v0().negTrack_as<FullTracksExt>().dcaXY(),
+        casc.v0Data().posTrack_as<FullTracksExt>().dcaXY(),
+        casc.v0Data().negTrack_as<FullTracksExt>().dcaXY(),
         casc.bachelor_as<FullTracksExt>().dcaXY());
     }
   }

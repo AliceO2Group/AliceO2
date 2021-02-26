@@ -130,7 +130,7 @@ struct lambdakzeroprefilterpairs {
 /// Cascade builder task: rebuilds cascades
 struct lambdakzerobuilder {
 
-  Produces<aod::V0Datas> v0data;
+  Produces<aod::StoredV0Datas> v0data;
 
   HistogramRegistry registry{
     "registry",
@@ -226,7 +226,7 @@ struct lambdakzerobuilder {
 
 /// Extends the v0data table with expression columns
 struct lambdakzeroinitializer {
-  Spawns<aod::V0DataExt> v0dataext;
+  Spawns<aod::V0Datas> v0datas;
   void init(InitContext const&) {}
 };
 

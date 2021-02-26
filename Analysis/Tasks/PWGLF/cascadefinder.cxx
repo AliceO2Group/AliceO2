@@ -80,13 +80,13 @@ DECLARE_SOA_COLUMN(DCAXY, dcaXY, float);
 DECLARE_SOA_TABLE(CascGoodNegTracks, "AOD", "CASCGOODNTRACKS", o2::soa::Index<>, cascgoodnegtracks::GoodNegTrackId, cascgoodnegtracks::CollisionId, cascgoodnegtracks::DCAXY);
 namespace cascgoodlambdas
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(GoodLambda, goodLambda, int, V0DataExt, "_GoodLambda"); // TODO this has to point to V0Datas
+DECLARE_SOA_INDEX_COLUMN_FULL(GoodLambda, goodLambda, int, V0Datas, "_GoodLambda");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 } // namespace cascgoodlambdas
 DECLARE_SOA_TABLE(CascGoodLambdas, "AOD", "CASCGOODLAM", o2::soa::Index<>, cascgoodlambdas::GoodLambdaId, cascgoodlambdas::CollisionId);
 namespace cascgoodantilambdas
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(GoodAntiLambda, goodAntiLambda, int, V0DataExt, "_GoodAntiLambda"); // TODO this has to point to V0Datas
+DECLARE_SOA_INDEX_COLUMN_FULL(GoodAntiLambda, goodAntiLambda, int, V0Datas, "_GoodAntiLambda");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 } // namespace cascgoodantilambdas
 DECLARE_SOA_TABLE(CascGoodAntiLambdas, "AOD", "CASCGOODALAM", o2::soa::Index<>, cascgoodantilambdas::GoodAntiLambdaId, cascgoodantilambdas::CollisionId);
@@ -111,13 +111,13 @@ struct cascadeprefilter {
   Partition<soa::Join<aod::FullTracks, aod::TracksExtended>> goodPosTracks = aod::track::signed1Pt > 0.0f && aod::track::dcaXY > dcabachtopv;
   Partition<soa::Join<aod::FullTracks, aod::TracksExtended>> goodNegTracks = aod::track::signed1Pt < 0.0f && aod::track::dcaXY < -dcabachtopv;
 
-  Partition<aod::V0DataExt> goodV0s = aod::v0data::dcapostopv > dcapostopv&& aod::v0data::dcanegtopv > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;
+  Partition<aod::V0Datas> goodV0s = aod::v0data::dcapostopv > dcapostopv&& aod::v0data::dcanegtopv > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;
 
   using FullTracksExt = soa::Join<aod::FullTracks, aod::TracksExtended>;
 
   void process(aod::Collision const& collision,
                FullTracksExt const& tracks,
-               aod::V0DataExt const& V0s)
+               aod::V0Datas const& V0s)
   {
     for (auto& t0 : goodPosTracks) {
       if (!(t0.trackType() & o2::aod::track::TPCrefit)) {
@@ -178,7 +178,7 @@ struct cascadefinder {
   //Process: subscribes to a lot of things!
   void process(aod::Collision const& collision,
                aod::FullTracks const& tracks,
-               aod::V0DataExt const& V0s,
+               aod::V0Datas const& V0s,
                aod::CascGoodLambdas const& lambdas,
                aod::CascGoodAntiLambdas const& antiLambdas,
                aod::CascGoodPosTracks const& pBachtracks,
