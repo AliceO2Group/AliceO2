@@ -218,6 +218,22 @@ bool MagFieldFast::Field(const math_utils::Point3D<float> xyz, float bxyz[3]) co
 }
 
 //_______________________________________________________________________
+bool MagFieldFast::Field(const math_utils::Point3D<double> xyz, double bxyz[3]) const
+{
+  // get field
+  int zSeg, rSeg, quadrant;
+  if (!GetSegment(xyz.X(), xyz.Y(), xyz.Z(), zSeg, rSeg, quadrant)) {
+    return false;
+  }
+  const SolParam* par = &mSolPar[rSeg][zSeg][quadrant];
+  bxyz[kX] = CalcPol(par->parBxyz[kX], xyz.X(), xyz.Y(), xyz.Z()) * mFactorSol;
+  bxyz[kY] = CalcPol(par->parBxyz[kY], xyz.X(), xyz.Y(), xyz.Z()) * mFactorSol;
+  bxyz[kZ] = CalcPol(par->parBxyz[kZ], xyz.X(), xyz.Y(), xyz.Z()) * mFactorSol;
+  //
+  return true;
+}
+
+//_______________________________________________________________________
 bool MagFieldFast::GetSegment(float x, float y, float z, int& zSeg, int& rSeg, int& quadrant) const
 {
   // get segment of point location
