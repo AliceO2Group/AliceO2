@@ -24,7 +24,7 @@ namespace tof
 
 /// create a processor spec
 /// write ITS tracks a root file
-o2::framework::DataProcessorSpec getTOFCalClusInfoWriterSpec();
+o2::framework::DataProcessorSpec getTOFCalClusInfoWriterSpec(bool isCosmics = 0);
 
 } // namespace tof
 } // namespace o2
