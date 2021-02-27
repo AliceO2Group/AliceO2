@@ -52,7 +52,6 @@ struct HFLcCandidateSelector {
   Configurable<double> d_pidTOFMaxpT{"d_pidTOFMaxpT", 4., "Upper bound of track pT for TOF PID"};
 
   Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 70., "Lower bound of TPC findable clusters for good PID"};
-  Configurable<bool> b_requireTPC{"b_requireTPC", true, "Flag to require a positive Number of found clusters in TPC"};
   Configurable<double> d_nSigmaTPC{"d_nSigmaTPC", 3., "Nsigma cut on TPC only"};
   Configurable<double> d_nSigmaTPCCombined{"d_nSigmaTPCCombined", 5., "Nsigma cut on TPC combined with TOF"};
   Configurable<double> d_nSigmaTOF{"d_nSigmaTOF", 3., "Nsigma cut on TOF only"};
@@ -86,7 +85,7 @@ struct HFLcCandidateSelector {
     if (track.charge() == 0) {
       return false;
     }
-    if (b_requireTPC.value && track.tpcNClsFound() == 0) {
+    if (track.tpcNClsFound() == 0) {
       return false; //is it clusters findable or found - need to check
     }
     return true;
