@@ -142,8 +142,10 @@ fi
 # DPL run binary
 WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT --run"
 
-# Execute the command we have assembled
-#echo Running workflow:
-#echo $WORKFLOW | sed "s/| */|\n/g"
-#echo
-eval $WORKFLOW
+if [ "0$PRINT_WORKFLOW_ONLY" == "01" ]; then
+  echo Workflow command:
+  echo $WORKFLOW | sed "s/| */|\n/g"
+else
+  # Execute the command we have assembled
+  eval $WORKFLOW
+fi
