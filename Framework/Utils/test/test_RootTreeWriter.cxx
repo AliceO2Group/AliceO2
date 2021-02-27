@@ -308,4 +308,21 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriterSpec_store_types)
   // pointer type used as store type
   static_assert(std::is_same<Trait<std::vector<Polymorphic>>::store_type, std::vector<Polymorphic>*>::value == true);
 }
+
+BOOST_AUTO_TEST_CASE(TestCanAssign)
+{
+  using Callback = std::function<bool(int, float)>;
+  auto matching = [](int, float) -> bool {
+    return true;
+  };
+  auto otherReturn = [](int, float) -> int {
+    return 0;
+  };
+  auto otherParam = [](int, int) -> bool {
+    return true;
+  };
+  BOOST_REQUIRE((can_assign<decltype(matching), Callback>::value == true));
+  BOOST_REQUIRE((can_assign<decltype(otherReturn), Callback>::value == false));
+  BOOST_REQUIRE((can_assign<decltype(otherParam), Callback>::value == false));
+}
 } // namespace o2::test
