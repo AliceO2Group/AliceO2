@@ -105,7 +105,7 @@ for STAGE in $STAGES; do
   else
     export CREATECTFDICT=1
     export GPUTYPE=CPU
-    export SYNCMODE=0
+    export SYNCMODE=1
     export HOSTMEMSIZE=$TPCTRACKERSCRATCHMEMORY
     export CTFINPUT=0
     export SAVECTF=1
