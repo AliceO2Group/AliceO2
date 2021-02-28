@@ -16,7 +16,7 @@
 #include "GlobalTracking/MatchCosmics.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsTPC/Constants.h"
-#include "DetectorsCommonDataFormats/DetID.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include <string>
@@ -46,7 +46,7 @@ class CosmicsMatchingSpec : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getCosmicsMatchingSpec(o2::detectors::DetID::mask_t dets, bool useMC);
+framework::DataProcessorSpec getCosmicsMatchingSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC);
 
 } // namespace globaltracking
 } // namespace o2
