@@ -115,28 +115,35 @@ void CosmicsMatchingSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getCosmicsMatchingSpec(DetID::mask_t dets, bool useMC)
+DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC)
 {
 
   std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
-  if (dets[DetID::ITS]) {
+
+  if (src[GTrackID::ITS]) {
     dataRequest.requestITSTracks(useMC);
-    dataRequest.requestITSClusters(false);
   }
-  if (dets[DetID::TPC]) {
+  if (src[GTrackID::TPC]) {
     dataRequest.requestTPCTracks(useMC);
-    dataRequest.requestTPCClusters(false);
   }
-  if (dets[DetID::ITS] && dets[DetID::TPC]) {
+  if (src[GTrackID::ITSTPC]) {
     dataRequest.requestITSTPCTracks(useMC);
   }
-  if (dets[DetID::TPC] && dets[DetID::TOF]) {
+  if (src[GTrackID::TPCTOF]) {
     dataRequest.requestTPCTOFTracks(useMC);
+  }
+  if (src[GTrackID::ITSTPCTOF]) {
+    dataRequest.requestTOFMatches(useMC);
     dataRequest.requestTOFClusters(false); // RSTODO Needed just to set the time of ITSTPC track, consider moving to MatchInfoTOF
-    if (dets[DetID::ITS]) {
-      dataRequest.requestTOFMatches(useMC);
-    }
+  }
+
+  // clusters needed for refits
+  if (GTrackID::includesDet(DetID::ITS, src)) {
+    dataRequest.requestITSClusters(false);
+  }
+  if (GTrackID::includesDet(DetID::TPC, src)) {
+    dataRequest.requestTPCClusters(false);
   }
 
   outputs.emplace_back("GLO", "COSMICTRC", 0, Lifetime::Timeframe);
