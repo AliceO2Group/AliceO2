@@ -25,7 +25,7 @@ class Alice3Pipe : public Alice3PassiveBase
   ~Alice3Pipe() override;
   Alice3Pipe(const char* name,
              const char* title = "Alice 3 Pipe",
-             const bool isAlone = false,
+             const bool isTRKActivated = false,
              const float rMinInnerPipe = 0.f,
              const float innerThickness = 0.f,
              const float innerLength = 0.f,
@@ -48,22 +48,22 @@ class Alice3Pipe : public Alice3PassiveBase
   float getOuterWidth() const { return mBeOuterPipeThick; }
   float getOuterDz() const { return mOuterIpHLength; }
 
-  bool getIsAlone() const { return mIsAlone; }
+  bool IsTRKActivated() const { return mIsTRKActivated; }
 
  private:
   void createMaterials();
   Alice3Pipe(const Alice3Pipe& orig) = default;
   Alice3Pipe& operator=(const Alice3Pipe&);
 
-  float mBeInnerPipeRmin = 0.;  // inner diameter of the Be section
-  float mBeInnerPipeThick = 0.; // inner section  thickness
+  float mBeInnerPipeRmin = 0.;  // inner diameter of the inner Be section
+  float mBeInnerPipeThick = 0.; // inner beam pipe section thickness
   float mInnerIpHLength = 0.;   // half length of the inner beampipe around the IP
 
-  float mBeOuterPipeRmin = 0.;  // outer diameter of the Be section
-  float mBeOuterPipeThick = 0.; // outer section  thickness
+  float mBeOuterPipeRmin = 0.;  // inner diameter of the outer Be section
+  float mBeOuterPipeThick = 0.; // outer beam pipe section thickness
   float mOuterIpHLength = 0.;   // half length of the outer beampipe around the IP
 
-  bool mIsAlone = true; // If A3IP is simulated alone don't subtract TRK shapes
+  bool mIsTRKActivated = true; // If TRK is not active don't create TRK layers allocations in the vacuum volume
 
   ClassDefOverride(Alice3Pipe, 1);
 };

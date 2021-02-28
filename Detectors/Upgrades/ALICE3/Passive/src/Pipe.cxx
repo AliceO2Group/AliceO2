@@ -29,7 +29,7 @@ using namespace o2::passive;
 Alice3Pipe::Alice3Pipe() : Alice3PassiveBase{"Alice3PIPE", ""} {}
 Alice3Pipe::Alice3Pipe(const char* name,
                        const char* title,
-                       bool isAlone,
+                       bool isTRKActivated,
                        float rMinInnerPipe,
                        float innerThickness,
                        float innerLength,
@@ -37,7 +37,7 @@ Alice3Pipe::Alice3Pipe(const char* name,
                        float outerThickness,
                        float outerLength)
   : Alice3PassiveBase{name, title},
-    mIsAlone{isAlone},
+    mIsTRKActivated{isTRKActivated},
     mBeInnerPipeRmin{rMinInnerPipe},
     mBeInnerPipeThick{innerThickness},
     mInnerIpHLength{innerLength},
@@ -104,14 +104,14 @@ void Alice3Pipe::ConstructGeometry()
   TGeoVolume* outerBeTubeVolume = new TGeoVolume("OUT_PIPE", outerBeTube, kMedBe);
   outerBeTubeVolume->SetLineColor(kBlue);
 
-  TGeoTube* outerBerylliumTubeVacuumBase = new TGeoTube("OUT_PIPEVACUUM_BASEsh", 0., mBeOuterPipeRmin, mOuterIpHLength); // Vacuum filling for outer pipe
-  TGeoCompositeShape* outerBerylliumTubeVacuumComposite;                                                                 // Composite volume to subctract to vacuum
-  TGeoVolume* outerBerylliumTubeVacuumVolume;                                                                            // Final volume to be used
+  TGeoTube* outerBerylliumTubeVacuumBase = new TGeoTube("OUT_PIPEVACUUM_BASEsh", mBeInnerPipeRmin + mBeInnerPipeThick, mBeOuterPipeRmin, mOuterIpHLength); // Vacuum filling for outer pipe
+  TGeoCompositeShape* outerBerylliumTubeVacuumComposite;                                                                                                   // Composite volume to subctract to vacuum
+  TGeoVolume* outerBerylliumTubeVacuumVolume;                                                                                                              // Final volume to be used
 
   TString compositeFormula{"OUT_PIPEVACUUM_BASEsh"}; // If pipe is alone we won't subctract anything
   TString subtractorsFormula;
 
-  if (!mIsAlone) {
+  if (!mIsTRKActivated) {
     std::vector<TGeoTube*> trkLayerShapes;
     std::vector<std::array<float, 3>> layersQuotas = {std::array<float, 3>{0.5f, 15.f, 50.e-4}, // TODO: Set layers dynamically. {radius, zLen, thickness}
                                                       std::array<float, 3>{1.2f, 15.f, 50.e-4},
@@ -139,7 +139,8 @@ void Alice3Pipe::ConstructGeometry()
   outerBerylliumTubeVacuumVolume->SetTransparency(50);
   outerBerylliumTubeVacuumVolume->SetLineColor(kGreen);
 
-  outerBeTubeVolume->AddNode(outerBerylliumTubeVacuumVolume, 1, gGeoIdentity);
+  //  outerBeTubeVolume->AddNode(outerBerylliumTubeVacuumVolume, 1, gGeoIdentity);
+  barrel->AddNode(outerBerylliumTubeVacuumVolume, 1, new TGeoTranslation(0, 30.f, 0));
 
   barrel->AddNode(outerBeTubeVolume, 1, new TGeoTranslation(0, 30.f, 0)); // Add to surrounding geometry
 
