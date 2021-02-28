@@ -21,6 +21,7 @@
 #include <string>
 #include <array>
 #include <string_view>
+#include <bitset>
 
 namespace o2
 {
@@ -59,15 +60,33 @@ class GlobalTrackID : public AbstractRef<25, 5, 2>
     NSources
   };
 
-  static const std::array<DetID::mask_t, NSources> DetectorMasks; // RS cannot be made constexpr since operator| is not constexpr
   using AbstractRef<25, 5, 2>::AbstractRef;
 
-  static const auto getSourceMask(int i) { return DetectorMasks[i]; }
-  static auto getSourceName(int i) { return DetID::getNames(getSourceMask(i)); }
+  static const std::array<DetID::mask_t, NSources> SourceDetectorsMasks; // RS cannot be made constexpr since operator| is not constexpr
+  static constexpr std::string_view NONE{"none"};                        ///< keywork for no sources
+  static constexpr std::string_view ALL{"all"};                          ///< keywork for all sources
+  typedef std::bitset<NSources> mask_t;
 
+  static constexpr std::array<mask_t, NSources> sMasks = ///< detectot masks
+    {math_utils::bit2Mask(ITS), math_utils::bit2Mask(TPC), math_utils::bit2Mask(TRD), math_utils::bit2Mask(TOF), math_utils::bit2Mask(PHS),
+     math_utils::bit2Mask(CPV), math_utils::bit2Mask(EMC), math_utils::bit2Mask(HMP), math_utils::bit2Mask(MFT), math_utils::bit2Mask(MCH),
+     math_utils::bit2Mask(MID), math_utils::bit2Mask(ZDC), math_utils::bit2Mask(FT0), math_utils::bit2Mask(FV0), math_utils::bit2Mask(FDD),
+     math_utils::bit2Mask(ITSTPC), math_utils::bit2Mask(TPCTOF), math_utils::bit2Mask(TPCTRD), math_utils::bit2Mask(ITSTPCTRD),
+     math_utils::bit2Mask(ITSTPCTOF), math_utils::bit2Mask(TPCTRDTOF), math_utils::bit2Mask(ITSTPCTRDTOF)};
+
+  // methods for detector level manipulations
+  static const auto getSourceDetectorsMask(int i) { return SourceDetectorsMasks[i]; }
+  static bool includesDet(DetID id, GlobalTrackID::mask_t srcm);
+  auto getSourceDetectorsMask() const { return getSourceDetectorsMask(getSource()); }
+  bool includesDet(DetID id) const { return (getSourceDetectorsMask() & DetID::getMask(id)).any(); }
+
+  // methods for source level manipulations
+  static auto getSourceName(int s) { return DetID::getNames(getSourceDetectorsMask(s), '-'); }
+  constexpr mask_t getSourceMask(int s) const { return sMasks[s]; }
+  mask_t getSourceMask() const { return getSourceMask(getSource()); }
   auto getSourceName() const { return getSourceName(getSource()); }
-  auto getSourceMask() const { return getSourceMask(getSource()); }
-  bool includesDet(DetID id) const { return (getSourceMask() & DetID::getMask(id)).any(); }
+  static mask_t getSourcesMask(const std::string_view srcList);
+  static bool includesSource(int s, mask_t srcm) { return srcm[s]; }
 
   operator int() const { return int(getIndex()); }
 
