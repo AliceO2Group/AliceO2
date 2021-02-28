@@ -45,7 +45,7 @@ class PrimaryVertexingSpec : public Task
 };
 
 /// create a processor spec
-DataProcessorSpec getPrimaryVertexingSpec(DetID::mask_t dets, bool validateWithFT0, bool useMC);
+DataProcessorSpec getPrimaryVertexingSpec(GTrackID::mask_t src, bool validateWithFT0, bool useMC);
 
 } // namespace vertexing
 } // namespace o2
