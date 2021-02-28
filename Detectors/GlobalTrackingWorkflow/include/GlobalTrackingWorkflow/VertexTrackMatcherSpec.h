@@ -26,6 +26,7 @@ namespace vertexing
 {
 
 using namespace o2::framework;
+using GTrackID = o2::dataformats::GlobalTrackID;
 
 class VertexTrackMatcherSpec : public Task
 {
@@ -42,7 +43,7 @@ class VertexTrackMatcherSpec : public Task
 };
 
 /// create a processor spec
-DataProcessorSpec getVertexTrackMatcherSpec(o2::detectors::DetID::mask_t dets);
+DataProcessorSpec getVertexTrackMatcherSpec(GTrackID::mask_t src);
 
 } // namespace vertexing
 } // namespace o2

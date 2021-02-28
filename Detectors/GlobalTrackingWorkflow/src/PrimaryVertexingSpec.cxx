@@ -146,23 +146,20 @@ void PrimaryVertexingSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getPrimaryVertexingSpec(DetID::mask_t dets, bool validateWithFT0, bool useMC)
+DataProcessorSpec getPrimaryVertexingSpec(GTrackID::mask_t src, bool validateWithFT0, bool useMC)
 {
   std::vector<OutputSpec> outputs;
-  if (dets[DetID::ITS]) {
+  if (src[GTrackID::ITS]) {
     dataRequest.requestITSTracks(useMC);
   }
-  if (dets[DetID::TPC]) {
+  if (src[GTrackID::ITSTPC] || src[GTrackID::ITSTPCTOF]) { // ITSTPCTOF does not provide tracks, only matchInfo
     dataRequest.requestITSTPCTracks(useMC);
-    if (dets[DetID::TRD]) {
-      // RSTODO will add once TRD tracking available
-    }
-    if (dets[DetID::TOF]) {
-      dataRequest.requestTOFMatches(useMC);
-      dataRequest.requestTOFClusters(false);
-    }
   }
-  if (validateWithFT0 && dets[DetID::FT0]) {
+  if (src[GTrackID::ITSTPCTOF]) {
+    dataRequest.requestTOFMatches(useMC);
+    dataRequest.requestTOFClusters(false);
+  }
+  if (validateWithFT0 && src[GTrackID::FT0]) {
     dataRequest.requestFT0RecPoints(false);
   }
 

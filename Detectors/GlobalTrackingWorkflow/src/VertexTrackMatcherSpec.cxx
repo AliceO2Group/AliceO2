@@ -71,27 +71,27 @@ void VertexTrackMatcherSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getVertexTrackMatcherSpec(DetID::mask_t dets)
+DataProcessorSpec getVertexTrackMatcherSpec(GTrackID::mask_t src)
 {
   std::vector<OutputSpec> outputs;
 
-  if (dets[DetID::ITS]) {
+  if (src[GTrackID::ITS]) {
     dataRequestV2T.requestITSTracks(false);
   }
-  if (dets[DetID::TPC]) {
-    dataRequestV2T.requestITSTPCTracks(false);
+  if (src[GTrackID::TPC]) {
     dataRequestV2T.requestTPCTracks(false);
-    if (dets[DetID::TRD]) {
-      // RSTODO will add once TRD tracking available
-    }
-    if (dets[DetID::TOF]) {
-      dataRequestV2T.requestTPCTOFTracks(false);
-      dataRequestV2T.requestTOFClusters(false);
-      if (dets[DetID::ITS]) {
-        dataRequestV2T.requestTOFMatches(false);
-      }
-    }
   }
+  if (src[GTrackID::ITSTPC] || src[GTrackID::ITSTPCTOF]) { // ITSTPCTOF does not provide tracks, only matchInfo
+    dataRequestV2T.requestITSTPCTracks(false);
+  }
+  if (src[GTrackID::ITSTPCTOF]) {
+    dataRequestV2T.requestTOFMatches(false);
+    dataRequestV2T.requestTOFClusters(false);
+  }
+  if (src[GTrackID::TPCTOF]) {
+    dataRequestV2T.requestTPCTOFTracks(false);
+  }
+
   auto& inputs = dataRequestV2T.inputs;
   inputs.emplace_back("vertices", "GLO", "PVTX", 0, Lifetime::Timeframe);
   inputs.emplace_back("vtxTracks", "GLO", "PVTX_CONTID", 0, Lifetime::Timeframe);
