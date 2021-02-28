@@ -98,25 +98,25 @@ void WSDriverClient::flushPending()
   static bool printed1 = false;
   static bool printed2 = false;
   if (!mClient) {
-    if (mBacklog.size() > 1000) {
+    if (mBacklog.size() > 2000) {
       if (!printed1) {
-        LOG(WARNING) << "Unable to communicate with driver because client does not exist";
+        LOG(WARNING) << "Unable to communicate with driver because client does not exist. Continuing connection attempts.";
         printed1 = true;
       }
     }
     return;
   }
   if (!(mClient->isHandshaken())) {
-    if (mBacklog.size() > 1000) {
+    if (mBacklog.size() > 2000) {
       if (!printed2) {
-        LOG(WARNING) << "Unable to communicate with driver because client is not connected";
+        LOG(WARNING) << "Unable to communicate with driver because client is not connected. Continuing connection attempts.";
         printed2 = true;
       }
     }
     return;
   }
   if (printed1 || printed2) {
-    LOGP(warning, "DriverClient connected successfully. Flushing message backlog of {} messages", mBacklog.size());
+    LOGP(warning, "DriverClient connected successfully. Flushing message backlog of {} messages. All is good.", mBacklog.size());
     printed1 = false;
     printed2 = false;
   }
