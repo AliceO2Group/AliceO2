@@ -342,7 +342,7 @@ class TrapSimulator
   std::vector<unsigned int> mMCMT;      // tracklet word for one mcm/trap-chip
   std::vector<Tracklet64> mTrackletArray64; // Array of 64 bit tracklets
   std::vector<unsigned short> mTrackletDigitCount; // Keep track of the number of digits contributing to the tracklet (for MC labels)
-  std::vector<unsigned int> mTrackletDigitIndices; // For each tracklet the up to two indices of the digits which contributed
+  std::vector<unsigned int> mTrackletDigitIndices; // For each tracklet the up to two global indices of the digits which contributed (global digit indices are managed in the TRDDPLTrapSimulatorTask class)
   std::vector<TrackletDetail> mTrackletDetails; // store additional tracklet information for eventual debug output.
   std::vector<int> mZSMap;              // Zero suppression map (1 dimensional projection)
 

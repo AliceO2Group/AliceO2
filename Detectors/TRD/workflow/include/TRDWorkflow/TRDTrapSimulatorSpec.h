@@ -19,6 +19,9 @@
 #include "Framework/Task.h"
 #include "TRDSimulation/TrapSimulator.h"
 #include "TRDSimulation/TrapConfig.h"
+#include "DataFormatsTRD/Tracklet64.h"
+#include <SimulationDataFormat/MCCompLabel.h>
+#include <SimulationDataFormat/ConstMCTruthContainer.h>
 
 class Calibrations;
 
@@ -48,12 +51,13 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
   std::string mTrapConfigName;      // the name of the config to be used.
   std::string mOnlineGainTableName;
   std::unique_ptr<Calibrations> mCalib; // store the calibrations connection to CCDB. Used primarily for the gaintables in line above.
-
+  std::chrono::duration<double> mTrapSimTime{0}; // timer for the actual processing in the TRAP chips
 
   TrapConfig* getTrapConfig();
   void loadTrapConfig();
   void loadDefaultTrapConfig();
   void setOnlineGainTables();
+  void processTRAPchips(int currDetector, int& nTrackletsInTrigRec, std::vector<Tracklet64>& trapTrackletsAccum, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& trackletMCLabels, const o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>& digitMCLabels);
 };
 
 o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec();
