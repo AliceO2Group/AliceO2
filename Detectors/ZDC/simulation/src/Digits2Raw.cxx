@@ -242,7 +242,7 @@ inline void Digits2Raw::updatePedestalReference(int bc)
 }
 
 //______________________________________________________________________________
-inline void Digits2Raw::resetOutputStructure(UShort_t bc, uint32_t orbit, bool is_dummy)
+inline void Digits2Raw::resetOutputStructure(uint16_t bc, uint32_t orbit, bool is_dummy)
 {
   // Increment scalers and reset output structure
   for (uint32_t im = 0; im < NModules; im++) {
@@ -280,7 +280,7 @@ inline void Digits2Raw::resetOutputStructure(UShort_t bc, uint32_t orbit, bool i
 }
 
 //______________________________________________________________________________
-inline void Digits2Raw::assignTriggerBits(int ibc, UShort_t bc, uint32_t orbit, bool is_dummy)
+inline void Digits2Raw::assignTriggerBits(int ibc, uint16_t bc, uint32_t orbit, bool is_dummy)
 {
   // Triggers refer to the HW trigger conditions (32 possible channels)
   // Autotrigger, current bunch crossing
@@ -309,7 +309,7 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
 {
 
   // Orbit and bunch crossing identifiers
-  UShort_t bc = 3563;
+  uint16_t bc = 3563;
 
   // Reset scalers at orbit change
   if (orbit != mLastOrbit) {
@@ -379,7 +379,7 @@ void Digits2Raw::convertDigits(int ibc)
 {
 
   // Orbit and bunch crossing identifiers
-  UShort_t bc = mBCD.ir.bc;
+  uint16_t bc = mBCD.ir.bc;
   uint32_t orbit = mBCD.ir.orbit;
 
   // Reset scalers at orbit change
@@ -405,7 +405,7 @@ void Digits2Raw::convertDigits(int ibc)
     if (mVerbosity > 0) {
       chd.print();
     }
-    UShort_t bc = mBCD.ir.bc;
+    uint16_t bc = mBCD.ir.bc;
     uint32_t orbit = mBCD.ir.orbit;
     // Look for channel ID in digits and store channel (just one copy in output)
     // This is a limitation of software but we are not supposed to acquire the
@@ -538,7 +538,7 @@ void Digits2Raw::print_gbt_word(const uint32_t* word, const ModuleConfig* module
     printf("%04x %08x %08x ", c, b, a);
     uint32_t hits = (val >> 24) & 0xfff;
     int32_t offset = (lsb >> 8) & 0xffff - 32768;
-    Float_t foffset = offset / 8.;
+    float foffset = offset / 8.;
     uint32_t board = (lsb >> 2) & 0xf;
     uint32_t ch = (lsb >> 6) & 0x3;
     //printf("orbit %9u bc %4u hits %4u offset %+6i Board %2u Ch %1u", myorbit, mybc, hits, offset, board, ch);
@@ -561,7 +561,7 @@ void Digits2Raw::print_gbt_word(const uint32_t* word, const ModuleConfig* module
     printf("%04x %08x %08x ", c, b, a);
     printf("     %s %s %s %s ", a & 0x10 ? "A0" : "  ", a & 0x20 ? "A1" : "  ", a & 0x40 ? "A2" : "  ", a & 0x80 ? "A3" : "  ");
     printf("0-5 ");
-    Short_t s[6];
+    int16_t s[6];
     val = val >> 8;
     for (int32_t i = 0; i < 6; i++) {
       s[i] = val & 0xfff;
@@ -575,7 +575,7 @@ void Digits2Raw::print_gbt_word(const uint32_t* word, const ModuleConfig* module
     printf("%04x %08x %08x ", c, b, a);
     printf("%s %s %s %s %s %s ", a & 0x4 ? "H" : " ", a & 0x8 ? "TM" : "  ", a & 0x10 ? "T0" : "  ", a & 0x20 ? "T1" : "  ", a & 0x40 ? "T2" : "  ", a & 0x80 ? "T3" : "  ");
     printf("6-b ");
-    Short_t s[6];
+    int16_t s[6];
     val = val >> 8;
     for (int32_t i = 0; i < 6; i++) {
       s[i] = val & 0xfff;

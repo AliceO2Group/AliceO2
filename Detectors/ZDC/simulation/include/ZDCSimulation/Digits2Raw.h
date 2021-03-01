@@ -63,8 +63,8 @@ class Digits2Raw
   void setTriggerMask();
   void updatePedestalReference(int bc);
   void resetSums(uint32_t orbit);
-  void resetOutputStructure(UShort_t bc, uint32_t orbit, bool is_dummy);       /// Reset output structure not incrementing scalers for dummy bunches
-  void assignTriggerBits(int ibc, UShort_t bc, uint32_t orbit, bool is_dummy); /// Assign trigger bits
+  void resetOutputStructure(uint16_t bc, uint32_t orbit, bool is_dummy);       /// Reset output structure not incrementing scalers for dummy bunches
+  void assignTriggerBits(int ibc, uint16_t bc, uint32_t orbit, bool is_dummy); /// Assign trigger bits
   void insertLastBunch(int ibc, uint32_t orbit);                               /// Insert an empty bunch at last position in orbit
   void convertDigits(int ibc);                                                 /// Convert digits into raw data
   void writeDigits();                                                          /// Writes raw data to file
@@ -78,7 +78,7 @@ class Digits2Raw
   bool mOutputPerLink = false;                                          /// Split output
   const ModuleConfig* mModuleConfig = nullptr;                          /// Trigger/readout configuration object
   const SimCondition* mSimCondition = nullptr;                          /// Pedestal/noise configuration object
-  UShort_t mScalers[NModules][NChPerModule] = {0};                      /// ZDC orbit scalers
+  uint16_t mScalers[NModules][NChPerModule] = {0};                      /// ZDC orbit scalers
   uint32_t mLastOrbit = 0;                                              /// Last processed orbit
   uint32_t mTriggerMask = 0;                                            /// Trigger mask from ModuleConfig
   std::string mPrintTriggerMask = "";                                   /// Nice printout of trigger mask
