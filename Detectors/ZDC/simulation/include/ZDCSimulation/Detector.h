@@ -63,7 +63,7 @@ class Detector : public o2::base::DetImpl<Detector>
   void Register() override;
 
   /// Gets the produced collections
-  std::vector<o2::zdc::Hit>* getHits(Int_t iColl) const
+  std::vector<o2::zdc::Hit>* getHits(int32_t iColl) const
   {
     if (iColl == 0) {
       return mHits;
@@ -82,9 +82,9 @@ class Detector : public o2::base::DetImpl<Detector>
   void createMaterials();
   void addAlignableVolumes() const override {}
 
-  o2::zdc::Hit* addHit(Int_t trackID, Int_t parentID, Int_t sFlag, Float_t primaryEnergy, Int_t detID, Int_t secID,
+  o2::zdc::Hit* addHit(int32_t trackID, int32_t parentID, int32_t sFlag, Float_t primaryEnergy, int32_t detID, int32_t secID,
                        math_utils::Vector3D<float> pos, math_utils::Vector3D<float> mom, Float_t tof, math_utils::Vector3D<float> xImpact, Double_t energyloss,
-                       Int_t nphePMC, Int_t nphePMQ);
+                       int32_t nphePMC, int32_t nphePMQ);
 
  private:
   /// copy constructor
@@ -167,8 +167,8 @@ class Detector : public o2::base::DetImpl<Detector>
   math_utils::Vector3D<float> mXImpact;
   Float_t mTotLightPMC;
   Float_t mTotLightPMQ;
-  Int_t mMediumPMCid = -1;
-  Int_t mMediumPMQid = -2;
+  int32_t mMediumPMCid = -1;
+  int32_t mMediumPMQid = -2;
 
   //
   /// Container for hit data
