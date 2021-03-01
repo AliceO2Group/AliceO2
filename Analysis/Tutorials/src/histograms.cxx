@@ -101,11 +101,9 @@ struct DTask {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& ctx)
 {
-  auto suffix = ctx.options().get<std::string>("workflow-suffix");
-  return WorkflowSpec{
-    adaptAnalysisTask<ATask>(("eta-and-phi-histograms" + suffix).c_str()),
-    adaptAnalysisTask<BTask>(("etaphi-histogram" + suffix).c_str()),
-    adaptAnalysisTask<CTask>(("pt-histogram" + suffix).c_str()),
-    adaptAnalysisTask<DTask>(("output-wrapper" + suffix).c_str()),
-  };
+  return adaptAnalysisWorkflow(ctx,
+                               TaskSpec<ATask>("eta-and-phi-histograms"),
+                               TaskSpec<BTask>("etaphi-histogram"),
+                               TaskSpec<CTask>("pt-histogram"),
+                               TaskSpec<DTask>("output-wrapper"));
 }
