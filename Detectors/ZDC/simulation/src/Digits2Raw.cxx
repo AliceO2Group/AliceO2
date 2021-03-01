@@ -333,40 +333,28 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
         auto base_s = mSimCondition->channels[id].pedestalFluct; // Baseline oscillations
         auto base_n = mSimCondition->channels[id].pedestalNoise; // Electronic noise
         double base = gRandom->Gaus(base_m, base_s);
-        int32_t is = 0;
         double val = base + gRandom->Gaus(0, base_n);
         mZDC.data[im][ic].f.s00 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
-        is++;
         val = base + gRandom->Gaus(0, base_n);
         mZDC.data[im][ic].f.s01 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
-        is++;
         val = base + gRandom->Gaus(0, base_n);
         mZDC.data[im][ic].f.s02 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
-        is++;
         val = base + gRandom->Gaus(0, base_n);
         mZDC.data[im][ic].f.s03 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
-        is++;
         val = base + gRandom->Gaus(0, base_n);
         mZDC.data[im][ic].f.s04 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
-        is++;
         val = base + gRandom->Gaus(0, base_n);
         mZDC.data[im][ic].f.s05 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
-        is++;
         val = base + gRandom->Gaus(0, base_n);
         mZDC.data[im][ic].f.s06 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
-        is++;
         val = base + gRandom->Gaus(0, base_n);
         mZDC.data[im][ic].f.s07 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
-        is++;
         val = base + gRandom->Gaus(0, base_n);
         mZDC.data[im][ic].f.s08 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
-        is++;
         val = base + gRandom->Gaus(0, base_n);
         mZDC.data[im][ic].f.s09 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
-        is++;
         val = base + gRandom->Gaus(0, base_n);
         mZDC.data[im][ic].f.s10 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
-        is++;
         val = base + gRandom->Gaus(0, base_n);
         mZDC.data[im][ic].f.s11 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
       }
@@ -415,29 +403,18 @@ void Digits2Raw::convertDigits(int ibc)
         if (mModuleConfig->modules[im].channelID[ic] == chd.id &&
             mModuleConfig->modules[im].readChannel[ic]) {
           int32_t is = 0;
-          mZDC.data[im][ic].f.s00 = chd.data[is];
-          is++;
-          mZDC.data[im][ic].f.s01 = chd.data[is];
-          is++;
-          mZDC.data[im][ic].f.s02 = chd.data[is];
-          is++;
-          mZDC.data[im][ic].f.s03 = chd.data[is];
-          is++;
-          mZDC.data[im][ic].f.s04 = chd.data[is];
-          is++;
-          mZDC.data[im][ic].f.s05 = chd.data[is];
-          is++;
-          mZDC.data[im][ic].f.s06 = chd.data[is];
-          is++;
-          mZDC.data[im][ic].f.s07 = chd.data[is];
-          is++;
-          mZDC.data[im][ic].f.s08 = chd.data[is];
-          is++;
-          mZDC.data[im][ic].f.s09 = chd.data[is];
-          is++;
-          mZDC.data[im][ic].f.s10 = chd.data[is];
-          is++;
-          mZDC.data[im][ic].f.s11 = chd.data[is];
+          mZDC.data[im][ic].f.s00 = chd.data[is++];
+          mZDC.data[im][ic].f.s01 = chd.data[is++];
+          mZDC.data[im][ic].f.s02 = chd.data[is++];
+          mZDC.data[im][ic].f.s03 = chd.data[is++];
+          mZDC.data[im][ic].f.s04 = chd.data[is++];
+          mZDC.data[im][ic].f.s05 = chd.data[is++];
+          mZDC.data[im][ic].f.s06 = chd.data[is++];
+          mZDC.data[im][ic].f.s07 = chd.data[is++];
+          mZDC.data[im][ic].f.s08 = chd.data[is++];
+          mZDC.data[im][ic].f.s09 = chd.data[is++];
+          mZDC.data[im][ic].f.s10 = chd.data[is++];
+          mZDC.data[im][ic].f.s11 = chd.data[is++];
           break;
         }
       }
