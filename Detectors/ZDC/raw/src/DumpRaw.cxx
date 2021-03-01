@@ -54,8 +54,8 @@ void DumpRaw::init()
   gROOT->SetBatch();
   auto& sopt = ZDCSimParam::Instance();
   int nbx = (sopt.nBCAheadTrig + 1) * NTimeBinsPerBC;
-  Double_t xmin = -sopt.nBCAheadTrig * NTimeBinsPerBC - 0.5;
-  Double_t xmax = NTimeBinsPerBC - 0.5;
+  double xmin = -sopt.nBCAheadTrig * NTimeBinsPerBC - 0.5;
+  double xmax = NTimeBinsPerBC - 0.5;
   for (uint32_t i = 0; i < NDigiChannels; i++) {
     uint32_t imod = i / NChPerModule;
     uint32_t ich = i % NChPerModule;
@@ -216,30 +216,30 @@ int DumpRaw::process(const EventChData& ch)
   }
   if (f.Alice_3) {
     for (int32_t i = 0; i < 12; i++) {
-      mSignal[ih]->Fill(i - 36., Double_t(s[i]));
+      mSignal[ih]->Fill(i - 36., double(s[i]));
     }
   }
   if (f.Alice_2) {
     for (int32_t i = 0; i < 12; i++) {
-      mSignal[ih]->Fill(i - 24., Double_t(s[i]));
+      mSignal[ih]->Fill(i - 24., double(s[i]));
     }
   }
   if (f.Alice_1 || f.Auto_1) {
     for (int32_t i = 0; i < 12; i++) {
-      mSignal[ih]->Fill(i - 12., Double_t(s[i]));
+      mSignal[ih]->Fill(i - 12., double(s[i]));
     }
   }
   if (f.Alice_0 || f.Auto_0) {
     for (int32_t i = 0; i < 12; i++) {
-      mSignal[ih]->Fill(i + 0., Double_t(s[i]));
+      mSignal[ih]->Fill(i + 0., double(s[i]));
     }
-    Double_t bc_d = uint32_t(f.bc / 100);
-    Double_t bc_m = uint32_t(f.bc % 100);
+    double bc_d = uint32_t(f.bc / 100);
+    double bc_m = uint32_t(f.bc % 100);
     mBunch[ih]->Fill(bc_m, -bc_d);
   }
   if (f.bc == last_bc) {
     int32_t offset = f.offset - 32768;
-    Double_t foffset = offset / 8.;
+    double foffset = offset / 8.;
     mBaseline[ih]->Fill(foffset);
     mCounts[ih]->Fill(f.hits);
   }

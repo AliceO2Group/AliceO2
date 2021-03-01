@@ -199,7 +199,7 @@ inline void Digits2Raw::updatePedestalReference(int bc)
       for (int32_t ic = 0; ic < NChPerModule; ic++) {
         // Identify connected channel
         auto id = mModuleConfig->modules[im].channelID[ic];
-        Double_t myped = mzdcPedData[io].data[id] + 32768.;
+        double myped = mzdcPedData[io].data[id] + 32768.;
         if (myped < 0) {
           myped = 0;
         }
@@ -220,14 +220,14 @@ inline void Digits2Raw::updatePedestalReference(int bc)
         auto base_m = mSimCondition->channels[id].pedestal;      // Average pedestal
         auto base_s = mSimCondition->channels[id].pedestalFluct; // Baseline oscillations
         auto base_n = mSimCondition->channels[id].pedestalNoise; // Electronic noise
-        Double_t deltan = mEmpty[bc] - mLastNEmpty;
+        double deltan = mEmpty[bc] - mLastNEmpty;
         // We assume to have a fluctuation every two bunch crossings
         // Will need to tune this parameter
-        Double_t k = 2.;
+        double k = 2.;
         mSumPed[im][ic] += gRandom->Gaus(12. * deltan * base_m, 12. * k * base_s * TMath::Sqrt(deltan / k));
         // Adding in quadrature the RMS of pedestal electronic noise
         mSumPed[im][ic] += gRandom->Gaus(0, base_n * TMath::Sqrt(12. * deltan));
-        Double_t myped = TMath::Nint(8. * mSumPed[im][ic] / Double_t(mEmpty[bc]) / 12. + 32768);
+        double myped = TMath::Nint(8. * mSumPed[im][ic] / double(mEmpty[bc]) / 12. + 32768);
         if (myped < 0) {
           myped = 0;
         }
@@ -332,9 +332,9 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
         auto base_m = mSimCondition->channels[id].pedestal;      // Average pedestal
         auto base_s = mSimCondition->channels[id].pedestalFluct; // Baseline oscillations
         auto base_n = mSimCondition->channels[id].pedestalNoise; // Electronic noise
-        Double_t base = gRandom->Gaus(base_m, base_s);
+        double base = gRandom->Gaus(base_m, base_s);
         int32_t is = 0;
-        Double_t val = base + gRandom->Gaus(0, base_n);
+        double val = base + gRandom->Gaus(0, base_n);
         mZDC.data[im][ic].f.s00 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
         is++;
         val = base + gRandom->Gaus(0, base_n);

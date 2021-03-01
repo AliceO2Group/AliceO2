@@ -12,7 +12,6 @@
 #define ALICEO2_ZDC_DETECTOR_H_
 
 #include <vector>                             // for vector
-#include "Rtypes.h"                           // for Int_t, Double_t, Float_t, Bool_t, etc
 #include "TGeoManager.h"                      // for gGeoManager, TGeoManager (ptr only)
 #include "DetectorsBase/GeometryManager.h"    // for getSensID
 #include "DetectorsBase/Detector.h"           // for Detector
@@ -83,7 +82,7 @@ class Detector : public o2::base::DetImpl<Detector>
   void addAlignableVolumes() const override {}
 
   o2::zdc::Hit* addHit(int32_t trackID, int32_t parentID, int32_t sFlag, Float_t primaryEnergy, int32_t detID, int32_t secID,
-                       math_utils::Vector3D<float> pos, math_utils::Vector3D<float> mom, Float_t tof, math_utils::Vector3D<float> xImpact, Double_t energyloss,
+                       math_utils::Vector3D<float> pos, math_utils::Vector3D<float> mom, Float_t tof, math_utils::Vector3D<float> xImpact, double energyloss,
                        int32_t nphePMC, int32_t nphePMQ);
 
  private:
