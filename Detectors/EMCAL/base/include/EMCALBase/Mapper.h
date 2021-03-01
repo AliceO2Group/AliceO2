@@ -339,6 +339,12 @@ class MappingHandler
   /// \throw DDLInvalid if DDL is invalid for EMCAL
   Mapper& getMappingForDDL(int ddl);
 
+  /// \brief Get FEC index for channel based on DDL and information in the channel header
+  /// \param ddl Absolute DDL index
+  /// \param channelFEC FEC index in channel header
+  /// \param branch Branch index (0 or 1) in DDL
+  int getFEEForChannelInDDL(int dll, int channelFEC, int branch);
+
  private:
   std::array<Mapper, 4> mMappings; ///< Mapping container
 
