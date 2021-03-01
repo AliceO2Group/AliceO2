@@ -81,8 +81,8 @@ class Detector : public o2::base::DetImpl<Detector>
   void createMaterials();
   void addAlignableVolumes() const override {}
 
-  o2::zdc::Hit* addHit(int32_t trackID, int32_t parentID, int32_t sFlag, Float_t primaryEnergy, int32_t detID, int32_t secID,
-                       math_utils::Vector3D<float> pos, math_utils::Vector3D<float> mom, Float_t tof, math_utils::Vector3D<float> xImpact, double energyloss,
+  o2::zdc::Hit* addHit(int32_t trackID, int32_t parentID, int32_t sFlag, float primaryEnergy, int32_t detID, int32_t secID,
+                       math_utils::Vector3D<float> pos, math_utils::Vector3D<float> mom, float tof, math_utils::Vector3D<float> xImpact, double energyloss,
                        int32_t nphePMC, int32_t nphePMQ);
 
  private:
@@ -161,11 +161,11 @@ class Detector : public o2::base::DetImpl<Detector>
   // helper function taking care of writing the photon response pattern at certain moments
   void flushSpatialResponse();
 
-  Float_t mTrackEta;
-  Float_t mPrimaryEnergy;
+  float mTrackEta;
+  float mPrimaryEnergy;
   math_utils::Vector3D<float> mXImpact;
-  Float_t mTotLightPMC;
-  Float_t mTotLightPMQ;
+  float mTotLightPMC;
+  float mTotLightPMQ;
   int32_t mMediumPMCid = -1;
   int32_t mMediumPMQid = -2;
 
@@ -173,10 +173,10 @@ class Detector : public o2::base::DetImpl<Detector>
   /// Container for hit data
   std::vector<o2::zdc::Hit>* mHits;
 
-  Float_t mLumiLength = 0;         //TODO: make part of configurable params
-  Float_t mTCLIAAPERTURE = 3.5;    //TODO: make part of configurable params
-  Float_t mTCLIAAPERTURENEG = 3.5; //TODO: make part of configurable params
-  Float_t mVCollSideCCentreY = 0.; //TODO: make part of configurable params
+  float mLumiLength = 0;         //TODO: make part of configurable params
+  float mTCLIAAPERTURE = 3.5;    //TODO: make part of configurable params
+  float mTCLIAAPERTURENEG = 3.5; //TODO: make part of configurable params
+  float mVCollSideCCentreY = 0.; //TODO: make part of configurable params
 
   int mZNENVVolID = -1; // the volume id for the neutron det envelope volume
   int mZPENVVolID = -1; // the volume id for the proton det envelope volume
