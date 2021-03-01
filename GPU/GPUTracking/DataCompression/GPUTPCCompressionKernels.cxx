@@ -481,16 +481,19 @@ GPUdi() void GPUTPCCompressionGatherKernels::compressorMemcpyBuffered(V* buf, T*
       compressorMemcpyBasic(bufT + shmPos, src + srcOffset + srcPos, size, nLanes, iLane);
       srcPos += size;
       shmPos += size;
+      GPUbarrierWarp();
 
       if (shmPos >= bufTSize) {
         compressorMemcpyBasic(dstAligned + dstOffset, buf, bufSize, nLanes, iLane);
         dstOffset += bufSize;
         shmPos = 0;
+        GPUbarrierWarp();
       }
     }
   }
 
   compressorMemcpyBasic(reinterpret_cast<T*>(dstAligned + dstOffset), bufT, shmPos, nLanes, iLane);
+  GPUbarrierWarp();
 }
 
 template <typename T>
