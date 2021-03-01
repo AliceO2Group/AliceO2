@@ -22,6 +22,6 @@ namespace zdc
 framework::WorkflowSpec getZDCWorkflow(bool useProcess,
                                        bool dumpProcessor, bool dumpReader,
                                        bool disableRootOut);
-} // namespace ft0
+} // namespace zdc
 } // namespace o2
 #endif
