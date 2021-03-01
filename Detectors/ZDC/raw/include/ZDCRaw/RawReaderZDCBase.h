@@ -41,7 +41,7 @@ class RawReaderZDCBase : public RawReaderBase
   void process(int linkID, gsl::span<const uint8_t> payload)
   {
     if (0 <= linkID && linkID < 16) {
-      //PM data proccessing
+      //PM data processing
       processBinaryData(payload, linkID);
     } else {
       //put here code in case of bad rdh.linkID value

@@ -29,16 +29,16 @@ template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 DataProcessorSpec getZDCDigitWriterDPLSpec()
 {
-//   // Spectators for logging
-//   auto logger = [](DigitType const& digits) {
-//     LOG(INFO) << "FT0DigitWriter pulled " << digits.size() << " digits";
-//   };
+  //   // Spectators for logging
+  //   auto logger = [](DigitType const& digits) {
+  //     LOG(INFO) << "FT0DigitWriter pulled " << digits.size() << " digits";
+  //   };
   return MakeRootTreeWriterSpec(
     "zdc-digit-writer", "o2digit_zdc.root", "o2sim",
     BranchDefinition<std::vector<o2::zdc::BCData>>{InputSpec{"digitBCinput", "ZDC", "DIGITSBC"}, "ZDCDigitBC"},
-                                BranchDefinition<std::vector<o2::zdc::ChannelData>>{InputSpec{"digitChinput", "ZDC", "DIGITSCH"}, "ZDCDigitCh"},
-                                BranchDefinition<std::vector<o2::zdc::PedestalData>>{InputSpec{"digitPDinput", "ZDC", "DIGITSPD"}, "ZDCDigitPed"})();
+    BranchDefinition<std::vector<o2::zdc::ChannelData>>{InputSpec{"digitChinput", "ZDC", "DIGITSCH"}, "ZDCDigitCh"},
+    BranchDefinition<std::vector<o2::zdc::PedestalData>>{InputSpec{"digitPDinput", "ZDC", "DIGITSPD"}, "ZDCDigitPed"})();
 }
 
-} // namespace ft0
+} // namespace zdc
 } // namespace o2

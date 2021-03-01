@@ -26,10 +26,10 @@ framework::WorkflowSpec getZDCWorkflow(bool useProcess,
 {
   LOG(INFO) << "framework::WorkflowSpec getZDCWorkflow";
   framework::WorkflowSpec specs;
-    specs.emplace_back(o2::zdc::getZDCDataReaderDPLSpec(RawReaderZDC{dumpReader}));
-//  if (useProcess) {
-//    specs.emplace_back(o2::zdc::getZDCDataProcessDPLSpec(dumpProcessor));
-//  }
+  specs.emplace_back(o2::zdc::getZDCDataReaderDPLSpec(RawReaderZDC{dumpReader}));
+  //  if (useProcess) {
+  //    specs.emplace_back(o2::zdc::getZDCDataProcessDPLSpec(dumpProcessor));
+  //  }
   if (!disableRootOut) {
     specs.emplace_back(o2::zdc::getZDCDigitWriterDPLSpec());
   }

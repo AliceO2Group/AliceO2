@@ -129,7 +129,6 @@ class RawReaderBase
     for (auto& [ir, ev] : mMapData) {
       // TODO: Error check
       // Pedestal data
-      ir.print();
       if (ir.bc == 3563) {
         auto& pdata = pedestalData.emplace_back();
         pdata.ir = ir;
