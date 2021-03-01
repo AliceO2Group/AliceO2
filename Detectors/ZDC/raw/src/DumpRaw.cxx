@@ -192,8 +192,8 @@ int DumpRaw::process(const EventChData& ch)
       Digits2Raw::print_gbt_word(ch.w[iw]);
     }
   }
-  UShort_t us[12];
-  Short_t s[12];
+  uint16_t us[12];
+  int16_t s[12];
   us[0] = f.s00;
   us[1] = f.s01;
   us[2] = f.s02;
