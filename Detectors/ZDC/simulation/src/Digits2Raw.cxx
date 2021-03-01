@@ -138,7 +138,7 @@ void Digits2Raw::setTriggerMask()
 {
   mTriggerMask = 0;
   mPrintTriggerMask = "";
-  for (Int_t im = 0; im < NModules; im++) {
+  for (int32_t im = 0; im < NModules; im++) {
     if (im > 0) {
       mPrintTriggerMask += " ";
     }
@@ -167,8 +167,8 @@ void Digits2Raw::setTriggerMask()
 //______________________________________________________________________________
 inline void Digits2Raw::resetSums(uint32_t orbit)
 {
-  for (Int_t im = 0; im < NModules; im++) {
-    for (Int_t ic = 0; ic < NChPerModule; ic++) {
+  for (int32_t im = 0; im < NModules; im++) {
+    for (int32_t ic = 0; ic < NChPerModule; ic++) {
       mScalers[im][ic] = 0;
       mSumPed[im][ic] = 0;
       mPed[im][ic] = 0;
@@ -195,8 +195,8 @@ inline void Digits2Raw::updatePedestalReference(int bc)
       LOG(FATAL) << "Cannot find orbit";
     }
 
-    for (Int_t im = 0; im < NModules; im++) {
-      for (Int_t ic = 0; ic < NChPerModule; ic++) {
+    for (int32_t im = 0; im < NModules; im++) {
+      for (int32_t ic = 0; ic < NChPerModule; ic++) {
         // Identify connected channel
         auto id = mModuleConfig->modules[im].channelID[ic];
         Double_t myped = mzdcPedData[io].data[id] + 32768.;
@@ -213,8 +213,8 @@ inline void Digits2Raw::updatePedestalReference(int bc)
     // For the preceding bunch crossing we make-up the fields in a random walk
     // fashion like in the hardware. The result however cannot be coherent with
     // what is stored in the last bunch
-    for (Int_t im = 0; im < NModules; im++) {
-      for (Int_t ic = 0; ic < NChPerModule; ic++) {
+    for (int32_t im = 0; im < NModules; im++) {
+      for (int32_t ic = 0; ic < NChPerModule; ic++) {
         // Identify connected channel
         auto id = mModuleConfig->modules[im].channelID[ic];
         auto base_m = mSimCondition->channels[id].pedestal;      // Average pedestal
@@ -325,7 +325,7 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
   assignTriggerBits(ibc, bc, orbit, true);
 
   // Insert payload for all channels
-  for (Int_t im = 0; im < NModules; im++) {
+  for (int32_t im = 0; im < NModules; im++) {
     for (uint32_t ic = 0; ic < NChPerModule; ic++) {
       if (mModuleConfig->modules[im].readChannel[ic]) {
         auto id = mModuleConfig->modules[im].channelID[ic];
@@ -333,7 +333,7 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
         auto base_s = mSimCondition->channels[id].pedestalFluct; // Baseline oscillations
         auto base_n = mSimCondition->channels[id].pedestalNoise; // Electronic noise
         Double_t base = gRandom->Gaus(base_m, base_s);
-        Int_t is = 0;
+        int32_t is = 0;
         Double_t val = base + gRandom->Gaus(0, base_n);
         mZDC.data[im][ic].f.s00 = val < ADCMax ? (val > ADCMin ? val : ADCMin) : ADCMax;
         is++;
@@ -410,11 +410,11 @@ void Digits2Raw::convertDigits(int ibc)
     // Look for channel ID in digits and store channel (just one copy in output)
     // This is a limitation of software but we are not supposed to acquire the
     // same signal twice anyway
-    for (Int_t im = 0; im < NModules; im++) {
+    for (int32_t im = 0; im < NModules; im++) {
       for (uint32_t ic = 0; ic < NChPerModule; ic++) {
         if (mModuleConfig->modules[im].channelID[ic] == chd.id &&
             mModuleConfig->modules[im].readChannel[ic]) {
-          Int_t is = 0;
+          int32_t is = 0;
           mZDC.data[im][ic].f.s00 = chd.data[is];
           is++;
           mZDC.data[im][ic].f.s01 = chd.data[is];
@@ -471,7 +471,7 @@ void Digits2Raw::writeDigits()
     if (tcond_triggered || (mIsContinuous && tcond_continuous) || (mZDC.data[im][0].f.bc == 3563)) {
       for (uint32_t ic = 0; ic < o2::zdc::NChPerModule; ic++) {
         if (mModuleConfig->modules[im].readChannel[ic]) {
-          for (Int_t iw = 0; iw < o2::zdc::NWPerBc; iw++) {
+          for (int32_t iw = 0; iw < o2::zdc::NWPerBc; iw++) {
             gsl::span<char> payload{reinterpret_cast<char*>(&mZDC.data[im][ic].w[iw][0]), data_size};
             mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, ir, payload);
           }
@@ -491,7 +491,7 @@ void Digits2Raw::writeDigits()
       if (tcond_triggered || (mIsContinuous && tcond_continuous) || (mZDC.data[im][0].f.bc == 3563)) {
         for (uint32_t ic = 0; ic < o2::zdc::NChPerModule; ic++) {
           if (mModuleConfig->modules[im].readChannel[ic]) {
-            for (Int_t iw = 0; iw < o2::zdc::NWPerBc; iw++) {
+            for (int32_t iw = 0; iw < o2::zdc::NWPerBc; iw++) {
               print_gbt_word(&mZDC.data[im][ic].w[iw][0], mModuleConfig);
             }
           }
@@ -537,7 +537,7 @@ void Digits2Raw::print_gbt_word(const uint32_t* word, const ModuleConfig* module
     }
     printf("%04x %08x %08x ", c, b, a);
     uint32_t hits = (val >> 24) & 0xfff;
-    Int_t offset = (lsb >> 8) & 0xffff - 32768;
+    int32_t offset = (lsb >> 8) & 0xffff - 32768;
     Float_t foffset = offset / 8.;
     uint32_t board = (lsb >> 2) & 0xf;
     uint32_t ch = (lsb >> 6) & 0x3;
@@ -563,7 +563,7 @@ void Digits2Raw::print_gbt_word(const uint32_t* word, const ModuleConfig* module
     printf("0-5 ");
     Short_t s[6];
     val = val >> 8;
-    for (Int_t i = 0; i < 6; i++) {
+    for (int32_t i = 0; i < 6; i++) {
       s[i] = val & 0xfff;
       if (s[i] > ADCMax) {
         s[i] = s[i] - ADCRange;
@@ -577,7 +577,7 @@ void Digits2Raw::print_gbt_word(const uint32_t* word, const ModuleConfig* module
     printf("6-b ");
     Short_t s[6];
     val = val >> 8;
-    for (Int_t i = 0; i < 6; i++) {
+    for (int32_t i = 0; i < 6; i++) {
       s[i] = val & 0xfff;
       if (s[i] > ADCMax) {
         s[i] = s[i] - ADCRange;
@@ -597,13 +597,13 @@ void Digits2Raw::emptyBunches(std::bitset<3564>& bunchPattern)
 {
   const int LHCMaxBunches = o2::constants::lhc::LHCMaxBunches;
   mNEmpty = 0;
-  for (Int_t ib = 0; ib < LHCMaxBunches; ib++) {
-    Int_t mb = (ib + 31) % LHCMaxBunches; // beam gas from back of calorimeter
-    Int_t m1 = (ib + 1) % LHCMaxBunches;  // previous bunch
-    Int_t cb = ib;                        // current bunch crossing
-    Int_t p1 = (ib - 1) % LHCMaxBunches;  // colliding + 1
-    Int_t p2 = (ib + 1) % LHCMaxBunches;  // colliding + 2
-    Int_t p3 = (ib + 1) % LHCMaxBunches;  // colliding + 3
+  for (int32_t ib = 0; ib < LHCMaxBunches; ib++) {
+    int32_t mb = (ib + 31) % LHCMaxBunches; // beam gas from back of calorimeter
+    int32_t m1 = (ib + 1) % LHCMaxBunches;  // previous bunch
+    int32_t cb = ib;                        // current bunch crossing
+    int32_t p1 = (ib - 1) % LHCMaxBunches;  // colliding + 1
+    int32_t p2 = (ib + 1) % LHCMaxBunches;  // colliding + 2
+    int32_t p3 = (ib + 1) % LHCMaxBunches;  // colliding + 3
     if (bunchPattern[mb] || bunchPattern[m1] || bunchPattern[cb] || bunchPattern[p1] || bunchPattern[p2] || bunchPattern[p3]) {
       mEmpty[ib] = mNEmpty;
     } else {

@@ -85,7 +85,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
                 }
               }
               if (payload != nullptr) {
-                for (Int_t ip = 0; ip < payloadSize; ip += 16) {
+                for (int32_t ip = 0; ip < payloadSize; ip += 16) {
                   //o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
                   zdc_dr.processWord((const uint32_t*)&payload[ip]);
                 }
