@@ -161,7 +161,7 @@ class RawReaderBase
         for (int32_t ic = 0; ic < NChPerModule; ic++) {
           if (ev.data[im][ic].f.fixed_0 == Id_w0 && ev.data[im][ic].f.fixed_1 == Id_w1 && ev.data[im][ic].f.fixed_2 == Id_w2) {
             auto& ch = ev.data[im][ic];
-            UShort_t us[12];
+            uint16_t us[12];
             us[0] = ch.f.s00;
             us[1] = ch.f.s01;
             us[2] = ch.f.s02;
