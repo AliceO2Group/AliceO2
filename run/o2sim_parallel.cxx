@@ -29,6 +29,7 @@
 #include "Framework/FreePortFinder.h"
 #include <sys/types.h>
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include "SimulationDataFormat/MCEventHeader.h"
 
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
@@ -458,6 +459,18 @@ int main(int argc, char* argv[])
   // (mainly useful for continuous integration / automated testing suite)
   auto returncode = checkresult();
   if (returncode == 0) {
+    // Extract a single file for MCEventHeaders
+    // This file will be small and can quickly unblock start of signal transport (in embedding).
+    // This is useful when we cache background events on the GRID. The headers file can be copied quickly
+    // and the rest of kinematics + Hits may follow asyncronously since they are only needed at much
+    // later stages (digitization).
+
+    auto& conf = o2::conf::SimConfig::Instance();
+    // easy check: see if we have number of entries in output tree == number of events asked
+    std::string kinefilename = o2::base::NameConf::getMCKinematicsFileName(conf.getOutPrefix().c_str());
+    std::string headerfilename = o2::base::NameConf::getMCHeadersFileName(conf.getOutPrefix().c_str());
+    o2::dataformats::MCEventHeader::extractFileFromKinematics(kinefilename, headerfilename);
+
     LOG(INFO) << "SIMULATION RETURNED SUCCESFULLY";
   }
 
