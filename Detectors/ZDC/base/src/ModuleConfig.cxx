@@ -9,8 +9,6 @@
 // or submit itself to any jurisdiction.
 
 #include "ZDCBase/ModuleConfig.h"
-#include "ZDCBase/ModuleConfig.h"
-#include <FairLogger.h>
 
 using namespace o2::zdc;
 

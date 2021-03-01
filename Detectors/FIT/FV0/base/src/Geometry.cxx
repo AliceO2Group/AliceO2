@@ -18,8 +18,6 @@
 
 #include <cmath>
 
-#include <FairLogger.h>
-
 #include <TGeoBBox.h>
 #include <TGeoCompositeShape.h>
 #include <TGeoCone.h>

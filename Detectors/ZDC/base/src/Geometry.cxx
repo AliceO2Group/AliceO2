@@ -9,7 +9,6 @@
 // or submit itself to any jurisdiction.
 
 #include "ZDCBase/Geometry.h"
-#include "FairLogger.h"
 
 ClassImp(o2::zdc::Geometry);
 
