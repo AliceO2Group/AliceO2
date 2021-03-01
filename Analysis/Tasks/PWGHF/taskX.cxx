@@ -12,7 +12,7 @@
 /// \brief X(3872) analysis task
 ///
 /// \author Gian Michele Innocenti <gian.michele.innocenti@cern.ch>, CERN
-/// \author Rik Spijkers <r.spijkers@students.uu.nl>
+/// \author Rik Spijkers <r.spijkers@students.uu.nl>, Utrecht University
 
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
@@ -61,7 +61,7 @@ struct TaskX {
   Configurable<int> selectionFlagJpsi{"selectionFlagJpsi", 1, "Selection Flag for Jpsi"};
   Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
 
-  Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsiToEE >= d_selectionFlagJpsi);
+  Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsiToEE >= selectionFlagJpsi);
 
   /// aod::BigTracks is not soa::Filtered, should be added when filters are added
   void process(aod::Collision const&, aod::BigTracks const& tracks, soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiToEECandidate, aod::Colls>> const& candidates)
@@ -73,31 +73,25 @@ struct TaskX {
       if (cutEtaCandMax >= 0. && std::abs(candidate.eta()) > cutEtaCandMax) {
         continue;
       }
-      registry.fill(HIST("hmassJpsi"), InvMassJpsiToEE(candidate));
+      registry.fill(HIST("hMassJpsi"), InvMassJpsiToEE(candidate));
 
       int index0jpsi = candidate.index0Id();
       int index1jpsi = candidate.index1Id();
-      auto JpsiTrackPos = candidate.index0();
-      auto JpsiTrackNeg = candidate.index1();
-      for (auto trackPos = tracks.begin(); trackPos != tracks.end(); ++trackPos) {
+      for (auto& trackPos : tracks) {
         if (trackPos.signed1Pt() < 0) {
           continue;
         }
         if (trackPos.globalIndex() == index0jpsi) {
-          printf("pos track id check: %ld, %u\n", trackPos.globalIndex(), index0jpsi);
-          printf("pos track pt check: %f, %f\n", JpsiTrackPos.pt(), trackPos.pt());
           continue;
         }
-        for (auto trackNeg = tracks.begin(); trackNeg != tracks.end(); ++trackNeg) {
+        for (auto& trackNeg : tracks) {
           if (trackNeg.signed1Pt() > 0) {
             continue;
           }
           if (trackNeg.globalIndex() == index1jpsi) {
-            printf("neg track id check: %ld, %u\n", trackNeg.globalIndex(), index1jpsi);
-            printf("neg track pt check: %f, %f\n", JpsiTrackNeg.pt(), trackNeg.pt());
             continue;
           }
-          registry.fill(HIST("hptcand"), candidate.pt() + trackPos.pt() + trackNeg.pt());
+          registry.fill(HIST("hPtCand"), candidate.pt() + trackPos.pt() + trackNeg.pt());
         } // pi- loop
       }   // pi+ loop
     }     // Jpsi loop
