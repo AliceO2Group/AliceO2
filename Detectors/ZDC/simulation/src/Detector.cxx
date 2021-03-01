@@ -304,7 +304,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   int volID, copy;
   volID = fMC->CurrentVolID(copy);
   //printf("\t ---> track %d in vol. %d %d (volID %d) mother %d \n",
-    //trackn, detector, sector, volID, stack->GetCurrentTrack()->GetMother(0));
+  //trackn, detector, sector, volID, stack->GetCurrentTrack()->GetMother(0));
 
   // If the particle is in a ZN or ZP fiber connected to the common PMT
   // then the assigned sector is 0 (PMC) NB-> does not work for ZEM
@@ -330,35 +330,35 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   auto currentMediumid = fMC->CurrentMedium();
   int nphe = 0;
   if (((currentMediumid == mMediumPMCid) || (currentMediumid == mMediumPMQid))) {
-   if(eDep){
-    int ibeta = 0, iangle = 0, iradius = 0;
-    Bool_t isLightProduced = calculateTableIndexes(ibeta, iangle, iradius);
-    if (isLightProduced) {
-      int charge = 0;
-      if (pdgCode < 10000) {
-        charge = fMC->TrackCharge();
-      } else {
-        charge = TMath::Abs(pdgCode / 10000 - 100000);
-      }
-
-      //look into the light tables if the particle is charged
-      if (TMath::Abs(charge) > 0) {
-        if (detector == 1 || detector == 4) {
-          iradius = std::min((int)Geometry::ZNFIBREDIAMETER, iradius);
-          lightoutput = charge * charge * mLightTableZN[ibeta][iangle][iradius];
-          //printf("  \t ZNtableEntry[%d %d %d] = %1.5f -> lightoutput %f\n", ibeta, iangle, iradius, mLightTableZN[ibeta][iangle][iradius], lightoutput);
+    if (eDep) {
+      int ibeta = 0, iangle = 0, iradius = 0;
+      Bool_t isLightProduced = calculateTableIndexes(ibeta, iangle, iradius);
+      if (isLightProduced) {
+        int charge = 0;
+        if (pdgCode < 10000) {
+          charge = fMC->TrackCharge();
         } else {
-          iradius = std::min((int)Geometry::ZPFIBREDIAMETER, iradius);
-          lightoutput = charge * charge * mLightTableZP[ibeta][iangle][iradius];
-          //printf("  \t ZPtableEntry[%d %d %d] = %1.5f -> lightoutput %f\n", ibeta, iangle, iradius, mLightTableZP[ibeta][iangle][iradius], lightoutput);
+          charge = TMath::Abs(pdgCode / 10000 - 100000);
         }
-        if (lightoutput > 0) {
-          nphe = gRandom->Poisson(lightoutput);
-          //printf("  \t\t-> nphe %d  \n", nphe);
+
+        //look into the light tables if the particle is charged
+        if (TMath::Abs(charge) > 0) {
+          if (detector == 1 || detector == 4) {
+            iradius = std::min((int)Geometry::ZNFIBREDIAMETER, iradius);
+            lightoutput = charge * charge * mLightTableZN[ibeta][iangle][iradius];
+            //printf("  \t ZNtableEntry[%d %d %d] = %1.5f -> lightoutput %f\n", ibeta, iangle, iradius, mLightTableZN[ibeta][iangle][iradius], lightoutput);
+          } else {
+            iradius = std::min((int)Geometry::ZPFIBREDIAMETER, iradius);
+            lightoutput = charge * charge * mLightTableZP[ibeta][iangle][iradius];
+            //printf("  \t ZPtableEntry[%d %d %d] = %1.5f -> lightoutput %f\n", ibeta, iangle, iradius, mLightTableZP[ibeta][iangle][iradius], lightoutput);
+          }
+          if (lightoutput > 0) {
+            nphe = gRandom->Poisson(lightoutput);
+            //printf("  \t\t-> nphe %d  \n", nphe);
+          }
         }
       }
     }
-   }
   }
 
   auto tof = 1.e09 * fMC->TrackTime(); //TOF in ns
@@ -498,9 +498,9 @@ bool Detector::createHitsFromImage(SpatialPhotonResponse const& image, int detec
 } // end function
 
 //_____________________________________________________________________________
-o2::zdc::Hit* Detector::addHit(Int_t trackID, Int_t parentID, Int_t sFlag, Float_t primaryEnergy, Int_t detID,
-                               Int_t secID, math_utils::Vector3D<float> pos, math_utils::Vector3D<float> mom, Float_t tof, math_utils::Vector3D<float> xImpact,
-                               Double_t energyloss, Int_t nphePMC, Int_t nphePMQ)
+o2::zdc::Hit* Detector::addHit(int32_t trackID, int32_t parentID, int32_t sFlag, Float_t primaryEnergy, int32_t detID,
+                               int32_t secID, math_utils::Vector3D<float> pos, math_utils::Vector3D<float> mom, Float_t tof, math_utils::Vector3D<float> xImpact,
+                               Double_t energyloss, int32_t nphePMC, int32_t nphePMQ)
 {
   LOG(DEBUG4) << "Adding hit for track " << trackID << " X (" << pos.X() << ", " << pos.Y() << ", "
               << pos.Z() << ") P (" << mom.X() << ", " << mom.Y() << ", " << mom.Z() << ")  Ekin "
@@ -513,7 +513,7 @@ o2::zdc::Hit* Detector::addHit(Int_t trackID, Int_t parentID, Int_t sFlag, Float
 //_____________________________________________________________________________
 void Detector::createMaterials()
 {
-  Int_t ifield = 2;
+  int32_t ifield = 2;
   Float_t fieldm = 10.0;
   o2::base::Detector::initFieldTrackingParams(ifield, fieldm);
   LOG(INFO) << "Detector::CreateMaterials >>>>> magnetic field: type " << ifield << " max " << fieldm << "\n";
@@ -550,7 +550,7 @@ void Detector::createMaterials()
   Float_t dCu = 8.96;
   Float_t radCu = 12.86 / dCu;
   Float_t absCu = 137.3 / dCu;
-  // Int_t nCu = 1.10;
+  // int32_t nCu = 1.10;
 
   // --- Iron -> beam pipe
   Float_t aFe = 55.845;
@@ -586,11 +586,11 @@ void Detector::createMaterials()
   Float_t dAir = 1.20479E-3;
 
   // ******** TRACKING MEDIA PARAMETERS ********
-  Int_t notactiveMed = 0, sensMed = 1; // sensitive or not sensitive medium
+  int32_t notactiveMed = 0, sensMed = 1; // sensitive or not sensitive medium
 
   // field integration 0 no field -1 user in guswim 1 Runge Kutta 2 helix 3 const field along z
-  Int_t inofld = 0; // Max. field value (no field)
-  Int_t ifld = 2;   //TODO: ????CHECK!!!! secondo me va -1!!!!!
+  int32_t inofld = 0; // Max. field value (no field)
+  int32_t ifld = 2;   //TODO: ????CHECK!!!! secondo me va -1!!!!!
   Float_t nofieldm = 0.;
 
   Float_t maxnofld = 0.; // max field value (no field)
@@ -899,7 +899,7 @@ void Detector::createAsideBeamLine()
   zA += 2. * conpar[0];
 
   //-- rotation matrices for the tilted cone after the TDI to recenter vacuum chamber
-  Int_t irotpipe3, irotpipe4, irotpipe5;
+  int32_t irotpipe3, irotpipe4, irotpipe5;
   double rang3[6] = {90. - 1.8934, 0., 90., 90., 1.8934, 180.};
   double rang4[6] = {90. - 3.8, 0., 90., 90., 3.8, 180.};
   double rang5[6] = {90. + 9.8, 0., 90., 90., 9.8, 0.};
@@ -1194,7 +1194,7 @@ void Detector::createAsideBeamLine()
   rotMatrix4->RegisterYourself();
 
   //-- rotation matrices for the legs
-  Int_t irotpipe1, irotpipe2;
+  int32_t irotpipe1, irotpipe2;
   double rang1[6] = {90. - 1.0027, 0., 90., 90., 1.0027, 180.};
   double rang2[6] = {90. + 1.0027, 0., 90., 90., 1.0027, 0.};
   TVirtualMC::GetMC()->Matrix(irotpipe1, rang1[0], rang1[1], rang1[2], rang1[3], rang1[4], rang1[5]);
@@ -1658,7 +1658,7 @@ void Detector::createCsideBeamLine()
   zC += 2. * tubpar[2];
 
   //-- rotation matrices for the legs
-  Int_t irotpipe1, irotpipe2;
+  int32_t irotpipe1, irotpipe2;
   double rang1[6] = {90. - 1.0027, 0., 90., 90., 1.0027, 180.};
   double rang2[6] = {90. + 1.0027, 0., 90., 90., 1.0027, 0.};
   TVirtualMC::GetMC()->Matrix(irotpipe1, rang1[0], rang1[1], rang1[2], rang1[3], rang1[4], rang1[5]);
@@ -2023,7 +2023,7 @@ void Detector::createDetectors()
 
   // --- Position the neutron calorimeter in ZDC
   // -- Rotation of C side ZN
-  Int_t irotznc;
+  int32_t irotznc;
   double rangznc[6] = {90., 180., 90., 90., 180., 0.};
   TVirtualMC::GetMC()->Matrix(irotznc, rangznc[0], rangznc[1], rangznc[2], rangznc[3], rangznc[4], rangznc[5]);
   //
@@ -2198,7 +2198,7 @@ void Detector::createDetectors()
 
   // -------------------------------------------------------------------------------
   // -> EM calorimeter (ZEM)
-  Int_t irotzem1, irotzem2;
+  int32_t irotzem1, irotzem2;
   double rangzem1[6] = {0., 0., 90., 90., -90., 0.};
   double rangzem2[6] = {180., 0., 90., 45. + 90., 90., 45.};
   TVirtualMC::GetMC()->Matrix(irotzem1, rangzem1[0], rangzem1[1], rangzem1[2], rangzem1[3], rangzem1[4], rangzem1[5]);
