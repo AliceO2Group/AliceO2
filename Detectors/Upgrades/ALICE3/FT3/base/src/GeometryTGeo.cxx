@@ -85,21 +85,21 @@ void GeometryTGeo::Build(int loadTrans)
 }
 
 //__________________________________________________________________________
-const char* GeometryTGeo::composeSymNameLayer(int lr)
+const char* GeometryTGeo::composeSymNameLayer(Int_t d, Int_t lr)
 {
-  return Form("%s/%s%d", composeSymNameFT3(), getFT3LayerPattern(), lr);
+  return Form("%s/%s%d", composeSymNameFT3(d), getFT3LayerPattern(), lr);
 }
 
 //__________________________________________________________________________
-const char* GeometryTGeo::composeSymNameChip(int lr)
+const char* GeometryTGeo::composeSymNameChip(Int_t d, Int_t lr)
 {
-  return Form("%s/%s%d", composeSymNameLayer(lr), getFT3ChipPattern(), lr);
+  return Form("%s/%s%d", composeSymNameLayer(d, lr), getFT3ChipPattern(), lr);
 }
 
 //__________________________________________________________________________
-const char* GeometryTGeo::composeSymNameSensor(int lr)
+const char* GeometryTGeo::composeSymNameSensor(Int_t d, Int_t lr)
 {
-  return Form("%s/%s%d", composeSymNameLayer(lr), getFT3SensorPattern(), lr);
+  return Form("%s/%s%d", composeSymNameChip(d, lr), getFT3SensorPattern(), lr);
 }
 
 //__________________________________________________________________________

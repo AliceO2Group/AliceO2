@@ -97,12 +97,6 @@ class Detector : public o2::base::DetImpl<Detector>
                           const TVector3& startMom, double startE, double endTime, double eLoss,
                           unsigned char startStatus, unsigned char endStatus);
 
-  /// Add alignable top volumes
-  void addAlignableVolumes() const override;
-  void addAlignableVolumesLayer(Int_t lr, TString& parent, Int_t& lastUID) const;
-  void addAlignableVolumesChip(Int_t lr, TString& parent, Int_t& lastUID) const;
-  void addAlignableVolumesSensor(Int_t lr, TString& parent, Int_t& lastUID) const;
-
   Int_t chipVolUID(Int_t id) const { return o2::base::GeometryManager::getSensID(o2::detectors::DetID::FT3, id); }
 
   void EndOfEvent() override;
@@ -112,13 +106,6 @@ class Detector : public o2::base::DetImpl<Detector>
   void BeginPrimary() override { ; }
   void PostTrack() override { ; }
   void PreTrack() override { ; }
-  /// Prints out the content of this class in ASCII format
-  /// \param ostream *os The output stream
-  void Print(std::ostream* os) const;
-
-  /// Reads in the content of this class in the format of Print
-  /// \param istream *is The input stream
-  void Read(std::istream* is);
 
   /// Returns the number of layers
   Int_t getNumberOfLayers() const { return mNumberOfLayers; }
@@ -129,8 +116,8 @@ class Detector : public o2::base::DetImpl<Detector>
   GeometryTGeo* mGeometryTGeo; //! access to geometry details
 
  protected:
-  std::vector<Int_t> mLayerID;
-  std::vector<TString> mLayerName;
+  std::vector<std::vector<Int_t>> mLayerID;
+  std::vector<std::vector<TString>> mLayerName;
   Int_t mNumberOfLayers;
 
  private:
@@ -159,17 +146,13 @@ class Detector : public o2::base::DetImpl<Detector>
 
   Detector& operator=(const Detector&);
 
-  std::vector<FT3Layer> mLayers;
+  std::vector<std::vector<FT3Layer>> mLayers;
 
   template <typename Det>
   friend class o2::base::DetImpl;
   ClassDefOverride(Detector, 1);
 };
 
-// Input and output function for standard C++ input/output.
-std::ostream& operator<<(std::ostream& os, Detector& source);
-
-std::istream& operator>>(std::istream& os, Detector& source);
 } // namespace ft3
 } // namespace o2
 

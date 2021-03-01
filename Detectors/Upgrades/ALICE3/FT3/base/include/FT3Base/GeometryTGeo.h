@@ -93,10 +93,10 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static const char* getFT3ChipPattern() { return sChipName.c_str(); }
   static const char* getFT3SensorPattern() { return sSensorName.c_str(); }
 
-  static const char* composeSymNameFT3() { return o2::detectors::DetID(o2::detectors::DetID::FT3).getName(); }
-  static const char* composeSymNameLayer(int lr);
-  static const char* composeSymNameChip(int lr);
-  static const char* composeSymNameSensor(int lr);
+  static const char* composeSymNameFT3(Int_t d) { return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::FT3).getName(), d); }
+  static const char* composeSymNameLayer(Int_t d, Int_t lr);
+  static const char* composeSymNameChip(Int_t d, Int_t lr);
+  static const char* composeSymNameSensor(Int_t d, Int_t lr);
 
  protected:
   static constexpr int MAXLAYERS = 15; ///< max number of active layers

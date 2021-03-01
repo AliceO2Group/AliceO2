@@ -66,19 +66,26 @@ void Detector::buildBasicFT3(int nLayers, Float_t z_first, Float_t z_length, Flo
 
   mNumberOfLayers = nLayers;
   Float_t sensorThickness = 30.e-4;
-  mLayerName.resize(mNumberOfLayers);
-  mLayerID.resize(mNumberOfLayers);
+  mLayerName.resize(2);
+  mLayerName[0].resize(mNumberOfLayers);
+  mLayerName[1].resize(mNumberOfLayers);
+  mLayerID.resize(2);
+  mLayerID[0].resize(mNumberOfLayers);
+  mLayerID[1].resize(mNumberOfLayers);
+  mLayers.resize(2);
 
-  for (int layerNumber = 0; layerNumber < mNumberOfLayers; layerNumber++) {
-    std::string layerName = GeometryTGeo::getFT3LayerPattern() + std::to_string(layerNumber);
-    mLayerName[layerNumber] = layerName;
+  for (Int_t direction : {0, 1}) {
+    for (Int_t layerNumber = 0; layerNumber < mNumberOfLayers; layerNumber++) {
+      std::string layerName = GeometryTGeo::getFT3LayerPattern() + std::to_string(layerNumber + mNumberOfLayers * direction);
+      mLayerName[direction][layerNumber] = layerName;
 
-    // Adds evenly spaced layers
-    Float_t layerZ = z_first + (layerNumber * z_length / (mNumberOfLayers - 1)) * std::copysign(1, z_first);
-    Float_t rIn = std::abs(layerZ * std::tan(2.f * std::atan(std::exp(-etaIn))));
-    Float_t rOut = std::abs(layerZ * std::tan(2.f * std::atan(std::exp(-etaOut))));
+      // Adds evenly spaced layers
+      Float_t layerZ = z_first + (layerNumber * z_length / (mNumberOfLayers - 1)) * std::copysign(1, z_first);
+      Float_t rIn = std::abs(layerZ * std::tan(2.f * std::atan(std::exp(-etaIn))));
+      Float_t rOut = std::abs(layerZ * std::tan(2.f * std::atan(std::exp(-etaOut))));
 
-    auto& thisLayer = mLayers.emplace_back(layerNumber, layerName, layerZ, rIn, rOut, sensorThickness, Layerx2X0);
+      auto& thisLayer = mLayers[direction].emplace_back(direction, layerNumber, layerName, layerZ, rIn, rOut, sensorThickness, Layerx2X0);
+    }
   }
 }
 
@@ -88,35 +95,47 @@ void Detector::buildFT3V1()
   //Build FT3 detector according to
   //https://indico.cern.ch/event/992488/contributions/4174473/attachments/2168881/3661331/tracker_parameters_werner_jan_11_2021.pdf
 
+  LOG(INFO) << "Building FT3 Detector V1";
+
   mNumberOfLayers = 10;
   Float_t sensorThickness = 30.e-4;
   Float_t layersx2X0 = 1.e-2;
   std::vector<std::array<Float_t, 5>> layersConfig{
-    {-16., .5, 3., sensorThickness, 0.1f * layersx2X0}, // {z_layer, r_in, r_out, sensor_thickness, Layerx2X0}
-    {-20., .5, 3., sensorThickness, 0.1f * layersx2X0},
-    {-24., .5, 3., sensorThickness, 0.1f * layersx2X0},
-    {-77., 3.5, 35., sensorThickness, layersx2X0},
-    {-100., 3.5, 35., sensorThickness, layersx2X0},
-    {-122., 3.5, 35., sensorThickness, layersx2X0},
-    {-150., 3.5, 100., sensorThickness, layersx2X0},
-    {-180., 3.5, 100., sensorThickness, layersx2X0},
-    {-220., 3.5, 100., sensorThickness, layersx2X0},
-    {-279., 3.5, 100., sensorThickness, layersx2X0}};
+    {16., .5, 3., sensorThickness, 0.1f * layersx2X0}, // {z_layer, r_in, r_out, sensor_thickness, Layerx2X0}
+    {20., .5, 3., sensorThickness, 0.1f * layersx2X0},
+    {24., .5, 3., sensorThickness, 0.1f * layersx2X0},
+    {77., 3.5, 35., sensorThickness, layersx2X0},
+    {100., 3.5, 35., sensorThickness, layersx2X0},
+    {122., 3.5, 35., sensorThickness, layersx2X0},
+    {150., 3.5, 100., sensorThickness, layersx2X0},
+    {180., 3.5, 100., sensorThickness, layersx2X0},
+    {220., 3.5, 100., sensorThickness, layersx2X0},
+    {279., 3.5, 100., sensorThickness, layersx2X0}};
 
-  mLayerName.resize(mNumberOfLayers);
-  mLayerID.resize(mNumberOfLayers);
+  mLayerName.resize(2);
+  mLayerName[0].resize(mNumberOfLayers);
+  mLayerName[1].resize(mNumberOfLayers);
+  mLayerID.resize(2);
+  mLayerID[0].resize(mNumberOfLayers);
+  mLayerID[1].resize(mNumberOfLayers);
+  mLayers.resize(2);
 
-  for (int layerNumber = 0; layerNumber < mNumberOfLayers; layerNumber++) {
-    std::string layerName = GeometryTGeo::getFT3LayerPattern() + std::to_string(layerNumber);
-    mLayerName[layerNumber] = layerName;
-    auto& z = layersConfig[layerNumber][0];
-    auto& rIn = layersConfig[layerNumber][1];
-    auto& rOut = layersConfig[layerNumber][2];
-    auto& thickness = layersConfig[layerNumber][3];
-    auto& x0 = layersConfig[layerNumber][4];
+  for (auto direction : {0, 1}) {
+    for (int layerNumber = 0; layerNumber < mNumberOfLayers; layerNumber++) {
+      std::string directionName = std::to_string(direction);
+      std::string layerName = GeometryTGeo::getFT3LayerPattern() + directionName + "_" + std::to_string(layerNumber);
+      mLayerName[direction][layerNumber] = layerName;
+      auto& z = layersConfig[layerNumber][0];
 
-    // Adds evenly spaced layers
-    auto& thisLayer = mLayers.emplace_back(layerNumber, layerName, z, rIn, rOut, thickness, x0);
+      auto& rIn = layersConfig[layerNumber][1];
+      auto& rOut = layersConfig[layerNumber][2];
+      auto& thickness = layersConfig[layerNumber][3];
+      auto& x0 = layersConfig[layerNumber][4];
+
+      LOG(INFO) << "Adding Layer " << layerName << " at z = " << z;
+      // Add layers
+      auto& thisLayer = mLayers[direction].emplace_back(direction, layerNumber, layerName, z, rIn, rOut, thickness, x0);
+    }
   }
 }
 
@@ -204,7 +223,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   }
 
   Int_t lay = 0, volID = vol->getMCid();
-  while ((lay <= mNumberOfLayers) && (volID != mLayerID[lay])) {
+  while ((lay <= mNumberOfLayers * 2) && (volID != mLayerID[lay % 2][lay / 2])) {
     ++lay;
   }
 
@@ -354,96 +373,21 @@ void Detector::createGeometry()
   LOG(DEBUG) << "buildGeometry: "
              << Form("gGeoManager name is %s title is %s", gGeoManager->GetName(), gGeoManager->GetTitle());
 
-  for (int iLayer = 0; iLayer < mNumberOfLayers; iLayer++) {
-    mLayers[iLayer].createLayer(volFT3);
-  }
+  for (Int_t direction : {0, 1}) {
 
+    for (Int_t iLayer = 0; iLayer < mNumberOfLayers; iLayer++) {
+      mLayers[direction][iLayer].createLayer(volFT3);
+    }
+  }
   vALIC->AddNode(volFT3, 2, new TGeoTranslation(0., 30., 0.));
 
-  for (int iLayer = 0; iLayer < mNumberOfLayers; iLayer++) {
-    mLayerID[iLayer] = gMC ? TVirtualMC::GetMC()->VolId(Form("%s%d", GeometryTGeo::getFT3SensorPattern(), iLayer)) : 0;
-    LOG(INFO) << "mLayerID for layer " << iLayer << " = " << mLayerID[iLayer];
+  for (auto direction : {0, 1}) {
+    for (int iLayer = 0; iLayer < mNumberOfLayers; iLayer++) {
+      mLayerID[direction][iLayer] = gMC ? TVirtualMC::GetMC()->VolId(Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), direction, iLayer)) : 0;
+      std::string directionString = direction ? "Forward" : "Backward";
+      LOG(INFO) << "mLayerID for " << directionString << " layer " << iLayer << " = " << mLayerID[direction][iLayer];
+    }
   }
-}
-
-//_________________________________________________________________________________________________
-void Detector::addAlignableVolumes() const
-{
-  LOG(INFO) << "Add FT3 alignable volumes";
-
-  if (!gGeoManager) {
-    LOG(FATAL) << "TGeoManager doesn't exist !";
-    return;
-  }
-
-  TString path = Form("/cave_1/barrel_1/%s_2", GeometryTGeo::getFT3VolPattern());
-  TString sname = GeometryTGeo::composeSymNameFT3();
-
-  LOG(DEBUG) << sname << " <-> " << path;
-
-  if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data())) {
-    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
-  }
-
-  Int_t lastUID = 0;
-  for (Int_t lr = 0; lr < mNumberOfLayers; lr++) {
-    addAlignableVolumesLayer(lr, path, lastUID);
-  }
-
-  return;
-}
-
-//_________________________________________________________________________________________________
-void Detector::addAlignableVolumesLayer(int lr, TString& parent, Int_t& lastUID) const
-{
-
-  TString path = Form("%s/%s%d_1", parent.Data(), GeometryTGeo::getFT3LayerPattern(), lr);
-
-  TString sname = GeometryTGeo::composeSymNameLayer(lr);
-
-  LOG(DEBUG) << "Add " << sname << " <-> " << path;
-
-  if (!gGeoManager->SetAlignableEntry(sname, path.Data())) {
-    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
-  }
-  addAlignableVolumesChip(lr, path, lastUID);
-  return;
-}
-
-//_________________________________________________________________________________________________
-void Detector::addAlignableVolumesChip(int lr, TString& parent, Int_t& lastUID) const
-{
-
-  TString path = Form("%s/%s%d_1", parent.Data(), GeometryTGeo::getFT3ChipPattern(), lr);
-
-  TString sname = GeometryTGeo::composeSymNameChip(lr);
-  Int_t modUID = chipVolUID(lastUID++);
-
-  LOG(DEBUG) << "Add " << sname << " <-> " << path;
-
-  if (!gGeoManager->SetAlignableEntry(sname, path.Data(), modUID)) {
-    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
-  }
-  //addAlignableVolumesSensor(lr, path, lastUID);
-  return;
-}
-
-//_________________________________________________________________________________________________
-void Detector::addAlignableVolumesSensor(int lr, TString& parent, Int_t& lastUID) const
-{
-
-  TString path = Form("%s/%s%d_1", parent.Data(), GeometryTGeo::getFT3SensorPattern(), lr);
-
-  TString sname = GeometryTGeo::composeSymNameSensor(lr);
-  Int_t modUID = chipVolUID(lastUID++);
-
-  LOG(DEBUG) << "Add " << sname << " <-> " << path;
-
-  if (!gGeoManager->SetAlignableEntry(sname, path.Data(), modUID)) {
-    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
-  }
-
-  return;
 }
 
 //_________________________________________________________________________________________________
@@ -453,13 +397,16 @@ void Detector::defineSensitiveVolumes()
   TGeoVolume* v;
 
   TString volumeName;
+  LOG(INFO) << "Adding FT3 Sensitive Volumes";
 
-  // The names of the FT3 sensitive volumes have the format: FT3Sensor(0...sNumberLayers-1)
-  for (Int_t j = 0; j < mNumberOfLayers; j++) {
-    volumeName = o2::ft3::GeometryTGeo::getFT3SensorPattern() + std::to_string(j);
-    v = geoManager->GetVolume(volumeName.Data());
-    LOG(INFO) << "Adding FT3 Sensitive Volume => " << v->GetName() << std::endl;
-    AddSensitiveVolume(v);
+  // The names of the FT3 sensitive volumes have the format: FT3Sensor_(0,1)_(0...sNumberLayers-1)
+  for (Int_t direction : {0, 1}) {
+    for (Int_t iLayer = 0; iLayer < mNumberOfLayers; iLayer++) {
+      volumeName = o2::ft3::GeometryTGeo::getFT3SensorPattern() + std::to_string(iLayer);
+      v = geoManager->GetVolume(Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), direction, iLayer));
+      LOG(INFO) << "Adding FT3 Sensitive Volume => " << v->GetName() << std::endl;
+      AddSensitiveVolume(v);
+    }
   }
 }
 
@@ -470,89 +417,6 @@ Hit* Detector::addHit(int trackID, int detID, const TVector3& startPos, const TV
 {
   mHits->emplace_back(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
   return &(mHits->back());
-}
-
-//_________________________________________________________________________________________________
-void Detector::Print(std::ostream* os) const
-{
-  // Standard output format for this class.
-  // Inputs:
-  //   ostream *os   The output stream
-  // Outputs:
-  //   none.
-  // Return:
-  //   none.
-
-#if defined __GNUC__
-#if __GNUC__ > 2
-  std::ios::fmtflags fmt;
-#else
-  Int_t fmt;
-#endif
-#else
-#if defined __ICC || defined __ECC || defined __xlC__
-  ios::fmtflags fmt;
-#else
-  Int_t fmt;
-#endif
-#endif
-  // RS: why do we need to pring this garbage?
-
-  // fmt = os->setf(std::ios::scientific); // set scientific floating point output
-  // fmt = os->setf(std::ios::hex); // set hex for mStatus only.
-  // fmt = os->setf(std::ios::dec); // every thing else decimel.
-  //  *os << mModule << " ";
-  //  *os << mEnergyDepositionStep << " " << mTof;
-  //  *os << " " << mStartingStepX << " " << mStartingStepY << " " << mStartingStepZ;
-  //    *os << " " << endl;
-  // os->flags(fmt); // reset back to old formating.
-  return;
-}
-
-//_________________________________________________________________________________________________
-void Detector::Read(std::istream* is)
-{
-  // Standard input format for this class.
-  // Inputs:
-  //   istream *is  the input stream
-  // Outputs:
-  //   none.
-  // Return:
-  //   none.
-  // RS no need to read garbage
-  return;
-}
-
-//_________________________________________________________________________________________________
-std::ostream& operator<<(std::ostream& os, Detector& p)
-{
-  // Standard output streaming function.
-  // Inputs:
-  //   ostream os  The output stream
-  //   Detector p The his to be printed out
-  // Outputs:
-  //   none.
-  // Return:
-  //   The input stream
-
-  p.Print(&os);
-  return os;
-}
-
-//_________________________________________________________________________________________________
-std::istream& operator>>(std::istream& is, Detector& r)
-{
-  // Standard input streaming function.
-  // Inputs:
-  //   istream is  The input stream
-  //   Detector p The Detector class to be filled from this input stream
-  // Outputs:
-  //   none.
-  // Return:
-  //   The input stream
-
-  r.Read(&is);
-  return is;
 }
 
 ClassImp(o2::ft3::Detector);

@@ -34,7 +34,7 @@ class FT3Layer : public TObject
   FT3Layer() = default;
 
   // Sample layer constructor
-  FT3Layer(Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t rOut, Float_t sensorThickness, Float_t Layerx2X0);
+  FT3Layer(Int_t layerDirection, Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t rOut, Float_t sensorThickness, Float_t Layerx2X0);
 
   /// Copy constructor
   FT3Layer(const FT3Layer&) = default;
@@ -43,7 +43,7 @@ class FT3Layer : public TObject
   FT3Layer& operator=(const FT3Layer&) = default;
 
   /// Default destructor
-  ~FT3Layer() = default;
+  ~FT3Layer() override;
 
   /// Creates the actual Layer and places inside its mother volume
   /// \param motherVolume the TGeoVolume owing the volume structure
@@ -51,6 +51,7 @@ class FT3Layer : public TObject
 
  private:
   Int_t mLayerNumber = -1;   ///< Current layer number
+  Int_t mDirection;          ///< Layer direction 0=Forward 1 = Backward
   std::string mLayerName;    ///< Current layer name
   Double_t mInnerRadius;     ///< Inner radius of this layer
   Double_t mOuterRadius;     ///< Outer radius of this layer

@@ -37,13 +37,16 @@ using namespace o2::itsmft;
 
 ClassImp(FT3Layer);
 
-FT3Layer::FT3Layer(Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t rOut, Float_t sensorThickness, Float_t Layerx2X0)
+FT3Layer::~FT3Layer() = default;
+
+FT3Layer::FT3Layer(Int_t layerDirection, Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t rOut, Float_t sensorThickness, Float_t Layerx2X0)
 {
   // Creates a simple parametrized EndCap layer covering the given
   // pseudorapidity range at the z layer position
+  mDirection = layerDirection;
   mLayerNumber = layerNumber;
   mLayerName = layerName;
-  mZ = z;
+  mZ = layerDirection ? std::abs(z) : -std::abs(z);
   mx2X0 = Layerx2X0;
   mSensorThickness = sensorThickness;
   mInnerRadius = rIn;
@@ -65,8 +68,7 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
     // Create tube, set sensitive volume, add to mother volume
 
     std::string chipName = o2::ft3::GeometryTGeo::getFT3ChipPattern() + std::to_string(mLayerNumber),
-                sensName = o2::ft3::GeometryTGeo::getFT3SensorPattern() + std::to_string(mLayerNumber);
-
+                sensName = Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), mDirection, mLayerNumber);
     TGeoTube* sensor = new TGeoTube(mInnerRadius, mOuterRadius, mSensorThickness / 2);
     TGeoTube* chip = new TGeoTube(mInnerRadius, mOuterRadius, mChipThickness / 2);
     TGeoTube* layer = new TGeoTube(mInnerRadius, mOuterRadius, mChipThickness / 2);
