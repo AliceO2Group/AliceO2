@@ -85,7 +85,7 @@ class Digits2Raw
   int32_t mNEmpty = -1;                                                 /// Number of clean empty bunches for pedestal evaluation
   std::array<uint16_t, o2::constants::lhc::LHCMaxBunches> mEmpty = {0}; /// Clean empty bunches along orbit
   uint32_t mLastNEmpty = 0;                                             /// Last number of empty bunches used
-  Double_t mSumPed[NModules][NChPerModule] = {0};                       /// Pedestal integrated on clean empty bunches
+  double mSumPed[NModules][NChPerModule] = {0};                         /// Pedestal integrated on clean empty bunches
   uint16_t mPed[NModules][NChPerModule] = {0};                          /// Current pedestal
 
   o2::raw::RawFileWriter mWriter{"ZDC"};
