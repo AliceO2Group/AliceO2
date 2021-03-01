@@ -101,7 +101,7 @@ struct TaskX {
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<AddCollisionId>("hf-task-add-collisionId"),
+    adaptAnalysisTask<AddCollisionId>("hf-task-x-add-collisionId"),
     adaptAnalysisTask<TaskX>("hf-task-x")};
   return workflow;
 }
