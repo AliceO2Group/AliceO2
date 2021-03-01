@@ -50,16 +50,15 @@ struct AddCollisionId {
   }
 };
 
-/// X analysis task
+/// X(3872) analysis task
 /// FIXME: Still need to remove track duplication!!!
 struct TaskX {
   HistogramRegistry registry{
     "registry",
-    {{"hmassJpsi", "2-prong candidates;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
-     {"hmassX", "3-prong candidates;inv. mass (#J/psi pi+ pi-) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
-     {"hptcand", "X candidates;candidate #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}}}};
+    {{"hMassJpsi", "2-prong candidates;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
+     {"hPtCand", "X candidates;candidate #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}}}};
 
-  Configurable<int> d_selectionFlagJpsi{"d_selectionFlagJpsi", 1, "Selection Flag for Jpsi"};
+  Configurable<int> selectionFlagJpsi{"selectionFlagJpsi", 1, "Selection Flag for Jpsi"};
   Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsiToEE >= d_selectionFlagJpsi);
@@ -80,25 +79,25 @@ struct TaskX {
       int index1jpsi = candidate.index1Id();
       auto JpsiTrackPos = candidate.index0();
       auto JpsiTrackNeg = candidate.index1();
-      for (auto trackPos1 = tracks.begin(); trackPos1 != tracks.end(); ++trackPos1) {
-        if (trackPos1.signed1Pt() < 0) {
+      for (auto trackPos = tracks.begin(); trackPos != tracks.end(); ++trackPos) {
+        if (trackPos.signed1Pt() < 0) {
           continue;
         }
-        if (trackPos1.globalIndex() == index0jpsi){
-          printf("pos track id check: %ld, %u\n", trackPos1.globalIndex(), index0jpsi);
-          printf("pos track pt check: %f, %f\n", JpsiTrackPos.pt(), trackPos1.pt());
+        if (trackPos.globalIndex() == index0jpsi){
+          printf("pos track id check: %ld, %u\n", trackPos.globalIndex(), index0jpsi);
+          printf("pos track pt check: %f, %f\n", JpsiTrackPos.pt(), trackPos.pt());
           continue;
         }
-        for (auto trackNeg1 = tracks.begin(); trackNeg1 != tracks.end(); ++trackNeg1) {
-          if (trackNeg1.signed1Pt() > 0) {
+        for (auto trackNeg = tracks.begin(); trackNeg != tracks.end(); ++trackNeg) {
+          if (trackNeg.signed1Pt() > 0) {
             continue;
           }
-          if (trackNeg1.globalIndex() == index1jpsi){
-            printf("neg track id check: %ld, %u\n", trackNeg1.globalIndex(), index1jpsi);
-            printf("neg track pt check: %f, %f\n", JpsiTrackNeg.pt(), trackNeg1.pt());
+          if (trackNeg.globalIndex() == index1jpsi){
+            printf("neg track id check: %ld, %u\n", trackNeg.globalIndex(), index1jpsi);
+            printf("neg track pt check: %f, %f\n", JpsiTrackNeg.pt(), trackNeg.pt());
             continue;
           }
-          registry.fill(HIST("hptcand"), candidate.pt() + trackPos1.pt() + trackNeg1.pt());
+          registry.fill(HIST("hptcand"), candidate.pt() + trackPos.pt() + trackNeg.pt());
         } // pi- loop
       } // pi+ loop
     } // Jpsi loop
