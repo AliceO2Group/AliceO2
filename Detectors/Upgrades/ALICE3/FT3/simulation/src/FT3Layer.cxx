@@ -8,14 +8,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file EC0Layer.cxx
-/// \brief Implementation of the EC0Layer class
+/// \file FT3Layer.cxx
+/// \brief Implementation of the FT3Layer class
 /// \author Mario Sitta <sitta@to.infn.it>
 /// \author Chinorat Kobdaj (kobdaj@g.sut.ac.th)
 
-#include "EC0Simulation/EC0Layer.h"
-#include "EC0Base/GeometryTGeo.h"
-#include "EC0Simulation/Detector.h"
+#include "FT3Simulation/FT3Layer.h"
+#include "FT3Base/GeometryTGeo.h"
+#include "FT3Simulation/Detector.h"
 
 #include "FairLogger.h" // for LOG
 
@@ -32,12 +32,12 @@
 class TGeoMedium;
 
 using namespace TMath;
-using namespace o2::ec0;
+using namespace o2::ft3;
 using namespace o2::itsmft;
 
-ClassImp(EC0Layer);
+ClassImp(FT3Layer);
 
-EC0Layer::EC0Layer(Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t rOut, Float_t sensorThickness, Float_t Layerx2X0)
+FT3Layer::FT3Layer(Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t rOut, Float_t sensorThickness, Float_t Layerx2X0)
 {
   // Creates a simple parametrized EndCap layer covering the given
   // pseudorapidity range at the z layer position
@@ -56,23 +56,23 @@ EC0Layer::EC0Layer(Int_t layerNumber, std::string layerName, Float_t z, Float_t 
     LOG(INFO) << " WARNING: Chip cannot be thinner than sensor. Setting minimal chip thickness.";
     mChipThickness = mSensorThickness;
   }
-  LOG(INFO) << "Creating EC0 Layer " << mLayerNumber << ": z = " << mZ << " ; R_in = " << mInnerRadius << " ; R_out = " << mOuterRadius << " ; ChipThickness = " << mChipThickness;
+  LOG(INFO) << "Creating FT3 Layer " << mLayerNumber << ": z = " << mZ << " ; R_in = " << mInnerRadius << " ; R_out = " << mOuterRadius << " ; ChipThickness = " << mChipThickness;
 }
 
-void EC0Layer::createLayer(TGeoVolume* motherVolume)
+void FT3Layer::createLayer(TGeoVolume* motherVolume)
 {
   if (mLayerNumber >= 0) {
     // Create tube, set sensitive volume, add to mother volume
 
-    std::string chipName = o2::ec0::GeometryTGeo::getEC0ChipPattern() + std::to_string(mLayerNumber),
-                sensName = o2::ec0::GeometryTGeo::getEC0SensorPattern() + std::to_string(mLayerNumber);
+    std::string chipName = o2::ft3::GeometryTGeo::getFT3ChipPattern() + std::to_string(mLayerNumber),
+                sensName = o2::ft3::GeometryTGeo::getFT3SensorPattern() + std::to_string(mLayerNumber);
 
     TGeoTube* sensor = new TGeoTube(mInnerRadius, mOuterRadius, mSensorThickness / 2);
     TGeoTube* chip = new TGeoTube(mInnerRadius, mOuterRadius, mChipThickness / 2);
     TGeoTube* layer = new TGeoTube(mInnerRadius, mOuterRadius, mChipThickness / 2);
 
-    TGeoMedium* medSi = gGeoManager->GetMedium("EC0_SI$");
-    TGeoMedium* medAir = gGeoManager->GetMedium("EC0_AIR$");
+    TGeoMedium* medSi = gGeoManager->GetMedium("FT3_SI$");
+    TGeoMedium* medAir = gGeoManager->GetMedium("FT3_AIR$");
 
     TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medSi);
     TGeoVolume* chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);

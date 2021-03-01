@@ -8,42 +8,42 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file EC0Layer.h
-/// \brief Definition of the EC0Layer class
+/// \file FT3Layer.h
+/// \brief Definition of the FT3Layer class
 
-#ifndef ALICEO2_EC0_UPGRADEV3LAYER_H_
-#define ALICEO2_EC0_UPGRADEV3LAYER_H_
+#ifndef ALICEO2_FT3_UPGRADEV3LAYER_H_
+#define ALICEO2_FT3_UPGRADEV3LAYER_H_
 
 #include <TGeoManager.h>            // for gGeoManager
 #include "Rtypes.h"                 // for Double_t, Int_t, Bool_t, etc
-#include "EC0Simulation/Detector.h" // for Detector, Detector::Model
+#include "FT3Simulation/Detector.h" // for Detector, Detector::Model
 
 class TGeoVolume;
 
 namespace o2
 {
-namespace ec0
+namespace ft3
 {
 
-/// This class defines the Geometry for the EC0 Layer TGeo. This is a work class used
+/// This class defines the Geometry for the FT3 Layer TGeo. This is a work class used
 /// to study different configurations during the development of the ALICE3 EndCaps
-class EC0Layer : public TObject
+class FT3Layer : public TObject
 {
  public:
   // Default constructor
-  EC0Layer() = default;
+  FT3Layer() = default;
 
   // Sample layer constructor
-  EC0Layer(Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t rOut, Float_t sensorThickness, Float_t Layerx2X0);
+  FT3Layer(Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t rOut, Float_t sensorThickness, Float_t Layerx2X0);
 
   /// Copy constructor
-  EC0Layer(const EC0Layer&) = default;
+  FT3Layer(const FT3Layer&) = default;
 
   /// Assignment operator
-  EC0Layer& operator=(const EC0Layer&) = default;
+  FT3Layer& operator=(const FT3Layer&) = default;
 
   /// Default destructor
-  ~EC0Layer() = default;
+  ~FT3Layer() = default;
 
   /// Creates the actual Layer and places inside its mother volume
   /// \param motherVolume the TGeoVolume owing the volume structure
@@ -59,9 +59,9 @@ class EC0Layer : public TObject
   Double_t mChipThickness;   ///< Chip thickness
   Double_t mx2X0;            ///< Layer material budget x/X0
 
-  ClassDefOverride(EC0Layer, 0); // ALICE 3 EndCaps geometry
+  ClassDefOverride(FT3Layer, 0); // ALICE 3 EndCaps geometry
 };
-} // namespace ec0
+} // namespace ft3
 } // namespace o2
 
 #endif

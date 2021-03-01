@@ -39,7 +39,7 @@ target_link_libraries(allsim
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::Alice3DetectorsPassive>
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::ITS3Simulation>
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::TRKSimulation>
-                                $<$<BOOL:${ENABLE_UPGRADES}>:O2::EC0Simulation>
+                                $<$<BOOL:${ENABLE_UPGRADES}>:O2::FT3Simulation>
                                 O2::Generators)
 
 add_library(internal::allsim ALIAS allsim)

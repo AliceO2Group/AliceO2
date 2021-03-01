@@ -48,7 +48,7 @@
 #ifdef ENABLE_UPGRADES
 #include <ITS3Simulation/Detector.h>
 #include <TRKSimulation/Detector.h>
-#include <EC0Simulation/Detector.h>
+#include <FT3Simulation/Detector.h>
 #include <Alice3DetectorsPassive/Pipe.h>
 #endif
 
@@ -195,10 +195,10 @@ void build_geometry(FairRunSim* run = nullptr)
     run->AddModule(trk);
   }
 
-  if (isActivated("EC0")) {
-    // EC0
-    auto ec0 = new o2::ec0::Detector(true);
-    run->AddModule(ec0);
+  if (isActivated("FT3")) {
+    // ALICE 3 FT3
+    auto ft3 = new o2::ft3::Detector(true);
+    run->AddModule(ft3);
   }
 #endif
 

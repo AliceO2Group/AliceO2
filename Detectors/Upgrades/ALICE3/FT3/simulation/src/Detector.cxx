@@ -12,9 +12,9 @@
 /// \brief Implementation of the Detector class
 
 #include "ITSMFTSimulation/Hit.h"
-#include "EC0Base/GeometryTGeo.h"
-#include "EC0Simulation/Detector.h"
-#include "EC0Simulation/EC0Layer.h"
+#include "FT3Base/GeometryTGeo.h"
+#include "FT3Simulation/Detector.h"
+#include "FT3Simulation/FT3Layer.h"
 
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
@@ -47,21 +47,21 @@ class TParticle;
 using std::cout;
 using std::endl;
 
-using namespace o2::ec0;
+using namespace o2::ft3;
 using o2::itsmft::Hit;
 
 //_________________________________________________________________________________________________
 Detector::Detector()
-  : o2::base::DetImpl<Detector>("EC0", kTRUE),
+  : o2::base::DetImpl<Detector>("FT3", kTRUE),
     mTrackData(),
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
 {
 }
 
 //_________________________________________________________________________________________________
-void Detector::buildBasicEC0(int nLayers, Float_t z_first, Float_t z_length, Float_t etaIn, Float_t etaOut, Float_t Layerx2X0)
+void Detector::buildBasicFT3(int nLayers, Float_t z_first, Float_t z_length, Float_t etaIn, Float_t etaOut, Float_t Layerx2X0)
 {
-  // Build a basic parametrized EC0 detector with nLayers equally spaced between z_first and z_first+z_length
+  // Build a basic parametrized FT3 detector with nLayers equally spaced between z_first and z_first+z_length
   // Covering pseudo rapidity [etaIn,etaOut]. Passive silicon thinkness computed to match layer x/X0
 
   mNumberOfLayers = nLayers;
@@ -70,7 +70,7 @@ void Detector::buildBasicEC0(int nLayers, Float_t z_first, Float_t z_length, Flo
   mLayerID.resize(mNumberOfLayers);
 
   for (int layerNumber = 0; layerNumber < mNumberOfLayers; layerNumber++) {
-    std::string layerName = GeometryTGeo::getEC0LayerPattern() + std::to_string(layerNumber);
+    std::string layerName = GeometryTGeo::getFT3LayerPattern() + std::to_string(layerNumber);
     mLayerName[layerNumber] = layerName;
 
     // Adds evenly spaced layers
@@ -83,9 +83,9 @@ void Detector::buildBasicEC0(int nLayers, Float_t z_first, Float_t z_length, Flo
 }
 
 //_________________________________________________________________________________________________
-void Detector::buildEC0V1()
+void Detector::buildFT3V1()
 {
-  //Build EC0 detector according to
+  //Build FT3 detector according to
   //https://indico.cern.ch/event/992488/contributions/4174473/attachments/2168881/3661331/tracker_parameters_werner_jan_11_2021.pdf
 
   mNumberOfLayers = 10;
@@ -107,7 +107,7 @@ void Detector::buildEC0V1()
   mLayerID.resize(mNumberOfLayers);
 
   for (int layerNumber = 0; layerNumber < mNumberOfLayers; layerNumber++) {
-    std::string layerName = GeometryTGeo::getEC0LayerPattern() + std::to_string(layerNumber);
+    std::string layerName = GeometryTGeo::getFT3LayerPattern() + std::to_string(layerNumber);
     mLayerName[layerNumber] = layerName;
     auto& z = layersConfig[layerNumber][0];
     auto& rIn = layersConfig[layerNumber][1];
@@ -122,13 +122,13 @@ void Detector::buildEC0V1()
 
 //_________________________________________________________________________________________________
 Detector::Detector(Bool_t active)
-  : o2::base::DetImpl<Detector>("EC0", active),
+  : o2::base::DetImpl<Detector>("FT3", active),
     mTrackData(),
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
 {
 
-  //buildBasicEC0(); // BasicEC0 = Parametrized detector equidistant layers
-  buildEC0V1(); // EC0V1 = Werner's layout
+  //buildBasicFT3(); // BasicFT3 = Parametrized detector equidistant layers
+  buildFT3V1(); // FT3V1 = Werner's layout
 }
 
 //_________________________________________________________________________________________________
@@ -188,7 +188,7 @@ Detector& Detector::operator=(const Detector& rhs)
 void Detector::InitializeO2Detector()
 {
   // Define the list of sensitive volumes
-  LOG(INFO) << "Initialize EC0 O2Detector";
+  LOG(INFO) << "Initialize FT3 O2Detector";
 
   mGeometryTGeo = GeometryTGeo::Instance();
 
@@ -342,9 +342,9 @@ void Detector::createGeometry()
 
   mGeometryTGeo = GeometryTGeo::Instance();
 
-  TGeoVolume* volEC0 = new TGeoVolumeAssembly(GeometryTGeo::getEC0VolPattern());
+  TGeoVolume* volFT3 = new TGeoVolumeAssembly(GeometryTGeo::getFT3VolPattern());
 
-  LOG(INFO) << "GeometryBuilder::buildGeometry volume name = " << GeometryTGeo::getEC0VolPattern();
+  LOG(INFO) << "GeometryBuilder::buildGeometry volume name = " << GeometryTGeo::getFT3VolPattern();
 
   TGeoVolume* vALIC = gGeoManager->GetVolume("barrel");
   if (!vALIC) {
@@ -355,13 +355,13 @@ void Detector::createGeometry()
              << Form("gGeoManager name is %s title is %s", gGeoManager->GetName(), gGeoManager->GetTitle());
 
   for (int iLayer = 0; iLayer < mNumberOfLayers; iLayer++) {
-    mLayers[iLayer].createLayer(volEC0);
+    mLayers[iLayer].createLayer(volFT3);
   }
 
-  vALIC->AddNode(volEC0, 2, new TGeoTranslation(0., 30., 0.));
+  vALIC->AddNode(volFT3, 2, new TGeoTranslation(0., 30., 0.));
 
   for (int iLayer = 0; iLayer < mNumberOfLayers; iLayer++) {
-    mLayerID[iLayer] = gMC ? TVirtualMC::GetMC()->VolId(Form("%s%d", GeometryTGeo::getEC0SensorPattern(), iLayer)) : 0;
+    mLayerID[iLayer] = gMC ? TVirtualMC::GetMC()->VolId(Form("%s%d", GeometryTGeo::getFT3SensorPattern(), iLayer)) : 0;
     LOG(INFO) << "mLayerID for layer " << iLayer << " = " << mLayerID[iLayer];
   }
 }
@@ -369,15 +369,15 @@ void Detector::createGeometry()
 //_________________________________________________________________________________________________
 void Detector::addAlignableVolumes() const
 {
-  LOG(INFO) << "Add EC0 alignable volumes";
+  LOG(INFO) << "Add FT3 alignable volumes";
 
   if (!gGeoManager) {
     LOG(FATAL) << "TGeoManager doesn't exist !";
     return;
   }
 
-  TString path = Form("/cave_1/barrel_1/%s_2", GeometryTGeo::getEC0VolPattern());
-  TString sname = GeometryTGeo::composeSymNameEC0();
+  TString path = Form("/cave_1/barrel_1/%s_2", GeometryTGeo::getFT3VolPattern());
+  TString sname = GeometryTGeo::composeSymNameFT3();
 
   LOG(DEBUG) << sname << " <-> " << path;
 
@@ -397,7 +397,7 @@ void Detector::addAlignableVolumes() const
 void Detector::addAlignableVolumesLayer(int lr, TString& parent, Int_t& lastUID) const
 {
 
-  TString path = Form("%s/%s%d_1", parent.Data(), GeometryTGeo::getEC0LayerPattern(), lr);
+  TString path = Form("%s/%s%d_1", parent.Data(), GeometryTGeo::getFT3LayerPattern(), lr);
 
   TString sname = GeometryTGeo::composeSymNameLayer(lr);
 
@@ -414,7 +414,7 @@ void Detector::addAlignableVolumesLayer(int lr, TString& parent, Int_t& lastUID)
 void Detector::addAlignableVolumesChip(int lr, TString& parent, Int_t& lastUID) const
 {
 
-  TString path = Form("%s/%s%d_1", parent.Data(), GeometryTGeo::getEC0ChipPattern(), lr);
+  TString path = Form("%s/%s%d_1", parent.Data(), GeometryTGeo::getFT3ChipPattern(), lr);
 
   TString sname = GeometryTGeo::composeSymNameChip(lr);
   Int_t modUID = chipVolUID(lastUID++);
@@ -432,7 +432,7 @@ void Detector::addAlignableVolumesChip(int lr, TString& parent, Int_t& lastUID) 
 void Detector::addAlignableVolumesSensor(int lr, TString& parent, Int_t& lastUID) const
 {
 
-  TString path = Form("%s/%s%d_1", parent.Data(), GeometryTGeo::getEC0SensorPattern(), lr);
+  TString path = Form("%s/%s%d_1", parent.Data(), GeometryTGeo::getFT3SensorPattern(), lr);
 
   TString sname = GeometryTGeo::composeSymNameSensor(lr);
   Int_t modUID = chipVolUID(lastUID++);
@@ -454,11 +454,11 @@ void Detector::defineSensitiveVolumes()
 
   TString volumeName;
 
-  // The names of the EC0 sensitive volumes have the format: EC0Sensor(0...sNumberLayers-1)
+  // The names of the FT3 sensitive volumes have the format: FT3Sensor(0...sNumberLayers-1)
   for (Int_t j = 0; j < mNumberOfLayers; j++) {
-    volumeName = o2::ec0::GeometryTGeo::getEC0SensorPattern() + std::to_string(j);
+    volumeName = o2::ft3::GeometryTGeo::getFT3SensorPattern() + std::to_string(j);
     v = geoManager->GetVolume(volumeName.Data());
-    LOG(INFO) << "Adding EC0 Sensitive Volume => " << v->GetName() << std::endl;
+    LOG(INFO) << "Adding FT3 Sensitive Volume => " << v->GetName() << std::endl;
     AddSensitiveVolume(v);
   }
 }
@@ -555,4 +555,4 @@ std::istream& operator>>(std::istream& is, Detector& r)
   return is;
 }
 
-ClassImp(o2::ec0::Detector);
+ClassImp(o2::ft3::Detector);

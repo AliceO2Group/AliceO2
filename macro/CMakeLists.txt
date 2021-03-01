@@ -108,7 +108,7 @@ o2_add_test_root_macro(analyzeOriginHits.C
                                              O2::DetectorsCommonDataFormats)
 
 if(ENABLE_UPGRADES)
-  set(upgradeTargets O2::Alice3DetectorsPassive O2::ITS3Simulation O2::TRKSimulation O2::EC0Simulation)
+  set(upgradeTargets O2::Alice3DetectorsPassive O2::ITS3Simulation O2::TRKSimulation O2::FT3Simulation)
 endif()
 
 o2_add_test_root_macro(build_geometry.C

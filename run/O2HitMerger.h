@@ -66,7 +66,7 @@
 #ifdef ENABLE_UPGRADES
 #include <ITS3Simulation/Detector.h>
 #include <TRKSimulation/Detector.h>
-#include <EC0Simulation/Detector.h>
+#include <FT3Simulation/Detector.h>
 #endif
 
 namespace o2
@@ -750,8 +750,8 @@ void O2HitMerger::initDetInstances()
       mDetectorInstances[i] = std::move(std::make_unique<o2::trk::Detector>(true));
       counter++;
     }
-    if (i == DetID::EC0) {
-      mDetectorInstances[i] = std::move(std::make_unique<o2::ec0::Detector>(true));
+    if (i == DetID::FT3) {
+      mDetectorInstances[i] = std::move(std::make_unique<o2::ft3::Detector>(true));
       counter++;
     }
 #endif

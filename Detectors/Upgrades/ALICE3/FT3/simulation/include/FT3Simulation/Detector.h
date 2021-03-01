@@ -11,8 +11,8 @@
 /// \file Detector.h
 /// \brief Definition of the Detector class
 
-#ifndef ALICEO2_EC0_DETECTOR_H_
-#define ALICEO2_EC0_DETECTOR_H_
+#ifndef ALICEO2_FT3_DETECTOR_H_
+#define ALICEO2_FT3_DETECTOR_H_
 
 #include <vector>                             // for vector
 #include "DetectorsBase/GeometryManager.h"    // for getSensID
@@ -34,24 +34,24 @@ class TString;
 
 namespace o2
 {
-namespace ec0
+namespace ft3
 {
 class GeometryTGeo;
 }
 } // namespace o2
 namespace o2
 {
-namespace ec0
+namespace ft3
 {
-class EC0Layer;
+class FT3Layer;
 }
 } // namespace o2
 
 namespace o2
 {
-namespace ec0
+namespace ft3
 {
-class EC0Layer;
+class FT3Layer;
 
 class Detector : public o2::base::DetImpl<Detector>
 {
@@ -103,7 +103,7 @@ class Detector : public o2::base::DetImpl<Detector>
   void addAlignableVolumesChip(Int_t lr, TString& parent, Int_t& lastUID) const;
   void addAlignableVolumesSensor(Int_t lr, TString& parent, Int_t& lastUID) const;
 
-  Int_t chipVolUID(Int_t id) const { return o2::base::GeometryManager::getSensID(o2::detectors::DetID::EC0, id); }
+  Int_t chipVolUID(Int_t id) const { return o2::base::GeometryManager::getSensID(o2::detectors::DetID::FT3, id); }
 
   void EndOfEvent() override;
 
@@ -123,8 +123,8 @@ class Detector : public o2::base::DetImpl<Detector>
   /// Returns the number of layers
   Int_t getNumberOfLayers() const { return mNumberOfLayers; }
 
-  void buildBasicEC0(int nLayers = 10, Float_t z_first = -16.0, Float_t z_length = 263, Float_t etaIn = -4.5, Float_t etaOut = -1.5, Float_t Layerx2X0 = 0.01);
-  void buildEC0V1();
+  void buildBasicFT3(int nLayers = 10, Float_t z_first = -16.0, Float_t z_length = 263, Float_t etaIn = -4.5, Float_t etaOut = -1.5, Float_t Layerx2X0 = 0.01);
+  void buildFT3V1();
 
   GeometryTGeo* mGeometryTGeo; //! access to geometry details
 
@@ -159,7 +159,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   Detector& operator=(const Detector&);
 
-  std::vector<EC0Layer> mLayers;
+  std::vector<FT3Layer> mLayers;
 
   template <typename Det>
   friend class o2::base::DetImpl;
@@ -170,7 +170,7 @@ class Detector : public o2::base::DetImpl<Detector>
 std::ostream& operator<<(std::ostream& os, Detector& source);
 
 std::istream& operator>>(std::istream& os, Detector& source);
-} // namespace ec0
+} // namespace ft3
 } // namespace o2
 
 #ifdef USESHM
@@ -179,7 +179,7 @@ namespace o2
 namespace base
 {
 template <>
-struct UseShm<o2::ec0::Detector> {
+struct UseShm<o2::ft3::Detector> {
   static constexpr bool value = true;
 };
 } // namespace base

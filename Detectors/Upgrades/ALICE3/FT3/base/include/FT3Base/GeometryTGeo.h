@@ -14,8 +14,8 @@
 /// \author ruben.shahoyan@cern.ch - adapted to ITSupg 18/07/2012
 /// \author rafael.pezzi@cern.ch - adapted to PostLS4EndCaps 25/06/2020
 
-#ifndef ALICEO2_EC0_GEOMETRYTGEO_H_
-#define ALICEO2_EC0_GEOMETRYTGEO_H_
+#ifndef ALICEO2_FT3_GEOMETRYTGEO_H_
+#define ALICEO2_FT3_GEOMETRYTGEO_H_
 
 #include <TGeoMatrix.h> // for TGeoHMatrix
 #include <TObject.h>    // for TObject
@@ -32,10 +32,10 @@ class TGeoPNEntry;
 
 namespace o2
 {
-namespace ec0
+namespace ft3
 {
 /// GeometryTGeo is a simple interface class to TGeoManager. It is used in the simulation
-/// in order to query the TGeo EC0 geometry.
+/// in order to query the TGeo FT3 geometry.
 /// RS: In order to preserve the static character of the class but make it dynamically access
 /// geometry, we need to check in every method if the structures are initialized. To be converted
 /// to singleton at later stage.
@@ -84,16 +84,16 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   using o2::itsmft::GeometryTGeo::fillMatrixCache;
   void fillMatrixCache(int mask) override;
 
-  /// Exract EC0 parameters from TGeo
+  /// Exract FT3 parameters from TGeo
   void Build(int loadTrans = 0) override;
 
   void Print(Option_t* opt = "") const;
-  static const char* getEC0VolPattern() { return sVolumeName.c_str(); }
-  static const char* getEC0LayerPattern() { return sLayerName.c_str(); }
-  static const char* getEC0ChipPattern() { return sChipName.c_str(); }
-  static const char* getEC0SensorPattern() { return sSensorName.c_str(); }
+  static const char* getFT3VolPattern() { return sVolumeName.c_str(); }
+  static const char* getFT3LayerPattern() { return sLayerName.c_str(); }
+  static const char* getFT3ChipPattern() { return sChipName.c_str(); }
+  static const char* getFT3SensorPattern() { return sSensorName.c_str(); }
 
-  static const char* composeSymNameEC0() { return o2::detectors::DetID(o2::detectors::DetID::EC0).getName(); }
+  static const char* composeSymNameFT3() { return o2::detectors::DetID(o2::detectors::DetID::FT3).getName(); }
   static const char* composeSymNameLayer(int lr);
   static const char* composeSymNameChip(int lr);
   static const char* composeSymNameSensor(int lr);
@@ -109,11 +109,11 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static std::string sSensorName; ///< Sensor name
 
  private:
-  static std::unique_ptr<o2::ec0::GeometryTGeo> sInstance; ///< singletone instance
+  static std::unique_ptr<o2::ft3::GeometryTGeo> sInstance; ///< singletone instance
 
-  ClassDefOverride(GeometryTGeo, 1); // EC0 geometry based on TGeo
+  ClassDefOverride(GeometryTGeo, 1); // FT3 geometry based on TGeo
 };
-} // namespace ec0
+} // namespace ft3
 } // namespace o2
 
 #endif

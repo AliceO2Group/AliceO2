@@ -16,7 +16,7 @@
 
 // ATTENTION: In opposite to old AliITSgeomTGeo, all indices start from 0, not from 1!!!
 
-#include "EC0Base/GeometryTGeo.h"
+#include "FT3Base/GeometryTGeo.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "MathUtils/Cartesian.h"
 
@@ -41,26 +41,26 @@
 #include <cstring> // for strstr, strlen
 
 using namespace TMath;
-using namespace o2::ec0;
+using namespace o2::ft3;
 using namespace o2::detectors;
 
-ClassImp(o2::ec0::GeometryTGeo);
+ClassImp(o2::ft3::GeometryTGeo);
 
-std::unique_ptr<o2::ec0::GeometryTGeo> GeometryTGeo::sInstance;
+std::unique_ptr<o2::ft3::GeometryTGeo> GeometryTGeo::sInstance;
 
-std::string GeometryTGeo::sVolumeName = "EC0V";      ///< Mother volume name
-std::string GeometryTGeo::sLayerName = "EC0Layer";   ///< Layer name
-std::string GeometryTGeo::sChipName = "EC0Chip";     ///< Sensor name
-std::string GeometryTGeo::sSensorName = "EC0Sensor"; ///< Sensor name
+std::string GeometryTGeo::sVolumeName = "FT3V";      ///< Mother volume name
+std::string GeometryTGeo::sLayerName = "FT3Layer";   ///< Layer name
+std::string GeometryTGeo::sChipName = "FT3Chip";     ///< Sensor name
+std::string GeometryTGeo::sSensorName = "FT3Sensor"; ///< Sensor name
 
 //__________________________________________________________________________
-GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : o2::itsmft::GeometryTGeo(DetID::EC0)
+GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : o2::itsmft::GeometryTGeo(DetID::FT3)
 {
   // default c-tor, if build is true, the structures will be filled and the transform matrices
   // will be cached
   if (sInstance) {
-    LOG(FATAL) << "Invalid use of public constructor: o2::ec0::GeometryTGeo instance exists";
-    // throw std::runtime_error("Invalid use of public constructor: o2::ec0::GeometryTGeo instance exists");
+    LOG(FATAL) << "Invalid use of public constructor: o2::ft3::GeometryTGeo instance exists";
+    // throw std::runtime_error("Invalid use of public constructor: o2::ft3::GeometryTGeo instance exists");
   }
 
   if (build) {
@@ -87,19 +87,19 @@ void GeometryTGeo::Build(int loadTrans)
 //__________________________________________________________________________
 const char* GeometryTGeo::composeSymNameLayer(int lr)
 {
-  return Form("%s/%s%d", composeSymNameEC0(), getEC0LayerPattern(), lr);
+  return Form("%s/%s%d", composeSymNameFT3(), getFT3LayerPattern(), lr);
 }
 
 //__________________________________________________________________________
 const char* GeometryTGeo::composeSymNameChip(int lr)
 {
-  return Form("%s/%s%d", composeSymNameLayer(lr), getEC0ChipPattern(), lr);
+  return Form("%s/%s%d", composeSymNameLayer(lr), getFT3ChipPattern(), lr);
 }
 
 //__________________________________________________________________________
 const char* GeometryTGeo::composeSymNameSensor(int lr)
 {
-  return Form("%s/%s%d", composeSymNameLayer(lr), getEC0SensorPattern(), lr);
+  return Form("%s/%s%d", composeSymNameLayer(lr), getFT3SensorPattern(), lr);
 }
 
 //__________________________________________________________________________

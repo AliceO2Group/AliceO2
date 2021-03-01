@@ -14,8 +14,8 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::ec0::EC0Layer + ;
-#pragma link C++ class o2::ec0::Detector + ;
-#pragma link C++ class o2::base::DetImpl < o2::ec0::Detector> + ;
+#pragma link C++ class o2::ft3::FT3Layer + ;
+#pragma link C++ class o2::ft3::Detector + ;
+#pragma link C++ class o2::base::DetImpl < o2::ft3::Detector> + ;
 
 #endif

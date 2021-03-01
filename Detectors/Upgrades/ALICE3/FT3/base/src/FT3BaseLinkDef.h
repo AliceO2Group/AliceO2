@@ -14,6 +14,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::ec0::GeometryTGeo;
+#pragma link C++ class o2::ft3::GeometryTGeo;
 
 #endif
