@@ -176,7 +176,7 @@ struct HFCandidateCreator3ProngMC {
       // Λc± → p± K∓ π±
       if (flag == 0) {
         //Printf("Checking Λc± → p± K∓ π±");
-        auto indexRecLc = RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), 4122, array{+kProton, -kKPlus, +kPiPlus}, true, &sign, 2);
+        auto indexRecLc = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, 4122, array{+kProton, -kKPlus, +kPiPlus}, true, &sign, 2);
         if (indexRecLc > -1) {
           flag = sign * (1 << LcToPKPi);
 
@@ -251,8 +251,8 @@ struct HFCandidateCreator3ProngMC {
       // Ξc± → p± K∓ π±
       if (flag == 0) {
         //Printf("Checking Ξc± → p± K∓ π±");
-        auto indexRecXic = RecoDecay::isMatchedMCGen(particlesMC, particle, 4232, array{+kProton, -kKPlus, +kPiPlus}, true, &sign);
-        if (indexRecXic > -1) {
+        auto isMatchedGenXic = RecoDecay::isMatchedMCGen(particlesMC, particle, 4232, array{+kProton, -kKPlus, +kPiPlus}, true, &sign);
+        if (isMatchedGenXic) {
           flag = sign * (1 << XicToPKPi);
         }
       }

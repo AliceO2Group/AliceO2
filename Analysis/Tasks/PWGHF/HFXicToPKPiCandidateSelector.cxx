@@ -10,7 +10,7 @@
 
 /// \file HFXicToPKPiCandidateSelector.cxx
 /// \brief Xic->pKpi selection task.
-/// \note Inspired from HFXicToPKPiCandidateSelector.cxx
+/// \note Inspired from HFLcCandidateSelector.cxx
 ///
 /// \author Mattia Faggin <mattia.faggin@cern.ch>, University and INFN PADOVA
 
