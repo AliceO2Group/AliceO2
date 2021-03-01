@@ -123,8 +123,9 @@ int MappingHandler::getFEEForChannelInDDL(int ddl, int channelFEC, int branch)
 {
   int ddlInSupermodule = ddl % 2;
   int fecID = ddlInSupermodule ? 20 : 0;
-  if (branch)
+  if (branch) {
     fecID += 10;
+  }
   fecID += channelFEC;
   return fecID;
 }
