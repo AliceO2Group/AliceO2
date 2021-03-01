@@ -73,7 +73,9 @@ void TrackerDPL::init(InitContext& ic)
     std::vector<TrackingParameters> trackParams;
     std::vector<MemoryParameters> memParams;
 
-    if (mMode == "sync") {
+    mRunVertexer = true;
+    if (mMode == "async") {
+
       trackParams.resize(3);
       memParams.resize(3);
       trackParams[0].TrackletMaxDeltaPhi = 0.05f;
@@ -81,14 +83,19 @@ void TrackerDPL::init(InitContext& ic)
       trackParams[2].MinTrackLength = 4;
       trackParams[2].TrackletMaxDeltaPhi = 0.3;
       LOG(INFO) << "Initializing tracker in async. phase reconstruction with " << trackParams.size() << " passes";
-    } else if (mMode == "async") {
+
+    } else if (mMode == "sync") {
+
       trackParams.resize(1);
       memParams.resize(1);
       LOG(INFO) << "Initializing tracker in sync. phase reconstruction with " << trackParams.size() << " passes";
+
     } else if (mMode == "cosmics") {
+
+      mRunVertexer = false;
       trackParams.resize(1);
       memParams.resize(1);
-      trackParams[0].MinTrackLength = 3;
+      trackParams[0].MinTrackLength = 4;
       trackParams[0].TrackletMaxDeltaPhi = o2::its::constants::math::Pi * 0.5f;
       for (int iLayer = 0; iLayer < o2::its::constants::its2::TrackletsPerRoad; iLayer++) {
         trackParams[0].TrackletMaxDeltaZ[iLayer] = o2::its::constants::its2::LayersZCoordinate()[iLayer + 1];
@@ -101,6 +108,7 @@ void TrackerDPL::init(InitContext& ic)
         memParams[0].CellsMemoryCoefficients[iLayer] = 0.001f;
       }
       LOG(INFO) << "Initializing tracker in reconstruction for cosmics with " << trackParams.size() << " passes";
+
     } else {
       throw std::runtime_error(fmt::format("Unsupported ITS tracking mode {:s} ", mMode));
     }
@@ -214,10 +222,13 @@ void TrackerDPL::run(ProcessingContext& pc)
           }
         }
 
-        mVertexer->clustersToVertices(event);
-        auto vtxVecLoc = mVertexer->exportVertices();
+        std::vector<Vertex> vtxVecLoc;
+        if (mRunVertexer) {
+          mVertexer->clustersToVertices(event);
+          vtxVecLoc = mVertexer->exportVertices();
+        }
 
-        if (multEstConf.cutMultVtxLow > 0 || multEstConf.cutMultVtxHigh > 0) { // cut was requested
+        if (mRunVertexer && (multEstConf.cutMultVtxLow > 0 || multEstConf.cutMultVtxHigh > 0)) { // cut was requested
           std::vector<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>> vtxVecSel;
           vtxVecSel.swap(vtxVecLoc);
           for (const auto& vtx : vtxVecSel) {
@@ -235,7 +246,11 @@ void TrackerDPL::run(ProcessingContext& pc)
           }
         }
 
-        event.addPrimaryVertices(vtxVecLoc);
+        if (mRunVertexer) {
+          event.addPrimaryVertices(vtxVecLoc);
+        } else {
+          event.addPrimaryVertex(0.f, 0.f, 0.f);
+        }
         mTracker->setROFrame(roFrame);
         mTracker->clustersToTracks(event);
         tracks.swap(mTracker->getTracks());
