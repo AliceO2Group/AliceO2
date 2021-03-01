@@ -12,7 +12,7 @@
 /// \file   HmpidDecoder.cxx
 /// \author Antonio Franco - INFN Bari
 /// \brief Base Class to decode HMPID Raw Data stream
-/// \version 1.0
+/// \version 1.1
 /// \date 17/11/2020
 
 /* ------ HISTORY ---------
@@ -84,7 +84,7 @@ HmpidDecoder::~HmpidDecoder()
   }
 }
 
-/// Resets to 0 all the class members
+/// Init all the members variables.
 void HmpidDecoder::init()
 {
   mRDHAcceptedVersion = 6;
@@ -182,7 +182,7 @@ int HmpidDecoder::getEquipmentID(int CruId, int LinkId)
 /// @returns Type of Word : the type of word [0..4] (0 := undetect)
 int HmpidDecoder::checkType(uint32_t wp, int* p1, int* p2, int* p3, int* p4)
 {
-  if ((wp & 0x0000ffff) == 0x36A8 || (wp & 0x0000ffff) == 0x32A8 || (wp & 0x0000ffff) == 0x30A0 || (wp & 0x0800ffff) == 0x080010A0) {
+  if ((wp & 0x0000ffff) == 0x000036A8 || (wp & 0x0000ffff) == 0x000032A8 || (wp & 0x0000ffff) == 0x000030A0 || (wp & 0x0800ffff) == 0x080010A0) {
     *p2 = (wp & 0x03ff0000) >> 16; // Number of words of row
     *p1 = wp & 0x0000ffff;
     return (WTYPE_ROW);
@@ -252,7 +252,6 @@ bool HmpidDecoder::isSegmentMarker(uint32_t wp, int* Err, int* segSize, int* Seg
     *segSize = (wp & 0x000fff00) >> 8; // # Number of words of Segment
     *mark = (wp & 0xfff00000) >> 20;
     *Seg = wp & 0x0000000F;
-
     if (*Seg > 3 || *Seg < 1) {
       LOG(INFO) << " Wrong segment Marker Word, bad Number of segment" << *Seg << "!";
       *Err = true;
@@ -275,19 +274,27 @@ bool HmpidDecoder::isSegmentMarker(uint32_t wp, int* Err, int* segSize, int* Seg
 bool HmpidDecoder::isPadWord(uint32_t wp, int* Err, int* Col, int* Dilogic, int* Channel, int* Charge)
 {
   *Err = false;
-  if ((wp & 0x0000ffff) == 0x36A8 || (wp & 0x0000ffff) == 0x32A8 || (wp & 0x0000ffff) == 0x30A0 || (wp & 0x0800ffff) == 0x080010A0 || (wp & 0x08000000) != 0) { //  # ! this is a pad
+  //  if ((wp & 0x08000000) != 0) {
+  if ((wp & 0x08000000) != 0) {
     return (false);
-  } else {
-    *Col = (wp & 0x07c00000) >> 22;
-    *Dilogic = (wp & 0x003C0000) >> 18;
-    *Channel = (wp & 0x0003F000) >> 12;
-    *Charge = (wp & 0x00000FFF);
-    if (*Dilogic > 10 || *Channel > 47 || *Dilogic < 1 || *Col > 24 || *Col < 1) {
-      LOG(WARNING) << " Wrong Pad values Col=" << *Col << " Dilogic=" << *Dilogic << " Channel=" << *Channel << " Charge=" << *Charge;
-      *Err = true;
-    }
-    return (true);
   }
+  *Col = (wp & 0x07c00000) >> 22;
+  *Dilogic = (wp & 0x003C0000) >> 18;
+  *Channel = (wp & 0x0003F000) >> 12;
+  *Charge = (wp & 0x00000FFF);
+
+  if ((wp & 0x0ffff) == 0x036A8 || (wp & 0x0ffff) == 0x032A8 || (wp & 0x0ffff) == 0x030A0 || (wp & 0x0ffff) == 0x010A0) { //  # ! this is a pad
+    if (*Dilogic > 10 || *Channel > 47 || *Dilogic < 1 || *Col > 24 || *Col < 1) {
+      return (false);
+    }
+  } else {
+    if (*Dilogic > 10 || *Channel > 47 || *Dilogic < 1 || *Col > 24 || *Col < 1) {
+      //    LOG(WARNING) << " Wrong Pad values Col=" << *Col << " Dilogic=" << *Dilogic << " Channel=" << *Channel << " Charge=" << *Charge << " wp:0x" << std::hex << wp << std::dec;
+      *Err = true;
+      return (false);
+    }
+  }
+  return (true);
 }
 
 /// Checks if is a EoE Marker and extracts the Column, Dilogic and the size
@@ -434,7 +441,7 @@ void HmpidDecoder::updateStatistics(HmpidEquipment* eq)
   eq->mTotalPads += eq->mSampleNumber;
   eq->mTotalErrors += eq->mErrorsCounter;
 
-  // std::cout << ">>>>.. end >>> "<<eq->mNumberOfEvents<<" :" <<eq->mEventSize<<","<< eq->mEventSizeAverage<< ", "<<eq->mEventNumber<<" "<<mHeEvent<<std::endl;
+  //std::cout << ">>>updateStatistics() >>> "<< eq->getEquipmentId() << "="<< eq->mNumberOfEvents<<" :" << eq->mEventSize <<","<< eq->mTotalPads << ", " << eq->mSampleNumber << std::endl;
 
   return;
 }
@@ -468,6 +475,11 @@ HmpidEquipment* HmpidDecoder::evaluateHeaderContents(int EquipmentIndex)
   return (eq);
 }
 
+/// --------------- Decode One Page from Data Buffer ---------------
+/// Read the stream, decode the contents and store resuls.
+/// ATTENTION : Assumes that the input stream was set
+/// @throws TH_WRONGHEADER Thrown if the Fails to decode the Header
+/// @param[in] streamBuf : the pointer to the Pointer of the Stream Buffer
 void HmpidDecoder::decodePage(uint32_t** streamBuf)
 {
   int equipmentIndex;
@@ -502,7 +514,6 @@ void HmpidDecoder::decodePage(uint32_t** streamBuf)
       if (!getWordFromStream(&wp)) { // end the stream
         break;
       }
-
       type = checkType(wp, &p1, &p2, &p3, &p4);
       if (type == WTYPE_NONE) {
         if (eq->mWillBePad == true) { // try to recover the first pad !
@@ -520,7 +531,9 @@ void HmpidDecoder::decodePage(uint32_t** streamBuf)
         continue;
       }
     }
-
+    if (mEquipment == 8) {
+      LOG(INFO) << "Event" << eq->mEventNumber << " >" << std::hex << wp << std::dec << "<" << type;
+    }
     if (eq->mWillBeRowMarker == true) { // #shoud be a Row Marker
       if (type == WTYPE_ROW) {
         eq->mColumnCounter++;
@@ -601,6 +614,9 @@ void HmpidDecoder::decodePage(uint32_t** streamBuf)
           }
         } else {
           setPad(eq, p1 - 1, p2 - 1, p3, p4);
+          if (mEquipment == 8) {
+            LOG(INFO) << "Event" << eq->mEventNumber << " >" << p1 - 1 << "," << p2 - 1 << "," << p3 << "," << p4;
+          }
           eq->mWordsPerDilogicCounter++;
           eq->mSampleNumber++;
           if (p3 == 47) {
@@ -760,6 +776,11 @@ bool HmpidDecoder::decodeBuffer()
   return (true);
 }
 
+/// --------- Decode One Page from Data Buffer with Fast Decoding --------
+/// Read the stream, decode the contents and store resuls.
+/// ATTENTION : Assumes that the input stream was set
+/// @throws TH_WRONGHEADER Thrown if the Fails to decode the Header
+/// @param[in] streamBuf : the pointer to the Pointer of the Stream Buffer
 void HmpidDecoder::decodePageFast(uint32_t** streamBuf)
 {
   int equipmentIndex;
@@ -776,15 +797,12 @@ void HmpidDecoder::decodePageFast(uint32_t** streamBuf)
     LOG(INFO) << "Failed to decode the Header !";
     throw TH_WRONGHEADER;
   }
-
   HmpidEquipment* eq = evaluateHeaderContents(equipmentIndex);
-
   uint32_t wpprev = 0;
   uint32_t wp = 0;
   int newOne = true;
   int Column, Dilogic, Channel, Charge;
   int pwer;
-
   int payIndex = 0;
   while (payIndex < mNumberWordToRead) { //start the payload loop word by word
     wpprev = wp;
@@ -820,7 +838,6 @@ bool HmpidDecoder::decodeBufferFast()
     mTheEquipments[i]->init();
     mTheEquipments[i]->resetPadMap();
   }
-
   uint32_t* streamBuf;
   LOG(INFO) << "Enter FAST decoding !";
 

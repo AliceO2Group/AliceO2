@@ -114,6 +114,38 @@ Example
 [O2Suite/latest-o2] ~/Downloads/provaRec $> o2-hmpid-read-raw-file-workflow --raw-file test_full_flp1.raw -b | o2-hmpid-raw-to-digits-workflow -b | o2-hmpid-write-root-from-digits-workflow -b
 ```
 
+### o2-hmpid-write-raw-from-root-workflow
+Write raw files with the digits information contained in a root file
+
+```
+o2-hmpid-write-raw-from-root-workflow
+```
+
+Data processor options: HMP-WriteRawFromRootFile:
+
+```
+  --out-file arg (=hmpidRaw)            prefix name of the output raw file
+  --in-file arg (=simulation.root)      name of the input sim root file
+  --per-flp-file                        produce one raw file per FLPs (suffix 160 and 161)
+  --dump-digits                         out the digits in a ASCII file named /tmp/hmpDumpDigits.dat
+  --skip-empty                          skip empty events (not yet implemented)
+```
+
+Example
+
+```
+[O2Suite/latest-o2] ~/Downloads/provaRec $>o2-sim-serial -m HMP -n 20 -e TGeant4 -g pythia8hi
+[O2Suite/latest-o2] ~/Downloads/provaRec $>o2-sim-digitizer-workflow --onlyDet HMP
+[O2Suite/latest-o2] ~/Downloads/provaRec $>o2-hmpid-write-raw-from-root-workflow --in-file hmpiddigits.root --out-file hmpRawFromRoot --dump-digits -b
+```
+
+in order to verify the write, the inverse decoding of raw file
+
+```
+[O2Suite/latest-o2] ~/Downloads/provaRec $>o2-hmpid-read-raw-file-workflow --raw-file hmpRawFromRoot.raw -b | o2-hmpid-raw-to-digits-workflow -b | o2-hmpid-dump-digits-workflow --out-file /tmp/hmpDumpDigitsVerify.dat
+```
+
+
 ### o2-hmpid-raw-to-pedestals-workflow
 Write the Pedestals/Threshold files for the readout and registers Mean and Sigma in the CCDB
 

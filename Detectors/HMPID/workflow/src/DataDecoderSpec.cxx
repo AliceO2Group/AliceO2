@@ -113,10 +113,17 @@ void DataDecoderTask::endOfStream(framework::EndOfStreamContext& ec)
   theObj[Geo::N_MODULES]->Branch("Average_Event_Size", &avgEventSize, "F");
   theObj[Geo::N_MODULES]->Branch("Average_Busy_Time", &avgBusyTime, "F");
 
+  // Update the Stat for the Decoding
+  int numEqui = mDeco->getNumberOfEquipments();
+  // cycle in order to update info for the last event
+  for (int i = 0; i < numEqui; i++) {
+    if (mDeco->mTheEquipments[i]->mNumberOfEvents > 0) {
+      mDeco->updateStatistics(mDeco->mTheEquipments[i]);
+    }
+  }
   char summaryFileName[254];
   sprintf(summaryFileName, "%s_stat.txt", mRootStatFile.c_str());
   mDeco->writeSummaryFile(summaryFileName);
-  int numEqui = mDeco->getNumberOfEquipments();
   for (int e = 0; e < numEqui; e++) {
     avgEventSize = mDeco->getAverageEventSize(e);
     avgBusyTime = mDeco->getAverageBusyTime(e);
@@ -161,7 +168,7 @@ void DataDecoderTask::decodeTF(framework::ProcessingContext& pc)
     mTotalFrames++;
     pc.outputs().snapshot(o2::framework::Output{"HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mDigits); //
     mTotalDigits += mDeco->mDigits.size();
-    LOG(DEBUG) << "Writing " << mDeco->mDigits.size() << "/" << mTotalDigits << " Digits ...";
+    //LOG(INFO) << "Writing " << mDeco->mDigits.size() << "/" << mTotalDigits << " Digits ...";
   }
   return;
 }

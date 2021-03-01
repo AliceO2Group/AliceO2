@@ -31,12 +31,14 @@ void HMPIDDigitizer::zeroSuppress(std::vector<o2::hmpid::Digit> const& digits, s
   int index = 0;
   for (auto& digit : digits) {
     if (digit.getCharge() >= getThreshold(digit)) {
+      //     if(digit.getPx() < 80 && digit.getPy() < 48) {
       newdigits.push_back(digit);
 
       if (newlabels) {
         // copy the labels to the new place with the right new index
         newlabels->addElements(newdigits.size() - 1, labels.getLabels(index));
       }
+      //   }
     }
     index++;
   }
@@ -75,11 +77,15 @@ void HMPIDDigitizer::process(std::vector<o2::hmpid::HitType> const& hits, std::v
     int counter = 0;
     for (int nx = -1; nx <= 1; ++nx) {
       for (int ny = -1; ny <= 1; ++ny) {
+        if ((px + nx) < 0 || (px + nx) > 79 || (py + ny) < 0 || (py + ny) > 47) {
+          LOG(INFO) << ">> Pad out the PhotoCathod boundary. Excluded :" << px << " " << py << " :" << nx << "," << ny;
+          continue;
+        }
         allpads[counter] = Param::Abs(chamber, pc, px + nx, py + ny);
         counter++;
       }
     }
-
+    // LOG(INFO) << "." <<  px << " " << py ;
     for (auto& pad : allpads) {
       auto iter = mIndexForPad.find(pad);
       int index = -1;
