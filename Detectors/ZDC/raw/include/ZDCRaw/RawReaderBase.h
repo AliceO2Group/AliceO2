@@ -48,7 +48,7 @@ class RawReaderBase
 
   //decoding binary data into data blocks
   EventChData mCh; // Channel data to be decoded
-  int processWord(const UInt_t* word)
+  int processWord(const uint32_t* word)
   {
     if (word == nullptr) {
       LOG(ERROR) << "NULL pointer";
@@ -107,8 +107,8 @@ class RawReaderBase
   {
     size_t payloadSize = payload.size();
     for (Int_t ip = 0; ip < payloadSize; ip += 16) {
-      //o2::zdc::Digits2Raw::print_gbt_word((const UInt_t*)&payload[ip]);
-      processWord((const UInt_t*)&payload[ip]);
+      //o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
+      processWord((const uint32_t*)&payload[ip]);
     }
   }
   /*
@@ -227,7 +227,7 @@ class RawReaderBase
           for (Int_t ic = 0; ic < NChPerModule; ic++) {
             if (ev.data[im][ic].f.fixed_0 == Id_w0 && ev.data[im][ic].f.fixed_1 == Id_w1 && ev.data[im][ic].f.fixed_2 == Id_w2) {
               for (Int_t iw = 0; iw < NWPerBc; iw++) {
-                o2::zdc::Digits2Raw::print_gbt_word((const UInt_t*)&ev.data[im][ic].w[iw][0]);
+                o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&ev.data[im][ic].w[iw][0]);
               }
             }
           }
