@@ -55,12 +55,12 @@ class RawReaderBase
       return 1;
     }
     if ((word[0] & 0x3) == Id_w0) {
-      for (Int_t iw = 0; iw < NWPerGBTW; iw++) {
+      for (int32_t iw = 0; iw < NWPerGBTW; iw++) {
         mCh.w[0][iw] = word[iw];
       }
     } else if ((word[0] & 0x3) == Id_w1) {
       if (mCh.f.fixed_0 == Id_w0) {
-        for (Int_t iw = 0; iw < NWPerGBTW; iw++) {
+        for (int32_t iw = 0; iw < NWPerGBTW; iw++) {
           mCh.w[1][iw] = word[iw];
         }
       } else {
@@ -71,7 +71,7 @@ class RawReaderBase
       }
     } else if ((word[0] & 0x3) == Id_w2) {
       if (mCh.f.fixed_0 == Id_w0 && mCh.f.fixed_1 == Id_w1) {
-        for (Int_t iw = 0; iw < NWPerGBTW; iw++) {
+        for (int32_t iw = 0; iw < NWPerGBTW; iw++) {
           mCh.w[2][iw] = word[iw];
         }
         process(mCh);
@@ -93,10 +93,10 @@ class RawReaderBase
   {
     InteractionRecord ir(ch.f.bc, ch.f.orbit);
     auto& mydata = mMapData[ir];
-    Int_t im = ch.f.board;
-    Int_t ic = ch.f.ch;
-    for (Int_t iwb = 0; iwb < NWPerBc; iwb++) {
-      for (Int_t iwg = 0; iwg < NWPerGBTW; iwg++) {
+    int32_t im = ch.f.board;
+    int32_t ic = ch.f.ch;
+    for (int32_t iwb = 0; iwb < NWPerBc; iwb++) {
+      for (int32_t iwg = 0; iwg < NWPerGBTW; iwg++) {
         mydata.data[im][ic].w[iwb][iwg] = mCh.w[iwb][iwg];
       }
     }
@@ -106,7 +106,7 @@ class RawReaderBase
   void processBinaryData(gsl::span<const uint8_t> payload, int linkID)
   {
     size_t payloadSize = payload.size();
-    for (Int_t ip = 0; ip < payloadSize; ip += 16) {
+    for (int32_t ip = 0; ip < payloadSize; ip += 16) {
       //o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
       processWord((const uint32_t*)&payload[ip]);
     }
@@ -132,8 +132,8 @@ class RawReaderBase
       if (ir.bc == 3563) {
         auto& pdata = pedestalData.emplace_back();
         pdata.ir = ir;
-        for (Int_t im = 0; im < NModules; im++) {
-          for (Int_t ic = 0; ic < NChPerModule; ic++) {
+        for (int32_t im = 0; im < NModules; im++) {
+          for (int32_t ic = 0; ic < NChPerModule; ic++) {
             if (ev.data[im][ic].f.fixed_0 == Id_w0 && ev.data[im][ic].f.fixed_1 == Id_w1 && ev.data[im][ic].f.fixed_2 == Id_w2) {
               // Identify connected channel
               auto id = mModuleConfig->modules[im].channelID[ic];
@@ -153,12 +153,12 @@ class RawReaderBase
       // Channel data
       bool inconsistent_event = false;
       bool filled_event = false;
-      for (Int_t im = 0; im < NModules; im++) {
+      for (int32_t im = 0; im < NModules; im++) {
         ModuleTriggerMapData mt;
         mt.w = 0;
         bool filled_module = false;
         bool inconsistent_module = false;
-        for (Int_t ic = 0; ic < NChPerModule; ic++) {
+        for (int32_t ic = 0; ic < NChPerModule; ic++) {
           if (ev.data[im][ic].f.fixed_0 == Id_w0 && ev.data[im][ic].f.fixed_1 == Id_w1 && ev.data[im][ic].f.fixed_2 == Id_w2) {
             auto& ch = ev.data[im][ic];
             UShort_t us[12];
@@ -178,7 +178,7 @@ class RawReaderBase
             auto& chd = digitsCh.emplace_back();
             auto id = mModuleConfig->modules[im].channelID[ic];
             chd.id = id;
-            for (Int_t is = 0; is < NTimeBinsPerBC; is++) {
+            for (int32_t is = 0; is < NTimeBinsPerBC; is++) {
               if (us[is] > ADCMax) {
                 chd.data[is] = us[is] - ADCRange;
               } else {
@@ -223,10 +223,10 @@ class RawReaderBase
       }
       if (inconsistent_event) {
         LOG(ERROR) << "Inconsistent event";
-        for (Int_t im = 0; im < NModules; im++) {
-          for (Int_t ic = 0; ic < NChPerModule; ic++) {
+        for (int32_t im = 0; im < NModules; im++) {
+          for (int32_t ic = 0; ic < NChPerModule; ic++) {
             if (ev.data[im][ic].f.fixed_0 == Id_w0 && ev.data[im][ic].f.fixed_1 == Id_w1 && ev.data[im][ic].f.fixed_2 == Id_w2) {
-              for (Int_t iw = 0; iw < NWPerBc; iw++) {
+              for (int32_t iw = 0; iw < NWPerBc; iw++) {
                 o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&ev.data[im][ic].w[iw][0]);
               }
             }

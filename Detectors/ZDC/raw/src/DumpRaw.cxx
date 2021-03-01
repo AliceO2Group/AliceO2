@@ -147,12 +147,12 @@ int DumpRaw::processWord(const uint32_t* word)
     return 1;
   }
   if ((word[0] & 0x3) == Id_w0) {
-    for (Int_t iw = 0; iw < NWPerGBTW; iw++) {
+    for (int32_t iw = 0; iw < NWPerGBTW; iw++) {
       mCh.w[0][iw] = word[iw];
     }
   } else if ((word[0] & 0x3) == Id_w1) {
     if (mCh.f.fixed_0 == Id_w0) {
-      for (Int_t iw = 0; iw < NWPerGBTW; iw++) {
+      for (int32_t iw = 0; iw < NWPerGBTW; iw++) {
         mCh.w[1][iw] = word[iw];
       }
     } else {
@@ -163,7 +163,7 @@ int DumpRaw::processWord(const uint32_t* word)
     }
   } else if ((word[0] & 0x3) == Id_w2) {
     if (mCh.f.fixed_0 == Id_w0 && mCh.f.fixed_1 == Id_w1) {
-      for (Int_t iw = 0; iw < NWPerGBTW; iw++) {
+      for (int32_t iw = 0; iw < NWPerGBTW; iw++) {
         mCh.w[2][iw] = word[iw];
       }
       process(mCh);
@@ -188,7 +188,7 @@ int DumpRaw::process(const EventChData& ch)
   auto f = ch.f;
   int ih = getHPos(f.board, f.ch);
   if (mVerbosity > 0) {
-    for (Int_t iw = 0; iw < NWPerBc; iw++) {
+    for (int32_t iw = 0; iw < NWPerBc; iw++) {
       Digits2Raw::print_gbt_word(ch.w[iw]);
     }
   }
@@ -206,7 +206,7 @@ int DumpRaw::process(const EventChData& ch)
   us[9] = f.s09;
   us[10] = f.s10;
   us[11] = f.s11;
-  for (Int_t i = 0; i < 12; i++) {
+  for (int32_t i = 0; i < 12; i++) {
     if (us[i] > ADCMax) {
       s[i] = us[i] - ADCRange;
     } else {
@@ -215,22 +215,22 @@ int DumpRaw::process(const EventChData& ch)
     //printf("%d %u %d\n",i,us[i],s[i]);
   }
   if (f.Alice_3) {
-    for (Int_t i = 0; i < 12; i++) {
+    for (int32_t i = 0; i < 12; i++) {
       mSignal[ih]->Fill(i - 36., Double_t(s[i]));
     }
   }
   if (f.Alice_2) {
-    for (Int_t i = 0; i < 12; i++) {
+    for (int32_t i = 0; i < 12; i++) {
       mSignal[ih]->Fill(i - 24., Double_t(s[i]));
     }
   }
   if (f.Alice_1 || f.Auto_1) {
-    for (Int_t i = 0; i < 12; i++) {
+    for (int32_t i = 0; i < 12; i++) {
       mSignal[ih]->Fill(i - 12., Double_t(s[i]));
     }
   }
   if (f.Alice_0 || f.Auto_0) {
-    for (Int_t i = 0; i < 12; i++) {
+    for (int32_t i = 0; i < 12; i++) {
       mSignal[ih]->Fill(i + 0., Double_t(s[i]));
     }
     Double_t bc_d = uint32_t(f.bc / 100);
@@ -238,7 +238,7 @@ int DumpRaw::process(const EventChData& ch)
     mBunch[ih]->Fill(bc_m, -bc_d);
   }
   if (f.bc == last_bc) {
-    Int_t offset = f.offset - 32768;
+    int32_t offset = f.offset - 32768;
     Double_t foffset = offset / 8.;
     mBaseline[ih]->Fill(foffset);
     mCounts[ih]->Fill(f.hits);
@@ -248,8 +248,8 @@ int DumpRaw::process(const EventChData& ch)
 
 int DumpRaw::process(const EventData& ev)
 {
-  for (Int_t im = 0; im < NModules; im++) {
-    for (Int_t ic = 0; ic < NChPerModule; ic++) {
+  for (int32_t im = 0; im < NModules; im++) {
+    for (int32_t ic = 0; ic < NChPerModule; ic++) {
       if (ev.data[im][ic].f.fixed_0 == Id_w0 && ev.data[im][ic].f.fixed_1 == Id_w1 && ev.data[im][ic].f.fixed_2 == Id_w2) {
         process(ev.data[im][ic]);
       } else if (ev.data[im][ic].f.fixed_0 == 0 && ev.data[im][ic].f.fixed_1 == 0 && ev.data[im][ic].f.fixed_2 == 0) {
