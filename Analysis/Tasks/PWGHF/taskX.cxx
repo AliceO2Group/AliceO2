@@ -83,7 +83,7 @@ struct TaskX {
         if (trackPos.signed1Pt() < 0) {
           continue;
         }
-        if (trackPos.globalIndex() == index0jpsi){
+        if (trackPos.globalIndex() == index0jpsi) {
           printf("pos track id check: %ld, %u\n", trackPos.globalIndex(), index0jpsi);
           printf("pos track pt check: %f, %f\n", JpsiTrackPos.pt(), trackPos.pt());
           continue;
@@ -92,17 +92,17 @@ struct TaskX {
           if (trackNeg.signed1Pt() > 0) {
             continue;
           }
-          if (trackNeg.globalIndex() == index1jpsi){
+          if (trackNeg.globalIndex() == index1jpsi) {
             printf("neg track id check: %ld, %u\n", trackNeg.globalIndex(), index1jpsi);
             printf("neg track pt check: %f, %f\n", JpsiTrackNeg.pt(), trackNeg.pt());
             continue;
           }
           registry.fill(HIST("hptcand"), candidate.pt() + trackPos.pt() + trackNeg.pt());
         } // pi- loop
-      } // pi+ loop
-    } // Jpsi loop
-  } // process
-}; // struct
+      }   // pi+ loop
+    }     // Jpsi loop
+  }       // process
+};        // struct
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
