@@ -144,9 +144,9 @@ void Digits2Raw::setTriggerMask()
     }
     mPrintTriggerMask += std::to_string(im);
     mPrintTriggerMask += "[";
-    for (UInt_t ic = 0; ic < NChPerModule; ic++) {
+    for (uint32_t ic = 0; ic < NChPerModule; ic++) {
       if (mModuleConfig->modules[im].trigChannel[ic]) {
-        UInt_t tmask = 0x1 << (im * NChPerModule + ic);
+        uint32_t tmask = 0x1 << (im * NChPerModule + ic);
         mTriggerMask = mTriggerMask | tmask;
         mPrintTriggerMask += "T";
       } else {
@@ -154,7 +154,7 @@ void Digits2Raw::setTriggerMask()
       }
     }
     mPrintTriggerMask += "]";
-    UInt_t mytmask = mTriggerMask >> (im * NChPerModule);
+    uint32_t mytmask = mTriggerMask >> (im * NChPerModule);
     printf("Trigger mask for module %d 0123 %s%s%s%s\n", im,
            mytmask & 0x1 ? "T" : "N",
            mytmask & 0x2 ? "T" : "N",
@@ -186,7 +186,7 @@ inline void Digits2Raw::updatePedestalReference(int bc)
   if (bc == 3563) {
     int io = 0;
     for (; io < mzdcPedData.size(); io++) {
-      UInt_t orbit = mBCD.ir.orbit;
+      uint32_t orbit = mBCD.ir.orbit;
       if (orbit == mzdcPedData[io].ir.orbit) {
         break;
       }
@@ -242,11 +242,11 @@ inline void Digits2Raw::updatePedestalReference(int bc)
 }
 
 //______________________________________________________________________________
-inline void Digits2Raw::resetOutputStructure(UShort_t bc, UInt_t orbit, bool is_dummy)
+inline void Digits2Raw::resetOutputStructure(UShort_t bc, uint32_t orbit, bool is_dummy)
 {
   // Increment scalers and reset output structure
-  for (UInt_t im = 0; im < NModules; im++) {
-    for (UInt_t ic = 0; ic < NChPerModule; ic++) {
+  for (uint32_t im = 0; im < NModules; im++) {
+    for (uint32_t ic = 0; ic < NChPerModule; ic++) {
       // Fixed words
       mZDC.data[im][ic].w[0][0] = Id_w0;
       mZDC.data[im][ic].w[0][1] = 0;
@@ -280,16 +280,16 @@ inline void Digits2Raw::resetOutputStructure(UShort_t bc, UInt_t orbit, bool is_
 }
 
 //______________________________________________________________________________
-inline void Digits2Raw::assignTriggerBits(int ibc, UShort_t bc, UInt_t orbit, bool is_dummy)
+inline void Digits2Raw::assignTriggerBits(int ibc, UShort_t bc, uint32_t orbit, bool is_dummy)
 {
   // Triggers refer to the HW trigger conditions (32 possible channels)
   // Autotrigger, current bunch crossing
   ModuleTriggerMapData triggers;
   // Autotrigger and ALICE trigger bits are zero for a dummy bunch crossing
   if (!is_dummy) {
-    for (UInt_t im = 0; im < NModules; im++) {
+    for (uint32_t im = 0; im < NModules; im++) {
       triggers.w = mzdcBCData[ibc].moduleTriggers[im];
-      for (UInt_t ic = 0; ic < NChPerModule; ic++) {
+      for (uint32_t ic = 0; ic < NChPerModule; ic++) {
         mZDC.data[im][ic].f.Alice_0 = triggers.f.Alice_0;
         mZDC.data[im][ic].f.Alice_1 = triggers.f.Alice_1;
         mZDC.data[im][ic].f.Alice_2 = triggers.f.Alice_2;
@@ -326,7 +326,7 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
 
   // Insert payload for all channels
   for (Int_t im = 0; im < NModules; im++) {
-    for (UInt_t ic = 0; ic < NChPerModule; ic++) {
+    for (uint32_t ic = 0; ic < NChPerModule; ic++) {
       if (mModuleConfig->modules[im].readChannel[ic]) {
         auto id = mModuleConfig->modules[im].channelID[ic];
         auto base_m = mSimCondition->channels[id].pedestal;      // Average pedestal
@@ -380,7 +380,7 @@ void Digits2Raw::convertDigits(int ibc)
 
   // Orbit and bunch crossing identifiers
   UShort_t bc = mBCD.ir.bc;
-  UInt_t orbit = mBCD.ir.orbit;
+  uint32_t orbit = mBCD.ir.orbit;
 
   // Reset scalers at orbit change
   if (orbit != mLastOrbit) {
@@ -406,12 +406,12 @@ void Digits2Raw::convertDigits(int ibc)
       chd.print();
     }
     UShort_t bc = mBCD.ir.bc;
-    UInt_t orbit = mBCD.ir.orbit;
+    uint32_t orbit = mBCD.ir.orbit;
     // Look for channel ID in digits and store channel (just one copy in output)
     // This is a limitation of software but we are not supposed to acquire the
     // same signal twice anyway
     for (Int_t im = 0; im < NModules; im++) {
-      for (UInt_t ic = 0; ic < NChPerModule; ic++) {
+      for (uint32_t ic = 0; ic < NChPerModule; ic++) {
         if (mModuleConfig->modules[im].channelID[ic] == chd.id &&
             mModuleConfig->modules[im].readChannel[ic]) {
           Int_t is = 0;
@@ -451,7 +451,7 @@ void Digits2Raw::writeDigits()
   constexpr static int data_size = sizeof(uint32_t) * NWPerGBTW;
   // Local interaction record (true and empty bunches)
   o2::InteractionRecord ir(mZDC.data[0][0].f.bc, mZDC.data[0][0].f.orbit);
-  for (UInt_t im = 0; im < o2::zdc::NModules; im++) {
+  for (uint32_t im = 0; im < o2::zdc::NModules; im++) {
     // Check if module has been filled with data
     // N.B. All channels are initialized if module is supposed to be readout
     // Trigger bits are the same for all the channels connected to a module
@@ -469,7 +469,7 @@ void Digits2Raw::writeDigits()
     bool tcond_last = mZDC.data[im][0].f.bc == 3563;
     // Condition to write GBT data
     if (tcond_triggered || (mIsContinuous && tcond_continuous) || (mZDC.data[im][0].f.bc == 3563)) {
-      for (UInt_t ic = 0; ic < o2::zdc::NChPerModule; ic++) {
+      for (uint32_t ic = 0; ic < o2::zdc::NChPerModule; ic++) {
         if (mModuleConfig->modules[im].readChannel[ic]) {
           for (Int_t iw = 0; iw < o2::zdc::NWPerBc; iw++) {
             gsl::span<char> payload{reinterpret_cast<char*>(&mZDC.data[im][ic].w[iw][0]), data_size};
@@ -489,7 +489,7 @@ void Digits2Raw::writeDigits()
         printf("M%d is last BC\n", im);
       }
       if (tcond_triggered || (mIsContinuous && tcond_continuous) || (mZDC.data[im][0].f.bc == 3563)) {
-        for (UInt_t ic = 0; ic < o2::zdc::NChPerModule; ic++) {
+        for (uint32_t ic = 0; ic < o2::zdc::NChPerModule; ic++) {
           if (mModuleConfig->modules[im].readChannel[ic]) {
             for (Int_t iw = 0; iw < o2::zdc::NWPerBc; iw++) {
               print_gbt_word(&mZDC.data[im][ic].w[iw][0], mModuleConfig);
@@ -506,7 +506,7 @@ void Digits2Raw::writeDigits()
 }
 
 //______________________________________________________________________________
-void Digits2Raw::print_gbt_word(const UInt_t* word, const ModuleConfig* moduleConfig)
+void Digits2Raw::print_gbt_word(const uint32_t* word, const ModuleConfig* moduleConfig)
 {
   if (word == nullptr) {
     printf("NULL\n");
@@ -517,30 +517,30 @@ void Digits2Raw::print_gbt_word(const UInt_t* word, const ModuleConfig* moduleCo
   val = val | word[1];
   val = val << 32;
   val = val | word[0];
-  static UInt_t last_orbit = 0, last_bc = 0;
+  static uint32_t last_orbit = 0, last_bc = 0;
 
   ULong64_t lsb = val;
   ULong64_t msb = val >> 64;
-  UInt_t a = word[0];
-  UInt_t b = word[1];
-  UInt_t c = word[2];
-  //UInt_t d=(msb>>32)&0xffffffff;
+  uint32_t a = word[0];
+  uint32_t b = word[1];
+  uint32_t c = word[2];
+  //uint32_t d=(msb>>32)&0xffffffff;
   //printf("\n%llx %llx ",lsb,msb);
   //printf("\n%8x %8x %8x %8x ",d,c,b,a);
   if ((a & 0x3) == 0) {
-    UInt_t myorbit = (val >> 48) & 0xffffffff;
-    UInt_t mybc = (val >> 36) & 0xfff;
+    uint32_t myorbit = (val >> 48) & 0xffffffff;
+    uint32_t mybc = (val >> 36) & 0xfff;
     if (myorbit != last_orbit || mybc != last_bc) {
       printf("Orbit %9u bc %4u\n", myorbit, mybc);
       last_orbit = myorbit;
       last_bc = mybc;
     }
     printf("%04x %08x %08x ", c, b, a);
-    UInt_t hits = (val >> 24) & 0xfff;
+    uint32_t hits = (val >> 24) & 0xfff;
     Int_t offset = (lsb >> 8) & 0xffff - 32768;
     Float_t foffset = offset / 8.;
-    UInt_t board = (lsb >> 2) & 0xf;
-    UInt_t ch = (lsb >> 6) & 0x3;
+    uint32_t board = (lsb >> 2) & 0xf;
+    uint32_t ch = (lsb >> 6) & 0x3;
     //printf("orbit %9u bc %4u hits %4u offset %+6i Board %2u Ch %1u", myorbit, mybc, hits, offset, board, ch);
     printf("orbit %9u bc %4u hits %4u offset %+8.3f Board %2u Ch %1u", myorbit, mybc, hits, foffset, board, ch);
     if (board >= NModules) {

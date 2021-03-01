@@ -56,7 +56,7 @@ void DumpRaw::init()
   int nbx = (sopt.nBCAheadTrig + 1) * NTimeBinsPerBC;
   Double_t xmin = -sopt.nBCAheadTrig * NTimeBinsPerBC - 0.5;
   Double_t xmax = NTimeBinsPerBC - 0.5;
-  for (UInt_t i = 0; i < NDigiChannels; i++) {
+  for (uint32_t i = 0; i < NDigiChannels; i++) {
     uint32_t imod = i / NChPerModule;
     uint32_t ich = i % NChPerModule;
     if (mBaseline[i]) {
@@ -102,25 +102,25 @@ void DumpRaw::write()
     LOG(FATAL) << "Cannot write to file " << f->GetName();
     return;
   }
-  for (UInt_t i = 0; i < NDigiChannels; i++) {
+  for (uint32_t i = 0; i < NDigiChannels; i++) {
     if (mBunch[i] && mBunch[i]->GetEntries() > 0) {
       setStat(mBunch[i]);
       mBunch[i]->Write();
     }
   }
-  for (UInt_t i = 0; i < NDigiChannels; i++) {
+  for (uint32_t i = 0; i < NDigiChannels; i++) {
     if (mBaseline[i] && mBaseline[i]->GetEntries() > 0) {
       setStat(mBaseline[i]);
       mBaseline[i]->Write();
     }
   }
-  for (UInt_t i = 0; i < NDigiChannels; i++) {
+  for (uint32_t i = 0; i < NDigiChannels; i++) {
     if (mCounts[i] && mCounts[i]->GetEntries() > 0) {
       setStat(mCounts[i]);
       mCounts[i]->Write();
     }
   }
-  for (UInt_t i = 0; i < NDigiChannels; i++) {
+  for (uint32_t i = 0; i < NDigiChannels; i++) {
     if (mSignal[i] && mSignal[i]->GetEntries() > 0) {
       setStat(mSignal[i]);
       mSignal[i]->Write();
@@ -140,7 +140,7 @@ inline int DumpRaw::getHPos(uint32_t board, uint32_t ch)
   }
 }
 
-int DumpRaw::processWord(const UInt_t* word)
+int DumpRaw::processWord(const uint32_t* word)
 {
   if (word == nullptr) {
     printf("NULL\n");
@@ -233,8 +233,8 @@ int DumpRaw::process(const EventChData& ch)
     for (Int_t i = 0; i < 12; i++) {
       mSignal[ih]->Fill(i + 0., Double_t(s[i]));
     }
-    Double_t bc_d = UInt_t(f.bc / 100);
-    Double_t bc_m = UInt_t(f.bc % 100);
+    Double_t bc_d = uint32_t(f.bc / 100);
+    Double_t bc_m = uint32_t(f.bc % 100);
     mBunch[ih]->Fill(bc_m, -bc_d);
   }
   if (f.bc == last_bc) {
