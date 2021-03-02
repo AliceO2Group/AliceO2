@@ -1664,7 +1664,12 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int i
       nHits = nFilteredHits;
     }
 
-    int iOutTrackFirstCluster = CAMath::AtomicAdd(&mMemory->nOutputTrackClusters, (unsigned int)nHits);
+    unsigned int iOutTrackFirstCluster = CAMath::AtomicAdd(&mMemory->nOutputTrackClusters, (unsigned int)nHits);
+    if (iOutTrackFirstCluster >= mNMaxOutputTrackClusters) {
+      raiseError(GPUErrors::ERROR_MERGER_HIT_OVERFLOW, iOutTrackFirstCluster, mNMaxOutputTrackClusters);
+      CAMath::AtomicExch(&mMemory->nOutputTrackClusters, 0u);
+      continue;
+    }
 
     GPUTPCGMMergedTrackHit* cl = mClusters + iOutTrackFirstCluster;
     GPUTPCGMMergedTrackHitXYZ* clXYZ = mClustersXYZ + iOutTrackFirstCluster;
@@ -1717,7 +1722,12 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int i
       cl[i].leg = trackClusters[i].leg;
     } // nHits
 
-    int iOutputTrack = CAMath::AtomicAdd(&mMemory->nOutputTracks, 1u);
+    unsigned int iOutputTrack = CAMath::AtomicAdd(&mMemory->nOutputTracks, 1u);
+    if (iOutputTrack >= mNMaxTracks) {
+      raiseError(GPUErrors::ERROR_MERGER_TRACK_OVERFLOW, iOutputTrack, mNMaxTracks);
+      CAMath::AtomicExch(&mMemory->nOutputTracks, 0u);
+      continue;
+    }
 
     GPUTPCGMMergedTrack& mergedTrack = mOutputTracks[iOutputTrack];
 
