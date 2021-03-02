@@ -53,7 +53,7 @@ class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
   std::unique_ptr<GPUThreadContext> GetThreadContext() override;
   bool CanQueryMaxMemory() override { return true; }
   void SynchronizeGPU() override;
-  int GPUDebug(const char* state = "UNKNOWN", int stream = -1) override;
+  int GPUDebug(const char* state = "UNKNOWN", int stream = -1, bool force = false) override;
   void SynchronizeStream(int stream) override;
   void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) override;
   void StreamWaitForEvents(int stream, deviceEvent* evList, int nEvents = 1) override;

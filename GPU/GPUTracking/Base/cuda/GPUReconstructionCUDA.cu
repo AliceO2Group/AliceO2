@@ -171,7 +171,9 @@ void GPUReconstructionCUDABackend::runKernelBackendInternal(krnlSetup& _xyz, con
     backendInternal<T, I>::runKernelBackendMacro(_xyz, this, args...);
   }
   if (mProcessingSettings.checkKernelFailures) {
-    GPUDebug(GetKernelName<T, I>(), _xyz.x.stream);
+    if (GPUDebug(GetKernelName<T, I>(), _xyz.x.stream, true)) {
+      throw std::runtime_error("Kernel Failure");
+    }
   }
 }
 
@@ -705,7 +707,7 @@ bool GPUReconstructionCUDABackend::IsEventDone(deviceEvent* evList, int nEvents)
   return (true);
 }
 
-int GPUReconstructionCUDABackend::GPUDebug(const char* state, int stream)
+int GPUReconstructionCUDABackend::GPUDebug(const char* state, int stream, bool force)
 {
   // Wait for CUDA-Kernel to finish and check for CUDA errors afterwards, in case of debugmode
   cudaError cuErr;
@@ -714,10 +716,10 @@ int GPUReconstructionCUDABackend::GPUDebug(const char* state, int stream)
     GPUError("Cuda Error %s while running kernel (%s) (Stream %d)", cudaGetErrorString(cuErr), state, stream);
     return (1);
   }
-  if (mProcessingSettings.debugLevel <= 0) {
+  if (force == false && mProcessingSettings.debugLevel <= 0) {
     return (0);
   }
-  if (GPUFailedMsgI(cudaDeviceSynchronize())) {
+  if (GPUFailedMsgI(stream == -1 ? cudaDeviceSynchronize() : cudaStreamSynchronize(mInternals->Streams[stream]))) {
     GPUError("CUDA Error while synchronizing (%s) (Stream %d)", state, stream);
     return (1);
   }
