@@ -81,6 +81,11 @@ class GPUTPCGMMerger : public GPUProcessor
     unsigned char leg;
   };
 
+  struct tmpSort {
+    unsigned int x;
+    float y;
+  };
+
   void InitializeProcessor();
   void RegisterMemoryAllocation();
   void SetMaxData(const GPUTrackingInOutPointers& io);
@@ -120,7 +125,10 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhdi() GPUTPCGMLoopData* LoopData() const { return mLoopData; }
   GPUhdi() memory* Memory() const { return mMemory; }
   GPUhdi() GPUAtomic(unsigned int) * TmpCounter() { return mMemory->tmpCounter; }
-  GPUhdi() uint4* TmpMem() { return mTmpMem; }
+  GPUhdi() uint2* ClusRefTmp() { return mClusRefTmp; }
+  GPUhdi() unsigned int* TrackSort() { return mTrackSort; }
+  GPUhdi() tmpSort* TrackSortO2() { return mTrackSortO2; }
+  GPUhdi() GPUAtomic(unsigned int) * SharedCount() { return mSharedCount; }
   GPUhdi() gputpcgmmergertypes::GPUTPCGMBorderRange* BorderRange(int i) { return mBorderRange[i]; }
   GPUhdi() o2::tpc::TrackTPC* OutputTracksTPCO2() { return mOutputTracksTPCO2; }
   GPUhdi() unsigned int* OutputClusRefsTPCO2() { return mOutputClusRefsTPCO2; }
@@ -246,7 +254,11 @@ class GPUTPCGMMerger : public GPUProcessor
   unsigned int* mTrackOrderAttach;
   unsigned int* mTrackOrderProcess;
   unsigned char* mClusterStateExt;
-  uint4* mTmpMem;
+  uint2* mClusRefTmp;
+  int* mTrackIDs;
+  unsigned int* mTrackSort;
+  tmpSort* mTrackSortO2;
+  GPUAtomic(unsigned int) * mSharedCount;
   GPUTPCGMBorderTrack* mBorderMemory; // memory for border tracks
   GPUTPCGMBorderTrack* mBorder[2 * NSLICES];
   gputpcgmmergertypes::GPUTPCGMBorderRange* mBorderRangeMemory;    // memory for border tracks
