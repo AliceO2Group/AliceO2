@@ -247,6 +247,11 @@ class LabeledArray : public LabelMap
     return values[0][x];
   }
 
+  T get(const char* x) const
+  {
+    return values[0][colmap.find(x)->second];
+  }
+
   T getRow(u_int32_t y) const
   {
     return values[y];

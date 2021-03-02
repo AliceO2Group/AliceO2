@@ -23,7 +23,7 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong2;
 using namespace o2::analysis;
-using namespace o2::analysis::HF_cuts_D0ToPiK;
+using namespace o2::analysis::hf_cuts_d0_topik;
 
 /// Struct for applying D0 selection cuts
 
@@ -45,7 +45,8 @@ struct HFD0CandidateSelector {
   Configurable<double> d_nSigmaTOF{"d_nSigmaTOF", 3., "Nsigma cut on TOF only"};
   Configurable<double> d_nSigmaTOFCombined{"d_nSigmaTOFCombined", 5., "Nsigma cut on TOF combined with TPC"};
 
-  Configurable<LabeledArray<double>> cuts{"D0_cuts", {D0_cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "D0 candidate selection per pT bin"};
+  Configurable<LabeledArray<double>> ptBins{"pTBins", {hf_cuts_d0_topik::ptBins, npTBins, pTBinLabels}, "pT bins limits"};
+  Configurable<LabeledArray<double>> cuts{"D0_to_pi_K_cuts", {hf_cuts_d0_topik::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "D0 candidate selection per pT bin"};
 
   /// Selection on goodness of daughter tracks
   /// \note should be applied at candidate selection
@@ -70,7 +71,7 @@ struct HFD0CandidateSelector {
   bool selectionTopol(const T& hfCandProng2)
   {
     auto candpT = hfCandProng2.pt();
-    auto pTBin = findPTBin(cuts, candpT);
+    auto pTBin = findPTBin(ptBins, candpT);
     if (pTBin == -1) {
       return false;
     }
@@ -118,17 +119,17 @@ struct HFD0CandidateSelector {
   bool selectionTopolConjugate(const T1& hfCandProng2, const T2& trackPion, const T2& trackKaon)
   {
     auto candpT = hfCandProng2.pt();
-    auto pTBin = findPTBin(cuts, candpT);
+    auto pTBin = findPTBin(ptBins, candpT);
     if (pTBin == -1) {
       return false;
     }
 
     if (trackPion.charge() > 0) { //invariant mass cut
-      if (TMath::Abs(InvMassD0(hfCandProng2) - RecoDecay::getMassPDG(PDG::code::kD0)) > cuts->get(pTBin, "m")) {
+      if (TMath::Abs(InvMassD0(hfCandProng2) - RecoDecay::getMassPDG(pdg::code::kD0)) > cuts->get(pTBin, "m")) {
         return false;
       }
     } else {
-      if (TMath::Abs(InvMassD0bar(hfCandProng2) - RecoDecay::getMassPDG(PDG::code::kD0)) > cuts->get(pTBin, "m")) {
+      if (TMath::Abs(InvMassD0bar(hfCandProng2) - RecoDecay::getMassPDG(pdg::code::kD0)) > cuts->get(pTBin, "m")) {
         return false;
       }
     }

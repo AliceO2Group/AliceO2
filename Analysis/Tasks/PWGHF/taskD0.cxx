@@ -15,11 +15,15 @@
 /// \author Vít Kučera <vit.kucera@cern.ch>, CERN
 
 #include "Framework/AnalysisTask.h"
+#include "fmt/format.h"
 #include "Framework/HistogramRegistry.h"
+#include "AnalysisCore/HFSelectorCuts.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
 
 using namespace o2;
+using namespace o2::analysis;
+using namespace o2::analysis::hf_cuts_d0_topik;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong2;
 using namespace o2::framework::expressions;
@@ -58,6 +62,32 @@ struct TaskD0 {
   Configurable<int> d_selectionFlagD0bar{"d_selectionFlagD0bar", 1, "Selection Flag for D0bar"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
 
+  Configurable<LabeledArray<double>> bins{"pTBins", {hf_cuts_d0_topik::ptBins, npTBins, pTBinLabels}, "pT bins limits"};
+
+  std::vector<TH1F*> hmass;
+  //  std::vector<TH1F*> hdeclength;
+  //  std::vector<TH1F*> hdeclengthxy;
+  //  std::vector<TH1F*> hd0Prong0;
+  //  std::vector<TH1F*> hd0Prong1;
+  //  std::vector<TH1F*> hd0d0;
+  //  std::vector<TH1F*> hCTS;
+  //  std::vector<TH1F*> hct;
+  //  std::vector<TH1F*> hCPA;
+  //  std::vector<TH1F*> hEta;
+  //  std::vector<TH1F*> hImpParErr;
+  //  std::vector<TH1F*> hDecLenErr;
+  //  std::vector<TH1F*> hDecLenXYErr;
+
+  void init(o2::framework::InitContext&)
+  {
+    registry.add("hmass_0", "2-prong candidates;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}});
+    hmass.push_back(registry.get<TH1F>("hmass_0").get());
+    for (auto i = 1u; i < bins->cols(); ++i) {
+      registry.addClone("hmass_0", fmt::format("hmass_{}", i));
+      hmass.push_back(registry.get<TH1F>(fmt::format("hmass_{}", i).c_str()).get());
+    }
+  }
+
   Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0 >= d_selectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= d_selectionFlagD0bar);
 
   void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate>> const& candidates)
@@ -71,12 +101,16 @@ struct TaskD0 {
         //Printf("Candidate: Y rejection: %g", YD0(candidate));
         continue;
       }
+      auto bin = findPTBin(bins, candidate.pt());
       if (candidate.isSelD0() >= d_selectionFlagD0) {
         registry.fill(HIST("hmass"), InvMassD0(candidate));
+        hmass[bin]->Fill(InvMassD0(candidate));
       }
       if (candidate.isSelD0bar() >= d_selectionFlagD0bar) {
         registry.fill(HIST("hmass"), InvMassD0bar(candidate));
+        hmass[bin]->Fill(InvMassD0bar(candidate));
       }
+
       registry.fill(HIST("hptcand"), candidate.pt());
       registry.fill(HIST("hptprong0"), candidate.ptProng0());
       registry.fill(HIST("hptprong1"), candidate.ptProng1());
