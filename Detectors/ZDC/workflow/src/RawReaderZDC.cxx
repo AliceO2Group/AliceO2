@@ -97,6 +97,7 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
     LOG(FATAL) << "Missing ModuleConfig";
     return 0;
   }
+  setTriggerMask();
   int bcCounter = mMapData.size();
   LOG(INFO) << "Processing #bc " << bcCounter;
   for (auto& [ir, ev] : mMapData) {
@@ -127,7 +128,7 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
     bool inconsistent_event = false;
     bool filled_event = false;
     bcdata.ref.setFirstEntry(digitsCh.size());
-    uint32_t nch = 0;
+    uint32_t ncd = 0;
     // Channel data
     for (int32_t im = 0; im < NModules; im++) {
       ModuleTriggerMapData mt;
@@ -154,7 +155,7 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
           us[11] = ch.f.s11;
           // Identify connected channel
           auto& chd = digitsCh.emplace_back();
-          nch++;
+          ncd++;
           auto id = mModuleConfig->modules[im].channelID[ic];
           chd.id = id;
           for (int32_t is = 0; is < NTimeBinsPerBC; is++) {
@@ -200,7 +201,14 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
         inconsistent_event = true;
       }
     }
-    bcdata.ref.setEntries(nch);
+    bcdata.ref.setEntries(ncd);
+    if (mDumpData) {
+      bcdata.print(mTriggerMask);
+      auto first_entry = bcdata.ref.getFirstEntry();
+      for (Int_t icd = 0; icd < ncd; icd++) {
+        digitsCh[icd + first_entry].print();
+      }
+    }
     if (inconsistent_event) {
       LOG(ERROR) << "Inconsistent event";
       for (int32_t im = 0; im < NModules; im++) {
@@ -214,9 +222,38 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
       }
     }
   }
+
   mMapData.clear();
   return bcCounter;
 }
 
+//______________________________________________________________________________
+void RawReaderZDC::setTriggerMask()
+{
+  mTriggerMask = 0;
+  std::string printTriggerMask{};
+
+  for (int im = 0; im < NModules; im++) {
+    if (im > 0) {
+      printTriggerMask += " ";
+    }
+    printTriggerMask += std::to_string(im);
+    printTriggerMask += "[";
+    for (int ic = 0; ic < NChPerModule; ic++) {
+      if (mModuleConfig->modules[im].trigChannel[ic]) {
+        uint32_t tmask = 0x1 << (im * NChPerModule + ic);
+        mTriggerMask = mTriggerMask | tmask;
+        printTriggerMask += "T";
+      } else {
+        printTriggerMask += " ";
+      }
+    }
+    printTriggerMask += "]";
+    uint32_t mytmask = mTriggerMask >> (im * NChPerModule);
+    LOGF(INFO, "Trigger mask for module %d 0123 %c%c%c%c\n", im,
+         mytmask & 0x1 ? 'T' : 'N', mytmask & 0x2 ? 'T' : 'N', mytmask & 0x4 ? 'T' : 'N', mytmask & 0x8 ? 'T' : 'N');
+  }
+  LOGF(INFO, "trigger_mask=0x%08x %s\n", mTriggerMask, printTriggerMask.c_str());
+}
 } // namespace zdc
 } // namespace o2

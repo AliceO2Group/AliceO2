@@ -48,6 +48,8 @@ class RawReaderZDC
   const ModuleConfig* mModuleConfig = nullptr;     /// Trigger/readout configuration object
   void setModuleConfig(const ModuleConfig* moduleConfig) { mModuleConfig = moduleConfig; };
   const ModuleConfig* getModuleConfig() { return mModuleConfig; };
+  uint32_t mTriggerMask = 0;                                     // Trigger mask from ModuleConfig
+  void setTriggerMask();
 
   std::vector<o2::zdc::BCData> mDigitsBC;
   std::vector<o2::zdc::ChannelData> mDigitsCh;
@@ -67,9 +69,6 @@ class RawReaderZDC
     LOG(INFO) << "Number of Digits: " << mDigitsBC.size();
     LOG(INFO) << "Number of ChannelData: " << mDigitsCh.size();
     LOG(INFO) << "Number of PedestalData: " << mPedestalData.size();
-    if (mDumpData) {
-      //DigitBlockZDC::print(mVecDigits, mVecChannelData);
-    }
   }
   int getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelData>& digitsCh, std::vector<PedestalData>& pedestalData);
   static void prepareOutputSpec(std::vector<o2::framework::OutputSpec>& outputSpec)
