@@ -124,7 +124,7 @@ set(HDRS_INSTALL
     TPCConvert/GPUTPCConvertImpl.h
     Base/GPUReconstructionKernelMacros.h
     DataTypes/GPUO2FakeClasses.h
-    DataTypes/GPUSettingsList.h
+    Definitions/GPUSettingsList.h
     DataTypes/GPUOutputControl.h
     DataTypes/GPUO2DataTypes.h
     DataTypes/GPUHostDataTypes.h
@@ -150,7 +150,7 @@ set(HDRS_INSTALL
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   set(SRCS ${SRCS} Interface/GPUO2InterfaceConfigurableParam.cxx)
   set(HDRS_CINT_O2 ${HDRS_CINT_O2} DataTypes/TPCdEdxCalibrationSplines.h Interface/GPUO2InterfaceConfigurableParam.h)
-  set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h DataTypes/GPUSettingsList.h DataTypes/GPUDataTypes.h TRDTracking/GPUTRDTrack.h) # Manual dependencies for ROOT dictionary generation
+  set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.h DataTypes/GPUDataTypes.h TRDTracking/GPUTRDTrack.h) # Manual dependencies for ROOT dictionary generation
 endif()
 
 # Sources for O2 and for Standalone if requested in config file
