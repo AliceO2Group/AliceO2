@@ -266,18 +266,18 @@ void* GPUTPCGMMerger::SetPointersMerger(void* mem)
   mem = memBase;
   computePointerWithAlignment(mem, mTrackSortO2, mNMaxTracks); // GPUTPCGMO2Output::prepare - GPUTPCGMO2Output::sort - GPUTPCGMO2Output::output
   computePointerWithAlignment(mem, mClusRefTmp, mNMaxTracks);
-  memMax = std::max(mem, memMax);
+  memMax = (void*)std::max((size_t)mem, (size_t)memMax); // BUG: Casts needed to workaround GCC miscompilation
   mem = memBase;
   computePointerWithAlignment(mem, mTrackIDs, mNMaxTracks); // UnpackResetIds - RefitSliceTracks - UnpackSliceGlobal
-  memMax = std::max(mem, memMax);
+  memMax = (void*)std::max((size_t)mem, (size_t)memMax);
   mem = memBase;
   computePointerWithAlignment(mem, mTrackSort, mNMaxTracks); // PrepareClustersForFit0 - SortTracksQPt - PrepareClustersForFit1 - PrepareClustersForFit1 / Finalize0 - Finalize2
   computePointerWithAlignment(mem, mSharedCount, mNMaxClusters);
-  memMax = std::max(mem, memMax);
+  memMax = (void*)std::max((size_t)mem, (size_t)memMax);
   mem = memBase;
   computePointerWithAlignment(mem, mLoopData, mNMaxTracks); // GPUTPCGMMergerTrackFit - GPUTPCGMMergerFollowLoopers
   computePointerWithAlignment(mem, mRetryRefitIds, mNMaxTracks);
-  memMax = std::max(mem, memMax);
+  memMax = (void*)std::max((size_t)mem, (size_t)memMax);
   return memMax;
 }
 
