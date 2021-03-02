@@ -63,6 +63,7 @@ set(SRCS
 
 set(SRCS_NO_CINT
     DataTypes/GPUDataTypes.cxx
+    DataTypes/GPUMemorySizeScalers.cxx
     Base/GPUReconstruction.cxx
     Base/GPUReconstructionCPU.cxx
     Base/GPUProcessor.cxx
@@ -128,7 +129,6 @@ set(HDRS_INSTALL
     DataTypes/GPUOutputControl.h
     DataTypes/GPUO2DataTypes.h
     DataTypes/GPUHostDataTypes.h
-    DataTypes/GPUMemorySizeScalers.h
     DataTypes/GPURawData.h
     DataTypes/GPUdEdxInfo.h
     Base/GPUParam.inc

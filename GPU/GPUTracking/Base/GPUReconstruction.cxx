@@ -278,6 +278,10 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   }
 
   mMemoryScalers->factor = mProcessingSettings.memoryScalingFactor;
+  mMemoryScalers->returnMaxVal = mProcessingSettings.forceMaxMemScalers;
+  if (mProcessingSettings.forceMaxMemScalers > 1) {
+    mMemoryScalers->rescaleMaxMem(mProcessingSettings.forceMaxMemScalers);
+  }
 
 #ifdef WITH_OPENMP
   if (mProcessingSettings.ompThreads <= 0) {
@@ -347,6 +351,9 @@ int GPUReconstruction::InitPhasePermanentMemory()
 
 int GPUReconstruction::InitPhaseAfterDevice()
 {
+  if (mProcessingSettings.forceMaxMemScalers <= 1 && mProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
+    mMemoryScalers->rescaleMaxMem(IsGPU() ? mDeviceMemorySize : mHostMemorySize);
+  }
   for (unsigned int i = 0; i < mChains.size(); i++) {
     if (mChains[i]->Init()) {
       return 1;
