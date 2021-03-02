@@ -153,6 +153,8 @@ class RawReaderBase
       // Channel data
       bool inconsistent_event = false;
       bool filled_event = false;
+      bcdata.ref.setFirstEntry(digitsCh.size());
+      uint32_t nch=0;
       for (int32_t im = 0; im < NModules; im++) {
         ModuleTriggerMapData mt;
         mt.w = 0;
@@ -160,6 +162,7 @@ class RawReaderBase
         bool inconsistent_module = false;
         for (int32_t ic = 0; ic < NChPerModule; ic++) {
           if (ev.data[im][ic].f.fixed_0 == Id_w0 && ev.data[im][ic].f.fixed_1 == Id_w1 && ev.data[im][ic].f.fixed_2 == Id_w2) {
+            bcdata.channels |= 0x1 << (NChPerModule * im + ic);
             auto& ch = ev.data[im][ic];
             uint16_t us[12];
             us[0] = ch.f.s00;
@@ -176,6 +179,7 @@ class RawReaderBase
             us[11] = ch.f.s11;
             // Identify connected channel
             auto& chd = digitsCh.emplace_back();
+	    nch++;
             auto id = mModuleConfig->modules[im].channelID[ic];
             chd.id = id;
             for (int32_t is = 0; is < NTimeBinsPerBC; is++) {
@@ -187,7 +191,7 @@ class RawReaderBase
             }
             // Trigger bits
             if (ch.f.Hit) {
-              bcdata.triggers |= (0x1 << ((im - 1) * NChPerModule + ic));
+              bcdata.triggers |= (0x1 << (im  * NChPerModule + ic));
             }
             // TODO: Alice trigger bits
             // TODO: consistency checks
@@ -221,6 +225,7 @@ class RawReaderBase
           inconsistent_event = true;
         }
       }
+      bcdata.ref.setEntries(nch);
       if (inconsistent_event) {
         LOG(ERROR) << "Inconsistent event";
         for (int32_t im = 0; im < NModules; im++) {
