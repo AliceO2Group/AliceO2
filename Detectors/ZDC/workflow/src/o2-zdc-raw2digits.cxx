@@ -40,6 +40,11 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
                     o2::framework::VariantType::Bool,
                     false,
                     {"disable root-files output writers"}});
+  workflowOptions.push_back(
+    ConfigParamSpec{"ccdb-url",
+                    VariantType::String,
+                    "http://ccdb-test.cern.ch:8080",
+                    {"url of CCDB"}});
 }
 
 // ------------------------------------------------------------------
@@ -52,8 +57,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto useProcessor = configcontext.options().get<bool>("use-process");
   auto dumpProcessor = configcontext.options().get<bool>("dump-blocks-process");
   auto dumpReader = configcontext.options().get<bool>("dump-blocks-reader");
-  auto disableRootOut =
-    configcontext.options().get<bool>("disable-root-output");
+  auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
+  auto ccdbURL = configcontext.options().get<std::string>("ccdb-url");
   LOG(INFO) << "WorkflowSpec FLPWorkflow";
   return std::move(o2::zdc::getZDCWorkflow(
     useProcessor, dumpProcessor, dumpReader, disableRootOut));
