@@ -275,8 +275,8 @@ void* GPUTPCGMMerger::SetPointersMerger(void* mem)
   computePointerWithAlignment(mem, mSharedCount, mNMaxClusters);
   memMax = (void*)std::max((size_t)mem, (size_t)memMax);
   mem = memBase;
-  computePointerWithAlignment(mem, mLoopData, mNMaxTracks); // GPUTPCGMMergerTrackFit - GPUTPCGMMergerFollowLoopers
-  computePointerWithAlignment(mem, mRetryRefitIds, mNMaxTracks);
+  computePointerWithAlignment(mem, mLoopData, mNMaxTracks);      // GPUTPCGMMergerTrackFit - GPUTPCGMMergerFollowLoopers
+  computePointerWithAlignment(mem, mRetryRefitIds, mNMaxTracks); // Reducing mNMaxTracks for mLoopData / mRetryRefitIds does not save memory, since the other parts are larger anyway
   memMax = (void*)std::max((size_t)mem, (size_t)memMax);
   return memMax;
 }
