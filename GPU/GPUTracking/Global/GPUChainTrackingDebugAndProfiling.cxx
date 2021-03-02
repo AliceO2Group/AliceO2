@@ -13,6 +13,7 @@
 
 #include "GPUChainTracking.h"
 #include "GPUTrackingInputProvider.h"
+#include "GPUMemorySizeScalers.h"
 #include <map>
 #include <memory>
 #include <string>
@@ -139,18 +140,22 @@ void GPUChainTracking::PrintMemoryStatistics()
     addToMap("TPC Clusterer Sector Peaks", usageMap, processors()->tpcClusterer[i].mPmemory->counters.nPeaks, processors()->tpcClusterer[i].mNMaxPeaks);
     addToMap("TPC Clusterer Sector Clusters", usageMap, processors()->tpcClusterer[i].mPmemory->counters.nClusters, processors()->tpcClusterer[i].mNMaxClusters);
 #endif
-    addToMap("TPC Start Hits", usageMap, *processors()->tpcTrackers[i].NStartHits(), processors()->tpcTrackers[i].NMaxStartHits());
-    addToMap("TPC Tracklets", usageMap, *processors()->tpcTrackers[i].NTracklets(), processors()->tpcTrackers[i].NMaxTracklets());
-    addToMap("TPC TrackletHits", usageMap, *processors()->tpcTrackers[i].NRowHits(), processors()->tpcTrackers[i].NMaxRowHits());
+    addToMap("TPC Sector Start Hits", usageMap, *processors()->tpcTrackers[i].NStartHits(), processors()->tpcTrackers[i].NMaxStartHits());
+    addToMap("TPC Sector Tracklets", usageMap, *processors()->tpcTrackers[i].NTracklets(), processors()->tpcTrackers[i].NMaxTracklets());
+    addToMap("TPC Sector TrackletHits", usageMap, *processors()->tpcTrackers[i].NRowHits(), processors()->tpcTrackers[i].NMaxRowHits());
     addToMap("TPC Sector Tracks", usageMap, *processors()->tpcTrackers[i].NTracks(), processors()->tpcTrackers[i].NMaxTracks());
     addToMap("TPC Sector TrackHits", usageMap, *processors()->tpcTrackers[i].NTrackHits(), processors()->tpcTrackers[i].NMaxTrackHits());
   }
-  addToMap("TPC Clusters", usageMap, mIOPtrs.clustersNative->nClustersTotal, mInputsHost->mNClusterNative);
+  addToMap("TPC Clusterer Clusters", usageMap, mRec->MemoryScalers()->nTPCHits, mRec->MemoryScalers()->NTPCClusters(mRec->MemoryScalers()->nTPCdigits));
   addToMap("TPC Tracks", usageMap, processors()->tpcMerger.NOutputTracks(), processors()->tpcMerger.NMaxTracks());
   addToMap("TPC TrackHits", usageMap, processors()->tpcMerger.NOutputTrackClusters(), processors()->tpcMerger.NMaxOutputTrackClusters());
+  if (mRec->GetProcessingSettings().createO2Output) {
+    addToMap("TPC O2 Tracks", usageMap, processors()->tpcMerger.NOutputTracksTPCO2(), processors()->tpcMerger.NOutputTracksTPCO2());
+    addToMap("TPC O2 ClusRefs", usageMap, processors()->tpcMerger.NOutputClusRefsTPCO2(), processors()->tpcMerger.NOutputClusRefsTPCO2());
+  }
 
   for (auto& elem : usageMap) {
-    GPUInfo("Mem Usage %-30s : %9lu / %9lu (%3.0f%% / %3.0f%% / count %3u / max %9lu)", elem.first.c_str(), elem.second.nSum, elem.second.nBoundSum, 100. * elem.second.nSum / std::max(1lu, elem.second.nBoundSum), 100. * elem.second.maxUse, elem.second.count, elem.second.nMax);
+    printf("Mem Usage %-30s : %'14lu / %'14lu (%3.0f%% / %3.0f%% / count %3u / max %'14lu)\n", elem.first.c_str(), elem.second.nSum, elem.second.nBoundSum, 100. * elem.second.nSum / std::max(1lu, elem.second.nBoundSum), 100. * elem.second.maxUse, elem.second.count, elem.second.nMax);
   }
 }
 

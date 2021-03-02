@@ -623,7 +623,7 @@ size_t GPUReconstruction::AllocateRegisteredMemory(short ires, GPUOutputControl*
 void* GPUReconstruction::AllocateUnmanagedMemory(size_t size, int type)
 {
   if (type != GPUMemoryResource::MEMORY_HOST && (!IsGPU() || type != GPUMemoryResource::MEMORY_GPU)) {
-    throw std::bad_alloc();
+    throw std::runtime_error("Requested invalid memory typo for unmanaged allocation");
   }
   if (mProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
     mUnmanagedChunks.emplace_back(new char[size + GPUCA_BUFFER_ALIGNMENT]);
@@ -634,6 +634,7 @@ void* GPUReconstruction::AllocateUnmanagedMemory(size_t size, int type)
     char* retVal;
     GPUProcessor::computePointerWithAlignment(pool, retVal, size);
     if (pool > poolend) {
+      GPUError("Insufficient unmanaged memory: missing %lu", (size_t)((char*)pool - (char*)poolend));
       throw std::bad_alloc();
     }
     UpdateMaxMemoryUsed();
@@ -652,6 +653,7 @@ void* GPUReconstruction::AllocateVolatileDeviceMemory(size_t size)
   char* retVal;
   GPUProcessor::computePointerWithAlignment(mDeviceMemoryPool, retVal, size);
   if (mDeviceMemoryPool > mDeviceMemoryPoolEnd) {
+    GPUError("Insufficient volatile device memory: missing %lu", (size_t)((char*)mDeviceMemoryPool - (char*)mDeviceMemoryPoolEnd));
     throw std::bad_alloc();
   }
   UpdateMaxMemoryUsed();
@@ -731,7 +733,9 @@ void GPUReconstruction::PopNonPersistentMemory(RecoStep step)
     if (IsGPU()) {
       printf("Allocated Device memory after %30s: %'13lld (non temporary %'13lld, blocked %'13lld)\n", GPUDataTypes::RECO_STEP_NAMES[getRecoStepNum(step, true)], ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase) + ptrDiff((char*)mDeviceMemoryBase + mDeviceMemorySize, mDeviceMemoryPoolEnd), ptrDiff(mDeviceMemoryPool, mDeviceMemoryBase), mDeviceMemoryPoolBlocked == nullptr ? 0ll : ptrDiff((char*)mDeviceMemoryBase + mDeviceMemorySize, mDeviceMemoryPoolBlocked));
     }
-    printf("Allocated Host memory after  %30s: %'13lld (non temporary %'13lld, blocked %'13lld)\n", GPUDataTypes::RECO_STEP_NAMES[getRecoStepNum(step, true)], ptrDiff(mHostMemoryPool, mHostMemoryBase) + ptrDiff((char*)mHostMemoryBase + mHostMemorySize, mHostMemoryPoolEnd), ptrDiff(mHostMemoryPool, mHostMemoryBase), mHostMemoryPoolBlocked == nullptr ? 0ll : ptrDiff((char*)mHostMemoryBase + mHostMemorySize, mHostMemoryPoolBlocked));
+    printf("Allocated Host memory after   %30s: %'13lld (non temporary %'13lld, blocked %'13lld)\n", GPUDataTypes::RECO_STEP_NAMES[getRecoStepNum(step, true)], ptrDiff(mHostMemoryPool, mHostMemoryBase) + ptrDiff((char*)mHostMemoryBase + mHostMemorySize, mHostMemoryPoolEnd), ptrDiff(mHostMemoryPool, mHostMemoryBase), mHostMemoryPoolBlocked == nullptr ? 0ll : ptrDiff((char*)mHostMemoryBase + mHostMemorySize, mHostMemoryPoolBlocked));
+    printf("%16s", "");
+    PrintMemoryMax();
   }
   if (mProcessingSettings.keepDisplayMemory || mProcessingSettings.disableMemoryReuse) {
     return;
@@ -833,7 +837,7 @@ void GPUReconstruction::PrintMemoryStatistics()
   }
   printf("%59s CPU / %9s GPU\n", "", "");
   for (auto it = sizes.begin(); it != sizes.end(); it++) {
-    printf("Allocation %30s %s: Size %'13lld / %'13lld\n", it->first.c_str(), it->second[2] ? "P" : " ", (long long int)it->second[0], (long long int)it->second[1]);
+    printf("Allocation %30s %s: Size %'14lld / %'14lld\n", it->first.c_str(), it->second[2] ? "P" : " ", (long long int)it->second[0], (long long int)it->second[1]);
   }
   PrintMemoryOverview();
   for (unsigned int i = 0; i < mChains.size(); i++) {
