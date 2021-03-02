@@ -40,11 +40,10 @@ namespace o2
 {
 namespace zdc
 {
-template <typename RawReader>
 class ZDCDataReaderDPLSpec : public Task
 {
  public:
-  ZDCDataReaderDPLSpec(const RawReader& rawReader) : mRawReader(rawReader) {}
+  ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader) : mRawReader(rawReader){};
   ZDCDataReaderDPLSpec() = default;
   ~ZDCDataReaderDPLSpec() override = default;
   void init(InitContext& ic) final {}
@@ -80,24 +79,23 @@ class ZDCDataReaderDPLSpec : public Task
     mRawReader.accumulateDigits();
     mRawReader.makeSnapshot(pc);
   }
-  RawReader mRawReader;
+  RawReaderZDC mRawReader;
 };
 
-template <typename RawReader>
-framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReader& rawReader)
+framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader)
 {
   LOG(INFO) << "DataProcessorSpec initDataProcSpec() for RawReaderZDC";
   std::vector<OutputSpec> outputSpec;
-  RawReader::prepareOutputSpec(outputSpec);
+  RawReaderZDC::prepareOutputSpec(outputSpec);
   return DataProcessorSpec{
     "zdc-datareader-dpl",
     o2::framework::select("TF:ZDC/RAWDATA"),
     outputSpec,
-    adaptFromTask<ZDCDataReaderDPLSpec<RawReader>>(rawReader),
+    adaptFromTask<ZDCDataReaderDPLSpec>(rawReader),
     Options{}};
 }
 
 } // namespace zdc
 } // namespace o2
 
-#endif /* O2_ZDCDATAREADERDPL_H */
+#endif /* O2_ZDCDATAREADERDPLSPEC_H */
