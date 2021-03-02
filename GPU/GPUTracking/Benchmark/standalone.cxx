@@ -795,11 +795,15 @@ int main(int argc, char** argv)
   ioPtrEvents.resize(configStandalone.preloadEvents ? (nEvents - configStandalone.StartEvent) : 1);
   ioMemEvents.resize(configStandalone.preloadEvents ? (nEvents - configStandalone.StartEvent) : 1);
   if (configStandalone.preloadEvents) {
-    printf("Preloading events");
+    printf("Preloading events%s", configStandalone.proc.debugLevel >= 2 ? "\n" : "");
     fflush(stdout);
     for (int i = 0; i < nEvents - configStandalone.StartEvent; i++) {
       LoadEvent(configStandalone.StartEvent + i, i);
-      printf(" %d", i);
+      if (configStandalone.proc.debugLevel >= 2) {
+        printf("Loading event %d\n", i);
+      } else {
+        printf(" %d", i);
+      }
       fflush(stdout);
     }
     printf("\n");
