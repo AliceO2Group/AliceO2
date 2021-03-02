@@ -34,20 +34,21 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
   DPLRawParser parser(pc.inputs());
   mRawReader.clear();
 
-  //>> update TF-dependent CCDB stuff
-  long timeStamp = 0;
-  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-  mgr.setTimestamp(timeStamp);
-  auto moduleConfig = mgr.get<o2::zdc::ModuleConfig>(o2::zdc::CCDBPathConfigModule);
-  if (!moduleConfig) {
-    LOG(FATAL) << "Cannot module configuratio for timestamp " << timeStamp;
-    return;
+  //>> update Time-dependent CCDB stuff, at the moment set the moduleconfig only once
+  if (!mRawReader.getModuleConfig()) {
+    long timeStamp = 0;
+    auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+    mgr.setTimestamp(timeStamp);
+    auto moduleConfig = mgr.get<o2::zdc::ModuleConfig>(o2::zdc::CCDBPathConfigModule);
+    if (!moduleConfig) {
+      LOG(FATAL) << "Cannot module configuratio for timestamp " << timeStamp;
+      return;
+      LOG(INFO) << "Loaded module configuration for timestamp " << timeStamp;
+    }
+    mRawReader.setModuleConfig(moduleConfig);
+    mRawReader.setTriggerMask();
   }
-  //<< update TF-dependent CCDB stuff
   
-  LOG(INFO) << "Loaded module configuration for timestamp " << timeStamp;
-  mRawReader.setModuleConfig(moduleConfig);
-  LOG(INFO) << "ZDCDataReaderDPLSpec";
   uint64_t count = 0;
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
     //Proccessing each page

@@ -97,7 +97,6 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
     LOG(FATAL) << "Missing ModuleConfig";
     return 0;
   }
-  setTriggerMask();
   int bcCounter = mMapData.size();
   LOG(INFO) << "Processing #bc " << bcCounter;
   for (auto& [ir, ev] : mMapData) {
