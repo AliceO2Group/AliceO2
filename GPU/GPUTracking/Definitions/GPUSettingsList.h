@@ -104,7 +104,7 @@ AddOption(trdNMaxCollisions, int, 1000, "", 0, "Maximum number of collisions per
 AddOption(debugLevel, int, -1, "debug", 'd', "Set debug level (-1 = silend)")
 AddOption(allocDebugLevel, int, 0, "allocDebug", 0, "Some debug output for memory allocations (without messing with normal debug level)")
 AddOption(debugMask, int, -1, "", 0, "Mask for debug output dumps to file")
-AddOption(checkKernelFailures, int, 0, "", 0, "Synchronize after each kernel call and identify failing kernels")
+AddOption(checkKernelFailures, bool, false, "", 0, "Synchronize after each kernel call and identify failing kernels")
 AddOption(comparableDebutOutput, bool, true, "", 0, "Make CPU and GPU debug output comparable (sort / skip concurrent parts)")
 AddOption(showOutputStat, bool, false, "", 0, "Print some track output statistics")
 AddOption(runCompressionStatistics, bool, false, "compressionStat", 0, "Run statistics and verification for cluster compression")
