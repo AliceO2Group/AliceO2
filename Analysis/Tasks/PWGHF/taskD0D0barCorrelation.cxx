@@ -69,6 +69,14 @@ double getDeltaPhi(double phiD, double phiDbar)
 }
 
 ///
+/// Returns deltaPhi value in range [-pi, pi], for resolution distributions
+///
+double getDeltaPhiForResolution(double phiD, double phiDbar)
+{
+  return RecoDecay::constrainAngle(phiDbar - phiD, -o2::constants::math::PI);
+}
+
+///
 /// Returns phi of candidate/particle evaluated from x and y components of segment connecting primary and secondary vertices
 ///
 double evaluatePhiByVertex(double xVertex1, double xVertex2, double yVertex1, double yVertex2)
@@ -703,7 +711,7 @@ struct TaskCCbarCorrelationMCGen {
 
     //loop over particles at MC gen level
     for (auto& particle1 : particlesMC) {
-      if (!std::abs(particle1.pdgCode()) == 4) { //search c or cbar particles
+      if (std::abs(particle1.pdgCode()) != 4) { //search c or cbar particles
         continue;
       }
       int partMothPDG = particlesMC.iteratorAt(particle1.mother0()).pdgCode();
@@ -750,7 +758,7 @@ struct TaskCCbarCorrelationMCGen {
             registry.fill(HIST("hDeltaEtaVsPtMCGen"), pt1, pt2, deltaEta);
             registry.fill(HIST("hDeltaPhiVsPtMCGen"), pt1, pt2, deltaPhi);
             registry.fill(HIST("hDeltaPtDDbarMCGen"), pt2 - pt1);
-            registry.fill(HIST("hDeltaPtMaxMinMCGen"), std::max(particle2.pt(), particle1.pt()) - std::min(particle2.pt(), particle1.pt()));
+            registry.fill(HIST("hDeltaPtMaxMinMCGen"), std::abs(pt2 - pt1));
           } // end outer if (check cbar)
         }   // end inner loop
       }     //end outer if (check c)
@@ -769,9 +777,9 @@ struct TaskD0D0barCorrelationCheckPhiResolution {
      {"hEta", "D0,D0bar candidates;candidate #it{#eta};entries", {HistType::kTH1F, {{100, -5., 5.}}}},
      {"hPhiStdPhi", "D0,D0bar candidates;candidate #it{#varphi};#it{p}_{T}", {HistType::kTH2F, {{128, 0., 2. * o2::constants::math::PI}, {50, 0., 50.}}}},
      {"hPhiByVtxPhi", "D0,D0bar candidates;candidate #it{#varphi};#it{p}_{T}", {HistType::kTH2F, {{128, 0., 2. * o2::constants::math::PI}, {50, 0., 50.}}}},
-     {"hPhiDifferenceTwoMethods", "D0,D0bar candidates;candidate #it{#Delta#varphi};#it{p}_{T}", {HistType::kTH2F, {{128, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {50, 0., 50.}}}},
-     {"hDifferenceGenPhiStdPhi", "D0,D0bar candidates;candidate #it{#varphi};#it{p}_{T}", {HistType::kTH2F, {{128, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {50, 0., 50.}}}},
-     {"hDifferenceGenPhiByVtxPhi", "D0,D0bar candidates;candidate #it{#varphi};#it{p}_{T}", {HistType::kTH2F, {{128, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {50, 0., 50.}}}},
+     {"hPhiDifferenceTwoMethods", "D0,D0bar candidates;candidate #it{#Delta#varphi};#it{p}_{T}", {HistType::kTH2F, {{128, -o2::constants::math::PI, o2::constants::math::PI}, {50, 0., 50.}}}},
+     {"hDifferenceGenPhiStdPhi", "D0,D0bar candidates;candidate #it{#varphi};#it{p}_{T}", {HistType::kTH2F, {{128, -o2::constants::math::PI, o2::constants::math::PI}, {50, 0., 50.}}}},
+     {"hDifferenceGenPhiByVtxPhi", "D0,D0bar candidates;candidate #it{#varphi};#it{p}_{T}", {HistType::kTH2F, {{128, -o2::constants::math::PI, o2::constants::math::PI}, {50, 0., 50.}}}},
      {"hDeltaPhiPtIntStdPhi", "D0,D0bar candidates;#it{#varphi}^{D0bar}-#it{#varphi}^{D0};entries", {HistType::kTH1F, {{128, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}}}},
      {"hDeltaPhiPtIntByVtxPhi", "D0,D0bar candidates;#it{#varphi}^{D0bar}-#it{#varphi}^{D0};entries", {HistType::kTH1F, {{128, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}}}},
      {"hDeltaPhiVsPtStdPhi", "D0,D0bar candidates;#it{p}_{T}^{D0};#it{p}_{T}^{D0bar};#it{#varphi}^{D0bar}-#it{#varphi}^{D0};entries", {HistType::kTH3F, {{100, 0., 10.}, {100, 0., 10.}, {128, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}}}},
@@ -807,17 +815,15 @@ struct TaskD0D0barCorrelationCheckPhiResolution {
         double pt1 = candidate1.pt(), phi1Std = candidate1.phi();
         double phi1ByVtx = evaluatePhiByVertex(xPrimaryVertex, candidate1.xSecondaryVertex(), yPrimaryVertex, candidate1.ySecondaryVertex());
         registry.fill(HIST("hPhiStdPhi"), phi1Std, pt1);
-        registry.fill(HIST("hPhiByVtxPhi"), phi1ByVtx, pt1); //trick to have correct Phi range
-        registry.fill(HIST("hPhiDifferenceTwoMethods"), getDeltaPhi(phi1ByVtx, phi1Std), pt1);
+        registry.fill(HIST("hPhiByVtxPhi"), phi1ByVtx, pt1);
+        registry.fill(HIST("hPhiDifferenceTwoMethods"), getDeltaPhiForResolution(phi1ByVtx, phi1Std), pt1);
 
         //get corresponding gen-level D0, if exists, and evaluate gen-rec phi-difference with two approaches
         if (std::abs(candidate1.flagMCMatchRec()) == 1 << D0ToPiK) {                                                     //ok to keep both D0 and D0bar
           int indexGen = RecoDecay::getMother(particlesMC, candidate1.index0_as<aod::BigTracksMC>().label(), 421, true); //MC-gen corresponding index for MC-reco candidate
-          if (indexGen > -1) {
-            double phi1Gen = particlesMC.iteratorAt(indexGen).phi();
-            registry.fill(HIST("hDifferenceGenPhiStdPhi"), getDeltaPhi(phi1Std, phi1Gen), pt1);
-            registry.fill(HIST("hDifferenceGenPhiByVtxPhi"), getDeltaPhi(phi1ByVtx, phi1Gen), pt1);
-          }
+          double phi1Gen = particlesMC.iteratorAt(indexGen).phi();
+          registry.fill(HIST("hDifferenceGenPhiStdPhi"), getDeltaPhiForResolution(phi1Std, phi1Gen), pt1);
+          registry.fill(HIST("hDifferenceGenPhiByVtxPhi"), getDeltaPhiForResolution(phi1ByVtx, phi1Gen), pt1);
         }
 
         for (auto& candidate2 : candidates) {
