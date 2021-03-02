@@ -21,18 +21,6 @@ void RawReaderZDC::clear()
   mPedestalData.clear();
 }
 
-void RawReaderZDC::process(int linkID, gsl::span<const uint8_t> payload)
-{
-  if (0 <= linkID && linkID < 16) {
-    //PM data processing
-    processBinaryData(payload, linkID);
-  } else {
-    //put here code in case of bad rdh.linkID value
-    LOG(INFO) << "WARNING! WRONG LINK ID! " << linkID;
-    return;
-  }
-}
-
 void RawReaderZDC::processBinaryData(gsl::span<const uint8_t> payload, int linkID)
 {
   if (0 <= linkID && linkID < 16) {

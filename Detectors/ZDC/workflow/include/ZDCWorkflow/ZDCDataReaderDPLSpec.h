@@ -30,7 +30,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "ZDCBase/Constants.h"
 #include "ZDCBase/ModuleConfig.h"
-#
+#include "ZDCWorkflow/RawReaderZDC.h"
 #include <iostream>
 #include <vector>
 #include <gsl/span>
