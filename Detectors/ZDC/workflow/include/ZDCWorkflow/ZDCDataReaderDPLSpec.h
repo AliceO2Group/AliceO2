@@ -43,7 +43,7 @@ namespace zdc
 class ZDCDataReaderDPLSpec : public Task
 {
  public:
-  ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader) : mRawReader(rawReader){};
+  ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader) : mRawReader(rawReader) {}
   ZDCDataReaderDPLSpec() = default;
   ~ZDCDataReaderDPLSpec() override = default;
   void init(InitContext& ic) final {}
@@ -52,9 +52,8 @@ class ZDCDataReaderDPLSpec : public Task
     DPLRawParser parser(pc.inputs());
     mRawReader.clear();
     long timeStamp = 0;
-    std::string ccdbHost = "http://ccdb-test.cern.ch:8080";
     auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-    mgr.setURL(ccdbHost);
+    mgr.setURL(mccdbHost);
     if (timeStamp == mgr.getTimestamp()) {
       return;
     }
@@ -79,6 +78,7 @@ class ZDCDataReaderDPLSpec : public Task
     mRawReader.accumulateDigits();
     mRawReader.makeSnapshot(pc);
   }
+  std::string mccdbHost = "http://ccdb-test.cern.ch:8080";
   RawReaderZDC mRawReader;
 };
 
@@ -98,4 +98,4 @@ framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawRead
 } // namespace zdc
 } // namespace o2
 
-#endif /* O2_ZDCDATAREADERDPLSPEC_H */
+#endif /* O2_ZDCDATAREADERDPL_H */
