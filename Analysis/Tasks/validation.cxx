@@ -10,7 +10,6 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
-#include "DetectorsBase/DCAFitter.h"
 #include "ReconstructionDataFormats/Track.h"
 
 #include <TFile.h>
