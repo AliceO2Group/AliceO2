@@ -9,57 +9,52 @@
 // or submit itself to any jurisdiction.
 
 #include "CommonUtils/ConfigurableParam.h"
-#include "ZDCWorkflow/ZDCWorkflow.h"
+#include "Framework/ConfigParamSpec.h"
 
 using namespace o2::framework;
 
 // ------------------------------------------------------------------
 
 // we need to add workflow options before including Framework/runDataProcessing
-void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
-
-  workflowOptions.push_back(
-    ConfigParamSpec{"use-process",
-                    o2::framework::VariantType::Bool,
-                    false,
-                    {"enable processor for data taking/dumping"}});
-  workflowOptions.push_back(
-    ConfigParamSpec{"dump-blocks-process",
-                    o2::framework::VariantType::Bool,
-                    false,
-                    {"enable dumping of event blocks at processor side"}});
-  workflowOptions.push_back(
-    ConfigParamSpec{"dump-blocks-reader",
-                    o2::framework::VariantType::Bool,
-                    false,
-                    {"enable dumping of event blocks at reader side"}});
-  workflowOptions.push_back(
-    ConfigParamSpec{"disable-root-output",
-                    o2::framework::VariantType::Bool,
-                    false,
-                    {"disable root-files output writers"}});
-  workflowOptions.push_back(
-    ConfigParamSpec{"ccdb-url",
-                    VariantType::String,
-                    "http://ccdb-test.cern.ch:8080",
-                    {"url of CCDB"}});
+  std::vector<ConfigParamSpec> options{
+				       {"use-process", VariantType::Bool, false, {"enable processor for data taking/dumping"}},
+				       {"dump-blocks-process", VariantType::Bool, false, {"enable dumping of event blocks at processor side"}},
+				       {"dump-blocks-reader", VariantType::Bool, false, {"enable dumping of event blocks at reader side"}},
+				       {"disable-root-output", VariantType::Bool, false, {"disable root-files output writers"}},
+				       {"ccdb-url", VariantType::String, "http://ccdb-test.cern.ch:8080", {"url of CCDB"}},
+				       {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+  std::swap(workflowOptions, options);
 }
 
 // ------------------------------------------------------------------
 
 #include "Framework/runDataProcessing.h"
+#include "ZDCWorkflow/ZDCDataReaderDPLSpec.h"
+#include "ZDCWorkflow/ZDCDigitWriterDPLSpec.h"
+#include "ZDCWorkflow/RawReaderZDC.h"
+
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
-  LOG(INFO) << "WorkflowSpec defineDataProcessing";
   auto useProcessor = configcontext.options().get<bool>("use-process");
   auto dumpProcessor = configcontext.options().get<bool>("dump-blocks-process");
   auto dumpReader = configcontext.options().get<bool>("dump-blocks-reader");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   auto ccdbURL = configcontext.options().get<std::string>("ccdb-url");
-  LOG(INFO) << "WorkflowSpec FLPWorkflow";
-  return std::move(o2::zdc::getZDCWorkflow(
-    useProcessor, dumpProcessor, dumpReader, disableRootOut));
+
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
+  
+  WorkflowSpec specs;
+  specs.emplace_back(o2::zdc::getZDCDataReaderDPLSpec(o2::zdc::RawReaderZDC{dumpReader}, ccdbURL));
+  //  if (useProcess) {
+  //    specs.emplace_back(o2::zdc::getZDCDataProcessDPLSpec(dumpProcessor));
+  //  }
+  if (!disableRootOut) {
+    specs.emplace_back(o2::zdc::getZDCDigitWriterDPLSpec());
+  }
+  return std::move(specs);
+  
 }

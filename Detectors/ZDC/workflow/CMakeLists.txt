@@ -11,9 +11,8 @@
 o2_add_library(ZDCWorkflow
                SOURCES src/DigitReaderSpec.cxx
 	               src/EntropyEncoderSpec.cxx
-                       src/ZDCDataReaderDPLSpec.cxx
 		       src/EntropyDecoderSpec.cxx
-		       src/ZDCWorkflow.cxx
+                       src/ZDCDataReaderDPLSpec.cxx
 		       src/RawReaderZDC.cxx
 		       src/ZDCDigitWriterDPLSpec.cxx
 	       PUBLIC_LINK_LIBRARIES O2::Framework
