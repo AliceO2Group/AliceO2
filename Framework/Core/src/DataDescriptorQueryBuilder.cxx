@@ -115,14 +115,6 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
     auto lastMatcher =
       std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
                                               StartTimeValueMatcher(ContextRef{0}));
-    size_t extraNodes = 0;
-    if (nodes.size() <= 1) {
-      nodes.push_back(DescriptionValueMatcher{ContextRef{++extraNodes}});
-    }
-    if (nodes.size() <= 2) {
-      nodes.push_back(SubSpecificationTypeValueMatcher{ContextRef{++extraNodes}});
-    }
-
     for (size_t ni = 0, ne = nodes.size(); ni < ne; ++ni) {
       auto& node = nodes[nodes.size() - 1 - ni];
       auto tmp = std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::And,
@@ -195,8 +187,6 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
       case IN_END_DESCRIPTION: {
         if (assignLastStringMatch("description", 16, currentDescription, IN_BEGIN_SUBSPEC)) {
           nodes.push_back(DescriptionValueMatcher{*currentDescription});
-        } else {
-          nodes.push_back(DescriptionValueMatcher{ContextRef{1}});
         }
       } break;
       case IN_BEGIN_SUBSPEC: {
@@ -206,8 +196,6 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
       case IN_END_SUBSPEC: {
         if (assignLastNumericMatch("subspec", currentSubSpec, IN_BEGIN_TIMEMODULO)) {
           nodes.push_back(SubSpecificationTypeValueMatcher{*currentSubSpec});
-        } else {
-          nodes.push_back(SubSpecificationTypeValueMatcher{ContextRef{2}});
         }
       } break;
       case IN_BEGIN_TIMEMODULO: {
