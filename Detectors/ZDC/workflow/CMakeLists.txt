@@ -24,7 +24,7 @@ o2_add_library(ZDCWorkflow
 				     O2::ZDCReconstruction
 				     O2::DataFormatsZDC)
 
-o2_add_executable(o2-zdc-raw2digits
+o2_add_executable(raw2digits
                   COMPONENT_NAME zdc
                   SOURCES src/o2-zdc-raw2digits.cxx
                   PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow

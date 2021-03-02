@@ -36,7 +36,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
-  printf("Ciao\n");
   WorkflowSpec workflow;
   workflow.emplace_back(DataProcessorSpec{
     "zdc-raw-parser",

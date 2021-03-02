@@ -14,9 +14,10 @@
 
 using namespace o2::zdc;
 
-void BCData::print(uint32_t triggerMask) const
+void BCData::print(uint32_t triggerMask, int diff) const
 {
-  printf("Orbit %9u bc %4u nch %2d pos %d\n", ir.orbit, ir.bc, ref.getEntries(), ref.getFirstEntry());
+  if(diff==0)printf("Orbit %9u bc %4u nch %2d pos %d\n", ir.orbit, ir.bc, ref.getEntries(), ref.getFirstEntry());
+  else printf("Orbit %9u bc %4u ", ir.orbit, ir.bc);
   printf("Read:");
   for (int ic = 0; ic < NDigiChannels; ic++) {
     if (ic % NChPerModule == 0) {
@@ -32,7 +33,9 @@ void BCData::print(uint32_t triggerMask) const
       printf(" ");
     }
   }
-  printf("]\nHits:");
+  printf("]\n");
+  if(diff)printf("Orbit %9u bc %4u ", ir.orbit, ir.bc);
+  printf("Hits:");
   for (int ic = 0; ic < NDigiChannels; ic++) {
     if (ic % NChPerModule == 0) {
       if (ic == 0) {
@@ -57,12 +60,16 @@ void BCData::print(uint32_t triggerMask) const
       }
     }
   }
-  printf("]\nAUTO:");
+  printf("]\n");
+  if(diff)printf("Orbit %9u bc %4u ", ir.orbit, ir.bc);
+  printf("AUTO:");
   for (int i = 0; i < NModules; i++) {
     std::bitset<10> bb(moduleTriggers[i]);
     printf(" %d %s%s%s%s%s", i, bb[8] ? "3" : "-", bb[7] ? "2" : "-", bb[6] ? "1" : "-", bb[5] ? "0" : "-", bb[4] ? "M" : "-");
   }
-  printf("\nALIT:");
+  printf("\n");
+  if(diff)printf("Orbit %9u bc %4u ", ir.orbit, ir.bc);
+  printf("ALIT:");
   for (int i = 0; i < NModules; i++) {
     std::bitset<10> bb(moduleTriggers[i]);
     printf(" %d %s%s%s%s ", i, bb[3] ? "3" : "-", bb[2] ? "2" : "-", bb[1] ? "1" : "-", bb[0] ? "0" : "-");
