@@ -34,7 +34,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h"
 #include "ZDCWorkflow/ZDCDataReaderDPLSpec.h"
 #include "ZDCWorkflow/ZDCDigitWriterDPLSpec.h"
-#include "ZDCWorkflow/RawReaderZDC.h"
+#include "ZDCRaw/RawReaderZDC.h"
 
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)

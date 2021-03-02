@@ -30,10 +30,11 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "ZDCBase/Constants.h"
 #include "ZDCBase/ModuleConfig.h"
-#include "ZDCWorkflow/RawReaderZDC.h"
+#include "ZDCRaw/RawReaderZDC.h"
 #include <iostream>
 #include <vector>
 #include <gsl/span>
+
 using namespace o2::framework;
 
 namespace o2
