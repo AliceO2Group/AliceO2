@@ -44,12 +44,10 @@ class RawReaderZDC
   RawReaderZDC() = default;
   ~RawReaderZDC() = default;
 
-  
   std::map<InteractionRecord, EventData> mMapData; /// Raw data cache
   const ModuleConfig* mModuleConfig = nullptr;     /// Trigger/readout configuration object
   void setModuleConfig(const ModuleConfig* moduleConfig) { mModuleConfig = moduleConfig; };
   const ModuleConfig* getModuleConfig() { return mModuleConfig; };
-
 
   std::vector<o2::zdc::BCData> mDigitsBC;
   std::vector<o2::zdc::ChannelData> mDigitsCh;
@@ -58,7 +56,7 @@ class RawReaderZDC
   void clear();
 
   //decoding binary data into data blocks
-  void processBinaryData(gsl::span<const uint8_t> payload, int linkID);  //processing data blocks into digits
+  void processBinaryData(gsl::span<const uint8_t> payload, int linkID); //processing data blocks into digits
   int processWord(const uint32_t* word);
   EventChData mCh; // Channel data to be decoded
   void process(const EventChData& ch);
