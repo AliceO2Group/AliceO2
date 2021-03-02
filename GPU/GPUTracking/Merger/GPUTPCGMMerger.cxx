@@ -249,7 +249,8 @@ void* GPUTPCGMMerger::SetPointersMerger(void* mem)
     computePointerWithAlignment(mem, mGlobalClusterIDs, mNMaxOutputTrackClusters);
   }
 
-  computePointerWithAlignment(mem, mBorderMemory, 2 * mNMaxSliceTracks);
+  void* memBase = mem;
+  computePointerWithAlignment(mem, mBorderMemory, 2 * mNMaxSliceTracks); // MergeBorders & Resolve
   computePointerWithAlignment(mem, mBorderRangeMemory, 2 * mNMaxSliceTracks);
   int nTracks = 0;
   for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
@@ -259,14 +260,13 @@ void* GPUTPCGMMerger::SetPointersMerger(void* mem)
     mBorderRange[iSlice] = mBorderRangeMemory + 2 * nTracks;
     nTracks += n;
   }
-
   computePointerWithAlignment(mem, mTrackLinks, mNMaxSliceTracks);
   computePointerWithAlignment(mem, mTrackCCRoots, mNMaxSliceTracks);
-
-  void* memBase = mem;
+  void* memMax = mem;
+  mem = memBase;
   computePointerWithAlignment(mem, mTrackSortO2, mNMaxTracks); // GPUTPCGMO2Output::prepare - GPUTPCGMO2Output::sort - GPUTPCGMO2Output::output
   computePointerWithAlignment(mem, mClusRefTmp, mNMaxTracks);
-  void* memMax = mem;
+  memMax = std::max(mem, memMax);
   mem = memBase;
   computePointerWithAlignment(mem, mTrackIDs, mNMaxTracks); // UnpackResetIds - RefitSliceTracks - UnpackSliceGlobal
   memMax = std::max(mem, memMax);
