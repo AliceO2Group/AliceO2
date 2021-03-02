@@ -15,12 +15,16 @@
 #include <iostream>
 #include <vector>
 #include <Rtypes.h>
-#include "ZDCRaw/RawReaderZDCBase.h"
+#include <CommonDataFormat/InteractionRecord.h>
+#include <Framework/Logger.h>
+#include "Headers/RAWDataHeader.h"
 #include "DataFormatsZDC/RawEventData.h"
 #include "DataFormatsZDC/ChannelData.h"
 #include "DataFormatsZDC/BCData.h"
 #include "DataFormatsZDC/PedestalData.h"
-
+#include "ZDCSimulation/Digits2Raw.h"
+#include "ZDCSimulation/SimCondition.h"
+#include "ZDCBase/ModuleConfig.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/OutputSpec.h"
@@ -31,7 +35,7 @@ namespace o2
 {
 namespace zdc
 {
-class RawReaderZDC : public RawReaderZDCBase
+class RawReaderZDC
 {
  public:
   RawReaderZDC(bool dumpData) : mDumpData(dumpData) {}
@@ -40,16 +44,25 @@ class RawReaderZDC : public RawReaderZDCBase
   RawReaderZDC() = default;
   ~RawReaderZDC() = default;
 
+  
+  std::map<InteractionRecord, EventData> mMapData; /// Raw data cache
+  const ModuleConfig* mModuleConfig = nullptr;     /// Trigger/readout configuration object
+  void setModuleConfig(const ModuleConfig* moduleConfig) { mModuleConfig = moduleConfig; };
+  const ModuleConfig* getModuleConfig() { return mModuleConfig; };
+
+
   std::vector<o2::zdc::BCData> mDigitsBC;
   std::vector<o2::zdc::ChannelData> mDigitsCh;
   std::vector<o2::zdc::PedestalData> mPedestalData;
 
-  void clear()
-  {
-    mDigitsBC.clear();
-    mDigitsCh.clear();
-    mPedestalData.clear();
-  }
+  void clear();
+
+  //decoding binary data into data blocks
+  void processBinaryData(gsl::span<const uint8_t> payload, int linkID);  //processing data blocks into digits
+  int processWord(const uint32_t* word);
+  EventChData mCh; // Channel data to be decoded
+  void process(const EventChData& ch);
+
   void accumulateDigits()
   {
     getDigits(mDigitsBC, mDigitsCh, mPedestalData);
@@ -60,6 +73,7 @@ class RawReaderZDC : public RawReaderZDCBase
       //DigitBlockZDC::print(mVecDigits, mVecChannelData);
     }
   }
+  int getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelData>& digitsCh, std::vector<PedestalData>& pedestalData);
   static void prepareOutputSpec(std::vector<o2::framework::OutputSpec>& outputSpec)
   {
     outputSpec.emplace_back("ZDC", "DIGITSBC", 0, o2::framework::Lifetime::Timeframe);
