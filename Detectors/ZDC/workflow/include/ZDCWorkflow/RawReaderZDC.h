@@ -48,7 +48,7 @@ class RawReaderZDC
   const ModuleConfig* mModuleConfig = nullptr;     /// Trigger/readout configuration object
   void setModuleConfig(const ModuleConfig* moduleConfig) { mModuleConfig = moduleConfig; };
   const ModuleConfig* getModuleConfig() { return mModuleConfig; };
-  uint32_t mTriggerMask = 0;                                     // Trigger mask from ModuleConfig
+  uint32_t mTriggerMask = 0; // Trigger mask from ModuleConfig
   void setTriggerMask();
 
   std::vector<o2::zdc::BCData> mDigitsBC;
