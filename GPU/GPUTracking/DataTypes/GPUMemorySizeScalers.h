@@ -46,16 +46,16 @@ struct GPUMemorySizeScalers {
 
   // Upper limits
   size_t tpcMaxPeaks = 1000000000;
-  size_t tpcMaxClusters = 620000000;
-  size_t tpcMaxStartHits = 1250000;
+  size_t tpcMaxClusters = 320000000;
+  size_t tpcMaxStartHits = 650000;
   size_t tpcMaxRowStartHits = 1000000000;
-  size_t tpcMaxTracklets = 1000000;
-  size_t tpcMaxTrackletHits = 66000000;
-  size_t tpcMaxSectorTracks = 250000;
-  size_t tpcMaxSectorTrackHits = 11500000;
-  size_t tpcMaxMergedTracks = 5800000;
-  size_t tpcMaxMergedTrackHits = 380000000;
-  size_t availableMemory = 24000000000;
+  size_t tpcMaxTracklets = 520000;
+  size_t tpcMaxTrackletHits = 35000000;
+  size_t tpcMaxSectorTracks = 130000;
+  size_t tpcMaxSectorTrackHits = 5900000;
+  size_t tpcMaxMergedTracks = 3000000;
+  size_t tpcMaxMergedTrackHits = 200000000;
+  size_t availableMemory = 22000000000;
   bool returnMaxVal = false;
 
   void rescaleMaxMem(size_t newAvailableMemory);

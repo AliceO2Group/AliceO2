@@ -18,15 +18,16 @@ using namespace GPUCA_NAMESPACE::gpu;
 void GPUMemorySizeScalers::rescaleMaxMem(size_t newAvailableMemory)
 {
   GPUMemorySizeScalers tmp;
-  tpcMaxPeaks = (double)tmp.tpcMaxPeaks * newAvailableMemory / tmp.availableMemory;
-  tpcMaxClusters = (double)tmp.tpcMaxClusters * newAvailableMemory / tmp.availableMemory;
-  tpcMaxStartHits = (double)tmp.tpcMaxStartHits * newAvailableMemory / tmp.availableMemory;
-  tpcMaxRowStartHits = (double)tmp.tpcMaxRowStartHits * newAvailableMemory / tmp.availableMemory;
-  tpcMaxTracklets = (double)tmp.tpcMaxTracklets * newAvailableMemory / tmp.availableMemory;
-  tpcMaxTrackletHits = (double)tmp.tpcMaxTrackletHits * newAvailableMemory / tmp.availableMemory;
-  tpcMaxSectorTracks = (double)tmp.tpcMaxSectorTracks * newAvailableMemory / tmp.availableMemory;
-  tpcMaxSectorTrackHits = (double)tmp.tpcMaxSectorTrackHits * newAvailableMemory / tmp.availableMemory;
-  tpcMaxMergedTracks = (double)tmp.tpcMaxMergedTracks * newAvailableMemory / tmp.availableMemory;
-  tpcMaxMergedTrackHits = (double)tmp.tpcMaxMergedTrackHits * newAvailableMemory / tmp.availableMemory;
+  double scaleFactor = newAvailableMemory > tmp.availableMemory ? ((double)newAvailableMemory / tmp.availableMemory) : 1.;
+  tpcMaxPeaks = (double)tmp.tpcMaxPeaks * scaleFactor;
+  tpcMaxClusters = (double)tmp.tpcMaxClusters * scaleFactor;
+  tpcMaxStartHits = (double)tmp.tpcMaxStartHits * scaleFactor;
+  tpcMaxRowStartHits = (double)tmp.tpcMaxRowStartHits * scaleFactor;
+  tpcMaxTracklets = (double)tmp.tpcMaxTracklets * scaleFactor;
+  tpcMaxTrackletHits = (double)tmp.tpcMaxTrackletHits * scaleFactor;
+  tpcMaxSectorTracks = (double)tmp.tpcMaxSectorTracks * scaleFactor;
+  tpcMaxSectorTrackHits = (double)tmp.tpcMaxSectorTrackHits * scaleFactor;
+  tpcMaxMergedTracks = (double)tmp.tpcMaxMergedTracks * scaleFactor;
+  tpcMaxMergedTrackHits = (double)tmp.tpcMaxMergedTrackHits * scaleFactor;
   availableMemory = newAvailableMemory;
 }
