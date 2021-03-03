@@ -552,6 +552,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                      truncateFloatFraction(cov[3], mCollisionPositionCov),
                      truncateFloatFraction(cov[4], mCollisionPositionCov),
                      truncateFloatFraction(cov[5], mCollisionPositionCov),
+                     vertex.getFlags(),
                      truncateFloatFraction(vertex.getChi2(), mCollisionPositionCov),
                      vertex.getNContributors(),
                      truncateFloatFraction(tsTimeStamp, mCollisionPosition),

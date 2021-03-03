@@ -56,7 +56,7 @@ DECLARE_SOA_COLUMN(CovXZ, covXZ, float);
 DECLARE_SOA_COLUMN(CovYY, covYY, float);
 DECLARE_SOA_COLUMN(CovYZ, covYZ, float);
 DECLARE_SOA_COLUMN(CovZZ, covZZ, float);
-DECLARE_SOA_COLUMN(Flags, flags, uint8_t); // enum CollisionFlagsRun2 and CollisionFlagsRun3
+DECLARE_SOA_COLUMN(Flags, flags, uint16_t); // Run2, see CollisionFlagsRun2 | Run 3, see Vertex::Flags
 DECLARE_SOA_COLUMN(Chi2, chi2, float);
 DECLARE_SOA_COLUMN(NumContrib, numContrib, uint16_t);
 DECLARE_SOA_COLUMN(CollisionTime, collisionTime, float);
