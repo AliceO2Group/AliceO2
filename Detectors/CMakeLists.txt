@@ -26,6 +26,7 @@ add_subdirectory(ITSMFT)
 add_subdirectory(TRD)
 
 add_subdirectory(MUON)
+#add_subdirectory(CTP)
 
 add_subdirectory(TPC)
 
