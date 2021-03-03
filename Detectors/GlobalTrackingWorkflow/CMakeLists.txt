@@ -62,7 +62,7 @@ o2_add_executable(vertex-reader-workflow
 o2_add_executable(vertexing-workflow
                   COMPONENT_NAME secondary
                   SOURCES src/secondary-vertexing-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow )
+                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow  O2::TOFWorkflow O2::TOFWorkflowUtils)
 
 
 add_subdirectory(tofworkflow)

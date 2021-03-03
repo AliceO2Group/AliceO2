@@ -40,7 +40,7 @@ class SecondaryVertexingSpec : public Task
 };
 
 /// create a processor spec
-DataProcessorSpec getSecondaryVertexingSpec();
+DataProcessorSpec getSecondaryVertexingSpec(o2::dataformats::GlobalTrackID::mask_t src);
 
 } // namespace vertexing
 } // namespace o2
