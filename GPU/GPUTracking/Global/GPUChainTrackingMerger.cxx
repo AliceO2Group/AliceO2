@@ -241,6 +241,9 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
       TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResOutput(), mRec->NStreams() - 2, nullptr, &mEvents->single);
     } else if (GetProcessingSettings().keepDisplayMemory || GetProcessingSettings().createO2Output <= 1) {
       GPUMemCpy(RecoStep::TPCMerging, Merger.OutputTracks(), MergerShadowAll.OutputTracks(), Merger.NOutputTracks() * sizeof(*Merger.OutputTracks()), mRec->NStreams() - 2, 0, nullptr, &mEvents->single);
+      if (param().par.dodEdx) {
+        GPUMemCpy(RecoStep::TPCMerging, Merger.OutputTracksdEdx(), MergerShadowAll.OutputTracksdEdx(), Merger.NOutputTracks() * sizeof(*Merger.OutputTracksdEdx()), mRec->NStreams() - 2, 0, nullptr, &mEvents->single);
+      }
       GPUMemCpy(RecoStep::TPCMerging, Merger.Clusters(), MergerShadowAll.Clusters(), Merger.NOutputTrackClusters() * sizeof(*Merger.Clusters()), mRec->NStreams() - 2, 0);
       if (param().par.earlyTpcTransform) {
         GPUMemCpy(RecoStep::TPCMerging, Merger.ClustersXYZ(), MergerShadowAll.ClustersXYZ(), Merger.NOutputTrackClusters() * sizeof(*Merger.ClustersXYZ()), mRec->NStreams() - 2, 0);
