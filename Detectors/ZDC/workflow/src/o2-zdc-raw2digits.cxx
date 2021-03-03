@@ -20,12 +20,12 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<ConfigParamSpec> options{
-				       {"use-process", VariantType::Bool, false, {"enable processor for data taking/dumping"}},
-				       {"dump-blocks-process", VariantType::Bool, false, {"enable dumping of event blocks at processor side"}},
-				       {"dump-blocks-reader", VariantType::Bool, false, {"enable dumping of event blocks at reader side"}},
-				       {"disable-root-output", VariantType::Bool, false, {"disable root-files output writers"}},
-				       {"ccdb-url", VariantType::String, "http://ccdb-test.cern.ch:8080", {"url of CCDB"}},
-				       {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+    {"use-process", VariantType::Bool, false, {"enable processor for data taking/dumping"}},
+    {"dump-blocks-process", VariantType::Bool, false, {"enable dumping of event blocks at processor side"}},
+    {"dump-blocks-reader", VariantType::Bool, false, {"enable dumping of event blocks at reader side"}},
+    {"disable-root-output", VariantType::Bool, false, {"disable root-files output writers"}},
+    {"ccdb-url", VariantType::String, "http://ccdb-test.cern.ch:8080", {"url of CCDB"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   std::swap(workflowOptions, options);
 }
 
@@ -36,7 +36,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 #include "ZDCWorkflow/ZDCDigitWriterDPLSpec.h"
 #include "ZDCRaw/RawReaderZDC.h"
 
-
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   auto useProcessor = configcontext.options().get<bool>("use-process");
@@ -46,7 +45,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto ccdbURL = configcontext.options().get<std::string>("ccdb-url");
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  
+
   WorkflowSpec specs;
   specs.emplace_back(o2::zdc::getZDCDataReaderDPLSpec(o2::zdc::RawReaderZDC{dumpReader}, ccdbURL));
   //  if (useProcess) {
@@ -56,5 +55,4 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::zdc::getZDCDigitWriterDPLSpec());
   }
   return std::move(specs);
-  
 }

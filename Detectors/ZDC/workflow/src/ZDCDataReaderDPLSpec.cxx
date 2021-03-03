@@ -23,7 +23,7 @@ ZDCDataReaderDPLSpec::ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const 
   : mRawReader(rawReader), mccdbHost(ccdbURL)
 {
 }
-  
+
 void ZDCDataReaderDPLSpec::init(InitContext& ic)
 {
   o2::ccdb::BasicCCDBManager::instance().setURL(mccdbHost);
@@ -48,7 +48,7 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
     mRawReader.setModuleConfig(moduleConfig);
     mRawReader.setTriggerMask();
   }
-  
+
   uint64_t count = 0;
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
     //Proccessing each page
@@ -62,7 +62,6 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
   mRawReader.makeSnapshot(pc);
 }
 
-
 framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const std::string& ccdbURL)
 {
   LOG(INFO) << "DataProcessorSpec initDataProcSpec() for RawReaderZDC";
@@ -75,6 +74,6 @@ framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawRead
     adaptFromTask<ZDCDataReaderDPLSpec>(rawReader, ccdbURL),
     Options{}};
 }
-  
+
 } // namespace zdc
 } // namespace o2

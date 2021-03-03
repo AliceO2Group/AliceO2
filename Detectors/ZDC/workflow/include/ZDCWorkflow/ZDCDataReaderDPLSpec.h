@@ -49,8 +49,8 @@ class ZDCDataReaderDPLSpec : public Task
   ~ZDCDataReaderDPLSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
-  
-private:
+
+ private:
   std::string mccdbHost = "http://ccdb-test.cern.ch:8080";
   RawReaderZDC mRawReader;
 };
