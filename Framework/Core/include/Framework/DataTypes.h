@@ -12,7 +12,8 @@
 
 #include <cstdint>
 
-namespace o2::aod::collision {
+namespace o2::aod::collision
+{
 enum CollisionFlagsRun2 : uint16_t {
   Run2VertexerTracks = 0,
   Run2VertexerTracksNoConstraint,
