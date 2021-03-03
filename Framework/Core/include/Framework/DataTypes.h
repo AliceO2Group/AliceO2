@@ -30,11 +30,11 @@ enum TrackFlagsRun2Enum {
 namespace o2::aod::fwdtrack
 {
 enum ForwardTrackTypeEnum : uint8_t {
-  MUONStandalone = 0,
-  GlobalMuonTrack,
-  GlobalMuonTrackOtherMatch,
+  GlobalMuonTrack = 0,
+  MUONStandalone,
   MCHStandalone,
-  GlobalForwardTrack
+  GlobalForwardTrack,
+  GlobalMuonTrackOtherMatch
 };
 } // namespace o2::aod::fwdtrack
 

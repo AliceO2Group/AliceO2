@@ -267,7 +267,7 @@ using FullTrack = FullTracks::iterator;
 
 namespace fwdtrack
 {
-// FWDTRACKPAR and MFTTrack TABLE definition
+// FwdTracks and MFTTracks Columns definitions
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_INDEX_COLUMN(BC, bc);
 DECLARE_SOA_COLUMN(TrackType, trackType, uint8_t); // TODO change to ForwardTrackTypeEnum when enums are supported
@@ -301,7 +301,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, [](float pt, float tgl) -> float {
 });
 DECLARE_SOA_EXPRESSION_COLUMN(P, p, float, 0.5f * (ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::fwdtrack::tgl)) + 1.f / ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::fwdtrack::tgl))) / nabs(aod::fwdtrack::signed1Pt));
 
-// FWDTRACKPARCOV TABLE definition
+// FwdTracksCov columns definitions
 DECLARE_SOA_COLUMN(SigmaX, sigmaX, float);
 DECLARE_SOA_COLUMN(SigmaY, sigmaY, float);
 DECLARE_SOA_COLUMN(SigmaPhi, sigmaPhi, float);
@@ -336,9 +336,9 @@ DECLARE_SOA_EXPRESSION_COLUMN(C1Pt21Pt2, c1Pt21Pt2, float, aod::fwdtrack::sigma1
 
 } // namespace fwdtrack
 
-//Table for MFTStandalone tracks
-DECLARE_SOA_TABLE_FULL(MFTTracks, "MFTTracks", "AOD", "MFTTRACK",
-                       o2::soa::Index<>, fwdtrack::CollisionId, fwdtrack::BCId, fwdtrack::TrackType,
+//Tables for MFTStandalone tracks
+DECLARE_SOA_TABLE_FULL(StoredMFTTracks, "MFTTracks", "AOD", "MFTTRACK",
+                       o2::soa::Index<>, fwdtrack::CollisionId,
                        fwdtrack::X, fwdtrack::Y, fwdtrack::Z, fwdtrack::Phi, fwdtrack::Tgl,
                        fwdtrack::Signed1Pt,
                        fwdtrack::Px<fwdtrack::Pt, fwdtrack::Phi>,
@@ -346,7 +346,12 @@ DECLARE_SOA_TABLE_FULL(MFTTracks, "MFTTracks", "AOD", "MFTTRACK",
                        fwdtrack::Pz<fwdtrack::Pt, fwdtrack::Tgl>,
                        fwdtrack::Charge<fwdtrack::Signed1Pt>, fwdtrack::Chi2);
 
-//Tables for MUONStandalone and GlobalForwardTracks
+DECLARE_SOA_EXTENDED_TABLE(MFTTracks, StoredMFTTracks, "MFTTRACK",
+                           aod::fwdtrack::Eta,
+                           aod::fwdtrack::Pt,
+                           aod::fwdtrack::P);
+
+//Tables for GlobalMuonTrack, MUONStandalone, MCHStandalone, and GlobalForwardTracks
 DECLARE_SOA_TABLE_FULL(StoredFwdTracks, "FwdTracks", "AOD", "FWDTRACK:PAR",
                        o2::soa::Index<>, fwdtrack::CollisionId, fwdtrack::BCId, fwdtrack::TrackType,
                        fwdtrack::X, fwdtrack::Y, fwdtrack::Z, fwdtrack::Phi, fwdtrack::Tgl,
@@ -404,16 +409,16 @@ DECLARE_SOA_TABLE(UnassignedTracks, "AOD", "UNASSIGNEDTRACK",
 
 using UnassignedTrack = UnassignedTracks::iterator;
 
-namespace unassignedfwdtracks
+namespace unassignedmfttracks
 {
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
-DECLARE_SOA_INDEX_COLUMN(FwdTrack, fwdtrack);
-} // namespace unassignedfwdtracks
+DECLARE_SOA_INDEX_COLUMN(MFTTrack, mfttrack);
+} // namespace unassignedmfttracks
 
-DECLARE_SOA_TABLE(UnassignedFwdTracks, "AOD", "UNASSIGNEDFWDTR",
-                  unassignedfwdtracks::CollisionId, unassignedfwdtracks::FwdTrackId);
+DECLARE_SOA_TABLE(UnassignedMFTTracks, "AOD", "UNASSIGNEDMFTTR",
+                  unassignedmfttracks::CollisionId, unassignedmfttracks::MFTTrackId);
 
-using UnassignedFwdTrack = UnassignedFwdTracks::iterator;
+using UnassignedMFTTrack = UnassignedMFTTracks::iterator;
 
 namespace calo
 {
