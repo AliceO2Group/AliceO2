@@ -42,7 +42,6 @@ struct OrbitInfoHash {
 
 void dumpOrbits(const std::unordered_set<OrbitInfo, OrbitInfoHash>& mOrbits);
 
-
 //_________________________________________________________________
 //
 // Data decoder
@@ -117,7 +116,7 @@ class DataDecoder
   std::vector<SampaInfo> mSampaInfos;        ///< vector of auxiliary SampaInfo objects
 
   std::unordered_set<OrbitInfo, OrbitInfoHash> mOrbits; ///< list of orbits in the processed buffer
-  SampaTimeFrameStarts mSampaTimeFrameStarts;                       ///< time stamps of the TimeFrames in the processed buffer
+  SampaTimeFrameStarts mSampaTimeFrameStarts;           ///< time stamps of the TimeFrames in the processed buffer
 
   SampaChannelHandler mChannelHandler;                  ///< optional user function to be called for each decoded SAMPA hit
   std::function<void(o2::header::RDHAny*)> mRdhHandler; ///< optional user function to be called for each RDH
