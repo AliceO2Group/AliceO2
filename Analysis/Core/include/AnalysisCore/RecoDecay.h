@@ -782,9 +782,10 @@ class RecoDecay
   /// \param acceptAntiParticles  switch to accept the antiparticle
   /// \param sign  antiparticle indicator of the candidate w.r.t. PDGParticle; 1 if particle, -1 if antiparticle, 0 if not matched
   /// \param depthMax  maximum decay tree level to check; Daughters up to this level will be considered. If -1, all levels are considered.
+  /// \param listIndexDaughters  vector of indices of found daughter
   /// \return true if PDG codes of the particle and its daughters are correct, false otherwise
   template <std::size_t N, typename T, typename U>
-  static bool isMatchedMCGen(const T& particlesMC, const U& candidate, int PDGParticle, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false, int8_t* sign = nullptr, int depthMax = 1)
+  static bool isMatchedMCGen(const T& particlesMC, const U& candidate, int PDGParticle, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false, int8_t* sign = nullptr, int depthMax = 1, std::vector<int>* listIndexDaughters = nullptr)
   {
     //Printf("MC Gen: Expected particle PDG: %d", PDGParticle);
     int8_t sgn = 0; // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGParticle)
@@ -847,6 +848,9 @@ class RecoDecay
           //Printf("MC Gen: Rejected: bad daughter PDG: %d", PDGCandidateDaughterI);
           return false;
         }
+      }
+      if (listIndexDaughters) {
+        *listIndexDaughters = arrAllDaughtersIndex;
       }
     }
     //Printf("MC Gen: Accepted: m: %d", candidate.globalIndex());
