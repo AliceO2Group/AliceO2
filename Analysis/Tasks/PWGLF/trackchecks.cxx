@@ -329,9 +329,9 @@ struct TrackCheckTaskEvSelTrackSel {
   }
 }; // struct TrackCheckTask1
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<TrackCheckTaskEvSel>("track-histos-evsel"),
-    adaptAnalysisTask<TrackCheckTaskEvSelTrackSel>("track-histos-evsel-trksel")};
+    adaptAnalysisTask<TrackCheckTaskEvSel>(cfgc, "track-histos-evsel"),
+    adaptAnalysisTask<TrackCheckTaskEvSelTrackSel>(cfgc, "track-histos-evsel-trksel")};
 }

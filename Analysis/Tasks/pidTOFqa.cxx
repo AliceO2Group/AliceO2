@@ -187,21 +187,21 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   auto workflow = WorkflowSpec{};
   if (cfgc.options().get<int>("pid-el")) {
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Electron>>("pidTOF-qa-El"));
+    workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Electron>>(cfgc, "pidTOF-qa-El"));
   }
   if (cfgc.options().get<int>("pid-mu")) {
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Muon>>("pidTOF-qa-Mu"));
+    workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Muon>>(cfgc, "pidTOF-qa-Mu"));
   }
   if (cfgc.options().get<int>("pid-pikapr")) {
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Pion>>("pidTOF-qa-Pi"));
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Kaon>>("pidTOF-qa-Ka"));
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Proton>>("pidTOF-qa-Pr"));
+    workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Pion>>(cfgc, "pidTOF-qa-Pi"));
+    workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Kaon>>(cfgc, "pidTOF-qa-Ka"));
+    workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Proton>>(cfgc, "pidTOF-qa-Pr"));
   }
   if (cfgc.options().get<int>("pid-nuclei")) {
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Deuteron>>("pidTOF-qa-De"));
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Triton>>("pidTOF-qa-Tr"));
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Helium3>>("pidTOF-qa-He"));
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Alpha>>("pidTOF-qa-Al"));
+    workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Deuteron>>(cfgc, "pidTOF-qa-De"));
+    workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Triton>>(cfgc, "pidTOF-qa-Tr"));
+    workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Helium3>>(cfgc, "pidTOF-qa-He"));
+    workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Alpha>>(cfgc, "pidTOF-qa-Al"));
   }
   return workflow;
 }

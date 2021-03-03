@@ -52,8 +52,8 @@ struct HistogramTrackSelection {
 //--------------------------------------------------------------------
 // Workflow definition
 //--------------------------------------------------------------------
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HistogramTrackSelection>("histogram-track-selection")};
+    adaptAnalysisTask<HistogramTrackSelection>(cfgc, "histogram-track-selection")};
 }

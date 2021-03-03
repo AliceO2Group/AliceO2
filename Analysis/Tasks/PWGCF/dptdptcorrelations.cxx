@@ -841,8 +841,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   int nranges = tokens->GetEntries();
 
   WorkflowSpec workflow{
-    adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>("DptDptCorrelationsFilterAnalysisTask"),
-    adaptAnalysisTask<TracksAndEventClassificationQA>("TracksAndEventClassificationQA")};
+    adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc, "DptDptCorrelationsFilterAnalysisTask"),
+    adaptAnalysisTask<TracksAndEventClassificationQA>(cfgc, "TracksAndEventClassificationQA")};
   for (int i = 0; i < nranges; ++i) {
     float cmmin = 0.0f;
     float cmmax = 0.0f;

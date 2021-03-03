@@ -181,12 +181,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   const int add_cut_qa = cfgc.options().get<int>("add-cut-qa");
 
   WorkflowSpec workflow;
-  workflow.push_back(adaptAnalysisTask<TrackQATask>("track-qa-histograms"));
+  workflow.push_back(adaptAnalysisTask<TrackQATask>(cfgc, "track-qa-histograms"));
   if (add_cut_qa) {
-    workflow.push_back(adaptAnalysisTask<TrackCutQATask>("track-cut-qa-histograms"));
+    workflow.push_back(adaptAnalysisTask<TrackCutQATask>(cfgc, "track-cut-qa-histograms"));
   }
   if (isMC) {
-    workflow.push_back(adaptAnalysisTask<TrackQATaskMC>("track-qa-histograms-mc"));
+    workflow.push_back(adaptAnalysisTask<TrackQATaskMC>(cfgc, "track-qa-histograms-mc"));
   }
   return workflow;
 }

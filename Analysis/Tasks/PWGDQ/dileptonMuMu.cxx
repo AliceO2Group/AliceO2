@@ -370,10 +370,10 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses)
   } // end loop over histogram classes
 }
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<EventSelection>("my-event-selection"),
-    adaptAnalysisTask<MuonTrackSelection>("muon-track-selection"),
-    adaptAnalysisTask<DileptonMuMu>("dilepton-mumu")};
+    adaptAnalysisTask<EventSelection>(cfgc, "my-event-selection"),
+    adaptAnalysisTask<MuonTrackSelection>(cfgc, "muon-track-selection"),
+    adaptAnalysisTask<DileptonMuMu>(cfgc, "dilepton-mumu")};
 }

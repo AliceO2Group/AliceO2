@@ -149,8 +149,8 @@ struct ATask {
   size_t cnt = 0;
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("produce-unoduetre")};
+    adaptAnalysisTask<ATask>(cfgc, "produce-unoduetre")};
 }

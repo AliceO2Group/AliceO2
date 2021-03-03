@@ -294,14 +294,14 @@ struct GTask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ETask>("output-obj-test"),
-    adaptAnalysisTask<ATask>("eta-and-phi-histograms"),
-    adaptAnalysisTask<BTask>("filtered-histograms"),
-    adaptAnalysisTask<CTask>("dimension-test"),
-    adaptAnalysisTask<DTask>("realistic-example"),
-    adaptAnalysisTask<FTask>("tlist-test"),
-    adaptAnalysisTask<GTask>("configurables-test")};
+    adaptAnalysisTask<ETask>(cfgc, "output-obj-test"),
+    adaptAnalysisTask<ATask>(cfgc, "eta-and-phi-histograms"),
+    adaptAnalysisTask<BTask>(cfgc, "filtered-histograms"),
+    adaptAnalysisTask<CTask>(cfgc, "dimension-test"),
+    adaptAnalysisTask<DTask>(cfgc, "realistic-example"),
+    adaptAnalysisTask<FTask>(cfgc, "tlist-test"),
+    adaptAnalysisTask<GTask>(cfgc, "configurables-test")};
 }

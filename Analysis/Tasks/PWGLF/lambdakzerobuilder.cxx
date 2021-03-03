@@ -230,10 +230,10 @@ struct lambdakzeroinitializer {
   void init(InitContext const&) {}
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<lambdakzeroprefilterpairs>("lf-lambdakzeroprefilterpairs"),
-    adaptAnalysisTask<lambdakzerobuilder>("lf-lambdakzerobuilder"),
-    adaptAnalysisTask<lambdakzeroinitializer>("lf-lambdakzeroinitializer")};
+    adaptAnalysisTask<lambdakzeroprefilterpairs>(cfgc, "lf-lambdakzeroprefilterpairs"),
+    adaptAnalysisTask<lambdakzerobuilder>(cfgc, "lf-lambdakzerobuilder"),
+    adaptAnalysisTask<lambdakzeroinitializer>(cfgc, "lf-lambdakzeroinitializer")};
 }

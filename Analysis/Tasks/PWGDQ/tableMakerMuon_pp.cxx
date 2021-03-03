@@ -165,8 +165,8 @@ struct TableMakerMuon_pp {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<TableMakerMuon_pp>("table-maker-muon-pp")};
+    adaptAnalysisTask<TableMakerMuon_pp>(cfgc, "table-maker-muon-pp")};
 }

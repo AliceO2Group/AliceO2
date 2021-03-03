@@ -274,10 +274,10 @@ struct cascadeinitializer {
   void init(InitContext const&) {}
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<cascadeprefilterpairs>("lf-cascadeprefilterpairs"),
-    adaptAnalysisTask<cascadebuilder>("lf-cascadebuilder"),
-    adaptAnalysisTask<cascadeinitializer>("lf-cascadeinitializer")};
+    adaptAnalysisTask<cascadeprefilterpairs>(cfgc, "lf-cascadeprefilterpairs"),
+    adaptAnalysisTask<cascadebuilder>(cfgc, "lf-cascadebuilder"),
+    adaptAnalysisTask<cascadeinitializer>(cfgc, "lf-cascadeinitializer")};
 }

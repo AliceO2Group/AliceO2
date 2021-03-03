@@ -118,12 +118,12 @@ struct ZTask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("produce-etaphi"),
-    adaptAnalysisTask<BTask>("consume-etaphi"),
-    adaptAnalysisTask<MTask>("produce-mult"),
-    adaptAnalysisTask<TTask>("consume-mult"),
-    adaptAnalysisTask<ZTask>("partition-mult")};
+    adaptAnalysisTask<ATask>(cfgc, "produce-etaphi"),
+    adaptAnalysisTask<BTask>(cfgc, "consume-etaphi"),
+    adaptAnalysisTask<MTask>(cfgc, "produce-mult"),
+    adaptAnalysisTask<TTask>(cfgc, "consume-mult"),
+    adaptAnalysisTask<ZTask>(cfgc, "partition-mult")};
 }

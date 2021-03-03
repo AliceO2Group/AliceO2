@@ -328,12 +328,12 @@ struct DileptonEE {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<EventSelection>("my-event-selection"),
-    adaptAnalysisTask<BarrelTrackSelection>("barrel-track-selection"),
-    adaptAnalysisTask<DileptonEE>("dilepton-ee"),
+    adaptAnalysisTask<EventSelection>(cfgc, "my-event-selection"),
+    adaptAnalysisTask<BarrelTrackSelection>(cfgc, "barrel-track-selection"),
+    adaptAnalysisTask<DileptonEE>(cfgc, "dilepton-ee"),
 
   };
 }

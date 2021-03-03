@@ -500,9 +500,9 @@ struct CorrelationTask {
   //   float getInvMassSquared(float pt1, float eta1, float phi1, float pt2, float eta2, float phi2, float m0_1, float m0_2)
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HashTask>("produce-hashes"),
-    adaptAnalysisTask<CorrelationTask>("correlation-task")};
+    adaptAnalysisTask<HashTask>(cfgc, "produce-hashes"),
+    adaptAnalysisTask<CorrelationTask>(cfgc, "correlation-task")};
 }

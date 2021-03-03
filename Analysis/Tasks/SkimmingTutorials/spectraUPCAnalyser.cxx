@@ -53,6 +53,6 @@ struct UPCSpectraAnalyserTask {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec workflow{adaptAnalysisTask<UPCSpectraAnalyserTask>("upcspectra-task-skim-analyser")};
+  WorkflowSpec workflow{adaptAnalysisTask<UPCSpectraAnalyserTask>(cfgc, "upcspectra-task-skim-analyser")};
   return workflow;
 }
