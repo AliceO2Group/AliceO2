@@ -71,7 +71,7 @@ class RawReaderZDC
   }
 
   int getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelData>& digitsCh, std::vector<PedestalData>& pedestalData);
-  
+
   static void prepareOutputSpec(std::vector<o2::framework::OutputSpec>& outputSpec)
   {
     outputSpec.emplace_back("ZDC", "DIGITSBC", 0, o2::framework::Lifetime::Timeframe);
