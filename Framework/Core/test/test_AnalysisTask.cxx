@@ -11,10 +11,10 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include "Mocking.h"
 #include "TestClasses.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
-#include "Framework/ConfigContext.h"
 
 #include <boost/test/unit_test.hpp>
 
@@ -148,14 +148,14 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
 {
   auto cfgc = makeEmptyConfigContext();
 
-  auto task1 = adaptAnalysisTask<ATask>(cfgc, "test1");
+  auto task1 = adaptAnalysisTask<ATask>(*cfgc, "test1");
   BOOST_CHECK_EQUAL(task1.inputs.size(), 2);
   BOOST_CHECK_EQUAL(task1.outputs.size(), 1);
   BOOST_CHECK_EQUAL(task1.inputs[0].binding, std::string("TracksExtension"));
   BOOST_CHECK_EQUAL(task1.inputs[1].binding, std::string("Tracks"));
   BOOST_CHECK_EQUAL(task1.outputs[0].binding.value, std::string("FooBars"));
 
-  auto task2 = adaptAnalysisTask<BTask>(cfgc, "test2");
+  auto task2 = adaptAnalysisTask<BTask>(*cfgc, "test2");
   BOOST_CHECK_EQUAL(task2.inputs.size(), 9);
   BOOST_CHECK_EQUAL(task2.inputs[0].binding, "Collisions");
   BOOST_CHECK_EQUAL(task2.inputs[1].binding, "TracksExtension");
@@ -167,35 +167,35 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
   BOOST_CHECK_EQUAL(task2.inputs[7].binding, "Calos");
   BOOST_CHECK_EQUAL(task2.inputs[8].binding, "CaloTriggers");
 
-  auto task3 = adaptAnalysisTask<CTask>(cfgc, "test3");
+  auto task3 = adaptAnalysisTask<CTask>(*cfgc, "test3");
   BOOST_CHECK_EQUAL(task3.inputs.size(), 3);
   BOOST_CHECK_EQUAL(task3.inputs[0].binding, "Collisions");
   BOOST_CHECK_EQUAL(task3.inputs[1].binding, "TracksExtension");
   BOOST_CHECK_EQUAL(task3.inputs[2].binding, "Tracks");
 
-  auto task4 = adaptAnalysisTask<DTask>(cfgc, "test4");
+  auto task4 = adaptAnalysisTask<DTask>(*cfgc, "test4");
   BOOST_CHECK_EQUAL(task4.inputs.size(), 2);
   BOOST_CHECK_EQUAL(task4.inputs[0].binding, "TracksExtension");
   BOOST_CHECK_EQUAL(task4.inputs[1].binding, "Tracks");
 
-  auto task5 = adaptAnalysisTask<ETask>(cfgc, "test5");
+  auto task5 = adaptAnalysisTask<ETask>(*cfgc, "test5");
   BOOST_CHECK_EQUAL(task5.inputs.size(), 1);
   BOOST_CHECK_EQUAL(task5.inputs[0].binding, "FooBars");
 
-  auto task6 = adaptAnalysisTask<FTask>(cfgc, "test6");
+  auto task6 = adaptAnalysisTask<FTask>(*cfgc, "test6");
   BOOST_CHECK_EQUAL(task6.inputs.size(), 1);
   BOOST_CHECK_EQUAL(task6.inputs[0].binding, "FooBars");
 
-  auto task7 = adaptAnalysisTask<GTask>(cfgc, "test7");
+  auto task7 = adaptAnalysisTask<GTask>(*cfgc, "test7");
   BOOST_CHECK_EQUAL(task7.inputs.size(), 3);
 
-  auto task8 = adaptAnalysisTask<HTask>(cfgc, "test8");
+  auto task8 = adaptAnalysisTask<HTask>(*cfgc, "test8");
   BOOST_CHECK_EQUAL(task8.inputs.size(), 3);
 
-  auto task9 = adaptAnalysisTask<ITask>(cfgc, "test9");
+  auto task9 = adaptAnalysisTask<ITask>(*cfgc, "test9");
   BOOST_CHECK_EQUAL(task9.inputs.size(), 4);
 
-  auto task10 = adaptAnalysisTask<JTask>(cfgc, "test10");
+  auto task10 = adaptAnalysisTask<JTask>(*cfgc, "test10");
 }
 
 BOOST_AUTO_TEST_CASE(TestPartitionIteration)

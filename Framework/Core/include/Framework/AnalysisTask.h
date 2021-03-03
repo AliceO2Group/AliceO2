@@ -589,7 +589,7 @@ class has_init
 /// Adaptor to make an AlgorithmSpec from a o2::framework::Task
 ///
 template <typename T, typename... Args>
-DataProcessorSpec adaptAnalysisTask(char const* name, ConfigContext const& ctx, Args&&... args)
+DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, char const* name, Args&&... args)
 {
   TH1::AddDirectory(false);
 
