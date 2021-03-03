@@ -46,10 +46,11 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::string sectorDefault = "0-" + std::to_string(o2::tpc::Sector::MAXSECTOR - 1);
-  int defaultlanes = 1; //std::max(1u, std::thread::hardware_concurrency() / 2);
+  int defaultlanes = std::max(1u, std::thread::hardware_concurrency() / 2);
 
   std::vector<ConfigParamSpec> options{
     {"input-spec", VariantType::String, "A:TPC/RAWDATA", {"selection string input specs"}},
+    {"publish-after-tfs", VariantType::Int, 0, {"number of time frames after which to force publishing the objects"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCCalibPedestal.FirstTimeBin=10;...')"}},
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
     {"no-write-ccdb", VariantType::Bool, false, {"skip sending the calibration output to CCDB"}},
@@ -75,10 +76,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
   const std::string inputSpec = config.options().get<std::string>("input-spec");
   const auto skipCCDB = config.options().get<bool>("no-write-ccdb");
+  const auto publishAfterTFs = (uint32_t)config.options().get<int>("publish-after-tfs");
 
   const auto tpcsectors = o2::RangeTokenizer::tokenize<int>(config.options().get<std::string>("sectors"));
-  const auto nSectors = (int)tpcsectors.size();
-  const auto nLanes = std::min(config.options().get<int>("lanes"), nSectors);
+  const auto nSectors = (uint32_t)tpcsectors.size();
+  const auto nLanes = std::min((uint32_t)config.options().get<int>("lanes"), nSectors);
   const auto sectorsPerLane = nSectors / nLanes + ((nSectors % nLanes) != 0);
 
   WorkflowSpec workflow;
@@ -94,10 +96,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     }
     auto last = std::min(tpcsectors.end(), first + sectorsPerLane);
     std::vector<int> range(first, last);
-    workflow.emplace_back(getTPCCalibPedestalSpec(inputSpec, ilane, range));
+    workflow.emplace_back(getTPCCalibPedestalSpec(inputSpec, ilane, range, publishAfterTFs));
   }
 
-  workflow.emplace_back(getCalDetMergerPublisherSpec(skipCCDB));
+  workflow.emplace_back(getCalDetMergerPublisherSpec(nLanes, skipCCDB, publishAfterTFs > 0));
 
   return workflow;
 }
