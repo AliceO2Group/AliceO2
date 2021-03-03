@@ -87,7 +87,7 @@ class GlobalTrackID : public AbstractRef<25, 5, 2>
   auto getSourceName() const { return getSourceName(getSource()); }
   static mask_t getSourcesMask(const std::string_view srcList);
   static bool includesSource(int s, mask_t srcm) { return srcm[s]; }
-
+  static std::string getSourcesNames(mask_t srcm);
   operator int() const { return int(getIndex()); }
 
   std::string asString() const;

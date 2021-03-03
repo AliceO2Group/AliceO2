@@ -11,7 +11,7 @@
 /// @file  SecondaryVertexingSpec.cxx
 
 #include <vector>
-#include "ReconstructionDataFormats/GlobalTrackAccessor.h"
+#include "GlobalTracking/RecoContainer.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsITS/TrackITS.h"
@@ -26,6 +26,7 @@
 
 using namespace o2::framework;
 
+using GTrackID = o2::dataformats::GlobalTrackID;
 using GIndex = o2::dataformats::VtxTrackIndex;
 using VRef = o2::dataformats::VtxTrackRef;
 using PVertex = const o2::dataformats::PrimaryVertex;
@@ -36,6 +37,8 @@ namespace o2
 {
 namespace vertexing
 {
+o2::globaltracking::DataRequest dataRequestSV;
+namespace o2d = o2::dataformats;
 
 void SecondaryVertexingSpec::init(InitContext& ic)
 {
@@ -52,9 +55,9 @@ void SecondaryVertexingSpec::init(InitContext& ic)
   } else {
     LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
   }
+  mVertexer.setNThreads(ic.options().get<int>("threads"));
   mTimer.Stop();
   mTimer.Reset();
-
   mVertexer.init();
 }
 
@@ -63,9 +66,8 @@ void SecondaryVertexingSpec::run(ProcessingContext& pc)
   double timeCPU0 = mTimer.CpuTime(), timeReal0 = mTimer.RealTime();
   mTimer.Start(false);
 
-  const auto tracksITSTPC = pc.inputs().get<gsl::span<o2::dataformats::TrackTPCITS>>("tpcits");
-  const auto tracksTPC = pc.inputs().get<gsl::span<o2::tpc::TrackTPC>>("tpc");
-  const auto tracksITS = pc.inputs().get<gsl::span<o2::its::TrackITS>>("its");
+  o2::globaltracking::RecoContainer recoData;
+  recoData.collectData(pc, dataRequestSV);
 
   const auto pvertices = pc.inputs().get<gsl::span<o2::dataformats::PrimaryVertex>>("pvtx");
   const auto pvtxTracks = pc.inputs().get<gsl::span<o2::dataformats::VtxTrackIndex>>("pvtx_cont");
@@ -75,11 +77,8 @@ void SecondaryVertexingSpec::run(ProcessingContext& pc)
   std::vector<RRef> pv2v0ref;
 
   o2::dataformats::GlobalTrackAccessor tracksPool;
-  tracksPool.registerContainer(tracksITSTPC, GIndex::ITSTPC);
-  tracksPool.registerContainer(tracksITS, GIndex::ITS);
-  tracksPool.registerContainer(tracksTPC, GIndex::TPC);
 
-  mVertexer.process(pvertices, pvtxTracks, pvtxTrackRefs, tracksPool, v0s, pv2v0ref);
+  mVertexer.process(pvertices, pvtxTracks, pvtxTrackRefs, recoData, v0s, pv2v0ref);
 
   pc.outputs().snapshot(Output{"GLO", "V0s", 0, Lifetime::Timeframe}, v0s);
   pc.outputs().snapshot(Output{"GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe}, pv2v0ref);
@@ -91,23 +90,20 @@ void SecondaryVertexingSpec::run(ProcessingContext& pc)
 
 void SecondaryVertexingSpec::endOfStream(EndOfStreamContext& ec)
 {
-  LOGF(INFO, "Secondary vertexing total timing: Cpu: %.3e Real: %.3e s in %d slots",
-       mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+  LOGF(INFO, "Secondary vertexing total timing: Cpu: %.3e Real: %.3e s in %d slots, nThreads = %d",
+       mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1, mVertexer.getNThreads());
 }
 
-DataProcessorSpec getSecondaryVertexingSpec()
+DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src)
 {
-  std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
-
+  bool useMC = false;
+  dataRequestSV.requestTracks(src, false);
+  auto& inputs = dataRequestSV.inputs;
   inputs.emplace_back("pvtx", "GLO", "PVTX", 0, Lifetime::Timeframe);                // prim.vertices
   inputs.emplace_back("pvtx_cont", "GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe);     // global ids of associated tracks
   inputs.emplace_back("pvtx_tref", "GLO", "PVTX_TRMTCREFS", 0, Lifetime::Timeframe); // vertex - trackID refs
-  //
-  inputs.emplace_back("tpcits", "GLO", "TPCITS", 0, Lifetime::Timeframe); // matched ITS-TPC tracks
-  inputs.emplace_back("its", "ITS", "TRACKS", 0, Lifetime::Timeframe);    // standalone ITS tracks
-  inputs.emplace_back("tpc", "TPC", "TRACKS", 0, Lifetime::Timeframe);    // standalone TPC tracks
-  //
+
   outputs.emplace_back("GLO", "V0s", 0, Lifetime::Timeframe);         // found V0s
   outputs.emplace_back("GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe); // prim.vertex -> V0s refs
 
@@ -116,7 +112,8 @@ DataProcessorSpec getSecondaryVertexingSpec()
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<SecondaryVertexingSpec>()},
-    Options{{"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
+    Options{{"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},
+            {"threads", VariantType::Int, 1, {"Number of threads"}}}};
 }
 
 } // namespace vertexing

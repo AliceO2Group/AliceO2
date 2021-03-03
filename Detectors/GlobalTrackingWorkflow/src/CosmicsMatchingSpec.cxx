@@ -51,7 +51,7 @@ namespace o2
 namespace globaltracking
 {
 
-DataRequest dataRequest;
+DataRequest dataRequestCosm;
 
 void CosmicsMatchingSpec::init(InitContext& ic)
 {
@@ -100,7 +100,7 @@ void CosmicsMatchingSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
 
   RecoContainer recoData;
-  recoData.collectData(pc, dataRequest);
+  recoData.collectData(pc, dataRequestCosm);
   mMatching.process(recoData);
   pc.outputs().snapshot(Output{"GLO", "COSMICTRC", 0, Lifetime::Timeframe}, mMatching.getCosmicTracks());
   if (mUseMC) {
@@ -121,30 +121,8 @@ DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC)
   std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
 
-  if (src[GTrackID::ITS]) {
-    dataRequest.requestITSTracks(useMC);
-  }
-  if (src[GTrackID::TPC]) {
-    dataRequest.requestTPCTracks(useMC);
-  }
-  if (src[GTrackID::ITSTPC]) {
-    dataRequest.requestITSTPCTracks(useMC);
-  }
-  if (src[GTrackID::TPCTOF]) {
-    dataRequest.requestTPCTOFTracks(useMC);
-  }
-  if (src[GTrackID::ITSTPCTOF]) {
-    dataRequest.requestTOFMatches(useMC);
-    dataRequest.requestTOFClusters(false); // RSTODO Needed just to set the time of ITSTPC track, consider moving to MatchInfoTOF
-  }
-
-  // clusters needed for refits
-  if (GTrackID::includesDet(DetID::ITS, src)) {
-    dataRequest.requestITSClusters(false);
-  }
-  if (GTrackID::includesDet(DetID::TPC, src)) {
-    dataRequest.requestTPCClusters(false);
-  }
+  dataRequestCosm.requestTracks(src, useMC);
+  dataRequestCosm.requestClusters(src, false); // no MC labels for clusters needed for refit only
 
   outputs.emplace_back("GLO", "COSMICTRC", 0, Lifetime::Timeframe);
   if (useMC) {
@@ -153,7 +131,7 @@ DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC)
 
   return DataProcessorSpec{
     "cosmics-matcher",
-    dataRequest.inputs,
+    dataRequestCosm.inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<CosmicsMatchingSpec>(useMC)},
     Options{

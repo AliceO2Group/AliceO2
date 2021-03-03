@@ -35,6 +35,10 @@ struct DataRequest {
   std::vector<o2::framework::InputSpec> inputs;
   std::unordered_map<std::string, bool> requestMap;
   void addInput(const o2::framework::InputSpec&& isp);
+
+  void requestTracks(o2::dataformats::GlobalTrackID::mask_t src, bool mc);
+  void requestClusters(o2::dataformats::GlobalTrackID::mask_t src, bool useMC);
+
   void requestITSTracks(bool mc);
   void requestTPCTracks(bool mc);
   void requestITSTPCTracks(bool mc);
@@ -93,6 +97,15 @@ struct RecoContainer {
 
   // get contributors from single detectors
   GlobalIDSet getSingleDetectorRefs(GTrackID gidx) const;
+
+  // check if track source attached
+  bool isTrackSourceLoaded(int src) const;
+
+  // check if match source attached
+  bool isMatchSourceLoaded(int src) const
+  {
+    return miscPool.isLoaded(src);
+  }
 
   // fetch track param
   const o2::track::TrackParCov& getTrack(GTrackID gidx) const;

@@ -9,6 +9,7 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(DetectorsVertexing
+               TARGETVARNAME targetName
                SOURCES src/DCAFitterN.cxx
                        src/PVertexer.cxx
                        src/PVertexerHelpers.cxx
@@ -40,6 +41,12 @@ o2_target_root_dictionary(DetectorsVertexing
                                   include/DetectorsVertexing/SVertexer.h
                                   include/DetectorsVertexing/SVertexerParams.h
                                   include/DetectorsVertexing/V0Hypothesis.h)
+
+if (OpenMP_CXX_FOUND)
+    target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
+    target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+endif()
+                              
 
 o2_add_test(
   DCAFitterN

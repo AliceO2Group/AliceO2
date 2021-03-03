@@ -15,7 +15,7 @@ using namespace o2::dataformats;
 V0::V0(const std::array<float, 3>& xyz, const std::array<float, 3>& pxyz,
        const o2::track::TrackParCov& trPos, const o2::track::TrackParCov& trNeg,
        GIndex trPosID, GIndex trNegID)
-  : o2::track::TrackParCov{xyz, pxyz, 0, false}, mProngIDs{trPosID, trNegID}, mProngs{trPos, trNeg}
+  : o2::track::TrackParCov{xyz, pxyz, 0, true}, mProngIDs{trPosID, trNegID}, mProngs{trPos, trNeg}
 {
 }
 
