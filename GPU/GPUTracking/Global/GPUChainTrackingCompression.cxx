@@ -20,6 +20,7 @@
 #include "GPUTPCCFChainContext.h"
 #include "TPCClusterDecompressor.h"
 #endif
+#include "utils/strtag.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
@@ -27,7 +28,7 @@ using namespace o2::tpc;
 int GPUChainTracking::RunTPCCompression()
 {
 #ifdef HAVE_O2HEADERS
-  mRec->PushNonPersistentMemory();
+  mRec->PushNonPersistentMemory(qStr2Tag("TPCCOMPR"));
   RecoStep myStep = RecoStep::TPCCompression;
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCCompression;
   GPUTPCCompression& Compressor = processors()->tpcCompressor;
@@ -205,7 +206,7 @@ int GPUChainTracking::RunTPCCompression()
   } else {
     ((GPUChainTracking*)GetNextChainInQueue())->mRec->BlockStackedMemory(mRec);
   }
-  mRec->PopNonPersistentMemory(RecoStep::TPCCompression);
+  mRec->PopNonPersistentMemory(RecoStep::TPCCompression, qStr2Tag("TPCCOMPR"));
 #endif
   return 0;
 }
