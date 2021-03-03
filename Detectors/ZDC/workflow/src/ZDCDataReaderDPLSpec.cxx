@@ -19,5 +19,62 @@ namespace o2
 namespace zdc
 {
 
+ZDCDataReaderDPLSpec::ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const std::string& ccdbURL)
+  : mRawReader(rawReader), mccdbHost(ccdbURL)
+{
+}
+  
+void ZDCDataReaderDPLSpec::init(InitContext& ic)
+{
+  o2::ccdb::BasicCCDBManager::instance().setURL(mccdbHost);
+}
+
+void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
+{
+  DPLRawParser parser(pc.inputs());
+  mRawReader.clear();
+
+  //>> update Time-dependent CCDB stuff, at the moment set the moduleconfig only once
+  if (!mRawReader.getModuleConfig()) {
+    long timeStamp = 0;
+    auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+    mgr.setTimestamp(timeStamp);
+    auto moduleConfig = mgr.get<o2::zdc::ModuleConfig>(o2::zdc::CCDBPathConfigModule);
+    if (!moduleConfig) {
+      LOG(FATAL) << "Cannot module configuratio for timestamp " << timeStamp;
+      return;
+      LOG(INFO) << "Loaded module configuration for timestamp " << timeStamp;
+    }
+    mRawReader.setModuleConfig(moduleConfig);
+    mRawReader.setTriggerMask();
+  }
+  
+  uint64_t count = 0;
+  for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
+    //Proccessing each page
+    count++;
+    auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
+    gsl::span<const uint8_t> payload(it.data(), it.size());
+    mRawReader.processBinaryData(payload, rdhPtr->linkID);
+  }
+  LOG(INFO) << "Pages: " << count;
+  mRawReader.accumulateDigits();
+  mRawReader.makeSnapshot(pc);
+}
+
+
+framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const std::string& ccdbURL)
+{
+  LOG(INFO) << "DataProcessorSpec initDataProcSpec() for RawReaderZDC";
+  std::vector<OutputSpec> outputSpec;
+  RawReaderZDC::prepareOutputSpec(outputSpec);
+  return DataProcessorSpec{
+    "zdc-datareader-dpl",
+    o2::framework::select("TF:ZDC/RAWDATA"),
+    outputSpec,
+    adaptFromTask<ZDCDataReaderDPLSpec>(rawReader, ccdbURL),
+    Options{}};
+}
+  
 } // namespace zdc
 } // namespace o2

@@ -10,8 +10,8 @@
 //
 //file RawReaderZDC.h class  for RAW data reading
 
-#ifndef ALICEO2_FIT_RAWREADERZDC_H_
-#define ALICEO2_FIT_RAWREADERZDC_H_
+#ifndef ALICEO2_RAWREADERZDC_H_
+#define ALICEO2_RAWREADERZDC_H_
 #include <iostream>
 #include <vector>
 #include <Rtypes.h>
@@ -23,7 +23,6 @@
 #include "DataFormatsZDC/BCData.h"
 #include "DataFormatsZDC/PedestalData.h"
 #include "ZDCSimulation/Digits2Raw.h"
-#include "ZDCSimulation/SimCondition.h"
 #include "ZDCBase/ModuleConfig.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/DataAllocator.h"
@@ -70,7 +69,9 @@ class RawReaderZDC
     LOG(INFO) << "Number of ChannelData: " << mDigitsCh.size();
     LOG(INFO) << "Number of PedestalData: " << mPedestalData.size();
   }
+
   int getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelData>& digitsCh, std::vector<PedestalData>& pedestalData);
+  
   static void prepareOutputSpec(std::vector<o2::framework::OutputSpec>& outputSpec)
   {
     outputSpec.emplace_back("ZDC", "DIGITSBC", 0, o2::framework::Lifetime::Timeframe);

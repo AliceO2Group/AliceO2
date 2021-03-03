@@ -30,10 +30,11 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "ZDCBase/Constants.h"
 #include "ZDCBase/ModuleConfig.h"
-#include "ZDCWorkflow/RawReaderZDC.h"
+#include "ZDCRaw/RawReaderZDC.h"
 #include <iostream>
 #include <vector>
 #include <gsl/span>
+
 using namespace o2::framework;
 
 namespace o2
@@ -43,57 +44,18 @@ namespace zdc
 class ZDCDataReaderDPLSpec : public Task
 {
  public:
-  ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader) : mRawReader(rawReader) {}
+  ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const std::string& ccdbURL);
   ZDCDataReaderDPLSpec() = default;
   ~ZDCDataReaderDPLSpec() override = default;
-  void init(InitContext& ic) final {}
-  void run(ProcessingContext& pc) final
-  {
-    DPLRawParser parser(pc.inputs());
-    mRawReader.clear();
-    long timeStamp = 0;
-    auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-    mgr.setURL(mccdbHost);
-    if (timeStamp == mgr.getTimestamp()) {
-      return;
-    }
-    mgr.setTimestamp(timeStamp);
-    auto moduleConfig = mgr.get<o2::zdc::ModuleConfig>(o2::zdc::CCDBPathConfigModule);
-    if (!moduleConfig) {
-      LOG(FATAL) << "Cannot module configuratio for timestamp " << timeStamp;
-      return;
-    }
-    LOG(INFO) << "Loaded module configuration for timestamp " << timeStamp;
-    mRawReader.setModuleConfig(moduleConfig);
-    LOG(INFO) << "ZDCDataReaderDPLSpec";
-    uint64_t count = 0;
-    for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
-      //Proccessing each page
-      count++;
-      auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
-      gsl::span<const uint8_t> payload(it.data(), it.size());
-      mRawReader.processBinaryData(payload, rdhPtr->linkID);
-    }
-    LOG(INFO) << "Pages: " << count;
-    mRawReader.accumulateDigits();
-    mRawReader.makeSnapshot(pc);
-  }
+  void init(InitContext& ic) final;
+  void run(ProcessingContext& pc) final;
+  
+private:
   std::string mccdbHost = "http://ccdb-test.cern.ch:8080";
   RawReaderZDC mRawReader;
 };
 
-framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader)
-{
-  LOG(INFO) << "DataProcessorSpec initDataProcSpec() for RawReaderZDC";
-  std::vector<OutputSpec> outputSpec;
-  RawReaderZDC::prepareOutputSpec(outputSpec);
-  return DataProcessorSpec{
-    "zdc-datareader-dpl",
-    o2::framework::select("TF:ZDC/RAWDATA"),
-    outputSpec,
-    adaptFromTask<ZDCDataReaderDPLSpec>(rawReader),
-    Options{}};
-}
+framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const std::string& ccdbURL);
 
 } // namespace zdc
 } // namespace o2

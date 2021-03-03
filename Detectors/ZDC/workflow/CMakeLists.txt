@@ -11,10 +11,8 @@
 o2_add_library(ZDCWorkflow
                SOURCES src/DigitReaderSpec.cxx
 	               src/EntropyEncoderSpec.cxx
-                       src/ZDCDataReaderDPLSpec.cxx
 		       src/EntropyDecoderSpec.cxx
-		       src/ZDCWorkflow.cxx
-		       src/RawReaderZDC.cxx
+                       src/ZDCDataReaderDPLSpec.cxx
 		       src/ZDCDigitWriterDPLSpec.cxx
 	       PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsZDC
@@ -27,5 +25,4 @@ o2_add_library(ZDCWorkflow
 o2_add_executable(raw2digits
                   COMPONENT_NAME zdc
                   SOURCES src/o2-zdc-raw2digits.cxx
-                  PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow
-                  TARGETVARNAME zdcflpexe)
+                  PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow)
