@@ -48,7 +48,6 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
     mRawReader.setModuleConfig(moduleConfig);
     mRawReader.setTriggerMask();
   }
-
   uint64_t count = 0;
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
     //Proccessing each page
@@ -74,6 +73,5 @@ framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawRead
     adaptFromTask<ZDCDataReaderDPLSpec>(rawReader, ccdbURL),
     Options{}};
 }
-
 } // namespace zdc
 } // namespace o2

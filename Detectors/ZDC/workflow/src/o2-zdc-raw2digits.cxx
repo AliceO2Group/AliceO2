@@ -45,7 +45,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto ccdbURL = configcontext.options().get<std::string>("ccdb-url");
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-
   WorkflowSpec specs;
   specs.emplace_back(o2::zdc::getZDCDataReaderDPLSpec(o2::zdc::RawReaderZDC{dumpReader}, ccdbURL));
   //  if (useProcess) {
