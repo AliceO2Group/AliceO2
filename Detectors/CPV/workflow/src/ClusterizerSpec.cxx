@@ -30,7 +30,7 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
 {
   LOG(INFO) << "Start run ";
   LOG(DEBUG) << "CPVClusterizer - run on digits called";
-  auto digits = ctx.inputs().get<gsl::span<Digit>>("digits");
+  auto digits = ctx.inputs().get<std::vector<Digit>>("digits");
   // auto digitsTR = ctx.inputs().get<std::span<TriggerRecord>>("digitTriggerRecords"); //TODO:: Why span does not work???
   // auto digits = ctx.inputs().get<std::vector<o2::cpv::Digit>>("digits");
   auto digitsTR = ctx.inputs().get<std::vector<o2::cpv::TriggerRecord>>("digitTriggerRecords");

@@ -43,6 +43,7 @@ int main(int argc, char* argv[])
   desc_add_option("spsize,s", bpo::value<int>()->default_value(reader.getNominalSPageSize()), "nominal super-page size in bytes");
   desc_add_option("buffer-size,b", bpo::value<size_t>()->default_value(reader.getNominalSPageSize()), "buffer size for files preprocessing");
   desc_add_option("detect-tf0", "autodetect HBFUtils start Orbit/BC from 1st TF seen");
+  desc_add_option("calculate-tf-start", "calculate TF start instead of using TType");
   desc_add_option("rorc", "impose RORC as default detector mode");
   desc_add_option("tfs-per-chunk,n", bpo::value<uint32_t>()->default_value(0xffffffff), " number of output TFs per chunk");
   desc_add_option("output-dir-prefix,o", bpo::value<std::string>()->default_value("./chunk"), "output directory prefix for raw data chunk (chunk ID will be added)");
@@ -100,6 +101,7 @@ int main(int argc, char* argv[])
   reader.setBufferSize(vm["buffer-size"].as<size_t>());
   reader.setDefaultReadoutCardType(rocard);
   reader.setTFAutodetect(vm.count("detect-tf0") ? RawFileReader::FirstTFDetection::Pending : RawFileReader::FirstTFDetection::Disabled);
+  reader.setPreferCalculatedTFStart(vm.count("calculate-tf-start"));
 
   std::string_view fileFor = vm["file-for"].as<std::string>();
 

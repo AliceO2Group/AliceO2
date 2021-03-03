@@ -244,11 +244,11 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   std::unique_ptr<GPUTPCClusterStatistics> mCompressionStatistics;
 
   // Ptr to detector / calibration objects
-  std::unique_ptr<TPCFastTransform> mTPCFastTransformU;               // Global TPC fast transformation object
-  std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalibU;                 // TPC gain calibration and cluster finder parameters
-  std::unique_ptr<TPCdEdxCalibrationSplines> mdEdxSplinesU;           // TPC dEdx calibration splines
-  std::unique_ptr<o2::base::MatLayerCylSet> mMatLUTU;                 // Material Lookup Table
-  std::unique_ptr<o2::trd::GeometryFlat> mTRDGeometryU;               // TRD Geometry
+  std::unique_ptr<TPCFastTransform> mTPCFastTransformU;     // Global TPC fast transformation object
+  std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalibU;       // TPC gain calibration and cluster finder parameters
+  std::unique_ptr<TPCdEdxCalibrationSplines> mdEdxSplinesU; // TPC dEdx calibration splines
+  std::unique_ptr<o2::base::MatLayerCylSet> mMatLUTU;       // Material Lookup Table
+  std::unique_ptr<o2::trd::GeometryFlat> mTRDGeometryU;     // TRD Geometry
 
   std::unique_ptr<o2::tpc::ClusterNativeAccess> mClusterNativeAccess;
 

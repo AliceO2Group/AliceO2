@@ -35,8 +35,8 @@ class GPUDisplayBackendGlut : public GPUDisplayBackend
  private:
   int OpenGLMain() override;
 
-  static void displayFunc(void);
-  static void glutLoopFunc(void);
+  static void displayFunc();
+  static void glutLoopFunc();
   static void keyboardUpFunc(unsigned char key, int x, int y);
   static void keyboardDownFunc(unsigned char key, int x, int y);
   static void specialUpFunc(int key, int x, int y);

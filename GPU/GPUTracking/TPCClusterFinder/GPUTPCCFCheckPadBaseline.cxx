@@ -63,6 +63,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::Thread<0>(int nBlocks, int nThreads, int i
         maxConsecCharges = CAMath::Max(consecCharges, maxConsecCharges);
       }
     }
+    GPUbarrier();
   }
 
   GPUbarrier();

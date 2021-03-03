@@ -15,7 +15,7 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <>
-GPUdii() void GPUMemClean16::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() smem, processorType& GPUrestrict() processors, GPUglobalref() void* ptr, unsigned long size)
+GPUdii() void GPUMemClean16::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, processorType& GPUrestrict() processors, GPUglobalref() void* ptr, unsigned long size)
 {
   const unsigned long stride = get_global_size(0);
   int4 i0;

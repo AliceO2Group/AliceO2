@@ -98,12 +98,21 @@ void DumpDigitsTask::run(framework::ProcessingContext& pc)
         if (Dig.getOrbit() != mOrbit || Dig.getBC() != mBc) {
           mOrbit = Dig.getOrbit();
           mBc = Dig.getBC();
+<<<<<<< HEAD
           //     LOG(INFO) << "Event :" << mOrbit << " / " << mBc;
         }
       }
     }
   }
   mExTimer.elapseMes("... Dumping Digits received = " + std::to_string(mDigitsReceived));
+=======
+          LOG(INFO) << "Event :" << mOrbit << " / " << mBc;
+        }
+      }
+    }
+  }
+  mExTimer.elapseMes("... Dumping... Digits received = " + std::to_string(mDigitsReceived));
+>>>>>>> refs/heads/dev
   return;
 }
 

@@ -418,7 +418,6 @@ void MatchTPCITS::selectBestMatches()
   do {
     nValidated = 0;
     int ntpc = mTPCWork.size(), nremaining = 0;
-    ;
     for (int it = 0; it < ntpc; it++) {
       auto& tTPC = mTPCWork[it];
       if (isDisabledTPC(tTPC) || isValidatedTPC(tTPC)) {
@@ -1451,7 +1450,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
     if (mFieldON) { // circular arc = 2*R*asin(dXY/2R)
       float b[3];
       o2::math_utils::Point3D<float> posAv(0.5 * (posEnd.x() + posStart.x()), 0.5 * (posEnd.y() + posStart.y()), 0.5 * (posEnd.z() + posStart.z()));
-      propagator->getFiedXYZ(posAv, b);
+      propagator->getFieldXYZ(posAv, b);
       float curvH = std::abs(0.5f * tracOut.getCurvature(b[2])), arcXY = 1. / curvH * std::asin(curvH * std::sqrt(d2XY));
       d2XY = arcXY * arcXY;
     }

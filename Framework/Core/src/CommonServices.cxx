@@ -59,6 +59,7 @@ struct ServiceKindExtractor<InfoLoggerContext> {
   constexpr static ServiceKind kind = ServiceKind::Global;
 };
 
+#define MONITORING_QUEUE_SIZE 100
 o2::framework::ServiceSpec CommonServices::monitoringSpec()
 {
   return ServiceSpec{"monitoring",
@@ -67,14 +68,18 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
                        bool isWebsocket = strncmp(options.GetPropertyAsString("driver-client-backend").c_str(), "ws://", 4) == 0;
                        bool isDefault = options.GetPropertyAsString("monitoring-backend") == "default";
                        bool useDPL = (isWebsocket && isDefault) || options.GetPropertyAsString("monitoring-backend") == "dpl://";
+                       o2::monitoring::Monitoring* monitoring;
                        if (useDPL) {
-                         auto monitoring = new Monitoring();
+                         monitoring = new Monitoring();
                          monitoring->addBackend(std::make_unique<DPLMonitoringBackend>(registry));
-                         service = monitoring;
                        } else {
                          auto backend = isDefault ? "infologger://" : options.GetPropertyAsString("monitoring-backend");
-                         service = MonitoringFactory::Get(backend).release();
+                         monitoring = MonitoringFactory::Get(backend).release();
                        }
+                       service = monitoring;
+                       monitoring->enableBuffering(MONITORING_QUEUE_SIZE);
+                       assert(registry.get<DeviceSpec const>().name.empty() == false);
+                       monitoring->addGlobalTag("dataprocessor_id", registry.get<DeviceSpec const>().name);
                        return ServiceHandle{TypeIdHelpers::uniqueId<Monitoring>(), service};
                      },
                      noConfiguration(),
@@ -91,6 +96,10 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
                      nullptr,
                      nullptr,
                      nullptr,
+                     [](ServiceRegistry& registry, void* service) {
+                       Monitoring* monitoring = reinterpret_cast<Monitoring*>(service);
+                       delete monitoring;
+                     },
                      ServiceKind::Serial};
 }
 
@@ -99,6 +108,7 @@ o2::framework::ServiceSpec CommonServices::infologgerContextSpec()
   return ServiceSpec{"infologger-contex",
                      simpleServiceInit<InfoLoggerContext, InfoLoggerContext>(),
                      noConfiguration(),
+                     nullptr,
                      nullptr,
                      nullptr,
                      nullptr,
@@ -180,6 +190,8 @@ o2::framework::ServiceSpec CommonServices::infologgerSpec()
                        }
                        auto infoLoggerService = new InfoLogger;
                        auto infoLoggerContext = &services.get<InfoLoggerContext>();
+                       infoLoggerContext->setField(InfoLoggerContext::FieldName::Facility, services.get<DeviceSpec const>().name);
+                       infoLoggerService->setContext(*infoLoggerContext);
 
                        auto infoLoggerSeverity = options.GetPropertyAsString("infologger-severity");
                        if (infoLoggerSeverity != "") {
@@ -188,6 +200,7 @@ o2::framework::ServiceSpec CommonServices::infologgerSpec()
                        return ServiceHandle{TypeIdHelpers::uniqueId<InfoLogger>(), infoLoggerService};
                      },
                      noConfiguration(),
+                     nullptr,
                      nullptr,
                      nullptr,
                      nullptr,
@@ -217,6 +230,7 @@ o2::framework::ServiceSpec CommonServices::configurationSpec()
                            ConfigurationFactory::getConfiguration(backend).release()};
     },
     noConfiguration(),
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -261,6 +275,7 @@ o2::framework::ServiceSpec CommonServices::driverClientSpec()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
     ServiceKind::Global};
 }
 
@@ -286,6 +301,7 @@ o2::framework::ServiceSpec CommonServices::controlSpec()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -295,6 +311,7 @@ o2::framework::ServiceSpec CommonServices::rootFileSpec()
     "localrootfile",
     simpleServiceInit<LocalRootFileService, LocalRootFileService>(),
     noConfiguration(),
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -334,6 +351,7 @@ o2::framework::ServiceSpec CommonServices::parallelSpec()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -356,6 +374,7 @@ o2::framework::ServiceSpec CommonServices::timesliceIndex()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -365,6 +384,7 @@ o2::framework::ServiceSpec CommonServices::callbacksSpec()
     "callbacks",
     simpleServiceInit<CallbackService, CallbackService>(),
     noConfiguration(),
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -407,6 +427,7 @@ o2::framework::ServiceSpec CommonServices::dataRelayer()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -430,6 +451,7 @@ o2::framework::ServiceSpec CommonServices::tracingSpec()
       TracingInfrastructure* t = reinterpret_cast<TracingInfrastructure*>(service);
       t->processingCount += 1;
     },
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -478,6 +500,7 @@ o2::framework::ServiceSpec CommonServices::threadPool(int numWorkers)
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -502,6 +525,7 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
   monitoring.send(Metric{(int)relayerStats.relayedMessages, "relayed_messages"}.addTag(Key::Subsystem, Value::DPL));
 
   monitoring.send(Metric{(int)stats.errorCount, "errors"}.addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{(int)stats.exceptionCount, "exceptions"}.addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{(int)stats.pendingInputs, "inputs/relayed/pending"}.addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{(int)stats.incomplete, "inputs/relayed/incomplete"}.addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{(int)stats.inputParts, "inputs/relayed/total"}.addTag(Key::Subsystem, Value::DPL));
@@ -574,6 +598,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
       sendRelayerMetrics(context.services(), *stats);
       flushMetrics(context.services(), *stats);
     },
+    nullptr,
     nullptr,
     nullptr,
     nullptr,

@@ -79,9 +79,9 @@ struct HFJpsiToEECandidateSelector {
     if (track.charge() == 0) {
       return false;
     }
-    if (track.tpcNClsFound() == 0) {
+    /*if (track.tpcNClsFound() == 0) {
       return false; //is it clusters findable or found - need to check
-    }
+      }*/
     return true;
   }
 

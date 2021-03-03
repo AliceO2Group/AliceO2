@@ -89,24 +89,54 @@ void encode_websocket_frames(std::vector<uv_buf_t>& outputs, char const* src, si
 
 void decode_websocket(char* start, size_t size, WebSocketHandler& handler)
 {
+  // Handle the case in whiche the header is cut
+  if (handler.pendingHeaderSize) {
+    assert(handler.pendingHeader);
+    size_t pendingFullSize = handler.pendingHeaderSize + size;
+    char* pendingFull = new char[handler.pendingHeaderSize + size];
+    memcpy(pendingFull, handler.pendingHeader, handler.pendingHeaderSize);
+    memcpy(pendingFull + handler.pendingHeaderSize, start, size);
+    // We do not need the intermediate buffer anymore.
+    handler.pendingHeaderSize = 0;
+    delete[] handler.pendingHeader;
+    handler.pendingHeader = nullptr;
+    decode_websocket(pendingFull, pendingFullSize, handler);
+    delete[] pendingFull;
+    return;
+  }
+
   // Handle the case the previous message was cut in half
   // by the I/O stack.
   char* cur = start + handler.remainingSize;
   if (handler.remainingSize) {
     assert(handler.pendingBuffer);
-    memcpy(handler.pendingBuffer + handler.pendingSize, start, handler.remainingSize);
-    size_t pendingProcessingSize = handler.pendingSize + handler.remainingSize;
-    handler.remainingSize = 0;
-    // One recursion should be enough.
-    decode_websocket(handler.pendingBuffer, pendingProcessingSize, handler);
-    delete[] handler.pendingBuffer;
-    handler.pendingBuffer = nullptr;
+    auto newChunkSize = std::min(handler.remainingSize, size);
+    memcpy(handler.pendingBuffer + handler.pendingSize, start, newChunkSize);
+    handler.pendingSize += newChunkSize;
+    handler.remainingSize -= newChunkSize;
+    if (handler.remainingSize == 0) {
+      // One recursion should be enough.
+      decode_websocket(handler.pendingBuffer, handler.pendingSize, handler);
+      delete[] handler.pendingBuffer;
+      handler.pendingBuffer = nullptr;
+    }
   }
   handler.beginChunk();
+  // The + 2 is there because we need at least 2 bytes.
   while (cur - start < size) {
     WebSocketFrameTiny* header = (WebSocketFrameTiny*)cur;
     size_t payloadSize = 0;
     size_t headerSize = 0;
+    if ((cur + 2 - start >= size) ||
+        ((cur + 2 + 2 - start >= size) && header->len >= 126) ||
+        ((cur + 2 + 8 - start >= size) && header->len == 127)) {
+      // We do not have enough bytes for a tiny header. We copy in the pending header
+      handler.pendingHeaderSize = size - (cur - start);
+      handler.pendingHeader = new char[handler.pendingHeaderSize];
+      memcpy(handler.pendingHeader, cur, handler.pendingHeaderSize);
+      break;
+    }
+
     if (header->len < 126) {
       payloadSize = header->len;
       headerSize = 2 + (header->mask ? 4 : 0);
@@ -120,8 +150,6 @@ void decode_websocket(char* start, size_t size, WebSocketHandler& handler)
       headerSize = 2 + 8 + (header->mask ? 4 : 0);
     }
     size_t availableSize = size - (cur - start);
-    /// FIXME: handle the case in which the header itself is cut
-    /// apart.
     if (availableSize < payloadSize + headerSize) {
       handler.remainingSize = payloadSize + headerSize - availableSize;
       handler.pendingSize = availableSize;

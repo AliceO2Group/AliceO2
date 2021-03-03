@@ -55,7 +55,7 @@ GPUdii() bool GPUITSFitterKernel::fitTrack(GPUITSFitter& GPUrestrict() Fitter, G
 }
 
 template <>
-GPUdii() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors)
+GPUdii() void GPUITSFitterKernel::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors)
 {
   GPUITSFitter& Fitter = processors.itsFitter;
 

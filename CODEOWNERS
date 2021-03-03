@@ -42,7 +42,7 @@
 /DataFormats/Detectors/TOF                     @noferini 
 /DataFormats/Detectors/TPC                     @davidrohr @wiechula @shahor02
 /DataFormats/Detectors/TRD                     @jolopezl @bazinski @tdietel @martenole
-/DataFormats/Detectors/Upgrades                @qgp @marcovanleeuwen
+/DataFormats/Detectors/Upgrades                @qgp @marcovanleeuwen @mconcas
 /DataFormats/Detectors/ZDC                     @coppedis
 
 #/DataFormats/Headers
@@ -69,10 +69,10 @@
 /Detectors/TOF                     @noferini 
 /Detectors/TPC                     @davidrohr @wiechula @shahor02
 /Detectors/TRD                     @jolopezl @bazinski @tdietel @martenole
-/Detectors/Upgrades                @qgp @marcovanleeuwen
+/Detectors/Upgrades                @qgp @marcovanleeuwen @mconcas
 /Detectors/ZDC                     @coppedis
 
-/EventVisualisation  @jmyrcha @AliceO2Group/framework-admins
+/EventVisualisation  @jmyrcha
 #/EventVisualisation/Base
 #/EventVisualisation/DataConverter
 #/EventVisualisation/Detectors
@@ -109,7 +109,7 @@
 
 /Generators  @sawenzel
 
-/Steer @sawenzel @shahor02 @AliceO2Group/framework-admins
+/Steer @sawenzel @shahor02
 
 /Testing
 

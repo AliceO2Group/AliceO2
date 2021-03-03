@@ -14,6 +14,7 @@
 #ifndef ALICEO2_FT0_DETECTOR_H_
 #define ALICEO2_FT0_DETECTOR_H_
 
+#include <TGeoShape.h>
 #include "SimulationDataFormat/BaseHits.h"
 #include "DetectorsBase/Detector.h" // for Detector
 #include "FT0Base/Geometry.h"
@@ -47,13 +48,15 @@ class Detector : public o2::base::DetImpl<Detector>
     kVac = 3,
     kCeramic = 4,
     kGlass = 6,
-    kOpAir = 7,
+    //   kOpAir = 7,
     kAl = 15,
     kOpGlass = 16,
     kOptAl = 17,
     kOptBlack = 18,
     kOpGlassCathode = 19,
-    kSensAir = 22
+    //   kSensAir = 22,
+    kCable = 23,
+    kMCPwalls = 25
   }; // materials
 
   /// Name : Detector Name
@@ -93,6 +96,9 @@ class Detector : public o2::base::DetImpl<Detector>
   void ConstructOpGeometry() override;
   void SetOneMCP(TGeoVolume* stl);
 
+  void SetCablesA(TGeoVolume* stl);
+  TGeoVolume* SetCablesSize(int mod);
+
   // Optical properties reader: e-Energy, abs-AbsorptionLength[cm], n-refractive index
   void DefineOpticalProperties();
   Int_t ReadOptProperties(const std::string inputFilePath);
@@ -110,6 +116,11 @@ class Detector : public o2::base::DetImpl<Detector>
   void Read(std::istream* is);
 
   void DefineSim2LUTindex();
+  /// Create the shape of cables for a specified cell.
+  /// \param  shapeName   The name of the shape.
+  /// \param  cellID      The number of the cell
+  /// \return The cable pattern shape.
+  // TGeoShape* CreateCableShape(const std::string& shapeName, int cellID) const;
 
  private:
   /// copy constructor (used in MT)
@@ -156,7 +167,19 @@ class Detector : public o2::base::DetImpl<Detector>
 
   int mSim2LUT[Geometry::Nchannels];
 
-  ClassDefOverride(Detector, 3);
+  float mPosModuleAx[Geometry::NCellsA] = {-11.8, -5.9, 0, 5.9, 11.8, -11.8, -5.9, 0, 5.9, 11.8, -12.8, -6.9,
+                                           6.9, 12.8, -11.8, -5.9, 0, 5.9, 11.8, -11.8, -5.9, 0, 5.9, 11.8};
+  float mPosModuleAy[Geometry::NCellsA] = {11.9, 11.9, 12.9, 11.9, 11.9, 6.0, 6.0, 7.0, 6.0, 6.0, -0.1, -0.1,
+                                           0.1, 0.1, -6.0, -6.0, -7.0, -6.0, -6.0, -11.9, -11.9, -12.9, -11.9, -11.9};
+
+  float mPosModuleCx[Geometry::NCellsC];
+  float mPosModuleCy[Geometry::NCellsC];
+  float mPosModuleCz[Geometry::NCellsC];
+  Float_t mStartC[3] = {20., 20, 5.5};
+  Float_t mStartA[3] = {20., 20., 5};
+  Float_t mInStart[3] = {2.9491, 2.9491, 2.75};
+
+  ClassDefOverride(Detector, 4);
 };
 
 // Input and output function for standard C++ input/output.

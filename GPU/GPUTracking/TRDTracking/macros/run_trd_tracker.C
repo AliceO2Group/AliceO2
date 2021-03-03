@@ -56,9 +56,9 @@ void run_trd_tracker(std::string path = "./",
   const o2::trd::GeometryFlat geoFlat(*geo);
 
   //-------- init GPU reconstruction --------//
-  GPUSettingsEvent cfgEvent;                       // defaults should be ok
-  GPUSettingsRec cfgRec;                           // don't care for now, NWaysOuter is set in here for instance
-  GPUSettingsProcessing cfgDeviceProcessing;       // also keep defaults here, or adjust debug level
+  GPUSettingsEvent cfgEvent;                 // defaults should be ok
+  GPUSettingsRec cfgRec;                     // don't care for now, NWaysOuter is set in here for instance
+  GPUSettingsProcessing cfgDeviceProcessing; // also keep defaults here, or adjust debug level
   cfgDeviceProcessing.debugLevel = 5;
   GPURecoStepConfiguration cfgRecoStep;
   cfgRecoStep.steps = GPUDataTypes::RecoStep::NoRecoStep;

@@ -80,6 +80,7 @@ class DetID
   static constexpr int nDetectors = Last + 1; ///< number of defined detectors
 
   static constexpr std::string_view NONE{"none"}; ///< keywork for no-detector
+  static constexpr std::string_view ALL{"all"};   ///< keywork for all detectors
 
   typedef std::bitset<nDetectors> mask_t;
 
@@ -112,7 +113,7 @@ class DetID
   // detector masks from any non-alpha-num delimiter-separated list (empty if NONE is supplied)
   static mask_t getMask(const std::string_view detList);
 
-  static std::string getNames(mask_t mask);
+  static std::string getNames(mask_t mask, char delimiter = ',');
 
   // we need default c-tor only for root persistency, code must use c-tor with argument
   DetID() : mID(First) {}

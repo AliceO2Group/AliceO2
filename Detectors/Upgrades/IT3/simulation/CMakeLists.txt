@@ -9,14 +9,13 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(ITS3Simulation
-               SOURCES src/V11Geometry.cxx src/V1Layer.cxx src/V3Layer.cxx
+               SOURCES src/V11Geometry.cxx src/V3Layer.cxx
                        src/Detector.cxx src/V3Services.cxx
                PUBLIC_LINK_LIBRARIES O2::ITS3Base O2::ITSMFTSimulation
                                      ROOT::Physics)
 
 o2_target_root_dictionary(ITS3Simulation
                           HEADERS include/ITS3Simulation/Detector.h
-                                  include/ITS3Simulation/V1Layer.h
                                   include/ITS3Simulation/V3Layer.h
                                   include/ITS3Simulation/V11Geometry.h
                                   include/ITS3Simulation/V3Services.h

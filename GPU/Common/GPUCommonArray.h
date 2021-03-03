@@ -28,6 +28,8 @@ struct array {
   GPUd() const T& operator[](size_t i) const { return m_internal_V__[i]; }
   T m_internal_V__[N];
 };
+template <class T, class... E>
+GPUd() array(T, E...)->array<T, 1 + sizeof...(E)>;
 #else
 template <typename T, size_t N>
 using array = std::array<T, N>;

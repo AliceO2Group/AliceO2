@@ -64,6 +64,7 @@ class CalDet
   ///
   ///
   const T getValue(const int sec, const int globalPadInSector) const;
+  void setValue(const int sec, const int globalPadInSector, const T value);
 
   /// \todo return value of T& not possible if a default value should be returned, e.g. T{}:
   ///       warning: returning reference to temporary
@@ -180,6 +181,20 @@ inline const T CalDet<T>::getValue(const CRU cru, const size_t row, const size_t
     }
   }
   return T{};
+}
+
+template <class T>
+inline void CalDet<T>::setValue(const int sec, const int globalPadInSector, const T value)
+{
+  assert(mPadSubset == PadSubset::ROC);
+  int roc = sec;
+  int padInROC = globalPadInSector;
+  const int padsInIROC = Mapper::getPadsInIROC();
+  if (globalPadInSector >= padsInIROC) {
+    roc += Mapper::getNumberOfIROCs();
+    padInROC -= padsInIROC;
+  }
+  mData[roc].setValue(padInROC, value);
 }
 
 #ifndef GPUCA_ALIGPUCODE // hide from GPU standalone compilation

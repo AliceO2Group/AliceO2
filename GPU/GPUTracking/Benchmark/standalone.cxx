@@ -35,11 +35,11 @@
 #ifndef _WIN32
 #include <unistd.h>
 #include <sched.h>
-#include <signal.h>
+#include <csignal>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/select.h>
-#include <fenv.h>
+#include <cfenv>
 #include <clocale>
 #include <sys/stat.h>
 #endif

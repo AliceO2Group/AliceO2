@@ -37,8 +37,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 struct pidTOFTask {
   using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
   using Coll = aod::Collisions;
-  Produces<aod::pidRespTOF> tofpid;
-  DetectorResponse resp;
+  Produces<aod::pidRespTOF> tablePID;
+  DetectorResponse response;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
   Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
   Configurable<std::string> sigmaname{"param-sigma", "TOFReso", "Name of the parametrization for the expected sigma, used in both file and CCDB mode"};
@@ -55,48 +55,50 @@ struct pidTOFTask {
     ccdb->setCreatedNotAfter(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
     //
     const std::vector<float> p = {0.008, 0.008, 0.002, 40.0};
-    resp.SetParameters(DetectorResponse::kSigma, p);
+    response.SetParameters(DetectorResponse::kSigma, p);
     const std::string fname = paramfile.value;
     if (!fname.empty()) { // Loading the parametrization from file
-      resp.LoadParamFromFile(fname.data(), sigmaname.value, DetectorResponse::kSigma);
+      response.LoadParamFromFile(fname.data(), sigmaname.value, DetectorResponse::kSigma);
     } else { // Loading it from CCDB
       const std::string path = "Analysis/PID/TOF";
-      resp.LoadParam(DetectorResponse::kSigma, ccdb->getForTimeStamp<Parametrization>(path + "/" + sigmaname.value, timestamp.value));
+      response.LoadParam(DetectorResponse::kSigma, ccdb->getForTimeStamp<Parametrization>(path + "/" + sigmaname.value, timestamp.value));
     }
   }
 
+  template <o2::track::PID::ID pid>
+  using ResponseImplementation = tof::ExpTimes<Coll::iterator, Trks::iterator, pid>;
   void process(Coll const& collisions, Trks const& tracks)
   {
-    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Electron> resp_Electron = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Electron>();
-    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Muon> resp_Muon = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Muon>();
-    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Pion> resp_Pion = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Pion>();
-    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Kaon> resp_Kaon = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Kaon>();
-    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Proton> resp_Proton = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Proton>();
-    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Deuteron> resp_Deuteron = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Deuteron>();
-    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Triton> resp_Triton = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Triton>();
-    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Helium3> resp_Helium3 = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Helium3>();
-    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Alpha> resp_Alpha = tof::ExpTimes<Coll::iterator, Trks::iterator, PID::Alpha>();
+    constexpr auto responseEl = ResponseImplementation<PID::Electron>();
+    constexpr auto responseMu = ResponseImplementation<PID::Muon>();
+    constexpr auto responsePi = ResponseImplementation<PID::Pion>();
+    constexpr auto responseKa = ResponseImplementation<PID::Kaon>();
+    constexpr auto responsePr = ResponseImplementation<PID::Proton>();
+    constexpr auto responseDe = ResponseImplementation<PID::Deuteron>();
+    constexpr auto responseTr = ResponseImplementation<PID::Triton>();
+    constexpr auto responseHe = ResponseImplementation<PID::Helium3>();
+    constexpr auto responseAl = ResponseImplementation<PID::Alpha>();
 
-    tofpid.reserve(tracks.size());
+    tablePID.reserve(tracks.size());
     for (auto const& trk : tracks) {
-      tofpid(resp_Electron.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Muon.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Pion.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Kaon.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Proton.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Deuteron.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Triton.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Helium3.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Alpha.GetExpectedSigma(resp, trk.collision(), trk),
-             resp_Electron.GetSeparation(resp, trk.collision(), trk),
-             resp_Muon.GetSeparation(resp, trk.collision(), trk),
-             resp_Pion.GetSeparation(resp, trk.collision(), trk),
-             resp_Kaon.GetSeparation(resp, trk.collision(), trk),
-             resp_Proton.GetSeparation(resp, trk.collision(), trk),
-             resp_Deuteron.GetSeparation(resp, trk.collision(), trk),
-             resp_Triton.GetSeparation(resp, trk.collision(), trk),
-             resp_Helium3.GetSeparation(resp, trk.collision(), trk),
-             resp_Alpha.GetSeparation(resp, trk.collision(), trk));
+      tablePID(responseEl.GetExpectedSigma(response, trk.collision(), trk),
+               responseMu.GetExpectedSigma(response, trk.collision(), trk),
+               responsePi.GetExpectedSigma(response, trk.collision(), trk),
+               responseKa.GetExpectedSigma(response, trk.collision(), trk),
+               responsePr.GetExpectedSigma(response, trk.collision(), trk),
+               responseDe.GetExpectedSigma(response, trk.collision(), trk),
+               responseTr.GetExpectedSigma(response, trk.collision(), trk),
+               responseHe.GetExpectedSigma(response, trk.collision(), trk),
+               responseAl.GetExpectedSigma(response, trk.collision(), trk),
+               responseEl.GetSeparation(response, trk.collision(), trk),
+               responseMu.GetSeparation(response, trk.collision(), trk),
+               responsePi.GetSeparation(response, trk.collision(), trk),
+               responseKa.GetSeparation(response, trk.collision(), trk),
+               responsePr.GetSeparation(response, trk.collision(), trk),
+               responseDe.GetSeparation(response, trk.collision(), trk),
+               responseTr.GetSeparation(response, trk.collision(), trk),
+               responseHe.GetSeparation(response, trk.collision(), trk),
+               responseAl.GetSeparation(response, trk.collision(), trk));
     }
   }
 };
@@ -104,24 +106,24 @@ struct pidTOFTask {
 struct pidTOFTaskBeta {
   using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
   using Coll = aod::Collision;
-  Produces<aod::pidRespTOFbeta> tofpidbeta;
-  tof::Beta<Coll, Trks::iterator, PID::Electron> resp_Electron;
+  Produces<aod::pidRespTOFbeta> tablePIDBeta;
+  tof::Beta<Coll, Trks::iterator, PID::Electron> responseElectron;
   Configurable<float> expreso{"tof-expreso", 80, "Expected resolution for the computation of the expected beta"};
 
   void init(o2::framework::InitContext&)
   {
-    resp_Electron.mExpectedResolution = expreso.value;
+    responseElectron.mExpectedResolution = expreso.value;
   }
 
   void process(Coll const& collision, Trks const& tracks)
   {
-    tofpidbeta.reserve(tracks.size());
+    tablePIDBeta.reserve(tracks.size());
     for (auto const& trk : tracks) {
-      tofpidbeta(resp_Electron.GetBeta(collision, trk),
-                 resp_Electron.GetExpectedSigma(collision, trk),
-                 resp_Electron.GetExpectedSignal(collision, trk),
-                 resp_Electron.GetExpectedSigma(collision, trk),
-                 resp_Electron.GetSeparation(collision, trk));
+      tablePIDBeta(responseElectron.GetBeta(collision, trk),
+                   responseElectron.GetExpectedSigma(collision, trk),
+                   responseElectron.GetExpectedSignal(collision, trk),
+                   responseElectron.GetExpectedSigma(collision, trk),
+                   responseElectron.GetSeparation(collision, trk));
     }
   }
 };
@@ -129,6 +131,7 @@ struct pidTOFTaskBeta {
 struct pidTOFTaskQA {
 
   static constexpr int Np = 9;
+  static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
   static constexpr std::string_view hexpected[Np] = {"expected/El", "expected/Mu", "expected/Pi",
                                                      "expected/Ka", "expected/Pr", "expected/De",
                                                      "expected/Tr", "expected/He", "expected/Al"};
@@ -138,7 +141,6 @@ struct pidTOFTaskQA {
   static constexpr std::string_view hnsigma[Np] = {"nsigma/El", "nsigma/Mu", "nsigma/Pi",
                                                    "nsigma/Ka", "nsigma/Pr", "nsigma/De",
                                                    "nsigma/Tr", "nsigma/He", "nsigma/Al"};
-  static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
   HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::QAObject};
 
   Configurable<int> nBinsP{"nBinsP", 400, "Number of bins for the momentum"};

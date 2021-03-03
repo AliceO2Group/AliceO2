@@ -20,28 +20,9 @@
 # -harmonize coding style for variables
 
 o2_cleanup_shm_files() {
-  # check if we have lsof (otherwise we do nothing)
-  which lsof &> /dev/null
-  if [ "$?" = "0" ]; then
-    # find shared memory files **CURRENTLY IN USE** by FairMQ
-    USEDFILES=`lsof -u $(whoami) 2> /dev/null | grep -e \"/dev/shm/.*fmq\" | sed 's/.*\/dev/\/dev/g' | sort | uniq | tr '\n' ' '`
-
-    echo "${USEDFILES}"
-    if [ ! "${USEDFILES}" ]; then
-      # in this case we can remove everything
-      COMMAND="find /dev/shm/ -user $(whoami) -name \"*fmq_*\" -delete 2> /dev/null"
-    else
-      # build exclusion list
-      for f in ${USEDFILES}; do
-        LOGICALOP=""
-        [ "${EXCLPATTERN}" ] && LOGICALOP="-o"
-        EXCLPATTERN="${EXCLPATTERN} ${LOGICALOP} -wholename ${f}"
-      done
-      COMMAND="find /dev/shm/ -user $(whoami) -type f -not \( ${EXCLPATTERN} \) -delete 2> /dev/null"
-    fi
-    eval "${COMMAND}"
-  else
-    echo "Can't do shared mem cleanup: lsof not found"
+  if [ "${JOBUTILS_INTERNAL_DPL_SESSION}" ]; then
+    # echo "cleaning up session ${JOBUTILS_INTERNAL_DPL_SESSION}"
+    fairmq-shmmonitor -s ${JOBUTILS_INTERNAL_DPL_SESSION} -c &> /dev/null
   fi
 }
 
@@ -74,6 +55,7 @@ taskwrapper_cleanup() {
   sleep 2
   # remove leftover shm files
   o2_cleanup_shm_files
+  unset JOBUTILS_INTERNAL_DPL_SESSION
 }
 
 taskwrapper_cleanup_handler() {
@@ -99,6 +81,25 @@ taskwrapper_cleanup_handler() {
 # - possibility to define timeout
 # - possibility to control/limit the CPU load
 taskwrapper() {
+  unset JOBUTILS_INTERNAL_DPL_SESSION
+  # nested helper to parse DPL session ID
+  _parse_DPL_session ()
+  {
+    childpids=$(childprocs ${1})
+    for p in ${childpids}; do
+      command=$(ps -o command ${p} | grep -v "COMMAND" | grep "session")
+      if [ "$?" = "0" ]; then
+        # echo "parsing from ${command}"
+        session=`echo ${command} | sed 's/.*--session//g' | awk '//{print $1}'`
+        if [ "${session}" ]; then
+          # echo "found ${session}"
+          break
+        fi
+      fi
+    done
+    echo "${session:-""}"
+  }
+
   local logfile=$1
   shift 1
   local command="$*"
@@ -176,6 +177,7 @@ taskwrapper() {
              -e \"error while setting up workflow\" \
              -e \"bus error\"                       \
              -e \"Assertion.*failed\"               \
+             -e \"Fatal in\"                        \
              -e \"There was a crash.\""
       
     grepcommand="grep -H ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} >> encountered_exceptions_list 2>/dev/null"
@@ -191,6 +193,10 @@ taskwrapper() {
     # basically --> send kill to all children
     if [ "$RC" != "" -a "$RC" != "0" ]; then
       echo "Detected critical problem in logfile $logfile"
+      if [ "${JOBUTILS_PRINT_ON_ERROR}" ]; then
+        grepcommand="grep -H -A 2 -B 2 ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES}"
+        eval ${grepcommand}
+      fi
 
       # this gives some possibility to customize the wrapper
       # and do some special task at the start. The hook takes 2 arguments:
@@ -214,6 +220,17 @@ taskwrapper() {
     # check if command returned which may bring us out of the loop
     ps -p $PID > /dev/null
     [ $? == 1 ] && break
+
+    if [ "${JOBUTILS_MONITORMEM}" ]; then
+      if [ "${JOBUTILS_INTERNAL_DPL_SESSION}" ]; then
+        MAX_FMQ_SHM=${MAX_FMQ_SHM:-0}
+        text=$(fairmq-shmmonitor -v -s ${JOBUTILS_INTERNAL_DPL_SESSION})
+        line=$(echo ${text} | tr '[' '\n[' | grep "^0" | tail -n1)
+        CURRENT_FMQ_SHM=$(echo ${line} | sed 's/.*used://g')
+        # echo "current shm ${CURRENT_FMQ_SHM}"
+        MAX_FMQ_SHM=$(awk -v "t=${CURRENT_FMQ_SHM}" -v "s=${MAX_FMQ_SHM}" 'BEGIN { if(t>=s) { print t; } else { print s; } }')
+      fi
+    fi
 
     if [ "${JOBUTILS_MONITORCPU}" ] || [ "${JOBUTILS_LIMITLOAD}" ]; then
       # NOTE: The following section is "a bit" compute intensive and currently not optimized
@@ -258,14 +275,14 @@ taskwrapper() {
         # echo "CPU last time window ${p} : ${thisCPU[$p]}"
       done
 
-      echo "${line}"
-      echo "${cpucounter} totalCPU = ${totalCPU} -- without limitation ${totalCPU_unlimited}"
+      # echo "${line}"
+      # echo "${cpucounter} totalCPU = ${totalCPU} -- without limitation ${totalCPU_unlimited}"
       # We can check if the total load is above a resource limit
       # And take corrective actions if we extend by 10%
       limitPIDs=""
       unset waslimited
       if [ ${JOBUTILS_LIMITLOAD} ]; then
-        if (( $(echo "${totalCPU_unlimited} > 1.1*${JOBUTILS_LIMITLOAD}" | bc -l) )); then
+        if (( $(echo "${totalCPU_unlimited} > 1.1*${JOBUTILS_LIMITLOAD}" | bc -l 2>/dev/null) )); then
           # we reduce each pid proportionally for the time until the next check and record the reduction factor in place
           oldreduction=${reduction_factor}
           reduction_factor=$(awk -v limit="${JOBUTILS_LIMITLOAD}" -v cur="${totalCPU_unlimited}" 'BEGIN{ print limit/cur;}')
@@ -291,7 +308,7 @@ taskwrapper() {
 
       let cpucounter=cpucounter+1
       # our condition for inactive
-      if (( $(echo "${totalCPU} < 5" | bc -l) )); then
+      if (( $(echo "${totalCPU} < 5" | bc -l 2> /dev/null) )); then
         let inactivitycounter=inactivitycounter+JOBUTILS_WRAPPER_SLEEP
       else
         inactivitycounter=0
@@ -329,6 +346,12 @@ taskwrapper() {
         return 1
       fi
     fi
+
+    # Try to find out DPL session ID
+    # if [ -z "${JOBUTILS_INTERNAL_DPL_SESSION}" ]; then
+        JOBUTILS_INTERNAL_DPL_SESSION=$(_parse_DPL_session ${PID})
+    #   echo "got session ${JOBUTILS_INTERNAL_DPL_SESSION}"
+    # fi
 
     # sleep for some time (can be customized for power user)
     sleep ${JOBUTILS_WRAPPER_SLEEP:-1}
@@ -387,6 +410,13 @@ taskwrapper() {
       [[ ! $- == *i* ]] && exit ${RC}
     fi
   fi
+  if [ "${JOBUTILS_MONITORMEM}" ]; then
+     # convert bytes in MB
+     MAX_FMQ_SHM=${MAX_FMQ_SHM:-0}
+     MAX_FMQ_SHM=$(awk -v "s=${MAX_FMQ_SHM}" 'BEGIN { print s/(1024.*1024) }')
+     echo "PROCESS MAX FMQ_SHM = ${MAX_FMQ_SHM}" >> ${logfile}
+  fi
+  unset JOBUTILS_INTERNAL_DPL_SESSION
   return ${RC}
 }
 

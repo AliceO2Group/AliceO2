@@ -45,12 +45,20 @@ class HMPIDDigitizer
       // for the first trigger no busy check necessary
       mCurrentTriggerTime = timeNS;
       mReadoutCounter++;
+<<<<<<< HEAD
       Trigger::TimeNsToOrbitBc(mCurrentTriggerTime, mOrbit, mBc);
+=======
+      Digit::TimeNsToOrbitBc(mCurrentTriggerTime, mOrbit, mBc);
+>>>>>>> refs/heads/dev
       return true;
     } else {
       if ((timeNS - mCurrentTriggerTime) > BUSYTIME) {
         mCurrentTriggerTime = timeNS;
+<<<<<<< HEAD
         Trigger::TimeNsToOrbitBc(mCurrentTriggerTime, mOrbit, mBc);
+=======
+        Digit::TimeNsToOrbitBc(mCurrentTriggerTime, mOrbit, mBc);
+>>>>>>> refs/heads/dev
         mReadoutCounter++;
         return true;
       } else {

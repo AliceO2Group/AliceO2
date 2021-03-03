@@ -48,6 +48,8 @@ class Pedestals
   /// \brief Constructor for tests
   Pedestals(int test);
 
+  Pedestals& operator=(const Pedestals& other) = default;
+
   /// \brief Destructor
   ~Pedestals() = default;
 

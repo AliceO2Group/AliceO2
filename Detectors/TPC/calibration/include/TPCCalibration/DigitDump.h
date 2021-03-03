@@ -92,7 +92,7 @@ class DigitDump : public CalibRawBase
   void setNoiseThreshold(float noiseThreshold) { mNoiseThreshold = noiseThreshold; }
 
   /// set the adc range
-  void setADCRange(int minADC, int maxADC)
+  void setADCRange(float minADC, float maxADC)
   {
     mADCMin = minADC;
     mADCMax = maxADC;
@@ -152,8 +152,8 @@ class DigitDump : public CalibRawBase
 
   int mFirstTimeBin{0};      ///< first time bin used in analysis
   int mLastTimeBin{1000};    ///< first time bin used in analysis
-  int mADCMin{-100};         ///< minimum adc value
-  int mADCMax{1024};         ///< maximum adc value
+  float mADCMin{-100};       ///< minimum adc value
+  float mADCMax{1024};       ///< maximum adc value
   float mNoiseThreshold{-1}; ///< zero suppression threshold in noise sigma
   bool mInMemoryOnly{false}; ///< if processing is only done in memory, no file writing
   bool mInitialized{false};  ///< if init was called

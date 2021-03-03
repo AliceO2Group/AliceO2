@@ -109,8 +109,8 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
       hm->AddHistogram(histClass, "NonBendingCoor", "", false, 100, 0.065, 0.07, VarManager::kMuonNonBendingCoor);
       hm->AddHistogram(histClass, "Chi2", "", false, 100, 0.0, 200.0, VarManager::kMuonChi2);
       hm->AddHistogram(histClass, "Chi2MatchTrigger", "", false, 100, 0.0, 20.0, VarManager::kMuonChi2MatchTrigger);
-      hm->AddHistogram(histClass, "RAtAbsorberEnd", "", false, 140, 10, 150, VarManager::kMuonRAtAbsorberEnd);
-      hm->AddHistogram(histClass, "p x dca", "", false, 700, 0.0, 700, VarManager::kMuonRAtAbsorberEnd);
+      hm->AddHistogram(histClass, "RAtAbsorberEnd", "", false, 100, 10, 2000, VarManager::kMuonRAtAbsorberEnd);
+      hm->AddHistogram(histClass, "pdca", "", false, 100, 0.0, 1000, VarManager::kMuonPDca);
     }
   }
 
@@ -126,11 +126,11 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
     hm->AddHistogram(histClass, "Mass_VtxZ", "", true, 30, -15.0, 15.0, VarManager::kVtxZ, 100, 0.0, 20.0, VarManager::kMass);
   }
 
-  if (groupStr.Contains("pair-hadron-mass")) {
+  if (groupStr.Contains("dilepton-hadron-mass")) {
     hm->AddHistogram(histClass, "Mass_Pt", "", false, 40, 0.0, 20.0, VarManager::kPairMass, 40, 0.0, 20.0, VarManager::kPairPt);
   }
 
-  if (groupStr.Contains("pair-hadron-correlation")) {
+  if (groupStr.Contains("dilepton-hadron-correlation")) {
     hm->AddHistogram(histClass, "DeltaEta_DeltaPhi", "", false, 20, -2.0, 2.0, VarManager::kDeltaEta, 50, -8.0, 8.0, VarManager::kDeltaPhi);
     hm->AddHistogram(histClass, "DeltaEta_DeltaPhiSym", "", false, 20, -2.0, 2.0, VarManager::kDeltaEta, 50, -8.0, 8.0, VarManager::kDeltaPhiSym);
   }

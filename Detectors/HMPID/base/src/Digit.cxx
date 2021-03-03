@@ -30,6 +30,7 @@ using namespace o2::hmpid;
 ClassImp(o2::hmpid::Digit);
 
 // ============= Digit Class implementation =======
+<<<<<<< HEAD
 /// Constructor : Create the Digit structure. Accepts the trigger time (Orbit,BC)
 ///               The mapping of the digit is in the Photo Cathod coords
 ///               (Chamber, PhotoCathod, X, Y)
@@ -38,9 +39,24 @@ ClassImp(o2::hmpid::Digit);
 /// @param[in] pad : the Digit Unique Id [0x00CPXXYY]
 /// @param[in] charge : the value of the charge [0 .. 2^12-1]
 Digit::Digit(uint16_t bc, uint32_t orbit, int pad, uint16_t charge)
+=======
+
+/// Constructor : Create the Digit structure. Accepts the trigger time (Orbit,BC)
+///               The mapping of the digit is in the Photo Cathod coords
+///               (Chamber, PhotoCathod, X, Y)
+/// @param[in] bc : the bunch crossing [0 .. 2^12-1]
+/// @param[in] orbit : the orbit number [0 .. 2^32-1]
+/// @param[in] chamber : the HMPID module [0 .. 6]
+/// @param[in] photo : the photo cathode number [0 .. 5] (left-down to right-up)
+/// @param[in] x : the horizontal in cathode displacement [0 .. 79]
+/// @param[in] y : the vertical in cathode displacement [0 .. 47]
+/// @param[in] charge : the value of the charge [0 .. 2^12-1]
+Digit::Digit(uint16_t bc, uint32_t orbit, int chamber, int photo, int x, int y, uint16_t charge)
+>>>>>>> refs/heads/dev
 {
   mBc = bc;
   mOrbit = orbit;
+<<<<<<< HEAD
   mQ = charge > 0x0FFF ? 0x0FFF : charge;
   mPad = pad;
 }
@@ -95,6 +111,44 @@ Digit::Digit(uint16_t bc, uint32_t orbit, uint16_t charge, int module, int x, in
   mBc = bc;
   mOrbit = orbit;
   mQ = charge > 0x0FFF ? 0x0FFF : charge;
+=======
+  mQ = charge;
+  mPad = Abs(chamber, photo, x, y);
+}
+
+/// Constructor : Create the Digit structure. Accepts the trigger time (Orbit,BC)
+///               The mapping of the digit is in the Hardware coords
+///               (Equipment, Column, Dilogic, Channel)
+/// @param[in] bc : the bunch crossing [0 .. 2^12-1]
+/// @param[in] orbit : the orbit number [0 .. 2^32-1]
+/// @param[in] charge : the value of the charge [0 .. 2^12-1]
+/// @param[in] equipment : the HMPID DDL link [0 .. 13]
+/// @param[in] column : the readout column number [0 .. 23]
+/// @param[in] dilogic : the displacement in the Dilogics chain [0 .. 9]
+/// @param[in] channel : the number of gassiplexes channels [0 .. 47]
+Digit::Digit(uint16_t bc, uint32_t orbit, uint16_t charge, int equipment, int column, int dilogic, int channel)
+{
+  mBc = bc;
+  mOrbit = orbit;
+  mQ = charge;
+  mPad = Equipment2Pad(equipment, column, dilogic, channel);
+}
+
+/// Constructor : Create the Digit structure. Accepts the trigger time (Orbit,BC)
+///               The mapping of the digit is in the Logical coords
+///               (Module, X, Y)
+/// @param[in] bc : the bunch crossing [0 .. 2^12-1]
+/// @param[in] orbit : the orbit number [0 .. 2^32-1]
+/// @param[in] charge : the value of the charge [0 .. 2^12-1]
+/// @param[in] module : the HMPID Module [0 .. 6]
+/// @param[in] x : the horizontal in Module displacement [0 .. 159]
+/// @param[in] y : the vertical in Module displacement [0 .. 143]
+Digit::Digit(uint16_t bc, uint32_t orbit, uint16_t charge, int module, int x, int y)
+{
+  mBc = bc;
+  mOrbit = orbit;
+  mQ = charge;
+>>>>>>> refs/heads/dev
   mPad = Absolute2Pad(module, x, y);
 }
 
@@ -383,6 +437,7 @@ Double_t Digit::OrbitBcToTimeNs(uint32_t Orbit, uint16_t BC)
 /// @return : the Orbit number [0..2^32-1]
 uint32_t Digit::TimeNsToOrbit(Double_t TimeNs)
 {
+<<<<<<< HEAD
   return (uint32_t)(TimeNs / o2::constants::lhc::LHCOrbitNS);
 }
 
@@ -394,6 +449,19 @@ uint32_t Digit::TimeNsToOrbit(Double_t TimeNs)
 uint16_t Digit::TimeNsToBc(Double_t TimeNs)
 {
   return (uint16_t)(std::fmod(TimeNs, o2::constants::lhc::LHCOrbitNS) / o2::constants::lhc::LHCBunchSpacingNS);
+=======
+  return (TimeNs / o2::constants::lhc::LHCOrbitNS);
+}
+
+/// TimeNsToBc : Extracts the Bunch Crossing number from the absolute
+/// nanoseconds time.
+///
+/// @param[in] TimeNs : the absolute nanoseconds time
+/// @return : the Bunch Crossing number [0..2^12-1]
+uint16_t Digit::TimeNsToBc(Double_t TimeNs)
+{
+  return (std::fmod(TimeNs, o2::constants::lhc::LHCOrbitNS) / o2::constants::lhc::LHCBunchSpacingNS);
+>>>>>>> refs/heads/dev
 }
 
 /// TimeNsToOrbitBc : Extracts the (Orbit,BC) pair from the absolute

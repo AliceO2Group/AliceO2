@@ -32,7 +32,6 @@
 #include "Framework/Signpost.h"
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/Logger.h"
-#include "Framework/Monitoring.h"
 #include "Framework/DriverClient.h"
 #include "PropertyTreeHelpers.h"
 #include "DataProcessingStatus.h"
@@ -61,15 +60,8 @@
 #include <boost/property_tree/json_parser.hpp>
 
 using namespace o2::framework;
-using Key = o2::monitoring::tags::Key;
-using Value = o2::monitoring::tags::Value;
-using Metric = o2::monitoring::Metric;
-using Monitoring = o2::monitoring::Monitoring;
 using ConfigurationInterface = o2::configuration::ConfigurationInterface;
 using DataHeader = o2::header::DataHeader;
-
-constexpr unsigned int MONITORING_QUEUE_SIZE = 100;
-constexpr unsigned int MIN_RATE_LOGGING = 60;
 
 namespace o2::framework
 {
@@ -105,7 +97,7 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
       auto& err = error_from_ref(e);
       LOGP(ERROR, "Exception caught: {} ", err.what);
       backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
-      serviceRegistry.get<Monitoring>().send({1, "error"});
+      serviceRegistry.get<DataProcessingStats>().exceptionCount++;
       ErrorContext errorContext{record, serviceRegistry, e};
       errorCallback(errorContext);
     };
@@ -116,7 +108,7 @@ DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegist
       auto& err = error_from_ref(e);
       LOGP(ERROR, "Exception caught: {} ", err.what);
       backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
-      serviceRegistry.get<Monitoring>().send({1, "error"});
+      serviceRegistry.get<DataProcessingStats>().exceptionCount++;
       switch (errorPolicy) {
         case TerminationPolicy::QUIT:
           throw e;
@@ -190,15 +182,6 @@ void DataProcessingDevice::Init()
   TracyAppInfo(mSpec.name.data(), mSpec.name.size());
   ZoneScopedN("DataProcessingDevice::Init");
   mRelayer = &mServiceRegistry.get<DataRelayer>();
-  // For some reason passing rateLogging does not work anymore.
-  // This makes sure we never have more than one notification per minute.
-  for (auto& x : fChannels) {
-    for (auto& c : x.second) {
-      if (c.GetRateLogging() < MIN_RATE_LOGGING) {
-        c.UpdateRateLogging(MIN_RATE_LOGGING);
-      }
-    }
-  }
   // If available use the ConfigurationInterface, otherwise go for
   // the command line options.
   bool hasConfiguration = false;
@@ -262,12 +245,6 @@ void DataProcessingDevice::Init()
       route.configurator->expirationConfigurator(mState, *mConfigRegistry)};
     mExpirationHandlers.emplace_back(std::move(handler));
   }
-
-  auto& monitoring = mServiceRegistry.get<Monitoring>();
-  monitoring.enableBuffering(MONITORING_QUEUE_SIZE);
-  static const std::string dataProcessorIdMetric = "dataprocessor_id";
-  static const std::string dataProcessorIdValue = mSpec.name;
-  monitoring.addGlobalTag("dataprocessor_id", dataProcessorIdValue);
 
   if (mInit) {
     InitContext initContext{*mConfigRegistry, mServiceRegistry};
@@ -435,7 +412,11 @@ void DataProcessingDevice::PreRun()
   mServiceRegistry.get<CallbackService>()(CallbackService::Id::Start);
 }
 
-void DataProcessingDevice::PostRun() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Stop); }
+void DataProcessingDevice::PostRun()
+{
+  mServiceRegistry.get<CallbackService>()(CallbackService::Id::Stop);
+  mServiceRegistry.preExitCallbacks();
+}
 
 void DataProcessingDevice::Reset() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Reset); }
 
@@ -512,42 +493,44 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
     int64_t result = -2;
     auto& fairMQChannel = context.device->GetChannel(channel.name, 0);
     auto& socket = fairMQChannel.GetSocket();
-    uint32_t events;
-    socket.Events(&events);
-    if ((events & 1) == 0) {
-      continue;
+    // If we have pending events from a previous iteration,
+    // we do receive in any case.
+    // Otherwise we check if there is any pending event and skip
+    // this channel in case there is none.
+    if (info.hasPendingEvents == 0) {
+      socket.Events(&info.hasPendingEvents);
+      // If we do not read, we can continue.
+      if ((info.hasPendingEvents & 1) == 0) {
+        continue;
+      }
     }
     // Notice that there seems to be a difference between the documentation
     // of zeromq and the observed behavior. The fact that ZMQ_POLLIN
     // is raised does not mean that a message is immediately available to
     // read, just that it will be available soon, so the receive can
     // still return -2. To avoid this we keep receiving on the socket until
-    // we get a message, consume all the consecutive messages, and then go back
-    // to the usual loop.
-    do {
-      if (events & 1) {
-        bool oneMessage = false;
-        while (true) {
-          FairMQParts parts;
-          result = fairMQChannel.Receive(parts, 0);
-          if (result >= 0) {
-            // Receiving data counts as activity now, so that
-            // We can make sure we process all the pending
-            // messages without hanging on the uv_run.
-            *context.wasActive = true;
-            DataProcessingDevice::handleData(context, parts, info);
-            oneMessage = true;
-          } else {
-            if (oneMessage) {
-              break;
-            }
-          }
-        }
-      } else {
+    // we get a message. In order not to overflow the DPL queue we process
+    // one message at the time and we keep track of wether there were more
+    // to process.
+    while (true) {
+      FairMQParts parts;
+      result = fairMQChannel.Receive(parts, 0);
+      if (result >= 0) {
+        DataProcessingDevice::handleData(context, parts, info);
+        // Receiving data counts as activity now, so that
+        // We can make sure we process all the pending
+        // messages without hanging on the uv_run.
         break;
       }
-      socket.Events(&events);
-    } while (events & 1);
+    }
+    // We check once again for pending events, keeping track if this was the
+    // case so that we can immediately repeat this loop and avoid remaining
+    // stuck in uv_run. This is because we will not get notified on the socket
+    // if more events are pending due to zeromq level triggered approach.
+    socket.Events(&info.hasPendingEvents);
+    if (info.hasPendingEvents) {
+      *context.wasActive |= true;
+    }
   }
 }
 

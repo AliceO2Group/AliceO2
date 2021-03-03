@@ -146,6 +146,31 @@ DECLARE_SOA_TABLE(ReducedMuonsExtended, "AOD", "RTMUONEXTENDED",
                   muon::RAtAbsorberEnd<muon::BendingCoor, muon::NonBendingCoor, muon::ThetaX, muon::ThetaY, muon::ZMu>,
                   muon::PDca<muon::InverseBendingMomentum, muon::ThetaX, muon::ThetaY, muon::BendingCoor, muon::NonBendingCoor, muon::ZMu>);
 
+// pair information
+namespace reducedpair
+{
+DECLARE_SOA_INDEX_COLUMN(ReducedEvent, reducedevent);
+DECLARE_SOA_COLUMN(Mass, mass, float);
+DECLARE_SOA_COLUMN(Pt, pt, float);
+DECLARE_SOA_COLUMN(Eta, eta, float);
+DECLARE_SOA_COLUMN(Phi, phi, float);
+DECLARE_SOA_COLUMN(Charge, charge, int);
+DECLARE_SOA_COLUMN(FilterMap, filterMap, uint16_t);
+DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float pt, float phi) -> float { return pt * std::cos(phi); });
+DECLARE_SOA_DYNAMIC_COLUMN(Py, py, [](float pt, float phi) -> float { return pt * std::sin(phi); });
+DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, [](float pt, float eta) -> float { return pt * std::sinh(eta); });
+DECLARE_SOA_DYNAMIC_COLUMN(Pmom, pmom, [](float pt, float eta) -> float { return pt * std::cosh(eta); });
+} // namespace reducedpair
+
+DECLARE_SOA_TABLE(Dileptons, "AOD", "RTDILEPTON",
+                  reducedpair::ReducedEventId, reducedpair::Mass,
+                  reducedpair::Pt, reducedpair::Eta, reducedpair::Phi, reducedpair::Charge,
+                  reducedpair::FilterMap,
+                  reducedpair::Px<reducedpair::Pt, reducedpair::Phi>,
+                  reducedpair::Py<reducedpair::Pt, reducedpair::Phi>,
+                  reducedpair::Pz<reducedpair::Pt, reducedpair::Eta>,
+                  reducedpair::Pmom<reducedpair::Pt, reducedpair::Eta>);
+
 // iterators
 using ReducedTrack = ReducedTracks::iterator;
 using ReducedTrackBarrel = ReducedTracksBarrel::iterator;
@@ -153,6 +178,7 @@ using ReducedTrackBarrelCov = ReducedTracksBarrelCov::iterator;
 using ReducedTrackBarrelPID = ReducedTracksBarrelPID::iterator;
 using ReducedMuon = ReducedMuons::iterator;
 using ReducedMuonExtended = ReducedMuonsExtended::iterator;
+using Dilepton = Dileptons::iterator;
 } // namespace o2::aod
 
 #endif // O2_Analysis_ReducedInfoTables_H_

@@ -40,7 +40,7 @@ class Clusterer
                std::vector<Cluster>* clusters, std::vector<TriggerRecord>* rigRec,
                o2::dataformats::MCTruthContainer<MCLabel>* cluMC);
   void processCells(gsl::span<const Cell> digits, gsl::span<const TriggerRecord> dtr,
-                    const o2::dataformats::MCTruthContainer<MCLabel>* dmc, gsl::span<const unsigned int> mcmap,
+                    const o2::dataformats::MCTruthContainer<MCLabel>* dmc,
                     std::vector<Cluster>* clusters, std::vector<TriggerRecord>* rigRec,
                     o2::dataformats::MCTruthContainer<MCLabel>* cluMC);
 
@@ -55,7 +55,7 @@ class Clusterer
   void unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> digitId, gsl::span<const Digit> digits);
 
  protected:
-  void convertCellsToDigits(gsl::span<const Cell> cells, int firstCellInEvent, int lastCellInEvent, gsl::span<const unsigned int> mcmap);
+  void convertCellsToDigits(gsl::span<const Cell> cells, int firstCellInEvent, int lastCellInEvent);
 
   //Calibrate energy
   inline float calibrate(float amp, short absId) { return amp * mCalibParams->getGain(absId); }
@@ -73,6 +73,8 @@ class Clusterer
   inline bool isBadChannel(short absId) { return (!mBadMap->isChannelGood(absId)); }
 
  protected:
+  bool mProcessMC = false;
+  int miCellLabel = 0;
   Geometry* mPHOSGeom = nullptr;             ///< PHOS geometry
   std::unique_ptr<CalibParams> mCalibParams; ///! Calibration coefficients
   std::unique_ptr<BadChannelMap> mBadMap;    ///! Bad map

@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+<<<<<<< HEAD
 /// \file   write-root-from-digit-workflow.cxx
 /// \author Antonio Franco - INFN Bari
 /// \version 1.0
@@ -54,6 +55,43 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
   DataProcessorSpec consumer = o2::hmpid::getWriteRawFromDigitsSpec();
+=======
+/// \file   write-root-from-digits-workflow.cxx
+/// \author Antonio Franco - INFN Bari
+/// \version 1.0
+/// \date 01 feb 2021
+///
+
+#include "Framework/WorkflowSpec.h"
+#include "Framework/DataSpecUtils.h"
+#include "Framework/CallbackService.h"
+#include "Framework/ControlService.h"
+#include "Framework/Task.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/CompletionPolicyHelpers.h"
+#include "Framework/DispatchPolicy.h"
+
+// customize the completion policy
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  using o2::framework::CompletionPolicy;
+  using o2::framework::CompletionPolicyHelpers;
+  policies.push_back(CompletionPolicyHelpers::defineByName("digit-root-write", CompletionPolicy::CompletionOp::Consume));
+}
+
+#include "Framework/runDataProcessing.h"
+
+#include "HMPIDWorkflow/WriteRootFromDigitsSpec.h"
+
+using namespace o2;
+using namespace o2::framework;
+
+WorkflowSpec defineDataProcessing(const ConfigContext&)
+{
+  WorkflowSpec specs;
+
+  DataProcessorSpec consumer = o2::hmpid::getWriteRootFromDigitSpec();
+>>>>>>> refs/heads/dev
   specs.push_back(consumer);
   return specs;
 }

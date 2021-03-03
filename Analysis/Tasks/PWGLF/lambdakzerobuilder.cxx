@@ -83,7 +83,12 @@ struct lambdakzeroprefilterpairs {
   Configurable<int> mincrossedrows{"mincrossedrows", 70, "min crossed rows"};
   Configurable<int> tpcrefit{"tpcrefit", 1, "demand TPC refit"};
 
-  OutputObj<TH1F> hGoodIndices{TH1F("hGoodIndices", "", 4, 0, 4)};
+  HistogramRegistry registry{
+    "registry",
+    {
+      {"hGoodIndices", "hGoodIndices", {HistType::kTH1F, {{4, 0.0f, 4.0f}}}},
+    },
+  };
 
   Produces<aod::V0GoodIndices> v0goodindices;
 
@@ -91,7 +96,7 @@ struct lambdakzeroprefilterpairs {
                soa::Join<aod::FullTracks, aod::TracksExtended> const& tracks)
   {
     for (auto& V0 : V0s) {
-      hGoodIndices->Fill(0.5);
+      registry.fill(HIST("hGoodIndices"), 0.5);
       if (tpcrefit) {
         if (!(V0.posTrack_as<FullTracksExt>().trackType() & o2::aod::track::TPCrefit)) {
           continue; //TPC refit
@@ -100,21 +105,21 @@ struct lambdakzeroprefilterpairs {
           continue; //TPC refit
         }
       }
-      hGoodIndices->Fill(1.5);
+      registry.fill(HIST("hGoodIndices"), 1.5);
       if (V0.posTrack_as<FullTracksExt>().tpcNClsCrossedRows() < mincrossedrows) {
         continue;
       }
       if (V0.negTrack_as<FullTracksExt>().tpcNClsCrossedRows() < mincrossedrows) {
         continue;
       }
-      hGoodIndices->Fill(2.5);
+      registry.fill(HIST("hGoodIndices"), 2.5);
       if (fabs(V0.posTrack_as<FullTracksExt>().dcaXY()) < dcapostopv) {
         continue;
       }
       if (fabs(V0.negTrack_as<FullTracksExt>().dcaXY()) < dcanegtopv) {
         continue;
       }
-      hGoodIndices->Fill(3.5);
+      registry.fill(HIST("hGoodIndices"), 3.5);
       v0goodindices(V0.posTrack_as<FullTracksExt>().globalIndex(),
                     V0.negTrack_as<FullTracksExt>().globalIndex(),
                     V0.posTrack_as<FullTracksExt>().collisionId());
@@ -127,8 +132,13 @@ struct lambdakzerobuilder {
 
   Produces<aod::V0Data> v0data;
 
-  OutputObj<TH1F> hEventCounter{TH1F("hEventCounter", "", 1, 0, 1)};
-  OutputObj<TH1F> hV0Candidate{TH1F("hV0Candidate", "", 2, 0, 2)};
+  HistogramRegistry registry{
+    "registry",
+    {
+      {"hEventCounter", "hEventCounter", {HistType::kTH1F, {{1, 0.0f, 1.0f}}}},
+      {"hV0Candidate", "hV0Candidate", {HistType::kTH1F, {{2, 0.0f, 2.0f}}}},
+    },
+  };
 
   //Configurables
   Configurable<double> d_bz{"d_bz", -5.0, "bz field"};
@@ -158,7 +168,7 @@ struct lambdakzerobuilder {
     fitter.setMaxChi2(1e9);
     fitter.setUseAbsDCA(true); // use d_UseAbsDCA once we want to use the weighted DCA
 
-    hEventCounter->Fill(0.5);
+    registry.fill(HIST("hEventCounter"), 0.5);
     std::array<float, 3> pVtx = {collision.posX(), collision.posY(), collision.posZ()};
 
     for (auto& V0 : V0s) {
@@ -166,7 +176,7 @@ struct lambdakzerobuilder {
       std::array<float, 3> pvec0 = {0.};
       std::array<float, 3> pvec1 = {0.};
 
-      hV0Candidate->Fill(0.5);
+      registry.fill(HIST("hV0Candidate"), 0.5);
 
       auto pTrack = getTrackParCov(V0.posTrack_as<FullTracksExt>());
       auto nTrack = getTrackParCov(V0.negTrack_as<FullTracksExt>());
@@ -198,7 +208,7 @@ struct lambdakzerobuilder {
         continue;
       }
 
-      hV0Candidate->Fill(1.5);
+      registry.fill(HIST("hV0Candidate"), 1.5);
       v0data(
         V0.posTrack_as<FullTracksExt>().globalIndex(),
         V0.negTrack_as<FullTracksExt>().globalIndex(),

@@ -176,7 +176,7 @@ GPUd() bool GPUTPCCompressionKernels::GPUTPCCompressionKernels_Compare<3>::opera
 }
 
 template <>
-GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1unattached>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors)
+GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1unattached>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors)
 {
   const GPUTrackingInOutPointers& GPUrestrict() ioPtrs = processors.ioPtrs;
   const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = ioPtrs.clustersNative;
@@ -481,16 +481,19 @@ GPUdi() void GPUTPCCompressionGatherKernels::compressorMemcpyBuffered(V* buf, T*
       compressorMemcpyBasic(bufT + shmPos, src + srcOffset + srcPos, size, nLanes, iLane);
       srcPos += size;
       shmPos += size;
+      GPUbarrierWarp();
 
       if (shmPos >= bufTSize) {
         compressorMemcpyBasic(dstAligned + dstOffset, buf, bufSize, nLanes, iLane);
         dstOffset += bufSize;
         shmPos = 0;
+        GPUbarrierWarp();
       }
     }
   }
 
   compressorMemcpyBasic(reinterpret_cast<T*>(dstAligned + dstOffset), bufT, shmPos, nLanes, iLane);
+  GPUbarrierWarp();
 }
 
 template <typename T>
@@ -521,7 +524,7 @@ GPUdi() unsigned int GPUTPCCompressionGatherKernels::calculateWarpOffsets(GPUSha
 }
 
 template <>
-GPUdii() void GPUTPCCompressionGatherKernels::Thread<GPUTPCCompressionGatherKernels::unbuffered>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors)
+GPUdii() void GPUTPCCompressionGatherKernels::Thread<GPUTPCCompressionGatherKernels::unbuffered>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors)
 {
   GPUTPCCompression& GPUrestrict() compressor = processors.tpcCompressor;
   const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = processors.ioPtrs.clustersNative;
@@ -621,7 +624,7 @@ GPUdii() void GPUTPCCompressionGatherKernels::Thread<GPUTPCCompressionGatherKern
 }
 
 template <typename V>
-GPUdii() void GPUTPCCompressionGatherKernels::gatherBuffered(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors)
+GPUdii() void GPUTPCCompressionGatherKernels::gatherBuffered(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors)
 {
 
   GPUTPCCompression& GPUrestrict() compressor = processors.tpcCompressor;
@@ -703,7 +706,7 @@ GPUdii() void GPUTPCCompressionGatherKernels::gatherBuffered(int nBlocks, int nT
   compressorMemcpyBuffered(buf, output->timeResA + tracksOffsetDiff, input.timeResA, nTrackClustersPtr, aClsFstIdx, tracksPerWarp, nLanes, iLane, 1);
 }
 
-GPUdii() void GPUTPCCompressionGatherKernels::gatherMulti(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors)
+GPUdii() void GPUTPCCompressionGatherKernels::gatherMulti(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors)
 {
   GPUTPCCompression& GPUrestrict() compressor = processors.tpcCompressor;
   const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = processors.ioPtrs.clustersNative;
@@ -783,25 +786,25 @@ GPUdii() void GPUTPCCompressionGatherKernels::gatherMulti(int nBlocks, int nThre
 }
 
 template <>
-GPUdii() void GPUTPCCompressionGatherKernels::Thread<GPUTPCCompressionGatherKernels::buffered32>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors)
+GPUdii() void GPUTPCCompressionGatherKernels::Thread<GPUTPCCompressionGatherKernels::buffered32>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors)
 {
   gatherBuffered<Vec32>(nBlocks, nThreads, iBlock, iThread, smem, processors);
 }
 
 template <>
-GPUdii() void GPUTPCCompressionGatherKernels::Thread<GPUTPCCompressionGatherKernels::buffered64>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors)
+GPUdii() void GPUTPCCompressionGatherKernels::Thread<GPUTPCCompressionGatherKernels::buffered64>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors)
 {
   gatherBuffered<Vec64>(nBlocks, nThreads, iBlock, iThread, smem, processors);
 }
 
 template <>
-GPUdii() void GPUTPCCompressionGatherKernels::Thread<GPUTPCCompressionGatherKernels::buffered128>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors)
+GPUdii() void GPUTPCCompressionGatherKernels::Thread<GPUTPCCompressionGatherKernels::buffered128>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors)
 {
   gatherBuffered<Vec128>(nBlocks, nThreads, iBlock, iThread, smem, processors);
 }
 
 template <>
-GPUdii() void GPUTPCCompressionGatherKernels::Thread<GPUTPCCompressionGatherKernels::multiBlock>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors)
+GPUdii() void GPUTPCCompressionGatherKernels::Thread<GPUTPCCompressionGatherKernels::multiBlock>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors)
 {
   gatherMulti(nBlocks, nThreads, iBlock, iThread, smem, processors);
 }

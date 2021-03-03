@@ -17,6 +17,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "PHOSWorkflow/RecoWorkflow.h"
 #include "Algorithm/RangeTokenizer.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 #include <string>
 #include <stdexcept>
@@ -27,11 +28,12 @@
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<o2::framework::ConfigParamSpec> options{
-    {"input-type", o2::framework::VariantType::String, "hits", {"hits, digits, raw, clusters"}},
-    {"output-type", o2::framework::VariantType::String, "digits", {"digits, raw, clusters, cells"}},
-    {"enable-digits-printer", o2::framework::VariantType::Bool, false, {"enable digits printer component"}},
+    {"input-type", o2::framework::VariantType::String, "digits", {"hits, digits, raw, clusters"}},
+    {"output-type", o2::framework::VariantType::String, "cells", {"digits, raw, clusters, cells"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information"}},
-  };
+    {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
+    {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
+    {"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   std::swap(workflowOptions, options);
 }
 
@@ -52,9 +54,13 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& cfgc)
 {
   //
-  return o2::phos::reco_workflow::getWorkflow(not cfgc.options().get<bool>("disable-mc"),        //
-                                              cfgc.options().get<bool>("enable-digits-printer"), //
-                                              cfgc.options().get<std::string>("input-type"),     //
-                                              cfgc.options().get<std::string>("output-type")     //
+  // Update the (declared) parameters if changed from the command line
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
+
+  return o2::phos::reco_workflow::getWorkflow(cfgc.options().get<bool>("disable-root-input"),
+                                              cfgc.options().get<bool>("disable-root-output"),
+                                              !cfgc.options().get<bool>("disable-mc"),       //
+                                              cfgc.options().get<std::string>("input-type"), //
+                                              cfgc.options().get<std::string>("output-type") //
   );
 }

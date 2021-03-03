@@ -30,6 +30,8 @@ ENABLE_GPU_TEST=${ENABLE_GPU_TEST:-0} # Run the full system test also on the GPU
 NTIMEFRAMES=${NTIMEFRAMES:-1} # Number of time frames to process
 TFDELAY=${TFDELAY:-100} # Delay in seconds between publishing time frames
 NOMCLABELS="--disable-mc"
+O2SIMSEED=${O2SIMSEED:--1}
+SPLITTRDDIGI=${SPLITTRDDIGI:-1}
 
 # allow skipping
 JOBUTILS_SKIPDONE=ON
@@ -46,17 +48,27 @@ HOST=`hostname`
 TAG="conf=${CONFIG},host=${HOST}${ALIDISTCOMMIT:+,alidist=$ALIDISTCOMMIT}${O2COMMIT:+,o2=$O2COMMIT}"
 echo "versions,${TAG} alidist=\"${ALIDISTCOMMIT}\",O2=\"${O2COMMIT}\" " > ${METRICFILE}
 
+GLOBALDPLOPT="-b" #  --monitoring-backend no-op:// is currently removed due to https://alice.its.cern.ch/jira/browse/O2-1887
 
 ulimit -n 4096 # Make sure we can open sufficiently many files
+[ $? == 0 ] || (echo Failed setting ulimit && exit 1)
 mkdir -p qed
 cd qed
-taskwrapper qedsim.log o2-sim -j $NJOBS -n$NEventsQED -m PIPE ITS MFT FT0 FV0 -g extgen --configKeyValues '"GeneratorExternal.fileName=$O2_ROOT/share/Generators/external/QEDLoader.C;QEDGenParam.yMin=-5;QEDGenParam.yMax=6;QEDGenParam.ptMin=0.001;QEDGenParam.ptMax=1.;Diamond.width[2]=6."'
+PbPbXSec="8."
+taskwrapper qedsim.log o2-sim --seed $O2SIMSEED -j $NJOBS -n$NEventsQED -m PIPE ITS MFT FT0 FV0 FDD -g extgen --configKeyValues '"GeneratorExternal.fileName=$O2_ROOT/share/Generators/external/QEDLoader.C;QEDGenParam.yMin=-7;QEDGenParam.yMax=7;QEDGenParam.ptMin=0.001;QEDGenParam.ptMax=1.;Diamond.width[2]=6."'
+QED2HAD=$(awk "BEGIN {printf \"%.2f\",`grep xSectionQED qedgenparam.ini | cut -d'=' -f 2`/$PbPbXSec}")
+echo "Obtained ratio of QED to hadronic x-sections = $QED2HAD" >> qedsim.log
 cd ..
 
-GLOBALDPLOPT="-b" #  --monitoring-backend no-op:// is currently removed due to https://alice.its.cern.ch/jira/browse/O2-1887
-taskwrapper sim.log o2-sim -n $NEvents --skipModules ZDC --configKeyValues "Diamond.width[2]=6." -g pythia8hi -j $NJOBS
-taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents --simPrefixQED qed/o2sim --qed-x-section-ratio 3735  ${NOMCLABELS} --firstOrbit 0 --firstBC 0 --skipDet TRD --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT}
-taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents --simPrefixQED qed/o2sim --qed-x-section-ratio 3735  ${NOMCLABELS} --firstOrbit 0 --firstBC 0 --onlyDet TRD --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root --configKeyValues "TRDSimParams.digithreads=${NJOBS}"
+if [ $SPLITTRDDIGI == "1" ]; then
+  DIGITRDOPT="--skipDet TRD"
+else
+  DIGITRDOPT="--configKeyValues \"TRDSimParams.digithreads=${NJOBS}\""
+fi
+
+taskwrapper sim.log o2-sim --seed $O2SIMSEED -n $NEvents --skipModules ZDC --configKeyValues "Diamond.width[2]=6." -g pythia8hi -j $NJOBS
+taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents --simPrefixQED qed/o2sim --qed-x-section-ratio ${QED2HAD} ${NOMCLABELS} --firstOrbit 0 --firstBC 0 --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITRDOPT}
+[ $SPLITTRDDIGI == "1" ] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --firstOrbit 0 --firstBC 0 --onlyDet TRD --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root --configKeyValues "TRDSimParams.digithreads=${NJOBS}"
 mkdir -p raw
 taskwrapper itsraw.log o2-its-digi2raw --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/ITS
 taskwrapper mftraw.log o2-mft-digi2raw --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/MFT
@@ -100,7 +112,7 @@ for STAGE in $STAGES; do
   else
     export CREATECTFDICT=1
     export GPUTYPE=CPU
-    export SYNCMODE=0
+    export SYNCMODE=1
     export HOSTMEMSIZE=$TPCTRACKERSCRATCHMEMORY
     export CTFINPUT=0
     export SAVECTF=1

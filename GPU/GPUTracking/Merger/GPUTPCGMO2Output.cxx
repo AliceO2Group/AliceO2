@@ -37,7 +37,7 @@ struct tmpSort {
 };
 
 template <>
-GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger)
 {
   const GPUTPCGMMergedTrack* tracks = merger.OutputTracks();
   const unsigned int nTracks = merger.NOutputTracks();
@@ -57,6 +57,9 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int nBlocks, i
     if (nCl == 0) {
       continue;
     }
+    if (merger.Param().rec.dropSecondaryLegsInOutput && nCl + 2 < GPUCA_TRACKLET_SELECTOR_MIN_HITS(tracks[i].GetParam().GetQPt())) { // Give 2 hits tolerance in the primary leg, compared to the full fit of the looper
+      continue;
+    }
     unsigned int myId = CAMath::AtomicAdd(&merger.Memory()->nO2Tracks, 1u);
     tmpData[i] = {nCl, CAMath::AtomicAdd(&merger.Memory()->nO2ClusRefs, nCl + (nCl + 1) / 2)};
     trackSort[myId] = {i, (merger.Param().par.earlyTpcTransform || tracks[i].CSide()) ? tracks[i].GetParam().GetTZOffset() : -tracks[i].GetParam().GetTZOffset()};
@@ -64,7 +67,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int nBlocks, i
 }
 
 template <>
-GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::sort>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::sort>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger)
 {
   if (iThread || iBlock) {
     return;
@@ -93,7 +96,7 @@ void GPUCA_KRNL_BACKEND_CLASS::runKernelBackendInternal<GPUTPCGMO2Output, GPUTPC
 #endif // __CUDACC__ || __HIPCC__ - Specialize GPUTPCGMMergerSortTracks and GPUTPCGMMergerSortTracksQPt
 
 template <>
-GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger)
 {
   constexpr float MinDelta = 0.1;
   const GPUTPCGMMergedTrack* tracks = merger.OutputTracks();
@@ -205,7 +208,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
 }
 
 template <>
-GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::mc>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::mc>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger)
 {
 #ifndef GPUCA_GPUCODE
   const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = merger.GetConstantMem()->ioPtrs.clustersNative;

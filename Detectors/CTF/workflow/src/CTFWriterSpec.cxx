@@ -30,6 +30,7 @@
 #include "DataFormatsEMCAL/CTF.h"
 #include "DataFormatsPHOS/CTF.h"
 #include "DataFormatsCPV/CTF.h"
+#include "DataFormatsZDC/CTF.h"
 
 using namespace o2::framework;
 
@@ -108,6 +109,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
   processDet<o2::emcal::CTF>(pc, DetID::EMC, header, treeOut.get());
   processDet<o2::phos::CTF>(pc, DetID::PHS, header, treeOut.get());
   processDet<o2::cpv::CTF>(pc, DetID::CPV, header, treeOut.get());
+  processDet<o2::zdc::CTF>(pc, DetID::ZDC, header, treeOut.get());
 
   mTimer.Stop();
 
@@ -180,6 +182,7 @@ void CTFWriterSpec::storeDictionaries()
   storeDictionary<o2::emcal::CTF>(DetID::EMC, header);
   storeDictionary<o2::phos::CTF>(DetID::PHS, header);
   storeDictionary<o2::cpv::CTF>(DetID::CPV, header);
+  storeDictionary<o2::zdc::CTF>(DetID::ZDC, header);
   // close remnants
   if (mDictTreeOut) {
     closeDictionaryTreeAndFile(header);

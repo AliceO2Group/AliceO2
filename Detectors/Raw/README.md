@@ -318,7 +318,8 @@ o2-raw-file-reader-workflow
   --part-per-hbf                        FMQ parts per superpage (default) of HBF
   --raw-channel-config arg              optional raw FMQ channel for non-DPL output
   --cache-data                          cache data at 1st reading, may require excessive memory!!!
-  --detect-tf0                          autodetect HBFUtils start Orbit/BC from 1st TF seen
+  --detect-tf0                          autodetect HBFUtils start Orbit/BC from 1st TF seen (at SOX)
+  --calculate-tf-start                  calculate TF start from orbit instead of using TType
   --configKeyValues arg                 semicolon separated key=value strings
 
   # to suppress various error checks / reporting
@@ -331,6 +332,9 @@ o2-raw-file-reader-workflow
   --nocheck-tf-per-link                 ignore /Number of TFs is less than expected/
   --nocheck-hbf-jump                    ignore /Wrong HBF orbit increment/
   --nocheck-no-spage-for-tf             ignore /TF does not start by new superpage/
+  --nocheck-no-sox                      ignore /No SOX found on 1st page/
+  --nocheck-tf-start-mismatch           ignore /Mismatch between TType-flagged and calculated new TF start/
+
 ```
 
 The workflow takes an input from the configuration file (as described in `RawFileReader` section), reads the data and sends them as DPL messages
@@ -369,6 +373,7 @@ Options:
   -v [ --verbosity ] arg (=0)    1: long report, 2 or 3: print or dump all RDH
   -s [ --spsize ]    arg (=1048576) nominal super-page size in bytes
   --detect-tf0                      autodetect HBFUtils start Orbit/BC from 1st TF seen
+  --calculate-tf-start              calculate TF start from orbit instead of using TType
   --rorc                            impose RORC as default detector mode
   --configKeyValues arg             semicolon separated key=value strings
   --nocheck-packet-increment        ignore /Wrong RDH.packetCounter increment/
@@ -380,6 +385,8 @@ Options:
   --nocheck-tf-per-link             ignore /Number of TFs is less than expected/
   --nocheck-hbf-jump                ignore /Wrong HBF orbit increment/
   --nocheck-no-spage-for-tf         ignore /TF does not start by new superpage/
+  --nocheck-no-sox                  ignore /No SOX found on 1st page/
+  --nocheck-tf-start-mismatch       ignore /Mismatch between TType-flagged and calculated new TF start/
   (input files are optional if config file was provided)
 ```
 

@@ -79,7 +79,10 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   // loop over all composite collisions given from context
   // (aka loop over all the interaction records)
   for (int collID = 0; collID < timesview.size(); ++collID) {
-    if (!mDigitizer.isEmpty() && (o2::emcal::SimParam::Instance().isDisablePileup() || !mDigitizer.isLive(timesview[collID].getTimeNS()))) {
+
+    mDigitizer.setEventTime(timesview[collID].getTimeNS());
+
+    if (!mDigitizer.isEmpty() && (o2::emcal::SimParam::Instance().isDisablePileup() || !mDigitizer.isLive())) {
       // copy digits into accumulator
       mDigits.clear();
       mLabels.clear();
@@ -92,8 +95,6 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
       mDigits.clear();
       mLabels.clear();
     }
-
-    mDigitizer.setEventTime(timesview[collID].getTimeNS());
 
     if (!mDigitizer.isLive()) {
       continue;

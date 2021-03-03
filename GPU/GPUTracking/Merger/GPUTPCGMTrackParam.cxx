@@ -528,8 +528,7 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict
     const unsigned int hitLst = CA_TEXTURE_FETCH(calink, gAliTexRefu, firsthit, mybin + ny + 1);
     for (unsigned int ih = hitFst; ih < hitLst; ih++) {
       int id = idOffset + ids[ih];
-      GPUAtomic(unsigned int) * GPUrestrict() const weight = weights + id;
-      ;
+      GPUAtomic(unsigned int)* const weight = weights + id;
 #if !defined(GPUCA_NO_ATOMIC_PRECHECK) && GPUCA_NO_ATOMIC_PRECHECK < 1
       if (myWeight <= *weight) {
         continue;
@@ -1008,7 +1007,7 @@ GPUd() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() tr
     t.QPt() = 1.e-4f;
   }
 
-  CADEBUG(if (t.GetX() > 250) { printf("ERROR, Track at impossible X %f\n", t.GetX()); });
+  CADEBUG(if (t.GetX() > 250) { printf("ERROR, Track %d at impossible X %f, Pt %f, Looper %d\n", iTrk, t.GetX(), CAMath::Abs(1.f / t.QPt()), (int)merger->OutputTracks()[iTrk].Looper()); });
 
   track.SetOK(ok);
   track.SetNClustersFitted(nTrackHits);

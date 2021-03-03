@@ -21,7 +21,7 @@ namespace bpo = boost::program_options;
 bool initOptionsAndParse(bpo::options_description& options, int argc, char* argv[], bpo::variables_map& vm)
 {
   options.add_options()(
-    "host", bpo::value<std::string>()->default_value("ccdb-test.cern.ch:8080"), "CCDB server")(
+    "ccdb-server,s", bpo::value<std::string>()->default_value("http://ccdb-test.cern.ch:8080"), "CCDB server")(
     "in-file-name,n", bpo::value<std::string>()->default_value("cdbSizeV0.txt"), "File name with list of CCDB entries to upload")(
     "help,h", "Produce help message.");
 
@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
 
   // call populate "macro"
   auto& inputFile = vm["in-file-name"].as<std::string>();
-  auto& ccdbHost = vm["host"].as<std::string>();
+  auto& ccdbHost = vm["ccdb-server"].as<std::string>();
   populateCCDB(inputFile, ccdbHost);
 
   return (0);

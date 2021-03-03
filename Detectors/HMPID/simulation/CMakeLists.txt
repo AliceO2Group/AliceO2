@@ -10,15 +10,22 @@
 
 o2_add_library(HMPIDSimulation
                SOURCES src/Detector.cxx src/HMPIDDigitizer.cxx src/HmpidCoder.cxx
+<<<<<<< HEAD
                SOURCES src/HmpidCoder2.cxx
                PUBLIC_LINK_LIBRARIES O2::HMPIDBase
                                      O2::DetectorsRaw
                                      ROOT::Physics)
+=======
+               PUBLIC_LINK_LIBRARIES O2::HMPIDBase)
+>>>>>>> refs/heads/dev
 
 o2_target_root_dictionary(HMPIDSimulation
                           HEADERS include/HMPIDSimulation/Detector.h
                                   include/HMPIDSimulation/HmpidCoder.h
+<<<<<<< HEAD
                                   include/HMPIDSimulation/HmpidCoder2.h
+=======
+>>>>>>> refs/heads/dev
                                   include/HMPIDSimulation/HMPIDDigitizer.h)
 
 

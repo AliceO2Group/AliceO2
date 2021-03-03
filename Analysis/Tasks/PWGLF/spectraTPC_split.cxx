@@ -77,7 +77,7 @@ struct TPCSpectraTaskSplit {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
+WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   WorkflowSpec workflow{adaptAnalysisTask<TPCSpectraTaskSplit>("tpcspectra-split-task")};
   return workflow;

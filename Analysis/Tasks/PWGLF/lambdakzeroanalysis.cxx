@@ -52,37 +52,51 @@ using std::array;
 
 struct lambdakzeroQA {
   //Basic checks
-  OutputObj<TH1F> hMassK0Short{TH1F("hMassK0Short", "", 3000, 0.0, 3.0)};
-  OutputObj<TH1F> hMassLambda{TH1F("hMassLambda", "", 3000, 0.0, 3.0)};
-  OutputObj<TH1F> hMassAntiLambda{TH1F("hMassAntiLambda", "", 3000, 0.0, 3.0)};
+  HistogramRegistry registry{
+    "registry",
+    {
+      {"hMassK0Short", "hMassK0Short", {HistType::kTH1F, {{3000, 0.0f, 3.0f}}}},
+      {"hMassLambda", "hMassLambda", {HistType::kTH1F, {{3000, 0.0f, 3.0f}}}},
+      {"hMassAntiLambda", "hMassAntiLambda", {HistType::kTH1F, {{3000, 0.0f, 3.0f}}}},
 
-  OutputObj<TH1F> hV0Radius{TH1F("hV0Radius", "", 1000, 0.0, 100)};
-  OutputObj<TH1F> hV0CosPA{TH1F("hV0CosPA", "", 1000, 0.95, 1.0)};
-  OutputObj<TH1F> hDCAPosToPV{TH1F("hDCAPosToPV", "", 1000, 0.0, 10.0)};
-  OutputObj<TH1F> hDCANegToPV{TH1F("hDCANegToPV", "", 1000, 0.0, 10.0)};
-  OutputObj<TH1F> hDCAV0Dau{TH1F("hDCAV0Dau", "", 1000, 0.0, 10.0)};
+      {"hV0Radius", "hV0Radius", {HistType::kTH1F, {{1000, 0.0f, 100.0f}}}},
+      {"hV0CosPA", "hV0CosPA", {HistType::kTH1F, {{1000, 0.95f, 1.0f}}}},
+      {"hDCAPosToPV", "hDCAPosToPV", {HistType::kTH1F, {{1000, 0.0f, 10.0f}}}},
+      {"hDCANegToPV", "hDCANegToPV", {HistType::kTH1F, {{1000, 0.0f, 10.0f}}}},
+      {"hDCAV0Dau", "hDCAV0Dau", {HistType::kTH1F, {{1000, 0.0f, 10.0f}}}},
+    },
+  };
 
   void process(aod::Collision const& collision, aod::V0DataExt const& fullV0s)
   {
+
     for (auto& v0 : fullV0s) {
-      hMassLambda->Fill(v0.mLambda());
-      hMassAntiLambda->Fill(v0.mAntiLambda());
-      hMassK0Short->Fill(v0.mK0Short());
+      registry.fill(HIST("hMassK0Short"), v0.mK0Short());
+      registry.fill(HIST("hMassLambda"), v0.mLambda());
+      registry.fill(HIST("hMassAntiLambda"), v0.mAntiLambda());
 
-      hV0Radius->Fill(v0.v0radius());
-      hV0CosPA->Fill(v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()));
-
-      hDCAPosToPV->Fill(v0.dcapostopv());
-      hDCANegToPV->Fill(v0.dcanegtopv());
-      hDCAV0Dau->Fill(v0.dcaV0daughters());
+      registry.fill(HIST("hV0Radius"), v0.v0radius());
+      registry.fill(HIST("hV0CosPA"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()));
+      registry.fill(HIST("hDCAPosToPV"), v0.dcapostopv());
+      registry.fill(HIST("hDCANegToPV"), v0.dcanegtopv());
+      registry.fill(HIST("hDCAV0Dau"), v0.dcaV0daughters());
     }
   }
 };
 
 struct lambdakzeroanalysis {
-  OutputObj<TH3F> h3dMassK0Short{TH3F("h3dMassK0Short", "", 20, 0, 100, 200, 0, 10, 200, 0.450, 0.550)};
-  OutputObj<TH3F> h3dMassLambda{TH3F("h3dMassLambda", "", 20, 0, 100, 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
-  OutputObj<TH3F> h3dMassAntiLambda{TH3F("h3dMassAntiLambda", "", 20, 0, 100, 200, 0, 10, 200, 1.115 - 0.100, 1.115 + 0.100)};
+  HistogramRegistry registry{
+    "registry",
+    {
+      {"h3dMassK0Short", "h3dMassK0Short", {HistType::kTH3F, {{20, 0.0f, 100.0f}, {200, 0.0f, 10.0f}, {200, 0.450f, 0.550f}}}},
+      {"h3dMassLambda", "h3dMassLambda", {HistType::kTH3F, {{20, 0.0f, 100.0f}, {200, 0.0f, 10.0f}, {200, 1.015f, 1.215f}}}},
+      {"h3dMassAntiLambda", "h3dMassAntiLambda", {HistType::kTH3F, {{20, 0.0f, 100.0f}, {200, 0.0f, 10.0f}, {200, 1.015f, 1.215f}}}},
+
+      {"h3dMassK0ShortDca", "h3dMassK0ShortDca", {HistType::kTH3F, {{200, 0.0f, 1.0f}, {200, 0.0f, 10.0f}, {200, 0.450f, 0.550f}}}},
+      {"h3dMassLambdaDca", "h3dMassLambdaDca", {HistType::kTH3F, {{200, 0.0f, 1.0f}, {200, 0.0f, 10.0f}, {200, 1.015f, 1.215f}}}},
+      {"h3dMassAntiLambdaDca", "h3dMassAntiLambdaDca", {HistType::kTH3F, {{200, 0.0f, 1.0f}, {200, 0.0f, 10.0f}, {200, 1.015f, 1.215f}}}},
+    },
+  };
 
   //Selection criteria
   Configurable<double> v0cospa{"v0cospa", 0.995, "V0 CosPA"}; //double -> N.B. dcos(x)/dx = 0 at x=0)
@@ -91,11 +105,11 @@ struct lambdakzeroanalysis {
   Configurable<float> dcapostopv{"dcapostopv", .1, "DCA Pos To PV"};
   Configurable<float> v0radius{"v0radius", 5.0, "v0radius"};
   Configurable<float> rapidity{"rapidity", 0.5, "rapidity"};
+  Configurable<int> saveDcaHist{"saveDcaHist", 0, "saveDcaHist"};
 
-  // Filter preFilterV0 = aod::v0data::dcapostopv > dcapostopv&&
-  //                                                  aod::v0data::dcanegtopv > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau; we can use this again once (and if) math expressions can be used there
+  Filter preFilterV0 = nabs(aod::v0data::dcapostopv) > dcapostopv&& nabs(aod::v0data::dcanegtopv) > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;
 
-  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision, aod::V0DataExt const& fullV0s)
+  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision, soa::Filtered<aod::V0DataExt> const& fullV0s)
   {
     if (!collision.alias()[kINT7]) {
       return;
@@ -107,21 +121,19 @@ struct lambdakzeroanalysis {
     for (auto& v0 : fullV0s) {
       //FIXME: could not find out how to filter cosPA and radius variables (dynamic columns)
       if (v0.v0radius() > v0radius && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospa) {
-        if (fabs(v0.dcapostopv()) < dcapostopv) {
-          continue;
-        }
-        if (fabs(v0.dcanegtopv()) < dcanegtopv) {
-          continue;
-        }
-        if (fabs(v0.dcaV0daughters()) > dcav0dau) {
-          continue;
-        }
         if (TMath::Abs(v0.yLambda()) < rapidity) {
-          h3dMassLambda->Fill(collision.centV0M(), v0.pt(), v0.mLambda());
-          h3dMassAntiLambda->Fill(collision.centV0M(), v0.pt(), v0.mAntiLambda());
+          registry.fill(HIST("h3dMassLambda"), collision.centV0M(), v0.pt(), v0.mLambda());
+          registry.fill(HIST("h3dMassAntiLambda"), collision.centV0M(), v0.pt(), v0.mAntiLambda());
+          if (saveDcaHist == 1) {
+            registry.fill(HIST("h3dMassLambdaDca"), v0.dcaV0daughters(), v0.pt(), v0.mLambda());
+            registry.fill(HIST("h3dMassAntiLambdaDca"), v0.dcaV0daughters(), v0.pt(), v0.mAntiLambda());
+          }
         }
         if (TMath::Abs(v0.yK0Short()) < rapidity) {
-          h3dMassK0Short->Fill(collision.centV0M(), v0.pt(), v0.mK0Short());
+          registry.fill(HIST("h3dMassK0Short"), collision.centV0M(), v0.pt(), v0.mK0Short());
+          if (saveDcaHist == 1) {
+            registry.fill(HIST("h3dMassK0ShortDca"), v0.dcaV0daughters(), v0.pt(), v0.mK0Short());
+          }
         }
       }
     }

@@ -17,10 +17,11 @@
 
 #include <iostream>
 #include <fstream>
-
 #include <array>
 #include <stdexcept>
 #include <vector>
+
+#include <gsl/span>
 
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -30,6 +31,7 @@
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
 
+#include "DataFormatsMCH/ROFRecord.h"
 #include "MCHBase/Digit.h"
 #include "MCHBase/PreCluster.h"
 #include "MCHMappingInterface/Segmentation.h"
@@ -72,49 +74,86 @@ class PreClusterSinkTask
   //_________________________________________________________________________________________________
   void run(framework::ProcessingContext& pc)
   {
-    /// dump the preclusters with associated digits of the current event
+    /// dump the preclusters with associated digits of all events in the current TF
 
     // get the input preclusters and associated digits
+    auto rofs = pc.inputs().get<gsl::span<ROFRecord>>("rofs");
     auto preClusters = pc.inputs().get<gsl::span<PreCluster>>("preclusters");
     auto digits = pc.inputs().get<gsl::span<Digit>>("digits");
 
-    if (mText) {
-      mOutputFile << preClusters.size() << " preclusters:" << endl;
-      if (mUseRun2DigitUID) {
-        std::vector<Digit> digitsCopy(digits.begin(), digits.end());
-        convertPadID2DigitUID(digitsCopy);
-        for (const auto& precluster : preClusters) {
-          precluster.print(mOutputFile, digitsCopy);
-        }
-      } else {
-        for (const auto& precluster : preClusters) {
+    // convert the pad ID into a digit UID if requested (need to copy the digits to modify them)
+    std::vector<Digit> digitsCopy{};
+    if (mUseRun2DigitUID) {
+      digitsCopy.insert(digitsCopy.end(), digits.begin(), digits.end());
+      convertPadID2DigitUID(digitsCopy);
+      digits = gsl::span<const Digit>(digitsCopy);
+    }
+
+    std::vector<PreCluster> eventPreClusters{};
+    for (const auto& rof : rofs) {
+
+      if (mText) {
+
+        // write the preclusters of the current event in text format
+        mOutputFile << rof.getNEntries() << " preclusters:" << endl;
+        for (const auto& precluster : preClusters.subspan(rof.getFirstIdx(), rof.getNEntries())) {
           precluster.print(mOutputFile, digits);
         }
-      }
-    } else {
-      // write the number of preclusters
-      int nPreClusters = preClusters.size();
-      mOutputFile.write(reinterpret_cast<char*>(&nPreClusters), sizeof(int));
 
-      // write the total number of digits in these preclusters
-      int nDigits = digits.size();
-      mOutputFile.write(reinterpret_cast<char*>(&nDigits), sizeof(int));
-
-      // write the preclusters
-      mOutputFile.write(reinterpret_cast<const char*>(preClusters.data()), preClusters.size_bytes());
-
-      // write the digits (after converting the pad ID into a digit UID if requested)
-      if (mUseRun2DigitUID) {
-        std::vector<Digit> digitsCopy(digits.begin(), digits.end());
-        convertPadID2DigitUID(digitsCopy);
-        mOutputFile.write(reinterpret_cast<char*>(digitsCopy.data()), digitsCopy.size() * sizeof(Digit));
       } else {
-        mOutputFile.write(reinterpret_cast<const char*>(digits.data()), digits.size_bytes());
+
+        // get the preclusters and associated digits of the current event
+        auto eventDigits = getEventPreClustersAndDigits(rof, preClusters, digits, eventPreClusters);
+
+        // write the number of preclusters and the total number of digits in these preclusters
+        int nPreClusters = eventPreClusters.size();
+        mOutputFile.write(reinterpret_cast<char*>(&nPreClusters), sizeof(int));
+        int nDigits = eventDigits.size();
+        mOutputFile.write(reinterpret_cast<char*>(&nDigits), sizeof(int));
+
+        // write the preclusters and the digits
+        mOutputFile.write(reinterpret_cast<const char*>(eventPreClusters.data()),
+                          eventPreClusters.size() * sizeof(PreCluster));
+        mOutputFile.write(reinterpret_cast<const char*>(eventDigits.data()), eventDigits.size_bytes());
       }
     }
   }
 
  private:
+  //_________________________________________________________________________________________________
+  gsl::span<const Digit> getEventPreClustersAndDigits(const ROFRecord& rof, gsl::span<const PreCluster> preClusters,
+                                                      gsl::span<const Digit> digits,
+                                                      std::vector<PreCluster>& eventPreClusters) const
+  {
+    /// copy the preclusters of the current event (needed to edit the preclusters)
+    /// modify the references to the associated digits to start the indexing from 0
+    /// return a sub-span with the associated digits
+
+    eventPreClusters.clear();
+
+    if (rof.getNEntries() < 1) {
+      return {};
+    }
+
+    if (rof.getLastIdx() >= preClusters.size()) {
+      throw length_error("missing preclusters");
+    }
+
+    eventPreClusters.insert(eventPreClusters.end(), preClusters.begin() + rof.getFirstIdx(),
+                            preClusters.begin() + rof.getLastIdx() + 1);
+
+    auto digitOffset = eventPreClusters.front().firstDigit;
+    for (auto& preCluster : eventPreClusters) {
+      preCluster.firstDigit -= digitOffset;
+    }
+
+    if (eventPreClusters.back().lastDigit() + digitOffset >= digits.size()) {
+      throw length_error("missing digits");
+    }
+
+    return digits.subspan(digitOffset, eventPreClusters.back().lastDigit() + 1);
+  }
+
   //_________________________________________________________________________________________________
   void convertPadID2DigitUID(std::vector<Digit>& digits)
   {
@@ -160,7 +199,8 @@ o2::framework::DataProcessorSpec getPreClusterSinkSpec()
 {
   return DataProcessorSpec{
     "PreClusterSink",
-    Inputs{InputSpec{"preclusters", "MCH", "PRECLUSTERS", 0, Lifetime::Timeframe},
+    Inputs{InputSpec{"rofs", "MCH", "PRECLUSTERROFS", 0, Lifetime::Timeframe},
+           InputSpec{"preclusters", "MCH", "PRECLUSTERS", 0, Lifetime::Timeframe},
            InputSpec{"digits", "MCH", "PRECLUSTERDIGITS", 0, Lifetime::Timeframe}},
     Outputs{},
     AlgorithmSpec{adaptFromTask<PreClusterSinkTask>()},

@@ -16,44 +16,9 @@
 #include "SimulationDataFormat/BaseHits.h"
 #include "CommonUtils/ShmAllocator.h"
 
+#include "DataFormatsTRD/Hit.h"
+
 class FairVolume;
-
-namespace o2
-{
-namespace trd
-{
-class HitType : public o2::BasicXYZQHit<float>
-{
- public:
-  using BasicXYZQHit<float>::BasicXYZQHit;
-  HitType(float x, float y, float z, float lCol, float lRow, float lTime, float tof, int charge, int trackId, int detId, bool drift)
-    : mInDrift(drift), locC(lCol), locR(lRow), locT(lTime), BasicXYZQHit(x, y, z, tof, charge, trackId, detId){};
-  bool isFromDriftRegion() const { return mInDrift; }
-  void setLocalC(float lCol) { locC = lCol; }
-  void setLocalR(float lRow) { locR = lRow; }
-  void setLocalT(float lTime) { locT = lTime; }
-  float getLocalC() const { return locC; }
-  float getLocalR() const { return locR; }
-  float getLocalT() const { return locT; }
-
- private:
-  bool mInDrift{false};
-  float locC{-99}; // col direction in amplification or drift volume
-  float locR{-99}; // row direction in amplification or drift volume
-  float locT{-99}; // time direction in amplification or drift volume
-};
-} // namespace trd
-} // namespace o2
-
-#ifdef USESHM
-namespace std
-{
-template <>
-class allocator<o2::trd::HitType> : public o2::utils::ShmAllocator<o2::trd::HitType>
-{
-};
-} // namespace std
-#endif
 
 namespace o2
 {
@@ -71,7 +36,7 @@ class Detector : public o2::base::DetImpl<Detector>
   void InitializeO2Detector() override;
   bool ProcessHits(FairVolume* v = nullptr) override;
   void Register() override;
-  std::vector<HitType>* getHits(int iColl) const
+  std::vector<Hit>* getHits(int iColl) const
   {
     if (iColl == 0) {
       return mHits;
@@ -90,6 +55,8 @@ class Detector : public o2::base::DetImpl<Detector>
   /// copy constructor (used in MT)
   Detector(const Detector& rhs);
 
+  void InitializeParams();
+
   // defines/sets-up the sensitive volumes
   void defineSensitiveVolumes();
 
@@ -100,11 +67,13 @@ class Detector : public o2::base::DetImpl<Detector>
   // Create TR hits
   void createTRhit(int);
 
-  std::vector<HitType>* mHits = nullptr; ///!< Collection of TRD hits
+  std::vector<Hit>* mHits = nullptr; ///!< Collection of TRD hits
 
   float mFoilDensity;
   float mGasNobleFraction;
   float mGasDensity;
+
+  float mMaxMCStepDef;
 
   bool mTRon; // Switch for TR simulation
   TRsim* mTR; // Access to TR simulation

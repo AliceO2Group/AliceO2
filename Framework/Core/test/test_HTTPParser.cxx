@@ -225,7 +225,93 @@ BOOST_AUTO_TEST_CASE(HTTPParser1)
     BOOST_REQUIRE_EQUAL(handler.mSize.size(), 1);
     BOOST_REQUIRE_EQUAL(std::string(handler.mFrame[0], handler.mSize[0] - 1), std::string(buffer));
   }
-  {} {
+  {
+    // Decode a long frame which is split in two.
+    char* buffer = strdup("string with more than 127 characters: cdsklcmalkmc cdmslkc adslkccmkadsc adslkmc dsa ckdls cdksclknds lkndnc anslkc klsad ckl lksad clkas ccdascnkjancjnjkascsa cdascds clsad nclksad ncklsd clkadns lkc sadnlk cklsa cnaksld csad");
+    std::vector<uv_buf_t> encoded;
+    encode_websocket_frames(encoded, buffer, strlen(buffer) + 1, WebSocketOpCode::Binary, 0);
+    BOOST_REQUIRE_EQUAL(encoded.size(), 1);
+
+    TestWSHandler handler;
+    decode_websocket(encoded[0].base, encoded[0].len / 2, handler);
+    decode_websocket(encoded[0].base + encoded[0].len / 2, encoded[0].len - encoded[0].len / 2, handler);
+    BOOST_REQUIRE_EQUAL(handler.mFrame.size(), 1);
+    BOOST_REQUIRE_EQUAL(handler.mSize.size(), 1);
+    BOOST_REQUIRE_EQUAL(std::string(handler.mFrame[0], handler.mSize[0] - 1), std::string(buffer));
+  }
+  {
+    // WebSocket multiple frame encoding / decoding, long frames
+    char* buffer = strdup("dwqnocewnclkanklcdanslkcndklsnclkdsnckldsnclk  cnldcl dsklc dslk cljdnsck sdlakcn askc sdkla cnsd c sdcn dsklncn dklsc nsdkl cklds clkds ckls dklc shello websockets!");
+    std::vector<uv_buf_t> encoded;
+    encode_websocket_frames(encoded, buffer, strlen(buffer) + 1, WebSocketOpCode::Binary, 0);
+    BOOST_REQUIRE_EQUAL(encoded.size(), 1);
+    char const* buffer2 = "xsanjkcnsadjknc dsjc nsdnc dlscndsck dsc ds clds cds vnlsfl nklnjk nj nju n nio nkmnklfmdkl mkld mkl mkl mkl mlk m lkm klfdnkln jkafdnk nk mkldfm lkdamlkdmlkdmlk m klml km lkm kl.";
+    encode_websocket_frames(encoded, buffer2, strlen(buffer2) + 1, WebSocketOpCode::Binary, 0);
+    BOOST_REQUIRE_EQUAL(encoded.size(), 2);
+    char* multiBuffer = (char*)malloc(encoded[0].len + encoded[1].len + 4);
+    memcpy(multiBuffer, encoded[0].base, encoded[0].len);
+    memcpy(multiBuffer + encoded[0].len, encoded[1].base, encoded[1].len);
+
+    TestWSHandler handler;
+    decode_websocket(multiBuffer, encoded[0].len + encoded[1].len, handler);
+    BOOST_REQUIRE_EQUAL(handler.mFrame.size(), 2);
+    BOOST_REQUIRE_EQUAL(handler.mSize.size(), 2);
+    BOOST_REQUIRE_EQUAL(std::string(handler.mFrame[0], handler.mSize[0] - 1), std::string(buffer));
+    BOOST_REQUIRE_EQUAL(std::string(handler.mFrame[1], handler.mSize[1] - 1), std::string(buffer2));
+  }
+  {
+    // Decode a long frame which is split in two, after the first byte.
+    char* buffer = strdup("string with more than 127 characters: cdsklcmalkmc cdmslkc adslkccmkadsc adslkmc dsa ckdls cdksclknds lkndnc anslkc klsad ckl lksad clkas ccdascnkjancjnjkascsa cdascds clsad nclksad ncklsd clkadns lkc sadnlk cklsa cnaksld csad");
+    std::vector<uv_buf_t> encoded;
+    encode_websocket_frames(encoded, buffer, strlen(buffer) + 1, WebSocketOpCode::Binary, 0);
+    BOOST_REQUIRE_EQUAL(encoded.size(), 1);
+
+    for (size_t i = 1; i < strlen(buffer); ++i) {
+      char buffer1[1024];
+      char buffer2[1024];
+      memset(buffer1, 0xfa, 1024);
+      memset(buffer2, 0xfb, 1024);
+      memcpy(buffer1, encoded[0].base, i);
+      memcpy(buffer2, encoded[0].base + i, encoded[0].len - i);
+      TestWSHandler handler;
+      decode_websocket(buffer1, i, handler);
+      decode_websocket(buffer2, encoded[0].len - i, handler);
+      BOOST_REQUIRE_EQUAL(handler.mFrame.size(), 1);
+      BOOST_REQUIRE_EQUAL(handler.mSize.size(), 1);
+      BOOST_REQUIRE_EQUAL(std::string(handler.mFrame[0], handler.mSize[0] - 1), std::string(buffer));
+    }
+  }
+  {
+    // Decode a long frame which is split in two, after the first byte.
+    char* buffer = strdup("string with more than 127 characters: cdsklcmalkmc cdmslkc adslkccmkadsc adslkmc dsa ckdls cdksclknds lkndnc anslkc klsad ckl lksad clkas ccdascnkjancjnjkascsa cdascds clsad nclksad ncklsd clkadns lkc sadnlk cklsa cnaksld csad");
+    std::vector<uv_buf_t> encoded;
+    encode_websocket_frames(encoded, buffer, strlen(buffer) + 1, WebSocketOpCode::Binary, 0);
+    BOOST_REQUIRE_EQUAL(encoded.size(), 1);
+
+    for (size_t i = 0; i < strlen(buffer) - 1; ++i) {
+      for (size_t j = i + 1; j < strlen(buffer); ++j) {
+        char buffer1[1024];
+        char buffer2[1024];
+        char buffer3[1024];
+        memset(buffer1, 0xfa, 1024);
+        memset(buffer2, 0xfb, 1024);
+        memset(buffer3, 0xfc, 1024);
+        memcpy(buffer1, encoded[0].base, i);
+        memcpy(buffer2, encoded[0].base + i, (j - i));
+        memcpy(buffer3, encoded[0].base + j, encoded[0].len - j);
+        TestWSHandler handler;
+        decode_websocket(buffer1, i, handler);
+        BOOST_REQUIRE_EQUAL(handler.mFrame.size(), 0);
+        decode_websocket(buffer2, (j - i), handler);
+        BOOST_REQUIRE_EQUAL(handler.mFrame.size(), 0);
+        decode_websocket(buffer3, encoded[0].len - j, handler);
+        BOOST_REQUIRE_EQUAL(handler.mFrame.size(), 1);
+        BOOST_REQUIRE_EQUAL(handler.mSize.size(), 1);
+        BOOST_REQUIRE_EQUAL(std::string(handler.mFrame[0], handler.mSize[0] - 1), std::string(buffer));
+      }
+    }
+  }
+  {
     std::string checkRequest =
       "GET /chat HTTP/1.1\r\n"
       "Upgrade: websocket\r\n"

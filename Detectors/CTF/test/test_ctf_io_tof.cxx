@@ -30,7 +30,7 @@ BOOST_AUTO_TEST_CASE(CompressedClustersTest)
 
   std::vector<Digit> digits;
   std::vector<ReadoutWindowData> rows;
-  std::vector<uint32_t> pattVec;
+  std::vector<uint8_t> pattVec;
 
   TStopwatch sw;
   sw.Start();
@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(CompressedClustersTest)
 
   std::vector<Digit> digitsD;
   std::vector<ReadoutWindowData> rowsD;
-  std::vector<uint32_t> pattVecD;
+  std::vector<uint8_t> pattVecD;
   sw.Start();
   const auto ctfImage = CTF::getImage(vec.data());
   {

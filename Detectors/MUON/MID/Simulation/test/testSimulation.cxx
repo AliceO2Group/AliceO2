@@ -42,6 +42,14 @@ namespace o2
 namespace mid
 {
 
+std::vector<ColumnData> getColumnDataNonMC(const o2::mid::DigitsMerger& dm)
+{
+  std::vector<ColumnData> v;
+  auto ref = dm.getColumnData();
+  v.insert(v.begin(), ref.begin(), ref.end());
+  return v;
+}
+
 Digitizer createDigitizerNoClusterSize()
 {
   /// Returns the default chamber response
@@ -395,7 +403,7 @@ BOOST_DATA_TEST_CASE(MID_SingleCluster, boost::unit_test::data::make(getDEList()
     rofRecords.clear();
     rofRecords.emplace_back(o2::constants::lhc::LHCBunchSpacingNS * ievent, EventType::Standard, 0, digitStoreMC.size());
     simDigitizer.digitsMerger.process(digitStoreMC, digitLabelsMC, rofRecords);
-    simClustering.preClusterizer.process(simDigitizer.digitsMerger.getColumnData(), simDigitizer.digitsMerger.getROFRecords());
+    simClustering.preClusterizer.process(getColumnDataNonMC(simDigitizer.digitsMerger), simDigitizer.digitsMerger.getROFRecords());
     simClustering.clusterizer.process(simClustering.preClusterizer.getPreClusters(), simClustering.preClusterizer.getROFRecords());
     nRecoClusters = simClustering.clusterizer.getClusters().size();
     ss << "nRecoClusters: " << nRecoClusters << "  nGenClusters: " << nGenClusters << "\n";
@@ -438,7 +446,7 @@ BOOST_DATA_TEST_CASE(MID_SimClusters, boost::unit_test::data::make(getDEList()),
     digitLabelsAccum.mergeAtBack(digitLabelsMC);
   }
   simDigitizer.digitsMerger.process(digitsAccum, digitLabelsAccum, digitsROF);
-  simClustering.preClusterizer.process(simDigitizer.digitsMerger.getColumnData(), simDigitizer.digitsMerger.getROFRecords());
+  simClustering.preClusterizer.process(getColumnDataNonMC(simDigitizer.digitsMerger), simDigitizer.digitsMerger.getROFRecords());
   simClustering.correlation.clear();
   simClustering.clusterizer.process(simClustering.preClusterizer.getPreClusters(), simClustering.preClusterizer.getROFRecords());
   simClustering.preClusterLabeler.process(simClustering.preClusterizer.getPreClusters(), simDigitizer.digitsMerger.getMCContainer(), simClustering.preClusterizer.getROFRecords(), simDigitizer.digitsMerger.getROFRecords());
@@ -532,7 +540,7 @@ BOOST_DATA_TEST_CASE(MID_SimTracks, boost::unit_test::data::make({1, 2, 3, 4, 5,
   }
 
   simDigitizer.digitsMerger.process(digitsAccum, digitLabelsAccum, digitsROF);
-  simClustering.preClusterizer.process(simDigitizer.digitsMerger.getColumnData(), simDigitizer.digitsMerger.getROFRecords());
+  simClustering.preClusterizer.process(getColumnDataNonMC(simDigitizer.digitsMerger), simDigitizer.digitsMerger.getROFRecords());
   simClustering.correlation.clear();
   simClustering.clusterizer.process(simClustering.preClusterizer.getPreClusters(), simClustering.preClusterizer.getROFRecords());
   simClustering.preClusterLabeler.process(simClustering.preClusterizer.getPreClusters(), simDigitizer.digitsMerger.getMCContainer(), simClustering.preClusterizer.getROFRecords(), simDigitizer.digitsMerger.getROFRecords());

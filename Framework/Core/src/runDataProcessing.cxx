@@ -395,16 +395,28 @@ void log_callback(uv_poll_t* handle, int status, int events)
   }
 }
 
+void close_websocket(uv_handle_t* handle)
+{
+  LOG(debug) << "Handle is being closed";
+  delete (WSDPLHandler*)handle->data;
+}
+
 void websocket_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf)
 {
   WSDPLHandler* handler = (WSDPLHandler*)stream->data;
   if (nread == 0) {
     return;
   }
+  if (nread == UV_EOF) {
+    uv_read_stop(stream);
+    uv_close((uv_handle_t*)stream, close_websocket);
+    return;
+  }
   if (nread < 0) {
-    // FIXME: improve error message
     // FIXME: should I close?
     LOG(ERROR) << "websocket_callback: Error while reading from websocket";
+    uv_read_stop(stream);
+    uv_close((uv_handle_t*)stream, close_websocket);
     return;
   }
   try {
@@ -898,11 +910,14 @@ void doDPLException(RuntimeErrorRef& e)
 {
   auto& err = o2::framework::error_from_ref(e);
   if (err.maxBacktrace != 0) {
-    LOG(ERROR) << "Unhandled o2::framework::runtime_error reached the top of main, device shutting down. Details follow: \n";
+    LOG(ERROR) << "Unhandled o2::framework::runtime_error reached the top of main, device shutting down."
+               << "\n Reason: " << err.what
+               << "\n Backtrace follow: \n";
     backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
   } else {
     LOG(ERROR) << "Unhandled o2::framework::runtime_error reached the top of main, device shutting down."
-                  " Recompile with DPL_ENABLE_BACKTRACE=1 to get more information.";
+               << "\n Reason: " << err.what
+               << "\n Recompile with DPL_ENABLE_BACKTRACE=1 to get more information.";
   }
 }
 
@@ -920,7 +935,10 @@ void doDefaultWorkflowTerminationHook()
   //LOG(INFO) << "Process " << getpid() << " is exiting.";
 }
 
-int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry, const o2::framework::DeviceSpec& spec, TerminationPolicy errorPolicy,
+int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
+            const o2::framework::DeviceSpec& spec,
+            TerminationPolicy errorPolicy,
+            std::string const& defaultDriverClient,
             uv_loop_t* loop)
 {
   fair::Logger::SetConsoleColor(false);
@@ -931,13 +949,13 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry, const o2::f
 
     // Populate options from the command line. Notice that only the options
     // declared in the workflow definition are allowed.
-    runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec](fair::mq::DeviceRunner& r) {
+    runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec, defaultDriverClient](fair::mq::DeviceRunner& r) {
       boost::program_options::options_description optsDesc;
       ConfigParamsHelper::populateBoostProgramOptions(optsDesc, spec.options, gHiddenDeviceOptions);
-      optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("default"), "monitoring backend info")                                                   //
-        ("driver-client-backend", bpo::value<std::string>()->default_value("stdout://"), "backend for device -> driver communicataon: stdout://: use stdout, ws://: use websockets") //
-        ("infologger-severity", bpo::value<std::string>()->default_value(""), "minimum FairLogger severity to send to InfoLogger")                                                   //
-        ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                                                                     //
+      optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("default"), "monitoring backend info")                                                           //
+        ("driver-client-backend", bpo::value<std::string>()->default_value(defaultDriverClient), "backend for device -> driver communicataon: stdout://: use stdout, ws://: use websockets") //
+        ("infologger-severity", bpo::value<std::string>()->default_value(""), "minimum FairLogger severity to send to InfoLogger")                                                           //
+        ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                                                                             //
         ("infologger-mode", bpo::value<std::string>()->default_value(""), "INFOLOGGER_MODE override");
       r.fConfig.AddToCmdLineOptions(optsDesc, true);
     });
@@ -1138,7 +1156,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   uv_tcp_t serverHandle;
   serverHandle.data = &serverContext;
   uv_tcp_init(loop, &serverHandle);
-  driverInfo.port = 8080;
+  driverInfo.port = 8080 + (getpid() % 30000);
   int result = 0;
   struct sockaddr_in* serverAddr = nullptr;
 
@@ -1152,15 +1170,22 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       if (serverAddr) {
         free(serverAddr);
       }
+      if (driverInfo.port > 64000) {
+        throw runtime_error_f("Unable to find a free port for the driver. Last attempt returned %d", result);
+      }
       serverAddr = (sockaddr_in*)malloc(sizeof(sockaddr_in));
       uv_ip4_addr("0.0.0.0", driverInfo.port, serverAddr);
-      uv_tcp_bind(&serverHandle, (const struct sockaddr*)serverAddr, 0);
+      auto bindResult = uv_tcp_bind(&serverHandle, (const struct sockaddr*)serverAddr, 0);
+      if (bindResult != 0) {
+        driverInfo.port++;
+        usleep(1000);
+        continue;
+      }
       result = uv_listen((uv_stream_t*)&serverHandle, 100, ws_connect_callback);
       if (result != 0) {
         driverInfo.port++;
-      }
-      if (driverInfo.port > 64000) {
-        throw runtime_error_f("Unable to find a free port for the driver. Last attempt returned %d", result);
+        usleep(1000);
+        continue;
       }
     } while (result != 0);
   }
@@ -1219,7 +1244,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     driverInfo.states.pop_back();
     switch (current) {
       case DriverState::INIT:
-        LOG(INFO) << "Initialising O2 Data Processing Layer";
+        LOGP(info, "Initialising O2 Data Processing Layer. Driver PID: {}.", getpid());
 
         // Install signal handler for quitting children.
         driverInfo.sa_handle_child.sa_handler = &handle_sigchld;
@@ -1341,7 +1366,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           if (spec.id == frameworkId) {
             return doChild(driverInfo.argc, driverInfo.argv,
                            serviceRegistry, spec,
-                           driverInfo.errorPolicy, loop);
+                           driverInfo.errorPolicy,
+                           driverInfo.defaultDriverClient,
+                           loop);
           }
         }
         {
@@ -1388,7 +1415,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             "--aod-writer-ntfmerge",
             "--aod-writer-resfile",
             "--aod-writer-resmode",
+            "--aod-writer-keep",
             "--driver-client-backend",
+            "--fairmq-ipc-prefix",
             "--readers",
             "--resources-monitoring",
             "--time-limit",
@@ -2203,8 +2232,10 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   if (varmap.count("id")) {
     frameworkId = varmap["id"].as<std::string>();
     driverInfo.uniqueWorkflowId = fmt::format("{}", getppid());
+    driverInfo.defaultDriverClient = "stdout://";
   } else {
     driverInfo.uniqueWorkflowId = fmt::format("{}", getpid());
+    driverInfo.defaultDriverClient = "ws://";
   }
   return runStateMachine(physicalWorkflow,
                          currentWorkflow,

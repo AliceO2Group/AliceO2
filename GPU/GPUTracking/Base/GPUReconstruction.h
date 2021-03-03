@@ -322,12 +322,12 @@ class GPUReconstruction
   GPUConstantMem* mDeviceConstantMem = nullptr;
 
   // Settings
-  GPUSettingsEvent mEventSettings;                       // Event Parameters
-  GPUSettingsDeviceBackend mDeviceBackendSettings;       // Processing Parameters (at constructor level)
-  GPUSettingsProcessing mProcessingSettings;             // Processing Parameters (at init level)
-  GPUOutputControl mOutputControl;                       // Controls the output of the individual components
-  GPUOutputControl mInputControl;                        // Prefefined input memory location for reading standalone dumps
-  std::unique_ptr<GPUMemorySizeScalers> mMemoryScalers;  // Scalers how much memory will be needed
+  GPUSettingsEvent mEventSettings;                      // Event Parameters
+  GPUSettingsDeviceBackend mDeviceBackendSettings;      // Processing Parameters (at constructor level)
+  GPUSettingsProcessing mProcessingSettings;            // Processing Parameters (at init level)
+  GPUOutputControl mOutputControl;                      // Controls the output of the individual components
+  GPUOutputControl mInputControl;                       // Prefefined input memory location for reading standalone dumps
+  std::unique_ptr<GPUMemorySizeScalers> mMemoryScalers; // Scalers how much memory will be needed
 
   RecoStepField mRecoSteps = RecoStep::AllRecoSteps;
   RecoStepField mRecoStepsGPU = RecoStep::AllRecoSteps;

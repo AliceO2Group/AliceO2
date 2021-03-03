@@ -125,7 +125,8 @@ class Propagator
 #endif
 
   GPUd() MatBudget getMatBudget(MatCorrType corrType, const o2::math_utils::Point3D<float>& p0, const o2::math_utils::Point3D<float>& p1) const;
-  GPUd() void getFiedXYZ(const math_utils::Point3D<float> xyz, float* bxyz) const;
+  GPUd() void getFieldXYZ(const math_utils::Point3D<float> xyz, float* bxyz) const;
+  GPUd() void getFieldXYZ(const math_utils::Point3D<double> xyz, double* bxyz) const;
 
  private:
 #ifndef GPUCA_GPUCODE

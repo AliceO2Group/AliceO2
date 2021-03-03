@@ -96,6 +96,9 @@ void ServiceRegistry::bindService(ServiceSpec const& spec, void* service)
   if (spec.postDispatching) {
     mPostDispatchingHandles.push_back(ServiceDispatchingHandle{spec.postDispatching, service});
   }
+  if (spec.exit) {
+    mPreExitHandles.push_back(ServiceExitHandle{spec.exit, service});
+  }
 }
 
 /// Invoke callbacks to be executed before every process method invokation
@@ -149,6 +152,16 @@ void ServiceRegistry::postDispatchingCallbacks(ProcessingContext& processContext
 {
   for (auto& dispatchingHandle : mPostDispatchingHandles) {
     dispatchingHandle.callback(processContext, dispatchingHandle.service);
+  }
+}
+
+/// Invoke callback to be executed on exit, in reverse order.
+void ServiceRegistry::preExitCallbacks()
+{
+  // FIXME: we need to call the callback only once for the global services
+  /// I guess...
+  for (auto exitHandle = mPreExitHandles.rbegin(); exitHandle != mPreExitHandles.rend(); ++exitHandle) {
+    exitHandle->callback(*this, exitHandle->service);
   }
 }
 

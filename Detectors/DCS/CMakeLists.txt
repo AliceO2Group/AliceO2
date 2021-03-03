@@ -58,6 +58,7 @@ if(BUILD_TESTING)
     COMPONENT_NAME dcs
     LABELS "dcs"
     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsDCS)
+  add_subdirectory(testWorkflow/macros)  
 endif()
 
 add_subdirectory(testWorkflow)
