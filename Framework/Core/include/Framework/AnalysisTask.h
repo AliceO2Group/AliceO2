@@ -17,7 +17,6 @@
 #include "Framework/ConfigContext.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/WorkflowSpec.h"
 #include "Framework/Expressions.h"
 #include "../src/ExpressionHelpers.h"
 #include "Framework/EndOfStreamContext.h"
@@ -590,9 +589,15 @@ class has_init
 /// Adaptor to make an AlgorithmSpec from a o2::framework::Task
 ///
 template <typename T, typename... Args>
-DataProcessorSpec adaptAnalysisTask(char const* name, Args&&... args)
+DataProcessorSpec adaptAnalysisTask(char const* name, ConfigContext const& ctx, Args&&... args)
 {
   TH1::AddDirectory(false);
+
+  auto suffix = ctx.options().get<std::string>("workflow-suffix");
+  if (!suffix.empty()) {
+    name = (name + suffix).c_str();
+  }
+
   auto task = std::make_shared<T>(std::forward<Args>(args)...);
   auto hash = compile_time_hash(name);
 
@@ -683,21 +688,6 @@ DataProcessorSpec adaptAnalysisTask(char const* name, Args&&... args)
     algo,
     options};
   return spec;
-}
-
-template <typename T>
-struct TaskSpec {
-  TaskSpec(char const* name_) : name(name_) {}
-  const char* name;
-};
-
-/// Adapter to make a WorkflowSpec from TaskSpecs
-///
-template <typename... Ts>
-WorkflowSpec adaptAnalysisWorkflow(ConfigContext const& ctx, TaskSpec<Ts>&&... specs)
-{
-  auto suffix = ctx.options().get<std::string>("workflow-suffix");
-  return WorkflowSpec{adaptAnalysisTask<Ts>((specs.name + suffix).c_str())...};
 }
 
 } // namespace o2::framework

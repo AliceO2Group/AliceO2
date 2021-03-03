@@ -101,9 +101,10 @@ struct DTask {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& ctx)
 {
-  return adaptAnalysisWorkflow(ctx,
-                               TaskSpec<ATask>("eta-and-phi-histograms"),
-                               TaskSpec<BTask>("etaphi-histogram"),
-                               TaskSpec<CTask>("pt-histogram"),
-                               TaskSpec<DTask>("output-wrapper"));
+  return WorkflowSpec{
+    adaptAnalysisTask<ATask>("eta-and-phi-histograms", ctx),
+    adaptAnalysisTask<BTask>("etaphi-histogram", ctx),
+    adaptAnalysisTask<CTask>("pt-histogram", ctx),
+    adaptAnalysisTask<DTask>("output-wrapper", ctx),
+  };
 }
