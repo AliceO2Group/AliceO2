@@ -25,7 +25,7 @@ void JetFinder::setParams()
 
   //selGhosts =fastjet::SelectorRapRange(ghostEtaMin,ghostEtaMax) && fastjet::SelectorPhiRange(phiMin,phiMax);
   //ghostAreaSpec=fastjet::GhostedAreaSpec(selGhosts,ghostRepeatN,ghostArea,gridScatter,ktScatter,ghostktMean);
-  ghostAreaSpec = fastjet::GhostedAreaSpec(ghostEtaMax, ghostRepeatN, ghostArea, gridScatter, ktScatter, ghostktMean); //the first argument is rapidity not pseudorapidity, to be checked
+  ghostAreaSpec = fastjet  :: GhostedAreaSpec( ghostEtaMax , ghostRepeatN, ghostArea, gridScatter, ktScatter, ghostktMean); //the first argument is rapidity not pseudorapidity, to be checked
   jetDef = fastjet::JetDefinition(algorithm, jetR, recombScheme, strategy);
   areaDef = fastjet::AreaDefinition(areaType, ghostAreaSpec);
   selJets = fastjet::SelectorPtRange(jetPtMin, jetPtMax) && fastjet::SelectorEtaRange(jetEtaMin, jetEtaMax) && fastjet::SelectorPhiRange(jetPhiMin, jetPhiMax);
