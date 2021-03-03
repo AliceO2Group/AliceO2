@@ -28,6 +28,7 @@ namespace zdc
 struct PedestalData {
   o2::InteractionRecord ir;
   std::array<int16_t, NChannels> data{};
+  std::array<uint16_t, NChannels> scaler{};
 
   float asFloat(int i) const { return data[i] / 8.; }
   void print() const;

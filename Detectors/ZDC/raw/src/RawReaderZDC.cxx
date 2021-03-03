@@ -113,6 +113,7 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
             auto id = mModuleConfig->modules[im].channelID[ic];
             int offset = ev.data[im][ic].f.offset - 32768;
             pdata.data[id] = offset;
+            pdata.scaler[id] = ev.data[im][ic].f.hits;
           } else if (ev.data[im][ic].f.fixed_0 == 0 && ev.data[im][ic].f.fixed_1 == 0 && ev.data[im][ic].f.fixed_2 == 0) {
             // Empty channel
           } else {
