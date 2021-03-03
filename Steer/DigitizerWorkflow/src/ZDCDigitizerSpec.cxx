@@ -106,6 +106,9 @@ class ZDCDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     for (uint32_t ib = 0; ib < mDigitsBC.size(); ib++) {
       mDigitizer.assignTriggerBits(ib, mDigitsBC);
     }
+    for (uint32_t ib = 0; ib < mDigitsBC.size(); ib++) {
+      mDigitizer.maskTriggerBits(ib, mDigitsBC);
+    }
 
     const auto &irFirst = irecords.front(), irLast = irecords.back();
     o2::InteractionRecord irPed(o2::constants::lhc::LHCMaxBunches - 1, irFirst.orbit);

@@ -445,6 +445,7 @@ void Digitizer::init()
   mNBCAHead = mIsContinuous ? sopt.nBCAheadCont : sopt.nBCAheadTrig;
   LOG(INFO) << "Initialized in " << (mIsContinuous ? "Cont" : "Trig") << " mode, " << mNBCAHead
             << " BCs will be stored ahead of Trigger";
+  LOG(INFO) << "Trigger bit masking is " << (mMaskTriggerBits ? "ON (default)" : "OFF (debugging)");
 }
 
 //______________________________________________________________________________
@@ -509,6 +510,7 @@ void Digitizer::refreshCCDB()
   }
 
   setTriggerMask();
+  setReadoutMask();
 }
 
 //______________________________________________________________________________
@@ -552,7 +554,36 @@ void Digitizer::setTriggerMask()
     LOGF(INFO, "Trigger mask for module %d 0123 %c%c%c%c\n", im,
          mytmask & 0x1 ? 'T' : 'N', mytmask & 0x2 ? 'T' : 'N', mytmask & 0x4 ? 'T' : 'N', mytmask & 0x8 ? 'T' : 'N');
   }
-  LOGF(INFO, "trigger_mask=0x%08x %s\n", mTriggerMask, printTriggerMask.c_str());
+  LOGF(INFO, "TriggerMask=0x%08x %s\n", mTriggerMask, printTriggerMask.c_str());
+}
+
+//______________________________________________________________________________
+void Digitizer::setReadoutMask()
+{
+  mReadoutMask = 0;
+  std::string printReadoutMask{};
+
+  for (int im = 0; im < NModules; im++) {
+    if (im > 0) {
+      printReadoutMask += " ";
+    }
+    printReadoutMask += std::to_string(im);
+    printReadoutMask += "[";
+    for (int ic = 0; ic < NChPerModule; ic++) {
+      if (mModuleConfig->modules[im].readChannel[ic]) {
+        uint32_t rmask = 0x1 << (im * NChPerModule + ic);
+        mReadoutMask = mReadoutMask | rmask;
+        printReadoutMask += "R";
+      } else {
+        printReadoutMask += " ";
+      }
+    }
+    printReadoutMask += "]";
+    uint32_t myrmask = mReadoutMask >> (im * NChPerModule);
+    LOGF(INFO, "Readout mask for module %d 0123 %c%c%c%c\n", im,
+         myrmask & 0x1 ? 'R' : 'N', myrmask & 0x2 ? 'R' : 'N', myrmask & 0x4 ? 'R' : 'N', myrmask & 0x8 ? 'R' : 'N');
+  }
+  LOGF(INFO, "ReadoutMask=0x%08x %s\n", mReadoutMask, printReadoutMask.c_str());
 }
 
 //______________________________________________________________________________
@@ -594,7 +625,27 @@ void Digitizer::assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData)
       }
     }
   }
-  currBC.print(mTriggerMask);
+  // Printout before cleanup
+  //currBC.print(mTriggerMask);
+}
+
+void Digitizer::maskTriggerBits(uint32_t ibc, std::vector<BCData>& bcData)
+{
+  // Default is to mask trigger bits, we can leave them for debugging
+  if (mMaskTriggerBits) {
+    auto& currBC = bcData[ibc];
+    for (int im = 0; im < NModules; im++) {
+      // Cleanup hits if module has no trigger
+      uint32_t mmask = 0xf << im;
+      if ((currBC.triggers & mmask) == 0) {
+        currBC.triggers&(~mmask);
+      }
+    }
+    // Cleanup trigger bits for channels that are not readout
+    currBC.triggers &= mReadoutMask;
+    // Printout after cleanup
+    //currBC.print(mTriggerMask);
+  }
 }
 
 //______________________________________________________________________________

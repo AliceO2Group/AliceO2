@@ -24,7 +24,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"dump-blocks-reader", VariantType::Bool, false, {"enable dumping of event blocks at reader side"}},
     {"disable-root-output", VariantType::Bool, false, {"disable root-files output writers"}},
     {"ccdb-url", VariantType::String, "http://ccdb-test.cern.ch:8080", {"url of CCDB"}},
-    {"not-check-trigger", VariantType::Bool, true, {"avoid to check trigger condition during conversion"}},
+    {"not-check-trigger", VariantType::Bool, false, {"avoid to check trigger condition during conversion"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   std::swap(workflowOptions, options);
 }

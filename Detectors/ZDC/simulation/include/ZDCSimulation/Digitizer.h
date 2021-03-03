@@ -110,7 +110,10 @@ class Digitizer
   void setCCDBServer(const std::string& s) { mCCDBServer = s; }
   void findEmptyBunches(const std::bitset<o2::constants::lhc::LHCMaxBunches>& bunchPattern);
   int getNEmptyBunches() const { return mNEmptyBCs; }
-  void assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData);
+  void assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData); // Assign trigger bits for nearby bunch crossings
+  void maskTriggerBits(uint32_t ibc, std::vector<BCData>& bcData);   // Mask trigger bits for current bunch crossing
+  void setMaskTriggerBits(bool v = true) { mMaskTriggerBits = v; }
+  bool getMaskTriggerBits(bool v = true) { return mMaskTriggerBits; }
 
  private:
   static constexpr int BCCacheMin = -1, BCCacheMax = 5, NBC2Cache = 1 + BCCacheMax - BCCacheMin;
@@ -123,6 +126,7 @@ class Digitizer
   BCCache& getCreateBCCache(const o2::InteractionRecord& ir);
   BCCache* getBCCache(const o2::InteractionRecord& ir);
   void setTriggerMask();
+  void setReadoutMask();
   void generatePedestal();
   void digitizeBC(BCCache& bc);
   bool triggerBC(int ibc);
@@ -143,7 +147,9 @@ class Digitizer
   int mTrigBinMax = -0xffff;                                     // bins to be checked for trigger
   int mNBCAHead = 0;                                             // when storing triggered BC, store also mNBCAHead BCs
   uint32_t mTriggerMask = 0;                                     // Trigger mask from ModuleConfig
+  uint32_t mReadoutMask = 0;                                     // Readout mask from ModuleConfig
   int32_t mNEmptyBCs = -1;                                       // Number of clean empty bunches for pedestal evaluation
+  bool mMaskTriggerBits = true;                                  // Mask trigger bits with readout mask
 
   std::string mCCDBServer = "";
   const SimCondition* mSimCondition = nullptr;      ///< externally set SimCondition
