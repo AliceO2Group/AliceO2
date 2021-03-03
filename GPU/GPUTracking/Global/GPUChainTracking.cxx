@@ -52,6 +52,7 @@
 #include "TPCFastTransform.h"
 
 #include "utils/linux_helpers.h"
+#include "utils/strtag.h"
 using namespace GPUCA_NAMESPACE::gpu;
 
 #include "GPUO2DataTypes.h"
@@ -564,7 +565,7 @@ int GPUChainTracking::RunChain()
     return 1;
   }
 
-  mRec->PushNonPersistentMemory(); // 1st stack level for TPC tracking slice data
+  mRec->PushNonPersistentMemory(qStr2Tag("TPCSLCD1")); // 1st stack level for TPC tracking slice data
   if (runRecoStep(RecoStep::TPCSliceTracking, &GPUChainTracking::RunTPCTrackingSlices)) {
     return 1;
   }
@@ -576,7 +577,7 @@ int GPUChainTracking::RunChain()
   if (runRecoStep(RecoStep::TPCMerging, &GPUChainTracking::RunTPCTrackingMerger, false)) {
     return 1;
   }
-  mRec->PopNonPersistentMemory(RecoStep::TPCSliceTracking); // Release 1st stack level, TPC slice data not needed after merger
+  mRec->PopNonPersistentMemory(RecoStep::TPCSliceTracking, qStr2Tag("TPCSLCD1")); // Release 1st stack level, TPC slice data not needed after merger
 
   if (mIOPtrs.clustersNative) {
     if (GetProcessingSettings().doublePipeline) {

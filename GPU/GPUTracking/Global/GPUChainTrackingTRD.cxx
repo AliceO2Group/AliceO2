@@ -18,6 +18,7 @@
 #include "GPUTRDTrackletLabels.h"
 #include "GPUTRDTrack.h"
 #include "GPUTRDTracker.h"
+#include "utils/strtag.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::trd;
@@ -34,7 +35,7 @@ int GPUChainTracking::RunTRDTracking()
     return 0;
   }
 
-  mRec->PushNonPersistentMemory();
+  mRec->PushNonPersistentMemory(qStr2Tag("TRDTRACK"));
   SetupGPUProcessor(&Tracker, true);
 
   for (unsigned int iTracklet = 0; iTracklet < mIOPtrs.nTRDTracklets; ++iTracklet) {
@@ -62,7 +63,7 @@ int GPUChainTracking::RunTRDTracking()
 
   mIOPtrs.nTRDTracks = Tracker.NTracks();
   mIOPtrs.trdTracks = Tracker.Tracks();
-  mRec->PopNonPersistentMemory(RecoStep::TRDTracking);
+  mRec->PopNonPersistentMemory(RecoStep::TRDTracking, qStr2Tag("TRDTRACK"));
 
   return 0;
 }

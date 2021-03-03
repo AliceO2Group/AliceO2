@@ -14,6 +14,7 @@
 #include "GPUChainTracking.h"
 #include "GPULogging.h"
 #include "GPUO2DataTypes.h"
+#include "utils/strtag.h"
 #include <fstream>
 
 using namespace GPUCA_NAMESPACE::gpu;
@@ -95,7 +96,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
       TransferMemoryResourcesToGPU(RecoStep::NoRecoStep, &trk, 0);
     }
   }
-  mRec->PushNonPersistentMemory();
+  mRec->PushNonPersistentMemory(qStr2Tag("TPCMERGE"));
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCMerging;
   bool doGPUall = doGPU && GetProcessingSettings().fullMergerOnGPU;
   GPUReconstruction::krnlDeviceType deviceType = doGPUall ? GPUReconstruction::krnlDeviceType::Auto : GPUReconstruction::krnlDeviceType::CPU;
@@ -316,6 +317,6 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   if (GetProcessingSettings().debugLevel >= 2) {
     GPUInfo("TPC Merger Finished (output clusters %d / input clusters %d)", Merger.NOutputTrackClusters(), Merger.NClusters());
   }
-  mRec->PopNonPersistentMemory(RecoStep::TPCMerging);
+  mRec->PopNonPersistentMemory(RecoStep::TPCMerging, qStr2Tag("TPCMERGE"));
   return 0;
 }

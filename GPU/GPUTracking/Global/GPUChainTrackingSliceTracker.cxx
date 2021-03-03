@@ -16,6 +16,7 @@
 #include "GPUO2DataTypes.h"
 #include "GPUMemorySizeScalers.h"
 #include "GPUTPCClusterData.h"
+#include "utils/strtag.h"
 #include <fstream>
 
 using namespace GPUCA_NAMESPACE::gpu;
@@ -99,7 +100,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     mRec->AllocateRegisteredMemory(processors()->tpcTrackers[iSlice].MemoryResSliceScratch());
     mRec->AllocateRegisteredMemory(processors()->tpcTrackers[iSlice].MemoryResSliceInput());
   }
-  mRec->PushNonPersistentMemory();
+  mRec->PushNonPersistentMemory(qStr2Tag("TPCSLTRK"));
   for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
     SetupGPUProcessor(&processors()->tpcTrackers[iSlice], true);             // Now we allocate
     mRec->ResetRegisteredMemoryPointers(&processors()->tpcTrackers[iSlice]); // TODO: The above call breaks the GPU ptrs to already allocated memory. This fixes them. Should actually be cleaned up at the source.
@@ -462,7 +463,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
   if (GetProcessingSettings().debugLevel >= 2) {
     GPUInfo("TPC Slice Tracker finished");
   }
-  mRec->PopNonPersistentMemory(RecoStep::TPCSliceTracking);
+  mRec->PopNonPersistentMemory(RecoStep::TPCSliceTracking, qStr2Tag("TPCSLTRK"));
   return 0;
 }
 

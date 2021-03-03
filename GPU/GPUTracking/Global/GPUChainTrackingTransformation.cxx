@@ -25,6 +25,7 @@
 #else
 #include "GPUO2FakeClasses.h"
 #endif
+#include "utils/strtag.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
@@ -32,7 +33,7 @@ using namespace o2::tpc;
 int GPUChainTracking::ConvertNativeToClusterData()
 {
 #ifdef HAVE_O2HEADERS
-  mRec->PushNonPersistentMemory();
+  mRec->PushNonPersistentMemory(qStr2Tag("TPCTRANS"));
   const auto& threadContext = GetThreadContext();
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCConversion;
   GPUTPCConvert& convert = processors()->tpcConverter;
@@ -72,7 +73,7 @@ int GPUChainTracking::ConvertNativeToClusterData()
     mIOPtrs.nClusterData[i] = (i == NSLICES - 1 ? mIOPtrs.clustersNative->nClustersTotal : mIOPtrs.clustersNative->clusterOffset[i + 1][0]) - mIOPtrs.clustersNative->clusterOffset[i][0];
     mIOPtrs.clusterData[i] = convert.mClusters + mIOPtrs.clustersNative->clusterOffset[i][0];
   }
-  mRec->PopNonPersistentMemory(RecoStep::TPCConversion);
+  mRec->PopNonPersistentMemory(RecoStep::TPCConversion, qStr2Tag("TPCTRANS"));
 #endif
   return 0;
 }
