@@ -19,8 +19,8 @@ namespace o2
 namespace zdc
 {
 
-ZDCDataReaderDPLSpec::ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const std::string& ccdbURL)
-  : mRawReader(rawReader), mccdbHost(ccdbURL)
+ZDCDataReaderDPLSpec::ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const std::string& ccdbURL, const bool verifyTrigger)
+  : mRawReader(rawReader), mccdbHost(ccdbURL), mVerifyTrigger(verifyTrigger)
 {
 }
 
@@ -48,6 +48,8 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
     }
     mRawReader.setModuleConfig(moduleConfig);
     mRawReader.setTriggerMask();
+    mRawReader.mVerifyTrigger = mVerifyTrigger;
+    LOG(INFO) << "Check of trigger condition during conversion is " << (mVerifyTrigger ? "ON" : "OFF");
   }
   uint64_t count = 0;
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
@@ -62,7 +64,7 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
   mRawReader.makeSnapshot(pc);
 }
 
-framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const std::string& ccdbURL)
+framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const std::string& ccdbURL, const bool verifyTrigger)
 {
   LOG(INFO) << "DataProcessorSpec initDataProcSpec() for RawReaderZDC";
   std::vector<OutputSpec> outputSpec;
@@ -71,7 +73,7 @@ framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawRead
     "zdc-datareader-dpl",
     o2::framework::select("TF:ZDC/RAWDATA"),
     outputSpec,
-    adaptFromTask<ZDCDataReaderDPLSpec>(rawReader, ccdbURL),
+    adaptFromTask<ZDCDataReaderDPLSpec>(rawReader, ccdbURL, verifyTrigger),
     Options{}};
 }
 } // namespace zdc

@@ -45,17 +45,18 @@ class ZDCDataReaderDPLSpec : public Task
 {
  public:
   ZDCDataReaderDPLSpec() = default;
-  ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const std::string& ccdbURL);
+  ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const std::string& ccdbURL, const bool verifyTrigger);
   ~ZDCDataReaderDPLSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
 
  private:
   std::string mccdbHost = "http://ccdb-test.cern.ch:8080";
+  bool mVerifyTrigger = true;
   RawReaderZDC mRawReader;
 };
 
-framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const std::string& ccdbURL);
+framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const std::string& ccdbURL, const bool verifyTrigger);
 
 } // namespace zdc
 } // namespace o2

@@ -155,7 +155,6 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
           us[11] = ch.f.s11;
           // Identify connected channel
           auto& chd = digitsCh.emplace_back();
-          ncd++;
           auto id = mModuleConfig->modules[im].channelID[ic];
           chd.id = id;
           for (int32_t is = 0; is < NTimeBinsPerBC; is++) {
@@ -190,6 +189,16 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
           } else if (mt.f.Auto_m != ch.f.Auto_m || mt.f.Auto_0 != ch.f.Auto_0 || mt.f.Auto_1 != ch.f.Auto_1 || mt.f.Auto_2 != ch.f.Auto_2 || mt.f.Auto_3 != ch.f.Auto_3) {
             inconsistent_module = true;
           }
+          // Verify trigger condition (if requested)
+          if (mVerifyTrigger) {
+            if ((mt.f.Alice_0 || mt.f.Alice_1) || (mt.f.Alice_2 && (mt.f.Auto_0 || mt.f.Auto_m)) || (mt.f.Alice_3 && mt.f.Auto_0) || (mt.f.Auto_0 || mt.f.Auto_1)) {
+              ncd++;
+            } else {
+              digitsCh.pop_back();
+            }
+          } else {
+            ncd++;
+          }
         } else if (ev.data[im][ic].f.fixed_0 == 0 && ev.data[im][ic].f.fixed_1 == 0 && ev.data[im][ic].f.fixed_2 == 0) {
           // Empty channel
         } else {
@@ -201,12 +210,17 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
         inconsistent_event = true;
       }
     }
-    bcdata.ref.setEntries(ncd);
-    if (mDumpData) {
-      bcdata.print(mTriggerMask);
-      auto first_entry = bcdata.ref.getFirstEntry();
-      for (Int_t icd = 0; icd < ncd; icd++) {
-        digitsCh[icd + first_entry].print();
+    if(ncd==0){
+      // Remove empty orbits (keep pedestal information)
+      digitsBC.pop_back();
+    }else{
+      bcdata.ref.setEntries(ncd);
+      if (mDumpData) {
+	bcdata.print(mTriggerMask);
+	auto first_entry = bcdata.ref.getFirstEntry();
+	for (Int_t icd = 0; icd < ncd; icd++) {
+          digitsCh[icd + first_entry].print();
+	}
       }
     }
     if (inconsistent_event) {

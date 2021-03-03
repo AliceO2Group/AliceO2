@@ -50,6 +50,8 @@ class RawReaderZDC
   uint32_t mTriggerMask = 0; // Trigger mask from ModuleConfig
   void setTriggerMask();
 
+  bool mVerifyTrigger = true; // Verify trigger condition during conversion to digits
+
   std::vector<o2::zdc::BCData> mDigitsBC;
   std::vector<o2::zdc::ChannelData> mDigitsCh;
   std::vector<o2::zdc::PedestalData> mPedestalData;
