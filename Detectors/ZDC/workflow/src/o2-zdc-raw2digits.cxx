@@ -14,7 +14,6 @@
 using namespace o2::framework;
 
 // ------------------------------------------------------------------
-
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
@@ -30,7 +29,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 }
 
 // ------------------------------------------------------------------
-
 #include "Framework/runDataProcessing.h"
 #include "ZDCWorkflow/ZDCDataReaderDPLSpec.h"
 #include "ZDCWorkflow/ZDCDigitWriterDPLSpec.h"

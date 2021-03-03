@@ -43,6 +43,7 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
     if (!moduleConfig) {
       LOG(FATAL) << "Cannot module configuratio for timestamp " << timeStamp;
       return;
+    } else {
       LOG(INFO) << "Loaded module configuration for timestamp " << timeStamp;
     }
     mRawReader.setModuleConfig(moduleConfig);
