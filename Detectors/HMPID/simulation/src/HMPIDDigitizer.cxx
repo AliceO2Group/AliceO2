@@ -10,6 +10,7 @@
 
 #include "HMPIDSimulation/HMPIDDigitizer.h"
 #include "HMPIDBase/Digit.h"
+#include "HMPIDBase/Trigger.h"
 
 #include "Framework/Logger.h"
 
@@ -33,7 +34,6 @@ void HMPIDDigitizer::zeroSuppress(std::vector<o2::hmpid::Digit> const& digits, s
     if (digit.getCharge() >= getThreshold(digit)) {
       //     if(digit.getPx() < 80 && digit.getPy() < 48) {
       newdigits.push_back(digit);
-
       if (newlabels) {
         // copy the labels to the new place with the right new index
         newlabels->addElements(newdigits.size() - 1, labels.getLabels(index));
@@ -117,7 +117,7 @@ void HMPIDDigitizer::process(std::vector<o2::hmpid::HitType> const& hits, std::v
       } else {
         // create digit ... and register
         //        mDigits.emplace_back(mCurrentTriggerTime, pad, totalQ * fraction);
-        mDigits.emplace_back(mOrbit, mBc, pad, totalQ * fraction);
+        mDigits.emplace_back(mBc, mOrbit, pad, totalQ * fraction);
         mIndexForPad[pad] = mDigits.size() - 1;
         mInvolvedPads.emplace_back(pad);
 

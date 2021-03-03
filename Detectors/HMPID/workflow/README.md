@@ -2,7 +2,7 @@
 \page refHMPworkflow HMP workflow
 /doxy -->
 
-# DPL workflows for the HMPID  v.0.3
+# DPL workflows for the HMPID  v.0.4
 
 ## HMPID DPL processors
 
@@ -124,11 +124,16 @@ o2-hmpid-write-raw-from-root-workflow
 Data processor options: HMP-WriteRawFromRootFile:
 
 ```
-  --out-file arg (=hmpidRaw)            prefix name of the output raw file
-  --in-file arg (=simulation.root)      name of the input sim root file
-  --per-flp-file                        produce one raw file per FLPs (suffix 160 and 161)
-  --dump-digits                         out the digits in a ASCII file named /tmp/hmpDumpDigits.dat
-  --skip-empty                          skip empty events (not yet implemented)
+  --hmp-raw-outdir arg (=./)            base dir for output file
+  --hmp-raw-outfile arg (=hmpReadOut)   base name for output file
+  --hmp-raw-perlink                     produce one file per link
+  --hmp-raw-perflp                      produce one raw file per FLPs
+  --in-file arg (=hmpiddigits.root)     name of the input sim root file
+  --dump-digits                         out the digits file in /tmp/hmpDumpDigits.dat
+  --hmp-skip-empty                      skip empty events
+  --start-value-enumeration arg (=0)    initial value for the enumeration
+  --end-value-enumeration arg (=-1)     final value for the enumeration
+  --step-value-enumeration arg (=1)     step between one value and the other
 ```
 
 Example
@@ -136,7 +141,7 @@ Example
 ```
 [O2Suite/latest-o2] ~/Downloads/provaRec $>o2-sim-serial -m HMP -n 20 -e TGeant4 -g pythia8hi
 [O2Suite/latest-o2] ~/Downloads/provaRec $>o2-sim-digitizer-workflow --onlyDet HMP
-[O2Suite/latest-o2] ~/Downloads/provaRec $>o2-hmpid-write-raw-from-root-workflow --in-file hmpiddigits.root --out-file hmpRawFromRoot --dump-digits -b
+[O2Suite/latest-o2] ~/Downloads/provaRec $>o2-hmpid-write-raw-from-root-workflow --in-file hmpiddigits.root --hmp-raw-outfile hmpRawFromRoot --dump-digits -b
 ```
 
 in order to verify the write, the inverse decoding of raw file

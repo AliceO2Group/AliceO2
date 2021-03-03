@@ -19,6 +19,7 @@
 
 #include "HMPIDBase/Common.h"
 #include "HMPIDBase/Digit.h"
+#include "HMPIDBase/Trigger.h"
 #include "HMPIDSimulation/HmpidCoder2.h"
 
 namespace o2
@@ -38,10 +39,12 @@ class WriteRawFromRootTask : public framework::Task
  private:
   void readRootFile();
   std::string mBaseFileName = "";
+  std::string mDirectoryName = "";
   std::string mBaseRootFileName = "";
   bool mSkipEmpty = false;
   bool mDumpDigits = false;
   bool mPerFlpFile = false;
+  bool mPerLink = false;
 
   std::vector<o2::hmpid::Digit> mDigits;
   long mDigitsReceived;

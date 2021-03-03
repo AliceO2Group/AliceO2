@@ -383,7 +383,7 @@ Double_t Digit::OrbitBcToTimeNs(uint32_t Orbit, uint16_t BC)
 /// @return : the Orbit number [0..2^32-1]
 uint32_t Digit::TimeNsToOrbit(Double_t TimeNs)
 {
-  return (TimeNs / o2::constants::lhc::LHCOrbitNS);
+  return (uint32_t)(TimeNs/o2::constants::lhc::LHCOrbitNS);
 }
 
 /// TimeNsToBc : Extracts the Bunch Crossing number from the absolute
@@ -393,7 +393,7 @@ uint32_t Digit::TimeNsToOrbit(Double_t TimeNs)
 /// @return : the Bunch Crossing number [0..2^12-1]
 uint16_t Digit::TimeNsToBc(Double_t TimeNs)
 {
-  return (std::fmod(TimeNs, o2::constants::lhc::LHCOrbitNS) / o2::constants::lhc::LHCBunchSpacingNS);
+  return (uint16_t)(std::fmod(TimeNs, o2::constants::lhc::LHCOrbitNS) / o2::constants::lhc::LHCBunchSpacingNS);
 }
 
 /// TimeNsToOrbitBc : Extracts the (Orbit,BC) pair from the absolute

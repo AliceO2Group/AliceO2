@@ -16,11 +16,14 @@
 /// \date 24 feb 2021
 
 #include <vector>
+#include <iostream>
+#include <memory>
 
 #include "Headers/RAWDataHeader.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RawFileWriter.h"
+#include "DataFormatsParameters/GRPObject.h"
 
 #include "HMPIDBase/Digit.h"
 #include "HMPIDSimulation/HmpidCoder2.h"
@@ -38,21 +41,21 @@ HmpidCoder2::HmpidCoder2(int numOfEquipments)
   mVerbose = 0;
   mSkipEmptyEvents = true;
   mPailoadBufferDimPerEquipment = ((Geo::N_SEGMENTS * (Geo::N_COLXSEGMENT * (Geo::N_DILOGICS * (Geo::N_CHANNELS + 1) + 1) + 1)) + 10);
-  mPayloadBufferPtr = (uint32_t*)std::malloc(mNumberOfEquipments * sizeof(uint32_t) * mPailoadBufferDimPerEquipment);
-  mPadMap = (uint32_t*)std::malloc(sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS);
-  // TODO: Add memory allocation error check
-
+  auto UPayloadBufferPtr = std::make_unique<uint32_t[]>(sizeof(uint32_t)*mNumberOfEquipments * mPailoadBufferDimPerEquipment);
+  auto UPadMap = std::make_unique<uint32_t[]>( sizeof(uint32_t)*Geo::N_HMPIDTOTALPADS);
+  mPayloadBufferPtr = UPayloadBufferPtr.get();
+  mPadMap = UPadMap.get();
+  mBusyTime = 20000;  // 1 milli sec
+  mHmpidErrorFlag = 0;
+  mHmpidFrwVersion = 9;
 }
 
 ///  HMPID Raw Coder
 HmpidCoder2::~HmpidCoder2()
 {
-  // TODO Auto-generated destructor stub
-  std::free(mPayloadBufferPtr);
-  std::free(mPadMap);
 }
 
-///  getEquipCoord() : converts the EquipmentID in CRU,Link couple
+/* /  getEquipCoord() : converts the EquipmentID in CRU,Link couple
 /// @param[in] Equi : the HMPID Equipment ID [0..13]
 /// @param[out] CruId : the FLP CRU number [0..3]
 /// @param[ou] LinkId : the FLP Linkk number [0..3]
@@ -67,6 +70,40 @@ void HmpidCoder2::getEquipCoord(int Equi, uint32_t* CruId, uint32_t* LinkId)
   }
   *CruId = mCruIds[0];
   *LinkId = mLinkIds[0];
+  return;
+}
+*/
+
+/// setDetectorSpecificFields() : sets the HMPID parameters for the next
+/// raw file writes
+/// @param[in] BusyTime : busy time in milliseconds
+/// @param[in] Error : the Error field
+/// @param[in] Version : the Firmware Version  [def. 9]
+void HmpidCoder2::setDetectorSpecificFields(float BusyTime, int Error, int Version)
+{
+  uint32_t busy = (uint32_t)(BusyTime / 0.00000005);
+  mBusyTime = busy;
+  mHmpidErrorFlag = Error;
+  mHmpidFrwVersion = Version;
+  return;
+}
+
+/// setRDHFields() : sets the HMPID RDH Field for the next
+/// raw file writes
+/// @param[in] eq : the HMPID Equipment ID [0..13] if == -1 -> all
+void HmpidCoder2::setRDHFields(int eq)
+{
+  int st,en;
+  uint32_t wr = (mBusyTime << 9) | ((mHmpidErrorFlag & 0x01F) << 4) | (mHmpidFrwVersion & 0x0F);
+  st = (eq < 0 || eq >= Geo::MAXEQUIPMENTS) ? 0 : eq;
+  en = (eq < 0 || eq >= Geo::MAXEQUIPMENTS) ? Geo::MAXEQUIPMENTS : eq+1;
+  for(int l=st; l<en; l++) {
+    o2::raw::RawFileWriter::LinkData& link = mWriter.getLinkWithSubSpec(mTheRFWLinks[l]);
+    RDHAny *RDHptr = link.getLastRDH();
+    if(RDHptr != nullptr) {
+      o2::raw::RDHUtils::setDetectorField(RDHptr, wr);
+    }
+  }
   return;
 }
 
@@ -165,10 +202,13 @@ void HmpidCoder2::writePaginatedEvent(uint32_t orbit, uint16_t bc)
   for (int eq = 0; eq < mNumberOfEquipments; eq++) {
     int EventSize = mEventSizePerEquipment[eq];
     LOG(DEBUG) << "writePaginatedEvent()  Eq=" << eq << " Size:" << EventSize << " Pads:" << mEventPadsPerEquipment[eq] << " Orbit:" << orbit << " BC:" << bc;
-    if (EventSize == 0 && mSkipEmptyEvents) {
-      continue; // Skips the Events sized with 0
+    if (mEventPadsPerEquipment[eq] > 0 || !mSkipEmptyEvents) { // Skips the Events with 0 Pads
+      mWriter.addData(ReadOut::FeeId(eq), ReadOut::CruId(eq), ReadOut::LnkId(eq), 0, {bc, orbit}, gsl::span<char>(reinterpret_cast<char*>(ptrStartEquipment), EventSize * sizeof(uint32_t)));
+      // We fill the fields !
+      // TODO: we can fill the detector field with Simulated Data
+      setDetectorSpecificFields(0.000001 * EventSize);
+      setRDHFields(eq);
     }
-    mWriter.addData(mEqIds[eq], mCruIds[eq], mLinkIds[eq], 0, {bc, orbit}, gsl::span<char>(reinterpret_cast<char*>(ptrStartEquipment), EventSize * sizeof(uint32_t)));
     ptrStartEquipment += EventSize;
   }
   return;
@@ -184,19 +224,29 @@ void HmpidCoder2::writePaginatedEvent(uint32_t orbit, uint16_t bc)
 /// @param[in] digits : the vector of Digit structures
 void HmpidCoder2::codeEventChunkDigits(std::vector<Digit>& digits)
 {
+  if(digits.size() == 0) return; // the vector is empty !
+  codeEventChunkDigits(digits, Trigger{digits[0].getBC(), digits[0].getOrbit()});
+  return;
+}
+
+/// Analyze a Digits Vector and setup the PADs array
+/// with the charge value, then fills the output buffer
+/// and forward it to the RawWriter object
+///
+/// NOTE: the vector could be empty!
+/// @param[in] digits : the vector of Digit structures
+/// @param[in] ir : the Interaction Record structure
+void HmpidCoder2::codeEventChunkDigits(std::vector<Digit>& digits, Trigger ir)
+{
   int eq, col, dil, cha, mo, x, y, idx;
-  uint32_t orbit = 0;
-  uint16_t bc = 0;
+  uint32_t orbit = ir.getOrbit();
+  uint16_t bc = ir.getBc();
 
   int padsCount = 0;
-  if(digits.size() == 0) return; // the vector is empty !
-
-  orbit = digits[0].getOrbit();
-  bc = digits[0].getBC();
-  LOG(INFO) << "Manage chunk Orbit :" << orbit << " BC:" << bc;
+  LOG(INFO) << "Manage chunk Orbit :" << orbit << " BC:" << bc << "  Digits size:" << digits.size();
   for (o2::hmpid::Digit d : digits) {
     Digit::Pad2Equipment(d.getPadID(), &eq, &col, &dil, &cha); // From Digit to Hardware coords
-    eq = mEqIds[eq];                                           // converts the Equipment Id in Cru/Link position ref
+    eq = ReadOut::FeeId(eq);                                   // converts the Equipment Id in Cru/Link position ref
     idx = getEquipmentPadIndex(eq, col, dil, cha);             // finally to the unique padmap index
     if (mPadMap[idx] != 0) { // We already have the pad set
       std::cerr << "HmpidCoder [ERROR] : Duplicated DIGIT =" << d << " (" << eq << "," << col << "," << dil << "," << cha << ")" << std::endl;
@@ -207,7 +257,7 @@ void HmpidCoder2::codeEventChunkDigits(std::vector<Digit>& digits)
   }
   fillTheOutputBuffer(mPadMap); // Fill the Buffer for all Equipments per Event
   writePaginatedEvent(orbit, bc);
-  memset(mPadMap, 0, sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS); // Update for the new event
+  std::memset(mPadMap, 0, sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS); // Update for the new event
   return;
 }
 
@@ -217,26 +267,25 @@ void HmpidCoder2::codeEventChunkDigits(std::vector<Digit>& digits)
 /// @param[in] OutputFileName : the Path/Prefix name for the raw files
 /// @param[in] perFlpFile : if true a couple of files will be created, one for each
 ///                         HMPID FLPs
-void HmpidCoder2::openOutputStream(const char* OutputFileName, bool perFlpFile)
+void HmpidCoder2::openOutputStream(const char* OutputFileName, bool perLinkFile, bool perFlpFile)
 {
-  if (perFlpFile) {
-    sprintf(mFileName160, "%s_%d%s", OutputFileName, 160, ".raw");
-    sprintf(mFileName161, "%s_%d%s", OutputFileName, 161, ".raw");
-  } else {
-    sprintf(mFileName160, "%s%s", OutputFileName, ".raw");
-    sprintf(mFileName161, "%s%s", OutputFileName, ".raw");
-  }
   RAWDataHeader rdh; // by default, v6 is used currently.
   for (int eq = 0; eq < mNumberOfEquipments; eq++) {
-    rdh.feeId = mEqIds[eq];
-    rdh.cruID = mCruIds[eq];
-    rdh.linkID = mLinkIds[eq];
+    rdh.feeId = ReadOut::FeeId(eq);
+    rdh.cruID = ReadOut::CruId(eq);
+    rdh.linkID = ReadOut::LnkId(eq);
     rdh.endPointID = 0;
-    if(mFlpIds[eq] == 160) {
-      mWriter.registerLink(rdh, mFileName160);
+
+    if(perLinkFile) {
+      sprintf(mFileName, "%s_L%d%s", OutputFileName, ReadOut::FeeId(eq), ".raw");
+    } else if(perFlpFile) {
+      sprintf(mFileName, "%s_%d%s", OutputFileName, ReadOut::FlpId(eq), ".raw");
     } else {
-      mWriter.registerLink(rdh, mFileName161);
+      sprintf(mFileName, "%s%s", OutputFileName, ".raw");
     }
+    mWriter.registerLink(rdh, mFileName); // register the link
+    LinkSubSpec_t ap = RDHUtils::getSubSpec(ReadOut::CruId(eq), ReadOut::LnkId(eq), 0, ReadOut::FeeId(eq));
+    mTheRFWLinks[eq] = ap; // Store the RawFileWriter Link ID
   }
   return;
 }
@@ -252,7 +301,7 @@ void HmpidCoder2::closeOutputStream()
 void HmpidCoder2::dumpResults()
 {
   std::cout << " ****  HMPID RawFile Coder : results ****" << std::endl;
-  std::cout << " Created files : " << mFileName160 << " ," << mFileName161 << std::endl;
+  std::cout << " Created files : " << mFileName << std::endl;
   std::cout << " Number of Pads coded : " << mPadsCoded << std::endl;
   std::cout << " ----------------------------------------" << std::endl;
 }

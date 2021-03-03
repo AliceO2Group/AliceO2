@@ -33,6 +33,8 @@
 #include "FairLogger.h"
 #include "HMPIDBase/Geo.h"
 #include "HMPIDBase/Digit.h"
+#include "HMPIDBase/Trigger.h"
+
 
 // ---- RDH 6  standard dimension -------
 #define RAWBLOCKDIMENSION_W 2048
@@ -62,20 +64,27 @@ class HmpidCoder2
 
  private:
   // The standard definition of HMPID equipments at P2
-  const int mEqIds[Geo::MAXEQUIPMENTS] = {0, 1, 2, 3, 4, 5, 8, 9, 6, 7, 10, 11, 12, 13};
-  const int mCruIds[Geo::MAXEQUIPMENTS] = {0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3};
-  const int mLinkIds[Geo::MAXEQUIPMENTS] = {0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 0, 1, 2};
-  const int mFlpIds[Geo::MAXEQUIPMENTS] = {160, 160, 160, 160, 160, 160, 160, 160, 161, 161, 161, 161, 161, 161};
+//  const int mEqIds[Geo::MAXEQUIPMENTS] = {0, 1, 2, 3, 4, 5, 8, 9, 6, 7, 10, 11, 12, 13};
+//  const int mCruIds[Geo::MAXEQUIPMENTS] = {0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3};
+//  const int mLinkIds[Geo::MAXEQUIPMENTS] = {0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 0, 1, 2};
+//  const int mFlpIds[Geo::MAXEQUIPMENTS] = {160, 160, 160, 160, 160, 160, 160, 160, 161, 161, 161, 161, 161, 161};
 
-  char mFileName160[512];
-  char mFileName161[512];
+  char mFileName[1024];
   uint32_t* mPayloadBufferPtr;
+  uint32_t* mPadMap;
   int mEventSizePerEquipment[Geo::MAXEQUIPMENTS];
   int mEventPadsPerEquipment[Geo::MAXEQUIPMENTS];
   int mPailoadBufferDimPerEquipment;
-  uint32_t* mPadMap;
   long mPadsCoded;
   bool mSkipEmptyEvents;
+  std::unique_ptr<uint32_t> mUPayloadBufferPtr;
+  std::unique_ptr<uint32_t> mUPadMap;
+
+  LinkSubSpec_t mTheRFWLinks[Geo::MAXEQUIPMENTS];
+
+  int mBusyTime;
+  int mHmpidErrorFlag;
+  int mHmpidFrwVersion;
 
  public:
   HmpidCoder2(int numOfEquipments);
@@ -101,11 +110,14 @@ class HmpidCoder2
   {
     return (mSkipEmptyEvents);
   }
+  o2::raw::RawFileWriter& getWriter() { return mWriter; }
 
-  void openOutputStream(const char* OutputFileName, bool perFlpFile = false);
+  void setDetectorSpecificFields(float BusyTime = 0.001, int Error = 0, int Version = 9);
+  void openOutputStream(const char* OutputFileName, bool perLinkFile = false,  bool perFlpFile = false);
   void closeOutputStream();
 
   void codeEventChunkDigits(std::vector<Digit>& digits);
+  void codeEventChunkDigits(std::vector<Digit>& digits, Trigger ir);
   void dumpResults();
 
  private:
@@ -113,6 +125,7 @@ class HmpidCoder2
   int getEquipmentPadIndex(int eq, int col, int dil, int cha);
   void fillTheOutputBuffer(uint32_t* padMap);
   void writePaginatedEvent(uint32_t orbit, uint16_t bc);
+  void setRDHFields(int eq = -1);
 };
 
 } // namespace hmpid

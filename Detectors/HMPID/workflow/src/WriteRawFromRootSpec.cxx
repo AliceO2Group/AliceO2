@@ -24,6 +24,7 @@
 #include <vector>
 #include <algorithm>
 
+#include "Framework/DataRefUtils.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
@@ -34,16 +35,19 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Logger.h"
 #include "Framework/InputRecordWalker.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 #include "TFile.h"
 #include "TTree.h"
-
+#include <TSystem.h>
 
 #include "Headers/RAWDataHeader.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "DPLUtils/DPLRawParser.h"
 
 #include "HMPIDBase/Digit.h"
+#include "HMPIDBase/Trigger.h"
 #include "HMPIDBase/Geo.h"
 #include "HMPIDSimulation/HmpidCoder2.h"
 #include "HMPIDWorkflow/WriteRawFromRootSpec.h"
@@ -61,24 +65,43 @@ using RDH = o2::header::RDHAny;
 // Data decoder
 void WriteRawFromRootTask::init(framework::InitContext& ic)
 {
-  LOG(INFO) << "[HMPID Write Raw File From Root sim Digits vector - init()]";
-  mBaseFileName = ic.options().get<std::string>("out-file");
-  mBaseRootFileName = ic.options().get<std::string>("in-file");
-  mSkipEmpty = ic.options().get<bool>("skip-empty");
+  LOG(INFO) << "HMPID Write Raw File From Root sim Digits vector - init()";
   mDigitsReceived = 0;
   mEventsReceived = 0;
-  mDumpDigits = ic.options().get<bool>("dump-digits");
-  mPerFlpFile = ic.options().get<bool>("per-flp-file");
+  mBaseRootFileName = ic.options().get<std::string>("in-file");
+  mBaseFileName = ic.options().get<std::string>("hmp-raw-outfile");
+  mDirectoryName = ic.options().get<std::string>("hmp-raw-outdir");
+  mPerLink = ic.options().get<bool>("hmp-raw-perlink");
+  mPerFlpFile = ic.options().get<bool>("hmp-raw-perflp");
+  mDumpDigits = ic.options().get<bool>("dump-digits"); // Debug flags
+  mSkipEmpty = ic.options().get<bool>("hmp-skip-empty");
 
+  // Arrange Files path
+  if (gSystem->AccessPathName(mDirectoryName.c_str())) {
+    if (gSystem->mkdir(mDirectoryName.c_str(), kTRUE)) {
+      LOG(FATAL) << "could not create output directory " << mDirectoryName;
+    } else {
+      LOG(INFO) << "created output directory " << mDirectoryName;
+    }
+  }
+  std::string fullFName = o2::utils::concat_string(mDirectoryName, "/", mBaseFileName);
+
+  // Setup the Coder
   mCod = new HmpidCoder2(Geo::MAXEQUIPMENTS);
-//  mCod->reset();
-  mCod->openOutputStream(mBaseFileName.c_str(), mPerFlpFile);
+  mCod->setSkipEmptyEvents(mSkipEmpty);
+  mCod->openOutputStream(fullFName.c_str(), mPerLink, mPerFlpFile);
+  std::string inputGRP = o2::base::NameConf::getGRPFileName();
+  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom(inputGRP)};
+  mCod->getWriter().setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::HMP)); // must be set explicitly
 
+  // Open the ROOT file
   TFile* fdig = TFile::Open(mBaseRootFileName.data());
   assert(fdig != nullptr);
-  LOG(INFO) << " Open Root digits file " << mBaseRootFileName.data();
+  LOG(INFO) << "Open Root digits file " << mBaseRootFileName.data();
   mDigTree = (TTree*)fdig->Get("o2sim");
 
+  // Ready to operate
+  mCod->getWriter().writeConfFile("HMP", "RAWDATA", o2::utils::concat_string(mDirectoryName, '/', "HMPraw.cfg"));
   mExTimer.start();
   return;
 }
@@ -88,23 +111,34 @@ void WriteRawFromRootTask::readRootFile()
 {
   std::vector<o2::hmpid::Digit> digitsPerEvent;
   std::vector<o2::hmpid::Digit> digits,*hmpBCDataPtr = &digits;
-//  std::vector<o2::ft0::ChannelData> digitsCh, *ft0ChDataPtr = &digitsCh;
+  std::vector<o2::hmpid::Trigger> interactions, *interactionsPtr = &interactions;
+
+  // Keeps the Interactions !
+  mDigTree->SetBranchAddress("InteractionRecords", &interactionsPtr);
+  LOG(DEBUG) << "Number of Interaction Records vectors in the simulation file :" << mDigTree->GetEntries();
+  for (int ient = 0; ient < mDigTree->GetEntries(); ient++) {
+    mDigTree->GetEntry(ient);
+    LOG(INFO) << "Interactions records in simulation :" << interactions.size();
+    for (auto a : interactions) {
+      LOG(DEBUG) << a;
+    }
+  }
+  sort(interactions.begin(), interactions.end()); // Sort interactions in ascending order
+  int trigPointer = 0;
 
   mDigTree->SetBranchAddress("HMPDigit", &hmpBCDataPtr);
-  //  digTree->SetBranchAddress("FT0DIGITSCH", &ft0ChDataPtr);
-
-  uint32_t old_orbit = ~0;
-  uint32_t old_bc = ~0;
-
   LOG(INFO) << "Number of entries in the simulation file :" << mDigTree->GetEntries();
+
+  // Loops in the Entry of ROOT Branch
   for (int ient = 0; ient < mDigTree->GetEntries(); ient++) {
     mDigTree->GetEntry(ient);
     int nbc = digits.size();
-    if (nbc == 0)
-      continue; // exit for empty
-
+    if (nbc == 0) {  // exit for empty
+      LOG(INFO) << "The Entry :" << ient << " doesn't have digits !";
+      continue;
+    }
     sort(digits.begin(), digits.end(), o2::hmpid::Digit::eventEquipPadsComp);
-    if (mDumpDigits) {
+    if (mDumpDigits) {  // we wand the dump of digits ?
       std::ofstream dumpfile;
       dumpfile.open("/tmp/hmpDumpDigits.dat");
       for (int i = 0; i < nbc; i++) {
@@ -112,42 +146,40 @@ void WriteRawFromRootTask::readRootFile()
       }
       dumpfile.close();
     }
-
-    //    sort(digits.begin(), digits.end(), o2::hmpid::Digit::eventEquipPadsComp);
-    LOG(INFO) << "For the entry = " << ient << " there are " << nbc << " BCs stored.";
-
-    old_orbit = digits[0].getOrbit();
-    old_bc = digits[0].getBC();
-    mEventsReceived++;
-    LOG(INFO) << "Orbit = " << old_orbit << " BC " << old_bc;
-    for (int i = 0; i < nbc; i++) {
-      if (digits[i].getOrbit() != old_orbit || digits[i].getBC() != old_bc) { // the event is finished
-        mCod->codeEventChunkDigits(digitsPerEvent);
-        digitsPerEvent.clear();
-        old_orbit = digits[i].getOrbit();
-        old_bc = digits[i].getBC();
-        mEventsReceived++;
-        LOG(INFO) << "Orbit = " << old_orbit << " BC " << old_bc;
+    // ready to operate
+    LOG(INFO) << "For the entry = " << ient << " there are " << nbc << " DIGITS stored.";
+    for(int i=0; i < nbc; i++) {
+      if(digits[i].getOrbit() != interactions[trigPointer].getOrbit() || digits[i].getBC() != interactions[trigPointer].getBc()) {
+        do {
+          mEventsReceived++;
+          LOG(DEBUG) << "Orbit =" << interactions[trigPointer].getOrbit() << " BC =" << interactions[trigPointer].getBc();
+          mCod->codeEventChunkDigits(digitsPerEvent, interactions[trigPointer]);
+          digitsPerEvent.clear();
+          trigPointer++;
+        } while ((digits[i].getOrbit() != interactions[trigPointer].getOrbit() || digits[i].getBC() != interactions[trigPointer].getBc()) && trigPointer < interactions.size());
+        if(trigPointer == interactions.size()) {
+          LOG(WARNING) << "Digits without Interaction Record !!!  ABORT" ;
+          break;
+        }
       }
       digitsPerEvent.push_back(digits[i]);
     }
-    if (digitsPerEvent.size() > 0) {
-      mCod->codeEventChunkDigits(digitsPerEvent);
-    }
+    mEventsReceived++;
+    LOG(DEBUG) << "Orbit =" << interactions[trigPointer].getOrbit() << " BC =" << interactions[trigPointer].getBc();
+    mCod->codeEventChunkDigits(digitsPerEvent, interactions[trigPointer]);
     mDigitsReceived += nbc;
   }
+  mExTimer.logMes("End of Write raw file Job !");
+  return;
 }
 
 void WriteRawFromRootTask::run(framework::ProcessingContext& pc)
 {
   readRootFile();
-
-  mExTimer.logMes("End Of Job !");
   mCod->closeOutputStream();
   mCod->dumpResults();
   mExTimer.logMes("Raw File created ! Digits = " + std::to_string(mDigitsReceived) + " for Events =" + std::to_string(mEventsReceived));
   mExTimer.stop();
-
   pc.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
   return;
 }
@@ -168,11 +200,14 @@ o2::framework::DataProcessorSpec getWriteRawFromRootSpec(std::string inputSpec)
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<WriteRawFromRootTask>()},
-    Options{{"out-file", VariantType::String, "hmpidRaw", {"name of the output file"}},
-            {"in-file", VariantType::String, "simulation.root", {"name of the input sim root file"}},
-            {"per-flp-file", VariantType::Bool, false, {"produce one raw file per FLPs"}},
+    Options{{"hmp-raw-outdir", VariantType::String, "./", {"base dir for output file"}},
+            {"hmp-raw-outfile", VariantType::String, "hmpReadOut", {"base name for output file"}},
+            {"hmp-raw-perlink", VariantType::Bool, false, {"produce one file per link"}},
+            {"hmp-raw-perflp", VariantType::Bool, false, {"produce one raw file per FLPs"}},
+            {"in-file", VariantType::String, "hmpiddigits.root", {"name of the input sim root file"}},
+       //     {"configKeyValues", VariantType::String, "", {"comma-separated configKeyValues"}},
             {"dump-digits", VariantType::Bool, false, {"out the digits file in /tmp/hmpDumpDigits.dat"}},
-            {"skip-empty", VariantType::Bool, false, {"skip empty events"}}}};
+            {"hmp-skip-empty", VariantType::Bool, false, {"skip empty events"}}}};
 }
 
 } // namespace hmpid
