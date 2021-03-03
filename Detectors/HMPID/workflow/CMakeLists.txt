@@ -15,7 +15,6 @@ o2_add_library(HMPIDWorkflow
                        src/DumpDigitsSpec.cxx
                        src/ReadRawFileSpec.cxx
                        src/WriteRawFromDigitsSpec.cxx
-<<<<<<< HEAD
                        src/WriteRawFromRootSpec.cxx
                        src/PedestalsCalculationSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
@@ -64,49 +63,5 @@ o2_add_executable(raw-to-pedestals-workflow
 o2_add_executable(write-raw-from-root-workflow
               COMPONENT_NAME hmpid
               SOURCES src/write-raw-from-root-workflow.cxx
-=======
-                       src/PedestalsCalculationSpec.cxx
-               PUBLIC_LINK_LIBRARIES O2::Framework
-                                     O2::CCDB
-                                     O2::DPLUtils
-                                     O2::DetectorsRaw
-                                     O2::HMPIDBase
-                                     O2::HMPIDSimulation
-                                     O2::HMPIDReconstruction)
-                                     
-o2_add_executable(recoworkflow
-              COMPONENT_NAME hmpid
-              SOURCES src/HMPIDRecoWorkflow.cxx 
-              PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
-
-o2_add_executable(read-raw-file-workflow
-              COMPONENT_NAME hmpid
-              SOURCES src/read-raw-file-workflow.cxx
-              PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
-
-o2_add_executable(raw-to-digits-workflow
-              COMPONENT_NAME hmpid
-              SOURCES src/raw-to-digits-workflow.cxx
-              PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
-
-o2_add_executable(write-raw-from-digits-workflow
-              COMPONENT_NAME hmpid
-              SOURCES src/write-raw-from-digits-workflow.cxx
-              PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
-
-o2_add_executable(dump-digits-workflow
-              COMPONENT_NAME hmpid
-              SOURCES src/dump-digits-workflow.cxx
-              PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
-              
-o2_add_executable(write-root-from-digits-workflow
-              COMPONENT_NAME hmpid
-              SOURCES src/write-root-from-digits-workflow.cxx
-              PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
-
-o2_add_executable(raw-to-pedestals-workflow
-              COMPONENT_NAME hmpid
-              SOURCES src/raw-to-pedestals-workflow.cxx
->>>>>>> refs/heads/dev
               PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
               

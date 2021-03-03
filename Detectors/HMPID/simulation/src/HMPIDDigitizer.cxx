@@ -119,11 +119,7 @@ void HMPIDDigitizer::process(std::vector<o2::hmpid::HitType> const& hits, std::v
       } else {
         // create digit ... and register
         //        mDigits.emplace_back(mCurrentTriggerTime, pad, totalQ * fraction);
-<<<<<<< HEAD
         mDigits.emplace_back(mBc, mOrbit, pad, totalQ * fraction);
-=======
-        mDigits.emplace_back(mOrbit, mBc, pad, totalQ * fraction);
->>>>>>> refs/heads/dev
         mIndexForPad[pad] = mDigits.size() - 1;
         mInvolvedPads.emplace_back(pad);
 

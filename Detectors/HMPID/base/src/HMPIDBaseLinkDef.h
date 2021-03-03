@@ -22,10 +22,7 @@
 #pragma link C++ class o2::hmpid::HitType + ;
 #pragma link C++ class vector < o2::hmpid::HitType> + ;
 #pragma link C++ class o2::hmpid::Geo + ;
-<<<<<<< HEAD
 #pragma link C++ class o2::hmpid::Trigger + ;
 #pragma link C++ class vector < o2::hmpid::Trigger> + ;
-=======
->>>>>>> refs/heads/dev
 
 #endif

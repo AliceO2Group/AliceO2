@@ -50,11 +50,7 @@ class Digit
   static void Equipment2Absolute(int Equi, int Colu, int Dilo, int Chan, int* Module, int* x, int* y);
 
   // Trigger time Conversion Functions
-<<<<<<< HEAD
   static inline uint64_t OrbitBcToEventId(uint32_t Orbit, uint16_t BC) { return ((Orbit << 12) | (0x0FFF & BC)); };
-=======
-  static inline uint64_t OrbitBcToEventId(uint32_t Orbit, uint16_t BC) { return ((Orbit << 12) || BC); };
->>>>>>> refs/heads/dev
   static inline uint32_t EventIdToOrbit(uint64_t EventId) { return (EventId >> 12); };
   static inline uint16_t EventIdToBc(uint64_t EventId) { return (EventId & 0x0FFF); };
   static double OrbitBcToTimeNs(uint32_t Orbit, uint16_t BC);
@@ -84,17 +80,10 @@ class Digit
 
  public:
   Digit() = default;
-<<<<<<< HEAD
   Digit(uint16_t bc, uint32_t orbit, int pad, uint16_t charge);
   Digit(uint16_t bc, uint32_t orbit, int chamber, int photo, int x, int y, uint16_t charge);
   Digit(uint16_t bc, uint32_t orbit, uint16_t charge, int equipment, int column, int dilogic, int channel);
   Digit(uint16_t bc, uint32_t orbit, uint16_t charge, int module, int x, int y);
-=======
-  Digit(uint16_t bc, uint32_t orbit, int pad, uint16_t charge) : mBc(bc), mOrbit(orbit), mQ(charge), mPad(pad){};
-  Digit(uint16_t bc, uint32_t orbit, int chamber, int photo, int x, int y, uint16_t charge);
-  Digit(uint16_t bc, uint32_t orbit, uint16_t, int equipment, int column, int dilogic, int channel);
-  Digit(uint16_t bc, uint32_t orbit, uint16_t, int module, int x, int y);
->>>>>>> refs/heads/dev
 
   // Getter & Setters
   uint16_t getCharge() const { return mQ; }
@@ -144,7 +133,6 @@ class Digit
   // Charge management functions
   static void getPadAndTotalCharge(HitType const& hit, int& chamber, int& pc, int& px, int& py, float& totalcharge);
   static float getFractionalContributionForPad(HitType const& hit, int somepad);
-<<<<<<< HEAD
   void addCharge(float q)
   {
     mQ += q;
@@ -152,9 +140,6 @@ class Digit
       mQ = 0x0FFF;
     }
   }
-=======
-  void addCharge(float q) { mQ += q; }
->>>>>>> refs/heads/dev
   void subCharge(float q) { mQ -= q; }
 
  private:
