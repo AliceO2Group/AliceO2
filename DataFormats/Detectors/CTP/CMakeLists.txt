@@ -7,5 +7,5 @@ o2_add_library(DataFormatsCTP
                                      O2::SimulationDataFormat
                                      Boost::serialization)
 o2_target_root_dictionary(DataFormatsCTP
-                          HEADERS include/DataFormatsCPT/CTPRawData.h
+                          HEADERS include/DataFormatsCTP/CTPRawData.h
 )

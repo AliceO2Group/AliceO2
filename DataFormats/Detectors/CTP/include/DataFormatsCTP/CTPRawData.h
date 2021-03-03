@@ -1,6 +1,8 @@
 #ifndef ALICEO2_CTPRAWDATA_H
 #define ALICEO2_CTPRAWDATA_H
-#include InteractionRecord.h
+
+#include <bitset>
+#include "CommonDataFormat/InteractionRecord.h"
 namespace o2
 {
  namespace ctp
@@ -22,12 +24,10 @@ namespace o2
   {
       return ir;
   }
-  std::bitset<NumberOfLMinputs> getInputsMaskLM()
-  {
-      return std::bitset<NumberOfLMinputs>;
-  }
+  void test();
   ClassDefNV(CTPRawData,1);
   };
  } // namespace ctp
 }
  // namespace o2
+#endif
