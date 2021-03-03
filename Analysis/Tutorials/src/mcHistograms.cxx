@@ -34,10 +34,9 @@ struct BTask {
   OutputObj<TH1F> phiH{TH1F("phi", "phi", 100, 0., 2. * M_PI)};
   OutputObj<TH1F> etaH{TH1F("eta", "eta", 102, -2.01, 2.01)};
 
-  //  void process(aod::McCollision const& mcCollision, aod::McParticles& mcParticles)
-  void process(aod::McParticles& mcParticles)
+   void process(aod::McCollision const& mcCollision, aod::McParticles& mcParticles)
   {
-    //LOGF(info, "MC. vtx-z = %f", mcCollision.posZ());
+    LOGF(info, "MC. vtx-z = %f", mcCollision.posZ());
     LOGF(info, "First: %d | Length: %d", mcParticles.begin().index(), mcParticles.size());
     LOGF(info, "Particles mother: %d", (mcParticles.begin() + 1000).mother0());
     for (auto& mcParticle : mcParticles) {

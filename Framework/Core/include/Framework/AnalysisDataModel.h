@@ -56,14 +56,15 @@ DECLARE_SOA_COLUMN(CovXZ, covXZ, float);
 DECLARE_SOA_COLUMN(CovYY, covYY, float);
 DECLARE_SOA_COLUMN(CovYZ, covYZ, float);
 DECLARE_SOA_COLUMN(CovZZ, covZZ, float);
+DECLARE_SOA_COLUMN(Flags, flags, uint8_t); // enum CollisionFlagsRun2 and CollisionFlagsRun3
 DECLARE_SOA_COLUMN(Chi2, chi2, float);
-DECLARE_SOA_COLUMN(NumContrib, numContrib, uint32_t);
+DECLARE_SOA_COLUMN(NumContrib, numContrib, uint16_t);
 DECLARE_SOA_COLUMN(CollisionTime, collisionTime, float);
 DECLARE_SOA_COLUMN(CollisionTimeRes, collisionTimeRes, float);
 DECLARE_SOA_COLUMN(CollisionTimeMask, collisionTimeMask, uint8_t); // TODO put nature of CollisionTimeRes here, e.g. MSB 0 = exact range / 1 = Gaussian uncertainty
 } // namespace collision
 
-DECLARE_SOA_TABLE(Collisions, "AOD", "COLLISION", o2::soa::Index<>, collision::BCId, collision::PosX, collision::PosY, collision::PosZ, collision::CovXX, collision::CovXY, collision::CovXZ, collision::CovYY, collision::CovYZ, collision::CovZZ, collision::Chi2, collision::NumContrib, collision::CollisionTime, collision::CollisionTimeRes, collision::CollisionTimeMask);
+DECLARE_SOA_TABLE(Collisions, "AOD", "COLLISION", o2::soa::Index<>, collision::BCId, collision::PosX, collision::PosY, collision::PosZ, collision::CovXX, collision::CovXY, collision::CovXZ, collision::CovYY, collision::CovYZ, collision::CovZZ, collision::Flags, collision::Chi2, collision::NumContrib, collision::CollisionTime, collision::CollisionTimeRes, collision::CollisionTimeMask);
 
 using Collision = Collisions::iterator;
 
@@ -509,8 +510,20 @@ DECLARE_SOA_TABLE(TransientCascades, "AOD", "CASCADEINDEX", cascade::CollisionId
 using Cascades = soa::Join<TransientCascades, StoredCascades>;
 using Cascade = Cascades::iterator;
 
-// ---- MC tables ----
+// ---- Run 2 tables ----
+namespace run2
+{
+DECLARE_SOA_COLUMN(EventCuts, eventCuts, uint32_t);
+DECLARE_SOA_COLUMN(TriggerMaskNext50, triggerMaskNext50, uint64_t);
+DECLARE_SOA_COLUMN(SPDClustersL0, spdClustersL0, uint16_t);
+DECLARE_SOA_COLUMN(SPDClustersL1, spdClustersL1, uint16_t);
+} // namespace run2
 
+// DECLARE_SOA_TABLE(Run2CollInfos, "AOD", "RUN2COLLINFO", )
+DECLARE_SOA_TABLE(Run2BCInfos, "AOD", "RUN2BCINFO", run2::EventCuts, run2::TriggerMaskNext50, run2::SPDClustersL0,
+                  run2::SPDClustersL1)
+
+// ---- MC tables ----
 namespace mccollision
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc);
