@@ -39,19 +39,9 @@ class Digit
   void setTime(int32_t t) { mTFtime = t; }
   int32_t getTime() const { return mTFtime; }
 
-  /// flag indicating wether the time stamp is valid or not
-  bool isTimeValid() const;
-  void setTimeValid(bool valid);
-
-  /// set the index of the TimeFrame this digit belongs to. Possible values:
-  /// idx = 0 -> the digit belongs to the TF before the currently processed one
-  /// idx = 1 -> the digit belongs to the currently processed TF
-  /// idx = 2 -> the digit belongs to the TF after the currently processed one
-  uint8_t getTFindex() const;
-  void setTFindex(uint8_t idx);
-
-  uint16_t nofSamples() const { return mNofSamples; }
   void setNofSamples(uint16_t n) { mNofSamples = n; }
+  uint16_t nofSamples() const { return (mNofSamples & 0x7FFF); }
+  bool isSaturated() const { return ((mNofSamples & 0x8000) > 0); }
 
   int getDetID() const { return mDetID; }
 
@@ -63,7 +53,6 @@ class Digit
 
  private:
   int32_t mTFtime;      /// time since the beginning of the time frame, in bunch crossing units
-  uint8_t mTimeFlags;   /// flags indicating wether the time stamp is valid and to which TimeFrame the digit belongs to
   uint16_t mNofSamples; /// number of samples in the signal
   int mDetID;           /// DetectorIndex to which the digit corresponds to
   int mPadID;           /// PadIndex to which the digit corresponds to

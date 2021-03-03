@@ -160,12 +160,9 @@ class DataDecoderTask
 
     auto& digits = mDecoder->getOutputDigits();
     auto& orbits = mDecoder->getOrbits();
-    std::set<OrbitInfo> ordered_orbits(orbits.begin(), orbits.end());
 
     if (mDebug) {
-      for (auto o : ordered_orbits) {
-        std::cout << " FEEID " << o.getFeeID() << "  LINK " << (int)o.getLinkID() << "  ORBIT " << o.getOrbit() << std::endl;
-      }
+      dumpOrbits(orbits);
       for (auto d : digits) {
         std::cout << " DE# " << d.getDetID() << " PadId " << d.getPadID() << " ADC " << d.getADC() << " time " << d.getTime() << std::endl;
       }

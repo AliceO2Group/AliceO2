@@ -131,6 +131,43 @@ void DataDecoder::decodeBuffer(gsl::span<const std::byte> buf)
   }
 }
 
+void DataDecoder::dumpDigits(bool bending)
+{
+  if (mOutputDigits.size() != mSampaInfos.size()) {
+    return;
+  }
+
+  for (size_t di = 0; di < mOutputDigits.size(); di++) {
+    auto& d = mOutputDigits[di];
+    auto& t = mSampaInfos[di];
+    if (d.getPadID() < 0) {
+      continue;
+    }
+    const Segmentation& segment = segmentation(d.getDetID());
+    bool bend = segment.isBendingPad(d.getPadID());
+    if (bending != segment.isBendingPad(d.getPadID())) {
+      continue;
+    }
+    float X = segment.padPositionX(d.getPadID());
+    float Y = segment.padPositionY(d.getPadID());
+    uint32_t orbit = t.orbit;
+    uint32_t bunchCrossing = t.bunchCrossing;
+    uint32_t sampaTime = t.sampaTime;
+    std::cout << fmt::format("  DE {:4d}  PAD {:5d}  ADC {:6d}  TIME ({} {} {:4d})",
+                             d.getDetID(), d.getPadID(), d.getADC(), orbit, bunchCrossing, sampaTime);
+    std::cout << fmt::format("\tC {}  PAD_XY {:+2.2f} , {:+2.2f}", (bending ? (int)0 : (int)1), X, Y);
+    std::cout << std::endl;
+  }
+};
+
+void dumpOrbits(const std::unordered_set<OrbitInfo, OrbitInfoHash>& mOrbits)
+{
+  std::set<OrbitInfo> ordered_orbits(mOrbits.begin(), mOrbits.end());
+  for (auto o : ordered_orbits) {
+    std::cout << " FEEID " << o.getFeeID() << "  LINK " << (int)o.getLinkID() << "  ORBIT " << o.getOrbit() << std::endl;
+  }
+};
+
 void DataDecoder::decodePage(gsl::span<const std::byte> page)
 {
   if (mDebug) {
@@ -144,7 +181,7 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
     sampaId.ds = dsElecId.elinkId();
     sampaId.solar = dsElecId.solarId();
 
-    mTimeFrameInfos[sampaId.id].emplace_back(mOrbit, bunchCrossing);
+    mSampaTimeFrameStarts[sampaId.id].emplace(mOrbit, bunchCrossing);
     if (mDebug) {
       std::cout << "HeartBeat: solar " << sampaId.solar << "  ds " << sampaId.ds << "  chip " << sampaId.chip
                 << "  mOrbit " << mOrbit << "  bunchCrossing " << bunchCrossing << std::endl;
@@ -215,41 +252,6 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
     ++ndigits;
   };
 
-  const auto dumpDigits = [&](bool bending) {
-    if (mOutputDigits.size() != mSampaInfos.size()) {
-      return;
-    }
-
-    for (size_t di = 0; di < mOutputDigits.size(); di++) {
-      Digit& d = mOutputDigits[di];
-      SampaInfo& t = mSampaInfos[di];
-      if (d.getPadID() < 0) {
-        continue;
-      }
-      const Segmentation& segment = segmentation(d.getDetID());
-      bool bend = segment.isBendingPad(d.getPadID());
-      if (bending != segment.isBendingPad(d.getPadID())) {
-        continue;
-      }
-      float X = segment.padPositionX(d.getPadID());
-      float Y = segment.padPositionY(d.getPadID());
-      uint32_t orbit = t.orbit;
-      uint32_t bunchCrossing = t.bunchCrossing;
-      uint32_t sampaTime = t.sampaTime;
-      std::cout << fmt::format("  DE {:4d}  PAD {:5d}  ADC {:6d}  TIME ({} {} {:4d})",
-                               d.getDetID(), d.getPadID(), d.getADC(), orbit, bunchCrossing, sampaTime);
-      std::cout << fmt::format("\tC {}  PAD_XY {:+2.2f} , {:+2.2f}", (bending ? (int)0 : (int)1), X, Y);
-      std::cout << std::endl;
-    }
-  };
-
-  const auto dumpOrbits = [&]() {
-    std::set<OrbitInfo> ordered_orbits(mOrbits.begin(), mOrbits.end());
-    for (auto o : ordered_orbits) {
-      std::cout << " FEEID " << o.getFeeID() << "  LINK " << (int)o.getLinkID() << "  ORBIT " << o.getOrbit() << std::endl;
-    }
-  };
-
   patchPage(page, mDebug);
 
   auto& rdhAny = *reinterpret_cast<RDH*>(const_cast<std::byte*>(&(page[0])));
@@ -276,7 +278,7 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
 
   if (mDebug) {
     std::cout << "[decodeBuffer] mOrbits size: " << mOrbits.size() << std::endl;
-    //dumpOrbits();
+    //dumpOrbits(mOrbits);
     std::cout << "[decodeBuffer] mOutputDigits size: " << mOutputDigits.size() << std::endl;
     dumpDigits(true);
     dumpDigits(false);
@@ -318,60 +320,40 @@ int32_t digitsTimeDiff(uint32_t orbit1, uint32_t bc1, uint32_t orbit2, uint32_t 
   return static_cast<int32_t>(dBc);
 }
 
-void DataDecoder::computeDigitsTime_(std::vector<o2::mch::Digit>& digits, std::vector<SampaInfo>& sampaInfo, TimeFrameInfos& timeFrameInfos, bool debug)
+void DataDecoder::computeDigitsTime_(std::vector<o2::mch::Digit>& digits, std::vector<SampaInfo>& sampaInfo, SampaTimeFrameStarts& sampaTimeFrameStarts, bool debug)
 {
   if (digits.size() != sampaInfo.size()) {
-    return;
+    throw std::logic_error(fmt::format("{} mismatch in digits and sampaInfo vector sizes ({} and {})\n",
+                                       __PRETTY_FUNCTION__, digits.size(), sampaInfo.size()));
   }
 
-  auto setDigitTime = [&](Digit& d, int32_t tfTime1, int32_t tfTime2) {
-    d.setTime(tfTime1);
-    d.setTimeValid(true);
-    if (tfTime2 < 0) {
-      d.setTime(tfTime1);
-      if (tfTime1 >= 0) {
-        d.setTFindex(1);
-      } else {
-        d.setTFindex(0);
-      }
-    } else {
-      d.setTFindex(2);
-    }
+  auto setDigitTime = [&](Digit& d, int32_t tfTime) {
+    d.setTime(tfTime);
     if (debug) {
-      std::cout << "[computeDigitsTime_] hit time set to " << d.getTime() << ", TF index is " << (int)d.getTFindex() << std::endl;
+      std::cout << "[computeDigitsTime_] hit time set to " << d.getTime() << std::endl;
     }
   };
 
   for (size_t di = 0; di < digits.size(); di++) {
     Digit& d = digits[di];
     SampaInfo& info = sampaInfo[di];
-    std::vector<TimeFrameInfo>& tfInfo = timeFrameInfos[info.id];
+    std::optional<SampaTimeFrameStart>& tfStart = sampaTimeFrameStarts[info.id];
 
-    int32_t tfTime1 = 0, tfTime2 = -1;
-
-    if (tfInfo.empty()) {
-      d.setTimeValid(false);
+    if (!tfStart) {
+      d.setTime(0xFFFFFFFF);
       continue;
     }
-    uint32_t bc = tfInfo[0].mBunchCrossing;
-    uint32_t orbit = tfInfo[0].mOrbit;
-    tfTime1 = digitsTimeDiff(orbit, bc, info.orbit, info.getBXTime());
+
+    int32_t tfTime = 0;
+    uint32_t bc = tfStart->mBunchCrossing;
+    uint32_t orbit = tfStart->mOrbit;
+    tfTime = digitsTimeDiff(orbit, bc, info.orbit, info.getBXTime());
     if (debug) {
       std::cout << "[computeDigitsTime_] hit " << info.orbit << "," << info.getBXTime()
-                << "    tfTime(1) " << orbit << "," << bc << "    diff " << tfTime1 << std::endl;
+                << "    tfTime(1) " << orbit << "," << bc << "    diff " << tfTime << std::endl;
     }
 
-    if (tfInfo.size() > 1) {
-      bc = tfInfo[1].mBunchCrossing;
-      orbit = tfInfo[1].mOrbit;
-      tfTime2 = digitsTimeDiff(orbit, bc, info.orbit, info.getBXTime());
-      if (debug) {
-        std::cout << "[computeDigitsTime_] hit " << info.orbit << "," << info.getBXTime()
-                  << "    tfTime(1) " << orbit << "," << bc << "    diff " << tfTime2 << std::endl;
-      }
-    }
-
-    setDigitTime(d, tfTime1, tfTime2);
+    setDigitTime(d, tfTime);
   }
 }
 

@@ -40,6 +40,9 @@ struct OrbitInfoHash {
   }
 };
 
+void dumpOrbits(const std::unordered_set<OrbitInfo, OrbitInfoHash>& mOrbits);
+
+
 //_________________________________________________________________
 //
 // Data decoder
@@ -74,23 +77,23 @@ class DataDecoder
     }
   };
 
-  struct TimeFrameInfo {
-    TimeFrameInfo(uint32_t orbit, uint32_t bunchCrossing) : mOrbit(orbit), mBunchCrossing(bunchCrossing) {}
+  struct SampaTimeFrameStart {
+    SampaTimeFrameStart(uint32_t orbit, uint32_t bunchCrossing) : mOrbit(orbit), mBunchCrossing(bunchCrossing) {}
 
     uint32_t mOrbit{0};
     int32_t mBunchCrossing{0};
   };
 
-  using TimeFrameInfos = std::unordered_map<uint32_t, std::vector<TimeFrameInfo>>;
+  using SampaTimeFrameStarts = std::unordered_map<uint32_t, std::optional<SampaTimeFrameStart>>;
 
   DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandler, std::string mapCRUfile, std::string mapFECfile, bool ds2manu, bool verbose);
 
   void reset();
   void decodeBuffer(gsl::span<const std::byte> buf);
-  static void computeDigitsTime_(std::vector<o2::mch::Digit>& digits, std::vector<SampaInfo>& sampaInfo, TimeFrameInfos& timeFrameInfos, bool debug);
+  static void computeDigitsTime_(std::vector<o2::mch::Digit>& digits, std::vector<SampaInfo>& sampaInfo, SampaTimeFrameStarts& sampaTimeFrameStarts, bool debug);
   void computeDigitsTime()
   {
-    computeDigitsTime_(mOutputDigits, mSampaInfos, mTimeFrameInfos, mDebug);
+    computeDigitsTime_(mOutputDigits, mSampaInfos, mSampaTimeFrameStarts, mDebug);
   }
 
   const std::vector<o2::mch::Digit>& getOutputDigits() const { return mOutputDigits; }
@@ -101,6 +104,7 @@ class DataDecoder
   void initFee2SolarMapper(std::string filename);
   void init();
   void decodePage(gsl::span<const std::byte> page);
+  void dumpDigits(bool bending);
 
   Elec2DetMapper mElec2Det{nullptr};       ///< front-end electronics mapping
   FeeLink2SolarMapper mFee2Solar{nullptr}; ///< CRU electronics mapping
@@ -113,7 +117,7 @@ class DataDecoder
   std::vector<SampaInfo> mSampaInfos;        ///< vector of auxiliary SampaInfo objects
 
   std::unordered_set<OrbitInfo, OrbitInfoHash> mOrbits; ///< list of orbits in the processed buffer
-  TimeFrameInfos mTimeFrameInfos;                       ///< time stamps of the TimeFrames in the processed buffer
+  SampaTimeFrameStarts mSampaTimeFrameStarts;                       ///< time stamps of the TimeFrames in the processed buffer
 
   SampaChannelHandler mChannelHandler;                  ///< optional user function to be called for each decoded SAMPA hit
   std::function<void(o2::header::RDHAny*)> mRdhHandler; ///< optional user function to be called for each RDH
