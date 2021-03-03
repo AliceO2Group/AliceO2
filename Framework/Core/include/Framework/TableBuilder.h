@@ -845,7 +845,7 @@ void lowerBound(int32_t value, T& start)
   while (count > 0) {
     step = count / 2;
     start.moveByIndex(step);
-    if (start.template getId<Key>() < value) {
+    if (start.template getId<Key>() <= value) {
       count -= step + 1;
     } else {
       start.moveByIndex(-step);
