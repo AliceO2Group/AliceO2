@@ -847,7 +847,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     float cmmin = 0.0f;
     float cmmax = 0.0f;
     sscanf(tokens->At(i)->GetName(), "%f-%f", &cmmin, &cmmax);
-    workflow.push_back(adaptAnalysisTask<DptDptCorrelationsTask>(Form("DptDptCorrelationsTask-%s", tokens->At(i)->GetName()), cmmin, cmmax));
+    workflow.push_back(adaptAnalysisTask<DptDptCorrelationsTask>(cfgc, Form("DptDptCorrelationsTask-%s", tokens->At(i)->GetName()), cmmin, cmmax));
   }
   delete tokens;
   return workflow;
