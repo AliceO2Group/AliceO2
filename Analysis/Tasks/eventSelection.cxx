@@ -205,9 +205,9 @@ struct EventSelectionTaskRun3 {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const& ctx)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  if (ctx.options().get<int>("selection-run") == 2) {
+  if (cfgc.options().get<int>("selection-run") == 2) {
     return WorkflowSpec{adaptAnalysisTask<EventSelectionTask>(cfgc, "event-selection")};
   } else {
     return WorkflowSpec{
