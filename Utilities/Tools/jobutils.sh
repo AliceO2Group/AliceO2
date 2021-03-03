@@ -275,14 +275,14 @@ taskwrapper() {
         # echo "CPU last time window ${p} : ${thisCPU[$p]}"
       done
 
-      echo "${line}"
-      echo "${cpucounter} totalCPU = ${totalCPU} -- without limitation ${totalCPU_unlimited}"
+      # echo "${line}"
+      # echo "${cpucounter} totalCPU = ${totalCPU} -- without limitation ${totalCPU_unlimited}"
       # We can check if the total load is above a resource limit
       # And take corrective actions if we extend by 10%
       limitPIDs=""
       unset waslimited
       if [ ${JOBUTILS_LIMITLOAD} ]; then
-        if (( $(echo "${totalCPU_unlimited} > 1.1*${JOBUTILS_LIMITLOAD}" | bc -l) )); then
+        if (( $(echo "${totalCPU_unlimited} > 1.1*${JOBUTILS_LIMITLOAD}" | bc -l 2>/dev/null) )); then
           # we reduce each pid proportionally for the time until the next check and record the reduction factor in place
           oldreduction=${reduction_factor}
           reduction_factor=$(awk -v limit="${JOBUTILS_LIMITLOAD}" -v cur="${totalCPU_unlimited}" 'BEGIN{ print limit/cur;}')
@@ -308,7 +308,7 @@ taskwrapper() {
 
       let cpucounter=cpucounter+1
       # our condition for inactive
-      if (( $(echo "${totalCPU} < 5" | bc -l) )); then
+      if (( $(echo "${totalCPU} < 5" | bc -l 2> /dev/null) )); then
         let inactivitycounter=inactivitycounter+JOBUTILS_WRAPPER_SLEEP
       else
         inactivitycounter=0
