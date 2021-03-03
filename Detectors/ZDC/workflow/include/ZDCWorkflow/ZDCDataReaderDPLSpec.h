@@ -44,8 +44,8 @@ namespace zdc
 class ZDCDataReaderDPLSpec : public Task
 {
  public:
-  ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const std::string& ccdbURL);
   ZDCDataReaderDPLSpec() = default;
+  ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const std::string& ccdbURL);
   ~ZDCDataReaderDPLSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
