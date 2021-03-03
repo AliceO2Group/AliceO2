@@ -48,7 +48,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 using namespace o2;
 using namespace o2::framework;
 
-
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
@@ -58,5 +57,3 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   specs.push_back(consumer);
   return specs;
 }
-
-

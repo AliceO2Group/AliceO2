@@ -133,12 +133,12 @@ void WriteRawFromRootTask::readRootFile()
   for (int ient = 0; ient < mDigTree->GetEntries(); ient++) {
     mDigTree->GetEntry(ient);
     int nbc = digits.size();
-    if (nbc == 0) {  // exit for empty
+    if (nbc == 0) { // exit for empty
       LOG(INFO) << "The Entry :" << ient << " doesn't have digits !";
       continue;
     }
     sort(digits.begin(), digits.end(), o2::hmpid::Digit::eventEquipPadsComp);
-    if (mDumpDigits) {  // we wand the dump of digits ?
+    if (mDumpDigits) { // we wand the dump of digits ?
       std::ofstream dumpfile;
       dumpfile.open("/tmp/hmpDumpDigits.dat");
       for (int i = 0; i < nbc; i++) {
@@ -148,8 +148,8 @@ void WriteRawFromRootTask::readRootFile()
     }
     // ready to operate
     LOG(INFO) << "For the entry = " << ient << " there are " << nbc << " DIGITS stored.";
-    for(int i=0; i < nbc; i++) {
-      if(digits[i].getOrbit() != interactions[trigPointer].getOrbit() || digits[i].getBC() != interactions[trigPointer].getBc()) {
+    for (int i = 0; i < nbc; i++) {
+      if (digits[i].getOrbit() != interactions[trigPointer].getOrbit() || digits[i].getBC() != interactions[trigPointer].getBc()) {
         do {
           mEventsReceived++;
           LOG(DEBUG) << "Orbit =" << interactions[trigPointer].getOrbit() << " BC =" << interactions[trigPointer].getBc();
@@ -157,8 +157,8 @@ void WriteRawFromRootTask::readRootFile()
           digitsPerEvent.clear();
           trigPointer++;
         } while ((digits[i].getOrbit() != interactions[trigPointer].getOrbit() || digits[i].getBC() != interactions[trigPointer].getBc()) && trigPointer < interactions.size());
-        if(trigPointer == interactions.size()) {
-          LOG(WARNING) << "Digits without Interaction Record !!!  ABORT" ;
+        if (trigPointer == interactions.size()) {
+          LOG(WARNING) << "Digits without Interaction Record !!!  ABORT";
           break;
         }
       }
@@ -205,7 +205,7 @@ o2::framework::DataProcessorSpec getWriteRawFromRootSpec(std::string inputSpec)
             {"hmp-raw-perlink", VariantType::Bool, false, {"produce one file per link"}},
             {"hmp-raw-perflp", VariantType::Bool, false, {"produce one raw file per FLPs"}},
             {"in-file", VariantType::String, "hmpiddigits.root", {"name of the input sim root file"}},
-       //     {"configKeyValues", VariantType::String, "", {"comma-separated configKeyValues"}},
+            //     {"configKeyValues", VariantType::String, "", {"comma-separated configKeyValues"}},
             {"dump-digits", VariantType::Bool, false, {"out the digits file in /tmp/hmpDumpDigits.dat"}},
             {"hmp-skip-empty", VariantType::Bool, false, {"skip empty events"}}}};
 }

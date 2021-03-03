@@ -35,7 +35,6 @@
 #include "HMPIDBase/Digit.h"
 #include "HMPIDBase/Trigger.h"
 
-
 // ---- RDH 6  standard dimension -------
 #define RAWBLOCKDIMENSION_W 2048
 #define HEADERDIMENSION_W 16
@@ -64,10 +63,10 @@ class HmpidCoder2
 
  private:
   // The standard definition of HMPID equipments at P2
-//  const int mEqIds[Geo::MAXEQUIPMENTS] = {0, 1, 2, 3, 4, 5, 8, 9, 6, 7, 10, 11, 12, 13};
-//  const int mCruIds[Geo::MAXEQUIPMENTS] = {0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3};
-//  const int mLinkIds[Geo::MAXEQUIPMENTS] = {0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 0, 1, 2};
-//  const int mFlpIds[Geo::MAXEQUIPMENTS] = {160, 160, 160, 160, 160, 160, 160, 160, 161, 161, 161, 161, 161, 161};
+  //  const int mEqIds[Geo::MAXEQUIPMENTS] = {0, 1, 2, 3, 4, 5, 8, 9, 6, 7, 10, 11, 12, 13};
+  //  const int mCruIds[Geo::MAXEQUIPMENTS] = {0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3};
+  //  const int mLinkIds[Geo::MAXEQUIPMENTS] = {0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 0, 1, 2};
+  //  const int mFlpIds[Geo::MAXEQUIPMENTS] = {160, 160, 160, 160, 160, 160, 160, 160, 161, 161, 161, 161, 161, 161};
 
   char mFileName[1024];
   uint32_t* mPayloadBufferPtr;
@@ -113,7 +112,7 @@ class HmpidCoder2
   o2::raw::RawFileWriter& getWriter() { return mWriter; }
 
   void setDetectorSpecificFields(float BusyTime = 0.001, int Error = 0, int Version = 9);
-  void openOutputStream(const char* OutputFileName, bool perLinkFile = false,  bool perFlpFile = false);
+  void openOutputStream(const char* OutputFileName, bool perLinkFile = false, bool perFlpFile = false);
   void closeOutputStream();
 
   void codeEventChunkDigits(std::vector<Digit>& digits);

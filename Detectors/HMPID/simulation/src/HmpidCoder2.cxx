@@ -41,11 +41,11 @@ HmpidCoder2::HmpidCoder2(int numOfEquipments)
   mVerbose = 0;
   mSkipEmptyEvents = true;
   mPailoadBufferDimPerEquipment = ((Geo::N_SEGMENTS * (Geo::N_COLXSEGMENT * (Geo::N_DILOGICS * (Geo::N_CHANNELS + 1) + 1) + 1)) + 10);
-  auto UPayloadBufferPtr = std::make_unique<uint32_t[]>(sizeof(uint32_t)*mNumberOfEquipments * mPailoadBufferDimPerEquipment);
-  auto UPadMap = std::make_unique<uint32_t[]>( sizeof(uint32_t)*Geo::N_HMPIDTOTALPADS);
+  auto UPayloadBufferPtr = std::make_unique<uint32_t[]>(sizeof(uint32_t) * mNumberOfEquipments * mPailoadBufferDimPerEquipment);
+  auto UPadMap = std::make_unique<uint32_t[]>(sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS);
   mPayloadBufferPtr = UPayloadBufferPtr.get();
   mPadMap = UPadMap.get();
-  mBusyTime = 20000;  // 1 milli sec
+  mBusyTime = 20000; // 1 milli sec
   mHmpidErrorFlag = 0;
   mHmpidFrwVersion = 9;
 }
@@ -93,14 +93,14 @@ void HmpidCoder2::setDetectorSpecificFields(float BusyTime, int Error, int Versi
 /// @param[in] eq : the HMPID Equipment ID [0..13] if == -1 -> all
 void HmpidCoder2::setRDHFields(int eq)
 {
-  int st,en;
+  int st, en;
   uint32_t wr = (mBusyTime << 9) | ((mHmpidErrorFlag & 0x01F) << 4) | (mHmpidFrwVersion & 0x0F);
   st = (eq < 0 || eq >= Geo::MAXEQUIPMENTS) ? 0 : eq;
-  en = (eq < 0 || eq >= Geo::MAXEQUIPMENTS) ? Geo::MAXEQUIPMENTS : eq+1;
-  for(int l=st; l<en; l++) {
+  en = (eq < 0 || eq >= Geo::MAXEQUIPMENTS) ? Geo::MAXEQUIPMENTS : eq + 1;
+  for (int l = st; l < en; l++) {
     o2::raw::RawFileWriter::LinkData& link = mWriter.getLinkWithSubSpec(mTheRFWLinks[l]);
-    RDHAny *RDHptr = link.getLastRDH();
-    if(RDHptr != nullptr) {
+    RDHAny* RDHptr = link.getLastRDH();
+    if (RDHptr != nullptr) {
       o2::raw::RDHUtils::setDetectorField(RDHptr, wr);
     }
   }
@@ -224,7 +224,8 @@ void HmpidCoder2::writePaginatedEvent(uint32_t orbit, uint16_t bc)
 /// @param[in] digits : the vector of Digit structures
 void HmpidCoder2::codeEventChunkDigits(std::vector<Digit>& digits)
 {
-  if(digits.size() == 0) return; // the vector is empty !
+  if (digits.size() == 0)
+    return; // the vector is empty !
   codeEventChunkDigits(digits, Trigger{digits[0].getBC(), digits[0].getOrbit()});
   return;
 }
@@ -276,9 +277,9 @@ void HmpidCoder2::openOutputStream(const char* OutputFileName, bool perLinkFile,
     rdh.linkID = ReadOut::LnkId(eq);
     rdh.endPointID = 0;
 
-    if(perLinkFile) {
+    if (perLinkFile) {
       sprintf(mFileName, "%s_L%d%s", OutputFileName, ReadOut::FeeId(eq), ".raw");
-    } else if(perFlpFile) {
+    } else if (perFlpFile) {
       sprintf(mFileName, "%s_%d%s", OutputFileName, ReadOut::FlpId(eq), ".raw");
     } else {
       sprintf(mFileName, "%s%s", OutputFileName, ".raw");
