@@ -264,10 +264,6 @@ void* GPUTPCGMMerger::SetPointersMerger(void* mem)
   computePointerWithAlignment(mem, mTrackCCRoots, mNMaxSliceTracks);
   void* memMax = mem;
   mem = memBase;
-  computePointerWithAlignment(mem, mTrackSortO2, mNMaxTracks); // GPUTPCGMO2Output::prepare - GPUTPCGMO2Output::sort - GPUTPCGMO2Output::output
-  computePointerWithAlignment(mem, mClusRefTmp, mNMaxTracks);
-  memMax = (void*)std::max((size_t)mem, (size_t)memMax); // BUG: Casts needed to workaround GCC miscompilation
-  mem = memBase;
   computePointerWithAlignment(mem, mTrackIDs, mNMaxTracks); // UnpackResetIds - RefitSliceTracks - UnpackSliceGlobal
   memMax = (void*)std::max((size_t)mem, (size_t)memMax);
   mem = memBase;
@@ -349,6 +345,13 @@ void* GPUTPCGMMerger::SetPointersOutputO2MC(void* mem)
   return mem;
 }
 
+void* GPUTPCGMMerger::SetPointersOutputO2Scratch(void* mem)
+{
+  computePointerWithAlignment(mem, mTrackSortO2, mNMaxTracks);
+  computePointerWithAlignment(mem, mClusRefTmp, mNMaxTracks);
+  return mem;
+}
+
 void GPUTPCGMMerger::RegisterMemoryAllocation()
 {
   AllocateAndInitializeLate();
@@ -357,6 +360,7 @@ void GPUTPCGMMerger::RegisterMemoryAllocation()
   mMemoryResOutput = mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersOutput, (mRec->GetProcessingSettings().fullMergerOnGPU ? (mRec->GetProcessingSettings().createO2Output > 1 ? GPUMemoryResource::MEMORY_SCRATCH : GPUMemoryResource::MEMORY_OUTPUT) : GPUMemoryResource::MEMORY_INOUT) | GPUMemoryResource::MEMORY_CUSTOM, "TPCMergerOutput");
   mMemoryResOutputState = mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersOutputState, (mRec->GetProcessingSettings().fullMergerOnGPU ? GPUMemoryResource::MEMORY_OUTPUT : GPUMemoryResource::MEMORY_HOST) | GPUMemoryResource::MEMORY_CUSTOM, "TPCMergerOutputState");
   if (mRec->GetProcessingSettings().createO2Output) {
+    mMemoryResOutputO2Scratch = mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersOutputO2Scratch, GPUMemoryResource::MEMORY_SCRATCH | GPUMemoryResource::MEMORY_STACK | GPUMemoryResource::MEMORY_CUSTOM, "TPCMergerOutputO2Scratch");
     mMemoryResOutputO2 = mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersOutputO2, GPUMemoryResource::MEMORY_OUTPUT | GPUMemoryResource::MEMORY_CUSTOM, "TPCMergerOutputO2");
     mMemoryResOutputO2Clus = mRec->RegisterMemoryAllocation(this, &GPUTPCGMMerger::SetPointersOutputO2Clus, GPUMemoryResource::MEMORY_OUTPUT | GPUMemoryResource::MEMORY_CUSTOM, "TPCMergerOutputO2Clus");
     if (mRec->GetProcessingSettings().runMC) {

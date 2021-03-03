@@ -566,6 +566,7 @@ int GPUChainTracking::RunChain()
   }
 
   mRec->PushNonPersistentMemory(qStr2Tag("TPCSLCD1")); // 1st stack level for TPC tracking slice data
+  mTPCSliceScratchOnStack = true;
   if (runRecoStep(RecoStep::TPCSliceTracking, &GPUChainTracking::RunTPCTrackingSlices)) {
     return 1;
   }
@@ -577,7 +578,10 @@ int GPUChainTracking::RunChain()
   if (runRecoStep(RecoStep::TPCMerging, &GPUChainTracking::RunTPCTrackingMerger, false)) {
     return 1;
   }
-  mRec->PopNonPersistentMemory(RecoStep::TPCSliceTracking, qStr2Tag("TPCSLCD1")); // Release 1st stack level, TPC slice data not needed after merger
+  if (mTPCSliceScratchOnStack) {
+    mRec->PopNonPersistentMemory(RecoStep::TPCSliceTracking, qStr2Tag("TPCSLCD1")); // Release 1st stack level, TPC slice data not needed after merger
+    mTPCSliceScratchOnStack = false;
+  }
 
   if (mIOPtrs.clustersNative) {
     if (GetProcessingSettings().doublePipeline) {

@@ -259,12 +259,23 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     TransferMemoryResourcesToHost(RecoStep::TPCMerging, &Merger, -1, true);
   }
 
+  mRec->ReturnVolatileDeviceMemory();
+  mRec->PopNonPersistentMemory(RecoStep::TPCMerging, qStr2Tag("TPCMERGE"));
+
 #ifdef GPUCA_TPC_GEOMETRY_O2
   if (GetProcessingSettings().createO2Output) {
-    mRec->ReturnVolatileDeviceMemory();
+    if (mTPCSliceScratchOnStack) {
+      mRec->PopNonPersistentMemory(RecoStep::TPCSliceTracking, qStr2Tag("TPCSLCD1")); // Return the slice data memory early
+      mTPCSliceScratchOnStack = false;
+    }
+
+    mRec->PushNonPersistentMemory(qStr2Tag("TPCMERG2"));
+    AllocateRegisteredMemory(Merger.MemoryResOutputO2Scratch());
+    WriteToConstantMemory(RecoStep::TPCMerging, (char*)&processors()->tpcMerger - (char*)processors(), &MergerShadow, sizeof(MergerShadow), 0);
     runKernel<GPUTPCGMO2Output, GPUTPCGMO2Output::prepare>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
     TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResMemory(), 0);
     SynchronizeStream(0);
+
     AllocateRegisteredMemory(Merger.MemoryResOutputO2(), mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::tpcTracksO2)]);
     AllocateRegisteredMemory(Merger.MemoryResOutputO2Clus(), mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::tpcTracksO2ClusRefs)]);
     WriteToConstantMemory(RecoStep::TPCMerging, (char*)&processors()->tpcMerger - (char*)processors(), &MergerShadow, sizeof(MergerShadow), 0);
@@ -281,13 +292,14 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
       TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResOutputO2Clus(), mRec->NStreams() - 2, nullptr, &mEvents->single);
       ReleaseEvent(&mEvents->single);
     }
+    mRec->ReturnVolatileDeviceMemory();
+    mRec->PopNonPersistentMemory(RecoStep::TPCMerging, qStr2Tag("TPCMERG2"));
   }
 #endif
   if (synchronizeOutput) {
     SynchronizeStream(mRec->NStreams() - 2);
   }
 
-  mRec->ReturnVolatileDeviceMemory();
   mIOPtrs.mergedTracks = Merger.OutputTracks();
   mIOPtrs.nMergedTracks = Merger.NOutputTracks();
   mIOPtrs.mergedTrackHits = Merger.Clusters();
@@ -317,6 +329,5 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   if (GetProcessingSettings().debugLevel >= 2) {
     GPUInfo("TPC Merger Finished (output clusters %d / input clusters %d)", Merger.NOutputTrackClusters(), Merger.NClusters());
   }
-  mRec->PopNonPersistentMemory(RecoStep::TPCMerging, qStr2Tag("TPCMERGE"));
   return 0;
 }
