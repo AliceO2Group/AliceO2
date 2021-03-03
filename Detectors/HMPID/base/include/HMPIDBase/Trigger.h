@@ -22,7 +22,6 @@
 #include "CommonDataFormat/TimeStamp.h"
 #include "CommonConstants/LHCConstants.h"
 
-
 namespace o2
 {
 namespace hmpid
@@ -37,9 +36,9 @@ class Trigger
   static inline uint64_t OrbitBcToEventId(uint32_t Orbit, uint16_t BC) { return ((Orbit << 12) | (0x0FFF & BC)); };
   static inline uint32_t EventIdToOrbit(uint64_t EventId) { return (EventId >> 12); };
   static inline uint16_t EventIdToBc(uint64_t EventId) { return (EventId & 0x0FFF); };
-  static double OrbitBcToTimeNs(uint32_t Orbit, uint16_t BC) { return (BC * o2::constants::lhc::LHCBunchSpacingNS + Orbit * o2::constants::lhc::LHCOrbitNS);};
-  static uint32_t TimeNsToOrbit(double TimeNs) { return (uint32_t)(TimeNs/o2::constants::lhc::LHCOrbitNS);};
-  static uint16_t TimeNsToBc(double TimeNs) { return (uint16_t)(std::fmod(TimeNs, o2::constants::lhc::LHCOrbitNS) / o2::constants::lhc::LHCBunchSpacingNS);};
+  static double OrbitBcToTimeNs(uint32_t Orbit, uint16_t BC) { return (BC * o2::constants::lhc::LHCBunchSpacingNS + Orbit * o2::constants::lhc::LHCOrbitNS); };
+  static uint32_t TimeNsToOrbit(double TimeNs) { return (uint32_t)(TimeNs / o2::constants::lhc::LHCOrbitNS); };
+  static uint16_t TimeNsToBc(double TimeNs) { return (uint16_t)(std::fmod(TimeNs, o2::constants::lhc::LHCOrbitNS) / o2::constants::lhc::LHCBunchSpacingNS); };
   static void TimeNsToOrbitBc(double TimeNs, uint32_t& Orbit, uint16_t& Bc)
   {
     Orbit = TimeNsToOrbit(TimeNs);
@@ -48,8 +47,8 @@ class Trigger
   };
 
   // Operators definition !
-  friend inline bool operator<(const Trigger& l, const Trigger& r) { return OrbitBcToEventId(l.mOrbit,l.mBc) < OrbitBcToEventId(r.mOrbit, r.mBc); };
-  friend inline bool operator==(const Trigger& l, const Trigger& r) { return OrbitBcToEventId(l.mOrbit,l.mBc) == OrbitBcToEventId(r.mOrbit, r.mBc); };
+  friend inline bool operator<(const Trigger& l, const Trigger& r) { return OrbitBcToEventId(l.mOrbit, l.mBc) < OrbitBcToEventId(r.mOrbit, r.mBc); };
+  friend inline bool operator==(const Trigger& l, const Trigger& r) { return OrbitBcToEventId(l.mOrbit, l.mBc) == OrbitBcToEventId(r.mOrbit, r.mBc); };
   friend inline bool operator>(const Trigger& l, const Trigger& r) { return r < l; };
   friend inline bool operator<=(const Trigger& l, const Trigger& r) { return !(l > r); };
   friend inline bool operator>=(const Trigger& l, const Trigger& r) { return !(l < r); };
@@ -58,13 +57,14 @@ class Trigger
   // Digit ASCII format (Orbit,BunchCrossing)[LHC Time nSec]
   friend std::ostream& operator<<(std::ostream& os, const Trigger& d)
   {
-    os << "(" << d.mOrbit << "," << d.mBc << ")[" << OrbitBcToTimeNs(d.mOrbit,d.mBc) << " ns]" ;
+    os << "(" << d.mOrbit << "," << d.mBc << ")[" << OrbitBcToTimeNs(d.mOrbit, d.mBc) << " ns]";
     return os;
   };
 
  public:
   Trigger() = default;
-  Trigger(uint16_t bc, uint32_t orbit) {
+  Trigger(uint16_t bc, uint32_t orbit)
+  {
     mBc = bc;
     mOrbit = orbit;
   };
@@ -87,6 +87,7 @@ class Trigger
     mBc = (trigger & 0x0FFF);
     return;
   }
+
  private:
   // Members
   uint16_t mBc = 0.;
