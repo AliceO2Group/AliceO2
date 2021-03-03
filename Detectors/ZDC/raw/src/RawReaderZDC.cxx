@@ -210,17 +210,17 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
         inconsistent_event = true;
       }
     }
-    if(ncd==0){
+    if (ncd == 0) {
       // Remove empty orbits (keep pedestal information)
       digitsBC.pop_back();
-    }else{
+    } else {
       bcdata.ref.setEntries(ncd);
       if (mDumpData) {
-	bcdata.print(mTriggerMask);
-	auto first_entry = bcdata.ref.getFirstEntry();
-	for (Int_t icd = 0; icd < ncd; icd++) {
+        bcdata.print(mTriggerMask);
+        auto first_entry = bcdata.ref.getFirstEntry();
+        for (Int_t icd = 0; icd < ncd; icd++) {
           digitsCh[icd + first_entry].print();
-	}
+        }
       }
     }
     if (inconsistent_event) {
