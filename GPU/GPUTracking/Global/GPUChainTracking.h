@@ -250,11 +250,13 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   std::unique_ptr<o2::base::MatLayerCylSet> mMatLUTU;       // Material Lookup Table
   std::unique_ptr<o2::trd::GeometryFlat> mTRDGeometryU;     // TRD Geometry
 
+  // Ptrs to internal buffers
   std::unique_ptr<o2::tpc::ClusterNativeAccess> mClusterNativeAccess;
-
   std::array<GPUOutputControl*, GPUTrackingOutputs::count()> mSubOutputControls = {nullptr};
 
+  // (Ptrs to) configuration objects
   std::unique_ptr<GPUTPCCFChainContext> mCFContext;
+  bool mTPCSliceScratchOnStack = false;
 
   // Upper bounds for memory allocation
   unsigned int mMaxTPCHits = 0;
