@@ -629,22 +629,45 @@ void Digitizer::assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData)
   //currBC.print(mTriggerMask);
 }
 
-void Digitizer::maskTriggerBits(uint32_t ibc, std::vector<BCData>& bcData)
+void Digitizer::Finalize(std::vector<BCData>& bcData, std::vector<o2::zdc::PedestalData>& pData)
 {
   // Default is to mask trigger bits, we can leave them for debugging
-  if (mMaskTriggerBits) {
-    auto& currBC = bcData[ibc];
-    for (int im = 0; im < NModules; im++) {
-      // Cleanup hits if module has no trigger
-      uint32_t mmask = 0xf << im;
-      if ((currBC.triggers & mmask) == 0) {
-        currBC.triggers&(~mmask);
+  for(Int_t ipd=0; ipd<pData.size(); ipd++){
+    for (int id = 0; id < NChannels; id++) {
+      pData[ipd].scaler[id]=0;
+    }
+  }
+  for (int im = 0; im < NModules; im++) {
+    for (int ic = 0; ic < NChPerModule; ic++) {
+      uint32_t mask = 0x1 << (im * NChPerModule + ic);
+      auto id=mModuleConfig->modules[im].channelID[ic];
+      for (uint32_t ibc = 0; ibc < bcData.size(); ibc++) {
+        auto& currBC = bcData[ibc];
+	if((currBC.triggers & mask)&&(mReadoutMask&mask)){
+	  for(Int_t ipd=0; ipd<pData.size(); ipd++){
+	    if(pData[ipd].ir.orbit==currBC.ir.orbit){
+	      pData[ipd].scaler[id]++;
+	    }
+	  }
+	}
       }
     }
-    // Cleanup trigger bits for channels that are not readout
-    currBC.triggers &= mReadoutMask;
-    // Printout after cleanup
-    //currBC.print(mTriggerMask);
+  }
+  if (mMaskTriggerBits) {
+    for (uint32_t ibc = 0; ibc < bcData.size(); ibc++) {
+      auto& currBC = bcData[ibc];
+      for (int im = 0; im < NModules; im++) {
+        // Cleanup hits if module has no trigger
+        uint32_t mmask = 0xf << im;
+        if ((currBC.triggers & mmask) == 0) {
+          currBC.triggers&(~mmask);
+        }
+      }
+      // Cleanup trigger bits for channels that are not readout
+      currBC.triggers &= mReadoutMask;
+      // Printout after cleanup
+      //currBC.print(mTriggerMask);
+    }
   }
 }
 

@@ -110,8 +110,8 @@ class Digitizer
   void setCCDBServer(const std::string& s) { mCCDBServer = s; }
   void findEmptyBunches(const std::bitset<o2::constants::lhc::LHCMaxBunches>& bunchPattern);
   int getNEmptyBunches() const { return mNEmptyBCs; }
-  void assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData); // Assign trigger bits for nearby bunch crossings
-  void maskTriggerBits(uint32_t ibc, std::vector<BCData>& bcData);   // Mask trigger bits for current bunch crossing
+  void assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData);                     // Assign trigger bits for nearby bunch crossings
+  void Finalize(std::vector<BCData>& bcData, std::vector<o2::zdc::PedestalData>& pData); // Mask trigger bits for current bunch crossing
   void setMaskTriggerBits(bool v = true) { mMaskTriggerBits = v; }
   bool getMaskTriggerBits(bool v = true) { return mMaskTriggerBits; }
 
