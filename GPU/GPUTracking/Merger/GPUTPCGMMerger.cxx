@@ -307,6 +307,9 @@ void* GPUTPCGMMerger::SetPointersRefitScratch2(void* mem)
 void* GPUTPCGMMerger::SetPointersOutput(void* mem)
 {
   computePointerWithAlignment(mem, mOutputTracks, mNMaxTracks);
+  if (mRec->GetParam().par.dodEdx) {
+    computePointerWithAlignment(mem, mOutputTracksdEdx, mNMaxTracks);
+  }
   computePointerWithAlignment(mem, mClusters, mNMaxOutputTrackClusters);
   if (mRec->GetParam().par.earlyTpcTransform) {
     computePointerWithAlignment(mem, mClustersXYZ, mNMaxOutputTrackClusters);

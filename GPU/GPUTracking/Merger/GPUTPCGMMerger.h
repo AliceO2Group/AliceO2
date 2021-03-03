@@ -101,13 +101,11 @@ class GPUTPCGMMerger : public GPUProcessor
 
   void SetSliceData(int index, const GPUTPCSliceOutput* sliceData) { mkSlices[index] = sliceData; }
 
-  GPUhd() int NOutputTracks() const { return mMemory->nOutputTracks; }
-  GPUhd() const GPUTPCGMMergedTrack* OutputTracks() const { return mOutputTracks; }
-  GPUhd() GPUTPCGMMergedTrack* OutputTracks()
-  {
-    return mOutputTracks;
-  }
-
+  GPUhdi() int NOutputTracks() const { return mMemory->nOutputTracks; }
+  GPUhdi() const GPUTPCGMMergedTrack* OutputTracks() const { return mOutputTracks; }
+  GPUhdi() GPUTPCGMMergedTrack* OutputTracks() { return mOutputTracks; }
+  GPUhdi() const GPUdEdxInfo* OutputTracksdEdx() const { return mOutputTracksdEdx; }
+  GPUhdi() GPUdEdxInfo* OutputTracksdEdx() { return mOutputTracksdEdx; }
   GPUhdi() unsigned int NClusters() const { return mNClusters; }
   GPUhdi() unsigned int NMaxClusters() const { return mNMaxClusters; }
   GPUhdi() unsigned int NMaxTracks() const { return mNMaxTracks; }
@@ -241,6 +239,7 @@ class GPUTPCGMMerger : public GPUProcessor
 
   int mNClusters;                       // Total number of incoming clusters (from slice tracks)
   GPUTPCGMMergedTrack* mOutputTracks;   //* array of output merged tracks
+  GPUdEdxInfo* mOutputTracksdEdx;       //* dEdx information
   GPUTPCGMSliceTrack* mSliceTrackInfos; //* additional information for slice tracks
   int* mSliceTrackInfoIndex;
   GPUTPCGMMergedTrackHit* mClusters;
