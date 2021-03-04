@@ -251,6 +251,9 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (mProcessingSettings.createO2Output > 1 && mProcessingSettings.runQA) {
     mProcessingSettings.createO2Output = 1;
   }
+  if (!mProcessingSettings.createO2Output || !IsGPU()) {
+    mProcessingSettings.clearO2OutputFromGPU = false;
+  }
   if (!(mRecoStepsGPU & GPUDataTypes::RecoStep::TPCMerging)) {
     mProcessingSettings.mergerSortTracks = false;
   }
