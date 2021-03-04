@@ -97,7 +97,7 @@ struct HFD0CandidateSelector {
   template <typename T>
   bool daughterSelection(const T& track)
   {
-    if (track.charge() == 0) {
+    if (track.sign() == 0) {
       return false;
     }
     /* if (track.tpcNClsFound() == 0) {
@@ -167,7 +167,7 @@ struct HFD0CandidateSelector {
       return false;
     }
 
-    if (trackPion.charge() > 0) { //invariant mass cut
+    if (trackPion.sign() > 0) { //invariant mass cut
       if (TMath::Abs(InvMassD0(hfCandProng2) - RecoDecay::getMassPDG(421)) > cuts[pTBin][0]) {
         return false;
       }
@@ -184,7 +184,7 @@ struct HFD0CandidateSelector {
       return false; //cut on daughter dca - need to add secondary vertex constraint here
     }
 
-    if (trackPion.charge() > 0) { //cut on cos(theta *)
+    if (trackPion.sign() > 0) { //cut on cos(theta *)
       if (TMath::Abs(CosThetaStarD0(hfCandProng2)) > cuts[pTBin][2]) {
         return false;
       }
