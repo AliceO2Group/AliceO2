@@ -58,7 +58,7 @@ struct CorrelationTask {
 
   // Filters and input definitions
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
-  Filter vertexTypeFilter = aod::collision::flags == (uint16_t) aod::collision::CollisionFlagsRun2::Run2VertexerTracks || aod::collision::flags == (uint16_t) aod::collision::CollisionFlagsRun2::Run2VertexerTracksNoConstraint;
+  Filter vertexTypeFilter = aod::collision::flags == (uint16_t)aod::collision::CollisionFlagsRun2::Run2VertexerTracks || aod::collision::flags == (uint16_t)aod::collision::CollisionFlagsRun2::Run2VertexerTracksNoConstraint;
   Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::pt > cfgCutPt) && ((aod::track::isGlobalTrack == (uint8_t) true) || (aod::track::isGlobalTrackSDD == (uint8_t) true));
   using myTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>>;
 
