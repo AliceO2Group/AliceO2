@@ -18,6 +18,8 @@
 
 #include "GPUDef.h"
 
+#ifndef GPUCA_TPC_GEOMETRY_O2 // compatibility to Run 2 data types
+
 class AliTRDtrackletWord;
 class AliTRDtrackletMCM;
 
@@ -74,5 +76,44 @@ class GPUTRDTrackletWord
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
+
+#else // compatibility with Run 3 data types
+
+#include "DataFormatsTRD/Tracklet64.h"
+
+namespace GPUCA_NAMESPACE
+{
+namespace gpu
+{
+
+class GPUTRDTrackletWord : private o2::trd::Tracklet64
+{
+ public:
+  GPUd() GPUTRDTrackletWord(uint64_t trackletWord = 0) : o2::trd::Tracklet64(trackletWord){};
+  GPUdDefault() GPUTRDTrackletWord(const GPUTRDTrackletWord& rhs) CON_DEFAULT;
+  GPUdDefault() GPUTRDTrackletWord& operator=(const GPUTRDTrackletWord& rhs) CON_DEFAULT;
+  GPUdDefault() ~GPUTRDTrackletWord() CON_DEFAULT;
+
+  // ----- Override operators < and > to enable tracklet sorting by HCId -----
+  GPUd() bool operator<(const GPUTRDTrackletWord& t) const { return (getHCID() < t.getHCID()); }
+  GPUd() bool operator>(const GPUTRDTrackletWord& t) const { return (getHCID() > t.getHCID()); }
+  GPUd() bool operator<=(const GPUTRDTrackletWord& t) const { return (getHCID() < t.getHCID()) || (getHCID() == t.getHCID()); }
+
+  GPUd() int GetZbin() const { return getPadRow(); }
+  GPUd() float GetY() const { return getUncalibratedY(); }
+  GPUd() float GetdY() const { return getUncalibratedDy(); }
+  GPUd() int GetDetector() const { return getDetector(); }
+  GPUd() int GetId() const { return mId; }
+
+  GPUd() void SetId(int id) { mId = id; }
+
+ protected:
+  int mId; // index in tracklet input block
+};
+
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
+
+#endif // GPUCA_TPC_GEOMETRY_O2
 
 #endif // GPUTRDTRACKLETWORD_H

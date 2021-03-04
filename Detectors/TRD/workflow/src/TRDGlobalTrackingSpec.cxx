@@ -140,11 +140,8 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
 
   for (int iTrklt = 0; iTrklt < nTracklets; ++iTrklt) {
     auto trklt = trackletsTRD[iTrklt];
-    unsigned int trkltWord = 0; // DUMMY
-    GPUTRDTrackletWord trkltLoad;
+    GPUTRDTrackletWord trkltLoad(trklt.getTrackletWord());
     trkltLoad.SetId(iTrklt);
-    trkltLoad.SetHCId(trklt.getHCID());
-    trkltLoad.SetTrackletWord(trkltWord);
     if (mTracker->LoadTracklet(trkltLoad) > 0) {
       LOG(WARNING) << "Could not load tracklet " << iTrklt;
     }
