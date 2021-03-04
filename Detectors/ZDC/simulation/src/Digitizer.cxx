@@ -634,7 +634,7 @@ void Digitizer::assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData)
 
 void Digitizer::Finalize(std::vector<BCData>& bcData, std::vector<o2::zdc::OrbitData>& pData)
 {
-  // Default is to mask trigger bits, we can leave them for debugging
+  // Compute scalers for digitized data (works only for triggering channels)
   for (Int_t ipd = 0; ipd < pData.size(); ipd++) {
     for (int id = 0; id < NChannels; id++) {
       pData[ipd].scaler[id] = 0;
@@ -656,14 +656,15 @@ void Digitizer::Finalize(std::vector<BCData>& bcData, std::vector<o2::zdc::Orbit
       }
     }
   }
+  // Default is to mask trigger bits, we can leave them for debugging
   if (mMaskTriggerBits) {
     for (uint32_t ibc = 0; ibc < bcData.size(); ibc++) {
       auto& currBC = bcData[ibc];
       for (int im = 0; im < NModules; im++) {
         // Cleanup hits if module has no trigger
         uint32_t mmask = 0xf << im;
-        if ((currBC.triggers & mmask) == 0) {
-          currBC.triggers&(~mmask);
+        if ((currBC.triggers & mTriggerMask & mmask) == 0) {
+          currBC.triggers=currBC.triggers&(~mmask);
         }
       }
       // Cleanup trigger bits for channels that are not readout
