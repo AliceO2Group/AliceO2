@@ -23,6 +23,8 @@
 // ROOT includes
 #include <Rtypes.h>
 
+#include <MathUtils/detail/Bracket.h>
+
 #include "DataFormatsQualityControl/FlagReasons.h"
 
 namespace o2
@@ -37,25 +39,28 @@ class TimeRangeFlag
  public:
   using time_type = uint64_t;
   using flag_type = FlagReason;
+  using RangeInterval = o2::math_utils::detail::Bracket<time_type>;
 
   TimeRangeFlag() = default;
   TimeRangeFlag(TimeRangeFlag const&) = default;
   TimeRangeFlag(time_type start, time_type end, flag_type flag, std::string comment = "", std::string source = "Unknown");
 
-  time_type getStart() const { return mStart; }
-  time_type getEnd() const { return mEnd; }
+  time_type getStart() const { return mInterval.getMin(); }
+  time_type getEnd() const { return mInterval.getMax(); }
+  RangeInterval& getInterval() { return mInterval; }
   flag_type getFlag() const { return mFlag; }
   const std::string& getComment() const { return mComment; }
   const std::string& getSource() const { return mSource; }
 
-  void setStart(time_type start) { mStart = start; }
-  void setEnd(time_type end) { mEnd = end; }
+  void setStart(time_type start) { mInterval.setMin(start); }
+  void setEnd(time_type end) { mInterval.setMax(end); }
+  void setInterval(RangeInterval interval) { mInterval = interval; }
   void setFlag(flag_type flag) { mFlag = flag; }
   void setComment(const std::string& comment) { mComment = comment; }
   void setSource(const std::string& source) { mSource = source; }
 
   /// equal operator
-  bool operator==(const TimeRangeFlag& other) const;
+  bool operator==(const TimeRangeFlag& rhs) const;
 
   /// comparison operators
   bool operator<(const TimeRangeFlag& rhs) const;
@@ -68,8 +73,7 @@ class TimeRangeFlag
   friend std::ostream& operator<<(std::ostream& output, const TimeRangeFlag& data);
 
  private:
-  time_type mStart = -1;                          ///< start time of masked range
-  time_type mEnd = -1;                            ///< end time of masked range
+  RangeInterval mInterval = {};                   ///< time interval of the masked range
   flag_type mFlag = FlagReasonFactory::Invalid(); ///< flag reason
   std::string mComment = "";                      ///< optional comment, which may extend the reason
   std::string mSource = "Unknown";                ///< optional (but encouraged) source of the flag (e.g. Qc Check name)

@@ -19,33 +19,38 @@ namespace o2::quality_control
 {
 
 TimeRangeFlag::TimeRangeFlag(time_type start, time_type end, flag_type flag, std::string comment, std::string source)
-  : mStart(start), mEnd(end), mFlag(flag), mComment(comment), mSource(source)
+  : mInterval(start, end), mFlag(flag), mComment(comment), mSource(source)
 {
-  if (mStart > mEnd) {
-    throw std::runtime_error("TimeRangeFlag start time '" + std::to_string(mStart) + "' is larger than end time '" + std::to_string(mEnd) + "'");
+  if (mInterval.isInvalid()) {
+    throw std::runtime_error("TimeRangeFlag start time '" + std::to_string(mInterval.getMin()) + "' is larger than end time '" + std::to_string(mInterval.getMax()) + "'");
   }
 }
 
-bool TimeRangeFlag::operator==(const TimeRangeFlag& other) const
+bool TimeRangeFlag::operator==(const TimeRangeFlag& rhs) const
 {
-  return std::tie(mStart, mEnd, mFlag, mComment, mSource) == std::tie(other.mStart, other.mEnd, other.mFlag, other.mComment, other.mSource);
+  return std::tie(mInterval, mFlag, mComment, mSource) == std::tie(rhs.mInterval, rhs.mFlag, rhs.mComment, rhs.mSource);
 }
 
 bool TimeRangeFlag::operator<(const TimeRangeFlag& rhs) const
 {
-  return std::tie(mStart, mEnd, mFlag, mComment, mSource) < std::tie(rhs.mStart, rhs.mEnd, rhs.mFlag, rhs.mComment, rhs.mSource);
+  // We don't use the comparison mechanism in Bracket,
+  // because std::set which is used in TRFCollection assumes that a < b, a > b <=> a == b.
+  // Using relation operators in Bracket would break insertion and merging.
+  return std::tie(static_cast<const time_type&>(mInterval.getMin()), static_cast<const time_type&>(mInterval.getMax()), mFlag, mComment, mSource) < std::tie(static_cast<const time_type&>(rhs.mInterval.getMin()), static_cast<const time_type&>(rhs.mInterval.getMax()), rhs.mFlag, rhs.mComment, rhs.mSource);
 }
 
 bool TimeRangeFlag::operator>(const TimeRangeFlag& rhs) const
 {
-  return std::tie(mStart, mEnd, mFlag, mComment, mSource) > std::tie(rhs.mStart, rhs.mEnd, rhs.mFlag, rhs.mComment, rhs.mSource);
+  // we don't use the comparison mechanism in Bracket,
+  // because std::set which is used in TRFCollection assumes that a < b, a > b <=> a == b
+  return std::tie(static_cast<const time_type&>(mInterval.getMin()), static_cast<const time_type&>(mInterval.getMax()), mFlag, mComment, mSource) > std::tie(static_cast<const time_type&>(rhs.mInterval.getMin()), static_cast<const time_type&>(rhs.mInterval.getMax()), rhs.mFlag, rhs.mComment, rhs.mSource);
 }
 
 void TimeRangeFlag::streamTo(std::ostream& output) const
 {
   output << "TimeRangeFlag:\n";
-  output << "- Start: " << mStart << "\n";
-  output << "- End: " << mEnd << "\n";
+  output << "- Start: " << mInterval.getMin() << "\n";
+  output << "- End: " << mInterval.getMax() << "\n";
   output << "- " << mFlag << "\n";
   output << "- Comment: " << mComment << "\n";
   output << "- Source: " << mSource;
