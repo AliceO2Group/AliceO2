@@ -217,7 +217,6 @@ void ReadOut::Init()
 };
 */
 
-
 } // namespace hmpid
 } // namespace o2
 
