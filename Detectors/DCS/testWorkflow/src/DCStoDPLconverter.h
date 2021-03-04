@@ -13,6 +13,7 @@
 
 #include "Framework/DataSpecUtils.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
+#include "Framework/ControlService.h"
 #include <fairmq/FairMQParts.h>
 #include <fairmq/FairMQDevice.h>
 #include "DetectorsDCS/DataPointIdentifier.h"
@@ -52,7 +53,7 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
 {
 
   auto timesliceId = std::make_shared<size_t>(startTime);
-  return [dpid2group, timesliceId, step, verbose](FairMQDevice& device, FairMQParts& parts, o2f::ChannelRetriever channelRetriever) {
+  return [dpid2group, timesliceId, step, verbose](framework::ControlService& control, FairMQDevice& device, FairMQParts& parts, o2f::ChannelRetriever channelRetriever) {
     static std::unordered_map<DPID, DPCOM> cache; // will keep only the latest measurement in the 1-second wide window for each DPID
     static auto timer = std::chrono::high_resolution_clock::now();
 

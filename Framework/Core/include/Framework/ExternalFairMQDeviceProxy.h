@@ -13,6 +13,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/OutputSpec.h"
 #include "Framework/DataAllocator.h"
+#include "Framework/ControlService.h"
 #include <fairmq/FairMQParts.h>
 #include <vector>
 #include <functional>
@@ -23,7 +24,7 @@ namespace o2::framework
 /// A callback function to retrieve the FairMQChannel name to be used for sending
 /// messages of the specified OutputSpec
 using ChannelRetriever = std::function<std::string(OutputSpec const&, DataProcessingHeader::StartTime)>;
-using InjectorFunction = std::function<void(FairMQDevice& device, FairMQParts& inputs, ChannelRetriever)>;
+using InjectorFunction = std::function<void(ControlService& control, FairMQDevice& device, FairMQParts& inputs, ChannelRetriever)>;
 
 struct InputChannelSpec;
 struct OutputChannelSpec;

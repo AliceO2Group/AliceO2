@@ -17,9 +17,7 @@
 #include <memory>
 #include <cassert>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 //__________________________________________________________________________________________________
@@ -54,7 +52,6 @@ struct SourceInfoHeader : public header::BaseHeader {
   }
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif // FRAMEWORK_SOURCEINFOHEADER_H

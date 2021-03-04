@@ -107,7 +107,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     if (inputs.get<int>("datain") == nRolls - 1) {
       LOG(INFO) << "terminating after " << nRolls << " successful event(s)";
       control.endOfStream();
-      control.readyToQuit(QuitRequest::All);
+      control.readyToQuit(QuitRequest::Me);
     }
   };
 
@@ -122,7 +122,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   // reads the messages from the output proxy via the out-of-band channel
 
   // converter callback for the external FairMQ device proxy ProcessorSpec generator
-  auto converter = [](FairMQDevice& device, FairMQParts& inputs, ChannelRetriever channelRetriever) {
+  auto converter = [](ControlService& control, FairMQDevice& device, FairMQParts& inputs, ChannelRetriever channelRetriever) {
     ASSERT_ERROR(inputs.Size() >= 2);
     if (inputs.Size() < 2) {
       return;

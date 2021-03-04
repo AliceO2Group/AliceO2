@@ -11,11 +11,10 @@
 #include "Framework/ReadoutAdapter.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/ProcessingContext.h"
 #include "Headers/DataHeader.h"
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 using DataHeader = o2::header::DataHeader;
@@ -24,7 +23,7 @@ InjectorFunction readoutAdapter(OutputSpec const& spec)
 {
   auto counter = std::make_shared<uint64_t>(0);
 
-  return [spec, counter](FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
+  return [spec, counter](ControlService& control, FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
     for (size_t i = 0; i < parts.Size(); ++i) {
       DataHeader dh;
       // FIXME: this will have to change and extract the actual subspec from
@@ -44,5 +43,4 @@ InjectorFunction readoutAdapter(OutputSpec const& spec)
   };
 }
 
-} // namespace framework
 } // namespace o2
