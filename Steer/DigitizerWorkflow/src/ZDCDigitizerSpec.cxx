@@ -41,9 +41,10 @@ namespace zdc
 class ZDCDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
   using GRP = o2::parameters::GRPObject;
+  bool mUseMC = true;
 
  public:
-  ZDCDPLDigitizerTask() : o2::base::BaseDPLDigitizer(o2::base::InitServices::GEOM) {}
+  ZDCDPLDigitizerTask(bool useMC) : o2::base::BaseDPLDigitizer(o2::base::InitServices::GEOM), mUseMC(useMC) {}
 
   void initDigitizerTask(framework::InitContext& ic) override
   {
@@ -54,8 +55,7 @@ class ZDCDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     mDigitizer.setCCDBServer(dopt.ccdb);
     auto enableHitInfo = ic.options().get<bool>("enable-hit-info");
     mDigitizer.setMaskTriggerBits(!enableHitInfo);
-    bool skipMC = ic.options().get<bool>("disable-mc-zdc");
-    mDigitizer.setSkipMCLabels(skipMC);
+    mDigitizer.setSkipMCLabels(not mUseMC);
     mDigitizer.init();
     mROMode = mDigitizer.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
   }
@@ -170,9 +170,8 @@ o2::framework::DataProcessorSpec getZDCDigitizerSpec(int channel, bool mctruth)
     "ZDCDigitizer",
     Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
     outputs,
-    AlgorithmSpec{adaptFromTask<ZDCDPLDigitizerTask>()},
-    Options{{"enable-hit-info", o2::framework::VariantType::Bool, false, {"enable hit info of unread channels"}},
-            {"disable-mc-zdc", o2::framework::VariantType::Bool, not mctruth, {"do not store ZDC MC labels"}}}};
+    AlgorithmSpec{adaptFromTask<ZDCDPLDigitizerTask>(mctruth)},
+    Options{{"enable-hit-info", o2::framework::VariantType::Bool, false, {"enable hit info of unread channels"}}}};
 }
 
 } // end namespace zdc
