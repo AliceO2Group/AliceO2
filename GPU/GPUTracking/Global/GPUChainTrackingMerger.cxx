@@ -103,6 +103,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   GPUTPCGMMerger& Merger = processors()->tpcMerger;
   GPUTPCGMMerger& MergerShadow = doGPU ? processorsShadow()->tpcMerger : Merger;
   GPUTPCGMMerger& MergerShadowAll = doGPUall ? processorsShadow()->tpcMerger : Merger;
+  const int outputStream = mRec->NStreams() - 2;
   if (GetProcessingSettings().debugLevel >= 2) {
     GPUInfo("Running TPC Merger");
   }
@@ -207,7 +208,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
 
   if (GetProcessingSettings().delayedOutput) {
     for (unsigned int i = 0; i < mOutputQueue.size(); i++) {
-      GPUMemCpy(mOutputQueue[i].step, mOutputQueue[i].dst, mOutputQueue[i].src, mOutputQueue[i].size, mRec->NStreams() - 2, false);
+      GPUMemCpy(mOutputQueue[i].step, mOutputQueue[i].dst, mOutputQueue[i].src, mOutputQueue[i].size, outputStream, false);
     }
     mOutputQueue.clear();
   }
@@ -238,17 +239,17 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   if (doGPUall) {
     RecordMarker(&mEvents->single, 0);
     if (!GetProcessingSettings().fullMergerOnGPU) {
-      TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResOutput(), mRec->NStreams() - 2, nullptr, &mEvents->single);
+      TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResOutput(), outputStream, nullptr, &mEvents->single);
     } else if (GetProcessingSettings().keepDisplayMemory || GetProcessingSettings().createO2Output <= 1) {
-      GPUMemCpy(RecoStep::TPCMerging, Merger.OutputTracks(), MergerShadowAll.OutputTracks(), Merger.NOutputTracks() * sizeof(*Merger.OutputTracks()), mRec->NStreams() - 2, 0, nullptr, &mEvents->single);
+      GPUMemCpy(RecoStep::TPCMerging, Merger.OutputTracks(), MergerShadowAll.OutputTracks(), Merger.NOutputTracks() * sizeof(*Merger.OutputTracks()), outputStream, 0, nullptr, &mEvents->single);
       if (param().par.dodEdx) {
-        GPUMemCpy(RecoStep::TPCMerging, Merger.OutputTracksdEdx(), MergerShadowAll.OutputTracksdEdx(), Merger.NOutputTracks() * sizeof(*Merger.OutputTracksdEdx()), mRec->NStreams() - 2, 0, nullptr, &mEvents->single);
+        GPUMemCpy(RecoStep::TPCMerging, Merger.OutputTracksdEdx(), MergerShadowAll.OutputTracksdEdx(), Merger.NOutputTracks() * sizeof(*Merger.OutputTracksdEdx()), outputStream, 0, nullptr, &mEvents->single);
       }
-      GPUMemCpy(RecoStep::TPCMerging, Merger.Clusters(), MergerShadowAll.Clusters(), Merger.NOutputTrackClusters() * sizeof(*Merger.Clusters()), mRec->NStreams() - 2, 0);
+      GPUMemCpy(RecoStep::TPCMerging, Merger.Clusters(), MergerShadowAll.Clusters(), Merger.NOutputTrackClusters() * sizeof(*Merger.Clusters()), outputStream, 0);
       if (param().par.earlyTpcTransform) {
-        GPUMemCpy(RecoStep::TPCMerging, Merger.ClustersXYZ(), MergerShadowAll.ClustersXYZ(), Merger.NOutputTrackClusters() * sizeof(*Merger.ClustersXYZ()), mRec->NStreams() - 2, 0);
+        GPUMemCpy(RecoStep::TPCMerging, Merger.ClustersXYZ(), MergerShadowAll.ClustersXYZ(), Merger.NOutputTrackClusters() * sizeof(*Merger.ClustersXYZ()), outputStream, 0);
       }
-      GPUMemCpy(RecoStep::TPCMerging, Merger.ClusterAttachment(), MergerShadowAll.ClusterAttachment(), Merger.NMaxClusters() * sizeof(*Merger.ClusterAttachment()), mRec->NStreams() - 2, 0);
+      GPUMemCpy(RecoStep::TPCMerging, Merger.ClusterAttachment(), MergerShadowAll.ClusterAttachment(), Merger.NMaxClusters() * sizeof(*Merger.ClusterAttachment()), outputStream, 0);
     }
     ReleaseEvent(&mEvents->single);
   } else {
@@ -277,6 +278,9 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     mRec->ReturnVolatileDeviceMemory();
     SynchronizeEventAndRelease(&mEvents->single);
 
+    if (GetProcessingSettings().clearO2OutputFromGPU) {
+      mRec->AllocateVolatileDeviceMemory(0); // make future device memory allocation volatile
+    }
     AllocateRegisteredMemory(Merger.MemoryResOutputO2(), mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::tpcTracksO2)]);
     AllocateRegisteredMemory(Merger.MemoryResOutputO2Clus(), mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::tpcTracksO2ClusRefs)]);
     WriteToConstantMemory(RecoStep::TPCMerging, (char*)&processors()->tpcMerger - (char*)processors(), &MergerShadow, sizeof(MergerShadow), 0);
@@ -288,15 +292,18 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
       runKernel<GPUTPCGMO2Output, GPUTPCGMO2Output::mc>(GetGridAuto(0, GPUReconstruction::krnlDeviceType::CPU), krnlRunRangeNone, krnlEventNone);
     } else {
       RecordMarker(&mEvents->single, 0);
-      TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResOutputO2(), mRec->NStreams() - 2, nullptr, &mEvents->single);
-      TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResOutputO2Clus(), mRec->NStreams() - 2, nullptr, &mEvents->single);
+      TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResOutputO2(), outputStream, nullptr, &mEvents->single);
+      TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResOutputO2Clus(), outputStream, nullptr, &mEvents->single);
       ReleaseEvent(&mEvents->single);
     }
     mRec->PopNonPersistentMemory(RecoStep::TPCMerging, qStr2Tag("TPCMERG2"));
   }
 #endif
-  if (synchronizeOutput) {
-    SynchronizeStream(mRec->NStreams() - 2);
+  if (synchronizeOutput || GetProcessingSettings().clearO2OutputFromGPU) {
+    SynchronizeStream(outputStream);
+  }
+  if (GetProcessingSettings().clearO2OutputFromGPU) {
+    mRec->ReturnVolatileDeviceMemory();
   }
 
   mIOPtrs.mergedTracks = Merger.OutputTracks();
