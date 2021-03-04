@@ -172,7 +172,7 @@ o2::framework::DataProcessorSpec getZDCDigitizerSpec(int channel, bool mctruth)
     outputs,
     AlgorithmSpec{adaptFromTask<ZDCDPLDigitizerTask>()},
     Options{{"enable-hit-info", o2::framework::VariantType::Bool, false, {"enable hit info of unread channels"}},
-            {"disable-mc-zdc", o2::framework::VariantType::Bool, false, {"do not store ZDC MC labels"}}}
+            {"disable-mc-zdc", o2::framework::VariantType::Bool, not mctruth, {"do not store ZDC MC labels"}}}
     };
 }
 
