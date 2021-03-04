@@ -160,16 +160,16 @@ void DataDecoderTask::decodeTF(framework::ProcessingContext& pc)
   // get the input buffer
   auto& inputs = pc.inputs();
   DPLRawParser parser(inputs, o2::framework::select("TF:HMP/RAWDATA"));
+  mDeco->mDigits.clear();
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
-    mDeco->mDigits.clear();
     uint32_t* theBuffer = (uint32_t*)it.raw();
     mDeco->setUpStream(theBuffer, it.size() + it.offset());
     mDeco->decodePageFast(&theBuffer);
     mTotalFrames++;
-    pc.outputs().snapshot(o2::framework::Output{"HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mDigits); //
-    mTotalDigits += mDeco->mDigits.size();
-    //LOG(INFO) << "Writing " << mDeco->mDigits.size() << "/" << mTotalDigits << " Digits ...";
   }
+  pc.outputs().snapshot(o2::framework::Output{"HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mDigits);
+  mTotalDigits += mDeco->mDigits.size();
+  LOG(INFO) << "Writing " << mDeco->mDigits.size() << "/" << mTotalDigits << " Digits ...";
   return;
 }
 

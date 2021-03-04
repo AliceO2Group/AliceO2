@@ -41,7 +41,6 @@
 #include "TFile.h"
 #include "TTree.h"
 #include <TSystem.h>
-
 #include "Headers/RAWDataHeader.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "DPLUtils/DPLRawParser.h"
@@ -69,14 +68,12 @@ void WriteRawFromRootTask::init(framework::InitContext& ic)
   mDigitsReceived = 0;
   mEventsReceived = 0;
   mBaseRootFileName = ic.options().get<std::string>("in-file");
-  mBaseFileName = ic.options().get<std::string>("hmp-raw-outfile");
-  mDirectoryName = ic.options().get<std::string>("hmp-raw-outdir");
-  mPerLink = ic.options().get<bool>("hmp-raw-perlink");
-  mPerFlpFile = ic.options().get<bool>("hmp-raw-perflp");
+  mBaseFileName = ic.options().get<std::string>("outfile");
+  mDirectoryName = ic.options().get<std::string>("outdir");
+  mFileFor = ic.options().get<std::string>("file-for");
   mDumpDigits = ic.options().get<bool>("dump-digits"); // Debug flags
-  mSkipEmpty = ic.options().get<bool>("hmp-skip-empty");
+  mSkipEmpty = ic.options().get<bool>("skip-empty");
 
-  // Arrange Files path
   if (gSystem->AccessPathName(mDirectoryName.c_str())) {
     if (gSystem->mkdir(mDirectoryName.c_str(), kTRUE)) {
       LOG(FATAL) << "could not create output directory " << mDirectoryName;
@@ -89,7 +86,7 @@ void WriteRawFromRootTask::init(framework::InitContext& ic)
   // Setup the Coder
   mCod = new HmpidCoder2(Geo::MAXEQUIPMENTS);
   mCod->setSkipEmptyEvents(mSkipEmpty);
-  mCod->openOutputStream(fullFName.c_str(), mPerLink, mPerFlpFile);
+  mCod->openOutputStream(fullFName, mFileFor);
   std::string inputGRP = o2::base::NameConf::getGRPFileName();
   std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom(inputGRP)};
   mCod->getWriter().setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::HMP)); // must be set explicitly
@@ -103,7 +100,6 @@ void WriteRawFromRootTask::init(framework::InitContext& ic)
   // Ready to operate
   mCod->getWriter().writeConfFile("HMP", "RAWDATA", o2::utils::concat_string(mDirectoryName, '/', "HMPraw.cfg"));
   mExTimer.start();
-  return;
 }
 
 void WriteRawFromRootTask::readRootFile()
@@ -174,13 +170,13 @@ void WriteRawFromRootTask::readRootFile()
 
 void WriteRawFromRootTask::run(framework::ProcessingContext& pc)
 {
+  // Arrange Files path
   readRootFile();
   mCod->closeOutputStream();
-  mCod->dumpResults();
+  mCod->dumpResults(mBaseRootFileName);
   mExTimer.logMes("Raw File created ! Digits = " + std::to_string(mDigitsReceived) + " for Events =" + std::to_string(mEventsReceived));
   mExTimer.stop();
   pc.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
-  return;
 }
 
 void WriteRawFromRootTask::endOfStream(framework::EndOfStreamContext& ec)
@@ -199,14 +195,12 @@ o2::framework::DataProcessorSpec getWriteRawFromRootSpec(std::string inputSpec)
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<WriteRawFromRootTask>()},
-    Options{{"hmp-raw-outdir", VariantType::String, "./", {"base dir for output file"}},
-            {"hmp-raw-outfile", VariantType::String, "hmpReadOut", {"base name for output file"}},
-            {"hmp-raw-perlink", VariantType::Bool, false, {"produce one file per link"}},
-            {"hmp-raw-perflp", VariantType::Bool, false, {"produce one raw file per FLPs"}},
+    Options{{"outdir", VariantType::String, "./", {"base dir for output file"}},
+            {"file-for", VariantType::String, "all", {"single file per: all,flp,link"}},
+            {"outfile", VariantType::String, "hmpid", {"base name for output file"}},
             {"in-file", VariantType::String, "hmpiddigits.root", {"name of the input sim root file"}},
-            //     {"configKeyValues", VariantType::String, "", {"comma-separated configKeyValues"}},
             {"dump-digits", VariantType::Bool, false, {"out the digits file in /tmp/hmpDumpDigits.dat"}},
-            {"hmp-skip-empty", VariantType::Bool, false, {"skip empty events"}}}};
+            {"skip-empty", VariantType::Bool, false, {"skip empty events"}}}};
 }
 
 } // namespace hmpid

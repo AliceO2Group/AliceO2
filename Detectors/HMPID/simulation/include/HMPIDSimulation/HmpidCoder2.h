@@ -68,7 +68,6 @@ class HmpidCoder2
   //  const int mLinkIds[Geo::MAXEQUIPMENTS] = {0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 0, 1, 2};
   //  const int mFlpIds[Geo::MAXEQUIPMENTS] = {160, 160, 160, 160, 160, 160, 160, 160, 161, 161, 161, 161, 161, 161};
 
-  char mFileName[1024];
   uint32_t* mPayloadBufferPtr;
   uint32_t* mPadMap;
   int mEventSizePerEquipment[Geo::MAXEQUIPMENTS];
@@ -112,12 +111,12 @@ class HmpidCoder2
   o2::raw::RawFileWriter& getWriter() { return mWriter; }
 
   void setDetectorSpecificFields(float BusyTime = 0.001, int Error = 0, int Version = 9);
-  void openOutputStream(const char* OutputFileName, bool perLinkFile = false, bool perFlpFile = false);
+  void openOutputStream(const std::string& outputFileName, const std::string& fileFor);
   void closeOutputStream();
 
   void codeEventChunkDigits(std::vector<Digit>& digits);
   void codeEventChunkDigits(std::vector<Digit>& digits, Trigger ir);
-  void dumpResults();
+  void dumpResults(const std::string& outputFileName);
 
  private:
   int getEquipmentPadIndex(int eq, int col, int dil, int cha);

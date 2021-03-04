@@ -245,7 +245,7 @@ void HmpidCoder2::codeEventChunkDigits(std::vector<Digit>& digits, Trigger ir)
 /// @param[in] OutputFileName : the Path/Prefix name for the raw files
 /// @param[in] perFlpFile : if true a couple of files will be created, one for each
 ///                         HMPID FLPs
-void HmpidCoder2::openOutputStream(const char* OutputFileName, bool perLinkFile, bool perFlpFile)
+void HmpidCoder2::openOutputStream(const std::string& outputFileName, const std::string& fileFor)
 {
   RAWDataHeader rdh; // by default, v6 is used currently.
   for (int eq = 0; eq < mNumberOfEquipments; eq++) {
@@ -253,15 +253,18 @@ void HmpidCoder2::openOutputStream(const char* OutputFileName, bool perLinkFile,
     rdh.cruID = ReadOut::CruId(eq);
     rdh.linkID = ReadOut::LnkId(eq);
     rdh.endPointID = 0;
-
-    if (perLinkFile) {
-      sprintf(mFileName, "%s_L%d%s", OutputFileName, ReadOut::FeeId(eq), ".raw");
-    } else if (perFlpFile) {
-      sprintf(mFileName, "%s_%d%s", OutputFileName, ReadOut::FlpId(eq), ".raw");
+    std::string outfname;
+    if (fileFor == "link") {
+      outfname = fmt::format("{}_L{}.raw", outputFileName, ReadOut::FeeId(eq));
+    } else if (fileFor == "flp") {
+      outfname = fmt::format("{}_flp{}.raw", outputFileName, ReadOut::FlpId(eq));
+    } else if (fileFor == "all") {
+      outfname = fmt::format("{}.raw", outputFileName);
     } else {
-      sprintf(mFileName, "%s%s", OutputFileName, ".raw");
+      throw std::runtime_error(fmt::format("unknown raw file grouping option {}", fileFor));
     }
-    mWriter.registerLink(rdh, mFileName); // register the link
+
+    mWriter.registerLink(rdh, outfname); // register the link
     LinkSubSpec_t ap = RDHUtils::getSubSpec(ReadOut::CruId(eq), ReadOut::LnkId(eq), 0, ReadOut::FeeId(eq));
     mTheRFWLinks[eq] = ap; // Store the RawFileWriter Link ID
   }
@@ -276,10 +279,10 @@ void HmpidCoder2::closeOutputStream()
 }
 
 /// Dumps the results of the last coding
-void HmpidCoder2::dumpResults()
+void HmpidCoder2::dumpResults(const std::string& outputFileName)
 {
   std::cout << " ****  HMPID RawFile Coder : results ****" << std::endl;
-  std::cout << " Created files : " << mFileName << std::endl;
+  std::cout << " Created files : " << outputFileName << std::endl;
   std::cout << " Number of Pads coded : " << mPadsCoded << std::endl;
   std::cout << " ----------------------------------------" << std::endl;
 }
