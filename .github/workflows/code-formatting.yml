@@ -84,7 +84,7 @@ jobs:
       uses: alisw/pull-request@master
       with:
         source_branch: 'alibuild:alibot-cleanup-${{ github.event.pull_request.number }}'
-        destination_branch: '${{ github.event.pull_request.user.login }}:${{ github.event.pull_request.head.ref }}'
+        destination_branch: '${{ github.event.pull_request.head.label }}'
         github_token: ${{ secrets.ALIBUILD_GITHUB_TOKEN }}
         pr_title: "Please consider the following formatting changes to #${{ github.event.pull_request.number }}"
         pr_body: | 
