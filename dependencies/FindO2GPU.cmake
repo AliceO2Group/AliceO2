@@ -102,6 +102,7 @@ endif()
 
 # Detect and enable OpenCL 2.x
 if(ENABLE_OPENCL2)
+  find_package(OpenCL)
   find_package(LLVM)
   if(LLVM_FOUND)
     find_package(Clang)
