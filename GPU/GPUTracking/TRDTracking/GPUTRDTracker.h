@@ -169,7 +169,7 @@ class GPUTRDTracker_t : public GPUProcessor
  protected:
   float* mR;                               // radial position of each TRD chamber, alignment taken into account, radial spread within chambers < 7mm
   bool mIsInitialized;                     // flag is set upon initialization
-  bool mProcessPerTimeFrame;               // if true, tracking is done per time frame instead of on a single events basis //FIXME is this needed??
+  bool mProcessPerTimeFrame;               // if true, tracking is done per time frame instead of on a single events basis
   short mMemoryPermanent;                  // size of permanent memory for the tracker
   short mMemoryTracklets;                  // size of memory for TRD tracklets
   short mMemoryTracks;                     // size of memory for tracks (used for i/o)
@@ -181,12 +181,15 @@ class GPUTRDTracker_t : public GPUProcessor
   int mNCollisions;                        // number of collisions with TRD tracklet data
   int mNTracks;                            // number of TPC tracks to be matched
   int mNEvents;                            // number of processed events
-  int* mTriggerRecordIndices;              // index of first tracklet for each collision
+  int* mTriggerRecordIndices;              // index of first tracklet for each collision within mTracklets array
   float* mTriggerRecordTimes;              // time in us for each collision
-  GPUTRDTrackletWord* mTracklets;          // array of all tracklets, later sorted by HCId
+  GPUTRDTrackletWord* mTracklets;          // array of all tracklets (later sorted by HCId for each collision individually)
   int mMaxThreads;                         // maximum number of supported threads
   int mNTracklets;                         // total number of tracklets in event
-  int* mTrackletIndexArray;                // index of first tracklet for each chamber, last entry is the total amount of tracklets
+  // index of first tracklet for each chamber within mTracklets array, last entry is total number of tracklets for given collision
+  // the array has (kNChambers + 1) * mNCollisions entries
+  // note, that for collision iColl one has to add an offset of mTriggerRecordIndices[iColl] to the index stored in mTrackletIndexArray
+  int* mTrackletIndexArray;
   Hypothesis* mHypothesis;                 // array with multiple track hypothesis
   TRDTRK* mCandidates;                     // array of tracks for multiple hypothesis tracking
   GPUTRDSpacePointInternal* mSpacePoints;  // array with tracklet coordinates in global tracking frame
