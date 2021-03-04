@@ -63,6 +63,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   rinp.autodetectTF0 = configcontext.options().get<bool>("detect-tf0");
   rinp.preferCalcTF = configcontext.options().get<bool>("calculate-tf-start");
   rinp.rawChannelConfig = configcontext.options().get<std::string>("raw-channel-config");
+  rinp.delay_us = uint32_t(1e6 * configcontext.options().get<float>("delay")); // delay in microseconds
   rinp.errMap = 0;
   for (int i = RawFileReader::NErrorsDefined; i--;) {
     auto ei = RawFileReader::ErrTypes(i);
@@ -72,7 +73,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  uint32_t delay_us = uint32_t(1e6 * configcontext.options().get<float>("delay")); // delay in microseconds
 
   return std::move(o2::raw::getRawFileReaderWorkflow(rinp));
 }
