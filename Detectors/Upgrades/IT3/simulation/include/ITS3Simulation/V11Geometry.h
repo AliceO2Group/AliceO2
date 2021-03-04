@@ -11,8 +11,8 @@
 /// \file V11Geometry.h
 /// \brief Definition of the V11Geometry class
 
-#ifndef ALICEO2_ITS_V11GEOMETRY_H_
-#define ALICEO2_ITS_V11GEOMETRY_H_
+#ifndef ALICEO2_ITS3_V11GEOMETRY_H_
+#define ALICEO2_ITS3_V11GEOMETRY_H_
 
 #include <TMath.h>   // for DegToRad, Cos, Sin, Tan
 #include <TObject.h> // for TObject
