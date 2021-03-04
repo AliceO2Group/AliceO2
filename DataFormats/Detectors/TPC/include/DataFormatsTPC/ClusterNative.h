@@ -164,7 +164,7 @@ struct ClusterNativeAccess {
   unsigned int nClusters[constants::MAXSECTOR][constants::MAXGLOBALPADROW];
   unsigned int nClustersSector[constants::MAXSECTOR];
   unsigned int clusterOffset[constants::MAXSECTOR][constants::MAXGLOBALPADROW];
-  unsigned int nClustersTotal;
+  unsigned int nClustersTotal; // Must be directly after clusterOffsets, --> =clusterOffset[nRows * nSectors]!
 
   void setOffsetPtrs();
 
