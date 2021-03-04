@@ -96,30 +96,31 @@ struct cascadeprefilterpairs {
   {
     for (auto& casc : Cascades) {
       //Single-track properties filter
+      auto v0 = casc.v0_as<aod::V0Datas>();
       if (tpcrefit) {
-        if (!(casc.v0().posTrack_as<FullTracksExt>().trackType() & o2::aod::track::TPCrefit)) {
+        if (!(v0.posTrack_as<FullTracksExt>().trackType() & o2::aod::track::TPCrefit)) {
           continue; //TPC refit
         }
-        if (!(casc.v0().negTrack_as<FullTracksExt>().trackType() & o2::aod::track::TPCrefit)) {
+        if (!(v0.negTrack_as<FullTracksExt>().trackType() & o2::aod::track::TPCrefit)) {
           continue; //TPC refit
         }
         if (!(casc.bachelor_as<FullTracksExt>().trackType() & o2::aod::track::TPCrefit)) {
           continue; //TPC refit
         }
       }
-      if (casc.v0().posTrack_as<FullTracksExt>().tpcNClsCrossedRows() < mincrossedrows) {
+      if (v0.posTrack_as<FullTracksExt>().tpcNClsCrossedRows() < mincrossedrows) {
         continue;
       }
-      if (casc.v0().negTrack_as<FullTracksExt>().tpcNClsCrossedRows() < mincrossedrows) {
+      if (v0.negTrack_as<FullTracksExt>().tpcNClsCrossedRows() < mincrossedrows) {
         continue;
       }
       if (casc.bachelor_as<FullTracksExt>().tpcNClsCrossedRows() < mincrossedrows) {
         continue;
       }
-      if (casc.v0().posTrack_as<FullTracksExt>().dcaXY() < dcapostopv) {
+      if (v0.posTrack_as<FullTracksExt>().dcaXY() < dcapostopv) {
         continue;
       }
-      if (casc.v0().negTrack_as<FullTracksExt>().dcaXY() < dcanegtopv) {
+      if (v0.negTrack_as<FullTracksExt>().dcaXY() < dcanegtopv) {
         continue;
       }
       if (casc.bachelor_as<FullTracksExt>().dcaXY() < dcabachtopv) {
@@ -127,7 +128,6 @@ struct cascadeprefilterpairs {
       }
 
       //V0 selections
-      auto v0 = casc.v0_as<aod::V0Datas>();
       if (fabs(v0.mLambda() - 1.116) > lambdamasswindow && fabs(v0.mAntiLambda() - 1.116) > lambdamasswindow) {
         continue;
       }
@@ -144,7 +144,7 @@ struct cascadeprefilterpairs {
         continue;
       }
       cascgood(
-        casc.v0().globalIndex(),
+        v0.globalIndex(),
         casc.bachelor_as<FullTracksExt>().globalIndex(),
         casc.bachelor_as<FullTracksExt>().collisionId());
     }
