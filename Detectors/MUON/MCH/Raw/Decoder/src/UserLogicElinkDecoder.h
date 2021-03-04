@@ -36,7 +36,7 @@ class UserLogicElinkDecoder
   UserLogicElinkDecoder(DsElecId dsId, DecodedDataHandlers decodedDataHandlers);
 
   /// Append 50 bits-worth of data
-  void append(uint64_t data50, uint8_t error);
+  void append(uint64_t data50, uint8_t error, bool incomplete);
 
   /// Reset our internal state
   /// i.e. assume the sync has to be found again
@@ -99,11 +99,6 @@ constexpr bool isSync(uint64_t data)
   return data == sampaSyncWord;
 };
 
-constexpr bool isIncomplete(uint8_t error)
-{
-  return (error & 0x4) > 0;
-}
-
 template <typename CHARGESUM>
 UserLogicElinkDecoder<CHARGESUM>::UserLogicElinkDecoder(DsElecId dsId,
                                                         DecodedDataHandlers decodedDataHandlers)
@@ -112,10 +107,10 @@ UserLogicElinkDecoder<CHARGESUM>::UserLogicElinkDecoder(DsElecId dsId,
 }
 
 template <typename CHARGESUM>
-void UserLogicElinkDecoder<CHARGESUM>::append(uint64_t data50, uint8_t error)
+void UserLogicElinkDecoder<CHARGESUM>::append(uint64_t data50, uint8_t error, bool incomplete)
 {
 #ifdef ULDEBUG
-  debugHeader() << (*this) << fmt::format(" --> append50 {:013x} error {} incomplete {} data10={:d} {:d} {:d} {:d} {:d}\n", data50, error, (int)isIncomplete(error), static_cast<uint10_t>(data50 & 0x3FF), static_cast<uint10_t>((data50 & 0xFFC00) >> 10), static_cast<uint10_t>((data50 & 0x3FF00000) >> 20), static_cast<uint10_t>((data50 & 0xFFC0000000) >> 30), static_cast<uint10_t>((data50 & 0x3FF0000000000) >> 40));
+  debugHeader() << (*this) << fmt::format(" --> append50 {:013x} error {} incomplete {} data10={:d} {:d} {:d} {:d} {:d}\n", data50, error, incomplete, static_cast<uint10_t>(data50 & 0x3FF), static_cast<uint10_t>((data50 & 0xFFC00) >> 10), static_cast<uint10_t>((data50 & 0x3FF00000) >> 20), static_cast<uint10_t>((data50 & 0xFFC0000000) >> 30), static_cast<uint10_t>((data50 & 0x3FF0000000000) >> 40));
 #endif
 
   if (isSync(data50)) {
@@ -134,8 +129,8 @@ void UserLogicElinkDecoder<CHARGESUM>::append(uint64_t data50, uint8_t error)
     bool packetEnd = append10(static_cast<uint10_t>(data & 0x3FF));
     data >>= 10;
 #ifdef ULDEBUG
-    if (isIncomplete(error)) {
-      debugHeader() << (*this) << fmt::format(" --> incomplete {} packetEnd @i={}\n", (int)isIncomplete(error), packetEnd, i);
+    if (incomplete) {
+      debugHeader() << (*this) << fmt::format(" --> incomplete {} packetEnd @i={}\n", incomplete, packetEnd, i);
     }
 #endif
     if (hasError()) {
@@ -145,7 +140,7 @@ void UserLogicElinkDecoder<CHARGESUM>::append(uint64_t data50, uint8_t error)
       reset();
       break;
     }
-    if (isIncomplete(error) && packetEnd) {
+    if (incomplete && packetEnd) {
 #ifdef ULDEBUG
       debugHeader() << (*this) << " stop due to isIncomplete\n";
 #endif
@@ -153,7 +148,7 @@ void UserLogicElinkDecoder<CHARGESUM>::append(uint64_t data50, uint8_t error)
     }
   }
 
-  if (isIncomplete(error) && (i == 5) && (mState != State::WaitingSync)) {
+  if (incomplete && (i == 5) && (mState != State::WaitingSync)) {
 #ifdef ULDEBUG
     debugHeader() << (*this) << " data packet end not found when isIncomplete --> resetting\n";
 #endif

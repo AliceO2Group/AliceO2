@@ -17,13 +17,13 @@
 
 namespace o2::mch::raw
 {
-template <typename FORMAT, typename CHARGESUM>
+template <typename FORMAT, typename CHARGESUM, int VERSION>
 struct ElinkEncoder;
 
-template <typename FORMAT, typename CHARGESUM>
+template <typename FORMAT, typename CHARGESUM, int VERSION = 0>
 struct ElinkEncoderMerger {
   void operator()(uint16_t gbtId,
-                  gsl::span<ElinkEncoder<FORMAT, CHARGESUM>> elinks,
+                  gsl::span<ElinkEncoder<FORMAT, CHARGESUM, VERSION>> elinks,
                   std::vector<uint64_t>& b64);
 };
 

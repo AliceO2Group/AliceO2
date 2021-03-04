@@ -66,9 +66,11 @@ class PayloadEncoder
 /// \tparam FORMAT defines the data format (either BareFormat or UserLogic)
 /// \tparam CHARGESUM defines the data format mode (either SampleMode or ChargeSumMode)
 /// \tparam forceNoPhase to be deprecated ?
+/// \tparam VERSION defines the version of the FORMAT
+///         (currently 0 or 1 are possible, just for UserLogic)
 /// \param solar2feelink a mapper to convert solarId values into FeeLinkId objects
 ///
-template <typename FORMAT, typename CHARGESUM, bool forceNoPhase = false>
+template <typename FORMAT, typename CHARGESUM, bool forceNoPhase = false, int VERSION = 0>
 std::unique_ptr<PayloadEncoder> createPayloadEncoder(Solar2FeeLinkMapper solar2feelink =
                                                        createSolar2FeeLinkMapper<ElectronicMapperGenerated>());
 } // namespace o2::mch::raw
