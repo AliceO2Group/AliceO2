@@ -20,6 +20,7 @@
 #include "DataFormatsEMCAL/Cell.h"
 #include "DataFormatsEMCAL/Digit.h"
 #include "DataFormatsEMCAL/Cluster.h"
+#include "DataFormatsEMCAL/ErrorTypeFEE.h"
 #include "EMCALWorkflow/RecoWorkflow.h"
 #include "EMCALWorkflow/CellConverterSpec.h"
 #include "EMCALWorkflow/ClusterizerSpec.h"
@@ -280,7 +281,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
     } else {
       using CellsDataType = std::vector<o2::emcal::Cell>;
       using TriggerRecordDataType = std::vector<o2::emcal::TriggerRecord>;
-      using DecoderErrorsDataType = std::vector<int>;
+      using DecoderErrorsDataType = std::vector<o2::emcal::ErrorTypeFEE>;
       specs.push_back(makeWriterSpec_CellsTR("emcal-cells-writer",
                                              "emccells.root",
                                              "o2sim",

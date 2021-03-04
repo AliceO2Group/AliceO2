@@ -18,6 +18,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "DataFormatsEMCAL/EMCALBlockHeader.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
+#include "DataFormatsEMCAL/ErrorTypeFEE.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "EMCALBase/Geometry.h"
 #include "EMCALBase/Mapper.h"
@@ -120,47 +121,39 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       try {
         decoder.decode();
       } catch (AltroDecoderError& e) {
-        std::stringstream errormessage;
+        std::string errormessage;
         using AltroErrType = o2::emcal::AltroDecoderError::ErrorType_t;
-        int errornum = -1;
+        /// @TODO still need to add the RawFitter errors
+        ErrorTypeFEE errornum(feeID, o2::emcal::AltroDecoderError::errorTypeToInt(e.getErrorType()), -1);
         switch (e.getErrorType()) {
           case AltroErrType::RCU_TRAILER_ERROR:
-            errornum = 0;
-            errormessage << " RCU Trailer Error ";
+            errormessage = " RCU Trailer Error ";
             break;
           case AltroErrType::RCU_VERSION_ERROR:
-            errornum = 1;
-            errormessage << " RCU Version Error ";
+            errormessage = " RCU Version Error ";
             break;
           case AltroErrType::RCU_TRAILER_SIZE_ERROR:
-            errornum = 2;
-            errormessage << " RCU Trailer Size Error ";
+            errormessage = " RCU Trailer Size Error ";
             break;
           case AltroErrType::ALTRO_BUNCH_HEADER_ERROR:
-            errornum = 3;
-            errormessage << " ALTRO Bunch Header Error ";
+            errormessage = " ALTRO Bunch Header Error ";
             break;
           case AltroErrType::ALTRO_BUNCH_LENGTH_ERROR:
-            errornum = 4;
-            errormessage << " ALTRO Bunch Length Error ";
+            errormessage = " ALTRO Bunch Length Error ";
             break;
           case AltroErrType::ALTRO_PAYLOAD_ERROR:
-            errornum = 5;
-            errormessage << " ALTRO Payload Error ";
+            errormessage = " ALTRO Payload Error ";
             break;
           case AltroErrType::ALTRO_MAPPING_ERROR:
-            errornum = 6;
-            errormessage << " ALTRO Mapping Error ";
+            errormessage = " ALTRO Mapping Error ";
             break;
           case AltroErrType::CHANNEL_ERROR:
-            errornum = 7;
-            errormessage << " Channel Error ";
+            errormessage = " Channel Error ";
             break;
           default:
             break;
         }
-        errormessage << " in Supermodule " << feeID;
-        std::cout << " EMCAL raw task: " << errormessage.str() << std::endl;
+        LOG(ERROR) << " EMCAL raw task: " << errormessage << " in Supermodule " << feeID << std::endl;
         //fill histograms  with error types
         mOutputDecoderErrors.push_back(errornum);
         continue;
