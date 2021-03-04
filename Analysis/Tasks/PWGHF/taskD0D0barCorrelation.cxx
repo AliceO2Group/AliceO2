@@ -858,18 +858,18 @@ struct TaskD0D0barCorrelationCheckPhiResolution {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<CreateBig2Prong>("add-collision-id"),
-    adaptAnalysisTask<TaskD0D0barCorrelation>("hf-task-d0d0bar-correlation"),
-    adaptAnalysisTask<TaskD0D0barCorrelationLS>("hf-task-d0d0bar-correlation-ls")};
+    adaptAnalysisTask<CreateBig2Prong>(cfgc, "add-collision-id"),
+    adaptAnalysisTask<TaskD0D0barCorrelation>(cfgc, "hf-task-d0d0bar-correlation"),
+    adaptAnalysisTask<TaskD0D0barCorrelationLS>(cfgc, "hf-task-d0d0bar-correlation-ls")};
   //MC-based tasks
   const bool doMC = cfgc.options().get<bool>("doMC");
   if (doMC) {
-    workflow.push_back(adaptAnalysisTask<TaskD0D0barCorrelationMCRec>("hf-task-d0d0bar-correlation-mc-rec"));
-    workflow.push_back(adaptAnalysisTask<TaskD0D0barCorrelationMCGen>("hf-task-d0d0bar-correlation-mc-gen"));
-    workflow.push_back(adaptAnalysisTask<TaskD0D0barCorrelationMCRecLS>("hf-task-d0d0bar-correlation-mc-rec-ls"));
-    workflow.push_back(adaptAnalysisTask<TaskD0D0barCorrelationMCGenLS>("hf-task-d0d0bar-correlation-mc-gen-ls"));
-    workflow.push_back(adaptAnalysisTask<TaskCCbarCorrelationMCGen>("hf-task-ccbar-correlation-mc-gen"));
-    workflow.push_back(adaptAnalysisTask<TaskD0D0barCorrelationCheckPhiResolution>("hf-task-d0d0bar-correlation-crosscheck-phi"));
+    workflow.push_back(adaptAnalysisTask<TaskD0D0barCorrelationMCRec>(cfgc, "hf-task-d0d0bar-correlation-mc-rec"));
+    workflow.push_back(adaptAnalysisTask<TaskD0D0barCorrelationMCGen>(cfgc, "hf-task-d0d0bar-correlation-mc-gen"));
+    workflow.push_back(adaptAnalysisTask<TaskD0D0barCorrelationMCRecLS>(cfgc, "hf-task-d0d0bar-correlation-mc-rec-ls"));
+    workflow.push_back(adaptAnalysisTask<TaskD0D0barCorrelationMCGenLS>(cfgc, "hf-task-d0d0bar-correlation-mc-gen-ls"));
+    workflow.push_back(adaptAnalysisTask<TaskCCbarCorrelationMCGen>(cfgc, "hf-task-ccbar-correlation-mc-gen"));
+    workflow.push_back(adaptAnalysisTask<TaskD0D0barCorrelationCheckPhiResolution>(cfgc, "hf-task-d0d0bar-correlation-crosscheck-phi"));
   }
   return workflow;
 }
