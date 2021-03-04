@@ -11,7 +11,7 @@
 #include "ZDCDigitizerSpec.h"
 #include "DataFormatsZDC/ChannelData.h"
 #include "DataFormatsZDC/BCData.h"
-#include "DataFormatsZDC/PedestalData.h"
+#include "DataFormatsZDC/OrbitData.h"
 #include "DataFormatsZDC/MCLabel.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -53,6 +53,8 @@ class ZDCDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
     mDigitizer.setCCDBServer(dopt.ccdb);
     mDigitizer.init();
+    auto enableHitInfo = ic.options().get<bool>("enable-hit-info");
+    mDigitizer.setMaskTriggerBits(!enableHitInfo);
     mROMode = mDigitizer.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
   }
 
@@ -110,19 +112,19 @@ class ZDCDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     const auto &irFirst = irecords.front(), irLast = irecords.back();
     o2::InteractionRecord irPed(o2::constants::lhc::LHCMaxBunches - 1, irFirst.orbit);
     int norbits = irLast.orbit - irFirst.orbit + 1;
-    mPedestalData.resize(norbits);
+    mOrbitData.resize(norbits);
     for (int i = 0; i < norbits; i++) {
-      mDigitizer.updatePedestalReference(mPedestalData[i]);
-      mPedestalData[i].ir = irPed;
+      mDigitizer.updatePedestalReference(mOrbitData[i]);
+      mOrbitData[i].ir = irPed;
       irPed.orbit++;
     }
 
-    mDigitizer.Finalize(mDigitsBC, mPedestalData);
+    mDigitizer.Finalize(mDigitsBC, mOrbitData);
 
     // send out to next stage
     pc.outputs().snapshot(Output{"ZDC", "DIGITSBC", 0, Lifetime::Timeframe}, mDigitsBC);
     pc.outputs().snapshot(Output{"ZDC", "DIGITSCH", 0, Lifetime::Timeframe}, mDigitsCh);
-    pc.outputs().snapshot(Output{"ZDC", "DIGITSPD", 0, Lifetime::Timeframe}, mPedestalData);
+    pc.outputs().snapshot(Output{"ZDC", "DIGITSPD", 0, Lifetime::Timeframe}, mOrbitData);
     if (pc.outputs().isAllowed({"ZDC", "DIGITSLBL", 0})) {
       pc.outputs().snapshot(Output{"ZDC", "DIGITSLBL", 0, Lifetime::Timeframe}, mLabels);
     }
@@ -139,7 +141,7 @@ class ZDCDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   std::vector<TChain*> mSimChains;
   std::vector<o2::zdc::ChannelData> mDigitsCh;
   std::vector<o2::zdc::BCData> mDigitsBC;
-  std::vector<o2::zdc::PedestalData> mPedestalData;
+  std::vector<o2::zdc::OrbitData> mOrbitData;
   o2::dataformats::MCTruthContainer<o2::zdc::MCLabel> mLabels; // labels which get filled
 
   // RS: at the moment using hardcoded flag for continuous readout
@@ -165,11 +167,9 @@ o2::framework::DataProcessorSpec getZDCDigitizerSpec(int channel, bool mctruth)
   return DataProcessorSpec{
     "ZDCDigitizer",
     Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
-
     outputs,
-
     AlgorithmSpec{adaptFromTask<ZDCDPLDigitizerTask>()},
-    Options{}};
+    Options{{"enable-hit-info", o2::framework::VariantType::Bool, false, {"enable hit info of unread channels"}}}};
 }
 
 } // end namespace zdc

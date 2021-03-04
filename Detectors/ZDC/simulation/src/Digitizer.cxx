@@ -629,27 +629,27 @@ void Digitizer::assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData)
   //currBC.print(mTriggerMask);
 }
 
-void Digitizer::Finalize(std::vector<BCData>& bcData, std::vector<o2::zdc::PedestalData>& pData)
+void Digitizer::Finalize(std::vector<BCData>& bcData, std::vector<o2::zdc::OrbitData>& pData)
 {
   // Default is to mask trigger bits, we can leave them for debugging
-  for(Int_t ipd=0; ipd<pData.size(); ipd++){
+  for (Int_t ipd = 0; ipd < pData.size(); ipd++) {
     for (int id = 0; id < NChannels; id++) {
-      pData[ipd].scaler[id]=0;
+      pData[ipd].scaler[id] = 0;
     }
   }
   for (int im = 0; im < NModules; im++) {
     for (int ic = 0; ic < NChPerModule; ic++) {
       uint32_t mask = 0x1 << (im * NChPerModule + ic);
-      auto id=mModuleConfig->modules[im].channelID[ic];
+      auto id = mModuleConfig->modules[im].channelID[ic];
       for (uint32_t ibc = 0; ibc < bcData.size(); ibc++) {
         auto& currBC = bcData[ibc];
-	if((currBC.triggers & mask)&&(mReadoutMask&mask)){
-	  for(Int_t ipd=0; ipd<pData.size(); ipd++){
-	    if(pData[ipd].ir.orbit==currBC.ir.orbit){
-	      pData[ipd].scaler[id]++;
-	    }
-	  }
-	}
+        if ((currBC.triggers & mask) && (mReadoutMask & mask)) {
+          for (Int_t ipd = 0; ipd < pData.size(); ipd++) {
+            if (pData[ipd].ir.orbit == currBC.ir.orbit) {
+              pData[ipd].scaler[id]++;
+            }
+          }
+        }
       }
     }
   }
@@ -690,7 +690,7 @@ void Digitizer::findEmptyBunches(const std::bitset<o2::constants::lhc::LHCMaxBun
 }
 
 //______________________________________________________________________________
-void Digitizer::updatePedestalReference(PedestalData& pdata)
+void Digitizer::updatePedestalReference(OrbitData& pdata)
 {
   // Compute or update baseline reference
   for (uint32_t id = 0; id < NChannels; id++) {

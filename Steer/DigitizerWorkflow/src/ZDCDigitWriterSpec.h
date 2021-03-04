@@ -16,7 +16,7 @@
 #include "Framework/InputSpec.h"
 #include "DataFormatsZDC/ChannelData.h"
 #include "DataFormatsZDC/BCData.h"
-#include "DataFormatsZDC/PedestalData.h"
+#include "DataFormatsZDC/OrbitData.h"
 #include "DataFormatsZDC/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
@@ -38,7 +38,7 @@ o2::framework::DataProcessorSpec getZDCDigitWriterSpec(bool mctruth = true)
                                 1,
                                 BranchDefinition<std::vector<o2::zdc::BCData>>{InputSpec{"digitBCinput", "ZDC", "DIGITSBC"}, "ZDCDigitBC"},
                                 BranchDefinition<std::vector<o2::zdc::ChannelData>>{InputSpec{"digitChinput", "ZDC", "DIGITSCH"}, "ZDCDigitCh"},
-                                BranchDefinition<std::vector<o2::zdc::PedestalData>>{InputSpec{"digitPDinput", "ZDC", "DIGITSPD"}, "ZDCDigitPed"},
+                                BranchDefinition<std::vector<o2::zdc::OrbitData>>{InputSpec{"digitPDinput", "ZDC", "DIGITSPD"}, "ZDCDigitPed"},
                                 BranchDefinition<o2::dataformats::MCTruthContainer<o2::zdc::MCLabel>>{InputSpec{"labelinput", "ZDC", "DIGITSLBL"}, "ZDCDigitLabels", mctruth ? 1 : 0})();
 }
 

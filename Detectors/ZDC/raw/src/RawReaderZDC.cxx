@@ -19,7 +19,7 @@ void RawReaderZDC::clear()
 {
   mDigitsBC.clear();
   mDigitsCh.clear();
-  mPedestalData.clear();
+  mOrbitData.clear();
 }
 
 void RawReaderZDC::processBinaryData(gsl::span<const uint8_t> payload, int linkID)
@@ -92,7 +92,7 @@ void RawReaderZDC::process(const EventChData& ch)
 }
 
 //pop digits
-int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelData>& digitsCh, std::vector<PedestalData>& pedestalData)
+int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelData>& digitsCh, std::vector<OrbitData>& orbitData)
 {
   if (mModuleConfig == nullptr) {
     LOG(FATAL) << "Missing ModuleConfig";
@@ -104,7 +104,7 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
     // TODO: Error check
     // Pedestal data
     if (ir.bc == 3563) {
-      auto& pdata = pedestalData.emplace_back();
+      auto& pdata = orbitData.emplace_back();
       pdata.ir = ir;
       for (int32_t im = 0; im < NModules; im++) {
         for (int32_t ic = 0; ic < NChPerModule; ic++) {

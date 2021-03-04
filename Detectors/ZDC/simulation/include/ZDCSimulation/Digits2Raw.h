@@ -26,7 +26,7 @@
 #include "ZDCSimulation/SimCondition.h"
 #include "DataFormatsZDC/BCData.h"
 #include "DataFormatsZDC/ChannelData.h"
-#include "DataFormatsZDC/PedestalData.h"
+#include "DataFormatsZDC/OrbitData.h"
 
 namespace o2
 {
@@ -70,7 +70,7 @@ class Digits2Raw
   void writeDigits();                                                          /// Writes raw data to file
   std::vector<o2::zdc::BCData> mzdcBCData, *mzdcBCDataPtr = &mzdcBCData;
   std::vector<o2::zdc::ChannelData> mzdcChData, *mzdcChDataPtr = &mzdcChData;
-  std::vector<o2::zdc::PedestalData> mzdcPedData, *mzdcPedDataPtr = &mzdcPedData;
+  std::vector<o2::zdc::OrbitData> mzdcPedData, *mzdcPedDataPtr = &mzdcPedData;
   int mNbc = 0;
   BCData mBCD;
   EventData mZDC;                                                       /// Output structure

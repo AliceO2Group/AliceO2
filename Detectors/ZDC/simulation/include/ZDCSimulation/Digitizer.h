@@ -16,7 +16,7 @@
 #include "ZDCBase/ModuleConfig.h"
 #include "DataFormatsZDC/ChannelData.h"
 #include "DataFormatsZDC/BCData.h"
-#include "DataFormatsZDC/PedestalData.h"
+#include "DataFormatsZDC/OrbitData.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include <vector>
@@ -105,15 +105,15 @@ class Digitizer
 
   void setContinuous(bool v = true) { mIsContinuous = v; }
   bool isContinuous() const { return mIsContinuous; }
-  void updatePedestalReference(PedestalData& pdata);
+  void updatePedestalReference(OrbitData& pdata);
   void refreshCCDB();
   void setCCDBServer(const std::string& s) { mCCDBServer = s; }
   void findEmptyBunches(const std::bitset<o2::constants::lhc::LHCMaxBunches>& bunchPattern);
   int getNEmptyBunches() const { return mNEmptyBCs; }
-  void assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData);                     // Assign trigger bits for nearby bunch crossings
-  void Finalize(std::vector<BCData>& bcData, std::vector<o2::zdc::PedestalData>& pData); // Mask trigger bits for current bunch crossing
+  void assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData);                  // Assign trigger bits for nearby bunch crossings
+  void Finalize(std::vector<BCData>& bcData, std::vector<o2::zdc::OrbitData>& pData); // Mask trigger bits for current bunch crossing
   void setMaskTriggerBits(bool v = true) { mMaskTriggerBits = v; }
-  bool getMaskTriggerBits(bool v = true) { return mMaskTriggerBits; }
+  bool getMaskTriggerBits() { return mMaskTriggerBits; }
 
  private:
   static constexpr int BCCacheMin = -1, BCCacheMax = 5, NBC2Cache = 1 + BCCacheMax - BCCacheMin;

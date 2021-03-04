@@ -21,7 +21,7 @@
 #include "DataFormatsZDC/RawEventData.h"
 #include "DataFormatsZDC/ChannelData.h"
 #include "DataFormatsZDC/BCData.h"
-#include "DataFormatsZDC/PedestalData.h"
+#include "DataFormatsZDC/OrbitData.h"
 #include "ZDCSimulation/Digits2Raw.h"
 #include "ZDCBase/ModuleConfig.h"
 #include "Framework/ProcessingContext.h"
@@ -54,7 +54,7 @@ class RawReaderZDC
 
   std::vector<o2::zdc::BCData> mDigitsBC;
   std::vector<o2::zdc::ChannelData> mDigitsCh;
-  std::vector<o2::zdc::PedestalData> mPedestalData;
+  std::vector<o2::zdc::OrbitData> mOrbitData;
 
   void clear();
 
@@ -66,13 +66,13 @@ class RawReaderZDC
 
   void accumulateDigits()
   {
-    getDigits(mDigitsBC, mDigitsCh, mPedestalData);
+    getDigits(mDigitsBC, mDigitsCh, mOrbitData);
     LOG(INFO) << "Number of Digits: " << mDigitsBC.size();
     LOG(INFO) << "Number of ChannelData: " << mDigitsCh.size();
-    LOG(INFO) << "Number of PedestalData: " << mPedestalData.size();
+    LOG(INFO) << "Number of OrbitData: " << mOrbitData.size();
   }
 
-  int getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelData>& digitsCh, std::vector<PedestalData>& pedestalData);
+  int getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelData>& digitsCh, std::vector<OrbitData>& orbitData);
 
   static void prepareOutputSpec(std::vector<o2::framework::OutputSpec>& outputSpec)
   {
@@ -84,7 +84,7 @@ class RawReaderZDC
   {
     pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginZDC, "DIGITSBC", 0, o2::framework::Lifetime::Timeframe}, mDigitsBC);
     pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginZDC, "DIGITSCH", 0, o2::framework::Lifetime::Timeframe}, mDigitsCh);
-    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginZDC, "DIGITSPD", 0, o2::framework::Lifetime::Timeframe}, mPedestalData);
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginZDC, "DIGITSPD", 0, o2::framework::Lifetime::Timeframe}, mOrbitData);
   }
   bool mDumpData;
 };

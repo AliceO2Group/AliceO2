@@ -15,7 +15,7 @@
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsZDC/ChannelData.h"
 #include "DataFormatsZDC/BCData.h"
-#include "DataFormatsZDC/PedestalData.h"
+#include "DataFormatsZDC/OrbitData.h"
 
 #include "ZDCWorkflow/ZDCDigitWriterDPLSpec.h"
 using namespace o2::framework;
@@ -37,7 +37,7 @@ DataProcessorSpec getZDCDigitWriterDPLSpec()
     "zdc-digit-writer", "o2digit_zdc.root", "o2sim",
     BranchDefinition<std::vector<o2::zdc::BCData>>{InputSpec{"digitBCinput", "ZDC", "DIGITSBC"}, "ZDCDigitBC"},
     BranchDefinition<std::vector<o2::zdc::ChannelData>>{InputSpec{"digitChinput", "ZDC", "DIGITSCH"}, "ZDCDigitCh"},
-    BranchDefinition<std::vector<o2::zdc::PedestalData>>{InputSpec{"digitPDinput", "ZDC", "DIGITSPD"}, "ZDCDigitPed"})();
+    BranchDefinition<std::vector<o2::zdc::OrbitData>>{InputSpec{"digitPDinput", "ZDC", "DIGITSPD"}, "ZDCDigitPed"})();
 }
 
 } // namespace zdc

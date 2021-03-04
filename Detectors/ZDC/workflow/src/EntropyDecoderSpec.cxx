@@ -46,7 +46,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
 
   auto& bcdata = pc.outputs().make<std::vector<o2::zdc::BCData>>(OutputRef{"trig"});
   auto& chans = pc.outputs().make<std::vector<o2::zdc::ChannelData>>(OutputRef{"chan"});
-  auto& peds = pc.outputs().make<std::vector<o2::zdc::PedestalData>>(OutputRef{"ped"});
+  auto& peds = pc.outputs().make<std::vector<o2::zdc::OrbitData>>(OutputRef{"ped"});
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
   const auto ctfImage = o2::zdc::CTF::getImage(buff.data());

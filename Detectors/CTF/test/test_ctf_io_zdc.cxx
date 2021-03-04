@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
 {
   std::vector<BCData> bcdata;
   std::vector<ChannelData> chandata;
-  std::vector<PedestalData> pedsdata;
+  std::vector<OrbitData> pedsdata;
   // RS: don't understand why, but this library is not loaded automatically, although the dependencies are clearly
   // indicated. What it more weird is that for similar tests of other detectors the library is loaded!
   // Absence of the library leads to complains about the StreamerInfo and eventually segm.faul when appending the
@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     }
   }
 
-  // PedestalData
+  // OrbitData
   const auto &irFirst = bcdata.front().ir, irLast = bcdata.back().ir;
   o2::InteractionRecord irPed(o2::constants::lhc::LHCMaxBunches - 1, irFirst.orbit);
   int norbits = irLast.orbit - irFirst.orbit + 1;
@@ -111,7 +111,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
 
   std::vector<BCData> bcdataD;
   std::vector<ChannelData> chandataD;
-  std::vector<PedestalData> pedsdataD;
+  std::vector<OrbitData> pedsdataD;
 
   sw.Start();
   const auto ctfImage = o2::zdc::CTF::getImage(vec.data());
@@ -153,12 +153,12 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     BOOST_CHECK(cmpChData);
   }
 
-  LOG(INFO) << "Testing PedestalData: BOOST_CHECK(pedsdataD.size() " << pedsdataD.size() << " pedsdata.size()) " << pedsdata.size();
+  LOG(INFO) << "Testing OrbitData: BOOST_CHECK(pedsdataD.size() " << pedsdataD.size() << " pedsdata.size()) " << pedsdata.size();
   BOOST_CHECK(pedsdataD.size() == pedsdata.size());
   for (size_t i = 0; i < pedsdata.size(); i++) {
     bool cmpPdData = pedsdata[i].ir == pedsdataD[i].ir && pedsdata[i].data == pedsdataD[i].data;
     if (!cmpPdData) {
-      LOG(ERROR) << "Mismatch in PedestalData " << i;
+      LOG(ERROR) << "Mismatch in OrbitData " << i;
       pedsdata[i].print();
       pedsdataD[i].print();
     }

@@ -20,7 +20,7 @@
 #include "ZDCWorkflow/DigitReaderSpec.h"
 #include "DataFormatsZDC/ChannelData.h"
 #include "DataFormatsZDC/BCData.h"
-#include "DataFormatsZDC/PedestalData.h"
+#include "DataFormatsZDC/OrbitData.h"
 #include "DataFormatsZDC/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
@@ -50,10 +50,10 @@ void DigitReader::run(ProcessingContext& pc)
 {
   std::vector<o2::zdc::ChannelData> digitsCh, *digitsChPtr = &digitsCh;
   std::vector<o2::zdc::BCData> digitsBC, *digitsBCPtr = &digitsBC;
-  std::vector<o2::zdc::PedestalData> pedestalData, *pedestalDataPtr = &pedestalData;
+  std::vector<o2::zdc::OrbitData> orbitData, *orbitDataPtr = &orbitData;
   mTree->SetBranchAddress("ZDCDigitBC", &digitsBCPtr);
   mTree->SetBranchAddress("ZDCDigitCh", &digitsChPtr);
-  mTree->SetBranchAddress("ZDCDigitPed", &pedestalDataPtr);
+  mTree->SetBranchAddress("ZDCDigitPed", &orbitDataPtr);
 
   o2::dataformats::MCTruthContainer<o2::zdc::MCLabel> labels, *plabels = &labels;
   if (mUseMC) {
@@ -65,7 +65,7 @@ void DigitReader::run(ProcessingContext& pc)
 
   pc.outputs().snapshot(Output{"ZDC", "DIGITSBC", 0, Lifetime::Timeframe}, digitsBC);
   pc.outputs().snapshot(Output{"ZDC", "DIGITSCH", 0, Lifetime::Timeframe}, digitsCh);
-  pc.outputs().snapshot(Output{"ZDC", "DIGITSPD", 0, Lifetime::Timeframe}, pedestalData);
+  pc.outputs().snapshot(Output{"ZDC", "DIGITSPD", 0, Lifetime::Timeframe}, orbitData);
   if (mUseMC) {
     pc.outputs().snapshot(Output{"ZDC", "DIGITSLBL", 0, Lifetime::Timeframe}, labels);
   }

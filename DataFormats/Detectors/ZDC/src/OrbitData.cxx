@@ -8,12 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DataFormatsZDC/PedestalData.h"
+#include "DataFormatsZDC/OrbitData.h"
 #include "ZDCBase/Constants.h"
 
 using namespace o2::zdc;
 
-void PedestalData::print() const
+void OrbitData::print() const
 {
   printf("Orbit %9u bc %4u\n", ir.orbit, ir.bc);
   for (int i = 0; i < NChannels; i++) {
