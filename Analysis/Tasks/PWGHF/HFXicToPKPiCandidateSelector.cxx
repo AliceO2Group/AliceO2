@@ -84,7 +84,7 @@ struct HFXicToPKPiCandidateSelector {
   template <typename T>
   bool daughterSelection(const T& track)
   {
-    if (track.charge() == 0) {
+    if (track.sign() == 0) {
       return false;
     }
     /*if (track.tpcNClsFound() == 0) {
@@ -440,8 +440,8 @@ struct HFXicToPKPiCandidateSelector {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HFXicToPKPiCandidateSelector>("hf-xic-topkpi-candidate-selector")};
+    adaptAnalysisTask<HFXicToPKPiCandidateSelector>(cfgc, "hf-xic-topkpi-candidate-selector")};
 }
