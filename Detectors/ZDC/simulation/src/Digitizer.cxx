@@ -664,7 +664,7 @@ void Digitizer::Finalize(std::vector<BCData>& bcData, std::vector<o2::zdc::Orbit
         // Cleanup hits if module has no trigger
         uint32_t mmask = 0xf << im;
         if ((currBC.triggers & mTriggerMask & mmask) == 0) {
-          currBC.triggers=currBC.triggers&(~mmask);
+          currBC.triggers = currBC.triggers & (~mmask);
         }
       }
       // Cleanup trigger bits for channels that are not readout
