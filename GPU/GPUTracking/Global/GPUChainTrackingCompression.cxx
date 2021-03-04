@@ -52,8 +52,7 @@ int GPUChainTracking::RunTPCCompression()
   TransferMemoryResourcesToHost(myStep, &Compressor, 0);
 #ifdef GPUCA_TPC_GEOMETRY_O2
   if (mPipelineFinalizationCtx && GetProcessingSettings().doublePipelineClusterizer) {
-    SynchronizeEvents(&mEvents->single);
-    ReleaseEvent(&mEvents->single);
+    SynchronizeEventAndRelease(&mEvents->single);
     ((GPUChainTracking*)GetNextChainInQueue())->RunTPCClusterizer_prepare(false);
     ((GPUChainTracking*)GetNextChainInQueue())->mCFContext->ptrClusterNativeSave = processorsShadow()->ioPtrs.clustersNative;
   }
@@ -189,8 +188,7 @@ int GPUChainTracking::RunTPCCompression()
   }
   mIOPtrs.tpcCompressedClusters = Compressor.mOutputFlat;
   if (ProcessingSettings().tpcCompressionGatherMode == 3) {
-    SynchronizeEvents(&mEvents->stream[outputStream]);
-    ReleaseEvent(&mEvents->stream[outputStream]);
+    SynchronizeEventAndRelease(&mEvents->stream[outputStream]);
     mRec->ReturnVolatileDeviceMemory();
   }
 

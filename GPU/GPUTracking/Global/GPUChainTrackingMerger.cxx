@@ -33,8 +33,7 @@ void GPUChainTracking::RunTPCTrackingMerger_MergeBorderTracks(char withinSlice, 
       runKernel<GPUTPCGMMergerMergeBorders, 0>(GetGridAuto(stream, deviceType), krnlRunRangeNone, {nullptr, stream && i < (unsigned int)mRec->NStreams() ? &mEvents->single : nullptr}, i, withinSlice, mergeMode);
     }
     ReleaseEvent(&mEvents->single);
-    SynchronizeEvents(&mEvents->init);
-    ReleaseEvent(&mEvents->init);
+    SynchronizeEventAndRelease(&mEvents->init);
     for (unsigned int i = 0; i < n; i++) {
       int stream = i % mRec->NStreams();
       int n1, n2;
@@ -276,8 +275,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResMemory(), 0, &mEvents->single);
     runKernel<GPUTPCGMO2Output, GPUTPCGMO2Output::sort>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
     mRec->ReturnVolatileDeviceMemory();
-    SynchronizeEvents(&mEvents->single);
-    ReleaseEvent(&mEvents->single);
+    SynchronizeEventAndRelease(&mEvents->single);
 
     AllocateRegisteredMemory(Merger.MemoryResOutputO2(), mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::tpcTracksO2)]);
     AllocateRegisteredMemory(Merger.MemoryResOutputO2Clus(), mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::tpcTracksO2ClusRefs)]);
