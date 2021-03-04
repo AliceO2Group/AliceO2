@@ -538,7 +538,11 @@ class RecoDecay
   /// \param sign  antiparticle indicator of the found mother w.r.t. PDGMother; 1 if particle, -1 if antiparticle, 0 if mother not found
   /// \return index of the mother particle if found, -1 otherwise
   template <typename T>
-  static int getMother(const T& particlesMC, const typename T::iterator& particle, int PDGMother, bool acceptAntiParticles = false, int8_t* sign = nullptr)
+  static int getMother(const T& particlesMC,
+                       const typename T::iterator& particle,
+                       int PDGMother,
+                       bool acceptAntiParticles = false,
+                       int8_t* sign = nullptr)
   {
     int8_t sgn = 0;                 // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGMother)
     int indexMother = -1;           // index of the final matched mother, if found
@@ -666,7 +670,13 @@ class RecoDecay
   /// \param depthMax  maximum decay tree level to check; Daughters up to this level will be considered. If -1, all levels are considered.
   /// \return index of the mother particle if the mother and daughters are correct, -1 otherwise
   template <std::size_t N, typename T, typename U>
-  static int getMatchedMCRec(const T& particlesMC, const array<U, N>& arrDaughters, int PDGMother, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false, int8_t* sign = nullptr, int depthMax = 1)
+  static int getMatchedMCRec(const T& particlesMC,
+                             const array<U, N>& arrDaughters,
+                             int PDGMother,
+                             array<int, N> arrPDGDaughters,
+                             bool acceptAntiParticles = false,
+                             int8_t* sign = nullptr,
+                             int depthMax = 1)
   {
     //Printf("MC Rec: Expected mother PDG: %d", PDGMother);
     int8_t sgn = 0;                        // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGMother)
@@ -762,7 +772,11 @@ class RecoDecay
   /// \param sign  antiparticle indicator of the candidate w.r.t. PDGParticle; 1 if particle, -1 if antiparticle, 0 if not matched
   /// \return true if PDG code of the particle is correct, false otherwise
   template <typename T, typename U>
-  static int isMatchedMCGen(const T& particlesMC, const U& candidate, int PDGParticle, bool acceptAntiParticles = false, int8_t* sign = nullptr)
+  static int isMatchedMCGen(const T& particlesMC,
+                            const U& candidate,
+                            int PDGParticle,
+                            bool acceptAntiParticles = false,
+                            int8_t* sign = nullptr)
   {
     array<int, 0> arrPDGDaughters;
     return isMatchedMCGen(particlesMC, candidate, PDGParticle, std::move(arrPDGDaughters), acceptAntiParticles, sign);
@@ -779,7 +793,14 @@ class RecoDecay
   /// \param listIndexDaughters  vector of indices of found daughter
   /// \return true if PDG codes of the particle and its daughters are correct, false otherwise
   template <std::size_t N, typename T, typename U>
-  static bool isMatchedMCGen(const T& particlesMC, const U& candidate, int PDGParticle, array<int, N> arrPDGDaughters, bool acceptAntiParticles = false, int8_t* sign = nullptr, int depthMax = 1, std::vector<int>* listIndexDaughters = nullptr)
+  static bool isMatchedMCGen(const T& particlesMC,
+                             const U& candidate,
+                             int PDGParticle,
+                             array<int, N> arrPDGDaughters,
+                             bool acceptAntiParticles = false,
+                             int8_t* sign = nullptr,
+                             int depthMax = 1,
+                             std::vector<int>* listIndexDaughters = nullptr)
   {
     //Printf("MC Gen: Expected particle PDG: %d", PDGParticle);
     int8_t sgn = 0; // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGParticle)
