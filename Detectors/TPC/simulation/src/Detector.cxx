@@ -1436,11 +1436,11 @@ void Detector::ConstructTPCGeometry()
   //
   auto* cflv = new TGeoVolume("TPC_CDR", cfl, m3);
   // sandwich
-  auto* cd1 = new TGeoTubeSeg(60.6224, 61.19, 69.8, 0.2, 119.95);
-  auto* cd2 = new TGeoTubeSeg(60.6262, 61.1862, 69.8, 0.2, 119.95);
-  auto* cd3 = new TGeoTubeSeg(60.6462, 61.1662, 69.8, 0.2, 119.95);
-  auto* cd4 = new TGeoTubeSeg(60.6562, 61.1562, 69.8, 0.2, 119.95);
-  auto* tepox4 = new TGeoTubeSeg(60.6224, 61.19, 69.8, 359.8, 0.8);
+  auto* cd1 = new TGeoTubeSeg(60.6224, 61.19, 69.8, 0.05, 119.95);
+  auto* cd2 = new TGeoTubeSeg(60.6262, 61.1862, 69.8, 0.05, 119.95);
+  auto* cd3 = new TGeoTubeSeg(60.6462, 61.1662, 69.8, 0.05, 119.95);
+  auto* cd4 = new TGeoTubeSeg(60.6562, 61.1562, 69.8, 0.05, 119.95);
+  auto* tepox4 = new TGeoTubeSeg(60.6224, 61.19, 69.8, 359.95, 0.05);  //epoxy glue 0.01 deg
   //
   TGeoMedium* sm6 = gGeoManager->GetMedium("TPC_Prepreg1");
   TGeoMedium* sm8 = gGeoManager->GetMedium("TPC_Epoxyfm");
