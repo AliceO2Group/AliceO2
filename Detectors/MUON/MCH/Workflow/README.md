@@ -79,7 +79,7 @@ Take as input the list of all preclusters ([PreCluster](../Base/include/MCHBase/
 
 ## Local to global cluster transformation
 
-The `o2-mch-clusters-transformer-workflow` takes as as input the list of all clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)), in local reference frame, in the current time frame, with the data description "CLUSTERS".
+The `o2-mch-clusters-transformer-workflow` takes as input the list of all clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)), in local reference frame, in the current time frame, with the data description "CLUSTERS".
 
 It sends the list of the same clusters, but converted in global reference frame, with the data description "GLOBALCLUSTERS".
 
@@ -175,7 +175,7 @@ Option `--nEventsPerTF xxx` allows to set the number of events (i.e. ROF records
 ### Cluster sampler
 
 ```shell
-o2-mch-clusters-sampler-workflow --infile "clusters.in"
+o2-mch-clusters-sampler-workflow --infile "clusters.in" [--global]
 ```
 
 where `clusters.in` is a binary file containing for each event:
@@ -185,7 +185,7 @@ where `clusters.in` is a binary file containing for each event:
 * list of clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h))
 * list of associated digits ([Digit](../Base/include/MCHBase/Digit.h))
 
-Send the list of all clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) in the current time frame, with the data description "CLUSTERS", and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction, with the data description "CLUSTERROFS".
+Send the list of all clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) in the current time frame, with the data description "CLUSTERS" (or "GLOBALCLUSTERS" if `--global` option is used), and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction, with the data description "CLUSTERROFS".
 
 Option `--nEventsPerTF xxx` allows to set the number of events (i.e. ROF records) to send per time frame (default = 1).
 
@@ -248,7 +248,7 @@ o2-mch-clusters-sink-workflow --outfile "clusters.out" [--txt] [--no-digits] [--
 Take as input the list of all clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) in the current time frame, and, optionnally, the list of all associated digits ([Digit](../Base/include/MCHBase/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction, with the data description "CLUSTERS" (or "GLOBALCLUSTERS" if `--global` option is used), "CLUSTERDIGITS" (unless `--no-digits` option is used) and "CLUSTERROFS", respectively, and write them event-by-event in the binary file `clusters.out` with the following format for each event:
 
 * number of clusters (int)
-* number of associated digits (int) (unless option `--no-digits` is used)
+* number of associated digits (int) (= 0 if `--no-digits` is used)
 * list of clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h))
 * list of associated digits ([Digit](../Base/include/MCHBase/Digit.h))(unless option `--no-digits` is used)
 

@@ -19,6 +19,8 @@
 #include <stdexcept>
 #include <vector>
 
+#include <fmt/format.h>
+
 #include <gsl/span>
 
 #include "Framework/CallbackService.h"
@@ -29,14 +31,12 @@
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
 #include "Framework/WorkflowSpec.h"
-#include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
 
 #include "DataFormatsMCH/ROFRecord.h"
 #include "MCHBase/Digit.h"
 #include "MCHBase/ClusterBlock.h"
 #include "MCHMappingInterface/Segmentation.h"
-#include <fmt/format.h>
 
 using namespace std;
 using namespace o2::framework;
@@ -104,16 +104,16 @@ class ClusterSinkTask
         int nClusters = eventClusters.size();
         mOutputFile.write(reinterpret_cast<char*>(&nClusters), sizeof(int));
 
-        if (mDoDigits) {
-          // write the total number of digits in these clusters
-          int nDigits = eventDigits.size();
-          mOutputFile.write(reinterpret_cast<char*>(&nDigits), sizeof(int));
+        // write the total number of digits in these clusters
+        int nDigits = eventDigits.size();
+        mOutputFile.write(reinterpret_cast<char*>(&nDigits), sizeof(int));
 
-          // write the clusters
-          mOutputFile.write(reinterpret_cast<const char*>(eventClusters.data()),
-                            eventClusters.size() * sizeof(ClusterStruct));
+        // write the clusters
+        mOutputFile.write(reinterpret_cast<const char*>(eventClusters.data()),
+                          eventClusters.size() * sizeof(ClusterStruct));
 
-          // write the digits (after converting the pad ID into a digit UID if requested)
+        // write the digits (after converting the pad ID into a digit UID if requested)
+        if (nDigits > 0) {
           if (mUseRun2DigitUID) {
             std::vector<Digit> digitsCopy(eventDigits.begin(), eventDigits.end());
             convertPadID2DigitUID(digitsCopy);
@@ -150,6 +150,7 @@ class ClusterSinkTask
                          clusters.begin() + rof.getLastIdx() + 1);
 
     if (mDoDigits) {
+
       auto digitOffset = eventClusters.front().firstDigit;
       for (auto& cluster : eventClusters) {
         cluster.firstDigit -= digitOffset;
@@ -162,6 +163,7 @@ class ClusterSinkTask
 
       return digits.subspan(digitOffset, nDigits);
     }
+
     return {};
   }
 
@@ -206,28 +208,28 @@ class ClusterSinkTask
   bool mDoDigits = true;         ///< whether or not we deal with digits
 };
 
-// add workflow options, note that customization needs to be declared before
-// including Framework/runDataProcessing
-void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+//_________________________________________________________________________________________________
+void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  std::vector<o2::framework::ConfigParamSpec> options{
-    {"global", o2::framework::VariantType::Bool, false, {"read clusters with positions expressed in global reference frame"}},
-    {"no-digits", o2::framework::VariantType::Bool, false, {"do not look for digits"}},
-  };
-  std::swap(workflowOptions, options);
+  /// add workflow options. Note that customization needs to be declared before including Framework/runDataProcessing
+  workflowOptions.emplace_back("global", VariantType::Bool, false,
+                               ConfigParamSpec::HelpString{"read clusters with positions expressed in global reference frame"});
+  workflowOptions.emplace_back("no-digits", VariantType::Bool, false,
+                               ConfigParamSpec::HelpString{"do not look for digits"});
 }
 
+//_________________________________________________________________________________________________
 #include "Framework/runDataProcessing.h"
 
 WorkflowSpec defineDataProcessing(const ConfigContext& cc)
 {
-  std::string inputConfig = fmt::format("rofs:MCH/CLUSTERROFS;clusters:MCH/{}CLUSTERS",
+  std::string inputConfig = fmt::format("rofs:MCH/CLUSTERROFS/0;clusters:MCH/{}CLUSTERS/0",
                                         cc.options().get<bool>("global") ? "GLOBAL" : "");
 
   bool doDigits = not cc.options().get<bool>("no-digits");
 
   if (doDigits) {
-    inputConfig += ";digits:MCH/CLUSTERDIGITS";
+    inputConfig += ";digits:MCH/CLUSTERDIGITS/0";
   }
   std::cout << "inputConfig=" << inputConfig << "\n";
 
