@@ -1693,17 +1693,6 @@ bool isOutputToPipe()
   return ((s.st_mode & S_IFIFO) != 0);
 }
 
-void overrideSuffix(ConfigContext& ctx, WorkflowSpec& workflow)
-{
-  auto suffix = ctx.options().get<std::string>("workflow-suffix");
-  if (suffix.empty()) {
-    return;
-  }
-  for (auto& processor : workflow) {
-    processor.name = processor.name + suffix;
-  }
-}
-
 void overrideCloning(ConfigContext& ctx, WorkflowSpec& workflow)
 {
   struct CloningSpec {

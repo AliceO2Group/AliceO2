@@ -218,8 +218,8 @@ struct raacharged {
 //--------------------------------------------------------------------
 // Workflow definition
 //--------------------------------------------------------------------
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<raacharged>("raa-charged")};
+    adaptAnalysisTask<raacharged>(cfgc, "raa-charged")};
 }

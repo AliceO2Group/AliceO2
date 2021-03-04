@@ -131,5 +131,5 @@ struct pidTPCTaskTiny {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return WorkflowSpec{adaptAnalysisTask<pidTPCTaskTiny>("pidTPC-tiny-task")};
+  return WorkflowSpec{adaptAnalysisTask<pidTPCTaskTiny>(cfgc, "pidTPC-tiny-task")};
 }

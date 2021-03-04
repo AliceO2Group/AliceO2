@@ -306,6 +306,6 @@ struct CandidateTreeWriter {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow;
-  workflow.push_back(adaptAnalysisTask<CandidateTreeWriter>("hf-tree-creator-lc-topkpi"));
+  workflow.push_back(adaptAnalysisTask<CandidateTreeWriter>(cfgc, "hf-tree-creator-lc-topkpi"));
   return workflow;
 }

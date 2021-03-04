@@ -69,8 +69,8 @@ struct UPCSpectraProviderTask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<UPCSpectraProviderTask>("upcspectra-task-skim-provider")};
+    adaptAnalysisTask<UPCSpectraProviderTask>(cfgc, "upcspectra-task-skim-provider")};
 }

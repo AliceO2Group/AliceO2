@@ -78,12 +78,12 @@ struct CTask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("produce-etaphi-v1"),
-    adaptAnalysisTask<BTask>("produce-etaphi-v2"),
-    adaptAnalysisTask<CTask<aod::EtaPhiV1>>("consume-etaphi-v1"), // here CTask is added with EtaPhiV1 input
-    adaptAnalysisTask<CTask<aod::EtaPhiV2>>("consume-etaphi-v2"), // here CTask is added with EtaPhiV2 input
+    adaptAnalysisTask<ATask>(cfgc, "produce-etaphi-v1"),
+    adaptAnalysisTask<BTask>(cfgc, "produce-etaphi-v2"),
+    adaptAnalysisTask<CTask<aod::EtaPhiV1>>(cfgc, "consume-etaphi-v1"), // here CTask is added with EtaPhiV1 input
+    adaptAnalysisTask<CTask<aod::EtaPhiV2>>(cfgc, "consume-etaphi-v2"), // here CTask is added with EtaPhiV2 input
   };
 }

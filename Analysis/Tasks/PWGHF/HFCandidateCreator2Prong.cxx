@@ -199,11 +199,11 @@ struct HFCandidateCreator2ProngMC {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<HFCandidateCreator2Prong>("hf-cand-creator-2prong"),
-    adaptAnalysisTask<HFCandidateCreator2ProngExpressions>("hf-cand-creator-2prong-expressions")};
+    adaptAnalysisTask<HFCandidateCreator2Prong>(cfgc, "hf-cand-creator-2prong"),
+    adaptAnalysisTask<HFCandidateCreator2ProngExpressions>(cfgc, "hf-cand-creator-2prong-expressions")};
   const bool doMC = cfgc.options().get<bool>("doMC");
   if (doMC) {
-    workflow.push_back(adaptAnalysisTask<HFCandidateCreator2ProngMC>("hf-cand-creator-2prong-mc"));
+    workflow.push_back(adaptAnalysisTask<HFCandidateCreator2ProngMC>(cfgc, "hf-cand-creator-2prong-mc"));
   }
   return workflow;
 }

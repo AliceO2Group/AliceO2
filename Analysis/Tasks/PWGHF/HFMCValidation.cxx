@@ -196,7 +196,7 @@ struct ValidationRecLevel {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<ValidationGenLevel>("hf-mc-validation-gen"),
-    adaptAnalysisTask<ValidationRecLevel>("hf-mc-validation-rec")};
+    adaptAnalysisTask<ValidationGenLevel>(cfgc, "hf-mc-validation-gen"),
+    adaptAnalysisTask<ValidationRecLevel>(cfgc, "hf-mc-validation-rec")};
   return workflow;
 }

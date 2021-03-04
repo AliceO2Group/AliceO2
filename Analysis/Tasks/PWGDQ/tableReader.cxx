@@ -616,15 +616,15 @@ struct DileptonHadronAnalysis {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<EventSelection>("my-event-selection"),
-    adaptAnalysisTask<BarrelTrackSelection>("barrel-track-selection"),
-    adaptAnalysisTask<EventMixing>("event-mixing"),
-    adaptAnalysisTask<MuonTrackSelection>("muon-track-selection"),
-    adaptAnalysisTask<TableReader>("table-reader"),
-    adaptAnalysisTask<DileptonHadronAnalysis>("dilepton-hadron")
+    adaptAnalysisTask<EventSelection>(cfgc, "my-event-selection"),
+    adaptAnalysisTask<BarrelTrackSelection>(cfgc, "barrel-track-selection"),
+    adaptAnalysisTask<EventMixing>(cfgc, "event-mixing"),
+    adaptAnalysisTask<MuonTrackSelection>(cfgc, "muon-track-selection"),
+    adaptAnalysisTask<TableReader>(cfgc, "table-reader"),
+    adaptAnalysisTask<DileptonHadronAnalysis>(cfgc, "dilepton-hadron")
 
   };
 }

@@ -14,6 +14,7 @@
 #include "../../src/AnalysisManagers.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/CallbackService.h"
+#include "Framework/ConfigContext.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Expressions.h"
@@ -588,9 +589,15 @@ class has_init
 /// Adaptor to make an AlgorithmSpec from a o2::framework::Task
 ///
 template <typename T, typename... Args>
-DataProcessorSpec adaptAnalysisTask(char const* name, Args&&... args)
+DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, char const* name, Args&&... args)
 {
   TH1::AddDirectory(false);
+
+  auto suffix = ctx.options().get<std::string>("workflow-suffix");
+  if (!suffix.empty()) {
+    name = (name + suffix).c_str();
+  }
+
   auto task = std::make_shared<T>(std::forward<Args>(args)...);
   auto hash = compile_time_hash(name);
 

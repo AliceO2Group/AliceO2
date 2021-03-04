@@ -64,7 +64,7 @@ struct EfficiencyPerRun {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return WorkflowSpec{adaptAnalysisTask<EfficiencyPerRun>("EfficiencyPerRun")};
+  return WorkflowSpec{adaptAnalysisTask<EfficiencyPerRun>(cfgc, "EfficiencyPerRun")};
 }

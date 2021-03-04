@@ -535,14 +535,14 @@ struct QATrackingEfficiency {
   }
 };
 
-o2fw::WorkflowSpec defineDataProcessing(o2fw::ConfigContext const&)
+o2fw::WorkflowSpec defineDataProcessing(o2fw::ConfigContext const& cfgc)
 {
-  return o2fw::WorkflowSpec{o2fw::adaptAnalysisTask<QAGlobalObservables>("qa-global-observables"),
-                            o2fw::adaptAnalysisTask<QATrackingKine>("qa-tracking-kine"),
-                            o2fw::adaptAnalysisTask<QATrackingResolution>("qa-tracking-resolution"),
-                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kPiPlus>>("qa-tracking-efficiency-pion"),
-                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kProton>>("qa-tracking-efficiency-proton"),
-                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kElectron>>("qa-tracking-efficiency-electron"),
-                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kMuonMinus>>("qa-tracking-efficiency-muon"),
-                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kKPlus>>("qa-tracking-efficiency-kaon")};
+  return o2fw::WorkflowSpec{o2fw::adaptAnalysisTask<QAGlobalObservables>(cfgc, "qa-global-observables"),
+                            o2fw::adaptAnalysisTask<QATrackingKine>(cfgc, "qa-tracking-kine"),
+                            o2fw::adaptAnalysisTask<QATrackingResolution>(cfgc, "qa-tracking-resolution"),
+                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kPiPlus>>(cfgc, "qa-tracking-efficiency-pion"),
+                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kProton>>(cfgc, "qa-tracking-efficiency-proton"),
+                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kElectron>>(cfgc, "qa-tracking-efficiency-electron"),
+                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kMuonMinus>>(cfgc, "qa-tracking-efficiency-muon"),
+                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kKPlus>>(cfgc, "qa-tracking-efficiency-kaon")};
 };
