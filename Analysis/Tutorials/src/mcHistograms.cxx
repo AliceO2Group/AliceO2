@@ -38,7 +38,9 @@ struct BTask {
   {
     LOGF(info, "MC. vtx-z = %f", mcCollision.posZ());
     LOGF(info, "First: %d | Length: %d", mcParticles.begin().index(), mcParticles.size());
-    LOGF(info, "Particles mother: %d", (mcParticles.begin() + 1000).mother0());
+    if (mcParticles.size() > 0) {
+      LOGF(info, "Particles mother: %d", mcParticles.begin().mother0());
+    }
     for (auto& mcParticle : mcParticles) {
       if (MC::isPhysicalPrimary(mcParticles, mcParticle)) {
         phiH->Fill(mcParticle.phi());
