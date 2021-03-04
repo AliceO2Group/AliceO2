@@ -59,6 +59,7 @@ DECLARE_SOA_INDEX_COLUMN(Category, category);
 } // namespace indices
 
 DECLARE_SOA_TABLE(IDXs, "TST", "Index", Index<>, indices::PointId, indices::DistanceId, indices::FlagId, indices::CategoryId);
+DECLARE_SOA_TABLE(IDX2s, "TST", "Index2", Index<>, indices::DistanceId, indices::PointId, indices::FlagId, indices::CategoryId);
 
 BOOST_AUTO_TEST_CASE(TestIndexBuilder)
 {
@@ -110,30 +111,24 @@ BOOST_AUTO_TEST_CASE(TestIndexBuilder)
     BOOST_REQUIRE(row.category().pointId() == row.pointId());
   }
 
-  auto t6 = IndexSparse::indexBuilder(typename IDXs::persistent_columns_t{}, st1, std::tie(st1, st2, st3, st4));
-  BOOST_REQUIRE_EQUAL(t6->num_rows(), st1.size());
+  auto t6 = IndexSparse::indexBuilder(typename IDX2s::persistent_columns_t{}, st1, std::tie(st2, st1, st3, st4));
+  BOOST_REQUIRE_EQUAL(t6->num_rows(), st2.size());
   IDXs idxs{t6};
-  std::array<int, 10> ds{0, 1, 2, -1, 4, -1, -1, 7, 8, 9};
-  std::array<int, 10> fs{0, 1, 2, -1, -1, 5, -1, -1, 8, -1};
-  std::array<int, 10> cs{0, 1, 2, 3, -1, 5, -1, 7, 8, -1};
+  std::array<int, 7> fs{0, 1, 2, -1, -1, 4, -1};
+  std::array<int, 7> cs{0, 1, 2, -1, 5, 6, -1};
   idxs.bindExternalIndices(&st1, &st2, &st3, &st4);
   auto i = 0;
-  for (auto& row : idxs) {
-    if (row.has_distance()) {
-      BOOST_REQUIRE(row.distance().pointId() == ds[i]);
-    } else {
-      BOOST_REQUIRE(row.distanceId() == ds[i]);
-    }
+  for (auto const& row : idxs) {
+    BOOST_REQUIRE(row.has_distance());
+    BOOST_REQUIRE(row.has_point());
     if (row.has_flag()) {
-      BOOST_REQUIRE(row.flag().pointId() == fs[i]);
-    } else {
-      BOOST_REQUIRE(row.flagId() == fs[i]);
+      BOOST_REQUIRE(row.flag().pointId() == row.pointId());
     }
     if (row.has_category()) {
-      BOOST_REQUIRE(row.category().pointId() == cs[i]);
-    } else {
-      BOOST_REQUIRE(row.categoryId() == cs[i]);
+      BOOST_REQUIRE(row.category().pointId() == row.pointId());
     }
+    BOOST_REQUIRE(row.flagId() == fs[i]);
+    BOOST_REQUIRE(row.categoryId() == cs[i]);
     ++i;
   }
 }
