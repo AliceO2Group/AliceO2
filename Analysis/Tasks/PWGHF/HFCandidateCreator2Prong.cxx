@@ -109,7 +109,8 @@ struct HFCandidateCreator2Prong {
       auto errorDecayLengthXY = std::sqrt(getRotatedCovMatrixXX(covMatrixPV, phi, 0.) + getRotatedCovMatrixXX(covMatrixPCA, phi, 0.));
 
       // fill candidate table rows
-      rowCandidateBase(collision.posX(), collision.posY(), collision.posZ(),
+      rowCandidateBase(rowTrackIndexProng2.index0().collisionId(),
+                       collision.posX(), collision.posY(), collision.posZ(),
                        secondaryVertex[0], secondaryVertex[1], secondaryVertex[2],
                        errorDecayLength, errorDecayLengthXY,
                        chi2PCA,

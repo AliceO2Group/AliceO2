@@ -44,7 +44,7 @@ struct TaskX {
   Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsiToEE >= selectionFlagJpsi);
 
   /// aod::BigTracks is not soa::Filtered, should be added when filters are added
-  void process(aod::Collision const&, aod::BigTracks const& tracks, soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiToEECandidate, aod::Colls>> const& candidates)
+  void process(aod::Collision const&, aod::BigTracks const& tracks, soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiToEECandidate>> const& candidates)
   {
     for (auto& candidate : candidates) {
       if (!(candidate.hfflag() & 1 << JpsiToEE)) {
@@ -78,9 +78,9 @@ struct TaskX {
   }       // process
 };        // struct
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<TaskX>("hf-task-x")};
+    adaptAnalysisTask<TaskX>(cfgc, "hf-task-x")};
   return workflow;
 }

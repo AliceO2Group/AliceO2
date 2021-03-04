@@ -82,6 +82,8 @@ DECLARE_SOA_TABLE(HfCutStatusProng3, "AOD", "HFCUTSTATUSP3",
 // general decay properties
 namespace hf_cand
 {
+// collision properties
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 // secondary vertex
 DECLARE_SOA_COLUMN(XSecondaryVertex, xSecondaryVertex, float);
 DECLARE_SOA_COLUMN(YSecondaryVertex, ySecondaryVertex, float);
@@ -235,6 +237,7 @@ auto InvMassJpsiToEE(const T& candidate)
 
 // general columns
 #define HFCAND_COLUMNS                                                                                                                                                                             \
+  hf_cand::CollisionId,                                                                                                                                                                            \
   collision::PosX, collision::PosY, collision::PosZ,                                                                                                                                               \
     hf_cand::XSecondaryVertex, hf_cand::YSecondaryVertex, hf_cand::ZSecondaryVertex,                                                                                                               \
     hf_cand::ErrorDecayLength, hf_cand::ErrorDecayLengthXY,                                                                                                                                        \
