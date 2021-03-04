@@ -55,25 +55,6 @@ HmpidCoder2::~HmpidCoder2()
 {
 }
 
-/* /  getEquipCoord() : converts the EquipmentID in CRU,Link couple
-/// @param[in] Equi : the HMPID Equipment ID [0..13]
-/// @param[out] CruId : the FLP CRU number [0..3]
-/// @param[ou] LinkId : the FLP Linkk number [0..3]
-void HmpidCoder2::getEquipCoord(int Equi, uint32_t* CruId, uint32_t* LinkId)
-{
-  for (int i = 0; i < Geo::MAXEQUIPMENTS; i++) {
-    if (mEqIds[i] == Equi) {
-      *CruId = mCruIds[i];
-      *LinkId = mLinkIds[i];
-      return;
-    }
-  }
-  *CruId = mCruIds[0];
-  *LinkId = mLinkIds[0];
-  return;
-}
-*/
-
 /// setDetectorSpecificFields() : sets the HMPID parameters for the next
 /// raw file writes
 /// @param[in] BusyTime : busy time in milliseconds
@@ -250,7 +231,7 @@ void HmpidCoder2::codeEventChunkDigits(std::vector<Digit>& digits, Trigger ir)
     eq = ReadOut::FeeId(eq);                                   // converts the Equipment Id in Cru/Link position ref
     idx = getEquipmentPadIndex(eq, col, dil, cha);             // finally to the unique padmap index
     if (mPadMap[idx] != 0) { // We already have the pad set
-      std::cerr << "HmpidCoder [ERROR] : Duplicated DIGIT =" << d << " (" << eq << "," << col << "," << dil << "," << cha << ")" << std::endl;
+      LOG(WARNING) << "Duplicated DIGIT =" << d << " (" << eq << "," << col << "," << dil << "," << cha << ")";
     } else {
       mPadMap[idx] = d.getCharge();
       padsCount++;

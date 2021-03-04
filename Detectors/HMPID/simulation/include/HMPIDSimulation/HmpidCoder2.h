@@ -120,7 +120,6 @@ class HmpidCoder2
   void dumpResults();
 
  private:
-  void getEquipCoord(int Equi, uint32_t* CruId, uint32_t* LinkId);
   int getEquipmentPadIndex(int eq, int col, int dil, int cha);
   void fillTheOutputBuffer(uint32_t* padMap);
   void writePaginatedEvent(uint32_t orbit, uint16_t bc);
