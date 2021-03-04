@@ -280,8 +280,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
         for (int i = 0; i < mRec->NStreams(); i++) {
           ReleaseEvent(&mEvents->stream[i]);
         }
-        SynchronizeEvents(&mEvents->single);
-        ReleaseEvent(&mEvents->single);
+        SynchronizeEventAndRelease(&mEvents->single);
       }
 
       if (GetProcessingSettings().debugLevel >= 4) {
