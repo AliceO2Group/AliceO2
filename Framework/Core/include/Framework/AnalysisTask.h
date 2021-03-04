@@ -247,18 +247,18 @@ struct AnalysisDataProcessorBuilder {
           if constexpr (soa::is_type_with_originals_v<std::decay_t<T>>) {
             using O = typename framework::pack_element_t<0, typename std::decay_t<G>::originals>;
             using groupingMetadata = typename aod::MetadataTrait<O>::metadata;
-            return std::string("f") + groupingMetadata::tableLabel() + "ID";
+            return std::string("fIndex") + groupingMetadata::tableLabel();
           } else {
             using groupingMetadata = typename aod::MetadataTrait<T>::metadata;
-            return std::string("f") + groupingMetadata::tableLabel() + "ID";
+            return std::string("fIndex") + groupingMetadata::tableLabel();
           }
         } else if constexpr (soa::is_type_with_originals_v<std::decay_t<G>>) {
           using T = typename framework::pack_element_t<0, typename std::decay_t<G>::originals>;
           using groupingMetadata = typename aod::MetadataTrait<T>::metadata;
-          return std::string("f") + groupingMetadata::tableLabel() + "ID";
+          return std::string("fIndex") + groupingMetadata::tableLabel();
         } else {
           using groupingMetadata = typename aod::MetadataTrait<std::decay_t<G>>::metadata;
-          return std::string("f") + groupingMetadata::tableLabel() + "ID";
+          return std::string("fIndex") + groupingMetadata::tableLabel();
         }
       }
 

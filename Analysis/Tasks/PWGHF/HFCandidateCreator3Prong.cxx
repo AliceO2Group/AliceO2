@@ -68,9 +68,9 @@ struct HFCandidateCreator3Prong {
 
     // loop over triplets of track indices
     for (const auto& rowTrackIndexProng3 : rowsTrackIndexProng3) {
-      auto trackParVar0 = getTrackParCov(rowTrackIndexProng3.index0());
-      auto trackParVar1 = getTrackParCov(rowTrackIndexProng3.index1());
-      auto trackParVar2 = getTrackParCov(rowTrackIndexProng3.index2());
+      auto trackParVar0 = getTrackParCov(rowTrackIndexProng3.index0_as<aod::BigTracks>());
+      auto trackParVar1 = getTrackParCov(rowTrackIndexProng3.index1_as<aod::BigTracks>());
+      auto trackParVar2 = getTrackParCov(rowTrackIndexProng3.index2_as<aod::BigTracks>());
       auto collision = rowTrackIndexProng3.index0().collision();
 
       // reconstruct the 3-prong secondary vertex

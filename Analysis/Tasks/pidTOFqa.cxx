@@ -120,10 +120,10 @@ struct pidTOFTaskQA {
   template <uint8_t pidIndex, typename T, typename TT>
   void fillNsigma(const T& track, const TT& mcParticles, const float& nsigma)
   {
-    if (abs(track.label().pdgCode()) == PDGs[pidIndex]) {
+    if (abs(track.mcParticle().pdgCode()) == PDGs[pidIndex]) {
       histos.fill(HIST(hnsigmaMC[pidIndex]), track.pt(), nsigma);
 
-      if (MC::isPhysicalPrimary(mcParticles, track.label())) { // Selecting primaries
+      if (MC::isPhysicalPrimary(mcParticles, track.mcParticle())) { // Selecting primaries
         histos.fill(HIST(hnsigmaMCprm[pidIndex]), track.pt(), nsigma);
       } else {
         histos.fill(HIST(hnsigmaMCsec[pidIndex]), track.pt(), nsigma);
@@ -164,7 +164,7 @@ struct pidTOFTaskQA {
 
       // Fill for all
       histos.fill(HIST(hnsigma[pid_type]), t.pt(), nsigma);
-      if (MC::isPhysicalPrimary(mcParticles, t.label())) { // Selecting primaries
+      if (MC::isPhysicalPrimary(mcParticles, t.mcParticle())) { // Selecting primaries
         histos.fill(HIST(hnsigmaprm[pid_type]), t.pt(), nsigma);
       } else {
         histos.fill(HIST(hnsigmasec[pid_type]), t.pt(), nsigma);

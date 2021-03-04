@@ -199,7 +199,7 @@ void ALICE3toAO2D()
 
   // Create the output directory for the current time frame
   TDirectory* fOutputDir = 0x0; ///! Pointer to the output Root subdirectory
-  fOutputDir = fOutputFile->mkdir(Form("TF_%d", tfId));
+  fOutputDir = fOutputFile->mkdir(Form("DF_%d", tfId));
   fOutputDir->cd();
 
   //Create output trees in file

@@ -98,18 +98,6 @@ std::vector<std::string> getColumnNames(header::DataHeader dh)
   auto description = std::string(dh.dataDescription.str);
   auto origin = std::string(dh.dataOrigin.str);
 
-  // get column names
-  // AOD / RN2
-  if (origin == "AOD") {
-    if (description == "TRACK:PAR") {
-      return columnNamesTrait(typename StoredTracksMetadata::table_t::persistent_columns_t{});
-    } else if (description == "TRACK:PARCOV") {
-      return columnNamesTrait(typename StoredTracksCovMetadata::table_t::persistent_columns_t{});
-    } else if (description == "TRACK:EXTRA") {
-      return columnNamesTrait(typename TracksExtraMetadata::table_t::persistent_columns_t{});
-    }
-  }
-
   // default: column names = {}
   return std::vector<std::string>({});
 }

@@ -56,14 +56,15 @@ DECLARE_SOA_COLUMN(CovXZ, covXZ, float);
 DECLARE_SOA_COLUMN(CovYY, covYY, float);
 DECLARE_SOA_COLUMN(CovYZ, covYZ, float);
 DECLARE_SOA_COLUMN(CovZZ, covZZ, float);
+DECLARE_SOA_COLUMN(Flags, flags, uint16_t); // Run2, see CollisionFlagsRun2 | Run 3, see Vertex::Flags
 DECLARE_SOA_COLUMN(Chi2, chi2, float);
-DECLARE_SOA_COLUMN(NumContrib, numContrib, uint32_t);
+DECLARE_SOA_COLUMN(NumContrib, numContrib, uint16_t);
 DECLARE_SOA_COLUMN(CollisionTime, collisionTime, float);
 DECLARE_SOA_COLUMN(CollisionTimeRes, collisionTimeRes, float);
 DECLARE_SOA_COLUMN(CollisionTimeMask, collisionTimeMask, uint8_t); // TODO put nature of CollisionTimeRes here, e.g. MSB 0 = exact range / 1 = Gaussian uncertainty
 } // namespace collision
 
-DECLARE_SOA_TABLE(Collisions, "AOD", "COLLISION", o2::soa::Index<>, collision::BCId, collision::PosX, collision::PosY, collision::PosZ, collision::CovXX, collision::CovXY, collision::CovXZ, collision::CovYY, collision::CovYZ, collision::CovZZ, collision::Chi2, collision::NumContrib, collision::CollisionTime, collision::CollisionTimeRes, collision::CollisionTimeMask);
+DECLARE_SOA_TABLE(Collisions, "AOD", "COLLISION", o2::soa::Index<>, collision::BCId, collision::PosX, collision::PosY, collision::PosZ, collision::CovXX, collision::CovXY, collision::CovXZ, collision::CovYY, collision::CovYZ, collision::CovZZ, collision::Flags, collision::Chi2, collision::NumContrib, collision::CollisionTime, collision::CollisionTimeRes, collision::CollisionTimeMask);
 
 using Collision = Collisions::iterator;
 
@@ -206,7 +207,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(TPCFractionSharedCls, tpcFractionSharedCls, [](uint8_
 });
 } // namespace track
 
-DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK:PAR",
+DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK",
                        o2::soa::Index<>, track::CollisionId, track::TrackType,
                        track::X, track::Alpha,
                        track::Y, track::Z, track::Snp, track::Tgl,
@@ -217,18 +218,18 @@ DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK:PAR",
                        track::Pz<track::Signed1Pt, track::Tgl>,
                        track::Charge<track::Signed1Pt>);
 
-DECLARE_SOA_EXTENDED_TABLE(Tracks, StoredTracks, "TRACK:PAR",
+DECLARE_SOA_EXTENDED_TABLE(Tracks, StoredTracks, "TRACK",
                            aod::track::Pt,
                            aod::track::P,
                            aod::track::Eta,
                            aod::track::RawPhi);
 
-DECLARE_SOA_TABLE_FULL(StoredTracksCov, "TracksCov", "AOD", "TRACK:PARCOV",
+DECLARE_SOA_TABLE_FULL(StoredTracksCov, "TracksCov", "AOD", "TRACKCOV",
                        track::SigmaY, track::SigmaZ, track::SigmaSnp, track::SigmaTgl, track::Sigma1Pt,
                        track::RhoZY, track::RhoSnpY, track::RhoSnpZ, track::RhoTglY, track::RhoTglZ,
                        track::RhoTglSnp, track::Rho1PtY, track::Rho1PtZ, track::Rho1PtSnp, track::Rho1PtTgl);
 
-DECLARE_SOA_EXTENDED_TABLE(TracksCov, StoredTracksCov, "TRACK:PARCOV",
+DECLARE_SOA_EXTENDED_TABLE(TracksCov, StoredTracksCov, "TRACKCOV",
                            aod::track::CYY,
                            aod::track::CZY,
                            aod::track::CZZ,
@@ -245,7 +246,7 @@ DECLARE_SOA_EXTENDED_TABLE(TracksCov, StoredTracksCov, "TRACK:PARCOV",
                            aod::track::C1PtTgl,
                            aod::track::C1Pt21Pt2);
 
-DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACK:EXTRA",
+DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKEXTRA",
                   track::TPCInnerParam, track::Flags, track::ITSClusterMap,
                   track::TPCNClsFindable, track::TPCNClsFindableMinusFound, track::TPCNClsFindableMinusCrossedRows,
                   track::TPCNClsShared, track::TRDPattern, track::ITSChi2NCl,
@@ -386,7 +387,7 @@ using Muon = Muons::iterator;
 
 namespace muoncluster
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(Track, track, int, Muons, "fMuonsID"); // points to a muon track in the Muon table
+DECLARE_SOA_INDEX_COLUMN_FULL(Track, track, int, Muons, ""); // points to a muon track in the Muon table
 DECLARE_SOA_COLUMN(X, x, float);
 DECLARE_SOA_COLUMN(Y, y, float);
 DECLARE_SOA_COLUMN(Z, z, float);
@@ -485,8 +486,8 @@ using FDD = FDDs::iterator;
 
 namespace v0
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(PosTrack, posTrack, int, FullTracks, "fPosTrackID");
-DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, FullTracks, "fNegTrackID");
+DECLARE_SOA_INDEX_COLUMN_FULL(PosTrack, posTrack, int, Tracks, "_Pos");
+DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, Tracks, "_Neg");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 } // namespace v0
 
@@ -499,7 +500,7 @@ using V0 = V0s::iterator;
 namespace cascade
 {
 DECLARE_SOA_INDEX_COLUMN(V0, v0);
-DECLARE_SOA_INDEX_COLUMN_FULL(Bachelor, bachelor, int, FullTracks, "fTracksID");
+DECLARE_SOA_INDEX_COLUMN_FULL(Bachelor, bachelor, int, Tracks, "");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 } // namespace cascade
 
@@ -509,8 +510,21 @@ DECLARE_SOA_TABLE(TransientCascades, "AOD", "CASCADEINDEX", cascade::CollisionId
 using Cascades = soa::Join<TransientCascades, StoredCascades>;
 using Cascade = Cascades::iterator;
 
-// ---- MC tables ----
+// ---- Run 2 tables ----
+namespace run2
+{
+DECLARE_SOA_COLUMN(EventCuts, eventCuts, uint32_t);
+DECLARE_SOA_COLUMN(TriggerMaskNext50, triggerMaskNext50, uint64_t);
+DECLARE_SOA_COLUMN(SPDClustersL0, spdClustersL0, uint16_t);
+DECLARE_SOA_COLUMN(SPDClustersL1, spdClustersL1, uint16_t);
+} // namespace run2
 
+DECLARE_SOA_TABLE(Run2BCInfos, "AOD", "RUN2BCINFO", run2::EventCuts, run2::TriggerMaskNext50,
+                  run2::SPDClustersL0, run2::SPDClustersL1)
+
+using Run2BCInfo = Run2BCInfos::iterator;
+
+// ---- MC tables ----
 namespace mccollision
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc);
@@ -568,8 +582,8 @@ using McParticle = McParticles::iterator;
 
 namespace mctracklabel
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(Label, label, uint32_t, McParticles, "fLabel");
-DECLARE_SOA_COLUMN(LabelMask, labelMask, uint16_t);
+DECLARE_SOA_INDEX_COLUMN(McParticle, mcParticle);
+DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);
 /// Bit mask to indicate detector mismatches (bit ON means mismatch)
 /// Bit 0-6: mismatch at ITS layer
 /// Bit 7-9: # of TPC mismatches in the ranges 0, 1, 2-3, 4-7, 8-15, 16-31, 32-63, >64
@@ -577,31 +591,31 @@ DECLARE_SOA_COLUMN(LabelMask, labelMask, uint16_t);
 } // namespace mctracklabel
 
 DECLARE_SOA_TABLE(McTrackLabels, "AOD", "MCTRACKLABEL",
-                  mctracklabel::LabelId, mctracklabel::LabelMask);
+                  mctracklabel::McParticleId, mctracklabel::McMask);
 using McTrackLabel = McTrackLabels::iterator;
 
 namespace mccalolabel
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(Label, label, uint32_t, McParticles, "fLabel");
-DECLARE_SOA_COLUMN(LabelMask, labelMask, uint16_t);
+DECLARE_SOA_INDEX_COLUMN(McParticle, mcParticle);
+DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);
 /// Bit mask to indicate detector mismatches (bit ON means mismatch)
 /// Bit 15: indicates negative label
 } // namespace mccalolabel
 
 DECLARE_SOA_TABLE(McCaloLabels, "AOD", "MCCALOLABEL",
-                  mccalolabel::LabelId, mccalolabel::LabelMask);
+                  mccalolabel::McParticleId, mccalolabel::McMask);
 using McCaloLabel = McCaloLabels::iterator;
 
 namespace mccollisionlabel
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(Label, label, uint32_t, McCollisions, "fLabel");
-DECLARE_SOA_COLUMN(LabelMask, labelMask, uint16_t);
+DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision);
+DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);
 /// Bit mask to indicate collision mismatches (bit ON means mismatch)
 /// Bit 15: indicates negative label
 } // namespace mccollisionlabel
 
 DECLARE_SOA_TABLE(McCollisionLabels, "AOD", "MCCOLLISLABEL",
-                  mccollisionlabel::LabelId, mccollisionlabel::LabelMask);
+                  mccollisionlabel::McCollisionId, mccollisionlabel::McMask);
 using McCollisionLabel = McCollisionLabels::iterator;
 
 // --- Matching between collisions and other tables through BC ---
