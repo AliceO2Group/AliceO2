@@ -44,7 +44,7 @@ void Digitizer::process(const std::vector<o2::fdd::Hit>& hits,
   std::sort(sorted_hits.begin(), sorted_hits.end(), [](o2::fdd::Hit const& a, o2::fdd::Hit const& b) {
     return a.GetTrackID() < b.GetTrackID();
   });
-  LOG(INFO) << "Pulse";
+  //LOG(INFO) << "Pulse";
   //Conversion of hits to the analogue pulse shape
   for (auto& hit : sorted_hits) {
     if (hit.GetTime() > 20e3) {
@@ -191,18 +191,24 @@ void Digitizer::storeBC(const BCCache& bc,
 {
   //LOG(INFO) << "Storing BC " << bc;
 
-  int first = digitsCh.size();
+  int first = digitsCh.size(), nStored = 0;
   for (int ic = 0; ic < Nchannels; ic++) {
-    digitsCh.emplace_back(ic, simulateTimeCFD(bc.pulse[ic]), integrateCharge(bc.pulse[ic]), 0);
+    float chargeADC = integrateCharge(bc.pulse[ic]);
+    if (chargeADC != 0) {
+      digitsCh.emplace_back(ic, simulateTimeCFD(bc.pulse[ic]), chargeADC, 0);
+      nStored++;
+    }
   }
   //bc.print();
 
-  int nBC = digitsBC.size();
-  digitsBC.emplace_back(first, 16, bc, mTriggers);
-  digitsTrig.emplace_back(bc, 0, 0, 0, 0, 0);
+  if (nStored != 0) {
+    int nBC = digitsBC.size();
+    digitsBC.emplace_back(first, nStored, bc, mTriggers);
+    digitsTrig.emplace_back(bc, 0, 0, 0, 0, 0);
 
-  for (const auto& lbl : bc.labels) {
-    labels.addElement(nBC, lbl);
+    for (const auto& lbl : bc.labels) {
+      labels.addElement(nBC, lbl);
+    }
   }
 }
 

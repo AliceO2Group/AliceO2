@@ -51,6 +51,13 @@ struct Triggers {
     timeA = atimeA;
     timeC = atimeC;
   }
+
+  bool getOrA() const { return (triggersignals & (1 << bitA)) != 0; }
+  bool getOrC() const { return (triggersignals & (1 << bitC)) != 0; }
+  bool getVertex() const { return (triggersignals & (1 << bitVertex)) != 0; }
+  bool getCen() const { return (triggersignals & (1 << bitCen)) != 0; }
+  bool getSCen() const { return (triggersignals & (1 << bitSCen)) != 0; }
+
   void cleanTriggers()
   {
     triggersignals = 0;

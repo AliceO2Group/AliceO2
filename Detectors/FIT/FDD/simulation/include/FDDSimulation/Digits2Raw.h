@@ -60,6 +60,7 @@ class Digits2Raw
   void makeGBTHeader(EventHeader& eventHeader, int link, o2::InteractionRecord const& mIntRecord);
   void fillSecondHalfWordAndAddData(int iChannelPerLink, int prevPmLink, const o2::InteractionRecord& ir);
   RawEventData mRawEventData;
+  o2::fdd::Triggers mTriggers;
   o2::raw::RawFileWriter mWriter{"FDD"};
   bool mOutputPerLink = false;
   /////////////////////////////////////////////////

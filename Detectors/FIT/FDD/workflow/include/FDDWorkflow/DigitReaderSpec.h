@@ -44,6 +44,7 @@ class DigitReader : public Task
   std::string mDigitTreeName = "o2sim";
   std::string mDigitBCBranchName = "FDDDigit";
   std::string mDigitChBranchName = "FDDDigitCh";
+  std::string mTriggerBranchName = "TRIGGERINPUT";
   std::string mDigitMCTruthBranchName = "FDDDigitLabels";
 };
 
