@@ -112,7 +112,7 @@ class GPUTPCCompressionGatherKernels : public GPUKernelTemplate
   GPUdi() static void compressorMemcpyBasic(T* dst, const T* src, unsigned int size, int nThreads, int iThread, int nBlocks = 1, int iBlock = 0);
 
   template <typename V, typename T, typename S>
-  GPUdi() static void compressorMemcpyBuffered(V* buf, T* dst, const T* src, const S* nums, const unsigned int* srcOffets, unsigned int nTracks, int nLanes, int iLane, int diff = 0);
+  GPUdi() static void compressorMemcpyBuffered(V* buf, T* dst, const T* src, const S* nums, const unsigned int* srcOffets, unsigned int nEntries, int nLanes, int iLane, int diff = 0, size_t scaleBase1024 = 1024);
 
   template <typename T>
   GPUdi() static unsigned int calculateWarpOffsets(GPUSharedMemory& smem, T* nums, unsigned int start, unsigned int end, int nWarps, int iWarp, int nLanes, int iLane);
