@@ -106,11 +106,10 @@ void WriteRawFromRootTask::init(framework::InitContext& ic)
   return;
 }
 
-
 void WriteRawFromRootTask::readRootFile()
 {
   std::vector<o2::hmpid::Digit> digitsPerEvent;
-  std::vector<o2::hmpid::Digit> digits,*hmpBCDataPtr = &digits;
+  std::vector<o2::hmpid::Digit> digits, *hmpBCDataPtr = &digits;
   std::vector<o2::hmpid::Trigger> interactions, *interactionsPtr = &interactions;
 
   // Keeps the Interactions !

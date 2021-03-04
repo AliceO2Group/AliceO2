@@ -230,7 +230,7 @@ void HmpidCoder2::codeEventChunkDigits(std::vector<Digit>& digits, Trigger ir)
     Digit::Pad2Equipment(d.getPadID(), &eq, &col, &dil, &cha); // From Digit to Hardware coords
     eq = ReadOut::FeeId(eq);                                   // converts the Equipment Id in Cru/Link position ref
     idx = getEquipmentPadIndex(eq, col, dil, cha);             // finally to the unique padmap index
-    if (mPadMap[idx] != 0) { // We already have the pad set
+    if (mPadMap[idx] != 0) {                                   // We already have the pad set
       LOG(WARNING) << "Duplicated DIGIT =" << d << " (" << eq << "," << col << "," << dil << "," << cha << ")";
     } else {
       mPadMap[idx] = d.getCharge();
