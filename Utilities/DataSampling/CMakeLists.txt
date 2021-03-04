@@ -81,7 +81,7 @@ o2_add_executable(datasampling-time-pipeline
   COMPONENT_NAME DataSampling
   PUBLIC_LINK_LIBRARIES O2::Framework O2::DataSampling)
 
-o2_add_dpl_workflow(datasampling-benchmark
+o2_add_executable(datasampling-benchmark
   SOURCES test/dataSamplingBenchmark.cxx
   COMPONENT_NAME DataSampling
-  PUBLIC_LINK_LIBRARIES O2::DataSampling)
+  PUBLIC_LINK_LIBRARIES O2::Framework O2::DataSampling)
