@@ -575,31 +575,25 @@ class RecoDecay
 
   /// Gets the complete list of indices of final-state daughters of an MC particle.
   /// \param particlesMC  table with MC particles
-  /// \param index  index of the MC particle
+  /// \param particle  MC particle
   /// \param list  vector where the indices of final-state daughters will be added
-  /// \param arrPDGFinal  array of PDG codes of particles to be considered final
+  /// \param arrPDGFinal  array of PDG codes of particles to be considered final if found
   /// \param depthMax  maximum decay tree level; Daughters at this level (or beyond) will be considered final. If -1, all levels are considered.
   /// \param stage  decay tree level; If different from 0, the particle itself will be added in the list in case it has no daughters.
   /// \note Final state is defined as particles from arrPDGFinal plus final daughters of any other decay branch.
   /// \note Antiparticles of particles in arrPDGFinal are accepted as well.
   template <std::size_t N, typename T>
   static void getDaughters(const T& particlesMC,
-                           int index,
+                           const typename T::iterator& particle,
                            std::vector<int>* list,
                            const array<int, N>& arrPDGFinal,
                            int8_t depthMax = -1,
                            int8_t stage = 0)
   {
-    if (index <= -1) {
-      //Printf("getDaughters: Error: No particle: index %d", index);
-      return;
-    }
     if (!list) {
       //Printf("getDaughters: Error: No list!");
       return;
     }
-    // Get the particle.
-    auto particle = particlesMC.iteratorAt(index);
     bool isFinal = false;                     // Flag to indicate the end of recursion
     if (depthMax > -1 && stage >= depthMax) { // Maximum depth has been reached (or exceeded).
       isFinal = true;
@@ -634,7 +628,7 @@ class RecoDecay
       //for (int i = 0; i < stage; i++) // Indent to make the tree look nice.
       //  printf(" ");
       //printf("Stage %d: Adding %d (PDG %d) as final daughter.\n", stage, index, PDGParticle);
-      list->push_back(index);
+      list->push_back(particle.globalIndex());
       return;
     }
     // If we are here, we have to follow the daughter tree.
@@ -645,20 +639,20 @@ class RecoDecay
     // Call itself to get daughters of daughters recursively.
     // Get daughters of the first daughter.
     if (indexDaughterFirst > -1) {
-      getDaughters(particlesMC, indexDaughterFirst, list, arrPDGFinal, depthMax, stage + 1);
+      getDaughters(particlesMC, particlesMC.iteratorAt(indexDaughterFirst), list, arrPDGFinal, depthMax, stage + 1);
     }
     // Get daughters of the daughters in between if any.
     // Daughter indices are supposed to be consecutive and in increasing order.
     // Reverse order means two daughters.
     if (indexDaughterFirst > -1 && indexDaughterLast > -1) {
       for (auto iD = indexDaughterFirst + 1; iD < indexDaughterLast; ++iD) {
-        getDaughters(particlesMC, iD, list, arrPDGFinal, depthMax, stage + 1);
+        getDaughters(particlesMC, particlesMC.iteratorAt(iD), list, arrPDGFinal, depthMax, stage + 1);
       }
     }
     // Get daughters of the last daughter if different from the first one.
     // Same indices indicate a single daughter.
     if (indexDaughterLast > -1 && indexDaughterLast != indexDaughterFirst) {
-      getDaughters(particlesMC, indexDaughterLast, list, arrPDGFinal, depthMax, stage + 1);
+      getDaughters(particlesMC, particlesMC.iteratorAt(indexDaughterLast), list, arrPDGFinal, depthMax, stage + 1);
     }
   }
 
@@ -711,7 +705,7 @@ class RecoDecay
           return -1;
         }
         // Get the list of actual final daughters.
-        getDaughters(particlesMC, indexMother, &arrAllDaughtersIndex, arrPDGDaughters, depthMax);
+        getDaughters(particlesMC, particleMother, &arrAllDaughtersIndex, arrPDGDaughters, depthMax);
         //printf("MC Rec: Mother %d has %d final daughters:", indexMother, arrAllDaughtersIndex.size());
         //for (auto i : arrAllDaughtersIndex) {
         //  printf(" %d", i);
@@ -820,7 +814,7 @@ class RecoDecay
         return false;
       }
       // Get the list of actual final daughters.
-      getDaughters(particlesMC, candidate.globalIndex(), &arrAllDaughtersIndex, arrPDGDaughters, depthMax);
+      getDaughters(particlesMC, candidate, &arrAllDaughtersIndex, arrPDGDaughters, depthMax);
       //printf("MC Gen: Mother %d has %d final daughters:", candidate.globalIndex(), arrAllDaughtersIndex.size());
       //for (auto i : arrAllDaughtersIndex) {
       //  printf(" %d", i);

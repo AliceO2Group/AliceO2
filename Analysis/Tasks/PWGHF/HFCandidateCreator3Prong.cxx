@@ -189,7 +189,7 @@ struct HFCandidateCreator3ProngMC {
           flag = sign * (1 << LcToPKPi);
 
           //Printf("Flagging the different Λc± → p± K∓ π± decay channels");
-          RecoDecay::getDaughters(particlesMC, indexRec, &arrDaughIndex, array{0}, 1);
+          RecoDecay::getDaughters(particlesMC, particlesMC.iteratorAt(indexRec), &arrDaughIndex, array{0}, 1);
           if (arrDaughIndex.size() == 2) {
             for (auto iProng = 0; iProng < arrDaughIndex.size(); ++iProng) {
               auto daughI = particlesMC.iteratorAt(arrDaughIndex[iProng]);
@@ -245,7 +245,7 @@ struct HFCandidateCreator3ProngMC {
           flag = sign * (1 << LcToPKPi);
 
           //Printf("Flagging the different Λc± → p± K∓ π± decay channels");
-          RecoDecay::getDaughters(particlesMC, particle.globalIndex(), &arrDaughIndex, array{0}, 1);
+          RecoDecay::getDaughters(particlesMC, particle, &arrDaughIndex, array{0}, 1);
           if (arrDaughIndex.size() == 2) {
             for (auto jProng = 0; jProng < arrDaughIndex.size(); ++jProng) {
               auto daughJ = particlesMC.iteratorAt(arrDaughIndex[jProng]);
