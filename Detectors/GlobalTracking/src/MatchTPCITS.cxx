@@ -366,7 +366,9 @@ void MatchTPCITS::init()
 
   mInitDone = true;
 
-  print();
+  if (fair::Logger::Logging(fair::Severity::info)) {
+    print();
+  }
 }
 
 //______________________________________________
