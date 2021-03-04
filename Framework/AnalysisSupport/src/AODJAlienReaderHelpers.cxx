@@ -226,7 +226,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
 
       // check if RuntimeLimit is reached
       if (!watchdog->update()) {
-        LOGP(INFO, "Run time exceeds run time limit of {} seconds!", watchdog->runTimeLimit);
+        LOGP(INFO, "Run time exceeds run time limit of {} seconds. Exiting gracefully...", watchdog->runTimeLimit);
         LOGP(INFO, "Stopping reader {} after time frame {}.", device.inputTimesliceId, watchdog->numberTimeFrames - 1);
         dumpFileMetrics(monitoring, currentFile, currentFileStartedAt, currentFileIOTime, tfCurrentFile, ntf);
         monitoring.flushBuffer();
