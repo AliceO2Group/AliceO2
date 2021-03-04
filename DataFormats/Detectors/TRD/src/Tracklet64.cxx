@@ -22,7 +22,7 @@ namespace trd
 
 using namespace constants;
 
-float Tracklet64::getUncalibratedY() const
+GPUd() float Tracklet64::getUncalibratedY() const
 {
   int padLocalBin = getPosition();
   int padLocal = 0;
@@ -37,7 +37,7 @@ float Tracklet64::getUncalibratedY() const
   return (offset + padLocal * GRANULARITYTRKLPOS) * padWidth;
 }
 
-float Tracklet64::getUncalibratedDy(float nTbDrift) const
+GPUd() float Tracklet64::getUncalibratedDy(float nTbDrift) const
 {
   float dy;
   int dyLocalBin = getSlope();
@@ -51,6 +51,7 @@ float Tracklet64::getUncalibratedDy(float nTbDrift) const
   return dy * GRANULARITYTRKLSLOPE * padWidth * nTbDrift;
 }
 
+#ifndef GPUCA_GPUCODE_DEVICE
 void Tracklet64::printStream(std::ostream& stream) const
 {
   stream << "Tracklet64 : 0x" << std::hex << getTrackletWord();
@@ -65,6 +66,7 @@ std::ostream& operator<<(std::ostream& stream, const Tracklet64& trg)
   trg.printStream(stream);
   return stream;
 }
+#endif // GPUCA_GPUCODE_DEVICE
 
 } // namespace trd
 } // namespace o2
