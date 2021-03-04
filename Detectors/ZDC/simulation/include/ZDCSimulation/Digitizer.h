@@ -114,6 +114,8 @@ class Digitizer
   void Finalize(std::vector<BCData>& bcData, std::vector<o2::zdc::OrbitData>& pData); // Mask trigger bits for current bunch crossing
   void setMaskTriggerBits(bool v = true) { mMaskTriggerBits = v; }
   bool getMaskTriggerBits() { return mMaskTriggerBits; }
+  void setSkipMCLabels(bool v = true) { mSkipMCLabels = v; }
+  bool getSkipMCLabels() { return mSkipMCLabels; }
 
  private:
   static constexpr int BCCacheMin = -1, BCCacheMax = 5, NBC2Cache = 1 + BCCacheMax - BCCacheMin;
@@ -150,6 +152,7 @@ class Digitizer
   uint32_t mReadoutMask = 0;                                     // Readout mask from ModuleConfig
   int32_t mNEmptyBCs = -1;                                       // Number of clean empty bunches for pedestal evaluation
   bool mMaskTriggerBits = true;                                  // Mask trigger bits with readout mask
+  bool mSkipMCLabels = false;                                    // Skip MC labels in output
 
   std::string mCCDBServer = "";
   const SimCondition* mSimCondition = nullptr;      ///< externally set SimCondition

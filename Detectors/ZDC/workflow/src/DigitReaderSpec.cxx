@@ -53,7 +53,7 @@ void DigitReader::run(ProcessingContext& pc)
   std::vector<o2::zdc::OrbitData> orbitData, *orbitDataPtr = &orbitData;
   mTree->SetBranchAddress("ZDCDigitBC", &digitsBCPtr);
   mTree->SetBranchAddress("ZDCDigitCh", &digitsChPtr);
-  mTree->SetBranchAddress("ZDCDigitPed", &orbitDataPtr);
+  mTree->SetBranchAddress("ZDCDigitOrbit", &orbitDataPtr);
 
   o2::dataformats::MCTruthContainer<o2::zdc::MCLabel> labels, *plabels = &labels;
   if (mUseMC) {

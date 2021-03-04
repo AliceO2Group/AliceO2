@@ -91,10 +91,10 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
     return;
   }
 
-  if (digiTree->GetBranch("ZDCDigitPed")) {
-    digiTree->SetBranchAddress("ZDCDigitPed", &mzdcPedDataPtr);
+  if (digiTree->GetBranch("ZDCDigitOrbit")) {
+    digiTree->SetBranchAddress("ZDCDigitOrbit", &mzdcPedDataPtr);
   } else {
-    LOG(FATAL) << "Branch ZDCDigitPed is missing";
+    LOG(FATAL) << "Branch ZDCDigitOrbit is missing";
     return;
   }
 

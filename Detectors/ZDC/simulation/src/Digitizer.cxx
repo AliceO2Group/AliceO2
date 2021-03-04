@@ -348,9 +348,11 @@ void Digitizer::storeBC(const BCCache& bc, uint32_t chan2Store,
   int nBC = digitsBC.size();
   digitsBC.emplace_back(first, nSto, bc, chan2Store, bc.trigChanMask, bc.extTrig);
   // TODO clarify if we want to store MC labels for all channels or only for stored ones
-  for (const auto& lbl : bc.labels) {
-    if (chan2Store & (0x1 << lbl.getChannel())) {
-      labels.addElement(nBC, lbl);
+  if (!mSkipMCLabels) {
+    for (const auto& lbl : bc.labels) {
+      if (chan2Store & (0x1 << lbl.getChannel())) {
+        labels.addElement(nBC, lbl);
+      }
     }
   }
 }
@@ -446,6 +448,7 @@ void Digitizer::init()
   LOG(INFO) << "Initialized in " << (mIsContinuous ? "Cont" : "Trig") << " mode, " << mNBCAHead
             << " BCs will be stored ahead of Trigger";
   LOG(INFO) << "Trigger bit masking is " << (mMaskTriggerBits ? "ON (default)" : "OFF (debugging)");
+  LOG(INFO) << "MC Labels are " << (mSkipMCLabels ? "SKIPPED" : "SAVED (default)");
 }
 
 //______________________________________________________________________________

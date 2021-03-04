@@ -37,7 +37,7 @@ DataProcessorSpec getZDCDigitWriterDPLSpec()
     "zdc-digit-writer", "o2digit_zdc.root", "o2sim",
     BranchDefinition<std::vector<o2::zdc::BCData>>{InputSpec{"digitBCinput", "ZDC", "DIGITSBC"}, "ZDCDigitBC"},
     BranchDefinition<std::vector<o2::zdc::ChannelData>>{InputSpec{"digitChinput", "ZDC", "DIGITSCH"}, "ZDCDigitCh"},
-    BranchDefinition<std::vector<o2::zdc::OrbitData>>{InputSpec{"digitPDinput", "ZDC", "DIGITSPD"}, "ZDCDigitPed"})();
+    BranchDefinition<std::vector<o2::zdc::OrbitData>>{InputSpec{"digitPDinput", "ZDC", "DIGITSPD"}, "ZDCDigitOrbit"})();
 }
 
 } // namespace zdc
