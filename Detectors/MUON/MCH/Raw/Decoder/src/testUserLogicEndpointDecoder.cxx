@@ -31,8 +31,11 @@
 #include <fmt/printf.h>
 #include <fstream>
 #include <iostream>
+#include <boost/test/data/test_case.hpp>
+#include <boost/mpl/list_c.hpp>
 
 using namespace o2::mch::raw;
+namespace bdata = boost::unit_test::data;
 
 const uint64_t CruPageOK[] = {
   0x00000A0000124006ul,
@@ -151,15 +154,13 @@ std::vector<std::byte> convertBuffer2PayloadBuffer(gsl::span<const std::byte> bu
     b64.insert(b64.begin() + insertSync.value(), prefix | sampaSyncWord);
   }
 
-  impl::dumpBuffer<o2::mch::raw::UserLogicFormat>(b64);
-
   // get back to byte buffer to return
   std::vector<std::byte> bytes;
   impl::copyBuffer(b64, bytes);
   return bytes;
 }
 
-template <typename CHARGESUM>
+template <typename CHARGESUM, int VERSION>
 std::string decodeBuffer(int feeId, gsl::span<const std::byte> buffer)
 {
   std::string results;
@@ -167,12 +168,12 @@ std::string decodeBuffer(int feeId, gsl::span<const std::byte> buffer)
   DecodedDataHandlers handlers;
   handlers.sampaChannelHandler = handlePacket(results);
   handlers.sampaErrorHandler = handleError(results);
-  UserLogicEndpointDecoder<CHARGESUM> dec(feeId, fee2solar, handlers);
+  UserLogicEndpointDecoder<CHARGESUM, VERSION> dec(feeId, fee2solar, handlers);
   dec.append(buffer);
   return results;
 }
 
-template <typename CHARGESUM>
+template <typename CHARGESUM, int VERSION>
 std::string testPayloadDecode(DsElecId ds1,
                               int ch1,
                               const std::vector<SampaCluster>& clustersFirstChannel,
@@ -181,7 +182,7 @@ std::string testPayloadDecode(DsElecId ds1,
                               const std::vector<SampaCluster>& clustersSecondChannel = {},
                               std::optional<size_t> insertSync = std::nullopt)
 {
-  auto encoder = createPayloadEncoder<UserLogicFormat, CHARGESUM, true>();
+  auto encoder = createPayloadEncoder<UserLogicFormat, CHARGESUM, true, VERSION>();
 
   encoder->startHeartbeatFrame(0, 0);
 
@@ -214,12 +215,46 @@ std::string testPayloadDecode(DsElecId ds1,
   encoder->moveToBuffer(buffer);
   auto payloadBuffer = convertBuffer2PayloadBuffer(buffer, insertSync);
 
-  return decodeBuffer<CHARGESUM>(feeId, payloadBuffer);
+  return decodeBuffer<CHARGESUM, VERSION>(feeId, payloadBuffer);
 }
 
-std::string testPayloadDecodeCruPages(gsl::span<const uint64_t> page)
+template <int VERSION>
+std::vector<uint64_t> convert(gsl::span<const uint64_t> page);
+
+template <>
+std::vector<uint64_t> convert<0>(gsl::span<const uint64_t> page)
 {
-  auto solar2feelink = createSolar2FeeLinkMapper<ElectronicMapperGenerated>();
+  return {page.begin(), page.end()};
+}
+
+template <>
+std::vector<uint64_t> convert<1>(gsl::span<const uint64_t> page)
+{
+  // convert the 14 MSB bits of page, expressed using V0 spec,
+  // to match the V1 spec
+  std::vector<uint64_t> pagev1{page.begin(), page.end()};
+  constexpr int rdhSize{8};
+  for (int i = rdhSize; i < pagev1.size(); i++) {
+    if (pagev1[i] == 0xFEEDDEEDFEEDDEED || pagev1[i] == 0) {
+      // do not mess with padding words
+      continue;
+    }
+    ULHeaderWord<0> v0{pagev1[i]};
+    ULHeaderWord<1> v1;
+    v1.data = v0.data;
+    v1.error = v0.error;
+    v1.incomplete = v0.incomplete;
+    v1.dsID = v0.dsID;
+    v1.linkID = v0.linkID;
+    pagev1[i] = v1.word;
+  }
+  return pagev1;
+}
+
+template <int VERSION = 0>
+std::string testPayloadDecodeCruPages(gsl::span<const uint64_t> ipage)
+{
+  std::vector<uint64_t> page = convert<VERSION>(ipage);
 
   const void* rdhP = reinterpret_cast<const void*>(page.data());
   uint16_t feeId = o2::raw::RDHUtils::getFEEID(rdhP);
@@ -229,77 +264,86 @@ std::string testPayloadDecodeCruPages(gsl::span<const uint64_t> page)
   gsl::span<const std::byte> buffer(reinterpret_cast<const std::byte*>(page.data()), page.size() * 8);
   gsl::span<const std::byte> payloadBuffer = buffer.subspan(rdhSize, payloadSize);
 
-  const uint16_t CRUID_MASK = 0xFF;
-  const uint16_t CHARGESUM_MASK = 0x100;
-  if (feeId & CHARGESUM_MASK) {
-    return decodeBuffer<ChargeSumMode>(feeId & CRUID_MASK, payloadBuffer);
+  o2::mch::raw::FEEID f{feeId};
+
+  if (f.chargeSum) {
+    return decodeBuffer<ChargeSumMode, VERSION>(f.id, payloadBuffer);
   } else {
-    return decodeBuffer<SampleMode>(feeId & CRUID_MASK, payloadBuffer);
+    return decodeBuffer<SampleMode, VERSION>(f.id, payloadBuffer);
   }
 }
+
+struct V0 {
+  static constexpr int value = 0;
+};
+struct V1 {
+  static constexpr int value = 1;
+};
+
+typedef boost::mpl::list<V0, V1> testTypes;
 
 BOOST_AUTO_TEST_SUITE(o2_mch_raw)
 
 BOOST_AUTO_TEST_SUITE(userlogicdsdecoder)
 
-BOOST_AUTO_TEST_CASE(SampleModeSimplest)
+BOOST_AUTO_TEST_CASE_TEMPLATE(SampleModeSimplest, V, testTypes)
 {
   // only one channel with one very small cluster
   // fitting within one 64-bits word
   SampaCluster cl(345, 6789, {123, 456});
-  auto r = testPayloadDecode<SampleMode>(DsElecId{728, 1, 0}, 63, {cl});
+  auto r = testPayloadDecode<SampleMode, V::value>(DsElecId{728, 1, 0}, 63, {cl});
   BOOST_CHECK_EQUAL(r, "S728-J1-DS0-ch-63-ts-345-q-123-456\n");
 }
 
-BOOST_AUTO_TEST_CASE(SampleModeSimple)
+BOOST_AUTO_TEST_CASE_TEMPLATE(SampleModeSimple, V, testTypes)
 {
   // only one channel with one cluster, but the cluster
   // spans 2 64-bits words.
   SampaCluster cl(345, 6789, {123, 456, 789, 901, 902});
-  auto r = testPayloadDecode<SampleMode>(DsElecId{448, 6, 4}, 63, {cl});
+  auto r = testPayloadDecode<SampleMode, V::value>(DsElecId{448, 6, 4}, 63, {cl});
   BOOST_CHECK_EQUAL(r, "S448-J6-DS4-ch-63-ts-345-q-123-456-789-901-902\n");
 }
 
-BOOST_AUTO_TEST_CASE(SampleModeTwoChannels)
+BOOST_AUTO_TEST_CASE_TEMPLATE(SampleModeTwoChannels, V, testTypes)
 {
   // 2 channels with one cluster
   SampaCluster cl(345, 6789, {123, 456, 789, 901, 902});
   SampaCluster cl2(346, 6789, {1001, 1002, 1003, 1004, 1005, 1006, 1007});
-  auto r = testPayloadDecode<SampleMode>(DsElecId{361, 6, 2}, 63, {cl}, DsElecId{361, 6, 2}, 47, {cl2});
+  auto r = testPayloadDecode<SampleMode, V::value>(DsElecId{361, 6, 2}, 63, {cl}, DsElecId{361, 6, 2}, 47, {cl2});
   BOOST_CHECK_EQUAL(r,
                     "S361-J6-DS2-ch-63-ts-345-q-123-456-789-901-902\n"
                     "S361-J6-DS2-ch-47-ts-346-q-1001-1002-1003-1004-1005-1006-1007\n");
 }
 
-BOOST_AUTO_TEST_CASE(ChargeSumModeSimplest)
+BOOST_AUTO_TEST_CASE_TEMPLATE(ChargeSumModeSimplest, V, testTypes)
 {
   // only one channel with one cluster
   // (hence fitting within one 64 bits word)
   SampaCluster cl(345, 6789, 123456, 789);
-  auto r = testPayloadDecode<ChargeSumMode>(DsElecId{728, 1, 0}, 63, {cl});
+  auto r = testPayloadDecode<ChargeSumMode, V::value>(DsElecId{728, 1, 0}, 63, {cl});
   BOOST_CHECK_EQUAL(r, "S728-J1-DS0-ch-63-ts-345-q-123456-cs-789\n");
 }
 
-BOOST_AUTO_TEST_CASE(ChargeSumModeSimple)
+BOOST_AUTO_TEST_CASE_TEMPLATE(ChargeSumModeSimple, V, testTypes)
 {
   // only one channel with 2 clusters
   // (hence spanning 2 64-bits words)
   SampaCluster cl1(345, 6789, 123456, 789);
   SampaCluster cl2(346, 6789, 789012, 345);
-  auto r = testPayloadDecode<ChargeSumMode>(DsElecId{448, 6, 4}, 63, {cl1, cl2});
+  auto r = testPayloadDecode<ChargeSumMode, V::value>(DsElecId{448, 6, 4}, 63, {cl1, cl2});
   BOOST_CHECK_EQUAL(r,
                     "S448-J6-DS4-ch-63-ts-345-q-123456-cs-789\n"
                     "S448-J6-DS4-ch-63-ts-346-q-789012-cs-345\n");
 }
 
-BOOST_AUTO_TEST_CASE(ChargeSumModeTwoChannels)
+BOOST_AUTO_TEST_CASE_TEMPLATE(ChargeSumModeTwoChannels, V, testTypes)
 {
   // two channels with 2 clusters
   SampaCluster cl1(345, 6789, 123456, 789);
   SampaCluster cl2(346, 6789, 789012, 345);
   SampaCluster cl3(347, 6789, 1357, 890);
   SampaCluster cl4(348, 6789, 7912, 345);
-  auto r = testPayloadDecode<ChargeSumMode>(DsElecId{361, 6, 2}, 63, {cl1, cl2}, DsElecId{361, 6, 2}, 47, {cl3, cl4});
+  auto r = testPayloadDecode<ChargeSumMode, V::value>(DsElecId{361, 6, 2}, 63, {cl1, cl2}, DsElecId{361, 6, 2}, 47, {cl3, cl4});
   BOOST_CHECK_EQUAL(r,
                     "S361-J6-DS2-ch-63-ts-345-q-123456-cs-789\n"
                     "S361-J6-DS2-ch-63-ts-346-q-789012-cs-345\n"
@@ -307,7 +351,7 @@ BOOST_AUTO_TEST_CASE(ChargeSumModeTwoChannels)
                     "S361-J6-DS2-ch-47-ts-348-q-7912-cs-345\n");
 }
 
-BOOST_AUTO_TEST_CASE(SyncInTheMiddleChargeSumModeTwoChannels)
+BOOST_AUTO_TEST_CASE_TEMPLATE(SyncInTheMiddleChargeSumModeTwoChannels, V, testTypes)
 {
   // Insert a sync word in the middle of
   // the TwoChannels case and check the decoder is handling this fine
@@ -317,7 +361,7 @@ BOOST_AUTO_TEST_CASE(SyncInTheMiddleChargeSumModeTwoChannels)
   SampaCluster cl2(346, 6789, 789012, 345);
   SampaCluster cl3(347, 6789, 1357, 890);
   SampaCluster cl4(348, 6789, 7912, 345);
-  auto r = testPayloadDecode<ChargeSumMode>(
+  auto r = testPayloadDecode<ChargeSumMode, V::value>(
     DsElecId{361, 6, 2}, 63, {cl1, cl2},
     DsElecId{361, 6, 2}, 47, {cl3, cl4},
     5);
@@ -326,30 +370,31 @@ BOOST_AUTO_TEST_CASE(SyncInTheMiddleChargeSumModeTwoChannels)
                     "S361-J6-DS2-ch-63-ts-346-q-789012-cs-345\n");
 }
 
-BOOST_AUTO_TEST_CASE(TestCruPageOK)
+BOOST_AUTO_TEST_CASE_TEMPLATE(TestCruPageOK, V, testTypes)
 {
   gsl::span<const uint64_t> page = CruPageOK;
-  std::string r = testPayloadDecodeCruPages(page);
+  std::string r = testPayloadDecodeCruPages<V::value>(page);
   BOOST_CHECK_EQUAL(r,
                     "S81-J0-DS0-ch-42-ts-87-q-2-1-0-4-4-3-3-0-0-1-0-0-0\n"
                     "S81-J0-DS0-ch-42-ts-0-q-1\n");
 }
 
-BOOST_AUTO_TEST_CASE(TestCruPageBadClusterSize)
+BOOST_AUTO_TEST_CASE_TEMPLATE(TestCruPageBadClusterSize, V, testTypes)
 {
   gsl::span<const uint64_t> page = CruPageBadClusterSize;
-  std::string r = testPayloadDecodeCruPages(page);
+  std::string r = testPayloadDecodeCruPages<V::value>(page);
   BOOST_CHECK_EQUAL(r,
                     fmt::format("S81-J0-DS0-chip-1-error-{}\nS81-J0-DS0-ch-42-ts-0-q-1\n", ErrorBadClusterSize));
 }
 
-BOOST_AUTO_TEST_CASE(TestCruPageBadN10bitWords)
+BOOST_AUTO_TEST_CASE_TEMPLATE(TestCruPageBadN10bitWords, V, testTypes)
 {
   gsl::span<const uint64_t> page = CruPageBadN10bitWords;
-  std::string r = testPayloadDecodeCruPages(page);
-  BOOST_CHECK_EQUAL(r,
-                    fmt::format("S81-J0-DS0-ch-42-ts-87-q-2-1-0-0-1-0-0-0\nS81-J0-DS0-chip-1-error-{}\nS81-J0-DS0-ch-42-ts-0-q-1\n",
-                                ErrorBadIncompleteWord));
+  std::string r = testPayloadDecodeCruPages<V::value>(page);
+  std::string expected =
+    fmt::format("S81-J0-DS0-ch-42-ts-87-q-2-1-0-0-1-0-0-0\nS81-J0-DS0-chip-1-error-{}\nS81-J0-DS0-ch-42-ts-0-q-1\n",
+                ErrorBadIncompleteWord);
+  BOOST_CHECK_EQUAL(r, expected);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

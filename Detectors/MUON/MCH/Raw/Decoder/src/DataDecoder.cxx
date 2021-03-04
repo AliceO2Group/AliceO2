@@ -74,8 +74,13 @@ static void patchPage(gsl::span<const std::byte> rdhBuffer, bool verbose)
   auto cruId = o2::raw::RDHUtils::getCRUID(rdhAny) & 0xFF;
   auto flags = o2::raw::RDHUtils::getCRUID(rdhAny) & 0xFF00;
   auto endpoint = o2::raw::RDHUtils::getEndPointID(rdhAny);
-  uint32_t feeId = cruId * 2 + endpoint + flags;
-  o2::raw::RDHUtils::setFEEID(rdhAny, feeId);
+  auto existingFeeId = o2::raw::RDHUtils::getFEEID(rdhAny);
+  if (existingFeeId == 0) {
+    // early versions of raw data did not set the feeId
+    // which we need to select the right decoder
+    uint32_t feeId = cruId * 2 + endpoint + flags;
+    o2::raw::RDHUtils::setFEEID(rdhAny, feeId);
+  }
 
   if (verbose) {
     std::cout << mNrdhs << "--\n";

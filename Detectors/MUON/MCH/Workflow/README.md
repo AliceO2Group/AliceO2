@@ -44,7 +44,7 @@ The workflow accepts the following options:
 Example of a DPL chain to go from a raw data file to a file of preclusters :
 
 ```shell
-o2-raw-file-reader-workflow --conf file-reader.cfg --loop 0  -b |
+o2-raw-file-reader-workflow --input-conf file-reader.cfg --loop 0  -b |
 o2-mch-raw-to-digits-workflow -b |
 o2-mch-digits-to-preclusters-workflow -b |
 o2-mch-preclusters-sink-workflow -b
