@@ -519,9 +519,10 @@ DECLARE_SOA_COLUMN(SPDClustersL0, spdClustersL0, uint16_t);
 DECLARE_SOA_COLUMN(SPDClustersL1, spdClustersL1, uint16_t);
 } // namespace run2
 
-// DECLARE_SOA_TABLE(Run2CollInfos, "AOD", "RUN2COLLINFO", )
-DECLARE_SOA_TABLE(Run2BCInfos, "AOD", "RUN2BCINFO", run2::EventCuts, run2::TriggerMaskNext50, run2::SPDClustersL0,
-                  run2::SPDClustersL1)
+DECLARE_SOA_TABLE(Run2BCInfos, "AOD", "RUN2BCINFO", run2::EventCuts, run2::TriggerMaskNext50, 
+                  run2::SPDClustersL0, run2::SPDClustersL1)
+
+using Run2BCInfo = Run2BCInfos::iterator;                
 
 // ---- MC tables ----
 namespace mccollision
