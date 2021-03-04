@@ -8,12 +8,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   ZDCDigitWriterSpec.h
+/// @file   ZDCDigitWriterDPLSpec.h
 
-#ifndef O2_ZDCDIGITWRITERDPL_H
-#define O2_ZDCDIGITWRITERDPL_H
+#ifndef O2_ZDCDIGITWRITERDPLSPEC_H
+#define O2_ZDCDIGITWRITERDPLSPEC_H
 
 #include "Framework/DataProcessorSpec.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "DataFormatsZDC/MCLabel.h"
 
 using namespace o2::framework;
 
@@ -23,9 +25,9 @@ namespace zdc
 {
 
 /// create a processor spec
-framework::DataProcessorSpec getZDCDigitWriterDPLSpec();
+framework::DataProcessorSpec getZDCDigitWriterDPLSpec(bool mctruth, bool simVersion);
 
 } // namespace zdc
 } // namespace o2
 
-#endif /* O2_ZDCDIGITWRITER_H */
+#endif /* O2_ZDCDIGITWRITERDPLSPEC_H */
