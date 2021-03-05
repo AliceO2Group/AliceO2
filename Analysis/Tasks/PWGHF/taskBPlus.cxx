@@ -15,6 +15,7 @@
 /// \author Vít Kučera <vit.kucera@cern.ch>, CERN
 /// \author Nima Zardoshti <nima.zardoshti@cern.ch>, CERN
 
+#include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
@@ -30,26 +31,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   ConfigParamSpec optionDoMC{"doMC", VariantType::Bool, false, {"Fill MC histograms."}};
   workflowOptions.push_back(optionDoMC);
 }
-
-#include "Framework/runDataProcessing.h"
-
-namespace o2::aod
-{
-namespace extra
-{
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);
-}
-DECLARE_SOA_TABLE(Colls, "AOD", "COLLSID", o2::aod::extra::CollisionId);
-} // namespace o2::aod
-struct AddCollisionId {
-  Produces<o2::aod::Colls> colls;
-  void process(aod::HfCandProng2 const& candidates, aod::Tracks const&)
-  {
-    for (auto& candidate : candidates) {
-      colls(candidate.index0_as<aod::Tracks>().collisionId());
-    }
-  }
-};
 
 /// B+ analysis task
 struct TaskBplus {
@@ -92,7 +73,6 @@ struct TaskBplus {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<AddCollisionId>(cfgc, TaskName{"hf-task-add-collisionId"}),
     adaptAnalysisTask<TaskBplus>(cfgc, TaskName{"hf-task-bplus"})};
   return workflow;
 }

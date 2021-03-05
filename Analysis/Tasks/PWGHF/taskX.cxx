@@ -14,7 +14,6 @@
 /// \author Gian Michele Innocenti <gian.michele.innocenti@cern.ch>, CERN
 /// \author Rik Spijkers <r.spijkers@students.uu.nl>, Utrecht University
 
-#include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
@@ -30,6 +29,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   ConfigParamSpec optionDoMC{"doMC", VariantType::Bool, false, {"Fill MC histograms."}};
   workflowOptions.push_back(optionDoMC);
 }
+
+#include "Framework/runDataProcessing.h"
 
 /// X(3872) analysis task
 struct TaskX {
@@ -81,6 +82,6 @@ struct TaskX {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<TaskX>(cfgc, "hf-task-x")};
+    adaptAnalysisTask<TaskX>(cfgc, TaskName{"hf-task-x"})};
   return workflow;
 }

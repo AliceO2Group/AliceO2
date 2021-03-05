@@ -238,7 +238,7 @@ auto InvMassJpsiToEE(const T& candidate)
 // general columns
 #define HFCAND_COLUMNS                                                                                                                                                                             \
   hf_cand::CollisionId,                                                                                                                                                                            \
-  collision::PosX, collision::PosY, collision::PosZ,                                                                                                                                               \
+    collision::PosX, collision::PosY, collision::PosZ,                                                                                                                                             \
     hf_cand::XSecondaryVertex, hf_cand::YSecondaryVertex, hf_cand::ZSecondaryVertex,                                                                                                               \
     hf_cand::ErrorDecayLength, hf_cand::ErrorDecayLengthXY,                                                                                                                                        \
     hf_cand::Chi2PCA,                                                                                                                                                                              \
