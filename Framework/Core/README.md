@@ -4,6 +4,40 @@
 \subpage refFrameworkCoreANALYSIS Core ANALYSIS
 /doxy -->
 
+<!-- vim-markdown-toc GFM -->
+
+* [Data Processing Layer in O2 Framework](#data-processing-layer-in-o2-framework)
+  * [Status quo and motivation for an O2 Data Processing Layer](#status-quo-and-motivation-for-an-o2-data-processing-layer)
+  * [Separating data-processing from transport](#separating-data-processing-from-transport)
+    * [Instanciating a workflow](#instanciating-a-workflow)
+    * [Describing a computation](#describing-a-computation)
+      * [Stateful processing](#stateful-processing)
+    * [Task based API](#task-based-api)
+  * [Implementing a computation](#implementing-a-computation)
+    * [Using inputs - the `InputRecord` API](#using-inputs---the-inputrecord-api)
+    * [Creating outputs - the DataAllocator API](#creating-outputs---the-dataallocator-api)
+    * [Error handling](#error-handling)
+    * [Services](#services)
+      * [ControlService](#controlservice)
+      * [RawDeviceService](#rawdeviceservice)
+      * [Monitoring service](#monitoring-service)
+      * [Generic Logger](#generic-logger)
+      * [InfoLogger service](#infologger-service)
+      * [Callback service](#callback-service)
+  * [Expressing parallelism](#expressing-parallelism)
+  * [Integrating with pre-existing devices](#integrating-with-pre-existing-devices)
+  * [Customisation of default behavior](#customisation-of-default-behavior)
+  * [Managing multiple workflows.](#managing-multiple-workflows)
+* [Forward looking statements:](#forward-looking-statements)
+  * [Support for analysis](#support-for-analysis)
+  * [Provenance dependent matching of inputs and outputs](#provenance-dependent-matching-of-inputs-and-outputs)
+  * [Support for non compiled, non C++, based configuration](#support-for-non-compiled-non-c-based-configuration)
+* [Current Demonstrator](#current-demonstrator)
+  * [Interesting reads](#interesting-reads)
+  * [Document history](#document-history)
+
+<!-- vim-markdown-toc -->
+
 # Data Processing Layer in O2 Framework
 
 ## Status quo and motivation for an O2 Data Processing Layer
