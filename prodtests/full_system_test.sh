@@ -83,6 +83,11 @@ taskwrapper phsraw.log o2-phos-digi2raw  --file-for link --configKeyValues '"HBF
 taskwrapper cpvraw.log o2-cpv-digi2raw  --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/CPV
 cat raw/*/*.cfg > rawAll.cfg
 
+if [ "0$DISABLE_PROCESSING" == "01" ]; then
+  echo "Skipping the processing part of the full system test"
+  exit 0
+fi
+
 # We run the workflow in both CPU-only and With-GPU mode
 STAGES="NOGPU"
 if [ $ENABLE_GPU_TEST != "0" ]; then
