@@ -278,7 +278,7 @@ DECLARE_SOA_COLUMN(Z, z, float);
 DECLARE_SOA_COLUMN(Phi, phi, float);
 DECLARE_SOA_COLUMN(Tgl, tgl, float);
 DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float);
-DECLARE_SOA_COLUMN(NClusters, nClusters, int8_t); // For MFTStandalone only
+DECLARE_SOA_COLUMN(NClusters, nClusters, int8_t);
 DECLARE_SOA_COLUMN(Chi2, chi2, float);
 DECLARE_SOA_COLUMN(PDca, pDca, float);                         // PDca for MUONStandalone
 DECLARE_SOA_COLUMN(RAtAbsorberEnd, rAtAbsorberEnd, float);     // RAtAbsorberEnd for MUONStandalone tracks and GlobalMuonTrackstracks
@@ -357,7 +357,7 @@ using MFTTrack = MFTTracks::iterator;
 DECLARE_SOA_TABLE_FULL(StoredFwdTracks, "FwdTracks", "AOD", "FWDTRACK",
                        o2::soa::Index<>, fwdtrack::CollisionId, fwdtrack::BCId, fwdtrack::TrackType,
                        fwdtrack::X, fwdtrack::Y, fwdtrack::Z, fwdtrack::Phi, fwdtrack::Tgl,
-                       fwdtrack::Signed1Pt, fwdtrack::PDca, fwdtrack::RAtAbsorberEnd,
+                       fwdtrack::Signed1Pt, fwdtrack::NClusters, fwdtrack::PDca, fwdtrack::RAtAbsorberEnd,
                        fwdtrack::Px<fwdtrack::Pt, fwdtrack::Phi>,
                        fwdtrack::Py<fwdtrack::Pt, fwdtrack::Phi>,
                        fwdtrack::Pz<fwdtrack::Pt, fwdtrack::Tgl>,
