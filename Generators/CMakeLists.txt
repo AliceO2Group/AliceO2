@@ -109,18 +109,6 @@ if(pythia6_FOUND)
                          LABELS generators COMPILE_ONLY)
 endif()
 
-if(doBuildSimulation)
-  o2_add_test_root_macro(share/external/QEDLoader.C
-                         PUBLIC_LINK_LIBRARIES O2::Generators
-                                               O2::SimConfig
-                                               LABELS generators)
-
-  o2_add_test_root_macro(share/external/GenCosmicsLoader.C
-                         PUBLIC_LINK_LIBRARIES O2::Generators
-                                               O2::SimConfig
-                                               LABELS generators)
-endif()
-
 o2_add_test_root_macro(share/external/tgenerator.C
                        PUBLIC_LINK_LIBRARIES O2::Generators
                        LABELS generators)

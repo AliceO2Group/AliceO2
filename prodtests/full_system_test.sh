@@ -52,13 +52,6 @@ GLOBALDPLOPT="-b" #  --monitoring-backend no-op:// is currently removed due to h
 
 ulimit -n 4096 # Make sure we can open sufficiently many files
 [ $? == 0 ] || (echo Failed setting ulimit && exit 1)
-mkdir -p qed
-cd qed
-PbPbXSec="8."
-taskwrapper qedsim.log o2-sim --seed $O2SIMSEED -j $NJOBS -n$NEventsQED -m PIPE ITS MFT FT0 FV0 FDD -g extgen --configKeyValues '"GeneratorExternal.fileName=$O2_ROOT/share/Generators/external/QEDLoader.C;QEDGenParam.yMin=-7;QEDGenParam.yMax=7;QEDGenParam.ptMin=0.001;QEDGenParam.ptMax=1.;Diamond.width[2]=6."'
-QED2HAD=$(awk "BEGIN {printf \"%.2f\",`grep xSectionQED qedgenparam.ini | cut -d'=' -f 2`/$PbPbXSec}")
-echo "Obtained ratio of QED to hadronic x-sections = $QED2HAD" >> qedsim.log
-cd ..
 
 if [ $SPLITTRDDIGI == "1" ]; then
   DIGITRDOPT="--skipDet TRD"
