@@ -101,7 +101,7 @@ DECLARE_SOA_INDEX_COLUMN(V0Data, v0Data);
 DECLARE_SOA_INDEX_COLUMN_FULL(Bachelor, bachelor, int, Tracks, "");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 //General V0 properties: position, momentum
-DECLARE_SOA_COLUMN(Charge, charge, int);
+DECLARE_SOA_COLUMN(Sign, sign, int);
 DECLARE_SOA_COLUMN(PxPos, pxpos, float);
 DECLARE_SOA_COLUMN(PyPos, pypos, float);
 DECLARE_SOA_COLUMN(PzPos, pzpos, float);
@@ -164,7 +164,7 @@ DECLARE_SOA_EXPRESSION_COLUMN(Pz, pz, float, 1.f * aod::cascdata::pzpos + 1.f * 
 DECLARE_SOA_TABLE(CascData, "AOD", "CASCDATA",
                   o2::soa::Index<>, cascdata::V0DataId, cascdata::BachelorId, cascdata::CollisionId,
 
-                  cascdata::Charge,
+                  cascdata::Sign,
                   cascdata::X, cascdata::Y, cascdata::Z,
                   cascdata::Xlambda, cascdata::Ylambda, cascdata::Zlambda,
                   cascdata::PxPos, cascdata::PyPos, cascdata::PzPos,
@@ -183,7 +183,7 @@ DECLARE_SOA_TABLE(CascData, "AOD", "CASCDATA",
                   cascdata::DCACascToPV<cascdata::X, cascdata::Y, cascdata::Z, cascdataext::Px, cascdataext::Py, cascdataext::Pz>,
 
                   //Invariant masses
-                  cascdata::MLambda<cascdata::Charge, cascdata::PxPos, cascdata::PyPos, cascdata::PzPos, cascdata::PxNeg, cascdata::PyNeg, cascdata::PzNeg>,
+                  cascdata::MLambda<cascdata::Sign, cascdata::PxPos, cascdata::PyPos, cascdata::PzPos, cascdata::PxNeg, cascdata::PyNeg, cascdata::PzNeg>,
                   cascdata::MXi<cascdata::PxBach, cascdata::PyBach, cascdata::PzBach, cascdataext::PxLambda, cascdataext::PyLambda, cascdataext::PzLambda>,
                   cascdata::MOmega<cascdata::PxBach, cascdata::PyBach, cascdata::PzBach, cascdataext::PxLambda, cascdataext::PyLambda, cascdataext::PzLambda>,
                   //Longitudinal

@@ -83,7 +83,7 @@ struct HFLcCandidateSelector {
   template <typename T>
   bool daughterSelection(const T& track)
   {
-    if (track.charge() == 0) {
+    if (track.sign() == 0) {
       return false;
     }
     /*if (track.tpcNClsFound() == 0) {

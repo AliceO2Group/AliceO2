@@ -67,7 +67,7 @@ struct FilterCF {
         trackType = 2;
       }
 
-      outputTracks(outputCollisions.lastIndex(), track.pt(), track.eta(), track.phi(), track.charge(), trackType);
+      outputTracks(outputCollisions.lastIndex(), track.pt(), track.eta(), track.phi(), track.sign(), trackType);
 
       yields->Fill(collision.centV0M(), track.pt(), track.eta());
       etaphi->Fill(collision.centV0M(), track.eta(), track.phi());

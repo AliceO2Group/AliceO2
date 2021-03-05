@@ -402,7 +402,7 @@ struct cascadefinderQA {
           casc.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospa &&
           casc.casccosPA(collision.posX(), collision.posY(), collision.posZ()) > casccospa &&
           casc.dcav0topv(collision.posX(), collision.posY(), collision.posZ()) > dcav0topv) {
-        if (casc.charge() < 0) { //FIXME: could be done better...
+        if (casc.sign() < 0) { //FIXME: could be done better...
           if (TMath::Abs(casc.yXi()) < 0.5) {
             h3dMassXiMinus->Fill(collision.centV0M(), casc.pt(), casc.mXi());
           }

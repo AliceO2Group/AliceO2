@@ -170,7 +170,7 @@ struct raacharged {
         continue;
       }
 
-      Double_t trackValues[4] = {0.0, 0.0, track.pt(), (Double_t)track.charge()};
+      Double_t trackValues[4] = {0.0, 0.0, track.pt(), (Double_t)track.sign()};
       fHistTrack->Fill(trackValues);
 
       Double_t mcInfoVal;
@@ -185,7 +185,7 @@ struct raacharged {
 
       Double_t MCpt = track.mcParticle().pt();
       Double_t parType = (Double_t)WhichParticle(track.mcParticle().pdgCode());
-      Double_t MCcharge = (Double_t)track.charge();
+      Double_t MCcharge = (Double_t)track.sign();
       Double_t MCvalues[4] = {MCpt, parType, mcInfoVal, MCcharge};
 
       fHistMC->Fill(MCvalues);

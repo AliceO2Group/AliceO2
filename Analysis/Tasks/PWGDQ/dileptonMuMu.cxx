@@ -209,8 +209,8 @@ struct DileptonMuMu {
 
   float* fValues;
 
-  Partition<MyMuonTracksSelected> posMuons = aod::reducedtrack::charge > 0 && aod::reducedtrack::isMuonSelected == 1;
-  Partition<MyMuonTracksSelected> negMuons = aod::reducedtrack::charge < 0 && aod::reducedtrack::isMuonSelected == 1;
+  Partition<MyMuonTracksSelected> posMuons = aod::reducedtrack::sign > 0 && aod::reducedtrack::isMuonSelected == 1;
+  Partition<MyMuonTracksSelected> negMuons = aod::reducedtrack::sign < 0 && aod::reducedtrack::isMuonSelected == 1;
 
   void init(o2::framework::InitContext&)
   {
