@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   write-raw-from-root-workflow.cxx
+/// \file   digits-to-raw-workflow.cxx
 /// \author Antonio Franco - INFN Bari
 /// \version 1.0
 /// \date 01 feb 2021
@@ -40,7 +40,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 }
 
 #include "Framework/runDataProcessing.h"
-#include "HMPIDWorkflow/WriteRawFromRootSpec.h"
+#include "HMPIDWorkflow/DigitsToRawSpec.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -49,7 +49,7 @@ WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
 {
   WorkflowSpec specs;
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  DataProcessorSpec consumer = o2::hmpid::getWriteRawFromRootSpec();
+  DataProcessorSpec consumer = o2::hmpid::getDigitsToRawSpec();
   specs.push_back(consumer);
 
   return specs;

@@ -49,7 +49,7 @@
 #include "HMPIDBase/Trigger.h"
 #include "HMPIDBase/Geo.h"
 #include "HMPIDSimulation/HmpidCoder2.h"
-#include "HMPIDWorkflow/WriteRawFromRootSpec.h"
+#include "HMPIDWorkflow/DigitsToRawSpec.h"
 
 namespace o2
 {
@@ -62,7 +62,7 @@ using RDH = o2::header::RDHAny;
 
 //=======================
 // Data decoder
-void WriteRawFromRootTask::init(framework::InitContext& ic)
+void DigitsToRawSpec::init(framework::InitContext& ic)
 {
   LOG(INFO) << "HMPID Write Raw File From Root sim Digits vector - init()";
   mDigitsReceived = 0;
@@ -102,7 +102,7 @@ void WriteRawFromRootTask::init(framework::InitContext& ic)
   mExTimer.start();
 }
 
-void WriteRawFromRootTask::readRootFile()
+void DigitsToRawSpec::readRootFile()
 {
   std::vector<o2::hmpid::Digit> digitsPerEvent;
   std::vector<o2::hmpid::Digit> digits, *hmpBCDataPtr = &digits;
@@ -168,7 +168,7 @@ void WriteRawFromRootTask::readRootFile()
   return;
 }
 
-void WriteRawFromRootTask::run(framework::ProcessingContext& pc)
+void DigitsToRawSpec::run(framework::ProcessingContext& pc)
 {
   // Arrange Files path
   readRootFile();
@@ -179,22 +179,22 @@ void WriteRawFromRootTask::run(framework::ProcessingContext& pc)
   pc.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
 }
 
-void WriteRawFromRootTask::endOfStream(framework::EndOfStreamContext& ec)
+void DigitsToRawSpec::endOfStream(framework::EndOfStreamContext& ec)
 {
   return;
 }
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getWriteRawFromRootSpec(std::string inputSpec)
+o2::framework::DataProcessorSpec getDigitsToRawSpec()
 {
   std::vector<o2::framework::InputSpec> inputs;
   std::vector<o2::framework::OutputSpec> outputs;
 
   return DataProcessorSpec{
-    "HMP-WriteRawFromRootFile",
+    "digits-to-raw",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<WriteRawFromRootTask>()},
+    AlgorithmSpec{adaptFromTask<DigitsToRawSpec>()},
     Options{{"outdir", VariantType::String, "./", {"base dir for output file"}},
             {"file-for", VariantType::String, "all", {"single file per: all,flp,link"}},
             {"outfile", VariantType::String, "hmpid", {"base name for output file"}},

@@ -114,26 +114,22 @@ Example
 [O2Suite/latest-o2] ~/Downloads/provaRec $> o2-hmpid-read-raw-file-workflow --raw-file test_full_flp1.raw -b | o2-hmpid-raw-to-digits-workflow -b | o2-hmpid-write-root-from-digits-workflow -b
 ```
 
-### o2-hmpid-write-raw-from-root-workflow
+### o2-hmpid-digits-to-raw-workflow
 Write raw files with the digits information contained in a root file
 
 ```
-o2-hmpid-write-raw-from-root-workflow
+o2-hmpid-digits-to-raw-workflow
 ```
 
 Data processor options: HMP-WriteRawFromRootFile:
 
 ```
-  --hmp-raw-outdir arg (=./)            base dir for output file
-  --hmp-raw-outfile arg (=hmpReadOut)   base name for output file
-  --hmp-raw-perlink                     produce one file per link
-  --hmp-raw-perflp                      produce one raw file per FLPs
+  --outdir arg (=./)            base dir for output file
+  --outfile arg (=hmpReadOut)   base name for output file
+  --file-for                    ingle file per: (all),flp,link
   --in-file arg (=hmpiddigits.root)     name of the input sim root file
   --dump-digits                         out the digits file in /tmp/hmpDumpDigits.dat
-  --hmp-skip-empty                      skip empty events
-  --start-value-enumeration arg (=0)    initial value for the enumeration
-  --end-value-enumeration arg (=-1)     final value for the enumeration
-  --step-value-enumeration arg (=1)     step between one value and the other
+  --skip-empty                          skip empty events
 ```
 
 Example
@@ -141,7 +137,7 @@ Example
 ```
 [O2Suite/latest-o2] ~/Downloads/provaRec $>o2-sim-serial -m HMP -n 20 -e TGeant4 -g pythia8hi
 [O2Suite/latest-o2] ~/Downloads/provaRec $>o2-sim-digitizer-workflow --onlyDet HMP
-[O2Suite/latest-o2] ~/Downloads/provaRec $>o2-hmpid-write-raw-from-root-workflow --in-file hmpiddigits.root --hmp-raw-outfile hmpRawFromRoot --dump-digits -b
+[O2Suite/latest-o2] ~/Downloads/provaRec $>o2-hmpid-digits-to-raw-workflow --in-file hmpiddigits.root --hmp-raw-outfile hmpRawFromRoot --dump-digits -b
 ```
 
 in order to verify the write, the inverse decoding of raw file

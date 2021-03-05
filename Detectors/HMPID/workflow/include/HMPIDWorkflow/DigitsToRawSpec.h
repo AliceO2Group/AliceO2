@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_WRITERAWFROMROOT_H_
-#define DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_WRITERAWFROMROOT_H_
+#ifndef _HMPID_DIGITS_TO_RAW_SPEC_H_
+#define _HMPID_DIGITS_TO_RAW_SPEC_H_
 
 #include <vector>
 #include "Framework/DataProcessorSpec.h"
@@ -27,11 +27,11 @@ namespace o2
 namespace hmpid
 {
 
-class WriteRawFromRootTask : public framework::Task
+class DigitsToRawSpec : public framework::Task
 {
  public:
-  WriteRawFromRootTask() = default;
-  ~WriteRawFromRootTask() override = default;
+  DigitsToRawSpec() = default;
+  ~DigitsToRawSpec() override = default;
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) override;
@@ -53,7 +53,7 @@ class WriteRawFromRootTask : public framework::Task
   TTree* mDigTree;
 };
 
-o2::framework::DataProcessorSpec getWriteRawFromRootSpec(std::string inputSpec = "HMP/DIGITS");
+o2::framework::DataProcessorSpec getDigitsToRawSpec();
 
 } // end namespace hmpid
 } // end namespace o2
