@@ -124,10 +124,20 @@ struct SelectTracks {
   }
 
   void process(aod::Collision const& collision,
-               soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
+               soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::McTrackLabels> const& tracks,
+	       aod::McParticles& mcParticles)
   {
     math_utils::Point3D<float> vtxXYZ(collision.posX(), collision.posY(), collision.posZ());
     for (auto& track : tracks) {
+
+      auto protonLabel = track.labelId();
+      //      LOG(INFO) << "Checking label " << protonLabel;
+      bool isProtonFromLc = (protonLabel == 27378) || (protonLabel == 981514) || (protonLabel == 1079941) || (protonLabel == 1151713) || (protonLabel == 1354075) || (protonLabel == 46077) || (protonLabel == 386988) || (protonLabel == 1032251) || (protonLabel == 1126614) || (protonLabel == 1178107) || (protonLabel == 1386970) || (protonLabel == 18733) || (protonLabel == 319481) || (protonLabel == 433384) || (protonLabel == 914259) || (protonLabel == 364214) || (protonLabel == 922267) || (protonLabel == 49070) || (protonLabel == 841303) || (protonLabel == 1167211) || (protonLabel == 1257919) || (protonLabel == 367228) || (protonLabel == 439084) || (protonLabel == 812970) || (protonLabel == 1379678) || (protonLabel == 62526) || (protonLabel == 299330) || (protonLabel == 492671) || (protonLabel == 492678) || (protonLabel == 540812) || (protonLabel == 727692) || (protonLabel == 900211) || (protonLabel == 653455) || (protonLabel == 759316) || (protonLabel == 192853) || (protonLabel == 1096808) || (protonLabel == 1373001) || (protonLabel == 62875) || (protonLabel == 161859) || (protonLabel == 534335) || (protonLabel == 806033) || (protonLabel == 1050891) || (protonLabel == 1390046) || (protonLabel == 6268) || (protonLabel == 854417) || (protonLabel == 576587) || (protonLabel == 633385) || (protonLabel == 911527) || (protonLabel == 995379) || (protonLabel == 119194) || (protonLabel == 724999) || (protonLabel == 762518);
+
+      if (isProtonFromLc) {
+	LOG(INFO) << "\nWe found the proton " << protonLabel;
+      }
+      
 
       int status_prong = 7; // selection flag , 3 bits on
 
@@ -143,6 +153,9 @@ struct SelectTracks {
       if (trackPt < ptmintrack_3prong) {
         status_prong = status_prong & ~(1 << 1);
       }
+      if (isProtonFromLc) {
+	LOG(INFO) << "proton " << protonLabel << " pt = " << track.pt() << " (cut " << d_ptMinTrackBach << ")";
+      }
       if (track.pt() < d_ptMinTrackBach) {
         status_prong = status_prong & ~(1 << 2);
       }
@@ -155,17 +168,26 @@ struct SelectTracks {
       if ((status_prong & (1 << 1)) && abs(trackEta) > etamax_3prong) {
         status_prong = status_prong & ~(1 << 1);
       }
+      if (isProtonFromLc) {
+	LOG(INFO) << "proton " << protonLabel << " eta = " << track.eta() << " (cut " << d_etaMaxBach << ")";
+      }
       if ((status_prong & (1 << 2)) && abs(track.eta()) > d_etaMaxBach) {
         status_prong = status_prong & ~(1 << 2);
       }
 
       // quality cut
+      if (isProtonFromLc) {
+	LOG(INFO) << "proton " << protonLabel << " tpcNClsFound = " << track.tpcNClsFound() << " (cut " << d_tpcnclsfound.value << ")";
+      }
       if (doCutQuality.value && status_prong > 0) { // FIXME to make a more complete selection e.g track.flags() & o2::aod::track::TPCrefit && track.flags() & o2::aod::track::GoldenChi2 &&
         UChar_t clustermap = track.itsClusterMap();
         if (!(track.tpcNClsFound() >= d_tpcnclsfound.value && // is this the number of TPC clusters? It should not be used
               track.flags() & o2::aod::track::ITSrefit &&
               (TESTBIT(clustermap, 0) || TESTBIT(clustermap, 1)))) {
           status_prong = 0;
+	  if (isProtonFromLc) {
+	    LOG(INFO) << "proton " << protonLabel << " did not pass clusters cut" ;
+	  }
         }
       }
 
@@ -190,8 +212,15 @@ struct SelectTracks {
           status_prong = status_prong & ~(1 << 1);
         }
         if ((status_prong & (1 << 2)) && (abs(dca[0]) < d_dcaToPrimXYMinBach_ptDep || abs(dca[0]) > d_dcaToPrimXYMaxBach)) {
+	  if (isProtonFromLc) {
+	    LOG(INFO) << "proton " << protonLabel << " did not pass DCA cut";
+	    LOG(INFO) << "dca[0] = " << dca[0] << " (lower cut " << d_dcaToPrimXYMinBach_ptDep << ", upper cut " << d_dcaToPrimXYMaxBach << ")";
+	  }
           status_prong = status_prong & ~(1 << 2);
         }
+      }
+      if (isProtonFromLc) {
+	LOG(INFO) << "status_prong = " << status_prong;
       }
 
       // fill histograms
@@ -207,6 +236,9 @@ struct SelectTracks {
           registry.get<TH1>(HIST("heta_cuts_3prong"))->Fill(trackEta);
         }
         if (status_prong & (1 << 2)) {
+	  if (isProtonFromLc) {
+	    LOG(INFO) << "Will be kept: Proton from Lc " << protonLabel;
+	  }
           registry.get<TH1>(HIST("hpt_cuts_bach"))->Fill(trackPt);
           registry.get<TH1>(HIST("hdcatoprimxy_cuts_bach"))->Fill(dca[0]);
           registry.get<TH1>(HIST("heta_cuts_bach"))->Fill(trackEta);
@@ -1013,7 +1045,8 @@ struct HFTrackIndexSkimsCreatorCascades {
      {"hmass2", "2-prong candidates;inv. mass (K0s p) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}}}};
 
   // NB: using FullTracks = soa::Join<Tracks, TracksCov, TracksExtra>; defined in Framework/Core/include/Framework/AnalysisDataModel.h
-  using MyTracks = soa::Join<aod::FullTracks, aod::HFSelTrack, aod::TracksExtended>;
+  using MyTracks = soa::Join<aod::FullTracks, aod::HFSelTrack, aod::TracksExtended, aod::McTrackLabels>;
+  //using MyTracks = aod::BigTracksMC;
   //Partition<MyTracks> selectedTracks = aod::hf_seltrack::isSelProng >= 4;
   // using SelectedV0s = soa::Filtered<aod::V0DataExt>;
 
@@ -1032,7 +1065,8 @@ struct HFTrackIndexSkimsCreatorCascades {
                aod::BCs const& bcs,
                //soa::Filtered<aod::V0DataExt> const& V0s,
                aod::V0DataExt const& V0s,
-               MyTracks const& tracks) // TODO: I am now assuming that the V0s are already filtered with my cuts (David's work to come)
+               MyTracks const& tracks,
+	       aod::McParticles& mcParticles) // TODO: I am now assuming that the V0s are already filtered with my cuts (David's work to come)
   {
 
     //Define o2 fitter, 2-prong
@@ -1051,36 +1085,104 @@ struct HFTrackIndexSkimsCreatorCascades {
     //for (const auto& bach : selectedTracks) {
     for (const auto& bach : tracks) {
 
+      auto protonLabel = bach.labelId();
+      bool isProtonFromLc = (protonLabel == 27378) || (protonLabel == 981514) || (protonLabel == 1079941) || (protonLabel == 1151713) || (protonLabel == 1354075) || (protonLabel == 46077) || (protonLabel == 386988) || (protonLabel == 1032251) || (protonLabel == 1126614) || (protonLabel == 1178107) || (protonLabel == 1386970) || (protonLabel == 18733) || (protonLabel == 319481) || (protonLabel == 433384) || (protonLabel == 914259) || (protonLabel == 364214) || (protonLabel == 922267) || (protonLabel == 49070) || (protonLabel == 841303) || (protonLabel == 1167211) || (protonLabel == 1257919) || (protonLabel == 367228) || (protonLabel == 439084) || (protonLabel == 812970) || (protonLabel == 1379678) || (protonLabel == 62526) || (protonLabel == 299330) || (protonLabel == 492671) || (protonLabel == 492678) || (protonLabel == 540812) || (protonLabel == 727692) || (protonLabel == 900211) || (protonLabel == 653455) || (protonLabel == 759316) || (protonLabel == 192853) || (protonLabel == 1096808) || (protonLabel == 1373001) || (protonLabel == 62875) || (protonLabel == 161859) || (protonLabel == 534335) || (protonLabel == 806033) || (protonLabel == 1050891) || (protonLabel == 1390046) || (protonLabel == 6268) || (protonLabel == 854417) || (protonLabel == 576587) || (protonLabel == 633385) || (protonLabel == 911527) || (protonLabel == 995379) || (protonLabel == 119194) || (protonLabel == 724999) || (protonLabel == 762518);
+
       // selections on the bachelor
       // pT cut
       if (bach.isSelProng() < 4) {
+	if (isProtonFromLc) {
+	  LOG(INFO) << "proton " << protonLabel << ": rejected due to HFsel";
+	}
         continue;
       }
 
       if (b_TPCRefit) {
         if (!(bach.trackType() & o2::aod::track::TPCrefit)) {
+	if (isProtonFromLc) {
+	  LOG(INFO) << "proton " << protonLabel << ": rejected due to TPCrefit";
+	}
           continue;
         }
       }
       if (bach.tpcNClsCrossedRows() < i_minCrossedRows) {
+	if (isProtonFromLc) {
+	  LOG(INFO) << "proton " << protonLabel << ": rejected due to minNUmberOfCrossedRows " << bach.tpcNClsCrossedRows() << " (cut " << i_minCrossedRows << ")";
+	}
         continue;
       }
-
+      if (isProtonFromLc) {
+	LOG(INFO) << "KEPT! proton from Lc with daughters " << protonLabel; 
+      }
       auto bachTrack = getTrackParCov(bach);
-
       // now we loop over the V0s
       for (const auto& v0 : V0s) {
         // selections on the V0 daughters
         const auto& posTrack = v0.posTrack_as<MyTracks>();
         const auto& negTrack = v0.negTrack_as<MyTracks>();
+	auto labelPos = posTrack.label().globalIndex();
+	auto labelNeg = negTrack.label().globalIndex();
+	bool isK0SfromLc = (labelPos ==  27384 && labelNeg == 27385) || (labelPos == 981525 && labelNeg == 981526) || (labelPos == 1080007 && labelNeg == 1080008) || (labelPos == 1151717 && labelNeg == 1151718) ||
+	  (labelPos == 1354080 && labelNeg == 1354081) || (labelPos == 46082 && labelNeg == 46083) || (labelPos == 386994 && labelNeg == 386995) || (labelPos == 1032304 && labelNeg == 1032305) ||
+	  (labelPos == 1126617 && labelNeg == 1126618) || (labelPos == 1178152 && labelNeg == 1178153) || (labelPos == 1386973 && labelNeg == 1386974) || (labelPos == 18895 && labelNeg == 18896) ||
+	  (labelPos == 319531 && labelNeg == 319532) || (labelPos == 433387 && labelNeg == 433388) || (labelPos == 914299 && labelNeg == 914300) || (labelPos == 364270 && labelNeg == 364271) ||
+	  (labelPos == 922284 && labelNeg == 922285) || (labelPos == 49092 && labelNeg == 49093) || (labelPos == 841344 && labelNeg == 841345) || (labelPos == 1167214 && labelNeg == 1167215) ||
+	  (labelPos == 1257925 && labelNeg == 1257926) || (labelPos == 367299 && labelNeg == 367300) || (labelPos == 439094 && labelNeg == 439095) || (labelPos == 812984 && labelNeg == 812985) ||
+	  (labelPos == 1379705 && labelNeg == 1379706) || (labelPos == 62529 && labelNeg == 62530) || (labelPos == 299343 && labelNeg == 299344) || (labelPos == 492703 && labelNeg == 492704) ||
+	  (labelPos == 492681 && labelNeg == 492682) || (labelPos == 540846 && labelNeg == 540847) || (labelPos == 727710 && labelNeg == 727711) || (labelPos == 900248 && labelNeg == 900249) ||
+	  (labelPos == 653535 && labelNeg == 653536) || (labelPos == 759443 && labelNeg == 759444) || (labelPos == 192861 && labelNeg == 192862) || (labelPos == 1096815 && labelNeg == 1096816) ||
+	  (labelPos == 1373004 && labelNeg == 1373005) || (labelPos == 62878 && labelNeg == 62879) || (labelPos == 161866 && labelNeg == 161867) || (labelPos == 534341 && labelNeg == 534342) ||
+	  (labelPos == 806053 && labelNeg == 806054) || (labelPos == 1050897 && labelNeg == 1050898) || (labelPos == 1390049 && labelNeg == 1390050) || (labelPos == 6288 && labelNeg == 6289) ||
+	  (labelPos == 854422 && labelNeg == 854423) || (labelPos == 576590 && labelNeg == 576591) || (labelPos == 633388 && labelNeg == 633389) || (labelPos == 911572 && labelNeg == 911573) ||
+	  (labelPos == 995382 && labelNeg == 995383) || (labelPos == 119206 && labelNeg == 119207) || (labelPos == 725047 && labelNeg == 725048) || (labelPos == 762521 && labelNeg == 762522);
+	
+	bool isLc = (protonLabel == 27378 && labelPos ==  27384 && labelNeg == 27385) || (protonLabel == 981514 && labelPos == 981525 && labelNeg == 981526) || (protonLabel == 1079941 && labelPos == 1080007 && labelNeg == 1080008) ||
+	  (protonLabel == 1151713 && labelPos == 1151717 && labelNeg == 1151718) || (protonLabel == 1354075 && labelPos == 1354080 && labelNeg == 1354081) || (protonLabel == 46077 && labelPos == 46082 && labelNeg == 46083) ||
+	  (protonLabel == 386988 && labelPos == 386994 && labelNeg == 386995) || (protonLabel == 1032251 && labelPos == 1032304 && labelNeg == 1032305) || (protonLabel == 1126614 && labelPos == 1126617 && labelNeg == 1126618) ||
+	  (protonLabel == 1178107 && labelPos == 1178152 && labelNeg == 1178153) || (protonLabel == 1386970 && labelPos == 1386973 && labelNeg == 1386974) || (protonLabel == 18733 && labelPos == 18895 && labelNeg == 18896) ||
+	  (protonLabel == 319481 && labelPos == 319531 && labelNeg == 319532) || (protonLabel == 433384 && labelPos == 433387 && labelNeg == 433388) || (protonLabel == 914259 && labelPos == 914299 && labelNeg == 914300) ||
+	  (protonLabel == 364214 && labelPos == 364270 && labelNeg == 364271) || (protonLabel == 922267 && labelPos == 922284 && labelNeg == 922285) || (protonLabel == 49070 && labelPos == 49092 && labelNeg == 49093) ||
+	  (protonLabel == 841303 && labelPos == 841344 && labelNeg == 841345) || (protonLabel == 1167211 && labelPos == 1167214 && labelNeg == 1167215) || (protonLabel == 1257919 && labelPos == 1257925 && labelNeg == 1257926) ||
+	  (protonLabel == 367228 && labelPos == 367299 && labelNeg == 367300) || (protonLabel == 439084 && labelPos == 439094 && labelNeg == 439095) || (protonLabel == 812970 && labelPos == 812984 && labelNeg == 812985) ||
+	  (protonLabel == 1379678 && labelPos == 1379705 && labelNeg == 1379706) || (protonLabel == 62526 && labelPos == 62529 && labelNeg == 62530) || (protonLabel == 299330 && labelPos == 299343 && labelNeg == 299344) ||
+	  (protonLabel == 492671 && labelPos == 492703 && labelNeg == 492704) || (protonLabel == 492678 && labelPos == 492681 && labelNeg == 492682) || (protonLabel == 540812 && labelPos == 540846 && labelNeg == 540847) ||
+	  (protonLabel == 727692 && labelPos == 727710 && labelNeg == 727711) || (protonLabel == 900211 && labelPos == 900248 && labelNeg == 900249) || (protonLabel == 653455 && labelPos == 653535 && labelNeg == 653536) ||
+	  (protonLabel == 759316 && labelPos == 759443 && labelNeg == 759444) || (protonLabel == 192853 && labelPos == 192861 && labelNeg == 192862) || (protonLabel == 1096808 && labelPos == 1096815 && labelNeg == 1096816) ||
+	  (protonLabel == 1373001 && labelPos == 1373004 && labelNeg == 1373005) || (protonLabel == 62875 && labelPos == 62878 && labelNeg == 62879) || (protonLabel == 161859 && labelPos == 161866 && labelNeg == 161867) ||
+	  (protonLabel == 534335 && labelPos == 534341 && labelNeg == 534342) || (protonLabel == 806033 && labelPos == 806053 && labelNeg == 806054) || (protonLabel == 1050891 && labelPos == 1050897 && labelNeg == 1050898) ||
+	  (protonLabel == 1390046 && labelPos == 1390049 && labelNeg == 1390050) || (protonLabel == 6268 && labelPos == 6288 && labelNeg == 6289) || (protonLabel == 854417 && labelPos == 854422 && labelNeg == 854423) ||
+	  (protonLabel == 576587 && labelPos == 576590 && labelNeg == 576591) || (protonLabel == 633385 && labelPos == 633388 && labelNeg == 633389) || (protonLabel == 911527 && labelPos == 911572 && labelNeg == 911573) ||
+	  (protonLabel == 995379 && labelPos == 995382 && labelNeg == 995383) || (protonLabel == 119194 && labelPos == 119206 && labelNeg == 119207) || (protonLabel == 724999 && labelPos == 725047 && labelNeg == 725048) ||
+	  (protonLabel == 762518 && labelPos == 762521 && labelNeg == 762522);
+	
+	if (isK0SfromLc) {
+	  LOG(INFO) << "K0S from Lc found, posTrack --> " << labelPos << ", negTrack --> " << labelNeg;
+	}
+	
+	if (isK0SfromLc && isProtonFromLc) {
+	  LOG(INFO) << "ACCEPTED!!!";
+	  LOG(INFO) << "proton belonging to a Lc found: label --> " << protonLabel;
+	  LOG(INFO) << "K0S belonging to a Lc found: posTrack --> " << labelPos << ", negTrack --> " << labelNeg;
+	}
+	
+	if (isLc) {
+	  LOG(INFO) << "Combination of K0S and p which correspond to a Lc found!";
+	}
+	
         if (b_TPCRefit) {
           if (!(posTrack.trackType() & o2::aod::track::TPCrefit) ||
               !(negTrack.trackType() & o2::aod::track::TPCrefit)) {
-            continue;
+	    if (isK0SfromLc) {
+	      LOG(INFO) << "K0S with daughters " << labelPos << " and " << labelNeg << ": rejected due to TPCrefit";
+	    }
+	    continue;
           }
         }
         if (posTrack.tpcNClsCrossedRows() < i_minCrossedRows ||
             negTrack.tpcNClsCrossedRows() < i_minCrossedRows) {
+	  if (isK0SfromLc) {
+	    LOG(INFO) << "K0S with daughters " << labelPos << " and " << labelNeg << ": rejected due to minCrossedRows";
+	  }
           continue;
         }
         //
@@ -1091,23 +1193,37 @@ struct HFTrackIndexSkimsCreatorCascades {
         //
         if (posTrack.pt() < d_ptMin || // to the filters? I can't for now, it is not in the tables
             negTrack.pt() < d_ptMin) {
+	  if (isK0SfromLc) {
+	    LOG(INFO) << "K0S with daughters " << labelPos << " and " << labelNeg << ": rejected due to minPt --> pos " << posTrack.pt() << ", neg " << negTrack.pt() << " (cut " << d_ptMin << ")";
+	  }
           continue;
         }
         if (abs(posTrack.eta()) > d_etaMax || // to the filters? I can't for now, it is not in the tables
             abs(negTrack.eta()) > d_etaMax) {
+	  if (isK0SfromLc) {
+	    LOG(INFO) << "K0S with daughters " << labelPos << " and " << labelNeg << ": rejected due to eta --> pos " << posTrack.eta() << ", neg " << negTrack.eta() << " (cut " << d_etaMax << ")";
+	  }
           continue;
         }
 
         // V0 invariant mass selection
         if (std::abs(v0.mK0Short() - massK0s) > d_cutInvMassV0) {
+	  if (isK0SfromLc) {
+	    LOG(INFO) << "K0S with daughters " << labelPos << " and " << labelNeg << ": rejected due to invMass --> " << v0.mK0Short() - massK0s << " (cut " << d_cutInvMassV0 << ")";
+	  }
           continue; // should go to the filter, but since it is a dynamic column, I cannot use it there
         }
 
         // V0 cosPointingAngle selection
         if (v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) < d_cosPAV0) {
+	  if (isK0SfromLc) {
+	    LOG(INFO) << "K0S with daughters " << labelPos << " and " << labelNeg << ": rejected due to cosPA --> " << v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) << " (cut " << d_cosPAV0 << ")";
+	  }
           continue;
         }
-
+	if (isK0SfromLc) {
+	  LOG(INFO) << "KEPT! K0S from Lc with daughters " << labelPos << " and " << labelNeg; 
+	}
         auto posTrackParCov = getTrackParCov(posTrack);
         posTrackParCov.propagateTo(v0.posX(), d_bZ); // propagate the track to the X closest to the V0 vertex
         auto negTrackParCov = getTrackParCov(negTrack);
@@ -1123,10 +1239,15 @@ struct HFTrackIndexSkimsCreatorCascades {
 
         // now we find the DCA between the V0 and the bachelor, for the cascade
         int nCand2 = fitter.process(trackV0, bachTrack);
+	if (isK0SfromLc && isProtonFromLc) {
+	  LOG(INFO) << "Fitter result = " << nCand2 << " proton = " << protonLabel << " and K0S pos " << labelPos << " and neg " << labelNeg;
+	}
+	if (isLc) {
+	  LOG(INFO) << "Fitter result for true Lc = " << nCand2;
+	}
         if (nCand2 == 0) {
           continue;
         }
-
         std::array<float, 3> pVecCandCasc = {0., 0., 0.};
         fitter.propagateTracksToVertex();        // propagate the bach and V0 to the Lc vertex
         fitter.getTrack(0).getPxPyPzGlo(pVecV0); // take the momentum at the Lc vertex
@@ -1138,6 +1259,9 @@ struct HFTrackIndexSkimsCreatorCascades {
 
         // cascade candidate pT cut
         if (RecoDecay::Pt(pVecCandCasc) < d_cutCascPtCandMin) {
+	  if (isK0SfromLc && isProtonFromLc) {
+	    LOG(INFO) << "True Lc from proton " << protonLabel << " and K0S pos " << labelPos << " and neg " << labelNeg << " rejected due to pt cut: " << RecoDecay::Pt(pVecCandCasc) << " (cut " << d_cutCascPtCandMin << ")";
+	  }
           continue;
         }
 
@@ -1146,7 +1270,10 @@ struct HFTrackIndexSkimsCreatorCascades {
         auto arrMom = array{pVecBach, pVecV0};
         mass2K0sP = RecoDecay::M(arrMom, array{massP, massK0s});
         // invariant-mass cut
-        if ((d_cutCascInvMassLc >= 0.) && (std::abs(mass2K0sP - massLc) < d_cutCascInvMassLc)) {
+        if ((d_cutCascInvMassLc >= 0.) && (std::abs(mass2K0sP - massLc) > d_cutCascInvMassLc)) {
+	  if (isK0SfromLc && isProtonFromLc) {
+	    LOG(INFO) << "True Lc from proton " << protonLabel << " and K0S pos " << labelPos << " and neg " << labelNeg << " rejected due to invMass cut: " << mass2K0sP << ", mass Lc " << massLc << " (cut " << d_cutCascInvMassLc << ")";
+	  }
           continue;
         }
 
@@ -1162,6 +1289,9 @@ struct HFTrackIndexSkimsCreatorCascades {
                           1); // 1 should be the value for the Lc
         // fill histograms
         if (b_doValPlots) {
+	  if (isK0SfromLc && isProtonFromLc && isLc) {
+	    LOG(INFO) << "KEPT! True Lc from proton " << protonLabel << " and K0S pos " << labelPos << " and neg " << labelNeg;
+	  }
           registry.get<TH1>(HIST("hvtx2_x"))->Fill(posCasc[0]);
           registry.get<TH1>(HIST("hvtx2_y"))->Fill(posCasc[1]);
           registry.get<TH1>(HIST("hvtx2_z"))->Fill(posCasc[2]);
