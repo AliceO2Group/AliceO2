@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   write-root-from-digit-workflow.cxx
+/// \file   write-raw-from-root-workflow.cxx
 /// \author Antonio Franco - INFN Bari
 /// \version 1.0
 /// \date 01 feb 2021
@@ -22,38 +22,30 @@
 #include "Framework/CompletionPolicy.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DispatchPolicy.h"
-#include "CommonUtils/ConfigurableParam.h"
-#include "Framework/ConfigParamSpec.h"
-#include "Framework/Variant.h"
 
 // customize the completion policy
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   using o2::framework::CompletionPolicy;
   using o2::framework::CompletionPolicyHelpers;
-  policies.push_back(CompletionPolicyHelpers::defineByName("digit-root-write", CompletionPolicy::CompletionOp::Consume));
-}
-
-void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
-{
-  using o2::framework::ConfigParamSpec;
-  std::string keyvaluehelp("Semicolon separated key=value strings ...");
-  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", o2::framework::VariantType::String, "", {keyvaluehelp}});
+  policies.push_back(CompletionPolicyHelpers::defineByName("digit-hmpid-write", CompletionPolicy::CompletionOp::Consume));
 }
 
 #include "Framework/runDataProcessing.h"
 
-#include "HMPIDWorkflow/WriteRawFromDigitsSpec.h"
+#include "HMPIDWorkflow/WriteRawFromRootSpec.h"
 
 using namespace o2;
 using namespace o2::framework;
 
-WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
+WorkflowSpec defineDataProcessing(const ConfigContext&)
 {
   WorkflowSpec specs;
-  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
-  DataProcessorSpec consumer = o2::hmpid::getWriteRawFromDigitsSpec();
+  DataProcessorSpec consumer = o2::hmpid::getWriteRawFromRootSpec();
+  //  DataProcessorSpec consumer = o2::hmpid::getDecodingSpec();
   specs.push_back(consumer);
+  //  specs.push_back(consumer);
+
   return specs;
 }
