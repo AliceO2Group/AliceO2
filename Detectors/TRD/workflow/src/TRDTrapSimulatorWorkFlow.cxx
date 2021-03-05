@@ -58,6 +58,10 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowoptions)
   //limit to a stack in a supermodule
   std::string trapsimstackhelp("Specify the specific stack to work on [0-5] within the supermodule");
   workflowoptions.push_back(ConfigParamSpec{"simStack", VariantType::Int, -1, {trapsimstackhelp}});
+
+  workflowoptions.push_back(ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"Disable MC labels"}});
+  workflowoptions.push_back(ConfigParamSpec{"disable-root-input", o2::framework::VariantType::Bool, false, {"Disable root-files input readers"}});
+  workflowoptions.push_back(ConfigParamSpec{"disable-root-output", o2::framework::VariantType::Bool, false, {"Disable root-files output writers"}});
   //limit to a stack in a supermodule
   // the next one is now done inside the trapsim spec.
   //  std::string trapsimconfighelp("Specify the Trap config to use from CCDB yes those long names like cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b2p-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5585");
@@ -79,12 +83,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // at the end. This places the processor at the beginning of the
   // workflow in the upper left corner of the GUI.
   //
-  return WorkflowSpec{
-    //?? maybe a read spec to define the input in the case of my text run2 data and possible a proper data input reader.
-    o2::trd::getTRDDigitReaderSpec(1),
-    //o2::trd::getTRDDigitReaderSpec(1),
-    // connect the TRD digitization
-    o2::trd::getTRDTrapSimulatorSpec(),
-    // connect the TRD digit writer
-    o2::trd::getTRDTrackletWriterSpec()};
+  WorkflowSpec specs;
+  auto useMC = !configcontext.options().get<bool>("disable-mc");
+  auto disableRootInput = configcontext.options().get<bool>("disable-root-input");
+  auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
+  if (!disableRootInput) {
+    specs.emplace_back(o2::trd::getTRDDigitReaderSpec(1, useMC));
+  }
+  specs.emplace_back(o2::trd::getTRDTrapSimulatorSpec(useMC));
+  if (!disableRootOutput) {
+    specs.emplace_back(o2::trd::getTRDTrackletWriterSpec(useMC));
+  }
+  return std::move(specs);
 }

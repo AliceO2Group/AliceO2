@@ -11,6 +11,7 @@
 #include "TRDWorkflow/TRDTrapSimulatorSpec.h"
 
 #include <chrono>
+#include <optional>
 #include <gsl/span>
 
 #include "TFile.h"
@@ -142,7 +143,7 @@ void TRDDPLTrapSimulatorTask::setOnlineGainTables()
   }
 }
 
-void TRDDPLTrapSimulatorTask::processTRAPchips(int currDetector, int& nTrackletsInTrigRec, std::vector<Tracklet64>& trapTrackletsAccum, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& trackletMCLabels, const o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>& digitMCLabels)
+void TRDDPLTrapSimulatorTask::processTRAPchips(int currDetector, int& nTrackletsInTrigRec, std::vector<Tracklet64>& trapTrackletsAccum, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& lblTracklets, const o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>* lblDigits)
 {
   // Loop over all TRAP chips of detector number currDetector.
   // TRAP chips without input data are skipped
@@ -159,36 +160,38 @@ void TRDDPLTrapSimulatorTask::processTRAPchips(int currDetector, int& nTracklets
     auto trackletsOut = mTrapSimulator[iTrap].getTrackletArray64();
     int nTrackletsOut = trackletsOut.size();
     nTrackletsInTrigRec += nTrackletsOut;
-    auto digitCountOut = mTrapSimulator[iTrap].getTrackletDigitCount();     // number of digits contributing to each tracklet
-    auto digitIndicesOut = mTrapSimulator[iTrap].getTrackletDigitIndices(); // global indices of the digits composing the tracklets
-    int currDigitIndex = 0;                                                 // count the total number of digits which are associated to tracklets for this TRAP
-    int trkltIdxStart = trapTrackletsAccum.size();
-    for (int iTrklt = 0; iTrklt < nTrackletsOut; ++iTrklt) {
-      // for each tracklet of this TRAP check the MC labels of the digits which contribute to the tracklet
-      int tmp = currDigitIndex;
-      for (int iDigitIndex = tmp; iDigitIndex < tmp + digitCountOut[iTrklt]; ++iDigitIndex) {
-        if (iDigitIndex == tmp) {
-          // for the first digit composing the tracklet we don't need to check for duplicate labels
-          trackletMCLabels.addElements(trkltIdxStart + iTrklt, digitMCLabels.getLabels(digitIndicesOut[iDigitIndex]));
-        } else {
-          // in case more than one digit composes the tracklet we add only the labels
-          // from the additional digit(s) which are not already contained in the previous
-          // digit(s)
-          auto currentLabels = trackletMCLabels.getLabels(trkltIdxStart + iTrklt);
-          auto newLabels = digitMCLabels.getLabels(digitIndicesOut[iDigitIndex]);
-          for (const auto& newLabel : newLabels) {
-            bool isAlreadyIn = false;
-            for (const auto& currLabel : currentLabels) {
-              if (currLabel.compare(newLabel)) {
-                isAlreadyIn = true;
+    if (mUseMC) {
+      auto digitCountOut = mTrapSimulator[iTrap].getTrackletDigitCount();     // number of digits contributing to each tracklet
+      auto digitIndicesOut = mTrapSimulator[iTrap].getTrackletDigitIndices(); // global indices of the digits composing the tracklets
+      int currDigitIndex = 0;                                                 // count the total number of digits which are associated to tracklets for this TRAP
+      int trkltIdxStart = trapTrackletsAccum.size();
+      for (int iTrklt = 0; iTrklt < nTrackletsOut; ++iTrklt) {
+        // for each tracklet of this TRAP check the MC labels of the digits which contribute to the tracklet
+        int tmp = currDigitIndex;
+        for (int iDigitIndex = tmp; iDigitIndex < tmp + digitCountOut[iTrklt]; ++iDigitIndex) {
+          if (iDigitIndex == tmp) {
+            // for the first digit composing the tracklet we don't need to check for duplicate labels
+            lblTracklets.addElements(trkltIdxStart + iTrklt, lblDigits->getLabels(digitIndicesOut[iDigitIndex]));
+          } else {
+            // in case more than one digit composes the tracklet we add only the labels
+            // from the additional digit(s) which are not already contained in the previous
+            // digit(s)
+            auto currentLabels = lblTracklets.getLabels(trkltIdxStart + iTrklt);
+            auto newLabels = lblDigits->getLabels(digitIndicesOut[iDigitIndex]);
+            for (const auto& newLabel : newLabels) {
+              bool isAlreadyIn = false;
+              for (const auto& currLabel : currentLabels) {
+                if (currLabel.compare(newLabel)) {
+                  isAlreadyIn = true;
+                }
+              }
+              if (!isAlreadyIn) {
+                lblTracklets.addElement(trkltIdxStart + iTrklt, newLabel);
               }
             }
-            if (!isAlreadyIn) {
-              trackletMCLabels.addElement(trkltIdxStart + iTrklt, newLabel);
-            }
           }
+          ++currDigitIndex;
         }
-        ++currDigitIndex;
       }
     }
     trapTrackletsAccum.insert(trapTrackletsAccum.end(), trackletsOut.begin(), trackletsOut.end());
@@ -221,25 +224,32 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
 
   // input
   auto inputDigits = pc.inputs().get<gsl::span<o2::trd::Digit>>("digitinput");                                 // block of TRD digits
-  auto digitMCLabels = pc.inputs().get<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>("labelinput"); // MC labels associated to the input digits
   auto inputTriggerRecords = pc.inputs().get<gsl::span<o2::trd::TriggerRecord>>("triggerrecords");             // time and number of digits for each collision
   if (inputDigits.size() == 0 || inputTriggerRecords.size() == 0) {
     LOG(warn) << "Did not receive any digits, trigger records, or neither one nor the other. Aborting.";
     return;
   }
   LOG(debug) << "Read in " << inputDigits.size() << " digits";
-  LOG(debug) << "Labels contain " << digitMCLabels.getNElements() << " elements with and indexed size of " << digitMCLabels.getIndexedSize();
-  LOG(debug) << "Trigger records are available for " << inputTriggerRecords.size() << " collisions";
-  if (digitMCLabels.getIndexedSize() != inputDigits.size()) {
-    LOG(warn) << "Digits and Labels coming into TrapSimulator are of differing sizes, labels will be jibberish. " << digitMCLabels.getIndexedSize() << "!=" << inputDigits.size();
+
+  const o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>* lblDigitsPtr = nullptr;
+  using lblType = std::decay_t<decltype(pc.inputs().get<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(""))>;
+  std::optional<lblType> lblDigits;
+
+  if (mUseMC) {
+    lblDigits.emplace(pc.inputs().get<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>("labelinput")); // MC labels associated to the input digits
+    lblDigitsPtr = &lblDigits.value();
+    LOG(debug) << "Labels contain " << lblDigitsPtr->getNElements() << " elements with and indexed size of " << lblDigitsPtr->getIndexedSize();
+    if (lblDigitsPtr->getIndexedSize() != inputDigits.size()) {
+      LOG(warn) << "Digits and Labels coming into TrapSimulator are of differing sizes, labels will be jibberish. " << lblDigitsPtr->getIndexedSize() << "!=" << inputDigits.size();
+    }
   }
+  LOG(debug) << "Trigger records are available for " << inputTriggerRecords.size() << " collisions";
 
   // output
   std::vector<Tracklet64> trapTrackletsAccum;                          // calculated tracklets
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackletMCLabels; // MC labels for the tracklets, taken from the digits which make up the tracklet (duplicates are removed)
   // copy from the input to keep the collision times, but the number of objects in here will refer to tracklets instead of digits
   std::vector<o2::trd::TriggerRecord> trackletTriggerRecords(inputTriggerRecords.begin(), inputTriggerRecords.end()); // time and number of tracklets for each collision
-  trapTrackletsAccum.reserve(inputDigits.size() / 500);
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> lblTracklets;                                                    // MC labels for the tracklets, taken from the digits which make up the tracklet (duplicates are removed)
 
   // sort digits by chamber ID for each collision and keep track in index vector
   auto sortStart = std::chrono::high_resolution_clock::now();
@@ -266,7 +276,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
       }
       if (currDetector != digit->getDetector()) {
         // we switch to a new chamber, process all TRAPs of the previous chamber which contain data
-        processTRAPchips(currDetector, nTrackletsInTrigRec, trapTrackletsAccum, trackletMCLabels, digitMCLabels);
+        processTRAPchips(currDetector, nTrackletsInTrigRec, trapTrackletsAccum, lblTracklets, lblDigitsPtr);
         currDetector = digit->getDetector();
       }
       // fill the digit data into the corresponding TRAP chip
@@ -302,12 +312,14 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
       mTrapSimulator[trapIdx].setData(digit->getChannel(), digit->getADC(), digitIndices[iDigit]);
     }
     // take care of the TRAPs for the last chamber
-    processTRAPchips(currDetector, nTrackletsInTrigRec, trapTrackletsAccum, trackletMCLabels, digitMCLabels);
+    processTRAPchips(currDetector, nTrackletsInTrigRec, trapTrackletsAccum, lblTracklets, lblDigitsPtr);
     trackletTriggerRecords[iTrig].setDataRange(trapTrackletsAccum.size() - nTrackletsInTrigRec, nTrackletsInTrigRec);
   }
 
   LOG(info) << "Trap simulator found " << trapTrackletsAccum.size() << " tracklets from " << inputDigits.size() << " Digits.";
-  LOG(info) << "In total " << trackletMCLabels.getNElements() << " MC labels are associated to the tracklets";
+  if (mUseMC) {
+    LOG(info) << "In total " << lblTracklets.getNElements() << " MC labels are associated to the tracklets";
+  }
   if (mShowTrackletStats > 0) {
     std::chrono::duration<double> digitLoopTime = std::chrono::high_resolution_clock::now() - timeDigitLoopStart;
     LOG(info) << "Trap Simulator done ";
@@ -317,21 +329,35 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   }
   pc.outputs().snapshot(Output{"TRD", "TRACKLETS", 0, Lifetime::Timeframe}, trapTrackletsAccum);
   pc.outputs().snapshot(Output{"TRD", "TRKTRGRD", 0, Lifetime::Timeframe}, trackletTriggerRecords);
-  pc.outputs().snapshot(Output{"TRD", "TRKLABELS", 0, Lifetime::Timeframe}, trackletMCLabels);
+  if (mUseMC) {
+    pc.outputs().snapshot(Output{"TRD", "TRKLABELS", 0, Lifetime::Timeframe}, lblTracklets);
+  }
 
   LOG(debug) << "TRD Trap Simulator Device exiting";
   pc.services().get<ControlService>().endOfStream();
   pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
-o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec()
+o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec(bool useMC)
 {
-  return DataProcessorSpec{"TRAP", Inputs{InputSpec{"digitinput", "TRD", "DIGITS", 0}, InputSpec{"triggerrecords", "TRD", "TRGRDIG", 0}, InputSpec{"labelinput", "TRD", "LABELS", 0}},
+  std::vector<InputSpec> inputs;
+  std::vector<OutputSpec> outputs;
 
-                           Outputs{OutputSpec{"TRD", "TRACKLETS", 0, Lifetime::Timeframe}, // this is the 64 tracklet words
-                                   OutputSpec{"TRD", "TRKTRGRD", 0, Lifetime::Timeframe},
-                                   OutputSpec{"TRD", "TRKLABELS", 0, Lifetime::Timeframe}},
-                           AlgorithmSpec{adaptFromTask<TRDDPLTrapSimulatorTask>()},
+  inputs.emplace_back("digitinput", "TRD", "DIGITS", 0);
+  inputs.emplace_back("triggerrecords", "TRD", "TRGRDIG", 0);
+
+  outputs.emplace_back("TRD", "TRACKLETS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("TRD", "TRKTRGRD", 0, Lifetime::Timeframe);
+
+  if (useMC) {
+    inputs.emplace_back("labelinput", "TRD", "LABELS", 0);
+    outputs.emplace_back("TRD", "TRKLABELS", 0, Lifetime::Timeframe);
+  }
+
+  return DataProcessorSpec{"TRAP",
+                           inputs,
+                           outputs,
+                           AlgorithmSpec{adaptFromTask<TRDDPLTrapSimulatorTask>(useMC)},
                            Options{
                              {"show-trd-trackletstats", VariantType::Int, 1, {"Display the processing time of the tracklet processing in the TRAPs"}},
                              {"trd-trapconfig", VariantType::String, "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549", {"Name of the trap config from the CCDB default:cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549"}},
