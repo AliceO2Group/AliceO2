@@ -536,13 +536,15 @@ class RecoDecay
   /// \param PDGMother  expected mother PDG code
   /// \param acceptAntiParticles  switch to accept the antiparticle of the expected mother
   /// \param sign  antiparticle indicator of the found mother w.r.t. PDGMother; 1 if particle, -1 if antiparticle, 0 if mother not found
+  /// \param depthMax  maximum decay tree level to check; Mothers up to this level will be considered. If -1, all levels are considered.
   /// \return index of the mother particle if found, -1 otherwise
   template <typename T>
   static int getMother(const T& particlesMC,
                        const typename T::iterator& particle,
                        int PDGMother,
                        bool acceptAntiParticles = false,
-                       int8_t* sign = nullptr)
+                       int8_t* sign = nullptr,
+                       int8_t depthMax = -1)
   {
     int8_t sgn = 0;                 // 1 if the expected mother is particle, -1 if antiparticle (w.r.t. PDGMother)
     int indexMother = -1;           // index of the final matched mother, if found
@@ -552,6 +554,9 @@ class RecoDecay
       *sign = sgn;
     }
     while (particleMother.mother0() > -1) {
+      if (depthMax > -1 && -stage >= depthMax) { // Maximum depth has been reached.
+        return -1;
+      }
       auto indexMotherTmp = particleMother.mother0();
       particleMother = particlesMC.iteratorAt(indexMotherTmp);
       // Check mother's PDG code.
@@ -641,22 +646,23 @@ class RecoDecay
     //  printf(" ");
     //printf("Stage %d: %d (PDG %d) -> %d-%d\n", stage, index, PDGParticle, indexDaughterFirst, indexDaughterLast);
     // Call itself to get daughters of daughters recursively.
+    stage++;
     // Get daughters of the first daughter.
     if (indexDaughterFirst > -1) {
-      getDaughters(particlesMC, particlesMC.iteratorAt(indexDaughterFirst), list, arrPDGFinal, depthMax, stage + 1);
+      getDaughters(particlesMC, particlesMC.iteratorAt(indexDaughterFirst), list, arrPDGFinal, depthMax, stage);
     }
     // Get daughters of the daughters in between if any.
     // Daughter indices are supposed to be consecutive and in increasing order.
     // Reverse order means two daughters.
     if (indexDaughterFirst > -1 && indexDaughterLast > -1) {
       for (auto iD = indexDaughterFirst + 1; iD < indexDaughterLast; ++iD) {
-        getDaughters(particlesMC, particlesMC.iteratorAt(iD), list, arrPDGFinal, depthMax, stage + 1);
+        getDaughters(particlesMC, particlesMC.iteratorAt(iD), list, arrPDGFinal, depthMax, stage);
       }
     }
     // Get daughters of the last daughter if different from the first one.
     // Same indices indicate a single daughter.
     if (indexDaughterLast > -1 && indexDaughterLast != indexDaughterFirst) {
-      getDaughters(particlesMC, particlesMC.iteratorAt(indexDaughterLast), list, arrPDGFinal, depthMax, stage + 1);
+      getDaughters(particlesMC, particlesMC.iteratorAt(indexDaughterLast), list, arrPDGFinal, depthMax, stage);
     }
   }
 
@@ -694,7 +700,7 @@ class RecoDecay
       if (iProng == 0) {
         // Get the mother index and its sign.
         // PDG code of the first daughter's mother determines whether the expected mother is a particle or antiparticle.
-        indexMother = getMother(particlesMC, particleI, PDGMother, acceptAntiParticles, &sgn);
+        indexMother = getMother(particlesMC, particleI, PDGMother, acceptAntiParticles, &sgn, depthMax);
         // Check whether mother was found.
         if (indexMother <= -1) {
           //Printf("MC Rec: Rejected: bad mother index or PDG");
