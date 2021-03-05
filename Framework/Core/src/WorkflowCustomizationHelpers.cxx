@@ -52,10 +52,10 @@ std::vector<ConfigParamSpec> WorkflowCustomizationHelpers::requiredWorkflowOptio
                                        /// Find out a place where we can write the sockets
                                        ConfigParamSpec{"fairmq-ipc-prefix", VariantType::String, defaultIPCFolder(), {"Prefix for FairMQ channels location"}},
 
-                                       ConfigParamSpec{"forwarding-policy", VariantType::String, "dangling", {"Which messages to forward."
-                                                                                                              " *dangling*: dangling outputs,"
-                                                                                                              " all: all messages,"
-                                                                                                              " none: drop everything"}},
+                                       ConfigParamSpec{"forwarding-policy", VariantType::String, "none", {"Which messages to forward."
+                                                                                                          " *dangling*: dangling outputs,"
+                                                                                                          " all: all messages,"
+                                                                                                          " none: drop everything"}},
                                        ConfigParamSpec{"forwarding-destination",
                                                        VariantType::String,
                                                        "file",
