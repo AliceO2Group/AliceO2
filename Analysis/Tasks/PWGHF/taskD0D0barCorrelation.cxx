@@ -820,7 +820,7 @@ struct TaskD0D0barCorrelationCheckPhiResolution {
 
         //get corresponding gen-level D0, if exists, and evaluate gen-rec phi-difference with two approaches
         if (std::abs(candidate1.flagMCMatchRec()) == 1 << D0ToPiK) {                                                     //ok to keep both D0 and D0bar
-          int indexGen = RecoDecay::getMother(particlesMC, candidate1.index0_as<aod::BigTracksMC>().label(), 421, true); //MC-gen corresponding index for MC-reco candidate
+          int indexGen = RecoDecay::getMother(particlesMC, candidate1.index0_as<aod::BigTracksMC>().mcParticle(), 421, true); //MC-gen corresponding index for MC-reco candidate
           double phi1Gen = particlesMC.iteratorAt(indexGen).phi();
           registry.fill(HIST("hDifferenceGenPhiStdPhi"), getDeltaPhiForResolution(phi1Std, phi1Gen), pt1);
           registry.fill(HIST("hDifferenceGenPhiByVtxPhi"), getDeltaPhiForResolution(phi1ByVtx, phi1Gen), pt1);
