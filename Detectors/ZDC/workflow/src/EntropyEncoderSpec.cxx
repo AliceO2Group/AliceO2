@@ -46,7 +46,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
   auto bcdata = pc.inputs().get<gsl::span<o2::zdc::BCData>>("trig");
   auto chans = pc.inputs().get<gsl::span<o2::zdc::ChannelData>>("chan");
-  auto peds = pc.inputs().get<gsl::span<o2::zdc::PedestalData>>("peds");
+  auto peds = pc.inputs().get<gsl::span<o2::zdc::OrbitData>>("peds");
 
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"ZDC", "CTFDATA", 0, Lifetime::Timeframe});
   mCTFCoder.encode(buffer, bcdata, chans, peds);

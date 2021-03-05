@@ -54,9 +54,9 @@ void DumpRaw::init()
   gROOT->SetBatch();
   auto& sopt = ZDCSimParam::Instance();
   int nbx = (sopt.nBCAheadTrig + 1) * NTimeBinsPerBC;
-  Double_t xmin = -sopt.nBCAheadTrig * NTimeBinsPerBC - 0.5;
-  Double_t xmax = NTimeBinsPerBC - 0.5;
-  for (UInt_t i = 0; i < NDigiChannels; i++) {
+  double xmin = -sopt.nBCAheadTrig * NTimeBinsPerBC - 0.5;
+  double xmax = NTimeBinsPerBC - 0.5;
+  for (uint32_t i = 0; i < NDigiChannels; i++) {
     uint32_t imod = i / NChPerModule;
     uint32_t ich = i % NChPerModule;
     if (mBaseline[i]) {
@@ -102,25 +102,25 @@ void DumpRaw::write()
     LOG(FATAL) << "Cannot write to file " << f->GetName();
     return;
   }
-  for (UInt_t i = 0; i < NDigiChannels; i++) {
+  for (uint32_t i = 0; i < NDigiChannels; i++) {
     if (mBunch[i] && mBunch[i]->GetEntries() > 0) {
       setStat(mBunch[i]);
       mBunch[i]->Write();
     }
   }
-  for (UInt_t i = 0; i < NDigiChannels; i++) {
+  for (uint32_t i = 0; i < NDigiChannels; i++) {
     if (mBaseline[i] && mBaseline[i]->GetEntries() > 0) {
       setStat(mBaseline[i]);
       mBaseline[i]->Write();
     }
   }
-  for (UInt_t i = 0; i < NDigiChannels; i++) {
+  for (uint32_t i = 0; i < NDigiChannels; i++) {
     if (mCounts[i] && mCounts[i]->GetEntries() > 0) {
       setStat(mCounts[i]);
       mCounts[i]->Write();
     }
   }
-  for (UInt_t i = 0; i < NDigiChannels; i++) {
+  for (uint32_t i = 0; i < NDigiChannels; i++) {
     if (mSignal[i] && mSignal[i]->GetEntries() > 0) {
       setStat(mSignal[i]);
       mSignal[i]->Write();
@@ -140,19 +140,19 @@ inline int DumpRaw::getHPos(uint32_t board, uint32_t ch)
   }
 }
 
-int DumpRaw::processWord(const UInt_t* word)
+int DumpRaw::processWord(const uint32_t* word)
 {
   if (word == nullptr) {
     printf("NULL\n");
     return 1;
   }
   if ((word[0] & 0x3) == Id_w0) {
-    for (Int_t iw = 0; iw < NWPerGBTW; iw++) {
+    for (int32_t iw = 0; iw < NWPerGBTW; iw++) {
       mCh.w[0][iw] = word[iw];
     }
   } else if ((word[0] & 0x3) == Id_w1) {
     if (mCh.f.fixed_0 == Id_w0) {
-      for (Int_t iw = 0; iw < NWPerGBTW; iw++) {
+      for (int32_t iw = 0; iw < NWPerGBTW; iw++) {
         mCh.w[1][iw] = word[iw];
       }
     } else {
@@ -163,7 +163,7 @@ int DumpRaw::processWord(const UInt_t* word)
     }
   } else if ((word[0] & 0x3) == Id_w2) {
     if (mCh.f.fixed_0 == Id_w0 && mCh.f.fixed_1 == Id_w1) {
-      for (Int_t iw = 0; iw < NWPerGBTW; iw++) {
+      for (int32_t iw = 0; iw < NWPerGBTW; iw++) {
         mCh.w[2][iw] = word[iw];
       }
       process(mCh);
@@ -188,12 +188,12 @@ int DumpRaw::process(const EventChData& ch)
   auto f = ch.f;
   int ih = getHPos(f.board, f.ch);
   if (mVerbosity > 0) {
-    for (Int_t iw = 0; iw < NWPerBc; iw++) {
+    for (int32_t iw = 0; iw < NWPerBc; iw++) {
       Digits2Raw::print_gbt_word(ch.w[iw]);
     }
   }
-  UShort_t us[12];
-  Short_t s[12];
+  uint16_t us[12];
+  int16_t s[12];
   us[0] = f.s00;
   us[1] = f.s01;
   us[2] = f.s02;
@@ -206,7 +206,7 @@ int DumpRaw::process(const EventChData& ch)
   us[9] = f.s09;
   us[10] = f.s10;
   us[11] = f.s11;
-  for (Int_t i = 0; i < 12; i++) {
+  for (int32_t i = 0; i < 12; i++) {
     if (us[i] > ADCMax) {
       s[i] = us[i] - ADCRange;
     } else {
@@ -215,31 +215,31 @@ int DumpRaw::process(const EventChData& ch)
     //printf("%d %u %d\n",i,us[i],s[i]);
   }
   if (f.Alice_3) {
-    for (Int_t i = 0; i < 12; i++) {
-      mSignal[ih]->Fill(i - 36., Double_t(s[i]));
+    for (int32_t i = 0; i < 12; i++) {
+      mSignal[ih]->Fill(i - 36., double(s[i]));
     }
   }
   if (f.Alice_2) {
-    for (Int_t i = 0; i < 12; i++) {
-      mSignal[ih]->Fill(i - 24., Double_t(s[i]));
+    for (int32_t i = 0; i < 12; i++) {
+      mSignal[ih]->Fill(i - 24., double(s[i]));
     }
   }
   if (f.Alice_1 || f.Auto_1) {
-    for (Int_t i = 0; i < 12; i++) {
-      mSignal[ih]->Fill(i - 12., Double_t(s[i]));
+    for (int32_t i = 0; i < 12; i++) {
+      mSignal[ih]->Fill(i - 12., double(s[i]));
     }
   }
   if (f.Alice_0 || f.Auto_0) {
-    for (Int_t i = 0; i < 12; i++) {
-      mSignal[ih]->Fill(i + 0., Double_t(s[i]));
+    for (int32_t i = 0; i < 12; i++) {
+      mSignal[ih]->Fill(i + 0., double(s[i]));
     }
-    Double_t bc_d = UInt_t(f.bc / 100);
-    Double_t bc_m = UInt_t(f.bc % 100);
+    double bc_d = uint32_t(f.bc / 100);
+    double bc_m = uint32_t(f.bc % 100);
     mBunch[ih]->Fill(bc_m, -bc_d);
   }
   if (f.bc == last_bc) {
-    Int_t offset = f.offset - 32768;
-    Double_t foffset = offset / 8.;
+    int32_t offset = f.offset - 32768;
+    double foffset = offset / 8.;
     mBaseline[ih]->Fill(foffset);
     mCounts[ih]->Fill(f.hits);
   }
@@ -248,8 +248,8 @@ int DumpRaw::process(const EventChData& ch)
 
 int DumpRaw::process(const EventData& ev)
 {
-  for (Int_t im = 0; im < NModules; im++) {
-    for (Int_t ic = 0; ic < NChPerModule; ic++) {
+  for (int32_t im = 0; im < NModules; im++) {
+    for (int32_t ic = 0; ic < NChPerModule; ic++) {
       if (ev.data[im][ic].f.fixed_0 == Id_w0 && ev.data[im][ic].f.fixed_1 == Id_w1 && ev.data[im][ic].f.fixed_2 == Id_w2) {
         process(ev.data[im][ic]);
       } else if (ev.data[im][ic].f.fixed_0 == 0 && ev.data[im][ic].f.fixed_1 == 0 && ev.data[im][ic].f.fixed_2 == 0) {

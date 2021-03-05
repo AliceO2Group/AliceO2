@@ -33,7 +33,7 @@ class CTFHelper
  public:
   CTFHelper(const gsl::span<const BCData>& trgData,
             const gsl::span<const ChannelData>& chanData,
-            const gsl::span<const PedestalData>& pedData)
+            const gsl::span<const OrbitData>& pedData)
     : mTrigData(trgData), mChanData(chanData), mPedData(pedData) {}
 
   CTFHeader createHeader()
@@ -49,7 +49,7 @@ class CTFHelper
     return h;
   }
 
-  size_t getSize() const { return mTrigData.size() * sizeof(BCData) + mChanData.size() * sizeof(ChannelData) + mPedData.size() * sizeof(PedestalData); }
+  size_t getSize() const { return mTrigData.size() * sizeof(BCData) + mChanData.size() * sizeof(ChannelData) + mPedData.size() * sizeof(OrbitData); }
 
   //>>> =========================== ITERATORS ========================================
 
@@ -191,22 +191,22 @@ class CTFHelper
     value_type operator*() const { return mData[mIndex / NTimeBinsPerBC].data[mIndex % NTimeBinsPerBC]; }
   };
 
-  ////////////////////////// PedestalData iterators /////////////////////////////
+  ////////////////////////// OrbitData iterators /////////////////////////////
 
   //_______________________________________________
   // Orbit difference wrt previous. For the very 1st entry return 0 (diff wrt 1st BC in the CTF header)
-  class Iter_orbitIncPed : public _Iter<Iter_orbitIncPed, PedestalData, uint32_t>
+  class Iter_orbitIncPed : public _Iter<Iter_orbitIncPed, OrbitData, uint32_t>
   {
    public:
-    using _Iter<Iter_orbitIncPed, PedestalData, uint32_t>::_Iter;
+    using _Iter<Iter_orbitIncPed, OrbitData, uint32_t>::_Iter;
     value_type operator*() const { return mIndex ? mData[mIndex].ir.orbit - mData[mIndex - 1].ir.orbit : 0; }
   };
 
   //_______________________________________________
-  class Iter_pedData : public _Iter<Iter_pedData, PedestalData, int16_t, NChannels>
+  class Iter_pedData : public _Iter<Iter_pedData, OrbitData, int16_t, NChannels>
   {
    public:
-    using _Iter<Iter_pedData, PedestalData, int16_t, NChannels>::_Iter;
+    using _Iter<Iter_pedData, OrbitData, int16_t, NChannels>::_Iter;
     value_type operator*() const { return mData[mIndex / NChannels].data[mIndex % NChannels]; }
   };
 
@@ -252,7 +252,7 @@ class CTFHelper
  private:
   const gsl::span<const o2::zdc::BCData> mTrigData;
   const gsl::span<const o2::zdc::ChannelData> mChanData;
-  const gsl::span<const o2::zdc::PedestalData> mPedData;
+  const gsl::span<const o2::zdc::OrbitData> mPedData;
 };
 
 } // namespace zdc

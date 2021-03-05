@@ -20,7 +20,7 @@
 #include "DetectorsCommonDataFormats/EncodedBlocks.h"
 #include "DataFormatsZDC/ChannelData.h"
 #include "DataFormatsZDC/BCData.h"
-#include "DataFormatsZDC/PedestalData.h"
+#include "DataFormatsZDC/OrbitData.h"
 
 namespace o2
 {

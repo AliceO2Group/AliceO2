@@ -40,7 +40,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   /// entropy-encode data to buffer with CTF
   template <typename VEC>
-  void encode(VEC& buff, const gsl::span<const BCData>& trgData, const gsl::span<const ChannelData>& chanData, const gsl::span<const PedestalData>& pedData);
+  void encode(VEC& buff, const gsl::span<const BCData>& trgData, const gsl::span<const ChannelData>& chanData, const gsl::span<const OrbitData>& pedData);
 
   /// entropy decode data from buffer with CTF
   template <typename VTRG, typename VCHAN, typename VPED>
@@ -50,12 +50,12 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
  private:
   void appendToTree(TTree& tree, CTF& ec);
-  void readFromTree(TTree& tree, int entry, std::vector<BCData>& trigVec, std::vector<ChannelData>& chanVec, std::vector<PedestalData>& pedVec);
+  void readFromTree(TTree& tree, int entry, std::vector<BCData>& trigVec, std::vector<ChannelData>& chanVec, std::vector<OrbitData>& pedVec);
 };
 
 /// entropy-encode clusters to buffer with CTF
 template <typename VEC>
-void CTFCoder::encode(VEC& buff, const gsl::span<const BCData>& trigData, const gsl::span<const ChannelData>& chanData, const gsl::span<const PedestalData>& pedData)
+void CTFCoder::encode(VEC& buff, const gsl::span<const BCData>& trigData, const gsl::span<const ChannelData>& chanData, const gsl::span<const OrbitData>& pedData)
 {
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
@@ -180,7 +180,7 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCHAN& chanVec, VPED& 
   ir = {o2::constants::lhc::LHCMaxBunches - 1, header.firstOrbitPed};
   for (uint32_t ip = 0; ip < header.nPedestals; ip++) {
     ir.orbit += orbitIncPed[ip];
-    auto& ped = pedVec.emplace_back(PedestalData{ir, {}});
+    auto& ped = pedVec.emplace_back(OrbitData{ir, {}});
     std::copy_n(pedValIt, NChannels, ped.data.begin());
     pedValIt += NChannels;
   }
