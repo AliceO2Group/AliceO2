@@ -29,7 +29,7 @@ namespace trd
 class TRDDigitReaderSpec : public o2::framework::Task
 {
  public:
-  TRDDigitReaderSpec(int channels) : mChannels(channels){};
+  TRDDigitReaderSpec(int channels, bool useMC) : mChannels(channels), mUseMC(useMC) {}
   ~TRDDigitReaderSpec() override = default;
   void init(o2::framework::InitContext& ic) override;
   void run(o2::framework::ProcessingContext& pc) override;
@@ -39,6 +39,7 @@ class TRDDigitReaderSpec : public o2::framework::Task
   int mState = 0;
   bool mUseRun2 = false;
   int mChannels;
+  bool mUseMC = false;
   std::unique_ptr<TFile> mFile = nullptr;
   //std::unique_ptr<TTree> DPLTree;
   std::string mInputFileName = "";
@@ -48,7 +49,7 @@ class TRDDigitReaderSpec : public o2::framework::Task
   std::string mMCLabelsBranchName = "TRDMCLabels";
 };
 
-o2::framework::DataProcessorSpec getTRDDigitReaderSpec(int channels);
+o2::framework::DataProcessorSpec getTRDDigitReaderSpec(int channels, bool useMC);
 
 } // end namespace trd
 } // end namespace o2
