@@ -43,6 +43,8 @@ if (ENABLE_UPGRADES)
   add_definitions(-DENABLE_UPGRADES)
 endif()
 
+add_subdirectory(version)
+
 include(O2DefineOutputPaths)
 o2_define_output_paths()
 
