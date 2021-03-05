@@ -733,6 +733,12 @@ void GPUReconstruction::PushNonPersistentMemory(unsigned long tag)
 
 void GPUReconstruction::PopNonPersistentMemory(RecoStep step, unsigned long tag)
 {
+  if (mProcessingSettings.keepDisplayMemory || mProcessingSettings.disableMemoryReuse) {
+    return;
+  }
+  if (mNonPersistentMemoryStack.size() == 0) {
+    GPUFatal("Trying to pop memory state from empty stack");
+  }
   if (tag != 0 && std::get<3>(mNonPersistentMemoryStack.back()) != tag) {
     GPUFatal("Tag mismatch when poping non persistent memory from stack : pop %s vs on stack %s", qTag2Str(tag).c_str(), qTag2Str(std::get<3>(mNonPersistentMemoryStack.back())).c_str());
   }
@@ -743,9 +749,6 @@ void GPUReconstruction::PopNonPersistentMemory(RecoStep step, unsigned long tag)
     printf("Allocated Host memory after   %30s (%8s): %'13lld (non temporary %'13lld, blocked %'13lld)\n", GPUDataTypes::RECO_STEP_NAMES[getRecoStepNum(step, true)], qTag2Str(std::get<3>(mNonPersistentMemoryStack.back())).c_str(), ptrDiff(mHostMemoryPool, mHostMemoryBase) + ptrDiff((char*)mHostMemoryBase + mHostMemorySize, mHostMemoryPoolEnd), ptrDiff(mHostMemoryPool, mHostMemoryBase), mHostMemoryPoolBlocked == nullptr ? 0ll : ptrDiff((char*)mHostMemoryBase + mHostMemorySize, mHostMemoryPoolBlocked));
     printf("%16s", "");
     PrintMemoryMax();
-  }
-  if (mProcessingSettings.keepDisplayMemory || mProcessingSettings.disableMemoryReuse) {
-    return;
   }
   mHostMemoryPoolEnd = std::get<0>(mNonPersistentMemoryStack.back());
   mDeviceMemoryPoolEnd = std::get<1>(mNonPersistentMemoryStack.back());
