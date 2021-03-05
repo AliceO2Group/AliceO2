@@ -37,6 +37,8 @@
 #include "rapidjson/filereadstream.h"
 #include "rapidjson/filewritestream.h"
 
+#include "O2Version.h"
+
 std::string getServerLogName()
 {
   auto& conf = o2::conf::SimConfig::Instance();
@@ -170,6 +172,9 @@ void launchThreadMonitoringEvents(
 // for parallel simulation
 int main(int argc, char* argv[])
 {
+  LOG(INFO) << "This is o2-sim version " << o2::fullVersion() << " (" << o2::gitRevision() << ")";
+  LOG(INFO) << o2::getBuildInfo();
+
   signal(SIGINT, sighandler);
   signal(SIGTERM, sighandler);
   // we enable the forked version of the code by default
