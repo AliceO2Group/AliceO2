@@ -80,11 +80,12 @@ If needed, user may set manually the non-mutable (for given link) fields of the 
 The data must be provided as a `gsl::span<char>`` and contain only detector GBT (16 bytes words) payload. The annotation by RDH,
 formatting to CRU pages and eventual splitting of the large payload to multiple pages will be done by the `RawFileWriter`.
 ```cpp
-writer.addData(cru_0, link_0, endpoint_0, {bc, orbit}, gsl::span( (char*)payload_0, payload_0_size) );
+writer.addData(cru_0, link_0, endpoint_0, {bc, orbit}, gsl::span( (char*)payload_0, payload_0_size), <optional arguments> );
 ...
 o2::InteractionRecord ir{bc, orbit};
-writer.addData(rdh, ir, gsl::span( (char*)payload_f, payload_f_size ));
+writer.addData(rdh, ir, gsl::span( (char*)payload_f, payload_f_size ), <optional arguments>);
 ```
+where <optional arguments> are currently: `bool preformatted = false, uint32_t trigger = 0, uint32_t detField = 0` (see below for the meaning).
 
 By default the data will be written using o2::header::RAWDataHeader. User can request particular RDH version via `writer.useRDHVersion(v)`.
 
@@ -160,7 +161,12 @@ void newRDHMethod(const RDHAny* rdh, bool prevEmpty, std::vector<char>& toAdd) c
 ```
 It proveds the ``RDH`` of the page for which it is called, information if the previous had some payload and buffer to be filled by the used algorithm.
 
-The behaviour described above can be modified by providing an extra argument in the `addData` method
+Some detectors signal the end of the HBF by adding an empty CRU page containing just a header with ``RDH.stop=1`` while others may simply set the ``RDH.stop=1`` in the last CRU page of the HBF (it may appear to be also the 1st and the only page of the HBF and may or may not contain the payload).
+This behaviour is steered by ``writer.setAddSeparateHBFStopPage(bool v)`` switch. By default end of the HBF is signaled on separate page.
+
+Extra arguments:
+
+* `preformatted` (default: false): The behaviour described above can be modified by providing an extra argument in the `addData` method
 ```cpp
 bool preformatted = true;
 writer.addData(cru_0, link_0, endpoint_0, {bc, orbit}, gsl::span( (char*)payload_0, payload_0_size ), preformatted );
@@ -172,8 +178,9 @@ writer.addData(rdh, ir, gsl::span( (char*)payload_f, payload_f_size ), preformat
 In this case provided span is interpretted as a fully formatted CRU page payload (i.e. it lacks the RDH which will be added by the writer) of the maximum size `8192-sizeof(RDH) = 8128` bytes.
 The writer will create a new CRU page with provided payload equipping it with the proper RDH: copying already stored RDH of the current HBF, if the interaction record `ir` belongs to the same HBF or generating new RDH for new HBF otherwise (and filling all missing HBFs in-between). In case the payload size exceeds maximum, an exception will be thrown w/o any attempt to split the page.
 
-Some detectors signal the end of the HBF by adding an empty CRU page containing just a header with ``RDH.stop=1`` while others may simply set the ``RDH.stop=1`` in the last CRU page of the HBF (it may appear to be also the 1st and the only page of the HBF and may or may not contain the payload).
-This behaviour is steered by ``writer.setAddSeparateHBFStopPage(bool v)`` switch. By default end of the HBF is signaled on separate page.
+* `trigger` (default 0): optionally detector may provide a trigger word for this payload, this word will be OR-ed with the current RDH.triggerType
+
+* `detField` (default 0): optionally detector may provide a custom 32-bit word which will be assigned to RDH.detectorField.
 
 For further details see  ``ITSMFT/common/simulation/MC2RawEncoder`` class and the macro
 `Detectors/ITSMFT/ITS/macros/test/run_digi2rawVarPage_its.C` to steer the MC to raw data conversion.

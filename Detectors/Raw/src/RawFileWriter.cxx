@@ -72,7 +72,7 @@ void RawFileWriter::fillFromCache()
     for (const auto& entry : cache.second) {
       auto& link = getLinkWithSubSpec(entry.first);
       link.cacheTree->GetEntry(entry.second);
-      link.addData(cache.first, link.cacheBuffer.payload, link.cacheBuffer.preformatted, link.cacheBuffer.trigger);
+      link.addData(cache.first, link.cacheBuffer.payload, link.cacheBuffer.preformatted, link.cacheBuffer.trigger, link.cacheBuffer.detField);
     }
   }
   mCacheFile->cd();
@@ -156,7 +156,7 @@ RawFileWriter::LinkData& RawFileWriter::registerLink(uint16_t fee, uint16_t cru,
 }
 
 //_____________________________________________________________________
-void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t endpoint, const IR& ir, const gsl::span<char> data, bool preformatted, uint32_t trigger)
+void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t endpoint, const IR& ir, const gsl::span<char> data, bool preformatted, uint32_t trigger, uint32_t detField)
 {
   // add payload to relevant links
   if (isCRUDetector() && (data.size() % RDHUtils::GBTWord)) {
@@ -172,7 +172,7 @@ void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t e
   if (ir < mFirstIRAdded) {
     mFirstIRAdded = ir;
   }
-  link.addData(ir, data, preformatted, trigger);
+  link.addData(ir, data, preformatted, trigger, detField);
 }
 
 //_____________________________________________________________________
@@ -247,7 +247,7 @@ void RawFileWriter::useCaching()
 //===================================================================================
 
 //___________________________________________________________________________________
-void RawFileWriter::LinkData::cacheData(const IR& ir, const gsl::span<char> data, bool preformatted, uint32_t trigger)
+void RawFileWriter::LinkData::cacheData(const IR& ir, const gsl::span<char> data, bool preformatted, uint32_t trigger, uint32_t detField)
 {
   // cache data to temporary tree
   std::lock_guard<std::mutex> lock(writer->mCacheFileMtx);
@@ -258,6 +258,7 @@ void RawFileWriter::LinkData::cacheData(const IR& ir, const gsl::span<char> data
   }
   cacheBuffer.preformatted = preformatted;
   cacheBuffer.trigger = trigger;
+  cacheBuffer.detField = detField;
   cacheBuffer.payload.resize(data.size());
   if (!data.empty()) {
     memcpy(cacheBuffer.payload.data(), data.data(), data.size());
@@ -268,14 +269,14 @@ void RawFileWriter::LinkData::cacheData(const IR& ir, const gsl::span<char> data
 }
 
 //___________________________________________________________________________________
-void RawFileWriter::LinkData::addData(const IR& ir, const gsl::span<char> data, bool preformatted, uint32_t trigger)
+void RawFileWriter::LinkData::addData(const IR& ir, const gsl::span<char> data, bool preformatted, uint32_t trigger, uint32_t detField)
 {
   // add payload corresponding to IR
   LOG(DEBUG) << "Adding " << data.size() << " bytes in IR " << ir << " to " << describe();
   std::lock_guard<std::mutex> lock(mtx);
 
   if (writer->mCachingStage) {
-    cacheData(ir, data, preformatted, trigger);
+    cacheData(ir, data, preformatted, trigger, detField);
     return;
   }
 
@@ -295,6 +296,10 @@ void RawFileWriter::LinkData::addData(const IR& ir, const gsl::span<char> data, 
   if (trigger) {
     auto& rdh = *getLastRDH();
     RDHUtils::setTriggerType(rdh, RDHUtils::getTriggerType(rdh) | trigger);
+  }
+  if (detField) {
+    auto& rdh = *getLastRDH();
+    RDHUtils::setDetectorField(rdh, detField);
   }
 
   if (!dataSize) {
