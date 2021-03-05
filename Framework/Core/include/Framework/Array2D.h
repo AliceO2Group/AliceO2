@@ -252,7 +252,7 @@ class LabeledArray : public LabelMap
     return values[0][colmap.find(x)->second];
   }
 
-  T getRow(u_int32_t y) const
+  T* getRow(uint32_t y) const
   {
     return values[y];
   }
