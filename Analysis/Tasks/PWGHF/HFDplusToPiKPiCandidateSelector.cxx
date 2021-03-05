@@ -84,9 +84,6 @@ struct HFDplusToPiKPiCandidateSelector {
   template <typename T>
   bool daughterSelection(const T& track)
   {
-    if (track.sign() == 0) {
-      return false;
-    }
     if (b_requireTPC.value && track.tpcNClsFound() == 0) {
       return false; //is it clusters findable or found - need to check
     }
