@@ -58,7 +58,8 @@ struct CorrelationTask {
 
   // Filters and input definitions
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
-  Filter vertexTypeFilter = aod::collision::flags == (uint16_t)aod::collision::CollisionFlagsRun2::Run2VertexerTracks || aod::collision::flags == (uint16_t)aod::collision::CollisionFlagsRun2::Run2VertexerTracksNoConstraint;
+  // TODO bitwise operations not supported, yet
+  // Filter vertexTypeFilter = aod::collision::flags & (uint16_t) aod::collision::CollisionFlagsRun2::Run2VertexerTracks;
   Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::pt > cfgCutPt) && ((aod::track::isGlobalTrack == (uint8_t) true) || (aod::track::isGlobalTrackSDD == (uint8_t) true));
   using myTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>>;
 
@@ -163,7 +164,11 @@ struct CorrelationTask {
 
     same->fillEvent(centrality, CorrelationContainer::kCFStepTriggered);
 
-    // vertex already checked as filter
+    // vertex range already checked as filter, but bitwise operations not yet supported
+    if (collision.flags() != 0 && collision.flags() & aod::collision::CollisionFlagsRun2::Run2VertexerTracks != aod::collision::CollisionFlagsRun2::Run2VertexerTracks) {
+      return;
+    }
+
     same->fillEvent(centrality, CorrelationContainer::kCFStepVertex);
 
     same->fillEvent(centrality, CorrelationContainer::kCFStepReconstructed);
