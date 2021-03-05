@@ -69,9 +69,11 @@ struct HFCandidateCreator2Prong {
 
     // loop over pairs of track indices
     for (const auto& rowTrackIndexProng2 : rowsTrackIndexProng2) {
-      auto trackParVarPos1 = getTrackParCov(rowTrackIndexProng2.index0_as<aod::BigTracks>());
-      auto trackParVarNeg1 = getTrackParCov(rowTrackIndexProng2.index1_as<aod::BigTracks>());
-      auto collision = rowTrackIndexProng2.index0().collision();
+      auto track0 = rowTrackIndexProng2.index0_as<aod::BigTracks>();
+      auto track1 = rowTrackIndexProng2.index1_as<aod::BigTracks>();
+      auto trackParVarPos1 = getTrackParCov(track0);
+      auto trackParVarNeg1 = getTrackParCov(track1);
+      auto collision = track0.collision();
 
       // reconstruct the 2-prong secondary vertex
       if (df.process(trackParVarPos1, trackParVarNeg1) == 0) {
