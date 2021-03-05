@@ -87,7 +87,7 @@ class HmpidCoder2
 
  public:
   HmpidCoder2(int numOfEquipments);
-  virtual ~HmpidCoder2();
+  virtual ~HmpidCoder2() = default;
 
   void setVerbosity(int Level)
   {

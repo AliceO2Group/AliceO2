@@ -50,11 +50,6 @@ HmpidCoder2::HmpidCoder2(int numOfEquipments)
   mHmpidFrwVersion = 9;
 }
 
-///  HMPID Raw Coder
-HmpidCoder2::~HmpidCoder2()
-{
-}
-
 /// setDetectorSpecificFields() : sets the HMPID parameters for the next
 /// raw file writes
 /// @param[in] BusyTime : busy time in milliseconds
@@ -205,8 +200,9 @@ void HmpidCoder2::writePaginatedEvent(uint32_t orbit, uint16_t bc)
 /// @param[in] digits : the vector of Digit structures
 void HmpidCoder2::codeEventChunkDigits(std::vector<Digit>& digits)
 {
-  if (digits.size() == 0)
+  if (digits.size() == 0) {
     return; // the vector is empty !
+  }
   codeEventChunkDigits(digits, Trigger{digits[0].getBC(), digits[0].getOrbit()});
   return;
 }
