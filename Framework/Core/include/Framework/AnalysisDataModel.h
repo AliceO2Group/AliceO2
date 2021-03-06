@@ -279,6 +279,22 @@ DECLARE_SOA_TABLE(UnassignedTracks, "AOD", "UNASSIGNEDTRACK",
 
 using UnassignedTrack = UnassignedTracks::iterator;
 
+// HMPID information
+namespace hmpid
+{
+DECLARE_SOA_INDEX_COLUMN(Track, track);
+DECLARE_SOA_COLUMN(HMPIDSignal, hmpidSignal, float);
+DECLARE_SOA_COLUMN(HMPIDDistance, hmpidDistance, float);
+DECLARE_SOA_COLUMN(HMPIDQMip, hmpidQMip, short);
+} // namespace hmpid
+
+DECLARE_SOA_TABLE(HMPIDs, "AOD", "HMPID",
+                  hmpid::TrackId,
+                  hmpid::HMPIDSignal,
+                  hmpid::HMPIDDistance,
+                  hmpid::HMPIDQMip);
+using HMPID = HMPIDs::iterator;
+
 namespace calo
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc);
