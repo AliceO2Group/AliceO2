@@ -43,6 +43,7 @@ if (ENABLE_UPGRADES)
   add_definitions(-DENABLE_UPGRADES)
 endif()
 
+
 include(O2DefineOutputPaths)
 o2_define_output_paths()
 
@@ -74,6 +75,8 @@ include(O2DataFile)
 include(O2TargetManPage)
 include(O2AddWorkflow)
 include(O2SetROOTPCMDependencies)
+
+add_subdirectory(version)
 
 # Main targets of the project in various subdirectories. Order matters.
 add_subdirectory(Common)
