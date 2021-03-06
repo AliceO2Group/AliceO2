@@ -27,12 +27,12 @@ void CTFCoder::appendToTree(TTree& tree, CTF& ec)
 
 ///___________________________________________________________________________________
 // extract and decode data from the tree
-void CTFCoder::readFromTree(TTree& tree, int entry, std::vector<BCData>& trigVec, std::vector<ChannelData>& chanVec, std::vector<OrbitData>& pedVec)
+void CTFCoder::readFromTree(TTree& tree, int entry, std::vector<BCData>& trigVec, std::vector<ChannelData>& chanVec, std::vector<OrbitData>& eodVec)
 {
   assert(entry >= 0 && entry < tree.GetEntries());
   CTF ec;
   ec.readFromTree(tree, mDet.getName(), entry);
-  decode(ec, trigVec, chanVec, pedVec);
+  decode(ec, trigVec, chanVec, eodVec);
 }
 
 ///________________________________
@@ -60,8 +60,8 @@ void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::
   };
 
   // just to get types
-  uint16_t bcIncTrig, moduleTrig, nchanTrig, chanData, pedData, triggersHL, channelsHL;
-  uint32_t orbitIncTrig, orbitIncPed;
+  uint16_t bcIncTrig, moduleTrig, nchanTrig, chanData, pedData, sclInc, triggersHL, channelsHL;
+  uint32_t orbitIncTrig, orbitIncEOD;
   uint8_t extTriggers, chanID;
 #define MAKECODER(part, slot) createCoder<decltype(part)>(op, getFreq(slot), getProbBits(slot), int(slot))
   // clang-format off
@@ -76,7 +76,8 @@ void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::
   MAKECODER(chanID,            CTF::BLC_chanID);
   MAKECODER(chanData,          CTF::BLC_chanData);
   //
-  MAKECODER(orbitIncPed,       CTF::BLC_orbitIncPed);
+  MAKECODER(orbitIncEOD,       CTF::BLC_orbitIncEOD);
   MAKECODER(pedData,           CTF::BLC_pedData);
+  MAKECODER(sclInc,            CTF::BLC_sclInc);
   // clang-format on
 }
