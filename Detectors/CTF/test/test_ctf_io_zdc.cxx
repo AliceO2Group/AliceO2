@@ -71,6 +71,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     pedsdata[i].ir = irPed;
     for (int ic = 0; ic < NChannels; ic++) {
       pedsdata[i].data[ic] = gRandom->Integer(0xffff);
+      pedsdata[i].scaler[ic] = (i > 0 ? pedsdata[i].scaler[ic - 1] : 0) + gRandom->Integer(20);
     }
     irPed.orbit++;
   }
@@ -156,7 +157,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   LOG(INFO) << "Testing OrbitData: BOOST_CHECK(pedsdataD.size() " << pedsdataD.size() << " pedsdata.size()) " << pedsdata.size();
   BOOST_CHECK(pedsdataD.size() == pedsdata.size());
   for (size_t i = 0; i < pedsdata.size(); i++) {
-    bool cmpPdData = pedsdata[i].ir == pedsdataD[i].ir && pedsdata[i].data == pedsdataD[i].data;
+    bool cmpPdData = pedsdata[i].ir == pedsdataD[i].ir && pedsdata[i].data == pedsdataD[i].data && pedsdata[i].scaler == pedsdataD[i].scaler;
     if (!cmpPdData) {
       LOG(ERROR) << "Mismatch in OrbitData " << i;
       pedsdata[i].print();
