@@ -45,3 +45,13 @@ on all chambers and call `elecmap.py` for each one, e.g.
 
 (for the moment a credential JSON file is required, we'll try to remove that
 constraint as soon as possible)
+
+The `elecmap.py` python script requires a number of python modules to be 
+installed to be able to run : 
+
+```
+pip install oauth2client
+pip install gspread
+pip install numpy
+pip install pandas
+```
