@@ -147,7 +147,7 @@ struct TimeFrame {
 
       offset += pageSize;
     }
-    printf("total size: %d\n", totalSize);
+    fmt::printf("total size: {}\n",totalSize);
     printf("//////////////////////\n");
   }
 };

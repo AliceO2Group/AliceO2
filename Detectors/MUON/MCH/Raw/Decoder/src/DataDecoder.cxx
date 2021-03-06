@@ -285,7 +285,7 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
   }
 };
 
-int32_t digitsTimeDiff(uint32_t orbit1, uint32_t bc1, uint32_t orbit2, uint32_t bc2)
+int32_t DataDecoder::digitsTimeDiff(uint32_t orbit1, uint32_t bc1, uint32_t orbit2, uint32_t bc2)
 {
   // bunch crossings are stored with 20 bits
   static const int32_t BCROLLOVER = (1 << 20);
@@ -347,7 +347,7 @@ void DataDecoder::computeDigitsTime_(std::vector<o2::mch::Digit>& digits, std::v
     int32_t tfTime = 0;
     uint32_t bc = tfStart->mBunchCrossing;
     uint32_t orbit = tfStart->mOrbit;
-    tfTime = digitsTimeDiff(orbit, bc, info.orbit, info.getBXTime());
+    tfTime = DataDecoder::digitsTimeDiff(orbit, bc, info.orbit, info.getBXTime());
     if (debug) {
       std::cout << "[computeDigitsTime_] hit " << info.orbit << "," << info.getBXTime()
                 << "    tfTime(1) " << orbit << "," << bc << "    diff " << tfTime << std::endl;

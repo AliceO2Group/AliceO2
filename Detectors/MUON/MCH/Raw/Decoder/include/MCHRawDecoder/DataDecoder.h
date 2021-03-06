@@ -17,6 +17,7 @@
 
 #include <gsl/span>
 #include <unordered_set>
+#include <unordered_map>
 
 #include "Headers/RDHAny.h"
 #include "MCHBase/Digit.h"
@@ -89,6 +90,8 @@ class DataDecoder
 
   void reset();
   void decodeBuffer(gsl::span<const std::byte> buf);
+
+  static int32_t digitsTimeDiff(uint32_t orbit1, uint32_t bc1, uint32_t orbit2, uint32_t bc2);
   static void computeDigitsTime_(std::vector<o2::mch::Digit>& digits, std::vector<SampaInfo>& sampaInfo, SampaTimeFrameStarts& sampaTimeFrameStarts, bool debug);
   void computeDigitsTime()
   {

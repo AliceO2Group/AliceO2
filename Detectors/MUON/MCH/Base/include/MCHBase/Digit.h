@@ -39,8 +39,10 @@ class Digit
   void setTime(int32_t t) { mTFtime = t; }
   int32_t getTime() const { return mTFtime; }
 
-  void setNofSamples(uint16_t n) { mNofSamples = n; }
+  void setNofSamples(uint16_t n);
   uint16_t nofSamples() const { return (mNofSamples & 0x7FFF); }
+
+  void setSaturated(bool sat);
   bool isSaturated() const { return ((mNofSamples & 0x8000) > 0); }
 
   int getDetID() const { return mDetID; }
@@ -54,7 +56,7 @@ class Digit
  private:
   int32_t mTFtime;      /// time since the beginning of the time frame, in bunch crossing units
   uint16_t mNofSamples; /// number of samples in the signal
-  int mDetID;           /// DetectorIndex to which the digit corresponds to
+  int mDetID;           /// ID of the Detection Element to which the digit corresponds to
   int mPadID;           /// PadIndex to which the digit corresponds to
   unsigned long mADC;   /// Amplitude of signal
 
