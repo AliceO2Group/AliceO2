@@ -29,7 +29,7 @@ template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 DataProcessorSpec getZDCDigitWriterDPLSpec(bool mctruth, bool simVersion)
 {
-  std::string writerName = simVersion ? "ZDCDigitWriterSim" : "ZDCDigitWriterSimDec";
+  std::string writerName = simVersion ? "ZDCDigitWriterSim" : "ZDCDigitWriterDec";
   std::string fnameDef = simVersion ? "zdcdigits.root" : "o2digit_zdc.root";
 
   using InputSpec = framework::InputSpec;
@@ -37,7 +37,6 @@ DataProcessorSpec getZDCDigitWriterDPLSpec(bool mctruth, bool simVersion)
   return MakeRootTreeWriterSpec(writerName.data(),
                                 fnameDef.data(),
                                 "o2sim",
-                                1,
                                 BranchDefinition<std::vector<o2::zdc::BCData>>{InputSpec{"digitBCinput", "ZDC", "DIGITSBC"}, "ZDCDigitBC"},
                                 BranchDefinition<std::vector<o2::zdc::ChannelData>>{InputSpec{"digitChinput", "ZDC", "DIGITSCH"}, "ZDCDigitCh"},
                                 BranchDefinition<std::vector<o2::zdc::OrbitData>>{InputSpec{"digitPDinput", "ZDC", "DIGITSPD"}, "ZDCDigitOrbit"},
