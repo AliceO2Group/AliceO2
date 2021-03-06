@@ -26,6 +26,7 @@
 #include "Framework/Traits.h"
 #include "Framework/VariantHelpers.h"
 #include "Framework/RuntimeError.h"
+#include "Framework/TypeIdHelpers.h"
 
 #include <arrow/compute/kernel.h>
 #include <arrow/table.h>
@@ -582,19 +583,51 @@ template <class T>
 inline constexpr bool has_init_v = has_init<T>::value;
 } // namespace
 
+/// Struct to differentiate task names from possible task string arguments
+struct TaskName {
+  TaskName(std::string const& name) : value{name} {}
+  std::string value;
+};
+
+template <typename T>
+std::tuple<std::string, std::shared_ptr<T>> getNameAndTask()
+{
+  auto type_name_str = type_name<T>();
+  std::string name = type_to_task_name(type_name_str);
+  auto task = std::make_shared<T>();
+  return std::make_tuple(name, task);
+}
+
+template <typename T, typename T2, typename... Args>
+std::tuple<std::string, std::shared_ptr<T>> getNameAndTask(T2&& firstArg, Args&&... args)
+{
+  if constexpr (std::is_same_v<typename std::decay<T2>::type, TaskName>) {
+    std::string name = firstArg.value;
+    auto task = std::make_shared<T>(std::forward<Args>(args)...);
+    return std::make_tuple(name, task);
+  } else {
+    auto type_name_str = type_name<T>();
+    std::string name = type_to_task_name(type_name_str);
+    auto task = std::make_shared<T>(std::forward<T2, Args>(firstArg, args)...);
+    return std::make_tuple(name, task);
+  }
+}
+
 /// Adaptor to make an AlgorithmSpec from a o2::framework::Task
 ///
 template <typename T, typename... Args>
-DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, char const* name, Args&&... args)
+DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 {
   TH1::AddDirectory(false);
 
+  auto [name_str, task] = getNameAndTask<T>(args...);
+
   auto suffix = ctx.options().get<std::string>("workflow-suffix");
   if (!suffix.empty()) {
-    name = (name + suffix).c_str();
+    name_str += suffix;
   }
+  const char* name = name_str.c_str();
 
-  auto task = std::make_shared<T>(std::forward<Args>(args)...);
   auto hash = compile_time_hash(name);
 
   std::vector<OutputSpec> outputs;
