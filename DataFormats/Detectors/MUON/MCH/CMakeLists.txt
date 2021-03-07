@@ -14,4 +14,5 @@ o2_add_library(DataFormatsMCH
 
 o2_target_root_dictionary(DataFormatsMCH
                           HEADERS include/DataFormatsMCH/ROFRecord.h
-                                  include/DataFormatsMCH/TrackMCH.h)
+                                  include/DataFormatsMCH/TrackMCH.h
+                                  include/DataFormatsMCH/DsChannelGroup.h)
