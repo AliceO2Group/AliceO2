@@ -20,7 +20,9 @@
 #include "Framework/Task.h"
 #include "GlobalTrackingWorkflow/PrimaryVertexingSpec.h"
 #include "TStopwatch.h"
-#include <CCDB/BasicCCDBManager.h>
+#include "CCDB/BasicCCDBManager.h"
+#include "Steer/MCKinematicsReader.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 #include <string>
 #include <vector>
 
@@ -108,6 +110,8 @@ class AODProducerWorkflowDPL : public Task
   int mFillTracksITSTPC = 1;
   int mTFNumber = -1;
   int mTruncate = 1;
+  int mIgnoreWriter = 0;
+  int mRecoOnly = 0;
   TStopwatch mTimer;
 
   // truncation is enabled by default
@@ -148,11 +152,19 @@ class AODProducerWorkflowDPL : public Task
   uint64_t minGlBC = INT64_MAX;
 
   void findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const o2::vertexing::PVertex>& primVertices, const std::vector<o2::InteractionTimeRecord>& mcRecords);
-  int64_t getTFNumber(uint64_t firstVtxGlBC, int runNumber);
+  uint64_t getTFNumber(uint64_t firstVtxGlBC, int runNumber);
 
   template <typename TTracks, typename TTracksCursor, typename TTracksCovCursor, typename TTracksExtraCursor>
   void fillTracksTable(const TTracks& tracks, std::vector<int>& vCollRefs, const TTracksCursor& tracksCursor,
                        const TTracksCovCursor& tracksCovCursor, const TTracksExtraCursor& tracksExtraCursor, int trackType);
+
+  template <typename TMCTruthITS, typename TMCTruthTPC>
+  void findRelatives(const o2::steer::MCKinematicsReader& mcReader, const TMCTruthITS& mcTruthITS, const TMCTruthTPC& mcTruthTPC,
+                     std::vector<std::vector<std::vector<int>>>& toStore);
+
+  template <typename MCParticlesCursorType>
+  void fillMCParticlesTable(const o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
+                            std::vector<std::vector<std::vector<int>>>& toStore);
 };
 
 /// create a processor spec
