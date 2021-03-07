@@ -28,7 +28,7 @@ namespace fdd
 template <typename T>
 using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-o2::framework::DataProcessorSpec getFDDDigitWriterSpec(bool mctruth = true)
+o2::framework::DataProcessorSpec getFDDDigitWriterSpec(bool mctruth = true, bool trigInp = true)
 {
   using InputSpec = framework::InputSpec;
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
@@ -67,16 +67,24 @@ o2::framework::DataProcessorSpec getFDDDigitWriterSpec(bool mctruth = true)
                                                        // this branch definition is disabled if MC labels are not processed
                                                        (mctruth ? 1 : 0),
                                                        customlabelhandler};
-
-  return MakeRootTreeWriterSpec("FDDDigitWriter",
-                                "fdddigits.root",
-                                "o2sim",
-                                1,
-                                MakeRootTreeWriterSpec::CustomClose(finishWriting),
-                                BranchDefinition<std::vector<o2::fdd::Digit>>{InputSpec{"digitBCinput", "FDD", "DIGITSBC"}, "FDDDigit"},
-                                BranchDefinition<std::vector<o2::fdd::ChannelData>>{InputSpec{"digitChinput", "FDD", "DIGITSCH"}, "FDDDigitCh"},
-                                BranchDefinition<std::vector<o2::fdd::DetTrigInput>>{InputSpec{"digitTrinput", "FDD", "TRIGGERINPUT"}, "TRIGGERINPUT"},
-                                std::move(labelsdef))();
+  if (trigInp) {
+    return MakeRootTreeWriterSpec("FDDDigitWriter",
+                                  "fdddigits.root",
+                                  "o2sim",
+                                  MakeRootTreeWriterSpec::CustomClose(finishWriting),
+                                  BranchDefinition<std::vector<o2::fdd::Digit>>{InputSpec{"digitBCinput", "FDD", "DIGITSBC"}, "FDDDigit"},
+                                  BranchDefinition<std::vector<o2::fdd::ChannelData>>{InputSpec{"digitChinput", "FDD", "DIGITSCH"}, "FDDDigitCh"},
+                                  BranchDefinition<std::vector<o2::fdd::DetTrigInput>>{InputSpec{"digitTrinput", "FDD", "TRIGGERINPUT"}, "TRIGGERINPUT"},
+                                  std::move(labelsdef))();
+  } else {
+    return MakeRootTreeWriterSpec("FDDDigitWriterRaw",
+                                  "o2_fdddigits.root",
+                                  "o2sim",
+                                  MakeRootTreeWriterSpec::CustomClose(finishWriting),
+                                  BranchDefinition<std::vector<o2::fdd::Digit>>{InputSpec{"digitBCinput", "FDD", "DIGITSBC"}, "FDDDigit"},
+                                  BranchDefinition<std::vector<o2::fdd::ChannelData>>{InputSpec{"digitChinput", "FDD", "DIGITSCH"}, "FDDDigitCh"},
+                                  std::move(labelsdef))();
+  }
 }
 
 } // end namespace fdd
