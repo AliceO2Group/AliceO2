@@ -619,12 +619,12 @@ struct DileptonHadronAnalysis {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<EventSelection>(cfgc, "my-event-selection"),
-    adaptAnalysisTask<BarrelTrackSelection>(cfgc, "barrel-track-selection"),
-    adaptAnalysisTask<EventMixing>(cfgc, "event-mixing"),
-    adaptAnalysisTask<MuonTrackSelection>(cfgc, "muon-track-selection"),
-    adaptAnalysisTask<TableReader>(cfgc, "table-reader"),
-    adaptAnalysisTask<DileptonHadronAnalysis>(cfgc, "dilepton-hadron")
+    adaptAnalysisTask<EventSelection>(cfgc, TaskName{"my-event-selection"}),
+    adaptAnalysisTask<BarrelTrackSelection>(cfgc, TaskName{"barrel-track-selection"}),
+    adaptAnalysisTask<EventMixing>(cfgc, TaskName{"event-mixing"}),
+    adaptAnalysisTask<MuonTrackSelection>(cfgc, TaskName{"muon-track-selection"}),
+    adaptAnalysisTask<TableReader>(cfgc, TaskName{"table-reader"}),
+    adaptAnalysisTask<DileptonHadronAnalysis>(cfgc, TaskName{"dilepton-hadron"})
 
   };
 }

@@ -202,5 +202,5 @@ struct HFJpsiToEECandidateSelector {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HFJpsiToEECandidateSelector>(cfgc, "hf-jpsi-toee-candidate-selector")};
+    adaptAnalysisTask<HFJpsiToEECandidateSelector>(cfgc, TaskName{"hf-jpsi-toee-candidate-selector"})};
 }

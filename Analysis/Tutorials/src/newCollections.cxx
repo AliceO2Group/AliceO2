@@ -55,6 +55,6 @@ struct BTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, "produce-etaphi"),
-    adaptAnalysisTask<BTask>(cfgc, "consume-etaphi")};
+    adaptAnalysisTask<ATask>(cfgc, TaskName{"produce-etaphi"}),
+    adaptAnalysisTask<BTask>(cfgc, TaskName{"consume-etaphi"})};
 }

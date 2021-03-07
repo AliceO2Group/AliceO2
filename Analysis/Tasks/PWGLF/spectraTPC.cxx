@@ -156,9 +156,9 @@ struct TPCPIDQASignalwTOFTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   int TPCwTOF = cfgc.options().get<int>("add-tof-histos");
-  WorkflowSpec workflow{adaptAnalysisTask<TPCSpectraTask>(cfgc, "tpcspectra-task")};
+  WorkflowSpec workflow{adaptAnalysisTask<TPCSpectraTask>(cfgc, TaskName{"tpcspectra-task"})};
   if (TPCwTOF) {
-    workflow.push_back(adaptAnalysisTask<TPCPIDQASignalwTOFTask>(cfgc, "TPCpidqa-signalwTOF-task"));
+    workflow.push_back(adaptAnalysisTask<TPCPIDQASignalwTOFTask>(cfgc, TaskName{"TPCpidqa-signalwTOF-task"}));
   }
   return workflow;
 }

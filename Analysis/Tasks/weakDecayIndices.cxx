@@ -48,7 +48,7 @@ struct IndexCascades {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<IndexV0s>(cfgc, "weak-decay-indices-v0"),
-    adaptAnalysisTask<IndexCascades>(cfgc, "weak-decay-indices-cascades"),
+    adaptAnalysisTask<IndexV0s>(cfgc, TaskName{"weak-decay-indices-v0"}),
+    adaptAnalysisTask<IndexCascades>(cfgc, TaskName{"weak-decay-indices-cascades"}),
   };
 }
