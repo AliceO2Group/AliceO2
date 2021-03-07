@@ -3,6 +3,4 @@ using namespace o2::ctp;
 
 void CTPRawData::test()
 {
-
-
 }
