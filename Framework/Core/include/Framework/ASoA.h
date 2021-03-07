@@ -865,31 +865,7 @@ auto select(T const& t, framework::expressions::Filter&& f)
                                            t.asArrowTable()->schema()));
 }
 
-namespace
-{
-auto getSliceFor(int value, char const* key, std::shared_ptr<arrow::Table> const& input, std::shared_ptr<arrow::Table>& output, uint64_t& offset)
-{
-  arrow::Datum value_counts;
-  auto options = arrow::compute::CountOptions::Defaults();
-  ARROW_ASSIGN_OR_RAISE(value_counts,
-                        arrow::compute::CallFunction("value_counts", {input->GetColumnByName(key)},
-                                                     &options));
-  auto pair = static_cast<arrow::StructArray>(value_counts.array());
-  auto values = static_cast<arrow::NumericArray<arrow::Int32Type>>(pair.field(0)->data());
-  auto counts = static_cast<arrow::NumericArray<arrow::Int64Type>>(pair.field(1)->data());
-
-  int slice;
-  for (slice = 0; slice < values.length(); ++slice) {
-    if (values.Value(slice) == value) {
-      offset = slice;
-      output = input->Slice(slice, counts.Value(slice));
-      return arrow::Status::OK();
-    }
-  }
-  output = input->Slice(0, 0);
-  return arrow::Status::OK();
-}
-} // namespace
+arrow::Status getSliceFor(int value, char const* key, std::shared_ptr<arrow::Table> const& input, std::shared_ptr<arrow::Table>& output, uint64_t& offset);
 
 template <typename T>
 auto sliceBy(T const& t, framework::expressions::BindingNode const& node, int value)
@@ -900,8 +876,11 @@ auto sliceBy(T const& t, framework::expressions::BindingNode const& node, int va
   if (status.ok()) {
     return T({result}, offset);
   }
-  throw std::runtime_error("Failed to slice table");
+  o2::framework::throw_error(o2::framework::runtime_error("Failed to slice table"));
+  O2_BUILTIN_UNREACHABLE();
 }
+
+arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, const char* label);
 
 /// A Table class which observes an arrow::Table and provides
 /// It is templated on a set of Column / DynamicColumn types.
@@ -1137,11 +1116,7 @@ class Table
   {
     if constexpr (T::persistent::value) {
       auto label = T::columnLabel();
-      auto index = mTable->schema()->GetAllFieldIndices(label);
-      if (index.empty() == true) {
-        throw o2::framework::runtime_error_f("Unable to find column with label %s", label);
-      }
-      return mTable->column(index[0]).get();
+      return getIndexFromLabel(mTable.get(), label);
     } else {
       return nullptr;
     }
