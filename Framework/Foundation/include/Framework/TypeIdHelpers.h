@@ -67,12 +67,12 @@ namespace detail
 
 using type_name_prober = void;
 
-PRETTY_FUNCTION_CONSTEXPR static std::size_t wrapped_type_name_prefix_length()
+static std::size_t wrapped_type_name_prefix_length() const
 {
   return unique_type_id_v<type_name_prober>.find(type_name<type_name_prober>());
 }
 
-PRETTY_FUNCTION_CONSTEXPR static std::size_t wrapped_type_name_suffix_length()
+static std::size_t wrapped_type_name_suffix_length() const
 {
   return unique_type_id_v<type_name_prober>.length() - wrapped_type_name_prefix_length() - type_name<type_name_prober>().length();
 }
@@ -83,9 +83,9 @@ template <typename T>
 constexpr static std::string_view type_name()
 {
   constexpr std::string_view wrapped_name{unique_type_id_v<T>};
-  PRETTY_FUNCTION_CONSTEXPR auto prefix_length = detail::wrapped_type_name_prefix_length();
-  PRETTY_FUNCTION_CONSTEXPR auto suffix_length = detail::wrapped_type_name_suffix_length();
-  PRETTY_FUNCTION_CONSTEXPR auto type_name_length = wrapped_name.length() - prefix_length - suffix_length;
+  const auto prefix_length = detail::wrapped_type_name_prefix_length();
+  const auto suffix_length = detail::wrapped_type_name_suffix_length();
+  const auto type_name_length = wrapped_name.length() - prefix_length - suffix_length;
   return wrapped_name.substr(prefix_length, type_name_length);
 }
 
