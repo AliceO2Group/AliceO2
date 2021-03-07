@@ -77,4 +77,9 @@ RuntimeErrorRef runtime_error(const char* s)
   return RuntimeErrorRef{i};
 }
 
+void throw_error(RuntimeErrorRef ref)
+{
+  throw ref;
+}
+
 } // namespace o2::framework
