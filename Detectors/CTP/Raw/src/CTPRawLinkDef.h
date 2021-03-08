@@ -6,6 +6,4 @@
 #pragma link C++ class o2::ctp::CTPRawWriter + ;
 #pragma link C++ class o2::ctp::CTPRawReader + ;
 
-
 #endif
-

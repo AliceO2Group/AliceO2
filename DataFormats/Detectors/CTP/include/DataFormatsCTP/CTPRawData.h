@@ -39,5 +39,5 @@ struct CTPIRdigit {
 };
 } // namespace ctp
 } // namespace o2
-  // namespace o2
+// namespace o2
 #endif
