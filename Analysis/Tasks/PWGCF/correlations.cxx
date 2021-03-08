@@ -165,7 +165,8 @@ struct CorrelationTask {
     same->fillEvent(centrality, CorrelationContainer::kCFStepTriggered);
 
     // vertex range already checked as filter, but bitwise operations not yet supported
-    if (collision.flags() != 0 && collision.flags() & aod::collision::CollisionFlagsRun2::Run2VertexerTracks != aod::collision::CollisionFlagsRun2::Run2VertexerTracks) {
+    // TODO (collision.flags() != 0) can be removed with next conversion (AliPhysics >= 20210305)
+    if ((collision.flags() != 0) && (collision.flags() & aod::collision::CollisionFlagsRun2::Run2VertexerTracks != aod::collision::CollisionFlagsRun2::Run2VertexerTracks)) {
       return;
     }
 
