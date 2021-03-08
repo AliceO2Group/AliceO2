@@ -376,10 +376,10 @@ struct EventMixing {
 
           for (int i = 0; i < fCutNames.size(); ++i) {
             if (twoTrackFilter & (uint8_t(1) << i)) {
-              if (track1.charge() * track2.charge() < 0) {
+              if (track1.sign() * track2.sign() < 0) {
                 fHistMan->FillHistClass(Form("PairsBarrelMEPM_%s", fCutNames[i].Data()), fValues);
               } else {
-                if (track1.charge() > 0) {
+                if (track1.sign() > 0) {
                   fHistMan->FillHistClass(Form("PairsBarrelMEPP_%s", fCutNames[i].Data()), fValues);
                 } else {
                   fHistMan->FillHistClass(Form("PairsBarrelMEMM_%s", fCutNames[i].Data()), fValues);
@@ -417,10 +417,10 @@ struct EventMixing {
             continue;
           }
           VarManager::FillPair(muon1, muon2, fValues);
-          if (muon1.charge() * muon2.charge() < 0) {
+          if (muon1.sign() * muon2.sign() < 0) {
             fHistMan->FillHistClass("PairsMuonMEPM", fValues);
           } else {
-            if (muon1.charge() > 0) {
+            if (muon1.sign() > 0) {
               fHistMan->FillHistClass("PairsMuonMEPP", fValues);
             } else {
               fHistMan->FillHistClass("PairsMuonMEMM", fValues);
@@ -495,13 +495,13 @@ struct TableReader {
       }
       dileptonFilterMap = uint16_t(twoTrackFilter);
       VarManager::FillPair(t1, t2, fValues);
-      dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], t1.charge() + t2.charge(), dileptonFilterMap);
+      dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], t1.sign() + t2.sign(), dileptonFilterMap);
       for (int i = 0; i < fCutNames.size(); ++i) {
         if (twoTrackFilter & (uint8_t(1) << i)) {
-          if (t1.charge() * t2.charge() < 0) {
+          if (t1.sign() * t2.sign() < 0) {
             fHistMan->FillHistClass(Form("PairsBarrelSEPM_%s", fCutNames[i].Data()), fValues);
           } else {
-            if (t1.charge() > 0) {
+            if (t1.sign() > 0) {
               fHistMan->FillHistClass(Form("PairsBarrelSEPP_%s", fCutNames[i].Data()), fValues);
             } else {
               fHistMan->FillHistClass(Form("PairsBarrelSEMM_%s", fCutNames[i].Data()), fValues);
@@ -522,11 +522,11 @@ struct TableReader {
       // TBD:  Other implementations may be possible, for example add a column to the dilepton table to specify the pair type (dielectron, dimuon, electron-muon, etc.)
       dileptonFilterMap = uint16_t(twoTrackFilter) << 8;
       VarManager::FillPair(muon1, muon2, fValues);
-      dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], muon1.charge() + muon2.charge(), dileptonFilterMap);
-      if (muon1.charge() * muon2.charge() < 0) {
+      dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], muon1.sign() + muon2.sign(), dileptonFilterMap);
+      if (muon1.sign() * muon2.sign() < 0) {
         fHistMan->FillHistClass("PairsMuonSEPM", fValues);
       } else {
-        if (muon1.charge() > 0) {
+        if (muon1.sign() > 0) {
           fHistMan->FillHistClass("PairsMuonSEPP", fValues);
         } else {
           fHistMan->FillHistClass("PairsMuonSEMM", fValues);
@@ -555,7 +555,7 @@ struct DileptonHadronAnalysis {
   float* fValuesHadron;
 
   Filter eventFilter = aod::reducedevent::isEventSelected == 1;
-  Filter dileptonFilter = aod::reducedpair::mass > 2.92f && aod::reducedpair::mass<3.16f && aod::reducedpair::pt> 0.0f && aod::reducedpair::charge == 0;
+  Filter dileptonFilter = aod::reducedpair::mass > 2.92f && aod::reducedpair::mass<3.16f && aod::reducedpair::pt> 0.0f && aod::reducedpair::sign == 0;
   // NOTE: the barrel track filter is shared between the filters for dilepton electron candidates (first n-bits)
   //       and the associated hadrons (n+1 bit) --> see the barrel track selection task
   //      The current condition should be replaced when bitwise operators will become available in Filter expresions

@@ -25,7 +25,7 @@ target_link_libraries(allsim
                                 O2::Field
                                 O2::HMPIDSimulation
                                 O2::ITSSimulation
-				                        O2::MCHBase
+				O2::MCHBase
                                 O2::MCHSimulation
                                 O2::MFTSimulation
                                 O2::MIDSimulation
@@ -55,7 +55,7 @@ o2_add_executable(serial
 
 o2_add_executable(sim
                   SOURCES o2sim_parallel.cxx
-                  PUBLIC_LINK_LIBRARIES internal::allsim O2::Framework)
+                  PUBLIC_LINK_LIBRARIES internal::allsim)
 
 o2_add_executable(primary-server-device-runner
                   COMPONENT_NAME sim

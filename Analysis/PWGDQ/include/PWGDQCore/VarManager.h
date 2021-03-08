@@ -373,7 +373,7 @@ void VarManager::FillTrack(T const& track, float* values)
     }
     values[kEta] = track.eta();
     values[kPhi] = track.phi();
-    values[kCharge] = track.charge();
+    values[kCharge] = track.sign();
   }
 
   if constexpr ((fillMap & TrackExtra) > 0 || (fillMap & ReducedTrackBarrel) > 0) {

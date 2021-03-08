@@ -23,10 +23,10 @@
 
 #pragma link C++ class o2::zdc::ChannelData + ;
 #pragma link C++ class o2::zdc::BCData + ;
-#pragma link C++ class o2::zdc::PedestalData + ;
+#pragma link C++ class o2::zdc::OrbitData + ;
 #pragma link C++ class std::vector < o2::zdc::ChannelData> + ;
 #pragma link C++ class std::vector < o2::zdc::BCData> + ;
-#pragma link C++ class std::vector < o2::zdc::PedestalData> + ;
+#pragma link C++ class std::vector < o2::zdc::OrbitData> + ;
 
 #pragma link C++ class std::vector < o2::zdc::RecEvent> + ;
 #pragma link C++ class std::vector < o2::zdc::OrbitRawData> + ;
@@ -34,6 +34,6 @@
 
 #pragma link C++ struct o2::zdc::CTFHeader + ;
 #pragma link C++ struct o2::zdc::CTF + ;
-#pragma link C++ class o2::ctf::EncodedBlocks < o2::zdc::CTFHeader, 11, uint32_t> + ;
+#pragma link C++ class o2::ctf::EncodedBlocks < o2::zdc::CTFHeader, 12, uint32_t> + ;
 
 #endif

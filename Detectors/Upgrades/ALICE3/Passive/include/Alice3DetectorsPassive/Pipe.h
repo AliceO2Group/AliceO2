@@ -25,10 +25,11 @@ class Alice3Pipe : public Alice3PassiveBase
   ~Alice3Pipe() override;
   Alice3Pipe(const char* name,
              const char* title = "Alice 3 Pipe",
-             const float innerRho = 0.f,
+             const bool isTRKActivated = false,
+             const float rMinInnerPipe = 0.f,
              const float innerThickness = 0.f,
              const float innerLength = 0.f,
-             const float outerRho = 0.f,
+             const float rMinOuterPipe = 0.f,
              const float outerThickness = 0.f,
              const float outerLength = 0.f);
 
@@ -37,28 +38,32 @@ class Alice3Pipe : public Alice3PassiveBase
   /// Clone this object (used in MT mode only)
   FairModule* CloneModule() const override;
 
-  float getInnerRmin() const { return mBeInnerPipeRmax - mBeInnerPipeThick; }
-  float getInnerRmax() const { return mBeInnerPipeRmax; }
+  float getInnerRmin() const { return mBeInnerPipeRmin; }
+  float getInnerRmax() const { return mBeInnerPipeRmin + mBeInnerPipeThick; }
   float getInnerWidth() const { return mBeInnerPipeThick; }
   float getInnerDz() const { return mInnerIpHLength; }
 
-  float getOuterRmin() const { return mBeOuterPipeRmax - mBeOuterPipeThick; }
-  float getOuterRmax() const { return mBeOuterPipeRmax; }
+  float getOuterRmin() const { return mBeOuterPipeRmin; }
+  float getOuterRmax() const { return mBeOuterPipeRmin + mBeOuterPipeThick; }
   float getOuterWidth() const { return mBeOuterPipeThick; }
   float getOuterDz() const { return mOuterIpHLength; }
+
+  bool IsTRKActivated() const { return mIsTRKActivated; }
 
  private:
   void createMaterials();
   Alice3Pipe(const Alice3Pipe& orig) = default;
   Alice3Pipe& operator=(const Alice3Pipe&);
 
-  float mBeInnerPipeRmax = 0.;  // inner diameter of the Be section
-  float mBeInnerPipeThick = 0.; // inner section  thickness
+  float mBeInnerPipeRmin = 0.;  // inner diameter of the inner Be section
+  float mBeInnerPipeThick = 0.; // inner beam pipe section thickness
   float mInnerIpHLength = 0.;   // half length of the inner beampipe around the IP
 
-  float mBeOuterPipeRmax = 0.;  // outer diameter of the Be section
-  float mBeOuterPipeThick = 0.; // outer section  thickness
+  float mBeOuterPipeRmin = 0.;  // inner diameter of the outer Be section
+  float mBeOuterPipeThick = 0.; // outer beam pipe section thickness
   float mOuterIpHLength = 0.;   // half length of the outer beampipe around the IP
+
+  bool mIsTRKActivated = true; // If TRK is not active don't create TRK layers allocations in the vacuum volume
 
   ClassDefOverride(Alice3Pipe, 1);
 };

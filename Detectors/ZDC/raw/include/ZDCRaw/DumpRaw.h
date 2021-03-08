@@ -26,7 +26,7 @@ class DumpRaw
   void init();
   int process(const EventData& ev);
   int process(const EventChData& ch);
-  int processWord(const UInt_t* word);
+  int processWord(const uint32_t* word);
   int getHPos(uint32_t board, uint32_t ch);
   void write();
   void setVerbosity(int v)

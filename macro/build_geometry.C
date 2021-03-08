@@ -141,7 +141,7 @@ void build_geometry(FairRunSim* run = nullptr)
 #ifdef ENABLE_UPGRADES
   // upgraded beampipe at the interaction point (IP)
   if (isActivated("A3IP")) {
-    run->AddModule(new o2::passive::Alice3Pipe("A3IP", "Alice 3 beam pipe", 0.48f, 0.015f, 44.4f, 3.7f, 0.1f, 44.4f));
+    run->AddModule(new o2::passive::Alice3Pipe("A3IP", "Alice 3 beam pipe", !isActivated("TRK"), 0.48f, 0.015f, 44.4f, 3.7f, 0.05f, 44.4f));
   }
 #endif
 

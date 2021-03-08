@@ -175,7 +175,7 @@ struct TableMaker {
       if (track.isGlobalTrackSDD()) {
         trackFilteringTag |= (uint64_t(1) << 1);
       }
-      trackBasic(event.lastIndex(), track.globalIndex(), trackFilteringTag, track.pt(), track.eta(), track.phi(), track.charge());
+      trackBasic(event.lastIndex(), track.globalIndex(), trackFilteringTag, track.pt(), track.eta(), track.phi(), track.sign());
       trackBarrel(track.tpcInnerParam(), track.flags(), track.itsClusterMap(), track.itsChi2NCl(),
                   track.tpcNClsFindable(), track.tpcNClsFindableMinusFound(), track.tpcNClsFindableMinusCrossedRows(),
                   track.tpcNClsShared(), track.tpcChi2NCl(),
@@ -209,7 +209,7 @@ struct TableMaker {
       }
       fHistMan->FillHistClass("Muons_AfterCuts", fValues);
 
-      muonBasic(event.lastIndex(), trackFilteringTag, muon.pt(), muon.eta(), muon.phi(), muon.charge());
+      muonBasic(event.lastIndex(), trackFilteringTag, muon.pt(), muon.eta(), muon.phi(), muon.sign());
       muonExtended(muon.inverseBendingMomentum(), muon.thetaX(), muon.thetaY(), muon.zMu(), muon.bendingCoor(), muon.nonBendingCoor(), muon.chi2(), muon.chi2MatchTrigger());
     }
   }

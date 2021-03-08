@@ -40,7 +40,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   /// entropy-encode data to buffer with CTF
   template <typename VEC>
-  void encode(VEC& buff, const gsl::span<const BCData>& trgData, const gsl::span<const ChannelData>& chanData, const gsl::span<const PedestalData>& pedData);
+  void encode(VEC& buff, const gsl::span<const BCData>& trgData, const gsl::span<const ChannelData>& chanData, const gsl::span<const OrbitData>& pedData);
 
   /// entropy decode data from buffer with CTF
   template <typename VTRG, typename VCHAN, typename VPED>
@@ -50,12 +50,12 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
  private:
   void appendToTree(TTree& tree, CTF& ec);
-  void readFromTree(TTree& tree, int entry, std::vector<BCData>& trigVec, std::vector<ChannelData>& chanVec, std::vector<PedestalData>& pedVec);
+  void readFromTree(TTree& tree, int entry, std::vector<BCData>& trigVec, std::vector<ChannelData>& chanVec, std::vector<OrbitData>& pedVec);
 };
 
 /// entropy-encode clusters to buffer with CTF
 template <typename VEC>
-void CTFCoder::encode(VEC& buff, const gsl::span<const BCData>& trigData, const gsl::span<const ChannelData>& chanData, const gsl::span<const PedestalData>& pedData)
+void CTFCoder::encode(VEC& buff, const gsl::span<const BCData>& trigData, const gsl::span<const ChannelData>& chanData, const gsl::span<const OrbitData>& pedData)
 {
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
@@ -71,8 +71,9 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const BCData>& trigData, const 
     MD::EENCODE, // _chanID,
     MD::EENCODE, // _chanData,
     //
-    MD::EENCODE, // _orbitIncPed,
+    MD::EENCODE, // _orbitIncEOD,
     MD::EENCODE, // _pedData
+    MD::EENCODE, // _sclInc
   };
 
   CTFHelper helper(trigData, chanData, pedData);
@@ -101,8 +102,9 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const BCData>& trigData, const 
   ENCODEZDC(helper.begin_chanID(),       helper.end_chanID(),        CTF::BLC_chanID,       0);
   ENCODEZDC(helper.begin_chanData(),     helper.end_chanData(),      CTF::BLC_chanData,     0);  
   //
-  ENCODEZDC(helper.begin_orbitIncPed(),  helper.end_orbitIncPed(),   CTF::BLC_orbitIncPed,  0);
+  ENCODEZDC(helper.begin_orbitIncEOD(),  helper.end_orbitIncEOD(),   CTF::BLC_orbitIncEOD,  0);
   ENCODEZDC(helper.begin_pedData(),      helper.end_pedData(),       CTF::BLC_pedData,      0);
+  ENCODEZDC(helper.begin_sclInc(),       helper.end_sclInc(),        CTF::BLC_sclInc,       0);
 
   // clang-format on
   CTF::get(buff.data())->print(getPrefix());
@@ -114,8 +116,8 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCHAN& chanVec, VPED& 
 {
   auto header = ec.getHeader();
   ec.print(getPrefix());
-  std::vector<uint16_t> bcIncTrig, moduleTrig, nchanTrig, chanData, pedData, triggersHL, channelsHL;
-  std::vector<uint32_t> orbitIncTrig, orbitIncPed;
+  std::vector<uint16_t> bcIncTrig, moduleTrig, nchanTrig, chanData, pedData, scalerInc, triggersHL, channelsHL;
+  std::vector<uint32_t> orbitIncTrig, orbitIncEOD;
   std::vector<uint8_t> extTriggers, chanID;
 
 #define DECODEZDC(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
@@ -131,8 +133,9 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCHAN& chanVec, VPED& 
   DECODEZDC(chanID,         CTF::BLC_chanID);
   DECODEZDC(chanData,       CTF::BLC_chanData);
   //
-  DECODEZDC(orbitIncPed,    CTF::BLC_orbitIncPed);
+  DECODEZDC(orbitIncEOD,    CTF::BLC_orbitIncEOD);
   DECODEZDC(pedData,        CTF::BLC_pedData);
+  DECODEZDC(scalerInc,      CTF::BLC_sclInc);
   // clang-format on
   //
   trigVec.clear();
@@ -140,7 +143,7 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCHAN& chanVec, VPED& 
   pedVec.clear();
   trigVec.reserve(header.nTriggers);
   chanVec.reserve(header.nChannels);
-  pedVec.reserve(header.nPedestals);
+  pedVec.reserve(header.nEOData);
 
   // triggers and channels
   uint32_t firstEntry = 0;
@@ -149,8 +152,10 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCHAN& chanVec, VPED& 
   auto chanIdIt = chanID.begin();
   auto modTrigIt = moduleTrig.begin();
   auto pedValIt = pedData.begin();
+  auto sclIncIt = scalerInc.begin();
   auto channelsHLIt = channelsHL.begin();
   auto triggersHLIt = triggersHL.begin();
+  auto scalers = header.firstScaler;
 
   for (uint32_t itrig = 0; itrig < header.nTriggers; itrig++) {
     // restore TrigRecord
@@ -177,10 +182,13 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCHAN& chanVec, VPED& 
   }
 
   // pedestal data
-  ir = {o2::constants::lhc::LHCMaxBunches - 1, header.firstOrbitPed};
-  for (uint32_t ip = 0; ip < header.nPedestals; ip++) {
-    ir.orbit += orbitIncPed[ip];
-    auto& ped = pedVec.emplace_back(PedestalData{ir, {}});
+  ir = {o2::constants::lhc::LHCMaxBunches - 1, header.firstOrbitEOData};
+  for (uint32_t ip = 0; ip < header.nEOData; ip++) {
+    ir.orbit += orbitIncEOD[ip];
+    for (uint32_t ic = 0; ic < NChannels; ic++) {
+      scalers[ic] += *sclIncIt++; // increment scaler
+    }
+    auto& ped = pedVec.emplace_back(OrbitData{ir, {}, scalers});
     std::copy_n(pedValIt, NChannels, ped.data.begin());
     pedValIt += NChannels;
   }
@@ -191,6 +199,7 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCHAN& chanVec, VPED& 
   assert(pedValIt == pedData.end());
   assert(channelsHLIt == channelsHL.end());
   assert(triggersHLIt == triggersHL.end());
+  assert(sclIncIt == scalerInc.end());
 }
 
 } // namespace zdc

@@ -8,14 +8,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DataFormatsZDC/PedestalData.h"
+///
+/// GENERATED CODE ! DO NOT EDIT !
+///
 
-using namespace o2::zdc;
+#include <map>
+#include <cstdint>
+#include "MCHRawElecMap/DsElecId.h"
+#include "MCHRawElecMap/DsDetId.h"
+using namespace o2::mch::raw;
 
-void PedestalData::print() const
+void fillElec2DetCH10L(std::map<uint32_t, uint32_t>& e2d)
 {
-  printf("Orbit %9u bc %4u\n", ir.orbit, ir.bc);
-  for (int i = 0; i < NChannels; i++) {
-    printf("channel %2d : %9.3f\n", i, asFloat(i));
-  }
 }
+void fillSolar2FeeLinkCH10L(std::map<uint16_t, uint32_t>& s2c) {}
