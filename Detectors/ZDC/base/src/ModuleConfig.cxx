@@ -10,7 +10,7 @@
 
 #include "ZDCBase/ModuleConfig.h"
 #include "ZDCBase/ModuleConfig.h"
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 
 using namespace o2::zdc;
 

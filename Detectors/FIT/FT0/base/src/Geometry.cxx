@@ -11,7 +11,7 @@
 //#include <TVector3.h>
 #include "FT0Base/Geometry.h"
 #include "TSystem.h"
-#include <FairLogger.h>
+#include <fairlogger/Logger.h>
 #include <sstream>
 #include <string>
 #include <iostream>
