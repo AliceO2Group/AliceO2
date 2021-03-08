@@ -112,7 +112,7 @@ class HmpidCoder2
   o2::raw::RawFileWriter& getWriter() { return mWriter; }
 
   void setDetectorSpecificFields(float BusyTime = 0.001, int Error = 0, int Version = 9);
-  void openOutputStream(const char* OutputFileName, bool perLinkFile = false, bool perFlpFile = false);
+  void openOutputStream(const char* OutputFileName, std::string perFile);
   void closeOutputStream();
 
   void codeEventChunkDigits(std::vector<Digit>& digits);

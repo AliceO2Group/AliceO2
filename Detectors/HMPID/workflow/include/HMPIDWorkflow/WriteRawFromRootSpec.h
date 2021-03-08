@@ -43,8 +43,7 @@ class WriteRawFromRootTask : public framework::Task
   std::string mBaseRootFileName = "";
   bool mSkipEmpty = false;
   bool mDumpDigits = false;
-  bool mPerFlpFile = false;
-  bool mPerLink = false;
+  std::string mPerFile = "all";
 
   std::vector<o2::hmpid::Digit> mDigits;
   long mDigitsReceived;

@@ -71,8 +71,7 @@ void WriteRawFromRootTask::init(framework::InitContext& ic)
   mBaseRootFileName = ic.options().get<std::string>("in-file");
   mBaseFileName = ic.options().get<std::string>("hmp-raw-outfile");
   mDirectoryName = ic.options().get<std::string>("hmp-raw-outdir");
-  mPerLink = ic.options().get<bool>("hmp-raw-perlink");
-  mPerFlpFile = ic.options().get<bool>("hmp-raw-perflp");
+  mPerFile = ic.options().get<std::string>("hmp-file-for");
   mDumpDigits = ic.options().get<bool>("dump-digits"); // Debug flags
   mSkipEmpty = ic.options().get<bool>("hmp-skip-empty");
 
@@ -89,7 +88,7 @@ void WriteRawFromRootTask::init(framework::InitContext& ic)
   // Setup the Coder
   mCod = new HmpidCoder2(Geo::MAXEQUIPMENTS);
   mCod->setSkipEmptyEvents(mSkipEmpty);
-  mCod->openOutputStream(fullFName.c_str(), mPerLink, mPerFlpFile);
+  mCod->openOutputStream(fullFName.c_str(), mPerFile);
   std::string inputGRP = o2::base::NameConf::getGRPFileName();
   std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom(inputGRP)};
   mCod->getWriter().setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::HMP)); // must be set explicitly
@@ -201,7 +200,7 @@ o2::framework::DataProcessorSpec getWriteRawFromRootSpec(std::string inputSpec)
     AlgorithmSpec{adaptFromTask<WriteRawFromRootTask>()},
     Options{{"hmp-raw-outdir", VariantType::String, "./", {"base dir for output file"}},
             {"hmp-raw-outfile", VariantType::String, "hmpReadOut", {"base name for output file"}},
-            {"hmp-raw-perlink", VariantType::Bool, false, {"produce one file per link"}},
+            {"hmp-file-for", VariantType::String, "all", {"produce single file per: all, flp, link"}},
             {"hmp-raw-perflp", VariantType::Bool, false, {"produce one raw file per FLPs"}},
             {"in-file", VariantType::String, "hmpiddigits.root", {"name of the input sim root file"}},
             //     {"configKeyValues", VariantType::String, "", {"comma-separated configKeyValues"}},

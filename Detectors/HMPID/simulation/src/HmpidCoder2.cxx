@@ -249,7 +249,7 @@ void HmpidCoder2::codeEventChunkDigits(std::vector<Digit>& digits, Trigger ir)
 /// @param[in] OutputFileName : the Path/Prefix name for the raw files
 /// @param[in] perFlpFile : if true a couple of files will be created, one for each
 ///                         HMPID FLPs
-void HmpidCoder2::openOutputStream(const char* OutputFileName, bool perLinkFile, bool perFlpFile)
+void HmpidCoder2::openOutputStream(const char* OutputFileName, std::string perFile)
 {
   RAWDataHeader rdh; // by default, v6 is used currently.
   for (int eq = 0; eq < mNumberOfEquipments; eq++) {
@@ -258,13 +258,16 @@ void HmpidCoder2::openOutputStream(const char* OutputFileName, bool perLinkFile,
     rdh.linkID = ReadOut::LnkId(eq);
     rdh.endPointID = 0;
 
-    if (perLinkFile) {
+    if (perFile == "link") {
       sprintf(mFileName, "%s_L%d%s", OutputFileName, ReadOut::FeeId(eq), ".raw");
-    } else if (perFlpFile) {
+    } else if (perFile == "flp") {
       sprintf(mFileName, "%s_%d%s", OutputFileName, ReadOut::FlpId(eq), ".raw");
-    } else {
+    } else if (perFile == "all") {
       sprintf(mFileName, "%s%s", OutputFileName, ".raw");
+    } else {
+      throw std::runtime_error(fmt::format("unknown raw file grouping option {}", perFile));
     }
+
     mWriter.registerLink(rdh, mFileName); // register the link
     LinkSubSpec_t ap = RDHUtils::getSubSpec(ReadOut::CruId(eq), ReadOut::LnkId(eq), 0, ReadOut::FeeId(eq));
     mTheRFWLinks[eq] = ap; // Store the RawFileWriter Link ID

@@ -26,6 +26,8 @@
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/Variant.h"
 
+#include "HMPIDWorkflow/WriteRootFromDigitsSpec.h"
+
 // customize the completion policy
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
@@ -53,7 +55,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   WorkflowSpec specs;
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
-  DataProcessorSpec consumer = o2::hmpid::getWriteRawFromDigitsSpec();
+  DataProcessorSpec consumer = o2::hmpid::getWriteRootFromDigitSpec();// getWriteRawFromDigitsSpec();
   specs.push_back(consumer);
   return specs;
 }

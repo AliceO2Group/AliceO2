@@ -35,14 +35,14 @@ o2_add_executable(read-raw-file-workflow
               SOURCES src/read-raw-file-workflow.cxx
               PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
 
-o2_add_executable(raw-to-digits-workflow
+o2_add_executable(raw-to-digitstream-workflow
               COMPONENT_NAME hmpid
-              SOURCES src/raw-to-digits-workflow.cxx
+              SOURCES src/raw-to-digitstream-workflow.cxx
               PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
 
-o2_add_executable(write-raw-from-digits-workflow
+o2_add_executable(digitstream-to-raw-workflow
               COMPONENT_NAME hmpid
-              SOURCES src/write-raw-from-digits-workflow.cxx
+              SOURCES src/digitstream-to-raw-workflow.cxx
               PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
 
 o2_add_executable(dump-digits-workflow
@@ -50,9 +50,9 @@ o2_add_executable(dump-digits-workflow
               SOURCES src/dump-digits-workflow.cxx
               PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
               
-o2_add_executable(write-root-from-digits-workflow
+o2_add_executable(digitstream-to-digits-workflow
               COMPONENT_NAME hmpid
-              SOURCES src/write-root-from-digits-workflow.cxx
+              SOURCES src/digitstream-to-digits-workflow.cxx
               PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
 
 o2_add_executable(raw-to-pedestals-workflow
@@ -60,8 +60,8 @@ o2_add_executable(raw-to-pedestals-workflow
               SOURCES src/raw-to-pedestals-workflow.cxx
               PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
 
-o2_add_executable(write-raw-from-root-workflow
+o2_add_executable(digits-to-raw-workflow
               COMPONENT_NAME hmpid
-              SOURCES src/write-raw-from-root-workflow.cxx
+              SOURCES src/digits-to-raw-workflow.cxx
               PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
               
