@@ -166,7 +166,7 @@ struct CorrelationTask {
 
     // vertex range already checked as filter, but bitwise operations not yet supported
     // TODO (collision.flags() != 0) can be removed with next conversion (AliPhysics >= 20210305)
-    if ((collision.flags() != 0) && (collision.flags() & aod::collision::CollisionFlagsRun2::Run2VertexerTracks != aod::collision::CollisionFlagsRun2::Run2VertexerTracks)) {
+    if ((collision.flags() != 0) && ((collision.flags() & aod::collision::CollisionFlagsRun2::Run2VertexerTracks) != aod::collision::CollisionFlagsRun2::Run2VertexerTracks)) {
       return;
     }
 
