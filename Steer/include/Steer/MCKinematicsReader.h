@@ -35,6 +35,9 @@ class MCKinematicsReader
   /// default constructor
   MCKinematicsReader() = default;
 
+  /// destructor
+  ~MCKinematicsReader();
+
   /// constructor taking a name and mode (either kDigiContext or kMCKine)
   /// In case of "context", the name is the filename of the digitization context.
   /// In case of MCKine mode, the name is the "prefix" referencing a single simulation production.
@@ -114,8 +117,8 @@ class MCKinematicsReader
   std::vector<TChain*> mInputChains;
 
   // a vector of tracks foreach source and each collision
-  mutable std::vector<std::vector<std::vector<o2::MCTrack>>> mTracks; // the in-memory track container
-  mutable std::vector<std::vector<o2::dataformats::MCEventHeader>> mHeaders; // the in-memory header container
+  mutable std::vector<std::vector<std::vector<o2::MCTrack>>> mTracks;                                        // the in-memory track container
+  mutable std::vector<std::vector<o2::dataformats::MCEventHeader>> mHeaders;                                 // the in-memory header container
   mutable std::vector<std::vector<o2::dataformats::MCTruthContainer<o2::TrackReference>>> mIndexedTrackRefs; // the in-memory track ref container
 
   bool mInitialized = false; // whether initialized

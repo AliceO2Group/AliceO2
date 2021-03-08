@@ -51,6 +51,6 @@ struct TrackSelectionTask {
 //****************************************************************************************
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec workflow{adaptAnalysisTask<TrackSelectionTask>("track-selection")};
+  WorkflowSpec workflow{adaptAnalysisTask<TrackSelectionTask>(cfgc, "track-selection")};
   return workflow;
 }

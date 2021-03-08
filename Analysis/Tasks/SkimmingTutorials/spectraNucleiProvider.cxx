@@ -20,7 +20,6 @@
 #include "DataModel/LFDerived.h"
 
 #include "AnalysisDataModel/EventSelection.h"
-#include "AnalysisDataModel/TrackSelectionTables.h"
 
 #include <TLorentzVector.h>
 
@@ -60,7 +59,7 @@ struct NucleiSpectraProviderTask {
     if (!collision.sel7()) {
       return;
     }
-    for (auto track : tracks) {
+    for (auto& track : tracks) {
       TLorentzVector cutVector{};
       cutVector.SetPtEtaPhiM(track.pt() * 2.0, track.eta(), track.phi(), constants::physics::MassHelium3);
       if (cutVector.Rapidity() < yMin + yBeam || cutVector.Rapidity() > yMax + yBeam) {
@@ -74,26 +73,28 @@ struct NucleiSpectraProviderTask {
     if (keepEvent) {
       outputCollisions(collision.posZ());
       uint32_t pNsigma = 0xFFFFFF00; //15 bit precision for Nsigma - does this respect the sign?
-      //outputTracks.reserve(tracks.size());
+      outputTracks.reserve(tracks.size());
       for (auto track : tracks) {
-        outputTracks(outputCollisions.lastIndex(), track.pt(), track.p(), track.eta(), track.phi(),
-                     truncateFloatFraction(track.tpcNSigmaEl(), pNsigma), truncateFloatFraction(track.tpcNSigmaMu(), pNsigma),
+        outputTracks(outputCollisions.lastIndex(), track.pt(), track.eta(), track.phi(),
+                     //truncateFloatFraction(track.tpcNSigmaEl(), pNsigma), truncateFloatFraction(track.tpcNSigmaMu(), pNsigma),
                      truncateFloatFraction(track.tpcNSigmaPi(), pNsigma), truncateFloatFraction(track.tpcNSigmaKa(), pNsigma),
-                     truncateFloatFraction(track.tpcNSigmaPr(), pNsigma), truncateFloatFraction(track.tpcNSigmaDe(), pNsigma),
-                     truncateFloatFraction(track.tpcNSigmaTr(), pNsigma), truncateFloatFraction(track.tpcNSigmaHe(), pNsigma),
-                     truncateFloatFraction(track.tpcNSigmaAl(), pNsigma),
-                     truncateFloatFraction(track.tofNSigmaEl(), pNsigma), truncateFloatFraction(track.tofNSigmaMu(), pNsigma),
+                     truncateFloatFraction(track.tpcNSigmaPr(), pNsigma), //truncateFloatFraction(track.tpcNSigmaDe(), pNsigma),
+                     //truncateFloatFraction(track.tpcNSigmaTr(), pNsigma),
+                     truncateFloatFraction(track.tpcNSigmaHe(), pNsigma),
+                     //truncateFloatFraction(track.tpcNSigmaAl(), pNsigma),
+                     //truncateFloatFraction(track.tofNSigmaEl(), pNsigma), truncateFloatFraction(track.tofNSigmaMu(), pNsigma),
                      truncateFloatFraction(track.tofNSigmaPi(), pNsigma), truncateFloatFraction(track.tofNSigmaKa(), pNsigma),
-                     truncateFloatFraction(track.tofNSigmaPr(), pNsigma), truncateFloatFraction(track.tofNSigmaDe(), pNsigma),
-                     truncateFloatFraction(track.tofNSigmaTr(), pNsigma), truncateFloatFraction(track.tofNSigmaHe(), pNsigma),
-                     truncateFloatFraction(track.tofNSigmaAl(), pNsigma));
+                     truncateFloatFraction(track.tofNSigmaPr(), pNsigma), //truncateFloatFraction(track.tofNSigmaDe(), pNsigma),
+                     //truncateFloatFraction(track.tofNSigmaTr(), pNsigma),
+                     truncateFloatFraction(track.tofNSigmaHe(), pNsigma));
+        //truncateFloatFraction(track.tofNSigmaAl(), pNsigma));
       }
     }
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec workflow{adaptAnalysisTask<NucleiSpectraProviderTask>("nucleispectra-task-skim-provider")};
+  WorkflowSpec workflow{adaptAnalysisTask<NucleiSpectraProviderTask>(cfgc, "nucleispectra-task-skim-provider")};
   return workflow;
 }

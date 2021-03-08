@@ -422,7 +422,6 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int ev
   ProcessStatus status = ProcessStatus::Ok;
 
   mProcessedTimeBins = 0;
-  size_t processedReaders = 0;
   bool hasData = false;
 
   const int64_t numberOfEvents = mRawReaderCRUManager.getNumberOfEvents();
@@ -451,8 +450,6 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventRawReaderCRU(int ev
     // set status, don't overwrite decision
     if (!hasData) {
       return ProcessStatus::NoMoreData;
-    } else if (processedReaders < mRawReaderCRUManager.getNumberOfReaders()) {
-      status = ProcessStatus::Truncated;
     } else if (!isPresentEventComplete()) {
       status = ProcessStatus::IncompleteEvent;
     } else if (mPresentEventNumber == size_t(lastEvent)) {

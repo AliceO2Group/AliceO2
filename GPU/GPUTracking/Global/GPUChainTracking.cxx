@@ -52,6 +52,7 @@
 #include "TPCFastTransform.h"
 
 #include "utils/linux_helpers.h"
+#include "utils/strtag.h"
 using namespace GPUCA_NAMESPACE::gpu;
 
 #include "GPUO2DataTypes.h"
@@ -292,7 +293,7 @@ bool GPUChainTracking::ValidateSettings()
       return false;
     }
   }
-  if (!(GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression) && (ProcessingSettings().tpcCompressionGatherMode == 1 || ProcessingSettings().tpcCompressionGatherMode == 3)) {
+  if ((GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression) && !(GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression) && (ProcessingSettings().tpcCompressionGatherMode == 1 || ProcessingSettings().tpcCompressionGatherMode == 3)) {
     GPUError("Invalid tpcCompressionGatherMode for compression on CPU");
     return false;
   }
@@ -564,7 +565,8 @@ int GPUChainTracking::RunChain()
     return 1;
   }
 
-  mRec->PushNonPersistentMemory(); // 1st stack level for TPC tracking slice data
+  mRec->PushNonPersistentMemory(qStr2Tag("TPCSLCD1")); // 1st stack level for TPC tracking slice data
+  mTPCSliceScratchOnStack = true;
   if (runRecoStep(RecoStep::TPCSliceTracking, &GPUChainTracking::RunTPCTrackingSlices)) {
     return 1;
   }
@@ -576,7 +578,10 @@ int GPUChainTracking::RunChain()
   if (runRecoStep(RecoStep::TPCMerging, &GPUChainTracking::RunTPCTrackingMerger, false)) {
     return 1;
   }
-  mRec->PopNonPersistentMemory(RecoStep::TPCSliceTracking); // Release 1st stack level, TPC slice data not needed after merger
+  if (mTPCSliceScratchOnStack) {
+    mRec->PopNonPersistentMemory(RecoStep::TPCSliceTracking, qStr2Tag("TPCSLCD1")); // Release 1st stack level, TPC slice data not needed after merger
+    mTPCSliceScratchOnStack = false;
+  }
 
   if (mIOPtrs.clustersNative) {
     if (GetProcessingSettings().doublePipeline) {

@@ -26,8 +26,6 @@ namespace track
 template <typename value_T = float>
 class TrackParametrizationWithError : public TrackParametrization<value_T>
 { // track+error parameterization
-  using MatrixDSym5 = ROOT::Math::SMatrix<double, kNParams, kNParams, ROOT::Math::MatRepSym<double, kNParams>>;
-  using MatrixD5 = ROOT::Math::SMatrix<double, kNParams, kNParams, ROOT::Math::MatRepStd<double, kNParams, kNParams>>;
 
   using typename TrackParametrization<value_T>::value_t;
   using typename TrackParametrization<value_T>::dim3_t;
@@ -40,6 +38,8 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
 
  public:
   using covMat_t = gpu::gpustd::array<value_t, kCovMatSize>;
+  using MatrixDSym5 = ROOT::Math::SMatrix<double, kNParams, kNParams, ROOT::Math::MatRepSym<double, kNParams>>;
+  using MatrixD5 = ROOT::Math::SMatrix<double, kNParams, kNParams, ROOT::Math::MatRepStd<double, kNParams, kNParams>>;
 
   GPUd() TrackParametrizationWithError();
   GPUd() TrackParametrizationWithError(value_t x, value_t alpha, const params_t& par, const covMat_t& cov, int charge = 1, const PID pid = PID::Pion);

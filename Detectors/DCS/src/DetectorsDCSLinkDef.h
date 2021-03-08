@@ -19,8 +19,9 @@
 #pragma link C++ struct o2::dcs::DataPointValue + ;
 #pragma link C++ class o2::dcs::DCSProcessor + ;
 #pragma link C++ class std::unordered_map < o2::dcs::DataPointIdentifier, o2::dcs::DataPointValue> + ;
+#pragma link C++ class std::unordered_map < o2::dcs::DataPointIdentifier, std::vector < o2::dcs::DataPointValue>> + ;
 #pragma link C++ function o2::dcs::expandAlias(const std::string&);
-#pragma link C++ function o2::dcs::expandAliases(const std::vector<std::string>&);
+#pragma link C++ function o2::dcs::expandAliases(const std::vector <std::string>&);
 #pragma link C++ class std::unordered_map < o2::dcs::DataPointIdentifier, std::string> + ;
 
 #endif

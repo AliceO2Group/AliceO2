@@ -58,8 +58,8 @@ struct JetProviderTask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec workflow{adaptAnalysisTask<JetProviderTask>("jet-task-skim-provider")};
+  WorkflowSpec workflow{adaptAnalysisTask<JetProviderTask>(cfgc, "jet-task-skim-provider")};
   return workflow;
 }

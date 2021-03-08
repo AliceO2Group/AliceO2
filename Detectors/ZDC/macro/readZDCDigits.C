@@ -12,7 +12,7 @@
 
 #endif
 
-#include "ZDCSimulation/MCLabel.h"
+#include "DataFormatsZDC/MCLabel.h"
 #include "FairLogger.h"
 
 /// Example of accessing the ZDC digits

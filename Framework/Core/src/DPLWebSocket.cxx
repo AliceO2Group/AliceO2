@@ -13,6 +13,7 @@
 #include "Framework/DeviceSpec.h"
 #include "HTTPParser.h"
 #include <algorithm>
+#include <atomic>
 #include <uv.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -168,6 +169,11 @@ void WSDPLHandler::error(int code, char const* message)
   uv_write(error_rep, (uv_stream_t*)mStream, &bfr, 1, ws_error_write_callback);
 }
 
+void close_client_websocket(uv_handle_t* stream)
+{
+  LOG(debug) << "Closing websocket connection to server";
+}
+
 void websocket_client_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf)
 {
   WSDPLClient* client = (WSDPLClient*)stream->data;
@@ -175,10 +181,18 @@ void websocket_client_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_
   if (nread == 0) {
     return;
   }
+  if (nread == UV_EOF) {
+    LOG(debug) << "EOF received from server, closing.";
+    uv_read_stop(stream);
+    uv_close((uv_handle_t*)stream, close_client_websocket);
+    return;
+  }
   if (nread < 0) {
     // FIXME: improve error message
     // FIXME: should I close?
     LOG(ERROR) << "Error while reading from websocket";
+    uv_read_stop(stream);
+    uv_close((uv_handle_t*)stream, close_client_websocket);
     return;
   }
   try {
@@ -271,6 +285,7 @@ void ws_client_write_callback(uv_write_t* h, int status)
   if (h->data) {
     free(h->data);
   }
+  free(h);
 }
 
 void ws_client_bulk_write_callback(uv_write_t* h, int status)
@@ -287,6 +302,7 @@ void ws_client_bulk_write_callback(uv_write_t* h, int status)
     }
   }
   delete buffers;
+  free(h);
 }
 
 /// Helper to return an error

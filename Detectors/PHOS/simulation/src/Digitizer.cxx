@@ -56,149 +56,98 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
   // Add hits with energy deposition in same cell and same time
   // Add energy corrections
   // Apply time smearing
-
-  std::vector<Digit>::const_iterator dBg = digitsBg.cbegin();
-  std::vector<Hit>::const_iterator hBg = hits->cbegin();
-
-  bool addNoise = !(digitsBg.size()); //If digits list not empty, noise already there
-
-  int currentId = 32 * 56; //first digit in half-mod 1 minus 1
-
-  while (dBg != digitsBg.cend() && hBg != hits->cend()) {
-    if (dBg->getAbsId() < hBg->GetDetectorID()) { // copy digit
-      //Digits already contain noise, no need to add it in this branch
-      //Digits have correct time, no need to add event time
-      digitsOut.emplace_back(dBg->getAbsId(), dBg->getAmplitude(), dBg->getTime(), dBg->getLabel());
-      currentId = dBg->getAbsId();
-      dBg++;
-    } else {
-      if (addNoise) {
-        addNoisyChannels(currentId, hBg->GetDetectorID(), digitsOut);
-      }
-      currentId = hBg->GetDetectorID();
-      int labelIndex = -1;
-      if (dBg->getAbsId() == hBg->GetDetectorID()) {
-        labelIndex = dBg->getLabel();
-      }
-      if (labelIndex == -1) { //no digit or noisy
-        labelIndex = labels.getIndexedSize();
-      }
-      Digit digit(*hBg, labelIndex);
-      // Add Electroinc noise, apply non-linearity, digitize, de-calibrate, time resolution
-      float energy = hBg->GetEnergyLoss();
-      // Simulate electronic noise
-      short absId = hBg->GetDetectorID();
-      energy += simulateNoiseEnergy(absId);
-
-      if (o2::phos::PHOSSimParams::Instance().mApplyNonLinearity) {
-        energy = nonLinearity(energy);
-      }
-
-      energy = uncalibrate(energy, absId);
-
-      digit.setHighGain(energy < o2::phos::PHOSSimParams::Instance().mMCOverflow); //10bit ADC
-      if (digit.isHighGain()) {
-        digit.setAmplitude(energy);
-      } else {
-        float hglgratio = mCalibParams->getHGLGRatio(absId);
-        digit.setAmplitude(energy / hglgratio);
-      }
-
-      float time = hBg->GetTime() + dt * 1.e-9;
-      if (o2::phos::PHOSSimParams::Instance().mApplyTimeResolution) {
-        digit.setTime(uncalibrateT(timeResolution(time, energy), absId, digit.isHighGain()));
-      }
-
-      // Merge with existing digit if any
-      if (dBg->getAbsId() == hBg->GetDetectorID()) {
-        digit += *dBg;
-        dBg++;
-      }
-
-      hBg++;
-      if (energy <= o2::phos::PHOSSimParams::Instance().mDigitThreshold) {
-        continue;
-      }
-
-      //Add primary info: create new MCLabels entry
-      o2::phos::MCLabel label(hBg->GetTrackID(), collId, source, true, hBg->GetEnergyLoss());
-      labels.addElementRandomAccess(labelIndex, label);
-      //sort MCLabels according to eDeposited
-      auto lbls = labels.getLabels(labelIndex);
-      std::sort(lbls.begin(), lbls.end(),
-                [](o2::phos::MCLabel a, o2::phos::MCLabel b) { return a.getEdep() > b.getEdep(); });
-
-      digitsOut.push_back(digit);
-    }
-  }
-  //Fill remainder
-  while (dBg != digitsBg.cend()) {
-    digitsOut.push_back(*dBg);
-    dBg++;
+  // //Despite sorting in Detector::EndEvent(), hits still can be unsorted due to splitting of processing different bunches of primary
+  for (int i = NCHANNELS; i--;) {
+    mArrayD[i].reset();
   }
 
-  while (hBg != hits->cend()) {
-    if (addNoise) {
-      addNoisyChannels(currentId, hBg->GetDetectorID(), digitsOut);
+  if (digitsBg.size() == 0) { // no digits provided: try simulate noise
+    for (int i = NCHANNELS; i--;) {
+      float energy = simulateNoiseEnergy(i + OFFSET);
+      energy = uncalibrate(energy, i + OFFSET);
+      if (energy > o2::phos::PHOSSimParams::Instance().mDigitThreshold) {
+        float time = simulateNoiseTime();
+        mArrayD[i].setAmplitude(energy);
+        mArrayD[i].setTime(time);
+        mArrayD[i].setAbsId(i + OFFSET);
+      }
     }
-    currentId = hBg->GetDetectorID();
+  } else {                       //if digits exist, no noise should be added
+    for (auto& dBg : digitsBg) { //digits are sorted and unique
+      mArrayD[dBg.getAbsId() - OFFSET] = dBg;
+    }
+  }
 
-    int labelIndex = labels.getIndexedSize();
-
-    Digit digit(*hBg, labelIndex);
-    // Add Electroinc noise, apply non-linearity, digitize, de-calibrate, time resolution
-    float energy = hBg->GetEnergyLoss();
-    // Simulate electronic noise
-    short absId = hBg->GetDetectorID();
-    energy += simulateNoiseEnergy(absId);
-
+  //add Hits
+  for (auto& h : *hits) {
+    short absId = h.GetDetectorID();
+    short i = absId - OFFSET;
+    float energy = h.GetEnergyLoss();
     if (o2::phos::PHOSSimParams::Instance().mApplyNonLinearity) {
       energy = nonLinearity(energy);
     }
-
     energy = uncalibrate(energy, absId);
-
-    digit.setHighGain(energy < o2::phos::PHOSSimParams::Instance().mMCOverflow); //10bit ADC
-    if (digit.isHighGain()) {
-      digit.setAmplitude(energy);
-    } else {
-      float hglgratio = mCalibParams->getHGLGRatio(absId);
-      digit.setAmplitude(energy / hglgratio);
-    }
-
-    float time = hBg->GetTime() + dt * 1.e-9;
+    float time = h.GetTime() + dt * 1.e-9;
     if (o2::phos::PHOSSimParams::Instance().mApplyTimeResolution) {
-      digit.setTime(uncalibrateT(timeResolution(time, energy), absId, digit.isHighGain()));
+      time = uncalibrateT(timeResolution(time, energy), absId);
     }
-
-    hBg++;
-    if (energy <= o2::phos::PHOSSimParams::Instance().mDigitThreshold) {
-      continue;
+    if (mArrayD[i].getAmplitude() > 0) {
+      //update energy and time
+      mArrayD[i].addEnergyTime(energy, time);
+      //if overflow occured?
+      if (mArrayD[i].isHighGain()) {
+        if (mArrayD[i].getAmplitude() > o2::phos::PHOSSimParams::Instance().mMCOverflow) { //10bit ADC
+          float hglgratio = mCalibParams->getHGLGRatio(absId);
+          mArrayD[i].setAmplitude(mArrayD[i].getAmplitude() / hglgratio);
+          mArrayD[i].setHighGain(false);
+        }
+      }
+    } else {
+      mArrayD[i].setHighGain(energy < o2::phos::PHOSSimParams::Instance().mMCOverflow); //10bit ADC
+      if (mArrayD[i].isHighGain()) {
+        mArrayD[i].setAmplitude(energy);
+      } else {
+        float hglgratio = mCalibParams->getHGLGRatio(absId);
+        mArrayD[i].setAmplitude(energy / hglgratio);
+      }
+      mArrayD[i].setTime(time);
+      mArrayD[i].setAbsId(absId);
     }
-
-    //Add primary info: create new MCLabels entry
-    o2::phos::MCLabel label(hBg->GetTrackID(), collId, source, true, hBg->GetEnergyLoss());
-    labels.addElement(labelIndex, label);
-
-    digitsOut.push_back(digit);
+    //Add MC info
+    if (mProcessMC) {
+      int labelIndex = mArrayD[i].getLabel();
+      if (labelIndex == -1) { //no digit or noisy
+        labelIndex = labels.getIndexedSize();
+        MCLabel label(h.GetTrackID(), collId, source, false, h.GetEnergyLoss());
+        labels.addElement(labelIndex, label);
+        mArrayD[i].setLabel(labelIndex);
+      } else { //check if lable already exist
+        MCLabel label(h.GetTrackID(), collId, source, false, h.GetEnergyLoss());
+        gsl::span<MCLabel> sp = labels.getLabels(labelIndex);
+        bool found = false;
+        for (MCLabel& te : sp) {
+          if (te == label) {
+            found = true;
+            te.add(label, 1.);
+            break;
+          }
+        }
+        if (!found) {
+          //Highly inefficient management of Labels: commenting  line below reeduces WHOLE digitization time by factor ~30
+          labels.addElementRandomAccess(labelIndex, label);
+          //sort MCLabels according to eDeposited
+          sp = labels.getLabels(labelIndex);
+          std::sort(sp.begin(), sp.end(),
+                    [](o2::phos::MCLabel a, o2::phos::MCLabel b) { return a.getEdep() > b.getEdep(); });
+        }
+      }
+    } else {
+      mArrayD[i].setLabel(-1);
+    }
   }
-  //Add noisy channels to the end of PHOS
-  if (addNoise) {
-    addNoisyChannels(currentId, 56 * 64 * 4, digitsOut);
-  }
-}
-
-//_______________________________________________________________________
-void Digitizer::addNoisyChannels(int start, int end, std::vector<Digit>& digitsOut)
-{
-
-  // Simulate noise
-  for (int absId = start + 1; absId < end; absId++) {
-    float energy = simulateNoiseEnergy(absId);
-    energy = uncalibrate(energy, absId);
-    if (energy > o2::phos::PHOSSimParams::Instance().mDigitThreshold) {
-      float time = simulateNoiseTime();
-      digitsOut.emplace_back(absId, energy, time, -1); // current AbsId, energy, random time, no primary
+  for (int i = 0; i < NCHANNELS; i++) {
+    if (mArrayD[i].getAmplitude() > PHOSSimParams::Instance().mZSthreshold) {
+      digitsOut.push_back(mArrayD[i]);
     }
   }
 }
@@ -223,15 +172,11 @@ float Digitizer::uncalibrate(const float e, const int absId)
   }
 }
 //_______________________________________________________________________
-float Digitizer::uncalibrateT(const float time, const int absId, bool isHighGain)
+float Digitizer::uncalibrateT(const float time, const int absId)
 {
   // Decalibrate EMC digit, i.e. transform from energy to ADC counts a factor read from CDB
   // note time in seconds
-  if (isHighGain) {
-    return time + mCalibParams->getHGTimeCalib(absId);
-  } else {
-    return time + mCalibParams->getLGTimeCalib(absId);
-  }
+  return time + mCalibParams->getHGTimeCalib(absId);
 }
 //_______________________________________________________________________
 float Digitizer::timeResolution(const float time, const float e)

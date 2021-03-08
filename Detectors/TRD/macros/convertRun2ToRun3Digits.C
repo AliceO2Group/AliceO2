@@ -24,6 +24,7 @@
 // O2
 #include "TRDBase/Digit.h"
 #include "DataFormatsTRD/TriggerRecord.h"
+#include "DataFormatsTRD/Constants.h"
 #include "TRDBase/MCLabel.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
@@ -35,6 +36,7 @@
 
 using namespace std;
 using namespace o2::trd;
+using namespace o2::trd::constants;
 
 // qa.root
 // 18000283989033.808.root
@@ -186,9 +188,19 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
         // cout << "det: " << det << " | " << "sector: " << sector << " | " << "stack: " << stack << " | " << "rows: " << nrows << endl;
 
         for (int row = 0; row < nrows; row++) {
-          for (int col = 0; col < AliTRDfeeParam::GetNcol(); col++) {
+          for (int col = 0; col < NCOLUMN; col++) {
+            int side = (col < NCOLUMN / 2) ? 0 : 1;
+            int rob = 2 * (row / NMCMROBINROW) + side;
+            int mcm = side == 0 ? (row * NMCMROBINROW + col / NCOLMCM) % NMCMROB : (row * NMCMROBINROW + (col - NCOLUMN / 2) / NCOLMCM) % NMCMROB;
+            int channel = 19 - (col % NCOLMCM);
             int tbsum = 0;
             ArrayADC adctimes;
+            bool isSharedRight = false, isSharedLeft = false;
+            if (col % NCOLMCM == 0 || col % NCOLMCM == 1) {
+              isSharedRight = true;
+            } else if (col % NCOLMCM == 17) {
+              isSharedLeft = true;
+            }
 
             for (int timebin = 0; timebin < digitMan->GetDigits(det)->GetNtime(); timebin++) {
 
@@ -208,7 +220,25 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
             }
 
             if (tbsum > 0) {
-              run3Digits.push_back(Digit(det, row, col, adctimes));
+              run3Digits.push_back(Digit(det, rob, mcm, channel, adctimes));
+              if (isSharedRight && col > 17) {
+                if (mcm % NMCMROBINCOL == 0) {
+                  // switch to the ROB on the right
+                  run3Digits.push_back(Digit(det, rob - 1, mcm + 3, channel - NCOLMCM, adctimes));
+                } else {
+                  // we stay on the same ROB
+                  run3Digits.push_back(Digit(det, rob, mcm - 1, channel - NCOLMCM, adctimes));
+                }
+
+              } else if (isSharedLeft && col < 126) {
+                if (mcm % NMCMROBINCOL == 3) {
+                  // switch to ROB on the left
+                  run3Digits.push_back(Digit(det, rob + 1, mcm - 3, channel + NCOLMCM, adctimes));
+                } else {
+                  // we stay on the same ROB
+                  run3Digits.push_back(Digit(det, rob, mcm + 1, channel + NCOLMCM, adctimes));
+                }
+              }
             }
 
             if (tbsum > 0) {

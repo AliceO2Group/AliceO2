@@ -470,6 +470,22 @@ OutputSpec DataSpecUtils::asOutputSpec(InputSpec const& spec)
                     spec.matcher);
 }
 
+DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(ConcreteDataMatcher const& concrete)
+{
+  DataDescriptorMatcher matchEverything{
+    DataDescriptorMatcher::Op::And,
+    OriginValueMatcher{concrete.origin.as<std::string>()},
+    std::make_unique<DataDescriptorMatcher>(
+      DataDescriptorMatcher::Op::And,
+      DescriptionValueMatcher{concrete.description.as<std::string>()},
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::And,
+        SubSpecificationTypeValueMatcher{concrete.subSpec},
+        std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
+                                                StartTimeValueMatcher{ContextRef{0}})))};
+  return std::move(matchEverything);
+}
+
 DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(ConcreteDataTypeMatcher const& dataType)
 {
   auto timeDescriptionMatcher = std::make_unique<DataDescriptorMatcher>(

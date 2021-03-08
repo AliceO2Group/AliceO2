@@ -1113,6 +1113,11 @@ void MatchTOF::doMatchingForTPC(int sec)
 {
   auto& gasParam = o2::tpc::ParameterGas::Instance();
   float vdrift = gasParam.DriftV;
+  float vdriftInBC = Geo::BC_TIME_INPS * 1E-6 * vdrift;
+
+  int bc_grouping = 40;
+  int bc_grouping_half = (bc_grouping + 1) / 2;
+  double BCgranularity = Geo::BC_TIME_INPS * bc_grouping;
 
   ///< do the real matching per sector
   mMatchedTracksPairs.clear(); // new sector
@@ -1146,7 +1151,6 @@ void MatchTOF::doMatchingForTPC(int sec)
     auto& trefTrk = trackWork.first;
     auto& intLT = mLTinfos[cacheTrk[itrk]];
 
-    int nBCcand = 1;
     BCcand.clear();
     nStripsCrossedInPropagation.clear();
 
@@ -1155,7 +1159,16 @@ void MatchTOF::doMatchingForTPC(int sec)
     // look at BC candidates for the track
     itof0 = 0;
     double minTrkTime = (trackWork.second.getTimeStamp() - trackWork.second.getTimeStampError()) * 1.E6; // minimum time in ps
+    minTrkTime = int(minTrkTime / BCgranularity) * BCgranularity;                                        // align min to a BC
     double maxTrkTime = (trackWork.second.getTimeStamp() + mExtraTPCFwdTime[cacheTrk[itrk]]) * 1.E6;     // maximum time in ps
+
+    /*
+    for (double tBC = minTrkTime; tBC < maxTrkTime; tBC += BCgranularity) {
+      unsigned long ibc = (unsigned long)(tBC * Geo::BC_TIME_INPS_INV);
+      BCcand.emplace_back(ibc);
+      nStripsCrossedInPropagation.emplace_back(0);
+    }
+*/
 
     for (auto itof = itof0; itof < nTOFCls; itof++) {
       auto& trefTOF = mTOFClusWork[cacheTOF[itof]];
@@ -1175,6 +1188,8 @@ void MatchTOF::doMatchingForTPC(int sec)
 
       unsigned long bc = (unsigned long)(trefTOF.getTime() * Geo::BC_TIME_INPS_INV);
 
+      bc = (bc / bc_grouping_half) * bc_grouping_half;
+
       bool isalreadyin = false;
 
       for (int k = 0; k < BCcand.size(); k++) {
@@ -1188,6 +1203,9 @@ void MatchTOF::doMatchingForTPC(int sec)
         nStripsCrossedInPropagation.emplace_back(0);
       }
     }
+
+    //    printf("BC = %ld\n",BCcand.size());
+
     detId.clear();
     detId.reserve(BCcand.size());
     trkLTInt.clear();
@@ -1302,8 +1320,8 @@ void MatchTOF::doMatchingForTPC(int sec)
       }
     }
     for (int ibc = 0; ibc < BCcand.size(); ibc++) {
-      float minTime = (BCcand[ibc] - 1) * Geo::BC_TIME_INPS;
-      float maxTime = (BCcand[ibc] + 1) * Geo::BC_TIME_INPS;
+      float minTime = (BCcand[ibc] - bc_grouping) * Geo::BC_TIME_INPS;
+      float maxTime = (BCcand[ibc] + bc_grouping) * Geo::BC_TIME_INPS;
       for (Int_t imatch = 0; imatch < nStripsCrossedInPropagation[ibc]; imatch++) {
         // we take as residual the average of the residuals along the propagation in the same strip
         deltaPos[ibc][imatch][0] /= nStepsInsideSameStrip[ibc][imatch];
@@ -1332,6 +1350,8 @@ void MatchTOF::doMatchingForTPC(int sec)
         if (trefTOF.getTime() > maxTime) { // no more TOF clusters can be matched to this track
           break;
         }
+
+        unsigned long bcClus = trefTOF.getTime() * Geo::BC_TIME_INPS_INV;
 
         int mainChannel = trefTOF.getMainContributingChannel();
         int indices[5];
@@ -1382,6 +1402,7 @@ void MatchTOF::doMatchingForTPC(int sec)
           LOG(DEBUG) << "Propagated Track [" << itrk << ", " << cacheTrk[itrk] << "]: detId[" << iPropagation << "]  = " << detId[ibc][iPropagation][0] << ", " << detId[ibc][iPropagation][1] << ", " << detId[ibc][iPropagation][2] << ", " << detId[ibc][iPropagation][3] << ", " << detId[ibc][iPropagation][4];
           float resX = deltaPos[ibc][iPropagation][0] - (indices[4] - detId[ibc][iPropagation][4]) * Geo::XPAD + posCorr[0]; // readjusting the residuals due to the fact that the propagation fell in a pad that was not exactly the one of the cluster
           float resZ = deltaPos[ibc][iPropagation][2] - (indices[3] - detId[ibc][iPropagation][3]) * Geo::ZPAD + posCorr[2]; // readjusting the residuals due to the fact that the propagation fell in a pad that was not exactly the one of the cluster
+          resZ += (BCcand[ibc] - bcClus) * vdriftInBC * side;                                                                // add bc correction
           float res = TMath::Sqrt(resX * resX + resZ * resZ);
           if (indices[0] != detId[ibc][iPropagation][0]) {
             continue;
@@ -1662,30 +1683,45 @@ bool MatchTOF::makeConstrainedTPCTrack(int matchedID, o2::dataformats::TrackTPCT
 
   if (mTPCClusterIdxStruct) {                                              // refit was requested
     trConstr.o2::track::TrackParCov::operator=(tpcTrOrig.getOuterParam()); // seed for inward refit of constrained track, made from the outer param
+    trConstr.setParamOut(tpcTrOrig);                                       // seed for outward refit of constrained track, made from the inner param
   } else {
-    trConstr.o2::track::TrackParCov::operator=(tpcTrOrig); // inner param, we just correct is position, w/o refit
+    trConstr.o2::track::TrackParCov::operator=(tpcTrOrig); // inner param, we just correct its position, w/o refit
+    trConstr.setParamOut(tpcTrOrig.getOuterParam());       // outer param, we just correct its position, w/o refit
   }
 
+  auto& trConstrOut = trConstr.getParamOut();
+
   auto zTrack = trConstr.getZ();
+  auto zTrackOut = trConstrOut.getZ();
 
   if (tpcTrOrig.hasASideClustersOnly()) {
     zTrack += dzCorr;
+    zTrackOut += dzCorr;
   } else if (tpcTrOrig.hasCSideClustersOnly()) {
     zTrack -= dzCorr;
+    zTrackOut -= dzCorr;
   } else {
     // TODO : special treatment of tracks crossing the CE
   }
   trConstr.setZ(zTrack);
+  trConstrOut.setZ(zTrackOut);
+  //
   trConstr.setTimeMUS(timeTOFMUS, timeErr);
   trConstr.setRefMatch(matchedID);
   if (mTPCClusterIdxStruct) { // refit was requested
     float chi2 = 0;
     mTPCRefitter->setTrackReferenceX(o2::globaltracking::MatchTPCITS::XTPCInnerRef);
     if (mTPCRefitter->RefitTrackAsTrackParCov(trConstr, tpcTrOrig.getClusterRef(), timeTOFTB, &chi2, false, true) < 0) { // outward refit after resetting cov.mat.
-      LOG(DEBUG) << "Refit failed";
+      LOG(DEBUG) << "Inward Refit failed";
       return false;
     }
     trConstr.setChi2Refit(chi2);
+    //
+    mTPCRefitter->setTrackReferenceX(o2::globaltracking::MatchTPCITS::XTPCOuterRef);
+    if (mTPCRefitter->RefitTrackAsTrackParCov(trConstrOut, tpcTrOrig.getClusterRef(), timeTOFTB, &chi2, true, true) < 0) { // outward refit after resetting cov.mat.
+      LOG(DEBUG) << "Outward refit failed";
+      return false;
+    }
   }
 
   return true;

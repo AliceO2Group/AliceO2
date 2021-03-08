@@ -107,7 +107,7 @@ int64_t AODProducerWorkflowDPL::getTFNumber(uint64_t firstVtxGlBC, int runNumber
   ts = ts / 1000;
 
   // firstRec --> calculated using `minimal` global BC in the simulation (see AODProducerWorkflowDPL::findMinMaxBc)
-  // firstVtxGlBC --> calculated using global BC correspinding to the first prim. vertex
+  // firstVtxGlBC --> calculated using global BC corresponding to the first prim. vertex
 
   uint32_t initialOrbit = mapStartOrbit->at(runNumber);
   uint16_t firstRecBC = minGlBC % o2::constants::lhc::LHCMaxBunches;
@@ -286,7 +286,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   LOG(DEBUG) << "FOUND " << tracksTPC.size() << " TPC tracks";
   LOG(DEBUG) << "FOUND " << tracksITS.size() << " ITS tracks";
-  LOG(DEBUG) << "FOUND " << tracksITSTPC.size() << " ITCTPC tracks";
+  LOG(DEBUG) << "FOUND " << tracksITSTPC.size() << " ITSTPC tracks";
 
   auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
   auto& collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"});
@@ -325,24 +325,21 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   findMinMaxBc(ft0RecPoints, primVertices, mcRecords);
 
-  std::map<uint64_t, uint64_t> mGlobBC2BCID;
-
-  // TODO:
-  // get real run number and triggerMask
+  // TODO: get real run number and triggerMask
   int runNumber = 244918;
   uint64_t triggerMask = 1;
 
-  // filling BC table and map<globalBC, BCId>
   for (uint64_t i = 0; i <= maxGlBC - minGlBC; i++) {
     bcCursor(0,
              runNumber,
              minGlBC + i,
              triggerMask);
-    mGlobBC2BCID[minGlBC + i] = i;
   }
 
-  // TODO:
-  // add real FV0A, FV0C, FDD, ZDC tables instead of dummies
+  uint64_t globalBC;
+  uint64_t BCid;
+
+  // TODO: add real FV0A, FV0C, FDD, ZDC tables instead of dummies
   uint64_t dummyBC = 0;
   float dummyTime = 0.f;
   float dummyFV0AmplA[48] = {0.};
@@ -398,15 +395,19 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
             dummyTime,
             dummyTime);
 
-  // TODO:
-  // figure out collision weight
+  // TODO: figure out collision weight
   float mcColWeight = 1.;
-
-  // filling mcCollison table
+  // filling mcCollision table
   int index = 0;
   for (auto& rec : mcRecords) {
     auto time = rec.getTimeNS();
-    uint64_t globalBC = rec.bc + rec.orbit * o2::constants::lhc::LHCMaxBunches;
+    globalBC = rec.bc + rec.orbit * o2::constants::lhc::LHCMaxBunches;
+    BCid = globalBC - minGlBC;
+    if (BCid < 0) {
+      BCid = 0;
+    } else if (BCid > maxGlBC) {
+      BCid = maxGlBC;
+    }
     auto& colParts = mcParts[index];
     for (int i = 0; i < colParts.size(); i++) {
       auto eventID = colParts[i].entryID;
@@ -416,7 +417,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       short generatorID = sourceID;
       auto& header = mcReader.getMCEventHeader(sourceID, eventID);
       mcCollisionsCursor(0,
-                         mGlobBC2BCID.at(globalBC),
+                         BCid,
                          generatorID,
                          truncateFloatFraction(header.GetX(), mCollisionPosition),
                          truncateFloatFraction(header.GetY(), mCollisionPosition),
@@ -437,8 +438,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   for (int sourceID = 0; sourceID < mcReader.getNSources(); sourceID++) {
     for (int mcEventID = 0; mcEventID < mcReader.getNEvents(sourceID); mcEventID++) {
       std::vector<MCTrack> const& mcParticles = mcReader.getTracks(sourceID, mcEventID);
-
-      // TODO
+      // TODO:
       //  *fill dummy columns
       //  *mother/daughter IDs need to be recalculated before storing into table
       int statusCode = 0;
@@ -481,8 +481,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   // filling FT0 table
   for (auto& ft0RecPoint : ft0RecPoints) {
     const auto channelData = ft0RecPoint.getBunchChannelData(ft0ChData);
-    // TODO:
-    // switch to calibrated amplitude
+    // TODO: switch to calibrated amplitude
     for (auto& channel : channelData) {
       vAmplitudes[channel.ChId] = channel.QTCAmpl; // amplitude, mV
     }
@@ -494,9 +493,15 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     for (int i = 0; i < 112; i++) {
       aAmplitudesC[i] = truncateFloatFraction(vAmplitudes[i + 96], mT0Amplitude);
     }
-    uint64_t globalBC = ft0RecPoint.getInteractionRecord().orbit * o2::constants::lhc::LHCMaxBunches + ft0RecPoint.getInteractionRecord().bc;
+    globalBC = ft0RecPoint.getInteractionRecord().orbit * o2::constants::lhc::LHCMaxBunches + ft0RecPoint.getInteractionRecord().bc;
+    BCid = globalBC - minGlBC;
+    if (BCid < 0) {
+      BCid = 0;
+    } else if (BCid > maxGlBC) {
+      BCid = maxGlBC;
+    }
     ft0Cursor(0,
-              mGlobBC2BCID.at(globalBC),
+              BCid,
               aAmplitudesA,
               aAmplitudesC,
               truncateFloatFraction(ft0RecPoint.getCollisionTimeA() / 1E3, mT0Time), // ps to ns
@@ -509,8 +514,14 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   std::vector<int> vCollRefsTPC(tracksTPC.size(), -1);
   std::vector<int> vCollRefsTPCITS(tracksITSTPC.size(), -1);
 
-  // global bc of the 1st vertex for TF number
-  uint64_t firstVtxGlBC;
+  // TODO: determine the beginning of a TF in case when there are no reconstructed vertices
+  uint64_t firstVtxGlBC = minGlBC;
+  uint64_t startBCofTF = 0;
+  if (primVertices.size()) {
+    auto startIRofTF = o2::raw::HBFUtils::Instance().getFirstIRofTF(primVertices[0].getIRMin());
+    startBCofTF = startIRofTF.orbit * o2::constants::lhc::LHCMaxBunches + startIRofTF.bc;
+    firstVtxGlBC = std::round(startBCofTF + primVertices[0].getTimeStamp().getTimeStamp() / o2::constants::lhc::LHCBunchSpacingMS);
+  }
 
   // filling collisions table
   int collisionID = 0;
@@ -518,21 +529,17 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     auto& cov = vertex.getCov();
     auto& timeStamp = vertex.getTimeStamp();
     Double_t tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // mus to ns
-    // FIXME:
-    // should use IRMin and IRMax for globalBC calculation
-    uint64_t globalBC = std::round(tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS);
-
+    globalBC = std::round(startBCofTF + tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS);
     LOG(DEBUG) << globalBC << " " << tsTimeStamp;
-
-    if (collisionID == 0) {
-      firstVtxGlBC = globalBC;
-    }
-
     // collision timestamp in ns wrt the beginning of collision BC
     tsTimeStamp = globalBC * o2::constants::lhc::LHCBunchSpacingNS - tsTimeStamp;
-    int BCid = mGlobBC2BCID.at(globalBC);
-    // TODO:
-    // get real collision time mask
+    BCid = globalBC - minGlBC;
+    if (BCid < 0) {
+      BCid = 0;
+    } else if (BCid > maxGlBC) {
+      BCid = maxGlBC;
+    }
+    // TODO: get real collision time mask
     int collisionTimeMask = 0;
     collisionsCursor(0,
                      BCid,
@@ -545,6 +552,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                      truncateFloatFraction(cov[3], mCollisionPositionCov),
                      truncateFloatFraction(cov[4], mCollisionPositionCov),
                      truncateFloatFraction(cov[5], mCollisionPositionCov),
+                     vertex.getFlags(),
                      truncateFloatFraction(vertex.getChi2(), mCollisionPositionCov),
                      vertex.getNContributors(),
                      truncateFloatFraction(tsTimeStamp, mCollisionPosition),
@@ -554,9 +562,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     auto trackRef = primVer2TRefs[collisionID];
     int start = trackRef.getFirstEntryOfSource(0);
     int ntracks = trackRef.getEntriesOfSource(0);
-
-    // FIXME:
-    // `track<-->vertex` ambiguity is not accounted for in this code
+    // FIXME: `track<-->vertex` ambiguity is not accounted for in this code
     for (int ti = 0; ti < ntracks; ti++) {
       auto trackIndex = primVerGIs[start + ti];
       const auto source = trackIndex.getSource();
@@ -588,11 +594,10 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   uint16_t labelMask;
 
   if (mFillTracksITS) {
-    fillTracksTable(tracksITS, vCollRefsITS, tracksCursor, o2::vertexing::GIndex::Source::ITS); // fTrackType = 1
+    fillTracksTable(tracksITS, vCollRefsITS, tracksCursor, o2::vertexing::GIndex::Source::ITS);
     for (auto& mcTruthITS : tracksITSMCTruth) {
       labelID = std::numeric_limits<uint32_t>::max();
-      // TODO:
-      // fill label mask
+      // TODO: fill label mask
       labelMask = 0;
       if (mcTruthITS.isValid()) {
         labelID = mIDsToIndex.at(std::make_tuple(mcTruthITS.getSourceID(), mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
@@ -610,11 +615,10 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   if (mFillTracksTPC) {
-    fillTracksTable(tracksTPC, vCollRefsTPC, tracksCursor, o2::vertexing::GIndex::Source::TPC); // fTrackType = 2
+    fillTracksTable(tracksTPC, vCollRefsTPC, tracksCursor, o2::vertexing::GIndex::Source::TPC);
     for (auto& mcTruthTPC : tracksTPCMCTruth) {
       labelID = std::numeric_limits<uint32_t>::max();
-      // TODO:
-      // fill label mask
+      // TODO: fill label mask
       labelMask = 0;
       if (mcTruthTPC.isValid()) {
         labelID = mIDsToIndex.at(std::make_tuple(mcTruthTPC.getSourceID(), mcTruthTPC.getEventID(), mcTruthTPC.getTrackID()));
@@ -632,7 +636,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   if (mFillTracksITSTPC) {
-    fillTracksTable(tracksITSTPC, vCollRefsTPCITS, tracksCursor, o2::vertexing::GIndex::Source::ITSTPC); // fTrackType = 0
+    fillTracksTable(tracksITSTPC, vCollRefsTPCITS, tracksCursor, o2::vertexing::GIndex::Source::ITSTPC);
     for (int i = 0; i < tracksITSTPC.size(); i++) {
       const auto& trc = tracksITSTPC[i];
       auto mcTruthITS = tracksITSMCTruth[trc.getRefITS()];
@@ -640,8 +644,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       labelID = std::numeric_limits<uint32_t>::max();
       labelITS = std::numeric_limits<uint32_t>::max();
       labelTPC = std::numeric_limits<uint32_t>::max();
-      // TODO:
-      // fill label mask
+      // TODO: fill label mask
       // currently using label mask to indicate labelITS != labelTPC
       labelMask = 0;
       if (mcTruthITS.isValid() && mcTruthTPC.isValid()) {
@@ -705,8 +708,7 @@ DataProcessorSpec getAODProducerWorkflowSpec()
   outputs.emplace_back(OutputLabel{"O2mctracklabel"}, "AOD", "MCTRACKLABEL", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
 
-  // TODO:
-  // add  FV0A, FV0C, FDD tables
+  // TODO: add  FV0A, FV0C, FDD tables
   outputs.emplace_back(OutputLabel{"O2fv0a"}, "AOD", "FV0A", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2fv0c"}, "AOD", "FV0C", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2fdd"}, "AOD", "FDD", 0, Lifetime::Timeframe);

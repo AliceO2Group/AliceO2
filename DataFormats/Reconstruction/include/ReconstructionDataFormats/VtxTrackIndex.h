@@ -31,12 +31,13 @@ class VtxTrackIndex : public GlobalTrackID
  public:
   enum Flags : uint8_t {
     Contributor, // flag that it contributes to vertex fit
-    Reserved,    //
     Ambiguous,   // flag that attachment is ambiguous
     NFlags
   };
 
   using GlobalTrackID::GlobalTrackID;
+  VtxTrackIndex() = default;
+  VtxTrackIndex(const GlobalTrackID& src) : GlobalTrackID(src) {}
 
   bool isPVContributor() const { return testBit(Contributor); }
   void setPVContributor() { setBit(Contributor); }

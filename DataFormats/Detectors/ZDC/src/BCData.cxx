@@ -32,6 +32,15 @@ void BCData::print() const
       printf(" ");
     }
   }
+  printf("]\nTrigs:");
+  for (int i = 0; i < NChannels; i++) {
+    std::bitset<10> bb(moduleTriggers[i]);
+    printf("[%2d: %s]", i, bb.to_string().c_str());
+    if (i % (NChannels / 3) == 0 && i) {
+      printf("\n");
+    }
+  }
+
   printf("]\nHits:");
   for (int ic = 0; ic < NDigiChannels; ic++) {
     if (ic % NChPerModule == 0) {

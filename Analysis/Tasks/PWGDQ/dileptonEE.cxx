@@ -51,28 +51,9 @@ namespace reducedtrack
 DECLARE_SOA_COLUMN(IsBarrelSelected, isBarrelSelected, uint8_t);
 } // namespace reducedtrack
 
-namespace reducedpair
-{
-DECLARE_SOA_INDEX_COLUMN(ReducedEvent, reducedevent);
-DECLARE_SOA_COLUMN(Mass, mass, float);
-DECLARE_SOA_COLUMN(Pt, pt, float);
-DECLARE_SOA_COLUMN(Eta, eta, float);
-DECLARE_SOA_COLUMN(Phi, phi, float);
-DECLARE_SOA_COLUMN(Charge, charge, int);
-DECLARE_SOA_COLUMN(FilterMap, filterMap, uint8_t);
-DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float pt, float phi) -> float { return pt * std::cos(phi); });
-DECLARE_SOA_DYNAMIC_COLUMN(Py, py, [](float pt, float phi) -> float { return pt * std::sin(phi); });
-DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, [](float pt, float eta) -> float { return pt * std::sinh(eta); });
-DECLARE_SOA_DYNAMIC_COLUMN(Pmom, pmom, [](float pt, float eta) -> float { return pt * std::cosh(eta); });
-} // namespace reducedpair
-
 DECLARE_SOA_TABLE(EventCuts, "AOD", "EVENTCUTS", reducedevent::IsEventSelected);
 DECLARE_SOA_TABLE(EventCategories, "AOD", "EVENTCATEGORIES", reducedevent::Category);
 DECLARE_SOA_TABLE(BarrelTrackCuts, "AOD", "BARRELTRACKCUTS", reducedtrack::IsBarrelSelected);
-DECLARE_SOA_TABLE(Dileptons, "AOD", "DILEPTON", reducedpair::ReducedEventId, reducedpair::Mass, reducedpair::Pt, reducedpair::Eta, reducedpair::Phi, reducedpair::Charge, reducedpair::FilterMap,
-                  reducedpair::Px<reducedpair::Pt, reducedpair::Phi>, reducedpair::Py<reducedpair::Pt, reducedpair::Phi>,
-                  reducedpair::Pz<reducedpair::Pt, reducedpair::Eta>, reducedpair::Pmom<reducedpair::Pt, reducedpair::Eta>);
-using Dilepton = Dileptons::iterator;
 } // namespace o2::aod
 
 using MyEvents = soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended>;
@@ -347,12 +328,12 @@ struct DileptonEE {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<EventSelection>("my-event-selection"),
-    adaptAnalysisTask<BarrelTrackSelection>("barrel-track-selection"),
-    adaptAnalysisTask<DileptonEE>("dilepton-ee"),
+    adaptAnalysisTask<EventSelection>(cfgc, "my-event-selection"),
+    adaptAnalysisTask<BarrelTrackSelection>(cfgc, "barrel-track-selection"),
+    adaptAnalysisTask<DileptonEE>(cfgc, "dilepton-ee"),
 
   };
 }

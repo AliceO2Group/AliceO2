@@ -27,8 +27,6 @@
 #pragma link C++ class o2::base::MatLayerCyl + ;
 #pragma link C++ class o2::base::MatLayerCylSet + ;
 
-#pragma link C++ class o2::base::DCAFitter + ;
-
 #pragma link C++ class o2::ctf::CTFCoderBase + ;
 
 #endif

@@ -32,13 +32,22 @@ o2::framework::DataProcessorSpec getPHOSDigitWriterSpec(bool mctruth)
 {
   using InputSpec = framework::InputSpec;
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
-  return MakeRootTreeWriterSpec("PHOSDigitWriter",
-                                "phosdigits.root",
-                                "o2sim",
-                                1,
-                                BranchDefinition<std::vector<o2::phos::Digit>>{InputSpec{"phosdigits", "PHS", "DIGITS"}, "PHOSDigit"},
-                                BranchDefinition<std::vector<o2::phos::TriggerRecord>>{InputSpec{"phosdigitstrigrec", "PHS", "DIGITTRIGREC"}, "PHOSDigitTrigRecords"},
-                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>>{InputSpec{"phosdigitsmc", "PHS", "DIGITSMCTR"}, "PHOSDigitMCTruth", mctruth ? 1 : 0})();
+  if (mctruth) {
+    return MakeRootTreeWriterSpec("PHOSDigitWriter",
+                                  "phosdigits.root",
+                                  "o2sim",
+                                  1,
+                                  BranchDefinition<std::vector<o2::phos::Digit>>{InputSpec{"phosdigits", "PHS", "DIGITS"}, "PHOSDigit"},
+                                  BranchDefinition<std::vector<o2::phos::TriggerRecord>>{InputSpec{"phosdigitstrigrec", "PHS", "DIGITTRIGREC"}, "PHOSDigitTrigRecords"},
+                                  BranchDefinition<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>>{InputSpec{"phosdigitsmc", "PHS", "DIGITSMCTR"}, "PHOSDigitMCTruth"})();
+  } else {
+    return MakeRootTreeWriterSpec("PHOSDigitWriter",
+                                  "phosdigits.root",
+                                  "o2sim",
+                                  1,
+                                  BranchDefinition<std::vector<o2::phos::Digit>>{InputSpec{"phosdigits", "PHS", "DIGITS"}, "PHOSDigit"},
+                                  BranchDefinition<std::vector<o2::phos::TriggerRecord>>{InputSpec{"phosdigitstrigrec", "PHS", "DIGITTRIGREC"}, "PHOSDigitTrigRecords"})();
+  }
 }
 
 } // namespace phos

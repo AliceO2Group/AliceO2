@@ -73,7 +73,7 @@ class AbstractRefAccessor
   template <typename U>
   auto getSpan(int src) const
   {
-    return gsl::span<const U>(reinterpret_cast<const U*>(getPtr(src, 0)), getSize(src));
+    return getSize(src) ? gsl::span<const U>(reinterpret_cast<const U*>(getPtr(src, 0)), getSize(src)) : gsl::span<const U>();
   }
 
   size_t getSize(int src) const

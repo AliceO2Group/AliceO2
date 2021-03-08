@@ -16,8 +16,7 @@ o2_add_library(ZDCSimulation
 				     O2::DetectorsRaw O2::Headers)
 
 o2_target_root_dictionary(ZDCSimulation
-                          HEADERS include/ZDCSimulation/Hit.h
-                                  include/ZDCSimulation/Digitizer.h
+                          HEADERS include/ZDCSimulation/Digitizer.h
                                   include/ZDCSimulation/Detector.h
 				  include/ZDCSimulation/SimCondition.h
 				  include/ZDCSimulation/ZDCSimParam.h

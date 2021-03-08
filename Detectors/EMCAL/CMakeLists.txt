@@ -11,6 +11,7 @@
 add_subdirectory(base)
 add_subdirectory(simulation)
 add_subdirectory(calib)
+add_subdirectory(calibration)
 add_subdirectory(testsimulation)
 add_subdirectory(reconstruction)
 add_subdirectory(workflow)

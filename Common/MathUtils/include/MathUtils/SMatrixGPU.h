@@ -259,6 +259,14 @@ struct meta_matrix_dot<0> {
 
 namespace row_offsets_utils
 {
+template <unsigned int D>
+struct proxy_offset {
+  static constexpr int off0(int i) { return i == 0 ? 0 : off0(i - 1) + i; }
+  static constexpr int off2(int i, int j) { return j < i ? off0(i) + j : off0(j) + i; }
+  static constexpr int off1(int i) { return off2(i / D, i % D); }
+  int operator()(int i) const { return off1(i); }
+};
+
 template <int...>
 struct indices {
 };
@@ -301,7 +309,7 @@ class MatRepSymGPU
 {
  public:
   typedef T value_type;
-  GPUdi() MatRepSymGPU(){};
+  GPUdDefault() MatRepSymGPU() = default;
   GPUdi() T& operator()(unsigned int i, unsigned int j)
   {
     return mArray[offset(i, j)];
@@ -341,8 +349,9 @@ class MatRepSymGPU
 
   GPUdi() MatRepSymGPU<T, D>& operator=(const MatRepSymGPU& rhs)
   {
-    for (unsigned int i = 0; i < kSize; ++i)
+    for (unsigned int i = 0; i < kSize; ++i) {
       mArray[i] = rhs.Array()[i];
+    }
     return *this;
   }
 
@@ -352,13 +361,10 @@ class MatRepSymGPU
     kSize = D * (D + 1) / 2 // rows*columns
   };
 
-  static constexpr int off0(int i) { return i == 0 ? 0 : off0(i - 1) + i; }
-  static constexpr int off2(int i, int j) { return j < i ? off0(i) + j : off0(j) + i; }
-  static constexpr int off1(int i) { return off2(i / D, i % D); }
-
   static GPUdi() int off(int i)
   {
-    static constexpr auto v = row_offsets_utils::make<D * D>(off1);
+    row_offsets_utils::proxy_offset<D> proxy;
+    static constexpr auto v = row_offsets_utils::make<D * D>(proxy);
     return v[i];
   }
 
@@ -377,7 +383,7 @@ class MatRepStdGPU
 {
  public:
   typedef T value_type;
-  GPUdi() MatRepStdGPU(){};
+  GPUdDefault() MatRepStdGPU() = default;
   GPUdi() const T& operator()(unsigned int i, unsigned int j) const
   {
     return mArray[i * D2 + j];
@@ -395,8 +401,9 @@ class MatRepStdGPU
   template <class R>
   GPUdi() MatRepStdGPU<T, D1, D2>& operator=(const R& rhs)
   {
-    for (unsigned int i = 0; i < kSize; ++i)
+    for (unsigned int i = 0; i < kSize; ++i) {
       mArray[i] = rhs[i];
+    }
     return *this;
   }
   template <class R>
@@ -430,7 +437,7 @@ class Expr
 {
  public:
   typedef T value_type;
-  GPUd() Expr(const ExprType& rhs) : mRhs(rhs) {}
+  GPUd() Expr(const ExprType& rhs) : mRhs(rhs) {} // NOLINT: False positive
   GPUd() ~Expr() {}
   GPUdi() T apply(unsigned int i) const
   {
@@ -462,7 +469,7 @@ class SMatrixGPU
   typedef R rep_type;
   typedef T* iterator;
   typedef const T* const_iterator;
-  GPUd() SMatrixGPU(){};
+  GPUdDefault() SMatrixGPU() = default;
   GPUdi() SMatrixGPU(SMatrixNoInit) {}
   GPUd() SMatrixGPU(SMatrixIdentity);
   GPUd() SMatrixGPU(const SMatrixGPU<T, D1, D2, R>& rhs);
@@ -524,14 +531,17 @@ class SMatrixGPU
 template <class T, unsigned int D1, unsigned int D2, class R>
 GPUdi() SMatrixGPU<T, D1, D2, R>::SMatrixGPU(SMatrixIdentity)
 {
-  for (unsigned int i = 0; i < R::kSize; ++i)
+  for (unsigned int i = 0; i < R::kSize; ++i) {
     mRep.Array()[i] = 0;
+  }
   if (D1 <= D2) {
-    for (unsigned int i = 0; i < D1; ++i)
+    for (unsigned int i = 0; i < D1; ++i) {
       mRep[i * D2 + i] = 1;
+    }
   } else {
-    for (unsigned int i = 0; i < D2; ++i)
+    for (unsigned int i = 0; i < D2; ++i) {
       mRep[i * D2 + i] = 1;
+    }
   }
 }
 
@@ -566,22 +576,25 @@ struct Assign {
   {
     if (!rhs.IsInUse(lhs.begin())) {
       unsigned int l = 0;
-      for (unsigned int i = 0; i < D1; ++i)
+      for (unsigned int i = 0; i < D1; ++i) {
         for (unsigned int j = 0; j < D2; ++j) {
           lhs.mRep[l] = rhs(i, j);
           l++;
         }
+      }
     } else {
       T tmp[D1 * D2];
       unsigned int l = 0;
-      for (unsigned int i = 0; i < D1; ++i)
+      for (unsigned int i = 0; i < D1; ++i) {
         for (unsigned int j = 0; j < D2; ++j) {
           tmp[l] = rhs(i, j);
           l++;
         }
+      }
 
-      for (unsigned int i = 0; i < D1 * D2; ++i)
+      for (unsigned int i = 0; i < D1 * D2; ++i) {
         lhs.mRep[i] = tmp[i];
+      }
     }
   }
 };
@@ -594,22 +607,25 @@ struct Assign<T, D1, D2, A, MatRepSymGPU<T, D1>, MatRepSymGPU<T, D1>> {
   {
     if (!rhs.IsInUse(lhs.begin())) {
       unsigned int l = 0;
-      for (unsigned int i = 0; i < D1; ++i)
+      for (unsigned int i = 0; i < D1; ++i) {
         // storage of symmetric matrix is in lower block
         for (unsigned int j = 0; j <= i; ++j) {
           lhs.mRep.Array()[l] = rhs(i, j);
           l++;
         }
+      }
     } else {
       T tmp[MatRepSymGPU<T, D1>::kSize];
       unsigned int l = 0;
-      for (unsigned int i = 0; i < D1; ++i)
+      for (unsigned int i = 0; i < D1; ++i) {
         for (unsigned int j = 0; j <= i; ++j) {
           tmp[l] = rhs(i, j);
           l++;
         }
-      for (unsigned int i = 0; i < MatRepSymGPU<T, D1>::kSize; ++i)
+      }
+      for (unsigned int i = 0; i < MatRepSymGPU<T, D1>::kSize; ++i) {
         lhs.mRep.Array()[i] = tmp[i];
+      }
     }
   }
 };
@@ -631,11 +647,12 @@ struct AssignSym {
   GPUd() static void Evaluate(SMatrixGPU<T, D, D, MatRepSymGPU<T, D>>& lhs, const Expr<A, T, D, D, R>& rhs)
   {
     unsigned int l = 0;
-    for (unsigned int i = 0; i < D; ++i)
+    for (unsigned int i = 0; i < D; ++i) {
       for (unsigned int j = 0; j <= i; ++j) {
         lhs.mRep.Array()[l] = rhs(i, j);
         l++;
       }
+    }
   }
 
   // assign the symmetric matrix from a general matrix
@@ -643,11 +660,12 @@ struct AssignSym {
   GPUd() static void Evaluate(SMatrixGPU<T, D, D, MatRepSymGPU<T, D>>& lhs, const SMatrixGPU<T, D, D, R>& rhs)
   {
     unsigned int l = 0;
-    for (unsigned int i = 0; i < D; ++i)
+    for (unsigned int i = 0; i < D; ++i) {
       for (unsigned int j = 0; j <= i; ++j) {
         lhs.mRep.Array()[l] = rhs(i, j);
         l++;
       }
+    }
   }
 };
 
@@ -700,7 +718,7 @@ class MatrixMulOpGPU
 {
  public:
   GPUd() MatrixMulOpGPU(const MatrixA& lhs, const MatrixB& rhs) : lhs_(lhs), rhs_(rhs) {}
-  GPUd() ~MatrixMulOpGPU() {}
+  GPUdDefault() ~MatrixMulOpGPU() = default;
   GPUdi() T apply(unsigned int i) const
   {
     return meta_matrix_dot<D - 1>::f(lhs_, rhs_, i);
@@ -747,8 +765,9 @@ class Inverter
     }
 
     int ifail = DfinvMatrix(rhs, work);
-    if (ifail == 0)
+    if (ifail == 0) {
       return true;
+    }
     return false;
   }
 
@@ -758,8 +777,9 @@ class Inverter
   {
     int ifail{0};
     InvertBunchKaufman(rhs, ifail);
-    if (!ifail)
+    if (!ifail) {
       return true;
+    }
     return false;
   }
 
@@ -809,8 +829,9 @@ GPUdi() void Inverter<D, N>::InvertBunchKaufman(MatRepSymGPU<T, D>& rhs, int& if
   // this constant could be set to zero but then the algorithm
   // doesn't neccessarily detect that a matrix is singular
 
-  for (i = 0; i < nrow; i++)
+  for (i = 0; i < nrow; i++) {
     piv[i] = i + 1;
+  }
 
   ifail = 0;
 
@@ -824,11 +845,12 @@ GPUdi() void Inverter<D, N>::InvertBunchKaufman(MatRepSymGPU<T, D>& rhs, int& if
     lambda = 0; // compute lambda = max of A(j+1:n,j)
     pivrow = j + 1;
     ip = rhs.Array() + (j + 1) * j / 2 + j - 1;
-    for (i = j + 1; i <= nrow; ip += i++)
+    for (i = j + 1; i <= nrow; ip += i++) {
       if (o2::gpu::GPUCommonMath::Abs(*ip) > lambda) {
         lambda = o2::gpu::GPUCommonMath::Abs(*ip);
         pivrow = i;
       }
+    }
 
     if (lambda == 0) {
       if (*mjj == 0) {
@@ -845,18 +867,20 @@ GPUdi() void Inverter<D, N>::InvertBunchKaufman(MatRepSymGPU<T, D>& rhs, int& if
         sigma = 0; // compute sigma = max A(pivrow, j:pivrow-1)
         ip = rhs.Array() + pivrow * (pivrow - 1) / 2 + j - 1;
         for (k = j; k < pivrow; k++) {
-          if (o2::gpu::GPUCommonMath::Abs(*ip) > sigma)
+          if (o2::gpu::GPUCommonMath::Abs(*ip) > sigma) {
             sigma = o2::gpu::GPUCommonMath::Abs(*ip);
+          }
           ip++;
         }
         // sigma cannot be zero because it is at least lambda which is not zero
         if (o2::gpu::GPUCommonMath::Abs(*mjj) >= alpha * lambda * (lambda / sigma)) {
           s = 1;
           pivrow = j;
-        } else if (o2::gpu::GPUCommonMath::Abs(*(rhs.Array() + pivrow * (pivrow - 1) / 2 + pivrow - 1)) >= alpha * sigma)
+        } else if (o2::gpu::GPUCommonMath::Abs(*(rhs.Array() + pivrow * (pivrow - 1) / 2 + pivrow - 1)) >= alpha * sigma) {
           s = 1;
-        else
+        } else {
           s = 2;
+        }
       }
       if (pivrow == j) // no permutation neccessary
       {
@@ -880,8 +904,9 @@ GPUdi() void Inverter<D, N>::InvertBunchKaufman(MatRepSymGPU<T, D>& rhs, int& if
         }
         // update L
         ip = rhs.Array() + (j + 1) * j / 2 + j - 1;
-        for (i = j + 1; i <= nrow; ip += i++)
+        for (i = j + 1; i <= nrow; ip += i++) {
           *ip *= static_cast<T>(temp2);
+        }
       } else if (s == 1) // 1x1 pivot
       {
         piv[j - 1] = pivrow;
@@ -924,8 +949,9 @@ GPUdi() void Inverter<D, N>::InvertBunchKaufman(MatRepSymGPU<T, D>& rhs, int& if
         }
         // update L
         ip = rhs.Array() + (j + 1) * j / 2 + j - 1;
-        for (i = j + 1; i <= nrow; ip += i++)
+        for (i = j + 1; i <= nrow; ip += i++) {
           *ip *= static_cast<T>(temp2);
+        }
       } else // s=2, ie use a 2x2 pivot
       {
         piv[j - 1] = -pivrow;
@@ -1009,8 +1035,9 @@ GPUdi() void Inverter<D, N>::InvertBunchKaufman(MatRepSymGPU<T, D>& rhs, int& if
     if (*mjj == 0) {
       ifail = 1;
       return;
-    } else
+    } else {
       *mjj = 1.0f / *mjj;
+    }
   } // end of last pivot code
 
   // computing the inverse from the factorization
@@ -1023,67 +1050,81 @@ GPUdi() void Inverter<D, N>::InvertBunchKaufman(MatRepSymGPU<T, D>& rhs, int& if
       s = 1;
       if (j < nrow) {
         ip = rhs.Array() + (j + 1) * j / 2 + j - 1;
-        for (i = 0; i < nrow - j; ip += 1 + j + i++)
+        for (i = 0; i < nrow - j; ip += 1 + j + i++) {
           x[i] = *ip;
+        }
         for (i = j + 1; i <= nrow; i++) {
           temp2 = 0;
           ip = rhs.Array() + i * (i - 1) / 2 + j;
-          for (k = 0; k <= i - j - 1; k++)
+          for (k = 0; k <= i - j - 1; k++) {
             temp2 += *ip++ * x[k];
-          for (ip += i - 1; k < nrow - j; ip += 1 + j + k++)
+          }
+          for (ip += i - 1; k < nrow - j; ip += 1 + j + k++) {
             temp2 += *ip * x[k];
+          }
           *(rhs.Array() + i * (i - 1) / 2 + j - 1) = static_cast<T>(-temp2);
         }
         temp2 = 0;
         ip = rhs.Array() + (j + 1) * j / 2 + j - 1;
-        for (k = 0; k < nrow - j; ip += 1 + j + k++)
+        for (k = 0; k < nrow - j; ip += 1 + j + k++) {
           temp2 += x[k] * *ip;
+        }
         *mjj -= static_cast<T>(temp2);
       }
     } else //2x2 pivot, compute columns j and j-1 of the inverse
     {
-      if (piv[j - 1] != 0)
-        // printf("error in piv %lf \n", piv[j - 1]);
-        s = 2;
+      if (piv[j - 1] != 0) {
+        printf("error in piv %lf \n", piv[j - 1]);
+      }
+      s = 2;
       if (j < nrow) {
         ip = rhs.Array() + (j + 1) * j / 2 + j - 1;
-        for (i = 0; i < nrow - j; ip += 1 + j + i++)
+        for (i = 0; i < nrow - j; ip += 1 + j + i++) {
           x[i] = *ip;
+        }
         for (i = j + 1; i <= nrow; i++) {
           temp2 = 0;
           ip = rhs.Array() + i * (i - 1) / 2 + j;
-          for (k = 0; k <= i - j - 1; k++)
+          for (k = 0; k <= i - j - 1; k++) {
             temp2 += *ip++ * x[k];
-          for (ip += i - 1; k < nrow - j; ip += 1 + j + k++)
+          }
+          for (ip += i - 1; k < nrow - j; ip += 1 + j + k++) {
             temp2 += *ip * x[k];
+          }
           *(rhs.Array() + i * (i - 1) / 2 + j - 1) = static_cast<T>(-temp2);
         }
         temp2 = 0;
         ip = rhs.Array() + (j + 1) * j / 2 + j - 1;
-        for (k = 0; k < nrow - j; ip += 1 + j + k++)
+        for (k = 0; k < nrow - j; ip += 1 + j + k++) {
           temp2 += x[k] * *ip;
+        }
         *mjj -= static_cast<T>(temp2);
         temp2 = 0;
         ip = rhs.Array() + (j + 1) * j / 2 + j - 2;
-        for (i = j + 1; i <= nrow; ip += i++)
+        for (i = j + 1; i <= nrow; ip += i++) {
           temp2 += *ip * *(ip + 1);
+        }
         *(mjj - 1) -= static_cast<T>(temp2);
         ip = rhs.Array() + (j + 1) * j / 2 + j - 2;
-        for (i = 0; i < nrow - j; ip += 1 + j + i++)
+        for (i = 0; i < nrow - j; ip += 1 + j + i++) {
           x[i] = *ip;
+        }
         for (i = j + 1; i <= nrow; i++) {
           temp2 = 0;
           ip = rhs.Array() + i * (i - 1) / 2 + j;
-          for (k = 0; k <= i - j - 1; k++)
+          for (k = 0; k <= i - j - 1; k++) {
             temp2 += *ip++ * x[k];
-          for (ip += i - 1; k < nrow - j; ip += 1 + j + k++)
+          }
+          for (ip += i - 1; k < nrow - j; ip += 1 + j + k++) {
             temp2 += *ip * x[k];
+          }
           *(rhs.Array() + i * (i - 1) / 2 + j - 2) = static_cast<T>(-temp2);
         }
         temp2 = 0;
         ip = rhs.Array() + (j + 1) * j / 2 + j - 2;
-        for (k = 0; k < nrow - j; ip += 1 + j + k++)
+        for (k = 0; k < nrow - j; ip += 1 + j + k++) {
           temp2 += x[k] * *ip;
+        }
         *(mjj - j) -= static_cast<T>(temp2);
       }
     }
@@ -1124,8 +1165,9 @@ template <unsigned int D, unsigned int n>
 template <class T>
 GPUdi() int Inverter<D, n>::DfactMatrix(MatRepStdGPU<T, D, n>& rhs, T& det, unsigned int* ir)
 {
-  if (D != n)
+  if (D != n) {
     return -1;
+  }
 
   int ifail, jfail;
   typedef T* mIter;
@@ -1198,12 +1240,14 @@ GPUdi() int Inverter<D, n>::DfactMatrix(MatRepStdGPU<T, D, n>& rhs, T& det, unsi
     t = (o2::gpu::GPUCommonMath::Abs(det));
     if (t < g1) {
       det = 0.0;
-      if (jfail == jrange)
+      if (jfail == jrange) {
         jfail = junder;
+      }
     } else if (t > g2) {
       det = 1.0;
-      if (jfail == jrange)
+      if (jfail == jrange) {
         jfail = jover;
+      }
     }
     if (j != n) {
       mIter mk = mj + n;
@@ -1234,10 +1278,12 @@ GPUdi() int Inverter<D, n>::DfactMatrix(MatRepStdGPU<T, D, n>& rhs, T& det, unsi
     mj += n;
     mjj += (n + 1);
   }
-  if (nxch % 2 == 1)
+  if (nxch % 2 == 1) {
     det = -det;
-  if (jfail != jrange)
+  }
+  if (jfail != jrange) {
     det = 0.0;
+  }
   ir[n] = nxch;
   return 0;
 }
@@ -1328,8 +1374,9 @@ GPUdi() int Inverter<D, n>::DfinvMatrix(MatRepStdGPU<T, D, n>& rhs, unsigned int
     mii += (n + 1);
   }
   unsigned int nxch = ir[n];
-  if (nxch == 0)
+  if (nxch == 0) {
     return 0;
+  }
   for (unsigned int mm = 1; mm <= nxch; mm++) {
     unsigned int k = nxch - mm + 1;
     int ij = ir[k];
@@ -1375,7 +1422,7 @@ class TransposeOpGPU
  public:
   GPUd() TransposeOpGPU(const Matrix& rhs) : mRhs(rhs) {}
 
-  ~TransposeOpGPU() {}
+  GPUdDefault() ~TransposeOpGPU() = default;
 
   GPUdi() T apply(unsigned int i) const
   {

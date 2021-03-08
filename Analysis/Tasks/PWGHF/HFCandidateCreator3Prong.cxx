@@ -68,9 +68,9 @@ struct HFCandidateCreator3Prong {
 
     // loop over triplets of track indices
     for (const auto& rowTrackIndexProng3 : rowsTrackIndexProng3) {
-      auto trackParVar0 = getTrackParCov(rowTrackIndexProng3.index0());
-      auto trackParVar1 = getTrackParCov(rowTrackIndexProng3.index1());
-      auto trackParVar2 = getTrackParCov(rowTrackIndexProng3.index2());
+      auto trackParVar0 = getTrackParCov(rowTrackIndexProng3.index0_as<aod::BigTracks>());
+      auto trackParVar1 = getTrackParCov(rowTrackIndexProng3.index1_as<aod::BigTracks>());
+      auto trackParVar2 = getTrackParCov(rowTrackIndexProng3.index2_as<aod::BigTracks>());
       auto collision = rowTrackIndexProng3.index0().collision();
 
       // reconstruct the 3-prong secondary vertex
@@ -247,11 +247,11 @@ struct HFCandidateCreator3ProngMC {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<HFCandidateCreator3Prong>("hf-cand-creator-3prong"),
-    adaptAnalysisTask<HFCandidateCreator3ProngExpressions>("hf-cand-creator-3prong-expressions")};
+    adaptAnalysisTask<HFCandidateCreator3Prong>(cfgc, "hf-cand-creator-3prong"),
+    adaptAnalysisTask<HFCandidateCreator3ProngExpressions>(cfgc, "hf-cand-creator-3prong-expressions")};
   const bool doMC = cfgc.options().get<bool>("doMC");
   if (doMC) {
-    workflow.push_back(adaptAnalysisTask<HFCandidateCreator3ProngMC>("hf-cand-creator-3prong-mc"));
+    workflow.push_back(adaptAnalysisTask<HFCandidateCreator3ProngMC>(cfgc, "hf-cand-creator-3prong-mc"));
   }
   return workflow;
 }

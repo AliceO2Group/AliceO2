@@ -65,6 +65,8 @@ std::shared_ptr<arrow::DataType> concreteArrowType(atype::type type)
       return arrow::int8();
     case atype::INT16:
       return arrow::int16();
+    case atype::UINT16:
+      return arrow::uint16();
     case atype::INT32:
       return arrow::int32();
     case atype::INT64:
@@ -455,6 +457,15 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
       }
       if (content.index() == 5) {
         return gandiva::TreeExprBuilder::MakeLiteral(std::get<int64_t>(content));
+      }
+      if (content.index() == 6) {
+        return gandiva::TreeExprBuilder::MakeLiteral(std::get<int16_t>(content));
+      }
+      if (content.index() == 7) {
+        return gandiva::TreeExprBuilder::MakeLiteral(std::get<uint16_t>(content));
+      }
+      if (content.index() == 8) {
+        return gandiva::TreeExprBuilder::MakeLiteral(std::get<int8_t>(content));
       }
       throw runtime_error("Malformed LiteralNode");
     }

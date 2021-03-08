@@ -35,7 +35,7 @@ struct Bar1 : public Base {
   double b1 = 0.;
 };
 
-struct GloIdx : public AbstractRef<25, 4, 3> {
+struct GloIdx : public AbstractRef<25, 5, 2> {
   enum Source : uint8_t { // provenance of the
     ID0,
     ID1,
@@ -43,7 +43,7 @@ struct GloIdx : public AbstractRef<25, 4, 3> {
     ID3,
     NSources
   };
-  using AbstractRef<25, 4, 3>::AbstractRef;
+  using AbstractRef<25, 5, 2>::AbstractRef;
 };
 
 // basic AbstractRefAccessor

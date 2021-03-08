@@ -56,6 +56,16 @@ struct MatBudget : MatCell {
     length *= scale;
   }
 
+  GPUd() float getXRho() const
+  {
+    return meanRho * length;
+  }
+
+  GPUd() float getXRho(int signCorr) const
+  {
+    return meanRho * (signCorr < 0 ? -length : length);
+  }
+
   ClassDefNV(MatBudget, 1);
 };
 

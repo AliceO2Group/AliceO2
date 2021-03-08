@@ -177,6 +177,7 @@ taskwrapper() {
              -e \"error while setting up workflow\" \
              -e \"bus error\"                       \
              -e \"Assertion.*failed\"               \
+             -e \"Fatal in\"                        \
              -e \"There was a crash.\""
       
     grepcommand="grep -H ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} >> encountered_exceptions_list 2>/dev/null"
@@ -192,6 +193,10 @@ taskwrapper() {
     # basically --> send kill to all children
     if [ "$RC" != "" -a "$RC" != "0" ]; then
       echo "Detected critical problem in logfile $logfile"
+      if [ "${JOBUTILS_PRINT_ON_ERROR}" ]; then
+        grepcommand="grep -H -A 2 -B 2 ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES}"
+        eval ${grepcommand}
+      fi
 
       # this gives some possibility to customize the wrapper
       # and do some special task at the start. The hook takes 2 arguments:
@@ -219,7 +224,7 @@ taskwrapper() {
     if [ "${JOBUTILS_MONITORMEM}" ]; then
       if [ "${JOBUTILS_INTERNAL_DPL_SESSION}" ]; then
         MAX_FMQ_SHM=${MAX_FMQ_SHM:-0}
-        text=$(timeout 1 fairmq-shmmonitor --interval 100 -v -s ${JOBUTILS_INTERNAL_DPL_SESSION})
+        text=$(fairmq-shmmonitor -v -s ${JOBUTILS_INTERNAL_DPL_SESSION})
         line=$(echo ${text} | tr '[' '\n[' | grep "^0" | tail -n1)
         CURRENT_FMQ_SHM=$(echo ${line} | sed 's/.*used://g')
         # echo "current shm ${CURRENT_FMQ_SHM}"
@@ -270,14 +275,14 @@ taskwrapper() {
         # echo "CPU last time window ${p} : ${thisCPU[$p]}"
       done
 
-      echo "${line}"
-      echo "${cpucounter} totalCPU = ${totalCPU} -- without limitation ${totalCPU_unlimited}"
+      # echo "${line}"
+      # echo "${cpucounter} totalCPU = ${totalCPU} -- without limitation ${totalCPU_unlimited}"
       # We can check if the total load is above a resource limit
       # And take corrective actions if we extend by 10%
       limitPIDs=""
       unset waslimited
       if [ ${JOBUTILS_LIMITLOAD} ]; then
-        if (( $(echo "${totalCPU_unlimited} > 1.1*${JOBUTILS_LIMITLOAD}" | bc -l) )); then
+        if (( $(echo "${totalCPU_unlimited} > 1.1*${JOBUTILS_LIMITLOAD}" | bc -l 2>/dev/null) )); then
           # we reduce each pid proportionally for the time until the next check and record the reduction factor in place
           oldreduction=${reduction_factor}
           reduction_factor=$(awk -v limit="${JOBUTILS_LIMITLOAD}" -v cur="${totalCPU_unlimited}" 'BEGIN{ print limit/cur;}')
@@ -303,7 +308,7 @@ taskwrapper() {
 
       let cpucounter=cpucounter+1
       # our condition for inactive
-      if (( $(echo "${totalCPU} < 5" | bc -l) )); then
+      if (( $(echo "${totalCPU} < 5" | bc -l 2> /dev/null) )); then
         let inactivitycounter=inactivitycounter+JOBUTILS_WRAPPER_SLEEP
       else
         inactivitycounter=0

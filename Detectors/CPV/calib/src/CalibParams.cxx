@@ -28,7 +28,7 @@ CalibParams::CalibParams(short /*dummy*/)
 bool CalibParams::setGain(TH2* h, short module)
 {
   const short MAXX = 128,
-              MAXZ = 56;
+              MAXZ = 60;
   if (!h) {
     LOG(ERROR) << "no input histogam";
     return false;

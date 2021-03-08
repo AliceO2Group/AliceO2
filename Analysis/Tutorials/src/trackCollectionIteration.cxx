@@ -42,8 +42,8 @@ struct ATask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("track-collection-iteration-tutorial")};
+    adaptAnalysisTask<ATask>(cfgc, "track-collection-iteration-tutorial")};
 }

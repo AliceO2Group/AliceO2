@@ -22,3 +22,19 @@ if(BUILD_TESTING)
     PUBLIC_LINK_LIBRARIES O2::MCHConditions)
 endif()
 
+o2_add_executable(dcs-ccdb
+                  COMPONENT_NAME mch
+                  SOURCES src/dcs-ccdb.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsDCS O2::MCHConditions O2::CCDB)
+
+o2_add_executable(mch-dcs-processor-workflow
+                  COMPONENT_NAME calibration
+                  SOURCES workflow/dcs-processor-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsDCS O2::MCHConditions)
+
+
+o2_add_executable(mch-dcs-sim-workflow
+                  COMPONENT_NAME calibration
+                  SOURCES workflow/dcs-sim-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::DCStestWorkflow O2::MCHConditions)
+

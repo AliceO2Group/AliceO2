@@ -9,5 +9,15 @@
 # submit itself to any jurisdiction.
 
 o2_add_test_root_macro(
-  makeCCDBEntryForDCS.C
+  makeTOFCCDBEntryForDCS.C
   PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB)
+
+o2_add_test_root_macro(
+  readTOFDCSentries.C
+  PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB)
+
+install(
+  FILES makeTOFCCDBEntryForDCS.C
+  readTOFDCSentries.C
+  DESTINATION share/macro/)
+

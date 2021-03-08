@@ -34,6 +34,22 @@ namespace raw
 
 using IR = o2::InteractionRecord;
 
+struct ReaderInp {
+  std::string inifile{};
+  std::string rawChannelConfig{};
+  size_t spSize = 1024L * 1024L;
+  size_t bufferSize = 1024L * 1024L;
+  int loop = 1;
+  uint32_t delay_us = 0;
+  uint32_t errMap = 0xffffffff;
+  uint32_t minTF = 0;
+  uint32_t maxTF = 0xffffffff;
+  bool partPerSP = true;
+  bool cache = false;
+  bool autodetectTF0 = false;
+  bool preferCalcTF = false;
+};
+
 class RawFileReader
 {
   using LinkSpec_t = uint64_t; // = (origin<<32) | LinkSubSpec
@@ -52,6 +68,8 @@ class RawFileReader
                   ErrWrongNumberOfTF,
                   ErrHBFJump,
                   ErrNoSuperPageForTF,
+                  ErrNoSOX,
+                  ErrMismatchTF,
                   NErrorsDefined
   };
 
@@ -61,15 +79,17 @@ class RawFileReader
 
   static constexpr std::string_view ErrNames[] = {
     // long names for error codes
-    "Wrong RDH.packetCounter increment",     // ErrWrongPacketCounterIncrement
-    "Wrong RDH.pageCnt increment",           // ErrWrongPageCounterIncrement
-    "RDH.stop set of 1st HBF page",          // ErrHBFStopOnFirstPage
-    "New HBF starts w/o closing old one",    // ErrHBFNoStop
-    "Data does not start with TF/HBF",       // ErrWrongFirstPage
-    "Number of HBFs per TF not as expected", // ErrWrongHBFsPerTF
-    "Number of TFs is less than expected",   // ErrWrongNumberOfTF
-    "Wrong HBF orbit increment",             // ErrHBFJump
-    "TF does not start by new superpage"     // ErrNoSuperPageForTF
+    "Wrong RDH.packetCounter increment",                   // ErrWrongPacketCounterIncrement
+    "Wrong RDH.pageCnt increment",                         // ErrWrongPageCounterIncrement
+    "RDH.stop set of 1st HBF page",                        // ErrHBFStopOnFirstPage
+    "New HBF starts w/o closing old one",                  // ErrHBFNoStop
+    "Data does not start with TF/HBF",                     // ErrWrongFirstPage
+    "Number of HBFs per TF not as expected",               // ErrWrongHBFsPerTF
+    "Number of TFs is less than expected",                 // ErrWrongNumberOfTF
+    "Wrong HBF orbit increment",                           // ErrHBFJump
+    "TF does not start by new superpage",                  // ErrNoSuperPageForTF
+    "No SOX found on 1st page",                            // ErrNoSOX
+    "Mismatch between flagged and calculated new TF start" // ErrMismatchTF
   };
   static constexpr std::string_view ErrNamesShort[] = {
     // short names for error codes
@@ -81,7 +101,9 @@ class RawFileReader
     "hbf-per-tf",       // ErrWrongHBFsPerTF
     "tf-per-link",      // ErrWrongNumberOfTF
     "hbf-jump",         // ErrHBFJump
-    "no-spage-for-tf"   // ErrNoSuperPageForTF
+    "no-spage-for-tf",  // ErrNoSuperPageForTF
+    "no-sox",           // ErrNoSOX
+    "tf-start-mismatch" // ErrMismatchTF
   };
   static constexpr bool ErrCheckDefaults[] = {
     true,  // ErrWrongPacketCounterIncrement
@@ -92,7 +114,9 @@ class RawFileReader
     true,  // ErrWrongHBFsPerTF
     true,  // ErrWrongNumberOfTF
     true,  // ErrHBFJump
-    false  // ErrNoSuperPageForTF
+    false, // ErrNoSuperPageForTF
+    true,  // ErrNoSOX
+    true,  // ErrMismatchTF
   };
   //================================================================================
 
@@ -115,12 +139,12 @@ class RawFileReader
            StartHB = 0x1 << 1,
            StartSP = 0x1 << 2,
            EndHB = 0x1 << 3 };
-    size_t offset = 0;   //! where data of the block starts
-    uint32_t size = 0;   //! block size
-    uint32_t tfID = 0;   //! tf counter (from 0)
-    IR ir = 0;           //! ir starting the block
-    uint16_t fileID = 0; //! file id where the block is located
-    uint8_t flags = 0;   //! different flags
+    size_t offset = 0;                 //! where data of the block starts
+    uint32_t size = 0;                 //! block size
+    uint32_t tfID = 0;                 //! tf counter (from 0)
+    IR ir = 0;                         //! ir starting the block
+    uint16_t fileID = 0;               //! file id where the block is located
+    uint8_t flags = 0;                 //! different flags
     std::unique_ptr<char[]> dataCache; //! optional cache for fast access
     LinkBlock() = default;
     LinkBlock(int fid, size_t offs) : offset(offs), fileID(fid) {}
@@ -138,7 +162,8 @@ class RawFileReader
 
   //=====================================================================================
   struct LinkData {
-    RDHAny rdhl;               //! RDH with the running info of the last RDH seen
+    RDHAny rdhl; //! RDH with the running info of the last RDH seen
+    o2::InteractionRecord irOfSOX{};
     LinkSpec_t spec = 0;       //! Link subspec augmented by its origin
     LinkSubSpec_t subspec = 0; //! subspec according to DataDistribution
     uint32_t nTimeFrames = 0;  //!
@@ -244,7 +269,10 @@ class RawFileReader
 
   void imposeFirstTF(uint32_t orbit, uint16_t bc);
   void setTFAutodetect(FirstTFDetection v) { mFirstTFAutodetect = v; }
+  void setPreferCalculatedTFStart(bool v) { mPreferCalculatedTFStart = v; }
   FirstTFDetection getTFAutodetect() const { return mFirstTFAutodetect; }
+
+  void setIROfSOX(const o2::InteractionRecord& ir);
 
   static o2::header::DataOrigin getDataOrigin(const std::string& ors);
   static o2::header::DataDescription getDataDescription(const std::string& ors);
@@ -260,37 +288,35 @@ class RawFileReader
   static constexpr o2::header::DataOrigin DEFDataOrigin = o2::header::gDataOriginFLP;
   static constexpr o2::header::DataDescription DEFDataDescription = o2::header::gDataDescriptionRawData;
   static constexpr ReadoutCardType DEFCardType = CRU;
-
   o2::header::DataOrigin mDefDataOrigin = DEFDataOrigin;                //!
   o2::header::DataDescription mDefDataDescription = DEFDataDescription; //!
   ReadoutCardType mDefCardType = CRU;                                   //!
-
-  std::vector<std::string> mFileNames;               //! input file names
-  std::vector<FILE*> mFiles;                         //! input file handlers
-  std::vector<std::unique_ptr<char[]>> mFileBuffers; //! buffers for input files
-  std::vector<OrigDescCard> mDataSpecs;              //! data origin and description for every input file + readout card type
+  std::vector<std::string> mFileNames;                                  //! input file names
+  std::vector<FILE*> mFiles;                                            //! input file handlers
+  std::vector<std::unique_ptr<char[]>> mFileBuffers;                    //! buffers for input files
+  std::vector<OrigDescCard> mDataSpecs;                                 //! data origin and description for every input file + readout card type
   bool mInitDone = false;
   bool mEmpty = true;
-  std::unordered_map<LinkSpec_t, int> mLinkEntries; //! mapping between RDH specs and link entry in the mLinksData
-  std::vector<LinkData> mLinksData;                 //! info on links data in the files
-  std::vector<int> mOrderedIDs;                     //! links entries ordered in Specs
-  uint32_t mMaxTFToRead = 0xffffffff;               //! max TFs to process
-  uint32_t mNTimeFrames = 0;                        //! total number of time frames
-  uint32_t mNextTF2Read = 0;                        //! next TF to read
-  uint32_t mOrbitMin = 0xffffffff;                  //! lowest orbit seen by any link
-  uint32_t mOrbitMax = 0;                           //! highest orbit seen by any link
-  size_t mBufferSize = 5 * 1024UL;                  //! size of the buffer for files reading
-  int mNominalSPageSize = 0x1 << 20;                //! expected super-page size in B
-  int mCurrentFileID = 0;                           //! current file being processed
-  long int mPosInFile = 0;                          //! current position in the file
-  bool mMultiLinkFile = false;                      //! was > than 1 link seen in the file?
-  bool mCacheData = false;                          //! cache data to block after 1st scan (may require excessive memory, use with care)
-  uint32_t mCheckErrors = 0;                        //! mask for errors to check
+  std::unordered_map<LinkSpec_t, int> mLinkEntries;                 //! mapping between RDH specs and link entry in the mLinksData
+  std::vector<LinkData> mLinksData;                                 //! info on links data in the files
+  std::vector<int> mOrderedIDs;                                     //! links entries ordered in Specs
+  uint32_t mMaxTFToRead = 0xffffffff;                               //! max TFs to process
+  uint32_t mNTimeFrames = 0;                                        //! total number of time frames
+  uint32_t mNextTF2Read = 0;                                        //! next TF to read
+  uint32_t mOrbitMin = 0xffffffff;                                  //! lowest orbit seen by any link
+  uint32_t mOrbitMax = 0;                                           //! highest orbit seen by any link
+  size_t mBufferSize = 5 * 1024UL;                                  //! size of the buffer for files reading
+  int mNominalSPageSize = 0x1 << 20;                                //! expected super-page size in B
+  int mCurrentFileID = 0;                                           //! current file being processed
+  long int mPosInFile = 0;                                          //! current position in the file
+  bool mMultiLinkFile = false;                                      //! was > than 1 link seen in the file?
+  bool mCacheData = false;                                          //! cache data to block after 1st scan (may require excessive memory, use with care)
+  uint32_t mCheckErrors = 0;                                        //! mask for errors to check
   FirstTFDetection mFirstTFAutodetect = FirstTFDetection::Disabled; //!
+  bool mPreferCalculatedTFStart = false;                            //! prefer TFstart calculated via HBFUtils
   int mVerbosity = 0;                                               //!
   ClassDefNV(RawFileReader, 1);
 };
-
 
 } // namespace raw
 } // namespace o2

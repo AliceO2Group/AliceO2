@@ -41,6 +41,11 @@ void dumpDeviceSpec2DDS(std::ostream& out,
       if (!arg) {
         break;
       }
+      // Do not print out the driver client explicitly
+      if (strcmp(arg, "--driver-client-backend") == 0) {
+        ai++;
+        continue;
+      }
       // Do not print out channel information
       if (strcmp(arg, "--channel-config") == 0) {
         ai++;

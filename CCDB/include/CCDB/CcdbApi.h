@@ -376,7 +376,7 @@ class CcdbApi //: public DatabaseInterface
    * @param cl The TClass object describing the serialized type
    * @return raw pointer to created object
    */
-  void* extractFromLocalFile(std::string const& filename, TClass const* cl) const;
+  void* extractFromLocalFile(std::string const& filename, std::type_info const& tinfo) const;
 
   /**
    * Helper function to download binary content from alien:// storage
@@ -384,7 +384,7 @@ class CcdbApi //: public DatabaseInterface
    * @param tcl The TClass object describing the serialized type
    * @return raw pointer to created object
    */
-  void* downloadAlienContent(std::string const& fullUrl, TClass* tcl) const;
+  void* downloadAlienContent(std::string const& fullUrl, std::type_info const& tinfo) const;
 
   // initialize the TGrid (Alien connection)
   bool initTGrid() const;
@@ -392,16 +392,19 @@ class CcdbApi //: public DatabaseInterface
   bool checkAlienToken() const;
 
   /// Queries the CCDB server and navigates through possible redirects until binary content is found; Retrieves content as instance
-  /// given by TClass if that is possible. Returns nullptr if something fails...
-  void* navigateURLsAndRetrieveContent(CURL*, std::string const& url, TClass* cl, std::map<std::string, std::string>* headers) const;
+  /// given by tinfo if that is possible. Returns nullptr if something fails...
+  void* navigateURLsAndRetrieveContent(CURL*, std::string const& url, std::type_info const& tinfo, std::map<std::string, std::string>* headers) const;
 
   // helper that interprets a content chunk as TMemFile and extracts the object therefrom
-  void* interpretAsTMemFileAndExtract(char* contentptr, size_t contentsize, TClass* cl) const;
+  void* interpretAsTMemFileAndExtract(char* contentptr, size_t contentsize, std::type_info const& tinfo) const;
 
   /**
    * Initialization of CURL
    */
   void curlInit();
+
+  // convert type_info to TClass, throw on failure
+  static TClass* tinfo2TClass(std::type_info const& tinfo);
 
   /// Base URL of the CCDB (with port)
   std::string mUrl{};

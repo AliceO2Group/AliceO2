@@ -28,6 +28,7 @@ void on_connect(uv_connect_t* connection, int status)
   auto onHandshake = [client]() {
     client->flushPending();
   };
+  std::lock_guard<std::mutex> lock(client->mutex());
   client->setDPLClient(std::make_unique<WSDPLClient>(connection->handle, client->spec(), onHandshake));
   client->sendHandshake();
 }
@@ -62,6 +63,7 @@ void sendMessageToDriver(std::unique_ptr<o2::framework::WSDPLClient>& client, ch
 void WSDriverClient::setDPLClient(std::unique_ptr<WSDPLClient> client)
 {
   mClient = std::move(client);
+  mConnected = true;
 }
 
 void WSDriverClient::sendHandshake()
@@ -78,40 +80,43 @@ void WSDriverClient::tell(const char* msg, size_t s, bool flush)
 {
   static bool printed1 = false;
   static bool printed2 = false;
-  if (mClient && mClient->isConnected() && flush) {
+  if (mConnected && mClient->isHandshaken() && flush) {
     flushPending();
+    std::lock_guard<std::mutex> lock(mClientMutex);
     std::vector<uv_buf_t> outputs;
     encode_websocket_frames(outputs, msg, s, WebSocketOpCode::Binary, 0);
     mClient->write(outputs);
   } else {
+    std::lock_guard<std::mutex> lock(mClientMutex);
     encode_websocket_frames(mBacklog, msg, s, WebSocketOpCode::Binary, 0);
   }
 }
 
 void WSDriverClient::flushPending()
 {
+  std::lock_guard<std::mutex> lock(mClientMutex);
   static bool printed1 = false;
   static bool printed2 = false;
   if (!mClient) {
-    if (mBacklog.size() > 1000) {
+    if (mBacklog.size() > 2000) {
       if (!printed1) {
-        LOG(WARNING) << "Unable to communicate with driver because client does not exist";
+        LOG(WARNING) << "Unable to communicate with driver because client does not exist. Continuing connection attempts.";
         printed1 = true;
       }
     }
     return;
   }
-  if (!(mClient->isConnected())) {
-    if (mBacklog.size() > 1000) {
+  if (!(mClient->isHandshaken())) {
+    if (mBacklog.size() > 2000) {
       if (!printed2) {
-        LOG(WARNING) << "Unable to communicate with driver because client is not connected";
+        LOG(WARNING) << "Unable to communicate with driver because client is not connected. Continuing connection attempts.";
         printed2 = true;
       }
     }
     return;
   }
   if (printed1 || printed2) {
-    LOGP(warning, "DriverClient connected successfully. Flushing message backlog of {} messages", mBacklog.size());
+    LOGP(warning, "DriverClient connected successfully. Flushing message backlog of {} messages. All is good.", mBacklog.size());
     printed1 = false;
     printed2 = false;
   }

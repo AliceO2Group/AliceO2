@@ -16,6 +16,7 @@
 #include "GPUO2DataTypes.h"
 #include "GPUMemorySizeScalers.h"
 #include "GPUTPCClusterData.h"
+#include "utils/strtag.h"
 #include <fstream>
 
 using namespace GPUCA_NAMESPACE::gpu;
@@ -99,7 +100,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     mRec->AllocateRegisteredMemory(processors()->tpcTrackers[iSlice].MemoryResSliceScratch());
     mRec->AllocateRegisteredMemory(processors()->tpcTrackers[iSlice].MemoryResSliceInput());
   }
-  mRec->PushNonPersistentMemory();
+  mRec->PushNonPersistentMemory(qStr2Tag("TPCSLTRK"));
   for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
     SetupGPUProcessor(&processors()->tpcTrackers[iSlice], true);             // Now we allocate
     mRec->ResetRegisteredMemoryPointers(&processors()->tpcTrackers[iSlice]); // TODO: The above call breaks the GPU ptrs to already allocated memory. This fixes them. Should actually be cleaned up at the source.
@@ -217,12 +218,12 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
       TransferMemoryResourcesToHost(RecoStep::TPCSliceTracking, &trk, -1, true);
       memcpy(trk.LinkTmpMemory(), mRec->Res(trk.MemoryResLinks()).Ptr(), mRec->Res(trk.MemoryResLinks()).Size());
       if (GetProcessingSettings().debugMask & 2) {
-        trk.DumpLinks(*mDebugFile);
+        trk.DumpLinks(*mDebugFile, 0);
       }
     }
 
     runKernel<GPUTPCNeighboursCleaner>(GetGridBlk(GPUCA_ROW_COUNT - 2, useStream), {iSlice});
-    DoDebugAndDump(RecoStep::TPCSliceTracking, 4, trk, &GPUTPCTracker::DumpLinks, *mDebugFile);
+    DoDebugAndDump(RecoStep::TPCSliceTracking, 4, trk, &GPUTPCTracker::DumpLinks, *mDebugFile, 1);
 
     runKernel<GPUTPCStartHitsFinder>(GetGridBlk(GPUCA_ROW_COUNT - 6, useStream), {iSlice});
 #ifdef GPUCA_SORT_STARTHITS_GPU
@@ -279,8 +280,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
         for (int i = 0; i < mRec->NStreams(); i++) {
           ReleaseEvent(&mEvents->stream[i]);
         }
-        SynchronizeEvents(&mEvents->single);
-        ReleaseEvent(&mEvents->single);
+        SynchronizeEventAndRelease(&mEvents->single);
       }
 
       if (GetProcessingSettings().debugLevel >= 4) {
@@ -462,7 +462,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
   if (GetProcessingSettings().debugLevel >= 2) {
     GPUInfo("TPC Slice Tracker finished");
   }
-  mRec->PopNonPersistentMemory(RecoStep::TPCSliceTracking);
+  mRec->PopNonPersistentMemory(RecoStep::TPCSliceTracking, qStr2Tag("TPCSLTRK"));
   return 0;
 }
 

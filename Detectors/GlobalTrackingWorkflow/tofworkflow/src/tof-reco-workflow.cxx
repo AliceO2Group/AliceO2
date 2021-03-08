@@ -59,6 +59,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}});
   workflowOptions.push_back(ConfigParamSpec{"disable-row-writing", o2::framework::VariantType::Bool, false, {"disable ROW in Digit writing"}});
   workflowOptions.push_back(ConfigParamSpec{"write-decoding-errors", o2::framework::VariantType::Bool, false, {"trace errors in digits output when decoding"}});
+  workflowOptions.push_back(ConfigParamSpec{"calib-cluster", VariantType::Bool, false, {"to enable calib info production from clusters"}});
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
@@ -137,6 +138,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool disableRootOutput = cfgc.options().get<bool>("disable-root-output");
   bool conetmode = cfgc.options().get<bool>("conet-mode");
   bool disableROWwriting = cfgc.options().get<bool>("disable-row-writing");
+  auto isCalibFromCluster = cfgc.options().get<bool>("calib-cluster");
 
   LOG(INFO) << "TOF RECO WORKFLOW configuration";
   LOG(INFO) << "TOF input = " << cfgc.options().get<std::string>("input-type");
@@ -180,7 +182,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   if (!clusterinput && writecluster) {
     LOG(INFO) << "Insert TOF Clusterizer";
-    specs.emplace_back(o2::tof::getTOFClusterizerSpec(useMC, useCCDB));
+    specs.emplace_back(o2::tof::getTOFClusterizerSpec(useMC, useCCDB, isCalibFromCluster));
     if (writecluster && !disableRootOutput) {
       LOG(INFO) << "Insert TOF Cluster Writer";
       specs.emplace_back(o2::tof::getTOFClusterWriterSpec(useMC));

@@ -88,8 +88,8 @@ struct TOFSpectraTask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec workflow{adaptAnalysisTask<TOFSpectraTask>("tofspectra-task")};
+  WorkflowSpec workflow{adaptAnalysisTask<TOFSpectraTask>(cfgc, "tofspectra-task")};
   return workflow;
 }

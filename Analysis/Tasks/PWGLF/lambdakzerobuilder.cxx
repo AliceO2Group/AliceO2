@@ -64,8 +64,8 @@ namespace o2::aod
 {
 namespace v0goodindices
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(PosTrack, posTrack, int, FullTracks, "fPositiveTrackID");
-DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, FullTracks, "fNegativeTrackID");
+DECLARE_SOA_INDEX_COLUMN_FULL(PosTrack, posTrack, int, Tracks, "_Pos");
+DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, Tracks, "_Neg");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 } // namespace v0goodindices
 DECLARE_SOA_TABLE(V0GoodIndices, "AOD", "V0GOODINDICES", o2::soa::Index<>,
@@ -130,7 +130,7 @@ struct lambdakzeroprefilterpairs {
 /// Cascade builder task: rebuilds cascades
 struct lambdakzerobuilder {
 
-  Produces<aod::V0Data> v0data;
+  Produces<aod::StoredV0Datas> v0data;
 
   HistogramRegistry registry{
     "registry",
@@ -226,14 +226,14 @@ struct lambdakzerobuilder {
 
 /// Extends the v0data table with expression columns
 struct lambdakzeroinitializer {
-  Spawns<aod::V0DataExt> v0dataext;
+  Spawns<aod::V0Datas> v0datas;
   void init(InitContext const&) {}
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<lambdakzeroprefilterpairs>("lf-lambdakzeroprefilterpairs"),
-    adaptAnalysisTask<lambdakzerobuilder>("lf-lambdakzerobuilder"),
-    adaptAnalysisTask<lambdakzeroinitializer>("lf-lambdakzeroinitializer")};
+    adaptAnalysisTask<lambdakzeroprefilterpairs>(cfgc, "lf-lambdakzeroprefilterpairs"),
+    adaptAnalysisTask<lambdakzerobuilder>(cfgc, "lf-lambdakzerobuilder"),
+    adaptAnalysisTask<lambdakzeroinitializer>(cfgc, "lf-lambdakzeroinitializer")};
 }

@@ -46,7 +46,7 @@ class VertexerTraitsHIP : public VertexerTraits
   ~VertexerTraitsHIP();
 #else
   VertexerTraitsHIP();
-  ~VertexerTraitsHIP() = default;
+  ~VertexerTraitsHIP() override = default;
 #endif
   void initialise(ROframe*) override;
   void computeTracklets() override;

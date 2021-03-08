@@ -8,11 +8,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+///
+/// \file   pidTOF_tiny.cxx
+/// \author Nicolo' Jacazio
+/// \brief  Task to produce PID tables for TOF split for each particle with only the Nsigma information.
+///         Only the tables for the mass hypotheses requested are filled, the others are sent empty.
+///
+
 // O2 includes
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoAHelpers.h"
 #include "Framework/HistogramRegistry.h"
+#include "Framework/runDataProcessing.h"
 #include "ReconstructionDataFormats/Track.h"
 #include <CCDB/BasicCCDBManager.h>
 #include "AnalysisDataModel/PID/PIDResponse.h"
@@ -24,29 +32,36 @@ using namespace o2::pid;
 using namespace o2::framework::expressions;
 using namespace o2::track;
 
-void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
-{
-  std::vector<ConfigParamSpec> options{
-    {"pid-el", VariantType::Int, 1, {"Produce PID information for the electron mass hypothesis"}},
-    {"pid-mu", VariantType::Int, 1, {"Produce PID information for the muon mass hypothesis"}},
-    {"pid-pikapr", VariantType::Int, 1, {"Produce PID information for the Pion, Kaon, Proton mass hypothesis"}},
-    {"pid-nuclei", VariantType::Int, 1, {"Produce PID information for the Deuteron, Triton, Alpha mass hypothesis"}}};
-  std::swap(workflowOptions, options);
-}
-
-#include "Framework/runDataProcessing.h"
-
-template <o2::track::PID::ID pid_type, typename table>
 struct pidTOFTaskTiny {
   using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
   using Coll = aod::Collisions;
-  Produces<table> tofpid;
-  DetectorResponse resp;
+  // Tables to produce
+  Produces<o2::aod::pidRespTPCTEl> tablePIDEl;
+  Produces<o2::aod::pidRespTPCTMu> tablePIDMu;
+  Produces<o2::aod::pidRespTPCTPi> tablePIDPi;
+  Produces<o2::aod::pidRespTPCTKa> tablePIDKa;
+  Produces<o2::aod::pidRespTPCTPr> tablePIDPr;
+  Produces<o2::aod::pidRespTPCTDe> tablePIDDe;
+  Produces<o2::aod::pidRespTPCTTr> tablePIDTr;
+  Produces<o2::aod::pidRespTPCTHe> tablePIDHe;
+  Produces<o2::aod::pidRespTPCTAl> tablePIDAl;
+  // Detector response and input parameters
+  DetectorResponse response;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
   Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
   Configurable<std::string> sigmaname{"param-sigma", "TOFReso", "Name of the parametrization for the expected sigma, used in both file and CCDB mode"};
   Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
   Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
+  // Configuration flags to include and exclude particle hypotheses
+  Configurable<int> pidEl{"pid-el", 0, {"Produce PID information for the Electron mass hypothesis"}};
+  Configurable<int> pidMu{"pid-mu", 0, {"Produce PID information for the Muon mass hypothesis"}};
+  Configurable<int> pidPi{"pid-pi", 0, {"Produce PID information for the Pion mass hypothesis"}};
+  Configurable<int> pidKa{"pid-ka", 0, {"Produce PID information for the Kaon mass hypothesis"}};
+  Configurable<int> pidPr{"pid-pr", 0, {"Produce PID information for the Proton mass hypothesis"}};
+  Configurable<int> pidDe{"pid-de", 0, {"Produce PID information for the Deuterons mass hypothesis"}};
+  Configurable<int> pidTr{"pid-tr", 0, {"Produce PID information for the Triton mass hypothesis"}};
+  Configurable<int> pidHe{"pid-he", 0, {"Produce PID information for the Helium3 mass hypothesis"}};
+  Configurable<int> pidAl{"pid-al", 0, {"Produce PID information for the Alpha mass hypothesis"}};
 
   void init(o2::framework::InitContext&)
   {
@@ -58,56 +73,62 @@ struct pidTOFTaskTiny {
     ccdb->setCreatedNotAfter(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
     //
     const std::vector<float> p = {0.008, 0.008, 0.002, 40.0};
-    resp.SetParameters(DetectorResponse::kSigma, p);
+    response.SetParameters(DetectorResponse::kSigma, p);
     const std::string fname = paramfile.value;
     if (!fname.empty()) { // Loading the parametrization from file
-      resp.LoadParamFromFile(fname.data(), sigmaname.value, DetectorResponse::kSigma);
+      response.LoadParamFromFile(fname.data(), sigmaname.value, DetectorResponse::kSigma);
     } else { // Loading it from CCDB
       const std::string path = "Analysis/PID/TOF";
-      resp.LoadParam(DetectorResponse::kSigma, ccdb->getForTimeStamp<Parametrization>(path + "/" + sigmaname.value, timestamp.value));
+      response.LoadParam(DetectorResponse::kSigma, ccdb->getForTimeStamp<Parametrization>(path + "/" + sigmaname.value, timestamp.value));
     }
   }
 
+  template <o2::track::PID::ID pid>
+  using ResponseImplementation = tof::ExpTimes<Coll::iterator, Trks::iterator, pid>;
   void process(Coll const& collisions, Trks const& tracks)
   {
-    constexpr tof::ExpTimes<Coll::iterator, Trks::iterator, pid_type> resp_PID = tof::ExpTimes<Coll::iterator, Trks::iterator, pid_type>();
+    constexpr auto responseEl = ResponseImplementation<PID::Electron>();
+    constexpr auto responseMu = ResponseImplementation<PID::Muon>();
+    constexpr auto responsePi = ResponseImplementation<PID::Pion>();
+    constexpr auto responseKa = ResponseImplementation<PID::Kaon>();
+    constexpr auto responsePr = ResponseImplementation<PID::Proton>();
+    constexpr auto responseDe = ResponseImplementation<PID::Deuteron>();
+    constexpr auto responseTr = ResponseImplementation<PID::Triton>();
+    constexpr auto responseHe = ResponseImplementation<PID::Helium3>();
+    constexpr auto responseAl = ResponseImplementation<PID::Alpha>();
 
-    tofpid.reserve(tracks.size());
-    for (auto const& trk : tracks) {
-      const float exp_sigma = resp_PID.GetExpectedSigma(resp, trk.collision(), trk);
-      const float separation = resp_PID.GetSeparation(resp, trk.collision(), trk);
-      if (separation <= o2::aod::pidtof_tiny::binned_min) {
-        tofpid(o2::aod::pidtof_tiny::lower_bin);
-      } else if (separation >= o2::aod::pidtof_tiny::binned_max) {
-        tofpid(o2::aod::pidtof_tiny::upper_bin);
-      } else if (separation >= 0) {
-        tofpid(separation / o2::aod::pidtof_tiny::bin_width + 0.5f);
-      } else {
-        tofpid(separation / o2::aod::pidtof_tiny::bin_width - 0.5f);
+    // Check and fill enabled tables
+    auto makeTable = [&tracks](const Configurable<int>& flag, auto& table, const DetectorResponse& response, const auto& responsePID) {
+      if (flag.value) {
+        // Prepare memory for enabled tables
+        table.reserve(tracks.size());
+        for (auto const& trk : tracks) { // Loop on Tracks
+          const float separation = responsePID.GetSeparation(response, trk.collision(), trk);
+          if (separation <= o2::aod::pidtof_tiny::binned_min) {
+            table(o2::aod::pidtof_tiny::lower_bin);
+          } else if (separation >= o2::aod::pidtof_tiny::binned_max) {
+            table(o2::aod::pidtof_tiny::upper_bin);
+          } else if (separation >= 0) {
+            table(separation / o2::aod::pidtof_tiny::bin_width + 0.5f);
+          } else {
+            table(separation / o2::aod::pidtof_tiny::bin_width - 0.5f);
+          }
+        }
       }
-    }
+    };
+    makeTable(pidEl, tablePIDEl, response, responseEl);
+    makeTable(pidMu, tablePIDMu, response, responseMu);
+    makeTable(pidPi, tablePIDPi, response, responsePi);
+    makeTable(pidKa, tablePIDKa, response, responseKa);
+    makeTable(pidPr, tablePIDPr, response, responsePr);
+    makeTable(pidDe, tablePIDDe, response, responseDe);
+    makeTable(pidTr, tablePIDTr, response, responseTr);
+    makeTable(pidHe, tablePIDHe, response, responseHe);
+    makeTable(pidAl, tablePIDAl, response, responseAl);
   }
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec workflow;
-  if (cfgc.options().get<int>("pid-el")) {
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskTiny<PID::Electron, o2::aod::pidRespTOFTEl>>("pidTOFEl-task-tiny"));
-  }
-  if (cfgc.options().get<int>("pid-mu")) {
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskTiny<PID::Muon, o2::aod::pidRespTOFTMu>>("pidTOFMu-task-tiny"));
-  }
-  if (cfgc.options().get<int>("pid-pikapr")) {
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskTiny<PID::Pion, o2::aod::pidRespTOFTPi>>("pidTOFPi-task-tiny"));
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskTiny<PID::Kaon, o2::aod::pidRespTOFTKa>>("pidTOFKa-task-tiny"));
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskTiny<PID::Proton, o2::aod::pidRespTOFTPr>>("pidTOFPr-task-tiny"));
-  }
-  if (cfgc.options().get<int>("pid-nuclei")) {
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskTiny<PID::Deuteron, o2::aod::pidRespTOFTDe>>("pidTOFDe-task-tiny"));
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskTiny<PID::Triton, o2::aod::pidRespTOFTTr>>("pidTOFTr-task-tiny"));
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskTiny<PID::Helium3, o2::aod::pidRespTOFTHe>>("pidTOFHe-task-tiny"));
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskTiny<PID::Alpha, o2::aod::pidRespTOFTAl>>("pidTOFAl-task-tiny"));
-  }
-  return workflow;
+  return WorkflowSpec{adaptAnalysisTask<pidTOFTaskTiny>(cfgc, "pidTOF-tiny-task")};
 }
