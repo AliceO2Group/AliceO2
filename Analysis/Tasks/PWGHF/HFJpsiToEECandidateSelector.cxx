@@ -76,9 +76,6 @@ struct HFJpsiToEECandidateSelector {
   template <typename T>
   bool daughterSelection(const T& track)
   {
-    if (track.sign() == 0) {
-      return false;
-    }
     /*if (track.tpcNClsFound() == 0) {
       return false; //is it clusters findable or found - need to check
       }*/
@@ -141,9 +138,11 @@ struct HFJpsiToEECandidateSelector {
   template <typename T>
   bool selectionPIDTPC(const T& track, int nSigmaCut)
   {
+    if (nSigmaCut > 10) {
+      return true;
+    }
     return track.tpcNSigmaEl() < nSigmaCut;
   }
-
   /// PID selection on daughter track
   /// \param track is the daughter track
   /// \return 1 if successful PID match, 0 if successful PID rejection, -1 if no PID info
@@ -189,11 +188,10 @@ struct HFJpsiToEECandidateSelector {
         continue;
       }
 
-      // no tpc in run5, commented out
-      // if (selectionPID(trackPos) == 0 || selectionPID(trackNeg) == 0) {
-      //   hfSelJpsiToEECandidate(0);
-      //   continue;
-      // }
+      if (selectionPID(trackPos) == 0 || selectionPID(trackNeg) == 0) {
+        hfSelJpsiToEECandidate(0);
+        continue;
+      }
 
       hfSelJpsiToEECandidate(1);
     }
