@@ -81,7 +81,7 @@ void ReadRaw::readRawData(const LookUpTable& lut)
           for (int i = 0; i < eventHeader.nGBTWords; ++i) {
             mRawFileIn.read(reinterpret_cast<char*>(&eventData[2 * i]), o2::fdd::EventData::PayloadSizeFirstWord);
             posPayload += o2::fdd::EventData::PayloadSizeFirstWord;
-            chData = {(lut.getChannel(link, int(eventData[2 * i].channelID))),
+            chData = {static_cast<uint8_t>(lut.getChannel(link, int(eventData[2 * i].channelID))),
                       int(eventData[2 * i].time),
                       int(eventData[2 * i].charge), 0};
             mDigitAccum[intrec].emplace_back(chData);
@@ -96,7 +96,7 @@ void ReadRaw::readRawData(const LookUpTable& lut)
 
             mRawFileIn.read(reinterpret_cast<char*>(&eventData[2 * i + 1]), EventData::PayloadSizeSecondWord);
             posPayload += o2::fdd::EventData::PayloadSizeSecondWord;
-            chData = {(lut.getChannel(link, int(eventData[2 * i + 1].channelID))),
+            chData = {static_cast<uint8_t>(lut.getChannel(link, int(eventData[2 * i + 1].channelID))),
                       int(eventData[2 * i + 1].time),
                       int(eventData[2 * i + 1].charge), 0};
             if (chData.mPMNumber <= channelIdFirstHalfWord) {
