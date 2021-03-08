@@ -34,13 +34,13 @@ class FlagReason
 {
  private:
   uint16_t mId;
-  const char* mName;
+  std::string mName;
   bool mBad; // if true, data should become bad by default
 
   // By making the constructor private and FlagReasons available only in the FlagReasonFactory
   // we forbid to declare any flags in the user code. If you need a new FlagReason, please add it FlagReasonFactory.
  private:
-  constexpr FlagReason(uint16_t id, const char* name, bool bad) : mId(id), mName(name), mBad(bad) {}
+  FlagReason(uint16_t id, const char* name, bool bad) : mId(id), mName(name), mBad(bad) {}
 
  public:
   FlagReason& operator=(const FlagReason&) = default;
@@ -51,7 +51,7 @@ class FlagReason
   bool operator>(const FlagReason& rhs) const;
 
   uint16_t getID() { return mId; }
-  const char* getName() { return mName; }
+  const std::string& getName() { return mName; }
   bool getBad() { return mBad; }
 
   friend std::ostream& operator<<(std::ostream& os, FlagReason const& me);
@@ -67,18 +67,18 @@ struct FlagReasonFactory {
   // TODO: find a way to have a nicely formatted list of reasons.
 
   // !!! NEVER MODIFY OR DELETE EXISTING FLAGS AFTER RUN 3 STARTS !!!
-  static constexpr FlagReason Invalid() { return {static_cast<uint16_t>(-1), "Invalid", true}; }
+  static FlagReason Invalid() { return {static_cast<uint16_t>(-1), "Invalid", true}; }
 
-  static constexpr FlagReason Unknown() { return {1, "Unknown", true}; }
-  static constexpr FlagReason ProcessingError() { return {2, "Processing error", true}; }
+  static FlagReason Unknown() { return {1, "Unknown", true}; }
+  static FlagReason ProcessingError() { return {2, "Processing error", true}; }
   // it can be used when there are no required Quality Objects in QCDB in certain time range.
-  static constexpr FlagReason MissingQualityObject() { return {3, "Missing Quality Object", true}; }
+  static FlagReason MissingQualityObject() { return {3, "Missing Quality Object", true}; }
   // Quality Object is there, but it has Quality::Null
-  static constexpr FlagReason MissingQuality() { return {4, "Missing Quality", true}; }
+  static FlagReason MissingQuality() { return {4, "Missing Quality", true}; }
 
   // TODO: to be seen if we should actively do anything when a detector was off.
-  static constexpr FlagReason DetectorOff() { return {10, "Detector off", true}; }
-  static constexpr FlagReason LimitedAcceptance() { return {11, "Limited acceptance", true}; }
+  static FlagReason DetectorOff() { return {10, "Detector off", true}; }
+  static FlagReason LimitedAcceptance() { return {11, "Limited acceptance", true}; }
 };
 
 } // namespace quality_control

@@ -29,7 +29,7 @@ BOOST_AUTO_TEST_CASE(FlagReasons)
 
   auto r1 = FlagReasonFactory::Unknown();
   BOOST_CHECK_EQUAL(r1.getID(), 1);
-  BOOST_CHECK(strcmp(r1.getName(), "Unknown") == 0);
+  BOOST_CHECK_EQUAL(r1.getName(), "Unknown");
   BOOST_CHECK_EQUAL(r1.getBad(), true);
 
   std::cout << r1 << std::endl;
@@ -37,7 +37,7 @@ BOOST_AUTO_TEST_CASE(FlagReasons)
   auto r2 = r1;
   BOOST_CHECK_EQUAL(r2.getID(), 1);
   BOOST_CHECK_EQUAL(r1.getName(), r2.getName());
-  BOOST_CHECK(strcmp(r2.getName(), "Unknown") == 0);
+  BOOST_CHECK_EQUAL(r2.getName(), "Unknown");
   BOOST_CHECK_EQUAL(r2.getBad(), true);
 
   BOOST_CHECK_EQUAL(r1, r2);
