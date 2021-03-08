@@ -516,17 +516,22 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   }
 
   std::vector<InputSpec> unmatched;
-  if (redirectedOutputsInputs.size() > 0 && ctx.options().get<std::string>("forwarding-destination") == "file") {
+  auto forwardingDestination = ctx.options().get<std::string>("forwarding-destination");
+  if (redirectedOutputsInputs.size() > 0 && forwardingDestination == "file") {
     auto fileSink = CommonDataProcessors::getGlobalFileSink(redirectedOutputsInputs, unmatched);
     if (unmatched.size() != redirectedOutputsInputs.size()) {
       extraSpecs.push_back(fileSink);
     }
-  } else if (redirectedOutputsInputs.size() > 0 && ctx.options().get<std::string>("forwarding-destination") == "fairmq") {
+  } else if (redirectedOutputsInputs.size() > 0 && forwardingDestination == "fairmq") {
     auto fairMQSink = CommonDataProcessors::getGlobalFairMQSink(redirectedOutputsInputs);
     extraSpecs.push_back(fairMQSink);
+  } else if (forwardingDestination != "drop") {
+    throw runtime_error_f("Unknown forwarding destination %s", forwardingDestination.c_str());
   }
-  if (unmatched.size() > 0) {
-    extraSpecs.push_back(CommonDataProcessors::getDummySink(unmatched));
+  if (unmatched.size() > 0 || redirectedOutputsInputs.size() > 0) {
+    std::vector<InputSpec> ignored = unmatched;
+    ignored.insert(ignored.end(), redirectedOutputsInputs.begin(), redirectedOutputsInputs.end());
+    extraSpecs.push_back(CommonDataProcessors::getDummySink(ignored));
   }
 
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());

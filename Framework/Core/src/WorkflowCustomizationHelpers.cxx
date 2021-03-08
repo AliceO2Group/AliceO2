@@ -55,11 +55,12 @@ std::vector<ConfigParamSpec> WorkflowCustomizationHelpers::requiredWorkflowOptio
                                        ConfigParamSpec{"forwarding-policy", VariantType::String, "dangling", {"Which messages to forward."
                                                                                                               " *dangling*: dangling outputs,"
                                                                                                               " all: all messages,"
-                                                                                                              " none: drop everything"}},
+                                                                                                              " none: no forwarding - it will complain if you try to create dangling outputs"}},
                                        ConfigParamSpec{"forwarding-destination",
                                                        VariantType::String,
-                                                       "file",
+                                                       "drop",
                                                        {"Destination for forwarded messages."
+                                                        " drop: simply drop them,"
                                                         " file: write to file,"
                                                         " fairmq: send to output proxy"}}}};
 }
