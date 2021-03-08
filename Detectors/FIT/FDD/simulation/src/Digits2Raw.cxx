@@ -105,7 +105,17 @@ void Digits2Raw::convertDigits(o2::fdd::Digit bcdigits, gsl::span<const ChannelD
     auto& newData = mRawEventData.mEventData[iChannelPerLink];
     newData.charge = pmchannels[ich].mChargeADC;
     newData.time = pmchannels[ich].mTime;
-    newData.generateFlags();
+    
+    newData.numberADC = bool(pmchannels[ich].mFEEBits & ChannelData::Integrator); 
+    newData.isDoubleEvent = bool(pmchannels[ich].mFEEBits & ChannelData::DoubleEvent);
+    newData.is1TimeLostEvent = bool(pmchannels[ich].mFEEBits & ChannelData::Event1TimeLost);
+    newData.is2TimeLostEvent = bool(pmchannels[ich].mFEEBits & ChannelData::Event2TimeLost);
+    newData.isADCinGate = bool(pmchannels[ich].mFEEBits & ChannelData::AdcInGate);
+    newData.isTimeInfoLate = bool(pmchannels[ich].mFEEBits & ChannelData::TimeTooLate);
+    newData.isAmpHigh = bool(pmchannels[ich].mFEEBits & ChannelData::AmpTooHigh);
+    newData.isEventInTVDC = bool(pmchannels[ich].mFEEBits & ChannelData::EventInTrigger);
+    newData.isTimeInfoLost = bool(pmchannels[ich].mFEEBits & ChannelData::TimeLost);
+    
     newData.channelID = lut.getModChannel(pmchannels[ich].mPMNumber);
     iChannelPerLink++;
     if (ich == nch - 1) {
