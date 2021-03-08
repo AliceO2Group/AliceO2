@@ -67,12 +67,12 @@ namespace detail
 
 using type_name_prober = void;
 
-static std::size_t wrapped_type_name_prefix_length() const
+static std::size_t wrapped_type_name_prefix_length()
 {
   return unique_type_id_v<type_name_prober>.find(type_name<type_name_prober>());
 }
 
-static std::size_t wrapped_type_name_suffix_length() const
+static std::size_t wrapped_type_name_suffix_length()
 {
   return unique_type_id_v<type_name_prober>.length() - wrapped_type_name_prefix_length() - type_name<type_name_prober>().length();
 }
