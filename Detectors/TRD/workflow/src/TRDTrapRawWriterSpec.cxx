@@ -39,7 +39,6 @@ o2::framework::DataProcessorSpec getTRDTrapRawWriterSpec()
   return MakeRootTreeWriterSpec("TRDTrkltRawWrt",
                                 "trdtrapraw.root",
                                 "o2sim",
-                                1,
                                 BranchDefinition<std::vector<uint32_t>>{InputSpec{"trapraw", "TRD", "RAWDATA"}, "TrapRaw"},
                                 BranchDefinition<std::vector<o2::trd::LinkRecord>>{InputSpec{"traplinks", "TRD", "RAWLNKRD"}, "TrapLinkRecord"},
                                 BranchDefinition<std::vector<o2::trd::TriggerRecord>>{InputSpec{"traprawtrigrec", "TRD", "RAWTRGRD"}, "RawTriggerRecord"})();

@@ -247,18 +247,18 @@ struct AnalysisDataProcessorBuilder {
           if constexpr (soa::is_type_with_originals_v<std::decay_t<T>>) {
             using O = typename framework::pack_element_t<0, typename std::decay_t<G>::originals>;
             using groupingMetadata = typename aod::MetadataTrait<O>::metadata;
-            return std::string("f") + groupingMetadata::tableLabel() + "ID";
+            return std::string("fIndex") + groupingMetadata::tableLabel();
           } else {
             using groupingMetadata = typename aod::MetadataTrait<T>::metadata;
-            return std::string("f") + groupingMetadata::tableLabel() + "ID";
+            return std::string("fIndex") + groupingMetadata::tableLabel();
           }
         } else if constexpr (soa::is_type_with_originals_v<std::decay_t<G>>) {
           using T = typename framework::pack_element_t<0, typename std::decay_t<G>::originals>;
           using groupingMetadata = typename aod::MetadataTrait<T>::metadata;
-          return std::string("f") + groupingMetadata::tableLabel() + "ID";
+          return std::string("fIndex") + groupingMetadata::tableLabel();
         } else {
           using groupingMetadata = typename aod::MetadataTrait<std::decay_t<G>>::metadata;
-          return std::string("f") + groupingMetadata::tableLabel() + "ID";
+          return std::string("fIndex") + groupingMetadata::tableLabel();
         }
       }
 
@@ -534,57 +534,53 @@ struct AnalysisDataProcessorBuilder {
   }
 };
 
-// SFINAE test
+namespace
+{
 template <typename T>
 class has_process
 {
-  typedef char one;
-  struct two {
-    char x[2];
-  };
-
   template <typename C>
-  static one test(decltype(&C::process));
+  static std::true_type test(decltype(&C::process));
   template <typename C>
-  static two test(...);
+  static std::false_type test(...);
 
  public:
-  enum { value = sizeof(test<T>(nullptr)) == sizeof(char) };
+  static constexpr bool value = decltype(test<T>(nullptr))::value;
 };
+
+template <class T>
+inline constexpr bool has_process_v = has_process<T>::value;
 
 template <typename T>
 class has_run
 {
-  typedef char one;
-  struct two {
-    char x[2];
-  };
-
   template <typename C>
-  static one test(decltype(&C::run));
+  static std::true_type test(decltype(&C::run));
   template <typename C>
-  static two test(...);
+  static std::false_type test(...);
 
  public:
-  enum { value = sizeof(test<T>(nullptr)) == sizeof(char) };
+  static constexpr bool value = decltype(test<T>(nullptr))::value;
 };
+
+template <class T>
+inline constexpr bool has_run_v = has_run<T>::value;
 
 template <typename T>
 class has_init
 {
-  typedef char one;
-  struct two {
-    char x[2];
-  };
-
   template <typename C>
-  static one test(decltype(&C::init));
+  static std::true_type test(decltype(&C::init));
   template <typename C>
-  static two test(...);
+  static std::false_type test(...);
 
  public:
-  enum { value = sizeof(test<T>(nullptr)) == sizeof(char) };
+  static constexpr bool value = decltype(test<T>(nullptr))::value;
 };
+
+template <class T>
+inline constexpr bool has_init_v = has_init<T>::value;
+} // namespace
 
 /// Adaptor to make an AlgorithmSpec from a o2::framework::Task
 ///
@@ -605,7 +601,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, char const* name, 
   std::vector<ConfigParamSpec> options;
 
   auto tupledTask = o2::framework::to_tuple_refs(*task.get());
-  static_assert(has_process<T>::value || has_run<T>::value || has_init<T>::value,
+  static_assert(has_process_v<T> || has_run_v<T> || has_init_v<T>,
                 "At least one of process(...), T::run(...), init(...) must be defined");
 
   std::vector<InputSpec> inputs;
@@ -614,7 +610,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, char const* name, 
   /// make sure options and configurables are set before expression infos are created
   std::apply([&options, &hash](auto&... x) { return (OptionManager<std::decay_t<decltype(x)>>::appendOption(options, x), ...); }, tupledTask);
 
-  if constexpr (has_process<T>::value) {
+  if constexpr (has_process_v<T>) {
     // this pushes (I,schemaPtr,nullptr) into expressionInfos for arguments that are Filtered/filtered_iterators
     AnalysisDataProcessorBuilder::inputsFromArgs(&T::process, inputs, expressionInfos);
   }
@@ -645,7 +641,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, char const* name, 
     };
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
 
-    if constexpr (has_process<T>::value) {
+    if constexpr (has_process_v<T>) {
       /// update configurables in filters
       std::apply(
         [&ic](auto&&... x) { return (FilterManager<std::decay_t<decltype(x)>>::updatePlaceholders(x, ic), ...); },
@@ -661,17 +657,17 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, char const* name, 
                  tupledTask);
     }
 
-    if constexpr (has_init<T>::value) {
+    if constexpr (has_init_v<T>) {
       task->init(ic);
     }
 
     return [task, expressionInfos](ProcessingContext& pc) {
       auto tupledTask = o2::framework::to_tuple_refs(*task.get());
       std::apply([&pc](auto&&... x) { return (OutputManager<std::decay_t<decltype(x)>>::prepare(pc, x), ...); }, tupledTask);
-      if constexpr (has_run<T>::value) {
+      if constexpr (has_run_v<T>) {
         task->run(pc);
       }
-      if constexpr (has_process<T>::value) {
+      if constexpr (has_process_v<T>) {
         AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), &T::process, expressionInfos);
       }
       std::apply([&pc](auto&&... x) { return (OutputManager<std::decay_t<decltype(x)>>::finalize(pc, x), ...); }, tupledTask);

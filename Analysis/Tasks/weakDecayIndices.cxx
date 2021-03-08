@@ -19,7 +19,7 @@ using namespace o2::framework;
 struct IndexV0s {
   Produces<aod::TransientV0s> transientV0s;
 
-  void process(aod::StoredV0s const& v0s, aod::FullTracks const& tracks)
+  void process(aod::StoredV0s const& v0s, aod::Tracks const& tracks)
   {
     for (auto& v0 : v0s) {
       if (v0.posTrack().collisionId() != v0.negTrack().collisionId()) {
@@ -34,7 +34,7 @@ struct IndexV0s {
 struct IndexCascades {
   Produces<aod::TransientCascades> transientCascades;
 
-  void process(aod::V0s const& v0s, aod::StoredCascades const& cascades, aod::FullTracks const& tracks)
+  void process(aod::V0s const& v0s, aod::StoredCascades const& cascades, aod::Tracks const& tracks)
   {
     for (auto& cascade : cascades) {
       if (cascade.bachelor().collisionId() != cascade.v0().posTrack().collisionId() || cascade.v0().posTrack().collisionId() != cascade.v0().negTrack().collisionId()) {

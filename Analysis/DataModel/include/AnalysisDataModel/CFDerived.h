@@ -26,12 +26,12 @@ DECLARE_SOA_INDEX_COLUMN(CFCollision, cfCollision);
 DECLARE_SOA_COLUMN(Pt, pt, float);
 DECLARE_SOA_COLUMN(Eta, eta, float);
 DECLARE_SOA_COLUMN(Phi, phi, float);
-DECLARE_SOA_COLUMN(Charge, charge, int8_t);
+DECLARE_SOA_COLUMN(Sign, sign, int8_t);
 } // namespace cftrack
 DECLARE_SOA_TABLE(CFTracks, "AOD", "CFTRACK", o2::soa::Index<>,
                   cftrack::CFCollisionId,
                   cftrack::Pt, cftrack::Eta, cftrack::Phi,
-                  cftrack::Charge, track::TrackType);
+                  cftrack::Sign, track::TrackType);
 using CFTrack = CFTracks::iterator;
 } // namespace o2::aod
 

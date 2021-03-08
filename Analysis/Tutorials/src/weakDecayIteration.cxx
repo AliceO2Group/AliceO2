@@ -19,7 +19,7 @@ using namespace o2;
 using namespace o2::framework;
 
 struct BTask {
-  void process(aod::V0s const& v0s, aod::FullTracks const& tracks)
+  void process(aod::V0s const& v0s, aod::Tracks const& tracks)
   {
     for (auto& v0 : v0s) {
       LOGF(DEBUG, "V0 (%d, %d, %d)", v0.posTrack().collisionId(), v0.negTrack().collisionId(), v0.collisionId());
@@ -28,7 +28,7 @@ struct BTask {
 };
 
 struct CTask {
-  void process(aod::Cascades const& cascades, aod::V0s const& v0s, aod::FullTracks const& tracks)
+  void process(aod::Cascades const& cascades, aod::V0s const& v0s, aod::Tracks const& tracks)
   {
     for (auto& cascade : cascades) {
       LOGF(DEBUG, "Cascade %d (%d, %d, %d, %d)", cascade.globalIndex(), cascade.bachelor().collisionId(), cascade.v0().posTrack().collisionId(), cascade.v0().negTrack().collisionId(), cascade.collisionId());
@@ -38,7 +38,7 @@ struct CTask {
 
 // Grouping V0s
 struct DTask {
-  void process(aod::Collision const& collision, aod::V0s const& v0s, aod::FullTracks const& tracks)
+  void process(aod::Collision const& collision, aod::V0s const& v0s, aod::Tracks const& tracks)
   {
     LOGF(INFO, "Collision %d has %d V0s", collision.globalIndex(), v0s.size());
 
@@ -51,7 +51,7 @@ struct DTask {
 // Grouping V0s and cascades
 // NOTE that you need to subscribe to V0s even if you only process cascades
 struct ETask {
-  void process(aod::Collision const& collision, aod::V0s const& v0s, aod::Cascades const& cascades, aod::FullTracks const& tracks)
+  void process(aod::Collision const& collision, aod::V0s const& v0s, aod::Cascades const& cascades, aod::Tracks const& tracks)
   {
     LOGF(INFO, "Collision %d has %d cascades (%d tracks)", collision.globalIndex(), cascades.size(), tracks.size());
 

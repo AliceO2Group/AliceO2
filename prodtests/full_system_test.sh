@@ -60,15 +60,24 @@ QED2HAD=$(awk "BEGIN {printf \"%.2f\",`grep xSectionQED qedgenparam.ini | cut -d
 echo "Obtained ratio of QED to hadronic x-sections = $QED2HAD" >> qedsim.log
 cd ..
 
+DIGITRDOPTREAL="--configKeyValues \"TRDSimParams.digithreads=${NJOBS}\"" # --enable-trd-trapsim
 if [ $SPLITTRDDIGI == "1" ]; then
   DIGITRDOPT="--skipDet TRD"
 else
-  DIGITRDOPT="--configKeyValues \"TRDSimParams.digithreads=${NJOBS}\""
+  DIGITRDOPT=$DIGITRDOPTREAL
 fi
 
 taskwrapper sim.log o2-sim --seed $O2SIMSEED -n $NEvents --skipModules ZDC --configKeyValues "Diamond.width[2]=6." -g pythia8hi -j $NJOBS
 taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents --simPrefixQED qed/o2sim --qed-x-section-ratio ${QED2HAD} ${NOMCLABELS} --firstOrbit 0 --firstBC 0 --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITRDOPT}
-[ $SPLITTRDDIGI == "1" ] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --firstOrbit 0 --firstBC 0 --onlyDet TRD --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root --configKeyValues "TRDSimParams.digithreads=${NJOBS}"
+[ $SPLITTRDDIGI == "1" ] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --firstOrbit 0 --firstBC 0 --onlyDet TRD --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root ${DIGITRDOPTREAL}
+
+if [ "0$GENERATE_ITS_DICTIONARY" == "01" ]; then
+  taskwrapper itsdict1.log o2-its-reco-workflow --trackerCA --disable-mc --configKeyValues '"fastMultConfig.cutMultClusLow=30000;fastMultConfig.cutMultClusHigh=2000000;fastMultConfig.cutMultVtxHigh=500"'
+  cp ~/alice/O2/Detectors/ITSMFT/ITS/macros/test/CheckTopologies.C .
+  taskwrapper itsdict2.log root -b -q CheckTopologies.C++
+  rm -f CheckTopologies_C*
+fi
+
 mkdir -p raw
 taskwrapper itsraw.log o2-its-digi2raw --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/ITS
 taskwrapper mftraw.log o2-mft-digi2raw --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/MFT
@@ -82,6 +91,11 @@ taskwrapper emcraw.log o2-emcal-rawcreator --file-for link --configKeyValues '"H
 taskwrapper phsraw.log o2-phos-digi2raw  --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/PHS
 taskwrapper cpvraw.log o2-cpv-digi2raw  --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/CPV
 cat raw/*/*.cfg > rawAll.cfg
+
+if [ "0$DISABLE_PROCESSING" == "01" ]; then
+  echo "Skipping the processing part of the full system test"
+  exit 0
+fi
 
 # We run the workflow in both CPU-only and With-GPU mode
 STAGES="NOGPU"

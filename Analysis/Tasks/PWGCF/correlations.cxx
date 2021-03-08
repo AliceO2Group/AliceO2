@@ -58,6 +58,7 @@ struct CorrelationTask {
 
   // Filters and input definitions
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
+  Filter vertexTypeFilter = aod::collision::flags == (uint16_t)aod::collision::CollisionFlagsRun2::Run2VertexerTracks || aod::collision::flags == (uint16_t)aod::collision::CollisionFlagsRun2::Run2VertexerTracksNoConstraint;
   Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::pt > cfgCutPt) && ((aod::track::isGlobalTrack == (uint8_t) true) || (aod::track::isGlobalTrackSDD == (uint8_t) true));
   using myTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>>;
 
@@ -185,7 +186,7 @@ struct CorrelationTask {
       registry.fill(HIST("yields"), centrality, track1.pt(), track1.eta());
       registry.fill(HIST("etaphi"), centrality, track1.eta(), track1.phi());
 
-      if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.charge() < 0) {
+      if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.sign() < 0) {
         continue;
       }
 
@@ -208,10 +209,10 @@ struct CorrelationTask {
           continue;
         }
 
-        if (cfgAssociatedCharge != 0 && cfgAssociatedCharge * track2.charge() < 0) {
+        if (cfgAssociatedCharge != 0 && cfgAssociatedCharge * track2.sign() < 0) {
           continue;
         }
-        if (cfgPairCharge != 0 && cfgPairCharge * track1.charge() * track2.charge() < 0) {
+        if (cfgPairCharge != 0 && cfgPairCharge * track1.sign() * track2.sign() < 0) {
           continue;
         }
 
@@ -257,7 +258,7 @@ struct CorrelationTask {
 
     for (auto track1 = tracks.begin(); track1 != tracks.end(); ++track1) {
 
-      if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.charge() < 0) {
+      if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.sign() < 0) {
         continue;
       }
 
@@ -270,13 +271,13 @@ struct CorrelationTask {
     for (auto& [track1, track2] : combinations(tracks, tracks)) {
       //LOGF(info, "Combination %d %d", track1.index(), track2.index());
 
-      if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.charge() < 0) {
+      if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.sign() < 0) {
         continue;
       }
-      if (cfgAssociatedCharge != 0 && cfgAssociatedCharge * track2.charge() < 0) {
+      if (cfgAssociatedCharge != 0 && cfgAssociatedCharge * track2.sign() < 0) {
         continue;
       }
-      if (cfgPairCharge != 0 && cfgPairCharge * track1.charge() * track2.charge() < 0) {
+      if (cfgPairCharge != 0 && cfgPairCharge * track1.sign() * track2.sign() < 0) {
         continue;
       }
 

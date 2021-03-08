@@ -18,8 +18,8 @@ namespace o2::aod
 namespace v0data
 {
 //Needed to have shorter table that does not rely on existing one (filtering!)
-DECLARE_SOA_INDEX_COLUMN_FULL(PosTrack, posTrack, int, FullTracks, "fPosTrackID");
-DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, FullTracks, "fNegTrackID");
+DECLARE_SOA_INDEX_COLUMN_FULL(PosTrack, posTrack, int, Tracks, "_Pos");
+DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, Tracks, "_Neg");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 
 //General V0 properties: position, momentum
@@ -59,55 +59,49 @@ DECLARE_SOA_DYNAMIC_COLUMN(MK0Short, mK0Short, [](float pxpos, float pypos, floa
 DECLARE_SOA_DYNAMIC_COLUMN(YK0Short, yK0Short, [](float Px, float Py, float Pz) { return RecoDecay::Y(array{Px, Py, Pz}, RecoDecay::getMassPDG(kK0)); });
 DECLARE_SOA_DYNAMIC_COLUMN(YLambda, yLambda, [](float Px, float Py, float Pz) { return RecoDecay::Y(array{Px, Py, Pz}, RecoDecay::getMassPDG(kLambda0)); });
 DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, [](float Px, float Py, float Pz) { return RecoDecay::Eta(array{Px, Py, Pz}); });
-} // namespace v0data
 
-namespace v0dataext
-{
 DECLARE_SOA_EXPRESSION_COLUMN(Px, px, float, 1.f * aod::v0data::pxpos + 1.f * aod::v0data::pxneg);
 DECLARE_SOA_EXPRESSION_COLUMN(Py, py, float, 1.f * aod::v0data::pypos + 1.f * aod::v0data::pyneg);
 DECLARE_SOA_EXPRESSION_COLUMN(Pz, pz, float, 1.f * aod::v0data::pzpos + 1.f * aod::v0data::pzneg);
-} // namespace v0dataext
+} // namespace v0data
 
-DECLARE_SOA_TABLE(V0Data, "AOD", "V0DATA",
-                  o2::soa::Index<>, v0data::PosTrackId, v0data::NegTrackId, v0data::CollisionId,
-                  v0data::PosX, v0data::NegX,
-                  v0data::X, v0data::Y, v0data::Z,
-                  v0data::PxPos, v0data::PyPos, v0data::PzPos,
-                  v0data::PxNeg, v0data::PyNeg, v0data::PzNeg,
-                  v0data::DCAV0Daughters, v0data::DCAPosToPV, v0data::DCANegToPV,
+DECLARE_SOA_TABLE_FULL(StoredV0Datas, "V0Datas", "AOD", "V0DATA",
+                       o2::soa::Index<>, v0data::PosTrackId, v0data::NegTrackId, v0data::CollisionId,
+                       v0data::PosX, v0data::NegX,
+                       v0data::X, v0data::Y, v0data::Z,
+                       v0data::PxPos, v0data::PyPos, v0data::PzPos,
+                       v0data::PxNeg, v0data::PyNeg, v0data::PzNeg,
+                       v0data::DCAV0Daughters, v0data::DCAPosToPV, v0data::DCANegToPV,
 
-                  //Dynamic columns
-                  v0data::Pt<v0data::PxPos, v0data::PyPos, v0data::PxNeg, v0data::PyNeg>,
-                  v0data::V0Radius<v0data::X, v0data::Y>,
-                  v0data::V0CosPA<v0data::X, v0data::Y, v0data::Z, v0dataext::Px, v0dataext::Py, v0dataext::Pz>,
-                  v0data::DCAV0ToPV<v0data::X, v0data::Y, v0data::Z, v0dataext::Px, v0dataext::Py, v0dataext::Pz>,
+                       //Dynamic columns
+                       v0data::Pt<v0data::PxPos, v0data::PyPos, v0data::PxNeg, v0data::PyNeg>,
+                       v0data::V0Radius<v0data::X, v0data::Y>,
+                       v0data::V0CosPA<v0data::X, v0data::Y, v0data::Z, v0data::Px, v0data::Py, v0data::Pz>,
+                       v0data::DCAV0ToPV<v0data::X, v0data::Y, v0data::Z, v0data::Px, v0data::Py, v0data::Pz>,
 
-                  //Invariant masses
-                  v0data::MLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
-                  v0data::MAntiLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
-                  v0data::MK0Short<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
+                       //Invariant masses
+                       v0data::MLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
+                       v0data::MAntiLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
+                       v0data::MK0Short<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
 
-                  //Longitudinal
-                  v0data::YK0Short<v0dataext::Px, v0dataext::Py, v0dataext::Pz>,
-                  v0data::YLambda<v0dataext::Px, v0dataext::Py, v0dataext::Pz>,
-                  v0data::Eta<v0dataext::Px, v0dataext::Py, v0dataext::Pz>);
-
-using V0DataOrigin = V0Data;
+                       //Longitudinal
+                       v0data::YK0Short<v0data::Px, v0data::Py, v0data::Pz>,
+                       v0data::YLambda<v0data::Px, v0data::Py, v0data::Pz>,
+                       v0data::Eta<v0data::Px, v0data::Py, v0data::Pz>);
 
 // extended table with expression columns that can be used as arguments of dynamic columns
-DECLARE_SOA_EXTENDED_TABLE_USER(V0DataExt, V0DataOrigin, "V0DATAEXT",
-                                v0dataext::Px, v0dataext::Py, v0dataext::Pz);
+DECLARE_SOA_EXTENDED_TABLE_USER(V0Datas, StoredV0Datas, "V0DATAEXT",
+                                v0data::Px, v0data::Py, v0data::Pz); // the table name has here to be the one with EXT which is not nice and under study
 
-using V0DataFull = V0DataExt;
-
+using V0Data = V0Datas::iterator;
 namespace cascdata
 {
 //Necessary for full filtering functionality
-DECLARE_SOA_INDEX_COLUMN_FULL(V0, v0, int, V0DataExt, "fV0ID");
-DECLARE_SOA_INDEX_COLUMN_FULL(BachTrack, bachTrack, int, FullTracks, "fBachTrackID");
+DECLARE_SOA_INDEX_COLUMN(V0Data, v0Data);
+DECLARE_SOA_INDEX_COLUMN_FULL(Bachelor, bachelor, int, Tracks, "");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 //General V0 properties: position, momentum
-DECLARE_SOA_COLUMN(Charge, charge, int);
+DECLARE_SOA_COLUMN(Sign, sign, int);
 DECLARE_SOA_COLUMN(PxPos, pxpos, float);
 DECLARE_SOA_COLUMN(PyPos, pypos, float);
 DECLARE_SOA_COLUMN(PzPos, pzpos, float);
@@ -168,9 +162,9 @@ DECLARE_SOA_EXPRESSION_COLUMN(Pz, pz, float, 1.f * aod::cascdata::pzpos + 1.f * 
 } // namespace cascdataext
 
 DECLARE_SOA_TABLE(CascData, "AOD", "CASCDATA",
-                  o2::soa::Index<>, cascdata::V0Id, cascdata::BachTrackId, cascdata::CollisionId,
+                  o2::soa::Index<>, cascdata::V0DataId, cascdata::BachelorId, cascdata::CollisionId,
 
-                  cascdata::Charge,
+                  cascdata::Sign,
                   cascdata::X, cascdata::Y, cascdata::Z,
                   cascdata::Xlambda, cascdata::Ylambda, cascdata::Zlambda,
                   cascdata::PxPos, cascdata::PyPos, cascdata::PzPos,
@@ -189,7 +183,7 @@ DECLARE_SOA_TABLE(CascData, "AOD", "CASCDATA",
                   cascdata::DCACascToPV<cascdata::X, cascdata::Y, cascdata::Z, cascdataext::Px, cascdataext::Py, cascdataext::Pz>,
 
                   //Invariant masses
-                  cascdata::MLambda<cascdata::Charge, cascdata::PxPos, cascdata::PyPos, cascdata::PzPos, cascdata::PxNeg, cascdata::PyNeg, cascdata::PzNeg>,
+                  cascdata::MLambda<cascdata::Sign, cascdata::PxPos, cascdata::PyPos, cascdata::PzPos, cascdata::PxNeg, cascdata::PyNeg, cascdata::PzNeg>,
                   cascdata::MXi<cascdata::PxBach, cascdata::PyBach, cascdata::PzBach, cascdataext::PxLambda, cascdataext::PyLambda, cascdataext::PzLambda>,
                   cascdata::MOmega<cascdata::PxBach, cascdata::PyBach, cascdata::PzBach, cascdataext::PxLambda, cascdataext::PyLambda, cascdataext::PzLambda>,
                   //Longitudinal

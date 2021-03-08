@@ -90,7 +90,8 @@ class GPUTPCCompression : public GPUProcessor
   unsigned int mMaxTracks = 0;
   unsigned int mMaxClusters = 0;
   unsigned int mMaxTrackClusters = 0;
-  unsigned int mNMaxClusterSliceRow = 0;
+  unsigned int mMaxClustersInCache = 0;
+  size_t mMaxClusterFactorBase1024 = 0;
 
   template <class T>
   void SetPointersCompressedClusters(void*& mem, T& c, unsigned int nClA, unsigned int nTr, unsigned int nClU, bool reducedClA);

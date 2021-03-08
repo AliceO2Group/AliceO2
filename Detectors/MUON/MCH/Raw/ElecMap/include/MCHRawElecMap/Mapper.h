@@ -80,6 +80,10 @@ extern std::array<int, 13> deIdsOfCH7R;
 extern std::array<int, 13> deIdsOfCH7L;
 extern std::array<int, 13> deIdsOfCH8R;
 extern std::array<int, 13> deIdsOfCH8L;
+extern std::array<int, 13> deIdsOfCH9R;
+extern std::array<int, 13> deIdsOfCH9L;
+extern std::array<int, 13> deIdsOfCH10R;
+extern std::array<int, 13> deIdsOfCH10L;
 
 } // namespace o2::mch::raw
 

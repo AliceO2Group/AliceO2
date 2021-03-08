@@ -31,8 +31,8 @@ TOF_OUTPUT=clusters,matching-info
 ITS_CONFIG=
 ITS_CONFIG_KEY=
 if [ $SYNCMODE == 1 ]; then
-  ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500"
-  TPC_CONFIG_KEY+=" GPU_global.synchronousProcessing=1;"
+  ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;"
+  TPC_CONFIG_KEY+="GPU_global.synchronousProcessing=1;GPU_proc.clearO2OutputFromGPU=1;"
 fi
 if [ $CTFINPUT == 1 ]; then
   ITS_CONFIG+=" --tracking-mode async"
@@ -66,10 +66,10 @@ if [ $HOSTMEMSIZE != "0" ]; then
   TPC_CONFIG_KEY+="GPU_proc.forceHostMemoryPoolSize=$HOSTMEMSIZE;"
 fi
 
-if [ $EPNPIPELINES == 1 ]; then
-  N_TPCENT=$(($(expr 7 \* $NGPUS / 4) > 0 ? $(expr 7 \* $NGPUS / 4) : 1))
-  N_TPCITS=$(($(expr 7 \* $NGPUS / 4) > 0 ? $(expr 7 \* $NGPUS / 4) : 1))
-  N_ITSDEC=$(($(expr 3 \* $NGPUS / 4) > 0 ? $(expr 3 \* $NGPUS / 4) : 1))
+if [ $EPNPIPELINES != 0 ]; then
+  N_TPCENT=$(($(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
+  N_TPCITS=$(($(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
+  N_ITSDEC=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
 else
   N_TPCENT=1
   N_TPCITS=1

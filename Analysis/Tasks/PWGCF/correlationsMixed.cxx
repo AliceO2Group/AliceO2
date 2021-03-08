@@ -197,7 +197,7 @@ struct CorrelationTask {
 
       for (auto& track1 : tracks1) {
 
-        if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.charge() < 0) {
+        if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.sign() < 0) {
           continue;
         }
 
@@ -207,10 +207,10 @@ struct CorrelationTask {
 
         for (auto& track2 : tracks2) {
 
-          if (cfgAssociatedCharge != 0 && cfgAssociatedCharge * track2.charge() < 0) {
+          if (cfgAssociatedCharge != 0 && cfgAssociatedCharge * track2.sign() < 0) {
             continue;
           }
-          if (cfgPairCharge != 0 && cfgPairCharge * track1.charge() * track2.charge() < 0) {
+          if (cfgPairCharge != 0 && cfgPairCharge * track1.sign() * track2.sign() < 0) {
             continue;
           }
 
@@ -241,7 +241,7 @@ struct CorrelationTask {
   bool conversionCuts(T const& track1, T const& track2)
   {
     // skip if like sign
-    if (track1.charge() * track2.charge() > 0) {
+    if (track1.sign() * track2.sign() > 0) {
       return false;
     }
 
@@ -443,7 +443,7 @@ struct CorrelationTask {
         qa.mTwoTrackDistancePt[0]->Fill(deta, dphistarmin, TMath::Abs(track1.pt() - track2.pt()));
 
         if (dphistarminabs < cfgTwoTrackCut && TMath::Abs(deta) < cfgTwoTrackCut) {
-          //Printf("Removed track pair %ld %ld with %f %f %f %f %d %f %f %d %d", track1.index(), track2.index(), deta, dphistarminabs, track1.phi(), track1.pt(), track1.charge(), track2.phi(), track2.pt(), track2.charge(), bSign);
+          //Printf("Removed track pair %ld %ld with %f %f %f %f %d %f %f %d %d", track1.index(), track2.index(), deta, dphistarminabs, track1.phi(), track1.pt(), track1.sign(), track2.phi(), track2.pt(), track2.sign(), bSign);
           return true;
         }
 
@@ -463,11 +463,11 @@ struct CorrelationTask {
 
     auto phi1 = track1.phi();
     auto pt1 = track1.pt();
-    auto charge1 = track1.charge();
+    auto charge1 = track1.sign();
 
     auto phi2 = track2.phi();
     auto pt2 = track2.pt();
-    auto charge2 = track2.charge();
+    auto charge2 = track2.sign();
 
     float dphistar = phi1 - phi2 - charge1 * bSign * TMath::ASin(0.075 * radius / pt1) + charge2 * bSign * TMath::ASin(0.075 * radius / pt2);
 

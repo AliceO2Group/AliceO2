@@ -462,10 +462,10 @@ bool GPUReconstructionOCL::IsEventDone(deviceEvent* evList, int nEvents)
   return true;
 }
 
-int GPUReconstructionOCL::GPUDebug(const char* state, int stream)
+int GPUReconstructionOCL::GPUDebug(const char* state, int stream, bool force)
 {
   // Wait for OPENCL-Kernel to finish and check for OPENCL errors afterwards, in case of debugmode
-  if (mProcessingSettings.debugLevel <= 0) {
+  if (!force && mProcessingSettings.debugLevel <= 0) {
     return (0);
   }
   for (int i = 0; i < mNStreams; i++) {

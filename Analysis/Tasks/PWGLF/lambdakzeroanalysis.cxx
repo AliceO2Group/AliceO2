@@ -67,7 +67,7 @@ struct lambdakzeroQA {
     },
   };
 
-  void process(aod::Collision const& collision, aod::V0DataExt const& fullV0s)
+  void process(aod::Collision const& collision, aod::V0Datas const& fullV0s)
   {
 
     for (auto& v0 : fullV0s) {
@@ -109,7 +109,7 @@ struct lambdakzeroanalysis {
 
   Filter preFilterV0 = nabs(aod::v0data::dcapostopv) > dcapostopv&& nabs(aod::v0data::dcanegtopv) > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;
 
-  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision, soa::Filtered<aod::V0DataExt> const& fullV0s)
+  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision, soa::Filtered<aod::V0Datas> const& fullV0s)
   {
     if (!collision.alias()[kINT7]) {
       return;

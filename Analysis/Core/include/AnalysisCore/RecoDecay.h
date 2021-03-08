@@ -684,7 +684,7 @@ class RecoDecay
     }
     // Loop over decay candidate prongs
     for (auto iProng = 0; iProng < N; ++iProng) {
-      auto particleI = arrDaughters[iProng].label(); // ith daughter particle
+      auto particleI = arrDaughters[iProng].mcParticle(); // ith daughter particle
       arrDaughtersIndex[iProng] = particleI.globalIndex();
       // Get the list of daughter indices from the mother of the first prong.
       if (iProng == 0) {

@@ -12,6 +12,15 @@
 
 #include <cstdint>
 
+namespace o2::aod::collision
+{
+enum CollisionFlagsRun2 : uint16_t {
+  Run2VertexerTracks = 0,
+  Run2VertexerTracksNoConstraint,
+  Run2VertexerZ,
+  Run2Vertexer3D
+};
+} // namespace o2::aod::collision
 namespace o2::aod::track
 {
 enum TrackTypeEnum : uint8_t {

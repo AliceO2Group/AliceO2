@@ -187,6 +187,8 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
     const int iSlice = iSliceRow / GPUCA_ROW_COUNT;
     const int iRow = iSliceRow % GPUCA_ROW_COUNT;
     const int idOffset = clusters->clusterOffset[iSlice][iRow];
+    const int idOffsetOut = clusters->clusterOffset[iSlice][iRow] * compressor.mMaxClusterFactorBase1024 / 1024;
+    const int idOffsetOutMax = clusters->clusterOffset[iSlice][iRow + 1] * compressor.mMaxClusterFactorBase1024 / 1024;
     if (iThread == nThreads - 1) {
       smem.nCount = 0;
     }
@@ -246,7 +248,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
         continue;
       }
 
-      const unsigned int count = CAMath::Min(smem.nCount, (unsigned int)GPUCA_TPC_COMP_CHUNK_SIZE);
+      unsigned int count = CAMath::Min(smem.nCount, (unsigned int)GPUCA_TPC_COMP_CHUNK_SIZE);
       if (param.rec.tpcCompressionModes & GPUSettings::CompressionDifferences) {
         if (param.rec.tpcCompressionSortOrder == GPUSettings::SortZPadTime) {
           CAAlgo::sortInBlock(sortBuffer, sortBuffer + count, GPUTPCCompressionKernels_Compare<GPUSettings::SortZPadTime>(clusters->clusters[iSlice][iRow]));
@@ -261,7 +263,12 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
       }
 
       for (unsigned int j = get_local_id(0); j < count; j += get_local_size(0)) {
-        int outidx = idOffset + totalCount + j;
+        int outidx = idOffsetOut + totalCount + j;
+        if (outidx >= idOffsetOutMax) {
+          compressor.raiseError(GPUErrors::ERROR_COMPRESSION_ROW_HIT_OVERFLOW, outidx, idOffsetOutMax);
+          count = 0;
+          break;
+        }
         const ClusterNative& GPUrestrict() orgCl = clusters->clusters[iSlice][iRow][sortBuffer[j]];
         unsigned int lastTime = 0;
         unsigned int lastPad = 0;
@@ -446,7 +453,7 @@ GPUdi() void GPUTPCCompressionGatherKernels::compressorMemcpyBasic(T* GPUrestric
 }
 
 template <typename V, typename T, typename S>
-GPUdi() void GPUTPCCompressionGatherKernels::compressorMemcpyBuffered(V* buf, T* GPUrestrict() dst, const T* GPUrestrict() src, const S* GPUrestrict() nums, const unsigned int* GPUrestrict() srcOffsets, unsigned int nTracks, int nLanes, int iLane, int diff)
+GPUdi() void GPUTPCCompressionGatherKernels::compressorMemcpyBuffered(V* buf, T* GPUrestrict() dst, const T* GPUrestrict() src, const S* GPUrestrict() nums, const unsigned int* GPUrestrict() srcOffsets, unsigned int nEntries, int nLanes, int iLane, int diff, size_t scaleBase1024)
 {
   int shmPos = 0;
   unsigned int dstOffset = 0;
@@ -456,9 +463,9 @@ GPUdi() void GPUTPCCompressionGatherKernels::compressorMemcpyBuffered(V* buf, T*
   CONSTEXPR int bufSize = GPUCA_WARP_SIZE;
   CONSTEXPR int bufTSize = bufSize * sizeof(V) / sizeof(T);
 
-  for (unsigned int i = 0; i < nTracks; i++) {
+  for (unsigned int i = 0; i < nEntries; i++) {
     unsigned int srcPos = 0;
-    unsigned int srcOffset = srcOffsets[i] + diff;
+    unsigned int srcOffset = (srcOffsets[i] * scaleBase1024 / 1024) + diff;
     unsigned int srcSize = nums[i] - diff;
 
     if (dstAligned == nullptr) {
@@ -565,13 +572,14 @@ GPUdii() void GPUTPCCompressionGatherKernels::Thread<GPUTPCCompressionGatherKern
     for (unsigned int i = sliceStart; i <= sliceEnd && i < compressor.NSLICES; i++) {
       for (unsigned int j = ((i == sliceStart) ? sliceRowStart : 0); j < ((i == sliceEnd) ? sliceRowEnd : GPUCA_ROW_COUNT); j++) {
         unsigned int nClusters = compressor.mPtrs.nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
-        compressorMemcpy(compressor.mOutput->qTotU + rowsOffset, compressor.mPtrs.qTotU + clusters->clusterOffset[i][j], nClusters, nLanes, iLane);
-        compressorMemcpy(compressor.mOutput->qMaxU + rowsOffset, compressor.mPtrs.qMaxU + clusters->clusterOffset[i][j], nClusters, nLanes, iLane);
-        compressorMemcpy(compressor.mOutput->flagsU + rowsOffset, compressor.mPtrs.flagsU + clusters->clusterOffset[i][j], nClusters, nLanes, iLane);
-        compressorMemcpy(compressor.mOutput->padDiffU + rowsOffset, compressor.mPtrs.padDiffU + clusters->clusterOffset[i][j], nClusters, nLanes, iLane);
-        compressorMemcpy(compressor.mOutput->timeDiffU + rowsOffset, compressor.mPtrs.timeDiffU + clusters->clusterOffset[i][j], nClusters, nLanes, iLane);
-        compressorMemcpy(compressor.mOutput->sigmaPadU + rowsOffset, compressor.mPtrs.sigmaPadU + clusters->clusterOffset[i][j], nClusters, nLanes, iLane);
-        compressorMemcpy(compressor.mOutput->sigmaTimeU + rowsOffset, compressor.mPtrs.sigmaTimeU + clusters->clusterOffset[i][j], nClusters, nLanes, iLane);
+        unsigned int clusterOffsetInCache = clusters->clusterOffset[i][j] * compressor.mMaxClusterFactorBase1024 / 1024;
+        compressorMemcpy(compressor.mOutput->qTotU + rowsOffset, compressor.mPtrs.qTotU + clusterOffsetInCache, nClusters, nLanes, iLane);
+        compressorMemcpy(compressor.mOutput->qMaxU + rowsOffset, compressor.mPtrs.qMaxU + clusterOffsetInCache, nClusters, nLanes, iLane);
+        compressorMemcpy(compressor.mOutput->flagsU + rowsOffset, compressor.mPtrs.flagsU + clusterOffsetInCache, nClusters, nLanes, iLane);
+        compressorMemcpy(compressor.mOutput->padDiffU + rowsOffset, compressor.mPtrs.padDiffU + clusterOffsetInCache, nClusters, nLanes, iLane);
+        compressorMemcpy(compressor.mOutput->timeDiffU + rowsOffset, compressor.mPtrs.timeDiffU + clusterOffsetInCache, nClusters, nLanes, iLane);
+        compressorMemcpy(compressor.mOutput->sigmaPadU + rowsOffset, compressor.mPtrs.sigmaPadU + clusterOffsetInCache, nClusters, nLanes, iLane);
+        compressorMemcpy(compressor.mOutput->sigmaTimeU + rowsOffset, compressor.mPtrs.sigmaTimeU + clusterOffsetInCache, nClusters, nLanes, iLane);
         rowsOffset += nClusters;
       }
     }
@@ -676,18 +684,18 @@ GPUdii() void GPUTPCCompressionGatherKernels::gatherBuffered(int nBlocks, int nT
     compressorMemcpyBasic(output->padA, input.padA, compressor.mMemory->nStoredTracks, nThreads, iThread);
   }
 
-  const unsigned int* clusterOffsets = reinterpret_cast<const unsigned int*>(clusters->clusterOffset) + rowStart;
+  const unsigned int* clusterOffsets = &clusters->clusterOffset[0][0] + rowStart;
   const unsigned int* nSliceRowClusters = input.nSliceRowClusters + rowStart;
 
   auto* buf = smem.getBuffer<V>(iWarp);
 
-  compressorMemcpyBuffered(buf, output->qTotU + rowsOffset, input.qTotU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0);
-  compressorMemcpyBuffered(buf, output->qMaxU + rowsOffset, input.qMaxU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0);
-  compressorMemcpyBuffered(buf, output->flagsU + rowsOffset, input.flagsU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0);
-  compressorMemcpyBuffered(buf, output->padDiffU + rowsOffset, input.padDiffU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0);
-  compressorMemcpyBuffered(buf, output->timeDiffU + rowsOffset, input.timeDiffU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0);
-  compressorMemcpyBuffered(buf, output->sigmaPadU + rowsOffset, input.sigmaPadU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0);
-  compressorMemcpyBuffered(buf, output->sigmaTimeU + rowsOffset, input.sigmaTimeU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0);
+  compressorMemcpyBuffered(buf, output->qTotU + rowsOffset, input.qTotU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0, compressor.mMaxClusterFactorBase1024);
+  compressorMemcpyBuffered(buf, output->qMaxU + rowsOffset, input.qMaxU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0, compressor.mMaxClusterFactorBase1024);
+  compressorMemcpyBuffered(buf, output->flagsU + rowsOffset, input.flagsU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0, compressor.mMaxClusterFactorBase1024);
+  compressorMemcpyBuffered(buf, output->padDiffU + rowsOffset, input.padDiffU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0, compressor.mMaxClusterFactorBase1024);
+  compressorMemcpyBuffered(buf, output->timeDiffU + rowsOffset, input.timeDiffU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0, compressor.mMaxClusterFactorBase1024);
+  compressorMemcpyBuffered(buf, output->sigmaPadU + rowsOffset, input.sigmaPadU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0, compressor.mMaxClusterFactorBase1024);
+  compressorMemcpyBuffered(buf, output->sigmaTimeU + rowsOffset, input.sigmaTimeU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0, compressor.mMaxClusterFactorBase1024);
 
   const unsigned short* nTrackClustersPtr = input.nTrackClusters + trackStart;
   const unsigned int* aClsFstIdx = compressor.mAttachedClusterFirstIndex + trackStart;
@@ -742,16 +750,16 @@ GPUdii() void GPUTPCCompressionGatherKernels::gatherMulti(int nBlocks, int nThre
     rowsPerWarp = rowEnd - rowStart;
 
     const unsigned int rowsOffset = calculateWarpOffsets(smem, input.nSliceRowClusters, rowStart, rowEnd, nWarps, iWarp, nLanes, iLane);
-    const unsigned int* clusterOffsets = reinterpret_cast<const unsigned int*>(clusters->clusterOffset) + rowStart;
+    const unsigned int* clusterOffsets = &clusters->clusterOffset[0][0] + rowStart;
     const unsigned int* nSliceRowClusters = input.nSliceRowClusters + rowStart;
 
-    compressorMemcpyBuffered(buf, output->qTotU + rowsOffset, input.qTotU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0);
-    compressorMemcpyBuffered(buf, output->qMaxU + rowsOffset, input.qMaxU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0);
-    compressorMemcpyBuffered(buf, output->flagsU + rowsOffset, input.flagsU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0);
-    compressorMemcpyBuffered(buf, output->padDiffU + rowsOffset, input.padDiffU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0);
-    compressorMemcpyBuffered(buf, output->timeDiffU + rowsOffset, input.timeDiffU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0);
-    compressorMemcpyBuffered(buf, output->sigmaPadU + rowsOffset, input.sigmaPadU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0);
-    compressorMemcpyBuffered(buf, output->sigmaTimeU + rowsOffset, input.sigmaTimeU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0);
+    compressorMemcpyBuffered(buf, output->qTotU + rowsOffset, input.qTotU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0, compressor.mMaxClusterFactorBase1024);
+    compressorMemcpyBuffered(buf, output->qMaxU + rowsOffset, input.qMaxU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0, compressor.mMaxClusterFactorBase1024);
+    compressorMemcpyBuffered(buf, output->flagsU + rowsOffset, input.flagsU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0, compressor.mMaxClusterFactorBase1024);
+    compressorMemcpyBuffered(buf, output->padDiffU + rowsOffset, input.padDiffU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0, compressor.mMaxClusterFactorBase1024);
+    compressorMemcpyBuffered(buf, output->timeDiffU + rowsOffset, input.timeDiffU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0, compressor.mMaxClusterFactorBase1024);
+    compressorMemcpyBuffered(buf, output->sigmaPadU + rowsOffset, input.sigmaPadU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0, compressor.mMaxClusterFactorBase1024);
+    compressorMemcpyBuffered(buf, output->sigmaTimeU + rowsOffset, input.sigmaTimeU, nSliceRowClusters, clusterOffsets, rowsPerWarp, nLanes, iLane, 0, compressor.mMaxClusterFactorBase1024);
   } else {
     const unsigned int nGlobalWarps = nWarps * (nBlocks - 1) / 2;
     const unsigned int iGlobalWarp = nWarps * (iBlock / 2 - 1) + iWarp;

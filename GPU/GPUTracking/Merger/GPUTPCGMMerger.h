@@ -81,6 +81,11 @@ class GPUTPCGMMerger : public GPUProcessor
     unsigned char leg;
   };
 
+  struct tmpSort {
+    unsigned int x;
+    float y;
+  };
+
   void InitializeProcessor();
   void RegisterMemoryAllocation();
   void SetMaxData(const GPUTrackingInOutPointers& io);
@@ -91,18 +96,17 @@ class GPUTPCGMMerger : public GPUProcessor
   void* SetPointersOutputO2(void* mem);
   void* SetPointersOutputO2Clus(void* mem);
   void* SetPointersOutputO2MC(void* mem);
+  void* SetPointersOutputO2Scratch(void* mem);
   void* SetPointersOutputState(void* mem);
   void* SetPointersMemory(void* mem);
 
   void SetSliceData(int index, const GPUTPCSliceOutput* sliceData) { mkSlices[index] = sliceData; }
 
-  GPUhd() int NOutputTracks() const { return mMemory->nOutputTracks; }
-  GPUhd() const GPUTPCGMMergedTrack* OutputTracks() const { return mOutputTracks; }
-  GPUhd() GPUTPCGMMergedTrack* OutputTracks()
-  {
-    return mOutputTracks;
-  }
-
+  GPUhdi() int NOutputTracks() const { return mMemory->nOutputTracks; }
+  GPUhdi() const GPUTPCGMMergedTrack* OutputTracks() const { return mOutputTracks; }
+  GPUhdi() GPUTPCGMMergedTrack* OutputTracks() { return mOutputTracks; }
+  GPUhdi() const GPUdEdxInfo* OutputTracksdEdx() const { return mOutputTracksdEdx; }
+  GPUhdi() GPUdEdxInfo* OutputTracksdEdx() { return mOutputTracksdEdx; }
   GPUhdi() unsigned int NClusters() const { return mNClusters; }
   GPUhdi() unsigned int NMaxClusters() const { return mNMaxClusters; }
   GPUhdi() unsigned int NMaxTracks() const { return mNMaxTracks; }
@@ -120,7 +124,10 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhdi() GPUTPCGMLoopData* LoopData() const { return mLoopData; }
   GPUhdi() memory* Memory() const { return mMemory; }
   GPUhdi() GPUAtomic(unsigned int) * TmpCounter() { return mMemory->tmpCounter; }
-  GPUhdi() uint4* TmpMem() { return mTmpMem; }
+  GPUhdi() uint2* ClusRefTmp() { return mClusRefTmp; }
+  GPUhdi() unsigned int* TrackSort() { return mTrackSort; }
+  GPUhdi() tmpSort* TrackSortO2() { return mTrackSortO2; }
+  GPUhdi() GPUAtomic(unsigned int) * SharedCount() { return mSharedCount; }
   GPUhdi() gputpcgmmergertypes::GPUTPCGMBorderRange* BorderRange(int i) { return mBorderRange[i]; }
   GPUhdi() o2::tpc::TrackTPC* OutputTracksTPCO2() { return mOutputTracksTPCO2; }
   GPUhdi() unsigned int* OutputClusRefsTPCO2() { return mOutputClusRefsTPCO2; }
@@ -134,6 +141,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() unsigned short MemoryResOutputO2() const { return mMemoryResOutputO2; }
   GPUd() unsigned short MemoryResOutputO2Clus() const { return mMemoryResOutputO2Clus; }
   GPUd() unsigned short MemoryResOutputO2MC() const { return mMemoryResOutputO2MC; }
+  GPUd() unsigned short MemoryResOutputO2Scratch() const { return mMemoryResOutputO2Scratch; }
 
   GPUd() int RefitSliceTrack(GPUTPCGMSliceTrack& sliceTrack, const GPUTPCTrack* inTrack, float alpha, int slice);
   GPUd() void SetTrackClusterZT(GPUTPCGMSliceTrack& track, int iSlice, const GPUTPCTrack* sliceTr);
@@ -230,9 +238,11 @@ class GPUTPCGMMerger : public GPUProcessor
   unsigned short mMemoryResOutputO2;
   unsigned short mMemoryResOutputO2Clus;
   unsigned short mMemoryResOutputO2MC;
+  unsigned short mMemoryResOutputO2Scratch;
 
   int mNClusters;                       // Total number of incoming clusters (from slice tracks)
   GPUTPCGMMergedTrack* mOutputTracks;   //* array of output merged tracks
+  GPUdEdxInfo* mOutputTracksdEdx;       //* dEdx information
   GPUTPCGMSliceTrack* mSliceTrackInfos; //* additional information for slice tracks
   int* mSliceTrackInfoIndex;
   GPUTPCGMMergedTrackHit* mClusters;
@@ -246,7 +256,11 @@ class GPUTPCGMMerger : public GPUProcessor
   unsigned int* mTrackOrderAttach;
   unsigned int* mTrackOrderProcess;
   unsigned char* mClusterStateExt;
-  uint4* mTmpMem;
+  uint2* mClusRefTmp;
+  int* mTrackIDs;
+  unsigned int* mTrackSort;
+  tmpSort* mTrackSortO2;
+  GPUAtomic(unsigned int) * mSharedCount; // Must be unsigned int unfortunately for atomic support
   GPUTPCGMBorderTrack* mBorderMemory; // memory for border tracks
   GPUTPCGMBorderTrack* mBorder[2 * NSLICES];
   gputpcgmmergertypes::GPUTPCGMBorderRange* mBorderRangeMemory;    // memory for border tracks

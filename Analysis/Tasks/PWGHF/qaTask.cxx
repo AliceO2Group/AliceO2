@@ -439,12 +439,12 @@ struct QATrackingResolution {
     for (const auto& track : tracks) {
 
       if (useOnlyPhysicsPrimary) {
-        const auto mcParticle = track.label();
+        const auto mcParticle = track.mcParticle();
         if (!MC::isPhysicalPrimary(mcParticles, mcParticle)) {
           continue;
         }
       }
-      const double deltaPt = track.label().pt() - track.pt();
+      const double deltaPt = track.mcParticle().pt() - track.pt();
       histos.fill(HIST("pt/ptDiffMCRec"), deltaPt);
 
       const double deltaPtOverPt = deltaPt / track.pt();
@@ -454,12 +454,12 @@ struct QATrackingResolution {
       histos.fill(HIST("pt/ptResolutionVsEta"), track.eta(), std::abs(deltaPtOverPt));
       histos.fill(HIST("pt/ptResolutionVsPhi"), track.phi(), std::abs(deltaPtOverPt));
 
-      const double deltaEta = track.label().eta() - track.eta();
+      const double deltaEta = track.mcParticle().eta() - track.eta();
       histos.fill(HIST("eta/etaDiffMCReco"), deltaEta);
-      histos.fill(HIST("eta/etaDiffMCRecoVsEtaMC"), deltaEta, track.label().eta());
+      histos.fill(HIST("eta/etaDiffMCRecoVsEtaMC"), deltaEta, track.mcParticle().eta());
       histos.fill(HIST("eta/etaDiffMCRecoVsEtaReco"), deltaEta, track.eta());
 
-      const double deltaPhi = track_utils::ConvertPhiRange(track.label().phi() - track.phi());
+      const double deltaPhi = track_utils::ConvertPhiRange(track.mcParticle().phi() - track.phi());
       histos.fill(HIST("phi/phiDiffMCRec"), deltaPhi);
 
       double impactParameterRPhi{-999.}, impactParameterRPhiError{-999.};
@@ -519,7 +519,7 @@ struct QATrackingEfficiency {
                const o2::aod::McParticles& mcParticles)
   {
     for (const auto& track : tracks) {
-      const auto mcParticle = track.label();
+      const auto mcParticle = track.mcParticle();
       if (MC::isPhysicalPrimary(mcParticles, mcParticle) &&
           abs(mcParticle.pdgCode()) == particlePDG) {
         histos.fill(HIST("reconstructedKinematics"), mcParticle.pt(), mcParticle.eta(), mcParticle.phi());
