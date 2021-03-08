@@ -98,20 +98,20 @@ using MCParticlesTable = o2::soa::Table<o2::aod::mcparticle::McCollisionId,
 class AODProducerWorkflowDPL : public Task
 {
  public:
-  AODProducerWorkflowDPL() = default;
+  AODProducerWorkflowDPL(int ignoreWriter) : mIgnoreWriter(ignoreWriter){};
   ~AODProducerWorkflowDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
 
  private:
-  int mFillTracksITS = 1;
-  int mFillTracksTPC = 0;
-  int mFillTracksITSTPC = 1;
-  int mTFNumber = -1;
-  int mTruncate = 1;
-  int mIgnoreWriter = 0;
-  int mRecoOnly = 0;
+  int mFillTracksITS{1};
+  int mFillTracksTPC{0};
+  int mFillTracksITSTPC{1};
+  int mTFNumber{-1};
+  int mTruncate{1};
+  int mIgnoreWriter{0};
+  int mRecoOnly{0};
   TStopwatch mTimer;
 
   // truncation is enabled by default
@@ -165,10 +165,12 @@ class AODProducerWorkflowDPL : public Task
   template <typename MCParticlesCursorType>
   void fillMCParticlesTable(const o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
                             std::vector<std::vector<std::vector<int>>>& toStore);
+
+  void writeTableToFile(TFile* outfile, std::shared_ptr<arrow::Table>& table, const std::string& tableName, uint64_t tfNumber);
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getAODProducerWorkflowSpec();
+framework::DataProcessorSpec getAODProducerWorkflowSpec(int ignoreWriter);
 
 } // namespace o2::aodproducer
 
