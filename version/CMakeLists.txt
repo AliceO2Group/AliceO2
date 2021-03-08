@@ -56,3 +56,14 @@ add_library(O2::VersionShared ALIAS O2Version_shared)
 install(FILES O2Version.h DESTINATION include)
 install(TARGETS O2Version_shared DESTINATION lib)
 
+
+# We also create a simple queryable json file containing the full
+# alibuild/alidist information. Can be augmented with further information.
+
+if(DEFINED ENV{ALIBUILD_VERSION})
+  execute_process(COMMAND ${CMAKE_SOURCE_DIR}/version/RecordBuildDetails.py
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+                  OUTPUT_FILE o2-build-database.json)
+
+  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/o2-build-database.json DESTINATION share/version/)
+endif()
