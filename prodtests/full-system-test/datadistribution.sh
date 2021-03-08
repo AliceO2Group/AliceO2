@@ -8,7 +8,10 @@ if [ `which StfBuilder 2> /dev/null | wc -l` == "0" ]; then
   alienv --no-refresh load DataDistribution/latest
 fi
 
+# For benchmark only, do NOT copy&paste!
 export DATADIST_SHM_DELAY=10
+export DATADIST_FILE_READ_COUNT=$NTIMEFRAMES
+
 export TF_DIR=./raw/timeframe
 export TFRATE=$(awk "BEGIN {printf \"%.6f\",1/$TFDELAY}")
 
@@ -23,4 +26,5 @@ StfBuilder --id stfb --transport shmem \
   --data-source-headersize=1024 \
   --data-source-enable \
   --data-source-preread 5 \
+  --control=static \
   ${ARGS_ALL}

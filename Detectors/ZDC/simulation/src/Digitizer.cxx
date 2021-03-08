@@ -64,8 +64,9 @@ void Digitizer::process(const std::vector<o2::zdc::Hit>& hits,
     int detID = hit.GetDetectorID();
     int secID = hit.getSector();
     float nPhotons;
-    if (detID == ZEM) { // TODO: ZEMCh1 and Common are both 0, could skip the check for detID
-      nPhotons = (secID == ZEMCh1) ? hit.getPMCLightYield() : hit.getPMQLightYield();
+    if (detID == ZEM) {
+      // ZEM calorimeters have only common PM
+      nPhotons = hit.getPMCLightYield();
     } else {
       nPhotons = (secID == Common) ? hit.getPMCLightYield() : hit.getPMQLightYield();
     }
@@ -256,8 +257,9 @@ bool Digitizer::triggerBC(int ibc)
         int id = trigCh.id;
         if (id >= 0 && id < NChannels) {
           auto ipos = NChPerModule * md.id + ic;
+          int last1 = trigCh.last + 2;
           bool okPrev = false;
-          int last1 = trigCh.last + 2; // To be modified. The new requirement is 3 consecutive samples
+#ifdef ZDC_DOUBLE_TRIGGER_CONDITION
           // look for 2 consecutive bins (the 1st one spanning trigCh.first : trigCh.last range) so that
           // signal[bin]-signal[bin+trigCh.shift] > trigCh.threshold
           for (int ib = trigCh.first; ib < last1; ib++) { // ib may be negative, so we shift by offs and look in the ADC cache
@@ -274,6 +276,26 @@ bool Digitizer::triggerBC(int ibc)
             }
             okPrev = ok;
           }
+#else
+          bool okPPrev = false;
+          // look for 3 consecutive bins (the 1st one spanning trigCh.first : trigCh.last range) so that
+          // signal[bin]-signal[bin+trigCh.shift] > trigCh.threshold
+          for (int ib = trigCh.first - 1; ib < last1; ib++) { // ib may be negative, so we shift by offs and look in the ADC cache
+            int binF, bcFidx = ibc + binHelper(ib, binF);
+            int binL, bcLidx = ibc + binHelper(ib + trigCh.shift, binL);
+            const auto& bcF = (bcFidx < 0 || !mFastCache[bcFidx]) ? mDummyBC : *mFastCache[bcFidx];
+            const auto& bcL = (bcLidx < 0 || !mFastCache[bcLidx]) ? mDummyBC : *mFastCache[bcLidx];
+            bool ok = bcF.digi[ipos][binF] - bcL.digi[ipos][binL] > trigCh.threshold;
+            if (ok && okPrev && okPPrev) {                                 // trigger ok!
+              bcCached.trigChanMask |= 0x1 << (NChPerModule * md.id + ic); // register trigger mask
+              LOG(DEBUG) << bcF.digi[ipos][binF] << " - " << bcL.digi[ipos][binL] << " = " << bcF.digi[ipos][binF] - bcL.digi[ipos][binL] << " > " << trigCh.threshold;
+              LOG(DEBUG) << " hit [" << md.id << "," << ic << "] " << int(id) << "(" << ChannelNames[id] << ") => " << bcCached.trigChanMask;
+              break;
+            }
+            okPPrev = okPrev;
+            okPrev = ok;
+          }
+#endif
         }
       }
     }
@@ -326,9 +348,11 @@ void Digitizer::storeBC(const BCCache& bc, uint32_t chan2Store,
   int nBC = digitsBC.size();
   digitsBC.emplace_back(first, nSto, bc, chan2Store, bc.trigChanMask, bc.extTrig);
   // TODO clarify if we want to store MC labels for all channels or only for stored ones
-  for (const auto& lbl : bc.labels) {
-    if (chan2Store & (0x1 << lbl.getChannel())) {
-      labels.addElement(nBC, lbl);
+  if (!mSkipMCLabels) {
+    for (const auto& lbl : bc.labels) {
+      if (chan2Store & (0x1 << lbl.getChannel())) {
+        labels.addElement(nBC, lbl);
+      }
     }
   }
 }
@@ -423,6 +447,8 @@ void Digitizer::init()
   mNBCAHead = mIsContinuous ? sopt.nBCAheadCont : sopt.nBCAheadTrig;
   LOG(INFO) << "Initialized in " << (mIsContinuous ? "Cont" : "Trig") << " mode, " << mNBCAHead
             << " BCs will be stored ahead of Trigger";
+  LOG(INFO) << "Trigger bit masking is " << (mMaskTriggerBits ? "ON (default)" : "OFF (debugging)");
+  LOG(INFO) << "MC Labels are " << (mSkipMCLabels ? "SKIPPED" : "SAVED (default)");
 }
 
 //______________________________________________________________________________
@@ -487,6 +513,7 @@ void Digitizer::refreshCCDB()
   }
 
   setTriggerMask();
+  setReadoutMask();
 }
 
 //______________________________________________________________________________
@@ -530,7 +557,36 @@ void Digitizer::setTriggerMask()
     LOGF(INFO, "Trigger mask for module %d 0123 %c%c%c%c\n", im,
          mytmask & 0x1 ? 'T' : 'N', mytmask & 0x2 ? 'T' : 'N', mytmask & 0x4 ? 'T' : 'N', mytmask & 0x8 ? 'T' : 'N');
   }
-  LOGF(INFO, "trigger_mask=0x%08x %s\n", mTriggerMask, printTriggerMask.c_str());
+  LOGF(INFO, "TriggerMask=0x%08x %s\n", mTriggerMask, printTriggerMask.c_str());
+}
+
+//______________________________________________________________________________
+void Digitizer::setReadoutMask()
+{
+  mReadoutMask = 0;
+  std::string printReadoutMask{};
+
+  for (int im = 0; im < NModules; im++) {
+    if (im > 0) {
+      printReadoutMask += " ";
+    }
+    printReadoutMask += std::to_string(im);
+    printReadoutMask += "[";
+    for (int ic = 0; ic < NChPerModule; ic++) {
+      if (mModuleConfig->modules[im].readChannel[ic]) {
+        uint32_t rmask = 0x1 << (im * NChPerModule + ic);
+        mReadoutMask = mReadoutMask | rmask;
+        printReadoutMask += "R";
+      } else {
+        printReadoutMask += " ";
+      }
+    }
+    printReadoutMask += "]";
+    uint32_t myrmask = mReadoutMask >> (im * NChPerModule);
+    LOGF(INFO, "Readout mask for module %d 0123 %c%c%c%c\n", im,
+         myrmask & 0x1 ? 'R' : 'N', myrmask & 0x2 ? 'R' : 'N', myrmask & 0x4 ? 'R' : 'N', myrmask & 0x8 ? 'R' : 'N');
+  }
+  LOGF(INFO, "ReadoutMask=0x%08x %s\n", mReadoutMask, printReadoutMask.c_str());
 }
 
 //______________________________________________________________________________
@@ -539,9 +595,8 @@ void Digitizer::assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData)
   // Triggers refer to the HW trigger conditions (32 possible channels)
 
   uint32_t nbcTot = bcData.size();
-  auto currBC = bcData[ibc];
+  auto& currBC = bcData[ibc];
 
-  uint32_t triggers[5] = {0};
   for (int is = -1; is < 4; is++) {
     int ibc_peek = ibc + is;
     if (ibc_peek < 0) {
@@ -551,27 +606,71 @@ void Digitizer::assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData)
       break;
     }
     const auto& otherBC = bcData[ibc_peek];
-    if (otherBC.triggers) {
-      auto diffBC = otherBC.ir.differenceInBC(currBC.ir);
-      if (diffBC < -1 || diffBC > 3) {
-        continue;
-      }
-      diffBC++;
-      if (otherBC.ext_triggers) {
-        for (int im = 0; im < NModules; im++) {
-          currBC.moduleTriggers[im] |= 0x1 << diffBC;
-        }
-      }
-      triggers[diffBC] = otherBC.triggers;
+    auto diffBC = otherBC.ir.differenceInBC(currBC.ir);
+    if (diffBC < -1) {
+      continue;
     }
-    // Assign trigger bits in payload
-    for (int im = 0; im < NModules; im++) {
-      uint32_t tmask = (0xf << (im * NChPerModule)) & mTriggerMask;
-      for (int it = 0; it < 5; it++) {
-        if (triggers[it] & tmask) {
-          currBC.moduleTriggers[im] |= 0x1 << (5 + it);
+    if (diffBC > 3) {
+      break;
+    }
+    if (otherBC.ext_triggers && diffBC >= 0) {
+      for (int im = 0; im < NModules; im++) {
+        currBC.moduleTriggers[im] |= 0x1 << diffBC;
+      }
+    }
+    if (otherBC.triggers) {
+      // Assign trigger bits in payload
+      for (int im = 0; im < NModules; im++) {
+        uint32_t tmask = (0xf << (im * NChPerModule)) & mTriggerMask;
+        if (otherBC.triggers & tmask) {
+          currBC.moduleTriggers[im] |= 0x1 << (5 + diffBC);
         }
       }
+    }
+  }
+  // Printout before cleanup
+  //currBC.print(mTriggerMask);
+}
+
+void Digitizer::Finalize(std::vector<BCData>& bcData, std::vector<o2::zdc::OrbitData>& pData)
+{
+  // Compute scalers for digitized data (works only for triggering channels)
+  for (Int_t ipd = 0; ipd < pData.size(); ipd++) {
+    for (int id = 0; id < NChannels; id++) {
+      pData[ipd].scaler[id] = 0;
+    }
+  }
+  for (int im = 0; im < NModules; im++) {
+    for (int ic = 0; ic < NChPerModule; ic++) {
+      uint32_t mask = 0x1 << (im * NChPerModule + ic);
+      auto id = mModuleConfig->modules[im].channelID[ic];
+      for (uint32_t ibc = 0; ibc < bcData.size(); ibc++) {
+        auto& currBC = bcData[ibc];
+        if ((currBC.triggers & mask) && (mReadoutMask & mask)) {
+          for (Int_t ipd = 0; ipd < pData.size(); ipd++) {
+            if (pData[ipd].ir.orbit == currBC.ir.orbit) {
+              pData[ipd].scaler[id]++;
+            }
+          }
+        }
+      }
+    }
+  }
+  // Default is to mask trigger bits, we can leave them for debugging
+  if (mMaskTriggerBits) {
+    for (uint32_t ibc = 0; ibc < bcData.size(); ibc++) {
+      auto& currBC = bcData[ibc];
+      for (int im = 0; im < NModules; im++) {
+        // Cleanup hits if module has no trigger
+        uint32_t mmask = 0xf << im;
+        if ((currBC.triggers & mTriggerMask & mmask) == 0) {
+          currBC.triggers = currBC.triggers & (~mmask);
+        }
+      }
+      // Cleanup trigger bits for channels that are not readout
+      currBC.triggers &= mReadoutMask;
+      // Printout after cleanup
+      //currBC.print(mTriggerMask);
     }
   }
 }
@@ -595,7 +694,7 @@ void Digitizer::findEmptyBunches(const std::bitset<o2::constants::lhc::LHCMaxBun
 }
 
 //______________________________________________________________________________
-void Digitizer::updatePedestalReference(PedestalData& pdata)
+void Digitizer::updatePedestalReference(OrbitData& pdata)
 {
   // Compute or update baseline reference
   for (uint32_t id = 0; id < NChannels; id++) {

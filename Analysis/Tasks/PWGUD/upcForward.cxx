@@ -68,13 +68,13 @@ struct UPCForward {
     LOGF(info, "mup11 fired");
     hSelectionCounter->Fill(1);
     for (auto& muon : tracksMuon) {
-      hCharge->Fill(muon.charge());
+      hCharge->Fill(muon.sign());
       iMuonTracknumber++;
-      if (muon.charge() > 0) {
+      if (muon.sign() > 0) {
         p1.SetXYZM(muon.px(), muon.py(), muon.pz(), mmuon);
         ispositive = kTRUE;
       }
-      if (muon.charge() < 0) {
+      if (muon.sign() < 0) {
         p2.SetXYZM(muon.px(), muon.py(), muon.pz(), mmuon);
         isnegative = kTRUE;
       }

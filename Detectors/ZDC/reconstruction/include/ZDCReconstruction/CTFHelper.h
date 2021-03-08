@@ -33,23 +33,24 @@ class CTFHelper
  public:
   CTFHelper(const gsl::span<const BCData>& trgData,
             const gsl::span<const ChannelData>& chanData,
-            const gsl::span<const PedestalData>& pedData)
-    : mTrigData(trgData), mChanData(chanData), mPedData(pedData) {}
+            const gsl::span<const OrbitData>& pedData)
+    : mTrigData(trgData), mChanData(chanData), mEOData(pedData) {}
 
   CTFHeader createHeader()
   {
-    CTFHeader h{uint32_t(mTrigData.size()), uint32_t(mChanData.size()), uint32_t(mPedData.size()), 0, 0, 0};
+    CTFHeader h{uint32_t(mTrigData.size()), uint32_t(mChanData.size()), uint32_t(mEOData.size()), 0, 0, 0};
     if (mTrigData.size()) {
       h.firstOrbit = mTrigData[0].ir.orbit;
       h.firstBC = mTrigData[0].ir.bc;
     }
-    if (mPedData.size()) {
-      h.firstOrbitPed = mPedData[0].ir.orbit;
+    if (mEOData.size()) {
+      h.firstOrbitEOData = mEOData[0].ir.orbit;
+      h.firstScaler = mEOData[0].scaler; // then we store increments
     }
     return h;
   }
 
-  size_t getSize() const { return mTrigData.size() * sizeof(BCData) + mChanData.size() * sizeof(ChannelData) + mPedData.size() * sizeof(PedestalData); }
+  size_t getSize() const { return mTrigData.size() * sizeof(BCData) + mChanData.size() * sizeof(ChannelData) + mEOData.size() * sizeof(OrbitData); }
 
   //>>> =========================== ITERATORS ========================================
 
@@ -191,23 +192,36 @@ class CTFHelper
     value_type operator*() const { return mData[mIndex / NTimeBinsPerBC].data[mIndex % NTimeBinsPerBC]; }
   };
 
-  ////////////////////////// PedestalData iterators /////////////////////////////
+  ////////////////////////// OrbitData iterators /////////////////////////////
 
   //_______________________________________________
   // Orbit difference wrt previous. For the very 1st entry return 0 (diff wrt 1st BC in the CTF header)
-  class Iter_orbitIncPed : public _Iter<Iter_orbitIncPed, PedestalData, uint32_t>
+  class Iter_orbitIncEOD : public _Iter<Iter_orbitIncEOD, OrbitData, uint32_t>
   {
    public:
-    using _Iter<Iter_orbitIncPed, PedestalData, uint32_t>::_Iter;
+    using _Iter<Iter_orbitIncEOD, OrbitData, uint32_t>::_Iter;
     value_type operator*() const { return mIndex ? mData[mIndex].ir.orbit - mData[mIndex - 1].ir.orbit : 0; }
   };
 
   //_______________________________________________
-  class Iter_pedData : public _Iter<Iter_pedData, PedestalData, int16_t, NChannels>
+  class Iter_pedData : public _Iter<Iter_pedData, OrbitData, int16_t, NChannels>
   {
    public:
-    using _Iter<Iter_pedData, PedestalData, int16_t, NChannels>::_Iter;
+    using _Iter<Iter_pedData, OrbitData, int16_t, NChannels>::_Iter;
     value_type operator*() const { return mData[mIndex / NChannels].data[mIndex % NChannels]; }
+  };
+
+  //_______________________________________________
+  class Iter_sclInc : public _Iter<Iter_sclInc, OrbitData, int16_t, NChannels>
+  {
+   public:
+    using _Iter<Iter_sclInc, OrbitData, int16_t, NChannels>::_Iter;
+    value_type operator*() const
+    {
+      // define with respect to previous orbit
+      int slot = mIndex / NChannels, chan = mIndex % NChannels;
+      return slot ? mData[slot].scaler[chan] - mData[slot - 1].scaler[chan] : 0;
+    }
   };
 
   //<<< =========================== ITERATORS ========================================
@@ -233,26 +247,25 @@ class CTFHelper
   Iter_nchanTrig begin_nchanTrig() const { return Iter_nchanTrig(mTrigData, false); }
   Iter_nchanTrig end_nchanTrig() const { return Iter_nchanTrig(mTrigData, true); }
 
-  //
-
   Iter_chanID begin_chanID() const { return Iter_chanID(mChanData, false); }
   Iter_chanID end_chanID() const { return Iter_chanID(mChanData, true); }
 
   Iter_chanData begin_chanData() const { return Iter_chanData(mChanData, false); }
   Iter_chanData end_chanData() const { return Iter_chanData(mChanData, true); }
 
-  //
+  Iter_orbitIncEOD begin_orbitIncEOD() const { return Iter_orbitIncEOD(mEOData, false); }
+  Iter_orbitIncEOD end_orbitIncEOD() const { return Iter_orbitIncEOD(mEOData, true); }
 
-  Iter_orbitIncPed begin_orbitIncPed() const { return Iter_orbitIncPed(mPedData, false); }
-  Iter_orbitIncPed end_orbitIncPed() const { return Iter_orbitIncPed(mPedData, true); }
+  Iter_pedData begin_pedData() const { return Iter_pedData(mEOData, false); }
+  Iter_pedData end_pedData() const { return Iter_pedData(mEOData, true); }
 
-  Iter_pedData begin_pedData() const { return Iter_pedData(mPedData, false); }
-  Iter_pedData end_pedData() const { return Iter_pedData(mPedData, true); }
+  Iter_sclInc begin_sclInc() const { return Iter_sclInc(mEOData, false); }
+  Iter_sclInc end_sclInc() const { return Iter_sclInc(mEOData, true); }
 
  private:
   const gsl::span<const o2::zdc::BCData> mTrigData;
   const gsl::span<const o2::zdc::ChannelData> mChanData;
-  const gsl::span<const o2::zdc::PedestalData> mPedData;
+  const gsl::span<const o2::zdc::OrbitData> mEOData;
 };
 
 } // namespace zdc

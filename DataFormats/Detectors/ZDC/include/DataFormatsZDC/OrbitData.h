@@ -25,14 +25,15 @@ namespace o2
 namespace zdc
 {
 
-struct PedestalData {
+struct OrbitData {
   o2::InteractionRecord ir;
   std::array<int16_t, NChannels> data{};
+  std::array<uint16_t, NChannels> scaler{};
 
   float asFloat(int i) const { return data[i] / 8.; }
   void print() const;
 
-  ClassDefNV(PedestalData, 1);
+  ClassDefNV(OrbitData, 1);
 };
 } // namespace zdc
 } // namespace o2

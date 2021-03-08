@@ -70,6 +70,7 @@ class RawFileWriter
   struct PayloadCache {
     bool preformatted = false;
     uint32_t trigger = 0;
+    uint32_t detField = 0;
     std::vector<char> payload;
     ClassDefNV(PayloadCache, 1);
   };
@@ -106,7 +107,7 @@ class RawFileWriter
     LinkData& operator=(const LinkData& src); // due to the mutex...
     void close(const IR& ir);
     void print() const;
-    void addData(const IR& ir, const gsl::span<char> data, bool preformatted = false, uint32_t trigger = 0);
+    void addData(const IR& ir, const gsl::span<char> data, bool preformatted = false, uint32_t trigger = 0, uint32_t detField = 0);
     RDHAny* getLastRDH() { return lastRDHoffset < 0 ? nullptr : reinterpret_cast<RDHAny*>(&buffer[lastRDHoffset]); }
     int getCurrentPageSize() const { return lastRDHoffset < 0 ? -1 : int(buffer.size()) - lastRDHoffset; }
     // check if we are at the beginning of new page
@@ -120,7 +121,7 @@ class RawFileWriter
     void flushSuperPage(bool keepLastPage = false);
     void fillEmptyHBHs(const IR& ir, bool dataAdded);
     void addPreformattedCRUPage(const gsl::span<char> data);
-    void cacheData(const IR& ir, const gsl::span<char> data, bool preformatted, uint32_t trigger = 0);
+    void cacheData(const IR& ir, const gsl::span<char> data, bool preformatted, uint32_t trigger = 0, uint32_t detField = 0);
 
     /// expand buffer by positive increment and return old size
     size_t expandBufferBy(size_t by)
@@ -195,7 +196,7 @@ class RawFileWriter
   }
 
   void addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t endpoint, const IR& ir,
-               const gsl::span<char> data, bool preformatted = false, uint32_t trigger = 0);
+               const gsl::span<char> data, bool preformatted = false, uint32_t trigger = 0, uint32_t detField = 0);
 
   template <typename H>
   void addData(const H& rdh, const IR& ir, const gsl::span<char> data, bool preformatted = false, uint32_t trigger = 0)

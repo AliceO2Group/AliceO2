@@ -50,9 +50,27 @@ namespace o2::framework
 std::shared_ptr<arrow::Table>
   TableBuilder::finalize()
 {
-  mFinalizer();
+  bool status = mFinalizer();
+  if (status == false) {
+    throwError(runtime_error("Unable to finalize"));
+  }
   assert(mSchema->num_fields() > 0 && "Schema needs to be non-empty");
   return arrow::Table::Make(mSchema, mArrays);
+}
+
+void TableBuilder::throwError(RuntimeErrorRef const& ref)
+{
+  throw ref;
+}
+
+void TableBuilder::validate(const int nColumns, std::vector<std::string> const& columnNames) const
+{
+  if (nColumns != columnNames.size()) {
+    throwError(runtime_error("Mismatching number of column types and names"));
+  }
+  if (mHolders != nullptr) {
+    throwError(runtime_error("TableBuilder::persist can only be invoked once per instance"));
+  }
 }
 
 } // namespace o2::framework

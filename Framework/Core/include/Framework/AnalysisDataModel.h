@@ -99,7 +99,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(NormalizedPhi, phi, [](float phi) -> float {
 DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, -1.f * nlog(ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::track::tgl))));
 DECLARE_SOA_EXPRESSION_COLUMN(Pt, pt, float, nabs(1.f / aod::track::signed1Pt));
 
-DECLARE_SOA_DYNAMIC_COLUMN(Charge, charge, [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
+DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign, [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
 DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float signed1Pt, float snp, float alpha) -> float {
   auto pt = 1.f / std::abs(signed1Pt);
   float cs, sn;
@@ -174,6 +174,7 @@ DECLARE_SOA_COLUMN(Length, length, float);
 DECLARE_SOA_COLUMN(TOFExpMom, tofExpMom, float);
 DECLARE_SOA_COLUMN(TrackEtaEMCAL, trackEtaEmcal, float);
 DECLARE_SOA_COLUMN(TrackPhiEMCAL, trackPhiEmcal, float);
+DECLARE_SOA_DYNAMIC_COLUMN(PIDForTracking, pidForTracking, [](uint32_t flags) -> uint32_t { return flags >> 28; });
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsFound, tpcNClsFound, [](uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusFound) -> int16_t { return (int16_t)tpcNClsFindable - tpcNClsFindableMinusFound; });
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsCrossedRows, tpcNClsCrossedRows, [](uint8_t tpcNClsFindable, int8_t TPCNClsFindableMinusCrossedRows) -> int16_t { return (int16_t)tpcNClsFindable - TPCNClsFindableMinusCrossedRows; });
 DECLARE_SOA_DYNAMIC_COLUMN(ITSNCls, itsNCls, [](uint8_t itsClusterMap) -> uint8_t {
@@ -216,7 +217,7 @@ DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK",
                        track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Pz<track::Signed1Pt, track::Tgl>,
-                       track::Charge<track::Signed1Pt>);
+                       track::Sign<track::Signed1Pt>);
 
 DECLARE_SOA_EXTENDED_TABLE(Tracks, StoredTracks, "TRACK",
                            aod::track::Pt,
@@ -252,6 +253,7 @@ DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKEXTRA",
                   track::TPCNClsShared, track::TRDPattern, track::ITSChi2NCl,
                   track::TPCChi2NCl, track::TRDChi2, track::TOFChi2,
                   track::TPCSignal, track::TRDSignal, track::TOFSignal, track::Length, track::TOFExpMom,
+                  track::PIDForTracking<track::Flags>,
                   track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                   track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                   track::ITSNCls<track::ITSClusterMap>, track::ITSNClsInnerBarrel<track::ITSClusterMap>,
@@ -420,6 +422,22 @@ DECLARE_SOA_TABLE(UnassignedMFTTracks, "AOD", "UNASSIGNEDMFTTR",
 
 using UnassignedMFTTrack = UnassignedMFTTracks::iterator;
 
+// HMPID information
+namespace hmpid
+{
+DECLARE_SOA_INDEX_COLUMN(Track, track);
+DECLARE_SOA_COLUMN(HMPIDSignal, hmpidSignal, float);
+DECLARE_SOA_COLUMN(HMPIDDistance, hmpidDistance, float);
+DECLARE_SOA_COLUMN(HMPIDQMip, hmpidQMip, short);
+} // namespace hmpid
+
+DECLARE_SOA_TABLE(HMPIDs, "AOD", "HMPID",
+                  hmpid::TrackId,
+                  hmpid::HMPIDSignal,
+                  hmpid::HMPIDDistance,
+                  hmpid::HMPIDQMip);
+using HMPID = HMPIDs::iterator;
+
 namespace calo
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc);
@@ -504,7 +522,7 @@ DECLARE_SOA_EXPRESSION_COLUMN(Pt, pt, float, nsqrt(1.0f + ntan(aod::muon::thetaY
 DECLARE_SOA_EXPRESSION_COLUMN(Px, px, float, -1.0f * ntan(aod::muon::thetaX) * nsqrt(1.0f + ntan(aod::muon::thetaY) * ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
 DECLARE_SOA_EXPRESSION_COLUMN(Py, py, float, -1.0f * ntan(aod::muon::thetaY) * nsqrt(1.0f + ntan(aod::muon::thetaY) * ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
 DECLARE_SOA_EXPRESSION_COLUMN(Pz, pz, float, -1.0f * nsqrt(1.0f + ntan(aod::muon::thetaY) * ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
-DECLARE_SOA_DYNAMIC_COLUMN(Charge, charge, [](float inverseBendingMomentum) -> short { return (inverseBendingMomentum > 0.0f) ? 1 : -1; });
+DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign, [](float inverseBendingMomentum) -> short { return (inverseBendingMomentum > 0.0f) ? 1 : -1; });
 } // namespace muon
 
 DECLARE_SOA_TABLE_FULL(StoredMuons, "Muons", "AOD", "MUON",
@@ -516,7 +534,7 @@ DECLARE_SOA_TABLE_FULL(StoredMuons, "Muons", "AOD", "MUON",
                        muon::Phi<muon::ThetaX, muon::ThetaY>,
                        muon::RAtAbsorberEnd<muon::BendingCoor, muon::NonBendingCoor, muon::ThetaX, muon::ThetaY, muon::ZMu>,
                        muon::PDca<muon::InverseBendingMomentum, muon::ThetaX, muon::ThetaY, muon::BendingCoor, muon::NonBendingCoor, muon::ZMu>,
-                       muon::Charge<muon::InverseBendingMomentum>);
+                       muon::Sign<muon::InverseBendingMomentum>);
 
 DECLARE_SOA_EXTENDED_TABLE(Muons, StoredMuons, "MUON",
                            aod::muon::Pt,

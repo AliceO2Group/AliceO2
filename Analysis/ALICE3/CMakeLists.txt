@@ -8,9 +8,14 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
+o2_add_header_only_library(ALICE3Analysis)
+
 o2_add_dpl_workflow(alice3-trackselection
-                    SOURCES alice3-trackselection.cxx
+                    SOURCES src/alice3-trackselection.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
                     COMPONENT_NAME Analysis)
 
-
+o2_add_dpl_workflow(alice3-pid-rich-qa
+                    SOURCES src/pidRICHqa.cxx
+                    PUBLIC_LINK_LIBRARIES O2::AnalysisDataModel O2::AnalysisCore O2::ALICE3Analysis
+                    COMPONENT_NAME Analysis)
