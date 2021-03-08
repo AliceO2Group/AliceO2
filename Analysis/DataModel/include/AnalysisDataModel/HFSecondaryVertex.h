@@ -44,7 +44,7 @@ using BigTracksMC = soa::Join<BigTracks, McTrackLabels>;
 using BigTracksPID = soa::Join<BigTracks,
                                aod::pidRespTPCEl, aod::pidRespTPCMu, aod::pidRespTPCPi, aod::pidRespTPCKa, aod::pidRespTPCPr,
                                aod::pidRespTOFEl, aod::pidRespTOFMu, aod::pidRespTOFPi, aod::pidRespTOFKa, aod::pidRespTOFPr>;
-using V0DataExt = aod::V0DataExt;
+using V0Datas = aod::V0Datas;
 
 // FIXME: this is a workaround until we get the index columns to work with joins.
 
@@ -54,7 +54,7 @@ DECLARE_SOA_INDEX_COLUMN_FULL(Index0, index0, int, Tracks, "_0"); //!
 DECLARE_SOA_INDEX_COLUMN_FULL(Index1, index1, int, Tracks, "_1"); //!
 DECLARE_SOA_INDEX_COLUMN_FULL(Index2, index2, int, Tracks, "_2"); //!
 DECLARE_SOA_INDEX_COLUMN_FULL(Index3, index3, int, Tracks, "_3"); //!
-  DECLARE_SOA_INDEX_COLUMN_FULL(IndexV0, indexV0, int, V0DataExt, "_V0"); //!
+DECLARE_SOA_INDEX_COLUMN_FULL(IndexV0, indexV0, int, V0Datas, "_V0"); //!
 DECLARE_SOA_COLUMN(HFflag, hfflag, uint8_t);                      //!
 
 DECLARE_SOA_COLUMN(D0ToKPiFlag, d0ToKPiFlag, uint8_t);   //!

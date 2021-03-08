@@ -19,6 +19,7 @@
 #include "Framework/AnalysisTask.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
+#include "AnalysisTasksUtils/UtilsDebugLcK0Sp.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -28,15 +29,28 @@ static const int nPtBins = 8;
 static const int nCutVars = 8;
 //temporary until 2D array in configurable is solved - then move to json
 //mK0s(GeV)     mLambdas(GeV)    mGammas(GeV)    ptp     ptK0sdau     pTLc     d0p     d0K0
-constexpr double cuts[nPtBins][nCutVars] = {{0.008, 0.005, 0.1, 0.5, 0.3, 0.6, 0.05, 999999},  // 1 < pt < 2
-                                            {0.008, 0.005, 0.1, 0.5, 0.4, 1.3, 0.05, 999999},  // 2 < pt < 3
-                                            {0.009, 0.005, 0.1, 0.6, 0.4, 1.3, 0.05, 999999},  // 3 < pt < 4
-                                            {0.011, 0.005, 0.1, 0.6, 0.4, 1.4, 0.05, 999999},  // 4 < pt < 5
-                                            {0.013, 0.005, 0.1, 0.6, 0.4, 1.4, 0.06, 999999},  // 5 < pt < 6
-                                            {0.013, 0.005, 0.1, 0.9, 0.4, 1.6, 0.09, 999999},  // 6 < pt < 8
-                                            {0.016, 0.005, 0.1, 0.9, 0.4, 1.7, 0.10, 999999},  // 8 < pt < 12
-                                            {0.019, 0.005, 0.1, 1.0, 0.4, 1.9, 0.20, 999999}}; // 12 < pt < 24
+constexpr double cuts[nPtBins][nCutVars] = {{0.008, 0.005, 0.1, 0.5, 0.3, 0.6, 0.05, 999999.},  // 1 < pt < 2
+                                            {0.008, 0.005, 0.1, 0.5, 0.4, 1.3, 0.05, 999999.},  // 2 < pt < 3
+                                            {0.009, 0.005, 0.1, 0.6, 0.4, 1.3, 0.05, 999999.},  // 3 < pt < 4
+                                            {0.011, 0.005, 0.1, 0.6, 0.4, 1.4, 0.05, 999999.},  // 4 < pt < 5
+                                            {0.013, 0.005, 0.1, 0.6, 0.4, 1.4, 0.06, 999999.},  // 5 < pt < 6
+                                            {0.013, 0.005, 0.1, 0.9, 0.4, 1.6, 0.09, 999999.},  // 6 < pt < 8
+                                            {0.016, 0.005, 0.1, 0.9, 0.4, 1.7, 0.10, 999999.},  // 8 < pt < 12
+                                            {0.019, 0.005, 0.1, 1.0, 0.4, 1.9, 0.20, 999999.}}; // 12 < pt < 24
 /// Struct for applying D0 selection cuts
+
+//#define MY_DEBUG
+
+#ifdef MY_DEBUG
+#define MY_DEBUG_MSG(condition, cmd) \
+  if (condition) {                   \
+    cmd;                             \
+  }
+using MyBigTracks = soa::Join<aod::BigTracksPID, aod::McTrackLabels>;
+#else
+#define MY_DEBUG_MSG(condition, cmd)
+using MyBigTracks = aod::BigTracksPID;
+#endif
 
 struct HFLcK0sPCandidateSelector {
 
@@ -46,6 +60,7 @@ struct HFLcK0sPCandidateSelector {
   Configurable<double> d_pTCandMax{"d_pTCandMax", 50., "Upper bound of candidate pT"};
 
   // PID
+  Configurable<double> d_applyPidTPCMinPt{"d_applyPidTPCMinPt", 4., "Lower bound of track pT to apply TPC PID"};
   Configurable<double> d_pidTPCMinPt{"d_pidTPCMinPt", 0., "Lower bound of track pT for TPC PID"};
   Configurable<double> d_pidTPCMaxPt{"d_pidTPCMaxPt", 100., "Upper bound of track pT for TPC PID"};
   Configurable<double> d_pidCombMaxP{"d_pidCombMaxP", 4., "Upper bound of track p to use TOF + TPC Bayes PID"};
@@ -82,7 +97,7 @@ struct HFLcK0sPCandidateSelector {
   template <typename T>
   bool daughterSelection(const T& track) // aren't these checks already in the indexskimscreator?
   {
-    if (track.charge() == 0) {
+    if (track.sign() == 0) {
       return false;
     }
     if (b_requireTPC.value && track.tpcNClsFound() == 0) {
@@ -155,7 +170,7 @@ struct HFLcK0sPCandidateSelector {
     }
     */
 
-    if (std::abs(hfCandCascade.impactParameter1()) > cuts[ptBin][6]) {
+    if (std::abs(hfCandCascade.impactParameter1()) > cuts[ptBin][7]) {
       LOG(DEBUG) << "d0 v0 cut failed, in cascade --> " << hfCandCascade.impactParameter1() << ", cut --> " << cuts[ptBin][7];
       return false; // d0 of the v0
     }
@@ -171,9 +186,24 @@ struct HFLcK0sPCandidateSelector {
   bool validTPCPID(const T& track)
   {
     if (TMath::Abs(track.pt()) < d_pidTPCMinPt || TMath::Abs(track.pt()) >= d_pidTPCMaxPt) {
+      LOG(DEBUG) << "Bachelor pt is " << track.pt() << ", we trust TPC PID in [" << d_pidTPCMinPt << ", " << d_pidTPCMaxPt << "]";
       return false;
     }
-    //if (track.TPCNClsFindable() < d_TPCNClsFindablePIDCut) return false;
+    return true;
+  }
+
+  /// Check if we will use TPC PID
+  /// \param track is the track
+  /// \note function to be expanded
+  /// \return true if track is ok for TPC PID
+  template <typename T>
+  bool applyTPCPID(const T& track)
+  {
+    if (TMath::Abs(track.pt()) < d_applyPidTPCMinPt) {
+      LOG(DEBUG) << "Bachelor pt is " << track.pt() << ", we apply TPC PID from " << d_applyPidTPCMinPt;
+      return false;
+    }
+    LOG(DEBUG) << "Bachelor pt is " << track.pt() << ", we apply TPC PID from " << d_applyPidTPCMinPt;
     return true;
   }
 
@@ -201,7 +231,8 @@ struct HFLcK0sPCandidateSelector {
   {
     double nSigma = 100.0; //arbitarily large value
     nSigma = track.tpcNSigmaPr();
-    return std::abs(nSigma) > nSigmaCut;
+    LOG(DEBUG) << "nSigma for bachelor = " << nSigma << ", cut at " << nSigmaCut;
+    return std::abs(nSigma) < nSigmaCut;
   }
 
   /*
@@ -238,7 +269,13 @@ struct HFLcK0sPCandidateSelector {
     int statusTPC = -1;
     //    int statusTOF = -1;
 
+    if (!applyTPCPID(track)) {
+      // we do not apply TPC PID in this range
+      return 1;
+    }
+
     if (validTPCPID(track)) {
+      LOG(DEBUG) << "We check the TPC PID now";
       if (!selectionPIDTPC(track, d_nSigmaTPC)) {
         statusTPC = 0;
         /*
@@ -284,24 +321,34 @@ struct HFLcK0sPCandidateSelector {
       */
   }
 
-  void process(aod::HfCandCascade const& hfCandCascades, aod::BigTracksPID const& tracks)
+  void process(aod::HfCandCascade const& candidates, MyBigTracks const& tracks)
   {
     int statusLc = 0; // final selection flag : 0-rejected  1-accepted
     bool topolLc = 0;
     int pidProton = -1;
     int pidLc = -1;
 
-    for (auto& hfCandCasc : hfCandCascades) { //looping over 2 prong candidates
+    for (auto& candidate : candidates) { //looping over cascade candidates
+
+#ifdef MY_DEBUG
+      auto labelPos = candidate.posTrack_as<MyBigTracks>().mcParticleId();
+      auto labelNeg = candidate.negTrack_as<MyBigTracks>().mcParticleId();
+      auto protonLabel = candidate.index0_as<MyBigTracks>().mcParticleId();
+      bool isLc = isLcK0SpFunc(protonLabel, labelPos, labelNeg);
+      bool isK0SfromLc = isK0SfromLcFunc(labelPos, labelNeg);
+#endif
+      MY_DEBUG_MSG(isLc, printf("\n"); LOG(INFO) << "In selector: correct Lc found: proton --> " << protonLabel << ", posTrack --> " << labelPos << ", negTrack --> " << labelNeg);
+      //MY_DEBUG_MSG(isLc != 1, printf("\n"); LOG(INFO) << "In selector: wrong Lc found: proton --> " << protonLabel << ", posTrack --> " << labelPos << ", negTrack --> " << labelNeg);
 
       statusLc = 0;
       /* // not needed for the Lc
-      if (!(hfCandCasc.hfflag() & 1 << D0ToPiK)) {
+      if (!(candidate.hfflag() & 1 << D0ToPiK)) {
         hfSelD0Candidate(statusLc);
         continue;
       }
       */
 
-      const auto& bach = hfCandCasc.index0_as<aod::BigTracksPID>(); //bachelor track
+      const auto& bach = candidate.index0_as<MyBigTracks>(); //bachelor track
 
       topolLc = true;
       pidProton = -1;
@@ -309,14 +356,16 @@ struct HFLcK0sPCandidateSelector {
       // daughter track validity selection
       LOG(DEBUG) << "daughterSelection(bach) = " << daughterSelection(bach);
       if (!daughterSelection(bach)) {
+        MY_DEBUG_MSG(isLc, LOG(INFO) << "In selector: Lc rejected due to selections on bachelor");
         hfSelLcK0sPCandidate(statusLc);
         continue;
       }
 
       //implement filter bit 4 cut - should be done before this task at the track selection level
       //need to add special cuts (additional cuts on decay length and d0 norm)
-      LOG(DEBUG) << "selectionTopol(hfCandCasc) = " << selectionTopol(hfCandCasc);
-      if (!selectionTopol(hfCandCasc)) {
+      LOG(DEBUG) << "selectionTopol(candidate) = " << selectionTopol(candidate);
+      if (!selectionTopol(candidate)) {
+        MY_DEBUG_MSG(isLc, LOG(INFO) << "In selector: Lc rejected due to topological selections");
         hfSelLcK0sPCandidate(statusLc);
         continue;
       }
@@ -329,13 +378,16 @@ struct HFLcK0sPCandidateSelector {
         statusLc = 1;
       }
 
+      MY_DEBUG_MSG(isLc && pidProton != 1, LOG(INFO) << "In selector: Lc rejected due to PID selections on bachelor");
+      MY_DEBUG_MSG(isLc && pidProton == 1, LOG(INFO) << "In selector: Lc ACCEPTED");
+
       hfSelLcK0sPCandidate(statusLc);
     }
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfcg)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HFLcK0sPCandidateSelector>("hf-lc-tok0sp-candidate-selector")};
+    adaptAnalysisTask<HFLcK0sPCandidateSelector>(cfcg, "hf-lc-tok0sp-candidate-selector")};
 }
