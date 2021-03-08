@@ -18,7 +18,7 @@
 
 #include <cmath>
 
-#include <fairlogger/Logger.h>
+#include "Framework/Logger.h"
 
 #include <TGeoBBox.h>
 #include <TGeoCompositeShape.h>

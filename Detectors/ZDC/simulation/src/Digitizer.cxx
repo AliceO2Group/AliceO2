@@ -16,7 +16,7 @@
 #include "ZDCSimulation/SimCondition.h"
 #include "ZDCSimulation/ZDCSimParam.h"
 #include <TRandom.h>
-#include <fairlogger/Logger.h>
+#include <Framework/Logger.h>
 
 using namespace o2::zdc;
 

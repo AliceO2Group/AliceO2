@@ -27,7 +27,7 @@
 #include <TVector3.h>
 #include <TVirtualMC.h>
 
-#include <fairlogger/Logger.h>
+#include <Framework/Logger.h>
 #include <FairRootManager.h>
 #include <FairVolume.h>
 
