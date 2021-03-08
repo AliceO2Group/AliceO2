@@ -8,6 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file DsChannleGroup.h
+/// \brief Implementation of a group of DualSampa channels
+///
+/// \author Andrea Ferrero, CEA-Saclay
+
 #ifndef ALICEO2_MCH_DSCHANNELGROUP_H_
 #define ALICEO2_MCH_DSCHANNELGROUP_H_
 
@@ -19,6 +24,10 @@ namespace o2
 namespace mch
 {
 
+/// Unique 32-bit identifier of a DulaSampa channel. The ID is generated from the following indexes:
+/// - the unique ID of the corresponding solar board
+/// - the index of the DulaSampa board within the Solar board, from 0 to 39
+/// - the channel number, from 0 to 63
 class DsChannelId
 {
  public:
@@ -41,6 +50,7 @@ class DsChannelId
   ClassDefNV(DsChannelId, 1); // class for MCH readout channel
 };
 
+/// A group of DualSampa channels, implemented as a vector of 32-bit channel identifiers
 class DsChannelGroup
 {
  public:

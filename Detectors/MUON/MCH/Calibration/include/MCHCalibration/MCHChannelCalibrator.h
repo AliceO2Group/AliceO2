@@ -8,6 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file MCHChannelCalibrator.h
+/// \brief Implementation of the MCH calibrator using pedestal data
+///
+/// \author Andrea Ferrero, CEA-Saclay
+
 #ifndef MCH_CHANNEL_CALIBRATOR_H_
 #define MCH_CHANNEL_CALIBRATOR_H_
 
@@ -19,7 +24,6 @@
 #include "MCHCalibration/PedestalProcessor.h"
 
 #include <array>
-#include <boost/histogram.hpp>
 
 namespace o2
 {
@@ -28,9 +32,12 @@ namespace mch
 namespace calibration
 {
 
+/// Implementation of the processor that computes the mean and RMS of the channel-by-channel pedestals
+/// from the data corresponding to a time slot.
+/// In the MCH case the time slot has by default an infinite duration, therefore there is only a single
+/// set of pedestal values for each calibration run.
 class MCHChannelData
 {
-
   using Slot = o2::calibration::TimeSlot<o2::mch::calibration::MCHChannelData>;
 
  public:
@@ -38,18 +45,25 @@ class MCHChannelData
   ~MCHChannelData() = default;
 
   void print() const;
+
+  /// function to update the pedestal values from the data of a single TimeFrame
   void fill(const gsl::span<const o2::mch::calibration::PedestalDigit> data);
   void merge(const MCHChannelData* prev);
 
-  //const std::vector<o2::mch::calibration::PedestalDigit>& getDigits() const { return mDigits; }
+  /// function to access the table of computed pedestals for each readout channel
   const PedestalProcessor::PedestalsMap& getPedestals() { return mPedestalProcessor.getPedestals(); }
 
  private:
+  /// helper class that performs the actual computation of the pedestals from the input digits
   PedestalProcessor mPedestalProcessor;
 
   ClassDefNV(MCHChannelData, 1);
 };
 
+/// Implementation of a calibrator object that checks the computed mean and RMS of the pedestals and compares the
+/// values with user-supplied thresholds.
+/// The channels whose values exceed one of the thresholds are considered bad/noisy and they are stored into a
+/// "bad channels" list that is sent to the CDDB populator.
 class MCHChannelCalibrator final : public o2::calibration::TimeSlotCalibration<o2::mch::calibration::PedestalDigit, o2::mch::calibration::MCHChannelData>
 {
   using TFType = uint64_t;
@@ -79,8 +93,8 @@ class MCHChannelCalibrator final : public o2::calibration::TimeSlotCalibration<o
   TFType mTFStart;
 
   // output
-  BadChannelsVector mBadChannelsVector;
-  CcdbObjectInfo mBadChannelsInfo; // vector of CCDB Infos , each element is filled with the CCDB description of the accompanying TimeSlewing object
+  BadChannelsVector mBadChannelsVector; /// vector containing the unique IDs of the bad/noisy channels
+  CcdbObjectInfo mBadChannelsInfo;      /// vector of CCDB Infos , each element is filled with the CCDB description of the accompanying BadChannelsVector object
 
   ClassDefOverride(MCHChannelCalibrator, 1);
 };

@@ -56,7 +56,9 @@ class MCHChannelCalibDevice : public o2::framework::Task
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime; // is this the timestamp of the current TF?
 
     auto data = pc.inputs().get<gsl::span<o2::mch::calibration::PedestalDigit>>("input");
-    LOG(INFO) << "Processing TF " << tfcounter << " with " << data.size() << " digits";
+    if (data.size() > 0) {
+      LOG(INFO) << "Processing TF " << tfcounter << " with " << data.size() << " digits";
+    }
     mCalibrator->process(tfcounter, data);
   }
 
@@ -105,6 +107,7 @@ DataProcessorSpec getMCHChannelCalibDeviceSpec()
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload});
   outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
+  outputs.emplace_back(OutputSpec{"MCH", "PEDESTALS", 0, Lifetime::Timeframe});
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("input", "MCH", "PDIGITS");

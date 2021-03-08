@@ -28,38 +28,31 @@ PedestalProcessor::PedestalProcessor()
 
 void PedestalProcessor::reset()
 {
-  for (int s = 0; s < MCH_NUMBER_OF_SOLAR; s++) {
-    for (int i = 0; i < 40; i++) {
-      for (int j = 0; j < 64; j++) {
-        //mNhits[s][i][j] = 0;
-        //mPedestal[s][i][j] = 0;
-        //mNoise[s][i][j] = 0;
-      }
-    }
-  }
+  mPedestals.clear();
 }
 
 void PedestalProcessor::process(gsl::span<const PedestalDigit> digits)
 {
   bool mDebug = false;
+
   for (auto& d : digits) {
     auto solarId = d.getSolarId();
     auto dsId = d.getDsId();
     auto channel = d.getChannel();
 
-    auto iPedestals = mPedestals.find(solarId);
+    auto iPedestal = mPedestals.find(solarId);
 
-    if (iPedestals == mPedestals.end()) {
+    if (iPedestal == mPedestals.end()) {
       auto iPedestalsNew = mPedestals.emplace(std::make_pair(solarId, PedestalMatrix()));
-      iPedestals = iPedestalsNew.first;
+      iPedestal = iPedestalsNew.first;
     }
 
-    if (iPedestals == mPedestals.end()) {
+    if (iPedestal == mPedestals.end()) {
       std::cout << "[PedestalProcessor::process] failed to insert new element\n";
       break;
     }
 
-    auto& ped = iPedestals->second[dsId][channel];
+    auto& ped = iPedestal->second[dsId][channel];
 
     for (uint16_t i = 0; i < d.nofSamples(); i++) {
       auto s = d.getSample(i);
@@ -81,27 +74,6 @@ void PedestalProcessor::process(gsl::span<const PedestalDigit> digits)
                 << "  entries " << ped.mEntries << "  ped " << ped.mPedestal << "  variance " << ped.mVariance << std::endl;
     }
   }
-}
-
-double PedestalProcessor::getPedestal(uint32_t solarId, uint32_t dsId, uint32_t channel) const
-{
-  if (solarId >= MCH_NUMBER_OF_SOLAR || dsId >= 40 || channel >= 64) {
-    return 0;
-  }
-
-  return 0;
-  //return mPedestal[solarId][dsId][channel];
-}
-
-double PedestalProcessor::getRms(uint32_t solarId, uint32_t dsId, uint32_t channel) const
-{
-  if (solarId >= MCH_NUMBER_OF_SOLAR || dsId >= 40 || channel >= 64) {
-    return 0;
-  }
-
-  return 0;
-  //double rms = std::sqrt(mNoise[solarId][dsId][channel] / mNhits[solarId][dsId][channel]);
-  //return rms;
 }
 
 } // namespace o2::mch::calibration

@@ -44,6 +44,7 @@
 #include "MCHRawElecMap/Mapper.h"
 #include "MCHMappingInterface/Segmentation.h"
 
+#include "MCHBase/DecoderError.h"
 #include "MCHCalibration/PedestalDigit.h"
 
 static const size_t SOLAR_ID_MAX = 100 * 8;
@@ -145,59 +146,13 @@ class PedestalsTask
     initFee2SolarMapper(mMapCRUfile);
     initElec2DetMapper(mMapFECfile);
 
-    mNoiseThreshold = ic.options().get<float>("noise-threshold");
-    mPedestalThreshold = ic.options().get<float>("pedestal-threshold");
-
-    ic.services().get<CallbackService>().set(CallbackService::Id::Stop, [this]() { stop(); });
     ic.services().get<CallbackService>().set(CallbackService::Id::Reset, [this]() { reset(); });
-
-    for (int s = 0; s <= SOLAR_ID_MAX; s++) {
-      for (int i = 0; i < 40; i++) {
-        for (int j = 0; j < 64; j++) {
-          nhits[s][i][j] = 0;
-          pedestal[s][i][j] = noise[s][i][j] = 0;
-        }
-      }
-    }
   }
 
   //_________________________________________________________________________________________________
   void reset()
   {
     mDigits.clear();
-  }
-
-  //_________________________________________________________________________________________________
-  void stop()
-  {
-    //if (mDebug) {
-    std::cout << "\n\n============================\nStop called\n";
-    //}
-    for (int s = 0; s <= SOLAR_ID_MAX; s++) {
-      for (int i = 0; i < 40; i++) {
-        for (int j = 0; j < 64; j++) {
-          //std::cout << "SOLAR " << s << "  DS " << i << "  CH " << j << "  nhits " << nhits[s][i][j] << std::endl;
-          if (nhits[s][i][j] == 0)
-            continue;
-
-          bool ok = true;
-          if (pedestal[s][i][j] > mPedestalThreshold) {
-            //std::cout << "SOLAR " << s << "  DS " << i << "  CH " << j << "  excluded, pedestal=" << pedestal[s][i][j] << std::endl;
-            ok = false;
-          }
-
-          double rms = std::sqrt(noise[s][i][j] / nhits[s][i][j]);
-          if (rms > mNoiseThreshold) {
-            //std::cout << "SOLAR " << s << "  DS " << i << "  CH " << j << "  excluded, rms=" << rms << std::endl;
-            ok = false;
-          }
-          if (!ok) {
-            std::cout << "SOLAR " << s << "  DS " << i << "  CH " << j << "  nhits " << nhits[s][i][j]
-                      << "  pedestal " << pedestal[s][i][j] << "  RMS " << rms << "  OK " << ok << std::endl;
-          }
-        }
-      }
-    }
   }
 
   //_________________________________________________________________________________________________
@@ -215,6 +170,13 @@ class PedestalsTask
       ++ndigits;
     };
 
+    auto errorHandler = [&](DsElecId dsElecId, int8_t chip, uint32_t error) {
+      auto solarId = dsElecId.solarId();
+      auto dsId = dsElecId.elinkId();
+
+      mErrors.emplace_back(o2::mch::DecoderError(solarId, dsId, chip, error));
+    };
+
     if (mPatchRDH) {
       patchPage(page, mDebug);
     }
@@ -222,6 +184,7 @@ class PedestalsTask
     if (!mDecoder) {
       DecodedDataHandlers handlers;
       handlers.sampaChannelHandler = channelHandler;
+      handlers.sampaErrorHandler = errorHandler;
       mDecoder = mFee2Solar ? o2::mch::raw::createPageDecoder(page, handlers, mFee2Solar)
                             : o2::mch::raw::createPageDecoder(page, handlers);
     }
@@ -329,27 +292,32 @@ class PedestalsTask
     size_t digitsSize;
     char* digitsBuffer = createBuffer(mDigits, digitsSize);
 
+    size_t errorsSize;
+    char* errorsBuffer = createBuffer(mErrors, errorsSize);
+
     // create the output message
     auto freefct = [](void* data, void*) { free(data); };
     pc.outputs().adoptChunk(Output{"MCH", "PDIGITS", 0}, digitsBuffer, digitsSize, freefct, nullptr);
+    pc.outputs().adoptChunk(Output{"MCH", "ERRORS", 0}, errorsBuffer, errorsSize, freefct, nullptr);
   }
 
  private:
   o2::mch::raw::PageDecoder mDecoder;
   SampaChannelHandler mChannelHandler;
   std::vector<o2::mch::calibration::PedestalDigit> mDigits;
+  std::vector<o2::mch::DecoderError> mErrors;
 
   Elec2DetMapper mElec2Det{nullptr};
   FeeLink2SolarMapper mFee2Solar{nullptr};
   std::string mMapCRUfile;
   std::string mMapFECfile;
 
-  uint64_t nhits[SOLAR_ID_MAX + 1][40][64];
-  double pedestal[SOLAR_ID_MAX + 1][40][64];
-  double noise[SOLAR_ID_MAX + 1][40][64];
+  //uint64_t nhits[SOLAR_ID_MAX + 1][40][64];
+  //double pedestal[SOLAR_ID_MAX + 1][40][64];
+  //double noise[SOLAR_ID_MAX + 1][40][64];
 
-  float mNoiseThreshold;
-  float mPedestalThreshold;
+  //float mNoiseThreshold;
+  //float mPedestalThreshold;
 
   std::string mInputSpec;   /// selection string for the input data
   bool mPatchRDH = {false}; /// flag to enable verbose output
@@ -364,8 +332,7 @@ using namespace o2::framework;
 
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  //workflowOptions.push_back(ConfigParamSpec{"dataspec", VariantType::String, "TF:MCH/RAWDATA", {"selection string for the input data"}});
-  workflowOptions.push_back(ConfigParamSpec{"dataspec", VariantType::String, "readout:ROUT/RAWDATA", {"selection string for the input data"}});
+  workflowOptions.push_back(ConfigParamSpec{"dataspec", VariantType::String, "TF:MCH/RAWDATA", {"selection string for the input data"}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -380,7 +347,7 @@ o2::framework::DataProcessorSpec getPedestalsSpec(std::string inputSpec)
   return DataProcessorSpec{
     "Pedestals",
     o2::framework::select(inputSpec.c_str()),
-    Outputs{OutputSpec{"MCH", "PDIGITS", 0, Lifetime::Timeframe}},
+    Outputs{OutputSpec{"MCH", "PDIGITS", 0, Lifetime::Timeframe}, OutputSpec{"MCH", "ERRORS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<o2::mch::raw::PedestalsTask>(inputSpec)},
     Options{{"debug", VariantType::Bool, false, {"enable verbose output"}},
             {"patch-rdh", VariantType::Bool, false, {"fill the FEEID RDH field using the CRUID value"}},
@@ -396,7 +363,7 @@ WorkflowSpec defineDataProcessing(const ConfigContext& config)
 
   WorkflowSpec specs;
 
-  DataProcessorSpec producer = getPedestalsSpec("readout:ROUT/RAWDATA");
+  DataProcessorSpec producer = getPedestalsSpec(inputSpec);
   specs.push_back(producer);
 
   return specs;

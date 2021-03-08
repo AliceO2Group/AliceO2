@@ -23,8 +23,6 @@
 #include "Rtypes.h"
 #include "MCHCalibration/PedestalDigit.h"
 
-static const size_t MCH_NUMBER_OF_SOLAR = 100 * 8;
-
 namespace o2
 {
 namespace mch
@@ -57,18 +55,10 @@ class PedestalProcessor
 
   const PedestalsMap& getPedestals() const { return mPedestals; }
 
-  double getPedestal(uint32_t solarId, uint32_t dsId, uint32_t channel) const;
-  double getRms(uint32_t solarId, uint32_t dsId, uint32_t channel) const;
-
-  uint32_t getMaxSolarId() { return (MCH_NUMBER_OF_SOLAR - 1); }
   uint32_t getMaxDsId() { return 39; }
   uint32_t getMaxChannel() { return 63; }
 
  private:
-  //uint64_t mNhits[MCH_NUMBER_OF_SOLAR][40][64];
-  //double mPedestal[MCH_NUMBER_OF_SOLAR][40][64];
-  //double mNoise[MCH_NUMBER_OF_SOLAR][40][64];
-
   PedestalsMap mPedestals;
 }; //class PedestalProcessor
 

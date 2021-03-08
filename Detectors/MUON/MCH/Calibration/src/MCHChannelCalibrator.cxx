@@ -17,7 +17,7 @@
 #include <cassert>
 #include <iostream>
 #include <sstream>
-#include <TStopwatch.h>
+//#include <TStopwatch.h>
 
 namespace o2
 {
@@ -32,9 +32,6 @@ using clbUtils = o2::calibration::Utils;
 //_____________________________________________
 void MCHChannelData::fill(const gsl::span<const o2::mch::calibration::PedestalDigit> digits)
 {
-  bool mDebug = true;
-  LOG(INFO) << "[MCHChannelData::fill] digits size " << digits.size();
-
   mPedestalProcessor.process(digits);
 }
 
