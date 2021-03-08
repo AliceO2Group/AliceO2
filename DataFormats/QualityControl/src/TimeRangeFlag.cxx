@@ -13,8 +13,6 @@
 #include <iostream>
 #include <tuple>
 
-ClassImp(o2::quality_control::TimeRangeFlag);
-
 namespace o2::quality_control
 {
 

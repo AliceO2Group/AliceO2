@@ -13,8 +13,6 @@
 
 #include <iostream>
 
-ClassImp(o2::quality_control::TimeRangeFlagCollection);
-
 namespace o2::quality_control
 {
 

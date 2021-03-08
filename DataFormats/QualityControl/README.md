@@ -37,7 +37,7 @@ TimeRangeFlags may overlap, e.g. if they use different FlagReasons and they are 
 If certain period does not include any TimeRangeFlags with *bad* FlagReasons, then the data quality can be considered as good.
 The [TimeRangeFlagCollection test](test/testTimeRangeFlagCollection.cxx) shows the usage example.
 
-TimeRangeFlagColections are supposed to be created automatically with QC Post-processing Tasks based on Quality Objects created by QC Checks.
+TimeRangeFlagCollections are supposed to be created automatically with QC Post-processing Tasks based on Quality Objects created by QC Checks.
 However, they might be created manually by QA experts as well.
 The procedure to do that has to be defined.
 
