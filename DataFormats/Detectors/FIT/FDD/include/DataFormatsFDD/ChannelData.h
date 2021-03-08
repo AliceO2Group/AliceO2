@@ -25,7 +25,7 @@ namespace fdd
 
 struct ChannelData {
 
-  uint8_t mPMNumber = -1;       // PhotoMultiplier number (0 to 16)
+  uint8_t mPMNumber = -1;     // PhotoMultiplier number (0 to 16)
   int16_t mTime = -1024;      // Time of Flight
   int16_t mChargeADC = -1024; // ADC sample
   uint8_t mFEEBits = 0;       //Bit information from FEE

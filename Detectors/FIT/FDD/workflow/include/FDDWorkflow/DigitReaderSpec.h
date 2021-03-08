@@ -38,7 +38,7 @@ class DigitReader : public Task
 
  private:
   bool mTrigInp = true; // read trigger inputs
-  bool mUseMC = true; // use MC truth
+  bool mUseMC = true;   // use MC truth
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginFDD;
 
   std::string mInputFileName = "";

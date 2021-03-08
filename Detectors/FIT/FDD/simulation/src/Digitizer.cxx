@@ -195,7 +195,7 @@ void Digitizer::storeBC(const BCCache& bc,
   for (int ic = 0; ic < Nchannels; ic++) {
     float chargeADC = integrateCharge(bc.pulse[ic]);
     if (chargeADC != 0) {
-      digitsCh.emplace_back(ic, int(simulateTimeCFD(bc.pulse[ic])), int(chargeADC), std::rand() % (1<<8));
+      digitsCh.emplace_back(ic, int(simulateTimeCFD(bc.pulse[ic])), int(chargeADC), std::rand() % (1 << 8));
       nStored++;
     }
   }
@@ -220,10 +220,10 @@ float Digitizer::integrateCharge(const ChannelBCDataF& pulse)
     //pulse[iBin] /= ChargePerADC;
     chargeADC += pulse[iBin];
   }
-  //saturation 
+  //saturation
   if (chargeADC > 4095) {
-      chargeADC = 4095;
-    }
+    chargeADC = 4095;
+  }
 
   //LOG(INFO) <<" Charge " << chargeADC;
   return std::lround(chargeADC);

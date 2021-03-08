@@ -34,12 +34,12 @@ struct Triggers {
          bitCen,
          bitSCen };
   uint8_t triggersignals = 0; // FDD trigger signals
-  int8_t nChanA = 0;         // number of fired channels A side
-  int8_t nChanC = 0;         // number of fired channels A side
+  int8_t nChanA = 0;          // number of fired channels A side
+  int8_t nChanC = 0;          // number of fired channels A side
   int32_t amplA = -1024;      // sum amplitude A side
   int32_t amplC = -1024;      // sum amplitude C side
-  int16_t timeA = 0;      // average time A side
-  int16_t timeC = 0;      // average time C side
+  int16_t timeA = 0;          // average time A side
+  int16_t timeC = 0;          // average time C side
   Triggers() = default;
   Triggers(uint8_t signals, int8_t chanA, int8_t chanC, int32_t aamplA, int32_t aamplC, int16_t atimeA, int16_t atimeC)
   {
