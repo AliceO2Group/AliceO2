@@ -83,7 +83,7 @@
 
 // for ZDC
 #include "ZDCDigitizerSpec.h"
-#include "ZDCDigitWriterSpec.h"
+#include "ZDCWorkflow/ZDCDigitWriterDPLSpec.h"
 
 // GRP
 #include "DataFormatsParameters/GRPObject.h"
@@ -139,6 +139,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::string skiphelp("Comma separate list of detectors to skip/ignore. (Default is none)");
   workflowOptions.push_back(
     ConfigParamSpec{"skipDet", VariantType::String, "none", {skiphelp}});
+
+  std::string onlyctxhelp("Produce only the digitization context; Don't actually digitize");
+  workflowOptions.push_back(ConfigParamSpec{"only-context", o2::framework::VariantType::Bool, false, {onlyctxhelp}});
 
   // we support only output type 'tracks' for the moment
   std::string tpcrthelp("deprecated option, please connect workflows on the command line by pipe");
@@ -407,6 +410,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     if (helpasked) {
       return true;
     }
+    if (configcontext.options().get<bool>("only-context")) {
+      // no detector necessary if we are asked to produce only the digitization context
+      return false;
+    }
     auto accepted = accept(id);
     bool is_ingrp = grp->isDetReadOut(id);
     if (gIsMaster) {
@@ -419,16 +426,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   std::vector<o2::detectors::DetID> detList; // list of participating detectors
 
-  // the TPC part
-  // we need to init this anyway since TPC is treated a bit special (for the moment)
-  if (!helpasked && ismaster) {
-    initTPC();
-  }
-
   // keeps track of which tpc sectors to process
   std::vector<int> tpcsectors;
 
   if (isEnabled(o2::detectors::DetID::TPC)) {
+    if (!helpasked && ismaster) {
+      initTPC();
+    }
+
     tpcsectors = o2::RangeTokenizer::tokenize<int>(configcontext.options().get<std::string>("tpc-sectors"));
     // only one lane for the help printout
     auto lanes = helpasked ? 1 : getNumTPCLanes(tpcsectors, configcontext);
@@ -518,7 +523,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     // connect the ZDC digitization
     specs.emplace_back(o2::zdc::getZDCDigitizerSpec(fanoutsize++, mctruth));
     // connect the ZDC digit writer
-    specs.emplace_back(o2::zdc::getZDCDigitWriterSpec(mctruth));
+    specs.emplace_back(o2::zdc::getZDCDigitWriterDPLSpec(mctruth, true));
   }
 
   // add TRD

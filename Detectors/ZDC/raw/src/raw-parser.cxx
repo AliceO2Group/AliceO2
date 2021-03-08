@@ -36,7 +36,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
-  printf("Ciao\n");
   WorkflowSpec workflow;
   workflow.emplace_back(DataProcessorSpec{
     "zdc-raw-parser",
@@ -85,9 +84,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
                 }
               }
               if (payload != nullptr) {
-                for (Int_t ip = 0; ip < payloadSize; ip += 16) {
-                  //o2::zdc::Digits2Raw::print_gbt_word((const UInt_t*)&payload[ip]);
-                  zdc_dr.processWord((const UInt_t*)&payload[ip]);
+                for (int32_t ip = 0; ip < payloadSize; ip += 16) {
+                  //o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
+                  zdc_dr.processWord((const uint32_t*)&payload[ip]);
                 }
               }
             }

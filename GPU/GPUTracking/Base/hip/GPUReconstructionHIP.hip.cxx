@@ -542,7 +542,7 @@ bool GPUReconstructionHIPBackend::IsEventDone(deviceEvent* evList, int nEvents)
   return (true);
 }
 
-int GPUReconstructionHIPBackend::GPUDebug(const char* state, int stream)
+int GPUReconstructionHIPBackend::GPUDebug(const char* state, int stream, bool force)
 {
   // Wait for HIP-Kernel to finish and check for HIP errors afterwards, in case of debugmode
   hipError_t cuErr;
@@ -551,7 +551,7 @@ int GPUReconstructionHIPBackend::GPUDebug(const char* state, int stream)
     GPUError("HIP Error %s while running kernel (%s) (Stream %d)", hipGetErrorString(cuErr), state, stream);
     return (1);
   }
-  if (mProcessingSettings.debugLevel <= 0) {
+  if (!force && mProcessingSettings.debugLevel <= 0) {
     return (0);
   }
   if (GPUFailedMsgI(hipDeviceSynchronize())) {

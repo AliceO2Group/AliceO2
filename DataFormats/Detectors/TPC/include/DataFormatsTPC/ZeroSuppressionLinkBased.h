@@ -32,20 +32,21 @@ struct Header {
   static constexpr uint32_t MagicWord = 0xFC;
 
   union {
-    uint64_t word0 = 0;             ///< lower 64 bits
-    struct {                        ///
-      uint64_t bitMaskLow : 64;     ///< lower bits of the 80 bit bitmask
-    };                              ///
-  };                                ///
-                                    ///
-  union {                           ///
-    uint64_t word1 = 0;             ///< upper bits of the 80 bit bitmask
-    struct {                        ///
-      uint64_t bitMaskHigh : 16;    ///< higher bits of the 80 bit bitmask
-      uint32_t bunchCrossing : 12;  ///< bunch crossing number
-      uint32_t numWordsPayload : 4; ///< number of 128bit words with 12bit ADC values
-      uint32_t timeBin : 24;        ///< time bin number issues by UL, mainly for debugging, since it might wrap
-      uint32_t magicWord : 8;       ///< not used
+    uint64_t word0 = 0;                  ///< lower 64 bits
+    struct {                             ///
+      uint64_t bitMaskLow : 64;          ///< lower bits of the 80 bit bitmask
+    };                                   ///
+  };                                     ///
+                                         ///
+  union {                                ///
+    uint64_t word1 = 0;                  ///< upper bits of the 80 bit bitmask
+    struct {                             ///
+      uint64_t bitMaskHigh : 16;         ///< higher bits of the 80 bit bitmask
+      uint32_t bunchCrossing : 12;       ///< bunch crossing number
+      uint32_t numWordsPayload : 4;      ///< number of 128bit words with 12bit ADC values
+      uint32_t syncOffsetBC : 8;         ///< sync offset in bunch crossings
+      uint32_t syncOffsetCRUCycles : 16; ///< sync offset in 240MHz CRU clock cycles
+      uint32_t magicWord : 8;            ///< not used
     };
   };
 
@@ -53,6 +54,8 @@ struct Header {
   {
     return std::bitset<80>((std::bitset<80>(bitMaskHigh) << 64) | std::bitset<80>(bitMaskLow));
   }
+
+  bool isFillWord() const { return (word0 == 0xffffffffffffffff) && (word1 == 0xffffffffffffffff); }
 
   bool hasCorrectMagicWord() const { return magicWord == MagicWord; }
 };

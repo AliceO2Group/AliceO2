@@ -64,14 +64,14 @@ namespace o2::aod
 {
 namespace v0goodpostracks
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(GoodTrack, goodTrack, int, FullTracks, "fGoodTrackID");
+DECLARE_SOA_INDEX_COLUMN_FULL(GoodTrack, goodTrack, int, Tracks, "_GoodTrack");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_COLUMN(DCAXY, dcaXY, float);
 } // namespace v0goodpostracks
 DECLARE_SOA_TABLE(V0GoodPosTracks, "AOD", "V0GOODPOSTRACKS", o2::soa::Index<>, v0goodpostracks::GoodTrackId, v0goodpostracks::CollisionId, v0goodpostracks::DCAXY);
 namespace v0goodnegtracks
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(GoodTrack, goodTrack, int, FullTracks, "fGoodTrackID");
+DECLARE_SOA_INDEX_COLUMN_FULL(GoodTrack, goodTrack, int, Tracks, "_GoodTrack");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_COLUMN(DCAXY, dcaXY, float);
 } // namespace v0goodnegtracks
@@ -120,7 +120,7 @@ struct lambdakzeroprefilter {
 };
 
 struct lambdakzerofinder {
-  Produces<aod::V0Data> v0data;
+  Produces<aod::StoredV0Datas> v0data;
 
   HistogramRegistry registry{
     "registry",
@@ -157,10 +157,10 @@ struct lambdakzerofinder {
     std::array<float, 3> pVtx = {collision.posX(), collision.posY(), collision.posZ()};
 
     for (auto& t0id : ptracks) { //FIXME: turn into combination(...)
-      auto t0 = t0id.goodTrack();
+      auto t0 = t0id.goodTrack_as<aod::FullTracks>();
       auto Track1 = getTrackParCov(t0);
       for (auto& t1id : ntracks) {
-        auto t1 = t1id.goodTrack();
+        auto t1 = t1id.goodTrack_as<aod::FullTracks>();
         auto Track2 = getTrackParCov(t1);
 
         //Try to progate to dca
@@ -237,14 +237,11 @@ struct lambdakzerofinderQA {
     },
   };
 
-  //FIXME: figure out why this does not work?
-  //Filter preFilter1 = aod::v0data::dcapostopv > dcapostopv;
-  //Filter preFilter2 = aod::v0data::dcanegtopv > dcanegtopv;
-  //Filter preFilter3 = aod::v0data::dcaV0daughters < dcav0dau;
+  Filter preFilterV0 = nabs(aod::v0data::dcapostopv) > dcapostopv&& nabs(aod::v0data::dcanegtopv) > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;
 
-  ///Connect to V0Data: newly indexed, note: V0DataExt table incompatible with standard V0 table!
+  ///Connect to V0Data: newly indexed, note: V0Datas table incompatible with standard V0 table!
   void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision,
-               aod::V0DataExt const& fullV0s)
+               soa::Filtered<aod::V0Datas> const& fullV0s)
   {
     if (!collision.alias()[kINT7]) {
       return;
@@ -255,7 +252,7 @@ struct lambdakzerofinderQA {
 
     Long_t lNCand = 0;
     for (auto& v0 : fullV0s) {
-      if (v0.v0radius() > v0radius && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospa && fabs(v0.dcapostopv()) > dcapostopv && fabs(v0.dcanegtopv()) > dcanegtopv && v0.dcaV0daughters() < dcav0dau) {
+      if (v0.v0radius() > v0radius && v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospa) {
         registry.fill(HIST("hV0Radius"), v0.v0radius());
         registry.fill(HIST("hV0CosPA"), v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()));
         registry.fill(HIST("hDCAPosToPV"), v0.dcapostopv());
@@ -278,15 +275,15 @@ struct lambdakzerofinderQA {
 
 /// Extends the v0data table with expression columns
 struct lambdakzeroinitializer {
-  Spawns<aod::V0DataExt> v0dataext;
+  Spawns<aod::V0Datas> v0datas;
   void init(InitContext const&) {}
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<lambdakzeroprefilter>("lf-lambdakzeroprefilter"),
-    adaptAnalysisTask<lambdakzerofinder>("lf-lambdakzerofinder"),
-    adaptAnalysisTask<lambdakzerofinderQA>("lf-lambdakzerofinderQA"),
-    adaptAnalysisTask<lambdakzeroinitializer>("lf-lambdakzeroinitializer")};
+    adaptAnalysisTask<lambdakzeroprefilter>(cfgc, "lf-lambdakzeroprefilter"),
+    adaptAnalysisTask<lambdakzerofinder>(cfgc, "lf-lambdakzerofinder"),
+    adaptAnalysisTask<lambdakzerofinderQA>(cfgc, "lf-lambdakzerofinderQA"),
+    adaptAnalysisTask<lambdakzeroinitializer>(cfgc, "lf-lambdakzeroinitializer")};
 }

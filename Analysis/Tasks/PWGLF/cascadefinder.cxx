@@ -66,27 +66,27 @@ namespace o2::aod
 
 namespace cascgoodpostracks
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(GoodPosTrack, goodPosTrack, int, FullTracks, "fGoodPosTrackID");
+DECLARE_SOA_INDEX_COLUMN_FULL(GoodPosTrack, goodPosTrack, int, Tracks, "_GoodPos");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_COLUMN(DCAXY, dcaXY, float);
 } // namespace cascgoodpostracks
 DECLARE_SOA_TABLE(CascGoodPosTracks, "AOD", "CASCGOODPTRACKS", o2::soa::Index<>, cascgoodpostracks::GoodPosTrackId, cascgoodpostracks::CollisionId, cascgoodpostracks::DCAXY);
 namespace cascgoodnegtracks
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(GoodNegTrack, goodNegTrack, int, FullTracks, "fGoodNegTrackID");
+DECLARE_SOA_INDEX_COLUMN_FULL(GoodNegTrack, goodNegTrack, int, Tracks, "_GoodNeg");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 DECLARE_SOA_COLUMN(DCAXY, dcaXY, float);
 } // namespace cascgoodnegtracks
 DECLARE_SOA_TABLE(CascGoodNegTracks, "AOD", "CASCGOODNTRACKS", o2::soa::Index<>, cascgoodnegtracks::GoodNegTrackId, cascgoodnegtracks::CollisionId, cascgoodnegtracks::DCAXY);
 namespace cascgoodlambdas
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(GoodLambda, goodLambda, int, V0DataExt, "fGoodLambdaId");
+DECLARE_SOA_INDEX_COLUMN_FULL(GoodLambda, goodLambda, int, V0Datas, "_GoodLambda");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 } // namespace cascgoodlambdas
 DECLARE_SOA_TABLE(CascGoodLambdas, "AOD", "CASCGOODLAM", o2::soa::Index<>, cascgoodlambdas::GoodLambdaId, cascgoodlambdas::CollisionId);
 namespace cascgoodantilambdas
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(GoodAntiLambda, goodAntiLambda, int, V0DataExt, "fGoodAntiLambdaId");
+DECLARE_SOA_INDEX_COLUMN_FULL(GoodAntiLambda, goodAntiLambda, int, V0Datas, "_GoodAntiLambda");
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);
 } // namespace cascgoodantilambdas
 DECLARE_SOA_TABLE(CascGoodAntiLambdas, "AOD", "CASCGOODALAM", o2::soa::Index<>, cascgoodantilambdas::GoodAntiLambdaId, cascgoodantilambdas::CollisionId);
@@ -111,13 +111,13 @@ struct cascadeprefilter {
   Partition<soa::Join<aod::FullTracks, aod::TracksExtended>> goodPosTracks = aod::track::signed1Pt > 0.0f && aod::track::dcaXY > dcabachtopv;
   Partition<soa::Join<aod::FullTracks, aod::TracksExtended>> goodNegTracks = aod::track::signed1Pt < 0.0f && aod::track::dcaXY < -dcabachtopv;
 
-  Partition<aod::V0DataExt> goodV0s = aod::v0data::dcapostopv > dcapostopv&& aod::v0data::dcanegtopv > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;
+  Partition<aod::V0Datas> goodV0s = aod::v0data::dcapostopv > dcapostopv&& aod::v0data::dcanegtopv > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;
 
   using FullTracksExt = soa::Join<aod::FullTracks, aod::TracksExtended>;
 
   void process(aod::Collision const& collision,
                FullTracksExt const& tracks,
-               aod::V0DataExt const& V0s)
+               aod::V0Datas const& V0s)
   {
     for (auto& t0 : goodPosTracks) {
       if (!(t0.trackType() & o2::aod::track::TPCrefit)) {
@@ -178,7 +178,7 @@ struct cascadefinder {
   //Process: subscribes to a lot of things!
   void process(aod::Collision const& collision,
                aod::FullTracks const& tracks,
-               aod::V0DataExt const& V0s,
+               aod::V0Datas const& V0s,
                aod::CascGoodLambdas const& lambdas,
                aod::CascGoodAntiLambdas const& antiLambdas,
                aod::CascGoodPosTracks const& pBachtracks,
@@ -217,8 +217,8 @@ struct cascadefinder {
     for (auto& v0id : lambdas) {
       //required: de-reference the tracks for cascade building
       auto v0 = v0id.goodLambda();
-      auto pTrack = getTrackParCov(v0.posTrack());
-      auto nTrack = getTrackParCov(v0.negTrack());
+      auto pTrack = getTrackParCov(v0.posTrack_as<aod::FullTracks>());
+      auto nTrack = getTrackParCov(v0.negTrack_as<aod::FullTracks>());
       //Let's do the slow part first: the V0 recalculation from scratch
       int nCand = fitterV0.process(pTrack, nTrack);
       if (nCand != 0) {
@@ -257,7 +257,7 @@ struct cascadefinder {
         tV0.setQ2Pt(0); //No bending, please
 
         for (auto& t0id : nBachtracks) {
-          auto t0 = t0id.goodNegTrack();
+          auto t0 = t0id.goodNegTrack_as<aod::FullTracks>();
           auto bTrack = getTrackParCov(t0);
 
           int nCand2 = fitterCasc.process(tV0, bTrack);
@@ -289,8 +289,8 @@ struct cascadefinder {
     for (auto& v0id : antiLambdas) {
       //required: de-reference the tracks for cascade building
       auto v0 = v0id.goodAntiLambda();
-      auto pTrack = getTrackParCov(v0.posTrack());
-      auto nTrack = getTrackParCov(v0.negTrack());
+      auto pTrack = getTrackParCov(v0.posTrack_as<aod::FullTracks>());
+      auto nTrack = getTrackParCov(v0.negTrack_as<aod::FullTracks>());
       //Let's do the slow part first: the V0 recalculation from scratch
       int nCand = fitterV0.process(pTrack, nTrack);
       if (nCand != 0) {
@@ -329,7 +329,7 @@ struct cascadefinder {
         tV0.setQ2Pt(0); //No bending, please
 
         for (auto& t0id : pBachtracks) {
-          auto t0 = t0id.goodPosTrack();
+          auto t0 = t0id.goodPosTrack_as<aod::FullTracks>();
           auto bTrack = getTrackParCov(t0);
 
           int nCand2 = fitterCasc.process(tV0, bTrack);
@@ -402,7 +402,7 @@ struct cascadefinderQA {
           casc.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospa &&
           casc.casccosPA(collision.posX(), collision.posY(), collision.posZ()) > casccospa &&
           casc.dcav0topv(collision.posX(), collision.posY(), collision.posZ()) > dcav0topv) {
-        if (casc.charge() < 0) { //FIXME: could be done better...
+        if (casc.sign() < 0) { //FIXME: could be done better...
           if (TMath::Abs(casc.yXi()) < 0.5) {
             h3dMassXiMinus->Fill(collision.centV0M(), casc.pt(), casc.mXi());
           }
@@ -428,11 +428,11 @@ struct cascadeinitializer {
   void init(InitContext const&) {}
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<cascadeprefilter>("lf-cascadeprefilter"),
-    adaptAnalysisTask<cascadefinder>("lf-cascadefinder"),
-    adaptAnalysisTask<cascadefinderQA>("lf-cascadefinderQA"),
-    adaptAnalysisTask<cascadeinitializer>("lf-cascadeinitializer")};
+    adaptAnalysisTask<cascadeprefilter>(cfgc, "lf-cascadeprefilter"),
+    adaptAnalysisTask<cascadefinder>(cfgc, "lf-cascadefinder"),
+    adaptAnalysisTask<cascadefinderQA>(cfgc, "lf-cascadefinderQA"),
+    adaptAnalysisTask<cascadeinitializer>(cfgc, "lf-cascadeinitializer")};
 }

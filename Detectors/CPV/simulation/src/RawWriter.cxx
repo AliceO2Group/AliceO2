@@ -69,79 +69,80 @@ bool RawWriter::processTrigger(const gsl::span<o2::cpv::Digit> digitsbranch, con
 {
 
   //Array used to sort properly digits
-  for (int j = kNRow; j--;) {
-    for (int k = kNDilogic; k--;) {
-      mPadCharge[j][k].clear();
+  for (int i = kNcc; i--;) {
+    for (int j = kNDilogic; j--;) {
+      for (int k = kNGasiplex; k--;) {
+        mPadCharge[i][j][k].clear();
+      }
     }
   }
 
   for (auto& dig : gsl::span(digitsbranch.data() + trg.getFirstEntry(), trg.getNumberOfObjects())) {
 
     short absId = dig.getAbsId();
-    short mod, dilogic, row, hwAddr;
-    o2::cpv::Geometry::absIdToHWaddress(absId, mod, row, dilogic, hwAddr);
+    short ccId, dil, gas, pad;
+    o2::cpv::Geometry::absIdToHWaddress(absId, ccId, dil, gas, pad);
 
     //Convert Amp to ADC counts
     short charge = dig.getAmplitude() / mCalibParams->getGain(absId);
-    if (charge > 2047) {
-      charge = 2047;
+    if (charge > 4095) {
+      charge = 4095;
     }
-    mPadCharge[row][dilogic].emplace_back(charge, hwAddr);
+    mPadCharge[ccId][dil][gas].emplace_back(charge, pad);
   }
 
   //Do through DLLs and fill raw words in proper order
   mPayload.clear();
-  //write empty header, later will be updated ?
 
-  int nwInSegment = 0;
-  int posRowMarker = 0;
-  for (int row = 0; row < kNRow; row++) {
-    //reserve place for row header
-    mPayload.emplace_back(uint32_t(0));
-    posRowMarker = mPayload.size() - 1;
-    nwInSegment++;
-    int nwRow = 0;
-    for (Int_t dilogic = 0; dilogic < kNDilogic; dilogic++) {
-      int nPad = 0;
-      for (padCharge& pc : mPadCharge[row][dilogic]) {
-        PadWord currentword = {0};
-        currentword.charge = pc.charge;
-        currentword.address = pc.pad;
-        currentword.dilogic = dilogic;
-        currentword.row = row;
-        mPayload.push_back(currentword.mDataWord);
-        nwInSegment++;
-        nPad++;
-        nwRow++;
+  int ccWordCounter = 0;
+  int gbtWordCounter = 0;
+  for (char ccId = 0; ccId < kNcc; ccId++) {
+    for (char dil = 0; dil < kNDilogic; dil++) {
+      for (char gas = 0; gas < kNGasiplex; gas++) {
+        for (padCharge& pc : mPadCharge[ccId][dil][gas]) {
+          // Generate 3 CC words, add CC header and empty bits to complete 128 bits;
+          PadWord currentword = {0};
+          currentword.charge = pc.charge;
+          currentword.address = pc.pad;
+          currentword.gas = gas;
+          currentword.dil = dil;
+          mPayload.push_back(currentword.bytes[0]);
+          mPayload.push_back(currentword.bytes[1]);
+          mPayload.push_back(currentword.bytes[2]);
+          ccWordCounter++;
+          if (ccWordCounter % 3 == 0) { // complete 3 channels (72 bit) + CC index (8 bits) + 6 empty bits = Generate 128 bits of data
+            mPayload.push_back(ccId);
+            for (int i = 6; i--;) {
+              mPayload.push_back(char(0));
+            }
+            gbtWordCounter++;
+          }
+        }
+        if (ccWordCounter % 3 != 0) {
+          while (ccWordCounter % 3 != 0) {
+            mPayload.push_back(char(255));
+            mPayload.push_back(char(255));
+            mPayload.push_back(char(255));
+            ccWordCounter++;
+          }
+          mPayload.push_back(ccId);
+          for (int i = 6; i--;) {
+            mPayload.push_back(char(0));
+          }
+          gbtWordCounter++;
+        }
       }
-      EoEWord we = {0};
-      we.nword = nPad;
-      we.dilogic = dilogic;
-      we.row = row;
-      we.checkbit = 1;
-      mPayload.push_back(we.mDataWord);
-      nwInSegment++;
-      nwRow++;
     }
-    if (row % 2 == 1) {
-      SegMarkerWord w = {0};
-      w.row = row;
-      w.nwords = nwInSegment;
-      w.marker = 2736;
-      mPayload.push_back(w.mDataWord);
-      nwInSegment = 0;
-      nwRow++;
-    }
-    //Now we know number of words, update rawMarker
-    RowMarkerWord wr = {0};
-    wr.marker = 13992;
-    wr.nwords = nwRow - 1;
-    mPayload[posRowMarker] = wr.mDataWord;
+  }
+  cpvtrailer tr(gbtWordCounter); //cout GBT words
+  for (int i = 0; i < 16; i++) {
+    mPayload.push_back(tr.bytes[i]);
   }
 
   // register output data
-  LOG(DEBUG1) << "Adding payload with size " << mPayload.size() << " (" << mPayload.size() << " ALTRO words)";
-  mRawWriter->addData(0, 0, 0, 0, trg.getBCData(), gsl::span<char>(reinterpret_cast<char*>(mPayload.data()), mPayload.size() * sizeof(uint32_t)));
+  LOG(DEBUG1) << "Adding payload with size " << mPayload.size() << " char words)";
+
+  mRawWriter->addData(0, 0, 0, 0, trg.getBCData(), gsl::span<char>(mPayload.data(), mPayload.size()));
   return true;
 }
 int RawWriter::carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> data,
@@ -149,14 +150,14 @@ int RawWriter::carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> 
                                std::vector<char>& trailer, std::vector<char>& header) const
 {
 
-  constexpr int phosTrailerSize = 36;
+  constexpr int cpvTrailerSize = 36;
   int offs = ptr - &data[0];                                  // offset wrt the head of the payload
   assert(offs >= 0 && size_t(offs + maxSize) <= data.size()); // make sure ptr and end of the suggested block are within the payload
   int leftBefore = data.size() - offs;                        // payload left before this splitting
   int leftAfter = leftBefore - maxSize;                       // what would be left after the suggested splitting
   int actualSize = maxSize;
-  if (leftAfter && leftAfter <= phosTrailerSize) {   // avoid splitting the trailer or writing only it.
-    actualSize -= (phosTrailerSize - leftAfter) + 4; // (as we work with int, not char in decoding)
+  if (leftAfter && leftAfter <= cpvTrailerSize) {   // avoid splitting the trailer or writing only it.
+    actualSize -= (cpvTrailerSize - leftAfter) + 4; // (as we work with int, not char in decoding)
   }
   return actualSize;
 }

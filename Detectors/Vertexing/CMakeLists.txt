@@ -20,12 +20,14 @@ o2_add_library(DetectorsVertexing
                PUBLIC_LINK_LIBRARIES ROOT::Core
 	                             O2::CommonUtils
                                      O2::ReconstructionDataFormats
+                                     O2::DataFormatsParameters
                                      O2::DataFormatsTPC
                                      O2::DataFormatsITS
                                      O2::TPCBase
                                      O2::SimulationDataFormat
                                      O2::FT0Reconstruction
                                      O2::DataFormatsFT0
+                                     O2::GlobalTracking
                                      ms_gsl::ms_gsl)
 
 o2_target_root_dictionary(DetectorsVertexing

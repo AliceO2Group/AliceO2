@@ -56,7 +56,7 @@ struct LiteralStorage {
   using stored_pack = framework::pack<T...>;
 };
 
-using LiteralValue = LiteralStorage<int, bool, float, double, uint8_t, int64_t>;
+using LiteralValue = LiteralStorage<int, bool, float, double, uint8_t, int64_t, int16_t, uint16_t, int8_t>;
 
 template <typename T>
 constexpr auto selectArrowType()
@@ -69,14 +69,16 @@ constexpr auto selectArrowType()
     return atype::FLOAT;
   } else if constexpr (std::is_same_v<T, double>) {
     return atype::DOUBLE;
+  } else if constexpr (std::is_same_v<T, uint8_t>) {
+    return atype::UINT8;
   } else if constexpr (std::is_same_v<T, int8_t>) {
     return atype::INT8;
   } else if constexpr (std::is_same_v<T, uint16_t>) {
+    return atype::UINT16;
+  } else if constexpr (std::is_same_v<T, int16_t>) {
     return atype::INT16;
   } else if constexpr (std::is_same_v<T, int64_t>) {
     return atype::INT64;
-  } else if constexpr (std::is_same_v<T, uint8_t>) {
-    return atype::UINT8;
   } else {
     return atype::NA;
   }

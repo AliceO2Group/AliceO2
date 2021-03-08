@@ -77,8 +77,8 @@ struct TPCSpectraTaskTiny {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec workflow{adaptAnalysisTask<TPCSpectraTaskTiny>("tpcspectra-tiny-task")};
+  WorkflowSpec workflow{adaptAnalysisTask<TPCSpectraTaskTiny>(cfgc, "tpcspectra-tiny-task")};
   return workflow;
 }

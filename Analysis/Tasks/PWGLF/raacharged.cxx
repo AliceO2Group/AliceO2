@@ -170,22 +170,22 @@ struct raacharged {
         continue;
       }
 
-      Double_t trackValues[4] = {0.0, 0.0, track.pt(), (Double_t)track.charge()};
+      Double_t trackValues[4] = {0.0, 0.0, track.pt(), (Double_t)track.sign()};
       fHistTrack->Fill(trackValues);
 
       Double_t mcInfoVal;
       if (!isMC) {
         continue;
       }
-      if (MC::isPhysicalPrimary(mcParticles, track.label())) {
+      if (MC::isPhysicalPrimary(mcParticles, track.mcParticle())) {
         mcInfoVal = 0.0;
       } else {
         mcInfoVal = 1.0;
       }
 
-      Double_t MCpt = track.label().pt();
-      Double_t parType = (Double_t)WhichParticle(track.label().pdgCode());
-      Double_t MCcharge = (Double_t)track.charge();
+      Double_t MCpt = track.mcParticle().pt();
+      Double_t parType = (Double_t)WhichParticle(track.mcParticle().pdgCode());
+      Double_t MCcharge = (Double_t)track.sign();
       Double_t MCvalues[4] = {MCpt, parType, mcInfoVal, MCcharge};
 
       fHistMC->Fill(MCvalues);
@@ -218,8 +218,8 @@ struct raacharged {
 //--------------------------------------------------------------------
 // Workflow definition
 //--------------------------------------------------------------------
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<raacharged>("raa-charged")};
+    adaptAnalysisTask<raacharged>(cfgc, "raa-charged")};
 }

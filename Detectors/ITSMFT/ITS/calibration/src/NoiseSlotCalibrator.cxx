@@ -33,7 +33,7 @@ bool NoiseSlotCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClust
   auto& slotTF = getSlotForTF(nTF);
   auto& noiseMap = *(slotTF.getContainer());
 
-  auto pattIt = patterns.cbegin();
+  auto pattIt = patterns.begin();
   for (const auto& rof : rofs) {
     auto clustersInFrame = rof.getROFData(clusters);
     for (const auto& c : clustersInFrame) {

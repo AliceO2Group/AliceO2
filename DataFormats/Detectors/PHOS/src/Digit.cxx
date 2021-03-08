@@ -58,6 +58,15 @@ Digit& Digit::operator+=(const Digit& other)
 
   return *this;
 }
+void Digit::addEnergyTime(float energy, float time)
+{
+  // Adds the amplitude of digits
+  // TODO: What about time? Should we assign time of more energetic digit? More complicated treatment?
+  if (mAmplitude < energy) {
+    mTime = time;
+  }
+  mAmplitude += energy;
+}
 
 void Digit::PrintStream(std::ostream& stream) const
 {

@@ -22,6 +22,7 @@
 #pragma link C++ struct o2::trd::TrackletMCMData + ;
 #pragma link C++ class o2::trd::Tracklet64 + ;
 #pragma link C++ class o2::trd::CalibratedTracklet + ;
+#pragma link C++ class o2::trd::Hit + ;
 #pragma link C++ class std::vector < o2::trd::Tracklet64> + ;
 #pragma link C++ class std::vector < o2::trd::CalibratedTracklet> + ;
 #pragma link C++ class std::vector < o2::trd::TriggerRecord > +;

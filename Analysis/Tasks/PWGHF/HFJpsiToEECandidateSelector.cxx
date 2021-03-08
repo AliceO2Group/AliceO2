@@ -76,12 +76,12 @@ struct HFJpsiToEECandidateSelector {
   template <typename T>
   bool daughterSelection(const T& track)
   {
-    if (track.charge() == 0) {
+    if (track.sign() == 0) {
       return false;
     }
-    if (track.tpcNClsFound() == 0) {
+    /*if (track.tpcNClsFound() == 0) {
       return false; //is it clusters findable or found - need to check
-    }
+      }*/
     return true;
   }
 
@@ -199,8 +199,8 @@ struct HFJpsiToEECandidateSelector {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HFJpsiToEECandidateSelector>("hf-jpsi-toee-candidate-selector")};
+    adaptAnalysisTask<HFJpsiToEECandidateSelector>(cfgc, "hf-jpsi-toee-candidate-selector")};
 }

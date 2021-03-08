@@ -32,16 +32,12 @@ framework::WorkflowSpec getMatchTPCITSWorkflow(bool useFT0, bool useMC, bool dis
 {
   framework::WorkflowSpec specs;
 
-  bool passFullITSClusters = false; // temporarily pass full clusters,
-  bool passCompITSClusters = true;  // eventually only compact of recpoints will be passed
-  bool passITSClusPatterns = true;
-
   std::vector<int> tpcClusSectors = o2::RangeTokenizer::tokenize<int>("0-35");
   std::vector<int> tpcClusLanes = tpcClusSectors;
 
   if (!disableRootInp) {
     specs.emplace_back(o2::its::getITSTrackReaderSpec(useMC));
-    specs.emplace_back(o2::itsmft::getITSClusterReaderSpec(useMC, passITSClusPatterns));
+    specs.emplace_back(o2::itsmft::getITSClusterReaderSpec(useMC, true));
     specs.emplace_back(o2::tpc::getTPCTrackReaderSpec(useMC));
     specs.emplace_back(o2::tpc::getPublisherSpec(o2::tpc::PublisherConf{
                                                    "tpc-native-cluster-reader",
@@ -61,7 +57,7 @@ framework::WorkflowSpec getMatchTPCITSWorkflow(bool useFT0, bool useMC, bool dis
     }
   }
 
-  specs.emplace_back(o2::globaltracking::getTPCITSMatchingSpec(useFT0, calib, useMC, tpcClusLanes));
+  specs.emplace_back(o2::globaltracking::getTPCITSMatchingSpec(useFT0, calib, useMC));
 
   if (!disableRootOut) {
     specs.emplace_back(o2::globaltracking::getTrackWriterTPCITSSpec(useMC));

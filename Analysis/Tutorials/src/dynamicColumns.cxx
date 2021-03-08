@@ -36,9 +36,9 @@ struct ATask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   // create and use table
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("attach-showcase")};
+    adaptAnalysisTask<ATask>(cfgc, "attach-showcase")};
 }

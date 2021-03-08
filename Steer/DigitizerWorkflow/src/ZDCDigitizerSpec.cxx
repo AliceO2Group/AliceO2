@@ -11,6 +11,8 @@
 #include "ZDCDigitizerSpec.h"
 #include "DataFormatsZDC/ChannelData.h"
 #include "DataFormatsZDC/BCData.h"
+#include "DataFormatsZDC/OrbitData.h"
+#include "DataFormatsZDC/MCLabel.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataProcessorSpec.h"
@@ -25,7 +27,6 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "ZDCSimulation/Digitizer.h"
 #include "ZDCSimulation/Detector.h"
-#include "ZDCSimulation/MCLabel.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
 #include "SimConfig/DigiParams.h"
 
@@ -40,9 +41,10 @@ namespace zdc
 class ZDCDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
   using GRP = o2::parameters::GRPObject;
+  bool mUseMC = true;
 
  public:
-  ZDCDPLDigitizerTask() : o2::base::BaseDPLDigitizer(o2::base::InitServices::GEOM) {}
+  ZDCDPLDigitizerTask(bool useMC) : o2::base::BaseDPLDigitizer(o2::base::InitServices::GEOM), mUseMC(useMC) {}
 
   void initDigitizerTask(framework::InitContext& ic) override
   {
@@ -51,15 +53,15 @@ class ZDCDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     auto& dopt = o2::conf::DigiParams::Instance();
 
     mDigitizer.setCCDBServer(dopt.ccdb);
+    auto enableHitInfo = ic.options().get<bool>("enable-hit-info");
+    mDigitizer.setMaskTriggerBits(!enableHitInfo);
+    mDigitizer.setSkipMCLabels(not mUseMC);
     mDigitizer.init();
     mROMode = mDigitizer.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
   }
 
   void run(framework::ProcessingContext& pc)
   {
-    if (mFinished) {
-      return;
-    }
     LOG(INFO) << "Doing ZDC digitization";
 
     // TODO: this should eventually come from the framework and depend on the TF timestamp
@@ -71,10 +73,14 @@ class ZDCDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
     const auto& grp = context->getGRP();
     mDigitizer.setTimeStamp(grp.getTimeStart());
-
+    if (mDigitizer.getNEmptyBunches() < 0) {
+      mDigitizer.findEmptyBunches(context->getBunchFilling().getPattern());
+    }
     auto& irecords = context->getEventRecords();
     auto& eventParts = context->getEventParts();
-
+    if (irecords.empty()) {
+      return;
+    }
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     std::vector<o2::zdc::Hit> hits;
@@ -101,11 +107,28 @@ class ZDCDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     mDigitizer.setInteractionRecord(terminateIR);
     mDigitizer.flush(mDigitsBC, mDigitsCh, mLabels);
 
+    for (uint32_t ib = 0; ib < mDigitsBC.size(); ib++) {
+      mDigitizer.assignTriggerBits(ib, mDigitsBC);
+    }
+
+    const auto &irFirst = irecords.front(), irLast = irecords.back();
+    o2::InteractionRecord irPed(o2::constants::lhc::LHCMaxBunches - 1, irFirst.orbit);
+    int norbits = irLast.orbit - irFirst.orbit + 1;
+    mOrbitData.resize(norbits);
+    for (int i = 0; i < norbits; i++) {
+      mDigitizer.updatePedestalReference(mOrbitData[i]);
+      mOrbitData[i].ir = irPed;
+      irPed.orbit++;
+    }
+
+    mDigitizer.Finalize(mDigitsBC, mOrbitData);
+
     // send out to next stage
     pc.outputs().snapshot(Output{"ZDC", "DIGITSBC", 0, Lifetime::Timeframe}, mDigitsBC);
     pc.outputs().snapshot(Output{"ZDC", "DIGITSCH", 0, Lifetime::Timeframe}, mDigitsCh);
-    if (pc.outputs().isAllowed({"ZDC", "DIGITLBL", 0})) {
-      pc.outputs().snapshot(Output{"ZDC", "DIGITLBL", 0, Lifetime::Timeframe}, mLabels);
+    pc.outputs().snapshot(Output{"ZDC", "DIGITSPD", 0, Lifetime::Timeframe}, mOrbitData);
+    if (pc.outputs().isAllowed({"ZDC", "DIGITSLBL", 0})) {
+      pc.outputs().snapshot(Output{"ZDC", "DIGITSLBL", 0, Lifetime::Timeframe}, mLabels);
     }
 
     LOG(INFO) << "ZDC: Sending ROMode= " << mROMode << " to GRPUpdater";
@@ -113,15 +136,14 @@ class ZDCDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-    mFinished = true;
   }
 
  private:
-  bool mFinished = false;
   Digitizer mDigitizer;
   std::vector<TChain*> mSimChains;
   std::vector<o2::zdc::ChannelData> mDigitsCh;
   std::vector<o2::zdc::BCData> mDigitsBC;
+  std::vector<o2::zdc::OrbitData> mOrbitData;
   o2::dataformats::MCTruthContainer<o2::zdc::MCLabel> mLabels; // labels which get filled
 
   // RS: at the moment using hardcoded flag for continuous readout
@@ -138,19 +160,18 @@ o2::framework::DataProcessorSpec getZDCDigitizerSpec(int channel, bool mctruth)
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ZDC", "DIGITSBC", 0, Lifetime::Timeframe);
   outputs.emplace_back("ZDC", "DIGITSCH", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ZDC", "DIGITSPD", 0, Lifetime::Timeframe);
   if (mctruth) {
-    outputs.emplace_back("ZDC", "DIGITLBL", 0, Lifetime::Timeframe);
+    outputs.emplace_back("ZDC", "DIGITSLBL", 0, Lifetime::Timeframe);
   }
   outputs.emplace_back("ZDC", "ROMode", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "ZDCDigitizer",
     Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
-
     outputs,
-
-    AlgorithmSpec{adaptFromTask<ZDCDPLDigitizerTask>()},
-    Options{}};
+    AlgorithmSpec{adaptFromTask<ZDCDPLDigitizerTask>(mctruth)},
+    Options{{"enable-hit-info", o2::framework::VariantType::Bool, false, {"enable hit info of unread channels"}}}};
 }
 
 } // end namespace zdc

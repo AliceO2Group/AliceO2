@@ -15,7 +15,7 @@
 #include "DetectorsBase/MaterialManager.h"
 #include "SimulationDataFormat/Stack.h"
 #include "ZDCSimulation/Detector.h"
-#include "ZDCSimulation/Hit.h"
+#include "DataFormatsZDC/Hit.h"
 
 #include "TMath.h"
 #include "TGeoManager.h"        // for TGeoManager, gGeoManager
@@ -288,7 +288,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 {
   // Method called from MC stepping for the sensitive volumes
   TString volname = fMC->CurrentVolName();
-  Float_t x[3] = {0., 0., 0.};
+  float x[3] = {0., 0., 0.};
   fMC->TrackPosition(x[0], x[1], x[2]);
 
   // determine detectorID and sectorID
@@ -304,7 +304,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   int volID, copy;
   volID = fMC->CurrentVolID(copy);
   //printf("\t ---> track %d in vol. %d %d (volID %d) mother %d \n",
-    //trackn, detector, sector, volID, stack->GetCurrentTrack()->GetMother(0));
+  //trackn, detector, sector, volID, stack->GetCurrentTrack()->GetMother(0));
 
   // If the particle is in a ZN or ZP fiber connected to the common PMT
   // then the assigned sector is 0 (PMC) NB-> does not work for ZEM
@@ -320,45 +320,45 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     return false;
   }
 
-  Float_t p[3] = {0., 0., 0.};
-  Float_t trackenergy = 0.;
+  float p[3] = {0., 0., 0.};
+  float trackenergy = 0.;
   fMC->TrackMomentum(p[0], p[1], p[2], trackenergy);
-  Float_t eDep = fMC->Edep();
+  float eDep = fMC->Edep();
 
   int pdgCode = fMC->TrackPid();
   float lightoutput = 0.;
   auto currentMediumid = fMC->CurrentMedium();
   int nphe = 0;
   if (((currentMediumid == mMediumPMCid) || (currentMediumid == mMediumPMQid))) {
-   if(eDep){
-    int ibeta = 0, iangle = 0, iradius = 0;
-    Bool_t isLightProduced = calculateTableIndexes(ibeta, iangle, iradius);
-    if (isLightProduced) {
-      int charge = 0;
-      if (pdgCode < 10000) {
-        charge = fMC->TrackCharge();
-      } else {
-        charge = TMath::Abs(pdgCode / 10000 - 100000);
-      }
-
-      //look into the light tables if the particle is charged
-      if (TMath::Abs(charge) > 0) {
-        if (detector == 1 || detector == 4) {
-          iradius = std::min((int)Geometry::ZNFIBREDIAMETER, iradius);
-          lightoutput = charge * charge * mLightTableZN[ibeta][iangle][iradius];
-          //printf("  \t ZNtableEntry[%d %d %d] = %1.5f -> lightoutput %f\n", ibeta, iangle, iradius, mLightTableZN[ibeta][iangle][iradius], lightoutput);
+    if (eDep) {
+      int ibeta = 0, iangle = 0, iradius = 0;
+      Bool_t isLightProduced = calculateTableIndexes(ibeta, iangle, iradius);
+      if (isLightProduced) {
+        int charge = 0;
+        if (pdgCode < 10000) {
+          charge = fMC->TrackCharge();
         } else {
-          iradius = std::min((int)Geometry::ZPFIBREDIAMETER, iradius);
-          lightoutput = charge * charge * mLightTableZP[ibeta][iangle][iradius];
-          //printf("  \t ZPtableEntry[%d %d %d] = %1.5f -> lightoutput %f\n", ibeta, iangle, iradius, mLightTableZP[ibeta][iangle][iradius], lightoutput);
+          charge = TMath::Abs(pdgCode / 10000 - 100000);
         }
-        if (lightoutput > 0) {
-          nphe = gRandom->Poisson(lightoutput);
-          //printf("  \t\t-> nphe %d  \n", nphe);
+
+        //look into the light tables if the particle is charged
+        if (TMath::Abs(charge) > 0) {
+          if (detector == 1 || detector == 4) {
+            iradius = std::min((int)Geometry::ZNFIBREDIAMETER, iradius);
+            lightoutput = charge * charge * mLightTableZN[ibeta][iangle][iradius];
+            //printf("  \t ZNtableEntry[%d %d %d] = %1.5f -> lightoutput %f\n", ibeta, iangle, iradius, mLightTableZN[ibeta][iangle][iradius], lightoutput);
+          } else {
+            iradius = std::min((int)Geometry::ZPFIBREDIAMETER, iradius);
+            lightoutput = charge * charge * mLightTableZP[ibeta][iangle][iradius];
+            //printf("  \t ZPtableEntry[%d %d %d] = %1.5f -> lightoutput %f\n", ibeta, iangle, iradius, mLightTableZP[ibeta][iangle][iradius], lightoutput);
+          }
+          if (lightoutput > 0) {
+            nphe = gRandom->Poisson(lightoutput);
+            //printf("  \t\t-> nphe %d  \n", nphe);
+          }
         }
       }
     }
-   }
   }
 
   auto tof = 1.e09 * fMC->TrackTime(); //TOF in ns
@@ -498,9 +498,9 @@ bool Detector::createHitsFromImage(SpatialPhotonResponse const& image, int detec
 } // end function
 
 //_____________________________________________________________________________
-o2::zdc::Hit* Detector::addHit(Int_t trackID, Int_t parentID, Int_t sFlag, Float_t primaryEnergy, Int_t detID,
-                               Int_t secID, math_utils::Vector3D<float> pos, math_utils::Vector3D<float> mom, Float_t tof, math_utils::Vector3D<float> xImpact,
-                               Double_t energyloss, Int_t nphePMC, Int_t nphePMQ)
+o2::zdc::Hit* Detector::addHit(int32_t trackID, int32_t parentID, int32_t sFlag, float primaryEnergy, int32_t detID,
+                               int32_t secID, math_utils::Vector3D<float> pos, math_utils::Vector3D<float> mom, float tof, math_utils::Vector3D<float> xImpact,
+                               double energyloss, int32_t nphePMC, int32_t nphePMQ)
 {
   LOG(DEBUG4) << "Adding hit for track " << trackID << " X (" << pos.X() << ", " << pos.Y() << ", "
               << pos.Z() << ") P (" << mom.X() << ", " << mom.Y() << ", " << mom.Z() << ")  Ekin "
@@ -513,94 +513,94 @@ o2::zdc::Hit* Detector::addHit(Int_t trackID, Int_t parentID, Int_t sFlag, Float
 //_____________________________________________________________________________
 void Detector::createMaterials()
 {
-  Int_t ifield = 2;
-  Float_t fieldm = 10.0;
+  int32_t ifield = 2;
+  float fieldm = 10.0;
   o2::base::Detector::initFieldTrackingParams(ifield, fieldm);
   LOG(INFO) << "Detector::CreateMaterials >>>>> magnetic field: type " << ifield << " max " << fieldm << "\n";
 
   // ******** MATERIAL DEFINITION ********
   // --- W alloy -> ZN passive material
-  Float_t aW[3] = {183.85, 55.85, 58.71};
-  Float_t zW[3] = {74., 26., 28.};
-  Float_t wW[3] = {0.93, 0.03, 0.04};
-  Float_t dW = 17.6;
+  float aW[3] = {183.85, 55.85, 58.71};
+  float zW[3] = {74., 26., 28.};
+  float wW[3] = {0.93, 0.03, 0.04};
+  float dW = 17.6;
 
   // --- Brass (CuZn)  -> ZP passive material
-  Float_t aCuZn[2] = {63.546, 65.39};
-  Float_t zCuZn[2] = {29., 30.};
-  Float_t wCuZn[2] = {0.63, 0.37};
-  Float_t dCuZn = 8.48;
+  float aCuZn[2] = {63.546, 65.39};
+  float zCuZn[2] = {29., 30.};
+  float wCuZn[2] = {0.63, 0.37};
+  float dCuZn = 8.48;
 
   // --- SiO2 -> fibres
-  Float_t aq[2] = {28.0855, 15.9994};
-  Float_t zq[2] = {14., 8.};
-  Float_t wq[2] = {1., 2.};
-  Float_t dq = 2.64;
+  float aq[2] = {28.0855, 15.9994};
+  float zq[2] = {14., 8.};
+  float wq[2] = {1., 2.};
+  float dq = 2.64;
 
   // --- Lead -> ZEM passive material
-  Float_t aPb = 207.2;
-  Float_t zPb = 82.;
-  Float_t dPb = 11.35;
-  Float_t radPb = 6.37 / dPb;
-  Float_t absPb = 199.6 / dPb;
+  float aPb = 207.2;
+  float zPb = 82.;
+  float dPb = 11.35;
+  float radPb = 6.37 / dPb;
+  float absPb = 199.6 / dPb;
 
   // --- Copper -> beam pipe
-  Float_t aCu = 63.546;
-  Float_t zCu = 29.;
-  Float_t dCu = 8.96;
-  Float_t radCu = 12.86 / dCu;
-  Float_t absCu = 137.3 / dCu;
-  // Int_t nCu = 1.10;
+  float aCu = 63.546;
+  float zCu = 29.;
+  float dCu = 8.96;
+  float radCu = 12.86 / dCu;
+  float absCu = 137.3 / dCu;
+  // int32_t nCu = 1.10;
 
   // --- Iron -> beam pipe
-  Float_t aFe = 55.845;
-  Float_t zFe = 26.;
-  Float_t dFe = 7.874;
-  Float_t radFe = 13.84 / dFe;
-  Float_t absFe = 132.1 / dFe;
+  float aFe = 55.845;
+  float zFe = 26.;
+  float dFe = 7.874;
+  float radFe = 13.84 / dFe;
+  float absFe = 132.1 / dFe;
 
   // --- Aluminum -> beam pipe
-  Float_t aAl = 26.98;
-  Float_t zAl = 13.;
-  Float_t dAl = 2.699;
-  Float_t radAl = 24.01 / dAl;
-  Float_t absAl = 107.2 / dAl;
+  float aAl = 26.98;
+  float zAl = 13.;
+  float dAl = 2.699;
+  float radAl = 24.01 / dAl;
+  float absAl = 107.2 / dAl;
 
   // --- Carbon -> beam pipe
-  Float_t aCarb = 12.01;
-  Float_t zCarb = 6.;
-  Float_t dCarb = 2.265;
-  Float_t radCarb = 18.8;
-  Float_t absCarb = 49.9;
+  float aCarb = 12.01;
+  float zCarb = 6.;
+  float dCarb = 2.265;
+  float radCarb = 18.8;
+  float absCarb = 49.9;
 
   // --- Residual gas -> inside beam pipe
-  Float_t aResGas[3] = {1.008, 12.0107, 15.9994};
-  Float_t zResGas[3] = {1., 6., 8.};
-  Float_t wResGas[3] = {0.28, 0.28, 0.44};
-  Float_t dResGas = 3.2E-14;
+  float aResGas[3] = {1.008, 12.0107, 15.9994};
+  float zResGas[3] = {1., 6., 8.};
+  float wResGas[3] = {0.28, 0.28, 0.44};
+  float dResGas = 3.2E-14;
 
   // --- Air
-  Float_t aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
-  Float_t zAir[4] = {6., 7., 8., 18.};
-  Float_t wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
-  Float_t dAir = 1.20479E-3;
+  float aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
+  float zAir[4] = {6., 7., 8., 18.};
+  float wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
+  float dAir = 1.20479E-3;
 
   // ******** TRACKING MEDIA PARAMETERS ********
-  Int_t notactiveMed = 0, sensMed = 1; // sensitive or not sensitive medium
+  int32_t notactiveMed = 0, sensMed = 1; // sensitive or not sensitive medium
 
   // field integration 0 no field -1 user in guswim 1 Runge Kutta 2 helix 3 const field along z
-  Int_t inofld = 0; // Max. field value (no field)
-  Int_t ifld = 2;   //TODO: ????CHECK!!!! secondo me va -1!!!!!
-  Float_t nofieldm = 0.;
+  int32_t inofld = 0; // Max. field value (no field)
+  int32_t ifld = 2;   //TODO: ????CHECK!!!! secondo me va -1!!!!!
+  float nofieldm = 0.;
 
-  Float_t maxnofld = 0.; // max field value (no field)
-  Float_t maxfld = 45.;  // max field value (with field)
-  Float_t tmaxnofd = 0.; // max deflection angle due to magnetic field in one step
-  Float_t tmaxfd = 0.1;  // max deflection angle due to magnetic field in one step
-  Float_t deemax = -1.;  // maximum fractional energy loss in one step 0<deemax<=1
-  Float_t epsil = 0.001; // tracking precision [cm]
-  Float_t stemax = 1.;   // max step allowed [cm] ????CHECK!!!!
-  Float_t stmin = 0.01;  // minimum step due to continuous processes [cm] (negative value: choose it automatically) ????CHECK!!!! 0.01 in aliroot
+  float maxnofld = 0.; // max field value (no field)
+  float maxfld = 45.;  // max field value (with field)
+  float tmaxnofd = 0.; // max deflection angle due to magnetic field in one step
+  float tmaxfd = 0.1;  // max deflection angle due to magnetic field in one step
+  float deemax = -1.;  // maximum fractional energy loss in one step 0<deemax<=1
+  float epsil = 0.001; // tracking precision [cm]
+  float stemax = 1.;   // max step allowed [cm] ????CHECK!!!!
+  float stmin = 0.01;  // minimum step due to continuous processes [cm] (negative value: choose it automatically) ????CHECK!!!! 0.01 in aliroot
 
   // ******** MATERIAL DEFINITION ********
   Mixture(0, "Walloy$", aW, zW, dW, 3, wW);
@@ -635,12 +635,12 @@ void Detector::createMaterials()
 void Detector::createAsideBeamLine()
 {
 
-  Double_t tubpar[3] = {0., 0., 0};
-  Float_t boxpar[3] = {0., 0., 0};
-  Double_t tubspar[5] = {0., 0., 0., 0., 0.};
-  Double_t conpar[15] = {0.}; // all elements will be 0
+  double tubpar[3] = {0., 0., 0};
+  float boxpar[3] = {0., 0., 0};
+  double tubspar[5] = {0., 0., 0., 0., 0.};
+  double conpar[15] = {0.}; // all elements will be 0
 
-  Float_t zA = 1910.4;
+  float zA = 1910.4;
 
   conpar[0] = 0.;
   conpar[1] = 360.;
@@ -899,7 +899,7 @@ void Detector::createAsideBeamLine()
   zA += 2. * conpar[0];
 
   //-- rotation matrices for the tilted cone after the TDI to recenter vacuum chamber
-  Int_t irotpipe3, irotpipe4, irotpipe5;
+  int32_t irotpipe3, irotpipe4, irotpipe5;
   double rang3[6] = {90. - 1.8934, 0., 90., 90., 1.8934, 180.};
   double rang4[6] = {90. - 3.8, 0., 90., 90., 3.8, 180.};
   double rang5[6] = {90. + 9.8, 0., 90., 90., 9.8, 0.};
@@ -1194,7 +1194,7 @@ void Detector::createAsideBeamLine()
   rotMatrix4->RegisterYourself();
 
   //-- rotation matrices for the legs
-  Int_t irotpipe1, irotpipe2;
+  int32_t irotpipe1, irotpipe2;
   double rang1[6] = {90. - 1.0027, 0., 90., 90., 1.0027, 180.};
   double rang2[6] = {90. + 1.0027, 0., 90., 90., 1.0027, 0.};
   TVirtualMC::GetMC()->Matrix(irotpipe1, rang1[0], rang1[1], rang1[2], rang1[3], rang1[4], rang1[5]);
@@ -1228,7 +1228,7 @@ void Detector::createAsideBeamLine()
   pQALext->SetLineColor(kBlue);
   pQALext->SetVisLeaves(kTRUE);
   //
-  TGeoTranslation* tr1 = new TGeoTranslation(0., 0., (Double_t)conpar[0] + 0.95 + zA);
+  TGeoTranslation* tr1 = new TGeoTranslation(0., 0., (double)conpar[0] + 0.95 + zA);
   pZDCA->AddNode(pQALext, 1, tr1);
   // Inner trousers
   TGeoCompositeShape* pIntTrousers = new TGeoCompositeShape("intTrousers", "QALint:ZDC_c1+QALint:ZDC_c2");
@@ -1287,15 +1287,15 @@ void Detector::createAsideBeamLine()
 //_____________________________________________________________________________
 void Detector::createCsideBeamLine()
 {
-  Double_t tubpar[3] = {0., 0., 0};
-  Float_t boxpar[3] = {0., 0., 0};
-  Double_t tubspar[5] = {0., 0., 0., 0., 0.};
-  Double_t conpar[15] = {
+  double tubpar[3] = {0., 0., 0};
+  float boxpar[3] = {0., 0., 0};
+  double tubspar[5] = {0., 0., 0., 0., 0.};
+  double conpar[15] = {
     0.,
   };
 
-  Float_t zC = 1947.2;
-  Float_t zCompensator = 1974.;
+  float zC = 1947.2;
+  float zCompensator = 1974.;
 
   conpar[0] = 0.;
   conpar[1] = 360.;
@@ -1363,7 +1363,7 @@ void Detector::createCsideBeamLine()
   zC += conpar[0] * 2.;
 
   // 2nd section of    VCTCQ+VAMTF+TCLIA+VAMTF+1st part of VCTCP
-  Float_t totLength1 = 160.8 + 78. + 148. + 78. + 9.3;
+  float totLength1 = 160.8 + 78. + 148. + 78. + 9.3;
   //
   tubpar[0] = 18.6 / 2.;
   tubpar[1] = 7.6 / 2.;
@@ -1415,7 +1415,7 @@ void Detector::createCsideBeamLine()
   zC += conpar[0] * 2.;
 
   // 3rd section of VCTCP+VCDWC+VMLGB
-  Float_t totLenght2 = (8373.3 - zC);
+  float totLenght2 = (8373.3 - zC);
   tubpar[0] = 21.2 / 2.;
   tubpar[1] = 21.9 / 2.;
   tubpar[2] = totLenght2 / 2.;
@@ -1570,16 +1570,16 @@ void Detector::createCsideBeamLine()
   // --------------------------------------------------------
   // RECOMBINATION CHAMBER
   // TRANSFORMATION MATRICES
-  Double_t dx = -3.970000;
-  Double_t dy = 0.000000;
-  Double_t dz = 0.0;
+  double dx = -3.970000;
+  double dy = 0.000000;
+  double dz = 0.0;
   // Rotation:
-  Double_t thx = 84.989100;
-  Double_t phx = 180.000000;
-  Double_t thy = 90.000000;
-  Double_t phy = 90.000000;
-  Double_t thz = 185.010900;
-  Double_t phz = 0.000000;
+  double thx = 84.989100;
+  double phx = 180.000000;
+  double thy = 90.000000;
+  double phy = 90.000000;
+  double thz = 185.010900;
+  double phz = 0.000000;
   TGeoRotation* rotMatrix1c = new TGeoRotation("c", thx, phx, thy, phy, thz, phz);
   // Combi transformation:
   dx = -3.970000;
@@ -1631,7 +1631,7 @@ void Detector::createCsideBeamLine()
   pQCLext->SetLineColor(kAzure);
   pQCLext->SetVisLeaves(kTRUE);
   //
-  TGeoTranslation* tr1c = new TGeoTranslation(0., 0., (Double_t)-conpar[0] - 0.95 - zC);
+  TGeoTranslation* tr1c = new TGeoTranslation(0., 0., (double)-conpar[0] - 0.95 - zC);
   //
   pZDCC->AddNode(pQCLext, 1, tr1c);
   // Inner trousers
@@ -1644,7 +1644,7 @@ void Detector::createCsideBeamLine()
   pQCLext->AddNode(pQCLint, 1);
 
   zC += 90.1;
-  Double_t offset = 0.5;
+  double offset = 0.5;
   zC = zC + offset;
 
   //  second section : 2 tubes (ID = 54. OD = 58.)
@@ -1658,7 +1658,7 @@ void Detector::createCsideBeamLine()
   zC += 2. * tubpar[2];
 
   //-- rotation matrices for the legs
-  Int_t irotpipe1, irotpipe2;
+  int32_t irotpipe1, irotpipe2;
   double rang1[6] = {90. - 1.0027, 0., 90., 90., 1.0027, 180.};
   double rang2[6] = {90. + 1.0027, 0., 90., 90., 1.0027, 0.};
   TVirtualMC::GetMC()->Matrix(irotpipe1, rang1[0], rang1[1], rang1[2], rang1[3], rang1[4], rang1[5]);
@@ -1700,8 +1700,8 @@ void Detector::createCsideBeamLine()
 //_____________________________________________________________________________
 void Detector::createMagnets()
 {
-  Float_t tubpar[3] = {0., 0., 0.};
-  Float_t boxpar[3] = {0., 0., 0.};
+  float tubpar[3] = {0., 0., 0.};
+  float boxpar[3] = {0., 0., 0.};
   // Parameters from magnet DEFINITION
   double zCompensatorField = 1972.5;
   double zITField = 2296.5;
@@ -1974,7 +1974,7 @@ void Detector::createDetectors()
   double znSupportWallsud[3] = {3.52, 1., 50.};          //Top and bottom walls
   double znSupportWallside[3] = {0.4, 5.52, 50.};        //Side walls
 
-  Float_t dimPb[6], dimVoid[6];
+  float dimPb[6], dimVoid[6];
 
   // -------------------------------------------------------------------------------
   //--> Neutron calorimeter (ZN)
@@ -2007,8 +2007,8 @@ void Detector::createDetectors()
   TVirtualMC::GetMC()->Gsdvn("ZNST", "ZNSL", Geometry::ZNDIVISION[0], 1); // Sticks
 
   // --- Position the empty grooves in the sticks (4 grooves per stick)
-  Float_t dx = Geometry::ZNDIMENSION[0] / Geometry::ZNDIVISION[0] / 4.;
-  Float_t dy = Geometry::ZNDIMENSION[1] / Geometry::ZNDIVISION[1] / 4.;
+  float dx = Geometry::ZNDIMENSION[0] / Geometry::ZNDIVISION[0] / 4.;
+  float dy = Geometry::ZNDIMENSION[1] / Geometry::ZNDIVISION[1] / 4.;
 
   TVirtualMC::GetMC()->Gspos("ZNG1", 1, "ZNST", 0. - dx, 0. + dy, 0., 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("ZNG2", 1, "ZNST", 0. + dx, 0. + dy, 0., 0, "ONLY");
@@ -2023,7 +2023,7 @@ void Detector::createDetectors()
 
   // --- Position the neutron calorimeter in ZDC
   // -- Rotation of C side ZN
-  Int_t irotznc;
+  int32_t irotznc;
   double rangznc[6] = {90., 180., 90., 90., 180., 0.};
   TVirtualMC::GetMC()->Matrix(irotznc, rangznc[0], rangznc[1], rangznc[2], rangznc[3], rangznc[4], rangznc[5]);
   //
@@ -2198,7 +2198,7 @@ void Detector::createDetectors()
 
   // -------------------------------------------------------------------------------
   // -> EM calorimeter (ZEM)
-  Int_t irotzem1, irotzem2;
+  int32_t irotzem1, irotzem2;
   double rangzem1[6] = {0., 0., 90., 90., -90., 0.};
   double rangzem2[6] = {180., 0., 90., 45. + 90., 90., 45.};
   TVirtualMC::GetMC()->Matrix(irotzem1, rangzem1[0], rangzem1[1], rangzem1[2], rangzem1[3], rangzem1[4], rangzem1[5]);
@@ -2242,33 +2242,33 @@ void Detector::createDetectors()
   TVirtualMC::GetMC()->Gspos("ZEMF", 1, "ZES1", 0., 0., 0., irotzem2, "ONLY");
 
   // --- Positioning the vacuum slice into the tranche
-  //Float_t displFib = fDimZEM[1]/fDivZEM[0];
+  //float displFib = fDimZEM[1]/fDivZEM[0];
   TVirtualMC::GetMC()->Gspos("ZEV0", 1, "ZETR", -zemVoidLayer[0], 0., 0., 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("ZEV1", 1, "ZETR", -zemVoidLayer[0] + zemPbSlice[0], 0., 0., 0, "ONLY");
 
   // --- Positioning the ZEM into the ZDC - rotation for 90 degrees
   // NB -> ZEM is positioned in cave volume
-  const Float_t z0 = 1313.3475; // center of caveRB24 mother volume
+  const float z0 = 1313.3475; // center of caveRB24 mother volume
   TVirtualMC::GetMC()->Gspos("ZEM ", 1, "caveRB24", -Geometry::ZEMPOSITION[0], Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2] + Geometry::ZEMDIMENSION[0] - z0, irotzem1, "ONLY");
 
   // Second EM ZDC (same side w.r.t. IP, just on the other side w.r.t. beam pipe)
   TVirtualMC::GetMC()->Gspos("ZEM ", 2, "caveRB24", Geometry::ZEMPOSITION[0], Geometry::ZEMPOSITION[1], Geometry::ZEMPOSITION[2] + Geometry::ZEMDIMENSION[0] - z0, irotzem1, "ONLY");
 
   // --- Adding last slice at the end of the EM calorimeter
-  Float_t zLastSlice = Geometry::ZEMPOSITION[2] + zemPbSlice[0] + 2 * Geometry::ZEMDIMENSION[0];
+  float zLastSlice = Geometry::ZEMPOSITION[2] + zemPbSlice[0] + 2 * Geometry::ZEMDIMENSION[0];
   TVirtualMC::GetMC()->Gspos("ZEL2", 1, "caveRB24", Geometry::ZEMPOSITION[0], Geometry::ZEMPOSITION[1], zLastSlice - z0, irotzem1, "ONLY");
 
   // -------------------------------------------------------------------------------
   // -> ZEM supports
 
   // Platform and supports
-  Float_t ybox = Geometry::ZEMPOSITION[1] - Geometry::ZEMDIMENSION[1] - 2. * 2. * zemSupportBox[3 + 1] + zemSupportBox[1];
-  Float_t zSupport = Geometry::ZEMPOSITION[2] - 3.5; //to take into account the titlted front face
-  Float_t zbox = zSupport + zemSupportBox[2];
+  float ybox = Geometry::ZEMPOSITION[1] - Geometry::ZEMDIMENSION[1] - 2. * 2. * zemSupportBox[3 + 1] + zemSupportBox[1];
+  float zSupport = Geometry::ZEMPOSITION[2] - 3.5; //to take into account the titlted front face
+  float zbox = zSupport + zemSupportBox[2];
 
   // Bridge
   TVirtualMC::GetMC()->Gsvolu("ZESH", "BOX ", getMediumID(kAl), const_cast<double*>(zemSupport1), 3);
-  Float_t ybridge = Geometry::ZEMPOSITION[1] - Geometry::ZEMDIMENSION[1] - 2. * 2. * zemSupportBox[3 + 1] - 5. - zemSupport1[1];
+  float ybridge = Geometry::ZEMPOSITION[1] - Geometry::ZEMDIMENSION[1] - 2. * 2. * zemSupportBox[3 + 1] - 5. - zemSupport1[1];
   TVirtualMC::GetMC()->Gspos("ZESH", 1, "caveRB24", Geometry::ZEMPOSITION[0], ybridge, zbox - z0, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("ZESH", 2, "caveRB24", -Geometry::ZEMPOSITION[0], ybridge, zbox - z0, 0, "ONLY");
   //
@@ -2280,7 +2280,7 @@ void Detector::createDetectors()
 
   // Table
   TVirtualMC::GetMC()->Gsvolu("ZETA", "BOX ", getMediumID(kAl), const_cast<double*>(zemSupportTable), 3);
-  Float_t ytable = ybridge - zemSupport1[1] - zemSupportTable[1];
+  float ytable = ybridge - zemSupport1[1] - zemSupportTable[1];
   TVirtualMC::GetMC()->Gspos("ZETA", 1, "caveRB24", 0.0, ytable, zbox - z0, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("ZETA", 2, "caveRB24", 0.0, ytable - 13. + 2. * zemSupportTable[1], zbox - z0, 0, "ONLY");
 
@@ -2301,8 +2301,8 @@ void Detector::createDetectors()
   TVirtualMC::GetMC()->Gsvolu("ZEW3", "BOX ", getMediumID(kAl), const_cast<double*>(zemWallVbkw), 3);
   TVirtualMC::GetMC()->Gsvolu("ZEW4", "BOX ", getMediumID(kFe), const_cast<double*>(zemWallVside), 3);
   //
-  Float_t yh1 = Geometry::ZEMPOSITION[1] - Geometry::ZEMDIMENSION[1] - 2 * zemSupport3[1] - zemWallH[1];
-  Float_t zh1 = zSupport + zemWallH[2];
+  float yh1 = Geometry::ZEMPOSITION[1] - Geometry::ZEMDIMENSION[1] - 2 * zemSupport3[1] - zemWallH[1];
+  float zh1 = zSupport + zemWallH[2];
   TVirtualMC::GetMC()->Gspos("ZEW1", 1, "caveRB24", Geometry::ZEMPOSITION[0], yh1, zh1 - z0, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("ZEW1", 2, "caveRB24", Geometry::ZEMPOSITION[0], yh1 + 2 * zemSupportBox[1], zh1 - z0, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("ZEW1", 3, "caveRB24", -Geometry::ZEMPOSITION[0], yh1, zh1 - z0, 0, "ONLY");
@@ -2313,8 +2313,8 @@ void Detector::createDetectors()
   TVirtualMC::GetMC()->Gspos("ZEW2", 2, "caveRB24", -Geometry::ZEMPOSITION[0], yh1 + zemSupportBox[1], zSupport - zemWallVfwd[2] - z0, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("ZEW3", 2, "caveRB24", -Geometry::ZEMPOSITION[0], yh1 + zemSupportBox[1], zSupport + 2 * zemWallH[2] - z0, 0, "ONLY");
   //
-  Float_t xl1 = Geometry::ZEMPOSITION[0] - Geometry::ZEMDIMENSION[2] - 2. * zemSupport4[2] - zemWallVside[0];
-  Float_t xl2 = Geometry::ZEMPOSITION[0] + Geometry::ZEMDIMENSION[2] + 2. * zemSupport4[2] + zemWallVside[0];
+  float xl1 = Geometry::ZEMPOSITION[0] - Geometry::ZEMDIMENSION[2] - 2. * zemSupport4[2] - zemWallVside[0];
+  float xl2 = Geometry::ZEMPOSITION[0] + Geometry::ZEMDIMENSION[2] + 2. * zemSupport4[2] + zemWallVside[0];
   TVirtualMC::GetMC()->Gspos("ZEW4", 1, "caveRB24", xl1, yh1 + zemSupportBox[1], zh1 - z0, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("ZEW4", 2, "caveRB24", xl2, yh1 + zemSupportBox[1], zh1 - z0, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("ZEW4", 3, "caveRB24", -xl1, yh1 + zemSupportBox[1], zh1 - z0, 0, "ONLY");

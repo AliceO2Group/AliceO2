@@ -60,7 +60,7 @@ namespace reducedtrack
 {
 // basic track information
 DECLARE_SOA_INDEX_COLUMN(ReducedEvent, reducedevent);
-DECLARE_SOA_COLUMN(Index, index, uint16_t);
+DECLARE_SOA_COLUMN(Idx, idx, uint16_t);
 // ----  flags reserved for storing various information during filtering
 DECLARE_SOA_COLUMN(FilteringFlags, filteringFlags, uint64_t);
 // BIT 0: track is from MUON arm      (if not toggled then this is a barrel track)
@@ -68,7 +68,7 @@ DECLARE_SOA_COLUMN(FilteringFlags, filteringFlags, uint64_t);
 DECLARE_SOA_COLUMN(Pt, pt, float);
 DECLARE_SOA_COLUMN(Eta, eta, float);
 DECLARE_SOA_COLUMN(Phi, phi, float);
-DECLARE_SOA_COLUMN(Charge, charge, int);
+DECLARE_SOA_COLUMN(Sign, sign, int);
 DECLARE_SOA_COLUMN(DcaXY, dcaXY, float);
 DECLARE_SOA_COLUMN(DcaZ, dcaZ, float);
 DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float pt, float phi) -> float { return pt * std::cos(phi); });
@@ -80,8 +80,8 @@ DECLARE_SOA_DYNAMIC_COLUMN(Pmom, pmom, [](float pt, float eta) -> float { return
 
 // basic track information
 DECLARE_SOA_TABLE(ReducedTracks, "AOD", "REDUCEDTRACK",
-                  o2::soa::Index<>, reducedtrack::ReducedEventId, reducedtrack::Index, reducedtrack::FilteringFlags,
-                  reducedtrack::Pt, reducedtrack::Eta, reducedtrack::Phi, reducedtrack::Charge,
+                  o2::soa::Index<>, reducedtrack::ReducedEventId, reducedtrack::Idx, reducedtrack::FilteringFlags,
+                  reducedtrack::Pt, reducedtrack::Eta, reducedtrack::Phi, reducedtrack::Sign,
                   reducedtrack::Px<reducedtrack::Pt, reducedtrack::Phi>,
                   reducedtrack::Py<reducedtrack::Pt, reducedtrack::Phi>,
                   reducedtrack::Pz<reducedtrack::Pt, reducedtrack::Eta>,
@@ -119,11 +119,11 @@ namespace reducedmuon
 {
 DECLARE_SOA_INDEX_COLUMN(ReducedEvent, reducedevent);
 DECLARE_SOA_COLUMN(FilteringFlags, filteringFlags, uint64_t);
-// the (pt,eta,phi,charge) will be computed in the skimming task
+// the (pt,eta,phi,sign) will be computed in the skimming task
 DECLARE_SOA_COLUMN(Pt, pt, float);
 DECLARE_SOA_COLUMN(Eta, eta, float);
 DECLARE_SOA_COLUMN(Phi, phi, float);
-DECLARE_SOA_COLUMN(Charge, charge, int);
+DECLARE_SOA_COLUMN(Sign, sign, int);
 DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float pt, float phi) -> float { return pt * std::cos(phi); });
 DECLARE_SOA_DYNAMIC_COLUMN(Py, py, [](float pt, float phi) -> float { return pt * std::sin(phi); });
 DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, [](float pt, float eta) -> float { return pt * std::sinh(eta); });
@@ -132,7 +132,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(Pmom, pmom, [](float pt, float eta) -> float { return
 
 DECLARE_SOA_TABLE(ReducedMuons, "AOD", "RTMUON",
                   o2::soa::Index<>, reducedmuon::ReducedEventId, reducedmuon::FilteringFlags,
-                  reducedmuon::Pt, reducedmuon::Eta, reducedmuon::Phi, reducedmuon::Charge,
+                  reducedmuon::Pt, reducedmuon::Eta, reducedmuon::Phi, reducedmuon::Sign,
                   reducedmuon::Px<reducedmuon::Pt, reducedmuon::Phi>,
                   reducedmuon::Py<reducedmuon::Pt, reducedmuon::Phi>,
                   reducedmuon::Pz<reducedmuon::Pt, reducedmuon::Eta>,
@@ -146,6 +146,31 @@ DECLARE_SOA_TABLE(ReducedMuonsExtended, "AOD", "RTMUONEXTENDED",
                   muon::RAtAbsorberEnd<muon::BendingCoor, muon::NonBendingCoor, muon::ThetaX, muon::ThetaY, muon::ZMu>,
                   muon::PDca<muon::InverseBendingMomentum, muon::ThetaX, muon::ThetaY, muon::BendingCoor, muon::NonBendingCoor, muon::ZMu>);
 
+// pair information
+namespace reducedpair
+{
+DECLARE_SOA_INDEX_COLUMN(ReducedEvent, reducedevent);
+DECLARE_SOA_COLUMN(Mass, mass, float);
+DECLARE_SOA_COLUMN(Pt, pt, float);
+DECLARE_SOA_COLUMN(Eta, eta, float);
+DECLARE_SOA_COLUMN(Phi, phi, float);
+DECLARE_SOA_COLUMN(Sign, sign, int);
+DECLARE_SOA_COLUMN(FilterMap, filterMap, uint16_t);
+DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float pt, float phi) -> float { return pt * std::cos(phi); });
+DECLARE_SOA_DYNAMIC_COLUMN(Py, py, [](float pt, float phi) -> float { return pt * std::sin(phi); });
+DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, [](float pt, float eta) -> float { return pt * std::sinh(eta); });
+DECLARE_SOA_DYNAMIC_COLUMN(Pmom, pmom, [](float pt, float eta) -> float { return pt * std::cosh(eta); });
+} // namespace reducedpair
+
+DECLARE_SOA_TABLE(Dileptons, "AOD", "RTDILEPTON",
+                  reducedpair::ReducedEventId, reducedpair::Mass,
+                  reducedpair::Pt, reducedpair::Eta, reducedpair::Phi, reducedpair::Sign,
+                  reducedpair::FilterMap,
+                  reducedpair::Px<reducedpair::Pt, reducedpair::Phi>,
+                  reducedpair::Py<reducedpair::Pt, reducedpair::Phi>,
+                  reducedpair::Pz<reducedpair::Pt, reducedpair::Eta>,
+                  reducedpair::Pmom<reducedpair::Pt, reducedpair::Eta>);
+
 // iterators
 using ReducedTrack = ReducedTracks::iterator;
 using ReducedTrackBarrel = ReducedTracksBarrel::iterator;
@@ -153,6 +178,7 @@ using ReducedTrackBarrelCov = ReducedTracksBarrelCov::iterator;
 using ReducedTrackBarrelPID = ReducedTracksBarrelPID::iterator;
 using ReducedMuon = ReducedMuons::iterator;
 using ReducedMuonExtended = ReducedMuonsExtended::iterator;
+using Dilepton = Dileptons::iterator;
 } // namespace o2::aod
 
 #endif // O2_Analysis_ReducedInfoTables_H_

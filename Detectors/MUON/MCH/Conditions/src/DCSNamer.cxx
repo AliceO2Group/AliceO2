@@ -248,7 +248,8 @@ std::vector<std::string> measurement(const std::vector<std::string>& patterns,
   result.resize(patterns.size());
 
   std::transform(patterns.begin(), patterns.end(), result.begin(), [&m](std::string s) {
-    return fmt::sprintf(s, measurementName(m));
+    auto name = fmt::sprintf(s, measurementName(m));
+    return name.substr(0, 62); // name coming from ADAPOS are <= 62 characters
   });
 
   std::sort(result.begin(), result.end());

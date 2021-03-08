@@ -36,8 +36,8 @@ struct ATask {
   size_t count = 2016927;
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("track-iteration-tutorial")};
+    adaptAnalysisTask<ATask>(cfgc, "track-iteration-tutorial")};
 }

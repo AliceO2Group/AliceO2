@@ -131,7 +131,7 @@ function(o2_add_test_wrapper)
                    ${testExe}
                    ${A_COMMAND_LINE_ARGS}
            WORKING_DIRECTORY "${A_WORKING_DIRECTORY}"
-           CONFIGURATIONS "${A_CONFIGURATIONS}")
+           CONFIGURATIONS ${A_CONFIGURATIONS})
 
   set_tests_properties(${testName} PROPERTIES TIMEOUT ${ctestTimeout})
   if(A_LABELS)

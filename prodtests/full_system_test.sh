@@ -31,6 +31,7 @@ NTIMEFRAMES=${NTIMEFRAMES:-1} # Number of time frames to process
 TFDELAY=${TFDELAY:-100} # Delay in seconds between publishing time frames
 NOMCLABELS="--disable-mc"
 O2SIMSEED=${O2SIMSEED:--1}
+SPLITTRDDIGI=${SPLITTRDDIGI:-1}
 
 # allow skipping
 JOBUTILS_SKIPDONE=ON
@@ -47,8 +48,10 @@ HOST=`hostname`
 TAG="conf=${CONFIG},host=${HOST}${ALIDISTCOMMIT:+,alidist=$ALIDISTCOMMIT}${O2COMMIT:+,o2=$O2COMMIT}"
 echo "versions,${TAG} alidist=\"${ALIDISTCOMMIT}\",O2=\"${O2COMMIT}\" " > ${METRICFILE}
 
+GLOBALDPLOPT="-b" #  --monitoring-backend no-op:// is currently removed due to https://alice.its.cern.ch/jira/browse/O2-1887
 
 ulimit -n 4096 # Make sure we can open sufficiently many files
+[ $? == 0 ] || (echo Failed setting ulimit && exit 1)
 mkdir -p qed
 cd qed
 PbPbXSec="8."
@@ -57,10 +60,24 @@ QED2HAD=$(awk "BEGIN {printf \"%.2f\",`grep xSectionQED qedgenparam.ini | cut -d
 echo "Obtained ratio of QED to hadronic x-sections = $QED2HAD" >> qedsim.log
 cd ..
 
-GLOBALDPLOPT="-b" #  --monitoring-backend no-op:// is currently removed due to https://alice.its.cern.ch/jira/browse/O2-1887
+DIGITRDOPTREAL="--configKeyValues \"TRDSimParams.digithreads=${NJOBS}\"" # --enable-trd-trapsim
+if [ $SPLITTRDDIGI == "1" ]; then
+  DIGITRDOPT="--skipDet TRD"
+else
+  DIGITRDOPT=$DIGITRDOPTREAL
+fi
+
 taskwrapper sim.log o2-sim --seed $O2SIMSEED -n $NEvents --skipModules ZDC --configKeyValues "Diamond.width[2]=6." -g pythia8hi -j $NJOBS
-taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents --simPrefixQED qed/o2sim --qed-x-section-ratio ${QED2HAD} ${NOMCLABELS} --firstOrbit 0 --firstBC 0 --skipDet TRD --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT}
-taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --firstOrbit 0 --firstBC 0 --onlyDet TRD --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root --configKeyValues "TRDSimParams.digithreads=${NJOBS}"
+taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents --simPrefixQED qed/o2sim --qed-x-section-ratio ${QED2HAD} ${NOMCLABELS} --firstOrbit 0 --firstBC 0 --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITRDOPT}
+[ $SPLITTRDDIGI == "1" ] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --firstOrbit 0 --firstBC 0 --onlyDet TRD --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root ${DIGITRDOPTREAL}
+
+if [ "0$GENERATE_ITS_DICTIONARY" == "01" ]; then
+  taskwrapper itsdict1.log o2-its-reco-workflow --trackerCA --disable-mc --configKeyValues '"fastMultConfig.cutMultClusLow=30000;fastMultConfig.cutMultClusHigh=2000000;fastMultConfig.cutMultVtxHigh=500"'
+  cp ~/alice/O2/Detectors/ITSMFT/ITS/macros/test/CheckTopologies.C .
+  taskwrapper itsdict2.log root -b -q CheckTopologies.C++
+  rm -f CheckTopologies_C*
+fi
+
 mkdir -p raw
 taskwrapper itsraw.log o2-its-digi2raw --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/ITS
 taskwrapper mftraw.log o2-mft-digi2raw --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/MFT
@@ -74,6 +91,11 @@ taskwrapper emcraw.log o2-emcal-rawcreator --file-for link --configKeyValues '"H
 taskwrapper phsraw.log o2-phos-digi2raw  --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/PHS
 taskwrapper cpvraw.log o2-cpv-digi2raw  --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/CPV
 cat raw/*/*.cfg > rawAll.cfg
+
+if [ "0$DISABLE_PROCESSING" == "01" ]; then
+  echo "Skipping the processing part of the full system test"
+  exit 0
+fi
 
 # We run the workflow in both CPU-only and With-GPU mode
 STAGES="NOGPU"
@@ -104,7 +126,7 @@ for STAGE in $STAGES; do
   else
     export CREATECTFDICT=1
     export GPUTYPE=CPU
-    export SYNCMODE=0
+    export SYNCMODE=1
     export HOSTMEMSIZE=$TPCTRACKERSCRATCHMEMORY
     export CTFINPUT=0
     export SAVECTF=1

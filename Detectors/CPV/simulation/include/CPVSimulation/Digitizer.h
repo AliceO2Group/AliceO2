@@ -39,12 +39,13 @@ class Digitizer : public TObject
                    int source, int entry, double dt);
 
  protected:
-  void addNoisyChannels(int start, int end, std::vector<Digit>& digitsOut);
   float uncalibrate(float e, int absId);
   float simulateNoise();
 
  private:
+  static constexpr short NCHANNELS = 23040;  //128*60*3:  toatl number of CPV channels
   std::unique_ptr<CalibParams> mCalibParams; /// Calibration coefficients
+  std::array<Digit, NCHANNELS> mArrayD;
 
   ClassDefOverride(Digitizer, 2);
 };

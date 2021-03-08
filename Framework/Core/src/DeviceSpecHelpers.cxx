@@ -246,7 +246,7 @@ struct ExpirationHandlerHelpers {
 /// FIXME: support shared memory
 std::string DeviceSpecHelpers::inputChannel2String(const InputChannelSpec& channel)
 {
-  return fmt::format("{}type={},method={},address={},rateLogging={},recvBufferSize={},sendBufferSize={}",
+  return fmt::format("{}type={},method={},address={},rateLogging={},rcvBufSize={},sndBufSize={}",
                      channel.name.empty() ? "" : "name=" + channel.name + ",",
                      ChannelSpecHelpers::typeAsString(channel.type),
                      ChannelSpecHelpers::methodAsString(channel.method),
@@ -258,7 +258,7 @@ std::string DeviceSpecHelpers::inputChannel2String(const InputChannelSpec& chann
 
 std::string DeviceSpecHelpers::outputChannel2String(const OutputChannelSpec& channel)
 {
-  return fmt::format("{}type={},method={},address={},rateLogging={},recvBufferSize={},sendBufferSize={}",
+  return fmt::format("{}type={},method={},address={},rateLogging={},rcvBufSize={},sndBufSize={}",
                      channel.name.empty() ? "" : "name=" + channel.name + ",",
                      ChannelSpecHelpers::typeAsString(channel.type),
                      ChannelSpecHelpers::methodAsString(channel.method),
@@ -1037,7 +1037,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
     // has option --session been specified on the command line?
     bool haveSessionArg = false;
     using FilterFunctionT = std::function<void(decltype(argc), decltype(argv), decltype(od))>;
-    bool useDefaultWS = false;
+    bool useDefaultWS = true;
 
     // the filter function will forward command line arguments based on the option
     // definition passed to it. All options of the program option definition will be forwarded
@@ -1110,7 +1110,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
       }
 
       haveSessionArg = haveSessionArg || varmap.count("session") != 0;
-      useDefaultWS = useDefaultWS || (varmap.count("driver-client-backend") != 0) && varmap["driver-client-backend"].as<std::string>() == "ws://";
+      useDefaultWS = useDefaultWS && ((varmap.count("driver-client-backend") == 0) || varmap["driver-client-backend"].as<std::string>() == "ws://");
 
       for (const auto varit : varmap) {
         // find the option belonging to key, add if the option has been parsed

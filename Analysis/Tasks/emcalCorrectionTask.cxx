@@ -191,8 +191,8 @@ struct EmcalCorrectionTask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<EmcalCorrectionTask>("emcal-correction-task")};
+    adaptAnalysisTask<EmcalCorrectionTask>(cfgc, "emcal-correction-task")};
 }

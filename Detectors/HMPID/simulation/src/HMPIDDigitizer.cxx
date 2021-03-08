@@ -11,6 +11,8 @@
 #include "HMPIDSimulation/HMPIDDigitizer.h"
 #include "HMPIDBase/Digit.h"
 
+#include "Framework/Logger.h"
+
 using namespace o2::hmpid;
 
 ClassImp(HMPIDDigitizer);
@@ -108,7 +110,8 @@ void HMPIDDigitizer::process(std::vector<o2::hmpid::HitType> const& hits, std::v
         }
       } else {
         // create digit ... and register
-        mDigits.emplace_back(mCurrentTriggerTime, pad, totalQ * fraction);
+        //        mDigits.emplace_back(mCurrentTriggerTime, pad, totalQ * fraction);
+        mDigits.emplace_back(mOrbit, mBc, pad, totalQ * fraction);
         mIndexForPad[pad] = mDigits.size() - 1;
         mInvolvedPads.emplace_back(pad);
 

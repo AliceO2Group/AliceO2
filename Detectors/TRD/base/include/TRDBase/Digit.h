@@ -66,7 +66,7 @@ class Digit
   int getROB() const { return mROB; }
   int getMCM() const { return mMCM; }
   int getChannel() const { return mChannel; }
-  bool isSharedDigit();
+  bool isSharedDigit() const;
 
   ArrayADC const& getADC() const { return mADC; }
   ADC_t getADCsum() const { return std::accumulate(mADC.begin(), mADC.end(), (ADC_t)0); }

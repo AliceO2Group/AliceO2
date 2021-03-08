@@ -50,7 +50,7 @@ struct UPCAnalysis {
     }
     auto first = tracks.begin();
     auto second = first + 1;
-    if (first.charge() * second.charge() >= 0) {
+    if (first.sign() * second.sign() >= 0) {
       return;
     }
     UChar_t clustermap1 = first.itsClusterMap();
@@ -73,8 +73,8 @@ struct UPCAnalysis {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<UPCAnalysis>("upc")};
+    adaptAnalysisTask<UPCAnalysis>(cfgc, "upc")};
 }

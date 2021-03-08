@@ -141,20 +141,3 @@ BOOST_AUTO_TEST_CASE(TestIsSpan)
   BOOST_REQUIRE_EQUAL(is_span<decltype(b)>::value, false);
   BOOST_REQUIRE_EQUAL(is_span<decltype(c)>::value, false);
 }
-
-BOOST_AUTO_TEST_CASE(TestCanAssign)
-{
-  using Callback = std::function<bool(int, float)>;
-  auto matching = [](int, float) -> bool {
-    return true;
-  };
-  auto otherReturn = [](int, float) -> int {
-    return 0;
-  };
-  auto otherParam = [](int, int) -> bool {
-    return true;
-  };
-  BOOST_REQUIRE((can_assign<decltype(matching), Callback>::value == true));
-  BOOST_REQUIRE((can_assign<decltype(otherReturn), Callback>::value == false));
-  BOOST_REQUIRE((can_assign<decltype(otherParam), Callback>::value == false));
-}

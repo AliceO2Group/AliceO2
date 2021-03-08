@@ -14,21 +14,13 @@
 /// \author Philippe Pillot, Subatech
 /// \author Andrea Ferrero, CEA
 
-#include "Framework/CallbackService.h"
-#include "Framework/ControlService.h"
-#include "Framework/Task.h"
 #include "Framework/runDataProcessing.h"
+
 #include "DigitSamplerSpec.h"
 
-using namespace o2;
 using namespace o2::framework;
 
 WorkflowSpec defineDataProcessing(const ConfigContext&)
 {
-  WorkflowSpec specs;
-
-  DataProcessorSpec producer = o2::mch::getDigitSamplerSpec();
-  specs.push_back(producer);
-
-  return specs;
+  return WorkflowSpec{o2::mch::getDigitSamplerSpec()};
 }

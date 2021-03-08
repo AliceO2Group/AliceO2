@@ -21,6 +21,7 @@
 #include "Framework/Output.h"
 #include <ROOT/RDataFrame.hxx>
 #include <string>
+#include "Framework/Logger.h"
 
 namespace o2::framework
 {
@@ -288,17 +289,22 @@ struct IndexSparse {
       using type = std::decay_t<decltype(x)>;
       constexpr auto position = framework::has_type_at_v<type>(rest_it_t{});
 
-      lowerBound<Key>(idx, x);
-      if (x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) {
-        values[position] = -1;
-        return false;
-      } else if (x.template getId<Key>() != idx) {
-        values[position] = -1;
-        return false;
-      } else {
-        values[position] = x.globalIndex();
-        ++x;
+      if constexpr (std::is_same_v<framework::pack_element_t<position, framework::pack<std::decay_t<T>...>>, Key>) {
+        values[position] = idx;
         return true;
+      } else {
+        lowerBound<Key>(idx, x);
+        if (x == soa::RowViewSentinel{static_cast<uint64_t>(x.mMaxRow)}) {
+          values[position] = -1;
+          return false;
+        } else if (x.template getId<Key>() != idx) {
+          values[position] = -1;
+          return false;
+        } else {
+          values[position] = x.globalIndex();
+          ++x;
+          return true;
+        }
       }
     };
 

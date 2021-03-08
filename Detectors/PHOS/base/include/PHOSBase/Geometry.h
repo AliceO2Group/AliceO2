@@ -12,12 +12,14 @@
 #define ALICEO2_PHOS_GEOMETRY_H_
 
 #include <string>
+#include <array>
 
 #include <Rtypes.h>
 #include <RStringView.h>
 #include <TGeoMatrix.h>
 #include <TVector3.h>
 #include <TMath.h>
+#include <array>
 
 namespace o2
 {

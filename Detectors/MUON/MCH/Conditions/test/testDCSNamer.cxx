@@ -17,6 +17,7 @@
 #include "HVAliases.h"
 #include "LVAliases.h"
 #include <algorithm>
+#include <fmt/format.h>
 
 using namespace o2::mch::dcs;
 
@@ -92,6 +93,28 @@ BOOST_AUTO_TEST_CASE(NumberOfLVAliasesSolarIs112)
   BOOST_CHECK_EQUAL(112, expectedLVAliasesSolar.size());
   bool permutation = std::is_permutation(begin(result), end(result), begin(expectedLVAliasesSolar));
   BOOST_CHECK_EQUAL(permutation, true);
+}
+
+BOOST_AUTO_TEST_CASE(AliasNameIsShortEnough)
+{
+  auto result = aliases();
+  std::map<size_t, int> sizes;
+  constexpr size_t maxLen{62};
+  for (auto& a : result) {
+    sizes[a.size()]++;
+    if (a.size() > maxLen) {
+      std::cout << fmt::format("Alias is too long : {:2d} characters, while {:2d} max are allowed : {}\n",
+                               a.size(), maxLen, a);
+    }
+  }
+  size_t len{0};
+
+  for (auto p : sizes) {
+    std::cout << fmt::format("{:3d} aliases of size {:2d}\n",
+                             p.second, p.first);
+    len = std::max(len, p.first);
+  }
+  BOOST_CHECK(len <= 62);
 }
 BOOST_AUTO_TEST_SUITE_END()
 BOOST_AUTO_TEST_SUITE_END()

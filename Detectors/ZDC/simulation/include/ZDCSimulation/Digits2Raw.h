@@ -26,6 +26,7 @@
 #include "ZDCSimulation/SimCondition.h"
 #include "DataFormatsZDC/BCData.h"
 #include "DataFormatsZDC/ChannelData.h"
+#include "DataFormatsZDC/OrbitData.h"
 
 namespace o2
 {
@@ -56,19 +57,20 @@ class Digits2Raw
 
   //  void setContinuous(bool v = true) { mIsContinuous = v; }
   bool isContinuous() const { return mIsContinuous; }
-  static void print_gbt_word(const UInt_t* word, const ModuleConfig* moduleConfig = nullptr);
+  static void print_gbt_word(const uint32_t* word, const ModuleConfig* moduleConfig = nullptr);
 
  private:
   void setTriggerMask();
   void updatePedestalReference(int bc);
   void resetSums(uint32_t orbit);
-  void resetOutputStructure(UShort_t bc, UInt_t orbit, bool is_dummy);       /// Reset output structure not incrementing scalers for dummy bunches
-  void assignTriggerBits(int ibc, UShort_t bc, UInt_t orbit, bool is_dummy); /// Assign trigger bits
-  void insertLastBunch(int ibc, uint32_t orbit);                             /// Insert an empty bunch at last position in orbit
-  void convertDigits(int ibc);                                               /// Convert digits into raw data
-  void writeDigits();                                                        /// Writes raw data to file
+  void resetOutputStructure(uint16_t bc, uint32_t orbit, bool is_dummy);       /// Reset output structure not incrementing scalers for dummy bunches
+  void assignTriggerBits(int ibc, uint16_t bc, uint32_t orbit, bool is_dummy); /// Assign trigger bits
+  void insertLastBunch(int ibc, uint32_t orbit);                               /// Insert an empty bunch at last position in orbit
+  void convertDigits(int ibc);                                                 /// Convert digits into raw data
+  void writeDigits();                                                          /// Writes raw data to file
   std::vector<o2::zdc::BCData> mzdcBCData, *mzdcBCDataPtr = &mzdcBCData;
   std::vector<o2::zdc::ChannelData> mzdcChData, *mzdcChDataPtr = &mzdcChData;
+  std::vector<o2::zdc::OrbitData> mzdcPedData, *mzdcPedDataPtr = &mzdcPedData;
   int mNbc = 0;
   BCData mBCD;
   EventData mZDC;                                                       /// Output structure
@@ -76,14 +78,14 @@ class Digits2Raw
   bool mOutputPerLink = false;                                          /// Split output
   const ModuleConfig* mModuleConfig = nullptr;                          /// Trigger/readout configuration object
   const SimCondition* mSimCondition = nullptr;                          /// Pedestal/noise configuration object
-  UShort_t mScalers[NModules][NChPerModule] = {0};                      /// ZDC orbit scalers
-  UInt_t mLastOrbit = 0;                                                /// Last processed orbit
+  uint16_t mScalers[NModules][NChPerModule] = {0};                      /// ZDC orbit scalers
+  uint32_t mLastOrbit = 0;                                              /// Last processed orbit
   uint32_t mTriggerMask = 0;                                            /// Trigger mask from ModuleConfig
   std::string mPrintTriggerMask = "";                                   /// Nice printout of trigger mask
   int32_t mNEmpty = -1;                                                 /// Number of clean empty bunches for pedestal evaluation
   std::array<uint16_t, o2::constants::lhc::LHCMaxBunches> mEmpty = {0}; /// Clean empty bunches along orbit
-  UInt_t mLastNEmpty = 0;                                               /// Last number of empty bunches used
-  Double_t mSumPed[NModules][NChPerModule] = {0};                       /// Pedestal integrated on clean empty bunches
+  uint32_t mLastNEmpty = 0;                                             /// Last number of empty bunches used
+  double mSumPed[NModules][NChPerModule] = {0};                         /// Pedestal integrated on clean empty bunches
   uint16_t mPed[NModules][NChPerModule] = {0};                          /// Current pedestal
 
   o2::raw::RawFileWriter mWriter{"ZDC"};

@@ -51,9 +51,8 @@ o2::framework::DataProcessorSpec getTRDTrackletWriterSpec()
   return MakeRootTreeWriterSpec("TRDTrkltWrt",
                                 "trdtracklets.root",
                                 "o2sim",
-                                1,
                                 BranchDefinition<std::vector<o2::trd::Tracklet64>>{InputSpec{"tracklets", "TRD", "TRACKLETS"}, "Tracklet"},
-                                //BranchDefinition<o2::dataformats::MCTruthContainer<o2::trd::MCLabel>>{InputSpec{"trklabels", "TRD", "TRKLABELS"}, "TRKLabels"},
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::trd::MCLabel>>{InputSpec{"trklabels", "TRD", "TRKLABELS"}, "TRKLabels"},
                                 BranchDefinition<std::vector<o2::trd::TriggerRecord>>{InputSpec{"tracklettrigs", "TRD", "TRKTRGRD"}, "TrackTrg"})();
 };
 

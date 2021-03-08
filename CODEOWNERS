@@ -72,7 +72,7 @@
 /Detectors/Upgrades                @qgp @marcovanleeuwen @mconcas
 /Detectors/ZDC                     @coppedis
 
-/EventVisualisation  @jmyrcha @AliceO2Group/framework-admins
+/EventVisualisation  @jmyrcha
 #/EventVisualisation/Base
 #/EventVisualisation/DataConverter
 #/EventVisualisation/Detectors
@@ -109,7 +109,7 @@
 
 /Generators  @sawenzel
 
-/Steer @sawenzel @shahor02 @AliceO2Group/framework-admins
+/Steer @sawenzel @shahor02
 
 /Testing
 

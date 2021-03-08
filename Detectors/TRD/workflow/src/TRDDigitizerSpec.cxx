@@ -16,18 +16,19 @@
 #include "Framework/Lifetime.h"
 #include "Headers/DataHeader.h"
 #include "TStopwatch.h"
-#include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "TChain.h"
+#include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/ConstMCTruthContainer.h>
 #include "Framework/Task.h"
+#include "DetectorsBase/BaseDPLDigitizer.h"
 #include "DataFormatsParameters/GRPObject.h"
+#include "DataFormatsTRD/TriggerRecord.h"
+#include "DataFormatsTRD/Hit.h"
 #include "TRDBase/Digit.h" // for the Digit type
+#include "TRDBase/Calibrations.h"
 #include "TRDSimulation/Digitizer.h"
 #include "TRDSimulation/Detector.h" // for the Hit type
-#include "DetectorsBase/BaseDPLDigitizer.h"
-#include "TRDBase/Calibrations.h"
-#include "DataFormatsTRD/TriggerRecord.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -124,7 +125,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         mDigitizer.setEventID(part.entryID);
         mDigitizer.setSrcID(part.sourceID);
         // get the hits for this event and this source and process them
-        std::vector<o2::trd::HitType> hits;
+        std::vector<o2::trd::Hit> hits;
         context->retrieveHits(mSimChains, "TRDHit", part.sourceID, part.entryID, &hits);
         mDigitizer.process(hits, digits, labels);
       }

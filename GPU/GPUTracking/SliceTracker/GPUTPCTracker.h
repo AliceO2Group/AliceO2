@@ -63,13 +63,13 @@ class GPUTPCTracker : public GPUProcessor
   void WriteOutput();
 
   // Debugging Stuff
-  void DumpSliceData(std::ostream& out);    // Dump Input Slice Data
-  void DumpLinks(std::ostream& out);        // Dump all links to file (for comparison after NeighboursFinder/Cleaner)
-  void DumpStartHits(std::ostream& out);    // Same for Start Hits
-  void DumpHitWeights(std::ostream& out);   //....
-  void DumpTrackHits(std::ostream& out);    // Same for Track Hits
-  void DumpTrackletHits(std::ostream& out); // Same for Track Hits
-  void DumpOutput(std::ostream& out);       // Similar for output
+  void DumpSliceData(std::ostream& out);        // Dump Input Slice Data
+  void DumpLinks(std::ostream& out, int phase); // Dump all links to file (for comparison after NeighboursFinder/Cleaner)
+  void DumpStartHits(std::ostream& out);        // Same for Start Hits
+  void DumpHitWeights(std::ostream& out);       //....
+  void DumpTrackHits(std::ostream& out);        // Same for Track Hits
+  void DumpTrackletHits(std::ostream& out);     // Same for Track Hits
+  void DumpOutput(std::ostream& out);           // Similar for output
 #endif
 
   struct StructGPUParameters {

@@ -12,13 +12,12 @@
 #define ALICEO2_ZDC_DETECTOR_H_
 
 #include <vector>                             // for vector
-#include "Rtypes.h"                           // for Int_t, Double_t, Float_t, Bool_t, etc
 #include "TGeoManager.h"                      // for gGeoManager, TGeoManager (ptr only)
 #include "DetectorsBase/GeometryManager.h"    // for getSensID
 #include "DetectorsBase/Detector.h"           // for Detector
 #include "DetectorsCommonDataFormats/DetID.h" // for Detector
 #include "ZDCBase/Geometry.h"
-#include "ZDCSimulation/Hit.h"
+#include "DataFormatsZDC/Hit.h"
 #include "ZDCSimulation/SpatialPhotonResponse.h"
 #include "TParticle.h"
 #include <utility>
@@ -63,7 +62,7 @@ class Detector : public o2::base::DetImpl<Detector>
   void Register() override;
 
   /// Gets the produced collections
-  std::vector<o2::zdc::Hit>* getHits(Int_t iColl) const
+  std::vector<o2::zdc::Hit>* getHits(int32_t iColl) const
   {
     if (iColl == 0) {
       return mHits;
@@ -82,9 +81,9 @@ class Detector : public o2::base::DetImpl<Detector>
   void createMaterials();
   void addAlignableVolumes() const override {}
 
-  o2::zdc::Hit* addHit(Int_t trackID, Int_t parentID, Int_t sFlag, Float_t primaryEnergy, Int_t detID, Int_t secID,
-                       math_utils::Vector3D<float> pos, math_utils::Vector3D<float> mom, Float_t tof, math_utils::Vector3D<float> xImpact, Double_t energyloss,
-                       Int_t nphePMC, Int_t nphePMQ);
+  o2::zdc::Hit* addHit(int32_t trackID, int32_t parentID, int32_t sFlag, float primaryEnergy, int32_t detID, int32_t secID,
+                       math_utils::Vector3D<float> pos, math_utils::Vector3D<float> mom, float tof, math_utils::Vector3D<float> xImpact, double energyloss,
+                       int32_t nphePMC, int32_t nphePMQ);
 
  private:
   /// copy constructor
@@ -162,22 +161,22 @@ class Detector : public o2::base::DetImpl<Detector>
   // helper function taking care of writing the photon response pattern at certain moments
   void flushSpatialResponse();
 
-  Float_t mTrackEta;
-  Float_t mPrimaryEnergy;
+  float mTrackEta;
+  float mPrimaryEnergy;
   math_utils::Vector3D<float> mXImpact;
-  Float_t mTotLightPMC;
-  Float_t mTotLightPMQ;
-  Int_t mMediumPMCid = -1;
-  Int_t mMediumPMQid = -2;
+  float mTotLightPMC;
+  float mTotLightPMQ;
+  int32_t mMediumPMCid = -1;
+  int32_t mMediumPMQid = -2;
 
   //
   /// Container for hit data
   std::vector<o2::zdc::Hit>* mHits;
 
-  Float_t mLumiLength = 0;         //TODO: make part of configurable params
-  Float_t mTCLIAAPERTURE = 3.5;    //TODO: make part of configurable params
-  Float_t mTCLIAAPERTURENEG = 3.5; //TODO: make part of configurable params
-  Float_t mVCollSideCCentreY = 0.; //TODO: make part of configurable params
+  float mLumiLength = 0;         //TODO: make part of configurable params
+  float mTCLIAAPERTURE = 3.5;    //TODO: make part of configurable params
+  float mTCLIAAPERTURENEG = 3.5; //TODO: make part of configurable params
+  float mVCollSideCCentreY = 0.; //TODO: make part of configurable params
 
   int mZNENVVolID = -1; // the volume id for the neutron det envelope volume
   int mZPENVVolID = -1; // the volume id for the proton det envelope volume

@@ -97,11 +97,11 @@ struct DTask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("produce-normalizedphi"),
-    adaptAnalysisTask<BTask>("consume-normalizedphi"),
-    adaptAnalysisTask<CTask>("consume-spawned-ephi"),
-    adaptAnalysisTask<DTask>("consume-spawned-mtracks")};
+    adaptAnalysisTask<ATask>(cfgc, "produce-normalizedphi"),
+    adaptAnalysisTask<BTask>(cfgc, "consume-normalizedphi"),
+    adaptAnalysisTask<CTask>(cfgc, "consume-spawned-ephi"),
+    adaptAnalysisTask<DTask>(cfgc, "consume-spawned-mtracks")};
 }

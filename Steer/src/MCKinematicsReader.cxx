@@ -18,6 +18,18 @@
 
 using namespace o2::steer;
 
+MCKinematicsReader::~MCKinematicsReader()
+{
+  for (auto chain : mInputChains) {
+    delete chain;
+  }
+  mInputChains.clear();
+
+  if (mDigitizationContext) {
+    delete mDigitizationContext;
+  }
+}
+
 void MCKinematicsReader::initIndexedTrackRefs(std::vector<o2::TrackReference>& refs, o2::dataformats::MCTruthContainer<o2::TrackReference>& indexedrefs) const
 {
   // sort trackrefs according to track index then according to track length
@@ -52,6 +64,8 @@ void MCKinematicsReader::loadTracksForSource(int source) const
         br->GetEntry(event);
         mTracks[source][event] = *loadtracks;
       }
+      delete loadtracks;
+      loadtracks = nullptr;
     }
   }
 }
@@ -70,6 +84,8 @@ void MCKinematicsReader::loadHeadersForSource(int source) const
         br->GetEntry(event);
         mHeaders[source][event] = *header;
       }
+      delete header;
+      header = nullptr;
     } else {
       LOG(WARN) << "MCHeader branch not found";
     }

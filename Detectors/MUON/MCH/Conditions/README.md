@@ -40,9 +40,18 @@ The MCH low voltage (LV) system is composed of 328 channels :
 ## CCDB quick check
 
 Besides the web browsing of the CCDB, another quick check can be performed with 
- the `o2-mch-dcs-check-ccdb` program to dump the DCS datapoints (hv, lv, or both)
-  valid at a given timestamp.
+ the `o2-mch-dcs-ccdb` program to dump the DCS datapoints (hv, lv, or both) or 
+ the datapoint config valid at a given timestamp.
 
 ```
-$ o2-mch-dcs-check-ccdb --help
+$ o2-mch-dcs-ccdb --help
+$ o2-mch-dcs-ccdb --ccdb http://localhost:6464 --query hv --query lv --query dpconf
 ```
+
+The same program can be used to upload to CCDB the DCS data point configuration
+ for the dcs-proxy : 
+
+```
+$ o2-mch-dcs-ccdb --put-datapoint-config --ccdb http://localhost:8080
+```
+

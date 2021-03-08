@@ -19,7 +19,7 @@ namespace o2
 namespace ccdb
 {
 
-void BasicCCDBManager::setURL(std::string const& url)
+void CCDBManagerInstance::setURL(std::string const& url)
 {
   mCCDBAccessor.init(url);
 }

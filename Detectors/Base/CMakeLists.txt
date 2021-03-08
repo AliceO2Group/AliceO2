@@ -16,7 +16,6 @@ o2_add_library(DetectorsBase
                        src/MatLayerCyl.cxx
                        src/MatLayerCylSet.cxx
                        src/Ray.cxx
-                       src/DCAFitter.cxx
                        src/BaseDPLDigitizer.cxx
                        src/CTFCoderBase.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
@@ -36,7 +35,6 @@ o2_add_library(DetectorsBase
 
 o2_target_root_dictionary(DetectorsBase
                           HEADERS include/DetectorsBase/Detector.h
-                                  include/DetectorsBase/DCAFitter.h
                                   include/DetectorsBase/GeometryManager.h
                                   include/DetectorsBase/MaterialManager.h
                                   include/DetectorsBase/Propagator.h
@@ -56,15 +54,6 @@ if(BUILD_SIMULATION)
     ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
                 VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
 endif()
-
-o2_add_test(
-  DCAFitter
-  SOURCES test/testDCAFitter.cxx
-  COMPONENT_NAME DetectorsBase
-  PUBLIC_LINK_LIBRARIES O2::DetectorsBase
-  LABELS detectorsbase
-  ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
-  VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
 
 o2_add_test_root_macro(test/buildMatBudLUT.C
                        PUBLIC_LINK_LIBRARIES O2::DetectorsBase

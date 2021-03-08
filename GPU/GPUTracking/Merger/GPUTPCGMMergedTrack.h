@@ -16,7 +16,6 @@
 
 #include "GPUTPCGMTrackParam.h"
 #include "GPUTPCGMMergedTrackHit.h"
-#include "GPUdEdxInfo.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -105,20 +104,11 @@ class GPUTPCGMMergedTrack
   GPUd() unsigned char Legs() const { return mLegs; }
 
   GPUd() const GPUTPCGMTrackParam::GPUTPCOuterParam& OuterParam() const { return mOuterParam; }
-  GPUd() GPUTPCGMTrackParam::GPUTPCOuterParam& OuterParam()
-  {
-    return mOuterParam;
-  }
-  GPUd() const GPUdEdxInfo& dEdxInfo() const { return mdEdxInfo; }
-  GPUd() GPUdEdxInfo& dEdxInfo()
-  {
-    return mdEdxInfo;
-  }
+  GPUd() GPUTPCGMTrackParam::GPUTPCOuterParam& OuterParam() { return mOuterParam; }
 
  private:
   GPUTPCGMTrackParam mParam;                        //* fitted track parameters
   GPUTPCGMTrackParam::GPUTPCOuterParam mOuterParam; //* outer param
-  GPUdEdxInfo mdEdxInfo;                            //* dEdx information
 
   float mAlpha;                  //* alpha angle
   float mLastX;                  //* outer X
