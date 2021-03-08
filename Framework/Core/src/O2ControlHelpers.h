@@ -20,7 +20,25 @@ namespace o2
 namespace framework
 {
 
-void dumpDeviceSpec2O2Control(std::ostream& out,
+/// \brief Dumps the AliECS compatible workflow and task templates for a DPL workflow.
+///
+/// Dumps the AliECS compatible workflow (WFT) and task templates (TT) for a DPL workflow.
+/// The current procedure to obtain working templates:
+/// - Build the project(s)
+/// - Enter the environment and go to ControlWorkflows local repository.
+/// - Run the DPL workflow(s) with the argument `--o2-control <workflow-name>`.
+///   The WFT will be created in the "workflows" directory and, analogously, TTs will be put in "tasks".
+/// - Copy the WFT contents into existing "mother" workflow, e.g. readout-dataflow.yaml.
+///   Later, AliECS will allow to include subworkflows in WFTs.
+/// - Create the standard DPL dump (`--dump > <workflow-name>`).
+///   Make sure it is copied into the path specified with dpl_config var in WTF.
+/// - Commit, push, test, merge to master.
+/// With the future developments we aim to minimise the amount of effort to create WFTs and TTs,
+/// then finally reach JIT workflow translation.
+/// To avoid creating and using the standard DPL dump, one can paste the DPL command
+/// in the place of "cat {{ dpl_config }}"
+
+void dumpDeviceSpec2O2Control(std::string workflowName,
                               std::vector<DeviceSpec> const& specs,
                               std::vector<DeviceExecution> const& executions);
 
