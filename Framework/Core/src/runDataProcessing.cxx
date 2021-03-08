@@ -109,7 +109,7 @@
 #include <sched.h>
 #elif __has_include(<linux/getcpu.h>)
 #include <linux/getcpu.h>
-#elif __has_include(<cpuid.h>)
+#elif __has_include(<cpuid.h>) && (__x86_64__ || __i386__)
 #include <cpuid.h>
 #define CPUID(INFO, LEAF, SUBLEAF) __cpuid_count(LEAF, SUBLEAF, INFO[0], INFO[1], INFO[2], INFO[3])
 #define GETCPU(CPU)                                 \
@@ -1462,7 +1462,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         parentCPU = sched_getcpu();
 #elif __has_include(<linux/getcpu.h>)
         getcpu(&parentCPU, &parentNode, nullptr);
-#elif __has_include(<cpuid.h>)
+#elif __has_include(<cpuid.h>) && (__x86_64__ || __i386__)
         // FIXME: this is a last resort as it is apparently buggy
         //        on some Intel CPUs.
         GETCPU(parentCPU);
