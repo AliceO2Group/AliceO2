@@ -22,12 +22,14 @@ enum code {
 };
 }
 
+// accounts for the offset so that pt bin array can be used to also configure a histogram axis
 template <typename C, typename T>
-int findPTBin(C const& bins, T pT)
+int findPTBin(C& bins, T pT)
 {
-  for (auto i = 0u; i < bins->cols(); ++i) {
-    if (pT < bins->get(i)) {
-      return i;
+  auto v = (typename C::type)bins;
+  for (auto i = 1u; i < v.size(); ++i) {
+    if (pT < v[i]) {
+      return i - 1;
     }
   }
   return -1;
@@ -38,8 +40,10 @@ namespace hf_cuts_d0_topik
 {
 static constexpr int npTBins = 25;
 static constexpr int nCutVars = 11;
-// default values for the pT bins
-constexpr double ptBins[npTBins] = {
+// default values for the pT bin edges (can be used to configure histogram axis)
+// offset by 1 from the bin numbers in cuts array
+constexpr double pTBins[npTBins + 1] = {
+  0,
   0.5,
   1.0,
   1.5,
@@ -65,6 +69,7 @@ constexpr double ptBins[npTBins] = {
   36.0,
   50.0,
   100.0};
+auto pTBins_v = std::vector<double>{pTBins, pTBins + npTBins + 1};
 
 // default values for the cuts
 constexpr double cuts[npTBins][nCutVars] = {{0.400, 350. * 1E-4, 0.8, 0.5, 0.5, 1000. * 1E-4, 1000. * 1E-4, -5000. * 1E-8, 0.80, 0., 0.},   /* pt<0.5*/

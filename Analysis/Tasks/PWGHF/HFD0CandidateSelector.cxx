@@ -45,7 +45,7 @@ struct HFD0CandidateSelector {
   Configurable<double> d_nSigmaTOF{"d_nSigmaTOF", 3., "Nsigma cut on TOF only"};
   Configurable<double> d_nSigmaTOFCombined{"d_nSigmaTOFCombined", 5., "Nsigma cut on TOF combined with TPC"};
 
-  Configurable<LabeledArray<double>> ptBins{"pTBins", {hf_cuts_d0_topik::ptBins, npTBins, pTBinLabels}, "pT bins limits"};
+  Configurable<std::vector<double>> ptBins{"ptBins", std::vector{hf_cuts_d0_topik::pTBins_v}, "pT bin limits"};
   Configurable<LabeledArray<double>> cuts{"D0_to_pi_K_cuts", {hf_cuts_d0_topik::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "D0 candidate selection per pT bin"};
 
   /// Selection on goodness of daughter tracks
@@ -124,7 +124,7 @@ struct HFD0CandidateSelector {
       return false;
     }
 
-    if (trackPion.charge() > 0) { //invariant mass cut
+    if (trackPion.sign() > 0) { //invariant mass cut
       if (TMath::Abs(InvMassD0(hfCandProng2) - RecoDecay::getMassPDG(pdg::code::kD0)) > cuts->get(pTBin, "m")) {
         return false;
       }
@@ -141,7 +141,7 @@ struct HFD0CandidateSelector {
       return false; //cut on daughter dca - need to add secondary vertex constraint here
     }
 
-    if (trackPion.charge() > 0) { //cut on cos(theta *)
+    if (trackPion.sign() > 0) { //cut on cos(theta *)
       if (TMath::Abs(CosThetaStarD0(hfCandProng2)) > cuts->get(pTBin, "cos theta*")) {
         return false;
       }
