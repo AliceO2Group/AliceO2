@@ -50,7 +50,7 @@ namespace o2::framework
 std::shared_ptr<arrow::Table>
   TableBuilder::finalize()
 {
-  bool status = mFinalizer();
+  bool status = mFinalizer(mSchema, mArrays, mHolders);
   if (status == false) {
     throwError(runtime_error("Unable to finalize"));
   }
