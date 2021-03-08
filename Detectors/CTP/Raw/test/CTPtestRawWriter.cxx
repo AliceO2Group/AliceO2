@@ -29,7 +29,7 @@ using namespace o2::raw;
 using namespace o2::framework;
 using IR = o2::InteractionRecord;
 using RDHAny = header::RDHAny;
-constexpr int NCRU = 1;    // numbaer of CRUs, the last one is a special CRU with preformatted data filled
+constexpr int NCRU = 1;        // numbaer of CRUs, the last one is a special CRU with preformatted data filled
 constexpr int NLinkPerCRU = 2; // number of links per CRU
 // sizes for preformatted pages filling (RDH size will be subtracted from the payload) in the last special CRU
 constexpr std::array<int, NLinkPerCRU> SpecSize = {512, 1024, 8192, 8192};
