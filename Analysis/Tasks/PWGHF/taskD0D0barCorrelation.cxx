@@ -86,10 +86,10 @@ double evaluatePhiByVertex(double xVertex1, double xVertex2, double yVertex1, do
 
 /// definition of variables for D0D0bar pairs vs eta acceptance studies (hDDbarVsEtaCut, in data-like, MC-reco and MC-kine tasks)
 const double maxEtaCut = 5.;
-const double PtThresholdForMaxEtaCut = 10.;
+const double ptThresholdForMaxEtaCut = 10.;
 const double incrementEtaCut = 0.1;
 const double incrementPtThreshold = 0.5;
-const double epsilon = 10E-5;
+const double epsilon = 1E-5;
 
 /// D0 analysis task - for real data and data-like analysis (i.e. reco-level w/o matching request via MC truth)
 struct TaskD0D0barCorrelation {
@@ -115,7 +115,7 @@ struct TaskD0D0barCorrelation {
      {"hDeltaPhiVsPt", "D0,D0bar candidates;#it{p}_{T}^{D0};#it{p}_{T}^{D0bar};#it{#varphi}^{D0bar}-#it{#varphi}^{D0};entries", {HistType::kTH3F, {{100, 0., 10.}, {100, 0., 10.}, {32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}}}},
      {"hDeltaPtDDbar", "D0,D0bar candidates;#it{p}_{T}^{D0bar}-#it{p}_{T}^{D0};entries", {HistType::kTH1F, {{144, -36., 36.}}}},
      {"hDeltaPtMaxMin", "D0,D0bar candidates;#it{p}_{T}^{max}-#it{p}_{T}^{min};entries", {HistType::kTH1F, {{72, 0., 36.}}}},
-     {"hDDbarVsEtaCut", "D0,D0bar pairs vs #eta cut;#eta_{max};entries", {HistType::kTH2F, {{(int)(maxEtaCut / incrementEtaCut), 0., maxEtaCut}, {(int)(PtThresholdForMaxEtaCut / incrementPtThreshold), 0., PtThresholdForMaxEtaCut}}}}}}; //don't modify the binning from here: act on maxEtaCut and PtThresholdForMaxEtaCut instead
+     {"hDDbarVsEtaCut", "D0,D0bar pairs vs #eta cut;#eta_{max};entries", {HistType::kTH2F, {{(int)(maxEtaCut / incrementEtaCut), 0., maxEtaCut}, {(int)(ptThresholdForMaxEtaCut / incrementPtThreshold), 0., ptThresholdForMaxEtaCut}}}}}}; //don't modify the binning from here: act on maxEtaCut and ptThresholdForMaxEtaCut instead
 
   Configurable<int> dSelectionFlagD0{"dSelectionFlagD0", 1, "Selection Flag for D0"};
   Configurable<int> dSelectionFlagD0bar{"dSelectionFlagD0bar", 1, "Selection Flag for D0bar"};
@@ -130,7 +130,7 @@ struct TaskD0D0barCorrelation {
       if (cutEtaCandMax >= 0. && std::abs(candidate1.eta()) > cutEtaCandMax) {
         continue;
       }
-      if (cutPtCandMin >= 0. && std::abs(candidate1.pt()) < cutPtCandMin) {
+      if (cutPtCandMin >= 0. && candidate1.pt() < cutPtCandMin) {
         continue;
       }
       //check decay channel flag for candidate1
@@ -166,7 +166,7 @@ struct TaskD0D0barCorrelation {
             if (cutEtaCandMax >= 0. && std::abs(candidate2.eta()) > cutEtaCandMax) {
               continue;
             }
-            if (cutPtCandMin >= 0. && std::abs(candidate2.pt()) < cutPtCandMin) {
+            if (cutPtCandMin >= 0. && candidate2.pt() < cutPtCandMin) {
               continue;
             }
             //Excluding trigger self-correlations (possible in case of both mass hypotheses accepted)
@@ -193,7 +193,7 @@ struct TaskD0D0barCorrelation {
                 if (std::abs(candidate1.eta()) < etaCut && std::abs(candidate2.eta()) < etaCut && candidate1.pt() > ptCut && candidate2.pt() > ptCut)
                   registry.fill(HIST("hDDbarVsEtaCut"), etaCut - epsilon, ptCut + epsilon);
                 ptCut += incrementPtThreshold;
-              } while (ptCut < PtThresholdForMaxEtaCut - epsilon);
+              } while (ptCut < ptThresholdForMaxEtaCut - epsilon);
             } while (etaCut < maxEtaCut - epsilon);
           }
           //note: candidates selected as both D0 and D0bar are used, and considered in both situation (but not auto-correlated): reflections could play a relevant role.
@@ -228,7 +228,7 @@ struct TaskD0D0barCorrelationMCRec {
      {"hDeltaPhiVsPtMCRec", "D0,D0bar candidates - MC reco;#it{p}_{T}^{D0};#it{p}_{T}^{D0bar};#it{#varphi}^{D0bar}-#it{#varphi}^{D0};entries", {HistType::kTH3F, {{100, 0., 10.}, {100, 0., 10.}, {32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}}}},
      {"hDeltaPtDDbarMCRec", "D0,D0bar candidates - MC reco;#it{p}_{T}^{D0bar}-#it{p}_{T}^{D0};entries", {HistType::kTH1F, {{144, -36., 36.}}}},
      {"hDeltaPtMaxMinMCRec", "D0,D0bar candidates - MC reco;#it{p}_{T}^{max}-#it{p}_{T}^{min};entries", {HistType::kTH1F, {{72, 0., 36.}}}},
-     {"hDDbarVsEtaCutMCRec", "D0,D0bar pairs vs #eta cut - MC reco;#eta_{max};entries", {HistType::kTH2F, {{(int)(maxEtaCut / incrementEtaCut), 0., maxEtaCut}, {(int)(PtThresholdForMaxEtaCut / incrementPtThreshold), 0., PtThresholdForMaxEtaCut}}}}}}; //don't modify the binning from here: act on maxEtaCut and PtThresholdForMaxEtaCut instead
+     {"hDDbarVsEtaCutMCRec", "D0,D0bar pairs vs #eta cut - MC reco;#eta_{max};entries", {HistType::kTH2F, {{(int)(maxEtaCut / incrementEtaCut), 0., maxEtaCut}, {(int)(ptThresholdForMaxEtaCut / incrementPtThreshold), 0., ptThresholdForMaxEtaCut}}}}}}; //don't modify the binning from here: act on maxEtaCut and ptThresholdForMaxEtaCut instead
 
   Configurable<int> dSelectionFlagD0{"dSelectionFlagD0", 1, "Selection Flag for D0"};
   Configurable<int> dSelectionFlagD0bar{"dSelectionFlagD0bar", 1, "Selection Flag for D0bar"};
@@ -248,7 +248,7 @@ struct TaskD0D0barCorrelationMCRec {
       if (cutEtaCandMax >= 0. && std::abs(candidate1.eta()) > cutEtaCandMax) {
         continue;
       }
-      if (cutPtCandMin >= 0. && std::abs(candidate1.pt()) < cutPtCandMin) {
+      if (cutPtCandMin >= 0. && candidate1.pt() < cutPtCandMin) {
         continue;
       }
       if (std::abs(candidate1.flagMCMatchRec()) == 1 << D0ToPiK) {
@@ -278,7 +278,7 @@ struct TaskD0D0barCorrelationMCRec {
               if (cutEtaCandMax >= 0. && std::abs(candidate2.eta()) > cutEtaCandMax) {
                 continue;
               }
-              if (cutPtCandMin >= 0. && std::abs(candidate2.pt()) < cutPtCandMin) {
+              if (cutPtCandMin >= 0. && candidate2.pt() < cutPtCandMin) {
                 continue;
               }
               double eta1 = candidate1.eta(), eta2 = candidate2.eta(), pt1 = candidate1.pt(), pt2 = candidate2.pt(), phi1 = candidate1.phi(), phi2 = candidate2.phi();
@@ -301,7 +301,7 @@ struct TaskD0D0barCorrelationMCRec {
                   if (std::abs(candidate1.eta()) < etaCut && std::abs(candidate2.eta()) < etaCut && candidate1.pt() > ptCut && candidate2.pt() > ptCut)
                     registry.fill(HIST("hDDbarVsEtaCutMCRec"), etaCut - epsilon, ptCut + epsilon);
                   ptCut += incrementPtThreshold;
-                } while (ptCut < PtThresholdForMaxEtaCut - epsilon);
+                } while (ptCut < ptThresholdForMaxEtaCut - epsilon);
               } while (etaCut < maxEtaCut - epsilon);
             } //end inner if (MC match)
 
@@ -330,7 +330,7 @@ struct TaskD0D0barCorrelationMCGen {
      {"hDeltaPhiVsPtMCGen", "D0,D0bar candidates - MC gen;#it{p}_{T}^{D0};#it{p}_{T}^{D0bar};#it{#varphi}^{D0bar}-#it{#varphi}^{D0};entries", {HistType::kTH3F, {{100, 0., 10.}, {100, 0., 10.}, {32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}}}},
      {"hDeltaPtDDbarMCGen", "D0,D0bar particles - MC gen;#it{p}_{T}^{D0bar}-#it{p}_{T}^{D0};entries", {HistType::kTH1F, {{144, -36., 36.}}}},
      {"hDeltaPtMaxMinMCGen", "D0,D0bar particles - MC gen;#it{p}_{T}^{max}-#it{p}_{T}^{min};entries", {HistType::kTH1F, {{72, 0., 36.}}}},
-     {"hDDbarVsEtaCutMCGen", "D0,D0bar pairs vs #eta cut - MC gen;#eta_{max};entries", {HistType::kTH2F, {{(int)(maxEtaCut / incrementEtaCut), 0., maxEtaCut}, {(int)(PtThresholdForMaxEtaCut / incrementPtThreshold), 0., PtThresholdForMaxEtaCut}}}}, //don't modify the binning from here: act on maxEtaCut and PtThresholdForMaxEtaCut instead
+     {"hDDbarVsEtaCutMCGen", "D0,D0bar pairs vs #eta cut - MC gen;#eta_{max};entries", {HistType::kTH2F, {{(int)(maxEtaCut / incrementEtaCut), 0., maxEtaCut}, {(int)(ptThresholdForMaxEtaCut / incrementPtThreshold), 0., ptThresholdForMaxEtaCut}}}}, //don't modify the binning from here: act on maxEtaCut and ptThresholdForMaxEtaCut instead
      {"hcountD0D0barPerEvent", "D0,D0bar particles - MC gen;Number per event;entries", {HistType::kTH1F, {{20, 0., 10.}}}}}};
 
   Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
@@ -345,7 +345,7 @@ struct TaskD0D0barCorrelationMCGen {
       if (cutEtaCandMax >= 0. && std::abs(particle1.eta()) > cutEtaCandMax) {
         continue;
       }
-      if (cutPtCandMin >= 0. && std::abs(particle1.pt()) < cutPtCandMin) {
+      if (cutPtCandMin >= 0. && particle1.pt() < cutPtCandMin) {
         continue;
       }
       //just checking if the particle is D0 or D0bar, for now
@@ -364,7 +364,7 @@ struct TaskD0D0barCorrelationMCGen {
             if (cutEtaCandMax >= 0. && std::abs(particle2.eta()) > cutEtaCandMax) {
               continue;
             }
-            if (cutPtCandMin >= 0. && std::abs(particle2.pt()) < cutPtCandMin) {
+            if (cutPtCandMin >= 0. && particle2.pt() < cutPtCandMin) {
               continue;
             }
             if (particle2.pdgCode() == -421) {
@@ -387,7 +387,7 @@ struct TaskD0D0barCorrelationMCGen {
                   if (std::abs(particle1.eta()) < etaCut && std::abs(particle2.eta()) < etaCut && particle1.pt() > ptCut && particle2.pt() > ptCut)
                     registry.fill(HIST("hDDbarVsEtaCutMCGen"), etaCut - epsilon, ptCut + epsilon);
                   ptCut += incrementPtThreshold;
-                } while (ptCut < PtThresholdForMaxEtaCut - epsilon);
+                } while (ptCut < ptThresholdForMaxEtaCut - epsilon);
               } while (etaCut < maxEtaCut - epsilon);
             } // end D0bar check
           }   //end inner loop
@@ -441,7 +441,7 @@ struct TaskD0D0barCorrelationLS {
       if (cutEtaCandMax >= 0. && std::abs(candidate1.eta()) > cutEtaCandMax) {
         continue;
       }
-      if (cutPtCandMin >= 0. && std::abs(candidate1.pt()) < cutPtCandMin) {
+      if (cutPtCandMin >= 0. && candidate1.pt() < cutPtCandMin) {
         continue;
       }
       //fill invariant mass plots and generic info from all D0/D0bar candidates
@@ -475,7 +475,7 @@ struct TaskD0D0barCorrelationLS {
           if (cutEtaCandMax >= 0. && std::abs(candidate2.eta()) > cutEtaCandMax) {
             continue;
           }
-          if (cutPtCandMin >= 0. && std::abs(candidate2.pt()) < cutPtCandMin) {
+          if (cutPtCandMin >= 0. && candidate2.pt() < cutPtCandMin) {
             continue;
           }
           //Excluding self-correlations (in principle not possible due to the '<' condition, but could rounding break it?)
@@ -544,7 +544,7 @@ struct TaskD0D0barCorrelationMCRecLS {
       if (cutEtaCandMax >= 0. && std::abs(candidate1.eta()) > cutEtaCandMax) {
         continue;
       }
-      if (cutPtCandMin >= 0. && std::abs(candidate1.pt()) < cutPtCandMin) {
+      if (cutPtCandMin >= 0. && candidate1.pt() < cutPtCandMin) {
         continue;
       }
       if (std::abs(candidate1.flagMCMatchRec()) == 1 << D0ToPiK) {
@@ -577,7 +577,7 @@ struct TaskD0D0barCorrelationMCRecLS {
             if (cutEtaCandMax >= 0. && std::abs(candidate2.eta()) > cutEtaCandMax) {
               continue;
             }
-            if (cutPtCandMin >= 0. && std::abs(candidate2.pt()) < cutPtCandMin) {
+            if (cutPtCandMin >= 0. && candidate2.pt() < cutPtCandMin) {
               continue;
             }
             //Excluding self-correlations (in principle not possible due to the '<' condition, but could rounding break it?)
@@ -635,7 +635,7 @@ struct TaskD0D0barCorrelationMCGenLS {
       if (cutEtaCandMax >= 0. && std::abs(particle1.eta()) > cutEtaCandMax) {
         continue;
       }
-      if (cutPtCandMin >= 0. && std::abs(particle1.pt()) < cutPtCandMin) {
+      if (cutPtCandMin >= 0. && particle1.pt() < cutPtCandMin) {
         continue;
       }
 
@@ -655,7 +655,7 @@ struct TaskD0D0barCorrelationMCGenLS {
           if (cutEtaCandMax >= 0. && std::abs(particle2.eta()) > cutEtaCandMax) {
             continue;
           }
-          if (cutPtCandMin >= 0. && std::abs(particle2.pt()) < cutPtCandMin) {
+          if (cutPtCandMin >= 0. && particle2.pt() < cutPtCandMin) {
             continue;
           }
           if (particle2.pt() < ptParticle1 && particle2.pdgCode() == particle1.pdgCode()) { //like-sign condition (both 421 or both -421) and pT_Trig>pT_assoc
@@ -723,7 +723,7 @@ struct TaskCCbarCorrelationMCGen {
       if (cutEtaCandMax >= 0. && std::abs(particle1.eta()) > cutEtaCandMax) {
         continue;
       }
-      if (cutPtCandMin >= 0. && std::abs(particle1.pt()) < cutPtCandMin) {
+      if (cutPtCandMin >= 0. && particle1.pt() < cutPtCandMin) {
         continue;
       }
       registry.fill(HIST("hPtcandMCGen"), particle1.pt());
@@ -741,7 +741,7 @@ struct TaskCCbarCorrelationMCGen {
           if (cutEtaCandMax >= 0. && std::abs(particle2.eta()) > cutEtaCandMax) {
             continue;
           }
-          if (cutPtCandMin >= 0. && std::abs(particle2.pt()) < cutPtCandMin) {
+          if (cutPtCandMin >= 0. && particle2.pt() < cutPtCandMin) {
             continue;
           }
           if (particle2.pdgCode() == -4) {
@@ -802,7 +802,7 @@ struct TaskD0D0barCorrelationCheckPhiResolution {
       if (cutEtaCandMax >= 0. && std::abs(candidate1.eta()) > cutEtaCandMax) {
         continue;
       }
-      if (cutPtCandMin >= 0. && std::abs(candidate1.pt()) < cutPtCandMin) {
+      if (cutPtCandMin >= 0. && candidate1.pt() < cutPtCandMin) {
         continue;
       }
       registry.fill(HIST("hMass"), InvMassD0(candidate1));
@@ -835,7 +835,7 @@ struct TaskD0D0barCorrelationCheckPhiResolution {
             if (cutEtaCandMax >= 0. && std::abs(candidate2.eta()) > cutEtaCandMax) {
               continue;
             }
-            if (cutPtCandMin >= 0. && std::abs(candidate2.pt()) < cutPtCandMin) {
+            if (cutPtCandMin >= 0. && candidate2.pt() < cutPtCandMin) {
               continue;
             }
             //Excluding self-correlations (could happen in case of reflections)
