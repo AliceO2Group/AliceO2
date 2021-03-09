@@ -409,6 +409,7 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context)
 
 void DataProcessingDevice::PreRun()
 {
+  mServiceRegistry.preStartCallbacks();
   mServiceRegistry.get<CallbackService>()(CallbackService::Id::Start);
 }
 

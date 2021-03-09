@@ -94,6 +94,8 @@ struct ServiceRegistry {
   std::vector<ServiceEOSHandle> mPostEOSHandles;
   /// Callbacks for services to be executed after every dispatching
   std::vector<ServiceDispatchingHandle> mPostDispatchingHandles;
+  /// Callbacks for services to be executed before Start
+  std::vector<ServiceStartHandle> mPreStartHandles;
   /// Callbacks for services to be executed on exit
   std::vector<ServiceExitHandle> mPreExitHandles;
 
@@ -122,6 +124,8 @@ struct ServiceRegistry {
     return *this;
   }
 
+  /// Invoke callbacks to be executed in PreRun(), before the User Start callbacks
+  void preStartCallbacks();
   /// Invoke callbacks to be executed before every process method invokation
   void preProcessingCallbacks(ProcessingContext&);
   /// Invoke callbacks to be executed after every process method invokation

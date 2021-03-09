@@ -96,6 +96,9 @@ void ServiceRegistry::bindService(ServiceSpec const& spec, void* service)
   if (spec.postDispatching) {
     mPostDispatchingHandles.push_back(ServiceDispatchingHandle{spec.postDispatching, service});
   }
+  if (spec.start) {
+    mPreStartHandles.push_back(ServiceStartHandle{spec.start, service});
+  }
   if (spec.exit) {
     mPreExitHandles.push_back(ServiceExitHandle{spec.exit, service});
   }
@@ -152,6 +155,16 @@ void ServiceRegistry::postDispatchingCallbacks(ProcessingContext& processContext
 {
   for (auto& dispatchingHandle : mPostDispatchingHandles) {
     dispatchingHandle.callback(processContext, dispatchingHandle.service);
+  }
+}
+
+/// Callbacks to be called in FairMQDevice::PreRun()
+void ServiceRegistry::preStartCallbacks()
+{
+  // FIXME: we need to call the callback only once for the global services
+  /// I guess...
+  for (auto startHandle = mPreStartHandles.begin(); startHandle != mPreStartHandles.end(); ++startHandle) {
+    startHandle->callback(*this, startHandle->service);
   }
 }
 
