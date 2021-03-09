@@ -15,7 +15,6 @@
 /// \author Vít Kučera <vit.kucera@cern.ch>, CERN
 /// \author Nima Zardoshti <nima.zardoshti@cern.ch>, CERN
 
-#include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
@@ -31,6 +30,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   ConfigParamSpec optionDoMC{"doMC", VariantType::Bool, false, {"Fill MC histograms."}};
   workflowOptions.push_back(optionDoMC);
 }
+
+#include "Framework/runDataProcessing.h"
 
 /// B+ analysis task
 struct TaskBplus {
