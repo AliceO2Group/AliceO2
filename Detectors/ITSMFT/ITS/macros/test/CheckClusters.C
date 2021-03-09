@@ -43,7 +43,7 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
   std::vector<MC2HITS_map> mc2hitVec;
 
   TFile fout("CheckClusters.root", "recreate");
-  TNtuple nt("ntc", "cluster ntuple", "ev:lab:hlx:hlz:tx:tz:cgx:cgy:cgz:dx:dy:dz:ex:ez:rof:npx:id");
+  TNtuple nt("ntc", "cluster ntuple", "ev:lab:hlx:hlz:tx:tz:cgx:cgy:cgz:dx:dy:dz:ex:ez:patid:rof:npx:id");
 
   // Geometry
   o2::base::GeometryManager::loadGeometry(inputGeom);
@@ -195,11 +195,11 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
       auto r = (0.5 * (Segmentation::SensorLayerThickness - Segmentation::SensorLayerThicknessEff) - y0) / dlty;
       locH.SetXYZ(x0 + r * dltx, y0 + r * dlty, z0 + r * dltz);
       //locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
-      std::array<float, 17> data = {(float)lab.getEventID(), (float)trID,
+      std::array<float, 18> data = {(float)lab.getEventID(), (float)trID,
                                     locH.X(), locH.Z(), dltx / dlty, dltz / dlty,
                                     gloC.X(), gloC.Y(), gloC.Z(),
                                     locC.X() - locH.X(), locC.Y() - locH.Y(), locC.Z() - locH.Z(),
-                                    errX, errZ,
+                                    errX, errZ, (float)pattID,
                                     (float)rofRec.getROFrame(), (float)npix, (float)chipID};
       nt.Fill(data.data());
     }
@@ -211,14 +211,25 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
   nt.Draw("dz:dx", "abs(dz)<0.01 && abs(dx)<0.01");
   new TCanvas;
   nt.Draw("dz:tz", "abs(dz)<0.005 && abs(tz)<2");
-  auto c1 = new TCanvas("p1","pullX");
+
+  auto c1 = new TCanvas("p1", "pullX");
   c1->cd();
   c1->SetLogy();
-  nt.Draw("dx/ex", "abs(dx/ex)<10");
-  auto c2 = new TCanvas("p2","pullZ");
+  nt.Draw("dx/ex", "abs(dx/ex)<10&&patid<10");
+  auto c2 = new TCanvas("p2", "pullZ");
   c2->cd();
   c2->SetLogy();
-  nt.Draw("dz/ez", "abs(dz/ez)<10");
+  nt.Draw("dz/ez", "abs(dz/ez)<10&&patid<10");
+
+  auto d1 = new TCanvas("d1", "deltaX");
+  d1->cd();
+  d1->SetLogy();
+  nt.Draw("dx", "abs(dx)<5");
+  auto d2 = new TCanvas("d2", "deltaZ");
+  d2->cd();
+  d2->SetLogy();
+  nt.Draw("dz", "abs(dz)<5");
+
   fout.cd();
   nt.Write();
 }
