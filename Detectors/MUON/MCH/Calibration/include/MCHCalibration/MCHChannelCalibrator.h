@@ -72,6 +72,16 @@ class MCHChannelCalibrator final : public o2::calibration::TimeSlotCalibration<o
   using CcdbObjectInfo = o2::ccdb::CcdbObjectInfo;
 
  public:
+  struct ChannelPedestal {
+    ChannelPedestal() = default;
+    ChannelPedestal(o2::mch::DsChannelId chid, double mean, double rms) : mDsChId(chid), mPedMean(mean), mPedRms(rms) {}
+
+    o2::mch::DsChannelId mDsChId;
+    double mPedMean{0};
+    double mPedRms{0};
+  };
+  using PedestalsVector = std::vector<ChannelPedestal>;
+
   MCHChannelCalibrator(float pedThreshold, float noiseThreshold) : mPedestalThreshold(pedThreshold), mNoiseThreshold(noiseThreshold), mTFStart(0xffffffffffffffff){};
 
   ~MCHChannelCalibrator() final = default;
@@ -86,6 +96,8 @@ class MCHChannelCalibrator final : public o2::calibration::TimeSlotCalibration<o
   const CcdbObjectInfo& getBadChannelsInfo() const { return mBadChannelsInfo; }
   CcdbObjectInfo& getBadChannelsInfo() { return mBadChannelsInfo; }
 
+  const PedestalsVector& getPedestalsVector() const { return mPedestalsVector; }
+
  private:
   float mNoiseThreshold;
   float mPedestalThreshold;
@@ -95,6 +107,7 @@ class MCHChannelCalibrator final : public o2::calibration::TimeSlotCalibration<o
   // output
   BadChannelsVector mBadChannelsVector; /// vector containing the unique IDs of the bad/noisy channels
   CcdbObjectInfo mBadChannelsInfo;      /// vector of CCDB Infos , each element is filled with the CCDB description of the accompanying BadChannelsVector object
+  PedestalsVector mPedestalsVector;
 
   ClassDefOverride(MCHChannelCalibrator, 1);
 };

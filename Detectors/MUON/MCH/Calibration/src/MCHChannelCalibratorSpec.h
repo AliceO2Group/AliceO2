@@ -77,6 +77,23 @@ class MCHChannelCalibDevice : public o2::framework::Task
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
   {
+    auto createBuffer = [&](auto& vec, size_t& size) {
+      size = vec.empty() ? 0 : sizeof(*(vec.begin())) * vec.size();
+      char* buf = nullptr;
+      if (size > 0) {
+        buf = (char*)malloc(size);
+        if (buf) {
+          char* p = buf;
+          size_t sizeofElement = sizeof(*(vec.begin()));
+          for (auto& element : vec) {
+            memcpy(p, &element, sizeofElement);
+            p += sizeofElement;
+          }
+        }
+      }
+      return buf;
+    };
+
     // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
     // TODO in principle, this routine is generic, can be moved to Utils.h
     using clbUtils = o2::calibration::Utils;
@@ -87,6 +104,11 @@ class MCHChannelCalibDevice : public o2::framework::Task
               << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
     output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, 0}, *image.get());
     output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, 0}, info); // root-serialized
+
+    size_t pedestalsSize;
+    char* pedestalsBuffer = createBuffer(mCalibrator->getPedestalsVector(), pedestalsSize);
+    auto freefct = [](void* data, void*) { free(data); };
+    output.adoptChunk(Output{"MCH", "PEDESTALS", 0}, pedestalsBuffer, pedestalsSize, freefct, nullptr);
 
     mCalibrator->initOutput(); // reset the outputs once they are already sent
   }

@@ -94,6 +94,8 @@ void MCHChannelCalibrator::finalizeSlot(Slot& slot)
           continue;
         }
 
+        mPedestalsVector.emplace_back(DsChannelId::make(p.first, dsId, ch), pRecord.mPedestal, pRecord.getRms());
+
         bool bad = true;
         if (pRecord.mPedestal < mPedestalThreshold) {
           if (pRecord.getRms() < mNoiseThreshold) {
