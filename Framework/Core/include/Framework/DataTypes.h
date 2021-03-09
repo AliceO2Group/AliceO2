@@ -28,8 +28,7 @@ namespace o2::aod::track
 {
 enum TrackTypeEnum : uint8_t {
   GlobalTrack = 0,
-  ITSStandalone,
-  MFTStandalone,
+  ITSStandaloneTrack,
   Run2GlobalTrack = 254,
   Run2Tracklet = 255
 };
@@ -39,5 +38,16 @@ enum TrackFlagsRun2Enum {
   GoldenChi2 = 0x4
 };
 } // namespace o2::aod::track
+
+namespace o2::aod::fwdtrack
+{
+enum ForwardTrackTypeEnum : uint8_t {
+  GlobalMuonTrack = 0,       // MFT-MCH-MID
+  GlobalMuonTrackOtherMatch, // MFT-MCH-MID (MCH-MID used another time)
+  GlobalForwardTrack,        // MFT-MCH
+  MuonStandaloneTrack,       // MCH-MID
+  MCHStandaloneTrack         // MCH
+};
+} // namespace o2::aod::fwdtrack
 
 #endif // O2_FRAMEWORK_DATATYPES_H_
