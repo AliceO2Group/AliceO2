@@ -22,6 +22,7 @@
 #include "Framework/CommonMessageBackends.h"
 #include "Framework/DanglingContext.h"
 #include "Framework/EndOfStreamContext.h"
+#include "Framework/RawDeviceService.h"
 #include "Framework/Tracing.h"
 #include "Framework/Monitoring.h"
 #include "TextDriverClient.h"
@@ -35,6 +36,7 @@
 #include <Monitoring/MonitoringFactory.h>
 #include <InfoLogger/InfoLogger.hxx>
 
+#include <FairMQDevice.h>
 #include <options/FairMQProgOptions.h>
 
 #include <cstdlib>
@@ -122,7 +124,11 @@ o2::framework::ServiceSpec CommonServices::infologgerContextSpec()
                      nullptr,
                      nullptr,
                      nullptr,
-                     nullptr,
+                     [](ServiceRegistry& services, void* service) {
+                       auto& infoLoggerContext = services.get<InfoLoggerContext>();
+                       auto run = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runnumber", "unspecified");
+                       infoLoggerContext.setField(InfoLoggerContext::FieldName::Run, run);
+                     },
                      nullptr,
                      ServiceKind::Serial};
 }
