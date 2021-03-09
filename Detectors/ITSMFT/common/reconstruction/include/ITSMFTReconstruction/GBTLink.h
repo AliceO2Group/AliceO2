@@ -268,7 +268,6 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
         ruPtr->calCount = gbtC->calibCounter;
         ruPtr->nInj = calUser >> 16;
         ruPtr->chargeInj = calUser & 0xff;
-
       }
     }
     auto gbtD = reinterpret_cast<const o2::itsmft::GBTData*>(&currRawPiece->data[dataOffset]);

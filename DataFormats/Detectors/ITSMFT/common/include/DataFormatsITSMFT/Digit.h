@@ -82,13 +82,11 @@ class Digit
 
   ClassDefNV(Digit, 2);
 };
- 
+
 class DigitHW : public Digit
 {
-        public:
-         DigitHW(UShort_t caliCounter = 0, UShort_t nInjection = 0, UShort_t chargeInjected = 0, UShort_t half = 0, UShort_t disk = 0, UShort_t plane = 0, UShort_t zone = 0, UShort_t cableHW = 0, UShort_t chipindex = 0, UShort_t row = 0, UShort_t col = 0, Int_t charge = 0);
-
-
+ public:
+  DigitHW(UShort_t caliCounter = 0, UShort_t nInjection = 0, UShort_t chargeInjected = 0, UShort_t half = 0, UShort_t disk = 0, UShort_t plane = 0, UShort_t zone = 0, UShort_t cableHW = 0, UShort_t chipindex = 0, UShort_t row = 0, UShort_t col = 0, Int_t charge = 0);
 
   ~DigitHW() = default;
 
@@ -102,23 +100,22 @@ class DigitHW : public Digit
   UShort_t getPlane() const { return mPlane; }
   UShort_t getZone() const { return mZone; }
 
-
   /// Set cable HW
-  void setCableHW(UShort_t chw) { mCableHW = chw;}
+  void setCableHW(UShort_t chw) { mCableHW = chw; }
 
-        private:
-          UShort_t mCounter = 0;
-          UShort_t mNInj = 0;
-          UShort_t mChargeInj = 0;
-          UShort_t mHalf = 0;
-          UShort_t mDisk = 0;
-          UShort_t mPlane = 0;
-          UShort_t mZone = 0;
-          UShort_t mCableHW = 0; ///< Cable HW
+ private:
+  UShort_t mCounter = 0;
+  UShort_t mNInj = 0;
+  UShort_t mChargeInj = 0;
+  UShort_t mHalf = 0;
+  UShort_t mDisk = 0;
+  UShort_t mPlane = 0;
+  UShort_t mZone = 0;
+  UShort_t mCableHW = 0; ///< Cable HW
 
-          ClassDefNV(DigitHW, 2);
+  ClassDefNV(DigitHW, 2);
 };
- 
+
 } // namespace itsmft
 } // namespace o2
 

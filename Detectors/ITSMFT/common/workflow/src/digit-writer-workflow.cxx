@@ -39,7 +39,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool useMC = !cfgc.options().get<bool>("disable-mc");
   bool writeHW = cfgc.options().get<bool>("writeHW");
 
-
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 

@@ -94,7 +94,7 @@ DataProcessorSpec getDigitWriterSpec(bool mctruth, o2::header::DataOrigin detOri
                                 BranchDefinition<std::vector<itsmft::ROFRecord>>{InputSpec{"digitsROF", detOrig, "DIGITSROF", 0},
                                                                                  (detStr + "DigitROF").c_str()})();
 }
-  
+
 DataProcessorSpec getDigitWriterSpecHW(bool mctruth, o2::header::DataOrigin detOrig, o2::detectors::DetID detId)
 {
   std::string detStr = o2::detectors::DetID::getName(detId);
@@ -133,7 +133,7 @@ DataProcessorSpec getDigitWriterSpecHW(bool mctruth, o2::header::DataOrigin detO
     br->Fill();
     br->ResetAddress();
   };
-  
+
   return MakeRootTreeWriterSpec((detStr + "DigitWriter").c_str(),
                                 (detStrL + "digits.root").c_str(),
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Digits tree"},
@@ -145,9 +145,9 @@ DataProcessorSpec getDigitWriterSpecHW(bool mctruth, o2::header::DataOrigin detO
                                 BranchDefinition<std::vector<itsmft::MC2ROFRecord>>{InputSpec{"digitsMC2ROF", detOrig, "DIGITSMC2ROF", 0},
                                                                                     (detStr + "DigitMC2ROF").c_str(),
                                                                                     (mctruth ? 1 : 0)},
-                                                BranchDefinition<std::vector<itsmft::DigitHW>>{InputSpec{"digits", detOrig, "DIGITS", 0},
-                                                                             (detStr + "Digit").c_str(),
-                                                                             logger},
+                                BranchDefinition<std::vector<itsmft::DigitHW>>{InputSpec{"digits", detOrig, "DIGITS", 0},
+                                                                               (detStr + "Digit").c_str(),
+                                                                               logger},
                                 BranchDefinition<std::vector<itsmft::ROFRecord>>{InputSpec{"digitsROF", detOrig, "DIGITSROF", 0},
                                                                                  (detStr + "DigitROF").c_str()})();
 }
@@ -159,13 +159,11 @@ DataProcessorSpec getITSDigitWriterSpec(bool mctruth)
 
 DataProcessorSpec getMFTDigitWriterSpec(bool mctruth, bool hardware)
 {
-        if (hardware)
-                return getDigitWriterSpecHW(mctruth, o2::header::gDataOriginMFT, o2::detectors::DetID::MFT);
-        else
-                return getDigitWriterSpec(mctruth, o2::header::gDataOriginMFT, o2::detectors::DetID::MFT);
-
+  if (hardware)
+    return getDigitWriterSpecHW(mctruth, o2::header::gDataOriginMFT, o2::detectors::DetID::MFT);
+  else
+    return getDigitWriterSpec(mctruth, o2::header::gDataOriginMFT, o2::detectors::DetID::MFT);
 }
-
 
 } // end namespace itsmft
 } // end namespace o2

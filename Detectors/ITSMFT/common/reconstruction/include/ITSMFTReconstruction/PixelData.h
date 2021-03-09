@@ -128,7 +128,7 @@ class ChipPixelData
 
   void clear()
   {
-    mCableHW=0;
+    mCableHW = 0;
     mPixels.clear();
     mROFlags = 0;
     mFirstUnmasked = 0;

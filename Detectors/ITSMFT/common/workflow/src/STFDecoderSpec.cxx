@@ -48,7 +48,6 @@ STFDecoder<Mapping>::STFDecoder(bool doClusters, bool doPatterns, bool doDigits,
   mTimer.Reset();
 }
 
-
 ///_______________________________________
 template <class Mapping>
 void STFDecoder<Mapping>::init(InitContext& ic)
@@ -119,24 +118,23 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   mDecoder->setDecodeNextAuto(false);
   while (mDecoder->decodeNextTrigger()) {
     if (mDoDigits) {                                    // call before clusterization, since the latter will hide the digits
-            if (mWriteHW){
-              mDecoder->fillDecodedDigitsHW(digVecHW, digROFVec);   // lot of copying involved
-            }else{
-              mDecoder->fillDecodedDigits(digVec, digROFVec);   // lot of copying involved
-            }
+      if (mWriteHW) {
+        mDecoder->fillDecodedDigitsHW(digVecHW, digROFVec); // lot of copying involved
+      } else {
+        mDecoder->fillDecodedDigits(digVec, digROFVec); // lot of copying involved
+      }
     }
     if (mDoClusters) { // !!! THREADS !!!
       mClusterer->process(mNThreads, *mDecoder.get(), &clusCompVec, mDoPatterns ? &clusPattVec : nullptr, &clusROFVec);
     }
   }
 
-
   if (mDoDigits) {
-    if (mWriteHW){
-        pc.outputs().snapshot(Output{orig, "DIGITS", 0, Lifetime::Timeframe}, digVecHW);
-    }else{
-        pc.outputs().snapshot(Output{orig, "DIGITS", 0, Lifetime::Timeframe}, digVec);
-        }
+    if (mWriteHW) {
+      pc.outputs().snapshot(Output{orig, "DIGITS", 0, Lifetime::Timeframe}, digVecHW);
+    } else {
+      pc.outputs().snapshot(Output{orig, "DIGITS", 0, Lifetime::Timeframe}, digVec);
+    }
     pc.outputs().snapshot(Output{orig, "DIGITSROF", 0, Lifetime::Timeframe}, digROFVec);
   }
 
@@ -150,10 +148,10 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     LOG(INFO) << mSelfName << " Built " << clusCompVec.size() << " clusters in " << clusROFVec.size() << " ROFs";
   }
   if (mDoDigits) {
-    if (mWriteHW){
-        LOG(INFO) << mSelfName << " Decoded " << digVecHW.size() << " Digits in " << digROFVec.size() << " ROFs";
-    }else{
-        LOG(INFO) << mSelfName << " Decoded " << digVec.size() << " Digits in " << digROFVec.size() << " ROFs";
+    if (mWriteHW) {
+      LOG(INFO) << mSelfName << " Decoded " << digVecHW.size() << " Digits in " << digROFVec.size() << " ROFs";
+    } else {
+      LOG(INFO) << mSelfName << " Decoded " << digVec.size() << " Digits in " << digROFVec.size() << " ROFs";
     }
   }
 

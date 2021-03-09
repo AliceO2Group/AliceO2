@@ -49,7 +49,6 @@ struct RUDecodeData {
   int chargeInj = 0;
   int calCount = 0;
 
-
   RUDecodeData()
   {
     memset(&links[0], -1, MaxLinksPerRU * sizeof(int));

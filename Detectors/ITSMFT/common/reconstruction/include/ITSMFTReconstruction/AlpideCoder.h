@@ -115,7 +115,6 @@ class AlpideCoder
   static bool isEmptyChip(uint8_t b) { return (b & CHIPEMPTY) == CHIPEMPTY; }
 
   static void setNoisyPixels(const NoiseMap* noise) { mNoisyPixels = noise; }
- 
 
   /// decode alpide data for the next non-empty chip from the buffer
   template <class T, typename CG>
