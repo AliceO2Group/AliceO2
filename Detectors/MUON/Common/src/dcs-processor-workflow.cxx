@@ -18,12 +18,18 @@
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/runDataProcessing.h"
-#include "MCHConditions/DCSNamer.h"
+#include "subsysname.h"
+#include <array>
 #include <gsl/span>
 #include <iostream>
 #include <unordered_map>
-#include <array>
 #include <vector>
+#if defined(MUON_SUBSYSTEM_MCH)
+#include "MCHConditions/DCSNamer.h"
+#endif
+#if defined(MUON_SUBSYSTEM_MID)
+#include "MIDConditions/DCSNamer.h"
+#endif
 
 namespace
 {
@@ -37,13 +43,10 @@ std::vector<o2::framework::OutputSpec> calibrationOutputs{
   o2::framework::ConcreteDataTypeMatcher{Utils::gDataOriginCLB, Utils::gDataDescriptionCLBPayload},
   o2::framework::ConcreteDataTypeMatcher{Utils::gDataOriginCLB, Utils::gDataDescriptionCLBInfo}};
 
-std::array<DPMAP, 2> dataPoints;
-int t0{-1};
-
 /*
 * Create a default CCDB Object Info that will be used as a template.
 *
-* @param path describes the CCDB data path used (e.g. MCH/HV)
+* @param path describes the CCDB data path used (e.g. MCH/LV or MID/HV)
 *
 * The start and end validity times are supposed to be updated from this template,
 * as well as the metadata (if needed). The rest of the information should
@@ -65,7 +68,17 @@ o2::ccdb::CcdbObjectInfo createDefaultInfo(const char* path)
   return info;
 }
 
-std::array<o2::ccdb::CcdbObjectInfo, 2> info{createDefaultInfo("MCH/HV"), createDefaultInfo("MCH/LV")};
+#if defined(MUON_SUBSYSTEM_MCH)
+#define NOBJECTS 2
+std::array<o2::ccdb::CcdbObjectInfo, NOBJECTS> info{createDefaultInfo("MCH/HV"), createDefaultInfo("MCH/LV")};
+#elif defined(MUON_SUBSYSTEM_MID)
+#define NOBJECTS 2
+std::array<o2::ccdb::CcdbObjectInfo, NOBJECTS> info{createDefaultInfo("MID/HV")};
+#endif
+
+std::array<DPMAP, NOBJECTS> dataPoints;
+
+int t0{-1};
 
 /*
 * Send a DPMAP to the output.
@@ -100,7 +113,7 @@ void sendOutput(const DPMAP& dpmap, o2::framework::DataAllocator& output, o2::cc
 void endOfStream(o2::framework::EndOfStreamContext& eosc)
 {
   LOG(DEBUG) << "This is the end. Must write what we have left ?\n";
-  for (auto i = 0; i < 2; i++) {
+  for (auto i = 0; i < NOBJECTS; i++) {
     sendOutput(dataPoints[i], eosc.outputs(), info[i], "end of stream");
   }
 }
@@ -184,29 +197,31 @@ o2::ccdb::CcdbObjectInfo addTFInfo(o2::ccdb::CcdbObjectInfo inf,
   md["tf range"] = fmt::format("{}-{}", t0, t1);
   inf.setMetaData(md);
   inf.setStartValidityTimestamp(t0);
-  inf.setEndValidityTimestamp(t1);
+  //inf.setEndValidityTimestamp(t1);
   return inf;
 }
 
 /*
 * Process the datapoints received.
 *
-* The datapoints are accumulated into two DPMAPs (map from alias names to
-* vector of DataPointValue) : one for HV values and one for LV values.
-* If the DPMAPs satisfy certain conditions (@see needOutput) they
-* are sent to the output.
+* The datapoints are accumulated into one (MID) or two (MCH) DPMAPs (map from
+* alias names to vector of DataPointValue) : one for HV values (MID and MCH)
+* and one for LV values (MCH only).
 *
-* @param aliases an array of 2 vectors of aliases (one for HV values, one
-* for LV values)
-* @param maxSize an array of two values for the maxsizes of the HV and LV
-* values respectively
-* @param maxDuration an array of two values for the max durations of the HV and LV
-* values respectively
+* If the DPMAPs satisfy certain conditions (@see needOutput) they are sent to
+* the output.
+*
+* @param aliases an array of one or two vectors of aliases (one for HV values,
+* one for LV values) 
+* @param maxSize an array of one or two values for the
+* maxsizes of the HV and LV values respectively 
+* @param maxDuration an array of
+* one or two values for the max durations of the HV and LV values respectively
 */
 void processDataPoints(o2::framework::ProcessingContext& pc,
-                       std::array<std::vector<std::string>, 2> aliases,
-                       std::array<int, 2> maxSize,
-                       std::array<int, 2> maxDuration)
+                       std::array<std::vector<std::string>, NOBJECTS> aliases,
+                       std::array<int, NOBJECTS> maxSize,
+                       std::array<int, NOBJECTS> maxDuration)
 {
 
   auto tfid = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
@@ -216,19 +231,19 @@ void processDataPoints(o2::framework::ProcessingContext& pc,
   auto dps = pc.inputs().get<gsl::span<o2::dcs::DataPointCompositeObject>>("input");
   for (auto dp : dps) {
     //FIXME: check we're not adding twice the same dp (i.e. check timestamp ?)
-    for (auto i = 0; i < 2; i++) {
+    for (auto i = 0; i < NOBJECTS; i++) {
       if (std::find(aliases[i].begin(), aliases[i].end(), dp.id.get_alias()) != aliases[i].end()) {
         dataPoints[i][dp.id].emplace_back(dp.data);
       }
     }
   }
-  for (auto i = 0; i < 2; i++) {
+  for (auto i = 0; i < NOBJECTS; i++) {
     auto [shouldOutput, reason] = needOutput(dataPoints[i], maxSize[i], maxDuration[i]);
     if (shouldOutput) {
       auto inf = addTFInfo(info[i], t0, tfid);
       sendOutput(dataPoints[i], pc.outputs(), inf, reason);
       t0 = tfid;
-      dataPoints[i].clear(); //FIXME: here the clear should be more clever and keep at least one value per dp
+      dataPoints[i].clear(); //FIXME: here the clear should be more clever and keep at least one value per dp ?
     }
   }
 }
@@ -244,15 +259,15 @@ o2::framework::AlgorithmSpec::ProcessCallback createProcessFunction(o2::framewor
   auto& callbacks = ic.services().get<o2::framework::CallbackService>();
   callbacks.set(o2::framework::CallbackService::Id::EndOfStream, endOfStream);
 
-  // the aliases arrays contain all the names of the MCH data points
+  // the aliases arrays contain all the names of the MCH or MID data points
   // we are interested to transit to the CCDB
-  std::array<std::vector<std::string>, 2> aliases = {
+#if defined(MUON_SUBSYSTEM_MCH)
+  std::array<std::vector<std::string>, NOBJECTS> aliases = {
     o2::mch::dcs::aliases({o2::mch::dcs::MeasurementType::HV_V,
                            o2::mch::dcs::MeasurementType::HV_I}),
     o2::mch::dcs::aliases({o2::mch::dcs::MeasurementType::LV_V_FEE_ANALOG,
                            o2::mch::dcs::MeasurementType::LV_V_FEE_DIGITAL,
                            o2::mch::dcs::MeasurementType::LV_V_SOLAR})};
-
   std::array<int, 2> maxSize{
     ic.options().get<int>("hv-max-size"),
     ic.options().get<int>("lv-max-size")};
@@ -260,8 +275,15 @@ o2::framework::AlgorithmSpec::ProcessCallback createProcessFunction(o2::framewor
   std::array<int, 2> maxDuration{
     ic.options().get<int>("hv-max-duration"),
     ic.options().get<int>("lv-max-duration")};
+#elif defined(MUON_SUBSYSTEM_MID)
+  std::array<std::vector<std::string>, NOBJECTS> aliases = {
+    o2::mid::dcs::aliases({o2::mid::dcs::MeasurementType::HV_V,
+                           o2::mid::dcs::MeasurementType::HV_I})};
+  std::array<int, NOBJECTS> maxSize{ic.options().get<int>("hv-max-size")};
+  std::array<int, NOBJECTS> maxDuration{ic.options().get<int>("hv-max-duration")};
+#endif
 
-  for (auto i = 0; i < 2; i++) {
+  for (auto i = 0; i < NOBJECTS; i++) {
     dataPoints[i].clear();
   }
 
@@ -302,17 +324,17 @@ using o2::framework::DataProcessorSpec;
 using o2::framework::WorkflowSpec;
 
 /**
-* DPL Workflow to process MCH DCS data points.
+* DPL Workflow to process MCH or MID DCS data points.
 *
 * The expected input is a vector of DataPointCompositeObject containing
-* only MCH data points.
+* only MCH (or only MID) data points.
 *
-* Those datapoints are accumulated into two DPMAPs (map from alias names to
-* vector of DataPointValue) : one for HV values and one for LV values.
+* Those datapoints are accumulated into DPMAPs (map from alias names to
+* vector of DataPointValue).
 *
-* The accumulated DPMAP are sent to the output whenever :
-* - they reach a given size (--hv-max-size and --lv-max-size options)
-* - they span a given duration (--hv-max-duration and --lv-max-duration options)
+* The accumulated DPMAPs are sent to the output whenever :
+* - they reach a given size (--xx-max-size option(s))
+* - they span a given duration (--xx-max-duration option(s))
 * - the workflow is ended
 *
 */
@@ -322,15 +344,29 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   AlgorithmSpec algo(createProcessFunction);
 
-  dcsProcessor.name = "mch-dcs-processor";
-  dcsProcessor.inputs = o2::framework::Inputs{{"input", "DCS", "MCHDATAPOINTS"}};
+  dcsProcessor.name = fmt::format("{}-dcs-processor", o2::muon::subsysname());
+  dcsProcessor.inputs = o2::framework::Inputs
+  {
+#if defined(MUON_SUBSYSTEM_MCH)
+    {
+      "input", "DCS", "MCHDATAPOINTS"
+    }
+  };
+#elif defined(MUON_SUBSYSTEM_MID)
+    {
+      "input", "DCS", "MIDDATAPOINTS"
+    }
+  };
+#endif
   dcsProcessor.outputs = calibrationOutputs;
   dcsProcessor.algorithm = algo;
   dcsProcessor.options = {
-    whenToSendOption("hv", 128, "size", "KB"),
+#if defined(MUON_SUBSYSTEM_MCH)
     whenToSendOption("lv", 128, "size", "KB"),
-    whenToSendOption("hv", 8 * 3600, "duration", "seconds"),
-    whenToSendOption("lv", 8 * 3600, "duration", "seconds")};
+    whenToSendOption("lv", 8 * 3600, "duration", "seconds"),
+#endif
+    whenToSendOption("hv", 128, "size", "KB"),
+    whenToSendOption("hv", 8 * 3600, "duration", "seconds")};
 
   return {dcsProcessor};
 }

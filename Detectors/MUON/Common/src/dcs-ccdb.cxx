@@ -11,7 +11,11 @@
 #include "CCDB/CcdbApi.h"
 #include "DetectorsDCS/DataPointIdentifier.h"
 #include "DetectorsDCS/DataPointValue.h"
+#if defined(MUON_SUBSYSTEM_MCH)
 #include "MCHConditions/DCSNamer.h"
+#elif defined(MUON_SUBSYSTEM_MID)
+#include "MIDConditions/DCSNamer.h"
+#endif
 #include <boost/program_options.hpp>
 #include <ctime>
 #include <iostream>
@@ -21,13 +25,17 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include "subsysname.h"
 
 namespace po = boost::program_options;
 using DPID = o2::dcs::DataPointIdentifier;
 using DPVAL = o2::dcs::DataPointValue;
 using DPMAP = std::unordered_map<DPID, std::vector<DPVAL>>;
 
-const char* CCDB_DPCONF_NAME = "MCH/DCSconfig";
+std::string CcdbDpConfName()
+{
+  return fmt::format("{}/DCSconfig", o2::muon::subsysname());
+}
 
 bool verbose;
 
@@ -35,10 +43,10 @@ void doQueryHVLV(const std::string ccdbUrl, uint64_t timestamp, bool hv, bool lv
 {
   std::vector<std::string> what;
   if (hv) {
-    what.emplace_back("MCH/HV");
+    what.emplace_back(fmt::format("{}/HV", o2::muon::subsysname()));
   }
   if (lv) {
-    what.emplace_back("MCH/LV");
+    what.emplace_back(fmt::format("{}/LV", o2::muon::subsysname()));
   }
 
   auto sum =
@@ -77,7 +85,7 @@ void doQueryDataPointConfig(const std::string ccdbUrl, uint64_t timestamp)
   api.init(ccdbUrl);
   using DPCONF = std::unordered_map<DPID, std::string>;
   std::map<std::string, std::string> metadata;
-  auto* m = api.retrieveFromTFileAny<DPCONF>(CCDB_DPCONF_NAME, metadata, timestamp);
+  auto* m = api.retrieveFromTFileAny<DPCONF>(CcdbDpConfName().c_str(), metadata, timestamp);
   std::cout << "size of dpconf map = " << m->size() << std::endl;
   if (verbose) {
     for (auto& i : *m) {
@@ -89,20 +97,26 @@ void doQueryDataPointConfig(const std::string ccdbUrl, uint64_t timestamp)
 void makeCCDBEntryForDCS(const std::string ccdbUrl, uint64_t timestamp)
 {
   std::unordered_map<DPID, std::string> dpid2DataDesc;
+#if defined(MUON_SUBSYSTEM_MCH)
   auto aliases = o2::mch::dcs::aliases();
+#elif defined(MUON_SUBSYSTEM_MID)
+  auto aliases = o2::mid::dcs::aliases();
+#endif
 
   DPID dpidtmp;
   for (const auto& a : aliases) {
     DPID::FILL(dpidtmp, a, o2::dcs::DeliveryType::RAW_DOUBLE);
-    dpid2DataDesc[dpidtmp] = "MCHDATAPOINTS";
+    dpid2DataDesc[dpidtmp] = fmt::format("{}DATAPOINTS", o2::muon ::subsysname());
   }
 
   o2::ccdb::CcdbApi api;
   api.init(ccdbUrl);
   std::map<std::string, std::string> md;
-  std::cout << "storing config of " << dpid2DataDesc.size() << " MCH data points to " << CCDB_DPCONF_NAME << "\n";
+  std::cout << "storing config of " << dpid2DataDesc.size()
+            << o2::muon::subsysname() << " data points to "
+            << CcdbDpConfName() << "\n";
 
-  api.storeAsTFileAny(&dpid2DataDesc, CCDB_DPCONF_NAME, md, timestamp);
+  api.storeAsTFileAny(&dpid2DataDesc, CcdbDpConfName(), md, timestamp);
 }
 
 bool match(const std::vector<std::string>& queries, const char* pattern)
@@ -141,7 +155,8 @@ int main(int argc, char** argv)
   po::store(po::command_line_parser(argc, argv).options(cmdline).run(), vm);
 
   if (vm.count("help")) {
-    std::cout << "This program printout summary information from MCH DCS entries.\n";
+    std::cout << "This program printout summary information from "
+              << o2::muon::subsysname() << " DCS entries.\n";
     std::cout << usage << "\n";
     return 2;
   }
@@ -157,12 +172,21 @@ int main(int argc, char** argv)
     auto query = vm["query"].as<std::vector<std::string>>();
 
     hv = match(query, ".*(hv)");
+#if defined(MUON_SUBSYSTEM_MCH)
     lv = match(query, ".*(lv)");
+#else
+    lv = false;
+#endif
     dpconf = match(query, ".*(dpconf)");
 
     if (!hv && !lv && !dpconf) {
-      std::cout << "Must specify at least one of --hv or --lv\n";
-      std::cout << usage << "\n";
+      std::cout << "Must specify at least one of dpconf,hv";
+#if defined(MUON_SUBSYSTEM_MCH)
+      std::cout << ",lv";
+#endif
+      std::cout << " parameter to --query option\n";
+      std::cout
+        << usage << "\n";
       return 3;
     }
 
