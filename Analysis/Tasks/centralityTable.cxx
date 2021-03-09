@@ -48,5 +48,5 @@ struct CentralityTableTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<CentralityTableTask>(cfgc, "centrality-table")};
+    adaptAnalysisTask<CentralityTableTask>(cfgc, TaskName{"centrality-table"})};
 }

@@ -49,7 +49,17 @@ void MCKinematicsReader::initIndexedTrackRefs(std::vector<o2::TrackReference>& r
   }
 }
 
-void MCKinematicsReader::loadTracksForSource(int source) const
+void MCKinematicsReader::initTracksForSource(int source) const
+{
+  auto chain = mInputChains[source];
+  if (chain) {
+    // todo: get name from NameConfig
+    auto br = chain->GetBranch("MCTrack");
+    mTracks[source].resize(br->GetEntries(), nullptr);
+  }
+}
+
+void MCKinematicsReader::loadTracksForSourceAndEvent(int source, int event) const
 {
   auto chain = mInputChains[source];
   if (chain) {
@@ -58,15 +68,19 @@ void MCKinematicsReader::loadTracksForSource(int source) const
     if (br) {
       std::vector<MCTrack>* loadtracks = nullptr;
       br->SetAddress(&loadtracks);
-      // load all kinematics
-      mTracks[source].resize(br->GetEntries());
-      for (int event = 0; event < br->GetEntries(); ++event) {
-        br->GetEntry(event);
-        mTracks[source][event] = *loadtracks;
-      }
+      br->GetEntry(event);
+      mTracks[source][event] = new std::vector<o2::MCTrack>;
+      *mTracks[source][event] = *loadtracks;
       delete loadtracks;
-      loadtracks = nullptr;
     }
+  }
+}
+
+void MCKinematicsReader::releaseTracksForSourceAndEvent(int source, int eventID)
+{
+  if (mTracks.at(source).at(eventID) != nullptr) {
+    delete mTracks[source][eventID];
+    mTracks[source][eventID] = nullptr;
   }
 }
 

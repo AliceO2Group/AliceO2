@@ -208,9 +208,9 @@ struct EventSelectionTaskRun3 {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   if (cfgc.options().get<int>("selection-run") == 2) {
-    return WorkflowSpec{adaptAnalysisTask<EventSelectionTask>(cfgc, "event-selection")};
+    return WorkflowSpec{adaptAnalysisTask<EventSelectionTask>(cfgc, TaskName{"event-selection"})};
   } else {
     return WorkflowSpec{
-      adaptAnalysisTask<EventSelectionTaskRun3>(cfgc, "event-selection")};
+      adaptAnalysisTask<EventSelectionTaskRun3>(cfgc, TaskName{"event-selection"})};
   }
 }

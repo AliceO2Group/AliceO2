@@ -250,11 +250,11 @@ struct HFCandidateCreator3ProngMC {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<HFCandidateCreator3Prong>(cfgc, "hf-cand-creator-3prong"),
-    adaptAnalysisTask<HFCandidateCreator3ProngExpressions>(cfgc, "hf-cand-creator-3prong-expressions")};
+    adaptAnalysisTask<HFCandidateCreator3Prong>(cfgc, TaskName{"hf-cand-creator-3prong"}),
+    adaptAnalysisTask<HFCandidateCreator3ProngExpressions>(cfgc, TaskName{"hf-cand-creator-3prong-expressions"})};
   const bool doMC = cfgc.options().get<bool>("doMC");
   if (doMC) {
-    workflow.push_back(adaptAnalysisTask<HFCandidateCreator3ProngMC>(cfgc, "hf-cand-creator-3prong-mc"));
+    workflow.push_back(adaptAnalysisTask<HFCandidateCreator3ProngMC>(cfgc, TaskName{"hf-cand-creator-3prong-mc"}));
   }
   return workflow;
 }

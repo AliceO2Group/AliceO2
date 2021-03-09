@@ -33,6 +33,12 @@ class CalibInfoCluster
   short tot2 = 0;
 
  public:
+  int getCH() const { return ch; }
+  int8_t getDCH() const { return deltach; }
+  float getDT() const { return deltat; }
+  short getTOT1() const { return tot1; }
+  short getTOT2() const { return tot2; }
+
   CalibInfoCluster() = default;
   CalibInfoCluster(int ich, int8_t ideltach, float dt, short t1, short t2) : ch(ich), deltach(ideltach), deltat(dt), tot1(t1), tot2(t2) {}
   ClassDefNV(CalibInfoCluster, 1);

@@ -65,5 +65,5 @@ struct JetSpectraReference {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<JetSpectraReference>(cfgc, "jetspectra-task-skim-reference")};
+    adaptAnalysisTask<JetSpectraReference>(cfgc, TaskName{"jetspectra-task-skim-reference"})};
 }

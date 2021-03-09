@@ -21,6 +21,7 @@
 // Apparently needs to be on top of the arrow includes.
 #include <sstream>
 
+#include <arrow/chunked_array.h>
 #include <arrow/status.h>
 #include <arrow/memory_pool.h>
 #include <arrow/stl.h>
@@ -28,7 +29,6 @@
 #include <arrow/table.h>
 #include <arrow/builder.h>
 
-#include <functional>
 #include <vector>
 #include <string>
 #include <memory>
@@ -587,7 +587,7 @@ class TableBuilder
   template <typename... ARGS>
   auto makeFinalizer()
   {
-    mFinalizer = [schema = mSchema, &arrays = mArrays, holders = mHolders]() -> bool {
+    mFinalizer = [](std::shared_ptr<arrow::Schema> schema, std::vector<std::shared_ptr<arrow::Array>>& arrays, void* holders) -> bool {
       return TableBuilderHelpers::finalize(arrays, *(HoldersTuple<ARGS...>*)holders, std::make_index_sequence<sizeof...(ARGS)>{});
     };
   }
@@ -753,7 +753,7 @@ class TableBuilder
     return this->template persist<E>(columnNames);
   }
 
-  std::function<bool(void)> mFinalizer;
+  bool (*mFinalizer)(std::shared_ptr<arrow::Schema> schema, std::vector<std::shared_ptr<arrow::Array>>& arrays, void* holders);
   void* mHolders;
   arrow::MemoryPool* mMemoryPool;
   std::shared_ptr<arrow::Schema> mSchema;

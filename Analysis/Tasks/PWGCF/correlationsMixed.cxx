@@ -503,6 +503,6 @@ struct CorrelationTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HashTask>(cfgc, "produce-hashes"),
-    adaptAnalysisTask<CorrelationTask>(cfgc, "correlation-task")};
+    adaptAnalysisTask<HashTask>(cfgc, TaskName{"produce-hashes"}),
+    adaptAnalysisTask<CorrelationTask>(cfgc, TaskName{"correlation-task"})};
 }

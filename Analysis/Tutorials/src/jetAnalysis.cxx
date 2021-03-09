@@ -52,5 +52,5 @@ struct JetAnalysis {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<JetAnalysis>(cfgc, "jet-analysis")};
+    adaptAnalysisTask<JetAnalysis>(cfgc, TaskName{"jet-analysis"})};
 }

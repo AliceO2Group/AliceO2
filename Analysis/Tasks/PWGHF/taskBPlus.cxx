@@ -92,7 +92,7 @@ struct TaskBplus {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<AddCollisionId>(cfgc, "hf-task-add-collisionId"),
-    adaptAnalysisTask<TaskBplus>(cfgc, "hf-task-bplus")};
+    adaptAnalysisTask<AddCollisionId>(cfgc, TaskName{"hf-task-add-collisionId"}),
+    adaptAnalysisTask<TaskBplus>(cfgc, TaskName{"hf-task-bplus"})};
   return workflow;
 }

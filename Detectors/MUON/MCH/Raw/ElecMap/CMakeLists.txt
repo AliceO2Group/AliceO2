@@ -17,6 +17,11 @@ o2_add_library(MCHRawElecMap
         src/CH7L.cxx
         src/CH7R.cxx
         src/CH8L.cxx
+        src/CH8R.cxx
+        src/CH9L.cxx
+        src/CH9R.cxx
+        src/CH10L.cxx
+        src/CH10R.cxx
         src/DsDetId.cxx
         src/DsElecId.cxx
         src/ElectronicMapperDummy.cxx

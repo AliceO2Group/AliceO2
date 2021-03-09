@@ -71,5 +71,5 @@ struct ValidationTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ValidationTask>(cfgc, "validation-qa")};
+    adaptAnalysisTask<ValidationTask>(cfgc, TaskName{"validation-qa"})};
 }

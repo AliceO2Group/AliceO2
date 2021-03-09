@@ -841,13 +841,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   int nranges = tokens->GetEntries();
 
   WorkflowSpec workflow{
-    adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc, "DptDptCorrelationsFilterAnalysisTask"),
-    adaptAnalysisTask<TracksAndEventClassificationQA>(cfgc, "TracksAndEventClassificationQA")};
+    adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc, TaskName{"DptDptCorrelationsFilterAnalysisTask"}),
+    adaptAnalysisTask<TracksAndEventClassificationQA>(cfgc, TaskName{"TracksAndEventClassificationQA"})};
   for (int i = 0; i < nranges; ++i) {
     float cmmin = 0.0f;
     float cmmax = 0.0f;
     sscanf(tokens->At(i)->GetName(), "%f-%f", &cmmin, &cmmax);
-    workflow.push_back(adaptAnalysisTask<DptDptCorrelationsTask>(cfgc, Form("DptDptCorrelationsTask-%s", tokens->At(i)->GetName()), cmmin, cmmax));
+    workflow.push_back(adaptAnalysisTask<DptDptCorrelationsTask>(cfgc, TaskName{Form("DptDptCorrelationsTask-%s", tokens->At(i)->GetName())}, cmmin, cmmax));
   }
   delete tokens;
   return workflow;

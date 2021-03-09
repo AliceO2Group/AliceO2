@@ -373,7 +373,7 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses)
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<EventSelection>(cfgc, "my-event-selection"),
-    adaptAnalysisTask<MuonTrackSelection>(cfgc, "muon-track-selection"),
-    adaptAnalysisTask<DileptonMuMu>(cfgc, "dilepton-mumu")};
+    adaptAnalysisTask<EventSelection>(cfgc, TaskName{"my-event-selection"}),
+    adaptAnalysisTask<MuonTrackSelection>(cfgc, TaskName{"muon-track-selection"}),
+    adaptAnalysisTask<DileptonMuMu>(cfgc, TaskName{"dilepton-mumu"})};
 }

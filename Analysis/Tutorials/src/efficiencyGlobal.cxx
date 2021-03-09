@@ -63,5 +63,5 @@ struct EfficiencyGlobal {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return WorkflowSpec{adaptAnalysisTask<EfficiencyGlobal>(cfgc, "EfficiencyGlobal")};
+  return WorkflowSpec{adaptAnalysisTask<EfficiencyGlobal>(cfgc, TaskName{"EfficiencyGlobal"})};
 }

@@ -78,6 +78,6 @@ struct TOFSpectraTaskSplit {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec workflow{adaptAnalysisTask<TOFSpectraTaskSplit>(cfgc, "tofspectra-split-task")};
+  WorkflowSpec workflow{adaptAnalysisTask<TOFSpectraTaskSplit>(cfgc, TaskName{"tofspectra-split-task"})};
   return workflow;
 }

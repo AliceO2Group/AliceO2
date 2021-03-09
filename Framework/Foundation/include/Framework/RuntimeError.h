@@ -30,6 +30,8 @@ RuntimeErrorRef runtime_error(const char*);
 RuntimeErrorRef runtime_error_f(const char*, ...);
 RuntimeError& error_from_ref(RuntimeErrorRef);
 
+void throw_error(RuntimeErrorRef);
+
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_RUNTIMEERROR_H_

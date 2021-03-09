@@ -182,7 +182,7 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
   c.setDigitInfo(0, mContributingDigit[0]->getChannel(), mContributingDigit[0]->getCalibratedTime(), mContributingDigit[0]->getTOT() * Geo::TOTBIN_NS);
 
   int ch1 = mContributingDigit[0]->getChannel();
-  short tot1 = mContributingDigit[0]->getTOT();
+  short tot1 = mContributingDigit[0]->getTOT() < 20000 ? mContributingDigit[0]->getTOT() : 20000;
   double dtime = c.getTimeRaw();
 
   int chan1, chan2;
@@ -235,7 +235,7 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
 
       if (mCalibFromCluster && c.getNumOfContributingChannels() == 2) { // fill info for calibration
         int8_t dch = int8_t(mContributingDigit[idig]->getChannel() - ch1);
-        short tot2 = mContributingDigit[idig]->getTOT();
+        short tot2 = mContributingDigit[idig]->getTOT() < 20000 ? mContributingDigit[idig]->getTOT() : 20000;
         dtime -= mContributingDigit[idig]->getTDC() * Geo::TDCBIN + mContributingDigit[idig]->getBC() * o2::constants::lhc::LHCBunchSpacingNS * 1E3;
         addCalibFromCluster(ch1, dch, float(dtime), tot1, tot2);
       }
