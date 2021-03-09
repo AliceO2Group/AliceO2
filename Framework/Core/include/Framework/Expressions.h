@@ -118,12 +118,12 @@ struct OpNode {
 /// A placeholder node for simple type configurable
 struct PlaceholderNode : LiteralNode {
   template <typename T>
-  PlaceholderNode(Configurable<T> v) : LiteralNode{v.value}
+  PlaceholderNode(Configurable<T> v) : LiteralNode{v.value}, name{v.name}
   {
     if constexpr (variant_trait_v<typename std::decay<T>::type> != VariantType::Unknown) {
-      retrieve = [name = v.name](InitContext& context) { return LiteralNode::var_t{context.options().get<T>(name.c_str())}; };
+      retrieve = [](InitContext& context, std::string const& name) { return LiteralNode::var_t{context.options().get<T>(name.c_str())}; };
     } else {
-      retrieve = [name = v.name](InitContext& context) {
+      retrieve = [](InitContext& context, std::string const& name) {
         auto pt = context.options().get<boost::property_tree::ptree>(name.c_str());
         return LiteralNode::var_t{RootConfigParamHelpers::as<T>(pt)};
       };
@@ -132,10 +132,11 @@ struct PlaceholderNode : LiteralNode {
 
   void reset(InitContext& context)
   {
-    value = retrieve(context);
+    value = retrieve(context, name);
   }
 
-  std::function<LiteralNode::var_t(InitContext&)> retrieve;
+  std::string name;
+  LiteralNode::var_t (*retrieve)(InitContext&, std::string const& name);
 };
 
 /// A generic tree node
