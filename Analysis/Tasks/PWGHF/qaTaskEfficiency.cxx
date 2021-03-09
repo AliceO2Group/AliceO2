@@ -204,19 +204,19 @@ o2fw::WorkflowSpec defineDataProcessing(o2fw::ConfigContext const& cfgc)
 {
   o2fw::WorkflowSpec w;
   if (cfgc.options().get<int>("eff-el")) {
-    w.push_back(o2fw::adaptAnalysisTask<QATrackingEfficiencyPt<o2::track::PID::Electron>>(cfgc, "qa-tracking-efficiency-electron"));
+    w.push_back(o2fw::adaptAnalysisTask<QATrackingEfficiencyPt<o2::track::PID::Electron>>(cfgc, o2fw::TaskName{"qa-tracking-efficiency-electron"}));
   }
   if (cfgc.options().get<int>("eff-mu")) {
-    w.push_back(o2fw::adaptAnalysisTask<QATrackingEfficiencyPt<o2::track::PID::Muon>>(cfgc, "qa-tracking-efficiency-muon"));
+    w.push_back(o2fw::adaptAnalysisTask<QATrackingEfficiencyPt<o2::track::PID::Muon>>(cfgc, o2fw::TaskName{"qa-tracking-efficiency-muon"}));
   }
   if (cfgc.options().get<int>("eff-pi")) {
-    w.push_back(o2fw::adaptAnalysisTask<QATrackingEfficiencyPt<o2::track::PID::Pion>>(cfgc, "qa-tracking-efficiency-pion"));
+    w.push_back(o2fw::adaptAnalysisTask<QATrackingEfficiencyPt<o2::track::PID::Pion>>(cfgc, o2fw::TaskName{"qa-tracking-efficiency-pion"}));
   }
   if (cfgc.options().get<int>("eff-ka")) {
-    w.push_back(o2fw::adaptAnalysisTask<QATrackingEfficiencyPt<o2::track::PID::Kaon>>(cfgc, "qa-tracking-efficiency-kaon"));
+    w.push_back(o2fw::adaptAnalysisTask<QATrackingEfficiencyPt<o2::track::PID::Kaon>>(cfgc, o2fw::TaskName{"qa-tracking-efficiency-kaon"}));
   }
   if (cfgc.options().get<int>("eff-pr")) {
-    w.push_back(o2fw::adaptAnalysisTask<QATrackingEfficiencyPt<o2::track::PID::Proton>>(cfgc, "qa-tracking-efficiency-proton"));
+    w.push_back(o2fw::adaptAnalysisTask<QATrackingEfficiencyPt<o2::track::PID::Proton>>(cfgc, o2fw::TaskName{"qa-tracking-efficiency-proton"}));
   }
   return w;
 }

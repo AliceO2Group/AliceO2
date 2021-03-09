@@ -537,12 +537,12 @@ struct QATrackingEfficiency {
 
 o2fw::WorkflowSpec defineDataProcessing(o2fw::ConfigContext const& cfgc)
 {
-  return o2fw::WorkflowSpec{o2fw::adaptAnalysisTask<QAGlobalObservables>(cfgc, "qa-global-observables"),
-                            o2fw::adaptAnalysisTask<QATrackingKine>(cfgc, "qa-tracking-kine"),
-                            o2fw::adaptAnalysisTask<QATrackingResolution>(cfgc, "qa-tracking-resolution"),
-                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kPiPlus>>(cfgc, "qa-tracking-efficiency-pion"),
-                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kProton>>(cfgc, "qa-tracking-efficiency-proton"),
-                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kElectron>>(cfgc, "qa-tracking-efficiency-electron"),
-                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kMuonMinus>>(cfgc, "qa-tracking-efficiency-muon"),
-                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kKPlus>>(cfgc, "qa-tracking-efficiency-kaon")};
+  return o2fw::WorkflowSpec{o2fw::adaptAnalysisTask<QAGlobalObservables>(cfgc, o2fw::TaskName{"qa-global-observables"}),
+                            o2fw::adaptAnalysisTask<QATrackingKine>(cfgc, o2fw::TaskName{"qa-tracking-kine"}),
+                            o2fw::adaptAnalysisTask<QATrackingResolution>(cfgc, o2fw::TaskName{"qa-tracking-resolution"}),
+                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kPiPlus>>(cfgc, o2fw::TaskName{"qa-tracking-efficiency-pion"}),
+                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kProton>>(cfgc, o2fw::TaskName{"qa-tracking-efficiency-proton"}),
+                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kElectron>>(cfgc, o2fw::TaskName{"qa-tracking-efficiency-electron"}),
+                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kMuonMinus>>(cfgc, o2fw::TaskName{"qa-tracking-efficiency-muon"}),
+                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kKPlus>>(cfgc, o2fw::TaskName{"qa-tracking-efficiency-kaon"})};
 };

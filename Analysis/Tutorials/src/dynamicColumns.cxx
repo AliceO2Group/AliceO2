@@ -40,5 +40,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   // create and use table
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, "attach-showcase")};
+    adaptAnalysisTask<ATask>(cfgc, TaskName{"attach-showcase"})};
 }

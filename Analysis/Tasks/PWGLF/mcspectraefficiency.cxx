@@ -151,13 +151,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   const bool reco = cfgc.options().get<int>("add-reco");
   WorkflowSpec workflow{};
   if (vertex) {
-    workflow.push_back(adaptAnalysisTask<VertexTask>(cfgc, "vertex-histogram"));
+    workflow.push_back(adaptAnalysisTask<VertexTask>(cfgc, TaskName{"vertex-histogram"}));
   }
   if (gen) {
-    workflow.push_back(adaptAnalysisTask<GeneratedTask>(cfgc, "generator-histogram"));
+    workflow.push_back(adaptAnalysisTask<GeneratedTask>(cfgc, TaskName{"generator-histogram"}));
   }
   if (reco) {
-    workflow.push_back(adaptAnalysisTask<ReconstructedTask>(cfgc, "reconstructed-histogram"));
+    workflow.push_back(adaptAnalysisTask<ReconstructedTask>(cfgc, TaskName{"reconstructed-histogram"}));
   }
   return workflow;
 }

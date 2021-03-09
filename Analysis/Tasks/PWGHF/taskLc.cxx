@@ -165,10 +165,10 @@ struct TaskLcMC {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<TaskLc>(cfgc, "hf-task-lc")};
+    adaptAnalysisTask<TaskLc>(cfgc, TaskName{"hf-task-lc"})};
   const bool doMC = cfgc.options().get<bool>("doMC");
   if (doMC) {
-    workflow.push_back(adaptAnalysisTask<TaskLcMC>(cfgc, "hf-task-lc-mc"));
+    workflow.push_back(adaptAnalysisTask<TaskLcMC>(cfgc, TaskName{"hf-task-lc-mc"}));
   }
   return workflow;
 }

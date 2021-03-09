@@ -297,11 +297,11 @@ struct GTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ETask>(cfgc, "output-obj-test"),
-    adaptAnalysisTask<ATask>(cfgc, "eta-and-phi-histograms"),
-    adaptAnalysisTask<BTask>(cfgc, "filtered-histograms"),
-    adaptAnalysisTask<CTask>(cfgc, "dimension-test"),
-    adaptAnalysisTask<DTask>(cfgc, "realistic-example"),
-    adaptAnalysisTask<FTask>(cfgc, "tlist-test"),
-    adaptAnalysisTask<GTask>(cfgc, "configurables-test")};
+    adaptAnalysisTask<ETask>(cfgc, TaskName{"output-obj-test"}),
+    adaptAnalysisTask<ATask>(cfgc, TaskName{"eta-and-phi-histograms"}),
+    adaptAnalysisTask<BTask>(cfgc, TaskName{"filtered-histograms"}),
+    adaptAnalysisTask<CTask>(cfgc, TaskName{"dimension-test"}),
+    adaptAnalysisTask<DTask>(cfgc, TaskName{"realistic-example"}),
+    adaptAnalysisTask<FTask>(cfgc, TaskName{"tlist-test"}),
+    adaptAnalysisTask<GTask>(cfgc, TaskName{"configurables-test"})};
 }

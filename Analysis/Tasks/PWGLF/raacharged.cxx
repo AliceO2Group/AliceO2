@@ -221,5 +221,5 @@ struct raacharged {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<raacharged>(cfgc, "raa-charged")};
+    adaptAnalysisTask<raacharged>(cfgc, TaskName{"raa-charged"})};
 }

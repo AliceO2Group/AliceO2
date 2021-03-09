@@ -123,5 +123,5 @@ struct JetFinderHadronRecoilTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<JetFinderHadronRecoilTask>(cfgc, "jet-finder-hadron-recoil")};
+    adaptAnalysisTask<JetFinderHadronRecoilTask>(cfgc, TaskName{"jet-finder-hadron-recoil"})};
 }

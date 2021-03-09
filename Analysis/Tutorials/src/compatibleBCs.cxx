@@ -96,7 +96,7 @@ struct CompatibleT0V0A {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<CompatibleBCs>(cfgc, "compatible-bcs"),
-    adaptAnalysisTask<CompatibleT0V0A>(cfgc, "compatible-t0-v0a"),
+    adaptAnalysisTask<CompatibleBCs>(cfgc, TaskName{"compatible-bcs"}),
+    adaptAnalysisTask<CompatibleT0V0A>(cfgc, TaskName{"compatible-t0-v0a"}),
   };
 }

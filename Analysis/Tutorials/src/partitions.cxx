@@ -77,6 +77,6 @@ struct BTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, "consume-tracks"),
-    adaptAnalysisTask<BTask>(cfgc, "partition-in-process")};
+    adaptAnalysisTask<ATask>(cfgc, TaskName{"consume-tracks"}),
+    adaptAnalysisTask<BTask>(cfgc, TaskName{"partition-in-process"})};
 }

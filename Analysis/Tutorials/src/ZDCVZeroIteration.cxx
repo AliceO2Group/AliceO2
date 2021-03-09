@@ -89,9 +89,9 @@ struct IterateV0ZDC {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<IterateV0>(cfgc, "iterate-v0"),
-    adaptAnalysisTask<IterateV0Exclusive>(cfgc, "iterate-v0-exclusive"),
-    adaptAnalysisTask<IterateV0Tracks>(cfgc, "iterate-v0-tracks"),
-    adaptAnalysisTask<IterateV0ZDC>(cfgc, "iterate-v0-zdc"),
+    adaptAnalysisTask<IterateV0>(cfgc, TaskName{"iterate-v0"}),
+    adaptAnalysisTask<IterateV0Exclusive>(cfgc, TaskName{"iterate-v0-exclusive"}),
+    adaptAnalysisTask<IterateV0Tracks>(cfgc, TaskName{"iterate-v0-tracks"}),
+    adaptAnalysisTask<IterateV0ZDC>(cfgc, TaskName{"iterate-v0-zdc"}),
   };
 }

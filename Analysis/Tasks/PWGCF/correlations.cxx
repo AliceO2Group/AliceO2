@@ -317,5 +317,5 @@ struct CorrelationTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<CorrelationTask>(cfgc, "correlation-task")};
+    adaptAnalysisTask<CorrelationTask>(cfgc, TaskName{"correlation-task"})};
 }

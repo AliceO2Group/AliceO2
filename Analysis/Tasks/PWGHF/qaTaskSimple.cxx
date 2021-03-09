@@ -339,8 +339,8 @@ struct QATrackingResolution {
 o2fw::WorkflowSpec defineDataProcessing(o2fw::ConfigContext const& cfgc)
 {
   o2fw::WorkflowSpec w;
-  w.push_back(o2fw::adaptAnalysisTask<QAGlobalObservables>(cfgc, "qa-global-observables"));
-  w.push_back(o2fw::adaptAnalysisTask<QATrackingKine>(cfgc, "qa-tracking-kine"));
-  w.push_back(o2fw::adaptAnalysisTask<QATrackingResolution>(cfgc, "qa-tracking-resolution"));
+  w.push_back(o2fw::adaptAnalysisTask<QAGlobalObservables>(cfgc, o2fw::TaskName{"qa-global-observables"}));
+  w.push_back(o2fw::adaptAnalysisTask<QATrackingKine>(cfgc, o2fw::TaskName{"qa-tracking-kine"}));
+  w.push_back(o2fw::adaptAnalysisTask<QATrackingResolution>(cfgc, o2fw::TaskName{"qa-tracking-resolution"}));
   return w;
 }

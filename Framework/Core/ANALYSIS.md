@@ -28,7 +28,7 @@ struct MyTask : AnalysisTask {
 
 defineDataProcessing() {
   return {
-    adaptAnalysisTask<MyTask>("my-task-unique-name");
+    adaptAnalysisTask<MyTask>(TaskName{"my-task-unique-name"});
   };
 }
 ```

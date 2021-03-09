@@ -90,6 +90,6 @@ struct TOFSpectraTask {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec workflow{adaptAnalysisTask<TOFSpectraTask>(cfgc, "tofspectra-task")};
+  WorkflowSpec workflow{adaptAnalysisTask<TOFSpectraTask>(cfgc, TaskName{"tofspectra-task"})};
   return workflow;
 }
