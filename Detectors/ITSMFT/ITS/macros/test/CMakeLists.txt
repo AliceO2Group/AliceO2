@@ -33,7 +33,7 @@ o2_add_test_root_macro(CheckDigits.C
 #                                             O2::DataFormatsITSMFT
 #                       LABELS its)
 
-o2_add_test_root_macro(CheckTopologies.C
+o2_add_test_root_macro(CreateDictionaries.C
                        PUBLIC_LINK_LIBRARIES O2::MathUtils
                                              O2::ITSBase
                                              O2::ITSMFTReconstruction
