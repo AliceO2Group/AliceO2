@@ -1,4 +1,4 @@
-/// \file CheckTopologies.C
+/// \file CreateDictionaries.C
 /// Macros to test the generation of a dictionary of topologies. Three dictionaries are generated: one with signal-cluster only, one with noise-clusters only and one with all the clusters.
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
@@ -32,12 +32,12 @@
 #include <unordered_map>
 #endif
 
-void CheckTopologies(std::string clusfile = "o2clus_its.root",
-                     std::string hitfile = "o2sim_HitsITS.root",
-                     std::string collContextfile = "collisioncontext.root",
-                     std::string inputGeom = "",
-                     float checkOutliers = 2., // reject outliers (MC dX or dZ exceeds row/col span by a factor above the threshold)
-                     float minPtMC = 0.01)     // account only MC hits with pT above threshold
+void CreateDictionaries(std::string clusfile = "o2clus_its.root",
+                        std::string hitfile = "o2sim_HitsITS.root",
+                        std::string collContextfile = "collisioncontext.root",
+                        std::string inputGeom = "",
+                        float checkOutliers = 2., // reject outliers (MC dX or dZ exceeds row/col span by a factor above the threshold)
+                        float minPtMC = 0.01)     // account only MC hits with pT above threshold
 {
   const int QEDSourceID = 99; // Clusters from this MC source correspond to QED electrons
 
