@@ -163,7 +163,7 @@ class AODProducerWorkflowDPL : public Task
                      std::vector<std::vector<std::vector<int>>>& toStore);
 
   template <typename MCParticlesCursorType>
-  void fillMCParticlesTable(const o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
+  void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
                             std::vector<std::vector<std::vector<int>>>& toStore);
 
   void writeTableToFile(TFile* outfile, std::shared_ptr<arrow::Table>& table, const std::string& tableName, uint64_t tfNumber);

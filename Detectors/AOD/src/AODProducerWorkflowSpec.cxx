@@ -263,7 +263,7 @@ void AODProducerWorkflowDPL::findRelatives(const o2::steer::MCKinematicsReader& 
 }
 
 template <typename MCParticlesCursorType>
-void AODProducerWorkflowDPL::fillMCParticlesTable(const o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
+void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
                                                   std::vector<std::vector<std::vector<int>>>& toStore)
 {
   int tableIndex = 1;
@@ -311,6 +311,7 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(const o2::steer::MCKinematicsR
                           truncateFloatFraction((float)mcParticles[track].Vz(), mMcParticlePos),
                           truncateFloatFraction((float)mcParticles[track].T(), mMcParticlePos));
       }
+      mcReader.releaseTracksForSourceAndEvent(source, event);
     }
   }
 }
