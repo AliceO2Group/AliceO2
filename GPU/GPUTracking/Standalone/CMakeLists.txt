@@ -118,6 +118,7 @@ find_package(O2GPU)
 
 # Global include directories
 include_directories(${CMAKE_SOURCE_DIR}
+                    ${CMAKE_SOURCE_DIR}/Debug
                     ${CMAKE_SOURCE_DIR}/Definitions
                     ${CMAKE_SOURCE_DIR}/DataTypes
                     ${CMAKE_SOURCE_DIR}/Base
@@ -229,7 +230,8 @@ if(CONFIG_ROOT)
                              ROOT::Core
                              ROOT::RIO
                              ROOT::Hist
-                             ROOT::Gui)
+                             ROOT::Gui
+                             ROOT::Tree)
 endif()
 if(CONFIG_O2_EXTENSIONS)
   target_link_libraries(standalone_support PUBLIC ms_gsl::ms_gsl)

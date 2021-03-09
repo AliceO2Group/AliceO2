@@ -14,42 +14,38 @@
 #ifndef GPUTPCCLUSTERERRORSTAT_H
 #define GPUTPCCLUSTERERRORSTAT_H
 
-//#define EXTRACT_RESIDUALS
+#define EXTRACT_RESIDUALS
 
 #if (defined(GPUCA_ALIROOT_LIB) || defined(GPUCA_BUILD_QA)) && !defined(GPUCA_GPUCODE) && defined(EXTRACT_RESIDUALS)
-#include "cagpu/GPUTPCGPURootDump.h"
+#include "GPUCommonRtypes.h"
+#include "GPUROOTDump.h"
 
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
 struct GPUTPCClusterErrorStat {
-  GPUTPCClusterErrorStat(int maxN) : fTupBuf(maxN) {}
+  GPUTPCClusterErrorStat(int maxN) : mTupBuf(maxN) {}
 
-  static GPUTPCGPURootDump<TNtuple> fTup;
-  static long long int fCount;
+  static long long int mCount;
 
-  std::vector<std::array<float, 10>> fTupBuf;
+  std::vector<std::array<float, 10>> mTupBuf;
 
   void Fill(float x, float y, float z, float alpha, float trkX, float* fP, float* fC, int ihit, int iWay)
   {
+    static GPUROOTDump<TNtuple> tup("clusterres", "clX:clY:clZ:angle:trkX:trkY:trkZ:trkSinPhi:trkDzDs:trkQPt:trkSigmaY2:trkSigmaZ2:trkSigmaSinPhi2:trkSigmaDzDs2:trkSigmaQPt2");
+
     if (iWay == 1) {
-      fTupBuf[ihit] = {fP[0], fP[1], fP[2], fP[3], fP[4], fC[0], fC[2], fC[5], fC[9], fC[14]};
+      mTupBuf[ihit] = {fP[0], fP[1], fP[2], fP[3], fP[4], fC[0], fC[2], fC[5], fC[9], fC[14]};
     } else if (iWay == 2) {
-      fTup.Fill(x, y, z, alpha, trkX, (fP[0] * fTupBuf[ihit][5] + fTupBuf[ihit][0] * fC[0]) / (fTupBuf[ihit][5] + fC[0]), (fP[1] * fTupBuf[ihit][6] + fTupBuf[ihit][1] * fC[2]) / (fTupBuf[ihit][6] + fC[2]), (fP[2] * fTupBuf[ihit][7] + fTupBuf[ihit][2] * fC[5]) / (fTupBuf[ihit][7] + fC[5]),
-                (fP[3] * fTupBuf[ihit][8] + fTupBuf[ihit][3] * fC[9]) / (fTupBuf[ihit][8] + fC[9]), (fP[4] * fTupBuf[ihit][9] + fTupBuf[ihit][4] * fC[14]) / (fTupBuf[ihit][9] + fC[14]), fC[0] * fTupBuf[ihit][5] / (fC[0] + fTupBuf[ihit][5]),
-                fC[2] * fTupBuf[ihit][6] / (fC[2] + fTupBuf[ihit][6]), fC[5] * fTupBuf[ihit][7] / (fC[5] + fTupBuf[ihit][7]), fC[9] * fTupBuf[ihit][8] / (fC[9] + fTupBuf[ihit][8]), fC[14] * fTupBuf[ihit][9] / (fC[14] + fTupBuf[ihit][9]));
-      if (++fCount == 2000000) {
-        GPUInfo("Reached %lld clusters in error stat, exiting", fCount);
-        fTup.~GPUTPCGPURootDump<TNtuple>();
-        exit(0);
-      }
+      tup.Fill(x, y, z, alpha, trkX, (fP[0] * mTupBuf[ihit][5] + mTupBuf[ihit][0] * fC[0]) / (mTupBuf[ihit][5] + fC[0]), (fP[1] * mTupBuf[ihit][6] + mTupBuf[ihit][1] * fC[2]) / (mTupBuf[ihit][6] + fC[2]), (fP[2] * mTupBuf[ihit][7] + mTupBuf[ihit][2] * fC[5]) / (mTupBuf[ihit][7] + fC[5]),
+               (fP[3] * mTupBuf[ihit][8] + mTupBuf[ihit][3] * fC[9]) / (mTupBuf[ihit][8] + fC[9]), (fP[4] * mTupBuf[ihit][9] + mTupBuf[ihit][4] * fC[14]) / (mTupBuf[ihit][9] + fC[14]), fC[0] * mTupBuf[ihit][5] / (fC[0] + mTupBuf[ihit][5]),
+               fC[2] * mTupBuf[ihit][6] / (fC[2] + mTupBuf[ihit][6]), fC[5] * mTupBuf[ihit][7] / (fC[5] + mTupBuf[ihit][7]), fC[9] * mTupBuf[ihit][8] / (fC[9] + mTupBuf[ihit][8]), fC[14] * mTupBuf[ihit][9] / (fC[14] + mTupBuf[ihit][9]));
     }
   }
 };
 
-GPUTPCGPURootDump<TNtuple> GPUTPCClusterErrorStat::fTup("clusterres.root", "clusterres", "clusterres", "clX:clY:clZ:angle:trkX:trkY:trkZ:trkSinPhi:trkDzDs:trkQPt:trkSigmaY2:trkSigmaZ2:trkSigmaSinPhi2:trkSigmaDzDs2:trkSigmaQPt2");
-long long int GPUTPCClusterErrorStat::fCount = 0;
+long long int GPUTPCClusterErrorStat::mCount = 0;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
