@@ -14,6 +14,7 @@
 #define GPUCA_CADEBUG 0
 #define DEBUG_SINGLE_TRACK -1
 
+#include "GPUTPCClusterErrorStat.h"
 #include "GPUTPCDef.h"
 #include "GPUTPCGMTrackParam.h"
 #include "GPUTPCGMPhysicalTrackModel.h"
@@ -26,7 +27,6 @@
 #include "GPUTPCClusterData.h"
 #include "GPUdEdx.h"
 #include "GPUParam.h"
-#include "GPUTPCClusterErrorStat.h"
 #include "GPUO2DataTypes.h"
 #include "GPUConstantMem.h"
 #include "TPCFastTransform.h"

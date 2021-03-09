@@ -37,6 +37,7 @@
 
 #include "GPUReconstruction.h"
 #include "GPUReconstructionIncludes.h"
+#include "GPUROOTDumpCore.h"
 
 #include "GPUMemoryResource.h"
 #include "GPUChain.h"
@@ -103,6 +104,7 @@ GPUReconstruction::GPUReconstruction(const GPUSettingsDeviceBackend& cfg) : mHos
     processors()->tpcClusterer[i].mISlice = i;
 #endif
   }
+  mROOTDump = GPUROOTDumpCore::getAndCreate();
 }
 
 GPUReconstruction::~GPUReconstruction()
