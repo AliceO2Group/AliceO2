@@ -178,37 +178,26 @@ void Trap2CRU::readTrapData()
 
   openInputFiles();
 
-  if (mDigitsTree->GetEntries() != 1) {
-    LOG(fatal) << "more than one entry in digits tree " << mDigitsTree->GetEntries();
-  }
-  if (mTrackletsTree->GetEntries() != 1) {
-    LOG(fatal) << "more than one entry in tracklets tree " << mTrackletsTree->GetEntries();
+  if (mTrackletsTree->GetEntries() != mDigitsTree->GetEntries()) {
+    LOG(fatal) << "Entry counts in mTrackletsTree and Digits Tree dont match " << mTrackletsTree->GetEntries() << "!=" << mDigitsTree->GetEntries();
   }
 
-  for (int entry = 0; entry < mDigitsTree->GetEntries(); entry++) {
-    mDigitsTree->GetEntry(entry);
-    uint32_t linkcount = 0;
-  }
+  int triggercount = 42; // triggercount is here so that we can span timeframes. The actual number is of no consequence,but must increase.
   for (int entry = 0; entry < mTrackletsTree->GetEntries(); entry++) {
     mTrackletsTree->GetEntry(entry);
-  }
-  sortDataToLinks();
-  // everything is passed as the first entry in the tree.
-  // and then work with the resulting vectors from the branches.
-  uint32_t linkcount = 0;
-  for (auto tracklettrigger : mTrackletTriggerRecords) {
-    //get the event limits from TriggerRecord;
-    uint32_t eventstart = tracklettrigger.getFirstEntry();
-    uint32_t eventend = tracklettrigger.getFirstEntry() + tracklettrigger.getNumberOfObjects();
-    LOG(debug) << "looping over tracklet trigger : " << eventstart << " -> " << eventend << " with bc of " << tracklettrigger.getBCData().bc << " orbit of : " << tracklettrigger.getBCData().orbit;
-    for (auto digitstrigger : mDigitTriggerRecords) {
-      //get the event limits from TriggerRecord;
-      uint32_t eventstart = digitstrigger.getFirstEntry();
-      uint32_t eventend = digitstrigger.getFirstEntry() + digitstrigger.getNumberOfObjects();
-      if (digitstrigger.getBCData() == tracklettrigger.getBCData()) {
-        LOG(debug) << " we have a match for bc : " << tracklettrigger.getBCData().bc << " orbit of : " << tracklettrigger.getBCData().orbit;
-        convertTrapData(tracklettrigger, digitstrigger);
+    mDigitsTree->GetEntry(entry);
+    //TODO figure out if want to care about unaligned trees.
+    sortDataToLinks();
+    // each entry is a timeframe
+    uint32_t linkcount = 0;
+    for (auto tracklettrigger : mTrackletTriggerRecords) {
+      for (auto digitstrigger : mDigitTriggerRecords) {
+        //get the event limits from TriggerRecord;
+        if (digitstrigger.getBCData() == tracklettrigger.getBCData()) {
+          convertTrapData(tracklettrigger, digitstrigger, triggercount);
+        }
       }
+      triggercount++;
     }
   }
 }
@@ -253,6 +242,7 @@ uint32_t Trap2CRU::buildHalfCRUHeader(HalfCRUHeader& header, const uint32_t bc, 
   uint32_t crudatasize = 0; //link size in units of 256 bits.
   int endpoint = halfcru % 2 ? 1 : 0;
   uint32_t padding = 0;
+  //TODO this bunchcrossing is not the same as the bunchcrossing in the rdh, which is effectively the bc coming in the parameter list to this function.
   setHalfCRUHeader(header, crurdhversion, bunchcrossing, stopbits, endpoint, eventtype, feeid, cruid); //TODO come back and pull this from somewhere.
 
   return 1;
@@ -278,9 +268,9 @@ bool Trap2CRU::isDigitOnLink(const int linkid, const int currentdigitpos)
   return false;
 }
 
-int Trap2CRU::buildDigitRawData(const int digitindex, const std::array<int64_t, o2::trd::constants::NADCMCM>& localParsedDigits, const uint32_t bc)
+int Trap2CRU::buildDigitRawData(const int digitindex, const std::array<int64_t, o2::trd::constants::NADCMCM>& localParsedDigits, const uint32_t triggerrecordcount)
 {
-  LOG(debug) << __func__ << " digitindex:" << digitindex << " and bc of" << bc;
+  LOG(debug) << __func__ << " digitindex:" << digitindex << " and triggercount of" << triggerrecordcount;
   //this is not zero suppressed.
   int digitswritten = 0;
   //    Digit
@@ -294,7 +284,7 @@ int Trap2CRU::buildDigitRawData(const int digitindex, const std::array<int64_t, 
   header.mcm = startmcm;
   header.rob = startrob;
   header.yearflag = 1; // >2007
-  header.eventcount = bc;
+  header.eventcount = triggerrecordcount;
   header.yearflag = 1;
   memcpy(mRawDataPtr, (char*)&header, 4); // 32 bits -- 4 bytes.
   LOG(debug) << "writing data to digit stream of " << std::hex << header.word;
@@ -413,7 +403,7 @@ int Trap2CRU::writeTrackletEndMarker()
   return wordswritten;
 }
 
-int Trap2CRU::writeHCHeader(uint64_t bc, uint32_t linkid)
+int Trap2CRU::writeHCHeader(const int eventcount, const uint32_t linkid)
 { // we have 2 HCHeaders defined Tracklet and Digit in Rawdata.h
   //TODO is it a case of run2 and run3 ? for digithcheader and tracklethcheader?
   //The parsing I am doing of CRU raw data only has a DigitHCHeader in it after the TrackletEndMarker ... confusion?
@@ -426,7 +416,7 @@ int Trap2CRU::writeHCHeader(uint64_t bc, uint32_t linkid)
   trackletheader.layer = linkid;
   trackletheader.one = 1;
   trackletheader.side = (linkid % 2) ? 1 : 0;
-  trackletheader.MCLK = bc; // just has to be a consistant increasing number per event.
+  trackletheader.MCLK = eventcount * 42; // just has to be a consistant increasing number per event.
   trackletheader.format = 12;
 
   DigitHCHeader digitheader;
@@ -435,14 +425,14 @@ int Trap2CRU::writeHCHeader(uint64_t bc, uint32_t linkid)
   digitheader.stack = (detector % (o2::trd::constants::NLAYER * o2::trd::constants::NSTACK)) / o2::trd::constants::NLAYER;
   digitheader.layer = (detector % o2::trd::constants::NLAYER);
   digitheader.supermodule = linkid / 60;
-  digitheader.numberHCW = 1;
-  digitheader.minor = 42;
-  digitheader.major = 42;
-  digitheader.version = 1;
+  digitheader.numberHCW = 1; //TODO put something more real in here?
+  digitheader.minor = 42;    //TODO put something more real in here?
+  digitheader.major = 42;    //TODO put something more real in here?
+  digitheader.version = 1;   //TODO put something more real in here?
   digitheader.res1 = 1;
-  digitheader.ptrigcount = 1;
-  digitheader.ptrigphase = 1;
-  digitheader.bunchcrossing = bc;
+  digitheader.ptrigcount = 1;             //TODO put something more real in here?
+  digitheader.ptrigphase = 1;             //TODO put something more real in here?
+  digitheader.bunchcrossing = eventcount; //NB this is not the same as the bunchcrossing the rdh.
   digitheader.numtimebins = 30;
   if (mUseTrackletHCHeader) { // run 3 we also have a TrackletHalfChamber, that comes after thetracklet endmarker.
     memcpy(mRawDataPtr, (char*)&trackletheader, sizeof(TrackletHCHeader));
@@ -455,7 +445,7 @@ int Trap2CRU::writeHCHeader(uint64_t bc, uint32_t linkid)
   return wordswritten;
 }
 
-void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& trackletTriggerRecord, o2::trd::TriggerRecord const& digitTriggerRecord)
+void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& trackletTriggerRecord, o2::trd::TriggerRecord const& digitTriggerRecord, const int& triggercount)
 {
   //  LOG(info) << "starting :" << __func__ ; //<<
   //build a HalfCRUHeader for this event/cru/endpoint
@@ -519,7 +509,7 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& trackletTriggerReco
         int trackletendmarker = writeTrackletEndMarker();
         linkwordswritten += trackletendmarker;
         rawwords += trackletendmarker;
-        int hcheaderwords = writeHCHeader(trackletTriggerRecord.getBCData().bc, linkid);
+        int hcheaderwords = writeHCHeader(triggercount, linkid);
         linkwordswritten += hcheaderwords;
         rawwords += hcheaderwords;
         while (isDigitOnLink(linkid, mDigitsIndex[mCurrentDigit])) {
@@ -543,7 +533,7 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& trackletTriggerReco
           // mcm digits are full, now write it out.
           char* preptr;
           preptr = mRawDataPtr;
-          int digits = buildDigitRawData(mDigitsIndex[mCurrentDigit], localParsedDigitsindex, digitTriggerRecord.getBCData().bc);
+          int digits = buildDigitRawData(mDigitsIndex[mCurrentDigit], localParsedDigitsindex, triggercount);
           //mCurrentDigit += digits;
           //due to not being zero suppressed, digits returned from buildDigitRawData should *always* be 21.
           if (digits != 21) {
