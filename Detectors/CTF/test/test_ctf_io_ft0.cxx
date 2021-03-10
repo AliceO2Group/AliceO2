@@ -14,6 +14,7 @@
 #include <boost/test/unit_test.hpp>
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "FT0Reconstruction/CTFCoder.h"
+#include "FT0Simulation/DigitizationParameters.h"
 #include "Framework/Logger.h"
 #include <TFile.h>
 #include <TRandom.h>
@@ -46,7 +47,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
       uint16_t q = gRandom->Integer(4096);
       uint8_t chain = gRandom->Rndm() > 0.5 ? 0 : 1;
       channels.emplace_back(ich, t, q, chain);
-      if (std::abs(t) < Geometry::mTime_trg_gate) {
+      if (std::abs(t) < DigitizationParameters::mTime_trg_gate) {
         if (ich < 4 * uint8_t(Geometry::NCellsA)) {
           trig.nChanA++;
           ampTotA += q;

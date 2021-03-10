@@ -15,6 +15,7 @@
 #include "FairLogger.h" // for LOG
 #include "DataFormatsFT0/RecPoints.h"
 #include "FT0Base/Geometry.h"
+#include "FT0Simulation/DigitizationParameters.h"
 #include <DataFormatsFT0/ChannelData.h>
 #include <DataFormatsFT0/Digit.h>
 #include <cmath>
@@ -48,7 +49,7 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
   for (int ich = 0; ich < nch; ich++) {
     outChData[ich] = o2::ft0::ChannelDataFloat{inChData[ich].ChId,
                                                inChData[ich].CFDTime * Geometry::ChannelWidth,
-                                               (double)inChData[ich].QTCAmpl * Geometry::MV_2_NchannelsInverse,
+                                               (double)inChData[ich].QTCAmpl * DigitizationParameters::mMV_2_NchannelsInverse,
                                                inChData[ich].ChainQTC};
 
     //  only signals with amplitude participate in collision time
