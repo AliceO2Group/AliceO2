@@ -64,6 +64,10 @@ class AltroDecoderError : public std::exception
   /// \return the error type
   static ErrorType_t intToErrorType(int errornumber);
 
+  /// \brief Get the number of error types handled by the AltroDecoderError
+  /// \return Number of error types
+  static constexpr int getNumberOfErrorTypes() noexcept { return 8; }
+
   /// \brief Access to the error type connected to the erro
   /// \return Error type
   const ErrorType_t getErrorType() const noexcept { return mErrorType; }
