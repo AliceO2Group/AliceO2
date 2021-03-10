@@ -34,6 +34,11 @@ o2_add_library(TPCWorkflow
                                      O2::TPCCalibration O2::TPCSimulation
                                      O2::DetectorsCalibration)
 
+o2_add_executable(chunkeddigit-merger
+        COMPONENT_NAME tpc
+        SOURCES src/ChunkedDigitPublisher.cxx
+        PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
 o2_add_executable(reco-workflow
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-reco-workflow.cxx
