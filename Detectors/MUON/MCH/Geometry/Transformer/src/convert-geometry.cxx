@@ -145,9 +145,13 @@ void convertGeom(const TGeoManager& geom)
     }
     writer.Key("symname");
     writer.String(symname.c_str());
-    auto matrix = ae->GetMatrix();
-    bool aligned{true};
-    if (!matrix) {
+    auto pn = ae->GetPhysicalNode();
+    const TGeoHMatrix* matrix{nullptr};
+    bool aligned{false};
+    if (pn) {
+      matrix = pn->GetMatrix();
+      aligned = pn->IsAligned();
+    } else {
       matrix = ae->GetGlobalOrig();
       aligned = false;
     }
