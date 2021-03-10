@@ -27,8 +27,8 @@ constexpr int NCRU = 1;
 constexpr int NLINKS = 2;
 constexpr uint64_t TriggerInputMask = 0x3fffffffffff;
 constexpr double_t TriggerInputMask_d = TriggerInputMask;
-constexpr uint64_t TrgclassInputMask = 0xffffffffffffffff;
-constexpr double_t TrgclassInputMask_d = 0xffffffffffffffff;
+constexpr uint64_t TriggerClassMask = 0xffffffffffffffff;
+constexpr double_t TriggerClassMask_d = 0xffffffffffffffff;
 
 class CTPRawWriter
 {

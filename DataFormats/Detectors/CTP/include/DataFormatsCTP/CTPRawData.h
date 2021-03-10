@@ -37,6 +37,10 @@ struct CTPIRdigit {
   uint16_t bcid;
   std::bitset<NumberOfInputsIR> inputMaskIR;
 };
+struct CTPTRdigit{
+  uint16_t bcid;
+  std::bitset<NumberOfClasses> classMaskTR;
+};
 } // namespace ctp
 } // namespace o2
 // namespace o2
