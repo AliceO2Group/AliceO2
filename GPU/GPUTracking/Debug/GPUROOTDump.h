@@ -14,13 +14,15 @@
 #ifndef GPUROOTDUMP_H
 #define GPUROOTDUMP_H
 
-#include "GPUROOTDumpCore.h"
-
+#include "GPUCommonDef.h"
 #if !defined(GPUCA_NO_ROOT) && !defined(GPUCA_GPUCODE)
+#include "GPUROOTDumpCore.h"
 #include <TTree.h>
 #include <TNtuple.h>
 #include <memory>
 #include <stdexcept>
+#else
+class TNtuple;
 #endif
 
 namespace GPUCA_NAMESPACE
@@ -55,11 +57,6 @@ class GPUROOTDump : public GPUROOTDumpBase
   {
     static GPUROOTDump<T> instance(name);
   }
-  GPUROOTDump(const char* name)
-  {
-    mTree = new TTree(name, name);
-    mTree->Branch(name, &mObj);
-  }
 
   void write() override { mTree->Write(); }
 
@@ -70,6 +67,11 @@ class GPUROOTDump : public GPUROOTDumpBase
   }
 
  private:
+  GPUROOTDump(const char* name)
+  {
+    mTree = new TTree(name, name);
+    mTree->Branch(name, &mObj);
+  }
   TTree* mTree = nullptr;
   T mObj;
 };
@@ -83,10 +85,6 @@ class GPUROOTDump<TNtuple> : public GPUROOTDumpBase
     static GPUROOTDump<TNtuple> instance(name, options);
     return instance;
   }
-  GPUROOTDump(const char* name, const char* options)
-  {
-    mNTuple = new TNtuple(name, name, options);
-  }
 
   void write() override { mNTuple->Write(); }
 
@@ -97,6 +95,10 @@ class GPUROOTDump<TNtuple> : public GPUROOTDumpBase
   }
 
  private:
+  GPUROOTDump(const char* name, const char* options)
+  {
+    mNTuple = new TNtuple(name, name, options);
+  }
   TNtuple* mNTuple;
 };
 #else
@@ -104,7 +106,15 @@ template <class T>
 class GPUROOTDump
 {
  public:
-  GPUROOTDump() = delete;
+  template <typename... Args>
+  GPUd() void Fill(Args... args) const
+  {
+  }
+  template <typename... Args>
+  GPUd() static GPUROOTDump<T>& get(Args... args)
+  {
+    return *(GPUROOTDump<T>*)(size_t)(1024); // Will never be used, return just some reference
+  }
 };
 #endif
 } // namespace gpu
