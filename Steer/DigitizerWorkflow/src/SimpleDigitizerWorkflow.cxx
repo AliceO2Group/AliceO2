@@ -148,6 +148,10 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(
     ConfigParamSpec{"tpc-reco-type", VariantType::String, "", {tpcrthelp}});
 
+  // Option to write TPC digits internaly, without forwarding to a special writer instance.
+  // This is useful in GRID productions with small available memory.
+  workflowOptions.push_back(ConfigParamSpec{"tpc-chunked-writer", o2::framework::VariantType::Bool, false, {"Write independent TPC digit chunks as soon as they can be flushed."}});
+
   std::string simhelp("Comma separated list of simulation prefixes (for background, signal productions)");
   workflowOptions.push_back(
     ConfigParamSpec{"sims", VariantType::String, "o2sim", {simhelp}});
@@ -439,14 +443,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     auto lanes = helpasked ? 1 : getNumTPCLanes(tpcsectors, configcontext);
     detList.emplace_back(o2::detectors::DetID::TPC);
 
-    WorkflowSpec tpcPipelines = o2::tpc::getTPCDigitizerSpec(lanes, tpcsectors, mctruth);
+    auto internalwrite = configcontext.options().get<bool>("tpc-chunked-writer");
+    WorkflowSpec tpcPipelines = o2::tpc::getTPCDigitizerSpec(lanes, tpcsectors, mctruth, internalwrite);
     specs.insert(specs.end(), tpcPipelines.begin(), tpcPipelines.end());
 
     if (configcontext.options().get<std::string>("tpc-reco-type").empty() == false) {
       throw std::runtime_error("option 'tpc-reco-type' is deprecated, please connect workflows on the command line by pipe");
     }
-    // for writing digits to disc
-    specs.emplace_back(o2::tpc::getTPCDigitRootWriterSpec(tpcsectors, mctruth));
+    if (!internalwrite) {
+      // for writing digits to disc
+      specs.emplace_back(o2::tpc::getTPCDigitRootWriterSpec(tpcsectors, mctruth));
+    }
   }
 
   // first 36 channels are reserved for the TPC
