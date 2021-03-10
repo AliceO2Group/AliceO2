@@ -434,6 +434,9 @@ bool DataProcessingDevice::ConditionalRun()
     auto shouldNotWait = (mWasActive &&
                           (mDataProcessorContexes.at(0).state->streaming != StreamingState::Idle) && (mState.activeSignals.empty())) ||
                          (mDataProcessorContexes.at(0).state->streaming == StreamingState::EndOfStreaming);
+    if (NewStatePending()) {
+      shouldNotWait = true;
+    }
     uv_run(mState.loop, shouldNotWait ? UV_RUN_NOWAIT : UV_RUN_ONCE);
   }
 
