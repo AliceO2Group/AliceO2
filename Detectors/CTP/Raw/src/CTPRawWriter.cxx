@@ -46,8 +46,10 @@ int o2::ctp::CTPRawWriter::createRawFromIRs()
     std::memcpy(buffer.data(), &digit, sizeof(CTPIRdigit));
     mWriter.addData(mlink0, mcru, mlink0, 0, ir, buffer);
     //
-    uint64_t classMask = (uint64_t)(rnd * TriggerClassMask_d);
-
+    uint64_t classMask = (uint64_t)( rnd * TriggerClassMask_d);
+    CTPTRdigit trdigit{intrec.bc, classMask};
+    buffer.resize(o2::raw::RDHUtils::GBTWord);
+    std::memcpy(buffer.data(), &trdigit, sizeof(CTPTRdigit));
     mWriter.addData(mlink1, mcru, mlink1, 0, ir, buffer);
   }
   mWriter.writeConfFile(mWriter.getOrigin().str, "RAWDATA", mConfigName);
