@@ -183,6 +183,9 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
     std::string key = spec.name.substr(0, spec.name.find(','));
     auto it = in.get_child_optional(key);
     if (!it) {
+      it = in.get_child_optional(boost::property_tree::path(key, '/'));
+    }
+    if (!it) {
       continue;
     }
     try {
