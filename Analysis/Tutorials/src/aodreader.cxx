@@ -152,5 +152,5 @@ struct ATask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, "process-unoduetre")};
+    adaptAnalysisTask<ATask>(cfgc, TaskName{"process-unoduetre"})};
 }

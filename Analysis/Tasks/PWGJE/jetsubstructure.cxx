@@ -121,5 +121,5 @@ struct JetSubstructure {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<JetSubstructure>(cfgc, "jet-substructure")};
+    adaptAnalysisTask<JetSubstructure>(cfgc, TaskName{"jet-substructure"})};
 }

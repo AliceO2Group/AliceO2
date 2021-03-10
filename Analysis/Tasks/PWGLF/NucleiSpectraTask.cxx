@@ -108,5 +108,5 @@ struct NucleiSpecraTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<NucleiSpecraTask>(cfgc, "nuclei-spectra")};
+    adaptAnalysisTask<NucleiSpecraTask>(cfgc, TaskName{"nuclei-spectra"})};
 }

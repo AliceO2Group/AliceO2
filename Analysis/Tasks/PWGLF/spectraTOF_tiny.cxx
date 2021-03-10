@@ -79,6 +79,6 @@ struct TOFSpectraTaskTiny {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec workflow{adaptAnalysisTask<TOFSpectraTaskTiny>(cfgc, "tofspectra-tiny-task")};
+  WorkflowSpec workflow{adaptAnalysisTask<TOFSpectraTaskTiny>(cfgc, TaskName{"tofspectra-tiny-task"})};
   return workflow;
 }

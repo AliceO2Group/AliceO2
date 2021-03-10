@@ -358,8 +358,16 @@ timePipeline(DataProcessorSpec{
 ```
 
 which will result in two devices, one for even time periods, the other one for
-odd timeperiods.
+odd timeperiods. This can also be achieved on the command line via the `--pipeline <processor name>:<N>` option, e.g. `--pipeline processor:2` in this case.
 
+You can get programmatically the number of time pipelined devices you belong and the rank by looking it up in the `DeviceSpec`, e.g.:
+
+```cpp
+ctx.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
+ctx.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices;
+```
+
+Where ctx is either the ProcessingContext or the InitContext.
 
 ### Disabling monitoring
 

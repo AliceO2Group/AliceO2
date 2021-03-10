@@ -53,5 +53,5 @@ struct ATask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, "mySimpleTrackAnalysis", 0)};
+    adaptAnalysisTask<ATask>(cfgc, TaskName{"mySimpleTrackAnalysis"}, 0)};
 }

@@ -51,7 +51,7 @@ struct IterateMuonsSparse {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<IterateMuons>(cfgc, "iterate-muons"),
-    adaptAnalysisTask<IterateMuonsSparse>(cfgc, "iterate-muons-sparse"),
+    adaptAnalysisTask<IterateMuons>(cfgc, TaskName{"iterate-muons"}),
+    adaptAnalysisTask<IterateMuonsSparse>(cfgc, TaskName{"iterate-muons-sparse"}),
   };
 }

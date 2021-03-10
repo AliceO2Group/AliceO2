@@ -65,5 +65,5 @@ struct JetSkimmingTask1 {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<JetSkimmingTask1>(cfgc, "jet-skimmer")};
+    adaptAnalysisTask<JetSkimmingTask1>(cfgc, TaskName{"jet-skimmer"})};
 }

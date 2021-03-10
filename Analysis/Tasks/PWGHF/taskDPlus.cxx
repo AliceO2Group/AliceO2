@@ -162,10 +162,10 @@ struct TaskDPlusMC {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<TaskDPlus>(cfgc, "hf-task-dplus")};
+    adaptAnalysisTask<TaskDPlus>(cfgc, TaskName{"hf-task-dplus"})};
   const bool doMC = cfgc.options().get<bool>("doMC");
   if (doMC) {
-    workflow.push_back(adaptAnalysisTask<TaskDPlusMC>(cfgc, "hf-task-dplus-mc"));
+    workflow.push_back(adaptAnalysisTask<TaskDPlusMC>(cfgc, TaskName{"hf-task-dplus-mc"}));
   }
   return workflow;
 }

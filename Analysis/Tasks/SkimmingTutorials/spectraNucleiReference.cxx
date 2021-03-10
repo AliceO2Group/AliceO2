@@ -109,5 +109,5 @@ struct NucleiSpectraReferenceTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<NucleiSpectraReferenceTask>(cfgc, "nucleispectra-task-skim-reference")};
+    adaptAnalysisTask<NucleiSpectraReferenceTask>(cfgc, TaskName{"nucleispectra-task-skim-reference"})};
 }

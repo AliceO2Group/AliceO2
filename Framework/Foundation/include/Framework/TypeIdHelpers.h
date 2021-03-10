@@ -12,6 +12,7 @@
 #define O2_FRAMEWORK_TYPEIDHELPERS_H_
 
 #include <string_view>
+#include <sstream>
 #include "Framework/StringHelpers.h"
 
 #if defined(__GNUC__) && (__GNUC__ < 8)
@@ -49,6 +50,60 @@ struct TypeIdHelpers {
     return r;
   }
 };
+
+/// Return pure type name with no namespaces etc.
+/// Works fine with GCC and CLANG,
+template <typename T>
+constexpr static std::string_view type_name();
+
+template <>
+constexpr std::string_view type_name<void>()
+{
+  return "void";
+}
+
+namespace detail
+{
+
+using type_name_prober = void;
+
+static std::size_t wrapped_type_name_prefix_length()
+{
+  return unique_type_id_v<type_name_prober>.find(type_name<type_name_prober>());
+}
+
+static std::size_t wrapped_type_name_suffix_length()
+{
+  return unique_type_id_v<type_name_prober>.length() - wrapped_type_name_prefix_length() - type_name<type_name_prober>().length();
+}
+
+} // namespace detail
+
+template <typename T>
+constexpr static std::string_view type_name()
+{
+  constexpr std::string_view wrapped_name{unique_type_id_v<T>};
+  const auto prefix_length = detail::wrapped_type_name_prefix_length();
+  const auto suffix_length = detail::wrapped_type_name_suffix_length();
+  const auto type_name_length = wrapped_name.length() - prefix_length - suffix_length;
+  return wrapped_name.substr(prefix_length, type_name_length);
+}
+
+/// Convert a CamelCase task struct name to snake-case task name
+inline static std::string type_to_task_name(std::string_view& camelCase)
+{
+  std::ostringstream str;
+  str << static_cast<char>(std::tolower(camelCase[0]));
+
+  for (auto it = camelCase.begin() + 1; it != camelCase.end(); ++it) {
+    if (std::isupper(*it) && *(it - 1) != '-') {
+      str << "-";
+    }
+    str << static_cast<char>(std::tolower(*it));
+  }
+
+  return str.str();
+}
 
 } // namespace o2::framework
 

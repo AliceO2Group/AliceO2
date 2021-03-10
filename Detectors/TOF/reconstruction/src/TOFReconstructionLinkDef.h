@@ -21,5 +21,6 @@
 #pragma link C++ class o2::tof::raw::Encoder + ;
 #pragma link C++ class o2::tof::compressed::Decoder + ;
 #pragma link C++ class o2::tof::CTFCoder + ;
+#pragma link C++ class o2::tof::CosmicProcessor + ;
 
 #endif

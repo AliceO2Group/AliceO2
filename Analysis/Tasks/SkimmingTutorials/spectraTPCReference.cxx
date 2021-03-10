@@ -110,6 +110,6 @@ struct TPCSpectraReferenceTask {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec workflow{adaptAnalysisTask<TPCSpectraReferenceTask>(cfgc, "tpcspectra-task-skim-reference")};
+  WorkflowSpec workflow{adaptAnalysisTask<TPCSpectraReferenceTask>(cfgc, TaskName{"tpcspectra-task-skim-reference"})};
   return workflow;
 }

@@ -65,6 +65,7 @@ class RawToCellConverterSpec : public framework::Task
   std::unique_ptr<o2::emcal::CaloRawFitter> mRawFitter;         ///!<! Raw fitter
   std::vector<o2::emcal::Cell> mOutputCells;                    ///< Container with output cells
   std::vector<o2::emcal::TriggerRecord> mOutputTriggerRecords;  ///< Container with output cells
+  std::vector<ErrorTypeFEE> mOutputDecoderErrors;               ///< Container with decoder errors
 };
 
 /// \brief Creating DataProcessorSpec for the EMCAL Cell Converter Spec

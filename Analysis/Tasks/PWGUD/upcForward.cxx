@@ -110,5 +110,5 @@ struct UPCForward {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<UPCForward>(cfgc, "upc-forward")};
+    adaptAnalysisTask<UPCForward>(cfgc, TaskName{"upc-forward"})};
 }

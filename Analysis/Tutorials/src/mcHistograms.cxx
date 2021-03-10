@@ -80,8 +80,8 @@ struct CTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, "vertex-histogram"),
-    adaptAnalysisTask<BTask>(cfgc, "etaphi-histogram"),
-    adaptAnalysisTask<CTask>(cfgc, "eta-resolution-histogram"),
+    adaptAnalysisTask<ATask>(cfgc, TaskName{"vertex-histogram"}),
+    adaptAnalysisTask<BTask>(cfgc, TaskName{"etaphi-histogram"}),
+    adaptAnalysisTask<CTask>(cfgc, TaskName{"eta-resolution-histogram"}),
   };
 }
