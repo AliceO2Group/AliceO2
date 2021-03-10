@@ -211,12 +211,17 @@ void AODProducerWorkflowDPL::fillTracksTable(const TTracks& tracks, std::vector<
   }
 }
 
-template <typename TMCTruthITS, typename TMCTruthTPC>
-void AODProducerWorkflowDPL::findRelatives(const o2::steer::MCKinematicsReader& mcReader, const TMCTruthITS& mcTruthITS, const TMCTruthTPC& mcTruthTPC,
-                                           std::vector<std::vector<std::vector<int>>>& toStore)
+template <typename MCParticlesCursorType>
+void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
+                                                  gsl::span<const o2::MCCompLabel>& mcTruthITS, gsl::span<const o2::MCCompLabel>& mcTruthTPC,
+                                                  std::vector<std::vector<std::vector<int>>>& toStore)
 {
+  // mark reconstructed MC tracks to store them into the table
   if (mFillTracksITS) {
     for (auto& mcTruth : mcTruthITS) {
+      if (!mcTruth.isValid()) {
+        continue;
+      }
       int source = mcTruth.getSourceID();
       int event = mcTruth.getEventID();
       int track = mcTruth.getTrackID();
@@ -225,50 +230,48 @@ void AODProducerWorkflowDPL::findRelatives(const o2::steer::MCKinematicsReader& 
   }
   if (mFillTracksTPC) {
     for (auto& mcTruth : mcTruthTPC) {
+      if (!mcTruth.isValid()) {
+        continue;
+      }
       int source = mcTruth.getSourceID();
       int event = mcTruth.getEventID();
       int track = mcTruth.getTrackID();
       toStore[source][event][track] = 1;
     }
   }
+  int tableIndex = 1;
   for (int source = 0; source < mcReader.getNSources(); source++) {
     for (int event = 0; event < mcReader.getNEvents(source); event++) {
       std::vector<MCTrack> const& mcParticles = mcReader.getTracks(source, event);
-      for (int track = mcParticles.size() - 1; track <= 0; track--) {
-        int mother0 = mcParticles[track].getMotherTrackId();
-        int mother1 = mcParticles[track].getSecondMotherTrackId();
-        if (mother0 == -1 || mother1 == -1) {
-          toStore[source][event][track] = 1;
-        }
-        if (toStore[source][event][track] == 0) {
-          continue;
-        }
-        if (mother0 != -1) {
-          toStore[source][event][mother0] = 1;
-        }
-        if (mother1 != -1) {
-          toStore[source][event][mother1] = 1;
-        }
-        int daughter0 = mcParticles[track].getFirstDaughterTrackId();
-        int daughterL = mcParticles[track].getLastDaughterTrackId();
-        if (daughter0 != -1) {
-          toStore[source][event][daughter0] = 1;
-        }
-        if (daughterL != -1) {
-          toStore[source][event][daughterL] = 1;
+      // mark tracks to be stored per event
+      // loop over stack of MC tracks from end to beginning: daughters are stored after mothers
+      if (mRecoOnly) {
+        for (int track = mcParticles.size() - 1; track <= 0; track--) {
+          int mother0 = mcParticles[track].getMotherTrackId();
+          int mother1 = mcParticles[track].getSecondMotherTrackId();
+          if (mother0 == -1 || mother1 == -1) {
+            toStore[source][event][track] = 1;
+          }
+          if (toStore[source][event][track] == 0) {
+            continue;
+          }
+          if (mother0 != -1) {
+            toStore[source][event][mother0] = 1;
+          }
+          if (mother1 != -1) {
+            toStore[source][event][mother1] = 1;
+          }
+          int daughter0 = mcParticles[track].getFirstDaughterTrackId();
+          int daughterL = mcParticles[track].getLastDaughterTrackId();
+          if (daughter0 != -1) {
+            toStore[source][event][daughter0] = 1;
+          }
+          if (daughterL != -1) {
+            toStore[source][event][daughterL] = 1;
+          }
         }
       }
-    }
-  }
-}
-
-template <typename MCParticlesCursorType>
-void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
-                                                  std::vector<std::vector<std::vector<int>>>& toStore)
-{
-  int tableIndex = 1;
-  for (int source = 0; source < toStore.size(); source++) {
-    for (int event = 0; event < toStore[source].size(); event++) {
+      // enumerate tracks to get mother/daughter relations
       for (int track = 0; track < toStore[source][event].size(); track++) {
         if (!toStore[source][event][track] && mRecoOnly) {
           continue;
@@ -276,11 +279,7 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
         toStore[source][event][track] = tableIndex;
         tableIndex++;
       }
-    }
-  }
-  for (int source = 0; source < mcReader.getNSources(); source++) {
-    for (int event = 0; event < mcReader.getNEvents(source); event++) {
-      std::vector<MCTrack> const& mcParticles = mcReader.getTracks(source, event);
+      // fill survived mc tracks into the table
       for (int track = 0; track < mcParticles.size(); track++) {
         if (!toStore[source][event][track] && mRecoOnly) {
           continue;
@@ -734,10 +733,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       toStore[source].push_back(vTracks);
     }
   }
-  if (mRecoOnly) {
-    findRelatives(mcReader, tracksITSMCTruth, tracksTPCMCTruth, toStore);
-  }
-  fillMCParticlesTable(mcReader, mcParticlesCursor, toStore);
+  fillMCParticlesTable(mcReader, mcParticlesCursor, tracksITSMCTruth, tracksTPCMCTruth, toStore);
   if (mIgnoreWriter) {
     std::shared_ptr<arrow::Table> tableMCParticles = mcParticlesBuilder.finalize();
     std::string tableName("O2mcparticle");

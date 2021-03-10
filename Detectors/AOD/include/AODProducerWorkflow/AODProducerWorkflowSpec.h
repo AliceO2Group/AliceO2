@@ -158,12 +158,9 @@ class AODProducerWorkflowDPL : public Task
   void fillTracksTable(const TTracks& tracks, std::vector<int>& vCollRefs, const TTracksCursor& tracksCursor,
                        const TTracksCovCursor& tracksCovCursor, const TTracksExtraCursor& tracksExtraCursor, int trackType);
 
-  template <typename TMCTruthITS, typename TMCTruthTPC>
-  void findRelatives(const o2::steer::MCKinematicsReader& mcReader, const TMCTruthITS& mcTruthITS, const TMCTruthTPC& mcTruthTPC,
-                     std::vector<std::vector<std::vector<int>>>& toStore);
-
   template <typename MCParticlesCursorType>
   void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
+                            gsl::span<const o2::MCCompLabel>& mcTruthITS, gsl::span<const o2::MCCompLabel>& mcTruthTPC,
                             std::vector<std::vector<std::vector<int>>>& toStore);
 
   void writeTableToFile(TFile* outfile, std::shared_ptr<arrow::Table>& table, const std::string& tableName, uint64_t tfNumber);
