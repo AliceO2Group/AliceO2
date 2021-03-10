@@ -37,7 +37,7 @@ struct CTPIRdigit {
   uint16_t bcid;
   std::bitset<NumberOfInputsIR> inputMaskIR;
 };
-struct CTPTRdigit{
+struct CTPTRdigit {
   uint16_t bcid;
   std::bitset<NumberOfClasses> classMaskTR;
 };
