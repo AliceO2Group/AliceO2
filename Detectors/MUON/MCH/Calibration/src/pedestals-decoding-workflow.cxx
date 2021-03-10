@@ -148,7 +148,7 @@ class PedestalsTask
     initElec2DetMapper(mMapFECfile);
     auto stop = [this]() {
       LOG(INFO) << "time spent for decoding (ms): min=" << mTimeDecoderMin->count() << ", max="
-          << mTimeDecoderMax->count() << ", mean=" << mTimeDecoder.count() / mTFcount;
+                << mTimeDecoderMax->count() << ", mean=" << mTimeDecoder.count() / mTFcount;
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
     ic.services().get<CallbackService>().set(CallbackService::Id::Reset, [this]() { reset(); });
@@ -340,9 +340,9 @@ class PedestalsTask
   bool mPatchRDH = {false}; /// flag to enable verbose output
   bool mDebug = {false};    /// flag to enable verbose output
 
-  std::chrono::duration<double, std::milli> mTimeDecoder{}; ///<
-  std::optional<std::chrono::duration<double, std::milli>> mTimeDecoderMin{}; ///<
-  std::optional<std::chrono::duration<double, std::milli>> mTimeDecoderMax{}; ///<
+  std::chrono::duration<double, std::milli> mTimeDecoder{};
+  std::optional<std::chrono::duration<double, std::milli>> mTimeDecoderMin{};
+  std::optional<std::chrono::duration<double, std::milli>> mTimeDecoderMax{};
   size_t mTFcount{0};
 };
 
