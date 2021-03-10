@@ -82,6 +82,11 @@ class GPUChain
   inline GPUSettingsProcessing& ProcessingSettings() { return mRec->mProcessingSettings; }
   inline void SynchronizeStream(int stream) { mRec->SynchronizeStream(stream); }
   inline void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) { mRec->SynchronizeEvents(evList, nEvents); }
+  inline void SynchronizeEventAndRelease(deviceEvent* ev)
+  {
+    SynchronizeEvents(ev);
+    ReleaseEvent(ev);
+  }
   template <class T>
   inline void CondWaitEvent(T& cond, deviceEvent* ev)
   {

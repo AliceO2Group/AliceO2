@@ -14,6 +14,8 @@
 #include "FairLogger.h"
 #include "DetectorsBase/GeometryManager.h"
 
+#include "DataFormatsTRD/Hit.h"
+
 #include "TRDBase/Geometry.h"
 #include "TRDBase/SimParam.h"
 #include "TRDBase/PadPlane.h"
@@ -188,7 +190,7 @@ void Digitizer::clearContainers()
   }
 }
 
-void Digitizer::process(std::vector<HitType> const& hits, DigitContainer& digits,
+void Digitizer::process(std::vector<Hit> const& hits, DigitContainer& digits,
                         o2::dataformats::MCTruthContainer<MCLabel>& labels)
 {
   if (!mCalib) {
@@ -196,7 +198,7 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer& digits
   }
 
   // Get the a hit container for all the hits in a given detector then call convertHits for a given detector (0 - 539)
-  std::array<std::vector<HitType>, MAXCHAMBER> hitsPerDetector;
+  std::array<std::vector<Hit>, MAXCHAMBER> hitsPerDetector;
   getHitContainerPerDetector(hits, hitsPerDetector);
 
 #ifdef WITH_OPENMP
@@ -232,7 +234,7 @@ void Digitizer::process(std::vector<HitType> const& hits, DigitContainer& digits
   }
 }
 
-void Digitizer::getHitContainerPerDetector(const std::vector<HitType>& hits, std::array<std::vector<HitType>, MAXCHAMBER>& hitsPerDetector)
+void Digitizer::getHitContainerPerDetector(const std::vector<Hit>& hits, std::array<std::vector<Hit>, MAXCHAMBER>& hitsPerDetector)
 {
   //
   // Fill an array of size MAXCHAMBER (540)
@@ -244,7 +246,7 @@ void Digitizer::getHitContainerPerDetector(const std::vector<HitType>& hits, std
   }
 }
 
-bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, SignalContainer& signalMapCont, int thread)
+bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalContainer& signalMapCont, int thread)
 {
   //
   // Convert the detector-wise sorted hits to detector signals
@@ -439,7 +441,7 @@ bool Digitizer::convertHits(const int det, const std::vector<HitType>& hits, Sig
   return true;
 }
 
-void Digitizer::addLabel(const o2::trd::HitType& hit, std::vector<o2::trd::MCLabel>& labels, std::unordered_map<int, int>& trackIds)
+void Digitizer::addLabel(const o2::trd::Hit& hit, std::vector<o2::trd::MCLabel>& labels, std::unordered_map<int, int>& trackIds)
 {
   if (trackIds[hit.GetTrackID()] == 0) {
     trackIds[hit.GetTrackID()] = 1;

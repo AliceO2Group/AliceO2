@@ -9,7 +9,7 @@ if [ "0$O2_ROOT" == "0" ]; then
 fi
 
 # Set general arguments
-ARGS_ALL="--session default --severity $SEVERITY --shm-segment-id $NUMAID --shm-segment-size $SHMSIZE --driver-client-backend ws://"
+ARGS_ALL="--session default --severity $SEVERITY --shm-segment-id $NUMAID --shm-segment-size $SHMSIZE"
 if [ $EXTINPUT == 1 ] || [ $NUMAGPUIDS == 1 ]; then
   ARGS_ALL+=" --no-cleanup"
 fi
@@ -31,8 +31,8 @@ TOF_OUTPUT=clusters,matching-info
 ITS_CONFIG=
 ITS_CONFIG_KEY=
 if [ $SYNCMODE == 1 ]; then
-  ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500"
-  TPC_CONFIG_KEY+=" GPU_global.synchronousProcessing=1;"
+  ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;"
+  TPC_CONFIG_KEY+="GPU_global.synchronousProcessing=1;GPU_proc.clearO2OutputFromGPU=1;"
 fi
 if [ $CTFINPUT == 1 ]; then
   ITS_CONFIG+=" --tracking-mode async"
@@ -66,10 +66,10 @@ if [ $HOSTMEMSIZE != "0" ]; then
   TPC_CONFIG_KEY+="GPU_proc.forceHostMemoryPoolSize=$HOSTMEMSIZE;"
 fi
 
-if [ $EPNPIPELINES == 1 ]; then
-  N_TPCENT=$(($(expr 7 \* $NGPUS / 4) > 0 ? $(expr 7 \* $NGPUS / 4) : 1))
-  N_TPCITS=$(($(expr 7 \* $NGPUS / 4) > 0 ? $(expr 7 \* $NGPUS / 4) : 1))
-  N_ITSDEC=$(($(expr 3 \* $NGPUS / 4) > 0 ? $(expr 3 \* $NGPUS / 4) : 1))
+if [ $EPNPIPELINES != 0 ]; then
+  N_TPCENT=$(($(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
+  N_TPCITS=$(($(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
+  N_ITSDEC=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
 else
   N_TPCENT=1
   N_TPCITS=1
@@ -105,7 +105,7 @@ WORKFLOW+="o2-tof-reco-workflow $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF
 
 # Workflows disabled in sync mode
 if [ $SYNCMODE == 0 ]; then
-  WORKFLOW+="o2-tof-matcher-tpc $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=$NHBPERTF\" --disable-root-input --disable-root-output $DISABLE_MC | "  
+  WORKFLOW+="o2-tof-matcher-tpc $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=$NHBPERTF\" --disable-root-input --disable-root-output $DISABLE_MC | "
   WORKFLOW+="o2-mid-reco-workflow $ARGS_ALL --disable-root-output $DISABLE_MC | "
   WORKFLOW+="o2-mft-reco-workflow $ARGS_ALL --clusters-from-upstream $DISABLE_MC --disable-root-output --configKeyValues \"HBFUtils.nHBFPerTF=128;\" | "
   WORKFLOW+="o2-primary-vertexing-workflow $ARGS_ALL $DISABLE_MC --disable-root-input --disable-root-output --validate-with-ft0 | "
@@ -114,9 +114,8 @@ fi
 
 # Workflows disabled in async mode
 if [ $CTFINPUT == 0 ]; then
-  WORKFLOW+="o2-phos-reco-workflow $ARGS_ALL --input-type raw --output-type cells $DISABLE_MC  | "
-  WORKFLOW+="o2-cpv-reco-workflow $ARGS_ALL --input-type raw --output-type digits $DISABLE_MC  | "
-  WORKFLOW+="o2-cpv-reco-workflow $ARGS_ALL --input-type digits --output-type clusters $DISABLE_MC | "
+  WORKFLOW+="o2-phos-reco-workflow $ARGS_ALL --input-type raw --output-type cells --disable-root-input --disable-root-output $DISABLE_MC  | "
+  WORKFLOW+="o2-cpv-reco-workflow $ARGS_ALL --input-type raw --output-type clusters --disable-root-input --disable-root-output $DISABLE_MC  | "
   WORKFLOW+="o2-emcal-reco-workflow $ARGS_ALL --input-type raw --output-type cells --disable-root-output $DISABLE_MC  | "
 
   WORKFLOW+="o2-itsmft-entropy-encoder-workflow $ARGS_ALL --runmft true | "
@@ -143,8 +142,10 @@ fi
 # DPL run binary
 WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT --run"
 
-# Execute the command we have assembled
-#echo Running workflow:
-#echo $WORKFLOW | sed "s/| */|\n/g"
-#echo
-eval $WORKFLOW
+if [ "0$PRINT_WORKFLOW_ONLY" == "01" ]; then
+  echo Workflow command:
+  echo $WORKFLOW | sed "s/| */|\n/g"
+else
+  # Execute the command we have assembled
+  eval $WORKFLOW
+fi

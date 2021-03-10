@@ -51,7 +51,7 @@ struct BTask {
   }
 };
 
-struct CTask {
+struct PtHistogram {
   // needs to be initialized with a label or an obj
   // when adding an object to OutputObj later, the object name will be
   // *reset* to OutputObj label - needed for correct placement in the output file
@@ -99,12 +99,12 @@ struct DTask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("eta-and-phi-histograms"),
-    adaptAnalysisTask<BTask>("etaphi-histogram"),
-    adaptAnalysisTask<CTask>("pt-histogram"),
-    adaptAnalysisTask<DTask>("output-wrapper"),
+    adaptAnalysisTask<ATask>(cfgc, TaskName{TaskName{"eta-and-phi-histograms"}}),
+    adaptAnalysisTask<BTask>(cfgc, TaskName{TaskName{"etaphi-histogram"}}),
+    adaptAnalysisTask<PtHistogram>(cfgc), //, TaskName{TaskName{"pt-histogram"}}),
+    adaptAnalysisTask<DTask>(cfgc, TaskName{TaskName{"output-wrapper"}}),
   };
 }

@@ -16,6 +16,8 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <mutex>
+#include <atomic>
 
 typedef struct uv_connect_s uv_connect_t;
 
@@ -42,10 +44,13 @@ class WSDriverClient : public DriverClient
   DeviceSpec const& spec() { return mSpec; }
   // Initiate a websocket session
   void sendHandshake();
+  std::mutex& mutex() { return mClientMutex; }
 
  private:
+  // Whether or not we managed to connect.
+  std::atomic<bool> mConnected = false;
+  std::mutex mClientMutex;
   DeviceSpec const& mSpec;
-  bool mConnected = false;
   std::vector<uv_buf_t> mBacklog;
   uv_connect_t* mConnection = nullptr;
   std::unique_ptr<WSDPLClient> mClient;

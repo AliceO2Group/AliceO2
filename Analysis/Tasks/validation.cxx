@@ -10,7 +10,6 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
-#include "DetectorsBase/DCAFitter.h"
 #include "ReconstructionDataFormats/Track.h"
 
 #include <TFile.h>
@@ -69,8 +68,8 @@ struct ValidationTask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ValidationTask>("validation-qa")};
+    adaptAnalysisTask<ValidationTask>(cfgc, TaskName{"validation-qa"})};
 }

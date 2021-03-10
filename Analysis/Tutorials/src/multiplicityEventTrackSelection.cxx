@@ -50,8 +50,8 @@ struct MultiplicityEventTrackSelection {
 };
 
 // Workflow definition
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<MultiplicityEventTrackSelection>("multiplicity-event-track-selection")};
+    adaptAnalysisTask<MultiplicityEventTrackSelection>(cfgc, TaskName{"multiplicity-event-track-selection"})};
 }

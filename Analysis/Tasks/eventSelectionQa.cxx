@@ -137,8 +137,8 @@ struct EventSelectionTask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<EventSelectionTask>("event-selection-qa")};
+    adaptAnalysisTask<EventSelectionTask>(cfgc, TaskName{"event-selection-qa"})};
 }

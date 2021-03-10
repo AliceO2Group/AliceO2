@@ -80,8 +80,8 @@ struct MultiplicityQaTask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<MultiplicityQaTask>("multiplicity-qa")};
+    adaptAnalysisTask<MultiplicityQaTask>(cfgc, TaskName{"multiplicity-qa"})};
 }

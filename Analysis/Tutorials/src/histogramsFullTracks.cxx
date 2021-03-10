@@ -29,9 +29,9 @@ struct ATask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("eta-and-cls-histograms"),
+    adaptAnalysisTask<ATask>(cfgc, TaskName{"eta-and-cls-histograms"}),
   };
 }

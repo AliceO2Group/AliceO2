@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// @file   EntropyDecoderSpec.h
-/// @brief  Convert CTF (EncodedBlocks) to ZDC BCData/ChannelData/PedestalData stream
+/// @brief  Convert CTF (EncodedBlocks) to ZDC BCData/ChannelData/OrbitData stream
 
 #ifndef O2_ZDC_ENTROPYDECODER_SPEC
 #define O2_ZDC_ENTROPYDECODER_SPEC

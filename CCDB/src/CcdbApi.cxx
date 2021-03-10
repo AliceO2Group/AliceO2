@@ -77,9 +77,6 @@ void CcdbApi::init(std::string const& host)
 
   // find out if we can can in principle connect to Alien
   mHaveAlienToken = checkAlienToken();
-  if (!mHaveAlienToken) {
-    LOG(WARN) << "CCDB: Did not find an alien token; Cannot serve objects located on alien://";
-  }
 }
 
 /**
@@ -676,6 +673,8 @@ bool CcdbApi::initTGrid() const
   if (!mAlienInstance) {
     if (mHaveAlienToken) {
       mAlienInstance = TGrid::Connect("alien");
+    } else {
+      LOG(WARN) << "CCDB: Did not find an alien token; Cannot serve objects located on alien://";
     }
   }
   return mAlienInstance != nullptr;

@@ -14,6 +14,7 @@
 #include "../../src/AnalysisManagers.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/CallbackService.h"
+#include "Framework/ConfigContext.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Expressions.h"
@@ -25,6 +26,7 @@
 #include "Framework/Traits.h"
 #include "Framework/VariantHelpers.h"
 #include "Framework/RuntimeError.h"
+#include "Framework/TypeIdHelpers.h"
 
 #include <arrow/compute/kernel.h>
 #include <arrow/table.h>
@@ -246,18 +248,18 @@ struct AnalysisDataProcessorBuilder {
           if constexpr (soa::is_type_with_originals_v<std::decay_t<T>>) {
             using O = typename framework::pack_element_t<0, typename std::decay_t<G>::originals>;
             using groupingMetadata = typename aod::MetadataTrait<O>::metadata;
-            return std::string("f") + groupingMetadata::tableLabel() + "ID";
+            return std::string("fIndex") + groupingMetadata::tableLabel();
           } else {
             using groupingMetadata = typename aod::MetadataTrait<T>::metadata;
-            return std::string("f") + groupingMetadata::tableLabel() + "ID";
+            return std::string("fIndex") + groupingMetadata::tableLabel();
           }
         } else if constexpr (soa::is_type_with_originals_v<std::decay_t<G>>) {
           using T = typename framework::pack_element_t<0, typename std::decay_t<G>::originals>;
           using groupingMetadata = typename aod::MetadataTrait<T>::metadata;
-          return std::string("f") + groupingMetadata::tableLabel() + "ID";
+          return std::string("fIndex") + groupingMetadata::tableLabel();
         } else {
           using groupingMetadata = typename aod::MetadataTrait<std::decay_t<G>>::metadata;
-          return std::string("f") + groupingMetadata::tableLabel() + "ID";
+          return std::string("fIndex") + groupingMetadata::tableLabel();
         }
       }
 
@@ -533,72 +535,106 @@ struct AnalysisDataProcessorBuilder {
   }
 };
 
-// SFINAE test
+namespace
+{
 template <typename T>
 class has_process
 {
-  typedef char one;
-  struct two {
-    char x[2];
-  };
-
   template <typename C>
-  static one test(decltype(&C::process));
+  static std::true_type test(decltype(&C::process));
   template <typename C>
-  static two test(...);
+  static std::false_type test(...);
 
  public:
-  enum { value = sizeof(test<T>(nullptr)) == sizeof(char) };
+  static constexpr bool value = decltype(test<T>(nullptr))::value;
 };
+
+template <class T>
+inline constexpr bool has_process_v = has_process<T>::value;
 
 template <typename T>
 class has_run
 {
-  typedef char one;
-  struct two {
-    char x[2];
-  };
-
   template <typename C>
-  static one test(decltype(&C::run));
+  static std::true_type test(decltype(&C::run));
   template <typename C>
-  static two test(...);
+  static std::false_type test(...);
 
  public:
-  enum { value = sizeof(test<T>(nullptr)) == sizeof(char) };
+  static constexpr bool value = decltype(test<T>(nullptr))::value;
 };
+
+template <class T>
+inline constexpr bool has_run_v = has_run<T>::value;
 
 template <typename T>
 class has_init
 {
-  typedef char one;
-  struct two {
-    char x[2];
-  };
-
   template <typename C>
-  static one test(decltype(&C::init));
+  static std::true_type test(decltype(&C::init));
   template <typename C>
-  static two test(...);
+  static std::false_type test(...);
 
  public:
-  enum { value = sizeof(test<T>(nullptr)) == sizeof(char) };
+  static constexpr bool value = decltype(test<T>(nullptr))::value;
 };
+
+template <class T>
+inline constexpr bool has_init_v = has_init<T>::value;
+} // namespace
+
+/// Struct to differentiate task names from possible task string arguments
+struct TaskName {
+  TaskName(std::string const& name) : value{name} {}
+  std::string value;
+};
+
+template <typename T>
+std::tuple<std::string, std::shared_ptr<T>> getNameAndTask()
+{
+  auto type_name_str = type_name<T>();
+  std::string name = type_to_task_name(type_name_str);
+  auto task = std::make_shared<T>();
+  return std::make_tuple(name, task);
+}
+
+template <typename T, typename T2, typename... Args>
+std::tuple<std::string, std::shared_ptr<T>> getNameAndTask(T2&& firstArg, Args&&... args)
+{
+  if constexpr (std::is_same_v<typename std::decay<T2>::type, TaskName>) {
+    std::string name = firstArg.value;
+    auto task = std::make_shared<T>(std::forward<Args>(args)...);
+    return std::make_tuple(name, task);
+  } else {
+    auto type_name_str = type_name<T>();
+    std::string name = type_to_task_name(type_name_str);
+    auto task = std::make_shared<T>(std::forward<T2, Args>(firstArg, args)...);
+    return std::make_tuple(name, task);
+  }
+}
 
 /// Adaptor to make an AlgorithmSpec from a o2::framework::Task
 ///
 template <typename T, typename... Args>
-DataProcessorSpec adaptAnalysisTask(char const* name, Args&&... args)
+DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 {
   TH1::AddDirectory(false);
-  auto task = std::make_shared<T>(std::forward<Args>(args)...);
+
+  auto [name_str, task] = getNameAndTask<T>(args...);
+
+  auto suffix = ctx.options().get<std::string>("workflow-suffix");
+  if (!suffix.empty()) {
+    name_str += suffix;
+  }
+  const char* name = name_str.c_str();
+
   auto hash = compile_time_hash(name);
 
   std::vector<OutputSpec> outputs;
   std::vector<ConfigParamSpec> options;
 
   auto tupledTask = o2::framework::to_tuple_refs(*task.get());
-  static_assert(has_process<T>::value || has_run<T>::value || has_init<T>::value,
+  static_assert(has_process_v<T> || has_run_v<T> || has_init_v<T>,
                 "At least one of process(...), T::run(...), init(...) must be defined");
 
   std::vector<InputSpec> inputs;
@@ -607,7 +643,7 @@ DataProcessorSpec adaptAnalysisTask(char const* name, Args&&... args)
   /// make sure options and configurables are set before expression infos are created
   std::apply([&options, &hash](auto&... x) { return (OptionManager<std::decay_t<decltype(x)>>::appendOption(options, x), ...); }, tupledTask);
 
-  if constexpr (has_process<T>::value) {
+  if constexpr (has_process_v<T>) {
     // this pushes (I,schemaPtr,nullptr) into expressionInfos for arguments that are Filtered/filtered_iterators
     AnalysisDataProcessorBuilder::inputsFromArgs(&T::process, inputs, expressionInfos);
   }
@@ -625,7 +661,7 @@ DataProcessorSpec adaptAnalysisTask(char const* name, Args&&... args)
 
   std::apply([&outputs, &hash](auto&... x) { return (OutputManager<std::decay_t<decltype(x)>>::appendOutput(outputs, x, hash), ...); }, tupledTask);
 
-  auto algo = AlgorithmSpec::InitCallback{[task, expressionInfos](InitContext& ic) mutable {
+  auto algo = AlgorithmSpec::InitCallback{[task = task, expressionInfos](InitContext& ic) mutable {
     auto tupledTask = o2::framework::to_tuple_refs(*task.get());
     std::apply([&ic](auto&&... x) { return (OptionManager<std::decay_t<decltype(x)>>::prepare(ic, x), ...); }, tupledTask);
     std::apply([&ic](auto&&... x) { return (ServiceManager<std::decay_t<decltype(x)>>::prepare(ic, x), ...); }, tupledTask);
@@ -638,7 +674,7 @@ DataProcessorSpec adaptAnalysisTask(char const* name, Args&&... args)
     };
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
 
-    if constexpr (has_process<T>::value) {
+    if constexpr (has_process_v<T>) {
       /// update configurables in filters
       std::apply(
         [&ic](auto&&... x) { return (FilterManager<std::decay_t<decltype(x)>>::updatePlaceholders(x, ic), ...); },
@@ -654,17 +690,17 @@ DataProcessorSpec adaptAnalysisTask(char const* name, Args&&... args)
                  tupledTask);
     }
 
-    if constexpr (has_init<T>::value) {
+    if constexpr (has_init_v<T>) {
       task->init(ic);
     }
 
     return [task, expressionInfos](ProcessingContext& pc) {
       auto tupledTask = o2::framework::to_tuple_refs(*task.get());
       std::apply([&pc](auto&&... x) { return (OutputManager<std::decay_t<decltype(x)>>::prepare(pc, x), ...); }, tupledTask);
-      if constexpr (has_run<T>::value) {
+      if constexpr (has_run_v<T>) {
         task->run(pc);
       }
-      if constexpr (has_process<T>::value) {
+      if constexpr (has_process_v<T>) {
         AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), &T::process, expressionInfos);
       }
       std::apply([&pc](auto&&... x) { return (OutputManager<std::decay_t<decltype(x)>>::finalize(pc, x), ...); }, tupledTask);

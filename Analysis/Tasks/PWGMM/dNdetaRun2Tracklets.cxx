@@ -57,8 +57,8 @@ struct PseudorapidityDensity {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<PseudorapidityDensity>("dNdetaRun2Tracklets-analysis")};
+    adaptAnalysisTask<PseudorapidityDensity>(cfgc, TaskName{"dNdetaRun2Tracklets-analysis"})};
 }

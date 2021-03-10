@@ -93,10 +93,10 @@ struct CompatibleT0V0A {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<CompatibleBCs>("compatible-bcs"),
-    adaptAnalysisTask<CompatibleT0V0A>("compatible-t0-v0a"),
+    adaptAnalysisTask<CompatibleBCs>(cfgc, TaskName{"compatible-bcs"}),
+    adaptAnalysisTask<CompatibleT0V0A>(cfgc, TaskName{"compatible-t0-v0a"}),
   };
 }

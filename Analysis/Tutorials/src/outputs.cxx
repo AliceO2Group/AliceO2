@@ -64,10 +64,10 @@ struct DummyTask3 {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<DummyTask>("task1"),
-    adaptAnalysisTask<DummyTask2>("task2"),
-    adaptAnalysisTask<DummyTask3>("task3")};
+    adaptAnalysisTask<DummyTask>(cfgc, TaskName{"task1"}),
+    adaptAnalysisTask<DummyTask2>(cfgc, TaskName{"task2"}),
+    adaptAnalysisTask<DummyTask3>(cfgc, TaskName{"task3"})};
 }

@@ -172,7 +172,7 @@ struct ValidationRecLevel {
         continue;
       }
       if (std::abs(candidate.flagMCMatchRec()) == 1 << D0ToPiK) {
-        indexParticle = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().label(), 421, true);
+        indexParticle = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().mcParticle(), 421, true);
         auto mother = particlesMC.iteratorAt(indexParticle);
         registry.fill(HIST("histPt"), candidate.pt() - mother.pt());
         registry.fill(HIST("histPx"), candidate.px() - mother.px());
@@ -196,7 +196,7 @@ struct ValidationRecLevel {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<ValidationGenLevel>("hf-mc-validation-gen"),
-    adaptAnalysisTask<ValidationRecLevel>("hf-mc-validation-rec")};
+    adaptAnalysisTask<ValidationGenLevel>(cfgc, TaskName{"hf-mc-validation-gen"}),
+    adaptAnalysisTask<ValidationRecLevel>(cfgc, TaskName{"hf-mc-validation-rec"})};
   return workflow;
 }

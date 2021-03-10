@@ -49,6 +49,10 @@ void DigitizerSpec::initDigitizerTask(framework::InitContext& ic)
 
   // init digitizer
   mDigitizer.init();
+  auto mctruth = ic.options().get<bool>("mctruth");
+  if (!mctruth) {
+    mDigitizer.processMC(false);
+  }
 
   if (mHits) {
     delete mHits;
@@ -72,7 +76,6 @@ void DigitizerSpec::retrieveHits(const char* brname,
 
 void DigitizerSpec::run(framework::ProcessingContext& pc)
 {
-
   // read collision context from input
   auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
   context->initSimChains(o2::detectors::DetID::PHS, mSimChains);
@@ -94,13 +97,14 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
   int indexStart = mDigitsOut.size();
   auto& eventParts = context->getEventParts();
   //if this is last stream of hits and we can write directly to final vector of digits? Otherwize use temporary vectors
+  mDigitsFinal.clear();
+  mDigitsTmp.clear();
   bool isLastStream = true;
   double eventTime = timesview[0].getTimeNS() - o2::phos::PHOSSimParams::Instance().mDeadTime; //checked above that list not empty
   int eventId;
   // loop over all composite collisions given from context
   // (aka loop over all the interaction records)
   for (int collID = 0; collID < n; ++collID) {
-
     double dt = timesview[collID].getTimeNS() - eventTime; //start new PHOS readout, continue current or dead time?
     if (dt > mReadoutTime && dt < mDeadTime) {             //dead time, skip event
       continue;
@@ -137,7 +141,6 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
         // Add trigger record
         triggers.emplace_back(timesview[eventId], indexStart, mDigitsOut.size() - indexStart);
         indexStart = mDigitsOut.size();
-        mDigitsFinal.clear();
       } else { //Fill intermediate digitvector
         mDigitsTmp.swap(mDigitsFinal);
         mDigitizer.processHits(mHits, mDigitsTmp, mDigitsFinal, mLabels, collID, source, dt);
@@ -184,7 +187,8 @@ DataProcessorSpec getPHOSDigitizerSpec(int channel, bool mctruth)
     "PHOSDigitizer", Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
     outputs,
     AlgorithmSpec{o2::framework::adaptFromTask<DigitizerSpec>()},
-    Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}};
+    Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}},
+            {"mctruth", VariantType::Bool, true, {"whether to process MC info"}}}};
 }
 } // namespace phos
 } // namespace o2

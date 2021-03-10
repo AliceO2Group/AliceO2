@@ -42,7 +42,7 @@ CaloFitResults CaloRawFitterGamma2::evaluate(const std::vector<Bunch>& bunchlist
   auto [nsamples, bunchIndex, ampEstimate,
         maxADC, timeEstimate, pedEstimate, first, last] = preFitEvaluateSamples(bunchlist, altrocfg1, altrocfg2, mAmpCut);
 
-  if (ampEstimate >= mAmpCut) {
+  if (bunchIndex >= 0 && ampEstimate >= mAmpCut) {
     time = timeEstimate;
     int timebinOffset = bunchlist.at(bunchIndex).getStartTime() - (bunchlist.at(bunchIndex).getBunchLength() - 1);
     amp = ampEstimate;

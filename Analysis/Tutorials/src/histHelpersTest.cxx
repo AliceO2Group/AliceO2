@@ -203,8 +203,8 @@ struct HistHelpersTest {
  * Workflow definition.
  */
 //****************************************************************************************
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HistHelpersTest>("hist-helpers-test")};
+    adaptAnalysisTask<HistHelpersTest>(cfgc, TaskName{"hist-helpers-test"})};
 }

@@ -119,6 +119,47 @@ Bool_t GeometryManager::getOriginalMatrixFromPath(const char* path, TGeoHMatrix&
 }
 
 //______________________________________________________________________
+TGeoHMatrix* GeometryManager::getMatrix(TGeoPNEntry* pne)
+{
+  // Get the global transformation matrix for a given PNEntry
+  // by quering the TGeoManager
+
+  if (!gGeoManager || !gGeoManager->IsClosed()) {
+    LOG(ERROR) << "Can't get the global matrix! gGeoManager doesn't exist or it is still opened!";
+    return nullptr;
+  }
+
+  // if matrix already known --> return it
+  TGeoPhysicalNode* pnode = pne->GetPhysicalNode();
+  if (pnode) {
+    return pnode->GetMatrix();
+  }
+
+  // otherwise calculate it from title and attach via TGeoPhysicalNode
+  pne->SetPhysicalNode(new TGeoPhysicalNode(pne->GetTitle()));
+  return pne->GetPhysicalNode()->GetMatrix();
+}
+
+//______________________________________________________________________
+TGeoHMatrix* GeometryManager::getMatrix(const char* symname)
+{
+  // Get the global transformation matrix for a given alignable volume
+  //  identified by its symbolic name 'symname' by quering the TGeoManager
+
+  if (!gGeoManager || !gGeoManager->IsClosed()) {
+    LOG(ERROR) << "No active geometry or geometry not yet closed!";
+    return nullptr;
+  }
+
+  TGeoPNEntry* pne = gGeoManager->GetAlignableEntry(symname);
+  if (!pne) {
+    return nullptr;
+  }
+
+  return getMatrix(pne);
+}
+
+//______________________________________________________________________
 const char* GeometryManager::getSymbolicName(DetID detid, int sensid)
 {
   /**

@@ -90,10 +90,10 @@ struct BTask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("tracks-pairs"),
-    adaptAnalysisTask<HashTask>("tracks-hashed"),
-    adaptAnalysisTask<BTask>("tracks-pairs-categorised")};
+    adaptAnalysisTask<ATask>(cfgc, TaskName{"tracks-pairs"}),
+    adaptAnalysisTask<HashTask>(cfgc, TaskName{"tracks-hashed"}),
+    adaptAnalysisTask<BTask>(cfgc, TaskName{"tracks-pairs-categorised"})};
 }

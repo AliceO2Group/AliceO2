@@ -16,13 +16,16 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include "GlobalTracking/RecoContainer.h"
 
 using namespace o2::framework;
+using DetID = o2::detectors::DetID;
 
 namespace o2
 {
 namespace vertexing
 {
+o2::globaltracking::DataRequest dataRequestV2T;
 
 void VertexTrackMatcherSpec::init(InitContext& ic)
 {
@@ -38,25 +41,13 @@ void VertexTrackMatcherSpec::run(ProcessingContext& pc)
   double timeCPU0 = mTimer.CpuTime(), timeReal0 = mTimer.RealTime();
   mTimer.Start(false);
 
-  // eventually, this should be set per TF from CCDB?
-  if (mMatcher.getITSROFrameLengthInBC() == 0) {
-    std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName())};
-    const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-    if (grp->isDetContinuousReadOut(o2::detectors::DetID::ITS)) {
-      mMatcher.setITSROFrameLengthInBC(alpParams.roFrameLengthInBC);
-    } else {
-      mMatcher.setITSROFrameLengthInBC(alpParams.roFrameLengthTrig / o2::constants::lhc::LHCOrbitNS);
-    }
-  }
+  o2::globaltracking::RecoContainer recoData;
 
   // RS FIXME this will not have effect until the 1st orbit is propagated, until that will work only for TF starting at orbit 0
-  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().get("vertices").header);
+  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
   mMatcher.setStartIR({0, dh->firstTForbit});
+  recoData.collectData(pc, dataRequestV2T);
 
-  const auto tracksITSTPC = pc.inputs().get<gsl::span<o2::dataformats::TrackTPCITS>>("tpcits");
-  const auto tracksTPC = pc.inputs().get<gsl::span<o2::tpc::TrackTPC>>("tpc");
-  const auto tracksITS = pc.inputs().get<gsl::span<o2::its::TrackITS>>("its");
-  const auto tracksITSROF = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("itsROF");
   const auto vertices = pc.inputs().get<gsl::span<o2::dataformats::PrimaryVertex>>("vertices");
   const auto vtxTracks = pc.inputs().get<gsl::span<o2::dataformats::VtxTrackIndex>>("vtxTracks");
   const auto vtxTrackRefs = pc.inputs().get<gsl::span<o2::dataformats::VtxTrackRef>>("vtxTrackRefs");
@@ -64,7 +55,7 @@ void VertexTrackMatcherSpec::run(ProcessingContext& pc)
   std::vector<o2::dataformats::VtxTrackIndex> trackIndex;
   std::vector<o2::dataformats::VtxTrackRef> vtxRefs;
 
-  mMatcher.process(vertices, vtxTracks, vtxTrackRefs, tracksITSTPC, tracksITS, tracksITSROF, tracksTPC, trackIndex, vtxRefs);
+  mMatcher.process(vertices, vtxTracks, vtxTrackRefs, recoData, trackIndex, vtxRefs);
 
   pc.outputs().snapshot(Output{"GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe}, trackIndex);
   pc.outputs().snapshot(Output{"GLO", "PVTX_TRMTCREFS", 0, Lifetime::Timeframe}, vtxRefs);
@@ -80,16 +71,28 @@ void VertexTrackMatcherSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getVertexTrackMatcherSpec()
+DataProcessorSpec getVertexTrackMatcherSpec(GTrackID::mask_t src)
 {
-  std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
 
-  inputs.emplace_back("tpcits", "GLO", "TPCITS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("its", "ITS", "TRACKS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("itsROF", "ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
-  inputs.emplace_back("tpc", "TPC", "TRACKS", 0, Lifetime::Timeframe);
+  if (src[GTrackID::ITS]) {
+    dataRequestV2T.requestITSTracks(false);
+  }
+  if (src[GTrackID::TPC]) {
+    dataRequestV2T.requestTPCTracks(false);
+  }
+  if (src[GTrackID::ITSTPC] || src[GTrackID::ITSTPCTOF]) { // ITSTPCTOF does not provide tracks, only matchInfo
+    dataRequestV2T.requestITSTPCTracks(false);
+  }
+  if (src[GTrackID::ITSTPCTOF]) {
+    dataRequestV2T.requestTOFMatches(false);
+    dataRequestV2T.requestTOFClusters(false);
+  }
+  if (src[GTrackID::TPCTOF]) {
+    dataRequestV2T.requestTPCTOFTracks(false);
+  }
 
+  auto& inputs = dataRequestV2T.inputs;
   inputs.emplace_back("vertices", "GLO", "PVTX", 0, Lifetime::Timeframe);
   inputs.emplace_back("vtxTracks", "GLO", "PVTX_CONTID", 0, Lifetime::Timeframe);
   inputs.emplace_back("vtxTrackRefs", "GLO", "PVTX_CONTIDREFS", 0, Lifetime::Timeframe);

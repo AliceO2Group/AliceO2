@@ -16,14 +16,18 @@
 #include "Framework/Task.h"
 #include "Headers/DataHeader.h"
 #include "TOFReconstruction/Clusterer.h"
+#include "TOFReconstruction/CosmicProcessor.h"
 #include "TOFReconstruction/DataReader.h"
 #include "DataFormatsTOF/Cluster.h"
+#include "DataFormatsTOF/CosmicInfo.h"
+#include "DataFormatsTOF/CalibInfoCluster.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsTOF/CalibLHCphaseTOF.h"
 #include "DataFormatsTOF/CalibTimeSlewingParamTOF.h"
 #include "TOFCalibration/CalibTOFapi.h"
 #include "TStopwatch.h"
+#include "Framework/ConfigParamRegistry.h"
 
 #include <memory> // for make_shared, make_unique, unique_ptr
 #include <vector>
@@ -45,14 +49,25 @@ class TOFDPLClustererTask
 {
   bool mUseMC = true;
   bool mUseCCDB = false;
+  bool mIsCalib = false;
+  bool mIsCosmic = false;
+  int mTimeWin = 5000;
 
  public:
-  explicit TOFDPLClustererTask(bool useMC, bool useCCDB) : mUseMC(useMC), mUseCCDB(useCCDB) {}
+  explicit TOFDPLClustererTask(bool useMC, bool useCCDB, bool doCalib, bool isCosmic) : mUseMC(useMC), mUseCCDB(useCCDB), mIsCalib(doCalib), mIsCosmic(isCosmic) {}
   void init(framework::InitContext& ic)
   {
     // nothing special to be set up
     mTimer.Stop();
     mTimer.Reset();
+
+    mTimeWin = ic.options().get<int>("cluster-time-window");
+    LOG(INFO) << "Is calibration from cluster on? " << mIsCalib;
+    LOG(INFO) << "DeltaTime for clusterization = " << mTimeWin << " ps";
+    LOG(INFO) << "Is cosmics? " << mIsCosmic;
+
+    mClusterer.setCalibFromCluster(mIsCalib);
+    mClusterer.setDeltaTforClustering(mTimeWin);
   }
 
   void run(framework::ProcessingContext& pc)
@@ -116,12 +131,23 @@ class TOFDPLClustererTask
 
     // call actual clustering routine
     mClustersArray.clear();
+    if (mIsCalib) {
+      mClusterer.getInfoFromCluster()->clear();
+    }
+
+    if (mIsCosmic) {
+      mCosmicProcessor.clear();
+    }
 
     for (int i = 0; i < row->size(); i++) {
       //printf("# TOF readout window for clusterization = %d/%lu (N digits = %d)\n", i, row->size(), row->at(i).size());
       auto digitsRO = row->at(i).getBunchChannelData(digits);
-
       mReader.setDigitArray(&digitsRO);
+
+      if (mIsCosmic) {
+        mCosmicProcessor.process(mReader, i != 0);
+      }
+
       if (mUseMC) {
         mClusterer.process(mReader, mClustersArray, &(labelvector->at(i)));
       } else {
@@ -138,6 +164,16 @@ class TOFDPLClustererTask
       pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0, Lifetime::Timeframe}, mClsLabels);
     }
 
+    if (mIsCalib) {
+      std::vector<CalibInfoCluster>* clusterCalInfo = mClusterer.getInfoFromCluster();
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOCALCLUS", 0, Lifetime::Timeframe}, *clusterCalInfo);
+    }
+
+    if (mIsCosmic) {
+      std::vector<CosmicInfo>* cosmicInfo = mCosmicProcessor.getCosmicInfo();
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOCOSMICS", 0, Lifetime::Timeframe}, *cosmicInfo);
+    }
+
     mTimer.Stop();
   }
 
@@ -150,13 +186,15 @@ class TOFDPLClustererTask
  private:
   DigitDataReader mReader; ///< Digit reader
   Clusterer mClusterer;    ///< Cluster finder
+  CosmicProcessor mCosmicProcessor; ///< Cosmics finder
   TStopwatch mTimer;
 
   std::vector<Cluster> mClustersArray; ///< Array of clusters
   MCLabelContainer mClsLabels;
+  std::vector<CalibInfoCluster> mClusterCalInfo; ///< Array of clusters
 };
 
-o2::framework::DataProcessorSpec getTOFClusterizerSpec(bool useMC, bool useCCDB)
+o2::framework::DataProcessorSpec getTOFClusterizerSpec(bool useMC, bool useCCDB, bool doCalib, bool isCosmic)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("tofdigits", o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe);
@@ -175,12 +213,19 @@ o2::framework::DataProcessorSpec getTOFClusterizerSpec(bool useMC, bool useCCDB)
     outputs.emplace_back(o2::header::gDataOriginTOF, "CLUSTERSMCTR", 0, Lifetime::Timeframe);
   }
 
+  if (doCalib) {
+    outputs.emplace_back(o2::header::gDataOriginTOF, "INFOCALCLUS", 0, Lifetime::Timeframe);
+  }
+  if (isCosmic) {
+    outputs.emplace_back(o2::header::gDataOriginTOF, "INFOCOSMICS", 0, Lifetime::Timeframe);
+  }
+
   return DataProcessorSpec{
     "TOFClusterer",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TOFDPLClustererTask>(useMC, useCCDB)},
-    Options{/* for the moment no options */}};
+    AlgorithmSpec{adaptFromTask<TOFDPLClustererTask>(useMC, useCCDB, doCalib, isCosmic)},
+    Options{{"cluster-time-window", VariantType::Int, 5000, {"time window for clusterization in ps"}}}};
 }
 
 } // end namespace tof

@@ -13,6 +13,7 @@
 #include "Framework/DeviceSpec.h"
 #include "HTTPParser.h"
 #include <algorithm>
+#include <atomic>
 #include <uv.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -284,6 +285,7 @@ void ws_client_write_callback(uv_write_t* h, int status)
   if (h->data) {
     free(h->data);
   }
+  free(h);
 }
 
 void ws_client_bulk_write_callback(uv_write_t* h, int status)
@@ -300,6 +302,7 @@ void ws_client_bulk_write_callback(uv_write_t* h, int status)
     }
   }
   delete buffers;
+  free(h);
 }
 
 /// Helper to return an error

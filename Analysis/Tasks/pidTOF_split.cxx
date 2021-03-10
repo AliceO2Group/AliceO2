@@ -122,5 +122,5 @@ struct pidTOFTaskSplit {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return WorkflowSpec{adaptAnalysisTask<pidTOFTaskSplit>("pidTOF-split-task")};
+  return WorkflowSpec{adaptAnalysisTask<pidTOFTaskSplit>(cfgc, TaskName{"pidTOF-split-task"})};
 }

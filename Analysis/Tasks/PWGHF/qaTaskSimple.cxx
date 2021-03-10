@@ -40,8 +40,8 @@ bool GetImpactParameterAndError(const Track& track, const o2df::VertexBase& prim
 {
   impactParameterRPhi = -999.;
   impactParameterRPhiError = -999.;
-  impactParameterZ = -999;
-  impactParameterErrorZ = -999;
+  impactParameterZ = -999.;
+  impactParameterErrorZ = -999.;
 
   o2df::DCA dca;
   // FIXME: get this from CCDB
@@ -49,7 +49,7 @@ bool GetImpactParameterAndError(const Track& track, const o2df::VertexBase& prim
   auto trackParameter = getTrackParCov(track);
   bool propagate = trackParameter.propagateToDCA(primaryVertex, magneticField, &dca);
 
-  constexpr float conversion_to_micrometer = 1000;
+  constexpr float conversion_to_micrometer = 10000.f; // From [cm] to [mum]
   if (propagate) {
     impactParameterRPhi = conversion_to_micrometer * dca.getY();
     impactParameterRPhiError = conversion_to_micrometer * std::sqrt(dca.getSigmaY2());
@@ -61,33 +61,39 @@ bool GetImpactParameterAndError(const Track& track, const o2df::VertexBase& prim
 
 /// Task to QA global observables of the event
 struct QAGlobalObservables {
+  // Cuts
+  o2fw::Configurable<int> nMinNumberOfContributors{"nMinNumberOfContributors", 0, "Minimum required number of contributors to the vertex"};
 
+  // // Binning
   o2fw::Configurable<int> nBinsNumberOfTracks{"nBinsNumberOfTracks", 2000, "Number of bins for the Number of Tracks"};
-  std::array<float, 2> numberOfTracksRange = {0, 2000};
+  o2fw::Configurable<float> RangeMinNumberOfTracks{"RangeMinNumberOfTracks", 0, "Lower limit in the Number of Tracks plot"};
+  o2fw::Configurable<float> RangeMaxNumberOfTracks{"RangeMaxNumberOfTracks", 2000, "Upper limit in the Number of Tracks plot"};
 
   o2fw::Configurable<int> nBinsVertexPosition{"nBinsVertexPosition", 100, "Number of bins for the Vertex Position"};
-  std::array<float, 2> collisionZRange = {-20., 20.};
-  std::array<float, 2> collisionXYRange = {-0.01, 0.01};
+  o2fw::Configurable<float> RangeMinVertexPositionZ{"RangeMinVertexPositionZ", -20.f, "Lower limit in the Vertex Position Z"};
+  o2fw::Configurable<float> RangeMaxVertexPositionZ{"RangeMaxVertexPositionZ", 20.f, "Upper limit in the Vertex Position Z"};
+  o2fw::Configurable<float> RangeMinVertexPositionXY{"RangeMinVertexPositionXY", -0.01f, "Lower limit in the Vertex Position XY"};
+  o2fw::Configurable<float> RangeMaxVertexPositionXY{"RangeMaxVertexPositionXY", 0.01f, "Upper limit in the Vertex Position XY"};
 
-  o2fw::Configurable<int> nBinsNumberOfContributorsVertex{"nBinsNumberOfContributorsVertex",
-                                                          200, "Number bins for the number of contributors to the primary vertex"};
-  o2fw::Configurable<int> numberOfContributorsVertexMax{"numberOfContributorsVertexMax",
-                                                        200, "Maximum value for the Number of contributors to the primary vertex"};
+  o2fw::Configurable<int> nBinsNumberOfContributorsVertex{"nBinsNumberOfContributorsVertex", 200, "Number bins for the number of contributors to the primary vertex"};
+  o2fw::Configurable<float> RangeMaxNumberOfContributorsVertex{"RangeMaxNumberOfContributorsVertex", 200, "Maximum value for the Number of contributors to the primary vertex"};
 
-  o2fw::Configurable<int> nBinsVertexCovarianceMatrix{"nBinsVertexCovarianceMatrix", 100,
-                                                      "Number bins for the vertex covariance matrix"};
-  std::array<float, 2> vertexCovarianceMatrixRange = {-0.1, 0.1};
+  o2fw::Configurable<int> nBinsVertexCovarianceMatrix{"nBinsVertexCovarianceMatrix", 100, "Number bins for the vertex covariance matrix"};
+  o2fw::Configurable<float> RangeMinVertexCovarianceMatrix{"RangeMinVertexCovarianceMatrix", -0.01f, "Lower limit in the Vertex Covariance matrix XY"};
+  o2fw::Configurable<float> RangeMaxVertexCovarianceMatrix{"RangeMaxVertexCovarianceMatrix", 0.01f, "Upper limit in the Vertex Covariance matrix XY"};
 
   o2fw::HistogramRegistry histograms{"HistogramsGlobalQA"};
   void init(o2fw::InitContext&)
   {
 
-    o2fw::AxisSpec collisionXYAxis{nBinsVertexPosition, collisionXYRange[0], collisionXYRange[1]};
-    o2fw::AxisSpec collisionZAxis{nBinsVertexPosition, collisionZRange[0], collisionZRange[1]};
-    o2fw::AxisSpec numberOfContributorsAxis{nBinsNumberOfContributorsVertex, 0, float(numberOfContributorsVertexMax)};
-    o2fw::AxisSpec vertexCovarianceMatrixAxis{nBinsVertexCovarianceMatrix,
-                                              vertexCovarianceMatrixRange[0], vertexCovarianceMatrixRange[1]};
-    o2fw::AxisSpec numberOfTrackAxis{nBinsNumberOfTracks, numberOfTracksRange[0], numberOfTracksRange[1]};
+    o2fw::AxisSpec numberOfTrackAxis{nBinsNumberOfTracks.value, RangeMinNumberOfTracks.value, RangeMaxNumberOfTracks.value};
+
+    o2fw::AxisSpec collisionXYAxis{nBinsVertexPosition.value, RangeMinVertexPositionXY.value, RangeMaxVertexPositionXY.value};
+    o2fw::AxisSpec collisionZAxis{nBinsVertexPosition.value, RangeMinVertexPositionZ.value, RangeMaxVertexPositionZ.value};
+
+    o2fw::AxisSpec numberOfContributorsAxis{nBinsNumberOfContributorsVertex.value, 0, RangeMaxNumberOfContributorsVertex.value};
+
+    o2fw::AxisSpec vertexCovarianceMatrixAxis{nBinsVertexCovarianceMatrix.value, RangeMinVertexCovarianceMatrix.value, RangeMaxVertexCovarianceMatrix.value};
 
     // Global
     histograms.add("eventCount", ";Selected Events", o2fw::kTH1D, {{2, 0, 2}});
@@ -96,8 +102,11 @@ struct QAGlobalObservables {
     histograms.add("collision/X", ";X [cm]", o2fw::kTH1D, {collisionXYAxis});
     histograms.add("collision/Y", ";Y [cm]", o2fw::kTH1D, {collisionXYAxis});
     histograms.add("collision/Z", ";Z [cm]", o2fw::kTH1D, {collisionZAxis});
-    histograms.add("collision/numberOfContributors", ";Number Of contributors to the PV.", o2fw::kTH1D, {numberOfContributorsAxis});
-    histograms.add("collision/vertexChi2", ";#Chi^{2}", o2fw::kTH1D, {{100, 0, 10}});
+    histograms.add("collision/XvsNContrib", ";X [cm];Number Of contributors to the PV", o2fw::kTH2D, {collisionXYAxis, numberOfContributorsAxis});
+    histograms.add("collision/YvsNContrib", ";Y [cm];Number Of contributors to the PV", o2fw::kTH2D, {collisionXYAxis, numberOfContributorsAxis});
+    histograms.add("collision/ZvsNContrib", ";Z [cm];Number Of contributors to the PV", o2fw::kTH2D, {collisionZAxis, numberOfContributorsAxis});
+    histograms.add("collision/numberOfContributors", ";Number Of contributors to the PV", o2fw::kTH1D, {numberOfContributorsAxis});
+    histograms.add("collision/vertexChi2", ";#chi^{2}", o2fw::kTH1D, {{100, 0, 10}});
 
     // Covariance
     histograms.add("covariance/xx", ";Cov_{xx} [cm^{2}]", o2fw::kTH1D, {vertexCovarianceMatrixAxis});
@@ -112,11 +121,18 @@ struct QAGlobalObservables {
 
   void process(const o2::aod::Collision& collision, const o2::aod::Tracks& tracks)
   {
+    if (collision.numContrib() < nMinNumberOfContributors.value) {
+      return;
+    }
     histograms.fill(HIST("eventCount"), 0);
 
     histograms.fill(HIST("collision/X"), collision.posX());
     histograms.fill(HIST("collision/Y"), collision.posY());
     histograms.fill(HIST("collision/Z"), collision.posZ());
+
+    histograms.fill(HIST("collision/XvsNContrib"), collision.posX(), collision.numContrib());
+    histograms.fill(HIST("collision/YvsNContrib"), collision.posY(), collision.numContrib());
+    histograms.fill(HIST("collision/ZvsNContrib"), collision.posZ(), collision.numContrib());
 
     histograms.fill(HIST("collision/numberOfContributors"), collision.numContrib());
     histograms.fill(HIST("collision/vertexChi2"), collision.chi2());
@@ -141,6 +157,7 @@ struct QAGlobalObservables {
 struct QATrackingKine {
   o2fw::Configurable<int> nBinsPt{"nBinsPt", 100, "Number of bins for Pt"};
   std::array<double, 2> ptRange = {0, 10.};
+  std::array<double, 2> invptRange = {-1.e2, 1.e2};
   o2fw::Configurable<int> nBinsEta{"nBinsEta", 100, "Number of bins for the eta histogram."};
   std::array<double, 2> etaRange = {-6, 6};
   o2fw::Configurable<int> nBinsPhi{"nBinsPhi", 100, "Number of bins for Phi"};
@@ -148,15 +165,17 @@ struct QATrackingKine {
   o2fw::HistogramRegistry histos{"HistogramsKineQA"};
   void init(o2fw::InitContext&)
   {
-    histos.add("tracking/pt", ";#it{p}_{T} [GeV]", o2fw::kTH1D, {{nBinsPt, ptRange[0], ptRange[1]}});
+    histos.add("tracking/pt", ";#it{p}_{T} [GeV/c]", o2fw::kTH1D, {{nBinsPt, ptRange[0], ptRange[1]}});
+    histos.add("tracking/invpt", ";1/#it{p}_{T} [GeV/c]^{-1}", o2fw::kTH1D, {{nBinsPt, invptRange[0], invptRange[1]}});
     histos.add("tracking/eta", ";#eta", o2fw::kTH1D, {{nBinsEta, etaRange[0], etaRange[1]}});
     histos.add("tracking/phi", ";#varphi [rad]", o2fw::kTH1D, {{nBinsPhi, 0, 2 * M_PI}});
   }
 
   void process(const o2::aod::Track& track)
   {
-    histos.fill(HIST("tracking/eta"), track.eta());
     histos.fill(HIST("tracking/pt"), track.pt());
+    histos.fill(HIST("tracking/invpt"), track.signed1Pt());
+    histos.fill(HIST("tracking/eta"), track.eta());
     histos.fill(HIST("tracking/phi"), track.phi());
   }
 };
@@ -164,8 +183,9 @@ struct QATrackingKine {
 /// Task to evaluate the tracking resolution (Pt, Eta, Phi and impact parameter)
 struct QATrackingResolution {
 
-  o2fw::Configurable<bool> useOnlyPhysicsPrimary{"useOnlyPhysicsPrimary", true,
-                                                 "Whether to use only physical primary particles for the resolution."};
+  o2fw::Configurable<int> useOnlyPhysicsPrimary{"useOnlyPhysicsPrimary", 1,
+                                                "Whether to use only physical primary particles for the resolution."};
+  o2fw::Configurable<int> pdgCode{"pdgCode", 0, "PDG code of the particle to select in absolute value, 0 selects every particle"};
 
   o2fw::Configurable<int> nBinsPt{"nBinsPt", 100, "Number of bins for the transverse momentum"};
   std::array<double, 2> ptRange = {0, 10.};
@@ -230,8 +250,8 @@ struct QATrackingResolution {
     histos.add("pt/ptResolutionVsPhi", ";#varphi;(p_{T}_{MC} - p_{T}_{Rec})/(p_{T}_{Rec})", o2fw::kTH2D, {phiAxis, deltaPtAbsoluteRelativeAxis});
 
     // Impact parameters
-    const TString imp_rphi = "Impact Parameter r#varphi [{#mu}m]";
-    const TString imp_rphi_err = "Impact Parameter Error r#varphi [{#mu}m]";
+    const TString imp_rphi = "Impact Parameter r#varphi [#mum]";
+    const TString imp_rphi_err = "Impact Parameter Error r#varphi [#mum]";
     const TString pt = "#it{p}_{T} [GeV/c]";
     const TString pt_rec = "#it{p}_{T}_{Rec} [GeV/c]";
     const TString eta_rec = "#eta_{Rec}";
@@ -265,13 +285,14 @@ struct QATrackingResolution {
 
     for (const auto& track : tracks) {
 
-      if (useOnlyPhysicsPrimary) {
-        const auto mcParticle = track.label();
-        if (!MC::isPhysicalPrimary(mcParticles, mcParticle)) {
-          continue;
-        }
+      const auto mcParticle = track.mcParticle();
+      if (pdgCode.value != 0 && abs(mcParticle.pdgCode()) != abs(pdgCode.value)) {
+        continue;
       }
-      const double deltaPt = track.label().pt() - track.pt();
+      if (useOnlyPhysicsPrimary.value && !MC::isPhysicalPrimary(mcParticles, mcParticle)) {
+        continue;
+      }
+      const double deltaPt = mcParticle.pt() - track.pt();
       histos.fill(HIST("pt/ptDiffMCRec"), deltaPt);
 
       const double deltaPtOverPt = deltaPt / track.pt();
@@ -281,12 +302,12 @@ struct QATrackingResolution {
       histos.fill(HIST("pt/ptResolutionVsEta"), track.eta(), std::abs(deltaPtOverPt));
       histos.fill(HIST("pt/ptResolutionVsPhi"), track.phi(), std::abs(deltaPtOverPt));
 
-      const double deltaEta = track.label().eta() - track.eta();
+      const double deltaEta = mcParticle.eta() - track.eta();
       histos.fill(HIST("eta/etaDiffMCReco"), deltaEta);
-      histos.fill(HIST("eta/etaDiffMCRecoVsEtaMC"), deltaEta, track.label().eta());
+      histos.fill(HIST("eta/etaDiffMCRecoVsEtaMC"), deltaEta, mcParticle.eta());
       histos.fill(HIST("eta/etaDiffMCRecoVsEtaReco"), deltaEta, track.eta());
 
-      histos.fill(HIST("phi/phiDiffMCRec"), track.label().phi() - track.phi());
+      histos.fill(HIST("phi/phiDiffMCRec"), mcParticle.phi() - track.phi());
 
       double impactParameterRPhi{-999.}, impactParameterRPhiError{-999.};
       double impactParameterZ{-999.}, impactParameterErrorZ{-999.};
@@ -315,11 +336,11 @@ struct QATrackingResolution {
   }
 };
 
-o2fw::WorkflowSpec defineDataProcessing(o2fw::ConfigContext const&)
+o2fw::WorkflowSpec defineDataProcessing(o2fw::ConfigContext const& cfgc)
 {
   o2fw::WorkflowSpec w;
-  w.push_back(o2fw::adaptAnalysisTask<QAGlobalObservables>("qa-global-observables"));
-  w.push_back(o2fw::adaptAnalysisTask<QATrackingKine>("qa-tracking-kine"));
-  w.push_back(o2fw::adaptAnalysisTask<QATrackingResolution>("qa-tracking-resolution"));
+  w.push_back(o2fw::adaptAnalysisTask<QAGlobalObservables>(cfgc, o2fw::TaskName{"qa-global-observables"}));
+  w.push_back(o2fw::adaptAnalysisTask<QATrackingKine>(cfgc, o2fw::TaskName{"qa-tracking-kine"}));
+  w.push_back(o2fw::adaptAnalysisTask<QATrackingResolution>(cfgc, o2fw::TaskName{"qa-tracking-resolution"}));
   return w;
 }

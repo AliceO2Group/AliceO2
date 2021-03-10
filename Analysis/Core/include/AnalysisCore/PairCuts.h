@@ -89,7 +89,7 @@ template <typename T>
 bool PairCuts::conversionCuts(T const& track1, T const& track2)
 {
   // skip if like sign
-  if (track1.charge() * track2.charge() > 0) {
+  if (track1.sign() * track2.sign() > 0) {
     return false;
   }
 
@@ -147,7 +147,7 @@ bool PairCuts::twoTrackCut(T const& track1, T const& track2, int bSign)
       }
 
       if (dphistarminabs < mTwoTrackDistance && TMath::Abs(deta) < mTwoTrackDistance) {
-        //LOGF(debug, "Removed track pair %ld %ld with %f %f %f %f %d %f %f %d %d", track1.index(), track2.index(), deta, dphistarminabs, track1.phi2(), track1.pt(), track1.charge(), track2.phi2(), track2.pt(), track2.charge(), bSign);
+        //LOGF(debug, "Removed track pair %ld %ld with %f %f %f %f %d %f %f %d %d", track1.index(), track2.index(), deta, dphistarminabs, track1.phi2(), track1.pt(), track1.sign(), track2.phi2(), track2.pt(), track2.sign(), bSign);
         return true;
       }
 
@@ -318,11 +318,11 @@ float PairCuts::getDPhiStar(T const& track1, T const& track2, float radius, floa
 
   auto phi1 = track1.phi();
   auto pt1 = track1.pt();
-  auto charge1 = track1.charge();
+  auto charge1 = track1.sign();
 
   auto phi2 = track2.phi();
   auto pt2 = track2.pt();
-  auto charge2 = track2.charge();
+  auto charge2 = track2.sign();
 
   float dphistar = phi1 - phi2 - charge1 * bSign * TMath::ASin(0.075 * radius / pt1) + charge2 * bSign * TMath::ASin(0.075 * radius / pt2);
 

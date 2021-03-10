@@ -43,10 +43,10 @@ using BigTracksPID = soa::Join<BigTracks, pidRespTPC, pidRespTOF>;
 
 namespace hf_track_index
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(Index0, index0, int, BigTracks, "fIndex0");
-DECLARE_SOA_INDEX_COLUMN_FULL(Index1, index1, int, BigTracks, "fIndex1");
-DECLARE_SOA_INDEX_COLUMN_FULL(Index2, index2, int, BigTracks, "fIndex2");
-DECLARE_SOA_INDEX_COLUMN_FULL(Index3, index3, int, BigTracks, "fIndex3");
+DECLARE_SOA_INDEX_COLUMN_FULL(Index0, index0, int, Tracks, "_0");
+DECLARE_SOA_INDEX_COLUMN_FULL(Index1, index1, int, Tracks, "_1");
+DECLARE_SOA_INDEX_COLUMN_FULL(Index2, index2, int, Tracks, "_2");
+DECLARE_SOA_INDEX_COLUMN_FULL(Index3, index3, int, Tracks, "_3");
 DECLARE_SOA_COLUMN(HFflag, hfflag, uint8_t);
 
 DECLARE_SOA_COLUMN(D0ToKPiFlag, d0ToKPiFlag, uint8_t);
@@ -55,6 +55,7 @@ DECLARE_SOA_COLUMN(JpsiToEEFlag, jpsiToEEFlag, uint8_t);
 DECLARE_SOA_COLUMN(DPlusPiKPiFlag, dPlusPiKPiFlag, uint8_t);
 DECLARE_SOA_COLUMN(LcPKPiFlag, lcPKPiFlag, uint8_t);
 DECLARE_SOA_COLUMN(DsKKPiFlag, dsKKPiFlag, uint8_t);
+DECLARE_SOA_COLUMN(XicToPKPiFlag, xicToPKPiFlag, uint8_t);
 } // namespace hf_track_index
 
 DECLARE_SOA_TABLE(HfTrackIndexProng2, "AOD", "HFTRACKIDXP2",
@@ -75,7 +76,8 @@ DECLARE_SOA_TABLE(HfTrackIndexProng3, "AOD", "HFTRACKIDXP3",
 DECLARE_SOA_TABLE(HfCutStatusProng3, "AOD", "HFCUTSTATUSP3",
                   hf_track_index::DPlusPiKPiFlag,
                   hf_track_index::LcPKPiFlag,
-                  hf_track_index::DsKKPiFlag);
+                  hf_track_index::DsKKPiFlag,
+                  hf_track_index::XicToPKPiFlag);
 
 // general decay properties
 namespace hf_cand
@@ -312,6 +314,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(MaxNormalisedDeltaIP, maxNormalisedDeltaIP, [](float 
 // MC matching result:
 // - ±DPlusToPiKPi: D± → π± K∓ π±
 // - ±LcToPKPi: Λc± → p± K∓ π±
+// - ±XicToPKPi: Ξc± → p± K∓ π±
 DECLARE_SOA_COLUMN(FlagMCMatchRec, flagMCMatchRec, int8_t);         // reconstruction level
 DECLARE_SOA_COLUMN(FlagMCMatchGen, flagMCMatchGen, int8_t);         // generator level
 DECLARE_SOA_COLUMN(FlagMCDecayChanRec, flagMCDecayChanRec, int8_t); // Resonant decay channel flag, reconstruction level
@@ -321,6 +324,7 @@ DECLARE_SOA_COLUMN(FlagMCDecayChanGen, flagMCDecayChanGen, int8_t); // Resonant 
 enum DecayType { DPlusToPiKPi = 0,
                  LcToPKPi,
                  DsToPiKK,
+                 XicToPKPi,
                  N3ProngDecays }; //always keep N3ProngDecays at the end
 
 // functions for specific particles
@@ -381,6 +385,38 @@ template <typename T>
 auto InvMassLcpiKp(const T& candidate)
 {
   return candidate.m(array{RecoDecay::getMassPDG(kPiPlus), RecoDecay::getMassPDG(kKPlus), RecoDecay::getMassPDG(kProton)});
+}
+
+// Ξc± → p± K∓ π±
+
+template <typename T>
+auto CtXic(const T& candidate)
+{
+  return candidate.ct(RecoDecay::getMassPDG(4232));
+}
+
+template <typename T>
+auto YXic(const T& candidate)
+{
+  return candidate.y(RecoDecay::getMassPDG(4232));
+}
+
+template <typename T>
+auto EXic(const T& candidate)
+{
+  return candidate.e(RecoDecay::getMassPDG(4232));
+}
+
+template <typename T>
+auto InvMassXicToPKPi(const T& candidate)
+{
+  return InvMassLcpKpi(candidate);
+}
+
+template <typename T>
+auto InvMassXicToPiKP(const T& candidate)
+{
+  return InvMassLcpiKp(candidate);
 }
 } // namespace hf_cand_prong3
 

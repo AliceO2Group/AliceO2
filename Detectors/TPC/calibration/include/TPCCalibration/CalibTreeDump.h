@@ -13,6 +13,7 @@
 
 #include <vector>
 #include <string>
+#include <unordered_map>
 
 #include <boost/variant.hpp>
 
@@ -75,12 +76,16 @@ class CalibTreeDump
   /// Dump the registered calibration data to file
   void dumpToFile(const std::string filename = "CalibTree.root");
 
+  /// Add complementary information
+  void addInfo(const std::string_view name, float value) { mAddInfo[name.data()] = value; }
+
  private:
-  std::vector<DataTypes*> mCalDetObjects{};   ///< array of CalDet objects
-  std::vector<DataTypes*> mCalArrayObjects{}; ///< array of CalArray objects
-  bool mAddFEEInfo{false};                   ///< add front end electronics mappings
-  std::vector<float> mTraceLengthIROC;       ///< trace lengths IROC
-  std::vector<float> mTraceLengthOROC;       ///< trace lengths OROC
+  std::unordered_map<std::string, float> mAddInfo{}; ///< additional common information to be added to the output tree
+  std::vector<DataTypes*> mCalDetObjects{};          ///< array of CalDet objects
+  std::vector<DataTypes*> mCalArrayObjects{};        ///< array of CalArray objects
+  bool mAddFEEInfo{false};                           ///< add front end electronics mappings
+  std::vector<float> mTraceLengthIROC;               ///< trace lengths IROC
+  std::vector<float> mTraceLengthOROC;               ///< trace lengths OROC
 
   /// add default mapping like local, global x/y positions
   void addDefaultMapping(TTree* tree);

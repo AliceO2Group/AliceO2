@@ -15,6 +15,7 @@
 #include "TRDSimulation/TRsim.h"
 #include "TRDSimulation/TRDSimParams.h"
 #include "DataFormatsTRD/Constants.h"
+#include "DataFormatsTRD/Hit.h"
 
 #include "CommonUtils/ShmAllocator.h"
 #include "SimulationDataFormat/Stack.h"
@@ -34,13 +35,13 @@ using namespace o2::trd::constants;
 Detector::Detector(Bool_t active)
   : o2::base::DetImpl<Detector>("TRD", active)
 {
-  mHits = o2::utils::createSimVector<HitType>();
+  mHits = o2::utils::createSimVector<Hit>();
   InitializeParams();
 }
 
 Detector::Detector(const Detector& rhs)
   : o2::base::DetImpl<Detector>(rhs),
-    mHits(o2::utils::createSimVector<HitType>()),
+    mHits(o2::utils::createSimVector<Hit>()),
     mFoilDensity(rhs.mFoilDensity),
     mGasNobleFraction(rhs.mGasNobleFraction),
     mGasDensity(rhs.mGasDensity),
@@ -285,7 +286,7 @@ void Detector::FinishEvent()
 {
   // Sort hit vector by detector number before the End of the Event
   std::sort(mHits->begin(), mHits->end(),
-            [](const HitType& a, const HitType& b) {
+            [](const Hit& a, const Hit& b) {
               return a.GetDetectorID() < b.GetDetectorID();
             });
 }

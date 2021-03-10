@@ -73,7 +73,7 @@ struct cascadeQA {
   void process(aod::Collision const& collision, aod::CascDataExt const& Cascades)
   {
     for (auto& casc : Cascades) {
-      if (casc.charge() < 0) { //FIXME: could be done better...
+      if (casc.sign() < 0) { //FIXME: could be done better...
         hMassXiMinus->Fill(casc.mXi());
         hMassOmegaMinus->Fill(casc.mOmega());
       } else {
@@ -135,7 +135,7 @@ struct cascadeanalysis {
           casc.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) > v0cospa &&
           casc.casccosPA(collision.posX(), collision.posY(), collision.posZ()) > casccospa &&
           casc.dcav0topv(collision.posX(), collision.posY(), collision.posZ()) > dcav0topv) {
-        if (casc.charge() < 0) { //FIXME: could be done better...
+        if (casc.sign() < 0) { //FIXME: could be done better...
           if (TMath::Abs(casc.yXi()) < 0.5) {
             h3dMassXiMinus->Fill(collision.centV0M(), casc.pt(), casc.mXi());
           }
@@ -155,9 +155,9 @@ struct cascadeanalysis {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<cascadeanalysis>("lf-cascadeanalysis"),
-    adaptAnalysisTask<cascadeQA>("lf-cascadeQA")};
+    adaptAnalysisTask<cascadeanalysis>(cfgc, TaskName{"lf-cascadeanalysis"}),
+    adaptAnalysisTask<cascadeQA>(cfgc, TaskName{"lf-cascadeQA"})};
 }

@@ -15,6 +15,8 @@ o2_add_library(DataFormatsTOF
                        src/CalibLHCphaseTOF.cxx
                        src/CalibTimeSlewingParamTOF.cxx
                        src/CTF.cxx
+                       src/CalibInfoCluster.cxx
+                       src/CosmicInfo.cxx
                PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
                                      Boost::serialization)
 
@@ -27,4 +29,6 @@ o2_target_root_dictionary(DataFormatsTOF
                                   include/DataFormatsTOF/RawDataFormat.h
                                   include/DataFormatsTOF/CompressedDataFormat.h
                                   include/DataFormatsTOF/CTF.h
+                                  include/DataFormatsTOF/CalibInfoCluster.h
+                                  include/DataFormatsTOF/CosmicInfo.h
 				  )

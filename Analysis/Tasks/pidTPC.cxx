@@ -206,9 +206,9 @@ struct pidTPCTaskQA {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  auto workflow = WorkflowSpec{adaptAnalysisTask<pidTPCTask>("pidTPC-task")};
+  auto workflow = WorkflowSpec{adaptAnalysisTask<pidTPCTask>(cfgc, TaskName{"pidTPC-task"})};
   if (cfgc.options().get<int>("add-qa")) {
-    workflow.push_back(adaptAnalysisTask<pidTPCTaskQA>("pidTPCQA-task"));
+    workflow.push_back(adaptAnalysisTask<pidTPCTaskQA>(cfgc, TaskName{"pidTPCQA-task"}));
   }
   return workflow;
 }

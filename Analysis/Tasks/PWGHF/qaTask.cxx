@@ -439,12 +439,12 @@ struct QATrackingResolution {
     for (const auto& track : tracks) {
 
       if (useOnlyPhysicsPrimary) {
-        const auto mcParticle = track.label();
+        const auto mcParticle = track.mcParticle();
         if (!MC::isPhysicalPrimary(mcParticles, mcParticle)) {
           continue;
         }
       }
-      const double deltaPt = track.label().pt() - track.pt();
+      const double deltaPt = track.mcParticle().pt() - track.pt();
       histos.fill(HIST("pt/ptDiffMCRec"), deltaPt);
 
       const double deltaPtOverPt = deltaPt / track.pt();
@@ -454,12 +454,12 @@ struct QATrackingResolution {
       histos.fill(HIST("pt/ptResolutionVsEta"), track.eta(), std::abs(deltaPtOverPt));
       histos.fill(HIST("pt/ptResolutionVsPhi"), track.phi(), std::abs(deltaPtOverPt));
 
-      const double deltaEta = track.label().eta() - track.eta();
+      const double deltaEta = track.mcParticle().eta() - track.eta();
       histos.fill(HIST("eta/etaDiffMCReco"), deltaEta);
-      histos.fill(HIST("eta/etaDiffMCRecoVsEtaMC"), deltaEta, track.label().eta());
+      histos.fill(HIST("eta/etaDiffMCRecoVsEtaMC"), deltaEta, track.mcParticle().eta());
       histos.fill(HIST("eta/etaDiffMCRecoVsEtaReco"), deltaEta, track.eta());
 
-      const double deltaPhi = track_utils::ConvertPhiRange(track.label().phi() - track.phi());
+      const double deltaPhi = track_utils::ConvertPhiRange(track.mcParticle().phi() - track.phi());
       histos.fill(HIST("phi/phiDiffMCRec"), deltaPhi);
 
       double impactParameterRPhi{-999.}, impactParameterRPhiError{-999.};
@@ -519,7 +519,7 @@ struct QATrackingEfficiency {
                const o2::aod::McParticles& mcParticles)
   {
     for (const auto& track : tracks) {
-      const auto mcParticle = track.label();
+      const auto mcParticle = track.mcParticle();
       if (MC::isPhysicalPrimary(mcParticles, mcParticle) &&
           abs(mcParticle.pdgCode()) == particlePDG) {
         histos.fill(HIST("reconstructedKinematics"), mcParticle.pt(), mcParticle.eta(), mcParticle.phi());
@@ -535,14 +535,14 @@ struct QATrackingEfficiency {
   }
 };
 
-o2fw::WorkflowSpec defineDataProcessing(o2fw::ConfigContext const&)
+o2fw::WorkflowSpec defineDataProcessing(o2fw::ConfigContext const& cfgc)
 {
-  return o2fw::WorkflowSpec{o2fw::adaptAnalysisTask<QAGlobalObservables>("qa-global-observables"),
-                            o2fw::adaptAnalysisTask<QATrackingKine>("qa-tracking-kine"),
-                            o2fw::adaptAnalysisTask<QATrackingResolution>("qa-tracking-resolution"),
-                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kPiPlus>>("qa-tracking-efficiency-pion"),
-                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kProton>>("qa-tracking-efficiency-proton"),
-                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kElectron>>("qa-tracking-efficiency-electron"),
-                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kMuonMinus>>("qa-tracking-efficiency-muon"),
-                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kKPlus>>("qa-tracking-efficiency-kaon")};
+  return o2fw::WorkflowSpec{o2fw::adaptAnalysisTask<QAGlobalObservables>(cfgc, o2fw::TaskName{"qa-global-observables"}),
+                            o2fw::adaptAnalysisTask<QATrackingKine>(cfgc, o2fw::TaskName{"qa-tracking-kine"}),
+                            o2fw::adaptAnalysisTask<QATrackingResolution>(cfgc, o2fw::TaskName{"qa-tracking-resolution"}),
+                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kPiPlus>>(cfgc, o2fw::TaskName{"qa-tracking-efficiency-pion"}),
+                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kProton>>(cfgc, o2fw::TaskName{"qa-tracking-efficiency-proton"}),
+                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kElectron>>(cfgc, o2fw::TaskName{"qa-tracking-efficiency-electron"}),
+                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kMuonMinus>>(cfgc, o2fw::TaskName{"qa-tracking-efficiency-muon"}),
+                            o2fw::adaptAnalysisTask<QATrackingEfficiency<PDG_t::kKPlus>>(cfgc, o2fw::TaskName{"qa-tracking-efficiency-kaon"})};
 };

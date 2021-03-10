@@ -131,9 +131,9 @@ struct MixedEventsTask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HashTask>("collisions-hashed"),
-    adaptAnalysisTask<CollisionsCombinationsTask>("mixed-event-tracks")};
+    adaptAnalysisTask<HashTask>(cfgc, TaskName{"collisions-hashed"}),
+    adaptAnalysisTask<CollisionsCombinationsTask>(cfgc, TaskName{"mixed-event-tracks"})};
 }

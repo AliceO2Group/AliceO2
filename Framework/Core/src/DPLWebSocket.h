@@ -16,6 +16,7 @@
 #include <string>
 #include <map>
 #include <functional>
+#include <atomic>
 
 class uv_stream_s;
 
@@ -70,11 +71,11 @@ struct WSDPLClient : public HTTPParser {
   /// Dump headers
   void dumpHeaders();
   void sendHandshake();
-  bool isConnected() { return mHandshaken; }
+  bool isHandshaken() { return mHandshaken; }
 
   std::string mNonce;
   DeviceSpec const& mSpec;
-  bool mHandshaken = false;
+  std::atomic<bool> mHandshaken = false;
   std::function<void()> mHandshake;
   uv_stream_t* mStream = nullptr;
   std::map<std::string, std::string> mHeaders;

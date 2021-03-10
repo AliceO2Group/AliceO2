@@ -112,7 +112,7 @@ size_t GPUReconstructionCPU::GPUMemCpyAlways(bool onGpu, void* dst, const void* 
   return 0;
 }
 size_t GPUReconstructionCPU::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev) { return 0; }
-int GPUReconstructionCPU::GPUDebug(const char* state, int stream) { return 0; }
+int GPUReconstructionCPU::GPUDebug(const char* state, int stream, bool force) { return 0; }
 size_t GPUReconstructionCPU::TransferMemoryResourcesHelper(GPUProcessor* proc, int stream, bool all, bool toGPU)
 {
   int inc = toGPU ? GPUMemoryResource::MEMORY_INPUT_FLAG : GPUMemoryResource::MEMORY_OUTPUT_FLAG;

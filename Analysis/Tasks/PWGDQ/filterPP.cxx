@@ -318,12 +318,12 @@ struct FilterPPTask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<EventSelectionTask>("dq-event-selection"),
-    adaptAnalysisTask<BarrelTrackSelectionTask>("dq-barrel-track-selection"),
-    adaptAnalysisTask<FilterPPTask>("dq-ppFilter")};
+    adaptAnalysisTask<EventSelectionTask>(cfgc, TaskName{"dq-event-selection"}),
+    adaptAnalysisTask<BarrelTrackSelectionTask>(cfgc, TaskName{"dq-barrel-track-selection"}),
+    adaptAnalysisTask<FilterPPTask>(cfgc, TaskName{"dq-ppFilter"})};
 }
 
 void DefineHistograms(HistogramManager* histMan, TString histClasses)

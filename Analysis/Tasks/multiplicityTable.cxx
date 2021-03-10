@@ -109,11 +109,11 @@ struct MultiplicityTableTaskRun3 {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const& ctx)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  if (ctx.options().get<int>("selection-run") == 2) {
-    return WorkflowSpec{adaptAnalysisTask<MultiplicityTableTaskIndexed>("multiplicity-table")};
+  if (cfgc.options().get<int>("selection-run") == 2) {
+    return WorkflowSpec{adaptAnalysisTask<MultiplicityTableTaskIndexed>(cfgc, TaskName{"multiplicity-table"})};
   } else {
-    return WorkflowSpec{adaptAnalysisTask<MultiplicityTableTaskRun3>("multiplicity-table")};
+    return WorkflowSpec{adaptAnalysisTask<MultiplicityTableTaskRun3>(cfgc, TaskName{"multiplicity-table"})};
   }
 }

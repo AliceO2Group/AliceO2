@@ -34,6 +34,8 @@
 #include "GPUO2FakeClasses.h"
 #endif
 
+#include "utils/strtag.h"
+
 #ifndef GPUCA_NO_VC
 #include <Vc/Vc>
 #endif
@@ -374,7 +376,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     return ForwardTPCDigits();
   }
 #ifdef GPUCA_TPC_GEOMETRY_O2
-  mRec->PushNonPersistentMemory();
+  mRec->PushNonPersistentMemory(qStr2Tag("TPCCLUST"));
   const auto& threadContext = GetThreadContext();
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCClusterFinding;
   if (RunTPCClusterizer_prepare(mPipelineNotifyCtx && GetProcessingSettings().doublePipelineClusterizer)) {
@@ -739,7 +741,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     }
   }
   mRec->MemoryScalers()->nTPCHits = nClsTotal;
-  mRec->PopNonPersistentMemory(RecoStep::TPCClusterFinding);
+  mRec->PopNonPersistentMemory(RecoStep::TPCClusterFinding, qStr2Tag("TPCCLUST"));
   if (mPipelineNotifyCtx) {
     mRec->UnblockStackedMemory();
     mPipelineNotifyCtx = nullptr;

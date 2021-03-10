@@ -1,6 +1,7 @@
 #!/bin/sh
 
-for chamber in CH5R CH5L CH6R CH7R CH7L CH8L; do
+for chamber in CH5R CH5L CH6R CH7R CH7L CH8L CH8R CH9L CH9R CH10R; do
+
   # srcdir=/Users/laurent/ownCloud/archive/2019/MRRTF/raw-data-encdec
   # ./elecmap.py -i ${srcdir}/Mapping-${chamber}.xlsx -c ${chamber}
   echo "Generating ${chamber}"

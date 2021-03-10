@@ -103,7 +103,7 @@ struct TimestampTask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return WorkflowSpec{adaptAnalysisTask<TimestampTask>("TimestampTask")};
+  return WorkflowSpec{adaptAnalysisTask<TimestampTask>(cfgc, TaskName{"TimestampTask"})};
 }

@@ -52,8 +52,11 @@ class PHOSPedestalCalibDevice : public o2::framework::Task
   bool mUseCCDB = false;
   bool mForceUpdate = false;                                  /// Update CCDB even if difference to current is large
   bool mUpdateCCDB = true;                                    /// set is close to current and can update it
+  static constexpr short kMinorChange = 10;                   /// ignore if number of channels changed smaller than...
+  long mRunStartTime = 0;                                     /// start time of the run (sec)
   std::string mPath{"./"};                                    ///< path and name of file with collected histograms
   std::unique_ptr<Pedestals> mPedestals;                      /// Final calibration object
+  std::unique_ptr<Pedestals> mOldPed;                         /// Pedestals currently stored in CCDB for comparisoin
   std::unique_ptr<Mapping> mMapping;                          /// Mapping
   std::unique_ptr<CaloRawFitter> mRawFitter;                  /// Sample fitting class
   std::unique_ptr<TH2F> mMeanHG;                              /// Mean values in High Gain channels

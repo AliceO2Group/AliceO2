@@ -75,7 +75,6 @@ class CellConverterSpec : public framework::Task
   std::vector<Cell> mOutputCells;                              ///< Container with output cells
   std::vector<TriggerRecord> mOutputCellTrigRecs;              ///< Container with trigger records for output cells
   o2::dataformats::MCTruthContainer<MCLabel> mOutputTruthCont; ///< output MC labels
-  std::vector<uint32_t> mOutputTruthMap;                       ///< output MC labels
   o2::phos::BadChannelMap* mBadMap = nullptr;                  ///< Bad channels map
 };
 

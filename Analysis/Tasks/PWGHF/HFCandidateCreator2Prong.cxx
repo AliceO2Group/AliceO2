@@ -69,9 +69,11 @@ struct HFCandidateCreator2Prong {
 
     // loop over pairs of track indices
     for (const auto& rowTrackIndexProng2 : rowsTrackIndexProng2) {
-      auto trackParVarPos1 = getTrackParCov(rowTrackIndexProng2.index0());
-      auto trackParVarNeg1 = getTrackParCov(rowTrackIndexProng2.index1());
-      auto collision = rowTrackIndexProng2.index0().collision();
+      auto track0 = rowTrackIndexProng2.index0_as<aod::BigTracks>();
+      auto track1 = rowTrackIndexProng2.index1_as<aod::BigTracks>();
+      auto trackParVarPos1 = getTrackParCov(track0);
+      auto trackParVarNeg1 = getTrackParCov(track1);
+      auto collision = track0.collision();
 
       // reconstruct the 2-prong secondary vertex
       if (df.process(trackParVarPos1, trackParVarNeg1) == 0) {
@@ -199,11 +201,11 @@ struct HFCandidateCreator2ProngMC {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<HFCandidateCreator2Prong>("hf-cand-creator-2prong"),
-    adaptAnalysisTask<HFCandidateCreator2ProngExpressions>("hf-cand-creator-2prong-expressions")};
+    adaptAnalysisTask<HFCandidateCreator2Prong>(cfgc, TaskName{"hf-cand-creator-2prong"}),
+    adaptAnalysisTask<HFCandidateCreator2ProngExpressions>(cfgc, TaskName{"hf-cand-creator-2prong-expressions"})};
   const bool doMC = cfgc.options().get<bool>("doMC");
   if (doMC) {
-    workflow.push_back(adaptAnalysisTask<HFCandidateCreator2ProngMC>("hf-cand-creator-2prong-mc"));
+    workflow.push_back(adaptAnalysisTask<HFCandidateCreator2ProngMC>(cfgc, TaskName{"hf-cand-creator-2prong-mc"}));
   }
   return workflow;
 }

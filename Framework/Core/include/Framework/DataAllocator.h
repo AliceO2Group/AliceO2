@@ -139,11 +139,12 @@ class DataAllocator
       });
       return *reinterpret_cast<TreeToTable*>(t2tr);
     } else if constexpr (sizeof...(Args) == 0) {
+      constexpr bool isBoostSerializable = framework::is_boost_serializable<T>::value;
       if constexpr (is_messageable<T>::value == true) {
         return *reinterpret_cast<T*>(newChunk(spec, sizeof(T)).data());
       } else if constexpr (is_specialization<T, BoostSerialized>::value == true) {
         return make_boost<typename T::wrapped_type>(std::move(spec));
-      } else if constexpr (is_specialization<T, BoostSerialized>::value == false && framework::is_boost_serializable<T>::value == true && std::is_base_of<std::string, T>::value == false) {
+      } else if constexpr (is_specialization<T, BoostSerialized>::value == false && isBoostSerializable == true && std::is_base_of<std::string, T>::value == false) {
         return make_boost<T>(std::move(spec));
       } else {
         static_assert(always_static_assert_v<T>, ERROR_STRING);

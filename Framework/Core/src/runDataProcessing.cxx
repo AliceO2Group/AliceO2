@@ -109,7 +109,7 @@
 #include <sched.h>
 #elif __has_include(<linux/getcpu.h>)
 #include <linux/getcpu.h>
-#elif __has_include(<cpuid.h>)
+#elif __has_include(<cpuid.h>) && (__x86_64__ || __i386__)
 #include <cpuid.h>
 #define CPUID(INFO, LEAF, SUBLEAF) __cpuid_count(LEAF, SUBLEAF, INFO[0], INFO[1], INFO[2], INFO[3])
 #define GETCPU(CPU)                                 \
@@ -935,7 +935,10 @@ void doDefaultWorkflowTerminationHook()
   //LOG(INFO) << "Process " << getpid() << " is exiting.";
 }
 
-int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry, const o2::framework::DeviceSpec& spec, TerminationPolicy errorPolicy,
+int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
+            const o2::framework::DeviceSpec& spec,
+            TerminationPolicy errorPolicy,
+            std::string const& defaultDriverClient,
             uv_loop_t* loop)
 {
   fair::Logger::SetConsoleColor(false);
@@ -946,13 +949,13 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry, const o2::f
 
     // Populate options from the command line. Notice that only the options
     // declared in the workflow definition are allowed.
-    runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec](fair::mq::DeviceRunner& r) {
+    runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec, defaultDriverClient](fair::mq::DeviceRunner& r) {
       boost::program_options::options_description optsDesc;
       ConfigParamsHelper::populateBoostProgramOptions(optsDesc, spec.options, gHiddenDeviceOptions);
-      optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("default"), "monitoring backend info")                                                   //
-        ("driver-client-backend", bpo::value<std::string>()->default_value("stdout://"), "backend for device -> driver communicataon: stdout://: use stdout, ws://: use websockets") //
-        ("infologger-severity", bpo::value<std::string>()->default_value(""), "minimum FairLogger severity to send to InfoLogger")                                                   //
-        ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                                                                     //
+      optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("default"), "monitoring backend info")                                                           //
+        ("driver-client-backend", bpo::value<std::string>()->default_value(defaultDriverClient), "backend for device -> driver communicataon: stdout://: use stdout, ws://: use websockets") //
+        ("infologger-severity", bpo::value<std::string>()->default_value(""), "minimum FairLogger severity to send to InfoLogger")                                                           //
+        ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                                                                             //
         ("infologger-mode", bpo::value<std::string>()->default_value(""), "INFOLOGGER_MODE override");
       r.fConfig.AddToCmdLineOptions(optsDesc, true);
     });
@@ -1241,7 +1244,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     driverInfo.states.pop_back();
     switch (current) {
       case DriverState::INIT:
-        LOG(INFO) << "Initialising O2 Data Processing Layer";
+        LOGP(info, "Initialising O2 Data Processing Layer. Driver PID: {}.", getpid());
 
         // Install signal handler for quitting children.
         driverInfo.sa_handle_child.sa_handler = &handle_sigchld;
@@ -1363,7 +1366,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           if (spec.id == frameworkId) {
             return doChild(driverInfo.argc, driverInfo.argv,
                            serviceRegistry, spec,
-                           driverInfo.errorPolicy, loop);
+                           driverInfo.errorPolicy,
+                           driverInfo.defaultDriverClient,
+                           loop);
           }
         }
         {
@@ -1410,6 +1415,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             "--aod-writer-ntfmerge",
             "--aod-writer-resfile",
             "--aod-writer-resmode",
+            "--aod-writer-keep",
             "--driver-client-backend",
             "--fairmq-ipc-prefix",
             "--readers",
@@ -1456,7 +1462,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         parentCPU = sched_getcpu();
 #elif __has_include(<linux/getcpu.h>)
         getcpu(&parentCPU, &parentNode, nullptr);
-#elif __has_include(<cpuid.h>)
+#elif __has_include(<cpuid.h>) && (__x86_64__ || __i386__)
         // FIXME: this is a last resort as it is apparently buggy
         //        on some Intel CPUs.
         GETCPU(parentCPU);
@@ -1685,17 +1691,6 @@ bool isOutputToPipe()
   struct stat s;
   fstat(STDOUT_FILENO, &s);
   return ((s.st_mode & S_IFIFO) != 0);
-}
-
-void overrideSuffix(ConfigContext& ctx, WorkflowSpec& workflow)
-{
-  auto suffix = ctx.options().get<std::string>("workflow-suffix");
-  if (suffix.empty()) {
-    return;
-  }
-  for (auto& processor : workflow) {
-    processor.name = processor.name + suffix;
-  }
 }
 
 void overrideCloning(ConfigContext& ctx, WorkflowSpec& workflow)
@@ -2226,8 +2221,10 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   if (varmap.count("id")) {
     frameworkId = varmap["id"].as<std::string>();
     driverInfo.uniqueWorkflowId = fmt::format("{}", getppid());
+    driverInfo.defaultDriverClient = "stdout://";
   } else {
     driverInfo.uniqueWorkflowId = fmt::format("{}", getpid());
+    driverInfo.defaultDriverClient = "ws://";
   }
   return runStateMachine(physicalWorkflow,
                          currentWorkflow,

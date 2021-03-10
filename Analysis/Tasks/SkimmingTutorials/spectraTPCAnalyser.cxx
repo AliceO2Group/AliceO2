@@ -107,6 +107,6 @@ struct TPCSpectraAnalyserTask {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec workflow{adaptAnalysisTask<TPCSpectraAnalyserTask>("tpcspectra-task-skim-analyser")};
+  WorkflowSpec workflow{adaptAnalysisTask<TPCSpectraAnalyserTask>(cfgc, TaskName{"tpcspectra-task-skim-analyser"})};
   return workflow;
 }

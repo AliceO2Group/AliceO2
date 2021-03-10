@@ -13,7 +13,6 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/SimpleOptionsRetriever.h"
 #include "Framework/WorkflowCustomizationHelpers.h"
-#include "../src/WorkflowHelpers.h"
 
 std::unique_ptr<o2::framework::ConfigContext> makeEmptyConfigContext()
 {

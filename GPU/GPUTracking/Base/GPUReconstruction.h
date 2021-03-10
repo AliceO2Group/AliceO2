@@ -201,8 +201,8 @@ class GPUReconstruction
   void FreeRegisteredMemory(short res);
   void ClearAllocatedMemory(bool clearOutputs = true);
   void ReturnVolatileDeviceMemory();
-  void PushNonPersistentMemory();
-  void PopNonPersistentMemory(RecoStep step);
+  void PushNonPersistentMemory(unsigned long tag);
+  void PopNonPersistentMemory(RecoStep step, unsigned long tag);
   void BlockStackedMemory(GPUReconstruction* rec);
   void UnblockStackedMemory();
   void ResetRegisteredMemoryPointers(GPUProcessor* proc);
@@ -385,7 +385,7 @@ class GPUReconstruction
     std::vector<unsigned short> res;
   };
   std::unordered_map<GPUMemoryReuse::ID, MemoryReuseMeta> mMemoryReuse1to1;
-  std::vector<std::tuple<void*, void*, size_t>> mNonPersistentMemoryStack;
+  std::vector<std::tuple<void*, void*, size_t, unsigned long>> mNonPersistentMemoryStack;
   std::vector<GPUMemoryResource*> mNonPersistentIndividualAllocations;
 
   std::unique_ptr<GPUReconstructionPipelineContext> mPipelineContext;

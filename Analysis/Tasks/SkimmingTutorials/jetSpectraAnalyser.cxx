@@ -50,8 +50,8 @@ struct JetSpectraAnalyser {
     }
   }
 };
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<JetSpectraAnalyser>("jetspectra-task-skim-analyser")};
+    adaptAnalysisTask<JetSpectraAnalyser>(cfgc, TaskName{"jetspectra-task-skim-analyser"})};
 }

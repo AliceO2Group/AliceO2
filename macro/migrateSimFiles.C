@@ -75,6 +75,11 @@ void migrateSimFiles(const char* filebase = "o2sim")
   auto kinematicsfile = o2::base::NameConf::getMCKinematicsFileName(filebase);
   copyBranch(originalfilename.c_str(), kinematicsfile.c_str(), o2::detectors::SimTraits::KINEMATICSBRANCHES);
 
+  // split off additional MCHeaders file
+  std::vector<std::string> headerbranches = {"MCEventHeader"};
+  auto headersfile = o2::base::NameConf::getMCHeadersFileName(filebase);
+  copyBranch(originalfilename.c_str(), headersfile.c_str(), headerbranches);
+
   // loop over all possible detectors
   for (auto detid = o2::detectors::DetID::First; detid <= o2::detectors::DetID::Last; ++detid) {
     if (!grp->isDetReadOut(detid)) {

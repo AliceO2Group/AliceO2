@@ -60,6 +60,6 @@ struct TrackExtensionTask {
 //****************************************************************************************
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec workflow{adaptAnalysisTask<TrackExtensionTask>("track-extension")};
+  WorkflowSpec workflow{adaptAnalysisTask<TrackExtensionTask>(cfgc, TaskName{"track-extension"})};
   return workflow;
 }

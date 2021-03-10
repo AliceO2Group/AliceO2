@@ -31,7 +31,6 @@ int PVertexer::runVertexing(const gsl::span<o2d::GlobalTrackID> gids, const gsl:
                             gsl::span<const o2::MCCompLabel> lblTracks, std::vector<o2::MCEventLabel>& lblVtx)
 {
   dbscan_clusterize();
-
   std::vector<PVertex> verticesLoc;
   std::vector<uint32_t> trackIDs;
   std::vector<V2TRef> v2tRefsLoc;
@@ -557,7 +556,7 @@ bool PVertexer::setCompatibleIR(PVertex& vtx)
 }
 
 //___________________________________________________________________
-int PVertexer::dbscan_RangeQuery(int id, std::vector<int>& cand, const std::vector<int>& status)
+int PVertexer::dbscan_RangeQuery(int id, std::vector<int>& cand, std::vector<int>& status)
 {
   // find neighbours for dbscan cluster core point candidate
   // Since we use asymmetric distance definition, is it bit more complex than simple search within chi2 proximity
@@ -577,8 +576,9 @@ int PVertexer::dbscan_RangeQuery(int id, std::vector<int>& cand, const std::vect
     auto dist2 = tL.getDist2(tI);
     if (dist2 < this->mPVParams->dbscanMaxDist2) {
       nFound++;
-      if (statN < 0) {
-        cand.push_back(idN); // no point in adding for check already assigned point
+      if (statN < 0 && statN > DBS_INCHECK) { // no point in adding for check already assigned point, or which is already in the list (i.e. < INCHECK)
+        cand.push_back(idN);
+        status[idN] += DBS_INCHECK; // flag that the track is in the candidates list (i.e. DBS_UDEF-10 = -12 or DPB_NOISE-10 = -11).
       }
     }
     return 1;
@@ -601,23 +601,22 @@ int PVertexer::dbscan_RangeQuery(int id, std::vector<int>& cand, const std::vect
 //_____________________________________________________
 void PVertexer::dbscan_clusterize()
 {
-  const int UNDEF = -2, NOISE = -1;
   int ntr = mSortedTrackID.size();
   std::vector<std::vector<int>> clusters;
-  std::vector<int> status(ntr, UNDEF);
+  std::vector<int> status(ntr, DBS_UNDEF);
   TStopwatch timer;
   int clID = -1;
 
   std::vector<int> nbVec;
   for (int it = 0; it < ntr; it++) {
-    if (status[it] != UNDEF) {
+    if (status[it] != DBS_UNDEF) {
       continue;
     }
     nbVec.clear();
     auto nnb0 = dbscan_RangeQuery(it, nbVec, status);
     int minNeighbours = mPVParams->minTracksPerVtx - 1;
     if (nnb0 < minNeighbours) {
-      status[it] = NOISE; // noise
+      status[it] = DBS_NOISE; // noise
       continue;
     }
     if (nnb0 > minNeighbours) {
@@ -630,11 +629,12 @@ void PVertexer::dbscan_clusterize()
       int jt = nbVec[j];
       auto statjt = status[jt];
       if (statjt >= 0) {
+        LOG(ERROR) << "assigned track " << jt << " with status " << statjt << " head is " << it << " clID= " << clID;
         continue;
       }
       status[jt] = clID;
       clusVec.push_back(jt);
-      if (statjt == NOISE) { // was border point, no check for being core point is needed
+      if (statjt == DBS_NOISE + DBS_INCHECK) { // was border point, no check for being core point is needed
         continue;
       }
       int ncurr = nbVec.size();
@@ -643,9 +643,14 @@ void PVertexer::dbscan_clusterize()
       }
       auto nnb1 = dbscan_RangeQuery(jt, nbVec, status);
       if (nnb1 < minNeighbours) {
+        for (unsigned k = ncurr; k < nbVec.size(); k++) {
+          if (status[nbVec[k]] < DBS_INCHECK) {
+            status[nbVec[k]] -= DBS_INCHECK; // remove from checks
+          }
+        }
         nbVec.resize(ncurr); // not a core point, reset the seeds pool to the state before RangeQuery
       } else {
-        nnb0 = ncurr; // core point, its neighbours need to be checked
+        nnb0 = nbVec.size(); // core point, its neighbours need to be checked
       }
     }
   }

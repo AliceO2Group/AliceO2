@@ -9,6 +9,7 @@
 * [Raw to digits](#raw-to-digits)
 * [Preclustering](#preclustering)
 * [Clustering](#clustering)
+* [Local to global cluster transformation](#local-to-global-cluster-transformation)
 * [Tracking](#tracking)
   * [Original track finder](#original-track-finder)
   * [New track finder](#new-track-finder)
@@ -75,6 +76,23 @@ o2-mch-preclusters-to-clusters-original-workflow
 ```
 
 Take as input the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the current time frame, the list of all associated digits ([Digit](../Base/include/MCHBase/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction, with the data description "PRECLUSTERS", "PRECLUSTERDIGITS" and "PRECLUSTERROFS", respectively. Send the list of all clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) in the time frame, the list of all associated digits ([Digit](../Base/include/MCHBase/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction in three separate messages with the data description "CLUSTERS", "CLUSTERDIGITS" and "CLUSTERROFS", respectively.
+
+## Local to global cluster transformation
+
+The `o2-mch-clusters-transformer-workflow` takes as as input the list of all clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)), in local reference frame, in the current time frame, with the data description "CLUSTERS".
+
+It sends the list of the same clusters, but converted in global reference frame, with the data description "GLOBALCLUSTERS".
+
+To test it one can use e.g. a sampler-transformer-sink pipeline as such : 
+
+``` 
+o2-mch-clusters-sampler-workflow 
+    -b --nEventsPerTF 1000 --infile someclusters.data |
+o2-mch-clusters-transformer-workflow  
+    -b --geometry Detectors/MUON/MCH/Geometry/Test/ideal-geometry-o2.json | 
+o2-mch-clusters-sink-workflow 
+    -b --txt --outfile global-clusters.txt --no-digits --global
+```
 
 ## Tracking
 
@@ -224,15 +242,15 @@ Option `--useRun2DigitUID` allows to convert the run3 pad ID stored in the digit
 ### Cluster sink
 
 ```shell
-o2-mch-clusters-sink-workflow --outfile "clusters.out"
+o2-mch-clusters-sink-workflow --outfile "clusters.out" [--txt] [--no-digits] [--global]
 ```
 
-Take as input the list of all clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) in the current time frame, the list of all associated digits ([Digit](../Base/include/MCHBase/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction, with the data description "CLUSTERS", "CLUSTERDIGITS" and "CLUSTERROFS", respectively, and write them event-by-event in the binary file `clusters.out` with the following format for each event:
+Take as input the list of all clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) in the current time frame, and, optionnally, the list of all associated digits ([Digit](../Base/include/MCHBase/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction, with the data description "CLUSTERS" (or "GLOBALCLUSTERS" if `--global` option is used), "CLUSTERDIGITS" (unless `--no-digits` option is used) and "CLUSTERROFS", respectively, and write them event-by-event in the binary file `clusters.out` with the following format for each event:
 
 * number of clusters (int)
-* number of associated digits (int)
+* number of associated digits (int) (unless option `--no-digits` is used)
 * list of clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h))
-* list of associated digits ([Digit](../Base/include/MCHBase/Digit.h))
+* list of associated digits ([Digit](../Base/include/MCHBase/Digit.h))(unless option `--no-digits` is used)
 
 Option `--txt` allows to write the clusters in the output file in text format.
 

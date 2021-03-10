@@ -26,7 +26,7 @@ set(ALIGPU_BUILD_TYPE "O2")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set_property(GLOBAL PROPERTY REPORT_UNDEFINED_PROPERTIES)
 
-set(ANALYSIS_COMPILE_POOL 1 CACHE STRING "How many parallel analysis compilation jobs")
+set(ANALYSIS_COMPILE_POOL 2 CACHE STRING "How many parallel analysis compilation jobs")
 set_property(GLOBAL PROPERTY JOB_POOLS analysis=${ANALYSIS_COMPILE_POOL})
 
 include(O2BuildSanityChecks)
@@ -42,6 +42,8 @@ o2_define_options()
 if (ENABLE_UPGRADES)
   add_definitions(-DENABLE_UPGRADES)
 endif()
+
+add_subdirectory(version)
 
 include(O2DefineOutputPaths)
 o2_define_output_paths()

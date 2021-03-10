@@ -326,8 +326,8 @@ void RecoContainer::createTracks(std::function<void(const o2::track::TrackParCov
                                                              if (!usedData[src].empty()) {
 							       usedData[gidx.getSource()][gidx.getIndex()] = 1;
 							     } };
-  auto isUsed = [&usedData](const GTrackID gidx) { return usedData[gidx.getSource()][gidx.getIndex()] != 0; };
-  auto isUsed2 = [&usedData](int idx, int src) { return usedData[src][idx] != 0; };
+  auto isUsed = [&usedData](const GTrackID gidx) { return (!usedData[gidx.getSource()].empty()) && (usedData[gidx.getSource()][gidx.getIndex()] != 0); };
+  auto isUsed2 = [&usedData](int idx, int src) { return (!usedData[src].empty()) && (usedData[src][idx] != 0); };
 
   // create only for those data types which are used
   const auto& tracksITS = getITSTracks<o2::its::TrackITS>();

@@ -235,10 +235,10 @@ inline void AcceptTrack(aod::TrackData const& track, bool& asone, bool& astwo)
   /* TODO: incorporate a mask in the scanned tracks table for the rejecting track reason */
   if (matchTrackType(track)) {
     if (ptlow < track.pt() and track.pt() < ptup and etalow < track.eta() and track.eta() < etaup) {
-      if (((track.charge() > 0) and (trackonecharge > 0)) or ((track.charge() < 0) and (trackonecharge < 0))) {
+      if (((track.sign() > 0) and (trackonecharge > 0)) or ((track.sign() < 0) and (trackonecharge < 0))) {
         asone = true;
       }
-      if (((track.charge() > 0) and (tracktwocharge > 0)) or ((track.charge() < 0) and (tracktwocharge < 0))) {
+      if (((track.sign() > 0) and (tracktwocharge > 0)) or ((track.sign() < 0) and (tracktwocharge < 0))) {
         astwo = true;
       }
     }
@@ -412,7 +412,7 @@ struct DptDptCorrelationsFilterAnalysisTask {
         fhPhiB->Fill(track.phi());
         fhEtaVsPhiB->Fill(track.phi(), track.eta());
         fhPtVsEtaB->Fill(track.eta(), track.pt());
-        if (track.charge() > 0) {
+        if (track.sign() > 0) {
           fhPtPosB->Fill(track.pt());
         } else {
           fhPtNegB->Fill(track.pt());
@@ -429,7 +429,7 @@ struct DptDptCorrelationsFilterAnalysisTask {
           fhPhiA->Fill(track.phi());
           fhEtaVsPhiA->Fill(track.phi(), track.eta());
           fhPtVsEtaA->Fill(track.eta(), track.pt());
-          if (track.charge() > 0) {
+          if (track.sign() > 0) {
             fhPtPosA->Fill(track.pt());
           } else {
             fhPtNegA->Fill(track.pt());
@@ -841,13 +841,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   int nranges = tokens->GetEntries();
 
   WorkflowSpec workflow{
-    adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>("DptDptCorrelationsFilterAnalysisTask"),
-    adaptAnalysisTask<TracksAndEventClassificationQA>("TracksAndEventClassificationQA")};
+    adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc, TaskName{"DptDptCorrelationsFilterAnalysisTask"}),
+    adaptAnalysisTask<TracksAndEventClassificationQA>(cfgc, TaskName{"TracksAndEventClassificationQA"})};
   for (int i = 0; i < nranges; ++i) {
     float cmmin = 0.0f;
     float cmmax = 0.0f;
     sscanf(tokens->At(i)->GetName(), "%f-%f", &cmmin, &cmmax);
-    workflow.push_back(adaptAnalysisTask<DptDptCorrelationsTask>(Form("DptDptCorrelationsTask-%s", tokens->At(i)->GetName()), cmmin, cmmax));
+    workflow.push_back(adaptAnalysisTask<DptDptCorrelationsTask>(cfgc, TaskName{Form("DptDptCorrelationsTask-%s", tokens->At(i)->GetName())}, cmmin, cmmax));
   }
   delete tokens;
   return workflow;

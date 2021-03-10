@@ -51,12 +51,20 @@ class TPCCalibPedestalDevice : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final
   {
     // set up ADC value filling
+    // TODO: clean up to not go via RawReaderCRUManager
     mCalibPedestal.init(); // initialize configuration via configKeyValues
     mRawReader.createReader("");
+
     mRawReader.setADCDataCallback([this](const PadROCPos& padROCPos, const CRU& cru, const gsl::span<const uint32_t> data) -> int {
       const int timeBins = mCalibPedestal.update(padROCPos, cru, data);
       mCalibPedestal.setNumberOfProcessedTimeBins(std::max(mCalibPedestal.getNumberOfProcessedTimeBins(), size_t(timeBins)));
       return timeBins;
+    });
+
+    mRawReader.setLinkZSCallback([this](int cru, int rowInSector, int padInRow, int timeBin, float adcValue) -> bool {
+      CRU cruID(cru);
+      mCalibPedestal.updateROC(cruID.roc(), rowInSector - (rowInSector > 62) * 63, padInRow, timeBin, adcValue);
+      return true;
     });
 
     mMaxEvents = static_cast<uint32_t>(ic.options().get<int>("max-events"));

@@ -31,11 +31,6 @@ using namespace o2::tpc::constants;
 GPUdi() static constexpr unsigned char getFlagsReject() { return GPUTPCGMMergedTrackHit::flagReject | GPUTPCGMMergedTrackHit::flagNotFit; }
 GPUdi() static unsigned int getFlagsRequired(const GPUSettingsRec& rec) { return rec.dropSecondaryLegsInOutput ? gputpcgmmergertypes::attachGoodLeg : gputpcgmmergertypes::attachZero; }
 
-struct tmpSort {
-  unsigned int x;
-  float y;
-};
-
 template <>
 GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger)
 {
@@ -45,8 +40,8 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int nBlocks, i
   constexpr unsigned char flagsReject = getFlagsReject();
   const unsigned int flagsRequired = getFlagsRequired(merger.Param().rec);
 
-  tmpSort* trackSort = (tmpSort*)merger.TmpMem();
-  uint2* tmpData = (uint2*)(trackSort + merger.NOutputTracks());
+  GPUTPCGMMerger::tmpSort* GPUrestrict() trackSort = merger.TrackSortO2();
+  uint2* GPUrestrict() tmpData = merger.ClusRefTmp();
   for (unsigned int i = get_global_id(0); i < nTracks; i += get_global_size(0)) {
     unsigned int nCl = 0;
     for (unsigned int j = 0; j < tracks[i].NClusters(); j++) {
@@ -72,14 +67,14 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::sort>(int nBlocks, int 
   if (iThread || iBlock) {
     return;
   }
-  tmpSort* trackSort = (tmpSort*)merger.TmpMem();
+  GPUTPCGMMerger::tmpSort* GPUrestrict() trackSort = merger.TrackSortO2();
   auto comp = [](const auto& a, const auto& b) { return (a.y > b.y); };
   GPUCommonAlgorithm::sortDeviceDynamic(trackSort, trackSort + merger.Memory()->nO2Tracks, comp);
 }
 
 #if (defined(__CUDACC__) || defined(__HIPCC__)) && !defined(GPUCA_GPUCODE_GENRTC) // Specialize GPUTPCGMMergerSortTracks and GPUTPCGMMergerSortTracksQPt
 struct GPUTPCGMO2OutputSort_comp {
-  GPUd() bool operator()(const tmpSort& a, const tmpSort& b)
+  GPUd() bool operator()(const GPUTPCGMMerger::tmpSort& a, const GPUTPCGMMerger::tmpSort& b)
   {
     return (a.y > b.y);
   }
@@ -89,7 +84,7 @@ template <>
 void GPUCA_KRNL_BACKEND_CLASS::runKernelBackendInternal<GPUTPCGMO2Output, GPUTPCGMO2Output::sort>(krnlSetup& _xyz)
 {
   GPUDebugTiming timer(mProcessingSettings.debugLevel, nullptr, mInternals->Streams, _xyz, this);
-  thrust::device_ptr<tmpSort> trackSort((tmpSort*)mProcessorsShadow->tpcMerger.TmpMem());
+  thrust::device_ptr<GPUTPCGMMerger::tmpSort> trackSort(mProcessorsShadow->tpcMerger.TrackSortO2());
   ThrustVolatileAsyncAllocator alloc(this);
   thrust::sort(GPUCA_THRUST_NAMESPACE::par(alloc).on(mInternals->Streams[_xyz.x.stream]), trackSort, trackSort + processors()->tpcMerger.NOutputTracksTPCO2(), GPUTPCGMO2OutputSort_comp());
 }
@@ -100,6 +95,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
 {
   constexpr float MinDelta = 0.1;
   const GPUTPCGMMergedTrack* tracks = merger.OutputTracks();
+  GPUdEdxInfo* tracksdEdx = merger.OutputTracksdEdx();
   const int nTracks = merger.NOutputTracksTPCO2();
   const GPUTPCGMMergedTrackHit* trackClusters = merger.Clusters();
   constexpr unsigned char flagsReject = getFlagsReject();
@@ -107,8 +103,8 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
   TrackTPC* outputTracks = merger.OutputTracksTPCO2();
   unsigned int* clusRefs = merger.OutputClusRefsTPCO2();
 
-  tmpSort* trackSort = (tmpSort*)merger.TmpMem();
-  uint2* tmpData = (uint2*)(trackSort + merger.NOutputTracks());
+  GPUTPCGMMerger::tmpSort* GPUrestrict() trackSort = merger.TrackSortO2();
+  uint2* GPUrestrict() tmpData = merger.ClusRefTmp();
 
   for (int iTmp = get_global_id(0); iTmp < nTracks; iTmp += get_global_size(0)) {
     auto& oTrack = outputTracks[iTmp];
@@ -124,7 +120,9 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
 
     oTrack.setChi2(tracks[i].GetParam().GetChi2());
     auto& outerPar = tracks[i].OuterParam();
-    oTrack.setdEdx(tracks[i].dEdxInfo());
+    if (merger.Param().par.dodEdx) {
+      oTrack.setdEdx(tracksdEdx[i]);
+    }
     oTrack.setOuterParam(o2::track::TrackParCov(
       outerPar.X, outerPar.alpha,
       {outerPar.P[0], outerPar.P[1], outerPar.P[2], outerPar.P[3], outerPar.P[4]},
@@ -208,7 +206,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
 }
 
 template <>
-GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::mc>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() merger)
+GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::mc>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger)
 {
 #ifndef GPUCA_GPUCODE
   const o2::tpc::ClusterNativeAccess* GPUrestrict() clusters = merger.GetConstantMem()->ioPtrs.clustersNative;

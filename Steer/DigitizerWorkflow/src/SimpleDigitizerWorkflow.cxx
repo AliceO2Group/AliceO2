@@ -83,7 +83,7 @@
 
 // for ZDC
 #include "ZDCDigitizerSpec.h"
-#include "ZDCDigitWriterSpec.h"
+#include "ZDCWorkflow/ZDCDigitWriterDPLSpec.h"
 
 // GRP
 #include "DataFormatsParameters/GRPObject.h"
@@ -523,7 +523,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     // connect the ZDC digitization
     specs.emplace_back(o2::zdc::getZDCDigitizerSpec(fanoutsize++, mctruth));
     // connect the ZDC digit writer
-    specs.emplace_back(o2::zdc::getZDCDigitWriterSpec(mctruth));
+    specs.emplace_back(o2::zdc::getZDCDigitWriterDPLSpec(mctruth, true));
   }
 
   // add TRD

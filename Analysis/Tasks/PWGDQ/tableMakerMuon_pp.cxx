@@ -129,7 +129,7 @@ struct TableMakerMuon_pp {
       }
       // TODO: the trackFilteringTag will not be needed to encode whether the track is a muon since there is a dedicated table for muons
       trackFilteringTag |= (uint64_t(1) << 0); // this is a MUON arm track
-      muonBasic(event.lastIndex(), trackFilteringTag, muon.pt(), muon.eta(), muon.phi(), muon.charge());
+      muonBasic(event.lastIndex(), trackFilteringTag, muon.pt(), muon.eta(), muon.phi(), muon.sign());
       muonExtended(muon.inverseBendingMomentum(), muon.thetaX(), muon.thetaY(), muon.zMu(), muon.bendingCoor(), muon.nonBendingCoor(), muon.chi2(), muon.chi2MatchTrigger());
     }
   }
@@ -165,8 +165,8 @@ struct TableMakerMuon_pp {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<TableMakerMuon_pp>("table-maker-muon-pp")};
+    adaptAnalysisTask<TableMakerMuon_pp>(cfgc, TaskName{"table-maker-muon-pp"})};
 }

@@ -244,14 +244,14 @@ struct pidTOFTaskQA {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  auto workflow = WorkflowSpec{adaptAnalysisTask<pidTOFTask>("pidTOF-task")};
+  auto workflow = WorkflowSpec{adaptAnalysisTask<pidTOFTask>(cfgc, TaskName{"pidTOF-task"})};
   const int add_beta = cfgc.options().get<int>("add-beta");
   const int add_qa = cfgc.options().get<int>("add-qa");
   if (add_beta || add_qa) {
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskBeta>("pidTOFBeta-task"));
+    workflow.push_back(adaptAnalysisTask<pidTOFTaskBeta>(cfgc, TaskName{"pidTOFBeta-task"}));
   }
   if (add_qa) {
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskQA>("pidTOFQA-task"));
+    workflow.push_back(adaptAnalysisTask<pidTOFTaskQA>(cfgc, TaskName{"pidTOFQA-task"}));
   }
   return workflow;
 }

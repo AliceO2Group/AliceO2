@@ -58,6 +58,8 @@ struct CorrelationTask {
 
   // Filters and input definitions
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
+  // TODO bitwise operations not supported, yet
+  // Filter vertexTypeFilter = aod::collision::flags & (uint16_t) aod::collision::CollisionFlagsRun2::Run2VertexerTracks;
   Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::pt > cfgCutPt) && ((aod::track::isGlobalTrack == (uint8_t) true) || (aod::track::isGlobalTrackSDD == (uint8_t) true));
   using myTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>>;
 
@@ -162,7 +164,12 @@ struct CorrelationTask {
 
     same->fillEvent(centrality, CorrelationContainer::kCFStepTriggered);
 
-    // vertex already checked as filter
+    // vertex range already checked as filter, but bitwise operations not yet supported
+    // TODO (collision.flags() != 0) can be removed with next conversion (AliPhysics >= 20210305)
+    if ((collision.flags() != 0) && ((collision.flags() & aod::collision::CollisionFlagsRun2::Run2VertexerTracks) != aod::collision::CollisionFlagsRun2::Run2VertexerTracks)) {
+      return;
+    }
+
     same->fillEvent(centrality, CorrelationContainer::kCFStepVertex);
 
     same->fillEvent(centrality, CorrelationContainer::kCFStepReconstructed);
@@ -185,7 +192,7 @@ struct CorrelationTask {
       registry.fill(HIST("yields"), centrality, track1.pt(), track1.eta());
       registry.fill(HIST("etaphi"), centrality, track1.eta(), track1.phi());
 
-      if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.charge() < 0) {
+      if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.sign() < 0) {
         continue;
       }
 
@@ -208,10 +215,10 @@ struct CorrelationTask {
           continue;
         }
 
-        if (cfgAssociatedCharge != 0 && cfgAssociatedCharge * track2.charge() < 0) {
+        if (cfgAssociatedCharge != 0 && cfgAssociatedCharge * track2.sign() < 0) {
           continue;
         }
-        if (cfgPairCharge != 0 && cfgPairCharge * track1.charge() * track2.charge() < 0) {
+        if (cfgPairCharge != 0 && cfgPairCharge * track1.sign() * track2.sign() < 0) {
           continue;
         }
 
@@ -257,7 +264,7 @@ struct CorrelationTask {
 
     for (auto track1 = tracks.begin(); track1 != tracks.end(); ++track1) {
 
-      if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.charge() < 0) {
+      if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.sign() < 0) {
         continue;
       }
 
@@ -270,13 +277,13 @@ struct CorrelationTask {
     for (auto& [track1, track2] : combinations(tracks, tracks)) {
       //LOGF(info, "Combination %d %d", track1.index(), track2.index());
 
-      if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.charge() < 0) {
+      if (cfgTriggerCharge != 0 && cfgTriggerCharge * track1.sign() < 0) {
         continue;
       }
-      if (cfgAssociatedCharge != 0 && cfgAssociatedCharge * track2.charge() < 0) {
+      if (cfgAssociatedCharge != 0 && cfgAssociatedCharge * track2.sign() < 0) {
         continue;
       }
-      if (cfgPairCharge != 0 && cfgPairCharge * track1.charge() * track2.charge() < 0) {
+      if (cfgPairCharge != 0 && cfgPairCharge * track1.sign() * track2.sign() < 0) {
         continue;
       }
 
@@ -313,8 +320,8 @@ struct CorrelationTask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<CorrelationTask>("correlation-task")};
+    adaptAnalysisTask<CorrelationTask>(cfgc, TaskName{"correlation-task"})};
 }

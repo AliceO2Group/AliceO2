@@ -135,7 +135,7 @@ struct TaskLcMC {
 
       if (std::abs(candidate.flagMCMatchRec()) == 1 << LcToPKPi) {
         // Get the corresponding MC particle.
-        auto indexMother = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().label_as<soa::Join<aod::McParticles, aod::HfCandProng3MCGen>>(), 4122, true);
+        auto indexMother = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandProng3MCGen>>(), 4122, true);
         auto particleMother = particlesMC.iteratorAt(indexMother);
         registry.fill(HIST("hPtGenSig"), particleMother.pt()); //gen. level pT
         registry.fill(HIST("hPtRecSig"), candidate.pt());      //rec. level pT
@@ -165,10 +165,10 @@ struct TaskLcMC {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<TaskLc>("hf-task-lc")};
+    adaptAnalysisTask<TaskLc>(cfgc, TaskName{"hf-task-lc"})};
   const bool doMC = cfgc.options().get<bool>("doMC");
   if (doMC) {
-    workflow.push_back(adaptAnalysisTask<TaskLcMC>("hf-task-lc-mc"));
+    workflow.push_back(adaptAnalysisTask<TaskLcMC>(cfgc, TaskName{"hf-task-lc-mc"}));
   }
   return workflow;
 }

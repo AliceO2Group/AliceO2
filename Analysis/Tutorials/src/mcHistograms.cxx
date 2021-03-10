@@ -34,12 +34,13 @@ struct BTask {
   OutputObj<TH1F> phiH{TH1F("phi", "phi", 100, 0., 2. * M_PI)};
   OutputObj<TH1F> etaH{TH1F("eta", "eta", 102, -2.01, 2.01)};
 
-  //  void process(aod::McCollision const& mcCollision, aod::McParticles& mcParticles)
-  void process(aod::McParticles& mcParticles)
+  void process(aod::McCollision const& mcCollision, aod::McParticles& mcParticles)
   {
-    //LOGF(info, "MC. vtx-z = %f", mcCollision.posZ());
+    LOGF(info, "MC. vtx-z = %f", mcCollision.posZ());
     LOGF(info, "First: %d | Length: %d", mcParticles.begin().index(), mcParticles.size());
-    LOGF(info, "Particles mother: %d", (mcParticles.begin() + 1000).mother0());
+    if (mcParticles.size() > 0) {
+      LOGF(info, "Particles mother: %d", mcParticles.begin().mother0());
+    }
     for (auto& mcParticle : mcParticles) {
       if (MC::isPhysicalPrimary(mcParticles, mcParticle)) {
         phiH->Fill(mcParticle.phi());
@@ -56,14 +57,14 @@ struct CTask {
 
   void process(soa::Join<aod::Collisions, aod::McCollisionLabels>::iterator const& collision, soa::Join<aod::Tracks, aod::McTrackLabels> const& tracks, aod::McParticles const& mcParticles, aod::McCollisions const& mcCollisions)
   {
-    LOGF(info, "vtx-z (data) = %f | vtx-z (MC) = %f", collision.posZ(), collision.label().posZ());
+    LOGF(info, "vtx-z (data) = %f | vtx-z (MC) = %f", collision.posZ(), collision.mcCollision().posZ());
     for (auto& track : tracks) {
       //if (track.trackType() != 0)
       //  continue;
       //if (track.labelMask() != 0)
       //  continue;
-      etaDiff->Fill(track.label().eta() - track.eta());
-      auto delta = track.label().phi() - track.phi();
+      etaDiff->Fill(track.mcParticle().eta() - track.eta());
+      auto delta = track.mcParticle().phi() - track.phi();
       if (delta > M_PI) {
         delta -= 2 * M_PI;
       }
@@ -71,16 +72,16 @@ struct CTask {
         delta += 2 * M_PI;
       }
       phiDiff->Fill(delta);
-      //LOGF(info, "eta: %.2f %.2f \t phi: %.2f %.2f | %d", track.label().eta(), track.eta(), track.label().phi(), track.phi(), track.label().index());
+      //LOGF(info, "eta: %.2f %.2f \t phi: %.2f %.2f | %d", track.mcParticle().eta(), track.eta(), track.mcParticle().phi(), track.phi(), track.mcParticle().index());
     }
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("vertex-histogram"),
-    adaptAnalysisTask<BTask>("etaphi-histogram"),
-    adaptAnalysisTask<CTask>("eta-resolution-histogram"),
+    adaptAnalysisTask<ATask>(cfgc, TaskName{"vertex-histogram"}),
+    adaptAnalysisTask<BTask>(cfgc, TaskName{"etaphi-histogram"}),
+    adaptAnalysisTask<CTask>(cfgc, TaskName{"eta-resolution-histogram"}),
   };
 }

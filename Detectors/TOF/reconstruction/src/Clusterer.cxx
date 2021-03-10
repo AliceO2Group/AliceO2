@@ -100,7 +100,7 @@ void Clusterer::processStrip(std::vector<Cluster>& clusters, MCLabelContainer co
       // check if the TOF time are close enough to be merged; if not, it means that nothing else will contribute to the cluster (since digits are ordered in time)
       double timeDigNext = digNext->getCalibratedTime(); // in ps
       LOG(DEBUG) << "Time difference = " << timeDigNext - timeDig;
-      if (timeDigNext - timeDig > 5000 /*in ps*/) { // to be change to 500 ps
+      if (timeDigNext - timeDig > mDeltaTforClustering /*in ps*/) { // to be change to 500 ps
         break;
       }
       digNext->getPhiAndEtaIndex(iphi2, ieta2);
@@ -181,6 +181,10 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
 
   c.setDigitInfo(0, mContributingDigit[0]->getChannel(), mContributingDigit[0]->getCalibratedTime(), mContributingDigit[0]->getTOT() * Geo::TOTBIN_NS);
 
+  int ch1 = mContributingDigit[0]->getChannel();
+  short tot1 = mContributingDigit[0]->getTOT() < 20000 ? mContributingDigit[0]->getTOT() : 20000;
+  double dtime = c.getTimeRaw();
+
   int chan1, chan2;
   int phi1, phi2;
   int eta1, eta2;
@@ -228,6 +232,13 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
     if (isOk) {
       c.setDigitInfo(c.getNumOfContributingChannels(), mContributingDigit[idig]->getChannel(), mContributingDigit[idig]->getCalibratedTime(), mContributingDigit[idig]->getTOT() * Geo::TOTBIN_NS);
       c.addBitInContributingChannels(mask);
+
+      if (mCalibFromCluster && c.getNumOfContributingChannels() == 2) { // fill info for calibration
+        int8_t dch = int8_t(mContributingDigit[idig]->getChannel() - ch1);
+        short tot2 = mContributingDigit[idig]->getTOT() < 20000 ? mContributingDigit[idig]->getTOT() : 20000;
+        dtime -= mContributingDigit[idig]->getTDC() * Geo::TDCBIN + mContributingDigit[idig]->getBC() * o2::constants::lhc::LHCBunchSpacingNS * 1E3;
+        addCalibFromCluster(ch1, dch, float(dtime), tot1, tot2);
+      }
     }
   }
 
@@ -281,4 +292,9 @@ void Clusterer::setFirstOrbit(uint64_t orb)
 {
   mFirstOrbit = orb;
   mBCOffset = orb * o2::constants::lhc::LHCMaxBunches;
+}
+//_____________________________________________________________________
+void Clusterer::addCalibFromCluster(int ch1, int8_t dch, float dtime, short tot1, short tot2)
+{
+  mCalibInfosFromCluster.emplace_back(ch1, dch, dtime, tot1, tot2);
 }

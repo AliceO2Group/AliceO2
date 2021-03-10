@@ -46,6 +46,7 @@ class TrackerDPL : public framework::Task
 
  private:
   bool mIsMC = false;
+  bool mRunVertexer = true;
   std::string mMode = "sync";
   o2::itsmft::TopologyDictionary mDict;
   std::unique_ptr<o2::gpu::GPUReconstruction> mRecChain = nullptr;

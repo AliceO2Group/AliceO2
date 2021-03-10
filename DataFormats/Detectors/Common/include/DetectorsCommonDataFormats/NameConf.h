@@ -49,7 +49,7 @@ class NameConf
     return o2::utils::concat_string(prefix, "_", DIGITS_STRING, d.getName(), ".root");
   }
 
-  // Filename to store kinematics + TrackRefs
+  // Filename to store general run parameters (GRP)
   static std::string getGRPFileName(const std::string_view prefix = STANDARDSIMPREFIX)
   {
     return o2::utils::concat_string(prefix, "_", GRP_STRING, ".root");
@@ -59,6 +59,12 @@ class NameConf
   static std::string getMCKinematicsFileName(const std::string_view prefix = STANDARDSIMPREFIX)
   {
     return o2::utils::concat_string(prefix, "_", KINE_STRING, ".root");
+  }
+
+  // Filename to store kinematics + TrackRefs
+  static std::string getMCHeadersFileName(const std::string_view prefix = STANDARDSIMPREFIX)
+  {
+    return o2::utils::concat_string(prefix, "_", MCHEADER_STRING, ".root");
   }
 
   // Filename to store final MC configuration file
@@ -104,6 +110,7 @@ class NameConf
   static constexpr std::string_view DIGITS_STRING = "Digits"; // hardcoded
   static constexpr std::string_view GRP_STRING = "grp";       // hardcoded
   static constexpr std::string_view KINE_STRING = "Kine";     // hardcoded
+  static constexpr std::string_view MCHEADER_STRING = "MCHeader"; // hardcoded
   static constexpr std::string_view GEOM_FILE_STRING = "geometry";
   static constexpr std::string_view CUT_FILE_STRING = "proc-cut";
   static constexpr std::string_view CONFIG_STRING = "configuration";

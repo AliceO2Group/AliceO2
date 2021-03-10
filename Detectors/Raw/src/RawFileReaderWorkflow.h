@@ -20,11 +20,9 @@ namespace o2
 {
 namespace raw
 {
+struct ReaderInp;
 
-framework::WorkflowSpec getRawFileReaderWorkflow(std::string inifile, int loop = 1, uint32_t delay_us = 0, uint32_t errMap = 0xffffffff,
-                                                 uint32_t minTF = 0, uint32_t maxTF = 0xffffffff, bool partPerSP = true, bool cache = false, bool autodetectTF0 = false,
-                                                 size_t spSize = 1024L * 1024L, size_t bufferSize = 1024L * 1024L,
-                                                 const std::string& rawChannelConfig = "");
+framework::WorkflowSpec getRawFileReaderWorkflow(const ReaderInp& rinp);
 
 } // namespace raw
 } // namespace o2

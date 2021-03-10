@@ -14,6 +14,7 @@
 #include <string>
 #include "FairLogger.h"
 #include "CommonDataFormat/InteractionRecord.h"
+#include "DetectorsCalibration/Utils.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/WorkflowSpec.h"
@@ -53,6 +54,11 @@ void PHOSPedestalCalibDevice::init(o2::framework::InitContext& ic)
 void PHOSPedestalCalibDevice::run(o2::framework::ProcessingContext& ctx)
 {
 
+  //Read current padestals for comarison
+  // if (mUseCCDB && mOldPed.get()==nullptr) {
+  //   mOldPed.reset(std::move(ctx.inputs().get<o2::phos::Pedestals*>("oldPedestals")));
+  // }
+
   //
   for (const auto& rawData : framework::InputRecordWalker(ctx.inputs())) {
 
@@ -78,7 +84,10 @@ void PHOSPedestalCalibDevice::run(o2::framework::ProcessingContext& ctx)
       auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(header);
       auto ddl = o2::raw::RDHUtils::getFEEID(header);
 
-      o2::InteractionRecord currentIR(triggerBC, triggerOrbit);
+      if (mRunStartTime == 0) {
+        o2::InteractionRecord currentIR(triggerBC, triggerOrbit);
+        mRunStartTime = long(currentIR.bc2ns() * 1.e-9);
+      }
 
       if (ddl > o2::phos::Mapping::NDDL) { //only 14 correct DDLs
         LOG(ERROR) << "DDL=" << ddl;
@@ -129,7 +138,9 @@ void PHOSPedestalCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
 
   LOG(INFO) << "[PHOSPedestalCalibDevice - endOfStream]";
   //calculate stuff here
-  //.........
+  calculatePedestals();
+
+  checkPedestals();
 
   sendOutput(ec.outputs());
 }
@@ -148,19 +159,16 @@ void PHOSPedestalCalibDevice::sendOutput(DataAllocator& output)
     info.setPath("PHOS/Calib/Pedestals");
     info.setObjectType("Pedestals");
     info.setFileName(flName);
-    // TODO: should be changed to time of the run
-    const auto now = std::chrono::system_clock::now();
-    long timeStart = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
-    info.setStartValidityTimestamp(timeStart);
+    info.setStartValidityTimestamp(mRunStartTime);
     info.setEndValidityTimestamp(99999999999999);
     std::map<std::string, std::string> md;
     info.setMetaData(md);
 
     LOG(INFO) << "Sending object PHOS/Calib/Pedestals";
 
-    // header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)0};
-    // output.snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBPayload, subSpec}, *image.get());
-    // output.snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBInfo, subSpec}, info);
+    header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)0};
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBPayload, subSpec}, *image.get());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBInfo, subSpec}, info);
   }
   //Anyway send change to QC
   LOG(INFO) << "[PHOSPedestalCalibDevice - run] Sending QC ";
@@ -204,54 +212,50 @@ void PHOSPedestalCalibDevice::checkPedestals()
     mUpdateCCDB = true;
     return;
   }
-  // //TODO:
-  // //Get current map
-  // int nChanged=0;
-  // for(short i=o2::phos::Mapping::NCHANNELS; --i;){
-  //   short dp=mPedestals.getHGPedestal(i)-oldPed.getHGPedestal(i);
-  //   mPedHGDiff[i]=dp ;
-  //   if(abs(dp)>1){ //not a fluctuation
-  //     nChanged++;
-  //   }
-  //     dp=mPedestals.getLGPedestal(i)-oldPed.getLGPedestal(i);
-  //   mPedLGDiff[i]=dp ;
-  //   if(abs(dp)>1){ //not a fluctuation
-  //     nChanged++;
-  //   }
-  // }
-  // if(nChanged>kMinorChange){ //serious change, do not update CCDB automatically, use "force" option to overwrite
-  //   mUpdateCCDB=false;
-  // }
-  // else{
-  //   mUpdateCCDB=true;
-  // }
+
+  if (mOldPed.get() == nullptr) { //was not read from CCDB, but expected
+    mUpdateCCDB = false;
+    return;
+  }
+
+  //Compare to current
+  int nChanged = 0;
+  for (short i = o2::phos::Mapping::NCHANNELS; --i;) {
+    short dp = mPedestals->getHGPedestal(i) - mOldPed->getHGPedestal(i);
+    mPedHGDiff[i] = dp;
+    if (abs(dp) > 1) { //not a fluctuation
+      nChanged++;
+    }
+    dp = mPedestals->getLGPedestal(i) - mOldPed->getLGPedestal(i);
+    mPedLGDiff[i] = dp;
+    if (abs(dp) > 1) { //not a fluctuation
+      nChanged++;
+    }
+  }
+  if (nChanged > kMinorChange) { //serious change, do not update CCDB automatically, use "force" option to overwrite
+    mUpdateCCDB = false;
+  } else {
+    mUpdateCCDB = true;
+  }
 }
 
 o2::framework::DataProcessorSpec o2::phos::getPedestalCalibSpec(bool useCCDB, bool forceUpdate, std::string path)
 {
+
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("RAWDATA", o2::framework::ConcreteDataTypeMatcher{"PHS", "RAWDATA"}, o2::framework::Lifetime::Timeframe);
+  if (useCCDB) {
+    // inputs.emplace_back("oldPedestals", "PHOS", "Pedestals");
+    inputs.emplace_back("oldPedestals", o2::header::gDataOriginPHS, "Pedestals");
+  }
 
   std::vector<o2::framework::OutputSpec> outputs;
   outputs.emplace_back("PHS", "PEDCALIBS", 0, o2::framework::Lifetime::Timeframe);
   outputs.emplace_back("PHS", "PEDDIFF", 0, o2::framework::Lifetime::Timeframe);
 
   return o2::framework::DataProcessorSpec{"PedestalCalibSpec",
-                                          o2::framework::select("A:PHS/RAWDATA"),
+                                          inputs,
                                           outputs,
                                           o2::framework::adaptFromTask<PHOSPedestalCalibDevice>(useCCDB, forceUpdate, path),
                                           o2::framework::Options{}};
 }
-
-// void list_files(const char *dirname="./", const char *pattern="collPHOS_*.root", std::vector<std::string> &vnames) {
-//   TSystemDirectory dir(dirname, dirname);
-//   TList *files = dir.GetListOfFiles();
-//   if (files){
-//     TSystemFile *file;
-//     TString fname;
-//     TIter next(files);
-//     while ((file=(TSystemFile*)next())) {
-//       fname = file->GetName();
-//       if (!file->IsDirectory() && fname.Index(pattern) > -1) {
-//         vnames.emplace_back(fname.Data()) ;
-//       }
-//     }
-//   }

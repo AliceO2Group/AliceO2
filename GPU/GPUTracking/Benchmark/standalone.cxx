@@ -82,7 +82,11 @@ GPUChainTracking *chainTracking, *chainTrackingAsync, *chainTrackingPipeline;
 #ifdef HAVE_O2HEADERS
 GPUChainITS *chainITS, *chainITSAsync, *chainITSPipeline;
 #endif
-std::unique_ptr<char[]> outputmemory, outputmemoryPipeline, inputmemory;
+void unique_ptr_aligned_delete(char* v)
+{
+  operator delete(v GPUCA_OPERATOR_NEW_ALIGNMENT);
+}
+std::unique_ptr<char, void (*)(char*)> outputmemory(nullptr, unique_ptr_aligned_delete), outputmemoryPipeline(nullptr, unique_ptr_aligned_delete), inputmemory(nullptr, unique_ptr_aligned_delete);
 std::unique_ptr<GPUDisplayBackend> eventDisplay;
 std::unique_ptr<GPUReconstructionTimeframe> tf;
 int nEventsInDirectory = 0;
@@ -237,20 +241,20 @@ int ReadConfiguration(int argc, char** argv)
 
   if (configStandalone.outputcontrolmem) {
     bool forceEmptyMemory = getenv("LD_PRELOAD") && strstr(getenv("LD_PRELOAD"), "valgrind") != nullptr;
-    outputmemory.reset(new char[configStandalone.outputcontrolmem]);
+    outputmemory.reset((char*)operator new(configStandalone.outputcontrolmem GPUCA_OPERATOR_NEW_ALIGNMENT));
     if (forceEmptyMemory) {
       printf("Valgrind detected, emptying GPU output memory to avoid false positive undefined reads");
       memset(outputmemory.get(), 0, configStandalone.outputcontrolmem);
     }
     if (configStandalone.proc.doublePipeline) {
-      outputmemoryPipeline.reset(new char[configStandalone.outputcontrolmem]);
+      outputmemoryPipeline.reset((char*)operator new(configStandalone.outputcontrolmem GPUCA_OPERATOR_NEW_ALIGNMENT));
       if (forceEmptyMemory) {
         memset(outputmemoryPipeline.get(), 0, configStandalone.outputcontrolmem);
       }
     }
   }
   if (configStandalone.inputcontrolmem) {
-    inputmemory.reset(new char[configStandalone.inputcontrolmem]);
+    inputmemory.reset((char*)operator new(configStandalone.inputcontrolmem GPUCA_OPERATOR_NEW_ALIGNMENT));
   }
 
 #if !(defined(CUDA_ENABLED) || defined(OPENCL1_ENABLED) || defined(HIP_ENABLED))
@@ -795,11 +799,15 @@ int main(int argc, char** argv)
   ioPtrEvents.resize(configStandalone.preloadEvents ? (nEvents - configStandalone.StartEvent) : 1);
   ioMemEvents.resize(configStandalone.preloadEvents ? (nEvents - configStandalone.StartEvent) : 1);
   if (configStandalone.preloadEvents) {
-    printf("Preloading events");
+    printf("Preloading events%s", configStandalone.proc.debugLevel >= 2 ? "\n" : "");
     fflush(stdout);
     for (int i = 0; i < nEvents - configStandalone.StartEvent; i++) {
       LoadEvent(configStandalone.StartEvent + i, i);
-      printf(" %d", i);
+      if (configStandalone.proc.debugLevel >= 2) {
+        printf("Loading event %d\n", i);
+      } else {
+        printf(" %d", i);
+      }
       fflush(stdout);
     }
     printf("\n");

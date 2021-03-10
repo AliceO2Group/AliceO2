@@ -67,7 +67,6 @@ struct HFD0CandidateSelector {
   Configurable<double> d_pidTOFMaxpT{"d_pidTOFMaxpT", 5., "Upper bound of track pT for TOF PID"};
 
   Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 50., "Lower bound of TPC findable clusters for good PID"};
-  Configurable<bool> b_requireTPC{"b_requireTPC", true, "Flag to require a positive Number of found clusters in TPC"};
   Configurable<double> d_nSigmaTPC{"d_nSigmaTPC", 3., "Nsigma cut on TPC only"};
   Configurable<double> d_nSigmaTPCCombined{"d_nSigmaTPCCombined", 5., "Nsigma cut on TPC combined with TOF"};
   Configurable<double> d_nSigmaTOF{"d_nSigmaTOF", 3., "Nsigma cut on TOF only"};
@@ -98,12 +97,12 @@ struct HFD0CandidateSelector {
   template <typename T>
   bool daughterSelection(const T& track)
   {
-    if (track.charge() == 0) {
+    if (track.sign() == 0) {
       return false;
     }
-    if (b_requireTPC.value && track.tpcNClsFound() == 0) {
+    /* if (track.tpcNClsFound() == 0) {
       return false; //is it clusters findable or found - need to check
-    }
+      }*/
     return true;
   }
 
@@ -168,7 +167,7 @@ struct HFD0CandidateSelector {
       return false;
     }
 
-    if (trackPion.charge() > 0) { //invariant mass cut
+    if (trackPion.sign() > 0) { //invariant mass cut
       if (TMath::Abs(InvMassD0(hfCandProng2) - RecoDecay::getMassPDG(421)) > cuts[pTBin][0]) {
         return false;
       }
@@ -185,7 +184,7 @@ struct HFD0CandidateSelector {
       return false; //cut on daughter dca - need to add secondary vertex constraint here
     }
 
-    if (trackPion.charge() > 0) { //cut on cos(theta *)
+    if (trackPion.sign() > 0) { //cut on cos(theta *)
       if (TMath::Abs(CosThetaStarD0(hfCandProng2)) > cuts[pTBin][2]) {
         return false;
       }
@@ -405,8 +404,8 @@ struct HFD0CandidateSelector {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HFD0CandidateSelector>("hf-d0-candidate-selector")};
+    adaptAnalysisTask<HFD0CandidateSelector>(cfgc, TaskName{"hf-d0-candidate-selector"})};
 }

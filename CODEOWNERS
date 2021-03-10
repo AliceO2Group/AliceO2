@@ -30,6 +30,7 @@
 
 /DataFormats                                   @AliceO2Group/framework-admins
 /DataFormats/Detectors/CPV                     @peressounko @kharlov
+/DataFormats/Detectors/CTP                     @shahor02
 /DataFormats/Detectors/EMCAL                   @mfasDa
 /DataFormats/Detectors/FIT                     @AllaMaevskaya @jotwinow @mslupeck
 /DataFormats/Detectors/GlobalTracking          @shahor02
@@ -72,7 +73,7 @@
 /Detectors/Upgrades                @qgp @marcovanleeuwen @mconcas
 /Detectors/ZDC                     @coppedis
 
-/EventVisualisation  @jmyrcha @AliceO2Group/framework-admins
+/EventVisualisation  @jmyrcha
 #/EventVisualisation/Base
 #/EventVisualisation/DataConverter
 #/EventVisualisation/Detectors
@@ -109,7 +110,7 @@
 
 /Generators  @sawenzel
 
-/Steer @sawenzel @shahor02 @AliceO2Group/framework-admins
+/Steer @sawenzel @shahor02
 
 /Testing
 

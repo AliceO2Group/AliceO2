@@ -17,5 +17,7 @@
 #pragma link C++ class o2::hmpid::Detector + ;
 #pragma link C++ class o2::base::DetImpl < o2::hmpid::Detector> + ;
 #pragma link C++ class o2::hmpid::HMPIDDigitizer + ;
+#pragma link C++ class o2::hmpid::HmpidCoder + ;
+#pragma link C++ class o2::hmpid::HmpidCoder2 + ;
 
 #endif

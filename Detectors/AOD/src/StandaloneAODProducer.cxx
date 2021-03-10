@@ -152,7 +152,7 @@ void fillCollisionAndTrackTable()
         // TODO: figure out BC + CollisionTimeMask
         collCursor(0, BCid, v.getX(), v.getY(), v.getZ(),
                    cov[0], cov[1], cov[2], cov[3], cov[4], cov[6],
-                   v.getChi2(), v.getNContributors(), ts.getTimeStamp(), ts.getTimeStampError(), 1);
+                   v.getFlags(), v.getChi2(), v.getNContributors(), ts.getTimeStamp(), ts.getTimeStampError(), 1);
 
         // get the track for each vertex and fill the tracks table
         // now go over tracks via the indices

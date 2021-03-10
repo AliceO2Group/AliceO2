@@ -121,9 +121,9 @@ struct TrackCheckTaskEvSel {
       bool isPrimary = false;
 
       if (isMC) { //determine particle species base on MC truth and if it is primary or not
-        int pdgcode = track.label().pdgCode();
+        int pdgcode = track.mcParticle().pdgCode();
 
-        if (MC::isPhysicalPrimary(mcParticles, track.label())) { //is primary?
+        if (MC::isPhysicalPrimary(mcParticles, track.mcParticle())) { //is primary?
           isPrimary = true;
         }
 
@@ -261,9 +261,9 @@ struct TrackCheckTaskEvSelTrackSel {
       bool isPrimary = false;
 
       if (isMC) { //determine particle species base on MC truth and if it is primary or not
-        int pdgcode = track.label().pdgCode();
+        int pdgcode = track.mcParticle().pdgCode();
 
-        if (MC::isPhysicalPrimary(mcParticles, track.label())) { //is primary?
+        if (MC::isPhysicalPrimary(mcParticles, track.mcParticle())) { //is primary?
           isPrimary = true;
         }
         //Calculate y
@@ -329,9 +329,9 @@ struct TrackCheckTaskEvSelTrackSel {
   }
 }; // struct TrackCheckTask1
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<TrackCheckTaskEvSel>("track-histos-evsel"),
-    adaptAnalysisTask<TrackCheckTaskEvSelTrackSel>("track-histos-evsel-trksel")};
+    adaptAnalysisTask<TrackCheckTaskEvSel>(cfgc, TaskName{"track-histos-evsel"}),
+    adaptAnalysisTask<TrackCheckTaskEvSelTrackSel>(cfgc, TaskName{"track-histos-evsel-trksel"})};
 }
