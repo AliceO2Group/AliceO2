@@ -416,6 +416,8 @@ GPUd() bool TrackParametrization<value_T>::getYZAt(value_t xk, value_t b, value_
   // estimate Y,Z in tracking frame at given X
   //----------------------------------------------------------------
   value_t dx = xk - getX();
+  y = mP[kY];
+  z = mP[kZ];
   if (gpu::CAMath::Abs(dx) < constants::math::Almost0) {
     return true;
   }
@@ -434,8 +436,7 @@ GPUd() bool TrackParametrization<value_T>::getYZAt(value_t xk, value_t b, value_
     return false;
   }
   double dy2dx = (f1 + f2) / (r1 + r2);
-  y = mP[kY] + dx * dy2dx;
-  z = mP[kZ];
+  y += dx * dy2dx;
   if (gpu::CAMath::Abs(x2r) < 0.05f) {
     z += dx * (r2 + f2 * dy2dx) * getTgl();
   } else {
