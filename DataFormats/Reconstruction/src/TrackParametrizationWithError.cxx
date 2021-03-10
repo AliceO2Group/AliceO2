@@ -286,6 +286,15 @@ GPUd() TrackParametrizationWithError<value_T>::TrackParametrizationWithError(con
   //
   value_t sn, cs;
   math_utils::detail::sincos(alp, sn, cs);
+  // protection against cosp<0
+  if (cs * pxpypz[0] + sn * pxpypz[1] < 0) {
+    LOG(WARNING) << "alpha from phiPos() will invalidate this track parameters, overriding to alpha from phi()";
+    alp = gpu::CAMath::ATan2(pxpypz[1], pxpypz[0]);
+    if (sectorAlpha) {
+      alp = math_utils::detail::angle2Alpha<value_t>(alp);
+    }
+    math_utils::detail::sincos(alp, sn, cs);
+  }
   // protection:  avoid alpha being too close to 0 or +-pi/2
   if (gpu::CAMath::Abs(sn) < 2.f * kSafe) {
     if (alp > 0) {
