@@ -65,11 +65,21 @@ struct TaskX {
         if (trackPos.globalIndex() == index0jpsi) {
           continue;
         }
+        // temporary collision Id check, to see if code works
+        if (candidate.collisionId() != trackPos.collisionId()) {
+          Printf("%d, %d", candidate.collisionId(), trackPos.collisionId());
+          continue;
+        }
         for (auto& trackNeg : tracks) {
           if (trackNeg.signed1Pt() > 0) {
             continue;
           }
           if (trackNeg.globalIndex() == index1jpsi) {
+            continue;
+          }
+          // temporary collision Id check, to see if code works
+          if (candidate.collisionId() != trackNeg.collisionId()) {
+            Printf("%d, %d", candidate.collisionId(), trackNeg.collisionId());
             continue;
           }
           registry.fill(HIST("hPtCand"), candidate.pt() + trackPos.pt() + trackNeg.pt());
