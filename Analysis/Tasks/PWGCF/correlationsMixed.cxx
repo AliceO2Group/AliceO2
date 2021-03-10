@@ -78,7 +78,7 @@ struct HashTask {
 
 #define O2_DEFINE_CONFIGURABLE(NAME, TYPE, DEFAULT, HELP) Configurable<TYPE> NAME{#NAME, DEFAULT, HELP};
 
-struct CorrelationTask {
+struct CorrelationTaskMixed {
 
   // Input definitions
   using myTracks = soa::Filtered<aod::Tracks>;
@@ -503,6 +503,6 @@ struct CorrelationTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HashTask>(cfgc, TaskName{"produce-hashes"}),
-    adaptAnalysisTask<CorrelationTask>(cfgc, TaskName{"correlation-task"})};
+    adaptAnalysisTask<HashTask>(cfgc),
+    adaptAnalysisTask<CorrelationTaskMixed>(cfgc)};
 }
