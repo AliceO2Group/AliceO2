@@ -36,11 +36,11 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 struct TaskX {
   HistogramRegistry registry{
     "registry",
-    {{"hMassJpsi", "2-prong candidates;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
+    {{"hMassJpsi", "2-prong candidates;inv. mass (e+ e-) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
      {"hPtCand", "X candidates;candidate #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}}}};
 
   Configurable<int> selectionFlagJpsi{"selectionFlagJpsi", 1, "Selection Flag for Jpsi"};
-  Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
+  Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsiToEE >= selectionFlagJpsi);
 
@@ -51,7 +51,7 @@ struct TaskX {
       if (!(candidate.hfflag() & 1 << JpsiToEE)) {
         continue;
       }
-      if (cutEtaCandMax >= 0. && std::abs(candidate.eta()) > cutEtaCandMax) {
+      if (cutYCandMax >= 0. && std::abs(YJpsi(candidate)) > cutYCandMax) {
         continue;
       }
       registry.fill(HIST("hMassJpsi"), InvMassJpsiToEE(candidate));
@@ -65,21 +65,11 @@ struct TaskX {
         if (trackPos.globalIndex() == index0jpsi) {
           continue;
         }
-        // temporary collision Id check, to see if code works
-        if (candidate.collisionId() != trackPos.collisionId()) {
-          Printf("%d, %d", candidate.collisionId(), trackPos.collisionId());
-          continue;
-        }
         for (auto& trackNeg : tracks) {
           if (trackNeg.signed1Pt() > 0) {
             continue;
           }
           if (trackNeg.globalIndex() == index1jpsi) {
-            continue;
-          }
-          // temporary collision Id check, to see if code works
-          if (candidate.collisionId() != trackNeg.collisionId()) {
-            Printf("%d, %d", candidate.collisionId(), trackNeg.collisionId());
             continue;
           }
           registry.fill(HIST("hPtCand"), candidate.pt() + trackPos.pt() + trackNeg.pt());
