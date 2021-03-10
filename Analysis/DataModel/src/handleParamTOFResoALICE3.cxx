@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 ///
-/// \file   handleParamTOFReso.cxx
+/// \file   handleParamTOFResoALICE3.cxx
 /// \author Nicolo' Jacazio
 /// \since  2020-06-22
 /// \brief  A simple tool to produce Bethe Bloch parametrization objects for the TOF PID Response
@@ -19,7 +19,7 @@
 #include <boost/program_options.hpp>
 #include <FairLogger.h>
 #include "TFile.h"
-#include "AnalysisDataModel/PID/TOFReso.h"
+#include "AnalysisDataModel/PID/TOFResoALICE3.h"
 
 using namespace o2::pid::tof;
 namespace bpo = boost::program_options;
@@ -28,19 +28,15 @@ bool initOptionsAndParse(bpo::options_description& options, int argc, char* argv
 {
   options.add_options()(
     "url,u", bpo::value<std::string>()->default_value("http://ccdb-test.cern.ch:8080"), "URL of the CCDB database")(
-    "ccdb-path,c", bpo::value<std::string>()->default_value("Analysis/PID/TOF"), "CCDB path for storage/retrieval")(
+    "ccdb-path,c", bpo::value<std::string>()->default_value("Analysis/ALICE3/PID/TOF"), "CCDB path for storage/retrieval")(
     "start,s", bpo::value<long>()->default_value(0), "Start timestamp of object validity")(
     "stop,S", bpo::value<long>()->default_value(4108971600000), "Stop timestamp of object validity")(
     "delete-previous,delete_previous,d", bpo::value<int>()->default_value(0), "Flag to delete previous versions of converter objects in the CCDB before uploading the new one so as to avoid proliferation on CCDB")(
     "save-to-file,file,f,o", bpo::value<std::string>()->default_value(""), "Option to save parametrization to file instead of uploading to ccdb")(
     "read-from-file,i", bpo::value<std::string>()->default_value(""), "Option to get parametrization from a file")(
-    "reso-name,n", bpo::value<std::string>()->default_value("TOFReso"), "Name of the parametrization object")(
+    "reso-name,n", bpo::value<std::string>()->default_value("TOFResoALICE3"), "Name of the parametrization object")(
     "mode,m", bpo::value<unsigned int>()->default_value(1), "Working mode: 0 push 1 pull and test")(
-    "p0", bpo::value<float>()->default_value(0.008f), "Parameter 0 of the TOF resolution")(
-    "p1", bpo::value<float>()->default_value(0.008f), "Parameter 1 of the TOF resolution")(
-    "p2", bpo::value<float>()->default_value(0.002f), "Parameter 2 of the TOF resolution")(
-    "p3", bpo::value<float>()->default_value(40.0f), "Parameter 3 of the TOF resolution")(
-    "p4", bpo::value<float>()->default_value(60.0f), "Parameter 4 of the TOF resolution: average TOF resolution")(
+    "p0", bpo::value<float>()->default_value(20.0f), "Parameter 0 of the TOF resolution: average TOF resolution")(
     "verbose,v", bpo::value<int>()->default_value(0), "Verbose level 0, 1")(
     "help,h", "Produce help message.");
   try {
@@ -81,7 +77,7 @@ int main(int argc, char* argv[])
     LOG(WARNING) << "CCDB host " << url << " is not reacheable, cannot go forward";
     return 1;
   }
-  TOFReso* reso = nullptr;
+  TOFResoALICE3* reso = nullptr;
   const std::string reso_name = vm["reso-name"].as<std::string>();
   if (mode == 0) { // Push mode
     LOG(INFO) << "Handling TOF parametrization in create mode";
@@ -95,8 +91,8 @@ int main(int argc, char* argv[])
       f.Close();
     }
     if (!reso) {
-      reso = new TOFReso();
-      const std::vector<float> resoparams = {vm["p0"].as<float>(), vm["p1"].as<float>(), vm["p2"].as<float>(), vm["p3"].as<float>(), vm["p4"].as<float>()};
+      reso = new TOFResoALICE3();
+      const std::vector<float> resoparams = {vm["p0"].as<float>()};
       reso->SetParameters(resoparams);
     }
     reso->Print();
@@ -125,7 +121,7 @@ int main(int argc, char* argv[])
   } else { // Pull and test mode
     LOG(INFO) << "Handling TOF parametrization in test mode";
     const float x[7] = {1, 1, 1, 1, 1, 1, 1}; // mom, time, ev. reso, mass, length, sigma1pt, pt
-    reso = api.retrieveFromTFileAny<TOFReso>(path + "/" + reso_name, metadata, -1, headers);
+    reso = api.retrieveFromTFileAny<TOFResoALICE3>(path + "/" + reso_name, metadata, -1, headers);
     reso->Print();
     LOG(INFO) << "TOF expected resolution at p=" << x[0] << " GeV/c "
               << " and mass " << x[3] << ":" << reso->operator()(x);

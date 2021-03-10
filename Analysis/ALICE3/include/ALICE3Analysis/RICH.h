@@ -25,22 +25,23 @@ namespace o2::aod
 {
 namespace alice3rich
 {
-DECLARE_SOA_INDEX_COLUMN(Track, track);
-DECLARE_SOA_COLUMN(RICHSignal, richSignal, float);
-DECLARE_SOA_COLUMN(RICHSignalError, richSignalError, float);
-DECLARE_SOA_COLUMN(RICHDeltaEl, richDeltaEl, float);
-DECLARE_SOA_COLUMN(RICHDeltaMu, richDeltaMu, float);
-DECLARE_SOA_COLUMN(RICHDeltaPi, richDeltaPi, float);
-DECLARE_SOA_COLUMN(RICHDeltaKa, richDeltaKa, float);
-DECLARE_SOA_COLUMN(RICHDeltaPr, richDeltaPr, float);
-DECLARE_SOA_COLUMN(RICHNsigmaEl, richNsigmaEl, float);
-DECLARE_SOA_COLUMN(RICHNsigmaMu, richNsigmaMu, float);
-DECLARE_SOA_COLUMN(RICHNsigmaPi, richNsigmaPi, float);
-DECLARE_SOA_COLUMN(RICHNsigmaKa, richNsigmaKa, float);
-DECLARE_SOA_COLUMN(RICHNsigmaPr, richNsigmaPr, float);
+DECLARE_SOA_INDEX_COLUMN(Track, track);                      //!
+DECLARE_SOA_COLUMN(RICHSignal, richSignal, float);           //!
+DECLARE_SOA_COLUMN(RICHSignalError, richSignalError, float); //!
+DECLARE_SOA_COLUMN(RICHDeltaEl, richDeltaEl, float);         //!
+DECLARE_SOA_COLUMN(RICHDeltaMu, richDeltaMu, float);         //!
+DECLARE_SOA_COLUMN(RICHDeltaPi, richDeltaPi, float);         //!
+DECLARE_SOA_COLUMN(RICHDeltaKa, richDeltaKa, float);         //!
+DECLARE_SOA_COLUMN(RICHDeltaPr, richDeltaPr, float);         //!
+DECLARE_SOA_COLUMN(RICHNsigmaEl, richNsigmaEl, float);       //!
+DECLARE_SOA_COLUMN(RICHNsigmaMu, richNsigmaMu, float);       //!
+DECLARE_SOA_COLUMN(RICHNsigmaPi, richNsigmaPi, float);       //!
+DECLARE_SOA_COLUMN(RICHNsigmaKa, richNsigmaKa, float);       //!
+DECLARE_SOA_COLUMN(RICHNsigmaPr, richNsigmaPr, float);       //!
 } // namespace alice3rich
 
-DECLARE_SOA_TABLE(RICHs, "AOD", "RICH",
+DECLARE_SOA_TABLE(RICHs, "AOD", "RICH", //!
+                  o2::soa::Index<>,
                   alice3rich::TrackId,
                   alice3rich::RICHSignal,
                   alice3rich::RICHSignalError,
