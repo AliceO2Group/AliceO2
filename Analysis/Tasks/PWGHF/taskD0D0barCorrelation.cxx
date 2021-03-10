@@ -858,7 +858,7 @@ struct TaskD0D0barCorrelationCheckPhiResolution {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<CreateBig2Prong>(cfgc, "add-collision-id"),
+    adaptAnalysisTask<CreateBig2Prong>(cfgc),
     adaptAnalysisTask<TaskD0D0barCorrelation>(cfgc),
     adaptAnalysisTask<TaskD0D0barCorrelationLS>(cfgc)};
   //MC-based tasks
