@@ -100,6 +100,7 @@ struct pidTOFTaskQA {
 
   void init(o2::framework::InitContext&)
   {
+    histos.add("event/T0", ";Tracks with TOF;T0 (ps);Counts", HistType::kTH2F, {{1000, 0, 100}, {1000, -600, 600}});
     histos.add(hnsigma[pid_type].data(), Form(";#it{p}_{T} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[pid_type]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {2000, -30, 30}});
     makelogaxis(histos.get<TH2>(HIST(hnsigma[pid_type])));
     histos.add(hnsigmaprm[pid_type].data(), Form("Primary;#it{p}_{T} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[pid_type]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {2000, -30, 30}});
@@ -136,11 +137,13 @@ struct pidTOFTaskQA {
                aod::McParticles& mcParticles)
   {
     const float collisionTime_ps = collision.collisionTime() * 1000.f;
+    unsigned int nTracksWithTOF = 0;
     for (auto t : tracks) {
       //
       if (t.tofSignal() < 0) { // Skipping tracks without TOF
         continue;
       }
+      nTracksWithTOF++;
       float nsigma = -999.f;
       if constexpr (pid_type == 0) {
         nsigma = t.tofNSigmaEl();
@@ -180,6 +183,7 @@ struct pidTOFTaskQA {
       fillNsigma<7>(t, mcParticles, nsigma);
       fillNsigma<8>(t, mcParticles, nsigma);
     }
+    histos.fill(HIST("event/T0"), nTracksWithTOF, collisionTime_ps);
   }
 };
 
