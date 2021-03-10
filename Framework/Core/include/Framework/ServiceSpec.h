@@ -168,7 +168,7 @@ struct ServiceDispatchingHandle {
 };
 
 struct ServiceStartHandle {
-  ServiceExitCallback callback;
+  ServiceStartCallback callback;
   void* service;
 };
 
