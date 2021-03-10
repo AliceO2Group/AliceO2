@@ -18,6 +18,7 @@
 #define ALICEO2_HMPID_GEO_H
 
 #include <TMath.h>
+#include <Rtypes.h>
 
 namespace o2
 {
