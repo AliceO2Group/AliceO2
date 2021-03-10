@@ -174,12 +174,12 @@ struct LabelMap {
     return map;
   }
 
-  auto getLabelsRows()
+  auto getLabelsRows() const
   {
     return labels_rows;
   }
 
-  auto getLabelsCols()
+  auto getLabelsCols() const
   {
     return labels_cols;
   }
@@ -257,19 +257,35 @@ class LabeledArray : public LabelMap
     return values[y];
   }
 
-  auto getData()
+  auto getData() const
   {
     return values;
   }
 
-  auto rows()
+  auto rows() const
   {
     return values.rows;
   }
 
-  auto cols()
+  auto cols() const
   {
     return values.cols;
+  }
+
+  void replaceLabelsRows(std::vector<std::string> const& labels)
+  {
+    assert(values.rows == labels.size());
+    labels_rows = labels;
+    rowmap.clear();
+    rowmap = populate(labels.size(), labels);
+  }
+
+  void replaceLabelsCols(std::vector<std::string> const& labels)
+  {
+    assert(values.cols == labels.size());
+    labels_cols = labels;
+    colmap.clear();
+    colmap = populate(labels.size(), labels);
   }
 
  private:
