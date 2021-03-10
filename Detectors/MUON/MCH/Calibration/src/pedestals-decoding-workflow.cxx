@@ -21,6 +21,7 @@
 #include <stdexcept>
 #include <array>
 #include <functional>
+#include <chrono>
 
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -145,7 +146,11 @@ class PedestalsTask
     auto mapFECfile = ic.options().get<std::string>("fec-map");
     initFee2SolarMapper(mMapCRUfile);
     initElec2DetMapper(mMapFECfile);
-
+    auto stop = [this]() {
+      LOG(INFO) << "time spent for decoding (ms): min=" << mTimeDecoderMin->count() << ", max="
+          << mTimeDecoderMax->count() << ", mean=" << mTimeDecoder.count() / mTFcount;
+    };
+    ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
     ic.services().get<CallbackService>().set(CallbackService::Id::Reset, [this]() { reset(); });
   }
 
@@ -161,6 +166,8 @@ class PedestalsTask
     size_t ndigits{0};
 
     uint32_t orbit;
+
+    auto tStart = std::chrono::high_resolution_clock::now();
 
     auto channelHandler = [&](DsElecId dsElecId, uint8_t channel, o2::mch::raw::SampaCluster sc) {
       auto solarId = dsElecId.solarId();
@@ -227,15 +234,32 @@ class PedestalsTask
     auto& inputs = pc.inputs();
     DPLRawParser parser(inputs, o2::framework::select(mInputSpec.c_str()));
 
+    auto tStart = std::chrono::high_resolution_clock::now();
+    size_t totPayloadSize = 0;
     for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
       auto const* raw = it.raw();
       if (!raw) {
         continue;
       }
       size_t payloadSize = it.size();
+      totPayloadSize += payloadSize;
 
       gsl::span<const std::byte> buffer(reinterpret_cast<const std::byte*>(raw), sizeof(RDH) + payloadSize);
       decodeBuffer(buffer);
+    }
+    auto tEnd = std::chrono::high_resolution_clock::now();
+
+    if (mDebug && totPayloadSize > 0) {
+      std::chrono::duration<double, std::milli> elapsed = tEnd - tStart;
+      mTimeDecoder += elapsed;
+      if (!mTimeDecoderMin || (elapsed < mTimeDecoderMin)) {
+        mTimeDecoderMin = elapsed;
+      }
+      if (!mTimeDecoderMax || (elapsed > mTimeDecoderMax)) {
+        mTimeDecoderMax = elapsed;
+      }
+      mTFcount += 1;
+      std::cout << "TF " << mTFcount << "  payload size " << totPayloadSize << "  elapsed " << elapsed.count() << " ms" << std::endl;
     }
   }
 
@@ -312,16 +336,14 @@ class PedestalsTask
   std::string mMapCRUfile;
   std::string mMapFECfile;
 
-  //uint64_t nhits[SOLAR_ID_MAX + 1][40][64];
-  //double pedestal[SOLAR_ID_MAX + 1][40][64];
-  //double noise[SOLAR_ID_MAX + 1][40][64];
-
-  //float mNoiseThreshold;
-  //float mPedestalThreshold;
-
   std::string mInputSpec;   /// selection string for the input data
   bool mPatchRDH = {false}; /// flag to enable verbose output
   bool mDebug = {false};    /// flag to enable verbose output
+
+  std::chrono::duration<double, std::milli> mTimeDecoder{}; ///<
+  std::optional<std::chrono::duration<double, std::milli>> mTimeDecoderMin{}; ///<
+  std::optional<std::chrono::duration<double, std::milli>> mTimeDecoderMax{}; ///<
+  size_t mTFcount{0};
 };
 
 } // namespace raw
