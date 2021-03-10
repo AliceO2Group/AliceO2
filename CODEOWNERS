@@ -50,6 +50,7 @@
 #/DataFormats/Legacy
 #/DataFormats/MemoryResources
 /DataFormats/Parameters        @shahor02
+/DataFormats/QualityControl    @knopers8 @Barthelemy @chiarazampolli
 /DataFormats/Reconstruction    @shahor02
 #/DataFormats/TimeFrame
 /DataFormats/common            @shahor02
