@@ -39,7 +39,7 @@ class Trap2CRU
   Trap2CRU(const std::string& outputDir, const std::string& inputDigitsFilename, const std::string& inputTrackletsFilename);
   //Trap2CRU(const std::string& outputDir, const std::string& inputFilename, const std::string& inputDigitsFilename, const std::string& inputTrackletsFilename);
   void readTrapData();
-  void convertTrapData(o2::trd::TriggerRecord const& trackletTrigRecord, o2::trd::TriggerRecord const& digitTriggerRecord);
+  void convertTrapData(o2::trd::TriggerRecord const& trackletTrigRecord, o2::trd::TriggerRecord const& digitTriggerRecord, const int& triggercount);
   // default for now will be file per half cru as per the files Guido did for us.
   void setFilePer(std::string fileper) { mFilePer = fileper; };
   std::string getFilePer() { return mFilePer; };
@@ -55,11 +55,11 @@ class Trap2CRU
   void setTrackletHCHeader(bool tracklethcheader) { mUseTrackletHCHeader = tracklethcheader; }
   bool isTrackletOnLink(int link, int trackletpos); // is the current tracklet on the the current link
   bool isDigitOnLink(int link, int digitpos);       // is the current digit on the current link
-  int buildDigitRawData(const int digitindex, const std::array<int64_t, 21>& localParseDigits, const uint32_t bc);
+  int buildDigitRawData(const int digitindex, const std::array<int64_t, 21>& localParseDigits, const uint32_t triggercount);
   int buildTrackletRawData(const int trackletindex, const int linkid); // from the current position in the tracklet vector, build the outgoing data for the current mcm the tracklet is on.
   int writeDigitEndMarker();                                           // write the digit end marker 0x0 0x0
   int writeTrackletEndMarker();                                        // write the tracklet end maker 0x10001000 0x10001000
-  int writeHCHeader(uint64_t bc, uint32_t linkid);                     // write the HalfChamberHeader into the stream, after the tracklet endmarker and before the digits.
+  int writeHCHeader(const int eventcount, uint32_t linkid);            // write the HalfChamberHeader into the stream, after the tracklet endmarker and before the digits.
 
   bool digitindexcompare(const o2::trd::Digit& A, const o2::trd::Digit& B);
   //boohhl digitindexcompare(const unsigned int A, const unsigned int B);
