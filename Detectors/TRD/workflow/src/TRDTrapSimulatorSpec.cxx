@@ -280,12 +280,22 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
       if (mShareDigitsManually) {
         if ((digit->getChannel() == 2) && !((digit->getROB() % 2 != 0) && (digit->getMCM() % NMCMROBINCOL == 3))) {
           // shared left, if not leftmost MCM of left ROB of chamber
-          int trapIdxLeft = (digit->getMCM() % NMCMROBINCOL == 3) ? trapIdx + NMCMROB - 3 : trapIdx + 1;
+          int robShared = (digit->getMCM() % NMCMROBINCOL == 3) ? digit->getROB() + 1 : digit->getROB(); // for the leftmost MCM on a ROB the shared digit is added to the neighbouring ROB
+          int mcmShared = (robShared == digit->getROB()) ? digit->getMCM() + 1 : digit->getMCM() - 3;
+          int trapIdxLeft = robShared * NMCMROB + mcmShared;
+          if (!mTrapSimulator[trapIdxLeft].isDataSet()) {
+            mTrapSimulator[trapIdxLeft].init(mTrapConfig, digit->getDetector(), robShared, mcmShared);
+          }
           mTrapSimulator[trapIdxLeft].setData(NADCMCM - 1, digit->getADC(), digitIndices[iDigit]);
         }
         if ((digit->getChannel() == 18 || digit->getChannel() == 19) && !((digit->getROB() % 2 == 0) && (digit->getMCM() % NMCMROBINCOL == 0))) {
           // shared right, if not rightmost MCM of right ROB of chamber
-          int trapIdxRight = (digit->getMCM() % NMCMROBINCOL == 0) ? trapIdx - NMCMROB + 3 : trapIdx - 1;
+          int robShared = (digit->getMCM() % NMCMROBINCOL == 0) ? digit->getROB() - 1 : digit->getROB(); // for the rightmost MCM on a ROB the shared digit is added to the neighbouring ROB
+          int mcmShared = (robShared == digit->getROB()) ? digit->getMCM() - 1 : digit->getMCM() + 3;
+          int trapIdxRight = robShared * NMCMROB + mcmShared;
+          if (!mTrapSimulator[trapIdxRight].isDataSet()) {
+            mTrapSimulator[trapIdxRight].init(mTrapConfig, digit->getDetector(), robShared, mcmShared);
+          }
           mTrapSimulator[trapIdxRight].setData(digit->getChannel() - NCOLMCM, digit->getADC(), digitIndices[iDigit]);
         }
       }
