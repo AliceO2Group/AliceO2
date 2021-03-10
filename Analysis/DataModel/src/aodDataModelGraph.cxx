@@ -258,7 +258,13 @@ int main(int, char**)
   displayEntity<FV0Cs>();
   displayEntity<Run2BCInfos>();
 
-  displayEntities<Tracks, TracksCov, TracksExtra, TracksExtended, TrackSelection, pidRespTOF, pidRespTPC>();
+  displayEntities<Tracks, TracksCov, TracksExtra, TracksExtended, TrackSelection,
+                  pidRespTOFEl, pidRespTOFMu, pidRespTOFPi,
+                  pidRespTOFKa, pidRespTOFPr, pidRespTOFDe,
+                  pidRespTOFTr, pidRespTOFHe, pidRespTOFAl,
+                  pidRespTPCEl, pidRespTPCMu, pidRespTPCPi,
+                  pidRespTPCKa, pidRespTPCPr, pidRespTPCDe,
+                  pidRespTPCTr, pidRespTPCHe, pidRespTPCAl>();
   displayEntity<UnassignedTracks>();
   displayEntity<UnassignedMFTTracks>();
 
