@@ -23,13 +23,13 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 
 struct pidRICHQAMC {
-  HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::AnalysisObject};
+  HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::QAObject};
   Configurable<int> pdgCode{"pdgCode", 0, "pdg code of the particles to accept"};
   Configurable<int> useOnlyPhysicsPrimary{"useOnlyPhysicsPrimary", 1,
                                           "Whether to use only physical primary particles."};
   Configurable<float> minLength{"minLength", 0, "Minimum length of accepted tracks (cm)"};
   Configurable<float> maxLength{"maxLength", 1000, "Maximum length of accepted tracks (cm)"};
-  Configurable<int> nBinsP{"nBinsP", 100, "Number of momentum bins"};
+  Configurable<int> nBinsP{"nBinsP", 500, "Number of momentum bins"};
   Configurable<float> minP{"minP", 0.01, "Minimum momentum plotted (GeV/c)"};
   Configurable<float> maxP{"maxP", 100, "Maximum momentum plotted (GeV/c)"};
   Configurable<int> nBinsNsigma{"nBinsNsigma", 600, "Number of Nsigma bins"};
@@ -60,10 +60,11 @@ struct pidRICHQAMC {
 
   void init(o2::framework::InitContext&)
   {
-    AxisSpec momAxis{nBinsP.value, minP.value, maxP.value};
-    AxisSpec nsigmaAxis{nBinsNsigma.value, minNsigma.value, maxNsigma.value};
-    AxisSpec deltaAxis{nBinsDelta.value, minDelta.value, maxDelta.value};
+    AxisSpec momAxis{nBinsP, minP, maxP};
+    AxisSpec nsigmaAxis{nBinsNsigma, minNsigma, maxNsigma};
+    AxisSpec deltaAxis{nBinsDelta, minDelta, maxDelta};
 
+    histos.add("event/vertexz", ";Vtx_{z} (cm);Entries", kTH1F, {{100, -20, 20}});
     histos.add("p/Unselected", "Unselected;#it{p} (GeV/#it{c})", kTH1F, {momAxis});
     histos.add("p/Prim", "Primaries;#it{p} (GeV/#it{c})", kTH1F, {momAxis});
     histos.add("p/Sec", "Secondaries;#it{p} (GeV/#it{c})", kTH1F, {momAxis});
@@ -81,6 +82,7 @@ struct pidRICHQAMC {
     histos.add("qa/nsigmaPi", ";#it{p} (GeV/#it{c});N_{#sigma}^{RICH}(#pi)", kTH2F, {momAxis, nsigmaAxis});
     histos.add("qa/nsigmaKa", ";#it{p} (GeV/#it{c});N_{#sigma}^{RICH}(K)", kTH2F, {momAxis, nsigmaAxis});
     histos.add("qa/nsigmaPr", ";#it{p} (GeV/#it{c});N_{#sigma}^{RICH}(p)", kTH2F, {momAxis, nsigmaAxis});
+    makelogaxis(histos.get<TH2>(HIST("qa/signalvsP")));
     makelogaxis(histos.get<TH2>(HIST("qa/deltaEl")));
     makelogaxis(histos.get<TH2>(HIST("qa/deltaMu")));
     makelogaxis(histos.get<TH2>(HIST("qa/deltaPi")));
@@ -97,22 +99,26 @@ struct pidRICHQAMC {
                const aod::TracksExtra& tracksExtra,
                const aod::McTrackLabels& labels,
                const aod::RICHs& richs,
-               const aod::McParticles& mcParticles)
+               const aod::McParticles& mcParticles,
+               const aod::Collisions& colls)
   {
+    for (const auto& col : colls) {
+      histos.fill(HIST("event/vertexz"), col.posZ());
+    }
     for (const auto& rich : richs) {
       const auto track = rich.track();
       const auto trackExtra = tracksExtra.iteratorAt(track.globalIndex());
-      if (trackExtra.length() < minLength.value) {
+      if (trackExtra.length() < minLength) {
         continue;
       }
-      if (trackExtra.length() > maxLength.value) {
+      if (trackExtra.length() > maxLength) {
         continue;
       }
       const auto mcParticle = labels.iteratorAt(track.globalIndex()).mcParticle();
-      if (pdgCode.value != 0 && abs(mcParticle.pdgCode()) != pdgCode.value) {
+      if (pdgCode != 0 && abs(mcParticle.pdgCode()) != pdgCode) {
         continue;
       }
-      if (useOnlyPhysicsPrimary.value == 1 && !MC::isPhysicalPrimary(mcParticles, mcParticle)) { // Selecting primaries
+      if (useOnlyPhysicsPrimary == 1 && !MC::isPhysicalPrimary(mcParticles, mcParticle)) { // Selecting primaries
         histos.fill(HIST("p/Sec"), track.p());
         continue;
       }
