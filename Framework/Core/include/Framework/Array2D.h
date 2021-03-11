@@ -274,18 +274,24 @@ class LabeledArray : public LabelMap
 
   void replaceLabelsRows(std::vector<std::string> const& labels)
   {
-    assert(values.rows == labels.size());
-    labels_rows = labels;
-    rowmap.clear();
-    rowmap = populate(labels.size(), labels);
+    if (values.rows == labels.size()) {
+      labels_rows = labels;
+      rowmap.clear();
+      rowmap = populate(labels.size(), labels);
+    } else {
+      throw runtime_error_f("Row labels array has different size (%d) than number of rows (%d)", labels.size(), values.rows);
+    }
   }
 
   void replaceLabelsCols(std::vector<std::string> const& labels)
   {
-    assert(values.cols == labels.size());
-    labels_cols = labels;
-    colmap.clear();
-    colmap = populate(labels.size(), labels);
+    if (values.cols == labels.size()) {
+      labels_cols = labels;
+      colmap.clear();
+      colmap = populate(labels.size(), labels);
+    } else {
+      throw runtime_error_f("Column labels array has different size (%d) than number of columns (%d)", labels.size(), values.cols);
+    }
   }
 
  private:
