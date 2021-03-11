@@ -44,6 +44,7 @@ void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRe
   clusters->clear(); //final out list of clusters
   trigRec->clear();
   cluMC->clear();
+  mProcessMC = (dmc != nullptr);
 
   for (const auto& tr : dtr) {
     mFirstDigitInEvent = tr.getFirstEntry();
@@ -104,9 +105,7 @@ void Clusterer::processCells(gsl::span<const Cell> cells, gsl::span<const Trigge
   cluMC->clear();
   mProcessMC = (dmc != nullptr);
   miCellLabel = 0;
-  printf("start clustering \n");
   for (const auto& tr : ctr) {
-    printf(" tf=%d, %d \n", tr.getFirstEntry(), tr.getNumberOfObjects());
     int firstCellInEvent = tr.getFirstEntry();
     int lastCellInEvent = firstCellInEvent + tr.getNumberOfObjects();
     int indexStart = clusters->size();
@@ -116,10 +115,8 @@ void Clusterer::processCells(gsl::span<const Cell> cells, gsl::span<const Trigge
 
     if (mBadMap.get() == nullptr) {
       if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-        mBadMap.reset(new BadChannelMap(1)); // test default map
-        printf("SetBadMap \n");
+        mBadMap.reset(new BadChannelMap(1));    // test default map
         mCalibParams.reset(new CalibParams(1)); //test calibration map
-        printf("SetCalib \n");
         LOG(INFO) << "No reading BadMap/Calibration from ccdb requested, set default";
       } else {
         //   LOG(INFO) << "Getting BadMap object from ccdb";
@@ -137,22 +134,17 @@ void Clusterer::processCells(gsl::span<const Cell> cells, gsl::span<const Trigge
         //   // }
       }
     }
-    printf("converteing: %d, %d \n", firstCellInEvent, lastCellInEvent);
-    LOG(INFO) << "Converting ";
     convertCellsToDigits(cells, firstCellInEvent, lastCellInEvent);
     // Collect digits to clusters
-    printf("makeClu \n");
     makeClusters(mDigits);
     // Unfold overlapped clusters
     // Split clusters with several local maxima if necessary
     if (o2::phos::PHOSSimParams::Instance().mUnfoldClusters) {
       makeUnfoldings(mDigits);
     }
-    printf("cluprop \n");
 
     // Calculate properties of collected clusters (Local position, energy, disp etc.)
     evalCluProperties(mDigits, clusters, dmc, cluMC);
-    printf("cdone \n");
 
     LOG(DEBUG) << "Found clusters from " << indexStart << " to " << clusters->size();
 
@@ -440,7 +432,6 @@ void Clusterer::evalCluProperties(gsl::span<const Digit> digits, std::vector<Clu
   auto clu = mClusters.begin();
 
   while (clu != mClusters.end()) {
-
     if (clu->getEnergy() < 1.e-4) { //Marked earlier for removal
       ++clu;
       continue;
@@ -498,7 +489,6 @@ void Clusterer::evalCluProperties(gsl::span<const Digit> digits, std::vector<Clu
           }
           ++ll;
         }
-        clusters->back().setLabel(labelIndex);
         labelIndex++;
       } // Work with MC
     }
