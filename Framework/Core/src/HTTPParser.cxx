@@ -188,7 +188,7 @@ std::string encode_websocket_handshake_request(const char* endpoint, const char*
 std::string HTTPParserHelpers::calculateAccept(const char* nonce)
 {
   std::string reply = std::string(nonce) + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-  char sha[20];
+  char sha[21];
   SHA1(sha, reply.data(), reply.size());
   char base[64];
   base64_encode(base, 64, (unsigned char*)sha, 20);
