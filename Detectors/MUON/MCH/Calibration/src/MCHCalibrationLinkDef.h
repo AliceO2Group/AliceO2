@@ -14,8 +14,11 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::mch::ROFRecord + ;
-#pragma link C++ class o2::mch::TrackMCH + ;
-#pragma link C++ class o2::mch::DsChannelId + ;
-#pragma link C++ class o2::mch::DsChannelGroup + ;
+#pragma link C++ class o2::mch::calibration::PedestalDigit + ;
+
+#pragma link C++ class o2::mch::calibration::MCHChannelData + ;
+#pragma link C++ class o2::mch::calibration::MCHChannelCalibrator + ;
+#pragma link C++ class o2::calibration::TimeSlot < o2::mch::calibration::MCHChannelData> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::mch::calibration::PedestalDigit, o2::mch::calibration::MCHChannelData> + ;
+
 #endif
