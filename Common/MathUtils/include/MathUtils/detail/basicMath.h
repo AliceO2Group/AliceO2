@@ -37,12 +37,6 @@ GPUhdi() T copysign(T x, T y)
   return o2::gpu::GPUCommonMath::Copysign(x, y);
 }
 
-template <>
-GPUhdi() double copysign(double x, double y)
-{
-  return std::copysign(x, y);
-}
-
 template <class T>
 GPUhdi() T min(const T x, const T y)
 {
@@ -61,21 +55,10 @@ GPUhdi() T sqrt(T x)
   return o2::gpu::GPUCommonMath::Sqrt(x);
 };
 
-template <>
-GPUhdi() double sqrt(double x)
-{
-  return std::sqrt(x);
-};
-
 template <class T>
 GPUhdi() T abs(T x)
 {
   return o2::gpu::GPUCommonMath::Abs(x);
-};
-
-GPUhdi() double abs(double x)
-{
-  return std::abs(x);
 };
 
 template <class T>
@@ -84,22 +67,10 @@ GPUdi() int nint(T x)
   return o2::gpu::GPUCommonMath::Nint(x);
 };
 
-template <>
-GPUdi() int nint(double x)
-{
-  return std::nearbyint(x);
-};
-
 template <class T>
 GPUdi() bool finite(T x)
 {
   return o2::gpu::GPUCommonMath::Finite(x);
-}
-
-template <>
-GPUdi() bool finite(double x)
-{
-  return std::isfinite(x);
 }
 
 GPUdi() unsigned int clz(unsigned int val)
@@ -118,11 +89,37 @@ GPUdi() T log(T x)
   return o2::gpu::GPUCommonMath::Log(x);
 };
 
+#ifndef GPUCA_GPUCODE_DEVICE // Double overloads using std namespace not visible on GPU
+template <>
+GPUhdi() double copysign(double x, double y)
+{
+  return std::copysign(x, y);
+}
+template <>
+GPUhdi() double sqrt(double x)
+{
+  return std::sqrt(x);
+};
+GPUhdi() double abs(double x)
+{
+  return std::abs(x);
+};
+template <>
+GPUdi() int nint(double x)
+{
+  return std::nearbyint(x);
+};
+template <>
+GPUdi() bool finite(double x)
+{
+  return std::isfinite(x);
+}
 template <>
 GPUdi() double log(double x)
 {
   return std::log(x);
 };
+#endif
 
 } // namespace detail
 } // namespace math_utils
