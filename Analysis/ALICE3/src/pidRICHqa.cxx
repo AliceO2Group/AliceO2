@@ -68,18 +68,19 @@ struct pidRICHQAMC {
     histos.add("p/Prim", "Primaries;#it{p} (GeV/#it{c})", kTH1F, {momAxis});
     histos.add("p/Sec", "Secondaries;#it{p} (GeV/#it{c})", kTH1F, {momAxis});
     histos.add("pt/Unselected", "Unselected;#it{p} (GeV/#it{c})", kTH1F, {momAxis});
-    histos.add("qa/signal", ";#theta (rad)", kTH1F, {{100, 0, 1}});
-    histos.add("qa/signalerror", ";#theta (rad)", kTH1F, {{100, 0, 1}});
+    histos.add("qa/signal", ";Cherenkov angle (rad)", kTH1F, {{100, 0, 1}});
+    histos.add("qa/signalerror", ";Cherenkov angle (rad)", kTH1F, {{100, 0, 1}});
+    histos.add("qa/signalvsP", ";#it{p} (GeV/#it{c});Cherenkov angle (rad)", kTH2F, {momAxis, {1000, 0, 0.3}});
     histos.add("qa/deltaEl", ";#it{p} (GeV/#it{c});#Delta(e) (rad)", kTH2F, {momAxis, deltaAxis});
     histos.add("qa/deltaMu", ";#it{p} (GeV/#it{c});#Delta(#mu) (rad)", kTH2F, {momAxis, deltaAxis});
     histos.add("qa/deltaPi", ";#it{p} (GeV/#it{c});#Delta(#pi) (rad)", kTH2F, {momAxis, deltaAxis});
     histos.add("qa/deltaKa", ";#it{p} (GeV/#it{c});#Delta(K) (rad)", kTH2F, {momAxis, deltaAxis});
     histos.add("qa/deltaPr", ";#it{p} (GeV/#it{c});#Delta(p) (rad)", kTH2F, {momAxis, deltaAxis});
-    histos.add("qa/nsigmaEl", ";#it{p} (GeV/#it{c});n#sigma(e)", kTH2F, {momAxis, nsigmaAxis});
-    histos.add("qa/nsigmaMu", ";#it{p} (GeV/#it{c});n#sigma(#mu)", kTH2F, {momAxis, nsigmaAxis});
-    histos.add("qa/nsigmaPi", ";#it{p} (GeV/#it{c});n#sigma(#pi)", kTH2F, {momAxis, nsigmaAxis});
-    histos.add("qa/nsigmaKa", ";#it{p} (GeV/#it{c});n#sigma(K)", kTH2F, {momAxis, nsigmaAxis});
-    histos.add("qa/nsigmaPr", ";#it{p} (GeV/#it{c});n#sigma(p)", kTH2F, {momAxis, nsigmaAxis});
+    histos.add("qa/nsigmaEl", ";#it{p} (GeV/#it{c});N_{#sigma}^{RICH}(e)", kTH2F, {momAxis, nsigmaAxis});
+    histos.add("qa/nsigmaMu", ";#it{p} (GeV/#it{c});N_{#sigma}^{RICH}(#mu)", kTH2F, {momAxis, nsigmaAxis});
+    histos.add("qa/nsigmaPi", ";#it{p} (GeV/#it{c});N_{#sigma}^{RICH}(#pi)", kTH2F, {momAxis, nsigmaAxis});
+    histos.add("qa/nsigmaKa", ";#it{p} (GeV/#it{c});N_{#sigma}^{RICH}(K)", kTH2F, {momAxis, nsigmaAxis});
+    histos.add("qa/nsigmaPr", ";#it{p} (GeV/#it{c});N_{#sigma}^{RICH}(p)", kTH2F, {momAxis, nsigmaAxis});
     makelogaxis(histos.get<TH2>(HIST("qa/deltaEl")));
     makelogaxis(histos.get<TH2>(HIST("qa/deltaMu")));
     makelogaxis(histos.get<TH2>(HIST("qa/deltaPi")));
@@ -95,11 +96,11 @@ struct pidRICHQAMC {
   void process(const aod::Tracks& tracks,
                const aod::TracksExtra& tracksExtra,
                const aod::McTrackLabels& labels,
-               const aod::RICHs& tracks_rich,
+               const aod::RICHs& richs,
                const aod::McParticles& mcParticles)
   {
-    for (const auto& t : tracks_rich) {
-      const auto track = t.track();
+    for (const auto& rich : richs) {
+      const auto track = rich.track();
       const auto trackExtra = tracksExtra.iteratorAt(track.globalIndex());
       if (trackExtra.length() < minLength.value) {
         continue;
@@ -118,24 +119,25 @@ struct pidRICHQAMC {
       histos.fill(HIST("p/Prim"), track.p());
       histos.fill(HIST("p/Unselected"), track.p());
       histos.fill(HIST("pt/Unselected"), track.pt());
-      histos.fill(HIST("qa/signal"), t.richSignal());
-      histos.fill(HIST("qa/signalerror"), t.richSignalError());
-      histos.fill(HIST("qa/deltaEl"), track.p(), t.richDeltaEl());
-      histos.fill(HIST("qa/deltaMu"), track.p(), t.richDeltaMu());
-      histos.fill(HIST("qa/deltaPi"), track.p(), t.richDeltaPi());
-      histos.fill(HIST("qa/deltaKa"), track.p(), t.richDeltaKa());
-      histos.fill(HIST("qa/deltaPr"), track.p(), t.richDeltaPr());
-      histos.fill(HIST("qa/nsigmaEl"), track.p(), t.richNsigmaEl());
-      histos.fill(HIST("qa/nsigmaMu"), track.p(), t.richNsigmaMu());
-      histos.fill(HIST("qa/nsigmaPi"), track.p(), t.richNsigmaPi());
-      histos.fill(HIST("qa/nsigmaKa"), track.p(), t.richNsigmaKa());
-      histos.fill(HIST("qa/nsigmaPr"), track.p(), t.richNsigmaPr());
+      histos.fill(HIST("qa/signal"), rich.richSignal());
+      histos.fill(HIST("qa/signalerror"), rich.richSignalError());
+      histos.fill(HIST("qa/signalvsP"), track.p(), rich.richSignal());
+      histos.fill(HIST("qa/deltaEl"), track.p(), rich.richDeltaEl());
+      histos.fill(HIST("qa/deltaMu"), track.p(), rich.richDeltaMu());
+      histos.fill(HIST("qa/deltaPi"), track.p(), rich.richDeltaPi());
+      histos.fill(HIST("qa/deltaKa"), track.p(), rich.richDeltaKa());
+      histos.fill(HIST("qa/deltaPr"), track.p(), rich.richDeltaPr());
+      histos.fill(HIST("qa/nsigmaEl"), track.p(), rich.richNsigmaEl());
+      histos.fill(HIST("qa/nsigmaMu"), track.p(), rich.richNsigmaMu());
+      histos.fill(HIST("qa/nsigmaPi"), track.p(), rich.richNsigmaPi());
+      histos.fill(HIST("qa/nsigmaKa"), track.p(), rich.richNsigmaKa());
+      histos.fill(HIST("qa/nsigmaPr"), track.p(), rich.richNsigmaPr());
     }
   }
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfg)
 {
-  WorkflowSpec workflow{adaptAnalysisTask<pidRICHQAMC>(cfg, "pidRICH-qa")};
+  WorkflowSpec workflow{adaptAnalysisTask<pidRICHQAMC>(cfg, TaskName{"pidRICH-qa"})};
   return workflow;
 }
