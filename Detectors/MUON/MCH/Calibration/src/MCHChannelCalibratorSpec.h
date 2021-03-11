@@ -36,7 +36,7 @@ namespace calibration
 class MCHChannelCalibDevice : public o2::framework::Task
 {
  public:
-  explicit MCHChannelCalibDevice() {}
+  explicit MCHChannelCalibDevice() = default;
 
   void init(o2::framework::InitContext& ic) final
   {
