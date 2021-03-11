@@ -19,7 +19,7 @@
 #include <boost/program_options.hpp>
 #include <FairLogger.h>
 #include "TFile.h"
-#include "AnalysisDataModel/PID/TOFReso.h"
+#include "AnalysisDataModel/PID/TOFResoALICE3.h"
 
 using namespace o2::pid::tof;
 namespace bpo = boost::program_options;
@@ -80,11 +80,11 @@ int main(int argc, char* argv[])
   }
   if (mode == 0) { // Push mode
     LOG(INFO) << "Handling TOF resolution parametrization in create mode";
-    const std::vector<float> resoparams = {vm["p0"].as<float>(), vm["p1"].as<float>(), vm["p2"].as<float>(), vm["p3"].as<float>(), vm["p4"].as<float>()};
-    TOFReso reso;
+    const std::vector<float> resoparams = {vm["p4"].as<float>()};
+    TOFResoALICE3 reso;
     reso.SetParameters(resoparams);
     reso.PrintParametrization();
-    const float x[4] = {1, 1, 1, 1}; // mom, time, ev. reso, mass
+    const float x[5] = {1, 1, 1, 1, 1}; // mom, time, ev. reso, mass, length
     LOG(INFO) << "TOF expected resolution at p=" << x[0] << " GeV/c "
               << " and mass " << x[3] << ":" << reso(x);
 
@@ -104,12 +104,12 @@ int main(int argc, char* argv[])
       if (vm["delete_previous"].as<int>()) {
         api.truncate(path);
       }
-      api.storeAsTFileAny(&reso, path + "/TOFReso", metadata, start, stop);
+      api.storeAsTFileAny(&reso, path + "/TOFResoALICE3", metadata, start, stop);
     }
   } else { // Pull and test mode
     LOG(INFO) << "Handling TOF resolution parametrization in test mode";
     const float x[4] = {1, 1, 1, 1}; // mom, time, ev. reso, mass
-    TOFReso* reso = api.retrieveFromTFileAny<TOFReso>(path + "/TOFReso", metadata, -1, headers);
+    TOFResoALICE3* reso = api.retrieveFromTFileAny<TOFResoALICE3>(path + "/TOFResoALICE3", metadata, -1, headers);
     reso->PrintParametrization();
     LOG(INFO) << "TOF expected resolution at p=" << x[0] << " GeV/c "
               << " and mass " << x[3] << ":" << reso->operator()(x);

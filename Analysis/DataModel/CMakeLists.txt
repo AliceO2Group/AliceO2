@@ -41,3 +41,8 @@ o2_add_executable(pidparam-tof-reso
                   SOURCES src/handleParamTOFReso.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel
                  )
+
+o2_add_executable(pidparam-tof-reso-alice3
+                  SOURCES src/handleParamTOFResoALICE3.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel
+                 )
