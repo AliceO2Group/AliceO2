@@ -10,8 +10,6 @@
 #ifndef FRAMEWORK_ARRAY2D_H
 #define FRAMEWORK_ARRAY2D_H
 
-#include <Framework/RuntimeError.h>
-
 #include <cstdint>
 #include <vector>
 #include <unordered_map>
@@ -160,19 +158,7 @@ struct LabelMap {
   std::vector<std::string> labels_rows;
   std::vector<std::string> labels_cols;
 
-  labelmap_t populate(uint32_t size, std::vector<std::string> labels)
-  {
-    labelmap_t map;
-    if (labels.empty() == false) {
-      if (labels.size() != size) {
-        throw runtime_error("labels array size != array dimension");
-      }
-      for (auto i = 0u; i < size; ++i) {
-        map.emplace(labels[i], (uint32_t)i);
-      }
-    }
-    return map;
-  }
+  static labelmap_t populate(uint32_t size, std::vector<std::string> labels);
 
   auto getLabelsRows() const
   {
@@ -183,6 +169,9 @@ struct LabelMap {
   {
     return labels_cols;
   }
+
+  void replaceLabelsRows(uint32_t size, std::vector<std::string> const& labels);
+  void replaceLabelsCols(uint32_t size, std::vector<std::string> const& labels);
 };
 
 template <typename T>
@@ -274,24 +263,12 @@ class LabeledArray : public LabelMap
 
   void replaceLabelsRows(std::vector<std::string> const& labels)
   {
-    if (values.rows == labels.size()) {
-      labels_rows = labels;
-      rowmap.clear();
-      rowmap = populate(labels.size(), labels);
-    } else {
-      throw runtime_error_f("Row labels array has different size (%d) than number of rows (%d)", labels.size(), values.rows);
-    }
+    LabelMap::replaceLabelsRows(values.rows, labels);
   }
 
   void replaceLabelsCols(std::vector<std::string> const& labels)
   {
-    if (values.cols == labels.size()) {
-      labels_cols = labels;
-      colmap.clear();
-      colmap = populate(labels.size(), labels);
-    } else {
-      throw runtime_error_f("Column labels array has different size (%d) than number of columns (%d)", labels.size(), values.cols);
-    }
+    LabelMap::replaceLabelsCols(values.cols, labels);
   }
 
  private:

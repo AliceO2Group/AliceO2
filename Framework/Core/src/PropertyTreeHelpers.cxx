@@ -175,18 +175,16 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
 template <typename T>
 auto replaceLabels(LabeledArray<T>& input, LabeledArray<T>&& spec)
 {
-  bool replace = false;
-  if (input.getLabelsCols().empty() && input.getLabelsRows().empty()) {
-    if (!spec.getLabelsCols().empty()) {
-      input.replaceLabelsCols(spec.getLabelsCols());
-      replace = true;
-    }
-    if (!spec.getLabelsRows().empty()) {
-      input.replaceLabelsRows(spec.getLabelsRows());
-      replace = true;
-    }
+  if (!input.getLabelsCols().empty() || !input.getLabelsRows().empty()) {
+    return false;
   }
-  return replace;
+  if (spec.getLabelsCols().empty() == false) {
+    input.replaceLabelsCols(spec.getLabelsCols());
+  }
+  if (spec.getLabelsRows().empty() == false) {
+    input.replaceLabelsRows(spec.getLabelsRows());
+  }
+  return true;
 }
 
 void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
