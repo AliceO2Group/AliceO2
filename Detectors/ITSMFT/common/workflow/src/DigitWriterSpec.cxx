@@ -128,7 +128,8 @@ DataProcessorSpec getDigitWriterSpecHW(bool mctruth, o2::header::DataOrigin detO
     LOG(INFO) << "WRITING " << labels.getNElements() << " LABELS ";
 
     o2::dataformats::IOMCTruthContainerView outputcontainer;
-    auto br = framework::RootTreeWriter::remapBranch(branch, &outputcontainer);
+    auto ptr = &outputcontainer;
+    auto br = framework::RootTreeWriter::remapBranch(branch, &ptr);
     outputcontainer.adopt(labelbuffer);
     br->Fill();
     br->ResetAddress();
