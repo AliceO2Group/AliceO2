@@ -13,3 +13,9 @@ add_subdirectory(raw)
 add_subdirectory(reconstruction)
 add_subdirectory(simulation)
 add_subdirectory(workflow)
+
+o2_add_test(ft0rawtest
+            PUBLIC_LINK_LIBRARIES O2::FT0Simulation
+            SOURCES test/test_raw_conversion_ft0.cxx
+            COMPONENT_NAME ft0
+            LABELS ft0)
