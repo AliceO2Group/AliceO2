@@ -20,6 +20,7 @@ o2_target_root_dictionary(AnalysisDataModel
                                   include/AnalysisDataModel/PID/DetectorResponse.h
                                   include/AnalysisDataModel/PID/PIDTOF.h
                                   include/AnalysisDataModel/PID/TOFReso.h
+                                  include/AnalysisDataModel/PID/TOFResoALICE3.h
                                   include/AnalysisDataModel/PID/PIDTPC.h
                                   include/AnalysisDataModel/PID/BetheBloch.h
                                   include/AnalysisDataModel/PID/TPCReso.h
