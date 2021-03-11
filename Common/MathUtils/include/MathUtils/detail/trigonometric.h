@@ -109,8 +109,8 @@ inline void bringToPMPiGen(T& phi)
 }
 
 #ifdef __OPENCL__ // TODO: get rid of that stupid workaround for OpenCL template address spaces
-template <typename T>
-GPUhdi() void sincos(T ang, T& s, T& c)
+template <typename T, typename S, typename U>
+GPUhdi() void sincos(T ang, S& s, U& c)
 {
   return o2::gpu::GPUCommonMath::SinCos(ang, s, c);
 }
@@ -256,22 +256,10 @@ GPUdi() T asin(T x)
   return o2::gpu::GPUCommonMath::ASin(x);
 };
 
-template <>
-GPUdi() double asin(double x)
-{
-  return std::asin(x);
-};
-
 template <class T>
 GPUdi() T atan(T x)
 {
   return o2::gpu::GPUCommonMath::ATan(x);
-};
-
-template <>
-GPUdi() double atan(double x)
-{
-  return std::atan(x);
 };
 
 template <class T>
@@ -280,22 +268,10 @@ GPUdi() T atan2(T y, T x)
   return o2::gpu::GPUCommonMath::ATan2(y, x);
 };
 
-template <>
-GPUdi() double atan2(double y, double x)
-{
-  return std::atan2(y, x);
-};
-
 template <class T>
 GPUdi() T sin(T x)
 {
   return o2::gpu::GPUCommonMath::Sin(x);
-};
-
-template <>
-GPUdi() double sin(double x)
-{
-  return std::sin(x);
 };
 
 template <class T>
@@ -304,22 +280,10 @@ GPUdi() T cos(T x)
   return o2::gpu::GPUCommonMath::Cos(x);
 };
 
-template <>
-GPUdi() double cos(double x)
-{
-  return std::cos(x);
-};
-
 template <class T>
 GPUdi() T tan(T x)
 {
   return o2::gpu::GPUCommonMath::Tan(x);
-};
-
-template <>
-GPUdi() double tan(double x)
-{
-  return std::tan(x);
 };
 
 template <class T>
@@ -345,6 +309,39 @@ GPUdi() double pi()
 {
   return o2::constants::math::PI;
 }
+
+#ifndef GPUCA_GPUCODE_DEVICE
+template <>
+GPUdi() double tan(double x)
+{
+  return std::tan(x);
+};
+template <>
+GPUdi() double sin(double x)
+{
+  return std::sin(x);
+};
+template <>
+GPUdi() double atan2(double y, double x)
+{
+  return std::atan2(y, x);
+};
+template <>
+GPUdi() double atan(double x)
+{
+  return std::atan(x);
+};
+template <>
+GPUdi() double asin(double x)
+{
+  return std::asin(x);
+};
+template <>
+GPUdi() double cos(double x)
+{
+  return std::cos(x);
+};
+#endif
 
 } // namespace detail
 } // namespace math_utils
