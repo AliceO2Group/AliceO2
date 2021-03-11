@@ -170,7 +170,7 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits,
     Bool_t is_A_side = (hit_ch < 4 * mGeometry.NCellsA);
     Float_t time_compensate = is_A_side ? mParameters.mA_side_cable_cmps : mParameters.mC_side_cable_cmps;
     Double_t hit_time = hit.GetTime() - time_compensate;
-     if (hit_time > 250) {
+    if (hit_time > 250) {
       continue; //not collect very slow particles
     }
     auto relBC = o2::InteractionRecord{hit_time};

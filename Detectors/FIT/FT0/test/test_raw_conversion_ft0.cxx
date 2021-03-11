@@ -33,6 +33,7 @@ BOOST_AUTO_TEST_CASE(RAWTest)
   std::unique_ptr<TTree> tree((TTree*)flIn.Get("o2sim"));
   std::vector<o2::ft0::Digit> digitsBC, *ft0BCDataPtr = &digitsBC;
   std::vector<o2::ft0::ChannelData> digitsCh, *ft0ChDataPtr = &digitsCh;
+  tree->Print();
   BOOST_REQUIRE(tree);
   tree->SetBranchAddress("FT0DIGITSBC", &ft0BCDataPtr);
   tree->SetBranchAddress("FT0DIGITSCH", &ft0ChDataPtr);
@@ -45,8 +46,9 @@ BOOST_AUTO_TEST_CASE(RAWTest)
       int bc = bcd.getBC();
       auto channels = bcd.getBunchChannelData(digitsCh);
       nch += channels.size();
-     }
+    }
   }
+  std::cout<<" @@@ sim nbc "<<nbc<<" nchannels "<<nch<<std::endl;
   gSystem->Exec("$O2_ROOT/bin/o2-ft0-digi2raw --file-per-link");
   gSystem->Exec("$O2_ROOT/bin/o2-raw-file-reader-workflow -b --input-conf FT0raw.cfg|$O2_ROOT/bin/o2-ft0-flp-dpl-workflow -b");
   TFile flIn2("o2digit_ft0.root");
@@ -54,6 +56,7 @@ BOOST_AUTO_TEST_CASE(RAWTest)
   std::vector<o2::ft0::Digit> digitsBC2, *ft0BCDataPtr2 = &digitsBC2;
   std::vector<o2::ft0::ChannelData> digitsCh2, *ft0ChDataPtr2 = &digitsCh2;
   BOOST_REQUIRE(tree2);
+  tree2->Print();
   tree2->SetBranchAddress("FT0DIGITSBC", &ft0BCDataPtr2);
   tree2->SetBranchAddress("FT0DIGITSCH", &ft0ChDataPtr2);
   for (int ient = 0; ient < tree2->GetEntries(); ient++) {
@@ -66,9 +69,9 @@ BOOST_AUTO_TEST_CASE(RAWTest)
       nch2 += channels2.size();
     }
   }
+  std::cout<<" @@@ reco nbc "<<nbc2<<" nchannels "<<nch2<<std::endl;
   std::cout << " comparison rec " << nbc2 << " " << nch2 << " sim " << nbc << " " << nch << std::endl;
 
   BOOST_CHECK(nbc == nbc2);
   BOOST_CHECK(nch == nch2);
-}
-;
+};

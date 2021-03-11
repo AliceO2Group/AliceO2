@@ -141,7 +141,7 @@ class Digitizer
   std::deque<BCCache> mCache;
   std::array<GoodInteractionTimeRecord, 208> mDeadTimes;
 
-  DigitizationParameters const &mParameters;
+  DigitizationParameters const& mParameters;
   o2::ft0::Geometry mGeometry;
 
   NoiseRandomRingType mRndGaus;
