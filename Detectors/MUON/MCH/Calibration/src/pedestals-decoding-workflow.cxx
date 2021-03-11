@@ -71,8 +71,6 @@ static std::string readFileContent(std::string& filename)
     content += s;
     content += "\n";
   }
-  std::cout << "readFileContent(" << filename << "):" << std::endl
-            << content << std::endl;
   return content;
 };
 
@@ -110,13 +108,11 @@ static bool isValidDeID(int deId)
 class PedestalsTask
 {
  public:
-  //PedestalsTask() : mInputSpec() {}
-  //PedestalsTask(PedestalsTask& t) : mInputSpec() {}
   PedestalsTask(std::string spec) : mInputSpec(spec) {}
 
   void initElec2DetMapper(std::string filename)
   {
-    std::cout << "[initElec2DetMapper] filename=" << filename << std::endl;
+    LOG(INFO) << "[initElec2DetMapper] filename=" << filename;
     if (filename.empty()) {
       mElec2Det = createElec2DetMapper<ElectronicMapperGenerated>();
     } else {
@@ -127,7 +123,7 @@ class PedestalsTask
 
   void initFee2SolarMapper(std::string filename)
   {
-    std::cout << "[initFee2SolarMapper] filename=" << filename << std::endl;
+    LOG(INFO) << "[initFee2SolarMapper] filename=" << filename;
     if (filename.empty()) {
       mFee2Solar = createFeeLink2SolarMapper<ElectronicMapperGenerated>();
     } else {
@@ -147,8 +143,10 @@ class PedestalsTask
     initFee2SolarMapper(mMapCRUfile);
     initElec2DetMapper(mMapFECfile);
     auto stop = [this]() {
-      LOG(INFO) << "time spent for decoding (ms): min=" << mTimeDecoderMin->count() << ", max="
-                << mTimeDecoderMax->count() << ", mean=" << mTimeDecoder.count() / mTFcount;
+      if (mTFcount > 0) {
+        LOG(INFO) << "time spent for decoding (ms): min=" << mTimeDecoderMin->count() << ", max="
+                  << mTimeDecoderMax->count() << ", mean=" << mTimeDecoder.count() / mTFcount;
+      }
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
     ic.services().get<CallbackService>().set(CallbackService::Id::Reset, [this]() { reset(); });
@@ -249,7 +247,7 @@ class PedestalsTask
     }
     auto tEnd = std::chrono::high_resolution_clock::now();
 
-    if (mDebug && totPayloadSize > 0) {
+    if (totPayloadSize > 0) {
       std::chrono::duration<double, std::milli> elapsed = tEnd - tStart;
       mTimeDecoder += elapsed;
       if (!mTimeDecoderMin || (elapsed < mTimeDecoderMin)) {
@@ -259,7 +257,6 @@ class PedestalsTask
         mTimeDecoderMax = elapsed;
       }
       mTFcount += 1;
-      std::cout << "TF " << mTFcount << "  payload size " << totPayloadSize << "  elapsed " << elapsed.count() << " ms" << std::endl;
     }
   }
 
