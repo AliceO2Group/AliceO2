@@ -22,9 +22,7 @@
 #include <algorithm>
 #include <memory>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 using namespace rapidjson;
@@ -64,6 +62,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     IN_OPTION_TYPE,
     IN_OPTION_DEFAULT,
     IN_OPTION_HELP,
+    IN_OPTION_KIND,
     IN_METADATUM,
     IN_METADATUM_NAME,
     IN_METADATUM_EXECUTABLE,
@@ -173,6 +172,9 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       case State::IN_OPTION_HELP:
         s << "IN_OPTION_HELP";
         break;
+      case State::IN_OPTION_KIND:
+        s << "IN_OPTION_KIND";
+        break;
       case State::IN_ERROR:
         s << "IN_ERROR";
         break;
@@ -270,58 +272,58 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       is.str(optionDefault);
       switch (optionType) {
         case VariantType::String:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, optionDefault.c_str(), HelpString{optionHelp});
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, optionDefault.c_str(), HelpString{optionHelp}, optionKind);
           break;
         case VariantType::Int:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, std::stoi(optionDefault, nullptr), HelpString{optionHelp});
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, std::stoi(optionDefault, nullptr), HelpString{optionHelp}, optionKind);
           break;
         case VariantType::Int64:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, std::stol(optionDefault, nullptr), HelpString{optionHelp});
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, std::stol(optionDefault, nullptr), HelpString{optionHelp}, optionKind);
           break;
         case VariantType::Float:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, std::stof(optionDefault, nullptr), HelpString{optionHelp});
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, std::stof(optionDefault, nullptr), HelpString{optionHelp}, optionKind);
           break;
         case VariantType::Double:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, std::stod(optionDefault, nullptr), HelpString{optionHelp});
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, std::stod(optionDefault, nullptr), HelpString{optionHelp}, optionKind);
           break;
         case VariantType::Bool:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, (bool)std::stoi(optionDefault, nullptr), HelpString{optionHelp});
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, (bool)std::stoi(optionDefault, nullptr), HelpString{optionHelp}, optionKind);
           break;
         case VariantType::ArrayInt:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::ArrayInt>(is), HelpString{optionHelp});
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::ArrayInt>(is), HelpString{optionHelp}, optionKind);
           break;
         case VariantType::ArrayFloat:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::ArrayFloat>(is), HelpString{optionHelp});
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::ArrayFloat>(is), HelpString{optionHelp}, optionKind);
           break;
         case VariantType::ArrayDouble:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::ArrayDouble>(is), HelpString{optionHelp});
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::ArrayDouble>(is), HelpString{optionHelp}, optionKind);
           break;
           //        case VariantType::ArrayBool:
-          //          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::ArrayBool>(is), HelpString{optionHelp});
+          //          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::ArrayBool>(is), HelpString{optionHelp}, optionKind);
           //          break;
         case VariantType::ArrayString:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::ArrayString>(is), HelpString{optionHelp});
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::ArrayString>(is), HelpString{optionHelp}, optionKind);
           break;
         case VariantType::Array2DInt:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::Array2DInt>(is), HelpString{optionHelp});
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::Array2DInt>(is), HelpString{optionHelp}, optionKind);
           break;
         case VariantType::Array2DFloat:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::Array2DFloat>(is), HelpString{optionHelp});
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::Array2DFloat>(is), HelpString{optionHelp}, optionKind);
           break;
         case VariantType::Array2DDouble:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::Array2DDouble>(is), HelpString{optionHelp});
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::Array2DDouble>(is), HelpString{optionHelp}, optionKind);
           break;
         case VariantType::LabeledArrayInt:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::LabeledArrayInt>(is), HelpString{optionHelp});
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::LabeledArrayInt>(is), HelpString{optionHelp}, optionKind);
           break;
         case VariantType::LabeledArrayFloat:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::LabeledArrayFloat>(is), HelpString{optionHelp});
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::LabeledArrayFloat>(is), HelpString{optionHelp}, optionKind);
           break;
         case VariantType::LabeledArrayDouble:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::LabeledArrayDouble>(is), HelpString{optionHelp});
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, VariantJSONHelpers::read<VariantType::LabeledArrayDouble>(is), HelpString{optionHelp}, optionKind);
           break;
         default:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, optionDefault, HelpString{optionHelp});
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, optionDefault, HelpString{optionHelp}, optionKind);
       }
       // Depending on the previous state, push options to the right place.
       if (previousIs(State::IN_OPTIONS)) {
@@ -433,6 +435,8 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       push(State::IN_OPTION_DEFAULT);
     } else if (in(State::IN_OPTION) && strncmp(str, "help", length) == 0) {
       push(State::IN_OPTION_HELP);
+    } else if (in(State::IN_OPTION) && strncmp(str, "kind", length) == 0) {
+      push(State::IN_OPTION_KIND);
     } else if (in(State::IN_METADATUM) && strncmp(str, "name", length) == 0) {
       push(State::IN_METADATUM_NAME);
     } else if (in(State::IN_METADATUM) && strncmp(str, "executable", length) == 0) {
@@ -477,6 +481,8 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       optionName = s;
     } else if (in(State::IN_OPTION_TYPE)) {
       optionType = (VariantType)std::stoi(s, nullptr);
+    } else if (in(State::IN_OPTION_KIND)) {
+      optionKind = (ConfigParamKind)std::stoi(s, nullptr);
     } else if (in(State::IN_OPTION_DEFAULT)) {
       optionDefault = s;
     } else if (in(State::IN_OPTION_HELP)) {
@@ -587,6 +593,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
   VariantType optionType;
   std::string optionDefault;
   std::string optionHelp;
+  ConfigParamKind optionKind;
   bool outputHasSubSpec;
   bool inputHasSubSpec;
 };
@@ -630,7 +637,7 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
   w.Key("workflow");
   w.StartArray();
 
-  for (auto& processor : workflow) {
+  for (auto const& processor : workflow) {
     if (processor.name.rfind("internal-dpl", 0) == 0) {
       continue;
     }
@@ -640,7 +647,7 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
 
     w.Key("inputs");
     w.StartArray();
-    for (auto& input : processor.inputs) {
+    for (auto const& input : processor.inputs) {
       /// FIXME: this only works for a selected set of InputSpecs...
       ///        a proper way to fully serialize an InputSpec with
       ///        a DataDescriptorMatcher is needed.
@@ -665,7 +672,7 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
       if (input.metadata.empty() == false) {
         w.Key("metadata");
         w.StartArray();
-        for (auto& metadata : input.metadata) {
+        for (auto const& metadata : input.metadata) {
           w.StartObject();
           w.Key("name");
           w.String(metadata.name.c_str());
@@ -688,7 +695,7 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
 
     w.Key("outputs");
     w.StartArray();
-    for (auto& output : processor.outputs) {
+    for (auto const& output : processor.outputs) {
       w.StartObject();
       w.Key("binding");
       if (output.binding.value.empty()) {
@@ -717,7 +724,7 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
 
     w.Key("options");
     w.StartArray();
-    for (auto& option : processor.options) {
+    for (auto const& option : processor.options) {
       if (option.name == "start-value-enumeration" || option.name == "end-value-enumeration" || option.name == "step-value-enumeration") {
         continue;
       }
@@ -750,6 +757,8 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
       w.String(oss.str().c_str());
       w.Key("help");
       w.String(option.help.c_str());
+      w.Key("kind");
+      w.String(std::to_string((int)option.kind).c_str());
       w.EndObject();
     }
     w.EndArray();
@@ -768,7 +777,7 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
 
   w.Key("metadata");
   w.StartArray();
-  for (auto& info : metadata) {
+  for (auto const& info : metadata) {
     w.StartObject();
     w.Key("name");
     w.String(info.name.c_str());
@@ -776,13 +785,13 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
     w.String(info.executable.c_str());
     w.Key("cmdLineArgs");
     w.StartArray();
-    for (auto& arg : info.cmdLineArgs) {
+    for (auto const& arg : info.cmdLineArgs) {
       w.String(arg.c_str());
     }
     w.EndArray();
     w.Key("workflowOptions");
     w.StartArray();
-    for (auto& option : info.workflowOptions) {
+    for (auto const& option : info.workflowOptions) {
       w.StartObject();
       w.Key("name");
       w.String(option.name.c_str());
@@ -800,7 +809,7 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
     w.EndArray();
     w.Key("channels");
     w.StartArray();
-    for (auto& channel : info.channels) {
+    for (auto const& channel : info.channels) {
       w.String(channel.c_str());
     }
     w.EndArray();
@@ -810,5 +819,4 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
   w.EndObject();
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
