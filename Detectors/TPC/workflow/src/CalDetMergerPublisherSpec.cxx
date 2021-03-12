@@ -94,6 +94,10 @@ class CalDetMergerPublisherSpec : public o2::framework::Task
         LOGP(info, "publishing after all data was received");
         dumpCalibData();
         sendOutput(pc.outputs());
+        // reset calibration objects
+        for (auto& [type, object] : mMergedCalDets) {
+          object *= 0;
+        }
         mCalibDumped = false;
       }
       mReceivedLanes.reset();
