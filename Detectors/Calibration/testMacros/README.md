@@ -22,12 +22,15 @@ where, as you can see, you can overwrite the configurations of the `readout-prox
 The aggregator should be started **before the other devices**, since it will listen for data (it is the channel that is *binding*).
 
 * The following example will pass the data arriving to the aggregator to the `o2-calibration-lhc-clockphase-workflow` device, and from there
-to the `o2-calibration-ccdb-populator-workflow` to update the CCDB. 
-In another terminal, run:
+to the `o2-calibration-ccdb-populator-workflow` to update the CCDB. For this, the raw-proxy should be in pipeline with these workflows like this:
+```cpp
+o2-dpl-raw-proxy --dataspec A:TOF/CALIBDATA/0 --channel-config "type=pull,method=bind,address=tcp://localhost:30453,rateLogging=1,transport=zeromq,name=readout-proxy" | o2-calibration-lhc-clockphase-workflow --tf-per-slot 20 -b | o2-calibration-ccdb-populator-workflow --ccdb-path localhost:8080
+```
+
+* To send data to the aggregator simulating an arbitrary number of EPNs, in another terminal, run:
 ```cpp
 source runEPNsimulation.sh 3
 ```
-
 where the argument (`3` above) is the number of EPNs to be simulated. This will send the data to the aggregator process. 
 
 **N.B.**: the aggregator and calibration devices will need to use a different port from localHost:8080 in case the local
