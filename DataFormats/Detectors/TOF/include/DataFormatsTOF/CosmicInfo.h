@@ -32,6 +32,8 @@ class CosmicInfo
   float mTot1;
   float mTot2;
   float mL;
+  float mT1;
+  float mT2;
 
  public:
   int getCH1() const { return mChan1; }
@@ -40,17 +42,21 @@ class CosmicInfo
   float getTOT1() const { return mTot1; }
   float getTOT2() const { return mTot2; }
   float getL() const { return mL; }
+  float getT1() const { return mT1; }
+  float getT2() const { return mT2; }
 
   void setCH1(int ch) { mChan1 = ch; }
   void setCH2(int ch) { mChan2 = ch; }
   void setDeltaTime(float val) { mDtime = val; }
   void setTOT1(float val) { mTot1 = val; }
   void setTOT2(float val) { mTot2 = val; }
+  void setT1(float val) { mT1 = val; }
+  void setT2(float val) { mT2 = val; }
   void setL(float val) { mL = val; }
 
-  CosmicInfo(int ch1 = 0, int ch2 = 0, float dt = 0, float tot1 = 0, float tot2 = 0, float l = 0) : mChan1(ch1), mChan2(ch2), mDtime(dt), mTot1(tot1), mTot2(tot2), mL(l) {}
+  CosmicInfo(int ch1 = 0, int ch2 = 0, float dt = 0, float tot1 = 0, float tot2 = 0, float l = 0, float tm1 = 0, float tm2 = 0) : mChan1(ch1), mChan2(ch2), mDtime(dt), mTot1(tot1), mTot2(tot2), mL(l), mT1(tm1), mT2(tm2) {}
 
-  ClassDefNV(CosmicInfo, 1);
+  ClassDefNV(CosmicInfo, 2);
 };
 } // namespace tof
 

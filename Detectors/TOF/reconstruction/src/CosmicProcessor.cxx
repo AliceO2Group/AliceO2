@@ -14,6 +14,7 @@
 #include "FairLogger.h" // for LOG
 #include "TOFReconstruction/CosmicProcessor.h"
 #include <TStopwatch.h>
+#include "DetectorsRaw/HBFUtils.h"
 
 using namespace o2::tof;
 
@@ -32,6 +33,7 @@ void CosmicProcessor::process(DigitDataReader& reader, bool fill)
   timerProcess.Start();
 
   reader.init();
+  const o2::raw::HBFUtils& hbfutils = o2::raw::HBFUtils::Instance();
 
   auto array = reader.getDigitArray();
   int ndig = array->size();
@@ -50,11 +52,15 @@ void CosmicProcessor::process(DigitDataReader& reader, bool fill)
     if (mCounters[ch1] > 3) {
       continue;
     }
+    auto ir0 = hbfutils.getFirstIRofTF(dig1.getIR());
+
     int64_t bc1 = int64_t(dig1.getBC());
     int tdc1 = int(dig1.getTDC());
     float tot1 = dig1.getTOT() * 48.8E-3;
     Geo::getVolumeIndices(ch1, volID1);
     Geo::getPos(volID1, pos1);
+
+    float tm1 = (dig1.getIR().differenceInBC(ir0) * 1024 + tdc1) * Geo::TDCBIN; // in ps
 
     for (int j = i + 1; j < ndig2; j++) {
       auto& dig2 = (*array)[j];
@@ -67,6 +73,8 @@ void CosmicProcessor::process(DigitDataReader& reader, bool fill)
       if (mCounters[ch2] > 3) {
         continue;
       }
+      float tm2 = (dig2.getIR().differenceInBC(ir0) * 1024 + int(dig2.getTDC())) * Geo::TDCBIN; // in ps
+
       int tdc2 = int(dig2.getTDC()) - tdc1;
       float tot2 = dig2.getTOT() * 48.8E-3;
       Geo::getVolumeIndices(ch2, volID2);
@@ -92,7 +100,7 @@ void CosmicProcessor::process(DigitDataReader& reader, bool fill)
         continue;
       }
 
-      mCosmicInfo.emplace_back(ch1, ch2, dtime, tot1, tot2, l);
+      mCosmicInfo.emplace_back(ch1, ch2, dtime, tot1, tot2, l, tm1, tm2);
     }
   }
 
