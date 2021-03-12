@@ -290,7 +290,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       auto& node = sortedNodes[si];
       assert(node.index == si);
       int xpos = 40 + 240 * node.layer;
-      int ypos = 300 + (600 / (layerMax[node.layer] + 1)) * (layerEntries[node.layer] - layerMax[node.layer] / 2);
+      int ypos = 300 + (std::max(600, 60 * (int)layerMax[node.layer]) / (layerMax[node.layer] + 1)) * (layerEntries[node.layer] - layerMax[node.layer] / 2);
       positions.push_back(NodePos{ImVec2(xpos, ypos)});
       layerEntries[node.layer] += 1;
     }
