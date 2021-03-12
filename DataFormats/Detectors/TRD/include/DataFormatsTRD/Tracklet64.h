@@ -28,6 +28,7 @@
 
 #include "GPUCommonDef.h"
 #include "GPUCommonRtypes.h"
+#include "DataFormatsTRD/Constants.h"
 
 namespace o2
 {
@@ -155,10 +156,40 @@ class Tracklet64
   ClassDefNV(Tracklet64, 1);
 };
 
+GPUdi() float Tracklet64::getUncalibratedY() const
+{
+  int padLocalBin = getPosition();
+  int padLocal = 0;
+  if (padLocalBin & (1 << (constants::NBITSTRKLPOS - 1))) {
+    padLocal = -((~(padLocalBin - 1)) & ((1 << constants::NBITSTRKLPOS) - 1));
+  } else {
+    padLocal = padLocalBin & ((1 << constants::NBITSTRKLPOS) - 1);
+  }
+  int mcmCol = (getMCM() % constants::NMCMROBINCOL) + constants::NMCMROBINCOL * (getROB() % 2);
+  float offset = -63.f + ((float)constants::NCOLMCM) * mcmCol;
+  float padWidth = 0.635f + 0.03f * (getDetector() % constants::NLAYER);
+  return (offset + padLocal * constants::GRANULARITYTRKLPOS) * padWidth;
+}
+
+GPUdi() float Tracklet64::getUncalibratedDy(float nTbDrift) const
+{
+  float dy;
+  int dyLocalBin = getSlope();
+  if (dyLocalBin & (1 << (constants::NBITSTRKLSLOPE - 1))) {
+    dy = (~(dyLocalBin - 1)) & ((1 << constants::NBITSTRKLSLOPE) - 1);
+    dy *= -1.f;
+  } else {
+    dy = dyLocalBin & ((1 << constants::NBITSTRKLSLOPE) - 1);
+  }
+  float padWidth = 0.635f + 0.03f * (getDetector() % constants::NLAYER);
+  return dy * constants::GRANULARITYTRKLSLOPE * padWidth * nTbDrift;
+}
+
 #ifndef GPUCA_GPUCODE_DEVICE
 std::ostream& operator<<(std::ostream& stream, const Tracklet64& trg);
 #endif // GPUCA_GPUCODE_DEVICE
 
 } //namespace trd
 } //namespace o2
+
 #endif
