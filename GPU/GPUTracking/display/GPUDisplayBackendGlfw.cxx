@@ -54,11 +54,17 @@ int GPUDisplayBackendGlfw::GetKey(int key)
   if (key == GLFW_KEY_LEFT_SHIFT || key == GLFW_KEY_RIGHT_SHIFT) {
     return (KEY_SHIFT);
   }
-  if (key == GLFW_KEY_LEFT_ALT || key == GLFW_KEY_RIGHT_ALT) {
+  if (key == GLFW_KEY_LEFT_ALT) {
     return (KEY_ALT);
   }
-  if (key == GLFW_KEY_LEFT_CONTROL || key == GLFW_KEY_RIGHT_CONTROL) {
+  if (key == GLFW_KEY_RIGHT_ALT) {
+    return (KEY_RALT);
+  }
+  if (key == GLFW_KEY_LEFT_CONTROL) {
     return (KEY_CTRL);
+  }
+  if (key == GLFW_KEY_RIGHT_CONTROL) {
+    return (KEY_RCTRL);
   }
   if (key == GLFW_KEY_UP) {
     return (KEY_UP);
