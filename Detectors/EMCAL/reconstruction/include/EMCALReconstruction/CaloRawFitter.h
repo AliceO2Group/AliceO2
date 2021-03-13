@@ -75,6 +75,9 @@ class CaloRawFitter
                                   std::optional<unsigned int> altrocfg2) = 0;
 
   /// \brief Method to do the selection of what should possibly be fitted.
+  /// \param bunchvector ALTRO bunches for the current channel
+  /// \param altrocfg1 ALTRO config register 1 from RCU trailer
+  /// \param altrocfg2 ALTRO config register 2 from RCU trailer
   /// \return Size of the sub-selected sample,
   /// \return index of the bunch with maximum signal,
   /// \return maximum signal,
