@@ -23,6 +23,7 @@
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFT0/ChannelData.h"
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "FT0Simulation/DigitizationParameters.h"
 #include "DetectorsBase/CTFCoderBase.h"
 #include "rANS/rans.h"
 
@@ -60,6 +61,8 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   void appendToTree(TTree& tree, CTF& ec);
   void readFromTree(TTree& tree, int entry, std::vector<Digit>& digitVec, std::vector<ChannelData>& channelVec);
+  // DigitizationParameters const &mParameters;
+  //  o2::ft0::Geometry mGeometry;
 
   ClassDefNV(CTFCoder, 1);
 };
@@ -164,7 +167,9 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
       const auto& chan = channelVec.emplace_back((chID += cd.idChan[icc]), cd.cfdTime[icc], cd.qtcAmpl[icc], cd.qtcChain[icc]);
       //
       // rebuild digit
-      if (std::abs(chan.CFDTime) < Geometry::mTime_trg_gate) {
+      int isInTrig = DigitizationParameters::mTime_trg_gate;
+      //      if (std::abs(chan.CFDTime) < DigitizationParameters::mTime_trg_gate) {
+      if (std::abs(chan.CFDTime) < isInTrig) {
         if (chan.ChId < 4 * uint8_t(Geometry::NCellsA)) { // A side
           amplA += chan.QTCAmpl;
           timeA += chan.CFDTime;

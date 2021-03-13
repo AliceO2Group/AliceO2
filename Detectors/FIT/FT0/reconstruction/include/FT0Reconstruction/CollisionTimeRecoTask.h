@@ -40,6 +40,8 @@ class CollisionTimeRecoTask
                              gsl::span<const o2::ft0::ChannelData> inChData,
                              gsl::span<o2::ft0::ChannelDataFloat> outChData);
   void FinishTask();
+  // DigitizationParameters const &mParameters;
+  //  o2::ft0::Geometry mGeometry;
 
  private:
   ClassDefNV(CollisionTimeRecoTask, 1);

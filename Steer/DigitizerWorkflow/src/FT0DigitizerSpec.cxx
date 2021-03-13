@@ -44,7 +44,7 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
   using GRP = o2::parameters::GRPObject;
 
  public:
-  FT0DPLDigitizerTask() : o2::base::BaseDPLDigitizer(), mDigitizer(DigitizationParameters{}) {}
+  FT0DPLDigitizerTask() : o2::base::BaseDPLDigitizer(), mDigitizer(DigitizationParameters::Instance()) {}
   explicit FT0DPLDigitizerTask(o2::ft0::DigitizationParameters const& parameters)
     : o2::base::BaseDPLDigitizer(), mDigitizer(parameters){};
   ~FT0DPLDigitizerTask() override = default;

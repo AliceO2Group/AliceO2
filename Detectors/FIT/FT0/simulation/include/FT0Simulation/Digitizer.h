@@ -100,7 +100,7 @@ class Digitizer
     if (x <= 0.0f) {
       return 0.0f;
     }
-    float const y = x / mParameters.bunchWidth * DP::SIGNAL_TABLE_SIZE;
+    float const y = x / mParameters.mBunchWidth * DP::SIGNAL_TABLE_SIZE;
     int const index = std::floor(y);
     if (index + 1 >= DP::SIGNAL_TABLE_SIZE) {
       return mSignalTable.back();
@@ -111,7 +111,7 @@ class Digitizer
 
   inline Vc::float_v signalFormVc(Vc::float_v x) const
   { // table lookup for the signal shape (SIMD version)
-    auto const y = x / mParameters.bunchWidth * DP::SIGNAL_TABLE_SIZE;
+    auto const y = x / mParameters.mBunchWidth * DP::SIGNAL_TABLE_SIZE;
     Vc::float_v::IndexType const index = Vc::floor(y);
     auto const rem = y - index;
     Vc::float_v val(0);
@@ -141,7 +141,8 @@ class Digitizer
   std::deque<BCCache> mCache;
   std::array<GoodInteractionTimeRecord, 208> mDeadTimes;
 
-  DigitizationParameters mParameters;
+  DigitizationParameters const& mParameters;
+  o2::ft0::Geometry mGeometry;
 
   NoiseRandomRingType mRndGaus;
   int mNumNoiseSamples; // number of noise samples in one BC
@@ -156,7 +157,7 @@ class Digitizer
                std::vector<o2::ft0::DetTrigInput>& digitsTrig,
                o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels);
 
-  ClassDefNV(Digitizer, 1);
+  ClassDefNV(Digitizer, 2);
 };
 
 // signal shape function
