@@ -1830,7 +1830,8 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
 #endif
 
   {
-    const hmm_mat4 proj = HMM_Perspective(mFOV, (GLfloat)mScreenwidth / (GLfloat)mScreenheight, 0.1f, 1000.0f);
+    const float zFar = ((param().par.ContinuousTracking ? (mMaxClusterZ / GL_SCALE_FACTOR) : 8.f) + 50.f) * 2.f;
+    const hmm_mat4 proj = HMM_Perspective(mFOV, (GLfloat)mScreenwidth / (GLfloat)mScreenheight, 0.1f, zFar);
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
     CHKERR(glMatrixMode(GL_PROJECTION));
     CHKERR(glLoadMatrixf(&proj.Elements[0][0]));
