@@ -60,7 +60,7 @@ QED2HAD=$(awk "BEGIN {printf \"%.2f\",`grep xSectionQED qedgenparam.ini | cut -d
 echo "Obtained ratio of QED to hadronic x-sections = $QED2HAD" >> qedsim.log
 cd ..
 
-DIGITRDOPTREAL="--configKeyValues \"TRDSimParams.digithreads=${NJOBS}\"" # --enable-trd-trapsim
+DIGITRDOPTREAL="--configKeyValues \"TRDSimParams.digithreads=${NJOBS}\" --enable-trd-trapsim"
 if [ $SPLITTRDDIGI == "1" ]; then
   DIGITRDOPT="--skipDet TRD"
 else
