@@ -21,7 +21,7 @@ if [ $NORATELOG == 1 ]; then
 fi
 
 # Set some individual workflow arguments depending on configuration
-CTF_DETECTORS=ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS,CPV
+CTF_DETECTORS=ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS,CPV,ZDC
 TPC_INPUT=zsraw
 TPC_OUTPUT=tracks,clusters,disable-writer
 TPC_CONFIG=
@@ -117,6 +117,7 @@ if [ $CTFINPUT == 0 ]; then
   WORKFLOW+="o2-phos-reco-workflow $ARGS_ALL --input-type raw --output-type cells --disable-root-input --disable-root-output $DISABLE_MC  | "
   WORKFLOW+="o2-cpv-reco-workflow $ARGS_ALL --input-type raw --output-type clusters --disable-root-input --disable-root-output $DISABLE_MC  | "
   WORKFLOW+="o2-emcal-reco-workflow $ARGS_ALL --input-type raw --output-type cells --disable-root-output $DISABLE_MC  | "
+  WORKFLOW+="o2-zdc-raw2digits $ARGS_ALL --disable-root-output | "
 
   WORKFLOW+="o2-itsmft-entropy-encoder-workflow $ARGS_ALL --runmft true | "
   WORKFLOW+="o2-ft0-entropy-encoder-workflow $ARGS_ALL | "
@@ -124,6 +125,7 @@ if [ $CTFINPUT == 0 ]; then
   WORKFLOW+="o2-phos-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-cpv-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-emcal-entropy-encoder-workflow $ARGS_ALL | "
+  WORKFLOW+="o2-zdc-entropy-encoder-workflow $ARGS_ALL | "
 
   WORKFLOW+="o2-tpc-scdcalib-interpolation-workflow $ARGS_ALL --disable-root-output --disable-root-input | "
 

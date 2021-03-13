@@ -71,6 +71,13 @@ taskwrapper sim.log o2-sim --seed $O2SIMSEED -n $NEvents --skipModules ZDC --con
 taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents --simPrefixQED qed/o2sim --qed-x-section-ratio ${QED2HAD} ${NOMCLABELS} --firstOrbit 0 --firstBC 0 --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITRDOPT}
 [ $SPLITTRDDIGI == "1" ] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --firstOrbit 0 --firstBC 0 --onlyDet TRD --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root ${DIGITRDOPTREAL}
 
+mkdir -p zdc
+cd zdc
+taskwrapper zdcsim.log o2-sim --seed $O2SIMSEED -n $NEvents -m PIPE ZDC --configKeyValues '"Diamond.width[2]=6.;SimCutParams.maxRTracking=50;"' -g pythia8hi -j $NJOBS
+taskwrapper digiZDC.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --firstOrbit 0 --firstBC 0 --onlyDet ZDC --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext ../collisioncontext.root
+cp zdcdigits.root ../
+cd ..
+
 if [ "0$GENERATE_ITS_DICTIONARY" == "01" ]; then
   taskwrapper itsdict1.log o2-its-reco-workflow --trackerCA --disable-mc --configKeyValues '"fastMultConfig.cutMultClusLow=30000;fastMultConfig.cutMultClusHigh=2000000;fastMultConfig.cutMultVtxHigh=500"'
   cp ~/alice/O2/Detectors/ITSMFT/ITS/macros/test/CheckTopologies.C .
@@ -90,6 +97,7 @@ taskwrapper midraw.log o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-o
 taskwrapper emcraw.log o2-emcal-rawcreator --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/EMC
 taskwrapper phsraw.log o2-phos-digi2raw  --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/PHS
 taskwrapper cpvraw.log o2-cpv-digi2raw  --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/CPV
+taskwrapper zdcraw.log o2-zdc-digi2raw  --file-per-link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/ZDC
 cat raw/*/*.cfg > rawAll.cfg
 
 if [ "0$DISABLE_PROCESSING" == "01" ]; then
