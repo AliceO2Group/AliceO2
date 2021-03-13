@@ -334,8 +334,6 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   }
 
   LOG(debug) << "TRD Trap Simulator Device exiting";
-  pc.services().get<ControlService>().endOfStream();
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
 o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec(bool useMC)
