@@ -16,19 +16,15 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #ifndef GPUCA_TPC_GEOMETRY_O2
 
-#include "AliTRDtrackletWord.h"
-#include "AliTRDtrackletMCM.h"
-
-#ifndef GPUCA_GPUCODE_DEVICE
-#include <new>
-#endif
-
 GPUd() GPUTRDTrackletWord::GPUTRDTrackletWord(unsigned int trackletWord) : mId(-1), mHCId(-1), mTrackletWord(trackletWord)
 {
 }
 GPUd() GPUTRDTrackletWord::GPUTRDTrackletWord(unsigned int trackletWord, int hcid, int id) : mId(id), mHCId(hcid), mTrackletWord(trackletWord) {}
 
-#ifndef GPUCA_GPUCODE_DEVICE
+#ifdef GPUCA_ALIROOT_LIB
+#include "AliTRDtrackletWord.h"
+#include "AliTRDtrackletMCM.h"
+
 GPUTRDTrackletWord::GPUTRDTrackletWord(const AliTRDtrackletWord& rhs) : mId(-1), mHCId(rhs.GetHCId()), mTrackletWord(rhs.GetTrackletWord())
 {
 }
@@ -41,7 +37,7 @@ GPUTRDTrackletWord& GPUTRDTrackletWord::operator=(const AliTRDtrackletMCM& rhs)
   return *this;
 }
 
-#endif // GPUCA_GPUCODE_DEVICE
+#endif // GPUCA_ALIROOT_LIB
 
 GPUd() int GPUTRDTrackletWord::GetYbin() const
 {
