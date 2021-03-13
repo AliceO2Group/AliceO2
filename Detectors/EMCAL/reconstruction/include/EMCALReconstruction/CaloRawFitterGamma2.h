@@ -52,7 +52,9 @@ class CaloRawFitterGamma2 final : public CaloRawFitter
   int getNiterationsMax() { return mNiterationsMax; }
 
   /// \brief Evaluation Amplitude and TOF
-  /// \param
+  /// \param bunchvector ALTRO bunches for the current channel
+  /// \param altrocfg1 ALTRO config register 1 from RCU trailer
+  /// \param altrocfg2 ALTRO config register 2 from RCU trailer
   /// \throw RawFitterError_t::FIT_ERROR in case the peak fit failed
   /// \return Container with the fit results (amp, time, chi2, ...)
   CaloFitResults evaluate(const gsl::span<const Bunch> bunchvector,
