@@ -46,10 +46,11 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
   LOG(DEBUG) << " event time " << timeStamp << " orbit " << bcd.mIntRecord.orbit << " bc " << bcd.mIntRecord.bc;
 
   int nch = inChData.size();
+  const auto parInv = DigitizationParameters::Instance().mMV_2_NchannelsInverse;
   for (int ich = 0; ich < nch; ich++) {
     outChData[ich] = o2::ft0::ChannelDataFloat{inChData[ich].ChId,
                                                inChData[ich].CFDTime * Geometry::ChannelWidth,
-                                               (double)inChData[ich].QTCAmpl * DigitizationParameters::mMV_2_NchannelsInverse,
+                                               (double)inChData[ich].QTCAmpl * parInv,
                                                inChData[ich].ChainQTC};
 
     //  only signals with amplitude participate in collision time

@@ -39,9 +39,10 @@ struct DigitizationParameters
   float mCharge2amp = 0.22;
   float mNoiseVar = 0.1;            //noise level
   float mNoisePeriod = 1 / 0.9;     // GHz low frequency noise period;
+  short mTime_trg_gate = 192;       // #channels
+
   static constexpr float mMV_2_Nchannels = 2.2857143;          //amplitude channel 7 mV ->16channels
   static constexpr float mMV_2_NchannelsInverse = 0.437499997; //inverse amplitude channel 7 mV ->16channels
-  static constexpr int mTime_trg_gate = 192;                   // #channels
 
   O2ParamDef(DigitizationParameters, "DigitizationParameters");
 };

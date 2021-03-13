@@ -29,8 +29,8 @@ struct CTFHeader {
   uint32_t nTriggers = 0;  /// number of triggers in TF
   uint32_t firstOrbit = 0; /// 1st orbit of TF
   uint16_t firstBC = 0;    /// 1st BC of TF
-
-  ClassDefNV(CTFHeader, 1);
+  uint16_t triggerGate = 192; // trigger gate used at encoding
+  ClassDefNV(CTFHeader, 2);
 };
 
 /// Intermediate, compressed but not yet entropy-encoded digits
