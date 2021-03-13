@@ -278,10 +278,12 @@ int calculateExitCode(DeviceSpecs& deviceSpecs, DeviceInfos& infos)
   for (size_t di = 0; di < deviceSpecs.size(); ++di) {
     auto& info = infos[di];
     auto& spec = deviceSpecs[di];
-    if (exitCode == 0 && info.maxLogLevel >= LogParsingHelpers::LogLevel::Error) {
+    if (info.maxLogLevel >= LogParsingHelpers::LogLevel::Error) {
       LOG(ERROR) << "SEVERE: Device " << spec.name << " (" << info.pid << ") had at least one "
                  << "message above severity ERROR: " << std::regex_replace(info.firstSevereError, regexp, "");
-      exitCode = 1;
+      if (info.maxLogLevel >= LogParsingHelpers::LogLevel::Fatal) {
+        exitCode = 1;
+      }
     }
   }
   return exitCode;
