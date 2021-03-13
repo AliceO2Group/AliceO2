@@ -117,7 +117,7 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
   }
 
   // Create and fill DMA pages for each channel
-  std::cout << "encode data" << std::endl;
+  LOG(DEBUG) << "encode data";
   for (auto srucont : mSRUdata) {
 
     std::vector<char> payload; // this must be initialized per SRU, becuase pages are per SRU, therefore the payload was not reset.
@@ -181,7 +181,7 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
     LOG(DEBUG1) << "Adding payload with size " << payload.size() << " (" << payload.size() / 4 << " ALTRO words)";
     mRawWriter->addData(ddlid, crorc, link, 0, trg.getBCData(), payload, false, trg.getTriggerBits());
   }
-  std::cout << "Done" << std::endl;
+  LOG(DEBUG) << "Done";
   return true;
 }
 
