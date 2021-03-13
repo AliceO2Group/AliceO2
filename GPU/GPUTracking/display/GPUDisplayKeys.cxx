@@ -57,6 +57,7 @@ const char* HelpText[] = {
   "[MOUSE 1+2]                   Zoom / Rotate",
   "[SHIFT]                       Slow Zoom / Move / Rotate",
   "[ALT] / [CTRL] / [m]          Focus camera on origin / orient y-axis upwards (combine with [SHIFT] to lock) / Cycle through modes",
+  "[RCTRL] / [RALT]              Rotate model instead of camera / rotate TPC around beamline",
   "[1] ... [8] / [N]             Enable display of clusters, preseeds, seeds, starthits, tracklets, tracks, global tracks, merged tracks / Show assigned clusters in colors"
   "[F1] / [F2]                   Enable / disable drawing of TPC / TRD"
   // FREE: none

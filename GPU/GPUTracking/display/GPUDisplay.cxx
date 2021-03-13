@@ -590,6 +590,7 @@ void GPUDisplay::ReSizeGLScene(int width, int height, bool init)
   if (init) {
     mResetScene = 1;
     mViewMatrix = MY_HMM_IDENTITY;
+    mModelMatrix = MY_HMM_IDENTITY;
   }
 }
 
@@ -1350,6 +1351,8 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
   mBackend->mMouseWheel = 0;
   bool lookOrigin = mCamLookOrigin ^ mBackend->mKeys[mBackend->KEY_ALT];
   bool yUp = mCamYUp ^ mBackend->mKeys[mBackend->KEY_CTRL] ^ lookOrigin;
+  bool rotateModel = mBackend->mKeys[mBackend->KEY_RCTRL] || mBackend->mKeys[mBackend->KEY_RALT];
+  bool rotateModelTPC = mBackend->mKeys[mBackend->KEY_RALT];
 
   // Calculate rotation / translation scaling factors
   float scalefactor = mBackend->mKeys[mBackend->KEY_SHIFT] ? 0.2 : 1.0;
@@ -1465,6 +1468,8 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     }
   } else if (mResetScene) {
     nextViewMatrix = nextViewMatrix * HMM_Translate({0, 0, param().par.ContinuousTracking ? (-mMaxClusterZ / GL_SCALE_FACTOR - 8) : -8});
+    mViewMatrix = MY_HMM_IDENTITY;
+    mModelMatrix = MY_HMM_IDENTITY;
 
     mCfg.pointSize = 2.0;
     mCfg.drawSlice = -1;
@@ -1548,21 +1553,36 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       nextViewMatrix = nextViewMatrix * HMM_LookAt({mXYZ[0], mXYZ[1], mXYZ[2]}, {0, 0, 0}, {0, 1, 0});
     } else {
       nextViewMatrix = nextViewMatrix * HMM_Translate({moveX, moveY, moveZ});
-      if (rotYaw != 0.f) {
-        nextViewMatrix = nextViewMatrix * HMM_Rotate(rotYaw, {0, 1, 0});
+      if (!rotateModel) {
+        if (rotYaw != 0.f) {
+          nextViewMatrix = nextViewMatrix * HMM_Rotate(rotYaw, {0, 1, 0});
+        }
+        if (rotPitch != 0.f) {
+          nextViewMatrix = nextViewMatrix * HMM_Rotate(rotPitch, {1, 0, 0});
+        }
+        if (!yUp && rotRoll != 0.f) {
+          nextViewMatrix = nextViewMatrix * HMM_Rotate(rotRoll, {0, 0, 1});
+        }
       }
-      if (rotPitch != 0.f) {
-        nextViewMatrix = nextViewMatrix * HMM_Rotate(rotPitch, {1, 0, 0});
-      }
-      if (!yUp && rotRoll != 0.f) {
-        nextViewMatrix = nextViewMatrix * HMM_Rotate(rotRoll, {0, 0, 1});
-      }
-
       nextViewMatrix = nextViewMatrix * mViewMatrix; // Apply previous translation / rotation
-
       if (yUp) {
         calcXYZ(&nextViewMatrix.Elements[0][0]);
         nextViewMatrix = HMM_Rotate(mAngle[2] * 180.f / M_PI, {0, 0, 1}) * nextViewMatrix;
+      }
+      if (rotateModel) {
+        if (rotYaw != 0.f) {
+          mModelMatrix = HMM_Rotate(rotYaw, {nextViewMatrix.Elements[0][1], nextViewMatrix.Elements[1][1], nextViewMatrix.Elements[2][1]}) * mModelMatrix;
+        }
+        if (rotPitch != 0.f) {
+          mModelMatrix = HMM_Rotate(rotPitch, {nextViewMatrix.Elements[0][0], nextViewMatrix.Elements[1][0], nextViewMatrix.Elements[2][0]}) * mModelMatrix;
+        }
+        if (rotRoll != 0.f) {
+          if (rotateModelTPC) {
+            mModelMatrix = HMM_Rotate(-rotRoll, {0, 0, 1}) * mModelMatrix;
+          } else {
+            mModelMatrix = HMM_Rotate(-rotRoll, {nextViewMatrix.Elements[0][2], nextViewMatrix.Elements[1][2], nextViewMatrix.Elements[2][2]}) * mModelMatrix;
+          }
+        }
       }
     }
 
@@ -1835,6 +1855,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
   {
     const float zFar = ((param().par.ContinuousTracking ? (mMaxClusterZ / GL_SCALE_FACTOR) : 8.f) + 50.f) * 2.f;
     const hmm_mat4 proj = HMM_Perspective(mFOV, (GLfloat)mScreenwidth / (GLfloat)mScreenheight, 0.1f, zFar);
+    nextViewMatrix = nextViewMatrix * mModelMatrix;
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
     CHKERR(glMatrixMode(GL_PROJECTION));
     CHKERR(glLoadMatrixf(&proj.Elements[0][0]));

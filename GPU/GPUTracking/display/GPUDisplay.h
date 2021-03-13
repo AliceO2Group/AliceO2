@@ -307,7 +307,7 @@ class GPUDisplay
   bool mSeparateGlobalTracks = 0;
   bool mPropagateLoopers = 0;
 
-  hmm_mat4 mViewMatrix;
+  hmm_mat4 mViewMatrix, mModelMatrix;
   float* const mViewMatrixP = &mViewMatrix.Elements[0][0];
   float mXYZ[3];
   float mAngle[3];
