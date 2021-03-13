@@ -33,6 +33,13 @@
 
 using namespace o2::emcal::reco_workflow;
 
+RawToCellConverterSpec::~RawToCellConverterSpec()
+{
+  if (mErrorMessagesSuppressed) {
+    LOG(WARNING) << "Suppressed further " << mErrorMessagesSuppressed << " error messages";
+  }
+}
+
 void RawToCellConverterSpec::init(framework::InitContext& ctx)
 {
   LOG(DEBUG) << "[EMCALRawToCellConverter - init] Initialize converter ";
@@ -57,6 +64,9 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
   } else if (fitmethod == "gamma2") {
     mRawFitter = std::unique_ptr<CaloRawFitter>(new o2::emcal::CaloRawFitterGamma2);
   }
+
+  mMaxErrorMessages = ctx.options().get<int>("maxmessage");
+  LOG(INFO) << "Suppressing error messages after " << mMaxErrorMessages << " messages";
 
   mRawFitter->setAmpCut(mNoiseThreshold);
   mRawFitter->setL1Phase(0.);
@@ -153,7 +163,15 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           default:
             break;
         }
-        LOG(ERROR) << " EMCAL raw task: " << errormessage << " in Supermodule " << feeID << std::endl;
+        if (mNumErrorMessages < mMaxErrorMessages) {
+          LOG(ERROR) << " EMCAL raw task: " << errormessage << " in Supermodule " << feeID << std::endl;
+          mNumErrorMessages++;
+          if (mNumErrorMessages == mMaxErrorMessages) {
+            LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+          }
+        } else {
+          mErrorMessagesSuppressed++;
+        }
         //fill histograms  with error types
         mOutputDecoderErrors.push_back(errornum);
         continue;
@@ -192,7 +210,15 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
             fitResults.setTime(0.);
           }
         } catch (CaloRawFitter::RawFitterError_t& fiterror) {
-          LOG(ERROR) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
+          if (mNumErrorMessages < mMaxErrorMessages) {
+            LOG(ERROR) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
+            mNumErrorMessages++;
+            if (mNumErrorMessages == mMaxErrorMessages) {
+              LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+            }
+          } else {
+            mErrorMessagesSuppressed++;
+          }
           mOutputDecoderErrors.emplace_back(feeID, -1, CaloRawFitter::getErrorNumber(fiterror));
         }
         currentCellContainer->emplace_back(CellID, fitResults.getAmp() * CONVADCGEV, fitResults.getTime(), chantype);
@@ -234,5 +260,6 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverter
                                           outputs,
                                           o2::framework::adaptFromTask<o2::emcal::reco_workflow::RawToCellConverterSpec>(),
                                           o2::framework::Options{
-                                            {"fitmethod", o2::framework::VariantType::String, "standard", {"Fit method (standard or gamma2)"}}}};
+                                            {"fitmethod", o2::framework::VariantType::String, "standard", {"Fit method (standard or gamma2)"}},
+                                            {"maxmessage", o2::framework::VariantType::Int, 100, {"Max. amout of error messages to be displayed"}}}};
 }
