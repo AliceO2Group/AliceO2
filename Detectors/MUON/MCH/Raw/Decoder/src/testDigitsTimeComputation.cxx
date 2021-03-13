@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(ComputeDigitsTime)
   DataDecoder::computeDigitsTime_(digits, sampaInfos, sampaTimeFrameStarts, false);
 
   int32_t digitTime = static_cast<int32_t>(bunchCrossing) + static_cast<int32_t>(sampaTime * 4) -
-      static_cast<int32_t>(tfBunchCrossing);
+                      static_cast<int32_t>(tfBunchCrossing);
 
   BOOST_CHECK_EQUAL(digits[0].getTime(), digitTime);
 }
@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(ComputeDigitsTimeWithRollover)
   DataDecoder::computeDigitsTime_(digits, sampaInfos, sampaTimeFrameStarts, false);
 
   int32_t digitTime = static_cast<int32_t>(bunchCrossing) + static_cast<int32_t>(sampaTime * 4) -
-      static_cast<int32_t>(tfBunchCrossing) + BCROLLOVER;
+                      static_cast<int32_t>(tfBunchCrossing) + BCROLLOVER;
 
   BOOST_CHECK_EQUAL(digits[0].getTime(), digitTime);
 }
@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE(ComputeDigitsTimeWithRollover2)
   DataDecoder::computeDigitsTime_(digits, sampaInfos, sampaTimeFrameStarts, false);
 
   int32_t digitTime = static_cast<int32_t>(bunchCrossing) + static_cast<int32_t>(sampaTime * 4) -
-      static_cast<int32_t>(tfBunchCrossing) - BCROLLOVER;
+                      static_cast<int32_t>(tfBunchCrossing) - BCROLLOVER;
 
   BOOST_CHECK_EQUAL(digits[0].getTime(), digitTime);
 }
@@ -163,7 +163,7 @@ BOOST_AUTO_TEST_CASE(ComputeDigitsTimeNoTFStart)
   DataDecoder::computeDigitsTime_(digits, sampaInfos, sampaTimeFrameStarts, false);
 
   int32_t digitTime = static_cast<int32_t>(bunchCrossing) + static_cast<int32_t>(sampaTime * 4) -
-      static_cast<int32_t>(tfBunchCrossing);
+                      static_cast<int32_t>(tfBunchCrossing);
 
   BOOST_CHECK_EQUAL(digits[0].getTime(), 0xFFFFFFFF);
 }
