@@ -132,6 +132,10 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
 
       std::vector<int> rawbunches;
       for (auto& bunch : findBunches(channel.mDigits)) {
+        if (!bunch.mADCs.size()) {
+          LOG(ERROR) << "Found bunch with without ADC entries - skipping ...";
+          continue;
+        }
         rawbunches.push_back(bunch.mADCs.size() + 2); // add 2 words for header information
         rawbunches.push_back(bunch.mStarttime);
         for (auto adc : bunch.mADCs) {
@@ -188,37 +192,54 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
 std::vector<AltroBunch> RawWriter::findBunches(const std::vector<o2::emcal::Digit*>& channelDigits)
 {
   std::vector<AltroBunch> result;
-  AltroBunch* currentBunch = nullptr;
+  AltroBunch currentBunch;
+  bool bunchStarted = false;
   // Digits in ALTRO bunch in time-reversed order
   int itime;
   for (itime = channelDigits.size() - 1; itime >= 0; itime--) {
     auto dig = channelDigits[itime];
     if (!dig) {
-      if (currentBunch) {
-        currentBunch->mStarttime = itime + 1;
-        currentBunch = nullptr;
+      if (bunchStarted) {
+        // we have a bunch which is started and needs to be closed
+        // check if the ALTRO bunch has a minimum amount of ADCs
+        if (currentBunch.mADCs.size() >= mMinADCBunch) {
+          // Bunch selected, set start time and push to bunches
+          currentBunch.mStarttime = itime + 1;
+          result.push_back(currentBunch);
+          currentBunch = AltroBunch();
+          bunchStarted = false;
+        }
       }
       continue;
     }
     int adc = dig->getAmplitudeADC();
     if (adc < mPedestal) {
-      // Stop bunch
+      // ADC value below threshold
+      // in case we have an open bunch it needs to be stopped bunch
       // Set the start time to the time sample of previous (passing) digit
-      currentBunch->mStarttime = itime + 1;
-      currentBunch = nullptr;
-      continue;
+      if (bunchStarted) {
+        // check if the ALTRO bunch has a minimum amount of ADCs
+        if (currentBunch.mADCs.size() >= mMinADCBunch) {
+          // Bunch selected, set start time and push to bunches
+          currentBunch.mStarttime = itime + 1;
+          result.push_back(currentBunch);
+          currentBunch = AltroBunch();
+          bunchStarted = false;
+        }
+      }
     }
-    if (!currentBunch) {
-      // start new bunch
-      AltroBunch bunch;
-      result.push_back(bunch);
-      currentBunch = &(result.back());
+    // Valid ADC value, if the bunch is closed we start a new bunch
+    if (!bunchStarted) {
+      bunchStarted = true;
     }
-    currentBunch->mADCs.emplace_back(adc);
+    currentBunch.mADCs.emplace_back(adc);
   }
   // if we have a last bunch set time start time to the time bin of teh previous digit
-  if (currentBunch) {
-    currentBunch->mStarttime = itime + 1;
+  if (bunchStarted) {
+    if (currentBunch.mADCs.size() >= mMinADCBunch) {
+      currentBunch.mStarttime = itime + 1;
+      result.push_back(currentBunch);
+    }
   }
   return result;
 }
