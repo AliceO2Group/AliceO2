@@ -36,7 +36,7 @@ int GPUDisplayBackendX11::GetKey(int key)
   if (key == 65505 || key == 65506) {
     return (KEY_SHIFT);
   }
-  if (key == 65513 || key == 65027) {
+  if (key == 65513 || key == 65027 || key == 65511) {
     return (KEY_ALT);
   }
   if (key == 65507 || key == 65508) {
