@@ -1542,7 +1542,10 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       mXYZ[2] = r2 * sinf(phi);
       mXYZ[1] = r * sinf(theta);
 
-      nextViewMatrix = HMM_LookAt({mXYZ[0], mXYZ[1], mXYZ[2]}, {0, 0, 0}, {0, 1, 0});
+      if (yUp) {
+        nextViewMatrix = MY_HMM_IDENTITY;
+      }
+      nextViewMatrix = nextViewMatrix * HMM_LookAt({mXYZ[0], mXYZ[1], mXYZ[2]}, {0, 0, 0}, {0, 1, 0});
     } else {
       nextViewMatrix = nextViewMatrix * HMM_Translate({moveX, moveY, moveZ});
       if (rotYaw != 0.f) {
