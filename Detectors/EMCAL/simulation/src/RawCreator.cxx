@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 #include "Framework/Logger.h"
+#include "FairLogger.h"
 
 #include <boost/program_options.hpp>
 
@@ -66,6 +67,11 @@ int main(int argc, const char** argv)
   } catch (std::exception& e) {
     std::cerr << e.what() << ", application will now exit" << std::endl;
     exit(2);
+  }
+
+  auto debuglevel = vm["debug"].as<uint32_t>();
+  if (debuglevel > 0) {
+    FairLogger::GetLogger()->SetLogScreenLevel("DEBUG");
   }
 
   o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
