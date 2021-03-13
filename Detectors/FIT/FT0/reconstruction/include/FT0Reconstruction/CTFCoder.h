@@ -166,10 +166,7 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
       auto icc = channelVec.size();
       const auto& chan = channelVec.emplace_back((chID += cd.idChan[icc]), cd.cfdTime[icc], cd.qtcAmpl[icc], cd.qtcChain[icc]);
       //
-      // rebuild digit
-      int isInTrig = DigitizationParameters::mTime_trg_gate;
-      //      if (std::abs(chan.CFDTime) < DigitizationParameters::mTime_trg_gate) {
-      if (std::abs(chan.CFDTime) < isInTrig) {
+      if (std::abs(chan.CFDTime) < cd.header.triggerGate) {
         if (chan.ChId < 4 * uint8_t(Geometry::NCellsA)) { // A side
           amplA += chan.QTCAmpl;
           timeA += chan.CFDTime;

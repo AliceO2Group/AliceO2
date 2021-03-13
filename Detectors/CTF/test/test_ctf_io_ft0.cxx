@@ -31,7 +31,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   sw.Start();
   o2::InteractionRecord ir(0, 0);
 
-  int mTime_trg_gate = 192; // #channels
+  int trg_gate = DigitizationParameters::Instance().mTime_trg_gate;
   constexpr int MAXChan = 4 * (Geometry::NCellsA + Geometry::NCellsC);
   for (int idig = 0; idig < 1000; idig++) {
     ir += 1 + gRandom->Integer(200);
@@ -47,7 +47,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
       uint16_t q = gRandom->Integer(4096);
       uint8_t chain = gRandom->Rndm() > 0.5 ? 0 : 1;
       channels.emplace_back(ich, t, q, chain);
-      if (std::abs(t) < DigitizationParameters::mTime_trg_gate) {
+      if (std::abs(t) < trg_gate) {
         if (ich < 4 * uint8_t(Geometry::NCellsA)) {
           trig.nChanA++;
           ampTotA += q;
