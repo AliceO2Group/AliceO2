@@ -1471,6 +1471,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     mXadd = mZadd = 0;
     mCamLookOrigin = mCamYUp = false;
     mAngleRollOrigin = -1e9;
+    mFOV = 45.f;
 
     mResetScene = 0;
   } else {
@@ -1829,7 +1830,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
 #endif
 
   {
-    const hmm_mat4 proj = HMM_Perspective(45.0f, (GLfloat)mScreenwidth / (GLfloat)mScreenheight, 0.1f, 1000.0f);
+    const hmm_mat4 proj = HMM_Perspective(mFOV, (GLfloat)mScreenwidth / (GLfloat)mScreenheight, 0.1f, 1000.0f);
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
     CHKERR(glMatrixMode(GL_PROJECTION));
     CHKERR(glLoadMatrixf(&proj.Elements[0][0]));
@@ -2048,6 +2049,8 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     glColor4f(1, 1, 1, 0);
     CHKERR(glDisable(GL_TEXTURE_2D));
     setDepthBuffer();
+#else
+    GPUWarning("Image mixing unsupported in OpenGL CORE profile");
 #endif
   }
 

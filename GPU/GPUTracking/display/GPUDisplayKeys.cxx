@@ -41,24 +41,25 @@ const char* HelpText[] = {
   "[t] / [T]                     Take Screenshot / Record Animation to pictures",
   "[Z]                           Change screenshot resolution (scaling factor)",
   "[S] / [A] / [D]               Enable or disable smoothing of points / smoothing of lines / depth buffer",
-  "[W] / [U] / [V]               Toggle anti-aliasing (MSAA at raster level / change downsampling FSAA facot / toggle VSync",
+  "[W] / [U] / [V]               Toggle anti-aliasing (MSAA at raster level / change downsampling FSAA factor) / toggle VSync",
   "[F] / [_] / [R]               Switch mFullScreen / Maximized window / FPS rate limiter",
   "[I]                           Enable / disable GL indirect draw",
   "[o] / [p] / [O] / [P]         Save / restore current camera position / Animation path",
   "[h]                           Print Help",
   "[H]                           Show info texts",
   "[w] / [s] / [a] / [d]         Zoom / Strafe Left and Right",
-  "[pgup] / [pgdn]               Strafe Up and Down",
-  "[e] / [f]                     Rotate",
-  "[+] / [-]                     Make points thicker / fainter (Hold SHIFT for lines)",
+  "[pgup] / [pgdn]               Strafe up / down",
+  "[e] / [f]                     Rotate left / right",
+  "[+] / [-]                     Increase / decrease point size (Hold SHIFT for lines)",
+  "[b]                           Change FOV (field of view)",
   "[MOUSE 1]                     Look around",
-  "[MOUSE 2]                     Shift camera",
+  "[MOUSE 2]                     Strafe camera",
   "[MOUSE 1+2]                   Zoom / Rotate",
   "[SHIFT]                       Slow Zoom / Move / Rotate",
   "[ALT] / [CTRL] / [m]          Focus camera on origin / orient y-axis upwards (combine with [SHIFT] to lock) / Cycle through modes",
   "[1] ... [8] / [N]             Enable display of clusters, preseeds, seeds, starthits, tracklets, tracks, global tracks, merged tracks / Show assigned clusters in colors"
   "[F1] / [F2]                   Enable / disable drawing of TPC / TRD"
-  // FREE: b
+  // FREE: none
   // Test setting: # --> mHideUnmatchedClusters
 };
 
@@ -175,6 +176,11 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     mMarkFakeClusters ^= 1;
     SetInfo("Marking fake clusters: %s", mMarkFakeClusters ? "on" : "off");
     mUpdateDLList = true;
+  } else if (key == 'b') {
+    if ((mFOV += 5) > 175) {
+      mFOV = 5;
+    }
+    SetInfo("Set FOV to %f", mFOV);
   } else if (key == 'B') {
     mMarkAdjacentClusters++;
     if (mMarkAdjacentClusters == 5) {
