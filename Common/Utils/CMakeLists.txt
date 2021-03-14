@@ -21,6 +21,7 @@ o2_target_root_dictionary(CommonUtils
                                   include/CommonUtils/TreeStreamRedirector.h
                                   include/CommonUtils/RootChain.h
                                   include/CommonUtils/BoostSerializer.h
+                                  include/CommonUtils/BoostHistogramUtils.h
                                   include/CommonUtils/ShmManager.h
                                   include/CommonUtils/RngHelper.h
                                   include/CommonUtils/StringUtils.h
