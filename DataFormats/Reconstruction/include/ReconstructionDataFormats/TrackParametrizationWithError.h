@@ -54,6 +54,7 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   using TrackParametrization<value_T>::TrackParametrization;
 
   GPUd() void set(value_t x, value_t alpha, const params_t& par, const covMat_t& cov, int charge = 1, const PID pid = PID::Pion);
+  GPUd() void set(const dim3_t& xyz, const dim3_t& pxpypz, const gpu::gpustd::array<value_t, kLabCovMatSize>& cv, int sign, bool sectorAlpha = true, const PID pid = PID::Pion);
   GPUd() const value_t* getCov() const;
   GPUd() value_t getSigmaY2() const;
   GPUd() value_t getSigmaZY() const;
