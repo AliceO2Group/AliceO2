@@ -27,10 +27,22 @@ namespace itsmft
 {
 
 struct MFTChipMappingData {
-  UShort_t module = 0;      // global module ID
-  UChar_t chipOnModule = 0; // chip within the module
-  UChar_t cable = 0;        // cable in the connector
-  UChar_t chipOnRU = 0;     // chip within the RU (SW)
+  UShort_t module = 0;         // global module ID
+  UChar_t chipOnModule = 0;    // chip within the module
+  UChar_t cable = 0;           // cable in the connector
+  UChar_t chipOnRU = 0;        // chip within the RU (SW)
+  UShort_t globalChipSWID = 0; // global software chip ID
+  UShort_t localChipSWID = 0;  // local software chip ID
+  UShort_t localChipHWID = 0;  // local hardware chip ID
+  UChar_t connector = 0;       // cable connector in a zone
+  UChar_t zone = 0;            // read-out zone id
+  UChar_t ruOnLayer = 0;       // read-out-unit index on layer
+  UChar_t ruType = 0;          // read-out-unit type
+  UChar_t ruSWID = 0;          // read-out-unit hardware ID
+  UChar_t ruHWID = 0;          // read-out-unit software ID
+  UChar_t layer = 0;           // MFT layer
+  UChar_t disk = 0;            // MFT disk
+  UChar_t half = 0;            // MFT half
   ClassDefNV(MFTChipMappingData, 1);
 };
 
@@ -232,13 +244,16 @@ class ChipMappingMFT
   ///< convert zone number [0...8] and layer number [0...10] to RU type
   int getRUType(int zone, int layer) const { return ZoneRUType[zone % 4][layer / 2]; }
 
-  static constexpr int NLayers = 10, NZonesPerLayer = 2 * 4, NRUTypes = 13;
+  static constexpr int NChips = 936, NLayers = 10, NZonesPerLayer = 2 * 4, NRUTypes = 13;
+
+  const std::array<MFTChipMappingData, NChips>& getChipMappingData() const { return ChipMappingData; }
+
+  void print() const;
 
  private:
   Int_t invalid() const;
   static constexpr Int_t NRUs = NLayers * NZonesPerLayer;
   static constexpr Int_t NModules = 280;
-  static constexpr Int_t NChips = 936;
   static constexpr Int_t NChipsInfo = 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 16 + 17 + 18 + 19 + 14;
   static constexpr Int_t NChipsPerCable = 1;
   static constexpr Int_t NLinks = 1;

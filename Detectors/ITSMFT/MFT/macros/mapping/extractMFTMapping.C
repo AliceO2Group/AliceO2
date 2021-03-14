@@ -1,6 +1,7 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
 #include "MFTBase/GeometryTGeo.h"
+#include "ITSMFTReconstruction/ChipMappingMFT.h"
 
 constexpr int NChips = 936;
 constexpr int NModules = 280;
@@ -10,10 +11,27 @@ constexpr int NConnectors = 5;
 constexpr int NMaxChipsPerLadder = 5;
 constexpr int NRUTypes = 13;
 
+struct MFTChipFullMappingData {
+  UShort_t globalChipSWID = 0; // global software chip ID
+  UShort_t localChipSWID = 0;  // local software chip ID
+  UShort_t localChipHWID = 0;  // local hardware chip ID
+  UChar_t chipOnRU = 0;        // chip within the read-out-unit
+  UChar_t cableHW = 0;         // cable in the connector (transceiver)
+  UChar_t connector = 0;       // cable connector in a zone
+  UChar_t zone = 0;            // read-out zone id
+  UChar_t ruOnLayer = 0;       // read-out-unit index on layer
+  UChar_t ruType = 0;          // read-out-unit type
+  UChar_t ruSWID = 0;          // read-out-unit hardware ID
+  UChar_t ruHWID = 0;          // read-out-unit software ID
+  UChar_t layer = 0;           // MFT layer
+  UChar_t disk = 0;            // MFT disk
+  UChar_t half = 0;            // MFT half
+};
+
 struct MFTChipMappingData {
   UShort_t module = 0;      // global module ID
   UChar_t chipOnModule = 0; // chip within the module
-  UChar_t cable = 0;        // cable in the connector
+  UChar_t cable = 0;        // cable in the connector (transceiver)
   UChar_t chipOnRU = 0;     // chip within the RU (SW)
 };
 
@@ -27,6 +45,7 @@ struct MFTModuleMappingData {
   UChar_t half = 0;         // half id
 };
 
+std::array<MFTChipFullMappingData, NChips> ChipFullMappingData;
 std::array<MFTChipMappingData, NChips> ChipMappingData;
 std::array<MFTModuleMappingData, NModules> ModuleMappingData;
 
@@ -61,6 +80,7 @@ constexpr Int_t ZoneRUType[NZonesPerLayer / 2][NLayers / 2]{
 constexpr std::array<int, NRUTypes> NChipsOnRUType{7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 14};
 
 void createCXXfile(o2::mft::GeometryTGeo*);
+void createCXXfileFullMap(o2::mft::GeometryTGeo*);
 Int_t getZone(Int_t layer, Int_t ladderID, Int_t& connector);
 Int_t getZoneRUID(Int_t half, Int_t layer, Int_t zone, Int_t& zoneID);
 
@@ -71,7 +91,7 @@ Int_t ruHW, zoneID;
 Int_t nModules;
 std::vector<Int_t> modFirstChip, modNChips, RUNChips;
 
-void extractMFTMapping(const std::string inputGeom = "")
+void extractMFTMapping(const std::string inputGeom = "o2sim_geometry.root")
 {
   o2::base::GeometryManager::loadGeometry(inputGeom);
   auto gm = o2::mft::GeometryTGeo::Instance(); // geometry manager for mapping
@@ -109,6 +129,109 @@ void extractMFTMapping(const std::string inputGeom = "")
 
   // create again the CXX file with the chipOnRUSW member
   createCXXfile(gm);
+
+  // write version with full mapping in MFTChipMappingData
+  createCXXfileFullMap(gm);
+}
+
+//__________________________________________________________________________
+void createCXXfileFullMap(o2::mft::GeometryTGeo* gm)
+{
+  const o2::itsmft::ChipMappingMFT map;
+
+  int half, disk, layer, zone, module, ladder, ladderID;
+  int chipIDglo, chipIDlocSW, chipIDlocHW, chipOnModule;
+  int ruSWID, ruHWID, ruType;
+  uint16_t ruOnLayer, chipOnRU, link = 0;
+  uint8_t connector, cableHW, cableSW;
+  Int_t cnct;
+
+  const o2::itsmft::ChipOnRUInfo* chipOnRUInfo;
+  const o2::itsmft::RUInfo* ruInfo;
+  o2::itsmft::ChipInfo chipInfo;
+
+  // fill chip full mapping information
+  for (int iChip = 0; iChip < NChips; ++iChip) {
+    chipIDglo = iChip;
+
+    ChipFullMappingData[iChip].globalChipSWID = chipIDglo;
+
+    gm->getSensorID(iChip, half, disk, ladder, chipIDlocSW);
+
+    ChipFullMappingData[iChip].localChipSWID = chipIDlocSW;
+    ChipFullMappingData[iChip].disk = disk;
+    ChipFullMappingData[iChip].half = half;
+
+    module = map.chipID2Module(chipIDglo, chipOnModule);
+
+    layer = gm->getLayer(chipIDglo);
+    ChipFullMappingData[iChip].layer = layer;
+
+    ladderID = gm->getLadderID(disk, ladder);
+    map.getChipInfoSW(chipIDglo, chipInfo);
+
+    ruType = chipInfo.ruType;
+    ChipFullMappingData[iChip].ruType = ruType;
+
+    zone = getZone(layer, ladderID, cnct);
+    ChipFullMappingData[iChip].zone = zone;
+
+    ruOnLayer = 4 * half + zone;
+    ChipFullMappingData[iChip].ruOnLayer = ruOnLayer;
+
+    ruSWID = map.getRUIDSW(layer, ruOnLayer);
+    ChipFullMappingData[iChip].ruSWID = ruSWID;
+
+    ruHWID = map.RUSW2FEEId(ruSWID);
+    ChipFullMappingData[iChip].ruHWID = ruHWID;
+
+    chipIDlocHW = map.chipModuleIDSW2HW(ruType, chipIDlocSW);
+    ChipFullMappingData[iChip].localChipHWID = chipIDlocHW;
+
+    chipOnRUInfo = chipInfo.chOnRU;
+
+    chipOnRU = chipOnRUInfo->id;
+    ChipFullMappingData[iChip].chipOnRU = chipOnRU;
+
+    connector = chipOnRUInfo->moduleHW;
+    ChipFullMappingData[iChip].connector = connector;
+
+    cableHW = chipOnRUInfo->cableHW;
+    ChipFullMappingData[iChip].cableHW = cableHW;
+  }
+  FILE* srcFile = fopen("ChipMappingMFT_full.cxx", "w");
+  fprintf(srcFile, "\n// { module, chipOnModule, cable, chipOnRU, globalChipSWID, localChipSWID, localChipHWID, connector, zone, ruOnLayer, ruType, ruSWID, ruHWID, layer, disk, half }\n\n");
+  Int_t ladderP = -1, layerP = -1, halfP = -1;
+  for (Int_t iChip = 0; iChip < NChips; iChip++) {
+    gm->getSensorID(iChip, half, disk, ladder, sensor);
+    layer = gm->getLayer(iChip);
+    if (layer != layerP || ladder != ladderP || half != halfP) { // new module
+      layerP = layer;
+      ladderP = ladder;
+      halfP = half;
+      fprintf(srcFile, "// chip: %3d (%1d), ladder: %2d (%2d), layer: %1d, disk: %1d, half: %1d, zone: %1d \n", iChip, nChipsPerLadder, ladder, ladderID, layer, disk, half, zone);
+    }
+    fprintf(srcFile, "{%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d}%s\n",
+            ChipMappingData[iChip].module,
+            ChipMappingData[iChip].chipOnModule,
+            ChipMappingData[iChip].cable,
+            ChipMappingData[iChip].chipOnRU,
+            ChipFullMappingData[iChip].globalChipSWID,
+            ChipFullMappingData[iChip].localChipSWID,
+            ChipFullMappingData[iChip].localChipHWID,
+            ChipFullMappingData[iChip].connector,
+            ChipFullMappingData[iChip].zone,
+            ChipFullMappingData[iChip].ruOnLayer,
+            ChipFullMappingData[iChip].ruType,
+            ChipFullMappingData[iChip].ruSWID,
+            ChipFullMappingData[iChip].ruHWID,
+            ChipFullMappingData[iChip].layer,
+            ChipFullMappingData[iChip].disk,
+            ChipFullMappingData[iChip].half,
+            (iChip < NChips - 1 ? "," : ""));
+  }
+  fprintf(srcFile, "\n}};\n");
+  fclose(srcFile);
 }
 
 //__________________________________________________________________________
@@ -168,9 +291,12 @@ void createCXXfile(o2::mft::GeometryTGeo* gm)
     }
     Int_t iconnector = connector;
     fprintf(srcFile, "{%d, %d, %d, %d}%s\n", (nModules - 1), sensor, ChipConnectorCable[connector][sensor], ChipOnRUSW[ZoneRUType[zone][layer / 2]][iconnector][sensor], (iChip < nChips - 1 ? "," : ""));
+
+    // fill MFTChipMappingData
     ChipMappingData[iChip].module = nModules - 1;
     ChipMappingData[iChip].chipOnModule = sensor;
     ChipMappingData[iChip].cable = ChipConnectorCable[connector][sensor];
+    ChipMappingData[iChip].chipOnRU = ChipOnRUSW[ZoneRUType[zone][layer / 2]][iconnector][sensor];
   }
 
   fprintf(srcFile, "\n}};\n\n");
