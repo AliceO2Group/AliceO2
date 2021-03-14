@@ -50,9 +50,7 @@
 #include "GPUTPCConvertImpl.h"
 #include "utils/qconfig.h"
 
-#ifdef GPUCA_DISPLAY_OPENGL_CORE
 #include "GPUDisplayShaders.h"
-#endif
 
 constexpr hmm_mat4 MY_HMM_IDENTITY = {{{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}}};
 constexpr hmm_mat4 MY_HMM_FROM(float (&v)[16]) { return {{{v[0], v[1], v[2], v[3]}, {v[4], v[5], v[6], v[7]}, {v[8], v[9], v[10], v[11]}, {v[12], v[13], v[14], v[15]}}}; }
@@ -88,7 +86,11 @@ static const GPUSettingsDisplay& GPUDisplay_GetConfig(GPUChainTracking* chain)
   }
 }
 
-GPUDisplay::GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* chain, GPUQA* qa) : mBackend(backend), mChain(chain), mConfig(GPUDisplay_GetConfig(chain)), mQA(qa), mMerger(chain->GetTPCMerger()) { backend->mDisplay = this; }
+GPUDisplay::GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* chain, GPUQA* qa) : mBackend(backend), mChain(chain), mConfig(GPUDisplay_GetConfig(chain)), mQA(qa), mMerger(chain->GetTPCMerger())
+{
+  backend->mDisplay = this;
+  mOpenGLCore = GPUCA_DISPLAY_OPENGL_CORE_FLAGS;
+}
 
 const GPUParam& GPUDisplay::param() { return mChain->GetParam(); }
 const GPUTPCTracker& GPUDisplay::sliceTracker(int iSlice) { return mChain->GetTPCSliceTrackers()[iSlice]; }
@@ -106,16 +108,19 @@ inline void GPUDisplay::drawVertices(const vboList& v, const GLenum t)
   mNDrawCalls += count;
 
   if (mUseMultiVBO) {
-#ifdef GPUCA_DISPLAY_OPENGL_CORE
-    CHKERR(glBindVertexArray(mVertexArray));
-#endif
+    if (mOpenGLCore) {
+      CHKERR(glBindVertexArray(mVertexArray));
+    }
     CHKERR(glBindBuffer(GL_ARRAY_BUFFER, mVBOId[iSlice]));
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
-    CHKERR(glVertexPointer(3, GL_FLOAT, 0, nullptr));
-#else
-    CHKERR(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr));
-    glEnableVertexAttribArray(0);
+    if (!mOpenGLCore) {
+      CHKERR(glVertexPointer(3, GL_FLOAT, 0, nullptr));
+    } else
 #endif
+    {
+      CHKERR(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr));
+      glEnableVertexAttribArray(0);
+    }
   }
 
   if (mUseGLIndirectDraw) {
@@ -285,10 +290,13 @@ void GPUDisplay::startAnimation()
 inline void GPUDisplay::ActivateColor()
 {
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
-  glColor3f(mDrawColor[0], mDrawColor[1], mDrawColor[2]);
-#else
-  glUniform3fv(mColorId, 1, &mDrawColor[0]);
+  if (!mOpenGLCore) {
+    glColor3f(mDrawColor[0], mDrawColor[1], mDrawColor[2]);
+  } else
 #endif
+  {
+    glUniform3fv(mColorId, 1, &mDrawColor[0]);
+  }
 }
 
 inline void GPUDisplay::SetColorClusters()
@@ -636,7 +644,6 @@ int GPUDisplay::InitGL_internal()
   ReSizeGLScene(GPUDisplayBackend::INIT_WIDTH, GPUDisplayBackend::INIT_HEIGHT, true);
   mThreadBuffers.resize(mChain->GetProcessingSettings().ompThreads);
   mThreadTracks.resize(mChain->GetProcessingSettings().ompThreads);
-#ifdef GPUCA_DISPLAY_OPENGL_CORE
   CHKERR(mVertexShader = glCreateShader(GL_VERTEX_SHADER));
   CHKERR(glShaderSource(mVertexShader, 1, &GPUDisplayShaders::vertexShader, nullptr));
   CHKERR(glCompileShader(mVertexShader));
@@ -650,7 +657,6 @@ int GPUDisplay::InitGL_internal()
   CHKERR(glGenVertexArrays(1, &mVertexArray));
   CHKERR(mModelViewProjId = glGetUniformLocation(mShaderProgram, "ModelViewProj"));
   CHKERR(mColorId = glGetUniformLocation(mShaderProgram, "color"));
-#endif
   return (0); // Initialization Went OK
 }
 
@@ -659,11 +665,9 @@ void GPUDisplay::ExitGL()
   UpdateOffscreenBuffers(true);
   CHKERR(glDeleteBuffers(GPUChainTracking::NSLICES, mVBOId));
   CHKERR(glDeleteBuffers(1, &mIndirectId));
-#ifdef GPUCA_DISPLAY_OPENGL_CORE
   CHKERR(glDeleteProgram(mShaderProgram));
   CHKERR(glDeleteShader(mVertexShader));
   CHKERR(glDeleteShader(mFragmentShader));
-#endif
 }
 
 inline void GPUDisplay::drawPointLinestrip(int iSlice, int cid, int id, int id_limit)
@@ -1618,12 +1622,12 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     mBackend->mMouseDnY = mBackend->mouseMvY;
   }
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
-  if (mCfg.smoothPoints) {
+  if (mCfg.smoothPoints && !mOpenGLCore) {
     CHKERR(glEnable(GL_POINT_SMOOTH));
   } else {
     CHKERR(glDisable(GL_POINT_SMOOTH));
   }
-  if (mCfg.smoothLines) {
+  if (mCfg.smoothLines && !mOpenGLCore) {
     CHKERR(glEnable(GL_LINE_SMOOTH));
   } else {
     CHKERR(glDisable(GL_LINE_SMOOTH));
@@ -1843,28 +1847,34 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
   // Draw Event
   mNDrawCalls = 0;
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
-  CHKERR(glEnableClientState(GL_VERTEX_ARRAY));
-  CHKERR(glVertexPointer(3, GL_FLOAT, 0, nullptr));
-#else
-  CHKERR(glBindVertexArray(mVertexArray));
-  CHKERR(glUseProgram(mShaderProgram));
-  CHKERR(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr));
-  CHKERR(glEnableVertexAttribArray(0));
+  if (!mOpenGLCore) {
+    CHKERR(glEnableClientState(GL_VERTEX_ARRAY));
+    CHKERR(glVertexPointer(3, GL_FLOAT, 0, nullptr));
+  } else
 #endif
+  {
+    CHKERR(glBindVertexArray(mVertexArray));
+    CHKERR(glUseProgram(mShaderProgram));
+    CHKERR(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr));
+    CHKERR(glEnableVertexAttribArray(0));
+  }
 
   {
     const float zFar = ((param().par.ContinuousTracking ? (mMaxClusterZ / GL_SCALE_FACTOR) : 8.f) + 50.f) * 2.f;
     const hmm_mat4 proj = HMM_Perspective(mFOV, (GLfloat)mScreenwidth / (GLfloat)mScreenheight, 0.1f, zFar);
     nextViewMatrix = nextViewMatrix * mModelMatrix;
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
-    CHKERR(glMatrixMode(GL_PROJECTION));
-    CHKERR(glLoadMatrixf(&proj.Elements[0][0]));
-    CHKERR(glMatrixMode(GL_MODELVIEW));
-    CHKERR(glLoadMatrixf(&nextViewMatrix.Elements[0][0]));
-#else
-    const hmm_mat4 modelViewProj = proj * nextViewMatrix;
-    CHKERR(glUniformMatrix4fv(mModelViewProjId, 1, GL_FALSE, &modelViewProj.Elements[0][0]));
+    if (!mOpenGLCore) {
+      CHKERR(glMatrixMode(GL_PROJECTION));
+      CHKERR(glLoadMatrixf(&proj.Elements[0][0]));
+      CHKERR(glMatrixMode(GL_MODELVIEW));
+      CHKERR(glLoadMatrixf(&nextViewMatrix.Elements[0][0]));
+    } else
 #endif
+    {
+      const hmm_mat4 modelViewProj = proj * nextViewMatrix;
+      CHKERR(glUniformMatrix4fv(mModelViewProjId, 1, GL_FALSE, &modelViewProj.Elements[0][0]));
+    }
   }
 
 #define LOOP_SLICE for (int iSlice = (mCfg.drawSlice == -1 ? 0 : mCfg.drawRelatedSlices ? (mCfg.drawSlice % (NSLICES / 4)) : mCfg.drawSlice); iSlice < NSLICES; iSlice += (mCfg.drawSlice == -1 ? 1 : mCfg.drawRelatedSlices ? (NSLICES / 4) : NSLICES))
@@ -2044,39 +2054,45 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     }
   }
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
-  CHKERR(glDisableClientState(GL_VERTEX_ARRAY));
-#else
-  CHKERR(glDisableVertexAttribArray(0));
-  CHKERR(glUseProgram(0));
+  if (!mOpenGLCore) {
+    CHKERR(glDisableClientState(GL_VERTEX_ARRAY));
+  } else
 #endif
+  {
+    CHKERR(glDisableVertexAttribArray(0));
+    CHKERR(glUseProgram(0));
+  }
 
   if (mixSlaveImage > 0) {
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glMatrixMode(GL_PROJECTION);
-    hmm_mat4 proj = HMM_Orthographic(0.f, mRenderwidth, 0.f, mRenderheight, -1.f, 1.f);
-    glLoadMatrixf(&proj.Elements[0][0]);
-    CHKERR(glEnable(GL_TEXTURE_2D));
-    glDisable(GL_DEPTH_TEST);
-    CHKERR(glBindTexture(GL_TEXTURE_2D, mMixBuffer.fbCol_id));
-    glColor4f(1, 1, 1, mixSlaveImage);
-    glBegin(GL_QUADS);
-    glTexCoord2f(0, 0);
-    glVertex3f(0, 0, 0);
-    glTexCoord2f(0, 1);
-    glVertex3f(0, mRenderheight, 0);
-    glTexCoord2f(1, 1);
-    glVertex3f(mRenderwidth, mRenderheight, 0);
-    glTexCoord2f(1, 0);
-    glVertex3f(mRenderwidth, 0, 0);
-    glEnd();
-    glColor4f(1, 1, 1, 0);
-    CHKERR(glDisable(GL_TEXTURE_2D));
-    setDepthBuffer();
-#else
-    GPUWarning("Image mixing unsupported in OpenGL CORE profile");
+    if (!mOpenGLCore) {
+      glMatrixMode(GL_MODELVIEW);
+      glLoadIdentity();
+      glMatrixMode(GL_PROJECTION);
+      hmm_mat4 proj = HMM_Orthographic(0.f, mRenderwidth, 0.f, mRenderheight, -1.f, 1.f);
+      glLoadMatrixf(&proj.Elements[0][0]);
+      CHKERR(glEnable(GL_TEXTURE_2D));
+      glDisable(GL_DEPTH_TEST);
+      CHKERR(glBindTexture(GL_TEXTURE_2D, mMixBuffer.fbCol_id));
+      glColor4f(1, 1, 1, mixSlaveImage);
+      glBegin(GL_QUADS);
+      glTexCoord2f(0, 0);
+      glVertex3f(0, 0, 0);
+      glTexCoord2f(0, 1);
+      glVertex3f(0, mRenderheight, 0);
+      glTexCoord2f(1, 1);
+      glVertex3f(mRenderwidth, mRenderheight, 0);
+      glTexCoord2f(1, 0);
+      glVertex3f(mRenderwidth, 0, 0);
+      glEnd();
+      glColor4f(1, 1, 1, 0);
+      CHKERR(glDisable(GL_TEXTURE_2D));
+      setDepthBuffer();
+    } else
 #endif
+    {
+      GPUWarning("Image mixing unsupported in OpenGL CORE profile");
+    }
   }
 
   if (mixAnimation) {
@@ -2212,12 +2228,14 @@ void GPUDisplay::DoScreenshot(char* filename, float mAnimateTime)
 void GPUDisplay::showInfo(const char* info)
 {
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
-  glMatrixMode(GL_PROJECTION);
-  hmm_mat4 proj = HMM_Orthographic(0.f, mScreenwidth, 0.f, mScreenheight, -1, 1);
-  glLoadMatrixf(&proj.Elements[0][0]);
-  glViewport(0, 0, mScreenwidth, mScreenheight);
+  if (!mOpenGLCore) {
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glMatrixMode(GL_PROJECTION);
+    hmm_mat4 proj = HMM_Orthographic(0.f, mScreenwidth, 0.f, mScreenheight, -1, 1);
+    glLoadMatrixf(&proj.Elements[0][0]);
+    glViewport(0, 0, mScreenwidth, mScreenheight);
+  }
 #endif
   float colorValue = mInvertColors ? 0.f : 1.f;
   mBackend->OpenGLPrint(info, 40.f, 40.f, colorValue, colorValue, colorValue, 1);
@@ -2236,7 +2254,9 @@ void GPUDisplay::showInfo(const char* info)
     }
   }
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
-  glViewport(0, 0, mRenderwidth, mRenderheight);
+  if (!mOpenGLCore) {
+    glViewport(0, 0, mRenderwidth, mRenderheight);
+  }
 #endif
 }
 
