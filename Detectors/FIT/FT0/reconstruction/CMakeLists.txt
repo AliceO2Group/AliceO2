@@ -30,3 +30,9 @@ o2_target_root_dictionary(
           include/FT0Reconstruction/CTFCoder.h
           include/FT0Reconstruction/InteractionTag.h
   )
+
+o2_add_executable(
+  test-raw-conversion
+  COMPONENT_NAME ft0
+  SOURCES src/test-raw-conversion.cxx
+  PUBLIC_LINK_LIBRARIES O2::FT0Reconstruction)
