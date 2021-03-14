@@ -52,6 +52,7 @@ const char* HelpText[] = {
   "[e] / [f]                     Rotate left / right",
   "[+] / [-]                     Increase / decrease point size (Hold SHIFT for lines)",
   "[b]                           Change FOV (field of view)",
+  "[']                           Switch between OpenGL core / compat code path",
   "[MOUSE 1]                     Look around",
   "[MOUSE 2]                     Strafe camera",
   "[MOUSE 1+2]                   Zoom / Rotate",
@@ -61,7 +62,7 @@ const char* HelpText[] = {
   "[1] ... [8] / [N]             Enable display of clusters, preseeds, seeds, starthits, tracklets, tracks, global tracks, merged tracks / Show assigned clusters in colors"
   "[F1] / [F2]                   Enable / disable drawing of TPC / TRD"
   // FREE: none
-  // Test setting: # --> mHideUnmatchedClusters
+  // Test setting: ^ --> mHideUnmatchedClusters
 };
 
 void GPUDisplay::PrintHelp()
@@ -182,6 +183,13 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
       mFOV = 5;
     }
     SetInfo("Set FOV to %f", mFOV);
+  } else if (key == 39) { // character = "'"
+#ifdef GPUCA_DISPLAY_OPENGL_CORE
+    SetInfo("OpenGL compat profile not available, using core profile");
+#else
+    mOpenGLCore ^= 1;
+    SetInfo("Using renderer path for OpenGL %s profile", mOpenGLCore ? "core" : "compat");
+#endif
   } else if (key == 'B') {
     mMarkAdjacentClusters++;
     if (mMarkAdjacentClusters == 5) {
@@ -433,7 +441,7 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     SetInfo("Showing help text", 1);
   }
   /*
-  else if (key == '#')
+  else if (key == '^')
   {
     mTestSetting++;
     SetInfo("Debug test variable set to %d", mTestSetting);

@@ -294,6 +294,7 @@ class GPUDisplay
   bool mCamLookOrigin = false;
   bool mCamYUp = false;
   int mCameraMode = 0;
+  bool mOpenGLCore = false;
   float mFOV = 45.f;
 
   float mAngleRollOrigin = -1e9;
