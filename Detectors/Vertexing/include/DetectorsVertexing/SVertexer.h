@@ -41,7 +41,7 @@ class SVertexer
   using V0 = o2::dataformats::V0;
   using RRef = o2::dataformats::RangeReference<int, int>;
   using VBracket = o2::math_utils::Bracket<int>;
-
+  static constexpr int POS = 0, NEG = 1;
   struct TrackCand : o2::track::TrackParCov {
     GIndex gid;
     VBracket vBracket;
@@ -65,7 +65,7 @@ class SVertexer
   bool checkV0Pair(TrackCand& seed0, TrackCand& seed1, int ithread);
   void setupThreads();
   void finalizeV0s(std::vector<V0>& v0s, std::vector<RRef>& vtx2V0refs);
-  std::vector<TrackCand> buildT2V(const gsl::span<const GIndex>& trackIndex, const gsl::span<const VRef>& vtxRefs, const o2::globaltracking::RecoContainer& recoTracks);
+  void buildT2V(const gsl::span<const GIndex>& trackIndex, const gsl::span<const VRef>& vtxRefs, const o2::globaltracking::RecoContainer& recoTracks);
 
   uint64_t getPairIdx(GIndex id1, GIndex id2) const
   {
@@ -74,7 +74,8 @@ class SVertexer
 
   gsl::span<const PVertex> mPVertices;
   std::vector<std::vector<V0>> mV0sTmp;
-
+  std::array<std::vector<TrackCand>, 2> mTracksPool{}; // pools of positive and negative seeds sorted in min VtxID
+  std::array<std::vector<int>, 2> mVtxFirstTrack{};    // 1st pos. and neg. track of the pools for each vertex
   o2d::VertexBase mMeanVertex{{0., 0., 0.}, {0.1 * 0.1, 0., 0.1 * 0.1, 0., 0., 6. * 6.}};
   const SVertexerParams* mSVParams = nullptr;
   std::array<V0Hypothesis, SVertexerParams::NPIDV0> mV0Hyps;

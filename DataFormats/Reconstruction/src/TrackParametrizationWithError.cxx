@@ -265,6 +265,15 @@ GPUd() TrackParametrizationWithError<value_T>::TrackParametrizationWithError(con
                                                                              const gpu::gpustd::array<value_t, kLabCovMatSize>& cv, int charge, bool sectorAlpha, const PID pid)
 {
   // construct track param and covariance from kinematics and lab errors
+  set(xyz, pxpypz, cv, charge, sectorAlpha, pid);
+}
+
+//______________________________________________________________
+template <typename value_T>
+GPUd() void TrackParametrizationWithError<value_T>::set(const dim3_t& xyz, const dim3_t& pxpypz,
+                                                        const gpu::gpustd::array<value_t, kLabCovMatSize>& cv, int charge, bool sectorAlpha, const PID pid)
+{
+  // set track param and covariance from kinematics and lab errors
 
   // Alpha of the frame is defined as:
   // sectorAlpha == false : -> angle of pt direction
