@@ -67,8 +67,9 @@ struct TimeFrame {
   void computePayloadSize()
   {
     payloadSize = 0;
-    if (buf == nullptr)
+    if (buf == nullptr) {
       return;
+    }
 
     size_t offset = 0;
     while (offset < totalSize) {
@@ -88,8 +89,9 @@ struct TimeFrame {
 
   void print()
   {
-    if (buf == nullptr)
+    if (buf == nullptr) {
       return;
+    }
 
     int nPrinted = 0;
 
@@ -133,8 +135,9 @@ struct TimeFrame {
                (int)cruID, (int)endPointID, (int)linkID,
                (uint32_t)RDHUtils::getHeartBeatOrbit(rdh), (int)RDHUtils::getTriggerBC(rdh),
                (int)triggerType, (int)RDHUtils::getPageCounter(rdh), (int)stopBit);
-        if ((triggerType & 0x800) != 0)
+        if ((triggerType & 0x800) != 0) {
           printf(" <===");
+        }
         printf("\n");
       }
       if (stopBit > 0 && iStop == 3) {
@@ -223,11 +226,6 @@ class FileReaderTask
 
     static int TFid = 0;
 
-    //if (nSent >= 2) {
-    //  pc.services().get<ControlService>().endOfStream();
-    //  return; // probably reached eof
-    //}
-
     while (true) {
 
       // stop if the required number of frames has been reached
@@ -279,8 +277,9 @@ class FileReaderTask
                (int)cruID, (int)endPointID, (int)linkID,
                (uint32_t)RDHUtils::getHeartBeatOrbit(rdh), (int)RDHUtils::getTriggerBC(rdh),
                (int)triggerType, (int)pageCounter, (int)stopBit);
-        if ((triggerType & 0x800) != 0)
+        if ((triggerType & 0x800) != 0) {
           printf(" <===");
+        }
         printf("\n");
       }
 
@@ -409,11 +408,9 @@ class FileReaderTask
 
             auto freefct = [](void* data, void* /*hint*/) { free(data); };
             pc.outputs().adoptChunk(Output{"ROUT", "RAWDATA"}, tfQueue.front().buf, tfQueue.front().totalSize, freefct, nullptr);
-            nSent += 1;
             TFid += 1;
           }
           tfQueue.pop();
-          nSent += 1;
           break;
         }
       }
@@ -532,7 +529,6 @@ class FileReaderTask
   bool mSaveTF;               ///< save individual time frames to file
   int mOverlap;               ///< overlap between contiguous TimeFrames
   bool mPrint = false;        ///< print debug messages
-  int nSent = 0;
 };
 
 //_________________________________________________________________________________________________
