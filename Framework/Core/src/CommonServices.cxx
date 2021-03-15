@@ -126,7 +126,7 @@ o2::framework::ServiceSpec CommonServices::infologgerContextSpec()
                      nullptr,
                      [](ServiceRegistry& services, void* service) {
                        auto& infoLoggerContext = services.get<InfoLoggerContext>();
-                       auto run = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runnumber", "unspecified");
+                       auto run = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
                        infoLoggerContext.setField(InfoLoggerContext::FieldName::Run, run);
                      },
                      nullptr,
