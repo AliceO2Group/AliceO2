@@ -189,7 +189,7 @@ class StartTimeValueMatcher : public ValueHolder<uint64_t>
   /// This will match the timing information which is currently in
   /// the DataProcessingHeader. Notice how we apply the scale to the
   /// actual values found.
-  bool match(DataProcessingHeader const& dph, VariableContext& context) const;
+  bool match(header::DataHeader const& dh, DataProcessingHeader const& dph, VariableContext& context) const;
 
  private:
   uint64_t mScale;

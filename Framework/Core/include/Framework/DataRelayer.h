@@ -106,6 +106,11 @@ class DataRelayer
   /// Notice how this avoids exposing the timesliceIndex directly
   /// so that we can mutex on it.
   TimesliceId getTimesliceForSlot(TimesliceSlot slot);
+
+  /// Get the firstTFOrbit associate to a given slot.
+  uint32_t getFirstTFOrbitForSlot(TimesliceSlot slot);
+  /// Get the firstTFCounter associate to a given slot.
+  uint32_t getFirstTFCounterForSlot(TimesliceSlot slot);
   /// Remove all pending messages
   void clear();
 

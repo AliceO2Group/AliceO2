@@ -845,6 +845,8 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     ZoneScopedN("DataProcessingDevice::prepareForCurrentTimeslice");
     auto timeslice = relayer->getTimesliceForSlot(i);
     timingInfo->timeslice = timeslice.value;
+    timingInfo->tfCounter = relayer->getFirstTFCounterForSlot(i);
+    timingInfo->firstTFOrbit = relayer->getFirstTFOrbitForSlot(i);
   };
 
   // When processing them, timers will have to be cleaned up

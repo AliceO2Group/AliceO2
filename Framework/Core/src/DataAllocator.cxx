@@ -98,6 +98,8 @@ FairMQMessagePtr DataAllocator::headerMessageFromOutput(Output const& spec,     
   dh.subSpecification = spec.subSpec;
   dh.payloadSize = payloadSize;
   dh.payloadSerializationMethod = method;
+  dh.tfCounter = mTimingInfo->tfCounter;
+  dh.firstTForbit = mTimingInfo->firstTFOrbit;
 
   DataProcessingHeader dph{mTimingInfo->timeslice, 1};
   auto& context = mRegistry->get<MessageContext>();
