@@ -55,9 +55,9 @@ class KrBoxClusterFinderDevice : public o2::framework::Task
     mRawReader.setLinkZSCallback([this](int cru, int rowInSector, int padInRow, int timeBin, float adcValue) -> bool {
       const int sector = cru / 10;
       if ((mLastSector > -1) && (sector != mLastSector)) {
-        LOGP(info, "analysing sector {} ({})", mLastSector, sector);
+        LOGP(debug, "analysing sector {} ({})", mLastSector, sector);
         mClusterFinder->findLocalMaxima(true);
-        LOGP(info, "found {} clusters", mClusterFinder->getClusters().size());
+        LOGP(info, "found {} clusters in sector {}", mClusterFinder->getClusters().size(), mLastSector);
         std::swap(mClusters[mLastSector], mClusterFinder->getClusters());
         mClusterFinder->resetADCMap();
         mClusterFinder->resetClusters();
@@ -87,10 +87,10 @@ class KrBoxClusterFinderDevice : public o2::framework::Task
 
     // analyse the final sector
     if (mLastSector > -1) {
-      LOGP(info, "analysing sector {}", mLastSector);
+      LOGP(debug, "analysing sector {}", mLastSector);
       mClusterFinder->findLocalMaxima(true);
       if (mClusterFinder->getClusters().size()) {
-        LOGP(info, "found {} clusters", mClusterFinder->getClusters().size());
+        LOGP(info, "found {} clusters in sector {}", mClusterFinder->getClusters().size(), mLastSector);
         std::swap(mClusters[mLastSector], mClusterFinder->getClusters());
       }
     }

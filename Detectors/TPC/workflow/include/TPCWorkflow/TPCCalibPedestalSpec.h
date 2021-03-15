@@ -97,7 +97,7 @@ class TPCCalibPedestalDevice : public o2::framework::Task
       sendOutput(pc.outputs());
     }
 
-    if (mMaxEvents && (mCalibPedestal.getNumberOfProcessedEvents() >= mMaxEvents) && !mCalibDumped) {
+    if (mMaxEvents && (nTFs >= mMaxEvents) && !mCalibDumped) {
       LOGP(info, "Maximm number of TFs reached ({}), no more processing will be done", mMaxEvents);
       mReadyToQuit = true;
       mCalibPedestal.analyse();
