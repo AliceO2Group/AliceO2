@@ -26,7 +26,8 @@ set(ALIGPU_BUILD_TYPE "O2")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set_property(GLOBAL PROPERTY REPORT_UNDEFINED_PROPERTIES)
 
-set(ANALYSIS_COMPILE_POOL 2 CACHE STRING "How many parallel analysis compilation jobs")
+cmake_host_system_information(RESULT _totalmem QUERY TOTAL_PHYSICAL_MEMORY)
+set(ANALYSIS_COMPILE_POOL _totalmem/8000 CACHE STRING "How many parallel analysis compilation jobs")
 set_property(GLOBAL PROPERTY JOB_POOLS analysis=${ANALYSIS_COMPILE_POOL})
 
 include(O2BuildSanityChecks)
