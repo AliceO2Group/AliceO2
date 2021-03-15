@@ -58,23 +58,31 @@ struct TaskX {
 
       int index0jpsi = candidate.index0Id();
       int index1jpsi = candidate.index1Id();
-      for (auto& trackPos : tracks) {
-        if (trackPos.signed1Pt() < 0) {
-          continue;
-        }
-        if (trackPos.globalIndex() == index0jpsi) {
-          continue;
-        }
-        for (auto& trackNeg : tracks) {
-          if (trackNeg.signed1Pt() > 0) {
+      for (auto& track1 : tracks) {
+        int signTrack1 = track1.sign();
+        int indexTrack1 = track1.globalIndex();
+        if (signTrack1 > 0) {
+          if (indexTrack1 == index0jpsi) {
             continue;
           }
-          if (trackNeg.globalIndex() == index1jpsi) {
+        } else if (indexTrack1 == index1jpsi) {
+          continue;
+        }
+        for (auto track2 = track1 + 1; track2 != tracks.end(); ++track2) {
+          if (signTrack1 == track2.sign()) {
             continue;
           }
-          registry.fill(HIST("hPtCand"), candidate.pt() + trackPos.pt() + trackNeg.pt());
-        } // pi- loop
-      }   // pi+ loop
+          int indexTrack2 = track2.globalIndex();
+          if (signTrack1 > 0) {
+            if (indexTrack2 == index1jpsi) {
+              continue;
+            }
+          } else if (indexTrack2 == index0jpsi) {
+            continue;
+          }
+          registry.fill(HIST("hPtCand"), candidate.pt() + track1.pt() + track2.pt());
+        } // track2 loop (pion)
+      }   // track1 loop (pion)
     }     // Jpsi loop
   }       // process
 };        // struct
