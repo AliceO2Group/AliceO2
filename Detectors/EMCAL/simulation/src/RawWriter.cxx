@@ -131,6 +131,7 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
       auto hwaddress = mMappingHandler->getMappingForDDL(srucont.mSRUid).getHardwareAddress(channel.mRow, channel.mCol, ChannelType_t::HIGH_GAIN); // @TODO distinguish between high- and low-gain cells
 
       std::vector<int> rawbunches;
+      int nbunches = 0;
       for (auto& bunch : findBunches(channel.mDigits)) {
         if (!bunch.mADCs.size()) {
           LOG(ERROR) << "Found bunch with without ADC entries - skipping ...";
@@ -141,10 +142,14 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
         for (auto adc : bunch.mADCs) {
           rawbunches.push_back(adc);
         }
+        nbunches++;
       }
       if (!rawbunches.size()) {
+        LOG(DEBUG) << "No bunch selected";
         continue;
       }
+      LOG(DEBUG) << "Selected " << nbunches << " bunches";
+
       auto encodedbunches = encodeBunchData(rawbunches);
       auto chanhead = createChannelHeader(hwaddress, rawbunches.size(), false); /// bad channel status eventually to be added later
       char* chanheadwords = reinterpret_cast<char*>(&chanhead);
@@ -156,6 +161,8 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
         if (encodedbunches.size() != nwordsRead) {
           LOG(ERROR) << "Mismatch in number of 32-bit words, encoded " << encodedbunches.size() << ", recalculated " << nwordsRead << std::endl;
           LOG(ERROR) << "Payload size: " << payloadsizeRead << ", number of words: " << rawbunches.size() << ", encodeed words " << encodedbunches.size() << ", calculated words " << nwordsRead << std::endl;
+        } else {
+          LOG(DEBUG) << "Matching number of payload 32-bit words, encoded " << encodedbunches.size() << ", decoded " << nwordsRead;
         }
       } else {
         LOG(ERROR) << "Header without header bit detected ..." << std::endl;
@@ -170,8 +177,10 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
     }
 
     if (!payload.size()) {
+      LOG(DEBUG) << "Payload buffer has size 0" << std::endl;
       continue;
     }
+    LOG(DEBUG) << "Payload buffer has size " << payload.size();
 
     // Create RCU trailer
     auto trailerwords = createRCUTrailer(payload.size() / 4, 100., trg.getBCData().toLong(), srucont.mSRUid);
@@ -248,8 +257,12 @@ std::vector<int> RawWriter::encodeBunchData(const std::vector<int>& data)
 {
   std::vector<int> encoded;
   CaloBunchWord currentword;
+  currentword.mDataWord = 0;
   int wordnumber = 0;
   for (auto adc : data) {
+    if (adc > 0x3FF) {
+      LOG(ERROR) << "Exceeding max ADC count for 10 bit ALTRO word: " << adc << " (max: 1023)" << std::endl;
+    }
     switch (wordnumber) {
       case 0:
         currentword.mWord0 = adc;
