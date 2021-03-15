@@ -172,7 +172,6 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
 {
   auto& reqMap = requests.requestMap;
 
-  /// RS FIXME: this will not work until the framework does not propagate the dh->firstTForbit
   const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
   startIR = {0, dh->firstTForbit};
 
@@ -230,11 +229,6 @@ void RecoContainer::addITSTracks(ProcessingContext& pc, bool mc)
   tracksROFsPool.registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("trackITSROF"), GTrackID::ITS);
   if (mc) {
     tracksMCPool.registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSMCTR"), GTrackID::ITS);
-  }
-  //RSTODO: below is a hack, to remove once the framework will start propagating the header.firstTForbit
-  const auto tracksITSROF = getITSTracksROFRecords<o2::itsmft::ROFRecord>();
-  if (tracksITSROF.size()) {
-    startIR = o2::raw::HBFUtils::Instance().getFirstIRofTF(tracksITSROF[0].getBCData());
   }
 }
 

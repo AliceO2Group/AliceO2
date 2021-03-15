@@ -457,14 +457,12 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   findMinMaxBc(ft0RecPoints, primVertices, mcRecords);
 
-  // TODO: determine the beginning of a TF in case when there are no reconstructed vertices
+  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
+  o2::InteractionRecord startIR = {0, dh->firstTForbit};
+
   uint64_t firstVtxGlBC = minGlBC;
-  uint64_t startBCofTF = 0;
-  if (primVertices.empty()) {
-    auto startIRofTF = o2::raw::HBFUtils::Instance().getFirstIRofTF(primVertices[0].getIRMin());
-    startBCofTF = startIRofTF.orbit * o2::constants::lhc::LHCMaxBunches + startIRofTF.bc;
-    firstVtxGlBC = std::round(startBCofTF + primVertices[0].getTimeStamp().getTimeStamp() / o2::constants::lhc::LHCBunchSpacingMS);
-  }
+  uint64_t startBCofTF = startIR.toLong();
+  firstVtxGlBC = std::round(startBCofTF + primVertices[0].getTimeStamp().getTimeStamp() / o2::constants::lhc::LHCBunchSpacingMS);
 
   uint64_t tfNumber;
   int runNumber = 244918; // TODO: get real run number
