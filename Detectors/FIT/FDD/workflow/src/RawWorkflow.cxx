@@ -32,7 +32,7 @@ framework::WorkflowSpec getFDDRawWorkflow(bool useProcess,
     specs.emplace_back(o2::fdd::getFDDRawDataProcessSpec(dumpProcessor));
   }
   if (!disableRootOut) {
-    specs.emplace_back(o2::fdd::getFDDDigitWriterSpec());
+    specs.emplace_back(o2::fdd::getFDDDigitWriterSpec(false, false));
   }
   return specs;
 }

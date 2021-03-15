@@ -49,7 +49,7 @@
 
 // for FDD
 #include "FDDDigitizerSpec.h"
-#include "FDDDigitWriterSpec.h"
+#include "FDDWorkflow/DigitWriterSpec.h"
 
 // for EMCal
 #include "EMCALDigitizerSpec.h"
