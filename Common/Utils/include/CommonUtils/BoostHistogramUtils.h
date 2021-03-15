@@ -35,61 +35,76 @@ namespace o2
 namespace utils
 {
 
-template<typename AxisIterator>
-class BinCenterView {
-    public:
-        BinCenterView(AxisIterator iter)
-        AxisIterator& operator++() {
-            ++mBaseIterator;
-            return mBaseIterator;
-        }
-        AxisIterator operator++(int) {
-            AxisIterator result(mBaseIterator);
-            mBaseIterator++;
-            return result;
-        }
+template <typename AxisIterator>
+class BinCenterView
+{
+ public:
+  BinCenterView(AxisIterator iter)
+    AxisIterator&
+    operator++()
+  {
+    ++mBaseIterator;
+    return mBaseIterator;
+  }
+  AxisIterator operator++(int)
+  {
+    AxisIterator result(mBaseIterator);
+    mBaseIterator++;
+    return result;
+  }
 
-        decltype(auto) operator*() {return mBaseIterator->center(); }
-    private:
-        AxisIterator    mBaseIterator;
+  decltype(auto) operator*() { return mBaseIterator->center(); }
+
+ private:
+  AxisIterator mBaseIterator;
 };
 
-template<typename AxisIterator>
-class BinUpperView {
-    public:
-        BinCenterView(AxisIterator iter)
-        AxisIterator& operator++() {
-            ++mBaseIterator;
-            return mBaseIterator;
-        }
-        AxisIterator operator++(int) {
-            AxisIterator result(mBaseIterator);
-            mBaseIterator++;
-            return result;
-        }
+template <typename AxisIterator>
+class BinUpperView
+{
+ public:
+  BinCenterView(AxisIterator iter)
+    AxisIterator&
+    operator++()
+  {
+    ++mBaseIterator;
+    return mBaseIterator;
+  }
+  AxisIterator operator++(int)
+  {
+    AxisIterator result(mBaseIterator);
+    mBaseIterator++;
+    return result;
+  }
 
-        decltype(auto) operator*() {return mBaseIterator->upper(); }
-    private:
-        AxisIterator    mBaseIterator;
+  decltype(auto) operator*() { return mBaseIterator->upper(); }
+
+ private:
+  AxisIterator mBaseIterator;
 };
 
-template<typename AxisIterator>
-class BinLowerView {
-    public:
-        BinCenterView(AxisIterator iter)
-        AxisIterator& operator++() {
-            ++mBaseIterator;
-            return mBaseIterator;
-        }
-        AxisIterator operator++(int) {
-            AxisIterator result(mBaseIterator);
-            mBaseIterator++;
-            return result;
-        }
+template <typename AxisIterator>
+class BinLowerView
+{
+ public:
+  BinCenterView(AxisIterator iter)
+    AxisIterator&
+    operator++()
+  {
+    ++mBaseIterator;
+    return mBaseIterator;
+  }
+  AxisIterator operator++(int)
+  {
+    AxisIterator result(mBaseIterator);
+    mBaseIterator++;
+    return result;
+  }
 
-        decltype(auto) operator*() {return mBaseIterator->lower(); }
-    private:
-        AxisIterator    mBaseIterator;
+  decltype(auto) operator*() { return mBaseIterator->lower(); }
+
+ private:
+  AxisIterator mBaseIterator;
 };
 
 /// fast fit of an array with ranges (histogram) with gaussian function
@@ -106,7 +121,7 @@ class BinLowerView {
 ///          -4: invalid result!!
 ///
 template <typename Iterator, typename AxisIterator, typename T>
-double fitGaus(Iterator first, Iterator last, AxisIterator axisfirst,  std::vector<T>& param)
+double fitGaus(Iterator first, Iterator last, AxisIterator axisfirst, std::vector<T>& param)
 {
   static TLinearFitter fitter(3, "pol2");
   static TMatrixD mat(3, 3);
@@ -155,25 +170,23 @@ double fitGaus(Iterator first, Iterator last, AxisIterator axisfirst,  std::vect
 
   param[3] = entries;
 
-
-for (auto iter = first, axisiter = axisfirst; iter != last; iter++, axisiter++) {
-   
-}
+  for (auto iter = first, axisiter = axisfirst; iter != last; iter++, axisiter++) {
+  }
 
   auto nbins = last - first;
   const double binWidth = double(xMax - xMin) / double(nBins);
-  int ibin = 0; 
+  int ibin = 0;
   Int_t npoints = 0;
   for (auto iter = first, axisiter = axisfirst; iter != last; iter++, axisiter++) {
-    if (nbins> 1) {
-      const double x = (*axisiter + *(axisiter+1))/2.;
+    if (nbins > 1) {
+      const double x = (*axisiter + *(axisiter + 1)) / 2.;
       const double y = *iter;
       const double ey = std::sqrt(y);
       fitter.AddPoint(x, y, ey);
       if (npoints < 3) {
         A(npoints, 0) = 1;
         A(npoints, 1) = x;
-        A(npoints, 2) = x*xor_eq;
+        A(npoints, 2) = x* xor_eq ;
         b(npoints, 0) = y;
         meanCOG += x * nbins;
         rms2COG += x * nbins * x;
@@ -237,7 +250,6 @@ for (auto iter = first, axisiter = axisfirst; iter != last; iter++, axisiter++) 
   }
   return chi2;
 }
-
 
 } // end namespace utils
 } // end namespace o2
