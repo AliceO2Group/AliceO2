@@ -35,7 +35,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
      Inputs{
        {"Collisions", "AOD", "COLLISION"}},
      Outputs{},
-     AlgorithmSpec{adaptStateful(
+     AlgorithmSpec{
        [](CallbackService& callbacks) {
          void* window = initGUI("A test window");
          auto count = std::make_shared<int>(0);
@@ -63,5 +63,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
              control.readyToQuit(QuitRequest::All);
            }
          });
-       })}}};
+       }}}};
 }

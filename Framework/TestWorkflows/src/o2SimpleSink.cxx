@@ -20,13 +20,13 @@ using namespace o2::framework;
 
 AlgorithmSpec simplePipe(std::string const& what, int minDelay)
 {
-  return AlgorithmSpec{adaptStateful([what, minDelay]() {
+  return AlgorithmSpec{[what, minDelay]() {
     srand(getpid());
     return adaptStateless([what, minDelay](DataAllocator& outputs) {
       std::this_thread::sleep_for(std::chrono::seconds((rand() % 5) + minDelay));
       auto& bData = outputs.make<int>(OutputRef{what}, 1);
     });
-  })};
+  }};
 }
 
 // This is how you can define your processing in a declarative way

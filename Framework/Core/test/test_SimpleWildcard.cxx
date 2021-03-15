@@ -47,12 +47,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           {"B",
            Inputs{InputSpec{"in", {"TST", "OUT"}}},
            Outputs{},
-           AlgorithmSpec{adaptStateful([](CallbackService& callbacks) {
+           AlgorithmSpec{[](CallbackService& callbacks) {
              callbacks.set(CallbackService::Id::EndOfStream, [](EndOfStreamContext& context) {
                context.services().get<ControlService>().readyToQuit(QuitRequest::All);
              });
              return adaptStateless([](InputRecord& inputs) {
                auto s = inputs.get<TObjString*>("in");
                LOG(INFO) << "String is " << s->GetString().Data();
-             }); })}}};
+             }); }}}};
 }

@@ -36,15 +36,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
        OutputSpec{{"test"}, "TST", "A"},
      },
      AlgorithmSpec{
-       adaptStateless([](DataAllocator& outputs) {
+       [](DataAllocator& outputs) {
          std::this_thread::sleep_for(std::chrono::milliseconds(1000));
          auto& out = outputs.make<int>(OutputRef{"test", 0});
-       })}},
+       }}},
     {"dest",
      Inputs{
        {"test", "TST", "A"}},
      Outputs{},
-     AlgorithmSpec{adaptStateful(
+     AlgorithmSpec{
        [](CallbackService& callbacks) {
          void* window = initGUI("A test window");
          auto count = std::make_shared<int>(0);
@@ -64,5 +64,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
              control.readyToQuit(QuitRequest::All);
            }
          });
-       })}}};
+       }}}};
 }

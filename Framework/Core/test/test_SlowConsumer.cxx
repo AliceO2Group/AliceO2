@@ -29,29 +29,29 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
     {"A",
      Inputs{},
      {OutputSpec{{"a"}, "TST", "A"}},
-     AlgorithmSpec{adaptStateful([]() { return adaptStateless(
-                                          [](DataAllocator& outputs, RawDeviceService& device, ControlService& control) {
-                                            static int count = 0;
-                                            auto& aData = outputs.make<int>(OutputRef{"a"});
-                                            LOG(info) << count;
-                                            aData = count++;
-                                            if (count > 3000) {
-                                              control.endOfStream();
-                                              control.readyToQuit(QuitRequest::Me);
-                                            }
-                                          }); })}},
+     AlgorithmSpec{[]() { return adaptStateless(
+                            [](DataAllocator& outputs, RawDeviceService& device, ControlService& control) {
+                              static int count = 0;
+                              auto& aData = outputs.make<int>(OutputRef{"a"});
+                              LOG(info) << count;
+                              aData = count++;
+                              if (count > 3000) {
+                                control.endOfStream();
+                                control.readyToQuit(QuitRequest::Me);
+                              }
+                            }); }}},
     {"B",
      {InputSpec{"x", "TST", "A", Lifetime::Timeframe}},
      {},
-     AlgorithmSpec{adaptStateful([]() { return adaptStateless(
-                                          [](InputRecord& inputs, RawDeviceService& device, ControlService& control) {
-                                            static int expected = 0;
-                                            device.device()->WaitFor(std::chrono::milliseconds(3));
-                                            auto& count = inputs.get<int>("x");
-                                            if (expected != count) {
-                                              LOGP(ERROR, "Missing message. Expected: {}, Found {}.", expected, count);
-                                              control.readyToQuit(QuitRequest::All);
-                                            }
-                                            expected++;
-                                          }); })}}};
+     AlgorithmSpec{[]() { return adaptStateless(
+                            [](InputRecord& inputs, RawDeviceService& device, ControlService& control) {
+                              static int expected = 0;
+                              device.device()->WaitFor(std::chrono::milliseconds(3));
+                              auto& count = inputs.get<int>("x");
+                              if (expected != count) {
+                                LOGP(ERROR, "Missing message. Expected: {}, Found {}.", expected, count);
+                                control.readyToQuit(QuitRequest::All);
+                              }
+                              expected++;
+                            }); }}}};
 }

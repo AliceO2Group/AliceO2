@@ -33,55 +33,53 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
       // particular case, but a Singleton or a captured new object would
       // work as well.
       AlgorithmSpec{
-        adaptStateful(
-          [](CallbackService& callbacks) {
-            static int foo = 0;
-            static int step = 0; // incremented in registered callbacks
-            auto startcb = []() {
-              ++step;
-              LOG(INFO) << "start " << step;
-            };
-            auto stopcb = []() {
-              ++step;
-              LOG(INFO) << "stop " << step;
-            };
-            auto resetcb = []() {
-              ++step;
-              LOG(INFO) << "reset " << step;
-            };
-            callbacks.set(CallbackService::Id::Start, startcb);
-            callbacks.set(CallbackService::Id::Stop, stopcb);
-            callbacks.set(CallbackService::Id::Reset, resetcb);
-            return adaptStateless([](DataAllocator& outputs, ControlService& control) {
-              auto& out = outputs.newChunk({"TES", "STATEFUL", 0}, sizeof(int));
-              auto outI = reinterpret_cast<int*>(out.data());
-              LOG(INFO) << "foo " << foo;
-              outI[0] = foo++;
-              control.endOfStream();
-              control.readyToQuit(QuitRequest::Me);
-            });
-          }) //
-      }      //
-    },       //
+        [](CallbackService& callbacks) {
+          static int foo = 0;
+          static int step = 0; // incremented in registered callbacks
+          auto startcb = []() {
+            ++step;
+            LOG(INFO) << "start " << step;
+          };
+          auto stopcb = []() {
+            ++step;
+            LOG(INFO) << "stop " << step;
+          };
+          auto resetcb = []() {
+            ++step;
+            LOG(INFO) << "reset " << step;
+          };
+          callbacks.set(CallbackService::Id::Start, startcb);
+          callbacks.set(CallbackService::Id::Stop, stopcb);
+          callbacks.set(CallbackService::Id::Reset, resetcb);
+          return adaptStateless([](DataAllocator& outputs, ControlService& control) {
+            auto& out = outputs.newChunk({"TES", "STATEFUL", 0}, sizeof(int));
+            auto outI = reinterpret_cast<int*>(out.data());
+            LOG(INFO) << "foo " << foo;
+            outI[0] = foo++;
+            control.endOfStream();
+            control.readyToQuit(QuitRequest::Me);
+          });
+        } //
+      }   //
+    },    //
     DataProcessorSpec{
       "consumer",                                                     //
       {InputSpec{"test", "TES", "STATEFUL", 0, Lifetime::Timeframe}}, //
       Outputs{},                                                      //
       AlgorithmSpec{
-        adaptStateful(
-          []() {
-            static int expected = 0;
-            return adaptStateless([](InputRecord& inputs, ControlService& control) {
-              const int* in = reinterpret_cast<const int*>(inputs.get("test").payload);
+        []() {
+          static int expected = 0;
+          return adaptStateless([](InputRecord& inputs, ControlService& control) {
+            const int* in = reinterpret_cast<const int*>(inputs.get("test").payload);
 
-              if (*in != expected++) {
-                LOG(ERROR) << "Expecting " << expected << " found " << *in;
-              } else {
-                LOG(INFO) << "Everything OK for " << (expected - 1);
-              }
-            });
-          }) //
-      }      //
-    }        //
+            if (*in != expected++) {
+              LOG(ERROR) << "Expecting " << expected << " found " << *in;
+            } else {
+              LOG(INFO) << "Everything OK for " << (expected - 1);
+            }
+          });
+        } //
+      }   //
+    }     //
   };
 }

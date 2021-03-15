@@ -411,7 +411,7 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
   spec.name = name;
   spec.inputs = inputSpecs;
   spec.outputs = {};
-  spec.algorithm = adaptStateful([inputSpecs](CallbackService& callbacks, RawDeviceService& rds) {
+  spec.algorithm = [inputSpecs](CallbackService& callbacks, RawDeviceService& rds) {
     auto device = rds.device();
     // check that the input spec bindings have corresponding output channels
     // FairMQDevice calls the custom init before the channels have been configured
@@ -460,7 +460,7 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
       }
       sendOnChannel(device, outputs, "downstream");
     });
-  });
+  };
   const char* d = strdup(((std::string(defaultChannelConfig).find("name=") == std::string::npos ? (std::string("name=") + name + ",") : "") + std::string(defaultChannelConfig)).c_str());
   spec.options = {
     ConfigParamSpec{"channel-config", VariantType::String, d, {"Out-of-band channel config"}},
@@ -477,7 +477,7 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
   spec.name = name;
   spec.inputs = inputSpecs;
   spec.outputs = {};
-  spec.algorithm = adaptStateful([inputSpecs](CallbackService& callbacks, RawDeviceService& rds) {
+  spec.algorithm = [inputSpecs](CallbackService& callbacks, RawDeviceService& rds) {
     auto device = rds.device();
     // check that the input spec bindings have corresponding output channels
     // FairMQDevice calls the custom init before the channels have been configured
@@ -534,7 +534,7 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
         sendOnChannel(device, channelParts, channelName);
       }
     });
-  });
+  };
   const char* d = strdup(((std::string(defaultChannelConfig).find("name=") == std::string::npos ? (std::string("name=") + name + ",") : "") + std::string(defaultChannelConfig)).c_str());
   spec.options = {
     ConfigParamSpec{"channel-config", VariantType::String, d, {"Out-of-band channel config"}},

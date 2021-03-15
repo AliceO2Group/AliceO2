@@ -152,9 +152,9 @@ void AODJAlienReaderHelpers::dumpFileMetrics(Monitoring& monitoring, TFile* curr
 
 AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
 {
-  auto callback = AlgorithmSpec{adaptStateful([](ConfigParamRegistry const& options,
-                                                 DeviceSpec const& spec,
-                                                 Monitoring& monitoring) {
+  auto callback = AlgorithmSpec{[](ConfigParamRegistry const& options,
+                                   DeviceSpec const& spec,
+                                   Monitoring& monitoring) {
     monitoring.send(Metric{(uint64_t)0, "arrow-bytes-created"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
     monitoring.send(Metric{(uint64_t)0, "arrow-messages-created"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
     monitoring.send(Metric{(uint64_t)0, "arrow-bytes-destroyed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
@@ -321,7 +321,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
       *numTF = ntf;
       currentFileIOTime += (uv_hrtime() - ioStart);
     });
-  })};
+  }};
 
   return callback;
 }

@@ -45,7 +45,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
           {"B",
            Inputs{InputSpec{"in", ConcreteDataTypeMatcher{"TST", "OUT"}}},
            Outputs{},
-           AlgorithmSpec{adaptStateful([](CallbackService& callbacks) {
+           AlgorithmSpec{[](CallbackService& callbacks) {
              callbacks.set(CallbackService::Id::EndOfStream, [](EndOfStreamContext& context) {
                context.services().get<ControlService>().readyToQuit(QuitRequest::All);
              });
@@ -61,5 +61,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
                  auto dh = o2::header::get<o2::header::DataHeader*>(ref.header);
                  LOG(INFO) << "String is " << s->GetString().Data() << " " << dh->subSpecification;
                }
-             }); })}}};
+             }); }}}};
 }

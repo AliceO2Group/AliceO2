@@ -118,7 +118,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     DataSpecUtils::updateMatchingSubspec(input, subspecs[index]);
   };
 
-  auto sinkFct = adaptStateful([](CallbackService& callbacks) {
+  auto sinkFct = [](CallbackService& callbacks) {
     callbacks.set(CallbackService::Id::EndOfStream, [](EndOfStreamContext& context) {
       context.services().get<ControlService>().readyToQuit(QuitRequest::All);
     });
@@ -127,7 +127,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
         auto& data = inputs.get<MyDataType>(input.spec->binding.c_str());
         LOG(INFO) << "received channel " << data;
       } });
-  });
+  };
 
   std::vector<DataProcessorSpec> workflow = parallelPipeline(
     std::vector<DataProcessorSpec>{DataProcessorSpec{
