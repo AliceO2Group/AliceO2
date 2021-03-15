@@ -77,19 +77,8 @@ class TOFDPLClustererTask
     auto digits = pc.inputs().get<gsl::span<o2::tof::Digit>>("tofdigits");
     auto row = pc.inputs().get<std::vector<o2::tof::ReadoutWindowData>*>("readoutwin");
 
-    //auto header = o2::header::get<o2::header::DataHeader*>(pc.inputs().get("tofdigits").header);
-
-    if (row->size() > 0) {
-      mClusterer.setFirstOrbit(row->at(0).mFirstIR.orbit);
-    }
-
-    //RSTODO: below is a hack, to remove once the framework will start propagating the header.firstTForbit
-    //Here I extract the orbit/BC from the abs.BC, since the triggerer orbit/bunch are not set. Then why they are needed?
-    //    if (digits.size()) {
-    //      auto bcabs = digits[0].getBC();
-    //      auto ir0 = o2::raw::HBFUtils::Instance().getFirstIRofTF({uint16_t(bcabs % Geo::BC_IN_ORBIT), uint32_t(bcabs / Geo::BC_IN_ORBIT)});
-    //      mClusterer.setFirstOrbit(ir0.orbit);
-    //    }
+    const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
+    mClusterer.setFirstOrbit(dh->firstTForbit);
 
     auto labelvector = std::make_shared<std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>>();
     if (mUseMC) {

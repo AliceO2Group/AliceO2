@@ -160,13 +160,8 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     mMatching.setFITInfoInp(fitInfo);
   }
 
-  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().get("trackITSROF").header);
+  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
   mMatching.setStartIR({0, dh->firstTForbit});
-
-  //RSTODO: below is a hack, to remove once the framework will start propagating the header.firstTForbit
-  if (tracksITSROF.size()) {
-    mMatching.setStartIR(o2::raw::HBFUtils::Instance().getFirstIRofTF(tracksITSROF[0].getBCData()));
-  }
 
   mMatching.run();
 
