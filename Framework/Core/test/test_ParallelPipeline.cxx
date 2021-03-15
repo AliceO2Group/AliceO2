@@ -179,7 +179,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
                   }
                 }),
     Outputs(),
-    AlgorithmSpec{adaptStateful([checkMap, bindings = std::move(bindings)](CallbackService& callbacks) {
+    AlgorithmSpec{[checkMap, bindings = std::move(bindings)](CallbackService& callbacks) {
       callbacks.set(CallbackService::Id::EndOfStream, [checkMap](EndOfStreamContext& ctx) {
         for (auto const& [subspec, pipeline] : *checkMap) {
           // we require all checks to be invalidated
@@ -218,7 +218,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
         // we require each input cycle to have data on datain channel
         ASSERT_ERROR(haveDataIn);
       });
-    })}});
+    }}});
 
   return workflowSpecs;
 }

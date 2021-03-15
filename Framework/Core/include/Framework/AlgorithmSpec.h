@@ -81,6 +81,16 @@ struct AlgorithmSpec {
   {
   }
 
+  template <typename LAMBDA>
+  AlgorithmSpec(LAMBDA l, decltype(adaptStatelessF(FFL(std::declval<LAMBDA>())))* = nullptr) : AlgorithmSpec(adaptStatelessF(FFL(l)))
+  {
+  }
+
+  template <typename LAMBDA>
+  AlgorithmSpec(LAMBDA l, decltype(adaptStatefulF(FFL(std::declval<LAMBDA>())))* = nullptr) : AlgorithmSpec(adaptStatefulF(FFL(l)))
+  {
+  }
+
   InitCallback onInit = nullptr;
   ProcessCallback onProcess = nullptr;
   ErrorCallback onError = nullptr;

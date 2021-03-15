@@ -42,13 +42,13 @@ void customize(std::vector<CompletionPolicy>& policies)
 
 AlgorithmSpec simplePipe(std::string const& what, int minDelay)
 {
-  return AlgorithmSpec{adaptStateful([what, minDelay]() {
+  return [what, minDelay]() {
     srand(getpid());
     return adaptStateless([what, minDelay](DataAllocator& outputs, RawDeviceService& device) {
       device.device()->WaitFor(std::chrono::seconds(rand() % 2));
       auto& bData = outputs.make<int>(OutputRef{what}, 1);
     });
-  })};
+  };
 }
 
 // This is how you can define your processing in a declarative way
@@ -59,13 +59,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
      Inputs{},
      {OutputSpec{{"a1"}, "TST", "A1"},
       OutputSpec{{"a2"}, "TST", "A2"}},
-     AlgorithmSpec{adaptStateless(
-       [](DataAllocator& outputs, InfoLogger& logger, RawDeviceService& device) {
-         device.device()->WaitFor(std::chrono::seconds(rand() % 2));
-         auto& aData = outputs.make<int>(OutputRef{"a1"}, 1);
-         auto& bData = outputs.make<int>(OutputRef{"a2"}, 1);
-         logger.log("This goes to infologger");
-       })},
+     [](DataAllocator& outputs, InfoLogger& logger, RawDeviceService& device) {
+       device.device()->WaitFor(std::chrono::seconds(rand() % 2));
+       auto& aData = outputs.make<int>(OutputRef{"a1"}, 1);
+       auto& bData = outputs.make<int>(OutputRef{"a2"}, 1);
+       logger.log("This goes to infologger");
+     },
      {ConfigParamSpec{"some-device-param", VariantType::Int, 1, {"Some device parameter"}}}},
     {"B",
      {InputSpec{"x", "TST", "A1", Lifetime::Timeframe, {ConfigParamSpec{"somestring", VariantType::String, "", {"Some input param"}}}}},
@@ -81,5 +80,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
        InputSpec{"c", "TST", "C1"},
      },
      Outputs{},
-     AlgorithmSpec{adaptStateless([]() {})}}};
+     adaptStateless([]() {})}};
 }
