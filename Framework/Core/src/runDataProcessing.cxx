@@ -150,9 +150,7 @@ std::vector<DeviceMetricsInfo> gDeviceMetricsInfos;
 bpo::options_description gHiddenDeviceOptions("Hidden child options");
 
 // To be used to allow specifying the TerminationPolicy on the command line.
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 std::istream& operator>>(std::istream& in, enum TerminationPolicy& policy)
 {
@@ -179,8 +177,45 @@ std::ostream& operator<<(std::ostream& out, const enum TerminationPolicy& policy
   }
   return out;
 }
-} // namespace framework
-} // namespace o2
+
+std::istream& operator>>(std::istream& in, enum LogParsingHelpers::LogLevel& level)
+{
+  std::string token;
+  in >> token;
+  if (token == "debug") {
+    level = LogParsingHelpers::LogLevel::Debug;
+  } else if (token == "info") {
+    level = LogParsingHelpers::LogLevel::Info;
+  } else if (token == "warning") {
+    level = LogParsingHelpers::LogLevel::Warning;
+  } else if (token == "error") {
+    level = LogParsingHelpers::LogLevel::Error;
+  } else if (token == "fatal") {
+    level = LogParsingHelpers::LogLevel::Fatal;
+  } else {
+    in.setstate(std::ios_base::failbit);
+  }
+  return in;
+}
+
+std::ostream& operator<<(std::ostream& out, const enum LogParsingHelpers::LogLevel& level)
+{
+  if (level == LogParsingHelpers::LogLevel::Debug) {
+    out << "debug";
+  } else if (level == LogParsingHelpers::LogLevel::Info) {
+    out << "info";
+  } else if (level == LogParsingHelpers::LogLevel::Warning) {
+    out << "warning";
+  } else if (level == LogParsingHelpers::LogLevel::Error) {
+    out << "error";
+  } else if (level == LogParsingHelpers::LogLevel::Fatal) {
+    out << "fatal";
+  } else {
+    out.setstate(std::ios_base::failbit);
+  }
+  return out;
+}
+} // namespace o2::framework
 
 size_t current_time_with_ms()
 {
@@ -271,23 +306,27 @@ bool areAllChildrenGone(std::vector<DeviceInfo>& infos)
 }
 
 /// Calculate exit code
-int calculateExitCode(DeviceSpecs& deviceSpecs, DeviceInfos& infos)
+namespace
+{
+int calculateExitCode(DriverInfo& driverInfo, DeviceSpecs& deviceSpecs, DeviceInfos& infos)
 {
   std::regex regexp(R"(^\[([\d+:]*)\]\[\w+\] )");
   int exitCode = 0;
   for (size_t di = 0; di < deviceSpecs.size(); ++di) {
     auto& info = infos[di];
     auto& spec = deviceSpecs[di];
-    if (info.maxLogLevel >= LogParsingHelpers::LogLevel::Error) {
-      LOG(ERROR) << "SEVERE: Device " << spec.name << " (" << info.pid << ") had at least one "
-                 << "message above severity ERROR: " << std::regex_replace(info.firstSevereError, regexp, "");
-      if (info.maxLogLevel >= LogParsingHelpers::LogLevel::Fatal) {
-        exitCode = 1;
-      }
+    if (info.maxLogLevel >= driverInfo.minFailureLevel) {
+      LOGP(ERROR, "SEVERE: Device {} ({}) had at least one message above severity {}: {}",
+           spec.name,
+           info.pid,
+           info.minFailureLevel,
+           std::regex_replace(info.firstSevereError, regexp, ""));
+      exitCode = 1;
     }
   }
   return exitCode;
 }
+} // namespace
 
 void createPipes(int* pipes)
 {
@@ -723,6 +762,7 @@ void spawnDevice(std::string const& forwardedStdin,
   info.historySize = 1000;
   info.historyPos = 0;
   info.maxLogLevel = LogParsingHelpers::LogLevel::Debug;
+  info.minFailureLevel = driverInfo.minFailureLevel;
   info.dataRelayerViewIndex = Metric2DViewIndex{"data_relayer", 0, 0, {}};
   info.variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}};
   info.queriesViewIndex = Metric2DViewIndex{"data_queries", 0, 0, {}};
@@ -865,7 +905,7 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
         info.maxLogLevel = logLevel;
         maxLogLevelIncreased = true;
       }
-      if (logLevel >= LogParsingHelpers::LogLevel::Error) {
+      if (logLevel >= driverInfo.minFailureLevel) {
         info.lastError = token;
         if (info.firstSevereError.empty() || maxLogLevelIncreased) {
           info.firstSevereError = token;
@@ -1637,7 +1677,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         } else {
           cleanupSHM(driverInfo.uniqueWorkflowId);
         }
-        return calculateExitCode(deviceSpecs, infos);
+        return calculateExitCode(driverInfo, deviceSpecs, infos);
       }
       case DriverState::PERFORM_CALLBACKS:
         for (auto& callback : driverControl.callbacks) {
@@ -1984,6 +2024,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
 
   enum TerminationPolicy policy;
   enum TerminationPolicy errorPolicy;
+  enum LogParsingHelpers::LogLevel minFailureLevel;
   bpo::options_description executorOptions("Executor options");
   const char* helpDescription = "print help: short, full, executor, or processor name";
   executorOptions.add_options()                                                                                                                //
@@ -2001,6 +2042,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
      "what to do when processing is finished: quit, wait")                                                                                     //                                                                                                                      //
     ("error-policy", bpo::value<TerminationPolicy>(&errorPolicy)->default_value(TerminationPolicy::QUIT),                                      //                                                                                                                          //
      "what to do when a device has an error: quit, wait")                                                                                      //                                                                                                                            //
+    ("min-failure-level", bpo::value<LogParsingHelpers::LogLevel>(&minFailureLevel)->default_value(LogParsingHelpers::LogLevel::Fatal),        //                                                                                                                          //
+     "minimum message level which will be considered as fatal and exit with 1")                                                                //                                                                                                                            //
     ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")                                            //                                                                                                                              //
     ("timeout,t", bpo::value<uint64_t>()->default_value(0), "forced exit timeout (in seconds)")                                                //                                                                                                                                //
     ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration")                                             //                                                                                                                                  //
@@ -2212,6 +2255,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   } else {
     driverInfo.errorPolicy = varmap["error-policy"].as<TerminationPolicy>();
   }
+  driverInfo.minFailureLevel = varmap["min-failure-level"].as<LogParsingHelpers::LogLevel>();
   driverInfo.startTime = uv_hrtime();
   driverInfo.timeout = varmap["timeout"].as<uint64_t>();
   driverInfo.deployHostname = varmap["hostname"].as<std::string>();
