@@ -240,8 +240,7 @@ struct HFCandidateCreator3ProngMC {
       // Λc± → p± K∓ π±
       if (flag == 0) {
         //Printf("Checking Λc± → p± K∓ π±");
-        auto isMatchedGenLc = RecoDecay::isMatchedMCGen(particlesMC, particle, 4122, array{+kProton, -kKPlus, +kPiPlus}, true, &sign, 2);
-        if (isMatchedGenLc) {
+        if (RecoDecay::isMatchedMCGen(particlesMC, particle, 4122, array{+kProton, -kKPlus, +kPiPlus}, true, &sign, 2)) {
           flag = sign * (1 << LcToPKPi);
 
           //Printf("Flagging the different Λc± → p± K∓ π± decay channels");
