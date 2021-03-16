@@ -291,7 +291,7 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   for (Int_t ix = 0; ix < 2; ix++) {
     float xin = -mInStart[0] + 0.3 + (ix + 0.5) * 2 * ptopref[0];
     for (Int_t iy = 0; iy < 2; iy++) {
-      z = -mInStart[2]  + ptopref[2];
+      z = -mInStart[2] + ptopref[2];
       float yin = -mInStart[1] + 0.3 + (iy + 0.5) * 2 * ptopref[1];
       ntops++;
       ins->AddNode(topref, ntops, new TGeoTranslation(xin, yin, z));
@@ -304,7 +304,7 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   TVirtualMC::GetMC()->Gsvolu("0MTO", "BOX", getMediumID(kOpGlass), pmcptopglass, 3); //Op  Glass
   TGeoVolume* mcptop = gGeoManager->GetVolume("0MTO");
   mcptop->Print();
-  z = -mInStart[2]  + 2 * ptopref[2] + pmcptopglass[2];
+  z = -mInStart[2] + 2 * ptopref[2] + pmcptopglass[2];
   ins->AddNode(mcptop, 1, new TGeoTranslation(0, 0, z));
 
   TVirtualMC::GetMC()->Gsvolu("0MCP", "BOX", getMediumID(kAir), pmcp, 3); //glass
@@ -331,7 +331,7 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   TVirtualMC::GetMC()->Gsvolu("0MBA", "BOX", getMediumID(kCeramic), pmcpbase, 3); //glass
   TGeoVolume* mcpbase = gGeoManager->GetVolume("0MBA");
   mcpbase->Print();
-  z = -mInStart[2]  + 2 * ptopref[2] + pmcptopglass[2] + 2 * pmcp[2] + pmcpbase[2];
+  z = -mInStart[2] + 2 * ptopref[2] + pmcptopglass[2] + 2 * pmcp[2] + pmcpbase[2];
   ins->AddNode(mcpbase, 1, new TGeoTranslation(0, 0, z));
 }
 
@@ -472,7 +472,7 @@ TGeoVolume* Detector::constructFrameGeometry()
   // holds 2 basic plates and 2 cable plates
   TGeoVolume* plateGroup = new TGeoVolume("plateGroup", new TGeoCompositeShape("plateGroup", plateGroupCompositeShapeBoolean().c_str()), Al); // holds 3 plate boxes
   // remove the material to form the sockets for the quartz radiators and PMTs
-  TGeoCompositeShape* frameRemovedPMTandRadiators1 = new TGeoCompositeShape("frameRemovedPMTandRadiators1", frame1CompositeShapeBoolean() .c_str());
+  TGeoCompositeShape* frameRemovedPMTandRadiators1 = new TGeoCompositeShape("frameRemovedPMTandRadiators1", frame1CompositeShapeBoolean().c_str());
   TGeoCompositeShape* frameRemovedPMTandRadiators2 = new TGeoCompositeShape("frameRemovedPMTandRadiators2", frame2CompositeShapeBoolean().c_str());
 
   // make the right side frame - L shape
