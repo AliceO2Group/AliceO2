@@ -27,7 +27,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set_property(GLOBAL PROPERTY REPORT_UNDEFINED_PROPERTIES)
 
 cmake_host_system_information(RESULT _totalmem QUERY TOTAL_PHYSICAL_MEMORY)
-set(ANALYSIS_COMPILE_POOL _totalmem/8000 CACHE STRING "How many parallel analysis compilation jobs")
+math(EXPR _total_analysis_jobs ${_totalmem}/8000)
+set(ANALYSIS_COMPILE_POOL ${_total_analysis_jobs} CACHE STRING "How many parallel analysis compilation jobs")
 set_property(GLOBAL PROPERTY JOB_POOLS analysis=${ANALYSIS_COMPILE_POOL})
 
 include(O2BuildSanityChecks)
