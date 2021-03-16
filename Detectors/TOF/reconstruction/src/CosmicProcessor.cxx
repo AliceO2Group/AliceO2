@@ -82,8 +82,9 @@ void CosmicProcessor::process(DigitDataReader& reader, bool fill)
       if (l < 500) {
         continue;
       }
-      if (pos2[1] > 0)
+      if (pos2[1] > 0) {
         l = -l;
+      }
 
       dtime -= l * 33.356409; // corrected for pad distance assuiming muonn downward
 
