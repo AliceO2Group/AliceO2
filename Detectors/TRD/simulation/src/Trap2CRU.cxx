@@ -92,9 +92,9 @@ void Trap2CRU::sortDataToLinks()
   std::iota(mDigitsIndex.begin(), mDigitsIndex.end(), 0);
 
   for (auto& trig : mDigitTriggerRecords) {
-    if (trig.getNumberOfObjects() != 0) {
-      LOG(debug) << " sorting digits from : " << trig.getFirstEntry() << " till " << trig.getFirstEntry() + trig.getNumberOfObjects();
-      std::stable_sort(mDigitsIndex.begin() + trig.getFirstEntry(), mDigitsIndex.begin() + trig.getNumberOfObjects() + trig.getFirstEntry(), //,digitcompare);
+    if (trig.getNumberOfDigits() != 0) {
+      LOG(debug) << " sorting digits from : " << trig.getFirstDigit() << " till " << trig.getFirstDigit() + trig.getNumberOfDigits();
+      std::stable_sort(mDigitsIndex.begin() + trig.getFirstDigit(), mDigitsIndex.begin() + trig.getNumberOfDigits() + trig.getFirstDigit(), //,digitcompare);
                        [this](const uint32_t i, const uint32_t j) { 
              uint32_t hcida = mDigits[i].getDetector() * 2 + (mDigits[i].getROB() % 2);
              uint32_t hcidb = mDigits[j].getDetector() * 2 + (mDigits[j].getROB() % 2);
@@ -104,9 +104,9 @@ void Trap2CRU::sortDataToLinks()
     }
   }
   for (auto& trig : mTrackletTriggerRecords) {
-    if (trig.getNumberOfObjects() > 0) {
-      LOG(debug) << " sorting digits from : " << trig.getFirstEntry() << " till " << trig.getFirstEntry() + trig.getNumberOfObjects();
-      std::stable_sort(std::begin(mTracklets) + trig.getFirstEntry(), std::begin(mTracklets) + trig.getNumberOfObjects() + trig.getFirstEntry(),
+    if (trig.getNumberOfTracklets() > 0) {
+      LOG(debug) << " sorting digits from : " << trig.getFirstTracklet() << " till " << trig.getFirstTracklet() + trig.getNumberOfTracklets();
+      std::stable_sort(std::begin(mTracklets) + trig.getFirstTracklet(), std::begin(mTracklets) + trig.getNumberOfTracklets() + trig.getFirstTracklet(),
                        [this](auto&& t1, auto&& t2) {
                          if (t1.getHCID() != t2.getHCID()) {
                            return t1.getHCID() < t2.getHCID();
@@ -121,6 +121,25 @@ void Trap2CRU::sortDataToLinks()
 
   std::chrono::duration<double> duration = std::chrono::high_resolution_clock::now() - sortstart;
   LOG(debug) << "TRD Digit/Tracklet Sorting took " << duration.count() << " s";
+}
+
+void Trap2CRU::mergetriggerDigitRanges()
+{
+  // pass through the digit ranges of the incoming tracklet triggers.
+  // this most handles the old data.
+  // trapsim should now be sending out the trigger with both information.
+  bool fixdigitinfo = false;
+  for (auto trig : mTrackletTriggerRecords) {
+    if (trig.getNumberOfDigits() != 0) {
+      fixdigitinfo = true;
+    }
+  }
+  if (fixdigitinfo) {
+    int counter = 0;
+    for (auto trig : mTrackletTriggerRecords) {
+      trig.setDigitRange(mDigitTriggerRecords[counter].getFirstDigit(), mDigitTriggerRecords[counter].getNumberOfDigits());
+    }
+  }
 }
 
 void Trap2CRU::readTrapData()
@@ -186,17 +205,21 @@ void Trap2CRU::readTrapData()
   for (int entry = 0; entry < mTrackletsTree->GetEntries(); entry++) {
     mTrackletsTree->GetEntry(entry);
     mDigitsTree->GetEntry(entry);
+    //migrate digit trigger information into the tracklettrigger (historical)
+    mergetriggerDigitRanges(); // merge data (if needed) from the digits trigger record to the tracklets trigger record (different files)
+
     //TODO figure out if want to care about unaligned trees.
     sortDataToLinks();
     // each entry is a timeframe
     uint32_t linkcount = 0;
     for (auto tracklettrigger : mTrackletTriggerRecords) {
-      for (auto digitstrigger : mDigitTriggerRecords) {
-        //get the event limits from TriggerRecord;
-        if (digitstrigger.getBCData() == tracklettrigger.getBCData()) {
-          convertTrapData(tracklettrigger, digitstrigger, triggercount);
-        }
-      }
+      //      for (auto digitstrigger : mDigitTriggerRecords) {
+      //        //get the event limits from TriggerRecord;
+      //        if (digitstrigger.getBCData() == tracklettrigger.getBCData()) {
+      //          convertTrapData(tracklettrigger, digitstrigger, triggercount);
+      //        }
+      convertTrapData(tracklettrigger, triggercount); // tracklettrigger assumed to be authoritive, TODO check for blanks digits range
+      //      }
       triggercount++;
     }
   }
@@ -445,7 +468,7 @@ int Trap2CRU::writeHCHeader(const int eventcount, const uint32_t linkid)
   return wordswritten;
 }
 
-void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& trackletTriggerRecord, o2::trd::TriggerRecord const& digitTriggerRecord, const int& triggercount)
+void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, const int& triggercount)
 {
   //  LOG(info) << "starting :" << __func__ ; //<<
   //build a HalfCRUHeader for this event/cru/endpoint
@@ -460,8 +483,7 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& trackletTriggerReco
   int rawwords = 0;
   char* rawdataptratstart;
   std::vector<char> rawdatavector(1024 * 1024 * 2); // sum of link sizes + padding in units of bytes and some space for the header (512 bytes).
-  LOG(debug) << "BUNCH CROSSING : " << trackletTriggerRecord.getBCData().bc << " with orbit : " << trackletTriggerRecord.getBCData().orbit;
-  LOG(debug) << "BUNCH CROSSING : " << digitTriggerRecord.getBCData().bc << " with orbit : " << digitTriggerRecord.getBCData().orbit;
+  LOG(debug) << "BUNCH CROSSING : " << triggerrecord.getBCData().bc << " with orbit : " << triggerrecord.getBCData().orbit;
   for (int halfcru = 0; halfcru < o2::trd::constants::NHALFCRU; halfcru++) {
     int halfcruwordswritten = 0;
     int supermodule = halfcru / 4; // 2 cru per supermodule.
@@ -476,7 +498,7 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& trackletTriggerReco
     int numberofdetectors = o2::trd::constants::MAXCHAMBER;
     HalfCRUHeader halfcruheader;
     //now write the cruheader at the head of all the data for this halfcru.
-    buildHalfCRUHeader(halfcruheader, trackletTriggerRecord.getBCData().bc, halfcru);
+    buildHalfCRUHeader(halfcruheader, triggerrecord.getBCData().bc, halfcru);
     halfcruheader.EndPoint = mEndPointID;
     mRawDataPtr = rawdatavector.data();
     memcpy(mRawDataPtr, (char*)&halfcruheader, sizeof(halfcruheader));
@@ -596,7 +618,7 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& trackletTriggerReco
     std::vector<char> feeidpayload(halfcruwordswritten * 4);
     memcpy(feeidpayload.data(), &rawdatavector[0], halfcruwordswritten * 4);
     assert(halfcruwordswritten % 8 == 0);
-    mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, trackletTriggerRecord.getBCData(), feeidpayload);
+    mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, triggerrecord.getBCData(), feeidpayload);
     LOG(debug) << "written file for feeid of 0x" << std::hex << mFeeID << " and payload size of : " << halfcruwordswritten;
   }
 }
