@@ -39,7 +39,7 @@ class Trap2CRU
   Trap2CRU(const std::string& outputDir, const std::string& inputDigitsFilename, const std::string& inputTrackletsFilename);
   //Trap2CRU(const std::string& outputDir, const std::string& inputFilename, const std::string& inputDigitsFilename, const std::string& inputTrackletsFilename);
   void readTrapData();
-  void convertTrapData(o2::trd::TriggerRecord const& trackletTrigRecord, o2::trd::TriggerRecord const& digitTriggerRecord, const int& triggercount);
+  void convertTrapData(o2::trd::TriggerRecord const& trigrecord, const int& triggercount);
   // default for now will be file per half cru as per the files Guido did for us.
   void setFilePer(std::string fileper) { mFilePer = fileper; };
   std::string getFilePer() { return mFilePer; };
@@ -64,6 +64,8 @@ class Trap2CRU
   bool digitindexcompare(const o2::trd::Digit& A, const o2::trd::Digit& B);
   //boohhl digitindexcompare(const unsigned int A, const unsigned int B);
   o2::trd::Digit& getDigitAt(const int i) { return mDigits[mDigitsIndex[i]]; };
+
+  void mergetriggerDigitRanges();
 
  private:
   int mfileGranularity; /// per link or per half cru for each file
