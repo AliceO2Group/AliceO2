@@ -98,8 +98,12 @@ void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<
         LOG(WARN) << "TRD conversion of signals to digits failed";
       }
       for (const auto& iter : smc) {
-        if (iter.second.isDigit)
+        if (iter.second.isDigit) {
           labels.addElements(labels.getIndexedSize(), iter.second.labels);
+          if (iter.second.isShared) {
+            labels.addElements(labels.getIndexedSize(), iter.second.labels); // shared digit is a copy of the previous one, need to add the same labels again
+          }
+        }
       }
     }
   } else {
@@ -111,8 +115,12 @@ void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<
         LOG(WARN) << "TRD conversion of signals to digits failed";
       }
       for (const auto& iter : smc) {
-        if (iter.second.isDigit)
+        if (iter.second.isDigit) {
           labels.addElements(labels.getIndexedSize(), iter.second.labels);
+          if (iter.second.isShared) {
+            labels.addElements(labels.getIndexedSize(), iter.second.labels); // shared digit is a copy of the previous one, need to add the same labels again
+          }
+        }
       }
     }
   }
@@ -121,9 +129,10 @@ void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<
 
 SignalContainer Digitizer::addSignalsFromPileup()
 {
-  int count = 0;
   SignalContainer addedSignalsMap;
+  int nSignalsToRemove = 0;
   for (const auto& collection : mPileupSignals) {
+    bool pileupSignalBecomesObsolete = false;
     for (int det = 0; det < MAXCHAMBER; ++det) {
       const auto& signalMap = collection[det]; //--> a map with active pads only for this chamber
       for (const auto& signal : signalMap) {   // loop over active pads only, if there is any
@@ -131,12 +140,13 @@ SignalContainer Digitizer::addSignalsFromPileup()
         const SignalArray& signalArray = signal.second;
         // check if the signal is from a previous event
         if (signalArray.firstTBtime < mCurrentTriggerTime) {
-          if ((mCurrentTriggerTime - signalArray.firstTBtime) < BUSY_TIME) {
+          pileupSignalBecomesObsolete = true;
+          if ((mCurrentTriggerTime - signalArray.firstTBtime) > READOUT_TIME) { // OS: READOUT_TIME should actually be drift time (we want to ignore signals which don't contribute signal anymore at mCurrentTriggerTime)
             continue; // ignore the signal if it  is too old.
           }
           // add only what's leftover from this signal
           // 0.01 = samplingRate/1000, 1/1000 to go from ns to micro-s, the sampling rate is in 1/micro-s
-          int idx = (int)((mCurrentTriggerTime - signalArray.firstTBtime) * 0.01); // number of bins to add, from the tail
+          int idx = (int)((mCurrentTriggerTime - signalArray.firstTBtime) * 0.01); // number of bins to skip
           auto it0 = signalArray.signals.begin() + idx;
           auto it1 = addedSignalsMap[key].signals.begin();
           while (it0 < signalArray.signals.end()) {
@@ -145,8 +155,8 @@ SignalContainer Digitizer::addSignalsFromPileup()
             it1++;
           }
         } else {
-          // the signal is from a triggered event
-          int idx = (int)((signalArray.firstTBtime - mCurrentTriggerTime) * 0.01); // number of bins to add, on the tail of the final signal
+          // the signal is from a subsequent event
+          int idx = (int)((signalArray.firstTBtime - mCurrentTriggerTime) * 0.01); // time bin offset of the pileup signal wrt trigger time. Number of time bins to be added to the signal is constants::TIMEBINS - idx
           auto it0 = signalArray.signals.begin();
           auto it1 = addedSignalsMap[key].signals.begin() + idx;
           while (it1 < addedSignalsMap[key].signals.end()) {
@@ -154,24 +164,20 @@ SignalContainer Digitizer::addSignalsFromPileup()
             it0++;
             it1++;
           }
-          if (it0 < signalArray.signals.end()) {
-            count++; // add one more element to keep from the tail of the deque
-          }
         }
-
-        // do we need to set this for further processing?, it is ok for setting up the full-signal map
-        addedSignalsMap[key].firstTBtime = mCurrentTriggerTime;
-
         // keep the labels
         for (const auto& label : signalArray.labels) {
+          // do we want to keep all labels? what about e.g. a TR signal which does not contribute to the pileup of a previous event since the signal arrives too late, but then we will have its label?
           (addedSignalsMap[key].labels).push_back(label); // maybe check if the label already exists? is that even possible?
         }
       } // loop over active pads in detector
     }   // loop over detectors
+    if (pileupSignalBecomesObsolete) {
+      ++nSignalsToRemove;
+    }
   }     // loop over pileup container
   // remove all used added signals, keep those that can pileup to newer events.
-  const int numberOfElementsToPop = mPileupSignals.size() - count;
-  for (int i = 0; i < numberOfElementsToPop; ++i) {
+  for (int i = 0; i < nSignalsToRemove; ++i) {
     mPileupSignals.pop_front();
   }
   return addedSignalsMap;
@@ -190,8 +196,7 @@ void Digitizer::clearContainers()
   }
 }
 
-void Digitizer::process(std::vector<Hit> const& hits, DigitContainer& digits,
-                        o2::dataformats::MCTruthContainer<MCLabel>& labels)
+void Digitizer::process(std::vector<Hit> const& hits)
 {
   if (!mCalib) {
     LOG(FATAL) << "TRD Calibration database not available";
@@ -390,7 +395,7 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
       // The time bin (always positive), with t0 distortion
       double timeBinIdeal = driftTime * mSamplingRate + t0;
       // Protection
-      if (std::fabs(timeBinIdeal) > (2 * mMaxTimeBins)) {
+      if (std::fabs(timeBinIdeal) > (2 * mMaxTimeBins)) { // OS: why 2*mMaxTimeBins?
         timeBinIdeal = 2 * mMaxTimeBins;
       }
       int timeBinTruncated = ((int)timeBinIdeal);
@@ -417,7 +422,7 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
         auto& currentSignal = currentSignalData.signals;
         auto& trackIds = currentSignalData.trackIds;
         auto& labels = currentSignalData.labels;
-        currentSignalData.firstTBtime = mCurrentTriggerTime;
+        currentSignalData.firstTBtime = mTime;
         addLabel(hit, labels, trackIds); // add a label record only if needed
 
         // add signal with crosstalk for the non-central pads only
@@ -522,6 +527,22 @@ bool Digitizer::convertSignalsToADC(SignalContainer& signalMapCont, DigitContain
     } // loop over timebins
     // Convert the map to digits here, and push them to the container
     digits.emplace_back(det, row, col, adcs);
+    if (mCreateSharedDigits) {
+      auto digit = digits.back();
+      if ((digit.getChannel() == 2) && !((digit.getROB() % 2 != 0) && (digit.getMCM() % NMCMROBINCOL == 3))) {
+        // shared left, if not leftmost MCM of left ROB of chamber
+        int robShared = (digit.getMCM() % NMCMROBINCOL == 3) ? digit.getROB() + 1 : digit.getROB(); // for the leftmost MCM on a ROB the shared digit is added to the neighbouring ROB
+        int mcmShared = (robShared == digit.getROB()) ? digit.getMCM() + 1 : digit.getMCM() - 3;
+        digits.emplace_back(det, robShared, mcmShared, NADCMCM - 1, adcs);
+        signalMapIter.second.isShared = true;
+      } else if ((digit.getChannel() == 18 || digit.getChannel() == 19) && !((digit.getROB() % 2 == 0) && (digit.getMCM() % NMCMROBINCOL == 0))) {
+        // shared right, if not rightmost MCM of right ROB of chamber
+        int robShared = (digit.getMCM() % NMCMROBINCOL == 0) ? digit.getROB() - 1 : digit.getROB(); // for the rightmost MCM on a ROB the shared digit is added to the neighbouring ROB
+        int mcmShared = (robShared == digit.getROB()) ? digit.getMCM() - 1 : digit.getMCM() + 3;
+        digits.emplace_back(det, robShared, mcmShared, digit.getChannel() - NCOLMCM, adcs);
+        signalMapIter.second.isShared = true;
+      }
+    }
   } // loop over digits
   return true;
 }
