@@ -67,14 +67,25 @@ enum StyleType : int {
 };
 
 static std::vector<std::pair<std::string, StyleType>> tableStyles = {
-  {"HfTrackIndexProng", StyleType::GREEN},
+  {"HfTrackIndexProng", StyleType::BLUE},
   {"pidResp", StyleType::GREEN},
   {"Mults", StyleType::GREEN},
   {"Cents", StyleType::GREEN},
+  {"Timestamps", StyleType::GREEN},
   {"Jet", StyleType::BLUE},
   {"Mc", StyleType::RED},
   {"V0Datas", StyleType::GREEN},
-  {"CascData", StyleType::GREEN}};
+  {"CascData", StyleType::GREEN},
+  {"TrackSelection", StyleType::GREEN},
+  {"TracksExtended", StyleType::GREEN},
+  {"TracksExtension", StyleType::GREEN},
+  {"TracksCovExtension", StyleType::GREEN},
+  {"TransientV0s", StyleType::GREEN},
+  {"TransientCascades", StyleType::GREEN},
+  {"MFTTracksExtension", StyleType::GREEN},
+  {"FwdTracksExtension", StyleType::GREEN},
+  {"FwdTracksCovExtension", StyleType::GREEN},
+};
 
 template <typename T>
 Style getStyleFor()
@@ -238,6 +249,7 @@ int main(int, char**)
   displayEntity<FT0s>();
   displayEntity<FV0As>();
   displayEntity<FDDs>();
+  displayEntity<HMPIDs>();
 
   displayEntities<Collisions, Cents, Mults, Timestamps>();
   displayEntity<McCollisions>();
@@ -248,9 +260,11 @@ int main(int, char**)
   displayEntity<McCaloLabels>();
 
   displayEntity<FV0Cs>();
+  displayEntity<Run2BCInfos>();
 
   displayEntities<Tracks, TracksCov, TracksExtra, TracksExtended, TrackSelection, pidRespTOF, pidRespTPC>();
   displayEntity<UnassignedTracks>();
+  displayEntity<UnassignedMFTTracks>();
 
   displayEntity<McParticles>();
   displayEntity<McTrackLabels>();
@@ -265,8 +279,7 @@ int main(int, char**)
 
   displayEntities<Cascades, CascDataFull>();
 
-  displayEntity<Muons>();
-  displayEntity<MuonClusters>();
+  displayEntities<MFTTracks, FwdTracks, FwdTracksCov>();
 
   graphFooter();
   return 0;
