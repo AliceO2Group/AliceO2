@@ -178,6 +178,8 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       }
 
       LOG(DEBUG) << decoder.getRCUTrailer();
+      // Apply zero suppression only in case it was enabled
+      mRawFitter->setIsZeroSuppressed(decoder.getRCUTrailer().hasZeroSuppression());
 
       const auto& map = mMapper->getMappingForDDL(feeID);
       int iSM = feeID / 2;
