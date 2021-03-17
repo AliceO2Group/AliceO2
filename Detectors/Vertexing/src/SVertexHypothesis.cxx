@@ -8,27 +8,26 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file V0Hypothesis.cxx
+/// \file SVertexHypothesis.cxx
 /// \brief V0 hypothesis checker
 /// \author ruben.shahoyan@cern.ch
 
-#include "DetectorsVertexing/V0Hypothesis.h"
+#include "DetectorsVertexing/SVertexHypothesis.h"
 
 using namespace o2::vertexing;
 
-void V0Hypothesis::set(PID v0, PID ppos, PID pneg, float sig, float nSig, float margin, float cpt, float bz)
+void SVertexHypothesis::set(PID v0, PID ppos, PID pneg, float sig, float nSig, float margin, float cpt, float bz)
 {
   mPIDV0 = v0;
   mPIDPosProng = ppos;
   mPIDNegProng = pneg;
-  mSigma = sig;
-  mNSigma = nSig;
-  mMargin = margin;
-  mCPt = std::abs(bz) > 1e-3 ? cpt * 5.0066791 / bz : 0.; // assume that pT dependent sigma is linear with B
+  mPars[SigmaM] = sig;
+  mPars[NSigmaM] = nSig;
+  mPars[MarginM] = margin;
+  mPars[CPt] = std::abs(bz) > 1e-3 ? cpt * 5.0066791 / bz : 0.; // assume that pT dependent sigma is linear with B
 }
 
-void V0Hypothesis::set(PID v0, PID ppos, PID pneg, const float pars[SVertexerParams::NPIDParams], float bz)
+void SVertexHypothesis::set(PID v0, PID ppos, PID pneg, const float pars[NPIDParams], float bz)
 {
-  set(v0, ppos, pneg, pars[SVertexerParams::SigmaMV0], pars[SVertexerParams::NSigmaMV0],
-      pars[SVertexerParams::Margin], pars[SVertexerParams::CPt], bz);
+  set(v0, ppos, pneg, pars[SigmaM], pars[NSigmaM], pars[MarginM], pars[CPt], bz);
 }

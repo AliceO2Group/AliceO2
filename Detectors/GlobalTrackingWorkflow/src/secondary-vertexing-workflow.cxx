@@ -35,7 +35,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"vertexing-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use in vertexing"}},
-    {"enable-cascade-finder", o2::framework::VariantType::Bool, false, {"run cascade finder for each V0"}},
+    {"disable-cascade-finder", o2::framework::VariantType::Bool, false, {"do not run cascade finder"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 
   std::swap(workflowOptions, options);
@@ -56,7 +56,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   bool useMC = false;
   auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
-  auto enableCasc = configcontext.options().get<bool>("enable-cascade-finder");
+  auto enableCasc = !configcontext.options().get<bool>("disable-cascade-finder");
 
   GID::mask_t srcSV = alowedSourcesSV & GID::getSourcesMask(configcontext.options().get<std::string>("vertexing-sources"));
   WorkflowSpec specs;

@@ -147,7 +147,6 @@ class PVertexer
   static constexpr float kAlmost0F = 1e-12;  ///< tiny float
   static constexpr double kAlmost0D = 1e-16; ///< tiny double
 
-  ClassDefNV(PVertexer, 1);
 };
 
 //___________________________________________________________________

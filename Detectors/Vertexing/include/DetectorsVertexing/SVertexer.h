@@ -24,7 +24,7 @@
 #include "CommonDataFormat/RangeReference.h"
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "DetectorsVertexing/SVertexerParams.h"
-#include "DetectorsVertexing/V0Hypothesis.h"
+#include "DetectorsVertexing/SVertexHypothesis.h"
 
 namespace o2
 {
@@ -43,6 +43,21 @@ class SVertexer
   using Cascade = o2::dataformats::Cascade;
   using RRef = o2::dataformats::RangeReference<int, int>;
   using VBracket = o2::math_utils::Bracket<int>;
+
+  enum HypV0 { Photon,
+               K0,
+               Lambda,
+               AntiLambda,
+               HyperTriton,
+               AntiHyperTriton,
+               NHypV0 };
+
+  enum HypCascade {
+    XiMinus,
+    OmegaMinus,
+    NHypCascade
+  };
+
   static constexpr int POS = 0, NEG = 1;
   struct TrackCand : o2::track::TrackParCov {
     GIndex gid;
@@ -68,7 +83,7 @@ class SVertexer
 
  private:
   bool checkV0(TrackCand& seed0, TrackCand& seed1, int iP, int iN, int ithread);
-  int checkCascades(float r2v0, int avoidTrackID, int posneg, int ithread);
+  int checkCascades(float r2v0, float p2v0, int avoidTrackID, int posneg, int ithread);
   void setupThreads();
   void buildT2V(const gsl::span<const GIndex>& trackIndex, const gsl::span<const VRef>& vtxRefs, const o2::globaltracking::RecoContainer& recoTracks);
   void updateTimeDependentParams();
@@ -85,7 +100,9 @@ class SVertexer
   std::array<std::vector<int>, 2> mVtxFirstTrack{};    // 1st pos. and neg. track of the pools for each vertex
   o2d::VertexBase mMeanVertex{{0., 0., 0.}, {0.1 * 0.1, 0., 0.1 * 0.1, 0., 0., 6. * 6.}};
   const SVertexerParams* mSVParams = nullptr;
-  std::array<V0Hypothesis, SVertexerParams::NPIDV0> mV0Hyps;
+  std::array<SVertexHypothesis, NHypV0> mV0Hyps;
+  std::array<SVertexHypothesis, NHypCascade> mCascHyps;
+
   std::vector<DCAFitterN<2>> mFitterV0;
   std::vector<DCAFitterN<2>> mFitterCasc;
   int mNThreads = 1;
