@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ITSMFTWorkflow/DigitWriterSpec.h"
+#include "ITSMFTWorkflow/DigitReaderSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/ConfigParamSpec.h"
 
@@ -42,9 +42,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
   if (cfgc.options().get<bool>("runmft")) {
-    wf.emplace_back(o2::itsmft::getMFTDigitWriterSpec(useMC, true, calib));
+    wf.emplace_back(o2::itsmft::getMFTDigitReaderSpec(useMC, calib));
   } else {
-    wf.emplace_back(o2::itsmft::getITSDigitWriterSpec(useMC, true, calib));
+    wf.emplace_back(o2::itsmft::getITSDigitReaderSpec(useMC, calib));
   }
   return wf;
 }
