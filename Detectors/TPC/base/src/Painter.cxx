@@ -16,6 +16,7 @@
 #include "TAxis.h"
 #include "TH1.h"
 #include "TH2.h"
+#include "TH2Poly.h"
 #include "TCanvas.h"
 
 #include "TPCBase/ROC.h"
@@ -27,6 +28,41 @@
 #include "TPCBase/Utils.h"
 
 using namespace o2::tpc;
+
+std::vector<painter::PadCoordinates> painter::getPadCoordinatesSector()
+{
+  std::vector<painter::PadCoordinates> padCoords;
+
+  const auto& regInf = Mapper::instance().getMapPadRegionInfo();
+
+  for (const auto& padReg : regInf) {
+    const auto npr = padReg.getNumberOfPadRows();
+    const auto ro = padReg.getRowOffset();
+    const auto xm = padReg.getXhelper();
+    const auto ph = padReg.getPadHeight();
+    const auto pw = padReg.getPadWidth();
+    const auto yro = padReg.getRadiusFirstRow();
+    const auto ks = ph / pw * std::tan(1.74532925199432948e-01);
+
+    for (int irow = 0; irow < npr; ++irow) {
+      const auto npads = std::floor(ks * (irow + ro) + xm);
+      for (int ipad = -npads; ipad < npads; ++ipad) {
+        const auto xPadBottomRight = yro + ph * irow;
+        const auto xPadTopRight = yro + ph * (irow + 1);
+        const auto ri = xPadBottomRight;
+        const auto yPadBottomRight = pw * ipad * xPadBottomRight / (ri + ph / 2);
+        const auto yPadTopRight = pw * ipad * xPadTopRight / (ri + ph / 2);
+        const auto yPadBottomLeft = pw * (ipad + 1) * xPadBottomRight / (ri + ph / 2);
+        const auto yPadTopLeft = pw * (ipad + 1) * xPadTopRight / (ri + ph / 2);
+        auto& padCoord = padCoords.emplace_back();
+        padCoord.xVals = {xPadBottomRight, xPadTopRight, xPadTopRight, xPadBottomRight};
+        padCoord.yVals = {yPadBottomRight, yPadTopRight, yPadTopLeft, yPadBottomLeft};
+      }
+    }
+  }
+
+  return padCoords;
+}
 
 template <class T>
 TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float xMax1D, TCanvas* outputCanvas)
@@ -328,7 +364,7 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const CalDet<T>& calDet, int 
   return vecCanvases;
 }
 
-//==============================================================================
+//______________________________________________________________________________
 std::vector<TCanvas*> painter::makeSummaryCanvases(const std::string_view fileName, const std::string_view calPadNames, int nbins1D, float xMin1D, float xMax1D, bool onlyFilled)
 {
   using namespace o2::tpc;
@@ -347,6 +383,61 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const std::string_view fileNa
   return vecCanvases;
 }
 
+//______________________________________________________________________________
+TH2Poly* painter::makeSectorHist(const std::string_view name, const std::string_view title)
+{
+  auto poly = new TH2Poly(name.data(), title.data(), 83.65, 247.7, -43.7, 43.7);
+
+  auto coords = painter::getPadCoordinatesSector();
+  for (const auto& coord : coords) {
+    poly->AddBin(coord.xVals.size(), coord.xVals.data(), coord.yVals.data());
+  }
+
+  return poly;
+}
+
+//______________________________________________________________________________
+TH2Poly* painter::makeSideHist(Side side)
+{
+  const auto s = (side == Side::A) ? "A" : "C";
+  auto poly = new TH2Poly(fmt::format("hSide_{}", s).data(), fmt::format("{}-Side;#it{{x}} (cm);#it{{y}} (cm)", s).data(), -270., 270., -270., 270.);
+
+  auto coords = painter::getPadCoordinatesSector();
+  for (int isec = 0; isec < 18; ++isec) {
+    const float angDeg = 10.f + isec * 20;
+    for (auto coord : coords) {
+      coord.rotate(angDeg);
+      poly->AddBin(coord.xVals.size(), coord.xVals.data(), coord.yVals.data());
+    }
+  }
+
+  return poly;
+}
+
+//______________________________________________________________________________
+template <class T>
+void painter::fillPoly2D(TH2Poly& h2D, const CalDet<T>& calDet, Side side)
+{
+  static const Mapper& mapper = Mapper::instance();
+
+  int bin = 1;
+  for (const auto& calROC : calDet.getData()) {
+    ROC roc(calROC.getPadSubsetNumber());
+    if (roc.side() != side) {
+      continue;
+    }
+
+    const int nrows = mapper.getNumberOfRowsROC(roc);
+    for (int irow = 0; irow < nrows; ++irow) {
+      const int padMax = mapper.getNumberOfPadsInRowROC(roc, irow) - 1;
+      for (int ipad = 0; ipad <= padMax; ++ipad) {
+        const auto val = calDet.getValue(roc, irow, (side == Side::A) ? ipad : padMax - ipad); // C-Side is mirrored
+        h2D.SetBinContent(bin++, val);
+      }
+    }
+  }
+}
+
 // ===| explicit instantiations |===============================================
 // this is required to force the compiler to create instances with the types
 // we usually would like to deal with
@@ -354,6 +445,7 @@ template TCanvas* painter::draw<float>(const CalDet<float>& calDet, int, float, 
 template std::vector<TCanvas*> painter::makeSummaryCanvases<float>(const CalDet<float>& calDet, int, float, float, bool, std::vector<TCanvas*>*);
 template TCanvas* painter::draw<float>(const CalArray<float>& calArray);
 template void painter::fillHistogram2D<float>(TH2& h2D, const CalDet<float>& calDet, Side side);
+template void painter::fillPoly2D<float>(TH2Poly& h2D, const CalDet<float>& calDet, Side side);
 template void painter::fillHistogram2D<float>(TH2& h2D, const CalArray<float>& calArray);
 template TH2* painter::getHistogram2D<float>(const CalDet<float>& calDet, Side side);
 template TH2* painter::getHistogram2D<float>(const CalArray<float>& calArray);
