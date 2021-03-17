@@ -131,7 +131,7 @@ struct Digit {
   int getEventID() const { return mEventID; }
   o2::InteractionRecord getIntRecord() const { return mIntRecord; };
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
-
+  DetTrigInput makeTrgInput() const { return DetTrigInput{mIntRecord, mTriggers.getOrA(), mTriggers.getOrC(), mTriggers.getVertex(), mTriggers.getCen(), mTriggers.getSCen()}; }
   void printStream(std::ostream& stream) const;
   void setTriggers(Triggers trig) { mTriggers = trig; };
   void setEventStatus(uint8_t stat) { mEventStatus = stat; };

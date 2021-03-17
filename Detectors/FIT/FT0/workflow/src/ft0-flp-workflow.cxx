@@ -46,6 +46,11 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
                     o2::framework::VariantType::Bool,
                     false,
                     {"disable root-files output writers"}});
+  workflowOptions.push_back(
+    ConfigParamSpec{"disable-trigger-input",
+                    o2::framework::VariantType::Bool,
+                    false,
+                    {"disable trigger input DPL channel"}});
 }
 
 // ------------------------------------------------------------------
@@ -61,7 +66,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto isExtendedMode = configcontext.options().get<bool>("tcm-extended-mode");
   auto disableRootOut =
     configcontext.options().get<bool>("disable-root-output");
+  auto disableTrgInput =
+    configcontext.options().get<bool>("disable-trigger-input");
   LOG(INFO) << "WorkflowSpec FLPWorkflow";
   return std::move(o2::ft0::getFT0Workflow(
-    isExtendedMode, useProcessor, dumpProcessor, dumpReader, disableRootOut));
+    isExtendedMode, useProcessor, dumpProcessor, dumpReader, disableRootOut, disableTrgInput));
 }

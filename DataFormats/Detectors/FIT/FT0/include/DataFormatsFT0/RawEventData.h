@@ -149,9 +149,8 @@ struct TCMdata {
                          ((bool)orC << Triggers::bitC) |
                          ((bool)vertex << Triggers::bitVertex) |
                          ((bool)cen << Triggers::bitCen) |
-                         ((bool)sCen << Triggers::bitSCen) /*|
-                         ((bool)laser << Triggers::bitLaser) */
-      ;
+                         ((bool)sCen << Triggers::bitSCen) |
+                         ((bool)laser << Triggers::bitLaser);
     trg.nChanA = (int8_t)nChanA;
     trg.nChanC = (int8_t)nChanC;
     trg.amplA = (int32_t)amplA;
