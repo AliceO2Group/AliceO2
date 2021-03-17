@@ -68,6 +68,7 @@ enum StyleType : int {
 
 static std::vector<std::pair<std::string, StyleType>> tableStyles = {
   {"HfTrackIndexProng", StyleType::BLUE},
+  {"HfCandProng", StyleType::BLUE},
   {"pidResp", StyleType::GREEN},
   {"Mults", StyleType::GREEN},
   {"Cents", StyleType::GREEN},
@@ -78,13 +79,8 @@ static std::vector<std::pair<std::string, StyleType>> tableStyles = {
   {"CascData", StyleType::GREEN},
   {"TrackSelection", StyleType::GREEN},
   {"TracksExtended", StyleType::GREEN},
-  {"TracksExtension", StyleType::GREEN},
-  {"TracksCovExtension", StyleType::GREEN},
-  {"TransientV0s", StyleType::GREEN},
-  {"TransientCascades", StyleType::GREEN},
-  {"MFTTracksExtension", StyleType::GREEN},
-  {"FwdTracksExtension", StyleType::GREEN},
-  {"FwdTracksCovExtension", StyleType::GREEN},
+  {"Transient", StyleType::GREEN},
+  {"Extension", StyleType::GREEN},
 };
 
 template <typename T>
@@ -269,9 +265,6 @@ int main(int, char**)
   displayEntity<McParticles>();
   displayEntity<McTrackLabels>();
 
-  displayEntity<HfTrackIndexProng2>();
-  displayEntity<HfTrackIndexProng3>();
-
   displayEntity<Jets>();
   displayEntity<JetConstituents>();
 
@@ -280,6 +273,9 @@ int main(int, char**)
   displayEntities<Cascades, CascDataFull>();
 
   displayEntities<MFTTracks, FwdTracks, FwdTracksCov>();
+
+  displayEntities<HfTrackIndexProng2, HfCandProng2>();
+  displayEntities<HfTrackIndexProng3, HfCandProng3>();
 
   graphFooter();
   return 0;
