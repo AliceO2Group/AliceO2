@@ -138,7 +138,7 @@ struct HFJpsiToEECandidateSelector {
   template <typename T>
   bool selectionPIDTPC(const T& track, int nSigmaCut)
   {
-    if (nSigmaCut > 10) {
+    if (nSigmaCut > 999.) {
       return true;
     }
     return track.tpcNSigmaEl() < nSigmaCut;
