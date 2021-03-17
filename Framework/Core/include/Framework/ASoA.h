@@ -1480,23 +1480,30 @@ constexpr auto is_binding_compatible_v()
 #define DECLARE_SOA_TABLE(_Name_, _Origin_, _Description_, ...) \
   DECLARE_SOA_TABLE_FULL(_Name_, #_Name_, _Origin_, _Description_, __VA_ARGS__);
 
-#define DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, _Origin_, _Description_, ...)   \
-  using _Name_##Extension = o2::soa::Table<__VA_ARGS__>;                                 \
-  using _Name_ = o2::soa::Join<_Name_##Extension, _Table_>;                              \
-                                                                                         \
-  struct _Name_##ExtensionMetadata : o2::soa::TableMetadata<_Name_##ExtensionMetadata> { \
-    using table_t = _Name_##Extension;                                                   \
-    using base_table_t = typename _Table_::table_t;                                      \
-    using expression_pack_t = framework::pack<__VA_ARGS__>;                              \
-    using originals = soa::originals_pack_t<_Table_>;                                    \
-    static constexpr char const* mLabel = #_Name_ "Extension";                           \
-    static constexpr char const mOrigin[4] = _Origin_;                                   \
-    static constexpr char const mDescription[16] = _Description_;                        \
-  };                                                                                     \
-                                                                                         \
-  template <>                                                                            \
-  struct MetadataTrait<_Name_##Extension> {                                              \
-    using metadata = _Name_##ExtensionMetadata;                                          \
+#define DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, _Origin_, _Description_, ...)                                          \
+  struct _Name_##Extension : o2::soa::Table<__VA_ARGS__> {                                                                      \
+    using base_t = o2::soa::Table<__VA_ARGS__>;                                                                                 \
+    _Name_##Extension(std::shared_ptr<arrow::Table> table, uint64_t offset = 0) : o2::soa::Table<__VA_ARGS__>(table, offset){}; \
+    _Name_##Extension(_Name_##Extension const&) = default;                                                                      \
+    _Name_##Extension(_Name_##Extension&&) = default;                                                                           \
+    using iterator = typename base_t::template RowView<_Name_##Extension, _Name_##Extension>;                                   \
+    using const_iterator = iterator;                                                                                            \
+  };                                                                                                                            \
+  using _Name_ = o2::soa::Join<_Name_##Extension, _Table_>;                                                                     \
+                                                                                                                                \
+  struct _Name_##ExtensionMetadata : o2::soa::TableMetadata<_Name_##ExtensionMetadata> {                                        \
+    using table_t = _Name_##Extension;                                                                                          \
+    using base_table_t = typename _Table_::table_t;                                                                             \
+    using expression_pack_t = framework::pack<__VA_ARGS__>;                                                                     \
+    using originals = soa::originals_pack_t<_Table_>;                                                                           \
+    static constexpr char const* mLabel = #_Name_ "Extension";                                                                  \
+    static constexpr char const mOrigin[4] = _Origin_;                                                                          \
+    static constexpr char const mDescription[16] = _Description_;                                                               \
+  };                                                                                                                            \
+                                                                                                                                \
+  template <>                                                                                                                   \
+  struct MetadataTrait<_Name_##Extension> {                                                                                     \
+    using metadata = _Name_##ExtensionMetadata;                                                                                 \
   };
 
 #define DECLARE_SOA_EXTENDED_TABLE(_Name_, _Table_, _Description_, ...) \
