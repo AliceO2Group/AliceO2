@@ -104,6 +104,11 @@ class DCAFitterN
   //=========================================================================
   ///< return PCA candidate, by default best on is provided (no check for the index validity)
   const Vec3D& getPCACandidate(int cand = 0) const { return mPCA[mOrder[cand]]; }
+  const auto getPCACandidatePos(int cand = 0) const
+  {
+    const auto& vd = mPCA[mOrder[cand]];
+    return std::array<float, 3>{float(vd[0]), float(vd[1]), float(vd[2])};
+  }
 
   ///< return Chi2 at PCA candidate (no check for its validity)
   float getChi2AtPCACandidate(int cand = 0) const { return mChi2[mOrder[cand]]; }
@@ -117,7 +122,7 @@ class DCAFitterN
 
   ///< track param propagated to V0 candidate (no check for the candidate validity)
   ///  propagateTracksToVertex must be called in advance
-  const Track& getTrack(int i, int cand = 0) const
+  Track& getTrack(int i, int cand = 0)
   {
     if (!mTrPropDone[mOrder[cand]]) {
       throw std::runtime_error("propagateTracksToVertex was not called yet");
@@ -135,6 +140,12 @@ class DCAFitterN
   o2::track::TrackPar getTrackParamAtPCA(int i, int cand = 0) const;
 
   MatSym3D calcPCACovMatrix(int cand = 0) const;
+
+  std::array<float, 6> calcPCACovMatrixFlat(int cand = 0) const
+  {
+    auto m = calcPCACovMatrix(cand);
+    return {float(m(0, 0)), float(m(1, 0)), float(m(1, 1)), float(m(2, 0)), float(m(2, 1)), float(m(2, 2))};
+  }
 
   const Track* getOrigTrackPtr(int i) const { return mOrigTrPtr[i]; }
 
@@ -889,7 +900,6 @@ o2::track::TrackParCov DCAFitterN<N, Args...>::createParentTrackParCov(int cand,
 {
   const auto& trP = getTrack(0, cand);
   const auto& trN = getTrack(1, cand);
-  const auto& wvtx = getPCACandidate(cand);
   std::array<float, 21> covV = {0.};
   std::array<float, 3> pvecV = {0.};
   int q = 0;
@@ -915,8 +925,7 @@ o2::track::TrackParCov DCAFitterN<N, Args...>::createParentTrackParCov(int cand,
   covV[3] = covVtxV(2, 0);
   covV[4] = covVtxV(2, 1);
   covV[5] = covVtxV(2, 2);
-  const std::array<float, 3> vertex = {(float)wvtx[0], (float)wvtx[1], (float)wvtx[2]};
-  return std::move(o2::track::TrackParCov(vertex, pvecV, covV, q, sectorAlpha));
+  return std::move(o2::track::TrackParCov(getPCACandidatePos(cand), pvecV, covV, q, sectorAlpha));
 }
 
 //___________________________________________________________________
