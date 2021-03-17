@@ -39,6 +39,10 @@ struct DeviceInfo {
   size_t historySize;
   /// The maximum log level ever seen by this device
   LogParsingHelpers::LogLevel maxLogLevel;
+
+  /// The minimum level after which the device will exit with 0
+  LogParsingHelpers::LogLevel minFailureLevel;
+
   /// A circular buffer for the history of logs entries received
   /// by this device
   std::vector<std::string> history;
