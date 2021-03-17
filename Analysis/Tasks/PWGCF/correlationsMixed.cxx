@@ -223,11 +223,11 @@ struct CorrelationTaskMixed {
           }
 
           float deltaPhi = track1.phi() - track2.phi();
-          if (deltaPhi > 1.5 * TMath::Pi()) {
-            deltaPhi -= TMath::TwoPi();
+          if (deltaPhi > 1.5 * M_PI) {
+            deltaPhi -= M_PI * 2;
           }
-          if (deltaPhi < -0.5 * TMath::Pi()) {
-            deltaPhi += TMath::TwoPi();
+          if (deltaPhi < -0.5 * M_PI) {
+            deltaPhi += M_PI * 2;
           }
 
           mixed->getPairHist()->Fill(CorrelationContainer::kCFStepReconstructed,
@@ -387,20 +387,20 @@ struct CorrelationTaskMixed {
 
     // fold onto 0...pi
     float deltaPhi = TMath::Abs(phi1 - phi2);
-    while (deltaPhi > TMath::TwoPi()) {
-      deltaPhi -= TMath::TwoPi();
+    while (deltaPhi > M_PI * 2) {
+      deltaPhi -= M_PI * 2;
     }
-    if (deltaPhi > TMath::Pi()) {
-      deltaPhi = TMath::TwoPi() - deltaPhi;
+    if (deltaPhi > M_PI) {
+      deltaPhi = M_PI * 2 - deltaPhi;
     }
 
     float cosDeltaPhi = 0;
-    if (deltaPhi < TMath::Pi() / 3) {
+    if (deltaPhi < M_PI / 3) {
       cosDeltaPhi = 1.0 - deltaPhi * deltaPhi / 2 + deltaPhi * deltaPhi * deltaPhi * deltaPhi / 24;
-    } else if (deltaPhi < 2 * TMath::Pi() / 3) {
-      cosDeltaPhi = -(deltaPhi - TMath::Pi() / 2) + 1.0 / 6 * TMath::Power((deltaPhi - TMath::Pi() / 2), 3);
+    } else if (deltaPhi < 2 * M_PI / 3) {
+      cosDeltaPhi = -(deltaPhi - M_PI / 2) + 1.0 / 6 * TMath::Power((deltaPhi - M_PI / 2), 3);
     } else {
-      cosDeltaPhi = -1.0 + 1.0 / 2.0 * (deltaPhi - TMath::Pi()) * (deltaPhi - TMath::Pi()) - 1.0 / 24.0 * TMath::Power(deltaPhi - TMath::Pi(), 4);
+      cosDeltaPhi = -1.0 + 1.0 / 2.0 * (deltaPhi - M_PI) * (deltaPhi - M_PI) - 1.0 / 24.0 * TMath::Power(deltaPhi - M_PI, 4);
     }
 
     double mass2 = m0_1 * m0_1 + m0_2 * m0_2 + 2 * (TMath::Sqrt(e1squ * e2squ) - (pt1 * pt2 * (cosDeltaPhi + 1.0 / tantheta1 / tantheta2)));
@@ -471,16 +471,14 @@ struct CorrelationTaskMixed {
 
     float dphistar = phi1 - phi2 - charge1 * bSign * TMath::ASin(0.075 * radius / pt1) + charge2 * bSign * TMath::ASin(0.075 * radius / pt2);
 
-    static const Double_t kPi = TMath::Pi();
-
-    if (dphistar > kPi) {
-      dphistar = kPi * 2 - dphistar;
+    if (dphistar > M_PI) {
+      dphistar = M_PI * 2 - dphistar;
     }
-    if (dphistar < -kPi) {
-      dphistar = -kPi * 2 - dphistar;
+    if (dphistar < -M_PI) {
+      dphistar = -M_PI * 2 - dphistar;
     }
-    if (dphistar > kPi) { // might look funny but is needed
-      dphistar = kPi * 2 - dphistar;
+    if (dphistar > M_PI) { // might look funny but is needed
+      dphistar = M_PI * 2 - dphistar;
     }
 
     return dphistar;
