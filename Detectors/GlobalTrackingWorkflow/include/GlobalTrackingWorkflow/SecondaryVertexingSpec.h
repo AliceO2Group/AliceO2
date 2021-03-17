@@ -28,19 +28,20 @@ using namespace o2::framework;
 class SecondaryVertexingSpec : public Task
 {
  public:
-  SecondaryVertexingSpec() = default;
+  SecondaryVertexingSpec(bool enabCasc) : mEnableCascades(enabCasc) {}
   ~SecondaryVertexingSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(EndOfStreamContext& ec) final;
 
  private:
+  bool mEnableCascades = false;
   o2::vertexing::SVertexer mVertexer;
   TStopwatch mTimer;
 };
 
 /// create a processor spec
-DataProcessorSpec getSecondaryVertexingSpec(o2::dataformats::GlobalTrackID::mask_t src);
+DataProcessorSpec getSecondaryVertexingSpec(o2::dataformats::GlobalTrackID::mask_t src, bool enableCasc);
 
 } // namespace vertexing
 } // namespace o2

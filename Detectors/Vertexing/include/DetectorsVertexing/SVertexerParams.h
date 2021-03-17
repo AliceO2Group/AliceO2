@@ -44,12 +44,25 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   float minRelChi2Change = 0.9; ///< stop when chi2 changes by less than this value
   float maxDZIni = 5.;          ///< don't consider as a seed (circles intersection) if Z distance exceeds this
   float maxRIni = 150;          ///< don't consider as a seed (circles intersection) if its R exceeds this
-
   bool useAbsDCA = true; ///< use abs dca minimization
   //
-  float minRfromMeanVertex = 0.5;     ///< min radial distance of V0 from beam line (mean vertex)
-  float maxDCAXYfromMeanVertex = 0.2; ///< min DCA of V0 from beam line (mean vertex)
-  float minCosPointingAngle = 0.8;
+  float minRToMeanVertex = 0.5;           ///< min radial distance of V0 from beam line (mean vertex)
+  float maxDCAXYToMeanVertex = 0.2;       ///< max DCA of V0 from beam line (mean vertex) for prompt V0 candidates
+  float maxDCAXYToMeanVertexV0Casc = 0.5; ///< max DCA of V0 from beam line (mean vertex) for cascade V0 candidates
+
+  float minCosPAXYMeanVertex = 0.85;      ///< min cos of PA to beam line (mean vertex) in tr. plane for prompt V0 candidates
+  float minCosPAXYMeanVertexCascV0 = 0.8; ///< min cos of PA to beam line (mean vertex) in tr. plane for V0 of cascade cand.
+
+  float maxRToMeanVertexCascV0 = 80; // don't consider as a cascade V0 seed if above this R
+  float minCosPACascV0 = 0.8;        // min cos of pointing angle to PV for cascade V0 candidates
+
+  float minCosPA = 0.9; ///< min cos of PA to PV for prompt V0 candidates
+
+  float minRDiffV0Casc = 0.2; ///< cascade should be at least this radial distance below V0
+  float maxRIniCasc = 50.;    // don't consider as a cascade seed (circles/line intersection) if its R exceeds this
+
+  float maxDCAXYCasc = 0.3; // max DCA of cascade to PV in XY // TODO RS: shall we use real chi2 to vertex?
+  float maxDCAZCasc = 0.3;  // max DCA of cascade to PV in Z
 
   // cuts on different PID params
   float pidCutsPhoton[NPIDParams] = {0.001, 20, 0.60, 0.0};   // Photon
