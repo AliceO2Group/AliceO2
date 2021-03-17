@@ -43,7 +43,6 @@ void DigitReader::init(InitContext& ic)
     LOG(ERROR) << "Did not find o2sim tree in " << filename.c_str();
     throw std::runtime_error("Did not fine o2sim file in FT0 digits tree");
   }
-  //mUseTrgInput = !(ic.options().get<bool>("disable-trigger-input"));
 }
 
 void DigitReader::run(ProcessingContext& pc)

@@ -23,7 +23,10 @@ o2::framework::DataProcessorSpec getFT0DigitWriterSpec(bool mctruth, bool trigIn
 {
   using InputSpec = framework::InputSpec;
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
-
+  // Spectators for logging
+  auto logger = [](std::vector<o2::ft0::Digit> const& vecDigits) {
+    LOG(INFO) << "FT0DigitWriter pulled " << vecDigits.size() << " digits";
+  };
   // the callback to be set as hook for custom action when the writer is closed
   auto finishWriting = [](TFile* outputfile, TTree* outputtree) {
     const auto* brArr = outputtree->GetListOfBranches();
@@ -47,17 +50,19 @@ o2::framework::DataProcessorSpec getFT0DigitWriterSpec(bool mctruth, bool trigIn
                                   "ft0digits.root",
                                   "o2sim",
                                   MakeRootTreeWriterSpec::CustomClose(finishWriting),
-                                  BranchDefinition<std::vector<o2::ft0::Digit>>{InputSpec{"digitBCinput", "FT0", "DIGITSBC"}, "FT0DIGITSBC"},
-                                  BranchDefinition<std::vector<o2::ft0::ChannelData>>{InputSpec{"digitChinput", "FT0", "DIGITSCH"}, "FT0DIGITSCH"},
-                                  BranchDefinition<std::vector<o2::ft0::DetTrigInput>>{InputSpec{"digitTrinput", "FT0", "TRIGGERINPUT"}, "TRIGGERINPUT"},
+                                  BranchDefinition<std::vector<o2::ft0::Digit>>{InputSpec{"digitBCinput", "FT0", "DIGITSBC"}, "FT0DIGITSBC", "ft0-digits-branch-name", 1,
+                                                                                logger},
+                                  BranchDefinition<std::vector<o2::ft0::ChannelData>>{InputSpec{"digitChinput", "FT0", "DIGITSCH"}, "FT0DIGITSCH", "ft0-chhdata-branch-name"},
+                                  BranchDefinition<std::vector<o2::ft0::DetTrigInput>>{InputSpec{"digitTrinput", "FT0", "TRIGGERINPUT"}, "TRIGGERINPUT", "ft0-triggerinput-branch-name"},
                                   std::move(labelsdef))();
   } else {
     return MakeRootTreeWriterSpec("FT0DigitWriterRaw",
                                   "o2_ft0digits.root",
                                   "o2sim",
                                   MakeRootTreeWriterSpec::CustomClose(finishWriting),
-                                  BranchDefinition<std::vector<o2::ft0::Digit>>{InputSpec{"digitBCinput", "FT0", "DIGITSBC"}, "FT0DIGITSBC"},
-                                  BranchDefinition<std::vector<o2::ft0::ChannelData>>{InputSpec{"digitChinput", "FT0", "DIGITSCH"}, "FT0DIGITSCH"},
+                                  BranchDefinition<std::vector<o2::ft0::Digit>>{InputSpec{"digitBCinput", "FT0", "DIGITSBC"}, "FT0DIGITSBC", "ft0-digits-branch-name", 1,
+                                                                                logger},
+                                  BranchDefinition<std::vector<o2::ft0::ChannelData>>{InputSpec{"digitChinput", "FT0", "DIGITSCH"}, "FT0DIGITSCH", "ft0-chhdata-branch-name"},
                                   std::move(labelsdef))();
   }
 }

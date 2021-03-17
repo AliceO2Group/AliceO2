@@ -42,7 +42,7 @@ WorkflowSpec defineDataProcessing(const ConfigContext& ctx)
 {
   WorkflowSpec specs;
 
-  DataProcessorSpec producer = o2::ft0::getDigitReaderSpec(ctx.options().get<bool>("disable-mc"), !ctx.options().get<bool>("disable-trigger-input"));
+  DataProcessorSpec producer = o2::ft0::getDigitReaderSpec(ctx.options().get<bool>("disable-mc"), ctx.options().get<bool>("disable-trigger-input"));
   specs.push_back(producer);
   return specs;
 }
