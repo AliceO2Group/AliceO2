@@ -63,6 +63,9 @@ class RawPixelDecoder final : public PixelReader
   template <class DigitContainer, class ROFContainer>
   int fillDecodedDigits(DigitContainer& digits, ROFContainer& rofs);
 
+  template <class CalibContainer>
+  void fillCalibData(CalibContainer& calib);
+
   const RUDecodeData* getRUDecode(int ruSW) const { return mRUEntry[ruSW] < 0 ? nullptr : &mRUDecodeVec[mRUEntry[ruSW]]; }
   const GBTLink* getGBTLink(int i) const { return i < 0 ? nullptr : &mGBTLinks[i]; }
   int getNLinks() const { return mGBTLinks.size(); }
@@ -75,6 +78,9 @@ class RawPixelDecoder final : public PixelReader
 
   void setNThreads(int n);
   int getNThreads() const { return mNThreads; }
+
+  void setFillCalibData(bool v) { mFillCalibData = v; }
+  bool getFillCalibData() const { return mFillCalibData; }
 
   void setVerbosity(int v);
   int getVerbosity() const { return mVerbosity; }
@@ -114,6 +120,7 @@ class RawPixelDecoder final : public PixelReader
   uint16_t mCurRUDecodeID = NORUDECODED;        // index of currently processed RUDecode container
   int mLastReadChipID = -1;                     // chip ID returned by previous getNextChipData call, used for ordering checks
   Mapping mMAP;                                 // chip mapping
+  bool mFillCalibData = false;                  // request to fill calib data from GBT
   int mVerbosity = 0;
   int mNThreads = 1; // number of decoding threads
   GBTLink::Format mFormat = GBTLink::NewFormat; // ITS Data Format (old: 1 ROF per CRU page)
@@ -152,6 +159,21 @@ int RawPixelDecoder<Mapping>::fillDecodedDigits(DigitContainer& digits, ROFConta
   rofs.emplace_back(mInteractionRecord, mROFCounter, ref, nFilled);
   mTimerFetchData.Stop();
   return nFilled;
+}
+
+///______________________________________________________________
+/// Fill decoded digits to global vector
+template <class Mapping>
+template <class CalibContainer>
+void RawPixelDecoder<Mapping>::fillCalibData(CalibContainer& calib)
+{
+  if (!mInteractionRecord.isDummy()) {
+    auto curSize = calib.size();
+    calib.resize(curSize + Mapping::getNRUs());
+    for (unsigned int iru = 0; iru < mRUDecodeVec.size(); iru++) {
+      calib[curSize + mRUDecodeVec[iru].ruSWID] = mRUDecodeVec[iru].calibData;
+    }
+  }
 }
 
 using RawDecoderITS = RawPixelDecoder<ChipMappingITS>;

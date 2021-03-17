@@ -8,20 +8,30 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef STEER_ITSMFTDIGITWRITER_H_
-#define STEER_ITSMFTDIGITWRITER_H_
+/// \file GBTCalibData.h
+/// \brief Calibration data from GBT data
 
-#include "Framework/DataProcessorSpec.h"
+#ifndef ALICEO2_ITSMFT_GBTCALIBDATA_H_
+#define ALICEO2_ITSMFT_GBTCALIBDATA_H_
 
 namespace o2
 {
 namespace itsmft
 {
 
-o2::framework::DataProcessorSpec getITSDigitWriterSpec(bool mctruth = true, bool dec = false, bool calib = false);
-o2::framework::DataProcessorSpec getMFTDigitWriterSpec(bool mctruth = true, bool dec = false, bool calib = false);
+struct GBTCalibData {
+  uint64_t calibCounter = 0;   // calibCounter from GBT calibration word
+  uint64_t calibUserField = 0; // calibUserField from GBT calibration word
 
-} // end namespace itsmft
-} // end namespace o2
+  void clear()
+  {
+    calibCounter = calibUserField = 0;
+  }
 
-#endif /* STEER_ITSMFTDIGITWRITER_H_ */
+  ClassDefNV(GBTCalibData, 1);
+};
+
+} // namespace itsmft
+} // namespace o2
+
+#endif

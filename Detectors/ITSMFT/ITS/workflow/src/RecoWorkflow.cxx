@@ -11,14 +11,13 @@
 /// @file   RecoWorkflow.cxx
 
 #include "ITSWorkflow/RecoWorkflow.h"
-
-#include "ITSWorkflow/DigitReaderSpec.h"
 #include "ITSWorkflow/ClustererSpec.h"
 #include "ITSWorkflow/ClusterWriterSpec.h"
 #include "ITSWorkflow/TrackerSpec.h"
 #include "ITSWorkflow/CookedTrackerSpec.h"
 #include "ITSWorkflow/TrackWriterSpec.h"
 #include "ITSMFTWorkflow/EntropyEncoderSpec.h"
+#include "ITSMFTWorkflow/DigitReaderSpec.h"
 
 namespace o2
 {
@@ -35,7 +34,7 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, const std::st
   framework::WorkflowSpec specs;
 
   if (!(upstreamDigits || upstreamClusters)) {
-    specs.emplace_back(o2::its::getDigitReaderSpec(useMC));
+    specs.emplace_back(o2::itsmft::getITSDigitReaderSpec(useMC, false, "itsdigits.root"));
   }
 
   if (!upstreamClusters) {
