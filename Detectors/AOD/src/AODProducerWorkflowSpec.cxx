@@ -454,6 +454,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   uint64_t globalBC;
   uint64_t BCid;
+  std::vector<uint64_t> BCIDs;
 
   findMinMaxBc(ft0RecPoints, primVertices, mcRecords);
 
@@ -477,21 +478,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     std::string dirName = "DF_" + std::to_string(tfNumber);
     outfile = TFile::Open("AOD.root", "UPDATE");
     outfile->mkdir(dirName.c_str());
-  }
-
-  // TODO: get real triggerMask
-  uint64_t triggerMask = 1;
-  for (uint64_t i = 0; i <= maxGlBC - minGlBC; i++) {
-    bcCursor(0,
-             runNumber,
-             minGlBC + i,
-             triggerMask);
-  }
-
-  if (mIgnoreWriter) {
-    std::shared_ptr<arrow::Table> tableBC = bcBuilder.finalize();
-    std::string tableName("O2bc");
-    writeTableToFile(outfile, tableBC, tableName, tfNumber);
   }
 
   // TODO: add real FV0A, FV0C, FDD, ZDC tables instead of dummies
@@ -584,9 +570,10 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     BCid = globalBC - minGlBC;
     if (BCid < 0) {
       BCid = 0;
-    } else if (BCid > maxGlBC) {
-      BCid = maxGlBC;
+    } else if (BCid > maxGlBC - minGlBC) {
+      BCid = maxGlBC - minGlBC;
     }
+    BCIDs.push_back(BCid);
     auto& colParts = mcParts[index];
     for (auto colPart : colParts) {
       auto eventID = colPart.entryID;
@@ -635,9 +622,10 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     BCid = globalBC - minGlBC;
     if (BCid < 0) {
       BCid = 0;
-    } else if (BCid > maxGlBC) {
-      BCid = maxGlBC;
+    } else if (BCid > maxGlBC - minGlBC) {
+      BCid = maxGlBC - minGlBC;
     }
+    BCIDs.push_back(BCid);
     ft0Cursor(0,
               BCid,
               aAmplitudesA,
@@ -664,16 +652,17 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     auto& cov = vertex.getCov();
     auto& timeStamp = vertex.getTimeStamp();
     Double_t tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // mus to ns
-    globalBC = std::round(startBCofTF + tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS);
+    globalBC = std::round(tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS);
     LOG(DEBUG) << globalBC << " " << tsTimeStamp;
     // collision timestamp in ns wrt the beginning of collision BC
     tsTimeStamp = globalBC * o2::constants::lhc::LHCBunchSpacingNS - tsTimeStamp;
     BCid = globalBC - minGlBC;
     if (BCid < 0) {
       BCid = 0;
-    } else if (BCid > maxGlBC) {
-      BCid = maxGlBC;
+    } else if (BCid > maxGlBC - minGlBC) {
+      BCid = maxGlBC - minGlBC;
     }
+    BCIDs.push_back(BCid);
     // TODO: get real collision time mask
     int collisionTimeMask = 0;
     collisionsCursor(0,
@@ -719,6 +708,30 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     std::shared_ptr<arrow::Table> tableCollisions = collisionsBuilder.finalize();
     std::string tableName("O2collision");
     writeTableToFile(outfile, tableCollisions, tableName, tfNumber);
+  }
+
+  // filling BC table
+  // TODO: get real triggerMask
+  uint64_t triggerMask = 1;
+  std::sort(BCIDs.begin(), BCIDs.end());
+  uint64_t prevBCid = BCIDs.back();
+  for (auto& BCid : BCIDs) {
+    if (BCid == prevBCid) {
+      continue;
+    }
+    bcCursor(0,
+             runNumber,
+             startBCofTF + minGlBC + BCid,
+             triggerMask);
+    prevBCid = BCid;
+  }
+
+  BCIDs.clear();
+
+  if (mIgnoreWriter) {
+    std::shared_ptr<arrow::Table> tableBC = bcBuilder.finalize();
+    std::string tableName("O2bc");
+    writeTableToFile(outfile, tableBC, tableName, tfNumber);
   }
 
   // filling mc particles table
