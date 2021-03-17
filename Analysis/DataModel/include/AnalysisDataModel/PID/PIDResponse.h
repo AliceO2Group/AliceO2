@@ -20,7 +20,7 @@
 
 // O2 includes
 #include "Framework/ASoA.h"
-#include "Framework/AnalysisTask.h"
+#include "TMath.h"
 #include "Framework/AnalysisDataModel.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/PID.h"
