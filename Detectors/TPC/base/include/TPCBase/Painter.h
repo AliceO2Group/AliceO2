@@ -21,6 +21,7 @@
 
 class TH1;
 class TH2;
+class TH2Poly;
 class TCanvas;
 
 namespace o2
@@ -44,6 +45,29 @@ class CalArray;
 
 namespace painter
 {
+
+/// pad corner coordinates
+struct PadCoordinates {
+  std::array<double, 4> xVals;
+  std::array<double, 4> yVals;
+
+  void rotate(float angDeg)
+  {
+    const auto ang = 0.017453292519943295 * angDeg;
+    const auto cs = std::cos(ang);
+    const auto sn = std::sin(ang);
+    for (int i = 0; i < xVals.size(); ++i) {
+      const auto x = xVals[i] * cs - yVals[i] * sn;
+      const auto y = xVals[i] * sn + yVals[i] * cs;
+      xVals[i] = x;
+      yVals[i] = y;
+    }
+  }
+};
+
+/// create a vector of pad corner coordinate for one full sector
+std::vector<PadCoordinates> getPadCoordinatesSector();
+
 //using T=float;
 /// Drawing of a CalDet object
 /// \param CalDet object to draw
@@ -83,6 +107,19 @@ TH2* getHistogram2D(const CalDet<T>& calDet, Side side);
 /// \return 2D histogram with data
 template <class T>
 TH2* getHistogram2D(const CalArray<T>& calArray);
+
+/// make a sector-wise histogram with correct pad corners
+TH2Poly* makeSectorHist(const std::string_view name = "hSector", const std::string_view title = "Sector;local #it{x} (cm);local #it{y} (cm)");
+
+/// make a side-wise histogram with correct pad corners
+TH2Poly* makeSideHist(Side side);
+
+/// fill existing TH2Poly histogram for CalDet object
+/// \param h2D histogram to fill
+/// \param CalDet object with data
+/// \param side side which to get the histogram for
+template <class T>
+void fillPoly2D(TH2Poly& h2D, const CalDet<T>& calDet, Side side);
 
 /// Create summary canvases for a CalDet object
 ///
