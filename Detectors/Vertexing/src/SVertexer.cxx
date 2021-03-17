@@ -94,12 +94,15 @@ void SVertexer::updateTimeDependentParams()
 
   auto bz = o2::base::Propagator::Instance()->getNominalBz();
 
-  mV0Hyps[SVertexerParams::Photon].set(PID::Photon, PID::Electron, PID::Electron, mSVParams->pidCutsPhoton, bz);
-  mV0Hyps[SVertexerParams::K0].set(PID::K0, PID::Pion, PID::Pion, mSVParams->pidCutsK0, bz);
-  mV0Hyps[SVertexerParams::Lambda].set(PID::Lambda, PID::Proton, PID::Pion, mSVParams->pidCutsLambda, bz);
-  mV0Hyps[SVertexerParams::AntiLambda].set(PID::Lambda, PID::Pion, PID::Proton, mSVParams->pidCutsLambda, bz);
-  mV0Hyps[SVertexerParams::HyperTriton].set(PID::HyperTriton, PID::Helium3, PID::Pion, mSVParams->pidCutsHTriton, bz);
-  mV0Hyps[SVertexerParams::AntiHyperTriton].set(PID::HyperTriton, PID::Pion, PID::Helium3, mSVParams->pidCutsHTriton, bz);
+  mV0Hyps[HypV0::Photon].set(PID::Photon, PID::Electron, PID::Electron, mSVParams->pidCutsPhoton, bz);
+  mV0Hyps[HypV0::K0].set(PID::K0, PID::Pion, PID::Pion, mSVParams->pidCutsK0, bz);
+  mV0Hyps[HypV0::Lambda].set(PID::Lambda, PID::Proton, PID::Pion, mSVParams->pidCutsLambda, bz);
+  mV0Hyps[HypV0::AntiLambda].set(PID::Lambda, PID::Pion, PID::Proton, mSVParams->pidCutsLambda, bz);
+  mV0Hyps[HypV0::HyperTriton].set(PID::HyperTriton, PID::Helium3, PID::Pion, mSVParams->pidCutsHTriton, bz);
+  mV0Hyps[HypV0::AntiHyperTriton].set(PID::HyperTriton, PID::Pion, PID::Helium3, mSVParams->pidCutsHTriton, bz);
+
+  mCascHyps[HypCascade::XiMinus].set(PID::XiMinus, PID::Lambda, PID::Pion, mSVParams->pidCutsXiMinus, bz);
+  mCascHyps[HypCascade::OmegaMinus].set(PID::OmegaMinus, PID::Lambda, PID::Kaon, mSVParams->pidCutsOmegaMinus, bz);
 
   setupThreads();
 
@@ -238,8 +241,8 @@ bool SVertexer::checkV0(TrackCand& seedP, TrackCand& seedN, int iP, int iN, int 
   float p2Pos = pP[0] * pP[0] + pP[1] * pP[1] + pP[2] * pP[2], p2Neg = pN[0] * pN[0] + pN[1] * pN[1] + pN[2] * pN[2];
 
   bool goodHyp = false;
-  std::array<bool, SVertexerParams::NPIDV0> hypCheckStatus{};
-  for (int ipid = 0; ipid < SVertexerParams::NPIDV0; ipid++) {
+  std::array<bool, NHypV0> hypCheckStatus{};
+  for (int ipid = 0; ipid < NHypV0; ipid++) {
     if (mV0Hyps[ipid].check(p2Pos, p2Neg, p2V0, ptV0)) {
       goodHyp = hypCheckStatus[ipid] = true;
     }
@@ -248,7 +251,7 @@ bool SVertexer::checkV0(TrackCand& seedP, TrackCand& seedN, int iP, int iN, int 
     return false;
   }
 
-  bool checkForCascade = mEnableCascades && r2v0 < mMaxR2ToMeanVertexCascV0 && (hypCheckStatus[SVertexerParams::Lambda] || hypCheckStatus[SVertexerParams::AntiLambda]);
+  bool checkForCascade = mEnableCascades && r2v0 < mMaxR2ToMeanVertexCascV0 && (hypCheckStatus[HypV0::Lambda] || hypCheckStatus[HypV0::AntiLambda]);
   bool rejectIfNotCascade = false;
   float dcaX = dxv0 - pV0[0] * tDCAXY, dcaY = dyv0 - pV0[1] * tDCAXY, dca2 = dcaX * dcaX + dcaY * dcaY;
   float cosPAXY = prodXYv0 / std::sqrt(r2v0 * pt2V0);
@@ -301,11 +304,11 @@ bool SVertexer::checkV0(TrackCand& seedP, TrackCand& seedN, int iP, int iN, int 
   // check cascades
   if (checkForCascade) {
     int nCascAdded = 0;
-    if (hypCheckStatus[SVertexerParams::Lambda]) {
-      nCascAdded += checkCascades(r2v0, iN, NEG, ithread);
+    if (hypCheckStatus[HypV0::Lambda]) {
+      nCascAdded += checkCascades(r2v0, p2V0, iN, NEG, ithread);
     }
-    if (hypCheckStatus[SVertexerParams::AntiLambda]) {
-      nCascAdded += checkCascades(r2v0, iP, POS, ithread);
+    if (hypCheckStatus[HypV0::AntiLambda]) {
+      nCascAdded += checkCascades(r2v0, p2V0, iP, POS, ithread);
     }
     if (!nCascAdded && rejectIfNotCascade) { // v0 would be accepted only if it creates a cascade
       mV0sTmp[ithread].pop_back();
@@ -317,7 +320,7 @@ bool SVertexer::checkV0(TrackCand& seedP, TrackCand& seedN, int iP, int iN, int 
 }
 
 //__________________________________________________________________
-int SVertexer::checkCascades(float r2v0, int avoidTrackID, int posneg, int ithread)
+int SVertexer::checkCascades(float r2v0, float p2V0, int avoidTrackID, int posneg, int ithread)
 {
   // check last added V0 for belonging to cascade
   auto& fitterCasc = mFitterCasc[ithread];
@@ -361,6 +364,24 @@ int SVertexer::checkCascades(float r2v0, int avoidTrackID, int posneg, int ithre
     trNeut.getPxPyPzGlo(pNeut);
     trBach.getPxPyPzGlo(pBach);
     std::array<float, 3> pCasc = {pNeut[0] + pBach[0], pNeut[1] + pBach[1], pNeut[2] + pBach[2]};
+    auto prodPPos = pCasc[0] * cascXYZ[0] + pCasc[1] * cascXYZ[1] + pCasc[2] * cascXYZ[2];
+    if (prodPPos < 0.) { // causality cut
+      continue;
+    }
+    float p2Bach = pBach[0] * pBach[0] + pBach[1] * pBach[1] + pBach[2] * pBach[2];
+    float pt2Casc = pCasc[0] * pCasc[0] + pCasc[1] * pCasc[1], p2Casc = pt2Casc + pCasc[2] * pCasc[2];
+    float ptCasc = std::sqrt(pt2Casc);
+    bool goodHyp = false;
+    for (int ipid = 0; ipid < NHypCascade; ipid++) {
+      if (mCascHyps[ipid].check(p2V0, p2Bach, p2Casc, ptCasc)) {
+        goodHyp = true;
+        break;
+      }
+    }
+    if (!goodHyp) {
+      continue;
+    }
+
     auto& casc = mCascadesTmp[ithread].emplace_back(cascXYZ, pCasc, fitterCasc.calcPCACovMatrixFlat(candC), trNeut, trBach, mV0sTmp[ithread].size() - 1, bach.gid);
     o2::track::TrackParCov trc = casc;
     o2::dataformats::DCA dca;

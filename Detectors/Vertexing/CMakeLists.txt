@@ -17,7 +17,7 @@ o2_add_library(DetectorsVertexing
                        src/VertexTrackMatcher.cxx
                        src/SVertexer.cxx
                        src/SVertexerParams.cxx
-                       src/V0Hypothesis.cxx
+                       src/SVertexHypothesis.cxx
                PUBLIC_LINK_LIBRARIES ROOT::Core
 	                             O2::CommonUtils
                                      O2::ReconstructionDataFormats
@@ -33,14 +33,11 @@ o2_add_library(DetectorsVertexing
 
 o2_target_root_dictionary(DetectorsVertexing
                           HEADERS include/DetectorsVertexing/HelixHelper.h
-                                  include/DetectorsVertexing/PVertexer.h
                                   include/DetectorsVertexing/PVertexerHelpers.h
                                   include/DetectorsVertexing/PVertexerParams.h
-                                  include/DetectorsVertexing/VertexTrackMatcher.h
                                   include/DetectorsVertexing/DCAFitterN.h
-                                  include/DetectorsVertexing/SVertexer.h
                                   include/DetectorsVertexing/SVertexerParams.h
-                                  include/DetectorsVertexing/V0Hypothesis.h)
+                                  include/DetectorsVertexing/SVertexHypothesis.h)
 
 if (OpenMP_CXX_FOUND)
     target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
