@@ -68,6 +68,7 @@ class DetID
   static constexpr ID FV0 = 13;
   static constexpr ID FDD = 14;
   static constexpr ID ACO = 15;
+  static constexpr ID CTP = 18;
 #ifdef ENABLE_UPGRADES
   static constexpr ID IT3 = 16;
   static constexpr ID TRK = 17;
