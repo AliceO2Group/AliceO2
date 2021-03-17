@@ -1,0 +1,4 @@
+var classo2_1_1mch_1_1mapping_1_1impl4_1_1CathodeSegmentationCreatorRegisterCreateSegType20 =
+[
+    [ "CathodeSegmentationCreatorRegisterCreateSegType20", "d6/d88/classo2_1_1mch_1_1mapping_1_1impl4_1_1CathodeSegmentationCreatorRegisterCreateSegType20.html#a5a6a83c7daf4b153d178296e2ec7d661", null ]
+];

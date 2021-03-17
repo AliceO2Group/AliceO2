@@ -1,0 +1,26 @@
+var structo2_1_1tpc_1_1ClustersData =
+[
+    [ "flagsA", "d4/dca/structo2_1_1tpc_1_1ClustersData.html#aac52b4e9ba4cd00306875a58af778286", null ],
+    [ "flagsU", "d4/dca/structo2_1_1tpc_1_1ClustersData.html#aa38dc18ce13982cbeca1c6029db357e7", null ],
+    [ "nSliceRowClusters", "d4/dca/structo2_1_1tpc_1_1ClustersData.html#ae0535dc6dd6f2fe51a074f6dcf0368aa", null ],
+    [ "nTrackClusters", "d4/dca/structo2_1_1tpc_1_1ClustersData.html#a6eba0fdd25eb5627cb9b95d6db14f533", null ],
+    [ "padA", "d4/dca/structo2_1_1tpc_1_1ClustersData.html#a56a8472937d30af79bf7ba72b53aa79c", null ],
+    [ "padDiffU", "d4/dca/structo2_1_1tpc_1_1ClustersData.html#a84bfecde09a9c27f4527c5936476378b", null ],
+    [ "padResA", "d4/dca/structo2_1_1tpc_1_1ClustersData.html#a17ff2a7471067b6c2ffe69bd66fe4ef2", null ],
+    [ "qMaxA", "d4/dca/structo2_1_1tpc_1_1ClustersData.html#afec4970df4a2f53131cc21ff41d51f10", null ],
+    [ "qMaxU", "d4/dca/structo2_1_1tpc_1_1ClustersData.html#aa3e580a4cc51a293478bab6b5e41e916", null ],
+    [ "qPtA", "d4/dca/structo2_1_1tpc_1_1ClustersData.html#a414199dafa243125b05b74b915890242", null ],
+    [ "qTotA", "d4/dca/structo2_1_1tpc_1_1ClustersData.html#a5f32b105d73a4f0bee8ee8c2bc0c3a0d", null ],
+    [ "qTotU", "d4/dca/structo2_1_1tpc_1_1ClustersData.html#ae135bf2302aecbd8233504bf5dfa1534", null ],
+    [ "rowA", "d4/dca/structo2_1_1tpc_1_1ClustersData.html#a7527197f8bd3d4248f31cc43b4788bb2", null ],
+    [ "rowDiffA", "d4/dca/structo2_1_1tpc_1_1ClustersData.html#ac335eda08f3abf652ed7d9cb7bf763f5", null ],
+    [ "sigmaPadA", "d4/dca/structo2_1_1tpc_1_1ClustersData.html#ad0e3fcb7e56ebd331ca5653d3f243ff9", null ],
+    [ "sigmaPadU", "d4/dca/structo2_1_1tpc_1_1ClustersData.html#ae636bfffacde3afaf91cd5266e502218", null ],
+    [ "sigmaTimeA", "d4/dca/structo2_1_1tpc_1_1ClustersData.html#a28297914da1a2567d34d11a46e9b7877", null ],
+    [ "sigmaTimeU", "d4/dca/structo2_1_1tpc_1_1ClustersData.html#a4937d92866d95984d99348aa69bd851e", null ],
+    [ "sliceA", "d4/dca/structo2_1_1tpc_1_1ClustersData.html#a442d9d1ccf1024c59e933cc546c32e89", null ],
+    [ "sliceLegDiffA", "d4/dca/structo2_1_1tpc_1_1ClustersData.html#af8f7a9996b3ec592bf365484bdb6380e", null ],
+    [ "timeA", "d4/dca/structo2_1_1tpc_1_1ClustersData.html#ac6764b21ad0c175d0b213f1e37112e47", null ],
+    [ "timeDiffU", "d4/dca/structo2_1_1tpc_1_1ClustersData.html#a407ebe6b2f3f0361bfc30df4e5194d2e", null ],
+    [ "timeResA", "d4/dca/structo2_1_1tpc_1_1ClustersData.html#a8466d1566a18d2bc1fc31bee03b8c13f", null ]
+];

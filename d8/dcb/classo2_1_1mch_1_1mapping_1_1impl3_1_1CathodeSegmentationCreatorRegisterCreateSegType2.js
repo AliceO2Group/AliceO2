@@ -1,0 +1,4 @@
+var classo2_1_1mch_1_1mapping_1_1impl3_1_1CathodeSegmentationCreatorRegisterCreateSegType2 =
+[
+    [ "CathodeSegmentationCreatorRegisterCreateSegType2", "d8/dcb/classo2_1_1mch_1_1mapping_1_1impl3_1_1CathodeSegmentationCreatorRegisterCreateSegType2.html#a87682f8b1acb01feea6da3304046df29", null ]
+];

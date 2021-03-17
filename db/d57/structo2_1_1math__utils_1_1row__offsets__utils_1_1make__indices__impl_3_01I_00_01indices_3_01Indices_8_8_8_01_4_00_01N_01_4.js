@@ -1,0 +1,4 @@
+var structo2_1_1math__utils_1_1row__offsets__utils_1_1make__indices__impl_3_01I_00_01indices_3_01Indices_8_8_8_01_4_00_01N_01_4 =
+[
+    [ "type", "db/d57/structo2_1_1math__utils_1_1row__offsets__utils_1_1make__indices__impl_3_01I_00_01indices_3_01Indices_8_8_8_01_4_00_01N_01_4.html#aba8bd5d9d57c62b3825158bc3eb70c44", null ]
+];

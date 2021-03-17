@@ -1,0 +1,26 @@
+var structHFLcCandidateSelector =
+[
+    [ "daughterSelection", "dd/d2f/structHFLcCandidateSelector.html#ac1d661ebb245d0ee050416c216611b8c", null ],
+    [ "getpTBin", "dd/d2f/structHFLcCandidateSelector.html#a32f2585a3b0d65f568056db26a03bff7", null ],
+    [ "process", "dd/d2f/structHFLcCandidateSelector.html#afbb5315f3bf2e7498e7303b268e9ccdb", null ],
+    [ "selectionPID", "dd/d2f/structHFLcCandidateSelector.html#a581adfbc3f09d5368b12731b3e137171", null ],
+    [ "selectionPIDTOF", "dd/d2f/structHFLcCandidateSelector.html#a6443a3da5765865275e9be9b6b418c0a", null ],
+    [ "selectionPIDTPC", "dd/d2f/structHFLcCandidateSelector.html#a3e1a49a1f5c5eefd6bc850f5fc24344a", null ],
+    [ "selectionTopol", "dd/d2f/structHFLcCandidateSelector.html#a85545d3305cad4e77ca470d584fc1538", null ],
+    [ "selectionTopolConjugate", "dd/d2f/structHFLcCandidateSelector.html#ae16376c9f37f8b5e1bb3ca38968ab5ca", null ],
+    [ "validTOFPID", "dd/d2f/structHFLcCandidateSelector.html#a8396ccb03976c77a6fc1c1af820c8e64", null ],
+    [ "validTPCPID", "dd/d2f/structHFLcCandidateSelector.html#ae8b6a03e6205dbf6e3f9818cb03fa268", null ],
+    [ "d_FilterPID", "dd/d2f/structHFLcCandidateSelector.html#a8edb3f3cb81235d560eaeb1b96969e2e", null ],
+    [ "d_nSigmaTOF", "dd/d2f/structHFLcCandidateSelector.html#a99d658f9db482428f4893e12828ffd57", null ],
+    [ "d_nSigmaTOFCombined", "dd/d2f/structHFLcCandidateSelector.html#aab39ad7b30542816e0922207bbedc03e", null ],
+    [ "d_nSigmaTPC", "dd/d2f/structHFLcCandidateSelector.html#a4763894a7de92dac2a03c2c6f6a67fbe", null ],
+    [ "d_nSigmaTPCCombined", "dd/d2f/structHFLcCandidateSelector.html#aec06cc70e29b2aeb45192b0a118e37c2", null ],
+    [ "d_pidTOFMaxpT", "dd/d2f/structHFLcCandidateSelector.html#ac601a32d6cb15ecff9899f93d4042af9", null ],
+    [ "d_pidTOFMinpT", "dd/d2f/structHFLcCandidateSelector.html#a9d6b751bf53d0b95bed7990f7b875a46", null ],
+    [ "d_pidTPCMaxpT", "dd/d2f/structHFLcCandidateSelector.html#a2605d7551531619fd81cab61c539559b", null ],
+    [ "d_pidTPCMinpT", "dd/d2f/structHFLcCandidateSelector.html#a0cf598cd8aa7b36fd34c6c8c6b2bb52f", null ],
+    [ "d_pTCandMax", "dd/d2f/structHFLcCandidateSelector.html#a68ebe415ec1c6d7e9a4634eab7c7f3c2", null ],
+    [ "d_pTCandMin", "dd/d2f/structHFLcCandidateSelector.html#ad874509a53924ab73da8766203136e5c", null ],
+    [ "d_TPCNClsFindablePIDCut", "dd/d2f/structHFLcCandidateSelector.html#ae0e7c4a1159692c57f5c0191f37b84e0", null ],
+    [ "hfSelLcCandidate", "dd/d2f/structHFLcCandidateSelector.html#a0f110ba756a3a764af8c2abc3274aa65", null ]
+];

@@ -1,0 +1,4 @@
+var structo2_1_1framework_1_1data__matcher_1_1DescriptorMatcherTrait_3_01header_1_1DataHeader_1_1SubSpecificationType_01_4 =
+[
+    [ "Matcher", "d8/d05/structo2_1_1framework_1_1data__matcher_1_1DescriptorMatcherTrait_3_01header_1_1DataHeader_1_1SubSpecificationType_01_4.html#a5ff142625616881089dd6e00ab8d5aab", null ]
+];

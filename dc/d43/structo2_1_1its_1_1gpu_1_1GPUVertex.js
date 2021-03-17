@@ -1,0 +1,27 @@
+var structo2_1_1its_1_1gpu_1_1GPUVertex =
+[
+    [ "GPUhd", "dc/d43/structo2_1_1its_1_1gpu_1_1GPUVertex.html#ad7600bbb7c0aa525c5963fc2d3a302c1", null ],
+    [ "GPUhd", "dc/d43/structo2_1_1its_1_1gpu_1_1GPUVertex.html#ad7600bbb7c0aa525c5963fc2d3a302c1", null ],
+    [ "GPUhd", "dc/d43/structo2_1_1its_1_1gpu_1_1GPUVertex.html#aae7309d72f5da3f5be29b713b8a4f6a1", null ],
+    [ "GPUhd", "dc/d43/structo2_1_1its_1_1gpu_1_1GPUVertex.html#aae7309d72f5da3f5be29b713b8a4f6a1", null ],
+    [ "contrib", "dc/d43/structo2_1_1its_1_1gpu_1_1GPUVertex.html#a87da8b26fea8df1f0528d4f1c2259e88", null ],
+    [ "contributors", "dc/d43/structo2_1_1its_1_1gpu_1_1GPUVertex.html#a0896cee7c9ee2e5a8a9a1330a08aff37", null ],
+    [ "contributors", "dc/d43/structo2_1_1its_1_1gpu_1_1GPUVertex.html#a0896cee7c9ee2e5a8a9a1330a08aff37", null ],
+    [ "errorX", "dc/d43/structo2_1_1its_1_1gpu_1_1GPUVertex.html#afade18b3ced11b67528eff1cf3590c38", null ],
+    [ "errorX", "dc/d43/structo2_1_1its_1_1gpu_1_1GPUVertex.html#afade18b3ced11b67528eff1cf3590c38", null ],
+    [ "errorY", "dc/d43/structo2_1_1its_1_1gpu_1_1GPUVertex.html#a557fc65fdf6dfe9dc0db18f3e29beb99", null ],
+    [ "errorY", "dc/d43/structo2_1_1its_1_1gpu_1_1GPUVertex.html#a557fc65fdf6dfe9dc0db18f3e29beb99", null ],
+    [ "errorZ", "dc/d43/structo2_1_1its_1_1gpu_1_1GPUVertex.html#afa159bf72dadb7c1748a91f86c4deffe", null ],
+    [ "errorZ", "dc/d43/structo2_1_1its_1_1gpu_1_1GPUVertex.html#afa159bf72dadb7c1748a91f86c4deffe", null ],
+    [ "eX", "dc/d43/structo2_1_1its_1_1gpu_1_1GPUVertex.html#a85283e40959ac82931c3e6f024a6bd0c", null ],
+    [ "eY", "dc/d43/structo2_1_1its_1_1gpu_1_1GPUVertex.html#a271e798d4dcee0542ff627f05c62b37a", null ],
+    [ "eZ", "dc/d43/structo2_1_1its_1_1gpu_1_1GPUVertex.html#a2f6f223315548dd6fcf3897e52bfd66b", null ],
+    [ "realVertex", "dc/d43/structo2_1_1its_1_1gpu_1_1GPUVertex.html#ad8d790dc494451facbbb40979525d8fc", null ],
+    [ "realVertex", "dc/d43/structo2_1_1its_1_1gpu_1_1GPUVertex.html#ad8d790dc494451facbbb40979525d8fc", null ],
+    [ "y", "dc/d43/structo2_1_1its_1_1gpu_1_1GPUVertex.html#a1467b54cfea56a5b1398cd2df97b1c06", null ],
+    [ "yCoord", "dc/d43/structo2_1_1its_1_1gpu_1_1GPUVertex.html#ab7f8ebe49618b68c6b5802ae55c19959", null ],
+    [ "yCoord", "dc/d43/structo2_1_1its_1_1gpu_1_1GPUVertex.html#ab7f8ebe49618b68c6b5802ae55c19959", null ],
+    [ "z", "dc/d43/structo2_1_1its_1_1gpu_1_1GPUVertex.html#a771dd2930d58be4ec8f06e7b78919ca4", null ],
+    [ "zCoord", "dc/d43/structo2_1_1its_1_1gpu_1_1GPUVertex.html#a4b5ae9eaa99222aaffca3d70caa62c71", null ],
+    [ "zCoord", "dc/d43/structo2_1_1its_1_1gpu_1_1GPUVertex.html#a4b5ae9eaa99222aaffca3d70caa62c71", null ]
+];

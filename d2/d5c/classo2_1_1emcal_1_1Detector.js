@@ -1,0 +1,36 @@
+var classo2_1_1emcal_1_1Detector =
+[
+    [ "MediumType_t", "d2/d5c/classo2_1_1emcal_1_1Detector.html#a86de4b40f413c387a1224c068ce3361d", [
+      [ "ID_AIR", "d2/d5c/classo2_1_1emcal_1_1Detector.html#a86de4b40f413c387a1224c068ce3361da2cc11a4038089e9ca0994c13f2a1483e", null ],
+      [ "ID_PB", "d2/d5c/classo2_1_1emcal_1_1Detector.html#a86de4b40f413c387a1224c068ce3361da16b9c0b5b63036bde7cd81f0bc7e135e", null ],
+      [ "ID_SC", "d2/d5c/classo2_1_1emcal_1_1Detector.html#a86de4b40f413c387a1224c068ce3361da6646029bb2e35b9ec829475476f06da9", null ],
+      [ "ID_AL", "d2/d5c/classo2_1_1emcal_1_1Detector.html#a86de4b40f413c387a1224c068ce3361da9c932e027e0d8290fd9b19602289bfd7", null ],
+      [ "ID_STEEL", "d2/d5c/classo2_1_1emcal_1_1Detector.html#a86de4b40f413c387a1224c068ce3361daa820be5043e6e886858544ccf2f1e581", null ],
+      [ "ID_PAPER", "d2/d5c/classo2_1_1emcal_1_1Detector.html#a86de4b40f413c387a1224c068ce3361da01b52f27d31b14c8c8d6d90826cb71c2", null ]
+    ] ],
+    [ "Detector", "d2/d5c/classo2_1_1emcal_1_1Detector.html#a5b5d2f82d13bb50d1da41572d69ee035", null ],
+    [ "Detector", "d2/d5c/classo2_1_1emcal_1_1Detector.html#a92dbd7f0e49889ca805bb8685959d501", null ],
+    [ "~Detector", "d2/d5c/classo2_1_1emcal_1_1Detector.html#a2405fdd7fef79a727a5f48982ffb146b", null ],
+    [ "AddHit", "d2/d5c/classo2_1_1emcal_1_1Detector.html#a0d9077e81a485424cb0141a738c9797a", null ],
+    [ "AddSuperparent", "d2/d5c/classo2_1_1emcal_1_1Detector.html#a16c3573b2164ebe124d657975bf8a3b9", null ],
+    [ "BeginPrimary", "d2/d5c/classo2_1_1emcal_1_1Detector.html#abe1c214a9c8909464388bce64173da74", null ],
+    [ "CalculateLightYield", "d2/d5c/classo2_1_1emcal_1_1Detector.html#a16a96c472fcb197bc014b02f373961ac", null ],
+    [ "ConstructGeometry", "d2/d5c/classo2_1_1emcal_1_1Detector.html#a929268618a46c57137741a179fc3113d", null ],
+    [ "CreateAlFrontPlate", "d2/d5c/classo2_1_1emcal_1_1Detector.html#aebefc186024f3f0d5b4b2934ce5056ac", null ],
+    [ "CreateEmcalEnvelope", "d2/d5c/classo2_1_1emcal_1_1Detector.html#a72e7657cbd9f25d369daa9203553bd96", null ],
+    [ "CreateEmcalModuleGeometry", "d2/d5c/classo2_1_1emcal_1_1Detector.html#a140082f2b75da794cb46a165ea037503", null ],
+    [ "CreateEMCALVolume", "d2/d5c/classo2_1_1emcal_1_1Detector.html#a4985b93c08dc5ab001b22d36cd197fe8", null ],
+    [ "CreateMaterials", "d2/d5c/classo2_1_1emcal_1_1Detector.html#aa3d9200689ccd9c9ecca685bea037293", null ],
+    [ "CreateShiskebabGeometry", "d2/d5c/classo2_1_1emcal_1_1Detector.html#ad5775c421f2fc1496e7f9ef2a77868ab", null ],
+    [ "CreateSupermoduleGeometry", "d2/d5c/classo2_1_1emcal_1_1Detector.html#a22947535e3dda5822356f3e02c775f77", null ],
+    [ "EndOfEvent", "d2/d5c/classo2_1_1emcal_1_1Detector.html#aafcf60fdfd4698fc0c2058446cd2d8a1", null ],
+    [ "FindHit", "d2/d5c/classo2_1_1emcal_1_1Detector.html#ac61e24c4355c1b6370a609ae938b8390", null ],
+    [ "FinishPrimary", "d2/d5c/classo2_1_1emcal_1_1Detector.html#a860806059f6532b4a9ded28b2e6c49be", null ],
+    [ "GetGeometry", "d2/d5c/classo2_1_1emcal_1_1Detector.html#a59e381d0b2383df77c683c99ba021e14", null ],
+    [ "getHits", "d2/d5c/classo2_1_1emcal_1_1Detector.html#a1cb7c703f41490a7cb753a629cf0c5b0", null ],
+    [ "InitializeO2Detector", "d2/d5c/classo2_1_1emcal_1_1Detector.html#a32f80be92fd7f6724bb794710469b7c3", null ],
+    [ "ProcessHits", "d2/d5c/classo2_1_1emcal_1_1Detector.html#aaf6abc073195a984a4e2cec1fb128faf", null ],
+    [ "Register", "d2/d5c/classo2_1_1emcal_1_1Detector.html#a7a20c3effc84d8ab7b9018168690348c", null ],
+    [ "Reset", "d2/d5c/classo2_1_1emcal_1_1Detector.html#ad2cf464593a0c497a98222abdb12684d", null ],
+    [ "o2::base::DetImpl", "d2/d5c/classo2_1_1emcal_1_1Detector.html#aeda61a10c7ef352656f6584cb230d97a", null ]
+];

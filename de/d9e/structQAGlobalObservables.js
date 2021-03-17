@@ -1,0 +1,28 @@
+var structQAGlobalObservables =
+[
+    [ "init", "de/d9e/structQAGlobalObservables.html#a8e7b4fa182284ae3e0906fdcf57105aa", null ],
+    [ "init", "de/d9e/structQAGlobalObservables.html#a8e7b4fa182284ae3e0906fdcf57105aa", null ],
+    [ "process", "de/d9e/structQAGlobalObservables.html#a30b154d36a0ebe8447b7b46f63eecdb9", null ],
+    [ "process", "de/d9e/structQAGlobalObservables.html#a30b154d36a0ebe8447b7b46f63eecdb9", null ],
+    [ "collisionXYRange", "de/d9e/structQAGlobalObservables.html#a7c54c02af6d331b190acd63e19129aeb", null ],
+    [ "collisionZRange", "de/d9e/structQAGlobalObservables.html#ab963264149a49c3f351c36b00aa60a46", null ],
+    [ "eventCount", "de/d9e/structQAGlobalObservables.html#ac101adc09d135d9361e40c952dc77be2", null ],
+    [ "histograms", "de/d9e/structQAGlobalObservables.html#a293494c264d3cb6663046a8063c159a1", null ],
+    [ "nBinsNumberOfContributorsVertex", "de/d9e/structQAGlobalObservables.html#ad1e3ab500bd595abaf500c4edd3aabe2", null ],
+    [ "nBinsNumberOfTracks", "de/d9e/structQAGlobalObservables.html#ada7dc8966502ba25c43098c654dfa94c", null ],
+    [ "nBinsVertexCovarianceMatrix", "de/d9e/structQAGlobalObservables.html#a08eff1064a3e93b0b651817da5913990", null ],
+    [ "nBinsVertexPosition", "de/d9e/structQAGlobalObservables.html#a0aad589ac60bb1ecde446dcc83058929", null ],
+    [ "nMinNumberOfContributors", "de/d9e/structQAGlobalObservables.html#a610d79bb34486564064a17e2d740a233", null ],
+    [ "numberOfContributorsVertexMax", "de/d9e/structQAGlobalObservables.html#a3134443a8c20f44c29c3f6b9cad97fa4", null ],
+    [ "numberOfTracksRange", "de/d9e/structQAGlobalObservables.html#a16f6e7e8d64ea012d70996448b866bf1", null ],
+    [ "RangeMaxNumberOfContributorsVertex", "de/d9e/structQAGlobalObservables.html#a3a03ed5212b87be21a298cb61a22b3eb", null ],
+    [ "RangeMaxNumberOfTracks", "de/d9e/structQAGlobalObservables.html#ae0052ab494a598220173bf380209658f", null ],
+    [ "RangeMaxVertexCovarianceMatrix", "de/d9e/structQAGlobalObservables.html#ae50b4d03e34f6d3331bfa3d24f67260a", null ],
+    [ "RangeMaxVertexPositionXY", "de/d9e/structQAGlobalObservables.html#a2dde273404bfbd95ea662e32c0b5d125", null ],
+    [ "RangeMaxVertexPositionZ", "de/d9e/structQAGlobalObservables.html#a8bc7fd2a83ebbee50c9a51304eca2421", null ],
+    [ "RangeMinNumberOfTracks", "de/d9e/structQAGlobalObservables.html#ae82c0046ec18c7235c3a9b0bd77db4a7", null ],
+    [ "RangeMinVertexCovarianceMatrix", "de/d9e/structQAGlobalObservables.html#ac9ee35afce9a84eab5c81389da129fe7", null ],
+    [ "RangeMinVertexPositionXY", "de/d9e/structQAGlobalObservables.html#a380d417606adb281dfb56aa4e61f0c86", null ],
+    [ "RangeMinVertexPositionZ", "de/d9e/structQAGlobalObservables.html#a79d6f48fdefda256bd863534394e4114", null ],
+    [ "vertexCovarianceMatrixRange", "de/d9e/structQAGlobalObservables.html#ab09000effd094774643ac24b6313edc8", null ]
+];

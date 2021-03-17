@@ -1,0 +1,27 @@
+var Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h =
+[
+    [ "getInverseZCoordinate", "d0/d86/Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h.html#ac3a1bf1449b1653cdc163be46855c070", null ],
+    [ "GPUhdi", "d0/d86/Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h.html#a23725addca83faede0af09abc2473d6e", null ],
+    [ "GPUhdi", "d0/d86/Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h.html#a7db33f35d584daa1b7a2c78cd973828a", null ],
+    [ "InverseZBinSize", "d0/d86/Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h.html#af01fda50241c137cea4dfc424fd40f74", null ],
+    [ "LayersRCoordinate", "d0/d86/Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h.html#ac368391d3c96151326367d80aab43236", null ],
+    [ "LayersZCoordinate", "d0/d86/Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h.html#a9241b2618b1aa12b79193763d9830951", null ],
+    [ "VertexerHistogramVolume", "d0/d86/Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h.html#ad8a99dad08efd65169322c32c2152eb3", null ],
+    [ "CellsPerRoad", "d0/d86/Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h.html#ad757818cd41117ec3a3c46dbd3e28c0f", null ],
+    [ "ClustersPerCell", "d0/d86/Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h.html#a3fcf784c1f4eade9e928ab287bfab11d", null ],
+    [ "DoTimeBenchmarks", "d0/d86/Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h.html#ae7c9ade3dc6b4efec201a5aaaa0c4605", null ],
+    [ "FloatMinThreshold", "d0/d86/Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h.html#ae7726687f6e1b7c912cb10eaf6139175", null ],
+    [ "InversePhiBinSize", "d0/d86/Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h.html#a4314f4aeb5359ee3f650b89aad690f10", null ],
+    [ "LayersNumber", "d0/d86/Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h.html#aeca45b365f2605e581f139b3ade34e43", null ],
+    [ "LayersNumberVertexer", "d0/d86/Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h.html#a0e19b6425dafcfb0326f4fa0389c9dec", null ],
+    [ "PhiBins", "d0/d86/Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h.html#a3bb9bea153c30125ee988bdbd2fdf50d", null ],
+    [ "phiIndex", "d0/d86/Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h.html#a4ca35dde82a50c2bef1a1a37cb94b940", null ],
+    [ "Pi", "d0/d86/Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h.html#a790aa0015b1208f2a67ff3eaee25392b", null ],
+    [ "PionCode", "d0/d86/Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h.html#aab490aae94c124cff1485130b3556846", null ],
+    [ "Resolution", "d0/d86/Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h.html#abe0130447bfd35fb252ed16a5f818315", null ],
+    [ "TrackletsPerRoad", "d0/d86/Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h.html#a6481019d07e100ec0604025faf32131b", null ],
+    [ "TwoPi", "d0/d86/Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h.html#ab8ae067bdc328b3dede71d13994af907", null ],
+    [ "UnusedIndex", "d0/d86/Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h.html#a80dbf71aaf60ca0dbf399996c1853749", null ],
+    [ "ZBins", "d0/d86/Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h.html#a69919a5f839d92b574e1897b11a8c63a", null ],
+    [ "zCoordinate", "d0/d86/Detectors_2ITSMFT_2ITS_2tracking_2include_2ITStracking_2Constants_8h.html#a2154e0c792dd616b984c788ffb295bc8", null ]
+];

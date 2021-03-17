@@ -1,0 +1,28 @@
+var classo2_1_1mft_1_1HeatExchanger =
+[
+    [ "HeatExchanger", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#a040e4801b659de23b93e1bef2c69be6d", null ],
+    [ "HeatExchanger", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#a4dfa77d06183fe92ba05a669ff892b94", null ],
+    [ "~HeatExchanger", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#a10175570b2435a43fce5887dcb47f287", null ],
+    [ "create", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#ade35869545ed319aa59f2edf1f64970b", null ],
+    [ "createCoolingPipes", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#ac3d2d5049f7caa7cc53c729fdbd63fbe", null ],
+    [ "createHalfDisk0", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#a6441c3ce84527f505e9a269c4a18a235", null ],
+    [ "createHalfDisk1", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#a8a793144a61f8831e8b4354c4a1e6ba9", null ],
+    [ "createHalfDisk2", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#a0f0f6a92546d5bcce67fe1ee937121ec", null ],
+    [ "createHalfDisk3", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#a03933a5448c0ffb9fbc7f2c5f3295984", null ],
+    [ "createHalfDisk4", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#aef21f44735ff1c1ad41533757111d977", null ],
+    [ "createManifold", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#af1dbb6f010347014537c900b2124f46f", null ],
+    [ "getCarbonThickness", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#a68f7c2328ee8bfcf74d0242bb0b6b286", null ],
+    [ "getExchangerWidth", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#a2be666d24a39cb3e9efb6c44ed87a572", null ],
+    [ "getPipeThickness", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#af5ebdd21672ce0a30912875b424e4326", null ],
+    [ "getWaterRadius", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#aa041ca88abbfd73ddd070a412c55bc33", null ],
+    [ "setCarbonThickness", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#a15d7e78b157e32a1aa8065b1befbc611", null ],
+    [ "setExchangerWidth", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#a5333b372703c477780780694f9a39ad6", null ],
+    [ "setPipeThickness", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#a28ecbc6ac16312bac376ddbfed6a6d7d", null ],
+    [ "setWaterRadius", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#a1bca051476183e688d46ebf225be5317", null ],
+    [ "mCarbon", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#ad71c3590b8b1b685ca64568b2e7f77f6", null ],
+    [ "mMaterial", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#ac29d88cbfc6b3855062c7b6ce4e42c28", null ],
+    [ "mPeek", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#a060dbc28eb088d8be486528b85d5e898", null ],
+    [ "mPipe", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#a671039bcd582806280d99ad6c99e68ca", null ],
+    [ "mRohacell", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#acc335f382b64b9758f4a603bb3f71fe9", null ],
+    [ "mWater", "d8/dd2/classo2_1_1mft_1_1HeatExchanger.html#a5bd5093052f9efd8b67800f989a7110f", null ]
+];

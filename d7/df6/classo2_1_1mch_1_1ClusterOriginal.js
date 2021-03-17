@@ -1,0 +1,28 @@
+var classo2_1_1mch_1_1ClusterOriginal =
+[
+    [ "ClusterOriginal", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#a6624f9bdefeae64eb5ea6dbd24cace3e", null ],
+    [ "~ClusterOriginal", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#aa8ca284a5c8553f1d5442e51a60e47bf", null ],
+    [ "ClusterOriginal", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#a8bfdcfb30fc773589834607f826264c0", null ],
+    [ "ClusterOriginal", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#ae861ff321b12096bbb1a3e76bf1084a6", null ],
+    [ "addPad", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#a30623f5ab6d02d4712dd579bb65450f2", null ],
+    [ "area", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#ae8e56f10ef7e77ce13d7fd74b2fd59b8", null ],
+    [ "begin", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#ac69100b4c10b309c009a3990c5b2132f", null ],
+    [ "begin", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#a7852d0d2ba5e33781430ddb9aac1be0e", null ],
+    [ "charge", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#a3893bdfe32a6c89bd4b8fbfcc3cb366a", null ],
+    [ "chargeAsymmetry", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#ae697a0d80eea093e1e382b343e39261c", null ],
+    [ "clear", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#a15f88a55ed55e6fef8965ed8d68fecd1", null ],
+    [ "end", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#ae67fe74b30e7117dc2a4956ec62f076b", null ],
+    [ "end", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#a8549419aa4a6f91a31c9fa9a60390cf1", null ],
+    [ "isSaturated", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#a1fe45dbcf00c80365d49b020e22ec99d", null ],
+    [ "maxChargePlane", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#a6aa7a3f9cc4330559322bf7243a5b506", null ],
+    [ "minPadDimensions", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#ac3303d8d044aeb3b1af82c7456371f72", null ],
+    [ "minPadDimensions", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#a88beeecafa9ad4efb1c79e8989ad96f4", null ],
+    [ "multiplicity", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#a7f4e6f76127a1c256d318585cfaa27ef", null ],
+    [ "operator=", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#a8f1be9d149089bfbb6bee244ec933d94", null ],
+    [ "operator=", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#aa1b74df51dc586b2489d9d8044fcd283", null ],
+    [ "pad", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#a3fd7219aca2cb8f73923eab96c9c2b7b", null ],
+    [ "removePad", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#ab50c559f17e3e15ecb5acfd547772cfd", null ],
+    [ "sizeInPads", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#adea857a35f78364d4370a57fdd8a7a65", null ],
+    [ "sizeInPads", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#a6b6f86eb89072c8c84734f02a39fe928", null ],
+    [ "sortPads", "d7/df6/classo2_1_1mch_1_1ClusterOriginal.html#a4836c3e9c34ae68f68bb7db22e09598f", null ]
+];

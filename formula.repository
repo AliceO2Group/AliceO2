@@ -1,0 +1,17 @@
+\_form#0:$p_T$
+\_form#1:$\eta,\;\phi$
+\_form#2:$\mbox{vtx}_z,\; \eta,\;\phi,\;p_T$
+\_form#3:$\mbox{vtx}_z,\;\eta,\;\phi,\;p_T$
+\_form#4:${p_T}_1, {p_T}_2$
+\_form#5:${p_T}_1 {p_T}_2$
+\_form#6:${p_T}_1 n_2$
+\_form#7:$n_1 {p_T}_2$
+\_form#8:$ \nabla^{2}V(r,\phi,z) = - f(r,\phi,z) $
+\_form#9:$ V(r,\phi,z) $
+\_form#10:$ - f(r,\phi,z) $
+\_form#11:\[ (R u)_{i,j,k} = \frac{1}{2} u_{2i,2j,2k} + \frac{1}{4} S_{1} + \frac{1}{8} S_{2} + \frac{1}{16} S_{3}\]
+\_form#12:$ U_{i,j,k} = (1 + \frac{1}{r_{i}h_{r}}) U_{i+1,j,k} + (1 - \frac{1}{r_{i}h_{r}}) U_{i+1,j,k} $
+\_form#13:$ h_{r}^{2} $
+\_form#14:$ V_{x+1,y,z} $
+\_form#15:$ V_{x-1,y,z} $
+\_form#16:$ 1/ h_{r}^{2} $
