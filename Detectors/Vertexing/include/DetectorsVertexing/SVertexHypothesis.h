@@ -8,29 +8,36 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file V0Hypothesis.h
-/// \brief V0 hypothesis checker
+/// \file SVertexHypothesis.h
+/// \brief V0 or Cascade hypothesis checker
 /// \author ruben.shahoyan@cern.ch
 
-#ifndef ALICEO2_V0_HYPOTHESIS_H
-#define ALICEO2_V0_HYPOTHESIS_H
+#ifndef ALICEO2_SVERTEX_HYPOTHESIS_H
+#define ALICEO2_SVERTEX_HYPOTHESIS_H
 
 #include "ReconstructionDataFormats/PID.h"
-#include "DetectorsVertexing/SVertexerParams.h"
+#include <cmath>
+#include <array>
 
 namespace o2
 {
 namespace vertexing
 {
 
-class V0Hypothesis
+class SVertexHypothesis
 {
 
  public:
   using PID = o2::track::PID;
+  enum PIDParams { SigmaM,  // sigma of mass res at 0 pt
+                   NSigmaM, // number of sigmas of mass res
+                   MarginM, // additive safety margin in mass cut
+                   CPt };   // pT dependence of mass resolution parameterized as mSigma*(1+mC1*pt);
+
+  static constexpr int NPIDParams = 4;
 
   void set(PID v0, PID ppos, PID pneg, float sig, float nSig, float margin, float cpt, float bz = 0.f);
-  void set(PID v0, PID ppos, PID pneg, const float pars[SVertexerParams::NPIDParams], float bz = 0.f);
+  void set(PID v0, PID ppos, PID pneg, const float pars[NPIDParams], float bz = 0.f);
 
   float getMassV0Hyp() const { return PID::getMass(mPIDV0); }
   float getMassPosProng() const { return PID::getMass(mPIDPosProng); }
@@ -55,23 +62,20 @@ class V0Hypothesis
     return std::abs(mass - getMassV0Hyp()) < getMargin(pt);
   }
 
-  float getSigma(float pt) const { return 1.f + mCPt * pt; }
-  float getMargin(float pt) const { return mNSigma * getSigma(pt) + mMargin; }
+  float getSigma(float pt) const { return mPars[SigmaM] * (1.f + mPars[CPt] * pt); }
+  float getMargin(float pt) const { return mPars[NSigmaM] * getSigma(pt) + mPars[MarginM]; }
 
  private:
   float getMass2PosProng() const { return PID::getMass2(mPIDPosProng); }
   float getMass2NegProng() const { return PID::getMass2(mPIDNegProng); }
 
-  PID mPIDV0 = PID::K0;
-  PID mPIDPosProng = PID::Pion;
-  PID mPIDNegProng = PID::Pion;
+  PID mPIDV0{PID::K0};
+  PID mPIDPosProng{PID::Pion};
+  PID mPIDNegProng{PID::Pion};
 
-  float mNSigma = 0.; // number of sigmas of mass res
-  float mSigma = 0.;  // sigma of mass res at 0 pt
-  float mMargin = 0.; // additive safety margin in mass cut
-  float mCPt = 0.;    // pT dependence of mass resolution parameterized as mSigma*(1+mC1*pt);
+  std::array<float, NPIDParams> mPars{};
 
-  ClassDefNV(V0Hypothesis, 1);
+  ClassDefNV(SVertexHypothesis, 1);
 };
 
 } // namespace vertexing

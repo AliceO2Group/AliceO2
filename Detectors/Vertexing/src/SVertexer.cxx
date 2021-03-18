@@ -30,93 +30,101 @@ using TrackITS = o2::its::TrackITS;
 using TrackTPC = o2::tpc::TrackTPC;
 
 //__________________________________________________________________
-void SVertexer::process(const gsl::span<const PVertex>& vertices,            // primary vertices
-                        const gsl::span<const GIndex>& trackIndex,           // Global ID's for associated tracks
-                        const gsl::span<const VRef>& vtxRefs,                // references from vertex to these track IDs
-                        const o2::globaltracking::RecoContainer& recoTracks, // accessor to various tracks
-                        std::vector<V0>& v0s,                                // found V0s
-                        std::vector<RRef>& vtx2V0refs                        // references from PVertex to V0
+void SVertexer::process(const gsl::span<const PVertex>& vertices,           // primary vertices
+                        const gsl::span<const GIndex>& trackIndex,          // Global ID's for associated tracks
+                        const gsl::span<const VRef>& vtxRefs,               // references from vertex to these track IDs
+                        const o2::globaltracking::RecoContainer& recoTracks // accessor to various tracks
 )
 {
-  std::unordered_map<uint64_t, int> cache; // cache for tested combinations, the value >0 will give the entry of prevalidated V0 in the v0sTmp
-  std::vector<V0> v0sTmp(1);               // 1st one is dummy!
-  std::vector<int> v0sIdx;                 // id's in v0sTmp used attached to p.vertices
-  std::vector<RRef> pv2v0sRefs;            // p.vertex to v0 index references
-  std::vector<char> selQ(trackIndex.size(), 0);
-
+  updateTimeDependentParams(); // TODO RS: strictly speaking, one should do this only in case of the CCDB objects update
   mPVertices = vertices;
+  buildT2V(trackIndex, vtxRefs, recoTracks);
+  int ntrP = mTracksPool[POS].size(), ntrN = mTracksPool[NEG].size(), iThread = 0;
   mV0sTmp[0].clear();
-  auto tracksPool = buildT2V(trackIndex, vtxRefs, recoTracks);
-  // V0 finding
-  int ntr = tracksPool.size();
+  mCascadesTmp[0].clear();
+
 #ifdef WITH_OPENMP
   omp_set_num_threads(mNThreads);
   int dynGrp = std::min(4, std::max(1, mNThreads / 2));
 #pragma omp parallel for schedule(dynamic, dynGrp)
 #endif
-  for (int it0 = 0; it0 < ntr; it0++) {
-    auto& seed0 = tracksPool[it0];
-    for (int it1 = it0 + 1; it1 < ntr; it1++) {
-      auto& seed1 = tracksPool[it1];
-      if (seed1.vBracket > seed0.vBracket) { // all vertices compatible with seed1 are in future wrt that of seed0
+  for (int itp = 0; itp < ntrP; itp++) {
+    auto& seedP = mTracksPool[POS][itp];
+    for (int itn = mVtxFirstTrack[NEG][seedP.vBracket.getMin()]; itn < ntrN; itn++) { // start from the 1st negative track of lowest-ID vertex of positive
+      auto& seedN = mTracksPool[NEG][itn];
+      if (seedN.vBracket > seedP.vBracket) { // all vertices compatible with seedN are in future wrt that of seedP
         break;
       }
-      if (seed0.getSign() == seed1.getSign()) { // make sure the seeds have opPite charges
-        continue;
-      }
-      auto seedP = &seed0, seedN = &seed1;
-      if (seed0.getSign() < seed1.getSign()) { // order to + , -
-        std::swap(seedP, seedN);
-      }
 #ifdef WITH_OPENMP
-      int ith = omp_get_thread_num();
-#else
-      int ith = 0;
+      iThread = omp_get_thread_num();
 #endif
-      checkV0Pair(*seedP, *seedN, ith);
+      checkV0(seedP, seedN, itp, itn, iThread);
     }
   }
 #ifdef WITH_OPENMP
   for (int i = 1; i < mNThreads; i++) { // merge results of all threads
+    for (auto& casc : mCascadesTmp[i]) { // before merging fix cascades references on v0
+      casc.setV0ID(casc.getV0ID() + mV0sTmp[0].size());
+    }
     mV0sTmp[0].insert(mV0sTmp[0].end(), mV0sTmp[i].begin(), mV0sTmp[i].end());
+    mCascadesTmp[0].insert(mCascadesTmp[0].end(), mCascadesTmp[i].begin(), mCascadesTmp[i].end());
     mV0sTmp[i].clear();
+    mCascadesTmp[i].clear();
   }
 #endif
-
-  vtx2V0refs.clear();
-  vtx2V0refs.resize(vertices.size());
-  finalizeV0s(v0s, vtx2V0refs);
+  LOG(INFO) << "DONE : " << mV0sTmp[0].size() << " " << mCascadesTmp[0].size();
 }
 
 //__________________________________________________________________
 void SVertexer::init()
 {
-  mSVParams = &SVertexerParams::Instance();
+}
 
+//__________________________________________________________________
+void SVertexer::updateTimeDependentParams()
+{
+  // TODO RS: strictly speaking, one should do this only in case of the CCDB objects update
+  mSVParams = &SVertexerParams::Instance();
   // precalculated selection cuts
-  mMinR2ToMeanVertex = mSVParams->minRfromMeanVertex * mSVParams->minRfromMeanVertex;
-  mMaxDCAXY2ToMeanVertex = mSVParams->maxDCAXYfromMeanVertex * mSVParams->maxDCAXYfromMeanVertex;
-  mMinCosPointingAngle = mSVParams->minCosPointingAngle;
-  //
+  mMinR2ToMeanVertex = mSVParams->minRToMeanVertex * mSVParams->minRToMeanVertex;
+  mMaxR2ToMeanVertexCascV0 = mSVParams->maxRToMeanVertexCascV0 * mSVParams->maxRToMeanVertexCascV0;
+  mMaxDCAXY2ToMeanVertex = mSVParams->maxDCAXYToMeanVertex * mSVParams->maxDCAXYToMeanVertex;
+  mMaxDCAXY2ToMeanVertexV0Casc = mSVParams->maxDCAXYToMeanVertexV0Casc * mSVParams->maxDCAXYToMeanVertexV0Casc;
+  mMinR2DiffV0Casc = mSVParams->minRDiffV0Casc * mSVParams->minRDiffV0Casc;
+
   auto bz = o2::base::Propagator::Instance()->getNominalBz();
-  //
+
+  mV0Hyps[HypV0::Photon].set(PID::Photon, PID::Electron, PID::Electron, mSVParams->pidCutsPhoton, bz);
+  mV0Hyps[HypV0::K0].set(PID::K0, PID::Pion, PID::Pion, mSVParams->pidCutsK0, bz);
+  mV0Hyps[HypV0::Lambda].set(PID::Lambda, PID::Proton, PID::Pion, mSVParams->pidCutsLambda, bz);
+  mV0Hyps[HypV0::AntiLambda].set(PID::Lambda, PID::Pion, PID::Proton, mSVParams->pidCutsLambda, bz);
+  mV0Hyps[HypV0::HyperTriton].set(PID::HyperTriton, PID::Helium3, PID::Pion, mSVParams->pidCutsHTriton, bz);
+  mV0Hyps[HypV0::AntiHyperTriton].set(PID::HyperTriton, PID::Pion, PID::Helium3, mSVParams->pidCutsHTriton, bz);
+
+  mCascHyps[HypCascade::XiMinus].set(PID::XiMinus, PID::Lambda, PID::Pion, mSVParams->pidCutsXiMinus, bz);
+  mCascHyps[HypCascade::OmegaMinus].set(PID::OmegaMinus, PID::Lambda, PID::Kaon, mSVParams->pidCutsOmegaMinus, bz);
+
   setupThreads();
-  mV0Hyps[SVertexerParams::Photon].set(PID::Photon, PID::Electron, PID::Electron, mSVParams->pidCutsPhoton, bz);
-  mV0Hyps[SVertexerParams::K0].set(PID::K0, PID::Pion, PID::Pion, mSVParams->pidCutsK0, bz);
-  mV0Hyps[SVertexerParams::Lambda].set(PID::Lambda, PID::Proton, PID::Pion, mSVParams->pidCutsLambda, bz);
-  mV0Hyps[SVertexerParams::AntiLambda].set(PID::Lambda, PID::Pion, PID::Proton, mSVParams->pidCutsLambda, bz);
-  mV0Hyps[SVertexerParams::HyperTriton].set(PID::HyperTriton, PID::Helium3, PID::Pion, mSVParams->pidCutsHTriton, bz);
-  mV0Hyps[SVertexerParams::AntiHyperTriton].set(PID::HyperTriton, PID::Pion, PID::Helium3, mSVParams->pidCutsHTriton, bz);
-  //
+
+  for (auto& ft : mFitterV0) {
+    ft.setBz(bz);
+  }
+  for (auto& ft : mFitterCasc) {
+    ft.setBz(bz);
+  }
 }
 
 //__________________________________________________________________
 void SVertexer::setupThreads()
 {
-  mFitter2Prong.resize(mNThreads);
+  if (!mV0sTmp.empty()) {
+    return;
+  }
   mV0sTmp.resize(mNThreads);
+  mCascadesTmp.resize(mNThreads);
+  mFitterV0.resize(mNThreads);
   auto bz = o2::base::Propagator::Instance()->getNominalBz();
-  for (auto& fitter : mFitter2Prong) {
+  for (auto& fitter : mFitterV0) {
     fitter.setBz(bz);
     fitter.setUseAbsDCA(mSVParams->useAbsDCA);
     fitter.setPropagateToPCA(false);
@@ -126,12 +134,23 @@ void SVertexer::setupThreads()
     fitter.setMaxDZIni(mSVParams->maxDZIni);
     fitter.setMaxChi2(mSVParams->maxChi2);
   }
+  mFitterCasc.resize(mNThreads);
+  for (auto& fitter : mFitterCasc) {
+    fitter.setBz(bz);
+    fitter.setUseAbsDCA(mSVParams->useAbsDCA);
+    fitter.setPropagateToPCA(false);
+    fitter.setMaxR(mSVParams->maxRIniCasc);
+    fitter.setMinParamChange(mSVParams->minParamChange);
+    fitter.setMinRelChi2Change(mSVParams->minRelChi2Change);
+    fitter.setMaxDZIni(mSVParams->maxDZIni);
+    fitter.setMaxChi2(mSVParams->maxChi2);
+  }
 }
 
 //__________________________________________________________________
-std::vector<SVertexer::TrackCand> SVertexer::buildT2V(const gsl::span<const GIndex>& trackIndex,           // Global ID's for associated tracks
-                                                      const gsl::span<const VRef>& vtxRefs,                // references from vertex to these track IDs
-                                                      const o2::globaltracking::RecoContainer& recoTracks) // accessor to various tracks
+void SVertexer::buildT2V(const gsl::span<const GIndex>& trackIndex,           // Global ID's for associated tracks
+                         const gsl::span<const VRef>& vtxRefs,                // references from vertex to these track IDs
+                         const o2::globaltracking::RecoContainer& recoTracks) // accessor to various tracks
 {
   // build track->vertices from vertices->tracks, rejecting vertex contributors
 
@@ -140,9 +159,14 @@ std::vector<SVertexer::TrackCand> SVertexer::buildT2V(const gsl::span<const GInd
     return (gid.isPVContributor() || !recoTracks.isTrackSourceLoaded(gid.getSource())) ? false : true;
   };
 
-  std::vector<TrackCand> tracksPool;
-  std::unordered_map<GIndex, int> tmap;
+  std::unordered_map<GIndex, std::pair<int, int>> tmap;
   int nv = vtxRefs.size();
+  for (int i = 0; i < 2; i++) {
+    mTracksPool[i].clear();
+    mVtxFirstTrack[i].clear();
+    mVtxFirstTrack[i].resize(nv, -1);
+  }
+
   for (int iv = 0; iv < nv; iv++) {
     const auto& vtref = vtxRefs[iv];
     int it = vtref.getFirstEntry(), itLim = it + vtref.getEntries();
@@ -155,76 +179,54 @@ std::vector<SVertexer::TrackCand> SVertexer::buildT2V(const gsl::span<const GInd
       if (tvid.isAmbiguous()) {
         auto tref = tmap.find(tvid);
         if (tref != tmap.end()) {
-          tracksPool[tref->second].vBracket.setMax(iv); // this track was already processed with other vertex, account the latter
+          mTracksPool[tref->second.second][tref->second.first].vBracket.setMax(iv); // this track was already processed with other vertex, account the latter
           continue;
         }
       }
-
-      tracksPool.emplace_back(TrackCand{recoTracks.getTrack(tvid), tvid, {iv, iv}});
+      const auto& trc = recoTracks.getTrack(tvid);
+      int posneg = trc.getSign() < 0 ? 1 : 0;
+      mTracksPool[posneg].emplace_back(TrackCand{trc, tvid, {iv, iv}});
       if (tvid.isAmbiguous()) { // track attached to >1 vertex, remember that it was already processed
-        tmap[tvid] = tracksPool.size() - 1;
+        tmap[tvid] = {mTracksPool[posneg].size() - 1, posneg};
       }
     }
   }
-  LOG(INFO) << "Collected " << tracksPool.size() << " seeds";
-  return std::move(tracksPool);
+  // register 1st track of each charge for each vertex
+
+  for (int pn = 0; pn < 2; pn++) {
+    auto& vtxFirstT = mVtxFirstTrack[pn];
+    const auto& tracksPool = mTracksPool[pn];
+    for (unsigned i = 0; i < tracksPool.size(); i++) {
+      const auto& t = tracksPool[i];
+      if (vtxFirstT[t.vBracket.getMin()] == -1) {
+        vtxFirstT[t.vBracket.getMin()] = i;
+      }
+    }
+  }
+
+  LOG(INFO) << "Collected " << mTracksPool[POS].size() << " positive and " << mTracksPool[NEG].size() << " negative seeds";
 }
 
 //__________________________________________________________________
-void SVertexer::finalizeV0s(std::vector<V0>& v0s, std::vector<RRef>& vtx2V0refs)
+bool SVertexer::checkV0(TrackCand& seedP, TrackCand& seedN, int iP, int iN, int ithread)
 {
-  auto& tmpV0s = mV0sTmp[0];
-  int nv0 = tmpV0s.size();
-  std::vector<int> v0sortid(nv0);
-  std::iota(v0sortid.begin(), v0sortid.end(), 0);
-  std::sort(v0sortid.begin(), v0sortid.end(), [&](int i, int j) { return tmpV0s[i].getVertexID() < tmpV0s[j].getVertexID(); });
-  int pvID = -1, nForPV = 0;
-  for (int iv = 0; iv < nv0; iv++) {
-    const auto& v0 = tmpV0s[iv];
-    if (pvID < v0.getVertexID()) {
-      if (pvID > -1) {
-        vtx2V0refs[pvID].setEntries(nForPV);
-      }
-      pvID = v0.getVertexID();
-      vtx2V0refs[pvID].setFirstEntry(v0s.size());
-      nForPV = 0;
-    }
-    v0s.push_back(v0);
-    nForPV++;
-  }
-  if (pvID != -1) { // finalize
-    vtx2V0refs[pvID].setEntries(nForPV);
-    // fill empty slots
-    int ent = v0s.size();
-    for (int ip = vtx2V0refs.size(); ip--;) {
-      if (vtx2V0refs[ip].getEntries()) {
-        ent = vtx2V0refs[ip].getFirstEntry();
-      } else {
-        vtx2V0refs[ip].setFirstEntry(ent);
-      }
-    }
-  }
-}
-
-//__________________________________________________________________
-bool SVertexer::checkV0Pair(TrackCand& seedP, TrackCand& seedN, int ithread)
-{
-  auto& fitter = mFitter2Prong[ithread];
-  int nCand = fitter.process(seedP, seedN);
+  auto& fitterV0 = mFitterV0[ithread];
+  int nCand = fitterV0.process(seedP, seedN);
   if (nCand == 0) { // discard this pair
     return false;
   }
-  const auto& v0XYZ = fitter.getPCACandidate();
+  const auto& v0XYZ = fitterV0.getPCACandidate();
   // check closeness to the beam-line
-  auto r2 = (v0XYZ[0] - mMeanVertex.getX()) * (v0XYZ[0] - mMeanVertex.getX()) + (v0XYZ[1] - mMeanVertex.getY()) * (v0XYZ[1] - mMeanVertex.getY());
-  if (r2 < mMinR2ToMeanVertex) {
+  float dxv0 = v0XYZ[0] - mMeanVertex.getX(), dyv0 = v0XYZ[1] - mMeanVertex.getY(), r2v0 = dxv0 * dxv0 + dyv0 * dyv0;
+  if (r2v0 < mMinR2ToMeanVertex) {
     return false;
   }
-  if (!fitter.isPropagateTracksToVertexDone() && !fitter.propagateTracksToVertex()) {
+  if (!fitterV0.isPropagateTracksToVertexDone() && !fitterV0.propagateTracksToVertex()) {
     return false;
   }
-  auto& trPProp = fitter.getTrack(0);
-  auto& trNProp = fitter.getTrack(1);
+  int cand = 0;
+  auto& trPProp = fitterV0.getTrack(0, cand);
+  auto& trNProp = fitterV0.getTrack(1, cand);
   std::array<float, 3> pP, pN;
   trPProp.getPxPyPzGlo(pP);
   trNProp.getPxPyPzGlo(pN);
@@ -233,56 +235,166 @@ bool SVertexer::checkV0Pair(TrackCand& seedP, TrackCand& seedN, int ithread)
   // t = -[ (x0-Xv)*pV0[0] + (y0-Yv)*pV0[1]) ] / ( pT(pV0)^2 )
   // Similar equation for 3D distance involving pV0[2]
   std::array<float, 3> pV0 = {pP[0] + pN[0], pP[1] + pN[1], pP[2] + pN[2]};
-  float dx = v0XYZ[0] - mMeanVertex.getX(), dy = v0XYZ[1] - mMeanVertex.getY();
-  float pt2V0 = pV0[0] * pV0[0] + pV0[1] * pV0[1], prodXY = dx * pV0[0] + dy * pV0[1], tDCAXY = -prodXY / pt2V0;
-  float dcaX = dx + pV0[0] * tDCAXY, dcaY = dy + pV0[1] * tDCAXY, dca2 = dcaX * dcaX + dcaY * dcaY;
-  if (dca2 > mMaxDCAXY2ToMeanVertex) {
-    return false;
-  }
+  float pt2V0 = pV0[0] * pV0[0] + pV0[1] * pV0[1], prodXYv0 = dxv0 * pV0[0] + dyv0 * pV0[1], tDCAXY = prodXYv0 / pt2V0;
   float p2V0 = pt2V0 + pV0[2] * pV0[2], ptV0 = std::sqrt(pt2V0);
   // apply mass selections
   float p2Pos = pP[0] * pP[0] + pP[1] * pP[1] + pP[2] * pP[2], p2Neg = pN[0] * pN[0] + pN[1] * pN[1] + pN[2] * pN[2];
+
   bool goodHyp = false;
-  for (int ipid = 0; ipid < SVertexerParams::NPIDV0; ipid++) {
+  std::array<bool, NHypV0> hypCheckStatus{};
+  for (int ipid = 0; ipid < NHypV0; ipid++) {
     if (mV0Hyps[ipid].check(p2Pos, p2Neg, p2V0, ptV0)) {
-      goodHyp = true;
-      break;
+      goodHyp = hypCheckStatus[ipid] = true;
     }
   }
   if (!goodHyp) {
     return false;
   }
+
+  bool checkForCascade = mEnableCascades && r2v0 < mMaxR2ToMeanVertexCascV0 && (hypCheckStatus[HypV0::Lambda] || hypCheckStatus[HypV0::AntiLambda]);
+  bool rejectIfNotCascade = false;
+  float dcaX = dxv0 - pV0[0] * tDCAXY, dcaY = dyv0 - pV0[1] * tDCAXY, dca2 = dcaX * dcaX + dcaY * dcaY;
+  float cosPAXY = prodXYv0 / std::sqrt(r2v0 * pt2V0);
+
+  if (checkForCascade) { // use loser cuts for cascade v0 candidates
+    if (dca2 > mMaxDCAXY2ToMeanVertexV0Casc || cosPAXY < mSVParams->minCosPAXYMeanVertexCascV0) {
+      return false;
+    }
+  }
+  if (dca2 > mMaxDCAXY2ToMeanVertex || cosPAXY < mSVParams->minCosPAXYMeanVertex) {
+    if (checkForCascade) {
+      rejectIfNotCascade = true;
+    } else {
+      return false;
+    }
+  }
+
   auto vlist = seedP.vBracket.getOverlap(seedN.vBracket); // indices of vertices shared by both seeds
   if (vlist.isInvalid()) {
     LOG(WARNING) << "Incompatible tracks: V0 " << seedP.vBracket.asString() << " | V1 " << seedN.vBracket.asString();
     return false;
   }
+
   bool added = false;
-  auto bestCosPA = mMinCosPointingAngle;
+  auto bestCosPA = checkForCascade ? mSVParams->minCosPACascV0 : mSVParams->minCosPA;
   for (int iv = vlist.getMin(); iv <= vlist.getMax(); iv++) {
     const auto& pv = mPVertices[iv];
+    const auto v0XYZ = fitterV0.getPCACandidatePos(cand);
     // check cos of pointing angle
-    float dz = v0XYZ[2] - pv.getZ(), cosPointingAngle = (prodXY + dz * pV0[2]) / std::sqrt((dx * dx + dy * dy + dz * dz) * p2V0);
-    if (cosPointingAngle < bestCosPA) {
+    float dx = v0XYZ[0] - pv.getX(), dy = v0XYZ[1] - pv.getY(), dz = v0XYZ[2] - pv.getZ(), prodXYZv0 = dx * pV0[0] + dy * pV0[1] + dz * pV0[2];
+    float cosPA = prodXYZv0 / std::sqrt((dx * dx + dy * dy + dz * dz) * p2V0);
+    if (cosPA < bestCosPA) {
       continue;
     }
-    if (added) { // V0 was already added, just reassign to this vertex
-      auto& v0 = mV0sTmp[ithread].back();
-      v0.setCosPA(cosPointingAngle);
-      v0.setVertexID(iv);
-      bestCosPA = cosPointingAngle;
-    } else {
-      std::array<float, 3> v0XYZF = {float(v0XYZ[0]), float(v0XYZ[1]), float(v0XYZ[2])};
-      auto& v0 = mV0sTmp[ithread].emplace_back(v0XYZF, pV0, trPProp, trNProp, seedP.gid, seedN.gid);
-      v0.setCosPA(cosPointingAngle);
-      v0.setVertexID(iv);
-      v0.setDCA(fitter.getChi2AtPCACandidate());
-      bestCosPA = cosPointingAngle;
+    if (!added) {
+      auto& v0new = mV0sTmp[ithread].emplace_back(v0XYZ, pV0, fitterV0.calcPCACovMatrixFlat(cand), trPProp, trNProp, seedP.gid, seedN.gid);
+      v0new.setDCA(fitterV0.getChi2AtPCACandidate());
       added = true;
+    }
+    auto& v0 = mV0sTmp[ithread].back();
+    v0.setCosPA(cosPA);
+    v0.setVertexID(iv);
+    bestCosPA = cosPA;
+  }
+  if (!added) {
+    return false;
+  }
+
+  auto& v0 = mV0sTmp[ithread].back();
+  // check cascades
+  if (checkForCascade) {
+    int nCascAdded = 0;
+    if (hypCheckStatus[HypV0::Lambda]) {
+      nCascAdded += checkCascades(r2v0, p2V0, iN, NEG, ithread);
+    }
+    if (hypCheckStatus[HypV0::AntiLambda]) {
+      nCascAdded += checkCascades(r2v0, p2V0, iP, POS, ithread);
+    }
+    if (!nCascAdded && rejectIfNotCascade) { // v0 would be accepted only if it creates a cascade
+      mV0sTmp[ithread].pop_back();
+      return false;
     }
   }
 
   return true;
+}
+
+//__________________________________________________________________
+int SVertexer::checkCascades(float r2v0, float p2V0, int avoidTrackID, int posneg, int ithread)
+{
+  // check last added V0 for belonging to cascade
+  auto& fitterCasc = mFitterCasc[ithread];
+  const auto& v0 = mV0sTmp[ithread].back();
+  auto& tracks = mTracksPool[posneg];
+  const auto& pv = mPVertices[v0.getVertexID()];
+  int nCascIni = mCascadesTmp[ithread].size();
+  // start from the 1st track compatible with V0's primary vertex
+  for (unsigned it = mVtxFirstTrack[posneg][v0.getVertexID()]; it < tracks.size(); it++) {
+    if (it == avoidTrackID) {
+      continue; // skip the track used by V0
+    }
+    auto& bach = tracks[it];
+    if (bach.vBracket > v0.getVertexID()) {
+      break; // all other bachelor candidates will be also not compatible with this PV
+    }
+    if (bach.vBracket.isOutside(v0.getVertexID())) {
+      LOG(ERROR) << "Incompatible bachelor: PV " << bach.vBracket.asString() << " vs V0 " << v0.getVertexID();
+    }
+    int nCandC = fitterCasc.process(v0, bach);
+    if (nCandC == 0) { // discard this pair
+      continue;
+    }
+    int candC = 0;
+    const auto& cascXYZ = fitterCasc.getPCACandidatePos(candC);
+    // make sure the cascade radius is smaller than that of the vertex
+    float dxc = cascXYZ[0] - pv.getX(), dyc = cascXYZ[1] - pv.getY(), r2casc = dxc * dxc + dyc * dyc;
+    if (r2v0 - r2casc < mMinR2DiffV0Casc || r2casc < mMinR2ToMeanVertex) {
+      continue;
+    }
+    // do we want to apply mass cut ?
+    //
+    if (!fitterCasc.isPropagateTracksToVertexDone() && !fitterCasc.propagateTracksToVertex()) {
+      continue;
+    }
+    auto& trNeut = fitterCasc.getTrack(0, candC);
+    auto& trBach = fitterCasc.getTrack(1, candC);
+    trNeut.setPID(o2::track::PID::Lambda);
+    trBach.setPID(o2::track::PID::Pion);
+    std::array<float, 3> pNeut, pBach;
+    trNeut.getPxPyPzGlo(pNeut);
+    trBach.getPxPyPzGlo(pBach);
+    std::array<float, 3> pCasc = {pNeut[0] + pBach[0], pNeut[1] + pBach[1], pNeut[2] + pBach[2]};
+    auto prodPPos = pCasc[0] * cascXYZ[0] + pCasc[1] * cascXYZ[1] + pCasc[2] * cascXYZ[2];
+    if (prodPPos < 0.) { // causality cut
+      continue;
+    }
+    float p2Bach = pBach[0] * pBach[0] + pBach[1] * pBach[1] + pBach[2] * pBach[2];
+    float pt2Casc = pCasc[0] * pCasc[0] + pCasc[1] * pCasc[1], p2Casc = pt2Casc + pCasc[2] * pCasc[2];
+    float ptCasc = std::sqrt(pt2Casc);
+    bool goodHyp = false;
+    for (int ipid = 0; ipid < NHypCascade; ipid++) {
+      if (mCascHyps[ipid].check(p2V0, p2Bach, p2Casc, ptCasc)) {
+        goodHyp = true;
+        break;
+      }
+    }
+    if (!goodHyp) {
+      continue;
+    }
+
+    auto& casc = mCascadesTmp[ithread].emplace_back(cascXYZ, pCasc, fitterCasc.calcPCACovMatrixFlat(candC), trNeut, trBach, mV0sTmp[ithread].size() - 1, bach.gid);
+    o2::track::TrackParCov trc = casc;
+    o2::dataformats::DCA dca;
+    if (!trc.propagateToDCA(pv, fitterCasc.getBz(), &dca, 5.) ||
+        std::abs(dca.getY()) > mSVParams->maxDCAXYCasc || std::abs(dca.getZ()) > mSVParams->maxDCAZCasc) {
+      mCascadesTmp[ithread].pop_back();
+      continue;
+    }
+    casc.setCosPA(dca.getY());
+    casc.setVertexID(v0.getVertexID());
+    casc.setDCA(fitterCasc.getChi2AtPCACandidate());
+  }
+  return mCascadesTmp[ithread].size() - nCascIni;
 }
 
 //__________________________________________________________________

@@ -18,7 +18,6 @@
 #include "GPUCommonRtypes.h"
 #include "GPUCommonDef.h"
 #include "ReconstructionDataFormats/PID.h"
-#include "ReconstructionDataFormats/Track.h"
 
 namespace o2
 {
@@ -47,7 +46,7 @@ class TrackLTIntegral
     }
   }
 
-  GPUd() void addStep(float dL, const TrackPar& track);
+  GPUd() void addStep(float dL, float p2Inv);
   GPUd() void addX2X0(float d) { mX2X0 += d; }
 
   GPUd() void setL(float l) { mL = l; }

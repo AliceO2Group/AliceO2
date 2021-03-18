@@ -19,7 +19,6 @@
 #include "Framework/OutputObjHeader.h"
 #include "Framework/StringHelpers.h"
 #include "Framework/Output.h"
-#include <ROOT/RDataFrame.hxx>
 #include <string>
 #include "Framework/Logger.h"
 

@@ -73,7 +73,6 @@ class VertexTrackMatcher
   float mTPCBin2MUS = 0;
   const o2::vertexing::PVertexerParams* mPVParams = nullptr;
 
-  ClassDefNV(VertexTrackMatcher, 1);
 };
 
 } // namespace vertexing

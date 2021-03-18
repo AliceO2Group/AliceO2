@@ -21,13 +21,14 @@
 #include "GPUTPCGeometry.h"
 #include "GPUTPCGMPolynomialField.h"
 
-namespace o2
+#ifndef GPUCA_GPUCODE
+namespace o2::base
 {
-namespace base
-{
-class Propagator;
-} // namespace base
-} // namespace o2
+template <typename>
+class PropagatorImpl;
+using Propagator = PropagatorImpl<float>;
+} // namespace o2::base
+#endif
 
 namespace GPUCA_NAMESPACE
 {

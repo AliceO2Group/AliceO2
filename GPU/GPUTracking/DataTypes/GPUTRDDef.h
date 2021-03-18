@@ -34,7 +34,8 @@ class TrackTPCITS;
 } // namespace dataformats
 namespace base
 {
-class Propagator;
+template <typename>
+class PropagatorImpl;
 } // namespace base
 } // namespace o2
 #endif
@@ -65,7 +66,7 @@ typedef AliTrackerBase TRDBasePropagator;
 class GPUTPCGMPropagator;
 typedef GPUTPCGMPropagator TRDBasePropagatorGPU;
 #else
-typedef o2::base::Propagator TRDBasePropagator;
+typedef o2::base::PropagatorImpl<float> TRDBasePropagator;
 class GPUTPCGMPropagator;
 typedef GPUTPCGMPropagator TRDBasePropagatorGPU;
 #endif

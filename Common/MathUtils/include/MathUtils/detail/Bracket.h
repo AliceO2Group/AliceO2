@@ -73,6 +73,7 @@ class Bracket
   void update(T v);
   Relation isOutside(const Bracket<T>& t) const;
   Relation isOutside(T t, T tErr) const;
+  Relation isOutside(T t) const;
 
 #ifndef GPUCA_ALIGPUCODE
   std::string asString() const;
@@ -236,6 +237,13 @@ inline typename Bracket<T>::Relation Bracket<T>::isOutside(T t, T tErr) const
 {
   ///< check if the provided value t with error tErr is outside of the bracket
   return t + tErr < mMin ? Below : (t - tErr > mMax ? Above : Inside);
+}
+
+template <typename T>
+inline typename Bracket<T>::Relation Bracket<T>::isOutside(T t) const
+{
+  ///< check if provided point is outside of this bracket
+  return t < mMin ? Below : (t > mMax ? Above : Inside);
 }
 
 #ifndef GPUCA_ALIGPUCODE

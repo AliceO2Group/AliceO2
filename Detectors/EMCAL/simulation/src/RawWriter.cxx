@@ -319,6 +319,8 @@ std::vector<char> RawWriter::createRCUTrailer(int payloadsize, double timesample
   trailer.setNumberOfNonZeroSuppressedPresamples(1);
   trailer.setNumberOfPretriggerSamples(0);
   trailer.setNumberOfSamplesPerChannel(15);
+  // For MC we don't simulate pedestals. In order to prevent pedestal subtraction
+  // in the raw fitter we set the zero suppression to true in the RCU trailer
   trailer.setZeroSuppression(true);
   trailer.setSparseReadout(true);
   trailer.setNumberOfAltroBuffers(RCUTrailer::BufferMode_t::NBUFFERS4);

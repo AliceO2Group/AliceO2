@@ -22,6 +22,7 @@
 
 using namespace o2;
 using namespace o2::framework;
+using namespace o2::aod::hf_cand;
 using namespace o2::aod::hf_cand_prong3;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
@@ -115,7 +116,8 @@ struct HFCandidateCreator3Prong {
       auto errorDecayLengthXY = std::sqrt(getRotatedCovMatrixXX(covMatrixPV, phi, 0.) + getRotatedCovMatrixXX(covMatrixPCA, phi, 0.));
 
       // fill candidate table rows
-      rowCandidateBase(collision.posX(), collision.posY(), collision.posZ(),
+      rowCandidateBase(collision.globalIndex(),
+                       collision.posX(), collision.posY(), collision.posZ(),
                        secondaryVertex[0], secondaryVertex[1], secondaryVertex[2],
                        errorDecayLength, errorDecayLengthXY,
                        chi2PCA,
@@ -153,9 +155,11 @@ struct HFCandidateCreator3ProngMC {
                aod::BigTracksMC const& tracks,
                aod::McParticles const& particlesMC)
   {
+    int indexRec = -1;
     int8_t sign = 0;
     int8_t flag = 0;
-    int8_t DecayChannel = 0;
+    int8_t origin = 0;
+    int8_t channel = 0;
     std::vector<int> arrDaughIndex;
     std::array<int, 2> arrPDGDaugh;
     std::array<int, 2> arrPDGResonant1 = {2212, 313}; // Λc± → p± K*
@@ -166,36 +170,38 @@ struct HFCandidateCreator3ProngMC {
     for (auto& candidate : candidates) {
       //Printf("New rec. candidate");
       flag = 0;
-      DecayChannel = 0;
+      origin = 0;
+      channel = 0;
       arrDaughIndex.clear();
       auto arrayDaughters = array{candidate.index0_as<aod::BigTracksMC>(), candidate.index1_as<aod::BigTracksMC>(), candidate.index2_as<aod::BigTracksMC>()};
 
       // D± → π± K∓ π±
       //Printf("Checking D± → π± K∓ π±");
-      if (RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, 411, array{+kPiPlus, -kKPlus, +kPiPlus}, true, &sign) > -1) {
+      indexRec = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, 411, array{+kPiPlus, -kKPlus, +kPiPlus}, true, &sign);
+      if (indexRec > -1) {
         flag = sign * (1 << DPlusToPiKPi);
       }
 
       // Λc± → p± K∓ π±
       if (flag == 0) {
         //Printf("Checking Λc± → p± K∓ π±");
-        auto indexRecLc = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, 4122, array{+kProton, -kKPlus, +kPiPlus}, true, &sign, 2);
-        if (indexRecLc > -1) {
+        indexRec = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, 4122, array{+kProton, -kKPlus, +kPiPlus}, true, &sign, 2);
+        if (indexRec > -1) {
           flag = sign * (1 << LcToPKPi);
 
           //Printf("Flagging the different Λc± → p± K∓ π± decay channels");
-          RecoDecay::getDaughters(particlesMC, indexRecLc, &arrDaughIndex, array{0}, 1);
+          RecoDecay::getDaughters(particlesMC, particlesMC.iteratorAt(indexRec), &arrDaughIndex, array{0}, 1);
           if (arrDaughIndex.size() == 2) {
             for (auto iProng = 0; iProng < arrDaughIndex.size(); ++iProng) {
               auto daughI = particlesMC.iteratorAt(arrDaughIndex[iProng]);
               arrPDGDaugh[iProng] = std::abs(daughI.pdgCode());
             }
             if (arrPDGDaugh[0] == arrPDGResonant1[0] && arrPDGDaugh[1] == arrPDGResonant1[1]) {
-              DecayChannel = 1;
+              channel = 1;
             } else if (arrPDGDaugh[0] == arrPDGResonant2[0] && arrPDGDaugh[1] == arrPDGResonant2[1]) {
-              DecayChannel = 2;
+              channel = 2;
             } else if (arrPDGDaugh[0] == arrPDGResonant3[0] && arrPDGDaugh[1] == arrPDGResonant3[1]) {
-              DecayChannel = 3;
+              channel = 3;
             }
           }
         }
@@ -209,14 +215,21 @@ struct HFCandidateCreator3ProngMC {
         }
       }
 
-      rowMCMatchRec(flag, DecayChannel);
+      // Check whether the particle is non-prompt (from a b quark).
+      if (flag != 0) {
+        auto particle = particlesMC.iteratorAt(indexRec);
+        origin = (RecoDecay::getMother(particlesMC, particle, 5, true) > -1 ? NonPrompt : Prompt);
+      }
+
+      rowMCMatchRec(flag, origin, channel);
     }
 
     // Match generated particles.
     for (auto& particle : particlesMC) {
       //Printf("New gen. candidate");
       flag = 0;
-      DecayChannel = 0;
+      origin = 0;
+      channel = 0;
       arrDaughIndex.clear();
 
       // D± → π± K∓ π±
@@ -228,23 +241,22 @@ struct HFCandidateCreator3ProngMC {
       // Λc± → p± K∓ π±
       if (flag == 0) {
         //Printf("Checking Λc± → p± K∓ π±");
-        auto isMatchedGenLc = RecoDecay::isMatchedMCGen(particlesMC, particle, 4122, array{+kProton, -kKPlus, +kPiPlus}, true, &sign, 2);
-        if (isMatchedGenLc) {
+        if (RecoDecay::isMatchedMCGen(particlesMC, particle, 4122, array{+kProton, -kKPlus, +kPiPlus}, true, &sign, 2)) {
           flag = sign * (1 << LcToPKPi);
 
           //Printf("Flagging the different Λc± → p± K∓ π± decay channels");
-          RecoDecay::getDaughters(particlesMC, particle.globalIndex(), &arrDaughIndex, array{0}, 1);
+          RecoDecay::getDaughters(particlesMC, particle, &arrDaughIndex, array{0}, 1);
           if (arrDaughIndex.size() == 2) {
             for (auto jProng = 0; jProng < arrDaughIndex.size(); ++jProng) {
               auto daughJ = particlesMC.iteratorAt(arrDaughIndex[jProng]);
               arrPDGDaugh[jProng] = std::abs(daughJ.pdgCode());
             }
             if (arrPDGDaugh[0] == arrPDGResonant1[0] && arrPDGDaugh[1] == arrPDGResonant1[1]) {
-              DecayChannel = 1;
+              channel = 1;
             } else if (arrPDGDaugh[0] == arrPDGResonant2[0] && arrPDGDaugh[1] == arrPDGResonant2[1]) {
-              DecayChannel = 2;
+              channel = 2;
             } else if (arrPDGDaugh[0] == arrPDGResonant3[0] && arrPDGDaugh[1] == arrPDGResonant3[1]) {
-              DecayChannel = 3;
+              channel = 3;
             }
           }
         }
@@ -258,7 +270,12 @@ struct HFCandidateCreator3ProngMC {
         }
       }
 
-      rowMCMatchGen(flag, DecayChannel);
+      // Check whether the particle is non-prompt (from a b quark).
+      if (flag != 0) {
+        origin = (RecoDecay::getMother(particlesMC, particle, 5, true) > -1 ? NonPrompt : Prompt);
+      }
+
+      rowMCMatchGen(flag, origin, channel);
     }
   }
 };

@@ -224,7 +224,8 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
 
   // input
   auto inputDigits = pc.inputs().get<gsl::span<o2::trd::Digit>>("digitinput");                                 // block of TRD digits
-  auto inputTriggerRecords = pc.inputs().get<gsl::span<o2::trd::TriggerRecord>>("triggerrecords");             // time and number of digits for each collision
+  auto inputTriggerRecords = pc.inputs().get<std::vector<o2::trd::TriggerRecord>>("triggerrecords");           // time and number of digits for each collision
+  // the above is changed to a vector from a span as the span is constant and cant modify elements.
   if (inputDigits.size() == 0 || inputTriggerRecords.size() == 0) {
     LOG(warn) << "Did not receive any digits, trigger records, or neither one nor the other. Aborting.";
     return;
@@ -247,8 +248,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
 
   // output
   std::vector<Tracklet64> trapTrackletsAccum;                          // calculated tracklets
-  // copy from the input to keep the collision times, but the number of objects in here will refer to tracklets instead of digits
-  std::vector<o2::trd::TriggerRecord> trackletTriggerRecords(inputTriggerRecords.begin(), inputTriggerRecords.end()); // time and number of tracklets for each collision
+
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> lblTracklets;                                                    // MC labels for the tracklets, taken from the digits which make up the tracklet (duplicates are removed)
 
   // sort digits by chamber ID for each collision and keep track in index vector
@@ -256,7 +256,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   std::vector<unsigned int> digitIndices(inputDigits.size()); // digit indices sorted by chamber ID for each time frame
   std::iota(digitIndices.begin(), digitIndices.end(), 0);
   for (auto& trig : inputTriggerRecords) {
-    std::stable_sort(std::begin(digitIndices) + trig.getFirstEntry(), std::begin(digitIndices) + trig.getNumberOfObjects() + trig.getFirstEntry(),
+    std::stable_sort(std::begin(digitIndices) + trig.getFirstDigit(), std::begin(digitIndices) + trig.getNumberOfDigits() + trig.getFirstDigit(),
                      [&inputDigits](unsigned int i, unsigned int j) { return inputDigits[i].getDetector() < inputDigits[j].getDetector(); });
   }
   std::chrono::duration<double> sortTime = std::chrono::high_resolution_clock::now() - sortStart;
@@ -269,7 +269,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   for (int iTrig = 0; iTrig < inputTriggerRecords.size(); ++iTrig) {
     int nTrackletsInTrigRec = 0;
     int currDetector = -1;
-    for (int iDigit = inputTriggerRecords[iTrig].getFirstEntry(); iDigit < (inputTriggerRecords[iTrig].getFirstEntry() + inputTriggerRecords[iTrig].getNumberOfObjects()); ++iDigit) {
+    for (int iDigit = inputTriggerRecords[iTrig].getFirstDigit(); iDigit < (inputTriggerRecords[iTrig].getFirstDigit() + inputTriggerRecords[iTrig].getNumberOfDigits()); ++iDigit) {
       const auto& digit = &inputDigits[digitIndices[iDigit]];
       if (currDetector < 0) {
         currDetector = digit->getDetector();
@@ -313,7 +313,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
     }
     // take care of the TRAPs for the last chamber
     processTRAPchips(currDetector, nTrackletsInTrigRec, trapTrackletsAccum, lblTracklets, lblDigitsPtr);
-    trackletTriggerRecords[iTrig].setDataRange(trapTrackletsAccum.size() - nTrackletsInTrigRec, nTrackletsInTrigRec);
+    inputTriggerRecords[iTrig].setTrackletRange(trapTrackletsAccum.size() - nTrackletsInTrigRec, nTrackletsInTrigRec);
   }
 
   LOG(info) << "Trap simulator found " << trapTrackletsAccum.size() << " tracklets from " << inputDigits.size() << " Digits.";
@@ -328,7 +328,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
     LOG(info) << "TRAP processing TrapSimulator::filter() + TrapSimulator::tracklet() took : " << trapSimAccumulatedTime.count() << "s";
   }
   pc.outputs().snapshot(Output{"TRD", "TRACKLETS", 0, Lifetime::Timeframe}, trapTrackletsAccum);
-  pc.outputs().snapshot(Output{"TRD", "TRKTRGRD", 0, Lifetime::Timeframe}, trackletTriggerRecords);
+  pc.outputs().snapshot(Output{"TRD", "TRKTRGRD", 0, Lifetime::Timeframe}, inputTriggerRecords);
   if (mUseMC) {
     pc.outputs().snapshot(Output{"TRD", "TRKLABELS", 0, Lifetime::Timeframe}, lblTracklets);
   }

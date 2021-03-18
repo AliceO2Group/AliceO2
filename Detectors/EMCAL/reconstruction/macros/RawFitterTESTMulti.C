@@ -72,6 +72,7 @@ void RawFitterTESTMulti(const char* configfile = "")
         o2::emcal::AltroDecoder decoder(parser);
         std::cout << "Decoding" << std::endl;
         decoder.decode();
+        RawFitter.setIsZeroSuppressed(decoder.getRCUTrailer().hasZeroSuppression());
 
         //std::cout << decoder.getRCUTrailer() << std::endl;
         std::cout << "Found number of channels: " << decoder.getChannels().size() << std::endl;

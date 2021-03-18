@@ -185,7 +185,7 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     SetInfo("Set FOV to %f", mFOV);
   } else if (key == 39) { // character = "'"
 #ifdef GPUCA_DISPLAY_OPENGL_CORE
-    SetInfo("OpenGL compat profile not available, using core profile");
+    SetInfo("OpenGL compat profile not available, using core profile", 1);
 #else
     mOpenGLCore ^= 1;
     SetInfo("Using renderer path for OpenGL %s profile", mOpenGLCore ? "core" : "compat");

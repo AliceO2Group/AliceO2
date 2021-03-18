@@ -32,6 +32,7 @@ TFDELAY=${TFDELAY:-100} # Delay in seconds between publishing time frames
 NOMCLABELS="--disable-mc"
 O2SIMSEED=${O2SIMSEED:--1}
 SPLITTRDDIGI=${SPLITTRDDIGI:-1}
+NHBPERTF=${NHBPERTF:-128}
 
 # allow skipping
 JOBUTILS_SKIPDONE=ON
@@ -70,6 +71,7 @@ fi
 taskwrapper sim.log o2-sim --seed $O2SIMSEED -n $NEvents --skipModules ZDC --configKeyValues "Diamond.width[2]=6." -g pythia8hi -j $NJOBS
 taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents --simPrefixQED qed/o2sim --qed-x-section-ratio ${QED2HAD} ${NOMCLABELS} --firstOrbit 0 --firstBC 0 --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITRDOPT}
 [ $SPLITTRDDIGI == "1" ] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --firstOrbit 0 --firstBC 0 --onlyDet TRD --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root ${DIGITRDOPTREAL}
+touch digiTRD.log_done
 
 mkdir -p zdc
 cd zdc

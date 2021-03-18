@@ -515,8 +515,10 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
       continue;
     }
     int64_t result = -2;
-    auto& fairMQChannel = context.device->GetChannel(channel.name, 0);
-    auto& socket = fairMQChannel.GetSocket();
+    if (info.channel == nullptr) {
+      info.channel = &context.device->GetChannel(channel.name, 0);
+    }
+    auto& socket = info.channel->GetSocket();
     // If we have pending events from a previous iteration,
     // we do receive in any case.
     // Otherwise we check if there is any pending event and skip
@@ -538,7 +540,7 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
     // to process.
     while (true) {
       FairMQParts parts;
-      result = fairMQChannel.Receive(parts, 0);
+      result = info.channel->Receive(parts, 0);
       if (result >= 0) {
         DataProcessingDevice::handleData(context, parts, info);
         // Receiving data counts as activity now, so that
