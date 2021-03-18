@@ -117,8 +117,8 @@ struct TCMdata {
   static constexpr size_t PayloadPerGBTword = 16; //should be equal to 10
   static constexpr int MinNelements = 1;
   static constexpr int MaxNelements = 1;
-  uint64_t orC : 1,     // 0 bit (0 byte)
-    orA : 1,            //1 bit
+  uint64_t orA : 1,     // 0 bit (0 byte)
+    orC : 1,            //1 bit
     sCen : 1,           //2 bit
     cen : 1,            //3 bit
     vertex : 1,         //4 bit
