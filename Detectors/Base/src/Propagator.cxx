@@ -91,7 +91,7 @@ int Propagator::initFieldFromGRP(const o2::parameters::GRPObject* grp, bool verb
       delete TGeoGlobalMagField::Instance();
     }
   }
-  auto fld = o2::field::MagneticField::createFieldMap(grp->getL3Current(), grp->getDipoleCurrent());
+  auto fld = o2::field::MagneticField::createFieldMap(grp->getL3Current(), grp->getDipoleCurrent(), o2::field::MagneticField::kConvLHC, grp->getFieldUniformity());
   TGeoGlobalMagField::Instance()->SetField(fld);
   TGeoGlobalMagField::Instance()->Lock();
   if (verbose) {
