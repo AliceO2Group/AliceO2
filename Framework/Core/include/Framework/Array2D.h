@@ -270,19 +270,21 @@ class LabeledArray : public LabelMap
   {
     LabeledArray<T> copy = *this;
     return copy;
-    void replaceLabelsRows(std::vector<std::string> const& labels)
-    {
-      LabelMap::replaceLabelsRows(values.rows, labels);
-    }
+  }
 
-    void replaceLabelsCols(std::vector<std::string> const& labels)
-    {
-      LabelMap::replaceLabelsCols(values.cols, labels);
-    }
+  void replaceLabelsRows(std::vector<std::string> const& labels)
+  {
+    LabelMap::replaceLabelsRows(values.rows, labels);
+  }
 
-   private:
-    Array2D<T> values;
-  };
+  void replaceLabelsCols(std::vector<std::string> const& labels)
+  {
+    LabelMap::replaceLabelsCols(values.cols, labels);
+  }
+
+ private:
+  Array2D<T> values;
+};
 } // namespace o2::framework
 
 #endif // FRAMEWORK_ARRAY2D_H
