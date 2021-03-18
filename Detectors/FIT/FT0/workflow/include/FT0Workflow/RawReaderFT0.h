@@ -48,8 +48,9 @@ class RawReaderFT0 : public RawReaderFT0BaseNorm
   void clear()
   {
     mVecDigits.clear();
-    if constexpr (sUseTrgInput)
+    if constexpr (sUseTrgInput) {
       mVecTriggerInput.clear();
+    }
     mVecChannelData.clear();
   }
   void accumulateDigits()
@@ -62,8 +63,9 @@ class RawReaderFT0 : public RawReaderFT0BaseNorm
     }
     LOG(INFO) << "Number of Digits: " << mVecDigits.size();
     LOG(INFO) << "Number of ChannelData: " << mVecChannelData.size();
-    if constexpr (sUseTrgInput)
+    if constexpr (sUseTrgInput) {
       LOG(INFO) << "Number of TriggerInput: " << mVecTriggerInput.size();
+    }
     if (mDumpData) {
       DigitBlockFT0::print(mVecDigits, mVecChannelData);
     }
@@ -72,18 +74,19 @@ class RawReaderFT0 : public RawReaderFT0BaseNorm
   {
     outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITSBC", 0, o2::framework::Lifetime::Timeframe);
     outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITSCH", 0, o2::framework::Lifetime::Timeframe);
-    if constexpr (sUseTrgInput)
+    if constexpr (sUseTrgInput) {
       outputSpec.emplace_back(o2::header::gDataOriginFT0, "TRIGGERINPUT", 0, o2::framework::Lifetime::Timeframe);
+    }
   }
   void makeSnapshot(o2::framework::ProcessingContext& pc)
   {
     pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSBC", 0, o2::framework::Lifetime::Timeframe}, mVecDigits);
     pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSCH", 0, o2::framework::Lifetime::Timeframe}, mVecChannelData);
-    if constexpr (sUseTrgInput)
+    if constexpr (sUseTrgInput) {
       pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "TRIGGERINPUT", 0, o2::framework::Lifetime::Timeframe}, mVecTriggerInput);
+    }
   }
   bool mDumpData;
-  bool mUseTrgInput;
   std::vector<Digit> mVecDigits;
   std::vector<DetTrigInput> mVecTriggerInput;
   std::vector<ChannelData> mVecChannelData;
