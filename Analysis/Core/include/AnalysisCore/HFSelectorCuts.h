@@ -10,6 +10,7 @@
 
 #ifndef HF_SELECTOR_CUTS_H_
 #define HF_SELECTOR_CUTS_H_
+#include "Framework/Configurable.h"
 #include <vector>
 #include <string>
 namespace o2::analysis
@@ -23,16 +24,33 @@ enum code {
 }
 
 // accounts for the offset so that pt bin array can be used to also configure a histogram axis
-template <typename C, typename T>
-int findPTBin(C& bins, T pT)
+template <typename T1, typename T2>
+int findBin(o2::framework::Configurable<std::vector<T1>> const& bins, T2 value)
 {
-  auto v = (typename C::type)bins;
-  for (auto i = 1u; i < v.size(); ++i) {
-    if (pT < v[i]) {
-      return i - 1;
+  if (value < bins->front()) {
+    return -1;
+  }
+  if (value >= bins->back()) {
+    return -1;
+  }
+  int step;
+  int bin = 0;
+  int count = bins->size();
+
+  while (count > 0) {
+    step = count / 2;
+    bin += step;
+    if (bins->operator[](bin) <= value) {
+      count -= step + 1;
+    } else {
+      bin -= step;
+      count = step;
     }
   }
-  return -1;
+  if (bin == bins->size()) {
+    bin = 0;
+  }
+  return bin - 1;
 }
 
 // namespace per channel

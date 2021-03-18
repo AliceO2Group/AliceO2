@@ -71,7 +71,7 @@ struct HFD0CandidateSelector {
   bool selectionTopol(const T& hfCandProng2)
   {
     auto candpT = hfCandProng2.pt();
-    auto pTBin = findPTBin(ptBins, candpT);
+    auto pTBin = findBin(ptBins, candpT);
     if (pTBin == -1) {
       return false;
     }
@@ -119,7 +119,7 @@ struct HFD0CandidateSelector {
   bool selectionTopolConjugate(const T1& hfCandProng2, const T2& trackPion, const T2& trackKaon)
   {
     auto candpT = hfCandProng2.pt();
-    auto pTBin = findPTBin(ptBins, candpT);
+    auto pTBin = findBin(ptBins, candpT);
     if (pTBin == -1) {
       return false;
     }
