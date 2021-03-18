@@ -14,6 +14,13 @@
 #define GPUCA_CADEBUG 0
 #define GPUCA_MERGE_LOOPER_MC 0
 
+#include "GPUCommonDef.h"
+
+#if !defined(GPUCA_GPUCODE) && (defined(GPUCA_MERGER_BY_MC_LABEL) || defined(GPUCA_CADEBUG_ENABLED) || GPUCA_MERGE_LOOPER_MC)
+#include "AliHLTTPCClusterMCData.h"
+#include "GPUROOTDump.h"
+#endif
+
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <cstdio>
 #include <cstring>
@@ -42,9 +49,6 @@
 #include "GPUTPCGMSliceTrack.h"
 #include "GPUTPCGMBorderTrack.h"
 
-#if !defined(GPUCA_GPUCODE) && (defined(GPUCA_MERGER_BY_MC_LABEL) || defined(GPUCA_CADEBUG_ENABLED) || GPUCA_MERGE_LOOPER_MC)
-#include "AliHLTTPCClusterMCData.h"
-#endif
 #ifdef HAVE_O2HEADERS
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/TrackTPC.h"
@@ -2042,10 +2046,13 @@ GPUd() void GPUTPCGMMerger::MergeLoopers(int nBlocks, int nThreads, int iBlock, 
   for (unsigned int i = 0; i < params.size(); i++) {
     paramLabels[i] = GetTrackLabel(mOutputTracks[params[i].id]);
   }
-  std::vector<bool> dropped(params.size());
+  /*std::vector<bool> dropped(params.size());
   std::vector<bool> droppedMC(params.size());
   std::vector<int> histMatch(101);
-  std::vector<int> histFail(101);
+  std::vector<int> histFail(101);*/
+  if (!mRec->GetProcessingSettings().runQA) {
+    throw std::runtime_error("Need QA enabled for the Merge Loopers MC QA");
+  }
 #endif
 
   for (unsigned int i = 0; i < params.size(); i++) {
@@ -2062,9 +2069,11 @@ GPUd() void GPUTPCGMMerger::MergeLoopers(int nBlocks, int nThreads, int iBlock, 
       const long int label2 = paramLabels[j];
       bool labelEQ = label1 != -1 && label1 == label2;
       if (EQ || labelEQ) {
-        printf("Matching track %d/%d %u-%u (%ld/%ld): dist %f side %d %d, tgl %f %f, qpt %f %f, x %f %f, y %f %f\n", (int)EQ, (int)labelEQ, i, j, label1, label2, d, (int)mOutputTracks[params[i].id].CSide(), (int)mOutputTracks[params[j].id].CSide(), params[i].tgl, params[j].tgl, params[i].qpt, params[j].qpt, params[i].x, params[j].x, params[i].y, params[j].y);
+        //printf("Matching track %d/%d %u-%u (%ld/%ld): dist %f side %d %d, tgl %f %f, qpt %f %f, x %f %f, y %f %f\n", (int)EQ, (int)labelEQ, i, j, label1, label2, d, (int)mOutputTracks[params[i].id].CSide(), (int)mOutputTracks[params[j].id].CSide(), params[i].tgl, params[j].tgl, params[i].qpt, params[j].qpt, params[i].x, params[j].x, params[i].y, params[j].y);
+        static auto& tup = GPUROOTDump<TNtuple>::get("mergeloopers", "labeleq:sameside:x1:x2:y1:y2:tgl1:tgl2:qpt1:qpt2:absz1:absz2:snp1:snp2");
+        tup.Fill((float)labelEQ, (float)(mOutputTracks[params[i].id].CSide() == mOutputTracks[params[j].id].CSide()), params[i].x, params[j].x, params[i].y, params[j].y, params[i].tgl, params[j].tgl, params[i].qpt, params[j].qpt, params[i].absz, params[j].absz, mOutputTracks[params[i].id].Param().SinPhi(), mOutputTracks[params[j].id].Param().SinPhi());
       }
-      if (EQ) {
+      /*if (EQ) {
         dropped[j] = true;
       }
       if (labelEQ) {
@@ -2073,7 +2082,7 @@ GPUd() void GPUTPCGMMerger::MergeLoopers(int nBlocks, int nThreads, int iBlock, 
       }
       if (d < 10.f && !labelEQ) {
         histFail[CAMath::Min<int>(100, d * 10.f)]++;
-      }
+    }*/
 #endif
       if (EQ) {
         mOutputTracks[params[j].id].SetMergedLooper(true);
@@ -2083,7 +2092,7 @@ GPUd() void GPUTPCGMMerger::MergeLoopers(int nBlocks, int nThreads, int iBlock, 
       }
     }
   }
-#if GPUCA_MERGE_LOOPER_MC
+/*#if GPUCA_MERGE_LOOPER_MC
   int total = 0, totalmc = 0, good = 0, missed = 0, fake = 0;
   for (unsigned int i = 0; i < params.size(); i++) {
     total += dropped[i];
@@ -2107,6 +2116,6 @@ GPUd() void GPUTPCGMMerger::MergeLoopers(int nBlocks, int nThreads, int iBlock, 
   for (unsigned int i = 0; i < histFail.size(); i++) {
     printf("%8.3f: %3d\n", i / 10.f + 0.05f, histFail[i]);
   }
-#endif
+#endif*/
 #endif
 }
