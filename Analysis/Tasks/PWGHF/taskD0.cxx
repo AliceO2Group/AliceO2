@@ -15,7 +15,6 @@
 /// \author Vít Kučera <vit.kucera@cern.ch>, CERN
 
 #include "Framework/AnalysisTask.h"
-#include "fmt/format.h"
 #include "Framework/HistogramRegistry.h"
 #include "AnalysisCore/HFSelectorCuts.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
