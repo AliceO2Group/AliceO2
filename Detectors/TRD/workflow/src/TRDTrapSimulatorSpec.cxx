@@ -205,7 +205,6 @@ void TRDDPLTrapSimulatorTask::init(o2::framework::InitContext& ic)
   mTrapConfigName = ic.options().get<std::string>("trd-trapconfig");
   mEnableOnlineGainCorrection = ic.options().get<bool>("trd-onlinegaincorrection");
   mOnlineGainTableName = ic.options().get<std::string>("trd-onlinegaintable");
-  mShareDigitsManually = ic.options().get<bool>("trd-share-digits-manually");
   mRunNumber = ic.options().get<int>("trd-runnum");
   mEnableTrapConfigDump = ic.options().get<bool>("trd-dumptrapconfig");
   //Connect to CCDB for all things needing access to ccdb, trapconfig and online gains
@@ -284,31 +283,6 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
       if (!mTrapSimulator[trapIdx].isDataSet()) {
         mTrapSimulator[trapIdx].init(mTrapConfig, digit->getDetector(), digit->getROB(), digit->getMCM());
       }
-      if (digit->isSharedDigit() && mShareDigitsManually) {
-        LOG(error) << "Digit duplication requested, but found shared digit in input stream. Digits will be duplicated twice.";
-      }
-      if (mShareDigitsManually) {
-        if ((digit->getChannel() == 2) && !((digit->getROB() % 2 != 0) && (digit->getMCM() % NMCMROBINCOL == 3))) {
-          // shared left, if not leftmost MCM of left ROB of chamber
-          int robShared = (digit->getMCM() % NMCMROBINCOL == 3) ? digit->getROB() + 1 : digit->getROB(); // for the leftmost MCM on a ROB the shared digit is added to the neighbouring ROB
-          int mcmShared = (robShared == digit->getROB()) ? digit->getMCM() + 1 : digit->getMCM() - 3;
-          int trapIdxLeft = robShared * NMCMROB + mcmShared;
-          if (!mTrapSimulator[trapIdxLeft].isDataSet()) {
-            mTrapSimulator[trapIdxLeft].init(mTrapConfig, digit->getDetector(), robShared, mcmShared);
-          }
-          mTrapSimulator[trapIdxLeft].setData(NADCMCM - 1, digit->getADC(), digitIndices[iDigit]);
-        }
-        if ((digit->getChannel() == 18 || digit->getChannel() == 19) && !((digit->getROB() % 2 == 0) && (digit->getMCM() % NMCMROBINCOL == 0))) {
-          // shared right, if not rightmost MCM of right ROB of chamber
-          int robShared = (digit->getMCM() % NMCMROBINCOL == 0) ? digit->getROB() - 1 : digit->getROB(); // for the rightmost MCM on a ROB the shared digit is added to the neighbouring ROB
-          int mcmShared = (robShared == digit->getROB()) ? digit->getMCM() - 1 : digit->getMCM() + 3;
-          int trapIdxRight = robShared * NMCMROB + mcmShared;
-          if (!mTrapSimulator[trapIdxRight].isDataSet()) {
-            mTrapSimulator[trapIdxRight].init(mTrapConfig, digit->getDetector(), robShared, mcmShared);
-          }
-          mTrapSimulator[trapIdxRight].setData(digit->getChannel() - NCOLMCM, digit->getADC(), digitIndices[iDigit]);
-        }
-      }
       mTrapSimulator[trapIdx].setData(digit->getChannel(), digit->getADC(), digitIndices[iDigit]);
     }
     // take care of the TRAPs for the last chamber
@@ -362,7 +336,6 @@ o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec(bool useMC)
                              {"trd-onlinegaincorrection", VariantType::Bool, false, {"Apply online gain calibrations, mostly for back checking to run2 by setting FGBY to 0"}},
                              {"trd-onlinegaintable", VariantType::String, "Krypton_2015-02", {"Online gain table to be use, names found in CCDB, obviously trd-onlinegaincorrection must be set as well."}},
                              {"trd-dumptrapconfig", VariantType::Bool, false, {"Dump the selected trap configuration at loading time, to text file"}},
-                             {"trd-share-digits-manually", VariantType::Bool, false, {"Duplicate digits connected to shared pads if the digitizer did not already do so."}},
                              {"trd-runnum", VariantType::Int, 297595, {"Run number to use to anchor simulation to, defaults to 297595"}}}};
 };
 
