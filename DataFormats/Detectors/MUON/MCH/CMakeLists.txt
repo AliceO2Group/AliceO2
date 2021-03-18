@@ -10,9 +10,12 @@
 
 o2_add_library(DataFormatsMCH
                SOURCES src/TrackMCH.cxx
-	           PUBLIC_LINK_LIBRARIES O2::CommonDataFormat)
+	                     src/CTF.cxx
+	           PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
+                                   O2::DetectorsCommonDataFormats)
 
 o2_target_root_dictionary(DataFormatsMCH
                           HEADERS include/DataFormatsMCH/ROFRecord.h
                                   include/DataFormatsMCH/TrackMCH.h
-                                  include/DataFormatsMCH/DsChannelGroup.h)
+                                  include/DataFormatsMCH/DsChannelGroup.h
+				                          include/DataFormatsMCH/CTF.h)

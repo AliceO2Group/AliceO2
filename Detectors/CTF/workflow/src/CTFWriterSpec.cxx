@@ -27,6 +27,7 @@
 #include "DataFormatsFDD/CTF.h"
 #include "DataFormatsTOF/CTF.h"
 #include "DataFormatsMID/CTF.h"
+#include "DataFormatsMCH/CTF.h"
 #include "DataFormatsEMCAL/CTF.h"
 #include "DataFormatsPHOS/CTF.h"
 #include "DataFormatsCPV/CTF.h"
@@ -104,8 +105,8 @@ void CTFWriterSpec::run(ProcessingContext& pc)
   processDet<o2::tof::CTF>(pc, DetID::TOF, header, treeOut.get());
   processDet<o2::ft0::CTF>(pc, DetID::FT0, header, treeOut.get());
   processDet<o2::fv0::CTF>(pc, DetID::FV0, header, treeOut.get());
-  processDet<o2::fdd::CTF>(pc, DetID::FDD, header, treeOut.get());
   processDet<o2::mid::CTF>(pc, DetID::MID, header, treeOut.get());
+  processDet<o2::mch::CTF>(pc, DetID::MCH, header, treeOut.get());
   processDet<o2::emcal::CTF>(pc, DetID::EMC, header, treeOut.get());
   processDet<o2::phos::CTF>(pc, DetID::PHS, header, treeOut.get());
   processDet<o2::cpv::CTF>(pc, DetID::CPV, header, treeOut.get());
@@ -179,6 +180,7 @@ void CTFWriterSpec::storeDictionaries()
   storeDictionary<o2::fv0::CTF>(DetID::FV0, header);
   storeDictionary<o2::fdd::CTF>(DetID::FDD, header);
   storeDictionary<o2::mid::CTF>(DetID::MID, header);
+  storeDictionary<o2::mch::CTF>(DetID::MCH, header);
   storeDictionary<o2::emcal::CTF>(DetID::EMC, header);
   storeDictionary<o2::phos::CTF>(DetID::PHS, header);
   storeDictionary<o2::cpv::CTF>(DetID::CPV, header);

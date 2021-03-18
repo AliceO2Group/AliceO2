@@ -9,6 +9,7 @@
 * [Raw to digits](#raw-to-digits)
 * [Preclustering](#preclustering)
 * [Clustering](#clustering)
+* [CTF encoding/decoding](#ctf)
 * [Local to global cluster transformation](#local-to-global-cluster-transformation)
 * [Tracking](#tracking)
   * [Original track finder](#original-track-finder)
@@ -76,6 +77,17 @@ o2-mch-preclusters-to-clusters-original-workflow
 ```
 
 Take as input the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the current time frame, the list of all associated digits ([Digit](../Base/include/MCHBase/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction, with the data description "PRECLUSTERS", "PRECLUSTERDIGITS" and "PRECLUSTERROFS", respectively. Send the list of all clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) in the time frame, the list of all associated digits ([Digit](../Base/include/MCHBase/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction in three separate messages with the data description "CLUSTERS", "CLUSTERDIGITS" and "CLUSTERROFS", respectively.
+
+## CTF encoding/decoding
+
+Entropy encoding is done be attaching the `o2-mch-entropy-encoder-workflow`` to the output of `DIGITS` and `DIGITROF` data-descriptions, providing `Digit` and `ROFRecord` respectively, i.e.
+Afterwads the encoded data can be stored by the `o2-ctf-writer-workflow`, e.g.
+
+```shell
+o2-raw-file-reader-workflow --input-conf raw/MCH/MCHraw.cfg | o2-mch-raw-to-digits-workflow  | o2-mch-entropy-encoder-workflow | o2-ctf-writer-workflow --onlyDet MCH
+```
+
+The decoding is sone automatically by the `o2-ctf-reader-workflow`.
 
 ## Local to global cluster transformation
 

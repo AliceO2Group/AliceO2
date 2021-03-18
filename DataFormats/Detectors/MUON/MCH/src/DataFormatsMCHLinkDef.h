@@ -18,4 +18,9 @@
 #pragma link C++ class o2::mch::TrackMCH + ;
 #pragma link C++ class o2::mch::DsChannelId + ;
 #pragma link C++ class o2::mch::DsChannelGroup + ;
+
+#pragma link C++ struct o2::mch::CTFHeader + ;
+#pragma link C++ struct o2::mch::CTF + ;
+#pragma link C++ class o2::ctf::EncodedBlocks < o2::mch::CTFHeader, 8, uint32_t> + ;
+
 #endif

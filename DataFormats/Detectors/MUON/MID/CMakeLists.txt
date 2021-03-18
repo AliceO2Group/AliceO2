@@ -15,7 +15,7 @@ o2_add_library(DataFormatsMID
 	       PUBLIC_LINK_LIBRARIES Boost::serialization O2::MathUtils
 	                             O2::CommonDataFormat
 	                             O2::DetectorsCommonDataFormats
-                                     O2::ReconstructionDataFormats)
+                               O2::ReconstructionDataFormats)
 
 o2_target_root_dictionary(DataFormatsMID
                           HEADERS include/DataFormatsMID/Cluster2D.h
