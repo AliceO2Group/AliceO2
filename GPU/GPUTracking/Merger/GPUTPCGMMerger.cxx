@@ -1984,8 +1984,6 @@ GPUd() void GPUTPCGMMerger::Finalize2(int nBlocks, int nThreads, int iBlock, int
 
 struct MergeLooperParam {
   float absz;
-  float tgl;
-  float qpt;
   float x;
   float y;
   unsigned int id;
@@ -2017,7 +2015,7 @@ GPUd() void GPUTPCGMMerger::MergeLoopers(int nBlocks, int nThreads, int iBlock, 
       const float my = p.GetY() - r * CAMath::Sqrt(1 - p.GetSinPhi() * p.GetSinPhi());
       const float gmx = cosA * mx - sinA * my;
       const float gmy = cosA * my + sinA * mx;
-      params.emplace_back(MergeLooperParam{CAMath::Abs(z), CAMath::Abs(p.GetDzDs()), p.GetDzDs() > 0 ? p.GetQPt() : -p.GetQPt(), gmx, gmy, i});
+      params.emplace_back(MergeLooperParam{CAMath::Abs(z), gmx, gmy, i});
 
       /*printf("Track %d Sanity qpt %f snp %f bz %f\n", (int)params.size(), p.GetQPt(), p.GetSinPhi(), bz);
       for (unsigned int k = 0;k < trk.NClusters();k++) {
@@ -2060,18 +2058,28 @@ GPUd() void GPUTPCGMMerger::MergeLoopers(int nBlocks, int nThreads, int iBlock, 
       if (params[j].absz > params[i].absz + 100.f) {
         break;
       }
-      float dqpt = CAMath::Min(CAMath::Abs(params[i].tgl), CAMath::Abs(params[j].tgl)) < 0.05f ? (CAMath::Abs(params[i].qpt) - CAMath::Abs(params[i].qpt)) : (params[i].qpt - params[j].qpt);
-      float d = CAMath::Sum2((params[i].x - params[j].x) * (1.f / 5.f), (params[i].y - params[j].y) * (1.f / 5.f), (params[i].tgl - params[j].tgl) * (1.f / 0.15f), dqpt / CAMath::Min(params[i].qpt, params[j].qpt) * (1.f / 0.15f));
-      //bool EQ = CAMath::Abs(params[i].x - params[j].x) < 10.f && CAMath::Abs(params[i].y - params[j].y) < 10.f && CAMath::Abs(params[i].tgl - params[j].tgl) < 0.15f && CAMath::Abs((params[i].qpt - params[j].qpt) / CAMath::Min(params[i].qpt, params[j].qpt)) < 0.15f;
+      if (CAMath::Sum2(params[i].x - params[j].x, params[i].y - params[j].y) > 10) {
+        continue;
+      }
+      const auto& trk1 = mOutputTracks[params[i].id];
+      const auto& trk2 = mOutputTracks[params[j].id];
+      const auto& param1 = trk1.GetParam();
+      const auto& param2 = trk2.GetParam();
+      if (fabsf(param1.GetDzDs()) > 0.03 && fabsf(param2.GetDzDs()) > 0.03 && param1.GetDzDs() * param2.GetDzDs() * param1.GetQPt() * param2.GetQPt() < 0) {
+        continue;
+      }
+      float dtgl = param1.GetDzDs() - (param1.GetQPt() * param2.GetQPt() > 0 ? param2.GetDzDs() : -param2.GetDzDs());
+      float dqpt = fabsf(param1.GetQPt()) - fabsf(param2.GetQPt());
+      float d = CAMath::Sum2((params[i].x - params[j].x) * (1.f / 5.f), (params[i].y - params[j].y) * (1.f / 5.f), dtgl * (1.f / 0.15f), dqpt / CAMath::Min(param1.GetQPt(), param2.GetQPt()) * (1.f / 0.15f));
       bool EQ = d < 1.5f;
 #if GPUCA_MERGE_LOOPER_MC
       const long int label1 = paramLabels[i];
       const long int label2 = paramLabels[j];
       bool labelEQ = label1 != -1 && label1 == label2;
-      if (EQ || labelEQ) {
+      if (1 || EQ || labelEQ) {
         //printf("Matching track %d/%d %u-%u (%ld/%ld): dist %f side %d %d, tgl %f %f, qpt %f %f, x %f %f, y %f %f\n", (int)EQ, (int)labelEQ, i, j, label1, label2, d, (int)mOutputTracks[params[i].id].CSide(), (int)mOutputTracks[params[j].id].CSide(), params[i].tgl, params[j].tgl, params[i].qpt, params[j].qpt, params[i].x, params[j].x, params[i].y, params[j].y);
         static auto& tup = GPUROOTDump<TNtuple>::get("mergeloopers", "labeleq:sameside:x1:x2:y1:y2:tgl1:tgl2:qpt1:qpt2:absz1:absz2:snp1:snp2");
-        tup.Fill((float)labelEQ, (float)(mOutputTracks[params[i].id].CSide() == mOutputTracks[params[j].id].CSide()), params[i].x, params[j].x, params[i].y, params[j].y, params[i].tgl, params[j].tgl, params[i].qpt, params[j].qpt, params[i].absz, params[j].absz, mOutputTracks[params[i].id].Param().SinPhi(), mOutputTracks[params[j].id].Param().SinPhi());
+        tup.Fill((float)labelEQ, (float)(trk1.CSide() == trk2.CSide()), params[i].x, params[j].x, params[i].y, params[j].y, param1.GetDzDs(), param2.GetDzDs(), param1.GetQPt(), param2.GetQPt(), params[i].absz, params[j].absz, param1.GetSinPhi(), param2.GetSinPhi());
       }
       /*if (EQ) {
         dropped[j] = true;
@@ -2086,7 +2094,7 @@ GPUd() void GPUTPCGMMerger::MergeLoopers(int nBlocks, int nThreads, int iBlock, 
 #endif
       if (EQ) {
         mOutputTracks[params[j].id].SetMergedLooper(true);
-        if (CAMath::Abs(params[j].qpt) >= Param().rec.tpcRejectQPt) {
+        if (CAMath::Abs(param2.GetQPt()) >= Param().rec.tpcRejectQPt) {
           mOutputTracks[params[i].id].SetMergedLooper(true);
         }
       }
