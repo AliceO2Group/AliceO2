@@ -26,32 +26,6 @@ using namespace o2::aod::hf_cand_prong2;
 using namespace o2::framework::expressions;
 using namespace o2::constants::math;
 
-// the following is needed to extend the standard candidate table, and allow grouping candidate table by collisions
-namespace o2::aod
-{
-namespace hf_2prong_correlation
-{
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);
-} // namespace hf_2prong_correlation
-DECLARE_SOA_TABLE(HF2ProngCollis, "AOD", "COLLID_2PR", aod::hf_2prong_correlation::CollisionId);
-
-using Big2Prong = soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate, aod::HF2ProngCollis>;
-using Big2ProngMC = soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate, aod::HfCandProng2MCRec, aod::HF2ProngCollis>;
-} // namespace o2::aod
-
-// preliminary task to fill the column index to the extended candidate table
-struct CreateBig2Prong {
-
-  Produces<aod::HF2ProngCollis> create2ProngIndexCollColumn;
-  void process(aod::HfCandProng2 const& candidates, aod::Tracks const& tracks)
-  {
-    for (auto& candidate : candidates) {
-      int indexColl = candidate.index0_as<aod::Tracks>().collisionId(); //takes index of collision from first D daughter
-      create2ProngIndexCollColumn(indexColl);
-    }
-  }
-};
-
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   ConfigParamSpec optionDoMC{"doMC", VariantType::Bool, false, {"Run MC-dedicated tasks."}};
@@ -124,7 +98,7 @@ struct TaskD0D0barCorrelation {
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0 >= dSelectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= dSelectionFlagD0bar);
 
-  void process(aod::Collision const& collision, soa::Filtered<aod::Big2Prong> const& candidates)
+  void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate>> const& candidates)
   {
     for (auto& candidate1 : candidates) {
       if (cutEtaCandMax >= 0. && std::abs(candidate1.eta()) > cutEtaCandMax) {
@@ -237,7 +211,7 @@ struct TaskD0D0barCorrelationMCRec {
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0 >= dSelectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= dSelectionFlagD0bar);
 
-  void process(aod::Collision const& collision, soa::Filtered<aod::Big2ProngMC> const& candidates)
+  void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate, aod::HfCandProng2MCRec>> const& candidates)
   {
     //MC reco level
     for (auto& candidate1 : candidates) {
@@ -431,7 +405,7 @@ struct TaskD0D0barCorrelationLS {
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0 >= dSelectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= dSelectionFlagD0bar);
 
-  void process(aod::Collision const& collision, soa::Filtered<aod::Big2Prong> const& candidates)
+  void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate>> const& candidates)
   {
     for (auto& candidate1 : candidates) {
       //check decay channel flag for candidate1
@@ -533,7 +507,7 @@ struct TaskD0D0barCorrelationMCRecLS {
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0 >= dSelectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= dSelectionFlagD0bar);
 
-  void process(aod::Collision const& collision, soa::Filtered<aod::Big2ProngMC> const& candidates)
+  void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate, aod::HfCandProng2MCRec>> const& candidates)
   {
     //MC reco level
     for (auto& candidate1 : candidates) {
@@ -792,7 +766,7 @@ struct TaskD0D0barCorrelationCheckPhiResolution {
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0 >= dSelectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= dSelectionFlagD0bar);
 
-  void process(aod::Collision const& collision, soa::Filtered<aod::Big2ProngMC> const& candidates, aod::McParticles const& particlesMC, aod::BigTracksMC const& tracksMC)
+  void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate, aod::HfCandProng2MCRec>> const& candidates, aod::McParticles const& particlesMC, aod::BigTracksMC const& tracksMC)
   {
     for (auto& candidate1 : candidates) {
       //check decay channel flag for candidate1
@@ -811,7 +785,7 @@ struct TaskD0D0barCorrelationCheckPhiResolution {
       //D-Dbar correlation dedicated section
       //if it's a candidate D0, search for D0bar and evaluate correlations
       if (candidate1.isSelD0() >= dSelectionFlagD0) {
-        double xPrimaryVertex = candidate1.index0_as<aod::BigTracksMC>().collision().posX(), yPrimaryVertex = candidate1.index0_as<aod::BigTracksMC>().collision().posY();
+        double xPrimaryVertex = candidate1.posX(), yPrimaryVertex = candidate1.posY();
         double pt1 = candidate1.pt(), phi1Std = candidate1.phi();
         double phi1ByVtx = evaluatePhiByVertex(xPrimaryVertex, candidate1.xSecondaryVertex(), yPrimaryVertex, candidate1.ySecondaryVertex());
         registry.fill(HIST("hPhiStdPhi"), phi1Std, pt1);
@@ -858,7 +832,6 @@ struct TaskD0D0barCorrelationCheckPhiResolution {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<CreateBig2Prong>(cfgc),
     adaptAnalysisTask<TaskD0D0barCorrelation>(cfgc),
     adaptAnalysisTask<TaskD0D0barCorrelationLS>(cfgc)};
   //MC-based tasks
