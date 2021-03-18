@@ -158,6 +158,7 @@ FairRunSim* o2sim_init(bool asservice)
       o2::units::Current_t currL3 = field->getCurrentSolenoid();
       grp.setL3Current(currL3);
       grp.setDipoleCurrent(currDip);
+      grp.setFieldUniformity(field->IsUniform());
     }
     // save
     std::string grpfilename = o2::base::NameConf::getGRPFileName(confref.getOutPrefix());
