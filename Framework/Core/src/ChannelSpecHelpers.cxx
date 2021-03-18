@@ -63,11 +63,25 @@ char const* ChannelSpecHelpers::methodAsString(enum ChannelMethod method)
   throw runtime_error("Unknown ChannelMethod");
 }
 
+namespace
+{
+std::string composeIPCName(std::string const& prefix, std::string const& hostname, short port)
+{
+  if (prefix == "@") {
+    return fmt::format("ipc://@{}_{},transport=shmem", hostname, port);
+  }
+  if (prefix.back() == '/') {
+    return fmt::format("ipc://{}{}_{},transport=shmem", prefix, hostname, port);
+  }
+  return fmt::format("ipc://{}/{}_{},transport=shmem", prefix, hostname, port);
+}
+} // namespace
+
 std::string ChannelSpecHelpers::channelUrl(OutputChannelSpec const& channel)
 {
   switch (channel.protocol) {
     case ChannelProtocol::IPC:
-      return fmt::format("ipc://{}/{}_{},transport=shmem", channel.ipcPrefix, channel.hostname, channel.port);
+      return composeIPCName(channel.ipcPrefix, channel.hostname, channel.port);
     default:
       return channel.method == ChannelMethod::Bind ? fmt::format("tcp://*:{}", channel.port)
                                                    : fmt::format("tcp://{}:{}", channel.hostname, channel.port);
@@ -78,7 +92,7 @@ std::string ChannelSpecHelpers::channelUrl(InputChannelSpec const& channel)
 {
   switch (channel.protocol) {
     case ChannelProtocol::IPC:
-      return fmt::format("ipc://{}/{}_{},transport=shmem", channel.ipcPrefix, channel.hostname, channel.port);
+      return composeIPCName(channel.ipcPrefix, channel.hostname, channel.port);
     default:
       return channel.method == ChannelMethod::Bind ? fmt::format("tcp://*:{}", channel.port)
                                                    : fmt::format("tcp://{}:{}", channel.hostname, channel.port);
