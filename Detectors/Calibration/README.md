@@ -1,5 +1,5 @@
 <!-- doxy
-\page refDetectorsCalibration Module 'Detectors/Calibration'
+\page refDetectorsCalibration Detectors Calibration
 /doxy -->
 
 # Time-interval based calibration flow for O2
@@ -68,3 +68,7 @@ See e.g. AliceO2/Detectors/TOF/calibration/testWorkflow/LHCClockCalibratorSpec.h
 This is the workflow that, connected to all workflows producting calibrations with different granularities and frequencies, will update the CCDB.
 
 The `--ccdb-path` option of the ccdb-populator-workflow allows to define the CCDB destination (e.g. `--ccdb-path localhost:8080`).
+
+<!-- doxy
+* \subpage refDetectorsCalibrationtestMacros
+/doxy -->

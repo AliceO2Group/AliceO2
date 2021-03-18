@@ -1,5 +1,5 @@
 <!-- doxy
-\page refDetectorsPostLS4 EndCaps
+\page refDetectorsUpgradesALICE3FT3 EndCaps
 /doxy -->
 
 # PostLS4EndCaps

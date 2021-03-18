@@ -1,3 +1,7 @@
+<!-- doxy
+\page refDetectorsTRDsimulation simulation
+/doxy -->
+
 # TRD simulation cheat-sheet
 ## Using configurable params to pass additional options to the generator for generating specific events
 - Generate events with an electron particle gun in |eta| < 0.84:

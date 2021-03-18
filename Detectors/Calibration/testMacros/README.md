@@ -1,5 +1,5 @@
 <!-- doxy
-\page refDetectorsCalibration/testMacros Module 'Detectors/Calibration/testMacros'
+\page refDetectorsCalibrationtestMacros Detectors/Calibration/testMacros
 /doxy -->
 
 # Simulation of sending of calibration data from EPNs to an aggregator
