@@ -11,7 +11,7 @@
 #ifndef TriggerAliases_H
 #define TriggerAliases_H
 
-#include <stdint.h>
+#include <cstdint>
 #include <map>
 #include <string>
 #include <Rtypes.h>
