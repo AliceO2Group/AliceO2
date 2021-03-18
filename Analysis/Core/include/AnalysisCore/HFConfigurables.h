@@ -54,6 +54,12 @@ class HFTrackIndexSkimsCreatorConfigs
   double mInvMassDsToPiKKMax = 2.15; //original value 2.2
   double mCPADsToPiKKMin = 0.5;
   double mDecLenDsToPiKKMin = 0.;
+  // 3-prong cuts - XicToPKPi
+  double mPtXicToPKPiMin = 1.;        //
+  double mInvMassXicToPKPiMin = 2.25; //
+  double mInvMassXicToPKPiMax = 2.70; //
+  double mCPAXicToPKPiMin = 0.5;
+  double mDecLenXicToPKPiMin = 0.;
 
  private:
   ClassDef(HFTrackIndexSkimsCreatorConfigs, 1);

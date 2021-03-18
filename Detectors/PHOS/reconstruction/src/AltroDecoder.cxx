@@ -66,13 +66,14 @@ void AltroDecoder::readChannels()
   int currentpos = 0;
   auto& buffer = mRawReader.getPayload().getPayloadWords();
 
-  int payloadend = mRCUTrailer.getPayloadSize();
+  int payloadend = buffer.size() - mRCUTrailer.getTrailerSize(); //mRCUTrailer.getPayloadSize() was not updated in case of merged pages.
   while (currentpos < payloadend) {
     auto currentword = buffer[currentpos++];
     ChannelHeader header = {currentword};
-
     if (header.mMark != 1) {
-      LOG(ERROR) << "Channel header mark not found";
+      if (currentword != 0) {
+        LOG(ERROR) << "Channel header mark not found, header word " << currentword;
+      }
       continue;
     }
     // starting a new channel

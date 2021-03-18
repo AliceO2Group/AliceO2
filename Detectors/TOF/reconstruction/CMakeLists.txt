@@ -14,6 +14,7 @@ o2_add_library(TOFReconstruction
                	       src/DecoderBase.cxx
                        src/Decoder.cxx
                        src/CTFCoder.cxx
+                       src/CosmicProcessor.cxx
                PUBLIC_LINK_LIBRARIES O2::TOFBase O2::DataFormatsTOF
                                      O2::SimulationDataFormat
                                      O2::CommonDataFormat
@@ -28,4 +29,5 @@ o2_target_root_dictionary(TOFReconstruction
                                   include/TOFReconstruction/Encoder.h
                			  include/TOFReconstruction/DecoderBase.h
                                   include/TOFReconstruction/Decoder.h
-                                  include/TOFReconstruction/CTFCoder.h)
+                                  include/TOFReconstruction/CTFCoder.h
+                                  include/TOFReconstruction/CosmicProcessor.h)

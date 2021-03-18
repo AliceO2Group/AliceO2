@@ -10,7 +10,6 @@
 
 o2_add_library(FDDWorkflow
                SOURCES src/DigitReaderSpec.cxx
-	               src/DigitWriterSpec.cxx
 	               src/EntropyEncoderSpec.cxx
 		       src/EntropyDecoderSpec.cxx
 	       	       src/RecoWorkflow.cxx 

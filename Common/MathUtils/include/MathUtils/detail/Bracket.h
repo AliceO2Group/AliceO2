@@ -16,6 +16,10 @@
 #define ALICEO2_BRACKET_H
 
 #include <GPUCommonRtypes.h>
+#ifndef GPUCA_ALIGPUCODE
+#include <fmt/format.h>
+#include <string>
+#endif
 
 namespace o2
 {
@@ -60,17 +64,20 @@ class Bracket
   T mean() const;
   T delta() const;
 
-  void scale(T c)
-  {
-    mMin *= c;
-    mMax *= c;
-  }
+  Bracket getOverlap(const Bracket<T>& other) const;
 
+  void scale(T c);
+  bool isZeroLength() const;
   bool isValid() const;
   bool isInvalid() const;
   void update(T v);
   Relation isOutside(const Bracket<T>& t) const;
   Relation isOutside(T t, T tErr) const;
+  Relation isOutside(T t) const;
+
+#ifndef GPUCA_ALIGPUCODE
+  std::string asString() const;
+#endif
 
  private:
   T mMin{};
@@ -168,21 +175,31 @@ inline T Bracket<T>::mean() const
 {
   return (mMin + mMax) / 2;
 }
+
 template <typename T>
 inline T Bracket<T>::delta() const
 {
   return mMax - mMin;
 }
+
 template <typename T>
 inline bool Bracket<T>::isValid() const
 {
   return mMax >= mMin;
 }
+
 template <typename T>
 inline bool Bracket<T>::isInvalid() const
 {
   return mMin > mMax;
 }
+
+template <typename T>
+inline bool Bracket<T>::isZeroLength() const
+{
+  return mMin == mMax;
+}
+
 template <typename T>
 inline void Bracket<T>::update(T v)
 {
@@ -196,17 +213,46 @@ inline void Bracket<T>::update(T v)
 }
 
 template <typename T>
+inline void Bracket<T>::scale(T c)
+{
+  mMin *= c;
+  mMax *= c;
+}
+
+template <typename T>
+inline Bracket<T> Bracket<T>::getOverlap(const Bracket<T>& other) const
+{
+  return {getMin() > other.getMin() ? getMin() : other.getMin(), getMax() < other.getMax() ? getMax() : other.getMax()};
+}
+
+template <typename T>
 inline typename Bracket<T>::Relation Bracket<T>::isOutside(const Bracket<T>& t) const
 {
   ///< check if provided bracket is outside of this bracket
   return t.mMax < mMin ? Below : (t.mMin > mMax ? Above : Inside);
 }
+
 template <typename T>
 inline typename Bracket<T>::Relation Bracket<T>::isOutside(T t, T tErr) const
 {
   ///< check if the provided value t with error tErr is outside of the bracket
   return t + tErr < mMin ? Below : (t - tErr > mMax ? Above : Inside);
 }
+
+template <typename T>
+inline typename Bracket<T>::Relation Bracket<T>::isOutside(T t) const
+{
+  ///< check if provided point is outside of this bracket
+  return t < mMin ? Below : (t > mMax ? Above : Inside);
+}
+
+#ifndef GPUCA_ALIGPUCODE
+template <typename T>
+std::string Bracket<T>::asString() const
+{
+  return fmt::format("[{}:{}]", getMin(), getMax());
+}
+#endif
 
 } // namespace detail
 } // namespace math_utils

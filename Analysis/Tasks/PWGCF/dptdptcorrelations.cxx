@@ -77,7 +77,7 @@ int zvtxbins = 40;
 float zvtxlow = -10.0, zvtxup = 10.0;
 int phibins = 72;
 float philow = 0.0;
-float phiup = TMath::TwoPi();
+float phiup = M_PI * 2;
 float phibinshift = 0.5;
 float etabinwidth = (etaup - etalow) / float(etabins);
 float phibinwidth = (phiup - philow) / float(phibins);
@@ -251,7 +251,7 @@ inline void AcceptTrack(aod::TrackData const& track, bool& asone, bool& astwo)
 inline float GetShiftedPhi(float phi)
 {
   if (not(phi < phiup)) {
-    return phi - TMath::TwoPi();
+    return phi - M_PI * 2;
   } else {
     return phi;
   }
@@ -506,7 +506,7 @@ struct DptDptCorrelationsTask {
     zvtxup = cfgBinning->mZVtxmax;
     phibins = cfgBinning->mPhibins;
     philow = 0.0f;
-    phiup = TMath::TwoPi();
+    phiup = M_PI * 2;
     phibinshift = cfgBinning->mPhibinshift;
     processpairs = cfgProcessPairs.value;
     /* update the potential binning change */
@@ -841,13 +841,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   int nranges = tokens->GetEntries();
 
   WorkflowSpec workflow{
-    adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc, "DptDptCorrelationsFilterAnalysisTask"),
-    adaptAnalysisTask<TracksAndEventClassificationQA>(cfgc, "TracksAndEventClassificationQA")};
+    adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc, TaskName{"DptDptCorrelationsFilterAnalysisTask"}),
+    adaptAnalysisTask<TracksAndEventClassificationQA>(cfgc, TaskName{"TracksAndEventClassificationQA"})};
   for (int i = 0; i < nranges; ++i) {
     float cmmin = 0.0f;
     float cmmax = 0.0f;
     sscanf(tokens->At(i)->GetName(), "%f-%f", &cmmin, &cmmax);
-    workflow.push_back(adaptAnalysisTask<DptDptCorrelationsTask>(cfgc, Form("DptDptCorrelationsTask-%s", tokens->At(i)->GetName()), cmmin, cmmax));
+    workflow.push_back(adaptAnalysisTask<DptDptCorrelationsTask>(cfgc, TaskName{Form("DptDptCorrelationsTask-%s", tokens->At(i)->GetName())}, cmmin, cmmax));
   }
   delete tokens;
   return workflow;

@@ -15,6 +15,7 @@
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
 #include "HMPIDBase/Digit.h"
+#include "HMPIDBase/Trigger.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
@@ -30,7 +31,7 @@ o2::framework::DataProcessorSpec getWriteRootFromDigitSpec(bool mctruth = false)
 {
   using InputSpec = framework::InputSpec;
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
-  return MakeRootTreeWriterSpec("HMPDigitWriter",
+  return MakeRootTreeWriterSpec("HMPRootFileWriter",
                                 "hmpiddigits.root",
                                 "o2sim",
                                 -1,

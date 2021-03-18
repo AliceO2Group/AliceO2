@@ -48,6 +48,7 @@ namespace gpu
 class GPUChain;
 struct GPUMemorySizeScalers;
 struct GPUReconstructionPipelineContext;
+class GPUROOTDumpCore;
 
 class GPUReconstruction
 {
@@ -362,6 +363,7 @@ class GPUReconstruction
   unsigned int mNEventsProcessed = 0;
   double mStatKernelTime = 0.;
   double mStatWallTime = 0.;
+  std::shared_ptr<GPUROOTDumpCore> mROOTDump;
 
   int mMaxThreads = 0;    // Maximum number of threads that may be running, on CPU or GPU
   int mThreadId = -1;     // Thread ID that is valid for the local CUDA context

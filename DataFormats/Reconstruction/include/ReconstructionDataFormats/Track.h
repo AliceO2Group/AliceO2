@@ -23,8 +23,13 @@ namespace o2
 namespace track
 {
 
-using TrackPar = TrackParametrization<float>;
-using TrackParCov = TrackParametrizationWithError<float>;
+using TrackParF = TrackParametrization<float>;
+using TrackParD = TrackParametrization<double>;
+using TrackPar = TrackParF;
+
+using TrackParCovF = TrackParametrizationWithError<float>;
+using TrackParCovD = TrackParametrizationWithError<double>;
+using TrackParCov = TrackParCovF;
 
 } // namespace track
 } // namespace o2

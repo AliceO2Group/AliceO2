@@ -7,4 +7,4 @@ add_subdirectory(simulation)
 add_subdirectory(TimeFrame)
 add_subdirectory(Parameters)
 add_subdirectory(Calibration)
-
+add_subdirectory(QualityControl)

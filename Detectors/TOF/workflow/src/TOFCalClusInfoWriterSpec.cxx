@@ -13,6 +13,7 @@
 #include "TOFWorkflowUtils/TOFCalClusInfoWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsTOF/CalibInfoCluster.h"
+#include "DataFormatsTOF/CosmicInfo.h"
 
 using namespace o2::framework;
 
@@ -23,14 +24,19 @@ namespace tof
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 using OutputType = std::vector<o2::tof::CalibInfoCluster>;
+using OutputCosmicType = std::vector<o2::tof::CosmicInfo>;
 using namespace o2::header;
 
-DataProcessorSpec getTOFCalClusInfoWriterSpec()
+DataProcessorSpec getTOFCalClusInfoWriterSpec(bool isCosmics)
 {
   // Spectators for logging
   auto logger = [](OutputType const& indata) {
     LOG(DEBUG) << "RECEIVED CLUS CAL INFO SIZE " << indata.size();
   };
+  auto loggerCosmics = [](OutputCosmicType const& indata) {
+    LOG(DEBUG) << "RECEIVED COSMICS INFO SIZE " << indata.size();
+  };
+
   return MakeRootTreeWriterSpec("TOFCalClusInfoWriter",
                                 "tofclusCalInfo.root",
                                 "o2sim",
@@ -38,7 +44,12 @@ DataProcessorSpec getTOFCalClusInfoWriterSpec()
                                                              "TOFClusterCalInfo",
                                                              "tofclusters-branch-name",
                                                              1,
-                                                             logger})();
+                                                             logger},
+                                BranchDefinition<OutputCosmicType>{InputSpec{"cosmics", gDataOriginTOF, "INFOCOSMICS", 0},
+                                                                   "TOFCosmics",
+                                                                   "tofcosmics-branch-name",
+                                                                   (isCosmics ? 1 : 0),
+                                                                   loggerCosmics})();
 }
 } // namespace tof
 } // namespace o2

@@ -35,7 +35,7 @@ struct PseudorapidityDensity {
   OutputObj<TH1F> hStat{TH1F("hStat", "TotalEvents", 1, 0.5, 1.5)};
   OutputObj<TH1F> hdNdeta{TH1F("hdNdeta", "dNdeta", 50, -2.5, 2.5)};
   OutputObj<TH2F> vtxZEta{TH2F("vtxZEta", ";#eta;vtxZ", 50, -2.5, 2.5, 60, -30, 30)};
-  OutputObj<TH2F> phiEta{TH2F("phiEta", ";#eta;#varphi", 50, -2.5, 2.5, 200, 0., 2 * TMath::Pi())};
+  OutputObj<TH2F> phiEta{TH2F("phiEta", ";#eta;#varphi", 50, -2.5, 2.5, 200, 0., 2 * M_PI)};
 
   // TODO remove static casts for configurables when fixed
   Filter etaFilter = (aod::track::eta < (float)etaMax) && (aod::track::eta > (float)etaMin);
@@ -60,5 +60,5 @@ struct PseudorapidityDensity {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<PseudorapidityDensity>(cfgc, "dNdetaRun2Tracklets-analysis")};
+    adaptAnalysisTask<PseudorapidityDensity>(cfgc, TaskName{"dNdetaRun2Tracklets-analysis"})};
 }

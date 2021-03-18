@@ -42,6 +42,7 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
 
   for (auto const& ref : InputRecordWalker(inputs, filter)) {
     const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    firstOrbit = dh->firstTForbit;
 
     // ---| extract hardware information to do the processing |---
     const auto subSpecification = dh->subSpecification;
@@ -95,7 +96,7 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
         }
       }
 
-      firstOrbit = RDHUtils::getHeartBeatOrbit(*rdhPtr);
+      //firstOrbit = RDHUtils::getHeartBeatOrbit(*rdhPtr);
       LOGP(info, "First orbit in present TF: {}", firstOrbit);
       readFirst = true;
     }

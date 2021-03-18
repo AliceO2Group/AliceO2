@@ -76,9 +76,6 @@ struct HFJpsiToEECandidateSelector {
   template <typename T>
   bool daughterSelection(const T& track)
   {
-    if (track.sign() == 0) {
-      return false;
-    }
     /*if (track.tpcNClsFound() == 0) {
       return false; //is it clusters findable or found - need to check
       }*/
@@ -141,9 +138,11 @@ struct HFJpsiToEECandidateSelector {
   template <typename T>
   bool selectionPIDTPC(const T& track, int nSigmaCut)
   {
+    if (nSigmaCut > 999.) {
+      return true;
+    }
     return track.tpcNSigmaEl() < nSigmaCut;
   }
-
   /// PID selection on daughter track
   /// \param track is the daughter track
   /// \return 1 if successful PID match, 0 if successful PID rejection, -1 if no PID info
@@ -202,5 +201,5 @@ struct HFJpsiToEECandidateSelector {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HFJpsiToEECandidateSelector>(cfgc, "hf-jpsi-toee-candidate-selector")};
+    adaptAnalysisTask<HFJpsiToEECandidateSelector>(cfgc, TaskName{"hf-jpsi-toee-candidate-selector"})};
 }

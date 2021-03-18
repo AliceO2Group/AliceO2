@@ -34,7 +34,7 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
 {
 
  public:
-  TRDDPLTrapSimulatorTask() = default;
+  TRDDPLTrapSimulatorTask(bool useMC) : mUseMC(useMC) {}
 
   void init(o2::framework::InitContext& ic) override;
   void run(o2::framework::ProcessingContext& pc) override;
@@ -46,6 +46,7 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
   unsigned long mRunNumber = 297595; //run number to anchor simulation to.
   int mShowTrackletStats = 1;        // show some statistics for each run
   bool mEnableOnlineGainCorrection{false};
+  bool mUseMC{false}; // whether or not to use MC labels
   bool mEnableTrapConfigDump{false};
   bool mShareDigitsManually{true};  // duplicate digits connected to shared pads if digitizer did not do so
   std::string mTrapConfigName;      // the name of the config to be used.
@@ -57,10 +58,10 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
   void loadTrapConfig();
   void loadDefaultTrapConfig();
   void setOnlineGainTables();
-  void processTRAPchips(int currDetector, int& nTrackletsInTrigRec, std::vector<Tracklet64>& trapTrackletsAccum, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& trackletMCLabels, const o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>& digitMCLabels);
+  void processTRAPchips(int currDetector, int& nTrackletsInTrigRec, std::vector<Tracklet64>& trapTrackletsAccum, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& lblTracklets, const o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>* lblDigits);
 };
 
-o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec();
+o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec(bool useMC);
 
 } // end namespace trd
 } // end namespace o2

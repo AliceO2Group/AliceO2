@@ -34,6 +34,33 @@ HmpidEquipment::HmpidEquipment(int Equipment, int Cru, int Link)
   mEquipmentId = Equipment;
   mCruId = Cru;
   mLinkId = Link;
+  mWordsPerRowCounter = 0;
+  mBusyTimeAverage = 0;
+  mBusyTimeSamples = 0;
+  mBusyTimeValue = 0;
+  mTotalErrors = 0;
+  mTotalPads = 0;
+  mNumberOfEmptyEvents = 0;
+  mNumberOfEvents = 0;
+  mNumberOfWrongEvents = 0;
+  mWordsPerDilogicCounter = 0;
+  mWordsPerRowCounter = 0;
+  mWordsPerSegCounter = 0;
+  mEventSizeAverage = 0;
+  mErrorsCounter = 0;
+  mEventNumber = 0;
+  mEventSize = 0;
+  mPadsPerEventAverage = 0;
+  mSegment = 0;
+  mWillBeEoE = false;
+  mWillBePad = false;
+  mWillBeRowMarker = false;
+  mWillBeSegmentMarker = false;
+  mSampleNumber = 0;
+  mEventSizeAverage = 0;
+  mColumnCounter = 0;
+  mRowSize = 0;
+  mErrorPadsPerEvent = 0;
   return;
 }
 

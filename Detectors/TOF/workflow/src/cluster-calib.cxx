@@ -21,6 +21,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<ConfigParamSpec> options{ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+  options.push_back(ConfigParamSpec{"cosmics", o2::framework::VariantType::Bool, false, {"add cal info from cosmics"}});
 
   std::swap(workflowOptions, options);
 }
@@ -34,6 +35,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   WorkflowSpec wf;
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
-  wf.emplace_back(o2::tof::getTOFCalClusInfoWriterSpec());
+  auto isCosmics = cfgc.options().get<bool>("cosmics");
+  wf.emplace_back(o2::tof::getTOFCalClusInfoWriterSpec(isCosmics));
   return wf;
 }

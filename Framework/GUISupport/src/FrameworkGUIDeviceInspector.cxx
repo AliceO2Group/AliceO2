@@ -154,7 +154,11 @@ void servicesTable(const char* label, std::vector<ServiceSpec> const& services)
       ImGui::NextColumn();
     }
     for (auto& service : services) {
-      ImGui::TextUnformatted(service.name.c_str());
+      if (!service.name.empty()) {
+        ImGui::TextUnformatted(service.name.c_str());
+      } else {
+        ImGui::TextUnformatted("unknown");
+      }
       ImGui::NextColumn();
       switch (service.kind) {
         case ServiceKind::Serial:

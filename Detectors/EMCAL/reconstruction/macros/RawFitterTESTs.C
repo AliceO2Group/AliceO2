@@ -97,10 +97,14 @@ void RawFitterTESTs(const char* filename = "")
           std::cout << "processing next channel idx " << chan.getChannelIndex() << ", " << chan.getHardwareAddress() << std::endl;
           // define the conatiner for the fit results, and perform the raw fitting using the stadnard raw fitter
           continue;
-          o2::emcal::CaloFitResults fitResults = RawFitter.evaluate(chan.getBunches(), 0, 0);
+          try {
+            o2::emcal::CaloFitResults fitResults = RawFitter.evaluate(chan.getBunches(), 0, 0);
 
-          // print the fit output
-          std::cout << "The Time is : " << fitResults.getTime() << " And the Amplitude is : " << fitResults.getAmp() << std::endl;
+            // print the fit output
+            std::cout << "The Time is : " << fitResults.getTime() << " And the Amplitude is : " << fitResults.getAmp() << std::endl;
+          } catch (o2::emcal::CaloRawFitter::RawFitterError_t& fiterror) {
+            std::cerr << "Error processing raw fit: " << o2::emcal::CaloRawFitter::createErrorMessage(fiterror) << std::endl;
+          }
         }
       }
     }

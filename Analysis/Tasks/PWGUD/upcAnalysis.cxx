@@ -76,5 +76,5 @@ struct UPCAnalysis {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<UPCAnalysis>(cfgc, "upc")};
+    adaptAnalysisTask<UPCAnalysis>(cfgc, TaskName{"upc"})};
 }

@@ -638,6 +638,8 @@ constexpr o2::header::DataOrigin gDataOriginZDC{"ZDC"};
 #ifdef ENABLE_UPGRADES
 constexpr o2::header::DataOrigin gDataOriginIT3{"IT3"};
 constexpr o2::header::DataOrigin gDataOriginTRK{"TRK"};
+constexpr o2::header::DataOrigin gDataOriginFT3{"FT3"};
+
 #endif
 
 //possible data types

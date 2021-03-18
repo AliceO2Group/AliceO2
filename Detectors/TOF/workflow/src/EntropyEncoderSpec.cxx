@@ -54,7 +54,6 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   //  eeb->print();
   mTimer.Stop();
   LOG(INFO) << "Created encoded data of size " << eeb->size() << " for TOF in " << mTimer.CpuTime() - cput << " s";
-  //  pc.services().get<ControlService>().endOfStream();
 }
 
 void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)

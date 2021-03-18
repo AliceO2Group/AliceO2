@@ -81,5 +81,5 @@ struct UPCSpectraReferenceTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<UPCSpectraReferenceTask>(cfgc, "upcspectra-task-skim-reference")};
+    adaptAnalysisTask<UPCSpectraReferenceTask>(cfgc, TaskName{"upcspectra-task-skim-reference"})};
 }

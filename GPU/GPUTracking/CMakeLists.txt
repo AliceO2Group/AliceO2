@@ -77,6 +77,7 @@ set(SRCS_NO_CINT
     Global/GPUTrackingInputProvider.cxx
     Global/GPUErrors.cxx
     Merger/GPUTPCGMMergerGPU.cxx
+    Debug/GPUROOTDumpCore.cxx
     utils/timer.cxx)
 
 set(SRCS_NO_H SliceTracker/GPUTPCTrackerDump.cxx
@@ -144,6 +145,7 @@ set(HDRS_INSTALL
     Definitions/GPUDefOpenCL12Templates.h
     Definitions/GPULogging.h
     Definitions/GPUDefMacros.h
+    Debug/GPUROOTDump.h
 )
 
 # Sources only for O2
@@ -289,6 +291,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                             Interface
                                             Merger
                                             Refit
+                                            Debug
                                             DataCompression
                                             TPCClusterFinder
                  TARGETVARNAME targetName
@@ -345,6 +348,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
                       ${CMAKE_SOURCE_DIR}/GPU/Common
                       ${CMAKE_SOURCE_DIR}/GPU/Utils
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking
+                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Debug
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Definitions
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/DataTypes
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base

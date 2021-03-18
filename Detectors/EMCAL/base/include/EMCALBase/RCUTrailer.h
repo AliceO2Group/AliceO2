@@ -312,7 +312,7 @@ class RCUTrailer
 
   /// \brief Specify whether zero suppression has been applied
   /// \param doHave If true zero suppression has been applied
-  void setZeroSuppression(bool doHave) { mAltroConfig.mZeroSuppression = doHave; }
+  void setZeroSuppression(bool doHave) { mAltroConfig.mZeroSuppression = doHave ? 1 : 0; }
 
   /// \brief Set sparse readout mode
   /// \param isSparse True if readout is in sparse mode, false otherwise

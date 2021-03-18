@@ -208,7 +208,6 @@ void GPUTRDTracker_t<TRDTRK, PROP>::DoTracking(GPUChainTracking* chainTracking)
   for (int iColl = 0; iColl < mNCollisions; ++iColl) {
     int nTrklts = 0;
     if (mProcessPerTimeFrame) {
-      // FIXME maybe two nested if statements are not so good in terms of performance?
       nTrklts = (iColl < mNCollisions - 1) ? mTriggerRecordIndices[iColl + 1] - mTriggerRecordIndices[iColl] : mNTracklets - mTriggerRecordIndices[iColl];
     } else {
       nTrklts = mNTracklets;
@@ -498,7 +497,7 @@ GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::DumpTracks()
   GPUInfo("There are %i tracks loaded. mNMaxTracks(%i)\n", mNTracks, mNMaxTracks);
   for (int i = 0; i < mNTracks; ++i) {
     auto* trk = &(mTracks[i]);
-    GPUInfo("track %i: x=%f, alpha=%f, nTracklets=%i, pt=%f", i, trk->getX(), trk->getAlpha(), trk->GetNtracklets(), trk->getPt());
+    GPUInfo("track %i: x=%f, alpha=%f, nTracklets=%i, pt=%f, time=%f", i, trk->getX(), trk->getAlpha(), trk->GetNtracklets(), trk->getPt(), trk->getTime());
   }
 }
 
@@ -573,7 +572,8 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::CalculateSpacePoints(int iCollision)
     float c2 = 1.f / (1.f + t2); // cos^2 (tilt)
     float sy2 = 0.1f * 0.1f;     // sigma_rphi^2, currently assume sigma_rphi = 1 mm
 
-    for (int trkltIdx = mTrackletIndexArray[idxOffset + iDet]; trkltIdx < mTrackletIndexArray[idxOffset + iDet + 1]; ++trkltIdx) {
+    int trkltIdxOffset = mTriggerRecordIndices[iCollision];
+    for (int trkltIdx = trkltIdxOffset + mTrackletIndexArray[idxOffset + iDet]; trkltIdx < trkltIdxOffset + mTrackletIndexArray[idxOffset + iDet + 1]; ++trkltIdx) {
       int trkltZbin = mTracklets[trkltIdx].GetZbin();
       float sz2 = pp->GetRowSize(trkltZbin) * pp->GetRowSize(trkltZbin) / 12.f; // sigma_z = l_pad/sqrt(12) TODO try a larger z error
       My_Float xTrkltDet[3] = {0.f};                                            // trklt position in chamber coordinates
@@ -639,6 +639,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
   int candidateIdxOffset = threadId * 2 * mNCandidates;
   int hypothesisIdxOffset = threadId * mNCandidates;
   int trkltIdxOffset = collisionId * (kNChambers + 1);
+  int glbTrkltIdxOffset = mTriggerRecordIndices[collisionId];
 
   auto trkWork = t;
   if (mNCandidates > 1) {
@@ -750,7 +751,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
           }
         }
         // first propagate track to x of tracklet
-        for (int trkltIdx = mTrackletIndexArray[trkltIdxOffset + currDet]; trkltIdx < mTrackletIndexArray[trkltIdxOffset + currDet + 1]; ++trkltIdx) {
+        for (int trkltIdx = glbTrkltIdxOffset + mTrackletIndexArray[trkltIdxOffset + currDet]; trkltIdx < glbTrkltIdxOffset + mTrackletIndexArray[trkltIdxOffset + currDet + 1]; ++trkltIdx) {
           if (CAMath::Abs(trkWork->getY() - mSpacePoints[trkltIdx].mX[0]) > roadY || CAMath::Abs(trkWork->getZ() - mSpacePoints[trkltIdx].mX[1]) > roadZ) {
             // skip tracklets which are too far away
             // although the radii of space points and tracks may differ by ~ few mm the roads are large enough to allow no efficiency loss by this cut

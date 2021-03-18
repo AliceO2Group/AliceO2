@@ -14,9 +14,13 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
+#pragma link C++ class o2::track::TrackParF + ;
+#pragma link C++ class o2::track::TrackParD + ;
 #pragma link C++ class o2::track::TrackPar + ;
 #pragma link C++ class o2::track::TrackParametrization < float> + ;
 #pragma link C++ class o2::track::TrackParametrization < double> + ;
+#pragma link C++ class o2::track::TrackParCovF + ;
+#pragma link C++ class o2::track::TrackParCovD + ;
 #pragma link C++ class o2::track::TrackParCov + ;
 #pragma link C++ class o2::track::TrackParametrizationWithError < float> + ;
 #pragma link C++ class o2::track::TrackParametrizationWithError < double> + ;
@@ -66,5 +70,8 @@
 
 #pragma link C++ class o2::dataformats::V0 + ;
 #pragma link C++ class std::vector < o2::dataformats::V0> + ;
+
+#pragma link C++ class o2::dataformats::Cascade + ;
+#pragma link C++ class std::vector < o2::dataformats::Cascade> + ;
 
 #endif

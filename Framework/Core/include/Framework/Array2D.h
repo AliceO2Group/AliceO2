@@ -10,8 +10,6 @@
 #ifndef FRAMEWORK_ARRAY2D_H
 #define FRAMEWORK_ARRAY2D_H
 
-#include <Framework/RuntimeError.h>
-
 #include <cstdint>
 #include <vector>
 #include <unordered_map>
@@ -160,29 +158,20 @@ struct LabelMap {
   std::vector<std::string> labels_rows;
   std::vector<std::string> labels_cols;
 
-  labelmap_t populate(uint32_t size, std::vector<std::string> labels)
-  {
-    labelmap_t map;
-    if (labels.empty() == false) {
-      if (labels.size() != size) {
-        throw runtime_error("labels array size != array dimension");
-      }
-      for (auto i = 0u; i < size; ++i) {
-        map.emplace(labels[i], (uint32_t)i);
-      }
-    }
-    return map;
-  }
+  static labelmap_t populate(uint32_t size, std::vector<std::string> labels);
 
-  auto getLabelsRows()
+  auto getLabelsRows() const
   {
     return labels_rows;
   }
 
-  auto getLabelsCols()
+  auto getLabelsCols() const
   {
     return labels_cols;
   }
+
+  void replaceLabelsRows(uint32_t size, std::vector<std::string> const& labels);
+  void replaceLabelsCols(uint32_t size, std::vector<std::string> const& labels);
 };
 
 template <typename T>
@@ -281,6 +270,14 @@ class LabeledArray : public LabelMap
   {
     LabeledArray<T> copy = *this;
     return copy;
+  void replaceLabelsRows(std::vector<std::string> const& labels)
+  {
+    LabelMap::replaceLabelsRows(values.rows, labels);
+  }
+
+  void replaceLabelsCols(std::vector<std::string> const& labels)
+  {
+    LabelMap::replaceLabelsCols(values.cols, labels);
   }
 
  private:

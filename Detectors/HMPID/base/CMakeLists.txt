@@ -16,5 +16,6 @@ o2_add_library(HMPIDBase
 o2_target_root_dictionary(HMPIDBase
                           HEADERS include/HMPIDBase/Param.h
                                   include/HMPIDBase/Digit.h
+                                  include/HMPIDBase/Trigger.h
                                   include/HMPIDBase/Cluster.h
                                   include/HMPIDBase/Geo.h)

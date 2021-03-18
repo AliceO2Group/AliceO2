@@ -39,17 +39,45 @@ class CaloRawFitter
 {
 
  public:
+  /**
+   * \enum RawFitterError_t
+   * \brief Error codes for failures in raw fitter procedure
+   */
+  enum class RawFitterError_t {
+    SAMPLE_UNINITIALIZED, ///< Samples not initialized or length is 0
+    FIT_ERROR,            ///< Fit procedure failed
+    CHI2_ERROR,           ///< Chi2 cannot be determined (usually due to insufficient amount of samples)
+    BUNCH_NOT_OK          ///< Bunch selection failed
+  };
+
+  /// \brief Create error message for a given error type
+  /// \param fiterror Fit error type
+  /// \return Error message connected to the error type
+  static std::string createErrorMessage(RawFitterError_t fiterror);
+
+  /// \brief Convert error type to numeric representation
+  /// \param fiterror Fit error type
+  /// \return Numeric representation of the raw fitter error
+  static int getErrorNumber(RawFitterError_t fiterror);
+
+  /// \brief Get the number of raw fit error types supported
+  /// \return Number of error types (4)
+  static constexpr int getNumberOfErrorTypes() noexcept { return 4; }
+
   /// \brief Constructor
   CaloRawFitter(const char* name, const char* nameshort);
 
   /// \brief Destructor
   virtual ~CaloRawFitter() = default;
 
-  virtual CaloFitResults evaluate(const std::vector<Bunch>& bunchvector,
+  virtual CaloFitResults evaluate(const gsl::span<const Bunch> bunchvector,
                                   std::optional<unsigned int> altrocfg1,
                                   std::optional<unsigned int> altrocfg2) = 0;
 
   /// \brief Method to do the selection of what should possibly be fitted.
+  /// \param bunchvector ALTRO bunches for the current channel
+  /// \param altrocfg1 ALTRO config register 1 from RCU trailer
+  /// \param altrocfg2 ALTRO config register 2 from RCU trailer
   /// \return Size of the sub-selected sample,
   /// \return index of the bunch with maximum signal,
   /// \return maximum signal,
@@ -58,7 +86,7 @@ class CaloRawFitter
   /// \return pedestal,
   /// \return first time bin,
   /// \return last time bin,
-  std::tuple<int, int, float, short, short, float, int, int> preFitEvaluateSamples(const std::vector<Bunch>& bunchvector,
+  std::tuple<int, int, float, short, short, float, int, int> preFitEvaluateSamples(const gsl::span<const Bunch> bunchvector,
                                                                                    std::optional<unsigned int> altrocfg1, std::optional<unsigned int> altrocfg2, int acut);
 
   /// \brief The require time range if the maximum ADC value is between min and max (timebin)
@@ -103,7 +131,7 @@ class CaloRawFitter
   /// \return The index of the array with the maximum aplitude
   /// \return The bin where we have a maximum amp
   /// \return The maximum ADC signal
-  std::tuple<short, short, short> selectBunch(const std::vector<Bunch>& bunchvector);
+  std::tuple<short, short, short> selectBunch(const gsl::span<const Bunch>& bunchvector);
 
   /// \brief Selection of subset of data from one bunch that will be used for fitting or Peak finding.
   /// Go to the left and right of index of the maximum time bin
@@ -113,7 +141,7 @@ class CaloRawFitter
   std::tuple<int, int> selectSubarray(const gsl::span<double> data, short maxindex, int cut) const;
 
   /// \brief Pedestal evaluation if not zero suppressed
-  float evaluatePedestal(const std::vector<uint16_t>& data, std::optional<int> length) const;
+  float evaluatePedestal(const gsl::span<const uint16_t> data, std::optional<int> length) const;
 
   /// \brief Calculates the chi2 of the fit
   ///

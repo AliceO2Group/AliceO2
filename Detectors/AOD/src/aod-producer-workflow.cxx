@@ -14,10 +14,20 @@
 
 using namespace o2::framework;
 
+void customize(std::vector<ConfigParamSpec>& workflowOptions)
+{
+  // option allowing to set parameters
+  std::vector<o2::framework::ConfigParamSpec> options{
+    ConfigParamSpec{"ignore-aod-writer", VariantType::Int, 0, {"Ignore DPL AOD writer and write tables directly into a file. 0 -- off, != 0 -- on"}}};
+
+  std::swap(workflowOptions, options);
+}
+
 #include "Framework/runDataProcessing.h"
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
-  // Update the (declared) parameters if changed from the command line
-  return std::move(o2::aodproducer::getAODProducerWorkflow());
+  //  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("ignore-aod-writer"));
+  int ignoreWriter = configcontext.options().get<int>("ignore-aod-writer");
+  return std::move(o2::aodproducer::getAODProducerWorkflow(ignoreWriter));
 }

@@ -81,24 +81,24 @@ void ReadRaw::readRawData(const LookUpTable& lut)
           for (int i = 0; i < eventHeader.nGBTWords; ++i) {
             mRawFileIn.read(reinterpret_cast<char*>(&eventData[2 * i]), o2::fdd::EventData::PayloadSizeFirstWord);
             posPayload += o2::fdd::EventData::PayloadSizeFirstWord;
-            chData = {Short_t(lut.getChannel(link, int(eventData[2 * i].channelID))),
-                      Float_t(eventData[2 * i].time),
-                      Short_t(eventData[2 * i].charge), 0};
+            chData = {static_cast<uint8_t>(lut.getChannel(link, int(eventData[2 * i].channelID))),
+                      int(eventData[2 * i].time),
+                      int(eventData[2 * i].charge), 0};
             mDigitAccum[intrec].emplace_back(chData);
             LOG(DEBUG) << "    Read 1st half-word: (PMchannel, globalChannel, Q, T, posPayload) =  "
                        << std::setw(3) << int(eventData[2 * i].channelID)
                        << std::setw(4) << lut.getChannel(link, int(eventData[2 * i].channelID))
                        << std::setw(5) << int(eventData[2 * i].charge)
-                       << std::setw(5) << float(eventData[2 * i].time)
+                       << std::setw(5) << int(eventData[2 * i].time)
                        << std::setw(5) << posPayload;
 
             Short_t channelIdFirstHalfWord = chData.mPMNumber;
 
             mRawFileIn.read(reinterpret_cast<char*>(&eventData[2 * i + 1]), EventData::PayloadSizeSecondWord);
             posPayload += o2::fdd::EventData::PayloadSizeSecondWord;
-            chData = {Short_t(lut.getChannel(link, (eventData[2 * i + 1].channelID))),
-                      Float_t(eventData[2 * i + 1].time),
-                      Short_t(eventData[2 * i + 1].charge), 0};
+            chData = {static_cast<uint8_t>(lut.getChannel(link, int(eventData[2 * i + 1].channelID))),
+                      int(eventData[2 * i + 1].time),
+                      int(eventData[2 * i + 1].charge), 0};
             if (chData.mPMNumber <= channelIdFirstHalfWord) {
               // Don't save the second half-word if it is only filled with zeroes (empty-data)
               // TODO: Verify if it works correctly with real data from readout
@@ -109,7 +109,7 @@ void ReadRaw::readRawData(const LookUpTable& lut)
                        << std::setw(3) << int(eventData[2 * i + 1].channelID)
                        << std::setw(4) << lut.getChannel(link, int(eventData[2 * i + 1].channelID))
                        << std::setw(5) << int(eventData[2 * i + 1].charge)
-                       << std::setw(5) << float(eventData[2 * i + 1].time)
+                       << std::setw(5) << int(eventData[2 * i + 1].time)
                        << std::setw(5) << posPayload;
           }
         }
@@ -152,7 +152,7 @@ void ReadRaw::writeDigits(const std::string& outputDigitsFilePath)
     size_t nStored = 0;
     size_t first = chDataVecTree.size();
     for (auto& sec : digit.second) {
-      chDataVecTree.emplace_back(int(sec.mPMNumber), float(sec.mTime), short(sec.mChargeADC), short(0));
+      chDataVecTree.emplace_back(sec.mPMNumber, sec.mTime, sec.mChargeADC, sec.mFEEBits);
       nStored++;
     }
     chBcVecTree.emplace_back(first, nStored, digit.first, Triggers());

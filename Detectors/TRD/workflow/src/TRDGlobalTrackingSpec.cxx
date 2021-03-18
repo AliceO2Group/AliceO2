@@ -99,8 +99,8 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
 #else
     const auto& trg = triggerRecords.at(iEv);
 #endif
-    int nTrackletsCurrent = trg.getNumberOfObjects();
-    int iFirstTracklet = trg.getFirstEntry();
+    int nTrackletsCurrent = trg.getNumberOfTracklets();
+    int iFirstTracklet = trg.getFirstTracklet();
     int64_t evTime = trg.getBCData().toLong() * o2::constants::lhc::LHCBunchSpacingNS; // event time in ns
     trdTriggerTimes.push_back(evTime / 1000.);
     trdTriggerIndices.push_back(iFirstTracklet);
@@ -140,11 +140,8 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
 
   for (int iTrklt = 0; iTrklt < nTracklets; ++iTrklt) {
     auto trklt = trackletsTRD[iTrklt];
-    unsigned int trkltWord = 0; // DUMMY
-    GPUTRDTrackletWord trkltLoad;
+    GPUTRDTrackletWord trkltLoad(trklt.getTrackletWord());
     trkltLoad.SetId(iTrklt);
-    trkltLoad.SetHCId(trklt.getHCID());
-    trkltLoad.SetTrackletWord(trkltWord);
     if (mTracker->LoadTracklet(trkltLoad) > 0) {
       LOG(WARNING) << "Could not load tracklet " << iTrklt;
     }

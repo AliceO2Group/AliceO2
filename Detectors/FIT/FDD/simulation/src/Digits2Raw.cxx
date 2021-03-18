@@ -101,15 +101,23 @@ void Digits2Raw::convertDigits(o2::fdd::Digit bcdigits, gsl::span<const ChannelD
       iChannelPerLink = 0;
       prevPmLink = nLinkPm;
     }
-    if (pmchannels[ich].mChargeADC != 0) {
-      LOG(DEBUG) << "    Store data for channel: " << ich << " PmLink = " << nLinkPm << "  ";
-      auto& newData = mRawEventData.mEventData[iChannelPerLink];
-      newData.charge = pmchannels[ich].mChargeADC;
-      newData.time = pmchannels[ich].mTime;
-      newData.generateFlags();
-      newData.channelID = lut.getModChannel(pmchannels[ich].mPMNumber);
-      iChannelPerLink++;
-    }
+    LOG(DEBUG) << "    Store data for channel: " << ich << " PmLink = " << nLinkPm << "  ";
+    auto& newData = mRawEventData.mEventData[iChannelPerLink];
+    newData.charge = pmchannels[ich].mChargeADC;
+    newData.time = pmchannels[ich].mTime;
+
+    newData.numberADC = bool(pmchannels[ich].mFEEBits & ChannelData::Integrator);
+    newData.isDoubleEvent = bool(pmchannels[ich].mFEEBits & ChannelData::DoubleEvent);
+    newData.is1TimeLostEvent = bool(pmchannels[ich].mFEEBits & ChannelData::Event1TimeLost);
+    newData.is2TimeLostEvent = bool(pmchannels[ich].mFEEBits & ChannelData::Event2TimeLost);
+    newData.isADCinGate = bool(pmchannels[ich].mFEEBits & ChannelData::AdcInGate);
+    newData.isTimeInfoLate = bool(pmchannels[ich].mFEEBits & ChannelData::TimeTooLate);
+    newData.isAmpHigh = bool(pmchannels[ich].mFEEBits & ChannelData::AmpTooHigh);
+    newData.isEventInTVDC = bool(pmchannels[ich].mFEEBits & ChannelData::EventInTrigger);
+    newData.isTimeInfoLost = bool(pmchannels[ich].mFEEBits & ChannelData::TimeLost);
+
+    newData.channelID = lut.getModChannel(pmchannels[ich].mPMNumber);
+    iChannelPerLink++;
     if (ich == nch - 1) {
       fillSecondHalfWordAndAddData(iChannelPerLink, prevPmLink, intRecord);
     }
@@ -119,17 +127,41 @@ void Digits2Raw::convertDigits(o2::fdd::Digit bcdigits, gsl::span<const ChannelD
   makeGBTHeader(mRawEventData.mEventHeader, sTcmLink, intRecord);
   mRawEventData.mEventHeader.nGBTWords = 1;
   auto& tcmdata = mRawEventData.mTCMdata;
-  tcmdata.vertex = 1;
-  tcmdata.orA = 1;
-  tcmdata.orC = 0;
-  tcmdata.sCen = 0;
-  tcmdata.cen = 0;
-  tcmdata.nChanA = 0;
-  tcmdata.nChanC = 0;
-  tcmdata.amplA = 0;
-  tcmdata.amplC = 0;
-  tcmdata.timeA = 0;
-  tcmdata.timeC = 0;
+  mTriggers = bcdigits.mTriggers;
+
+  float ampA = mTriggers.amplA;
+  float ampC = mTriggers.amplC;
+  if (ampA > 131071) {
+    ampA = 131071; //2^17
+  }
+  if (ampC > 131071) {
+    ampC = 131071; //2^17
+  }
+  tcmdata.vertex = mTriggers.getVertex();
+  tcmdata.orA = mTriggers.getOrA();
+  tcmdata.orC = mTriggers.getOrC();
+  tcmdata.sCen = mTriggers.getSCen();
+  tcmdata.cen = mTriggers.getCen();
+  tcmdata.nChanA = mTriggers.nChanA;
+  tcmdata.nChanC = mTriggers.nChanC;
+  tcmdata.amplA = ampA;
+  tcmdata.amplC = ampC;
+  tcmdata.timeA = mTriggers.timeA;
+  tcmdata.timeC = mTriggers.timeC;
+  LOG(DEBUG) << " TCM  triggers read "
+             << " time A " << mTriggers.timeA << " time C " << mTriggers.timeC
+             << " amp A " << ampA << " amp C " << ampC
+             << " N A " << int(mTriggers.nChanA) << " N C " << int(mTriggers.nChanC)
+             << " trig "
+             << " ver " << mTriggers.getVertex() << " A " << mTriggers.getOrA() << " C " << mTriggers.getOrC();
+
+  LOG(DEBUG) << "TCMdata"
+             << " time A " << tcmdata.timeA << " time C " << tcmdata.timeC
+             << " amp A " << tcmdata.amplA << " amp C " << tcmdata.amplC
+             << " N A " << int(tcmdata.nChanA) << " N C " << int(tcmdata.nChanC)
+             << " trig "
+             << " ver " << tcmdata.vertex << " A " << tcmdata.orA << " C " << tcmdata.orC
+             << " size " << sizeof(tcmdata);
 
   auto data = mRawEventData.to_vector(kTRUE); //for tcm module
   uint32_t linkId = uint32_t(sTcmLink);

@@ -17,6 +17,7 @@
 #include "CommonDataFormat/TimeStamp.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "ReconstructionDataFormats/V0.h"
+#include "ReconstructionDataFormats/Cascade.h"
 
 using namespace o2::framework;
 
@@ -26,6 +27,7 @@ namespace vertexing
 {
 using RRef = o2::dataformats::RangeReference<int, int>;
 using V0 = o2::dataformats::V0;
+using Cascade = o2::dataformats::Cascade;
 
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
@@ -34,16 +36,26 @@ using namespace o2::header;
 
 DataProcessorSpec getSecondaryVertexWriterSpec()
 {
-  auto logger = [](std::vector<V0> const& v) {
+  auto loggerV = [](std::vector<V0> const& v) {
     LOG(INFO) << "SecondaryVertexWriter pulled " << v.size() << " v0s";
   };
-  auto inpID = InputSpec{"v0s", "GLO", "V0s", 0};
-  auto inpIDRef = InputSpec{"pv2v0ref", "GLO", "PVTX_V0REFS", 0};
+
+  auto loggerC = [](std::vector<Cascade> const& v) {
+    LOG(INFO) << "SecondaryVertexWriter pulled " << v.size() << " cascades";
+  };
+
+  auto inpV0ID = InputSpec{"v0s", "GLO", "V0S", 0};
+  auto inpV0RefID = InputSpec{"pv2v0ref", "GLO", "PVTX_V0REFS", 0};
+  auto inpCascID = InputSpec{"cascs", "GLO", "CASCS", 0};
+  auto inpCascRefID = InputSpec{"pv2cascref", "GLO", "PVTX_CASCREFS", 0};
+
   return MakeRootTreeWriterSpec("secondary-vertex-writer",
                                 "o2_secondary_vertex.root",
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with Secondary Vertices"},
-                                BranchDefinition<std::vector<V0>>{inpID, "V0s", logger},
-                                BranchDefinition<std::vector<RRef>>{inpIDRef, "PV2V0Refs"})();
+                                BranchDefinition<std::vector<V0>>{inpV0ID, "V0s", loggerV},
+                                BranchDefinition<std::vector<RRef>>{inpV0RefID, "PV2V0Refs"},
+                                BranchDefinition<std::vector<Cascade>>{inpCascID, "Cascades", loggerC},
+                                BranchDefinition<std::vector<RRef>>{inpCascRefID, "PV2CascRefs"})();
 }
 
 } // namespace vertexing

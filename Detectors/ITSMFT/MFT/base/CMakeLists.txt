@@ -33,7 +33,8 @@ o2_add_library(MFTBase
                PUBLIC_LINK_LIBRARIES O2::DetectorsBase
                                      O2::ITSMFTBase
                                      O2::SimConfig               
-                                     O2::ITSMFTSimulation ROOT::XMLIO)
+                                     O2::ITSMFTSimulation
+				     ROOT::XMLIO)
 
 o2_target_root_dictionary(MFTBase
                           HEADERS include/MFTBase/Constants.h

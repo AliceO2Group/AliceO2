@@ -10,7 +10,6 @@
 
 o2_add_library(PHOSWorkflow
                SOURCES src/RecoWorkflow.cxx
-                       src/PublisherSpec.cxx               
                        src/ReaderSpec.cxx
                        src/CellConverterSpec.cxx
                        src/RawToCellConverterSpec.cxx

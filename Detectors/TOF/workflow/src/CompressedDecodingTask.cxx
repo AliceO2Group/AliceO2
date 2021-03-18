@@ -109,18 +109,6 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
   DigitHeader& digitH = mDecoder.getDigitHeader();
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITHEADER", 0, Lifetime::Timeframe}, digitH);
 
-  // RS this is a hack to be removed once we have correct propagation of the firstTForbit by the framework
-  auto setFirstTFOrbit = [&](const Output& spec, uint32_t orb) {
-    auto* hd = pc.outputs().findMessageHeader(spec);
-    if (!hd) {
-      throw std::runtime_error(o2::utils::concat_string("failed to find output message header for ", spec.origin.str, "/", spec.description.str, "/", std::to_string(spec.subSpec)));
-    }
-    hd->firstTForbit = orb;
-  };
-
-  setFirstTFOrbit(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, mInitOrbit);
-  setFirstTFOrbit(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, mInitOrbit);
-
   mDecoder.clear();
 
   mNTF++;
@@ -132,13 +120,10 @@ void CompressedDecodingTask::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
 
-  if (pc.inputs().getNofParts(0) && !mConetMode && 0) { // it doesn't work
-    //RS set the 1st orbit of the TF from the O2 header, relying on rdhHandler is not good (in fact, the RDH might be eliminated in the derived data)
-    const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
-    mInitOrbit = dh->firstTForbit;
-  }
-
-  //  mDecoder.setFirstIR({0, mInitOrbit});
+  //RS set the 1st orbit of the TF from the O2 header, relying on rdhHandler is not good (in fact, the RDH might be eliminated in the derived data)
+  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
+  mInitOrbit = dh->firstTForbit;
+  mDecoder.setFirstIR({0, mInitOrbit});
 
   /** loop over inputs routes **/
   for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
@@ -178,16 +163,6 @@ void CompressedDecodingTask::headerHandler(const CrateHeader_t* crateHeader, con
 {
   if (mConetMode) {
     LOG(DEBUG) << "Crate found" << crateHeader->drmID;
-
-    mInitOrbit = crateOrbit->orbitID;
-    if (mCurrentOrbit > 0) {
-      mInitOrbit = mCurrentOrbit;
-    }
-
-    if (mNCrateOpenTF == 0) {
-      mDecoder.setFirstIR({0, mInitOrbit});
-    }
-
     mNCrateOpenTF++;
   }
 }
@@ -350,10 +325,6 @@ void CompressedDecodingTask::rdhHandler(const o2::header::RAWDataHeader* rdh)
   const auto& rdhr = *rdh;
   // set first orbtìt here (to be check in future), please not remove this!!!
   mCurrentOrbit = RDHUtils::getHeartBeatOrbit(rdhr);
-  if (mNCrateOpenTF == 0) {
-    mInitOrbit = mCurrentOrbit;
-    mDecoder.setFirstIR({0, mInitOrbit});
-  }
 
   // rdh close
   if (RDHUtils::getStop(rdhr) && RDHUtils::getHeartBeatOrbit(rdhr) == o2::raw::HBFUtils::Instance().getNOrbitsPerTF() - 1 + mInitOrbit) {

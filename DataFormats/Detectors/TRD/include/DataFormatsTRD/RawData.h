@@ -122,7 +122,7 @@ Word 7  |              reserved 5                       |             link 14 da
 struct TrackletHCHeader {
   union {
     //             10987654321098765432109876543210
-    // uint32_t:   00000000000000000000000000000000
+    // uint32_t:   33222222222211111111110000000000
     //                 cccccccccccccccX LLL   SSSSS
     //             ffff|              |y|  sss|
     //             |   |              |||  |  |-----  0-4  supermodule
@@ -130,7 +130,7 @@ struct TrackletHCHeader {
     //             |   |              ||------------  8-10 layer
     //             |   |              |------------- 11    always 0x1
     //             |   |              |------------- 12 side of chamber
-    //             |   ----------------------------- 13-72 MCM Clock counter
+    //             |   ----------------------------- 13-27 MCM Clock counter
     //             --------------------------------- 28-31 tracklet data format number
     uint32_t word;
     struct {
@@ -139,7 +139,7 @@ struct TrackletHCHeader {
       uint32_t layer : 3;
       uint32_t one : 1;   //always 1
       uint32_t side : 1;  // side of chamber
-      uint32_t MCLK : 15; // MCM clock counter 120MHz ... for simulation -- incrementing, and same number in all for each event.
+      uint32_t MCLK : 15; // MCM clock counter 120MHz ... for simulation -- incrementing, and uniform across an event
       uint32_t format : 4;
       //  0 baseline PID 3 time slices, 7 bit each
       //  1 DO NOT USE ! reserved for tracklet end marker disambiguation
@@ -155,7 +155,7 @@ struct TrackletHCHeader {
 struct TrackletMCMHeader {
   //first word          *
   //             10987654321098765432109876543210
-  // uint32_t:   00000000000000000000000000000000
+  // uint32_t:   33222222222211111111110000000000
   //             1zzzz  pppppppp        pppppppp1
   //             ||   yy|       pppppppp |      |--- 0 1 check bits
   //             ||   | |       |        ----------- 1-8   pid for tracklet 3 second part
@@ -218,6 +218,183 @@ struct TRDFeeID {
   };
 };
 
+/// \structure DigitHCHeader
+/// \brief Digit version of the TrackletHCHeader above, although contents are rather different.
+//  TODO come back and comment the fields or make the name more expressive, and fill in the jjjjjjj
+struct DigitHCHeader {
+  //
+  //             10987654321098765432109876543210
+  // uint32_t:   00000000000000000000000000000000
+  //
+  union { // section 15.6.1 in tdp
+    uint32_t word0;
+    struct {
+      uint32_t res0 : 2;
+      uint32_t side : 1;
+      uint32_t stack : 3;
+      uint32_t layer : 3;
+      uint32_t supermodule : 5;
+      uint32_t numberHCW : 3;
+      uint32_t minor : 7;
+      uint32_t major : 7;
+      uint32_t version : 1;
+    } __attribute__((__packed__));
+  };
+
+  //             10987654321098765432109876543210
+  // uint32_t:   00000000000000000000000000000000
+  //
+  union { //section 15.6.2 in tdp
+    uint32_t word1;
+    struct {
+      uint32_t res1 : 2;
+      uint32_t ptrigcount : 4;
+      uint32_t ptrigphase : 4;
+      uint32_t bunchcrossing : 16;
+      uint32_t numtimebins : 6;
+    } __attribute__((__packed__));
+  };
+#ifdef DIGITALHCOPTIONALHEADER
+  //             10987654321098765432109876543210
+  // uint32_t:   00000000000000000000000000000000
+  union { //section 15.6.3 in tdp
+    uint32_t word2;
+    struct {
+      uint32_t res2 : 6;
+      uint32_t dfilter : 6;
+      uint32_t rfilter : 1;
+      uint32_t nlfilter : 1;
+      uint32_t xtfilter : 1;
+      uint32_t tfilter : 1;
+      uint32_t gfilter : 1;
+      uint32_t pfilter : 6;
+    } __attribute__((__packed__));
+  };
+  //             10987654321098765432109876543210
+  // uint32_t:   00000000000000000000000000000000
+  union { //section 15.6.4 in tdp
+    uint32_t word3;
+    struct {
+      uint32_t res3 : 6;
+      uint32_t svnrver : 13; //readout program svn revision
+      uint32_t svnver : 13;  //assember programm svn revision
+    } __attribute__((__packed__));
+  };
+#endif
+};
+
+struct DigitMCMHeader {
+  //             10987654321098765432109876543210
+  // uint32_t:   00000000000000000000000000000000
+  union {
+    uint32_t word; //MCM header
+    struct {
+      uint32_t res : 4; // reserve 1100
+      uint32_t eventcount : 20;
+      uint32_t mcm : 4;
+      uint32_t rob : 3;
+      uint32_t yearflag : 1; //< oct2007 0,  else 1
+    } __attribute__((__packed__));
+  };
+};
+
+//the odd numbering of 1 2 3 and 6 are taken from the TDP page 111 section 15.7.2, 15.7.3 15.7.4 15.7.5
+struct trdTestPattern1 {
+  //             10987654321098765432109876543210
+  // uint32_t:   00000000000000000000000000000000
+  //  11h41 for 2flp in data stream. before that on 14th dec was1 flp in timeframe.
+  union {
+    uint32_t word;
+    struct {
+      uint32_t eventcount : 6; // lower 6 bits of e counter.
+      uint32_t stack : 5;
+      uint32_t layer : 3;
+      uint32_t roc : 3;
+      uint32_t rob : 3;
+      uint32_t mcmTp2 : 4;
+      uint32_t cpu : 2;
+      uint32_t counter : 6;
+    } __attribute__((__packed__));
+  };
+};
+
+struct trdTestPattern2 {
+  //             10987654321098765432109876543210
+  // uint32_t:   00000000000000000000000000000000
+  union {
+    uint32_t word;
+    struct {
+      uint32_t eventcount : 6; // lower 6 bits of e counter.
+      uint32_t stack : 5;
+      uint32_t layer : 3;
+      uint32_t roc : 3;
+      uint32_t rob : 3;
+      uint32_t mcmTp2 : 4;
+      uint32_t cpu : 2;
+      uint32_t wordcounter : 6;
+    } __attribute__((__packed__));
+  };
+};
+struct trdTestPattern3 {
+  //             10987654321098765432109876543210
+  // uint32_t:   00000000000000000000000000000000
+  union {
+    uint32_t word;
+    struct {
+      uint32_t eventcount : 12; //lower 12 bits of ecounter
+      uint32_t stack : 5;
+      uint32_t layer : 3;
+      uint32_t roc : 3;
+      uint32_t rob : 3;
+      uint32_t mcm : 4;
+      uint32_t cpu : 2;
+    } __attribute__((__packed__));
+  };
+};
+struct trdTestPattern6 {
+  //             10987654321098765432109876543210
+  // uint32_t:   00000000000000000000000000000000
+  //             1zzzz  pppppppp        pppppppp1
+  union {
+    uint32_t word; //HC header0
+    struct {
+      uint32_t eventcount; // lower 4 bits of e counter.
+      uint32_t stack : 5;  // starting at 1
+      uint32_t layer : 3;
+      uint32_t roc : 3;
+      uint32_t rob : 3;
+      uint32_t mcm : 4;
+      uint32_t cpu : 2;
+      uint32_t wordcounter : 6;
+      uint32_t oddadc : 2;
+    } __attribute__((__packed__));
+  };
+};
+
+struct DigitMCMData {
+  //             10987654321098765432109876543210
+  // uint32_t:   00000000000000000000000000000000
+  /*  union {
+    uint32_t word0;
+    struct {
+      uint32_t a : 2;
+      uint32_t b : 5;
+      uint32_t adc : 21; //adc bit patternpad plane
+    } __attribute__((__packed__));
+  };*/
+  union {
+    //             10987654321098765432109876543210
+    // uint32_t:   00000000000000000000000000000000
+    uint32_t word;
+    struct {
+      uint32_t c : 2; // c is wrong I cant remember name, but not a concern at the moment.
+      uint32_t z : 10;
+      uint32_t y : 10;
+      uint32_t x : 10;
+    } __attribute__((__packed__));
+  };
+};
+
 void buildTrackletHCHeader(TrackletHCHeader& header, int sector, int stack, int layer, int side, int chipclock, int format);
 void buildTrackletHCHeaderd(TrackletHCHeader& header, int detector, int rob, int chipclock, int format);
 uint16_t buildTRDFeeID(int supermodule, int side, int endpoint);
@@ -229,16 +406,23 @@ uint32_t getlinkerrorflag(const HalfCRUHeader& cruhead, const uint32_t link);
 uint32_t getlinkdatasize(const HalfCRUHeader& cruhead, const uint32_t link);
 uint32_t getlinkerrorflags(const HalfCRUHeader& cruheader, std::array<uint32_t, 15>& linkerrorflags);
 uint32_t getlinkdatasizes(const HalfCRUHeader& cruheader, std::array<uint32_t, 15>& linksizes);
-std::ostream& operator<<(std::ostream& stream, const TrackletHCHeader halfchamberheader);
+uint32_t getHCIDFromTrackletHCHeader(const TrackletHCHeader& header);
+uint32_t getHCIDFromTrackletHCHeader(const uint32_t& headerword);
+std::ostream& operator<<(std::ostream& stream, const TrackletHCHeader& halfchamberheader);
+std::ostream& operator<<(std::ostream& stream, const TrackletMCMHeader& mcmhead);
 std::ostream& operator<<(std::ostream& stream, const TrackletMCMData& tracklet);
 void printTrackletMCMData(o2::trd::TrackletMCMData& tracklet);
 void printTrackletMCMHeader(o2::trd::TrackletMCMHeader& mcmhead);
-std::ostream& operator<<(std::ostream& stream, const TrackletMCMHeader& mcmhead);
 void printHalfChamber(o2::trd::TrackletHCHeader& halfchamber);
 void dumpHalfChamber(o2::trd::TrackletHCHeader& halfchamber);
 void printHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru);
 void dumpHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru);
 std::ostream& operator<<(std::ostream& stream, const HalfCRUHeader& halfcru);
+bool trackletMCMHeaderSanityCheck(o2::trd::TrackletMCMHeader& header);
+bool trackletHCHeaderSanityCheck(o2::trd::TrackletHCHeader& header);
+bool digitMCMHeaderSanityCheck(o2::trd::DigitMCMHeader* header);
+void printDigitMCMHeader(o2::trd::DigitMCMHeader& header);
+void printDigitHCHeader(o2::trd::DigitHCHeader& header);
 }
 }
 #endif

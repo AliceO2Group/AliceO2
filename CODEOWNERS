@@ -30,6 +30,7 @@
 
 /DataFormats                                   @AliceO2Group/framework-admins
 /DataFormats/Detectors/CPV                     @peressounko @kharlov
+/DataFormats/Detectors/CTP                     @shahor02
 /DataFormats/Detectors/EMCAL                   @mfasDa
 /DataFormats/Detectors/FIT                     @AllaMaevskaya @jotwinow @mslupeck
 /DataFormats/Detectors/GlobalTracking          @shahor02
@@ -49,6 +50,7 @@
 #/DataFormats/Legacy
 #/DataFormats/MemoryResources
 /DataFormats/Parameters        @shahor02
+/DataFormats/QualityControl    @knopers8 @Barthelemy @chiarazampolli
 /DataFormats/Reconstruction    @shahor02
 #/DataFormats/TimeFrame
 /DataFormats/common            @shahor02

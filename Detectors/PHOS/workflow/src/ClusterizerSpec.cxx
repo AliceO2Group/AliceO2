@@ -53,21 +53,16 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
 
     LOG(DEBUG) << "PHOSClusterizer - run run on cells called";
 
-    printf("Getting cells \n");
     auto cells = ctx.inputs().get<std::vector<o2::phos::Cell>>("cells");
     // auto cells = ctx.inputs().get<gsl::span<o2::phos::Cell>>("cells");
     LOG(DEBUG) << "[PHOSClusterizer - run]  Received " << cells.size() << " cells, running clusterizer ...";
-    printf("Getting TR \n");
     // auto cellsTR = ctx.inputs().get<gsl::span<o2::phos::TriggerRecord>>("cellTriggerRecords");
     auto cellsTR = ctx.inputs().get<std::vector<o2::phos::TriggerRecord>>("cellTriggerRecords");
     if (mPropagateMC) {
-      printf("Getting MC \n");
       std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::phos::MCLabel>> truthcont(ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>*>("cellsmctr"));
       // truthmap = ctx.inputs().get<gsl::span<uint>>("cellssmcmap");
-      printf("Clustering \n");
       mClusterizer.processCells(cells, cellsTR, truthcont.get(), &mOutputClusters, &mOutputClusterTrigRecs, &mOutputTruthCont); // Find clusters on digits (pass by ref)
     } else {
-      printf("Clustering2 \n");
       mClusterizer.processCells(cells, cellsTR, nullptr, &mOutputClusters, &mOutputClusterTrigRecs, &mOutputTruthCont); // Find clusters on digits (pass by ref)
     }
   }
@@ -82,7 +77,6 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
   if (mPropagateMC) {
     ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUSTERTRUEMC", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthCont);
   }
-  LOG(INFO) << "Finished ";
   ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
 }
 

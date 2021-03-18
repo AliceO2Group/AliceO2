@@ -17,7 +17,7 @@
 
 namespace o2::mch::raw
 {
-template <typename FORMAT, typename CHARGESUM>
+template <typename FORMAT, typename CHARGESUM, int VERSION = 0>
 class ElinkEncoder;
 } // namespace o2::mch::raw
 

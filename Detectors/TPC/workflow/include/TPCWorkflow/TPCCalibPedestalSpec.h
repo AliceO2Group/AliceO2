@@ -46,7 +46,7 @@ namespace tpc
 class TPCCalibPedestalDevice : public o2::framework::Task
 {
  public:
-  TPCCalibPedestalDevice(int lane, const std::vector<int>& sectors) : mLane{lane}, mSectors(sectors) {}
+  TPCCalibPedestalDevice(uint32_t lane, const std::vector<int>& sectors, uint32_t publishAfterTFs) : mLane{lane}, mSectors(sectors), mPublishAfter(publishAfterTFs) {}
 
   void init(o2::framework::InitContext& ic) final
   {
@@ -87,11 +87,20 @@ class TPCCalibPedestalDevice : public o2::framework::Task
     calib_processing_helper::processRawData(pc.inputs(), reader, mUseOldSubspec, mSectors);
 
     mCalibPedestal.incrementNEvents();
-    LOGP(info, "Number of processed events: {} ({})", mCalibPedestal.getNumberOfProcessedEvents(), mMaxEvents);
+    const auto nTFs = mCalibPedestal.getNumberOfProcessedEvents();
+    LOGP(info, "Number of processed TFs: {} ({})", nTFs, mMaxEvents);
 
-    if ((mCalibPedestal.getNumberOfProcessedEvents() >= mMaxEvents) && !mCalibDumped) {
-      LOGP(info, "Maximm number of events reached ({}), no more processing will be done", mMaxEvents);
+    if ((mPublishAfter && (nTFs % mPublishAfter) == 0)) {
+      LOGP(info, "Publishing after {} TFs", nTFs);
+      mCalibPedestal.analyse();
+      dumpCalibData();
+      sendOutput(pc.outputs());
+    }
+
+    if (mMaxEvents && (mCalibPedestal.getNumberOfProcessedEvents() >= mMaxEvents) && !mCalibDumped) {
+      LOGP(info, "Maximm number of TFs reached ({}), no more processing will be done", mMaxEvents);
       mReadyToQuit = true;
+      mCalibPedestal.analyse();
       dumpCalibData();
       if (mForceQuit) {
         pc.services().get<ControlService>().endOfStream();
@@ -105,6 +114,7 @@ class TPCCalibPedestalDevice : public o2::framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
     LOGP(info, "endOfStream");
+    mCalibPedestal.analyse();
     dumpCalibData();
     sendOutput(ec.outputs());
     ec.services().get<ControlService>().readyToQuit(QuitRequest::Me);
@@ -113,8 +123,9 @@ class TPCCalibPedestalDevice : public o2::framework::Task
  private:
   CalibPedestal mCalibPedestal;
   rawreader::RawReaderCRUManager mRawReader;
-  uint32_t mMaxEvents{100};    ///< maximum number of events to process
-  int mLane{0};                ///< lane number of processor
+  uint32_t mMaxEvents{0};      ///< maximum number of events to process
+  uint32_t mPublishAfter{0};   ///< number of events after which to dump the calibration
+  uint32_t mLane{0};           ///< lane number of processor
   std::vector<int> mSectors{}; ///< sectors to process in this instance
   bool mReadyToQuit{false};    ///< if processor is ready to quit
   bool mCalibDumped{false};    ///< if calibration object already dumped
@@ -134,7 +145,7 @@ class TPCCalibPedestalDevice : public o2::framework::Task
       auto image = o2::utils::MemFileHelper::createFileImage(cal, typeid(*cal), cal->getName(), "data");
       int type = int(dataType[i]);
 
-      header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)i};
+      header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)((mLane << 4) + i)};
       output.snapshot(Output{clbUtils::gDataOriginCLB, "TPCCLBPART", subSpec}, *image.get());
       output.snapshot(Output{clbUtils::gDataOriginCLB, "TPCCLBPARTINFO", subSpec}, type);
     }
@@ -145,14 +156,13 @@ class TPCCalibPedestalDevice : public o2::framework::Task
   {
     if (mDirectFileDump && !mCalibDumped) {
       LOGP(info, "Dumping output");
-      mCalibPedestal.analyse();
       mCalibPedestal.dumpToFile(fmt::format("pedestals_{:02}.root", mLane));
       mCalibDumped = true;
     }
   }
 };
 
-DataProcessorSpec getTPCCalibPedestalSpec(const std::string inputSpec, int ilane = 0, std::vector<int> sectors = {})
+DataProcessorSpec getTPCCalibPedestalSpec(const std::string inputSpec, uint32_t ilane = 0, std::vector<int> sectors = {}, uint32_t publishAfterTFs = 0)
 {
   std::vector<o2::framework::OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, "TPCCLBPART"});
@@ -163,9 +173,9 @@ DataProcessorSpec getTPCCalibPedestalSpec(const std::string inputSpec, int ilane
     id.data(),
     select(inputSpec.data()),
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCCalibPedestalDevice>(ilane, sectors)},
+    AlgorithmSpec{adaptFromTask<TPCCalibPedestalDevice>(ilane, sectors, publishAfterTFs)},
     Options{
-      {"max-events", VariantType::Int, 100, {"maximum number of events to process"}},
+      {"max-events", VariantType::Int, 0, {"maximum number of events to process"}},
       {"use-old-subspec", VariantType::Bool, false, {"use old subsecifiation definition"}},
       {"force-quit", VariantType::Bool, false, {"force quit after max-events have been reached"}},
       {"direct-file-dump", VariantType::Bool, false, {"directly dump calibration to file"}},
