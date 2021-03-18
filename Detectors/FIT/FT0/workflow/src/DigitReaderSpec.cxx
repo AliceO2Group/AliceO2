@@ -53,8 +53,9 @@ void DigitReader::run(ProcessingContext& pc)
   std::vector<o2::ft0::ChannelData> channels, *pchannels = &channels;
   mTree->SetBranchAddress("FT0DIGITSBC", &pdigits);
   mTree->SetBranchAddress("FT0DIGITSCH", &pchannels);
-  if (mUseTrgInput)
+  if (mUseTrgInput) {
     mTree->SetBranchAddress("TRIGGERINPUT", &ptrTrgInput);
+  }
   o2::dataformats::MCTruthContainer<o2::ft0::MCLabel> labels, *plabels = &labels;
   if (mUseMC) {
     mTree->SetBranchAddress("FT0DIGITSMCTR", &plabels);
