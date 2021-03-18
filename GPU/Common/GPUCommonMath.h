@@ -65,8 +65,8 @@ class GPUCommonMath
   GPUhdni() static void SinCosd(double x, double& s, double& c);
   GPUd() static float Tan(float x);
   GPUhdni() static float Copysign(float x, float y);
-  GPUd() static float TwoPi() { return 6.28319f; }
-  GPUd() static float Pi() { return 3.1415926535897f; }
+  GPUd() static float TwoPi() { return 6.2831853f; }
+  GPUd() static float Pi() { return 3.1415927f; }
   GPUd() static int Nint(float x);
   GPUd() static bool Finite(float x);
   GPUd() static unsigned int Clz(unsigned int val);
