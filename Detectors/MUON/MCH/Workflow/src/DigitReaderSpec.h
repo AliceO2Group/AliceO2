@@ -8,19 +8,23 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file digits-reader-workflow.cxx
-/// \brief Implementation of a DPL device to read digits from a binary file
-///
-/// \author Philippe Pillot, Subatech
-/// \author Andrea Ferrero, CEA
+/// \file   MCHWorkflow/DigitReaderSpec.h
+/// \brief  Data processor specs for MCH digits reader device
+/// \author Michael Winn <Michael.Winn at cern.ch>
+/// \date   17 April 2021
 
-#include "Framework/runDataProcessing.h"
+#ifndef O2_MCH_DIGITREADERSPEC_H
+#define O2_MCH_DIGITREADERSPEC_H
 
-#include "DigitSamplerSpec.h"
+#include "Framework/DataProcessorSpec.h"
 
-using namespace o2::framework;
-
-WorkflowSpec defineDataProcessing(const ConfigContext&)
+namespace o2
 {
-  return WorkflowSpec{o2::mch::getDigitSamplerSpec()};
+namespace mch
+{
+  framework::DataProcessorSpec getDigitReaderSpec(bool useMC, const char* baseDescription = "DATAMC");
 }
+} // namespace o2
+
+
+#endif //O2_MCH_DIGITREADERSPEC_H
