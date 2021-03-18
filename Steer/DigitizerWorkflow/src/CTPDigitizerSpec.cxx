@@ -12,7 +12,7 @@
 #include <TChain.h>
 #include <TStopwatch.h>
 
-using namespace  o2::framework;
+using namespace o2::framework;
 namespace o2
 {
 namespace ctp
@@ -20,6 +20,7 @@ namespace ctp
 class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
   using GRP = o2::parameters::GRPObject;
+
  public:
   CTPDPLDigitizerTask() : o2::base::BaseDPLDigitizer(), mDigitizer() {}
   ~CTPDPLDigitizerTask() override = default;
@@ -41,10 +42,10 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     TStopwatch timer;
     timer.Start();
     LOG(INFO) << "CALLING FT0 DIGITIZATION";
-    for(const auto &coll: timesview){
+    for (const auto& coll : timesview) {
       mDigitizer.setInteractionRecord(coll);
       mDigitizer.process(mDigits);
-      mDigitizer.flush( mDigits);
+      mDigitizer.flush(mDigits);
     }
     // send out to next stage
     pc.outputs().snapshot(Output{"CTP", "DIGITS", 0, Lifetime::Timeframe}, mDigits);
@@ -54,6 +55,7 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     mFinished = true;
   }
+
  protected:
   bool mFinished = false;
   std::vector<o2::ctp::CTPdigit> mDigits;
@@ -72,7 +74,6 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 };
 o2::framework::DataProcessorSpec getCTPDigitizerSpec(int channel, bool mctruth)
 {
-
 }
-}
-}
+} // namespace ctp
+} // namespace o2

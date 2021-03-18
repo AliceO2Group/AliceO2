@@ -18,4 +18,3 @@ o2::framework::DataProcessorSpec getCTPDigitizerSpec(int channel, bool mctruth =
 } // end namespace o2
 
 #endif /* STEER_DIGITIZERWORKFLOW_CTPDIGITIZER_H_ */
-

@@ -9,7 +9,7 @@ using namespace o2::ctp;
 
 ClassImp(Digitizer);
 
-void Digitizer::process(std::vector<o2::ctp::CTPdigit>& digits )
+void Digitizer::process(std::vector<o2::ctp::CTPdigit>& digits)
 {
   CTPdigit digit;
   digit.mIntRecord = mIntRecord;
@@ -22,9 +22,9 @@ void Digitizer::process(std::vector<o2::ctp::CTPdigit>& digits )
 void Digitizer::flush(std::vector<o2::ctp::CTPdigit>& digits)
 {
   assert(mCache.size() != 1);
-  storeBC(mCache.front(),digits);
+  storeBC(mCache.front(), digits);
 }
-void Digitizer::storeBC(o2::ctp::CTPdigit& cashe,std::vector<o2::ctp::CTPdigit>& digits)
+void Digitizer::storeBC(o2::ctp::CTPdigit& cashe, std::vector<o2::ctp::CTPdigit>& digits)
 {
   digits.push_back(cashe);
 }
