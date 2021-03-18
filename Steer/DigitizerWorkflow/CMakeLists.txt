@@ -12,6 +12,7 @@ o2_add_executable(digitizer-workflow
                   COMPONENT_NAME sim
                   SOURCES src/EMCALDigitWriterSpec.cxx
                           src/EMCALDigitizerSpec.cxx
+		                  src/CTPDigitizerSpec.cxx
                           src/FT0DigitizerSpec.cxx
                           src/FV0DigitizerSpec.cxx
                           src/FDDDigitizerSpec.cxx
@@ -35,6 +36,7 @@ o2_add_executable(digitizer-workflow
                                         O2::FT0Simulation
                                         O2::FV0Simulation
                                         O2::FDDSimulation
+										O2::CTPSimulation
 					O2::FDDWorkflow
                                         O2::HMPIDSimulation
                                         O2::ITSMFTSimulation
