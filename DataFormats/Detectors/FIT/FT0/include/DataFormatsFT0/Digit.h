@@ -88,7 +88,7 @@ struct Triggers {
     return std::tie(triggersignals, nChanA, nChanC, amplA, amplC, timeA, timeC) ==
            std::tie(other.triggersignals, other.nChanA, other.nChanC, other.amplA, other.amplC, other.timeA, other.timeC);
   }
-  ClassDefNV(Triggers, 1);
+  ClassDefNV(Triggers, 2);
 };
 
 struct DetTrigInput {
@@ -143,7 +143,7 @@ struct Digit {
   {
     return std::tie(ref, mTriggers, mIntRecord) == std::tie(other.ref, other.mTriggers, other.mIntRecord);
   }
-  ClassDefNV(Digit, 5);
+  ClassDefNV(Digit, 6);
 };
 
 //For TCM extended mode (calibration mode), TCMdataExtended digit

@@ -59,11 +59,10 @@ void DigitReader::run(ProcessingContext& pc)
   if (mUseMC) {
     mTree->SetBranchAddress("FT0DIGITSMCTR", &plabels);
   }
-
-  mTree->GetEntry(0);
-
+  auto ent = mTree->GetReadEntry() + 1;
+  assert(ent < mTree->GetEntries()); // this should not happen
+  mTree->GetEntry(ent);
   LOG(INFO) << "FT0DigitReader pushed " << channels.size() << " channels in " << digits.size() << " digits";
-
   pc.outputs().snapshot(Output{"FT0", "DIGITSBC", 0, Lifetime::Timeframe}, digits);
   pc.outputs().snapshot(Output{"FT0", "DIGITSCH", 0, Lifetime::Timeframe}, channels);
   if (mUseMC) {
@@ -72,8 +71,10 @@ void DigitReader::run(ProcessingContext& pc)
   if (mUseTrgInput) {
     pc.outputs().snapshot(Output{"FT0", "TRIGGERINPUT", 0, Lifetime::Timeframe}, trgInput);
   }
-  pc.services().get<ControlService>().endOfStream();
-  pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+  }
 }
 
 DataProcessorSpec getDigitReaderSpec(bool useMC, bool useTrgInput)

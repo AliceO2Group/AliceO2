@@ -59,7 +59,7 @@ struct ChannelData {
   {
     return std::tie(ChId, CFDTime, QTCAmpl) == std::tie(other.ChId, other.CFDTime, other.QTCAmpl);
   }
-  ClassDefNV(ChannelData, 2);
+  ClassDefNV(ChannelData, 3);
 };
 } // namespace ft0
 } // namespace o2

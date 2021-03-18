@@ -69,6 +69,11 @@ class DigitBlockFT0 : public DigitBlockBase<DigitBlockFT0>
       dataBlock.DataBlockWrapper<RawDataTCM>::mData[0].fillTrigger(mDigit.mTriggers);
     }
   }
+  void getDigits(std::vector<Digit>& vecDigits, std::vector<ChannelData>& vecChannelData, std::vector<DetTrigInput>& vecTriggerInput)
+  {
+    vecTriggerInput.emplace_back(mDigit.mIntRecord, mDigit.mTriggers.getOrA(), mDigit.mTriggers.getOrC(), mDigit.mTriggers.getVertex(), mDigit.mTriggers.getCen(), mDigit.mTriggers.getSCen());
+    getDigits(vecDigits, vecChannelData);
+  }
   void getDigits(std::vector<Digit>& vecDigits, std::vector<ChannelData>& vecChannelData)
   {
     //last digit filling

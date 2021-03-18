@@ -55,11 +55,10 @@ class RawReaderFT0 : public RawReaderFT0BaseNorm
   }
   void accumulateDigits()
   {
-    getDigits(mVecDigits, mVecChannelData);
     if constexpr (sUseTrgInput) {
-      for (const auto& digit : mVecDigits) {
-        mVecTriggerInput.emplace_back(digit.mIntRecord, digit.mTriggers.getOrA(), digit.mTriggers.getOrC(), digit.mTriggers.getVertex(), digit.mTriggers.getCen(), digit.mTriggers.getSCen());
-      }
+      getDigits(mVecDigits, mVecChannelData, mVecTriggerInput);
+    } else {
+      getDigits(mVecDigits, mVecChannelData);
     }
     LOG(INFO) << "Number of Digits: " << mVecDigits.size();
     LOG(INFO) << "Number of ChannelData: " << mVecChannelData.size();
