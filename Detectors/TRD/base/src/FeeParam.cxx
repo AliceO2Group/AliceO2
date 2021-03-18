@@ -223,7 +223,7 @@ int FeeParam::getPadColFromADC(int irob, int imcm, int iadc)
   if (iadc < 0 || iadc > NADCMCM) {
     return -100;
   }
-  int mcmcol = imcm % NMCMROBINCOL + getRobSide(irob) * NMCMROBINCOL; // MCM column number on ROC [0..7]
+  int mcmcol = imcm % NMCMROBINCOL + getROBSide(irob) * NMCMROBINCOL; // MCM column number on ROC [0..7]
   int padcol = mcmcol * NCOLMCM + NCOLMCM + 1 - iadc;
   if (padcol < 0 || padcol >= NCOLUMN) {
     return -1; // this is commented because of reason above OK
@@ -243,7 +243,7 @@ int FeeParam::getExtendedPadColFromADC(int irob, int imcm, int iadc)
   if (iadc < 0 || iadc > NADCMCM) {
     return -100;
   }
-  int mcmcol = imcm % NMCMROBINCOL + getRobSide(irob) * NMCMROBINCOL; // MCM column number on ROC [0..7]
+  int mcmcol = imcm % NMCMROBINCOL + getROBSide(irob) * NMCMROBINCOL; // MCM column number on ROC [0..7]
   int padcol = mcmcol * NADCMCM + NCOLMCM + 2 - iadc;
 
   return padcol;
@@ -318,7 +318,7 @@ int FeeParam::getROBfromSharedPad(int irow, int icol)
 }
 
 //_____________________________________________________________________________
-int FeeParam::getRobSide(int irob)
+int FeeParam::getROBSide(int irob)
 {
   //
   // Return on which side this rob sits (A side = 0, B side = 1)
@@ -513,9 +513,9 @@ void FeeParam::createORILookUpTable()
 
 int FeeParam::getORI(int detector, int readoutboard)
 {
-  int supermodule = detector / 30;
-  LOG(debug3) << "getORI : " << detector << " :: " << readoutboard << getORIinSM(detector, readoutboard) + 60 * detector;
-  return getORIinSM(detector, readoutboard) + 2 * detector; // 2 ORI per detector
+  int supermodule = detector / NCHAMBERPERSEC;
+  ///  LOG(info) << "getORI : " << detector << " :: " << readoutboard << " -- " << getORIinSM(detector, readoutboard) << "   " << getORIinSM(detector, readoutboard) + NCHAMBERPERSEC * 2 * detector;
+  return getORIinSM(detector, readoutboard) + NCHAMBER * 2 * detector; // 60 ORI per supermodule
 }
 
 int FeeParam::getORIinSM(int detector, int readoutboard)
@@ -524,8 +524,8 @@ int FeeParam::getORIinSM(int detector, int readoutboard)
   int chamberside = 0;
   int trdstack = Geometry::getStack(detector);
   int trdlayer = Geometry::getLayer(detector);
-  int side = getRobSide(readoutboard);
-  //see TDP for explanation of mapping TODO should probably come from CCDB for the instances where the mapping of ori fibers is misconfigured (accidental fibre swaps).
+  int side = getROBSide(readoutboard);
+  //see TDP for explanation of mapping TODO should probably come from CCDB
   if (trdstack < 2 || (trdstack == 2 && side == 0)) // A Side
   {
     ori = trdstack * 12 + (5 - trdlayer + side * 5) + trdlayer / 6 + side; // <- that is correct for A side at least for now, probably not for very long LUT as that will come form CCDB ni anycase.

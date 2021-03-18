@@ -13,6 +13,11 @@
 
 #define GPUCA_CADEBUG 0
 #define DEBUG_SINGLE_TRACK -1
+#define EXTRACT_RESIDUALS 0
+
+#if EXTRACT_RESIDUALS == 1
+#include "GPUROOTDump.h"
+#endif
 
 #include "GPUTPCDef.h"
 #include "GPUTPCGMTrackParam.h"
@@ -26,7 +31,6 @@
 #include "GPUTPCClusterData.h"
 #include "GPUdEdx.h"
 #include "GPUParam.h"
-#include "GPUTPCClusterErrorStat.h"
 #include "GPUO2DataTypes.h"
 #include "GPUConstantMem.h"
 #include "TPCFastTransform.h"
@@ -57,8 +61,6 @@ static constexpr float kSectAngle = 2 * M_PI / 18.f;
 GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iTrk, GPUTPCGMMergedTrackHit* GPUrestrict() clusters, GPUTPCGMMergedTrackHitXYZ* GPUrestrict() clustersXYZ, int& GPUrestrict() N, int& GPUrestrict() NTolerated, float& GPUrestrict() Alpha, int attempt, float maxSinPhi, GPUTPCOuterParam* GPUrestrict() outerParam)
 {
   const GPUParam& GPUrestrict() param = merger->Param();
-
-  GPUTPCClusterErrorStat errorStat(N);
 
   GPUdEdx dEdx;
   GPUTPCGMPropagator prop;
@@ -266,7 +268,6 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
         continue;
       }
       CADEBUG(printf("\n"));
-      errorStat.Fill(xx, yy, zz, prop.GetAlpha(), mX, mP, mC, ihit, iWay);
 
       int retVal;
       float threshold = 3.f + (lastUpdateX >= 0 ? (CAMath::Abs(mX - lastUpdateX) / 2) : 0.f);
@@ -274,6 +275,25 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
         retVal = 2;
       } else {
         char rejectChi2 = attempt ? 0 : ((param.rec.mergerInterpolateErrors && CAMath::Abs(ihit - ihitMergeFirst) <= 1) ? (refit ? (2 + ((nWays - iWay) & 1)) : 0) : (allowModification && goodRows > 5));
+#if EXTRACT_RESIDUALS == 1
+        if (iWay == nWays - 1 && interpolation.hit[ihit].errorY > (GPUCA_MERGER_INTERPOLATION_ERROR_TYPE)0) {
+          const float Iz0 = interpolation.hit[ihit].posY - mP[0];
+          const float Iz1 = interpolation.hit[ihit].posZ - mP[1];
+          float Iw0 = mC[2] + (float)interpolation.hit[ihit].errorZ;
+          float Iw2 = mC[0] + (float)interpolation.hit[ihit].errorY;
+          float Idet1 = 1.f / CAMath::Max(1e-10f, Iw0 * Iw2 - mC[1] * mC[1]);
+          const float Ik00 = (mC[0] * Iw0 + mC[1] * mC[1]) * Idet1;
+          const float Ik01 = (mC[0] * mC[1] + mC[1] * Iw2) * Idet1;
+          const float Ik10 = (mC[1] * Iw0 + mC[2] * mC[1]) * Idet1;
+          const float Ik11 = (mC[1] * mC[1] + mC[2] * Iw2) * Idet1;
+          const float ImP0 = mP[0] + Ik00 * Iz0 + Ik01 * Iz1;
+          const float ImP1 = mP[1] + Ik10 * Iz0 + Ik11 * Iz1;
+          const float ImC0 = mC[0] - Ik00 * mC[0] + Ik01 * mC[1];
+          const float ImC2 = mC[2] - Ik10 * mC[1] + Ik11 * mC[2];
+          auto& tup = GPUROOTDump<TNtuple>::get("clusterres", "row:clX:clY:clZ:angle:trkX:trkY:trkZ:trkSinPhi:trkDzDs:trkQPt:trkSigmaY2:trkSigmaZ2trkSigmaQPt2");
+          tup.Fill((float)clusters[ihit].row, xx, yy, zz, clAlpha, mX, ImP0, ImP1, mP[2], mP[3], mP[4], ImC0, ImC2, mC[14]);
+        }
+#endif
         retVal = prop.Update(yy, zz, clusters[ihit].row, param, clusterState, rejectChi2, &interpolation.hit[ihit], refit);
       }
       // clang-format off

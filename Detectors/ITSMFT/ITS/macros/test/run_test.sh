@@ -18,7 +18,7 @@ root -b -q $O2_ROOT/share/macro/run_clus_itsSA.C+\(\"itsdigits.root\",\"o2clus_i
 
 root.exe -b -q CheckClusters.C+ >& CheckClusters.log
 
-#root.exe -b -q CheckTopologies.C+ >& CheckTopologies.log
+#root.exe -b -q CreateDictionaries.C+ >& CreateDictionaries.log
 
 root.exe -b -q $O2_ROOT/share/macro/run_trac_its.C+ >& trac_its.log
 

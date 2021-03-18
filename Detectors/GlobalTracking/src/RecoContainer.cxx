@@ -13,6 +13,8 @@
 /// \author ruben.shahoyan@cern.ch
 
 #include <fmt/format.h>
+#include <chrono>
+#include "DetectorsCommonDataFormats/DetID.h"
 #include "GlobalTracking/RecoContainer.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITS/TrackITS.h"
@@ -31,6 +33,7 @@ using namespace o2::framework;
 namespace o2d = o2::dataformats;
 
 using GTrackID = o2d::GlobalTrackID;
+using DetID = o2::detectors::DetID;
 
 void DataRequest::addInput(const InputSpec&& isp)
 {
@@ -127,12 +130,48 @@ void DataRequest::requestFT0RecPoints(bool mc)
   requestMap["FT0"] = false;
 }
 
+void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
+{
+  // request tracks for sources probided by the mask
+  if (src[GTrackID::ITS]) {
+    requestITSTracks(useMC);
+  }
+  if (src[GTrackID::TPC]) {
+    requestTPCTracks(useMC);
+  }
+  if (src[GTrackID::ITSTPC] || src[GTrackID::ITSTPCTOF]) {
+    requestITSTPCTracks(useMC);
+  }
+  if (src[GTrackID::TPCTOF]) {
+    requestTPCTOFTracks(useMC);
+  }
+  if (src[GTrackID::ITSTPCTOF]) {
+    requestTOFMatches(useMC);
+    requestTOFClusters(false); // RSTODO Needed just to set the time of ITSTPC track, consider moving to MatchInfoTOF
+  }
+}
+
+void DataRequest::requestClusters(GTrackID::mask_t src, bool useMC)
+{
+  // request clusters for detectors of the sources probided by the mask
+
+  // clusters needed for refits
+  if (GTrackID::includesDet(DetID::ITS, src)) {
+    requestITSClusters(useMC);
+  }
+  if (GTrackID::includesDet(DetID::TPC, src)) {
+    requestTPCClusters(useMC);
+  }
+  if (GTrackID::includesDet(DetID::TOF, src)) {
+    requestTOFClusters(useMC);
+  }
+}
+
 //__________________________________________________________________
 void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& requests)
 {
   auto& reqMap = requests.requestMap;
 
-  /// RS FIXME: this will not work until the framework does not propagate the dh->firstTForbit
   const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
   startIR = {0, dh->firstTForbit};
 
@@ -190,11 +229,6 @@ void RecoContainer::addITSTracks(ProcessingContext& pc, bool mc)
   tracksROFsPool.registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("trackITSROF"), GTrackID::ITS);
   if (mc) {
     tracksMCPool.registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSMCTR"), GTrackID::ITS);
-  }
-  //RSTODO: below is a hack, to remove once the framework will start propagating the header.firstTForbit
-  const auto tracksITSROF = getITSTracksROFRecords<o2::itsmft::ROFRecord>();
-  if (tracksITSROF.size()) {
-    startIR = o2::raw::HBFUtils::Instance().getFirstIRofTF(tracksITSROF[0].getBCData());
   }
 }
 
@@ -293,6 +327,15 @@ const o2::track::TrackParCov& RecoContainer::getTrackParamOut(GTrackID gidx) con
 }
 
 //__________________________________________________________
+bool RecoContainer::isTrackSourceLoaded(int src) const
+{
+  if (src == GTrackID::ITSTPCTOF && isMatchSourceLoaded(src)) { // the physical tracks are in ITS-TPC, need to get reference from match info
+    src = GTrackID::ITSTPC;
+  }
+  return tracksPool.isLoaded(src);
+}
+
+//__________________________________________________________
 const o2::track::TrackParCov& RecoContainer::getTrack(GTrackID gidx) const
 {
   // get base track
@@ -320,6 +363,8 @@ void RecoContainer::createTracks(std::function<void(const o2::track::TrackParCov
   // We go from most complete tracks to least complete ones, taking into account that some track times
   // do not bear their own kinematics but just constrain the time
   // As we get more track types functional, this method should be completed
+
+  auto start_time = std::chrono::high_resolution_clock::now();
   constexpr float PS2MUS = 1e-6;
   std::array<std::vector<uint8_t>, GTrackID::NSources> usedData;
   auto flagUsed = [&usedData](const GTrackID gidx) { auto src = gidx.getSource();
@@ -419,6 +464,8 @@ void RecoContainer::createTracks(std::function<void(const o2::track::TrackParCov
       }
     }
   }
+  auto current_time = std::chrono::high_resolution_clock::now();
+  LOG(INFO) << "RecoContainer::createTracks took " << std::chrono::duration_cast<std::chrono::microseconds>(current_time - start_time).count() * 1e-6 << " CPU s.";
 }
 
 // get contributors from single detectors

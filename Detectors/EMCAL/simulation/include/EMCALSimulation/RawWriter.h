@@ -35,24 +35,33 @@ namespace emcal
 {
 
 class Geometry;
+
+/// \struct AltroBunch
+/// \brief ALTRO bunch information obtained from digits
 struct AltroBunch {
-  int mStarttime;
-  std::vector<int> mADCs;
+  int mStarttime;         ///< Start time of the bunch
+  std::vector<int> mADCs; ///< ADCs belonging to the bunch
 };
 
+/// \struct ChannelData
+/// \brief Structure for mapping digits to Channels within a SRU
 struct ChannelData {
-  int mRow;
-  int mCol;
-  std::vector<o2::emcal::Digit*> mDigits;
+  int mRow;                               ///< Row of the channel
+  int mCol;                               ///< Column of the channel
+  std::vector<o2::emcal::Digit*> mDigits; ///< Digits for the channel  within the current event
 };
 
+/// \struct SRUDigitContainer
+/// \brief Structure for organizing digits within the SRU
 struct SRUDigitContainer {
-  int mSRUid;
-  std::map<int, ChannelData> mChannels;
+  int mSRUid;                           ///< DDL of the SRU
+  std::map<int, ChannelData> mChannels; ///< Containers for channels within the SRU
 };
 
+/// \union ChannelHeader
+/// \brief Bitfield encoding channel headers
 union ChannelHeader {
-  uint32_t mDataWord;
+  uint32_t mDataWord; ///< Full data word representation
   struct {
     uint32_t mHardwareAddress : 16; ///< Bits  0 - 15: Hardware address
     uint32_t mPayloadSize : 10;     ///< Bits 16 - 25: Payload size
@@ -62,8 +71,10 @@ union ChannelHeader {
   };
 };
 
+/// \union CaloBunchWord
+/// \brief Encoding of ALTRO words (32 bit consisting of 3 10-bit words)
 union CaloBunchWord {
-  uint32_t mDataWord;
+  uint32_t mDataWord; ///< Full data word representation
   struct {
     uint32_t mWord2 : 10; ///< Bits  0 - 9  : Word 2
     uint32_t mWord1 : 10; ///< Bits 10 - 19 : Word 1
@@ -72,29 +83,87 @@ union CaloBunchWord {
   };
 };
 
+/// \class RawWriter
+/// \brief Raw data creator for EMCAL raw data based on EMCAL digits
+/// \ingroup EMCALsimulation
+/// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
+/// \author Hadi Hassan, Oak Ridge National Laboratory
+/// \since Jan 24, 2020
 class RawWriter
 {
  public:
+  /// \enum FileFor_t
+  /// \brief Definition of the granularity of the raw files
   enum class FileFor_t {
-    kFullDet,
-    kSubDet,
-    kLink
+    kFullDet, ///< Full detector (EMCAL + DCAL)
+    kSubDet,  ///< Subdetector (EMCAL/DCAL separate)
+    kLink     ///< Per link
   };
+
+  /// \brief Dummy constructor
   RawWriter() = default;
+
+  /// \brief Constructor, defining output location
+  /// \param outputdir Output directiory
+  ///
+  /// Initializing the output directory. The output files
+  /// can be found in the output directory with the granularity
+  /// defined via setFileFor
   RawWriter(const char* outputdir) { setOutputLocation(outputdir); }
+
+  /// \brief Destructor
   ~RawWriter() = default;
 
+  /// \brief Get access to underlying RawFileWriter
+  /// \return RawFileWriter
   o2::raw::RawFileWriter& getWriter() const { return *mRawWriter; }
 
   void setOutputLocation(const char* outputdir) { mOutputLocation = outputdir; }
   void setDigits(gsl::span<o2::emcal::Digit> digits) { mDigits = digits; }
+
+  /// \brief Set the granularity of the output file
+  /// \param filefor Output granularity
+  ///
+  /// Output files can be created for
+  /// - Whole EMCAL
+  /// - Subdetector (EMCAL or DCAL)
+  /// - Link
   void setFileFor(FileFor_t filefor) { mFileFor = filefor; }
+
+  /// \brief Set the number of ADC samples in the readout window
+  /// \param nsapmles Number of time samples
   void setNumberOfADCSamples(int nsamples) { mNADCSamples = nsamples; }
+
+  /// \brief Set min. ADC samples expected in a calo bunch
+  /// \param nsamples Minimum number of ADC samples
+  void setMinADCSamplesBunch(int nsamples) { mMinADCBunch = nsamples; }
+
+  /// \brief Set pedestal threshold used to accept ADC values when creating the bunches
+  /// \param pedestal Pedestal value
   void setPedestal(int pedestal) { mPedestal = pedestal; }
+
+  /// \brief Set the geometry parameters
+  /// \param geo EMCAL geometry
   void setGeometry(o2::emcal::Geometry* geo) { mGeometry = geo; }
 
   void init();
+
+  /// \brief Converting digits from a full timeframe to raw pages
+  /// \param digits Vector of digits belonging to the same timeframe
+  /// \param triggers trigger records with ranges in digits container of data for the various events in the timeframe
+  ///
+  /// Processing all events from within a timeframe. See processTrigger for more information
+  /// about the digit to raw converion of a single event.
   void digitsToRaw(gsl::span<o2::emcal::Digit> digits, gsl::span<o2::emcal::TriggerRecord> triggers);
+
+  /// \brief Processing digits to raw conversion for the digits from the current event
+  /// \param trg Trigger record providing collision information and data range for the current event
+  ///
+  /// Digits are first sorted according to SRUs and within their channels and time samples.
+  /// For each SRU and channel within the SRU calo bunches are created. In case at least one
+  /// valid calo bunch is found channels are created, and they data words are organized in a
+  /// raw stream, which is closed by the RCU trailer of the given stream. The content of the
+  /// stream is then passed to the RawFileWriter for page splitting and output streaming.
   bool processTrigger(const o2::emcal::TriggerRecord& trg);
 
   int carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> data,
@@ -102,15 +171,47 @@ class RawWriter
                       std::vector<char>& trailer, std::vector<char>& header) const;
 
  protected:
+  /// \brief Parse digits vector in channel and create ALTRO bunches
+  /// \param channelDigits Vector with digits in the channel for the current event
+  ///
+  /// Channels are parsed in a time-reversed order. Bunches are selected for ranges of
+  /// digits where the ADC value is consecutively above the pedestal. Only bunches having
+  /// a min. amount of ADC samples are selected.
   std::vector<AltroBunch> findBunches(const std::vector<o2::emcal::Digit*>& channelDigits);
 
+  /// \brief Create channel header
+  /// \param hardwareAddress Hardware address
+  /// \param payloadSize Size of the payload of the channel in 10-bit ALTRO words
+  /// \param isBadChannel If true the channel is a bad channel at hardware level
   ChannelHeader createChannelHeader(int hardwareAddress, int payloadSize, bool isBadChannel);
+
+  /// \brief Creating RCU trailer
+  /// \param payloadsize Size of the payload as 32bit word
+  /// \param timesampe Length of the time sample (for L1 phase calculation)
+  /// \param triggertime Time of the trigger (for L1 phase calculation)
+  /// \param feeID Link ID
+  ///
+  /// Creating RCU trailer. Also setting the values of the ALTRO Config registers based
+  /// on the settings in the raw writer. The RCU trailer is then encoded and converted to
+  /// 8-bit words.
   std::vector<char> createRCUTrailer(int payloadsize, double timesample, uint64_t triggertime, int feeID);
+
+  /// \brief Encoding words of the ALTRO bunch into 32-bit words
+  /// \param data ALTRO bunch information
+  /// \return Encoded ALTRO words
+  ///
+  /// Converting ALTRO bunch into ALTRO words. For the ALTRO bunch the following structure is
+  /// expected:
+  /// - bunch size including bunch header size (2)
+  /// - start time
+  /// - ADC samples
+  /// The input data is converted to 10 but ALTRO words and put on the stream.
   std::vector<int> encodeBunchData(const std::vector<int>& data);
 
  private:
   int mNADCSamples = 15;                                      ///< Number of time samples
-  int mPedestal = 0;                                          ///< Pedestal
+  int mPedestal = 1;                                          ///< Pedestal
+  int mMinADCBunch = 3;                                       ///< Min. number of ADC samples in ALTRO bunch
   FileFor_t mFileFor = FileFor_t::kFullDet;                   ///< Granularity of the output files
   o2::emcal::Geometry* mGeometry = nullptr;                   ///< EMCAL geometry
   std::string mOutputLocation;                                ///< Rawfile name

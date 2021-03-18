@@ -32,26 +32,37 @@ class TriggerRecord
 
  public:
   TriggerRecord() = default;
-  TriggerRecord(const BCData& bunchcrossing, int firstentry, int nentries) : mBCData(bunchcrossing), mDataRange(firstentry, nentries) {}
+  TriggerRecord(const BCData& bunchcrossing, int digitentry, int ndigitentries, int trackletentry = 0, int ntrackletentries = 0) : mBCData(bunchcrossing), mTrackletDataRange(trackletentry, ntrackletentries), mDigitDataRange(digitentry, ndigitentries) {}
+  // The above default of 0 for tracklet info, makes the digitizer look more decent as one can simply not put in the tracklet info as you dont have it.
   ~TriggerRecord() = default;
 
   void setBCData(const BCData& data) { mBCData = data; }
-  void setDataRange(int firstentry, int nentries) { mDataRange.set(firstentry, nentries); }
-  void setIndexFirstObject(int firstentry) { mDataRange.setFirstEntry(firstentry); }
-  void setNumberOfObjects(int nentries) { mDataRange.setEntries(nentries); }
 
   const BCData& getBCData() const { return mBCData; }
   BCData& getBCData() { return mBCData; }
-  int getNumberOfObjects() const { return mDataRange.getEntries(); }
-  int getFirstEntry() const { return mDataRange.getFirstEntry(); }
+
+  //Digit information
+  void setFirstDigit(int firstentry) { mDigitDataRange.setFirstEntry(firstentry); }
+  int getFirstDigit() const { return mDigitDataRange.getFirstEntry(); }
+  void setNumberOfDigit(int nentries) { mDigitDataRange.setEntries(nentries); }
+  int getNumberOfDigits() const { return mDigitDataRange.getEntries(); }
+  void setDigitRange(int firstentry, int nentries) { mDigitDataRange.set(firstentry, nentries); }
+
+  //tracklet information
+  void setFirstTracklet(int firstentry) { mTrackletDataRange.setFirstEntry(firstentry); }
+  int getFirstTracklet() const { return mTrackletDataRange.getFirstEntry(); }
+  void setNumberOfTracklet(int nentries) { mTrackletDataRange.setEntries(nentries); }
+  int getNumberOfTracklets() const { return mTrackletDataRange.getEntries(); }
+  void setTrackletRange(int firstentry, int nentries) { mTrackletDataRange.set(firstentry, nentries); }
 
   void printStream(std::ostream& stream) const;
 
  private:
   BCData mBCData;       /// Bunch crossing data of the trigger
-  DataRange mDataRange; /// Index of the triggering event (event index and first entry in the container)
+  DataRange mDigitDataRange;    /// Index of the underlying digit data, indexes into the vector/array/span
+  DataRange mTrackletDataRange; /// Index of the underlying tracklet data, indexes into the vector/array/span
 
-  ClassDefNV(TriggerRecord, 1);
+  ClassDefNV(TriggerRecord, 2);
 };
 
 std::ostream& operator<<(std::ostream& stream, const TriggerRecord& trg);

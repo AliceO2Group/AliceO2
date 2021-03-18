@@ -30,10 +30,10 @@ struct KrCluster {
   float maxCharge = 0;            ///< Maximum charge of the cluster (ADC counts)
   float meanPad = 0;              ///< Center of gravity (Pad number)
   float meanRow = 0;              ///< Center of gravity (Row number)
-  float meanTime = 0;             ///< Center of gravity (Time)
   float sigmaPad = 0;             ///< RMS of cluster in pad direction
   float sigmaRow = 0;             ///< RMS of cluster in row direction
-  float sigmaTime = 0;            ///< RMS of cluster in time direction
+  double meanTime = 0;            ///< Center of gravity (Time)
+  double sigmaTime = 0;           ///< RMS of cluster in time direction
 
   /// Used to set all Cluster variables to zero.
   void reset()
@@ -52,7 +52,7 @@ struct KrCluster {
     sigmaTime = 0;
   }
 
-  ClassDefNV(KrCluster, 2);
+  ClassDefNV(KrCluster, 3);
 };
 
 } // namespace tpc

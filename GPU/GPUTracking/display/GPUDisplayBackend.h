@@ -64,7 +64,9 @@ class GPUDisplayBackend
   static constexpr int KEY_SPACE = 7;
   static constexpr int KEY_SHIFT = 8;
   static constexpr int KEY_ALT = 9;
+  static constexpr int KEY_RALT = 29;
   static constexpr int KEY_CTRL = 10;
+  static constexpr int KEY_RCTRL = 28;
   static constexpr int KEY_F1 = 11;
   static constexpr int KEY_F2 = 12;
   static constexpr int KEY_F3 = 26;

@@ -35,4 +35,10 @@ if(BUILD_TESTING)
                 LABELS "muon;mch;raw"
                 PUBLIC_LINK_LIBRARIES O2::MCHRawDecoder Boost::boost)
 
+        o2_add_test(digits-time-computation
+                SOURCES src/testDigitsTimeComputation.cxx
+                COMPONENT_NAME mchraw
+                LABELS "muon;mch;raw"
+                PUBLIC_LINK_LIBRARIES O2::MCHRawDecoder Boost::boost)
+
 endif()

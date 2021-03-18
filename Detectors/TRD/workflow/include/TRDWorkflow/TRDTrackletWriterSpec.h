@@ -31,7 +31,7 @@ namespace o2
 namespace trd
 {
 
-o2::framework::DataProcessorSpec getTRDTrackletWriterSpec();
+o2::framework::DataProcessorSpec getTRDTrackletWriterSpec(bool useMC);
 
 } // end namespace trd
 } // end namespace o2

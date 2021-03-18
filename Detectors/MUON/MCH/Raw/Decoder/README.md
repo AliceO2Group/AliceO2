@@ -16,15 +16,16 @@ called a (CRU) page. How the loop on the raw pages is done is *not* the decoder 
 
 ## createPageDecoder
 
-On the reading/consumer/decoding end, the choice of the internal decoder to use is made
-using the data itself. You must give (at least) a part of a raw data buffer that contains
- a (valid) RawDataHeader. That RDH is used to deduce which implementation is picked.
+On the reading/consumer/decoding end, the choice of the internal decoder to use
+is made using the data itself. You must give (at least) a part of a raw data
+buffer that contains a (valid) RawDataHeader. That RDH is used to deduce which
+implementation is picked.
 
     gsl::span<const std::byte> rawbuffer = ... ;
     auto pageDecoder = o2::mch::raw::createPageDecoder(rawbuffer,channelHandler);
 
 The `pageDecoder` that is returned is a function that you have to call on each
-data page that you want to decode : 
+data page that you want to decode :
 
     while(some_data_is_available) {
     // get some memory buffer from somewhere ...
@@ -34,20 +35,22 @@ data page that you want to decode :
     pageDecode(buffer);
     }
 
-Internally the implementation is using templatized implementation, `PageDecoderImpl<FORMAT,CHARGESUM>`.
-Currently the following template parameters combinations have been tested : 
+Internally the implementation is using templatized implementation, `PageDecoderImpl<FORMAT,CHARGESUM,VERSION>`.
+Currently the following template parameters combinations have been tested :
 
-|      FORMAT     |   CHARGESUM   |
-| :-------------: | :-----------: |
-|    BareFormat   | ChargeSumMode |
-|    BareFormat   |   SampleMode  |
-| UserLogicFormat | ChargeSumMode |
-| UserLogicFormat |   SampleMode  |
+|      FORMAT     |   CHARGESUM   | VERSION |
+| :-------------: | :-----------: | :-----: |
+|    BareFormat   | ChargeSumMode |    0    |
+|    BareFormat   |   SampleMode  |    0    |
+| UserLogicFormat | ChargeSumMode |    0    |
+| UserLogicFormat |   SampleMode  |    0    |
+| UserLogicFormat | ChargeSumMode |    1    |
+| UserLogicFormat |   SampleMode  |    1    |
 
-The `createPageDecoder` function requires two parameters : a raw memory buffer 
-(in the form of a `gsl::span<const std::byte>` (note that the span is on constant bytes, 
-i.e. the input buffer is read-only)
-and a `SampaChannelHandler`.
+The `createPageDecoder` function requires two parameters : a raw memory buffer
+(in the form of a `gsl::span<const std::byte>` (note that the span is on
+constant bytes, i.e. the input buffer is read-only) and a
+`SampaChannelHandler`.
 
 ## SampaChannelHandler
 
@@ -57,7 +60,7 @@ identifier within that dual sampa, a `SampaCluster` and returns nothing, i.e. :
 
 > A word of caution here about the naming. A `SampaCluster` is a group of raw
 > data samples of *one* dual sampa channel, and has nothing to do with a
-> cluster of pads or something alike. 
+> cluster of pads or something alike.
 
 ```.cpp
 using SampaChannelHandler = std::function<void(DsElecId dsId,
@@ -67,7 +70,7 @@ using SampaChannelHandler = std::function<void(DsElecId dsId,
 
 That function is called by the raw data decoder for each `SampaCluster` that it
 finds in the data.
-A very simple example would be a function to dump the SampaClusters : 
+A very simple example would be a function to dump the SampaClusters :
 
 ```.cpp
 SampaChannelHandler handlePacket(DsElecId dsId, uint8_t channel, SampaCluster sc) {
@@ -78,5 +81,5 @@ SampaChannelHandler handlePacket(DsElecId dsId, uint8_t channel, SampaCluster sc
 
 ## Example of decoding raw data
 
-A (not particularly clean) example of how to decode raw data can be found in the source of the `o2-mchraw-dump` 
- executable [rawdump](../Tools/rawdump.cxx)
+A (not particularly clean) example of how to decode raw data can be found in
+the source of the `o2-mchraw-dump` executable [rawdump](../Tools/rawdump.cxx)

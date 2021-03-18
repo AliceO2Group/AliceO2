@@ -33,18 +33,25 @@
 
 using namespace o2::emcal::reco_workflow;
 
+RawToCellConverterSpec::~RawToCellConverterSpec()
+{
+  if (mErrorMessagesSuppressed) {
+    LOG(WARNING) << "Suppressed further " << mErrorMessagesSuppressed << " error messages";
+  }
+}
+
 void RawToCellConverterSpec::init(framework::InitContext& ctx)
 {
   LOG(DEBUG) << "[EMCALRawToCellConverter - init] Initialize converter ";
   if (!mGeometry) {
-    mGeometry = o2::emcal::Geometry::GetInstanceFromRunNumber(223409);
+    mGeometry = Geometry::GetInstanceFromRunNumber(223409);
   }
   if (!mGeometry) {
     LOG(ERROR) << "Failure accessing geometry";
   }
 
   if (!mMapper) {
-    mMapper = std::unique_ptr<o2::emcal::MappingHandler>(new o2::emcal::MappingHandler);
+    mMapper = std::unique_ptr<MappingHandler>(new o2::emcal::MappingHandler);
   }
   if (!mMapper) {
     LOG(ERROR) << "Failed to initialize mapper";
@@ -53,10 +60,13 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
   auto fitmethod = ctx.options().get<std::string>("fitmethod");
   if (fitmethod == "standard") {
     LOG(INFO) << "Using standard raw fitter";
-    mRawFitter = std::unique_ptr<o2::emcal::CaloRawFitter>(new o2::emcal::CaloRawFitterStandard);
+    mRawFitter = std::unique_ptr<CaloRawFitter>(new o2::emcal::CaloRawFitterStandard);
   } else if (fitmethod == "gamma2") {
-    mRawFitter = std::unique_ptr<o2::emcal::CaloRawFitter>(new o2::emcal::CaloRawFitterGamma2);
+    mRawFitter = std::unique_ptr<CaloRawFitter>(new o2::emcal::CaloRawFitterGamma2);
   }
+
+  mMaxErrorMessages = ctx.options().get<int>("maxmessage");
+  LOG(INFO) << "Suppressing error messages after " << mMaxErrorMessages << " messages";
 
   mRawFitter->setAmpCut(mNoiseThreshold);
   mRawFitter->setL1Phase(0.);
@@ -68,7 +78,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   const double CONVADCGEV = 0.016; // Conversion from ADC counts to energy: E = 16 MeV / ADC
 
   // Cache cells from for bunch crossings as the component reads timeframes from many links consecutively
-  std::map<o2::InteractionRecord, std::shared_ptr<std::vector<o2::emcal::Cell>>> cellBuffer; // Internal cell buffer
+  std::map<o2::InteractionRecord, std::shared_ptr<std::vector<Cell>>> cellBuffer; // Internal cell buffer
   std::map<o2::InteractionRecord, uint32_t> triggerBuffer;
 
   mOutputDecoderErrors.clear();
@@ -84,7 +94,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 
     //o2::emcal::RawReaderMemory<o2::header::RAWDataHeaderV4> rawreader(gsl::span(rawData.payload, o2::framework::DataRefUtils::getPayloadSize(rawData)));
 
-    o2::emcal::RawReaderMemory rawreader(o2::framework::DataRefUtils::as<const char>(rawData));
+    o2::emcal::RawReaderMemory rawreader(framework::DataRefUtils::as<const char>(rawData));
 
     // loop over all the DMA pages
     while (rawreader.hasNext()) {
@@ -92,16 +102,16 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       rawreader.next();
 
       auto& header = rawreader.getRawHeader();
-      auto triggerBC = o2::raw::RDHUtils::getTriggerBC(header);
-      auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(header);
-      auto feeID = o2::raw::RDHUtils::getFEEID(header);
-      auto triggerbits = o2::raw::RDHUtils::getTriggerType(header);
+      auto triggerBC = raw::RDHUtils::getTriggerBC(header);
+      auto triggerOrbit = raw::RDHUtils::getTriggerOrbit(header);
+      auto feeID = raw::RDHUtils::getFEEID(header);
+      auto triggerbits = raw::RDHUtils::getTriggerType(header);
 
       o2::InteractionRecord currentIR(triggerBC, triggerOrbit);
-      std::shared_ptr<std::vector<o2::emcal::Cell>> currentCellContainer;
+      std::shared_ptr<std::vector<Cell>> currentCellContainer;
       auto found = cellBuffer.find(currentIR);
       if (found == cellBuffer.end()) {
-        currentCellContainer = std::make_shared<std::vector<o2::emcal::Cell>>();
+        currentCellContainer = std::make_shared<std::vector<Cell>>();
         cellBuffer[currentIR] = currentCellContainer;
         // also add trigger bits
         triggerBuffer[currentIR] = triggerbits;
@@ -116,15 +126,15 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       //std::cout<<rawreader.getRawHeader()<<std::endl;
 
       // use the altro decoder to decode the raw data, and extract the RCU trailer
-      o2::emcal::AltroDecoder decoder(rawreader);
+      AltroDecoder decoder(rawreader);
       //check the words of the payload exception in altrodecoder
       try {
         decoder.decode();
       } catch (AltroDecoderError& e) {
         std::string errormessage;
-        using AltroErrType = o2::emcal::AltroDecoderError::ErrorType_t;
+        using AltroErrType = AltroDecoderError::ErrorType_t;
         /// @TODO still need to add the RawFitter errors
-        ErrorTypeFEE errornum(feeID, o2::emcal::AltroDecoderError::errorTypeToInt(e.getErrorType()), -1);
+        ErrorTypeFEE errornum(feeID, AltroDecoderError::errorTypeToInt(e.getErrorType()), -1);
         switch (e.getErrorType()) {
           case AltroErrType::RCU_TRAILER_ERROR:
             errormessage = " RCU Trailer Error ";
@@ -153,15 +163,25 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           default:
             break;
         }
-        LOG(ERROR) << " EMCAL raw task: " << errormessage << " in Supermodule " << feeID << std::endl;
+        if (mNumErrorMessages < mMaxErrorMessages) {
+          LOG(ERROR) << " EMCAL raw task: " << errormessage << " in Supermodule " << feeID << std::endl;
+          mNumErrorMessages++;
+          if (mNumErrorMessages == mMaxErrorMessages) {
+            LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+          }
+        } else {
+          mErrorMessagesSuppressed++;
+        }
         //fill histograms  with error types
         mOutputDecoderErrors.push_back(errornum);
         continue;
       }
 
       LOG(DEBUG) << decoder.getRCUTrailer();
+      // Apply zero suppression only in case it was enabled
+      mRawFitter->setIsZeroSuppressed(decoder.getRCUTrailer().hasZeroSuppression());
 
-      o2::emcal::Mapper map = mMapper->getMappingForDDL(feeID);
+      const auto& map = mMapper->getMappingForDDL(feeID);
       int iSM = feeID / 2;
 
       // Loop over all the channels
@@ -181,12 +201,27 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         int CellID = mGeometry->GetAbsCellIdFromCellIndexes(iSM, iRow, iCol);
 
         // define the conatiner for the fit results, and perform the raw fitting using the stadnard raw fitter
-        o2::emcal::CaloFitResults fitResults = mRawFitter->evaluate(chan.getBunches(), 0, 0);
-        if (fitResults.getAmp() < 0) {
-          fitResults.setAmp(0.);
-        }
-        if (fitResults.getTime() < 0) {
-          fitResults.setTime(0.);
+        CaloFitResults fitResults;
+        try {
+          fitResults = mRawFitter->evaluate(chan.getBunches(), 0, 0);
+          // Prevent negative entries - we should no longer get here as the raw fit usually will end in an error state
+          if (fitResults.getAmp() < 0) {
+            fitResults.setAmp(0.);
+          }
+          if (fitResults.getTime() < 0) {
+            fitResults.setTime(0.);
+          }
+        } catch (CaloRawFitter::RawFitterError_t& fiterror) {
+          if (mNumErrorMessages < mMaxErrorMessages) {
+            LOG(ERROR) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
+            mNumErrorMessages++;
+            if (mNumErrorMessages == mMaxErrorMessages) {
+              LOG(ERROR) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+            }
+          } else {
+            mErrorMessagesSuppressed++;
+          }
+          mOutputDecoderErrors.emplace_back(feeID, -1, CaloRawFitter::getErrorNumber(fiterror));
         }
         currentCellContainer->emplace_back(CellID, fitResults.getAmp() * CONVADCGEV, fitResults.getTime(), chantype);
       }
@@ -200,7 +235,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     mOutputTriggerRecords.emplace_back(bc, triggerBuffer[bc], mOutputCells.size(), cells->size());
     if (cells->size()) {
       // Sort cells according to cell ID
-      std::sort(cells->begin(), cells->end(), [](o2::emcal::Cell& lhs, o2::emcal::Cell& rhs) { return lhs.getTower() < rhs.getTower(); });
+      std::sort(cells->begin(), cells->end(), [](Cell& lhs, Cell& rhs) { return lhs.getTower() < rhs.getTower(); });
       for (auto cell : *cells) {
         mOutputCells.push_back(cell);
       }
@@ -208,9 +243,9 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   }
 
   LOG(DEBUG) << "[EMCALRawToCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
-  ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLS", 0, o2::framework::Lifetime::Timeframe}, mOutputCells);
-  ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLSTRGR", 0, o2::framework::Lifetime::Timeframe}, mOutputTriggerRecords);
-  ctx.outputs().snapshot(o2::framework::Output{"EMC", "DECODERERR", 0, o2::framework::Lifetime::Timeframe}, mOutputDecoderErrors);
+  ctx.outputs().snapshot(framework::Output{"EMC", "CELLS", 0, framework::Lifetime::Timeframe}, mOutputCells);
+  ctx.outputs().snapshot(framework::Output{"EMC", "CELLSTRGR", 0, framework::Lifetime::Timeframe}, mOutputTriggerRecords);
+  ctx.outputs().snapshot(framework::Output{"EMC", "DECODERERR", 0, framework::Lifetime::Timeframe}, mOutputDecoderErrors);
 }
 
 o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverterSpec()
@@ -227,5 +262,6 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverter
                                           outputs,
                                           o2::framework::adaptFromTask<o2::emcal::reco_workflow::RawToCellConverterSpec>(),
                                           o2::framework::Options{
-                                            {"fitmethod", o2::framework::VariantType::String, "standard", {"Fit method (standard or gamma2)"}}}};
+                                            {"fitmethod", o2::framework::VariantType::String, "standard", {"Fit method (standard or gamma2)"}},
+                                            {"maxmessage", o2::framework::VariantType::Int, 100, {"Max. amout of error messages to be displayed"}}}};
 }

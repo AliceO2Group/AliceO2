@@ -70,6 +70,8 @@ class ClusterFinderOriginal
   static constexpr int SNFitClustersMax = 3;                            ///< maximum number of clusters fitted at the same time
   static constexpr int SNFitParamMax = 3 * SNFitClustersMax - 1;        ///< maximum number of fit parameters
   static constexpr double SLowestCoupling = 1.e-2;                      ///< minimum coupling between clusters of pixels and pads
+  static constexpr float SDefaultClusterResolution = 0.2f;              ///< default cluster resolution (cm)
+  static constexpr float SBadClusterResolution = 10.f;                  ///< bad (e.g. mono-cathode) cluster resolution (cm)
 
   void resetPreCluster(gsl::span<const Digit>& digits);
   void simplifyPreCluster(std::vector<int>& removedDigits);
@@ -110,6 +112,8 @@ class ClusterFinderOriginal
   void merge(const std::vector<int>& clustersForFit, const std::vector<int>& coupledClusters, std::vector<std::vector<int>>& clustersOfPixels,
              std::vector<std::vector<double>>& couplingClCl, std::vector<std::vector<double>>& couplingClPad) const;
   void updatePads(const double fitParam[SNFitParamMax + 1], int nParamUsed);
+
+  void setClusterResolution(ClusterStruct& cluster) const;
 
   std::unique_ptr<MathiesonOriginal[]> mMathiesons; ///< Mathieson functions for station 1 and the others
   MathiesonOriginal* mMathieson = nullptr;          ///< pointer to the Mathieson function currently used

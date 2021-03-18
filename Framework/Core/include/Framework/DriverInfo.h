@@ -23,6 +23,7 @@
 #include "Framework/CompletionPolicy.h"
 #include "Framework/DispatchPolicy.h"
 #include "Framework/DeviceMetricsInfo.h"
+#include "Framework/LogParsingHelpers.h"
 #include "DataProcessorInfo.h"
 
 namespace o2::framework
@@ -141,6 +142,9 @@ struct DriverInfo {
   unsigned short port = 0;
   /// Last port used for tracy
   short tracyPort = 8086;
+  /// The minimum level after which the device will exit with 1
+  LogParsingHelpers::LogLevel minFailureLevel = LogParsingHelpers::LogLevel::Fatal;
+
   /// Aggregate metrics calculated in the driver itself
   DeviceMetricsInfo metrics;
   /// Skip shared memory cleanup if set

@@ -129,11 +129,12 @@ auto array2DFromBranch(boost::property_tree::ptree const& ptree)
   return basicArray2DFromBranch<T>(ptree.get_child("values"));
 }
 
+std::pair<std::vector<std::string>, std::vector<std::string>> extractLabels(boost::property_tree::ptree const& tree);
+
 template <typename T>
 auto labeledArrayFromBranch(boost::property_tree::ptree const& tree)
 {
-  auto labels_rows = basicVectorFromBranch<std::string>(tree.get_child(labels_rows_str));
-  auto labels_cols = basicVectorFromBranch<std::string>(tree.get_child(labels_cols_str));
+  auto [labels_rows, labels_cols] = extractLabels(tree);
   auto values = basicArray2DFromBranch<T>(tree.get_child("values"));
 
   return LabeledArray<T>{values, labels_rows, labels_cols};

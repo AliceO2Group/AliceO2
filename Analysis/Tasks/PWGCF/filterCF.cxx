@@ -78,5 +78,5 @@ struct FilterCF {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<FilterCF>(cfgc, TaskName{"filter-cf"})};
+    adaptAnalysisTask<FilterCF>(cfgc)};
 }

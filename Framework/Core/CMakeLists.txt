@@ -91,6 +91,7 @@ o2_add_library(Framework
                        src/DataInputDirector.cxx
                        src/DataOutputDirector.cxx
                        src/Task.cxx
+                       src/Array2D.cxx
                        src/Variant.cxx
                        src/WorkflowCustomizationHelpers.cxx
                        src/WorkflowHelpers.cxx

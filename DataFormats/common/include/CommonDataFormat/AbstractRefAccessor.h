@@ -42,6 +42,11 @@ class AbstractRefAccessor
     mContainerPtr[src] = reinterpret_cast<const char*>(cont.data());
   }
 
+  bool isLoaded(int src) const
+  {
+    return mContainerPtr[src] != nullptr;
+  }
+
   /// get object as user provided type from explicitly provided source, index
   template <typename U>
   const U& get_as(int src, int idx) const

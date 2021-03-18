@@ -19,9 +19,25 @@ bool closeEnough(double x, double y, double eps = 1E-6)
   return std::fabs(x - y) <= eps * std::max(1.0, std::max(std::fabs(x), std::fabs(y)));
 }
 
-Digit::Digit(int detid, int pad, unsigned long adc, Time time, uint16_t nSamples)
-  : mDetID(detid), mPadID(pad), mADC(adc), mTime(time), mNofSamples(nSamples)
+Digit::Digit(int detid, int pad, unsigned long adc, int32_t time, uint16_t nSamples)
+  : mTFtime(time), mNofSamples(nSamples), mDetID(detid), mPadID(pad), mADC(adc)
 {
+  setSaturated(false);
+}
+
+void Digit::setNofSamples(uint16_t n)
+{
+  uint16_t sat = mNofSamples & 0x8000;
+  mNofSamples = (n & 0x7FFF) + sat;
+}
+
+void Digit::setSaturated(bool sat)
+{
+  if (sat) {
+    mNofSamples |= 0x8000;
+  } else {
+    mNofSamples &= 0x7FFF;
+  }
 }
 
 bool Digit::operator==(const Digit& other) const
@@ -29,7 +45,7 @@ bool Digit::operator==(const Digit& other) const
   return mDetID == other.mDetID &&
          mPadID == other.mPadID &&
          mADC == other.mADC &&
-         mTime.time == other.mTime.time &&
+         mTFtime == other.mTFtime &&
          mNofSamples == other.mNofSamples;
 }
 

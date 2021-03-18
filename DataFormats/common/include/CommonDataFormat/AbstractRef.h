@@ -68,6 +68,7 @@ class AbstractRef
   void set(Idx_t idx, Src_t src) { mRef = (mRef & (FlgMask << (NBIdx + NBSrc))) | ((SrcMask & Src_t(src)) << NBIdx) | (IdxMask & Idx_t(idx)); }
 
   Base_t getRaw() const { return mRef; }
+  void setRaw(Base_t v) { mRef = v; }
   Base_t getRawWOFlags() const { return mRef & (IdxMask | (SrcMask << NBIdx)); }
   bool isIndexSet() const { return getIndex() != IdxMask; }
   bool isSourceSet() const { return getSource() != SrcMask; }

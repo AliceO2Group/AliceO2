@@ -101,3 +101,17 @@ void GlobalTrackID::print() const
 {
   LOG(INFO) << asString();
 }
+
+std::string GlobalTrackID::getSourcesNames(GlobalTrackID::mask_t srcm)
+{
+  std::string s = "[";
+  for (int i = 0; i < NSources; i++) {
+    if (srcm[i]) {
+      if (s.size() > 1) {
+        s += ',';
+      }
+      s += getSourceName(i);
+    }
+  }
+  return std::move(s);
+}

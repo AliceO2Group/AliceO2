@@ -172,6 +172,21 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
   }
 }
 
+template <typename T>
+auto replaceLabels(LabeledArray<T>& input, LabeledArray<T>&& spec)
+{
+  if (!input.getLabelsCols().empty() || !input.getLabelsRows().empty()) {
+    return false;
+  }
+  if (spec.getLabelsCols().empty() == false) {
+    input.replaceLabelsCols(spec.getLabelsCols());
+  }
+  if (spec.getLabelsRows().empty() == false) {
+    input.replaceLabelsRows(spec.getLabelsRows());
+  }
+  return true;
+}
+
 void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
                                    boost::property_tree::ptree& pt,
                                    boost::property_tree::ptree const& in,
@@ -182,6 +197,9 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
     // strip short version to get the correct key
     std::string key = spec.name.substr(0, spec.name.find(','));
     auto it = in.get_child_optional(key);
+    if (!it) {
+      it = in.get_child_optional(boost::property_tree::path(key, '/'));
+    }
     if (!it) {
       continue;
     }
@@ -213,11 +231,32 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
         case VariantType::Array2DInt:
         case VariantType::Array2DFloat:
         case VariantType::Array2DDouble:
-        case VariantType::LabeledArrayInt:
-        case VariantType::LabeledArrayFloat:
-        case VariantType::LabeledArrayDouble:
           pt.put_child(key, *it);
           break;
+        case VariantType::LabeledArrayInt: {
+          auto v = labeledArrayFromBranch<int>(it.value());
+          if (!replaceLabels(v, spec.defaultValue.get<LabeledArray<int>>())) {
+            pt.put_child(key, *it);
+          } else {
+            pt.put_child(key, labeledArrayToBranch(std::move(v)));
+          }
+        }; break;
+        case VariantType::LabeledArrayFloat: {
+          auto v = labeledArrayFromBranch<float>(it.value());
+          if (!replaceLabels(v, spec.defaultValue.get<LabeledArray<float>>())) {
+            pt.put_child(key, *it);
+          } else {
+            pt.put_child(key, labeledArrayToBranch(std::move(v)));
+          }
+        }; break;
+        case VariantType::LabeledArrayDouble: {
+          auto v = labeledArrayFromBranch<double>(it.value());
+          if (!replaceLabels(v, spec.defaultValue.get<LabeledArray<double>>())) {
+            pt.put_child(key, *it);
+          } else {
+            pt.put_child(key, labeledArrayToBranch(std::move(v)));
+          }
+        }; break;
         case VariantType::Unknown:
         case VariantType::Empty:
         default:

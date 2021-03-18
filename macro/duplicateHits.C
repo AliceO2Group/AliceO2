@@ -17,6 +17,11 @@
 #include "CPVBase/Hit.h"
 #include "DataFormatsZDC/Hit.h"
 #include "SimulationDataFormat/MCEventHeader.h"
+
+#ifdef ENABLE_UPGRADES
+#include "EndCapsSimulation/Hit.h"
+#endif
+
 #endif
 
 template <typename T>
@@ -191,6 +196,11 @@ void duplicateHits(const char* filebase = "o2sim", const char* newfilebase = "o2
   duplicateV<o2::mid::Hit>(grp, filebase, DetID::MID, newfilebase, factor);
   duplicateV<o2::mch::Hit>(grp, filebase, DetID::MCH, newfilebase, factor);
   duplicateV<o2::tpc::HitGroup>(grp, filebase, DetID::TPC, newfilebase, factor);
+
+#ifdef ENABLE_UPGRADES
+  duplicateV<o2::itsmft::Hit>(grp, filebase, DetID::FT3, newfilebase, factor);
+#endif
+
   // duplicateACO(reftree);
   // outfile.Write();
 }

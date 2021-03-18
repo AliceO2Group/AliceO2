@@ -602,6 +602,18 @@ DataRelayerStats const& DataRelayer::getStats() const
   return mStats;
 }
 
+uint32_t DataRelayer::getFirstTFOrbitForSlot(TimesliceSlot slot)
+{
+  std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
+  return mTimesliceIndex.getFirstTFOrbitForSlot(slot);
+}
+
+uint32_t DataRelayer::getFirstTFCounterForSlot(TimesliceSlot slot)
+{
+  std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
+  return mTimesliceIndex.getFirstTFCounterForSlot(slot);
+}
+
 void DataRelayer::sendContextState()
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);

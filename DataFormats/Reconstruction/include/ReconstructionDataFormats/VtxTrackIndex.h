@@ -51,4 +51,18 @@ class VtxTrackIndex : public GlobalTrackID
 } // namespace dataformats
 } // namespace o2
 
+namespace std
+{
+// defining std::hash for VtxTrackIndex to be used with std containers
+template <>
+struct hash<o2::dataformats::VtxTrackIndex> {
+ public:
+  size_t operator()(const o2::dataformats::VtxTrackIndex& id) const
+  {
+    return std::hash<o2::dataformats::GlobalTrackID>{}(id);
+    //return id.getRawWOFlags();
+  }
+};
+} // namespace std
+
 #endif

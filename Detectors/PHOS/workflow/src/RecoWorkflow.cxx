@@ -89,9 +89,9 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
     }
     if (isEnabled(OutputType::Clusters)) {
       specs.emplace_back(o2::phos::reco_workflow::getRawToCellConverterSpec());
-      specs.emplace_back(o2::phos::reco_workflow::getClusterizerSpec(false)); //no MC propagation
+      specs.emplace_back(o2::phos::reco_workflow::getCellClusterizerSpec(false)); //no MC propagation
       if (!disableRootOut) {
-        specs.emplace_back(o2::phos::getClusterWriterSpec(propagateMC));
+        specs.emplace_back(o2::phos::getClusterWriterSpec(false));
       }
     }
   }

@@ -35,10 +35,12 @@ void SecondaryVertexReader::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(INFO) << "Pushing " << mV0sPtr->size() << " V0s at entry " << ent;
+  LOG(INFO) << "Pushing " << mV0s.size() << " V0s and " << mCascs.size() << " cascades at entry " << ent;
 
-  pc.outputs().snapshot(Output{"GLO", "V0s", 0, Lifetime::Timeframe}, mV0s);
+  pc.outputs().snapshot(Output{"GLO", "V0S", 0, Lifetime::Timeframe}, mV0s);
   pc.outputs().snapshot(Output{"GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe}, mPV2V0Ref);
+  pc.outputs().snapshot(Output{"GLO", "CASCS", 0, Lifetime::Timeframe}, mCascs);
+  pc.outputs().snapshot(Output{"GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe}, mPV2CascRef);
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
@@ -55,9 +57,13 @@ void SecondaryVertexReader::connectTree()
   assert(mTree);
   assert(mTree->GetBranch(mV0BranchName.c_str()));
   assert(mTree->GetBranch(mPVertex2V0RefBranchName.c_str()));
+  assert(mTree->GetBranch(mCascBranchName.c_str()));
+  assert(mTree->GetBranch(mPVertex2CascRefBranchName.c_str()));
 
   mTree->SetBranchAddress(mV0BranchName.c_str(), &mV0sPtr);
   mTree->SetBranchAddress(mPVertex2V0RefBranchName.c_str(), &mPV2V0RefPtr);
+  mTree->SetBranchAddress(mCascBranchName.c_str(), &mCascsPtr);
+  mTree->SetBranchAddress(mPVertex2CascRefBranchName.c_str(), &mPV2CascRefPtr);
 
   LOG(INFO) << "Loaded " << mSVertexTreeName << " tree from " << mFileName << " with " << mTree->GetEntries() << " entries";
 }
@@ -65,8 +71,10 @@ void SecondaryVertexReader::connectTree()
 DataProcessorSpec getSecondaryVertexReaderSpec()
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("GLO", "V0s", 0, Lifetime::Timeframe);
-  outputs.emplace_back("GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "V0S", 0, Lifetime::Timeframe);           // found V0s
+  outputs.emplace_back("GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe);   // prim.vertex -> V0s refs
+  outputs.emplace_back("GLO", "CASCS", 0, Lifetime::Timeframe);         // found Cascades
+  outputs.emplace_back("GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe); // prim.vertex -> Cascades refs
 
   return DataProcessorSpec{
     "secondary-vertex-reader",

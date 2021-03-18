@@ -97,6 +97,7 @@ class BareElinkDecoder
   void oneLess10BitWord();
   void process();
   void sendCluster();
+  void sendHBPacket();
   void softReset();
 
   template <typename T>
@@ -260,8 +261,12 @@ void BareElinkDecoder<CHARGESUM>::handleHeader()
       softReset();
       break;
     case SampaPacketType::HeartBeat:
-      fmt::printf("BareElinkDecoder %d: HEARTBEAT found. Should be doing sth about it ?\n", mDsId);
-      softReset();
+      if (mSampaHeader.isHeartbeat()) {
+        sendHBPacket();
+        changeState(State::LookingForHeader, HEADERSIZE);
+      } else {
+        softReset();
+      }
       break;
     default:
       throw std::logic_error("that should not be possible");
@@ -438,6 +443,15 @@ void BareElinkDecoder<SampleMode>::sendCluster()
             SampaCluster(mTimestamp, mSampaHeader.bunchCrossingCounter(), mSamples));
   }
   mSamples.clear();
+}
+
+template <typename CHARGESUM>
+void BareElinkDecoder<CHARGESUM>::sendHBPacket()
+{
+  SampaHeartBeatHandler handler = mDecodedDataHandlers.sampaHeartBeatHandler;
+  if (handler) {
+    handler(mDsId, mSampaHeader.chipAddress() % 2, mSampaHeader.bunchCrossingCounter());
+  }
 }
 
 template <>

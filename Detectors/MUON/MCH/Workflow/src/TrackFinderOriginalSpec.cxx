@@ -149,7 +149,7 @@ o2::framework::DataProcessorSpec getTrackFinderOriginalSpec()
   return DataProcessorSpec{
     "TrackFinderOriginal",
     Inputs{InputSpec{"clusterrofs", "MCH", "CLUSTERROFS", 0, Lifetime::Timeframe},
-           InputSpec{"clusters", "MCH", "CLUSTERS", 0, Lifetime::Timeframe}},
+           InputSpec{"clusters", "MCH", "GLOBALCLUSTERS", 0, Lifetime::Timeframe}},
     Outputs{OutputSpec{{"trackrofs"}, "MCH", "TRACKROFS", 0, Lifetime::Timeframe},
             OutputSpec{{"tracks"}, "MCH", "TRACKS", 0, Lifetime::Timeframe},
             OutputSpec{{"trackclusters"}, "MCH", "TRACKCLUSTERS", 0, Lifetime::Timeframe}},

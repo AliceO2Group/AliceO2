@@ -30,7 +30,7 @@ namespace vertexing
 using Vec3D = ROOT::Math::SVector<double, 3>;
 
 template <class FITTER>
-float checkResults(o2::utils::TreeStreamRedirector& outs, std::string& treeName, const FITTER& fitter,
+float checkResults(o2::utils::TreeStreamRedirector& outs, std::string& treeName, FITTER& fitter,
                    Vec3D& vgen, TLorentzVector& genPar, const std::vector<double>& dtMass)
 {
   int nCand = fitter.getNCandidates();

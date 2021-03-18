@@ -54,7 +54,7 @@ std::ostream& operator<<(std::ostream& os, const o2::mch::Digit& d)
 {
   os << fmt::format("DE {:4d} PADUID {:8d} ADC {:6d} TS {:g}",
                     d.getDetID(), d.getPadID(), d.getADC(),
-                    d.getTime().sampaTime);
+                    d.getTime());
   return os;
 }
 

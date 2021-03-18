@@ -34,12 +34,12 @@ struct Triggers {
          bitCen,
          bitSCen };
   uint8_t triggersignals = 0; // FDD trigger signals
-  int8_t nChanA = -1;         // number of fired channels A side
-  int8_t nChanC = -1;         // number of fired channels A side
+  int8_t nChanA = 0;          // number of fired channels A side
+  int8_t nChanC = 0;          // number of fired channels A side
   int32_t amplA = -1024;      // sum amplitude A side
   int32_t amplC = -1024;      // sum amplitude C side
-  int16_t timeA = -1024;      // average time A side
-  int16_t timeC = -1024;      // average time C side
+  int16_t timeA = 0;          // average time A side
+  int16_t timeC = 0;          // average time C side
   Triggers() = default;
   Triggers(uint8_t signals, int8_t chanA, int8_t chanC, int32_t aamplA, int32_t aamplC, int16_t atimeA, int16_t atimeC)
   {
@@ -51,12 +51,19 @@ struct Triggers {
     timeA = atimeA;
     timeC = atimeC;
   }
+
+  bool getOrA() const { return (triggersignals & (1 << bitA)) != 0; }
+  bool getOrC() const { return (triggersignals & (1 << bitC)) != 0; }
+  bool getVertex() const { return (triggersignals & (1 << bitVertex)) != 0; }
+  bool getCen() const { return (triggersignals & (1 << bitCen)) != 0; }
+  bool getSCen() const { return (triggersignals & (1 << bitSCen)) != 0; }
+
   void cleanTriggers()
   {
     triggersignals = 0;
-    nChanA = nChanC = -1;
-    amplA = amplC = -1024;
-    timeA = timeC = -1024;
+    nChanA = nChanC = 0;
+    amplA = amplC = 0;
+    timeA = timeC = 0;
   }
   Triggers getTriggers();
 

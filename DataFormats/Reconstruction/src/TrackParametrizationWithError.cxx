@@ -265,6 +265,15 @@ GPUd() TrackParametrizationWithError<value_T>::TrackParametrizationWithError(con
                                                                              const gpu::gpustd::array<value_t, kLabCovMatSize>& cv, int charge, bool sectorAlpha, const PID pid)
 {
   // construct track param and covariance from kinematics and lab errors
+  set(xyz, pxpypz, cv, charge, sectorAlpha, pid);
+}
+
+//______________________________________________________________
+template <typename value_T>
+GPUd() void TrackParametrizationWithError<value_T>::set(const dim3_t& xyz, const dim3_t& pxpypz,
+                                                        const gpu::gpustd::array<value_t, kLabCovMatSize>& cv, int charge, bool sectorAlpha, const PID pid)
+{
+  // set track param and covariance from kinematics and lab errors
 
   // Alpha of the frame is defined as:
   // sectorAlpha == false : -> angle of pt direction
@@ -286,6 +295,15 @@ GPUd() TrackParametrizationWithError<value_T>::TrackParametrizationWithError(con
   //
   value_t sn, cs;
   math_utils::detail::sincos(alp, sn, cs);
+  // protection against cosp<0
+  if (cs * pxpypz[0] + sn * pxpypz[1] < 0) {
+    LOG(WARNING) << "alpha from phiPos() will invalidate this track parameters, overriding to alpha from phi()";
+    alp = gpu::CAMath::ATan2(pxpypz[1], pxpypz[0]);
+    if (sectorAlpha) {
+      alp = math_utils::detail::angle2Alpha<value_t>(alp);
+    }
+    math_utils::detail::sincos(alp, sn, cs);
+  }
   // protection:  avoid alpha being too close to 0 or +-pi/2
   if (gpu::CAMath::Abs(sn) < 2.f * kSafe) {
     if (alp > 0) {

@@ -18,6 +18,7 @@
 #pragma link C++ class o2::base::DetImpl < o2::emcal::Detector> + ;
 #pragma link C++ class o2::emcal::Digitizer + ;
 #pragma link C++ class o2::emcal::DigitizerTask + ;
+#pragma link C++ class o2::emcal::DigitsWriteoutBuffer + ;
 #pragma link C++ class o2::emcal::SimParam + ;
 #pragma link C++ class o2::emcal::LabeledDigit + ;
 #pragma link C++ class o2::emcal::RawWriter + ;

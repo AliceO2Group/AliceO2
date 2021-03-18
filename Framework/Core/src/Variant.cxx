@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/Variant.h"
+#include "Framework/VariantPropertyTreeHelpers.h"
 #include <iostream>
 #include <sstream>
 
@@ -253,6 +254,21 @@ Variant& Variant::operator=(Variant&& other)
       mStore = other.mStore;
       return *this;
   }
+}
+
+std::pair<std::vector<std::string>, std::vector<std::string>> extractLabels(boost::property_tree::ptree const& tree)
+{
+  std::vector<std::string> labels_rows;
+  std::vector<std::string> labels_cols;
+  auto lrc = tree.get_child_optional(labels_rows_str);
+  if (lrc) {
+    labels_rows = basicVectorFromBranch<std::string>(lrc.value());
+  }
+  auto lcc = tree.get_child_optional(labels_cols_str);
+  if (lcc) {
+    labels_cols = basicVectorFromBranch<std::string>(lcc.value());
+  }
+  return std::make_pair(labels_rows, labels_cols);
 }
 
 } // namespace o2::framework

@@ -49,7 +49,8 @@ namespace o2
 class MCCompLabel;
 namespace base
 {
-class Propagator;
+template <typename>
+class PropagatorImpl;
 class MatLayerCylSet;
 } // namespace base
 namespace trd
@@ -178,7 +179,7 @@ struct GPUCalibObjectsTemplate {
   typename S<o2::trd::GeometryFlat>::type* trdGeometry = nullptr;
   typename S<TPCdEdxCalibrationSplines>::type* dEdxSplines = nullptr;
   typename S<TPCPadGainCalib>::type* tpcPadGain = nullptr;
-  typename S<o2::base::Propagator>::type* o2Propagator = nullptr;
+  typename S<o2::base::PropagatorImpl<float>>::type* o2Propagator = nullptr;
 };
 typedef GPUCalibObjectsTemplate<DefaultPtr> GPUCalibObjects; // NOTE: These 2 must have identical layout since they are memcopied
 typedef GPUCalibObjectsTemplate<ConstPtr> GPUCalibObjectsConst;

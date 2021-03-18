@@ -1457,7 +1457,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
       d2XY = arcXY * arcXY;
     }
     auto lInt = std::sqrt(d2XY + dZ * dZ);
-    tofL.addStep(lInt, tracOut);
+    tofL.addStep(lInt, tracOut.getP2Inv());
     tofL.addX2X0(lInt * mTPCmeanX0Inv);
     propagator->PropagateToXBxByBz(tracOut, XTPCOuterRef, MaxSnp, 10., mUseMatCorrFlag, &tofL);
     /*

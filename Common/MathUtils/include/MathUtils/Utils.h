@@ -19,6 +19,7 @@
 #include "MathUtils/detail/StatAccumulator.h"
 #include "MathUtils/detail/trigonometric.h"
 #include "MathUtils/detail/TypeTruncation.h"
+#include "MathUtils/detail/basicMath.h"
 
 namespace o2
 {
@@ -217,6 +218,168 @@ GPUhdi() double fastATan2d(double y, double x)
 {
   return detail::fastATan2<double>(y, x);
 }
+
+template <class T>
+GPUhdi() T min(const T x, const T y)
+{
+  return detail::min<T>(x, y);
+};
+
+GPUhdi() double mind(const double x, const double y)
+{
+  return detail::min<double>(x, y);
+};
+
+template <class T>
+GPUhdi() T max(const T x, const T y)
+{
+  return detail::max<T>(x, y);
+};
+
+GPUhdi() double maxd(const double x, const double y)
+{
+  return detail::max<double>(x, y);
+};
+
+GPUhdi() float sqrt(float x)
+{
+  return detail::sqrt<float>(x);
+};
+
+GPUhdi() double sqrtd(double x)
+{
+  return detail::sqrt<double>(x);
+};
+
+GPUhdi() float abs(float x)
+{
+  return detail::abs<float>(x);
+};
+
+GPUhdi() double absd(double x)
+{
+  return detail::abs<double>(x);
+};
+
+GPUdi() float asin(float x)
+{
+  return detail::asin<float>(x);
+};
+
+GPUdi() double asind(double x)
+{
+  return detail::asin<double>(x);
+};
+
+GPUdi() float atan(float x)
+{
+  return detail::atan<float>(x);
+};
+
+GPUdi() double atand(double x)
+{
+  return detail::atan<double>(x);
+};
+
+GPUdi() float atan2(float y, float x)
+{
+  return detail::atan2<float>(y, x);
+};
+
+GPUdi() double atan2d(double y, double x)
+{
+  return detail::atan2<double>(y, x);
+};
+
+GPUdi() float sin(float x)
+{
+  return detail::sin<float>(x);
+};
+
+GPUdi() double sind(double x)
+{
+  return detail::sin<double>(x);
+};
+
+GPUdi() float cos(float x)
+{
+  return detail::cos<float>(x);
+};
+
+GPUdi() double cosd(double x)
+{
+  return detail::cos<double>(x);
+};
+
+GPUdi() float tan(float x)
+{
+  return detail::tan<float>(x);
+};
+
+GPUdi() double tand(double x)
+{
+  return detail::tan<double>(x);
+};
+
+GPUdi() float twoPi()
+{
+  return detail::twoPi<float>();
+};
+
+GPUdi() double twoPid()
+{
+  return detail::twoPi<double>();
+};
+
+GPUdi() float pi()
+{
+  return detail::pi<float>();
+}
+
+GPUdi() double pid()
+{
+  return detail::pi<double>();
+}
+
+GPUdi() int nint(float x)
+{
+  return detail::nint<float>(x);
+};
+
+GPUdi() int nintd(double x)
+{
+  return detail::nint<double>(x);
+};
+
+GPUdi() bool finite(float x)
+{
+  return detail::finite<float>(x);
+}
+
+GPUdi() bool finited(double x)
+{
+  return detail::finite<double>(x);
+}
+
+GPUdi() unsigned int clz(unsigned int val)
+{
+  return detail::clz(val);
+};
+
+GPUdi() unsigned int popcount(unsigned int val)
+{
+  return detail::popcount(val);
+};
+
+GPUdi() float log(float x)
+{
+  return detail::log<float>(x);
+};
+
+GPUdi() double logd(double x)
+{
+  return detail::log<double>(x);
+};
 
 using detail::StatAccumulator;
 

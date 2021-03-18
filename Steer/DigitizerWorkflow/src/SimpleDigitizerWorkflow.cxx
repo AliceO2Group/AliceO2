@@ -49,7 +49,7 @@
 
 // for FDD
 #include "FDDDigitizerSpec.h"
-#include "FDDDigitWriterSpec.h"
+#include "FDDWorkflow/DigitWriterSpec.h"
 
 // for EMCal
 #include "EMCALDigitizerSpec.h"
@@ -536,9 +536,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     auto enableTrapSim = configcontext.options().get<bool>("enable-trd-trapsim");
     if (enableTrapSim) {
       // connect the TRD Trap SimulatorA
-      specs.emplace_back(o2::trd::getTRDTrapSimulatorSpec());
+      specs.emplace_back(o2::trd::getTRDTrapSimulatorSpec(mctruth));
       // connect to the device to write out the tracklets.
-      specs.emplace_back(o2::trd::getTRDTrackletWriterSpec());
+      specs.emplace_back(o2::trd::getTRDTrackletWriterSpec(mctruth));
     }
   }
 

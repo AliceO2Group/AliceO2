@@ -67,6 +67,16 @@ GPUd() TrackParametrization<value_T>::TrackParametrization(const dim3_t& xyz, co
   //
   value_t sn, cs;
   math_utils::detail::sincos(alp, sn, cs);
+  // protection against cosp<0
+  if (cs * pxpypz[0] + sn * pxpypz[1] < 0) {
+    LOG(WARNING) << "alpha from phiPos() will invalidate this track parameters, overriding to alpha from phi()";
+    alp = gpu::CAMath::ATan2(pxpypz[1], pxpypz[0]);
+    if (sectorAlpha) {
+      alp = math_utils::detail::angle2Alpha<value_t>(alp);
+    }
+    math_utils::detail::sincos(alp, sn, cs);
+  }
+
   // protection:  avoid alpha being too close to 0 or +-pi/2
   if (gpu::CAMath::Abs(sn) < 2 * kSafe) {
     if (alp > 0) {
@@ -406,6 +416,8 @@ GPUd() bool TrackParametrization<value_T>::getYZAt(value_t xk, value_t b, value_
   // estimate Y,Z in tracking frame at given X
   //----------------------------------------------------------------
   value_t dx = xk - getX();
+  y = mP[kY];
+  z = mP[kZ];
   if (gpu::CAMath::Abs(dx) < constants::math::Almost0) {
     return true;
   }
@@ -424,8 +436,7 @@ GPUd() bool TrackParametrization<value_T>::getYZAt(value_t xk, value_t b, value_
     return false;
   }
   double dy2dx = (f1 + f2) / (r1 + r2);
-  y = mP[kY] + dx * dy2dx;
-  z = mP[kZ];
+  y += dx * dy2dx;
   if (gpu::CAMath::Abs(x2r) < 0.05f) {
     z += dx * (r2 + f2 * dy2dx) * getTgl();
   } else {

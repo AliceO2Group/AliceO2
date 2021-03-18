@@ -27,10 +27,10 @@ using o2::mch::Digit;
 std::vector<Digit> createNonOverlappingDigits()
 {
   return std::vector<Digit>{
-    {100, 2, 5, Digit::Time{}},
-    {100, 3, 6, Digit::Time{}},
-    {100, 1, 2, Digit::Time{}},
-    {100, 0, 1, Digit::Time{}}};
+    {100, 2, 5, 0},
+    {100, 3, 6, 0},
+    {100, 1, 2, 0},
+    {100, 0, 1, 0}};
 }
 
 std::vector<o2::MCCompLabel> createLabelsNonOverlappingDigits()
@@ -45,14 +45,14 @@ std::vector<o2::MCCompLabel> createLabelsNonOverlappingDigits()
 std::vector<Digit> createOverlappingDigits()
 {
   return std::vector<Digit>{
-    {100, 2, 5, Digit::Time{}},
-    {100, 3, 6, Digit::Time{}},
-    {100, 1, 2, Digit::Time{}},
-    {100, 0, 0, Digit::Time{}},
-    {100, 0, 1, Digit::Time{}},
-    {100, 1, 3, Digit::Time{}},
-    {100, 3, 7, Digit::Time{}},
-    {100, 1, 4, Digit::Time{}}};
+    {100, 2, 5, 0},
+    {100, 3, 6, 0},
+    {100, 1, 2, 0},
+    {100, 0, 0, 0},
+    {100, 0, 1, 0},
+    {100, 1, 3, 0},
+    {100, 3, 7, 0},
+    {100, 1, 4, 0}};
 }
 
 std::vector<o2::MCCompLabel> createLabelsOverlappingDigits()
@@ -72,10 +72,10 @@ std::vector<o2::MCCompLabel> createLabelsOverlappingDigits()
 std::vector<Digit> expected()
 {
   return std::vector<Digit>{
-    {100, 0, 1, Digit::Time{}},
-    {100, 1, 9, Digit::Time{}},
-    {100, 2, 5, Digit::Time{}},
-    {100, 3, 13, Digit::Time{}}};
+    {100, 0, 1, 0},
+    {100, 1, 9, 0},
+    {100, 2, 5, 0},
+    {100, 3, 13, 0}};
 }
 
 std::vector<o2::MCCompLabel> labelexpected()

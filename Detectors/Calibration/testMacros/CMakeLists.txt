@@ -15,6 +15,9 @@ install(FILES populateCCDB.C
 install(FILES cdbSizeV0.txt
         DESTINATION share/Detectors/Calibration/data)	    
 
+install(FILES runEPNsimulation.sh
+        DESTINATION share/Detectors/Calibration/scripts)	    
+
 o2_add_test_root_macro(populateCCDB.C
                        PUBLIC_LINK_LIBRARIES O2::CCDB
                                              O2::Framework)

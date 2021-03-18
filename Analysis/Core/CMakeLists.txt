@@ -24,6 +24,11 @@ o2_target_root_dictionary(AnalysisCore
                       include/AnalysisCore/HFConfigurables.h
               LINKDEF src/AnalysisCoreLinkDef.h)
 
+o2_add_executable(merger
+              COMPONENT_NAME aod
+              SOURCES src/AODMerger.cxx
+              PUBLIC_LINK_LIBRARIES ROOT::Hist ROOT::Core)
+
 if(FastJet_FOUND)
 o2_add_library(AnalysisJets
                SOURCES  src/JetFinder.cxx

@@ -128,6 +128,7 @@ o2::framework::ServiceSpec CommonMessageBackends::rateLimitingSpec()
                      nullptr,
                      nullptr,
                      nullptr,
+                     nullptr,
                      ServiceKind::Serial};
 }
 
@@ -361,6 +362,7 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                        monitoring.flushBuffer();
                      },
                      nullptr,
+                     nullptr,
                      ServiceKind::Serial};
 }
 
@@ -403,6 +405,7 @@ o2::framework::ServiceSpec CommonMessageBackends::fairMQBackendSpec()
                      nullptr,
                      nullptr,
                      nullptr,
+                     nullptr,
                      ServiceKind::Serial};
 }
 
@@ -425,6 +428,7 @@ o2::framework::ServiceSpec CommonMessageBackends::stringBackendSpec()
                      nullptr,
                      nullptr,
                      nullptr,
+                     nullptr,
                      ServiceKind::Serial};
 }
 
@@ -439,6 +443,7 @@ o2::framework::ServiceSpec CommonMessageBackends::rawBufferBackendSpec()
                      nullptr,
                      CommonMessageBackendsHelpers<RawBufferContext>::clearContextEOS(),
                      CommonMessageBackendsHelpers<RawBufferContext>::sendCallbackEOS(),
+                     nullptr,
                      nullptr,
                      nullptr,
                      nullptr,

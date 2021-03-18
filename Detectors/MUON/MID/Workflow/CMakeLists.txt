@@ -17,6 +17,7 @@ o2_add_library(MIDWorkflow
                        src/EntropyEncoderSpec.cxx
                        src/RawAggregatorSpec.cxx
                        src/RawDecoderSpec.cxx
+                       src/RawGBTDecoderSpec.cxx
                        src/RawWriterSpec.cxx
                        src/TrackerMCSpec.cxx
                        src/TrackerSpec.cxx

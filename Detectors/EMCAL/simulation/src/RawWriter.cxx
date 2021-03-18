@@ -117,7 +117,7 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
   }
 
   // Create and fill DMA pages for each channel
-  std::cout << "encode data" << std::endl;
+  LOG(DEBUG) << "encode data";
   for (auto srucont : mSRUdata) {
 
     std::vector<char> payload; // this must be initialized per SRU, becuase pages are per SRU, therefore the payload was not reset.
@@ -131,16 +131,25 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
       auto hwaddress = mMappingHandler->getMappingForDDL(srucont.mSRUid).getHardwareAddress(channel.mRow, channel.mCol, ChannelType_t::HIGH_GAIN); // @TODO distinguish between high- and low-gain cells
 
       std::vector<int> rawbunches;
+      int nbunches = 0;
       for (auto& bunch : findBunches(channel.mDigits)) {
+        if (!bunch.mADCs.size()) {
+          LOG(ERROR) << "Found bunch with without ADC entries - skipping ...";
+          continue;
+        }
         rawbunches.push_back(bunch.mADCs.size() + 2); // add 2 words for header information
         rawbunches.push_back(bunch.mStarttime);
         for (auto adc : bunch.mADCs) {
           rawbunches.push_back(adc);
         }
+        nbunches++;
       }
       if (!rawbunches.size()) {
+        LOG(DEBUG) << "No bunch selected";
         continue;
       }
+      LOG(DEBUG) << "Selected " << nbunches << " bunches";
+
       auto encodedbunches = encodeBunchData(rawbunches);
       auto chanhead = createChannelHeader(hwaddress, rawbunches.size(), false); /// bad channel status eventually to be added later
       char* chanheadwords = reinterpret_cast<char*>(&chanhead);
@@ -152,6 +161,8 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
         if (encodedbunches.size() != nwordsRead) {
           LOG(ERROR) << "Mismatch in number of 32-bit words, encoded " << encodedbunches.size() << ", recalculated " << nwordsRead << std::endl;
           LOG(ERROR) << "Payload size: " << payloadsizeRead << ", number of words: " << rawbunches.size() << ", encodeed words " << encodedbunches.size() << ", calculated words " << nwordsRead << std::endl;
+        } else {
+          LOG(DEBUG) << "Matching number of payload 32-bit words, encoded " << encodedbunches.size() << ", decoded " << nwordsRead;
         }
       } else {
         LOG(ERROR) << "Header without header bit detected ..." << std::endl;
@@ -166,8 +177,10 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
     }
 
     if (!payload.size()) {
+      LOG(DEBUG) << "Payload buffer has size 0" << std::endl;
       continue;
     }
+    LOG(DEBUG) << "Payload buffer has size " << payload.size();
 
     // Create RCU trailer
     auto trailerwords = createRCUTrailer(payload.size() / 4, 100., trg.getBCData().toLong(), srucont.mSRUid);
@@ -181,44 +194,61 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
     LOG(DEBUG1) << "Adding payload with size " << payload.size() << " (" << payload.size() / 4 << " ALTRO words)";
     mRawWriter->addData(ddlid, crorc, link, 0, trg.getBCData(), payload, false, trg.getTriggerBits());
   }
-  std::cout << "Done" << std::endl;
+  LOG(DEBUG) << "Done";
   return true;
 }
 
 std::vector<AltroBunch> RawWriter::findBunches(const std::vector<o2::emcal::Digit*>& channelDigits)
 {
   std::vector<AltroBunch> result;
-  AltroBunch* currentBunch = nullptr;
+  AltroBunch currentBunch;
+  bool bunchStarted = false;
   // Digits in ALTRO bunch in time-reversed order
   int itime;
   for (itime = channelDigits.size() - 1; itime >= 0; itime--) {
     auto dig = channelDigits[itime];
     if (!dig) {
-      if (currentBunch) {
-        currentBunch->mStarttime = itime + 1;
-        currentBunch = nullptr;
+      if (bunchStarted) {
+        // we have a bunch which is started and needs to be closed
+        // check if the ALTRO bunch has a minimum amount of ADCs
+        if (currentBunch.mADCs.size() >= mMinADCBunch) {
+          // Bunch selected, set start time and push to bunches
+          currentBunch.mStarttime = itime + 1;
+          result.push_back(currentBunch);
+          currentBunch = AltroBunch();
+          bunchStarted = false;
+        }
       }
       continue;
     }
     int adc = dig->getAmplitudeADC();
     if (adc < mPedestal) {
-      // Stop bunch
+      // ADC value below threshold
+      // in case we have an open bunch it needs to be stopped bunch
       // Set the start time to the time sample of previous (passing) digit
-      currentBunch->mStarttime = itime + 1;
-      currentBunch = nullptr;
-      continue;
+      if (bunchStarted) {
+        // check if the ALTRO bunch has a minimum amount of ADCs
+        if (currentBunch.mADCs.size() >= mMinADCBunch) {
+          // Bunch selected, set start time and push to bunches
+          currentBunch.mStarttime = itime + 1;
+          result.push_back(currentBunch);
+          currentBunch = AltroBunch();
+          bunchStarted = false;
+        }
+      }
     }
-    if (!currentBunch) {
-      // start new bunch
-      AltroBunch bunch;
-      result.push_back(bunch);
-      currentBunch = &(result.back());
+    // Valid ADC value, if the bunch is closed we start a new bunch
+    if (!bunchStarted) {
+      bunchStarted = true;
     }
-    currentBunch->mADCs.emplace_back(adc);
+    currentBunch.mADCs.emplace_back(adc);
   }
   // if we have a last bunch set time start time to the time bin of teh previous digit
-  if (currentBunch) {
-    currentBunch->mStarttime = itime + 1;
+  if (bunchStarted) {
+    if (currentBunch.mADCs.size() >= mMinADCBunch) {
+      currentBunch.mStarttime = itime + 1;
+      result.push_back(currentBunch);
+    }
   }
   return result;
 }
@@ -227,8 +257,12 @@ std::vector<int> RawWriter::encodeBunchData(const std::vector<int>& data)
 {
   std::vector<int> encoded;
   CaloBunchWord currentword;
+  currentword.mDataWord = 0;
   int wordnumber = 0;
   for (auto adc : data) {
+    if (adc > 0x3FF) {
+      LOG(ERROR) << "Exceeding max ADC count for 10 bit ALTRO word: " << adc << " (max: 1023)" << std::endl;
+    }
     switch (wordnumber) {
       case 0:
         currentword.mWord0 = adc;
@@ -285,6 +319,8 @@ std::vector<char> RawWriter::createRCUTrailer(int payloadsize, double timesample
   trailer.setNumberOfNonZeroSuppressedPresamples(1);
   trailer.setNumberOfPretriggerSamples(0);
   trailer.setNumberOfSamplesPerChannel(15);
+  // For MC we don't simulate pedestals. In order to prevent pedestal subtraction
+  // in the raw fitter we set the zero suppression to true in the RCU trailer
   trailer.setZeroSuppression(true);
   trailer.setSparseReadout(true);
   trailer.setNumberOfAltroBuffers(RCUTrailer::BufferMode_t::NBUFFERS4);

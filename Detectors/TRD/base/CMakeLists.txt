@@ -95,4 +95,3 @@ o2_add_test(Digit
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
             LABELS trd
             )
-

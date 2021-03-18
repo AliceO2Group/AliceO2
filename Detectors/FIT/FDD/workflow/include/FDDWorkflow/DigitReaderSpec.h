@@ -37,13 +37,15 @@ class DigitReader : public Task
   void run(ProcessingContext& pc) final;
 
  private:
-  bool mUseMC = true; // use MC truth
+  bool mTrigInp = true; // read trigger inputs
+  bool mUseMC = true;   // use MC truth
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginFDD;
 
   std::string mInputFileName = "";
   std::string mDigitTreeName = "o2sim";
   std::string mDigitBCBranchName = "FDDDigit";
   std::string mDigitChBranchName = "FDDDigitCh";
+  std::string mTriggerBranchName = "TRIGGERINPUT";
   std::string mDigitMCTruthBranchName = "FDDDigitLabels";
 };
 

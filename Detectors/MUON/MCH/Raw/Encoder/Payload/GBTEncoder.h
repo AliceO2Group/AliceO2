@@ -38,7 +38,7 @@ namespace o2::mch::raw
 ///
 /// \nosubgrouping
 
-template <typename FORMAT, typename CHARGESUM>
+template <typename FORMAT, typename CHARGESUM, int VERSION = 0>
 class GBTEncoder
 {
  public:
@@ -84,10 +84,10 @@ class GBTEncoder
   size_t size() const { return mGbtWords.size(); }
 
  private:
-  uint16_t mLinkId;                                        //< id of this GBT (0..11)
-  std::array<ElinkEncoder<FORMAT, CHARGESUM>, 40> mElinks; //< the 40 Elinks we manage
-  std::vector<uint64_t> mGbtWords;                         //< the GBT words (each GBT word of 80 bits is represented by 2 64 bits words) we've accumulated so far
-  ElinkEncoderMerger<FORMAT, CHARGESUM> mElinkMerger;
+  uint16_t mLinkId;                                                 //< id of this GBT (0..11)
+  std::array<ElinkEncoder<FORMAT, CHARGESUM, VERSION>, 40> mElinks; //< the 40 Elinks we manage
+  std::vector<uint64_t> mGbtWords;                                  //< the GBT words (each GBT word of 80 bits is represented by 2 64 bits words) we've accumulated so far
+  ElinkEncoderMerger<FORMAT, CHARGESUM, VERSION> mElinkMerger;
 };
 
 inline int phase(int i, bool forceNoPhase)
@@ -107,22 +107,22 @@ inline int phase(int i, bool forceNoPhase)
   return -1;
 }
 
-template <typename FORMAT, typename CHARGESUM>
-bool GBTEncoder<FORMAT, CHARGESUM>::forceNoPhase = false;
+template <typename FORMAT, typename CHARGESUM, int VERSION>
+bool GBTEncoder<FORMAT, CHARGESUM, VERSION>::forceNoPhase = false;
 
-template <typename FORMAT, typename CHARGESUM>
-GBTEncoder<FORMAT, CHARGESUM>::GBTEncoder(uint16_t linkId)
+template <typename FORMAT, typename CHARGESUM, int VERSION>
+GBTEncoder<FORMAT, CHARGESUM, VERSION>::GBTEncoder(uint16_t linkId)
   : mLinkId(linkId),
-    mElinks{impl::makeArray<40>([](size_t i) { return ElinkEncoder<FORMAT, CHARGESUM>(i, phase(i, GBTEncoder<FORMAT, CHARGESUM>::forceNoPhase)); })},
+    mElinks{impl::makeArray<40>([](size_t i) { return ElinkEncoder<FORMAT, CHARGESUM, VERSION>(i, phase(i, GBTEncoder<FORMAT, CHARGESUM, VERSION>::forceNoPhase)); })},
     mGbtWords{},
     mElinkMerger{}
 {
   impl::assertIsInRange("linkId", linkId, 0, 11);
 }
 
-template <typename FORMAT, typename CHARGESUM>
-void GBTEncoder<FORMAT, CHARGESUM>::addChannelData(uint8_t elinkGroupId, uint8_t elinkIndexInGroup, uint8_t chId,
-                                                   const std::vector<SampaCluster>& data)
+template <typename FORMAT, typename CHARGESUM, int VERSION>
+void GBTEncoder<FORMAT, CHARGESUM, VERSION>::addChannelData(uint8_t elinkGroupId, uint8_t elinkIndexInGroup, uint8_t chId,
+                                                            const std::vector<SampaCluster>& data)
 {
 
   impl::assertIsInRange("elinkGroupId", elinkGroupId, 0, 7);
@@ -130,8 +130,8 @@ void GBTEncoder<FORMAT, CHARGESUM>::addChannelData(uint8_t elinkGroupId, uint8_t
   mElinks.at(elinkGroupId * 5 + elinkIndexInGroup).addChannelData(chId, data);
 }
 
-template <typename FORMAT, typename CHARGESUM>
-size_t GBTEncoder<FORMAT, CHARGESUM>::moveToBuffer(std::vector<std::byte>& buffer)
+template <typename FORMAT, typename CHARGESUM, int VERSION>
+size_t GBTEncoder<FORMAT, CHARGESUM, VERSION>::moveToBuffer(std::vector<std::byte>& buffer)
 {
   auto s = gsl::span(mElinks.begin(), mElinks.end());
   mElinkMerger(mLinkId, s, mGbtWords);
