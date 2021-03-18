@@ -48,7 +48,6 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
   bool mEnableOnlineGainCorrection{false};
   bool mUseMC{false}; // whether or not to use MC labels
   bool mEnableTrapConfigDump{false};
-  bool mShareDigitsManually{true};  // duplicate digits connected to shared pads if digitizer did not do so
   std::string mTrapConfigName;      // the name of the config to be used.
   std::string mOnlineGainTableName;
   std::unique_ptr<Calibrations> mCalib; // store the calibrations connection to CCDB. Used primarily for the gaintables in line above.
