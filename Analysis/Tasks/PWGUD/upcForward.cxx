@@ -35,10 +35,12 @@ struct UPCForward {
   //defining histograms
   OutputObj<TH1D> hMass{TH1D("hMass", ";#it{m_{#mu#mu}}, GeV/c^{2};", 500, 0, 10)};
   OutputObj<TH1D> hPt{TH1D("hPt", ";#it{p_{t}}, GeV/c;", 500, 0., 5.)};
-  OutputObj<TH1D> hPx{TH1D("hPx", ";#it{p_{x}}, GeV/c;", 500, 0., 5.)};
-  OutputObj<TH1D> hPy{TH1D("hPy", ";#it{p_{y}}, GeV/c;", 500, 0., 5.)};
-  OutputObj<TH1D> hPz{TH1D("hPz", ";#it{p_{z}}, GeV/c;", 500, 0., 5.)};
+  OutputObj<TH1D> hPtsingle_muons{TH1D("hPtsingle_muons", ";#it{p_{t}}, GeV/c;", 500, 0., 5.)};
+  OutputObj<TH1D> hPx{TH1D("hPx", ";#it{p_{x}}, GeV/c;", 500, -5., 5.)};
+  OutputObj<TH1D> hPy{TH1D("hPy", ";#it{p_{y}}, GeV/c;", 500, -5., 5.)};
+  OutputObj<TH1D> hPz{TH1D("hPz", ";#it{p_{z}}, GeV/c;", 500, -5., 5.)};
   OutputObj<TH1D> hRap{TH1D("hRap", ";#it{y},..;", 500, -10., 10.)};
+  OutputObj<TH1D> hEta{TH1D("hEta", ";#it{y},..;", 500, -10., 10.)};
   OutputObj<TH1D> hCharge{TH1D("hCharge", ";#it{charge},..;", 500, -10., 10.)};
   OutputObj<TH1D> hSelectionCounter{TH1D("hSelectionCounter", ";#it{Selection},..;", 30, 0., 30.)};
   OutputObj<TH1D> hPhi{TH1D("hPhi", ";#it{#Phi},;", 500, -6., 6.)};
@@ -50,7 +52,7 @@ struct UPCForward {
       hSelectionCounter->GetXaxis()->SetBinLabel(i + 1, SelectionCuts[i].Data());
     }
   }
-  void process(aod::BC const& bc, aod::Muons const& tracksMuon)
+  void process(soa::Join<aod::BCs,aod::Run2BCInfos>::iterator const& bc, aod::Muons const& tracksMuon)
   {
     hSelectionCounter->Fill(0);
 
@@ -59,13 +61,27 @@ struct UPCForward {
     bool ispositive = kFALSE;
     bool isnegative = kFALSE;
     /*this code below is suggested by evgeny.
-    this code is now hardcoded for run 246392 as we are not sure if trigger id is same for all the runs*/
-    uint64_t classIndexMUP11 = 54; // 246392
-    bool isMUP11fired = bc.triggerMask() & (1ull << classIndexMUP11);
+    this code is now hardcoded for runs  246391, 246392 for CMUP11
+    and 244980, 244982, 244983, 245064, 245066, 245068 for CMUP10*/
+    uint64_t classIndexMUP = -1;
+    Int_t iRunNumber = bc.runNumber();
+
+    if (iRunNumber==246391 || iRunNumber==246392) {
+      classIndexMUP = 51; //CMUP11
+    } else if (iRunNumber==246980 || iRunNumber==246982 || iRunNumber==246983) {
+      classIndexMUP = 88; //CMUP10
+    } else if (iRunNumber==245064 || iRunNumber==245066 || iRunNumber==245068){
+      classIndexMUP=62; //CMUP10
+    }
+    if (classIndexMUP==-1) {
+      return;
+    }
+    //selecting CMUP10 and CMUP11 events selection
+    bool isMUP11fired = bc.triggerMaskNext50() & (1ull << classIndexMUP-50);
+
     if (!isMUP11fired) {
       return;
     }
-    LOGF(info, "mup11 fired");
     hSelectionCounter->Fill(1);
     for (auto& muon : tracksMuon) {
       hCharge->Fill(muon.sign());
@@ -104,7 +120,10 @@ struct UPCForward {
     hRap->Fill(p.Rapidity());
     hMass->Fill(p.M());
     hPhi->Fill(p.Phi());
-
+    hEta->Fill(p1.Eta());
+    hEta->Fill(p2.Eta());
+    hPtsingle_muons->Fill(p1.Pt());
+    hPtsingle_muons->Fill(p2.Pt());
   } //end of process
 };
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
