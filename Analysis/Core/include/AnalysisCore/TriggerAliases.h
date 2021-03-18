@@ -48,7 +48,7 @@ class TriggerAliases
   std::map<uint32_t, std::string> mAliasToClassNames;
   std::map<uint32_t, uint64_t> mAliasToTriggerMask;
   std::map<uint32_t, uint64_t> mAliasToTriggerMaskNext50;
-  ClassDefNV(TriggerAliases, 1)
+  ClassDefNV(TriggerAliases, 2)
 };
 
 #endif

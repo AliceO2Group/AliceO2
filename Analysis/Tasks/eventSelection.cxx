@@ -81,16 +81,17 @@ struct EventSelectionTask {
     ccdb->setLocalObjectValidityChecking();
   }
 
+  using BCsWithTimestampsAndRun2Infos = soa::Join<aod::BCsWithTimestamps, aod::Run2BCInfos>;
   void process(
     aod::Run2MatchedSparse::iterator const& col,
-    soa::Join<aod::BCsWithTimestamps, aod::Run2BCInfos> const& bcs,
+    BCsWithTimestampsAndRun2Infos const& bcs,
     aod::Zdcs const& zdcs,
     aod::FV0As const& fv0as,
     aod::FV0Cs const& fv0cs,
     aod::FT0s const& ft0s,
     aod::FDDs const& fdds)
   {
-    auto bc = col.bc_as<soa::Join<aod::BCsWithTimestamps, aod::Run2BCInfos>>();
+    auto bc = col.bc_as<BCsWithTimestampsAndRun2Infos>();
     TriggerAliases* aliases = ccdb->getForTimeStamp<TriggerAliases>("Trigger/TriggerAliases", bc.timestamp());
     if (!aliases) {
       LOGF(fatal, "Trigger aliases are not available in CCDB for run=%d at timestamp=%llu", bc.runNumber(), bc.timestamp());
@@ -149,8 +150,8 @@ struct EventSelectionTaskRun3 {
   Produces<aod::EvSels> evsel;
 
   EvSelParameters par;
-
-  void process(aod::Collision const& col, soa::Join<aod::BCs, aod::Run3MatchedToBCSparse> const& bct0s,
+  using BCsWithMatchings = soa::Join<aod::BCs, aod::Run3MatchedToBCSparse>;
+  void process(aod::Collision const& col, BCsWithMatchings const& bcs,
                aod::Zdcs const& zdcs,
                aod::FV0As const& fv0as,
                aod::FT0s const& ft0s,
@@ -161,14 +162,14 @@ struct EventSelectionTaskRun3 {
     float timeA = -999.f;
     float timeC = -999.f;
 
-    auto bcIter = col.bc_as<soa::Join<aod::BCs, aod::Run3MatchedToBCSparse>>();
+    auto bcIter = col.bc_as<BCsWithMatchings>();
 
     uint64_t apprBC = bcIter.globalBC();
     uint64_t meanBC = apprBC - std::lround(col.collisionTime() / o2::constants::lhc::LHCBunchSpacingNS);
     int deltaBC = std::ceil(col.collisionTimeRes() / o2::constants::lhc::LHCBunchSpacingNS * 4);
 
     int moveCount = 0;
-    while (bcIter != bct0s.end() && bcIter.globalBC() <= meanBC + deltaBC && bcIter.globalBC() >= meanBC - deltaBC) {
+    while (bcIter != bcs.end() && bcIter.globalBC() <= meanBC + deltaBC && bcIter.globalBC() >= meanBC - deltaBC) {
       if (bcIter.has_ft0()) {
         ft0Dist = bcIter.globalBC() - meanBC;
         foundFT0 = bcIter.ft0().globalIndex();
@@ -179,7 +180,7 @@ struct EventSelectionTaskRun3 {
     }
 
     bcIter.moveByIndex(-moveCount);
-    while (bcIter != bct0s.begin() && bcIter.globalBC() <= meanBC + deltaBC && bcIter.globalBC() >= meanBC - deltaBC) {
+    while (bcIter != bcs.begin() && bcIter.globalBC() <= meanBC + deltaBC && bcIter.globalBC() >= meanBC - deltaBC) {
       --bcIter;
       if (bcIter.has_ft0() && (meanBC - bcIter.globalBC()) < ft0Dist) {
         foundFT0 = bcIter.ft0().globalIndex();
