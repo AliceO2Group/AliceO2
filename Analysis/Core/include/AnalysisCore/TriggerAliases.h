@@ -11,9 +11,9 @@
 #ifndef TriggerAliases_H
 #define TriggerAliases_H
 
+#include <stdint.h>
 #include <map>
 #include <string>
-#include <vector>
 #include <Rtypes.h>
 
 enum triggerAliases {
@@ -21,6 +21,7 @@ enum triggerAliases {
   kEMC7,
   kINT7inMUON,
   kMuonSingleLowPt7,
+  kMuonSingleHighPt7,
   kMuonUnlikeLowPt7,
   kMuonLikeLowPt7,
   kCUP8,
@@ -35,14 +36,18 @@ class TriggerAliases
  public:
   TriggerAliases() = default;
   ~TriggerAliases() = default;
-  void AddAlias(int aliasId, std::string classNames) { mAliases[aliasId] = classNames; }
-  void AddClassIdToAlias(int aliasId, int classId) { mAliasToClassIds[aliasId].push_back(classId); }
-  const std::map<int, std::vector<int>>& GetAliasToClassIdsMap() const { return mAliasToClassIds; }
+
+  void AddAlias(uint32_t aliasId, std::string classNames) { mAliasToClassNames[aliasId] = classNames; }
+  void AddClassIdToAlias(uint32_t aliasId, int classId);
+  const std::map<uint32_t, std::string>& GetAliasToClassNamesMap() const { return mAliasToClassNames; }
+  const std::map<uint32_t, uint64_t>& GetAliasToTriggerMaskMap() const { return mAliasToTriggerMask; }
+  const std::map<uint32_t, uint64_t>& GetAliasToTriggerMaskNext50Map() const { return mAliasToTriggerMaskNext50; }
   void Print();
 
  private:
-  std::map<int, std::string> mAliases;
-  std::map<int, std::vector<int>> mAliasToClassIds;
+  std::map<uint32_t, std::string> mAliasToClassNames;
+  std::map<uint32_t, uint64_t> mAliasToTriggerMask;
+  std::map<uint32_t, uint64_t> mAliasToTriggerMaskNext50;
   ClassDefNV(TriggerAliases, 1)
 };
 
