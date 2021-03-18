@@ -33,14 +33,15 @@ class PayloadPaginator
  public:
   /// @param fw a RawFileWriter instance, that should be
   /// properly configured (once) _before_ calling the () operator
-  /// @param outputFileName the name of the single output file
-  /// used to store the produced RAW data
+  /// @param outputFileName directory/basename of file to store the raw data
+  /// @param filePerLink produce 1 file per link
   /// @param solar2feelink a mapper that converts a solarId value into
   /// a FeeLinkId object
   /// @param userLogic whether or not the format to emulate is UL
   /// @param chargeSumMode whether or not the format to emulate is in chargeSumMode
   PayloadPaginator(o2::raw::RawFileWriter& fw,
                    const std::string outputFileName,
+                   bool filePerLink,
                    Solar2FeeLinkMapper solar2feelink,
                    bool userLogic,
                    bool chargeSumMode);
@@ -57,6 +58,7 @@ class PayloadPaginator
   std::string mOutputFileName;
   std::set<FeeLinkId> mFeeLinkIds{};
   uint16_t mExtraFeeIdMask{0};
+  bool mFilePerLink{false};
 };
 
 /// helper function to wrap usage of PayloadPaginator class to

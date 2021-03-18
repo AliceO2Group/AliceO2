@@ -18,10 +18,12 @@ namespace o2::mch::raw
 
 PayloadPaginator::PayloadPaginator(o2::raw::RawFileWriter& fw,
                                    const std::string outputFileName,
+                                   bool filePerLink,
                                    Solar2FeeLinkMapper solar2feelink,
                                    bool userLogic,
                                    bool chargeSumMode) : mRawFileWriter(fw),
                                                          mOutputFileName{outputFileName},
+                                                         mFilePerLink(filePerLink),
                                                          mSolar2FeeLink{solar2feelink},
                                                          mExtraFeeIdMask{chargeSumMode ? static_cast<uint16_t>(0x100) : static_cast<uint16_t>(0)}
 {
@@ -53,7 +55,8 @@ void PayloadPaginator::operator()(gsl::span<const std::byte> buffer)
     int cru = (feelink.feeId() - endpoint) / 2;
     auto feeId = feelink.feeId() | mExtraFeeIdMask;
     if (mFeeLinkIds.find(feelink) == mFeeLinkIds.end()) {
-      mRawFileWriter.registerLink(feeId, cru, feelink.linkId(), endpoint, mOutputFileName);
+      mRawFileWriter.registerLink(feeId, cru, feelink.linkId(), endpoint,
+                                  mFilePerLink ? fmt::format("{:s}_feeid{:d}.raw", mOutputFileName, feeId) : fmt::format("{:s}.raw", mOutputFileName));
       mFeeLinkIds.insert(feelink);
     }
     mRawFileWriter.addData(feeId, cru, feelink.linkId(), endpoint,
@@ -75,7 +78,7 @@ std::vector<std::byte> paginate(gsl::span<const std::byte> buffer, bool userLogi
   Solar2FeeLinkMapper solar2feelink = createSolar2FeeLinkMapper<ElectronicMapperGenerated>();
 
   {
-    PayloadPaginator p(fw, tmpfilename, solar2feelink, userLogic, chargeSumMode);
+    PayloadPaginator p(fw, tmpfilename, false, solar2feelink, userLogic, chargeSumMode);
     p(buffer);
     fw.close();
   }

@@ -91,10 +91,12 @@ int main(int argc, char* argv[])
       ("userLogic,u",po::bool_switch(&userLogic),"user logic format")
       ("dummyElecMap,d",po::bool_switch(&dummyElecMap),"use a dummy electronic mapping (for testing only)")
       ("output-dir,o",po::value<std::string>()->default_value("./"),"output directory for file(s)")
+      ("file-per-link,l", po::value<bool>()->default_value(false)->implicit_value(true), "produce single file per link")
       ("input-file,i",po::value<std::string>(&input)->default_value("mchdigits.root"),"input file name")
       ("configKeyValues", po::value<std::string>()->default_value(""), "comma-separated configKeyValues")
       ("no-empty-hbf,e", po::value<bool>()->default_value(true), "do not create empty HBF pages (except for HBF starting TF)")
       ("verbosity,v",po::value<std::string>()->default_value("verylow"), "(fair)logger verbosity");
+
   // clang-format on
 
   po::options_description cmdline;
@@ -152,12 +154,11 @@ int main(int argc, char* argv[])
     }
   }
 
-  fw.writeConfFile("MCH", "RAWDATA", fmt::format("{}/MCHraw.cfg", outDirName));
-
-  std::string output = fmt::format("{}/mch.raw", outDirName);
-  PayloadPaginator paginator(fw, output, solar2feelink, userLogic, chargeSumMode);
+  std::string output = fmt::format("{:s}/mch", outDirName);
+  PayloadPaginator paginator(fw, output, vm["file-per-link"].as<bool>(), solar2feelink, userLogic, chargeSumMode);
 
   digit2raw(input, encoder, paginator);
+  fw.writeConfFile("MCH", "RAWDATA", fmt::format("{:s}/MCHraw.cfg", outDirName));
 
   return 0;
 }
