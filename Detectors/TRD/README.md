@@ -5,5 +5,5 @@
 # TRD 
 
 <!-- doxy
-* \subpage refTRDbase
+* \subpage refDetectorsTRDsimulation
 /doxy -->
