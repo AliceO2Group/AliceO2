@@ -45,6 +45,8 @@ class MCHChannelCalibDevice : public o2::framework::Task
   {
     float pedThreshold = ic.options().get<float>("pedestal-threshold");
     float noiseThreshold = ic.options().get<float>("noise-threshold");
+    mLoggingInterval = ic.options().get<int>("logging-interval") * 1000;
+
     mCalibrator = std::make_unique<o2::mch::calibration::MCHChannelCalibrator>(pedThreshold, noiseThreshold);
 
     int slotL = ic.options().get<int>("tf-per-slot");
@@ -61,6 +63,10 @@ class MCHChannelCalibDevice : public o2::framework::Task
     static auto loggerEnd = loggerStart;
     static size_t nDigits = 0;
     static size_t nTF = 0;
+
+    if (mLoggingInterval == 0) {
+      return;
+    }
 
     nDigits += dataSize;
     nTF += 1;
@@ -98,6 +104,8 @@ class MCHChannelCalibDevice : public o2::framework::Task
 
  private:
   std::unique_ptr<o2::mch::calibration::MCHChannelCalibrator> mCalibrator;
+
+  int mLoggingInterval = {0};   /// time interval between statistics logging messages
 
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
@@ -165,6 +173,7 @@ DataProcessorSpec getMCHChannelCalibDeviceSpec()
     outputs,
     AlgorithmSpec{adaptFromTask<device>()},
     Options{
+      {"logging-interval", VariantType::Int, 0, {"time interval in seconds between logging messages (set to zero to disable)"}},
       {"tf-per-slot", VariantType::Int64, INFINITE_TF - 10, {"number of TFs per calibration time slot"}},
       {"max-delay", VariantType::Int, 1, {"number of slots in past to consider"}},
       {"pedestal-threshold", VariantType::Float, 200.0f, {"maximum allowed pedestal value"}},
