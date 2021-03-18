@@ -117,12 +117,13 @@ struct TCMdata {
   static constexpr size_t PayloadPerGBTword = 16; //should be equal to 10
   static constexpr int MinNelements = 1;
   static constexpr int MaxNelements = 1;
-  uint64_t orC : 1,     // 0 bit (0 byte)
-    orA : 1,            //1 bit
+  uint64_t orA : 1,     // 0 bit (0 byte)
+    orC : 1,            //1 bit
     sCen : 1,           //2 bit
     cen : 1,            //3 bit
     vertex : 1,         //4 bit
-    reservedField1 : 3, //5 bit
+    laser : 1,          //5 bit
+    reservedField1 : 2, //6 bit
     nChanA : 7,         //8 bit(1 byte)
     reservedField2 : 1, //15 bit
     nChanC : 7,         //16 bit(2 byte)
@@ -148,7 +149,8 @@ struct TCMdata {
                          ((bool)orC << Triggers::bitC) |
                          ((bool)vertex << Triggers::bitVertex) |
                          ((bool)cen << Triggers::bitCen) |
-                         ((bool)sCen << Triggers::bitSCen);
+                         ((bool)sCen << Triggers::bitSCen) |
+                         ((bool)laser << Triggers::bitLaser);
     trg.nChanA = (int8_t)nChanA;
     trg.nChanC = (int8_t)nChanC;
     trg.amplA = (int32_t)amplA;

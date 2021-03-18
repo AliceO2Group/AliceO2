@@ -16,7 +16,7 @@
 #define _FT0_CHANNELDATA_H_
 
 #include <Rtypes.h>
-
+#include <tuple>
 namespace o2
 {
 namespace ft0
@@ -25,8 +25,8 @@ struct ChannelData {
 
   uint8_t ChId = 0xff;     //channel Id
   uint8_t ChainQTC = 0xff; //QTC chain
-  int16_t CFDTime = -1000; //time in #CFD channels, 0 at the LHC clk center
-  int16_t QTCAmpl = -1000; // Amplitude #channels
+  int16_t CFDTime = -5000; //time in #CFD channels, 0 at the LHC clk center
+  int16_t QTCAmpl = -5000; // Amplitude #channels
   enum EEventDataBit { kNumberADC,
                        kIsDoubleEvent,
                        kIsTimeInfoNOTvalid,
@@ -53,10 +53,13 @@ struct ChannelData {
   {
     ChainQTC |= (value << bitFlag);
   }
-  bool getFlag(EEventDataBit bitFlag) const { return bool(ChainQTC << bitFlag); }
+  bool getFlag(EEventDataBit bitFlag) const { return bool(ChainQTC & (1 << bitFlag)); }
   void print() const;
-
-  ClassDefNV(ChannelData, 2);
+  bool operator==(ChannelData const& other) const
+  {
+    return std::tie(ChId, CFDTime, QTCAmpl) == std::tie(other.ChId, other.CFDTime, other.QTCAmpl);
+  }
+  ClassDefNV(ChannelData, 3);
 };
 } // namespace ft0
 } // namespace o2
