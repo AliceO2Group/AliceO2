@@ -277,6 +277,27 @@ class PedestalsTask
   }
 
   //_________________________________________________________________________________________________
+  void logStats()
+  {
+    static auto loggerStart = std::chrono::high_resolution_clock::now();
+    static auto loggerEnd = loggerStart;
+    static uint64_t nDigits = 0;
+    static uint64_t nTF = 0;
+
+    nDigits += mDigits.size();
+    nTF += 1;
+
+    loggerEnd = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> loggerElapsed = loggerEnd - loggerStart;
+    if (loggerElapsed.count() > 1000) {
+      LOG(INFO) << "Processed " << nDigits << " digits in " << nTF << " time frames";
+      nDigits = 0;
+      nTF = 0;
+      loggerStart = std::chrono::high_resolution_clock::now();
+    }
+  }
+
+  //_________________________________________________________________________________________________
   void run(framework::ProcessingContext& pc)
   {
     auto createBuffer = [&](auto& vec, size_t& size) {
@@ -306,10 +327,6 @@ class PedestalsTask
       }
     }
 
-    if (mDebug) {
-      usleep(100000);
-    }
-
     size_t digitsSize;
     char* digitsBuffer = createBuffer(mDigits, digitsSize);
 
@@ -320,6 +337,8 @@ class PedestalsTask
     auto freefct = [](void* data, void*) { free(data); };
     pc.outputs().adoptChunk(Output{"MCH", "PDIGITS", 0}, digitsBuffer, digitsSize, freefct, nullptr);
     pc.outputs().adoptChunk(Output{"MCH", "ERRORS", 0}, errorsBuffer, errorsSize, freefct, nullptr);
+
+    logStats();
   }
 
  private:

@@ -14,6 +14,8 @@
 /// @file   MCHChannelCalibratorSpec.h
 /// @brief  Device to calibrate MCH channles (offsets)
 
+#include <chrono>
+
 #include "MCHCalibration/MCHChannelCalibrator.h"
 #include "DetectorsCalibration/Utils.h"
 #include "CommonUtils/MemFileHelper.h"
@@ -38,6 +40,7 @@ class MCHChannelCalibDevice : public o2::framework::Task
  public:
   explicit MCHChannelCalibDevice() = default;
 
+  //_________________________________________________________________________________________________
   void init(o2::framework::InitContext& ic) final
   {
     float pedThreshold = ic.options().get<float>("pedestal-threshold");
@@ -51,14 +54,39 @@ class MCHChannelCalibDevice : public o2::framework::Task
     mCalibrator->setUpdateAtTheEndOfRunOnly();
   }
 
+  //_________________________________________________________________________________________________
+  void logStats(size_t dataSize)
+  {
+    static auto loggerStart = std::chrono::high_resolution_clock::now();
+    static auto loggerEnd = loggerStart;
+    static size_t nDigits = 0;
+    static size_t nTF = 0;
+
+    nDigits += dataSize;
+    nTF += 1;
+
+    loggerEnd = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> loggerElapsed = loggerEnd - loggerStart;
+    if (loggerElapsed.count() > 1000) {
+      LOG(INFO) << "received " << nDigits << " digits in " << nTF << " time frames";
+      nDigits = 0;
+      nTF = 0;
+      loggerStart = std::chrono::high_resolution_clock::now();
+    }
+  }
+
+  //_________________________________________________________________________________________________
   void run(o2::framework::ProcessingContext& pc) final
   {
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime; // is this the timestamp of the current TF?
 
     auto data = pc.inputs().get<gsl::span<o2::mch::calibration::PedestalDigit>>("input");
     mCalibrator->process(tfcounter, data);
+
+    logStats(data.size());
   }
 
+  //_________________________________________________________________________________________________
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
     constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
