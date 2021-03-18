@@ -22,6 +22,7 @@
 
 using namespace o2;
 using namespace o2::framework;
+using namespace o2::aod::hf_cand;
 using namespace o2::aod::hf_cand_prong2;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
@@ -148,36 +149,48 @@ struct HFCandidateCreator2ProngMC {
                aod::BigTracksMC const& tracks,
                aod::McParticles const& particlesMC)
   {
+    int indexRec = -1;
     int8_t sign = 0;
     int8_t flag = 0;
+    int8_t origin = 0;
 
     // Match reconstructed candidates.
     for (auto& candidate : candidates) {
       //Printf("New rec. candidate");
       flag = 0;
+      origin = 0;
       auto arrayDaughters = array{candidate.index0_as<aod::BigTracksMC>(), candidate.index1_as<aod::BigTracksMC>()};
 
       // D0(bar) → π± K∓
       //Printf("Checking D0(bar) → π± K∓");
-      if (RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, 421, array{+kPiPlus, -kKPlus}, true, &sign) > -1) {
+      indexRec = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, 421, array{+kPiPlus, -kKPlus}, true, &sign);
+      if (indexRec > -1) {
         flag = sign * (1 << D0ToPiK);
       }
 
       // J/ψ → e+ e-
       if (flag == 0) {
         //Printf("Checking J/ψ → e+ e-");
-        if (RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), 443, array{+kElectron, -kElectron}, true) > -1) {
+        indexRec = RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), 443, array{+kElectron, -kElectron}, true);
+        if (indexRec > -1) {
           flag = 1 << JpsiToEE;
         }
       }
 
-      rowMCMatchRec(flag);
+      // Check whether the particle is non-prompt (from a b quark).
+      if (flag != 0) {
+        auto particle = particlesMC.iteratorAt(indexRec);
+        origin = (RecoDecay::getMother(particlesMC, particle, 5, true) > -1 ? NonPrompt : Prompt);
+      }
+
+      rowMCMatchRec(flag, origin);
     }
 
     // Match generated particles.
     for (auto& particle : particlesMC) {
       //Printf("New gen. candidate");
       flag = 0;
+      origin = 0;
 
       // D0(bar) → π± K∓
       //Printf("Checking D0(bar) → π± K∓");
@@ -193,7 +206,12 @@ struct HFCandidateCreator2ProngMC {
         }
       }
 
-      rowMCMatchGen(flag);
+      // Check whether the particle is non-prompt (from a b quark).
+      if (flag != 0) {
+        origin = (RecoDecay::getMother(particlesMC, particle, 5, true) > -1 ? NonPrompt : Prompt);
+      }
+
+      rowMCMatchGen(flag, origin);
     }
   }
 };
