@@ -27,6 +27,7 @@ using namespace o2::track;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
+    {"use-fast", VariantType::Int, 0, {"Use fast implementation"}},
     {"add-qa", VariantType::Int, 0, {"Produce TOF PID QA histograms"}},
     {"add-beta", VariantType::Int, 1, {"Produce TOF Beta table"}}};
   std::swap(workflowOptions, options);
@@ -58,6 +59,7 @@ struct pidTOFTask {
     response.SetParameters(DetectorResponse::kSigma, p);
     const std::string fname = paramfile.value;
     if (!fname.empty()) { // Loading the parametrization from file
+      LOG(INFO) << "Loading parametrization from file" << fname << ", using param: " << sigmaname;
       response.LoadParamFromFile(fname.data(), sigmaname.value, DetectorResponse::kSigma);
     } else { // Loading it from CCDB
       const std::string path = "Analysis/PID/TOF";
@@ -128,6 +130,78 @@ struct pidTOFTaskBeta {
   }
 };
 
+struct pidTOFTaskFast {
+  using Trks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov>;
+  using Coll = aod::Collisions;
+  Produces<aod::pidRespTOF> tablePID;
+  DetectorResponse response;
+  Parameters resoParameters;
+  Service<o2::ccdb::BasicCCDBManager> ccdb;
+  Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
+  Configurable<std::string> sigmaname{"param-sigma", "TOFReso", "Name of the parametrization for the expected sigma, used in both file and CCDB mode"};
+  Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
+  Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
+
+  void init(o2::framework::InitContext&)
+  {
+    ccdb->setURL(url.value);
+    ccdb->setTimestamp(timestamp.value);
+    ccdb->setCaching(true);
+    ccdb->setLocalObjectValidityChecking();
+    // Not later than now objects
+    ccdb->setCreatedNotAfter(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+    //
+    const std::vector<float> p = {0.008, 0.008, 0.002, 40.0};
+    response.SetParameters(DetectorResponse::kSigma, p);
+    const std::string fname = paramfile.value;
+    if (!fname.empty()) { // Loading the parametrization from file
+      LOG(INFO) << "Loading parametrization from file" << fname << ", using param: " << sigmaname;
+      response.LoadParamFromFile(fname.data(), sigmaname.value, DetectorResponse::kSigma);
+    } else { // Loading it from CCDB
+      const std::string path = "Analysis/PID/TOF";
+      response.LoadParam(DetectorResponse::kSigma, ccdb->getForTimeStamp<Parametrization>(path + "/" + sigmaname.value, timestamp.value));
+    }
+    resoParameters = response.GetParam(DetectorResponse::kSigma)->GetParameters();
+  }
+
+  template <o2::track::PID::ID pid>
+  using ResponseImplementation = tof::ExpTimes<Coll::iterator, Trks::iterator, pid>;
+  void process(Coll const& collisions, Trks const& tracks)
+  {
+    constexpr auto responseEl = ResponseImplementation<PID::Electron>();
+    constexpr auto responseMu = ResponseImplementation<PID::Muon>();
+    constexpr auto responsePi = ResponseImplementation<PID::Pion>();
+    constexpr auto responseKa = ResponseImplementation<PID::Kaon>();
+    constexpr auto responsePr = ResponseImplementation<PID::Proton>();
+    constexpr auto responseDe = ResponseImplementation<PID::Deuteron>();
+    constexpr auto responseTr = ResponseImplementation<PID::Triton>();
+    constexpr auto responseHe = ResponseImplementation<PID::Helium3>();
+    constexpr auto responseAl = ResponseImplementation<PID::Alpha>();
+
+    tablePID.reserve(tracks.size());
+    for (auto const& trk : tracks) {
+      tablePID(responseEl.GetSeparation2(trk.collision(), trk, resoParameters),
+               responseMu.GetSeparation2(trk.collision(), trk, resoParameters),
+               responsePi.GetSeparation2(trk.collision(), trk, resoParameters),
+               responseKa.GetSeparation2(trk.collision(), trk, resoParameters),
+               responsePr.GetSeparation2(trk.collision(), trk, resoParameters),
+               responseDe.GetSeparation2(trk.collision(), trk, resoParameters),
+               responseTr.GetSeparation2(trk.collision(), trk, resoParameters),
+               responseHe.GetSeparation2(trk.collision(), trk, resoParameters),
+               responseAl.GetSeparation2(trk.collision(), trk, resoParameters),
+               responseEl.GetSeparation2(trk.collision(), trk, resoParameters),
+               responseMu.GetSeparation2(trk.collision(), trk, resoParameters),
+               responsePi.GetSeparation2(trk.collision(), trk, resoParameters),
+               responseKa.GetSeparation2(trk.collision(), trk, resoParameters),
+               responsePr.GetSeparation2(trk.collision(), trk, resoParameters),
+               responseDe.GetSeparation2(trk.collision(), trk, resoParameters),
+               responseTr.GetSeparation2(trk.collision(), trk, resoParameters),
+               responseHe.GetSeparation2(trk.collision(), trk, resoParameters),
+               responseAl.GetSeparation2(trk.collision(), trk, resoParameters));
+    }
+  }
+};
+
 struct pidTOFTaskQA {
 
   static constexpr int Np = 9;
@@ -143,13 +217,25 @@ struct pidTOFTaskQA {
                                                    "nsigma/Tr", "nsigma/He", "nsigma/Al"};
   HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::QAObject};
 
+  Configurable<int> logAxis{"logAxis", 1, "Flag to use a log momentum axis"};
   Configurable<int> nBinsP{"nBinsP", 400, "Number of bins for the momentum"};
-  Configurable<float> MinP{"MinP", 0.1, "Minimum momentum in range"};
-  Configurable<float> MaxP{"MaxP", 5, "Maximum momentum in range"};
+  Configurable<float> MinP{"MinP", 0.1f, "Minimum momentum in range"};
+  Configurable<float> MaxP{"MaxP", 5.f, "Maximum momentum in range"};
+  Configurable<float> MinEta{"MinEta", -0.8f, "Minimum eta in range"};
+  Configurable<float> MaxEta{"MaxEta", 0.8f, "Maximum eta in range"};
+  Configurable<int> nBinsDelta{"nBinsDelta", 200, "Number of bins for the Delta"};
+  Configurable<float> MinDelta{"MinDelta", -1000.f, "Minimum Delta in range"};
+  Configurable<float> MaxDelta{"MaxDelta", 1000.f, "Maximum Delta in range"};
+  Configurable<int> nBinsNSigma{"nBinsNSigma", 200, "Number of bins for the NSigma"};
+  Configurable<float> MinNSigma{"MinNSigma", -10.f, "Minimum NSigma in range"};
+  Configurable<float> MaxNSigma{"MaxNSigma", 10.f, "Maximum NSigma in range"};
 
   template <typename T>
   void makelogaxis(T h)
   {
+    if (logAxis == 0) {
+      return;
+    }
     const int nbins = h->GetNbinsX();
     double binp[nbins + 1];
     double max = h->GetXaxis()->GetBinUpEdge(nbins);
@@ -174,11 +260,11 @@ struct pidTOFTaskQA {
     makelogaxis(histos.get<TH2>(HIST(hexpected[i])));
 
     // T-Texp
-    histos.add(hexpected_diff[i].data(), Form(";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp}(%s))", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {100, -1000, 1000}});
+    histos.add(hexpected_diff[i].data(), Form(";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp}(%s))", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {nBinsDelta, MinDelta, MaxDelta}});
     makelogaxis(histos.get<TH2>(HIST(hexpected_diff[i])));
 
     // NSigma
-    histos.add(hnsigma[i].data(), Form(";#it{p} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {200, -10, 10}});
+    histos.add(hnsigma[i].data(), Form(";#it{p} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {nBinsNSigma, MinNSigma, MaxNSigma}});
     makelogaxis(histos.get<TH2>(HIST(hnsigma[i])));
   }
 
@@ -244,7 +330,12 @@ struct pidTOFTaskQA {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  auto workflow = WorkflowSpec{adaptAnalysisTask<pidTOFTask>(cfgc, TaskName{"pidTOF-task"})};
+  auto workflow = WorkflowSpec{};
+  if (cfgc.options().get<int>("use-fast")) {
+    workflow.push_back(adaptAnalysisTask<pidTOFTaskFast>(cfgc, TaskName{"pidTOF-task"}));
+  } else {
+    workflow.push_back(adaptAnalysisTask<pidTOFTask>(cfgc, TaskName{"pidTOF-task"}));
+  }
   const int add_beta = cfgc.options().get<int>("add-beta");
   const int add_qa = cfgc.options().get<int>("add-qa");
   if (add_beta || add_qa) {
