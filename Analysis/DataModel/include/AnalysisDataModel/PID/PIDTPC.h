@@ -26,8 +26,6 @@
 #include "Framework/Logger.h"
 #include "ReconstructionDataFormats/PID.h"
 #include "AnalysisDataModel/PID/DetectorResponse.h"
-#include "AnalysisDataModel/PID/TPCReso.h"
-#include "AnalysisDataModel/PID/BetheBloch.h"
 
 namespace o2::pid::tpc
 {
@@ -42,15 +40,12 @@ class ELoss
 
   /// Gets the expected signal of the measurement
   float GetExpectedSignal(const DetectorResponse& response, const Coll& col, const Trck& trk) const;
-  float GetExpectedSignal2(const Coll& col, const Trck& trk, const Parameters& parameters) const { return BetheBlochParamTrack<id>(trk, parameters); }
 
   /// Gets the expected resolution of the measurement
   float GetExpectedSigma(const DetectorResponse& response, const Coll& col, const Trck& trk) const;
-  float GetExpectedSigma2(const Coll& col, const Trck& trk, const Parameters& parameters) const { return TPCResoParamTrack<id>(trk, parameters); }
 
   /// Gets the number of sigmas with respect the expected value
   float GetSeparation(const DetectorResponse& response, const Coll& col, const Trck& trk) const { return (trk.tpcSignal() - GetExpectedSignal(response, col, trk)) / GetExpectedSigma(response, col, trk); }
-  float GetSeparation2(const Coll& col, const Trck& trk, const Parameters& expparameters, const Parameters& resoparameters) const { return (trk.tpcSignal() - GetExpectedSignal2(col, trk, expparameters)) / GetExpectedSigma2(col, trk, resoparameters); }
 };
 
 template <typename Coll, typename Trck, o2::track::PID::ID id>

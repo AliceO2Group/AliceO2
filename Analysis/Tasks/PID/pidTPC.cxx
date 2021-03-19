@@ -15,8 +15,11 @@
 #include "Framework/HistogramRegistry.h"
 #include "ReconstructionDataFormats/Track.h"
 #include <CCDB/BasicCCDBManager.h>
+#include "AnalysisDataModel/TrackSelectionTables.h"
 #include "AnalysisDataModel/PID/PIDResponse.h"
 #include "AnalysisDataModel/PID/PIDTPC.h"
+#include "AnalysisDataModel/PID/TPCReso.h"
+#include "AnalysisDataModel/PID/BetheBloch.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -67,7 +70,7 @@ struct pidTPCTask {
   }
 
   template <o2::track::PID::ID pid>
-  using ResponseImplementation = tpc::ELoss<Coll::iterator, Trks::iterator, pid>;
+  using ResponseImplementation = o2::pid::tpc::ELoss<Coll::iterator, Trks::iterator, pid>;
   void process(Coll const& collisions, Trks const& tracks)
   {
     constexpr auto responseEl = ResponseImplementation<PID::Electron>();
@@ -140,40 +143,44 @@ struct pidTPCTaskFast {
     resoParameters = response.GetParam(DetectorResponse::kSigma)->GetParameters();
   }
 
-  template <o2::track::PID::ID pid>
-  using ResponseImplementation = o2::pid::tpc::ELoss<Coll::iterator, Trks::iterator, pid>;
+  template <o2::track::PID::ID id>
+  float exp(Trks::iterator track)
+  {
+    return o2::pid::tpc::BetheBlochParamTrack<id>(track, expParameters);
+  }
+  template <o2::track::PID::ID id>
+  float sigma(Trks::iterator track)
+  {
+    return o2::pid::tpc::TPCResoParamTrack<id>(track, resoParameters);
+  }
+  template <o2::track::PID::ID id>
+  float nsigma(Trks::iterator track)
+  {
+    return (track.tpcSignal() - exp<id>(track)) / sigma<id>(track);
+  }
+
   void process(Coll const& collisions, Trks const& tracks)
   {
-    constexpr auto responseEl = ResponseImplementation<PID::Electron>();
-    constexpr auto responseMu = ResponseImplementation<PID::Muon>();
-    constexpr auto responsePi = ResponseImplementation<PID::Pion>();
-    constexpr auto responseKa = ResponseImplementation<PID::Kaon>();
-    constexpr auto responsePr = ResponseImplementation<PID::Proton>();
-    constexpr auto responseDe = ResponseImplementation<PID::Deuteron>();
-    constexpr auto responseTr = ResponseImplementation<PID::Triton>();
-    constexpr auto responseHe = ResponseImplementation<PID::Helium3>();
-    constexpr auto responseAl = ResponseImplementation<PID::Alpha>();
-
     tablePID.reserve(tracks.size());
     for (auto const& trk : tracks) {
-      tablePID(responseEl.GetExpectedSigma2(trk.collision(), trk, resoParameters),
-               responseMu.GetExpectedSigma2(trk.collision(), trk, resoParameters),
-               responsePi.GetExpectedSigma2(trk.collision(), trk, resoParameters),
-               responseKa.GetExpectedSigma2(trk.collision(), trk, resoParameters),
-               responsePr.GetExpectedSigma2(trk.collision(), trk, resoParameters),
-               responseDe.GetExpectedSigma2(trk.collision(), trk, resoParameters),
-               responseTr.GetExpectedSigma2(trk.collision(), trk, resoParameters),
-               responseHe.GetExpectedSigma2(trk.collision(), trk, resoParameters),
-               responseAl.GetExpectedSigma2(trk.collision(), trk, resoParameters),
-               responseEl.GetSeparation2(trk.collision(), trk, expParameters, resoParameters),
-               responseMu.GetSeparation2(trk.collision(), trk, expParameters, resoParameters),
-               responsePi.GetSeparation2(trk.collision(), trk, expParameters, resoParameters),
-               responseKa.GetSeparation2(trk.collision(), trk, expParameters, resoParameters),
-               responsePr.GetSeparation2(trk.collision(), trk, expParameters, resoParameters),
-               responseDe.GetSeparation2(trk.collision(), trk, expParameters, resoParameters),
-               responseTr.GetSeparation2(trk.collision(), trk, expParameters, resoParameters),
-               responseHe.GetSeparation2(trk.collision(), trk, expParameters, resoParameters),
-               responseAl.GetSeparation2(trk.collision(), trk, expParameters, resoParameters));
+      tablePID(sigma<PID::Electron>(trk),
+               sigma<PID::Muon>(trk),
+               sigma<PID::Pion>(trk),
+               sigma<PID::Kaon>(trk),
+               sigma<PID::Proton>(trk),
+               sigma<PID::Deuteron>(trk),
+               sigma<PID::Triton>(trk),
+               sigma<PID::Helium3>(trk),
+               sigma<PID::Alpha>(trk),
+               nsigma<PID::Electron>(trk),
+               nsigma<PID::Muon>(trk),
+               nsigma<PID::Pion>(trk),
+               nsigma<PID::Kaon>(trk),
+               nsigma<PID::Proton>(trk),
+               nsigma<PID::Deuteron>(trk),
+               nsigma<PID::Triton>(trk),
+               nsigma<PID::Helium3>(trk),
+               nsigma<PID::Alpha>(trk));
     }
   }
 };
