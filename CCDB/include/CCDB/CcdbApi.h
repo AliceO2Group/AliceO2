@@ -370,7 +370,6 @@ class CcdbApi //: public DatabaseInterface
                           const std::string& createdNotAfter = "", const std::string& createdNotBefore = "") const;
 
  private:
-
   /**
    * A helper function to extract object from a local ROOT file
    * @param filename name of ROOT file
