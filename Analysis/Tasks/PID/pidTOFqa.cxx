@@ -28,8 +28,8 @@ using namespace o2::track;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
-    {"pid-el", VariantType::Int, 1, {"Produce PID information for the electron mass hypothesis"}},
-    {"pid-mu", VariantType::Int, 1, {"Produce PID information for the muon mass hypothesis"}},
+    {"pid-el", VariantType::Int, 0, {"Produce PID information for the electron mass hypothesis"}},
+    {"pid-mu", VariantType::Int, 0, {"Produce PID information for the muon mass hypothesis"}},
     {"pid-pikapr", VariantType::Int, 1, {"Produce PID information for the Pion, Kaon, Proton mass hypothesis"}},
     {"pid-nuclei", VariantType::Int, 0, {"Produce PID information for the Deuteron, Triton, Alpha mass hypothesis"}}};
   std::swap(workflowOptions, options);
@@ -66,6 +66,8 @@ struct pidTOFTaskQA {
   Configurable<int> nBinsP{"nBinsP", 400, "Number of bins for the momentum"};
   Configurable<float> MinP{"MinP", 0.1, "Minimum momentum in range"};
   Configurable<float> MaxP{"MaxP", 5, "Maximum momentum in range"};
+  Configurable<float> MinEta{"MinEta", -0.8, "Minimum eta in range"};
+  Configurable<float> MaxEta{"MaxEta", 0.8, "Maximum eta in range"};
 
   template <typename T>
   void makelogaxis(T h)
@@ -116,6 +118,12 @@ struct pidTOFTaskQA {
     addParticleHistos<6>();
     addParticleHistos<7>();
     addParticleHistos<8>();
+    histos.add("event/tofbeta", ";#it{p}_{T} (GeV/#it{c});TOF #beta", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 1.2}});
+    makelogaxis(histos.get<TH2>(HIST("event/tofbeta")));
+    histos.add("event/tofbetaPrm", ";#it{p}_{T} (GeV/#it{c});TOF #beta", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 1.2}});
+    makelogaxis(histos.get<TH2>(HIST("event/tofbetaPrm")));
+    histos.add("event/tofbetaSec", ";#it{p}_{T} (GeV/#it{c});TOF #beta", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 1.2}});
+    makelogaxis(histos.get<TH2>(HIST("event/tofbetaSec")));
   }
 
   template <uint8_t pidIndex, typename T, typename TT>
@@ -133,7 +141,7 @@ struct pidTOFTaskQA {
   }
 
   void process(aod::Collision const& collision,
-               soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOF, aod::McTrackLabels> const& tracks,
+               soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOF, aod::McTrackLabels, aod::pidRespTOFbeta> const& tracks,
                aod::McParticles& mcParticles)
   {
     const float collisionTime_ps = collision.collisionTime() * 1000.f;
@@ -141,6 +149,9 @@ struct pidTOFTaskQA {
     for (auto t : tracks) {
       //
       if (t.tofSignal() < 0) { // Skipping tracks without TOF
+        continue;
+      }
+      if (t.eta() < MinEta || t.eta() > MaxEta) {
         continue;
       }
       nTracksWithTOF++;
@@ -167,10 +178,13 @@ struct pidTOFTaskQA {
 
       // Fill for all
       histos.fill(HIST(hnsigma[pid_type]), t.pt(), nsigma);
+      histos.fill(HIST("event/tofbeta"), t.p(), t.beta());
       if (MC::isPhysicalPrimary(mcParticles, t.mcParticle())) { // Selecting primaries
         histos.fill(HIST(hnsigmaprm[pid_type]), t.pt(), nsigma);
+        histos.fill(HIST("event/tofbetaPrm"), t.p(), t.beta());
       } else {
         histos.fill(HIST(hnsigmasec[pid_type]), t.pt(), nsigma);
+        histos.fill(HIST("event/tofbetaSec"), t.p(), t.beta());
       }
       // Fill with PDG codes
       fillNsigma<0>(t, mcParticles, nsigma);
