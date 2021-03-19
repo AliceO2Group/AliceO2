@@ -16,12 +16,14 @@ o2_add_library(
           src/DecodedDataAggregator.cxx
           src/Decoder.cxx
           src/ElectronicsDelay.cxx
+          src/ELinkDataShaper.cxx
           src/ELinkDecoder.cxx
+          src/ELinkManager.cxx
           src/Encoder.cxx
           src/FEEIdConfig.cxx
-          src/GBTDecoder.cxx
           src/GBTOutputHandler.cxx
           src/GBTUserLogicEncoder.cxx
+          src/LinkDecoder.cxx
           src/RawFileReader.cxx
   PUBLIC_LINK_LIBRARIES
     ms_gsl::ms_gsl
