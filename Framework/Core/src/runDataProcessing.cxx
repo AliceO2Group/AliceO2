@@ -1876,7 +1876,6 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
     control.forcedTransitions = {
       DriverState::EXIT,                    //
       DriverState::PERFORM_CALLBACKS,       //
-      DriverState::SCHEDULE,                //
       DriverState::MERGE_CONFIGS,           //
       DriverState::IMPORT_CURRENT_WORKFLOW, //
       DriverState::MATERIALISE_WORKFLOW     //
