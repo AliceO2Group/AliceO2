@@ -44,12 +44,15 @@ class TOFResoALICE3 : public Parametrization
     const float mass = x[3];
     const float L = x[4];
     const float p2 = p * p;
-    const float ep = p * track.ErrorP;
-    const float Lc = L / 29.9792458;
+    // const float ep = x[5] * x[6];
+    const float ep = x[5] * p2;
+    const float Lc = L / 0.0299792458f;
+    
+    // const float Lc = L / 29.9792458f;
 
     /** perform PID **/
     const float mass2 = mass * mass;
-    const float texp = Lc / p * TMath::Sqrt(mass2 + p2);
+    // const float texp = Lc / p * TMath::Sqrt(mass2 + p2);
     const float etexp = Lc * mass2 / p2 / TMath::Sqrt(mass2 + p2) * ep;
     return TMath::Sqrt(etexp * etexp + mParameters[0] * mParameters[0] + evtimereso * evtimereso);
   }
