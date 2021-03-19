@@ -288,5 +288,5 @@ struct HFDplusToPiKPiCandidateSelector {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HFDplusToPiKPiCandidateSelector>(cfgc, "hf-dplus-topikpi-candidate-selector")};
+    adaptAnalysisTask<HFDplusToPiKPiCandidateSelector>(cfgc, TaskName{"hf-dplus-topikpi-candidate-selector"})};
 }
