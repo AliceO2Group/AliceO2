@@ -41,6 +41,8 @@ HBFUtil::fillHBIRvector(std::vector<IR>& dst, const IR& fromIR, const IR& payLoa
 will fill the provided `dst` vector with the IR's (between `fromIR` and `payLoadIR`) for which the HBFs should be
 generated and flushed to raw data **before** filling the payload of `payLoadIR`.
 
+Extra data member `HBFUtil.maxNOrbits` (= highest possible orbit by default) is used only in the RawFileWriter as a maximum orbit number (with respect to 1st orbit) for which detector payload is considered.
+
 See `Detectors/Raw/test/testHBFUtils.cxx` for details of usage of this class (also check the jira ticket about the [MC->Raw conversion](https://alice.its.cern.ch/jira/browse/O2-972)).
 
 ## RawFileWriter
@@ -88,6 +90,8 @@ writer.addData(rdh, ir, gsl::span( (char*)payload_f, payload_f_size ), <optional
 where <optional arguments> are currently: `bool preformatted = false, uint32_t trigger = 0, uint32_t detField = 0` (see below for the meaning).
 
 By default the data will be written using o2::header::RAWDataHeader. User can request particular RDH version via `writer.useRDHVersion(v)`.
+
+Note that the `addData` will have no effect if its `{bc, orbit}` exceeds the `HBFUtils.getFirstIR()` by more than `HBFUtils.maxNOrbits`.
 
 The `RawFileWriter` will take care of writing created CRU data to file in `super-pages` whose size can be set using
 `writer.setSuperPageSize(size_in_bytes)` (default in 1 MB).
