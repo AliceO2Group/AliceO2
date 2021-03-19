@@ -39,7 +39,7 @@ framework::WorkflowSpec getFT0Workflow(bool isExtendedMode, bool useProcess,
     specs.emplace_back(o2::ft0::getFT0DataProcessDPLSpec(dumpProcessor));
   }
   if (!disableRootOut) {
-    specs.emplace_back(o2::ft0::getFT0DigitWriterSpec(false, disableTrgInput));
+    specs.emplace_back(o2::ft0::getFT0DigitWriterSpec(false, !disableTrgInput));
   }
   return specs;
 }
