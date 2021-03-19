@@ -50,13 +50,15 @@ struct UPCForward {
   void init(o2::framework::InitContext&)
   {
     TString SelectionCuts[6] = {"NoSelection", "CMup11Trigger", "twotracks", "oppositecharge", "-2.5<Eta<-4", "Pt<1"};
+
+    /* // commenting out this part now as histogram registry do not seem to suppor the binlabel usign AxisSpec() or any other method
     for (int i = 0; i < 6; i++) {
-      hSelectionCounter->GetXaxis()->SetBinLabel(i + 1, SelectionCuts[i].Data());
-    }
+      registry.GetXaxis().(HIST("hSelectionCounter",SetBinLabel(i + 1, SelectionCuts[i].Data())));
+    }*/
   }
   void process(soa::Join<aod::BCs, aod::Run2BCInfos>::iterator const& bc, aod::Muons const& tracksMuon)
   {
-    hSelectionCounter->Fill(0);
+    registry.fill(HIST("hSelectionCounter"), 0);
 
     int iMuonTracknumber = 0;
     TLorentzVector p1, p2, p;
@@ -84,9 +86,9 @@ struct UPCForward {
     if (!isMUP11fired) {
       return;
     }
-    hSelectionCounter->Fill(1);
+    registry.fill(HIST("hSelectionCounter"), 1);
     for (auto& muon : tracksMuon) {
-      hCharge->Fill(muon.sign());
+      registry.fill(HIST("hCharge"), muon.sign());
       iMuonTracknumber++;
       if (muon.sign() > 0) {
         p1.SetXYZM(muon.px(), muon.py(), muon.pz(), mmuon);
@@ -100,32 +102,33 @@ struct UPCForward {
     if (iMuonTracknumber != 2) {
       return;
     }
-    hSelectionCounter->Fill(2);
+    registry.fill(HIST("hSelectionCounter"), 2);
     if (!ispositive || !isnegative) {
       return;
     }
-    hSelectionCounter->Fill(3);
+    registry.fill(HIST("hSelectionCounter"), 3);
 
     if (-4 < p1.Eta() < -2.5 || -4 < p2.Eta() < -2.5) {
       return;
     }
-    hSelectionCounter->Fill(4);
+    registry.fill(HIST("hSelectionCounter"), 4);
     p = p1 + p2;
     if (p.Pt() > 1) {
       return;
     }
-    hSelectionCounter->Fill(5);
-    hPt->Fill(p.Pt());
-    hPx->Fill(p.Px());
-    hPy->Fill(p.Py());
-    hPz->Fill(p.Pz());
-    hRap->Fill(p.Rapidity());
-    hMass->Fill(p.M());
-    hPhi->Fill(p.Phi());
-    hEta->Fill(p1.Eta());
-    hEta->Fill(p2.Eta());
-    hPtsingle_muons->Fill(p1.Pt());
-    hPtsingle_muons->Fill(p2.Pt());
+    registry.fill(HIST("hSelectionCounter"), 5);
+    registry.fill(HIST("hPt"), p.Pt());
+    registry.fill(HIST("hPx"), p.Px());
+    registry.fill(HIST("hPy"), p.Py());
+    registry.fill(HIST("hPz"), p.Pz());
+    registry.fill(HIST("hRap"), p.Rapidity());
+    registry.fill(HIST("hMass"), p.M());
+    registry.fill(HIST("hPhi"), p.Phi());
+    registry.fill(HIST("hEta"), p1.Eta());
+    registry.fill(HIST("hEta"), p2.Eta());
+    registry.fill(HIST("hPtsingle"), p1.Pt());
+    registry.fill(HIST("hPtsingle"), p2.Pt());
+
   } //end of process
 };
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
