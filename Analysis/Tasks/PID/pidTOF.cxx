@@ -17,6 +17,7 @@
 #include <CCDB/BasicCCDBManager.h>
 #include "AnalysisDataModel/PID/PIDResponse.h"
 #include "AnalysisDataModel/PID/PIDTOF.h"
+#include "AnalysisDataModel/TrackSelectionTables.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -36,7 +37,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h"
 
 struct pidTOFTask {
-  using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
+  using Trks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov>;
   using Coll = aod::Collisions;
   Produces<aod::pidRespTOF> tablePID;
   DetectorResponse response;
@@ -180,15 +181,15 @@ struct pidTOFTaskFast {
 
     tablePID.reserve(tracks.size());
     for (auto const& trk : tracks) {
-      tablePID(responseEl.GetSeparation2(trk.collision(), trk, resoParameters),
-               responseMu.GetSeparation2(trk.collision(), trk, resoParameters),
-               responsePi.GetSeparation2(trk.collision(), trk, resoParameters),
-               responseKa.GetSeparation2(trk.collision(), trk, resoParameters),
-               responsePr.GetSeparation2(trk.collision(), trk, resoParameters),
-               responseDe.GetSeparation2(trk.collision(), trk, resoParameters),
-               responseTr.GetSeparation2(trk.collision(), trk, resoParameters),
-               responseHe.GetSeparation2(trk.collision(), trk, resoParameters),
-               responseAl.GetSeparation2(trk.collision(), trk, resoParameters),
+      tablePID(responseEl.GetExpectedSigma2(trk.collision(), trk, resoParameters),
+               responseMu.GetExpectedSigma2(trk.collision(), trk, resoParameters),
+               responsePi.GetExpectedSigma2(trk.collision(), trk, resoParameters),
+               responseKa.GetExpectedSigma2(trk.collision(), trk, resoParameters),
+               responsePr.GetExpectedSigma2(trk.collision(), trk, resoParameters),
+               responseDe.GetExpectedSigma2(trk.collision(), trk, resoParameters),
+               responseTr.GetExpectedSigma2(trk.collision(), trk, resoParameters),
+               responseHe.GetExpectedSigma2(trk.collision(), trk, resoParameters),
+               responseAl.GetExpectedSigma2(trk.collision(), trk, resoParameters),
                responseEl.GetSeparation2(trk.collision(), trk, resoParameters),
                responseMu.GetSeparation2(trk.collision(), trk, resoParameters),
                responsePi.GetSeparation2(trk.collision(), trk, resoParameters),
@@ -277,6 +278,11 @@ struct pidTOFTaskQA {
     makelogaxis(histos.get<TH2>(HIST("event/tofsignal")));
     histos.add("event/tofbeta", ";#it{p} (GeV/#it{c});TOF #beta", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 2}});
     makelogaxis(histos.get<TH2>(HIST("event/tofbeta")));
+    histos.add("event/eta", ";#it{#eta};Entries", HistType::kTH1F, {{100, -2, 2}});
+    histos.add("event/length", ";Track length (cm);Entries", HistType::kTH1F, {{100, 0, 500}});
+    histos.add("event/pt", ";#it{p}_{T} (GeV/#it{c});Entries", HistType::kTH1F, {{nBinsP, MinP, MaxP}});
+    histos.add("event/p", ";#it{p} (GeV/#it{c});Entries", HistType::kTH1F, {{nBinsP, MinP, MaxP}});
+    histos.add("event/ptreso", ";#it{p} (GeV/#it{c});Entries", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {100, 0, 0.1}});
 
     addParticleHistos<0>();
     addParticleHistos<1>();
@@ -297,7 +303,7 @@ struct pidTOFTaskQA {
     histos.fill(HIST(hnsigma[i]), t.p(), nsigma);
   }
 
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOF, aod::pidRespTOFbeta> const& tracks)
+  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::pidRespTOF, aod::pidRespTOFbeta, aod::TracksExtended> const& tracks)
   {
     const float collisionTime_ps = collision.collisionTime() * 1000.f;
     histos.fill(HIST("event/vertexz"), collision.posZ());
@@ -305,7 +311,15 @@ struct pidTOFTaskQA {
 
     for (auto t : tracks) {
       //
+      if (abs(t.dcaXY()) > 0.2)
+        continue;
       if (t.tofSignal() < 0) { // Skipping tracks without TOF
+        continue;
+      }
+      if (t.eta() > MaxEta) {
+        continue;
+      }
+      if (t.eta() < MinEta) {
         continue;
       }
 
@@ -314,6 +328,10 @@ struct pidTOFTaskQA {
       //
       histos.fill(HIST("event/tofsignal"), t.p(), t.tofSignal());
       histos.fill(HIST("event/tofbeta"), t.p(), t.beta());
+      histos.fill(HIST("event/eta"), t.eta());
+      histos.fill(HIST("event/length"), t.length());
+      histos.fill(HIST("event/pt"), t.pt());
+      histos.fill(HIST("event/ptreso"), t.p(), t.sigma1Pt() * t.pt() * t.pt());
       //
       fillParticleHistos<0>(t, tof, t.tofExpSignalDiffEl(), t.tofNSigmaEl());
       fillParticleHistos<1>(t, tof, t.tofExpSignalDiffMu(), t.tofNSigmaMu());
