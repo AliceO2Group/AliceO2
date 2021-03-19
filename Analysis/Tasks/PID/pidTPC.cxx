@@ -27,6 +27,7 @@ using namespace o2::track;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
+    {"use-fast", VariantType::Int, 0, {"Use fast implementation"}},
     {"add-qa", VariantType::Int, 0, {"Produce TPC PID QA histograms"}}};
   std::swap(workflowOptions, options);
 }
@@ -99,6 +100,80 @@ struct pidTPCTask {
                responseTr.GetSeparation(response, trk.collision(), trk),
                responseHe.GetSeparation(response, trk.collision(), trk),
                responseAl.GetSeparation(response, trk.collision(), trk));
+    }
+  }
+};
+
+struct pidTPCTaskFast {
+  using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
+  using Coll = aod::Collisions;
+  Produces<aod::pidRespTPC> tablePID;
+  DetectorResponse response;
+  Parameters expParameters;
+  Parameters resoParameters;
+  Service<o2::ccdb::BasicCCDBManager> ccdb;
+  Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
+  Configurable<std::string> signalname{"param-signal", "BetheBloch", "Name of the parametrization for the expected signal, used in both file and CCDB mode"};
+  Configurable<std::string> sigmaname{"param-sigma", "TPCReso", "Name of the parametrization for the expected sigma, used in both file and CCDB mode"};
+  Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
+  Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
+
+  void init(o2::framework::InitContext&)
+  {
+    ccdb->setURL(url.value);
+    ccdb->setTimestamp(timestamp.value);
+    ccdb->setCaching(true);
+    ccdb->setLocalObjectValidityChecking();
+    // Not later than now objects
+    ccdb->setCreatedNotAfter(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+    //
+    const std::string fname = paramfile.value;
+    if (!fname.empty()) { // Loading the parametrization from file
+      response.LoadParamFromFile(fname.data(), signalname.value, DetectorResponse::kSignal);
+      response.LoadParamFromFile(fname.data(), sigmaname.value, DetectorResponse::kSigma);
+    } else { // Loading it from CCDB
+      const std::string path = "Analysis/PID/TPC";
+      response.LoadParam(DetectorResponse::kSignal, ccdb->getForTimeStamp<Parametrization>(path + "/" + signalname.value, timestamp.value));
+      response.LoadParam(DetectorResponse::kSigma, ccdb->getForTimeStamp<Parametrization>(path + "/" + sigmaname.value, timestamp.value));
+    }
+    expParameters = response.GetParam(DetectorResponse::kSignal)->GetParameters();
+    resoParameters = response.GetParam(DetectorResponse::kSigma)->GetParameters();
+  }
+
+  template <o2::track::PID::ID pid>
+  using ResponseImplementation = o2::pid::tpc::ELoss<Coll::iterator, Trks::iterator, pid>;
+  void process(Coll const& collisions, Trks const& tracks)
+  {
+    constexpr auto responseEl = ResponseImplementation<PID::Electron>();
+    constexpr auto responseMu = ResponseImplementation<PID::Muon>();
+    constexpr auto responsePi = ResponseImplementation<PID::Pion>();
+    constexpr auto responseKa = ResponseImplementation<PID::Kaon>();
+    constexpr auto responsePr = ResponseImplementation<PID::Proton>();
+    constexpr auto responseDe = ResponseImplementation<PID::Deuteron>();
+    constexpr auto responseTr = ResponseImplementation<PID::Triton>();
+    constexpr auto responseHe = ResponseImplementation<PID::Helium3>();
+    constexpr auto responseAl = ResponseImplementation<PID::Alpha>();
+
+    tablePID.reserve(tracks.size());
+    for (auto const& trk : tracks) {
+      tablePID(responseEl.GetExpectedSigma2(trk.collision(), trk, resoParameters),
+               responseMu.GetExpectedSigma2(trk.collision(), trk, resoParameters),
+               responsePi.GetExpectedSigma2(trk.collision(), trk, resoParameters),
+               responseKa.GetExpectedSigma2(trk.collision(), trk, resoParameters),
+               responsePr.GetExpectedSigma2(trk.collision(), trk, resoParameters),
+               responseDe.GetExpectedSigma2(trk.collision(), trk, resoParameters),
+               responseTr.GetExpectedSigma2(trk.collision(), trk, resoParameters),
+               responseHe.GetExpectedSigma2(trk.collision(), trk, resoParameters),
+               responseAl.GetExpectedSigma2(trk.collision(), trk, resoParameters),
+               responseEl.GetSeparation2(trk.collision(), trk, expParameters, resoParameters),
+               responseMu.GetSeparation2(trk.collision(), trk, expParameters, resoParameters),
+               responsePi.GetSeparation2(trk.collision(), trk, expParameters, resoParameters),
+               responseKa.GetSeparation2(trk.collision(), trk, expParameters, resoParameters),
+               responsePr.GetSeparation2(trk.collision(), trk, expParameters, resoParameters),
+               responseDe.GetSeparation2(trk.collision(), trk, expParameters, resoParameters),
+               responseTr.GetSeparation2(trk.collision(), trk, expParameters, resoParameters),
+               responseHe.GetSeparation2(trk.collision(), trk, expParameters, resoParameters),
+               responseAl.GetSeparation2(trk.collision(), trk, expParameters, resoParameters));
     }
   }
 };
@@ -206,7 +281,12 @@ struct pidTPCTaskQA {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  auto workflow = WorkflowSpec{adaptAnalysisTask<pidTPCTask>(cfgc, TaskName{"pidTPC-task"})};
+  auto workflow = WorkflowSpec{};
+  if (cfgc.options().get<int>("use-fast")) {
+    workflow.push_back(adaptAnalysisTask<pidTPCTaskFast>(cfgc, TaskName{"pidTPC-task"}));
+  } else {
+    workflow.push_back(adaptAnalysisTask<pidTPCTask>(cfgc, TaskName{"pidTPC-task"}));
+  }
   if (cfgc.options().get<int>("add-qa")) {
     workflow.push_back(adaptAnalysisTask<pidTPCTaskQA>(cfgc, TaskName{"pidTPCQA-task"}));
   }
