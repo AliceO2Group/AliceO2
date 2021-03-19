@@ -193,7 +193,7 @@ BOOST_AUTO_TEST_CASE(GBTUserLogicDecoder)
 
   uint8_t crateId = 5;
   uint8_t linkInCrate = 0;
-  uint16_t feeId = o2::mid::crateparams::makeROId(crateId, linkInCrate);
+  uint16_t feeId = o2::mid::crateparams::makeGBTUniqueId(crateId, linkInCrate);
   o2::mid::GBTUserLogicEncoder encoder;
   encoder.setFeeId(feeId);
   for (auto& item : inData) {

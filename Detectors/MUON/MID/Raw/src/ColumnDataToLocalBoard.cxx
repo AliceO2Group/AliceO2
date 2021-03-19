@@ -60,7 +60,7 @@ void ColumnDataToLocalBoard::process(gsl::span<const ColumnData> data)
   for (auto& item : mLocalBoardsMap) {
     if (mDebugMode || keepBoard(item.second)) {
       auto crateId = raw::getCrateId(item.first);
-      auto feeId = crateparams::makeROId(crateId, crateparams::getGBTIdFromBoardInCrate(raw::getLocId(item.second.boardId)));
+      auto feeId = crateparams::makeGBTUniqueId(crateId, crateparams::getGBTIdFromBoardInCrate(raw::getLocId(item.second.boardId)));
       mGBTMap[feeId].emplace_back(item.second);
     }
   }
