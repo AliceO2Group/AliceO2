@@ -362,13 +362,14 @@ class CcdbApi //: public DatabaseInterface
   void storeAsTFile_impl(const void* obj1, std::type_info const& info, std::string const& path, std::map<std::string, std::string> const& metadata,
                          long startValidityTimestamp = -1, long endValidityTimestamp = -1) const;
 
- private:
   /**
    * A generic helper implementation to query obj whose type is given by a std::type_info
    */
   void* retrieveFromTFile(std::type_info const&, std::string const& path, std::map<std::string, std::string> const& metadata,
                           long timestamp = -1, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",
                           const std::string& createdNotAfter = "", const std::string& createdNotBefore = "") const;
+
+ private:
 
   /**
    * A helper function to extract object from a local ROOT file
