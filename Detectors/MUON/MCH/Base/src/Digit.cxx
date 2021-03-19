@@ -19,10 +19,12 @@ bool closeEnough(double x, double y, double eps = 1E-6)
   return std::fabs(x - y) <= eps * std::max(1.0, std::max(std::fabs(x), std::fabs(y)));
 }
 
-Digit::Digit(int detid, int pad, unsigned long adc, int32_t time, uint16_t nSamples)
+Digit::Digit(int detid, int pad, unsigned long adc, int32_t time, uint16_t nSamples, bool saturated)
   : mTFtime(time), mNofSamples(nSamples), mDetID(detid), mPadID(pad), mADC(adc)
 {
-  setSaturated(false);
+  if (saturated) {
+    setSaturated(true);
+  }
 }
 
 void Digit::setNofSamples(uint16_t n)

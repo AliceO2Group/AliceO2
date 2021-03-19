@@ -30,7 +30,7 @@ class Digit
  public:
   Digit() = default;
 
-  Digit(int detid, int pad, unsigned long adc, int32_t time, uint16_t nSamples = 1);
+  Digit(int detid, int pad, unsigned long adc, int32_t time, uint16_t nSamples = 1, bool saturated = false);
   ~Digit() = default;
 
   bool operator==(const Digit&) const;

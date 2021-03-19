@@ -130,7 +130,7 @@ void CTFCoder::decode(const CTF::base& ec, VROF& rofVec, VCOL& digVec)
 
   uint32_t firstEntry = 0, rofCount = 0, digCount = 0;
   o2::InteractionRecord ir(header.firstBC, header.firstOrbit);
-
+  constexpr uint16_t SMask = 0x1 << 12, NSMask = SMask - 1;
   for (uint32_t irof = 0; irof < header.nROFs; irof++) {
     // restore ROFRecord
     if (orbitInc[irof]) {  // non-0 increment => new orbit
@@ -142,7 +142,7 @@ void CTFCoder::decode(const CTF::base& ec, VROF& rofVec, VCOL& digVec)
 
     firstEntry = digVec.size();
     for (uint8_t ic = 0; ic < nDigits[irof]; ic++) {
-      digVec.emplace_back(Digit{detID[digCount], padID[digCount], ADC[digCount], tfTime[digCount], nSamples[digCount]});
+      digVec.emplace_back(Digit{detID[digCount], padID[digCount], ADC[digCount], tfTime[digCount], uint16_t(nSamples[digCount] & NSMask), bool(nSamples[digCount] & SMask)});
       digCount++;
     }
     rofVec.emplace_back(ROFRecord{ir, int(firstEntry), nDigits[irof]});

@@ -142,7 +142,11 @@ class CTFHelper
   {
    public:
     using _Iter<Iter_nSamples, Digit, uint16_t>::_Iter;
-    value_type operator*() const { return mData[mIndex].nofSamples(); }
+    value_type operator*() const
+    {
+      auto ns = mData[mIndex].nofSamples();
+      return mData[mIndex].isSaturated() ? (ns | 0x1 << 12) : ns;
+    }
   };
 
   //_______________________________________________

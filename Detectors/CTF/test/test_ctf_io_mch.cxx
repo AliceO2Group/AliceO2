@@ -122,6 +122,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     BOOST_CHECK(cor.getPadID() == cdc.getPadID());
     BOOST_CHECK(cor.getTime() == cdc.getTime());
     BOOST_CHECK(cor.nofSamples() == cdc.nofSamples());
+    BOOST_CHECK(cor.isSaturated() == cdc.isSaturated());
     BOOST_CHECK(cor.getADC() == cdc.getADC());
   }
 }
