@@ -126,6 +126,7 @@ struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
   int nHBFPerTF = 1 + 0xff; // number of orbits per BC
   uint16_t bcFirst = 0;     ///< BC of 1st TF
   uint32_t orbitFirst = 0;  ///< orbit of 1st TF
+  uint32_t maxNOrbits = 0xffffffff; // max number of orbits to accept, used in digit->raw conversion
 
   O2ParamDef(HBFUtils, "HBFUtils");
 };

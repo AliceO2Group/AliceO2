@@ -169,6 +169,13 @@ void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t e
     LOG(WARNING) << "provided " << ir << " precedes first TF " << mHBFUtils.getFirstIR() << " | discarding data for " << link.describe();
     return;
   }
+  if (link.discardData || ir.orbit - mHBFUtils.orbitFirst >= mHBFUtils.maxNOrbits) {
+    if (!link.discardData) {
+      link.discardData = true;
+      LOG(INFO) << "max. allowed orbit " << mHBFUtils.orbitFirst + mHBFUtils.maxNOrbits - 1 << " exceeded, " << link.describe() << " will discard further data";
+    }
+    return;
+  }
   if (ir < mFirstIRAdded) {
     mFirstIRAdded = ir;
   }
