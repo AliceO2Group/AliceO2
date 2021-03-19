@@ -22,24 +22,20 @@ namespace ft0
 
 framework::WorkflowSpec getFT0Workflow(bool isExtendedMode, bool useProcess,
                                        bool dumpProcessor, bool dumpReader,
-                                       bool disableRootOut, bool disableTrgInput)
+                                       bool disableRootOut)
 {
   LOG(INFO) << "framework::WorkflowSpec getFT0Workflow";
   framework::WorkflowSpec specs;
   if (isExtendedMode) {
     specs.emplace_back(o2::ft0::getFT0DataReaderDPLSpec(RawReaderFT0ext{dumpReader}));
   } else {
-    if (disableTrgInput) {
-      specs.emplace_back(o2::ft0::getFT0DataReaderDPLSpec(RawReaderFT0<false>{dumpReader}));
-    } else {
-      specs.emplace_back(o2::ft0::getFT0DataReaderDPLSpec(RawReaderFT0<true>{dumpReader}));
-    }
+    specs.emplace_back(o2::ft0::getFT0DataReaderDPLSpec(RawReaderFT0<false>{dumpReader}));
   }
   if (useProcess) {
     specs.emplace_back(o2::ft0::getFT0DataProcessDPLSpec(dumpProcessor));
   }
   if (!disableRootOut) {
-    specs.emplace_back(o2::ft0::getFT0DigitWriterSpec(false, !disableTrgInput));
+    specs.emplace_back(o2::ft0::getFT0DigitWriterSpec(false, false));
   }
   return specs;
 }

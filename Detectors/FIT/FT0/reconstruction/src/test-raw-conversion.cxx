@@ -20,7 +20,7 @@ using namespace o2::ft0;
 int main(int argc, char* argv[])
 {
   const std::string genDigDile{"ft0digits.root"};
-  const std::string decDigDile{"o2digit_ft0.root"};
+  const std::string decDigDile{"o2_ft0digits.root"};
   const std::string branchBC{"FT0DIGITSBC"};
   const std::string branchCH{"FT0DIGITSCH"};
 
