@@ -105,7 +105,7 @@ class MCHChannelCalibDevice : public o2::framework::Task
  private:
   std::unique_ptr<o2::mch::calibration::MCHChannelCalibrator> mCalibrator;
 
-  int mLoggingInterval = {0};   /// time interval between statistics logging messages
+  int mLoggingInterval = {0}; /// time interval between statistics logging messages
 
   //________________________________________________________________
   void sendOutput(DataAllocator& output)

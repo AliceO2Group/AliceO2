@@ -357,10 +357,10 @@ class PedestalsTask
   std::string mMapCRUfile;
   std::string mMapFECfile;
 
-  std::string mInputSpec;   /// selection string for the input data
-  bool mPatchRDH = {false}; /// flag to enable patching of the RDHs
-  bool mDebug = {false};    /// flag to enable verbose output
-  int mLoggingInterval = {0};   /// time interval between statistics logging messages
+  std::string mInputSpec;     /// selection string for the input data
+  bool mPatchRDH = {false};   /// flag to enable patching of the RDHs
+  bool mDebug = {false};      /// flag to enable verbose output
+  int mLoggingInterval = {0}; /// time interval between statistics logging messages
 
   std::chrono::duration<double, std::milli> mTimeDecoder{};
   std::optional<std::chrono::duration<double, std::milli>> mTimeDecoderMin{};
