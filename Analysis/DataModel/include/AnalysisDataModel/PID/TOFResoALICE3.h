@@ -47,17 +47,34 @@ class TOFResoALICE3 : public Parametrization
     // const float ep = x[5] * x[6];
     const float ep = x[5] * p2;
     const float Lc = L / 0.0299792458f;
-    
     // const float Lc = L / 29.9792458f;
 
-    /** perform PID **/
     const float mass2 = mass * mass;
-    // const float texp = Lc / p * TMath::Sqrt(mass2 + p2);
     const float etexp = Lc * mass2 / p2 / TMath::Sqrt(mass2 + p2) * ep;
     return TMath::Sqrt(etexp * etexp + mParameters[0] * mParameters[0] + evtimereso * evtimereso);
   }
   ClassDef(TOFResoALICE3, 1);
 };
+
+float TOFResoALICE3Param(const float& momentum, const float& momentumError, const float& evtimereso, const float& length, const float& mass, const Parameters& parameters)
+{
+  if (momentum <= 0) {
+    return -999;
+  }
+
+  const float p2 = momentum * momentum;
+  const float Lc = length / 0.0299792458f;
+  const float mass2 = mass * mass;
+  const float ep = momentumError * p2;
+  const float etexp = Lc * mass2 / p2 / sqrt(mass2 + p2) * ep;
+  return TMath::Sqrt(etexp * etexp + parameters[0] * parameters[0] + evtimereso * evtimereso);
+}
+
+template <o2::track::PID::ID id, typename C, typename T>
+float TOFResoALICE3ParamTrack(const C& collision, const T& track, const Parameters& parameters)
+{
+  return TOFResoALICE3Param(track.p(), track.sigma1Pt(), collision.collisionTimeRes() * 1000.f, track.length, o2::track::pid_constants::sMasses[id], parameters);
+}
 
 } // namespace o2::pid::tof
 
