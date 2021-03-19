@@ -67,7 +67,7 @@ int initFieldFromGRP(const o2::parameters::GRPObject* grp)
     }
   }
   auto fld = o2::field::MagneticField::createFieldMap(grp->getL3Current(), grp->getDipoleCurrent(), o2::field::MagneticField::kConvLHC, grp->getFieldUniformity());
-  TGeoGlobalMagField::Instance()->SetField(fld, grp->getFieldUniformity());
+  TGeoGlobalMagField::Instance()->SetField(fld);
   TGeoGlobalMagField::Instance()->Lock();
   std::cout << "Running with the B field constructed out of GRP" << std::endl;
   std::cout << "Access field via TGeoGlobalMagField::Instance()->Field(xyz,bxyz) or via" << std::endl;
