@@ -11,6 +11,7 @@
 #define O2_FRAMEWORK_CONFIGURABLE_H_
 #include "Framework/ConfigurableKinds.h"
 #include <string>
+#include <vector>
 namespace o2::framework
 {
 template <typename T, ConfigParamKind K>
