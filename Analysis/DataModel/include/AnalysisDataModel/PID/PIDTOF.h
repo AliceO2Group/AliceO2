@@ -26,6 +26,7 @@
 #include "Framework/Logger.h"
 #include "ReconstructionDataFormats/PID.h"
 #include "AnalysisDataModel/PID/DetectorResponse.h"
+#include "AnalysisDataModel/PID/TOFReso.h"
 
 namespace o2::pid::tof
 {
@@ -111,9 +112,11 @@ class ExpTimes
 
   /// Gets the expected resolution of the measurement
   float GetExpectedSigma(const DetectorResponse& response, const Coll& col, const Trck& trk) const;
+  float GetExpectedSigma2(const Coll& col, const Trck& trk, const Parameters& parameters) const { return TOFResoParamTrack<id>(col, trk, parameters); };
 
   /// Gets the number of sigmas with respect the expected time
   float GetSeparation(const DetectorResponse& response, const Coll& col, const Trck& trk) const { return (trk.tofSignal() - col.collisionTime() * 1000.f - GetExpectedSignal(col, trk)) / GetExpectedSigma(response, col, trk); }
+  float GetSeparation2(const Coll& col, const Trck& trk, const Parameters& parameters) const { return (trk.tofSignal() - col.collisionTime() * 1000.f - GetExpectedSignal(col, trk)) / GetExpectedSigma2(col, trk, parameters); }
 };
 
 //_________________________________________________________________________

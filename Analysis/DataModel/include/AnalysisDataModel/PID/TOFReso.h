@@ -22,6 +22,7 @@
 #include "TMath.h"
 // O2 includes
 #include "AnalysisDataModel/PID/ParamBase.h"
+#include "ReconstructionDataFormats/PID.h"
 
 namespace o2::pid::tof
 {
@@ -46,6 +47,22 @@ class TOFReso : public Parametrization
   }
   ClassDef(TOFReso, 1);
 };
+
+float TOFResoParam(const float& momentum, const float& time, const float& evtimereso, const float& mass, const Parameters& parameters)
+{
+  if (momentum <= 0) {
+    return -999;
+  }
+  const float dpp = parameters[0] + parameters[1] * momentum + parameters[2] * mass / momentum; // mean relative pt resolution;
+  const float sigma = dpp * time / (1. + momentum * momentum / (mass * mass));
+  return sqrt(sigma * sigma + parameters[3] * parameters[3] / momentum / momentum + parameters[4] * parameters[4] + evtimereso * evtimereso);
+}
+
+template <o2::track::PID::ID id, typename C, typename T>
+float TOFResoParamTrack(const C& collision, const T& track, const Parameters& parameters)
+{
+  return TOFResoParam(track.p(), track.tofSignal(), collision.collisionTimeRes() * 1000.f, o2::track::pid_constants::sMasses[id], parameters);
+}
 
 } // namespace o2::pid::tof
 
