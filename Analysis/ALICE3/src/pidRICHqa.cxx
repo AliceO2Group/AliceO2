@@ -29,19 +29,25 @@ struct pidRICHQAMC {
                                           "Whether to use only physical primary particles."};
   Configurable<float> minLength{"minLength", 0, "Minimum length of accepted tracks (cm)"};
   Configurable<float> maxLength{"maxLength", 1000, "Maximum length of accepted tracks (cm)"};
+  Configurable<float> minEta{"minEta", -1.4, "Minimum eta of accepted tracks"};
+  Configurable<float> maxEta{"maxEta", 1.4, "Maximum eta of accepted tracks"};
   Configurable<int> nBinsP{"nBinsP", 500, "Number of momentum bins"};
   Configurable<float> minP{"minP", 0.01, "Minimum momentum plotted (GeV/c)"};
   Configurable<float> maxP{"maxP", 100, "Maximum momentum plotted (GeV/c)"};
   Configurable<int> nBinsNsigma{"nBinsNsigma", 600, "Number of Nsigma bins"};
-  Configurable<float> minNsigma{"minNsigma", -10.f, "Minimum Nsigma plotted"};
-  Configurable<float> maxNsigma{"maxNsigma", 10.f, "Maximum Nsigma plotted"};
+  Configurable<float> minNsigma{"minNsigma", -100.f, "Minimum Nsigma plotted"};
+  Configurable<float> maxNsigma{"maxNsigma", 100.f, "Maximum Nsigma plotted"};
   Configurable<int> nBinsDelta{"nBinsDelta", 100, "Number of delta bins"};
   Configurable<float> minDelta{"minDelta", -1.f, "Minimum delta plotted (rad)"};
   Configurable<float> maxDelta{"maxDelta", 1.f, "Maximum delta plotted (rad)"};
+  Configurable<int> logAxis{"logAxis", 1, "Flag to use a log momentum axis"};
 
   template <typename T>
   void makelogaxis(T h)
   {
+    if (logAxis == 0) {
+      return;
+    }
     const int nbins = h->GetNbinsX();
     double binp[nbins + 1];
     double max = h->GetXaxis()->GetBinUpEdge(nbins);
@@ -112,6 +118,9 @@ struct pidRICHQAMC {
         continue;
       }
       if (trackExtra.length() > maxLength) {
+        continue;
+      }
+      if (track.eta() > maxEta || track.eta() < minEta) {
         continue;
       }
       const auto mcParticle = labels.iteratorAt(track.globalIndex()).mcParticle();
