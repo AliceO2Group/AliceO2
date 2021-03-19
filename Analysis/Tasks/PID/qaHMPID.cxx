@@ -71,6 +71,6 @@ struct pidHMPIDQA {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfg)
 {
-  WorkflowSpec workflow{adaptAnalysisTask<pidHMPIDQAMC>(cfg, TaskName{"pidHMPID-qa"})};
+  WorkflowSpec workflow{adaptAnalysisTask<pidHMPIDQA>(cfg, TaskName{"pidHMPID-qa"})};
   return workflow;
 }
