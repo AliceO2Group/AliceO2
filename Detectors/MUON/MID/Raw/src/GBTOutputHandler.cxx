@@ -126,7 +126,7 @@ void GBTOutputHandler::addLoc(size_t ilink, const ELinkDecoder& decoder, EventTy
 {
   /// Adds the local board to the output data vector
   auto firstEntry = mData->size();
-  mData->push_back({decoder.getStatusWord(), decoder.getTriggerWord(), raw::makeUniqueLocID(crateparams::getCrateIdFromROId(mFeeId), decoder.getId()), decoder.getInputs()});
+  mData->push_back({decoder.getStatusWord(), decoder.getTriggerWord(), raw::makeUniqueLocID(crateparams::getCrateIdFromGBTUniqueId(mFeeId), decoder.getId()), decoder.getInputs()});
   InteractionRecord intRec(mIRs[ilink].bc + correctedClock, mIRs[ilink].orbit);
   mROFRecords->emplace_back(intRec, eventType, firstEntry, 1);
   for (int ich = 0; ich < 4; ++ich) {
@@ -170,7 +170,7 @@ void GBTOutputHandler::onDoneRegDebug(size_t ilink, const ELinkDecoder& decoder)
   processTrigger(ilink, decoder, eventType, correctedClock);
   // If we want to distinguish the two regional e-links, we can use the link ID instead
   auto firstEntry = mData->size();
-  mData->push_back({decoder.getStatusWord(), decoder.getTriggerWord(), raw::makeUniqueLocID(crateparams::getCrateIdFromROId(mFeeId), ilink + 8 * (crateparams::getGBTIdInCrate(mFeeId) - 1)), decoder.getInputs()});
+  mData->push_back({decoder.getStatusWord(), decoder.getTriggerWord(), raw::makeUniqueLocID(crateparams::getCrateIdFromGBTUniqueId(mFeeId), ilink + 8 * (crateparams::getGBTIdInCrate(mFeeId) - 1)), decoder.getInputs()});
 
   auto orbit = (decoder.getTriggerWord() & raw::sORB) ? mIRs[ilink].orbit - 1 : mIRs[ilink].orbit;
 

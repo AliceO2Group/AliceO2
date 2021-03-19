@@ -43,7 +43,7 @@ bool RawDataChecker::process(gsl::span<const ROBoard> localBoards, gsl::span<con
     auto& loc = localBoards[rof.firstEntry];
     auto crateId = raw::getCrateId(loc.boardId);
     auto linkId = crateparams::getGBTIdFromBoardInCrate(raw::getLocId(loc.boardId));
-    auto feeId = crateparams::makeROId(crateId, linkId);
+    auto feeId = crateparams::makeGBTUniqueId(crateId, linkId);
     rofs[feeId].emplace_back(rof);
   }
 
