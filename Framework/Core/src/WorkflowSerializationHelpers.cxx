@@ -637,7 +637,7 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
   w.Key("workflow");
   w.StartArray();
 
-  for (auto const& processor : workflow) {
+  for (auto& processor : workflow) {
     if (processor.name.rfind("internal-dpl", 0) == 0) {
       continue;
     }
@@ -647,7 +647,7 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
 
     w.Key("inputs");
     w.StartArray();
-    for (auto const& input : processor.inputs) {
+    for (auto& input : processor.inputs) {
       /// FIXME: this only works for a selected set of InputSpecs...
       ///        a proper way to fully serialize an InputSpec with
       ///        a DataDescriptorMatcher is needed.
@@ -672,7 +672,7 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
       if (input.metadata.empty() == false) {
         w.Key("metadata");
         w.StartArray();
-        for (auto const& metadata : input.metadata) {
+        for (auto& metadata : input.metadata) {
           w.StartObject();
           w.Key("name");
           w.String(metadata.name.c_str());
@@ -695,7 +695,7 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
 
     w.Key("outputs");
     w.StartArray();
-    for (auto const& output : processor.outputs) {
+    for (auto& output : processor.outputs) {
       w.StartObject();
       w.Key("binding");
       if (output.binding.value.empty()) {
@@ -724,7 +724,7 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
 
     w.Key("options");
     w.StartArray();
-    for (auto const& option : processor.options) {
+    for (auto& option : processor.options) {
       if (option.name == "start-value-enumeration" || option.name == "end-value-enumeration" || option.name == "step-value-enumeration") {
         continue;
       }
@@ -777,7 +777,7 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
 
   w.Key("metadata");
   w.StartArray();
-  for (auto const& info : metadata) {
+  for (auto& info : metadata) {
     w.StartObject();
     w.Key("name");
     w.String(info.name.c_str());
@@ -785,13 +785,13 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
     w.String(info.executable.c_str());
     w.Key("cmdLineArgs");
     w.StartArray();
-    for (auto const& arg : info.cmdLineArgs) {
+    for (auto& arg : info.cmdLineArgs) {
       w.String(arg.c_str());
     }
     w.EndArray();
     w.Key("workflowOptions");
     w.StartArray();
-    for (auto const& option : info.workflowOptions) {
+    for (auto& option : info.workflowOptions) {
       w.StartObject();
       w.Key("name");
       w.String(option.name.c_str());
@@ -809,7 +809,7 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
     w.EndArray();
     w.Key("channels");
     w.StartArray();
-    for (auto const& channel : info.channels) {
+    for (auto& channel : info.channels) {
       w.String(channel.c_str());
     }
     w.EndArray();
