@@ -500,7 +500,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     // connect the FIT digit writer
     specs.emplace_back(o2::ft0::getFT0DigitWriterSpec(mctruth));
   }
-// the CTP part
+  // the CTP part
   if (isEnabled(o2::detectors::DetID::CTP)) {
     detList.emplace_back(o2::detectors::DetID::CTP);
     // connect the CTP digitization
