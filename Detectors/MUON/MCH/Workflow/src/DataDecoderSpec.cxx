@@ -35,7 +35,7 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "DPLUtils/DPLRawParser.h"
 
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 #include "MCHRawCommon/DataFormats.h"
 #include "MCHRawDecoder/DataDecoder.h"
 #include "MCHRawElecMap/Mapper.h"

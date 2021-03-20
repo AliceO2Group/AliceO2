@@ -14,7 +14,7 @@
 #include "DigitReader.h"
 #include "Framework/Logger.h"
 #include "Headers/RAWDataHeader.h"
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 #include "MCHRawCommon/DataFormats.h"
 #include "MCHRawElecMap/Mapper.h"
 #include "MCHRawEncoderPayload/DataBlock.h"

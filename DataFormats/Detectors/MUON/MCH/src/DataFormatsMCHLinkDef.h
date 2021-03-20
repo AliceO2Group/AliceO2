@@ -18,4 +18,7 @@
 #pragma link C++ class o2::mch::TrackMCH + ;
 #pragma link C++ class o2::mch::DsChannelId + ;
 #pragma link C++ class o2::mch::DsChannelGroup + ;
+#pragma link C++ class o2::mch::Digit + ;
+#pragma link C++ class std::vector < o2::mch::Digit> + ;
+
 #endif

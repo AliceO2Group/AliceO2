@@ -32,7 +32,7 @@
 
 #include "DataFormatsMCH/ROFRecord.h"
 #include "MCHBase/ClusterBlock.h"
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 
 using namespace o2::framework;
 

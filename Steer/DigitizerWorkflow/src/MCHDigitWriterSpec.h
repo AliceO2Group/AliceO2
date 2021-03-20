@@ -14,7 +14,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
 

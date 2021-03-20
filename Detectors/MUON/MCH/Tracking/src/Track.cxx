@@ -17,7 +17,7 @@
 
 #include <iostream>
 
-#include <FairMQLogger.h>
+#include "Framework/Logger.h"
 
 namespace o2
 {

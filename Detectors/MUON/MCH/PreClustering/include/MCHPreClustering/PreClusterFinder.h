@@ -23,7 +23,7 @@
 
 #include <gsl/span>
 
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 #include "MCHBase/PreCluster.h"
 
 namespace o2
