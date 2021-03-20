@@ -43,6 +43,10 @@
 #include "FT0DigitizerSpec.h"
 #include "FT0DigitWriterSpec.h"
 
+// for CTP
+#include "CTPDigitizerSpec.h"
+#include "CTPDigitWriterSpec.h"
+
 // for FV0
 #include "FV0DigitizerSpec.h"
 #include "FV0DigitWriterSpec.h"
@@ -496,7 +500,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     // connect the FIT digit writer
     specs.emplace_back(o2::ft0::getFT0DigitWriterSpec(mctruth));
   }
-
+// the CTP part
+  if (isEnabled(o2::detectors::DetID::CTP)) {
+    detList.emplace_back(o2::detectors::DetID::CTP);
+    // connect the CTP digitization
+    specs.emplace_back(o2::ctp::getCTPDigitizerSpec(fanoutsize++, mctruth));
+    // connect the CTP digit writer
+    specs.emplace_back(o2::ctp::getCTPDigitWriterSpec(mctruth));
+  }
   // the FV0 part
   if (isEnabled(o2::detectors::DetID::FV0)) {
     detList.emplace_back(o2::detectors::DetID::FV0);
