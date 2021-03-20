@@ -45,7 +45,7 @@ struct HFD0CandidateSelector {
   Configurable<double> d_nSigmaTOF{"d_nSigmaTOF", 3., "Nsigma cut on TOF only"};
   Configurable<double> d_nSigmaTOFCombined{"d_nSigmaTOFCombined", 5., "Nsigma cut on TOF combined with TPC"};
 
-  Configurable<std::vector<double>> ptBins{"ptBins", std::vector{hf_cuts_d0_topik::pTBins_v}, "pT bin limits"};
+  Configurable<std::vector<double>> ptBins{"ptBins", std::vector<double>{hf_cuts_d0_topik::pTBins_v}, "pT bin limits"};
   Configurable<LabeledArray<double>> cuts{"D0_to_pi_K_cuts", {hf_cuts_d0_topik::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "D0 candidate selection per pT bin"};
 
   /// Selection on goodness of daughter tracks
