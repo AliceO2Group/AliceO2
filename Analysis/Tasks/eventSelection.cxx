@@ -67,7 +67,6 @@ struct EvSelParameters {
   float fT0CBBupper = 2.0;  // ns
 };
 
-
 struct BcSelectionTask {
   Produces<aod::BcSels> bcsel;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
@@ -137,14 +136,13 @@ struct BcSelectionTask {
   }
 };
 
-
 struct EventSelectionTask {
   Produces<aod::EvSels> evsel;
   Configurable<bool> isMC{"isMC", 0, "0 - data, 1 - MC"};
 
   using BCsWithBcSels = soa::Join<aod::BCs, aod::BcSels>;
 
-  void process(aod::Collision const& col,  BCsWithBcSels const& bcs)
+  void process(aod::Collision const& col, BCsWithBcSels const& bcs)
   {
     auto bc = col.bc_as<BCsWithBcSels>();
     int32_t alias[kNaliases];
@@ -173,7 +171,6 @@ struct EventSelectionTask {
     evsel(alias, bbT0A, bbT0C, bbV0A, bbV0C, bgV0A, bgV0C, bbZNA, bbZNC, bbFDA, bbFDC, bgFDA, bgFDC, foundFT0);
   }
 };
-
 
 struct EventSelectionTaskRun3 {
   Produces<aod::EvSels> evsel;
