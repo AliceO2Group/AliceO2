@@ -16,7 +16,7 @@
 #ifndef O2_MCH_SIMULATION_MCHDIGITIZER_H_
 #define O2_MCH_SIMULATION_MCHDIGITIZER_H_
 
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 #include "MCHSimulation/Hit.h"
 
 #include "SimulationDataFormat/MCCompLabel.h"

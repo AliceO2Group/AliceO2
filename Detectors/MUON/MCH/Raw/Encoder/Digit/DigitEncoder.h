@@ -11,7 +11,7 @@
 #ifndef O2_MCH_RAW_ENCODER_DIGIT_ENCODER_H
 #define O2_MCH_RAW_ENCODER_DIGIT_ENCODER_H
 
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 #include "MCHRawElecMap/DsDetId.h"
 #include "MCHRawElecMap/DsElecId.h"
 #include "MCHRawElecMap/Mapper.h"

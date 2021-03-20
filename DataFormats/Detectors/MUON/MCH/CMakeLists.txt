@@ -9,10 +9,11 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(DataFormatsMCH
-               SOURCES src/TrackMCH.cxx
+               SOURCES src/TrackMCH.cxx src/Digit.cxx
 	           PUBLIC_LINK_LIBRARIES O2::CommonDataFormat)
 
 o2_target_root_dictionary(DataFormatsMCH
-                          HEADERS include/DataFormatsMCH/ROFRecord.h
-                                  include/DataFormatsMCH/TrackMCH.h
-                                  include/DataFormatsMCH/DsChannelGroup.h)
+                          HEADERS include/DataFormatsMCH/Digit.h
+                                  include/DataFormatsMCH/DsChannelGroup.h
+                                  include/DataFormatsMCH/ROFRecord.h
+                                  include/DataFormatsMCH/TrackMCH.h)
