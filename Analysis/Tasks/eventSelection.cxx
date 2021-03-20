@@ -67,13 +67,11 @@ struct EvSelParameters {
   float fT0CBBupper = 2.0;  // ns
 };
 
-struct EventSelectionTask {
-  Produces<aod::EvSels> evsel;
+
+struct BcSelectionTask {
+  Produces<aod::BcSels> bcsel;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
-  Configurable<bool> isMC{"isMC", 0, "0 - data, 1 - MC"};
-
   EvSelParameters par;
-
   void init(InitContext&)
   {
     ccdb->setURL("http://ccdb-test.cern.ch:8080");
@@ -81,17 +79,16 @@ struct EventSelectionTask {
     ccdb->setLocalObjectValidityChecking();
   }
 
-  using BCsWithTimestampsAndRun2Infos = soa::Join<aod::BCsWithTimestamps, aod::Run2BCInfos>;
+  using BCsWithRun2InfosTimestampsAndMatches = soa::Join<aod::BCs, aod::Run2BCInfos, aod::Timestamps, aod::Run2MatchedToBCSparse>;
+
   void process(
-    aod::Run2MatchedSparse::iterator const& col,
-    BCsWithTimestampsAndRun2Infos const& bcs,
+    BCsWithRun2InfosTimestampsAndMatches::iterator const& bc,
     aod::Zdcs const& zdcs,
     aod::FV0As const& fv0as,
     aod::FV0Cs const& fv0cs,
     aod::FT0s const& ft0s,
     aod::FDDs const& fdds)
   {
-    auto bc = col.bc_as<BCsWithTimestampsAndRun2Infos>();
     TriggerAliases* aliases = ccdb->getForTimeStamp<TriggerAliases>("Trigger/TriggerAliases", bc.timestamp());
     if (!aliases) {
       LOGF(fatal, "Trigger aliases are not available in CCDB for run=%d at timestamp=%llu", bc.runNumber(), bc.timestamp());
@@ -108,14 +105,14 @@ struct EventSelectionTask {
       alias[al.first] |= (triggerMaskNext50 & al.second) > 0;
     }
 
-    float timeZNA = col.has_zdc() ? col.zdc().timeZNA() : -999.f;
-    float timeZNC = col.has_zdc() ? col.zdc().timeZNC() : -999.f;
-    float timeV0A = col.has_fv0a() ? col.fv0a().time() : -999.f;
-    float timeV0C = col.has_fv0c() ? col.fv0c().time() : -999.f;
-    float timeT0A = col.has_ft0() ? col.ft0().timeA() : -999.f;
-    float timeT0C = col.has_ft0() ? col.ft0().timeC() : -999.f;
-    float timeFDA = col.has_fdd() ? col.fdd().timeA() : -999.f;
-    float timeFDC = col.has_fdd() ? col.fdd().timeC() : -999.f;
+    float timeZNA = bc.has_zdc() ? bc.zdc().timeZNA() : -999.f;
+    float timeZNC = bc.has_zdc() ? bc.zdc().timeZNC() : -999.f;
+    float timeV0A = bc.has_fv0a() ? bc.fv0a().time() : -999.f;
+    float timeV0C = bc.has_fv0c() ? bc.fv0c().time() : -999.f;
+    float timeT0A = bc.has_ft0() ? bc.ft0().timeA() : -999.f;
+    float timeT0C = bc.has_ft0() ? bc.ft0().timeC() : -999.f;
+    float timeFDA = bc.has_fdd() ? bc.fdd().timeA() : -999.f;
+    float timeFDC = bc.has_fdd() ? bc.fdd().timeC() : -999.f;
 
     LOGF(debug, "timeZNA=%f timeZNC=%f", timeZNA, timeZNC);
     LOGF(debug, "timeV0A=%f timeV0C=%f", timeV0A, timeV0C);
@@ -135,16 +132,48 @@ struct EventSelectionTask {
     bool bbT0A = timeT0A > par.fT0ABBlower && timeT0A < par.fT0ABBupper;
     bool bbT0C = timeT0C > par.fT0CBBlower && timeT0C < par.fT0CBBupper;
 
+    // Fill bc selection columns
+    bcsel(alias, bbT0A, bbT0C, bbV0A, bbV0C, bgV0A, bgV0C, bbZNA, bbZNC, bbFDA, bbFDC, bgFDA, bgFDC);
+  }
+};
+
+
+struct EventSelectionTask {
+  Produces<aod::EvSels> evsel;
+  Configurable<bool> isMC{"isMC", 0, "0 - data, 1 - MC"};
+
+  using BCsWithBcSels = soa::Join<aod::BCs, aod::BcSels>;
+
+  void process(aod::Collision const& col,  BCsWithBcSels const& bcs)
+  {
+    auto bc = col.bc_as<BCsWithBcSels>();
+    int32_t alias[kNaliases];
+    for (int i = 0; i < kNaliases; i++) {
+      alias[i] = bc.alias()[i];
+    }
+    bool bbZNA = bc.bbZNA();
+    bool bbZNC = bc.bbZNC();
+    bool bbV0A = bc.bbV0A();
+    bool bbV0C = bc.bbV0C();
+    bool bgV0A = bc.bgV0A();
+    bool bgV0C = bc.bgV0C();
+    bool bbFDA = bc.bbFDA();
+    bool bbFDC = bc.bbFDC();
+    bool bgFDA = bc.bgFDA();
+    bool bgFDC = bc.bgFDA();
+    bool bbT0A = bc.bbT0A();
+    bool bbT0C = bc.bbT0C();
+
     if (isMC) {
       bbZNA = 1;
       bbZNC = 1;
     }
-
     // Fill event selection columns
     int64_t foundFT0 = -1; // this column is not used in run2 analysis
     evsel(alias, bbT0A, bbT0C, bbV0A, bbV0C, bgV0A, bgV0C, bbZNA, bbZNC, bbFDA, bbFDC, bgFDA, bgFDC, foundFT0);
   }
 };
+
 
 struct EventSelectionTaskRun3 {
   Produces<aod::EvSels> evsel;
@@ -220,7 +249,9 @@ struct EventSelectionTaskRun3 {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   if (cfgc.options().get<int>("selection-run") == 2) {
-    return WorkflowSpec{adaptAnalysisTask<EventSelectionTask>(cfgc)};
+    return WorkflowSpec{
+      adaptAnalysisTask<BcSelectionTask>(cfgc),
+      adaptAnalysisTask<EventSelectionTask>(cfgc)};
   } else {
     return WorkflowSpec{
       adaptAnalysisTask<EventSelectionTaskRun3>(cfgc)};

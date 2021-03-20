@@ -16,9 +16,12 @@ using namespace o2;
 using namespace o2::framework;
 
 struct EventSelectionQaPerBc {
+  // TODO fill aliases and class names in axis labels
   OutputObj<TH1F> hFiredClasses{TH1F("hFiredClasses", "", 100, -0.5, 99.5)};
-  void process(soa::Join<aod::BCs, aod::Run2BCInfos>::iterator const& bc)
+  OutputObj<TH1F> hFiredAliases{TH1F("hFiredAliases", "", kNaliases, -0.5, kNaliases)};
+  void process(soa::Join<aod::BCs, aod::Run2BCInfos, aod::BcSels>::iterator const& bc)
   {
+    // Fill fired trigger classes
     uint64_t triggerMask = bc.triggerMask();
     uint64_t triggerMaskNext50 = bc.triggerMaskNext50();
     for (int i = 0; i < 50; i++) {
@@ -27,6 +30,13 @@ struct EventSelectionQaPerBc {
       }
       if (triggerMaskNext50 & 1ull << i) {
         hFiredClasses->Fill(i + 50);
+      }
+    }
+
+    // Fill fired aliases
+    for (int i = 0; i < kNaliases; i++) {
+      if (bc.alias()[i]) {
+        hFiredAliases->Fill(i);
       }
     }
   }
