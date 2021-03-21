@@ -22,6 +22,7 @@
 // Specific detectors specs
 #include "ITSMFTWorkflow/EntropyDecoderSpec.h"
 #include "TPCWorkflow/EntropyDecoderSpec.h"
+#include "TRDWorkflow/EntropyDecoderSpec.h"
 #include "FT0Workflow/EntropyDecoderSpec.h"
 #include "FV0Workflow/EntropyDecoderSpec.h"
 #include "FDDWorkflow/EntropyDecoderSpec.h"
@@ -80,6 +81,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
   if (dets[DetID::TPC]) {
     specs.push_back(o2::tpc::getEntropyDecoderSpec());
+  }
+  if (dets[DetID::TRD]) {
+    specs.push_back(o2::trd::getEntropyDecoderSpec());
   }
   if (dets[DetID::TOF]) {
     specs.push_back(o2::tof::getEntropyDecoderSpec());

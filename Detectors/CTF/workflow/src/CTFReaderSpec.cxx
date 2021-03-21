@@ -25,6 +25,7 @@
 #include "DetectorsCommonDataFormats/CTFHeader.h"
 #include "DataFormatsITSMFT/CTF.h"
 #include "DataFormatsTPC/CTF.h"
+#include "DataFormatsTRD/CTF.h"
 #include "DataFormatsFT0/CTF.h"
 #include "DataFormatsFV0/CTF.h"
 #include "DataFormatsFDD/CTF.h"
@@ -35,6 +36,7 @@
 #include "DataFormatsCPV/CTF.h"
 #include "DataFormatsZDC/CTF.h"
 #include "Algorithm/RangeTokenizer.h"
+#include <TStopwatch.h>
 
 using namespace o2::framework;
 
@@ -56,6 +58,24 @@ bool readFromTree(TTree& tree, const std::string brname, T& dest, int ev = 0)
   }
   return false;
 }
+
+using DetID = o2::detectors::DetID;
+
+class CTFReaderSpec : public o2::framework::Task
+{
+ public:
+  CTFReaderSpec(DetID::mask_t dm, const std::string& inp);
+  ~CTFReaderSpec() override = default;
+  void init(o2::framework::InitContext& ic) final;
+  void run(o2::framework::ProcessingContext& pc) final;
+
+ private:
+  DetID::mask_t mDets;             // detectors
+  std::vector<std::string> mInput; // input files
+  uint32_t mTFCounter = 0;
+  size_t mNextToProcess = 0;
+  TStopwatch mTimer;
+};
 
 ///_______________________________________
 CTFReaderSpec::CTFReaderSpec(DetID::mask_t dm, const std::string& inp) : mDets(dm)
@@ -131,6 +151,13 @@ void CTFReaderSpec::run(ProcessingContext& pc)
   if (detsTF[det]) {
     auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::tpc::CTF));
     o2::tpc::CTF::readFromTree(bufVec, *(tree.get()), det.getName());
+    setFirstTFOrbit(det.getName());
+  }
+
+  det = DetID::TRD;
+  if (detsTF[det]) {
+    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::trd::CTF));
+    o2::trd::CTF::readFromTree(bufVec, *(tree.get()), det.getName());
     setFirstTFOrbit(det.getName());
   }
 
