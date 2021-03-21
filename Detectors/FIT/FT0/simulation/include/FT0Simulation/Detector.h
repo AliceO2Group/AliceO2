@@ -280,7 +280,7 @@ class Detector : public o2::base::DetImpl<Detector>
   Float_t mStartA[3] = {20., 20., 5};
   Float_t mInStart[3] = {2.9491, 2.9491, 2.5};
 
-  ClassDefOverride(Detector, 4);
+  ClassDefOverride(Detector, 5);
 };
 
 // Input and output function for standard C++ input/output.
