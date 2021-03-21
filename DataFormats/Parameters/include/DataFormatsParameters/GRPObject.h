@@ -70,8 +70,10 @@ class GRPObject
   /// getters/setters for magnets currents
   o2::units::Current_t getL3Current() const { return mL3Current; }
   o2::units::Current_t getDipoleCurrent() const { return mDipoleCurrent; }
+  bool getFieldUniformity() const { return mUniformField; }
   void setL3Current(o2::units::Current_t v) { mL3Current = v; }
   void setDipoleCurrent(o2::units::Current_t v) { mDipoleCurrent = v; }
+  void setFieldUniformity(bool v) { mUniformField = v; }
   /// getter/setter for data taking period name
   const std::string& getDataPeriod() const { return mDataPeriod; }
   void setDataPeriod(const std::string v) { mDataPeriod = v; }
@@ -142,6 +144,7 @@ class GRPObject
   o2::units::AngleRad_t mCrossingAngle = 0.f; ///< crossing angle in radians (as deviation from pi)
   o2::units::Current_t mL3Current = 0.f;      ///< signed current in L3
   o2::units::Current_t mDipoleCurrent = 0.f;  ///< signed current in Dipole
+  bool mUniformField = false;                 ///< uniformity of magnetic field
   float mBeamEnergyPerZ = 0.f;                ///< beam energy per charge (i.e. sqrt(s)/2 for pp)
 
   int mBeamAZ[beamDirection::NBeamDirections] = {0, 0}; ///< A<<16+Z for each beam
@@ -151,7 +154,7 @@ class GRPObject
   std::string mDataPeriod = ""; ///< name of the period
   std::string mLHCState = "";   ///< machine state
 
-  ClassDefNV(GRPObject, 1);
+  ClassDefNV(GRPObject, 2);
 };
 
 //______________________________________________

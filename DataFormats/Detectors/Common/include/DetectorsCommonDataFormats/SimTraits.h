@@ -109,7 +109,7 @@ class SimTraits
 // forward declares the HitTypes
 namespace trd
 {
-class HitType;
+class Hit;
 }
 namespace itsmft
 {
@@ -173,7 +173,7 @@ struct DetIDToHitTypes {
 // specialize for detectors
 template <>
 struct DetIDToHitTypes<o2::detectors::DetID::TRD> {
-  using HitType = o2::trd::HitType;
+  using HitType = o2::trd::Hit;
 };
 template <>
 struct DetIDToHitTypes<o2::detectors::DetID::ITS> {

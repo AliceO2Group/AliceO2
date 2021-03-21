@@ -61,7 +61,7 @@ class O2PrimaryServerDevice final : public FairMQDevice
     auto& conf = o2::conf::SimConfig::Instance();
 
     // init magnetic field as it might be needed by the generator
-    auto field = o2::field::MagneticField::createNominalField(conf.getConfigData().mField);
+    auto field = o2::field::MagneticField::createNominalField(conf.getConfigData().mField, conf.getConfigData().mUniformField);
     TGeoGlobalMagField::Instance()->SetField(field);
     TGeoGlobalMagField::Instance()->Lock();
 

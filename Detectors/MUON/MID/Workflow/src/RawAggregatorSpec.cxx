@@ -49,7 +49,7 @@ class RawAggregatorDeviceDPL
     auto tStart = std::chrono::high_resolution_clock::now();
 
     auto msg = pc.inputs().get("mid_decoded");
-    auto data = of::DataRefUtils::as<const LocalBoardRO>(msg);
+    auto data = of::DataRefUtils::as<const ROBoard>(msg);
 
     auto msgROF = pc.inputs().get("mid_decoded_rof");
     auto inROFRecords = of::DataRefUtils::as<const ROFRecord>(msgROF);

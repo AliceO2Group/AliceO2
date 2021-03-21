@@ -13,7 +13,7 @@
 #include "FT0Workflow/FT0Workflow.h"
 #include "FT0Workflow/FT0DataProcessDPLSpec.h"
 #include "FT0Workflow/FT0DataReaderDPLSpec.h"
-#include "FT0Workflow/FT0DigitWriterDPLSpec.h"
+#include "FT0Workflow/FT0DigitWriterSpec.h"
 #include "FT0Workflow/RawReaderFT0.h"
 namespace o2
 {
@@ -29,13 +29,13 @@ framework::WorkflowSpec getFT0Workflow(bool isExtendedMode, bool useProcess,
   if (isExtendedMode) {
     specs.emplace_back(o2::ft0::getFT0DataReaderDPLSpec(RawReaderFT0ext{dumpReader}));
   } else {
-    specs.emplace_back(o2::ft0::getFT0DataReaderDPLSpec(RawReaderFT0{dumpReader}));
+    specs.emplace_back(o2::ft0::getFT0DataReaderDPLSpec(RawReaderFT0<false>{dumpReader}));
   }
   if (useProcess) {
     specs.emplace_back(o2::ft0::getFT0DataProcessDPLSpec(dumpProcessor));
   }
   if (!disableRootOut) {
-    specs.emplace_back(o2::ft0::getFT0DigitWriterDPLSpec());
+    specs.emplace_back(o2::ft0::getFT0DigitWriterSpec(false, false));
   }
   return specs;
 }

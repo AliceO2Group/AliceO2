@@ -81,33 +81,41 @@ struct EventSelectionTask {
     ccdb->setLocalObjectValidityChecking();
   }
 
-  void process(aod::Run2MatchedSparse::iterator const& collision, aod::BCsWithTimestamps const&, aod::Zdcs const& zdcs, aod::FV0As const& fv0as, aod::FV0Cs const& fv0cs, aod::FT0s const& ft0s, aod::FDDs const& fdds)
+  using BCsWithTimestampsAndRun2Infos = soa::Join<aod::BCsWithTimestamps, aod::Run2BCInfos>;
+  void process(
+    aod::Run2MatchedSparse::iterator const& col,
+    BCsWithTimestampsAndRun2Infos const& bcs,
+    aod::Zdcs const& zdcs,
+    aod::FV0As const& fv0as,
+    aod::FV0Cs const& fv0cs,
+    aod::FT0s const& ft0s,
+    aod::FDDs const& fdds)
   {
-    auto bc = collision.bc_as<aod::BCsWithTimestamps>();
-    LOGF(debug, "timestamp=%llu", bc.timestamp());
+    auto bc = col.bc_as<BCsWithTimestampsAndRun2Infos>();
     TriggerAliases* aliases = ccdb->getForTimeStamp<TriggerAliases>("Trigger/TriggerAliases", bc.timestamp());
     if (!aliases) {
       LOGF(fatal, "Trigger aliases are not available in CCDB for run=%d at timestamp=%llu", bc.runNumber(), bc.timestamp());
     }
-    uint64_t triggerMask = bc.triggerMask();
-    LOGF(debug, "triggerMask=%llu", triggerMask);
 
     // fill fired aliases
     int32_t alias[kNaliases] = {0};
-    for (auto& al : aliases->GetAliasToClassIdsMap()) {
-      for (auto& classIndex : al.second) {
-        alias[al.first] |= (triggerMask & (1ull << classIndex)) > 0;
-      }
+    uint64_t triggerMask = bc.triggerMask();
+    for (auto& al : aliases->GetAliasToTriggerMaskMap()) {
+      alias[al.first] |= (triggerMask & al.second) > 0;
+    }
+    uint64_t triggerMaskNext50 = bc.triggerMaskNext50();
+    for (auto& al : aliases->GetAliasToTriggerMaskNext50Map()) {
+      alias[al.first] |= (triggerMaskNext50 & al.second) > 0;
     }
 
-    float timeZNA = collision.has_zdc() ? collision.zdc().timeZNA() : -999.f;
-    float timeZNC = collision.has_zdc() ? collision.zdc().timeZNC() : -999.f;
-    float timeV0A = collision.has_fv0a() ? collision.fv0a().time() : -999.f;
-    float timeV0C = collision.has_fv0c() ? collision.fv0c().time() : -999.f;
-    float timeT0A = collision.has_ft0() ? collision.ft0().timeA() : -999.f;
-    float timeT0C = collision.has_ft0() ? collision.ft0().timeC() : -999.f;
-    float timeFDA = collision.has_fdd() ? collision.fdd().timeA() : -999.f;
-    float timeFDC = collision.has_fdd() ? collision.fdd().timeC() : -999.f;
+    float timeZNA = col.has_zdc() ? col.zdc().timeZNA() : -999.f;
+    float timeZNC = col.has_zdc() ? col.zdc().timeZNC() : -999.f;
+    float timeV0A = col.has_fv0a() ? col.fv0a().time() : -999.f;
+    float timeV0C = col.has_fv0c() ? col.fv0c().time() : -999.f;
+    float timeT0A = col.has_ft0() ? col.ft0().timeA() : -999.f;
+    float timeT0C = col.has_ft0() ? col.ft0().timeC() : -999.f;
+    float timeFDA = col.has_fdd() ? col.fdd().timeA() : -999.f;
+    float timeFDC = col.has_fdd() ? col.fdd().timeC() : -999.f;
 
     LOGF(debug, "timeZNA=%f timeZNC=%f", timeZNA, timeZNC);
     LOGF(debug, "timeV0A=%f timeV0C=%f", timeV0A, timeV0C);
@@ -142,22 +150,26 @@ struct EventSelectionTaskRun3 {
   Produces<aod::EvSels> evsel;
 
   EvSelParameters par;
-
-  void process(aod::Collision const& collision, soa::Join<aod::BCs, aod::Run3MatchedToBCSparse> const& bct0s, aod::Zdcs const& zdcs, aod::FV0As const& fv0as, aod::FT0s const& ft0s, aod::FDDs const& fdds)
+  using BCsWithMatchings = soa::Join<aod::BCs, aod::Run3MatchedToBCSparse>;
+  void process(aod::Collision const& col, BCsWithMatchings const& bcs,
+               aod::Zdcs const& zdcs,
+               aod::FV0As const& fv0as,
+               aod::FT0s const& ft0s,
+               aod::FDDs const& fdds)
   {
     int64_t ft0Dist;
     int64_t foundFT0 = -1;
     float timeA = -999.f;
     float timeC = -999.f;
 
-    auto bcIter = collision.bc_as<soa::Join<aod::BCs, aod::Run3MatchedToBCSparse>>();
+    auto bcIter = col.bc_as<BCsWithMatchings>();
 
     uint64_t apprBC = bcIter.globalBC();
-    uint64_t meanBC = apprBC - std::lround(collision.collisionTime() / o2::constants::lhc::LHCBunchSpacingNS);
-    int deltaBC = std::ceil(collision.collisionTimeRes() / o2::constants::lhc::LHCBunchSpacingNS * 4);
+    uint64_t meanBC = apprBC - std::lround(col.collisionTime() / o2::constants::lhc::LHCBunchSpacingNS);
+    int deltaBC = std::ceil(col.collisionTimeRes() / o2::constants::lhc::LHCBunchSpacingNS * 4);
 
     int moveCount = 0;
-    while (bcIter != bct0s.end() && bcIter.globalBC() <= meanBC + deltaBC && bcIter.globalBC() >= meanBC - deltaBC) {
+    while (bcIter != bcs.end() && bcIter.globalBC() <= meanBC + deltaBC && bcIter.globalBC() >= meanBC - deltaBC) {
       if (bcIter.has_ft0()) {
         ft0Dist = bcIter.globalBC() - meanBC;
         foundFT0 = bcIter.ft0().globalIndex();
@@ -168,7 +180,7 @@ struct EventSelectionTaskRun3 {
     }
 
     bcIter.moveByIndex(-moveCount);
-    while (bcIter != bct0s.begin() && bcIter.globalBC() <= meanBC + deltaBC && bcIter.globalBC() >= meanBC - deltaBC) {
+    while (bcIter != bcs.begin() && bcIter.globalBC() <= meanBC + deltaBC && bcIter.globalBC() >= meanBC - deltaBC) {
       --bcIter;
       if (bcIter.has_ft0() && (meanBC - bcIter.globalBC()) < ft0Dist) {
         foundFT0 = bcIter.ft0().globalIndex();
@@ -208,9 +220,9 @@ struct EventSelectionTaskRun3 {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   if (cfgc.options().get<int>("selection-run") == 2) {
-    return WorkflowSpec{adaptAnalysisTask<EventSelectionTask>(cfgc, TaskName{"event-selection"})};
+    return WorkflowSpec{adaptAnalysisTask<EventSelectionTask>(cfgc)};
   } else {
     return WorkflowSpec{
-      adaptAnalysisTask<EventSelectionTaskRun3>(cfgc, TaskName{"event-selection"})};
+      adaptAnalysisTask<EventSelectionTaskRun3>(cfgc)};
   }
 }

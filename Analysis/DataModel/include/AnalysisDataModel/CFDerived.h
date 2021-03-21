@@ -17,7 +17,7 @@
 namespace o2::aod
 {
 DECLARE_SOA_TABLE(CFCollisions, "AOD", "CFCOLLISION", o2::soa::Index<>,
-                  o2::aod::bc::RunNumber, o2::aod::collision::PosZ, o2::aod::cent::CentV0M);
+                  bc::RunNumber, collision::PosZ, cent::CentV0M, timestamp::Timestamp);
 using CFCollision = CFCollisions::iterator;
 
 namespace cftrack

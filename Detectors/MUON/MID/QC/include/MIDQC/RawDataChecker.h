@@ -21,7 +21,7 @@
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDRaw/CrateMasks.h"
 #include "MIDRaw/ElectronicsDelay.h"
-#include "MIDRaw/LocalBoardRO.h"
+#include "DataFormatsMID/ROBoard.h"
 #include "MIDQC/GBTRawDataChecker.h"
 
 namespace o2
@@ -32,7 +32,7 @@ class RawDataChecker
 {
  public:
   void init(const CrateMasks& masks);
-  bool process(gsl::span<const LocalBoardRO> localBoards, gsl::span<const ROFRecord> rofRecords, gsl::span<const ROFRecord> pageRecords);
+  bool process(gsl::span<const ROBoard> localBoards, gsl::span<const ROFRecord> rofRecords, gsl::span<const ROFRecord> pageRecords);
   /// Gets the number of processed events
   unsigned int getNEventsProcessed() const;
   /// Gets the number of faulty events

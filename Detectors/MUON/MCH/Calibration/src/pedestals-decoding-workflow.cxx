@@ -137,6 +137,7 @@ class PedestalsTask
   {
     mDebug = ic.options().get<bool>("debug");
     mPatchRDH = ic.options().get<bool>("patch-rdh");
+    mLoggingInterval = ic.options().get<int>("logging-interval") * 1000;
 
     auto mapCRUfile = ic.options().get<std::string>("cru-map");
     auto mapFECfile = ic.options().get<std::string>("fec-map");
@@ -277,6 +278,31 @@ class PedestalsTask
   }
 
   //_________________________________________________________________________________________________
+  void logStats()
+  {
+    static auto loggerStart = std::chrono::high_resolution_clock::now();
+    static auto loggerEnd = loggerStart;
+    static uint64_t nDigits = 0;
+    static uint64_t nTF = 0;
+
+    if (mLoggingInterval == 0) {
+      return;
+    }
+
+    nDigits += mDigits.size();
+    nTF += 1;
+
+    loggerEnd = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> loggerElapsed = loggerEnd - loggerStart;
+    if (loggerElapsed.count() > mLoggingInterval) {
+      LOG(INFO) << "Processed " << nDigits << " digits in " << nTF << " time frames";
+      nDigits = 0;
+      nTF = 0;
+      loggerStart = std::chrono::high_resolution_clock::now();
+    }
+  }
+
+  //_________________________________________________________________________________________________
   void run(framework::ProcessingContext& pc)
   {
     auto createBuffer = [&](auto& vec, size_t& size) {
@@ -306,10 +332,6 @@ class PedestalsTask
       }
     }
 
-    if (mDebug) {
-      usleep(100000);
-    }
-
     size_t digitsSize;
     char* digitsBuffer = createBuffer(mDigits, digitsSize);
 
@@ -320,6 +342,8 @@ class PedestalsTask
     auto freefct = [](void* data, void*) { free(data); };
     pc.outputs().adoptChunk(Output{"MCH", "PDIGITS", 0}, digitsBuffer, digitsSize, freefct, nullptr);
     pc.outputs().adoptChunk(Output{"MCH", "ERRORS", 0}, errorsBuffer, errorsSize, freefct, nullptr);
+
+    logStats();
   }
 
  private:
@@ -333,9 +357,10 @@ class PedestalsTask
   std::string mMapCRUfile;
   std::string mMapFECfile;
 
-  std::string mInputSpec;   /// selection string for the input data
-  bool mPatchRDH = {false}; /// flag to enable verbose output
-  bool mDebug = {false};    /// flag to enable verbose output
+  std::string mInputSpec;     /// selection string for the input data
+  bool mPatchRDH = {false};   /// flag to enable patching of the RDHs
+  bool mDebug = {false};      /// flag to enable verbose output
+  int mLoggingInterval = {0}; /// time interval between statistics logging messages
 
   std::chrono::duration<double, std::milli> mTimeDecoder{};
   std::optional<std::chrono::duration<double, std::milli>> mTimeDecoderMin{};
@@ -369,6 +394,7 @@ o2::framework::DataProcessorSpec getPedestalsSpec(std::string inputSpec)
     Outputs{OutputSpec{"MCH", "PDIGITS", 0, Lifetime::Timeframe}, OutputSpec{"MCH", "ERRORS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<o2::mch::raw::PedestalsTask>(inputSpec)},
     Options{{"debug", VariantType::Bool, false, {"enable verbose output"}},
+            {"logging-interval", VariantType::Int, 0, {"time interval in seconds between logging messages (set to zero to disable)"}},
             {"patch-rdh", VariantType::Bool, false, {"fill the FEEID RDH field using the CRUID value"}},
             {"noise-threshold", VariantType::Float, (float)2.0, {"maximum acceptable noise value"}},
             {"pedestal-threshold", VariantType::Float, (float)150, {"maximum acceptable pedestal value"}},

@@ -19,7 +19,7 @@
 #include <vector>
 #include <gsl/gsl>
 
-#include "MIDRaw/LocalBoardRO.h"
+#include "DataFormatsMID/ROBoard.h"
 
 namespace o2
 {

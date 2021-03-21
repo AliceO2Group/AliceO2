@@ -24,6 +24,8 @@
 #include <bitset>
 #include <iostream>
 
+#include <tuple>
+
 namespace o2
 {
 namespace ft0
@@ -35,14 +37,15 @@ struct Triggers {
          bitC,
          bitVertex,
          bitCen,
-         bitSCen };
+         bitSCen,
+         bitLaser };
   uint8_t triggersignals = 0; // T0 trigger signals
   int8_t nChanA = 0;          // number of fired channels A side
   int8_t nChanC = 0;          // number of fired channels A side
-  int32_t amplA = -1000;      // sum amplitude A side
-  int32_t amplC = -1000;      // sum amplitude C side
-  int16_t timeA = -1000;      // average time A side
-  int16_t timeC = -1000;      // average time C side
+  int32_t amplA = -5000;      // sum amplitude A side
+  int32_t amplC = -5000;      // sum amplitude C side
+  int16_t timeA = -5000;      // average time A side
+  int16_t timeC = -5000;      // average time C side
   uint8_t eventFlags = 0;     // event conditions
   Triggers() = default;
   Triggers(uint8_t signals, int8_t chanA, int8_t chanC, int32_t aamplA, int32_t aamplC, int16_t atimeA, int16_t atimeC)
@@ -60,11 +63,12 @@ struct Triggers {
   bool getVertex() const { return (triggersignals & (1 << bitVertex)) != 0; }
   bool getCen() const { return (triggersignals & (1 << bitCen)) != 0; }
   bool getSCen() const { return (triggersignals & (1 << bitSCen)) != 0; }
+  bool getLaserBit() const { return (triggersignals & (1 << bitLaser)) != 0; }
 
   void setTriggers(Bool_t isA, Bool_t isC, Bool_t isVrtx, Bool_t isCnt, Bool_t isSCnt, int8_t chanA, int8_t chanC, int32_t aamplA,
-                   int32_t aamplC, int16_t atimeA, int16_t atimeC)
+                   int32_t aamplC, int16_t atimeA, int16_t atimeC, Bool_t isLaser = kFALSE)
   {
-    triggersignals = (isA << bitA) | (isC << bitC) | (isVrtx << bitVertex) | (isCnt << bitCen) | (isSCnt << bitSCen);
+    triggersignals = (isA << bitA) | (isC << bitC) | (isVrtx << bitVertex) | (isCnt << bitCen) | (isSCnt << bitSCen) | (isLaser << bitLaser);
     nChanA = chanA;
     nChanC = chanC;
     amplA = aamplA;
@@ -76,11 +80,15 @@ struct Triggers {
   {
     triggersignals = 0;
     nChanA = nChanC = 0;
-    amplA = amplC = -1000;
-    timeA = timeC = -1000;
+    amplA = amplC = -5000;
+    timeA = timeC = -5000;
   }
-
-  ClassDefNV(Triggers, 1);
+  bool operator==(Triggers const& other) const
+  {
+    return std::tie(triggersignals, nChanA, nChanC, amplA, amplC, timeA, timeC) ==
+           std::tie(other.triggersignals, other.nChanA, other.nChanC, other.amplA, other.amplC, other.timeA, other.timeC);
+  }
+  ClassDefNV(Triggers, 2);
 };
 
 struct DetTrigInput {
@@ -121,9 +129,9 @@ struct Digit {
   uint16_t getBC() const { return mIntRecord.bc; }
   Triggers getTriggers() const { return mTriggers; }
   int getEventID() const { return mEventID; }
-  o2::InteractionRecord getIntRecord() { return mIntRecord; };
+  o2::InteractionRecord getIntRecord() const { return mIntRecord; };
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
-
+  DetTrigInput makeTrgInput() const { return DetTrigInput{mIntRecord, mTriggers.getOrA(), mTriggers.getOrC(), mTriggers.getVertex(), mTriggers.getCen(), mTriggers.getSCen()}; }
   void printStream(std::ostream& stream) const;
   void setTriggers(Triggers trig) { mTriggers = trig; };
   void setEventStatus(uint8_t stat) { mEventStatus = stat; };
@@ -131,7 +139,11 @@ struct Digit {
   bool getStatusFlag(EEventStatus bit) const { return bool(mEventStatus << bit); }
   uint8_t getEventStatusWord() const { return mEventStatus; }
 
-  ClassDefNV(Digit, 5);
+  bool operator==(const Digit& other) const
+  {
+    return std::tie(ref, mTriggers, mIntRecord) == std::tie(other.ref, other.mTriggers, other.mIntRecord);
+  }
+  ClassDefNV(Digit, 6);
 };
 
 //For TCM extended mode (calibration mode), TCMdataExtended digit

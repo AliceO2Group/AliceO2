@@ -59,9 +59,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto dumpProcessor = configcontext.options().get<bool>("dump-blocks-process");
   auto dumpReader = configcontext.options().get<bool>("dump-blocks-reader");
   auto isExtendedMode = configcontext.options().get<bool>("tcm-extended-mode");
-  auto disableRootOut =
-    configcontext.options().get<bool>("disable-root-output");
+  auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   LOG(INFO) << "WorkflowSpec FLPWorkflow";
-  return std::move(o2::ft0::getFT0Workflow(
-    isExtendedMode, useProcessor, dumpProcessor, dumpReader, disableRootOut));
+  return std::move(o2::ft0::getFT0Workflow(isExtendedMode, useProcessor, dumpProcessor, dumpReader, disableRootOut));
 }

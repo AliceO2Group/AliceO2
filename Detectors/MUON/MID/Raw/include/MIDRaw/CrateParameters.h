@@ -33,24 +33,18 @@ static constexpr unsigned int sMaxNBoardsInLink = 8;
 static constexpr unsigned int sMaxNBoardsInCrate = sMaxNBoardsInLink * sNGBTsPerCrate;
 static constexpr unsigned int sNELinksPerGBT = 10;
 
-/// Builds the RO ID from the crate ID and the GBT ID in the crate
-inline uint16_t makeROId(uint8_t crateId, uint8_t gbtId) { return sNGBTsPerCrate * crateId + gbtId; }
-/// Gets the crate ID from the RO ID
-inline uint8_t getCrateIdFromROId(uint16_t roId) { return roId / sNGBTsPerCrate; }
+/// Builds the GBT unique ID from the crate ID and the GBT ID in the crate
+inline uint16_t makeGBTUniqueId(uint8_t crateId, uint8_t gbtId) { return sNGBTsPerCrate * crateId + gbtId; }
+/// Gets the crate ID from the GBT unique ID
+inline uint8_t getCrateIdFromGBTUniqueId(uint16_t gbtUniqueId) { return gbtUniqueId / sNGBTsPerCrate; }
 /// Gets the link ID in crate from the RO ID
-inline uint8_t getGBTIdInCrate(uint16_t roId) { return roId % sNGBTsPerCrate; }
+inline uint8_t getGBTIdInCrate(uint16_t gbtUniqueId) { return gbtUniqueId % sNGBTsPerCrate; }
 /// Gets the link ID in crate from the board ID
 inline uint8_t getGBTIdFromBoardInCrate(uint16_t locId) { return locId / sMaxNBoardsInLink; }
 /// Gets the absolute crate ID
 inline uint8_t getCrateId(bool isRightSide, uint8_t crateIdOneSide) { return isRightSide ? crateIdOneSide : crateIdOneSide + sNCratesPerSide; }
 /// Tests if the crate is in the right side
 inline bool isRightSide(uint8_t crateId) { return (crateId / sNCratesPerSide) == 0; }
-/// Builds the unique loc ID from the crate ID and the loc ID in the crate
-inline uint8_t makeUniqueLocID(uint8_t crateId, uint8_t locId) { return locId | (crateId << 4); }
-/// Gets the crate ID from the absolute local board ID
-inline uint8_t getCrateId(uint8_t uniqueLocId) { return (uniqueLocId >> 4) & 0xF; }
-/// Gets the loc ID in the crate from the unique local board ID
-inline uint8_t getLocId(uint8_t uniqueLocId) { return uniqueLocId & 0xF; }
 } // namespace crateparams
 } // namespace mid
 } // namespace o2

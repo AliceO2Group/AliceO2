@@ -48,8 +48,9 @@ struct SimConfigData {
   std::string mCCDBUrl;                      // the URL where to find CCDB
   long mTimestamp;                           // timestamp to anchor transport simulation to
   int mField;                                // L3 field setting in kGauss: +-2,+-5 and 0
+  bool mUniformField = false;                // uniform magnetic field
 
-  ClassDefNV(SimConfigData, 3);
+  ClassDefNV(SimConfigData, 4);
 };
 
 // A singleton class which can be used

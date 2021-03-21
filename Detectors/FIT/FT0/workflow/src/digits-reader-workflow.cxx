@@ -26,8 +26,11 @@ using namespace o2::framework;
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
+
   std::vector<o2::framework::ConfigParamSpec> options{
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}}};
+  options.push_back(ConfigParamSpec{"disable-trigger-input", o2::framework::VariantType::Bool, false, {"Disble trigger input DPL channel"}});
+
   std::string keyvaluehelp("Semicolon separated key=value strings");
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
   std::swap(workflowOptions, options);
@@ -39,7 +42,7 @@ WorkflowSpec defineDataProcessing(const ConfigContext& ctx)
 {
   WorkflowSpec specs;
 
-  DataProcessorSpec producer = o2::ft0::getDigitReaderSpec(ctx.options().get<bool>("disable-mc"));
+  DataProcessorSpec producer = o2::ft0::getDigitReaderSpec(ctx.options().get<bool>("disable-mc"), ctx.options().get<bool>("disable-trigger-input"));
   specs.push_back(producer);
   return specs;
 }

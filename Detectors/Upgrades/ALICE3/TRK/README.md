@@ -1,5 +1,5 @@
 <!-- doxy
-\page refDetectorsUpgradesPostLS4TRK UpgradesTRK
+\page refDetectorsUpgradesALICE3TRK UpgradesTRK
 /doxy -->
 
 # TRK

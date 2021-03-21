@@ -90,7 +90,7 @@ void build_geometry(FairRunSim* run = nullptr)
   run->SetMaterials("media.geo"); // Materials
 
   // we need a field to properly init the media
-  auto field = o2::field::MagneticField::createNominalField(confref.getConfigData().mField);
+  auto field = o2::field::MagneticField::createNominalField(confref.getConfigData().mField, confref.getConfigData().mUniformField);
   run->SetField(field);
 
   // Create geometry

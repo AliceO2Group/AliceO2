@@ -15,62 +15,24 @@
 using namespace o2;
 using namespace o2::framework;
 
-struct EventSelectionTask {
-  aod::FV0A getVZeroA(aod::BC const& bc, aod::FV0As const& vzeros)
+struct EventSelectionQaPerBc {
+  OutputObj<TH1F> hFiredClasses{TH1F("hFiredClasses", "", 100, -0.5, 99.5)};
+  void process(soa::Join<aod::BCs, aod::Run2BCInfos>::iterator const& bc)
   {
-    for (auto& vzero : vzeros) {
-      if (vzero.bc() == bc) {
-        return vzero;
+    uint64_t triggerMask = bc.triggerMask();
+    uint64_t triggerMaskNext50 = bc.triggerMaskNext50();
+    for (int i = 0; i < 50; i++) {
+      if (triggerMask & 1ull << i) {
+        hFiredClasses->Fill(i);
+      }
+      if (triggerMaskNext50 & 1ull << i) {
+        hFiredClasses->Fill(i + 50);
       }
     }
-    aod::FV0A dummy;
-    return dummy;
   }
+};
 
-  aod::FV0C getVZeroC(aod::BC const& bc, aod::FV0Cs const& vzeros)
-  {
-    for (auto& vzero : vzeros) {
-      if (vzero.bc() == bc) {
-        return vzero;
-      }
-    }
-    aod::FV0C dummy;
-    return dummy;
-  }
-
-  aod::Zdc getZdc(aod::BC const& bc, aod::Zdcs const& zdcs)
-  {
-    for (auto& zdc : zdcs) {
-      if (zdc.bc() == bc) {
-        return zdc;
-      }
-    }
-    aod::Zdc dummy;
-    return dummy;
-  }
-
-  aod::FT0 getFT0(aod::BC const& bc, aod::FT0s const& ft0s)
-  {
-    for (auto& ft0 : ft0s) {
-      if (ft0.bc() == bc) {
-        return ft0;
-      }
-    }
-    aod::FT0 dummy;
-    return dummy;
-  }
-
-  aod::FDD getFDD(aod::BC const& bc, aod::FDDs const& fdds)
-  {
-    for (auto& fdd : fdds) {
-      if (fdd.bc() == bc) {
-        return fdd;
-      }
-    }
-    aod::FDD dummy;
-    return dummy;
-  }
-
+struct EventSelectionQaPerCollision {
   OutputObj<TH1F> hTimeV0Aall{TH1F("hTimeV0Aall", "", 200, -50., 50.)};
   OutputObj<TH1F> hTimeV0Call{TH1F("hTimeV0Call", "", 200, -50., 50.)};
   OutputObj<TH1F> hTimeZNAall{TH1F("hTimeZNAall", "", 250, -25., 25.)};
@@ -91,28 +53,34 @@ struct EventSelectionTask {
   Configurable<bool> isMC{"isMC", 0, "0 - data, 1 - MC"};
   Configurable<int> selection{"sel", 7, "trigger: 7 - sel7, 8 - sel8"};
 
-  void process(soa::Join<aod::Collisions, aod::EvSels>::iterator const& col, aod::BCs const& bcs, aod::Zdcs const& zdcs, aod::FV0As const& fv0as, aod::FV0Cs const& fv0cs, aod::FT0s ft0s, aod::FDDs fdds)
+  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Run2MatchedSparse>::iterator const& col,
+               aod::Zdcs const& zdcs,
+               aod::FV0As const& fv0as,
+               aod::FV0Cs const& fv0cs,
+               aod::FT0s ft0s,
+               aod::FDDs fdds)
   {
     if (!isMC && !col.alias()[kINT7]) {
       return;
     }
 
-    auto fv0a = getVZeroA(col.bc(), fv0as);
-    auto fv0c = getVZeroC(col.bc(), fv0cs);
-    hTimeV0Aall->Fill(fv0a.time());
-    hTimeV0Call->Fill(fv0c.time());
+    float timeZNA = col.has_zdc() ? col.zdc().timeZNA() : -999.f;
+    float timeZNC = col.has_zdc() ? col.zdc().timeZNC() : -999.f;
+    float timeV0A = col.has_fv0a() ? col.fv0a().time() : -999.f;
+    float timeV0C = col.has_fv0c() ? col.fv0c().time() : -999.f;
+    float timeT0A = col.has_ft0() ? col.ft0().timeA() : -999.f;
+    float timeT0C = col.has_ft0() ? col.ft0().timeC() : -999.f;
+    float timeFDA = col.has_fdd() ? col.fdd().timeA() : -999.f;
+    float timeFDC = col.has_fdd() ? col.fdd().timeC() : -999.f;
 
-    auto zdc = getZdc(col.bc(), zdcs);
-    hTimeZNAall->Fill(zdc.timeZNA());
-    hTimeZNCall->Fill(zdc.timeZNC());
-
-    auto ft0 = getFT0(col.bc(), ft0s);
-    hTimeT0Aall->Fill(ft0.timeA());
-    hTimeT0Call->Fill(ft0.timeC());
-
-    auto fdd = getFDD(col.bc(), fdds);
-    hTimeFDAall->Fill(fdd.timeA());
-    hTimeFDCall->Fill(fdd.timeC());
+    hTimeV0Aall->Fill(timeV0A);
+    hTimeV0Call->Fill(timeV0C);
+    hTimeZNAall->Fill(timeZNA);
+    hTimeZNCall->Fill(timeZNC);
+    hTimeT0Aall->Fill(timeT0A);
+    hTimeT0Call->Fill(timeT0C);
+    hTimeFDAall->Fill(timeFDA);
+    hTimeFDCall->Fill(timeFDC);
 
     if (selection == 7 && !col.sel7()) {
       return;
@@ -126,19 +94,20 @@ struct EventSelectionTask {
       LOGF(fatal, "Unknown selection type! Use `--sel 7` or `--sel 8`");
     }
 
-    hTimeV0Aacc->Fill(fv0a.time());
-    hTimeV0Cacc->Fill(fv0c.time());
-    hTimeZNAacc->Fill(zdc.timeZNA());
-    hTimeZNCacc->Fill(zdc.timeZNC());
-    hTimeT0Aacc->Fill(ft0.timeA());
-    hTimeT0Cacc->Fill(ft0.timeC());
-    hTimeFDAacc->Fill(fdd.timeA());
-    hTimeFDCacc->Fill(fdd.timeC());
+    hTimeV0Aacc->Fill(timeV0A);
+    hTimeV0Cacc->Fill(timeV0C);
+    hTimeZNAacc->Fill(timeZNA);
+    hTimeZNCacc->Fill(timeZNC);
+    hTimeT0Aacc->Fill(timeT0A);
+    hTimeT0Cacc->Fill(timeT0C);
+    hTimeFDAacc->Fill(timeFDA);
+    hTimeFDCacc->Fill(timeFDC);
   }
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<EventSelectionTask>(cfgc, TaskName{"event-selection-qa"})};
+    adaptAnalysisTask<EventSelectionQaPerBc>(cfgc),
+    adaptAnalysisTask<EventSelectionQaPerCollision>(cfgc)};
 }

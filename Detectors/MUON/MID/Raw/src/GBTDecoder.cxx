@@ -17,7 +17,7 @@
 
 #include "MIDRaw/FEEIdConfig.h"
 #include "MIDRaw/GBTOutputHandler.h"
-#include "MIDRaw/LocalBoardRO.h"
+#include "DataFormatsMID/ROBoard.h"
 
 namespace o2
 {
@@ -38,7 +38,7 @@ class GBTUserLogicDecoderImpl
     }
   }
 
-  void operator()(gsl::span<const uint8_t> payload, uint32_t orbit, std::vector<LocalBoardRO>& data, std::vector<ROFRecord>& rofs)
+  void operator()(gsl::span<const uint8_t> payload, uint32_t orbit, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
   {
     /// Decodes the buffer
     mOutputHandler.set(orbit, data, rofs);
@@ -93,7 +93,7 @@ class GBTBareDecoderImpl
     }
   }
 
-  void operator()(gsl::span<const uint8_t> payload, uint32_t orbit, std::vector<LocalBoardRO>& data, std::vector<ROFRecord>& rofs)
+  void operator()(gsl::span<const uint8_t> payload, uint32_t orbit, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
   {
     /// Decodes the buffer
     mOutputHandler.set(orbit, data, rofs);
@@ -192,7 +192,7 @@ class GBTBareDecoderLinkImpl
     mLinkPayload.reserve(0x20000);
   }
 
-  void operator()(gsl::span<const uint8_t> payload, uint32_t orbit, std::vector<LocalBoardRO>& data, std::vector<ROFRecord>& rofs)
+  void operator()(gsl::span<const uint8_t> payload, uint32_t orbit, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
   {
     /// Decodes the buffer
     mOutputHandler.set(orbit, data, rofs);
@@ -276,7 +276,7 @@ class GBTBareDecoderInsertImpl
     }
   }
 
-  void operator()(gsl::span<const uint8_t> payload, uint32_t orbit, std::vector<LocalBoardRO>& data, std::vector<ROFRecord>& rofs)
+  void operator()(gsl::span<const uint8_t> payload, uint32_t orbit, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
   {
     /// Decodes the buffer
     mOutputHandler.set(orbit, data, rofs);
@@ -334,7 +334,7 @@ class GBTBareDecoderInsertImpl
 
 } // namespace impl
 
-void GBTDecoder::process(gsl::span<const uint8_t> payload, uint32_t orbit, std::vector<LocalBoardRO>& data, std::vector<ROFRecord>& rofs)
+void GBTDecoder::process(gsl::span<const uint8_t> payload, uint32_t orbit, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
 {
   /// Decodes the data
   mDecode(payload, orbit, data, rofs);

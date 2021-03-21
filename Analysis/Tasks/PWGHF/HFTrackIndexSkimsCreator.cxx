@@ -157,6 +157,7 @@ struct HFTrackIndexSkimsCreator {
   // vertexing parameters
   Configurable<double> d_bz{"d_bz", 5., "magnetic field kG"};
   Configurable<bool> b_propdca{"b_propdca", true, "create tracks version propagated to PCA"};
+  Configurable<bool> useAbsDCA{"useAbsDCA", true, "Minimise abs. distance rather than chi2"};
   Configurable<double> d_maxr{"d_maxr", 200., "reject PCA's above this radius"};
   Configurable<double> d_maxdzini{"d_maxdzini", 4., "reject (if>0) PCA candidate if tracks DZ exceeds threshold"};
   Configurable<double> d_minparamchange{"d_minparamchange", 1.e-3, "stop iterations if largest change of any X is smaller than this"};
@@ -324,7 +325,7 @@ struct HFTrackIndexSkimsCreator {
     df2.setMaxDZIni(d_maxdzini);
     df2.setMinParamChange(d_minparamchange);
     df2.setMinRelChi2Change(d_minrelchi2change);
-    df2.setUseAbsDCA(true);
+    df2.setUseAbsDCA(useAbsDCA);
 
     // 3-prong vertex fitter
     o2::vertexing::DCAFitterN<3> df3;
@@ -334,7 +335,7 @@ struct HFTrackIndexSkimsCreator {
     df3.setMaxDZIni(d_maxdzini);
     df3.setMinParamChange(d_minparamchange);
     df3.setMinRelChi2Change(d_minrelchi2change);
-    df3.setUseAbsDCA(true);
+    df3.setUseAbsDCA(useAbsDCA);
 
     //used to calculate number of candidiates per event
     auto nCand2 = rowTrackIndexProng2.lastIndex();

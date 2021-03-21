@@ -26,7 +26,7 @@
 #include "MIDRaw/ElectronicsDelay.h"
 #include "MIDRaw/FEEIdConfig.h"
 #include "MIDRaw/GBTDecoder.h"
-#include "MIDRaw/LocalBoardRO.h"
+#include "DataFormatsMID/ROBoard.h"
 
 namespace o2
 {
@@ -47,7 +47,7 @@ class Decoder
     mGBTDecoders[feeId]->process(payload, o2::raw::RDHUtils::getHeartBeatOrbit(rdh), mData, mROFRecords);
   }
   /// Gets the vector of data
-  const std::vector<LocalBoardRO>& getData() const { return mData; }
+  const std::vector<ROBoard>& getData() const { return mData; }
 
   /// Gets the vector of data RO frame records
   const std::vector<ROFRecord>& getROFRecords() const { return mROFRecords; }
@@ -61,7 +61,7 @@ class Decoder
   std::array<std::unique_ptr<GBTDecoder>, crateparams::sNGBTs> mGBTDecoders{nullptr}; /// GBT decoders
 
  private:
-  std::vector<LocalBoardRO> mData{};    /// Vector of output data
+  std::vector<ROBoard> mData{};         /// Vector of output data
   std::vector<ROFRecord> mROFRecords{}; /// List of ROF records
 };
 

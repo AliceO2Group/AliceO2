@@ -125,7 +125,7 @@ struct HFDplusToPiKPiCandidateSelector {
     if (hfCandProng3.cpaXY() < cuts[pTBin][6]) {
       return false;
     }
-    if (hfCandProng3.maxNormalisedDeltaIP() > cuts[pTBin][7]) {
+    if (TMath::Abs(hfCandProng3.maxNormalisedDeltaIP()) > cuts[pTBin][7]) {
       return false;
     }
     return true;
