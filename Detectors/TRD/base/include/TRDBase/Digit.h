@@ -20,6 +20,7 @@
 
 #include "TRDBase/FeeParam.h"
 #include "DataFormatsTRD/Constants.h"
+#include <gsl/span>
 
 namespace o2
 {
@@ -59,6 +60,7 @@ class Digit
   void setChannel(int channel) { mChannel = channel; }
   void setDetector(int det) { mDetector = det; }
   void setADC(ArrayADC const& adc) { mADC = adc; }
+  void setADC(const gsl::span<ADC_t>& adc) { std::copy(adc.begin(), adc.end(), mADC.begin()); }
   // Get methods
   int getDetector() const { return mDetector; }
   int getRow() const { return FeeParam::getPadRowFromMCM(mROB, mMCM); }
@@ -71,6 +73,11 @@ class Digit
   ArrayADC const& getADC() const { return mADC; }
   ADC_t getADCsum() const { return std::accumulate(mADC.begin(), mADC.end(), (ADC_t)0); }
 
+  bool operator==(const Digit& o) const
+  {
+    return mDetector == o.mDetector && mROB == o.mROB && mMCM == o.mMCM && mChannel == o.mChannel && mADC == o.mADC;
+  }
+
  private:
   std::uint16_t mDetector{0}; // detector, the chamber [0-539]
   std::uint8_t mROB{0};       // read out board within chamber [0-7] [0-5] depending on C0 or C1
@@ -80,6 +87,8 @@ class Digit
   ArrayADC mADC{}; // ADC vector (30 time-bins)
   ClassDefNV(Digit, 3);
 };
+
+std::ostream& operator<<(std::ostream& stream, const Digit& d);
 
 } // namespace trd
 } // namespace o2

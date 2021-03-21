@@ -64,10 +64,23 @@ class Tracklet64
                     ((Q0 << Q0bs) & Q0mask);
   }
 
+  Tracklet64(uint64_t format, uint64_t hcid, uint64_t padrow, uint64_t col, uint64_t position,
+             uint64_t slope, uint64_t pid)
+  {
+    mtrackletWord = ((format << formatbs) & formatmask) |
+                    ((hcid << hcidbs) & hcidmask) |
+                    ((padrow << padrowbs) & padrowmask) |
+                    ((col << colbs) & colmask) |
+                    ((position << posbs) & posmask) |
+                    ((slope << slopebs) & slopemask) |
+                    (pid & PIDmask);
+  }
+
   GPUdDefault() ~Tracklet64() = default;
   GPUdDefault() Tracklet64& operator=(const Tracklet64& rhs) = default;
 
   // ----- Getters for contents of tracklet word -----
+  GPUd() uint64_t getFormat() const { return ((mtrackletWord & formatmask) >> formatbs); }; // no units 0..1077
   GPUd() uint64_t getHCID() const { return ((mtrackletWord & hcidmask) >> hcidbs); };       // no units 0..1077
   GPUd() uint64_t getPadRow() const { return ((mtrackletWord & padrowmask) >> padrowbs); }; // pad row number [0..15]
   GPUd() uint64_t getColumn() const { return ((mtrackletWord & colmask) >> colbs); };       // column refers to MCM position in column direction on readout board [0..3]
@@ -122,6 +135,8 @@ class Tracklet64
     mtrackletWord &= ~slopemask;
     mtrackletWord |= ((slope << slopebs) & slopemask);
   }
+
+  GPUd() bool operator==(const Tracklet64& o) const { return mtrackletWord == o.mtrackletWord; }
 
 #ifndef GPUCA_GPUCODE_DEVICE
   void printStream(std::ostream& stream) const;
