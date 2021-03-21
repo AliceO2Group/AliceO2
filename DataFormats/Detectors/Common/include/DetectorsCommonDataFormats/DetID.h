@@ -68,11 +68,11 @@ class DetID
   static constexpr ID FV0 = 13;
   static constexpr ID FDD = 14;
   static constexpr ID ACO = 15;
-  static constexpr ID CTP = 18;
+  static constexpr ID CTP = 16;
 #ifdef ENABLE_UPGRADES
-  static constexpr ID IT3 = 16;
-  static constexpr ID TRK = 17;
-  static constexpr ID FT3 = 18;
+  static constexpr ID IT3 = 17;
+  static constexpr ID TRK = 18;
+  static constexpr ID FT3 = 19;
   static constexpr ID Last = FT3;
 #else
   static constexpr ID Last = ACO; ///< if extra detectors added, update this !!!
