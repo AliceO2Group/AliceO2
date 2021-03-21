@@ -81,7 +81,8 @@ struct UPCForward {
       return;
     }
     //selecting CMUP10 and CMUP11 events selection
-    bool isMUP11fired = bc.triggerMaskNext50() & (1ull << classIndexMUP - 50);
+
+    bool isMUP11fired = bc.triggerMaskNext50() & (1ull << (classIndexMUP-50));
 
     if (!isMUP11fired) {
       return;
