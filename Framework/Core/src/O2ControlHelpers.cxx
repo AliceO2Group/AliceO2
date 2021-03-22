@@ -15,6 +15,7 @@
 #include <cstring>
 #include <string>
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string/replace.hpp>
 
 namespace bfs = boost::filesystem;
 
@@ -49,7 +50,6 @@ void dumpChannelConnect(std::ostream& dumpOut, const T& channel, const std::stri
   dumpOut << indLevel << indScheme << "type: " << ChannelSpecHelpers::typeAsString(channel.type) << "\n";
   // todo: i shouldn't guess here
   dumpOut << indLevel << indScheme << "transport: " << (channel.protocol == ChannelProtocol::IPC ? "shmem" : "zeromq") << "\n";
-
   dumpOut << indLevel << indScheme << "target: \"{{ Parent().Path }}." << binderName << ":" << channel.name << "\"\n";
   dumpOut << indLevel << indScheme << "rateLogging: \"{{ fmq_rate_logging }}\"\n";
 }
@@ -65,17 +65,32 @@ struct RawChannel {
 
 void dumpRawChannelConnect(std::ostream& dumpOut, const RawChannel& channel, std::string indLevel)
 {
+  auto templateFriendlyChannelName = std::string(channel.name);
+  boost::replace_all(templateFriendlyChannelName, "-", "_");
+  boost::replace_all(templateFriendlyChannelName, "/", "_");
+  boost::replace_all(templateFriendlyChannelName, "*", "_");
+  boost::replace_all(templateFriendlyChannelName, "+", "_");
+  boost::replace_all(templateFriendlyChannelName, ".", "_");
+  boost::replace_all(templateFriendlyChannelName, "%", "_");
+  std::string pathToChannel = "path_to_" + templateFriendlyChannelName;
+
+  LOG(INFO) << "This topology will connect to the channel '" << channel.name << "', which is most likely bound outside."
+            << " Please provide the path to this channel under the name '" << pathToChannel
+            << "' in the mother workflow.";
+
   dumpOut << indLevel << "- name: " << channel.name << "\n";
   dumpOut << indLevel << indScheme << "type: " << channel.type << "\n";
   dumpOut << indLevel << indScheme << "transport: " << channel.transport << "\n";
-  // for now, we have to replace any '-' signs in the channel name with '_',
-  // otherwise the template engine treats it as subtraction.
-  dumpOut << indLevel << indScheme << "target: \"{{ path_to_" << channel.name << " }}\"\n";
+
+  dumpOut << indLevel << indScheme << "target: \"{{ " << pathToChannel << " }}\"\n";
   dumpOut << indLevel << indScheme << "rateLogging: \"{{ fmq_rate_logging }}\"\n";
 }
 
 void dumpRawChannelBind(std::ostream& dumpOut, const RawChannel& channel, std::string indLevel)
 {
+  LOG(INFO) << "This topology will bind a dangling channel '" << channel.name << "'."
+            << " Please make sure that another device connects to this channel elsewhere.";
+
   dumpOut << indLevel << "- name: " << channel.name << "\n";
   dumpOut << indLevel << indScheme << "type: " << channel.type << "\n";
   dumpOut << indLevel << indScheme << "transport: " << channel.transport << "\n";
