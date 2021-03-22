@@ -2055,10 +2055,13 @@ GPUd() void GPUTPCGMMerger::MergeLoopers(int nBlocks, int nThreads, int iBlock, 
 
   for (unsigned int i = 0; i < params.size(); i++) {
     for (unsigned int j = i + 1; j < params.size(); j++) {
+      //int bs = 0;
       if (CAMath::Abs(params[j].refz) > CAMath::Abs(params[i].refz) + 100.f) {
         break;
       }
-      if (CAMath::Sum2(params[i].x - params[j].x, params[i].y - params[j].y) > 10.f) {
+      const float d2xy = CAMath::Sum2(params[i].x - params[j].x, params[i].y - params[j].y);
+      if (d2xy > 15.f) {
+        //bs |= 1;
         continue;
       }
       const auto& trk1 = mOutputTracks[params[i].id];
@@ -2066,6 +2069,7 @@ GPUd() void GPUTPCGMMerger::MergeLoopers(int nBlocks, int nThreads, int iBlock, 
       const auto& param1 = trk1.GetParam();
       const auto& param2 = trk2.GetParam();
       if (CAMath::Abs(param1.GetDzDs()) > 0.03f && CAMath::Abs(param2.GetDzDs()) > 0.03f && param1.GetDzDs() * param2.GetDzDs() * param1.GetQPt() * param2.GetQPt() < 0) {
+        //bs |= 2;
         continue;
       }
 
@@ -2087,21 +2091,24 @@ GPUd() void GPUTPCGMMerger::MergeLoopers(int nBlocks, int nThreads, int iBlock, 
         }
       }
       if (!dzcorrok) {
+        //bs |= 4;
         continue;
       }
 
-      float dtgl = param1.GetDzDs() - (param1.GetQPt() * param2.GetQPt() > 0 ? param2.GetDzDs() : -param2.GetDzDs());
-      float dqpt = (CAMath::Abs(param1.GetQPt()) - CAMath::Abs(param2.GetQPt())) / CAMath::Min(param1.GetQPt(), param2.GetQPt());
-      float d = CAMath::Sum2((params[i].x - params[j].x) * (1.f / 5.f), (params[i].y - params[j].y) * (1.f / 5.f), dtgl * (1.f / 0.15f), dqpt * (1.f / 0.15f));
-      bool EQ = d < 1.5f;
+      const float dtgl = param1.GetDzDs() - (param1.GetQPt() * param2.GetQPt() > 0 ? param2.GetDzDs() : -param2.GetDzDs());
+      const float dqpt = (CAMath::Abs(param1.GetQPt()) - CAMath::Abs(param2.GetQPt())) / CAMath::Min(param1.GetQPt(), param2.GetQPt());
+      float d = CAMath::Sum2(dtgl * (1.f / 0.03f), dqpt * (1.f / 0.04f)) + d2xy * (1.f / 4.f) + dznorm * (1.f / 0.3f);
+      bool EQ = d < 6.f;
 #if GPUCA_MERGE_LOOPER_MC
       const long int label1 = paramLabels[i];
       const long int label2 = paramLabels[j];
       bool labelEQ = label1 != -1 && label1 == label2;
       if (1 || EQ || labelEQ) {
         //printf("Matching track %d/%d %u-%u (%ld/%ld): dist %f side %d %d, tgl %f %f, qpt %f %f, x %f %f, y %f %f\n", (int)EQ, (int)labelEQ, i, j, label1, label2, d, (int)mOutputTracks[params[i].id].CSide(), (int)mOutputTracks[params[j].id].CSide(), params[i].tgl, params[j].tgl, params[i].qpt, params[j].qpt, params[i].x, params[j].x, params[i].y, params[j].y);
-        static auto& tup = GPUROOTDump<TNtuple>::get("mergeloopers", "labeleq:x1:x2:y1:y2:tgl1:tgl2:qpt1:qpt2:dz:dzcorr:dtgl:dqpt:dznorm");
-        tup.Fill((float)labelEQ, params[i].x, params[j].x, params[i].y, params[j].y, param1.GetDzDs(), param2.GetDzDs(), param1.GetQPt(), param2.GetQPt(), CAMath::Abs(params[j].refz) - CAMath::Abs(params[i].refz), dzcorr, dtgl, dqpt, dznorm);
+        static auto& tup = GPUROOTDump<TNtuple>::get("mergeloopers", "labeleq:sides:d2xy:tgl1:tgl2:qpt1:qpt2:dz:dzcorr:dtgl:dqpt:dznorm:bs");
+        tup.Fill((float)labelEQ, (trk1.CSide() ? 1 : 0) | (trk2.CSide() ? 2 : 0), d2xy, param1.GetDzDs(), param2.GetDzDs(), param1.GetQPt(), param2.GetQPt(), CAMath::Abs(params[j].refz) - CAMath::Abs(params[i].refz), dzcorr, dtgl, dqpt, dznorm, bs);
+        static auto tup2 = GPUROOTDump<TNtuple>::getNew("mergeloopers2", "labeleq:refz1:refz2:tgl1:tgl2:qpt1:qpt2:snp1:snp2:a1:a2:dzn:phasecor:phasedir:dzcorr");
+        tup2.Fill((float)labelEQ, params[i].refz, params[j].refz, param1.GetDzDs(), param2.GetDzDs(), param1.GetQPt(), param2.GetQPt(), param1.GetSinPhi(), param2.GetSinPhi(), trk1.GetAlpha(), trk2.GetAlpha(), dznormalized, phasecorr, phasecorrdirection, dzcorr);
       }
       /*if (EQ) {
         dropped[j] = true;
