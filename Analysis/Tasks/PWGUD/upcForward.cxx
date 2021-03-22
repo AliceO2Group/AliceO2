@@ -16,23 +16,16 @@ for now AO2D.root I am using is
 it can be copied using
 alien_cp alien:/alice/data/2015/LHC15o/000246392/pass5_lowIR/PWGZZ/Run3_Conversion/138_20210129-0800_child_1/0001/AO2D.root  file:./
 */
-#include
-"Framework/runDataProcessing.h"
-#include
-  "Framework/AnalysisTask.h"
-#include
-  "Framework/AnalysisDataModel.h"
-#include
-  "AnalysisDataModel/TrackSelectionTables.h"
-#include
-  "AnalysisDataModel/EventSelection.h"
+#include "Framework/runDataProcessing.h"
+#include "Framework/AnalysisTask.h"
+#include "Framework/AnalysisDataModel.h"
+#include "AnalysisDataModel/TrackSelectionTables.h"
+#include "AnalysisDataModel/EventSelection.h"
 #include <TH1D.h>
 #include <TH2D.h>
 #include <TString.h>
-#include
-  "TLorentzVector.h"
-#include
-  "AnalysisCore/TriggerAliases.h" using namespace std;
+#include "TLorentzVector.h"
+#include "AnalysisCore/TriggerAliases.h" using namespace std;
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
@@ -141,6 +134,5 @@ struct UPCForward {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<UPCForward>(cfgc, TaskName{
-                                          "upc-forward"})};
+    adaptAnalysisTask<UPCForward>(cfgc, TaskName{"upc-forward"})};
 }
