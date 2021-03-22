@@ -118,7 +118,7 @@ class DataProcessingDevice : public FairMQDevice
   // Processing functions are now renetrant
   static void doRun(DataProcessorContext& context);
   static void doPrepare(DataProcessorContext& context);
-  static void handleData(DataProcessorContext& context, FairMQParts&, InputChannelInfo&);
+  static void handleData(DataProcessorContext& context, InputChannelInfo&);
   static bool tryDispatchComputation(DataProcessorContext& context, std::vector<DataRelayer::RecordAction>& completed);
   std::vector<DataProcessorContext> mDataProcessorContexes;
 

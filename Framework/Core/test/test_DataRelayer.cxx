@@ -53,6 +53,8 @@ BOOST_AUTO_TEST_CASE(TestNoWait)
   dh.dataDescription = "CLUSTERS";
   dh.dataOrigin = "TPC";
   dh.subSpecification = 0;
+  dh.splitPayloadIndex = 0;
+  dh.splitPayloadParts = 1;
 
   DataProcessingHeader dph{0, 1};
   Stack stack{dh, dph};
@@ -60,12 +62,14 @@ BOOST_AUTO_TEST_CASE(TestNoWait)
   FairMQMessagePtr header = transport->CreateMessage(stack.size());
   FairMQMessagePtr payload = transport->CreateMessage(1000);
   memcpy(header->GetData(), stack.data(), stack.size());
-  relayer.relay(std::move(header), std::move(payload));
+  relayer.relay(header, payload);
   std::vector<RecordAction> ready;
   relayer.getReadyToProcess(ready);
   BOOST_REQUIRE_EQUAL(ready.size(), 1);
   BOOST_CHECK_EQUAL(ready[0].slot.index, 0);
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
+  BOOST_CHECK_EQUAL(header.get(), nullptr);
+  BOOST_CHECK_EQUAL(payload.get(), nullptr);
   auto result = relayer.getInputsForTimeslice(ready[0].slot);
   // one MessageSet with one PartRef with header and payload
   BOOST_REQUIRE_EQUAL(result.size(), 1);
@@ -94,6 +98,8 @@ BOOST_AUTO_TEST_CASE(TestNoWaitMatcher)
   dh.dataDescription = "CLUSTERS";
   dh.dataOrigin = "TPC";
   dh.subSpecification = 0;
+  dh.splitPayloadIndex = 0;
+  dh.splitPayloadParts = 1;
 
   DataProcessingHeader dph{0, 1};
   Stack stack{dh, dph};
@@ -101,12 +107,14 @@ BOOST_AUTO_TEST_CASE(TestNoWaitMatcher)
   FairMQMessagePtr header = transport->CreateMessage(stack.size());
   FairMQMessagePtr payload = transport->CreateMessage(1000);
   memcpy(header->GetData(), stack.data(), stack.size());
-  relayer.relay(std::move(header), std::move(payload));
+  relayer.relay(header, payload);
   std::vector<RecordAction> ready;
   relayer.getReadyToProcess(ready);
   BOOST_REQUIRE_EQUAL(ready.size(), 1);
   BOOST_CHECK_EQUAL(ready[0].slot.index, 0);
   BOOST_CHECK_EQUAL(ready[0].op, CompletionPolicy::CompletionOp::Consume);
+  BOOST_CHECK_EQUAL(header.get(), nullptr);
+  BOOST_CHECK_EQUAL(payload.get(), nullptr);
   auto result = relayer.getInputsForTimeslice(ready[0].slot);
   // one MessageSet with one PartRef with header and payload
   BOOST_REQUIRE_EQUAL(result.size(), 1);
@@ -149,7 +157,9 @@ BOOST_AUTO_TEST_CASE(TestRelay)
     FairMQMessagePtr header = transport->CreateMessage(stack.size());
     FairMQMessagePtr payload = transport->CreateMessage(1000);
     memcpy(header->GetData(), stack.data(), stack.size());
-    relayer.relay(std::move(header), std::move(payload));
+    relayer.relay(header, payload);
+    BOOST_CHECK_EQUAL(header.get(), nullptr);
+    BOOST_CHECK_EQUAL(payload.get(), nullptr);
   };
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -158,12 +168,16 @@ BOOST_AUTO_TEST_CASE(TestRelay)
   dh1.dataDescription = "CLUSTERS";
   dh1.dataOrigin = "TPC";
   dh1.subSpecification = 0;
+  dh1.splitPayloadIndex = 0;
+  dh1.splitPayloadParts = 1;
 
   // Let's create the second O2 Message:
   DataHeader dh2;
   dh2.dataDescription = "CLUSTERS";
   dh2.dataOrigin = "ITS";
   dh2.subSpecification = 0;
+  dh2.splitPayloadIndex = 0;
+  dh2.splitPayloadParts = 1;
 
   createMessage(dh1, 0);
   std::vector<RecordAction> ready;
@@ -220,7 +234,9 @@ BOOST_AUTO_TEST_CASE(TestRelayBug)
     FairMQMessagePtr header = transport->CreateMessage(stack.size());
     FairMQMessagePtr payload = transport->CreateMessage(1000);
     memcpy(header->GetData(), stack.data(), stack.size());
-    relayer.relay(std::move(header), std::move(payload));
+    relayer.relay(header, payload);
+    BOOST_CHECK_EQUAL(header.get(), nullptr);
+    BOOST_CHECK_EQUAL(payload.get(), nullptr);
   };
 
   // Let's create a dummy O2 Message with two headers in the stack:
@@ -229,18 +245,24 @@ BOOST_AUTO_TEST_CASE(TestRelayBug)
   dh1.dataDescription = "CLUSTERS";
   dh1.dataOrigin = "TPC";
   dh1.subSpecification = 0;
+  dh1.splitPayloadIndex = 0;
+  dh1.splitPayloadParts = 1;
 
   // Let's create the second O2 Message:
   DataHeader dh2;
   dh2.dataDescription = "CLUSTERS";
   dh2.dataOrigin = "ITS";
   dh2.subSpecification = 0;
+  dh2.splitPayloadIndex = 0;
+  dh2.splitPayloadParts = 1;
 
   // Let's create the second O2 Message:
   DataHeader dh3;
   dh3.dataDescription = "CLUSTERS";
   dh3.dataOrigin = "FOO";
   dh3.subSpecification = 0;
+  dh3.splitPayloadIndex = 0;
+  dh3.splitPayloadParts = 1;
 
   /// Reproduce the bug reported by Matthias in https://github.com/AliceO2Group/AliceO2/pull/1483
   createMessage(dh1, 0);
@@ -290,6 +312,8 @@ BOOST_AUTO_TEST_CASE(TestCache)
   dh.dataDescription = "CLUSTERS";
   dh.dataOrigin = "TPC";
   dh.subSpecification = 0;
+  dh.splitPayloadIndex = 0;
+  dh.splitPayloadParts = 1;
 
   DataProcessingHeader dph{0, 1};
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
@@ -298,9 +322,11 @@ BOOST_AUTO_TEST_CASE(TestCache)
     FairMQMessagePtr header = transport->CreateMessage(stack.size());
     FairMQMessagePtr payload = transport->CreateMessage(1000);
     memcpy(header->GetData(), stack.data(), stack.size());
-    relayer.relay(std::move(header), std::move(payload));
-    assert(header.get() == nullptr);
-    assert(payload.get() == nullptr);
+    auto res = relayer.relay(header, payload);
+    BOOST_REQUIRE(res != DataRelayer::RelayChoice::WillRelay || header.get() == nullptr);
+    BOOST_REQUIRE(res != DataRelayer::RelayChoice::WillRelay || payload.get() == nullptr);
+    BOOST_REQUIRE(res != DataRelayer::RelayChoice::Backpressured || header.get() != nullptr);
+    BOOST_REQUIRE(res != DataRelayer::RelayChoice::Backpressured || payload.get() != nullptr);
   };
 
   // This fills the cache, and then empties it.
@@ -359,11 +385,15 @@ BOOST_AUTO_TEST_CASE(TestPolicies)
   dh1.dataDescription = "CLUSTERS";
   dh1.dataOrigin = "TPC";
   dh1.subSpecification = 0;
+  dh1.splitPayloadIndex = 0;
+  dh1.splitPayloadParts = 1;
 
   DataHeader dh2;
   dh2.dataDescription = "TRACKS";
   dh2.dataOrigin = "TPC";
   dh2.subSpecification = 0;
+  dh2.splitPayloadIndex = 0;
+  dh2.splitPayloadParts = 1;
 
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
   auto createMessage = [&transport, &relayer](DataHeader const& dh, DataProcessingHeader const& h) {
@@ -371,7 +401,7 @@ BOOST_AUTO_TEST_CASE(TestPolicies)
     FairMQMessagePtr header = transport->CreateMessage(stack.size());
     FairMQMessagePtr payload = transport->CreateMessage(1000);
     memcpy(header->GetData(), stack.data(), stack.size());
-    return relayer.relay(std::move(header), std::move(payload));
+    return relayer.relay(header, payload);
   };
 
   // This fills the cache, and then empties it.
@@ -423,11 +453,15 @@ BOOST_AUTO_TEST_CASE(TestClear)
   dh1.dataDescription = "CLUSTERS";
   dh1.dataOrigin = "TPC";
   dh1.subSpecification = 0;
+  dh1.splitPayloadIndex = 0;
+  dh1.splitPayloadParts = 1;
 
   DataHeader dh2;
   dh2.dataDescription = "TRACKS";
   dh2.dataOrigin = "TPC";
   dh2.subSpecification = 0;
+  dh2.splitPayloadIndex = 0;
+  dh2.splitPayloadParts = 1;
 
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
   auto createMessage = [&transport, &relayer](DataHeader const& dh, DataProcessingHeader const& h) {
@@ -435,7 +469,7 @@ BOOST_AUTO_TEST_CASE(TestClear)
     FairMQMessagePtr header = transport->CreateMessage(stack.size());
     FairMQMessagePtr payload = transport->CreateMessage(1000);
     memcpy(header->GetData(), stack.data(), stack.size());
-    return relayer.relay(std::move(header), std::move(payload));
+    return relayer.relay(header, payload);
   };
 
   // This fills the cache, and then empties it.
@@ -446,6 +480,62 @@ BOOST_AUTO_TEST_CASE(TestClear)
   std::vector<RecordAction> ready;
   relayer.getReadyToProcess(ready);
   BOOST_REQUIRE_EQUAL(ready.size(), 0);
+}
+
+/// Test that the clear method actually works.
+BOOST_AUTO_TEST_CASE(TestTooMany)
+{
+  Monitoring metrics;
+  InputSpec spec1{"clusters", "TPC", "CLUSTERS"};
+  InputSpec spec2{"tracks", "TPC", "TRACKS"};
+
+  std::vector<InputRoute> inputs = {
+    InputRoute{spec1, 0, "Fake1", 0},
+    InputRoute{spec2, 1, "Fake2", 0},
+  };
+
+  std::vector<ForwardRoute> forwards;
+  TimesliceIndex index;
+
+  auto policy = CompletionPolicyHelpers::processWhenAny();
+  DataRelayer relayer(policy, inputs, metrics, index);
+  // Only two messages to fill the cache.
+  relayer.setPipelineLength(1);
+
+  // Let's create a dummy O2 Message with two headers in the stack:
+  // - DataHeader matching the one provided in the input
+  DataHeader dh1;
+  dh1.dataDescription = "CLUSTERS";
+  dh1.dataOrigin = "TPC";
+  dh1.subSpecification = 0;
+  dh1.splitPayloadIndex = 0;
+  dh1.splitPayloadParts = 1;
+
+  DataHeader dh2;
+  dh2.dataDescription = "TRACKS";
+  dh2.dataOrigin = "TPC";
+  dh2.subSpecification = 0;
+  dh2.splitPayloadIndex = 0;
+  dh2.splitPayloadParts = 1;
+
+  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+
+  Stack s1{dh1, DataProcessingHeader{0, 1}};
+  FairMQMessagePtr header = transport->CreateMessage(s1.size());
+  FairMQMessagePtr payload = transport->CreateMessage(1000);
+  memcpy(header->GetData(), s1.data(), s1.size());
+  relayer.relay(header, payload);
+  BOOST_CHECK_EQUAL(header.get(), nullptr);
+  BOOST_CHECK_EQUAL(payload.get(), nullptr);
+  // This fills the cache, and then waits.
+  Stack s2{dh1, DataProcessingHeader{1, 1}};
+  FairMQMessagePtr header2 = transport->CreateMessage(s2.size());
+  FairMQMessagePtr payload2 = transport->CreateMessage(1000);
+  memcpy(header2->GetData(), s2.data(), s2.size());
+  auto action = relayer.relay(header2, payload2);
+  BOOST_CHECK_EQUAL(action, DataRelayer::Backpressured);
+  BOOST_CHECK_NE(header2.get(), nullptr);
+  BOOST_CHECK_NE(payload2.get(), nullptr);
 }
 
 BOOST_AUTO_TEST_CASE(SplitParts)
@@ -462,9 +552,10 @@ BOOST_AUTO_TEST_CASE(SplitParts)
   std::vector<ForwardRoute> forwards;
   TimesliceIndex index;
 
-  auto policy = CompletionPolicyHelpers::consumeWhenAny();
+  auto policy = CompletionPolicyHelpers::processWhenAny();
   DataRelayer relayer(policy, inputs, metrics, index);
-  relayer.setPipelineLength(4);
+  // Only two messages to fill the cache.
+  relayer.setPipelineLength(1);
 
   // Let's create a dummy O2 Message with two headers in the stack:
   // - DataHeader matching the one provided in the input
@@ -472,50 +563,32 @@ BOOST_AUTO_TEST_CASE(SplitParts)
   dh1.dataDescription = "CLUSTERS";
   dh1.dataOrigin = "TPC";
   dh1.subSpecification = 0;
+  dh1.splitPayloadIndex = 0;
+  dh1.splitPayloadParts = 1;
 
   DataHeader dh2;
-  dh2.dataDescription = "CLUSTERS";
-  dh2.dataOrigin = "ITS";
+  dh2.dataDescription = "TRACKS";
+  dh2.dataOrigin = "TPC";
   dh2.subSpecification = 0;
+  dh2.splitPayloadIndex = 0;
+  dh2.splitPayloadParts = 1;
 
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
-  size_t timeslice = 0;
 
-  std::vector<std::unique_ptr<FairMQMessage>> splitParts;
-
-  for (size_t i = 0; i < 10; ++i) {
-    DataProcessingHeader dph1{timeslice, 1};
-    dh1.splitPayloadIndex = i;
-    dh1.splitPayloadParts = 10;
-    Stack stack1{dh1, dph1};
-
-    FairMQMessagePtr header1 = transport->CreateMessage(stack1.size());
-    FairMQMessagePtr payload1 = transport->CreateMessage(100);
-
-    memcpy(header1->GetData(), stack1.data(), stack1.size());
-    splitParts.emplace_back(std::move(header1));
-    splitParts.emplace_back(std::move(payload1));
-  }
-
-  for (size_t i = 0; i < 10; ++i) {
-    DataProcessingHeader dph2{timeslice, 1};
-    dh2.splitPayloadIndex = i;
-    dh2.splitPayloadParts = 10;
-    Stack stack2{dh2, dph2};
-
-    FairMQMessagePtr header1 = transport->CreateMessage(stack2.size());
-    FairMQMessagePtr payload1 = transport->CreateMessage(100);
-
-    memcpy(header1->GetData(), stack2.data(), stack2.size());
-    splitParts.emplace_back(std::move(header1));
-    splitParts.emplace_back(std::move(payload1));
-  }
-  BOOST_REQUIRE_EQUAL(splitParts.size(), 40);
-
-  relayer.relay(std::move(splitParts[0]), &splitParts[1], 19);
-  relayer.relay(std::move(splitParts[20]), &splitParts[21], 19);
-  std::vector<RecordAction> ready;
-  relayer.getReadyToProcess(ready);
-  assert(ready.size() == 1);
-  assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
+  Stack s1{dh1, DataProcessingHeader{0, 1}};
+  FairMQMessagePtr header = transport->CreateMessage(s1.size());
+  FairMQMessagePtr payload = transport->CreateMessage(1000);
+  memcpy(header->GetData(), s1.data(), s1.size());
+  relayer.relay(header, payload);
+  BOOST_CHECK_EQUAL(header.get(), nullptr);
+  BOOST_CHECK_EQUAL(payload.get(), nullptr);
+  // This fills the cache, and then waits.
+  Stack s2{dh1, DataProcessingHeader{1, 1}};
+  FairMQMessagePtr header2 = transport->CreateMessage(s2.size());
+  FairMQMessagePtr payload2 = transport->CreateMessage(1000);
+  memcpy(header2->GetData(), s2.data(), s2.size());
+  auto action = relayer.relay(header2, payload2);
+  BOOST_CHECK_EQUAL(action, DataRelayer::Backpressured);
+  BOOST_CHECK_NE(header2.get(), nullptr);
+  BOOST_CHECK_NE(payload2.get(), nullptr);
 }

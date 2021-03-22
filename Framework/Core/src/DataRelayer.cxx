@@ -10,6 +10,7 @@
 #include "Framework/RootSerializationSupport.h"
 #include "Framework/DataRelayer.h"
 
+#include "Framework/CompilerBuiltins.h"
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataProcessingHeader.h"
@@ -194,14 +195,14 @@ void sendVariableContextMetrics(VariableContext& context, TimesliceSlot slot,
 }
 
 DataRelayer::RelayChoice
-  DataRelayer::relay(std::unique_ptr<FairMQMessage>&& header,
-                     std::unique_ptr<FairMQMessage>&& payload)
+  DataRelayer::relay(std::unique_ptr<FairMQMessage>& header,
+                     std::unique_ptr<FairMQMessage>& payload)
 {
-  return relay(std::move(header), &payload, 1);
+  return relay(header, &payload, 1);
 }
 
 DataRelayer::RelayChoice
-  DataRelayer::relay(std::unique_ptr<FairMQMessage>&& firstPart,
+  DataRelayer::relay(std::unique_ptr<FairMQMessage>& firstPart,
                      std::unique_ptr<FairMQMessage>* restOfParts,
                      size_t restOfPartsSize)
 {
@@ -385,6 +386,11 @@ DataRelayer::RelayChoice
     LOG(ERROR) << "Could not match incoming data to any input route: " << DataHeaderInfo();
     mStats.malformedInputs++;
     mStats.droppedIncomingMessages++;
+    firstPart.reset(nullptr);
+    for (size_t pi = 0; pi < restOfPartsSize; ++pi) {
+      auto& payload = restOfParts[pi];
+      payload.reset(nullptr);
+    }
     return Invalid;
   }
 
@@ -392,6 +398,11 @@ DataRelayer::RelayChoice
     LOG(ERROR) << "Could not determine the timeslice for input: " << DataHeaderInfo();
     mStats.malformedInputs++;
     mStats.droppedIncomingMessages++;
+    firstPart.reset(nullptr);
+    for (size_t pi = 0; pi < restOfPartsSize; ++pi) {
+      auto& payload = restOfParts[pi];
+      payload.reset(nullptr);
+    }
     return Invalid;
   }
 
@@ -400,31 +411,40 @@ DataRelayer::RelayChoice
 
   updateStatistics(action);
 
-  if (action == TimesliceIndex::ActionTaken::DropObsolete) {
-    static std::atomic<size_t> obsoleteCount = 0;
-    static std::atomic<size_t> mult = 1;
-    if ((obsoleteCount++ % (1 * mult)) == 0) {
-      LOGP(WARNING, "Over {} incoming messages are already obsolete, not relaying.", obsoleteCount);
-      if (obsoleteCount > mult * 10) {
-        mult = mult * 10;
+  switch (action) {
+    case TimesliceIndex::ActionTaken::Wait:
+      return Backpressured;
+    case TimesliceIndex::ActionTaken::DropObsolete:
+      static std::atomic<size_t> obsoleteCount = 0;
+      static std::atomic<size_t> mult = 1;
+      if ((obsoleteCount++ % (1 * mult)) == 0) {
+        LOGP(WARNING, "Over {} incoming messages are already obsolete, not relaying.", obsoleteCount);
+        if (obsoleteCount > mult * 10) {
+          mult = mult * 10;
+        }
       }
-    }
-    return Dropped;
+      return Dropped;
+    case TimesliceIndex::ActionTaken::DropInvalid:
+      LOG(WARNING) << "Incoming data is invalid, not relaying.";
+      mStats.malformedInputs++;
+      mStats.droppedIncomingMessages++;
+      firstPart.reset(nullptr);
+      for (size_t pi = 0; pi < restOfPartsSize; ++pi) {
+        auto& payload = restOfParts[pi];
+        payload.reset(nullptr);
+      }
+      return Invalid;
+    case TimesliceIndex::ActionTaken::ReplaceUnused:
+    case TimesliceIndex::ActionTaken::ReplaceObsolete:
+      // At this point the variables match the new input but the
+      // cache still holds the old data, so we prune it.
+      pruneCache(slot);
+      saveInSlot(timeslice, input, slot);
+      index.publishSlot(slot);
+      index.markAsDirty(slot, true);
+      return WillRelay;
   }
-
-  if (action == TimesliceIndex::ActionTaken::DropInvalid) {
-    LOG(WARNING) << "Incoming data is invalid, not relaying.";
-    return Invalid;
-  }
-
-  // At this point the variables match the new input but the
-  // cache still holds the old data, so we prune it.
-  pruneCache(slot);
-  saveInSlot(timeslice, input, slot);
-  index.publishSlot(slot);
-  index.markAsDirty(slot, true);
-
-  return WillRelay;
+  O2_BUILTIN_UNREACHABLE();
 }
 
 void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& completed)
