@@ -155,11 +155,13 @@ void dumpCommand(std::ostream& dumpOut, const DeviceExecution& execution, std::s
   dumpOut << indLevel << "value: >-\n";
   // fixme : how to find out when to include QC? Now we include it always, just in case
   dumpOut << indLevel << indScheme << "source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&\n";
-  // fixme: For now, we will use a dump file, but to further automatise it
-  //  I need the full command that was used before merging the workflows,
-  //  so it is run each time. (on the other hand, it may slow down the start up).
-  // fixme: trim the path to the exec itself when needed (not /home/username/bla/o2-datasampling)
-  dumpOut << indLevel << indScheme << "cat {{ dpl_config }} | " << execution.args[0] << "\n";
+
+  if (bfs::path(execution.args[0]).filename().string() != execution.args[0]) {
+    LOG(WARNING) << "The workflow template generation was started with absolute or relative executables paths."
+                    " Please use the symlinks exported by the build infrastructure or remove the paths manually in the generated templates,"
+                    " unless you really need executables within concrete directories";
+  }
+  dumpOut << indLevel << indScheme << "{{ dpl_command }} | " << execution.args[0] << "\n";
 
   dumpOut << indLevel << "arguments:\n";
   dumpOut << indLevel << indScheme << "- \"-b\"\n";
@@ -289,14 +291,31 @@ void dumpRole(std::ostream& dumpOut, const std::string& taskName, const DeviceSp
   dumpOut << indLevel << indScheme << indScheme << "load: " << taskName << "\n";
 }
 
-void dumpWorkflow(std::ostream& dumpOut, const std::vector<DeviceSpec>& specs, const std::vector<DeviceExecution>& executions, std::string workflowName, std::string indLevel)
+std::string removeO2ControlArg(std::string_view command) {
+  const char* o2ControlArg = " --o2-control ";
+  size_t o2ControlArgStart = command.find(o2ControlArg);
+  if (o2ControlArgStart == std::string_view::npos) {
+    return std::string(command);
+  }
+  size_t o2ControlArgEnd = command.find(" ", o2ControlArgStart + std::strlen(o2ControlArg));
+  auto result = std::string(command.substr(0, o2ControlArgStart));
+  if (o2ControlArgEnd != std::string_view::npos) {
+    result += command.substr(o2ControlArgEnd);
+  }
+  return result;
+}
+
+void dumpWorkflow(std::ostream& dumpOut, const std::vector<DeviceSpec>& specs, const std::vector<DeviceExecution>& executions, const CommandInfo& commandInfo, std::string workflowName, std::string indLevel)
 {
   dumpOut << indLevel << "name: " << workflowName << "\n";
+
+  dumpOut << indLevel << "vars:\n";
+  dumpOut << indLevel << indScheme << "dpl_command: >-\n";
+  dumpOut << indLevel << indScheme << indScheme << removeO2ControlArg(commandInfo.command) << "\n";
 
   dumpOut << indLevel << "defaults:\n";
   dumpOut << indLevel << indScheme << "monitoring_dpl_url: \"no-op://\"\n";
   dumpOut << indLevel << indScheme << "user: \"flp\"\n";
-  dumpOut << indLevel << indScheme << "dpl_config: \"/etc/flp.d/" + workflowName + "/" + workflowName + ".dpl.json\"\n";
   dumpOut << indLevel << indScheme << "fmq_rate_logging: 0\n";
   dumpOut << indLevel << indScheme << "shm_segment_size: 10000000000\n";
   dumpOut << indLevel << indScheme << "shm_throw_bad_alloc: false\n";
@@ -314,7 +333,7 @@ void dumpWorkflow(std::ostream& dumpOut, const std::vector<DeviceSpec>& specs, c
 void dumpDeviceSpec2O2Control(std::string workflowName,
                               const std::vector<DeviceSpec>& specs,
                               const std::vector<DeviceExecution>& executions,
-                              const CommandInfo&)
+                              const CommandInfo& commandInfo)
 {
   const char* tasksDirectory = "tasks";
   const char* workflowsDirectory = "workflows";
@@ -331,7 +350,7 @@ void dumpDeviceSpec2O2Control(std::string workflowName,
   LOG(INFO) << "Creating a workflow dump '" + workflowName + "'.";
   std::string wfDumpPath = std::string(workflowsDirectory) + bfs::path::preferred_separator + workflowName + ".yaml";
   std::ofstream wfDump(wfDumpPath);
-  implementation::dumpWorkflow(wfDump, specs, executions, workflowName, "");
+  implementation::dumpWorkflow(wfDump, specs, executions, commandInfo, workflowName, "");
   wfDump.close();
 
   for (size_t di = 0; di < specs.size(); ++di) {
