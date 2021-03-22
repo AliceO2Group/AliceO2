@@ -67,7 +67,7 @@ AddOptionRTC(dEdxTruncHigh, unsigned char, 77, "", 0, "High truncation threshold
 AddOptionRTC(GlobalTracking, char, 1, "", 0, "Enable Global Tracking (prolong tracks to adjacent sectors to find short segments)")
 AddOptionRTC(DisableRefitAttachment, unsigned char, 0, "", 0, "Bitmask to disable certain attachment steps during refit (1: attachment, 2: propagation, 4: loop following, 8: mirroring)")
 AddOptionRTC(tpcRejectionMode, unsigned char, GPUCA_NAMESPACE::gpu::GPUSettings::RejectionStrategyA, "", 0, "Enable rejection of TPC clusters for compression (0 = no, 1 = strategy A, 2 = strategy B)")
-AddOptionRTC(tpcMergeLoopersAfterburner, unsigned char, 0, "", 0, "Run afterburner for additional looper merging")
+AddOptionRTC(tpcMergeLoopersAfterburner, unsigned char, 1, "", 0, "Run afterburner for additional looper merging")
 AddOptionRTC(tpcCompressionModes, unsigned char, GPUCA_NAMESPACE::gpu::GPUSettings::CompressionFull, "", 0, "TPC Compression mode bits (1=truncate charge/width LSB, 2=differences, 4=track-model)")
 AddOptionRTC(tpcCompressionSortOrder, unsigned char, GPUCA_NAMESPACE::gpu::GPUSettings::SortTime, "", 0, "Sort order of TPC compression (0 = time, 1 = pad, 2 = Z-time-pad, 3 = Z-pad-time, 4 = no sorting (use incoming order))")
 AddOptionRTC(tpcSigBitsCharge, unsigned char, 4, "", 0, "Number of significant bits for TPC cluster charge in compression mode 1")
