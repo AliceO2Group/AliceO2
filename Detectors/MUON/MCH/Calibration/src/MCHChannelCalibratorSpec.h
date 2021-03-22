@@ -153,7 +153,7 @@ class MCHChannelCalibDevice : public o2::framework::Task
 namespace framework
 {
 
-DataProcessorSpec getMCHChannelCalibDeviceSpec()
+DataProcessorSpec getMCHChannelCalibDeviceSpec(const std::string inputSpec)
 {
   constexpr int64_t INFINITE_TF = 0xffffffffffffffff;
   using device = o2::mch::calibration::MCHChannelCalibDevice;
@@ -164,12 +164,9 @@ DataProcessorSpec getMCHChannelCalibDeviceSpec()
   outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
   outputs.emplace_back(OutputSpec{"MCH", "PEDESTALS", 0, Lifetime::Timeframe});
 
-  std::vector<InputSpec> inputs;
-  inputs.emplace_back("input", "MCH", "PDIGITS");
-
   return DataProcessorSpec{
     "calib-mchchannel-calibration",
-    inputs,
+    select(inputSpec.data()),
     outputs,
     AlgorithmSpec{adaptFromTask<device>()},
     Options{

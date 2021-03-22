@@ -376,7 +376,7 @@ using namespace o2::framework;
 
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  workflowOptions.push_back(ConfigParamSpec{"dataspec", VariantType::String, "TF:MCH/RAWDATA", {"selection string for the input data"}});
+  workflowOptions.push_back(ConfigParamSpec{"input-spec", VariantType::String, "TF:MCH/RAWDATA", {"selection string for the input data"}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -404,7 +404,7 @@ o2::framework::DataProcessorSpec getPedestalsSpec(std::string inputSpec)
 
 WorkflowSpec defineDataProcessing(const ConfigContext& config)
 {
-  auto inputSpec = config.options().get<std::string>("dataspec");
+  auto inputSpec = config.options().get<std::string>("input-spec");
 
   WorkflowSpec specs;
 
