@@ -33,42 +33,63 @@ using namespace o2::framework::expressions;
 #define mmuon 0.1057 //mass of muon
 struct UPCForward {
   //defining histograms
-  OutputObj<TH1D> hMass{TH1D("hMass", ";#it{m_{#mu#mu}}, GeV/c^{2};", 500, 0, 10)};
-  OutputObj<TH1D> hPt{TH1D("hPt", ";#it{p_{t}}, GeV/c;", 500, 0., 5.)};
-  OutputObj<TH1D> hPx{TH1D("hPx", ";#it{p_{x}}, GeV/c;", 500, 0., 5.)};
-  OutputObj<TH1D> hPy{TH1D("hPy", ";#it{p_{y}}, GeV/c;", 500, 0., 5.)};
-  OutputObj<TH1D> hPz{TH1D("hPz", ";#it{p_{z}}, GeV/c;", 500, 0., 5.)};
-  OutputObj<TH1D> hRap{TH1D("hRap", ";#it{y},..;", 500, -10., 10.)};
-  OutputObj<TH1D> hCharge{TH1D("hCharge", ";#it{charge},..;", 500, -10., 10.)};
-  OutputObj<TH1D> hSelectionCounter{TH1D("hSelectionCounter", ";#it{Selection},..;", 30, 0., 30.)};
-  OutputObj<TH1D> hPhi{TH1D("hPhi", ";#it{#Phi},;", 500, -6., 6.)};
+  HistogramRegistry registry{
+    "registry",
+    {{"hMass", ";#it{m_{#mu#mu}}, GeV/c^{2};", {HistType::kTH1D, {{500, 0, 10}}}},
+     {"hPt", ";#it{p_{t}}, GeV/c;", {HistType::kTH1D, {{500, 0., 5.}}}},
+     {"hPtsingle_muons", ";#it{p_{t}}, GeV/c;", {HistType::kTH1D, {{500, 0., 5.}}}},
+     {"hPx", ";#it{p_{x}}, GeV/c;", {HistType::kTH1D, {{500, -5., 5.}}}},
+     {"hPy", ";#it{p_{y}}, GeV/c;", {HistType::kTH1D, {{500, -5., 5.}}}},
+     {"hPz", ";#it{p_{z}}, GeV/c;", {HistType::kTH1D, {{500, -5., 5.}}}},
+     {"hRap", ";#it{y},..;", {HistType::kTH1D, {{500, -10., 10.}}}},
+     {"hEta", ";#it{y},..;", {HistType::kTH1D, {{500, -10., 10.}}}},
+     {"hCharge", ";#it{charge},..;", {HistType::kTH1D, {{500, -10., 10.}}}},
+     {"hSelectionCounter", ";#it{Selection},..;", {HistType::kTH1I, {{30, 0., 30.}}}},
+     {"hPhi", ";#it{#Phi},;", {HistType::kTH1D, {{500, -6., 6.}}}}}};
 
   void init(o2::framework::InitContext&)
   {
-    TString SelectionCuts[6] = {"NoSelection", "CMup11Trigger", "twotracks", "oppositecharge", "-2.5<Eta<-4", "Pt<1"};
+    TString SelectionCuts[6] = {"NoSelection", "CMup11and10Trigger", "twotracks", "oppositecharge", "-2.5<Eta<-4", "Pt<1"};
+
+    /* // commenting out this part now as histogram registry do not seem to suppor the binlabel usign AxisSpec() or any other method
     for (int i = 0; i < 6; i++) {
-      hSelectionCounter->GetXaxis()->SetBinLabel(i + 1, SelectionCuts[i].Data());
-    }
+      registry.GetXaxis().(HIST("hSelectionCounter",SetBinLabel(i + 1, SelectionCuts[i].Data())));
+    }*/
   }
-  void process(aod::BC const& bc, aod::Muons const& tracksMuon)
+  void process(soa::Join<aod::BCs, aod::Run2BCInfos>::iterator const& bc, aod::Muons const& tracksMuon)
   {
-    hSelectionCounter->Fill(0);
+    registry.fill(HIST("hSelectionCounter"), 0);
 
     int iMuonTracknumber = 0;
     TLorentzVector p1, p2, p;
     bool ispositive = kFALSE;
     bool isnegative = kFALSE;
     /*this code below is suggested by evgeny.
-    this code is now hardcoded for run 246392 as we are not sure if trigger id is same for all the runs*/
-    uint64_t classIndexMUP11 = 54; // 246392
-    bool isMUP11fired = bc.triggerMask() & (1ull << classIndexMUP11);
+    this code is now hardcoded for runs  246391, 246392 for CMUP11
+    and 244980, 244982, 244983, 245064, 245066, 245068 for CMUP10*/
+    uint64_t classIndexMUP = -1;
+    Int_t iRunNumber = bc.runNumber();
+
+    if (iRunNumber == 246391 || iRunNumber == 246392) {
+      classIndexMUP = 51; //CMUP11
+    } else if (iRunNumber == 246980 || iRunNumber == 246982 || iRunNumber == 246983) {
+      classIndexMUP = 88; //CMUP10
+    } else if (iRunNumber == 245064 || iRunNumber == 245066 || iRunNumber == 245068) {
+      classIndexMUP = 62; //CMUP10
+    }
+    if (classIndexMUP == -1) {
+      return;
+    }
+    //selecting CMUP10 and CMUP11 events selection
+
+    bool isMUP11fired = bc.triggerMaskNext50() & (1ull << (classIndexMUP - 50));
+
     if (!isMUP11fired) {
       return;
     }
-    LOGF(info, "mup11 fired");
-    hSelectionCounter->Fill(1);
+    registry.fill(HIST("hSelectionCounter"), 1);
     for (auto& muon : tracksMuon) {
-      hCharge->Fill(muon.sign());
+      registry.fill(HIST("hCharge"), muon.sign());
       iMuonTracknumber++;
       if (muon.sign() > 0) {
         p1.SetXYZM(muon.px(), muon.py(), muon.pz(), mmuon);
@@ -82,28 +103,32 @@ struct UPCForward {
     if (iMuonTracknumber != 2) {
       return;
     }
-    hSelectionCounter->Fill(2);
+    registry.fill(HIST("hSelectionCounter"), 2);
     if (!ispositive || !isnegative) {
       return;
     }
-    hSelectionCounter->Fill(3);
+    registry.fill(HIST("hSelectionCounter"), 3);
 
     if (-4 < p1.Eta() < -2.5 || -4 < p2.Eta() < -2.5) {
       return;
     }
-    hSelectionCounter->Fill(4);
+    registry.fill(HIST("hSelectionCounter"), 4);
     p = p1 + p2;
     if (p.Pt() > 1) {
       return;
     }
-    hSelectionCounter->Fill(5);
-    hPt->Fill(p.Pt());
-    hPx->Fill(p.Px());
-    hPy->Fill(p.Py());
-    hPz->Fill(p.Pz());
-    hRap->Fill(p.Rapidity());
-    hMass->Fill(p.M());
-    hPhi->Fill(p.Phi());
+    registry.fill(HIST("hSelectionCounter"), 5);
+    registry.fill(HIST("hPt"), p.Pt());
+    registry.fill(HIST("hPx"), p.Px());
+    registry.fill(HIST("hPy"), p.Py());
+    registry.fill(HIST("hPz"), p.Pz());
+    registry.fill(HIST("hRap"), p.Rapidity());
+    registry.fill(HIST("hMass"), p.M());
+    registry.fill(HIST("hPhi"), p.Phi());
+    registry.fill(HIST("hEta"), p1.Eta());
+    registry.fill(HIST("hEta"), p2.Eta());
+    registry.fill(HIST("hPtsingle"), p1.Pt());
+    registry.fill(HIST("hPtsingle"), p2.Pt());
 
   } //end of process
 };
