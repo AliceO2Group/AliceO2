@@ -122,7 +122,7 @@ class TimesliceIndex
   std::vector<bool> mDirty;
 
   /// What to do in case of backpressure
-  BackpressureOp mBackpressurePolicy = BackpressureOp::DropAncient;
+  BackpressureOp mBackpressurePolicy = BackpressureOp::Wait;
 };
 
 } // namespace o2::framework
