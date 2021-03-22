@@ -563,7 +563,7 @@ std::optional<header::DataOrigin> DataSpecUtils::getOptionalOrigin(InputSpec con
                       },
                       [](DataDescriptorMatcher const& matcher) -> std::optional<header::DataOrigin> {
                         auto state = extractMatcherInfo(matcher);
-                        if (state.hasUniqueDescription) {
+                        if (state.hasUniqueOrigin) {
                           return std::make_optional(state.origin);
                         } else if (state.hasError) {
                           throw runtime_error("Could not extract origin from query");
