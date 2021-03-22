@@ -68,6 +68,7 @@ class GPUCommonMath
   GPUd() static float TwoPi() { return 6.2831853f; }
   GPUd() static float Pi() { return 3.1415927f; }
   GPUd() static int Nint(float x);
+  GPUd() static float Modf(float x, float y);
   GPUd() static bool Finite(float x);
   GPUd() static unsigned int Clz(unsigned int val);
   GPUd() static unsigned int Popcount(unsigned int val);
@@ -160,6 +161,7 @@ class GPUCommonMath
     } else {
       return w * w + Sum2(args...);
     }
+    return 0;
   }
 #endif
 
@@ -178,6 +180,7 @@ class GPUCommonMath
 
 typedef GPUCommonMath CAMath;
 
+// CHOICE Syntax: CHOISE(Host, CUDA&HIP, OpenCL)
 #if defined(GPUCA_GPUCODE_DEVICE) && (defined(__CUDACC__) || defined(__HIPCC__)) // clang-format off
     #define CHOICE(c1, c2, c3) (c2) // Select second option for CUDA and HIP
 #elif defined(GPUCA_GPUCODE_DEVICE) && defined (__OPENCL__)
@@ -227,6 +230,8 @@ GPUdi() int GPUCommonMath::Nint(float x)
   }
   return i;
 }
+
+GPUdi() float GPUCommonMath::Modf(float x, float y) { return CHOICE(fmodf(x, y), fmodf(x, y), fmod(x, y)); }
 
 GPUdi() bool GPUCommonMath::Finite(float x) { return CHOICE(std::isfinite(x), true, true); }
 
