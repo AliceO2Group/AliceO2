@@ -73,6 +73,16 @@ static constexpr int kMaxClusters = GPUCA_MERGER_MAX_TRACK_CLUSTERS;
 #undef OFFLINE_FITTER
 #endif
 
+namespace GPUCA_NAMESPACE::gpu
+{
+struct MergeLooperParam {
+  float refz;
+  float x;
+  float y;
+  unsigned int id;
+};
+} // namespace GPUCA_NAMESPACE::gpu
+
 #ifndef GPUCA_GPUCODE
 
 #include "GPUQA.h"
@@ -278,6 +288,9 @@ void* GPUTPCGMMerger::SetPointersMerger(void* mem)
   computePointerWithAlignment(mem, mLoopData, mNMaxTracks);      // GPUTPCGMMergerTrackFit - GPUTPCGMMergerFollowLoopers
   computePointerWithAlignment(mem, mRetryRefitIds, mNMaxTracks); // Reducing mNMaxTracks for mLoopData / mRetryRefitIds does not save memory, since the other parts are larger anyway
   memMax = (void*)std::max((size_t)mem, (size_t)memMax);
+  mem = memBase;
+  computePointerWithAlignment(mem, mLooperCandidates, mNMaxLooperMatches); // MergeLoopers 1-3
+  memMax = (void*)std::max((size_t)mem, (size_t)memMax);
   return memMax;
 }
 
@@ -399,6 +412,7 @@ void GPUTPCGMMerger::SetMaxData(const GPUTrackingInOutPointers& io)
   } else {
     mNMaxClusters = mNClusters;
   }
+  mNMaxLooperMatches = mNMaxClusters / 4; // We have that much scratch memory anyway
 }
 
 int GPUTPCGMMerger::CheckSlices()
@@ -1982,22 +1996,10 @@ GPUd() void GPUTPCGMMerger::Finalize2(int nBlocks, int nThreads, int iBlock, int
   }
 }
 
-struct MergeLooperParam {
-  float refz;
-  float x;
-  float y;
-  unsigned int id;
-};
-
-GPUd() void GPUTPCGMMerger::MergeLoopers(int nBlocks, int nThreads, int iBlock, int iThread)
+GPUd() void GPUTPCGMMerger::MergeLoopersInit(int nBlocks, int nThreads, int iBlock, int iThread)
 {
-  if (iThread || iBlock) {
-    return;
-  }
-#ifndef GPUCA_GPUCODE
-  std::vector<MergeLooperParam> params;
   const float lowPtThresh = Param().rec.tpcRejectQPt * 1.1f; // Might need to merge tracks above the threshold with parts below the threshold
-  for (unsigned int i = 0; i < mMemory->nOutputTracks; i++) {
+  for (unsigned int i = get_global_id(0); i < mMemory->nOutputTracks; i += get_global_size(0)) {
     const auto& trk = mOutputTracks[i];
     const auto& p = trk.GetParam();
     const float qptabs = CAMath::Abs(p.GetQPt());
@@ -2015,9 +2017,15 @@ GPUd() void GPUTPCGMMerger::MergeLoopers(int nBlocks, int nThreads, int iBlock, 
       const float my = p.GetY() - r * CAMath::Sqrt(1 - p.GetSinPhi() * p.GetSinPhi());
       const float gmx = cosA * mx - sinA * my;
       const float gmy = cosA * my + sinA * mx;
-      params.emplace_back(MergeLooperParam{refz, gmx, gmy, i});
+      unsigned int myId = CAMath::AtomicAdd(&mMemory->nLooperMatchCandidates, 1u);
+      if (myId >= mNMaxLooperMatches) {
+        raiseError(GPUErrors::ERROR_LOOPER_MATCH_OVERFLOW, myId, mNMaxLooperMatches);
+        CAMath::AtomicExch(&mMemory->nLooperMatchCandidates, 0u);
+        return;
+      }
+      mLooperCandidates[myId] = MergeLooperParam{refz, gmx, gmy, i};
 
-      /*printf("Track %d Sanity qpt %f snp %f bz %f\n", (int)params.size(), p.GetQPt(), p.GetSinPhi(), bz);
+      /*printf("Track %u Sanity qpt %f snp %f bz %f\n", mMemory->nLooperMatchCandidates, p.GetQPt(), p.GetSinPhi(), bz);
       for (unsigned int k = 0;k < trk.NClusters();k++) {
         float xx, yy, zz;
         if (Param().par.earlyTpcTransform) {
@@ -2038,14 +2046,46 @@ GPUd() void GPUTPCGMMerger::MergeLoopers(int nBlocks, int nThreads, int iBlock, 
       }*/
     }
   }
-  std::sort(params.begin(), params.end(), [](const MergeLooperParam& a, const MergeLooperParam& b) { return CAMath::Abs(a.refz) < CAMath::Abs(b.refz); });
-#if GPUCA_MERGE_LOOPER_MC
-  std::vector<long int> paramLabels(params.size());
-  for (unsigned int i = 0; i < params.size(); i++) {
+}
+
+GPUd() void GPUTPCGMMerger::MergeLoopersSort(int nBlocks, int nThreads, int iBlock, int iThread)
+{
+  if (iThread || iBlock) {
+    return;
+  }
+  auto comp = [](const MergeLooperParam& a, const MergeLooperParam& b) { return CAMath::Abs(a.refz) < CAMath::Abs(b.refz); };
+  GPUCommonAlgorithm::sortDeviceDynamic(mLooperCandidates, mLooperCandidates + mMemory->nLooperMatchCandidates, comp);
+}
+
+#if (defined(__CUDACC__) || defined(__HIPCC__)) && !defined(GPUCA_GPUCODE_GENRTC) // Specialize GPUTPCGMMergerSortTracks and GPUTPCGMMergerSortTracksQPt
+struct GPUTPCGMMergerMergeLoopers_comp {
+  GPUd() bool operator()(const MergeLooperParam& a, const MergeLooperParam& b)
+  {
+    return CAMath::Abs(a.refz) < CAMath::Abs(b.refz);
+  }
+};
+
+template <>
+void GPUCA_KRNL_BACKEND_CLASS::runKernelBackendInternal<GPUTPCGMMergerMergeLoopers, 1>(krnlSetup& _xyz)
+{
+  GPUDebugTiming timer(mProcessingSettings.debugLevel, nullptr, mInternals->Streams, _xyz, this);
+  thrust::device_ptr<MergeLooperParam> params(mProcessorsShadow->tpcMerger.LooperCandidates());
+  ThrustVolatileAsyncAllocator alloc(this);
+  thrust::sort(GPUCA_THRUST_NAMESPACE::par(alloc).on(mInternals->Streams[_xyz.x.stream]), params, params + processors()->tpcMerger.Memory()->nLooperMatchCandidates, GPUTPCGMMergerMergeLoopers_comp());
+}
+#endif // __CUDACC__ || __HIPCC__ - Specialize GPUTPCGMMergerSortTracks and GPUTPCGMMergerSortTracksQPt
+
+GPUd() void GPUTPCGMMerger::MergeLoopersMain(int nBlocks, int nThreads, int iBlock, int iThread)
+{
+  const MergeLooperParam* params = mLooperCandidates;
+
+#if GPUCA_MERGE_LOOPER_MC && !defined(GPUCA_GPUCODE)
+  std::vector<long int> paramLabels(mMemory->nLooperMatchCandidates);
+  for (unsigned int i = 0; i < mMemory->nLooperMatchCandidates; i++) {
     paramLabels[i] = GetTrackLabel(mOutputTracks[params[i].id]);
   }
-  /*std::vector<bool> dropped(params.size());
-  std::vector<bool> droppedMC(params.size());
+  /*std::vector<bool> dropped(mMemory->nLooperMatchCandidates);
+  std::vector<bool> droppedMC(mMemory->nLooperMatchCandidates);
   std::vector<int> histMatch(101);
   std::vector<int> histFail(101);*/
   if (!mRec->GetProcessingSettings().runQA) {
@@ -2053,8 +2093,8 @@ GPUd() void GPUTPCGMMerger::MergeLoopers(int nBlocks, int nThreads, int iBlock, 
   }
 #endif
 
-  for (unsigned int i = 0; i < params.size(); i++) {
-    for (unsigned int j = i + 1; j < params.size(); j++) {
+  for (unsigned int i = get_global_id(0); i < mMemory->nLooperMatchCandidates; i += get_global_size(0)) {
+    for (unsigned int j = i + 1; j < mMemory->nLooperMatchCandidates; j++) {
       //int bs = 0;
       if (CAMath::Abs(params[j].refz) > CAMath::Abs(params[i].refz) + 100.f) {
         break;
@@ -2074,7 +2114,7 @@ GPUd() void GPUTPCGMMerger::MergeLoopers(int nBlocks, int nThreads, int iBlock, 
       }
 
       const float dznormalized = (CAMath::Abs(params[j].refz) - CAMath::Abs(params[i].refz)) / (CAMath::TwoPi() * 0.5f * (CAMath::Abs(param1.GetDzDs()) + CAMath::Abs(param2.GetDzDs())) * 1.f / (0.5f * (CAMath::Abs(param1.GetQPt()) + CAMath::Abs(param2.GetQPt())) * CAMath::Abs(Param().polynomialField.GetNominalBz())));
-      const float phasecorr = fmodf((CAMath::ASin(param1.GetSinPhi()) + trk1.GetAlpha() - CAMath::ASin(param2.GetSinPhi()) - trk2.GetAlpha()) / CAMath::TwoPi() + 5.5f, 1.f) - 0.5f;
+      const float phasecorr = CAMath::Modf((CAMath::ASin(param1.GetSinPhi()) + trk1.GetAlpha() - CAMath::ASin(param2.GetSinPhi()) - trk2.GetAlpha()) / CAMath::TwoPi() + 5.5f, 1.f) - 0.5f;
       const float phasecorrdirection = (params[j].refz * param1.GetQPt() * param1.GetDzDs()) > 0 ? 1 : -1;
       const float dzcorr = dznormalized + phasecorr * phasecorrdirection;
       const bool sameside = !(trk1.CSide() ^ trk2.CSide());
@@ -2099,7 +2139,7 @@ GPUd() void GPUTPCGMMerger::MergeLoopers(int nBlocks, int nThreads, int iBlock, 
       const float dqpt = (CAMath::Abs(param1.GetQPt()) - CAMath::Abs(param2.GetQPt())) / CAMath::Min(param1.GetQPt(), param2.GetQPt());
       float d = CAMath::Sum2(dtgl * (1.f / 0.03f), dqpt * (1.f / 0.04f)) + d2xy * (1.f / 4.f) + dznorm * (1.f / 0.3f);
       bool EQ = d < 6.f;
-#if GPUCA_MERGE_LOOPER_MC
+#if GPUCA_MERGE_LOOPER_MC && !defined(GPUCA_GPUCODE)
       const long int label1 = paramLabels[i];
       const long int label2 = paramLabels[j];
       bool labelEQ = label1 != -1 && label1 == label2;
@@ -2129,9 +2169,9 @@ GPUd() void GPUTPCGMMerger::MergeLoopers(int nBlocks, int nThreads, int iBlock, 
       }
     }
   }
-/*#if GPUCA_MERGE_LOOPER_MC
+  /*#if GPUCA_MERGE_LOOPER_MC && !defined(GPUCA_GPUCODE)
   int total = 0, totalmc = 0, good = 0, missed = 0, fake = 0;
-  for (unsigned int i = 0; i < params.size(); i++) {
+  for (unsigned int i = 0; i < mMemory->nLooperMatchCandidates; i++) {
     total += dropped[i];
     totalmc += droppedMC[i];
     good += dropped[i] && droppedMC[i];
@@ -2154,5 +2194,4 @@ GPUd() void GPUTPCGMMerger::MergeLoopers(int nBlocks, int nThreads, int iBlock, 
     printf("%8.3f: %3d\n", i / 10.f + 0.05f, histFail[i]);
   }
 #endif*/
-#endif
 }
