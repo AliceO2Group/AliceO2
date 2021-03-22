@@ -416,7 +416,7 @@ for (auto& label : labels_for_digit) {
 ```
 
 
-## Accessing Monte Carlo kinematics after the digitization phase <a name="MCReader"></a>
+## Accessing Monte Carlo kinematics<a name="MCReader"></a>
 
 After digitization is done, one can use the `MCKinematicsReader` class to load and access the Monte Carlo tracks.
 The MCKinematicsReader needs the digitization context file, generated during digitization. Once initialized it can return the tracks associated to a Monte Carlo label.
@@ -442,7 +442,20 @@ for (int pos = 0; pos < alldigits.size(); ++pos) {
 }
 ```
 Note, that one can also access kinematics directly after the transport simulation. 
-In this case, one needs to initialize the MCKinematicsReader in a different mode.
+In this case, one needs to initialize the MCKinematicsReader in a different mode:
+```c++
+// init the reader from the transport kinematics file (assuming here prefix o2sim)
+o2::steer::MCKinematicsReader reader("o2sim", o2::steer::MCKinematicsReader::Mode::kMCKine);
+
+// loop over all events in the file
+for (int event = 0; event < reader.getNEvents(0); ++event) {
+  // get all Monte Carlo tracks for this event
+  std::vector<MCTrack> const& tracks = reader.getTracks(event);
+
+  // analyse tracks
+}
+```
+
 
 # Simulation tutorials/examples <a name="Examples"></a>
 
