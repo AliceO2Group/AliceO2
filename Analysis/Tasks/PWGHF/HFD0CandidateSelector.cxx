@@ -15,42 +15,15 @@
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
+#include "AnalysisCore/HFSelectorCuts.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
 
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong2;
-
-static const int npTBins = 25;
-static const int nCutVars = 11;
-//temporary until 2D array in configurable is solved - then move to json
-//m     dca   cost* ptk  ptpi  d0k            d0pi         d0d0     cosp cosxy normdxy
-constexpr double cuts[npTBins][nCutVars] = {{0.400, 350. * 1E-4, 0.8, 0.5, 0.5, 1000. * 1E-4, 1000. * 1E-4, -5000. * 1E-8, 0.80, 0., 0.},   /* pt<0.5*/
-                                            {0.400, 350. * 1E-4, 0.8, 0.5, 0.5, 1000. * 1E-4, 1000. * 1E-4, -5000. * 1E-8, 0.80, 0., 0.},   /* 0.5<pt<1*/
-                                            {0.400, 300. * 1E-4, 0.8, 0.4, 0.4, 1000. * 1E-4, 1000. * 1E-4, -25000. * 1E-8, 0.80, 0., 0.},  /* 1<pt<1.5 */
-                                            {0.400, 300. * 1E-4, 0.8, 0.4, 0.4, 1000. * 1E-4, 1000. * 1E-4, -25000. * 1E-8, 0.80, 0., 0.},  /* 1.5<pt<2 */
-                                            {0.400, 300. * 1E-4, 0.8, 0.7, 0.7, 1000. * 1E-4, 1000. * 1E-4, -20000. * 1E-8, 0.90, 0., 0.},  /* 2<pt<2.5 */
-                                            {0.400, 300. * 1E-4, 0.8, 0.7, 0.7, 1000. * 1E-4, 1000. * 1E-4, -20000. * 1E-8, 0.90, 0., 0.},  /* 2.5<pt<3 */
-                                            {0.400, 300. * 1E-4, 0.8, 0.7, 0.7, 1000. * 1E-4, 1000. * 1E-4, -12000. * 1E-8, 0.85, 0., 0.},  /* 3<pt<3.5 */
-                                            {0.400, 300. * 1E-4, 0.8, 0.7, 0.7, 1000. * 1E-4, 1000. * 1E-4, -12000. * 1E-8, 0.85, 0., 0.},  /* 3.5<pt<4 */
-                                            {0.400, 300. * 1E-4, 0.8, 0.7, 0.7, 1000. * 1E-4, 1000. * 1E-4, -8000. * 1E-8, 0.85, 0., 0.},   /* 4<pt<4.5 */
-                                            {0.400, 300. * 1E-4, 0.8, 0.7, 0.7, 1000. * 1E-4, 1000. * 1E-4, -8000. * 1E-8, 0.85, 0., 0.},   /* 4.5<pt<5 */
-                                            {0.400, 300. * 1E-4, 0.8, 0.7, 0.7, 1000. * 1E-4, 1000. * 1E-4, -8000. * 1E-8, 0.85, 0., 0.},   /* 5<pt<5.5 */
-                                            {0.400, 300. * 1E-4, 0.8, 0.7, 0.7, 1000. * 1E-4, 1000. * 1E-4, -8000. * 1E-8, 0.85, 0., 0.},   /* 5.5<pt<6 */
-                                            {0.400, 300. * 1E-4, 0.8, 0.7, 0.7, 1000. * 1E-4, 1000. * 1E-4, -8000. * 1E-8, 0.85, 0., 0.},   /* 6<pt<6.5 */
-                                            {0.400, 300. * 1E-4, 0.8, 0.7, 0.7, 1000. * 1E-4, 1000. * 1E-4, -8000. * 1E-8, 0.85, 0., 0.},   /* 6.5<pt<7 */
-                                            {0.400, 300. * 1E-4, 0.8, 0.7, 0.7, 1000. * 1E-4, 1000. * 1E-4, -7000. * 1E-8, 0.85, 0., 0.},   /* 7<pt<7.5 */
-                                            {0.400, 300. * 1E-4, 0.8, 0.7, 0.7, 1000. * 1E-4, 1000. * 1E-4, -7000. * 1E-8, 0.85, 0., 0.},   /* 7.5<pt<8 */
-                                            {0.400, 300. * 1E-4, 0.9, 0.7, 0.7, 1000. * 1E-4, 1000. * 1E-4, -5000. * 1E-8, 0.85, 0., 0.},   /* 8<pt<9 */
-                                            {0.400, 300. * 1E-4, 0.9, 0.7, 0.7, 1000. * 1E-4, 1000. * 1E-4, -5000. * 1E-8, 0.85, 0., 0.},   /* 9<pt<10 */
-                                            {0.400, 300. * 1E-4, 0.9, 0.7, 0.7, 1000. * 1E-4, 1000. * 1E-4, -5000. * 1E-8, 0.85, 0., 0.},   /* 10<pt<12 */
-                                            {0.400, 300. * 1E-4, 1.0, 0.7, 0.7, 1000. * 1E-4, 1000. * 1E-4, 10000. * 1E-8, 0.85, 0., 0.},   /* 12<pt<16 */
-                                            {0.400, 300. * 1E-4, 1.0, 0.7, 0.7, 1000. * 1E-4, 1000. * 1E-4, 999999. * 1E-8, 0.85, 0., 0.},  /* 16<pt<20 */
-                                            {0.400, 300. * 1E-4, 1.0, 0.7, 0.7, 1000. * 1E-4, 1000. * 1E-4, 999999. * 1E-8, 0.85, 0., 0.},  /* 20<pt<24 */
-                                            {0.400, 300. * 1E-4, 1.0, 0.7, 0.7, 1000. * 1E-4, 1000. * 1E-4, 999999. * 1E-8, 0.85, 0., 0.},  /* 24<pt<36 */
-                                            {0.400, 300. * 1E-4, 1.0, 0.7, 0.7, 1000. * 1E-4, 1000. * 1E-4, 999999. * 1E-8, 0.85, 0., 0.},  /* 36<pt<50 */
-                                            {0.400, 300. * 1E-4, 1.0, 0.6, 0.6, 1000. * 1E-4, 1000. * 1E-4, 999999. * 1E-8, 0.80, 0., 0.}}; /* pt>50 */
+using namespace o2::analysis;
+using namespace o2::analysis::hf_cuts_d0_topik;
 
 /// Struct for applying D0 selection cuts
 
@@ -72,23 +45,8 @@ struct HFD0CandidateSelector {
   Configurable<double> d_nSigmaTOF{"d_nSigmaTOF", 3., "Nsigma cut on TOF only"};
   Configurable<double> d_nSigmaTOFCombined{"d_nSigmaTOFCombined", 5., "Nsigma cut on TOF combined with TPC"};
 
-  /// Gets corresponding pT bin from cut file array
-  /// \param candpT is the pT of the candidate
-  /// \return corresponding bin number of array
-  template <typename T>
-  int getpTBin(T candpT)
-  {
-    double pTBins[npTBins + 1] = {0, 0.5, 1., 1.5, 2., 2.5, 3., 3.5, 4., 4.5, 5., 5.5, 6., 6.5, 7., 7.5, 8., 9., 10., 12., 16., 20., 24., 36., 50., 100.};
-    if (candpT < pTBins[0] || candpT >= pTBins[npTBins]) {
-      return -1;
-    }
-    for (int i = 0; i < npTBins; i++) {
-      if (candpT < pTBins[i + 1]) {
-        return i;
-      }
-    }
-    return -1;
-  }
+  Configurable<std::vector<double>> ptBins{"ptBins", std::vector<double>{hf_cuts_d0_topik::pTBins_v}, "pT bin limits"};
+  Configurable<LabeledArray<double>> cuts{"D0_to_pi_K_cuts", {hf_cuts_d0_topik::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "D0 candidate selection per pT bin"};
 
   /// Selection on goodness of daughter tracks
   /// \note should be applied at candidate selection
@@ -113,7 +71,7 @@ struct HFD0CandidateSelector {
   bool selectionTopol(const T& hfCandProng2)
   {
     auto candpT = hfCandProng2.pt();
-    int pTBin = getpTBin(candpT);
+    auto pTBin = findBin(ptBins, candpT);
     if (pTBin == -1) {
       return false;
     }
@@ -121,16 +79,16 @@ struct HFD0CandidateSelector {
     if (candpT < d_pTCandMin || candpT >= d_pTCandMax) {
       return false; //check that the candidate pT is within the analysis range
     }
-    if (hfCandProng2.impactParameterProduct() > cuts[pTBin][7]) {
+    if (hfCandProng2.impactParameterProduct() > cuts->get(pTBin, "d0d0")) {
       return false; //product of daughter impact parameters
     }
-    if (hfCandProng2.cpa() < cuts[pTBin][8]) {
+    if (hfCandProng2.cpa() < cuts->get(pTBin, "cos pointing angle")) {
       return false; //cosine of pointing angle
     }
-    if (hfCandProng2.cpaXY() < cuts[pTBin][9]) {
+    if (hfCandProng2.cpaXY() < cuts->get(pTBin, "cos pointing angle xy")) {
       return false; //cosine of pointing angle XY
     }
-    if (hfCandProng2.decayLengthXYNormalised() < cuts[pTBin][10]) {
+    if (hfCandProng2.decayLengthXYNormalised() < cuts->get(pTBin, "normalized decay length XY")) {
       return false; //normalised decay length in XY plane
     }
     // if (hfCandProng2.dca() > cuts[pTBin][1]) return false; //candidate DCA
@@ -138,10 +96,10 @@ struct HFD0CandidateSelector {
 
     //decay exponentail law, with tau = beta*gamma*ctau
     //decay length > ctau retains (1-1/e)
-    double decayLengthCut = TMath::Min((hfCandProng2.p() * 0.0066) + 0.01, 0.06);
     if (TMath::Abs(hfCandProng2.impactParameterNormalised0()) < 0.5 || TMath::Abs(hfCandProng2.impactParameterNormalised1()) < 0.5) {
       return false;
     }
+    double decayLengthCut = TMath::Min((hfCandProng2.p() * 0.0066) + 0.01, 0.06);
     if (hfCandProng2.decayLength() * hfCandProng2.decayLength() < decayLengthCut * decayLengthCut) {
       return false;
     }
@@ -160,36 +118,35 @@ struct HFD0CandidateSelector {
   template <typename T1, typename T2>
   bool selectionTopolConjugate(const T1& hfCandProng2, const T2& trackPion, const T2& trackKaon)
   {
-
     auto candpT = hfCandProng2.pt();
-    int pTBin = getpTBin(candpT);
+    auto pTBin = findBin(ptBins, candpT);
     if (pTBin == -1) {
       return false;
     }
 
     if (trackPion.sign() > 0) { //invariant mass cut
-      if (TMath::Abs(InvMassD0(hfCandProng2) - RecoDecay::getMassPDG(421)) > cuts[pTBin][0]) {
+      if (TMath::Abs(InvMassD0(hfCandProng2) - RecoDecay::getMassPDG(pdg::code::kD0)) > cuts->get(pTBin, "m")) {
         return false;
       }
     } else {
-      if (TMath::Abs(InvMassD0bar(hfCandProng2) - RecoDecay::getMassPDG(421)) > cuts[pTBin][0]) {
+      if (TMath::Abs(InvMassD0bar(hfCandProng2) - RecoDecay::getMassPDG(pdg::code::kD0)) > cuts->get(pTBin, "m")) {
         return false;
       }
     }
 
-    if (trackPion.pt() < cuts[pTBin][4] || trackKaon.pt() < cuts[pTBin][3]) {
+    if (trackPion.pt() < cuts->get(pTBin, "pT Pi") || trackKaon.pt() < cuts->get(pTBin, "pT K")) {
       return false; //cut on daughter pT
     }
-    if (TMath::Abs(trackPion.dcaPrim0()) > cuts[pTBin][6] || TMath::Abs(trackKaon.dcaPrim0()) > cuts[pTBin][5]) {
+    if (TMath::Abs(trackPion.dcaPrim0()) > cuts->get(pTBin, "d0pi") || TMath::Abs(trackKaon.dcaPrim0()) > cuts->get(pTBin, "d0K")) {
       return false; //cut on daughter dca - need to add secondary vertex constraint here
     }
 
     if (trackPion.sign() > 0) { //cut on cos(theta *)
-      if (TMath::Abs(CosThetaStarD0(hfCandProng2)) > cuts[pTBin][2]) {
+      if (TMath::Abs(CosThetaStarD0(hfCandProng2)) > cuts->get(pTBin, "cos theta*")) {
         return false;
       }
     } else {
-      if (TMath::Abs(CosThetaStarD0bar(hfCandProng2)) > cuts[pTBin][2]) {
+      if (TMath::Abs(CosThetaStarD0bar(hfCandProng2)) > cuts->get(pTBin, "cos theta*")) {
         return false;
       }
     }
@@ -235,9 +192,9 @@ struct HFD0CandidateSelector {
   {
     double nSigma = 100.0; //arbitarily large value
     nPDG = TMath::Abs(nPDG);
-    if (nPDG == 111) {
+    if (nPDG == kPiPlus) {
       nSigma = track.tpcNSigmaPi();
-    } else if (nPDG == 321) {
+    } else if (nPDG == kKPlus) {
       nSigma = track.tpcNSigmaKa();
     } else {
       return false;
@@ -256,9 +213,9 @@ struct HFD0CandidateSelector {
   {
     double nSigma = 100.0; //arbitarily large value
     nPDG = TMath::Abs(nPDG);
-    if (nPDG == 111) {
+    if (nPDG == kPiPlus) {
       nSigma = track.tofNSigmaPi();
-    } else if (nPDG == 321) {
+    } else if (nPDG == kKPlus) {
       nSigma = track.tofNSigmaKa();
     } else {
       return false;
@@ -316,16 +273,13 @@ struct HFD0CandidateSelector {
     }
   }
 
-  void process(aod::HfCandProng2 const& hfCandProng2s, aod::BigTracksPID const& tracks)
+  void process(aod::HfCandProng2 const& hfCandProng2s, aod::BigTracksPID const&)
   {
-    int statusD0, statusD0bar; // final selection flag : 0-rejected  1-accepted
-    bool topolD0, topolD0bar;
-    int pidD0, pidD0bar, pionPlus, pionMinus, kaonPlus, kaonMinus;
-
     for (auto& hfCandProng2 : hfCandProng2s) { //looping over 2 prong candidates
 
-      statusD0 = 0;
-      statusD0bar = 0;
+      // final selection flag : 0-rejected  1-accepted
+      int statusD0 = 0;
+      int statusD0bar = 0;
 
       if (!(hfCandProng2.hfflag() & 1 << D0ToPiK)) {
         hfSelD0Candidate(statusD0, statusD0bar);
@@ -333,25 +287,15 @@ struct HFD0CandidateSelector {
       }
 
       auto trackPos = hfCandProng2.index0_as<aod::BigTracksPID>(); //positive daughter
-      auto trackNeg = hfCandProng2.index1_as<aod::BigTracksPID>(); //negative daughter
-
-      topolD0 = true;
-      topolD0bar = true;
-      pidD0 = -1;
-      pidD0bar = -1;
-      pionPlus = -1;
-      pionMinus = -1;
-      kaonPlus = -1;
-      kaonMinus = -1;
-
-      // daughter track validity selection
-      if (!daughterSelection(trackPos) || !daughterSelection(trackNeg)) {
+      if (!daughterSelection(trackPos)) {
         hfSelD0Candidate(statusD0, statusD0bar);
         continue;
       }
-
-      //implement filter bit 4 cut - should be done before this task at the track selection level
-      //need to add special cuts (additional cuts on decay length and d0 norm)
+      auto trackNeg = hfCandProng2.index1_as<aod::BigTracksPID>(); //negative daughter
+      if (!daughterSelection(trackNeg)) {
+        hfSelD0Candidate(statusD0, statusD0bar);
+        continue;
+      }
 
       //conjugate independent topological selection
       if (!selectionTopol(hfCandProng2)) {
@@ -359,20 +303,26 @@ struct HFD0CandidateSelector {
         continue;
       }
 
+      //implement filter bit 4 cut - should be done before this task at the track selection level
+      //need to add special cuts (additional cuts on decay length and d0 norm)
+
       //conjugate dependent toplogical selection for D0
-      topolD0 = selectionTopolConjugate(hfCandProng2, trackPos, trackNeg);
+      bool topolD0 = selectionTopolConjugate(hfCandProng2, trackPos, trackNeg);
       //conjugate dependent toplogical selection for D0bar
-      topolD0bar = selectionTopolConjugate(hfCandProng2, trackNeg, trackPos);
+      bool topolD0bar = selectionTopolConjugate(hfCandProng2, trackNeg, trackPos);
 
       if (!topolD0 && !topolD0bar) {
         hfSelD0Candidate(statusD0, statusD0bar);
         continue;
       }
 
-      pionPlus = selectionPID(trackPos, 211);
-      kaonMinus = selectionPID(trackNeg, 321);
-      pionMinus = selectionPID(trackNeg, 211);
-      kaonPlus = selectionPID(trackPos, 321);
+      int pionPlus = selectionPID(trackPos, kPiPlus);
+      int kaonMinus = selectionPID(trackNeg, kKPlus);
+      int pionMinus = selectionPID(trackNeg, kPiPlus);
+      int kaonPlus = selectionPID(trackPos, kKPlus);
+
+      int pidD0 = -1;
+      int pidD0bar = -1;
 
       if (pionPlus == 0 || kaonMinus == 0 || pionMinus == 1 || kaonPlus == 1) {
         pidD0 = 0; //exclude D0
