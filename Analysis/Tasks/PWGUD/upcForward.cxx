@@ -25,7 +25,8 @@ alien_cp alien:/alice/data/2015/LHC15o/000246392/pass5_lowIR/PWGZZ/Run3_Conversi
 #include <TH2D.h>
 #include <TString.h>
 #include "TLorentzVector.h"
-#include "AnalysisCore/TriggerAliases.h" using namespace std;
+#include "AnalysisCore/TriggerAliases.h"
+using namespace std;
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
