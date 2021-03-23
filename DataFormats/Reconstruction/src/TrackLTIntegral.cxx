@@ -21,9 +21,13 @@ namespace track
 GPUd() void TrackLTIntegral::print() const
 {
 #ifndef GPUCA_GPUCODE_DEVICE
-  printf("L(cm): %6.2f, X2X0: %5.3f TOF(ps): ", getL(), getX2X0());
-  for (int i = 0; i < getNTOFs(); i++) {
-    printf(" %7.1f |", getTOF(i));
+  printf("L(cm): %6.2f, X2X0: %e XRho: %e TOF(ps): ", getL(), getX2X0(), getXRho());
+  if (isTimeNotNeeded()) {
+    printf(" Times not filled");
+  } else {
+    for (int i = 0; i < getNTOFs(); i++) {
+      printf(" %7.1f |", getTOF(i));
+    }
   }
   printf("\n");
 #endif
@@ -34,6 +38,9 @@ GPUd() void TrackLTIntegral::addStep(float dL, float p2Inv)
 {
   ///< add step in cm to integrals
   mL += dL;
+  if (isTimeNotNeeded()) {
+    return;
+  }
   const float dTns = dL * 1000.f / o2::constants::physics::LightSpeedCm2NS; // time change in ps for beta = 1 particle
   for (int id = 0; id < getNTOFs(); id++) {
     const float m2z = track::PID::getMass2Z(id);
