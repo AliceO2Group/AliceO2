@@ -2033,6 +2033,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("stop,s", bpo::value<bool>()->zero_tokens()->default_value(false), "stop before device start")                                            //                                                                                                           //
     ("single-step", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode")                                      //                                                                                                             //
     ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(isatty(fileno(stdout)) == 0), "batch processing mode")                        //                                                                                                               //
+    ("no-batch", bpo::value<bool>()->zero_tokens()->default_value(false), "force gui processing mode")                                         //                                                                                                            //
     ("no-cleanup", bpo::value<bool>()->zero_tokens()->default_value(false), "do not cleanup the shm segment")                                  //                                                                                                               //
     ("hostname", bpo::value<std::string>()->default_value("localhost"), "hostname to deploy")                                                  //                                                                                                                 //
     ("resources", bpo::value<std::string>()->default_value(""), "resources allocated for the workflow")                                        //                                                                                                                   //
@@ -2230,6 +2231,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   conflicting_options(varmap, "run", "dump-workflow");
   conflicting_options(varmap, "run", "graphviz");
   conflicting_options(varmap, "dump-workflow", "graphviz");
+  conflicting_options(varmap, "no-batch", "batch");
 
   if (varmap.count("help")) {
     printHelp(varmap, executorOptions, physicalWorkflow, currentWorkflowOptions);
@@ -2247,7 +2249,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.dispatchPolicies = dispatchPolicies;
   driverInfo.argc = argc;
   driverInfo.argv = argv;
-  driverInfo.batch = varmap["batch"].as<bool>();
+  driverInfo.batch = varmap["no-batch"].defaulted() ? varmap["batch"].as<bool>() : false;
   driverInfo.noSHMCleanup = varmap["no-cleanup"].as<bool>();
   driverInfo.terminationPolicy = varmap["completion-policy"].as<TerminationPolicy>();
   if (varmap["error-policy"].defaulted() && driverInfo.batch == false) {
