@@ -30,10 +30,15 @@
 #include <string>
 #include <vector>
 #include <utility>
+#include <TROOT.h>
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
 #include <cassert>
+#ifdef WITH_OPENMP
+#include <omp.h>
+#endif
+#include <TStopwatch.h>
 
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
@@ -68,6 +73,10 @@ namespace tpc
 template <typename T, typename R>
 void copyHelper(T const& origin, R& target)
 {
+  // Using critical section here as this is writing to shared mem
+  // and not sure if boost shared mem allocator is thread-safe.
+  // It was crashing without this.
+#pragma omp critical
   std::copy(origin.begin(), origin.end(), std::back_inserter(target));
 }
 template <>
@@ -114,16 +123,26 @@ void publishBuffer<MCTruthContainer>(framework::ProcessingContext& pc, int secto
   LOG(INFO) << "PUBLISHING MC LABELS " << accum->getNElements();
   o2::tpc::TPCSectorHeader header{sector};
   header.activeSectors = activeSectors;
-  auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(
+  using LabelType = std::decay_t<decltype(pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{"", "", 0}))>;
+  LabelType* sharedlabels;
+#pragma omp critical
+  sharedlabels = &pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(
     Output{"TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(sector), Lifetime::Timeframe, header});
-  accum->flatten_to(sharedlabels);
+
+  accum->flatten_to(*sharedlabels);
   delete accum;
 }
 
 void publishMergedTimeframes(std::vector<int> const& lanes, bool domctruth, framework::ProcessingContext& pc)
 {
-  for (auto l : lanes) {
-    // TODO: we could put each these blocks into a separate thread !
+  ROOT::EnableThreadSafety();
+#ifdef WITH_OPENMP
+  omp_set_num_threads(lanes.size());
+  LOG(INFO) << "Running digit publisher with OpenMP enabled";
+#pragma omp parallel for schedule(dynamic)
+#endif
+  for (int i = 0; i < lanes.size(); ++i) {
+    auto l = lanes[i];
 
     LOG(DEBUG) << "MERGING CHUNKED DIGITS FOR LANE " << l;
     // merging the data
@@ -148,7 +167,10 @@ void publishMergedTimeframes(std::vector<int> const& lanes, bool domctruth, fram
         br->SetAddress(&chunk);
 
         int sector = atoi(key->GetName());
-        auto accum = makePublishBuffer<decltype(data)>(pc, sector);
+        using AccumType = std::decay_t<decltype(makePublishBuffer<decltype(data)>(pc, sector))>;
+        AccumType accum;
+#pragma omp critical
+        accum = makePublishBuffer<decltype(data)>(pc, sector);
 
         for (auto e = 0; e < br->GetEntries(); ++e) {
           br->GetEntry(e);
@@ -188,10 +210,14 @@ class Task
   {
     LOG(INFO) << "Preparing digits (from digit chunks) for reconstruction";
 
+    TStopwatch w;
+    w.Start();
     publishMergedTimeframes(mLanes, mDoMCTruth, pc);
 
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+
+    LOG(INFO) << "DIGIT PUBLISHING TOOK " << w.RealTime();
     return;
   }
 
