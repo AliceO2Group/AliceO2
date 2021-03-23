@@ -1,6 +1,13 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
 //
-// Created by rl on 3/17/21.
+// See http://alice-o2.web.cern.ch/license for full licensing information.
 //
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 #include "CTPSimulation/Digitizer.h"
 #include "TRandom.h"
 #include <cassert>
@@ -9,9 +16,9 @@ using namespace o2::ctp;
 
 ClassImp(Digitizer);
 
-void Digitizer::process(std::vector<o2::ctp::CTPdigit>& digits)
+void Digitizer::process(std::vector<o2::ctp::CTPDigit>& digits)
 {
-  CTPdigit digit;
+  CTPDigit digit;
   digit.mIntRecord = mIntRecord;
   // Dummy inputs and classes
   TRandom rnd;
@@ -19,12 +26,12 @@ void Digitizer::process(std::vector<o2::ctp::CTPdigit>& digits)
   digit.mCTPClassMask = (rnd.Integer(0xffffffff));
   mCache.push_back(digit);
 }
-void Digitizer::flush(std::vector<o2::ctp::CTPdigit>& digits)
+void Digitizer::flush(std::vector<o2::ctp::CTPDigit>& digits)
 {
   assert(mCache.size() != 1);
   storeBC(mCache.front(), digits);
 }
-void Digitizer::storeBC(o2::ctp::CTPdigit& cashe, std::vector<o2::ctp::CTPdigit>& digits)
+void Digitizer::storeBC(const o2::ctp::CTPDigit& cashe, std::vector<o2::ctp::CTPDigit>& digits)
 {
   digits.push_back(cashe);
 }

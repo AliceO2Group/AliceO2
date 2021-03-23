@@ -19,14 +19,14 @@ class Digitizer
   Digitizer() = default;
   ~Digitizer() = default;
   void setInteractionRecord(const o2::InteractionTimeRecord& src) { mIntRecord = src; }
-  void process(std::vector<o2::ctp::CTPdigit>& digits);
-  void flush(std::vector<o2::ctp::CTPdigit>& digits);
-  void storeBC(o2::ctp::CTPdigit& cashe, std::vector<o2::ctp::CTPdigit>& digits);
+  void process(std::vector<o2::ctp::CTPDigit>& digits);
+  void flush(std::vector<o2::ctp::CTPDigit>& digits);
+  void storeBC(const o2::ctp::CTPDigit& cashe, std::vector<o2::ctp::CTPDigit>& digits);
 
  private:
   Int_t mEventID;
-  o2::InteractionRecord firstBCinDeque = 0;
-  std::deque<CTPdigit> mCache;
+  o2::InteractionRecord firstBCinDeque {};
+  std::deque<CTPDigit> mCache;
   o2::InteractionTimeRecord mIntRecord;
   ClassDefNV(Digitizer, 1);
 };

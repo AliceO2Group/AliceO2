@@ -1,7 +1,12 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
 //
-// Created by rl on 3/19/21.
+// See http://alice-o2.web.cern.ch/license for full licensing information.
 //
-
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
 #ifndef STEER_DIGITIZERWORKFLOW_CTPDIGITWRITERSPEC_H
 #define STEER_DIGITIZERWORKFLOW_CTPDIGITWRITERSPEC_H
 
@@ -23,10 +28,9 @@ o2::framework::DataProcessorSpec getCTPDigitWriterSpec(bool mctruth)
   using InputSpec = framework::InputSpec;
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
   return MakeRootTreeWriterSpec("CTPDigitWriter",
-                                "CTPdigits.root",
+                                "ctpdigits.root",
                                 "o2sim",
-                                1,
-                                BranchDefinition<std::vector<o2::ctp::CTPdigit>>{InputSpec{"digit", "CTP", "DIGITSBC"}, "CTPDIGITSBC"})();
+                                BranchDefinition<std::vector<o2::ctp::CTPDigit>>{InputSpec{"digit", "CTP", "DIGITSBC"}, "CTPDIGITSBC"})();
 }
 
 } // namespace ctp

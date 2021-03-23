@@ -1,6 +1,12 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
 //
-// Created by rl on 3/17/21.
+// See http://alice-o2.web.cern.ch/license for full licensing information.
 //
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
 
 #include "CTPDigitizerSpec.h"
 #include "Framework/ControlService.h"
@@ -31,8 +37,8 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     }
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
-    context->initSimChains(o2::detectors::DetID::CTP, mSimChains);
-    const bool withQED = context->isQEDProvided() && !mDisableQED;
+    //context->initSimChains(o2::detectors::DetID::CTP, mSimChains);
+    const bool withQED = context->isQEDProvided();
     auto& timesview = context->getEventRecords(withQED);
     // if there is nothing to do ... return
     if (timesview.size() == 0) {
@@ -58,19 +64,11 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
  protected:
   bool mFinished = false;
-  std::vector<o2::ctp::CTPdigit> mDigits;
+  std::vector<o2::ctp::CTPDigit> mDigits;
 
   Bool_t mContinuous = kFALSE;   ///< flag to do continuous simulation
   double mFairTimeUnitInNS = 1;  ///< Fair time unit in ns
   o2::ctp::Digitizer mDigitizer; ///< Digitizer
-
-  // RS: at the moment using hardcoded flag for continuos readout
-  //o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
-
-  //
-  bool mDisableQED = false;
-
-  std::vector<TChain*> mSimChains;
 };
 o2::framework::DataProcessorSpec getCTPDigitizerSpec(int channel, bool mctruth)
 {

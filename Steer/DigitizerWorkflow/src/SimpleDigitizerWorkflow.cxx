@@ -500,14 +500,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     // connect the FIT digit writer
     specs.emplace_back(o2::ft0::getFT0DigitWriterSpec(mctruth));
   }
-  // the CTP part
-  if (isEnabled(o2::detectors::DetID::CTP)) {
-    detList.emplace_back(o2::detectors::DetID::CTP);
-    // connect the CTP digitization
-    specs.emplace_back(o2::ctp::getCTPDigitizerSpec(fanoutsize++, mctruth));
-    // connect the CTP digit writer
-    specs.emplace_back(o2::ctp::getCTPDigitWriterSpec(mctruth));
-  }
+
   // the FV0 part
   if (isEnabled(o2::detectors::DetID::FV0)) {
     detList.emplace_back(o2::detectors::DetID::FV0);
@@ -604,7 +597,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     // add PHOS writer
     specs.emplace_back(o2::cpv::getCPVDigitWriterSpec(mctruth));
   }
-
+  // the CTP part
+    if (isEnabled(o2::detectors::DetID::CTP)) {
+        detList.emplace_back(o2::detectors::DetID::CTP);
+        // connect the CTP digitization
+        specs.emplace_back(o2::ctp::getCTPDigitizerSpec(fanoutsize++, mctruth));
+        // connect the CTP digit writer
+        specs.emplace_back(o2::ctp::getCTPDigitWriterSpec(mctruth));
+    }
   // GRP updater: must come after all detectors since requires their list
   specs.emplace_back(o2::parameters::getGRPUpdaterSpec(grpfile, detList));
 
