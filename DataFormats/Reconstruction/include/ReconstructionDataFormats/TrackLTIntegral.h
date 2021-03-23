@@ -27,6 +27,8 @@ namespace track
 class TrackLTIntegral
 {
  public:
+  static constexpr float NeglectTime = -1.; // if 1st mT slot contains this, don't fill time
+
   GPUdDefault() TrackLTIntegral() = default;
   GPUdDefault() TrackLTIntegral(const TrackLTIntegral& stc) = default;
   GPUdDefault() ~TrackLTIntegral() = default;
@@ -35,12 +37,14 @@ class TrackLTIntegral
 
   GPUd() float getL() const { return mL; }
   GPUd() float getX2X0() const { return mX2X0; }
+  GPUd() float getXRho() const { return mXRho; }
   GPUd() float getTOF(int id) const { return mT[id]; }
 
   GPUd() void clear()
   {
     mL = 0.f;
     mX2X0 = 0.f;
+    mXRho = 0.f;
     for (int i = getNTOFs(); i--;) {
       mT[i] = 0.f;
     }
@@ -48,19 +52,25 @@ class TrackLTIntegral
 
   GPUd() void addStep(float dL, float p2Inv);
   GPUd() void addX2X0(float d) { mX2X0 += d; }
+  GPUd() void addXRho(float d) { mXRho += d; }
 
   GPUd() void setL(float l) { mL = l; }
   GPUd() void setX2X0(float x) { mX2X0 = x; }
+  GPUd() void setXRho(float x) { mXRho = x; }
   GPUd() void setTOF(float t, int id) { mT[id] = t; }
+
+  GPUd() void setTimeNotNeeded() { mT[0] = NeglectTime; }
+  GPUd() bool isTimeNotNeeded() const { return mT[0] == NeglectTime; }
 
   GPUd() void print() const;
 
  private:
   float mL = 0.;                         // length in cm
   float mX2X0 = 0.;                      // integrated X/X0
+  float mXRho = 0.;                      // average X*rho
   float mT[o2::track::PID::NIDs] = {0.}; // TOF in ps
 
-  ClassDefNV(TrackLTIntegral, 1);
+  ClassDefNV(TrackLTIntegral, 2);
 };
 }; // namespace track
 }; // namespace o2
