@@ -15,10 +15,6 @@
 
 #include <stdio.h>
 #include "Align/AliAlgTrack.h"
-#include "DetectorsBase/Propagator.h"
-#include "DetectorsCommonDataFormats/NameConf.h"
-#include "DataFormatsParameters/GRPObject.h"
-//#include "AliTrackerBase.h"
 #include "Framework/Logger.h"
 #include "Align/AliAlgSens.h"
 #include "Align/AliAlgVol.h"
@@ -532,7 +528,7 @@ Bool_t AliAlgTrack::CalcResiduals(const double* extendedParams, Bool_t invert, i
 }
 
 //______________________________________________________
-Bool_t AliAlgTrack::PropagateParamToPoint(trackParam_t* tr, int nTr, const AliAlgPoint* pnt, double maxStep)
+Bool_t AliAlgTrack::PropagateParamToPoint(trackParam_t* tr, int nTr, const AliAlgPoint* pnt, double maxStep, double maxSnp, MatCorrType mt)
 {
   // Propagate set of tracks to the point  (only parameters, no error matrix)
   // VECTORIZE this
@@ -551,19 +547,9 @@ Bool_t AliAlgTrack::PropagateParamToPoint(trackParam_t* tr, int nTr, const AliAl
 }
 
 //______________________________________________________
-Bool_t AliAlgTrack::PropagateParamToPoint(trackParam_t& tr, const AliAlgPoint* pnt, double maxStep)
+Bool_t AliAlgTrack::PropagateParamToPoint(trackParam_t& tr, const AliAlgPoint* pnt, double maxStep, double maxSnp, MatCorrType mt)
 {
   // propagate tracks to the point (only parameters, no error matrix)
-
-  dim3_t xyzD{};
-  math_utils::Point3D<float> xyzP;
-  dim3_t bxyzV{};
-  float bxyzF[3]{0, 0, 0};
-
-  o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP(o2::base::NameConf::getGRPFileName());
-  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName())};
-  const auto* propagator = base::Propagator::Instance();
   //
   if (!tr.rotateParam(pnt->GetAlphaSens())) {
 #if DEBUG > 3
@@ -573,64 +559,13 @@ Bool_t AliAlgTrack::PropagateParamToPoint(trackParam_t& tr, const AliAlgPoint* p
 #endif
     return kFALSE;
   }
+  return Propagator::Instance()->propagateTo(tr, pnt->GetXPoint(), pnt->GetUseBzOnly(), maxSnp, maxStep, mt);
   //
-  double xTgt = pnt->GetXPoint();
-  double xBeg = tr.getX();
-  double dx = xTgt - xBeg;
-  int nstep = int(Abs(dx) / maxStep) + 1;
-  dx /= nstep;
-  //
-  for (int ist = nstep; ist--;) {
-    //
-    double xToGo = xTgt - dx * ist;
-    tr.getXYZGlo(xyzD);
-    xyzP.SetXYZ(xyzD[0], xyzD[1], xyzD[2]);
-    //
-    if (GetFieldON()) {
-      if (pnt->GetUseBzOnly()) {
-        // if (!tr.propagateParamTo(xToGo, AliTrackerBase::GetBz(xyz))) { //TODO(milettri, shahoian): is this correct?
-        if (!tr.propagateParamTo(xToGo, propagator->getNominalBz())) {
-#if DEBUG > 3
-          LOG(error) << "Failed to propagate(BZ) to X=%" << pnt->GetXPoint();
-          tr.Print();
-          pnt->Print();
-#endif
-          return kFALSE;
-        }
-      } else {
-        //AliTrackerBase::GetBxByBz(xyz, bxyz);
-        propagator->getFiedXYZ(xyzP, bxyzF);
-        std::copy(std::begin(bxyzF), std::end(bxyzF), std::begin(bxyzV));
-        if (!tr.propagateParamTo(xToGo, bxyzV)) {
-#if DEBUG > 3
-          LOG(error) << "Failed to propagate(BXYZ) to X=" << pnt->GetXPoint();
-          tr.Print();
-          pnt->Print();
-#endif
-          return kFALSE;
-        }
-      }
-    } else { // straigth line propagation
-      if (!tr.propagateParamTo(xToGo, 0)) {
-#if DEBUG > 3
-        LOG(error) << "Failed to propagate(B=0) to X=" << pnt->GetXPoint();
-        tr.Print();
-        pnt->Print();
-#endif
-        return kFALSE;
-      }
-    }
-  } // steps
-  //
-  return kTRUE;
 }
 
 //______________________________________________________
-Bool_t AliAlgTrack::PropagateToPoint(trackParam_t& tr, const AliAlgPoint* pnt,
-                                     int minNSteps, double maxStep, Bool_t matCor, double* matPar)
+Bool_t AliAlgTrack::PropagateToPoint(trackParam_t& tr, const AliAlgPoint* pnt, double maxStep, double maxSnp, MatCorrType mt, track::TrackLTIntegral* tLT)
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
-  // FIXME(milettri): needs AliTrackerBase
   //   // propagate tracks to the point. If matCor is true, then material corrections will be applied.
   //   // if matPar pointer is provided, it will be filled by total x2x0 and signed xrho
   if (!tr.rotate(pnt->GetAlphaSens())) {
@@ -640,104 +575,7 @@ Bool_t AliAlgTrack::PropagateToPoint(trackParam_t& tr, const AliAlgPoint* pnt,
 #endif
     return kFALSE;
   }
-  //
-  base::GeometryManager::loadGeometry();
-  base::Propagator::initFieldFromGRP(base::NameConf::getGRPFileName());
-  std::unique_ptr<parameters::GRPObject> grp{parameters::GRPObject::loadFrom(base::NameConf::getGRPFileName())};
-  const auto* propagator = base::Propagator::Instance();
-
-  dim3_t xyz0{0};
-  dim3_t xyz1{0};
-  dim3_t bxyzV{0};
-  float bxyzF[3]{0, 0, 0};
-  math_utils::Point3D<float> xyzP;
-
-  double matarr[7];
-  double xPoint = pnt->GetXPoint(), dx = xPoint - tr.getX(), dxa = Abs(dx), step = dxa / minNSteps;
-  if (matPar)
-    matPar[0] = matPar[1] = 0;
-  if (dxa < kTinyDist)
-    return kTRUE;
-  if (step > maxStep)
-    step = maxStep;
-  int nstep = int(dxa / step);
-  step = dxa / nstep;
-  if (dx < 0)
-    step = -step;
-  //
-  //  printf("-->will go from X:%e to X:%e in %d steps of %f\n",tr.GetX(),xPoint,nstep,step);
-
-  // do we go along or against track direction
-  Bool_t alongTrackDir = (dx > 0 && !pnt->IsInvDir()) || (dx < 0 && pnt->IsInvDir());
-  Bool_t queryXYZ = matCor || GetFieldON();
-  if (queryXYZ)
-    tr.getXYZGlo(xyz0);
-  xyzP.SetXYZ(xyz0[0], xyz0[1], xyz0[2]);
-  //
-  double x2X0Tot = 0, xrhoTot = 0;
-  for (int ist = nstep; ist--;) { // single propagation step >>
-    double xToGo = xPoint - step * ist;
-    //
-    if (GetFieldON()) {
-      if (pnt->GetUseBzOnly()) {
-        // if (!tr.propagateParamTo(xToGo, AliTrackerBase::GetBz(xyz0))) {
-        if (!tr.propagateParamTo(xToGo, propagator->getNominalBz())) { //TODO(milettri, shahoian) - check correctness
-#if DEBUG > 3
-          LOG(WARNING) << "Failed to propagate(BZ) to X=" << xToGo;
-          tr.print();
-#endif
-          return kFALSE;
-        }
-      } else {
-        //AliTrackerBase::GetBxByBz(xyz0, bxyz);
-        propagator->getFiedXYZ(xyzP, bxyzF);
-        std::copy(std::begin(bxyzF), std::end(bxyzF), std::begin(bxyzV));
-        if (!tr.propagateParamTo(xToGo, bxyzV)) {
-#if DEBUG > 3
-          AliWarningF("Failed to propagate(BXYZ) to X=%f", xToGo);
-#endif
-          return kFALSE;
-        }
-      }
-    } else { // straigth line propagation
-      if (!tr.propagateParamTo(xToGo, 0)) {
-#if DEBUG > 3
-        AliWarningF("Failed to propagate(B=0) to X=%f", xToGo);
-#endif
-        return kFALSE;
-      }
-    }
-    //
-    if (queryXYZ) {
-      tr.getXYZGlo(xyz1);
-      if (matCor) {
-        //AliTrackerBase::MeanMaterialBudget(xyz0, xyz1, matarr); //TODO(milettri, shahoian) - t
-        Double_t xrho = matarr[0] * matarr[4], xx0 = matarr[1];
-        if (alongTrackDir)
-          xrho = -xrho; // if we go along track direction, energy correction is negative
-        x2X0Tot += xx0;
-        xrhoTot += xrho;
-        //	printf("MAT %+7.2f %+7.2f %+7.2f -> %+7.2f %+7.2f %+7.2f | %+e %+e | -> %+e %+e | %+e %+e %+e %+e %+e\n",
-        //	       xyz0[0],xyz0[1],xyz0[g2], xyz1[0],xyz1[1],xyz1[2], tr.Phi(), tr.GetAlpha(),
-        //	       x2X0Tot,xrhoTot, matarr[0],matarr[1],matarr[2],matarr[3],matarr[4]);
-        if (!tr.correctForMaterial(xx0, xrho, fMass)) {
-#if DEBUG > 3
-          LOG(WARNING) << "Failed on CorrectForMeanMaterial(" << xx0 << "," << xrho << "," << fMass << ")";
-          tr.print();
-#endif
-          return kFALSE;
-        }
-      }
-      for (int l = 3; l--;)
-        xyz0[l] = xyz1[l];
-    }
-  } // single propagation step <<
-  //
-  if (matPar) {
-    matPar[0] = x2X0Tot;
-    matPar[1] = xrhoTot;
-  }
-  return kTRUE;
+  return Propagator::Instance()->propagateTo(tr, pnt->GetXPoint(), pnt->GetUseBzOnly(), maxSnp, maxStep, mt, tLT);
 }
 
 /*
@@ -1017,8 +855,6 @@ Bool_t AliAlgTrack::IniFit()
 {
   // perform initial fit of the track
   //
-  const int kMinNStep = 3;
-  const double kMaxDefStep = 3.0;
   //
   trackParam_t trc = *this;
   //
@@ -1053,7 +889,7 @@ Bool_t AliAlgTrack::IniFit()
     //
     // propagate to reference point, which is the inner point of lower leg
     const AliAlgPoint* refP = GetPoint(GetInnerPointID());
-    if (!PropagateToPoint(trcU, refP, kMinNStep, kMaxDefStep, kTRUE))
+    if (!PropagateToPoint(trcU, refP, MaxDefStep, MaxDefSnp, DefMatCorrType))
       return kFALSE;
     //
     fChi2CosmUp = fChi2 - fChi2CosmDn;
@@ -1143,7 +979,7 @@ Bool_t AliAlgTrack::FitLeg(trackParam_t& trc, int pFrom, int pTo, Bool_t& inv)
   // perform initial fit of the track
   // the fit will always start from the outgoing track in inward direction (i.e. if cosmics - bottom leg)
   const int kMinNStep = 3;
-  const double kMaxDefStep = 3.0;
+  const double MaxDefStep = 3.0;
   const double kErrSpace = 50.;
   const double kErrAng = 0.7;
   const double kErrRelPtI = 1.;
@@ -1175,7 +1011,7 @@ Bool_t AliAlgTrack::FitLeg(trackParam_t& trc, int pFrom, int pTo, Bool_t& inv)
 #endif
     return kFALSE;
   }
-  if (!PropagateParamToPoint(trc, p0, 30)) {
+  if (!PropagateParamToPoint(trc, p0, MaxDefStep)) {
     //  if (!PropagateToPoint(trc,p0,5,30,kTRUE)) {
     //trc.PropagateParamOnlyTo(p0->GetXPoint()+kOverShootX,AliTrackerBase::GetBz())) {
 #if DEBUG > 3
@@ -1201,8 +1037,9 @@ Bool_t AliAlgTrack::FitLeg(trackParam_t& trc, int pFrom, int pTo, Bool_t& inv)
     //
     //    printf("*** FitLeg %d (%d %d)\n",ip,pFrom,pTo);
     //    printf("Before propagate: "); trc.print();
-    if (!PropagateToPoint(trc, pnt, kMinNStep, kMaxDefStep, kTRUE))
+    if (!PropagateToPoint(trc, pnt, MaxDefStep, MaxDefSnp, DefMatCorrType)) {
       return kFALSE;
+    }
     if (pnt->ContainsMeasurement()) {
       if (pnt->GetNeedUpdateFromTrack())
         pnt->UpdatePointByTrackInfo(&trc);
@@ -1240,7 +1077,7 @@ Bool_t AliAlgTrack::ResidKalman()
   //
   Bool_t inv = kFALSE;
   const int kMinNStep = 3;
-  const double kMaxDefStep = 3.0;
+  const double MaxDefStep = 3.0;
   const double kErrSpace = 50.;
   const double kErrAng = 0.7;
   const double kErrRelPtI = 1.;
@@ -1278,7 +1115,7 @@ Bool_t AliAlgTrack::ResidKalman()
 #endif
     return kFALSE;
   }
-  if (!PropagateParamToPoint(trc, pnt, 30)) {
+  if (!PropagateParamToPoint(trc, pnt, MaxDefStep)) {
     //if (!trc.PropagateParamOnlyTo(pnt->GetXPoint()+kOverShootX,AliTrackerBase::GetBz())) {
 #if DEBUG > 3
     AliWarningF("Failed on PropagateParamOnlyTo to %f", pnt->GetXPoint() + kOverShootX);
@@ -1301,8 +1138,9 @@ Bool_t AliAlgTrack::ResidKalman()
     }
     //    printf("*** ResidKalm %d (%d %d)\n",ip,0,nPnt);
     //    printf("Before propagate: "); trc.print();
-    if (!PropagateToPoint(trc, pnt, kMinNStep, kMaxDefStep, kTRUE))
+    if (!PropagateToPoint(trc, pnt, MaxDefStep, MaxDefSnp, DefMatCorrType)) {
       return kFALSE;
+    }
     if (!pnt->ContainsMeasurement())
       continue;
     const double* yz = pnt->GetYZTracking();
@@ -1341,8 +1179,9 @@ Bool_t AliAlgTrack::ResidKalman()
       trc.invert();
       inv = !inv;
     }
-    if (!PropagateToPoint(trc, pnt, kMinNStep, kMaxDefStep, kTRUE))
+    if (!PropagateToPoint(trc, pnt, MaxDefStep, MaxDefSnp, DefMatCorrType)) {
       return kFALSE;
+    }
     if (!pnt->ContainsMeasurement())
       continue;
     const double* yz = pnt->GetYZTracking();
@@ -1441,7 +1280,7 @@ Bool_t AliAlgTrack::ProcessMaterials(trackParam_t& trc, int pFrom, int pTo)
 {
   // attach material effect info to alignment points
   const int kMinNStep = 3;
-  const double kMaxDefStep = 3.0;
+  const double MaxDefStep = 3.0;
   const double kErrSpcT = 1e-6;
   const double kErrAngT = 1e-6;
   const double kErrPtIT = 1e-12;
@@ -1466,10 +1305,10 @@ Bool_t AliAlgTrack::ProcessMaterials(trackParam_t& trc, int pFrom, int pTo)
   //
   // 2 copies of the track, one will be propagated accounting for materials, other - w/o
   trackParam_t tr0;
-  double x2X0xRho[2] = {0, 0};
+  track::TrackLTIntegral matTL;
   double dpar[5] = {0};
   covMat_t dcov{0};
-
+  matTL.setTimeNotNeeded();
   //
   int pinc;
   if (pTo > pFrom) { // fit in points decreasing order: cosmics upper leg
@@ -1486,7 +1325,7 @@ Bool_t AliAlgTrack::ProcessMaterials(trackParam_t& trc, int pFrom, int pTo)
     tr0 = trc;
     //
     //    printf("-> ProcMat %d (%d->%d)\n",ip,pFrom,pTo);
-    if (!PropagateToPoint(trc, pnt, kMinNStep, kMaxDefStep, kTRUE, x2X0xRho)) { // with material corrections
+    if (!PropagateToPoint(trc, pnt, MaxDefStep, MaxDefSnp, DefMatCorrType, &matTL)) { // with material corrections
 #if DEBUG > 3
       LOG(error) << "Failed to take track to point" << ip << " (dir: " << pFrom << "->" pTo << ") with mat.corr.";
       trc.print();
@@ -1496,10 +1335,10 @@ Bool_t AliAlgTrack::ProcessMaterials(trackParam_t& trc, int pFrom, int pTo)
     }
     //
     // is there enough material to consider the point as a scatterer?
-    pnt->SetContainsMaterial(x2X0xRho[0] * Abs(trc.getQ2Pt()) > GetMinX2X0Pt2Account());
+    pnt->SetContainsMaterial(matTL.getX2X0() * Abs(trc.getQ2Pt()) > GetMinX2X0Pt2Account());
     //
     //    printf("-> ProcMat000 %d (%d->%d)\n",ip,pFrom,pTo);
-    if (!PropagateToPoint(tr0, pnt, kMinNStep, kMaxDefStep, kFALSE, 0)) { // no material corrections
+    if (!PropagateToPoint(tr0, pnt, MaxDefStep, MaxDefSnp, MatCorrType::USEMatCorrNONE)) { // no material corrections
 #if DEBUG > 3
       LOG(error) << "Failed to take track to point" << ip << " (dir: " << pFrom << "->" pTo << ") with mat.corr.";
       tr0.print();
@@ -1544,9 +1383,8 @@ Bool_t AliAlgTrack::ProcessMaterials(trackParam_t& trc, int pFrom, int pTo)
       if (!eLossFree)
         pnt->SetMatCovDiagElem(kParQ2Pt, dcov[14]);
       //
-      //printf("Add mat%d %e %e\n",ip, x2X0xRho[0],x2X0xRho[1]);
-      pnt->SetX2X0(x2X0xRho[0]);
-      pnt->SetXTimesRho(x2X0xRho[1]);
+      pnt->SetX2X0(matTL.getX2X0());
+      pnt->SetXTimesRho(matTL.getXRho());
       //
     }
     if (pnt->ContainsMeasurement()) { // update track to have best possible kinematics
