@@ -40,7 +40,7 @@ void Tracker::setBz(Float_t bz)
 }
 
 //_________________________________________________________________________________________________
-void Tracker::initConfig(const MFTTrackingParam& trkParam)
+void Tracker::initConfig(const MFTTrackingParam& trkParam, bool printConfig)
 {
   /// initialize from MFTTrackingParam (command line configuration parameters)
 
@@ -49,7 +49,9 @@ void Tracker::initConfig(const MFTTrackingParam& trkParam)
   mMinTrackStationsLTF = trkParam.MinTrackStationsLTF;
   mMinTrackStationsCA = trkParam.MinTrackStationsCA;
   mLTFclsRCut = trkParam.LTFclsRCut;
+  mLTFclsR2Cut = mLTFclsRCut * mLTFclsRCut;
   mROADclsRCut = trkParam.ROADclsRCut;
+  mROADclsR2Cut = mROADclsRCut * mROADclsRCut;
   mLTFseed2BinWin = trkParam.LTFseed2BinWin;
   mLTFinterBinWin = trkParam.LTFinterBinWin;
 
@@ -65,6 +67,20 @@ void Tracker::initConfig(const MFTTrackingParam& trkParam)
   }
   mRBinSize = (constants::index_table::RMax - constants::index_table::RMin) / mRBins;
   mPhiBinSize = (constants::index_table::PhiMax - constants::index_table::PhiMin) / mPhiBins;
+
+  if (printConfig) {
+    LOG(INFO) << "Configurable tracker parameters:";
+    LOG(INFO) << "MinTrackPointsLTF   = " << mMinTrackPointsLTF;
+    LOG(INFO) << "MinTrackPointsCA    = " << mMinTrackPointsCA;
+    LOG(INFO) << "MinTrackStationsLTF = " << mMinTrackStationsLTF;
+    LOG(INFO) << "MinTrackStationsCA  = " << mMinTrackStationsCA;
+    LOG(INFO) << "LTFclsRCut          = " << mLTFclsRCut;
+    LOG(INFO) << "ROADclsRCut         = " << mROADclsRCut;
+    LOG(INFO) << "RBins               = " << mRBins;
+    LOG(INFO) << "PhiBins             = " << mPhiBins;
+    LOG(INFO) << "LTFseed2BinWin      = " << mLTFseed2BinWin;
+    LOG(INFO) << "LTFinterBinWin      = " << mLTFinterBinWin;
+  }
 }
 
 //_________________________________________________________________________________________________
