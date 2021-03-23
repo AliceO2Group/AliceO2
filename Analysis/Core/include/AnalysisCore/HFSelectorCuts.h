@@ -19,7 +19,8 @@ namespace pdg
 {
 enum code {
   kD0 = 421,
-  kD0bar = -421
+  kD0bar = -421,
+  kJpsi = 443
 };
 }
 
@@ -147,5 +148,53 @@ static const std::vector<std::string> pTBinLabels = {
 // column labels
 static const std::vector<std::string> cutVarLabels = {"m", "DCA", "cos theta*", "pT K", "pT Pi", "d0K", "d0pi", "d0d0", "cos pointing angle", "cos pointing angle xy", "normalized decay length XY"};
 } // namespace hf_cuts_d0_topik
+//
+namespace hf_cuts_jpsi_toee
+{
+static constexpr int npTBins = 9;
+static constexpr int nCutVars = 4;
+// default values for the pT bin edges (can be used to configure histogram axis)
+// offset by 1 from the bin numbers in cuts array
+constexpr double pTBins[npTBins + 1] = {
+  0,
+  0.5,
+  1.0,
+  2.0,
+  3.0,
+  4.0,
+  5.0,
+  7.0,
+  10.0,
+  15.0,
+};
+auto pTBins_v = std::vector<double>{pTBins, pTBins + npTBins + 1};
+
+// default values for the cuts
+constexpr double cuts[npTBins][nCutVars] = {{0.5, 0.2, 0.4, 1},  /* 0<pt<0.5 */
+                                            {0.5, 0.2, 0.4, 1},  /* 0.5<pt<1 */
+                                            {0.5, 0.2, 0.4, 1},  /* 1<pt<2   */
+                                            {0.5, 0.2, 0.4, 1},  /* 2<pt<3   */
+                                            {0.5, 0.2, 0.4, 1},  /* 3<pt<4   */
+                                            {0.5, 0.2, 0.4, 1},  /* 4<pt<5   */
+                                            {0.5, 0.2, 0.4, 1},  /* 5<pt<7   */
+                                            {0.5, 0.2, 0.4, 1},  /* 7<pt<10  */
+                                            {0.5, 0.2, 0.4, 1}}; /* 10<pt<15 */
+
+// row labels
+static const std::vector<std::string> pTBinLabels = {
+  "pT bin 0",
+  "pT bin 1",
+  "pT bin 2",
+  "pT bin 3",
+  "pT bin 4",
+  "pT bin 5",
+  "pT bin 6",
+  "pT bin 7",
+  "pT bin 8",
+};
+
+// column labels
+static const std::vector<std::string> cutVarLabels = {"m", "DCA_xy", "DCA_z", "pT El"};
+} // namespace hf_cuts_jpsi_toee
 } // namespace o2::analysis
 #endif

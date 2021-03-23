@@ -15,26 +15,14 @@
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
+#include "AnalysisCore/HFSelectorCuts.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong2;
-
-static const int npTBins = 9;
-static const int nCutVars = 4;
-//temporary until 2D array in configurable is solved - then move to json
-//    mass  dcaxy dcaz  pt_e
-constexpr double cuts[npTBins][nCutVars] =
-  {{0.5, 0.2, 0.4, 1},  /* pt<0.5   */
-   {0.5, 0.2, 0.4, 1},  /* 0.5<pt<1 */
-   {0.5, 0.2, 0.4, 1},  /* 1<pt<2   */
-   {0.5, 0.2, 0.4, 1},  /* 2<pt<3   */
-   {0.5, 0.2, 0.4, 1},  /* 3<pt<4   */
-   {0.5, 0.2, 0.4, 1},  /* 4<pt<5   */
-   {0.5, 0.2, 0.4, 1},  /* 5<pt<7   */
-   {0.5, 0.2, 0.4, 1},  /* 7<pt<10  */
-   {0.5, 0.2, 0.4, 1}}; /* 10<pt<15 */
+using namespace o2::analysis;
+using namespace o2::analysis::hf_cuts_jpsi_toee;
 
 /// Struct for applying Jpsi selection cuts
 
@@ -50,24 +38,8 @@ struct HFJpsiToEECandidateSelector {
 
   Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 70., "Lower bound of TPC findable clusters for good PID"};
   Configurable<double> d_nSigmaTPC{"d_nSigmaTPC", 3., "Nsigma cut on TPC only"};
-
-  /// Gets corresponding pT bin from cut file array
-  /// \param candpT is the pT of the candidate
-  /// \return corresponding bin number of array
-  template <typename T>
-  int getpTBin(T candpT)
-  {
-    double pTBins[npTBins + 1] = {0, 0.5, 1., 2., 3., 4., 5., 7., 10., 15.};
-    if (candpT < pTBins[0] || candpT >= pTBins[npTBins]) {
-      return -1;
-    }
-    for (int i = 0; i < npTBins; i++) {
-      if (candpT < pTBins[i + 1]) {
-        return i;
-      }
-    }
-    return -1;
-  }
+  Configurable<std::vector<double>> ptBins{"ptBins", std::vector<double>{hf_cuts_jpsi_toee::pTBins_v}, "pT bin limits"};
+  Configurable<LabeledArray<double>> cuts{"Jpsi_to_ee_cuts", {hf_cuts_jpsi_toee::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "Jpsi candidate selection per pT bin"};
 
   /// Selection on goodness of daughter tracks
   /// \note should be applied at candidate selection
@@ -91,7 +63,7 @@ struct HFJpsiToEECandidateSelector {
   bool selectionTopol(const T1& hfCandProng2, const T2& trackPositron, const T2& trackElectron)
   {
     auto candpT = hfCandProng2.pt();
-    int pTBin = getpTBin(candpT);
+    auto pTBin = findBin(ptBins, candpT);
     if (pTBin == -1) {
       return false;
     }
@@ -100,17 +72,17 @@ struct HFJpsiToEECandidateSelector {
       return false; //check that the candidate pT is within the analysis range
     }
 
-    if (TMath::Abs(InvMassJpsiToEE(hfCandProng2) - RecoDecay::getMassPDG(443)) > cuts[pTBin][0]) {
+    if (TMath::Abs(InvMassJpsiToEE(hfCandProng2) - RecoDecay::getMassPDG(pdg::code::kJpsi)) > cuts->get(pTBin, "m")) {
       return false;
     }
 
-    if ((trackElectron.pt() < cuts[pTBin][3]) || (trackPositron.pt() < cuts[pTBin][3])) {
+    if (trackElectron.pt() < cuts->get(pTBin, "pT El") || trackPositron.pt() < cuts->get(pTBin, "pT El")) {
       return false; //cut on daughter pT
     }
-    if (TMath::Abs(trackElectron.dcaPrim0()) > cuts[pTBin][1] || TMath::Abs(trackPositron.dcaPrim0()) > cuts[pTBin][1]) {
+    if (TMath::Abs(trackElectron.dcaPrim0()) > cuts->get(pTBin, "DCA_xy") || TMath::Abs(trackPositron.dcaPrim0()) > cuts->get(pTBin, "DCA_xy")) {
       return false; //cut on daughter dca - need to add secondary vertex constraint here
     }
-    if (TMath::Abs(trackElectron.dcaPrim1()) > cuts[pTBin][2] || TMath::Abs(trackPositron.dcaPrim1()) > cuts[pTBin][2]) {
+    if (TMath::Abs(trackElectron.dcaPrim1()) > cuts->get(pTBin, "DCA_z") || TMath::Abs(trackPositron.dcaPrim1()) > cuts->get(pTBin, "DCA_z")) {
       return false; //cut on daughter dca - need to add secondary vertex constraint here
     }
 
@@ -161,7 +133,7 @@ struct HFJpsiToEECandidateSelector {
       return -1; //no PID info
     }
   }
-  void process(aod::HfCandProng2 const& hfCandProng2s, aod::BigTracksPID const& tracks)
+  void process(aod::HfCandProng2 const& hfCandProng2s, aod::BigTracksPID const&)
   {
 
     for (auto& hfCandProng2 : hfCandProng2s) { //looping over 2 prong candidates
