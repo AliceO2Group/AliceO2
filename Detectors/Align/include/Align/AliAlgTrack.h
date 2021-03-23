@@ -27,17 +27,24 @@
 #include <TObjArray.h>
 #include <TArrayD.h>
 #include <TArrayI.h>
+#include "DetectorsBase/Propagator.h"
 
 namespace o2
 {
 namespace align
 {
 
-using trackParam_t = o2::track::TrackParametrizationWithError<double>;
-
 class AliAlgTrack : public trackParam_t, public TObject
 {
  public:
+  using trackParam_t = o2::track::TrackParametrizationWithError<double>;
+  using Propagator = o2::base::PropagatorImpl<double>;
+  using MatCorrType = Propagator::MatCorrType;
+
+  static constexpr double MaxDefStep = 3.0;
+  static constexpr double MaxDefSnp = 0.95;
+  static constexpr MatCorrType DefMatCorrType = MatCorrType::USEMatCorrLUT;
+
   enum { kCosmicBit = BIT(14),
          kFieldONBit = BIT(15),
          kResidDoneBit = BIT(16),
@@ -73,10 +80,9 @@ class AliAlgTrack : public trackParam_t, public TObject
   virtual void Print(Option_t* opt = "") const;
   virtual void DumpCoordinates() const;
   //
-  Bool_t PropagateToPoint(trackParam_t& tr, const AliAlgPoint* pnt,
-                          int minNSteps, double maxStep, Bool_t matCor, double* matPar = 0);
-  Bool_t PropagateParamToPoint(trackParam_t& tr, const AliAlgPoint* pnt, double maxStep = 3);             // param only
-  Bool_t PropagateParamToPoint(trackParam_t* trSet, int nTr, const AliAlgPoint* pnt, double maxStep = 3); // params only
+  Bool_t PropagateToPoint(trackParam_t& tr, const AliAlgPoint* pnt, double maxStep, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT, track::TrackLTIntegral* tLT = nullptr);
+  Bool_t PropagateParamToPoint(trackParam_t& tr, const AliAlgPoint* pnt, double maxStep = 3, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT);             // param only
+  Bool_t PropagateParamToPoint(trackParam_t* trSet, int nTr, const AliAlgPoint* pnt, double maxStep = 3, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT); // params only
   //
   Bool_t CalcResiduals(const double* params = 0);
   Bool_t CalcResidDeriv(double* params = 0);

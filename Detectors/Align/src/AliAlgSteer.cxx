@@ -50,6 +50,8 @@
 #include <TList.h>
 #include <stdio.h>
 #include <TGeoGlobalMagField.h>
+#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DataFormatsParameters/GRPObject.h"
 
 using namespace TMath;
 using namespace o2::align::AliAlgAux;
@@ -945,7 +947,12 @@ void AliAlgSteer::SetRunNumber(Int_t run)
 //_________________________________________________________
 void AliAlgSteer::AcknowledgeNewRun(Int_t run)
 {
-  LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
+  LOG(WARNING) << __PRETTY_FUNCTION__ << " yet incomplete";
+
+  o2::base::GeometryManager::loadGeometry();
+  o2::base::PropagatorImpl<double>::initFieldFromGRP(o2::base::NameConf::getGRPFileName());
+  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName())};
+
   //FIXME(milettri): needs AliESDEvent
   //  // load needed info for new run
   //  if (run == fRunNumber)
