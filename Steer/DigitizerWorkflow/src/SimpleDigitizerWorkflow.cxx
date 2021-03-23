@@ -598,13 +598,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::cpv::getCPVDigitWriterSpec(mctruth));
   }
   // the CTP part
-    if (isEnabled(o2::detectors::DetID::CTP)) {
-        detList.emplace_back(o2::detectors::DetID::CTP);
-        // connect the CTP digitization
-        specs.emplace_back(o2::ctp::getCTPDigitizerSpec(fanoutsize++, mctruth));
-        // connect the CTP digit writer
-        specs.emplace_back(o2::ctp::getCTPDigitWriterSpec(mctruth));
-    }
+  if (isEnabled(o2::detectors::DetID::CTP)) {
+    detList.emplace_back(o2::detectors::DetID::CTP);
+    // connect the CTP digitization
+    specs.emplace_back(o2::ctp::getCTPDigitizerSpec(fanoutsize++, mctruth));
+    // connect the CTP digit writer
+    specs.emplace_back(o2::ctp::getCTPDigitWriterSpec(mctruth));
+  }
   // GRP updater: must come after all detectors since requires their list
   specs.emplace_back(o2::parameters::getGRPUpdaterSpec(grpfile, detList));
 

@@ -25,7 +25,7 @@ class Digitizer
 
  private:
   Int_t mEventID;
-  o2::InteractionRecord firstBCinDeque {};
+  o2::InteractionRecord firstBCinDeque{};
   std::deque<CTPDigit> mCache;
   o2::InteractionTimeRecord mIntRecord;
   ClassDefNV(Digitizer, 1);
