@@ -24,6 +24,7 @@ namespace o2::framework
 {
 
 struct DeviceSpec;
+struct DriverServerContext;
 
 struct WSError {
   int code;
@@ -33,15 +34,22 @@ struct WSError {
 struct WSDPLHandler : public HTTPParser {
   /// A http parser suitable to be used by DPL as a server
   /// @a stream is the stream from which the data is read,
+  /// @a context to use to register the Handler to the appropriate
+  ///  DeviceInfo.
   /// @a handler is the websocket handler to react on the
   /// various frames
-  WSDPLHandler(uv_stream_t* stream, std::unique_ptr<WebSocketHandler> handler);
+  WSDPLHandler(uv_stream_t* stream, DriverServerContext* context, std::unique_ptr<WebSocketHandler> handler);
   void method(std::string_view const& s) override;
   void target(std::string_view const& s) override;
   void header(std::string_view const& k, std::string_view const& v) override;
   void endHeaders() override;
   /// Actual handling of WS frames happens inside here.
   void body(char* data, size_t s) override;
+  /// Helper to write a message to the associated client
+  void write(char const*, size_t);
+
+  /// Helper to write n buffers containing websockets frames to a server
+  void write(std::vector<uv_buf_t>& outputs);
 
   /// Helper to return an error
   void error(int code, char const* message);
@@ -50,6 +58,7 @@ struct WSDPLHandler : public HTTPParser {
   bool mHandshaken = false;
   uv_stream_t* mStream = nullptr;
   std::map<std::string, std::string> mHeaders;
+  DriverServerContext* mServerContext;
 };
 
 struct WSDPLClient : public HTTPParser {
@@ -57,11 +66,13 @@ struct WSDPLClient : public HTTPParser {
   /// to the driver.
   /// @a spec the DeviceSpec associated with this client
   /// @a handshake a callback to invoke whenever we have a successful handshake
-  WSDPLClient(uv_stream_t* stream, DeviceSpec const& spec, std::function<void()> handshake);
+  WSDPLClient(uv_stream_t* stream, DeviceSpec const& spec, std::function<void()> handshake, std::unique_ptr<WebSocketHandler> handler);
   void replyVersion(std::string_view const& s) override;
   void replyCode(std::string_view const& s) override;
   void header(std::string_view const& k, std::string_view const& v) override;
   void endHeaders() override;
+  /// Actual handling of WS frames happens inside here.
+  void body(char* data, size_t s) override;
   /// Helper to write a message to the server
   void write(char const*, size_t);
 
@@ -77,6 +88,7 @@ struct WSDPLClient : public HTTPParser {
   DeviceSpec const& mSpec;
   std::atomic<bool> mHandshaken = false;
   std::function<void()> mHandshake;
+  std::unique_ptr<WebSocketHandler> mHandler;
   uv_stream_t* mStream = nullptr;
   std::map<std::string, std::string> mHeaders;
 };
