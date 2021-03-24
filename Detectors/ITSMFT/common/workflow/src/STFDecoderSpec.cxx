@@ -141,7 +141,8 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     LOG(INFO) << mSelfName << " Decoded " << digVec.size() << " Digits in " << digROFVec.size() << " ROFs";
   }
   mTimer.Stop();
-  LOG(INFO) << mSelfName << " Total time for TF " << mTFCounter << " : CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0;
+  auto tfID = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getByPos(0))->tfCounter;
+  LOG(INFO) << mSelfName << " Total time for TF " << tfID << '(' << mTFCounter << ") : CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0;
   mTFCounter++;
 }
 
@@ -160,7 +161,8 @@ void STFDecoder<Mapping>::endOfStream(EndOfStreamContext& ec)
   }
 }
 
-DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict, const std::string& noise)
+DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool doDigits, bool askDISTSTF,
+                                       const std::string& dict, const std::string& noise)
 {
   std::vector<OutputSpec> outputs;
   auto orig = o2::header::gDataOriginITS;
@@ -175,9 +177,14 @@ DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool do
     outputs.emplace_back(orig, "PATTERNS", 0, Lifetime::Timeframe);
   }
 
+  std::vector<InputSpec> inputs{{"stf", ConcreteDataTypeMatcher{orig, "RAWDATA"}, Lifetime::Optional}};
+  if (askDISTSTF) {
+    inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
+  }
+
   return DataProcessorSpec{
     "its-stf-decoder",
-    Inputs{{"stf", ConcreteDataTypeMatcher{orig, "RAWDATA"}, Lifetime::Timeframe}},
+    inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingITS>>(doClusters, doPatterns, doDigits, dict, noise)},
     Options{
@@ -186,7 +193,8 @@ DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool do
       {"decoder-verbosity", VariantType::Int, 0, {"Verbosity level (-1: silent, 0: errors, 1: headers, 2: data)"}}}};
 }
 
-DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict, const std::string& noise)
+DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool doDigits, bool askDISTSTF,
+                                       const std::string& dict, const std::string& noise)
 {
   std::vector<OutputSpec> outputs;
   auto orig = o2::header::gDataOriginMFT;
@@ -203,9 +211,14 @@ DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool do
     outputs.emplace_back(orig, "PATTERNS", 0, Lifetime::Timeframe);
   }
 
+  std::vector<InputSpec> inputs{{"stf", ConcreteDataTypeMatcher{orig, "RAWDATA"}, Lifetime::Optional}};
+  if (askDISTSTF) {
+    inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
+  }
+
   return DataProcessorSpec{
     "mft-stf-decoder",
-    Inputs{{"stf", ConcreteDataTypeMatcher{orig, "RAWDATA"}, Lifetime::Timeframe}},
+    inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingMFT>>(doClusters, doPatterns, doDigits, dict, noise)},
     Options{

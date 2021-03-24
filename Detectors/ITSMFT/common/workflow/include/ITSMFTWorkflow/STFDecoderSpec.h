@@ -62,8 +62,8 @@ using STFDecoderITS = STFDecoder<ChipMappingITS>;
 using STFDecoderMFT = STFDecoder<ChipMappingMFT>;
 
 /// create a processor spec
-o2::framework::DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict, const std::string& noise);
-o2::framework::DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool doDigits, const std::string& dict, const std::string& noise);
+o2::framework::DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool doDigits, bool askDISTSTF, const std::string& dict, const std::string& noise);
+o2::framework::DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool doDigits, bool askDISTSTF, const std::string& dict, const std::string& noise);
 
 } // namespace itsmft
 } // namespace o2
