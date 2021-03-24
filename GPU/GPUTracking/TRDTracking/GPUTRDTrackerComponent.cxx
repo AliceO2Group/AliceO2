@@ -459,11 +459,7 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 
     for (int i = 0; i < nTrackletsTotal; ++i) {
       const GPUTRDTrackerGPU::GPUTRDSpacePointInternal& sp = spacePoints[i];
-      int id = sp.mId;
-      if (id < 0 || id >= nTrackletsTotal) {
-        HLTError("Internal error: wrong space point index %d", id);
-      }
-      GPUTRDTrackPoint* currOutPoint = &outTrackPoints->fPoints[id];
+      GPUTRDTrackPoint* currOutPoint = &outTrackPoints->fPoints[i];
       currOutPoint->fX[0] = sp.mR;    // x in sector coordinates
       currOutPoint->fX[1] = sp.mX[0]; // y in sector coordinates
       currOutPoint->fX[2] = sp.mX[1]; // z in sector coordinates

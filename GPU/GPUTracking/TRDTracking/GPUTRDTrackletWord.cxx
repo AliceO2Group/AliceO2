@@ -16,19 +16,19 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #ifndef GPUCA_TPC_GEOMETRY_O2
 
-GPUd() GPUTRDTrackletWord::GPUTRDTrackletWord(unsigned int trackletWord) : mId(-1), mHCId(-1), mTrackletWord(trackletWord)
+GPUd() GPUTRDTrackletWord::GPUTRDTrackletWord(unsigned int trackletWord) : mHCId(-1), mTrackletWord(trackletWord)
 {
 }
-GPUd() GPUTRDTrackletWord::GPUTRDTrackletWord(unsigned int trackletWord, int hcid, int id) : mId(id), mHCId(hcid), mTrackletWord(trackletWord) {}
+GPUd() GPUTRDTrackletWord::GPUTRDTrackletWord(unsigned int trackletWord, int hcid) : mHCId(hcid), mTrackletWord(trackletWord) {}
 
 #ifdef GPUCA_ALIROOT_LIB
 #include "AliTRDtrackletWord.h"
 #include "AliTRDtrackletMCM.h"
 
-GPUTRDTrackletWord::GPUTRDTrackletWord(const AliTRDtrackletWord& rhs) : mId(-1), mHCId(rhs.GetHCId()), mTrackletWord(rhs.GetTrackletWord())
+GPUTRDTrackletWord::GPUTRDTrackletWord(const AliTRDtrackletWord& rhs) : mHCId(rhs.GetHCId()), mTrackletWord(rhs.GetTrackletWord())
 {
 }
-GPUTRDTrackletWord::GPUTRDTrackletWord(const AliTRDtrackletMCM& rhs) : mId(-1), mHCId(rhs.GetHCId()), mTrackletWord(rhs.GetTrackletWord()) {}
+GPUTRDTrackletWord::GPUTRDTrackletWord(const AliTRDtrackletMCM& rhs) : mHCId(rhs.GetHCId()), mTrackletWord(rhs.GetTrackletWord()) {}
 
 GPUTRDTrackletWord& GPUTRDTrackletWord::operator=(const AliTRDtrackletMCM& rhs)
 {
