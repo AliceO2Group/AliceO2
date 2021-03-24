@@ -20,13 +20,14 @@ using namespace o2::framework;
 struct EventSelectionQaPerBc {
   // TODO fill class names in axis labels
   OutputObj<TH1F> hFiredClasses{TH1F("hFiredClasses", "", 100, -0.5, 99.5)};
-  OutputObj<TH1F> hFiredAliases{TH1F("hFiredAliases", "", kNaliases, -0.5, kNaliases-0.5)};
-  void init(InitContext&){
-    for (int i = 0; i < kNaliases; i++){
-      hFiredAliases->GetXaxis()->SetBinLabel(i+1,aliasLabels[i].data());
+  OutputObj<TH1F> hFiredAliases{TH1F("hFiredAliases", "", kNaliases, -0.5, kNaliases - 0.5)};
+  void init(InitContext&)
+  {
+    for (int i = 0; i < kNaliases; i++) {
+      hFiredAliases->GetXaxis()->SetBinLabel(i + 1, aliasLabels[i].data());
     }
   }
-  
+
   void process(soa::Join<aod::BCs, aod::Run2BCInfos, aod::BcSels>::iterator const& bc)
   {
     // Fill fired trigger classes
@@ -81,7 +82,7 @@ struct EventSelectionQaPerCollision {
     if (!isMC && !col.alias()[kINT7]) {
       return;
     }
-    
+
     float timeZNA = col.has_zdc() ? col.zdc().timeZNA() : -999.f;
     float timeZNC = col.has_zdc() ? col.zdc().timeZNC() : -999.f;
     float timeV0A = col.has_fv0a() ? col.fv0a().time() : -999.f;

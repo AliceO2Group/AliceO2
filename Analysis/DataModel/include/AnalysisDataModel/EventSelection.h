@@ -39,7 +39,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(SEL8, sel8, [](bool bbT0A, bool bbT0C, bool bbZNA, bo
 DECLARE_SOA_TABLE(EvSels, "AOD", "EVSEL",
                   evsel::Alias,
                   evsel::BBT0A, evsel::BBT0C,
-                  evsel::BBV0A, evsel::BBV0C, evsel::BGV0A, evsel::BGV0C, 
+                  evsel::BBV0A, evsel::BBV0C, evsel::BGV0A, evsel::BGV0C,
                   evsel::BBZNA, evsel::BBZNC,
                   evsel::BBFDA, evsel::BBFDC, evsel::BGFDA, evsel::BGFDC,
                   evsel::SEL7<evsel::BBV0A, evsel::BBV0C, evsel::BBZNA, evsel::BBZNC>,
