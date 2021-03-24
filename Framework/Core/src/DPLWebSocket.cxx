@@ -11,6 +11,8 @@
 #include "DPLWebSocket.h"
 #include "Framework/RuntimeError.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/DeviceController.h"
+#include "DriverServerContext.h"
 #include "HTTPParser.h"
 #include <algorithm>
 #include <atomic>
@@ -84,8 +86,9 @@ void ws_handshake_done_callback(uv_write_t* h, int status)
   uv_read_start((uv_stream_t*)h->handle, (uv_alloc_cb)my_alloc_cb, websocket_server_callback);
 }
 
-WSDPLHandler::WSDPLHandler(uv_stream_t* s, std::unique_ptr<WebSocketHandler> h)
+WSDPLHandler::WSDPLHandler(uv_stream_t* s, DriverServerContext* context, std::unique_ptr<WebSocketHandler> h)
   : mStream{s},
+    mServerContext{context},
     mHandler{std::move(h)}
 {
 }
@@ -149,12 +152,74 @@ void WSDPLHandler::endHeaders()
   uv_buf_t bfr = uv_buf_init(strdup(reply.data()), reply.size());
   uv_write_t* info_req = (uv_write_t*)malloc(sizeof(uv_write_t));
   uv_write(info_req, (uv_stream_t*)mStream, &bfr, 1, ws_handshake_done_callback);
+  auto header = mHeaders.find("x-dpl-pid");
+  if (header != mHeaders.end()) {
+    LOG(debug) << "Driver connected to PID : " << header->second;
+    for (size_t i = 0; i < mServerContext->infos->size(); ++i) {
+      if (std::to_string((*mServerContext->infos)[i].pid) == header->second) {
+        (*mServerContext->controls)[i].controller = new DeviceController{this};
+        break;
+      }
+    }
+  } else {
+    LOG(INFO) << "Connection not bound to a PID";
+  }
 }
 
 /// Actual handling of WS frames happens inside here.
 void WSDPLHandler::body(char* data, size_t s)
 {
   decode_websocket(data, s, *mHandler.get());
+}
+
+void ws_server_write_callback(uv_write_t* h, int status)
+{
+  if (status) {
+    LOG(ERROR) << "uv_write error: " << uv_err_name(status);
+    free(h);
+    return;
+  }
+  if (h->data) {
+    free(h->data);
+  }
+  free(h);
+}
+
+void ws_server_bulk_write_callback(uv_write_t* h, int status)
+{
+  if (status) {
+    LOG(ERROR) << "uv_write error: " << uv_err_name(status);
+    free(h);
+    return;
+  }
+  std::vector<uv_buf_t>* buffers = (std::vector<uv_buf_t>*)h->data;
+  if (buffers) {
+    for (auto& b : *buffers) {
+      free(b.base);
+    }
+  }
+  delete buffers;
+  free(h);
+}
+
+void WSDPLHandler::write(char const* message, size_t s)
+{
+  uv_buf_t bfr = uv_buf_init(strdup(message), s);
+  uv_write_t* write_req = (uv_write_t*)malloc(sizeof(uv_write_t));
+  write_req->data = bfr.base;
+  uv_write(write_req, (uv_stream_t*)mStream, &bfr, 1, ws_server_write_callback);
+}
+
+void WSDPLHandler::write(std::vector<uv_buf_t>& outputs)
+{
+  if (outputs.empty()) {
+    return;
+  }
+  uv_write_t* write_req = (uv_write_t*)malloc(sizeof(uv_write_t));
+  std::vector<uv_buf_t>* buffers = new std::vector<uv_buf_t>;
+  buffers->swap(outputs);
+  write_req->data = buffers;
+  uv_write(write_req, (uv_stream_t*)mStream, &buffers->at(0), buffers->size(), ws_server_bulk_write_callback);
 }
 
 /// Helper to return an error
@@ -196,7 +261,7 @@ void websocket_client_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_
     return;
   }
   try {
-    LOG(INFO) << "Data received from server";
+    LOG(debug) << "Data received from server";
     parse_http_request(buf->base, nread, client);
   } catch (RuntimeErrorRef& ref) {
     auto& err = o2::framework::error_from_ref(ref);
@@ -205,11 +270,12 @@ void websocket_client_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_
 }
 
 // FIXME: mNonce should be random
-WSDPLClient::WSDPLClient(uv_stream_t* s, DeviceSpec const& spec, std::function<void()> handshake)
+WSDPLClient::WSDPLClient(uv_stream_t* s, DeviceSpec const& spec, std::function<void()> handshake, std::unique_ptr<WebSocketHandler> handler)
   : mStream{s},
     mNonce{"dGhlIHNhbXBsZSBub25jZQ=="},
     mSpec{spec},
-    mHandshake{handshake}
+    mHandshake{handshake},
+    mHandler{std::move(handler)}
 {
   s->data = this;
   uv_read_start((uv_stream_t*)s, (uv_alloc_cb)my_alloc_cb, websocket_client_callback);
@@ -303,6 +369,12 @@ void ws_client_bulk_write_callback(uv_write_t* h, int status)
   }
   delete buffers;
   free(h);
+}
+
+/// Actual handling of WS frames happens inside here.
+void WSDPLClient::body(char* data, size_t s)
+{
+  decode_websocket(data, s, *mHandler.get());
 }
 
 /// Helper to return an error

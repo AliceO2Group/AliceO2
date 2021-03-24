@@ -40,6 +40,7 @@
 #include "Framework/DataProcessorInfo.h"
 #include "Framework/DriverInfo.h"
 #include "Framework/DriverControl.h"
+#include "DriverServerContext.h"
 #include "ControlServiceHelpers.h"
 #include "HTTPParser.h"
 #include "DPLWebSocket.h"
@@ -475,17 +476,6 @@ static void my_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* bu
   buf->len = suggested_size;
 }
 
-/// Helper struct which holds all the lists the Driver needs to know about.
-struct DriverServerContext {
-  uv_loop_t* loop;
-  ServiceRegistry* registry = nullptr;
-  std::vector<DeviceInfo>* infos = nullptr;
-  std::vector<DeviceSpec>* specs = nullptr;
-  std::vector<DeviceMetricsInfo>* metrics = nullptr;
-  std::vector<ServiceMetricHandling>* metricProcessingCallbacks;
-  DriverInfo* driver;
-};
-
 void updateMetricsNames(DriverInfo& driverInfo, std::vector<DeviceMetricsInfo> const& metricsInfos)
 {
   // Calculate the unique set of metrics, as available in the metrics service
@@ -637,7 +627,7 @@ void ws_connect_callback(uv_stream_t* server, int status)
   uv_tcp_init(serverContext->loop, client);
   if (uv_accept(server, (uv_stream_t*)client) == 0) {
     auto handler = std::make_unique<ControlWebSocketHandler>(*serverContext);
-    client->data = new WSDPLHandler((uv_stream_t*)client, std::move(handler));
+    client->data = new WSDPLHandler((uv_stream_t*)client, serverContext, std::move(handler));
     uv_read_start((uv_stream_t*)client, (uv_alloc_cb)my_alloc_cb, websocket_callback);
   } else {
     uv_close((uv_handle_t*)client, nullptr);
@@ -1183,6 +1173,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   if (window) {
     uv_timer_init(loop, &gui_timer);
   }
+
   // We initialise this in the driver, because different drivers might have
   // different versions of the service
   ServiceRegistry serviceRegistry;
@@ -1194,6 +1185,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   // changes coming from websocket (or even via any standard uv_stream_t, I guess).
   DriverServerContext serverContext;
   serverContext.loop = loop;
+  serverContext.controls = &controls;
   serverContext.infos = &infos;
   serverContext.specs = &deviceSpecs;
   serverContext.metrics = &metricsInfos;
