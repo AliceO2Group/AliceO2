@@ -45,6 +45,13 @@ namespace o2h = o2::header;
 class RawReaderSpecs : public o2f::Task
 {
  public:
+  static constexpr o2h::DataDescription gDataDescSubTimeFrame{"DISTSUBTIMEFRAME"};
+  struct STFHeader { // fake header to mimic DD SubTimeFrame::Header sent with DISTSUBTIMEFRAME message
+    uint64_t mId = uint64_t(-1);
+    uint32_t mFirstOrbit = uint32_t(-1);
+    std::uint32_t mRunNumber = 0;
+  };
+
   explicit RawReaderSpecs(const ReaderInp& rinp)
     : mLoop(rinp.loop < 0 ? INT_MAX : (rinp.loop < 1 ? 1 : rinp.loop)), mDelayUSec(rinp.delay_us), mMinTFID(rinp.minTF), mMaxTFID(rinp.maxTF), mPartPerSP(rinp.partPerSP), mReader(std::make_unique<o2::raw::RawFileReader>(rinp.inifile, 0, rinp.bufferSize)), mRawChannelName(rinp.rawChannelConfig)
   {
@@ -84,30 +91,42 @@ class RawReaderSpecs : public o2f::Task
     auto device = ctx.services().get<o2f::RawDeviceService>().device();
     assert(device);
 
-    auto findOutputChannel = [&ctx, this](RawFileReader::LinkData& link, size_t timeslice) {
+    auto findOutputChannel = [&ctx, this](o2h::DataHeader& h) {
       if (!this->mRawChannelName.empty()) {
-        link.fairMQChannel = this->mRawChannelName;
-        return true;
-      }
-      auto outputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs;
-      for (auto& oroute : outputRoutes) {
-        LOG(DEBUG) << "comparing with matcher to route " << oroute.matcher << " TSlice:" << oroute.timeslice;
-        if (o2f::DataSpecUtils::match(oroute.matcher, link.origin, link.description, link.subspec) && ((timeslice % oroute.maxTimeslices) == oroute.timeslice)) {
-          link.fairMQChannel = oroute.channel;
-          LOG(DEBUG) << "picking the route:" << o2f::DataSpecUtils::describe(oroute.matcher) << " channel " << oroute.channel;
-          return true;
+        return std::string{this->mRawChannelName};
+      } else {
+        auto outputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs;
+        for (auto& oroute : outputRoutes) {
+          LOG(DEBUG) << "comparing with matcher to route " << oroute.matcher << " TSlice:" << oroute.timeslice;
+          if (o2f::DataSpecUtils::match(oroute.matcher, h.dataOrigin, h.dataDescription, h.subSpecification) && ((h.tfCounter % oroute.maxTimeslices) == oroute.timeslice)) {
+            LOG(DEBUG) << "picking the route:" << o2f::DataSpecUtils::describe(oroute.matcher) << " channel " << oroute.channel;
+            return std::string{oroute.channel};
+          }
         }
       }
-      LOGF(ERROR, "Failed to find output channel for %s/%s/0x%x", link.origin.as<std::string>(),
-           link.description.as<std::string>(), link.subspec);
-      return false;
+      LOGP(ERROR, "Failed to find output channel for {}/{}/{} @ timeslice {}", h.dataOrigin.str, h.dataDescription.str, h.subSpecification, h.tfCounter);
+      return std::string{};
+    };
+
+    size_t tfNParts = 0, tfSize = 0;
+    std::unordered_map<std::string, std::unique_ptr<FairMQParts>> messagesPerRoute;
+
+    auto addPart = [&messagesPerRoute, &tfNParts, &tfSize](FairMQMessagePtr hd, FairMQMessagePtr pl, const std::string& fairMQChannel) {
+      FairMQParts* parts = nullptr;
+      parts = messagesPerRoute[fairMQChannel].get(); // FairMQParts*
+      if (!parts) {
+        messagesPerRoute[fairMQChannel] = std::make_unique<FairMQParts>();
+        parts = messagesPerRoute[fairMQChannel].get();
+      }
+      tfSize += pl->GetSize();
+      tfNParts++;
+      parts->AddPart(std::move(hd));
+      parts->AddPart(std::move(pl));
     };
 
     // clean-up before reading next TF
     auto tfID = mReader->getNextTFToRead();
     int nlinks = mReader->getNLinks();
-
-    std::unordered_map<std::string, std::unique_ptr<FairMQParts>> messagesPerRoute;
 
     if (tfID > mMaxTFID) {
       if (!mReader->isEmpty() && --mLoop) {
@@ -135,29 +154,31 @@ class RawReaderSpecs : public o2f::Task
     const auto& hbfU = HBFUtils::Instance();
 
     // read next time frame
-    size_t tfNParts = 0, tfSize = 0;
     LOG(INFO) << "Reading TF#" << mTFCounter << " (" << tfID << " at iteration " << mLoopsDone << ')';
     o2::header::Stack dummyStack{o2h::DataHeader{}, o2::framework::DataProcessingHeader{0}}; // dummy stack to just to get stack size
     auto hstackSize = dummyStack.size();
 
+    uint32_t firstOrbit = 0;
     for (int il = 0; il < nlinks; il++) {
       auto& link = mReader->getLink(il);
       if (!link.rewindToTF(tfID)) {
         continue; // this link has no data for wanted TF
-      }
-      if (!findOutputChannel(link, mTFCounter)) { // no output channel
-        continue;
       }
 
       o2h::DataHeader hdrTmpl(link.description, link.origin, link.subspec); // template with 0 size
       int nParts = mPartPerSP ? link.getNextTFSuperPagesStat(partsSP) : link.getNHBFinTF();
       hdrTmpl.payloadSerializationMethod = o2h::gSerializationMethodNone;
       hdrTmpl.splitPayloadParts = nParts;
+      hdrTmpl.tfCounter = mTFCounter;
 
+      const auto fmqChannel = findOutputChannel(hdrTmpl);
+      if (fmqChannel.empty()) { // no output channel
+        continue;
+      }
+
+      auto fmqFactory = device->GetChannel(fmqChannel, 0).Transport();
       while (hdrTmpl.splitPayloadIndex < hdrTmpl.splitPayloadParts) {
-
-        tfSize += hdrTmpl.payloadSize = mPartPerSP ? partsSP[hdrTmpl.splitPayloadIndex].size : link.getNextHBFSize();
-        auto fmqFactory = device->GetChannel(link.fairMQChannel, 0).Transport();
+        hdrTmpl.payloadSize = mPartPerSP ? partsSP[hdrTmpl.splitPayloadIndex].size : link.getNextHBFSize();
         auto hdMessage = fmqFactory->CreateMessage(hstackSize, fair::mq::Alignment{64});
         auto plMessage = fmqFactory->CreateMessage(hdrTmpl.payloadSize, fair::mq::Alignment{64});
         mTimer[TimerIO].Start(false);
@@ -171,27 +192,35 @@ class RawReaderSpecs : public o2f::Task
         if (hdrTmpl.splitPayloadIndex == 0) {
           auto ir = o2::raw::RDHUtils::getHeartBeatIR(plMessage->GetData());
           auto tfid = hbfU.getTF(ir);
-          hdrTmpl.firstTForbit = hbfU.getIRTF(tfid).orbit;                                           // will be picked for the
-          hdrTmpl.tfCounter = mTFCounter;                                                            // following parts
-          // reinterpret_cast<o2::header::DataHeader*>(hdMessage->GetData())->firstTForbit = hdrTmpl.firstTForbit;     // hack to fix already filled headers
-          // reinterpret_cast<o2::header::DataHeader*>(hdMessage->GetData())->tfCounter = mTFCounter;   // at the moment don't use it
+          firstOrbit = hdrTmpl.firstTForbit = hbfU.getIRTF(tfid).orbit; // will be picked for the following parts
         }
         o2::header::Stack headerStack{hdrTmpl, o2::framework::DataProcessingHeader{mTFCounter}};
         memcpy(hdMessage->GetData(), headerStack.data(), headerStack.size());
-
-        FairMQParts* parts = nullptr;
-        parts = messagesPerRoute[link.fairMQChannel].get(); // FairMQParts*
-        if (!parts) {
-          messagesPerRoute[link.fairMQChannel] = std::make_unique<FairMQParts>();
-          parts = messagesPerRoute[link.fairMQChannel].get();
-        }
-        parts->AddPart(std::move(hdMessage));
-        parts->AddPart(std::move(plMessage));
         hdrTmpl.splitPayloadIndex++; // prepare for next
-        tfNParts++;
+
+        addPart(std::move(hdMessage), std::move(plMessage), fmqChannel);
       }
       LOGF(DEBUG, "Added %d parts for TF#%d(%d in iteration %d) of %s/%s/0x%u", hdrTmpl.splitPayloadParts, mTFCounter, tfID,
            mLoopsDone, link.origin.as<std::string>(), link.description.as<std::string>(), link.subspec);
+    }
+
+    // send sTF acknowledge message
+    {
+      STFHeader stfHeader{mTFCounter, firstOrbit, 0};
+      o2::header::DataHeader stfDistDataHeader(gDataDescSubTimeFrame, o2::header::gDataOriginFLP, 0, sizeof(STFHeader), 0, 1);
+      stfDistDataHeader.payloadSerializationMethod = o2h::gSerializationMethodNone;
+      stfDistDataHeader.firstTForbit = stfHeader.mFirstOrbit;
+      stfDistDataHeader.tfCounter = mTFCounter;
+      const auto fmqChannel = findOutputChannel(stfDistDataHeader);
+      if (!fmqChannel.empty()) { // no output channel
+        auto fmqFactory = device->GetChannel(fmqChannel, 0).Transport();
+        o2::header::Stack headerStackSTF{stfDistDataHeader, o2::framework::DataProcessingHeader{mTFCounter}};
+        auto hdMessageSTF = fmqFactory->CreateMessage(hstackSize, fair::mq::Alignment{64});
+        auto plMessageSTF = fmqFactory->CreateMessage(stfDistDataHeader.payloadSize, fair::mq::Alignment{64});
+        memcpy(hdMessageSTF->GetData(), headerStackSTF.data(), headerStackSTF.size());
+        memcpy(plMessageSTF->GetData(), &stfHeader, sizeof(STFHeader));
+        addPart(std::move(hdMessageSTF), std::move(plMessageSTF), fmqChannel);
+      }
     }
 
     if (mTFCounter) { // delay sending
@@ -259,6 +288,8 @@ o2f::DataProcessorSpec getReaderSpec(const ReaderInp& rinp)
         }
       }
     }
+    // add output for DISTSUBTIMEFRAME
+    spec.outputs.emplace_back(o2f::OutputSpec{{"stfDist"}, o2::header::gDataOriginFLP, RawReaderSpecs::gDataDescSubTimeFrame, 0});
   } else {
     auto nameStart = rinp.rawChannelConfig.find("name=");
     if (nameStart == std::string::npos) {
