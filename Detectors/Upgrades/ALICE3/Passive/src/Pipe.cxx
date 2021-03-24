@@ -158,7 +158,6 @@ void Alice3Pipe::ConstructGeometry()
 
   barrel->AddNode(innerBeTubeVolume, 1, new TGeoTranslation(0, 30.f, 0));
   barrel->AddNode(innerBerylliumTubeVacuumVolume, 1, new TGeoTranslation(0, 30.f, 0));
-
 }
 
 void Alice3Pipe::createMaterials()
