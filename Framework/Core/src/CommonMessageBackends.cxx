@@ -180,8 +180,10 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                        size_t signalIndex = DeviceMetricsHelper::metricIdxByName("aod-reader-signals", driverMetrics);
                        size_t lastSignalTimestamp = 0;
                        if (signalIndex < driverMetrics.metrics.size()) {
-                         MetricInfo info = driverMetrics.metrics.at(signalIndex);
-                         lastSignalTimestamp = driverMetrics.timestamps[signalIndex][info.pos - 1];
+                         MetricInfo& info = driverMetrics.metrics.at(signalIndex);
+                         if (info.filledMetrics) {
+                           lastSignalTimestamp = driverMetrics.timestamps.at(signalIndex).at((info.pos - 1) % driverMetrics.timestamps.at(signalIndex).size());
+                         }
                        }
 
                        size_t lastTimestamp = 0;
