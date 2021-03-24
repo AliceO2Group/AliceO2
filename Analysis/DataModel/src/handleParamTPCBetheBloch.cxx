@@ -88,7 +88,6 @@ int main(int argc, char* argv[])
     BetheBloch* bb = nullptr;
     TPCReso* reso = nullptr;
     const std::string input_file_name = vm["read-from-file"].as<std::string>();
-
     if (!input_file_name.empty()) {
       TFile f(input_file_name.data(), "READ");
       if (!f.IsOpen()) {
