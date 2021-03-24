@@ -292,13 +292,14 @@ void dumpWorkflow(std::ostream& dumpOut, const std::vector<DeviceSpec>& specs, c
     auto& execution = executions[di];
     dumpRole(dumpOut, taskName(workflowName, spec.id), spec, specs, execution, indLevel + indScheme);
   }
-};
+}
 
 } // namespace implementation
 
 void dumpDeviceSpec2O2Control(std::string workflowName,
                               const std::vector<DeviceSpec>& specs,
-                              const std::vector<DeviceExecution>& executions)
+                              const std::vector<DeviceExecution>& executions,
+                              const CommandInfo&)
 {
   const char* tasksDirectory = "tasks";
   const char* workflowsDirectory = "workflows";
