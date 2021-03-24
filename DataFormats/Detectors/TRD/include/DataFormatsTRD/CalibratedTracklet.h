@@ -29,10 +29,10 @@ class CalibratedTracklet : public Tracklet64
     : Tracklet64(trackletWord), mx(x), my(y), mz(z), mdy(dy){};
   ~CalibratedTracklet() = default;
 
-  float getX() { return mx; }
-  float getY() { return my; }
-  float getZ() { return mz; }
-  float getDy() { return mdy; }
+  float getX() const { return mx; }
+  float getY() const { return my; }
+  float getZ() const { return mz; }
+  float getDy() const { return mdy; }
 
   void setX(float x) { mx = x; }
   void setY(float y) { my = y; }
