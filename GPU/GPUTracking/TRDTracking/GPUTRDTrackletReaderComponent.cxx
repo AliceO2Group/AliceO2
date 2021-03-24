@@ -305,7 +305,6 @@ int GPUTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hltEv
       HLTInfo("There are %i tracklets in this event\n", nTracklets);
       for (int iTracklet = 0; iTracklet < nTracklets; ++iTracklet) {
         GPUTRDTrackletWord trkl = *((AliTRDtrackletWord*)fTrackletArray->At(iTracklet));
-        trkl.SetId(iTracklet);
         outputTrkls.push_back(trkl);
       }
       LogDebug("pushing data for sectors: 0x%05x", sourceSectors);
@@ -373,7 +372,6 @@ int GPUTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hltEv
           continue;
         }
         GPUTRDTrackletWord hltTrkl = *trkl;
-        hltTrkl.SetId(iTracklet);
         outputTrkls.push_back(hltTrkl);
         GPUTRDTrackletLabels trklMC;
         trklMC.mLabel[0] = trkl->GetLabel(0);

@@ -20,6 +20,7 @@
 #include "DetectorsBase/Propagator.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DataFormatsTRD/Tracklet64.h"
+#include "DataFormatsTRD/CalibratedTracklet.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 
 // GPU header
@@ -43,6 +44,7 @@ namespace trd
 
 void TRDGlobalTracking::init(InitContext& ic)
 {
+
   //-------- init geometry and field --------//
   o2::base::GeometryManager::loadGeometry();
   o2::base::Propagator::initFieldFromGRP(o2::base::NameConf::getGRPFileName());
@@ -65,6 +67,7 @@ void TRDGlobalTracking::init(InitContext& ic)
   mTracker->SetNCandidates(mRec->GetProcessingSettings().trdNCandidates); // must be set before initialization
   mTracker->SetProcessPerTimeFrame();
   mTracker->SetNMaxCollisions(mRec->GetProcessingSettings().trdNMaxCollisions);
+  mTracker->SetTrkltTransformNeeded(!mUseTrackletTransform);
 
   mRec->RegisterGPUProcessor(mTracker, false);
   mChainTracking->SetTRDGeometry(std::move(mFlatGeo));
@@ -89,6 +92,21 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   int nCollisions = triggerRecords.size();
   int nTracklets = trackletsTRD.size();
   LOGF(INFO, "There are %i tracklets in total from %i trigger records", nTracklets, nCollisions);
+
+  const gsl::span<const CalibratedTracklet>* cTrkltsPtr = nullptr;
+  using cTrkltType = std::decay_t<decltype(pc.inputs().get<gsl::span<CalibratedTracklet>>(""))>;
+  std::optional<cTrkltType> cTrklts;
+  int nTrackletsCal = 0;
+
+  if (mUseTrackletTransform) {
+    cTrklts.emplace(pc.inputs().get<gsl::span<CalibratedTracklet>>("trdctracklets")); // MC labels associated to the input digits
+    cTrkltsPtr = &cTrklts.value();
+    nTrackletsCal = cTrkltsPtr->size();
+    LOGF(INFO, "Got %i calibrated tracklets as input", nTrackletsCal);
+    if (nTracklets != nTrackletsCal) {
+      LOGF(ERROR, "Number of calibrated tracklets (%i) differs from the number of uncalibrated tracklets (%i)", nTrackletsCal, nTracklets);
+    }
+  }
 
   std::vector<float> trdTriggerTimes;
   std::vector<int> trdTriggerIndices;
@@ -141,9 +159,12 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   for (int iTrklt = 0; iTrklt < nTracklets; ++iTrklt) {
     auto trklt = trackletsTRD[iTrklt];
     GPUTRDTrackletWord trkltLoad(trklt.getTrackletWord());
-    trkltLoad.SetId(iTrklt);
     if (mTracker->LoadTracklet(trkltLoad) > 0) {
       LOG(WARNING) << "Could not load tracklet " << iTrklt;
+    }
+    if (mUseTrackletTransform) {
+      const CalibratedTracklet cTrklt = (cTrkltsPtr->data())[iTrklt];
+      mTracker->SetInternalSpacePoint(iTrklt, cTrklt.getX(), cTrklt.getY(), cTrklt.getZ(), cTrklt.getDy());
     }
   }
   mTracker->SetTriggerRecordTimes(&(trdTriggerTimes[0]));
@@ -166,11 +187,14 @@ void TRDGlobalTracking::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC)
+DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, bool useTrkltTransf)
 {
   std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
   inputs.emplace_back("tpcitstrack", "GLO", "TPCITS", 0, Lifetime::Timeframe);
+  if (useTrkltTransf) {
+    inputs.emplace_back("trdctracklets", o2::header::gDataOriginTRD, "CTRACKLETS", 0, Lifetime::Timeframe);
+  }
   inputs.emplace_back("trdtracklets", o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe);
   inputs.emplace_back("trdtriggerrec", o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe);
 
@@ -184,7 +208,7 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC)
     "trd-globaltracking",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDGlobalTracking>(useMC)},
+    AlgorithmSpec{adaptFromTask<TRDGlobalTracking>(useMC, useTrkltTransf)},
     Options{}};
 }
 
