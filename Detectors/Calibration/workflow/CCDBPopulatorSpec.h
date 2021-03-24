@@ -78,7 +78,7 @@ namespace framework
 DataProcessorSpec getCCDBPopulatorDeviceSpec()
 {
   using clbUtils = o2::calibration::Utils;
-  std::vector<InputSpec> inputs = o2::framework::DataDescriptorQueryBuilder::parse("clbPayload:CLP;clbWrapper:CLW");
+  std::vector<InputSpec> inputs = {{"clbPayload", "CLP"}, {"clbWrapper", "CLW"}};
 
   return DataProcessorSpec{
     "ccdb-populator",
