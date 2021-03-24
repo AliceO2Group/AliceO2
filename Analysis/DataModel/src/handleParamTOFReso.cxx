@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 ///
-/// \file   handleParamTOFResoALICE3.cxx
+/// \file   handleParamTOFReso.cxx
 /// \author Nicolo' Jacazio
 /// \since  2020-06-22
 /// \brief  A simple tool to produce Bethe Bloch parametrization objects for the TOF PID Response
@@ -28,10 +28,12 @@ bool initOptionsAndParse(bpo::options_description& options, int argc, char* argv
 {
   options.add_options()(
     "url,u", bpo::value<std::string>()->default_value("http://ccdb-test.cern.ch:8080"), "URL of the CCDB database")(
+    "ccdb-path,c", bpo::value<std::string>()->default_value("Analysis/PID/TOF"), "CCDB path for storage/retrieval")(
     "start,s", bpo::value<long>()->default_value(0), "Start timestamp of object validity")(
     "stop,S", bpo::value<long>()->default_value(4108971600000), "Stop timestamp of object validity")(
-    "delete_previous,d", bpo::value<int>()->default_value(0), "Flag to delete previous versions of converter objects in the CCDB before uploading the new one so as to avoid proliferation on CCDB")(
-    "file,f", bpo::value<std::string>()->default_value(""), "Option to save parametrization to file instead of uploading to ccdb")(
+    "delete-previous,delete_previous,d", bpo::value<int>()->default_value(0), "Flag to delete previous versions of converter objects in the CCDB before uploading the new one so as to avoid proliferation on CCDB")(
+    "save-to-file,file,f,o", bpo::value<std::string>()->default_value(""), "Option to save parametrization to file instead of uploading to ccdb")(
+    "read-from-file,i", bpo::value<std::string>()->default_value(""), "Option to get parametrization from a file")(
     "mode,m", bpo::value<unsigned int>()->default_value(1), "Working mode: 0 push 1 pull and test")(
     "p0", bpo::value<float>()->default_value(0.008f), "Parameter 0 of the TOF resolution")(
     "p1", bpo::value<float>()->default_value(0.008f), "Parameter 1 of the TOF resolution")(
@@ -68,7 +70,7 @@ int main(int argc, char* argv[])
   }
 
   const unsigned int mode = vm["mode"].as<unsigned int>();
-  const std::string path = "Analysis/PID/TOF";
+  const std::string path = vm["ccdb-path"].as<std::string>();
   std::map<std::string, std::string> metadata;
   std::map<std::string, std::string>* headers;
   o2::ccdb::CcdbApi api;
@@ -101,13 +103,13 @@ int main(int argc, char* argv[])
       long start = vm["start"].as<long>();
       long stop = vm["stop"].as<long>();
 
-      if (vm["delete_previous"].as<int>()) {
+      if (vm["delete-previous"].as<int>()) {
         api.truncate(path);
       }
       api.storeAsTFileAny(&reso, path + "/TOFReso", metadata, start, stop);
     }
   } else { // Pull and test mode
-    LOG(INFO) << "Handling TOF resolution parametrization in test mode";
+    LOG(INFO) << "Handling TOF parametrization in test mode";
     const float x[4] = {1, 1, 1, 1}; // mom, time, ev. reso, mass
     TOFReso* reso = api.retrieveFromTFileAny<TOFReso>(path + "/TOFReso", metadata, -1, headers);
     reso->PrintParametrization();
