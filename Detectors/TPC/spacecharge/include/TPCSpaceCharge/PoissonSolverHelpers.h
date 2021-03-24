@@ -69,7 +69,7 @@ struct TPCParameters {
   inline static DataT vg1t{-3260};                              ///< GEM 1 Top voltage. (setting with reduced ET1,2,4 = 3.5kV/cm)
 };
 
-template <typename DataT = double, size_t Nr = 129, size_t Nz = 129, size_t Nphi = 180>
+template <typename DataT = double, size_t Nz = 129, size_t Nr = 129, size_t Nphi = 180>
 struct GridProperties {
   static constexpr DataT RMIN{TPCParameters<DataT>::IFCRADIUS};                  ///< min radius
   static constexpr DataT ZMIN{0};                                                ///< min z coordinate

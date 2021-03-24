@@ -146,7 +146,9 @@ const float mROFC = o2::tpc::TPCParameters<double>::OFCRADIUS; // outer field ca
 
 const char* outfnameHists = "spaceChargeDensityHist"; // name of the output file for the histograms
 const char* outfnameIDC = "spaceChargeDensityIDC";    // name of the output file for the IDCs
-const char* hisSCRandomName = "hisSCRandom";
+const char* hisSCRandomName = "hisSCRandom";          // name of the histogram of the combined space charge density of IBF and PI
+const char* hisSCIBFRandomName = "hisIBF";            // name of the histogram of the space charge density of IBF
+const char* hisSCPIRandomName = "hisPI";              // name of the histogram of the space charge density of PI
 
 CalPad loadMap(std::string mapfile, std::string mapName);
 void normalizeHistoQVEps0(TH3& histoIonsPhiRZ);
@@ -218,8 +220,8 @@ void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, 
   const int nZBins = 257 * 2;
 
   TH3F hisSCRandom(hisSCRandomName, hisSCRandomName, nPhiBins, 0, ::TWOPI, nRBins, mRIFC, mROFC, nZBins, -mZROC, mZROC);
-  TH3F hisIBF("hisIBF", "hisIBF", nPhiBins, 0, ::TWOPI, nRBins, mRIFC, mROFC, nZBins, -mZROC, mZROC);
-  TH3F hisPI("hisPI", "hisPI", nPhiBins, 0, ::TWOPI, nRBins, mRIFC, mROFC, nZBins, -mZROC, mZROC);
+  TH3F hisIBF(hisSCIBFRandomName, hisSCIBFRandomName, nPhiBins, 0, ::TWOPI, nRBins, mRIFC, mROFC, nZBins, -mZROC, mZROC);
+  TH3F hisPI(hisSCPIRandomName, hisSCPIRandomName, nPhiBins, 0, ::TWOPI, nRBins, mRIFC, mROFC, nZBins, -mZROC, mZROC);
   TH1F hisEpsilon("hisEpsilon", "hisEpsilon", 50, 0, 50);
 
   const int nZBinsSide = ionDriftTime;
@@ -608,12 +610,13 @@ void makeDistortionsCorrections(const char* outFileDistortions = "distortions.ro
   SC spacecharge;
   setOmegaTauT1T2<DataT, nZ, nR, nPhi>(spacecharge);
   spacecharge.fillChargeDensityFromFile(fSCDensity, histName);
+  const bool calcLocalVectors = true;
 
   if (sides != 2) {
-    spacecharge.calculateDistortionsCorrections(Side::A);
+    spacecharge.calculateDistortionsCorrections(Side::A, calcLocalVectors);
   }
   if (sides != 1) {
-    spacecharge.calculateDistortionsCorrections(Side::C);
+    spacecharge.calculateDistortionsCorrections(Side::C, calcLocalVectors);
   }
 
   int sideStart = 0;
@@ -631,37 +634,58 @@ void makeDistortionsCorrections(const char* outFileDistortions = "distortions.ro
     spacecharge.dumpGlobalCorrections(fOut, side);
     spacecharge.dumpGlobalDistortions(fOut, side);
     spacecharge.dumpLocalCorrections(fOut, side);
+    spacecharge.dumpLocalDistCorrVectors(fOut, side);
     spacecharge.dumpDensity(fOut, side);
+    spacecharge.dumpPotential(fOut, side);
+    spacecharge.dumpElectricFields(fOut, side);
   }
 }
 
 /// make average distortion map from random maps
 /// \param files vector with files which contain the random space charge maps
-/// \param histName name of the space charge histogram in the root files
+/// \param histNameNoZDep name of the space charge histogram in the root files which dont have a z dependence
+/// \param histNameZDep name of the space charge histogram in the root files which have a z dependence
 /// \param outFileName name of the output file
-void makeAverageDensityMap(const std::vector<std::string> files, const char* histName = hisSCRandomName, const char* outFileName = "spaceChargeDensityHist_average.root")
+void makeAverageDensityMap(const std::vector<std::string> files, const char* histNameNoZDep = hisSCIBFRandomName, const char* histNameZDep = hisSCPIRandomName, const char* outFileName = "spaceChargeDensityHist_average.root")
 {
+  const std::string tmphistNameZDep = histNameZDep;
+
   // 1. loop over the maps and create the average map (still z dependent)
-  TH3F averageMap;
+  TH3F averageMapNoZDep; // average sc map which doesnt depend on z (like the IBF)
+  TH3F averageMapZDep;   // average sc map which depends on z (like the PI)
   const int nMaps = files.size();
   for (int iFile = 0; iFile < nMaps; ++iFile) {
     const auto str = files[iFile];
     std::cout << "using density map: " << str.data() << std::endl;
     TFile fInp(str.data(), "READ");
-    TH3F* densMapTmp = (TH3F*)fInp.Get(histName);
-    if (iFile == 0) {
-      averageMap = *densMapTmp;
-    } else {
-      averageMap.Add(densMapTmp);
+    TH3F* densMapTmpNoZDep = (TH3F*)fInp.Get(histNameNoZDep);
+
+    TH3F* densMapTmpZDep = nullptr;
+    if (!tmphistNameZDep.empty()) {
+      densMapTmpZDep = (TH3F*)fInp.Get(histNameZDep);
     }
-    delete densMapTmp;
+
+    if (iFile == 0) {
+      averageMapNoZDep = *densMapTmpNoZDep;
+      if (densMapTmpZDep) {
+        averageMapZDep = *densMapTmpZDep;
+      }
+    } else {
+      averageMapNoZDep.Add(densMapTmpNoZDep);
+      if (densMapTmpZDep) {
+        averageMapZDep.Add(densMapTmpZDep);
+      }
+    }
+    delete densMapTmpNoZDep;
+    delete densMapTmpZDep;
   }
-  averageMap.Scale(1. / nMaps);
+  averageMapNoZDep.Scale(1. / nMaps);
+  averageMapZDep.Scale(1. / nMaps);
 
   // 2.a sum up all z-slices to remove z dependence
-  const int nBinsPhi = averageMap.GetNbinsX();
-  const int nBinsR = averageMap.GetNbinsY();
-  const int nBinsZ = averageMap.GetNbinsZ();
+  const int nBinsPhi = averageMapNoZDep.GetNbinsX();
+  const int nBinsR = averageMapNoZDep.GetNbinsY();
+  const int nBinsZ = averageMapNoZDep.GetNbinsZ();
 
   for (int iPhi = 1; iPhi <= nBinsPhi; ++iPhi) {
     for (int iR = 1; iR <= nBinsR; ++iR) {
@@ -670,23 +694,33 @@ void makeAverageDensityMap(const std::vector<std::string> files, const char* his
       // C-Side (?)
       const int startBinCSide = 1;
       const int endBinCSide = nBinsHalfZ;
-      const float meanDensCSide = averageMap.Integral(iPhi, iPhi, iR, iR, startBinCSide, endBinCSide) / nBinsHalfZ; // integral over all z bins for each r and phi bin normalized to number of z slices
+      const float meanDensCSide = averageMapNoZDep.Integral(iPhi, iPhi, iR, iR, startBinCSide, endBinCSide) / nBinsHalfZ; // integral over all z bins for each r and phi bin normalized to number of z slices
       for (int iZ = startBinCSide; iZ <= endBinCSide; ++iZ) {
-        averageMap.SetBinContent(iPhi, iR, iZ, meanDensCSide);
+        averageMapNoZDep.SetBinContent(iPhi, iR, iZ, meanDensCSide);
       }
 
       // A-Side (?)
       const int startBinASide = 0.5 * nBinsZ + 1;
       const int endBinASide = nBinsZ;
-      const float meanDensASide = averageMap.Integral(iPhi, iPhi, iR, iR, startBinASide, endBinASide) / nBinsHalfZ; // integral over all z bins for each r and phi bin normalized to number of z slices
+      const float meanDensASide = averageMapNoZDep.Integral(iPhi, iPhi, iR, iR, startBinASide, endBinASide) / nBinsHalfZ; // integral over all z bins for each r and phi bin normalized to number of z slices
       for (int iZ = startBinASide; iZ <= endBinASide; ++iZ) {
-        averageMap.SetBinContent(iPhi, iR, iZ, meanDensASide);
+        averageMapNoZDep.SetBinContent(iPhi, iR, iZ, meanDensASide);
       }
     }
   }
 
   TFile fOut(outFileName, "RECREATE");
-  averageMap.Write();
+  averageMapNoZDep.Write();
+  if (!tmphistNameZDep.empty()) {
+    averageMapZDep.Write();
+
+    // calculate final sc density
+    averageMapNoZDep.Add(&averageMapZDep);
+    averageMapNoZDep.SetTitle(hisSCRandomName);
+    averageMapNoZDep.SetName(hisSCRandomName);
+    averageMapNoZDep.Write();
+  }
+
   fOut.Close();
 }
 
@@ -749,7 +783,10 @@ void createScaledMeanMap(const std::string inpFile, const std::string outFile, c
     scScaled.dumpGlobalCorrections(fOut, side);
     scScaled.dumpGlobalDistortions(fOut, side);
     scScaled.dumpLocalCorrections(fOut, side);
+    scScaled.dumpLocalDistCorrVectors(fOut, side);
     scScaled.dumpDensity(fOut, side);
+    scScaled.dumpPotential(fOut, side);
+    scScaled.dumpElectricFields(fOut, side);
   }
 }
 
