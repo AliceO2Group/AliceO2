@@ -35,6 +35,8 @@ bool initOptionsAndParse(bpo::options_description& options, int argc, char* argv
     "delete-previous,delete_previous,d", bpo::value<int>()->default_value(0), "Flag to delete previous versions of converter objects in the CCDB before uploading the new one so as to avoid proliferation on CCDB")(
     "save-to-file,file,f,o", bpo::value<std::string>()->default_value(""), "Option to save parametrization to file instead of uploading to ccdb")(
     "read-from-file,i", bpo::value<std::string>()->default_value(""), "Option to get parametrization from a file")(
+    "exp-name,n", bpo::value<std::string>()->default_value("BetheBloch"), "Name of the parametrization object")(
+    "reso-name,n", bpo::value<std::string>()->default_value("TPCReso"), "Name of the parametrization object")(
     "mode,m", bpo::value<unsigned int>()->default_value(1), "Working mode: 0 push 1 pull and test")(
     "p0", bpo::value<float>()->default_value(0.0320981), "Parameter 0 of the TPC expected value")(
     "p1", bpo::value<float>()->default_value(19.9768), "Parameter 1 of the TPC expected value")(
@@ -83,18 +85,20 @@ int main(int argc, char* argv[])
     LOG(WARNING) << "CCDB host " << url << " is not reacheable, cannot go forward";
     return 1;
   }
+  BetheBloch* bb = nullptr;
+  TPCReso* reso = nullptr;
+  const std::string exp_name = vm["exp-name"].as<std::string>();
+  const std::string reso_name = vm["reso-name"].as<std::string>();
   if (mode == 0) { // Push mode
     LOG(INFO) << "Handling TPC parametrization in create mode";
-    BetheBloch* bb = nullptr;
-    TPCReso* reso = nullptr;
     const std::string input_file_name = vm["read-from-file"].as<std::string>();
     if (!input_file_name.empty()) {
       TFile f(input_file_name.data(), "READ");
       if (!f.IsOpen()) {
         LOG(WARNING) << "Input file " << input_file_name << " is not reacheable, cannot get param from file";
       }
-      f.GetObject("BetheBloch", bb);
-      f.GetObject("TPCReso", reso);
+      f.GetObject(exp_name.c_str(), bb);
+      f.GetObject(reso_name.c_str(), reso);
       f.Close();
     }
     if (!bb) {
@@ -125,16 +129,16 @@ int main(int argc, char* argv[])
       if (vm["delete-previous"].as<int>()) {
         api.truncate(path);
       }
-      api.storeAsTFileAny(bb, path + "/BetheBloch", metadata, start, stop);
-      api.storeAsTFileAny(reso, path + "/TPCReso", metadata, start, stop);
+      api.storeAsTFileAny(bb, path + "/" + exp_name, metadata, start, stop);
+      api.storeAsTFileAny(reso, path + "/" + reso_name, metadata, start, stop);
     }
   } else { // Pull and test mode
     LOG(INFO) << "Handling TPC parametrization in test mode";
     const float x[2] = {1, 1};
-    BetheBloch* bb = api.retrieveFromTFileAny<BetheBloch>(path + "/BetheBloch", metadata, -1, headers);
+    BetheBloch* bb = api.retrieveFromTFileAny<BetheBloch>(path + "/" + exp_name, metadata, -1, headers);
     bb->PrintParametrization();
     LOG(INFO) << "BetheBloch " << bb->operator()(x);
-    TPCReso* reso = api.retrieveFromTFileAny<TPCReso>(path + "/TPCReso", metadata, -1, headers);
+    TPCReso* reso = api.retrieveFromTFileAny<TPCReso>(path + "/" + reso_name, metadata, -1, headers);
     reso->PrintParametrization();
     LOG(INFO) << "TPCReso " << reso->operator()(x);
   }

@@ -34,6 +34,7 @@ bool initOptionsAndParse(bpo::options_description& options, int argc, char* argv
     "delete-previous,delete_previous,d", bpo::value<int>()->default_value(0), "Flag to delete previous versions of converter objects in the CCDB before uploading the new one so as to avoid proliferation on CCDB")(
     "save-to-file,file,f,o", bpo::value<std::string>()->default_value(""), "Option to save parametrization to file instead of uploading to ccdb")(
     "read-from-file,i", bpo::value<std::string>()->default_value(""), "Option to get parametrization from a file")(
+    "reso-name,n", bpo::value<std::string>()->default_value("TOFReso"), "Name of the parametrization object")(
     "mode,m", bpo::value<unsigned int>()->default_value(1), "Working mode: 0 push 1 pull and test")(
     "p0", bpo::value<float>()->default_value(0.008f), "Parameter 0 of the TOF resolution")(
     "p1", bpo::value<float>()->default_value(0.008f), "Parameter 1 of the TOF resolution")(
@@ -80,17 +81,17 @@ int main(int argc, char* argv[])
     LOG(WARNING) << "CCDB host " << url << " is not reacheable, cannot go forward";
     return 1;
   }
+  TOFReso* reso = nullptr;
+  const std::string reso_name = vm["reso-name"].as<std::string>();
   if (mode == 0) { // Push mode
     LOG(INFO) << "Handling TOF parametrization in create mode";
-    TOFReso* reso = nullptr;
     const std::string input_file_name = vm["read-from-file"].as<std::string>();
     if (!input_file_name.empty()) {
       TFile f(input_file_name.data(), "READ");
       if (!f.IsOpen()) {
         LOG(WARNING) << "Input file " << input_file_name << " is not reacheable, cannot get param from file";
       }
-      f.GetObject("BetheBloch", bb);
-      f.GetObject("TPCReso", reso);
+      f.GetObject(reso_name.c_str(), reso);
       f.Close();
     }
     if (!reso) {
@@ -115,12 +116,12 @@ int main(int argc, char* argv[])
       if (vm["delete-previous"].as<int>()) {
         api.truncate(path);
       }
-      api.storeAsTFileAny(reso, path + "/TOFReso", metadata, start, stop);
+      api.storeAsTFileAny(reso, path + "/" + reso_name, metadata, start, stop);
     }
   } else { // Pull and test mode
     LOG(INFO) << "Handling TOF parametrization in test mode";
     const float x[7] = {1, 1, 1, 1, 1, 1, 1}; // mom, time, ev. reso, mass, length, sigma1pt, pt
-    TOFReso* reso = api.retrieveFromTFileAny<TOFReso>(path + "/TOFReso", metadata, -1, headers);
+    reso = api.retrieveFromTFileAny<TOFReso>(path + "/" + reso_name, metadata, -1, headers);
     reso->PrintParametrization();
     LOG(INFO) << "TOF expected resolution at p=" << x[0] << " GeV/c "
               << " and mass " << x[3] << ":" << reso->operator()(x);
