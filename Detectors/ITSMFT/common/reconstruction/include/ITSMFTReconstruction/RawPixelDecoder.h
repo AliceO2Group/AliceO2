@@ -127,8 +127,6 @@ class RawPixelDecoder final : public PixelReader
   TStopwatch mTimerTFStart;
   TStopwatch mTimerDecode;
   TStopwatch mTimerFetchData;
-
-  ClassDefOverride(RawPixelDecoder, 1);
 };
 
 ///______________________________________________________________
