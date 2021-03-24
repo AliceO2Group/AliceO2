@@ -85,7 +85,7 @@ struct pidTPCTaskSplit {
   }
 
   template <o2::track::PID::ID pid>
-  using ResponseImplementation = tpc::ELoss<Coll::iterator, Trks::iterator, pid>;
+  using ResponseImplementation = o2::pid::tpc::ELoss<Coll::iterator, Trks::iterator, pid>;
   void process(Coll const& collisions, Trks const& tracks)
   {
     constexpr auto responseEl = ResponseImplementation<PID::Electron>();

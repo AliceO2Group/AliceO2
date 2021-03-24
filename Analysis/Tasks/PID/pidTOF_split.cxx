@@ -33,7 +33,7 @@ using namespace o2::framework::expressions;
 using namespace o2::track;
 
 struct pidTOFTaskSplit {
-  using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
+  using Trks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov>;
   using Coll = aod::Collisions;
   // Tables to produce
   Produces<o2::aod::pidRespTOFEl> tablePIDEl;
