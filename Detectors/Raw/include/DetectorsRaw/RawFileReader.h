@@ -175,7 +175,6 @@ class RawFileReader
 
     o2::header::DataOrigin origin = o2::header::gDataOriginInvalid;                //!
     o2::header::DataDescription description = o2::header::gDataDescriptionInvalid; //!
-    std::string fairMQChannel{};                                                   //! name of the fairMQ channel for the output
     int nErrors = 0;                                                               //!
     std::vector<LinkBlock> blocks;                                                 //!
     std::vector<std::pair<int, uint32_t>> tfStartBlock;

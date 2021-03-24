@@ -11,10 +11,10 @@
 o2_add_library(DetectorsRaw
                SOURCES src/RawFileReader.cxx
                        src/RawFileWriter.cxx
-	       	       src/SimpleRawReader.cxx
-		       src/SimpleSTF.cxx
-	               src/HBFUtils.cxx
-	               src/RDHUtils.cxx		       
+                       src/SimpleRawReader.cxx
+                       src/SimpleSTF.cxx
+                       src/HBFUtils.cxx
+                       src/RDHUtils.cxx           
                PUBLIC_LINK_LIBRARIES FairRoot::Base
                                      O2::Headers
                                      O2::CommonDataFormat
@@ -57,7 +57,7 @@ o2_add_test(HBFUtils
 o2_add_test(RawReaderWriter
             PUBLIC_LINK_LIBRARIES O2::DetectorsRaw
                                   O2::Steer
-	                          O2::DPLUtils
+                            O2::DPLUtils
             SOURCES test/testRawReaderWriter.cxx
             COMPONENT_NAME raw
             LABELS raw)
