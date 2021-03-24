@@ -18,8 +18,6 @@
 #ifndef O2_ANALYSIS_PID_TOFRESO_H_
 #define O2_ANALYSIS_PID_TOFRESO_H_
 
-// Root includes
-#include "TMath.h"
 // O2 includes
 #include "AnalysisDataModel/PID/ParamBase.h"
 #include "ReconstructionDataFormats/PID.h"
@@ -43,7 +41,7 @@ class TOFReso : public Parametrization
     const float mass = x[3];
     const float dpp = mParameters[0] + mParameters[1] * mom + mParameters[2] * mass / mom; // mean relative pt resolution;
     const float sigma = dpp * time / (1. + mom * mom / (mass * mass));
-    return TMath::Sqrt(sigma * sigma + mParameters[3] * mParameters[3] / mom / mom + mParameters[4] * mParameters[4] + evtimereso * evtimereso);
+    return sqrt(sigma * sigma + mParameters[3] * mParameters[3] / mom / mom + mParameters[4] * mParameters[4] + evtimereso * evtimereso);
   }
   ClassDef(TOFReso, 1);
 };

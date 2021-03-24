@@ -18,10 +18,9 @@
 #ifndef O2_ANALYSIS_PID_TOFRESOALICE3_H_
 #define O2_ANALYSIS_PID_TOFRESOALICE3_H_
 
-// Root includes
-#include "TMath.h"
 // O2 includes
 #include "AnalysisDataModel/PID/ParamBase.h"
+#include "ReconstructionDataFormats/PID.h"
 
 namespace o2::pid::tof
 {
@@ -50,8 +49,8 @@ class TOFResoALICE3 : public Parametrization
     // const float Lc = L / 29.9792458f;
 
     const float mass2 = mass * mass;
-    const float etexp = Lc * mass2 / p2 / TMath::Sqrt(mass2 + p2) * ep;
-    return TMath::Sqrt(etexp * etexp + mParameters[0] * mParameters[0] + evtimereso * evtimereso);
+    const float etexp = Lc * mass2 / p2 / sqrt(mass2 + p2) * ep;
+    return sqrt(etexp * etexp + mParameters[0] * mParameters[0] + evtimereso * evtimereso);
   }
   ClassDef(TOFResoALICE3, 1);
 };
@@ -67,7 +66,7 @@ float TOFResoALICE3Param(const float& momentum, const float& momentumError, cons
   const float mass2 = mass * mass;
   const float ep = momentumError * p2;
   const float etexp = Lc * mass2 / p2 / sqrt(mass2 + p2) * ep;
-  return TMath::Sqrt(etexp * etexp + parameters[0] * parameters[0] + evtimereso * evtimereso);
+  return sqrt(etexp * etexp + parameters[0] * parameters[0] + evtimereso * evtimereso);
 }
 
 template <o2::track::PID::ID id, typename C, typename T>
