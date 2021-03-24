@@ -81,20 +81,29 @@ int main(int argc, char* argv[])
     return 1;
   }
   if (mode == 0) { // Push mode
-    LOG(INFO) << "Handling TOF resolution parametrization in create mode";
-    const std::vector<float> resoparams = {vm["p0"].as<float>(), vm["p1"].as<float>(), vm["p2"].as<float>(), vm["p3"].as<float>(), vm["p4"].as<float>()};
-    TOFReso reso;
-    reso.SetParameters(resoparams);
-    reso.PrintParametrization();
-    const float x[4] = {1, 1, 1, 1}; // mom, time, ev. reso, mass
-    LOG(INFO) << "TOF expected resolution at p=" << x[0] << " GeV/c "
-              << " and mass " << x[3] << ":" << reso(x);
-
-    const std::string fname = vm["file"].as<std::string>();
+    LOG(INFO) << "Handling TOF parametrization in create mode";
+    TOFReso* reso = nullptr;
+    const std::string input_file_name = vm["read-from-file"].as<std::string>();
+    if (!input_file_name.empty()) {
+      TFile f(input_file_name.data(), "READ");
+      if (!f.IsOpen()) {
+        LOG(WARNING) << "Input file " << input_file_name << " is not reacheable, cannot get param from file";
+      }
+      f.GetObject("BetheBloch", bb);
+      f.GetObject("TPCReso", reso);
+      f.Close();
+    }
+    if (!reso) {
+      reso = new TOFReso();
+      const std::vector<float> resoparams = {vm["p0"].as<float>(), vm["p1"].as<float>(), vm["p2"].as<float>(), vm["p3"].as<float>(), vm["p4"].as<float>()};
+      reso->SetParameters(resoparams);
+    }
+    reso->PrintParametrization();
+    const std::string fname = vm["save-to-file"].as<std::string>();
     if (!fname.empty()) { // Saving it to file
       LOG(INFO) << "Saving parametrization to file " << fname;
       TFile f(fname.data(), "RECREATE");
-      reso.Write();
+      reso->Write();
       f.ls();
       f.Close();
     } else { // Saving it to CCDB
@@ -106,11 +115,11 @@ int main(int argc, char* argv[])
       if (vm["delete-previous"].as<int>()) {
         api.truncate(path);
       }
-      api.storeAsTFileAny(&reso, path + "/TOFReso", metadata, start, stop);
+      api.storeAsTFileAny(reso, path + "/TOFReso", metadata, start, stop);
     }
   } else { // Pull and test mode
     LOG(INFO) << "Handling TOF parametrization in test mode";
-    const float x[4] = {1, 1, 1, 1}; // mom, time, ev. reso, mass
+    const float x[7] = {1, 1, 1, 1, 1, 1, 1}; // mom, time, ev. reso, mass, length, sigma1pt, pt
     TOFReso* reso = api.retrieveFromTFileAny<TOFReso>(path + "/TOFReso", metadata, -1, headers);
     reso->PrintParametrization();
     LOG(INFO) << "TOF expected resolution at p=" << x[0] << " GeV/c "
