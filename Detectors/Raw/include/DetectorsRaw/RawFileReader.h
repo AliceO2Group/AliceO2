@@ -37,6 +37,7 @@ using IR = o2::InteractionRecord;
 struct ReaderInp {
   std::string inifile{};
   std::string rawChannelConfig{};
+  std::string dropTF{};
   size_t spSize = 1024L * 1024L;
   size_t bufferSize = 1024L * 1024L;
   int loop = 1;

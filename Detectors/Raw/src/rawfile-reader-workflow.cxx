@@ -35,6 +35,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"cache-data", VariantType::Bool, false, {"cache data at 1st reading, may require excessive memory!!!"}});
   options.push_back(ConfigParamSpec{"detect-tf0", VariantType::Bool, false, {"autodetect HBFUtils start Orbit/BC from 1st TF seen"}});
   options.push_back(ConfigParamSpec{"calculate-tf-start", VariantType::Bool, false, {"calculate TF start instead of using TType"}});
+  options.push_back(ConfigParamSpec{"drop-tf", VariantType::String, "none", {"Drop each TFid%(1)==(2) of detector, e.g. ITS,2,4;TPC,4[,0];..."}});
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"semicolon separated key=value strings"}});
   // options for error-check suppression
 
@@ -64,6 +65,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   rinp.preferCalcTF = configcontext.options().get<bool>("calculate-tf-start");
   rinp.rawChannelConfig = configcontext.options().get<std::string>("raw-channel-config");
   rinp.delay_us = uint32_t(1e6 * configcontext.options().get<float>("delay")); // delay in microseconds
+  rinp.dropTF = configcontext.options().get<std::string>("drop-tf");
   rinp.errMap = 0;
   for (int i = RawFileReader::NErrorsDefined; i--;) {
     auto ei = RawFileReader::ErrTypes(i);

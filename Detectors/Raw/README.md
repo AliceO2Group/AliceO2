@@ -331,6 +331,7 @@ o2-raw-file-reader-workflow
   --cache-data                          cache data at 1st reading, may require excessive memory!!!
   --detect-tf0                          autodetect HBFUtils start Orbit/BC from 1st TF seen (at SOX)
   --calculate-tf-start                  calculate TF start from orbit instead of using TType
+  --drop-tf arg (=none)                Drop each TFid%(1)==(2) of detector, e.g. ITS,2,4;TPC,4[,0];...
   --configKeyValues arg                 semicolon separated key=value strings
 
   # to suppress various error checks / reporting
@@ -372,6 +373,8 @@ To inject such a data to DPL one should use a parallel process starting with `o2
 ```bash
 [Terminal 2]> o2-raw-file-reader-workflow  --session default --loop 1000 --delay 3 --input-conf raw/rawAll.cfg --raw-channel-config "name=raw-reader,type=push,method=bind,address=ipc://@rr-to-dpl,transport=shmem,rateLogging=1" --shm-segment-size 16000000000
 ```
+
+For testing reason one can request dropping of some fraction of the TFs for particular detector. With option `--drop-tf "ITS,3,2;TPC,10"` the reader will not send the output for ITS in TFs with `(TFid%3)==2` and for TPC in TFs with `(TFid%10)==0`. Note that in order to acknowledge the TF, the message `{FLP/DISTSUBTIMEFRAME/0}` will still be sent even if all detector's data was dropped for a given TF.
 
 ## Raw data file checker (standalone executable)
 
