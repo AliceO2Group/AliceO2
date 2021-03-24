@@ -28,7 +28,7 @@ templateClassImp(o2::tpc::SpaceCharge);
 using namespace o2::tpc;
 
 template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
-void SpaceCharge<DataT, Nz, Nr, Nphi>::calculateDistortionsCorrections(const o2::tpc::Side side)
+void SpaceCharge<DataT, Nz, Nr, Nphi>::calculateDistortionsCorrections(const o2::tpc::Side side, const bool calcVectors)
 {
   using timer = std::chrono::high_resolution_clock;
   using SC = o2::tpc::SpaceCharge<DataT, Nz, Nr, Nphi>;
@@ -89,6 +89,14 @@ void SpaceCharge<DataT, Nz, Nr, Nphi>::calculateDistortionsCorrections(const o2:
   stop = timer::now();
   time = stop - start;
   LOGP(info, "local corrections time: {}", time.count());
+
+  if (calcVectors) {
+    start = timer::now();
+    calcLocalDistortionCorrectionVector(numEFields);
+    stop = timer::now();
+    time = stop - start;
+    LOGP(info, "local correction/distortion vector time: {}", time.count());
+  }
 
   start = timer::now();
   const auto lCorrInterpolator = getLocalCorrInterpolator(side);
@@ -585,6 +593,20 @@ int SpaceCharge<DataT, Nz, Nr, Nphi>::dumpLocalDistortions(TFile& outf, const Si
 }
 
 template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
+int SpaceCharge<DataT, Nz, Nr, Nphi>::dumpLocalDistCorrVectors(TFile& outf, const Side side) const
+{
+  if (!mIsLocalVecDistSet[side]) {
+    LOGP(warning, "============== local distortion vectors are not set! returning ==============\n");
+    return 0;
+  }
+  const std::string sideName = getSideName(side);
+  const int lVecDistdR = mLocalVecDistdR[side].writeToFile(outf, fmt::format("lvecdistR_side{}", sideName).data());
+  const int lVecDistdZ = mLocalVecDistdZ[side].writeToFile(outf, fmt::format("lvecdistZ_side{}", sideName).data());
+  const int lVecDistdRPhi = mLocalVecDistdRPhi[side].writeToFile(outf, fmt::format("lvecdistRPhi_side{}", sideName).data());
+  return lVecDistdR + lVecDistdZ + lVecDistdRPhi;
+}
+
+template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
 void SpaceCharge<DataT, Nz, Nr, Nphi>::setLocalDistortionsFromFile(TFile& inpf, const Side side)
 {
   const std::string sideName = getSideName(side);
@@ -598,6 +620,22 @@ void SpaceCharge<DataT, Nz, Nr, Nphi>::setLocalDistortionsFromFile(TFile& inpf, 
     mIsLocalDistSet[side] = false;
   }
 }
+
+template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
+void SpaceCharge<DataT, Nz, Nr, Nphi>::setLocalDistCorrVectorsFromFile(TFile& inpf, const Side side)
+{
+  const std::string sideName = getSideName(side);
+  const bool lVecDistdR = mLocalVecDistdR[side].initFromFile(inpf, fmt::format("lvecdistR_side{}", sideName).data());
+  const bool lVecDistdZ = mLocalVecDistdZ[side].initFromFile(inpf, fmt::format("lvecdistZ_side{}", sideName).data());
+  const bool lVecDistdRPhi = mLocalVecDistdRPhi[side].initFromFile(inpf, fmt::format("lvecdistRPhi_side{}", sideName).data());
+
+  if (lVecDistdR && lVecDistdZ && lVecDistdRPhi) {
+    mIsLocalVecDistSet[side] = true;
+  } else {
+    mIsLocalVecDistSet[side] = false;
+  }
+}
+
 template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
 void SpaceCharge<DataT, Nz, Nr, Nphi>::fillChargeDensityFromFile(TFile& fInp, const char* name)
 {
@@ -838,6 +876,37 @@ void SpaceCharge<DataT, Nz, Nr, Nphi>::calcLocalDistortionsCorrections(const Spa
       mIsLocalDistSet[side] = true;
       break;
   }
+}
+
+template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
+template <typename ElectricFields>
+void SpaceCharge<DataT, Nz, Nr, Nphi>::calcLocalDistortionCorrectionVector(const ElectricFields& formulaStruct)
+{
+  const Side side = formulaStruct.getSide();
+  // calculate local distortion/correction vector for each vertex in the tpc
+#pragma omp parallel for num_threads(sNThreads)
+  for (size_t iPhi = 0; iPhi < Nphi; ++iPhi) {
+    for (size_t iR = 0; iR < Nr; ++iR) {
+      for (size_t iZ = 0; iZ < Nz; ++iZ) {
+        const DataT ezField = getEzField(formulaStruct.getSide());
+        const DataT er = mElectricFieldEr[side](iZ, iR, iPhi);
+        const DataT ez0 = mElectricFieldEz[side](iZ, iR, iPhi);
+        const DataT ephi = mElectricFieldEphi[side](iZ, iR, iPhi);
+        const DataT ez = getSign(formulaStruct.getSide()) * 1. / (ezField + ez0);
+        const DataT erez = er * ez;
+        const DataT ephiez = ephi * ez;
+
+        const DataT vecdR = mC0 * erez + mC1 * ephiez;
+        const DataT vecdRPhi = mC0 * ephiez - mC1 * erez;
+        const DataT vecdZ = -ez0 * TPCParameters<DataT>::DVDE;
+
+        mLocalVecDistdR[side](iZ, iR, iPhi) = vecdR;
+        mLocalVecDistdRPhi[side](iZ, iR, iPhi) = vecdRPhi;
+        mLocalVecDistdZ[side](iZ, iR, iPhi) = vecdZ;
+      }
+    }
+  }
+  mIsLocalVecDistSet[side] = true;
 }
 
 template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
@@ -1162,6 +1231,8 @@ using O2TPCSpaceCharge3DCalc129D = SpaceCharge<DataTD, 129, 129, 180>;
 
 template void O2TPCSpaceCharge3DCalc129D::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalc129D::Type, const NumFields129D&);
 template void O2TPCSpaceCharge3DCalc129D::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalc129D::Type, const AnaFields129D&);
+template void O2TPCSpaceCharge3DCalc129D::calcLocalDistortionCorrectionVector(const NumFields129D&);
+template void O2TPCSpaceCharge3DCalc129D::calcLocalDistortionCorrectionVector(const AnaFields129D&);
 template void O2TPCSpaceCharge3DCalc129D::calcGlobalCorrections(const NumFields129D&);
 template void O2TPCSpaceCharge3DCalc129D::calcGlobalCorrections(const AnaFields129D&);
 template void O2TPCSpaceCharge3DCalc129D::calcGlobalCorrections(const DistCorrInterp129D&);
@@ -1178,6 +1249,8 @@ using O2TPCSpaceCharge3DCalc33D = SpaceCharge<DataTD, 33, 33, 180>;
 
 template void O2TPCSpaceCharge3DCalc33D::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalc33D::Type, const NumFields33D&);
 template void O2TPCSpaceCharge3DCalc33D::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalc33D::Type, const AnaFields33D&);
+template void O2TPCSpaceCharge3DCalc33D::calcLocalDistortionCorrectionVector(const NumFields33D&);
+template void O2TPCSpaceCharge3DCalc33D::calcLocalDistortionCorrectionVector(const AnaFields33D&);
 template void O2TPCSpaceCharge3DCalc33D::calcGlobalCorrections(const NumFields33D&);
 template void O2TPCSpaceCharge3DCalc33D::calcGlobalCorrections(const AnaFields33D&);
 template void O2TPCSpaceCharge3DCalc33D::calcGlobalCorrections(const DistCorrInterp33D&);
@@ -1194,6 +1267,8 @@ using O2TPCSpaceCharge3DCalc65D = SpaceCharge<DataTD, 65, 65, 180>;
 
 template void O2TPCSpaceCharge3DCalc65D::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalc65D::Type, const NumFields65D&);
 template void O2TPCSpaceCharge3DCalc65D::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalc65D::Type, const AnaFields65D&);
+template void O2TPCSpaceCharge3DCalc65D::calcLocalDistortionCorrectionVector(const NumFields65D&);
+template void O2TPCSpaceCharge3DCalc65D::calcLocalDistortionCorrectionVector(const AnaFields65D&);
 template void O2TPCSpaceCharge3DCalc65D::calcGlobalCorrections(const NumFields65D&);
 template void O2TPCSpaceCharge3DCalc65D::calcGlobalCorrections(const AnaFields65D&);
 template void O2TPCSpaceCharge3DCalc65D::calcGlobalCorrections(const DistCorrInterp65D&);
@@ -1210,6 +1285,8 @@ using O2TPCSpaceCharge3DCalc17D = SpaceCharge<DataTD, 17, 17, 90>;
 
 template void O2TPCSpaceCharge3DCalc17D::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalc17D::Type, const NumFields17D&);
 template void O2TPCSpaceCharge3DCalc17D::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalc17D::Type, const AnaFields17D&);
+template void O2TPCSpaceCharge3DCalc17D::calcLocalDistortionCorrectionVector(const NumFields17D&);
+template void O2TPCSpaceCharge3DCalc17D::calcLocalDistortionCorrectionVector(const AnaFields17D&);
 template void O2TPCSpaceCharge3DCalc17D::calcGlobalCorrections(const NumFields17D&);
 template void O2TPCSpaceCharge3DCalc17D::calcGlobalCorrections(const AnaFields17D&);
 template void O2TPCSpaceCharge3DCalc17D::calcGlobalCorrections(const DistCorrInterp17D&);
@@ -1226,6 +1303,8 @@ using O2TPCSpaceCharge3DCalc257D = SpaceCharge<DataTD, 257, 257, 180>;
 
 template void O2TPCSpaceCharge3DCalc257D::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalc257D::Type, const NumFields257D&);
 template void O2TPCSpaceCharge3DCalc257D::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalc257D::Type, const AnaFields257D&);
+template void O2TPCSpaceCharge3DCalc257D::calcLocalDistortionCorrectionVector(const NumFields257D&);
+template void O2TPCSpaceCharge3DCalc257D::calcLocalDistortionCorrectionVector(const AnaFields257D&);
 template void O2TPCSpaceCharge3DCalc257D::calcGlobalCorrections(const NumFields257D&);
 template void O2TPCSpaceCharge3DCalc257D::calcGlobalCorrections(const AnaFields257D&);
 template void O2TPCSpaceCharge3DCalc257D::calcGlobalCorrections(const DistCorrInterp257D&);
@@ -1242,6 +1321,8 @@ using O2TPCSpaceCharge3DCalc257360D = SpaceCharge<DataTD, 257, 257, 360>;
 
 template void O2TPCSpaceCharge3DCalc257360D::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalc257360D::Type, const NumFields257360D&);
 template void O2TPCSpaceCharge3DCalc257360D::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalc257360D::Type, const AnaFields257360D&);
+template void O2TPCSpaceCharge3DCalc257360D::calcLocalDistortionCorrectionVector(const NumFields257360D&);
+template void O2TPCSpaceCharge3DCalc257360D::calcLocalDistortionCorrectionVector(const AnaFields257360D&);
 template void O2TPCSpaceCharge3DCalc257360D::calcGlobalCorrections(const NumFields257360D&);
 template void O2TPCSpaceCharge3DCalc257360D::calcGlobalCorrections(const AnaFields257360D&);
 template void O2TPCSpaceCharge3DCalc257360D::calcGlobalCorrections(const DistCorrInterp257360D&);
