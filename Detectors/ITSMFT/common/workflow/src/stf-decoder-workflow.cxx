@@ -27,6 +27,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     ConfigParamSpec{"digits", VariantType::Bool, false, {"produce digits (def: skip)"}},
     ConfigParamSpec{"dict-file", VariantType::String, "", {"name of the cluster-topology dictionary file"}},
     ConfigParamSpec{"noise-file", VariantType::String, "", {"name of the noise map file"}},
+    ConfigParamSpec{"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   std::swap(workflowOptions, options);
@@ -44,14 +45,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto doDigits = cfgc.options().get<bool>("digits");
   auto dict = cfgc.options().get<std::string>("dict-file");
   auto noise = cfgc.options().get<std::string>("noise-file");
-
+  auto askSTFDist = !cfgc.options().get<bool>("ignore-dist-stf");
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
   if (cfgc.options().get<bool>("runmft")) {
-    wf.emplace_back(o2::itsmft::getSTFDecoderMFTSpec(doClusters, doPatterns, doDigits, dict, noise));
+    wf.emplace_back(o2::itsmft::getSTFDecoderMFTSpec(doClusters, doPatterns, doDigits, askSTFDist, dict, noise));
   } else {
-    wf.emplace_back(o2::itsmft::getSTFDecoderITSSpec(doClusters, doPatterns, doDigits, dict, noise));
+    wf.emplace_back(o2::itsmft::getSTFDecoderITSSpec(doClusters, doPatterns, doDigits, askSTFDist, dict, noise));
   }
   return wf;
 }
