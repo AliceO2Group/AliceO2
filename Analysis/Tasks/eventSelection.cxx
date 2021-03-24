@@ -158,7 +158,7 @@ struct EventSelectionTask {
     bool bbFDA = bc.bbFDA();
     bool bbFDC = bc.bbFDC();
     bool bgFDA = bc.bgFDA();
-    bool bgFDC = bc.bgFDA();
+    bool bgFDC = bc.bgFDC();
     bool bbT0A = bc.bbT0A();
     bool bbT0C = bc.bbT0C();
 

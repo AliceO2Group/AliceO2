@@ -39,37 +39,20 @@ DECLARE_SOA_DYNAMIC_COLUMN(SEL8, sel8, [](bool bbT0A, bool bbT0C, bool bbZNA, bo
 DECLARE_SOA_TABLE(EvSels, "AOD", "EVSEL",
                   evsel::Alias,
                   evsel::BBT0A, evsel::BBT0C,
-                  evsel::BBV0A, evsel::BBV0C, evsel::BGV0A, evsel::BGV0C, evsel::BBZNA, evsel::BBZNC,
+                  evsel::BBV0A, evsel::BBV0C, evsel::BGV0A, evsel::BGV0C, 
+                  evsel::BBZNA, evsel::BBZNC,
                   evsel::BBFDA, evsel::BBFDC, evsel::BGFDA, evsel::BGFDC,
                   evsel::SEL7<evsel::BBV0A, evsel::BBV0C, evsel::BBZNA, evsel::BBZNC>,
                   evsel::SEL8<evsel::BBT0A, evsel::BBT0C, evsel::BBZNA, evsel::BBZNC>,
                   evsel::FoundFT0);
 using EvSel = EvSels::iterator;
 
-// bc-joinable event selection decisions
-namespace bcsel
-{
-// TODO bool arrays are not supported? Storing in int32 for the moment
-DECLARE_SOA_COLUMN(Alias, alias, int32_t[kNaliases]);
-DECLARE_SOA_COLUMN(BBT0A, bbT0A, bool); // beam-beam time in T0A
-DECLARE_SOA_COLUMN(BBT0C, bbT0C, bool); // beam-beam time in T0C
-DECLARE_SOA_COLUMN(BBV0A, bbV0A, bool); // beam-beam time in V0A
-DECLARE_SOA_COLUMN(BBV0C, bbV0C, bool); // beam-beam time in V0C
-DECLARE_SOA_COLUMN(BGV0A, bgV0A, bool); // beam-gas time in V0A
-DECLARE_SOA_COLUMN(BGV0C, bgV0C, bool); // beam-gas time in V0C
-DECLARE_SOA_COLUMN(BBZNA, bbZNA, bool); // beam-beam time in ZNA
-DECLARE_SOA_COLUMN(BBZNC, bbZNC, bool); // beam-beam time in ZNC
-DECLARE_SOA_COLUMN(BBFDA, bbFDA, bool); // beam-beam time in FDA
-DECLARE_SOA_COLUMN(BBFDC, bbFDC, bool); // beam-beam time in FDC
-DECLARE_SOA_COLUMN(BGFDA, bgFDA, bool); // beam-gas time in FDA
-DECLARE_SOA_COLUMN(BGFDC, bgFDC, bool); // beam-gas time in FDC
-} // namespace bcsel
 DECLARE_SOA_TABLE(BcSels, "AOD", "BCSEL",
-                  bcsel::Alias,
-                  bcsel::BBT0A, bcsel::BBT0C,
-                  bcsel::BBV0A, bcsel::BBV0C, bcsel::BGV0A, bcsel::BGV0C,
-                  bcsel::BBZNA, bcsel::BBZNC,
-                  bcsel::BBFDA, bcsel::BBFDC, bcsel::BGFDA, bcsel::BGFDC);
+                  evsel::Alias,
+                  evsel::BBT0A, evsel::BBT0C,
+                  evsel::BBV0A, evsel::BBV0C, evsel::BGV0A, evsel::BGV0C,
+                  evsel::BBZNA, evsel::BBZNC,
+                  evsel::BBFDA, evsel::BBFDC, evsel::BGFDA, evsel::BGFDC);
 using BcSel = BcSels::iterator;
 } // namespace o2::aod
 
