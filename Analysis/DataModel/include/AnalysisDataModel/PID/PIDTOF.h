@@ -131,7 +131,7 @@ float ExpTimes<Coll, Trck, id>::GetExpectedSigma(const DetectorResponse& respons
   if (trk.tofSignal() <= 0) {
     return -999.f;
   }
-  const float x[4] = {trk.p(), trk.tofSignal(), col.collisionTimeRes() * 1000.f, o2::track::PID::getMass2Z(id)};
+  const float x[7] = {trk.p(), trk.tofSignal(), col.collisionTimeRes() * 1000.f, o2::track::PID::getMass2Z(id), trk.length(), trk.sigma1Pt(), trk.pt()};
   return response(response.kSigma, x);
   // return response(response.kSigma, const Coll& col, const Trck& trk, id);
 }
