@@ -35,11 +35,18 @@
 
 #define MAXDESCRIPTIONLENGHT 50
 
-#define HLOG_INFO if(mVerbose > 6) std::cout << "HMPID Decoder2 : [INFO] "
-#define HLOG_DEBUG if(mVerbose > 8) std::cout << "HMPID Decoder2 : [DEBUG] "
-#define HLOG_WARNING if(mVerbose > 3) std::cout << "HMPID Decoder2 : [WARNING] "
-#define HLOG_ERROR if(mVerbose > 1) std::cout << "HMPID Decoder2 : [ERROR] "
-
+#define HLOG_INFO \
+  if(mVerbose > 6) \
+  std::cout << "HMPID Decoder2 : [INFO] "
+#define HLOG_DEBUG \
+  if(mVerbose > 8) \
+  std::cout << "HMPID Decoder2 : [DEBUG] "
+#define HLOG_WARNING \
+  if(mVerbose > 3) \
+  std::cout << "HMPID Decoder2 : [WARNING] "
+#define HLOG_ERROR \
+  if(mVerbose > 1) \
+  std::cout << "HMPID Decoder2 : [ERROR] "
 
 // ---- RDH 6  standard dimension -------
 #define RAWBLOCKDIMENSION_W 2048
@@ -157,7 +164,6 @@ class HmpidDecoder2
 
   float getAverageEventSize(int Equipment);
   float getAverageBusyTime(int Equipment);
-
 
  protected:
   int checkType(uint32_t wp, int* p1, int* p2, int* p3, int* p4);

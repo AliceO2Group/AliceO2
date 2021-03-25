@@ -158,7 +158,7 @@ void DigitsToRawSpec::readRootFile()
       mCod->codeEventChunkDigits(digitsPerEvent, e.getIr());
       mDigitsReceived += digitsPerEvent.size();
     }
-    if(mDigitsReceived != digits.size()) {
+    if (mDigitsReceived != digits.size()) {
       LOG(WARNING) << "Digits outside the events defined !";
     }
   }

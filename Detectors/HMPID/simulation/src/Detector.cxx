@@ -75,7 +75,7 @@ bool Detector::ProcessHits(FairVolume* v)
       tmpname.Remove(0, 4);
       Int_t idch = tmpname.Atoi(); //retrieve the chamber number
       Double_t xl, yl;
-      o2::hmpid::Param::instance()->mars2Lors(idch, x, xl, yl);      //take LORS position
+      o2::hmpid::Param::instance()->mars2Lors(idch, x, xl, yl); //take LORS position
       AddHit(x[0], x[1], x[2], hitTime, etot, tid, idch); //HIT for photon, position at P, etot will be set to Q
       GenFee(etot);                                       //generate feedback photons etot is modified in hit ctor to Q of hit
       stack->addHit(GetDetId());

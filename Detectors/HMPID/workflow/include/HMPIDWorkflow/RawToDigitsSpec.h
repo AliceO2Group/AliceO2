@@ -31,38 +31,38 @@ namespace hmpid
 {
 
 class RawToDigitsTask : public framework::Task
-  {
-   public:
-    RawToDigitsTask() = default;
-    ~RawToDigitsTask() override = default;
-    void init(framework::InitContext& ic) final;
-    void run(framework::ProcessingContext& pc) final;
-    void endOfStream(framework::EndOfStreamContext& ec) override;
+{
+ public:
+  RawToDigitsTask() = default;
+  ~RawToDigitsTask() override = default;
+  void init(framework::InitContext& ic) final;
+  void run(framework::ProcessingContext& pc) final;
+  void endOfStream(framework::EndOfStreamContext& ec) override;
 
-   private:
-    void writeResults();
-    void parseNoTF();
+ private:
+  void writeResults();
+  void parseNoTF();
 
-    //     static bool eventEquipPadsComparision(o2::hmpid::Digit d1, o2::hmpid::Digit d2);
-    std::string mBaseFileName = "";
-    std::string mInputRawFileName = "";
-    std::string mOutRootFileName = "";
+  //     static bool eventEquipPadsComparision(o2::hmpid::Digit d1, o2::hmpid::Digit d2);
+  std::string mBaseFileName = "";
+  std::string mInputRawFileName = "";
+  std::string mOutRootFileName = "";
 
-    o2::raw::RawFileReader mReader;
-    o2::hmpid::HmpidDecoder2 *mDecod;
-    std::vector<o2::hmpid::raw::Digit> mAccumulateDigits;
-    std::vector<o2::hmpid::raw::Event> mEvents;
+  o2::raw::RawFileReader mReader;
+  o2::hmpid::HmpidDecoder2 *mDecod;
+  std::vector<o2::hmpid::raw::Digit> mAccumulateDigits;
+  std::vector<o2::hmpid::raw::Event> mEvents;
 
-    long mDigitsReceived;
-    long mFramesReceived;
-    long mTotalDigits;
-    long mTotalFrames;
-    bool mFastAlgorithm;
+  long mDigitsReceived;
+  long mFramesReceived;
+  long mTotalDigits;
+  long mTotalFrames;
+  bool mFastAlgorithm;
 
-    ExecutionTimer mExTimer;
-  };
+  ExecutionTimer mExTimer;
+};
 
-  o2::framework::DataProcessorSpec getRawToDigitsSpec(std::string inputSpec = "HMP/RAWDATA");
+o2::framework::DataProcessorSpec getRawToDigitsSpec(std::string inputSpec = "HMP/RAWDATA");
 
 } // end namespace hmpid
 } // end namespace o2

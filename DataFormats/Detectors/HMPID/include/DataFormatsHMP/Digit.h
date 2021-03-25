@@ -17,14 +17,13 @@
 //    History
 //  10/03/2021   Complete review
 
-
 #ifndef DETECTORS_HMPID_BASE_INCLUDE_HMPIDDATAFORMAT_DIGIT_H_
 #define DETECTORS_HMPID_BASE_INCLUDE_HMPIDDATAFORMAT_DIGIT_H_
 
 #include <vector>
 #include "CommonDataFormat/TimeStamp.h"
-#include "DataFormatsHMP/Hit.h"   // for hit
-#include "HMPIDBase/Param.h" // for param
+#include "DataFormatsHMP/Hit.h" // for hit
+#include "HMPIDBase/Param.h"    // for param
 #include "TMath.h"
 
 namespace o2
@@ -55,13 +54,13 @@ class Digit
   static void equipment2Absolute(int Equi, int Colu, int Dilo, int Chan, int* Module, int* x, int* y);
 
   // Trigger time Conversion Functions
-//  static inline uint64_t orbitBcToEventId(uint32_t Orbit, uint16_t BC) { return ((Orbit << 12) | (0x0FFF & BC)); };
-//  static inline uint32_t eventIdToOrbit(uint64_t EventId) { return (EventId >> 12); };
-//  static inline uint16_t EventIdToBc(uint64_t EventId) { return (EventId & 0x0FFF); };
-//  static double OrbitBcToTimeNs(uint32_t Orbit, uint16_t BC);
-//  static uint32_t TimeNsToOrbit(double TimeNs);
-//  static uint16_t TimeNsToBc(double TimeNs);
-//  static void TimeNsToOrbitBc(double TimeNs, uint32_t& Orbit, uint16_t& Bc);
+  //  static inline uint64_t orbitBcToEventId(uint32_t Orbit, uint16_t BC) { return ((Orbit << 12) | (0x0FFF & BC)); };
+  //  static inline uint32_t eventIdToOrbit(uint64_t EventId) { return (EventId >> 12); };
+  //  static inline uint16_t EventIdToBc(uint64_t EventId) { return (EventId & 0x0FFF); };
+  //  static double OrbitBcToTimeNs(uint32_t Orbit, uint16_t BC);
+  //  static uint32_t TimeNsToOrbit(double TimeNs);
+  //  static uint16_t TimeNsToBc(double TimeNs);
+  //  static void TimeNsToOrbitBc(double TimeNs, uint32_t& Orbit, uint16_t& Bc);
 
   // Operators definition !
   friend inline bool operator<(const Digit& l, const Digit& r) { return l.getPadID() < r.getPadID(); };
@@ -97,8 +96,8 @@ class Digit
   {
     mCh = pad >> 24;
     mPh = (pad & 0x00FF0000) >> 16;
-    mX  = (pad & 0x0000FF00) >> 8;
-    mY  = (pad & 0x000000FF);
+    mX = (pad & 0x0000FF00) >> 8;
+    mY = (pad & 0x000000FF);
     return;
   };
 
@@ -109,11 +108,11 @@ class Digit
     return;
   };
 
- // // convenience wrapper function for conversion to x-y pad coordinates
- // int getPx() const { return A2X(mPad); }
- // int getPy() const { return A2Y(mPad); }
- // int getPhC() const { return A2P(mPad); }
- // int getCh() const { return A2C(mPad); }
+  // // convenience wrapper function for conversion to x-y pad coordinates
+  // int getPx() const { return A2X(mPad); }
+  // int getPy() const { return A2Y(mPad); }
+  // int getPhC() const { return A2P(mPad); }
+  // int getCh() const { return A2C(mPad); }
 
   // Charge management functions
   static void getPadAndTotalCharge(o2::hmpid::raw::HitType const& hit, int& chamber, int& pc, int& px, int& py, float& totalcharge);
@@ -132,8 +131,8 @@ class Digit
   uint16_t mQ = 0;
   uint8_t mCh = 0; // 0xFF indicates invalid digit
   uint8_t mPh = 0;
-  uint8_t mX  = 0;
-  uint8_t mY  = 0;
+  uint8_t mX = 0;
+  uint8_t mY = 0;
 
   // The Pad Unique Id, code a pad inside one HMPID chamber.
   // Bit Map : 0000.0000.cccc.pppp.xxxx.xxxx.yyyy.yyyy

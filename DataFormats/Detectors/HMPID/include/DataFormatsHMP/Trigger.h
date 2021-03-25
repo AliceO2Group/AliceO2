@@ -45,7 +45,7 @@ class Event
     mFirstDigit = first;
     mLastDigit = last;
   };
-  InteractionRecord & getIr() { return mIr; };
+  InteractionRecord& getIr() { return mIr; };
   uint32_t getOrbit() const { return mIr.orbit; };
   uint16_t getBc() const { return mIr.bc; };
   uint64_t getTriggerID() const { return ((mIr.orbit << 12) | (0x0FFF & mIr.bc)); };
@@ -80,7 +80,6 @@ class Event
   friend inline bool operator<=(const Event& l, const Event& r) { return !(l > r); };
   friend inline bool operator>=(const Event& l, const Event& r) { return !(l < r); };
   friend inline bool operator!=(const Event& l, const Event& r) { return !(l == r); };
-
 
   // Digit ASCII format (Orbit,BunchCrossing)[LHC Time nSec]
   friend std::ostream& operator<<(std::ostream& os, const Event& d)

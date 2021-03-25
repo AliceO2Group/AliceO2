@@ -32,11 +32,11 @@ namespace raw
 {
 
 // define HMPID hit type
- // class Hit : public o2::BasicXYZQHit<float>
+// class Hit : public o2::BasicXYZQHit<float>
 class HitType : public o2::BasicXYZEHit<float>
 {
-  public:
-    using BasicXYZEHit<float>::BasicXYZEHit;
+ public:
+  using BasicXYZEHit<float>::BasicXYZEHit;
 
   ClassDef(HitType, 1);
 };

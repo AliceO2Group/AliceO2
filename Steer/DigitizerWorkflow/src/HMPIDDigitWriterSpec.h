@@ -44,4 +44,3 @@ o2::framework::DataProcessorSpec getHMPIDDigitWriterSpec(bool mctruth = true)
 } // end namespace o2
 
 #endif /* STEER_DIGITIZERWORKFLOW_SRC_HMPIDDIGITWRITERSPEC_H_ */
-

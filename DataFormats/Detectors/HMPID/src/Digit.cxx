@@ -42,8 +42,8 @@ Digit::Digit(int pad, uint16_t charge)
   mQ = charge > 0x0FFF ? 0x0FFF : charge;
   mCh = a2C(pad);
   mPh = a2P(pad);
-  mX  = a2X(pad);
-  mY  = a2Y(pad);
+  mX = a2X(pad);
+  mY = a2Y(pad);
 }
 
 /// Constructor : Create the Digit structure. Accepts the trigger time (Orbit,BC)
@@ -59,8 +59,8 @@ Digit::Digit(int chamber, int photo, int x, int y, uint16_t charge)
   mQ = charge > 0x0FFF ? 0x0FFF : charge;
   mCh = chamber;
   mPh = photo;
-  mX  = x;
-  mY  = y;
+  mX = x;
+  mY = y;
 }
 
 /// Constructor : Create the Digit structure. Accepts the trigger time (Orbit,BC)

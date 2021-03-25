@@ -93,14 +93,13 @@ void RawToDigitsTask::init(framework::InitContext& ic)
   return;
 }
 
-
 void RawToDigitsTask::run(framework::ProcessingContext& pc)
 {
   bool isInLoop = true;
   int tfID;
   std::vector<char> dataBuffer; // where to put extracted data
 
-  if(mReader.getNTimeFrames() == 0) {
+  if (mReader.getNTimeFrames() == 0) {
     parseNoTF();
     isInLoop = false;
   }
@@ -120,7 +119,7 @@ void RawToDigitsTask::run(framework::ProcessingContext& pc)
       link.rewindToTF(tfID);
       int nhbf = link.getNHBFinTF();
       LOG(DEBUG) << " Number of HBF " << nhbf;
-      for(int ib = 0; ib < nhbf; ib++) {
+      for (int ib = 0; ib < nhbf; ib++) {
         auto zs = link.getNextHBFSize(); // size in char needed for the next TF of this link
         dataBuffer.resize(zs);
         link.readNextHBF(dataBuffer.data());
@@ -128,7 +127,7 @@ void RawToDigitsTask::run(framework::ProcessingContext& pc)
         uint32_t* ptrBuffer = (uint32_t*)dataBuffer.data();
         uint32_t* ptrBufferEnd = ptrBuffer + zs / 4;
         mDecod->setUpStream(ptrBuffer, zs);
-        while(ptrBuffer<ptrBufferEnd){
+        while (ptrBuffer<ptrBufferEnd){
           try {
             if (mFastAlgorithm) {
               mDecod->decodePageFast(&ptrBuffer);
@@ -142,7 +141,7 @@ void RawToDigitsTask::run(framework::ProcessingContext& pc)
           int first = mAccumulateDigits.size();
           mAccumulateDigits.insert(mAccumulateDigits.end(), mDecod->mDigits.begin(), mDecod->mDigits.end());
           int last = mAccumulateDigits.size() - 1;
-          if(last >= first) {
+          if (last >= first) {
             mEvents.push_back(o2::hmpid::raw::Event(mDecod->mIntReco, (uint32_t)first, (uint32_t)last));
             mDigitsReceived += mDecod->mDigits.size();
           }
@@ -161,7 +160,7 @@ void RawToDigitsTask::run(framework::ProcessingContext& pc)
 
   writeResults();
 
-//  pc.services().get<ControlService>().endOfStream();
+  //  pc.services().get<ControlService>().endOfStream();
   pc.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
   mExTimer.stop();
   return;
@@ -181,14 +180,14 @@ void RawToDigitsTask::parseNoTF()
     auto& link = mReader.getLink(il);
     LOG(INFO) << "Decoding link " << il;
     auto sz = link.getNextTFSize(); // size in char needed for the next TF of this link
-    LOG(INFO) << " Size TF " <<sz;
+    LOG(INFO) << " Size TF " << sz;
     dataBuffer.resize(sz);
     link.readNextTF(dataBuffer.data());
 
     uint32_t* ptrBuffer = (uint32_t*)dataBuffer.data();
     uint32_t* ptrBufferEnd = ptrBuffer + sz / 4;
     mDecod->setUpStream(ptrBuffer, sz);
-    while(ptrBuffer<ptrBufferEnd){
+    while(ptrBuffer < ptrBufferEnd){
       try {
         if (mFastAlgorithm) {
           mDecod->decodePageFast(&ptrBuffer);
@@ -202,7 +201,7 @@ void RawToDigitsTask::parseNoTF()
       int first = mAccumulateDigits.size();
       mAccumulateDigits.insert(mAccumulateDigits.end(), mDecod->mDigits.begin(), mDecod->mDigits.end());
       int last = mAccumulateDigits.size() - 1;
-      if(last >= first) {
+      if (last >= first) {
         mEvents.push_back(o2::hmpid::raw::Event(mDecod->mIntReco, (uint32_t)first, (uint32_t)last));
         mDigitsReceived += mDecod->mDigits.size();
       }
@@ -216,23 +215,23 @@ void RawToDigitsTask::parseNoTF()
 
 void RawToDigitsTask::writeResults()
 {
-  int numEqui = mDecod->getNumberOfEquipments();   // Update the Stat for the Decoding
+  int numEqui = mDecod->getNumberOfEquipments(); // Update the Stat for the Decoding
   for (int i = 0; i < numEqui; i++) {
     if (mDecod->mTheEquipments[i]->mNumberOfEvents > 0) {
       mDecod->updateStatistics(mDecod->mTheEquipments[i]);
     }
   }
-  if(mEvents.size() == 0) { // check if no evwnts
+  if (mEvents.size() == 0) { // check if no evwnts
     LOG(INFO) << "There are not Event recorded ! Abort. ";
     mExTimer.stop();
     return;
   }
-  for(int i = mEvents.size()-1; i >= 0; i--) { // remove events that are (0,0) trigger
-    if( mEvents[i].getTriggerID() == 0) {
+  for (int i = mEvents.size()-1; i >= 0; i--) { // remove events that are (0,0) trigger
+    if ( mEvents[i].getTriggerID() == 0) {
       mEvents.erase(mEvents.begin() + i);
     }
   }
-  sort(mEvents.begin(), mEvents.end());      // sort the events
+  sort(mEvents.begin(), mEvents.end()); // sort the events
   mExTimer.logMes("Sorted  Events = " + std::to_string(mEvents.size()));
 
   /* ------ ROOT file version 1 ----------
@@ -256,9 +255,9 @@ void RawToDigitsTask::writeResults()
   o2::hmpid::raw::Event prevEvent = mEvents[0];
   uint32_t theFirstDigit = 0;
   uint32_t theLastDigit = 0;
-  for(int e = 0; e < mEvents.size(); e++) {
+  for (int e = 0; e < mEvents.size(); e++) {
     LOG(INFO) << "Manage event " << mEvents[e];
-    if(prevEvent != mEvents[e]) { // changes the event Flush It
+    if (prevEvent != mEvents[e]) { // changes the event Flush It
       event = prevEvent;
       event.mFirstDigit = theFirstDigit;
       event.mLastDigit = theLastDigit-1;
@@ -302,21 +301,21 @@ void RawToDigitsTask::writeResults()
   o2::hmpid::raw::Event prevEvent = mEvents[0];
   uint32_t theFirstDigit = 0;
   uint32_t theLastDigit = 0;
-  for(int e = 0; e < mEvents.size(); e++) {
+  for (int e = 0; e < mEvents.size(); e++) {
     LOG(DEBUG) << "Manage event " << mEvents[e];
-    if(prevEvent != mEvents[e]) { // changes the event Flush It
-      eventVec.push_back(o2::hmpid::Event(o2::InteractionRecord(prevEvent.getBc(), prevEvent.getOrbit()), theFirstDigit, theLastDigit-1));
+    if (prevEvent != mEvents[e]) { // changes the event Flush It
+      eventVec.push_back(o2::hmpid::Event(o2::InteractionRecord(prevEvent.getBc(), prevEvent.getOrbit()), theFirstDigit, theLastDigit - 1));
       theFirstDigit = theLastDigit;
       prevEvent = mEvents[e];
     }
     int first = mEvents[e].mFirstDigit;
     int last = mEvents[e].mLastDigit;
-    for(int idx = first; idx <= last; idx++) {
+    for (int idx = first; idx <= last; idx++) {
       digitVec.push_back(mAccumulateDigits[idx]);
       theLastDigit++;
     }
   }
-  eventVec.push_back(o2::hmpid::Event(o2::InteractionRecord(prevEvent.getBc(), prevEvent.getOrbit()), theFirstDigit, theLastDigit-1));
+  eventVec.push_back(o2::hmpid::Event(o2::InteractionRecord(prevEvent.getBc(), prevEvent.getOrbit()), theFirstDigit, theLastDigit - 1));
   theTree->Fill();
   theTree->Write();
   mfileOut.Close();

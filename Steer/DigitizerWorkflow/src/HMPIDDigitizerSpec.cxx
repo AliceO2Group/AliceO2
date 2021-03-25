@@ -67,7 +67,7 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     }
 
     auto& eventParts = context->getEventParts();
-    std::vector<o2::hmpid::raw::Digit> digitsAccum;                     // accumulator for digits
+    std::vector<o2::hmpid::raw::Digit> digitsAccum;                // accumulator for digits
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum; // timeframe accumulator for labels
     mIntRecord.clear();
 
@@ -78,14 +78,14 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
       mDigitizer.flush(mDigits);
       LOG(INFO) << "HMPID flushed " << mDigits.size() << " digits at this time ";
       LOG(INFO) << "NUMBER OF LABEL OBTAINED " << mLabels.getNElements();
-      int32_t first = digitsAccum.size();  // this is the first
+      int32_t first = digitsAccum.size(); // this is the first
       std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(digitsAccum));
-      int32_t last = digitsAccum.size() - 1;  // this is the last
+      int32_t last = digitsAccum.size() - 1; // this is the last
       labelAccum.mergeAtBack(mLabels);
 
       // save info for the triggers accepted
       LOG(INFO) << "Trigger  Orbit :" << mDigitizer.getOrbit() << "  BC:" << mDigitizer.getBc();
-      mIntRecord.push_back(o2::hmpid::raw::Event(o2::InteractionRecord(mDigitizer.getBc(), mDigitizer.getOrbit()), first, last ));
+      mIntRecord.push_back(o2::hmpid::raw::Event(o2::InteractionRecord(mDigitizer.getBc(), mDigitizer.getOrbit()), first, last));
     };
 
     // loop over all composite collisions given from context

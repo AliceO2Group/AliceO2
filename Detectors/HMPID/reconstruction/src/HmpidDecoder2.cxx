@@ -31,9 +31,16 @@ using namespace o2::hmpid;
 
 /// Decoding Error Messages Definitions
 char HmpidDecoder2::sErrorDescription[MAXERRORS][MAXDESCRIPTIONLENGHT] = {"Word that I don't known !",
-                                                                         "Row Marker Word with 0 words", "Duplicated Pad Word !", "Row Marker Wrong/Lost -> to EoE",
-                                                                         "Row Marker Wrong/Lost -> to EoE", "Row Marker reports an ERROR !", "Lost EoE Marker !", "Double EoE marker",
-                                                                         "Wrong size definition in EoE Marker", "Double Mark Word", "Wrong Size in Segment Marker", "Lost EoS Marker !",
+                                                                         "Row Marker Word with 0 words",
+                                                                         "Duplicated Pad Word !",
+                                                                         "Row Marker Wrong/Lost -> to EoE",
+                                                                         "Row Marker Wrong/Lost -> to EoE",
+                                                                         "Row Marker reports an ERROR !",
+                                                                         "Lost EoE Marker !",
+                                                                         "Double EoE marker",
+                                                                         "Wrong size definition in EoE Marker",
+                                                                         "Double Mark Word", "Wrong Size in Segment Marker",
+                                                                         "Lost EoS Marker !",
                                                                          "HMPID Header Errors"};
 
 /// HMPID Firmware Error Messages Definitions
@@ -130,7 +137,6 @@ void HmpidDecoder2::init()
   }
 
   mDigits.clear();
-
 }
 
 /// Returns the Equipment Index (Pointer of the array) converting
@@ -474,7 +480,7 @@ HmpidEquipment* HmpidDecoder2::evaluateHeaderContents(int EquipmentIndex)
     eq->mEventSize = 0; // reset the event
     eq->mSampleNumber = 0;
     eq->mErrorsCounter = 0;
-    mIntReco = {  (uint16_t)mHeBCDI , (uint32_t)mHeORBIT};
+    mIntReco = {(uint16_t)mHeBCDI , (uint32_t)mHeORBIT};
   }
   eq->mEventSize += mNumberWordToRead * sizeof(uint32_t); // Calculate the size in bytes
   if (mHeHmpidError != 0) {
@@ -802,7 +808,6 @@ void HmpidDecoder2::setPad(HmpidEquipment* eq, int col, int dil, int ch, uint16_
   return;
 }
 
-
 /// --------- Decode One Page from Data Buffer with Fast Decoding --------
 /// Read the stream, decode the contents and store resuls.
 /// ATTENTION : Assumes that the input stream was set
@@ -858,6 +863,7 @@ void HmpidDecoder2::decodePageFast(uint32_t** streamBuf)
   *streamBuf = mActualStreamPtr;
   return;
 }
+
 /// ---------- Read Raw Data Buffer with Fast Decoding ----------
 /// Read the stream, decode the contents and store resuls.
 /// Fast alghoritm : no parsing of control words !
@@ -1160,7 +1166,6 @@ void HmpidDecoder2::writeSummaryFile(char* summaryFileName)
   fclose(fs);
   return;
 }
-
 
 /// Gets a sized chunk from the stream. The stream pointers members are updated
 /// @param[in] **streamPtr : the pointer to the memory buffer
