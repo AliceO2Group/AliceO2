@@ -808,6 +808,8 @@ DECLARE_SOA_INDEX_TABLE(MatchedBCCollisionsSparse, BCs, "MA_BCCOL_SP", indices::
 DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(Run3MatchedToBCExclusive, BCs, "MA_RN3_BC_EX", indices::BCId, indices::ZdcId, indices::FT0Id, indices::FV0AId, indices::FDDId);
 DECLARE_SOA_INDEX_TABLE(Run3MatchedToBCSparse, BCs, "MA_RN3_BC_SP", indices::BCId, indices::ZdcId, indices::FT0Id, indices::FV0AId, indices::FDDId);
 
+DECLARE_SOA_INDEX_TABLE(Run2MatchedToBCSparse, BCs, "MA_RN2_BC_SP", indices::BCId, indices::ZdcId, indices::FT0Id, indices::FV0AId, indices::FV0CId, indices::FDDId);
+
 // Joins with collisions (only for sparse ones)
 // NOTE: index table needs to be always last argument
 using CollisionMatchedRun2Sparse = soa::Join<Collisions, Run2MatchedSparse>::iterator;

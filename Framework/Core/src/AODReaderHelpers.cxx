@@ -86,7 +86,6 @@ static inline auto extractOriginalsTuple(framework::pack<Os...>, ProcessingConte
 AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec> requested)
 {
   return AlgorithmSpec::InitCallback{[requested](InitContext& ic) {
-
     return [requested](ProcessingContext& pc) {
       auto outputs = pc.outputs();
       // spawn tables
@@ -135,6 +134,8 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec> requ
           outputs.adopt(Output{origin, description}, maker(o2::aod::Run3MatchedToBCSparseMetadata{}));
         } else if (description == header::DataDescription{"MA_RN3_BC_EX"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::Run3MatchedToBCExclusiveMetadata{}));
+        } else if (description == header::DataDescription{"MA_RN2_BC_SP"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::Run2MatchedToBCSparseMetadata{}));
         } else {
           throw std::runtime_error("Not an index table");
         }
@@ -146,7 +147,6 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec> requ
 AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> requested)
 {
   return AlgorithmSpec::InitCallback{[requested](InitContext& ic) {
-
     return [requested](ProcessingContext& pc) {
       auto outputs = pc.outputs();
       // spawn tables
