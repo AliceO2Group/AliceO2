@@ -27,7 +27,6 @@
 
 #include "CommonUtils/MemFileHelper.h"
 #include "Headers/DataHeader.h"
-#include "DetectorsCalibration/Utils.h"
 
 #include "TPCBase/CDBInterface.h"
 #include "TPCCalibration/CalibPedestal.h"
@@ -35,8 +34,8 @@
 #include "TPCWorkflow/CalibProcessingHelper.h"
 
 using namespace o2::framework;
+using o2::header::gDataOriginTPC;
 using namespace o2::tpc;
-using clbUtils = o2::calibration::Utils;
 
 namespace o2
 {
@@ -146,8 +145,8 @@ class TPCCalibPedestalDevice : public o2::framework::Task
       int type = int(dataType[i]);
 
       header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)((mLane << 4) + i)};
-      output.snapshot(Output{clbUtils::gDataOriginCLB, "TPCCLBPART", subSpec}, *image.get());
-      output.snapshot(Output{clbUtils::gDataOriginCLB, "TPCCLBPARTINFO", subSpec}, type);
+      output.snapshot(Output{gDataOriginTPC, "CLBPART", subSpec}, *image.get());
+      output.snapshot(Output{gDataOriginTPC, "CLBPARTINFO", subSpec}, type);
     }
   }
 
@@ -165,8 +164,8 @@ class TPCCalibPedestalDevice : public o2::framework::Task
 DataProcessorSpec getTPCCalibPedestalSpec(const std::string inputSpec, uint32_t ilane = 0, std::vector<int> sectors = {}, uint32_t publishAfterTFs = 0)
 {
   std::vector<o2::framework::OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, "TPCCLBPART"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, "TPCCLBPARTINFO"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{gDataOriginTPC, "CLBPART"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{gDataOriginTPC, "CLBPARTINFO"});
 
   const auto id = fmt::format("calib-tpc-pedestal-{:02}", ilane);
   return DataProcessorSpec{
