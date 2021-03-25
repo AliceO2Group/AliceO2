@@ -25,9 +25,11 @@
 #include <cstring>
 #include <vector>
 
-#include "HMPIDBase/Digit.h"
+#include "DataFormatsHMP/Digit.h"
 #include "HMPIDBase/Geo.h"
-#include "HmpidDecoder.h"
+#include "HMPIDReconstruction/HmpidDecoder.h"
+
+using namespace o2;
 
 namespace o2
 {
@@ -59,7 +61,7 @@ class HmpidDecodeRawDigit : public HmpidDecodeRawMem
   HmpidDecodeRawDigit(int numOfEquipments);
   ~HmpidDecodeRawDigit();
 
-  std::vector<o2::hmpid::Digit> mDigits;
+  std::vector<o2::hmpid::raw::Digit> mDigits;
 
  private:
   void setPad(HmpidEquipment* eq, int col, int dil, int ch, uint16_t charge) override;

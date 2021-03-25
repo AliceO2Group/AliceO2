@@ -17,13 +17,15 @@
 #include "Framework/Logger.h"
 #include "Headers/DataHeader.h"
 #include "HMPIDReconstruction/Clusterer.h"
-#include "HMPIDBase/Cluster.h"
+#include "DataFormatsHMP/Cluster.h"
+#include "DataFormatsHMP/Digit.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include <memory> // for make_shared, make_unique, unique_ptr
 #include <vector>
 
 using namespace o2::framework;
+using namespace o2::hmpid::raw;
 
 namespace o2
 {
@@ -51,7 +53,7 @@ class HMPIDDPLClustererTask
       return;
     }
     // get digit data
-    auto digits = pc.inputs().get<std::vector<o2::hmpid::Digit>*>("hmpiddigits");
+    auto digits = pc.inputs().get<std::vector<o2::hmpid::raw::Digit>*>("hmpiddigits");
     LOG(INFO) << "RECEIVED " << digits->size() << " DIGITS";
     auto labelvector = std::make_shared<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
     if (mUseMC) {

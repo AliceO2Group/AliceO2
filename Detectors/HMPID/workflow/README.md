@@ -2,85 +2,90 @@
 \page refHMPworkflow HMP workflow
 /doxy -->
 
-# DPL workflows for the HMPID  v.0.4
+# DPL workflows for the HMPID  v.0.7
 
 ## HMPID DPL processors
 
-* `hmpid-read-raw-file` reads data from ReadOut Raw File and outputs a stream of RDH6 pages as HMP/RAWDATA stream
-* `hmpid-raw-to-digits` decodes the input raw pages stream (HMP/RAWDATA) and produces a vector of o2::hmpid::Digits (HMP/DIGITS)
-* `hmpid-write-raw-from-digits` codes input o2::hmpid::Digits vector (HMP/DIGITS) into the binary HMPID raw file
-* `hmpid-dump-digits` dumps the input o2::hmpid::Digits vector (HMP/DIGITS) to the stdout or in a ASCII file
+* `hmpid-raw-to-digits` reads data from ReadOut Raw File and outputs a ROOT formatted file (Reconstruction flow)
+* `hmpid-digits-to-raw` reads digits data from a ROOT formatted file and produce a ReadOut Raw File (Simulation flow)
+* `hmpid-read-raw-file-stream` reads data from ReadOut Raw File and outputs a stream of RDH6 pages as HMP/RAWDATA stream
+* `hmpid-raw-to-digits-stream` decodes the input raw pages stream (HMP/RAWDATA) and produces two streams avector of o2::hmpid::raw::Digits (HMP/DIGITS) and a o2::InteractionRecord (HMP/INTRECORD)
+* `hmpid-digits-to-raw-stream` codes input o2::hmpid::Digits vector (HMP/DIGITS) and (HMP/INTRECORD) stream into the binary HMPID raw file
+* `hmpid-dump-digits-stream` dumps the input o2::hmpid::Digits vector (HMP/DIGITS) and (HMP/INTRECORD) stream to the stdout or in an ASCII file
+* `hmpid-raw-to-pedestals` reads data from ReadOut Raw File and outputs results of Pedestals calculation in ReadOut format and CCDB (Calibration flow)
 
 ### Workflow example
-The input is a HMPID rawfile and after the decoding the result is a reconstructed rawfile.
+Dumping the contents of a Raw file.
 
 ```
- o2-hmpid-read-raw-file-workflow --raw-file test_full_flp1.raw -b | o2-hmpid-raw-to-digits-workflow -b | o2-hmpid-write-raw-from-digits-workflow --out-file /tmp/pippo -b
+ o2-hmpid-read-raw-file-stream-workflow --raw-file test_full_flp1.raw -b | o2-hmpid-raw-to-digits-stream-workflow -b | o2-hmpid-dump-digits-stream-workflow --out-file /tmp/pippo.txt -b
 ```
 
-This reads the `test_full_flp1.raw` file and after the decodeing produce a couple of raw files in the /tmp/ folder that are prefixed with `pippo`
+This reads the `test_full_flp1.raw` file and after the decoding, produce an ASCII file in the /tmp/ folder that contains the Events/Digits dump.
 
 
 
-### o2-hmpid-read-raw-file-workflow
+### o2-hmpid-read-raw-file-stream-workflow
 Reads data from ReadOut Raw File and outputs a stream of RDH6 pages as HMP/RAWDATA stream.
 
 Display all options
 
 ```
-o2-hmpid-read-raw-file-workflow --help full
+o2-hmpid-read-raw-file-stream-workflow --help full
 ```
 
 Data processor options: HMP-ReadRawFile:
 
 ```
---raw-file arg                        Raw input file name
+  --raw-file arg                        Raw input file name
+  --print                               verbose output
 ```
 
-### o2-hmpid-raw-to-digits-workflow
-Decodes the input raw pages stream (HMP/RAWDATA) and produces a vector of o2::hmpid::Digits (HMP/DIGITS).
+### o2-hmpid-raw-to-digits-stream-workflow
+Decodes the input raw pages stream (HMP/RAWDATA) and produces a vector of o2::hmpid::Digits (HMP/DIGITS) and a o2::InteractionRecord (HMP/INTRECORD).
 
 Display all options
 
 ```
-o2-hmpid-raw-to-digits-workflow --help full
+o2-hmpid-raw-to-digits-stream-workflow --help full
 ```
 
 Data processor options: HMP-DataDecoder:
 
 ```
   --root-file arg (=/tmp/hmpRawDecodeResults)
-                                        Name of the Root file with the decoding
-                                        results.
+                  Name of the Root file with the decoding
+                  results.
+  --fast-decode   Use the fast algorithm. (error 0.8%
 ```
 
 
-### o2-hmpid-write-raw-from-digits-workflow
-Codes input o2::hmpid::Digits vector (HMP/DIGITS) into the binary HMPID raw file.
+### o2-hmpid-digits-to-raw-stream-workflow
+Codes input o2::hmpid::raw::Digits vector (HMP/DIGITS)  and (HMP/INTRECORD) stream into the binary HMPID raw file.
 
 Display all options
 
 ```
-o2-hmpid-write-raw-from-digits-workflow --help full
+o2-hmpid-digits-to-raw-stream-workflow --help full
 ```
 
 Data processor options: HMP-WriteRawFromDigits:
 
 ```
-  --out-file arg (=hmpidRaw)            name prefix of the two output files
-  --order-events                        order the events in ascending time
+  --out-file arg (=hmpidRaw)            name of the output file
+  --order-events                        order the events time
   --skip-empty                          skip empty events
   --fixed-lenght                        fixed lenght packets = 8K bytes
 ```
 
 
-### o2-hmpid-dump-digits-workflow
-Dumps the input o2::hmpid::Digits vector (HMP/DIGITS) to the stdout or in a ASCII file.
+### o2-hmpid-dump-digits-stream-workflow
+Dumps the input o2::hmpid::raw::Digits vector (HMP/DIGITS)  and (HMP/INTRECORD) stream to the stdout or in an ASCII file.
 
 Display all options
 
 ```
-o2-hmpid-dump-digits-workflow --help full
+o2-hmpid-dump-digits-stream-workflow --help full
 ```
 
 Data processor options: HMP-DigitsDump:
@@ -91,27 +96,26 @@ Data processor options: HMP-DigitsDump:
 ```
 
 
-### o2-hmpid-write-root-from-digits-workflow
-Write the digit stream into a root formatted file
+### o2-hmpid-raw-to-digits-workflow
+Write Raw File into a root formatted file
 
 ```
-o2-hmpid-write-root-from-digit-workflow --help full
+o2-hmpid-raw-to-digits-workflow --help full
 ```
 
 Data processor options: HMPDigitWriter:
 
 ```
-  --outfile arg (=hmpiddigits.root)     Name of the output file
-  --treename arg (=o2sim)               Name of tree
-  --treetitle arg (=o2sim)              Title of tree
-  --nevents arg (=-1)                   Number of events to execute
-  --terminate arg (=process)            Terminate the 'process' or 'workflow'
+  --in-file arg (=hmpidRaw.raw)         name of the input Raw file
+  --out-file arg (=hmpReco.root)        name of the output file
+  --base-file arg (=hmpDecode)          base name for statistical output file
+  --fast-decode                         Use the fast algorithm. (error 0.8%)  
 ```
 
 Example
 
 ```
-[O2Suite/latest-o2] ~/Downloads/provaRec $> o2-hmpid-read-raw-file-workflow --raw-file test_full_flp1.raw -b | o2-hmpid-raw-to-digits-workflow -b | o2-hmpid-write-root-from-digits-workflow -b
+[O2Suite/latest-o2] ~/Downloads/provaRec $> o2-hmpid-raw-to-digits-workflow --in-file test_full_flp1.raw --out-file hmpidReco.root --base-file /tmp/pippo -b
 ```
 
 ### o2-hmpid-digits-to-raw-workflow
@@ -124,11 +128,12 @@ o2-hmpid-digits-to-raw-workflow
 Data processor options: HMP-WriteRawFromRootFile:
 
 ```
-  --outdir arg (=./)            base dir for output file
-  --outfile arg (=hmpReadOut)   base name for output file
-  --file-for                    ingle file per: (all),flp,link
+  --outdir arg (=./)                    base dir for output file
+  --file-for arg (=all)                 single file per: all,flp,link
+  --outfile arg (=hmpid)                base name for output file
   --in-file arg (=hmpiddigits.root)     name of the input sim root file
-  --dump-digits                         out the digits file in /tmp/hmpDumpDigits.dat
+  --dump-digits                         out the digits file in
+                                        /tmp/hmpDumpDigits.dat
   --skip-empty                          skip empty events
 ```
 
@@ -137,13 +142,13 @@ Example
 ```
 [O2Suite/latest-o2] ~/Downloads/provaRec $>o2-sim-serial -m HMP -n 20 -e TGeant4 -g pythia8hi
 [O2Suite/latest-o2] ~/Downloads/provaRec $>o2-sim-digitizer-workflow --onlyDet HMP
-[O2Suite/latest-o2] ~/Downloads/provaRec $>o2-hmpid-digits-to-raw-workflow --in-file hmpiddigits.root --hmp-raw-outfile hmpRawFromRoot --dump-digits -b
+[O2Suite/latest-o2] ~/Downloads/provaRec $>o2-hmpid-digits-to-raw-workflow --outdir ./ --in-file hmpiddigits.root --outfile hmpRawFromRoot --file-for all --dump-digits -b
 ```
 
 in order to verify the write, the inverse decoding of raw file
 
 ```
-[O2Suite/latest-o2] ~/Downloads/provaRec $>o2-hmpid-read-raw-file-workflow --raw-file hmpRawFromRoot.raw -b | o2-hmpid-raw-to-digits-workflow -b | o2-hmpid-dump-digits-workflow --out-file /tmp/hmpDumpDigitsVerify.dat
+[O2Suite/latest-o2] ~/Downloads/provaRec $>o2-hmpid-read-raw-file-stream-workflow --raw-file hmpRawFromRoot.raw -b | o2-hmpid-raw-to-digits-stream-workflow -b | o2-hmpid-dump-digits-stream-workflow --out-file /tmp/hmpDumpDigitsVerify.dat
 ```
 
 
@@ -168,12 +173,13 @@ Data processor options: HMP-DataDecoder:
                                         pedestals/threshold values
   --sigmacut arg (=4)                   Sigma values for the Thresholds
                                         calculation.
+  --fast-decode                         Use the fast algorithm. (error 0.8%)
 ```
 
 Example
 
 ```
-o2-hmpid-read-raw-file-workflow --raw-file test_full_flp1.raw -b | o2-hmpid-raw-to-pedestals-workflow --sigmacut=2.5 --files-basepath /tmp/pippo -b --use-ccdb --pedestals-tag TEST3
+o2-hmpid-read-raw-file-stream-workflow --raw-file ../hmpidRaw160.raw -b | o2-hmpid-raw-to-pedestals-workflow --sigmacut=2.5 --files-basepath /tmp/pippo -b --use-ccdb --pedestals-tag TEST3
 ```
 
 this command produce in the ccdb a set of `TMatrixF` object one for each chamber

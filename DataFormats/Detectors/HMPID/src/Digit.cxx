@@ -16,86 +16,78 @@
 /// \date 15/02/2021
 
 /* ------ HISTORY ---------
+  10/03/2021   /  complete review
+
 */
 
-#include "HMPIDBase/Digit.h"
+#include "DataFormatsHMP/Digit.h"
 #include "HMPIDBase/Geo.h"
 #include "HMPIDBase/Param.h"
 #include "TRandom.h"
 #include "TMath.h"
 #include "CommonConstants/LHCConstants.h"
 
-using namespace o2::hmpid;
+using namespace o2::hmpid::raw;
 
-ClassImp(o2::hmpid::Digit);
+ClassImp(o2::hmpid::raw::Digit);
 
 // ============= Digit Class implementation =======
 /// Constructor : Create the Digit structure. Accepts the trigger time (Orbit,BC)
 ///               The mapping of the digit is in the Photo Cathod coords
 ///               (Chamber, PhotoCathod, X, Y)
-/// @param[in] bc : the bunch crossing [0 .. 2^12-1]
-/// @param[in] orbit : the orbit number [0 .. 2^32-1]
 /// @param[in] pad : the Digit Unique Id [0x00CPXXYY]
 /// @param[in] charge : the value of the charge [0 .. 2^12-1]
-Digit::Digit(uint16_t bc, uint32_t orbit, int pad, uint16_t charge)
+Digit::Digit(int pad, uint16_t charge)
 {
-  mBc = bc;
-  mOrbit = orbit;
   mQ = charge > 0x0FFF ? 0x0FFF : charge;
-  mPad = pad;
+  mCh = a2C(pad);
+  mPh = a2P(pad);
+  mX  = a2X(pad);
+  mY  = a2Y(pad);
 }
 
 /// Constructor : Create the Digit structure. Accepts the trigger time (Orbit,BC)
 ///               The mapping of the digit is in the Photo Cathod coords
 ///               (Chamber, PhotoCathod, X, Y)
-/// @param[in] bc : the bunch crossing [0 .. 2^12-1]
-/// @param[in] orbit : the orbit number [0 .. 2^32-1]
 /// @param[in] chamber : the HMPID module [0 .. 6]
 /// @param[in] photo : the photo cathode number [0 .. 5] (left-down to right-up)
 /// @param[in] x : the horizontal in cathode displacement [0 .. 79]
 /// @param[in] y : the vertical in cathode displacement [0 .. 47]
 /// @param[in] charge : the value of the charge [0 .. 2^12-1]
-Digit::Digit(uint16_t bc, uint32_t orbit, int chamber, int photo, int x, int y, uint16_t charge)
+Digit::Digit(int chamber, int photo, int x, int y, uint16_t charge)
 {
-  mBc = bc;
-  mOrbit = orbit;
   mQ = charge > 0x0FFF ? 0x0FFF : charge;
-  mPad = Abs(chamber, photo, x, y);
+  mCh = chamber;
+  mPh = photo;
+  mX  = x;
+  mY  = y;
 }
 
 /// Constructor : Create the Digit structure. Accepts the trigger time (Orbit,BC)
 ///               The mapping of the digit is in the Hardware coords
 ///               (Equipment, Column, Dilogic, Channel)
-/// @param[in] bc : the bunch crossing [0 .. 2^12-1]
-/// @param[in] orbit : the orbit number [0 .. 2^32-1]
 /// @param[in] charge : the value of the charge [0 .. 2^12-1]
 /// @param[in] equipment : the HMPID DDL link [0 .. 13]
 /// @param[in] column : the readout column number [0 .. 23]
 /// @param[in] dilogic : the displacement in the Dilogics chain [0 .. 9]
 /// @param[in] channel : the number of gassiplexes channels [0 .. 47]
-Digit::Digit(uint16_t bc, uint32_t orbit, uint16_t charge, int equipment, int column, int dilogic, int channel)
+Digit::Digit(uint16_t charge, int equipment, int column, int dilogic, int channel)
 {
-  mBc = bc;
-  mOrbit = orbit;
   mQ = charge > 0x0FFF ? 0x0FFF : charge;
-  mPad = Equipment2Pad(equipment, column, dilogic, channel);
+  pad2Photo(equipment2Pad(equipment, column, dilogic, channel), &mCh, &mPh, &mX, &mY);
 }
 
 /// Constructor : Create the Digit structure. Accepts the trigger time (Orbit,BC)
 ///               The mapping of the digit is in the Logical coords
 ///               (Module, X, Y)
-/// @param[in] bc : the bunch crossing [0 .. 2^12-1]
-/// @param[in] orbit : the orbit number [0 .. 2^32-1]
 /// @param[in] charge : the value of the charge [0 .. 2^12-1]
 /// @param[in] module : the HMPID Module [0 .. 6]
 /// @param[in] x : the horizontal in Module displacement [0 .. 159]
 /// @param[in] y : the vertical in Module displacement [0 .. 143]
-Digit::Digit(uint16_t bc, uint32_t orbit, uint16_t charge, int module, int x, int y)
+Digit::Digit(uint16_t charge, int module, int x, int y)
 {
-  mBc = bc;
-  mOrbit = orbit;
   mQ = charge > 0x0FFF ? 0x0FFF : charge;
-  mPad = Absolute2Pad(module, x, y);
+  pad2Photo(absolute2Pad(module, x, y), &mCh, &mPh, &mX, &mY);
 }
 
 // -----  Coordinate Conversion -----
@@ -106,7 +98,7 @@ Digit::Digit(uint16_t bc, uint32_t orbit, uint16_t charge, int module, int x, in
 /// @param[in] Dilo : the displacement in the Dilogics chain [0 .. 9]
 /// @param[in] Chan : the number of gassiplexes channels [0 .. 47]
 /// @return uint32_t : the Digit Unique Id [0x00CPXXYY]
-uint32_t Digit::Equipment2Pad(int Equi, int Colu, int Dilo, int Chan)
+uint32_t Digit::equipment2Pad(int Equi, int Colu, int Dilo, int Chan)
 {
   // Check the input data
   if (Equi < 0 || Equi >= Geo::MAXEQUIPMENTS || Colu < 0 || Colu >= Geo::N_COLUMNS ||
@@ -127,7 +119,7 @@ uint32_t Digit::Equipment2Pad(int Equi, int Colu, int Dilo, int Chan)
     pc = 5 - pc;
     py = Geo::MAXYPHOTO - py;
   }
-  return Abs(ch, pc, px, py); // Pack the coords into the PadID word
+  return abs(ch, pc, px, py); // Pack the coords into the PadID word
 }
 
 /// Pad2Equipment : Converts the Digit Unique Id to Hardware coords
@@ -136,12 +128,12 @@ uint32_t Digit::Equipment2Pad(int Equi, int Colu, int Dilo, int Chan)
 /// @param[out] Colu : the readout column number [0 .. 23]
 /// @param[out] Dilo : the displacement in the Dilogics chain [0 .. 9]
 /// @param[out] Chan : the number of gassiplexes channels [0 .. 47]
-void Digit::Pad2Equipment(uint32_t pad, int* Equi, int* Colu, int* Dilo, int* Chan)
+void Digit::pad2Equipment(uint32_t pad, int* Equi, int* Colu, int* Dilo, int* Chan)
 {
-  int ch, ph, px, py;
+  uint8_t ch, ph, px, py;
   int y2chan[6] = {5, 3, 1, 0, 2, 4};
 
-  Pad2Photo(pad, &ch, &ph, &px, &py); // Unpak the pad ID in the photo cathode coords
+  pad2Photo(pad, &ch, &ph, &px, &py); // Unpak the pad ID in the photo cathode coords
 
   bool isEven = (ph % 2) == 0 ? true : false;
   int eq = ch * Geo::EQUIPMENTSPERMODULE + 1;
@@ -166,10 +158,10 @@ void Digit::Pad2Equipment(uint32_t pad, int* Equi, int* Colu, int* Dilo, int* Ch
 /// @param[out] Colu : the readout column number [0 .. 23]
 /// @param[out] Dilo : the displacement in the Dilogics chain [0 .. 9]
 /// @param[out] Chan : the number of gassiplexes channels [0 .. 47]
-void Digit::Absolute2Equipment(int Module, int x, int y, int* Equi, int* Colu, int* Dilo, int* Chan)
+void Digit::absolute2Equipment(int Module, int x, int y, int* Equi, int* Colu, int* Dilo, int* Chan)
 {
-  uint32_t pad = Absolute2Pad(Module, x, y);
-  Pad2Equipment(pad, Equi, Colu, Dilo, Chan);
+  uint32_t pad = absolute2Pad(Module, x, y);
+  pad2Equipment(pad, Equi, Colu, Dilo, Chan);
   return;
 }
 
@@ -181,10 +173,10 @@ void Digit::Absolute2Equipment(int Module, int x, int y, int* Equi, int* Colu, i
 /// @param[out] Module : the HMPID Module number [0..6]
 /// @param[out] x : the horizontal displacement [0..159]
 /// @param[out] y : the vertical displacement [0..143]
-void Digit::Equipment2Absolute(int Equi, int Colu, int Dilo, int Chan, int* Module, int* x, int* y)
+void Digit::equipment2Absolute(int Equi, int Colu, int Dilo, int Chan, int* Module, int* x, int* y)
 {
-  uint32_t pad = Equipment2Pad(Equi, Colu, Dilo, Chan);
-  Pad2Absolute(pad, Module, x, y);
+  uint32_t pad = equipment2Pad(Equi, Colu, Dilo, Chan);
+  pad2Absolute(pad, Module, x, y);
   return;
 }
 
@@ -193,12 +185,12 @@ void Digit::Equipment2Absolute(int Equi, int Colu, int Dilo, int Chan, int* Modu
 /// @param[in] x : the horizontal displacement [0..159]
 /// @param[in] y : the vertical displacement [0..143]
 /// @return uint32_t : the Digit Unique Id [0x00CPXXYY]
-uint32_t Digit::Absolute2Pad(int Module, int x, int y)
+uint32_t Digit::absolute2Pad(int Module, int x, int y)
 {
   int ph = (y / Geo::N_PHOTOCATODSY) * 2 + ((x >= Geo::HALFXROWS) ? 1 : 0);
   int px = x % Geo::HALFXROWS;
   int py = y % Geo::N_PHOTOCATODSY;
-  return Abs(Module, ph, px, py);
+  return abs(Module, ph, px, py);
 }
 
 /// Pad2Absolute : Converts the the Digit Unique Id to Module coords
@@ -206,12 +198,12 @@ uint32_t Digit::Absolute2Pad(int Module, int x, int y)
 /// @param[out] Module : the HMPID Module number [0..6]
 /// @param[out] x : the horizontal displacement [0..159]
 /// @param[out] y : the vertical displacement [0..143]
-void Digit::Pad2Absolute(uint32_t pad, int* Module, int* x, int* y)
+void Digit::pad2Absolute(uint32_t pad, int* Module, int* x, int* y)
 {
-  *Module = A2C(pad);
-  int ph = A2P(pad);
-  int px = A2X(pad);
-  int py = A2Y(pad);
+  *Module = a2C(pad);
+  int ph = a2P(pad);
+  int px = a2X(pad);
+  int py = a2Y(pad);
   *x = px + ((ph % 2 == 1) ? Geo::HALFXROWS : 0);
   *y = ((ph >> 1) * Geo::N_PHOTOCATODSY) + py;
   return;
@@ -223,12 +215,12 @@ void Digit::Pad2Absolute(uint32_t pad, int* Module, int* x, int* y)
 /// @param[out] photo : the photo cathode number [0..5]
 /// @param[out] x : the horizontal displacement [0..79]
 /// @param[out] y : the vertical displacement [0..47]
-void Digit::Pad2Photo(uint32_t pad, int* chamber, int* photo, int* x, int* y)
+void Digit::pad2Photo(uint32_t pad, uint8_t* chamber, uint8_t* photo, uint8_t* x, uint8_t* y)
 {
-  *chamber = A2C(pad);
-  *photo = A2P(pad);
-  *x = A2X(pad);
-  *y = A2Y(pad);
+  *chamber = a2C(pad);
+  *photo = a2P(pad);
+  *x = a2X(pad);
+  *y = a2Y(pad);
   return;
 }
 
@@ -246,10 +238,10 @@ void Digit::getPadAndTotalCharge(HitType const& hit, int& chamber, int& pc, int&
   double localY;
   chamber = hit.GetDetectorID();
   double tmp[3] = {hit.GetX(), hit.GetY(), hit.GetZ()};
-  Param::Instance()->Mars2Lors(chamber, tmp, localX, localY);
-  Param::Lors2Pad(localX, localY, pc, px, py);
+  Param::instance()->mars2Lors(chamber, tmp, localX, localY);
+  Param::lors2Pad(localX, localY, pc, px, py);
 
-  totalcharge = Digit::QdcTot(hit.GetEnergyLoss(), hit.GetTime(), pc, px, py, localX, localY);
+  totalcharge = Digit::qdcTot(hit.GetEnergyLoss(), hit.GetTime(), pc, px, py, localX, localY);
   return;
 }
 
@@ -266,9 +258,9 @@ float Digit::getFractionalContributionForPad(HitType const& hit, int somepad)
   const auto chamber = hit.GetDetectorID(); // chamber number is in detID
   double tmp[3] = {hit.GetX(), hit.GetY(), hit.GetZ()};
   // converting chamber id and hit coordiates to local coordinates
-  Param::Instance()->Mars2Lors(chamber, tmp, localX, localY);
+  Param::instance()->mars2Lors(chamber, tmp, localX, localY);
   // calculate charge fraction in given pad
-  return Digit::InMathieson(localX, localY, somepad);
+  return Digit::inMathieson(localX, localY, somepad);
 }
 
 /// QdcTot : Samples total charge associated to a hit
@@ -281,7 +273,7 @@ float Digit::getFractionalContributionForPad(HitType const& hit, int somepad)
 /// @param[out] localX : the horizontal displacement related to Anode Wires
 /// @param[out] localY : the vertical displacement  related to Anode Wires
 /// @return : total QDC
-Double_t Digit::QdcTot(Double_t e, Double_t time, Int_t pc, Int_t px, Int_t py, Double_t& localX, Double_t& localY)
+Double_t Digit::qdcTot(Double_t e, Double_t time, Int_t pc, Int_t px, Int_t py, Double_t& localX, Double_t& localY)
 {
   //
   // Arguments: e-
@@ -293,7 +285,7 @@ Double_t Digit::QdcTot(Double_t e, Double_t time, Int_t pc, Int_t px, Int_t py, 
   if (py < 0) {
     return 0;
   } else {
-    double y = Param::LorsY(pc, py);
+    double y = Param::lorsY(pc, py);
     localY = ((y - localY) > 0) ? y - 0.2 : y + 0.2; //shift to the nearest anod wire
 
     double x = (localX > 66.6) ? localX - 66.6 : localX;                                                                      //sagita is for PC (0-64) and not for chamber
@@ -321,15 +313,15 @@ Double_t Digit::QdcTot(Double_t e, Double_t time, Int_t pc, Int_t px, Int_t py, 
 /// @param[in] x : position of the center of Mathieson distribution
 /// @param[in] pad : the Digit Unique Id [0x00CPXXYY]
 /// @return : a charge fraction [0-1] imposed into the pad
-Double_t Digit::IntPartMathiX(Double_t x, int pad)
+Double_t Digit::intPartMathiX(Double_t x, int pad)
 {
-  Double_t shift1 = -LorsX(pad) + 0.5 * o2::hmpid::Param::SizePadX();
-  Double_t shift2 = -LorsX(pad) - 0.5 * o2::hmpid::Param::SizePadX();
+  Double_t shift1 = -lorsX(pad) + 0.5 * o2::hmpid::Param::sizePadX();
+  Double_t shift2 = -lorsX(pad) - 0.5 * o2::hmpid::Param::sizePadX();
 
-  Double_t ux1 = o2::hmpid::Param::SqrtK3x() * TMath::TanH(o2::hmpid::Param::K2x() * (x + shift1) / o2::hmpid::Param::PitchAnodeCathode());
-  Double_t ux2 = o2::hmpid::Param::SqrtK3x() * TMath::TanH(o2::hmpid::Param::K2x() * (x + shift2) / o2::hmpid::Param::PitchAnodeCathode());
+  Double_t ux1 = o2::hmpid::Param::sqrtK3x() * TMath::TanH(o2::hmpid::Param::k2x() * (x + shift1) / o2::hmpid::Param::pitchAnodeCathode());
+  Double_t ux2 = o2::hmpid::Param::sqrtK3x() * TMath::TanH(o2::hmpid::Param::k2x() * (x + shift2) / o2::hmpid::Param::pitchAnodeCathode());
 
-  return o2::hmpid::Param::K4x() * (TMath::ATan(ux2) - TMath::ATan(ux1));
+  return o2::hmpid::Param::k4x() * (TMath::ATan(ux2) - TMath::ATan(ux1));
 }
 
 /// IntPartMathiY : Integration of Mathieson.
@@ -339,15 +331,15 @@ Double_t Digit::IntPartMathiX(Double_t x, int pad)
 /// @param[in] y : position of the center of Mathieson distribution
 /// @param[in] pad : the Digit Unique Id [0x00CPXXYY]
 /// @return : a charge fraction [0-1] imposed into the pad
-Double_t Digit::IntPartMathiY(Double_t y, int pad)
+Double_t Digit::intPartMathiY(Double_t y, int pad)
 {
-  Double_t shift1 = -LorsY(pad) + 0.5 * o2::hmpid::Param::SizePadY();
-  Double_t shift2 = -LorsY(pad) - 0.5 * o2::hmpid::Param::SizePadY();
+  Double_t shift1 = -lorsY(pad) + 0.5 * o2::hmpid::Param::sizePadY();
+  Double_t shift2 = -lorsY(pad) - 0.5 * o2::hmpid::Param::sizePadY();
 
-  Double_t uy1 = o2::hmpid::Param::SqrtK3y() * TMath::TanH(o2::hmpid::Param::K2y() * (y + shift1) / o2::hmpid::Param::PitchAnodeCathode());
-  Double_t uy2 = o2::hmpid::Param::SqrtK3y() * TMath::TanH(o2::hmpid::Param::K2y() * (y + shift2) / o2::hmpid::Param::PitchAnodeCathode());
+  Double_t uy1 = o2::hmpid::Param::sqrtK3y() * TMath::TanH(o2::hmpid::Param::k2y() * (y + shift1) / o2::hmpid::Param::pitchAnodeCathode());
+  Double_t uy2 = o2::hmpid::Param::sqrtK3y() * TMath::TanH(o2::hmpid::Param::k2y() * (y + shift2) / o2::hmpid::Param::pitchAnodeCathode());
 
-  return o2::hmpid::Param::K4y() * (TMath::ATan(uy2) - TMath::ATan(uy1));
+  return o2::hmpid::Param::k4y() * (TMath::ATan(uy2) - TMath::ATan(uy1));
 }
 
 /// InMathieson : Integration of Mathieson.
@@ -358,11 +350,11 @@ Double_t Digit::IntPartMathiY(Double_t y, int pad)
 /// @param[in] localY : Y position of the center of Mathieson distribution
 /// @param[in] pad : the Digit Unique Id [0x00CPXXYY]
 /// @return : a charge fraction [0-1] imposed into the pad
-Double_t Digit::InMathieson(Double_t localX, Double_t localY, Int_t pad)
+Double_t Digit::inMathieson(Double_t localX, Double_t localY, Int_t pad)
 {
-  return 4. * IntPartMathiX(localX, pad) * IntPartMathiY(localY, pad);
+  return 4. * intPartMathiX(localX, pad) * intPartMathiY(localY, pad);
 }
-
+/*
 // ---- Time conversion functions ----
 
 /// OrbitBcToTimeNs : Converts the Orbit,BC pair in absolute
@@ -409,6 +401,7 @@ void Digit::TimeNsToOrbitBc(double TimeNs, uint32_t& Orbit, uint16_t& Bc)
   return;
 }
 
+
 // ---- Functions to manage Digit vectors ----
 
 /// eventEquipPadsComp : Function for order digits (Event,Chamber,Photo,x,y)
@@ -433,6 +426,7 @@ bool Digit::eventEquipPadsComp(Digit& d1, Digit& d2)
   }
   return false;
 };
+
 
 /// extractDigitsPerEvent : Function for select a sub vector of Digits of the
 /// same event
@@ -464,5 +458,6 @@ std::vector<uint64_t>* Digit::extractEvents(std::vector<o2::hmpid::Digit>& Digit
   }
   return (eventIds);
 };
+*/
 
 // -------- eof -----------

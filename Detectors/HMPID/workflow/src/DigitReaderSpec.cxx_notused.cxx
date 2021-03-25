@@ -19,6 +19,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "Framework/Logger.h"
+#include "FairLogger.h" // for LOG
 
 using namespace o2::framework;
 using namespace o2::hmpid;

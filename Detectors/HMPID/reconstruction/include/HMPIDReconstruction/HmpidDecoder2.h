@@ -14,20 +14,32 @@
 /// \brief Base Class to decode HMPID Raw Data stream
 ///
 
-#ifndef COMMON_HMPIDDECODER_H_
-#define COMMON_HMPIDDECODER_H_
+#ifndef COMMON_HMPIDDECODER2_H_
+#define COMMON_HMPIDDECODER2_H_
 
 #include <cstdio>
 #include <cstdint>
 #include <iostream>
 #include <cstring>
 
-#include "FairLogger.h"
+#include "Headers/RAWDataHeader.h"
 #include "CommonDataFormat/InteractionRecord.h"
+#include "DetectorsRaw/HBFUtils.h"
+#include "DetectorsRaw/RawFileReader.h"
+
+#include "DataFormatsHMP/Digit.h"
+
+#include "FairLogger.h"
 
 #include "HMPIDReconstruction/HmpidEquipment.h"
 
 #define MAXDESCRIPTIONLENGHT 50
+
+#define HLOG_INFO if(mVerbose > 6) std::cout << "HMPID Decoder2 : [INFO] "
+#define HLOG_DEBUG if(mVerbose > 8) std::cout << "HMPID Decoder2 : [DEBUG] "
+#define HLOG_WARNING if(mVerbose > 3) std::cout << "HMPID Decoder2 : [WARNING] "
+#define HLOG_ERROR if(mVerbose > 1) std::cout << "HMPID Decoder2 : [ERROR] "
+
 
 // ---- RDH 6  standard dimension -------
 #define RAWBLOCKDIMENSION_W 2048
@@ -41,7 +53,7 @@
 #define WTYPE_EOE 4
 #define WTYPE_NONE 0
 
-using namespace o2;
+using namespace o2::raw;
 
 // Hmpid Equipment class
 namespace o2
@@ -50,7 +62,7 @@ namespace o2
 namespace hmpid
 {
 
-class HmpidDecoder
+class HmpidDecoder2
 {
 
   // Members
@@ -99,14 +111,17 @@ class HmpidDecoder
   int mRDHSize;
   int mRDHAcceptedVersion;
 
+  o2::InteractionRecord mIntReco;
+  std::vector<o2::hmpid::raw::Digit> mDigits;
+
   // Methods
  public:
-  HmpidDecoder(int* EqIds, int* CruIds, int* LinkIds, int numOfEquipments);
-  HmpidDecoder(int numOfEquipments);
-  ~HmpidDecoder();
+  HmpidDecoder2(int* EqIds, int* CruIds, int* LinkIds, int numOfEquipments);
+  HmpidDecoder2(int numOfEquipments);
+  ~HmpidDecoder2();
 
   void init();
-  virtual bool setUpStream(void* Buffer, long BufferLen) = 0;
+  bool setUpStream(void* Buffer, long BufferLen);
   void setVerbosity(int Level)
   {
     mVerbose = Level;
@@ -143,13 +158,13 @@ class HmpidDecoder
   float getAverageEventSize(int Equipment);
   float getAverageBusyTime(int Equipment);
 
-  o2::InteractionRecord mIntReco;
 
  protected:
   int checkType(uint32_t wp, int* p1, int* p2, int* p3, int* p4);
   bool isRowMarker(uint32_t wp, int* Err, int* rowSize, int* mark);
   bool isSegmentMarker(uint32_t wp, int* Err, int* segSize, int* Seg, int* mark);
   bool isEoEmarker(uint32_t wp, int* Err, int* Col, int* Dilogic, int* Eoesize);
+  void setPad(HmpidEquipment* eq, int col, int dil, int ch, uint16_t charge);
 
  public:
   bool decodeHmpidError(int ErrorField, char* outbuf);
@@ -160,10 +175,9 @@ class HmpidDecoder
   void updateStatistics(HmpidEquipment* eq);
 
  protected:
-  virtual void setPad(HmpidEquipment* eq, int col, int dil, int ch, uint16_t charge) = 0;
-  virtual bool getBlockFromStream(uint32_t** streamPtr, uint32_t Size) = 0;
-  virtual bool getHeaderFromStream(uint32_t** streamPtr) = 0;
-  virtual bool getWordFromStream(uint32_t* word) = 0;
+  bool getBlockFromStream(uint32_t** streamPtr, uint32_t Size);
+  bool getHeaderFromStream(uint32_t** streamPtr);
+  bool getWordFromStream(uint32_t* word);
   uint32_t* getActualStreamPtr()
   {
     return (mActualStreamPtr);
@@ -171,4 +185,4 @@ class HmpidDecoder
 };
 } // namespace hmpid
 } // namespace o2
-#endif /* COMMON_HMPIDDECODER_H_ */
+#endif /* COMMON_HMPIDDECODER2ß_H_ */

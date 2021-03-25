@@ -16,7 +16,7 @@
 #include "TFile.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "HMPIDBase/Digit.h"
+#include "DataFormatsHMP/Digit.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
@@ -38,7 +38,7 @@ class DigitReader : public o2::framework::Task
   bool mUseMC = true;
   std::unique_ptr<TFile> mFile = nullptr;
 
-  std::vector<o2::hmpid::Digit> mDigits, *mPdigits = &mDigits;
+  std::vector<o2::hmpid::raw::Digit> mDigits, *mPdigits = &mDigits;
 
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels, *mPlabels = &mLabels;
 };

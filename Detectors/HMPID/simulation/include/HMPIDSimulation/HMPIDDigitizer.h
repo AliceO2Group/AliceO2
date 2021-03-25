@@ -11,8 +11,8 @@
 #ifndef DETECTORS_HMPID_SIMULATION_INCLUDE_HMPIDSIMULATION_HMPIDDIGITIZER_H_
 #define DETECTORS_HMPID_SIMULATION_INCLUDE_HMPIDSIMULATION_HMPIDDIGITIZER_H_
 
-#include "HMPIDBase/Digit.h"
-#include "HMPIDBase/Trigger.h"
+#include "DataFormatsHMP/Digit.h"
+#include "DataFormatsHMP/Trigger.h"
 #include "HMPIDSimulation/Detector.h" // for the hit
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -45,12 +45,12 @@ class HMPIDDigitizer
       // for the first trigger no busy check necessary
       mCurrentTriggerTime = timeNS;
       mReadoutCounter++;
-      Trigger::TimeNsToOrbitBc(mCurrentTriggerTime, mOrbit, mBc);
+      mBc = o2::InteractionRecord::ns2bc(mCurrentTriggerTime, mOrbit);
       return true;
     } else {
       if ((timeNS - mCurrentTriggerTime) > BUSYTIME) {
         mCurrentTriggerTime = timeNS;
-        Trigger::TimeNsToOrbitBc(mCurrentTriggerTime, mOrbit, mBc);
+        mBc = o2::InteractionRecord::ns2bc(mCurrentTriggerTime, mOrbit);
         mReadoutCounter++;
         return true;
       } else {
@@ -73,19 +73,19 @@ class HMPIDDigitizer
   }
 
   // this will process hits and fill the digit vector with digits which are finalized
-  void process(std::vector<o2::hmpid::HitType> const&, std::vector<o2::hmpid::Digit>& digit);
+  void process(std::vector<o2::hmpid::raw::HitType> const&, std::vector<o2::hmpid::raw::Digit>& digit);
 
   // flush accumulated digits into the given container
-  void flush(std::vector<o2::hmpid::Digit>& digit);
+  void flush(std::vector<o2::hmpid::raw::Digit>& digit);
   // reset internal data structures
   void reset();
 
  private:
-  void zeroSuppress(std::vector<o2::hmpid::Digit> const& digits, std::vector<o2::hmpid::Digit>& newdigits,
+  void zeroSuppress(std::vector<o2::hmpid::raw::Digit> const& digits, std::vector<o2::hmpid::raw::Digit>& newdigits,
                     o2::dataformats::MCTruthContainer<o2::MCCompLabel> const& labels,
                     o2::dataformats::MCTruthContainer<o2::MCCompLabel>* newlabels);
 
-  float getThreshold(o2::hmpid::Digit const&) const; // gives back threshold to apply for a certain digit
+  float getThreshold(o2::hmpid::raw::Digit const&) const; // gives back threshold to apply for a certain digit
                                                      // (using noise and other tables for pad)
 
   double mCurrentTriggerTime = 0.;
@@ -95,7 +95,7 @@ class HMPIDDigitizer
   int mEventID = 0;
   int mSrcID = 0;
 
-  std::vector<o2::hmpid::Digit> mDigits; // internal store for digits
+  std::vector<o2::hmpid::raw::Digit> mDigits; // internal store for digits
 
   constexpr static double TRACKHOLDTIME = 1200; // defines the window for pile-up after a trigger received in nanoseconds
   constexpr static double BUSYTIME = 22000;     // the time for which no new trigger can be received in nanoseconds

@@ -25,11 +25,12 @@
 #include "DetectorsRaw/RawFileWriter.h"
 #include "DataFormatsParameters/GRPObject.h"
 
-#include "HMPIDBase/Digit.h"
+#include "DataFormatsHMP/Digit.h"
 #include "HMPIDSimulation/HmpidCoder2.h"
 
 using namespace o2::raw;
 using namespace o2::hmpid;
+using namespace o2::hmpid::raw;
 using namespace o2::header;
 
 ///  HMPID Raw Coder Constructor
@@ -179,7 +180,15 @@ void HmpidCoder2::writePaginatedEvent(uint32_t orbit, uint16_t bc)
     int EventSize = mEventSizePerEquipment[eq];
     LOG(DEBUG) << "writePaginatedEvent()  Eq=" << eq << " Size:" << EventSize << " Pads:" << mEventPadsPerEquipment[eq] << " Orbit:" << orbit << " BC:" << bc;
     if (mEventPadsPerEquipment[eq] > 0 || !mSkipEmptyEvents) { // Skips the Events with 0 Pads
-      mWriter.addData(ReadOut::FeeId(eq), ReadOut::CruId(eq), ReadOut::LnkId(eq), 0, {bc, orbit}, gsl::span<char>(reinterpret_cast<char*>(ptrStartEquipment), EventSize * sizeof(uint32_t)));
+      mWriter.addData(ReadOut::FeeId(eq),
+                      ReadOut::CruId(eq),
+                      ReadOut::LnkId(eq),
+                      0,
+                      {bc, orbit},
+                      gsl::span<char>(reinterpret_cast<char*>(ptrStartEquipment),
+                                      EventSize * sizeof(uint32_t)),
+                      false,
+                      (uint32_t)((mBusyTime << 9) | ((mHmpidErrorFlag & 0x01F) << 4) | (mHmpidFrwVersion & 0x0F)));
       // We fill the fields !
       // TODO: we can fill the detector field with Simulated Data
       setDetectorSpecificFields(0.000001 * EventSize);
@@ -194,40 +203,23 @@ void HmpidCoder2::writePaginatedEvent(uint32_t orbit, uint16_t bc)
 /// with the charge value, then fills the output buffer
 /// and forward it to the RawWriter object
 ///
-/// NOTE: this version take the Trigger info from the first
-///       digit in the vector. We ASSUME that the vector contains
-///       one and only one event !!!!
-/// @param[in] digits : the vector of Digit structures
-void HmpidCoder2::codeEventChunkDigits(std::vector<Digit>& digits)
-{
-  if (digits.size() == 0) {
-    return; // the vector is empty !
-  }
-  codeEventChunkDigits(digits, Trigger{digits[0].getBC(), digits[0].getOrbit()});
-  return;
-}
-
-/// Analyze a Digits Vector and setup the PADs array
-/// with the charge value, then fills the output buffer
-/// and forward it to the RawWriter object
-///
 /// NOTE: the vector could be empty!
 /// @param[in] digits : the vector of Digit structures
 /// @param[in] ir : the Interaction Record structure
-void HmpidCoder2::codeEventChunkDigits(std::vector<Digit>& digits, Trigger ir)
+void HmpidCoder2::codeEventChunkDigits(std::vector<o2::hmpid::raw::Digit>& digits, InteractionRecord ir)
 {
   int eq, col, dil, cha, mo, x, y, idx;
-  uint32_t orbit = ir.getOrbit();
-  uint16_t bc = ir.getBc();
+  uint32_t orbit = ir.orbit;
+  uint16_t bc = ir.bc;
 
   int padsCount = 0;
-  LOG(INFO) << "Manage chunk Orbit :" << orbit << " BC:" << bc << "  Digits size:" << digits.size();
-  for (o2::hmpid::Digit d : digits) {
-    Digit::Pad2Equipment(d.getPadID(), &eq, &col, &dil, &cha); // From Digit to Hardware coords
-    eq = ReadOut::FeeId(eq);                                   // converts the Equipment Id in Cru/Link position ref
-    idx = getEquipmentPadIndex(eq, col, dil, cha);             // finally to the unique padmap index
-    if (mPadMap[idx] != 0) {                                   // We already have the pad set
-      LOG(WARNING) << "Duplicated DIGIT =" << d << " (" << eq << "," << col << "," << dil << "," << cha << ")";
+  LOG(DEBUG) << "Manage chunk Orbit :" << orbit << " BC:" << bc << "  Digits size:" << digits.size();
+  for (o2::hmpid::raw::Digit d : digits) {
+    Digit::pad2Equipment(d.getPadID(), &eq, &col, &dil, &cha); // From Digit to Hardware coords
+    eq = ReadOut::FeeId(eq);                       // converts the Equipment Id in Cru/Link position ref
+    idx = getEquipmentPadIndex(eq, col, dil, cha); // finally to the unique padmap index
+    if (mPadMap[idx] != 0) {                       // We already have the pad set
+      LOG(WARNING) << "Duplicated DIGIT =" << d << " (" << eq << "," << col << "," << dil << "," << cha << ")" << idx;
     } else {
       mPadMap[idx] = d.getCharge();
       padsCount++;

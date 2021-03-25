@@ -8,15 +8,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include "DataFormatsHMP/Cluster.h"
+#include "HMPIDBase/Param.h"
+#include "TRandom.h"
+#include "TMath.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+using namespace o2::hmpid::raw;
 
-#pragma link C++ class o2::hmpid::Detector + ;
-#pragma link C++ class o2::base::DetImpl < o2::hmpid::Detector> + ;
-#pragma link C++ class o2::hmpid::HMPIDDigitizer + ;
-#pragma link C++ class o2::hmpid::HmpidCoder2 + ;
+ClassImp(o2::hmpid::raw::Cluster);
 
-#endif
+Cluster::Cluster(Int_t chamber, Int_t size, Int_t NlocMax, Double_t QRaw, Double_t Q, Double_t X, Double_t Y)
+  : mChamber(chamber), mSize(size), mNlocMax(NlocMax), mQRaw(QRaw), mQ(Q), mX(X), mY(Y)
+{
+}

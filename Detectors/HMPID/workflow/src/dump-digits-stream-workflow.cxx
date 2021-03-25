@@ -8,10 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   write-raw-from-digits-workflow.cxx
-/// \author Antonio Franco - INFN Bari
-/// \version 1.0
-/// \date 01 feb 2021
+///
+/// \file    dump-digits-workflow.cxx
+/// \author  Antonio Franco
+///
 ///
 
 #include "Framework/WorkflowSpec.h"
@@ -22,30 +22,36 @@
 #include "Framework/CompletionPolicy.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DispatchPolicy.h"
+#include "Framework/ConfigParamSpec.h"
+#include "Framework/Variant.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 // customize the completion policy
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   using o2::framework::CompletionPolicy;
   using o2::framework::CompletionPolicyHelpers;
-  policies.push_back(CompletionPolicyHelpers::defineByName("digit-hmpid-write", CompletionPolicy::CompletionOp::Consume));
+  policies.push_back(CompletionPolicyHelpers::defineByName("digit-hmpid-dump", CompletionPolicy::CompletionOp::Consume));
+}
+
+// we need to add workflow options before including Framework/runDataProcessing
+void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+{
+  std::string keyvaluehelp("Semicolon separated key=value strings ...");
+  workflowOptions.push_back(o2::framework::ConfigParamSpec{"configKeyValues", o2::framework::VariantType::String, "", {keyvaluehelp}});
 }
 
 #include "Framework/runDataProcessing.h"
-
-#include "HMPIDWorkflow/WriteRawFromDigitsSpec.h"
+#include "HMPIDWorkflow/DumpDigitsSpec.h"
 
 using namespace o2;
 using namespace o2::framework;
 
-WorkflowSpec defineDataProcessing(const ConfigContext&)
+WorkflowSpec defineDataProcessing(const ConfigContext& cx)
 {
   WorkflowSpec specs;
-
-  DataProcessorSpec consumer = o2::hmpid::getWriteRawFromDigitsSpec();
-  //  DataProcessorSpec consumer = o2::hmpid::getDecodingSpec();
+  o2::conf::ConfigurableParam::updateFromString(cx.options().get<std::string>("configKeyValues"));
+  DataProcessorSpec consumer = o2::hmpid::getDumpDigitsSpec();
   specs.push_back(consumer);
-  //  specs.push_back(consumer);
-
   return specs;
 }

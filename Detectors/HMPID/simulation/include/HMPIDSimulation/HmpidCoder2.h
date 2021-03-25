@@ -32,8 +32,7 @@
 
 #include "FairLogger.h"
 #include "HMPIDBase/Geo.h"
-#include "HMPIDBase/Digit.h"
-#include "HMPIDBase/Trigger.h"
+#include "DataFormatsHMP/Digit.h"
 
 // ---- RDH 6  standard dimension -------
 #define RAWBLOCKDIMENSION_W 2048
@@ -114,8 +113,7 @@ class HmpidCoder2
   void openOutputStream(const std::string& outputFileName, const std::string& fileFor);
   void closeOutputStream();
 
-  void codeEventChunkDigits(std::vector<Digit>& digits);
-  void codeEventChunkDigits(std::vector<Digit>& digits, Trigger ir);
+  void codeEventChunkDigits(std::vector<o2::hmpid::raw::Digit>& digits, InteractionRecord ir);
   void dumpResults(const std::string& outputFileName);
 
  private:

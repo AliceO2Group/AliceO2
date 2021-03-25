@@ -18,8 +18,8 @@
 #include "DetectorsRaw/RawFileWriter.h"
 
 #include "HMPIDBase/Common.h"
-#include "HMPIDBase/Digit.h"
-#include "HMPIDBase/Trigger.h"
+#include "DataFormatsHMP/Digit.h"
+#include "DataFormatsHMP/Trigger.h"
 #include "HMPIDSimulation/HmpidCoder2.h"
 
 namespace o2
@@ -44,8 +44,9 @@ class DigitsToRawSpec : public framework::Task
   bool mSkipEmpty = false;
   bool mDumpDigits = false;
   std::string mFileFor = "all";
+  bool mFastAlgorithm;
 
-  std::vector<o2::hmpid::Digit> mDigits;
+  std::vector<o2::hmpid::raw::Digit> mDigits;
   long mDigitsReceived;
   int mEventsReceived;
   HmpidCoder2* mCod;

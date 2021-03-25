@@ -13,16 +13,17 @@
 #include <algorithm>
 #include "FairLogger.h" // for LOG
 #include "Framework/Logger.h"
-#include "HMPIDBase/Cluster.h"
+#include "DataFormatsHMP/Cluster.h"
 #include "HMPIDReconstruction/Clusterer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include <TStopwatch.h>
 
 using namespace o2::hmpid;
+using namespace o2::hmpid::raw;
 
 //__________________________________________________
-void Clusterer::process(std::vector<o2::hmpid::Digit> const& digits, std::vector<o2::hmpid::Cluster>& clusters, MCLabelContainer const* digitMCTruth)
+void Clusterer::process(std::vector<o2::hmpid::raw::Digit> const& digits, std::vector<o2::hmpid::raw::Cluster>& clusters, MCLabelContainer const* digitMCTruth)
 {
   TStopwatch timerProcess;
   timerProcess.Start();

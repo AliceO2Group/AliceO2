@@ -8,26 +8,40 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef DETECTORS_HMPID_BASE_INCLUDE_HMPIDBASE_HIT_H_
-#define DETECTORS_HMPID_BASE_INCLUDE_HMPIDBASE_HIT_H_
+///
+/// \file   Digit.h
+/// \author Antonio Franco - INFN Bari
+/// \version 1.0
+/// \date 15/02/2021
 
-#include "SimulationDataFormat/BaseHits.h"
+//    History
+//
+#ifndef DETECTORS_HMPID_BASE_INCLUDE_HMPIDDATAFORMAT_HIT_H_
+#define DETECTORS_HMPID_BASE_INCLUDE_HMPIDDATAFORMAT_HIT_H_
+
+#include "SimulationDataFormat/BaseHits.h" // for BasicXYZEHit
 #include "CommonUtils/ShmAllocator.h"
+#include "SimulationDataFormat/Stack.h"
+#include "TVector3.h"
 
 namespace o2
 {
 namespace hmpid
 {
+namespace raw
+{
 
 // define HMPID hit type
+ // class Hit : public o2::BasicXYZQHit<float>
 class HitType : public o2::BasicXYZEHit<float>
 {
- public:
-  using Base = o2::BasicXYZEHit<float>;
-  using Base::Base;
+  public:
+    using BasicXYZEHit<float>::BasicXYZEHit;
+
   ClassDef(HitType, 1);
 };
 
+} // namespace raw
 } // namespace hmpid
 } // namespace o2
 
@@ -35,10 +49,10 @@ class HitType : public o2::BasicXYZEHit<float>
 namespace std
 {
 template <>
-class allocator<o2::hmpid::HitType> : public o2::utils::ShmAllocator<o2::hmpid::HitType>
+class allocator<o2::hmpid::raw::HitType> : public o2::utils::ShmAllocator<o2::hmpid::raw::HitType>
 {
 };
 } // namespace std
 #endif
 
-#endif /* DETECTORS_HMPID_BASE_INCLUDE_HMPIDBASE_HIT_H_ */
+#endif /* DETECTORS_HMPID_BASE_INCLUDE_HMPIDDATAFORMAT_HIT_H_ */

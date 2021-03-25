@@ -22,8 +22,8 @@
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "HMPIDBase/Digit.h"
-#include "HMPIDBase/Trigger.h"
+#include "DataFormatsHMP/Digit.h"
+#include "DataFormatsHMP/Trigger.h"
 #include "HMPIDSimulation/HMPIDDigitizer.h"
 #include "HMPIDSimulation/Detector.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
@@ -67,7 +67,7 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     }
 
     auto& eventParts = context->getEventParts();
-    std::vector<o2::hmpid::Digit> digitsAccum;                     // accumulator for digits
+    std::vector<o2::hmpid::raw::Digit> digitsAccum;                     // accumulator for digits
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum; // timeframe accumulator for labels
     mIntRecord.clear();
 
@@ -78,8 +78,14 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
       mDigitizer.flush(mDigits);
       LOG(INFO) << "HMPID flushed " << mDigits.size() << " digits at this time ";
       LOG(INFO) << "NUMBER OF LABEL OBTAINED " << mLabels.getNElements();
+      int32_t first = digitsAccum.size();  // this is the first
       std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(digitsAccum));
+      int32_t last = digitsAccum.size() - 1;  // this is the last
       labelAccum.mergeAtBack(mLabels);
+
+      // save info for the triggers accepted
+      LOG(INFO) << "Trigger  Orbit :" << mDigitizer.getOrbit() << "  BC:" << mDigitizer.getBc();
+      mIntRecord.push_back(o2::hmpid::raw::Event(o2::InteractionRecord(mDigitizer.getBc(), mDigitizer.getOrbit()), first, last ));
     };
 
     // loop over all composite collisions given from context
@@ -99,7 +105,7 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
           mDigitizer.setSrcID(part.sourceID);
 
           // get the hits for this event and this source
-          std::vector<o2::hmpid::HitType> hits;
+          std::vector<o2::hmpid::raw::HitType> hits;
           context->retrieveHits(mSimChains, "HMPHit", part.sourceID, part.entryID, &hits);
           LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found HMP " << hits.size() << " hits ";
 
@@ -109,9 +115,6 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
           mDigitizer.process(hits, mDigits);
         }
-        // save info for the triggers accepted
-        LOG(INFO) << "Trigger  Orbit :" << mDigitizer.getOrbit() << "  BC:" << mDigitizer.getBc();
-        mIntRecord.push_back(o2::hmpid::Trigger(mDigitizer.getBc(), mDigitizer.getOrbit()));
 
       } else {
         LOG(INFO) << "COLLISION " << collID << "FALLS WITHIN A DEAD TIME";
@@ -137,9 +140,9 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
  private:
   HMPIDDigitizer mDigitizer;
   std::vector<TChain*> mSimChains;
-  std::vector<o2::hmpid::Digit> mDigits;
+  std::vector<o2::hmpid::raw::Digit> mDigits;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels; // labels which get filled
-  std::vector<o2::hmpid::Trigger> mIntRecord;
+  std::vector<o2::hmpid::raw::Event> mIntRecord;
 
   // RS: at the moment using hardcoded flag for continuous readout
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
