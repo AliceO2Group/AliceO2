@@ -12,6 +12,7 @@
 
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceExecution.h"
+#include "Framework/CommandInfo.h"
 #include <vector>
 #include <iosfwd>
 
@@ -40,7 +41,8 @@ namespace framework
 
 void dumpDeviceSpec2O2Control(std::string workflowName,
                               std::vector<DeviceSpec> const& specs,
-                              std::vector<DeviceExecution> const& executions);
+                              std::vector<DeviceExecution> const& executions,
+                              CommandInfo const& commandInfo);
 
 } // namespace framework
 } // namespace o2

@@ -40,6 +40,7 @@
 #include "Framework/DataProcessorInfo.h"
 #include "Framework/DriverInfo.h"
 #include "Framework/DriverControl.h"
+#include "Framework/CommandInfo.h"
 #include "DriverServerContext.h"
 #include "ControlServiceHelpers.h"
 #include "HTTPParser.h"
@@ -1097,6 +1098,7 @@ void single_step_callback(uv_timer_s* ctx)
 int runStateMachine(DataProcessorSpecs const& workflow,
                     WorkflowInfo const& workflowInfo,
                     DataProcessorInfos const& previousDataProcessorInfos,
+                    CommandInfo const& commandInfo,
                     DriverControl& driverControl,
                     DriverInfo& driverInfo,
                     std::vector<DeviceMetricsInfo>& metricsInfos,
@@ -1491,7 +1493,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         //        restart the data processors which need to be restarted.
         LOG(INFO) << "Redeployment of configuration asked.";
         std::ostringstream forwardedStdin;
-        WorkflowSerializationHelpers::dump(forwardedStdin, workflow, dataProcessorInfos);
+        WorkflowSerializationHelpers::dump(forwardedStdin, workflow, dataProcessorInfos, commandInfo);
         infos.reserve(deviceSpecs.size());
 
         // This is guaranteed to be a single CPU.
@@ -1673,7 +1675,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       }
       case DriverState::PERFORM_CALLBACKS:
         for (auto& callback : driverControl.callbacks) {
-          callback(workflow, deviceSpecs, deviceExecutions, dataProcessorInfos);
+          callback(workflow, deviceSpecs, deviceExecutions, dataProcessorInfos, commandInfo);
         }
         driverControl.callbacks.clear();
         break;
@@ -1844,7 +1846,8 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
     control.callbacks = {[](WorkflowSpec const& workflow,
                             DeviceSpecs const& specs,
                             DeviceExecutions const&,
-                            DataProcessorInfos&) {
+                            DataProcessorInfos&,
+                            CommandInfo const&) {
       GraphvizHelpers::dumpDeviceSpec2Graphviz(std::cout, specs);
     }};
     control.forcedTransitions = {
@@ -1862,7 +1865,8 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
     control.callbacks = {[](WorkflowSpec const& workflow,
                             DeviceSpecs const& specs,
                             DeviceExecutions const& executions,
-                            DataProcessorInfos&) {
+                            DataProcessorInfos&,
+                            CommandInfo const&) {
       dumpDeviceSpec2DDS(std::cout, specs, executions);
     }};
     control.forcedTransitions = {
@@ -1877,8 +1881,9 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
                          (WorkflowSpec const& workflow,
                           DeviceSpecs const& specs,
                           DeviceExecutions const& executions,
-                          DataProcessorInfos&) {
-                           dumpDeviceSpec2O2Control(workflowName, specs, executions);
+                          DataProcessorInfos&,
+                          CommandInfo const& commandInfo) {
+                           dumpDeviceSpec2O2Control(workflowName, specs, executions, commandInfo);
                          }};
     control.forcedTransitions = {
       DriverState::EXIT,                    //
@@ -1903,14 +1908,15 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
     control.callbacks = {[filename = varmap["dump-workflow-file"].as<std::string>()](WorkflowSpec const& workflow,
                                                                                      DeviceSpecs const devices,
                                                                                      DeviceExecutions const&,
-                                                                                     DataProcessorInfos& dataProcessorInfos) {
+                                                                                     DataProcessorInfos& dataProcessorInfos,
+                                                                                     CommandInfo const& commandInfo) {
       if (filename == "-") {
-        WorkflowSerializationHelpers::dump(std::cout, workflow, dataProcessorInfos);
+        WorkflowSerializationHelpers::dump(std::cout, workflow, dataProcessorInfos, commandInfo);
         // FIXME: this is to avoid trailing garbage..
         exit(0);
       } else {
         std::ofstream output(filename);
-        WorkflowSerializationHelpers::dump(output, workflow, dataProcessorInfos);
+        WorkflowSerializationHelpers::dump(output, workflow, dataProcessorInfos, commandInfo);
       }
     }};
     control.forcedTransitions = {
@@ -2078,9 +2084,10 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   }
 
   std::vector<DataProcessorInfo> dataProcessorInfos;
+  CommandInfo commandInfo{};
   if (isatty(STDIN_FILENO) == false) {
     std::vector<DataProcessorSpec> importedWorkflow;
-    WorkflowSerializationHelpers::import(std::cin, importedWorkflow, dataProcessorInfos);
+    WorkflowSerializationHelpers::import(std::cin, importedWorkflow, dataProcessorInfos, commandInfo);
 
     size_t workflowHashB = 0;
     for (auto& dp : importedWorkflow) {
@@ -2260,6 +2267,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.processorInfo = dataProcessorInfos;
   driverInfo.configContext = &configContext;
 
+  commandInfo.merge(CommandInfo(argc, argv));
+
   std::string frameworkId;
   // If the id is set, this means this is a device,
   // otherwise this is the driver.
@@ -2274,6 +2283,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   return runStateMachine(physicalWorkflow,
                          currentWorkflow,
                          dataProcessorInfos,
+                         commandInfo,
                          driverControl,
                          driverInfo,
                          gDeviceMetricsInfos,

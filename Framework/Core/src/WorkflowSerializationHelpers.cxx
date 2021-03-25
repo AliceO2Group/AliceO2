@@ -35,6 +35,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     IN_EXECUTION,
     IN_WORKFLOW,
     IN_METADATA,
+    IN_COMMAND,
     IN_DATAPROCESSORS,
     IN_DATAPROCESSOR,
     IN_DATAPROCESSOR_NAME,
@@ -86,6 +87,9 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
         break;
       case State::IN_WORKFLOW:
         s << "IN_WORKFLOW";
+        break;
+      case State::IN_COMMAND:
+        s << "IN_COMMAND";
         break;
       case State::IN_DATAPROCESSORS:
         s << "IN_DATAPROCESSORS";
@@ -209,10 +213,12 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
   }
 
   WorkflowImporter(std::vector<DataProcessorSpec>& o,
-                   std::vector<DataProcessorInfo>& m)
+                   std::vector<DataProcessorInfo>& m,
+                   CommandInfo& c)
     : states{},
       dataProcessors{o},
-      metadata{m}
+      metadata{m},
+      command{c}
   {
     push(State::IN_START);
   }
@@ -245,6 +251,8 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       metadata.push_back(DataProcessorInfo{});
     } else if (in(State::IN_METADATUM)) {
       metadata.push_back(DataProcessorInfo{});
+    } else if (in(State::IN_COMMAND)) {
+      command = CommandInfo{};
     }
     return true;
   }
@@ -469,6 +477,8 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       push(State::IN_WORKFLOW_OPTIONS);
     } else if (in(State::IN_METADATUM) && strncmp(str, "channels", length) == 0) {
       push(State::IN_METADATUM_CHANNELS);
+    } else if (in(State::IN_EXECUTION) && strncmp(str, "command", length) == 0) {
+      push(State::IN_COMMAND);
     }
     return true;
   }
@@ -519,6 +529,8 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       // This is in an array, so we do not actually want to
       // exit from the state.
       push(State::IN_METADATUM_CHANNEL);
+    } else if (in(State::IN_COMMAND)) {
+      command.merge({s});
     }
     pop();
     return true;
@@ -605,6 +617,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
   std::string spec;
   std::vector<DataProcessorSpec>& dataProcessors;
   std::vector<DataProcessorInfo>& metadata;
+  CommandInfo& command;
   std::vector<ConfigParamSpec> inputOptions;
   std::string binding;
   header::DataOrigin origin;
@@ -623,7 +636,8 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
 
 void WorkflowSerializationHelpers::import(std::istream& s,
                                           std::vector<DataProcessorSpec>& workflow,
-                                          std::vector<DataProcessorInfo>& metadata)
+                                          std::vector<DataProcessorInfo>& metadata,
+                                          CommandInfo& command)
 {
   // Skip any line which does not start with '{'
   // If we do not find a starting {, we simply assume that no workflow
@@ -642,7 +656,7 @@ void WorkflowSerializationHelpers::import(std::istream& s,
   }
   rapidjson::Reader reader;
   rapidjson::IStreamWrapper isw(s);
-  WorkflowImporter importer{workflow, metadata};
+  WorkflowImporter importer{workflow, metadata, command};
   bool ok = reader.Parse(isw, importer);
   if (ok == false) {
     throw std::runtime_error("Error while parsing serialised workflow");
@@ -651,7 +665,8 @@ void WorkflowSerializationHelpers::import(std::istream& s,
 
 void WorkflowSerializationHelpers::dump(std::ostream& out,
                                         std::vector<DataProcessorSpec> const& workflow,
-                                        std::vector<DataProcessorInfo> const& metadata)
+                                        std::vector<DataProcessorInfo> const& metadata,
+                                        CommandInfo const& commandInfo)
 {
   rapidjson::OStreamWrapper osw(out);
   rapidjson::PrettyWriter<rapidjson::OStreamWrapper> w(osw);
@@ -841,6 +856,10 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
     w.EndObject();
   }
   w.EndArray();
+
+  w.Key("command");
+  w.String(commandInfo.command.c_str());
+
   w.EndObject();
 }
 
