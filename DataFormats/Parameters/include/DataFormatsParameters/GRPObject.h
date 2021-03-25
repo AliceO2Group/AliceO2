@@ -52,6 +52,10 @@ class GRPObject
   timePoint getTimeEnd() const { return mTimeEnd; }
   void setTimeStart(timePoint t) { mTimeStart = t; }
   void setTimeEnd(timePoint t) { mTimeEnd = t; }
+
+  void setFirstOrbit(uint32_t o) { mFirstOrbit = o; }
+  uint32_t getFirstOrbit() const { return mFirstOrbit; }
+
   /// getters/setters for beams crossing angle (deviation from 0)
   o2::units::AngleRad_t getCrossingAngle() const { return mCrossingAngle; }
   void setCrossingAngle(o2::units::AngleRad_t v) { mCrossingAngle = v; }
@@ -137,6 +141,8 @@ class GRPObject
   timePoint mTimeStart = 0; ///< DAQ_time_start entry from DAQ logbook
   timePoint mTimeEnd = 0;   ///< DAQ_time_end entry from DAQ logbook
 
+  uint32_t mFirstOrbit = 0; /// 1st orbit of the 1st TF, in the MC set at digitization // RS Not sure it will stay in GRP, may go to some CTP object
+
   DetID::mask_t mDetsReadout;      ///< mask of detectors which are read out
   DetID::mask_t mDetsContinuousRO; ///< mask of detectors read out in continuos mode
   DetID::mask_t mDetsTrigger;      ///< mask of detectors which provide trigger
@@ -154,7 +160,7 @@ class GRPObject
   std::string mDataPeriod = ""; ///< name of the period
   std::string mLHCState = "";   ///< machine state
 
-  ClassDefNV(GRPObject, 2);
+  ClassDefNV(GRPObject, 3);
 };
 
 //______________________________________________
