@@ -414,7 +414,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   auto* digitsMC = propagateMCLabels ? processors()->ioPtrs.tpcPackedDigits->tpcDigitsMC : nullptr;
 
   if (param().par.continuousMaxTimeBin > 0 && mCFContext->tpcMaxTimeBin >= (unsigned int)std::max(param().par.continuousMaxTimeBin + 1, TPC_MAX_FRAGMENT_LEN)) {
-    GPUError("Input data has invalid time bin\n");
+    GPUError("Input data has invalid time bin %u > %d\n", mCFContext->tpcMaxTimeBin, std::max(param().par.continuousMaxTimeBin + 1, TPC_MAX_FRAGMENT_LEN));
     return 1;
   }
   bool buildNativeGPU = (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCConversion) || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCSliceTracking) || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCMerging) || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression);
