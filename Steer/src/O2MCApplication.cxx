@@ -54,14 +54,27 @@ void O2MCApplicationBase::Stepping()
     // we can kill tracks here based on our
     // custom detector specificities
 
+    // Note that this is done in addition to the generic
+    // R + Z-cut mechanism at VMC level.
+
     float x, y, z;
     fMC->TrackPosition(x, y, z);
 
-    if (z > mCutParams.ZmaxA) {
-      fMC->StopTrack();
-      return;
-    }
-    if (-z > mCutParams.ZmaxC) {
+    // this function is implementing a basic z-dependent R cut
+    // can be generalized later on
+    auto outOfR = [x, y, this](float z) {
+      // for the moment for cases when we have ZDC enabled
+      if (std::abs(z) > mCutParams.tunnelZ) {
+        if ((x * x + y * y) > mCutParams.maxRTrackingZDC * mCutParams.maxRTrackingZDC) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    if (z > mCutParams.ZmaxA ||
+        -z > mCutParams.ZmaxC ||
+        outOfR(z)) {
       fMC->StopTrack();
       return;
     }
