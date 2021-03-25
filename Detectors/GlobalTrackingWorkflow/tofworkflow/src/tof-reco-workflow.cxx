@@ -60,6 +60,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"disable-row-writing", o2::framework::VariantType::Bool, false, {"disable ROW in Digit writing"}});
   workflowOptions.push_back(ConfigParamSpec{"write-decoding-errors", o2::framework::VariantType::Bool, false, {"trace errors in digits output when decoding"}});
   workflowOptions.push_back(ConfigParamSpec{"calib-cluster", VariantType::Bool, false, {"to enable calib info production from clusters"}});
+  //workflowOptions.push_back(ConfigParamSpec{"digitization-config", o2::framework::VariantType::String, {std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE), "configKeyValues file from digitization, used for raw output only!!!"}});
+  workflowOptions.push_back(ConfigParamSpec{"digitization-config", o2::framework::VariantType::String, "none", {"configKeyValues file from digitization, used for raw output only!!!"}});
   workflowOptions.push_back(ConfigParamSpec{"cosmics", VariantType::Bool, false, {"to enable cosmics utils"}});
 }
 
@@ -85,9 +87,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec specs;
 
-  if (!cfgc.helpOnCommandLine()) {
-    o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
-  }
   // the lane configuration defines the subspecification ids to be distributed among the lanes.
   auto nLanes = cfgc.options().get<int>("tof-lanes");
   auto inputType = cfgc.options().get<std::string>("input-type");
@@ -115,6 +114,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   }
   if (outputType.rfind("raw") < outputType.size()) {
     writeraw = 1;
+    std::string confDig = cfgc.options().get<std::string>("digitization-config");
+    if (!confDig.empty() && confDig != "none") {
+      o2::conf::ConfigurableParam::updateFromFile(confDig);
+    }
   }
   if (outputType.rfind("ctf") < outputType.size()) {
     writectf = 1;
@@ -130,6 +133,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   } else if (inputType == "raw") {
     rawinput = 1;
     writeerr = cfgc.options().get<bool>("write-decoding-errors");
+  }
+
+  if (!cfgc.helpOnCommandLine()) {
+    o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   }
 
   auto useMC = !cfgc.options().get<bool>("disable-mc");

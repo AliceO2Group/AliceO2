@@ -26,6 +26,7 @@
 #include "DataFormatsPHOS/TriggerRecord.h"
 #include "PHOSBase/Geometry.h"
 #include "PHOSSimulation/RawWriter.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 namespace bpo = boost::program_options;
 
@@ -48,6 +49,8 @@ int main(int argc, const char** argv)
     add_option("file-for,f", bpo::value<std::string>()->default_value("all"), "single file per: all,link");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
     add_option("debug,d", bpo::value<uint32_t>()->default_value(0), "Select debug output level [0 = no debug output]");
+    //add_option("digitization-config,d", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "configKeyValues file from digitization");
+    add_option("digitization-config,d", bpo::value<std::string>()->default_value("none"), "configKeyValues file from digitization");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
 
     opt_all.add(opt_general).add(opt_hidden);
@@ -68,6 +71,10 @@ int main(int argc, const char** argv)
     exit(2);
   }
 
+  std::string confDig = vm["digitization-config"].as<std::string>();
+  if (!confDig.empty() && confDig != "none") {
+    o2::conf::ConfigurableParam::updateFromFile(confDig);
+  }
   o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
 
   auto digitfilename = vm["input-file"].as<std::string>(),
