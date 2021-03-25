@@ -35,16 +35,16 @@
 
 #define MAXDESCRIPTIONLENGHT 50
 
-#define HLOG_INFO \
+#define HLOG_INFO   \
   if (mVerbose > 6) \
   std::cout << "HMPID Decoder2 : [INFO] "
-#define HLOG_DEBUG \
+#define HLOG_DEBUG  \
   if (mVerbose > 8) \
   std::cout << "HMPID Decoder2 : [DEBUG] "
 #define HLOG_WARNING \
-  if (mVerbose > 3) \
+  if (mVerbose > 3)  \
   std::cout << "HMPID Decoder2 : [WARNING] "
-#define HLOG_ERROR \
+#define HLOG_ERROR  \
   if (mVerbose > 1) \
   std::cout << "HMPID Decoder2 : [ERROR] "
 

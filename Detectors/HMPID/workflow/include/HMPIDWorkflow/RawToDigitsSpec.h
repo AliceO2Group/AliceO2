@@ -49,7 +49,7 @@ class RawToDigitsTask : public framework::Task
   std::string mOutRootFileName = "";
 
   o2::raw::RawFileReader mReader;
-  o2::hmpid::HmpidDecoder2 *mDecod;
+  o2::hmpid::HmpidDecoder2* mDecod;
   std::vector<o2::hmpid::raw::Digit> mAccumulateDigits;
   std::vector<o2::hmpid::raw::Event> mEvents;
 

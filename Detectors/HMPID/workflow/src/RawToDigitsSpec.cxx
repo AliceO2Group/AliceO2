@@ -127,7 +127,7 @@ void RawToDigitsTask::run(framework::ProcessingContext& pc)
         uint32_t* ptrBuffer = (uint32_t*)dataBuffer.data();
         uint32_t* ptrBufferEnd = ptrBuffer + zs / 4;
         mDecod->setUpStream(ptrBuffer, zs);
-        while (ptrBuffer < ptrBufferEnd){
+        while (ptrBuffer < ptrBufferEnd) {
           try {
             if (mFastAlgorithm) {
               mDecod->decodePageFast(&ptrBuffer);
