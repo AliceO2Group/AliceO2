@@ -28,7 +28,6 @@ namespace calibration
 {
 
 struct Utils {
-
   static constexpr o2::header::DataOrigin gDataOriginCLB{"CLB"};                          // generic DataOrigin for calibrations
   static constexpr o2::header::DataDescription gDataDescriptionCLBPayload = "CLBPAYLOAD"; // DataDescription for TMemFile sent for CCDB storage
   static constexpr o2::header::DataDescription gDataDescriptionCLBInfo = "CCDBWRAPPER";   // DataDescription for wrapper helper

@@ -195,8 +195,9 @@ class TOFChannelCalibDevice : public o2::framework::Task
       auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
       LOG(INFO) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
                 << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
-      output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, i}, *image.get()); // vector<char>
-      output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, i}, w);               // root-serialized
+
+      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_CHANCALIB", i}, *image.get()); // vector<char>
+      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_CHANCALIB", i}, w);            // root-serialized
     }
     if (payloadVec.size()) {
       mCalibrator->initOutput(); // reset the outputs once they are already sent
@@ -217,8 +218,8 @@ DataProcessorSpec getTOFChannelCalibDeviceSpec(bool useCCDB, bool attachChannelO
   using clbUtils = o2::calibration::Utils;
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload});
-  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_CHANCALIB"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_CHANCALIB"});
 
   std::vector<InputSpec> inputs;
   if (!isCosmics) {

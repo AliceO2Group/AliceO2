@@ -301,8 +301,9 @@ class DCSDataProcessor : public o2::framework::Task
       LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
                 << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
 
-      output.snapshot(framework::Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, 0}, *image.get());
-      output.snapshot(framework::Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, 0}, info);
+      // every CDB object must be sent with its unique DataDescription/SubSpec
+      output.snapshot(framework::Output{o2::calibration::Utils::gDataOriginCDBPayload, "DCS_TST", idet}, *image.get());
+      output.snapshot(framework::Output{o2::calibration::Utils::gDataOriginCDBWrapper, "DCS_TST", idet}, info);
     }
   }
 }; // end class
@@ -317,8 +318,8 @@ DataProcessorSpec getDCSDataProcessorSpec()
   using clbUtils = o2::calibration::Utils;
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload});
-  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "DCS_TST"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "DCS_TST"});
 
   return DataProcessorSpec{
     "dcs-data-processor",

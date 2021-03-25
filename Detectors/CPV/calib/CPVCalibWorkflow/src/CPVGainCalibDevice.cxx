@@ -99,7 +99,7 @@ void CPVGainCalibDevice::sendOutput(DataAllocator& output)
 {
   // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
   // TODO in principle, this routine is generic, can be moved to Utils.h
-  // using clbUtils = o2::calibration::Utils;
+
   if (mUpdateCCDB || mForceUpdate) {
     // prepare all info to be sent to CCDB
     o2::ccdb::CcdbObjectInfo info;
@@ -119,8 +119,9 @@ void CPVGainCalibDevice::sendOutput(DataAllocator& output)
     LOG(INFO) << "Sending object CPV/Calib/CalibParams";
 
     header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)0};
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBPayload, subSpec}, *image.get());
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBInfo, subSpec}, info);
+
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_CalibParams", subSpec}, *image.get());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_CalibParams", subSpec}, info);
   }
 
   //Write either final spectra (to calculate bad map) or temporary file
@@ -212,7 +213,9 @@ o2::framework::DataProcessorSpec o2::cpv::getGainCalibSpec(bool useCCDB, bool fo
 {
 
   std::vector<o2::framework::OutputSpec> outputs;
-  outputs.emplace_back("CPV", "GAINCALIBS", 0, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_CalibParams"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_CalibParams"});
+
   outputs.emplace_back("CPV", "GAINDIFF", 0, o2::framework::Lifetime::Timeframe);
 
   return o2::framework::DataProcessorSpec{"GainCalibSpec",

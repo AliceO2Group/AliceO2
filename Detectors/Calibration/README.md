@@ -61,8 +61,8 @@ information (metadata, startValidity...) associated to the objects themselves.
 E.g.:
 
 ```c++
-output.snapshot(Output{clbUtils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBPayload, i}, *image.get()); // vector<char>
-output.snapshot(Output{clbUtils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBInfo, i}, w);               // root-serialized
+output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_LHCphase", i}, *image.get()); // vector<char>
+output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_LHCphase", i}, w);            // root-serialized
 ```
 The origin of the output will always be `o2::calibration::Utils::gDataOriginCLB`, while the description will be `clbUtils::gDataDescriptionCLBPayload` for the object itself, and `o2::calibration::Utils::gDataDescriptionCLBInfo` for the description.
 
