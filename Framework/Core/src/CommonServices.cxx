@@ -29,6 +29,7 @@
 #include "WSDriverClient.h"
 #include "HTTPParser.h"
 #include "../src/DataProcessingStatus.h"
+#include "ArrowSupport.h"
 #include "DPLMonitoringBackend.h"
 
 #include <Configuration/ConfigurationInterface.h>
@@ -646,7 +647,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     dataRelayer(),
     dataProcessingStats(),
     CommonMessageBackends::fairMQBackendSpec(),
-    CommonMessageBackends::arrowBackendSpec(),
+    ArrowSupport::arrowBackendSpec(),
     CommonMessageBackends::stringBackendSpec(),
     CommonMessageBackends::rawBufferBackendSpec()};
   if (numThreads) {

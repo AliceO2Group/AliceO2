@@ -22,6 +22,7 @@
 #include "Framework/CommonMessageBackends.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/Plugins.h"
+#include "ArrowSupport.h"
 
 #include "Headers/DataHeader.h"
 #include <algorithm>
@@ -32,9 +33,7 @@
 #include <climits>
 #include <thread>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 std::ostream& operator<<(std::ostream& out, TopoIndexInfo const& info)
@@ -250,7 +249,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     aodLifetime = Lifetime::Signal;
   }
   auto readerServices = CommonServices::defaultServices();
-  readerServices.push_back(CommonMessageBackends::rateLimitingSpec());
+  readerServices.push_back(ArrowSupport::rateLimitingSpec());
 
   DataProcessorSpec aodReader{
     "internal-dpl-aod-reader",
@@ -1018,5 +1017,4 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
   return results;
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

@@ -16,6 +16,7 @@
 
 o2_add_library(Framework
                SOURCES src/AODReaderHelpers.cxx
+                       src/ArrowSupport.cxx
                        src/ASoA.cxx
                        src/AnalysisHelpers.cxx
                        src/AnalysisDataModelHelpers.cxx
