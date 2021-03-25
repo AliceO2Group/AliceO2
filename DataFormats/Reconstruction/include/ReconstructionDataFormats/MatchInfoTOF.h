@@ -28,7 +28,7 @@ class MatchInfoTOF
   using evIdx = o2::dataformats::EvIndex<int, int>;
 
  public:
-  MatchInfoTOF(evIdx evIdxTOFCl, float chi2, o2::track::TrackLTIntegral trkIntLT, evGIdx evIdxTrack) : mEvIdxTOFCl(evIdxTOFCl), mChi2(chi2), mIntLT(trkIntLT), mEvIdxTrack(evIdxTrack){};
+  MatchInfoTOF(evIdx evIdxTOFCl, float chi2, o2::track::TrackLTIntegral trkIntLT, evGIdx evIdxTrack, float dt = 0, float z = 0) : mEvIdxTOFCl(evIdxTOFCl), mChi2(chi2), mIntLT(trkIntLT), mEvIdxTrack(evIdxTrack), mDeltaT(dt), mZatTOF(z){};
   MatchInfoTOF() = default;
   void setEvIdxTOFCl(evIdx index) { mEvIdxTOFCl = index; }
   void setEvIdxTrack(evGIdx index) { mEvIdxTrack = index; }
@@ -46,13 +46,20 @@ class MatchInfoTOF
   const o2::track::TrackLTIntegral& getLTIntegralOut() const { return mIntLT; }
   void print() const;
 
+  void setDeltaT(float val) { mDeltaT = val; }
+  float getDeltaT() const { return mDeltaT; }
+  void setZatTOF(float val) { mZatTOF = val; }
+  float getZatTOF() const { return mZatTOF; }
+
  private:
   float mChi2;                       // chi2 of the pair track-TOFcluster
   o2::track::TrackLTIntegral mIntLT; ///< L,TOF integral calculated during the propagation
   evIdx mEvIdxTOFCl;                 ///< EvIdx for TOF cluster (first: ev index; second: cluster index)
   evGIdx mEvIdxTrack;                ///< EvIdx for track (first: ev index; second: track global index)
+  float mZatTOF = 0.0;               ///< Z position at  TOF
+  float mDeltaT = 0.0;               ///< tTOF - TPC (microsec)
 
-  ClassDefNV(MatchInfoTOF, 1);
+  ClassDefNV(MatchInfoTOF, 2);
 };
 } // namespace dataformats
 } // namespace o2

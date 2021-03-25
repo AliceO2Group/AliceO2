@@ -52,6 +52,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"tpc-refit", o2::framework::VariantType::Bool, false, {"refit matched TPC tracks"}});
   workflowOptions.push_back(ConfigParamSpec{"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}});
   workflowOptions.push_back(ConfigParamSpec{"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}});
+  workflowOptions.push_back(ConfigParamSpec{"cosmics", o2::framework::VariantType::Bool, false, {"reco for cosmics"}});
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}});
 }
 
@@ -96,6 +97,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto doTPCRefit = cfgc.options().get<bool>("tpc-refit");
   bool disableRootInput = cfgc.options().get<bool>("disable-root-input");
   bool disableRootOutput = cfgc.options().get<bool>("disable-root-output");
+  auto isCosmics = cfgc.options().get<bool>("cosmics");
 
   LOG(INFO) << "TOF RECO WORKFLOW configuration";
   LOG(INFO) << "TOF output = " << cfgc.options().get<std::string>("output-type");
@@ -146,7 +148,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   }
 
   LOG(INFO) << "Insert TOF Matching";
-  specs.emplace_back(o2::tof::getTOFRecoWorkflowWithTPCSpec(useMC, useFIT, doTPCRefit));
+  specs.emplace_back(o2::tof::getTOFRecoWorkflowWithTPCSpec(useMC, useFIT, doTPCRefit, isCosmics));
 
   if (!disableRootOutput) {
     if (writematching) {
