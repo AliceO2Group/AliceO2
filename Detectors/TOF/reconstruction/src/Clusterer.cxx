@@ -54,7 +54,7 @@ void Clusterer::calibrateStrip()
     double calib = mCalibApi->getTimeCalibration(dig->getChannel(), dig->getTOT() * Geo::TOTBIN_NS);
     //printf("channel %d) isProblematic = %d, fractionUnderPeak = %f\n",dig->getChannel(),mCalibApi->isProblematic(dig->getChannel()),mCalibApi->getFractionUnderPeak(dig->getChannel())); // toberem
     dig->setIsProblematic(mCalibApi->isProblematic(dig->getChannel()));
-    dig->setCalibratedTime(dig->getTDC() * Geo::TDCBIN + dig->getBC() * o2::constants::lhc::LHCBunchSpacingNS * 1E3 - calib); //TODO:  to be checked that "-" is correct, and we did not need "+" instead :-)
+    dig->setCalibratedTime(dig->getTDC() * Geo::TDCBIN + dig->getBC() * o2::constants::lhc::LHCBunchSpacingNS * 1E3 - Geo::LATENCYWINDOW * 1E3 - calib); //TODO:  to be checked that "-" is correct, and we did not need "+" instead :-)
     //printf("calibration correction = %f\n",calib); // toberem
   }
 }

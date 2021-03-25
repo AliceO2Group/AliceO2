@@ -49,9 +49,10 @@ class TOFDPLRecoWorkflowWithTPCTask
   bool mUseMC = true;
   bool mUseFIT = false;
   bool mDoTPCRefit = false;
+  bool mIsCosmics = false;
 
  public:
-  explicit TOFDPLRecoWorkflowWithTPCTask(bool useMC, bool useFIT, bool doTPCRefit) : mUseMC(useMC), mUseFIT(useFIT), mDoTPCRefit(doTPCRefit) {}
+  explicit TOFDPLRecoWorkflowWithTPCTask(bool useMC, bool useFIT, bool doTPCRefit, bool iscosmics) : mUseMC(useMC), mUseFIT(useFIT), mDoTPCRefit(doTPCRefit), mIsCosmics(iscosmics) {}
 
   void init(framework::InitContext& ic)
   {
@@ -74,6 +75,11 @@ class TOFDPLRecoWorkflowWithTPCTask
 
   void run(framework::ProcessingContext& pc)
   {
+    if (mIsCosmics) {
+      mMatcher.setCosmics();
+    }
+    mMatcher.print();
+
     mTimer.Start(false);
     //>>>---------- attach input data --------------->>>
     const auto clustersRO = pc.inputs().get<gsl::span<o2::tof::Cluster>>("tofcluster");
@@ -142,7 +148,7 @@ class TOFDPLRecoWorkflowWithTPCTask
   TStopwatch mTimer;
 };
 
-o2::framework::DataProcessorSpec getTOFRecoWorkflowWithTPCSpec(bool useMC, bool useFIT, bool doTPCRefit)
+o2::framework::DataProcessorSpec getTOFRecoWorkflowWithTPCSpec(bool useMC, bool useFIT, bool doTPCRefit, bool iscosmics)
 {
   std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
@@ -174,7 +180,7 @@ o2::framework::DataProcessorSpec getTOFRecoWorkflowWithTPCSpec(bool useMC, bool 
     "TOFRecoWorkflowWithTPC",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TOFDPLRecoWorkflowWithTPCTask>(useMC, useFIT, doTPCRefit)},
+    AlgorithmSpec{adaptFromTask<TOFDPLRecoWorkflowWithTPCTask>(useMC, useFIT, doTPCRefit, iscosmics)},
     Options{
       {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
 }
