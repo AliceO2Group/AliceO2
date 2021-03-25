@@ -23,8 +23,12 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "Steer/MCKinematicsReader.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+
 #include <string>
 #include <vector>
+#include <boost/tuple/tuple.hpp>
+#include <boost/unordered_map.hpp>
+#include <boost/functional/hash.hpp>
 
 using namespace o2::framework;
 
@@ -95,6 +99,30 @@ using MCParticlesTable = o2::soa::Table<o2::aod::mcparticle::McCollisionId,
                                         o2::aod::mcparticle::Vz,
                                         o2::aod::mcparticle::Vt>;
 
+typedef boost::tuple<int, int, int> triplet_t;
+
+struct TripletHash : std::unary_function<triplet_t, std::size_t> {
+  std::size_t operator()(triplet_t const& e) const
+  {
+    std::size_t seed = 0;
+    boost::hash_combine(seed, e.get<0>());
+    boost::hash_combine(seed, e.get<1>());
+    boost::hash_combine(seed, e.get<2>());
+    return seed;
+  }
+};
+
+struct TripletEqualTo : std::binary_function<triplet_t, triplet_t, bool> {
+  bool operator()(triplet_t const& x, triplet_t const& y) const
+  {
+    return (x.get<0>() == y.get<0>() &&
+            x.get<1>() == y.get<1>() &&
+            x.get<2>() == y.get<2>());
+  }
+};
+
+typedef boost::unordered_map<triplet_t, int, TripletHash, TripletEqualTo> tripletsMap_t;
+
 class AODProducerWorkflowDPL : public Task
 {
  public:
@@ -161,7 +189,7 @@ class AODProducerWorkflowDPL : public Task
   template <typename MCParticlesCursorType>
   void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
                             gsl::span<const o2::MCCompLabel>& mcTruthITS, gsl::span<const o2::MCCompLabel>& mcTruthTPC,
-                            std::vector<std::vector<std::vector<int>>>& toStore);
+                            tripletsMap_t& toStore);
 
   void writeTableToFile(TFile* outfile, std::shared_ptr<arrow::Table>& table, const std::string& tableName, uint64_t tfNumber);
 };
