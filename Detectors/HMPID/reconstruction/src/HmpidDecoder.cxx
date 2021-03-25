@@ -465,7 +465,7 @@ HmpidEquipment* HmpidDecoder::evaluateHeaderContents(int EquipmentIndex)
     eq->mEventSize = 0; // reset the event
     eq->mSampleNumber = 0;
     eq->mErrorsCounter = 0;
-    mIntReco = {(uint16_t)mHeBCDI , (uint32_t)mHeORBIT};
+    mIntReco = {(uint16_t)mHeBCDI, (uint32_t)mHeORBIT};
   }
   eq->mEventSize += mNumberWordToRead * sizeof(uint32_t); // Calculate the size in bytes
   if (mHeHmpidError != 0) {

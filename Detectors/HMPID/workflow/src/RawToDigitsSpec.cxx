@@ -127,7 +127,7 @@ void RawToDigitsTask::run(framework::ProcessingContext& pc)
         uint32_t* ptrBuffer = (uint32_t*)dataBuffer.data();
         uint32_t* ptrBufferEnd = ptrBuffer + zs / 4;
         mDecod->setUpStream(ptrBuffer, zs);
-        while (ptrBuffer<ptrBufferEnd){
+        while (ptrBuffer < ptrBufferEnd){
           try {
             if (mFastAlgorithm) {
               mDecod->decodePageFast(&ptrBuffer);
@@ -187,7 +187,7 @@ void RawToDigitsTask::parseNoTF()
     uint32_t* ptrBuffer = (uint32_t*)dataBuffer.data();
     uint32_t* ptrBufferEnd = ptrBuffer + sz / 4;
     mDecod->setUpStream(ptrBuffer, sz);
-    while(ptrBuffer < ptrBufferEnd){
+    while (ptrBuffer < ptrBufferEnd) {
       try {
         if (mFastAlgorithm) {
           mDecod->decodePageFast(&ptrBuffer);
@@ -226,8 +226,8 @@ void RawToDigitsTask::writeResults()
     mExTimer.stop();
     return;
   }
-  for (int i = mEvents.size()-1; i >= 0; i--) { // remove events that are (0,0) trigger
-    if ( mEvents[i].getTriggerID() == 0) {
+  for (int i = mEvents.size() - 1; i >= 0; i--) { // remove events that are (0,0) trigger
+    if (mEvents[i].getTriggerID() == 0) {
       mEvents.erase(mEvents.begin() + i);
     }
   }
