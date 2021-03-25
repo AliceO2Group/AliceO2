@@ -227,6 +227,8 @@ int main(int argc, char** argv)
     add_option("stop-page,p", bpo::value<bool>()->default_value(false)->implicit_value(true), "HBF stop on separate CRU page");
     add_option("no-padding", bpo::value<bool>()->default_value(false)->implicit_value(true), "Don't pad pages to 8kb");
     uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::gpu::RAWDataHeaderGPU>();
+    //add_option("digitization-config,d", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "configKeyValues file from digitization");
+    add_option("digitization-config,d", bpo::value<std::string>()->default_value("none"), "configKeyValues file from digitization");
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(defRDH), "RDH version to use");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
 
@@ -247,6 +249,11 @@ int main(int argc, char** argv)
   } catch (std::exception& e) {
     std::cerr << e.what() << ", application will now exit" << std::endl;
     exit(2);
+  }
+
+  std::string confDig = vm["digitization-config"].as<std::string>();
+  if (!confDig.empty() && confDig != "none") {
+    o2::conf::ConfigurableParam::updateFromFile(confDig);
   }
   o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
   convertDigitsToZSfinal(
