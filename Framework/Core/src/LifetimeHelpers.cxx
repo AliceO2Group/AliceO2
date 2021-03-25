@@ -318,6 +318,7 @@ ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& mat
     dh.subSpecification = matcher.subSpec;
     dh.payloadSize = 0;
     dh.payloadSerializationMethod = gSerializationMethodNone;
+    dh.tfCounter = timestamp;
 
     DataProcessingHeader dph{timestamp, 1};
 
