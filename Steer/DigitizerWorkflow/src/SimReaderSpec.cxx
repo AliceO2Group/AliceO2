@@ -20,6 +20,7 @@
 #include "Steer/InteractionSampler.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include <FairMQLogger.h>
 #include <TMessage.h> // object serialization
 #include <memory>     // std::unique_ptr
@@ -116,12 +117,8 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
       LOG(INFO) << "Imposing hadronic interaction rate " << intRate << "Hz";
       mgr.getInteractionSampler().setInteractionRate(intRate);
 
-      int bc0 = ctx.options().get<int>("firstBC");
-      int orbit0 = ctx.options().get<int>("firstOrbit");
-      if (bc0 < 0 || orbit0 < 0) {
-        throw std::runtime_error("negative 1st orbit or BC provided");
-      }
-      mgr.getInteractionSampler().setFirstIR({uint16_t(bc0 % o2lhc::LHCMaxBunches), orbit0 + uint32_t(bc0 / o2lhc::LHCMaxBunches)});
+      mgr.getInteractionSampler().setFirstIR({0, o2::raw::HBFUtils::Instance().orbitFirstSampled});
+      mgr.getDigitizationContext().setFirstOrbitForSampling(o2::raw::HBFUtils::Instance().orbitFirstSampled);
 
       auto bcPatternFile = ctx.options().get<std::string>("bcPatternFile");
       if (!bcPatternFile.empty()) {
@@ -207,8 +204,6 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
     /* OPTIONS */
     Options{
       {"interactionRate", VariantType::Float, 50000.0f, {"Total hadronic interaction rate (Hz)"}},
-      {"firstBC", VariantType::Int, 0, {"First BC in interaction sampling, will affect 1st orbit if > LHCMaxBunches"}},
-      {"firstOrbit", VariantType::Int, 1, {"First orbit in interaction sampling"}},
       {"bcPatternFile", VariantType::String, "", {"Interacting BC pattern file (e.g. from CreateBCPattern.C)"}},
       {"simPrefixQED", VariantType::String, "", {"Sim (QED) input prefix (example: path/o2qed). The prefix allows to find files like path/o2qed_Kine.root etc."}},
       {"qed-x-section-ratio", VariantType::Float, -1.f, {"Ratio of cross sections QED/hadronic events. Determines QED interaction rate from hadronic interaction rate."}},

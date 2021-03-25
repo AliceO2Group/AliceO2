@@ -69,14 +69,14 @@ else
 fi
 
 taskwrapper sim.log o2-sim --seed $O2SIMSEED -n $NEvents --skipModules ZDC --configKeyValues "Diamond.width[2]=6." -g pythia8hi -j $NJOBS
-taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents --simPrefixQED qed/o2sim --qed-x-section-ratio ${QED2HAD} ${NOMCLABELS} --firstOrbit 0 --firstBC 0 --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITRDOPT}
-[ $SPLITTRDDIGI == "1" ] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --firstOrbit 0 --firstBC 0 --onlyDet TRD --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root ${DIGITRDOPTREAL}
+taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents --simPrefixQED qed/o2sim --qed-x-section-ratio ${QED2HAD} ${NOMCLABELS} --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITRDOPT}
+[ $SPLITTRDDIGI == "1" ] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --onlyDet TRD --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root ${DIGITRDOPTREAL}
 touch digiTRD.log_done
 
 mkdir -p zdc
 cd zdc
 taskwrapper zdcsim.log o2-sim --seed $O2SIMSEED -n $NEvents -m PIPE ZDC --configKeyValues '"Diamond.width[2]=6.;SimCutParams.maxRTracking=50;"' -g pythia8hi -j $NJOBS
-taskwrapper digiZDC.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --firstOrbit 0 --firstBC 0 --onlyDet ZDC --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext ../collisioncontext.root
+taskwrapper digiZDC.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --onlyDet ZDC --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext ../collisioncontext.root
 cp zdcdigits.root ../
 cd ..
 
