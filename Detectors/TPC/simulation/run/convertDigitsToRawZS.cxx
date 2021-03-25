@@ -59,7 +59,6 @@ struct ProcessAttributes {
   std::unique_ptr<unsigned long long int[]> zsoutput;
   std::vector<unsigned int> sizes;
   MCLabelContainer mctruthArray;
-  std::unique_ptr<o2::gpu::GPUReconstructionConvert> zsEncoder;
   std::vector<int> inputIds;
   bool zs12bit = true;
   float zsThreshold = 2.f;
@@ -194,7 +193,6 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
 
 void convert(DigitArray& inputDigits, ProcessAttributes* processAttributes, o2::raw::RawFileWriter& writer)
 {
-  auto& zsEncoder = processAttributes->zsEncoder;
   const auto zsThreshold = processAttributes->zsThreshold;
   const auto zs12bit = processAttributes->zs12bit;
   GPUParam _GPUParam;
@@ -202,7 +200,8 @@ void convert(DigitArray& inputDigits, ProcessAttributes* processAttributes, o2::
   const GPUParam mGPUParam = _GPUParam;
 
   o2::InteractionRecord ir = o2::raw::HBFUtils::Instance().getFirstIR();
-  zsEncoder->RunZSEncoder<o2::tpc::Digit>(inputDigits, nullptr, nullptr, &writer, &ir, mGPUParam, zs12bit, false, zsThreshold, processAttributes->padding);
+  ir.bc = 0; // By convention the TF starts at BC = 0
+  o2::gpu::GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit>(inputDigits, nullptr, nullptr, &writer, &ir, mGPUParam, zs12bit, false, zsThreshold, processAttributes->padding);
 }
 
 int main(int argc, char** argv)
