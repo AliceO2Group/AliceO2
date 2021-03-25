@@ -102,7 +102,7 @@ void Encoder::finalize(bool closeFile)
 {
   /// Writes remaining data and closes the file
   if (mLastIR.isDummy()) {
-    mLastIR.bc = mRawWriter.getHBFUtils().bcFirst;
+    mLastIR.bc = 0;
     mLastIR.orbit = mRawWriter.getHBFUtils().orbitFirst;
   }
   auto ir = getOrbitIR(mLastIR.orbit);

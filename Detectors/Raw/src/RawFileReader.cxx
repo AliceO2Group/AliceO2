@@ -374,7 +374,7 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
         }
       }
       if (!irOfSOX.isDummy() && reader->getTFAutodetect() == FirstTFDetection::Pending) {
-        reader->imposeFirstTF(irOfSOX.orbit, irOfSOX.bc);
+        reader->imposeFirstTF(irOfSOX.orbit);
       }
     }
     auto newTFCalc = blocks.empty() || HBU.getTF(blocks.back().ir) < HBU.getTF(ir);
@@ -482,7 +482,7 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
     if (newTF) {
       if (reader->getTFAutodetect() == FirstTFDetection::Pending) { // impose first TF
         if (cruDetector) {
-          reader->imposeFirstTF(hbIR.orbit, hbIR.bc);
+          reader->imposeFirstTF(hbIR.orbit);
           bl.tfID = HBU.getTF(hbIR); // update
         } else {
           throw std::runtime_error("HBFUtil first orbit/bc autodetection cannot be done with first link from CRORC detector");
@@ -901,14 +901,13 @@ RawFileReader::InputsMap RawFileReader::parseInput(const std::string& confUri)
   return entries;
 }
 
-void RawFileReader::imposeFirstTF(uint32_t orbit, uint16_t bc)
+void RawFileReader::imposeFirstTF(uint32_t orbit)
 {
   if (mFirstTFAutodetect != FirstTFDetection::Pending) {
     throw std::runtime_error("reader was not expecting imposing first TF");
   }
   auto& hbu = o2::raw::HBFUtils::Instance();
   o2::raw::HBFUtils::setValue("HBFUtils", "orbitFirst", orbit);
-  o2::raw::HBFUtils::setValue("HBFUtils", "bcFirst", bc);
   LOG(INFO) << "Imposed data-driven TF start";
   mFirstTFAutodetect = FirstTFDetection::Done;
   hbu.printKeyValues();
