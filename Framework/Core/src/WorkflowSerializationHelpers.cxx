@@ -14,6 +14,7 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/VariantJSONHelpers.h"
 #include "Framework/DataDescriptorMatcher.h"
+#include "Framework/Logger.h"
 
 #include <rapidjson/reader.h>
 #include <rapidjson/prettywriter.h>
@@ -629,8 +630,8 @@ void WorkflowSerializationHelpers::import(std::istream& s,
   // If we do not find a starting {, we simply assume that no workflow
   // was actually passed on the PIPE.
   // FIXME: not particularly resilient, but works for now.
-  // FIXME: this will fail if { is found at char 1024.
-  char buf[1024];
+  // FIXME: this will fail if { is found at char 4096.
+  char buf[BUFSIZ];
   while (s.peek() != '{') {
     if (s.eof()) {
       return;
@@ -638,7 +639,8 @@ void WorkflowSerializationHelpers::import(std::istream& s,
     if (s.fail() || s.bad()) {
       throw std::runtime_error("Malformatted input workflow");
     }
-    s.getline(buf, 1024, '\n');
+    s.getline(buf, BUFSIZ, '\n');
+    LOGP(WARNING, "Found spurious data while reading config: {}", buf);
   }
   rapidjson::Reader reader;
   rapidjson::IStreamWrapper isw(s);
