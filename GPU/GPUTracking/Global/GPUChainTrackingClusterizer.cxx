@@ -52,7 +52,7 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
   GPUTPCClusterFinder& clusterer = processors()->tpcClusterer[iSlice];
   GPUTPCClusterFinder::ZSOffset* o = processors()->tpcClusterer[iSlice].mPzsOffsets;
   unsigned int digits = 0;
-  unsigned short pages = 0;
+  unsigned int pages = 0;
   for (unsigned short j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
     unsigned short posInEndpoint = 0;
     unsigned short pagesEndpoint = 0;
@@ -70,14 +70,15 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
           pagesEndpoint++;
         }
       }
-      pages += pagesEndpoint;
     } else {
       clusterer.mPzsOffsets[j] = GPUTPCClusterFinder::ZSOffset{digits, j, 0};
       digits += mCFContext->fragmentData[fragment.index].nDigits[iSlice][j];
       pages += mCFContext->fragmentData[fragment.index].nPages[iSlice][j];
     }
   }
-
+  if (doGPU) {
+    pages = o - processors()->tpcClusterer[iSlice].mPzsOffsets;
+  }
   return {digits, pages};
 }
 
