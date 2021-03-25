@@ -177,7 +177,7 @@ o2::framework::ServiceSpec CommonMessageBackends::arrowBackendSpec()
                        bool changed = false;
                        bool hasMetrics = false;
                        // Find  the last timestamp when we signaled.
-                       size_t signalIndex = DeviceMetricsHelper::metricIdxByName("aod-reader-signals", driverMetrics);
+                       static size_t signalIndex = DeviceMetricsHelper::metricIdxByName("aod-reader-signals", driverMetrics);
                        size_t lastSignalTimestamp = 0;
                        if (signalIndex < driverMetrics.metrics.size()) {
                          MetricInfo& info = driverMetrics.metrics.at(signalIndex);
