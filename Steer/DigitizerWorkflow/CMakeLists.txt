@@ -55,7 +55,8 @@ o2_add_executable(digitizer-workflow
                                         O2::TRDWorkflow
                                         O2::DataFormatsTRD
                                         O2::ZDCSimulation
-					O2::ZDCWorkflow)
+					O2::ZDCWorkflow
+					O2::DetectorsRaw)
 
 
 o2_add_executable(mctruth-testworkflow

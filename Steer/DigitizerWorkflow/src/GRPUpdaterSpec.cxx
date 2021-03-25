@@ -21,6 +21,7 @@
 #include <FairLogger.h>
 #include <memory> // for make_shared, make_unique, unique_ptr
 #include <string>
+#include "DetectorsRaw/HBFUtils.h"
 
 using namespace o2::framework;
 
@@ -48,9 +49,6 @@ class GRPDPLUpdatedTask
   void run(framework::ProcessingContext& pc)
   {
     const std::string grpName = "GRP";
-    if (mFinished) {
-      return;
-    }
 
     TFile flGRP(mGRPFileName.c_str(), "update");
     if (flGRP.IsZombie()) {
@@ -66,17 +64,15 @@ class GRPDPLUpdatedTask
       }
       grp->setDetROMode(det, roMode);
     }
-    LOG(INFO) << "Updated GRP in " << mGRPFileName << " for detectors RO mode";
+    grp->setFirstOrbit(o2::raw::HBFUtils::Instance().orbitFirst);
+    LOG(INFO) << "Updated GRP in " << mGRPFileName << " for detectors RO mode and 1st orbit of the run";
     grp->print();
     flGRP.WriteObjectAny(grp.get(), grp->Class(), grpName.c_str());
     flGRP.Close();
-    mFinished = true;
-
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
 
  private:
-  bool mFinished = false;
   std::string mGRPFileName = "o2sim_grp.root";
 };
 
