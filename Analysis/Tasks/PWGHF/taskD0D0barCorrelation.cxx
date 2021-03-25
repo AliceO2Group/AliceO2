@@ -133,7 +133,7 @@ struct TaskD0D0barCorrelation {
       if (candidate1.isSelD0() >= dSelectionFlagD0) {
         for (auto& candidate2 : candidates) {
           //check decay channel flag for candidate2
-          if (!(candidate1.hfflag() & 1 << D0ToPiK)) {
+          if (!(candidate2.hfflag() & 1 << D0ToPiK)) {
             continue;
           }
           if (candidate2.isSelD0bar() >= dSelectionFlagD0bar) {
