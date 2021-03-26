@@ -18,7 +18,7 @@
 #include "AnalysisDataModel/TrackSelectionTables.h"
 
 #include "AnalysisDataModel/EventSelection.h"
-#include "triggerTables.h"
+#include "filterTables.h"
 
 #include "Framework/HistogramRegistry.h"
 
@@ -53,9 +53,9 @@ namespace {
   };
 }
 
-struct nucleiTrigger {
+struct nucleiFilter {
 
-  Produces<aod::NucleiTriggers> triggers;
+  Produces<aod::NucleiFilters> tags;
 
   Configurable<float> yMin{"yMin", -0.8, "Maximum rapidity"};
   Configurable<float> yMax{"yMax", 0.8, "Minimum rapidity"};
@@ -125,12 +125,12 @@ struct nucleiTrigger {
 
     } // end loop over tracks
     //
-    triggers(keepEvent[0], keepEvent[1], keepEvent[2], keepEvent[3]);
+    tags(keepEvent[0], keepEvent[1], keepEvent[2], keepEvent[3]);
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfg)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<nucleiTrigger>("nuclei-trigger")};
+    adaptAnalysisTask<nucleiFilter>(cfg)};
 }

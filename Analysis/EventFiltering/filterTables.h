@@ -14,18 +14,18 @@
 
 namespace o2::aod
 {
-namespace trigger
+namespace filtering
 {
 DECLARE_SOA_COLUMN(H2, hasH2, bool);
 DECLARE_SOA_COLUMN(H3, hasH3, bool);
 DECLARE_SOA_COLUMN(He3, hasHe3, bool);
 DECLARE_SOA_COLUMN(He4, hasHe4, bool);
 
-} // namespace trigger
+} // namespace filtering
 
-DECLARE_SOA_TABLE(NucleiTriggers, "AOD", "Nuclei Triggers", trigger::H2, trigger::H3, trigger::He3, trigger::He4);
+DECLARE_SOA_TABLE(NucleiFilters, "AOD", "Nuclei Filters", filtering::H2, filtering::H3, filtering::He3, filtering::He4);
 
-using NucleiTrigger = NucleiTriggers::iterator;
+using NucleiFilter = NucleiFilters::iterator;
 } // namespace o2::aod
 
 #endif // O2_ANALYSIS_TRIGGER_H_
