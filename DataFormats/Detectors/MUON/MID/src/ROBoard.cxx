@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MID/Raw/src/ROBoard.cxx
+/// \file   MID/src/ROBoard.cxx
 /// \brief  Structure to store the readout board information
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   19 November 2019
