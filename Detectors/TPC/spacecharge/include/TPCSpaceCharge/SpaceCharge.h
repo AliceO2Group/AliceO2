@@ -140,6 +140,13 @@ class SpaceCharge
   template <typename ElectricFields = AnalyticalFields<DataT>>
   void calcLocalDistortionCorrectionVector(const ElectricFields& formulaStruct);
 
+  /// step 3b: calculate the local distortions and corrections with the local distortion/correction vectors using Runge Kutta 4.
+  /// calcLocalDistortionCorrectionVector() has to be called before this function
+  /// \param type calculate local corrections or local distortions: type = o2::tpc::SpaceCharge<>::Type::Distortions or o2::tpc::SpaceCharge<>::Type::Corrections
+  /// \param side side of the TPC
+  template <typename ElectricFields = AnalyticalFields<DataT>>
+  void calcLocalDistortionsCorrectionsRK4(const Type type, const Side side);
+
   /// step 4: calculate global corrections by using the electric field or the local corrections
   /// \param formulaStruct struct containing a method to evaluate the electric field Er, Ez, Ephi or the local corrections
   template <typename Fields = AnalyticalFields<DataT>>
@@ -217,6 +224,24 @@ class SpaceCharge
   /// \param ldistR returns local distortion in r direction
   /// \param ldistRPhi returns local distortion in rphi direction
   void getLocalDistortionsCyl(const DataT z, const DataT r, const DataT phi, const Side side, DataT& ldistZ, DataT& ldistR, DataT& ldistRPhi) const;
+
+  /// get the local distortion vector for given coordinate
+  /// \param z global z coordinate
+  /// \param r global r coordinate
+  /// \param phi global phi coordinate
+  /// \param lvecdistZ returns local distortion vector in z direction
+  /// \param lvecdistR returns local distortion vector in r direction
+  /// \param lvecdistRPhi returns local distortion vector in rphi direction
+  void getLocalDistortionVectorCyl(const DataT z, const DataT r, const DataT phi, const Side side, DataT& lvecdistZ, DataT& lvecdistR, DataT& lvecdistRPhi) const;
+
+  /// get the local correction vector for given coordinate
+  /// \param z global z coordinate
+  /// \param r global r coordinate
+  /// \param phi global phi coordinate
+  /// \param ldistZ returns local correction vector in z direction
+  /// \param ldistR returns local correction vector in r direction
+  /// \param ldistRPhi returns local correction vector in rphi direction
+  void getLocalCorrectionVectorCyl(const DataT z, const DataT r, const DataT phi, const Side side, DataT& lveccorrZ, DataT& lveccorrR, DataT& lveccorrRPhi) const;
 
   /// get the global distortions for given coordinate
   /// \param z global z coordinate
@@ -753,6 +778,10 @@ class SpaceCharge
   DistCorrInterpolator<DataT, Nz, Nr, Nphi> mInterpolatorLocalDist[FNSIDES]{
     {mLocalDistdR[Side::A], mLocalDistdZ[Side::A], mLocalDistdRPhi[Side::A], mGrid3D[Side::A], Side::A},
     {mLocalDistdR[Side::C], mLocalDistdZ[Side::C], mLocalDistdRPhi[Side::C], mGrid3D[Side::C], Side::C}}; ///< interpolator for the local distortions
+
+  DistCorrInterpolator<DataT, Nz, Nr, Nphi> mInterpolatorLocalVecDist[FNSIDES]{
+    {mLocalVecDistdR[Side::A], mLocalVecDistdZ[Side::A], mLocalVecDistdRPhi[Side::A], mGrid3D[Side::A], Side::A},
+    {mLocalVecDistdR[Side::C], mLocalVecDistdZ[Side::C], mLocalVecDistdRPhi[Side::C], mGrid3D[Side::C], Side::C}}; ///< interpolator for the local distortion vectors
 
   NumericalFields<DataT, Nz, Nr, Nphi> mInterpolatorEField[FNSIDES]{
     {mElectricFieldEr[Side::A], mElectricFieldEz[Side::A], mElectricFieldEphi[Side::A], mGrid3D[Side::A], Side::A},
