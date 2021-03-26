@@ -8,16 +8,25 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "MCHChannelCalibratorSpec.h"
+#include "PedestalCalibSpec.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/ConfigParamSpec.h"
+#include "Framework/CompletionPolicyHelpers.h"
 
 using namespace o2::framework;
+
+// customize the completion policy
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  using o2::framework::CompletionPolicy;
+  policies.push_back(CompletionPolicyHelpers::defineByName(getMCHPedestalCalibDeviceName(), CompletionPolicy::CompletionOp::Consume));
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
-  //workflowOptions.push_back(ConfigParamSpec{"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
+  workflowOptions.push_back(ConfigParamSpec{"input-spec", VariantType::String, "digits:MCH/PDIGITS", {"selection string input specs"}});
 }
 
 // ------------------------------------------------------------------
@@ -26,8 +35,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
+  const std::string inputSpec = configcontext.options().get<std::string>("input-spec");
   WorkflowSpec specs;
-  //auto useCCDB = configcontext.options().get<bool>("use-ccdb");
-  specs.emplace_back(getMCHChannelCalibDeviceSpec());
+  specs.emplace_back(getMCHPedestalCalibSpec(inputSpec));
   return specs;
 }

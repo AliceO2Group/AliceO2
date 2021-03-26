@@ -78,18 +78,14 @@ static void patchPage(gsl::span<const std::byte> rdhBuffer, bool verbose)
 {
   static int mNrdhs = 0;
   auto& rdhAny = *reinterpret_cast<RDH*>(const_cast<std::byte*>(&(rdhBuffer[0])));
-  mNrdhs++;
 
   auto cruId = o2::raw::RDHUtils::getCRUID(rdhAny) & 0xFF;
   auto flags = o2::raw::RDHUtils::getCRUID(rdhAny) & 0xFF00;
   auto endpoint = o2::raw::RDHUtils::getEndPointID(rdhAny);
-  uint32_t feeId = cruId * 2 + endpoint + flags;
+  auto oldFeeId = o2::raw::RDHUtils::getFEEID(rdhAny);
+  auto ulVersion = oldFeeId & 0xF000;
+  uint32_t feeId = cruId * 2 + endpoint + flags + ulVersion;
   o2::raw::RDHUtils::setFEEID(rdhAny, feeId);
-
-  if (verbose) {
-    std::cout << mNrdhs << "--\n";
-    o2::raw::RDHUtils::printRDH(rdhAny);
-  }
 };
 
 static bool isValidDeID(int deId)
@@ -162,6 +158,7 @@ class PedestalsTask
   //_________________________________________________________________________________________________
   void decodePage(gsl::span<const std::byte> page)
   {
+    static int Nrdhs = 0;
     size_t ndigits{0};
 
     uint32_t orbit;
@@ -185,6 +182,13 @@ class PedestalsTask
 
     if (mPatchRDH) {
       patchPage(page, mDebug);
+    }
+
+    if (mDebug) {
+      auto& rdhAny = *reinterpret_cast<RDH*>(const_cast<std::byte*>(&(page[0])));
+      Nrdhs += 1;
+      std::cout << Nrdhs << "--\n";
+      o2::raw::RDHUtils::printRDH(rdhAny);
     }
 
     if (!mDecoder) {
@@ -231,7 +235,8 @@ class PedestalsTask
   {
     // get the input buffer
     auto& inputs = pc.inputs();
-    DPLRawParser parser(inputs, o2::framework::select(mInputSpec.c_str()));
+    std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{o2::header::gDataOriginMCH, "RAWDATA"}, Lifetime::Timeframe}};
+    DPLRawParser parser(inputs, filter);
 
     auto tStart = std::chrono::high_resolution_clock::now();
     size_t totPayloadSize = 0;
@@ -341,7 +346,7 @@ class PedestalsTask
     // create the output message
     auto freefct = [](void* data, void*) { free(data); };
     pc.outputs().adoptChunk(Output{"MCH", "PDIGITS", 0}, digitsBuffer, digitsSize, freefct, nullptr);
-    pc.outputs().adoptChunk(Output{"MCH", "ERRORS", 0}, errorsBuffer, errorsSize, freefct, nullptr);
+    //pc.outputs().adoptChunk(Output{"MCH", "ERRORS", 0}, errorsBuffer, errorsSize, freefct, nullptr);
 
     logStats();
   }
@@ -374,9 +379,21 @@ class PedestalsTask
 
 using namespace o2::framework;
 
+std::string getMCHPedestalDecodingDeviceName()
+{
+  return "mch-pedestal-decoder";
+}
+
+// customize the completion policy
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  using o2::framework::CompletionPolicy;
+  policies.push_back(CompletionPolicyHelpers::defineByName(getMCHPedestalDecodingDeviceName(), CompletionPolicy::CompletionOp::Consume));
+}
+
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  workflowOptions.push_back(ConfigParamSpec{"dataspec", VariantType::String, "TF:MCH/RAWDATA", {"selection string for the input data"}});
+  workflowOptions.push_back(ConfigParamSpec{"input-spec", VariantType::String, "TF:MCH/RAWDATA", {"selection string for the input data"}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -385,13 +402,13 @@ using namespace o2;
 using namespace o2::framework;
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getPedestalsSpec(std::string inputSpec)
+o2::framework::DataProcessorSpec getMCHPedestalDecodingSpec(std::string inputSpec)
 {
   //o2::mch::raw::PedestalsTask task();
   return DataProcessorSpec{
-    "Pedestals",
+    getMCHPedestalDecodingDeviceName(),
     o2::framework::select(inputSpec.c_str()),
-    Outputs{OutputSpec{"MCH", "PDIGITS", 0, Lifetime::Timeframe}, OutputSpec{"MCH", "ERRORS", 0, Lifetime::Timeframe}},
+    Outputs{OutputSpec{"MCH", "PDIGITS", 0, Lifetime::Timeframe} /*, OutputSpec{"MCH", "ERRORS", 0, Lifetime::Timeframe}*/},
     AlgorithmSpec{adaptFromTask<o2::mch::raw::PedestalsTask>(inputSpec)},
     Options{{"debug", VariantType::Bool, false, {"enable verbose output"}},
             {"logging-interval", VariantType::Int, 0, {"time interval in seconds between logging messages (set to zero to disable)"}},
@@ -404,11 +421,11 @@ o2::framework::DataProcessorSpec getPedestalsSpec(std::string inputSpec)
 
 WorkflowSpec defineDataProcessing(const ConfigContext& config)
 {
-  auto inputSpec = config.options().get<std::string>("dataspec");
+  auto inputSpec = config.options().get<std::string>("input-spec");
 
   WorkflowSpec specs;
 
-  DataProcessorSpec producer = getPedestalsSpec(inputSpec);
+  DataProcessorSpec producer = getMCHPedestalDecodingSpec(inputSpec);
   specs.push_back(producer);
 
   return specs;

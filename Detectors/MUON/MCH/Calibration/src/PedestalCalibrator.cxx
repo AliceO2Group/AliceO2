@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "MCHCalibration/MCHChannelCalibrator.h"
+#include "MCHCalibration/PedestalCalibrator.h"
 #include "Framework/Logger.h"
 #include "MathUtils/fit.h"
 #include "CommonUtils/MemFileHelper.h"
@@ -26,23 +26,23 @@ namespace mch
 namespace calibration
 {
 
-using Slot = o2::calibration::TimeSlot<o2::mch::calibration::MCHChannelData>;
+using Slot = o2::calibration::TimeSlot<o2::mch::calibration::PedestalData>;
 using clbUtils = o2::calibration::Utils;
 
 //_____________________________________________
-void MCHChannelData::fill(const gsl::span<const o2::mch::calibration::PedestalDigit> digits)
+void PedestalData::fill(const gsl::span<const o2::mch::calibration::PedestalDigit> digits)
 {
   mPedestalProcessor.process(digits);
 }
 
 //_____________________________________________
-void MCHChannelData::merge(const MCHChannelData* prev)
+void PedestalData::merge(const PedestalData* prev)
 {
   // merge data of 2 slots
 }
 
 //_____________________________________________
-void MCHChannelData::print() const
+void PedestalData::print() const
 {
   LOG(INFO) << "Printing MCH pedestals:";
   std::ostringstream os;
@@ -51,7 +51,7 @@ void MCHChannelData::print() const
 //===================================================================
 
 //_____________________________________________
-void MCHChannelCalibrator::initOutput()
+void PedestalCalibrator::initOutput()
 {
   // Here we initialize the vector of our output objects
   mBadChannelsVector.reset();
@@ -59,22 +59,22 @@ void MCHChannelCalibrator::initOutput()
 }
 
 //_____________________________________________
-bool MCHChannelCalibrator::hasEnoughData(const Slot& slot) const
+bool PedestalCalibrator::hasEnoughData(const Slot& slot) const
 {
 
   // Checking if all channels have enough data to do calibration.
-  // Delegating this to MCHChannelData
+  // Delegating this to PedestalData
 
-  const o2::mch::calibration::MCHChannelData* c = slot.getContainer();
+  const o2::mch::calibration::PedestalData* c = slot.getContainer();
   LOG(INFO) << "Checking statistics";
   return (true);
 }
 
 //_____________________________________________
-void MCHChannelCalibrator::finalizeSlot(Slot& slot)
+void PedestalCalibrator::finalizeSlot(Slot& slot)
 {
   // Extract results for the single slot
-  o2::mch::calibration::MCHChannelData* c = slot.getContainer();
+  o2::mch::calibration::PedestalData* c = slot.getContainer();
   LOG(INFO) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
 
   // keep track of first TimeFrame
@@ -114,17 +114,17 @@ void MCHChannelCalibrator::finalizeSlot(Slot& slot)
 }
 
 //_____________________________________________
-Slot& MCHChannelCalibrator::emplaceNewSlot(bool front, TFType tstart, TFType tend)
+Slot& PedestalCalibrator::emplaceNewSlot(bool front, TFType tstart, TFType tend)
 {
 
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
-  slot.setContainer(std::make_unique<MCHChannelData>());
+  slot.setContainer(std::make_unique<PedestalData>());
   return slot;
 }
 
 //_____________________________________________
-void MCHChannelCalibrator::endOfStream()
+void PedestalCalibrator::endOfStream()
 {
   // create the CCDB entry
   auto clName = o2::utils::MemFileHelper::getClassName(mBadChannelsVector);
