@@ -107,7 +107,7 @@ struct InteractionRecord {
   float differenceInBCMS(const InteractionRecord& other) const
   {
     // return difference in bunch-crossings in ms
-    return differenceInBC(other) * o2::constants::lhc::LHCBunchSpacingMS;
+    return differenceInBC(other) * o2::constants::lhc::LHCBunchSpacingMUS;
   }
 
   int64_t toLong() const
