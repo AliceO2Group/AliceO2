@@ -33,7 +33,7 @@ TrackletTransformer::TrackletTransformer()
   mXtb0 = -100;
 
   // dummy values for testing. This will change in the future when values are pulled from CCDB
-  mt0Correction = -0.1;
+  mt0Correction = -0.279;
   mOldLorentzAngle = 0.16;
   mLorentzAngle = -0.14;
   mDriftVRatio = 1.1;
@@ -52,8 +52,17 @@ float TrackletTransformer::calculateY(int hcid, int column, int position)
   double padWidth = mPadPlane->getWidthIPad();
   int side = hcid % 2;
 
+  // the position calculated in TRAPsim is a signed integer
+  int positionUnsigned = 0;
+  if (position & (1 << (NBITSTRKLPOS - 1))) {
+    positionUnsigned = -((~(position - 1)) & ((1 << NBITSTRKLPOS) - 1));
+  } else {
+    positionUnsigned = position & ((1 << NBITSTRKLPOS) - 1);
+  }
+  positionUnsigned += 1 << (NBITSTRKLPOS - 1); // shift such that positionUnsigned = 1 << (NBITSTRKLPOS - 1) corresponds to the MCM center
+
   // slightly modified TDP eq 16.1 (appended -1 to the end to account for MCM shared pads)
-  double pad = float(position - (1 << (NBITSTRKLPOS - 1))) * GRANULARITYTRKLPOS + NCOLMCM * (4 * side + column) + 10.5 - 1;
+  double pad = float(positionUnsigned - (1 << (NBITSTRKLPOS - 1))) * GRANULARITYTRKLPOS + NCOLMCM * (4 * side + column) + 10. - 1.;
   float y = padWidth * (pad - 72);
 
   return y;
@@ -62,12 +71,10 @@ float TrackletTransformer::calculateY(int hcid, int column, int position)
 float TrackletTransformer::calculateZ(int padrow)
 {
   double rowPos = mPadPlane->getRowPos(padrow);
-  double rowWidth = mPadPlane->getRowSize(padrow);
+  double rowSize = mPadPlane->getRowSize(padrow);
   double middleRowPos = mPadPlane->getRowPos(mPadPlane->getNrows() / 2);
 
-  float z = rowPos - rowWidth / 2. - middleRowPos;
-
-  return z;
+  return rowPos - rowSize / 2. - middleRowPos;
 }
 
 float TrackletTransformer::calculateDy(int slope, double oldLorentzAngle, double lorentzAngle, double driftVRatio)
@@ -75,12 +82,18 @@ float TrackletTransformer::calculateDy(int slope, double oldLorentzAngle, double
   double padWidth = mPadPlane->getWidthIPad();
 
   // temporary dummy value in cm/microsecond
-  float vDrift = 1.56;
+  float vDrift = 1.5464f;
   float driftHeight = mGeo->cdrHght();
 
+  int dYsigned = 0;
+  if (slope & (1 << (NBITSTRKLSLOPE - 1))) {
+    dYsigned = -((~(slope - 1)) & ((1 << NBITSTRKLSLOPE) - 1));
+  } else {
+    dYsigned = slope & ((1 << NBITSTRKLSLOPE) - 1);
+  }
   // dy = slope * nTimeBins * padWidth * GRANULARITYTRKLSLOPE;
   // nTimeBins should be number of timebins in drift region. 1 timebin is 100 nanosecond
-  double rawDy = slope * ((driftHeight / vDrift) / 0.1) * padWidth * GRANULARITYTRKLSLOPE;
+  double rawDy = dYsigned * ((driftHeight / vDrift) * 10.) * padWidth * GRANULARITYTRKLSLOPE;
 
   // driftDistance = 3.35
   float driftDistance = mGeo->cdrHght() + mGeo->camHght();
@@ -107,7 +120,7 @@ float TrackletTransformer::calculateDy(int slope, double oldLorentzAngle, double
   // LOG(info) << "ORIGINAL: " << calibratedDy;
   // LOG(info) << "ALTERNATIVE: " << rawDy + calibrationShift;
 
-  return calibratedDy;
+  return rawDy; // OS: temporary until calibratedDy is checked. Currently it is too far off from rawDy
 }
 
 float TrackletTransformer::calibrateX(double x, double t0Correction)
@@ -132,9 +145,8 @@ CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet)
   uint64_t hcid = tracklet.getHCID();
   uint64_t padrow = tracklet.getPadRow();
   uint64_t column = tracklet.getColumn();
-  // 0-2048 | units:pad-widths | granularity=1/75 (measured from center pad 10) 1024 is 0/center of pad 10
   uint64_t position = tracklet.getPosition();
-  // 0-127 | units:pads/timebin | granularity=1/1000
+  // 0-255 | units:pads/timebin | granularity=1/1000 (signed integer)
   uint64_t slope = tracklet.getSlope();
 
   // calculate raw local chamber space point
@@ -146,7 +158,7 @@ CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet)
   float dy = calculateDy(slope, mOldLorentzAngle, mLorentzAngle, mDriftVRatio);
   float calibratedX = calibrateX(x, mt0Correction);
 
-  std::array<float, 3> sectorSpacePoint = transformL2T(hcid, std::array<double, 3>{x, y, z});
+  std::array<float, 3> sectorSpacePoint = transformL2T(hcid, std::array<double, 3>{calibratedX, y, z});
 
   LOG(debug) << "x: " << sectorSpacePoint[0] << " | "
              << "y: " << sectorSpacePoint[1] << " | "

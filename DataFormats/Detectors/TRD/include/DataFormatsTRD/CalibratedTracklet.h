@@ -21,7 +21,7 @@ namespace trd
 // The CalibratedTracklet has been calibrated in x and dy according to a calculated Lorentz Angle and Drift Velocity.
 // Tracklet positions in local z direction are reported at the center of the pad-row.
 // Pad-tilting correction is performed after tracking.
-class CalibratedTracklet : public Tracklet64
+class CalibratedTracklet : public Tracklet64 // OS: why do we inherit from Tracklet64? Should this not be an independent, transient data type?
 {
  public:
   CalibratedTracklet() = default;
