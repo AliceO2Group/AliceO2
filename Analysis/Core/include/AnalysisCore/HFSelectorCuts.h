@@ -21,7 +21,8 @@ enum code {
   kD0 = 421,
   kD0bar = -421,
   kDPlus = 411,
-  kLambdaC = 4122
+  kLambdaCPlus = 4122,
+  kXiCPlus = 4232
 };
 }
 

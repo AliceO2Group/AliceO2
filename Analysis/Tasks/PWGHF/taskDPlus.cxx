@@ -142,7 +142,7 @@ struct TaskDPlusMC {
       }
       if (std::abs(candidate.flagMCMatchRec()) == 1 << DPlusToPiKPi) {
         // Get the corresponding MC particle.
-        auto indexMother = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandProng3MCGen>>(), 411, true);
+        auto indexMother = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandProng3MCGen>>(), pdg::code::kDPlus, true);
         auto particleMother = particlesMC.iteratorAt(indexMother);
         registry.fill(HIST("hPtGenSig"), particleMother.pt()); //gen. level pT
         registry.fill(HIST("hPtRecSig"), candidate.pt());      //rec. level pT

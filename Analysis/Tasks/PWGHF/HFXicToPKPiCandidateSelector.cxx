@@ -114,11 +114,11 @@ struct HFXicToPKPiCandidateSelector {
     }
 
     if (trackProton.globalIndex() == hfCandProng3.index0Id()) {
-      if (TMath::Abs(InvMassXicToPKPi(hfCandProng3) - RecoDecay::getMassPDG(4232)) > cuts->get(pTBin, "m")) {
+      if (TMath::Abs(InvMassXicToPKPi(hfCandProng3) - RecoDecay::getMassPDG(pdg::code::kXiCPlus)) > cuts->get(pTBin, "m")) {
         return false;
       }
     } else {
-      if (TMath::Abs(InvMassXicToPiKP(hfCandProng3) - RecoDecay::getMassPDG(4232)) > cuts->get(pTBin, "m")) {
+      if (TMath::Abs(InvMassXicToPiKP(hfCandProng3) - RecoDecay::getMassPDG(pdg::code::kXiCPlus)) > cuts->get(pTBin, "m")) {
         return false;
       }
     }
