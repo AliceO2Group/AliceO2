@@ -213,6 +213,9 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         config.configWorkflow.inputs.set(GPUDataTypes::InOutType::TPCCompressedClusters);
         config.configWorkflow.outputs.setBits(GPUDataTypes::InOutType::TPCClusters, true);
         config.configWorkflow.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, false);
+        if (processAttributes->tpcSectorMask != 0xFFFFFFFFF) {
+          throw std::invalid_argument("Cannot run TPC decompression with a sector mask");
+        }
       }
       if (specconfig.outputSharedClusterMap) {
         config.configProcessing.outputSharedClusterMap = true;
@@ -343,6 +346,14 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         getWorkflowTPCInput_digits = true;
       }
 
+      if (specconfig.zsOnTheFly || specconfig.zsDecoder) {
+        for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
+          for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
+            tpcZSmetaPointers[i][j].clear();
+            tpcZSmetaSizes[i][j].clear();
+          }
+        }
+      }
       if (specconfig.zsOnTheFly) {
         tpcZSonTheFlySizes = {0};
         // tpcZSonTheFlySizes: #zs pages per endpoint:
@@ -367,12 +378,6 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         if (!recv || !recvsizes) {
           throw std::runtime_error("TPC ZS data not received");
         }
-        for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
-          for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
-            tpcZSmetaPointers[i][j].clear();
-            tpcZSmetaSizes[i][j].clear();
-          }
-        }
 
         unsigned int offset = 0;
         for (unsigned int i = 0; i < NSectors; i++) {
@@ -387,12 +392,6 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         }
       }
       if (specconfig.zsDecoder) {
-        for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
-          for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
-            tpcZSmetaPointers[i][j].clear();
-            tpcZSmetaSizes[i][j].clear();
-          }
-        }
         std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
         for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
           const DataHeader* dh = DataRefUtils::getHeader<DataHeader*>(ref);
@@ -582,6 +581,21 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       tfSettings.tfStartOrbit = dh->firstTForbit;
       tfSettings.hasTfStartOrbit = 1;
       ptrs.settingsTF = &tfSettings;
+
+      if (processAttributes->tpcSectorMask != 0xFFFFFFFFF) {
+        // Clean out the unused sectors, such that if they were present by chance, they are not processed, and if the values are uninitialized, we should not crash
+        for (int i = 0; i < NSectors; i++) {
+          if (!(processAttributes->tpcSectorMask & (1ul << i))) {
+            if (ptrs.tpcZS) {
+              for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
+                tpcZS.slice[i].zsPtr[j] = nullptr;
+                tpcZS.slice[i].nZSPtr[j] = nullptr;
+                tpcZS.slice[i].count[j] = 0;
+              }
+            }
+          }
+        }
+      }
 
       int retVal = tracker->runTracking(&ptrs, &outputRegions);
       if (processAttributes->suppressOutput) {

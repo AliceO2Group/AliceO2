@@ -102,10 +102,14 @@ static auto getWorkflowTPCInput(o2::framework::ProcessingContext& pc, int verbos
     }
     if (do_digits) {
       for (unsigned int i = 0; i < constants::MAXSECTOR; i++) {
-        if (verbosity >= 1) {
-          LOG(INFO) << "GOT MC LABELS FOR SECTOR " << i << " -> " << retVal->internal.inputDigitsMC[retVal->internal.inputDigitsMCIndex[i]].getNElements();
+        if (tpcSectorMask & (1ul << i)) {
+          if (verbosity >= 1) {
+            LOG(INFO) << "GOT MC LABELS FOR SECTOR " << i << " -> " << retVal->internal.inputDigitsMC[retVal->internal.inputDigitsMCIndex[i]].getNElements();
+          }
+          retVal->inputDigitsMCPtrs[i] = &retVal->internal.inputDigitsMC[retVal->internal.inputDigitsMCIndex[i]];
+        } else {
+          retVal->inputDigitsMCPtrs[i] = nullptr;
         }
-        retVal->inputDigitsMCPtrs[i] = &retVal->internal.inputDigitsMC[retVal->internal.inputDigitsMCIndex[i]];
       }
     }
   }
@@ -131,9 +135,11 @@ static auto getWorkflowTPCInput(o2::framework::ProcessingContext& pc, int verbos
       recvMask |= sectorHeader->sectorBits;
       retVal->internal.inputrefs[sector].data = ref;
       if (do_digits) {
-        retVal->inputDigits[sector] = pc.inputs().get<gsl::span<o2::tpc::Digit>>(ref);
-        if (verbosity >= 1) {
-          LOG(INFO) << "GOT DIGITS SPAN FOR SECTOR " << sector << " -> " << retVal->inputDigits[sector].size();
+        if (tpcSectorMask & (1ul << sector)) {
+          retVal->inputDigits[sector] = pc.inputs().get<gsl::span<o2::tpc::Digit>>(ref);
+          if (verbosity >= 1) {
+            LOG(INFO) << "GOT DIGITS SPAN FOR SECTOR " << sector << " -> " << retVal->inputDigits[sector].size();
+          }
         }
       }
     }
@@ -149,6 +155,9 @@ static auto getWorkflowTPCInput(o2::framework::ProcessingContext& pc, int verbos
           // skip zero-length message
           continue;
         }
+        if (!(tpcSectorMask & (1ul << sector))) {
+          continue;
+        }
         if (refentry.second.labels.header != nullptr && refentry.second.labels.payload != nullptr) {
           retVal->internal.mcInputs.emplace_back(o2::dataformats::ConstMCLabelContainerView(pc.inputs().get<gsl::span<char>>(refentry.second.labels)));
         }
@@ -162,7 +171,7 @@ static auto getWorkflowTPCInput(o2::framework::ProcessingContext& pc, int verbos
 
   if (do_clusters) {
     memset(&retVal->clusterIndex, 0, sizeof(retVal->clusterIndex));
-    ClusterNativeHelper::Reader::fillIndex(retVal->clusterIndex, retVal->internal.clusterBuffer, retVal->internal.clustersMCBuffer, retVal->internal.inputs, retVal->internal.mcInputs, [&tpcSectorMask](auto& index) { return tpcSectorMask & (1ul << index); });
+    ClusterNativeHelper::Reader::fillIndex(retVal->clusterIndex, retVal->internal.clusterBuffer, retVal->internal.clustersMCBuffer, retVal->internal.inputs, retVal->internal.mcInputs, tpcSectorMask);
   }
 
   return retVal;
