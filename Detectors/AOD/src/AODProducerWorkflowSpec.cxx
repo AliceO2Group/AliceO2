@@ -463,7 +463,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   uint64_t firstVtxGlBC = minGlBC;
   uint64_t startBCofTF = startIR.toLong();
-  firstVtxGlBC = std::round(startBCofTF + primVertices[0].getTimeStamp().getTimeStamp() / o2::constants::lhc::LHCBunchSpacingMS);
+  firstVtxGlBC = std::round(startBCofTF + primVertices[0].getTimeStamp().getTimeStamp() / o2::constants::lhc::LHCBunchSpacingMUS);
 
   uint64_t tfNumber;
   int runNumber = 244918; // TODO: get real run number
