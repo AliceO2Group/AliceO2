@@ -50,8 +50,8 @@ class GPUSettings
 };
 
 #ifdef GPUCA_NOCOMPAT
-// Settings describing the events / time frames
-struct GPUSettingsEvent {
+// Settings describing the global run parameters
+struct GPUSettingsGRP {
   // All new members must be sizeof(int) resp. sizeof(float) for alignment reasons!
   float solenoidBz = -5.00668;  // solenoid field strength
   int constBz = 0;              // for test-MC events with constant Bz

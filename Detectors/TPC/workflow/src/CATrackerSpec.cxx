@@ -134,9 +134,9 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       o2::base::GeometryManager::loadGeometry();
       o2::base::Propagator::initFieldFromGRP(o2::base::NameConf::getGRPFileName());
       if (grp) {
-        config.configEvent.solenoidBz = 5.00668f * grp->getL3Current() / 30000.;
-        config.configEvent.continuousMaxTimeBin = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC) ? -1 : 0; // Number of timebins in timeframe if continuous, 0 otherwise
-        LOG(INFO) << "Initializing run paramerers from GRP bz=" << config.configEvent.solenoidBz << " cont=" << grp->isDetContinuousReadOut(o2::detectors::DetID::TPC);
+        config.configGRP.solenoidBz = 5.00668f * grp->getL3Current() / 30000.;
+        config.configGRP.continuousMaxTimeBin = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC) ? -1 : 0; // Number of timebins in timeframe if continuous, 0 otherwise
+        LOG(INFO) << "Initializing run paramerers from GRP bz=" << config.configGRP.solenoidBz << " cont=" << grp->isDetContinuousReadOut(o2::detectors::DetID::TPC);
       } else {
         throw std::runtime_error("Failed to initialize run parameters from GRP");
       }
@@ -156,8 +156,8 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
 #endif
       }
 
-      if (config.configEvent.continuousMaxTimeBin == -1) {
-        config.configEvent.continuousMaxTimeBin = (o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCMaxBunches + 2 * constants::LHCBCPERTIMEBIN - 2) / constants::LHCBCPERTIMEBIN;
+      if (config.configGRP.continuousMaxTimeBin == -1) {
+        config.configGRP.continuousMaxTimeBin = (o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCMaxBunches + 2 * constants::LHCBCPERTIMEBIN - 2) / constants::LHCBCPERTIMEBIN;
       }
       if (config.configProcessing.deviceNum == -2) {
         int myId = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;

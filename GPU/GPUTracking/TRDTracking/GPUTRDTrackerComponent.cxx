@@ -182,8 +182,8 @@ int GPUTRDTrackerComponent::DoInit(int argc, const char** argv)
 
   iResult = ReadConfigurationString(arguments.Data());
 
-  GPUSettingsEvent cfgEvent;
-  cfgEvent.solenoidBz = GetBz();
+  GPUSettingsGRP cfgGRP;
+  cfgGRP.solenoidBz = GetBz();
   GPUSettingsRec cfgRec;
   GPUSettingsProcessing cfgDeviceProcessing;
   GPURecoStepConfiguration cfgRecoStep;
@@ -191,7 +191,7 @@ int GPUTRDTrackerComponent::DoInit(int argc, const char** argv)
   cfgRecoStep.inputs.clear();
   cfgRecoStep.outputs.clear();
   fRec = GPUReconstruction::CreateInstance("CPU", true);
-  fRec->SetSettings(&cfgEvent, &cfgRec, &cfgDeviceProcessing, &cfgRecoStep);
+  fRec->SetSettings(&cfgGRP, &cfgRec, &cfgDeviceProcessing, &cfgRecoStep);
   fChain = fRec->AddChain<GPUChainTracking>();
 
   fGeo = new GPUTRDGeometry();
