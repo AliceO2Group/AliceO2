@@ -107,7 +107,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
   uint2* GPUrestrict() tmpData = merger.ClusRefTmp();
 
   for (int iTmp = get_global_id(0); iTmp < nTracks; iTmp += get_global_size(0)) {
-    auto& oTrack = outputTracks[iTmp];
+    TrackTPC oTrack;
     const int i = trackSort[iTmp].x;
 
     oTrack.set(tracks[i].GetParam().GetX(), tracks[i].GetAlpha(),
@@ -202,6 +202,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
     } else {
       oTrack.setHasASideClusters();
     }
+    outputTracks[iTmp] = oTrack;
   }
 }
 
