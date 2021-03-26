@@ -1,0 +1,71 @@
+#include "duplicateHits.macro"
+
+void filterSim(std::string const& oldprefix, std::string const& newprefix, std::vector<int> const* mask) {
+  duplicateHits(oldprefix.c_str(), newprefix.c_str(), "UPDATE", 1, mask);
+}
+
+void broker(std::string commandline, std::string oldprefix, std::string newprefix) {
+  // inspect simulated events and apply a trigger on them
+  // copy event if trigger passes
+
+  std::cout << commandline;
+  auto tokens = o2::utils::Str::tokenize(commandline,' ',true);
+  std::cout << "token size " << tokens.size();
+  int argc = tokens.size() + 1;
+  char **argv = nullptr;
+  argv = new char*[argc];
+  argv[0] = "broker";
+  for (int i = 1; i < argc; ++i) {
+    argv[i] = (char*)tokens[i-1].c_str();
+  }
+
+  o2::dataformats::MCEventHeader eventHeader;
+
+  auto eventgen = new o2::eventgen::PrimaryGenerator;
+  auto& conf = o2::conf::SimConfig::Instance();
+  bool ok = conf.resetFromArguments(argc, argv);
+  if (ok) {
+    // setup parameters
+    // update the parameters from an INI/JSON file, if given (overrides code-based version)
+    o2::conf::ConfigurableParam::updateFromFile(conf.getConfigFile());
+    // update the parameters from stuff given at command line (overrides file-based version)
+    o2::conf::ConfigurableParam::updateFromString(conf.getKeyValueString());
+
+    o2::eventgen::GeneratorFactory::setPrimaryGenerator(conf, eventgen);
+    eventgen->SetEvent(&eventHeader);
+    eventgen->Init();
+
+    std::vector<int> triggermask(100, 0);
+    int filtercount = 0;
+
+    // register a trigger hook --> basically here to get the correct event indices
+    auto generators = eventgen->GetListOfGenerators();
+    for (int igen = 0; igen < generators->GetEntries(); ++igen) {
+      auto generator = dynamic_cast<o2::eventgen::Generator*>(generators->At(igen));
+      if (generator) {
+	generator->setTriggerOkHook([&filtercount,&triggermask](std::vector<TParticle> const& p, int index){
+            if (index > triggermask.size()) {
+              triggermask.resize(2*index, 0);
+	    }
+            triggermask[index-1] = 1;  // index starts at 1?
+            filtercount++;
+        });
+      }
+    }
+    auto stack = new o2::data::Stack();
+    stack->setExternalMode(true);
+
+    // go through all available events --> fills the triggermask
+    while (eventgen->GenerateEvent(stack)) {
+    }
+
+
+    // now filter the sim-data
+    if (filtercount) {
+      filterSim(oldprefix, newprefix, &triggermask);
+    }
+
+    // report back result to outside world
+    std::cout << "TRIGGER-COUNT " << filtercount << "\n";
+  }
+}
