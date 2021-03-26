@@ -199,7 +199,7 @@ o2::framework::ServiceSpec CommonServices::infologgerSpec()
                        }
                        auto infoLoggerService = new InfoLogger;
                        auto infoLoggerContext = &services.get<InfoLoggerContext>();
-                       infoLoggerContext->setField(InfoLoggerContext::FieldName::Facility, services.get<DeviceSpec const>().name);
+                       infoLoggerContext->setField(InfoLoggerContext::FieldName::Facility, std::string("dpl/") + services.get<DeviceSpec const>().name);
                        infoLoggerService->setContext(*infoLoggerContext);
 
                        auto infoLoggerSeverity = options.GetPropertyAsString("infologger-severity");
