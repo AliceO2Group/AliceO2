@@ -297,7 +297,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     } else {
       RecordMarker(&mEvents->single, 0);
       TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResOutputO2(), outputStream, nullptr, &mEvents->single);
-      TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResOutputO2Clus(), outputStream, nullptr, &mEvents->single);
+      TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResOutputO2Clus(), outputStream);
       ReleaseEvent(&mEvents->single);
     }
     mRec->PopNonPersistentMemory(RecoStep::TPCMerging, qStr2Tag("TPCMERG2"));
