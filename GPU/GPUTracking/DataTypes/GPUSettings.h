@@ -60,6 +60,16 @@ struct GPUSettingsGRP {
   int needsClusterer = 0;       // Set to true if the data requires the clusterizer
 };
 
+// Parameters of the current time frame
+struct GPUSettingsTF {
+  int hasTfStartOrbit = 0;
+  int tfStartOrbit = 0;
+  int hasRunStartOrbit = 0;
+  int runStartOrbit = 0;
+  int hasSimStartOrbit = 0;
+  int simStartOrbit = 0;
+};
+
 // Settings defining the setup of the GPUReconstruction processing (basically selecting the device / class instance)
 struct GPUSettingsDeviceBackend {
   unsigned int deviceType = GPUDataTypes::DeviceType::CPU; // Device type, shall use GPUDataTypes::DEVICE_TYPE constants, e.g. CPU / CUDA

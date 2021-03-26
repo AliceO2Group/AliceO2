@@ -64,6 +64,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
   GPUTPCDigitsMCInput gpuDigitsMapMC;
   GPUTrackingInOutPointers ptrs;
 
+  ptrs.settingsTF = data->settingsTF;
   ptrs.tpcCompressedClusters = data->compressedClusters;
   ptrs.tpcZS = data->tpcZS;
   if (data->o2Digits) {
