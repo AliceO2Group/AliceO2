@@ -595,7 +595,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::CalculateSpacePoints(int iCollision)
       mSpacePoints[trkltIdxGlb].mR = xTrkltSec[0];
       mSpacePoints[trkltIdxGlb].mX[0] = xTrkltSec[1];
       mSpacePoints[trkltIdxGlb].mX[1] = xTrkltSec[2];
-      mSpacePoints[trkltIdxGlb].mDy = 0.014f * mTracklets[trkltIdxGlb].GetdY();
+      mSpacePoints[trkltIdxGlb].mDy = mTracklets[trkltIdxGlb].GetdY();
 
       int modId = mGeo->GetSector(iDet) * GPUTRDGeometry::kNstack + mGeo->GetStack(iDet); // global TRD stack number
       unsigned short volId = mGeo->GetGeomManagerVolUID(iDet, modId);

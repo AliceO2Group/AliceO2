@@ -49,7 +49,7 @@ GPUd() int GPUTRDTrackletWord::GetYbin() const
   }
 }
 
-GPUd() int GPUTRDTrackletWord::GetdY() const
+GPUd() int GPUTRDTrackletWord::GetdYbin() const
 {
   // returns (signed) value of the deflection length
   if (mTrackletWord & (1 << 19)) {

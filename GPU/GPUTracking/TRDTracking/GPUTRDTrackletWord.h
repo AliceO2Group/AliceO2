@@ -49,7 +49,7 @@ class GPUTRDTrackletWord
 
   // ----- Getters for contents of tracklet word -----
   GPUd() int GetYbin() const;
-  GPUd() int GetdY() const;
+  GPUd() int GetdYbin() const;
   GPUd() int GetZbin() const { return ((mTrackletWord >> 20) & 0xf); }
   GPUd() int GetPID() const { return ((mTrackletWord >> 24) & 0xff); }
 
@@ -57,7 +57,8 @@ class GPUTRDTrackletWord
   GPUd() double GetPID(int /* is */) const { return (double)GetPID() / 256.f; }
   GPUd() int GetDetector() const { return mHCId / 2; }
   GPUd() int GetHCId() const { return mHCId; }
-  GPUd() float GetdYdX() const { return (GetdY() * 140e-4f / 3.f); }
+  GPUd() float GetdYdX() const { return (GetdYbin() * 140e-4f / 3.f); }
+  GPUd() float GetDy() const { return GetdYbin() * 140e-4f; }
   GPUd() float GetY() const { return (GetYbin() * 160e-4f); }
   GPUd() unsigned int GetTrackletWord() const { return mTrackletWord; }
 
