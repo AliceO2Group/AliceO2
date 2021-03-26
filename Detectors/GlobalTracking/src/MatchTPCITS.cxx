@@ -290,18 +290,26 @@ void MatchTPCITS::run()
   if (mDBGOut && isDebugFlag(WinnerMatchesTree)) {
     dumpWinnerMatches();
   }
-  mDBGOut.reset();
 #endif
 
   gSystem->GetProcInfo(&procInfoStop);
   mTimer[SWTot].Stop();
 
   for (int i = 0; i < NStopWatches; i++) {
-    LOGF(INFO, "Timing for %15s: Cpu: %.3e Real: %.3e s in %d slots", TimerName[i], mTimer[i].CpuTime(), mTimer[i].RealTime(), mTimer[i].Counter() - 1);
+    LOGF(INFO, "Timing for %15s: Cpu: %.3e Real: %.3e s in %d slots of TF#%d", TimerName[i], mTimer[i].CpuTime(), mTimer[i].RealTime(), mTimer[i].Counter() - 1, mTFCount);
   }
   LOGF(INFO, "Memory (GB) at exit: RSS: %.3f VMem: %.3f", float(procInfoStop.fMemResident) / kMB, float(procInfoStop.fMemVirtual) / kMB);
   LOGF(INFO, "Memory increment: RSS: %.3f VMem: %.3f", float(procInfoStop.fMemResident - procInfoStart.fMemResident) / kMB,
        float(procInfoStop.fMemVirtual - procInfoStart.fMemVirtual) / kMB);
+  mTFCount++;
+}
+
+//______________________________________________
+void MatchTPCITS::end()
+{
+#ifdef _ALLOW_DEBUG_TREES_
+  mDBGOut.reset();
+#endif
 }
 
 //______________________________________________
@@ -2601,7 +2609,7 @@ void MatchTPCITS::fillTPCITSmatchTree(int itsID, int tpcID, int rejFlag, float c
   }
   o2::MCCompLabel lblITS, lblTPC;
   (*mDBGOut) << "match"
-             << "chi2Match=" << chi2 << "its=" << trackITS << "tpc=" << trackTPC;
+             << "tf=" << mTFCount << "chi2Match=" << chi2 << "its=" << trackITS << "tpc=" << trackTPC;
   if (mMCTruthON) {
     lblITS = mITSLblWork[itsID];
     lblTPC = mTPCLblWork[tpcID];
@@ -2632,8 +2640,7 @@ void MatchTPCITS::dumpWinnerMatches()
     auto& tTPC = mTPCWork[itpc];
 
     (*mDBGOut) << "matchWin"
-               << "chi2Match=" << itsMatchRec.chi2 << "chi2Refit=" << mWinnerChi2Refit[iits] << "its=" << tITS
-               << "tpc=" << tTPC;
+               << "tf=" << mTFCount << "chi2Match=" << itsMatchRec.chi2 << "chi2Refit=" << mWinnerChi2Refit[iits] << "its=" << tITS << "tpc=" << tTPC;
 
     o2::MCCompLabel lblITS, lblTPC;
     if (mMCTruthON) {

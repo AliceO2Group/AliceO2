@@ -326,6 +326,7 @@ class MatchTPCITS
 
   ///< perform all initializations
   void init();
+  void end();
 
   ///< clear results of previous event reco
   void clear();
@@ -614,7 +615,7 @@ class MatchTPCITS
   bool mCosmics = false;   ///< flag cosmics mode
   bool mMCTruthON = false; ///< flag availability of MC truth
   float mBz = 0;           ///< nominal Bz
-
+  int mTFCount = 0;        ///< internal TF counter for debugger
   o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
 
   ///========== Parameters to be set externally, e.g. from CCDB ====================
