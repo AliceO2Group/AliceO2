@@ -95,9 +95,9 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& inputIds, bool zs10bi
 
       GPUParam _GPUParam;
       GPUO2InterfaceConfiguration config;
-      config.configEvent.solenoidBz = 5.00668;
+      config.configGRP.solenoidBz = 5.00668;
       config.ReadConfigurableParam();
-      _GPUParam.SetDefaults(&config.configEvent, &config.configReconstruction, &config.configProcessing, nullptr);
+      _GPUParam.SetDefaults(&config.configGRP, &config.configReconstruction, &config.configProcessing, nullptr);
 
       const auto& inputs = getWorkflowTPCInput(pc, 0, false, false, 0xFFFFFFFFF, true);
       sizes.resize(NSectors * NEndpoints);

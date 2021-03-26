@@ -369,11 +369,11 @@ int GPUTPCTrackerComponent::ConfigureSlices()
 {
   // Initialize the tracker slices
   GPUSettingsRec rec;
-  GPUSettingsEvent ev;
+  GPUSettingsGRP grp;
   GPUSettingsProcessing devProc;
 
-  ev.solenoidBz = fSolenoidBz;
-  ev.continuousMaxTimeBin = 0; // triggered events
+  grp.solenoidBz = fSolenoidBz;
+  grp.continuousMaxTimeBin = 0; // triggered events
   if (mNeighboursSearchArea > 0) {
     rec.NeighboursSearchArea = mNeighboursSearchArea;
   }
@@ -399,7 +399,7 @@ int GPUTPCTrackerComponent::ConfigureSlices()
   steps.inputs.set(GPUDataTypes::InOutType::TPCClusters);
   steps.outputs.set(GPUDataTypes::InOutType::TPCSectorTracks);
 
-  fRec->SetSettings(&ev, &rec, &devProc, &steps);
+  fRec->SetSettings(&grp, &rec, &devProc, &steps);
   fChain->LoadClusterErrors();
   return fRec->Init();
 }

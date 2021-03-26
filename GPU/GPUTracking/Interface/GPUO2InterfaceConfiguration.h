@@ -82,7 +82,7 @@ struct GPUO2InterfaceConfiguration {
 
   GPUSettingsDeviceBackend configDeviceBackend;
   GPUSettingsProcessing configProcessing;
-  GPUSettingsEvent configEvent;
+  GPUSettingsGRP configGRP;
   GPUSettingsRec configReconstruction;
   GPUSettingsDisplay configDisplay;
   GPUSettingsQA configQA;

@@ -22,7 +22,7 @@ using namespace o2::tpc;
 GPUO2InterfaceQA::GPUO2InterfaceQA(const GPUO2InterfaceConfiguration* config)
 {
   mParam.reset(new GPUParam);
-  mParam->SetDefaults(&config->configEvent, &config->configReconstruction, &config->configProcessing, nullptr);
+  mParam->SetDefaults(&config->configGRP, &config->configReconstruction, &config->configProcessing, nullptr);
   mQA.reset(new GPUQA(nullptr, &config->configQA, mParam.get()));
 }
 

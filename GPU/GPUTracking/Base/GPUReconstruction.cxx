@@ -95,8 +95,8 @@ GPUReconstruction::GPUReconstruction(const GPUSettingsDeviceBackend& cfg) : mHos
     cfg.master->mSlaves.emplace_back(this);
   }
   new (&mProcessingSettings) GPUSettingsProcessing;
-  new (&mEventSettings) GPUSettingsEvent;
-  param().SetDefaults(&mEventSettings);
+  new (&mGRPSettings) GPUSettingsGRP;
+  param().SetDefaults(&mGRPSettings);
   mMemoryScalers.reset(new GPUMemorySizeScalers);
   for (unsigned int i = 0; i < NSLICES; i++) {
     processors()->tpcTrackers[i].SetSlice(i); // TODO: Move to a better place
@@ -980,15 +980,15 @@ void GPUReconstruction::DumpSettings(const char* dir)
   std::string f;
   f = dir;
   f += "settings.dump";
-  DumpStructToFile(&mEventSettings, f.c_str());
+  DumpStructToFile(&mGRPSettings, f.c_str());
   for (unsigned int i = 0; i < mChains.size(); i++) {
     mChains[i]->DumpSettings(dir);
   }
 }
 
-void GPUReconstruction::UpdateEventSettings(const GPUSettingsEvent* e, const GPUSettingsProcessing* p)
+void GPUReconstruction::UpdateGRPSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p)
 {
-  param().UpdateEventSettings(e, p);
+  param().UpdateGRPSettings(g, p);
   if (mInitialized) {
     WriteConstantParams();
   }
@@ -999,11 +999,11 @@ int GPUReconstruction::ReadSettings(const char* dir)
   std::string f;
   f = dir;
   f += "settings.dump";
-  new (&mEventSettings) GPUSettingsEvent;
-  if (ReadStructFromFile(f.c_str(), &mEventSettings)) {
+  new (&mGRPSettings) GPUSettingsGRP;
+  if (ReadStructFromFile(f.c_str(), &mGRPSettings)) {
     return 1;
   }
-  param().UpdateEventSettings(&mEventSettings);
+  param().UpdateGRPSettings(&mGRPSettings);
   for (unsigned int i = 0; i < mChains.size(); i++) {
     mChains[i]->ReadSettings(dir);
   }
@@ -1015,24 +1015,24 @@ void GPUReconstruction::SetSettings(float solenoidBz, const GPURecoStepConfigura
 #ifdef GPUCA_O2_LIB
   GPUO2InterfaceConfiguration config;
   config.ReadConfigurableParam_internal();
-  if (config.configEvent.solenoidBz <= -1e6f) {
-    config.configEvent.solenoidBz = solenoidBz;
+  if (config.configGRP.solenoidBz <= -1e6f) {
+    config.configGRP.solenoidBz = solenoidBz;
   }
-  SetSettings(&config.configEvent, &config.configReconstruction, &config.configProcessing, workflow);
+  SetSettings(&config.configGRP, &config.configReconstruction, &config.configProcessing, workflow);
 #else
-  GPUSettingsEvent ev;
-  ev.solenoidBz = solenoidBz;
-  SetSettings(&ev, nullptr, nullptr, workflow);
+  GPUSettingsGRP grp;
+  grp.solenoidBz = solenoidBz;
+  SetSettings(&grp, nullptr, nullptr, workflow);
 #endif
 }
 
-void GPUReconstruction::SetSettings(const GPUSettingsEvent* settings, const GPUSettingsRec* rec, const GPUSettingsProcessing* proc, const GPURecoStepConfiguration* workflow)
+void GPUReconstruction::SetSettings(const GPUSettingsGRP* grp, const GPUSettingsRec* rec, const GPUSettingsProcessing* proc, const GPURecoStepConfiguration* workflow)
 {
   if (mInitialized) {
     GPUError("Cannot update settings while initialized");
     throw std::runtime_error("Settings updated while initialized");
   }
-  mEventSettings = *settings;
+  mGRPSettings = *grp;
   if (proc) {
     mProcessingSettings = *proc;
   }
@@ -1042,7 +1042,7 @@ void GPUReconstruction::SetSettings(const GPUSettingsEvent* settings, const GPUS
     mRecoStepsInputs = workflow->inputs;
     mRecoStepsOutputs = workflow->outputs;
   }
-  param().SetDefaults(&mEventSettings, rec, proc, workflow);
+  param().SetDefaults(&mGRPSettings, rec, proc, workflow);
 }
 
 void GPUReconstruction::SetOutputControl(void* ptr, size_t size)

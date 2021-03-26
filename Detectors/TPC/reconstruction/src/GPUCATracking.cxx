@@ -68,7 +68,7 @@ int GPUCATracking::runTracking(GPUO2InterfaceIOPtrs* data, GPUInterfaceOutputs* 
   ptrs.tpcZS = data->tpcZS;
   if (data->o2Digits) {
     const float zsThreshold = mTrackingCAO2Interface->getConfig().configReconstruction.tpcZSthreshold;
-    const int maxContTimeBin = mTrackingCAO2Interface->getConfig().configEvent.continuousMaxTimeBin;
+    const int maxContTimeBin = mTrackingCAO2Interface->getConfig().configGRP.continuousMaxTimeBin;
     for (int i = 0; i < Sector::MAXSECTOR; i++) {
       const auto& d = (*(data->o2Digits))[i];
       if (zsThreshold > 0 && data->tpcZS == nullptr) {
