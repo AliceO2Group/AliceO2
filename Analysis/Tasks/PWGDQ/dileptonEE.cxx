@@ -446,10 +446,10 @@ struct EventMixing {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<EventSelection>(cfgc, TaskName{"my-event-selection"}),
-    adaptAnalysisTask<BarrelTrackSelection>(cfgc, TaskName{"barrel-track-selection"}),
-    adaptAnalysisTask<DileptonEE>(cfgc, TaskName{"dilepton-ee"}),
-    adaptAnalysisTask<EventMixing>(cfgc, TaskName{"event-mixing"}),
+    adaptAnalysisTask<EventSelection>(cfgc),
+    adaptAnalysisTask<BarrelTrackSelection>(cfgc),
+    adaptAnalysisTask<DileptonEE>(cfgc),
+    adaptAnalysisTask<EventMixing>(cfgc),
 
   };
 }
