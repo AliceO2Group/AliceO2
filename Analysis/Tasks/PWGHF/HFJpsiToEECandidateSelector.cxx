@@ -38,7 +38,7 @@ struct HFJpsiToEECandidateSelector {
 
   Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 70., "Lower bound of TPC findable clusters for good PID"};
   Configurable<double> d_nSigmaTPC{"d_nSigmaTPC", 3., "Nsigma cut on TPC only"};
-  Configurable<std::vector<double>> ptBins{"ptBins", std::vector<double>{hf_cuts_jpsi_toee::pTBins_v}, "pT bin limits"};
+  Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_jpsi_toee::pTBins_v}, "pT bin limits"};
   Configurable<LabeledArray<double>> cuts{"Jpsi_to_ee_cuts", {hf_cuts_jpsi_toee::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "Jpsi candidate selection per pT bin"};
 
   /// Selection on goodness of daughter tracks
@@ -63,7 +63,7 @@ struct HFJpsiToEECandidateSelector {
   bool selectionTopol(const T1& hfCandProng2, const T2& trackPositron, const T2& trackElectron)
   {
     auto candpT = hfCandProng2.pt();
-    auto pTBin = findBin(ptBins, candpT);
+    auto pTBin = findBin(pTBins, candpT);
     if (pTBin == -1) {
       return false;
     }
