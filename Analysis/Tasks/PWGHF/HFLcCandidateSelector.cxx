@@ -46,7 +46,7 @@ struct HFLcCandidateSelector {
   Configurable<double> d_nSigmaTOF{"d_nSigmaTOF", 3., "Nsigma cut on TOF only"};
   Configurable<double> d_nSigmaTOFCombined{"d_nSigmaTOFCombined", 5., "Nsigma cut on TOF combined with TPC"};
 
-  Configurable<std::vector<double>> ptBins{"ptBins", std::vector<double>{hf_cuts_lc_topkpi::pTBins_v}, "pT bin limits"};
+  Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_lc_topkpi::pTBins_v}, "pT bin limits"};
   Configurable<LabeledArray<double>> cuts{"Lc_to_p_K_pi_cuts", {hf_cuts_lc_topkpi::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "Lc candidate selection per pT bin"};
 
   /// Selection on goodness of daughter tracks
@@ -73,7 +73,7 @@ struct HFLcCandidateSelector {
   {
     auto candpT = hfCandProng3.pt();
 
-    int pTBin = findBin(ptBins, candpT);
+    int pTBin = findBin(pTBins, candpT);
     if (pTBin == -1) {
       return false;
     }
@@ -107,7 +107,7 @@ struct HFLcCandidateSelector {
   {
 
     auto candpT = hfCandProng3.pt();
-    int pTBin = findBin(ptBins, candpT);
+    int pTBin = findBin(pTBins, candpT);
     if (pTBin == -1) {
       return false;
     }

@@ -44,7 +44,7 @@ struct HFDplusToPiKPiCandidateSelector {
   Configurable<double> d_nSigmaTPC{"d_nSigmaTPC", 3., "Nsigma cut on TPC"};
   Configurable<double> d_nSigmaTOF{"d_nSigmaTOF", 3., "Nsigma cut on TOF"};
 
-  Configurable<std::vector<double>> ptBins{"ptBins", std::vector<double>{hf_cuts_dplus_topikpi::pTBins_v}, "pT bin limits"};
+  Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_dplus_topikpi::pTBins_v}, "pT bin limits"};
   Configurable<LabeledArray<double>> cuts{"DPlus_to_Pi_K_Pi_cuts", {hf_cuts_dplus_topikpi::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "Dplus candidate selection per pT bin"};
 
   /// Selection on goodness of daughter tracks
@@ -70,7 +70,7 @@ struct HFDplusToPiKPiCandidateSelector {
   bool selection(const T1& hfCandProng3, const T2& trackPion1, const T2& trackKaon, const T2& trackPion2)
   {
     auto candpT = hfCandProng3.pt();
-    int pTBin = findBin(ptBins, candpT);
+    int pTBin = findBin(pTBins, candpT);
     if (pTBin == -1) {
       return false;
     }
