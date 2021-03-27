@@ -30,7 +30,7 @@ class Digit
  public:
   Digit() = default;
 
-  Digit(int detid, int pad, unsigned long adc, int32_t time, uint16_t nSamples = 1);
+  Digit(int detid, int pad, uint32_t adc, int32_t time, uint16_t nSamples = 1);
   ~Digit() = default;
 
   bool operator==(const Digit&) const;
@@ -50,17 +50,17 @@ class Digit
   int getPadID() const { return mPadID; }
   void setPadID(int padID) { mPadID = padID; }
 
-  unsigned long getADC() const { return mADC; }
-  void setADC(unsigned long adc) { mADC = adc; }
+  uint32_t getADC() const { return mADC; }
+  void setADC(uint32_t adc) { mADC = adc; }
 
  private:
   int32_t mTFtime;      /// time since the beginning of the time frame, in bunch crossing units
   uint16_t mNofSamples; /// number of samples in the signal
   int mDetID;           /// ID of the Detection Element to which the digit corresponds to
   int mPadID;           /// PadIndex to which the digit corresponds to
-  unsigned long mADC;   /// Amplitude of signal
+  uint32_t mADC;        /// Amplitude of signal
 
-  ClassDefNV(Digit, 2);
+  ClassDefNV(Digit, 3);
 }; //class Digit
 
 } //namespace mch
