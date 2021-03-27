@@ -17,7 +17,7 @@ using namespace o2::ctp;
 
 ClassImp(Digitizer);
 
-void Digitizer::process(CTPDigit digit,std::vector<o2::ctp::CTPDigit>& digits)
+void Digitizer::process(CTPDigit digit, std::vector<o2::ctp::CTPDigit>& digits)
 {
   //digit.mIntRecord = mIntRecord;
   // Dummy inputs and classes
@@ -37,5 +37,5 @@ void Digitizer::storeBC(const o2::ctp::CTPDigit& cashe, std::vector<o2::ctp::CTP
 }
 void Digitizer::init()
 {
-    LOG(INFO) << " @@@ CTP Digitizer::init. Nothing done. " << std::endl;
+  LOG(INFO) << " @@@ CTP Digitizer::init. Nothing done. " << std::endl;
 }

@@ -29,6 +29,7 @@ class Digitizer
   void flush(std::vector<o2::ctp::CTPDigit>& digits);
   void storeBC(const o2::ctp::CTPDigit& cashe, std::vector<o2::ctp::CTPDigit>& digits);
   void init();
+
  private:
   Int_t mEventID;
   o2::InteractionRecord firstBCinDeque{};

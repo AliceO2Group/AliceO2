@@ -21,9 +21,8 @@ namespace o2
 {
 namespace ctp
 {
-    framework::DataProcessorSpec getCTPDigitWriterSpec(bool raw = true);
+framework::DataProcessorSpec getCTPDigitWriterSpec(bool raw = true);
 }
-}
-
+} // namespace o2
 
 #endif //O2_CTPDIGITWRITERSPEC_H

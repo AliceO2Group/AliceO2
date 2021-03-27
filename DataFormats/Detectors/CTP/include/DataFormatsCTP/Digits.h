@@ -32,21 +32,21 @@ struct CTPRawData {
   void printStream(std::ostream& stream) const;
   ClassDefNV(CTPRawData, 1);
 };
-struct CTPInputDigit{
-    std::bitset<MAXCTPL0PERDET> mInputsMask;
-    std::int32_t mDetector;
-    CTPInputDigit() = default;
-    CTPInputDigit(std::bitset<MAXCTPL0PERDET> InputsMask, uint32_t DetID)
-    {
-        mInputsMask = InputsMask;
-        mDetector=DetID;
-    }
+struct CTPInputDigit {
+  std::bitset<MAXCTPL0PERDET> mInputsMask;
+  std::int32_t mDetector;
+  CTPInputDigit() = default;
+  CTPInputDigit(std::bitset<MAXCTPL0PERDET> InputsMask, uint32_t DetID)
+  {
+    mInputsMask = InputsMask;
+    mDetector = DetID;
+  }
 };
-struct CTPDigit{
-    o2::InteractionRecord mIntRecord;
-    std::vector<CTPInputDigit> mInputs;
-    CTPDigit() = default;
-    ClassDefNV(CTPDigit,1);
+struct CTPDigit {
+  o2::InteractionRecord mIntRecord;
+  std::vector<CTPInputDigit> mInputs;
+  CTPDigit() = default;
+  ClassDefNV(CTPDigit, 1);
 };
 } // namespace ctp
 } // namespace o2
