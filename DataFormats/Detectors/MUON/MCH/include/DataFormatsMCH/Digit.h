@@ -60,7 +60,7 @@ class Digit
   int mPadID;           /// PadIndex to which the digit corresponds to
   uint32_t mADC;        /// Amplitude of signal
 
-  ClassDefNV(Digit, 2);
+  ClassDefNV(Digit, 3);
 }; //class Digit
 
 } //namespace mch
