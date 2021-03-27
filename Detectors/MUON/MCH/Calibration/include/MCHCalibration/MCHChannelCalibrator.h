@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file MCHChannelCalibrator.h
-/// \brief Transitional compatibility header 
+/// \brief Transitional compatibility header
 ///
 /// \author Andrea Ferrero
 
