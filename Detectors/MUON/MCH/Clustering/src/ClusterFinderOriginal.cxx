@@ -19,6 +19,7 @@
 #include "MCHClustering/ClusterFinderOriginal.h"
 
 #include <algorithm>
+#include <cstring>
 #include <iterator>
 #include <limits>
 #include <numeric>
@@ -174,7 +175,9 @@ void ClusterFinderOriginal::resetPreCluster(gsl::span<const Digit>& digits)
     double y = mSegmentation->padPositionY(padID);
     double dx = mSegmentation->padSizeX(padID) / 2.;
     double dy = mSegmentation->padSizeY(padID) / 2.;
-    double charge = static_cast<double>(digit.getADC()) / static_cast<double>(std::numeric_limits<unsigned long>::max()) * 1024;
+    uint32_t adc = digit.getADC();
+    float charge(0.);
+    std::memcpy(&charge, &adc, sizeof(adc));
     bool isSaturated = digit.isSaturated();
     int plane = mSegmentation->isBendingPad(padID) ? 0 : 1;
 
