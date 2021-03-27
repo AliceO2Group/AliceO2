@@ -30,7 +30,7 @@ o2::framework::DataProcessorSpec getCTPDigitWriterSpec(bool mctruth)
   return MakeRootTreeWriterSpec("CTPDigitWriter",
                                 "ctpdigits.root",
                                 "o2sim",
-                                BranchDefinition<std::vector<o2::ctp::CTPDigit>>{InputSpec{"digit", "CTP", "DIGITSBC"}, "CTPDIGITSBC"})();
+                                BranchDefinition<std::vector<o2::ctp::CTPRawData>>{InputSpec{"digitBC", "CTP", "DIGITSBC"}, "CTPDIGITSBC"})();
 }
 
 } // namespace ctp

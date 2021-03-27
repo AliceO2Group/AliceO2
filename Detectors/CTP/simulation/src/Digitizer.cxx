@@ -11,19 +11,19 @@
 #include "CTPSimulation/Digitizer.h"
 #include "TRandom.h"
 #include <cassert>
+#include "FairLogger.h"
 
 using namespace o2::ctp;
 
 ClassImp(Digitizer);
 
-void Digitizer::process(std::vector<o2::ctp::CTPDigit>& digits)
+void Digitizer::process(CTPDigit digit,std::vector<o2::ctp::CTPDigit>& digits)
 {
-  CTPDigit digit;
-  digit.mIntRecord = mIntRecord;
+  //digit.mIntRecord = mIntRecord;
   // Dummy inputs and classes
-  TRandom rnd;
-  digit.mCTPInputMask = (rnd.Integer(0xffffffff));
-  digit.mCTPClassMask = (rnd.Integer(0xffffffff));
+  //TRandom rnd;
+  //digit.mCTPInputMask = (rnd.Integer(0xffffffff));
+  //digit.mCTPClassMask = (rnd.Integer(0xffffffff));
   mCache.push_back(digit);
 }
 void Digitizer::flush(std::vector<o2::ctp::CTPDigit>& digits)
@@ -34,4 +34,8 @@ void Digitizer::flush(std::vector<o2::ctp::CTPDigit>& digits)
 void Digitizer::storeBC(const o2::ctp::CTPDigit& cashe, std::vector<o2::ctp::CTPDigit>& digits)
 {
   digits.push_back(cashe);
+}
+void Digitizer::init()
+{
+    LOG(INFO) << " @@@ CTP Digitizer::init. Nothing done. " << std::endl;
 }

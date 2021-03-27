@@ -12,13 +12,14 @@
 #define STEER_DIGITIZERWORKFLOW_CTPDIGITIZER_H_
 
 #include "Framework/DataProcessorSpec.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 
 namespace o2
 {
 namespace ctp
 {
 
-o2::framework::DataProcessorSpec getCTPDigitizerSpec(int channel, bool mctruth = true);
+o2::framework::DataProcessorSpec getCTPDigitizerSpec(int channel, std::vector<o2::detectors::DetID>& detList, bool mctruth = true);
 
 } // namespace ctp
 } // end namespace o2

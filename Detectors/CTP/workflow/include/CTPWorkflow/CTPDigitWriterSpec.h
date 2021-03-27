@@ -8,13 +8,22 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#ifndef O2_CTPDIGITWRITERSPEC_H
+#define O2_CTPDIGITWRITERSPEC_H
+
+#include "Framework/DataProcessorSpec.h"
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
+#include "Framework/InputSpec.h"
 #include "DataFormatsCTP/Digits.h"
-#include <iostream>
 
-using namespace o2::ctp;
-
-void CTPRawData::printStream(std::ostream& stream) const
+using namespace o2::framework;
+namespace o2
 {
-  stream << "CTP Digit:  BC " << mIntRecord.bc << " orbit " << mIntRecord.orbit << std::endl;
-  stream << "Input Mask: " << mCTPInputMask << " Class Mask:  " << mCTPClassMask << std::endl;
+namespace ctp
+{
+    framework::DataProcessorSpec getCTPDigitWriterSpec(bool raw = true);
 }
+}
+
+
+#endif //O2_CTPDIGITWRITERSPEC_H

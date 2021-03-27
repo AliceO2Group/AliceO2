@@ -601,7 +601,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (isEnabled(o2::detectors::DetID::CTP)) {
     detList.emplace_back(o2::detectors::DetID::CTP);
     // connect the CTP digitization
-    specs.emplace_back(o2::ctp::getCTPDigitizerSpec(fanoutsize++, mctruth));
+    specs.emplace_back(o2::ctp::getCTPDigitizerSpec(fanoutsize++, detList));
     // connect the CTP digit writer
     specs.emplace_back(o2::ctp::getCTPDigitWriterSpec(mctruth));
   }
