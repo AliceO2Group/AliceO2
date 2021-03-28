@@ -140,7 +140,6 @@ void CosmicsMatchingSpec::endOfStream(EndOfStreamContext& ec)
 DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC)
 {
 
-  std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
 
   dataRequestCosm.requestTracks(src, useMC);

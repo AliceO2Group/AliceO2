@@ -7,7 +7,7 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
-
+add_compile_options(-O0 -g -fPIC)
 o2_add_library(
   GlobalTracking
   SOURCES src/MatchTPCITS.cxx src/MatchTOF.cxx
@@ -36,5 +36,5 @@ o2_add_library(
 
 o2_target_root_dictionary(
   GlobalTracking
-  HEADERS include/GlobalTracking/MatchTPCITS.h include/GlobalTracking/MatchTPCITSParams.h
+  HEADERS include/GlobalTracking/MatchTPCITSParams.h
           include/GlobalTracking/MatchTOF.h include/GlobalTracking/MatchCosmics.h include/GlobalTracking/MatchCosmicsParams.h)

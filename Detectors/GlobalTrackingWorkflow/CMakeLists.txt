@@ -13,7 +13,6 @@
 o2_add_library(GlobalTrackingWorkflow
                SOURCES src/TrackWriterTPCITSSpec.cxx
                        src/TPCITSMatchingSpec.cxx
-                       src/MatchTPCITSWorkflow.cxx
                        src/PrimaryVertexingSpec.cxx
                        src/PrimaryVertexWriterSpec.cxx
                        src/VertexTrackMatcherSpec.cxx
