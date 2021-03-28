@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TrackTPCITS.h
+/// \file TrackCosmics.h
 /// \brief Result of top-bottom cosmic tracks leg matching
 /// \author ruben.shahoyan@cern.ch
 
