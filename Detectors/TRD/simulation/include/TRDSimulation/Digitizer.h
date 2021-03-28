@@ -18,6 +18,9 @@
 #include "TRDBase/MCLabel.h"
 #include "TRDBase/CommonParam.h"
 #include "TRDBase/DiffAndTimeStructEstimator.h"
+#include "TRDSimulation/PileupTool.h"
+
+#include "DataFormatsTRD/ADCArray.h"
 #include "DataFormatsTRD/Constants.h"
 
 #include "MathUtils/RandomRing.h"
@@ -38,16 +41,6 @@ class SimParam;
 class PadPlane;
 class TRDArraySignal;
 class PadResponse;
-
-struct SignalArray {
-  double firstTBtime;                               // first TB time
-  std::array<float, constants::TIMEBINS> signals{}; // signals
-  std::unordered_map<int, int> trackIds;            // tracks Ids associated to the signal
-  std::vector<MCLabel> labels;                      // labels associated to the signal
-  bool isDigit = false;                             // flag a signal converted to a digit
-  bool isShared = false;                            // flag if converted digit is shared (copied)
-                                                    // if that is the case, also the labels have to be copied
-};
 
 using DigitContainer = std::vector<Digit>;
 using SignalContainer = std::unordered_map<int, SignalArray>;
@@ -73,17 +66,13 @@ class Digitizer
   int getSrcID() const { return mSrcID; }
   bool getCreateSharedDigits() const { return mCreateSharedDigits; }
 
-  // Trigger parameters
-  static constexpr double READOUT_TIME = 3000;                  // the time the readout takes, as 30 TB = 3 micro-s.
-  static constexpr double DEAD_TIME = 200;                      // trigger deadtime, 2 micro-s
-  static constexpr double BUSY_TIME = READOUT_TIME + DEAD_TIME; // the time for which no new trigger can be received in nanoseconds
-
  private:
   Geometry* mGeo = nullptr;               // access to Geometry
   PadResponse* mPRF = nullptr;            // access to PadResponse
   SimParam* mSimParam = nullptr;          // access to SimParam instance
   CommonParam* mCommonParam = nullptr;    // access to CommonParam instance
   Calibrations* mCalib = nullptr;         // access to Calibrations in CCDB
+  PileupTool pileupTool;
 
   // number of digitizer threads
   int mNumThreads = 1;

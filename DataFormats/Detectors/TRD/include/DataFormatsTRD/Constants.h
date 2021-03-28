@@ -56,6 +56,11 @@ constexpr float GRANULARITYTRKLSLOPE = 1.f / PADGRANULARITYTRKLSLOPE; // granula
 // OS: Should this not be flexible for example in case of Kr calib?
 constexpr int TIMEBINS = 30; // the number of time bins
 
+// Trigger parameters
+constexpr double READOUT_TIME = 3000;                  // the time the readout takes, as 30 TB = 3 micro-s.
+constexpr double DEAD_TIME = 200;                      // trigger deadtime, 2 micro-s
+constexpr double BUSY_TIME = READOUT_TIME + DEAD_TIME; // the time for which no new trigger can be received in nanoseconds
+
 } //namespace constants
 } // namespace trd
 } // namespace o2
