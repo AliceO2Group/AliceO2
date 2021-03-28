@@ -16,11 +16,10 @@
 #include "DetectorsCalibration/Utils.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "FITCalibration/FITCalibrationApi.h"
-#include "FITCalibration/FITObjectViewer.h"
 #include "Rtypes.h"
 #include "FITCalibration/FITCalibrationAlgorithmGetter.h"
 
-namespace o2::calibration::fit
+namespace o2::fit
 {
 
 
@@ -29,8 +28,6 @@ class FITCalibrator final : public o2::calibration::TimeSlotCalibration<InputCal
 {
 
   static constexpr unsigned int DEFAULT_MIN_ENTRIES = 10000;
-  static constexpr unsigned int DEFAULT_TIME_GUARD_IN_SEC = 600;
-  static constexpr unsigned int TEST_TIME_GUARD_IN_SEC = 3;
   static constexpr bool DEFAULT_TEST_MODE = true;
 
   using TFType = uint64_t;
@@ -54,16 +51,10 @@ class FITCalibrator final : public o2::calibration::TimeSlotCalibration<InputCal
   [[nodiscard]] const std::vector<o2::ccdb::CcdbObjectInfo>& getCalibrationInfoVector() const { return mInfoVector; }
   [[nodiscard]] std::vector<o2::ccdb::CcdbObjectInfo>& getCalibrationInfoVector() { return mInfoVector; }
 
-  [[nodiscard]] const std::vector<std::shared_ptr<TObject>>& getViewObjects() const { return mObjectViewer->getObjectsVector(); }
-  [[nodiscard]] const std::vector<o2::ccdb::CcdbObjectInfo>& getViewInfoObjects() const { return mObjectViewer->getInfoVector(); }
-  [[nodiscard]] std::vector<o2::ccdb::CcdbObjectInfo>& getViewInfoObjects() { return mObjectViewer->getInfoVector(); }
 
  private:
-  [[nodiscard]] bool _isTestModeActive() const { return mTestMode; }
   void _storeCurrentCalibrationObject(const CalibrationObjectType& calibrationObject);
-  void _generateAndStoreViewObjects(const TimeSlotStorageType& container, const CalibrationObjectType& calibrationObject);
   void _doCalibrationAndUpdatedCalibrationObject(const TimeSlotStorageType& container, CalibrationObjectType& calibrationObject);
-
 
  private:
 
@@ -71,10 +62,7 @@ class FITCalibrator final : public o2::calibration::TimeSlotCalibration<InputCal
   std::vector<CalibrationObjectType> mCalibrationObjectVector;
 
   std::unique_ptr<FITCalibrationApi<CalibrationObjectType>> mCalibApi;
-  std::unique_ptr<FITObjectViewer> mObjectViewer;
   const unsigned int mMinEntries;
-  const bool mTestMode;
-
 
 };
 
@@ -88,12 +76,9 @@ class FITCalibrator final : public o2::calibration::TimeSlotCalibration<InputCal
 FIT_CALIBRATOR_TEMPLATES
 FIT_CALIBRATOR_TYPE::FITCalibrator(uint64_t timeStampOfInitialCalibObject, const std::string& calibrationObjectPath,
                                                                const unsigned int minimumEntries, bool testMode)
-    : mMinEntries(minimumEntries), mTestMode(testMode)
+    : mMinEntries(minimumEntries)
 {
 
-  if(testMode){
-    mObjectViewer = std::make_unique<FITObjectViewer>();
-  }
   mCalibApi = std::make_unique<FITCalibrationApi<CalibrationObjectType>>(calibrationObjectPath);
   mCalibApi->readCalibrationObject(timeStampOfInitialCalibObject);
 
@@ -111,7 +96,6 @@ void FIT_CALIBRATOR_TYPE::initOutput()
 {
   mInfoVector.clear();
   mCalibrationObjectVector.clear();
-  mObjectViewer->clear();
 }
 
 FIT_CALIBRATOR_TEMPLATES
@@ -122,9 +106,9 @@ void FIT_CALIBRATOR_TYPE::finalizeSlot(Slot& slot)
   const auto& container = slot.getContainer();
 
   _doCalibrationAndUpdatedCalibrationObject(*container, calibObject);
-  _generateAndStoreViewObjects(*container, calibObject);
   _storeCurrentCalibrationObject(calibObject);
 
+  container->print();
 }
 
 FIT_CALIBRATOR_TEMPLATES
@@ -134,12 +118,7 @@ typename FIT_CALIBRATOR_TYPE::Slot& FIT_CALIBRATOR_TYPE::emplaceNewSlot(
 
   auto& cont = o2::calibration::TimeSlotCalibration<InputCalibrationInfoType, TimeSlotStorageType>::getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
-  if(_isTestModeActive()){
-    slot.setContainer(std::make_unique<TimeSlotStorageType>(mCalibApi->getCalibrationObject(), mMinEntries, TEST_TIME_GUARD_IN_SEC));
-  }
-  else{
-    slot.setContainer(std::make_unique<TimeSlotStorageType>(mCalibApi->getCalibrationObject(), mMinEntries, DEFAULT_TIME_GUARD_IN_SEC));
-  }
+  slot.setContainer(std::make_unique<TimeSlotStorageType>(mCalibApi->getCalibrationObject(), mMinEntries));
   return slot;
 }
 
@@ -158,14 +137,6 @@ void FIT_CALIBRATOR_TYPE::_storeCurrentCalibrationObject(const CalibrationObject
 }
 
 
-FIT_CALIBRATOR_TEMPLATES
-void FIT_CALIBRATOR_TYPE::_generateAndStoreViewObjects(const TimeSlotStorageType& container, const CalibrationObjectType& calibrationObject)
-{
-
-  if(_isTestModeActive()){
-    mObjectViewer->generateViewObjects(container, calibrationObject);
-  }
-}
 
 FIT_CALIBRATOR_TEMPLATES
 void FIT_CALIBRATOR_TYPE::_doCalibrationAndUpdatedCalibrationObject(const TimeSlotStorageType& container, CalibrationObjectType& calibrationObject)

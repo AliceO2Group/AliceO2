@@ -19,7 +19,7 @@
 #include "Rtypes.h"
 
 
-namespace o2::calibration::fit
+namespace o2::fit
 {
 
 
@@ -81,8 +81,6 @@ CalibrationObjectType& FITCalibrationApi<CalibrationObjectType>::getCalibrationO
   _checkIfObjectWasSuccessfullyRead();
   return *mCalibrationObject;
 }
-
-
 
 
 

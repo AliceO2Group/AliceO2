@@ -24,14 +24,10 @@ int makeDummyFT0CalibObjectInCCDB(const std::string url = "http://localhost:8080
   api.init(url); // or http://localhost:8080 for a local installation
   std::map<std::string, std::string> md;
 
-  o2::calibration::fit::FT0CalibrationObject calibObject;
-  for(auto& offset : calibObject.mChannelOffsets){
-    offset = 0;
-  }
+  o2::ft0::FT0CalibrationObject calibObject;
   api.storeAsTFileAny(&calibObject, OBJECT_PATH, md, 0);
 
-  o2::calibration::fit::FT0CalibrationObject* testCalibObject = nullptr;
-  testCalibObject = api.retrieveFromTFileAny<o2::calibration::fit::FT0CalibrationObject>(OBJECT_PATH, md, 0);
+  const auto testCalibObject = api.retrieveFromTFileAny<o2::ft0::FT0CalibrationObject>(OBJECT_PATH, md, 0);
   if(testCalibObject){
     for(unsigned int i = 0; i < 208; ++i){
       if(calibObject.mChannelOffsets[i] != testCalibObject->mChannelOffsets[i]){

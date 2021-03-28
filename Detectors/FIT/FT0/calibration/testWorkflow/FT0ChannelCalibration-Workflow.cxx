@@ -8,11 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
+#include "FT0Calibration/FT0CalibrationInfoObject.h"
 #include "FITCalibration/FITCalibrationDevice.h"
+#include "FT0Calibration/FT0ChannelDataTimeSlotContainer.h"
+#include "FT0Calibration/FT0CalibrationObject.h"
 
-
-using namespace o2::calibration::fit;
+using namespace o2::fit;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
@@ -27,8 +28,8 @@ using namespace o2::framework;
 WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
 
-  using CalibrationDeviceType = o2::calibration::fit::FITCalibrationDevice<o2::calibration::fit::FT0CalibrationInfoObject,
-    o2::calibration::fit::FT0ChannelDataTimeSlotContainer, o2::calibration::fit::FT0CalibrationObject>;
+  using CalibrationDeviceType = o2::fit::FITCalibrationDevice<o2::ft0::FT0CalibrationInfoObject,
+    o2::ft0::FT0ChannelDataTimeSlotContainer, o2::ft0::FT0CalibrationObject>;
 
 
   auto initialTimestamp = config.options().get<int>("initialTimestamp");

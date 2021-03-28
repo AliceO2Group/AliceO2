@@ -12,37 +12,37 @@
 #include <numeric>
 #include <algorithm>
 
-using namespace o2::calibration::fit;
-
-uint64_t FT0ChannelDataTimeSlotContainer::instanceCounter = 0;
+using namespace o2::ft0;
 
 FT0ChannelDataTimeSlotContainer::FT0ChannelDataTimeSlotContainer(const FT0CalibrationObject& calibObject,
-                                                                 std::size_t minEntries, std::size_t additionalTimeGuard)
-  : mCalibrationObject(calibObject), mMinEntries(minEntries), mCreationTimestamp(std::chrono::system_clock::now()),
-    mAdditionalTimeGuardInSec(additionalTimeGuard)
+                                                                 std::size_t minEntries)
+  : mCalibrationObject(calibObject), mMinEntries(minEntries), mCreationTimestamp(std::chrono::system_clock::now())
 {
 
-  mChannelsTimeHistogram = std::make_shared<TH2I>((std::string("Channels_time_histogram") + std::to_string(instanceCounter)).c_str(),
-                                                  "Channels_time_histogram",
-                                                  NUMBER_OF_HISTOGRAM_BINS, -HISTOGRAM_RANGE, HISTOGRAM_RANGE,
-                                                  o2::ft0::Nchannels_FT0, 0, o2::ft0::Nchannels_FT0 - 1);
-  mEntriesPerChannel.fill(0);
-  ++instanceCounter;
+  mHistogram = boost::histogram::make_histogram(boost::histogram::axis::regular<>(NUMBER_OF_HISTOGRAM_BINS, -HISTOGRAM_RANGE, HISTOGRAM_RANGE),
+                                   boost::histogram::axis::integer<>(0, o2::ft0::Nchannels_FT0));
 }
+
+
 
 
 bool FT0ChannelDataTimeSlotContainer::hasEnoughEntries() const
 {
 
+  if constexpr (!TEST_MODE)
+  {
+    //we have test data only for 8 channels
 
-  auto min_elem = std::min_element(mEntriesPerChannel.begin(), mEntriesPerChannel.end());
-  if(*min_elem > mMinEntries){
-    return true;
+    auto min_elem = std::min_element(mEntriesPerChannel.begin(), mEntriesPerChannel.end());
+    if(*min_elem > mMinEntries){
+      return true;
+    }
+    return false;
   }
-
-// additional time guard?
-  return std::chrono::duration_cast<std::chrono::seconds>
-           (std::chrono::system_clock::now() - mCreationTimestamp).count() > mAdditionalTimeGuardInSec;
+  else{
+    return std::chrono::duration_cast<std::chrono::seconds>
+             (std::chrono::system_clock::now() - mCreationTimestamp).count() > TIMER_FOR_TEST_MODE;
+  }
 
 }
 void FT0ChannelDataTimeSlotContainer::fill(const gsl::span<const FT0CalibrationInfoObject>& data)
@@ -50,13 +50,12 @@ void FT0ChannelDataTimeSlotContainer::fill(const gsl::span<const FT0CalibrationI
 
   for(auto& entry : data){
 
-    const auto& chID = entry.getChannelIndex();
-    const auto& chTime = entry.getTime();
+    const auto chID = entry.getChannelIndex();
+    const auto chTime = entry.getTime();
 
-    //we should add those dummy values as constexpr in dataformatsFT0
     //i dont really know when should it be marked as invalid
     if(o2::ft0::ChannelData::DUMMY_CHANNEL_ID != chID && o2::ft0::ChannelData::DUMMY_CFD_TIME != chTime){
-      mChannelsTimeHistogram->Fill(chTime + mCalibrationObject.mChannelOffsets[chID], chID);
+      mHistogram(chTime + mCalibrationObject.mChannelOffsets[chID], chID);
       ++mEntriesPerChannel[chID];
     }
     else{
@@ -68,45 +67,34 @@ void FT0ChannelDataTimeSlotContainer::fill(const gsl::span<const FT0CalibrationI
 void FT0ChannelDataTimeSlotContainer::merge(FT0ChannelDataTimeSlotContainer* prev)
 {
 
-  mChannelsTimeHistogram->Add(prev->mChannelsTimeHistogram.get());
+  mHistogram += prev->mHistogram;
   for(unsigned int iCh = 0; iCh < o2::ft0::Nchannels_FT0; ++iCh){
     mEntriesPerChannel[iCh] += prev->mEntriesPerChannel[iCh];
   }
-  mCreationTimestamp = prev->mCreationTimestamp;
 
+  //will be deleted
+  mCreationTimestamp = prev->mCreationTimestamp;
 }
 
 int16_t FT0ChannelDataTimeSlotContainer::getAverageTimeForChannel(std::size_t channelID) const
 {
-
-    std::unique_ptr<TH1> projectionX(mChannelsTimeHistogram->ProjectionX("", channelID + 1, channelID + 1));
-    return projectionX->GetMean();
+    double avg = 0.;
+    for (int iBin = 0; iBin < NUMBER_OF_HISTOGRAM_BINS; ++iBin) {
+      const auto& v = mHistogram.at(iBin, channelID);
+      avg += v * (iBin - HISTOGRAM_RANGE);
+    }
+    return avg / mEntriesPerChannel[channelID];
 }
-
-std::pair<o2::ccdb::CcdbObjectInfo, std::shared_ptr<TH1>> FT0ChannelDataTimeSlotContainerViewer::
-  generateHistogramForValidChannels(const FT0ChannelDataTimeSlotContainer& obj)
+void FT0ChannelDataTimeSlotContainer::print() const
 {
-  std::map<std::string, std::string> metadata;
-  auto histogram = std::shared_ptr<TH1>( obj.getChannelsTimeHistogram()->ProjectionX() );
+  //Not a great place for printing calib object, but its temp until view workflow will be ready
 
-  auto clName = o2::utils::MemFileHelper::getClassName(*histogram);
-  auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
+  if constexpr (TEST_MODE)
+  {
+    for(unsigned int i = 0; i < o2::ft0::Nchannels_FT0; ++i){
+      LOG(INFO) << "ChID: " << i << " " << mCalibrationObject.mChannelOffsets[i];
+    }
+  }
 
-  return {{TIME_HISTOGRAM_PATH, clName, flName, metadata,
-           ccdb::getCurrentTimestamp(), -1}, histogram};
-}
-
-std::pair<o2::ccdb::CcdbObjectInfo, std::shared_ptr<TH2>> FT0ChannelDataTimeSlotContainerViewer::
-generate2DHistogramTimeInFunctionOfChannel(const FT0ChannelDataTimeSlotContainer& obj)
-{
-
-  std::map<std::string, std::string> metadata;
-  auto histogram = std::shared_ptr<TH2>( reinterpret_cast<TH2I*>(obj.getChannelsTimeHistogram()->Clone()) );
-
-  auto clName = o2::utils::MemFileHelper::getClassName(*histogram);
-  auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-
-  return {{TIME_IN_FUNCTION_OF_CHANNEL_HISTOGRAM_PATH, clName, flName, metadata,
-           ccdb::getCurrentTimestamp(), -1}, histogram};
 
 }

@@ -11,11 +11,9 @@
 
 #include "FITCalibration/FITCalibrationAlgorithmGetter.h"
 #include "FairLogger.h"
-#include "FT0Calibration/FT0CalibrationObject.h"
 
 
-
-using namespace o2::calibration::fit;
+using namespace o2::fit;
 
 template <typename CalibrationObjectType, typename TimeSlotContainerType>
 void FITCalibrationAlgorithmGetter::doCalibrationAndUpdateCalibrationObject(CalibrationObjectType& calibrationObject, const TimeSlotContainerType& container)
@@ -24,8 +22,8 @@ void FITCalibrationAlgorithmGetter::doCalibrationAndUpdateCalibrationObject(Cali
 }
 
 template <>
-void FITCalibrationAlgorithmGetter::doCalibrationAndUpdateCalibrationObject<FT0CalibrationObject, FT0ChannelDataTimeSlotContainer>
-  (FT0CalibrationObject& calibrationObject, const FT0ChannelDataTimeSlotContainer& container)
+void FITCalibrationAlgorithmGetter::doCalibrationAndUpdateCalibrationObject<o2::ft0::FT0CalibrationObject, o2::ft0::FT0ChannelDataTimeSlotContainer>
+  (o2::ft0::FT0CalibrationObject& calibrationObject, const o2::ft0::FT0ChannelDataTimeSlotContainer& container)
 {
-  FT0CalibrationObjectAlgorithm::calibrate(calibrationObject, container);
+  o2::ft0::FT0CalibrationObjectAlgorithm::calibrate(calibrationObject, container);
 }

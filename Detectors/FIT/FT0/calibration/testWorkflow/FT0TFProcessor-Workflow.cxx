@@ -20,7 +20,7 @@
 
 using namespace o2::framework;
 
-namespace o2::calibration::fit
+namespace o2::ft0
 {
 
 class FT0TFProcessor final : public o2::framework::Task
@@ -31,7 +31,7 @@ class FT0TFProcessor final : public o2::framework::Task
   {
     auto channels = pc.inputs().get<gsl::span<o2::ft0::ChannelData>>("channels");
     auto digits = pc.inputs().get<gsl::span<o2::ft0::Digit>>("digits");
-    auto& calib_data = pc.outputs().make<std::vector<o2::calibration::fit::FT0CalibrationInfoObject>>(o2::framework::OutputRef{"calib", 0});
+    auto& calib_data = pc.outputs().make<std::vector<o2::ft0::FT0CalibrationInfoObject>>(o2::framework::OutputRef{"calib", 0});
     calib_data.reserve(channels.size());
 
     for (const auto& channel : channels) {
@@ -62,7 +62,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
       Outputs{
         {{"calib"}, "FT0", "CALIB_INFO"}
       },
-      AlgorithmSpec{ adaptFromTask<o2::calibration::fit::FT0TFProcessor>() },
+      AlgorithmSpec{ adaptFromTask<o2::ft0::FT0TFProcessor>() },
       Options{}
     };
 

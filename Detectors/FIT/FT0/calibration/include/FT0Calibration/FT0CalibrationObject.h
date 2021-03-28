@@ -17,37 +17,31 @@
 #include "CommonUtils/MemFileHelper.h"
 #include "TGraph.h"
 
-namespace o2::calibration::fit
+namespace o2::ft0
 {
 
 struct FT0CalibrationObject {
 
-  int overheadToForceValidMemoryMapOfObjectInCCDB;
-  std::array<int16_t, o2::ft0::Nchannels_FT0> mChannelOffsets;
+  std::array<int16_t, o2::ft0::Nchannels_FT0> mChannelOffsets{};
 
  ClassDefNV(FT0CalibrationObject, 1);
 };
 
 class FT0ChannelDataTimeSlotContainer;
 
-class FT0CalibrationObjectViewer
-{
-
-  static constexpr const char* TIME_OFFSETS_TGRAPH = "FT0/CalibrationGraph";
-
- public:
-  static std::pair<o2::ccdb::CcdbObjectInfo, std::shared_ptr<TGraph>>
-    generateTGraphFromOffsetPoints(const FT0CalibrationObject& obj);
-
-};
-
 
 class FT0CalibrationObjectAlgorithm
 {
  public:
   static void calibrate(FT0CalibrationObject& calibrationObject, const FT0ChannelDataTimeSlotContainer& container);
-
 };
+
+
+class FT0CalibrationObjectConverter{
+ public:
+  static std::unique_ptr<TGraph> toTGraph(const FT0CalibrationObject& object);
+};
+
 
 
 

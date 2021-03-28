@@ -10,8 +10,6 @@
 
 o2_add_library(FITCalibration
         SOURCES
-        src/FITObjectViewer.cxx
-        src/FITViewObjectGenerator.cxx
         src/FITCalibrationAlgorithmGetter.cxx
         PUBLIC_LINK_LIBRARIES
         O2::FT0Calibration
@@ -27,8 +25,6 @@ o2_target_root_dictionary(FITCalibration
         HEADERS
         include/FITCalibration/FITCalibrationApi.h
         include/FITCalibration/FITCalibrator.h
-        include/FITCalibration/FITObjectViewer.h
-        include/FITCalibration/FITViewObjectGenerator.h
         include/FITCalibration/FITCalibrationDevice.h
         include/FITCalibration/FITCalibrationAlgorithmGetter.h
         )

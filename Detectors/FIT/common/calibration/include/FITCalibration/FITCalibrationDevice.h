@@ -18,14 +18,14 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
 
-namespace o2::calibration::fit
+namespace o2::fit
 {
 
 template <typename InputCalibrationInfoType, typename TimeSlotStorageType, typename CalibrationObjectType>
 class FITCalibrationDevice : public o2::framework::Task
 {
 
-  static constexpr std::size_t OBJECT_SENDING_FREQUENCY = 5;
+  static constexpr std::size_t OBJECT_SENDING_FREQUENCY = 1;
   using CalibratorType = FITCalibrator<InputCalibrationInfoType, TimeSlotStorageType, CalibrationObjectType>;
 
  public:
@@ -62,7 +62,6 @@ void FIT_CALIBRATION_DEVICE_TYPE::init(o2::framework::InitContext& context)
 {
 
   mCalibrator = std::make_unique<CalibratorType>(mInitialTimestamp, mCalibrationObjectPath.c_str());
-  //maybe add later some TF frame options?
 }
 
 FIT_CALIBRATION_DEVICE_TEMPLATES
@@ -80,6 +79,7 @@ FIT_CALIBRATION_DEVICE_TEMPLATES
 void FIT_CALIBRATION_DEVICE_TYPE::endOfStream(o2::framework::EndOfStreamContext& context)
 {
 
+  //should be finalized even if not enough data?
   mCalibrator->finalizeOldestSlot();
   _sendOutputs(context.outputs());
 }
@@ -109,21 +109,10 @@ void FIT_CALIBRATION_DEVICE_TYPE::_sendOutputs(o2::framework::DataAllocator& out
     outputs.snapshot(o2::framework::Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, i}, w);
   }
 
-  const auto& payloadViewVec = mCalibrator->getViewObjects();
-  auto& infoViewVec = mCalibrator->getViewInfoObjects();
-
-  assert(payloadViewVec.size() == infoViewVec.size());
-
-  for (uint32_t i = 0; i < payloadViewVec.size(); ++i) {
-    auto& w = infoViewVec[i];
-    auto image = o2::ccdb::CcdbApi::createObjectImage(payloadViewVec[i].get(), &w);
-    outputs.snapshot(o2::framework::Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, static_cast<unsigned int>(i + payloadVec.size()) }, *image); // vector<char>
-    outputs.snapshot(o2::framework::Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, static_cast<unsigned int>(i + payloadVec.size())}, w);               // root-serialized
-  }
-
-  if (!payloadVec.empty() || !payloadViewVec.empty()) {
+  if (!payloadVec.empty()) {
     mCalibrator->initOutput();
   }
+
 }
 
 

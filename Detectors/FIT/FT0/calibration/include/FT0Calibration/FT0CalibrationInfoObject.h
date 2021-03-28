@@ -13,7 +13,7 @@
 
 #include "Rtypes.h"
 
-namespace o2::calibration::fit
+namespace o2::ft0
 {
 class FT0CalibrationInfoObject
 {

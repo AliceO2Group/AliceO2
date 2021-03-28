@@ -29,13 +29,6 @@ o2_target_root_dictionary(FT0Calibration
         )
 
 
-o2_add_executable(dummy-ft0-producer
-        COMPONENT_NAME calibration
-        SOURCES testWorkflow/DummyFT0DigitsProducer.cxx
-        PUBLIC_LINK_LIBRARIES O2::Framework
-        O2::DataFormatsFT0
-        )
-
 o2_add_executable(ft0-channel-offset-calibration
         COMPONENT_NAME calibration
         SOURCES testWorkflow/FT0ChannelCalibration-Workflow.cxx
@@ -49,3 +42,10 @@ o2_add_executable(ft0-tf-processor
         PUBLIC_LINK_LIBRARIES
         O2::DataFormatsFT0 O2::FITCalibration
         )
+
+#o2_add_executable(ft0-object-viewer
+#        COMPONENT_NAME calibration
+#        SOURCES testWorkflow/FT0ViewObjectsGenerator-Workflow.cxx
+#        PUBLIC_LINK_LIBRARIES
+#        O2::DataFormatsFT0 O2::FITCalibration
+#        )

@@ -11,6 +11,7 @@
 #ifndef O2_FT0CHANNELDATATIMESLOTCONTAINER_H
 #define O2_FT0CHANNELDATATIMESLOTCONTAINER_H
 
+
 #include <array>
 #include <vector>
 #include <gsl/span>
@@ -22,8 +23,10 @@
 #include "DataFormatsFT0/RawEventData.h"
 #include "Rtypes.h"
 #include "TH2D.h"
+#include <boost/histogram.hpp>
 
-namespace o2::calibration::fit
+
+namespace o2::ft0
 {
 
 class FT0ChannelDataTimeSlotContainer final
@@ -32,56 +35,39 @@ class FT0ChannelDataTimeSlotContainer final
   //ranges to be discussed
   static constexpr int HISTOGRAM_RANGE = 200;
   static constexpr unsigned int NUMBER_OF_HISTOGRAM_BINS = 2 * HISTOGRAM_RANGE;
+  static constexpr bool TEST_MODE = true;
+  static constexpr unsigned int TIMER_FOR_TEST_MODE = 3;
+
+  using BoostHistogramType = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular
+                                                                    <double, boost::use_default, boost::use_default, boost::use_default>,
+                                                                    boost::histogram::axis::integer<>>,
+                                                         boost::histogram::unlimited_storage<std::allocator<char>>>;
+
+
 
  public:
-  explicit FT0ChannelDataTimeSlotContainer(const FT0CalibrationObject& calibrationObject, std::size_t minEntries,
-                                           std::size_t additionalTimeGuard);
+  explicit FT0ChannelDataTimeSlotContainer(const FT0CalibrationObject& calibrationObject, std::size_t minEntries);
   [[nodiscard]] bool hasEnoughEntries() const;
   void fill(const gsl::span<const FT0CalibrationInfoObject>& data);
   [[nodiscard]] int16_t getAverageTimeForChannel(std::size_t channelID) const;
-  [[nodiscard]] const std::shared_ptr<TH2I>& getChannelsTimeHistogram() const { return mChannelsTimeHistogram; }
-
   void merge(FT0ChannelDataTimeSlotContainer* prev);
-
-  //we have object in ccdb to visualise calib object, can be empty for now
-  void print() const {}
+  void print() const;
 
 
  private:
 
-  //Needed to avoid warnings about the same names of the histograms...
-  static uint64_t instanceCounter;
 
   const FT0CalibrationObject& mCalibrationObject;
   std::chrono::time_point<std::chrono::system_clock> mCreationTimestamp;
   std::size_t mMinEntries;
 
-  std::shared_ptr<TH2I> mChannelsTimeHistogram;
   std::array<uint64_t, o2::ft0::Nchannels_FT0> mEntriesPerChannel{};
-  std::size_t mAdditionalTimeGuardInSec;
+  BoostHistogramType mHistogram;
 
 
  ClassDefNV(FT0ChannelDataTimeSlotContainer, 1);
 
 };
-
-
-class FT0ChannelDataTimeSlotContainerViewer
-{
-
-  static constexpr const char* TIME_HISTOGRAM_PATH = "FT0/CalibrationHistograms";
-  static constexpr const char* TIME_IN_FUNCTION_OF_CHANNEL_HISTOGRAM_PATH = "FT0/2DCalibrationHistograms";
-
- public:
-
-  static std::pair<o2::ccdb::CcdbObjectInfo, std::shared_ptr<TH1>>
-    generateHistogramForValidChannels(const FT0ChannelDataTimeSlotContainer& obj);
-
-  static std::pair<o2::ccdb::CcdbObjectInfo, std::shared_ptr<TH2>>
-    generate2DHistogramTimeInFunctionOfChannel(const FT0ChannelDataTimeSlotContainer& obj);
-
-};
-
 
 }
 
