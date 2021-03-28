@@ -8,22 +8,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   TPCITSMatchingSpec.h
+/// @file   GeomConstants.h
+/// @brief  Some ALICE geometry constants of common interest
 
-#ifndef O2_MATCHING_TPCITS_SPEC
-#define O2_MATCHING_TPCITS_SPEC
+/// @author ruben.shahoyan@cern.ch
 
-
-using namespace o2::framework;
+#ifndef ALICEO2_GEOMCONSTANTS_H_
+#define ALICEO2_GEOMCONSTANTS_H_
 
 namespace o2
 {
-namespace globaltracking
+namespace constants
 {
-/// create a processor spec
-framework::DataProcessorSpec getTPCITSMatchingSpec(bool useFT0, bool calib, bool useMC);
-
-} // namespace globaltracking
+namespace geom
+{
+constexpr float XTPCInnerRef = 83.0;  ///< reference radius at which TPC provides the tracks
+constexpr float XTPCOuterRef = 255.0; ///< reference radius to propagate outer TPC track
+} // namespace geom
+} // namespace constants
 } // namespace o2
 
-#endif /* O2_TRACKWRITER_TPCITS */
+#endif

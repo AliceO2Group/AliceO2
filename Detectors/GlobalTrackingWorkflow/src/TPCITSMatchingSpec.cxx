@@ -12,6 +12,13 @@
 
 #include <vector>
 
+#include "GlobalTracking/MatchTPCITS.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DataFormatsTPC/Constants.h"
+#include "Framework/DataProcessorSpec.h"
+#include "Framework/Task.h"
+#include <string>
+#include "TStopwatch.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "GlobalTrackingWorkflow/TPCITSMatchingSpec.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
@@ -47,6 +54,24 @@ namespace o2
 {
 namespace globaltracking
 {
+
+class TPCITSMatchingDPL : public Task
+{
+ public:
+  TPCITSMatchingDPL(bool useFT0, bool calib, bool useMC) : mUseFT0(useFT0), mCalibMode(calib), mUseMC(useMC) {}
+  ~TPCITSMatchingDPL() override = default;
+  void init(InitContext& ic) final;
+  void run(ProcessingContext& pc) final;
+  void endOfStream(framework::EndOfStreamContext& ec) final;
+
+ private:
+  o2::globaltracking::MatchTPCITS mMatching; // matching engine
+  o2::itsmft::TopologyDictionary mITSDict;   // cluster patterns dictionary
+  bool mUseFT0 = false;
+  bool mCalibMode = false;
+  bool mUseMC = true;
+  TStopwatch mTimer;
+};
 
 void TPCITSMatchingDPL::init(InitContext& ic)
 {

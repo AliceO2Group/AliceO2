@@ -23,6 +23,7 @@
 #include "MathUtils/Utils.h"
 #include "CommonConstants/MathConstants.h"
 #include "CommonConstants/PhysicsConstants.h"
+#include "CommonConstants/GeomConstants.h"
 #include "DetectorsBase/GeometryManager.h"
 
 #include <Math/SMatrix.h>
@@ -34,7 +35,6 @@
 #include "ReconstructionDataFormats/TrackLTIntegral.h"
 
 #include "GlobalTracking/MatchTOF.h"
-#include "GlobalTracking/MatchTPCITS.h"
 
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/ParameterElectronics.h"
@@ -451,7 +451,7 @@ bool MatchTOF::prepareTracks()
     auto& trc = mTracksWork.back().first; // with this we take the TPCITS track propagated to the vertex
     auto& intLT = mLTinfos.back();        // we get the integrated length from TPC-ITC outward propagation
 
-    if (trc.getX() < o2::globaltracking::MatchTPCITS::XTPCOuterRef - 1.) { // tpc-its track outward propagation did not reach outer ref.radius, skip this track
+    if (trc.getX() < o2::constants::geom::XTPCOuterRef - 1.) { // tpc-its track outward propagation did not reach outer ref.radius, skip this track
       nNotPropagatedToTOF++;
       continue;
     }
@@ -604,8 +604,8 @@ bool MatchTOF::prepareTPCTracks()
       continue;
     }
 
-    if (trc.getX() < o2::globaltracking::MatchTPCITS::XTPCOuterRef - 1.) {
-      if (!propagateToRefX(trc, o2::globaltracking::MatchTPCITS::XTPCOuterRef, 10, intLT) || TMath::Abs(trc.getZ()) > Geo::MAXHZTOF) { // we check that the propagation with the cov matrix worked; CHECK: can it happen that it does not if the propagation without the errors succeeded?
+    if (trc.getX() < o2::constants::geom::XTPCOuterRef - 1.) {
+      if (!propagateToRefX(trc, o2::constants::geom::XTPCOuterRef, 10, intLT) || TMath::Abs(trc.getZ()) > Geo::MAXHZTOF) { // we check that the propagation with the cov matrix worked; CHECK: can it happen that it does not if the propagation without the errors succeeded?
         nNotPropagatedToTOF++;
         continue;
       }
@@ -1722,14 +1722,14 @@ bool MatchTOF::makeConstrainedTPCTrack(int matchedID, o2::dataformats::TrackTPCT
   trConstr.setRefMatch(matchedID);
   if (mTPCClusterIdxStruct) { // refit was requested
     float chi2 = 0;
-    mTPCRefitter->setTrackReferenceX(o2::globaltracking::MatchTPCITS::XTPCInnerRef);
+    mTPCRefitter->setTrackReferenceX(o2::constants::geom::XTPCInnerRef);
     if (mTPCRefitter->RefitTrackAsTrackParCov(trConstr, tpcTrOrig.getClusterRef(), timeTOFTB, &chi2, false, true) < 0) { // outward refit after resetting cov.mat.
       LOG(DEBUG) << "Inward Refit failed";
       return false;
     }
     trConstr.setChi2Refit(chi2);
     //
-    mTPCRefitter->setTrackReferenceX(o2::globaltracking::MatchTPCITS::XTPCOuterRef);
+    mTPCRefitter->setTrackReferenceX(o2::constants::geom::XTPCOuterRef);
     if (mTPCRefitter->RefitTrackAsTrackParCov(trConstrOut, tpcTrOrig.getClusterRef(), timeTOFTB, &chi2, true, true) < 0) { // outward refit after resetting cov.mat.
       LOG(DEBUG) << "Outward refit failed";
       return false;

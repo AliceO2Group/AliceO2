@@ -286,8 +286,6 @@ class MatchTPCITS
   MatchTPCITS(); // std::unique_ptr to forward declared type needs constructor / destructor in .cxx
   ~MatchTPCITS();
 
-  static constexpr float XTPCInnerRef = 83.0;                            ///< reference radius at which TPC provides the tracks
-  static constexpr float XTPCOuterRef = 255.0;                           ///< reference radius to propagate outer TPC track
   static constexpr float XMatchingRef = 70.0;                            ///< reference radius to propage tracks for matching
   static constexpr float YMaxAtXMatchingRef = XMatchingRef * 0.17632698; ///< max Y in the sector at reference X
 
