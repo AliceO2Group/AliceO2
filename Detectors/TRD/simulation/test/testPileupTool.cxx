@@ -13,9 +13,9 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
-#include "TRDSimulation/PileupTool.h"
-#include "DataFormatsTRD/ADCArray.h" // for SignalContainer
 #include "DataFormatsTRD/Constants.h"
+#include "DataFormatsTRD/SignalArray.h" // for SignalContainer
+#include "TRDSimulation/PileupTool.h"
 
 namespace o2
 {

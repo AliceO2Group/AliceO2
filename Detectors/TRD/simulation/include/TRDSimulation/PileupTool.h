@@ -11,7 +11,7 @@
 #ifndef ALICEO2_TRD_PILEUPTOOL_H_
 #define ALICEO2_TRD_PILEUPTOOL_H_
 
-#include "DataFormatsTRD/ADCArray.h" // for SignalArray
+#include "DataFormatsTRD/SignalArray.h" // for SignalArray
 #include "DataFormatsTRD/Constants.h"
 
 #include <deque>
