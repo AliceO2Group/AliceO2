@@ -177,6 +177,7 @@ void CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::stri
     curl_easy_setopt(curl, CURLOPT_URL, fullUrl.c_str());
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
     curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 
     curlSetSSLOptions(curl);
 
