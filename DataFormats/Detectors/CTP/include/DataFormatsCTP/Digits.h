@@ -20,33 +20,32 @@ namespace o2
 {
 namespace ctp
 {
-static constexpr uint64_t NCTPINPUTS = 46;
-static constexpr uint64_t NCTPCLASSES = 64;
-static constexpr uint32_t MAXCTPL0PERDET = 5;
+static constexpr uint32_t CTP_NINPUTS = 46;
+static constexpr uint32_t CTP_NCLASSES = 64;
+static constexpr uint32_t CTP_MAXL0PERDET = 5;
+// Positions of CTP Detector inputs in CTPInputMask
+static constexpr std::pair<uint32_t ,std::bitset<CTP_MAXL0PERDET> > CTP_INPUTMASK_FV0(0,0x1f);
+static constexpr std::pair<uint32_t ,std::bitset<CTP_MAXL0PERDET> > CTP_INPUTMASK_FT0(5,0x1f);
 struct CTPRawData {
-
   o2::InteractionRecord mIntRecord;
-  std::bitset<NCTPINPUTS> mCTPInputMask;
-  std::bitset<NCTPCLASSES> mCTPClassMask;
+  std::bitset<CTP_NINPUTS> mCTPInputMask;
+  std::bitset<CTP_NCLASSES> mCTPClassMask;
   CTPRawData() = default;
   void printStream(std::ostream& stream) const;
   ClassDefNV(CTPRawData, 1);
 };
 struct CTPInputDigit {
-  std::bitset<MAXCTPL0PERDET> mInputsMask;
+  o2::InteractionRecord mIntRecord;
+  std::bitset<CTP_MAXL0PERDET> mInputsMask;
   std::int32_t mDetector;
   CTPInputDigit() = default;
-  CTPInputDigit(std::bitset<MAXCTPL0PERDET> InputsMask, uint32_t DetID)
+  CTPInputDigit(o2::InteractionRecord IntRecord, std::bitset<CTP_MAXL0PERDET> InputsMask, uint32_t DetID)
   {
+    mIntRecord = IntRecord;
     mInputsMask = InputsMask;
     mDetector = DetID;
   }
-};
-struct CTPDigit {
-  o2::InteractionRecord mIntRecord;
-  std::vector<CTPInputDigit> mInputs;
-  CTPDigit() = default;
-  ClassDefNV(CTPDigit, 1);
+  ClassDefNV(CTPInputDigit, 1)
 };
 } // namespace ctp
 } // namespace o2

@@ -22,6 +22,7 @@
 #include "DataFormatsFV0/BCData.h"
 
 #include <TStopwatch.h>
+#include <gsl/span>
 
 using namespace o2::framework;
 namespace o2
@@ -41,72 +42,44 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   }
   void run(framework::ProcessingContext& pc)
   {
-    if (mFinished) {
-      return;
-    }
     // read collision context from input
     //auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
     //const bool withQED = context->isQEDProvided();
     //auto& timesview = context->getEventRecords(withQED);
     // read ctp inputs from input
-    auto ft0inputs = pc.inputs().get<std::vector<o2::ft0::DetTrigInput>>("ft0");
-    auto fv0inputs = pc.inputs().get<std::vector<o2::fv0::DetTrigInput>>("fv0");
+    auto ft0inputs = pc.inputs().get<gsl::span<o2::ft0::DetTrigInput>>("ft0");
+    auto fv0inputs = pc.inputs().get<gsl::span<o2::fv0::DetTrigInput>>("fv0");
 
     // if there is nothing to do ... return
     if ((ft0inputs.size() == 0) && (fv0inputs.size() == 0)) {
       return;
     }
-    std::map<o2::InteractionRecord, o2::ctp::CTPDigit> finputs;
+    std::vector<o2::ctp::CTPInputDigit> finputs;
     TStopwatch timer;
     timer.Start();
     LOG(INFO) << "CALLING CTP DIGITIZATION";
-    //for (const auto& coll : timesview) {
-    //  mDigitizer.setInteractionRecord(coll);
-    //  mDigitizer.process(mDigits);
-    //  mDigitizer.flush(mDigits);
-    //}
     for (const auto& inp : ft0inputs) {
-      CTPInputDigit finpdigit;
-      finpdigit.mDetector = o2::detectors::DetID::FT0;
-      finpdigit.mInputsMask = inp.mInputs;
-      CTPDigit fctpdigit;
-      fctpdigit.mIntRecord = inp.mIntRecord;
-      fctpdigit.mInputs.push_back(finpdigit);
-      finputs[inp.mIntRecord] = fctpdigit;
+      CTPInputDigit finpdigit(inp.mIntRecord, inp.mInputs,o2::detectors::DetID::FT0);
+      finputs.emplace_back(finpdigit);
     }
     for (const auto& inp : fv0inputs) {
-      CTPInputDigit finpdigit;
-      finpdigit.mDetector = o2::detectors::DetID::FV0;
-      finpdigit.mInputsMask = inp.mInputs;
-      if (finputs.count(inp.mIntRecord) == 0) {
-        CTPDigit fctpdigit;
-        fctpdigit.mIntRecord = inp.mIntRecord;
-        fctpdigit.mInputs.push_back(finpdigit);
-        finputs[inp.mIntRecord] = fctpdigit;
-      } else {
-        finputs[inp.mIntRecord].mInputs.push_back(finpdigit);
-      }
+        CTPInputDigit finpdigit(inp.mIntRecord, inp.mInputs,o2::detectors::DetID::FT0);
+        finputs.emplace_back(finpdigit);
     }
-    for (const auto& inps : finputs) {
-      mDigitizer.setInteractionRecord(inps.first);
-      mDigitizer.process(inps.second, mDigits);
-      mDigitizer.flush(mDigits);
-    }
+    gsl::span<CTPInputDigit> ginputs(finputs);
+    mDigitizer.process(ginputs,mDigits);
     // send out to next stage
+    LOG(INFO) << "CTP DIGITS being sent.";
     pc.outputs().snapshot(Output{"CTP", "DIGITS", 0, Lifetime::Timeframe}, mDigits);
+    LOG(INFO) << "CTP PRESENT being sent.";
+    pc.outputs().snapshot(Output{"CTP","ROMode",0,Lifetime::Timeframe},mROMode);
     timer.Stop();
     LOG(INFO) << "CTP Digitization took " << timer.CpuTime() << "s";
-    // we should be only called once; tell DPL that this process is ready to exit
-    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-    mFinished = true;
   }
 
  protected:
-  bool mFinished = false;
-  std::vector<o2::ctp::CTPDigit> mDigits;
-
-  Bool_t mContinuous = kFALSE;   ///< flag to do continuous simulation
-  double mFairTimeUnitInNS = 1;  ///< Fair time unit in ns
+  o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::PRESENT;
+  gsl::span<o2::ctp::CTPRawData> mDigits;
   o2::ctp::Digitizer mDigitizer; ///< Digitizer
 };
 o2::framework::DataProcessorSpec getCTPDigitizerSpec(int channel, std::vector<o2::detectors::DetID>& detList, bool mctruth)

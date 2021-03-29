@@ -13,7 +13,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsCTP/Digits.h"
 
-#include <deque>
+#include <gsl/span>
 
 namespace o2
 {
@@ -24,17 +24,11 @@ class Digitizer
  public:
   Digitizer() = default;
   ~Digitizer() = default;
-  void setInteractionRecord(const o2::InteractionRecord& intrec) { mIntRecord = intrec; }
-  void process(CTPDigit digit, std::vector<o2::ctp::CTPDigit>& digits);
-  void flush(std::vector<o2::ctp::CTPDigit>& digits);
-  void storeBC(const o2::ctp::CTPDigit& cashe, std::vector<o2::ctp::CTPDigit>& digits);
+  void process(gsl::span<o2::ctp::CTPInputDigit> digits, gsl::span<o2::ctp::CTPRawData> rawdata);
+  void calculateClassMask(std::vector<const CTPInputDigit*> inputs, std::bitset<CTP_NCLASSES>& classmask);
   void init();
 
  private:
-  Int_t mEventID;
-  o2::InteractionRecord firstBCinDeque{};
-  std::deque<CTPDigit> mCache;
-  o2::InteractionRecord mIntRecord;
   ClassDefNV(Digitizer, 1);
 };
 } // namespace ctp
