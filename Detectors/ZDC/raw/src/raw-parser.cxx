@@ -16,6 +16,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "Headers/DataHeader.h"
+#include "Headers/DataHeaderHelpers.h"
 #include "DataFormatsZDC/RawEventData.h"
 #include "ZDCSimulation/Digits2Raw.h"
 #include "ZDCRaw/DumpRaw.h"
@@ -67,9 +68,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
               if (dh != lastDataHeader) {
                 // print the DataHeader information only for the first part or if we have high verbosity
                 if (loglevel > 1 || dh->splitPayloadIndex == 0) {
-                  rdhprintout << dh->dataOrigin.as<std::string>() << "/"
-                              << dh->dataDescription.as<std::string>() << "/"
-                              << dh->subSpecification << "  ";
+                  rdhprintout << fmt::format("{}/{}/{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification)
+                              << "  ";
                   // at high verbosity print part number, otherwise only the total number of parts
                   if (loglevel > 1) {
                     rdhprintout << "part " + std::to_string(dh->splitPayloadIndex) + " of " + std::to_string(dh->splitPayloadParts);

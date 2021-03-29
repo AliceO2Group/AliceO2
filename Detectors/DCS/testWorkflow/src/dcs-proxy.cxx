@@ -25,6 +25,7 @@
 #include "DCStoDPLconverter.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CcdbApi.h"
+#include "Headers/DataHeaderHelpers.h"
 #include <vector>
 #include <unordered_map>
 #include <regex>

@@ -17,6 +17,7 @@
 #include "Framework/WorkflowSpec.h" // o2::framework::select
 #include "Framework/DataRefUtils.h"
 #include "Headers/DataHeader.h"
+#include "Headers/DataHeaderHelpers.h"
 #include "Headers/Stack.h"
 #include <boost/test/unit_test.hpp>
 #include <vector>
@@ -81,7 +82,7 @@ DataSet createData()
   DataSet::Messages messages;
 
   auto createMessage = [&messages, &checkValues](DataHeader dh) {
-    checkValues.emplace_back(dh.dataOrigin.as<std::string>() + "_" + dh.dataDescription.as<std::string>() + "_" + std::to_string(dh.subSpecification));
+    checkValues.emplace_back(fmt::format("{}_{}_{}", dh.dataOrigin, dh.dataDescription, dh.subSpecification));
     std::string const& data = checkValues.back();
     dh.payloadSize = data.size();
     DataProcessingHeader dph{0, 1};

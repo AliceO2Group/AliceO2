@@ -18,6 +18,7 @@
 #include "Framework/Logger.h"
 #include "DPLUtils/RawParser.h"
 #include "Headers/DataHeader.h"
+#include "Headers/DataHeaderHelpers.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/ZeroSuppressionLinkBased.h"
 #include "DataFormatsTPC/Digit.h"
@@ -140,7 +141,7 @@ o2::framework::DataProcessorSpec getLinkZSToDigitsSpec(int channel, const std::s
 
         processAttributes->activeSectors |= (0x1 << sector);
 
-        LOGP(debug, "Specifier: {}/{}/{}", dh->dataOrigin.as<std::string>(), dh->dataDescription.as<std::string>(), dh->subSpecification);
+        LOGP(debug, "Specifier: {}/{}/{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification);
         LOGP(debug, "Payload size: {}", dh->payloadSize);
         LOGP(debug, "CRU: {}; linkID: {}; dataWrapperID: {}; globalLinkID: {}", cruID, linkID, dataWrapperID, globalLinkID);
 

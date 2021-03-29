@@ -23,6 +23,7 @@
 #include "DPLUtils/RootTreeWriter.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Headers/DataHeader.h"
+#include "Headers/DataHeaderHelpers.h"
 #include "../../Core/test/TestClasses.h"
 #include "Framework/Logger.h"
 #include <TSystem.h>
@@ -195,11 +196,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   auto preprocessor = [](ProcessingContext& ctx) {
     for (auto const& ref : InputRecordWalker(ctx.inputs())) {
       auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      std::cout << "got data: "
-                << dh->dataOrigin.as<std::string>() << "/"
-                << dh->dataDescription.as<std::string>() << "/"
-                << dh->subSpecification << "  "
-                << std::endl;
+      LOGP(INFO, "got data: {}/{}/{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification);
     }
   };
 
