@@ -76,7 +76,8 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,           
                                     int caClusterer = 0,                          //
                                     int zsOnTheFly = 0,
                                     int zs10bit = 0,
-                                    float zsThreshold = 2.0f);
+                                    float zsThreshold = 2.0f,
+                                    bool askDISTSTF = true);
 
 static inline framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,             //
                                                   std::vector<int> const& tpcSectors,           //
@@ -86,12 +87,13 @@ static inline framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyDa
                                                   int caClusterer = 0,                          //
                                                   int zsOnTheFly = 0,
                                                   int zs10bit = 0,
-                                                  float zsThreshold = 2.0f)
+                                                  float zsThreshold = 2.0f,
+                                                  bool askDISTSTF = true)
 {
   // create a default lane configuration with ids [0, nLanes-1]
   std::vector<int> laneConfiguration(nLanes);
   std::iota(laneConfiguration.begin(), laneConfiguration.end(), 0);
-  return getWorkflow(policyData, tpcSectors, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput, caClusterer, zsOnTheFly, zs10bit, zsThreshold);
+  return getWorkflow(policyData, tpcSectors, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput, caClusterer, zsOnTheFly, zs10bit, zsThreshold, askDISTSTF);
 }
 
 static inline framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,             //
@@ -101,12 +103,13 @@ static inline framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyDa
                                                   int caClusterer = 0,                          //
                                                   int zsOnTheFly = 0,
                                                   int zs10bit = 0,
-                                                  float zsThreshold = 2.0f)
+                                                  float zsThreshold = 2.0f,
+                                                  bool askDISTSTF = true)
 {
   // create a default lane configuration with ids [0, nLanes-1]
   std::vector<int> laneConfiguration(nLanes);
   std::iota(laneConfiguration.begin(), laneConfiguration.end(), 0);
-  return getWorkflow(policyData, {}, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput, caClusterer, zsOnTheFly, zs10bit, zsThreshold);
+  return getWorkflow(policyData, {}, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput, caClusterer, zsOnTheFly, zs10bit, zsThreshold, askDISTSTF);
 }
 
 } // end namespace reco_workflow

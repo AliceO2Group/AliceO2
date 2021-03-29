@@ -88,7 +88,7 @@ const std::unordered_map<std::string, OutputType> OutputMap{
 
 framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vector<int> const& tpcSectors, std::vector<int> const& laneConfiguration,
                                     bool propagateMC, unsigned nLanes, std::string const& cfgInput, std::string const& cfgOutput,
-                                    int caClusterer, int zsOnTheFly, int zs10bit, float zsThreshold)
+                                    int caClusterer, int zsOnTheFly, int zs10bit, float zsThreshold, bool askDISTSTF)
 {
   InputType inputType;
   try {
@@ -435,6 +435,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     cfg.outputSharedClusterMap = isEnabled(OutputType::Clusters) && isEnabled(OutputType::Tracks) && !isEnabled(OutputType::NoSharedClusterMap);
     cfg.processMC = propagateMC;
     cfg.sendClustersPerSector = isEnabled(OutputType::SendClustersPerSector);
+    cfg.askDISTSTF = askDISTSTF;
     specs.emplace_back(o2::tpc::getCATrackerSpec(policyData, cfg, tpcSectors));
   }
 

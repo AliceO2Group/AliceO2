@@ -55,6 +55,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"no-tpc-zs-on-the-fly", VariantType::Bool, false, {"Do not use TPC zero suppression on the fly"}},
     {"zs-threshold", VariantType::Float, 2.0f, {"zero suppression threshold"}},
     {"zs-10bit", VariantType::Bool, false, {"use 10 bit ADCs for TPC zero suppression, default = 12 bit ADC"}},
+    {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCHwClusterer.peakChargeThreshold=4;...')"}},
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}}};
 
@@ -149,6 +150,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                              !cfgc.options().get<bool>("no-ca-clusterer"),      //
                                              !cfgc.options().get<bool>("no-tpc-zs-on-the-fly"), //
                                              cfgc.options().get<bool>("zs-10bit"),              //
-                                             cfgc.options().get<float>("zs-threshold")          //
+                                             cfgc.options().get<float>("zs-threshold"),         //
+                                             !cfgc.options().get<bool>("ignore-dist-stf")       //
   );
 }
