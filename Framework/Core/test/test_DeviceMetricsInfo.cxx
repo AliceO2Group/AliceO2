@@ -12,6 +12,7 @@
 #define BOOST_TEST_DYN_LINK
 
 #include "Framework/DeviceMetricsInfo.h"
+#include "Framework/DeviceMetricsHelper.h"
 #include <boost/test/unit_test.hpp>
 #include <iostream>
 #include <regex>

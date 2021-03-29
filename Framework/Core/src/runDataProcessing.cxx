@@ -21,6 +21,7 @@
 #include "Framework/DeviceExecution.h"
 #include "Framework/DeviceInfo.h"
 #include "Framework/DeviceMetricsInfo.h"
+#include "Framework/DeviceMetricsHelper.h"
 #include "Framework/DeviceConfigInfo.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceState.h"

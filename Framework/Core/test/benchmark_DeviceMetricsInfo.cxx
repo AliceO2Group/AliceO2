@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/DeviceMetricsInfo.h"
+#include "Framework/DeviceMetricsHelper.h"
 
 #include <benchmark/benchmark.h>
 #include <regex>
