@@ -262,7 +262,7 @@ struct ConfigurablesTest {
 
   // first element in vector is number of bins (fixed binning) or VARIABLE_WIDTH (variable binning)
   ConfigurableAxis<double> ptBinning{"pt-bin-edges", {VARIABLE_WIDTH, 0.15, 1., 5., 10., 50.}, ""}; // variable bin edges
-  ConfigurableAxis<double> centBinning{"cent-binning", {9, 0., 90}, ""};                // fixed size bins
+  ConfigurableAxis<double> centBinning{"cent-binning", {9, 0., 90}, ""};                            // fixed size bins
 
   // best would be to make it work with the actual AxisSpec and its ctors:
   //Configurable<AxisSpec> phiAxis{"phi-axis", {{0., 0.25, 0.5, 0.75, 1., 1.6, 2.}}, ""};
