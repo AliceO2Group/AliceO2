@@ -20,7 +20,7 @@
 #include "TRDBase/DiffAndTimeStructEstimator.h"
 #include "TRDSimulation/PileupTool.h"
 
-#include "DataFormatsTRD/ADCArray.h"
+#include "DataFormatsTRD/SignalArray.h"
 #include "DataFormatsTRD/Constants.h"
 
 #include "MathUtils/RandomRing.h"

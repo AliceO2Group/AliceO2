@@ -25,4 +25,4 @@ o2_target_root_dictionary(DataFormatsTRD
                        include/DataFormatsTRD/CalibratedTracklet.h
                        include/DataFormatsTRD/Hit.h
                        include/DataFormatsTRD/CTF.h
-                       include/DataFormatsTRD/ADCArray.h)
+                       include/DataFormatsTRD/SignalArray.h)

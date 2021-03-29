@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_TRD_ADCARRAY_H_
-#define ALICEO2_TRD_ADCARRAY_H_
+#ifndef ALICEO2_TRD_SIGNALARRAY_H_
+#define ALICEO2_TRD_SIGNALARRAY_H_
 
 #include "DataFormatsTRD/Constants.h"
 #include "SimulationDataFormat/MCCompLabel.h"
