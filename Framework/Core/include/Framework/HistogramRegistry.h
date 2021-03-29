@@ -89,7 +89,7 @@ using HistPtr = std::variant<std::shared_ptr<THn>, std::shared_ptr<THnSparse>, s
  */
 //**************************************************************************************************
 // Flag to mark variable bin size in configurable bin edges
-const int VARIABLE_WIDTH = 0;
+constexpr int VARIABLE_WIDTH = 0;
 
 struct AxisSpec {
   AxisSpec(std::vector<double> binEdges_, std::optional<std::string> title_ = std::nullopt, std::optional<std::string> name_ = std::nullopt)
