@@ -88,6 +88,9 @@ using HistPtr = std::variant<std::shared_ptr<THn>, std::shared_ptr<THnSparse>, s
  * Specification of an Axis.
  */
 //**************************************************************************************************
+// Flag to mark variable bin size in configurable bin edges
+const int VARIABLE_WIDTH = 0;
+
 struct AxisSpec {
   AxisSpec(std::vector<double> binEdges_, std::optional<std::string> title_ = std::nullopt, std::optional<std::string> name_ = std::nullopt)
     : nBins(std::nullopt),
@@ -115,7 +118,7 @@ struct AxisSpec {
     if (binEdges.empty()) {
       return;
     }
-    if (binEdges[0] != 0.) {
+    if (binEdges[0] != VARIABLE_WIDTH) {
       nBins = static_cast<int>(binEdges[0]);
       binEdges.resize(3); // nBins, lowerBound, upperBound, disregard whatever else is stored in vecotr
     }

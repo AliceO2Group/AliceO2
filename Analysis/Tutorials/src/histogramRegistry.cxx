@@ -260,9 +260,8 @@ struct TListTest {
 struct ConfigurablesTest {
   HistogramRegistry histos{"Histos"};
 
-  // for testing: assume first element in vector is number of bins; if it is zero variable binning is assumed
-  // note that the size of the default vector fixes the size of the vector that can be provided via configurable
-  ConfigurableAxis<double> ptBinning{"pt-bin-edges", {0., 0.15, 1., 5., 10., 50.}, ""}; // variable bin edges
+  // first element in vector is number of bins (fixed binning) or VARIABLE_WIDTH (variable binning)
+  ConfigurableAxis<double> ptBinning{"pt-bin-edges", {VARIABLE_WIDTH, 0.15, 1., 5., 10., 50.}, ""}; // variable bin edges
   ConfigurableAxis<double> centBinning{"cent-binning", {9, 0., 90}, ""};                // fixed size bins
 
   // best would be to make it work with the actual AxisSpec and its ctors:
