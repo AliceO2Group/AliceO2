@@ -145,7 +145,7 @@ struct fitResult {
   }
 
   /// \brief Set the chi2 of the fit result.
-  double setChi2(double chi2In)
+  void setChi2(double chi2In)
   {
     mChi2 = chi2In;
   }
