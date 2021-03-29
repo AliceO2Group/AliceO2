@@ -65,6 +65,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <chrono>
 #include "GPUReconstructionConvert.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include <TStopwatch.h>
@@ -519,16 +520,25 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       using outputBufferType = std::pair<std::optional<std::reference_wrapper<O2CharVectorOutputType>>, char*>;
       std::vector<outputBufferType> outputBuffers(GPUInterfaceOutputs::count(), {std::nullopt, nullptr});
 
-      auto setOutputAllocator = [&specconfig, &outputBuffers, &outputRegions, &processAttributes, &pc, verbosity](bool condition, GPUOutputControl& region, auto&& outputSpec, size_t offset = 0) {
+      auto setOutputAllocator = [&specconfig, &outputBuffers, &outputRegions, &processAttributes, &pc, verbosity](const char* name, bool condition, GPUOutputControl& region, auto&& outputSpec, size_t offset = 0) {
         if (condition) {
           auto& buffer = outputBuffers[outputRegions.getIndex(region)];
           if (processAttributes->allocateOutputOnTheFly) {
-            region.allocator = [&buffer, &pc, outputSpec = std::move(outputSpec), verbosity, offset](size_t size) -> void* {
+            region.allocator = [name, &buffer, &pc, outputSpec = std::move(outputSpec), debug = processAttributes->config->configProcessing.debugLevel, verbosity, offset](size_t size) -> void* {
               size += offset;
               if (verbosity) {
                 LOG(INFO) << "ALLOCATING " << size << " bytes for " << std::get<DataOrigin>(outputSpec).template as<std::string>() << "/" << std::get<DataDescription>(outputSpec).template as<std::string>() << "/" << std::get<2>(outputSpec);
               }
+              std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
+              if (debug) {
+                start = std::chrono::high_resolution_clock::now();
+              }
               buffer.first.emplace(pc.outputs().make<std::vector<char>>(std::make_from_tuple<Output>(outputSpec), size));
+              if (debug) {
+                end = std::chrono::high_resolution_clock::now();
+                std::chrono::duration<double> elapsed_seconds = end - start;
+                LOG(INFO) << "Allocation time for " << name << " (" << size << "bytes)" << ": " << elapsed_seconds.count() << "s";
+              }
               return (buffer.second = buffer.first->get().data()) + offset;
             };
           } else {
@@ -568,12 +578,12 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         downSizeBuffer(buffer, span.size() * sizeof(*span.data()));
       };
 
-      setOutputAllocator(specconfig.outputCompClustersFlat, outputRegions.compressedClusters, std::make_tuple(gDataOriginTPC, (DataDescription) "COMPCLUSTERSFLAT", 0));
-      setOutputAllocator(processAttributes->clusterOutputIds.size() > 0, outputRegions.clustersNative, std::make_tuple(gDataOriginTPC, specconfig.sendClustersPerSector ? (DataDescription) "CLUSTERNATIVETMP" : (DataDescription) "CLUSTERNATIVE", NSectors, Lifetime::Timeframe, clusterOutputSectorHeader), sizeof(ClusterCountIndex));
-      setOutputAllocator(specconfig.outputSharedClusterMap, outputRegions.sharedClusterMap, std::make_tuple(gDataOriginTPC, (DataDescription) "CLSHAREDMAP", 0));
-      setOutputAllocator(specconfig.outputTracks, outputRegions.tpcTracksO2, std::make_tuple(gDataOriginTPC, (DataDescription) "TRACKS", 0));
-      setOutputAllocator(specconfig.outputTracks, outputRegions.tpcTracksO2ClusRefs, std::make_tuple(gDataOriginTPC, (DataDescription) "CLUSREFS", 0));
-      setOutputAllocator(specconfig.outputTracks && specconfig.processMC, outputRegions.tpcTracksO2Labels, std::make_tuple(gDataOriginTPC, (DataDescription) "TRACKSMCLBL", 0));
+      setOutputAllocator("COMPCLUSTERSFLAT", specconfig.outputCompClustersFlat, outputRegions.compressedClusters, std::make_tuple(gDataOriginTPC, (DataDescription) "COMPCLUSTERSFLAT", 0));
+      setOutputAllocator("CLUSTERNATIVE", processAttributes->clusterOutputIds.size() > 0, outputRegions.clustersNative, std::make_tuple(gDataOriginTPC, specconfig.sendClustersPerSector ? (DataDescription) "CLUSTERNATIVETMP" : (DataDescription) "CLUSTERNATIVE", NSectors, Lifetime::Timeframe, clusterOutputSectorHeader), sizeof(ClusterCountIndex));
+      setOutputAllocator("CLSHAREDMAP", specconfig.outputSharedClusterMap, outputRegions.sharedClusterMap, std::make_tuple(gDataOriginTPC, (DataDescription) "CLSHAREDMAP", 0));
+      setOutputAllocator("TRACKS", specconfig.outputTracks, outputRegions.tpcTracksO2, std::make_tuple(gDataOriginTPC, (DataDescription) "TRACKS", 0));
+      setOutputAllocator("CLUSREFS", specconfig.outputTracks, outputRegions.tpcTracksO2ClusRefs, std::make_tuple(gDataOriginTPC, (DataDescription) "CLUSREFS", 0));
+      setOutputAllocator("TRACKSMCLBL", specconfig.outputTracks && specconfig.processMC, outputRegions.tpcTracksO2Labels, std::make_tuple(gDataOriginTPC, (DataDescription) "TRACKSMCLBL", 0));
       if (specconfig.processMC && specconfig.caClusterer) {
         outputRegions.clusterLabels.allocator = [&clustersMCBuffer](size_t size) -> void* { return &clustersMCBuffer; };
       }
