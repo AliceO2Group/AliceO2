@@ -123,10 +123,7 @@ struct PlaceholderNode : LiteralNode {
     if constexpr (variant_trait_v<typename std::decay<T>::type> != VariantType::Unknown) {
       retrieve = [](InitContext& context, std::string const& name) { return LiteralNode::var_t{context.options().get<T>(name.c_str())}; };
     } else {
-      retrieve = [](InitContext& context, std::string const& name) {
-        auto pt = context.options().get<boost::property_tree::ptree>(name.c_str());
-        return LiteralNode::var_t{RootConfigParamHelpers::as<T>(pt)};
-      };
+      runtime_error("Unknown parameter used in expression.");
     }
   }
 
