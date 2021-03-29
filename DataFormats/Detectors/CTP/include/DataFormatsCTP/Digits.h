@@ -24,8 +24,8 @@ static constexpr uint32_t CTP_NINPUTS = 46;
 static constexpr uint32_t CTP_NCLASSES = 64;
 static constexpr uint32_t CTP_MAXL0PERDET = 5;
 // Positions of CTP Detector inputs in CTPInputMask
-static constexpr std::pair<uint32_t ,std::bitset<CTP_MAXL0PERDET> > CTP_INPUTMASK_FV0(0,0x1f);
-static constexpr std::pair<uint32_t ,std::bitset<CTP_MAXL0PERDET> > CTP_INPUTMASK_FT0(5,0x1f);
+static constexpr std::pair<uint32_t, std::bitset<CTP_MAXL0PERDET>> CTP_INPUTMASK_FV0(0, 0x1f);
+static constexpr std::pair<uint32_t, std::bitset<CTP_MAXL0PERDET>> CTP_INPUTMASK_FT0(5, 0x1f);
 struct CTPRawData {
   o2::InteractionRecord mIntRecord;
   std::bitset<CTP_NINPUTS> mCTPInputMask;

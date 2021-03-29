@@ -59,20 +59,20 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     timer.Start();
     LOG(INFO) << "CALLING CTP DIGITIZATION";
     for (const auto& inp : ft0inputs) {
-      CTPInputDigit finpdigit(inp.mIntRecord, inp.mInputs,o2::detectors::DetID::FT0);
+      CTPInputDigit finpdigit(inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FT0);
       finputs.emplace_back(finpdigit);
     }
     for (const auto& inp : fv0inputs) {
-        CTPInputDigit finpdigit(inp.mIntRecord, inp.mInputs,o2::detectors::DetID::FT0);
-        finputs.emplace_back(finpdigit);
+      CTPInputDigit finpdigit(inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FT0);
+      finputs.emplace_back(finpdigit);
     }
     gsl::span<CTPInputDigit> ginputs(finputs);
-    mDigitizer.process(ginputs,mDigits);
+    mDigitizer.process(ginputs, mDigits);
     // send out to next stage
     LOG(INFO) << "CTP DIGITS being sent.";
     pc.outputs().snapshot(Output{"CTP", "DIGITS", 0, Lifetime::Timeframe}, mDigits);
     LOG(INFO) << "CTP PRESENT being sent.";
-    pc.outputs().snapshot(Output{"CTP","ROMode",0,Lifetime::Timeframe},mROMode);
+    pc.outputs().snapshot(Output{"CTP", "ROMode", 0, Lifetime::Timeframe}, mROMode);
     timer.Stop();
     LOG(INFO) << "CTP Digitization took " << timer.CpuTime() << "s";
   }
