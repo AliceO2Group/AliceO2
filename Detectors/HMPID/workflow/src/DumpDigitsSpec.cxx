@@ -48,9 +48,8 @@ namespace o2
 namespace hmpid
 {
 
-using namespace o2::header;
-using namespace o2::dataformats;
 using namespace o2;
+using namespace o2::header;
 using namespace o2::framework;
 using RDH = o2::header::RDHAny;
 
@@ -98,16 +97,16 @@ void DumpDigitsTask::run(framework::ProcessingContext& pc)
       }
     }
     if (DataRefUtils::match(ref, {"check", ConcreteDataTypeMatcher{gDataOriginHMP, "DIGITS"}})) {
-      std::vector<o2::hmpid::raw::Digit> digits = pc.inputs().get<std::vector<o2::hmpid::raw::Digit>>(ref);
+      std::vector<o2::hmpid::Digit> digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>(ref);
       LOG(DEBUG) << "The size of the vector =" << digits.size();
       mDigitsReceived += digits.size();
       if (mPrintDigits) {
-        for (o2::hmpid::raw::Digit Dig : digits) {
+        for (o2::hmpid::Digit Dig : digits) {
           std::cout << Dig << std::endl;
         }
       }
       if (mIsOutputOnFile) {
-        for (o2::hmpid::raw::Digit Dig : digits) {
+        for (o2::hmpid::Digit Dig : digits) {
           mOsFile << Dig << std::endl;
         }
       }

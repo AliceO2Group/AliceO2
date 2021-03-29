@@ -18,16 +18,15 @@
 #define DETECTORS_HMPID_BASE_INCLUDE_HMPIDBASE_TRIGGER_H_
 
 #include <vector>
-#include "TMath.h"
-#include "CommonDataFormat/TimeStamp.h"
-#include "CommonConstants/LHCConstants.h"
+#include <iosfwd>
+#include <iostream>
+//#include "CommonDataFormat/TimeStamp.h"
+//#include "CommonConstants/LHCConstants.h"
 #include "CommonDataFormat/InteractionRecord.h"
 
 namespace o2
 {
 namespace hmpid
-{
-namespace raw
 {
 /// \class Trigger
 /// \brief HMPID Trigger declaration
@@ -59,7 +58,6 @@ class Event
     mIr.bc = bc;
     return;
   }
-  uint64_t getTriggerID() { return ((mIr.orbit << 12) | (0x0FFF & mIr.bc)); };
   void setTriggerID(uint64_t trigger)
   {
     mIr.orbit = (trigger >> 12);
@@ -99,7 +97,6 @@ class Event
   ClassDefNV(Event, 2);
 };
 
-} // namespace raw
 } // namespace hmpid
 } // namespace o2
 

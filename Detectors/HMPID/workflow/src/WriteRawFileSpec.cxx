@@ -54,12 +54,10 @@ namespace o2
 namespace hmpid
 {
 
-using namespace o2::header;
-using namespace o2::dataformats;
 using namespace o2;
+using namespace o2::header;
 using namespace o2::framework;
 using RDH = o2::header::RDHAny;
-using namespace o2::hmpid::raw;
 
 //=======================
 // Data decoder
@@ -84,14 +82,14 @@ void WriteRawFileTask::init(framework::InitContext& ic)
 void WriteRawFileTask::run(framework::ProcessingContext& pc)
 {
   o2::InteractionRecord intReco;
-  std::vector<o2::hmpid::raw::Digit> digits;
+  std::vector<o2::hmpid::Digit> digits;
 
   for (auto const& ref : InputRecordWalker(pc.inputs())) {
     if (DataRefUtils::match(ref, {"check", ConcreteDataTypeMatcher{gDataOriginHMP, "INTRECORDS"}})) {
       intReco = pc.inputs().get<o2::InteractionRecord>(ref);
     }
     if (DataRefUtils::match(ref, {"check", ConcreteDataTypeMatcher{gDataOriginHMP, "DIGITS"}})) {
-      digits = pc.inputs().get<std::vector<o2::hmpid::raw::Digit>>(ref);
+      digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>(ref);
       LOG(DEBUG) << "The size of the vector =" << digits.size();
     }
   }
@@ -114,7 +112,7 @@ void WriteRawFileTask::run(framework::ProcessingContext& pc)
 
 void WriteRawFileTask::endOfStream(framework::EndOfStreamContext& ec)
 {
-  std::vector<o2::hmpid::raw::Digit> dig;
+  std::vector<o2::hmpid::Digit> dig;
 
   mExTimer.logMes("Received an End Of Stream !");
   if (mOrderTheEvents && mEvents.size() > 0) {

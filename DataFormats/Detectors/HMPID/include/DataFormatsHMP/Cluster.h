@@ -12,15 +12,11 @@
 #define DETECTORS_HMPID_BASE_INCLUDE_HMPIDDATAFORMAT_CLUSTER_H_
 
 #include "CommonDataFormat/TimeStamp.h"
-//#include "HMPIDBase/Hit.h"   // for hit
 #include "HMPIDBase/Param.h" // for param
-#include "TMath.h"
 
 namespace o2
 {
 namespace hmpid
-{
-namespace raw
 {
 /// \class Claster
 /// \brief HMPID cluster implementation
@@ -62,7 +58,6 @@ class Cluster
   ClassDefNV(Cluster, 1);
 };
 
-} // namespace raw
 } // namespace hmpid
 } // namespace o2
 

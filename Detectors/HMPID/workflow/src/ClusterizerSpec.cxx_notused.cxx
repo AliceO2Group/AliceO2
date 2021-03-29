@@ -53,7 +53,7 @@ class HMPIDDPLClustererTask
       return;
     }
     // get digit data
-    auto digits = pc.inputs().get<std::vector<o2::hmpid::raw::Digit>*>("hmpiddigits");
+    auto digits = pc.inputs().get<std::vector<o2::hmpid::Digit>*>("hmpiddigits");
     LOG(INFO) << "RECEIVED " << digits->size() << " DIGITS";
     auto labelvector = std::make_shared<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>();
     if (mUseMC) {

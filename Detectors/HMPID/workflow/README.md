@@ -9,7 +9,7 @@
 * `hmpid-raw-to-digits` reads data from ReadOut Raw File and outputs a ROOT formatted file (Reconstruction flow)
 * `hmpid-digits-to-raw` reads digits data from a ROOT formatted file and produce a ReadOut Raw File (Simulation flow)
 * `hmpid-read-raw-file-stream` reads data from ReadOut Raw File and outputs a stream of RDH6 pages as HMP/RAWDATA stream
-* `hmpid-raw-to-digits-stream` decodes the input raw pages stream (HMP/RAWDATA) and produces two streams avector of o2::hmpid::raw::Digits (HMP/DIGITS) and a o2::InteractionRecord (HMP/INTRECORD)
+* `hmpid-raw-to-digits-stream` decodes the input raw pages stream (HMP/RAWDATA) and produces two streams avector of o2::hmpid::Digits (HMP/DIGITS) and a o2::InteractionRecord (HMP/INTRECORD)
 * `hmpid-digits-to-raw-stream` codes input o2::hmpid::Digits vector (HMP/DIGITS) and (HMP/INTRECORD) stream into the binary HMPID raw file
 * `hmpid-dump-digits-stream` dumps the input o2::hmpid::Digits vector (HMP/DIGITS) and (HMP/INTRECORD) stream to the stdout or in an ASCII file
 * `hmpid-raw-to-pedestals` reads data from ReadOut Raw File and outputs results of Pedestals calculation in ReadOut format and CCDB (Calibration flow)
@@ -61,7 +61,7 @@ Data processor options: HMP-DataDecoder:
 
 
 ### o2-hmpid-digits-to-raw-stream-workflow
-Codes input o2::hmpid::raw::Digits vector (HMP/DIGITS)  and (HMP/INTRECORD) stream into the binary HMPID raw file.
+Codes input o2::hmpid::Digits vector (HMP/DIGITS)  and (HMP/INTRECORD) stream into the binary HMPID raw file.
 
 Display all options
 
@@ -80,7 +80,7 @@ Data processor options: HMP-WriteRawFromDigits:
 
 
 ### o2-hmpid-dump-digits-stream-workflow
-Dumps the input o2::hmpid::raw::Digits vector (HMP/DIGITS)  and (HMP/INTRECORD) stream to the stdout or in an ASCII file.
+Dumps the input o2::hmpid::Digits vector (HMP/DIGITS)  and (HMP/INTRECORD) stream to the stdout or in an ASCII file.
 
 Display all options
 

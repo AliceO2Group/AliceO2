@@ -20,17 +20,15 @@
 #ifndef DETECTORS_HMPID_BASE_INCLUDE_HMPIDDATAFORMAT_DIGIT_H_
 #define DETECTORS_HMPID_BASE_INCLUDE_HMPIDDATAFORMAT_DIGIT_H_
 
+#include <iosfwd>
 #include <vector>
-#include "CommonDataFormat/TimeStamp.h"
+//#include "CommonDataFormat/TimeStamp.h"
 #include "DataFormatsHMP/Hit.h" // for hit
 #include "HMPIDBase/Param.h"    // for param
-#include "TMath.h"
 
 namespace o2
 {
 namespace hmpid
-{
-namespace raw
 {
 /// \class Digit
 /// \brief HMPID Digit declaration
@@ -70,12 +68,7 @@ class Digit
   friend inline bool operator>=(const Digit& l, const Digit& r) { return !(l < r); };
   friend inline bool operator!=(const Digit& l, const Digit& r) { return !(l == r); };
 
-  // Digit ASCCI format Dump := [Chamber,PhotoCathod,X,Y]@(Orbit,BunchCrossing)=Charge
-  friend std::ostream& operator<<(std::ostream& os, const Digit& d)
-  {
-    os << "[" << (int)d.mCh << "," << (int)d.mPh << "," << (int)d.mX << "," << (int)d.mY << "]=" << d.mQ;
-    return os;
-  };
+  friend std::ostream& operator <<(std::ostream& os, const Digit& d);
 
  public:
   Digit() = default;
@@ -115,8 +108,8 @@ class Digit
   // int getCh() const { return A2C(mPad); }
 
   // Charge management functions
-  static void getPadAndTotalCharge(o2::hmpid::raw::HitType const& hit, int& chamber, int& pc, int& px, int& py, float& totalcharge);
-  static float getFractionalContributionForPad(o2::hmpid::raw::HitType const& hit, int somepad);
+  static void getPadAndTotalCharge(o2::hmpid::HitType const& hit, int& chamber, int& pc, int& px, int& py, float& totalcharge);
+  static float getFractionalContributionForPad(o2::hmpid::HitType const& hit, int somepad);
   void addCharge(float q)
   {
     mQ += q;
@@ -126,7 +119,7 @@ class Digit
   }
   void subCharge(float q) { mQ -= q; }
 
- private:
+ public:
   // Members
   uint16_t mQ = 0;
   uint8_t mCh = 0; // 0xFF indicates invalid digit
@@ -156,7 +149,6 @@ class Digit
   ClassDefNV(Digit, 2);
 };
 
-} // namespace raw
 } // namespace hmpid
 } // namespace o2
 

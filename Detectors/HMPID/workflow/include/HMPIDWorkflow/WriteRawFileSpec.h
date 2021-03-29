@@ -37,8 +37,8 @@ class WriteRawFileTask : public framework::Task
  private:
   //     static bool eventEquipPadsComparision(o2::hmpid::Digit d1, o2::hmpid::Digit d2);
   std::string mBaseFileName = "";
-  std::vector<o2::hmpid::raw::Digit> mDigits;
-  std::vector<o2::hmpid::raw::Event> mEvents;
+  std::vector<o2::hmpid::Digit> mDigits;
+  std::vector<o2::hmpid::Event> mEvents;
   bool mSkipEmpty = false;
   bool mFixedPacketLenght = false;
   bool mOrderTheEvents = true;

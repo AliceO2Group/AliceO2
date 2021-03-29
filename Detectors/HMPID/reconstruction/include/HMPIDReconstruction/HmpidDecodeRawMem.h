@@ -61,7 +61,7 @@ class HmpidDecodeRawDigit : public HmpidDecodeRawMem
   HmpidDecodeRawDigit(int numOfEquipments);
   ~HmpidDecodeRawDigit();
 
-  std::vector<o2::hmpid::raw::Digit> mDigits;
+  std::vector<o2::hmpid::Digit> mDigits;
 
  private:
   void setPad(HmpidEquipment* eq, int col, int dil, int ch, uint16_t charge) override;

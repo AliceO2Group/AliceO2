@@ -113,7 +113,7 @@ class HmpidCoder2
   void openOutputStream(const std::string& outputFileName, const std::string& fileFor);
   void closeOutputStream();
 
-  void codeEventChunkDigits(std::vector<o2::hmpid::raw::Digit>& digits, InteractionRecord ir);
+  void codeEventChunkDigits(std::vector<o2::hmpid::Digit>& digits, InteractionRecord ir);
   void dumpResults(const std::string& outputFileName);
 
  private:

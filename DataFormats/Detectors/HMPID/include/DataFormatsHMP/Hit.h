@@ -21,14 +21,12 @@
 
 #include "SimulationDataFormat/BaseHits.h" // for BasicXYZEHit
 #include "CommonUtils/ShmAllocator.h"
-#include "SimulationDataFormat/Stack.h"
-#include "TVector3.h"
+//#include "SimulationDataFormat/Stack.h"
+//#include "TVector3.h"
 
 namespace o2
 {
 namespace hmpid
-{
-namespace raw
 {
 
 // define HMPID hit type
@@ -41,7 +39,6 @@ class HitType : public o2::BasicXYZEHit<float>
   ClassDef(HitType, 1);
 };
 
-} // namespace raw
 } // namespace hmpid
 } // namespace o2
 
@@ -49,7 +46,7 @@ class HitType : public o2::BasicXYZEHit<float>
 namespace std
 {
 template <>
-class allocator<o2::hmpid::raw::HitType> : public o2::utils::ShmAllocator<o2::hmpid::raw::HitType>
+class allocator<o2::hmpid::HitType> : public o2::utils::ShmAllocator<o2::hmpid::HitType>
 {
 };
 } // namespace std

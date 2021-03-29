@@ -35,19 +35,6 @@
 
 #define MAXDESCRIPTIONLENGHT 50
 
-#define HLOG_INFO   \
-  if (mVerbose > 6) \
-  std::cout << "HMPID Decoder2 : [INFO] "
-#define HLOG_DEBUG  \
-  if (mVerbose > 8) \
-  std::cout << "HMPID Decoder2 : [DEBUG] "
-#define HLOG_WARNING \
-  if (mVerbose > 3)  \
-  std::cout << "HMPID Decoder2 : [WARNING] "
-#define HLOG_ERROR  \
-  if (mVerbose > 1) \
-  std::cout << "HMPID Decoder2 : [ERROR] "
-
 // ---- RDH 6  standard dimension -------
 #define RAWBLOCKDIMENSION_W 2048
 #define HEADERDIMENSION_W 16
@@ -119,7 +106,7 @@ class HmpidDecoder2
   int mRDHAcceptedVersion;
 
   o2::InteractionRecord mIntReco;
-  std::vector<o2::hmpid::raw::Digit> mDigits;
+  std::vector<o2::hmpid::Digit> mDigits;
 
   // Methods
  public:

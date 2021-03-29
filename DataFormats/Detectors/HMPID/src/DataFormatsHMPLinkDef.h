@@ -13,14 +13,14 @@
 #pragma link off all globals;
 #pragma link off all classes;
 #pragma link off all functions;
-//#pragma link C++ class o2::hmpid::Cluster + ;
-#pragma link C++ class o2::hmpid::raw::Digit + ;
-#pragma link C++ class vector < o2::hmpid::raw::Digit> + ;
-#pragma link C++ class o2::hmpid::raw::HitType + ;
-#pragma link C++ class vector < o2::hmpid::raw::HitType> + ;
-#pragma link C++ class o2::hmpid::raw::Cluster + ;
-#pragma link C++ class vector < o2::hmpid::raw::Cluster> + ;
-#pragma link C++ class o2::hmpid::raw::Event + ;
-#pragma link C++ class vector < o2::hmpid::raw::Event> + ;
+
+#pragma link C++ class o2::hmpid::Digit + ;
+#pragma link C++ class vector < o2::hmpid::Digit> + ;
+#pragma link C++ class o2::hmpid::HitType + ;
+#pragma link C++ class vector < o2::hmpid::HitType> + ;
+#pragma link C++ class o2::hmpid::Cluster + ;
+#pragma link C++ class vector < o2::hmpid::Cluster> + ;
+#pragma link C++ class o2::hmpid::Event + ;
+#pragma link C++ class vector < o2::hmpid::Event> + ;
 
 #endif

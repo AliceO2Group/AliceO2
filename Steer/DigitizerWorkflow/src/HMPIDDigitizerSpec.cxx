@@ -67,7 +67,7 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     }
 
     auto& eventParts = context->getEventParts();
-    std::vector<o2::hmpid::raw::Digit> digitsAccum;                // accumulator for digits
+    std::vector<o2::hmpid::Digit> digitsAccum;                // accumulator for digits
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum; // timeframe accumulator for labels
     mIntRecord.clear();
 
@@ -85,7 +85,7 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
       // save info for the triggers accepted
       LOG(INFO) << "Trigger  Orbit :" << mDigitizer.getOrbit() << "  BC:" << mDigitizer.getBc();
-      mIntRecord.push_back(o2::hmpid::raw::Event(o2::InteractionRecord(mDigitizer.getBc(), mDigitizer.getOrbit()), first, last));
+      mIntRecord.push_back(o2::hmpid::Event(o2::InteractionRecord(mDigitizer.getBc(), mDigitizer.getOrbit()), first, last));
     };
 
     // loop over all composite collisions given from context
@@ -105,7 +105,7 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
           mDigitizer.setSrcID(part.sourceID);
 
           // get the hits for this event and this source
-          std::vector<o2::hmpid::raw::HitType> hits;
+          std::vector<o2::hmpid::HitType> hits;
           context->retrieveHits(mSimChains, "HMPHit", part.sourceID, part.entryID, &hits);
           LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found HMP " << hits.size() << " hits ";
 
@@ -140,9 +140,9 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
  private:
   HMPIDDigitizer mDigitizer;
   std::vector<TChain*> mSimChains;
-  std::vector<o2::hmpid::raw::Digit> mDigits;
+  std::vector<o2::hmpid::Digit> mDigits;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels; // labels which get filled
-  std::vector<o2::hmpid::raw::Event> mIntRecord;
+  std::vector<o2::hmpid::Event> mIntRecord;
 
   // RS: at the moment using hardcoded flag for continuous readout
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode

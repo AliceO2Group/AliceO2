@@ -46,7 +46,7 @@ class DigitsToRawSpec : public framework::Task
   std::string mFileFor = "all";
   bool mFastAlgorithm;
 
-  std::vector<o2::hmpid::raw::Digit> mDigits;
+  std::vector<o2::hmpid::Digit> mDigits;
   long mDigitsReceived;
   int mEventsReceived;
   HmpidCoder2* mCod;

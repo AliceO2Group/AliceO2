@@ -20,16 +20,19 @@
 
 */
 
-#include "DataFormatsHMP/Digit.h"
+#include <iostream>
+#include <TRandom.h>
+#include "CommonConstants/LHCConstants.h"
 #include "HMPIDBase/Geo.h"
 #include "HMPIDBase/Param.h"
-#include "TRandom.h"
-#include "TMath.h"
-#include "CommonConstants/LHCConstants.h"
+#include "DataFormatsHMP/Digit.h"
 
-using namespace o2::hmpid::raw;
+ClassImp(o2::hmpid::Digit);
 
-ClassImp(o2::hmpid::raw::Digit);
+namespace o2
+{
+namespace hmpid
+{
 
 // ============= Digit Class implementation =======
 /// Constructor : Create the Digit structure. Accepts the trigger time (Orbit,BC)
@@ -89,6 +92,13 @@ Digit::Digit(uint16_t charge, int module, int x, int y)
   mQ = charge > 0x0FFF ? 0x0FFF : charge;
   pad2Photo(absolute2Pad(module, x, y), &mCh, &mPh, &mX, &mY);
 }
+
+// Digit ASCCI format Dump := [Chamber,PhotoCathod,X,Y]@(Orbit,BunchCrossing)=Charge
+std::ostream& operator<<(std::ostream& os, const o2::hmpid::Digit& d)
+{
+  os << "[" << (int)d.mCh << "," << (int)d.mPh << "," << (int)d.mX << "," << (int)d.mY << "]=" << d.mQ;
+  return os;
+};
 
 // -----  Coordinate Conversion -----
 
@@ -460,4 +470,5 @@ std::vector<uint64_t>* Digit::extractEvents(std::vector<o2::hmpid::Digit>& Digit
 };
 */
 
-// -------- eof -----------
+} // namespace hmpid
+} // namespace o2

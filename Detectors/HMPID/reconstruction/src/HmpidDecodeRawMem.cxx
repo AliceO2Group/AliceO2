@@ -177,7 +177,7 @@ HmpidDecodeRawDigit::~HmpidDecodeRawDigit() = default;
 void HmpidDecodeRawDigit::setPad(HmpidEquipment* eq, int col, int dil, int ch, uint16_t charge)
 {
   eq->setPad(col, dil, ch, charge);
-  mDigits.push_back(o2::hmpid::raw::Digit(charge, eq->getEquipmentId(), col, dil, ch));
+  mDigits.push_back(o2::hmpid::Digit(charge, eq->getEquipmentId(), col, dil, ch));
   //std::cout << "DI " << mDigits.back() << " "<<col<<","<< dil<<","<< ch<<"="<< charge<<std::endl;
   return;
 }

@@ -142,7 +142,7 @@ void RawToDigitsTask::run(framework::ProcessingContext& pc)
           mAccumulateDigits.insert(mAccumulateDigits.end(), mDecod->mDigits.begin(), mDecod->mDigits.end());
           int last = mAccumulateDigits.size() - 1;
           if (last >= first) {
-            mEvents.push_back(o2::hmpid::raw::Event(mDecod->mIntReco, (uint32_t)first, (uint32_t)last));
+            mEvents.push_back(o2::hmpid::Event(mDecod->mIntReco, (uint32_t)first, (uint32_t)last));
             mDigitsReceived += mDecod->mDigits.size();
           }
           mFramesReceived++;
@@ -202,7 +202,7 @@ void RawToDigitsTask::parseNoTF()
       mAccumulateDigits.insert(mAccumulateDigits.end(), mDecod->mDigits.begin(), mDecod->mDigits.end());
       int last = mAccumulateDigits.size() - 1;
       if (last >= first) {
-        mEvents.push_back(o2::hmpid::raw::Event(mDecod->mIntReco, (uint32_t)first, (uint32_t)last));
+        mEvents.push_back(o2::hmpid::Event(mDecod->mIntReco, (uint32_t)first, (uint32_t)last));
         mDigitsReceived += mDecod->mDigits.size();
       }
       mFramesReceived++;
@@ -235,8 +235,8 @@ void RawToDigitsTask::writeResults()
   mExTimer.logMes("Sorted  Events = " + std::to_string(mEvents.size()));
 
   /* ------ ROOT file version 1 ----------
-  o2::hmpid::raw::Digit digit;
-  o2::hmpid::raw::Event event;
+  o2::hmpid::Digit digit;
+  o2::hmpid::Event event;
   TString filename;
   TString tit;
 
@@ -249,10 +249,10 @@ void RawToDigitsTask::writeResults()
   tit = TString::Format("HMPID Raw File Decoding");
   theTree = new TTree("o2hmp", tit);
 
-  theDigits = theTree->Branch("HMPDigit", &digit, sizeof(o2::hmpid::raw::Digit), 1);
+  theDigits = theTree->Branch("HMPDigit", &digit, sizeof(o2::hmpid::Digit), 1);
   theEvents = theTree->Branch("InteractionRecords", &event, sizeof(o2::hmpid::Event), 1);
 
-  o2::hmpid::raw::Event prevEvent = mEvents[0];
+  o2::hmpid::Event prevEvent = mEvents[0];
   uint32_t theFirstDigit = 0;
   uint32_t theLastDigit = 0;
   for (int e = 0; e < mEvents.size(); e++) {
@@ -285,8 +285,8 @@ void RawToDigitsTask::writeResults()
   TString filename;
   TString tit;
 
-  std::vector<o2::hmpid::raw::Digit> digitVec;
-  std::vector<o2::hmpid::raw::Event> eventVec;
+  std::vector<o2::hmpid::Digit> digitVec;
+  std::vector<o2::hmpid::Event> eventVec;
 
   filename = TString::Format("%s", mOutRootFileName.c_str());
   LOG(INFO) << "Create the ROOT file " << filename.Data();
@@ -298,7 +298,7 @@ void RawToDigitsTask::writeResults()
   theTree->Branch("HMPIDDigits", &digitVec);
 
   // builds the two arranged vectors of objects
-  o2::hmpid::raw::Event prevEvent = mEvents[0];
+  o2::hmpid::Event prevEvent = mEvents[0];
   uint32_t theFirstDigit = 0;
   uint32_t theLastDigit = 0;
   for (int e = 0; e < mEvents.size(); e++) {

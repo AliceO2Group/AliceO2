@@ -38,7 +38,7 @@ class DigitReader : public o2::framework::Task
   bool mUseMC = true;
   std::unique_ptr<TFile> mFile = nullptr;
 
-  std::vector<o2::hmpid::raw::Digit> mDigits, *mPdigits = &mDigits;
+  std::vector<o2::hmpid::Digit> mDigits, *mPdigits = &mDigits;
 
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels, *mPlabels = &mLabels;
 };

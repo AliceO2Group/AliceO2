@@ -30,7 +30,6 @@
 
 using namespace o2::raw;
 using namespace o2::hmpid;
-using namespace o2::hmpid::raw;
 using namespace o2::header;
 
 ///  HMPID Raw Coder Constructor
@@ -206,7 +205,7 @@ void HmpidCoder2::writePaginatedEvent(uint32_t orbit, uint16_t bc)
 /// NOTE: the vector could be empty!
 /// @param[in] digits : the vector of Digit structures
 /// @param[in] ir : the Interaction Record structure
-void HmpidCoder2::codeEventChunkDigits(std::vector<o2::hmpid::raw::Digit>& digits, InteractionRecord ir)
+void HmpidCoder2::codeEventChunkDigits(std::vector<o2::hmpid::Digit>& digits, InteractionRecord ir)
 {
   int eq, col, dil, cha, mo, x, y, idx;
   uint32_t orbit = ir.orbit;
@@ -214,7 +213,7 @@ void HmpidCoder2::codeEventChunkDigits(std::vector<o2::hmpid::raw::Digit>& digit
 
   int padsCount = 0;
   LOG(DEBUG) << "Manage chunk Orbit :" << orbit << " BC:" << bc << "  Digits size:" << digits.size();
-  for (o2::hmpid::raw::Digit d : digits) {
+  for (o2::hmpid::Digit d : digits) {
     Digit::pad2Equipment(d.getPadID(), &eq, &col, &dil, &cha); // From Digit to Hardware coords
     eq = ReadOut::FeeId(eq);                                   // converts the Equipment Id in Cru/Link position ref
     idx = getEquipmentPadIndex(eq, col, dil, cha);             // finally to the unique padmap index

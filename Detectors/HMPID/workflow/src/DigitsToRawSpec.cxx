@@ -106,9 +106,9 @@ void DigitsToRawSpec::init(framework::InitContext& ic)
 
 void DigitsToRawSpec::readRootFile()
 {
-  std::vector<o2::hmpid::raw::Digit> digitsPerEvent;
-  std::vector<o2::hmpid::raw::Digit> digits, *hmpBCDataPtr = &digits;
-  std::vector<o2::hmpid::raw::Event> interactions, *interactionsPtr = &interactions;
+  std::vector<o2::hmpid::Digit> digitsPerEvent;
+  std::vector<o2::hmpid::Digit> digits, *hmpBCDataPtr = &digits;
+  std::vector<o2::hmpid::Event> interactions, *interactionsPtr = &interactions;
 
   // Keeps the Interactions !
   mDigTree->SetBranchAddress("InteractionRecords", &interactionsPtr);
@@ -135,7 +135,7 @@ void DigitsToRawSpec::readRootFile()
     if (mDumpDigits) { // we want the dump of digits ?
       std::ofstream dumpfile;
       dumpfile.open("/tmp/hmpDumpDigits.dat");
-      for (o2::hmpid::raw::Event e : interactions) {
+      for (o2::hmpid::Event e : interactions) {
         dumpfile << "Event  Orbit=" << e.getOrbit() << " BC=" << e.getBc() << std::endl;
         for (int i = e.mFirstDigit; i <= e.mLastDigit; i++) {
           dumpfile << digits.at(i) << std::endl;
@@ -145,7 +145,7 @@ void DigitsToRawSpec::readRootFile()
     }
     // ready to operate
     LOG(INFO) << "For the entry = " << ient << " there are " << nbc << " DIGITS stored.";
-    for (o2::hmpid::raw::Event e : interactions) {
+    for (o2::hmpid::Event e : interactions) {
       mEventsReceived++;
       digitsPerEvent.clear();
       for (int i = e.mFirstDigit; i <= e.mLastDigit; i++) {

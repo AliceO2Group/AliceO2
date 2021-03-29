@@ -20,10 +20,9 @@
 #include <TStopwatch.h>
 
 using namespace o2::hmpid;
-using namespace o2::hmpid::raw;
 
 //__________________________________________________
-void Clusterer::process(std::vector<o2::hmpid::raw::Digit> const& digits, std::vector<o2::hmpid::raw::Cluster>& clusters, MCLabelContainer const* digitMCTruth)
+void Clusterer::process(std::vector<o2::hmpid::Digit> const& digits, std::vector<o2::hmpid::Cluster>& clusters, MCLabelContainer const* digitMCTruth)
 {
   TStopwatch timerProcess;
   timerProcess.Start();

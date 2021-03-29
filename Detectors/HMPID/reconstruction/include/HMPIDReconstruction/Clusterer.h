@@ -28,8 +28,8 @@ namespace hmpid
 class Clusterer
 {
   using MCLabelContainer = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
-  using Cluster = o2::hmpid::raw::Cluster;
-  using Digit = o2::hmpid::raw::Digit;
+  using Cluster = o2::hmpid::Cluster;
+  using Digit = o2::hmpid::Digit;
 
  public:
   Clusterer() = default;
@@ -38,7 +38,7 @@ class Clusterer
   Clusterer(const Clusterer&) = delete;
   Clusterer& operator=(const Clusterer&) = delete;
 
-  void process(std::vector<Digit> const& digits, std::vector<o2::hmpid::raw::Cluster>& clusters, MCLabelContainer const* digitMCTruth);
+  void process(std::vector<Digit> const& digits, std::vector<o2::hmpid::Cluster>& clusters, MCLabelContainer const* digitMCTruth);
 
   void setMCTruthContainer(o2::dataformats::MCTruthContainer<o2::MCCompLabel>* truth) { mClsLabels = truth; }
 
