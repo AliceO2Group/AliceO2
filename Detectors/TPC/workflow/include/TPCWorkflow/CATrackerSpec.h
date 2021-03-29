@@ -43,6 +43,7 @@ struct Config {
   bool outputSharedClusterMap = false;
   bool processMC = false;
   bool sendClustersPerSector = false;
+  bool askDISTSTF = true;
 };
 } // namespace ca
 

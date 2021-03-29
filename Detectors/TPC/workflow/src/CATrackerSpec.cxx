@@ -396,6 +396,10 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
         for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
           const DataHeader* dh = DataRefUtils::getHeader<DataHeader*>(ref);
+          if (dh->payloadSize == 0 && dh->subSpecification == 0xDEADBEEF) {
+            LOG(INFO) << "Received 0xDEADBEEF message with no RAW input, performing dummy processing on emtpry input data";
+            continue; // Dummy message inserted if there is no input, just ignore
+          }
           const gsl::span<const char> raw = pc.inputs().get<gsl::span<char>>(ref);
           o2::framework::RawParser parser(raw.data(), raw.size());
 
@@ -730,7 +734,10 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
     if (specconfig.zsDecoder) {
       // All ZS raw data is published with subspec 0 by the o2-raw-file-reader-workflow and DataDistribution
       // creates subspec fom CRU and endpoint id, we create one single input route subscribing to all TPC/RAWDATA
-      inputs.emplace_back(InputSpec{"zsraw", ConcreteDataTypeMatcher{"TPC", "RAWDATA"}, Lifetime::Timeframe});
+      inputs.emplace_back(InputSpec{"zsraw", ConcreteDataTypeMatcher{"TPC", "RAWDATA"}, Lifetime::Optional});
+      if (specconfig.askDISTSTF) {
+        inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
+      }
     }
     if (specconfig.zsOnTheFly) {
       inputs.emplace_back(InputSpec{"zsinput", ConcreteDataTypeMatcher{"TPC", "TPCZS"}, Lifetime::Timeframe});
