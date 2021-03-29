@@ -141,7 +141,6 @@ std::array<float, 3> TrackletTransformer::transformL2T(int hcid, std::array<doub
 
 CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet)
 {
-  uint64_t trackletWord = tracklet.getTrackletWord();
   uint64_t hcid = tracklet.getHCID();
   uint64_t padrow = tracklet.getPadRow();
   uint64_t column = tracklet.getColumn();
@@ -164,7 +163,5 @@ CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet)
              << "y: " << sectorSpacePoint[1] << " | "
              << "z: " << sectorSpacePoint[2];
 
-  CalibratedTracklet calibratedTracklet = CalibratedTracklet(trackletWord, sectorSpacePoint[0], sectorSpacePoint[1], sectorSpacePoint[2], dy);
-
-  return calibratedTracklet;
+  return CalibratedTracklet(sectorSpacePoint[0], sectorSpacePoint[1], sectorSpacePoint[2], dy);
 }
