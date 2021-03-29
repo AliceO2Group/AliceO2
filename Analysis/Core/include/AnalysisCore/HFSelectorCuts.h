@@ -41,6 +41,56 @@ int findBin(o2::framework::Configurable<std::vector<T1>> const& bins, T2 value)
 }
 
 // namespace per channel
+namespace hf_cuts_single_track_2prong
+{
+static constexpr int npTBinsTrack = 2;
+static constexpr int nCutVarsTrack = 2;
+// default values for the pT bin edges (can be used to configure histogram axis)
+// offset by 1 from the bin numbers in cuts array
+constexpr double pTBinsTrack[npTBinsTrack + 1] = {
+  0,
+  2.0,
+  1000.0};
+auto pTBinsTrack_v = std::vector<double>{pTBinsTrack, pTBinsTrack + npTBinsTrack + 1};
+
+// default values for the cuts
+constexpr double cuts[npTBinsTrack][nCutVarsTrack] = {{0., 1.},   /* pt<2*/
+                                                      {0., 1.}};  /* pt>2*/
+
+// row labels
+static const std::vector<std::string> pTBinLabelsTrack = {
+  "track pT bin 0",
+  "track pT bin 1"};
+
+// column labels
+static const std::vector<std::string> cutVarLabelsTrack = {"dcatoprimxymin_2prong", "dcatoprimxymax_2prong"};
+} // namespace hf_cuts_single_track
+
+namespace hf_cuts_single_track_3prong
+{
+static constexpr int npTBinsTrack = 2;
+static constexpr int nCutVarsTrack = 2;
+// default values for the pT bin edges (can be used to configure histogram axis)
+// offset by 1 from the bin numbers in cuts array
+constexpr double pTBinsTrack[npTBinsTrack + 1] = {
+  0,
+  2.0,
+  1000.0};
+auto pTBinsTrack_v = std::vector<double>{pTBinsTrack, pTBinsTrack + npTBinsTrack + 1};
+
+// default values for the cuts
+constexpr double cuts[npTBinsTrack][nCutVarsTrack] = {{0., 1.},   /* pt<2*/
+                                                      {0., 1.}};  /* pt>2*/
+
+// row labels
+static const std::vector<std::string> pTBinLabelsTrack = {
+  "track pT bin 0",
+  "track pT bin 1"};
+
+// column labels
+static const std::vector<std::string> cutVarLabelsTrack = {"dcatoprimxymin_3prong", "dcatoprimxymax_3prong"};
+} // namespace hf_cuts_single_track
+
 namespace hf_cuts_d0_topik
 {
 static constexpr int npTBins = 25;
