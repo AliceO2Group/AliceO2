@@ -15,6 +15,7 @@
 #include "DebugGUI/imgui_extras.h"
 #include "Framework/DriverControl.h"
 #include "Framework/DriverInfo.h"
+#include "Framework/DeviceMetricsHelper.h"
 #include "FrameworkGUIDeviceInspector.h"
 #include "FrameworkGUIDevicesGraph.h"
 #include "FrameworkGUIDataRelayerUsage.h"

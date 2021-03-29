@@ -15,6 +15,7 @@
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/Tracing.h"
 #include "Framework/DeviceMetricsInfo.h"
+#include "Framework/DeviceMetricsHelper.h"
 #include "Framework/DeviceInfo.h"
 
 #include "CommonMessageBackendsHelpers.h"
