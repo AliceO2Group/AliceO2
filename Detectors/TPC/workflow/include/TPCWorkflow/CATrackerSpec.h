@@ -29,92 +29,7 @@ namespace tpc
 
 namespace ca
 {
-// The CA tracker is now a wrapper to not only the actual tracking on GPU but
-// also the decoding of the zero-suppressed raw format and the clusterer.
-enum struct Operation {
-  DecompressTPC,          // run cluster decompressor
-  DecompressTPCFromROOT,  // the cluster decompressor input is a root object not flat
-  CAClusterer,            // run the CA clusterer
-  ZSDecoder,              // run the ZS raw data decoder
-  ZSOnTheFly,             // use zs on the fly
-  OutputTracks,           // publish tracks
-  OutputCAClusters,       // publish the clusters produced by CA clusterer
-  OutputCompClusters,     // publish CompClusters container
-  OutputCompClustersFlat, // publish CompClusters container
-  OutputQA,               // Ship QA histograms to QC
-  OutputSharedClusterMap, // Ship optional shared cluster map
-  ProcessMC,              // process MC labels
-  SendClustersPerSector,  // Send clusters and clusters mc labels per sector
-  Noop,                   // skip argument on the constructor
-};
-
-/// Helper struct to pass the individual ca::Operation flags to
-/// the processor spec. The struct is initialized by a variable list of
-/// constructor arguments.
 struct Config {
-  Config(const Config&) = default;
-  template <typename... Args>
-  Config(Args&&... args)
-  {
-    init(std::forward<Args>(args)...);
-  }
-
-  template <typename... Args>
-  void init(Operation const& op, Args&&... args)
-  {
-    switch (op) {
-      case Operation::DecompressTPC:
-        decompressTPC = true;
-        break;
-      case Operation::DecompressTPCFromROOT:
-        decompressTPCFromROOT = true;
-        break;
-      case Operation::CAClusterer:
-        caClusterer = true;
-        break;
-      case Operation::ZSDecoder:
-        zsDecoder = true;
-        break;
-      case Operation::ZSOnTheFly:
-        zsOnTheFly = true;
-        break;
-      case Operation::OutputTracks:
-        outputTracks = true;
-        break;
-      case Operation::OutputCompClusters:
-        outputCompClusters = true;
-        break;
-      case Operation::OutputCompClustersFlat:
-        outputCompClustersFlat = true;
-        break;
-      case Operation::OutputCAClusters:
-        outputCAClusters = true;
-        break;
-      case Operation::OutputQA:
-        outputQA = true;
-        break;
-      case Operation::OutputSharedClusterMap:
-        outputSharedClusterMap = true;
-        break;
-      case Operation::ProcessMC:
-        processMC = true;
-        break;
-      case Operation::SendClustersPerSector:
-        sendClustersPerSector = true;
-        break;
-      case Operation::Noop:
-        break;
-      default:
-        throw std::runtime_error("invalid CATracker operation");
-    }
-    if constexpr (sizeof...(args) > 0) {
-      init(std::forward<Args>(args)...);
-    }
-  }
-
-  // Cannot specialize constructor to create proper copy constructor directly --> must overload init
-  void init(const Config& x) { *this = x; }
-
   bool decompressTPC = false;
   bool decompressTPCFromROOT = false;
   bool caClusterer = false;
@@ -129,7 +44,6 @@ struct Config {
   bool processMC = false;
   bool sendClustersPerSector = false;
 };
-
 } // namespace ca
 
 /// create a processor spec for the CATracker
