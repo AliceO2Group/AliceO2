@@ -86,7 +86,7 @@ class HMPIDDigitizer
                     o2::dataformats::MCTruthContainer<o2::MCCompLabel>* newlabels);
 
   float getThreshold(o2::hmpid::Digit const&) const; // gives back threshold to apply for a certain digit
-                                                          // (using noise and other tables for pad)
+                                                     // (using noise and other tables for pad)
 
   double mCurrentTriggerTime = 0.;
   uint32_t mOrbit = 0;

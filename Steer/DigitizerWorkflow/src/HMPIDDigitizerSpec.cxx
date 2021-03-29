@@ -67,7 +67,7 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     }
 
     auto& eventParts = context->getEventParts();
-    std::vector<o2::hmpid::Digit> digitsAccum;                // accumulator for digits
+    std::vector<o2::hmpid::Digit> digitsAccum;                     // accumulator for digits
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum; // timeframe accumulator for labels
     mIntRecord.clear();
 

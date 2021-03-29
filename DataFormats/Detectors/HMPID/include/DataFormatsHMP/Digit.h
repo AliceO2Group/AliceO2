@@ -68,7 +68,7 @@ class Digit
   friend inline bool operator>=(const Digit& l, const Digit& r) { return !(l < r); };
   friend inline bool operator!=(const Digit& l, const Digit& r) { return !(l == r); };
 
-  friend std::ostream& operator <<(std::ostream& os, const Digit& d);
+  friend std::ostream& operator<<(std::ostream& os, const Digit& d);
 
  public:
   Digit() = default;
