@@ -14,6 +14,7 @@
 #include "DataFormatsTRD/SignalArray.h" // for SignalArray
 #include "DataFormatsTRD/Constants.h"
 
+#include <array>
 #include <deque>
 #include <unordered_map>
 

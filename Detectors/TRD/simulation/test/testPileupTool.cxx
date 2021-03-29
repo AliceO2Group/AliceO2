@@ -17,6 +17,8 @@
 #include "DataFormatsTRD/SignalArray.h" // for SignalContainer
 #include "TRDSimulation/PileupTool.h"
 
+#include <algorithm>
+
 namespace o2
 {
 namespace trd
@@ -41,9 +43,9 @@ BOOST_AUTO_TEST_CASE(TRDPileupTool_test)
   signalArrays[0].firstTBtime = 0;
   signalArrays[1].firstTBtime = 2000;
   signalArrays[2].firstTBtime = 4900;
-  fill_ones(signalArrays[0].signals);
-  fill_ones(signalArrays[1].signals);
-  fill_ones(signalArrays[2].signals);
+  std::fill(signalArrays[0].signals.begin(), signalArrays[0].signals.end(), 1);
+  std::fill(signalArrays[1].signals.begin(), signalArrays[1].signals.end(), 1);
+  std::fill(signalArrays[2].signals.begin(), signalArrays[2].signals.end(), 1);
   signalArrays[0].labels = {1}; // dummy label;
   signalArrays[1].labels = {1}; // dummy label;
   signalArrays[2].labels = {1}; // dummy label;
