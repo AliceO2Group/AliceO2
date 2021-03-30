@@ -17,6 +17,7 @@
 #include "GPUTPCCompressionTrackModel.h"
 #include <algorithm>
 #include <cstring>
+#include <atomic>
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
@@ -37,8 +38,17 @@ int TPCClusterDecompressor::decompress(const CompressedClustersFlat* clustersCom
 int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompressed, o2::tpc::ClusterNativeAccess& clustersNative, std::function<o2::tpc::ClusterNative*(size_t)> allocator, const GPUParam& param)
 {
   std::vector<ClusterNative> clusters[NSLICES][GPUCA_ROW_COUNT];
-  unsigned int offset = 0;
+  std::atomic_flag locks[NSLICES][GPUCA_ROW_COUNT];
+  for (unsigned int i = 0; i < NSLICES * GPUCA_ROW_COUNT; i++) {
+    (&locks[0][0])[i].clear();
+  }
+  unsigned int offset = 0, lasti = 0;
+  GPUCA_OPENMP(parallel for firstprivate(offset, lasti))
   for (unsigned int i = 0; i < clustersCompressed->nTracks; i++) {
+    while (lasti < i) {
+      offset += clustersCompressed->nTrackClusters[lasti++];
+    }
+    lasti++;
     float zOffset = 0;
     unsigned int slice = clustersCompressed->sliceA[i];
     unsigned int row = clustersCompressed->rowA[i];
@@ -83,9 +93,14 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
         pad = clustersCompressed->padA[i];
       }
       std::vector<ClusterNative>& clusterVector = clusters[slice][row];
+      auto& lock = locks[slice][row];
+      while (lock.test_and_set(std::memory_order_acquire)) {
+      }
       clusterVector.emplace_back(time, clustersCompressed->flagsA[offset], pad, clustersCompressed->sigmaTimeA[offset], clustersCompressed->sigmaPadA[offset], clustersCompressed->qMaxA[offset], clustersCompressed->qTotA[offset]);
-      float y = param.tpcGeometry.LinearPad2Y(slice, row, clusterVector.back().getPad());
-      float z = param.tpcGeometry.LinearTime2Z(slice, clusterVector.back().getTime());
+      auto& cluster = clusterVector.back();
+      float y = param.tpcGeometry.LinearPad2Y(slice, row, cluster.getPad());
+      float z = param.tpcGeometry.LinearTime2Z(slice, cluster.getTime());
+      lock.clear(std::memory_order_release);
       if (j == 0) {
         zOffset = z;
         track.Init(param.tpcGeometry.Row2X(row), y, z - zOffset, param.SliceParam[slice].Alpha, clustersCompressed->qPtA[i], param);
