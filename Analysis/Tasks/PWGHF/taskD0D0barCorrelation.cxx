@@ -34,8 +34,10 @@ using D0D0barPairFull = soa::Join<aod::D0D0barPair, aod::D0D0barRecoInfo>;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  ConfigParamSpec optionDoMC{"doMC", VariantType::Bool, false, {"Run MC dedicated tasks."}};
-  workflowOptions.push_back(optionDoMC);
+  ConfigParamSpec optionDoMCGen{"doMCGen", VariantType::Bool, false, {"Run MC-Gen dedicated tasks."}};
+  ConfigParamSpec optionDoMCRec{"doMCRec", VariantType::Bool, false, {"Run MC-Rec dedicated tasks."}};
+  workflowOptions.push_back(optionDoMCGen);
+  workflowOptions.push_back(optionDoMCRec);
 }
 
 #include "Framework/runDataProcessing.h"

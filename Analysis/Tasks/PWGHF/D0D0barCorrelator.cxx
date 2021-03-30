@@ -29,8 +29,14 @@ using namespace o2::aod::hf_d0d0bar_correlation;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  ConfigParamSpec optionDoMC{"doMC", VariantType::Bool, false, {"Run MC dedicated tasks."}};
-  workflowOptions.push_back(optionDoMC);
+  ConfigParamSpec optionDoLikeSign{"doLikeSign", VariantType::Bool, false, {"Run Like-Sign analysis."}};
+  ConfigParamSpec optionDoMCccbar{"doMCccbar", VariantType::Bool, false, {"Run MC-Gen dedicated tasks."}};
+  ConfigParamSpec optionDoMCGen{"doMCGen", VariantType::Bool, false, {"Run MC-Gen dedicated tasks."}};
+  ConfigParamSpec optionDoMCRec{"doMCRec", VariantType::Bool, false, {"Run MC-Rec dedicated tasks."}};
+  workflowOptions.push_back(optionDoLikeSign);
+  workflowOptions.push_back(optionDoMCccbar);
+  workflowOptions.push_back(optionDoMCGen);
+  workflowOptions.push_back(optionDoMCRec);
 }
 
 #include "Framework/runDataProcessing.h"
