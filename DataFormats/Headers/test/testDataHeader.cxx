@@ -15,6 +15,7 @@
 #include <iostream>
 #include <iomanip>
 #include "Headers/DataHeader.h"
+#include "Headers/DataHeaderHelpers.h"
 #include "Headers/NameHeader.h"
 #include "Headers/Stack.h"
 
@@ -247,6 +248,10 @@ BOOST_AUTO_TEST_CASE(DataHeader_test)
   BOOST_CHECK(!(dh4 == dh));
   dh4 = dh;
   BOOST_CHECK(dh4 == dh);
+  DataHeader dh5{gDataDescriptionAny, gDataOriginAny, DataHeader::SubSpecificationType{1}, 1};
+  BOOST_REQUIRE_EQUAL(fmt::format("{}", gDataOriginAny), "***");
+  BOOST_REQUIRE_EQUAL(fmt::format("{}", gDataDescriptionAny), "***************");
+  BOOST_REQUIRE_EQUAL(fmt::format("{}", DataHeader::SubSpecificationType{1}), "1");
 }
 
 BOOST_AUTO_TEST_CASE(headerStack_test)
@@ -328,6 +333,25 @@ BOOST_AUTO_TEST_CASE(headerStack_test)
 }
 
 BOOST_AUTO_TEST_CASE(Descriptor_benchmark)
+{
+  using TestDescriptor = Descriptor<8>;
+  TestDescriptor a("TESTDESC");
+  TestDescriptor b(a);
+
+  auto refTime = system_clock::now();
+  const int nrolls = 1000000;
+  for (auto count = 0; count < nrolls; ++count) {
+    if (a == b) {
+      ++a.itg[0];
+      ++b.itg[0];
+    }
+  }
+  auto duration = std::chrono::duration_cast<TimeScale>(std::chrono::system_clock::now() - refTime);
+  std::cout << nrolls << " operation(s): " << duration.count() << " ns" << std::endl;
+  // there is not really a check at the moment
+}
+
+BOOST_AUTO_TEST_CASE(Descriptor_formatting)
 {
   using TestDescriptor = Descriptor<8>;
   TestDescriptor a("TESTDESC");

@@ -24,8 +24,11 @@
 #include "DataProcessingStatus.h"
 #include "DataRelayerHelpers.h"
 
+#include "Headers/DataHeaderHelpers.h"
+
 #include <Monitoring/Monitoring.h>
 
+#include <fmt/format.h>
 #include <gsl/span>
 #include <numeric>
 #include <string>
@@ -345,7 +348,7 @@ DataRelayer::RelayChoice
     std::string error;
     const auto* dh = o2::header::get<o2::header::DataHeader*>(header->GetData());
     if (dh) {
-      error += dh->dataOrigin.as<std::string>() + "/" + dh->dataDescription.as<std::string>() + "/" + dh->subSpecification;
+      error += fmt::format("{}/{}/{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification);
     } else {
       error += "invalid header";
     }

@@ -19,7 +19,9 @@
 #include "Framework/InputSpec.h"
 #include "Framework/DeviceSpec.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
+#include "Headers/DataHeaderHelpers.h"
 #include "TPCBase/Sector.h"
+#include <fmt/ostream.h>
 #include <vector>
 #include <string>
 #include <stdexcept>
@@ -114,10 +116,10 @@ class TPCSectorCompletionPolicy
                 inputType = idx;
               } else if (inputType != idx) {
                 std::stringstream error;
-                error << "routing error, input messages must all be of the same type previously bound to "
-                      << inputMatchers[inputType]
-                      << dh->dataOrigin.as<std::string>() + "/"
-                      << dh->dataDescription.as<std::string>() + "/" + dh->subSpecification;
+                error << fmt::format("routing error, input messages must all be of the same type previously bound to {} {}/{}/{}",
+                                     inputMatchers[inputType],
+                                     dh->dataOrigin,
+                                     dh->dataDescription, dh->subSpecification);
                 throw std::runtime_error(error.str());
               }
               auto const* sectorHeader = framework::DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);

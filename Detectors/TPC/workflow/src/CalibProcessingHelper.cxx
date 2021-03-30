@@ -16,6 +16,7 @@
 #include "Framework/Logger.h"
 #include "DPLUtils/RawParser.h"
 #include "DetectorsRaw/RDHUtils.h"
+#include "Headers/DataHeaderHelpers.h"
 #include "CommonConstants/LHCConstants.h"
 
 #include "TPCBase/RDHUtils.h"
@@ -71,9 +72,9 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
     rdh_utils::FEEIDType cruID, linkID, endPoint;
     rdh_utils::getMapping(feeID, cruID, endPoint, linkID);
     const auto globalLinkID = linkID + endPoint * 12;
-    LOGP(debug, "Specifier: {}/{}/{}", dh->dataOrigin.as<std::string>(), dh->dataDescription.as<std::string>(), subSpecification);
-    LOGP(debug, "Payload size: {}", dh->payloadSize);
-    LOGP(debug, "CRU: {}; linkID: {}; endPoint: {}; globalLinkID: {}", cruID, linkID, endPoint, globalLinkID);
+    LOGP(info, "Specifier: {}/{}/{}", dh->dataOrigin, dh->dataDescription, subSpecification);
+    LOGP(info, "Payload size: {}", dh->payloadSize);
+    LOGP(info, "CRU: {}; linkID: {}; endPoint: {}; globalLinkID: {}", cruID, linkID, endPoint, globalLinkID);
     // ^^^^^^
 
     // TODO: exception handling needed?

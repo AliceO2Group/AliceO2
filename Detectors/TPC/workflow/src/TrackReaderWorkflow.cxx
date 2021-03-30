@@ -22,6 +22,7 @@
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "Headers/DataHeaderHelpers.h"
 
 #include "TPCWorkflow/TrackReaderSpec.h"
 
