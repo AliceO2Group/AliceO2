@@ -1735,6 +1735,19 @@ bool isOutputToPipe()
   return ((s.st_mode & S_IFIFO) != 0);
 }
 
+bool isInputConfig()
+{
+  struct stat s;
+  int r = fstat(STDIN_FILENO, &s);
+  // If stdin cannot be statted, we assume the shell is some sort of
+  // non-interactive container thing
+  if (r < 0) {
+    return false;
+  }
+  // If stdin is a pipe or a file, we try to fetch configuration from there
+  return ((s.st_mode & S_IFIFO) != 0 || (s.st_mode & S_IFREG) != 0);
+}
+
 void overrideCloning(ConfigContext& ctx, WorkflowSpec& workflow)
 {
   struct CloningSpec {
@@ -2086,7 +2099,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
 
   std::vector<DataProcessorInfo> dataProcessorInfos;
   CommandInfo commandInfo{};
-  if (isatty(STDIN_FILENO) == false) {
+
+  if (isatty(STDIN_FILENO) == false && isInputConfig()) {
     std::vector<DataProcessorSpec> importedWorkflow;
     WorkflowSerializationHelpers::import(std::cin, importedWorkflow, dataProcessorInfos, commandInfo);
 
