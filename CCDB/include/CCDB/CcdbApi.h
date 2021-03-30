@@ -316,7 +316,7 @@ class CcdbApi //: public DatabaseInterface
    * @param curl curl handler
    * @return
    */
-  static void curlSetSSLOptions(CURL *curl);
+  static void curlSetSSLOptions(CURL* curl);
 
  private:
   /**

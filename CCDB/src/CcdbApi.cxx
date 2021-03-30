@@ -323,30 +323,29 @@ static size_t WriteToFileCallback(void* ptr, size_t size, size_t nmemb, FILE* st
  * @param parm
  * @return
  */
-static CURLcode ssl_ctx_callback(CURL *curl, void *ssl_ctx, void *parm)
+static CURLcode ssl_ctx_callback(CURL* curl, void* ssl_ctx, void* parm)
 {
   std::string msg((const char*)parm);
   int start = 0, end = msg.find('\n');
 
-  if(msg.length() > 0 && end == -1) {
-     LOG(WARN) << msg;
-  }
-  else if (end > 0) {
-    while(end > 0) {
-      LOG(WARN) << msg.substr(start, end-start);
-      start = end+1;
+  if (msg.length() > 0 && end == -1) {
+    LOG(WARN) << msg;
+  } else if (end > 0) {
+    while (end > 0) {
+      LOG(WARN) << msg.substr(start, end - start);
+      start = end + 1;
       end = msg.find('\n', start);
     }
   }
   return CURLE_OK;
 }
 
-void CcdbApi::curlSetSSLOptions(CURL *curl_handle)
+void CcdbApi::curlSetSSLOptions(CURL* curl_handle)
 {
   CredentialsKind cmk = mJAlienCredentials->getPreferedCredentials();
 
   /* NOTE: return early, the warning should be printed on SSL callback if needed */
-  if(cmk == cNOT_FOUND) {
+  if (cmk == cNOT_FOUND) {
     return;
   }
 
@@ -380,7 +379,6 @@ TObject* CcdbApi::retrieve(std::string const& path, std::map<std::string, std::s
   TObject* result = nullptr;
 
   curlSetSSLOptions(curl_handle);
-
 
   /* init the curl session */
   curl_handle = curl_easy_init();
