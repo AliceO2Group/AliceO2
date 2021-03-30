@@ -20,6 +20,7 @@
 #include <arrow/io/memory.h>
 #include <arrow/ipc/writer.h>
 #include <ROOT/RDataFrame.hxx>
+#include <arrow/util/config.h>
 
 using namespace o2::framework;
 
@@ -131,12 +132,16 @@ BOOST_AUTO_TEST_CASE(TestStreaming)
   auto table = builder.finalize();
   auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
   auto creator = [&transport](size_t size) -> std::unique_ptr<FairMQMessage> {
-    return std::move(transport->CreateMessage(size));
+    return transport->CreateMessage(size);
   };
   auto buffer = std::make_shared<FairMQResizableBuffer>(creator);
   /// Writing to a stream
   auto stream = std::make_shared<arrow::io::BufferOutputStream>(buffer);
+#if (ARROW_VERSION_MAJOR < 3)
   auto outBatch = arrow::ipc::NewStreamWriter(stream.get(), table->schema());
+#else
+  auto outBatch = arrow::ipc::MakeStreamWriter(stream.get(), table->schema());
+#endif
   auto outStatus = outBatch.ValueOrDie()->WriteTable(*table);
   if (outStatus.ok() == false) {
     throw std::runtime_error("Unable to Write table");
