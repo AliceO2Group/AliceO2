@@ -11,7 +11,8 @@
 o2_add_library(FV0Base
                SOURCES src/Geometry.cxx
                PUBLIC_LINK_LIBRARIES ROOT::Geom 
-                                     FairRoot::Base)
+                                     FairRoot::Base
+                                     O2::Headers)
 
 o2_target_root_dictionary(FV0Base
                           HEADERS include/FV0Base/Geometry.h
