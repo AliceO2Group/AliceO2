@@ -18,20 +18,21 @@ using namespace o2::ctp;
 
 ClassImp(Digitizer);
 
-void Digitizer::process(gsl::span<o2::ctp::CTPInputDigit> digits, gsl::span<o2::ctp::CTPRawData> rawdata)
+std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit> digits)
 {
   std::map<o2::InteractionRecord, std::vector<const CTPInputDigit*>> prerawdata;
   for (auto const& inp : digits) {
-    if (prerawdata.count(inp.mIntRecord) == 0) {
+    auto res = prerawdata.find(inp.mIntRecord);
+    if (res == prerawdata.end() ) {
       std::vector<const CTPInputDigit*> inputs;
       inputs.push_back(&inp);
       prerawdata[inp.mIntRecord] = inputs;
     } else
-      prerawdata[inp.mIntRecord].push_back(&inp);
+      res->second.push_back(&inp);
   }
-  std::vector<CTPRawData> vrawdata;
+  std::vector<CTPDigit> vrawdata;
   for (auto const& coll : prerawdata) {
-    CTPRawData data;
+    CTPDigit data;
     data.mIntRecord = coll.first;
     std::bitset<CTP_NINPUTS> inpmaskcoll = 0;
     for (auto const inp : coll.second) {
@@ -58,7 +59,7 @@ void Digitizer::process(gsl::span<o2::ctp::CTPInputDigit> digits, gsl::span<o2::
     calculateClassMask(coll.second, data.mCTPClassMask);
     vrawdata.emplace_back(data);
   }
-  rawdata = gsl::span<CTPRawData>(vrawdata);
+  return std::move(vrawdata);
 }
 void Digitizer::calculateClassMask(std::vector<const CTPInputDigit*> inputs, std::bitset<CTP_NCLASSES>& classmask)
 {

@@ -42,13 +42,13 @@ framework::DataProcessorSpec getCTPDigitWriterSpec(bool raw)
   };
   if (raw) {
     return MakeRootTreeWriterSpec("CTPDigitWriter",
-                                  "ctpdigits.root",
+                                  "o2_ctpdigits.root",
                                   "o2sim",
                                   MakeRootTreeWriterSpec::CustomClose(finishWriting),
                                   BranchDefinition<std::vector<o2::ctp::CTPInputDigit>>{InputSpec{"digitBC", "CTP", "DIGITSBC"}, "CTPDIGITSBC", "ctp-digits-branch-name", 1})();
   } else {
     return MakeRootTreeWriterSpec("CTPDigitWriter",
-                                  "o2_ctpdigits.root",
+                                  "ctpdigits.root",
                                   "o2sim",
                                   MakeRootTreeWriterSpec::CustomClose(finishWriting),
                                   BranchDefinition<std::vector<o2::ctp::CTPInputDigit>>{InputSpec{"digitBC", "CTP", "DIGITSBC"}, "CTPDIGITSBC", "ctp-digits-branch-name", 1})();

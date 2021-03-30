@@ -24,7 +24,7 @@ class Digitizer
  public:
   Digitizer() = default;
   ~Digitizer() = default;
-  void process(gsl::span<o2::ctp::CTPInputDigit> digits, gsl::span<o2::ctp::CTPRawData> rawdata);
+  std::vector<CTPDigit> process(const gsl::span<o2::ctp::CTPInputDigit> digits);
   void calculateClassMask(std::vector<const CTPInputDigit*> inputs, std::bitset<CTP_NCLASSES>& classmask);
   void init();
 

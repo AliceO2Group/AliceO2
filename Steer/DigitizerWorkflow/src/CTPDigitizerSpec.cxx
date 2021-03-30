@@ -67,10 +67,10 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
       finputs.emplace_back(finpdigit);
     }
     gsl::span<CTPInputDigit> ginputs(finputs);
-    mDigitizer.process(ginputs, mDigits);
+    auto digits = mDigitizer.process(ginputs);
     // send out to next stage
     LOG(INFO) << "CTP DIGITS being sent.";
-    pc.outputs().snapshot(Output{"CTP", "DIGITS", 0, Lifetime::Timeframe}, mDigits);
+    pc.outputs().snapshot(Output{"CTP", "DIGITS", 0, Lifetime::Timeframe}, digits);
     LOG(INFO) << "CTP PRESENT being sent.";
     pc.outputs().snapshot(Output{"CTP", "ROMode", 0, Lifetime::Timeframe}, mROMode);
     timer.Stop();
@@ -79,7 +79,6 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
  protected:
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::PRESENT;
-  gsl::span<o2::ctp::CTPRawData> mDigits;
   o2::ctp::Digitizer mDigitizer; ///< Digitizer
 };
 o2::framework::DataProcessorSpec getCTPDigitizerSpec(int channel, std::vector<o2::detectors::DetID>& detList, bool mctruth)
