@@ -537,7 +537,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
               if (debug) {
                 end = std::chrono::high_resolution_clock::now();
                 std::chrono::duration<double> elapsed_seconds = end - start;
-                LOG(INFO) << "Allocation time for " << name << " (" << size << "bytes)" << ": " << elapsed_seconds.count() << "s";
+                LOG(INFO) << "Allocation time for " << name << " (" << size << " bytes)" << ": " << elapsed_seconds.count() << "s";
               }
               return (buffer.second = buffer.first->get().data()) + offset;
             };

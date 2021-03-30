@@ -186,6 +186,7 @@ int GPUReconstruction::Init()
   if (retVal) {
     return retVal;
   }
+  ClearAllocatedMemory();
   for (unsigned int i = 0; i < mSlaves.size(); i++) {
     mSlaves[i]->mDeviceMemoryPermanent = mDeviceMemoryPermanent;
     mSlaves[i]->mHostMemoryPermanent = mHostMemoryPermanent;
@@ -194,6 +195,7 @@ int GPUReconstruction::Init()
       GPUError("Error initialization slave (after device init)");
       return retVal;
     }
+    mSlaves[i]->ClearAllocatedMemory();
   }
   return 0;
 }
