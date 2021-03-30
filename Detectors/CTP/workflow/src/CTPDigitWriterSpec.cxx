@@ -22,37 +22,13 @@ framework::DataProcessorSpec getCTPDigitWriterSpec(bool raw)
   using InputSpec = framework::InputSpec;
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
   // Spectators for logging
-  auto logger = [](std::vector<o2::ft0::Digit> const& vecDigits) {
-    LOG(INFO) << "FT0DigitWriter pulled " << vecDigits.size() << " digits";
+  auto logger = [](std::vector<o2::ctp::CTPDigit> const& vecDigits) {
+    LOG(INFO) << "CTPDigitWriter pulled " << vecDigits.size() << " digits";
   };
-  // the callback to be set as hook for custom action when the writer is closed
-  auto finishWriting = [](TFile* outputfile, TTree* outputtree) {
-    const auto* brArr = outputtree->GetListOfBranches();
-    int64_t nent = 0;
-    for (const auto* brc : *brArr) {
-      int64_t n = ((const TBranch*)brc)->GetEntries();
-      if (nent && (nent != n)) {
-        LOG(ERROR) << "Branches have different number of entries";
-      }
-      nent = n;
-    }
-    outputtree->SetEntries(nent);
-    outputtree->Write();
-    outputfile->Close();
-  };
-  if (raw) {
-    return MakeRootTreeWriterSpec("CTPDigitWriter",
-                                  "o2_ctpdigits.root",
-                                  "o2sim",
-                                  MakeRootTreeWriterSpec::CustomClose(finishWriting),
-                                  BranchDefinition<std::vector<o2::ctp::CTPInputDigit>>{InputSpec{"digitBC", "CTP", "DIGITSBC"}, "CTPDIGITSBC", "ctp-digits-branch-name", 1})();
-  } else {
-    return MakeRootTreeWriterSpec("CTPDigitWriter",
-                                  "ctpdigits.root",
-                                  "o2sim",
-                                  MakeRootTreeWriterSpec::CustomClose(finishWriting),
-                                  BranchDefinition<std::vector<o2::ctp::CTPInputDigit>>{InputSpec{"digitBC", "CTP", "DIGITSBC"}, "CTPDIGITSBC", "ctp-digits-branch-name", 1})();
-  }
+  return MakeRootTreeWriterSpec(raw ? "ctp-digit-writer-dec" : "ctp-digit-writer",
+                                raw ? "o2_ctpdigits.root" : "ctpdigits.root",
+                                MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with CTP digits"},
+                                BranchDefinition<std::vector<o2::ctp::CTPDigit>>{InputSpec{"digit", "CTP", "DIGITS", 0}, "CTPDigits", logger})();
 }
 
 } // namespace ctp

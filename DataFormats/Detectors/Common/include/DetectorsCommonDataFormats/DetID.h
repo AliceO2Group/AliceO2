@@ -156,7 +156,8 @@ class DetID
     sOrigins = ///< detector data origins
     {o2h::gDataOriginITS, o2h::gDataOriginTPC, o2h::gDataOriginTRD, o2h::gDataOriginTOF, o2h::gDataOriginPHS,
      o2h::gDataOriginCPV, o2h::gDataOriginEMC, o2h::gDataOriginHMP, o2h::gDataOriginMFT, o2h::gDataOriginMCH,
-     o2h::gDataOriginMID, o2h::gDataOriginZDC, o2h::gDataOriginFT0, o2h::gDataOriginFV0, o2h::gDataOriginFDD, o2h::gDataOriginACO
+     o2h::gDataOriginMID, o2h::gDataOriginZDC, o2h::gDataOriginFT0, o2h::gDataOriginFV0, o2h::gDataOriginFDD,
+     o2h::gDataOriginACO, o2h::gDataOriginCTP
 #ifdef ENABLE_UPGRADES
      ,
      o2h::gDataOriginIT3, o2h::gDataOriginTRK, o2h::gDataOriginFT3

@@ -91,7 +91,8 @@ o2::framework::DataProcessorSpec getCTPDigitizerSpec(int channel, std::vector<o2
   if (std::find(detList.begin(), detList.end(), o2::detectors::DetID::FV0) != detList.end()) {
     inputs.emplace_back("fv0", "FV0", "TRIGGERINPUT", 0, Lifetime::Timeframe);
   }
-  output.emplace_back("CTP", "DIGITSBC", 0, Lifetime::Timeframe);
+  output.emplace_back("CTP", "DIGITS", 0, Lifetime::Timeframe);
+  output.emplace_back("CTP", "ROMode", 0, Lifetime::Timeframe);
   return DataProcessorSpec{
     "CTPDigitizer",
     inputs,

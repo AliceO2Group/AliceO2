@@ -45,7 +45,7 @@
 
 // for CTP
 #include "CTPDigitizerSpec.h"
-#include "CTPDigitWriterSpec.h"
+#include "CTPWorkflow/CTPDigitWriterSpec.h"
 
 // for FV0
 #include "FV0DigitizerSpec.h"
@@ -603,7 +603,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     // connect the CTP digitization
     specs.emplace_back(o2::ctp::getCTPDigitizerSpec(fanoutsize++, detList));
     // connect the CTP digit writer
-    specs.emplace_back(o2::ctp::getCTPDigitWriterSpec(mctruth));
+    specs.emplace_back(o2::ctp::getCTPDigitWriterSpec(false));
   }
   // GRP updater: must come after all detectors since requires their list
   specs.emplace_back(o2::parameters::getGRPUpdaterSpec(grpfile, detList));
