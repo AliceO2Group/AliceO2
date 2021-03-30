@@ -17,8 +17,7 @@
 #include <TGeoMedium.h>
 #include <TGeoVolume.h>
 #include <TGeoMatrix.h>
-#include <FairLogger.h>
-#include <sstream>
+#include "Framework/Logger.h"
 
 ClassImp(o2::fdd::Geometry);
 
