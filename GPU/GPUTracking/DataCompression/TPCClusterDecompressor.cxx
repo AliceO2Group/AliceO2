@@ -38,12 +38,13 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
 {
   std::vector<ClusterNative> clusters[NSLICES][GPUCA_ROW_COUNT];
   unsigned int offset = 0;
-  float zOffset = 0;
   for (unsigned int i = 0; i < clustersCompressed->nTracks; i++) {
+    float zOffset = 0;
     unsigned int slice = clustersCompressed->sliceA[i];
     unsigned int row = clustersCompressed->rowA[i];
     GPUTPCCompressionTrackModel track;
-    for (unsigned int j = 0; j < clustersCompressed->nTrackClusters[i]; j++) {
+    unsigned int j;
+    for (j = 0; j < clustersCompressed->nTrackClusters[i]; j++) {
       unsigned int pad = 0, time = 0;
       if (j) {
         unsigned char tmpSlice = clustersCompressed->sliceLegDiffA[offset - i - 1];
@@ -65,11 +66,9 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
           row = clustersCompressed->rowDiffA[offset - i - 1];
         }
         if (changeLeg && track.Mirror()) {
-          offset += clustersCompressed->nTrackClusters[i] - j;
           break;
         }
         if (track.Propagate(param.tpcGeometry.Row2X(row), param.SliceParam[slice].Alpha)) {
-          offset += clustersCompressed->nTrackClusters[i] - j;
           break;
         }
         unsigned int timeTmp = clustersCompressed->timeResA[offset - i - 1];
@@ -92,11 +91,11 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
         track.Init(param.tpcGeometry.Row2X(row), y, z - zOffset, param.SliceParam[slice].Alpha, clustersCompressed->qPtA[i], param);
       }
       if (j + 1 < clustersCompressed->nTrackClusters[i] && track.Filter(y, z - zOffset, row)) {
-        offset += clustersCompressed->nTrackClusters[i] - j;
         break;
       }
       offset++;
     }
+    offset += clustersCompressed->nTrackClusters[i] - j;
   }
   ClusterNative* clusterBuffer = allocator(clustersCompressed->nAttachedClusters + clustersCompressed->nUnattachedClusters);
   unsigned int offsets[NSLICES][GPUCA_ROW_COUNT];
