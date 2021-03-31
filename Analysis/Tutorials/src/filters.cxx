@@ -10,6 +10,7 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
+#include <arrow/util/config.h>
 
 namespace o2::aod
 {
@@ -67,6 +68,10 @@ struct BTask {
 
   Configurable<float> vtxZ{"vtxZ", 10.f, ""};
   Filter posZfilter = nabs(aod::collision::posZ) < vtxZ;
+#if ARROW_VERSION_MAJOR < 3
+#else
+  Filter bitwiseFilter = (o2::aod::track::flags & static_cast<uint32_t>(o2::aod::track::TPCrefit)) != 0u;
+#endif
 
   void process(soa::Filtered<aod::Collisions>::iterator const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::TPhi>> const& tracks)
   {

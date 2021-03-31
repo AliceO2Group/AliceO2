@@ -19,6 +19,9 @@ enum BasicOp : unsigned int {
   Subtraction,
   Division,
   Multiplication,
+  BitwiseAnd,
+  BitwiseOr,
+  BitwiseXor,
   LessThan,
   LessThanOrEqual,
   GreaterThan,
@@ -36,7 +39,8 @@ enum BasicOp : unsigned int {
   Asin,
   Acos,
   Atan,
-  Abs
+  Abs,
+  BitwiseNot
 };
 } // namespace o2::framework
 
