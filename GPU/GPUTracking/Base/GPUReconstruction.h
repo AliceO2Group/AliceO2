@@ -288,7 +288,7 @@ class GPUReconstruction
   virtual std::unique_ptr<GPUThreadContext> GetThreadContext();
 
   // Private helper functions for memory management
-  size_t AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, size_t memorysize, void* (GPUMemoryResource::*SetPointers)(void*), void*& memorypoolend);
+  size_t AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, size_t memorysize, void* (GPUMemoryResource::*SetPointers)(void*), void*& memorypoolend, const char* device);
   size_t AllocateRegisteredPermanentMemory();
 
   // Private helper functions for reading / writing / allocating IO buffer from/to file
