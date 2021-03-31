@@ -28,7 +28,7 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
       inputs.push_back(&inp);
       prerawdata[inp.mIntRecord] = inputs;
     } else {
-        res->second.push_back(&inp);
+      res->second.push_back(&inp);
     }
   }
   std::vector<CTPDigit> vrawdata;
