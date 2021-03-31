@@ -93,13 +93,9 @@ void copyHelper<MCTruthContainer>(MCTruthContainer const& origin, MCTruthContain
 }
 
 template <typename T>
-auto makePublishBuffer(framework::ProcessingContext& pc, int sector)
+auto makePublishBuffer(framework::ProcessingContext& pc, int sector, uint64_t activeSectors)
 {
   LOG(INFO) << "PUBLISHING SECTOR " << sector;
-  uint64_t activeSectors = 0;
-  for (int i = 0; i < 36; ++i) {
-    activeSectors |= (uint64_t)0x1 << i;
-  }
 
   o2::tpc::TPCSectorHeader header{sector};
   header.activeSectors = activeSectors;
@@ -108,24 +104,20 @@ auto makePublishBuffer(framework::ProcessingContext& pc, int sector)
 }
 
 template <>
-auto makePublishBuffer<MCTruthContainer>(framework::ProcessingContext& pc, int sector)
+auto makePublishBuffer<MCTruthContainer>(framework::ProcessingContext& pc, int sector, uint64_t activeSectors)
 {
   return new MCTruthContainer();
 }
 
 template <typename T>
-void publishBuffer(framework::ProcessingContext& pc, int sector, T* accum)
+void publishBuffer(framework::ProcessingContext& pc, int sector, uint64_t activeSectors, T* accum)
 {
   // nothing by default
 }
 
 template <>
-void publishBuffer<MCTruthContainer>(framework::ProcessingContext& pc, int sector, MCTruthContainer* accum)
+void publishBuffer<MCTruthContainer>(framework::ProcessingContext& pc, int sector, uint64_t activeSectors, MCTruthContainer* accum)
 {
-  uint64_t activeSectors = 0;
-  for (int i = 0; i < 36; ++i) {
-    activeSectors |= (uint64_t)0x1 << i;
-  }
 
   LOG(INFO) << "PUBLISHING MC LABELS " << accum->getNElements();
   o2::tpc::TPCSectorHeader header{sector};
@@ -142,6 +134,11 @@ void publishBuffer<MCTruthContainer>(framework::ProcessingContext& pc, int secto
 
 void publishMergedTimeframes(std::vector<int> const& lanes, std::vector<int> const& tpcsectors, bool domctruth, framework::ProcessingContext& pc)
 {
+  uint64_t activeSectors = 0;
+  for (auto s : tpcsectors) {
+    activeSectors |= (uint64_t)0x1 << s;
+  }
+
   ROOT::EnableThreadSafety();
 #ifdef WITH_OPENMP
   omp_set_num_threads(lanes.size());
@@ -158,7 +155,7 @@ void publishMergedTimeframes(std::vector<int> const& lanes, std::vector<int> con
     auto originfile = new TFile(tmp.str().c_str(), "OPEN");
     assert(originfile);
 
-    auto merge = [&tpcsectors, originfile, &pc](auto data, auto brprefix) {
+    auto merge = [&tpcsectors, activeSectors, originfile, &pc](auto data, auto brprefix) {
       auto keyslist = originfile->GetListOfKeys();
       for (int i = 0; i < keyslist->GetEntries(); ++i) {
         auto key = keyslist->At(i);
@@ -179,10 +176,10 @@ void publishMergedTimeframes(std::vector<int> const& lanes, std::vector<int> con
         decltype(data)* chunk = nullptr;
         br->SetAddress(&chunk);
 
-        using AccumType = std::decay_t<decltype(makePublishBuffer<decltype(data)>(pc, sector))>;
+        using AccumType = std::decay_t<decltype(makePublishBuffer<decltype(data)>(pc, sector, activeSectors))>;
         AccumType accum;
 #pragma omp critical
-        accum = makePublishBuffer<decltype(data)>(pc, sector);
+        accum = makePublishBuffer<decltype(data)>(pc, sector, activeSectors);
 
         for (auto e = 0; e < br->GetEntries(); ++e) {
           br->GetEntry(e);
@@ -195,7 +192,7 @@ void publishMergedTimeframes(std::vector<int> const& lanes, std::vector<int> con
         delete oldtree;
 
         // some data (labels are published slightly differently)
-        publishBuffer(pc, sector, accum);
+        publishBuffer(pc, sector, activeSectors, accum);
       }
     };
 
