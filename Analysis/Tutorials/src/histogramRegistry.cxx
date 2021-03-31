@@ -261,12 +261,8 @@ struct ConfigurablesTest {
   HistogramRegistry histos{"Histos"};
 
   // first element in vector is number of bins (fixed binning) or VARIABLE_WIDTH (variable binning)
-  ConfigurableAxis<double> ptBinning{"pt-bin-edges", {VARIABLE_WIDTH, 0.15, 1., 5., 10., 50.}, ""}; // variable bin edges
-  ConfigurableAxis<double> centBinning{"cent-binning", {9, 0., 90}, ""};                            // fixed size bins
-
-  // best would be to make it work with the actual AxisSpec and its ctors:
-  //Configurable<AxisSpec> phiAxis{"phi-axis", {{0., 0.25, 0.5, 0.75, 1., 1.6, 2.}}, ""};
-  //Configurable<AxisSpec> etaAxis{"eta-axis", {{8, -1., 1.}}, ""};
+  ConfigurableAxis ptBinning{"pt-bin-edges", {VARIABLE_WIDTH, 0.15, 1., 5., 10., 50.}, ""}; // variable bin edges
+  ConfigurableAxis centBinning{"cent-binning", {9, 0., 90}, ""};                            // fixed size bins
 
   void init(InitContext const&)
   {
@@ -280,8 +276,6 @@ struct ConfigurablesTest {
     histos.add("myPtHistFromConfig", "", {HistType::kTH1D, {ptAxis}});
     histos.add("myCentHistFromConfig", "", {HistType::kTH1D, {centAxis}});
     histos.add("myCutHistNotFromConfig", "", {HistType::kTH1D, {cutAxis}});
-
-    //histos.add("histFromConfigAxisSpec", "", {HistType::kTH2F, {phiAxis, etaAxis}});
   }
 
   void process(aod::Track const& track)
