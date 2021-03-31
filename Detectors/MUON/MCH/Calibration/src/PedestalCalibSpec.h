@@ -8,15 +8,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_CALIBRATION_MCH_CHANNEL_CALIBRATOR_SPEC_H
-#define O2_CALIBRATION_MCH_CHANNEL_CALIBRATOR_SPEC_H
+#ifndef O2_CALIBRATION_MCH_PEDESTAL_CALIB_SPEC_H
+#define O2_CALIBRATION_MCH_PEDESTAL_CALIB_SPEC_H
 
-/// @file   MCHChannelCalibratorSpec.h
+/// @file   PedestalCalibSpec.h
 /// @brief  Device to calibrate MCH channles (offsets)
 
 #include <chrono>
 
-#include "MCHCalibration/MCHChannelCalibrator.h"
+#include "MCHCalibration/PedestalCalibrator.h"
 #include "DetectorsCalibration/Utils.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "Framework/Task.h"
@@ -35,10 +35,10 @@ namespace mch
 namespace calibration
 {
 
-class MCHChannelCalibDevice : public o2::framework::Task
+class PedestalCalibDevice : public o2::framework::Task
 {
  public:
-  explicit MCHChannelCalibDevice() = default;
+  explicit PedestalCalibDevice() = default;
 
   //_________________________________________________________________________________________________
   void init(o2::framework::InitContext& ic) final
@@ -47,7 +47,7 @@ class MCHChannelCalibDevice : public o2::framework::Task
     float noiseThreshold = ic.options().get<float>("noise-threshold");
     mLoggingInterval = ic.options().get<int>("logging-interval") * 1000;
 
-    mCalibrator = std::make_unique<o2::mch::calibration::MCHChannelCalibrator>(pedThreshold, noiseThreshold);
+    mCalibrator = std::make_unique<o2::mch::calibration::PedestalCalibrator>(pedThreshold, noiseThreshold);
 
     int slotL = ic.options().get<int>("tf-per-slot");
     int delay = ic.options().get<int>("max-delay");
@@ -84,9 +84,13 @@ class MCHChannelCalibDevice : public o2::framework::Task
   //_________________________________________________________________________________________________
   void run(o2::framework::ProcessingContext& pc) final
   {
-    auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime; // is this the timestamp of the current TF?
+    const o2::framework::DataProcessingHeader* header = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("digits").header);
+    if (!header) {
+      return;
+    }
+    auto tfcounter = header->startTime; // is this the timestamp of the current TF?
 
-    auto data = pc.inputs().get<gsl::span<o2::mch::calibration::PedestalDigit>>("input");
+    auto data = pc.inputs().get<gsl::span<o2::mch::calibration::PedestalDigit>>("digits");
     mCalibrator->process(tfcounter, data);
 
     logStats(data.size());
@@ -103,7 +107,7 @@ class MCHChannelCalibDevice : public o2::framework::Task
   }
 
  private:
-  std::unique_ptr<o2::mch::calibration::MCHChannelCalibrator> mCalibrator;
+  std::unique_ptr<o2::mch::calibration::PedestalCalibrator> mCalibrator;
 
   int mLoggingInterval = {0}; /// time interval between statistics logging messages
 
@@ -153,10 +157,15 @@ class MCHChannelCalibDevice : public o2::framework::Task
 namespace framework
 {
 
-DataProcessorSpec getMCHChannelCalibDeviceSpec()
+std::string getMCHPedestalCalibDeviceName()
+{
+  return "calib-mch-pedestal";
+}
+
+DataProcessorSpec getMCHPedestalCalibSpec(const std::string inputSpec)
 {
   constexpr int64_t INFINITE_TF = 0xffffffffffffffff;
-  using device = o2::mch::calibration::MCHChannelCalibDevice;
+  using device = o2::mch::calibration::PedestalCalibDevice;
   using clbUtils = o2::calibration::Utils;
 
   std::vector<OutputSpec> outputs;
@@ -164,12 +173,9 @@ DataProcessorSpec getMCHChannelCalibDeviceSpec()
   outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
   outputs.emplace_back(OutputSpec{"MCH", "PEDESTALS", 0, Lifetime::Timeframe});
 
-  std::vector<InputSpec> inputs;
-  inputs.emplace_back("input", "MCH", "PDIGITS");
-
   return DataProcessorSpec{
-    "calib-mchchannel-calibration",
-    inputs,
+    getMCHPedestalCalibDeviceName(),
+    select(inputSpec.data()),
     outputs,
     AlgorithmSpec{adaptFromTask<device>()},
     Options{
