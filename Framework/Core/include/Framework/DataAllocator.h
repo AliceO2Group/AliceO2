@@ -80,6 +80,11 @@ class DataAllocator
   using DataOrigin = o2::header::DataOrigin;
   using DataDescription = o2::header::DataDescription;
   using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
+  template <typename T>
+  struct UninitializedVector {
+    static_assert(std::is_fundamental<T>::value, "UninitializedVector only allowed for fundamental types");
+    using value_type = T;
+  };
 
   DataAllocator(TimingInfo* timingInfo,
                 ServiceRegistry* contextes,
@@ -100,7 +105,18 @@ class DataAllocator
   template <typename T, typename... Args>
   decltype(auto) make(const Output& spec, Args... args)
   {
-    if constexpr (is_specialization<T, std::vector>::value && has_messageable_value_type<T>::value) {
+    if constexpr (is_specialization<T, UninitializedVector>::value) {
+      // plain buffer as polymorphic spectator std::vector, which does not run constructors / destructors
+      using ValueType = typename T::value_type;
+      std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
+      auto& context = mRegistry->get<MessageContext>();
+
+      // Note: initial payload size is 0 and will be set by the context before sending
+      FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodNone, 0);
+      return context.add<MessageContext::VectorObject<ValueType, MessageContext::ContainerRefObject<std::vector<ValueType, o2::pmr::NoConstructAllocator<ValueType>>>>>(
+                      std::move(headerMessage), channel, 0, std::forward<Args>(args)...)
+        .get();
+    } else if constexpr (is_specialization<T, std::vector>::value && has_messageable_value_type<T>::value) {
       // this catches all std::vector objects with messageable value type before checking if is also
       // has a root dictionary, so non-serialized transmission is preferred
       using ValueType = typename T::value_type;
