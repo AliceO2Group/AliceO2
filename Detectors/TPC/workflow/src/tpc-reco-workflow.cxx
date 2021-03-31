@@ -37,6 +37,7 @@ o2::framework::Output gDispatchTrigger{"", ""};
 
 // Global variable used to transport data to the completion policy
 o2::tpc::reco_workflow::CompletionPolicyData gPolicyData;
+unsigned long gTpcSectorMask = 0xFFFFFFFFF;
 
 // add workflow options, note that customization needs to be declared before
 // including Framework/runDataProcessing
@@ -139,9 +140,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   o2::conf::ConfigurableParam::writeINI("o2tpcrecoworkflow_configuration.ini");
 
+  gTpcSectorMask = 0;
+  for (auto s : tpcSectors) {
+    gTpcSectorMask |= (1ul << s);
+  }
+
   bool doMC = not cfgc.options().get<bool>("disable-mc");
   return o2::tpc::reco_workflow::getWorkflow(&gPolicyData,                                      //
                                              tpcSectors,                                        // sector configuration
+                                             gTpcSectorMask,                                    // same as bitmask
                                              laneConfiguration,                                 // lane configuration
                                              doMC,                                              //
                                              nLanes,                                            //
