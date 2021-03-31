@@ -17,6 +17,7 @@
 #include "Framework/TimesliceIndex.h"
 
 #include "Headers/DataHeader.h"
+#include "Headers/DataHeaderHelpers.h"
 #include "Headers/Stack.h"
 #include "MemoryResources/MemoryResources.h"
 #include <curl/curl.h>
@@ -170,7 +171,7 @@ size_t readToMessage(void* p, size_t size, size_t nmemb, void* userdata)
 /// \todo this should really be done in the common fetcher.
 /// \todo provide a way to customize the namespace from the ProcessingContext
 ExpirationHandler::Handler
-  LifetimeHelpers::fetchFromCCDBCache(ConcreteDataMatcher const& matcher,
+  LifetimeHelpers::fetchFromCCDBCache(InputSpec const& spec,
                                       std::string const& prefix,
                                       std::string const& overrideTimestamp,
                                       std::string const& sourceChannel)
@@ -183,7 +184,11 @@ ExpirationHandler::Handler
   if (overrideTimestampMilliseconds) {
     LOGP(info, "fetchFromCCDBCache: forcing timestamp for conditions to {} milliseconds from epoch UTC", overrideTimestampMilliseconds);
   }
-  return [matcher, sourceChannel, serverUrl = prefix, overrideTimestampMilliseconds](ServiceRegistry& services, PartRef& ref, uint64_t timestamp) -> void {
+  auto matcher = std::get_if<ConcreteDataMatcher>(&spec.matcher);
+  if (matcher == nullptr) {
+    throw runtime_error("InputSpec for Conditions must be fully qualified");
+  }
+  return [spec, matcher, sourceChannel, serverUrl = prefix, overrideTimestampMilliseconds](ServiceRegistry& services, PartRef& ref, uint64_t timestamp) -> void {
     // We should invoke the handler only once.
     assert(!ref.header);
     assert(!ref.payload);
@@ -203,8 +208,17 @@ ExpirationHandler::Handler
     if (overrideTimestampMilliseconds) {
       timestamp = overrideTimestampMilliseconds;
     }
-    auto path = std::string("/") + matcher.origin.as<std::string>() + "/" + matcher.description.as<std::string>() + "/" + std::to_string(timestamp / 1000);
-    auto url = serverUrl + path;
+
+    std::string path = "";
+    for (auto& meta : spec.metadata) {
+      if (meta.name == "ccdb-path") {
+        path = meta.defaultValue.get<std::string>();
+      }
+    }
+    if (path.empty()) {
+      path = fmt::format("{}/{}", matcher->origin, matcher->description);
+    }
+    auto url = fmt::format("{}/{}/{}", serverUrl, path, timestamp / 1000);
     LOG(INFO) << "fetchFromCCDBCache: Fetching " << url;
 
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
@@ -226,9 +240,9 @@ ExpirationHandler::Handler
     curl_easy_cleanup(curl);
 
     DataHeader dh;
-    dh.dataOrigin = matcher.origin;
-    dh.dataDescription = matcher.description;
-    dh.subSpecification = matcher.subSpec;
+    dh.dataOrigin = matcher->origin;
+    dh.dataDescription = matcher->description;
+    dh.subSpecification = matcher->subSpec;
     // FIXME: should use curl_off_t and CURLINFO_SIZE_DOWNLOAD_T, but
     //        apparently not there on some platforms.
     double dl;
