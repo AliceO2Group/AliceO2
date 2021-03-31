@@ -90,7 +90,7 @@ static auto getWorkflowTPCInput(o2::framework::ProcessingContext& pc, int verbos
       if (recvMask & sectorHeader->sectorBits) {
         throw std::runtime_error("can only have one MC data set per sector");
       }
-      recvMask |= sectorHeader->sectorBits;
+      recvMask |= (sectorHeader->sectorBits & tpcSectorMask);
       retVal->internal.inputrefs[sector].labels = ref;
       if (do_digits) {
         retVal->internal.inputDigitsMCIndex[sector] = retVal->internal.inputDigitsMC.size();
@@ -132,7 +132,7 @@ static auto getWorkflowTPCInput(o2::framework::ProcessingContext& pc, int verbos
       if (recvMask & sectorHeader->sectorBits) {
         throw std::runtime_error("can only have one cluster data set per sector");
       }
-      recvMask |= sectorHeader->sectorBits;
+      recvMask |= (sectorHeader->sectorBits & tpcSectorMask);
       retVal->internal.inputrefs[sector].data = ref;
       if (do_digits) {
         if (tpcSectorMask & (1ul << sector)) {
