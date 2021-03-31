@@ -1,8 +1,8 @@
 #! /bin/bash
 
 export INFOLOGGER_MODE=stdout
+export SCRIPTDIR=$(readlink -f $(dirname $0))
 
-#INPUT=Data/StfBuilder-CH5-pedestals-ul_v1-20210311-with_gnd-with_HV
 INPUT="$1"
 
 ARGS_ALL="-b --session default"

@@ -74,20 +74,6 @@ static std::string readFileContent(std::string& filename)
   return content;
 };
 
-static void patchPage(gsl::span<const std::byte> rdhBuffer, bool verbose)
-{
-  static int mNrdhs = 0;
-  auto& rdhAny = *reinterpret_cast<RDH*>(const_cast<std::byte*>(&(rdhBuffer[0])));
-
-  auto cruId = o2::raw::RDHUtils::getCRUID(rdhAny) & 0xFF;
-  auto flags = o2::raw::RDHUtils::getCRUID(rdhAny) & 0xFF00;
-  auto endpoint = o2::raw::RDHUtils::getEndPointID(rdhAny);
-  auto oldFeeId = o2::raw::RDHUtils::getFEEID(rdhAny);
-  auto ulVersion = oldFeeId & 0xF000;
-  uint32_t feeId = cruId * 2 + endpoint + flags + ulVersion;
-  o2::raw::RDHUtils::setFEEID(rdhAny, feeId);
-};
-
 static bool isValidDeID(int deId)
 {
   for (auto id : deIdsForAllMCH) {
@@ -132,7 +118,6 @@ class PedestalsTask
   void init(framework::InitContext& ic)
   {
     mDebug = ic.options().get<bool>("debug");
-    mPatchRDH = ic.options().get<bool>("patch-rdh");
     mLoggingInterval = ic.options().get<int>("logging-interval") * 1000;
 
     auto mapCRUfile = ic.options().get<std::string>("cru-map");
@@ -179,10 +164,6 @@ class PedestalsTask
 
       mErrors.emplace_back(o2::mch::DecoderError(solarId, dsId, chip, error));
     };
-
-    if (mPatchRDH) {
-      patchPage(page, mDebug);
-    }
 
     if (mDebug) {
       auto& rdhAny = *reinterpret_cast<RDH*>(const_cast<std::byte*>(&(page[0])));
@@ -363,7 +344,6 @@ class PedestalsTask
   std::string mMapFECfile;
 
   std::string mInputSpec;     /// selection string for the input data
-  bool mPatchRDH = {false};   /// flag to enable patching of the RDHs
   bool mDebug = {false};      /// flag to enable verbose output
   int mLoggingInterval = {0}; /// time interval between statistics logging messages
 
@@ -412,7 +392,6 @@ o2::framework::DataProcessorSpec getMCHPedestalDecodingSpec(std::string inputSpe
     AlgorithmSpec{adaptFromTask<o2::mch::raw::PedestalsTask>(inputSpec)},
     Options{{"debug", VariantType::Bool, false, {"enable verbose output"}},
             {"logging-interval", VariantType::Int, 0, {"time interval in seconds between logging messages (set to zero to disable)"}},
-            {"patch-rdh", VariantType::Bool, false, {"fill the FEEID RDH field using the CRUID value"}},
             {"noise-threshold", VariantType::Float, (float)2.0, {"maximum acceptable noise value"}},
             {"pedestal-threshold", VariantType::Float, (float)150, {"maximum acceptable pedestal value"}},
             {"cru-map", VariantType::String, "", {"custom CRU mapping"}},
