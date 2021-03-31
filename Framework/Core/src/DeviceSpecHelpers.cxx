@@ -136,16 +136,10 @@ struct ExpirationHandlerHelpers {
 
   static RouteConfigurator::ExpirationConfigurator expiringConditionConfigurator(InputSpec const& spec, std::string const& sourceChannel)
   {
-    /// FIXME: seems convoluted... Maybe there is a way to avoid all this checking???
-    auto m = std::get_if<ConcreteDataMatcher>(&spec.matcher);
-    if (m == nullptr) {
-      throw runtime_error("InputSpec for Conditions must be fully qualified");
-    }
-
-    return [s = spec, matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const& options) {
+    return [spec, sourceChannel](DeviceState&, ConfigParamRegistry const& options) {
       auto serverUrl = options.get<std::string>("condition-backend");
-      auto timestamp = options.get<std::string>("condition-timestamp");
-      return LifetimeHelpers::fetchFromCCDBCache(matcher, serverUrl, timestamp, sourceChannel);
+      auto forceTimestamp = options.get<std::string>("condition-timestamp");
+      return LifetimeHelpers::fetchFromCCDBCache(spec, serverUrl, forceTimestamp, sourceChannel);
     };
   }
 
