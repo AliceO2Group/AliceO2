@@ -20,6 +20,8 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
+  workflowOptions.push_back(ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"Disable MC labels"}});
+  workflowOptions.push_back(ConfigParamSpec{"use-tracklet-transformer", VariantType::Bool, false, {"Use calibrated tracklets instead raw Tracklet64"}});
   workflowOptions.push_back(ConfigParamSpec{
     "disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}});
   workflowOptions.push_back(ConfigParamSpec{
@@ -40,5 +42,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::writeINI("o2trdtracking-workflow_configuration.ini");
   auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
-  return std::move(o2::trd::getTRDTrackingWorkflow(disableRootInp, disableRootOut));
+  auto useTrackletTransformer = configcontext.options().get<bool>("use-tracklet-transformer");
+  return std::move(o2::trd::getTRDTrackingWorkflow(disableRootInp, disableRootOut, useTrackletTransformer));
 }

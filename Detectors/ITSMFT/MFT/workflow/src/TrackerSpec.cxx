@@ -64,7 +64,7 @@ void TrackerDPL::init(InitContext& ic)
     mTracker = std::make_unique<o2::mft::Tracker>(mUseMC);
     double centerMFT[3] = {0, 0, -61.4}; // Field at center of MFT
     mTracker->setBz(field->getBz(centerMFT));
-    mTracker->initConfig(mftTrackingParam);
+    mTracker->initConfig(mftTrackingParam, true);
     mTracker->initialize();
   } else {
     throw std::runtime_error(o2::utils::concat_string("Cannot retrieve GRP from the ", filename));

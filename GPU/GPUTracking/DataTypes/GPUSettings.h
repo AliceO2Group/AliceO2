@@ -50,14 +50,24 @@ class GPUSettings
 };
 
 #ifdef GPUCA_NOCOMPAT
-// Settings describing the events / time frames
-struct GPUSettingsEvent {
+// Settings describing the global run parameters
+struct GPUSettingsGRP {
   // All new members must be sizeof(int) resp. sizeof(float) for alignment reasons!
   float solenoidBz = -5.00668;  // solenoid field strength
   int constBz = 0;              // for test-MC events with constant Bz
   int homemadeEvents = 0;       // Toy-MC events
   int continuousMaxTimeBin = 0; // 0 for triggered events, -1 for default of 23ms
   int needsClusterer = 0;       // Set to true if the data requires the clusterizer
+};
+
+// Parameters of the current time frame
+struct GPUSettingsTF {
+  int hasTfStartOrbit = 0;
+  int tfStartOrbit = 0;
+  int hasRunStartOrbit = 0;
+  int runStartOrbit = 0;
+  int hasSimStartOrbit = 0;
+  int simStartOrbit = 0;
 };
 
 // Settings defining the setup of the GPUReconstruction processing (basically selecting the device / class instance)

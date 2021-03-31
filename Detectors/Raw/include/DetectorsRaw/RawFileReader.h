@@ -37,6 +37,7 @@ using IR = o2::InteractionRecord;
 struct ReaderInp {
   std::string inifile{};
   std::string rawChannelConfig{};
+  std::string dropTF{};
   size_t spSize = 1024L * 1024L;
   size_t bufferSize = 1024L * 1024L;
   int loop = 1;
@@ -175,7 +176,6 @@ class RawFileReader
 
     o2::header::DataOrigin origin = o2::header::gDataOriginInvalid;                //!
     o2::header::DataDescription description = o2::header::gDataDescriptionInvalid; //!
-    std::string fairMQChannel{};                                                   //! name of the fairMQ channel for the output
     int nErrors = 0;                                                               //!
     std::vector<LinkBlock> blocks;                                                 //!
     std::vector<std::pair<int, uint32_t>> tfStartBlock;
@@ -267,7 +267,7 @@ class RawFileReader
   o2::header::DataDescription getDefaultDataSpecification() const { return mDefDataDescription; }
   ReadoutCardType getDefaultReadoutCardType() const { return mDefCardType; }
 
-  void imposeFirstTF(uint32_t orbit, uint16_t bc);
+  void imposeFirstTF(uint32_t orbit);
   void setTFAutodetect(FirstTFDetection v) { mFirstTFAutodetect = v; }
   void setPreferCalculatedTFStart(bool v) { mPreferCalculatedTFStart = v; }
   FirstTFDetection getTFAutodetect() const { return mFirstTFAutodetect; }

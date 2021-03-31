@@ -839,6 +839,14 @@ static_assert(gSizeMagicString == sizeof(BaseHeader::magicStringInt),
 static_assert(sizeof(BaseHeader::sMagicString) == sizeof(BaseHeader::magicStringInt),
               "Inconsitent size of global magic identifier");
 
+template <typename T>
+struct is_descriptor : std::false_type {
+};
+
+template <std::size_t S, typename P>
+struct is_descriptor<o2::header::Descriptor<S, P>> : std::true_type {
+};
+
 } //namespace header
 
 } //namespace o2

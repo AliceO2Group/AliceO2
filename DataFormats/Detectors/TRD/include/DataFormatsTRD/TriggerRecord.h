@@ -57,6 +57,11 @@ class TriggerRecord
 
   void printStream(std::ostream& stream) const;
 
+  bool operator==(const TriggerRecord& o) const
+  {
+    return mBCData == o.mBCData && mDigitDataRange == o.mDigitDataRange && mTrackletDataRange == o.mTrackletDataRange;
+  }
+
  private:
   BCData mBCData;       /// Bunch crossing data of the trigger
   DataRange mDigitDataRange;    /// Index of the underlying digit data, indexes into the vector/array/span

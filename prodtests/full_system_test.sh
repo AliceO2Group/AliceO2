@@ -69,14 +69,14 @@ else
 fi
 
 taskwrapper sim.log o2-sim --seed $O2SIMSEED -n $NEvents --skipModules ZDC --configKeyValues "Diamond.width[2]=6." -g pythia8hi -j $NJOBS
-taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents --simPrefixQED qed/o2sim --qed-x-section-ratio ${QED2HAD} ${NOMCLABELS} --firstOrbit 0 --firstBC 0 --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITRDOPT}
-[ $SPLITTRDDIGI == "1" ] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --firstOrbit 0 --firstBC 0 --onlyDet TRD --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root ${DIGITRDOPTREAL}
+taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents --simPrefixQED qed/o2sim --qed-x-section-ratio ${QED2HAD} ${NOMCLABELS} --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITRDOPT}
+[ $SPLITTRDDIGI == "1" ] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --onlyDet TRD --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root ${DIGITRDOPTREAL}
 touch digiTRD.log_done
 
 mkdir -p zdc
 cd zdc
 taskwrapper zdcsim.log o2-sim --seed $O2SIMSEED -n $NEvents -m PIPE ZDC --configKeyValues '"Diamond.width[2]=6.;SimCutParams.maxRTracking=50;"' -g pythia8hi -j $NJOBS
-taskwrapper digiZDC.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --firstOrbit 0 --firstBC 0 --onlyDet ZDC --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext ../collisioncontext.root
+taskwrapper digiZDC.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --onlyDet ZDC --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext ../collisioncontext.root
 cp zdcdigits.root ../
 cd ..
 
@@ -88,19 +88,20 @@ if [ "0$GENERATE_ITS_DICTIONARY" == "01" ]; then
 fi
 
 mkdir -p raw
-HBFUTILPARAMS="\"HBFUtils.nHBFPerTF=${NHBPERTF};HBFUtils.orbitFirst=0\""
-taskwrapper itsraw.log o2-its-digi2raw --file-for link --configKeyValues $HBFUTILPARAMS -o raw/ITS
-taskwrapper mftraw.log o2-mft-digi2raw --file-for link --configKeyValues $HBFUTILPARAMS -o raw/MFT
-taskwrapper ft0raw.log o2-ft0-digi2raw --file-per-link --configKeyValues $HBFUTILPARAMS -o raw/FT0
-taskwrapper fv0raw.log o2-fv0-digi2raw --file-per-link --configKeyValues $HBFUTILPARAMS -o raw/FV0
-taskwrapper fddraw.log o2-fdd-digit2raw --file-per-link --configKeyValues $HBFUTILPARAMS -o raw/FDD
-taskwrapper tpcraw.log o2-tpc-digits-to-rawzs  --file-for link --configKeyValues $HBFUTILPARAMS -i tpcdigits.root -o raw/TPC
-taskwrapper tofraw.log o2-tof-reco-workflow ${GLOBALDPLOPT} --tof-raw-file-for link --configKeyValues $HBFUTILPARAMS --output-type raw --tof-raw-outdir raw/TOF
-taskwrapper midraw.log o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --mid-raw-perlink  --configKeyValues $HBFUTILPARAMS
-taskwrapper emcraw.log o2-emcal-rawcreator --file-for link --configKeyValues $HBFUTILPARAMS -o raw/EMC
-taskwrapper phsraw.log o2-phos-digi2raw  --file-for link --configKeyValues $HBFUTILPARAMS -o raw/PHS
-taskwrapper cpvraw.log o2-cpv-digi2raw  --file-for link --configKeyValues $HBFUTILPARAMS -o raw/CPV
-taskwrapper zdcraw.log o2-zdc-digi2raw  --file-per-link --configKeyValues $HBFUTILPARAMS -o raw/ZDC
+HBFUTILPARAMS="HBFUtils.nHBFPerTF=${NHBPERTF};HBFUtils.orbitFirst=0;"
+[ "0$ALLOW_MULTIPLE_TF" != "01" ] && HBFUTILPARAMS+="HBFUtils.maxNOrbits=${NHBPERTF};"
+taskwrapper itsraw.log o2-its-digi2raw --file-for link --configKeyValues \"$HBFUTILPARAMS\" -o raw/ITS
+taskwrapper mftraw.log o2-mft-digi2raw --file-for link --configKeyValues \"$HBFUTILPARAMS\" -o raw/MFT
+taskwrapper ft0raw.log o2-ft0-digi2raw --file-per-link --configKeyValues \"$HBFUTILPARAMS\" -o raw/FT0
+taskwrapper fv0raw.log o2-fv0-digi2raw --file-per-link --configKeyValues \"$HBFUTILPARAMS\" -o raw/FV0
+taskwrapper fddraw.log o2-fdd-digit2raw --file-per-link --configKeyValues \"$HBFUTILPARAMS\" -o raw/FDD
+taskwrapper tpcraw.log o2-tpc-digits-to-rawzs  --file-for link --configKeyValues \"$HBFUTILPARAMS\" -i tpcdigits.root -o raw/TPC
+taskwrapper tofraw.log o2-tof-reco-workflow ${GLOBALDPLOPT} --tof-raw-file-for link --configKeyValues \"$HBFUTILPARAMS\" --output-type raw --tof-raw-outdir raw/TOF
+taskwrapper midraw.log o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --mid-raw-perlink  --configKeyValues \"$HBFUTILPARAMS\"
+taskwrapper emcraw.log o2-emcal-rawcreator --file-for link --configKeyValues \"$HBFUTILPARAMS\" -o raw/EMC
+taskwrapper phsraw.log o2-phos-digi2raw  --file-for link --configKeyValues \"$HBFUTILPARAMS\" -o raw/PHS
+taskwrapper cpvraw.log o2-cpv-digi2raw  --file-for link --configKeyValues \"$HBFUTILPARAMS\" -o raw/CPV
+taskwrapper zdcraw.log o2-zdc-digi2raw  --file-per-link --configKeyValues \"$HBFUTILPARAMS\" -o raw/ZDC
 cat raw/*/*.cfg > rawAll.cfg
 
 if [ "0$DISABLE_PROCESSING" == "01" ]; then

@@ -21,6 +21,7 @@
 #include "Framework/DeviceExecution.h"
 #include "Framework/DeviceInfo.h"
 #include "Framework/DeviceMetricsInfo.h"
+#include "Framework/DeviceMetricsHelper.h"
 #include "Framework/DeviceConfigInfo.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceState.h"
@@ -40,6 +41,8 @@
 #include "Framework/DataProcessorInfo.h"
 #include "Framework/DriverInfo.h"
 #include "Framework/DriverControl.h"
+#include "Framework/CommandInfo.h"
+#include "DriverServerContext.h"
 #include "ControlServiceHelpers.h"
 #include "HTTPParser.h"
 #include "DPLWebSocket.h"
@@ -475,17 +478,6 @@ static void my_alloc_cb(uv_handle_t* handle, size_t suggested_size, uv_buf_t* bu
   buf->len = suggested_size;
 }
 
-/// Helper struct which holds all the lists the Driver needs to know about.
-struct DriverServerContext {
-  uv_loop_t* loop;
-  ServiceRegistry* registry = nullptr;
-  std::vector<DeviceInfo>* infos = nullptr;
-  std::vector<DeviceSpec>* specs = nullptr;
-  std::vector<DeviceMetricsInfo>* metrics = nullptr;
-  std::vector<ServiceMetricHandling>* metricProcessingCallbacks;
-  DriverInfo* driver;
-};
-
 void updateMetricsNames(DriverInfo& driverInfo, std::vector<DeviceMetricsInfo> const& metricsInfos)
 {
   // Calculate the unique set of metrics, as available in the metrics service
@@ -637,7 +629,7 @@ void ws_connect_callback(uv_stream_t* server, int status)
   uv_tcp_init(serverContext->loop, client);
   if (uv_accept(server, (uv_stream_t*)client) == 0) {
     auto handler = std::make_unique<ControlWebSocketHandler>(*serverContext);
-    client->data = new WSDPLHandler((uv_stream_t*)client, std::move(handler));
+    client->data = new WSDPLHandler((uv_stream_t*)client, serverContext, std::move(handler));
     uv_read_start((uv_stream_t*)client, (uv_alloc_cb)my_alloc_cb, websocket_callback);
   } else {
     uv_close((uv_handle_t*)client, nullptr);
@@ -1107,6 +1099,7 @@ void single_step_callback(uv_timer_s* ctx)
 int runStateMachine(DataProcessorSpecs const& workflow,
                     WorkflowInfo const& workflowInfo,
                     DataProcessorInfos const& previousDataProcessorInfos,
+                    CommandInfo const& commandInfo,
                     DriverControl& driverControl,
                     DriverInfo& driverInfo,
                     std::vector<DeviceMetricsInfo>& metricsInfos,
@@ -1183,6 +1176,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   if (window) {
     uv_timer_init(loop, &gui_timer);
   }
+
   // We initialise this in the driver, because different drivers might have
   // different versions of the service
   ServiceRegistry serviceRegistry;
@@ -1194,6 +1188,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   // changes coming from websocket (or even via any standard uv_stream_t, I guess).
   DriverServerContext serverContext;
   serverContext.loop = loop;
+  serverContext.controls = &controls;
   serverContext.infos = &infos;
   serverContext.specs = &deviceSpecs;
   serverContext.metrics = &metricsInfos;
@@ -1499,7 +1494,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         //        restart the data processors which need to be restarted.
         LOG(INFO) << "Redeployment of configuration asked.";
         std::ostringstream forwardedStdin;
-        WorkflowSerializationHelpers::dump(forwardedStdin, workflow, dataProcessorInfos);
+        WorkflowSerializationHelpers::dump(forwardedStdin, workflow, dataProcessorInfos, commandInfo);
         infos.reserve(deviceSpecs.size());
 
         // This is guaranteed to be a single CPU.
@@ -1681,7 +1676,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       }
       case DriverState::PERFORM_CALLBACKS:
         for (auto& callback : driverControl.callbacks) {
-          callback(workflow, deviceSpecs, deviceExecutions, dataProcessorInfos);
+          callback(workflow, deviceSpecs, deviceExecutions, dataProcessorInfos, commandInfo);
         }
         driverControl.callbacks.clear();
         break;
@@ -1738,6 +1733,19 @@ bool isOutputToPipe()
   struct stat s;
   fstat(STDOUT_FILENO, &s);
   return ((s.st_mode & S_IFIFO) != 0);
+}
+
+bool isInputConfig()
+{
+  struct stat s;
+  int r = fstat(STDIN_FILENO, &s);
+  // If stdin cannot be statted, we assume the shell is some sort of
+  // non-interactive container thing
+  if (r < 0) {
+    return false;
+  }
+  // If stdin is a pipe or a file, we try to fetch configuration from there
+  return ((s.st_mode & S_IFIFO) != 0 || (s.st_mode & S_IFREG) != 0);
 }
 
 void overrideCloning(ConfigContext& ctx, WorkflowSpec& workflow)
@@ -1852,7 +1860,8 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
     control.callbacks = {[](WorkflowSpec const& workflow,
                             DeviceSpecs const& specs,
                             DeviceExecutions const&,
-                            DataProcessorInfos&) {
+                            DataProcessorInfos&,
+                            CommandInfo const&) {
       GraphvizHelpers::dumpDeviceSpec2Graphviz(std::cout, specs);
     }};
     control.forcedTransitions = {
@@ -1870,7 +1879,8 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
     control.callbacks = {[](WorkflowSpec const& workflow,
                             DeviceSpecs const& specs,
                             DeviceExecutions const& executions,
-                            DataProcessorInfos&) {
+                            DataProcessorInfos&,
+                            CommandInfo const&) {
       dumpDeviceSpec2DDS(std::cout, specs, executions);
     }};
     control.forcedTransitions = {
@@ -1885,8 +1895,9 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
                          (WorkflowSpec const& workflow,
                           DeviceSpecs const& specs,
                           DeviceExecutions const& executions,
-                          DataProcessorInfos&) {
-                           dumpDeviceSpec2O2Control(workflowName, specs, executions);
+                          DataProcessorInfos&,
+                          CommandInfo const& commandInfo) {
+                           dumpDeviceSpec2O2Control(workflowName, specs, executions, commandInfo);
                          }};
     control.forcedTransitions = {
       DriverState::EXIT,                    //
@@ -1911,14 +1922,15 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
     control.callbacks = {[filename = varmap["dump-workflow-file"].as<std::string>()](WorkflowSpec const& workflow,
                                                                                      DeviceSpecs const devices,
                                                                                      DeviceExecutions const&,
-                                                                                     DataProcessorInfos& dataProcessorInfos) {
+                                                                                     DataProcessorInfos& dataProcessorInfos,
+                                                                                     CommandInfo const& commandInfo) {
       if (filename == "-") {
-        WorkflowSerializationHelpers::dump(std::cout, workflow, dataProcessorInfos);
+        WorkflowSerializationHelpers::dump(std::cout, workflow, dataProcessorInfos, commandInfo);
         // FIXME: this is to avoid trailing garbage..
         exit(0);
       } else {
         std::ofstream output(filename);
-        WorkflowSerializationHelpers::dump(output, workflow, dataProcessorInfos);
+        WorkflowSerializationHelpers::dump(output, workflow, dataProcessorInfos, commandInfo);
       }
     }};
     control.forcedTransitions = {
@@ -2033,6 +2045,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("stop,s", bpo::value<bool>()->zero_tokens()->default_value(false), "stop before device start")                                            //                                                                                                           //
     ("single-step", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode")                                      //                                                                                                             //
     ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(isatty(fileno(stdout)) == 0), "batch processing mode")                        //                                                                                                               //
+    ("no-batch", bpo::value<bool>()->zero_tokens()->default_value(false), "force gui processing mode")                                         //                                                                                                            //
     ("no-cleanup", bpo::value<bool>()->zero_tokens()->default_value(false), "do not cleanup the shm segment")                                  //                                                                                                               //
     ("hostname", bpo::value<std::string>()->default_value("localhost"), "hostname to deploy")                                                  //                                                                                                                 //
     ("resources", bpo::value<std::string>()->default_value(""), "resources allocated for the workflow")                                        //                                                                                                                   //
@@ -2085,9 +2098,11 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   }
 
   std::vector<DataProcessorInfo> dataProcessorInfos;
-  if (isatty(STDIN_FILENO) == false) {
+  CommandInfo commandInfo{};
+
+  if (isatty(STDIN_FILENO) == false && isInputConfig()) {
     std::vector<DataProcessorSpec> importedWorkflow;
-    WorkflowSerializationHelpers::import(std::cin, importedWorkflow, dataProcessorInfos);
+    WorkflowSerializationHelpers::import(std::cin, importedWorkflow, dataProcessorInfos, commandInfo);
 
     size_t workflowHashB = 0;
     for (auto& dp : importedWorkflow) {
@@ -2230,6 +2245,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   conflicting_options(varmap, "run", "dump-workflow");
   conflicting_options(varmap, "run", "graphviz");
   conflicting_options(varmap, "dump-workflow", "graphviz");
+  conflicting_options(varmap, "no-batch", "batch");
 
   if (varmap.count("help")) {
     printHelp(varmap, executorOptions, physicalWorkflow, currentWorkflowOptions);
@@ -2247,7 +2263,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.dispatchPolicies = dispatchPolicies;
   driverInfo.argc = argc;
   driverInfo.argv = argv;
-  driverInfo.batch = varmap["batch"].as<bool>();
+  driverInfo.batch = varmap["no-batch"].defaulted() ? varmap["batch"].as<bool>() : false;
   driverInfo.noSHMCleanup = varmap["no-cleanup"].as<bool>();
   driverInfo.terminationPolicy = varmap["completion-policy"].as<TerminationPolicy>();
   if (varmap["error-policy"].defaulted() && driverInfo.batch == false) {
@@ -2266,6 +2282,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.processorInfo = dataProcessorInfos;
   driverInfo.configContext = &configContext;
 
+  commandInfo.merge(CommandInfo(argc, argv));
+
   std::string frameworkId;
   // If the id is set, this means this is a device,
   // otherwise this is the driver.
@@ -2280,6 +2298,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   return runStateMachine(physicalWorkflow,
                          currentWorkflow,
                          dataProcessorInfos,
+                         commandInfo,
                          driverControl,
                          driverInfo,
                          gDeviceMetricsInfos,

@@ -44,17 +44,18 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             GPU/TPCFastTransformation/devtools/loadlibs.C # Special macro
             GPU/TPCFastTransformation/alirootMacro/moveTPCFastTransform.C # Relies on initTPCcalibration.C
             GPU/GPUTracking/TRDTracking/macros/run_trd_tracker.C # Not yet ready
-	    Detectors/TOF/prototyping/ConvertRun2CalibrationToO2.C
+            Detectors/TOF/prototyping/ConvertRun2CalibrationToO2.C
             Generators/share/external/hijing.C
-	    Generators/share/external/QEDepem.C
-	    Generators/share/external/GenCosmics.C
+            Generators/share/external/QEDepem.C
+            Generators/share/external/GenCosmics.C
             macro/SetIncludePath.C
             macro/loadExtDepLib.C
             macro/load_all_libs.C
             macro/putCondition.C
             macro/rootlogon.C
-	    Detectors/DCS/test/processor_dpcom_o2.C
-        Detectors/FIT/FT0/calibration/macros/makeDummyFT0CalibObjectInCCDB.C)
+            Detectors/DCS/test/processor_dpcom_o2.C
+            Detectors/FIT/FT0/calibration/macros/makeDummyFT0CalibObjectInCCDB.C)
+
 
 if(NOT BUILD_SIMULATION)
   # some complete sub_directories are not added to the build when not building

@@ -11,7 +11,6 @@
 o2_add_library(ITSWorkflow
                SOURCES src/RecoWorkflow.cxx
                        src/ClusterWriterWorkflow.cxx
-                       src/DigitReaderSpec.cxx
                        src/ClustererSpec.cxx
                        src/ClusterWriterSpec.cxx
                        src/TrackerSpec.cxx

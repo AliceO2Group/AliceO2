@@ -16,6 +16,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "Headers/DataHeader.h"
+#include "Headers/DataHeaderHelpers.h"
 #include <vector>
 #include <sstream>
 
@@ -66,10 +67,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
                 }
                 // print the DataHeader information only for the first part or if we have high verbosity
                 if (loglevel > 1 || dh->splitPayloadIndex == 0) {
-                  rdhprintout << "DH: "
-                              << dh->dataOrigin.as<std::string>() << "/"
-                              << dh->dataDescription.as<std::string>() << "/"
-                              << dh->subSpecification << "  "
+                  rdhprintout << fmt::format("DH: {}/{}/{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification) << "  "
                               << " TF " << dh->tfCounter << " Run " << dh->runNumber << " |";
 
                   // at high verbosity print part number, otherwise only the total number of parts

@@ -27,6 +27,7 @@
 #include "DetectorsBase/Propagator.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "GlobalTracking/MatchTPCITS.h"
+#include "CommonConstants/GeomConstants.h"
 #include <algorithm>
 #include <numeric>
 
@@ -207,7 +208,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     //
     if (gidxListTop[GTrackID::TPC].isIndexSet()) { // outward refit in TPC
       float xtogo = 0;
-      if (!trCosm.getXatLabR(o2::globaltracking::MatchTPCITS::XTPCInnerRef, xtogo, mBz, o2::track::DirOutward) ||
+      if (!trCosm.getXatLabR(o2::constants::geom::XTPCInnerRef, xtogo, mBz, o2::track::DirOutward) ||
           !o2::base::Propagator::Instance()->PropagateToXBxByBz(trCosm, xtogo, mMatchParams->maxSnp, mMatchParams->maxStep, mMatchParams->matCorr)) {
         LOG(DEBUG) << "Propagation to inner TPC boundary X=" << xtogo << " failed";
         continue;

@@ -132,31 +132,20 @@ void updatePlaceholders(Filter& filter, InitContext& context)
     }
   };
 
-  auto isLeaf = [](Node const* const node) {
-    return ((node->left == nullptr) && (node->right == nullptr));
-  };
-
   // while the stack is not empty
   while (path.empty() == false) {
     auto& top = path.top();
-
     updateNode(top.node_ptr);
 
+    auto leftp = top.node_ptr->left.get();
+    auto rightp = top.node_ptr->right.get();
     path.pop();
 
-    if (top.node_ptr->left != nullptr) {
-      if (isLeaf(top.node_ptr->left.get())) {
-        updateNode(top.node_ptr->left.get());
-      } else {
-        path.emplace(top.node_ptr->left.get(), 0);
-      }
+    if (leftp != nullptr) {
+      path.emplace(leftp, 0);
     }
-    if (top.node_ptr->right != nullptr) {
-      if (isLeaf(top.node_ptr->right.get())) {
-        updateNode(top.node_ptr->right.get());
-      } else {
-        path.emplace(top.node_ptr->right.get(), 0);
-      }
+    if (rightp != nullptr) {
+      path.emplace(rightp, 0);
     }
   }
 }

@@ -82,7 +82,7 @@ struct GPUO2InterfaceConfiguration {
 
   GPUSettingsDeviceBackend configDeviceBackend;
   GPUSettingsProcessing configProcessing;
-  GPUSettingsEvent configEvent;
+  GPUSettingsGRP configGRP;
   GPUSettingsRec configReconstruction;
   GPUSettingsDisplay configDisplay;
   GPUSettingsQA configQA;
@@ -125,6 +125,9 @@ struct GPUO2InterfaceIOPtrs {
 #endif
   // Output for entropy-reduced clusters of TPC compression
   const o2::tpc::CompressedClustersFlat* compressedClusters = nullptr;
+
+  // Ptr to parameters for current TF
+  const GPUSettingsTF* settingsTF = nullptr;
 };
 } // namespace gpu
 } // namespace o2

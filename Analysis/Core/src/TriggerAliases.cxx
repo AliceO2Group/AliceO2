@@ -18,6 +18,6 @@ void TriggerAliases::AddClassIdToAlias(uint32_t aliasId, int classId)
   } else if (classId < 50) {
     mAliasToTriggerMask[aliasId] |= 1ull << classId;
   } else {
-    mAliasToTriggerMaskNext50[aliasId] |= 1ull << classId;
+    mAliasToTriggerMaskNext50[aliasId] |= 1ull << (classId - 50);
   }
 }

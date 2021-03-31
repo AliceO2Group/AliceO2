@@ -13,6 +13,7 @@
 #include <functional>
 #include <vector>
 
+#include "Framework/CommandInfo.h"
 #include "Framework/DriverInfo.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DeviceSpec.h"
@@ -37,7 +38,8 @@ struct DriverControl {
   using Callback = std::function<void(std::vector<DataProcessorSpec> const& workflow,
                                       std::vector<DeviceSpec> const&,
                                       std::vector<DeviceExecution> const&,
-                                      std::vector<DataProcessorInfo>&)>;
+                                      std::vector<DataProcessorInfo>&,
+                                      CommandInfo const&)>;
   /// States to be added to the stack on next iteration
   /// of the state machine processing.
   std::vector<DriverState> forcedTransitions;

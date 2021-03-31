@@ -940,7 +940,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
           if (header.get() == nullptr) {
             // FIXME: this should not happen, however it's actually harmless and
             //        we can simply discard it for the moment.
-            // LOG(ERROR) << "Missing header! " << dh->dataDescription.as<std::string>();
+            // LOG(ERROR) << "Missing header! " << dh->dataDescription;
             continue;
           }
           auto fdph = o2::header::get<DataProcessingHeader*>(header.get()->GetData());

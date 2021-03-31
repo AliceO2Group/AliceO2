@@ -19,6 +19,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "DataFormatsTRD/Tracklet64.h"
+#include "DataFormatsTRD/CalibratedTracklet.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
@@ -30,18 +31,23 @@ namespace trd
 class TRDTrackletReader : public o2::framework::Task
 {
  public:
-  TRDTrackletReader(bool useMC) : mUseMC(useMC) {}
+  TRDTrackletReader(bool useMC, bool useTrkltTransf) : mUseMC(useMC), mUseTrackletTransform(useTrkltTransf) {}
   ~TRDTrackletReader() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
 
  private:
-  void connectTree(const std::string& filename);
+  void connectTree();
+  void connectTreeCTracklet();
   bool mUseMC{false};
-  std::unique_ptr<TFile> mFile;
-  std::unique_ptr<TTree> mTree;
-  std::string mInFileName{"trdtracklets.root"};
-  std::string mInTreeName{"o2sim"};
+  bool mUseTrackletTransform{false};
+  std::unique_ptr<TFile> mFileTrklt;
+  std::unique_ptr<TTree> mTreeTrklt;
+  std::unique_ptr<TFile> mFileCTrklt;
+  std::unique_ptr<TTree> mTreeCTrklt;
+  std::string mInFileNameTrklt{"trdtracklets.root"};
+  std::string mInTreeNameTrklt{"o2sim"};
+  std::vector<o2::trd::CalibratedTracklet> mTrackletsCal, *mTrackletsCalPtr = &mTrackletsCal;
   std::vector<o2::trd::Tracklet64> mTracklets, *mTrackletsPtr = &mTracklets;
   std::vector<o2::trd::TriggerRecord> mTriggerRecords, *mTriggerRecordsPtr = &mTriggerRecords;
   std::vector<o2::MCCompLabel> mLabels, *mLabelsPtr = &mLabels;
@@ -49,7 +55,7 @@ class TRDTrackletReader : public o2::framework::Task
 
 /// create a processor spec
 /// read TRD tracklets from a root file
-framework::DataProcessorSpec getTRDTrackletReaderSpec(bool useMC);
+framework::DataProcessorSpec getTRDTrackletReaderSpec(bool useMC, bool useCalibratedTracklets);
 
 } // namespace trd
 } // namespace o2

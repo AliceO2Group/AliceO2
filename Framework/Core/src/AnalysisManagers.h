@@ -355,12 +355,12 @@ struct OptionManager {
   }
 };
 
-template <typename T, typename IP>
-struct OptionManager<Configurable<T, IP>> {
-  static bool appendOption(std::vector<ConfigParamSpec>& options, Configurable<T, IP>& what)
+template <typename T, ConfigParamKind K, typename IP>
+struct OptionManager<Configurable<T, K, IP>> {
+  static bool appendOption(std::vector<ConfigParamSpec>& options, Configurable<T, K, IP>& what)
   {
     if constexpr (variant_trait_v<typename std::decay<T>::type> != VariantType::Unknown) {
-      options.emplace_back(ConfigParamSpec{what.name, variant_trait_v<std::decay_t<T>>, what.value, {what.help}});
+      options.emplace_back(ConfigParamSpec{what.name, variant_trait_v<std::decay_t<T>>, what.value, {what.help}, what.kind});
     } else {
       auto specs = RootConfigParamHelpers::asConfigParamSpecs<T>(what.name, what.value);
       options.insert(options.end(), specs.begin(), specs.end());
@@ -368,7 +368,7 @@ struct OptionManager<Configurable<T, IP>> {
     return true;
   }
 
-  static bool prepare(InitContext& context, Configurable<T, IP>& what)
+  static bool prepare(InitContext& context, Configurable<T, K, IP>& what)
   {
     if constexpr (variant_trait_v<typename std::decay<T>::type> != VariantType::Unknown) {
       what.value = context.options().get<T>(what.name.c_str());

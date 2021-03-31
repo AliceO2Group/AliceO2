@@ -23,16 +23,16 @@ namespace o2
 namespace trd
 {
 
-framework::WorkflowSpec getTRDTrackingWorkflow(bool disableRootInp, bool disableRootOut)
+framework::WorkflowSpec getTRDTrackingWorkflow(bool disableRootInp, bool disableRootOut, bool useTrkltTransf)
 {
   framework::WorkflowSpec specs;
   bool useMC = false;
   if (!disableRootInp) {
     specs.emplace_back(o2::globaltracking::getTrackTPCITSReaderSpec(useMC));
-    specs.emplace_back(o2::trd::getTRDTrackletReaderSpec(useMC));
+    specs.emplace_back(o2::trd::getTRDTrackletReaderSpec(useMC, useTrkltTransf));
   }
 
-  specs.emplace_back(o2::trd::getTRDGlobalTrackingSpec(useMC));
+  specs.emplace_back(o2::trd::getTRDGlobalTrackingSpec(useMC, useTrkltTransf));
 
   if (!disableRootOut) {
     specs.emplace_back(o2::trd::getTRDTrackWriterSpec(useMC));

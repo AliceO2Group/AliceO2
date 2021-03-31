@@ -24,6 +24,7 @@
 #include "CCDB/CcdbApi.h"
 #include "DetectorsCalibration/Utils.h"
 
+#include "TPCQC/Clusters.h"
 #include "TPCBase/Mapper.h"
 #include "TPCCalibration/DigitDump.h"
 #include "TPCReconstruction/RawReaderCRU.h"
@@ -43,6 +44,15 @@ class TPCDigitDumpDevice : public o2::framework::Task
 
   void init(o2::framework::InitContext& ic) final
   {
+    // parse command line arguments
+    mMaxEvents = static_cast<uint32_t>(ic.options().get<int>("max-events"));
+    mUseOldSubspec = ic.options().get<bool>("use-old-subspec");
+    const bool createOccupancyMaps = ic.options().get<bool>("create-occupancy-maps");
+    mForceQuit = ic.options().get<bool>("force-quit");
+    if (mUseOldSubspec) {
+      LOGP(info, "Using old subspecification (CruId << 16) | ((LinkId + 1) << (CruEndPoint == 1 ? 8 : 0))");
+    }
+
     // set up ADC value filling
     mRawReader.createReader("");
     mDigitDump.init();
@@ -51,6 +61,11 @@ class TPCDigitDumpDevice : public o2::framework::Task
     if (pedestalFile.length()) {
       LOGP(info, "Setting pedestal file: {}", pedestalFile);
       mDigitDump.setPedestalAndNoiseFile(pedestalFile);
+    }
+
+    // set up cluster qc if requested
+    if (createOccupancyMaps) {
+      mClusterQC = std::make_unique<qc::Clusters>();
     }
 
     mRawReader.setADCDataCallback([this](const PadROCPos& padROCPos, const CRU& cru, const gsl::span<const uint32_t> data) -> int {
@@ -63,15 +78,11 @@ class TPCDigitDumpDevice : public o2::framework::Task
       CRU cruID(cru);
       const PadRegionInfo& regionInfo = Mapper::instance().getPadRegionInfo(cruID.region());
       mDigitDump.updateCRU(cruID, rowInSector - regionInfo.getGlobalRowOffset(), padInRow, timeBin, adcValue);
+      if (mClusterQC) {
+        mClusterQC->fillADCValue(cru, rowInSector, padInRow, timeBin, adcValue);
+      }
       return true;
     });
-
-    mMaxEvents = static_cast<uint32_t>(ic.options().get<int>("max-events"));
-    mUseOldSubspec = ic.options().get<bool>("use-old-subspec");
-    mForceQuit = ic.options().get<bool>("force-quit");
-    if (mUseOldSubspec) {
-      LOGP(info, "Using old subspecification (CruId << 16) | ((LinkId + 1) << (CruEndPoint == 1 ? 8 : 0))");
-    }
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -89,7 +100,7 @@ class TPCDigitDumpDevice : public o2::framework::Task
 
     snapshotDigits(pc.outputs());
 
-    if ((mDigitDump.getNumberOfProcessedEvents() >= mMaxEvents)) {
+    if (mMaxEvents && (mDigitDump.getNumberOfProcessedEvents() >= mMaxEvents)) {
       LOGP(info, "Maximm number of events reached ({}), no more processing will be done", mMaxEvents);
       mReadyToQuit = true;
       if (mForceQuit) {
@@ -108,12 +119,17 @@ class TPCDigitDumpDevice : public o2::framework::Task
       snapshotDigits(ec.outputs());
     }
     ec.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+
+    if (mClusterQC) {
+      dumpClusterQC();
+    }
   }
 
  private:
   DigitDump mDigitDump;
+  std::unique_ptr<qc::Clusters> mClusterQC;
   rawreader::RawReaderCRUManager mRawReader;
-  uint32_t mMaxEvents{100};
+  uint32_t mMaxEvents{0};
   bool mReadyToQuit{false};
   bool mCalibDumped{false};
   bool mUseOldSubspec{false};
@@ -135,6 +151,13 @@ class TPCDigitDumpDevice : public o2::framework::Task
     mDigitDump.clearDigits();
     mActiveSectors = 0;
   }
+
+  //____________________________________________________________________________
+  void dumpClusterQC()
+  {
+    mClusterQC->analyse();
+    mClusterQC->dumpToFile("ClusterQC.root");
+  }
 };
 
 DataProcessorSpec getRawToDigitsSpec(int channel, const std::string inputSpec, std::vector<int> const& tpcSectors)
@@ -152,10 +175,11 @@ DataProcessorSpec getRawToDigitsSpec(int channel, const std::string inputSpec, s
     outputs,
     AlgorithmSpec{adaptFromTask<device>(tpcSectors)},
     Options{
-      {"max-events", VariantType::Int, 100, {"maximum number of events to process"}},
+      {"max-events", VariantType::Int, 0, {"maximum number of events to process"}},
       {"use-old-subspec", VariantType::Bool, false, {"use old subsecifiation definition"}},
       {"force-quit", VariantType::Bool, false, {"force quit after max-events have been reached"}},
       {"pedestal-file", VariantType::String, "", {"file with pedestals and noise for zero suppression"}},
+      {"create-occupancy-maps", VariantType::Bool, false, {"create occupancy maps and store them to local root file for debugging"}},
     } // end Options
   };  // end DataProcessorSpec
 }

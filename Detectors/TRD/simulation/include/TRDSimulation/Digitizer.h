@@ -45,6 +45,8 @@ struct SignalArray {
   std::unordered_map<int, int> trackIds;            // tracks Ids associated to the signal
   std::vector<MCLabel> labels;                      // labels associated to the signal
   bool isDigit = false;                             // flag a signal converted to a digit
+  bool isShared = false;                            // flag if converted digit is shared (copied)
+                                                    // if that is the case, also the labels have to be copied
 };
 
 using DigitContainer = std::vector<Digit>;
@@ -57,16 +59,19 @@ class Digitizer
   ~Digitizer() = default;
   void init(); // setup everything
 
-  void process(std::vector<Hit> const&, DigitContainer&, o2::dataformats::MCTruthContainer<MCLabel>&);
+  void process(std::vector<Hit> const&);
   void flush(DigitContainer&, o2::dataformats::MCTruthContainer<MCLabel>&);
   void pileup();
   void setEventTime(double timeNS) { mTime = timeNS; }
+  void setTriggerTime(double t) { mCurrentTriggerTime = t; }
   void setEventID(int entryID) { mEventID = entryID; }
   void setSrcID(int sourceID) { mSrcID = sourceID; }
   void setCalibrations(Calibrations* calibrations) { mCalib = calibrations; }
+  void setCreateSharedDigits(bool flag) { mCreateSharedDigits = flag; }
   int getEventTime() const { return mTime; }
   int getEventID() const { return mEventID; }
   int getSrcID() const { return mSrcID; }
+  bool getCreateSharedDigits() const { return mCreateSharedDigits; }
 
   // Trigger parameters
   static constexpr double READOUT_TIME = 3000;                  // the time the readout takes, as 30 TB = 3 micro-s.
@@ -89,9 +94,9 @@ class Digitizer
   std::vector<math_utils::RandomRing<>> mLogRandomRings;  // pre-generated exp distributed random number
   std::vector<DiffusionAndTimeStructEstimator> mDriftEstimators;
 
-  double mTime = 0.;               // time in nanoseconds
-  double mLastTime = -1;           // negative, by default to flag the first event
-  double mCurrentTriggerTime = -1; // negative, by default to flag the first event
+  double mTime = 0.;               // time in nanoseconds of the hits currently being processed
+  double mCurrentTriggerTime = 0.; // time in nanoseconds of the current trigger
+  //
   int mEventID = 0;
   int mSrcID = 0;
 
@@ -113,6 +118,7 @@ class Digitizer
   int mTimeBinTRFend = 0;                                  // time bin TRF ends
   int mMaxTimeBins = 30;                                   // Maximum number of time bins for processing signals, usually set at 30 tb = 3 microseconds
   int mMaxTimeBinsTRAP = 30;                               // Maximum number of time bins for processing adcs; should be read from the CCDB or the TRAP config
+  bool mCreateSharedDigits = true;                         // flag if copies should be created of digits from pads which are shared between MCMs
 
   // Digitization containers
   std::vector<Hit> mHitContainer;                                                // the container of hits in a given detector

@@ -8,10 +8,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include <iomanip>
-//#include <TVector3.h>
 #include "FT0Base/Geometry.h"
 #include "TSystem.h"
-#include <FairLogger.h>
+#include "Framework/Logger.h"
 #include <sstream>
 #include <string>
 #include <iostream>

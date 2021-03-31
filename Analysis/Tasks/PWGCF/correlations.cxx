@@ -151,6 +151,10 @@ struct CorrelationTask {
 
     LOGF(info, "Tracks for collision: %d | Vertex: %.1f | INT7: %d | V0M: %.1f", tracks.size(), collision.posZ(), collision.sel7(), collision.centV0M());
 
+    if (std::abs(collision.posZ()) > cfgCutVertex) {
+      LOGF(warning, "Unexpected: Vertex %f outside of cut %f", collision.posZ(), cfgCutVertex);
+    }
+
     const auto centrality = collision.centV0M();
 
     same->fillEvent(centrality, CorrelationContainer::kCFStepAll);

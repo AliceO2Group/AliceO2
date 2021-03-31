@@ -98,13 +98,13 @@ GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam_internal()
   configDisplay = GL;
   configQA = QA;
   if (global.continuousMaxTimeBin) {
-    configEvent.continuousMaxTimeBin = global.continuousMaxTimeBin;
+    configGRP.continuousMaxTimeBin = global.continuousMaxTimeBin;
   }
   if (global.solenoidBz > -1e6f) {
-    configEvent.solenoidBz = global.solenoidBz;
+    configGRP.solenoidBz = global.solenoidBz;
   }
   if (global.constBz) {
-    configEvent.constBz = global.constBz;
+    configGRP.constBz = global.constBz;
   }
   if (configReconstruction.TrackReferenceX == 1000.f) {
     configReconstruction.TrackReferenceX = 83.f;

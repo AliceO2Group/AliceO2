@@ -236,7 +236,12 @@ class LabeledArray : public LabelMap
     return values[0][x];
   }
 
-  T getRow(u_int32_t y) const
+  T get(const char* x) const
+  {
+    return values[0][colmap.find(x)->second];
+  }
+
+  T* getRow(uint32_t y) const
   {
     return values[y];
   }
@@ -259,6 +264,12 @@ class LabeledArray : public LabelMap
   auto cols() const
   {
     return values.cols;
+  }
+
+  auto copy() const
+  {
+    LabeledArray<T> copy = *this;
+    return copy;
   }
 
   void replaceLabelsRows(std::vector<std::string> const& labels)

@@ -8,7 +8,6 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-
 o2_add_executable(digitizer-workflow
                   COMPONENT_NAME sim
                   SOURCES src/EMCALDigitWriterSpec.cxx
@@ -56,7 +55,8 @@ o2_add_executable(digitizer-workflow
                                         O2::TRDWorkflow
                                         O2::DataFormatsTRD
                                         O2::ZDCSimulation
-					O2::ZDCWorkflow)
+					O2::ZDCWorkflow
+					O2::DetectorsRaw)
 
 
 o2_add_executable(mctruth-testworkflow

@@ -24,8 +24,9 @@ o2_add_library(DataFormatsITSMFT
 
 o2_target_root_dictionary(DataFormatsITSMFT
                           HEADERS include/DataFormatsITSMFT/ROFRecord.h
-			          include/DataFormatsITSMFT/Digit.h
-			          include/DataFormatsITSMFT/NoiseMap.h
+			                            include/DataFormatsITSMFT/Digit.h
+			                            include/DataFormatsITSMFT/GBTCalibData.h                                  
+			                            include/DataFormatsITSMFT/NoiseMap.h
                                   include/DataFormatsITSMFT/Cluster.h
                                   include/DataFormatsITSMFT/CompCluster.h
                                   include/DataFormatsITSMFT/ClusterPattern.h

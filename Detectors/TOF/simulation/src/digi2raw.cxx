@@ -33,6 +33,8 @@ int main(int argc, char** argv)
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
     add_option("file-for,f", bpo::value<std::string>()->default_value("cru"), "single file per: all,cru,link");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
+    //add_option("digitization-config,d", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "configKeyValues file from digitization");
+    add_option("digitization-config,d", bpo::value<std::string>()->default_value("none"), "configKeyValues file from digitization");
     opt_all.add(opt_general).add(opt_hidden);
     bpo::store(bpo::command_line_parser(argc, argv).options(opt_all).positional(opt_pos).run(), vm);
 
@@ -54,6 +56,7 @@ int main(int argc, char** argv)
 
   auto cmd = o2::utils::concat_string("o2-tof-reco-workflow -b --output-type raw --tof-raw-outdir ", vm["output-dir"].as<std::string>(),
                                       " --tof-raw-file-for ", vm["file-for"].as<std::string>(),
+                                      " --digitization-config ", vm["digitization-config"].as<std::string>(),
                                       R"( --configKeyValues ")", vm["configKeyValues"].as<std::string>(), '"');
   return system(cmd.c_str());
 }

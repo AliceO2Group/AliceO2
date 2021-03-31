@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 #include "MCHMappingInterface/Segmentation.h"
 #include "MCHRawCommon/DataFormats.h"
 #include "MCHRawElecMap/DsDetId.h"

@@ -87,3 +87,11 @@ o2_add_test(zdc
             SOURCES test/test_ctf_io_zdc.cxx
             COMPONENT_NAME ctf
             LABELS ctf)
+	    
+o2_add_test(trd
+            PUBLIC_LINK_LIBRARIES O2::CTFWorkflow
+                                  O2::DataFormatsTRD
+                                  O2::TRDReconstruction
+            SOURCES test/test_ctf_io_trd.cxx
+            COMPONENT_NAME ctf
+            LABELS ctf)

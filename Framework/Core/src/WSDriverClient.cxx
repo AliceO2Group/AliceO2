@@ -18,6 +18,46 @@
 namespace o2::framework
 {
 
+struct ClientWebSocketHandler : public WebSocketHandler {
+  ClientWebSocketHandler(WSDriverClient& client)
+    : mClient{client}
+  {
+  }
+
+  void headers(std::map<std::string, std::string> const& headers) override
+  {
+  }
+  /// FIXME: not implemented by the backend.
+  void beginFragmentation() override {}
+
+  /// Invoked when a frame it's parsed. Notice you do not own the data and you must
+  /// not free the memory.
+  void frame(char const* frame, size_t s) override
+  {
+    LOG(INFO) << "Invoked" << std::string_view(frame, s);
+  }
+
+  void endFragmentation() override{};
+  void control(char const* frame, size_t s) override{};
+
+  /// Invoked at the beginning of some incoming data. We simply
+  /// reset actions which need to happen on a per chunk basis.
+  void beginChunk() override
+  {
+  }
+
+  /// Invoked after we have processed all the available incoming data.
+  /// In this particular case we must handle the metric callbacks, if
+  /// needed.
+  void endChunk() override
+  {
+  }
+
+  /// The driver context were we want to accumulate changes
+  /// which we got from the websocket.
+  WSDriverClient& mClient;
+};
+
 void on_connect(uv_connect_t* connection, int status)
 {
   if (status < 0) {
@@ -29,7 +69,8 @@ void on_connect(uv_connect_t* connection, int status)
     client->flushPending();
   };
   std::lock_guard<std::mutex> lock(client->mutex());
-  client->setDPLClient(std::make_unique<WSDPLClient>(connection->handle, client->spec(), onHandshake));
+  auto handler = std::make_unique<ClientWebSocketHandler>(*client);
+  client->setDPLClient(std::make_unique<WSDPLClient>(connection->handle, client->spec(), onHandshake, std::move(handler)));
   client->sendHandshake();
 }
 

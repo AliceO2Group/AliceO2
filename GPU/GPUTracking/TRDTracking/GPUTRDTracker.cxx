@@ -86,6 +86,7 @@ void* GPUTRDTracker_t<TRDTRK, PROP>::SetPointersTracklets(void* base)
   // (size might change for different events)
   //--------------------------------------------------------------------
   computePointerWithAlignment(base, mTracklets, mNMaxSpacePoints * mNMaxCollisions);
+  computePointerWithAlignment(base, mTrackletIndices, mNMaxSpacePoints * mNMaxCollisions);
   computePointerWithAlignment(base, mSpacePoints, mNMaxSpacePoints * mNMaxCollisions);
   computePointerWithAlignment(base, mTrackletLabels, 3 * mNMaxSpacePoints * mNMaxCollisions);
   return base;
@@ -102,7 +103,7 @@ void* GPUTRDTracker_t<TRDTRK, PROP>::SetPointersTracks(void* base)
 }
 
 template <class TRDTRK, class PROP>
-GPUTRDTracker_t<TRDTRK, PROP>::GPUTRDTracker_t() : mR(nullptr), mIsInitialized(false), mProcessPerTimeFrame(false), mMemoryPermanent(-1), mMemoryTracklets(-1), mMemoryTracks(-1), mNMaxCollisions(1), mNMaxTracks(0), mNMaxSpacePoints(0), mTracks(nullptr), mNCandidates(1), mNCollisions(1), mNTracks(0), mNEvents(0), mTriggerRecordIndices(nullptr), mTriggerRecordTimes(nullptr), mTracklets(nullptr), mMaxThreads(100), mNTracklets(0), mTrackletIndexArray(nullptr), mHypothesis(nullptr), mCandidates(nullptr), mSpacePoints(nullptr), mTrackletLabels(nullptr), mGeo(nullptr), mRPhiA2(0), mRPhiB(0), mRPhiC2(0), mDyA2(0), mDyB(0), mDyC2(0), mAngleToDyA(0), mAngleToDyB(0), mAngleToDyC(0), mDebugOutput(false), mTimeWindow(.1f), mRadialOffset(-0.1), mMaxEta(0.84f), mExtraRoadY(2.f), mRoadZ(18.f), mZCorrCoefNRC(1.4f), mMCEvent(nullptr), mDebug(new GPUTRDTrackerDebug<TRDTRK>())
+GPUTRDTracker_t<TRDTRK, PROP>::GPUTRDTracker_t() : mR(nullptr), mIsInitialized(false), mTrkltTransfNeeded(true), mProcessPerTimeFrame(false), mMemoryPermanent(-1), mMemoryTracklets(-1), mMemoryTracks(-1), mNMaxCollisions(1), mNMaxTracks(0), mNMaxSpacePoints(0), mTracks(nullptr), mNCandidates(1), mNCollisions(1), mNTracks(0), mNEvents(0), mTriggerRecordIndices(nullptr), mTriggerRecordTimes(nullptr), mTracklets(nullptr), mTrackletIndices(nullptr), mMaxThreads(100), mNTracklets(0), mTrackletIndexArray(nullptr), mHypothesis(nullptr), mCandidates(nullptr), mSpacePoints(nullptr), mTrackletLabels(nullptr), mGeo(nullptr), mRPhiA2(0), mRPhiB(0), mRPhiC2(0), mDyA2(0), mDyB(0), mDyC2(0), mAngleToDyA(0), mAngleToDyB(0), mAngleToDyC(0), mDebugOutput(false), mTimeWindow(.1f), mRadialOffset(-0.1), mMaxEta(0.84f), mExtraRoadY(2.f), mRoadZ(18.f), mZCorrCoefNRC(1.4f), mMCEvent(nullptr), mDebug(new GPUTRDTrackerDebug<TRDTRK>())
 {
   //--------------------------------------------------------------------
   // Default constructor
@@ -204,24 +205,32 @@ void GPUTRDTracker_t<TRDTRK, PROP>::DoTracking(GPUChainTracking* chainTracking)
   // Steering function for the tracking
   //--------------------------------------------------------------------
 
+  for (int i = 0; i < mNTracklets; ++i) {
+    // fill index array (is there something like std::iota() for GPUs?)
+    mTrackletIndices[i] = i;
+  }
   // sort tracklets and fill index array
   for (int iColl = 0; iColl < mNCollisions; ++iColl) {
     int nTrklts = 0;
+    int idxOffset = 0;
     if (mProcessPerTimeFrame) {
+      idxOffset = mTriggerRecordIndices[iColl];
       nTrklts = (iColl < mNCollisions - 1) ? mTriggerRecordIndices[iColl + 1] - mTriggerRecordIndices[iColl] : mNTracklets - mTriggerRecordIndices[iColl];
     } else {
       nTrklts = mNTracklets;
     }
-    GPUTRDTrackletWord* tracklets = (mProcessPerTimeFrame) ? &(mTracklets[mTriggerRecordIndices[iColl]]) : mTracklets;
-    CAAlgo::sort(tracklets, tracklets + nTrklts); // tracklets are sorted by HCId
+    GPUTRDTrackletWord* tracklets = &(mTracklets[idxOffset]);
+    int* trkltIndices = &(mTrackletIndices[idxOffset]);
+    // TODO after the tracklet output of the TRAP simulator in O2 is sorted by HCId this sorting step is not needed anymore for O2
+    CAAlgo::sort(trkltIndices, trkltIndices + nTrklts, [=, &tracklets](int a, int b) { return tracklets[a - idxOffset].GetHCId() < tracklets[b - idxOffset].GetHCId(); });
     int* trkltIndexArray = &mTrackletIndexArray[iColl * (kNChambers + 1) + 1];
     trkltIndexArray[-1] = 0;
     int currDet = 0;
     int nextDet = 0;
     int trkltCounter = 0;
     for (int iTrklt = 0; iTrklt < nTrklts; ++iTrklt) {
-      if (tracklets[iTrklt].GetDetector() > currDet) {
-        nextDet = tracklets[iTrklt].GetDetector();
+      if (tracklets[trkltIndices[iTrklt] - idxOffset].GetDetector() > currDet) {
+        nextDet = tracklets[trkltIndices[iTrklt] - idxOffset].GetDetector();
         for (int iDet = currDet; iDet < nextDet; ++iDet) {
           trkltIndexArray[iDet] = trkltCounter;
         }
@@ -232,10 +241,11 @@ void GPUTRDTracker_t<TRDTRK, PROP>::DoTracking(GPUChainTracking* chainTracking)
     for (int iDet = currDet; iDet <= kNChambers; ++iDet) {
       trkltIndexArray[iDet] = trkltCounter;
     }
-
-    if (!CalculateSpacePoints(iColl)) {
-      GPUError("Space points for at least one chamber could not be calculated (for interaction %i)", iColl);
-      break;
+    if (mTrkltTransfNeeded) {
+      if (!CalculateSpacePoints(iColl)) {
+        GPUError("Space points for at least one chamber could not be calculated (for interaction %i)", iColl);
+        break;
+      }
     }
   }
 
@@ -323,7 +333,7 @@ void GPUTRDTracker_t<TRDTRK, PROP>::CountMatches(const int trackID, std::vector<
     for (int trkltIdx = mTrackletIndexArray[k]; trkltIdx < mTrackletIndexArray[k + 1]; trkltIdx++) {
       bool trkltStored = false;
       for (int il = 0; il < 3; il++) {
-        int lb = mSpacePoints[trkltIdx].mLabel[il];
+        int lb = mTrackletLabels[3 * trkltIdx + il];
         if (lb < 0) {
           // no more valid labels
           break;
@@ -549,11 +559,13 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::CalculateSpacePoints(int iCollision)
   //--------------------------------------------------------------------
 
   bool result = true;
-  int idxOffset = iCollision * (kNChambers + 1);
+  int idxOffset = iCollision * (kNChambers + 1); // offset for accessing mTrackletIndexArray for collision iCollision
 
   for (int iDet = 0; iDet < kNChambers; ++iDet) {
-    int nTracklets = mTrackletIndexArray[idxOffset + iDet + 1] - mTrackletIndexArray[idxOffset + iDet];
-    if (nTracklets == 0) {
+    int iFirstTrackletInDet = mTrackletIndexArray[idxOffset + iDet];
+    int iFirstTrackletInNextDet = mTrackletIndexArray[idxOffset + iDet + 1];
+    int nTrackletsInDet = iFirstTrackletInNextDet - iFirstTrackletInDet;
+    if (nTrackletsInDet == 0) {
       continue;
     }
     if (!mGeo->ChamberInGeometry(iDet)) {
@@ -567,38 +579,28 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::CalculateSpacePoints(int iCollision)
       continue;
     }
     const GPUTRDpadPlane* pp = mGeo->GetPadPlane(iDet);
-    float tilt = CAMath::Tan(M_PI / 180.f * pp->GetTiltingAngle());
-    float t2 = tilt * tilt;      // tan^2 (tilt)
-    float c2 = 1.f / (1.f + t2); // cos^2 (tilt)
-    float sy2 = 0.1f * 0.1f;     // sigma_rphi^2, currently assume sigma_rphi = 1 mm
 
-    int trkltIdxOffset = mTriggerRecordIndices[iCollision];
-    for (int trkltIdx = trkltIdxOffset + mTrackletIndexArray[idxOffset + iDet]; trkltIdx < trkltIdxOffset + mTrackletIndexArray[idxOffset + iDet + 1]; ++trkltIdx) {
-      int trkltZbin = mTracklets[trkltIdx].GetZbin();
-      float sz2 = pp->GetRowSize(trkltZbin) * pp->GetRowSize(trkltZbin) / 12.f; // sigma_z = l_pad/sqrt(12) TODO try a larger z error
+    int trkltIdxOffset = (mProcessPerTimeFrame) ? mTriggerRecordIndices[iCollision] : 0; // global index of first tracklet (not yet sorted by HCId) in iCollision
+    int trkltIdxStart = trkltIdxOffset + iFirstTrackletInDet;
+    for (int trkltIdx = trkltIdxStart; trkltIdx < trkltIdxStart + nTrackletsInDet; ++trkltIdx) {
+      int trkltIdxGlb = mTrackletIndices[trkltIdx]; // sorted by HCId
+      int trkltZbin = mTracklets[trkltIdxGlb].GetZbin();
       My_Float xTrkltDet[3] = {0.f};                                            // trklt position in chamber coordinates
       My_Float xTrkltSec[3] = {0.f};                                            // trklt position in sector coordinates
       xTrkltDet[0] = mGeo->AnodePos() + mRadialOffset;
-      xTrkltDet[1] = mTracklets[trkltIdx].GetY();
+      xTrkltDet[1] = mTracklets[trkltIdxGlb].GetY();
       xTrkltDet[2] = pp->GetRowPos(trkltZbin) - pp->GetRowSize(trkltZbin) / 2.f - pp->GetRowPos(pp->GetNrows() / 2);
-      //GPUInfo("Space point local %i: x=%f, y=%f, z=%f", trkltIdx, xTrkltDet[0], xTrkltDet[1], xTrkltDet[2]);
+      //GPUInfo("Space point local %i: x=%f, y=%f, z=%f", trkltIdxGlb, xTrkltDet[0], xTrkltDet[1], xTrkltDet[2]);
       matrix->LocalToMaster(xTrkltDet, xTrkltSec);
-      mSpacePoints[trkltIdx].mR = xTrkltSec[0];
-      mSpacePoints[trkltIdx].mX[0] = xTrkltSec[1];
-      mSpacePoints[trkltIdx].mX[1] = xTrkltSec[2];
-      mSpacePoints[trkltIdx].mId = mTracklets[trkltIdx].GetId();
-      for (int i = 0; i < 3; i++) {
-        mSpacePoints[trkltIdx].mLabel[i] = mTrackletLabels[3 * mTracklets[trkltIdx].GetId() + i];
-      }
-      mSpacePoints[trkltIdx].mCov[0] = c2 * (sy2 + t2 * sz2);
-      mSpacePoints[trkltIdx].mCov[1] = c2 * tilt * (sz2 - sy2);
-      mSpacePoints[trkltIdx].mCov[2] = c2 * (t2 * sy2 + sz2);
-      mSpacePoints[trkltIdx].mDy = 0.014f * mTracklets[trkltIdx].GetdY();
+      mSpacePoints[trkltIdxGlb].mR = xTrkltSec[0];
+      mSpacePoints[trkltIdxGlb].mX[0] = xTrkltSec[1];
+      mSpacePoints[trkltIdxGlb].mX[1] = xTrkltSec[2];
+      mSpacePoints[trkltIdxGlb].mDy = mTracklets[trkltIdxGlb].GetdY();
 
       int modId = mGeo->GetSector(iDet) * GPUTRDGeometry::kNstack + mGeo->GetStack(iDet); // global TRD stack number
       unsigned short volId = mGeo->GetGeomManagerVolUID(iDet, modId);
-      mSpacePoints[trkltIdx].mVolumeId = volId;
-      //GPUInfo("Space point global %i: x=%f, y=%f, z=%f", trkltIdx, mSpacePoints[trkltIdx].mR, mSpacePoints[trkltIdx].mX[0], mSpacePoints[trkltIdx].mX[1]);
+      mSpacePoints[trkltIdxGlb].mVolumeId = volId;
+      //GPUInfo("Space point global %i: x=%f, y=%f, z=%f", trkltIdxGlb, mSpacePoints[trkltIdxGlb].mR, mSpacePoints[trkltIdxGlb].mX[0], mSpacePoints[trkltIdxGlb].mX[1]);
     }
   }
   return result;
@@ -638,8 +640,8 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
 
   int candidateIdxOffset = threadId * 2 * mNCandidates;
   int hypothesisIdxOffset = threadId * mNCandidates;
-  int trkltIdxOffset = collisionId * (kNChambers + 1);
-  int glbTrkltIdxOffset = mTriggerRecordIndices[collisionId];
+  int trkltIdxOffset = collisionId * (kNChambers + 1);                                     // offset for accessing mTrackletIndexArray for given collision
+  int glbTrkltIdxOffset = (mProcessPerTimeFrame) ? mTriggerRecordIndices[collisionId] : 0; // offset of first tracklet in given collision in global tracklet array
 
   auto trkWork = t;
   if (mNCandidates > 1) {
@@ -752,33 +754,34 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
         }
         // first propagate track to x of tracklet
         for (int trkltIdx = glbTrkltIdxOffset + mTrackletIndexArray[trkltIdxOffset + currDet]; trkltIdx < glbTrkltIdxOffset + mTrackletIndexArray[trkltIdxOffset + currDet + 1]; ++trkltIdx) {
-          if (CAMath::Abs(trkWork->getY() - mSpacePoints[trkltIdx].mX[0]) > roadY || CAMath::Abs(trkWork->getZ() - mSpacePoints[trkltIdx].mX[1]) > roadZ) {
+          int trkltIdxGlb = mTrackletIndices[trkltIdx];
+          if (CAMath::Abs(trkWork->getY() - mSpacePoints[trkltIdxGlb].mX[0]) > roadY || CAMath::Abs(trkWork->getZ() - mSpacePoints[trkltIdxGlb].mX[1]) > roadZ) {
             // skip tracklets which are too far away
             // although the radii of space points and tracks may differ by ~ few mm the roads are large enough to allow no efficiency loss by this cut
             continue;
           }
           float projY, projZ;
-          prop->getPropagatedYZ(mSpacePoints[trkltIdx].mR, projY, projZ);
+          prop->getPropagatedYZ(mSpacePoints[trkltIdxGlb].mR, projY, projZ);
           // correction for tilted pads (only applied if deltaZ < l_pad && track z err << l_pad)
-          float tiltCorr = tilt * (mSpacePoints[trkltIdx].mX[1] - projZ);
-          float l_pad = pad->GetRowSize(mTracklets[trkltIdx].GetZbin());
-          if (!((CAMath::Abs(mSpacePoints[trkltIdx].mX[1] - projZ) < l_pad) && (trkWork->getSigmaZ2() < (l_pad * l_pad / 12.f)))) {
+          float tiltCorr = tilt * (mSpacePoints[trkltIdxGlb].mX[1] - projZ);
+          float l_pad = pad->GetRowSize(mTracklets[trkltIdxGlb].GetZbin());
+          if (!((CAMath::Abs(mSpacePoints[trkltIdxGlb].mX[1] - projZ) < l_pad) && (trkWork->getSigmaZ2() < (l_pad * l_pad / 12.f)))) {
             tiltCorr = 0.f;
           }
           // correction for mean z position of tracklet (is not the center of the pad if track eta != 0)
-          float zPosCorr = mSpacePoints[trkltIdx].mX[1] + mZCorrCoefNRC * trkWork->getTgl();
-          float yPosCorr = mSpacePoints[trkltIdx].mX[0] - tiltCorr;
+          float zPosCorr = mSpacePoints[trkltIdxGlb].mX[1] + mZCorrCoefNRC * trkWork->getTgl();
+          float yPosCorr = mSpacePoints[trkltIdxGlb].mX[0] - tiltCorr;
           float deltaY = yPosCorr - projY;
           float deltaZ = zPosCorr - projZ;
           My_Float trkltPosTmpYZ[2] = {yPosCorr, zPosCorr};
           My_Float trkltCovTmp[3] = {0.f};
           if ((CAMath::Abs(deltaY) < roadY) && (CAMath::Abs(deltaZ) < roadZ)) { // TODO: check if this is still necessary after the cut before propagation of track
             // tracklet is in windwow: get predicted chi2 for update and store tracklet index if best guess
-            RecalcTrkltCov(tilt, trkWork->getSnp(), pad->GetRowSize(mTracklets[trkltIdx].GetZbin()), trkltCovTmp);
+            RecalcTrkltCov(tilt, trkWork->getSnp(), pad->GetRowSize(mTracklets[trkltIdxGlb].GetZbin()), trkltCovTmp);
             float chi2 = prop->getPredictedChi2(trkltPosTmpYZ, trkltCovTmp);
             // GPUInfo("layer %i: chi2 = %f", iLayer, chi2);
-            if (chi2 < Param().rec.trdMaxChi2 && CAMath::Abs(GetAngularPull(mSpacePoints[trkltIdx].mDy, trkWork->getSnp())) < 4) {
-              Hypothesis hypo(trkWork->GetNlayers(), iCandidate, trkltIdx, trkWork->GetChi2() + chi2);
+            if (chi2 < Param().rec.trdMaxChi2 && CAMath::Abs(GetAngularPull(mSpacePoints[trkltIdxGlb].mDy, trkWork->getSnp())) < 4) {
+              Hypothesis hypo(trkWork->GetNlayers(), iCandidate, trkltIdxGlb, trkWork->GetChi2() + chi2);
               InsertHypothesis(hypo, nCurrHypothesis, hypothesisIdxOffset);
             } // end tracklet chi2 < Param().rec.trdMaxChi2
           }   // end tracklet in window
@@ -912,7 +915,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
         mDebug->SetTrackParameter(*trkWork, iLayer);
         mDebug->SetRawTrackletPosition(mSpacePoints[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].mR, mSpacePoints[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].mX, iLayer);
         mDebug->SetCorrectedTrackletPosition(trkltPosUp, iLayer);
-        mDebug->SetTrackletCovariance(mSpacePoints[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].mCov, iLayer);
+        mDebug->SetTrackletCovariance(trkltCovUp, iLayer);
         mDebug->SetTrackletProperties(mSpacePoints[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].mDy, mTracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetDetector(), iLayer);
         wasTrackStored = true;
       }
@@ -975,7 +978,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
         if (t->GetTracklet(iLy) != -1) {
           int lbTracklet;
           for (int il = 0; il < 3; il++) {
-            if ((lbTracklet = mSpacePoints[t->GetTracklet(iLy)].mLabel[il]) < 0) {
+            if ((lbTracklet = mTrackletLabels[3 * t->GetTracklet(iLy) + il]) < 0) {
               // no more valid labels
               continue;
             }
@@ -993,7 +996,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
               if (isRelated) {
                 break;
               }
-              if ((lbTracklet = mSpacePoints[t->GetTracklet(iLy)].mLabel[il]) < 0) {
+              if ((lbTracklet = mTrackletLabels[3 * t->GetTracklet(iLy) + il]) < 0) {
                 // no more valid labels
                 continue;
               }

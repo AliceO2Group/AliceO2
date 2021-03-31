@@ -37,7 +37,7 @@
 #include "Framework/runDataProcessing.h"
 
 #include "DPLUtils/DPLRawParser.h"
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 #include "MCHRawDecoder/OrbitInfo.h"
 
 using namespace o2;

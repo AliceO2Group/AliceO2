@@ -14,7 +14,7 @@
 #include "DigitReader.h"
 #include "Framework/Logger.h"
 #include "Headers/RAWDataHeader.h"
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 #include "MCHRawCommon/DataFormats.h"
 #include "MCHRawElecMap/Mapper.h"
 #include "MCHRawEncoderPayload/DataBlock.h"
@@ -94,6 +94,8 @@ int main(int argc, char* argv[])
       ("input-file,i",po::value<std::string>(&input)->default_value("mchdigits.root"),"input file name")
       ("configKeyValues", po::value<std::string>()->default_value(""), "comma-separated configKeyValues")
       ("no-empty-hbf,e", po::value<bool>()->default_value(true), "do not create empty HBF pages (except for HBF starting TF)")
+      //("digitization-config", po::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "configKeyValues file from digitization")
+      ("digitization-config", po::value<std::string>()->default_value("none"), "configKeyValues file from digitization")
       ("verbosity,v",po::value<std::string>()->default_value("verylow"), "(fair)logger verbosity");
   // clang-format on
 
@@ -116,6 +118,10 @@ int main(int argc, char* argv[])
 
   po::notify(vm);
 
+  std::string confDig = vm["digitization-config"].as<std::string>();
+  if (!confDig.empty() && confDig != "none") {
+    o2::conf::ConfigurableParam::updateFromFile(confDig);
+  }
   o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
 
   if (vm.count("verbosity")) {

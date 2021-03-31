@@ -52,41 +52,18 @@ struct TypeIdHelpers {
 };
 
 /// Return pure type name with no namespaces etc.
-/// Works fine with GCC and CLANG,
-template <typename T>
-constexpr static std::string_view type_name();
-
-template <>
-constexpr std::string_view type_name<void>()
-{
-  return "void";
-}
-
-namespace detail
-{
-
-using type_name_prober = void;
-
-static std::size_t wrapped_type_name_prefix_length()
-{
-  return unique_type_id_v<type_name_prober>.find(type_name<type_name_prober>());
-}
-
-static std::size_t wrapped_type_name_suffix_length()
-{
-  return unique_type_id_v<type_name_prober>.length() - wrapped_type_name_prefix_length() - type_name<type_name_prober>().length();
-}
-
-} // namespace detail
-
+/// Works fine with GCC and CLANG
 template <typename T>
 constexpr static std::string_view type_name()
 {
   constexpr std::string_view wrapped_name{unique_type_id_v<T>};
-  const auto prefix_length = detail::wrapped_type_name_prefix_length();
-  const auto suffix_length = detail::wrapped_type_name_suffix_length();
-  const auto type_name_length = wrapped_name.length() - prefix_length - suffix_length;
-  return wrapped_name.substr(prefix_length, type_name_length);
+  const std::string_view left_marker{"T = "};
+  const std::string_view right_marker{"]"};
+  const auto left_marker_index = wrapped_name.find(left_marker);
+  const auto start_index = left_marker_index + left_marker.size();
+  const auto end_index = wrapped_name.find(right_marker, left_marker_index);
+  const auto length = end_index - start_index;
+  return wrapped_name.substr(start_index, length);
 }
 
 /// Convert a CamelCase task struct name to snake-case task name

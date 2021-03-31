@@ -44,7 +44,7 @@ void VertexTrackMatcher::updateTPCTimeDependentParams()
   if (mITSROFrameLengthMUS == 0) {
     std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName())};
     const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-    mITSROFrameLengthMUS = grp->isDetContinuousReadOut(o2::detectors::DetID::ITS) ? alpParams.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingMS : alpParams.roFrameLengthTrig * 1.e-3;
+    mITSROFrameLengthMUS = grp->isDetContinuousReadOut(o2::detectors::DetID::ITS) ? alpParams.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingMUS : alpParams.roFrameLengthTrig * 1.e-3;
   }
 }
 
@@ -74,8 +74,8 @@ void VertexTrackMatcher::process(const gsl::span<const PVertex>& vertices,
     }
     const auto& vtx = vertices[iv];
     const auto& vto = vtxOrdBrack.emplace_back(VtxTBracket{
-      {float((vtx.getIRMin().differenceInBC(mStartIR) - 0.5f) * o2::constants::lhc::LHCBunchSpacingMS),
-       float((vtx.getIRMax().differenceInBC(mStartIR) + 0.5f) * o2::constants::lhc::LHCBunchSpacingMS)},
+      {float((vtx.getIRMin().differenceInBC(mStartIR) - 0.5f) * o2::constants::lhc::LHCBunchSpacingMUS),
+       float((vtx.getIRMax().differenceInBC(mStartIR) + 0.5f) * o2::constants::lhc::LHCBunchSpacingMUS)},
       iv});
     if (vto.tBracket.delta() > maxVtxSpan) {
       maxVtxSpan = vto.tBracket.delta();

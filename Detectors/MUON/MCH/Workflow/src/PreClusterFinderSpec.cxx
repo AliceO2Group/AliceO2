@@ -33,7 +33,7 @@
 #include "Framework/Logger.h"
 
 #include "DataFormatsMCH/ROFRecord.h"
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 #include "MCHBase/PreCluster.h"
 #include "MCHPreClustering/PreClusterFinder.h"
 

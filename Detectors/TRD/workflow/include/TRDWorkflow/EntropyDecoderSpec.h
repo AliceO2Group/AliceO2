@@ -8,42 +8,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   DigitReaderSpec.h
+/// @file   EntropyDecoderSpec.h
+/// @brief  Convert CTF (EncodedBlocks) to TRD digit/tracklets stream
 
-#ifndef O2_ITS_DIGITREADER
-#define O2_ITS_DIGITREADER
-
-#include "TFile.h"
+#ifndef O2_TRD_ENTROPYDECODER_SPEC
+#define O2_TRD_ENTROPYDECODER_SPEC
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
-using namespace o2::framework;
-
 namespace o2
 {
-namespace its
+namespace trd
 {
-
-class DigitReader : public Task
-{
- public:
-  DigitReader(bool useMC) : mUseMC(useMC) {}
-  ~DigitReader() override = default;
-  void init(InitContext& ic) final;
-  void run(ProcessingContext& pc) final;
-
- private:
-  int mState = 0;
-  bool mUseMC = true;
-  std::unique_ptr<TFile> mFile = nullptr;
-};
 
 /// create a processor spec
-/// read simulated ITS digits from a root file
-framework::DataProcessorSpec getDigitReaderSpec(bool useMC);
+framework::DataProcessorSpec getEntropyDecoderSpec();
 
-} // namespace its
+} // namespace trd
 } // namespace o2
 
-#endif /* O2_ITS_DIGITREADER */
+#endif

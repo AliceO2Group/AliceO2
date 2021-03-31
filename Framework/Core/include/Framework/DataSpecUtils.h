@@ -174,6 +174,12 @@ struct DataSpecUtils {
   /// OutputSpec
   static InputSpec matchingInput(OutputSpec const& spec);
 
+  /// Get the origin, if available
+  static std::optional<header::DataOrigin> getOptionalOrigin(InputSpec const& spec);
+
+  /// Get the description, if available
+  static std::optional<header::DataDescription> getOptionalDescription(InputSpec const& spec);
+
   /// Get the subspec, if available
   static std::optional<header::DataHeader::SubSpecificationType> getOptionalSubSpec(OutputSpec const& spec);
 
