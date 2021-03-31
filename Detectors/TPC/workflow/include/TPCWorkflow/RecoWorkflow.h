@@ -69,6 +69,7 @@ using CompletionPolicyData = std::vector<framework::InputSpec>;
 /// create the workflow for TPC reconstruction
 framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,             //
                                     std::vector<int> const& tpcSectors,           //
+                                    unsigned long tpcSectorMask,                  //
                                     std::vector<int> const& laneConfiguration,    //
                                     bool propagateMC = true, unsigned nLanes = 1, //
                                     std::string const& cfgInput = "digitizer",    //
@@ -81,6 +82,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,           
 
 static inline framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,             //
                                                   std::vector<int> const& tpcSectors,           //
+                                                  unsigned long tpcSectorMask,                  //
                                                   bool propagateMC = true, unsigned nLanes = 1, //
                                                   std::string const& cfgInput = "digitizer",    //
                                                   std::string const& cfgOutput = "tracks",      //
@@ -93,7 +95,7 @@ static inline framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyDa
   // create a default lane configuration with ids [0, nLanes-1]
   std::vector<int> laneConfiguration(nLanes);
   std::iota(laneConfiguration.begin(), laneConfiguration.end(), 0);
-  return getWorkflow(policyData, tpcSectors, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput, caClusterer, zsOnTheFly, zs10bit, zsThreshold, askDISTSTF);
+  return getWorkflow(policyData, tpcSectors, tpcSectorMask, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput, caClusterer, zsOnTheFly, zs10bit, zsThreshold, askDISTSTF);
 }
 
 static inline framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,             //
@@ -109,7 +111,7 @@ static inline framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyDa
   // create a default lane configuration with ids [0, nLanes-1]
   std::vector<int> laneConfiguration(nLanes);
   std::iota(laneConfiguration.begin(), laneConfiguration.end(), 0);
-  return getWorkflow(policyData, {}, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput, caClusterer, zsOnTheFly, zs10bit, zsThreshold, askDISTSTF);
+  return getWorkflow(policyData, {}, 0xFFFFFFFFF, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput, caClusterer, zsOnTheFly, zs10bit, zsThreshold, askDISTSTF);
 }
 
 } // end namespace reco_workflow

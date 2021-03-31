@@ -86,7 +86,7 @@ namespace o2
 namespace tpc
 {
 
-DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config const& specconfig, std::vector<int> const& tpcsectors)
+DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask)
 {
   if (specconfig.outputCAClusters && !specconfig.caClusterer && !specconfig.decompressTPC) {
     throw std::runtime_error("inconsistent configuration: cluster output is only possible if CA clusterer is activated");
@@ -117,9 +117,8 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
   };
 
   auto processAttributes = std::make_shared<ProcessAttributes>();
-  for (auto s : tpcsectors) {
-    processAttributes->tpcSectorMask |= (1ul << s);
-  }
+  processAttributes->tpcSectorMask = tpcSectorMask;
+
   auto initFunction = [processAttributes, specconfig](InitContext& ic) {
     processAttributes->config.reset(new GPUO2InterfaceConfiguration);
     GPUO2InterfaceConfiguration& config = *processAttributes->config.get();

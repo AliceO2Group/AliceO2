@@ -63,7 +63,7 @@ struct Config {
 ///
 /// @param specconfig configuration options for the processor spec
 /// @param tpcsectors list of sector numbers
-framework::DataProcessorSpec getCATrackerSpec(o2::tpc::reco_workflow::CompletionPolicyData* policyData, ca::Config const& specconfig, std::vector<int> const& tpcsectors);
+framework::DataProcessorSpec getCATrackerSpec(o2::tpc::reco_workflow::CompletionPolicyData* policyData, ca::Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask);
 
 o2::framework::CompletionPolicy getCATrackerCompletionPolicy();
 } // end namespace tpc

@@ -86,7 +86,7 @@ const std::unordered_map<std::string, OutputType> OutputMap{
   {"qa", OutputType::QA},
   {"no-shared-cluster-map", OutputType::NoSharedClusterMap}};
 
-framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vector<int> const& tpcSectors, std::vector<int> const& laneConfiguration,
+framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vector<int> const& tpcSectors, unsigned long tpcSectorMask, std::vector<int> const& laneConfiguration,
                                     bool propagateMC, unsigned nLanes, std::string const& cfgInput, std::string const& cfgOutput,
                                     int caClusterer, int zsOnTheFly, int zs10bit, float zsThreshold, bool askDISTSTF)
 {
@@ -408,7 +408,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   }
 
   if (zsOnTheFly) {
-    specs.emplace_back(o2::tpc::getZSEncoderSpec(tpcSectors, zs10bit, zsThreshold, outRaw));
+    specs.emplace_back(o2::tpc::getZSEncoderSpec(tpcSectors, zs10bit, zsThreshold, outRaw, tpcSectorMask));
   }
 
   if (zsToDigit) {
@@ -436,7 +436,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     cfg.processMC = propagateMC;
     cfg.sendClustersPerSector = isEnabled(OutputType::SendClustersPerSector);
     cfg.askDISTSTF = askDISTSTF;
-    specs.emplace_back(o2::tpc::getCATrackerSpec(policyData, cfg, tpcSectors));
+    specs.emplace_back(o2::tpc::getCATrackerSpec(policyData, cfg, tpcSectors, tpcSectorMask));
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////

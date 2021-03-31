@@ -56,7 +56,7 @@ namespace o2
 namespace tpc
 {
 
-DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool zs10bit, float threshold = 2.f, bool outRaw = false)
+DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool zs10bit, float threshold = 2.f, bool outRaw = false, unsigned long tpcSectorMask = 0xFFFFFFFFF)
 {
   std::string processorName = "tpc-zsEncoder";
   constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
@@ -72,17 +72,13 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool zs10
     bool finished = false;
   };
 
-  auto initFunction = [tpcSectors, zs10bit, threshold, outRaw](InitContext& ic) {
+  auto initFunction = [tpcSectors, zs10bit, threshold, outRaw, tpcSectorMask](InitContext& ic) {
     auto processAttributes = std::make_shared<ProcessAttributes>();
     auto& zsoutput = processAttributes->zsoutput;
     processAttributes->tpcSectors = tpcSectors;
     auto& verify = processAttributes->verify;
     auto& sizes = processAttributes->sizes;
     auto& verbosity = processAttributes->verbosity;
-    unsigned long tpcSectorMask = 0;
-    for (auto s : tpcSectors) {
-      tpcSectorMask |= (1ul << s);
-    }
 
     auto processingFct = [processAttributes, zs10bit, threshold, outRaw, tpcSectorMask](
                            ProcessingContext& pc) {
