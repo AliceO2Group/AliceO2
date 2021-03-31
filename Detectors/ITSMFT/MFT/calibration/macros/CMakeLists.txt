@@ -8,11 +8,12 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(base)
-add_subdirectory(simulation)
-add_subdirectory(macros)
-add_subdirectory(tracking)
-add_subdirectory(workflow)
-add_subdirectory(calibration)
+o2_add_test_root_macro(MakeNoiseMapFromDigits.C
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsITSMFT
+                                             O2::ITSMFTBase
+                                             O2::MFTBase)
 
-o2_data_file(COPY data DESTINATION Detectors/Geometry/MFT/)
+o2_add_test_root_macro(MakeNoiseMapFromClusters.C
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsITSMFT
+                                             O2::ITSMFTBase
+                                             O2::MFTBase)
