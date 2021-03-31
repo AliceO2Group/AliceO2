@@ -107,11 +107,12 @@ struct TaskD0D0barCorrelation {
   int nBinspTaxis = binsCorrelations->size() - 1;
   const double* valuespTaxis = binsCorrelations->data();
 
-  void init(o2::framework::InitContext&) {
-    for (int i=2; i<=3; i++) {
+  void init(o2::framework::InitContext&)
+  {
+    for (int i = 2; i <= 3; i++) {
       registry.get<THnSparse>("hMass2DCorrelationPairs")->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);
       registry.get<THnSparse>("hCorrel2DVsPtSignalRegion")->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);
-      registry.get<THnSparse>("hCorrel2DVsPtSidebands")->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);     
+      registry.get<THnSparse>("hCorrel2DVsPtSidebands")->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);
     }
   }
 
@@ -120,12 +121,12 @@ struct TaskD0D0barCorrelation {
     for (auto& pairEntry : pairEntries) {
       //fill 2D invariant mass plots
       registry.fill(HIST("hMass2DCorrelationPairs"), pairEntry.mD0(), pairEntry.mD0bar(), pairEntry.ptD0(), pairEntry.ptD0bar());
-      
+
       //check if correlation entry belongs to signal region, sidebands or is outside both, and fill correlation plots
       int pTBinD0 = o2::analysis::findBin(binsCorrelations, pairEntry.ptD0());
       int pTBinD0bar = o2::analysis::findBin(binsCorrelations, pairEntry.ptD0bar());
 
-      if(pairEntry.mD0() > signalRegionInner->at(pTBinD0) && pairEntry.mD0() < signalRegionOuter->at(pTBinD0) && pairEntry.mD0bar() > signalRegionInner->at(pTBinD0bar) && pairEntry.mD0bar() < signalRegionOuter->at(pTBinD0bar)) {
+      if (pairEntry.mD0() > signalRegionInner->at(pTBinD0) && pairEntry.mD0() < signalRegionOuter->at(pTBinD0) && pairEntry.mD0bar() > signalRegionInner->at(pTBinD0bar) && pairEntry.mD0bar() < signalRegionOuter->at(pTBinD0bar)) {
         //in signal region
         registry.fill(HIST("hCorrel2DVsPtSignalRegion"), pairEntry.deltaPhi(), pairEntry.deltaEta(), pairEntry.ptD0(), pairEntry.ptD0bar());
         registry.fill(HIST("hCorrel2DPtIntSignalRegion"), pairEntry.deltaPhi(), pairEntry.deltaEta());
@@ -135,10 +136,10 @@ struct TaskD0D0barCorrelation {
         registry.fill(HIST("hDeltaPtMaxMinSignalRegion"), std::abs(pairEntry.ptD0bar() - pairEntry.ptD0()));
       }
 
-      if((pairEntry.mD0() > sidebandLeftInner->at(pTBinD0) && pairEntry.mD0() < sidebandLeftOuter->at(pTBinD0) && pairEntry.mD0bar() > sidebandLeftInner->at(pTBinD0bar) && pairEntry.mD0bar() < sidebandRightOuter->at(pTBinD0bar)) || 
-         (pairEntry.mD0() > sidebandRightInner->at(pTBinD0) && pairEntry.mD0() < sidebandRightOuter->at(pTBinD0) && pairEntry.mD0bar() > sidebandLeftInner->at(pTBinD0bar) && pairEntry.mD0bar() < sidebandRightOuter->at(pTBinD0bar)) ||
-         (pairEntry.mD0() > sidebandLeftInner->at(pTBinD0) && pairEntry.mD0() < sidebandRightOuter->at(pTBinD0) && pairEntry.mD0bar() > sidebandLeftInner->at(pTBinD0bar) && pairEntry.mD0bar() < sidebandLeftOuter->at(pTBinD0bar)) ||
-         (pairEntry.mD0() > sidebandLeftInner->at(pTBinD0) && pairEntry.mD0() < sidebandRightOuter->at(pTBinD0) && pairEntry.mD0bar() > sidebandRightInner->at(pTBinD0bar) && pairEntry.mD0bar() < sidebandRightOuter->at(pTBinD0bar))) {
+      if ((pairEntry.mD0() > sidebandLeftInner->at(pTBinD0) && pairEntry.mD0() < sidebandLeftOuter->at(pTBinD0) && pairEntry.mD0bar() > sidebandLeftInner->at(pTBinD0bar) && pairEntry.mD0bar() < sidebandRightOuter->at(pTBinD0bar)) ||
+          (pairEntry.mD0() > sidebandRightInner->at(pTBinD0) && pairEntry.mD0() < sidebandRightOuter->at(pTBinD0) && pairEntry.mD0bar() > sidebandLeftInner->at(pTBinD0bar) && pairEntry.mD0bar() < sidebandRightOuter->at(pTBinD0bar)) ||
+          (pairEntry.mD0() > sidebandLeftInner->at(pTBinD0) && pairEntry.mD0() < sidebandRightOuter->at(pTBinD0) && pairEntry.mD0bar() > sidebandLeftInner->at(pTBinD0bar) && pairEntry.mD0bar() < sidebandLeftOuter->at(pTBinD0bar)) ||
+          (pairEntry.mD0() > sidebandLeftInner->at(pTBinD0) && pairEntry.mD0() < sidebandRightOuter->at(pTBinD0) && pairEntry.mD0bar() > sidebandRightInner->at(pTBinD0bar) && pairEntry.mD0bar() < sidebandRightOuter->at(pTBinD0bar))) {
         //in sideband region
         registry.fill(HIST("hCorrel2DVsPtSidebands"), pairEntry.deltaPhi(), pairEntry.deltaEta(), pairEntry.ptD0(), pairEntry.ptD0bar());
         registry.fill(HIST("hCorrel2DPtIntSidebands"), pairEntry.deltaPhi(), pairEntry.deltaEta());
@@ -170,14 +171,14 @@ struct TaskD0D0barCorrelationMCRec {
      {"hCorrel2DVsPtSignalRegionMCRecSigSig", "D0,D0bar candidates signal region SigSig - MC reco;#it{#varphi}^{D0bar}-#it{#varphi}^{D0};#it{#eta}^{D0bar}-#it{#eta}^{D0};#it{p}_{T}^{D0};#it{p}_{T}^{D0bar};entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
      {"hCorrel2DVsPtSignalRegionMCRecSigBkg", "D0,D0bar candidates signal region SigBkg - MC reco;#it{#varphi}^{D0bar}-#it{#varphi}^{D0};#it{#eta}^{D0bar}-#it{#eta}^{D0};#it{p}_{T}^{D0};#it{p}_{T}^{D0bar};entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
      {"hCorrel2DVsPtSignalRegionMCRecBkgSig", "D0,D0bar candidates signal region BkgSig - MC reco;#it{#varphi}^{D0bar}-#it{#varphi}^{D0};#it{#eta}^{D0bar}-#it{#eta}^{D0};#it{p}_{T}^{D0};#it{p}_{T}^{D0bar};entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
-     {"hCorrel2DVsPtSignalRegionMCRecBkgBkg", "D0,D0bar candidates signal region BkgBkg - MC reco;#it{#varphi}^{D0bar}-#it{#varphi}^{D0};#it{#eta}^{D0bar}-#it{#eta}^{D0};#it{p}_{T}^{D0};#it{p}_{T}^{D0bar};entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()               
+     {"hCorrel2DVsPtSignalRegionMCRecBkgBkg", "D0,D0bar candidates signal region BkgBkg - MC reco;#it{#varphi}^{D0bar}-#it{#varphi}^{D0};#it{#eta}^{D0bar}-#it{#eta}^{D0};#it{p}_{T}^{D0};#it{p}_{T}^{D0bar};entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
      {"hDeltaEtaPtIntSidebandsMCRec", "D0,D0bar candidates sidebands - MC reco;#it{#eta}^{D0bar}-#it{#eta}^{D0};entries", {HistType::kTH1F, {{200, -10., 10.}}}},
      {"hDeltaPhiPtIntSidebandsMCRec", "D0,D0bar candidates sidebands - MC reco;#it{#varphi}^{D0bar}-#it{#varphi}^{D0};entries", {HistType::kTH1F, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}}}},
      {"hCorrel2DPtIntSidebandsMCRec", "D0,D0bar candidates sidebands - MC reco;#it{#varphi}^{D0bar}-#it{#varphi}^{D0};#it{#eta}^{D0bar}-#it{#eta}^{D0};entries", {HistType::kTH2F, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {200, -10., 10.}}}},
      {"hCorrel2DVsPtSidebandsMCRecSigSig", "D0,D0bar candidates sidebands SigSig - MC reco;#it{#varphi}^{D0bar}-#it{#varphi}^{D0};#it{#eta}^{D0bar}-#it{#eta}^{D0};#it{p}_{T}^{D0};#it{p}_{T}^{D0bar};entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init() - should be empty, kept for cross-check and debug
      {"hCorrel2DVsPtSidebandsMCRecSigBkg", "D0,D0bar candidates sidebands SigBkg - MC reco;#it{#varphi}^{D0bar}-#it{#varphi}^{D0};#it{#eta}^{D0bar}-#it{#eta}^{D0};#it{p}_{T}^{D0};#it{p}_{T}^{D0bar};entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
      {"hCorrel2DVsPtSidebandsMCRecBkgSig", "D0,D0bar candidates sidebands BkgSig - MC reco;#it{#varphi}^{D0bar}-#it{#varphi}^{D0};#it{#eta}^{D0bar}-#it{#eta}^{D0};#it{p}_{T}^{D0};#it{p}_{T}^{D0bar};entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
-     {"hCorrel2DVsPtSidebandsMCRecBkgBkg", "D0,D0bar candidates sidebands BkgBkg - MC reco;#it{#varphi}^{D0bar}-#it{#varphi}^{D0};#it{#eta}^{D0bar}-#it{#eta}^{D0};#it{p}_{T}^{D0};#it{p}_{T}^{D0bar};entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()               
+     {"hCorrel2DVsPtSidebandsMCRecBkgBkg", "D0,D0bar candidates sidebands BkgBkg - MC reco;#it{#varphi}^{D0bar}-#it{#varphi}^{D0};#it{#eta}^{D0bar}-#it{#eta}^{D0};#it{p}_{T}^{D0};#it{p}_{T}^{D0bar};entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
      {"hDeltaPtDDbarSidebandsMCRec", "D0,D0bar candidates signal region - MC reco;#it{p}_{T}^{D0bar}-#it{p}_{T}^{D0};entries", {HistType::kTH1F, {{144, -36., 36.}}}},
      {"hDeltaPtMaxMinSidebandsMCRec", "D0,D0bar candidates signal region - MC reco;#it{p}_{T}^{max}-#it{p}_{T}^{min};entries", {HistType::kTH1F, {{72, 0., 36.}}}}}};
 
@@ -195,8 +196,9 @@ struct TaskD0D0barCorrelationMCRec {
   int nBinspTaxis = binsCorrelations->size() - 1;
   const double* valuespTaxis = binsCorrelations->data();
 
-  void init(o2::framework::InitContext&) {
-    for (int i=2; i<=3; i++) {
+  void init(o2::framework::InitContext&)
+  {
+    for (int i = 2; i <= 3; i++) {
       registry.get<THnSparse>("hMass2DCorrelationPairsMCRecSigSig")->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);
       registry.get<THnSparse>("hMass2DCorrelationPairsMCRecSigBkg")->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);
       registry.get<THnSparse>("hMass2DCorrelationPairsMCRecBkgSig")->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);
@@ -206,9 +208,9 @@ struct TaskD0D0barCorrelationMCRec {
       registry.get<THnSparse>("hCorrel2DVsPtSignalRegionMCRecBkgSig")->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);
       registry.get<THnSparse>("hCorrel2DVsPtSignalRegionMCRecBkgBkg")->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);
       registry.get<THnSparse>("hCorrel2DVsPtSidebandsMCRecSigSig")->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);
-      registry.get<THnSparse>("hCorrel2DVsPtSidebandsMCRecSigBkg")->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);  
-      registry.get<THnSparse>("hCorrel2DVsPtSidebandsMCRecBkgSig")->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);       
-      registry.get<THnSparse>("hCorrel2DVsPtSidebandsMCRecBkgBkg")->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);  
+      registry.get<THnSparse>("hCorrel2DVsPtSidebandsMCRecSigBkg")->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);
+      registry.get<THnSparse>("hCorrel2DVsPtSidebandsMCRecBkgSig")->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);
+      registry.get<THnSparse>("hCorrel2DVsPtSidebandsMCRecBkgBkg")->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);
     }
   }
 
@@ -228,22 +230,22 @@ struct TaskD0D0barCorrelationMCRec {
           break;
         case 3: //D0 Sig, D0bar Sig
           registry.fill(HIST("hMass2DCorrelationPairsMCRecSigSig"), pairEntry.mD0(), pairEntry.mD0bar(), pairEntry.ptD0(), pairEntry.ptD0bar());
-          break;      
+          break;
         default: //should not happen for MC reco
-        break;
+          break;
       }
-     
+
       //check if correlation entry belongs to signal region, sidebands or is outside both, and fill correlation plots
       int pTBinD0 = o2::analysis::findBin(binsCorrelations, pairEntry.ptD0());
       int pTBinD0bar = o2::analysis::findBin(binsCorrelations, pairEntry.ptD0bar());
 
-      if(pairEntry.mD0() > signalRegionInner->at(pTBinD0) && pairEntry.mD0() < signalRegionOuter->at(pTBinD0) && pairEntry.mD0bar() > signalRegionInner->at(pTBinD0bar) && pairEntry.mD0bar() < signalRegionOuter->at(pTBinD0bar)) {
+      if (pairEntry.mD0() > signalRegionInner->at(pTBinD0) && pairEntry.mD0() < signalRegionOuter->at(pTBinD0) && pairEntry.mD0bar() > signalRegionInner->at(pTBinD0bar) && pairEntry.mD0bar() < signalRegionOuter->at(pTBinD0bar)) {
         //in signal region
         registry.fill(HIST("hCorrel2DPtIntSignalRegionMCRec"), pairEntry.deltaPhi(), pairEntry.deltaEta());
         registry.fill(HIST("hDeltaEtaPtIntSignalRegionMCRec"), pairEntry.deltaPhi());
         registry.fill(HIST("hDeltaPhiPtIntSignalRegionMCRec"), pairEntry.deltaEta());
         registry.fill(HIST("hDeltaPtDDbarSignalRegionMCRec"), pairEntry.ptD0bar() - pairEntry.ptD0());
-        registry.fill(HIST("hDeltaPtMaxMinSignalRegionMCRec"), std::abs(pairEntry.ptD0bar() - pairEntry.ptD0()));        
+        registry.fill(HIST("hDeltaPtMaxMinSignalRegionMCRec"), std::abs(pairEntry.ptD0bar() - pairEntry.ptD0()));
         switch (pairEntry.signalStatus()) {
           case 0: //D0 Bkg, D0bar Bkg
             registry.fill(HIST("hCorrel2DVsPtSignalRegionMCRecBkgBkg"), pairEntry.mD0(), pairEntry.mD0bar(), pairEntry.ptD0(), pairEntry.ptD0bar());
@@ -256,22 +258,22 @@ struct TaskD0D0barCorrelationMCRec {
             break;
           case 3: //D0 Sig, D0bar Sig
             registry.fill(HIST("hCorrel2DVsPtSignalRegionMCRecSigSig"), pairEntry.mD0(), pairEntry.mD0bar(), pairEntry.ptD0(), pairEntry.ptD0bar());
-            break;      
+            break;
           default: //should not happen for MC reco
-          break;
+            break;
         }
       }
 
-      if((pairEntry.mD0() > sidebandLeftInner->at(pTBinD0) && pairEntry.mD0() < sidebandLeftOuter->at(pTBinD0) && pairEntry.mD0bar() > sidebandLeftInner->at(pTBinD0bar) && pairEntry.mD0bar() < sidebandRightOuter->at(pTBinD0bar)) || 
-         (pairEntry.mD0() > sidebandRightInner->at(pTBinD0) && pairEntry.mD0() < sidebandRightOuter->at(pTBinD0) && pairEntry.mD0bar() > sidebandLeftInner->at(pTBinD0bar) && pairEntry.mD0bar() < sidebandRightOuter->at(pTBinD0bar)) ||
-         (pairEntry.mD0() > sidebandLeftInner->at(pTBinD0) && pairEntry.mD0() < sidebandRightOuter->at(pTBinD0) && pairEntry.mD0bar() > sidebandLeftInner->at(pTBinD0bar) && pairEntry.mD0bar() < sidebandLeftOuter->at(pTBinD0bar)) ||
-         (pairEntry.mD0() > sidebandLeftInner->at(pTBinD0) && pairEntry.mD0() < sidebandRightOuter->at(pTBinD0) && pairEntry.mD0bar() > sidebandRightInner->at(pTBinD0bar) && pairEntry.mD0bar() < sidebandRightOuter->at(pTBinD0bar))) {
+      if ((pairEntry.mD0() > sidebandLeftInner->at(pTBinD0) && pairEntry.mD0() < sidebandLeftOuter->at(pTBinD0) && pairEntry.mD0bar() > sidebandLeftInner->at(pTBinD0bar) && pairEntry.mD0bar() < sidebandRightOuter->at(pTBinD0bar)) ||
+          (pairEntry.mD0() > sidebandRightInner->at(pTBinD0) && pairEntry.mD0() < sidebandRightOuter->at(pTBinD0) && pairEntry.mD0bar() > sidebandLeftInner->at(pTBinD0bar) && pairEntry.mD0bar() < sidebandRightOuter->at(pTBinD0bar)) ||
+          (pairEntry.mD0() > sidebandLeftInner->at(pTBinD0) && pairEntry.mD0() < sidebandRightOuter->at(pTBinD0) && pairEntry.mD0bar() > sidebandLeftInner->at(pTBinD0bar) && pairEntry.mD0bar() < sidebandLeftOuter->at(pTBinD0bar)) ||
+          (pairEntry.mD0() > sidebandLeftInner->at(pTBinD0) && pairEntry.mD0() < sidebandRightOuter->at(pTBinD0) && pairEntry.mD0bar() > sidebandRightInner->at(pTBinD0bar) && pairEntry.mD0bar() < sidebandRightOuter->at(pTBinD0bar))) {
         //in sideband region
         registry.fill(HIST("hCorrel2DPtIntSidebandsMCRec"), pairEntry.deltaPhi(), pairEntry.deltaEta());
         registry.fill(HIST("hDeltaEtaPtIntSidebandsMCRec"), pairEntry.deltaPhi());
         registry.fill(HIST("hDeltaPhiPtIntSidebandsMCRec"), pairEntry.deltaEta());
         registry.fill(HIST("hDeltaPtDDbarSidebandsMCRec"), pairEntry.ptD0bar() - pairEntry.ptD0());
-        registry.fill(HIST("hDeltaPtMaxMinSidebandsMCRec"), std::abs(pairEntry.ptD0bar() - pairEntry.ptD0()));        
+        registry.fill(HIST("hDeltaPtMaxMinSidebandsMCRec"), std::abs(pairEntry.ptD0bar() - pairEntry.ptD0()));
         switch (pairEntry.signalStatus()) {
           case 0: //D0 Bkg, D0bar Bkg
             registry.fill(HIST("hCorrel2DVsPtSidebandsMCRecBkgBkg"), pairEntry.mD0(), pairEntry.mD0bar(), pairEntry.ptD0(), pairEntry.ptD0bar());
@@ -284,9 +286,9 @@ struct TaskD0D0barCorrelationMCRec {
             break;
           case 3: //D0 Sig, D0bar Sig
             registry.fill(HIST("hCorrel2DVsPtSidebandsMCRecSigSig"), pairEntry.mD0(), pairEntry.mD0bar(), pairEntry.ptD0(), pairEntry.ptD0bar());
-            break;      
+            break;
           default: //should not happen for MC reco
-          break;
+            break;
         }
       }
     } //end loop
@@ -302,7 +304,7 @@ struct TaskD0D0barCorrelationMCGen {
     {{"hDeltaEtaPtIntMCGen", "D0,D0bar particles - MC gen;#it{#eta}^{D0bar}-#it{#eta}^{D0};entries", {HistType::kTH1F, {{200, -10., 10.}}}},
      {"hDeltaPhiPtIntMCGen", "D0,D0bar particles - MC gen;#it{#varphi}^{D0bar}-#it{#varphi}^{D0};entries", {HistType::kTH1F, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}}}},
      {"hCorrel2DPtIntMCGen", "D0,D0bar particles - MC gen;#it{#varphi}^{D0bar}-#it{#varphi}^{D0};#it{#eta}^{D0bar}-#it{#eta}^{D0};entries", {HistType::kTH2F, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {200, -10., 10.}}}},
-     {"hCorrel2DVsPtMCGen", "D0,D0bar particles - MC gen;#it{#varphi}^{D0bar}-#it{#varphi}^{D0};#it{#eta}^{D0bar}-#it{#eta}^{D0};#it{p}_{T}^{D0};#it{p}_{T}^{D0bar};entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()     
+     {"hCorrel2DVsPtMCGen", "D0,D0bar particles - MC gen;#it{#varphi}^{D0bar}-#it{#varphi}^{D0};#it{#eta}^{D0bar}-#it{#eta}^{D0};#it{p}_{T}^{D0};#it{p}_{T}^{D0bar};entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
      {"hDeltaPtDDbarMCGen", "D0,D0bar particles - MC gen;#it{p}_{T}^{D0bar}-#it{p}_{T}^{D0};entries", {HistType::kTH1F, {{144, -36., 36.}}}},
      {"hDeltaPtMaxMinMCGen", "D0,D0bar particles - MC gen;#it{p}_{T}^{max}-#it{p}_{T}^{min};entries", {HistType::kTH1F, {{72, 0., 36.}}}}}};
 
@@ -313,8 +315,9 @@ struct TaskD0D0barCorrelationMCGen {
   int nBinspTaxis = binsCorrelations->size() - 1;
   const double* valuespTaxis = binsCorrelations->data();
 
-  void init(o2::framework::InitContext&) {
-    for (int i=2; i<=3; i++) {
+  void init(o2::framework::InitContext&)
+  {
+    for (int i = 2; i <= 3; i++) {
       registry.get<THnSparse>("hCorrel2DVsPtMCGen")->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);
     }
   }
@@ -426,12 +429,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   const bool doMCGen = cfgc.options().get<bool>("doMCGen");
   const bool doMCRec = cfgc.options().get<bool>("doMCRec");
   if (doMCGen) { //MC-Gen analysis
-    workflow.push_back(adaptAnalysisTask<TaskD0D0barCorrelation>(cfgc));
+    workflow.push_back(adaptAnalysisTask<TaskD0D0barCorrelation>(cfgc, TaskName{"task-d0d0bar-correlation"}));
   } else if (doMCRec) { //MC-Rec analysis
-    workflow.push_back(adaptAnalysisTask<TaskD0D0barCorrelationMCRec>(cfgc));
-    workflow.push_back(adaptAnalysisTask<TaskD0D0barCorrelationCheckPhiResolution>(cfgc));
+    workflow.push_back(adaptAnalysisTask<TaskD0D0barCorrelationMCRec>(cfgc, TaskName{"task-d0d0bar-correlation-mc-rec"}));
+    workflow.push_back(adaptAnalysisTask<TaskD0D0barCorrelationCheckPhiResolution>(cfgc, TaskName{"task-d0d0bar-correlation-check-phi-resolution"}));
   } else { //data analysis
-    workflow.push_back(adaptAnalysisTask<TaskD0D0barCorrelationMCGen>(cfgc));
+    workflow.push_back(adaptAnalysisTask<TaskD0D0barCorrelationMCGen>(cfgc, TaskName{"task-d0d0bar-correlation-mc-gen"}));
   }
   return workflow;
 }
