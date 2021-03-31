@@ -30,6 +30,7 @@
 #include "AliHLTTRDDefinitions.h"
 #include "AliHLTTPCDefinitions.h"
 #include "GPUTRDTrackPoint.h"
+#include "GPUTRDSpacePointInternal.h"
 #include "AliHLTGlobalBarrelTrack.h"
 #include "AliExternalTrackParam.h"
 #include "AliHLTExternalTrackParam.h"
@@ -386,7 +387,7 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 
   GPUTRDTrackGPU* trackArray = fTracker->Tracks();
   int nTracks = fTracker->NTracks();
-  GPUTRDTrackerGPU::GPUTRDSpacePointInternal* spacePoints = fTracker->SpacePoints();
+  GPUTRDSpacePointInternal* spacePoints = fTracker->SpacePoints();
 
   // TODO delete fTrackList since it only works for TObjects (or use compiler flag after tests with GPU track type)
   // for (int iTrack=0; iTrack<nTracks; ++iTrack) {
@@ -458,7 +459,7 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
     }
 
     for (int i = 0; i < nTrackletsTotal; ++i) {
-      const GPUTRDTrackerGPU::GPUTRDSpacePointInternal& sp = spacePoints[i];
+      const GPUTRDSpacePointInternal& sp = spacePoints[i];
       GPUTRDTrackPoint* currOutPoint = &outTrackPoints->fPoints[i];
       currOutPoint->fX[0] = sp.mR;    // x in sector coordinates
       currOutPoint->fX[1] = sp.mX[0]; // y in sector coordinates

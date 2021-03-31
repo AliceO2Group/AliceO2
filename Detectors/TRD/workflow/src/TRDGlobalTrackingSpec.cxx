@@ -176,6 +176,13 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
 
   std::vector<GPUTRDTrack> tracksOut(mTracker->NTracks());
   std::copy(mTracker->Tracks(), mTracker->Tracks() + mTracker->NTracks(), tracksOut.begin());
+
+  // FIXME instead of the space points we need to get the profile 'histograms' here
+  std::vector<GPUTRDSpacePointInternal> spacePointsOut(mTracker->NTracklets());
+  std::copy(mTracker->SpacePoints(), mTracker->SpacePoints() + mTracker->NTracklets(), spacePointsOut.begin());
+  mCalibVDrift.setAngDevInp(spacePointsOut);
+  mCalibVDrift.process();
+
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCHTRD", 0, Lifetime::Timeframe}, tracksOut);
 
   mTimer.Stop();

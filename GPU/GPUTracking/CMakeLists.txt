@@ -110,7 +110,7 @@ set(HDRS_INSTALL
     TRDTracking/GPUTRDTrackPoint.h
     TRDTracking/GPUTRDTrack.h
     TRDTracking/GPUTRDTrackData.h
-    TRDTracking/GPUTRDTrackPoint.h
+    TRDTracking/GPUTRDSpacePointInternal.h
     TRDTracking/GPUTRDTrackletLabels.h
     Base/GPUReconstructionIncludes.h
     SliceTracker/GPUTPCDef.h

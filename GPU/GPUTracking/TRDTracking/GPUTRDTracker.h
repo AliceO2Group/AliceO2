@@ -22,6 +22,7 @@
 #include "GPUDef.h"
 #include "GPUTRDTrack.h"
 #include "GPULogging.h"
+#include "GPUTRDSpacePointInternal.h"
 
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <vector>
@@ -77,19 +78,6 @@ class GPUTRDTracker_t : public GPUProcessor
                         kNStacks = 5,
                         kNSectors = 18,
                         kNChambers = 540 };
-
-  // struct to hold the information on the space points
-  struct GPUTRDSpacePointInternal {
-    float mR;                 // x position (3.5 mm above anode wires) - radial offset due to t0 mis-calibration, measured -1 mm for run 245353
-    float mX[2];              // y and z position (sector coordinates)
-    float mDy;                // deflection over drift length
-    unsigned short mVolumeId; // basically derived from TRD chamber number
-    GPUd() GPUTRDSpacePointInternal(float x, float y, float z, float dy) : mR(x), mDy(dy), mVolumeId(0)
-    {
-      mX[0] = y;
-      mX[1] = z;
-    }
-  };
 
   struct Hypothesis {
     int mLayers;      // number of layers with TRD space point
