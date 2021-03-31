@@ -55,8 +55,8 @@ constexpr double pTBinsTrack[npTBinsTrack + 1] = {
 auto pTBinsTrack_v = std::vector<double>{pTBinsTrack, pTBinsTrack + npTBinsTrack + 1};
 
 // default values for the cuts
-constexpr double cutsTrack[npTBinsTrack][nCutVarsTrack] = {{0., 10.},   /* pt<2*/
-                                                           {0., 10.}};  /* pt>2*/
+constexpr double cutsTrack[npTBinsTrack][nCutVarsTrack] = {{0., 10.},  /* pt<2*/
+                                                           {0., 10.}}; /* pt>2*/
 
 // row labels
 static const std::vector<std::string> pTBinLabelsTrack = {
