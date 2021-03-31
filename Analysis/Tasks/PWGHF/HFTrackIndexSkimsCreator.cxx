@@ -32,8 +32,7 @@ using namespace o2::framework::expressions;
 using namespace o2::aod::hf_cand_prong2;
 using namespace o2::aod::hf_cand_prong3;
 using namespace o2::analysis;
-using namespace o2::analysis::hf_cuts_single_track_2prong;
-using namespace o2::analysis::hf_cuts_single_track_3prong;
+using namespace o2::analysis::hf_cuts_single_track;
 
 /// Track selection
 struct SelectTracks {
@@ -44,21 +43,15 @@ struct SelectTracks {
   // quality cut
   Configurable<bool> doCutQuality{"doCutQuality", true, "apply quality cuts"};
   Configurable<int> d_tpcnclsfound{"d_tpcnclsfound", 70, ">= min. number of TPC clusters needed"};
+  // pT bins for single-track cuts
+  Configurable<std::vector<double>> pTBinsTrack{"ptbins_singletrack", std::vector<double>{hf_cuts_single_track::pTBinsTrack_v}, "track pT bin limits for 2-prong DCAXY pT-depentend cut"};
   // 2-prong cuts
   Configurable<double> ptmintrack_2prong{"ptmintrack_2prong", -1., "min. track pT for 2 prong candidate"};
-//   Configurable<double> dcatoprimxy_2prong_maxpt{"dcatoprimxy_2prong_maxpt", 2., "max pt cut for min. DCAXY to prim. vtx. for 2 prong candidate"};
-//   Configurable<double> dcatoprimxymin_2prong{"dcatoprimxymin_2prong", 0., "min. DCAXY to prim. vtx. for 2 prong candidate"};
-//   Configurable<double> dcatoprimxymax_2prong{"dcatoprimxymax_2prong", 1.0, "max. DCAXY to prim. vtx. for 2 prong candidate"};
-  Configurable<std::vector<double>> pTBinsTrack2Prong{"ptbins_track2prong", std::vector<double>{hf_cuts_single_track_2prong::pTBinsTrack_v}, "track pT bin limits for 2-prong DCAXY pT-depentend cut"};
-  Configurable<LabeledArray<double>> cutsSingleTrack2Prong{"dcatoprimxy_2prong", {hf_cuts_single_track_2prong::cuts[0], hf_cuts_single_track_2prong::npTBinsTrack, hf_cuts_single_track_2prong::nCutVarsTrack, hf_cuts_single_track_2prong::pTBinLabelsTrack, hf_cuts_single_track_2prong::cutVarLabelsTrack}, "Single-track selection per pT bin"};
+  Configurable<LabeledArray<double>> cutsTrack2Prong{"cuts_singletrack_2prong", {hf_cuts_single_track::cutsTrack[0], npTBinsTrack, nCutVarsTrack, pTBinLabelsTrack, cutVarLabelsTrack}, "Single-track selections per pT bin for 2-prong candidates"};
   Configurable<double> etamax_2prong{"etamax_2prong", 4., "max. pseudorapidity for 2 prong candidate"};
   // 3-prong cuts
   Configurable<double> ptmintrack_3prong{"ptmintrack_3prong", -1., "min. track pT for 3 prong candidate"};
-//   Configurable<double> dcatoprimxy_3prong_maxpt{"dcatoprimxy_3prong_maxpt", 2., "max pt cut for min. DCAXY to prim. vtx. for 3 prong candidate"};
-//   Configurable<double> dcatoprimxymin_3prong{"dcatoprimxymin_3prong", 0., "min. DCAXY to prim. vtx. for 3 prong candidate"};
-//   Configurable<double> dcatoprimxymax_3prong{"dcatoprimxymax_3prong", 1.0, "max. DCAXY to prim. vtx. for 3 prong candidate"};
-  Configurable<std::vector<double>> pTBinsTrack3Prong{"ptbins_track3prong", std::vector<double>{hf_cuts_single_track_3prong::pTBinsTrack_v}, "track pT bin limits for 3-prong DCAXY pT-depentend cut"};
-  Configurable<LabeledArray<double>> cutsSingleTrack3Prong{"dcatoprimxy_3prong", {hf_cuts_single_track_3prong::cuts[0], hf_cuts_single_track_3prong::npTBinsTrack, hf_cuts_single_track_3prong::nCutVarsTrack, hf_cuts_single_track_3prong::pTBinLabelsTrack, hf_cuts_single_track_3prong::cutVarLabelsTrack}, "Single-track selection per pT bin"};
+  Configurable<LabeledArray<double>> cutsTrack3Prong{"cuts_singletrack_3prong", {hf_cuts_single_track::cutsTrack[0], npTBinsTrack, nCutVarsTrack, pTBinLabelsTrack, cutVarLabelsTrack}, "Single-track selections per pT bin for 3-prong candidates"};
   Configurable<double> etamax_3prong{"etamax_3prong", 4., "max. pseudorapidity for 3 prong candidate"};
 
   HistogramRegistry registry{
@@ -80,15 +73,15 @@ struct SelectTracks {
   bool selectionTrack2Prong(const T& hfTrack, const array<float, 2> dca)
   {
     auto trackpT = hfTrack.pt();
-    auto pTBinTrack = findBin(pTBinsTrack2Prong, trackpT);
+    auto pTBinTrack = findBin(pTBinsTrack, trackpT);
     if (pTBinTrack == -1) {
       return false;
     }
 
-    if (dca[0] < cutsSingleTrack2Prong->get(pTBinTrack, "dcatoprimxymin_2prong")) {
+    if (dca[0] < cutsTrack2Prong->get(pTBinTrack, "min_dcaxytoprimary")) {
       return false; //minimum DCAxy
     }
-    if (dca[0] > cutsSingleTrack2Prong->get(pTBinTrack, "dcatoprimxymax_2prong")) {
+    if (dca[0] > cutsTrack2Prong->get(pTBinTrack, "max_dcaxytoprimary")) {
       return false; //maximum DCAxy
     }
     return true;
@@ -101,15 +94,15 @@ struct SelectTracks {
   bool selectionTrack3Prong(const T& hfTrack, const array<float, 2> dca)
   {
     auto trackpT = hfTrack.pt();
-    auto pTBinTrack = findBin(pTBinsTrack3Prong, trackpT);
+    auto pTBinTrack = findBin(pTBinsTrack, trackpT);
     if (pTBinTrack == -1) {
       return false;
     }
 
-    if (abs(dca[0]) < cutsSingleTrack3Prong->get(pTBinTrack, "dcatoprimxymin_3prong")) {
+    if (abs(dca[0]) < cutsTrack3Prong->get(pTBinTrack, "min_dcaxytoprimary")) {
       return false; //minimum DCAxy
     }
-    if (abs(dca[0]) > cutsSingleTrack3Prong->get(pTBinTrack, "dcatoprimxymax_3prong")) {
+    if (abs(dca[0]) > cutsTrack3Prong->get(pTBinTrack, "max_dcaxytoprimary")) {
       return false; //maximum DCAxy
     }
     return true;
