@@ -511,7 +511,6 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       }
       // a byte size resizable vector object, the DataAllocator returns reference to internal object
       // initialize optional pointer to the vector object
-      using O2CharVectorOutputType = std::decay_t<decltype(pc.outputs().make<std::vector<char>>(Output{"", "", 0}))>;
       TPCSectorHeader clusterOutputSectorHeader{0};
       if (processAttributes->clusterOutputIds.size() > 0) {
         clusterOutputSectorHeader.sectorBits = processAttributes->tpcSectorMask;
@@ -520,24 +519,26 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       }
 
       GPUInterfaceOutputs outputRegions;
-      using outputBufferType = std::pair<std::optional<std::reference_wrapper<O2CharVectorOutputType>>, char*>;
+      using outputDataType = char;
+      using outputBufferUninitializedVector = std::decay_t<decltype(pc.outputs().make<DataAllocator::UninitializedVector<outputDataType>>(Output{"", "", 0}))>;
+      using outputBufferType = std::pair<std::optional<std::reference_wrapper<outputBufferUninitializedVector>>, outputDataType*>;
       std::vector<outputBufferType> outputBuffers(GPUInterfaceOutputs::count(), {std::nullopt, nullptr});
 
       auto setOutputAllocator = [&specconfig, &outputBuffers, &outputRegions, &processAttributes, &pc, verbosity](const char* name, bool condition, GPUOutputControl& region, auto&& outputSpec, size_t offset = 0) {
         if (condition) {
           auto& buffer = outputBuffers[outputRegions.getIndex(region)];
           if (processAttributes->allocateOutputOnTheFly) {
-            region.allocator = [name, &buffer, &pc, outputSpec = std::move(outputSpec), debug = processAttributes->config->configProcessing.debugLevel, verbosity, offset](size_t size) -> void* {
+            region.allocator = [name, &buffer, &pc, outputSpec = std::move(outputSpec), verbosity, offset](size_t size) -> void* {
               size += offset;
               if (verbosity) {
                 LOG(INFO) << "ALLOCATING " << size << " bytes for " << std::get<DataOrigin>(outputSpec).template as<std::string>() << "/" << std::get<DataDescription>(outputSpec).template as<std::string>() << "/" << std::get<2>(outputSpec);
               }
               std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
-              if (debug) {
+              if (verbosity) {
                 start = std::chrono::high_resolution_clock::now();
               }
-              buffer.first.emplace(pc.outputs().make<std::vector<char>>(std::make_from_tuple<Output>(outputSpec), size));
-              if (debug) {
+              buffer.first.emplace(pc.outputs().make<DataAllocator::UninitializedVector<outputDataType>>(std::make_from_tuple<Output>(outputSpec), size));
+              if (verbosity) {
                 end = std::chrono::high_resolution_clock::now();
                 std::chrono::duration<double> elapsed_seconds = end - start;
                 LOG(INFO) << "Allocation time for " << name << " (" << size << " bytes)" << ": " << elapsed_seconds.count() << "s";
@@ -545,7 +546,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
               return (buffer.second = buffer.first->get().data()) + offset;
             };
           } else {
-            buffer.first.emplace(pc.outputs().make<std::vector<char>>(std::make_from_tuple<Output>(outputSpec), processAttributes->outputBufferSize));
+            buffer.first.emplace(pc.outputs().make<DataAllocator::UninitializedVector<outputDataType>>(std::make_from_tuple<Output>(outputSpec), processAttributes->outputBufferSize));
             region.ptrBase = (buffer.second = buffer.first->get().data()) + offset;
             region.size = buffer.first->get().size() - offset;
           }
