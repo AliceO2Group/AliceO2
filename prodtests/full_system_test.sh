@@ -102,6 +102,7 @@ taskwrapper emcraw.log o2-emcal-rawcreator --file-for link --configKeyValues \"$
 taskwrapper phsraw.log o2-phos-digi2raw  --file-for link --configKeyValues \"$HBFUTILPARAMS\" -o raw/PHS
 taskwrapper cpvraw.log o2-cpv-digi2raw  --file-for link --configKeyValues \"$HBFUTILPARAMS\" -o raw/CPV
 taskwrapper zdcraw.log o2-zdc-digi2raw  --file-per-link --configKeyValues \"$HBFUTILPARAMS\" -o raw/ZDC
+taskwrapper hmpraw.log o2-hmpid-digits-to-raw-workflow --file-for link --configKeyValues \"$HBFUTILPARAMS\" --outdir raw/HMP
 cat raw/*/*.cfg > rawAll.cfg
 
 if [ "0$DISABLE_PROCESSING" == "01" ]; then
