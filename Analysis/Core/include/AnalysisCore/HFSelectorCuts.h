@@ -43,25 +43,31 @@ int findBin(o2::framework::Configurable<std::vector<T1>> const& bins, T2 value)
 // namespace per channel
 namespace hf_cuts_single_track
 {
-static constexpr int npTBinsTrack = 2;
+static constexpr int npTBinsTrack = 6;
 static constexpr int nCutVarsTrack = 2;
 // default values for the pT bin edges (can be used to configure histogram axis)
 // common for any candidate type (2-prong, 3-prong)
 // offset by 1 from the bin numbers in cuts array
 constexpr double pTBinsTrack[npTBinsTrack + 1] = {
   0,
+  0.5,
+  1.0,
+  1.5,
   2.0,
+  3.0,
   1000.0};
 auto pTBinsTrack_v = std::vector<double>{pTBinsTrack, pTBinsTrack + npTBinsTrack + 1};
 
 // default values for the cuts
-constexpr double cutsTrack[npTBinsTrack][nCutVarsTrack] = {{0., 10.},  /* pt<2*/
-                                                           {0., 10.}}; /* pt>2*/
+constexpr double cutsTrack[npTBinsTrack][nCutVarsTrack] = {{0., 10.},  /* pt<0.5*/
+                                                           {0., 10.},  /* 0.5<pt<1*/
+                                                           {0., 10.},  /* 1<pt<1.5*/
+                                                           {0., 10.},  /* 1.5<pt<2*/
+                                                           {0., 10.},  /* 2<pt<3*/
+                                                           {0., 10.}}; /* pt>3*/
 
 // row labels
-static const std::vector<std::string> pTBinLabelsTrack = {
-  "track pT bin 0",
-  "track pT bin 1"};
+static const std::vector<std::string> pTBinLabelsTrack{};
 
 // column labels
 static const std::vector<std::string> cutVarLabelsTrack = {"min_dcaxytoprimary", "max_dcaxytoprimary"};
