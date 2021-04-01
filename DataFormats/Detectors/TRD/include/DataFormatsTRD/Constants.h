@@ -39,6 +39,7 @@ constexpr int NROWC0 = 12;   // the number of pad rows for chambers of type C0 (
 constexpr int NROWC1 = 16;   // the number of pad rows for chambers of type C1 (installed in stack 2)
 
 constexpr int NMCMROB = 16;     // the number of MCMs per ROB
+constexpr int NMCMHCMAX = 64;   // the maximum number of MCMs for one half chamber (C1 type)
 constexpr int NMCMROBINROW = 4; // the number of MCMs per ROB in row direction
 constexpr int NMCMROBINCOL = 4; // the number of MCMs per ROB in column direction
 constexpr int NROBC0 = 6;       // the number of ROBs per C0 chamber
