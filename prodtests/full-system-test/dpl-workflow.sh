@@ -70,10 +70,14 @@ if [ $EPNPIPELINES != 0 ]; then
   N_TPCENT=$(($(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
   N_TPCITS=$(($(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
   N_ITSDEC=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
+  N_EMC=$(($(expr 2 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 2 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
+  N_CPV=$(($(expr 6 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 6 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
 else
   N_TPCENT=1
   N_TPCITS=1
   N_ITSDEC=1
+  N_EMC=1
+  N_CPV=1
 fi
 
 # Input workflow
@@ -116,9 +120,9 @@ fi
 
 # Workflows disabled in async mode
 if [ $CTFINPUT == 0 ]; then
-  WORKFLOW+="o2-phos-reco-workflow $ARGS_ALL --input-type raw --output-type cells --disable-root-input --disable-root-output $DISABLE_MC  | "
-  WORKFLOW+="o2-cpv-reco-workflow $ARGS_ALL --input-type raw --output-type clusters --disable-root-input --disable-root-output $DISABLE_MC  | "
-  WORKFLOW+="o2-emcal-reco-workflow $ARGS_ALL --input-type raw --output-type cells --disable-root-output $DISABLE_MC  | "
+  WORKFLOW+="o2-phos-reco-workflow $ARGS_ALL --input-type raw --output-type cells --disable-root-input --disable-root-output $DISABLE_MC | "
+  WORKFLOW+="o2-cpv-reco-workflow $ARGS_ALL --input-type raw --output-type clusters --disable-root-input --disable-root-output $DISABLE_MC --pipeline CPVClusterizerSpec:$N_CPV | "
+  WORKFLOW+="o2-emcal-reco-workflow $ARGS_ALL --input-type raw --output-type cells --disable-root-output $DISABLE_MC --pipeline EMCALRawToCellConverterSpec:$N_EMC | "
   WORKFLOW+="o2-zdc-raw2digits $ARGS_ALL --disable-root-output | "
   WORKFLOW+="o2-hmpid-raw-to-digits-workflow $ARGS_ALL | "
 
