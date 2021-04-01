@@ -70,7 +70,7 @@ struct SelectTracks {
   /// \param hfTrack is a track
   /// \return true if track passes all cuts
   template <typename T>
-  bool selectionTrack2Prong(const T& hfTrack, const array<float, 2> dca)
+  bool selectionTrack2Prong(const T& hfTrack, const array<float, 2> &dca)
   {
     auto trackpT = hfTrack.pt();
     auto pTBinTrack = findBin(pTBinsTrack, trackpT);
@@ -91,7 +91,7 @@ struct SelectTracks {
   /// \param hfTrack is a track
   /// \return true if track passes all cuts
   template <typename T>
-  bool selectionTrack3Prong(const T& hfTrack, const array<float, 2> dca)
+  bool selectionTrack3Prong(const T& hfTrack, const array<float, 2> &dca)
   {
     auto trackpT = hfTrack.pt();
     auto pTBinTrack = findBin(pTBinsTrack, trackpT);
