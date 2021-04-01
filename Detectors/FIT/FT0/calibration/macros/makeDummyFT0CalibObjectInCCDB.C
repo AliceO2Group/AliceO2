@@ -14,7 +14,6 @@
 #include <iostream>
 #include "FT0Calibration/FT0CalibrationObject.h"
 
-
 int makeDummyFT0CalibObjectInCCDB(const std::string url = "http://localhost:8080")
 {
 
@@ -28,9 +27,9 @@ int makeDummyFT0CalibObjectInCCDB(const std::string url = "http://localhost:8080
   api.storeAsTFileAny(&calibObject, OBJECT_PATH, md, 0);
 
   const auto testCalibObject = api.retrieveFromTFileAny<o2::ft0::FT0CalibrationObject>(OBJECT_PATH, md, 0);
-  if(testCalibObject){
-    for(unsigned int i = 0; i < 208; ++i){
-      if(calibObject.mChannelOffsets[i] != testCalibObject->mChannelOffsets[i]){
+  if (testCalibObject) {
+    for (unsigned int i = 0; i < 208; ++i) {
+      if (calibObject.mChannelOffsets[i] != testCalibObject->mChannelOffsets[i]) {
         std::cout << "=====FAILURE=====" << std::endl;
         std::cout << "Saved and retrieved objects are different!\n";
         return 1;
