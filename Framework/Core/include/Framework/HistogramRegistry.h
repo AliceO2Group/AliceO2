@@ -109,7 +109,7 @@ struct AxisSpec {
   }
 
   // first entry is assumed to be the number of bins; in case of variable size binning it must be set to zero
-  AxisSpec(ConfigurableAxis<double> binEdges_, std::optional<std::string> title_ = std::nullopt, std::optional<std::string> name_ = std::nullopt)
+  AxisSpec(ConfigurableAxis binEdges_, std::optional<std::string> title_ = std::nullopt, std::optional<std::string> name_ = std::nullopt)
     : nBins(std::nullopt),
       binEdges(std::vector<double>(binEdges_)),
       title(title_),
