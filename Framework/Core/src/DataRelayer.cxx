@@ -301,6 +301,7 @@ DataRelayer::RelayChoice
   auto timeslice = TimesliceId{TimesliceId::INVALID};
   auto slot = TimesliceSlot{TimesliceSlot::INVALID};
 
+  bool needsCleaning = false;
   // First look for matching slots which already have some
   // partial match.
   for (size_t ci = 0; ci < index.size(); ++ci) {
@@ -324,6 +325,7 @@ DataRelayer::RelayChoice
       }
       std::tie(input, timeslice) = getInputTimeslice(index.getVariablesForSlot(slot));
       if (input != INVALID_INPUT) {
+        needsCleaning = true;
         break;
       }
     }
@@ -332,6 +334,9 @@ DataRelayer::RelayChoice
   /// If we get a valid result, we can store the message in cache.
   if (input != INVALID_INPUT && TimesliceId::isValid(timeslice) && TimesliceSlot::isValid(slot)) {
     O2_SIGNPOST(O2_PROBE_DATARELAYER, timeslice.value, 0, 0, 0);
+    if (needsCleaning) {
+      pruneCache(slot);
+    }
     saveInSlot(timeslice, input, slot);
     index.publishSlot(slot);
     index.markAsDirty(slot, true);
@@ -517,7 +522,7 @@ std::vector<o2::framework::MessageSet> DataRelayer::getInputsForTimeslice(Timesl
   // timeslice, so I can simply do that. I keep the assertion there because in principle
   // we should have dispatched the timeslice already!
   // FIXME: what happens when we have enough timeslices to hit the invalid one?
-  auto invalidateCacheFor = [&numInputTypes, &index, &cache](TimesliceSlot s) {
+  auto invalidateCacheFor = [&numInputTypes, &cachedStateMetrics = mCachedStateMetrics, &index, &cache](TimesliceSlot s) {
     for (size_t ai = s.index * numInputTypes, ae = ai + numInputTypes; ai != ae; ++ai) {
       assert(std::accumulate(cache[ai].begin(), cache[ai].end(), true, [](bool result, auto const& element) { return result && element.header.get() == nullptr && element.payload.get() == nullptr; }));
       cache[ai].clear();
