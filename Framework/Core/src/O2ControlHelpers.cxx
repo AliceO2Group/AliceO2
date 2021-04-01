@@ -22,10 +22,10 @@ namespace bfs = boost::filesystem;
 namespace o2::framework
 {
 
+const char* indScheme = "  ";
+
 namespace implementation
 {
-
-const char* indScheme = "  ";
 
 std::string taskName(const std::string& workflowName, const std::string& deviceName)
 {
@@ -210,42 +210,6 @@ void dumpCommand(std::ostream& dumpOut, const DeviceExecution& execution, std::s
   }
 }
 
-void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecution& execution, std::string taskName, std::string indLevel)
-{
-  dumpOut << indLevel << "name: " << taskName << "\n";
-  dumpOut << indLevel << "defaults:\n";
-  dumpOut << indLevel << indScheme << "log_task_output: none\n";
-
-  dumpOut << indLevel << "control:\n";
-  dumpOut << indLevel << indScheme << "mode: \"fairmq\"\n";
-
-  // todo: find out proper values perhaps...
-  dumpOut << indLevel << "wants:\n";
-  dumpOut << indLevel << indScheme << "cpu: 0.15\n";
-  dumpOut << indLevel << indScheme << "memory: 128\n";
-
-  dumpOut << indLevel << "bind:\n";
-  for (const auto& outputChannel : spec.outputChannels) {
-    if (outputChannel.method == ChannelMethod::Bind) {
-      dumpChannelBind(dumpOut, outputChannel, indLevel + indScheme);
-    }
-  }
-  for (const auto& inputChannel : spec.inputChannels) {
-    if (inputChannel.method == ChannelMethod::Bind) {
-      dumpChannelBind(dumpOut, inputChannel, indLevel + indScheme);
-    }
-  }
-  auto rawChannels = extractRawChannels(spec, execution);
-  for (const auto& rawChannel : rawChannels) {
-    if (rawChannel.method == "bind") {
-      dumpRawChannelBind(dumpOut, rawChannel, indLevel + indScheme);
-    }
-  }
-
-  dumpOut << indLevel << "command:\n";
-  dumpCommand(dumpOut, execution, indLevel + indScheme);
-}
-
 std::string findBinder(const std::vector<DeviceSpec>& specs, const std::string& channel)
 {
   // fixme: it is not crucial to be fast here, but ideally we should check only input OR output channels.
@@ -291,7 +255,8 @@ void dumpRole(std::ostream& dumpOut, const std::string& taskName, const DeviceSp
   dumpOut << indLevel << indScheme << indScheme << "load: " << taskName << "\n";
 }
 
-std::string removeO2ControlArg(std::string_view command) {
+std::string removeO2ControlArg(std::string_view command)
+{
   const char* o2ControlArg = " --o2-control ";
   size_t o2ControlArgStart = command.find(o2ControlArg);
   if (o2ControlArgStart == std::string_view::npos) {
@@ -305,13 +270,51 @@ std::string removeO2ControlArg(std::string_view command) {
   return result;
 }
 
+} // namespace implementation
+
+void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecution& execution, std::string taskName, std::string indLevel)
+{
+  dumpOut << indLevel << "name: " << taskName << "\n";
+  dumpOut << indLevel << "defaults:\n";
+  dumpOut << indLevel << indScheme << "log_task_output: none\n";
+
+  dumpOut << indLevel << "control:\n";
+  dumpOut << indLevel << indScheme << "mode: \"fairmq\"\n";
+
+  // todo: find out proper values perhaps...
+  dumpOut << indLevel << "wants:\n";
+  dumpOut << indLevel << indScheme << "cpu: 0.15\n";
+  dumpOut << indLevel << indScheme << "memory: 128\n";
+
+  dumpOut << indLevel << "bind:\n";
+  for (const auto& outputChannel : spec.outputChannels) {
+    if (outputChannel.method == ChannelMethod::Bind) {
+      implementation::dumpChannelBind(dumpOut, outputChannel, indLevel + indScheme);
+    }
+  }
+  for (const auto& inputChannel : spec.inputChannels) {
+    if (inputChannel.method == ChannelMethod::Bind) {
+      implementation::dumpChannelBind(dumpOut, inputChannel, indLevel + indScheme);
+    }
+  }
+  auto rawChannels = implementation::extractRawChannels(spec, execution);
+  for (const auto& rawChannel : rawChannels) {
+    if (rawChannel.method == "bind") {
+      dumpRawChannelBind(dumpOut, rawChannel, indLevel + indScheme);
+    }
+  }
+
+  dumpOut << indLevel << "command:\n";
+  implementation::dumpCommand(dumpOut, execution, indLevel + indScheme);
+}
+
 void dumpWorkflow(std::ostream& dumpOut, const std::vector<DeviceSpec>& specs, const std::vector<DeviceExecution>& executions, const CommandInfo& commandInfo, std::string workflowName, std::string indLevel)
 {
   dumpOut << indLevel << "name: " << workflowName << "\n";
 
   dumpOut << indLevel << "vars:\n";
   dumpOut << indLevel << indScheme << "dpl_command: >-\n";
-  dumpOut << indLevel << indScheme << indScheme << removeO2ControlArg(commandInfo.command) << "\n";
+  dumpOut << indLevel << indScheme << indScheme << implementation::removeO2ControlArg(commandInfo.command) << "\n";
 
   dumpOut << indLevel << "defaults:\n";
   dumpOut << indLevel << indScheme << "monitoring_dpl_url: \"no-op://\"\n";
@@ -324,11 +327,9 @@ void dumpWorkflow(std::ostream& dumpOut, const std::vector<DeviceSpec>& specs, c
   for (size_t di = 0; di < specs.size(); di++) {
     auto& spec = specs[di];
     auto& execution = executions[di];
-    dumpRole(dumpOut, taskName(workflowName, spec.id), spec, specs, execution, indLevel + indScheme);
+    implementation::dumpRole(dumpOut, implementation::taskName(workflowName, spec.id), spec, specs, execution, indLevel + indScheme);
   }
 }
-
-} // namespace implementation
 
 void dumpDeviceSpec2O2Control(std::string workflowName,
                               const std::vector<DeviceSpec>& specs,
@@ -350,7 +351,7 @@ void dumpDeviceSpec2O2Control(std::string workflowName,
   LOG(INFO) << "Creating a workflow dump '" + workflowName + "'.";
   std::string wfDumpPath = std::string(workflowsDirectory) + bfs::path::preferred_separator + workflowName + ".yaml";
   std::ofstream wfDump(wfDumpPath);
-  implementation::dumpWorkflow(wfDump, specs, executions, commandInfo, workflowName, "");
+  dumpWorkflow(wfDump, specs, executions, commandInfo, workflowName, "");
   wfDump.close();
 
   for (size_t di = 0; di < specs.size(); ++di) {
@@ -361,7 +362,7 @@ void dumpDeviceSpec2O2Control(std::string workflowName,
     std::string taskName = implementation::taskName(workflowName, spec.id);
     std::string taskDumpPath = std::string(tasksDirectory) + bfs::path::preferred_separator + taskName + ".yaml";
     std::ofstream taskDump(taskDumpPath);
-    implementation::dumpTask(taskDump, spec, execution, taskName, "");
+    dumpTask(taskDump, spec, execution, taskName, "");
     taskDump.close();
     LOG(INFO) << "...created.";
   }
