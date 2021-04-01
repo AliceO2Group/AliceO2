@@ -74,8 +74,8 @@ NodeColor
 /// Color choices
 const static ImColor INPUT_SLOT_COLOR = {150, 150, 150, 150};
 const static ImColor OUTPUT_SLOT_COLOR = {150, 150, 150, 150};
-const static ImVec4 ERROR_MESSAGE_COLOR = PaletteHelpers::RED;
-const static ImVec4 WARNING_MESSAGE_COLOR = PaletteHelpers::YELLOW;
+const static ImVec4& ERROR_MESSAGE_COLOR = PaletteHelpers::RED;
+const static ImVec4& WARNING_MESSAGE_COLOR = PaletteHelpers::YELLOW;
 const static ImColor ARROW_COLOR = {200, 200, 100};
 const static ImU32 GRID_COLOR = ImColor(200, 200, 200, 40);
 const static ImColor NODE_BORDER_COLOR = {100, 100, 100};
@@ -87,10 +87,10 @@ const static float ARROW_THICKNESS = 3.f;
 const static float NODE_BORDER_THICKNESS = 4.f;
 const static ImVec4 LEGEND_BACKGROUND_COLOR = {0.125, 0.180, 0.196, 1};
 
-const static ImColor SLOT_EMPTY_COLOR = {70, 70, 70, 255};
-const static ImColor SLOT_PENDING_COLOR = PaletteHelpers::RED;
-const static ImColor SLOT_DISPATCHED_COLOR = PaletteHelpers::YELLOW;
-const static ImColor SLOT_DONE_COLOR = PaletteHelpers::GREEN;
+const static ImVec4 SLOT_EMPTY_COLOR = {0.275, 0.275, 0.275, 1.};
+const static ImVec4& SLOT_PENDING_COLOR = PaletteHelpers::RED;
+const static ImVec4& SLOT_DISPATCHED_COLOR = PaletteHelpers::YELLOW;
+const static ImVec4& SLOT_DONE_COLOR = PaletteHelpers::GREEN;
 
 /// Displays a grid
 void displayGrid(bool show_grid, ImVec2 offset, ImDrawList* draw_list)
@@ -115,7 +115,7 @@ void displayLegend(bool show_legend, ImVec2 offset, ImDrawList* draw_list)
   }
   struct LegendItem {
     std::string label;
-    ImVec4 color;
+    const ImVec4& color;
   };
   static auto legend = {
     LegendItem{"   Slot empty", SLOT_EMPTY_COLOR},
