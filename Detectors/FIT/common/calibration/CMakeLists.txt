@@ -23,7 +23,6 @@ o2_add_library(FITCalibration
 #
 o2_target_root_dictionary(FITCalibration
         HEADERS
-        include/FITCalibration/FITCalibrationApi.h
         include/FITCalibration/FITCalibrator.h
         include/FITCalibration/FITCalibrationDevice.h
         include/FITCalibration/FITCalibrationAlgorithmGetter.h

@@ -11,17 +11,14 @@
 #include "FT0Calibration/FT0CalibrationObject.h"
 #include "FT0Calibration/FT0ChannelDataTimeSlotContainer.h"
 
-
 using namespace o2::ft0;
-
 
 void FT0CalibrationObjectAlgorithm::calibrate(FT0CalibrationObject& calibrationObject,
                                               const FT0ChannelDataTimeSlotContainer& container)
 {
-  for(unsigned int iCh = 0; iCh < o2::ft0::Nchannels_FT0; ++iCh){
+  for (unsigned int iCh = 0; iCh < o2::ft0::Nchannels_FT0; ++iCh) {
     int16_t dOffset = container.getAverageTimeForChannel(iCh);
     calibrationObject.mChannelOffsets[iCh] -= dOffset;
-
   }
 }
 std::unique_ptr<TGraph> FT0CalibrationObjectConverter::toTGraph(const FT0CalibrationObject& object)
@@ -29,7 +26,7 @@ std::unique_ptr<TGraph> FT0CalibrationObjectConverter::toTGraph(const FT0Calibra
   auto graph = std::make_unique<TGraph>(o2::ft0::Nchannels_FT0);
   uint8_t channelID = 0;
 
-  for(const auto& channelOffset : object.mChannelOffsets){
+  for (const auto& channelOffset : object.mChannelOffsets) {
     graph->SetPoint(channelID, channelID, channelOffset);
     ++channelID;
   }

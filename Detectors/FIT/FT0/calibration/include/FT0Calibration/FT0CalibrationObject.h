@@ -24,11 +24,10 @@ struct FT0CalibrationObject {
 
   std::array<int16_t, o2::ft0::Nchannels_FT0> mChannelOffsets{};
 
- ClassDefNV(FT0CalibrationObject, 1);
+  ClassDefNV(FT0CalibrationObject, 1);
 };
 
 class FT0ChannelDataTimeSlotContainer;
-
 
 class FT0CalibrationObjectAlgorithm
 {
@@ -36,15 +35,12 @@ class FT0CalibrationObjectAlgorithm
   static void calibrate(FT0CalibrationObject& calibrationObject, const FT0ChannelDataTimeSlotContainer& container);
 };
 
-
-class FT0CalibrationObjectConverter{
+class FT0CalibrationObjectConverter
+{
  public:
   static std::unique_ptr<TGraph> toTGraph(const FT0CalibrationObject& object);
 };
 
-
-
-
-}
+} // namespace o2::ft0
 
 #endif //O2_FT0CALIBRATIONOBJECT_H

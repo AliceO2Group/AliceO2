@@ -25,13 +25,11 @@ template <typename InputCalibrationInfoType, typename TimeSlotStorageType, typen
 class FITCalibrationDevice : public o2::framework::Task
 {
 
-  static constexpr std::size_t OBJECT_SENDING_FREQUENCY = 1;
   using CalibratorType = FITCalibrator<InputCalibrationInfoType, TimeSlotStorageType, CalibrationObjectType>;
 
  public:
-  explicit FITCalibrationDevice(std::string inputDataLabel, std::string calibrationObjectPath, int64_t initialTimestamp)
-    : mInputDataLabel(std::move(inputDataLabel)), mCalibrationObjectPath(std::move(calibrationObjectPath)),
-      mInitialTimestamp(initialTimestamp){}
+  explicit FITCalibrationDevice(std::string inputDataLabel, std::string calibrationObjectPath)
+    : mInputDataLabel(std::move(inputDataLabel)), mCalibrationObjectPath(std::move(calibrationObjectPath)) {}
 
   void init(o2::framework::InitContext& context) final;
   void run(o2::framework::ProcessingContext& context) final;
@@ -39,16 +37,13 @@ class FITCalibrationDevice : public o2::framework::Task
 
  private:
   void _sendOutputs(o2::framework::DataAllocator& outputs);
-  void _sendOutputsIfStoredEnough(o2::framework::DataAllocator& outputs);
+  void _sendCalibrationObjectIfSlotFinalized(o2::framework::DataAllocator& outputs);
 
  private:
   std::string mInputDataLabel;
   std::string mCalibrationObjectPath;
   std::unique_ptr<CalibratorType> mCalibrator;
-  int64_t mInitialTimestamp;
-
 };
-
 
 #define FIT_CALIBRATION_DEVICE_TEMPLATES \
   template <typename InputCalibrationInfoType, typename TimeSlotStorageType, typename CalibrationObjectType>
@@ -56,46 +51,50 @@ class FITCalibrationDevice : public o2::framework::Task
 #define FIT_CALIBRATION_DEVICE_TYPE \
   FITCalibrationDevice<InputCalibrationInfoType, TimeSlotStorageType, CalibrationObjectType>
 
-
 FIT_CALIBRATION_DEVICE_TEMPLATES
 void FIT_CALIBRATION_DEVICE_TYPE::init(o2::framework::InitContext& context)
 {
+  mCalibrator = std::make_unique<CalibratorType>(mCalibrationObjectPath);
 
-  mCalibrator = std::make_unique<CalibratorType>(mInitialTimestamp, mCalibrationObjectPath.c_str());
+  //local db instance for testing
+  //caching is enabled by default
+  o2::ccdb::BasicCCDBManager::instance().setURL("http://localhost:8080");
 }
 
 FIT_CALIBRATION_DEVICE_TEMPLATES
 void FIT_CALIBRATION_DEVICE_TYPE::run(o2::framework::ProcessingContext& context)
 {
+
   auto TFCounter = o2::header::get<o2::framework::DataProcessingHeader*>(context.inputs().get(mInputDataLabel).header)->startTime;
   auto data = context.inputs().get<gsl::span<InputCalibrationInfoType>>(mInputDataLabel);
+
+  //for testing purposes
+  mCalibrator->setCalibrationObject(o2::ccdb::BasicCCDBManager::instance().get<CalibrationObjectType>(mCalibrationObjectPath));
+
   mCalibrator->process(TFCounter, data);
-  _sendOutputsIfStoredEnough(context.outputs());
-
+  _sendCalibrationObjectIfSlotFinalized(context.outputs());
 }
-
 
 FIT_CALIBRATION_DEVICE_TEMPLATES
 void FIT_CALIBRATION_DEVICE_TYPE::endOfStream(o2::framework::EndOfStreamContext& context)
 {
-
   //should be finalized even if not enough data?
   mCalibrator->finalizeOldestSlot();
   _sendOutputs(context.outputs());
 }
 
 FIT_CALIBRATION_DEVICE_TEMPLATES
-void FIT_CALIBRATION_DEVICE_TYPE::_sendOutputsIfStoredEnough(o2::framework::DataAllocator& outputs)
+void FIT_CALIBRATION_DEVICE_TYPE::_sendCalibrationObjectIfSlotFinalized(o2::framework::DataAllocator& outputs)
 {
-  if(mCalibrator->getNumberOfStoredCalibObjects() > OBJECT_SENDING_FREQUENCY){
+  if (mCalibrator->isCalibrationObjectReadyToSend()) {
     _sendOutputs(outputs);
   }
 }
 
-
 FIT_CALIBRATION_DEVICE_TEMPLATES
 void FIT_CALIBRATION_DEVICE_TYPE::_sendOutputs(o2::framework::DataAllocator& outputs)
 {
+
   using clbUtils = o2::calibration::Utils;
 
   const auto& payloadVec = mCalibrator->getCalibrationObjectVector();
@@ -112,20 +111,11 @@ void FIT_CALIBRATION_DEVICE_TYPE::_sendOutputs(o2::framework::DataAllocator& out
   if (!payloadVec.empty()) {
     mCalibrator->initOutput();
   }
-
 }
-
 
 #undef FIT_CALIBRATION_DEVICE_TEMPLATES
 #undef FIT_CALIBRATION_DEVICE_TYPE
 
-
-
-
-}
-
-
-
-
+} // namespace o2::fit
 
 #endif //O2_FITCALIBRATIONDEVICE_H

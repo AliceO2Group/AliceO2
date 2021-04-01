@@ -8,7 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 #include <Framework/ConfigContext.h>
 #include "Framework/DeviceSpec.h"
 #include "Framework/WorkflowSpec.h"
@@ -40,39 +39,25 @@ class FT0TFProcessor final : public o2::framework::Task
   }
 };
 
-}
-
-void customize(std::vector<o2::framework::CompletionPolicy>& policies)
-{
-  policies.emplace_back(CompletionPolicyHelpers::processWhenAny());
-}
+} // namespace o2::ft0
 
 #include "Framework/runDataProcessing.h"
 
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
 
-  DataProcessorSpec dataProcessorSpec
-    {
-      "FT0TFProcessor",
-      Inputs{
-        {{"channels"}, "FT0", "DIGITSCH"},
-        {{"digits"}, "FT0", "DIGITSBC"},
-      },
-      Outputs{
-        {{"calib"}, "FT0", "CALIB_INFO"}
-      },
-      AlgorithmSpec{ adaptFromTask<o2::ft0::FT0TFProcessor>() },
-      Options{}
-    };
+  DataProcessorSpec dataProcessorSpec{
+    "FT0TFProcessor",
+    Inputs{
+      {{"channels"}, "FT0", "DIGITSCH"},
+      {{"digits"}, "FT0", "DIGITSBC"},
+    },
+    Outputs{
+      {{"calib"}, "FT0", "CALIB_INFO"}},
+    AlgorithmSpec{adaptFromTask<o2::ft0::FT0TFProcessor>()},
+    Options{}};
 
-
-  WorkflowSpec  workflow;
+  WorkflowSpec workflow;
   workflow.emplace_back(dataProcessorSpec);
   return workflow;
 }
-
-
-
-
-

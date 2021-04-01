@@ -8,10 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 #include "FITCalibration/FITCalibrationAlgorithmGetter.h"
 #include "FairLogger.h"
-
 
 using namespace o2::fit;
 
@@ -22,8 +20,7 @@ void FITCalibrationAlgorithmGetter::doCalibrationAndUpdateCalibrationObject(Cali
 }
 
 template <>
-void FITCalibrationAlgorithmGetter::doCalibrationAndUpdateCalibrationObject<o2::ft0::FT0CalibrationObject, o2::ft0::FT0ChannelDataTimeSlotContainer>
-  (o2::ft0::FT0CalibrationObject& calibrationObject, const o2::ft0::FT0ChannelDataTimeSlotContainer& container)
+void FITCalibrationAlgorithmGetter::doCalibrationAndUpdateCalibrationObject<o2::ft0::FT0CalibrationObject, o2::ft0::FT0ChannelDataTimeSlotContainer>(o2::ft0::FT0CalibrationObject& calibrationObject, const o2::ft0::FT0ChannelDataTimeSlotContainer& container)
 {
   o2::ft0::FT0CalibrationObjectAlgorithm::calibrate(calibrationObject, container);
 }

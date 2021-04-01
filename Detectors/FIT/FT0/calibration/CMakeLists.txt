@@ -42,10 +42,3 @@ o2_add_executable(ft0-tf-processor
         PUBLIC_LINK_LIBRARIES
         O2::DataFormatsFT0 O2::FITCalibration
         )
-
-#o2_add_executable(ft0-object-viewer
-#        COMPONENT_NAME calibration
-#        SOURCES testWorkflow/FT0ViewObjectsGenerator-Workflow.cxx
-#        PUBLIC_LINK_LIBRARIES
-#        O2::DataFormatsFT0 O2::FITCalibration
-#        )

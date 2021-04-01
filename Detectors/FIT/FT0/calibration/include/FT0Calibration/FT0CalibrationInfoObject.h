@@ -18,26 +18,22 @@ namespace o2::ft0
 class FT0CalibrationInfoObject
 {
  public:
-  FT0CalibrationInfoObject(uint8_t channel, uint16_t time) :  mChannelIndex(channel), mTime(time){};
+  FT0CalibrationInfoObject(uint8_t channel, uint16_t time) : mChannelIndex(channel), mTime(time){};
   FT0CalibrationInfoObject() = default;
   ~FT0CalibrationInfoObject() = default;
 
-  void setChannelIndex(uint8_t channel){ mChannelIndex = channel; }
+  void setChannelIndex(uint8_t channel) { mChannelIndex = channel; }
   [[nodiscard]] uint8_t getChannelIndex() const { return mChannelIndex; }
 
-  void setTime(int16_t time){ mTime = time; }
-  [[nodiscard]] int16_t  getTime() const { return mTime; }
+  void setTime(int16_t time) { mTime = time; }
+  [[nodiscard]] int16_t getTime() const { return mTime; }
 
  private:
   uint8_t mChannelIndex;
   int16_t mTime;
 
-
- ClassDefNV(FT0CalibrationInfoObject, 1);
+  ClassDefNV(FT0CalibrationInfoObject, 1);
 };
-} // namespace o2
-
-
-
+} // namespace o2::ft0
 
 #endif //O2_FT0CALIBRATIONINFOOBJECT_H

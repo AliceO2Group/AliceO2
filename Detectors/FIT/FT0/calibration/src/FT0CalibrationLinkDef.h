@@ -14,10 +14,8 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-
 #pragma link C++ class o2::ft0::FT0CalibrationInfoObject + ;
 #pragma link C++ class o2::ft0::FT0CalibrationObject + ;
 #pragma link C++ class o2::ft0::FT0ChannelDataTimeSlotContainer + ;
-
 
 #endif

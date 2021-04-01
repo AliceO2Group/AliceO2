@@ -11,22 +11,18 @@
 #ifndef O2_FITCALIBRATIONALGORITHMGETTER_H
 #define O2_FITCALIBRATIONALGORITHMGETTER_H
 
-
 #include "FT0Calibration/FT0CalibrationObject.h"
 #include "FT0Calibration/FT0ChannelDataTimeSlotContainer.h"
 
 namespace o2::fit
 {
-  class FITCalibrationAlgorithmGetter
-  {
-   public:
-    template <typename CalibrationObjectType, typename TimeSlotContainerType>
-    static void doCalibrationAndUpdateCalibrationObject(CalibrationObjectType& calibrationObject, const TimeSlotContainerType& container);
-  };
+class FITCalibrationAlgorithmGetter
+{
+ public:
+  template <typename CalibrationObjectType, typename TimeSlotContainerType>
+  static void doCalibrationAndUpdateCalibrationObject(CalibrationObjectType& calibrationObject, const TimeSlotContainerType& container);
+};
 
-
-}
-
-
+} // namespace o2::fit
 
 #endif //O2_FITCALIBRATIONALGORITHMGETTER_H

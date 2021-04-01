@@ -17,9 +17,7 @@ using namespace o2::fit;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  workflowOptions.emplace_back(o2::framework::ConfigParamSpec{"initialTimestamp",
-                                                           o2::framework::VariantType::Int, 0,
-                                                           {"Timestamp of initial calibration object that will be read from CCDB"}});
+  //probably some option will be added
 }
 
 #include "Framework/runDataProcessing.h"
@@ -29,10 +27,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
 
   using CalibrationDeviceType = o2::fit::FITCalibrationDevice<o2::ft0::FT0CalibrationInfoObject,
-    o2::ft0::FT0ChannelDataTimeSlotContainer, o2::ft0::FT0CalibrationObject>;
+                                                              o2::ft0::FT0ChannelDataTimeSlotContainer, o2::ft0::FT0CalibrationObject>;
 
-
-  auto initialTimestamp = config.options().get<int>("initialTimestamp");
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBPayload});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBInfo});
@@ -47,10 +43,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     "calib-ft0channel-calibration",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<CalibrationDeviceType>(inputDataLabel, calibrationObjectPath, initialTimestamp)},
-    Options {}
-  };
-
+    AlgorithmSpec{adaptFromTask<CalibrationDeviceType>(inputDataLabel, calibrationObjectPath)},
+    Options{}};
 
   WorkflowSpec workflow;
   workflow.emplace_back(dataProcessorSpec);

@@ -28,10 +28,10 @@ struct ChannelData {
   static constexpr int16_t DUMMY_CFD_TIME = -5000;
   static constexpr int16_t DUMMY_QTC_AMPL = -5000;
 
-  uint8_t ChId = DUMMY_CHANNEL_ID;     //channel Id
+  uint8_t ChId = DUMMY_CHANNEL_ID;    //channel Id
   uint8_t ChainQTC = DUMMY_CHAIN_QTC; //QTC chain
-  int16_t CFDTime = DUMMY_CFD_TIME; //time in #CFD channels, 0 at the LHC clk center
-  int16_t QTCAmpl = DUMMY_QTC_AMPL; // Amplitude #channels
+  int16_t CFDTime = DUMMY_CFD_TIME;   //time in #CFD channels, 0 at the LHC clk center
+  int16_t QTCAmpl = DUMMY_QTC_AMPL;   // Amplitude #channels
   enum EEventDataBit { kNumberADC,
                        kIsDoubleEvent,
                        kIsTimeInfoNOTvalid,
@@ -61,7 +61,7 @@ struct ChannelData {
   bool getFlag(EEventDataBit bitFlag) const { return bool(ChainQTC & (1 << bitFlag)); }
   void print() const;
 
-  [[nodiscard]] uint8_t  getChannelID() const { return ChId; }
+  [[nodiscard]] uint8_t getChannelID() const { return ChId; }
   [[nodiscard]] uint16_t getTime() const { return CFDTime; }
 
   bool operator==(ChannelData const& other) const

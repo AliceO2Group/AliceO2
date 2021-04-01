@@ -11,7 +11,6 @@
 #ifndef O2_FT0CHANNELDATATIMESLOTCONTAINER_H
 #define O2_FT0CHANNELDATATIMESLOTCONTAINER_H
 
-
 #include <array>
 #include <vector>
 #include <gsl/span>
@@ -25,7 +24,6 @@
 #include "TH2D.h"
 #include <boost/histogram.hpp>
 
-
 namespace o2::ft0
 {
 
@@ -38,12 +36,9 @@ class FT0ChannelDataTimeSlotContainer final
   static constexpr bool TEST_MODE = true;
   static constexpr unsigned int TIMER_FOR_TEST_MODE = 3;
 
-  using BoostHistogramType = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular
-                                                                    <double, boost::use_default, boost::use_default, boost::use_default>,
+  using BoostHistogramType = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>,
                                                                     boost::histogram::axis::integer<>>,
                                                          boost::histogram::unlimited_storage<std::allocator<char>>>;
-
-
 
  public:
   explicit FT0ChannelDataTimeSlotContainer(const FT0CalibrationObject& calibrationObject, std::size_t minEntries);
@@ -53,10 +48,7 @@ class FT0ChannelDataTimeSlotContainer final
   void merge(FT0ChannelDataTimeSlotContainer* prev);
   void print() const;
 
-
  private:
-
-
   const FT0CalibrationObject& mCalibrationObject;
   std::chrono::time_point<std::chrono::system_clock> mCreationTimestamp;
   std::size_t mMinEntries;
@@ -64,12 +56,9 @@ class FT0ChannelDataTimeSlotContainer final
   std::array<uint64_t, o2::ft0::Nchannels_FT0> mEntriesPerChannel{};
   BoostHistogramType mHistogram;
 
-
- ClassDefNV(FT0ChannelDataTimeSlotContainer, 1);
-
+  ClassDefNV(FT0ChannelDataTimeSlotContainer, 1);
 };
 
-}
-
+} // namespace o2::ft0
 
 #endif //O2_FT0CHANNELDATATIMESLOTCONTAINER_H
