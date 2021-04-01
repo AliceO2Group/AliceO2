@@ -11,6 +11,7 @@
 #include <functional>
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/DeviceInfo.h"
+#include "PaletteHelpers.h"
 #include <iostream>
 #include <cmath>
 
@@ -115,9 +116,9 @@ void displayDataRelayer(DeviceMetricsInfo const& metrics,
   auto getValue = [](int const& item) -> int { return item; };
   auto getColor = [](int value) {
     const ImU32 SLOT_EMPTY = ImColor(70, 70, 70, 255);
-    const ImU32 SLOT_FULL = ImColor(0xf9, 0xcd, 0xad, 255);
-    const ImU32 SLOT_DISPATCHED = ImColor(0xc8, 0xc8, 0xa9, 255);
-    const ImU32 SLOT_DONE = ImColor(0x83, 0xaf, 0, 255);
+    const ImU32 SLOT_FULL = ImColor(PaletteHelpers::RED);
+    const ImU32 SLOT_DISPATCHED = ImColor(PaletteHelpers::YELLOW);
+    const ImU32 SLOT_DONE = ImColor(PaletteHelpers::GREEN);
     const ImU32 SLOT_ERROR = ImColor(0xfe, 0x43, 0x65, 255);
     switch (value) {
       case 0:

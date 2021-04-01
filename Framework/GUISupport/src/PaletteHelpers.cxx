@@ -14,10 +14,10 @@ namespace o2
 namespace framework
 {
 
-const ImVec4 PaletteHelpers::RED = ImVec4(0xe3 / 255., 0x67 / 255., 0x44 / 255., 1);
+const ImVec4 PaletteHelpers::RED = ImVec4(0.945, 0.094, 0.298, 1);
 const ImVec4 PaletteHelpers::GREEN = ImVec4(0x7e / 255., 0xc4 / 255., 0x52 / 255., 1);
 const ImVec4 PaletteHelpers::BLUE = ImVec4(0x3d / 255., 0xb7 / 255., 0xe0 / 255., 1);
-const ImVec4 PaletteHelpers::YELLOW = ImVec4(0xf0 / 255., 0xc3 / 255., 0x30 / 255., 1);
+const ImVec4 PaletteHelpers::YELLOW = ImVec4(0.949, 0.769, 0.239, 1);
 const ImVec4 PaletteHelpers::SHADED_RED = ImVec4(0xd5 / 255., 0x72 / 255., 0x73 / 255., 1);
 const ImVec4 PaletteHelpers::SHADED_GREEN = ImVec4(0x98 / 255., 0xba / 255., 0x96 / 255., 1);
 const ImVec4 PaletteHelpers::SHADED_BLUE = ImVec4(0x7a / 255., 0xab / 255., 0xea / 255., 1);
