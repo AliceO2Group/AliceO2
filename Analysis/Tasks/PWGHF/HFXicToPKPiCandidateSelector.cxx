@@ -440,5 +440,5 @@ struct HFXicToPKPiCandidateSelector {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HFXicToPKPiCandidateSelector>(cfgc, "hf-xic-topkpi-candidate-selector")};
+    adaptAnalysisTask<HFXicToPKPiCandidateSelector>(cfgc, TaskName{"hf-xic-topkpi-candidate-selector"})};
 }
