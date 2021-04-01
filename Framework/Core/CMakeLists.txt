@@ -166,6 +166,7 @@ foreach(t
         FairMQOptionsRetriever
         FairMQResizableBuffer
         FrameworkDataFlowToDDS
+        FrameworkDataFlowToO2Control
         Graphviz
         GroupSlicer
         HistogramRegistry

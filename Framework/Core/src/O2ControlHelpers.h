@@ -37,6 +37,21 @@ void dumpDeviceSpec2O2Control(std::string workflowName,
                               std::vector<DeviceExecution> const& executions,
                               CommandInfo const& commandInfo);
 
+/// \brief Dumps only the workflow file
+void dumpWorkflow(std::ostream& dumpOut,
+                  const std::vector<DeviceSpec>& specs,
+                  const std::vector<DeviceExecution>& executions,
+                  const CommandInfo& commandInfo,
+                  std::string workflowName,
+                  std::string indLevel);
+
+/// \brief Dumps only one task
+void dumpTask(std::ostream& dumpOut,
+              const DeviceSpec& spec,
+              const DeviceExecution& execution,
+              std::string taskName,
+              std::string indLevel);
+
 } // namespace framework
 } // namespace o2
 #endif // FRAMEWORK_O2CONTROLHELPERS_H
