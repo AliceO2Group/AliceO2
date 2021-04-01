@@ -63,6 +63,7 @@ class Digit
   void setADC(const gsl::span<ADC_t>& adc) { std::copy(adc.begin(), adc.end(), mADC.begin()); }
   // Get methods
   int getDetector() const { return mDetector; }
+  int getHCId() const { return mDetector * 2 + (mROB % 2); }
   int getRow() const { return FeeParam::getPadRowFromMCM(mROB, mMCM); }
   int getPad() const { return FeeParam::getPadColFromADC(mROB, mMCM, mChannel); }
   int getROB() const { return mROB; }
