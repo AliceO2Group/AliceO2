@@ -108,6 +108,7 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
     }
     assert(mDistinctRoutesIndex.empty() == false);
     auto timestamp = mTimesliceIndex.getTimesliceForSlot(slot);
+    auto& variables = mTimesliceIndex.getVariablesForSlot(slot);
     // We iterate on all the hanlders checking if they need to be expired.
     for (size_t ei = 0; ei < expirationHandlers.size(); ++ei) {
       auto& expirator = expirationHandlers[ei];
@@ -137,7 +138,7 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
       if (part.size() == 0) {
         part.parts.resize(1);
       }
-      expirator.handler(services, part[0], timestamp.value);
+      expirator.handler(services, part[0], timestamp.value, variables);
       activity.expiredSlots++;
 
       mTimesliceIndex.markAsDirty(slot, true);
