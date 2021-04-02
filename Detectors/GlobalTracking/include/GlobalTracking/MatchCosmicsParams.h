@@ -26,6 +26,7 @@ struct MatchCosmicsParams : public o2::conf::ConfigurableParamHelper<MatchCosmic
   float systSigma2[o2::track::kNParams] = {0.01f, 0.01f, 1e-4f, 1e-4f, 0.f}; // extra error to be added at legs comparison
   float crudeNSigma2Cut[o2::track::kNParams] = {49.f, 49.f, 49.f, 49.f, 49.f};
   float crudeChi2Cut = 999.;
+  float timeToleranceMUS = 0.;
   float maxStep = 10.;
   float maxSnp = 0.99;
   float minSeedPt = 0.10;  // use only tracks above this pT (scaled with field)
