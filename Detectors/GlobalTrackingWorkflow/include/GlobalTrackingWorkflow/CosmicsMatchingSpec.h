@@ -13,15 +13,7 @@
 #ifndef O2_COSMICS_MATCHING_SPEC
 #define O2_COSMICS_MATCHING_SPEC
 
-#include "GlobalTracking/MatchCosmics.h"
-#include "DataFormatsITSMFT/TopologyDictionary.h"
-#include "DataFormatsTPC/Constants.h"
-#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/Task.h"
-#include <string>
-#include <vector>
-#include "TStopwatch.h"
 
 using namespace o2::framework;
 
@@ -29,21 +21,6 @@ namespace o2
 {
 namespace globaltracking
 {
-
-class CosmicsMatchingSpec : public Task
-{
- public:
-  CosmicsMatchingSpec(bool useMC) : mUseMC(useMC) {}
-  ~CosmicsMatchingSpec() override = default;
-  void init(InitContext& ic) final;
-  void run(ProcessingContext& pc) final;
-  void endOfStream(framework::EndOfStreamContext& ec) final;
-
- private:
-  o2::globaltracking::MatchCosmics mMatching; // matching engine
-  bool mUseMC = true;
-  TStopwatch mTimer;
-};
 
 /// create a processor spec
 framework::DataProcessorSpec getCosmicsMatchingSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC);
