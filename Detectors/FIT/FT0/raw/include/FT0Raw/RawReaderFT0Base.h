@@ -41,10 +41,10 @@ namespace ft0
 
 // Common raw reader for FT0
 template <class DigitBlockFT0type, class DataBlockPMtype, class DataBlockTCMtype>
-class RawReaderFT0Base : public RawReaderBase<DigitBlockFT0type>
+class RawReaderFT0Base : public RawReaderBase<DigitBlockFT0type, DataBlockPMtype, DataBlockTCMtype>
 {
  public:
-  typedef RawReaderBase<DigitBlockFT0type> RawReaderBaseType;
+  typedef RawReaderBase<DigitBlockFT0type, DataBlockPMtype, DataBlockTCMtype> RawReaderBaseType;
   RawReaderFT0Base() = default;
   ~RawReaderFT0Base() = default;
   //deserialize payload to raw data blocks and proccesss them to digits

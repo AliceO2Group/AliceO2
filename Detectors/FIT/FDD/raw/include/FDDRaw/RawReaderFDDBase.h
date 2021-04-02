@@ -41,10 +41,10 @@ namespace fdd
 
 // Common raw reader for FDD
 template <class DigitBlockFDDtype, class DataBlockPMtype, class DataBlockTCMtype>
-class RawReaderFDDBase : public RawReaderBase<DigitBlockFDDtype>
+class RawReaderFDDBase : public RawReaderBase<DigitBlockFDDtype, DataBlockPMtype, DataBlockTCMtype>
 {
  public:
-  typedef RawReaderBase<DigitBlockFDDtype> RawReaderBaseType;
+  typedef RawReaderBase<DigitBlockFDDtype, DataBlockPMtype, DataBlockTCMtype> RawReaderBaseType;
   RawReaderFDDBase() = default;
   ~RawReaderFDDBase() = default;
   //deserialize payload to raw data blocks and proccesss them to digits
