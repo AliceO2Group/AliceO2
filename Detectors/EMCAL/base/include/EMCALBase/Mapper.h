@@ -67,7 +67,6 @@ class Mapper
       size_t h2 = std::hash<int>()(s.mColumn);
       size_t h3 = std::hash<int>()(o2::emcal::channelTypeToInt(s.mChannelType));
       return ((h1 ^ (h2 << 1)) >> 1) ^ (h3 << 1);
-      return h1 ^ (h2 << 1);
     }
   };
 
