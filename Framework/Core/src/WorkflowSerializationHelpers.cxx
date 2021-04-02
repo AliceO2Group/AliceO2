@@ -765,7 +765,7 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
     w.Key("options");
     w.StartArray();
     for (auto& option : processor.options) {
-      if (option.name == "start-value-enumeration" || option.name == "end-value-enumeration" || option.name == "step-value-enumeration") {
+      if (option.name == "start-value-enumeration" || option.name == "end-value-enumeration" || option.name == "step-value-enumeration" || option.name == "orbit-offset-enumeration" || option.name == "orbit-multiplier-enumeration") {
         continue;
       }
       w.StartObject();

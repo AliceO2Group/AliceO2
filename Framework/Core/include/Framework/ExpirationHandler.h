@@ -8,17 +8,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef FRAMEWORK_EXPIRATIONHANDLER_H
-#define FRAMEWORK_EXPIRATIONHANDLER_H
+#ifndef O2_FRAMEWORK_EXPIRATIONHANDLER_H_
+#define O2_FRAMEWORK_EXPIRATIONHANDLER_H_
 
 #include "Framework/Lifetime.h"
 #include "Framework/RoutingIndices.h"
+#include "Framework/DataDescriptorMatcher.h"
 #include <cstdint>
 #include <functional>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 struct PartRef;
@@ -29,7 +28,7 @@ struct TimesliceSlot;
 struct ExpirationHandler {
   using Creator = std::function<TimesliceSlot(TimesliceIndex&)>;
   using Checker = std::function<bool(uint64_t timestamp)>;
-  using Handler = std::function<void(ServiceRegistry&, PartRef& expiredInput, uint64_t timestamp)>;
+  using Handler = std::function<void(ServiceRegistry&, PartRef& expiredInput, uint64_t timestamp, data_matcher::VariableContext& variables)>;
 
   RouteIndex routeIndex;
   Lifetime lifetime;
@@ -38,7 +37,6 @@ struct ExpirationHandler {
   Handler handler;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // FRAMEWORK_EXPIRATIONHANDLER_H
+#endif // O2_FRAMEWORK_EXPIRATIONHANDLER_H_

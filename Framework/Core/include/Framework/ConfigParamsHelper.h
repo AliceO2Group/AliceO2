@@ -36,6 +36,10 @@ struct ConfigParamsHelper {
                                options_description& options,
                                boost::program_options::options_description vetos = options_description());
 
+  /// Add the ConfigParamSpec @a spec to @a specs if there is no parameter with
+  /// the same name already.
+  static void addOptionIfMissing(std::vector<ConfigParamSpec>& specs, ConfigParamSpec spec);
+
   /// populate boost program options for a complete workflow
   template <typename ContainerType>
   static boost::program_options::options_description

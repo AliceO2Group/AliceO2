@@ -106,9 +106,9 @@ bool StartTimeValueMatcher::match(header::DataHeader const& dh, DataProcessingHe
     }
     context.put({ref->index, dph.startTime / mScale});
     // We always put in 14 the tfCounter
-    context.put({14, dh.tfCounter});
+    context.put({TFCOUNTER_POS, dh.tfCounter});
     // We always put in 15 the firstTForbit
-    context.put({15, dh.firstTForbit});
+    context.put({FIRSTTFORBIT_POS, dh.firstTForbit});
     return true;
   } else if (auto v = std::get_if<uint64_t>(&mValue)) {
     return (dph.startTime / mScale) == *v;
