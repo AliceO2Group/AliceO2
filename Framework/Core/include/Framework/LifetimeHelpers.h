@@ -76,7 +76,8 @@ struct LifetimeHelpers {
   /// dataOrigin, dataDescrition and dataSpecification of the given @a route.
   /// The payload of each message will contain an incremental number for each
   /// message being created.
-  static ExpirationHandler::Handler enumerate(ConcreteDataMatcher const& spec, std::string const& sourceChannel);
+  static ExpirationHandler::Handler enumerate(ConcreteDataMatcher const& spec, std::string const& sourceChannel,
+                                              int64_t orbitOffset, int64_t orbitMultiplier);
 
   /// Create a dummy (empty) message every time a record expires, suing @a spec
   /// as content of the payload.
