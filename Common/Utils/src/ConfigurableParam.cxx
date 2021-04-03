@@ -95,7 +95,7 @@ std::vector<std::string> splitString(const std::string& src, char delim, bool tr
 }
 
 // Does the given key exist in the boost property tree?
-bool keyInTree(boost::property_tree::ptree* pt, std::string key)
+bool keyInTree(boost::property_tree::ptree* pt, const std::string& key)
 {
   if (key.size() == 0 || pt == nullptr) {
     return false;
@@ -393,7 +393,9 @@ void ConfigurableParam::printAllRegisteredParamNames()
 
 // Update the storage map of params from the given configuration file.
 // It can be in JSON or INI format.
-void ConfigurableParam::updateFromFile(std::string const& configFile)
+// If nonempty comma-separated paramsList is provided, only those params will
+// be updated, absence of data for any of requested params will lead to fatal
+void ConfigurableParam::updateFromFile(std::string const& configFile, std::string const& paramsList)
 {
   if (!sIsFullyInitialized) {
     initialize();
@@ -408,10 +410,22 @@ void ConfigurableParam::updateFromFile(std::string const& configFile)
   boost::property_tree::ptree pt = readConfigFile(cfgfile);
 
   std::vector<std::pair<std::string, std::string>> keyValPairs;
+  auto request = splitString(paramsList, ',', true);
+  std::unordered_map<std::string, int> requestMap;
+  for (const auto& par : request) {
+    requestMap[par] = 0;
+  }
 
   try {
     for (auto& section : pt) {
       std::string mainKey = section.first;
+      if (requestMap.size()) {
+        if (requestMap.find(mainKey) == requestMap.end()) {
+          continue; // if something was requested, ignore everything else
+        } else {
+          requestMap[mainKey] = 1;
+        }
+      }
       for (auto& subKey : section.second) {
         auto name = subKey.first;
         auto value = subKey.second.get_value<std::string>();
@@ -424,6 +438,13 @@ void ConfigurableParam::updateFromFile(std::string const& configFile)
     LOG(ERROR) << "Error while updating params " << error.what();
   } catch (...) {
     LOG(ERROR) << "Unknown while updating params ";
+  }
+
+  // make sure all requested params were retrieved
+  for (const auto& req : requestMap) {
+    if (req.second == 0) {
+      throw std::runtime_error(fmt::format("Param {:s} was not found in {:s}", req.first, configFile));
+    }
   }
 
   try {
