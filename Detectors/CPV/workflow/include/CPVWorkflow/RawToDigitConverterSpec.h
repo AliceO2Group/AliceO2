@@ -16,6 +16,7 @@
 #include "DataFormatsCPV/TriggerRecord.h"
 #include "CPVCalib/CalibParams.h"
 #include "CPVCalib/BadChannelMap.h"
+#include "CPVCalib/Pedestals.h"
 #include "CPVReconstruction/RawDecoder.h"
 
 namespace o2
@@ -62,7 +63,9 @@ class RawToDigitConverterSpec : public framework::Task
 
  private:
   int mDDL = 15;
+  bool mIsPedestalData;
   std::unique_ptr<CalibParams> mCalibParams;        ///< CPV calibration
+  std::unique_ptr<Pedestals> mPedestals;        ///< CPV pedestals
   std::unique_ptr<BadChannelMap> mBadMap;           ///< BadMap
   std::vector<Digit> mOutputDigits;                 ///< Container with output cells
   std::vector<TriggerRecord> mOutputTriggerRecords; ///< Container with output cells
