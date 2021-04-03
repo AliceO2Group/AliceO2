@@ -39,8 +39,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::string keyvaluehelp("Semicolon separated key=value strings ...");
-  //workflowOptions.push_back(ConfigParamSpec{"digitization-config", o2::framework::VariantType::String, std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE), "configKeyValues file from digitization, used for raw output only!!!");
-  workflowOptions.push_back(o2::framework::ConfigParamSpec{"digitization-config", o2::framework::VariantType::String, "none", {"configKeyValues file from digitization, used for raw output only!!!"}});
+  workflowOptions.push_back(o2::framework::ConfigParamSpec{"hbfutils-config", o2::framework::VariantType::String, std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE), {"config file for HBFUtils (or none), used for raw output only!!!"}});
   workflowOptions.push_back(o2::framework::ConfigParamSpec{"configKeyValues", o2::framework::VariantType::String, "", {keyvaluehelp}});
 }
 
@@ -53,9 +52,9 @@ using namespace o2::framework;
 WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
 {
   WorkflowSpec specs;
-  std::string confDig = configcontext.options().get<std::string>("digitization-config");
+  std::string confDig = configcontext.options().get<std::string>("hbfutils-config");
   if (!confDig.empty() && confDig != "none") {
-    o2::conf::ConfigurableParam::updateFromFile(confDig);
+    o2::conf::ConfigurableParam::updateFromFile(confDig, "HBFUtils");
   }
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   DataProcessorSpec consumer = o2::hmpid::getDigitsToRawSpec();
