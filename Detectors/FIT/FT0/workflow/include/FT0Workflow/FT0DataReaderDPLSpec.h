@@ -52,7 +52,7 @@ class FT0DataReaderDPLSpec : public Task
       count++;
       auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
       gsl::span<const uint8_t> payload(it.data(), it.size());
-      mRawReader.process(rdhPtr->linkID, payload);
+      mRawReader.process(rdhPtr->linkID, payload, rdhPtr->endPointID );
     }
     LOG(INFO) << "Pages: " << count;
     mRawReader.accumulateDigits();
