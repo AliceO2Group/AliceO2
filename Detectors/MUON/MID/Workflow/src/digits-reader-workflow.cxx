@@ -23,6 +23,8 @@
 #include "MIDSimulation/MCLabel.h"
 #include "MIDWorkflow/DigitReaderSpec.h"
 #include "MIDWorkflow/ZeroSuppressionSpec.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
 
@@ -31,8 +33,12 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
     {"disable-mc", VariantType::Bool, false, {"Do not propagate MC info"}},
-    {"disable-zero-suppression", VariantType::Bool, false, {"Do not apply zero suppression"}}};
-  workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
+    {"disable-zero-suppression", VariantType::Bool, false, {"Do not apply zero suppression"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
+
+  std::swap(workflowOptions, options);
 }
 
 #include "Framework/runDataProcessing.h"
@@ -42,11 +48,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool disableZS = cfgc.options().get<bool>("disable-zero-suppression");
   bool useMC = !cfgc.options().get<bool>("disable-mc");
 
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
+
   WorkflowSpec specs;
   specs.emplace_back(o2::mid::getDigitReaderSpec(useMC, disableZS ? "DATA" : "DATAMC"));
   if (!disableZS) {
     specs.emplace_back(o2::mid::getZeroSuppressionSpec(useMC));
   }
+
+  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
 
   return specs;
 }

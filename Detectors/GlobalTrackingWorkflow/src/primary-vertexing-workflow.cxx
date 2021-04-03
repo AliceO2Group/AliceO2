@@ -18,6 +18,7 @@
 #include "TOFWorkflowUtils/ClusterReaderSpec.h"
 #include "FT0Workflow/RecPointReaderSpec.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/CompletionPolicy.h"
@@ -40,6 +41,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"validate-with-ft0", o2::framework::VariantType::Bool, false, {"use FT0 time for vertex validation"}},
     {"vetex-track-matching-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use in vertex-track associations or \"none\" to disable matching"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
 
   std::swap(workflowOptions, options);
 }
@@ -107,5 +110,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (!disableRootOut) {
     specs.emplace_back(o2::vertexing::getPrimaryVertexWriterSpec(srcVT.none(), useMC));
   }
+
+  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
+
   return std::move(specs);
 }

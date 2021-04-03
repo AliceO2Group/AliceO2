@@ -12,6 +12,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/CompletionPolicy.h"
 #include "TPCWorkflow/TPCSectorCompletionPolicy.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 
 using namespace o2::framework;
 
@@ -28,6 +29,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"produce-calibration-data", o2::framework::VariantType::Bool, false, {"produce output for TPC vdrift calibration"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
 
   std::swap(workflowOptions, options);
 }
@@ -59,5 +62,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   auto calib = configcontext.options().get<bool>("produce-calibration-data");
-  return std::move(o2::globaltracking::getMatchTPCITSWorkflow(useFT0, useMC, disableRootInp, disableRootOut, calib));
+
+  auto wf = o2::globaltracking::getMatchTPCITSWorkflow(useFT0, useMC, disableRootInp, disableRootOut, calib);
+
+  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);
+
+  return std::move(wf);
 }
