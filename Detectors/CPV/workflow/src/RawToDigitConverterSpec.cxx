@@ -35,11 +35,9 @@ void RawToDigitConverterSpec::init(framework::InitContext& ctx)
   std::string optPedestal("");
   if (ctx.options().isSet("pedestal")) {
     optPedestal = ctx.options().get<std::string>("pedestal");
-    
   }
   LOG(INFO) << "Pedestal data: " << optPedestal;
   mIsPedestalData = optPedestal == "on" ? true : false;
-  
 }
 
 void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
@@ -71,7 +69,6 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
     }
   }
 
-  
   if (!mCalibParams) {
     if (o2::cpv::CPVSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
       mCalibParams = std::make_unique<o2::cpv::CalibParams>(1); // test default calibration
@@ -189,20 +186,20 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       for (uint32_t adch : decoder.getDigits()) {
         AddressCharge ac = {adch};
         unsigned short absId = ac.Address;
-        //if we deal with non-pedestal data? 
-	if(!mIsPedestalData){//not a pedestal data
-	  //test bad map
-	  if (mBadMap->isChannelGood(absId)) {
-	    if (ac.Charge > o2::cpv::CPVSimParams::Instance().mZSthreshold) {
-	      //we need to subtract pedestal from amplidute
-	      //and scale it accordingly to channel gain
-	      float amp = mCalibParams->getGain(absId) * (ac.Charge - mPedestals->getPedestal(absId));
-	      currentDigitContainer->emplace_back(absId, amp, -1);
-	    }
-	  }
-	} else { //pedestal data, no calibration needed.
-	  currentDigitContainer->emplace_back(absId, (float)ac.Charge, -1);
-	}
+        //if we deal with non-pedestal data?
+        if (!mIsPedestalData) { //not a pedestal data
+          //test bad map
+          if (mBadMap->isChannelGood(absId)) {
+            if (ac.Charge > o2::cpv::CPVSimParams::Instance().mZSthreshold) {
+              //we need to subtract pedestal from amplidute
+              //and scale it accordingly to channel gain
+              float amp = mCalibParams->getGain(absId) * (ac.Charge - mPedestals->getPedestal(absId));
+              currentDigitContainer->emplace_back(absId, amp, -1);
+            }
+          }
+        } else { //pedestal data, no calibration needed.
+          currentDigitContainer->emplace_back(absId, (float)ac.Charge, -1);
+        }
       }
       //Check and send list of hwErrors
       for (auto& er : decoder.getErrors()) {
