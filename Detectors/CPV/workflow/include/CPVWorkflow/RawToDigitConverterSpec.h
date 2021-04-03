@@ -65,7 +65,7 @@ class RawToDigitConverterSpec : public framework::Task
   int mDDL = 15;
   bool mIsPedestalData;
   std::unique_ptr<CalibParams> mCalibParams;        ///< CPV calibration
-  std::unique_ptr<Pedestals> mPedestals;        ///< CPV pedestals
+  std::unique_ptr<Pedestals> mPedestals;            ///< CPV pedestals
   std::unique_ptr<BadChannelMap> mBadMap;           ///< BadMap
   std::vector<Digit> mOutputDigits;                 ///< Container with output cells
   std::vector<TriggerRecord> mOutputTriggerRecords; ///< Container with output cells
