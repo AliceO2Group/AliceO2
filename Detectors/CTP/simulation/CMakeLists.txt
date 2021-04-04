@@ -8,22 +8,10 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-# @brief  cmake setup for the DataFormats module of AliceO2
-
-add_subdirectory(Common)
-add_subdirectory(TPC)
-add_subdirectory(ITSMFT)
-add_subdirectory(MUON)
-add_subdirectory(TOF)
-add_subdirectory(FIT)
-add_subdirectory(EMCAL)
-add_subdirectory(ZDC)
-add_subdirectory(TRD)
-add_subdirectory(PHOS)
-add_subdirectory(CPV)
-add_subdirectory(CTP)
-if(ENABLE_UPGRADES)
-  add_subdirectory(Upgrades)
-else()
-  message(STATUS "Not building dataformats for upgrades")
-endif()
+o2_add_library(CTPSimulation
+  SOURCES src/Digitizer.cxx
+  PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::Framework
+  O2::DataFormatsCTP
+  O2::Headers)
+o2_target_root_dictionary(CTPSimulation HEADERS
+  include/CTPSimulation/Digitizer.h)

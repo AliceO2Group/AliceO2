@@ -68,13 +68,14 @@ class DetID
   static constexpr ID FV0 = 13;
   static constexpr ID FDD = 14;
   static constexpr ID ACO = 15;
+  static constexpr ID CTP = 16;
 #ifdef ENABLE_UPGRADES
-  static constexpr ID IT3 = 16;
-  static constexpr ID TRK = 17;
-  static constexpr ID FT3 = 18;
+  static constexpr ID IT3 = 17;
+  static constexpr ID TRK = 18;
+  static constexpr ID FT3 = 19;
   static constexpr ID Last = FT3;
 #else
-  static constexpr ID Last = ACO; ///< if extra detectors added, update this !!!
+  static constexpr ID Last = CTP; ///< if extra detectors added, update this !!!
 #endif
   static constexpr ID First = ITS;
 
@@ -135,9 +136,9 @@ class DetID
 
   static constexpr const char* sDetNames[nDetectors + 1] = ///< defined detector names
 #ifdef ENABLE_UPGRADES
-    {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "ACO", "IT3", "TRK", "FT3", nullptr};
+    {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "ACO", "CTP", "IT3", "TRK", "FT3", nullptr};
 #else
-    {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "ACO", nullptr};
+    {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "ACO", "CTP", nullptr};
 #endif
   // detector names, will be defined in DataSources
   static constexpr std::array<mask_t, nDetectors> sMasks = ///< detectot masks
@@ -155,7 +156,8 @@ class DetID
     sOrigins = ///< detector data origins
     {o2h::gDataOriginITS, o2h::gDataOriginTPC, o2h::gDataOriginTRD, o2h::gDataOriginTOF, o2h::gDataOriginPHS,
      o2h::gDataOriginCPV, o2h::gDataOriginEMC, o2h::gDataOriginHMP, o2h::gDataOriginMFT, o2h::gDataOriginMCH,
-     o2h::gDataOriginMID, o2h::gDataOriginZDC, o2h::gDataOriginFT0, o2h::gDataOriginFV0, o2h::gDataOriginFDD, o2h::gDataOriginACO
+     o2h::gDataOriginMID, o2h::gDataOriginZDC, o2h::gDataOriginFT0, o2h::gDataOriginFV0, o2h::gDataOriginFDD,
+     o2h::gDataOriginACO, o2h::gDataOriginCTP
 #ifdef ENABLE_UPGRADES
      ,
      o2h::gDataOriginIT3, o2h::gDataOriginTRK, o2h::gDataOriginFT3

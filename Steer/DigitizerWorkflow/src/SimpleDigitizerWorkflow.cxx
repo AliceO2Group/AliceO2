@@ -43,6 +43,10 @@
 #include "FT0DigitizerSpec.h"
 #include "FT0DigitWriterSpec.h"
 
+// for CTP
+#include "CTPDigitizerSpec.h"
+#include "CTPWorkflow/CTPDigitWriterSpec.h"
+
 // for FV0
 #include "FV0DigitizerSpec.h"
 #include "FV0DigitWriterSpec.h"
@@ -593,7 +597,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     // add PHOS writer
     specs.emplace_back(o2::cpv::getCPVDigitWriterSpec(mctruth));
   }
-
+  // the CTP part
+  if (isEnabled(o2::detectors::DetID::CTP)) {
+    detList.emplace_back(o2::detectors::DetID::CTP);
+    // connect the CTP digitization
+    specs.emplace_back(o2::ctp::getCTPDigitizerSpec(fanoutsize++, detList));
+    // connect the CTP digit writer
+    specs.emplace_back(o2::ctp::getCTPDigitWriterSpec(false));
+  }
   // GRP updater: must come after all detectors since requires their list
   specs.emplace_back(o2::parameters::getGRPUpdaterSpec(grpfile, detList));
 
