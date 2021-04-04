@@ -83,6 +83,7 @@ class ConfigParamRegistry
     } catch (...) {
       throw std::invalid_argument(std::string("error parsing option: ") + key);
     }
+    throw std::invalid_argument(std::string("bad type for option: ") + key);
   }
 
  private:
