@@ -29,7 +29,7 @@ namespace o2
 namespace fv0
 {
 struct EventHeader {
-  static constexpr int PayloadSize = 16;
+  static constexpr size_t PayloadSize = 16;
   union {
     uint64_t word[2] = {};
     struct {
@@ -82,7 +82,7 @@ struct EventData {
 };
 
 struct TCMdata {
-  static constexpr int PayloadSize = 16;
+  static constexpr size_t PayloadSize = 16;
   union {
     uint64_t word[2] = {0};
     struct {
