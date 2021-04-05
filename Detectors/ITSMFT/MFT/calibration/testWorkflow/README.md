@@ -11,8 +11,10 @@ o2-calibration-ccdb-populator-workflow --ccdb-path="http://localhost:8080" -b
 ```
 
 Additional options to the mft-calib DPL : 
+```
 	--path "/path/in/CCDBB/" : defines path to write to in CCDB (default : "/MFT/Calib/NoiseMap")
 	--meta "Description=...;Author=...;Uploader=..." : add meta data to the input in the CCDB
 	--tstart <start timestamp> : defines the start of validity timestamp of the file written in the CCDB (default is -1 : current timestamp)
 	--tend <start timestamp> : defines the start of validity timestamp of the file written in the CCDB (defult is -1 : one year from the current timestamp)
 	--prob-threshold <proba> : defined probability threshold for noisy pixels (default : 3e-6) 
+```
