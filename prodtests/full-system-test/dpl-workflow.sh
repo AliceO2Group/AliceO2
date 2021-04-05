@@ -103,7 +103,7 @@ fi
 
 # Common workflows
 WORKFLOW+="o2-its-reco-workflow $ARGS_ALL --trackerCA $DISABLE_MC --clusters-from-upstream --disable-root-output $ITS_CONFIG --configKeyValues \"HBFUtils.nHBFPerTF=${NHBPERTF};$ITS_CONFIG_KEY\" | "
-WORKFLOW+="o2-tpc-reco-workflow ${ARGS_ALL/--severity $SEVERITY/--severity $SEVERITY_TPC} --input-type=$TPC_INPUT $DISABLE_MC --output-type $TPC_OUTPUT --pipeline tpc-tracker:$NGPUS,tpc-entropy-encoder:$N_TPCENT $TPC_CONFIG --configKeyValues \"HBFUtils.nHBFPerTF=$NHBPERTF;GPU_global.deviceType=$GPUTYPE;GPU_proc.debugLevel=0;$TPC_CONFIG_KEY\" | "
+WORKFLOW+="o2-tpc-reco-workflow ${ARGS_ALL/--severity $SEVERITY/--severity $SEVERITY_TPC} --input-type=$TPC_INPUT $DISABLE_MC --output-type $TPC_OUTPUT --pipeline tpc-tracker:$NGPUS,tpc-entropy-encoder:$N_TPCENT $TPC_CONFIG --configKeyValues \"HBFUtils.nHBFPerTF=$NHBPERTF;GPU_global.deviceType=$GPUTYPE;GPU_proc.debugLevel=0;$TPC_CONFIG_KEY;$TPC_EXTRA_CONFIG\" | "
 WORKFLOW+="o2-tpcits-match-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC --pipeline itstpc-track-matcher:$N_TPCITS --configKeyValues \"HBFUtils.nHBFPerTF=${NHBPERTF};\" | "
 WORKFLOW+="o2-ft0-reco-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC --configKeyValues \"HBFUtils.nHBFPerTF=${NHBPERTF};\" | "
 WORKFLOW+="o2-tof-reco-workflow $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=$NHBPERTF\" --input-type $TOF_INPUT --output-type $TOF_OUTPUT --disable-root-input --disable-root-output $DISABLE_MC | "
