@@ -13,7 +13,10 @@
 #include <chrono>
 #include <optional>
 #include <gsl/span>
+
+#ifdef WITH_OPENMP
 #include <omp.h>
+#endif
 
 #include "TFile.h"
 
@@ -233,7 +236,9 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
 
   auto timeParallelStart = std::chrono::high_resolution_clock::now();
 
+#ifdef WITH_OPENMP
 #pragma omp parallel for
+#endif
   for (int iTrig = 0; iTrig < triggerRecords.size(); ++iTrig) {
     int currHCId = -1;
     std::array<TrapSimulator, NMCMHCMAX> trapSimulators{}; //the up to 64 trap simulators for a single half chamber
