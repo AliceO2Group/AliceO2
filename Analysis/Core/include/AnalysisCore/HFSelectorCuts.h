@@ -20,13 +20,10 @@ namespace pdg
 enum code {
   kD0 = 421,
   kD0bar = -421,
-<<<<<<< HEAD
   kDPlus = 411,
   kLambdaCPlus = 4122,
-  kXiCPlus = 4232
-=======
+  kXiCPlus = 4232,
   kJpsi = 443
->>>>>>> PWGHF: Use labeled array for configurable cuts in Jpsi to ee selector
 };
 }
 
@@ -154,7 +151,6 @@ static const std::vector<std::string> pTBinLabels = {
 // column labels
 static const std::vector<std::string> cutVarLabels = {"m", "DCA", "cos theta*", "pT K", "pT Pi", "d0K", "d0pi", "d0d0", "cos pointing angle", "cos pointing angle xy", "normalized decay length XY"};
 } // namespace hf_cuts_d0_topik
-<<<<<<< HEAD
 
 namespace hf_cuts_lc_topkpi
 {
@@ -289,8 +285,24 @@ constexpr double cuts[npTBins][nCutVars] = {{0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0
                                             {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.},  /* 8<pt<12  */
                                             {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.},  /* 12<pt<24 */
                                             {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.}}; /* 24<pt<36 */
-=======
-//
+
+// row labels
+static const std::vector<std::string> pTBinLabels = {
+  "pT bin 0",
+  "pT bin 1",
+  "pT bin 2",
+  "pT bin 3",
+  "pT bin 4",
+  "pT bin 5",
+  "pT bin 6",
+  "pT bin 7",
+  "pT bin 8",
+  "pT bin 9"};
+
+// column labels
+static const std::vector<std::string> cutVarLabels = {"m", "pT p", "pT K", "pT Pi", "DCA", "vertex sigma", "decay length", "cos pointing angle"};
+} // namespace hf_cuts_xic_topkpi
+
 namespace hf_cuts_jpsi_toee
 {
 static constexpr int npTBins = 9;
@@ -321,8 +333,6 @@ constexpr double cuts[npTBins][nCutVars] = {{0.5, 0.2, 0.4, 1},  /* 0<pt<0.5 */
                                             {0.5, 0.2, 0.4, 1},  /* 5<pt<7   */
                                             {0.5, 0.2, 0.4, 1},  /* 7<pt<10  */
                                             {0.5, 0.2, 0.4, 1}}; /* 10<pt<15 */
->>>>>>> PWGHF: Use labeled array for configurable cuts in Jpsi to ee selector
-
 // row labels
 static const std::vector<std::string> pTBinLabels = {
   "pT bin 0",
@@ -333,19 +343,9 @@ static const std::vector<std::string> pTBinLabels = {
   "pT bin 5",
   "pT bin 6",
   "pT bin 7",
-  "pT bin 8",
-<<<<<<< HEAD
-  "pT bin 9"};
-
-// column labels
-static const std::vector<std::string> cutVarLabels = {"m", "pT p", "pT K", "pT Pi", "DCA", "vertex sigma", "decay length", "cos pointing angle"};
-} // namespace hf_cuts_xic_topkpi
-=======
-};
-
+  "pT bin 8"};
 // column labels
 static const std::vector<std::string> cutVarLabels = {"m", "DCA_xy", "DCA_z", "pT El"};
 } // namespace hf_cuts_jpsi_toee
->>>>>>> PWGHF: Use labeled array for configurable cuts in Jpsi to ee selector
 } // namespace o2::analysis
 #endif
