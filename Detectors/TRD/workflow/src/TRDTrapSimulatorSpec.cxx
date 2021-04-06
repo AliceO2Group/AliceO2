@@ -248,8 +248,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   auto timeParallelStart = std::chrono::high_resolution_clock::now();
 
 #ifdef WITH_OPENMP
-  omp_set_num_threads(mNumThreads);
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic) num_threads(mNumThreads)
 #endif
   for (int iTrig = 0; iTrig < triggerRecords.size(); ++iTrig) {
     int currHCId = -1;
