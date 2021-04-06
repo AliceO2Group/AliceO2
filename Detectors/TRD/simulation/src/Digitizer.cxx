@@ -157,9 +157,8 @@ void Digitizer::process(std::vector<Hit> const& hits)
   getHitContainerPerDetector(hits, hitsPerDetector);
 
 #ifdef WITH_OPENMP
-  omp_set_num_threads(mNumThreads);
 // Loop over all TRD detectors (in a parallel fashion)
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic) num_threads(mNumThreads)
 #endif
   for (int det = 0; det < MAXCHAMBER; ++det) {
 #ifdef WITH_OPENMP
