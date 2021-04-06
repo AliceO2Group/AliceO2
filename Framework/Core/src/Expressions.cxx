@@ -37,7 +37,7 @@ struct LiteralNodeHelper {
 struct BindingNodeHelper {
   DatumSpec operator()(BindingNode node) const
   {
-    return DatumSpec{node.name, node.type};
+    return DatumSpec{node.name, node.hash, node.type};
   }
 };
 
@@ -527,6 +527,26 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
   return tree;
 }
 
+bool isTableCompatible(std::vector<size_t> const& hashes, Operations const& specs)
+{
+  std::set<size_t> opHashes;
+  for (auto& spec : specs) {
+    if (spec.left.datum.index() == 3) {
+      opHashes.insert(spec.left.hash);
+    }
+    if (spec.right.datum.index() == 3) {
+      opHashes.insert(spec.right.hash);
+    }
+  }
+  std::set<size_t> tHashes;
+  for (auto& hash : hashes) {
+    tHashes.insert(hash);
+  }
+
+  return std::includes(tHashes.begin(), tHashes.end(),
+                       opHashes.begin(), opHashes.end());
+}
+
 bool isSchemaCompatible(gandiva::SchemaPtr const& Schema, Operations const& opSpecs)
 {
   std::set<std::string> opFieldNames;
@@ -555,7 +575,7 @@ void updateExpressionInfos(expressions::Filter const& filter, std::vector<Expres
   }
   Operations ops = createOperations(filter);
   for (auto& info : eInfos) {
-    if (isSchemaCompatible(info.schema, ops)) {
+    if (isTableCompatible(info.hashes, ops)) {
       auto tree = createExpressionTree(ops, info.schema);
       /// If the tree is already set, add a new tree to it with logical 'and'
       if (info.tree != nullptr) {
