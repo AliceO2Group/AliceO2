@@ -29,6 +29,7 @@
 
 #include "TRDBase/Digit.h"
 #include "TRDBase/Calibrations.h"
+#include "TRDSimulation/TRDSimParams.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 
 using namespace o2::framework;
@@ -181,6 +182,16 @@ void TRDDPLTrapSimulatorTask::init(o2::framework::InitContext& ic)
   mCalib->setCCDBForSimulation(mRunNumber);
   getTrapConfig();
   setOnlineGainTables();
+#ifdef WITH_OPENMP
+  int askedThreads = TRDSimParams::Instance().digithreads;
+  int maxThreads = omp_get_max_threads();
+  if (askedThreads < 0) {
+    mNumThreads = maxThreads;
+  } else {
+    mNumThreads = std::min(maxThreads, askedThreads);
+  }
+  LOG(info) << "Trap simulation running with " << mNumThreads << " threads ";
+#endif
   LOG(info) << "Trap Simulator Device initialised for config : " << mTrapConfigName;
 }
 
@@ -237,7 +248,8 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   auto timeParallelStart = std::chrono::high_resolution_clock::now();
 
 #ifdef WITH_OPENMP
-#pragma omp parallel for
+  omp_set_num_threads(mNumThreads);
+#pragma omp parallel for schedule(dynamic)
 #endif
   for (int iTrig = 0; iTrig < triggerRecords.size(); ++iTrig) {
     int currHCId = -1;
