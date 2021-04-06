@@ -64,7 +64,7 @@ struct pidHMPIDQA {
       if (abs(t.track_as<TrackCandidates>().dcaXY()) > maxDCA) {
         continue;
       }
-      histos.fill(HIST("qa/signalvsP"), t.track().p(), t.hmpidSignal());
+      histos.fill(HIST("qa/signalvsP"), t.track_as<TrackCandidates>().p(), t.hmpidSignal());
     }
   }
 };
