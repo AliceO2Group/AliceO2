@@ -9,12 +9,11 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(DataFormatsHMP
-               SOURCES src/Digit.cxx src/Cluster.cxx
+               SOURCES src/Digit.cxx src/Cluster.cxx src/Trigger.cxx
                PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
                                      O2::HMPIDBase
                                      O2::CommonDataFormat 
-                                     O2::SimulationDataFormat
-                                     Boost::serialization)
+                                     O2::SimulationDataFormat)
 
 o2_target_root_dictionary(DataFormatsHMP
                           HEADERS include/DataFormatsHMP/DataFormat.h

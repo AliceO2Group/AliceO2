@@ -22,7 +22,6 @@
 
 #include <iosfwd>
 #include <vector>
-//#include "CommonDataFormat/TimeStamp.h"
 #include "DataFormatsHMP/Hit.h" // for hit
 #include "HMPIDBase/Param.h"    // for param
 

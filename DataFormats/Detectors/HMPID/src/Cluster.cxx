@@ -8,16 +8,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <TRandom.h>
 #include "DataFormatsHMP/Cluster.h"
-#include "HMPIDBase/Param.h"
-#include "TRandom.h"
-#include "TMath.h"
-
-using namespace o2::hmpid;
 
 ClassImp(o2::hmpid::Cluster);
 
-Cluster::Cluster(Int_t chamber, Int_t size, Int_t NlocMax, Double_t QRaw, Double_t Q, Double_t X, Double_t Y)
-  : mChamber(chamber), mSize(size), mNlocMax(NlocMax), mQRaw(QRaw), mQ(Q), mX(X), mY(Y)
+namespace o2
 {
-}
+namespace hmpid
+{
+
+Cluster::Cluster(int chamber, int size, int NlocMax, float QRaw, float Q, float X, float Y)
+  : mChamber(chamber), mSize(size), mNlocMax(NlocMax), mQRaw(QRaw), mQ(Q), mX(X), mY(Y)
+
+                                                                                    {};
+
+} // namespace hmpid
+} // namespace o2

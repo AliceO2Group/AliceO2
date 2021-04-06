@@ -17,11 +17,7 @@
 #ifndef DETECTORS_HMPID_BASE_INCLUDE_HMPIDBASE_TRIGGER_H_
 #define DETECTORS_HMPID_BASE_INCLUDE_HMPIDBASE_TRIGGER_H_
 
-#include <vector>
 #include <iosfwd>
-#include <iostream>
-//#include "CommonDataFormat/TimeStamp.h"
-//#include "CommonConstants/LHCConstants.h"
 #include "CommonDataFormat/InteractionRecord.h"
 
 namespace o2
@@ -44,7 +40,7 @@ class Event
     mFirstDigit = first;
     mLastDigit = last;
   };
-  InteractionRecord& getIr() { return mIr; };
+  const InteractionRecord& getIr() const { return mIr; };
   uint32_t getOrbit() const { return mIr.orbit; };
   uint16_t getBc() const { return mIr.bc; };
   uint64_t getTriggerID() const { return ((mIr.orbit << 12) | (0x0FFF & mIr.bc)); };
@@ -80,11 +76,7 @@ class Event
   friend inline bool operator!=(const Event& l, const Event& r) { return !(l == r); };
 
   // Digit ASCII format (Orbit,BunchCrossing)[LHC Time nSec]
-  friend std::ostream& operator<<(std::ostream& os, const Event& d)
-  {
-    os << "(" << d.mIr.orbit << "," << d.mIr.bc << " @ " << d.mIr.bc2ns() << " ns) [" << d.mFirstDigit << " .. " << d.mLastDigit << "]";
-    return os;
-  };
+  friend std::ostream& operator<<(std::ostream& os, const Event& d);
 
  public:
   int32_t mFirstDigit = 0;

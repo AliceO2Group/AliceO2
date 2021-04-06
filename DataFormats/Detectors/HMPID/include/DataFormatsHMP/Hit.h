@@ -21,8 +21,6 @@
 
 #include "SimulationDataFormat/BaseHits.h" // for BasicXYZEHit
 #include "CommonUtils/ShmAllocator.h"
-//#include "SimulationDataFormat/Stack.h"
-//#include "TVector3.h"
 
 namespace o2
 {

@@ -11,49 +11,46 @@
 #ifndef DETECTORS_HMPID_BASE_INCLUDE_HMPIDDATAFORMAT_CLUSTER_H_
 #define DETECTORS_HMPID_BASE_INCLUDE_HMPIDDATAFORMAT_CLUSTER_H_
 
-#include "CommonDataFormat/TimeStamp.h"
-#include "HMPIDBase/Param.h" // for param
-
 namespace o2
 {
 namespace hmpid
 {
-/// \class Claster
+/// \class Cluster
 /// \brief HMPID cluster implementation
 class Cluster
 {
  public:
   Cluster() = default;
 
-  Cluster(Int_t chamber, Int_t size, Int_t NlocMax, Double_t QRaw, Double_t Q, Double_t X, Double_t Y);
+  Cluster(int chamber, int size, int NlocMax, float QRaw, float Q, float X, float Y);
   ~Cluster() = default;
 
-  Int_t getCh() const { return mChamber; }
-  void setCh(Int_t chamber) { mChamber = chamber; }
+  int getCh() const { return mChamber; }
+  void setCh(int chamber) { mChamber = chamber; }
 
-  Int_t getSize() const { return mSize; }
-  void setSize(Int_t size) { mSize = size; }
+  int getSize() const { return mSize; }
+  void setSize(int size) { mSize = size; }
 
-  Int_t getQRaw() const { return mQRaw; }
-  void setQRaw(Int_t QRaw) { mQRaw = QRaw; }
+  int getQRaw() const { return mQRaw; }
+  void setQRaw(int QRaw) { mQRaw = QRaw; }
 
-  Int_t getQ() const { return mQ; }
-  void setQ(Int_t Q) { mQ = Q; }
+  int getQ() const { return mQ; }
+  void setQ(int Q) { mQ = Q; }
 
-  Int_t getX() const { return mX; }
-  void setX(Int_t X) { mX = X; }
+  int getX() const { return mX; }
+  void setX(int X) { mX = X; }
 
-  Int_t getY() const { return mY; }
-  void setY(Int_t Y) { mY = Y; }
+  int getY() const { return mY; }
+  void setY(int Y) { mY = Y; }
 
  protected:
-  Int_t mChamber; /// chamber number
-  Int_t mSize;    /// size of the formed cluster from which this cluster deduced
-  Int_t mNlocMax; /// number of local maxima in formed cluster
-  Double_t mQRaw; /// QDC value of the raw cluster
-  Double_t mQ;    /// QDC value of the actual cluster
-  Double_t mX;    /// local x postion, [cm]
-  Double_t mY;    /// local y postion, [cm]
+  int mChamber; /// chamber number
+  int mSize;    /// size of the formed cluster from which this cluster deduced
+  int mNlocMax; /// number of local maxima in formed cluster
+  float mQRaw;  /// QDC value of the raw cluster
+  float mQ;     /// QDC value of the actual cluster
+  float mX;     /// local x postion, [cm]
+  float mY;     /// local y postion, [cm]
 
   ClassDefNV(Cluster, 1);
 };
