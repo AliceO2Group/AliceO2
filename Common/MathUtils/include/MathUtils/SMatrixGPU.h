@@ -438,7 +438,7 @@ class Expr
  public:
   typedef T value_type;
   GPUd() Expr(const ExprType& rhs) : mRhs(rhs) {} // NOLINT: False positive
-  GPUd() ~Expr() {}
+  GPUd() ~Expr() = default;
   GPUdi() T apply(unsigned int i) const
   {
     return mRhs.apply(i);
