@@ -48,6 +48,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "ReconstructionDataFormats/DCA.h"
 #include "ReconstructionDataFormats/Vertex.h"
+#include "Framework/DataTypes.h"
 #include "UpgradesAODUtils/Run2LikeAO2D.h"
 #endif
 
