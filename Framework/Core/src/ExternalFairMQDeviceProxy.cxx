@@ -216,6 +216,8 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
     std::vector<std::string> unmatchedDescriptions;
     int lastSplitPartIndex = -1;
     std::string channelNameForSplitParts;
+    static int64_t dplCounter = -1;
+    dplCounter++;
     for (size_t msgidx = 0; msgidx < parts.Size() / 2; ++msgidx) {
       if (indicesDone[msgidx]) {
         continue;
@@ -226,11 +228,12 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
         LOG(ERROR) << "data on input " << msgidx << " does not follow the O2 data model, DataHeader missing";
         continue;
       }
-      const auto dph = o2::header::get<DataProcessingHeader*>(parts.At(msgidx * 2)->GetData());
+      auto dph = o2::header::get<DataProcessingHeader*>(parts.At(msgidx * 2)->GetData());
       if (!dph) {
         LOG(ERROR) << "data on input " << msgidx << " does not follow the O2 data model, DataProcessingHeader missing";
         continue;
       }
+      const_cast<DataProcessingHeader*>(dph)->startTime = dplCounter;
       LOG(DEBUG) << msgidx << ": " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}) << " part " << dh->splitPayloadIndex << " of " << dh->splitPayloadParts << "  payload " << parts.At(msgidx * 2 + 1)->GetSize();
 
       OutputSpec query{dh->dataOrigin, dh->dataDescription, dh->subSpecification};
