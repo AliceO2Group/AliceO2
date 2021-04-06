@@ -17,6 +17,7 @@
 #include "AnalysisDataModel/TrackSelectionTables.h"
 #include "AnalysisCore/MC.h"
 #include "AnalysisDataModel/TrackSelectionTables.h"
+#include "AnalysisDataModel/TrackSelectionTables.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -26,7 +27,7 @@ struct pidHMPIDQA {
   HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::QAObject};
   Configurable<int> nBinsP{"nBinsP", 500, "Number of momentum bins"};
   Configurable<float> minP{"minP", 0.01, "Minimum momentum plotted (GeV/c)"};
-  Configurable<float> maxP{"maxP", 100, "Maximum momentum plotted (GeV/c)"};
+  Configurable<float> maxP{"maxP", 10, "Maximum momentum plotted (GeV/c)"};
   Configurable<float> maxDCA{"maxDCA", 3, "Maximum DCA xy use for the plot (cm)"};
 
   template <typename T>
@@ -53,17 +54,35 @@ struct pidHMPIDQA {
   {
     AxisSpec momAxis{nBinsP, minP, maxP};
     histos.add("qa/signalvsP", ";#it{p} (GeV/#it{c});Cherenkov angle (rad)", kTH2F, {momAxis, {1000, 0, 1}});
+    histos.add("distance/selected", ";HMPID distance", kTH1F, {{100, 0, 20}});
+    histos.add("distance/nonselected", ";HMPID distance", kTH1F, {{100, 0, 20}});
+    histos.add("qmip/selected", ";HMPID mip charge (ADC)", kTH1F, {{100, 0, 4000}});
+    histos.add("qmip/nonselected", ";HMPID mip charge (ADC)", kTH1F, {{100, 0, 4000}});
   }
 
-  using TrackCandidates = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksExtended>;
+  using TrackCandidates = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksExtended, aod::TrackSelection>;
   void process(const TrackCandidates& tracks,
                const aod::HMPIDs& hmpids,
                const aod::Collisions& colls)
   {
     for (const auto& t : hmpids) {
+
+      if (t.track_as<TrackCandidates>().isGlobalTrack() != (uint8_t) true) {
+        continue;
+      }
       if (abs(t.track_as<TrackCandidates>().dcaXY()) > maxDCA) {
         continue;
       }
+      histos.fill(HIST("distance/nonselected"), t.hmpidDistance());
+      histos.fill(HIST("qmip/nonselected"), t.hmpidQMip());
+      if (t.hmpidDistance() > 5.f) {
+        continue;
+      }
+      if (t.hmpidQMip() < 120.f) {
+        continue;
+      }
+      histos.fill(HIST("distance/selected"), t.hmpidDistance());
+      histos.fill(HIST("qmip/selected"), t.hmpidQMip());
       histos.fill(HIST("qa/signalvsP"), t.track_as<TrackCandidates>().p(), t.hmpidSignal());
     }
   }
