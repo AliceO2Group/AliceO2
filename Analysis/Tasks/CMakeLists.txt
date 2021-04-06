@@ -10,6 +10,7 @@
 
 add_subdirectory(PWGCF)
 add_subdirectory(PWGDQ)
+add_subdirectory(PWGGA)
 add_subdirectory(PWGHF)
 add_subdirectory(PWGJE)
 add_subdirectory(PWGLF)
