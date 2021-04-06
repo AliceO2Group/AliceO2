@@ -65,7 +65,7 @@ void CosmicProcessor::process(DigitDataReader& reader, bool fill)
     for (int j = i + 1; j < ndig2; j++) {
       auto& dig2 = (*array)[j];
       int64_t bc2 = int64_t(dig2.getBC()) - bc1;
-      if (abs(bc2) > bcdist) {
+      if (labs(bc2) > bcdist) {
         continue;
       }
 
@@ -96,7 +96,7 @@ void CosmicProcessor::process(DigitDataReader& reader, bool fill)
 
       dtime -= l * 33.356409; // corrected for pad distance assuiming muonn downward
 
-      if (abs(dtime) > thr) {
+      if (fabs(dtime) > thr) {
         continue;
       }
 
