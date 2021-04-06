@@ -10,6 +10,7 @@
 #ifndef O2_ANALYSIS_TRIGGER_H_
 #define O2_ANALYSIS_TRIGGER_H_
 
+#include <array>
 #include "Framework/AnalysisDataModel.h"
 
 namespace o2::aod
@@ -24,6 +25,9 @@ DECLARE_SOA_COLUMN(He4, hasHe4, bool);
 } // namespace filtering
 
 DECLARE_SOA_TABLE(NucleiFilters, "AOD", "Nuclei Filters", filtering::H2, filtering::H3, filtering::He3, filtering::He4);
+
+constexpr std::array<char[32],1> AvailableFilters{"NucleiFilters"};
+constexpr std::array<char[64],1> FilterDescriptions{"Nuclei Filters"};
 
 using NucleiFilter = NucleiFilters::iterator;
 } // namespace o2::aod
