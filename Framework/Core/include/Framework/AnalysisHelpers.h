@@ -530,6 +530,8 @@ struct Partition {
   expressions::Filter filter;
   std::unique_ptr<o2::soa::Filtered<T>> mFiltered = nullptr;
 
+  using iterator = typename o2::soa::Filtered<T>::iterator;
+  using const_iterator = typename o2::soa::Filtered<T>::const_iterator;
   using filtered_iterator = typename o2::soa::Filtered<T>::iterator;
   using filtered_const_iterator = typename o2::soa::Filtered<T>::const_iterator;
   inline filtered_iterator begin()
