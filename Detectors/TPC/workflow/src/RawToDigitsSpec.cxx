@@ -170,7 +170,7 @@ DataProcessorSpec getRawToDigitsSpec(int channel, const std::string inputSpec, s
   }
 
   return DataProcessorSpec{
-    fmt::format("TPCDigitizer{}", channel),
+    fmt::format("tpc-raw-to-digits-{}", channel),
     select(inputSpec.data()),
     outputs,
     AlgorithmSpec{adaptFromTask<device>(tpcSectors)},
