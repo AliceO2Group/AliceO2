@@ -47,6 +47,7 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
   bool mEnableOnlineGainCorrection{false};
   bool mUseMC{false}; // whether or not to use MC labels
   bool mEnableTrapConfigDump{false};
+  int mNumThreads{-1};              // number of threads used for parallel processing
   std::string mTrapConfigName;      // the name of the config to be used.
   std::string mOnlineGainTableName;
   std::unique_ptr<Calibrations> mCalib; // store the calibrations connection to CCDB. Used primarily for the gaintables in line above.
