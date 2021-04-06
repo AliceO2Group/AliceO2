@@ -41,11 +41,12 @@ class Filter;
 #include <string>
 #include <memory>
 #include <typeinfo>
+#include <set>
 
 using atype = arrow::Type;
 struct ExpressionInfo {
   size_t index;
-  std::vector<size_t> hashes;
+  std::set<size_t> hashes;
   gandiva::SchemaPtr schema;
   gandiva::NodePtr tree;
 };

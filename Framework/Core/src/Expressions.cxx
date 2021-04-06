@@ -527,7 +527,7 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
   return tree;
 }
 
-bool isTableCompatible(std::vector<size_t> const& hashes, Operations const& specs)
+bool isTableCompatible(std::set<size_t> const& hashes, Operations const& specs)
 {
   std::set<size_t> opHashes;
   for (auto& spec : specs) {
@@ -538,12 +538,8 @@ bool isTableCompatible(std::vector<size_t> const& hashes, Operations const& spec
       opHashes.insert(spec.right.hash);
     }
   }
-  std::set<size_t> tHashes;
-  for (auto& hash : hashes) {
-    tHashes.insert(hash);
-  }
 
-  return std::includes(tHashes.begin(), tHashes.end(),
+  return std::includes(hashes.begin(), hashes.end(),
                        opHashes.begin(), opHashes.end());
 }
 
