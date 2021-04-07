@@ -180,6 +180,8 @@ void sendVariableContextMetrics(VariableContext& context, TimesliceSlot slot,
     auto& var = context.get(i);
     if (auto pval = std::get_if<uint64_t>(&var)) {
       metrics.send(monitoring::Metric{std::to_string(*pval), names[16 * slot.index + i]});
+    } else if (auto pval = std::get_if<uint32_t>(&var)) {
+      metrics.send(monitoring::Metric{std::to_string(*pval), names[16 * slot.index + i]});
     } else if (auto pval2 = std::get_if<std::string>(&var)) {
       metrics.send(monitoring::Metric{*pval2, names[16 * slot.index + i]});
     } else {
