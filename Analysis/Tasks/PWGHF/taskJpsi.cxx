@@ -16,10 +16,13 @@
 /// \author Biao Zhang <biao.zhang@cern.ch>, CCNU
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
+#include "AnalysisCore/HFSelectorCuts.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
 
 using namespace o2;
+using namespace o2::analysis;
+using namespace o2::analysis::hf_cuts_jpsi_toee;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong2;
 using namespace o2::framework::expressions;
@@ -36,53 +39,57 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 struct TaskJpsi {
   HistogramRegistry registry{
     "registry",
-    {{"hmass", "2-prong candidates;inv. mass (#e+ e-) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
-     {"hptcand", "2-prong candidates;candidate #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
+    {{"hptcand", "2-prong candidates;candidate #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hptprong0", "2-prong candidates;prong 0 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
-     {"hptprong1", "2-prong candidates;prong 1 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
-     {"hdeclength", "2-prong candidates;decay length (cm);entries", {HistType::kTH1F, {{200, 0., 2.}}}},
-     {"hdeclengthxy", "2-prong candidates;decay length xy (cm);entries", {HistType::kTH1F, {{200, 0., 2.}}}},
-     {"hd0Prong0", "2-prong candidates;prong 0 DCAxy to prim. vertex (cm);entries", {HistType::kTH1F, {{100, -1., 1.}}}},
-     {"hd0Prong1", "2-prong candidates;prong 1 DCAxy to prim. vertex (cm);entries", {HistType::kTH1F, {{100, -1., 1.}}}},
-     {"hd0d0", "2-prong candidates;product of DCAxy to prim. vertex (cm^{2});entries", {HistType::kTH1F, {{500, -1., 1.}}}},
-     {"hCPA", "2-prong candidates;cosine of pointing angle;entries", {HistType::kTH1F, {{110, -1.1, 1.1}}}},
-     {"hEta", "2-prong candidates;candidate #it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}},
-     {"hImpParErr", "2-prong candidates;impact parameter error (cm);entries", {HistType::kTH1F, {{100, -1., 1.}}}},
-     {"hDecLenErr", "2-prong candidates;decay length error (cm);entries", {HistType::kTH1F, {{100, 0., 1.}}}},
-     {"hDecLenXYErr", "2-prong candidates;decay length xy error (cm);entries", {HistType::kTH1F, {{100, 0., 1.}}}}}};
+     {"hptprong1", "2-prong candidates;prong 1 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}}}};
 
   Configurable<int> d_selectionFlagJpsi{"d_selectionFlagJpsi", 1, "Selection Flag for Jpsi"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
+  Configurable<std::vector<double>> bins{"pTBins", std::vector<double>{hf_cuts_jpsi_toee::pTBins_v}, "pT bin limits"};
+
+  void init(o2::framework::InitContext&)
+  {
+    registry.add("hmass", "2-prong candidates;inv. mass (e^{#plus} e^{#minus}) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{500, 0., 5.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hdeclength", "2-prong candidates;decay length (cm);entries", {HistType::kTH2F, {{200, 0., 2.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hdeclengthxy", "2-prong candidates;decay length xy (cm);entries", {HistType::kTH2F, {{200, 0., 2.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hd0Prong0", "2-prong candidates;prong 0 DCAxy to prim. vertex (cm);entries", {HistType::kTH2F, {{100, -1., 1.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hd0Prong1", "2-prong candidates;prong 1 DCAxy to prim. vertex (cm);entries", {HistType::kTH2F, {{100, -1., 1.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hd0d0", "2-prong candidates;product of DCAxy to prim. vertex (cm^{2});entries", {HistType::kTH2F, {{500, -1., 1.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hCPA", "2-prong candidates;cosine of pointing angle;entries", {HistType::kTH2F, {{110, -1.1, 1.1}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hEta", "2-prong candidates;candidate #it{#eta};entries", {HistType::kTH2F, {{100, -2., 2.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hImpParErr", "2-prong candidates;impact parameter error (cm);entries", {HistType::kTH2F, {{100, -1., 1.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hDecLenErr", "2-prong candidates;decay length error (cm);entries", {HistType::kTH2F, {{100, 0., 1.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hDecLenXYErr", "2-prong candidates;decay length xy error (cm);entries", {HistType::kTH2F, {{100, 0., 1.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+  }
+
   Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsiToEE >= d_selectionFlagJpsi);
 
   void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiToEECandidate>> const& candidates)
   //  void process(aod::HfCandProng2 const& candidates)
   {
-    //Printf("Candidates: %d", candidates.size());
     for (auto& candidate : candidates) {
       if (!(candidate.hfflag() & 1 << JpsiToEE)) {
         continue;
       }
       if (cutYCandMax >= 0. && std::abs(YJpsi(candidate)) > cutYCandMax) {
-        //Printf("Candidate: Y rejection: %g", YJpsi(candidate));
         continue;
       }
 
-      registry.fill(HIST("hmass"), InvMassJpsiToEE(candidate));
+      registry.fill(HIST("hmass"), InvMassJpsiToEE(candidate), candidate.pt());
       registry.fill(HIST("hptcand"), candidate.pt());
       registry.fill(HIST("hptprong0"), candidate.ptProng0());
       registry.fill(HIST("hptprong1"), candidate.ptProng1());
-      registry.fill(HIST("hdeclength"), candidate.decayLength());
-      registry.fill(HIST("hdeclengthxy"), candidate.decayLengthXY());
-      registry.fill(HIST("hd0Prong0"), candidate.impactParameter0());
-      registry.fill(HIST("hd0Prong1"), candidate.impactParameter1());
-      registry.fill(HIST("hd0d0"), candidate.impactParameterProduct());
-      registry.fill(HIST("hCPA"), candidate.cpa());
-      registry.fill(HIST("hEta"), candidate.eta());
-      registry.fill(HIST("hImpParErr"), candidate.errorImpactParameter0());
-      registry.fill(HIST("hImpParErr"), candidate.errorImpactParameter1());
-      registry.fill(HIST("hDecLenErr"), candidate.errorDecayLength());
-      registry.fill(HIST("hDecLenXYErr"), candidate.errorDecayLengthXY());
+      registry.fill(HIST("hdeclength"), candidate.decayLength(), candidate.pt());
+      registry.fill(HIST("hdeclengthxy"), candidate.decayLengthXY(), candidate.pt());
+      registry.fill(HIST("hd0Prong0"), candidate.impactParameter0(), candidate.pt());
+      registry.fill(HIST("hd0Prong1"), candidate.impactParameter1(), candidate.pt());
+      registry.fill(HIST("hd0d0"), candidate.impactParameterProduct(), candidate.pt());
+      registry.fill(HIST("hCPA"), candidate.cpa(), candidate.pt());
+      registry.fill(HIST("hEta"), candidate.eta(), candidate.pt());
+      registry.fill(HIST("hImpParErr"), candidate.errorImpactParameter0(), candidate.pt());
+      registry.fill(HIST("hImpParErr"), candidate.errorImpactParameter1(), candidate.pt());
+      registry.fill(HIST("hDecLenErr"), candidate.errorDecayLength(), candidate.pt());
+      registry.fill(HIST("hDecLenXYErr"), candidate.errorDecayLengthXY(), candidate.pt());
     }
   }
 };
