@@ -58,6 +58,8 @@ struct pidHMPIDQA {
     histos.add("distance/nonselected", ";HMPID distance", kTH1F, {{100, 0, 20}});
     histos.add("qmip/selected", ";HMPID mip charge (ADC)", kTH1F, {{100, 0, 4000}});
     histos.add("qmip/nonselected", ";HMPID mip charge (ADC)", kTH1F, {{100, 0, 4000}});
+    histos.add("nphotons/selected", ";HMPID number of detected photons", kTH1F, {{100, 0, 1000}});
+    histos.add("nphotons/nonselected", ";HMPID number of detected photons", kTH1F, {{100, 0, 1000}});
   }
 
   using TrackCandidates = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksExtended, aod::TrackSelection>;
@@ -75,6 +77,7 @@ struct pidHMPIDQA {
       }
       histos.fill(HIST("distance/nonselected"), t.hmpidDistance());
       histos.fill(HIST("qmip/nonselected"), t.hmpidQMip());
+      histos.fill(HIST("nphotons/nonselected"), t.hmpidNPhotons());
       if (t.hmpidDistance() > 5.f) {
         continue;
       }
@@ -83,6 +86,7 @@ struct pidHMPIDQA {
       }
       histos.fill(HIST("distance/selected"), t.hmpidDistance());
       histos.fill(HIST("qmip/selected"), t.hmpidQMip());
+      histos.fill(HIST("nphotons/selected"), t.hmpidNPhotons());
       histos.fill(HIST("qa/signalvsP"), t.track_as<TrackCandidates>().p(), t.hmpidSignal());
     }
   }
