@@ -116,7 +116,6 @@ void TrackerDPL::init(InitContext& ic)
 
     mVertexer->getGlobalConfiguration();
     mTracker->getGlobalConfiguration();
-    LOG(INFO) << Form("%ssing lookup table for material budget approximation", (mTracker->isMatLUT() ? "U" : "Not u"));
 
     double origD[3] = {0., 0., 0.};
     mTracker->setBz(field->getBz(origD));
