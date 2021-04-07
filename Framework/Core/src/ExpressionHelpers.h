@@ -19,13 +19,16 @@ namespace o2::framework::expressions
 {
 /// a map between BasicOp and gandiva node definitions
 /// note that logical 'and' and 'or' are created separately
-static std::array<std::string, BasicOp::Abs + 1> binaryOperationsMap = {
+static std::array<std::string, BasicOp::BitwiseNot + 1> basicOperationsMap = {
   "and",
   "or",
   "add",
   "subtract",
   "divide",
   "multiply",
+  "bitwise_and",
+  "bitwise_or",
+  "bitwise_xor",
   "less_than",
   "less_than_or_equal_to",
   "greater_than",
@@ -43,7 +46,8 @@ static std::array<std::string, BasicOp::Abs + 1> binaryOperationsMap = {
   "asinf",
   "acosf",
   "atanf",
-  "absf"};
+  "absf",
+  "bitwise_not"};
 
 struct DatumSpec {
   /// datum spec either contains an index, a value of a literal or a binding label
