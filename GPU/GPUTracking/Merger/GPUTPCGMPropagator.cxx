@@ -121,7 +121,7 @@ GPUd() int GPUTPCGMPropagator::RotateToAlpha(float newAlpha)
   CAMath::SinCos(newAlpha, newSinAlpha, newCosAlpha);
 
   float cc = newCosAlpha * mCosAlpha + newSinAlpha * mSinAlpha; // cos(newAlpha - mAlpha);
-  float ss = newSinAlpha * mCosAlpha - newCosAlpha * mSinAlpha; //sin(newAlpha - mAlpha);
+  float ss = newSinAlpha * mCosAlpha - newCosAlpha * mSinAlpha; // sin(newAlpha - mAlpha);
 
   GPUTPCGMPhysicalTrackModel t0 = mT0;
 
