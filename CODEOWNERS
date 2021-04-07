@@ -57,10 +57,11 @@
 /DataFormats/simulation        @sawenzel
 
 /Detectors/Base                    @sawenzel @shahor02
-/Detectors/Geometry                @sawenzel @shahor02
+/Detectors/Calibration             @chiarazampolli @shahor02
 /Detectors/CPV                     @peressounko @kharlov
 /Detectors/EMCAL                   @mfasDa
 /Detectors/FIT                     @AllaMaevskaya @jotwinow @mslupeck
+/Detectors/Geometry                @sawenzel @shahor02
 /Detectors/GlobalTracking          @shahor02
 /Detectors/GlobalTrackingWorkflow  @shahor02
 /Detectors/HMPID                   @gvolpe79
