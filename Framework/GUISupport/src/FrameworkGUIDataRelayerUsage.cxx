@@ -11,8 +11,10 @@
 #include <functional>
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/DeviceInfo.h"
+#include "Framework/DataDescriptorMatcher.h"
 #include "PaletteHelpers.h"
 #include <iostream>
+#include <cstring>
 #include <cmath>
 
 static inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y); }
@@ -141,10 +143,22 @@ void displayDataRelayer(DeviceMetricsInfo const& metrics,
       MetricInfo const& metricInfo = metrics.metrics[variablesIndex.indexes[idx]];
       assert(metricInfo.storeIdx < metrics.stringMetrics.size());
       auto& data = metrics.stringMetrics[metricInfo.storeIdx];
-      if (vi == 0) {
-        ImGui::Text("$%zu (timeslice): %s", vi, data[(metricInfo.pos - 1) % data.size()].data);
-      } else {
-        ImGui::Text("$%zu: %s", vi, data[(metricInfo.pos - 1) % data.size()].data);
+      char const* value = data[(metricInfo.pos - 1) % data.size()].data;
+      if (strncmp("null", value, 4) == 0) {
+        continue;
+      }
+      switch (vi) {
+        case o2::framework::data_matcher::STARTTIME_POS:
+          ImGui::Text("$%zu (startTime): %s", vi, value);
+          break;
+        case o2::framework::data_matcher::TFCOUNTER_POS:
+          ImGui::Text("$%zu (tfCounter): %s", vi, value);
+          break;
+        case o2::framework::data_matcher::FIRSTTFORBIT_POS:
+          ImGui::Text("$%zu (firstTFOrbit): %s", vi, value);
+          break;
+        default:
+          ImGui::Text("$%zu: %s", vi, value);
       }
     }
     ImGui::EndTooltip();
