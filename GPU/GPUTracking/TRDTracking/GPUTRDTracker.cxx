@@ -664,7 +664,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
     int currIdx = candidateIdxOffset + iLayer % 2;
     int nextIdx = candidateIdxOffset + (iLayer + 1) % 2;
     pad = mGeo->GetPadPlane(iLayer, 0);
-    float tilt = CAMath::Tan(M_PI / 180.f * pad->GetTiltingAngle()); // tilt is signed!
+    float tilt = CAMath::Tan(CAMath::Pi() / 180.f * pad->GetTiltingAngle()); // tilt is signed!
     const float zMaxTRD = pad->GetRow0();
 
     // --------------------------------------------------------------------------------
@@ -1125,10 +1125,10 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::AdjustSector(PROP* prop, TRDTRK* t) c
     }
     int sign = (y > 0) ? 1 : -1;
     float alphaNew = alphaCurr + alpha * sign;
-    if (alphaNew > M_PI) {
-      alphaNew -= 2 * M_PI;
-    } else if (alphaNew < -M_PI) {
-      alphaNew += 2 * M_PI;
+    if (alphaNew > CAMath::Pi()) {
+      alphaNew -= 2 * CAMath::Pi();
+    } else if (alphaNew < -CAMath::Pi()) {
+      alphaNew += 2 * CAMath::Pi();
     }
     if (!prop->rotate(alphaNew)) {
       return false;
@@ -1149,11 +1149,11 @@ GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::GetSector(float alpha) const
   // TRD sector number for reference system alpha
   //--------------------------------------------------------------------
   if (alpha < 0) {
-    alpha += 2.f * M_PI;
-  } else if (alpha >= 2.f * M_PI) {
-    alpha -= 2.f * M_PI;
+    alpha += 2.f * CAMath::Pi();
+  } else if (alpha >= 2.f * CAMath::Pi()) {
+    alpha -= 2.f * CAMath::Pi();
   }
-  return (int)(alpha * kNSectors / (2.f * M_PI));
+  return (int)(alpha * kNSectors / (2.f * CAMath::Pi()));
 }
 
 template <class TRDTRK, class PROP>
@@ -1162,9 +1162,9 @@ GPUd() float GPUTRDTracker_t<TRDTRK, PROP>::GetAlphaOfSector(const int sec) cons
   //--------------------------------------------------------------------
   // rotation angle for TRD sector sec
   //--------------------------------------------------------------------
-  float alpha = 2.0f * M_PI / (float)kNSectors * ((float)sec + 0.5f);
-  if (alpha > M_PI) {
-    alpha -= 2 * M_PI;
+  float alpha = 2.0f * CAMath::Pi() / (float)kNSectors * ((float)sec + 0.5f);
+  if (alpha > CAMath::Pi()) {
+    alpha -= 2 * CAMath::Pi();
   }
   return alpha;
 }
