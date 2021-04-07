@@ -17,6 +17,7 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/AODReaderHelpers.h"
 #include <boost/test/unit_test.hpp>
+#include <arrow/util/config.h>
 
 using namespace o2::framework;
 using namespace o2::framework::expressions;
@@ -177,4 +178,27 @@ BOOST_AUTO_TEST_CASE(TestGandivaTreeCreation)
   auto projector_b = createProjector(schema2, ptespecs, resfield2);
   auto schema_p = o2::soa::createSchemaFromColumns(o2::aod::Tracks::persistent_columns_t{});
   auto projector_alt = o2::framework::expressions::createProjectors(o2::framework::pack<o2::aod::track::Pt>{}, schema_p);
+
+  Filter bitwiseFilter = (o2::aod::track::flags & static_cast<uint32_t>(o2::aod::track::TPCrefit)) != 0u;
+  auto bwf = createOperations(bitwiseFilter);
+  BOOST_REQUIRE_EQUAL(bwf[0].left, (DatumSpec{1u, atype::UINT32}));
+  BOOST_REQUIRE_EQUAL(bwf[0].right, (DatumSpec{LiteralNode::var_t{0u}, atype::UINT32}));
+  BOOST_REQUIRE_EQUAL(bwf[0].result, (DatumSpec{0u, atype::BOOL}));
+
+  BOOST_REQUIRE_EQUAL(bwf[1].left, (DatumSpec{std::string{"fFlags"}, typeid(o2::aod::track::Flags).hash_code(), atype::UINT32}));
+  BOOST_REQUIRE_EQUAL(bwf[1].right, (DatumSpec{LiteralNode::var_t{static_cast<uint32_t>(o2::aod::track::TPCrefit)}, atype::UINT32}));
+  BOOST_REQUIRE_EQUAL(bwf[1].result, (DatumSpec{1u, atype::UINT32}));
+
+#if ARROW_VERSION_MAJOR < 3
+#else
+  auto infield4 = o2::aod::track::Flags::asArrowField();
+  auto resfield3 = std::make_shared<arrow::Field>("out", arrow::boolean());
+  auto schema_b = std::make_shared<arrow::Schema>(std::vector{infield4, resfield3});
+  auto gandiva_tree3 = createExpressionTree(bwf, schema_b);
+  BOOST_CHECK_EQUAL(gandiva_tree3->ToString(), "bool not_equal(uint32 bitwise_and((uint32) fFlags, (const uint32) 2), (const uint32) 0)");
+  auto condition = expressions::makeCondition(gandiva_tree3);
+  std::shared_ptr<gandiva::Filter> flt;
+  auto s = gandiva::Filter::Make(schema_b, condition, &flt);
+  BOOST_REQUIRE(s.ok());
+#endif
 }

@@ -59,7 +59,7 @@ struct LiteralStorage {
   using stored_pack = framework::pack<T...>;
 };
 
-using LiteralValue = LiteralStorage<int, bool, float, double, uint8_t, int64_t, int16_t, uint16_t, int8_t>;
+using LiteralValue = LiteralStorage<int, bool, float, double, uint8_t, int64_t, int16_t, uint16_t, int8_t, uint32_t, uint64_t>;
 
 template <typename T>
 constexpr auto selectArrowType()
@@ -82,6 +82,10 @@ constexpr auto selectArrowType()
     return atype::INT16;
   } else if constexpr (std::is_same_v<T, int64_t>) {
     return atype::INT64;
+  } else if constexpr (std::is_same_v<T, uint32_t>) {
+    return atype::UINT32;
+  } else if constexpr (std::is_same_v<T, uint64_t>) {
+    return atype::UINT64;
   } else {
     return atype::NA;
   }
@@ -178,288 +182,81 @@ struct Node {
 
 /// overloaded operators to build the tree from an expression
 
-/// literal comparisons
-template <typename T>
-inline Node operator>(Node left, T rightValue)
-{
-  return Node{OpNode{BasicOp::GreaterThan}, std::move(left), LiteralNode{rightValue}};
-}
+#define BINARY_OP_NODES(_operator_, _operation_)                                        \
+  template <typename T>                                                                 \
+  inline Node operator _operator_(Node left, T right)                                   \
+  {                                                                                     \
+    return Node{OpNode{BasicOp::_operation_}, std::move(left), LiteralNode{right}};     \
+  }                                                                                     \
+  template <typename T>                                                                 \
+  inline Node operator _operator_(T left, Node right)                                   \
+  {                                                                                     \
+    return Node{OpNode{BasicOp::_operation_}, LiteralNode{left}, std::move(right)};     \
+  }                                                                                     \
+  template <typename T>                                                                 \
+  inline Node operator _operator_(Node left, Configurable<T> right)                     \
+  {                                                                                     \
+    return Node{OpNode{BasicOp::_operation_}, std::move(left), PlaceholderNode{right}}; \
+  }                                                                                     \
+  template <typename T>                                                                 \
+  inline Node operator _operator_(Configurable<T> left, Node right)                     \
+  {                                                                                     \
+    return Node{OpNode{BasicOp::_operation_}, PlaceholderNode{left}, std::move(right)}; \
+  }                                                                                     \
+  inline Node operator _operator_(Node left, Node right)                                \
+  {                                                                                     \
+    return Node{OpNode{BasicOp::_operation_}, std::move(left), std::move(right)};       \
+  }                                                                                     \
+  inline Node operator _operator_(BindingNode left, BindingNode right)                  \
+  {                                                                                     \
+    return Node{OpNode{BasicOp::_operation_}, left, right};                             \
+  }                                                                                     \
+  template <>                                                                           \
+  inline Node operator _operator_(BindingNode left, Node right)                         \
+  {                                                                                     \
+    return Node{OpNode{BasicOp::_operation_}, left, std::move(right)};                  \
+  }                                                                                     \
+  template <>                                                                           \
+  inline Node operator _operator_(Node left, BindingNode right)                         \
+  {                                                                                     \
+    return Node{OpNode{BasicOp::_operation_}, std::move(left), right};                  \
+  }                                                                                     \
+                                                                                        \
+  template <typename T>                                                                 \
+  inline Node operator _operator_(Configurable<T> left, BindingNode right)              \
+  {                                                                                     \
+    return Node{OpNode{BasicOp::_operation_}, PlaceholderNode{left}, right};            \
+  }                                                                                     \
+  template <typename T>                                                                 \
+  inline Node operator _operator_(BindingNode left, Configurable<T> right)              \
+  {                                                                                     \
+    return Node{OpNode{BasicOp::_operation_}, left, PlaceholderNode{right}};            \
+  }
 
-template <typename T>
-inline Node operator<(Node left, T rightValue)
-{
-  return Node{OpNode{BasicOp::LessThan}, std::move(left), LiteralNode{rightValue}};
-}
+BINARY_OP_NODES(&, BitwiseAnd);
+BINARY_OP_NODES(^, BitwiseXor);
+BINARY_OP_NODES(|, BitwiseOr);
+BINARY_OP_NODES(+, Addition);
+BINARY_OP_NODES(-, Subtraction);
+BINARY_OP_NODES(*, Multiplication);
+BINARY_OP_NODES(/, Division);
+BINARY_OP_NODES(>, GreaterThan);
+BINARY_OP_NODES(>=, GreaterThanOrEqual);
+BINARY_OP_NODES(<, LessThan);
+BINARY_OP_NODES(<=, LessThanOrEqual);
+BINARY_OP_NODES(==, Equal);
+BINARY_OP_NODES(!=, NotEqual);
+BINARY_OP_NODES(&&, LogicalAnd);
+BINARY_OP_NODES(||, LogicalOr);
 
-template <typename T>
-inline Node operator>=(Node left, T rightValue)
-{
-  return Node{OpNode{BasicOp::GreaterThanOrEqual}, std::move(left), LiteralNode{rightValue}};
-}
-
-template <typename T>
-inline Node operator<=(Node left, T rightValue)
-{
-  return Node{OpNode{BasicOp::LessThanOrEqual}, std::move(left), LiteralNode{rightValue}};
-}
-
-template <typename T>
-inline Node operator==(Node left, T rightValue)
-{
-  return Node{OpNode{BasicOp::Equal}, std::move(left), LiteralNode{rightValue}};
-}
-
-template <typename T>
-inline Node operator!=(Node left, T rightValue)
-{
-  return Node{OpNode{BasicOp::NotEqual}, std::move(left), LiteralNode{rightValue}};
-}
-
-template <typename T>
-inline Node operator>(Node left, Configurable<T> rightValue)
-{
-  return Node{OpNode{BasicOp::GreaterThan}, std::move(left), PlaceholderNode{rightValue}};
-}
-
-template <typename T>
-inline Node operator<(Node left, Configurable<T> rightValue)
-{
-  return Node{OpNode{BasicOp::LessThan}, std::move(left), PlaceholderNode{rightValue}};
-}
-
-template <typename T>
-inline Node operator>=(Node left, Configurable<T> rightValue)
-{
-  return Node{OpNode{BasicOp::GreaterThanOrEqual}, std::move(left), PlaceholderNode{rightValue}};
-}
-
-template <typename T>
-inline Node operator<=(Node left, Configurable<T> rightValue)
-{
-  return Node{OpNode{BasicOp::LessThanOrEqual}, std::move(left), PlaceholderNode{rightValue}};
-}
-
-template <typename T>
-inline Node operator==(Node left, Configurable<T> rightValue)
-{
-  return Node{OpNode{BasicOp::Equal}, std::move(left), PlaceholderNode{rightValue}};
-}
-
-template <typename T>
-inline Node operator!=(Node left, Configurable<T> rightValue)
-{
-  return Node{OpNode{BasicOp::NotEqual}, std::move(left), PlaceholderNode{rightValue}};
-}
-
-/// node comparisons
-inline Node operator>(Node left, Node right)
-{
-  return Node{OpNode{BasicOp::GreaterThan}, std::move(left), std::move(right)};
-}
-
-inline Node operator<(Node left, Node right)
-{
-  return Node{OpNode{BasicOp::LessThan}, std::move(left), std::move(right)};
-}
-
-inline Node operator>=(Node left, Node right)
-{
-  return Node{OpNode{BasicOp::GreaterThanOrEqual}, std::move(left), std::move(right)};
-}
-
-inline Node operator<=(Node left, Node right)
-{
-  return Node{OpNode{BasicOp::LessThanOrEqual}, std::move(left), std::move(right)};
-}
-
-inline Node operator==(Node left, Node right)
-{
-  return Node{OpNode{BasicOp::Equal}, std::move(left), std::move(right)};
-}
-
-inline Node operator!=(Node left, Node right)
-{
-  return Node{OpNode{BasicOp::NotEqual}, std::move(left), std::move(right)};
-}
-
-/// logical operations
-inline Node operator&&(Node left, Node right)
-{
-  return Node{OpNode{BasicOp::LogicalAnd}, std::move(left), std::move(right)};
-}
-
-inline Node operator||(Node left, Node right)
-{
-  return Node{OpNode{BasicOp::LogicalOr}, std::move(left), std::move(right)};
-}
-
-/// arithmetical operations between nodes
-inline Node operator*(Node left, Node right)
-{
-  return Node{OpNode{BasicOp::Multiplication}, std::move(left), std::move(right)};
-}
-
-inline Node operator*(BindingNode left, BindingNode right)
-{
-  return Node{OpNode{BasicOp::Multiplication}, left, right};
-}
-
-inline Node operator*(BindingNode left, Node right)
-{
-  return Node{OpNode{BasicOp::Multiplication}, left, std::move(right)};
-}
-
-inline Node operator/(Node left, Node right)
-{
-  return Node{OpNode{BasicOp::Division}, std::move(left), std::move(right)};
-}
-
-inline Node operator/(BindingNode left, Node right)
-{
-  return Node{OpNode{BasicOp::Division}, left, std::move(right)};
-}
-
-inline Node operator/(Node left, BindingNode right)
-{
-  return Node{OpNode{BasicOp::Division}, std::move(left), right};
-}
-
-inline Node operator/(BindingNode left, BindingNode right)
-{
-  return Node{OpNode{BasicOp::Division}, left, right};
-}
-
-inline Node operator+(Node left, Node right)
-{
-  return Node{OpNode{BasicOp::Addition}, std::move(left), std::move(right)};
-}
-
-inline Node operator-(Node left, Node right)
-{
-  return Node{OpNode{BasicOp::Subtraction}, std::move(left), std::move(right)};
-}
-
-inline Node operator-(BindingNode left, BindingNode right)
-{
-  return Node{OpNode{BasicOp::Subtraction}, left, right};
-}
-
-/// arithmetical operations between node and literal
-template <typename T>
-inline Node operator*(Node left, T right)
-{
-  return Node{OpNode{BasicOp::Multiplication}, std::move(left), LiteralNode{right}};
-}
-
-template <typename T>
-inline Node operator*(T left, Node right)
-{
-  return Node{OpNode{BasicOp::Multiplication}, LiteralNode{left}, std::move(right)};
-}
-
-template <typename T>
-inline Node operator/(Node left, T right)
-{
-  return Node{OpNode{BasicOp::Division}, std::move(left), LiteralNode{right}};
-}
-
-template <typename T>
-inline Node operator/(T left, Node right)
-{
-  return Node{OpNode{BasicOp::Division}, LiteralNode{left}, std::move(right)};
-}
-
-template <typename T>
-inline Node operator+(Node left, T right)
-{
-  return Node{OpNode{BasicOp::Addition}, std::move(left), LiteralNode{right}};
-}
-
-template <typename T>
-inline Node operator+(T left, Node right)
-{
-  return Node{OpNode{BasicOp::Addition}, LiteralNode{left}, std::move(right)};
-}
-
-template <>
-inline Node operator+(Node left, BindingNode right)
-{
-  return Node{OpNode{BasicOp::Addition}, std::move(left), right};
-}
-
-template <>
-inline Node operator+(BindingNode left, Node right)
-{
-  return Node{OpNode{BasicOp::Addition}, left, std::move(right)};
-}
-
-template <typename T>
-inline Node operator-(Node left, T right)
-{
-  return Node{OpNode{BasicOp::Subtraction}, std::move(left), LiteralNode{right}};
-}
-
-template <typename T>
-inline Node operator-(T left, Node right)
-{
-  return Node{OpNode{BasicOp::Subtraction}, LiteralNode{left}, std::move(right)};
-}
-
-template <typename T>
-inline Node operator*(Node left, Configurable<T> right)
-{
-  return Node{OpNode{BasicOp::Multiplication}, std::move(left), PlaceholderNode{right}};
-}
-
-template <typename T>
-inline Node operator*(Configurable<T> left, Node right)
-{
-  return Node{OpNode{BasicOp::Multiplication}, PlaceholderNode{left}, std::move(right)};
-}
-
-template <typename T>
-inline Node operator/(Node left, Configurable<T> right)
-{
-  return Node{OpNode{BasicOp::Division}, std::move(left), PlaceholderNode{right}};
-}
-
-template <typename T>
-inline Node operator/(Configurable<T> left, Node right)
-{
-  return Node{OpNode{BasicOp::Division}, PlaceholderNode{left}, std::move(right)};
-}
-
-template <typename T>
-inline Node operator+(Node left, Configurable<T> right)
-{
-  return Node{OpNode{BasicOp::Addition}, std::move(left), PlaceholderNode{right}};
-}
-
-template <typename T>
-inline Node operator+(Configurable<T> left, Node right)
-{
-  return Node{OpNode{BasicOp::Addition}, PlaceholderNode{left}, std::move(right)};
-}
-
-template <typename T>
-inline Node operator-(Node left, Configurable<T> right)
-{
-  return Node{OpNode{BasicOp::Subtraction}, std::move(left), PlaceholderNode{right}};
-}
-
-template <typename T>
-inline Node operator-(Configurable<T> left, Node right)
-{
-  return Node{OpNode{BasicOp::Subtraction}, PlaceholderNode{left}, std::move(right)};
-}
-/// semi-binary
+/// functions
 template <typename T>
 inline Node npow(Node left, T right)
 {
   return Node{OpNode{BasicOp::Power}, std::move(left), LiteralNode{right}};
 }
 
-/// unary operations on nodes
+/// unary functions on nodes
 inline Node nsqrt(Node left)
 {
   return Node{OpNode{BasicOp::Sqrt}, std::move(left)};
@@ -513,6 +310,11 @@ inline Node nacos(Node left)
 inline Node natan(Node left)
 {
   return Node{OpNode{BasicOp::Atan}, std::move(left)};
+}
+
+inline Node nbitwise_not(Node left)
+{
+  return Node{OpNode{BasicOp::BitwiseNot}, std::move(left)};
 }
 
 /// A struct, containing the root of the expression tree
