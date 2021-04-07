@@ -39,10 +39,10 @@ namespace o2
 namespace hmpid
 {
 
-Detector::Detector(Bool_t active) : o2::base::DetImpl<Detector>("HMP", active), mHits(new std::vector<HitType>) {}
+Detector::Detector(Bool_t active) : o2::base::DetImpl<Detector>("HMP", active), mHits(new std::vector<o2::hmpid::HitType>) {}
 
 Detector::Detector(const Detector& other) : mSensitiveVolumes(other.mSensitiveVolumes),
-                                            mHits(new std::vector<HitType>) {}
+                                            mHits(new std::vector<o2::hmpid::HitType>) {}
 
 void Detector::InitializeO2Detector()
 {
@@ -75,7 +75,7 @@ bool Detector::ProcessHits(FairVolume* v)
       tmpname.Remove(0, 4);
       Int_t idch = tmpname.Atoi(); //retrieve the chamber number
       Double_t xl, yl;
-      Param::Instance()->Mars2Lors(idch, x, xl, yl);      //take LORS position
+      o2::hmpid::Param::instance()->mars2Lors(idch, x, xl, yl); //take LORS position
       AddHit(x[0], x[1], x[2], hitTime, etot, tid, idch); //HIT for photon, position at P, etot will be set to Q
       GenFee(etot);                                       //generate feedback photons etot is modified in hit ctor to Q of hit
       stack->addHit(GetDetId());
@@ -113,7 +113,7 @@ bool Detector::ProcessHits(FairVolume* v)
       tmpname.Remove(0, 4);
       Int_t idch = tmpname.Atoi(); //retrieve the chamber number
       Double_t xl, yl;
-      Param::Instance()->Mars2Lors(idch, out, xl, yl); //take LORS position
+      o2::hmpid::Param::instance()->mars2Lors(idch, out, xl, yl); //take LORS position
       if (eloss > 0) {
         // HIT for MIP, position near anod plane, eloss will be set to Q
         AddHit(out[0], out[1], out[2], hitTime, eloss, tid, idch);
@@ -132,7 +132,7 @@ bool Detector::ProcessHits(FairVolume* v)
   return false;
 }
 //*********************************************************************************************************
-HitType* Detector::AddHit(float x, float y, float z, float time, float energy, Int_t trackId, Int_t detId)
+o2::hmpid::HitType* Detector::AddHit(float x, float y, float z, float time, float energy, Int_t trackId, Int_t detId)
 {
   mHits->emplace_back(x, y, z, time, energy, trackId, detId);
   return &(mHits->back());
@@ -1133,16 +1133,13 @@ TGeoVolume* Detector::CradleBaseVolume(TGeoMedium* med, Double_t l[7], const cha
 {
   /*
   The trapezoid is build in the xy plane
-
       0  ________________ 1
         /       |        \
        /        |         \
       /       (0,0)        \
      /          |           \
   3 /___________|____________\ 2
-
    01 is right shifted => shift is positive
-
     //1: small base (0-1); 2: long base (3-2);
     //3: trapezoid height; 4: shift between the two bases;
     //5: height 6: height reduction; 7: z-reduction;

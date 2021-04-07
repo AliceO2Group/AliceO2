@@ -16,7 +16,7 @@
 #include "TFile.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "HMPIDBase/Digit.h"
+#include "DataFormatsHMP/Digit.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 

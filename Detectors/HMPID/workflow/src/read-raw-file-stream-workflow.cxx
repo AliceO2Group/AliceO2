@@ -14,13 +14,20 @@
 /// \date 01 feb 2021
 ///
 
-#include <iostream>
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
-#include "Framework/DispatchPolicy.h"
 #include "Framework/Task.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/CompletionPolicyHelpers.h"
+#include "Framework/DispatchPolicy.h"
+#include "Framework/DataProcessorSpec.h"
+#include "Framework/InputRecordWalker.h"
+#include "Framework/Logger.h"
+#include "Framework/ConfigParamSpec.h"
+#include "Framework/Variant.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 // customize dispatch policy, dispatch immediately what is ready
 void customize(std::vector<o2::framework::DispatchPolicy>& policies)
@@ -47,20 +54,25 @@ void customize(std::vector<o2::framework::DispatchPolicy>& policies)
   policies.push_back({"pr-f-re", readerMatcher, DispatchOp::WhenReady, triggerMatcher});
 }
 
-#include "Framework/runDataProcessing.h"
+// we need to add workflow options before including Framework/runDataProcessing
+void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+{
+  std::string keyvaluehelp("Semicolon separated key=value strings ...");
+  workflowOptions.push_back(o2::framework::ConfigParamSpec{"configKeyValues", o2::framework::VariantType::String, "", {keyvaluehelp}});
+}
 
+#include "Framework/runDataProcessing.h"
 #include "HMPIDWorkflow/ReadRawFileSpec.h"
 
 using namespace o2;
 using namespace o2::framework;
 
-WorkflowSpec defineDataProcessing(const ConfigContext&)
+WorkflowSpec defineDataProcessing(const ConfigContext& cx)
 {
   WorkflowSpec specs;
-
+  o2::conf::ConfigurableParam::updateFromString(cx.options().get<std::string>("configKeyValues"));
   // The producer to generate some data in the workflow
   DataProcessorSpec producer = o2::hmpid::getReadRawFileSpec();
   specs.push_back(producer);
-
   return specs;
 }

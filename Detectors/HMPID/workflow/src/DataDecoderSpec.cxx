@@ -42,9 +42,10 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "DPLUtils/DPLRawParser.h"
 
-#include "HMPIDBase/Digit.h"
+#include "DataFormatsHMP/Digit.h"
+#include "DataFormatsHMP/Trigger.h"
 #include "HMPIDBase/Geo.h"
-#include "HMPIDReconstruction/HmpidDecodeRawMem.h"
+#include "HMPIDReconstruction/HmpidDecoder2.h"
 #include "HMPIDWorkflow/DataDecoderSpec.h"
 
 namespace o2
@@ -61,10 +62,11 @@ using RDH = o2::header::RDHAny;
 void DataDecoderTask::init(framework::InitContext& ic)
 {
 
-  LOG(INFO) << "[HMPID Data Decoder - Init] ( create Decoder for " << Geo::MAXEQUIPMENTS << " equipments !";
+  LOG(INFO) << "[HMPID Data Decoder - Init] ( create Raw Stream Decoder for " << Geo::MAXEQUIPMENTS << " equipments !";
 
-  mRootStatFile = ic.options().get<std::string>("root-file");
-  mDeco = new o2::hmpid::HmpidDecodeRawDigit(Geo::MAXEQUIPMENTS);
+  mRootStatFile = ic.options().get<std::string>("result-file");
+  mFastAlgorithm = ic.options().get<bool>("fast-decode");
+  mDeco = new o2::hmpid::HmpidDecoder2(Geo::MAXEQUIPMENTS);
   mDeco->init();
   mTotalDigits = 0;
   mTotalFrames = 0;
@@ -81,7 +83,7 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
   //  decodeReadout(pc);
   // decodeRawFile(pc);
 
-  mExTimer.elapseMes("... Decoding... Digits decoded = " + std::to_string(mTotalDigits) + " Frames received = " + std::to_string(mTotalFrames));
+  mExTimer.elapseMes("Decoding... Digits decoded = " + std::to_string(mTotalDigits) + " Frames received = " + std::to_string(mTotalFrames));
   return;
 }
 
@@ -147,8 +149,6 @@ void DataDecoderTask::endOfStream(framework::EndOfStreamContext& ec)
 
   mExTimer.logMes("End the Decoding ! Digits decoded = " + std::to_string(mTotalDigits) + " Frames received = " + std::to_string(mTotalFrames));
   mExTimer.stop();
-  //ec.services().get<ControlService>().endOfStream();
-  // ec.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
   return;
 }
 //_________________________________________________________________________________________________
@@ -164,12 +164,23 @@ void DataDecoderTask::decodeTF(framework::ProcessingContext& pc)
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
     uint32_t* theBuffer = (uint32_t*)it.raw();
     mDeco->setUpStream(theBuffer, it.size() + it.offset());
-    mDeco->decodePageFast(&theBuffer);
+    try {
+      if (mFastAlgorithm) {
+        mDeco->decodePageFast(&theBuffer);
+      } else {
+        mDeco->decodePage(&theBuffer);
+      }
+    } catch (int e) {
+      // The stream end !
+      LOG(DEBUG) << "End Page decoding !";
+    }
     mTotalFrames++;
   }
   pc.outputs().snapshot(o2::framework::Output{"HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mDigits);
+  pc.outputs().snapshot(o2::framework::Output{"HMP", "INTRECORDS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mIntReco);
+
   mTotalDigits += mDeco->mDigits.size();
-  LOG(INFO) << "Writing " << mDeco->mDigits.size() << "/" << mTotalDigits << " Digits ...";
+  LOG(DEBUG) << "Writing   Digitis=" << mDeco->mDigits.size() << "/" << mTotalDigits << " Frame=" << mTotalFrames << " IntRec " << mDeco->mIntReco;
   return;
 }
 
@@ -188,7 +199,16 @@ void DataDecoderTask::decodeReadout(framework::ProcessingContext& pc)
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
     uint32_t* theBuffer = (uint32_t*)it.raw();
     mDeco->setUpStream(theBuffer, it.size() + it.offset());
-    mDeco->decodePageFast(&theBuffer);
+    try {
+      if (mFastAlgorithm) {
+        mDeco->decodePageFast(&theBuffer);
+      } else {
+        mDeco->decodePage(&theBuffer);
+      }
+    } catch (int e) {
+      // The stream end !
+      LOG(DEBUG) << "End Page decoding !";
+    }
   }
   return;
 }
@@ -217,7 +237,16 @@ void DataDecoderTask::decodeRawFile(framework::ProcessingContext& pc)
       uint32_t* theBuffer = (uint32_t*)input.payload;
       int pagesize = header->payloadSize;
       mDeco->setUpStream(theBuffer, pagesize);
-      mDeco->decodePageFast(&theBuffer);
+      try {
+        if (mFastAlgorithm) {
+          mDeco->decodePageFast(&theBuffer);
+        } else {
+          mDeco->decodePage(&theBuffer);
+        }
+      } catch (int e) {
+        // The stream end !
+        LOG(DEBUG) << "End Page decoding !";
+      }
     }
   }
   return;
@@ -235,13 +264,15 @@ o2::framework::DataProcessorSpec getDecodingSpec(std::string inputSpec)
 
   std::vector<o2::framework::OutputSpec> outputs;
   outputs.emplace_back("HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("HMP", "INTRECORDS", 0, o2::framework::Lifetime::Timeframe);
 
   return DataProcessorSpec{
-    "HMP-DataDecoder",
+    "HMP-RawStreamDecoder",
     o2::framework::select(inputSpec.c_str()),
     outputs,
     AlgorithmSpec{adaptFromTask<DataDecoderTask>()},
-    Options{{"root-file", VariantType::String, "/tmp/hmpRawDecodeResults", {"Name of the Root file with the decoding results."}}}};
+    Options{{"result-file", VariantType::String, "/tmp/hmpRawDecodeResults", {"Base name of the decoding results files."}},
+            {"fast-decode", VariantType::Bool, false, {"Use the fast algorithm. (error 0.8%)"}}}};
 }
 
 } // namespace hmpid

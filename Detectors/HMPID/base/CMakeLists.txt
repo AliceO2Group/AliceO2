@@ -9,13 +9,11 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(HMPIDBase
-               SOURCES src/Param.cxx src/Digit.cxx src/Cluster.cxx src/Geo.cxx
+               SOURCES src/Param.cxx src/Geo.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
-                                     O2::SimulationDataFormat ROOT::Physics)
+                                     O2::SimulationDataFormat
+                                     ROOT::Physics)
 
 o2_target_root_dictionary(HMPIDBase
                           HEADERS include/HMPIDBase/Param.h
-                                  include/HMPIDBase/Digit.h
-                                  include/HMPIDBase/Trigger.h
-                                  include/HMPIDBase/Cluster.h
                                   include/HMPIDBase/Geo.h)

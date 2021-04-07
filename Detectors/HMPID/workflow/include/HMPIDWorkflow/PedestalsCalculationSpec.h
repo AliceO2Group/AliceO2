@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_DATADECODERSPEC_H_
-#define DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_DATADECODERSPEC_H_
+#ifndef DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_PEDESTALS_H_
+#define DETECTORS_HMPID_WORKFLOW_INCLUDE_HMPIDWORKFLOW_PEDESTALS_H_
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -17,7 +17,7 @@
 #include "CCDB/CcdbApi.h"
 
 #include "HMPIDBase/Common.h"
-#include "HMPIDReconstruction/HmpidDecodeRawMem.h"
+#include "HMPIDReconstruction/HmpidDecoder2.h"
 
 namespace o2
 {
@@ -40,7 +40,7 @@ class PedestalsCalculationTask : public framework::Task
   void recordPedInCcdb();
 
  private:
-  HmpidDecodeRawMem* mDeco;
+  HmpidDecoder2* mDeco;
   long mTotalDigits;
   long mTotalFrames;
   std::string mPedestalsBasePath;
@@ -50,6 +50,7 @@ class PedestalsCalculationTask : public framework::Task
   o2::ccdb::CcdbApi mDBapi;
   std::map<std::string, std::string> mDbMetadata; // can be empty
   bool mWriteToDB;
+  bool mFastAlgorithm;
 
   ExecutionTimer mExTimer;
 };

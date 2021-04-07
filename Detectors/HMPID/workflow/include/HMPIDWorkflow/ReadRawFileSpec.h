@@ -15,7 +15,7 @@
 #include "Framework/Task.h"
 
 #include "HMPIDBase/Common.h"
-#include "HMPIDBase/Digit.h"
+#include "DataFormatsHMP/Digit.h"
 
 namespace o2
 {
