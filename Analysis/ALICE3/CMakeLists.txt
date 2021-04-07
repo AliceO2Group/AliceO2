@@ -20,6 +20,11 @@ o2_add_dpl_workflow(alice3-trackextension
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
                     COMPONENT_NAME Analysis)
 
+o2_add_dpl_workflow(alice3-qa-multiplicity
+                    SOURCES src/alice3-qa-multiplicity.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
+                    COMPONENT_NAME Analysis)
+
 o2_add_dpl_workflow(alice3-pid-rich-qa
                     SOURCES src/pidRICHqa.cxx
                     PUBLIC_LINK_LIBRARIES O2::AnalysisDataModel O2::AnalysisCore O2::ALICE3Analysis
