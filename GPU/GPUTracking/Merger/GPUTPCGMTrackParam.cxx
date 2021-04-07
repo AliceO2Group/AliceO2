@@ -634,7 +634,7 @@ GPUdii() void GPUTPCGMTrackParam::RefitLoop(const GPUTPCGMMerger* GPUrestrict() 
 
   GPUTPCGMLoopData& data = Merger->LoopData()[loopIdx];
   prop.SetTrack(&data.param, data.alpha);
-  if (data.toRow == 0) {
+  if (data.toSlice == -1) {
     data.param.AttachClustersMirror<1>(Merger, data.slice, data.row, data.track, data.toY, prop, true);
   } else {
     data.param.FollowCircle<1>(Merger, prop, data.slice, data.row, data.track, data.toAlpha, data.toY, data.toX, data.toSlice, data.toRow, data.inFlyDirection, true);
@@ -753,7 +753,7 @@ GPUdni() void GPUTPCGMTrackParam::AttachClustersMirror(const GPUTPCGMMerger* GPU
     return;
   }
   if (Merger->Param().rec.loopInterpolationInExtraPass && phase2 == false) {
-    StoreAttachMirror(Merger, slice, iRow, iTrack, 0, toY, 0, 0, 0, 0, prop.GetAlpha());
+    StoreAttachMirror(Merger, slice, iRow, iTrack, 0, toY, 0, -1, 0, 0, prop.GetAlpha());
     return;
   }
   float X = mP[2] > 0 ? mP[0] : -mP[0];
