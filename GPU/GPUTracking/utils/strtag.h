@@ -23,7 +23,11 @@ constexpr T qStr2Tag(const char* str)
   if (strlen(str) != sizeof(T)) {
     throw std::runtime_error("Invalid tag length");
   }
-  return *(T*)str;
+  T tmp;
+  for (unsigned int i = 0; i < sizeof(T); i++) {
+    ((char*)&tmp)[i] = str[i];
+  }
+  return tmp;
 }
 
 template <class T>
