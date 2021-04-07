@@ -17,6 +17,7 @@
 #include "ITStracking/Cell.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/IndexTableUtils.h"
+#include "DetectorsBase/Propagator.h"
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/TrackerTraits.h"
 #include "ITStracking/TrackerTraitsCPU.h"
@@ -233,6 +234,9 @@ void Tracker::findTracks(const ROframe& event)
   mTracks.reserve(mTracks.capacity() + mPrimaryVertexContext->getRoads().size());
   std::vector<TrackITSExt> tracks;
   tracks.reserve(mPrimaryVertexContext->getRoads().size());
+
+  auto propagator = o2::base::Propagator::Instance();
+
 #ifdef CA_DEBUG
   std::vector<int> roadCounters(mTrkParams[0].NLayers - 3, 0);
   std::vector<int> fitCounters(mTrkParams[0].NLayers - 3, 0);
@@ -275,6 +279,7 @@ void Tracker::findTracks(const ROframe& event)
         clusters[iC] = mPrimaryVertexContext->getClusters()[iC][clusters[iC]].clusterId;
       }
     }
+
     /// Track seed preparation. Clusters are numbered progressively from the outermost to the innermost.
     const auto& cluster1_glo = event.getClustersOnLayer(lastCellLevel + 2).at(clusters[lastCellLevel + 2]);
     const auto& cluster2_glo = event.getClustersOnLayer(lastCellLevel + 1).at(clusters[lastCellLevel + 1]);
@@ -287,20 +292,20 @@ void Tracker::findTracks(const ROframe& event)
     for (size_t iC = 0; iC < clusters.size(); ++iC) {
       temporaryTrack.setExternalClusterIndex(iC, clusters[iC], clusters[iC] != constants::its::UnusedIndex);
     }
-    bool fitSuccess = fitTrack(event, temporaryTrack, mTrkParams[0].NLayers - 4, -1, -1);
+    bool fitSuccess = fitTrack(event, temporaryTrack, mTrkParams[0].NLayers - 4, -1, -1, propagator);
     if (!fitSuccess) {
       continue;
     }
     CA_DEBUGGER(fitCounters[nClusters - 4]++);
     temporaryTrack.resetCovariance();
-    fitSuccess = fitTrack(event, temporaryTrack, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].FitIterationMaxChi2[0]);
+    fitSuccess = fitTrack(event, temporaryTrack, 0, mTrkParams[0].NLayers, 1, propagator, mTrkParams[0].FitIterationMaxChi2[0]);
     if (!fitSuccess) {
       continue;
     }
     CA_DEBUGGER(backpropagatedCounters[nClusters - 4]++);
     temporaryTrack.getParamOut() = temporaryTrack;
     temporaryTrack.resetCovariance();
-    fitSuccess = fitTrack(event, temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].FitIterationMaxChi2[1]);
+    fitSuccess = fitTrack(event, temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1, propagator, mTrkParams[0].FitIterationMaxChi2[1]);
 #ifdef CA_DEBUG
     mDebugger->dumpTrackToBranchWithInfo("testBranch", temporaryTrack, event, mPrimaryVertexContext, true);
 #endif
@@ -407,7 +412,7 @@ void Tracker::findTracks(const ROframe& event)
 #endif
 }
 
-bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step, const float chi2cut)
+bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step, o2::base::PropagatorImpl<float>* propPtr, const float chi2cut)
 {
   track.setChi2(0);
   for (int iLayer{start}; iLayer != end; iLayer += step) {
@@ -420,9 +425,14 @@ bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int 
       return false;
     }
 
-    if (!track.propagateTo(trackingHit.xTrackingFrame, getBz())) {
+    // if (!track.propagateTo(trackingHit.xTrackingFrame, getBz())) {
+    // return false;
+    // }
+
+    if (!propPtr->PropagateToXBxByBz(track, trackingHit.xTrackingFrame)) {
       return false;
     }
+
     auto predChi2{track.getPredictedChi2(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)};
     if (predChi2 > chi2cut) {
       return false;
@@ -432,28 +442,28 @@ bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int 
       return false;
     }
 
-    float xx0 = ((iLayer > 2) ? 0.008f : 0.003f); // Rough layer thickness
-    float radiationLength = 9.36f;                // Radiation length of Si [cm]
-    float density = 2.33f;                        // Density of Si [g/cm^3]
-    float distance = xx0;                         // Default thickness
-
-    if (mMatLayerCylSet) {
-      if ((iLayer + step) != end) {
-        const auto cl_0 = mPrimaryVertexContext->getClusters()[iLayer][track.getClusterIndex(iLayer)];
-        const auto cl_1 = mPrimaryVertexContext->getClusters()[iLayer + step][track.getClusterIndex(iLayer + step)];
-
-        auto matbud = mMatLayerCylSet->getMatBudget(cl_0.xCoordinate, cl_0.yCoordinate, cl_0.zCoordinate, cl_1.xCoordinate, cl_1.yCoordinate, cl_1.zCoordinate);
-        xx0 = matbud.meanX2X0;
-        density = matbud.meanRho;
-        distance = matbud.length;
-      }
-    }
+    // float xx0 = ((iLayer > 2) ? 0.008f : 0.003f); // Rough layer thickness
+    // float radiationLength = 9.36f;                // Radiation length of Si [cm]
+    // float density = 2.33f;                        // Density of Si [g/cm^3]
+    // float distance = xx0;                         // Default thickness
+    //
+    // if (mMatLayerCylSet) {
+    // if ((iLayer + step) != end) {
+    // const auto cl_0 = mPrimaryVertexContext->getClusters()[iLayer][track.getClusterIndex(iLayer)];
+    // const auto cl_1 = mPrimaryVertexContext->getClusters()[iLayer + step][track.getClusterIndex(iLayer + step)];
+    //
+    // auto matbud = mMatLayerCylSet->getMatBudget(cl_0.xCoordinate, cl_0.yCoordinate, cl_0.zCoordinate, cl_1.xCoordinate, cl_1.yCoordinate, cl_1.zCoordinate);
+    // xx0 = matbud.meanX2X0;
+    // density = matbud.meanRho;
+    // distance = matbud.length;
+    // }
+    // }
     // The correctForMaterial should be called with anglecorr==true if the material budget is the "mean budget in vertical direction" and with false if the the estimated budget already accounts for the track inclination.
     // Here using !mMatLayerCylSet as its presence triggers update of parameters
-
-    if (!track.correctForMaterial(xx0, ((start < end) ? -1. : 1.) * distance * density, !mMatLayerCylSet)) { // ~0.14 GeV: mass of charged pion is used by default
-      return false;
-    }
+    //
+    // if (!track.correctForMaterial(xx0, ((start < end) ? -1. : 1.) * distance * density, !mMatLayerCylSet)) { // ~0.14 GeV: mass of charged pion is used by default
+    // return false;
+    // }
   }
   return true;
 }
