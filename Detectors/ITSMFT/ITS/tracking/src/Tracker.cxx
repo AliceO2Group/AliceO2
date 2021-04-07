@@ -425,11 +425,7 @@ bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int 
       return false;
     }
 
-    // if (!track.propagateTo(trackingHit.xTrackingFrame, getBz())) {
-    // return false;
-    // }
-
-    if (!propPtr->PropagateToXBxByBz(track, trackingHit.xTrackingFrame)) {
+    if (!propPtr->propagateToX(track, trackingHit.xTrackingFrame, getBz())) {
       return false;
     }
 
@@ -441,29 +437,6 @@ bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int 
     if (!track.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
       return false;
     }
-
-    // float xx0 = ((iLayer > 2) ? 0.008f : 0.003f); // Rough layer thickness
-    // float radiationLength = 9.36f;                // Radiation length of Si [cm]
-    // float density = 2.33f;                        // Density of Si [g/cm^3]
-    // float distance = xx0;                         // Default thickness
-    //
-    // if (mMatLayerCylSet) {
-    // if ((iLayer + step) != end) {
-    // const auto cl_0 = mPrimaryVertexContext->getClusters()[iLayer][track.getClusterIndex(iLayer)];
-    // const auto cl_1 = mPrimaryVertexContext->getClusters()[iLayer + step][track.getClusterIndex(iLayer + step)];
-    //
-    // auto matbud = mMatLayerCylSet->getMatBudget(cl_0.xCoordinate, cl_0.yCoordinate, cl_0.zCoordinate, cl_1.xCoordinate, cl_1.yCoordinate, cl_1.zCoordinate);
-    // xx0 = matbud.meanX2X0;
-    // density = matbud.meanRho;
-    // distance = matbud.length;
-    // }
-    // }
-    // The correctForMaterial should be called with anglecorr==true if the material budget is the "mean budget in vertical direction" and with false if the the estimated budget already accounts for the track inclination.
-    // Here using !mMatLayerCylSet as its presence triggers update of parameters
-    //
-    // if (!track.correctForMaterial(xx0, ((start < end) ? -1. : 1.) * distance * density, !mMatLayerCylSet)) { // ~0.14 GeV: mass of charged pion is used by default
-    // return false;
-    // }
   }
   return true;
 }
@@ -676,10 +649,6 @@ track::TrackParCov Tracker::buildTrackSeed(const Cluster& cluster1, const Cluste
 void Tracker::getGlobalConfiguration()
 {
   auto& tc = o2::its::TrackerParamConfig::Instance();
-
-  if (tc.useMatBudLUT) {
-    initMatBudLUTFromFile();
-  }
 }
 
 } // namespace its

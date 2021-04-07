@@ -75,14 +75,12 @@ class Tracker
 
   std::vector<TrackITSExt>& getTracks();
   auto& getTrackLabels() { return mTrackLabels; }
-  bool isMatLUT();
 
   void clustersToTracks(const ROframe&, std::ostream& = std::cout);
 
   void setROFrame(std::uint32_t f) { mROFrame = f; }
   std::uint32_t getROFrame() const { return mROFrame; }
   void setParameters(const std::vector<MemoryParameters>&, const std::vector<TrackingParameters>&);
-  void initMatBudLUTFromFile();
   void getGlobalConfiguration();
 
  private:
@@ -116,7 +114,6 @@ class Tracker
   std::uint32_t mROFrame = 0;
   std::vector<TrackITSExt> mTracks;
   std::vector<MCCompLabel> mTrackLabels;
-  o2::base::MatLayerCylSet* mMatLayerCylSet = nullptr;
   o2::gpu::GPUChainITS* mRecoChain = nullptr;
 
 #ifdef CA_DEBUG
@@ -138,16 +135,6 @@ inline float Tracker::getBz() const
 inline void Tracker::setBz(float bz)
 {
   mBz = bz;
-}
-
-inline void Tracker::initMatBudLUTFromFile()
-{
-  mMatLayerCylSet = o2::base::MatLayerCylSet::loadFromFile();
-}
-
-inline bool Tracker::isMatLUT()
-{
-  return mMatLayerCylSet;
 }
 
 template <typename... T>
