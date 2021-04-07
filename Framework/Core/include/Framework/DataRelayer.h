@@ -41,6 +41,13 @@ struct DataRelayerStats {
   uint64_t relayedMessages = 0;         /// How many messages have been successfully relayed
 };
 
+enum struct CacheEntryStatus : int {
+  EMPTY,
+  PENDING,
+  RUNNING,
+  DONE
+};
+
 class DataRelayer
 {
  public:
@@ -107,6 +114,9 @@ class DataRelayer
   /// so that we can mutex on it.
   TimesliceId getTimesliceForSlot(TimesliceSlot slot);
 
+  /// Mark a given slot as done so that the GUI
+  /// can reflect that.
+  void updateCacheStatus(TimesliceSlot slot, CacheEntryStatus oldStatus, CacheEntryStatus newStatus);
   /// Get the firstTFOrbit associate to a given slot.
   uint32_t getFirstTFOrbitForSlot(TimesliceSlot slot);
   /// Get the firstTFCounter associate to a given slot.
@@ -131,7 +141,7 @@ class DataRelayer
   std::vector<size_t> mDistinctRoutesIndex;
   std::vector<data_matcher::DataDescriptorMatcher> mInputMatchers;
   std::vector<data_matcher::VariableContext> mVariableContextes;
-  std::vector<int> mCachedStateMetrics;
+  std::vector<CacheEntryStatus> mCachedStateMetrics;
 
   static std::vector<std::string> sMetricsNames;
   static std::vector<std::string> sVariablesMetricsNames;

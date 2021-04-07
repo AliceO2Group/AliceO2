@@ -838,6 +838,10 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     return InputRecord{spec->inputs, std::move(span)};
   };
 
+  auto markInputsAsDone = [&relayer = context.relayer](TimesliceSlot slot) -> void {
+    relayer->updateCacheStatus(slot, CacheEntryStatus::RUNNING, CacheEntryStatus::DONE);
+  };
+
   // I need a preparation step which gets the current timeslice id and
   // propagates it to the various contextes (i.e. the actual entities which
   // create messages) because the messages need to have the timeslice id into
@@ -1025,6 +1029,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         continue;
       }
     }
+    markInputsAsDone(action.slot);
 
     uint64_t tStart = uv_hrtime();
     preUpdateStats(action, record, tStart);
