@@ -23,13 +23,13 @@ using namespace o2::framework::expressions;
 
 namespace nodes
 {
-static BindingNode pt{"pt", atype::FLOAT};
-static BindingNode phi{"phi", atype::FLOAT};
-static BindingNode eta{"eta", atype::FLOAT};
+static BindingNode pt{"pt", 1, atype::FLOAT};
+static BindingNode phi{"phi", 2, atype::FLOAT};
+static BindingNode eta{"eta", 3, atype::FLOAT};
 
-static BindingNode tgl{"tgl", atype::FLOAT};
-static BindingNode signed1Pt{"signed1Pt", atype::FLOAT};
-static BindingNode testInt{"testInt", atype::INT32};
+static BindingNode tgl{"tgl", 4, atype::FLOAT};
+static BindingNode signed1Pt{"signed1Pt", 5, atype::FLOAT};
+static BindingNode testInt{"testInt", 6, atype::INT32};
 } // namespace nodes
 
 namespace o2::aod::track
@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(TestTreeParsing)
   BOOST_REQUIRE_EQUAL(specs[0].right, (DatumSpec{2u, atype::BOOL}));
   BOOST_REQUIRE_EQUAL(specs[0].result, (DatumSpec{0u, atype::BOOL}));
 
-  BOOST_REQUIRE_EQUAL(specs[1].left, (DatumSpec{std::string{"eta"}, atype::FLOAT}));
+  BOOST_REQUIRE_EQUAL(specs[1].left, (DatumSpec{std::string{"eta"}, 3, atype::FLOAT}));
   BOOST_REQUIRE_EQUAL(specs[1].right, (DatumSpec{LiteralNode::var_t{1}, atype::INT32}));
   BOOST_REQUIRE_EQUAL(specs[1].result, (DatumSpec{2u, atype::BOOL}));
 
@@ -53,11 +53,11 @@ BOOST_AUTO_TEST_CASE(TestTreeParsing)
   BOOST_REQUIRE_EQUAL(specs[2].right, (DatumSpec{4u, atype::BOOL}));
   BOOST_REQUIRE_EQUAL(specs[2].result, (DatumSpec{1u, atype::BOOL}));
 
-  BOOST_REQUIRE_EQUAL(specs[3].left, (DatumSpec{std::string{"phi"}, atype::FLOAT}));
+  BOOST_REQUIRE_EQUAL(specs[3].left, (DatumSpec{std::string{"phi"}, 2, atype::FLOAT}));
   BOOST_REQUIRE_EQUAL(specs[3].right, (DatumSpec{LiteralNode::var_t{2}, atype::INT32}));
   BOOST_REQUIRE_EQUAL(specs[3].result, (DatumSpec{4u, atype::BOOL}));
 
-  BOOST_REQUIRE_EQUAL(specs[4].left, (DatumSpec{std::string{"phi"}, atype::FLOAT}));
+  BOOST_REQUIRE_EQUAL(specs[4].left, (DatumSpec{std::string{"phi"}, 2, atype::FLOAT}));
   BOOST_REQUIRE_EQUAL(specs[4].right, (DatumSpec{LiteralNode::var_t{1}, atype::INT32}));
   BOOST_REQUIRE_EQUAL(specs[4].result, (DatumSpec{3u, atype::BOOL}));
 
@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(TestTreeParsing)
   BOOST_REQUIRE_EQUAL(gspecs[1].right, (DatumSpec{LiteralNode::var_t{3}, atype::INT32}));
   BOOST_REQUIRE_EQUAL(gspecs[1].result, (DatumSpec{2u, atype::BOOL}));
 
-  BOOST_REQUIRE_EQUAL(gspecs[2].left, (DatumSpec{std::string{"phi"}, atype::FLOAT}));
+  BOOST_REQUIRE_EQUAL(gspecs[2].left, (DatumSpec{std::string{"phi"}, 2, atype::FLOAT}));
   BOOST_REQUIRE_EQUAL(gspecs[2].right, (DatumSpec{LiteralNode::var_t{M_PI}, atype::DOUBLE}));
   BOOST_REQUIRE_EQUAL(gspecs[2].result, (DatumSpec{3u, atype::DOUBLE}));
 
@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_CASE(TestTreeParsing)
   BOOST_REQUIRE_EQUAL(gspecs[3].right, (DatumSpec{LiteralNode::var_t{0.5}, atype::DOUBLE}));
   BOOST_REQUIRE_EQUAL(gspecs[3].result, (DatumSpec{1u, atype::BOOL}));
 
-  BOOST_REQUIRE_EQUAL(gspecs[4].left, (DatumSpec{std::string{"eta"}, atype::FLOAT}));
+  BOOST_REQUIRE_EQUAL(gspecs[4].left, (DatumSpec{std::string{"eta"}, 3, atype::FLOAT}));
   BOOST_REQUIRE_EQUAL(gspecs[4].right, (DatumSpec{LiteralNode::var_t{2.f}, atype::FLOAT}));
   BOOST_REQUIRE_EQUAL(gspecs[4].result, (DatumSpec{4u, atype::FLOAT}));
 
@@ -90,11 +90,11 @@ BOOST_AUTO_TEST_CASE(TestTreeParsing)
   BOOST_REQUIRE_EQUAL(hspecs[0].right, (DatumSpec{2u, atype::BOOL}));
   BOOST_REQUIRE_EQUAL(hspecs[0].result, (DatumSpec{0u, atype::BOOL}));
 
-  BOOST_REQUIRE_EQUAL(hspecs[1].left, (DatumSpec{std::string{"phi"}, atype::FLOAT}));
+  BOOST_REQUIRE_EQUAL(hspecs[1].left, (DatumSpec{std::string{"phi"}, 2, atype::FLOAT}));
   BOOST_REQUIRE_EQUAL(hspecs[1].right, (DatumSpec{LiteralNode::var_t{3}, atype::INT32}));
   BOOST_REQUIRE_EQUAL(hspecs[1].result, (DatumSpec{2u, atype::BOOL}));
 
-  BOOST_REQUIRE_EQUAL(hspecs[2].left, (DatumSpec{std::string{"phi"}, atype::FLOAT}));
+  BOOST_REQUIRE_EQUAL(hspecs[2].left, (DatumSpec{std::string{"phi"}, 2, atype::FLOAT}));
   BOOST_REQUIRE_EQUAL(hspecs[2].right, (DatumSpec{LiteralNode::var_t{0}, atype::INT32}));
   BOOST_REQUIRE_EQUAL(hspecs[2].result, (DatumSpec{1u, atype::BOOL}));
 
@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE(TestTreeParsing)
   BOOST_REQUIRE_EQUAL(uspecs[2].right, (DatumSpec{}));
   BOOST_REQUIRE_EQUAL(uspecs[2].result, (DatumSpec{3u, atype::DOUBLE}));
 
-  BOOST_REQUIRE_EQUAL(uspecs[3].left, (DatumSpec{std::string{"phi"}, atype::FLOAT}));
+  BOOST_REQUIRE_EQUAL(uspecs[3].left, (DatumSpec{std::string{"phi"}, 2, atype::FLOAT}));
   BOOST_REQUIRE_EQUAL(uspecs[3].right, (DatumSpec{LiteralNode::var_t{2.0 * M_PI}, atype::DOUBLE}));
   BOOST_REQUIRE_EQUAL(uspecs[3].result, (DatumSpec{4u, atype::DOUBLE}));
 
@@ -120,7 +120,7 @@ BOOST_AUTO_TEST_CASE(TestTreeParsing)
   BOOST_REQUIRE_EQUAL(uspecs[4].right, (DatumSpec{LiteralNode::var_t{1.0}, atype::DOUBLE}));
   BOOST_REQUIRE_EQUAL(uspecs[4].result, (DatumSpec{1u, atype::BOOL}));
 
-  BOOST_REQUIRE_EQUAL(uspecs[5].left, (DatumSpec{std::string{"eta"}, atype::FLOAT}));
+  BOOST_REQUIRE_EQUAL(uspecs[5].left, (DatumSpec{std::string{"eta"}, 3, atype::FLOAT}));
   BOOST_REQUIRE_EQUAL(uspecs[5].right, (DatumSpec{}));
   BOOST_REQUIRE_EQUAL(uspecs[5].result, (DatumSpec{5u, atype::FLOAT}));
 
@@ -130,7 +130,7 @@ BOOST_AUTO_TEST_CASE(TestTreeParsing)
   BOOST_REQUIRE_EQUAL(ptfilter.node->left->self.index(), 1);
   BOOST_REQUIRE_EQUAL(ptfilter.node->right->self.index(), 3);
   auto ptfilterspecs = createOperations(ptfilter);
-  BOOST_REQUIRE_EQUAL(ptfilterspecs[0].left, (DatumSpec{std::string{"fPt"}, atype::FLOAT}));
+  BOOST_REQUIRE_EQUAL(ptfilterspecs[0].left, (DatumSpec{std::string{"fPt"}, typeid(o2::aod::track::Pt).hash_code(), atype::FLOAT}));
   BOOST_REQUIRE_EQUAL(ptfilterspecs[0].right, (DatumSpec{LiteralNode::var_t{0.5f}, atype::FLOAT}));
   BOOST_REQUIRE_EQUAL(ptfilterspecs[0].result, (DatumSpec{0u, atype::BOOL}));
 }
@@ -139,12 +139,12 @@ BOOST_AUTO_TEST_CASE(TestGandivaTreeCreation)
 {
   Projector pze = o2::aod::track::Pze::Projector();
   auto pzspecs = createOperations(std::move(pze));
-  BOOST_REQUIRE_EQUAL(pzspecs[0].left, (DatumSpec{std::string{"fTgl"}, atype::FLOAT}));
+  BOOST_REQUIRE_EQUAL(pzspecs[0].left, (DatumSpec{std::string{"fTgl"}, typeid(o2::aod::track::Tgl).hash_code(), atype::FLOAT}));
   BOOST_REQUIRE_EQUAL(pzspecs[0].right, (DatumSpec{1u, atype::FLOAT}));
   BOOST_REQUIRE_EQUAL(pzspecs[0].result, (DatumSpec{0u, atype::FLOAT}));
 
   BOOST_REQUIRE_EQUAL(pzspecs[1].left, (DatumSpec{LiteralNode::var_t{1.f}, atype::FLOAT}));
-  BOOST_REQUIRE_EQUAL(pzspecs[1].right, (DatumSpec{std::string{"fSigned1Pt"}, atype::FLOAT}));
+  BOOST_REQUIRE_EQUAL(pzspecs[1].right, (DatumSpec{std::string{"fSigned1Pt"}, typeid(o2::aod::track::Signed1Pt).hash_code(), atype::FLOAT}));
   BOOST_REQUIRE_EQUAL(pzspecs[1].result, (DatumSpec{1u, atype::FLOAT}));
   auto infield1 = o2::aod::track::Signed1Pt::asArrowField();
   auto infield2 = o2::aod::track::Tgl::asArrowField();
@@ -163,7 +163,7 @@ BOOST_AUTO_TEST_CASE(TestGandivaTreeCreation)
   BOOST_REQUIRE_EQUAL(ptespecs[0].result, (DatumSpec{0u, atype::FLOAT}));
 
   BOOST_REQUIRE_EQUAL(ptespecs[1].left, (DatumSpec{LiteralNode::var_t{1.f}, atype::FLOAT}));
-  BOOST_REQUIRE_EQUAL(ptespecs[1].right, (DatumSpec{std::string{"fSigned1Pt"}, atype::FLOAT}));
+  BOOST_REQUIRE_EQUAL(ptespecs[1].right, (DatumSpec{std::string{"fSigned1Pt"}, typeid(o2::aod::track::Signed1Pt).hash_code(), atype::FLOAT}));
   BOOST_REQUIRE_EQUAL(ptespecs[1].result, (DatumSpec{1u, atype::FLOAT}));
 
   auto infield3 = o2::aod::track::Signed1Pt::asArrowField();
