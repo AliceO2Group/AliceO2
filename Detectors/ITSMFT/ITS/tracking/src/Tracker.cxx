@@ -17,7 +17,6 @@
 #include "ITStracking/Cell.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/IndexTableUtils.h"
-#include "DetectorsBase/Propagator.h"
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/TrackerTraits.h"
 #include "ITStracking/TrackerTraitsCPU.h"
@@ -425,7 +424,7 @@ bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int 
       return false;
     }
 
-    if (!propPtr->propagateToX(track, trackingHit.xTrackingFrame, getBz())) {
+    if (!propPtr->propagateToX(track, trackingHit.xTrackingFrame, getBz(), o2::base::PropagatorImpl<float>::MAX_SIN_PHI, o2::base::PropagatorImpl<float>::MAX_STEP, mCorrType)) {
       return false;
     }
 
@@ -649,6 +648,9 @@ track::TrackParCov Tracker::buildTrackSeed(const Cluster& cluster1, const Cluste
 void Tracker::getGlobalConfiguration()
 {
   auto& tc = o2::its::TrackerParamConfig::Instance();
+  if (tc.useMatCorrTGeo) {
+    setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrTGeo);
+  }
 }
 
 } // namespace its
