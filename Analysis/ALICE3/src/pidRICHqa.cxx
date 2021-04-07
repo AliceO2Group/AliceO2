@@ -101,8 +101,8 @@ struct pidRICHQAMC {
     makelogaxis(histos.get<TH2>(HIST("qa/nsigmaPr")));
   }
 
-  void process(const aod::Tracks& tracks,
-               const aod::TracksExtra& tracksExtra,
+  using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
+  void process(const Trks& tracks,
                const aod::McTrackLabels& labels,
                const aod::RICHs& richs,
                const aod::McParticles& mcParticles,
@@ -112,12 +112,11 @@ struct pidRICHQAMC {
       histos.fill(HIST("event/vertexz"), col.posZ());
     }
     for (const auto& rich : richs) {
-      const auto track = rich.track();
-      const auto trackExtra = tracksExtra.iteratorAt(track.globalIndex());
-      if (trackExtra.length() < minLength) {
+      const auto track = rich.track_as<Trks>();
+      if (track.length() < minLength) {
         continue;
       }
-      if (trackExtra.length() > maxLength) {
+      if (track.length() > maxLength) {
         continue;
       }
       if (track.eta() > maxEta || track.eta() < minEta) {
