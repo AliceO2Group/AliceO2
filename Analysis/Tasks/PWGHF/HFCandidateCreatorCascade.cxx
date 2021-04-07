@@ -44,7 +44,12 @@ struct HFCandidateCreatorCascade {
   Configurable<double> d_minParamChange{"d_minParamChange", 1.e-3, "stop iterations if largest change of any X is smaller than this"};
   Configurable<double> d_minRelChi2Change{"d_minRelChi2Change", 0.9, "stop iterations is chi2/chi2old > this"};
   Configurable<bool> b_doValPlots{"b_doValPlots", true, "do validation plots"};
-
+#ifdef MY_DEBUG
+  Configurable<std::vector<int>> v_labelK0Spos{"v_labelK0Spos", {729, 2866, 4754}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> v_labelK0Sneg{"v_labelK0Sneg", {730, 2867, 4755}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> v_labelProton{"v_labelProton", {729, 2810, 4393}, "labels of K0S positive daughters, for debug"};
+#endif
+  
   OutputObj<TH1F> hmass2{TH1F("hmass2", "2-prong candidates;inv. mass (#pi K) (GeV/#it{c}^{2});entries", 500, 0., 5.)};
   OutputObj<TH1F> hCovPVXX{TH1F("hCovPVXX", "2-prong candidates;XX element of cov. matrix of prim. vtx. position (cm^{2});entries", 100, 0., 1.e-4)};
   OutputObj<TH1F> hCovSVXX{TH1F("hCovSVXX", "2-prong candidates;XX element of cov. matrix of sec. vtx. position (cm^{2});entries", 100, 0., 0.2)};
@@ -100,7 +105,7 @@ struct HFCandidateCreatorCascade {
       auto protonLabel = bach.mcParticleId();
       auto labelPos = posTrack.mcParticleId();
       auto labelNeg = negTrack.mcParticleId();
-      bool isLc = isLcK0SpFunc(protonLabel, labelPos, labelNeg);
+      bool isLc = isLcK0SpFunc(protonLabel, labelPos, labelNeg, v_labelProton, v_labelK0Spos, v_labelK0Sneg);
 #endif
 
       MY_DEBUG_MSG(isLc, LOG(INFO) << "Processing the Lc with proton " << protonLabel << " posTrack " << labelPos << " negTrack " << labelNeg);
@@ -202,6 +207,12 @@ struct HFCandidateCreatorCascadeMC {
   Produces<aod::HfCandCascadeMCRec> rowMCMatchRec;
   Produces<aod::HfCandCascadeMCGen> rowMCMatchGen;
 
+#ifdef MY_DEBUG
+  Configurable<std::vector<int>> v_labelK0Spos{"v_labelK0Spos", {729, 2866, 4754}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> v_labelK0Sneg{"v_labelK0Sneg", {730, 2867, 4755}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> v_labelProton{"v_labelProton", {729, 2810, 4393}, "labels of K0S positive daughters, for debug"};
+#endif
+
   void process(aod::HfCandCascade const& candidates,
                aod::BigTracksMC const& tracks,
                aod::McParticles const& particlesMC)
@@ -224,8 +235,10 @@ struct HFCandidateCreatorCascadeMC {
       auto labelNeg = candidate.negTrack_as<aod::BigTracksMC>().mcParticleId();
       auto protonLabel = candidate.index0_as<aod::BigTracksMC>().mcParticleId();
 
-      bool isLc = isLcK0SpFunc(protonLabel, labelPos, labelNeg);
-      bool isK0SfromLc = isK0SfromLcFunc(labelPos, labelNeg);
+#ifdef MY_DEBUG
+      bool isLc = isLcK0SpFunc(protonLabel, labelPos, labelNeg, v_labelProton, v_labelK0Spos, v_labelK0Sneg);
+      bool isK0SfromLc = isK0SfromLcFunc(labelPos, labelNeg, v_labelK0Spos, v_labelK0Sneg);
+#endif
       MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "correct K0S in the Lc daughters: posTrack --> " << labelPos << ", negTrack --> " << labelNeg);
 
       //if (isLc) {

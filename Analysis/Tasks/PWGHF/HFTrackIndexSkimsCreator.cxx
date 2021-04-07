@@ -91,7 +91,12 @@ struct SelectTracks {
   Configurable<double> d_dcaToPrimXYMinBach{"d_dcaToPrimXYMinBach", 0., "min. DCAXY to prim. vtx. for bachelor in cascade candidate"}; // for PbPb 2018, the cut should be 0.0025
   Configurable<double> d_dcaToPrimXYMaxBach{"d_dcaToPrimXYMaxBach", 1.0, "max. DCAXY to prim. vtx. for bachelor in cascade candidate"};
   Configurable<double> d_etaMaxBach{"d_etaMaxBach", 0.8, "max. pseudorapidity for bachelor in cascade candidate"};
-
+#ifdef MY_DEBUG
+  Configurable<std::vector<int>> v_labelK0Spos{"v_labelK0Spos", {729, 2866, 4754}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> v_labelK0Sneg{"v_labelK0Sneg", {730, 2867, 4755}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> v_labelProton{"v_labelProton", {729, 2810, 4393}, "labels of K0S positive daughters, for debug"};
+#endif
+  
   HistogramRegistry registry{
     "registry",
     {{"hpt_nocuts", "all tracks;#it{p}_{T}^{track} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
@@ -153,7 +158,7 @@ struct SelectTracks {
 #ifdef MY_DEBUG
       auto protonLabel = track.mcParticleId();
       //      LOG(INFO) << "Checking label " << protonLabel;
-      bool isProtonFromLc = isProtonFromLcFunc(protonLabel);
+      bool isProtonFromLc = isProtonFromLcFunc(protonLabel, v_labelProton);
 
 #endif
 
@@ -1046,6 +1051,13 @@ struct HFTrackIndexSkimsCreatorCascades {
   Configurable<double> d_cutCascInvMassLc{"d_cutCascInvMassLc", 1., "Lc candidate invariant mass difference wrt PDG"}; // for PbPb 2018: use 0.2
   //Configurable<double> cutCascDCADaughters{"cutCascDCADaughters", .1, "DCA between V0 and bachelor in cascade"};
 
+  // for debugging
+#ifdef MY_DEBUG
+  Configurable<std::vector<int>> v_labelK0Spos{"v_labelK0Spos", {729, 2866, 4754}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> v_labelK0Sneg{"v_labelK0Sneg", {730, 2867, 4755}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> v_labelProton{"v_labelProton", {729, 2810, 4393}, "labels of K0S positive daughters, for debug"};
+#endif
+
   // histograms
   HistogramRegistry registry{
     "registry",
@@ -1098,7 +1110,7 @@ struct HFTrackIndexSkimsCreatorCascades {
       MY_DEBUG_MSG(1, printf("\n"); LOG(INFO) << "Bachelor loop");
 #ifdef MY_DEBUG
       auto protonLabel = bach.mcParticleId();
-      bool isProtonFromLc = isProtonFromLcFunc(protonLabel);
+      bool isProtonFromLc = isProtonFromLcFunc(protonLabel, v_labelProton);
 #endif
       // selections on the bachelor
       // pT cut
@@ -1129,9 +1141,9 @@ struct HFTrackIndexSkimsCreatorCascades {
 #ifdef MY_DEBUG
         auto labelPos = posTrack.mcParticleId();
         auto labelNeg = negTrack.mcParticleId();
-        bool isK0SfromLc = isK0SfromLcFunc(labelPos, labelNeg);
+        bool isK0SfromLc = isK0SfromLcFunc(labelPos, labelNeg, v_labelK0Spos, v_labelK0Sneg);
 
-        bool isLc = isLcK0SpFunc(protonLabel, labelPos, labelNeg);
+        bool isLc = isLcK0SpFunc(protonLabel, labelPos, labelNeg, v_labelProton, v_labelK0Spos, v_labelK0Sneg);
 #endif
         MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S from Lc found, posTrack --> " << labelPos << ", negTrack --> " << labelNeg);
 

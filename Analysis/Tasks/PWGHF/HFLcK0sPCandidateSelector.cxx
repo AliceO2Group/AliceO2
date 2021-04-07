@@ -70,6 +70,13 @@ struct HFLcK0sPCandidateSelector {
   Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 50., "Lower bound of TPC findable clusters for good PID"};
   Configurable<bool> b_requireTPC{"b_requireTPC", true, "Flag to require a positive Number of found clusters in TPC"};
 
+  // for debugging
+#ifdef MY_DEBUG
+  Configurable<std::vector<int>> v_labelK0Spos{"v_labelK0Spos", {729, 2866, 4754}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> v_labelK0Sneg{"v_labelK0Sneg", {730, 2867, 4755}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> v_labelProton{"v_labelProton", {729, 2810, 4393}, "labels of K0S positive daughters, for debug"};
+#endif
+
   /// Gets corresponding pT bin from cut file array
   /// \param candPt is the pT of the candidate
   /// \return corresponding bin number of array
@@ -334,8 +341,8 @@ struct HFLcK0sPCandidateSelector {
       auto labelPos = candidate.posTrack_as<MyBigTracks>().mcParticleId();
       auto labelNeg = candidate.negTrack_as<MyBigTracks>().mcParticleId();
       auto protonLabel = candidate.index0_as<MyBigTracks>().mcParticleId();
-      bool isLc = isLcK0SpFunc(protonLabel, labelPos, labelNeg);
-      bool isK0SfromLc = isK0SfromLcFunc(labelPos, labelNeg);
+      bool isLc = isLcK0SpFunc(protonLabel, labelPos, labelNeg, v_labelProton, v_labelK0Spos, v_labelK0Sneg);
+      bool isK0SfromLc = isK0SfromLcFunc(labelPos, labelNeg, v_labelK0Spos, v_labelK0Sneg);
 #endif
       MY_DEBUG_MSG(isLc, printf("\n"); LOG(INFO) << "In selector: correct Lc found: proton --> " << protonLabel << ", posTrack --> " << labelPos << ", negTrack --> " << labelNeg);
       //MY_DEBUG_MSG(isLc != 1, printf("\n"); LOG(INFO) << "In selector: wrong Lc found: proton --> " << protonLabel << ", posTrack --> " << labelPos << ", negTrack --> " << labelNeg);

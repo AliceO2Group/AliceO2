@@ -76,7 +76,7 @@ DECLARE_SOA_TABLE(V0GoodIndices, "AOD", "V0GOODINDICES", o2::soa::Index<>,
 using FullTracksExt = soa::Join<aod::FullTracks, aod::TracksExtended>;
 using FullTracksExtMC = soa::Join<FullTracksExt, aod::McTrackLabels>;
 
-//#define MY_DEBUG
+#define MY_DEBUG
 #ifdef MY_DEBUG
 using MyTracks = FullTracksExtMC;
 #define MY_DEBUG_MSG(condition, cmd) \
@@ -97,6 +97,12 @@ struct lambdakzeroprefilterpairs {
   Configurable<int> mincrossedrows{"mincrossedrows", 70, "min crossed rows"};
   Configurable<int> tpcrefit{"tpcrefit", 1, "demand TPC refit"};
 
+  // for debugging
+#ifdef MY_DEBUG
+  Configurable<std::vector<int>> v_labelK0Spos{"v_labelK0Spos", {729, 2866, 4754}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> v_labelK0Sneg{"v_labelK0Sneg", {730, 2867, 4755}, "labels of K0S positive daughters, for debug"};
+#endif
+  
   HistogramRegistry registry{
     "registry",
     {
@@ -119,7 +125,7 @@ struct lambdakzeroprefilterpairs {
 #ifdef MY_DEBUG
       auto labelPos = V0.posTrack_as<MyTracks>().mcParticleId();
       auto labelNeg = V0.negTrack_as<MyTracks>().mcParticleId();
-      bool isK0SfromLc = isK0SfromLcFunc(labelPos, labelNeg);
+      bool isK0SfromLc = isK0SfromLcFunc(labelPos, labelNeg, v_labelK0Spos, v_labelK0Sneg);
 #endif
       MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "V0 builder: found K0S from Lc, posTrack --> " << labelPos << ", negTrack --> " << labelNeg);
 
@@ -183,6 +189,12 @@ struct lambdakzerobuilder {
   Configurable<float> dcav0dau{"dcav0dau", 1.0, "DCA V0 Daughters"};
   Configurable<float> v0radius{"v0radius", 5.0, "v0radius"};
 
+  // for debugging
+#ifdef MY_DEBUG
+  Configurable<std::vector<int>> v_labelK0Spos{"v_labelK0Spos", {729, 2866, 4754}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> v_labelK0Sneg{"v_labelK0Sneg", {730, 2867, 4755}, "labels of K0S positive daughters, for debug"};
+#endif
+
   double massPi = TDatabasePDG::Instance()->GetParticle(kPiPlus)->Mass();
   double massKa = TDatabasePDG::Instance()->GetParticle(kKPlus)->Mass();
   double massPr = TDatabasePDG::Instance()->GetParticle(kProton)->Mass();
@@ -216,7 +228,7 @@ struct lambdakzerobuilder {
 #ifdef MY_DEBUG
       auto labelPos = V0.posTrack_as<MyTracks>().mcParticleId();
       auto labelNeg = V0.negTrack_as<MyTracks>().mcParticleId();
-      bool isK0SfromLc = isK0SfromLcFunc(labelPos, labelNeg);
+      bool isK0SfromLc = isK0SfromLcFunc(labelPos, labelNeg, v_labelK0Spos, v_labelK0Sneg);
 #endif
 
       MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "labelPos = " << labelPos << ", labelNeg = " << labelNeg);
