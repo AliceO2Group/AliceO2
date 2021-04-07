@@ -661,7 +661,7 @@ GPUdic(0, 1) int GPUTPCGMTrackParam::FollowCircle(const GPUTPCGMMerger* GPUrestr
   }
   bool up = (mP[2] < 0) ^ right;
   int targetRow = up ? (GPUCA_ROW_COUNT - 1) : 0;
-  float lrFactor = mP[2] > 0 ? 1.f : -1.f; // right ^ down
+  float lrFactor = mP[2] < 0 ? -1.f : 1.f; // !(right ^ down) // TODO: shouldn't it be "right ? 1.f : -1.f", but that gives worse results...
   // clang-format off
   CADEBUG(printf("CIRCLE Track %d: Slice %d Alpha %f X %f Y %f Z %f SinPhi %f DzDs %f - Next hit: Slice %d Alpha %f X %f Y %f - Right %d Up %d dAlpha %f lrFactor %f\n", iTrack, slice, prop.GetAlpha(), mX, mP[0], mP[1], mP[2], mP[3], toSlice, toAlpha, toX, toY, (int)right, (int)up, dAlpha, lrFactor));
   // clang-format on
@@ -680,8 +680,7 @@ GPUdic(0, 1) int GPUTPCGMTrackParam::FollowCircle(const GPUTPCGMMerger* GPUrestr
         return 1;
       }
       CADEBUG(printf("Propagated to y = %f: X %f Z %f SinPhi %f\n", mX, mP[0], mP[1], mP[2]));
-      int found = 0;
-      for (int j = 0; j < GPUCA_ROW_COUNT && found < 3; j++) {
+      for (int j = 0; j < GPUCA_ROW_COUNT; j++) {
         float rowX = Merger->Param().tpcGeometry.Row2X(j);
         if (CAMath::Abs(rowX - (-mP[0] * lrFactor)) < 1.5f) {
           CADEBUG(printf("Attempt row %d (Y %f Z %f)\n", j, mX * lrFactor, mP[1]));
