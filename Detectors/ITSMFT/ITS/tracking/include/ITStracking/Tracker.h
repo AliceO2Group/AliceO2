@@ -31,6 +31,7 @@
 #include "ITStracking/ROframe.h"
 #include "ITStracking/MathUtils.h"
 #include "ITStracking/PrimaryVertexContext.h"
+#include "DetectorsBase/Propagator.h"
 #include "ITStracking/Road.h"
 
 #include "DataFormatsITS/TrackITS.h"
@@ -44,11 +45,6 @@
 
 namespace o2
 {
-namespace base
-{
-template <typename>
-class PropagatorImpl;
-}
 
 namespace gpu
 {
@@ -80,8 +76,10 @@ class Tracker
 
   void setROFrame(std::uint32_t f) { mROFrame = f; }
   std::uint32_t getROFrame() const { return mROFrame; }
+  void setCorrType(const o2::base::PropagatorImpl<float>::MatCorrType& type) { mCorrType = type; }
   void setParameters(const std::vector<MemoryParameters>&, const std::vector<TrackingParameters>&);
   void getGlobalConfiguration();
+  bool isMatLUT() const { return mCorrType == o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT; }
 
  private:
   track::TrackParCov buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3,
@@ -110,6 +108,7 @@ class Tracker
   std::vector<TrackingParameters> mTrkParams;
 
   bool mCUDA = false;
+  o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT;
   float mBz = 5.f;
   std::uint32_t mROFrame = 0;
   std::vector<TrackITSExt> mTracks;

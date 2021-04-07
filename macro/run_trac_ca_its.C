@@ -35,6 +35,7 @@
 #include "ITStracking/Vertexer.h"
 
 #include "MathUtils/Utils.h"
+#include "DetectorsBase/Propagator.h"
 
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -90,6 +91,7 @@ void run_trac_ca_its(bool cosmics = false,
   }
   double origD[3] = {0., 0., 0.};
   tracker.setBz(field->getBz(origD));
+  // tracker.setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrTGeo);
 
   bool isITS = grp->isDetReadOut(o2::detectors::DetID::ITS);
   if (!isITS) {

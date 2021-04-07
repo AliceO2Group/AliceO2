@@ -37,6 +37,9 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
 
 struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerParamConfig> {
 
+  // Use TGeo for mat. budget
+  bool useMatCorrTGeo = false;
+
   O2ParamDef(TrackerParamConfig, "ITSCATrackerParam");
 };
 
