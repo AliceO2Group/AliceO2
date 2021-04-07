@@ -13,7 +13,7 @@
 #include <algorithm>
 #include "FairLogger.h" // for LOG
 #include "Framework/Logger.h"
-#include "HMPIDBase/Cluster.h"
+#include "DataFormatsHMP/Cluster.h"
 #include "HMPIDReconstruction/Clusterer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"

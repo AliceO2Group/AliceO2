@@ -8,10 +8,16 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-# o2_add_library(DataFormatsHMP
-#               SOURCES src/Cluster.cxx
-#               PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
-#                                     Boost::serialization)
+o2_add_library(DataFormatsHMP
+               SOURCES src/Digit.cxx src/Cluster.cxx src/Trigger.cxx
+               PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
+                                     O2::HMPIDBase
+                                     O2::CommonDataFormat 
+                                     O2::SimulationDataFormat)
 
-# o2_target_root_dictionary(DataFormatsHMP
-#                          HEADERS include/DataFormatsHMP/DataFormat.h
+o2_target_root_dictionary(DataFormatsHMP
+                          HEADERS include/DataFormatsHMP/DataFormat.h
+                                  include/DataFormatsHMP/Digit.h
+                                  include/DataFormatsHMP/Trigger.h
+                                  include/DataFormatsHMP/Cluster.h
+                                  include/DataFormatsHMP/Hit.h)

@@ -14,8 +14,8 @@
 #include "Framework/DataProcessorSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
-#include "HMPIDBase/Digit.h"
-#include "HMPIDBase/Trigger.h"
+#include "DataFormatsHMP/Digit.h"
+#include "DataFormatsHMP/Trigger.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
@@ -36,7 +36,7 @@ o2::framework::DataProcessorSpec getHMPIDDigitWriterSpec(bool mctruth = true)
                                 "o2sim",
                                 1,
                                 BranchDefinition<std::vector<o2::hmpid::Digit>>{InputSpec{"digitinput", "HMP", "DIGITS"}, "HMPDigit"},
-                                BranchDefinition<std::vector<o2::hmpid::Trigger>>{InputSpec{"interactionrecods", "HMP", "INTRECORDS"}, "InteractionRecords"},
+                                BranchDefinition<std::vector<o2::hmpid::Event>>{InputSpec{"interactionrecods", "HMP", "INTRECORDS"}, "InteractionRecords"},
                                 BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{InputSpec{"labelinput", "HMP", "DIGITLBL"}, "HMPDigitLabels", mctruth ? 1 : 0})();
 }
 
