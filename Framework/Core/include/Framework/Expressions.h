@@ -40,10 +40,13 @@ class Filter;
 #include <variant>
 #include <string>
 #include <memory>
+#include <typeinfo>
+#include <set>
 
 using atype = arrow::Type;
 struct ExpressionInfo {
   size_t index;
+  std::set<size_t> hashes;
   gandiva::SchemaPtr schema;
   gandiva::NodePtr tree;
 };
@@ -104,8 +107,9 @@ struct LiteralNode {
 struct BindingNode {
   BindingNode(BindingNode const&) = default;
   BindingNode(BindingNode&&) = delete;
-  BindingNode(std::string const& name_, atype::type type_) : name{name_}, type{type_} {}
+  BindingNode(std::string const& name_, std::size_t hash_, atype::type type_) : name{name_}, hash{hash_}, type{type_} {}
   std::string name;
+  std::size_t hash;
   atype::type type;
 };
 
