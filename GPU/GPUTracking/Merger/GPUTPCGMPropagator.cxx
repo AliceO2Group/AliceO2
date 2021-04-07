@@ -940,12 +940,12 @@ GPUd() void GPUTPCGMPropagator::Rotate180()
   mT->QPt() = -mT->QPt();
   mT->DzDs() = -mT->DzDs();
 
-  mAlpha = mAlpha + M_PI;
-  while (mAlpha >= M_PI) {
-    mAlpha -= 2 * M_PI;
+  mAlpha = mAlpha + CAMath::Pi();
+  while (mAlpha >= CAMath::Pi()) {
+    mAlpha -= CAMath::TwoPi();
   }
-  while (mAlpha < -M_PI) {
-    mAlpha += 2 * M_PI;
+  while (mAlpha < -CAMath::Pi()) {
+    mAlpha += CAMath::TwoPi();
   }
   mCosAlpha = -mCosAlpha;
   mSinAlpha = -mSinAlpha;

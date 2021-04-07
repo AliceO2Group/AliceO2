@@ -181,10 +181,10 @@ class GPUTPCGMTrackParam
   }
   GPUdi() static void NormalizeAlpha(float& alpha)
   {
-    if (alpha > M_PI) {
-      alpha -= 2 * M_PI;
-    } else if (alpha <= -M_PI) {
-      alpha += 2 * M_PI;
+    if (alpha > CAMath::Pi()) {
+      alpha -= CAMath::TwoPi();
+    } else if (alpha <= -CAMath::Pi()) {
+      alpha += CAMath::TwoPi();
     }
   }
 
