@@ -244,7 +244,7 @@ struct GPUTPCGMLoopData {
   float toAlpha;
   unsigned char slice;
   unsigned char row;
-  unsigned char toSlice;
+  char toSlice;
   unsigned char toRow;
   unsigned char inFlyDirection;
 };
