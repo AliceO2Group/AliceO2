@@ -20,6 +20,7 @@
 #include "AnalysisDataModel/PID/PIDTPC.h"
 #include "AnalysisDataModel/PID/TPCReso.h"
 #include "AnalysisDataModel/PID/BetheBloch.h"
+#include "AnalysisDataModel/TrackSelectionTables.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -264,13 +265,11 @@ struct pidTPCTaskQA {
     histos.fill(HIST(hnsigma[i]), t.p(), nsigma);
   }
 
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::TracksExtended> const& tracks)
+  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::TrackSelection> const& tracks)
   {
     histos.fill(HIST("event/vertexz"), collision.posZ());
 
     for (auto t : tracks) {
-      if (abs(t.dcaXY()) > 0.2)
-        continue;
       // const float mom = t.p();
       const float mom = t.tpcInnerParam();
       histos.fill(HIST("event/tpcsignal"), mom, t.tpcSignal());
