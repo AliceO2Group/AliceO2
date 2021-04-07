@@ -19,6 +19,7 @@
 #include "AnalysisDataModel/PID/PIDResponse.h"
 #include "AnalysisDataModel/PID/PIDTOF.h"
 #include "AnalysisDataModel/PID/TOFReso.h"
+#include "AnalysisDataModel/TrackSelectionTables.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -221,8 +222,6 @@ struct pidTOFTaskQA {
   Configurable<int> nBinsP{"nBinsP", 400, "Number of bins for the momentum"};
   Configurable<float> MinP{"MinP", 0.1f, "Minimum momentum in range"};
   Configurable<float> MaxP{"MaxP", 5.f, "Maximum momentum in range"};
-  Configurable<float> MinEta{"MinEta", -0.8f, "Minimum eta in range"};
-  Configurable<float> MaxEta{"MaxEta", 0.8f, "Maximum eta in range"};
   Configurable<int> nBinsDelta{"nBinsDelta", 200, "Number of bins for the Delta"};
   Configurable<float> MinDelta{"MinDelta", -1000.f, "Minimum Delta in range"};
   Configurable<float> MaxDelta{"MaxDelta", 1000.f, "Maximum Delta in range"};
@@ -302,7 +301,7 @@ struct pidTOFTaskQA {
     histos.fill(HIST(hnsigma[i]), t.p(), nsigma);
   }
 
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::pidRespTOF, aod::pidRespTOFbeta, aod::TracksExtended> const& tracks)
+  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::pidRespTOF, aod::pidRespTOFbeta, aod::TrackSelection> const& tracks)
   {
     const float collisionTime_ps = collision.collisionTime() * 1000.f;
     histos.fill(HIST("event/vertexz"), collision.posZ());
@@ -310,15 +309,10 @@ struct pidTOFTaskQA {
 
     for (auto t : tracks) {
       //
-      if (abs(t.dcaXY()) > 0.2)
-        continue;
       if (t.tofSignal() < 0) { // Skipping tracks without TOF
         continue;
       }
-      if (t.eta() > MaxEta) {
-        continue;
-      }
-      if (t.eta() < MinEta) {
+      if (!t.isGlobalTrack()) {
         continue;
       }
 
