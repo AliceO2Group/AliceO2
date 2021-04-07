@@ -44,6 +44,12 @@
 
 namespace o2
 {
+namespace base
+{
+template <typename>
+class PropagatorImpl;
+}
+
 namespace gpu
 {
 class GPUChainITS;
@@ -89,7 +95,7 @@ class Tracker
   void findCellsNeighbours(int& iteration);
   void findRoads(int& iteration);
   void findTracks(const ROframe& ev);
-  bool fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step,
+  bool fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step, o2::base::PropagatorImpl<float>* propPtr,
                 const float chi2cut = o2::constants::math::VeryBig);
   void traverseCellsTree(const int, const int);
   void computeRoadsMClabels(const ROframe&);
