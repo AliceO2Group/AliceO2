@@ -20,7 +20,7 @@
 #include <TObjArray.h>
 #include <stdio.h>
 #include "Align/AliAlgAux.h"
-//#include "Align/AliAlgTrack.h" FIXME(milettri): needs AliAlgTrack
+#include "Align/AliAlgTrack.h"
 #include "Align/AliAlgDOFStat.h"
 #include "Align/AliAlgPoint.h"
 #include "Align/AliAlgSens.h"

@@ -17,7 +17,7 @@
 #include "Align/AliAlgSens.h"
 #include "Align/AliAlgDet.h"
 //#include "Align/AliAlgSteer.h" FIXME(milettri): needs AliAlgSteer
-//#include "Align/AliAlgTrack.h" FIXME(milettri): needs AliAlgTrack
+#include "Align/AliAlgTrack.h"
 #include "Align/AliAlgDOFStat.h"
 #include "Align/AliAlgConstraint.h"
 #include "Framework/Logger.h"

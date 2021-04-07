@@ -14,7 +14,7 @@
 /// @brief  Track model for the alignment
 
 /**
-  * Track model for the alignment: AliExternalTrackParam for kinematics
+  * Track model for the alignment: trackParam_t for kinematics
   * proper with number of multiple scattering kinks.
   * Full support for derivatives and residuals calculation
   */
@@ -22,8 +22,8 @@
 #ifndef ALIALGTRACK_H
 #define ALIALGTRACK_H
 
-//#include "AliExternalTrackParam.h"
 #include "Align/AliAlgPoint.h"
+#include "ReconstructionDataFormats/Track.h"
 #include <TObjArray.h>
 #include <TArrayD.h>
 #include <TArrayI.h>
@@ -33,7 +33,9 @@ namespace o2
 namespace align
 {
 
-class AliAlgTrack : public AliExternalTrackParam
+using trackParam_t = o2::track::TrackParametrizationWithError<double>;
+
+class AliAlgTrack : public trackParam_t, public TObject
 {
  public:
   enum { kCosmicBit = BIT(14),
@@ -71,10 +73,10 @@ class AliAlgTrack : public AliExternalTrackParam
   virtual void Print(Option_t* opt = "") const;
   virtual void DumpCoordinates() const;
   //
-  Bool_t PropagateToPoint(AliExternalTrackParam& tr, const AliAlgPoint* pnt,
+  Bool_t PropagateToPoint(trackParam_t& tr, const AliAlgPoint* pnt,
                           int minNSteps, double maxStep, Bool_t matCor, double* matPar = 0);
-  Bool_t PropagateParamToPoint(AliExternalTrackParam& tr, const AliAlgPoint* pnt, double maxStep = 3);             // param only
-  Bool_t PropagateParamToPoint(AliExternalTrackParam* trSet, int nTr, const AliAlgPoint* pnt, double maxStep = 3); // params only
+  Bool_t PropagateParamToPoint(trackParam_t& tr, const AliAlgPoint* pnt, double maxStep = 3);             // param only
+  Bool_t PropagateParamToPoint(trackParam_t* trSet, int nTr, const AliAlgPoint* pnt, double maxStep = 3); // params only
   //
   Bool_t CalcResiduals(const double* params = 0);
   Bool_t CalcResidDeriv(double* params = 0);
@@ -95,7 +97,7 @@ class AliAlgTrack : public AliExternalTrackParam
   Bool_t IniFit();
   Bool_t ResidKalman();
   Bool_t ProcessMaterials();
-  Bool_t CombineTracks(AliExternalTrackParam& trcL, const AliExternalTrackParam& trcU);
+  Bool_t CombineTracks(trackParam_t& trcL, const trackParam_t& trcU);
   //
   void SetChi2(double c) { fChi2 = c; };
   Double_t GetChi2() const { return fChi2; }
@@ -104,26 +106,26 @@ class AliAlgTrack : public AliExternalTrackParam
   Double_t GetChi2CosmUp() const { return fChi2CosmUp; }
   Double_t GetChi2CosmDn() const { return fChi2CosmDn; }
   //
-  void ImposePtBOff(double pt) { fP[kParQ2Pt] = 1. / pt; }
+  void ImposePtBOff(double pt) { setQ2Pt(1. / pt); }
   // propagation methods
-  void CopyFrom(const AliExternalTrackParam* etp);
-  Bool_t ApplyMatCorr(AliExternalTrackParam& trPar, const Double_t* corrDiag, const AliAlgPoint* pnt);
-  Bool_t ApplyMatCorr(AliExternalTrackParam* trSet, int ntr, const Double_t* corrDiaf, const AliAlgPoint* pnt);
-  Bool_t ApplyMatCorr(AliExternalTrackParam& trPar, const Double_t* corrpar);
+  void CopyFrom(const trackParam_t* etp);
+  Bool_t ApplyMatCorr(trackParam_t& trPar, const Double_t* corrDiag, const AliAlgPoint* pnt);
+  Bool_t ApplyMatCorr(trackParam_t* trSet, int ntr, const Double_t* corrDiaf, const AliAlgPoint* pnt);
+  Bool_t ApplyMatCorr(trackParam_t& trPar, const Double_t* corrpar);
   //
   Double_t GetResidual(int dim, int pntID) const { return fResidA[dim][pntID]; }
   Double_t* GetDResDLoc(int dim, int pntID) const { return &fDResDLocA[dim][pntID * fNLocPar]; }
   Double_t* GetDResDGlo(int dim, int id) const { return &fDResDGloA[dim][id]; }
   Int_t* GetGloParID() const { return fGloParIDA; }
   //
-  void SetParams(AliExternalTrackParam& tr, double x, double alp, const double* par, Bool_t add);
-  void SetParams(AliExternalTrackParam* trSet, int ntr, double x, double alp, const double* par, Bool_t add);
-  void SetParam(AliExternalTrackParam& tr, int par, double val);
-  void SetParam(AliExternalTrackParam* trSet, int ntr, int par, double val);
-  void ModParam(AliExternalTrackParam& tr, int par, double delta);
-  void ModParam(AliExternalTrackParam* trSet, int ntr, int par, double delta);
+  void SetParams(trackParam_t& tr, double x, double alp, const double* par, Bool_t add);
+  void SetParams(trackParam_t* trSet, int ntr, double x, double alp, const double* par, Bool_t add);
+  void SetParam(trackParam_t& tr, int par, double val);
+  void SetParam(trackParam_t* trSet, int ntr, int par, double val);
+  void ModParam(trackParam_t& tr, int par, double delta);
+  void ModParam(trackParam_t* trSet, int ntr, int par, double delta);
   //
-  void RichardsonDeriv(const AliExternalTrackParam* trSet, const double* delta,
+  void RichardsonDeriv(const trackParam_t* trSet, const double* delta,
                        const AliAlgPoint* pnt, double& derY, double& derZ);
   //
   const Double_t* GetLocPars() const { return fLocParA; }
@@ -133,8 +135,8 @@ class AliAlgTrack : public AliExternalTrackParam
   //
   Bool_t CalcResidDeriv(double* params, Bool_t invert, int pFrom, int pTo);
   Bool_t CalcResiduals(const double* params, Bool_t invert, int pFrom, int pTo);
-  Bool_t FitLeg(AliExternalTrackParam& trc, int pFrom, int pTo, Bool_t& inv);
-  Bool_t ProcessMaterials(AliExternalTrackParam& trc, int pFrom, int pTo);
+  Bool_t FitLeg(trackParam_t& trc, int pFrom, int pTo, Bool_t& inv);
+  Bool_t ProcessMaterials(trackParam_t& trc, int pFrom, int pTo);
   //
   void CheckExpandDerGloBuffer(int minSize);
   //
@@ -146,7 +148,7 @@ class AliAlgTrack : public AliExternalTrackParam
   AliAlgTrack& operator=(const AliAlgTrack&);
   //
  protected:
-  //
+  //trackParam_t
   Int_t fNLocPar;              // number of local params
   Int_t fNLocExtPar;           // number of local params for the external track param
   Int_t fNGloPar;              // number of free global parameters the track depends on
@@ -175,23 +177,34 @@ class AliAlgTrack : public AliExternalTrackParam
 };
 
 //____________________________________________________________________________________________
-inline void AliAlgTrack::SetParams(AliExternalTrackParam& tr, double x, double alp, const double* par, Bool_t add)
+inline void AliAlgTrack::SetParams(trackParam_t& tr, double x, double alp, const double* par, Bool_t add)
 {
   // set track params
-  const float kDefQ2PtCosm = 1., kDefG2PtColl = 1. / 0.6;
-  tr.SetParamOnly(x, alp, par);
-  double* parTr = (double*)tr.GetParameter();
+  const double kDefQ2PtCosm = 1;
+  const double kDefG2PtColl = 1. / 0.6;
+  params_t tmp;
+  std::copy(par, par + kNKinParBON, std::begin(tmp));
+  tr.set(x, alp, tmp);
   if (add) { // par is correction to reference params
-    for (int i = kNKinParBON; i--;)
-      parTr[i] += GetParameter()[i];
+    for (size_t i = 0; i < kNKinParBON; ++i) {
+      const double val = tr.getParam(i) + this->getParam(i);
+      tr.setParam(val, i);
+    }
   }
-  if (!GetFieldON())
-    parTr[4] = IsCosmic() ? kDefQ2PtCosm : kDefG2PtColl; // only 4 params are valid
-  //
+  if (!GetFieldON()) {
+    const double val = [&]() {
+      if (this->IsCosmic()) {
+        return kDefQ2PtCosm;
+      } else {
+        return kDefG2PtColl;
+      }
+    }();
+    tr.setQ2Pt(val); // only 4 params are valid
+  }
 }
 
 //____________________________________________________________________________________________
-inline void AliAlgTrack::SetParams(AliExternalTrackParam* trSet, int ntr, double x, double alp, const double* par, Bool_t add)
+inline void AliAlgTrack::SetParams(trackParam_t* trSet, int ntr, double x, double alp, const double* par, Bool_t add)
 {
   // set parames for multiple tracks (VECTORIZE THIS)
   if (!add) { // full parameter supplied
@@ -199,48 +212,51 @@ inline void AliAlgTrack::SetParams(AliExternalTrackParam* trSet, int ntr, double
       SetParams(trSet[itr], x, alp, par, kFALSE);
     return;
   }
-  double partr[kNKinParBON] = {0}; // par is a correction to reference parameter
+  params_t partr{0}; // par is a correction to reference parameter
   for (int i = fNLocExtPar; i--;)
-    partr[i] = GetParameter()[i] + par[i];
+    partr[i] = getParam(i) + par[i];
   for (int itr = ntr; itr--;)
-    SetParams(trSet[itr], x, alp, partr, kFALSE);
+    SetParams(trSet[itr], x, alp, partr.data(), kFALSE);
 }
 
 //____________________________________________________________________________________________
-inline void AliAlgTrack::SetParam(AliExternalTrackParam& tr, int par, double val)
+inline void AliAlgTrack::SetParam(trackParam_t& tr, int par, double val)
 {
   // set track parameter
-  ((double*)tr.GetParameter())[par] = val;
+  tr.setParam(val, par);
 }
 
 //____________________________________________________________________________________________
-inline void AliAlgTrack::SetParam(AliExternalTrackParam* trSet, int ntr, int par, double val)
+inline void AliAlgTrack::SetParam(trackParam_t* trSet, int ntr, int par, double val)
 {
   // set parames for multiple tracks (VECTORIZE THIS)
-  for (int itr = ntr; itr--;)
-    ((double*)trSet[itr].GetParameter())[par] = val;
+  for (int i = 0; i < ntr; ++i) {
+    SetParam(trSet[i], par, val);
+  }
 }
 
 //____________________________________________________________________________________________
-inline void AliAlgTrack::ModParam(AliExternalTrackParam& tr, int par, double delta)
+inline void AliAlgTrack::ModParam(trackParam_t& tr, int par, double delta)
 {
   // modify track parameter
-  ((double*)tr.GetParameter())[par] += delta;
+  const auto val = tr.getParam(par) + delta;
+  SetParam(tr, par, val);
 }
 
 //____________________________________________________________________________________________
-inline void AliAlgTrack::ModParam(AliExternalTrackParam* trSet, int ntr, int par, double delta)
+inline void AliAlgTrack::ModParam(trackParam_t* trSet, int ntr, int par, double delta)
 {
   // modify track parameter (VECTORIZE THOS)
-  for (int itr = ntr; itr--;)
-    ModParam(trSet[itr], par, delta);
+  for (size_t i = 0; i < ntr; ++i) {
+    ModParam(trSet[i], par, delta);
+  }
 }
 
 //______________________________________________
-inline void AliAlgTrack::CopyFrom(const AliExternalTrackParam* etp)
+inline void AliAlgTrack::CopyFrom(const trackParam_t* etp)
 {
   // assign kinematics
-  Set(etp->GetX(), etp->GetAlpha(), etp->GetParameter(), etp->GetCovariance());
+  set(etp->getX(), etp->getAlpha(), etp->getParams(), etp->getCov().data());
 }
 } // namespace align
 } // namespace o2
