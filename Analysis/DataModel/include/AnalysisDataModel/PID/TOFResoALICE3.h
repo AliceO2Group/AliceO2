@@ -64,7 +64,8 @@ float TOFResoALICE3Param(const float& momentum, const float& momentumError, cons
   const float p2 = momentum * momentum;
   const float Lc = length / 0.0299792458f;
   const float mass2 = mass * mass;
-  const float ep = momentumError * p2;
+  const float ep = momentumError * momentum;
+  // const float ep = momentumError * p2;
   const float etexp = Lc * mass2 / p2 / sqrt(mass2 + p2) * ep;
   return sqrt(etexp * etexp + parameters[0] * parameters[0] + evtimereso * evtimereso);
 }
@@ -74,6 +75,7 @@ float TOFResoALICE3ParamTrack(const C& collision, const T& track, const Paramete
 {
   const float BETA = tan(0.25f * static_cast<float>(M_PI) - 0.5f * atan(track.tgl()));
   const float sigmaP = sqrt(pow(track.pt(), 2) * pow(track.sigma1Pt(), 2) + (BETA * BETA - 1.f) / (BETA * (BETA * BETA + 1.f)) * (track.tgl() / sqrt(track.tgl() * track.tgl() + 1.f) - 1.f) * pow(track.sigmaTgl(), 2));
+  // const float sigmaP = std::sqrt( track.getSigma1Pt2() ) * track.pt();
   return TOFResoALICE3Param(track.p(), sigmaP, collision.collisionTimeRes() * 1000.f, track.length(), o2::track::pid_constants::sMasses[id], parameters);
   // return TOFResoALICE3Param(track.p(), track.sigma1Pt(), collision.collisionTimeRes() * 1000.f, track.length(), o2::track::pid_constants::sMasses[id], parameters);
 }
