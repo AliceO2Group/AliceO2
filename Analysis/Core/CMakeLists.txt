@@ -27,7 +27,7 @@ o2_target_root_dictionary(AnalysisCore
 o2_add_executable(merger
               COMPONENT_NAME aod
               SOURCES src/AODMerger.cxx
-              PUBLIC_LINK_LIBRARIES ROOT::Hist ROOT::Core)
+              PUBLIC_LINK_LIBRARIES ROOT::Hist ROOT::Core ROOT::Net)
 
 if(FastJet_FOUND)
 o2_add_library(AnalysisJets

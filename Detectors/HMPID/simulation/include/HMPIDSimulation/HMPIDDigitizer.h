@@ -11,8 +11,8 @@
 #ifndef DETECTORS_HMPID_SIMULATION_INCLUDE_HMPIDSIMULATION_HMPIDDIGITIZER_H_
 #define DETECTORS_HMPID_SIMULATION_INCLUDE_HMPIDSIMULATION_HMPIDDIGITIZER_H_
 
-#include "HMPIDBase/Digit.h"
-#include "HMPIDBase/Trigger.h"
+#include "DataFormatsHMP/Digit.h"
+#include "DataFormatsHMP/Trigger.h"
 #include "HMPIDSimulation/Detector.h" // for the hit
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -45,12 +45,12 @@ class HMPIDDigitizer
       // for the first trigger no busy check necessary
       mCurrentTriggerTime = timeNS;
       mReadoutCounter++;
-      Trigger::TimeNsToOrbitBc(mCurrentTriggerTime, mOrbit, mBc);
+      mBc = o2::InteractionRecord::ns2bc(mCurrentTriggerTime, mOrbit);
       return true;
     } else {
       if ((timeNS - mCurrentTriggerTime) > BUSYTIME) {
         mCurrentTriggerTime = timeNS;
-        Trigger::TimeNsToOrbitBc(mCurrentTriggerTime, mOrbit, mBc);
+        mBc = o2::InteractionRecord::ns2bc(mCurrentTriggerTime, mOrbit);
         mReadoutCounter++;
         return true;
       } else {

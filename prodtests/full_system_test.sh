@@ -61,7 +61,7 @@ QED2HAD=$(awk "BEGIN {printf \"%.2f\",`grep xSectionQED qedgenparam.ini | cut -d
 echo "Obtained ratio of QED to hadronic x-sections = $QED2HAD" >> qedsim.log
 cd ..
 
-DIGITRDOPTREAL="--configKeyValues \"TRDSimParams.digithreads=${NJOBS}\" --enable-trd-trapsim"
+DIGITRDOPTREAL="--configKeyValues \"TRDSimParams.digithreads=${NJOBS}\" "
 if [ $SPLITTRDDIGI == "1" ]; then
   DIGITRDOPT="--skipDet TRD"
 else
@@ -75,9 +75,9 @@ touch digiTRD.log_done
 
 if [ "0$GENERATE_ITS_DICTIONARY" == "01" ]; then
   taskwrapper itsdict1.log o2-its-reco-workflow --trackerCA --disable-mc --configKeyValues '"fastMultConfig.cutMultClusLow=30000;fastMultConfig.cutMultClusHigh=2000000;fastMultConfig.cutMultVtxHigh=500"'
-  cp ~/alice/O2/Detectors/ITSMFT/ITS/macros/test/CheckTopologies.C .
-  taskwrapper itsdict2.log root -b -q CheckTopologies.C++
-  rm -f CheckTopologies_C*
+  cp ~/alice/O2/Detectors/ITSMFT/ITS/macros/test/CreateDictionaries.C .
+  taskwrapper itsdict2.log root -b -q CreateDictionaries.C++
+  rm -f CreateDictionaries_C*
 fi
 
 mkdir -p raw

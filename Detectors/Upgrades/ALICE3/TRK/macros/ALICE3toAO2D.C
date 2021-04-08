@@ -48,6 +48,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "ReconstructionDataFormats/DCA.h"
 #include "ReconstructionDataFormats/Vertex.h"
+#include "Framework/DataTypes.h"
 #include "UpgradesAODUtils/Run2LikeAO2D.h"
 #endif
 
@@ -528,12 +529,12 @@ void ALICE3toAO2D()
         hPtSpectraFake->Fill(track.getPt());
 
       tracks.fCollisionsID = lEventNumber;
-      tracks.fTrackType = TrackTypeEnum::Run2GlobalTrack; //Make track selection happy, please
+      tracks.fTrackType = o2::aod::track::TrackTypeEnum::Run2Track; //Make track selection happy, please
       tracks.fFlags = 0x0;
       //Assume it all worked, fool regular selections
-      tracks.fFlags |= TrackFlagsRun2Enum::ITSrefit;
-      tracks.fFlags |= TrackFlagsRun2Enum::TPCrefit;
-      tracks.fFlags |= TrackFlagsRun2Enum::GoldenChi2;
+      tracks.fFlags |= o2::aod::track::TrackFlagsRun2Enum::ITSrefit;
+      tracks.fFlags |= o2::aod::track::TrackFlagsRun2Enum::TPCrefit;
+      tracks.fFlags |= o2::aod::track::TrackFlagsRun2Enum::GoldenChi2;
 
       //Main: X, alpha, track params
       tracks.fX = track.getX();

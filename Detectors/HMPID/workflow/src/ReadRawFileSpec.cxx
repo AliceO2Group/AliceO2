@@ -12,7 +12,7 @@
 /// \author Antonio Franco - INFN Bari
 /// \version 1.0
 /// \date 01 feb 2021
-/// \brief Implementation of a data processor to read a raw file and produce Digits stream
+/// \brief Implementation of a data processor to read a raw file and produce Raw Pages stream
 ///
 
 #include <random>

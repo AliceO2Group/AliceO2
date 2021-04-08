@@ -15,16 +15,17 @@
 #include <cstring>
 #include <string>
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string/replace.hpp>
 
 namespace bfs = boost::filesystem;
 
 namespace o2::framework
 {
 
+const char* indScheme = "  ";
+
 namespace implementation
 {
-
-const char* indScheme = "  ";
 
 std::string taskName(const std::string& workflowName, const std::string& deviceName)
 {
@@ -49,7 +50,6 @@ void dumpChannelConnect(std::ostream& dumpOut, const T& channel, const std::stri
   dumpOut << indLevel << indScheme << "type: " << ChannelSpecHelpers::typeAsString(channel.type) << "\n";
   // todo: i shouldn't guess here
   dumpOut << indLevel << indScheme << "transport: " << (channel.protocol == ChannelProtocol::IPC ? "shmem" : "zeromq") << "\n";
-
   dumpOut << indLevel << indScheme << "target: \"{{ Parent().Path }}." << binderName << ":" << channel.name << "\"\n";
   dumpOut << indLevel << indScheme << "rateLogging: \"{{ fmq_rate_logging }}\"\n";
 }
@@ -65,17 +65,32 @@ struct RawChannel {
 
 void dumpRawChannelConnect(std::ostream& dumpOut, const RawChannel& channel, std::string indLevel)
 {
+  auto templateFriendlyChannelName = std::string(channel.name);
+  boost::replace_all(templateFriendlyChannelName, "-", "_");
+  boost::replace_all(templateFriendlyChannelName, "/", "_");
+  boost::replace_all(templateFriendlyChannelName, "*", "_");
+  boost::replace_all(templateFriendlyChannelName, "+", "_");
+  boost::replace_all(templateFriendlyChannelName, ".", "_");
+  boost::replace_all(templateFriendlyChannelName, "%", "_");
+  std::string pathToChannel = "path_to_" + templateFriendlyChannelName;
+
+  LOG(INFO) << "This topology will connect to the channel '" << channel.name << "', which is most likely bound outside."
+            << " Please provide the path to this channel under the name '" << pathToChannel
+            << "' in the mother workflow.";
+
   dumpOut << indLevel << "- name: " << channel.name << "\n";
   dumpOut << indLevel << indScheme << "type: " << channel.type << "\n";
   dumpOut << indLevel << indScheme << "transport: " << channel.transport << "\n";
-  // for now, we have to replace any '-' signs in the channel name with '_',
-  // otherwise the template engine treats it as subtraction.
-  dumpOut << indLevel << indScheme << "target: \"{{ path_to_" << channel.name << " }}\"\n";
+
+  dumpOut << indLevel << indScheme << "target: \"{{ " << pathToChannel << " }}\"\n";
   dumpOut << indLevel << indScheme << "rateLogging: \"{{ fmq_rate_logging }}\"\n";
 }
 
 void dumpRawChannelBind(std::ostream& dumpOut, const RawChannel& channel, std::string indLevel)
 {
+  LOG(INFO) << "This topology will bind a dangling channel '" << channel.name << "'."
+            << " Please make sure that another device connects to this channel elsewhere.";
+
   dumpOut << indLevel << "- name: " << channel.name << "\n";
   dumpOut << indLevel << indScheme << "type: " << channel.type << "\n";
   dumpOut << indLevel << indScheme << "transport: " << channel.transport << "\n";
@@ -140,11 +155,13 @@ void dumpCommand(std::ostream& dumpOut, const DeviceExecution& execution, std::s
   dumpOut << indLevel << "value: >-\n";
   // fixme : how to find out when to include QC? Now we include it always, just in case
   dumpOut << indLevel << indScheme << "source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&\n";
-  // fixme: For now, we will use a dump file, but to further automatise it
-  //  I need the full command that was used before merging the workflows,
-  //  so it is run each time. (on the other hand, it may slow down the start up).
-  // fixme: trim the path to the exec itself when needed (not /home/username/bla/o2-datasampling)
-  dumpOut << indLevel << indScheme << "cat {{ dpl_config }} | " << execution.args[0] << "\n";
+
+  if (bfs::path(execution.args[0]).filename().string() != execution.args[0]) {
+    LOG(WARNING) << "The workflow template generation was started with absolute or relative executables paths."
+                    " Please use the symlinks exported by the build infrastructure or remove the paths manually in the generated templates,"
+                    " unless you really need executables within concrete directories";
+  }
+  dumpOut << indLevel << indScheme << "{{ dpl_command }} | " << execution.args[0] << "\n";
 
   dumpOut << indLevel << "arguments:\n";
   dumpOut << indLevel << indScheme << "- \"-b\"\n";
@@ -193,42 +210,6 @@ void dumpCommand(std::ostream& dumpOut, const DeviceExecution& execution, std::s
   }
 }
 
-void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecution& execution, std::string taskName, std::string indLevel)
-{
-  dumpOut << indLevel << "name: " << taskName << "\n";
-  dumpOut << indLevel << "defaults:\n";
-  dumpOut << indLevel << indScheme << "log_task_output: none\n";
-
-  dumpOut << indLevel << "control:\n";
-  dumpOut << indLevel << indScheme << "mode: \"fairmq\"\n";
-
-  // todo: find out proper values perhaps...
-  dumpOut << indLevel << "wants:\n";
-  dumpOut << indLevel << indScheme << "cpu: 0.15\n";
-  dumpOut << indLevel << indScheme << "memory: 128\n";
-
-  dumpOut << indLevel << "bind:\n";
-  for (const auto& outputChannel : spec.outputChannels) {
-    if (outputChannel.method == ChannelMethod::Bind) {
-      dumpChannelBind(dumpOut, outputChannel, indLevel + indScheme);
-    }
-  }
-  for (const auto& inputChannel : spec.inputChannels) {
-    if (inputChannel.method == ChannelMethod::Bind) {
-      dumpChannelBind(dumpOut, inputChannel, indLevel + indScheme);
-    }
-  }
-  auto rawChannels = extractRawChannels(spec, execution);
-  for (const auto& rawChannel : rawChannels) {
-    if (rawChannel.method == "bind") {
-      dumpRawChannelBind(dumpOut, rawChannel, indLevel + indScheme);
-    }
-  }
-
-  dumpOut << indLevel << "command:\n";
-  dumpCommand(dumpOut, execution, indLevel + indScheme);
-}
-
 std::string findBinder(const std::vector<DeviceSpec>& specs, const std::string& channel)
 {
   // fixme: it is not crucial to be fast here, but ideally we should check only input OR output channels.
@@ -274,14 +255,70 @@ void dumpRole(std::ostream& dumpOut, const std::string& taskName, const DeviceSp
   dumpOut << indLevel << indScheme << indScheme << "load: " << taskName << "\n";
 }
 
-void dumpWorkflow(std::ostream& dumpOut, const std::vector<DeviceSpec>& specs, const std::vector<DeviceExecution>& executions, std::string workflowName, std::string indLevel)
+std::string removeO2ControlArg(std::string_view command)
+{
+  const char* o2ControlArg = " --o2-control ";
+  size_t o2ControlArgStart = command.find(o2ControlArg);
+  if (o2ControlArgStart == std::string_view::npos) {
+    return std::string(command);
+  }
+  size_t o2ControlArgEnd = command.find(" ", o2ControlArgStart + std::strlen(o2ControlArg));
+  auto result = std::string(command.substr(0, o2ControlArgStart));
+  if (o2ControlArgEnd != std::string_view::npos) {
+    result += command.substr(o2ControlArgEnd);
+  }
+  return result;
+}
+
+} // namespace implementation
+
+void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecution& execution, std::string taskName, std::string indLevel)
+{
+  dumpOut << indLevel << "name: " << taskName << "\n";
+  dumpOut << indLevel << "defaults:\n";
+  dumpOut << indLevel << indScheme << "log_task_output: none\n";
+
+  dumpOut << indLevel << "control:\n";
+  dumpOut << indLevel << indScheme << "mode: \"fairmq\"\n";
+
+  // todo: find out proper values perhaps...
+  dumpOut << indLevel << "wants:\n";
+  dumpOut << indLevel << indScheme << "cpu: 0.15\n";
+  dumpOut << indLevel << indScheme << "memory: 128\n";
+
+  dumpOut << indLevel << "bind:\n";
+  for (const auto& outputChannel : spec.outputChannels) {
+    if (outputChannel.method == ChannelMethod::Bind) {
+      implementation::dumpChannelBind(dumpOut, outputChannel, indLevel + indScheme);
+    }
+  }
+  for (const auto& inputChannel : spec.inputChannels) {
+    if (inputChannel.method == ChannelMethod::Bind) {
+      implementation::dumpChannelBind(dumpOut, inputChannel, indLevel + indScheme);
+    }
+  }
+  auto rawChannels = implementation::extractRawChannels(spec, execution);
+  for (const auto& rawChannel : rawChannels) {
+    if (rawChannel.method == "bind") {
+      dumpRawChannelBind(dumpOut, rawChannel, indLevel + indScheme);
+    }
+  }
+
+  dumpOut << indLevel << "command:\n";
+  implementation::dumpCommand(dumpOut, execution, indLevel + indScheme);
+}
+
+void dumpWorkflow(std::ostream& dumpOut, const std::vector<DeviceSpec>& specs, const std::vector<DeviceExecution>& executions, const CommandInfo& commandInfo, std::string workflowName, std::string indLevel)
 {
   dumpOut << indLevel << "name: " << workflowName << "\n";
+
+  dumpOut << indLevel << "vars:\n";
+  dumpOut << indLevel << indScheme << "dpl_command: >-\n";
+  dumpOut << indLevel << indScheme << indScheme << implementation::removeO2ControlArg(commandInfo.command) << "\n";
 
   dumpOut << indLevel << "defaults:\n";
   dumpOut << indLevel << indScheme << "monitoring_dpl_url: \"no-op://\"\n";
   dumpOut << indLevel << indScheme << "user: \"flp\"\n";
-  dumpOut << indLevel << indScheme << "dpl_config: \"/etc/flp.d/" + workflowName + "/" + workflowName + ".dpl.json\"\n";
   dumpOut << indLevel << indScheme << "fmq_rate_logging: 0\n";
   dumpOut << indLevel << indScheme << "shm_segment_size: 10000000000\n";
   dumpOut << indLevel << indScheme << "shm_throw_bad_alloc: false\n";
@@ -290,16 +327,14 @@ void dumpWorkflow(std::ostream& dumpOut, const std::vector<DeviceSpec>& specs, c
   for (size_t di = 0; di < specs.size(); di++) {
     auto& spec = specs[di];
     auto& execution = executions[di];
-    dumpRole(dumpOut, taskName(workflowName, spec.id), spec, specs, execution, indLevel + indScheme);
+    implementation::dumpRole(dumpOut, implementation::taskName(workflowName, spec.id), spec, specs, execution, indLevel + indScheme);
   }
 }
-
-} // namespace implementation
 
 void dumpDeviceSpec2O2Control(std::string workflowName,
                               const std::vector<DeviceSpec>& specs,
                               const std::vector<DeviceExecution>& executions,
-                              const CommandInfo&)
+                              const CommandInfo& commandInfo)
 {
   const char* tasksDirectory = "tasks";
   const char* workflowsDirectory = "workflows";
@@ -316,7 +351,7 @@ void dumpDeviceSpec2O2Control(std::string workflowName,
   LOG(INFO) << "Creating a workflow dump '" + workflowName + "'.";
   std::string wfDumpPath = std::string(workflowsDirectory) + bfs::path::preferred_separator + workflowName + ".yaml";
   std::ofstream wfDump(wfDumpPath);
-  implementation::dumpWorkflow(wfDump, specs, executions, workflowName, "");
+  dumpWorkflow(wfDump, specs, executions, commandInfo, workflowName, "");
   wfDump.close();
 
   for (size_t di = 0; di < specs.size(); ++di) {
@@ -327,7 +362,7 @@ void dumpDeviceSpec2O2Control(std::string workflowName,
     std::string taskName = implementation::taskName(workflowName, spec.id);
     std::string taskDumpPath = std::string(tasksDirectory) + bfs::path::preferred_separator + taskName + ".yaml";
     std::ofstream taskDump(taskDumpPath);
-    implementation::dumpTask(taskDump, spec, execution, taskName, "");
+    dumpTask(taskDump, spec, execution, taskName, "");
     taskDump.close();
     LOG(INFO) << "...created.";
   }

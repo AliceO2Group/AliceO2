@@ -25,9 +25,11 @@
 #include <cstring>
 #include <vector>
 
-#include "HMPIDBase/Digit.h"
+#include "DataFormatsHMP/Digit.h"
 #include "HMPIDBase/Geo.h"
-#include "HmpidDecoder.h"
+#include "HMPIDReconstruction/HmpidDecoder.h"
+
+using namespace o2;
 
 namespace o2
 {

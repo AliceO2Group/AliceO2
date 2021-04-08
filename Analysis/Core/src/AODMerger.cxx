@@ -17,6 +17,7 @@
 #include "TList.h"
 #include "TDirectory.h"
 #include "TObjString.h"
+#include <TGrid.h>
 
 // AOD merger with correct index rewriting
 // No need to know the datamodel because the branch names follow a canonical standard (identified by fIndex)
@@ -71,11 +72,18 @@ int main(int argc, char* argv[])
   std::ifstream in;
   in.open(inputCollection);
   TString line;
+  bool connectedToAliEn = false;
   while (in.good()) {
     in >> line;
 
     if (line.Length() == 0) {
       continue;
+    }
+
+    if (line.BeginsWith("alien:") && !connectedToAliEn) {
+      printf("Connecting to AliEn...");
+      TGrid::Connect("alien:");
+      connectedToAliEn = true; // Only try once
     }
 
     printf("Processing input file: %s\n", line.Data());

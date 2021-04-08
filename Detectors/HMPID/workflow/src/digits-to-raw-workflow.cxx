@@ -22,6 +22,8 @@
 #include "Framework/CompletionPolicy.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DispatchPolicy.h"
+#include "Framework/ConfigParamSpec.h"
+#include "Framework/Variant.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 
@@ -58,6 +60,5 @@ WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   DataProcessorSpec consumer = o2::hmpid::getDigitsToRawSpec();
   specs.push_back(consumer);
-
   return specs;
 }

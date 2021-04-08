@@ -21,6 +21,7 @@ o2_add_library(TRDSimulation
                        src/TrapConfigHandler.cxx 
                        src/TrapSimulator.cxx
                        src/Trap2CRU.cxx
+                       src/PileupTool.cxx
                        PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::SimulationDataFormat O2::TRDBase O2::DataFormatsTRD O2::DetectorsRaw)
 
 o2_target_root_dictionary(TRDSimulation
@@ -31,7 +32,8 @@ o2_target_root_dictionary(TRDSimulation
                                   include/TRDSimulation/TrapConfig.h
                                   include/TRDSimulation/TrapConfigHandler.h
                                   include/TRDSimulation/Trap2CRU.h
-                                  include/TRDSimulation/TrapSimulator.h)
+                                  include/TRDSimulation/TrapSimulator.h
+                                  include/TRDSimulation/PileupTool.h)
 
 if (OpenMP_CXX_FOUND)
     target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
@@ -49,3 +51,10 @@ o2_add_executable(trap2raw
                                         O2::CommonUtils
 										O2::DataFormatsTRD
                                         Boost::program_options)
+
+o2_add_test(PileupTool
+            SOURCES test/testPileupTool.cxx
+            COMPONENT_NAME trd
+            PUBLIC_LINK_LIBRARIES O2::TRDSimulation
+            ENVIRONMENT VMCWORKDIR=${CMAKE_BINARY_DIR}/stage
+            LABELS trd)

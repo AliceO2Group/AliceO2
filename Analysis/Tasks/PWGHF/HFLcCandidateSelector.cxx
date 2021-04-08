@@ -18,25 +18,13 @@
 #include "Framework/AnalysisTask.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
+#include "AnalysisCore/HFSelectorCuts.h"
 
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong3;
-
-static const int npTBins = 10;
-static const int nCutVars = 8;
-//temporary until 2D array in configurable is solved - then move to json
-//m  ptp  ptk  ptpi DCA sigmavtx dlenght cosp
-constexpr double cuts[npTBins][nCutVars] = {{0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.},  /* pt<1     */
-                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.},  /* 1<pt<2   */
-                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.},  /* 2<pt<3   */
-                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.},  /* 3<pt<4   */
-                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.},  /* 4<pt<5   */
-                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.},  /* 5<pt<6   */
-                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.},  /* 6<pt<8   */
-                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.},  /* 8<pt<12  */
-                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.},  /* 12<pt<24 */
-                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.}}; /* 24<pt<36 */
+using namespace o2::analysis;
+using namespace o2::analysis::hf_cuts_lc_topkpi;
 
 /// Struct for applying Lc selection cuts
 struct HFLcCandidateSelector {
@@ -58,23 +46,8 @@ struct HFLcCandidateSelector {
   Configurable<double> d_nSigmaTOF{"d_nSigmaTOF", 3., "Nsigma cut on TOF only"};
   Configurable<double> d_nSigmaTOFCombined{"d_nSigmaTOFCombined", 5., "Nsigma cut on TOF combined with TPC"};
 
-  /// Gets corresponding pT bin from cut file array
-  /// \param candpT is the pT of the candidate
-  /// \return corresponding bin number of array
-  template <typename T>
-  int getpTBin(T candpT)
-  {
-    double pTBins[npTBins + 1] = {0, 1., 2., 3., 4., 5., 6., 8., 12., 24., 36.};
-    if (candpT < pTBins[0] || candpT >= pTBins[npTBins]) {
-      return -1;
-    }
-    for (int i = 0; i < npTBins; i++) {
-      if (candpT < pTBins[i + 1]) {
-        return i;
-      }
-    }
-    return -1;
-  }
+  Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_lc_topkpi::pTBins_v}, "pT bin limits"};
+  Configurable<LabeledArray<double>> cuts{"Lc_to_p_K_pi_cuts", {hf_cuts_lc_topkpi::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "Lc candidate selection per pT bin"};
 
   /// Selection on goodness of daughter tracks
   /// \note should be applied at candidate selection
@@ -99,7 +72,8 @@ struct HFLcCandidateSelector {
   bool selectionTopol(const T& hfCandProng3)
   {
     auto candpT = hfCandProng3.pt();
-    int pTBin = getpTBin(candpT);
+
+    int pTBin = findBin(pTBins, candpT);
     if (pTBin == -1) {
       return false;
     }
@@ -108,7 +82,7 @@ struct HFLcCandidateSelector {
       return false; //check that the candidate pT is within the analysis range
     }
 
-    if (hfCandProng3.cpa() <= cuts[pTBin][7]) {
+    if (hfCandProng3.cpa() <= cuts->get(pTBin, "cos pointing angle")) {
       return false; //cosine of pointing angle
     }
 
@@ -116,7 +90,7 @@ struct HFLcCandidateSelector {
       return false;
       }*/
 
-    if (hfCandProng3.decayLength() <= cuts[pTBin][6]) {
+    if (hfCandProng3.decayLength() <= cuts->get(pTBin, "decay length")) {
       return false;
     }
     return true;
@@ -133,21 +107,21 @@ struct HFLcCandidateSelector {
   {
 
     auto candpT = hfCandProng3.pt();
-    int pTBin = getpTBin(candpT);
+    int pTBin = findBin(pTBins, candpT);
     if (pTBin == -1) {
       return false;
     }
 
-    if (trackProton.pt() < cuts[pTBin][1] || trackKaon.pt() < cuts[pTBin][2] || trackPion.pt() < cuts[pTBin][3]) {
+    if (trackProton.pt() < cuts->get(pTBin, "pT p") || trackKaon.pt() < cuts->get(pTBin, "pT K") || trackPion.pt() < cuts->get(pTBin, "pT Pi")) {
       return false; //cut on daughter pT
     }
 
     if (trackProton.globalIndex() == hfCandProng3.index0Id()) {
-      if (TMath::Abs(InvMassLcpKpi(hfCandProng3) - RecoDecay::getMassPDG(4122)) > cuts[pTBin][0]) {
+      if (TMath::Abs(InvMassLcpKpi(hfCandProng3) - RecoDecay::getMassPDG(pdg::code::kLambdaCPlus)) > cuts->get(pTBin, "m")) {
         return false;
       }
     } else {
-      if (TMath::Abs(InvMassLcpiKp(hfCandProng3) - RecoDecay::getMassPDG(4122)) > cuts[pTBin][0]) {
+      if (TMath::Abs(InvMassLcpiKp(hfCandProng3) - RecoDecay::getMassPDG(pdg::code::kLambdaCPlus)) > cuts->get(pTBin, "m")) {
         return false;
       }
     }
@@ -278,33 +252,29 @@ struct HFLcCandidateSelector {
     }
   }
 
-  void process(aod::HfCandProng3 const& hfCandProng3s, aod::BigTracksPID const& tracks)
+  void process(aod::HfCandProng3 const& hfCandProng3s, aod::BigTracksPID const&)
   {
-    int statusLcpKpi, statusLcpiKp; // final selection flag : 0-rejected  1-accepted
-    int pidLcpKpi, pidLcpiKp;
-
-    for (auto& hfCandProng3 : hfCandProng3s) { //looping over 3 prong candidates
-
-      statusLcpKpi = 0;
-      statusLcpiKp = 0;
+    for (auto& hfCandProng3 : hfCandProng3s) {
+      // final selection flag : 0-rejected  1-accepted
+      auto statusLcpKpi = 0;
+      auto statusLcpiKp = 0;
 
       if (!(hfCandProng3.hfflag() & 1 << LcToPKPi)) {
         hfSelLcCandidate(statusLcpKpi, statusLcpiKp);
         continue;
       }
-
       auto trackPos1 = hfCandProng3.index0_as<aod::BigTracksPID>(); //positive daughter (negative for the antiparticles)
       auto trackNeg1 = hfCandProng3.index1_as<aod::BigTracksPID>(); //negative daughter (positive for the antiparticles)
       auto trackPos2 = hfCandProng3.index2_as<aod::BigTracksPID>(); //positive daughter (negative for the antiparticles)
-
-      pidLcpKpi = -1;
-      pidLcpiKp = -1;
 
       // daughter track validity selection
       if (!daughterSelection(trackPos1) || !daughterSelection(trackNeg1) || !daughterSelection(trackPos2)) {
         hfSelLcCandidate(statusLcpKpi, statusLcpiKp);
         continue;
       }
+
+      auto pidLcpKpi = -1;
+      auto pidLcpiKp = -1;
 
       //implement filter bit 4 cut - should be done before this task at the track selection level
 

@@ -24,6 +24,7 @@ using Hash = Hashes::iterator;
 
 using namespace o2;
 using namespace o2::framework;
+using namespace o2::framework::expressions;
 using namespace o2::soa;
 
 // This is a tentative workflow to get mixed-event tracks
@@ -66,7 +67,7 @@ struct HashTask {
 };
 
 // Version 1: Using categorised combinations
-struct CollisionsCombinationsTask {
+struct MixedEventsTracks {
   o2::framework::expressions::Filter trackFilter = (aod::track::x > -0.8f) && (aod::track::x < 0.8f) && (aod::track::y > 1.0f);
 
   void process(aod::Hashes const& hashes, aod::Collisions& collisions, soa::Filtered<aod::Tracks>& tracks)
@@ -105,6 +106,65 @@ struct CollisionsCombinationsTask {
   }
 };
 
+struct MixedEventsPartitionedTracks {
+  Filter trackFilter = (aod::track::x > -0.8f) && (aod::track::x < 0.8f) && (aod::track::y > 1.0f);
+  using myTracks = soa::Filtered<aod::Tracks>;
+
+  Configurable<float> philow{"phiLow", 1.0f, "lowest phi"};
+  Configurable<float> phiup{"phiUp", 2.0f, "highest phi"};
+
+  void process(aod::Hashes const& hashes, aod::Collisions& collisions, myTracks& tracks)
+  {
+    collisions.bindExternalIndices(&tracks);
+    auto tracksTuple = std::make_tuple(tracks);
+    AnalysisDataProcessorBuilder::GroupSlicer slicer(collisions, tracksTuple);
+
+    // Strictly upper categorised collisions
+    for (auto& [c1, c2] : selfCombinations("fBin", 5, -1, join(hashes, collisions), join(hashes, collisions))) {
+      //LOGF(info, "Collisions bin: %d pair: %d (%f, %f, %f), %d (%f, %f, %f)", c1.bin(), c1.index(), c1.posX(), c1.posY(), c1.posZ(), c2.index(), c2.posX(), c2.posY(), c2.posZ());
+
+      auto it1 = slicer.begin();
+      auto it2 = slicer.begin();
+      for (auto& slice : slicer) {
+        if (slice.groupingElement().index() == c1.index()) {
+          it1 = slice;
+          break;
+        }
+      }
+      for (auto& slice : slicer) {
+        if (slice.groupingElement().index() == c2.index()) {
+          it2 = slice;
+          break;
+        }
+      }
+      auto tracks1 = std::get<myTracks>(it1.associatedTables());
+      tracks1.bindExternalIndices(&collisions);
+      auto tracks2 = std::get<myTracks>(it2.associatedTables());
+      tracks2.bindExternalIndices(&collisions);
+
+      Partition<myTracks> leftPhi1 = aod::track::phiraw < philow;
+      leftPhi1.bindTable(tracks1);
+      Partition<myTracks> leftPhi2 = aod::track::phiraw < philow;
+      leftPhi2.bindTable(tracks2);
+      Partition<myTracks> rightPhi1 = aod::track::phiraw >= phiup;
+      rightPhi1.bindTable(tracks1);
+      Partition<myTracks> rightPhi2 = aod::track::phiraw >= phiup;
+      rightPhi2.bindTable(tracks2);
+
+      for (auto& [t1, t2] : combinations(CombinationsFullIndexPolicy(leftPhi1, leftPhi2))) {
+        if (t1.phiraw() >= (float)philow || t2.phiraw() >= (float)philow) {
+          LOGF(info, "WRONG Mixed event left tracks pair: (%d, %d) from events (%d, %d), phi: (%.3f. %.3f) < %.3f", t1.index(), t2.index(), c1.index(), c2.index(), t1.phiraw(), t2.phiraw(), philow);
+        }
+      }
+      for (auto& [t1, t2] : combinations(CombinationsFullIndexPolicy(rightPhi1, rightPhi2))) {
+        if (t1.phiraw() < (float)phiup || t2.phiraw() < (float)phiup) {
+          LOGF(info, "WRONG Mixed event right tracks pair: (%d, %d) from events (%d, %d), phi: (%.3f. %.3f) >= %.3f", t1.index(), t2.index(), c1.index(), c2.index(), t1.phiraw(), t2.phiraw(), phiup);
+        }
+      }
+    }
+  }
+};
+
 // Version 2: Filtering instead of combinations
 // Possible only after filters & grouping upgrades
 // struct CollisionsFilteringTask {
@@ -134,6 +194,7 @@ struct MixedEventsTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HashTask>(cfgc, TaskName{"collisions-hashed"}),
-    adaptAnalysisTask<CollisionsCombinationsTask>(cfgc, TaskName{"mixed-event-tracks"})};
+    adaptAnalysisTask<HashTask>(cfgc),
+    adaptAnalysisTask<MixedEventsPartitionedTracks>(cfgc),
+    adaptAnalysisTask<MixedEventsTracks>(cfgc)};
 }

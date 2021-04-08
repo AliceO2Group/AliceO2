@@ -314,6 +314,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         return;
       }
       auto cput = timer.CpuTime();
+      auto realt = timer.RealTime();
       timer.Start(false);
       auto& parser = processAttributes->parser;
       auto& tracker = processAttributes->tracker;
@@ -695,7 +696,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
         processAttributes->qa->cleanup();
       }
       timer.Stop();
-      LOG(INFO) << "TPC CATracker time for this TF " << timer.CpuTime() - cput << " s";
+      LOG(INFO) << "TPC CATracker time for this TF " << timer.CpuTime() - cput << " s (cpu), " << timer.RealTime() - realt << " s (wall)";
     };
 
     return processingFct;

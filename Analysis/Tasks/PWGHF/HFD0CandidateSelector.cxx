@@ -45,7 +45,7 @@ struct HFD0CandidateSelector {
   Configurable<double> d_nSigmaTOF{"d_nSigmaTOF", 3., "Nsigma cut on TOF only"};
   Configurable<double> d_nSigmaTOFCombined{"d_nSigmaTOFCombined", 5., "Nsigma cut on TOF combined with TPC"};
 
-  Configurable<std::vector<double>> ptBins{"ptBins", std::vector<double>{hf_cuts_d0_topik::pTBins_v}, "pT bin limits"};
+  Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_d0_topik::pTBins_v}, "pT bin limits"};
   Configurable<LabeledArray<double>> cuts{"D0_to_pi_K_cuts", {hf_cuts_d0_topik::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "D0 candidate selection per pT bin"};
 
   /// Selection on goodness of daughter tracks
@@ -71,7 +71,7 @@ struct HFD0CandidateSelector {
   bool selectionTopol(const T& hfCandProng2)
   {
     auto candpT = hfCandProng2.pt();
-    auto pTBin = findBin(ptBins, candpT);
+    auto pTBin = findBin(pTBins, candpT);
     if (pTBin == -1) {
       return false;
     }
@@ -119,7 +119,7 @@ struct HFD0CandidateSelector {
   bool selectionTopolConjugate(const T1& hfCandProng2, const T2& trackPion, const T2& trackKaon)
   {
     auto candpT = hfCandProng2.pt();
-    auto pTBin = findBin(ptBins, candpT);
+    auto pTBin = findBin(pTBins, candpT);
     if (pTBin == -1) {
       return false;
     }
