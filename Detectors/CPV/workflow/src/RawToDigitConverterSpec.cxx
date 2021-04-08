@@ -38,7 +38,6 @@ void RawToDigitConverterSpec::init(framework::InitContext& ctx)
   }
   LOG(INFO) << "Pedestal data: " << optPedestal;
   mIsPedestalData = optPedestal == "on" ? true : false;
-
 }
 
 void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
@@ -90,7 +89,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       // }
     }
   }
-  
+
   if (!mPedestals && !mIsPedestalData) {
     if (o2::cpv::CPVSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
       mPedestals = std::make_unique<o2::cpv::Pedestals>(1); // test default calibration
@@ -112,7 +111,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       // }
     }
   }
-  
+
   for (const auto& rawData : framework::InputRecordWalker(ctx.inputs())) {
 
     // enum RawErrorType_t {
