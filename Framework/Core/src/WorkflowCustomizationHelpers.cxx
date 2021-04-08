@@ -32,6 +32,7 @@ namespace o2::framework
 std::vector<ConfigParamSpec> WorkflowCustomizationHelpers::requiredWorkflowOptions()
 {
   return std::vector<ConfigParamSpec>{{ConfigParamSpec{"readers", VariantType::Int64, 1ll, {"number of parallel readers to use"}},
+                                       ConfigParamSpec{"spawners", VariantType::Int64, 1ll, {"number of parallel spawners to use"}},
                                        ConfigParamSpec{"pipeline", VariantType::String, "", {"override default pipeline size"}},
                                        ConfigParamSpec{"clone", VariantType::String, "", {"clone processors from a template"}},
                                        ConfigParamSpec{"workflow-suffix", VariantType::String, "", {"suffix to add to all dataprocessors"}},
