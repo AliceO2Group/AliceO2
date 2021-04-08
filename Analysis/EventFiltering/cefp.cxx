@@ -19,13 +19,7 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
-  std::vector<o2::framework::ConfigParamSpec> options{
-    {"config", o2::framework::VariantType::String, "sync", {}}};
-
-  std::swap(workflowOptions, options);
-
-  std::string keyvaluehelp("Semicolon separated key=value");
-  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
+  workflowOptions.push_back(ConfigParamSpec{"config", o2::framework::VariantType::String, "train_config.json", {"Configuration of the filtering"}});
 }
 
 // ------------------------------------------------------------------
@@ -35,9 +29,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
-  // Update the (declared) parameters if changed from the command line
-  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-
   auto config = configcontext.options().get<std::string>("config");
 
   if (config.empty()) {
