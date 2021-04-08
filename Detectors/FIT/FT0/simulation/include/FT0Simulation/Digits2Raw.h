@@ -79,7 +79,7 @@ class Digits2Raw
   uint16_t mCruID = 0;
   uint32_t mEndPointID = 0;
   uint64_t mFeeID = 0;
-  int mLinkTCM ;
+  int mLinkTCM;
 
   /////////////////////////////////////////////////
 

@@ -101,12 +101,12 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
 
   for (int ilink = 0; ilink < 8; ilink++) {
     for (int ich = 0; ich < 12; ich++) {
-      LOG(INFO)<<" ep 0 "<<ilink<<" "<<ich<<" "<<lut.getChannel(ilink, ich+1, int(0));
+      LOG(INFO) << " ep 0 " << ilink << " " << ich << " " << lut.getChannel(ilink, ich + 1, int(0));
     }
   }
   for (int ilink = 0; ilink < 10; ilink++) {
     for (int ich = 0; ich < 12; ich++) {
-      LOG(INFO)<<" ep 1 "<<ilink<<" "<<ich<<" "<< lut.getChannel(ilink, ich+1, int(1));
+      LOG(INFO) << " ep 1 " << ilink << " " << ich << " " << lut.getChannel(ilink, ich + 1, int(1));
     }
   }
 
@@ -167,9 +167,9 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
 
             mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i + 1]), EventData::PayloadSizeSecondWord);
             pos += o2::ft0::EventData::PayloadSizeSecondWord;
-              LOG(INFO) << "read 2nd word channel " << int(mEventData[2 * i + 1].channelID) << " charge " << int(mEventData[2 * i + 1].charge) << " time " << mEventData[2 * i + 1].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i + 1].channelID), ep) << " pos " << pos;
-             if (mEventData[2 * i + 1].charge <= 0 && mEventData[2 * i + 1].channelID <= 0 && mEventData[2 * i + 1].time <= 0) {
-             continue;
+            LOG(INFO) << "read 2nd word channel " << int(mEventData[2 * i + 1].channelID) << " charge " << int(mEventData[2 * i + 1].charge) << " time " << mEventData[2 * i + 1].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i + 1].channelID), ep) << " pos " << pos;
+            if (mEventData[2 * i + 1].charge <= 0 && mEventData[2 * i + 1].channelID <= 0 && mEventData[2 * i + 1].time <= 0) {
+              continue;
             }
             chDgDataArr->emplace_back(lut.getChannel(link, int(mEventData[2 * i + 1].channelID), ep),
                                       int(mEventData[2 * i + 1].time),

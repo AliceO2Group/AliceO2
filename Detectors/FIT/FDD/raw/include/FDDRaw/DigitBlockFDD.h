@@ -58,7 +58,7 @@ class DigitBlockFDD : public DigitBlockBase<DigitBlockFDD>
 
   template <class DataBlockType>
   void processDigits(DataBlockType& dataBlock, int linkID, int ep)
-  {   
+  {
     if constexpr (std::is_same<DataBlockType, DataBlockPM>::value) { //Filling data from PM
       for (int iEventData = 0; iEventData < dataBlock.DataBlockWrapper<RawDataPM>::mNelements; iEventData++) {
         mVecChannelData.emplace_back(int(sLookupTable.getChannel(linkID, dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].channelID)),

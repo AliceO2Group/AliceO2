@@ -81,9 +81,10 @@ int main()
   }
   std::cout << "\n===================================\n";
 
+  std::cout << "\nTOTAL EVENTS: " << vecTotalEvents.size() << std::endl;
   std::cout << "Simulation completed!" << std::endl;
-  gSystem->Exec("$O2_ROOT/bin/o2-ft0-digi2raw --file-per-link");
-  gSystem->Exec("$O2_ROOT/bin/o2-raw-file-reader-workflow -b --input-conf FT0raw.cfg|$O2_ROOT/bin/o2-ft0-flp-dpl-workflow -b");
+  gSystem->Exec("$O2_ROOT/bin/o2-ft0-digi2raw --configKeyValues \"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0\"");
+  gSystem->Exec("$O2_ROOT/bin/o2-raw-file-reader-workflow -b --input-conf FT0raw.cfg --configKeyValues \"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0\"|$O2_ROOT/bin/o2-ft0-flp-dpl-workflow -b");
   TFile flIn2("o2_ft0digits.root");
   std::unique_ptr<TTree> treeInput2((TTree*)flIn2.Get("o2sim"));
   std::cout << "Reconstruction completed!" << std::endl;
@@ -108,6 +109,7 @@ int main()
     entry.print();
   }
   std::cout << "\n===================================\n";
+  std::cout << "\nTOTAL EVENTS: " << vecTotalEvents2.size() << std::endl;
   if (vecTotalEvents == vecTotalEvents2) {
     std::cout << "TEST IS OK!\n";
   } else {

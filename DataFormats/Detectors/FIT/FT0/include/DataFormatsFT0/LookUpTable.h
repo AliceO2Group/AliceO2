@@ -83,14 +83,14 @@ inline o2::ft0::Topo read_Topo(std::string_view str)
 {
   assert(str.substr(0, 2) == "PM"); // && str[4] == '/' && str[5] == 'C' && str[6] == 'h');
   char side = str[2];
-  char * ptr;
+  char* ptr;
   uint8_t pm_num = std::strtol(str.data() + 3, &ptr, 10); // = str[3] - '0';
   /* auto res = std::from_chars(str.data()+3, str.data()+3+str.size(), pm_num); */
   /* if (res.ec != std::errc() || res.ptr[0] != '/') */
   if (errno || ptr[0] != '/')
     throw std::invalid_argument("Cannot read pm_num");
   if (ptr[1] != 'C' || ptr[2] != 'h')
-   throw std::invalid_argument("Expected 'Ch'");
+    throw std::invalid_argument("Expected 'Ch'");
   uint8_t pm_ch = std::strtol(ptr + 3, &ptr, 10);
   // = (str[7] - '0') * 10 + (str[8] - '0') - 1;
   /* res = std::from_chars(res.ptr+3, res.ptr+3+str.size(), pm_ch); */
@@ -117,7 +117,7 @@ class LookUpTable
   // LookUpTable() = default;
 
   explicit LookUpTable(std::vector<Topo> const& topoVector)
-    : mTopoVector(topoVector), mInvTopo(NUMBER_OF_MCPs*16*2)
+    : mTopoVector(topoVector), mInvTopo(NUMBER_OF_MCPs * 16 * 2)
   {
     for (size_t channel = 0; channel < mTopoVector.size(); ++channel) {
       mInvTopo.at(getIdx(mTopoVector[channel].mPM, mTopoVector[channel].mMCP, mTopoVector[channel].mEP)) =
@@ -127,7 +127,8 @@ class LookUpTable
   LookUpTable() = default;
   ~LookUpTable() = default;
 
-  int getTCMchannel() const {
+  int getTCMchannel() const
+  {
     return TCM_channel;
   }
 
@@ -135,7 +136,7 @@ class LookUpTable
   {
     for (size_t channel = 0; channel < mTopoVector.size(); ++channel) {
       std::cout << channel << "\t :  PM \t" << mTopoVector[channel].mPM
-                << " MCP \t" << mTopoVector[channel].mMCP  <<" EP \t "<< mTopoVector[channel].mEP<<std::endl;
+                << " MCP \t" << mTopoVector[channel].mMCP << " EP \t " << mTopoVector[channel].mEP << std::endl;
     }
   }
 
@@ -216,7 +217,7 @@ class LookUpTable
       o2::ft0::Topo topo = chan.pm;
       lut_data[chan.channel] = topo;
     }
-    std::cout<<"lut_data.size "<<lut_data.size()<<std::endl;
+    std::cout << "lut_data.size " << lut_data.size() << std::endl;
     return o2::ft0::LookUpTable{lut_data};
   }
 
@@ -227,7 +228,7 @@ class LookUpTable
   static int getIdx(int link, int mcp, int ep)
   {
     assert(mcp < NUMBER_OF_MCPs);
-    return (link+ep*16) * NUMBER_OF_MCPs + mcp ;
+    return (link + ep * 16) * NUMBER_OF_MCPs + mcp;
   }
   static int getLinkFromIdx(int idx)
   {
@@ -237,12 +238,14 @@ class LookUpTable
     } else {
       link = idx / NUMBER_OF_MCPs;
     }
-      return link ;
+    return link;
   }
   static int getEPFromIdx(int idx)
   {
-    if (idx<96 || idx>215 ) return 0;
-    else return 1;
+    if (idx < 96 || idx > 215)
+      return 0;
+    else
+      return 1;
   }
 
   static int getMCPFromIdx(int idx) { return idx % NUMBER_OF_MCPs + 1; }
