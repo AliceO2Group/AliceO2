@@ -82,7 +82,7 @@ struct nucleiFilter {
   }
 
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
-  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == 1u);
+  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == static_cast<uint8_t>(1u));
 
   using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::pidRespTOF, aod::pidRespTOFbeta, aod::TrackSelection>>;
 
