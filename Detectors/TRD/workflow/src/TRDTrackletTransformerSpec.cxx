@@ -29,11 +29,16 @@ namespace trd
 void TRDTrackletTransformerSpec::init(o2::framework::InitContext& ic)
 {
   LOG(INFO) << "Initializing tracklet transformer";
+  mTransformer.loadCalibrationParameters(mTimestamp);
 }
 
 void TRDTrackletTransformerSpec::run(o2::framework::ProcessingContext& pc)
 {
   LOG(INFO) << "Running tracklet transformer";
+  if (!mTransformer.hasCalibration()) {
+    // ccdb object was not found for specified timestamp
+    return;
+  }
 
   o2::globaltracking::RecoContainer inputData;
   inputData.collectData(pc, *mDataRequest);
@@ -111,7 +116,7 @@ void TRDTrackletTransformerSpec::run(o2::framework::ProcessingContext& pc)
   pc.outputs().snapshot(Output{"TRD", "TRIGRECMASK", 0, Lifetime::Timeframe}, trigRecBitfield);
 }
 
-o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilterActive)
+o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilterActive, int timestamp)
 {
   std::shared_ptr<DataRequest> dataRequest = std::make_shared<DataRequest>();
   if (trigRecFilterActive) {
@@ -129,7 +134,7 @@ o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilte
     "TRDTRACKLETTRANSFORMER",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDTrackletTransformerSpec>(dataRequest, trigRecFilterActive)},
+    AlgorithmSpec{adaptFromTask<TRDTrackletTransformerSpec>(dataRequest, trigRecFilterActive, timestamp)},
     Options{}};
 }
 
