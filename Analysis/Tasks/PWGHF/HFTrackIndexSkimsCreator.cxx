@@ -91,12 +91,14 @@ struct SelectTracks {
   Configurable<double> d_dcaToPrimXYMinBach{"d_dcaToPrimXYMinBach", 0., "min. DCAXY to prim. vtx. for bachelor in cascade candidate"}; // for PbPb 2018, the cut should be 0.0025
   Configurable<double> d_dcaToPrimXYMaxBach{"d_dcaToPrimXYMaxBach", 1.0, "max. DCAXY to prim. vtx. for bachelor in cascade candidate"};
   Configurable<double> d_etaMaxBach{"d_etaMaxBach", 0.8, "max. pseudorapidity for bachelor in cascade candidate"};
+
+  // for debugging
 #ifdef MY_DEBUG
-  Configurable<std::vector<int>> v_labelK0Spos{"v_labelK0Spos", {729, 2866, 4754}, "labels of K0S positive daughters, for debug"};
-  Configurable<std::vector<int>> v_labelK0Sneg{"v_labelK0Sneg", {730, 2867, 4755}, "labels of K0S positive daughters, for debug"};
-  Configurable<std::vector<int>> v_labelProton{"v_labelProton", {729, 2810, 4393}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> v_labelK0Spos{"v_labelK0Spos", {729, 2866, 4754, 5457, 6891, 7824, 9243, 9810}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> v_labelK0Sneg{"v_labelK0Sneg", {730, 2867, 4755, 5458, 6892, 7825, 9244, 9811}, "labels of K0S negative daughters, for debug"};
+  Configurable<std::vector<int>> v_labelProton{"v_labelProton", {717, 2810, 4393, 5442, 6769, 7793, 9002, 9789}, "labels of protons, for debug"};
 #endif
-  
+
   HistogramRegistry registry{
     "registry",
     {{"hpt_nocuts", "all tracks;#it{p}_{T}^{track} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
@@ -1053,9 +1055,9 @@ struct HFTrackIndexSkimsCreatorCascades {
 
   // for debugging
 #ifdef MY_DEBUG
-  Configurable<std::vector<int>> v_labelK0Spos{"v_labelK0Spos", {729, 2866, 4754}, "labels of K0S positive daughters, for debug"};
-  Configurable<std::vector<int>> v_labelK0Sneg{"v_labelK0Sneg", {730, 2867, 4755}, "labels of K0S positive daughters, for debug"};
-  Configurable<std::vector<int>> v_labelProton{"v_labelProton", {729, 2810, 4393}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> v_labelK0Spos{"v_labelK0Spos", {729, 2866, 4754, 5457, 6891, 7824, 9243, 9810}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> v_labelK0Sneg{"v_labelK0Sneg", {730, 2867, 4755, 5458, 6892, 7825, 9244, 9811}, "labels of K0S negative daughters, for debug"};
+  Configurable<std::vector<int>> v_labelProton{"v_labelProton", {717, 2810, 4393, 5442, 6769, 7793, 9002, 9789}, "labels of protons, for debug"};
 #endif
 
   // histograms
@@ -1276,7 +1278,6 @@ struct HFTrackIndexTestMCCasc {
     for (const auto& v0 : V0s) {
       // selections on the V0 daughters
       auto arrayDaughtersV0 = array{v0.posTrack_as<aod::BigTracksMC>(), v0.negTrack_as<aod::BigTracksMC>()};
-      LOG(INFO) << "Looking for K0s ";
       RecoDecay::getMatchedMCRec(particlesMC, arrayDaughtersV0, 310, array{+kPiPlus, -kPiPlus}, true, &sign, 1); // does it matter the "acceptAntiParticle" in the K0s case? In principle, there is no anti-K0s
     }
     return;

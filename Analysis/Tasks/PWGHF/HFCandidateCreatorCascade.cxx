@@ -32,6 +32,19 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 #include "Framework/runDataProcessing.h"
 
+//#define MY_DEBUG
+
+#ifdef MY_DEBUG
+using MyTracks = aod::BigTracksMC;
+#define MY_DEBUG_MSG(condition, cmd) \
+  if (condition) {                   \
+    cmd;                             \
+  }
+#else
+using MyTracks = aod::BigTracks;
+#define MY_DEBUG_MSG(condition, cmd)
+#endif
+
 /// Reconstruction of heavy-flavour cascade decay candidates
 struct HFCandidateCreatorCascade {
 
@@ -44,12 +57,14 @@ struct HFCandidateCreatorCascade {
   Configurable<double> d_minParamChange{"d_minParamChange", 1.e-3, "stop iterations if largest change of any X is smaller than this"};
   Configurable<double> d_minRelChi2Change{"d_minRelChi2Change", 0.9, "stop iterations is chi2/chi2old > this"};
   Configurable<bool> b_doValPlots{"b_doValPlots", true, "do validation plots"};
+
+  // for debugging
 #ifdef MY_DEBUG
-  Configurable<std::vector<int>> v_labelK0Spos{"v_labelK0Spos", {729, 2866, 4754}, "labels of K0S positive daughters, for debug"};
-  Configurable<std::vector<int>> v_labelK0Sneg{"v_labelK0Sneg", {730, 2867, 4755}, "labels of K0S positive daughters, for debug"};
-  Configurable<std::vector<int>> v_labelProton{"v_labelProton", {729, 2810, 4393}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> v_labelK0Spos{"v_labelK0Spos", {729, 2866, 4754, 5457, 6891, 7824, 9243, 9810}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> v_labelK0Sneg{"v_labelK0Sneg", {730, 2867, 4755, 5458, 6892, 7825, 9244, 9811}, "labels of K0S negative daughters, for debug"};
+  Configurable<std::vector<int>> v_labelProton{"v_labelProton", {717, 2810, 4393, 5442, 6769, 7793, 9002, 9789}, "labels of protons, for debug"};
 #endif
-  
+
   OutputObj<TH1F> hmass2{TH1F("hmass2", "2-prong candidates;inv. mass (#pi K) (GeV/#it{c}^{2});entries", 500, 0., 5.)};
   OutputObj<TH1F> hCovPVXX{TH1F("hCovPVXX", "2-prong candidates;XX element of cov. matrix of prim. vtx. position (cm^{2});entries", 100, 0., 1.e-4)};
   OutputObj<TH1F> hCovSVXX{TH1F("hCovSVXX", "2-prong candidates;XX element of cov. matrix of sec. vtx. position (cm^{2});entries", 100, 0., 0.2)};
@@ -59,19 +74,6 @@ struct HFCandidateCreatorCascade {
   double massPi = RecoDecay::getMassPDG(kPiPlus);
   double massLc = RecoDecay::getMassPDG(4122);
   double mass2K0sP{0.};
-
-  //#define MY_DEBUG
-
-#ifdef MY_DEBUG
-  using MyTracks = aod::BigTracksMC;
-#define MY_DEBUG_MSG(condition, cmd) \
-  if (condition) {                   \
-    cmd;                             \
-  }
-#else
-  using MyTracks = aod::BigTracks;
-#define MY_DEBUG_MSG(condition, cmd)
-#endif
 
   void process(aod::Collisions const& collisions,
                aod::HfTrackIndexCasc const& rowsTrackIndexCasc,
@@ -208,9 +210,9 @@ struct HFCandidateCreatorCascadeMC {
   Produces<aod::HfCandCascadeMCGen> rowMCMatchGen;
 
 #ifdef MY_DEBUG
-  Configurable<std::vector<int>> v_labelK0Spos{"v_labelK0Spos", {729, 2866, 4754}, "labels of K0S positive daughters, for debug"};
-  Configurable<std::vector<int>> v_labelK0Sneg{"v_labelK0Sneg", {730, 2867, 4755}, "labels of K0S positive daughters, for debug"};
-  Configurable<std::vector<int>> v_labelProton{"v_labelProton", {729, 2810, 4393}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> v_labelK0Spos{"v_labelK0Spos", {729, 2866, 4754, 5457, 6891, 7824, 9243, 9810}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> v_labelK0Sneg{"v_labelK0Sneg", {730, 2867, 4755, 5458, 6892, 7825, 9244, 9811}, "labels of K0S negative daughters, for debug"};
+  Configurable<std::vector<int>> v_labelProton{"v_labelProton", {717, 2810, 4393, 5442, 6769, 7793, 9002, 9789}, "labels of protons, for debug"};
 #endif
 
   void process(aod::HfCandCascade const& candidates,
@@ -228,7 +230,7 @@ struct HFCandidateCreatorCascadeMC {
       auto arrayDaughtersLc = array{candidate.index0_as<aod::BigTracksMC>(), candidate.posTrack_as<aod::BigTracksMC>(), candidate.negTrack_as<aod::BigTracksMC>()};
 
       // First we check the K0s
-      printf("\n");
+      LOG(DEBUG) << "\n";
       LOG(DEBUG) << "Checking MC for candidate!";
       LOG(DEBUG) << "Looking for K0s";
       auto labelPos = candidate.posTrack_as<aod::BigTracksMC>().mcParticleId();

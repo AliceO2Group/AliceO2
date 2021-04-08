@@ -19,16 +19,27 @@
 ///
 
 #include <vector>
+#include <algorithm>
 
 inline bool isK0SfromLcFunc(int labelK0SPos, int labelK0SNeg, std::vector<int> listLabelsK0SPos, std::vector<int> listLabelsK0SNeg)
 {
 
-  assert(listLabelsK0SPos.size() == listLabelsK0SPos.size());
-  for (auto i = 0; i < listLabelsK0SPos.size(); ++i) {
-    if (labelK0SPos == listLabelsK0SPos[i] && labelK0SNeg == listLabelsK0SNeg[i]) {
-      return true;
-    }
+  auto nPositiveDau = listLabelsK0SPos.size();
+  auto nNegativeDau = listLabelsK0SNeg.size();
+
+  // checking sizes of vectors: they should be identical
+  if (nPositiveDau != nNegativeDau) {
+    LOG(ERROR) << "Number of elements in vector of positive daughters of K0S different from the number of elements in the vector for the negative ones: " << nPositiveDau << " : " << nNegativeDau;
+    throw std::runtime_error("sizes of configurables for debug do not match");
   }
+
+  // checking if we find the candidate
+  bool matchesK0Spositive = std::any_of(listLabelsK0SPos.begin(), listLabelsK0SPos.end(), [&labelK0SPos](const int& label) { return label == labelK0SPos; });
+  bool matchesK0Snegative = std::any_of(listLabelsK0SNeg.begin(), listLabelsK0SNeg.end(), [&labelK0SNeg](const int& label) { return label == labelK0SNeg; });
+  if (matchesK0Spositive && matchesK0Snegative) {
+    return true;
+  }
+
   return false;
 }
 
@@ -36,14 +47,12 @@ inline bool isK0SfromLcFunc(int labelK0SPos, int labelK0SNeg, std::vector<int> l
 
 inline bool isProtonFromLcFunc(int labelProton, std::vector<int> listLabelsProton)
 {
-
-  for (auto i = 0; i < listLabelsProton.size(); ++i) {
-    if (labelProton == listLabelsProton[i]) {
-      return true;
-    }
+  // checking if we find the candidate`
+  bool matchesProton = std::any_of(listLabelsProton.begin(), listLabelsProton.end(), [&labelProton](const int& label) { return label == labelProton; });
+  if (matchesProton) {
+    return true;
   }
   return false;
-  
 }
 
 //---------------------------------
@@ -51,13 +60,31 @@ inline bool isProtonFromLcFunc(int labelProton, std::vector<int> listLabelsProto
 inline bool isLcK0SpFunc(int labelProton, int labelK0SPos, int labelK0SNeg, std::vector<int> listLabelsProton, std::vector<int> listLabelsK0SPos, std::vector<int> listLabelsK0SNeg)
 {
 
-  assert(listLabelsK0SPos.size() == listLabelsK0SPos.size());
-  assert(listLabelsProton.size() == listLabelsK0SPos.size());
-  for (auto i = 0; i < listLabelsK0SPos.size(); ++i) {
+  auto nPositiveDau = listLabelsK0SPos.size();
+  auto nNegativeDau = listLabelsK0SNeg.size();
+  auto nProtons = listLabelsProton.size();
+
+  // checking sizes of vectors: they should be identical
+  if (nPositiveDau != nNegativeDau || nPositiveDau != nProtons) {
+    LOG(ERROR) << "Number of elements in vector of positive daughters of K0S, in vector of negative daughters of K0S, and in vector of protons differ: " << nPositiveDau << " : " << nNegativeDau << " : " << nProtons;
+    throw std::runtime_error("sizes of configurables for debug do not match");
+  }
+
+  // checking if we find the candidate
+  bool matchesK0Spositive = std::any_of(listLabelsK0SPos.begin(), listLabelsK0SPos.end(), [&labelK0SPos](const int& label) { return label == labelK0SPos; });
+  bool matchesK0Snegative = std::any_of(listLabelsK0SNeg.begin(), listLabelsK0SNeg.end(), [&labelK0SNeg](const int& label) { return label == labelK0SNeg; });
+  bool matchesProton = std::any_of(listLabelsProton.begin(), listLabelsProton.end(), [&labelProton](const int& label) { return label == labelProton; });
+  if (matchesK0Spositive && matchesK0Snegative && matchesProton) {
+    return true;
+  }
+
+  /*
+  auto nElements = nPositiveDau;
+  for (auto i = 0; i < nPositiveDau; ++i) {
     if (labelProton == listLabelsProton[i] && labelK0SPos == listLabelsK0SPos[i] && labelK0SNeg == listLabelsK0SNeg[i]) {
       return true;
     }
   }
+  */
   return false;
-  
 }
