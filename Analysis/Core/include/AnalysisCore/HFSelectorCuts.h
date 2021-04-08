@@ -37,11 +37,7 @@ int findBin(o2::framework::Configurable<std::vector<T1>> const& bins, T2 value)
   if (value >= bins->back()) {
     return -1;
   }
-  auto up = std::upper_bound(bins->begin(), bins->end(), value);
-  if (up == bins->end()) {
-    return -1;
-  }
-  return std::distance(bins->begin(), up) - 1;
+  return std::distance(bins->begin(), std::upper_bound(bins->begin(), bins->end(), value)) - 1;
 }
 
 // namespace per channel
