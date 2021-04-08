@@ -42,8 +42,6 @@ namespace o2::aod::filtering
 
 void CentralEventFilterProcessor::init(framework::InitContext& ic)
 {
-  Document d = readJsonFile(config);
-  const Value& workflows = d["workflows"];
     // JSON example
     // {
     //   "subwagon_name" : "CentralEventFilterProcessor",
@@ -56,13 +54,14 @@ void CentralEventFilterProcessor::init(framework::InitContext& ic)
     //     }
     //   }
     // }
-  for (auto& workflow : workflows) {
-    if (std::string_view(workflow["subwagon_name"]) == "CentralEventFilterProcessor") {
-      auto& config = workflow["configuration"]);
+  Document d = readJsonFile(mConfigFile);
+  for (auto& workflow : d["workflows"].GetArray()) {
+    if (std::string_view(workflow["subwagon_name"].GetString()) == "CentralEventFilterProcessor") {
+      auto& config = workflow["configuration"];
       for (auto& filter : AvailableFilters) {
         auto& filterConfig = config[filter];
-        for (auto& node : filterConfig) {
-          mDownscaling[node.name] = node.value;
+        for (auto& node : filterConfig.GetObject()) {
+          mDownscaling[node.name.GetString()] = node.value.GetDouble();
         }
       }
       break;
@@ -79,10 +78,11 @@ DataProcessorSpec getCentralEventFilterProcessorSpec(std::string& config)
 {
 
   std::vector<InputSpec> inputs;
-  for (auto& workflow : workflows) {
+  Document d = readJsonFile(config);
+  for (auto& workflow : d["workflows"].GetArray()) {
     for (unsigned int iFilter{0}; iFilter < AvailableFilters.size(); ++iFilter) {
-      if (std::string_view(workflow["subwagon_name"]) == std::string_view(AvailableFilters[iFilter])) {
-        inputs.emplace_back(AvailableFilters[iFilter], "AOD", FilterDescriptions[iFilter], 0, Lifetime::Timeframe);
+      if (std::string_view(workflow["subwagon_name"].GetString()) == std::string_view(AvailableFilters[iFilter])) {
+        inputs.emplace_back(std::string(AvailableFilters[iFilter]), "AOD", FilterDescriptions[iFilter], 0, Lifetime::Timeframe);
         break;
       }
     }

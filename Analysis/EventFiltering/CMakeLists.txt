@@ -8,6 +8,15 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
+o2_add_library(
+  EventFiltering
+  SOURCES CentralEventFilterProcessor
+  PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore)
+
+o2_add_executable(cefp
+  SOURCES cefp.cxx
+  COMPONENT_NAME Analysis
+  PUBLIC_LINK_LIBRARIES O2::EventFiltering)
 
 o2_add_dpl_workflow(nuclei-filter
                     SOURCES nucleiFilter.cxx

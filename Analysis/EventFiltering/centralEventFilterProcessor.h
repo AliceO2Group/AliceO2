@@ -28,7 +28,7 @@ class CentralEventFilterProcessor : public framework::Task
   ~CentralEventFilterProcessor() override = default;
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;
-  void endOfStream(framework::EndOfStreamContext& ec) final;
+  void endOfStream(framework::EndOfStreamContext& ec) final {}
 
  private:
   std::string mConfigFile;
