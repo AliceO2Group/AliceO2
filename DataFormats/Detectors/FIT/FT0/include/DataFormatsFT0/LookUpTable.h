@@ -33,6 +33,7 @@
 #include <map>
 #include <string_view>
 #include <vector>
+#include <cstdlib>
 
 namespace o2
 {
@@ -41,7 +42,8 @@ namespace ft0
 struct Topo {
   int mPM = 0;
   int mMCP = 0;
-  ClassDefNV(Topo, 1);
+  int mEP = 0;
+  ClassDefNV(Topo, 2);
 };
 
 // enum class Side : char { A, C };
@@ -51,39 +53,52 @@ struct Topo {
 // };
 
 struct HVchannel {
-  enum class HVBoard : uint8_t { NA,
+  /*  enum class HVBoard : uint8_t { NA,
                                  A_out,
                                  A_in,
                                  C_up,
                                  C_down,
-                                 C_mid };
+                                 C_mid };*/
+
   uint8_t channel;
   Topo pm;
-  HVBoard HV_board;
+  std::string HV_board;
   uint8_t HV_channel;
   std::string MCP_SN;
   std::string HV_cabel;
   std::string signal_cable;
+  std::string EP;
 
-  ClassDefNV(HVchannel, 1);
+  ClassDefNV(HVchannel, 2);
 };
 
 inline bool operator<(Topo const& a, Topo const& b)
 {
-  return (a.mPM < b.mPM || (a.mPM == b.mPM && a.mMCP < b.mMCP));
+  /* return (a.mPM < b.mPM || (a.mPM == b.mPM && a.mMCP < b.mMCP)); */
+  auto t = [](Topo const& x) -> decltype(auto) { return std::tie(x.mPM, x.mMCP, x.mEP); };
+  return t(a) < t(b);
 }
 
 inline o2::ft0::Topo read_Topo(std::string_view str)
 {
-  assert(str.substr(0, 2) == "PM" && str[4] == '/' && str[5] == 'C' && str[6] == 'h');
+  assert(str.substr(0, 2) == "PM"); // && str[4] == '/' && str[5] == 'C' && str[6] == 'h');
   char side = str[2];
-  uint8_t pm_num = str[3] - '0';
-  uint8_t pm_ch = (str[7] - '0') * 10 + (str[8] - '0') - 1;
+  char * ptr;
+  uint8_t pm_num = std::strtol(str.data() + 3, &ptr, 10); // = str[3] - '0';
+  /* auto res = std::from_chars(str.data()+3, str.data()+3+str.size(), pm_num); */
+  /* if (res.ec != std::errc() || res.ptr[0] != '/') */
+  if (errno || ptr[0] != '/')
+    throw std::invalid_argument("Cannot read pm_num");
+  if (ptr[1] != 'C' || ptr[2] != 'h')
+   throw std::invalid_argument("Expected 'Ch'");
+  uint8_t pm_ch = std::strtol(ptr + 3, &ptr, 10);
+  // = (str[7] - '0') * 10 + (str[8] - '0') - 1;
+  /* res = std::from_chars(res.ptr+3, res.ptr+3+str.size(), pm_ch); */
+  uint8_t ep = side == 'C' ? 1 : 0;
+  if (errno)
+    throw std::invalid_argument("Cannot read pm_ch");
   assert(side == 'A' || side == 'C');
-  if (str.substr(0, 4) == "PMA9") {
-    pm_num = 18;
-  }
-  return Topo{(side == 'C' ? 8 : 0) + pm_num, pm_ch};
+  return Topo{pm_num, pm_ch, ep};
 }
 
 class LookUpTable
@@ -92,6 +107,7 @@ class LookUpTable
   using CcdbApi = o2::ccdb::CcdbApi;
   static constexpr int NUMBER_OF_MCPs = 12;
   static constexpr int NUMBER_OF_PMs = 19;
+  static constexpr int TCM_channel = 228;
 
  public:
   ///
@@ -101,33 +117,31 @@ class LookUpTable
   // LookUpTable() = default;
 
   explicit LookUpTable(std::vector<Topo> const& topoVector)
-    : mTopoVector(topoVector), mInvTopo(topoVector.size())
+    : mTopoVector(topoVector), mInvTopo(NUMBER_OF_MCPs*16*2)
   {
     for (size_t channel = 0; channel < mTopoVector.size(); ++channel) {
-      mInvTopo.at(getIdx(mTopoVector[channel].mPM, mTopoVector[channel].mMCP)) =
+      mInvTopo.at(getIdx(mTopoVector[channel].mPM, mTopoVector[channel].mMCP, mTopoVector[channel].mEP)) =
         channel;
     }
   }
   LookUpTable() = default;
   ~LookUpTable() = default;
 
-  HVchannel mHVchannel;
+  int getTCMchannel() const {
+    return TCM_channel;
+  }
 
   void printFullMap() const
   {
     for (size_t channel = 0; channel < mTopoVector.size(); ++channel) {
       std::cout << channel << "\t :  PM \t" << mTopoVector[channel].mPM
-                << " MCP \t" << mTopoVector[channel].mMCP << std::endl;
-    }
-    for (size_t idx = 0; idx < mInvTopo.size(); ++idx) {
-      std::cout << "PM \t" << getLinkFromIdx(mInvTopo[idx]) << " MCP \t"
-                << getMCPFromIdx(mInvTopo[idx]) << std::endl;
+                << " MCP \t" << mTopoVector[channel].mMCP  <<" EP \t "<< mTopoVector[channel].mEP<<std::endl;
     }
   }
 
-  int getChannel(int link, int mcp) const
+  int getChannel(int link, int mcp, int ep) const
   {
-    return mInvTopo[getIdx(link, mcp)];
+    return mInvTopo[getIdx(link, mcp, ep)];
   }
 
   int getLink(int channel) const
@@ -137,6 +151,10 @@ class LookUpTable
   int getMCP(int channel) const
   {
     return mTopoVector[channel].mMCP;
+  }
+  int getEP(int channel) const
+  {
+    return mTopoVector[channel].mEP;
   }
 
   static o2::ft0::LookUpTable linear()
@@ -174,7 +192,8 @@ class LookUpTable
     int channel;
     std::string pm, pm_channel, hv_board, hv_channel, mcp_sn, hv_cable, signal_cable;
     std::getline(infile, pm); // skip one line
-    while (infile >> channel >> pm >> pm_channel >> hv_board >> hv_channel >> mcp_sn >> hv_cable >> signal_cable) {
+    std::string line;
+    while (std::getline(infile, line) && std::istringstream(line) >> channel >> pm >> pm_channel >> hv_board >> hv_channel >> mcp_sn >> hv_cable >> signal_cable) {
       lut_data[channel] = read_Topo(pm_channel);
     }
     return o2::ft0::LookUpTable{lut_data};
@@ -197,6 +216,7 @@ class LookUpTable
       o2::ft0::Topo topo = chan.pm;
       lut_data[chan.channel] = topo;
     }
+    std::cout<<"lut_data.size "<<lut_data.size()<<std::endl;
     return o2::ft0::LookUpTable{lut_data};
   }
 
@@ -204,13 +224,28 @@ class LookUpTable
   std::vector<Topo> mTopoVector;
   std::vector<int> mInvTopo;
 
-  static int getIdx(int link, int mcp)
+  static int getIdx(int link, int mcp, int ep)
   {
     assert(mcp < NUMBER_OF_MCPs);
-    return link * NUMBER_OF_MCPs + mcp;
+    return (link+ep*16) * NUMBER_OF_MCPs + mcp ;
   }
-  static int getLinkFromIdx(int idx) { return idx / NUMBER_OF_MCPs; }
-  static int getMCPFromIdx(int idx) { return idx % NUMBER_OF_MCPs; }
+  static int getLinkFromIdx(int idx)
+  {
+    int link;
+    if (idx > 95) {
+      link = (idx - 96) / NUMBER_OF_MCPs;
+    } else {
+      link = idx / NUMBER_OF_MCPs;
+    }
+      return link ;
+  }
+  static int getEPFromIdx(int idx)
+  {
+    if (idx<96 || idx>215 ) return 0;
+    else return 1;
+  }
+
+  static int getMCPFromIdx(int idx) { return idx % NUMBER_OF_MCPs + 1; }
 
   ClassDefNV(LookUpTable, 2);
 };

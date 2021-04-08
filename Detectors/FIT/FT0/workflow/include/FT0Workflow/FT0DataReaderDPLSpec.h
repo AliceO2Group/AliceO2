@@ -12,7 +12,7 @@
 
 #ifndef O2_FT0DATAREADERDPLSPEC_H
 #define O2_FT0DATAREADERDPLSPEC_H
-
+#include "DataFormatsFT0/LookUpTable.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Framework/CallbackService.h"
@@ -41,7 +41,7 @@ class FT0DataReaderDPLSpec : public Task
   FT0DataReaderDPLSpec() = default;
   ~FT0DataReaderDPLSpec() override = default;
   typedef RawReader RawReader_t;
-  void init(InitContext& ic) final {}
+  void init(InitContext& ic) final { o2::ft0::SingleLUT::Instance().printFullMap(); }
   void run(ProcessingContext& pc) final
   {
     // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
@@ -65,7 +65,7 @@ class FT0DataReaderDPLSpec : public Task
       count++;
       auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
       gsl::span<const uint8_t> payload(it.data(), it.size());
-      mRawReader.process(rdhPtr->linkID, payload);
+      mRawReader.process(rdhPtr->linkID, payload, rdhPtr->endPointID);
     }
     LOG(INFO) << "Pages: " << count;
     mRawReader.accumulateDigits();

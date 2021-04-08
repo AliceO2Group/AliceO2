@@ -196,7 +196,7 @@ class RawEventData
     if (!tcm) {
       std::memcpy(out, &mEventHeader, EventHeader::PayloadSize);
       out += EventHeader::PayloadSize;
-      LOG(DEBUG) << "write header words " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " bc " << int(mEventHeader.bc) << " out " << result.size();
+      LOG(DEBUG) << "write header words " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " bc " << int(mEventHeader.bc) << " out " << result.size() ;
       if (mIsPadded) {
         out += CRUWordSize - EventHeader::PayloadSize;
       }
@@ -259,6 +259,7 @@ class DataPageWriter
       str.write(reinterpret_cast<const char*>(&mRDH), sizeof(mRDH));
       str.write(mPages[page].data(), mPages[page].size());
       mRDH.pageCnt++;
+      LOG(INFO)<<" header "<<mRDH.linkID<<" end "<<mRDH.endPointID;
     }
     if (!mPages.empty()) {
       mRDH.memorySize = mRDH.headerSize;

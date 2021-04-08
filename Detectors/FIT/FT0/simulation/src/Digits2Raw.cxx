@@ -95,21 +95,33 @@ void Digits2Raw::readDigits(const std::string& outDir, const std::string& fileDi
   }
   */
   o2::ft0::LookUpTable lut{o2::ft0::LookUpTable::readTable()};
+  mLinkTCM = lut.getLink(lut.getTCMchannel());
   LOG(INFO) << " ##### LookUp set ";
-
   std::string outd = outDir;
   if (outd.back() != '/') {
     outd += '/';
   }
   using namespace o2::raw;
-  for (int ilink = 0; ilink < NPMs; ++ilink) {
-    mLinkID = uint32_t(ilink);
-    mFeeID = uint64_t(ilink);
-    mCruID = uint16_t(0);
-    mEndPointID = uint32_t(0);
+  for (int ilink = 0; ilink < NPMs - 1; ++ilink) {
+    if (ilink < 8) {
+      mLinkID = uint32_t(ilink);
+      mFeeID = uint64_t(ilink);
+      mCruID = uint16_t(0);
+      mEndPointID = uint32_t(0);
+    } else {
+      mLinkID = uint32_t(ilink) - 8;
+      mFeeID = uint64_t(ilink) - 8;
+      mCruID = uint16_t(0);
+      mEndPointID = uint32_t(1);
+    }
     std::string outFileLink = mOutputPerLink ? o2::utils::concat_string(outDir, "ft0_link", std::to_string(ilink), ".raw") : o2::utils::concat_string(outDir, "ft0.raw");
     mWriter.registerLink(mFeeID, mCruID, mLinkID, mEndPointID, outFileLink);
+    LOG(INFO) << " registered links " << mLinkID << " endpoint " << mEndPointID;
   }
+  //TCM
+  std::string outFileLink = mOutputPerLink ? o2::utils::concat_string(outDir, "ft0_link", std::to_string(mLinkTCM), ".raw") : o2::utils::concat_string(outDir, "ft0.raw");
+  mWriter.registerLink(mLinkTCM, mCruID, mLinkTCM, 0, outFileLink);
+  LOG(INFO) << " registered link  TCM " << mLinkTCM;
 
   TFile* fdig = TFile::Open(fileDigitsName.data());
   assert(fdig != nullptr);
@@ -151,14 +163,16 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
 
   // check empty event
   int oldlink = -1;
+  int oldendpoint = -1;
   int nchannels = 0;
   int nch = pmchannels.size();
   for (int ich = 0; ich < nch; ich++) {
     int nlink = lut.getLink(pmchannels[ich].ChId);
+    int ep = lut.getEP(pmchannels[ich].ChId);
     if (nlink != oldlink) {
       if (oldlink >= 0) {
         uint nGBTWords = uint((nchannels + 1) / 2);
-        LOG(DEBUG) << " oldlink " << oldlink << " nGBTWords " << nGBTWords;
+        LOG(INFO) << " oldlink " << oldlink << " old EP "<<oldendpoint<<" nGBTWords " << nGBTWords << " new link " << nlink << " ep  " << ep;
         if ((nchannels % 2) == 1) {
           mRawEventData.mEventData[nchannels] = {};
         }
@@ -166,12 +180,15 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
         auto data = mRawEventData.to_vector(false);
         mLinkID = uint32_t(oldlink);
         mFeeID = uint64_t(oldlink);
+        mEndPointID = uint32_t(oldendpoint);
+        LOG(INFO) << " new link start " << mFeeID << " " << mCruID << " " << mLinkID << " " << mEndPointID;
         mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, intRecord, data);
       }
       oldlink = nlink;
+      oldendpoint = ep;
       mRawEventData.mEventHeader = makeGBTHeader(nlink, intRecord);
       nchannels = 0;
-      LOG(DEBUG) << " switch to new link " << nlink;
+      LOG(INFO) << " switch to new link " << nlink << " EP "<< ep;
     }
     auto& newData = mRawEventData.mEventData[nchannels];
     bool isAside = (pmchannels[ich].ChId < 96);
@@ -179,7 +196,8 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
     newData.time = pmchannels[ich].CFDTime;
     newData.generateFlags();
     newData.channelID = lut.getMCP(pmchannels[ich].ChId);
-    LOG(DEBUG) << "packed GBT " << nlink << " channelID   " << (int)newData.channelID << " charge " << newData.charge << " time " << newData.time << " chain " << int(newData.numberADC) << " size " << sizeof(newData);
+    LOG(DEBUG) << " ID " << int(pmchannels[ich].ChId) << " packed GBT " << nlink << " channelID   " << (int)newData.channelID << " charge " << newData.charge << " time " << newData.time << " chain " << int(newData.numberADC)
+              << " size " << sizeof(newData) << " mEndPointID " << ep;
     nchannels++;
   }
   // fill mEventData[nchannels] with 0s to flag that this is a dummy data
@@ -191,10 +209,11 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
   auto datalast = mRawEventData.to_vector(false);
   mLinkID = uint32_t(oldlink);
   mFeeID = uint64_t(oldlink);
+  mEndPointID =  uint32_t(oldendpoint);
   mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, intRecord, datalast);
-  LOG(DEBUG) << " last " << oldlink;
+  LOG(DEBUG) << " last " << mFeeID << " " << mCruID << " " << mLinkID << " " << mEndPointID;
   //TCM
-  mRawEventData.mEventHeader = makeGBTHeader(LinkTCM, intRecord); //TCM
+  mRawEventData.mEventHeader = makeGBTHeader(mLinkTCM, intRecord); //TCM
   mRawEventData.mEventHeader.nGBTWords = 1;
   auto& tcmdata = mRawEventData.mTCMdata;
   mTriggers = bcdigits.getTriggers();
@@ -218,25 +237,27 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
   tcmdata.amplC = ampC;
   tcmdata.timeA = mTriggers.timeA;
   tcmdata.timeC = mTriggers.timeC;
-  LOG(DEBUG) << " TCM  triggers read "
-             << " time A " << mTriggers.timeA << " time C " << mTriggers.timeC
-             << " amp A " << ampA << " amp C " << ampC
-             << " N A " << int(mTriggers.nChanA) << " N C " << int(mTriggers.nChanC)
-             << " trig "
-             << " ver " << mTriggers.getVertex() << " A " << mTriggers.getOrA() << " C " << mTriggers.getOrC();
+  LOG(INFO) << " TCM  triggers read "
+            << " time A " << mTriggers.timeA << " time C " << mTriggers.timeC
+            << " amp A " << ampA << " amp C " << ampC
+            << " N A " << int(mTriggers.nChanA) << " N C " << int(mTriggers.nChanC)
+            << " trig "
+            << " ver " << mTriggers.getVertex() << " A " << mTriggers.getOrA() << " C " << mTriggers.getOrC();
 
-  LOG(DEBUG) << "TCMdata"
-             << " time A " << tcmdata.timeA << " time C " << tcmdata.timeC
-             << " amp A " << tcmdata.amplA << " amp C " << tcmdata.amplC
-             << " N A " << int(tcmdata.nChanA) << " N C " << int(tcmdata.nChanC)
-             << " trig "
-             << " ver " << tcmdata.vertex << " A " << tcmdata.orA << " C " << tcmdata.orC
-             << " size " << sizeof(tcmdata);
+  LOG(INFO) << "TCMdata"
+            << " time A " << tcmdata.timeA << " time C " << tcmdata.timeC
+            << " amp A " << tcmdata.amplA << " amp C " << tcmdata.amplC
+            << " N A " << int(tcmdata.nChanA) << " N C " << int(tcmdata.nChanC)
+            << " trig "
+            << " ver " << tcmdata.vertex << " A " << tcmdata.orA << " C " << tcmdata.orC
+            << " size " << sizeof(tcmdata);
 
   auto data = mRawEventData.to_vector(1);
-  mLinkID = uint32_t(LinkTCM);
-  mFeeID = uint64_t(LinkTCM);
+  mLinkID = uint32_t(mLinkTCM);
+  mFeeID = uint64_t(mLinkTCM);
+  mEndPointID = 0;
   mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, intRecord, data);
+  LOG(DEBUG) << " TCM " << mFeeID << " " << mCruID << " " << mLinkID << " " << mEndPointID;
 }
 
 //_____________________________________________________________________________________

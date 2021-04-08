@@ -22,7 +22,7 @@ namespace raw
 {
 struct ReaderInp;
 
-framework::WorkflowSpec getRawFileReaderWorkflow(const ReaderInp& rinp);
+framework::WorkflowSpec getRawFileReaderWorkflow(ReaderInp& rinp);
 
 } // namespace raw
 } // namespace o2

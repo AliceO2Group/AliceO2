@@ -74,8 +74,8 @@ NodeColor
 /// Color choices
 const static ImColor INPUT_SLOT_COLOR = {150, 150, 150, 150};
 const static ImColor OUTPUT_SLOT_COLOR = {150, 150, 150, 150};
-const static ImVec4 ERROR_MESSAGE_COLOR = PaletteHelpers::RED;
-const static ImVec4 WARNING_MESSAGE_COLOR = PaletteHelpers::YELLOW;
+const static ImVec4& ERROR_MESSAGE_COLOR = PaletteHelpers::RED;
+const static ImVec4& WARNING_MESSAGE_COLOR = PaletteHelpers::YELLOW;
 const static ImColor ARROW_COLOR = {200, 200, 100};
 const static ImU32 GRID_COLOR = ImColor(200, 200, 200, 40);
 const static ImColor NODE_BORDER_COLOR = {100, 100, 100};
@@ -85,11 +85,12 @@ const static ImColor LEGEND_COLOR = {100, 100, 100};
 const static float GRID_SZ = 64.0f;
 const static float ARROW_THICKNESS = 3.f;
 const static float NODE_BORDER_THICKNESS = 4.f;
-const static float LEGEND_FONT_SIZE = 12;
-const static float LEGEND_INTERLINE_SIZE = 2;
-const static ImVec2 LEGEND_PADDING = {20, 8};
-const static ImVec2 LEGEND_BOX_PADDING = {2, 2};
-const static ImVec2 LEGEND_BOX_SIZE = {10, 12};
+const static ImVec4 LEGEND_BACKGROUND_COLOR = {0.125, 0.180, 0.196, 1};
+
+const static ImVec4 SLOT_EMPTY_COLOR = {0.275, 0.275, 0.275, 1.};
+const static ImVec4& SLOT_PENDING_COLOR = PaletteHelpers::RED;
+const static ImVec4& SLOT_DISPATCHED_COLOR = PaletteHelpers::YELLOW;
+const static ImVec4& SLOT_DONE_COLOR = PaletteHelpers::GREEN;
 
 /// Displays a grid
 void displayGrid(bool show_grid, ImVec2 offset, ImDrawList* draw_list)
@@ -112,30 +113,33 @@ void displayLegend(bool show_legend, ImVec2 offset, ImDrawList* draw_list)
   if (show_legend == false) {
     return;
   }
-  ImVec2 win_pos = ImGui::GetCursorScreenPos();
-  ImVec2 canvas_sz = ImGui::GetWindowSize();
-  ImVec2 legend_top_left = canvas_sz;
-  legend_top_left.x *= 0.7;
-  legend_top_left.y *= 0.1;
-  ImVec2 legend_bottom_right = canvas_sz;
-  legend_bottom_right.x *= 0.95;
-  legend_bottom_right.y *= 0.3;
-  ImVec2 canvas_offset = {200, 20};
+  struct LegendItem {
+    std::string label;
+    const ImVec4& color;
+  };
+  static auto legend = {
+    LegendItem{"   Slot empty", SLOT_EMPTY_COLOR},
+    LegendItem{"   Slot pending", SLOT_PENDING_COLOR},
+    LegendItem{"   Slot dispatched", SLOT_DISPATCHED_COLOR},
+    LegendItem{"   Slot done", SLOT_DONE_COLOR},
+  };
+  ImGui::PushStyleColor(ImGuiCol_WindowBg, LEGEND_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_TitleBg, LEGEND_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ResizeGrip, 0);
 
-  ImColor(70, 70, 70, 255);
-  draw_list->AddRectFilled(canvas_offset + legend_top_left, canvas_offset + legend_bottom_right, LEGEND_COLOR);
-  draw_list->AddRectFilled(canvas_offset + legend_top_left + LEGEND_BOX_PADDING + ImVec2{0, (LEGEND_FONT_SIZE + LEGEND_INTERLINE_SIZE) * 0},
-                           canvas_offset + legend_top_left - LEGEND_BOX_PADDING + ImVec2{0, (LEGEND_FONT_SIZE + LEGEND_INTERLINE_SIZE) * 1} + LEGEND_BOX_SIZE, ImColor(70, 70, 70, 255));
-  draw_list->AddRectFilled(canvas_offset + legend_top_left + LEGEND_BOX_PADDING + ImVec2{0, (LEGEND_FONT_SIZE + LEGEND_INTERLINE_SIZE) * 1},
-                           canvas_offset + legend_top_left - LEGEND_BOX_PADDING + ImVec2{0, (LEGEND_FONT_SIZE + LEGEND_INTERLINE_SIZE) * 2} + LEGEND_BOX_SIZE, ImColor(PaletteHelpers::RED));
-  draw_list->AddRectFilled(canvas_offset + legend_top_left + LEGEND_BOX_PADDING + ImVec2{0, (LEGEND_FONT_SIZE + LEGEND_INTERLINE_SIZE) * 2},
-                           canvas_offset + legend_top_left - LEGEND_BOX_PADDING + ImVec2{0, (LEGEND_FONT_SIZE + LEGEND_INTERLINE_SIZE) * 3} + LEGEND_BOX_SIZE, ImColor(PaletteHelpers::YELLOW));
-  draw_list->AddRectFilled(canvas_offset + legend_top_left + LEGEND_BOX_PADDING + ImVec2{0, (LEGEND_FONT_SIZE + LEGEND_INTERLINE_SIZE) * 3},
-                           canvas_offset + legend_top_left - LEGEND_BOX_PADDING + ImVec2{0, (LEGEND_FONT_SIZE + LEGEND_INTERLINE_SIZE) * 4} + LEGEND_BOX_SIZE, ImColor(PaletteHelpers::GREEN));
-  draw_list->AddText(canvas_offset + LEGEND_PADDING + ImVec2{0, (LEGEND_FONT_SIZE + LEGEND_INTERLINE_SIZE) * 0} + legend_top_left, ImColor(PaletteHelpers::BLACK), "Slot empty");
-  draw_list->AddText(canvas_offset + LEGEND_PADDING + ImVec2{0, (LEGEND_FONT_SIZE + LEGEND_INTERLINE_SIZE) * 1} + legend_top_left, ImColor(PaletteHelpers::RED), "Slot pending");
-  draw_list->AddText(canvas_offset + LEGEND_PADDING + ImVec2{0, (LEGEND_FONT_SIZE + LEGEND_INTERLINE_SIZE) * 2} + legend_top_left, ImColor(PaletteHelpers::YELLOW), "Timeslice dispatched");
-  draw_list->AddText(canvas_offset + LEGEND_PADDING + ImVec2{0, (LEGEND_FONT_SIZE + LEGEND_INTERLINE_SIZE) * 3} + legend_top_left, ImColor(PaletteHelpers::GREEN), "Timeslice done");
+  ImGui::Begin("Legend");
+  ImGui::Dummy(ImVec2(0.0f, 10.0f));
+  for (auto [label, color] : legend) {
+    ImVec2 vMin = ImGui::GetWindowPos() + ImGui::GetCursorPos() + ImVec2(9, 0);
+    ImVec2 vMax = vMin + ImGui::CalcTextSize(" ");
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, color);
+    ImGui::GetWindowDrawList()->AddRectFilled(vMin, vMax, ImColor(color));
+    ImGui::GetWindowDrawList()->AddRect(vMin, vMax, GRID_COLOR);
+    ImGui::Text("%s", label.data());
+    ImGui::PopStyleColor();
+  }
+  ImGui::End();
+  ImGui::PopStyleColor(3);
 }
 
 #define MAX_GROUP_NAME_SIZE 128

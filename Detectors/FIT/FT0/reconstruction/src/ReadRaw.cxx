@@ -76,6 +76,7 @@ ReadRaw::ReadRaw(const std::string fileRaw, std::string fileDataOut)
   mFileDest.exceptions(std::ios_base::failbit | std::ios_base::badbit);
   mFileDest.open(fileRaw, std::fstream::in | std::fstream::binary);
   o2::ft0::LookUpTable lut{LookUpTable::readTable()};
+  mLinkTCM = lut.getLink(lut.getTCMchannel());
   ReadRaw::readData(fileRaw.c_str(), lut);
   ReadRaw::writeDigits(fileDataOut.data());
 }
@@ -98,6 +99,17 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
   mFileDest.seekg(0);
   LOG(DEBUG) << "SizeFile " << sizeFile;
 
+  for (int ilink = 0; ilink < 8; ilink++) {
+    for (int ich = 0; ich < 12; ich++) {
+      LOG(INFO)<<" ep 0 "<<ilink<<" "<<ich<<" "<<lut.getChannel(ilink, ich+1, int(0));
+    }
+  }
+  for (int ilink = 0; ilink < 10; ilink++) {
+    for (int ich = 0; ich < 12; ich++) {
+      LOG(INFO)<<" ep 1 "<<ilink<<" "<<ich<<" "<< lut.getChannel(ilink, ich+1, int(1));
+    }
+  }
+
   // read content of infile
   long posInFile = 0;
   while (posInFile < sizeFile - sizeof(mRDH)) {
@@ -111,6 +123,7 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
     int numPage = RDHUtils::getPageCounter(mRDH);
     int offset = RDHUtils::getOffsetToNext(mRDH);
     int link = RDHUtils::getLinkID(mRDH);
+    int ep = RDHUtils::getEndPointID(mRDH);
     if (nwords <= sizeof(mRDH)) {
       posInFile += RDHUtils::getOffsetToNext(mRDH);
       LOG(INFO) << " next RDH";
@@ -122,18 +135,18 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
       while (pos < nwords) {
         mFileDest.read(reinterpret_cast<char*>(&mEventHeader), sizeof(mEventHeader));
         pos += sizeof(mEventHeader);
-        LOG(DEBUG) << "read  header for " << link << "word " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile;
+        LOG(DEBUG) << "read  header for " << link << "word " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile << " endPoint " << int(ep);
         o2::InteractionRecord intrec{uint16_t(mEventHeader.bc), uint32_t(mEventHeader.orbit)};
         auto [digitIter, isNew] = mDigitAccum.try_emplace(intrec);
         if (isNew) {
           double eventTime = intrec.bc2ns();
-          LOG(DEBUG) << "new intrec " << intrec.orbit << " " << intrec.bc << " link " << link;
+          LOG(INFO) << "new intrec " << intrec.orbit << " " << intrec.bc << " link " << link << " EP " << ep;
           o2::ft0::DigitsTemp& digit = digitIter->second;
           digit.setTime(eventTime);
           digit.setInteractionRecord(intrec);
         }
         chDgDataArr = &digitIter->second.getChDgData(); //&mDigitsTemp.getChDgData();
-        if (link == LinkTCM) {
+        if (link == mLinkTCM) {
           mFileDest.read(reinterpret_cast<char*>(&mTCMdata), sizeof(mTCMdata));
           pos += sizeof(mTCMdata);
           digitIter->second.setTriggers(Bool_t(mTCMdata.orA), Bool_t(mTCMdata.orC), Bool_t(mTCMdata.vertex), Bool_t(mTCMdata.sCen), Bool_t(mTCMdata.cen), uint8_t(mTCMdata.nChanA), uint8_t(mTCMdata.nChanC), int32_t(mTCMdata.amplA), int32_t(mTCMdata.amplC), int16_t(mTCMdata.timeA), int16_t(mTCMdata.timeC));
@@ -144,21 +157,21 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
           }
           for (int i = 0; i < mEventHeader.nGBTWords; ++i) {
             mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i]), o2::ft0::EventData::PayloadSizeFirstWord);
-            chDgDataArr->emplace_back(lut.getChannel(link, int(mEventData[2 * i].channelID)),
+            chDgDataArr->emplace_back(lut.getChannel(link, int(mEventData[2 * i].channelID), ep),
                                       int(mEventData[2 * i].time),
                                       int(mEventData[2 * i].charge),
                                       int(mEventData[2 * i].numberADC));
 
             pos += o2::ft0::EventData::PayloadSizeFirstWord;
-            LOG(INFO) << " read 1st word channelID " << int(mEventData[2 * i].channelID) << " charge " << mEventData[2 * i].charge << " time " << mEventData[2 * i].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID)) << " pos " << pos;
+            LOG(INFO) << " read 1st word channelID " << int(mEventData[2 * i].channelID) << " charge " << mEventData[2 * i].charge << " time " << mEventData[2 * i].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID), ep) << " pos " << pos;
 
             mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i + 1]), EventData::PayloadSizeSecondWord);
             pos += o2::ft0::EventData::PayloadSizeSecondWord;
-            LOG(INFO) << "read 2nd word channel " << int(mEventData[2 * i + 1].channelID) << " charge " << int(mEventData[2 * i + 1].charge) << " time " << mEventData[2 * i + 1].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i + 1].channelID)) << " pos " << pos;
-            if (mEventData[2 * i + 1].charge <= 0 && mEventData[2 * i + 1].channelID <= 0 && mEventData[2 * i + 1].time <= 0) {
-              continue;
+              LOG(INFO) << "read 2nd word channel " << int(mEventData[2 * i + 1].channelID) << " charge " << int(mEventData[2 * i + 1].charge) << " time " << mEventData[2 * i + 1].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i + 1].channelID), ep) << " pos " << pos;
+             if (mEventData[2 * i + 1].charge <= 0 && mEventData[2 * i + 1].channelID <= 0 && mEventData[2 * i + 1].time <= 0) {
+             continue;
             }
-            chDgDataArr->emplace_back(lut.getChannel(link, int(mEventData[2 * i + 1].channelID)),
+            chDgDataArr->emplace_back(lut.getChannel(link, int(mEventData[2 * i + 1].channelID), ep),
                                       int(mEventData[2 * i + 1].time),
                                       int(mEventData[2 * i + 1].charge),
                                       int(mEventData[2 * i + 1].numberADC));

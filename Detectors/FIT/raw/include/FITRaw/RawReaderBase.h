@@ -74,14 +74,14 @@ class RawReaderBase
 
   //processing data blocks into digits
   template <class DataBlockType>
-  void processBinaryData(gsl::span<const uint8_t> payload, int linkID)
+  void processBinaryData(gsl::span<const uint8_t> payload, int linkID, int ep)
   {
     auto& vecDataBlocks = getVecDataBlocks<DataBlockType>();
     auto srcPos = decodeBlocks(payload, vecDataBlocks);
     for (auto& dataBlock : vecDataBlocks) {
       auto intRec = dataBlock.getInteractionRecord();
       auto [digitIter, isNew] = mMapDigits.try_emplace(intRec, intRec);
-      digitIter->second.template process<DataBlockType>(dataBlock, linkID);
+      digitIter->second.template process<DataBlockType>(dataBlock, linkID, ep);
     }
     vecDataBlocks.clear();
   }

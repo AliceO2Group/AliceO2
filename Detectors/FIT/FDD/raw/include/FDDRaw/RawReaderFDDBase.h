@@ -48,14 +48,14 @@ class RawReaderFDDBase : public RawReaderBase<DigitBlockFDDtype, DataBlockPMtype
   RawReaderFDDBase() = default;
   ~RawReaderFDDBase() = default;
   //deserialize payload to raw data blocks and proccesss them to digits
-  void process(int linkID, gsl::span<const uint8_t> payload)
+  void process(int linkID, gsl::span<const uint8_t> payload, int ep)
   {
     if (0 <= linkID && linkID < 2) {
       //PM data proccessing
-      RawReaderBaseType::template processBinaryData<DataBlockPMtype>(payload, linkID);
+      RawReaderBaseType::template processBinaryData<DataBlockPMtype>(payload, linkID, 0);
     } else if (linkID == 2) {
       //TCM data proccessing
-      RawReaderBaseType::template processBinaryData<DataBlockTCMtype>(payload, linkID);
+      RawReaderBaseType::template processBinaryData<DataBlockTCMtype>(payload, linkID, 0);
     } else {
       //put here code in case of bad rdh.linkID value
       LOG(INFO) << "WARNING! WRONG LINK ID! " << linkID;

@@ -7,17 +7,16 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_DATAPROCESSORLABEL_H
-#define FRAMEWORK_DATAPROCESSORLABEL_H
+#ifndef O2_FRAMEWORK_DATAPROCESSORLABEL_H_
+#define O2_FRAMEWORK_DATAPROCESSORLABEL_H_
 
-namespace o2
-{
-namespace framework
+#include <string>
+
+namespace o2::framework
 {
 /// A label that can be associated to a DataProcessorSpec
 struct DataProcessorLabel {
   std::string value;
 };
-} // namespace framework
-} // namespace o2
-#endif // FRAMEWORK_DATAPROCESSORLABEL_H
+} // namespace o2::framework
+#endif // O2_FRAMEWORK_DATAPROCESSORLABEL_H_

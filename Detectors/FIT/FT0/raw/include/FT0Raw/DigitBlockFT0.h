@@ -56,11 +56,11 @@ class DigitBlockFT0 : public DigitBlockBase<DigitBlockFT0>
   static int sEventID;
 
   template <class DataBlockType>
-  void processDigits(DataBlockType& dataBlock, int linkID)
+  void processDigits(DataBlockType& dataBlock, int linkID, int ep)
   {
     if constexpr (std::is_same<DataBlockType, DataBlockPM>::value) { //Filling data from PM
       for (int iEventData = 0; iEventData < dataBlock.DataBlockWrapper<RawDataPM>::mNelements; iEventData++) {
-        mVecChannelData.emplace_back(uint8_t(o2::ft0::SingleLUT::Instance().getChannel(linkID, dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].channelID)),
+        mVecChannelData.emplace_back(uint8_t(o2::ft0::SingleLUT::Instance().getChannel(linkID, dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].channelID, ep)),
                                      int(dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].time),
                                      int(dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].charge),
                                      dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].getFlagWord());
@@ -148,11 +148,11 @@ class DigitBlockFT0ext : public DigitBlockBase<DigitBlockFT0ext>
   static int sEventID;
 
   template <class DataBlockType>
-  void processDigits(DataBlockType& dataBlock, int linkID)
+  void processDigits(DataBlockType& dataBlock, int linkID, int ep)
   {
     if constexpr (std::is_same<DataBlockType, DataBlockPM>::value) { //Filling data from PM
       for (int iEventData = 0; iEventData < dataBlock.DataBlockWrapper<RawDataPM>::mNelements; iEventData++) {
-        mVecChannelData.emplace_back(uint8_t(o2::ft0::SingleLUT::Instance().getChannel(linkID, dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].channelID)),
+        mVecChannelData.emplace_back(uint8_t(o2::ft0::SingleLUT::Instance().getChannel(linkID, dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].channelID, ep)),
                                      int(dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].time),
                                      int(dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].charge),
                                      dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].getFlagWord());
