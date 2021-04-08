@@ -13,10 +13,8 @@
 /// \brief  Track selection for the ALICE3 studies
 ///
 
-#include "Framework/AnalysisDataModel.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/runDataProcessing.h"
-#include "Framework/HistogramRegistry.h"
 #include "AnalysisCore/TrackSelection.h"
 #include "AnalysisDataModel/TrackSelectionTables.h"
 #include "AnalysisCore/trackUtilities.h"
