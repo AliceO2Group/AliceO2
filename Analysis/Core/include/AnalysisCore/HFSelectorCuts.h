@@ -38,8 +38,8 @@ int findBin(o2::framework::Configurable<std::vector<T1>> const& bins, T2 value)
     return -1;
   }
   int step;
-  int bin = 0;
-  int count = bins->size();
+  int bin = 1;
+  int count = bins->size() - bin;
 
   while (count > 0) {
     step = count / 2;
