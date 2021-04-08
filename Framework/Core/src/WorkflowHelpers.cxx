@@ -409,7 +409,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   }
 
   if (aodSpawner.outputs.empty() == false) {
-    extraSpecs.push_back(aodSpawner);
+    extraSpecs.push_back(timePipeline(aodSpawner, ctx.options().get<int64_t>("spawners")));
   }
 
   if (indexBuilder.outputs.empty() == false) {
