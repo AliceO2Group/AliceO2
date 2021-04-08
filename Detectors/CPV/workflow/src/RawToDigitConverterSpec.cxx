@@ -29,6 +29,16 @@ void RawToDigitConverterSpec::init(framework::InitContext& ctx)
 {
   mDDL = ctx.options().get<int>("DDL");
   LOG(DEBUG) << "Initialize converter ";
+
+  //Read command-line options
+  //Pedestal flag (on/off)
+  std::string optPedestal("");
+  if (ctx.options().isSet("pedestal")) {
+    optPedestal = ctx.options().get<std::string>("pedestal");
+  }
+  LOG(INFO) << "Pedestal data: " << optPedestal;
+  mIsPedestalData = optPedestal == "on" ? true : false;
+
 }
 
 void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
@@ -80,7 +90,29 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       // }
     }
   }
-
+  
+  if (!mPedestals && !mIsPedestalData) {
+    if (o2::cpv::CPVSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
+      mPedestals = std::make_unique<o2::cpv::Pedestals>(1); // test default calibration
+      LOG(INFO) << "No reading calibration from ccdb requested, set default";
+    } else {
+      LOG(INFO) << "Getting calibration object from ccdb";
+      //TODO: configuring ccdb address from config file, readign proper calibration/BadMap and updateing if necessary
+      o2::ccdb::CcdbApi ccdb;
+      std::map<std::string, std::string> metadata;
+      ccdb.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a local installation
+      // auto tr = triggerbranch.begin();
+      // double eventTime = -1;
+      // if(tr!=triggerbranch.end()){
+      //   eventTime = (*tr).getBCData().getTimeNS() ;
+      // }
+      // mPedestals = ccdb.retrieveFromTFileAny<o2::cpv::Pedestals>("CPV/Calib", metadata, eventTime);
+      // if (!mPedestals) {
+      //   LOG(FATAL) << "Can not get calibration object from ccdb";
+      // }
+    }
+  }
+  
   for (const auto& rawData : framework::InputRecordWalker(ctx.inputs())) {
 
     // enum RawErrorType_t {
@@ -155,12 +187,17 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       for (uint32_t adch : decoder.getDigits()) {
         AddressCharge ac = {adch};
         unsigned short absId = ac.Address;
-        //test bad map
-        if (mBadMap->isChannelGood(absId)) {
-          if (ac.Charge > o2::cpv::CPVSimParams::Instance().mZSthreshold) {
-            float amp = mCalibParams->getGain(absId) * ac.Charge;
-            currentDigitContainer->emplace_back(absId, amp, -1);
+        //if we deal with non-pedestal data?
+        if (!mIsPedestalData) { //not a pedestal data
+          //test bad map
+          if (mBadMap->isChannelGood(absId)) {
+            //we need to subtract pedestal from amplidute and calibrate it
+            float amp = mCalibParams->getGain(absId) * (ac.Charge - mPedestals->getPedestal(absId));
+            if (amp > 0)
+              currentDigitContainer->emplace_back(absId, amp, -1);
           }
+        } else { //pedestal data, no calibration needed.
+          currentDigitContainer->emplace_back(absId, (float)ac.Charge, -1);
         }
       }
       //Check and send list of hwErrors

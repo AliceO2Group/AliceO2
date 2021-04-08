@@ -261,7 +261,6 @@ Bool_t Detector::ProcessHits(FairVolume* v)
 
         // Now calculate pad response
         double qpad = padResponseFunction(qhit, zg, xg);
-        qpad += cpvparam.mNoise * rnor2;
         if (qpad < 0) {
           continue;
         }
