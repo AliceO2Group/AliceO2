@@ -88,7 +88,7 @@ const std::unordered_map<std::string, OutputType> OutputMap{
 
 framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vector<int> const& tpcSectors, unsigned long tpcSectorMask, std::vector<int> const& laneConfiguration,
                                     bool propagateMC, unsigned nLanes, std::string const& cfgInput, std::string const& cfgOutput,
-                                    int caClusterer, int zsOnTheFly, int zs10bit, float zsThreshold, bool askDISTSTF)
+                                    int caClusterer, int zsOnTheFly, int zs10bit, float zsThreshold, bool askDISTSTF, std::string const& nativeClusterFilename)
 {
   InputType inputType;
   try {
@@ -319,12 +319,12 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     br->ResetAddress();
   };
 
-  auto makeWriterSpec = [tpcSectors, laneConfiguration, propagateMC, getIndex, getName](const char* processName,
-                                                                                        const char* defaultFileName,
-                                                                                        const char* defaultTreeName,
-                                                                                        auto&& databranch,
-                                                                                        auto&& mcbranch,
-                                                                                        bool singleBranch = false) {
+  auto makeWriterSpec = [tpcSectors, laneConfiguration, propagateMC, getIndex, getName, nativeClusterFilename](const char* processName,
+                                                                                                               const char* defaultFileName,
+                                                                                                               const char* defaultTreeName,
+                                                                                                               auto&& databranch,
+                                                                                                               auto&& mcbranch,
+                                                                                                               bool singleBranch = false) {
     if (tpcSectors.size() == 0) {
       throw std::invalid_argument(std::string("writer process configuration needs list of TPC sectors"));
     }
@@ -396,7 +396,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     // if the caClusterer is enabled, only one data set with the full TPC is produced, and the writer
     // is configured to write one single branch
     specs.push_back(makeWriterSpec("tpc-native-cluster-writer",
-                                   inputType == InputType::Clusters ? "tpc-filtered-native-clusters.root" : "tpc-native-clusters.root",
+                                   inputType == InputType::Clusters ? "tpc-filtered-native-clusters.root" : nativeClusterFilename.c_str(),
                                    "tpcrec",
                                    BranchDefinition<const char*>{InputSpec{"data", ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}},
                                                                  "TPCClusterNative",

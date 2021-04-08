@@ -78,7 +78,8 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,           
                                     int zsOnTheFly = 0,
                                     int zs10bit = 0,
                                     float zsThreshold = 2.0f,
-                                    bool askDISTSTF = true);
+                                    bool askDISTSTF = true,
+                                    std::string const& nativeClusterFilename = "tpc-native-clusters.root");
 
 } // end namespace reco_workflow
 } // end namespace tpc

@@ -58,7 +58,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"zs-10bit", VariantType::Bool, false, {"use 10 bit ADCs for TPC zero suppression, default = 12 bit ADC"}},
     {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCHwClusterer.peakChargeThreshold=4;...')"}},
-    {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}}};
+    {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
+    {"native-cluster-outfile", VariantType::String, "tpc-native-clusters.root", {"Output filename for native clusters (if applicable)."}}};
 
   std::swap(workflowOptions, options);
 }
@@ -158,6 +159,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                              !cfgc.options().get<bool>("no-tpc-zs-on-the-fly"), //
                                              cfgc.options().get<bool>("zs-10bit"),              //
                                              cfgc.options().get<float>("zs-threshold"),         //
-                                             !cfgc.options().get<bool>("ignore-dist-stf")       //
-  );
+                                             !cfgc.options().get<bool>("ignore-dist-stf"),      //
+                                             cfgc.options().get<std::string>("native-cluster-outfile"));
 }
