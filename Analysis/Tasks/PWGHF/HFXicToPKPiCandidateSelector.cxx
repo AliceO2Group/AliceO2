@@ -63,7 +63,7 @@ struct HFXicToPKPiCandidateSelector {
     return true;
   }
 
-  /// Conjugate independent toplogical cuts
+  /// Conjugate-independent topological cuts
   /// \param hfCandProng3 is candidate
   /// \return true if candidate passes all cuts
   template <typename T>
@@ -93,7 +93,7 @@ struct HFXicToPKPiCandidateSelector {
     return true;
   }
 
-  /// Conjugate dependent toplogical cuts
+  /// Conjugate-dependent topological cuts
   /// \param hfCandProng3 is candidate
   /// \param trackProton is the track with the proton hypothesis
   /// \param trackPion is the track with the pion hypothesis
@@ -330,13 +330,13 @@ struct HFXicToPKPiCandidateSelector {
 
       //implement filter bit 4 cut - should be done before this task at the track selection level
 
-      //conjugate independent topological selection
+      //conjugate-independent topological selection
       if (!selectionTopol(hfCandProng3)) {
         hfSelXicToPKPiCandidate(statusXicToPKPi, statusXicToPiKP);
         continue;
       }
 
-      //conjugate dependent topplogical selection for Xic
+      //conjugate-dependent topplogical selection for Xic
 
       topolXicToPKPi = selectionTopolConjugate(hfCandProng3, trackPos1, trackNeg1, trackPos2);
       topolXicToPiKP = selectionTopolConjugate(hfCandProng3, trackPos2, trackNeg1, trackPos1);

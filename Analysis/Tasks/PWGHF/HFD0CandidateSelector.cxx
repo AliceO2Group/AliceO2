@@ -15,7 +15,6 @@
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "AnalysisCore/HFSelectorCuts.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
 
@@ -64,7 +63,7 @@ struct HFD0CandidateSelector {
     return true;
   }
 
-  /// Conjugate independent toplogical cuts
+  /// Conjugate-independent topological cuts
   /// \param hfCandProng2 is candidate
   /// \return true if candidate passes all cuts
   template <typename T>
@@ -109,7 +108,7 @@ struct HFD0CandidateSelector {
     return true;
   }
 
-  /// Conjugate dependent toplogical cuts
+  /// Conjugate-dependent topological cuts
   /// \param hfCandProng2 is candidate
   /// \param trackPion is the track with the pion hypothesis
   /// \param trackKaon is the track with the kaon hypothesis
@@ -185,7 +184,6 @@ struct HFD0CandidateSelector {
   /// \param track is the track
   /// \param nPDG is the flavour hypothesis PDG number
   /// \param nSigmaCut is the nsigma threshold to test against
-  /// \note nPDG=211 pion  nPDG=321 kaon
   /// \return true if track satisfies TPC PID hypothesis for given Nsigma cut
   template <typename T>
   bool selectionPIDTPC(const T& track, int nPDG, double nSigmaCut)
@@ -206,7 +204,6 @@ struct HFD0CandidateSelector {
   /// \param track is the track
   /// \param nPDG is the flavour hypothesis PDG number
   /// \param nSigmaCut is the nSigma threshold to test against
-  /// \note nPDG=211 pion  nPDG=321 kaon
   /// \return true if track satisfies TOF PID hypothesis for given NSigma cut
   template <typename T>
   bool selectionPIDTOF(const T& track, int nPDG, double nSigmaCut)
@@ -226,7 +223,6 @@ struct HFD0CandidateSelector {
   /// PID selection on daughter track
   /// \param track is the daughter track
   /// \param nPDG is the PDG code of the flavour hypothesis
-  /// \note nPDG=211 pion  nPDG=321 kaon
   /// \return 1 if successful PID match, 0 if successful PID rejection, -1 if no PID info
   template <typename T>
   int selectionPID(const T& track, int nPDG)
@@ -297,7 +293,7 @@ struct HFD0CandidateSelector {
         continue;
       }
 
-      //conjugate independent topological selection
+      //conjugate-independent topological selection
       if (!selectionTopol(hfCandProng2)) {
         hfSelD0Candidate(statusD0, statusD0bar);
         continue;
@@ -306,9 +302,9 @@ struct HFD0CandidateSelector {
       //implement filter bit 4 cut - should be done before this task at the track selection level
       //need to add special cuts (additional cuts on decay length and d0 norm)
 
-      //conjugate dependent toplogical selection for D0
+      //conjugate-dependent topological selection for D0
       bool topolD0 = selectionTopolConjugate(hfCandProng2, trackPos, trackNeg);
-      //conjugate dependent toplogical selection for D0bar
+      //conjugate-dependent topological selection for D0bar
       bool topolD0bar = selectionTopolConjugate(hfCandProng2, trackNeg, trackPos);
 
       if (!topolD0 && !topolD0bar) {

@@ -18,7 +18,6 @@
 #include "Framework/HistogramRegistry.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
-#include "AnalysisCore/HFSelectorCuts.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -45,7 +44,6 @@ struct TaskXic {
 
   Configurable<int> d_selectionFlagXic{"d_selectionFlagXic", 1, "Selection Flag for Xic"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
-
   Configurable<std::vector<double>> bins{"pTBins", std::vector<double>{hf_cuts_d0_topik::pTBins_v}, "pT bin limits"};
 
   void init(o2::framework::InitContext&)

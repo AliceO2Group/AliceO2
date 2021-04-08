@@ -15,7 +15,6 @@
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "AnalysisCore/HFSelectorCuts.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
 using namespace o2;
@@ -54,7 +53,7 @@ struct HFJpsiToEECandidateSelector {
     return true;
   }
 
-  /// Conjugate independent toplogical cuts
+  /// Conjugate-independent topological cuts
   /// \param hfCandProng2 is candidate
   /// \param trackPositron is the track with the positron hypothesis
   /// \param trackElectron is the track with the electron hypothesis
