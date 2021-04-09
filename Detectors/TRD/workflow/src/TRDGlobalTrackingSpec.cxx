@@ -22,6 +22,7 @@
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/CalibratedTracklet.h"
 #include "DataFormatsTRD/TriggerRecord.h"
+#include "DataFormatsTRD/Constants.h"
 
 // GPU header
 #include "GPUReconstruction.h"
@@ -68,6 +69,7 @@ void TRDGlobalTracking::init(InitContext& ic)
   mTracker->SetProcessPerTimeFrame();
   mTracker->SetNMaxCollisions(mRec->GetProcessingSettings().trdNMaxCollisions);
   mTracker->SetTrkltTransformNeeded(!mUseTrackletTransform);
+  //mTracker->SetDoImpactAngleHistograms(true);
 
   mRec->RegisterGPUProcessor(mTracker, false);
   mChainTracking->SetTRDGeometry(std::move(mFlatGeo));
@@ -171,11 +173,18 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   mTracker->SetTriggerRecordIndices(&(trdTriggerIndices[0]));
   mTracker->SetNCollisions(nCollisions);
   //mTracker->DumpTracks();
+  mTracker->ResetImpactAngleHistograms();
   mTracker->DoTracking(mChainTracking);
   //mTracker->DumpTracks();
 
   std::vector<GPUTRDTrack> tracksOut(mTracker->NTracks());
   std::copy(mTracker->Tracks(), mTracker->Tracks() + mTracker->NTracks(), tracksOut.begin());
+
+  // Temporary until it is transferred to its own DPL device for calibrations
+  mCalibVDrift.setAngleDiffSums(mTracker->AngleDiffSums());
+  mCalibVDrift.setAngleDiffCounters(mTracker->AngleDiffCounters());
+  mCalibVDrift.process();
+
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCHTRD", 0, Lifetime::Timeframe}, tracksOut);
 
   mTimer.Stop();
