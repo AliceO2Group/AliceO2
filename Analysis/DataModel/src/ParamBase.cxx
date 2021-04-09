@@ -18,6 +18,7 @@
 
 #include "AnalysisDataModel/PID/ParamBase.h"
 #include "Framework/Logger.h"
+#include "TFile.h"
 
 namespace o2::pid
 {
@@ -38,6 +39,20 @@ void Parameters::Print(Option_t* options) const
   }
 };
 
+void Parameters::LoadParamFromFile(const TString FileName, const TString ParamName)
+{
+  TFile f(FileName, "READ");
+  if (!f.Get(ParamName)) {
+    LOG(fatal) << "Did not find parameters " << ParamName << " in file " << FileName;
+  }
+  LOG(info) << "Loading parameters " << ParamName << " from TFile " << FileName;
+  Parameters* p;
+  f.GetObject(ParamName, p);
+  f.Close();
+  SetParameters(p);
+  Print();
+}
+
 pidvar_t Parametrization::operator()(const pidvar_t* x) const
 {
   LOG(fatal) << "Parametrization " << fName << " is not implemented!";
@@ -49,5 +64,19 @@ void Parametrization::Print(Option_t* options) const
   LOG(info) << "Parametrization '" << fName << "'";
   mParameters.Print(options);
 };
+
+void Parametrization::LoadParamFromFile(const TString FileName, const TString ParamName)
+{
+  TFile f(FileName, "READ");
+  if (!f.Get(ParamName)) {
+    LOG(fatal) << "Did not find parameters " << ParamName << " in file " << FileName;
+  }
+  LOG(info) << "Loading parameters " << ParamName << " from TFile " << FileName;
+  Parametrization* p;
+  f.GetObject(ParamName, p);
+  f.Close();
+  SetParameters(p->mParameters);
+  Print();
+}
 
 } // namespace o2::pid

@@ -73,6 +73,11 @@ class Parameters : public TNamed
   /// Printer of the parameter values
   virtual void Print(Option_t* option = "") const;
 
+  /// Loader from file
+  /// \param FileName name of the input file
+  /// \param ParamName name of the input object
+  void LoadParamFromFile(const TString FileName, const TString ParamName);
+
   /// Getter for the parameters
   /// \return returns an array of parameters
   const pidvar_t* GetParameters() const { return mPar.data(); }
@@ -119,6 +124,11 @@ class Parametrization : public TNamed
 
   /// Printer for the parametrization
   virtual void Print(Option_t* option = "") const;
+
+  /// Loader from file
+  /// \param FileName name of the input file
+  /// \param ParamName name of the input object
+  void LoadParamFromFile(const TString FileName, const TString ParamName);
 
   /// Setter for the parameter at position iparam
   /// \param iparam index in the array of the parameters
