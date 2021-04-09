@@ -75,7 +75,8 @@ class TOFDPLClustererTask
     mTimer.Start(false);
     // get digit data
     auto digits = pc.inputs().get<gsl::span<o2::tof::Digit>>("tofdigits");
-    auto row = pc.inputs().get<std::vector<o2::tof::ReadoutWindowData>*>("readoutwin");
+    auto rowp = pc.inputs().get<gsl::span<o2::tof::ReadoutWindowData>>("readoutwin");
+    auto row = &rowp;
 
     const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
     mClusterer.setFirstOrbit(dh->firstTForbit);
