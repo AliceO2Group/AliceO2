@@ -56,10 +56,12 @@ using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 using MCLabCont = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 
 void run_trac_ca_its(bool cosmics = false,
+                     bool useLUT = true,
                      std::string path = "./",
                      std::string outputfile = "o2trac_its.root",
                      std::string inputClustersITS = "o2clus_its.root",
                      std::string dictfile = "",
+                     std::string matLUTFile = "matbud.root",
                      std::string inputGRP = "o2sim_grp.root")
 {
 
@@ -91,11 +93,26 @@ void run_trac_ca_its(bool cosmics = false,
   }
   double origD[3] = {0., 0., 0.};
   tracker.setBz(field->getBz(origD));
-  // tracker.setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrTGeo);
+
+  //-------- init lookuptable --------//
+  if (useLUT) {
+    auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
+    o2::base::Propagator::Instance()->setMatLUT(lut);
+  } else {
+    tracker.setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrTGeo);
+  }
+
+  if (tracker.isMatLUT()) {
+    LOG(INFO) << "Loaded material LUT from " << matLUTFile;
+  } else {
+    LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
+  }
+
+  //
 
   bool isITS = grp->isDetReadOut(o2::detectors::DetID::ITS);
   if (!isITS) {
-    LOG(WARNING) << "ITS is not in the readoute";
+    LOG(WARNING) << "ITS is not in the readout";
     return;
   }
   bool isContITS = grp->isDetContinuousReadOut(o2::detectors::DetID::ITS);

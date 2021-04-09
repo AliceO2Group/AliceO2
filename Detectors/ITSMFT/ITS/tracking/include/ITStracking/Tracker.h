@@ -79,7 +79,7 @@ class Tracker
   void setCorrType(const o2::base::PropagatorImpl<float>::MatCorrType& type) { mCorrType = type; }
   void setParameters(const std::vector<MemoryParameters>&, const std::vector<TrackingParameters>&);
   void getGlobalConfiguration();
-  bool isMatLUT() const { return mCorrType == o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT; }
+  bool isMatLUT() const { return o2::base::Propagator::Instance()->getMatLUT() && (mCorrType == o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT); }
 
  private:
   track::TrackParCov buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3,
@@ -91,8 +91,7 @@ class Tracker
   void findCellsNeighbours(int& iteration);
   void findRoads(int& iteration);
   void findTracks(const ROframe& ev);
-  bool fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step, o2::base::PropagatorImpl<float>* propPtr,
-                const float chi2cut = o2::constants::math::VeryBig);
+  bool fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step, const float chi2cut = o2::constants::math::VeryBig);
   void traverseCellsTree(const int, const int);
   void computeRoadsMClabels(const ROframe&);
   void computeTracksMClabels(const ROframe&);
