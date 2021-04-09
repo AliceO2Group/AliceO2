@@ -27,6 +27,40 @@ namespace o2
 namespace mft
 {
 
+// Remove leading whitespace
+std::string ltrimSpaceStream(std::string src)
+{
+  return src.erase(0, src.find_first_not_of(' '));
+}
+
+// Remove trailing whitespace
+std::string rtrimSpaceStream(std::string src)
+{
+  return src.erase(src.find_last_not_of(' ') + 1);
+}
+
+// Remove leading/trailing whitespace
+std::string trimSpaceStream(std::string const& src)
+{
+  return ltrimSpaceStream(rtrimSpaceStream(src));
+}
+
+
+std::vector<std::string> splitStringStream(const std::string& src, char delim, bool trim = false)
+{
+  std::stringstream ss(src);
+  std::string token;
+  std::vector<std::string> tokens;
+
+  while (std::getline(ss, token, delim)) {
+    token = (trim ? trimSpaceStream(token) : token);
+    if (!token.empty()) {
+      tokens.push_back(std::move(token));
+    }
+  }
+
+  return tokens;
+}
 void NoiseCalibratorDigitsSpec::init(InitContext& ic)
 {
   auto onepix = ic.options().get<bool>("1pix-only");
@@ -39,7 +73,7 @@ void NoiseCalibratorDigitsSpec::init(InitContext& ic)
   mStart = ic.options().get<int64_t>("tstart");
   mEnd = ic.options().get<int64_t>("tend");
 
-  mCalibrator = std::make_unique<CALIBRATOR>(onepix, probT);
+  mCalibrator = std::make_unique<CALIBRATORDIGITS>(onepix, probT);
 }
 
 void NoiseCalibratorDigitsSpec::run(ProcessingContext& pc)
@@ -75,20 +109,20 @@ void NoiseCalibratorDigitsSpec::sendOutput(DataAllocator& output)
     std::vector<std::pair<std::string, std::string>> pairs;
 
     for (auto& token : tokens) {
-      auto keyval = splitString(token, '=');
+      auto keyval = splitStringStream(token, '=');
       if (keyval.size() != 2) {
         // LOG(FATAL) << "Illegal command-line key/value string: " << token;
         continue;
       }
 
-      std::pair<std::string, std::string> pair = std::make_pair(keyval[0], trimSpace(keyval[1]));
+      std::pair<std::string, std::string> pair = std::make_pair(keyval[0], trimSpaceStream(keyval[1]));
       pairs.push_back(pair);
     }
 
     return pairs;
   };
   std::map<std::string, std::string> meta;
-  auto keyvalues = toKeyValPairs(splitString(mMeta, ';', true));
+  auto keyvalues = toKeyValPairs(splitStringStream(mMeta, ';', true));
 
   // fill meta map
   for (auto& p : keyvalues) {
