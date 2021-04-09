@@ -85,7 +85,7 @@ std::string NameConf::getMatLUTFileName(const std::string_view prefix)
   return o2::utils::concat_string(prefix, MATBUDLUT, ".root");
 }
 
-std::string NameConf::getCTFFileName(long id, const std::string_view prefix)
+std::string NameConf::getCTFFileName(uint32_t run, uint32_t orb, uint32_t id, const std::string_view prefix)
 {
-  return o2::utils::concat_string(prefix, "_", fmt::format("{:010d}", id), ".root");
+  return o2::utils::concat_string(prefix, "_", fmt::format("run{:08d}_orbit{:010d}_tf{:010d}", run, orb, id), ".root");
 }

@@ -200,19 +200,17 @@ void CTFWriterSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
-  auto tfOrb = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getByPos(0))->firstTForbit;
+  const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getByPos(0));
 
   std::unique_ptr<TFile> fileOut;
   std::unique_ptr<TTree> treeOut;
   if (mWriteCTF) {
-    //    fileOut.reset(TFile::Open(o2::base::NameConf::getCTFFileName(tfOrb).c_str(), "recreate"));
-    // RS Until the DPL will propagate the firstTForbit, we will use simple counter in CTF file name to avoid overwriting in case of multiple TFs
-    fileOut.reset(TFile::Open(o2::base::NameConf::getCTFFileName(mNTF).c_str(), "recreate"));
+    fileOut.reset(TFile::Open(o2::base::NameConf::getCTFFileName(dh->runNumber, dh->firstTForbit, dh->tfCounter).c_str(), "recreate"));
     treeOut = std::make_unique<TTree>(std::string(o2::base::NameConf::CTFTREENAME).c_str(), "O2 CTF tree");
   }
 
   // create header
-  CTFHeader header{mRun, tfOrb};
+  CTFHeader header{mRun, dh->firstTForbit};
 
   processDet<o2::itsmft::CTF>(pc, DetID::ITS, header, treeOut.get());
   processDet<o2::itsmft::CTF>(pc, DetID::MFT, header, treeOut.get());
