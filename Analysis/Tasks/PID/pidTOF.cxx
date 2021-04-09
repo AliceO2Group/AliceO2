@@ -31,8 +31,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
     {"use-fast", VariantType::Int, 0, {"Use fast implementation"}},
-    {"add-qa", VariantType::Int, 0, {"Produce TOF PID QA histograms"}},
-    {"add-beta", VariantType::Int, 1, {"Produce TOF Beta table"}}};
+    {"add-qa", VariantType::Int, 0, {"Produce TOF PID QA histograms"}}};
   std::swap(workflowOptions, options);
 }
 
@@ -104,31 +103,6 @@ struct pidTOFTask {
                responseTr.GetSeparation(response, trk.collision(), trk),
                responseHe.GetSeparation(response, trk.collision(), trk),
                responseAl.GetSeparation(response, trk.collision(), trk));
-    }
-  }
-};
-
-struct pidTOFTaskBeta {
-  using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
-  using Coll = aod::Collision;
-  Produces<aod::pidRespTOFbeta> tablePIDBeta;
-  tof::Beta<Coll, Trks::iterator, PID::Electron> responseElectron;
-  Configurable<float> expreso{"tof-expreso", 80, "Expected resolution for the computation of the expected beta"};
-
-  void init(o2::framework::InitContext&)
-  {
-    responseElectron.mExpectedResolution = expreso.value;
-  }
-
-  void process(Coll const& collision, Trks const& tracks)
-  {
-    tablePIDBeta.reserve(tracks.size());
-    for (auto const& trk : tracks) {
-      tablePIDBeta(responseElectron.GetBeta(collision, trk),
-                   responseElectron.GetExpectedSigma(collision, trk),
-                   responseElectron.GetExpectedSignal(collision, trk),
-                   responseElectron.GetExpectedSigma(collision, trk),
-                   responseElectron.GetSeparation(collision, trk));
     }
   }
 };
@@ -274,8 +248,6 @@ struct pidTOFTaskQA {
     histos.add("event/colltime", ";Collision time (ps);Entries", HistType::kTH1F, {{100, -2000, 2000}});
     histos.add("event/tofsignal", ";#it{p} (GeV/#it{c});TOF Signal", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {10000, 0, 2e6}});
     makelogaxis(histos.get<TH2>(HIST("event/tofsignal")));
-    histos.add("event/tofbeta", ";#it{p} (GeV/#it{c});TOF #beta", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 2}});
-    makelogaxis(histos.get<TH2>(HIST("event/tofbeta")));
     histos.add("event/eta", ";#it{#eta};Entries", HistType::kTH1F, {{100, -2, 2}});
     histos.add("event/length", ";Track length (cm);Entries", HistType::kTH1F, {{100, 0, 500}});
     histos.add("event/pt", ";#it{p}_{T} (GeV/#it{c});Entries", HistType::kTH1F, {{nBinsP, MinP, MaxP}});
@@ -301,7 +273,7 @@ struct pidTOFTaskQA {
     histos.fill(HIST(hnsigma[i]), t.p(), nsigma);
   }
 
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::pidRespTOF, aod::pidRespTOFbeta, aod::TrackSelection> const& tracks)
+  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::pidRespTOF, aod::TrackSelection> const& tracks)
   {
     const float collisionTime_ps = collision.collisionTime() * 1000.f;
     histos.fill(HIST("event/vertexz"), collision.posZ());
@@ -320,7 +292,6 @@ struct pidTOFTaskQA {
 
       //
       histos.fill(HIST("event/tofsignal"), t.p(), t.tofSignal());
-      histos.fill(HIST("event/tofbeta"), t.p(), t.beta());
       histos.fill(HIST("event/eta"), t.eta());
       histos.fill(HIST("event/length"), t.length());
       histos.fill(HIST("event/pt"), t.pt());
@@ -347,12 +318,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   } else {
     workflow.push_back(adaptAnalysisTask<pidTOFTask>(cfgc, TaskName{"pidTOF-task"}));
   }
-  const int add_beta = cfgc.options().get<int>("add-beta");
-  const int add_qa = cfgc.options().get<int>("add-qa");
-  if (add_beta || add_qa) {
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskBeta>(cfgc, TaskName{"pidTOFBeta-task"}));
-  }
-  if (add_qa) {
+  if (cfgc.options().get<int>("add-qa")) {
     workflow.push_back(adaptAnalysisTask<pidTOFTaskQA>(cfgc, TaskName{"pidTOFQA-task"}));
   }
   return workflow;
