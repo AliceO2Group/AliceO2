@@ -68,12 +68,12 @@ struct SelectTracks {
 
   /// Single-track cuts for 2-prongs
   /// \param hfTrack is a track
+  /// \param dca is a 2-element array with dca in transverse and longitudinal directions
   /// \return true if track passes all cuts
   template <typename T>
   bool selectionTrack2Prong(const T& hfTrack, const array<float, 2>& dca)
   {
-    auto trackpT = hfTrack.pt();
-    auto pTBinTrack = findBin(pTBinsTrack, trackpT);
+    auto pTBinTrack = findBin(pTBinsTrack, hfTrack.pt());
     if (pTBinTrack == -1) {
       return false;
     }
@@ -89,12 +89,12 @@ struct SelectTracks {
 
   /// Single-track cuts for 3-prongs
   /// \param hfTrack is a track
+  /// \param dca is a 2-element array with dca in transverse and longitudinal directions
   /// \return true if track passes all cuts
   template <typename T>
   bool selectionTrack3Prong(const T& hfTrack, const array<float, 2>& dca)
   {
-    auto trackpT = hfTrack.pt();
-    auto pTBinTrack = findBin(pTBinsTrack, trackpT);
+    auto pTBinTrack = findBin(pTBinsTrack, hfTrack.pt());
     if (pTBinTrack == -1) {
       return false;
     }
