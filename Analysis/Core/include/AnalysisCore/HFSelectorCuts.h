@@ -37,24 +37,7 @@ int findBin(o2::framework::Configurable<std::vector<T1>> const& bins, T2 value)
   if (value >= bins->back()) {
     return -1;
   }
-  int step;
-  int bin = 0;
-  int count = bins->size();
-
-  while (count > 0) {
-    step = count / 2;
-    bin += step;
-    if (bins->operator[](bin) <= value) {
-      count -= step + 1;
-    } else {
-      bin -= step;
-      count = step;
-    }
-  }
-  if (bin == bins->size()) {
-    bin = 0;
-  }
-  return bin - 1;
+  return std::distance(bins->begin(), std::upper_bound(bins->begin(), bins->end(), value)) - 1;
 }
 
 // namespace per channel
