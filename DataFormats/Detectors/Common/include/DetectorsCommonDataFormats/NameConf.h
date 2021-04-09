@@ -101,7 +101,7 @@ class NameConf
   static constexpr std::string_view CTFTREENAME = "ctf"; // hardcoded
 
   // CTF Filename
-  static std::string getCTFFileName(long id, const std::string_view prefix = "o2_ctf");
+  static std::string getCTFFileName(uint32_t run, uint32_t orb, uint32_t id, const std::string_view prefix = "o2_ctf");
 
  private:
   // unmodifiable constants used to construct filenames etc
