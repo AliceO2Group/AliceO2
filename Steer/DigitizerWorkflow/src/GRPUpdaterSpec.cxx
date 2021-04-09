@@ -65,6 +65,7 @@ class GRPDPLUpdatedTask
       grp->setDetROMode(det, roMode);
     }
     grp->setFirstOrbit(o2::raw::HBFUtils::Instance().orbitFirst);
+    grp->setNHBFPerTF(o2::raw::HBFUtils::Instance().nHBFPerTF);
     LOG(INFO) << "Updated GRP in " << mGRPFileName << " for detectors RO mode and 1st orbit of the run";
     grp->print();
     flGRP.WriteObjectAny(grp.get(), grp->Class(), grpName.c_str());
