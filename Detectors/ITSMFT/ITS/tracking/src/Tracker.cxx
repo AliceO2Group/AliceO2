@@ -234,8 +234,6 @@ void Tracker::findTracks(const ROframe& event)
   std::vector<TrackITSExt> tracks;
   tracks.reserve(mPrimaryVertexContext->getRoads().size());
 
-  auto propagator = o2::base::Propagator::Instance();
-
 #ifdef CA_DEBUG
   std::vector<int> roadCounters(mTrkParams[0].NLayers - 3, 0);
   std::vector<int> fitCounters(mTrkParams[0].NLayers - 3, 0);
@@ -291,20 +289,20 @@ void Tracker::findTracks(const ROframe& event)
     for (size_t iC = 0; iC < clusters.size(); ++iC) {
       temporaryTrack.setExternalClusterIndex(iC, clusters[iC], clusters[iC] != constants::its::UnusedIndex);
     }
-    bool fitSuccess = fitTrack(event, temporaryTrack, mTrkParams[0].NLayers - 4, -1, -1, propagator);
+    bool fitSuccess = fitTrack(event, temporaryTrack, mTrkParams[0].NLayers - 4, -1, -1);
     if (!fitSuccess) {
       continue;
     }
     CA_DEBUGGER(fitCounters[nClusters - 4]++);
     temporaryTrack.resetCovariance();
-    fitSuccess = fitTrack(event, temporaryTrack, 0, mTrkParams[0].NLayers, 1, propagator, mTrkParams[0].FitIterationMaxChi2[0]);
+    fitSuccess = fitTrack(event, temporaryTrack, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].FitIterationMaxChi2[0]);
     if (!fitSuccess) {
       continue;
     }
     CA_DEBUGGER(backpropagatedCounters[nClusters - 4]++);
     temporaryTrack.getParamOut() = temporaryTrack;
     temporaryTrack.resetCovariance();
-    fitSuccess = fitTrack(event, temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1, propagator, mTrkParams[0].FitIterationMaxChi2[1]);
+    fitSuccess = fitTrack(event, temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].FitIterationMaxChi2[1]);
 #ifdef CA_DEBUG
     mDebugger->dumpTrackToBranchWithInfo("testBranch", temporaryTrack, event, mPrimaryVertexContext, true);
 #endif
@@ -411,8 +409,9 @@ void Tracker::findTracks(const ROframe& event)
 #endif
 }
 
-bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step, o2::base::PropagatorImpl<float>* propPtr, const float chi2cut)
+bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step, const float chi2cut)
 {
+  auto propInstance = o2::base::Propagator::Instance();
   track.setChi2(0);
   for (int iLayer{start}; iLayer != end; iLayer += step) {
     if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
@@ -424,7 +423,7 @@ bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int 
       return false;
     }
 
-    if (!propPtr->propagateToX(track, trackingHit.xTrackingFrame, getBz(), o2::base::PropagatorImpl<float>::MAX_SIN_PHI, o2::base::PropagatorImpl<float>::MAX_STEP, mCorrType)) {
+    if (!propInstance->propagateToX(track, trackingHit.xTrackingFrame, getBz(), o2::base::PropagatorImpl<float>::MAX_SIN_PHI, o2::base::PropagatorImpl<float>::MAX_STEP, mCorrType)) {
       return false;
     }
 
