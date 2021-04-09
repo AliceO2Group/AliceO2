@@ -9,6 +9,13 @@ o2-itsmft-stf-decoder-workflow -b --nthreads ${N_THREAD} --runmft --decoder-verb
 o2-calibration-mft-calib-workflow --path "/MFT/test_CCDB/" --meta "Description=MFT;Author=Maurice Coquet;Uploader=Maurice Coquet" -b | \
 o2-calibration-ccdb-populator-workflow --ccdb-path="http://localhost:8080" -b
 ```
+The same as before but uses digits instead of clusters:
+```shell
+o2-raw-file-reader-workflow -b --delay ${DELAY_S} --nocheck-missing-stop --nocheck-starts-with-tf --nocheck-packet-increment --nocheck-hbf-jump --nocheck-hbf-per-tf --detect-tf0 --configKeyValues "HBFUtils.nHBFPerTF=${HBF_PER_TF}" --input-conf ${CFGFILE} | \
+o2-itsmft-stf-decoder-workflow -b --nthreads ${N_THREAD} --runmft --digits --no-clusters --no-cluster-patterns --decoder-verbosity ${DECODER_VERBOSITY} | \
+o2-calibration-mft-calib-workflow --useDigits --path "/MFT/test_CCDB/" --meta "Description=MFT;Author=Maurice Coquet;Uploader=Maurice Coquet" -b | \
+o2-calibration-ccdb-populator-workflow --ccdb-path="http://localhost:8080" -b
+```
 
 Additional options to the mft-calib DPL : 
 	--path "/path/in/CCDB/" : defines path to write to in CCDB (default : "/MFT/Calib/NoiseMap")

@@ -19,7 +19,7 @@
 #include "Framework/Task.h"
 
 #include "MFTCalibration/NoiseCalibratorDigits.h"
-using CALIBRATOR = o2::mft::NoiseCalibratorDigits;
+using CALIBRATORDIGITS = o2::mft::NoiseCalibratorDigits;
 
 #include "DataFormatsITSMFT/NoiseMap.h"
 
@@ -44,7 +44,7 @@ class NoiseCalibratorDigitsSpec : public Task
  private:
   void sendOutput(DataAllocator& output);
   o2::itsmft::NoiseMap mNoiseMap{926};
-  std::unique_ptr<CALIBRATOR> mCalibrator = nullptr;
+  std::unique_ptr<CALIBRATORDIGITS> mCalibrator = nullptr;
   std::string mPath;
   std::string mMeta;
   double mThresh;
