@@ -36,6 +36,8 @@ NHBPERTF=${NHBPERTF:-128}
 RUNFIRSTORBIT=${RUNFIRSTORBIT:-0}
 FIRSTSAMPLEDORBIT=${FIRSTSAMPLEDORBIT:-0}
 
+[ "$FIRSTSAMPLEDORBIT" -lt "$RUNFIRSTORBIT" ] && FIRSTSAMPLEDORBIT=$RUNFIRSTORBIT
+
 # allow skipping
 JOBUTILS_SKIPDONE=ON
 # enable memory monitoring (independent on whether DPL or not)
@@ -66,7 +68,7 @@ QED2HAD=$(awk "BEGIN {printf \"%.2f\",`grep xSectionQED qedgenparam.ini | cut -d
 echo "Obtained ratio of QED to hadronic x-sections = $QED2HAD" >> qedsim.log
 cd ..
 
-DIGITRDOPTREAL="--configKeyValues \"${HBFUTILPARAMS};TRDSimParams.digithreads=${NJOBS}\" --enable-trd-trapsim"
+DIGITRDOPTREAL="--configKeyValues \"${HBFUTILPARAMS};TRDSimParams.digithreads=${NJOBS}\" "
 if [ $SPLITTRDDIGI == "1" ]; then
   DIGITRDOPT="--configKeyValues \"${HBFUTILPARAMS}\" --skipDet TRD"
 else
