@@ -78,7 +78,7 @@ struct SelectTracks {
   /// \param dca is a 2-element array with dca in transverse and longitudinal directions
   /// \return true if track passes all cuts
   template <typename T>
-  bool isSelectedTrack(const T& hfTrack, const array<float, 2>& dca, const int &candType)
+  bool isSelectedTrack(const T& hfTrack, const array<float, 2>& dca, const int& candType)
   {
     auto pTBinTrack = findBin(pTBinsTrack, hfTrack.pt());
     if (pTBinTrack == -1) {
