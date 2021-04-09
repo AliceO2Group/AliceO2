@@ -36,6 +36,13 @@ using namespace o2::analysis::hf_cuts_single_track;
 
 /// Track selection
 struct SelectTracks {
+
+  // enum for candidate type
+  enum candidateType {
+    k2Prong = 0,
+    k3Prong
+  };
+
   Produces<aod::HFSelTrack> rowSelectedTrack;
 
   Configurable<bool> b_dovalplots{"b_dovalplots", true, "fill histograms"};
@@ -66,43 +73,24 @@ struct SelectTracks {
      {"hdcatoprimxy_cuts_3prong", "tracks selected for 3-prong vertexing;DCAxy to prim. vtx. (cm);entries", {HistType::kTH1F, {{400, -2., 2.}}}},
      {"heta_cuts_3prong", "tracks selected for 3-prong vertexing;#it{#eta};entries", {HistType::kTH1F, {{static_cast<int>(1.2 * etamax_3prong * 100), -1.2 * etamax_3prong, 1.2 * etamax_3prong}}}}}};
 
-  /// Single-track cuts for 2-prongs
+  /// Single-track cuts for 2-prongs or 3-prongs
   /// \param hfTrack is a track
   /// \param dca is a 2-element array with dca in transverse and longitudinal directions
   /// \return true if track passes all cuts
   template <typename T>
-  bool selectionTrack2Prong(const T& hfTrack, const array<float, 2>& dca)
+  bool isSelectedTrack(const T& hfTrack, const array<float, 2>& dca, const int &candType)
   {
     auto pTBinTrack = findBin(pTBinsTrack, hfTrack.pt());
     if (pTBinTrack == -1) {
       return false;
     }
 
-    if (dca[0] < cutsTrack2Prong->get(pTBinTrack, "min_dcaxytoprimary")) {
+    std::array<Configurable<LabeledArray<double>>, 2> cutsTrack = {cutsTrack2Prong, cutsTrack3Prong};
+
+    if (abs(dca[0]) < cutsTrack[candType]->get(pTBinTrack, "min_dcaxytoprimary")) {
       return false; //minimum DCAxy
     }
-    if (dca[0] > cutsTrack2Prong->get(pTBinTrack, "max_dcaxytoprimary")) {
-      return false; //maximum DCAxy
-    }
-    return true;
-  }
-
-  /// Single-track cuts for 3-prongs
-  /// \param hfTrack is a track
-  /// \param dca is a 2-element array with dca in transverse and longitudinal directions
-  /// \return true if track passes all cuts
-  template <typename T>
-  bool selectionTrack3Prong(const T& hfTrack, const array<float, 2>& dca)
-  {
-    auto pTBinTrack = findBin(pTBinsTrack, hfTrack.pt());
-    if (pTBinTrack == -1) {
-      return false;
-    }
-
-    if (abs(dca[0]) < cutsTrack3Prong->get(pTBinTrack, "min_dcaxytoprimary")) {
-      return false; //minimum DCAxy
-    }
-    if (abs(dca[0]) > cutsTrack3Prong->get(pTBinTrack, "max_dcaxytoprimary")) {
+    if (abs(dca[0]) > cutsTrack[candType]->get(pTBinTrack, "max_dcaxytoprimary")) {
       return false; //maximum DCAxy
     }
     return true;
@@ -155,10 +143,10 @@ struct SelectTracks {
         if (!trackparvar0.propagateParamToDCA(vtxXYZ, d_bz, &dca, 100.)) { // get impact parameters
           status_prong = 0;
         }
-        if ((status_prong & (1 << 0)) && !selectionTrack2Prong(track, dca)) {
+        if ((status_prong & (1 << 0)) && !isSelectedTrack(track, dca, k2Prong)) {
           status_prong = status_prong & ~(1 << 0);
         }
-        if ((status_prong & (1 << 1)) && !selectionTrack3Prong(track, dca)) {
+        if ((status_prong & (1 << 1)) && !isSelectedTrack(track, dca, k3Prong)) {
           status_prong = status_prong & ~(1 << 1);
         }
       }
