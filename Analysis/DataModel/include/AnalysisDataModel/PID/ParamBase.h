@@ -71,7 +71,7 @@ class Parameters : public TNamed
   void SetParameters(const Parameters* params) { SetParameters(params->mPar); };
 
   /// Printer of the parameter values
-  void PrintParameters() const;
+  virtual void Print(Option_t* option = "") const;
 
   /// Getter for the parameters
   /// \return returns an array of parameters
@@ -117,8 +117,8 @@ class Parametrization : public TNamed
   /// \param x array of variables to use in order to compute the return value
   virtual pidvar_t operator()(const pidvar_t* x) const;
 
-  /// Printer for parameters
-  void PrintParametrization() const;
+  /// Printer for the parametrization
+  virtual void Print(Option_t* option = "") const;
 
   /// Setter for the parameter at position iparam
   /// \param iparam index in the array of the parameters

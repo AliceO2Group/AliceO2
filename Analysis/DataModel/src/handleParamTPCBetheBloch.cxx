@@ -111,7 +111,7 @@ int main(int argc, char* argv[])
       const std::vector<float> resoparams = {0.07, 0.0};
       reso->SetParameters(resoparams);
     }
-    bb->PrintParametrization();
+    bb->Print();
     const std::string fname = vm["save-to-file"].as<std::string>();
     if (!fname.empty()) { // Saving it to file
       LOG(INFO) << "Saving parametrization to file " << fname;
@@ -136,10 +136,10 @@ int main(int argc, char* argv[])
     LOG(INFO) << "Handling TPC parametrization in test mode";
     const float x[2] = {1, 1};
     BetheBloch* bb = api.retrieveFromTFileAny<BetheBloch>(path + "/" + exp_name, metadata, -1, headers);
-    bb->PrintParametrization();
+    bb->Print();
     LOG(INFO) << "BetheBloch " << bb->operator()(x);
     TPCReso* reso = api.retrieveFromTFileAny<TPCReso>(path + "/" + reso_name, metadata, -1, headers);
-    reso->PrintParametrization();
+    reso->Print();
     LOG(INFO) << "TPCReso " << reso->operator()(x);
   }
 

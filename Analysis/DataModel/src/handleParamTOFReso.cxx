@@ -99,7 +99,7 @@ int main(int argc, char* argv[])
       const std::vector<float> resoparams = {vm["p0"].as<float>(), vm["p1"].as<float>(), vm["p2"].as<float>(), vm["p3"].as<float>(), vm["p4"].as<float>()};
       reso->SetParameters(resoparams);
     }
-    reso->PrintParametrization();
+    reso->Print();
     const std::string fname = vm["save-to-file"].as<std::string>();
     if (!fname.empty()) { // Saving it to file
       LOG(INFO) << "Saving parametrization to file " << fname;
@@ -122,7 +122,7 @@ int main(int argc, char* argv[])
     LOG(INFO) << "Handling TOF parametrization in test mode";
     const float x[7] = {1, 1, 1, 1, 1, 1, 1}; // mom, time, ev. reso, mass, length, sigma1pt, pt
     reso = api.retrieveFromTFileAny<TOFReso>(path + "/" + reso_name, metadata, -1, headers);
-    reso->PrintParametrization();
+    reso->Print();
     LOG(INFO) << "TOF expected resolution at p=" << x[0] << " GeV/c "
               << " and mass " << x[3] << ":" << reso->operator()(x);
   }

@@ -30,8 +30,9 @@ void Parameters::SetParameters(const std::vector<pidvar_t> params)
   mPar.assign(params.begin(), params.end());
 }
 
-void Parameters::PrintParameters() const
+void Parameters::Print(Option_t* options) const
 {
+  LOG(info) << "Parameters '" << fName << "'";
   for (unsigned int i = 0; i < size(); i++) {
     LOG(info) << "Parameter " << i << "/" << size() - 1 << " is " << mPar[i];
   }
@@ -43,10 +44,10 @@ pidvar_t Parametrization::operator()(const pidvar_t* x) const
   return -999.999f;
 }
 
-void Parametrization::PrintParametrization() const
+void Parametrization::Print(Option_t* options) const
 {
-  LOG(info) << "Parametrization " << fName;
-  mParameters.PrintParameters();
+  LOG(info) << "Parametrization '" << fName << "'";
+  mParameters.Print(options);
 };
 
 } // namespace o2::pid
