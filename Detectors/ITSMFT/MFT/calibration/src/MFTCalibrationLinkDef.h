@@ -15,5 +15,6 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::mft::NoiseCalibrator + ;
+#pragma link C++ class o2::mft::NoiseCalibratorDigits + ;
 
 #endif
