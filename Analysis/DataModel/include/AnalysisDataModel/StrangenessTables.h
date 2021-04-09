@@ -55,21 +55,21 @@ DECLARE_SOA_DYNAMIC_COLUMN(DCAV0ToPV, dcav0topv, [](float X, float Y, float Z, f
 
 //Alpenteros-Podolanski variables
 DECLARE_SOA_DYNAMIC_COLUMN(Alpha, alpha, [](float pxpos, float pypos, float pzpos, float pxneg, float pyneg, float pzneg) {
-    TVector3 momPos(pxpos, pypos, pzpos);
-    TVector3 momNeg(pxneg, pyneg, pzneg);
-    TVector3 momTot(pxpos + pxneg, pypos + pyneg, pzpos + pzneg);
-    float lQlNeg = momNeg.Dot(momTot)/momTot.Mag();
-    float lQlPos = momPos.Dot(momTot)/momTot.Mag();
-    float alphav0 = (lQlPos - lQlNeg)/(lQlPos + lQlNeg);
-    return alphav0;
-    });
+  TVector3 momPos(pxpos, pypos, pzpos);
+  TVector3 momNeg(pxneg, pyneg, pzneg);
+  TVector3 momTot(pxpos + pxneg, pypos + pyneg, pzpos + pzneg);
+  float lQlNeg = momNeg.Dot(momTot) / momTot.Mag();
+  float lQlPos = momPos.Dot(momTot) / momTot.Mag();
+  float alphav0 = (lQlPos - lQlNeg) / (lQlPos + lQlNeg);
+  return alphav0;
+});
 DECLARE_SOA_DYNAMIC_COLUMN(QtArm, qtarm, [](float pxpos, float pypos, float pzpos, float pxneg, float pyneg, float pzneg) {
-    TVector3 momPos(pxpos, pypos, pzpos);
-    TVector3 momNeg(pxneg, pyneg, pzneg);
-    TVector3 momTot(pxpos + pxneg, pypos + pyneg, pzpos + pzneg);
-    float qtarm = momNeg.Perp(momTot);
-    return qtarm;
-    });
+  TVector3 momPos(pxpos, pypos, pzpos);
+  TVector3 momNeg(pxneg, pyneg, pzneg);
+  TVector3 momTot(pxpos + pxneg, pypos + pyneg, pzpos + pzneg);
+  float qtarm = momNeg.Perp(momTot);
+  return qtarm;
+});
 
 //Calculated on the fly with mass assumption + dynamic tables
 DECLARE_SOA_DYNAMIC_COLUMN(MLambda, mLambda, [](float pxpos, float pypos, float pzpos, float pxneg, float pyneg, float pzneg) { return RecoDecay::M(array{array{pxpos, pypos, pzpos}, array{pxneg, pyneg, pzneg}}, array{RecoDecay::getMassPDG(kProton), RecoDecay::getMassPDG(kPiPlus)}); });
@@ -112,8 +112,7 @@ DECLARE_SOA_TABLE_FULL(StoredV0Datas, "V0Datas", "AOD", "V0DATA",
                        v0data::YK0Short<v0data::Px, v0data::Py, v0data::Pz>,
                        v0data::YLambda<v0data::Px, v0data::Py, v0data::Pz>,
                        v0data::Eta<v0data::Px, v0data::Py, v0data::Pz>,
-                       v0data::Phi<v0data::Px, v0data::Py>
-                       );
+                       v0data::Phi<v0data::Px, v0data::Py>);
 
 // extended table with expression columns that can be used as arguments of dynamic columns
 DECLARE_SOA_EXTENDED_TABLE_USER(V0Datas, StoredV0Datas, "V0DATAEXT",
