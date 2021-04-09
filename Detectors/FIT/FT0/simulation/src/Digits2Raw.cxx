@@ -181,8 +181,9 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
         mLinkID = uint32_t(oldlink);
         mFeeID = uint64_t(oldlink);
         mEndPointID = uint32_t(oldendpoint);
-        if (mEndPointID == 1)
+        if (mEndPointID == 1) {
           mFeeID += 8;
+        }
         LOG(INFO) << " new link start " << mFeeID << " " << mCruID << " " << mLinkID << " " << mEndPointID;
         mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, intRecord, data);
       }
@@ -212,8 +213,9 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
   mLinkID = uint32_t(oldlink);
   mFeeID = uint64_t(oldlink);
   mEndPointID = uint32_t(oldendpoint);
-  if (mEndPointID == 1)
+  if (mEndPointID == 1) {
     mFeeID += 8;
+  }
   mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, intRecord, datalast);
   LOG(DEBUG) << " last " << mFeeID << " " << mCruID << " " << mLinkID << " " << mEndPointID;
   //TCM

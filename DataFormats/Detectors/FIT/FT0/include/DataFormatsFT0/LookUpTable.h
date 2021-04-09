@@ -87,16 +87,19 @@ inline o2::ft0::Topo read_Topo(std::string_view str)
   uint8_t pm_num = std::strtol(str.data() + 3, &ptr, 10); // = str[3] - '0';
   /* auto res = std::from_chars(str.data()+3, str.data()+3+str.size(), pm_num); */
   /* if (res.ec != std::errc() || res.ptr[0] != '/') */
-  if (errno || ptr[0] != '/')
+  if (errno || ptr[0] != '/') {
     throw std::invalid_argument("Cannot read pm_num");
-  if (ptr[1] != 'C' || ptr[2] != 'h')
+  }
+  if (ptr[1] != 'C' || ptr[2] != 'h') {
     throw std::invalid_argument("Expected 'Ch'");
+  }
   uint8_t pm_ch = std::strtol(ptr + 3, &ptr, 10);
   // = (str[7] - '0') * 10 + (str[8] - '0') - 1;
   /* res = std::from_chars(res.ptr+3, res.ptr+3+str.size(), pm_ch); */
   uint8_t ep = side == 'C' ? 1 : 0;
-  if (errno)
+  if (errno) {
     throw std::invalid_argument("Cannot read pm_ch");
+  }
   assert(side == 'A' || side == 'C');
   return Topo{pm_num, pm_ch, ep};
 }
@@ -242,10 +245,11 @@ class LookUpTable
   }
   static int getEPFromIdx(int idx)
   {
-    if (idx < 96 || idx > 215)
+    if (idx < 96 || idx > 215) {
       return 0;
-    else
+    } else {
       return 1;
+    }
   }
 
   static int getMCPFromIdx(int idx) { return idx % NUMBER_OF_MCPs + 1; }
@@ -254,6 +258,7 @@ class LookUpTable
 };
 
 //Singleton for LookUpTable
+<<<<<<< HEAD
 class SingleLUT : public LookUpTable
 {
  private:
@@ -264,6 +269,18 @@ class SingleLUT : public LookUpTable
  public:
   static SingleLUT& Instance()
   {
+=======
+class SingleLUT : public LookUpTable
+{
+ private:
+  SingleLUT() : LookUpTable(LookUpTable::readTable()) {}
+  SingleLUT(const SingleLUT&) = delete;
+  SingleLUT& operator=(SingleLUT&) = delete;
+
+ public:
+  static SingleLUT& Instance()
+  {
+>>>>>>> a25a55c... FT0 LUT prepared as Singleton for DigitBlockFT0 usage
     static SingleLUT instanceLUT;
     return instanceLUT;
   }
