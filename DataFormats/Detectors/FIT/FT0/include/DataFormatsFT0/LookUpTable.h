@@ -258,29 +258,15 @@ class LookUpTable
 };
 
 //Singleton for LookUpTable
-<<<<<<< HEAD
 class SingleLUT : public LookUpTable
 {
  private:
   SingleLUT() : LookUpTable(LookUpTable::readTable()) {}
   SingleLUT(const SingleLUT&) = delete;
   SingleLUT& operator=(SingleLUT&) = delete;
-
  public:
   static SingleLUT& Instance()
   {
-=======
-class SingleLUT : public LookUpTable
-{
- private:
-  SingleLUT() : LookUpTable(LookUpTable::readTable()) {}
-  SingleLUT(const SingleLUT&) = delete;
-  SingleLUT& operator=(SingleLUT&) = delete;
-
- public:
-  static SingleLUT& Instance()
-  {
->>>>>>> a25a55c... FT0 LUT prepared as Singleton for DigitBlockFT0 usage
     static SingleLUT instanceLUT;
     return instanceLUT;
   }

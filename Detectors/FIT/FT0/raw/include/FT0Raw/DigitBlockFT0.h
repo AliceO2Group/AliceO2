@@ -60,11 +60,7 @@ class DigitBlockFT0 : public DigitBlockBase<DigitBlockFT0>
   {
     if constexpr (std::is_same<DataBlockType, DataBlockPM>::value) { //Filling data from PM
       for (int iEventData = 0; iEventData < dataBlock.DataBlockWrapper<RawDataPM>::mNelements; iEventData++) {
-<<<<<<< HEAD
         mVecChannelData.emplace_back(uint8_t(o2::ft0::SingleLUT::Instance().getChannel(linkID, dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].channelID, ep)),
-=======
-        mVecChannelData.emplace_back(uint8_t(o2::ft0::SingleLUT::Instance().getChannel(linkID, dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].channelID)),
->>>>>>> a25a55c... FT0 LUT prepared as Singleton for DigitBlockFT0 usage
                                      int(dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].time),
                                      int(dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].charge),
                                      dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].getFlagWord());
@@ -156,11 +152,7 @@ class DigitBlockFT0ext : public DigitBlockBase<DigitBlockFT0ext>
   {
     if constexpr (std::is_same<DataBlockType, DataBlockPM>::value) { //Filling data from PM
       for (int iEventData = 0; iEventData < dataBlock.DataBlockWrapper<RawDataPM>::mNelements; iEventData++) {
-<<<<<<< HEAD
         mVecChannelData.emplace_back(uint8_t(o2::ft0::SingleLUT::Instance().getChannel(linkID, dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].channelID, ep)),
-=======
-        mVecChannelData.emplace_back(uint8_t(o2::ft0::SingleLUT::Instance().getChannel(linkID, dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].channelID)),
->>>>>>> a25a55c... FT0 LUT prepared as Singleton for DigitBlockFT0 usage
                                      int(dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].time),
                                      int(dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].charge),
                                      dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].getFlagWord());
