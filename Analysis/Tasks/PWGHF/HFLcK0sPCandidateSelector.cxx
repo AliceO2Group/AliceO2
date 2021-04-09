@@ -192,7 +192,7 @@ struct HFLcK0sPCandidateSelector {
   template <typename T>
   bool validTPCPID(const T& track)
   {
-    if (TMath::Abs(track.pt()) < d_pidTPCMinPt || TMath::Abs(track.pt()) >= d_pidTPCMaxPt) {
+    if (track.pt() < d_pidTPCMinPt || track.pt() >= d_pidTPCMaxPt) {
       LOG(DEBUG) << "Bachelor pt is " << track.pt() << ", we trust TPC PID in [" << d_pidTPCMinPt << ", " << d_pidTPCMaxPt << "]";
       return false;
     }
@@ -396,5 +396,5 @@ struct HFLcK0sPCandidateSelector {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfcg)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HFLcK0sPCandidateSelector>(cfcg, "hf-lc-tok0sp-candidate-selector")};
+    adaptAnalysisTask<HFLcK0sPCandidateSelector>(cfcg, TaskName{"hf-lc-tok0sp-candidate-selector"})};
 }

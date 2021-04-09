@@ -19,10 +19,12 @@
 #include "ReconstructionDataFormats/DCA.h"
 #include "ReconstructionDataFormats/V0.h"
 #include "AnalysisTasksUtils/UtilsDebugLcK0Sp.h"
+#include "AnalysisCore/HFSelectorCuts.h"
 
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong2;
+using namespace o2::analysis;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
@@ -72,7 +74,7 @@ struct HFCandidateCreatorCascade {
   double massP = RecoDecay::getMassPDG(kProton);
   double massK0s = RecoDecay::getMassPDG(kK0Short);
   double massPi = RecoDecay::getMassPDG(kPiPlus);
-  double massLc = RecoDecay::getMassPDG(4122);
+  double massLc = RecoDecay::getMassPDG(pdg::code::kLambdaCPlus);
   double mass2K0sP{0.};
 
   void process(aod::Collisions const& collisions,
@@ -119,7 +121,7 @@ struct HFCandidateCreatorCascade {
       const std::array<float, 3> vertexV0 = {v0.x(), v0.y(), v0.z()};
       const std::array<float, 3> momentumV0 = {v0.px(), v0.py(), v0.pz()};
       // we build the neutral track to then build the cascade
-      auto trackV0 = o2::dataformats::V0(vertexV0, momentumV0, posTrackParCov, negTrackParCov, {0, 0}, {0, 0}); // build the V0 track (indices for v0 daughters set to 0 for now)
+      auto trackV0 = o2::dataformats::V0(vertexV0, momentumV0, {0, 0, 0, 0, 0, 0}, posTrackParCov, negTrackParCov, {0, 0}, {0, 0}); // build the V0 track (indices for v0 daughters set to 0 for now)
 
       auto collision = bach.collision();
 
@@ -166,7 +168,8 @@ struct HFCandidateCreatorCascade {
 
       // fill candidate table rows
       MY_DEBUG_MSG(isLc, LOG(INFO) << "IT IS A Lc! Filling for Lc with proton " << protonLabel << " posTrack " << labelPos << " negTrack " << labelNeg);
-      rowCandidateBase(collision.posX(), collision.posY(), collision.posZ(),
+      rowCandidateBase(collision.globalIndex(),
+                       collision.posX(), collision.posY(), collision.posZ(),
                        secondaryVertex[0], secondaryVertex[1], secondaryVertex[2],
                        errorDecayLength, errorDecayLengthXY,
                        chi2PCA,
@@ -244,14 +247,14 @@ struct HFCandidateCreatorCascadeMC {
       MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "correct K0S in the Lc daughters: posTrack --> " << labelPos << ", negTrack --> " << labelNeg);
 
       //if (isLc) {
-      RecoDecay::getMatchedMCRec(particlesMC, arrayDaughtersV0, 310, array{+kPiPlus, -kPiPlus}, true, &sign, 1); // does it matter the "acceptAntiParticle" in the K0s case? In principle, there is no anti-K0s
+      RecoDecay::getMatchedMCRec(particlesMC, arrayDaughtersV0, kK0Short, array{+kPiPlus, -kPiPlus}, true, &sign, 1); // does it matter the "acceptAntiParticle" in the K0s case? In principle, there is no anti-K0s
 
       if (sign != 0) { // we have already positively checked the K0s
         // then we check the Lc
         MY_DEBUG_MSG(sign, LOG(INFO) << "K0S was correct! now we check the Lc");
         auto labelProton = candidate.index0_as<aod::BigTracksMC>().mcParticleId();
         MY_DEBUG_MSG(sign, LOG(INFO) << "label proton = " << labelProton);
-        RecoDecay::getMatchedMCRec(particlesMC, arrayDaughtersLc, 4122, array{+kProton, +kPiPlus, -kPiPlus}, true, &sign, 3); // 3-levels Lc --> p + K0 --> p + K0s --> p + pi+ pi-
+        RecoDecay::getMatchedMCRec(particlesMC, arrayDaughtersLc, pdg::code::kLambdaCPlus, array{+kProton, +kPiPlus, -kPiPlus}, true, &sign, 3); // 3-levels Lc --> p + K0 --> p + K0s --> p + pi+ pi-
         MY_DEBUG_MSG(sign, LOG(INFO) << "Lc found with sign " << sign; printf("\n"));
       }
 
@@ -262,12 +265,12 @@ struct HFCandidateCreatorCascadeMC {
     // Match generated particles.
     for (auto& particle : particlesMC) {
       // checking if I have a Lc --> K0S + p
-      RecoDecay::isMatchedMCGen(particlesMC, particle, 4122, array{+kProton, 310}, true, &sign, 2);
+      RecoDecay::isMatchedMCGen(particlesMC, particle, pdg::code::kLambdaCPlus, array{+kProton, +kK0Short}, true, &sign, 2);
       if (sign != 0) {
         MY_DEBUG_MSG(sign, LOG(INFO) << "Lc in K0S p");
         arrDaughLcIndex.clear();
         // checking that the final daughters (decay depth = 3) are p, pi+, pi-
-        RecoDecay::getDaughters(particlesMC, particle.globalIndex(), &arrDaughLcIndex, arrDaughLcPDGRef, 3); // best would be to check the K0S daughters
+        RecoDecay::getDaughters(particlesMC, particle, &arrDaughLcIndex, arrDaughLcPDGRef, 3); // best would be to check the K0S daughters
         if (arrDaughLcIndex.size() == 3) {
           for (auto iProng = 0; iProng < arrDaughLcIndex.size(); ++iProng) {
             auto daughI = particlesMC.iteratorAt(arrDaughLcIndex[iProng]);
@@ -291,11 +294,11 @@ struct HFCandidateCreatorCascadeMC {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<HFCandidateCreatorCascade>(cfgc, "hf-cand-creator-cascade"),
-    adaptAnalysisTask<HFCandidateCreatorCascadeExpressions>(cfgc, "hf-cand-creator-cascade-expressions")};
+    adaptAnalysisTask<HFCandidateCreatorCascade>(cfgc, TaskName{"hf-cand-creator-cascade"}),
+    adaptAnalysisTask<HFCandidateCreatorCascadeExpressions>(cfgc, TaskName{"hf-cand-creator-cascade-expressions"})};
   const bool doMC = cfgc.options().get<bool>("doMC");
   if (doMC) {
-    workflow.push_back(adaptAnalysisTask<HFCandidateCreatorCascadeMC>(cfgc, "hf-cand-creator-cascade-mc"));
+    workflow.push_back(adaptAnalysisTask<HFCandidateCreatorCascadeMC>(cfgc, TaskName{"hf-cand-creator-cascade-mc"}));
   }
   return workflow;
 }

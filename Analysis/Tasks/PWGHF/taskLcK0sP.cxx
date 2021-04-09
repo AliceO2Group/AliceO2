@@ -19,11 +19,13 @@
 #include "Framework/HistogramRegistry.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
+#include "AnalysisCore/HFSelectorCuts.h"
 
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_casc;
 using namespace o2::framework::expressions;
+using namespace o2::analysis;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
@@ -114,7 +116,7 @@ struct TaskLcK0SpMC {
       }
       if (std::abs(candidate.flagMCMatchRec()) == 1) {
         // Get the corresponding MC particle.
-        auto indexMother = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandCascadeMCGen>>(), 4122, true);
+        auto indexMother = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandCascadeMCGen>>(), pdg::code::kLambdaCPlus, true);
         auto particleMother = particlesMC.iteratorAt(indexMother);
         registry.fill(HIST("hPtGenSig"), particleMother.pt()); // gen. level pT
         registry.fill(HIST("hPtRecSig"), candidate.pt());      // rec. level pT
@@ -144,10 +146,10 @@ struct TaskLcK0SpMC {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<TaskLcK0sP>(cfgc, "hf-task-lc-tok0sP")};
+    adaptAnalysisTask<TaskLcK0sP>(cfgc, TaskName{"hf-task-lc-tok0sP"})};
   const bool doMC = cfgc.options().get<bool>("doMC");
   if (doMC) {
-    workflow.push_back(adaptAnalysisTask<TaskLcK0SpMC>(cfgc, "hf-task-lc-tok0sP-mc"));
+    workflow.push_back(adaptAnalysisTask<TaskLcK0SpMC>(cfgc, TaskName{"hf-task-lc-tok0sP-mc"}));
   }
   return workflow;
 }

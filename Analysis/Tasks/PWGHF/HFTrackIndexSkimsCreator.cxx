@@ -26,6 +26,7 @@
 #include "AnalysisDataModel/TrackSelectionTables.h"
 #include "ReconstructionDataFormats/V0.h"
 #include "AnalysisTasksUtils/UtilsDebugLcK0Sp.h"
+#include "AnalysisCore/HFSelectorCuts.h"
 
 #include <algorithm>
 
@@ -35,10 +36,11 @@ using namespace o2::framework::expressions;
 using namespace o2::aod;
 using namespace o2::analysis;
 using namespace o2::analysis::hf_cuts_single_track;
+>>>>>>> Implementation of comments by Anton and Vit
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  ConfigParamSpec optionDoMC{"doMC-for-V0", VariantType::Bool, false, {"Perform MC matching for V0s."}};
+  ConfigParamSpec optionDoMC{"do-LcK0Sp", VariantType::Bool, false, {"Skim also Lc --> K0S+p"}};
   workflowOptions.push_back(optionDoMC);
 }
 
@@ -216,13 +218,7 @@ struct SelectTracks {
       // DCA cut
       array<float, 2> dca;
       if (status_prong > 0) {
-<<<<<<< HEAD
-        double dcatoprimxymin_bach_ptdep = dcatoprimxymin_bach * TMath::Max(0., (1 - TMath::Floor(trackPt / dcatoprimxy_maxpt_bach)));
-=======
-        double dcatoprimxymin_2prong_ptdep = dcatoprimxymin_2prong * TMath::Max(0., (1 - TMath::Floor(trackPt / dcatoprimxy_2prong_maxpt)));
-        double dcatoprimxymin_3prong_ptdep = dcatoprimxymin_3prong * TMath::Max(0., (1 - TMath::Floor(trackPt / dcatoprimxy_3prong_maxpt)));
         double d_dcaToPrimXYMinBach_ptDep = d_dcaToPrimXYMinBach * TMath::Max(0., (1 - TMath::Floor(trackPt / d_dcaToPrimXYMaxPtBach)));
->>>>>>> Comments by Vit
         auto trackparvar0 = getTrackParCov(track);
         if (!trackparvar0.propagateParamToDCA(vtxXYZ, d_bz, &dca, 100.)) { // get impact parameters
           status_prong = 0;
@@ -1076,7 +1072,7 @@ struct HFTrackIndexSkimsCreatorCascades {
   double massP = RecoDecay::getMassPDG(kProton);
   double massK0s = RecoDecay::getMassPDG(kK0Short);
   double massPi = RecoDecay::getMassPDG(kPiPlus);
-  double massLc = RecoDecay::getMassPDG(4122);
+  double massLc = RecoDecay::getMassPDG(pdg::code::kLambdaCPlus);
   double mass2K0sP{0.}; // WHY HERE?
 
   using FullTracksExt = soa::Join<aod::FullTracks, aod::TracksExtended>;
@@ -1209,7 +1205,7 @@ struct HFTrackIndexSkimsCreatorCascades {
         const std::array<float, 3> momentumV0 = {v0.px(), v0.py(), v0.pz()};
 
         // we build the neutral track to then build the cascade
-        auto trackV0 = o2::dataformats::V0(vertexV0, momentumV0, posTrackParCov, negTrackParCov, {0, 0}, {0, 0}); // build the V0 track
+        auto trackV0 = o2::dataformats::V0(vertexV0, momentumV0, {0, 0, 0, 0, 0, 0}, posTrackParCov, negTrackParCov, {0, 0}, {0, 0}); // build the V0 track
 
         // now we find the DCA between the V0 and the bachelor, for the cascade
         int nCand2 = fitter.process(trackV0, bachTrack);
@@ -1268,35 +1264,18 @@ struct HFTrackIndexSkimsCreatorCascades {
   }   // process
 };
 
-struct HFTrackIndexTestMCCasc {
-  void process(aod::BigTracksMC const& tracks,
-               aod::V0Datas const& V0s,
-               aod::McParticles const& particlesMC)
-
-  {
-    int8_t sign = 0;
-    for (const auto& v0 : V0s) {
-      // selections on the V0 daughters
-      auto arrayDaughtersV0 = array{v0.posTrack_as<aod::BigTracksMC>(), v0.negTrack_as<aod::BigTracksMC>()};
-      RecoDecay::getMatchedMCRec(particlesMC, arrayDaughtersV0, 310, array{+kPiPlus, -kPiPlus}, true, &sign, 1); // does it matter the "acceptAntiParticle" in the K0s case? In principle, there is no anti-K0s
-    }
-    return;
-  }
-};
-
 //________________________________________________________________________________________________________________________
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return WorkflowSpec{
+  WorkflowSpec workflow{
     adaptAnalysisTask<SelectTracks>(cfgc, TaskName{"hf-produce-sel-track"}),
-      adaptAnalysisTask<HFTrackIndexSkimsCreator>(cfgc, TaskName{"hf-track-index-skims-creator"}),
-      adaptAnalysisTask<HFTrackIndexSkimsCreatorCascades>(cfgc, TaskName{"hf-track-index-skims-cascades-creator"})};
+    adaptAnalysisTask<HFTrackIndexSkimsCreator>(cfgc, TaskName{"hf-track-index-skims-creator"})};
 
-  const bool doMCforV0 = cfgc.options().get<bool>("doMC-for-V0");
-  if (doMCforV0) {
-    workflow.push_back(adaptAnalysisTask<HFTrackIndexTestMCCasc>(cfgc, TaskName{"hf-track-index-skims-creator-MC"}));
+  const bool doLcK0Sp = cfgc.options().get<bool>("do-LcK0Sp");
+  if (doLcK0Sp) {
+    workflow.push_back(adaptAnalysisTask<HFTrackIndexSkimsCreatorCascades>(cfgc, TaskName{"hf-track-index-skims-cascades-creator"}));
   }
-  return workflow;
 
+  return workflow;
 }
