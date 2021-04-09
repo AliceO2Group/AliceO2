@@ -95,6 +95,13 @@ WSDriverClient::WSDriverClient(ServiceRegistry& registry, DeviceState& state, ch
   // On successful connection we can then start to send commands to the driver.
   // We keep a backlog to make sure we do not lose messages.
   connectToDriver(this, state.loop, ip, port);
+  this->mAwakeMainThread = (uv_async_t*)malloc(sizeof(uv_async_t));
+  uv_async_init(state.loop, this->mAwakeMainThread, nullptr);
+}
+
+WSDriverClient::~WSDriverClient()
+{
+  free(this->mAwakeMainThread);
 }
 
 void sendMessageToDriver(std::unique_ptr<o2::framework::WSDPLClient>& client, char const* message, size_t s)
@@ -119,18 +126,18 @@ void WSDriverClient::observe(const char*, std::function<void(char const*)>)
 
 void WSDriverClient::tell(const char* msg, size_t s, bool flush)
 {
-  static bool printed1 = false;
-  static bool printed2 = false;
-  if (mConnected && mClient->isHandshaken() && flush) {
-    flushPending();
-    std::lock_guard<std::mutex> lock(mClientMutex);
-    std::vector<uv_buf_t> outputs;
-    encode_websocket_frames(outputs, msg, s, WebSocketOpCode::Binary, 0);
-    mClient->write(outputs);
-  } else {
-    std::lock_guard<std::mutex> lock(mClientMutex);
-    encode_websocket_frames(mBacklog, msg, s, WebSocketOpCode::Binary, 0);
+  // Tell will always accumulate and we signal the main thread we
+  // have metrics to push
+  std::lock_guard<std::mutex> lock(mClientMutex);
+  encode_websocket_frames(mBacklog, msg, s, WebSocketOpCode::Binary, 0);
+  if (flush) {
+    this->awake();
   }
+}
+
+void WSDriverClient::awake()
+{
+  uv_async_send(mAwakeMainThread);
 }
 
 void WSDriverClient::flushPending()
