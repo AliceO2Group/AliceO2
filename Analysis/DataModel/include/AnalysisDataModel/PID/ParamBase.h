@@ -28,19 +28,23 @@ namespace o2::pid
 using pidvar_t = float;
 
 /// \brief Class to handle the parameters of a given detector response
-class Parameters : public TObject
+class Parameters : public TNamed
 {
  public:
   /// Default constructor
   Parameters() = default;
 
   /// Parametric constructor
-  /// \param npar Number of parameters in the container
-  Parameters(unsigned int npar) : mPar(std::vector<pidvar_t>(npar)){};
+  /// \param size Number of parameters in the container
+  Parameters(unsigned int size) : mPar(std::vector<pidvar_t>(size)){};
+
+  /// Parametric constructor
+  /// \param size Number of parameters in the container
+  Parameters(const TString name, unsigned int size) : TNamed(name, name), mPar(std::vector<pidvar_t>(size)){};
 
   /// Parametric constructor
   /// \param params Parameters to initialize the container
-  Parameters(const std::vector<pidvar_t> params) : mPar{} { SetParameters(params); };
+  Parameters(const TString name, const std::vector<pidvar_t> params) : TNamed(name, name), mPar{} { SetParameters(params); };
 
   /// Default destructor
   ~Parameters() override = default;
@@ -54,9 +58,17 @@ class Parameters : public TObject
   /// \param param array with parameters
   void SetParameters(const pidvar_t* params) { std::copy(params, params + mPar.size(), mPar.begin()); }
 
-  /// Setter for the parameter, using an array
-  /// \param params array with parameters
+  /// Setter for the parameter, using a vector
+  /// \param params vector with parameters
   void SetParameters(const std::vector<pidvar_t> params);
+
+  /// Setter for the parameter, using a parameter object
+  /// \param params parameter object with parameters
+  void SetParameters(const Parameters params) { SetParameters(params.mPar); };
+
+  /// Setter for the parameter, using a parameter pointer
+  /// \param params pointer to parameter object with parameters
+  void SetParameters(const Parameters* params) { SetParameters(params->mPar); };
 
   /// Printer of the parameter values
   void PrintParameters() const;
@@ -72,7 +84,7 @@ class Parameters : public TObject
   /// Getter of the parameter at position i
   /// \param i index of the parameter to get
   /// \return returns the parameter value at position i
-  pidvar_t operator[](unsigned int i) const { return mPar[i]; }
+  pidvar_t operator[](const unsigned int i) const { return mPar[i]; }
 
  private:
   /// Vector of the parameter
@@ -91,12 +103,12 @@ class Parametrization : public TNamed
   /// Parametric constructor
   /// \param name Name (and title) of the parametrization
   /// \param size Number of parameters of the parametrization
-  Parametrization(TString name, unsigned int size) : TNamed(name, name), mParameters{size} {};
+  Parametrization(TString name, unsigned int size) : TNamed(name, name), mParameters(name + "Parameters", size){};
 
   /// Parametric constructor
   /// \param name Name (and title) of the parametrization
   /// \param params Parameters of the parametrization
-  Parametrization(TString name, const std::vector<pidvar_t> params) : TNamed(name, name), mParameters{params} {};
+  Parametrization(TString name, const std::vector<pidvar_t> params) : TNamed(name, name), mParameters{name + "Parameters", params} {};
 
   /// Default destructor
   ~Parametrization() override = default;
@@ -113,9 +125,13 @@ class Parametrization : public TNamed
   /// \param value value of the parameter at position iparam
   void SetParameter(const unsigned int iparam, const pidvar_t value) { mParameters.SetParameter(iparam, value); }
 
-  /// Setter for the parameter, using an array
-  /// \param params array with parameters
-  void SetParameters(const std::vector<pidvar_t> params) { mParameters.SetParameters(params); }
+  /// Setter for the parameter, using a vector, a parameter object or a pointer to a parameter object
+  /// \param params vector, parameter object, pointer to parameter object with parameters
+  template <typename T>
+  void SetParameters(const T params)
+  {
+    mParameters.SetParameters(params);
+  }
 
   /// Getter for the parameters
   Parameters GetParameters() const { return mParameters; }
