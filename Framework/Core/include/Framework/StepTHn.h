@@ -196,7 +196,7 @@ void StepTHn::Fill(Int_t istep, const Ts&... valuesAndWeight)
 
   this->AddAt(mValues[istep], weight, bin);
   if (mSumw2[istep]) {
-    this->AddAt(mValues[istep], weight, bin);
+    this->AddAt(mSumw2[istep], weight, bin);
   }
 }
 
