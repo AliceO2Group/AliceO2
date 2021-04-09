@@ -77,9 +77,10 @@ void Digitizer::init()
 
   //signal thresolds for digits
   //note that digits are calibrated objects
-  for (int i = 0; i < NCHANNELS; i++)
+  for (int i = 0; i < NCHANNELS; i++) {
     mDigitThresholds[i] = o2::cpv::CPVSimParams::Instance().mZSnSigmas *
                           mPedestals->getPedSigma(i) * mCalibParams->getGain(i);
+  }
 }
 
 //_______________________________________________________________________
@@ -147,8 +148,9 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
 
   //finalize output digits
   for (int i = 0; i < NCHANNELS; i++) {
-    if (!mBadMap->isChannelGood(i)) //bad channel -> skip this digit
-      continue;
+    if (!mBadMap->isChannelGood(i)) {
+      continue; //bad channel -> skip this digit
+    }
     if (mArrayD[i].getAmplitude() > mDigitThresholds[i]) {
       digitsOut.push_back(mArrayD[i]);
     }
@@ -158,7 +160,8 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
 float Digitizer::simulatePedestalNoise(int absId)
 {
   //this function is to simulate pedestal and its noise (ADC counts)
-  if (absId < 0 || absId >= NCHANNELS)
+  if (absId < 0 || absId >= NCHANNELS) {
     return 0.;
+  }
   return gRandom->Gaus(0, mPedestals->getPedSigma(absId) * mCalibParams->getGain(absId));
 }

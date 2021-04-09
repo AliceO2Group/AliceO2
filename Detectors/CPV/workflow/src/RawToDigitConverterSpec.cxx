@@ -192,8 +192,9 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
           if (mBadMap->isChannelGood(absId)) {
             //we need to subtract pedestal from amplidute and calibrate it
             float amp = mCalibParams->getGain(absId) * (ac.Charge - mPedestals->getPedestal(absId));
-            if (amp > 0)
+            if (amp > 0) {
               currentDigitContainer->emplace_back(absId, amp, -1);
+            }
           }
         } else { //pedestal data, no calibration needed.
           currentDigitContainer->emplace_back(absId, (float)ac.Charge, -1);
