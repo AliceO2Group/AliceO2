@@ -64,6 +64,7 @@ namespace framework
 ///     --outfile
 ///     --treename
 ///     --nevents
+///     --autosave
 ///     --terminate
 ///
 /// \par
@@ -73,8 +74,10 @@ namespace framework
 /// \par Constructor arguments:
 /// Default file name can be configured alone, tree name can only be specified after
 /// file name. The default number of events can be specified at arbitrary place between
-/// process name and branch configuration. The process will signal to the DPL that it
-/// is ready for termination.
+/// process name and branch configuration. The number of events triggering autosaving
+/// (by default - off) can be also specified in the constructor as an integer argument
+/// coming after (not necessarilly immidiately) the number or events. The process will
+/// signal to the DPL that it is ready for termination.
 ///
 /// \par Termination policy:
 /// The configurable termination policy specifies what to signal to the DPL when the event
@@ -334,6 +337,8 @@ class MakeRootTreeWriterSpec
       std::vector<std::pair<std::string, std::string>> branchNameOptions;
       // number of events to be processed
       int nEvents = -1;
+      // autosave every nEventsAutoSave events
+      int nEventsAutoSave = -1;
       // starting with all inputs, every input which has been indicated 'ready' is removed
       std::unordered_set<std::string> activeInputs;
       // event counter
@@ -372,6 +377,7 @@ class MakeRootTreeWriterSpec
                      << "different branches on the same input. Be aware that the --nevents option might lead to incomplete\n"
                      << "data in the output file as the number of processed input sets is counted";
       }
+      processAttributes->nEventsAutoSave = ic.options().get<int>("autosave");
       try {
         processAttributes->terminationPolicy = TerminationPolicyMap.at(ic.options().get<std::string>("terminate"));
       } catch (std::out_of_range&) {
@@ -404,6 +410,7 @@ class MakeRootTreeWriterSpec
         auto& activeInputs = processAttributes->activeInputs;
         auto& counter = processAttributes->counter;
         auto& nEvents = processAttributes->nEvents;
+        auto& nEventsAutoSave = processAttributes->nEventsAutoSave;
         if (writer->isClosed()) {
           return;
         }
@@ -459,6 +466,8 @@ class MakeRootTreeWriterSpec
         if ((nEvents >= 0 && counter == nEvents) || checkReady(pc.inputs())) {
           writer->close();
           pc.services().get<ControlService>().readyToQuit(terminationPolicy == TerminationPolicy::Workflow ? QuitRequest::All : QuitRequest::Me);
+        } else if (nEventsAutoSave > 0 && counter && (counter % nEventsAutoSave) == 0) {
+          writer->autoSave();
         }
       };
 
@@ -471,6 +480,7 @@ class MakeRootTreeWriterSpec
       {"treename", VariantType::String, mDefaultTreeName.c_str(), {"Name of tree"}},
       {"treetitle", VariantType::String, mDefaultTreeTitle.c_str(), {"Title of tree"}},
       {"nevents", VariantType::Int, mDefaultNofEvents, {"Number of events to execute"}},
+      {"autosave", VariantType::Int, mDefaultAutoSave, {"Autosave after number of events"}},
       {"terminate", VariantType::String, mDefaultTerminationPolicy.c_str(), {"Terminate the 'process' or 'workflow'"}},
     };
     for (size_t branchIndex = 0; branchIndex < mBranchNameOptions.size(); branchIndex++) {
@@ -521,8 +531,14 @@ class MakeRootTreeWriterSpec
   void parseConstructorArgs(int arg, Args&&... args)
   {
     static_assert(N == 0, "wrong argument order, default file and tree options must come before branch specs");
-    mDefaultNofEvents = arg;
-
+    if (mNIntArgCounter == 0) {
+      mDefaultNofEvents = arg;
+    } else if (mNIntArgCounter == 1) {
+      mDefaultAutoSave = arg;
+    } else {
+      throw std::logic_error("Too many integer arguments in the constructor");
+    }
+    mNIntArgCounter++;
     parseConstructorArgs<N>(std::forward<Args>(args)...);
   }
 
@@ -620,10 +636,12 @@ class MakeRootTreeWriterSpec
   std::string mDefaultTreeName;
   std::string mDefaultTreeTitle;
   int mDefaultNofEvents = -1;
+  int mDefaultAutoSave = -1;
   std::string mDefaultTerminationPolicy = "process";
   TerminationCondition mTerminationCondition;
   Preprocessor mPreprocessor;
   size_t mNofBranches = 0;
+  int mNIntArgCounter = 0;
   CustomClose mCustomClose;
 };
 } // namespace framework
