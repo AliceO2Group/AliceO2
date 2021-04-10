@@ -23,7 +23,7 @@ namespace its
 Label::Label(const int mcId, const float pT, const float phi, const float eta, const int pdg, const int ncl)
   : monteCarloId{mcId},
     transverseMomentum{pT},
-    phiCoordinate{phi},
+    phi{phi},
     pseudorapidity{eta},
     pdgCode{pdg},
     numberOfClusters{ncl}
@@ -33,7 +33,7 @@ Label::Label(const int mcId, const float pT, const float phi, const float eta, c
 
 std::ostream& operator<<(std::ostream& outputStream, const Label& label)
 {
-  outputStream << label.monteCarloId << "\t" << label.transverseMomentum << "\t" << label.phiCoordinate << "\t"
+  outputStream << label.monteCarloId << "\t" << label.transverseMomentum << "\t" << label.phi << "\t"
                << label.pseudorapidity << "\t" << label.pdgCode << "\t" << label.numberOfClusters;
 
   return outputStream;

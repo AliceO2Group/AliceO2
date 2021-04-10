@@ -31,8 +31,8 @@
 #include "ITStracking/Definitions.h"
 #include "ITStracking/ROframe.h"
 #include "ITStracking/MathUtils.h"
-#include "ITStracking/PrimaryVertexContext.h"
 #include "DetectorsBase/Propagator.h"
+#include "ITStracking/TimeFrame.h"
 #include "ITStracking/Road.h"
 
 #include "DataFormatsITS/TrackITS.h"
@@ -54,7 +54,7 @@ class GPUChainITS;
 namespace its
 {
 
-class PrimaryVertexContext;
+class TimeFrame;
 class TrackerTraits;
 
 class Tracker
@@ -71,9 +71,10 @@ class Tracker
   float getBz() const;
 
   std::vector<TrackITSExt>& getTracks();
-  auto& getTrackLabels() { return mTrackLabels; }
+  std::vector<MCCompLabel>& getTrackLabels();
+  bool isMatLUT();
 
-  void clustersToTracks(const ROframe&, std::ostream& = std::cout);
+  void clustersToTracks(std::ostream& = std::cout);
 
   void setROFrame(std::uint32_t f) { mROFrame = f; }
   std::uint32_t getROFrame() const { return mROFrame; }
@@ -86,23 +87,23 @@ class Tracker
   track::TrackParCov buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3,
                                     const TrackingFrameInfo& tf3);
   template <typename... T>
-  void initialisePrimaryVertexContext(T&&... args);
+  void initialiseTimeFrame(T&&... args);
   void computeTracklets();
   void computeCells();
   void findCellsNeighbours(int& iteration);
   void findRoads(int& iteration);
-  void findTracks(const ROframe& ev);
-  bool fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step, const float chi2cut = o2::constants::math::VeryBig);
+  void findTracks();
+  bool fitTrack(TrackITSExt& track, int start, int end, int step, const float chi2cut = o2::constants::math::VeryBig);
   void traverseCellsTree(const int, const int);
-  void computeRoadsMClabels(const ROframe&);
-  void computeTracksMClabels(const ROframe&);
-  void rectifyClusterIndices(const ROframe& event);
+  void computeRoadsMClabels();
+  void computeTracksMClabels();
+  void rectifyClusterIndices();
 
   template <typename... T>
   float evaluateTask(void (Tracker::*)(T...), const char*, std::ostream& ostream, T&&... args);
 
   TrackerTraits* mTraits = nullptr;                      /// Observer pointer, not owned by this class
-  PrimaryVertexContext* mPrimaryVertexContext = nullptr; /// Observer pointer, not owned by this class
+  TimeFrame* mTimeFrame = nullptr; /// Observer pointer, not owned by this class
 
   std::vector<MemoryParameters> mMemParams;
   std::vector<TrackingParameters> mTrkParams;
@@ -137,14 +138,19 @@ inline void Tracker::setBz(float bz)
 }
 
 template <typename... T>
-void Tracker::initialisePrimaryVertexContext(T&&... args)
+void Tracker::initialiseTimeFrame(T&&... args)
 {
-  mPrimaryVertexContext->initialise(std::forward<T>(args)...);
+  mTimeFrame->initialise(std::forward<T>(args)...);
 }
 
 inline std::vector<TrackITSExt>& Tracker::getTracks()
 {
   return mTracks;
+}
+
+inline std::vector<MCCompLabel>& Tracker::getTrackLabels()
+{
+  return mTrackLabels;
 }
 
 template <typename... T>

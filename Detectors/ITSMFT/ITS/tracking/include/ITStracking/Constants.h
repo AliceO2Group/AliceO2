@@ -113,6 +113,9 @@ namespace pdgcodes
 constexpr int PionCode{211};
 }
 } // namespace constants
+// typedef std::array<std::array<int, constants::index_table::ZBins * constants::index_table::PhiBins + 1>,
+//                   constants::its::TrackletsPerRoad> index_table_t;
+typedef std::vector<std::vector<int>> index_table_t;
 } // namespace its
 } // namespace o2
 
