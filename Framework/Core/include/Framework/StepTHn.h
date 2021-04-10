@@ -43,6 +43,9 @@ class StepTHn : public TNamed
     }
     return mTarget[step];
   }
+
+  virtual void AddAt(TArray* array, Double_t c, Int_t i) = 0;
+
   Int_t getNSteps() { return mNSteps; }
   Int_t getNVar() { return mNVars; }
 
@@ -92,6 +95,11 @@ class StepTHnT : public StepTHn
   StepTHnT(const Char_t* name, const Char_t* title, const Int_t nSteps, const Int_t nAxes, Int_t* nBins, std::vector<Double_t> binLimits[], const char** axisTitles);
   StepTHnT(const char* name, const char* title, const int nSteps, const int nAxes, const int* nBins, const double* xmin, const double* xmax);
   ~StepTHnT() override = default;
+
+  void AddAt(TArray* a, double c, int bin) final
+  {
+    static_cast<TemplateArray*>(a)->AddAt(c, bin);
+  }
 
  protected:
   TArray* createArray(const TArray* src = nullptr) const override
@@ -186,10 +194,9 @@ void StepTHn::Fill(Int_t istep, const Ts&... valuesAndWeight)
     }
   }
 
-  // TODO probably slow; add StepTHnT::add ?
-  mValues[istep]->SetAt(mValues[istep]->GetAt(bin) + weight, bin);
+  this->AddAt(mValues[istep], weight, bin);
   if (mSumw2[istep]) {
-    mSumw2[istep]->SetAt(mSumw2[istep]->GetAt(bin) + weight, bin);
+    this->AddAt(mSumw2[istep], weight, bin);
   }
 }
 
