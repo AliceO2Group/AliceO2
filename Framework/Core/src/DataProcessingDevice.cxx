@@ -262,20 +262,20 @@ void DataProcessingDevice::Init()
       mState.inputChannelInfos[ci].state = InputChannelState::Pull;
     }
   }
+  uv_async_t* wakeHandle = (uv_async_t*)malloc(sizeof(uv_async_t));
+  assert(mState.loop);
+  int res = uv_async_init(mState.loop, wakeHandle, nullptr);
+  if (res < 0) {
+    LOG(ERROR) << "Unable to initialise subscription";
+  }
+
   /// This should post a message on the queue...
-  SubscribeToNewTransition("dpl", [loop = mState.loop](fair::mq::Transition t) {
-    if (loop) {
-      uv_async_t handle;
-      int res = uv_async_init(loop, &handle, nullptr);
-      if (res < 0) {
-        LOG(ERROR) << "Unable to initialise subscription";
-      }
-      res = uv_async_send(&handle);
-      if (res < 0) {
-        LOG(ERROR) << "Unable to notify subscription";
-      }
-      LOG(debug) << "State transition requested";
+  SubscribeToNewTransition("dpl", [wakeHandle](fair::mq::Transition t) {
+    int res = uv_async_send(wakeHandle);
+    if (res < 0) {
+      LOG(ERROR) << "Unable to notify subscription";
     }
+    LOG(debug) << "State transition requested";
   });
 }
 
