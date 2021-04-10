@@ -37,6 +37,8 @@ DataProcessorSpec getTrackCosmicsWriterSpec(bool useMC)
   return MakeRootTreeWriterSpec("cosmic-track-writer",
                                 "cosmics.root",
                                 "cosmics",
+                                -1,  // do not limit number of events to store
+                                100, // periodically autosave
                                 BranchDefinition<TracksType>{InputSpec{"tracks", "GLO", "COSMICTRC", 0},
                                                              "tracks",
                                                              "tracks-branch-name",
