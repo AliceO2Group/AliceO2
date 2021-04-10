@@ -30,11 +30,11 @@
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/IndexTableUtils.h"
 
-#include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
 
 namespace o2
 {
+
+class MCCompLabel;
 
 namespace itsmft
 {
@@ -42,6 +42,12 @@ class Cluster;
 class CompClusterExt;
 class TopologyDictionary;
 class ROFRecord;
+}
+
+namespace dataformats
+{
+template <typename T>
+class MCTruthContainer;
 }
 
 namespace its
@@ -75,8 +81,8 @@ class TimeFrame final
   const std::vector<TrackingFrameInfo>& getTrackingFrameInfoOnLayer(int layerId) const;
 
   const TrackingFrameInfo& getClusterTrackingFrameInfo(int layerId, const Cluster& cl) const;
-  const MCCompLabel& getClusterLabels(int layerId, const Cluster& cl) const;
-  const MCCompLabel& getClusterLabels(int layerId, const int clId) const;
+  const unsigned long long& getClusterLabels(int layerId, const Cluster& cl) const;
+  const unsigned long long& getClusterLabels(int layerId, const int clId) const;
   int getClusterExternalIndex(int layerId, const int clId) const;
 
   bool hasMCinformation() const;
@@ -125,7 +131,7 @@ class TimeFrame final
   std::vector<std::vector<Cluster>>           mUnsortedClusters;
   std::vector<std::vector<bool>>              mUsedClusters;
   std::vector<std::vector<TrackingFrameInfo>> mTrackingFrameInfo;
-  std::vector<std::vector<MCCompLabel>>       mClusterLabels;
+  std::vector<std::vector<unsigned long long>> mClusterLabels;
   std::vector<std::vector<int>>               mClusterExternalIndices;
   std::vector<std::vector<Cell>>              mCells;
   std::vector<std::vector<int>>               mCellsLookupTable;
@@ -192,12 +198,12 @@ inline const TrackingFrameInfo& TimeFrame::getClusterTrackingFrameInfo(int layer
   return mTrackingFrameInfo[layerId][cl.clusterId];
 }
 
-inline const MCCompLabel& TimeFrame::getClusterLabels(int layerId, const Cluster& cl) const
+inline const unsigned long long& TimeFrame::getClusterLabels(int layerId, const Cluster& cl) const
 {
   return mClusterLabels[layerId][cl.clusterId];
 }
 
-inline const MCCompLabel& TimeFrame::getClusterLabels(int layerId, const int clId) const
+inline const unsigned long long& TimeFrame::getClusterLabels(int layerId, const int clId) const
 {
   return mClusterLabels[layerId][clId];
 }
@@ -223,8 +229,6 @@ void TimeFrame::addTrackingFrameInfoToLayer(int layer, T&&... values)
 {
   mTrackingFrameInfo[layer].emplace_back(std::forward<T>(values)...);
 }
-
-inline void TimeFrame::addClusterLabelToLayer(int layer, const MCCompLabel label) { mClusterLabels[layer].emplace_back(label); }
 
 inline void TimeFrame::addClusterExternalIndexToLayer(int layer, const int idx)
 {

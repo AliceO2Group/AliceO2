@@ -19,6 +19,8 @@
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 
 #include <iostream>
@@ -43,6 +45,7 @@ constexpr float DefClusErrorCol = o2::itsmft::SegmentationAlpide::PitchCol * 0.5
 constexpr float DefClusError2Row = DefClusErrorRow * DefClusErrorRow;
 constexpr float DefClusError2Col = DefClusErrorCol * DefClusErrorCol;
 
+void TimeFrame::addClusterLabelToLayer(int layer, const MCCompLabel label) { mClusterLabels[layer].emplace_back(label.getRawValue()); }
 
 void TimeFrame::addPrimaryVertices(const std::vector<std::pair<float3,int>>& vertices)
 {

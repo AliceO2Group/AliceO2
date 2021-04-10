@@ -255,10 +255,27 @@ void TrackerDPL::run(ProcessingContext& pc)
           }
           vtxVecLoc.push_back(vtx);
         }
-        if (vtxVecLoc.empty()) { // reject ROF
-          rof.setFirstEntry(first);
-          rof.setNEntries(0);
-          continue;
+
+        if (mRunVertexer) {
+          event.addPrimaryVertices(vtxVecLoc);
+        } else {
+          event.addPrimaryVertex(0.f, 0.f, 0.f);
+        }
+        // mTracker->setROFrame(roFrame);
+        // mTracker->clustersToTracks(event); TO BE FIXED
+        tracks.swap(mTracker->getTracks());
+        LOG(INFO) << "Found tracks: " << tracks.size();
+        int number = tracks.size();
+        trackLabels.swap(mTracker->getTrackLabels()); /// FIXME: assignment ctor is not optimal.
+        int shiftIdx = -rof.getFirstEntry();          // cluster entry!!!
+        rof.setFirstEntry(first);
+        rof.setNEntries(number);
+        copyTracks(tracks, allTracks, allClusIdx, shiftIdx);
+        std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
+        trackLabels.clear();
+        vtxROF.setNEntries(vtxVecLoc.size());
+        for (const auto& vtx : vtxVecLoc) {
+          vertices.push_back(vtx);
         }
       }
 
@@ -286,7 +303,14 @@ void TrackerDPL::run(ProcessingContext& pc)
         irFrames.emplace_back(rof.getBCData(), rof.getBCData() + nBCPerTF - 1);
       }
     }
-    roFrame++;
+  } else {
+    ioutils::loadEventData(event, compClusters, pattIt, mDict, labels);
+    // RS: FIXME: this part seems to be not functional !!!
+    event.addPrimaryVertex(0.f, 0.f, 0.f); //FIXME :  run an actual vertex finder !
+    // mTracker->clustersToTracks(event);
+    // tracks.swap(mTracker->getTracks()); TO BE FIXED
+    copyTracks(tracks, allTracks, allClusIdx);
+    allTrackLabels.swap(mTracker->getTrackLabels()); /// FIXME: assignment ctor is not optimal.
   }
 
   LOG(INFO) << "ITSTracker pushed " << allTracks.size() << " tracks";
