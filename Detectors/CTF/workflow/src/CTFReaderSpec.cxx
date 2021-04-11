@@ -35,6 +35,7 @@
 #include "DataFormatsPHOS/CTF.h"
 #include "DataFormatsCPV/CTF.h"
 #include "DataFormatsZDC/CTF.h"
+#include "DataFormatsHMP/CTF.h"
 #include "Algorithm/RangeTokenizer.h"
 #include <TStopwatch.h>
 
@@ -221,6 +222,13 @@ void CTFReaderSpec::run(ProcessingContext& pc)
   if (detsTF[det]) {
     auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::zdc::CTF));
     o2::zdc::CTF::readFromTree(bufVec, *(tree.get()), det.getName());
+    setFirstTFOrbit(det.getName());
+  }
+
+  det = DetID::HMP;
+  if (detsTF[det]) {
+    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::hmpid::CTF));
+    o2::hmpid::CTF::readFromTree(bufVec, *(tree.get()), det.getName());
     setFirstTFOrbit(det.getName());
   }
 
