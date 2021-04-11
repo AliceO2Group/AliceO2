@@ -269,7 +269,7 @@ void run_trac_ca_its(bool cosmics = false,
   
   o2::its::TimeFrame tf;
   tf.loadROFrameData(rofs, clSpan, pattIt, dict, labels);
-
+  pattIt = patt.begin();
   for (auto& rof : *rofs) {
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -303,30 +303,11 @@ void run_trac_ca_its(bool cosmics = false,
     }
     trackClIdx.clear();
     tracksITS.clear();
-    // tracker.clustersToTracks(event);
-
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> diff_t{end - start};
 
     ncls.push_back(event.getTotalClusters());
     time.push_back(diff_t.count());
-
-    tracks.swap(tracker.getTracks());
-    if (tracks.size()) {
-      std::cout << "\t\tFound " << tracks.size() << " tracks" << std::endl;
-    }
-    for (auto& trc : tracks) {
-    // tracks.swap(tracker.getTracks());
-    // for (auto& trc : tracks) {
-    //   trc.setFirstClusterEntry(trackClIdx.size()); // before adding tracks, create final cluster indices
-    //   int ncl = trc.getNumberOfClusters();
-    //   for (int ic = 0; ic < ncl; ic++) {
-    //     trackClIdx.push_back(trc.getClusterIndex(ic));
-    //   }
-    //   tracksITS.emplace_back(trc);
-    // }
-
-    // trackLabels = tracker.getTrackLabels(); /// FIXME: assignment ctor is not optimal.
     outTree.Fill();
     roFrameCounter++;
   }

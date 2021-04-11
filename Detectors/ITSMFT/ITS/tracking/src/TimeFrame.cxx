@@ -130,7 +130,7 @@ int TimeFrame::loadROFrameData(const std::vector<o2::itsmft::ROFRecord>* rofs, g
       }
     } else {
       o2::itsmft::ClusterPattern patt(pattIt);
-      locXYZ = dict.getClusterCoordinates(c, patt);
+      locXYZ = dict.getClusterCoordinates(c, patt, false);
     }
     auto sensorID = c.getSensorID();
     // Inverse transformation to the local --> tracking
@@ -150,10 +150,10 @@ int TimeFrame::loadROFrameData(const std::vector<o2::itsmft::ROFRecord>* rofs, g
     addClusterExternalIndexToLayer(layer, clusterId);
 
     if (clusterId == rofs->at(mNrof).getFirstEntry() + rofs->at(mNrof).getNEntries() - 1) {
-      mNrof++;
       for (unsigned int iL{0}; iL < mUnsortedClusters.size(); ++iL) {
         mROframesClusters[iL].push_back(mUnsortedClusters[iL].size());
       }
+      mNrof++;
     }
   }
   return mNrof;
@@ -195,8 +195,6 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
         const auto currentLayer{getUnsortedClustersOnLayer(rof, iLayer)};
         const int clustersNum{static_cast<int>(currentLayer.size())};
 
-        std::fill(clsPerBin.begin(), clsPerBin.end(), 0);
-
         cHelper.clear();
         cHelper.resize(clustersNum);
 
@@ -223,9 +221,10 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
           lutPerBin[iB] = lutPerBin[iB - 1] + clsPerBin[iB - 1];
         }
 
+        int startIdx = rof == 0 ? 0 : mROframesClusters[iLayer][rof - 1];
         for (int iCluster{0}; iCluster < clustersNum; ++iCluster) {
           const ClusterHelper& h = cHelper[iCluster];
-          Cluster& c = mClusters[iLayer][mROframesClusters[iLayer][rof] + lutPerBin[h.bin] + h.ind];
+          Cluster& c = mClusters[iLayer][startIdx + lutPerBin[h.bin] + h.ind];
           c = currentLayer[iCluster];
           c.phi = h.phi;
           c.radius = h.r;

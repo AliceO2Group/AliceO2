@@ -78,6 +78,7 @@ class TimeFrame final
   float getMaxR(int layer) const { return mMaxR[layer]; }
   
   gsl::span<Cluster> getClustersOnLayer(int rofId, int layerId);
+  gsl::span<const Cluster> getUnsortedClustersOnLayer(int rofId, int layerId) const;
   index_table_t& getIndexTables(int tf);
   const std::vector<TrackingFrameInfo>& getTrackingFrameInfoOnLayer(int layerId) const;
 
@@ -118,7 +119,6 @@ class TimeFrame final
   void addTrackingFrameInfoToLayer(int layer, T&&... args);
   void addClusterLabelToLayer(int layer, const MCCompLabel label);
   void addClusterExternalIndexToLayer(int layer, const int idx);
-  gsl::span<const Cluster> getUnsortedClustersOnLayer(int rofId, int layerId);
 
   int                                         mNrof = 0;
   int                                         mBeamPosWeight = 0;
@@ -182,16 +182,16 @@ inline gsl::span<Cluster> TimeFrame::getClustersOnLayer(int rofId, int layerId)
     return gsl::span<Cluster>();
   }
   int startIdx{rofId == 0 ? 0 : mROframesClusters[layerId][rofId - 1]};
-  gsl::span<Cluster> retSpan = {&mClusters[layerId][startIdx], mROframesClusters[layerId][rofId] - mROframesClusters[layerId][startIdx]};
-  if (mROframesClusters[layerId][rofId]+retSpan.size() > mClusters[layerId].size()) {
-    std::cout << "Catastrofic problem in getClustersOnLayer" << std::endl;
-  }
-  return retSpan;
+  return {&mClusters[layerId][startIdx], mROframesClusters[layerId][rofId] - startIdx};
 }
 
-inline gsl::span<const Cluster> TimeFrame::getUnsortedClustersOnLayer(int rofId, int layerId)
+inline gsl::span<const Cluster> TimeFrame::getUnsortedClustersOnLayer(int rofId, int layerId) const
 {
-  return {&mUnsortedClusters[layerId][mROframesClusters[layerId][rofId]], mROframesClusters[layerId][rofId + 1] - mROframesClusters[layerId][rofId]};
+  if (rofId < 0 || rofId >= mNrof) {
+    return gsl::span<Cluster>();
+  }
+  int startIdx{rofId == 0 ? 0 : mROframesClusters[layerId][rofId - 1]};
+  return {&mUnsortedClusters[layerId][startIdx], mROframesClusters[layerId][rofId] - startIdx};
 }
 
 inline const std::vector<TrackingFrameInfo>& TimeFrame::getTrackingFrameInfoOnLayer(int layerId) const
