@@ -14,7 +14,8 @@ o2_add_library(DetectorsRaw
                        src/SimpleRawReader.cxx
                        src/SimpleSTF.cxx
                        src/HBFUtils.cxx
-                       src/RDHUtils.cxx           
+                       src/RDHUtils.cxx
+                       src/HBFUtilsInitializer.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
                                      O2::Headers
                                      O2::CommonDataFormat
