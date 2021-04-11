@@ -8,14 +8,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-// HF Configurable Classes
-//
-// Authors: Nima Zardoshti
+/// \file HFConfigurables.h
+/// \brief Heavy-flavour candidate preselection configurables for HFTrackIndexSkimsCreator
+///
+/// \author Nima Zardoshti <nima.zardoshti@cern.ch>, CERN
 
 #ifndef O2_ANALYSIS_HFCONFIGURABLES_H
 #define O2_ANALYSIS_HFCONFIGURABLES_H
 
-#include <TMath.h>
 #include <Rtypes.h>
 
 class HFTrackIndexSkimsCreatorConfigs

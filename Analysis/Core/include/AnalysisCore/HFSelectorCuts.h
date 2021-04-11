@@ -8,6 +8,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file HFSelectorCuts.h
+/// \brief Default pT bins and cut arrays for heavy-flavour selectors and analysis tasks
+
 #ifndef HF_SELECTOR_CUTS_H_
 #define HF_SELECTOR_CUTS_H_
 
