@@ -51,7 +51,7 @@ class RawToDigitsTask : public framework::Task
   o2::raw::RawFileReader mReader;
   o2::hmpid::HmpidDecoder2* mDecod;
   std::vector<o2::hmpid::Digit> mAccumulateDigits;
-  std::vector<o2::hmpid::Event> mEvents;
+  std::vector<o2::hmpid::Trigger> mEvents;
 
   long mDigitsReceived;
   long mFramesReceived;

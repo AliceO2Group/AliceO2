@@ -20,7 +20,7 @@
 #pragma link C++ class vector < o2::hmpid::HitType> + ;
 #pragma link C++ class o2::hmpid::Cluster + ;
 #pragma link C++ class vector < o2::hmpid::Cluster> + ;
-#pragma link C++ class o2::hmpid::Event + ;
-#pragma link C++ class vector < o2::hmpid::Event> + ;
+#pragma link C++ class o2::hmpid::Trigger + ;
+#pragma link C++ class vector < o2::hmpid::Trigger> + ;
 
 #endif

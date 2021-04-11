@@ -22,7 +22,7 @@
 #include <iostream>
 #include "DataFormatsHMP/Trigger.h"
 
-ClassImp(o2::hmpid::Event);
+ClassImp(o2::hmpid::Trigger);
 
 namespace o2
 {
@@ -30,9 +30,9 @@ namespace hmpid
 {
 
 // Digit ASCCI format Dump := (Orbit,BC @ LHCtime ns) [first_digit_idx .. last_digit_idx]
-std::ostream& operator<<(std::ostream& os, const o2::hmpid::Event& d)
+std::ostream& operator<<(std::ostream& os, const o2::hmpid::Trigger& d)
 {
-  os << "(" << d.mIr.orbit << "," << d.mIr.bc << " @ " << d.mIr.bc2ns() << " ns) [" << d.mFirstDigit << " .. " << d.mLastDigit << "]";
+  os << "(" << d.mIr.orbit << "," << d.mIr.bc << " @ " << d.mIr.bc2ns() << " ns) [" << d.mDataRange.getFirstEntry() << "," << d.mDataRange.getEntries() << "]";
   return os;
 };
 

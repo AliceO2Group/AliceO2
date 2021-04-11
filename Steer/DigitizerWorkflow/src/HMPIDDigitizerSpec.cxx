@@ -80,12 +80,11 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
       LOG(INFO) << "NUMBER OF LABEL OBTAINED " << mLabels.getNElements();
       int32_t first = digitsAccum.size(); // this is the first
       std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(digitsAccum));
-      int32_t last = digitsAccum.size() - 1; // this is the last
       labelAccum.mergeAtBack(mLabels);
 
       // save info for the triggers accepted
       LOG(INFO) << "Trigger  Orbit :" << mDigitizer.getOrbit() << "  BC:" << mDigitizer.getBc();
-      mIntRecord.push_back(o2::hmpid::Event(o2::InteractionRecord(mDigitizer.getBc(), mDigitizer.getOrbit()), first, last));
+      mIntRecord.push_back(o2::hmpid::Trigger(o2::InteractionRecord(mDigitizer.getBc(), mDigitizer.getOrbit()), first, digitsAccum.size() - first));
     };
 
     // loop over all composite collisions given from context
@@ -142,7 +141,7 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   std::vector<TChain*> mSimChains;
   std::vector<o2::hmpid::Digit> mDigits;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels; // labels which get filled
-  std::vector<o2::hmpid::Event> mIntRecord;
+  std::vector<o2::hmpid::Trigger> mIntRecord;
 
   // RS: at the moment using hardcoded flag for continuous readout
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
