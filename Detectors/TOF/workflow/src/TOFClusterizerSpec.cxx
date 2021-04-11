@@ -75,9 +75,8 @@ class TOFDPLClustererTask
     mTimer.Start(false);
     // get digit data
     auto digits = pc.inputs().get<gsl::span<o2::tof::Digit>>("tofdigits");
-    auto rowp = pc.inputs().get<gsl::span<o2::tof::ReadoutWindowData>>("readoutwin");
-    auto row = &rowp;
-
+    auto row = pc.inputs().get<gsl::span<o2::tof::ReadoutWindowData>>("readoutwin");
+    
     const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
     mClusterer.setFirstOrbit(dh->firstTForbit);
 
@@ -129,9 +128,9 @@ class TOFDPLClustererTask
       mCosmicProcessor.clear();
     }
 
-    for (int i = 0; i < row->size(); i++) {
-      //printf("# TOF readout window for clusterization = %d/%lu (N digits = %d)\n", i, row->size(), row->at(i).size());
-      auto digitsRO = row->at(i).getBunchChannelData(digits);
+    for (int i = 0; i < row.size(); i++) {
+      //printf("# TOF readout window for clusterization = %d/%lu (N digits = %d)\n", i, row.size(), row[i].size());
+      auto digitsRO = row[i].getBunchChannelData(digits);
       mReader.setDigitArray(&digitsRO);
 
       if (mIsCosmic) {
