@@ -12,6 +12,7 @@ o2_add_library(DataFormatsHMP
                SOURCES src/Digit.cxx 
                        src/Cluster.cxx 
                        src/Trigger.cxx
+                       src/CTF.cxx
                PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
                                      O2::HMPIDBase
                                      O2::CommonDataFormat 
@@ -22,4 +23,5 @@ o2_target_root_dictionary(DataFormatsHMP
                                   include/DataFormatsHMP/Digit.h
                                   include/DataFormatsHMP/Trigger.h
                                   include/DataFormatsHMP/Cluster.h
-                                  include/DataFormatsHMP/Hit.h)
+                                  include/DataFormatsHMP/Hit.h
+                                  include/DataFormatsHMP/CTF.h)

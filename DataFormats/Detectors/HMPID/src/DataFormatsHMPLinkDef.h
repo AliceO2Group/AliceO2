@@ -23,4 +23,8 @@
 #pragma link C++ class o2::hmpid::Trigger + ;
 #pragma link C++ class vector < o2::hmpid::Trigger> + ;
 
+#pragma link C++ struct o2::hmpid::CTFHeader + ;
+#pragma link C++ struct o2::hmpid::CTF + ;
+#pragma link C++ class o2::ctf::EncodedBlocks < o2::hmpid::CTFHeader, 8, uint32_t> + ;
+
 #endif
