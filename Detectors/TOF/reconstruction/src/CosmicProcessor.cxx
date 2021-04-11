@@ -22,13 +22,17 @@ using namespace o2::tof;
 void CosmicProcessor::clear()
 {
   mCosmicInfo.clear();
-  for (int i = 0; i < Geo::NCHANNELS; i++) {
-    mCounters[i] = 0;
-  }
+  mCosmicInfo.reserve(5200);
+
+  memset(mCounters, 0, sizeof(int) * Geo::NCHANNELS);
 }
 //__________________________________________________
 void CosmicProcessor::process(DigitDataReader& reader, bool fill)
 {
+  if (mCosmicInfo.size() > 5000) {
+    return;
+  }
+
   TStopwatch timerProcess;
   timerProcess.Start();
 
@@ -39,6 +43,8 @@ void CosmicProcessor::process(DigitDataReader& reader, bool fill)
   int ndig = array->size();
   int ndig2 = ndig * fill;
 
+  int npair = 0;
+
   int bcdist = 200;
   float thr = 5000000; // in ps
 
@@ -46,6 +52,9 @@ void CosmicProcessor::process(DigitDataReader& reader, bool fill)
   float pos1[3], pos2[3];
 
   for (int i = 0; i < ndig; i++) {
+    if (npair >= 150) {
+      break;
+    }
     auto& dig1 = (*array)[i];
     int ch1 = dig1.getChannel();
     mCounters[ch1]++;
@@ -100,6 +109,7 @@ void CosmicProcessor::process(DigitDataReader& reader, bool fill)
         continue;
       }
 
+      npair++;
       mCosmicInfo.emplace_back(ch1, ch2, dtime, tot1, tot2, l, tm1, tm2);
     }
   }
