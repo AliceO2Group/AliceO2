@@ -23,6 +23,7 @@
 #include "ITSMFTWorkflow/EntropyDecoderSpec.h"
 #include "TPCWorkflow/EntropyDecoderSpec.h"
 #include "TRDWorkflow/EntropyDecoderSpec.h"
+#include "HMPIDWorkflow/EntropyDecoderSpec.h"
 #include "FT0Workflow/EntropyDecoderSpec.h"
 #include "FV0Workflow/EntropyDecoderSpec.h"
 #include "FDDWorkflow/EntropyDecoderSpec.h"
@@ -111,6 +112,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
   if (dets[DetID::ZDC]) {
     specs.push_back(o2::zdc::getEntropyDecoderSpec());
+  }
+  if (dets[DetID::HMP]) {
+    specs.push_back(o2::hmpid::getEntropyDecoderSpec());
   }
 
   return std::move(specs);

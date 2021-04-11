@@ -95,3 +95,11 @@ o2_add_test(trd
             SOURCES test/test_ctf_io_trd.cxx
             COMPONENT_NAME ctf
             LABELS ctf)
+    
+o2_add_test(hmpid
+            PUBLIC_LINK_LIBRARIES O2::CTFWorkflow
+                                  O2::DataFormatsHMP
+                                  O2::HMPIDReconstruction
+            SOURCES test/test_ctf_io_hmpid.cxx
+            COMPONENT_NAME ctf
+            LABELS ctf)
