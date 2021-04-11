@@ -52,7 +52,7 @@ class GRPDPLUpdatedTask
 
     TFile flGRP(mGRPFileName.c_str(), "update");
     if (flGRP.IsZombie()) {
-      LOG(ERROR) << "Failed to open  in update mode " << mGRPFileName;
+      LOG(ERROR) << "Failed to open in update mode " << mGRPFileName;
       return;
     }
     std::unique_ptr<GRP> grp(static_cast<GRP*>(flGRP.GetObjectChecked(grpName.c_str(), GRP::Class())));
