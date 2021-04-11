@@ -72,7 +72,7 @@ void plot_hit_cpv(int ievent = 0, std::string inputprefix = "o2sim")
     if (!vMod[relId[0]][j]) {
       gROOT->cd();
       vMod[relId[0]][j] =
-        new TH2D(Form("hMod%d_prim%d", relId[0], j), Form("hMod%d_prim%d", relId[0], j), 60, 0., 60., 128, 0., 128.);
+        new TH2D(Form("hMod%d_prim%d", relId[0], j), Form("hMod%d_prim%d", relId[0], j), 128, 0., 128., 60, 0., 60.);
     }
     vMod[relId[0]][j]->Fill(relId[1] - 0.5, relId[2] - 0.5, en);
   }

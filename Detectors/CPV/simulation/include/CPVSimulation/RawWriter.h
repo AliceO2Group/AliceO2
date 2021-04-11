@@ -26,6 +26,7 @@
 #include "DataFormatsCPV/Digit.h"
 #include "DataFormatsCPV/TriggerRecord.h"
 #include "CPVCalib/CalibParams.h"
+#include "CPVCalib/Pedestals.h"
 
 namespace o2
 {
@@ -78,6 +79,7 @@ class RawWriter
   FileFor_t mFileFor = FileFor_t::kFullDet;                       ///< Granularity of the output files
   std::string mOutputLocation = "./";                             ///< Rawfile name
   std::unique_ptr<CalibParams> mCalibParams;                      ///< CPV calibration
+  std::unique_ptr<Pedestals> mPedestals;                          ///< CPV pedestals
   std::vector<char> mPayload;                                     ///< Payload to be written
   gsl::span<o2::cpv::Digit> mDigits;                              ///< Digits input vector - must be in digitized format including the time response
   std::unique_ptr<o2::raw::RawFileWriter> mRawWriter;             ///< Raw writer

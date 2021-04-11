@@ -31,7 +31,8 @@ void Digitizer::init()
       mCalibParams.reset(new CalibParams(1)); // test default calibration
       LOG(INFO) << "[CPVDigitizer] No reading calibration from ccdb requested, set default";
     } else {
-      LOG(INFO) << "[CPVDigitizer] can not gey calibration object from ccdb yet";
+      LOG(INFO) << "[CPVDigitizer] can not get calibration object from ccdb yet. Using default";
+      mCalibParams.reset(new CalibParams(1)); // test default calibration
       //      o2::ccdb::CcdbApi ccdb;
       //      std::map<std::string, std::string> metadata; // do we want to store any meta data?
       //      ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
@@ -40,6 +41,45 @@ void Digitizer::init()
       //        LOG(FATAL) << "[CPVDigitizer] can not get calibration object from ccdb";
       //      }
     }
+  }
+  if (!mPedestals) {
+    if (o2::cpv::CPVSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
+      mPedestals.reset(new Pedestals(1)); // test default calibration
+      LOG(INFO) << "[CPVDigitizer] No reading calibration from ccdb requested, set default";
+    } else {
+      LOG(INFO) << "[CPVDigitizer] can not get pedestal object from ccdb yet. Using default";
+      mPedestals.reset(new Pedestals(1)); // test default calibration
+      //      o2::ccdb::CcdbApi ccdb;
+      //      std::map<std::string, std::string> metadata; // do we want to store any meta data?
+      //      ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
+      //      mPedestals = ccdb.retrieveFromTFileAny<o2::cpv::Pedestals>("CPV/Calib", metadata, mEventTime);
+      //      if (!mPedestals) {
+      //        LOG(FATAL) << "[CPVDigitizer] can not get calibration object from ccdb";
+      //      }
+    }
+  }
+  if (!mBadMap) {
+    if (o2::cpv::CPVSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
+      mBadMap.reset(new BadChannelMap(1)); // test default calibration
+      LOG(INFO) << "[CPVDigitizer] No reading calibration from ccdb requested, set default";
+    } else {
+      LOG(INFO) << "[CPVDigitizer] can not get bad channel map object from ccdb yet. Using default";
+      mBadMap.reset(new BadChannelMap(1)); // test default calibration
+      //      o2::ccdb::CcdbApi ccdb;
+      //      std::map<std::string, std::string> metadata; // do we want to store any meta data?
+      //      ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
+      //      mBadMap = ccdb.retrieveFromTFileAny<o2::cpv::BadChannelMap>("CPV/Calib", metadata, mEventTime);
+      //      if (!mBadMap) {
+      //        LOG(FATAL) << "[CPVDigitizer] can not get calibration object from ccdb";
+      //      }
+    }
+  }
+
+  //signal thresolds for digits
+  //note that digits are calibrated objects
+  for (int i = 0; i < NCHANNELS; i++) {
+    mDigitThresholds[i] = o2::cpv::CPVSimParams::Instance().mZSnSigmas *
+                          mPedestals->getPedSigma(i) * mCalibParams->getGain(i);
   }
 }
 
@@ -60,14 +100,11 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
     mArrayD[i].reset();
   }
 
-  if (digitsBg.size() == 0) { // no digits provided: try simulate noise
+  if (digitsBg.size() == 0) { // no digits provided: try simulate pedestal noise (do it only once)
     for (int i = NCHANNELS; i--;) {
-      float energy = simulateNoise();
-      energy = uncalibrate(energy, i);
-      if (energy > o2::cpv::CPVSimParams::Instance().mZSthreshold) {
-        mArrayD[i].setAmplitude(energy);
-        mArrayD[i].setAbsId(i);
-      }
+      float amplitude = simulatePedestalNoise(i);
+      mArrayD[i].setAmplitude(amplitude);
+      mArrayD[i].setAbsId(i);
     }
   } else {                       //if digits exist, no noise should be added
     for (auto& dBg : digitsBg) { //digits are sorted and unique
@@ -79,12 +116,12 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
   for (auto& h : *hits) {
     int i = h.GetDetectorID();
     if (mArrayD[i].getAmplitude() > 0) {
-      mArrayD[i].setAmplitude(mArrayD[i].getAmplitude() + uncalibrate(h.GetEnergyLoss(), i));
+      mArrayD[i].setAmplitude(mArrayD[i].getAmplitude() + h.GetEnergyLoss());
     } else {
-      mArrayD[i].setAmplitude(uncalibrate(h.GetEnergyLoss(), i));
+      mArrayD[i].setAmplitude(h.GetEnergyLoss());
       mArrayD[i].setAbsId(i);
     }
-    if (mArrayD[i].getAmplitude() > o2::cpv::CPVSimParams::Instance().mZSthreshold) {
+    if (mArrayD[i].getAmplitude() > mDigitThresholds[i]) {
       int labelIndex = mArrayD[i].getLabel();
       if (labelIndex == -1) { //no digit or noisy
         labelIndex = labels.getIndexedSize();
@@ -109,23 +146,22 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
     }
   }
 
+  //finalize output digits
   for (int i = 0; i < NCHANNELS; i++) {
-    if (mArrayD[i].getAmplitude() > o2::cpv::CPVSimParams::Instance().mZSthreshold) {
+    if (!mBadMap->isChannelGood(i)) {
+      continue; //bad channel -> skip this digit
+    }
+    if (mArrayD[i].getAmplitude() > mDigitThresholds[i]) {
       digitsOut.push_back(mArrayD[i]);
     }
   }
 }
 
-float Digitizer::simulateNoise() { return gRandom->Gaus(0., o2::cpv::CPVSimParams::Instance().mNoise); }
-
-//_______________________________________________________________________
-float Digitizer::uncalibrate(const float e, const int absId)
+float Digitizer::simulatePedestalNoise(int absId)
 {
-  // Decalibrate CPV digit, i.e. transform from amplitude to ADC counts a factor read from CDB
-  float calib = mCalibParams->getGain(absId);
-  if (calib > 0) {
-    return e / calib;
-  } else {
-    return 0; // TODO apply de-calibration from OCDB
+  //this function is to simulate pedestal and its noise (ADC counts)
+  if (absId < 0 || absId >= NCHANNELS) {
+    return 0.;
   }
+  return gRandom->Gaus(0, mPedestals->getPedSigma(absId) * mCalibParams->getGain(absId));
 }

@@ -60,6 +60,28 @@ void RawWriter::digitsToRaw(gsl::span<o2::cpv::Digit> digitsbranch, gsl::span<o2
     }
   }
 
+  if (!mPedestals) {
+    if (o2::cpv::CPVSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
+      mPedestals = std::make_unique<o2::cpv::Pedestals>(1); // test default calibration
+      LOG(INFO) << "[RawWriter] No reading calibration from ccdb requested, set default";
+    } else {
+      LOG(INFO) << "[RawWriter] getting calibration object from ccdb";
+      o2::ccdb::CcdbApi ccdb;
+      std::map<std::string, std::string> metadata;
+      ccdb.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a local installation
+      auto tr = triggerbranch.begin();
+      double eventTime = -1;
+      // if(tr!=triggerbranch.end()){
+      //   eventTime = (*tr).getBCData().getTimeNS() ;
+      // }
+      //add copy constructor if necessary
+      //      mPedestals = std::make_unique<o2::cpv::Pedestals>(ccdb.retrieveFromTFileAny<o2::cpv::Pedestals>("CPV/Calib", metadata, eventTime));
+      if (!mPedestals) {
+        LOG(FATAL) << "[RawWriter] can not get calibration object from ccdb";
+      }
+    }
+  }
+
   for (auto trg : triggerbranch) {
     processTrigger(digitsbranch, trg);
   }
@@ -84,7 +106,7 @@ bool RawWriter::processTrigger(const gsl::span<o2::cpv::Digit> digitsbranch, con
     o2::cpv::Geometry::absIdToHWaddress(absId, ccId, dil, gas, pad);
 
     //Convert Amp to ADC counts
-    short charge = dig.getAmplitude() / mCalibParams->getGain(absId);
+    short charge = dig.getAmplitude() / mCalibParams->getGain(absId) + mPedestals->getPedestal(absId);
     if (charge > 4095) {
       charge = 4095;
     }

@@ -14,6 +14,8 @@
 #include "DataFormatsCPV/Digit.h"
 #include "CPVBase/Geometry.h"
 #include "CPVCalib/CalibParams.h"
+#include "CPVCalib/Pedestals.h"
+#include "CPVCalib/BadChannelMap.h"
 #include "CPVBase/Hit.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -39,15 +41,16 @@ class Digitizer : public TObject
                    int source, int entry, double dt);
 
  protected:
-  float uncalibrate(float e, int absId);
-  float simulateNoise();
+  float simulatePedestalNoise(int absId);
 
  private:
   static constexpr short NCHANNELS = 23040;  //128*60*3:  toatl number of CPV channels
   std::unique_ptr<CalibParams> mCalibParams; /// Calibration coefficients
-  std::array<Digit, NCHANNELS> mArrayD;
-
-  ClassDefOverride(Digitizer, 2);
+  std::unique_ptr<Pedestals> mPedestals;     /// Pedestals
+  std::unique_ptr<BadChannelMap> mBadMap;    /// Bad channel map
+  std::array<Digit, NCHANNELS> mArrayD;      ///array of digits (for inner use)
+  std::array<float, NCHANNELS> mDigitThresholds;
+  ClassDefOverride(Digitizer, 3);
 };
 } // namespace cpv
 } // namespace o2
