@@ -37,6 +37,7 @@
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Logger.h"
+#include "Framework/InputRecordWalker.h"
 
 #include "Headers/RAWDataHeader.h"
 #include "DetectorsRaw/RDHUtils.h"
@@ -159,6 +160,21 @@ void DataDecoderTask::decodeTF(framework::ProcessingContext& pc)
 
   // get the input buffer
   auto& inputs = pc.inputs();
+
+  // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
+  // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
+  {
+    std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{"HMP", "RAWDATA", 0xDEADBEEF}}};
+    for (const auto& ref : InputRecordWalker(inputs, dummy)) {
+      const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+      if (dh->payloadSize == 0) {
+        LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
+             dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
+        return;
+      }
+    }
+  }
+
   DPLRawParser parser(inputs, o2::framework::select("TF:HMP/RAWDATA"));
   mDeco->mDigits.clear();
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
@@ -253,14 +269,13 @@ void DataDecoderTask::decodeRawFile(framework::ProcessingContext& pc)
 }
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getDecodingSpec(std::string inputSpec)
+o2::framework::DataProcessorSpec getDecodingSpec(bool askDISTSTF)
 {
   std::vector<o2::framework::InputSpec> inputs;
-  inputs.emplace_back("TF", o2::framework::ConcreteDataTypeMatcher{"HMP", "RAWDATA"}, o2::framework::Lifetime::Timeframe);
-  inputs.emplace_back("file", o2::framework::ConcreteDataTypeMatcher{"ROUT", "RAWDATA"}, o2::framework::Lifetime::Timeframe);
-  //  inputs.emplace_back("readout", o2::header::gDataOriginHMP, "RAWDATA", 0, Lifetime::Timeframe);
-  //  inputs.emplace_back("readout", o2::header::gDataOriginHMP, "RAWDATA", 0, Lifetime::Timeframe);
-  //  inputs.emplace_back("rawfile", o2::header::gDataOriginHMP, "RAWDATA", 0, Lifetime::Timeframe);
+  inputs.emplace_back("TF", o2::framework::ConcreteDataTypeMatcher{"HMP", "RAWDATA"}, o2::framework::Lifetime::Optional);
+  if (askDISTSTF) {
+    inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
+  }
 
   std::vector<o2::framework::OutputSpec> outputs;
   outputs.emplace_back("HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe);
@@ -268,7 +283,7 @@ o2::framework::DataProcessorSpec getDecodingSpec(std::string inputSpec)
 
   return DataProcessorSpec{
     "HMP-RawStreamDecoder",
-    o2::framework::select(inputSpec.c_str()),
+    inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<DataDecoderTask>()},
     Options{{"result-file", VariantType::String, "/tmp/hmpRawDecodeResults", {"Base name of the decoding results files."}},
