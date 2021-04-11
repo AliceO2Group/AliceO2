@@ -15,7 +15,7 @@
 /// \brief Implementation of a data processor to produce raw files from a Digits stream
 ///
 
-#include "../include/HMPIDWorkflow/WriteRawFileSpec.h"
+#include "HMPIDWorkflow/WriteRawFileSpec.h"
 
 #include <random>
 #include <iostream>
@@ -97,8 +97,7 @@ void WriteRawFileTask::run(framework::ProcessingContext& pc)
   if (mOrderTheEvents) {
     int first = mDigits.size();
     mDigits.insert(mDigits.end(), digits.begin(), digits.end());
-    int last = mDigits.size() - 1;
-    mEvents.push_back({intReco, first, last});
+    mEvents.push_back({intReco, first, int(mDigits.size() - first)});
   } else {
     mCod->codeEventChunkDigits(digits, intReco);
   }
@@ -120,7 +119,7 @@ void WriteRawFileTask::endOfStream(framework::EndOfStreamContext& ec)
     uint32_t orbit = mEvents[0].getOrbit();
     uint16_t bc = mEvents[0].getBc();
     for (int idx = 0; idx < mEvents.size(); idx++) {
-      if (mSkipEmpty && (mEvents[idx].mLastDigit < mEvents[idx].mFirstDigit || mEvents[idx].getOrbit() == 0)) {
+      if (mSkipEmpty && (mEvents[idx].getNumberOfObjects() == 0 || mEvents[idx].getOrbit() == 0)) {
         continue;
       }
       if (mEvents[idx].getOrbit() != orbit || mEvents[idx].getBc() != bc) {
@@ -130,7 +129,7 @@ void WriteRawFileTask::endOfStream(framework::EndOfStreamContext& ec)
         orbit = mEvents[idx].getOrbit();
         bc = mEvents[idx].getBc();
       }
-      for (int i = mEvents[idx].mFirstDigit; i <= mEvents[idx].mLastDigit; i++) {
+      for (int i = mEvents[idx].getFirstEntry(); i <= mEvents[idx].getLastEntry(); i++) {
         dig.push_back(mDigits[i]);
       }
     }
