@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file HFDplusToPiKPiCandidateSelector.cxx
-/// \brief Dplus->piKpi selection task.
+/// \brief Dplus->piKpi selection task
 ///
 /// \author Fabio Catalano <fabio.catalano@cern.ch>, Politecnico and INFN Torino
 
@@ -21,7 +21,6 @@
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong3;
-using namespace o2::analysis;
 using namespace o2::analysis::hf_cuts_dplus_topikpi;
 
 /// Struct for applying Dplus to piKpi selection cuts
@@ -78,7 +77,7 @@ struct HFDplusToPiKPiCandidateSelector {
     if (trackPion1.pt() < cuts->get(pTBin, "pT Pi") || trackKaon.pt() < cuts->get(pTBin, "pT K") || trackPion2.pt() < cuts->get(pTBin, "pT Pi")) {
       return false; // cut on daughter pT
     }
-    if (TMath::Abs(InvMassDPlus(hfCandProng3) - RecoDecay::getMassPDG(pdg::code::kDPlus)) > cuts->get(pTBin, "deltaM")) {
+    if (TMath::Abs(InvMassDPlus(hfCandProng3) - RecoDecay::getMassPDG(pdg::Code::kDPlus)) > cuts->get(pTBin, "deltaM")) {
       return false; // invariant mass cut
     }
     if (hfCandProng3.decayLength() < cuts->get(pTBin, "decay length")) {
@@ -213,7 +212,7 @@ struct HFDplusToPiKPiCandidateSelector {
 
       auto statusDplusToPiKPi = 0; // final selection flag : 0-rejected  1-accepted
 
-      if (!(hfCandProng3.hfflag() & 1 << DPlusToPiKPi)) {
+      if (!(hfCandProng3.hfflag() & 1 << DecayType::DPlusToPiKPi)) {
         hfSelDplusToPiKPiCandidate(statusDplusToPiKPi);
         continue;
       }

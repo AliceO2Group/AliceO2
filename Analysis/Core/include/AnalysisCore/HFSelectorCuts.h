@@ -10,14 +10,16 @@
 
 #ifndef HF_SELECTOR_CUTS_H_
 #define HF_SELECTOR_CUTS_H_
+
 #include "Framework/Configurable.h"
 #include <vector>
 #include <string>
+
 namespace o2::analysis
 {
 namespace pdg
 {
-enum code {
+enum Code {
   kD0 = 421,
   kD0bar = -421,
   kDPlus = 411,
@@ -270,6 +272,7 @@ static const std::vector<std::string> pTBinLabels = {
 // column labels
 static const std::vector<std::string> cutVarLabels = {"deltaM", "pT Pi", "pT K", "decay length", "normalized decay length XY", "cos pointing angle", "cos pointing angle XY", "max normalized deltaIP"};
 } // namespace hf_cuts_dplus_topikpi
+
 namespace hf_cuts_xic_topkpi
 {
 static const int npTBins = 10;
@@ -363,4 +366,5 @@ static const std::vector<std::string> pTBinLabels = {
 static const std::vector<std::string> cutVarLabels = {"m", "DCA_xy", "DCA_z", "pT El"};
 } // namespace hf_cuts_jpsi_toee
 } // namespace o2::analysis
-#endif
+
+#endif // HF_SELECTOR_CUTS_H_

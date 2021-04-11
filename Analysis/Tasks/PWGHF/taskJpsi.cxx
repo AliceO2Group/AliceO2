@@ -21,11 +21,10 @@
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
 
 using namespace o2;
-using namespace o2::analysis;
-using namespace o2::analysis::hf_cuts_jpsi_toee;
 using namespace o2::framework;
-using namespace o2::aod::hf_cand_prong2;
 using namespace o2::framework::expressions;
+using namespace o2::aod::hf_cand_prong2;
+using namespace o2::analysis::hf_cuts_jpsi_toee;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
@@ -68,7 +67,7 @@ struct TaskJpsi {
   //  void process(aod::HfCandProng2 const& candidates)
   {
     for (auto& candidate : candidates) {
-      if (!(candidate.hfflag() & 1 << JpsiToEE)) {
+      if (!(candidate.hfflag() & 1 << DecayType::JpsiToEE)) {
         continue;
       }
       if (cutYCandMax >= 0. && std::abs(YJpsi(candidate)) > cutYCandMax) {
@@ -118,14 +117,14 @@ struct TaskJpsiMC {
     // MC rec.
     //Printf("MC Candidates: %d", candidates.size());
     for (auto& candidate : candidates) {
-      if (!(candidate.hfflag() & 1 << JpsiToEE)) {
+      if (!(candidate.hfflag() & 1 << DecayType::JpsiToEE)) {
         continue;
       }
       if (cutYCandMax >= 0. && std::abs(YJpsi(candidate)) > cutYCandMax) {
         //Printf("MC Rec.: Y rejection: %g", YJpsi(candidate));
         continue;
       }
-      if (candidate.flagMCMatchRec() == 1 << JpsiToEE) {
+      if (candidate.flagMCMatchRec() == 1 << DecayType::JpsiToEE) {
         //Get the corresponding MC particle.
         auto indexMother = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandProng2MCGen>>(), 443, true);
         auto particleMother = particlesMC.iteratorAt(indexMother);
@@ -142,7 +141,7 @@ struct TaskJpsiMC {
     // MC gen.
     //Printf("MC Particles: %d", particlesMC.size());
     for (auto& particle : particlesMC) {
-      if (particle.flagMCMatchGen() == 1 << JpsiToEE) {
+      if (particle.flagMCMatchGen() == 1 << DecayType::JpsiToEE) {
         if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(particle.pdgCode()))) > cutYCandMax) {
           //Printf("MC Gen.: Y rejection: %g", RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(particle.pdgCode())));
           continue;

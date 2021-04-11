@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file HFXicToPKPiCandidateSelector.cxx
-/// \brief Xic->pKpi selection task.
+/// \brief Xic->pKpi selection task
 /// \note Inspired from HFLcCandidateSelector.cxx
 ///
 /// \author Mattia Faggin <mattia.faggin@cern.ch>, University and INFN PADOVA
@@ -23,7 +23,6 @@
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong3;
-using namespace o2::analysis;
 using namespace o2::analysis::hf_cuts_xic_topkpi;
 
 /// Struct for applying Xic selection cuts
@@ -114,11 +113,11 @@ struct HFXicToPKPiCandidateSelector {
     }
 
     if (trackProton.globalIndex() == hfCandProng3.index0Id()) {
-      if (TMath::Abs(InvMassXicToPKPi(hfCandProng3) - RecoDecay::getMassPDG(pdg::code::kXiCPlus)) > cuts->get(pTBin, "m")) {
+      if (TMath::Abs(InvMassXicToPKPi(hfCandProng3) - RecoDecay::getMassPDG(pdg::Code::kXiCPlus)) > cuts->get(pTBin, "m")) {
         return false;
       }
     } else {
-      if (TMath::Abs(InvMassXicToPiKP(hfCandProng3) - RecoDecay::getMassPDG(pdg::code::kXiCPlus)) > cuts->get(pTBin, "m")) {
+      if (TMath::Abs(InvMassXicToPiKP(hfCandProng3) - RecoDecay::getMassPDG(pdg::Code::kXiCPlus)) > cuts->get(pTBin, "m")) {
         return false;
       }
     }
@@ -260,11 +259,11 @@ struct HFXicToPKPiCandidateSelector {
       } else {
         statusTPC = 2; //positive PID
       }
-    } 
+    }
     else{
       statusTPC = -1; //no PID info
     }
-    
+
     /// TOF
     if (validTOFPID(track)) {
       if (!selectionPIDTOF(track, nPDG, d_nSigmaTOF)) {
@@ -300,7 +299,7 @@ struct HFXicToPKPiCandidateSelector {
       auto statusXicToPKPi = 0;
       auto statusXicToPiKP = 0;
 
-      if (!(hfCandProng3.hfflag() & 1 << XicToPKPi)) {
+      if (!(hfCandProng3.hfflag() & 1 << DecayType::XicToPKPi)) {
         hfSelXicToPKPiCandidate(statusXicToPKPi, statusXicToPiKP);
         continue;
       }

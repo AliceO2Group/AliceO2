@@ -177,17 +177,17 @@ struct HFCandidateCreator3ProngMC {
 
       // D± → π± K∓ π±
       //Printf("Checking D± → π± K∓ π±");
-      indexRec = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, kDPlus, array{+kPiPlus, -kKPlus, +kPiPlus}, true, &sign);
+      indexRec = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, pdg::Code::kDPlus, array{+kPiPlus, -kKPlus, +kPiPlus}, true, &sign);
       if (indexRec > -1) {
-        flag = sign * (1 << DPlusToPiKPi);
+        flag = sign * (1 << DecayType::DPlusToPiKPi);
       }
 
       // Λc± → p± K∓ π±
       if (flag == 0) {
         //Printf("Checking Λc± → p± K∓ π±");
-        indexRec = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, kLambdaCPlus, array{+kProton, -kKPlus, +kPiPlus}, true, &sign, 2);
+        indexRec = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, pdg::Code::kLambdaCPlus, array{+kProton, -kKPlus, +kPiPlus}, true, &sign, 2);
         if (indexRec > -1) {
-          flag = sign * (1 << LcToPKPi);
+          flag = sign * (1 << DecayType::LcToPKPi);
 
           //Printf("Flagging the different Λc± → p± K∓ π± decay channels");
           RecoDecay::getDaughters(particlesMC, particlesMC.iteratorAt(indexRec), &arrDaughIndex, array{0}, 1);
@@ -210,16 +210,16 @@ struct HFCandidateCreator3ProngMC {
       // Ξc± → p± K∓ π±
       if (flag == 0) {
         //Printf("Checking Ξc± → p± K∓ π±");
-        indexRec = RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), kXiCPlus, array{+kProton, -kKPlus, +kPiPlus}, true, &sign);
+        indexRec = RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), pdg::Code::kXiCPlus, array{+kProton, -kKPlus, +kPiPlus}, true, &sign);
         if (indexRec > -1) {
-          flag = sign * (1 << XicToPKPi);
+          flag = sign * (1 << DecayType::XicToPKPi);
         }
       }
 
       // Check whether the particle is non-prompt (from a b quark).
       if (flag != 0) {
         auto particle = particlesMC.iteratorAt(indexRec);
-        origin = (RecoDecay::getMother(particlesMC, particle, kBottom, true) > -1 ? NonPrompt : Prompt);
+        origin = (RecoDecay::getMother(particlesMC, particle, kBottom, true) > -1 ? OriginType::NonPrompt : OriginType::Prompt);
       }
 
       rowMCMatchRec(flag, origin, channel);
@@ -235,15 +235,15 @@ struct HFCandidateCreator3ProngMC {
 
       // D± → π± K∓ π±
       //Printf("Checking D± → π± K∓ π±");
-      if (RecoDecay::isMatchedMCGen(particlesMC, particle, kDPlus, array{+kPiPlus, -kKPlus, +kPiPlus}, true, &sign)) {
-        flag = sign * (1 << DPlusToPiKPi);
+      if (RecoDecay::isMatchedMCGen(particlesMC, particle, pdg::Code::kDPlus, array{+kPiPlus, -kKPlus, +kPiPlus}, true, &sign)) {
+        flag = sign * (1 << DecayType::DPlusToPiKPi);
       }
 
       // Λc± → p± K∓ π±
       if (flag == 0) {
         //Printf("Checking Λc± → p± K∓ π±");
-        if (RecoDecay::isMatchedMCGen(particlesMC, particle, kLambdaCPlus, array{+kProton, -kKPlus, +kPiPlus}, true, &sign, 2)) {
-          flag = sign * (1 << LcToPKPi);
+        if (RecoDecay::isMatchedMCGen(particlesMC, particle, pdg::Code::kLambdaCPlus, array{+kProton, -kKPlus, +kPiPlus}, true, &sign, 2)) {
+          flag = sign * (1 << DecayType::LcToPKPi);
 
           //Printf("Flagging the different Λc± → p± K∓ π± decay channels");
           RecoDecay::getDaughters(particlesMC, particle, &arrDaughIndex, array{0}, 1);
@@ -266,14 +266,14 @@ struct HFCandidateCreator3ProngMC {
       // Ξc± → p± K∓ π±
       if (flag == 0) {
         //Printf("Checking Ξc± → p± K∓ π±");
-        if (RecoDecay::isMatchedMCGen(particlesMC, particle, kXiCPlus, array{+kProton, -kKPlus, +kPiPlus}, true, &sign)) {
-          flag = sign * (1 << XicToPKPi);
+        if (RecoDecay::isMatchedMCGen(particlesMC, particle, pdg::Code::kXiCPlus, array{+kProton, -kKPlus, +kPiPlus}, true, &sign)) {
+          flag = sign * (1 << DecayType::XicToPKPi);
         }
       }
 
       // Check whether the particle is non-prompt (from a b quark).
       if (flag != 0) {
-        origin = (RecoDecay::getMother(particlesMC, particle, kBottom, true) > -1 ? NonPrompt : Prompt);
+        origin = (RecoDecay::getMother(particlesMC, particle, kBottom, true) > -1 ? OriginType::NonPrompt : OriginType::Prompt);
       }
 
       rowMCMatchGen(flag, origin, channel);

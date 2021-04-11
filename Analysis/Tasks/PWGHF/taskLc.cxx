@@ -22,9 +22,8 @@
 
 using namespace o2;
 using namespace o2::framework;
-using namespace o2::aod::hf_cand_prong3;
 using namespace o2::framework::expressions;
-using namespace o2::analysis;
+using namespace o2::aod::hf_cand_prong3;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
@@ -70,7 +69,7 @@ struct TaskLc {
   void process(soa::Filtered<soa::Join<aod::HfCandProng3, aod::HFSelLcCandidate>> const& candidates)
   {
     for (auto& candidate : candidates) {
-      if (!(candidate.hfflag() & 1 << LcToPKPi)) {
+      if (!(candidate.hfflag() & 1 << DecayType::LcToPKPi)) {
         continue;
       }
       if (cutYCandMax >= 0. && std::abs(YLc(candidate)) > cutYCandMax) {
@@ -132,7 +131,7 @@ struct TaskLcMC {
     //Printf("MC Candidates: %d", candidates.size());
 
     for (auto& candidate : candidates) {
-      if (!(candidate.hfflag() & 1 << LcToPKPi)) {
+      if (!(candidate.hfflag() & 1 << DecayType::LcToPKPi)) {
         continue;
       }
       if (cutYCandMax >= 0. && std::abs(YLc(candidate)) > cutYCandMax) {
@@ -140,9 +139,9 @@ struct TaskLcMC {
         continue;
       }
 
-      if (std::abs(candidate.flagMCMatchRec()) == 1 << LcToPKPi) {
+      if (std::abs(candidate.flagMCMatchRec()) == 1 << DecayType::LcToPKPi) {
         // Get the corresponding MC particle.
-        auto indexMother = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandProng3MCGen>>(), pdg::code::kLambdaCPlus, true);
+        auto indexMother = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandProng3MCGen>>(), pdg::Code::kLambdaCPlus, true);
         auto particleMother = particlesMC.iteratorAt(indexMother);
         registry.fill(HIST("hPtGenSig"), particleMother.pt()); //gen. level pT
         registry.fill(HIST("hPtRecSig"), candidate.pt());      //rec. level pT
@@ -157,7 +156,7 @@ struct TaskLcMC {
     // MC gen.
     //Printf("MC Particles: %d", particlesMC.size());
     for (auto& particle : particlesMC) {
-      if (std::abs(particle.flagMCMatchGen()) == 1 << LcToPKPi) {
+      if (std::abs(particle.flagMCMatchGen()) == 1 << DecayType::LcToPKPi) {
         if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(particle.pdgCode()))) > cutYCandMax) {
           //Printf("MC Gen.: Y rejection: %g", RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(particle.pdgCode())));
           continue;

@@ -9,7 +9,8 @@
 // or submit itself to any jurisdiction.
 
 /// \file HFJpsiToEECandidateSelector.cxx
-/// \brief Jpsi selection task.
+/// \brief Jpsi selection task
+///
 /// \author Biao Zhang <biao.zhang@cern.ch>, CCNU
 /// \author Nima Zardoshti <nima.zardoshti@cern.ch>, CERN
 
@@ -17,16 +18,14 @@
 #include "Framework/AnalysisTask.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
+
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong2;
-using namespace o2::analysis;
 using namespace o2::analysis::hf_cuts_jpsi_toee;
 
 /// Struct for applying Jpsi selection cuts
-
 struct HFJpsiToEECandidateSelector {
-
   Produces<aod::HFSelJpsiToEECandidate> hfSelJpsiToEECandidate;
 
   Configurable<double> d_pTCandMin{"d_pTCandMin", 0., "Lower bound of candidate pT"};
@@ -71,7 +70,7 @@ struct HFJpsiToEECandidateSelector {
       return false; //check that the candidate pT is within the analysis range
     }
 
-    if (TMath::Abs(InvMassJpsiToEE(hfCandProng2) - RecoDecay::getMassPDG(pdg::code::kJpsi)) > cuts->get(pTBin, "m")) {
+    if (TMath::Abs(InvMassJpsiToEE(hfCandProng2) - RecoDecay::getMassPDG(pdg::Code::kJpsi)) > cuts->get(pTBin, "m")) {
       return false;
     }
 
@@ -140,7 +139,7 @@ struct HFJpsiToEECandidateSelector {
       auto trackPos = hfCandProng2.index0_as<aod::BigTracksPID>(); //positive daughter
       auto trackNeg = hfCandProng2.index1_as<aod::BigTracksPID>(); //negative daughter
 
-      if (!(hfCandProng2.hfflag() & 1 << JpsiToEE)) {
+      if (!(hfCandProng2.hfflag() & 1 << DecayType::JpsiToEE)) {
         hfSelJpsiToEECandidate(0);
         continue;
       }

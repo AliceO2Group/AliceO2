@@ -17,20 +17,18 @@
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
+#include "Framework/HistogramRegistry.h"
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisCore/trackUtilities.h"
 #include "AnalysisCore/HFConfigurables.h"
-#include "AnalysisCore/HFSelectorCuts.h"
 //#include "AnalysisDataModel/Centrality.h"
-#include "Framework/HistogramRegistry.h"
 #include <algorithm>
 
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
-using namespace o2::aod::hf_cand_prong2;
-using namespace o2::aod::hf_cand_prong3;
+using namespace o2::aod;
 using namespace o2::analysis;
 using namespace o2::analysis::hf_cuts_single_track;
 
@@ -265,10 +263,10 @@ struct HFTrackIndexSkimsCreator {
     }
 
     //FIXME move above process function
-    const int n2ProngDecays = N2ProngDecays;             //number of two prong hadron types
-    const int n3ProngDecays = N3ProngDecays;             //number of three prong hadron types
-    int n2ProngBit = TMath::Power(2, n2ProngDecays) - 1; //bit value for 2 prongs candidates where each candidiate is one bit and they are all set it 1
-    int n3ProngBit = TMath::Power(2, n3ProngDecays) - 1; //bit value for 3 prongs candidates where each candidiate is one bit and they are all set it 1
+    const int n2ProngDecays = hf_cand_prong2::DecayType::N2ProngDecays;             //number of 2-prong hadron types
+    const int n3ProngDecays = hf_cand_prong3::DecayType::N3ProngDecays;             //number of 3-prong hadron types
+    int n2ProngBit = TMath::Power(2, n2ProngDecays) - 1; //bit value for 2-prong candidates where each candidiate is one bit and they are all set it 1
+    int n3ProngBit = TMath::Power(2, n3ProngDecays) - 1; //bit value for 3-prong candidates where each candidiate is one bit and they are all set it 1
 
     //retrieve cuts from json - to be made pT dependent when option appears in json
     const int nCuts2Prong = 4; //how many different selections are made on 2-prongs
@@ -278,17 +276,17 @@ struct HFTrackIndexSkimsCreator {
     double cut2ProngCPACandMin[n2ProngDecays];
     double cut2ProngImpParProductCandMax[n2ProngDecays];
 
-    cut2ProngPtCandMin[D0ToPiK] = configs->mPtD0ToPiKMin;
-    cut2ProngInvMassCandMin[D0ToPiK] = configs->mInvMassD0ToPiKMin;
-    cut2ProngInvMassCandMax[D0ToPiK] = configs->mInvMassD0ToPiKMax;
-    cut2ProngCPACandMin[D0ToPiK] = configs->mCPAD0ToPiKMin;
-    cut2ProngImpParProductCandMax[D0ToPiK] = configs->mImpParProductD0ToPiKMax;
+    cut2ProngPtCandMin[hf_cand_prong2::DecayType::D0ToPiK] = configs->mPtD0ToPiKMin;
+    cut2ProngInvMassCandMin[hf_cand_prong2::DecayType::D0ToPiK] = configs->mInvMassD0ToPiKMin;
+    cut2ProngInvMassCandMax[hf_cand_prong2::DecayType::D0ToPiK] = configs->mInvMassD0ToPiKMax;
+    cut2ProngCPACandMin[hf_cand_prong2::DecayType::D0ToPiK] = configs->mCPAD0ToPiKMin;
+    cut2ProngImpParProductCandMax[hf_cand_prong2::DecayType::D0ToPiK] = configs->mImpParProductD0ToPiKMax;
 
-    cut2ProngPtCandMin[JpsiToEE] = configs->mPtJpsiToEEMin;
-    cut2ProngInvMassCandMin[JpsiToEE] = configs->mInvMassJpsiToEEMin;
-    cut2ProngInvMassCandMax[JpsiToEE] = configs->mInvMassJpsiToEEMax;
-    cut2ProngCPACandMin[JpsiToEE] = configs->mCPAJpsiToEEMin;
-    cut2ProngImpParProductCandMax[JpsiToEE] = configs->mImpParProductJpsiToEEMax;
+    cut2ProngPtCandMin[hf_cand_prong2::DecayType::JpsiToEE] = configs->mPtJpsiToEEMin;
+    cut2ProngInvMassCandMin[hf_cand_prong2::DecayType::JpsiToEE] = configs->mInvMassJpsiToEEMin;
+    cut2ProngInvMassCandMax[hf_cand_prong2::DecayType::JpsiToEE] = configs->mInvMassJpsiToEEMax;
+    cut2ProngCPACandMin[hf_cand_prong2::DecayType::JpsiToEE] = configs->mCPAJpsiToEEMin;
+    cut2ProngImpParProductCandMax[hf_cand_prong2::DecayType::JpsiToEE] = configs->mImpParProductJpsiToEEMax;
 
     const int nCuts3Prong = 4; //how many different selections are made on 3-prongs
     double cut3ProngPtCandMin[n3ProngDecays];
@@ -297,29 +295,29 @@ struct HFTrackIndexSkimsCreator {
     double cut3ProngCPACandMin[n3ProngDecays];
     double cut3ProngDecLenCandMin[n3ProngDecays];
 
-    cut3ProngPtCandMin[DPlusToPiKPi] = configs->mPtDPlusToPiKPiMin;
-    cut3ProngInvMassCandMin[DPlusToPiKPi] = configs->mInvMassDPlusToPiKPiMin;
-    cut3ProngInvMassCandMax[DPlusToPiKPi] = configs->mInvMassDPlusToPiKPiMax;
-    cut3ProngCPACandMin[DPlusToPiKPi] = configs->mCPADPlusToPiKPiMin;
-    cut3ProngDecLenCandMin[DPlusToPiKPi] = configs->mDecLenDPlusToPiKPiMin;
+    cut3ProngPtCandMin[hf_cand_prong3::DecayType::DPlusToPiKPi] = configs->mPtDPlusToPiKPiMin;
+    cut3ProngInvMassCandMin[hf_cand_prong3::DecayType::DPlusToPiKPi] = configs->mInvMassDPlusToPiKPiMin;
+    cut3ProngInvMassCandMax[hf_cand_prong3::DecayType::DPlusToPiKPi] = configs->mInvMassDPlusToPiKPiMax;
+    cut3ProngCPACandMin[hf_cand_prong3::DecayType::DPlusToPiKPi] = configs->mCPADPlusToPiKPiMin;
+    cut3ProngDecLenCandMin[hf_cand_prong3::DecayType::DPlusToPiKPi] = configs->mDecLenDPlusToPiKPiMin;
 
-    cut3ProngPtCandMin[LcToPKPi] = configs->mPtLcToPKPiMin;
-    cut3ProngInvMassCandMin[LcToPKPi] = configs->mInvMassLcToPKPiMin;
-    cut3ProngInvMassCandMax[LcToPKPi] = configs->mInvMassLcToPKPiMax;
-    cut3ProngCPACandMin[LcToPKPi] = configs->mCPALcToPKPiMin;
-    cut3ProngDecLenCandMin[LcToPKPi] = configs->mDecLenLcToPKPiMin;
+    cut3ProngPtCandMin[hf_cand_prong3::DecayType::LcToPKPi] = configs->mPtLcToPKPiMin;
+    cut3ProngInvMassCandMin[hf_cand_prong3::DecayType::LcToPKPi] = configs->mInvMassLcToPKPiMin;
+    cut3ProngInvMassCandMax[hf_cand_prong3::DecayType::LcToPKPi] = configs->mInvMassLcToPKPiMax;
+    cut3ProngCPACandMin[hf_cand_prong3::DecayType::LcToPKPi] = configs->mCPALcToPKPiMin;
+    cut3ProngDecLenCandMin[hf_cand_prong3::DecayType::LcToPKPi] = configs->mDecLenLcToPKPiMin;
 
-    cut3ProngPtCandMin[DsToPiKK] = configs->mPtDsToPiKKMin;
-    cut3ProngInvMassCandMin[DsToPiKK] = configs->mInvMassDsToPiKKMin;
-    cut3ProngInvMassCandMax[DsToPiKK] = configs->mInvMassDsToPiKKMax;
-    cut3ProngCPACandMin[DsToPiKK] = configs->mCPADsToPiKKMin;
-    cut3ProngDecLenCandMin[DsToPiKK] = configs->mDecLenDsToPiKKMin;
+    cut3ProngPtCandMin[hf_cand_prong3::DecayType::DsToPiKK] = configs->mPtDsToPiKKMin;
+    cut3ProngInvMassCandMin[hf_cand_prong3::DecayType::DsToPiKK] = configs->mInvMassDsToPiKKMin;
+    cut3ProngInvMassCandMax[hf_cand_prong3::DecayType::DsToPiKK] = configs->mInvMassDsToPiKKMax;
+    cut3ProngCPACandMin[hf_cand_prong3::DecayType::DsToPiKK] = configs->mCPADsToPiKKMin;
+    cut3ProngDecLenCandMin[hf_cand_prong3::DecayType::DsToPiKK] = configs->mDecLenDsToPiKKMin;
 
-    cut3ProngPtCandMin[XicToPKPi] = configs->mPtXicToPKPiMin;
-    cut3ProngInvMassCandMin[XicToPKPi] = configs->mInvMassXicToPKPiMin;
-    cut3ProngInvMassCandMax[XicToPKPi] = configs->mInvMassXicToPKPiMax;
-    cut3ProngCPACandMin[XicToPKPi] = configs->mCPAXicToPKPiMin;
-    cut3ProngDecLenCandMin[XicToPKPi] = configs->mDecLenXicToPKPiMin;
+    cut3ProngPtCandMin[hf_cand_prong3::DecayType::XicToPKPi] = configs->mPtXicToPKPiMin;
+    cut3ProngInvMassCandMin[hf_cand_prong3::DecayType::XicToPKPi] = configs->mInvMassXicToPKPiMin;
+    cut3ProngInvMassCandMax[hf_cand_prong3::DecayType::XicToPKPi] = configs->mInvMassXicToPKPiMax;
+    cut3ProngCPACandMin[hf_cand_prong3::DecayType::XicToPKPi] = configs->mCPAXicToPKPiMin;
+    cut3ProngDecLenCandMin[hf_cand_prong3::DecayType::XicToPKPi] = configs->mDecLenXicToPKPiMin;
 
     bool cutStatus2Prong[n2ProngDecays][nCuts2Prong];
     bool cutStatus3Prong[n3ProngDecays][nCuts3Prong];
@@ -327,24 +325,24 @@ struct HFTrackIndexSkimsCreator {
     int nCutStatus3ProngBit = TMath::Power(2, nCuts3Prong) - 1; //bit value for selection status for each 2 prongs candidate where each selection is one bit and they are all set it 1
 
     array<array<double, 2>, n2ProngDecays> arr2Mass1;
-    arr2Mass1[D0ToPiK] = array{massPi, massK};
-    arr2Mass1[JpsiToEE] = array{massElectron, massElectron};
+    arr2Mass1[hf_cand_prong2::DecayType::D0ToPiK] = array{massPi, massK};
+    arr2Mass1[hf_cand_prong2::DecayType::JpsiToEE] = array{massElectron, massElectron};
 
     array<array<double, 2>, n2ProngDecays> arr2Mass2;
-    arr2Mass2[D0ToPiK] = array{massK, massPi};
-    arr2Mass2[JpsiToEE] = array{massElectron, massElectron};
+    arr2Mass2[hf_cand_prong2::DecayType::D0ToPiK] = array{massK, massPi};
+    arr2Mass2[hf_cand_prong2::DecayType::JpsiToEE] = array{massElectron, massElectron};
 
     array<array<double, 3>, n3ProngDecays> arr3Mass1;
-    arr3Mass1[DPlusToPiKPi] = array{massPi, massK, massPi};
-    arr3Mass1[LcToPKPi] = array{massProton, massK, massPi};
-    arr3Mass1[DsToPiKK] = array{massK, massK, massPi};
-    arr3Mass1[XicToPKPi] = array{massProton, massK, massPi};
+    arr3Mass1[hf_cand_prong3::DecayType::DPlusToPiKPi] = array{massPi, massK, massPi};
+    arr3Mass1[hf_cand_prong3::DecayType::LcToPKPi] = array{massProton, massK, massPi};
+    arr3Mass1[hf_cand_prong3::DecayType::DsToPiKK] = array{massK, massK, massPi};
+    arr3Mass1[hf_cand_prong3::DecayType::XicToPKPi] = array{massProton, massK, massPi};
 
     array<array<double, 3>, n3ProngDecays> arr3Mass2;
-    arr3Mass2[DPlusToPiKPi] = array{massPi, massK, massPi};
-    arr3Mass2[LcToPKPi] = array{massPi, massK, massProton};
-    arr3Mass2[DsToPiKK] = array{massPi, massK, massK};
-    arr3Mass2[XicToPKPi] = array{massPi, massK, massProton};
+    arr3Mass2[hf_cand_prong3::DecayType::DPlusToPiKPi] = array{massPi, massK, massPi};
+    arr3Mass2[hf_cand_prong3::DecayType::LcToPKPi] = array{massPi, massK, massProton};
+    arr3Mass2[hf_cand_prong3::DecayType::DsToPiKK] = array{massPi, massK, massK};
+    arr3Mass2[hf_cand_prong3::DecayType::XicToPKPi] = array{massPi, massK, massProton};
 
     double mass2ProngHypo1[n2ProngDecays];
     double mass2ProngHypo2[n2ProngDecays];
@@ -522,16 +520,16 @@ struct HFTrackIndexSkimsCreator {
                   if (isSelected2ProngCand & 1 << n2) {
                     if ((cut2ProngInvMassCandMin[n2] < 0. && cut2ProngInvMassCandMax[n2] <= 0.) || (mass2ProngHypo1[n2] >= cut2ProngInvMassCandMin[n2] && mass2ProngHypo1[n2] < cut2ProngInvMassCandMax[n2])) {
                       mass2ProngHypo1[n2] = RecoDecay::M(arrMom, arr2Mass1[n2]);
-                      if (n2 == D0ToPiK) {
+                      if (n2 == hf_cand_prong2::DecayType::D0ToPiK) {
                         registry.get<TH1>(HIST("hmassD0ToPiK"))->Fill(mass2ProngHypo1[n2]);
                       }
-                      if (n2 == JpsiToEE) {
+                      if (n2 == hf_cand_prong2::DecayType::JpsiToEE) {
                         registry.get<TH1>(HIST("hmassJpsiToEE"))->Fill(mass2ProngHypo1[n2]);
                       }
                     }
                     if ((cut2ProngInvMassCandMin[n2] < 0. && cut2ProngInvMassCandMax[n2] <= 0.) || (mass2ProngHypo2[n2] >= cut2ProngInvMassCandMin[n2] && mass2ProngHypo2[n2] < cut2ProngInvMassCandMax[n2])) {
                       mass2ProngHypo2[n2] = RecoDecay::M(arrMom, arr2Mass2[n2]);
-                      if (n2 == D0ToPiK) {
+                      if (n2 == hf_cand_prong2::DecayType::D0ToPiK) {
                         registry.get<TH1>(HIST("hmassD0ToPiK"))->Fill(mass2ProngHypo1[n2]);
                       }
                     }
@@ -690,28 +688,28 @@ struct HFTrackIndexSkimsCreator {
                 if (isSelected3ProngCand & 1 << n3) {
                   if ((cut3ProngInvMassCandMin[n3] < 0. && cut3ProngInvMassCandMax[n3] <= 0.) || (mass3ProngHypo1[n3] >= cut3ProngInvMassCandMin[n3] && mass3ProngHypo1[n3] < cut3ProngInvMassCandMax[n3])) {
                     mass3ProngHypo1[n3] = RecoDecay::M(arr3Mom, arr3Mass1[n3]);
-                    if (n3 == DPlusToPiKPi) {
+                    if (n3 == hf_cand_prong3::DecayType::DPlusToPiKPi) {
                       registry.get<TH1>(HIST("hmassDPlusToPiKPi"))->Fill(mass3ProngHypo1[n3]);
                     }
-                    if (n3 == LcToPKPi) {
+                    if (n3 == hf_cand_prong3::DecayType::LcToPKPi) {
                       registry.get<TH1>(HIST("hmassLcToPKPi"))->Fill(mass3ProngHypo1[n3]);
                     }
-                    if (n3 == DsToPiKK) {
+                    if (n3 == hf_cand_prong3::DecayType::DsToPiKK) {
                       registry.get<TH1>(HIST("hmassDsToPiKK"))->Fill(mass3ProngHypo1[n3]);
                     }
-                    if (n3 == XicToPKPi) {
+                    if (n3 == hf_cand_prong3::DecayType::XicToPKPi) {
                       registry.get<TH1>(HIST("hmassXicToPKPi"))->Fill(mass3ProngHypo1[n3]);
                     }
                   }
                   if ((cut3ProngInvMassCandMin[n3] < 0. && cut3ProngInvMassCandMax[n3] <= 0.) || (mass3ProngHypo2[n3] >= cut3ProngInvMassCandMin[n3] && mass3ProngHypo2[n3] < cut3ProngInvMassCandMax[n3])) {
                     mass3ProngHypo2[n3] = RecoDecay::M(arr3Mom, arr3Mass2[n3]);
-                    if (n3 == LcToPKPi) {
+                    if (n3 == hf_cand_prong3::DecayType::LcToPKPi) {
                       registry.get<TH1>(HIST("hmassLcToPKPi"))->Fill(mass3ProngHypo2[n3]);
                     }
-                    if (n3 == DsToPiKK) {
+                    if (n3 == hf_cand_prong3::DecayType::DsToPiKK) {
                       registry.get<TH1>(HIST("hmassDsToPiKK"))->Fill(mass3ProngHypo2[n3]);
                     }
-                    if (n3 == XicToPKPi) {
+                    if (n3 == hf_cand_prong3::DecayType::XicToPKPi) {
                       registry.get<TH1>(HIST("hmassXicToPKPi"))->Fill(mass3ProngHypo2[n3]);
                     }
                   }
@@ -863,28 +861,28 @@ struct HFTrackIndexSkimsCreator {
                 if (isSelected3ProngCand & 1 << n3) {
                   if ((cut3ProngInvMassCandMin[n3] < 0. && cut3ProngInvMassCandMax[n3] <= 0.) || (mass3ProngHypo1[n3] >= cut3ProngInvMassCandMin[n3] && mass3ProngHypo1[n3] < cut3ProngInvMassCandMax[n3])) {
                     mass3ProngHypo1[n3] = RecoDecay::M(arr3Mom, arr3Mass1[n3]);
-                    if (n3 == DPlusToPiKPi) {
+                    if (n3 == hf_cand_prong3::DecayType::DPlusToPiKPi) {
                       registry.get<TH1>(HIST("hmassDPlusToPiKPi"))->Fill(mass3ProngHypo1[n3]);
                     }
-                    if (n3 == LcToPKPi) {
+                    if (n3 == hf_cand_prong3::DecayType::LcToPKPi) {
                       registry.get<TH1>(HIST("hmassLcToPKPi"))->Fill(mass3ProngHypo1[n3]);
                     }
-                    if (n3 == DsToPiKK) {
+                    if (n3 == hf_cand_prong3::DecayType::DsToPiKK) {
                       registry.get<TH1>(HIST("hmassDsToPiKK"))->Fill(mass3ProngHypo1[n3]);
                     }
-                    if (n3 == XicToPKPi) {
+                    if (n3 == hf_cand_prong3::DecayType::XicToPKPi) {
                       registry.get<TH1>(HIST("hmassXicToPKPi"))->Fill(mass3ProngHypo1[n3]);
                     }
                   }
                   if ((cut3ProngInvMassCandMin[n3] < 0. && cut3ProngInvMassCandMax[n3] <= 0.) || (mass3ProngHypo2[n3] >= cut3ProngInvMassCandMin[n3] && mass3ProngHypo2[n3] < cut3ProngInvMassCandMax[n3])) {
                     mass3ProngHypo2[n3] = RecoDecay::M(arr3Mom, arr3Mass2[n3]);
-                    if (n3 == LcToPKPi) {
+                    if (n3 == hf_cand_prong3::DecayType::LcToPKPi) {
                       registry.get<TH1>(HIST("hmassLcToPKPi"))->Fill(mass3ProngHypo2[n3]);
                     }
-                    if (n3 == DsToPiKK) {
+                    if (n3 == hf_cand_prong3::DecayType::DsToPiKK) {
                       registry.get<TH1>(HIST("hmassDsToPiKK"))->Fill(mass3ProngHypo2[n3]);
                     }
-                    if (n3 == XicToPKPi) {
+                    if (n3 == hf_cand_prong3::DecayType::XicToPKPi) {
                       registry.get<TH1>(HIST("hmassXicToPKPi"))->Fill(mass3ProngHypo2[n3]);
                     }
                   }

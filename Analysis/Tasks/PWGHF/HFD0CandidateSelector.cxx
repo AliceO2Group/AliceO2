@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file HFD0CandidateSelector.cxx
-/// \brief D0 selection task.
+/// \brief D0 selection task
 ///
 /// \author Nima Zardoshti <nima.zardoshti@cern.ch>, CERN
 
@@ -21,7 +21,6 @@
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong2;
-using namespace o2::analysis;
 using namespace o2::analysis::hf_cuts_d0_topik;
 
 /// Struct for applying D0 selection cuts
@@ -124,11 +123,11 @@ struct HFD0CandidateSelector {
     }
 
     if (trackPion.sign() > 0) { //invariant mass cut
-      if (TMath::Abs(InvMassD0(hfCandProng2) - RecoDecay::getMassPDG(pdg::code::kD0)) > cuts->get(pTBin, "m")) {
+      if (TMath::Abs(InvMassD0(hfCandProng2) - RecoDecay::getMassPDG(pdg::Code::kD0)) > cuts->get(pTBin, "m")) {
         return false;
       }
     } else {
-      if (TMath::Abs(InvMassD0bar(hfCandProng2) - RecoDecay::getMassPDG(pdg::code::kD0)) > cuts->get(pTBin, "m")) {
+      if (TMath::Abs(InvMassD0bar(hfCandProng2) - RecoDecay::getMassPDG(pdg::Code::kD0)) > cuts->get(pTBin, "m")) {
         return false;
       }
     }
@@ -277,7 +276,7 @@ struct HFD0CandidateSelector {
       int statusD0 = 0;
       int statusD0bar = 0;
 
-      if (!(hfCandProng2.hfflag() & 1 << D0ToPiK)) {
+      if (!(hfCandProng2.hfflag() & 1 << DecayType::D0ToPiK)) {
         hfSelD0Candidate(statusD0, statusD0bar);
         continue;
       }

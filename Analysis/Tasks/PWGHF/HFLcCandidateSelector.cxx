@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file HFLcCandidateSelector.cxx
-/// \brief Lc->pKpi selection task.
+/// \brief Lc->pKpi selection task
 ///
 /// \author Luigi Dello Stritto <luigi.dello.stritto@cern.ch>, University and INFN SALERNO
 /// \author Nima Zardoshti <nima.zardoshti@cern.ch>, CERN
@@ -22,7 +22,6 @@
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong3;
-using namespace o2::analysis;
 using namespace o2::analysis::hf_cuts_lc_topkpi;
 
 /// Struct for applying Lc selection cuts
@@ -116,11 +115,11 @@ struct HFLcCandidateSelector {
     }
 
     if (trackProton.globalIndex() == hfCandProng3.index0Id()) {
-      if (TMath::Abs(InvMassLcpKpi(hfCandProng3) - RecoDecay::getMassPDG(pdg::code::kLambdaCPlus)) > cuts->get(pTBin, "m")) {
+      if (TMath::Abs(InvMassLcpKpi(hfCandProng3) - RecoDecay::getMassPDG(pdg::Code::kLambdaCPlus)) > cuts->get(pTBin, "m")) {
         return false;
       }
     } else {
-      if (TMath::Abs(InvMassLcpiKp(hfCandProng3) - RecoDecay::getMassPDG(pdg::code::kLambdaCPlus)) > cuts->get(pTBin, "m")) {
+      if (TMath::Abs(InvMassLcpiKp(hfCandProng3) - RecoDecay::getMassPDG(pdg::Code::kLambdaCPlus)) > cuts->get(pTBin, "m")) {
         return false;
       }
     }
@@ -256,7 +255,7 @@ struct HFLcCandidateSelector {
       auto statusLcpKpi = 0;
       auto statusLcpiKp = 0;
 
-      if (!(hfCandProng3.hfflag() & 1 << LcToPKPi)) {
+      if (!(hfCandProng3.hfflag() & 1 << DecayType::LcToPKPi)) {
         hfSelLcCandidate(statusLcpKpi, statusLcpiKp);
         continue;
       }

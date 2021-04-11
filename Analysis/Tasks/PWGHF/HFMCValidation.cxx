@@ -9,7 +9,8 @@
 // or submit itself to any jurisdiction.
 
 /// \file HFMCValidation.cxx
-/// \brief MonteCarlo Validation Code -- Gen and Rec Level validation
+/// \brief Monte Carlo validation task
+/// \note Gen. and rec. level validation
 ///
 /// \author Antonio Palasciano <antonio.palasciano@cern.ch>, Università degli Studi di Bari & INFN, Sezione di Bari
 /// \author Vít Kučera <vit.kucera@cern.ch>, CERN
@@ -22,9 +23,8 @@
 
 using namespace o2;
 using namespace o2::framework;
-using namespace o2::aod::hf_cand_prong2;
-using namespace o2::aod::hf_cand_prong3;
 using namespace o2::framework::expressions;
+using namespace o2::aod;
 
 /// Gen Level Validation
 ///
@@ -63,7 +63,7 @@ struct ValidationGenLevel {
     double pxDiff, pyDiff, pzDiff;
 
     //Particles and their decay checked in the second part of the task
-    std::array<int, 4> PDGArrayParticle = {kDPlus, 413, kD0, kLambdaCPlus};
+    std::array<int, 4> PDGArrayParticle = {pdg::Code::kDPlus, 413, pdg::Code::kD0, pdg::Code::kLambdaCPlus};
     std::array<std::array<int, 3>, 4> arrPDGFinal = {{{kPiPlus, kPiPlus, -kKPlus}, {kPiPlus, kPiPlus, -kKPlus}, {-kKPlus, kPiPlus, 0}, {kProton, -kKPlus, kPiPlus}}};
     int counter[4] = {0, 0, 0, 0};
     std::vector<int> listDaughters;
@@ -168,11 +168,11 @@ struct ValidationRecLevel {
     double pxDiff, pyDiff, pzDiff, pDiff;
     double decayLength;
     for (auto& candidate : candidates) {
-      if (!(candidate.hfflag() & 1 << D0ToPiK)) {
+      if (!(candidate.hfflag() & 1 << hf_cand_prong2::DecayType::D0ToPiK)) {
         continue;
       }
-      if (std::abs(candidate.flagMCMatchRec()) == 1 << D0ToPiK) {
-        indexParticle = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().mcParticle(), kD0, true);
+      if (std::abs(candidate.flagMCMatchRec()) == 1 << hf_cand_prong2::DecayType::D0ToPiK) {
+        indexParticle = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().mcParticle(), pdg::Code::kD0, true);
         auto mother = particlesMC.iteratorAt(indexParticle);
         registry.fill(HIST("histPt"), candidate.pt() - mother.pt());
         registry.fill(HIST("histPx"), candidate.px() - mother.px());
