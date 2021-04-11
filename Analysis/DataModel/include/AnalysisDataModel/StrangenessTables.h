@@ -13,7 +13,6 @@
 #include "Framework/AnalysisDataModel.h"
 #include "AnalysisCore/RecoDecay.h"
 #include <cmath>
-#include <TVector3.h>
 
 namespace o2::aod
 {
@@ -53,22 +52,18 @@ DECLARE_SOA_DYNAMIC_COLUMN(V0Radius, v0radius, [](float x, float y) { return Rec
 DECLARE_SOA_DYNAMIC_COLUMN(V0CosPA, v0cosPA, [](float X, float Y, float Z, float Px, float Py, float Pz, float pvX, float pvY, float pvZ) { return RecoDecay::CPA(array{pvX, pvY, pvZ}, array{X, Y, Z}, array{Px, Py, Pz}); });
 DECLARE_SOA_DYNAMIC_COLUMN(DCAV0ToPV, dcav0topv, [](float X, float Y, float Z, float Px, float Py, float Pz, float pvX, float pvY, float pvZ) { return std::sqrt((std::pow((pvY - Y) * Pz - (pvZ - Z) * Py, 2) + std::pow((pvX - X) * Pz - (pvZ - Z) * Px, 2) + std::pow((pvX - X) * Py - (pvY - Y) * Px, 2)) / (Px * Px + Py * Py + Pz * Pz)); });
 
-//Alpenteros-Podolanski variables
+//Armenteros-Podolanski variables
 DECLARE_SOA_DYNAMIC_COLUMN(Alpha, alpha, [](float pxpos, float pypos, float pzpos, float pxneg, float pyneg, float pzneg) {
-  TVector3 momPos(pxpos, pypos, pzpos);
-  TVector3 momNeg(pxneg, pyneg, pzneg);
-  TVector3 momTot(pxpos + pxneg, pypos + pyneg, pzpos + pzneg);
-  float lQlNeg = momNeg.Dot(momTot) / momTot.Mag();
-  float lQlPos = momPos.Dot(momTot) / momTot.Mag();
-  float alphav0 = (lQlPos - lQlNeg) / (lQlPos + lQlNeg);
-  return alphav0;
+  float momTot = RecoDecay::P(pxpos + pxneg, pypos + pyneg, pzpos + pzneg);
+  float lQlNeg = RecoDecay::dotProd(array{pxneg, pyneg, pzneg}, array{pxpos + pxneg, pypos + pyneg, pzpos + pzneg}) / momTot;
+  float lQlPos = RecoDecay::dotProd(array{pxpos, pypos, pzpos}, array{pxpos + pxneg, pypos + pyneg, pzpos + pzneg}) / momTot;
+  return (lQlPos - lQlNeg) / (lQlPos + lQlNeg); //alphav0
 });
+
 DECLARE_SOA_DYNAMIC_COLUMN(QtArm, qtarm, [](float pxpos, float pypos, float pzpos, float pxneg, float pyneg, float pzneg) {
-  TVector3 momPos(pxpos, pypos, pzpos);
-  TVector3 momNeg(pxneg, pyneg, pzneg);
-  TVector3 momTot(pxpos + pxneg, pypos + pyneg, pzpos + pzneg);
-  float qtarm = momNeg.Perp(momTot);
-  return qtarm;
+  float momTot = RecoDecay::P2(pxpos + pxneg, pypos + pyneg, pzpos + pzneg);
+  float dp = RecoDecay::dotProd(array{pxneg, pyneg, pzneg}, array{pxpos + pxneg, pypos + pyneg, pzpos + pzneg});
+  return std::sqrt(RecoDecay::P2(pxneg, pyneg, pzneg) - dp * dp / momTot); //qtarm
 });
 
 //Calculated on the fly with mass assumption + dynamic tables
@@ -100,7 +95,8 @@ DECLARE_SOA_TABLE_FULL(StoredV0Datas, "V0Datas", "AOD", "V0DATA",
                        v0data::V0Radius<v0data::X, v0data::Y>,
                        v0data::V0CosPA<v0data::X, v0data::Y, v0data::Z, v0data::Px, v0data::Py, v0data::Pz>,
                        v0data::DCAV0ToPV<v0data::X, v0data::Y, v0data::Z, v0data::Px, v0data::Py, v0data::Pz>,
-                       v0data::Alpha<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>, v0data::QtArm<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
+                       v0data::Alpha<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
+                       v0data::QtArm<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
 
                        //Invariant masses
                        v0data::MLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
