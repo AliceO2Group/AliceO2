@@ -76,7 +76,7 @@ class TOFDPLClustererTask
     // get digit data
     auto digits = pc.inputs().get<gsl::span<o2::tof::Digit>>("tofdigits");
     auto row = pc.inputs().get<gsl::span<o2::tof::ReadoutWindowData>>("readoutwin");
-    
+
     const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
     mClusterer.setFirstOrbit(dh->firstTForbit);
 
