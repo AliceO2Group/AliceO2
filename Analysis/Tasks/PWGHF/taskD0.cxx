@@ -140,7 +140,6 @@ struct TaskD0MC {
         continue;
       }
       if (cutYCandMax >= 0. && std::abs(YD0(candidate)) > cutYCandMax) {
-        //Printf("MC Rec.: Y rejection: %g", YD0(candidate));
         continue;
       }
       if (std::abs(candidate.flagMCMatchRec()) == 1 << DecayType::D0ToPiK) {
@@ -168,7 +167,6 @@ struct TaskD0MC {
     for (auto& particle : particlesMC) {
       if (std::abs(particle.flagMCMatchGen()) == 1 << DecayType::D0ToPiK) {
         if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(particle.pdgCode()))) > cutYCandMax) {
-          //Printf("MC Gen.: Y rejection: %g", RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(particle.pdgCode())));
           continue;
         }
         auto ptGen = particle.pt();

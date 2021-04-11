@@ -169,9 +169,9 @@ struct HFCandidateCreator2ProngMC {
         flag = sign * (1 << DecayType::D0ToPiK);
       }
 
-      // J/ψ → e+ e-
+      // J/ψ → e+ e−
       if (flag == 0) {
-        //Printf("Checking J/ψ → e+ e-");
+        //Printf("Checking J/ψ → e+ e−");
         indexRec = RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), pdg::Code::kJpsi, array{+kElectron, -kElectron}, true);
         if (indexRec > -1) {
           flag = 1 << DecayType::JpsiToEE;
@@ -199,9 +199,9 @@ struct HFCandidateCreator2ProngMC {
         flag = sign * (1 << DecayType::D0ToPiK);
       }
 
-      // J/ψ → e+ e-
+      // J/ψ → e+ e−
       if (flag == 0) {
-        //Printf("Checking J/ψ → e+ e-");
+        //Printf("Checking J/ψ → e+ e−");
         if (RecoDecay::isMatchedMCGen(particlesMC, particle, pdg::Code::kJpsi, array{+kElectron, -kElectron}, true)) {
           flag = 1 << DecayType::JpsiToEE;
         }

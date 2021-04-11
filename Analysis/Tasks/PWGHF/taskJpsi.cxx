@@ -64,7 +64,6 @@ struct TaskJpsi {
   Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsiToEE >= d_selectionFlagJpsi);
 
   void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiToEECandidate>> const& candidates)
-  //  void process(aod::HfCandProng2 const& candidates)
   {
     for (auto& candidate : candidates) {
       if (!(candidate.hfflag() & 1 << DecayType::JpsiToEE)) {
@@ -121,15 +120,14 @@ struct TaskJpsiMC {
         continue;
       }
       if (cutYCandMax >= 0. && std::abs(YJpsi(candidate)) > cutYCandMax) {
-        //Printf("MC Rec.: Y rejection: %g", YJpsi(candidate));
         continue;
       }
       if (candidate.flagMCMatchRec() == 1 << DecayType::JpsiToEE) {
         //Get the corresponding MC particle.
         auto indexMother = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandProng2MCGen>>(), 443, true);
         auto particleMother = particlesMC.iteratorAt(indexMother);
-        registry.fill(HIST("hPtGenSig"), particleMother.pt()); //gen. level pT
-        registry.fill(HIST("hPtRecSig"), candidate.pt());      //rec. level pT
+        registry.fill(HIST("hPtGenSig"), particleMother.pt()); // gen. level pT
+        registry.fill(HIST("hPtRecSig"), candidate.pt());      // rec. level pT
         registry.fill(HIST("hCPARecSig"), candidate.cpa());
         registry.fill(HIST("hEtaRecSig"), candidate.eta());
       } else {
@@ -143,7 +141,6 @@ struct TaskJpsiMC {
     for (auto& particle : particlesMC) {
       if (particle.flagMCMatchGen() == 1 << DecayType::JpsiToEE) {
         if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(particle.pdgCode()))) > cutYCandMax) {
-          //Printf("MC Gen.: Y rejection: %g", RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(particle.pdgCode())));
           continue;
         }
         registry.fill(HIST("hPtGen"), particle.pt());

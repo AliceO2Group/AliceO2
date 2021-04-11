@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file HFLcCandidateSelector.cxx
-/// \brief Lc->pKpi selection task
+/// \brief Λc± → p± K∓ π± selection task
 ///
 /// \author Luigi Dello Stritto <luigi.dello.stritto@cern.ch>, University and INFN SALERNO
 /// \author Nima Zardoshti <nima.zardoshti@cern.ch>, CERN

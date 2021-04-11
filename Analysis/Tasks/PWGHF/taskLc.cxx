@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file taskLc.cxx
-/// \brief Lc± analysis task
+/// \brief Λc± → p± K∓ π± analysis task
 /// \note Extended from taskD0
 ///
 /// \author Luigi Dello Stritto <luigi.dello.stritto@cern.ch>, University and INFN SALERNO
@@ -33,7 +33,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 #include "Framework/runDataProcessing.h"
 
-/// Lc± analysis task
+/// Λc± → p± K∓ π± analysis task
 struct TaskLc {
   HistogramRegistry registry{
     "registry",
@@ -73,7 +73,6 @@ struct TaskLc {
         continue;
       }
       if (cutYCandMax >= 0. && std::abs(YLc(candidate)) > cutYCandMax) {
-        //Printf("Candidate: Y rejection: %g", YLc(candidate));
         continue;
       }
       if (candidate.isSelLcpKpi() >= d_selectionFlagLc) {
@@ -129,22 +128,19 @@ struct TaskLcMC {
   {
     // MC rec.
     //Printf("MC Candidates: %d", candidates.size());
-
     for (auto& candidate : candidates) {
       if (!(candidate.hfflag() & 1 << DecayType::LcToPKPi)) {
         continue;
       }
       if (cutYCandMax >= 0. && std::abs(YLc(candidate)) > cutYCandMax) {
-        //Printf("MC Rec.: Y rejection: %g", YLc(candidate));
         continue;
       }
-
       if (std::abs(candidate.flagMCMatchRec()) == 1 << DecayType::LcToPKPi) {
         // Get the corresponding MC particle.
         auto indexMother = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandProng3MCGen>>(), pdg::Code::kLambdaCPlus, true);
         auto particleMother = particlesMC.iteratorAt(indexMother);
-        registry.fill(HIST("hPtGenSig"), particleMother.pt()); //gen. level pT
-        registry.fill(HIST("hPtRecSig"), candidate.pt());      //rec. level pT
+        registry.fill(HIST("hPtGenSig"), particleMother.pt()); // gen. level pT
+        registry.fill(HIST("hPtRecSig"), candidate.pt());      // rec. level pT
         registry.fill(HIST("hCPARecSig"), candidate.cpa());
         registry.fill(HIST("hEtaRecSig"), candidate.eta());
       } else {
@@ -158,7 +154,6 @@ struct TaskLcMC {
     for (auto& particle : particlesMC) {
       if (std::abs(particle.flagMCMatchGen()) == 1 << DecayType::LcToPKPi) {
         if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(particle.pdgCode()))) > cutYCandMax) {
-          //Printf("MC Gen.: Y rejection: %g", RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(particle.pdgCode())));
           continue;
         }
         registry.fill(HIST("hPtGen"), particle.pt());

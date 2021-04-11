@@ -259,7 +259,8 @@ auto CosThetaStarD0bar(const T& candidate)
   return candidate.cosThetaStar(array{RecoDecay::getMassPDG(kKPlus), RecoDecay::getMassPDG(kPiPlus)}, RecoDecay::getMassPDG(pdg::Code::kD0), 0);
 }
 
-// Jpsi → e+e-
+// J/ψ → e+ e−
+
 template <typename T>
 auto CtJpsi(const T& candidate)
 {

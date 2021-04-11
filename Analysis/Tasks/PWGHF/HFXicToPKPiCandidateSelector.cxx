@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file HFXicToPKPiCandidateSelector.cxx
-/// \brief Xic->pKpi selection task
+/// \brief Ξc± → p± K∓ π± selection task
 /// \note Inspired from HFLcCandidateSelector.cxx
 ///
 /// \author Mattia Faggin <mattia.faggin@cern.ch>, University and INFN PADOVA
