@@ -56,6 +56,7 @@ namespace its
 class TimeFrame final
 {
  public:
+  TimeFrame(int nLayers = 7);
   const float3& getPrimaryVertex(const int) const;
   gsl::span<const float3> getPrimaryVertices(int tf) const;
   gsl::span<const float3> getPrimaryVertices(int romin, int romax) const;
@@ -63,7 +64,7 @@ class TimeFrame final
   void addPrimaryVertices(const std::vector<std::pair<float3, int>>& vertices);
   int loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const itsmft::Cluster> clusters,
                       const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
-  int loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt,
+  int loadROFrameData(const std::vector<o2::itsmft::ROFRecord>* rofs, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt,
                       const itsmft::TopologyDictionary& dict, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
   int getTotalClusters() const;
   bool empty() const;
@@ -177,9 +178,14 @@ inline float TimeFrame::getBeamY() const { return mBeamPos[1]; }
 
 inline gsl::span<Cluster> TimeFrame::getClustersOnLayer(int rofId, int layerId)
 {
-  gsl::span<Cluster> retSpan = {&mClusters[layerId][mROframesClusters[layerId][rofId]], mROframesClusters[layerId][rofId + 1] - mROframesClusters[layerId][rofId]};
-  if (mROframesClusters[layerId][rofId]+retSpan.size() > mClusters[layerId].size())
+  if (rofId < 0 || rofId >= mNrof) {
+    return gsl::span<Cluster>();
+  }
+  int startIdx{rofId == 0 ? 0 : mROframesClusters[layerId][rofId - 1]};
+  gsl::span<Cluster> retSpan = {&mClusters[layerId][startIdx], mROframesClusters[layerId][rofId] - mROframesClusters[layerId][startIdx]};
+  if (mROframesClusters[layerId][rofId]+retSpan.size() > mClusters[layerId].size()) {
     std::cout << "Catastrofic problem in getClustersOnLayer" << std::endl;
+  }
   return retSpan;
 }
 

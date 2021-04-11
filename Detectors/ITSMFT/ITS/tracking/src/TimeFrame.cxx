@@ -22,7 +22,6 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
-
 #include <iostream>
 
 namespace
@@ -45,9 +44,22 @@ constexpr float DefClusErrorCol = o2::itsmft::SegmentationAlpide::PitchCol * 0.5
 constexpr float DefClusError2Row = DefClusErrorRow * DefClusErrorRow;
 constexpr float DefClusError2Col = DefClusErrorCol * DefClusErrorCol;
 
+TimeFrame::TimeFrame(int nLayers)
+{
+  mMinR.resize(nLayers, 10000.);
+  mMaxR.resize(nLayers, -1.);
+  mClusters.resize(nLayers);
+  mUnsortedClusters.resize(nLayers);
+  mTrackingFrameInfo.resize(nLayers);
+  mClusterLabels.resize(nLayers);
+  mClusterExternalIndices.resize(nLayers);
+  mUsedClusters.resize(nLayers);
+  mROframesClusters.resize(nLayers);
+}
+
 void TimeFrame::addClusterLabelToLayer(int layer, const MCCompLabel label) { mClusterLabels[layer].emplace_back(label.getRawValue()); }
 
-void TimeFrame::addPrimaryVertices(const std::vector<std::pair<float3,int>>& vertices)
+void TimeFrame::addPrimaryVertices(const std::vector<std::pair<float3, int>>& vertices)
 {
   for (const auto& vertex : vertices) {
     mPrimaryVertices.emplace_back(vertex.first);
@@ -92,16 +104,16 @@ int TimeFrame::loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const
   return clusters_in_frame.size();
 }
 
-int TimeFrame::loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt,
+int TimeFrame::loadROFrameData(const std::vector<o2::itsmft::ROFRecord>* rofs, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt,
                                const itsmft::TopologyDictionary& dict, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
-  int clusterId{0};
 
-  auto first = rof.getFirstEntry();
-  auto clusters_in_frame = rof.getROFData(clusters);
-  for (auto& c : clusters_in_frame) {
+  mNrof = 0;
+  for (int clusterId{0}; clusterId < clusters.size() && mNrof < rofs->size(); ++clusterId) {
+    auto& c = clusters[clusterId];
+
     int layer = geom->getLayer(c.getSensorID());
 
     auto pattID = c.getPatternID();
@@ -133,16 +145,18 @@ int TimeFrame::loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const
     /// Rotate to the global frame
     addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), mUnsortedClusters[layer].size());
     if (mcLabels) {
-      addClusterLabelToLayer(layer, *(mcLabels->getLabels(first + clusterId).begin()));
+      addClusterLabelToLayer(layer, *(mcLabels->getLabels(clusterId).begin()));
     }
-    addClusterExternalIndexToLayer(layer, first + clusterId);
-    clusterId++;
-  }
-  for (unsigned int iL{0}; iL < mUnsortedClusters.size(); ++iL)
-    mROframesClusters[iL].push_back(mUnsortedClusters[iL].size());
+    addClusterExternalIndexToLayer(layer, clusterId);
 
-  mNrof++;
-  return clusters_in_frame.size();
+    if (clusterId == rofs->at(mNrof).getFirstEntry() + rofs->at(mNrof).getNEntries() - 1) {
+      mNrof++;
+      for (unsigned int iL{0}; iL < mUnsortedClusters.size(); ++iL) {
+        mROframesClusters[iL].push_back(mUnsortedClusters[iL].size());
+      }
+    }
+  }
+  return mNrof;
 }
 
 int TimeFrame::getTotalClusters() const
@@ -157,13 +171,6 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
 {
   if (iteration == 0) {
 
-    mMinR.resize(trkParam.NLayers, 10000.);
-    mMaxR.resize(trkParam.NLayers, -1.);
-    mClusters.resize(trkParam.NLayers);
-    mTrackingFrameInfo.resize(trkParam.NLayers);
-    mClusterLabels.resize(trkParam.NLayers);
-    mClusterExternalIndices.resize(trkParam.NLayers);
-    mUsedClusters.resize(trkParam.NLayers);
     mCells.resize(trkParam.CellsPerRoad());
     mCellsLookupTable.resize(trkParam.CellsPerRoad() - 1);
     mCellsNeighbours.resize(trkParam.CellsPerRoad() - 1);
@@ -185,7 +192,7 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
       std::vector<int> clsPerBin(trkParam.PhiBins * trkParam.ZBins, 0);
       for (int iLayer{0}; iLayer < trkParam.NLayers; ++iLayer) {
 
-        const auto currentLayer{getUnsortedClustersOnLayer(rof,iLayer)};
+        const auto currentLayer{getUnsortedClustersOnLayer(rof, iLayer)};
         const int clustersNum{static_cast<int>(currentLayer.size())};
 
         std::fill(clsPerBin.begin(), clsPerBin.end(), 0);

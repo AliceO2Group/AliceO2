@@ -75,7 +75,7 @@ void run_trac_ca_its(bool cosmics = false,
   // rec->Init();
 
   // o2::its::Tracker tracker(chainITS->GetITSTrackerTraits());
-  o2::its::Tracker tracker(new o2::its::TrackerTraitsCPU());
+  // o2::its::Tracker tracker(new o2::its::TrackerTraitsCPU());
   o2::its::ROframe event(0, 7);
 
   if (path.back() != '/') {
@@ -268,12 +268,13 @@ void run_trac_ca_its(bool cosmics = false,
   auto clSpan = gsl::span(cclusters->data(), cclusters->size());
   
   o2::its::TimeFrame tf;
+  tf.loadROFrameData(rofs, clSpan, pattIt, dict, labels);
+
   for (auto& rof : *rofs) {
 
     auto start = std::chrono::high_resolution_clock::now();
     auto it = pattIt;
-    o2::its::ioutils::loadROFrameDcata(rof, event, clSpan, pattIt, dict, labels);
-    tf.loadROFrameDcata(rof, event, clSpan, pattIt, dict, labels);
+    o2::its::ioutils::loadROFrameData(rof, event, clSpan, pattIt, dict, labels);
 
     vertexer.initialiseVertexer(&event);
     vertexer.findTracklets();
@@ -336,7 +337,7 @@ void run_trac_ca_its(bool cosmics = false,
   tracker.clustersToTracks();
   for (int iROF{0}; iROF < tf.getNrof(); ++iROF) {
     tracksITS.clear();
-    for (auto& trc : tracker.getTracks(iROF)) {
+    for (auto& trc : tracker.getTracks()) {
       trc.setFirstClusterEntry(trackClIdx.size()); // before adding tracks, create final cluster indices
       int ncl = trc.getNumberOfClusters();
       for (int ic = 0; ic < ncl; ic++) {
@@ -344,9 +345,9 @@ void run_trac_ca_its(bool cosmics = false,
       }
       tracksITS.emplace_back(trc);
     }
-    trackLabels = tracker.getTrackLabels(iROF); /// FIXME: assignment ctor is not optimal.
-    std::cout << tracker.getTracks(iROF).size() << "\t" << trackLabels.getNElements() << std::endl;
-     outTree.Fill();
+    trackLabels = tracker.getTrackLabels(); /// FIXME: assignment ctor is not optimal.
+    std::cout << tracker.getTracks().size() << "\t" << trackLabels.size() << std::endl;
+    outTree.Fill();
   }
 
   outFile.cd();
