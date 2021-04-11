@@ -12,6 +12,8 @@ o2_add_library(HMPIDReconstruction
                SOURCES src/Clusterer.cxx 
                        src/HmpidDecoder2.cxx 
                        src/HmpidEquipment.cxx
+                       src/CTFHelper.cxx
+                       src/CTFCoder.cxx
                PUBLIC_LINK_LIBRARIES O2::HMPIDBase
                                      O2::DataFormatsHMP
                                      O2::HMPIDSimulation)

@@ -16,6 +16,9 @@ o2_add_library(HMPIDWorkflow
                        src/RawToDigitsSpec.cxx
                        src/ReadRawFileSpec.cxx
                        src/WriteRawFileSpec.cxx
+                       src/EntropyEncoderSpec.cxx
+                       src/EntropyDecoderSpec.cxx
+
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::CCDB
                                      O2::DPLUtils
@@ -29,6 +32,10 @@ o2_add_library(HMPIDWorkflow
 #              COMPONENT_NAME hmpid
 #              SOURCES src/HMPIDRecoWorkflow.cxx 
 #              PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
+o2_add_executable(entropy-encoder-workflow
+                  COMPONENT_NAME hhmpid
+                  SOURCES src/entropy-encoder-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
 
 o2_add_executable(read-raw-file-stream-workflow
               COMPONENT_NAME hmpid
@@ -64,4 +71,8 @@ o2_add_executable(digits-to-raw-stream-workflow
               COMPONENT_NAME hmpid
               SOURCES src/digits-to-raw-stream-workflow.cxx
               PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
-              
+
+o2_add_executable(entropy-encoder-workflow
+                  COMPONENT_NAME hmpid
+                  SOURCES src/entropy-encoder-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
