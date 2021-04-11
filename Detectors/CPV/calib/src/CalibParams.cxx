@@ -22,7 +22,7 @@ using namespace o2::cpv;
 CalibParams::CalibParams(short /*dummy*/)
 {
   //produce reasonable objest for test purposes
-  mGainCalib.fill(0.01);
+  mGainCalib.fill(1.);
 }
 
 bool CalibParams::setGain(TH2* h, short module)
