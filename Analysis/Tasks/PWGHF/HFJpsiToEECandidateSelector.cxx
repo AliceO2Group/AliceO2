@@ -111,7 +111,7 @@ struct HFJpsiToEECandidateSelector {
     if (nSigmaCut > 999.) {
       return true;
     }
-    return track.tpcNSigmaEl() < nSigmaCut;
+    return std::abs(track.tpcNSigmaEl()) < nSigmaCut;
   }
   /// PID selection on daughter track
   /// \param track is the daughter track

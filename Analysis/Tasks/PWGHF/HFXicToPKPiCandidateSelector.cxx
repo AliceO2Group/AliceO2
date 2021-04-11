@@ -173,7 +173,7 @@ struct HFXicToPKPiCandidateSelector {
       return false;
     }
 
-    return nSigma < nSigmaCut;
+    return std::abs(nSigma) < nSigmaCut;
   }
 
   /// Check if track is compatible with given TOF NSigma cut for a given flavour hypothesis
@@ -197,7 +197,7 @@ struct HFXicToPKPiCandidateSelector {
       return false;
     }
 
-    return nSigma < nSigmaCut;
+    return std::abs(nSigma) < nSigmaCut;
   }
 
   /// PID selection on daughter track
