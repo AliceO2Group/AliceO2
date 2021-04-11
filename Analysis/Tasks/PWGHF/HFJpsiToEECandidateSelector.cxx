@@ -70,17 +70,17 @@ struct HFJpsiToEECandidateSelector {
       return false; //check that the candidate pT is within the analysis range
     }
 
-    if (TMath::Abs(InvMassJpsiToEE(hfCandProng2) - RecoDecay::getMassPDG(pdg::Code::kJpsi)) > cuts->get(pTBin, "m")) {
+    if (std::abs(InvMassJpsiToEE(hfCandProng2) - RecoDecay::getMassPDG(pdg::Code::kJpsi)) > cuts->get(pTBin, "m")) {
       return false;
     }
 
     if (trackElectron.pt() < cuts->get(pTBin, "pT El") || trackPositron.pt() < cuts->get(pTBin, "pT El")) {
       return false; //cut on daughter pT
     }
-    if (TMath::Abs(trackElectron.dcaPrim0()) > cuts->get(pTBin, "DCA_xy") || TMath::Abs(trackPositron.dcaPrim0()) > cuts->get(pTBin, "DCA_xy")) {
+    if (std::abs(trackElectron.dcaPrim0()) > cuts->get(pTBin, "DCA_xy") || std::abs(trackPositron.dcaPrim0()) > cuts->get(pTBin, "DCA_xy")) {
       return false; //cut on daughter dca - need to add secondary vertex constraint here
     }
-    if (TMath::Abs(trackElectron.dcaPrim1()) > cuts->get(pTBin, "DCA_z") || TMath::Abs(trackPositron.dcaPrim1()) > cuts->get(pTBin, "DCA_z")) {
+    if (std::abs(trackElectron.dcaPrim1()) > cuts->get(pTBin, "DCA_z") || std::abs(trackPositron.dcaPrim1()) > cuts->get(pTBin, "DCA_z")) {
       return false; //cut on daughter dca - need to add secondary vertex constraint here
     }
 
@@ -94,7 +94,7 @@ struct HFJpsiToEECandidateSelector {
   template <typename T>
   bool validTPCPID(const T& track)
   {
-    if (TMath::Abs(track.pt()) < d_pidTPCMinpT || TMath::Abs(track.pt()) >= d_pidTPCMaxpT) {
+    if (std::abs(track.pt()) < d_pidTPCMinpT || std::abs(track.pt()) >= d_pidTPCMaxpT) {
       return false;
     }
     //if (track.TPCNClsFindable() < d_TPCNClsFindablePIDCut) return false;

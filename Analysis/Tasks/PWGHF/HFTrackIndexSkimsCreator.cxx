@@ -263,13 +263,13 @@ struct HFTrackIndexSkimsCreator {
     }
 
     //FIXME move above process function
-    const int n2ProngDecays = hf_cand_prong2::DecayType::N2ProngDecays;             //number of 2-prong hadron types
-    const int n3ProngDecays = hf_cand_prong3::DecayType::N3ProngDecays;             //number of 3-prong hadron types
-    int n2ProngBit = TMath::Power(2, n2ProngDecays) - 1; //bit value for 2-prong candidates where each candidiate is one bit and they are all set it 1
-    int n3ProngBit = TMath::Power(2, n3ProngDecays) - 1; //bit value for 3-prong candidates where each candidiate is one bit and they are all set it 1
+    const int n2ProngDecays = hf_cand_prong2::DecayType::N2ProngDecays;             // number of 2-prong hadron types
+    const int n3ProngDecays = hf_cand_prong3::DecayType::N3ProngDecays;             // number of 3-prong hadron types
+    int n2ProngBit = (1 << n2ProngDecays) - 1; // bit value for 2-prong candidates where each candidiate is one bit and they are all set to 1
+    int n3ProngBit = (1 << n3ProngDecays) - 1; // bit value for 3-prong candidates where each candidiate is one bit and they are all set to 1
 
     //retrieve cuts from json - to be made pT dependent when option appears in json
-    const int nCuts2Prong = 4; //how many different selections are made on 2-prongs
+    const int nCuts2Prong = 4; // how many different selections are made on 2-prongs
     double cut2ProngPtCandMin[n2ProngDecays];
     double cut2ProngInvMassCandMin[n2ProngDecays];
     double cut2ProngInvMassCandMax[n2ProngDecays];
@@ -288,7 +288,7 @@ struct HFTrackIndexSkimsCreator {
     cut2ProngCPACandMin[hf_cand_prong2::DecayType::JpsiToEE] = configs->mCPAJpsiToEEMin;
     cut2ProngImpParProductCandMax[hf_cand_prong2::DecayType::JpsiToEE] = configs->mImpParProductJpsiToEEMax;
 
-    const int nCuts3Prong = 4; //how many different selections are made on 3-prongs
+    const int nCuts3Prong = 4; // how many different selections are made on 3-prongs
     double cut3ProngPtCandMin[n3ProngDecays];
     double cut3ProngInvMassCandMin[n3ProngDecays];
     double cut3ProngInvMassCandMax[n3ProngDecays];
@@ -321,8 +321,8 @@ struct HFTrackIndexSkimsCreator {
 
     bool cutStatus2Prong[n2ProngDecays][nCuts2Prong];
     bool cutStatus3Prong[n3ProngDecays][nCuts3Prong];
-    int nCutStatus2ProngBit = TMath::Power(2, nCuts2Prong) - 1; //bit value for selection status for each 2 prongs candidate where each selection is one bit and they are all set it 1
-    int nCutStatus3ProngBit = TMath::Power(2, nCuts3Prong) - 1; //bit value for selection status for each 2 prongs candidate where each selection is one bit and they are all set it 1
+    int nCutStatus2ProngBit = (1 << nCuts2Prong) - 1; // bit value for selection status for each 2-prong candidate where each selection is one bit and they are all set to 1
+    int nCutStatus3ProngBit = (1 << nCuts3Prong) - 1; // bit value for selection status for each 3-prong candidate where each selection is one bit and they are all set to 1
 
     array<array<double, 2>, n2ProngDecays> arr2Mass1;
     arr2Mass1[hf_cand_prong2::DecayType::D0ToPiK] = array{massPi, massK};
@@ -370,7 +370,7 @@ struct HFTrackIndexSkimsCreator {
     df3.setMinRelChi2Change(d_minrelchi2change);
     df3.setUseAbsDCA(useAbsDCA);
 
-    //used to calculate number of candidiates per event
+    // used to calculate number of candidiates per event
     auto nCand2 = rowTrackIndexProng2.lastIndex();
     auto nCand3 = rowTrackIndexProng3.lastIndex();
 
@@ -418,7 +418,7 @@ struct HFTrackIndexSkimsCreator {
         }
         int iDebugCut = 0;
 
-        // 2prong invariant-mass cut
+        // 2-prong invariant-mass cut
         if (sel2ProngStatus > 0) {
           auto arrMom = array{
             array{trackPos1.px(), trackPos1.py(), trackPos1.pz()},
@@ -567,7 +567,7 @@ struct HFTrackIndexSkimsCreator {
             }
             int iDebugCut = 0;
 
-            // 3prong invariant-mass cut
+            // 3-prong invariant-mass cut
             auto arr3Mom = array{
               array{trackPos1.px(), trackPos1.py(), trackPos1.pz()},
               array{trackNeg1.px(), trackNeg1.py(), trackNeg1.pz()},
@@ -739,7 +739,7 @@ struct HFTrackIndexSkimsCreator {
             }
             int iDebugCut = 0;
 
-            // 3prong invariant-mass cut
+            // 3-prong invariant-mass cut
             auto arr3Mom = array{
               array{trackNeg1.px(), trackNeg1.py(), trackNeg1.pz()},
               array{trackPos1.px(), trackPos1.py(), trackPos1.pz()},

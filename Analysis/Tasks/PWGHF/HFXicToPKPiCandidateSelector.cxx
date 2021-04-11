@@ -113,11 +113,11 @@ struct HFXicToPKPiCandidateSelector {
     }
 
     if (trackProton.globalIndex() == hfCandProng3.index0Id()) {
-      if (TMath::Abs(InvMassXicToPKPi(hfCandProng3) - RecoDecay::getMassPDG(pdg::Code::kXiCPlus)) > cuts->get(pTBin, "m")) {
+      if (std::abs(InvMassXicToPKPi(hfCandProng3) - RecoDecay::getMassPDG(pdg::Code::kXiCPlus)) > cuts->get(pTBin, "m")) {
         return false;
       }
     } else {
-      if (TMath::Abs(InvMassXicToPiKP(hfCandProng3) - RecoDecay::getMassPDG(pdg::Code::kXiCPlus)) > cuts->get(pTBin, "m")) {
+      if (std::abs(InvMassXicToPiKP(hfCandProng3) - RecoDecay::getMassPDG(pdg::Code::kXiCPlus)) > cuts->get(pTBin, "m")) {
         return false;
       }
     }
@@ -132,7 +132,7 @@ struct HFXicToPKPiCandidateSelector {
   template <typename T>
   bool validTPCPID(const T& track)
   {
-    if (TMath::Abs(track.pt()) < d_pidTPCMinpT || TMath::Abs(track.pt()) >= d_pidTPCMaxpT) {
+    if (std::abs(track.pt()) < d_pidTPCMinpT || std::abs(track.pt()) >= d_pidTPCMaxpT) {
       return false;
     }
     //if (track.TPCNClsFindable() < d_TPCNClsFindablePIDCut) return false;
@@ -146,7 +146,7 @@ struct HFXicToPKPiCandidateSelector {
   template <typename T>
   bool validTOFPID(const T& track)
   {
-    if (TMath::Abs(track.pt()) < d_pidTOFMinpT || TMath::Abs(track.pt()) >= d_pidTOFMaxpT) {
+    if (std::abs(track.pt()) < d_pidTOFMinpT || std::abs(track.pt()) >= d_pidTOFMaxpT) {
       return false;
     }
     return true;
@@ -162,7 +162,7 @@ struct HFXicToPKPiCandidateSelector {
   bool selectionPIDTPC(const T& track, int nPDG, int nSigmaCut)
   {
     double nSigma = 99.; //arbitarily large value
-    nPDG = TMath::Abs(nPDG);
+    nPDG = std::abs(nPDG);
     if (nPDG == kProton) {
       nSigma = track.tpcNSigmaPr();
     } else if (nPDG == kKPlus) {
@@ -186,7 +186,7 @@ struct HFXicToPKPiCandidateSelector {
   bool selectionPIDTOF(const T& track, int nPDG, int nSigmaCut)
   {
     double nSigma = 99.; //arbitarily large value
-    nPDG = TMath::Abs(nPDG);
+    nPDG = std::abs(nPDG);
     if (nPDG == kProton) {
       nSigma = track.tofNSigmaPr();
     } else if (nPDG == kKPlus) {

@@ -94,10 +94,10 @@ struct HFD0CandidateSelector {
 
     //decay exponentail law, with tau = beta*gamma*ctau
     //decay length > ctau retains (1-1/e)
-    if (TMath::Abs(hfCandProng2.impactParameterNormalised0()) < 0.5 || TMath::Abs(hfCandProng2.impactParameterNormalised1()) < 0.5) {
+    if (std::abs(hfCandProng2.impactParameterNormalised0()) < 0.5 || std::abs(hfCandProng2.impactParameterNormalised1()) < 0.5) {
       return false;
     }
-    double decayLengthCut = TMath::Min((hfCandProng2.p() * 0.0066) + 0.01, 0.06);
+    double decayLengthCut = std::min((hfCandProng2.p() * 0.0066) + 0.01, 0.06);
     if (hfCandProng2.decayLength() * hfCandProng2.decayLength() < decayLengthCut * decayLengthCut) {
       return false;
     }
@@ -123,11 +123,11 @@ struct HFD0CandidateSelector {
     }
 
     if (trackPion.sign() > 0) { //invariant mass cut
-      if (TMath::Abs(InvMassD0(hfCandProng2) - RecoDecay::getMassPDG(pdg::Code::kD0)) > cuts->get(pTBin, "m")) {
+      if (std::abs(InvMassD0(hfCandProng2) - RecoDecay::getMassPDG(pdg::Code::kD0)) > cuts->get(pTBin, "m")) {
         return false;
       }
     } else {
-      if (TMath::Abs(InvMassD0bar(hfCandProng2) - RecoDecay::getMassPDG(pdg::Code::kD0)) > cuts->get(pTBin, "m")) {
+      if (std::abs(InvMassD0bar(hfCandProng2) - RecoDecay::getMassPDG(pdg::Code::kD0)) > cuts->get(pTBin, "m")) {
         return false;
       }
     }
@@ -135,16 +135,16 @@ struct HFD0CandidateSelector {
     if (trackPion.pt() < cuts->get(pTBin, "pT Pi") || trackKaon.pt() < cuts->get(pTBin, "pT K")) {
       return false; //cut on daughter pT
     }
-    if (TMath::Abs(trackPion.dcaPrim0()) > cuts->get(pTBin, "d0pi") || TMath::Abs(trackKaon.dcaPrim0()) > cuts->get(pTBin, "d0K")) {
+    if (std::abs(trackPion.dcaPrim0()) > cuts->get(pTBin, "d0pi") || std::abs(trackKaon.dcaPrim0()) > cuts->get(pTBin, "d0K")) {
       return false; //cut on daughter dca - need to add secondary vertex constraint here
     }
 
     if (trackPion.sign() > 0) { //cut on cos(theta *)
-      if (TMath::Abs(CosThetaStarD0(hfCandProng2)) > cuts->get(pTBin, "cos theta*")) {
+      if (std::abs(CosThetaStarD0(hfCandProng2)) > cuts->get(pTBin, "cos theta*")) {
         return false;
       }
     } else {
-      if (TMath::Abs(CosThetaStarD0bar(hfCandProng2)) > cuts->get(pTBin, "cos theta*")) {
+      if (std::abs(CosThetaStarD0bar(hfCandProng2)) > cuts->get(pTBin, "cos theta*")) {
         return false;
       }
     }
@@ -159,7 +159,7 @@ struct HFD0CandidateSelector {
   template <typename T>
   bool validTPCPID(const T& track)
   {
-    if (TMath::Abs(track.pt()) < d_pidTPCMinpT || TMath::Abs(track.pt()) >= d_pidTPCMaxpT) {
+    if (std::abs(track.pt()) < d_pidTPCMinpT || std::abs(track.pt()) >= d_pidTPCMaxpT) {
       return false;
     }
     //if (track.TPCNClsFindable() < d_TPCNClsFindablePIDCut) return false;
@@ -173,7 +173,7 @@ struct HFD0CandidateSelector {
   template <typename T>
   bool validTOFPID(const T& track)
   {
-    if (TMath::Abs(track.pt()) < d_pidTOFMinpT || TMath::Abs(track.pt()) >= d_pidTOFMaxpT) {
+    if (std::abs(track.pt()) < d_pidTOFMinpT || std::abs(track.pt()) >= d_pidTOFMaxpT) {
       return false;
     }
     return true;
@@ -188,7 +188,7 @@ struct HFD0CandidateSelector {
   bool selectionPIDTPC(const T& track, int nPDG, double nSigmaCut)
   {
     double nSigma = 100.0; //arbitarily large value
-    nPDG = TMath::Abs(nPDG);
+    nPDG = std::abs(nPDG);
     if (nPDG == kPiPlus) {
       nSigma = track.tpcNSigmaPi();
     } else if (nPDG == kKPlus) {
@@ -208,7 +208,7 @@ struct HFD0CandidateSelector {
   bool selectionPIDTOF(const T& track, int nPDG, double nSigmaCut)
   {
     double nSigma = 100.0; //arbitarily large value
-    nPDG = TMath::Abs(nPDG);
+    nPDG = std::abs(nPDG);
     if (nPDG == kPiPlus) {
       nSigma = track.tofNSigmaPi();
     } else if (nPDG == kKPlus) {

@@ -77,7 +77,7 @@ struct HFDplusToPiKPiCandidateSelector {
     if (trackPion1.pt() < cuts->get(pTBin, "pT Pi") || trackKaon.pt() < cuts->get(pTBin, "pT K") || trackPion2.pt() < cuts->get(pTBin, "pT Pi")) {
       return false; // cut on daughter pT
     }
-    if (TMath::Abs(InvMassDPlus(hfCandProng3) - RecoDecay::getMassPDG(pdg::Code::kDPlus)) > cuts->get(pTBin, "deltaM")) {
+    if (std::abs(InvMassDPlus(hfCandProng3) - RecoDecay::getMassPDG(pdg::Code::kDPlus)) > cuts->get(pTBin, "deltaM")) {
       return false; // invariant mass cut
     }
     if (hfCandProng3.decayLength() < cuts->get(pTBin, "decay length")) {
@@ -92,7 +92,7 @@ struct HFDplusToPiKPiCandidateSelector {
     if (hfCandProng3.cpaXY() < cuts->get(pTBin, "cos pointing angle XY")) {
       return false;
     }
-    if (TMath::Abs(hfCandProng3.maxNormalisedDeltaIP()) > cuts->get(pTBin, "max normalized deltaIP")) {
+    if (std::abs(hfCandProng3.maxNormalisedDeltaIP()) > cuts->get(pTBin, "max normalized deltaIP")) {
       return false;
     }
     return true;
@@ -105,7 +105,7 @@ struct HFDplusToPiKPiCandidateSelector {
   template <typename T>
   bool validTPCPID(const T& track)
   {
-    if (TMath::Abs(track.pt()) < d_pidTPCMinpT || TMath::Abs(track.pt()) >= d_pidTPCMaxpT) {
+    if (std::abs(track.pt()) < d_pidTPCMinpT || std::abs(track.pt()) >= d_pidTPCMaxpT) {
       return false;
     }
     //if (track.TPCNClsFindable() < d_TPCNClsFindablePIDCut) {
@@ -121,7 +121,7 @@ struct HFDplusToPiKPiCandidateSelector {
   template <typename T>
   bool validTOFPID(const T& track)
   {
-    if (TMath::Abs(track.pt()) < d_pidTOFMinpT || TMath::Abs(track.pt()) >= d_pidTOFMaxpT) {
+    if (std::abs(track.pt()) < d_pidTOFMinpT || std::abs(track.pt()) >= d_pidTOFMaxpT) {
       return false;
     }
     return true;
@@ -137,7 +137,7 @@ struct HFDplusToPiKPiCandidateSelector {
   bool selectionPIDTPC(const T& track, int nPDG, int nSigmaCut)
   {
     double nSigma = 100.0; //arbitarily large value
-    nPDG = TMath::Abs(nPDG);
+    nPDG = std::abs(nPDG);
     if (nPDG == kPiPlus) {
       nSigma = track.tpcNSigmaPi();
     } else if (nPDG == kKPlus) {
@@ -158,7 +158,7 @@ struct HFDplusToPiKPiCandidateSelector {
   bool selectionPIDTOF(const T& track, int nPDG, int nSigmaCut)
   {
     double nSigma = 100.0; //arbitarily large value
-    nPDG = TMath::Abs(nPDG);
+    nPDG = std::abs(nPDG);
     if (nPDG == kPiPlus) {
       nSigma = track.tofNSigmaPi();
     } else if (nPDG == kKPlus) {
