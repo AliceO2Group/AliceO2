@@ -242,7 +242,7 @@ class ConfigurableParam
   // provide a path to a configuration file with ConfigurableParam key/values
   // If nonempty comma-separated paramsList is provided, only those params will
   // be updated, absence of data for any of requested params will lead to fatal
-  static void updateFromFile(std::string const&, std::string const& paramsList = "");
+  static void updateFromFile(std::string const&, std::string const& paramsList = "", bool unchangedOnly = false);
 
  protected:
   // constructor is doing nothing else but
