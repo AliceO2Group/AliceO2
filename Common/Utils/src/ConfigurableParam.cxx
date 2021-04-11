@@ -395,7 +395,9 @@ void ConfigurableParam::printAllRegisteredParamNames()
 // It can be in JSON or INI format.
 // If nonempty comma-separated paramsList is provided, only those params will
 // be updated, absence of data for any of requested params will lead to fatal
-void ConfigurableParam::updateFromFile(std::string const& configFile, std::string const& paramsList)
+// If unchangedOnly is true, then only those parameters whose provenance is kCODE will be updated
+// (to allow prefernce of run-time settings)
+void ConfigurableParam::updateFromFile(std::string const& configFile, std::string const& paramsList, bool unchangedOnly)
 {
   if (!sIsFullyInitialized) {
     initialize();
@@ -413,7 +415,9 @@ void ConfigurableParam::updateFromFile(std::string const& configFile, std::strin
   auto request = splitString(paramsList, ',', true);
   std::unordered_map<std::string, int> requestMap;
   for (const auto& par : request) {
-    requestMap[par] = 0;
+    if (!par.empty()) {
+      requestMap[par] = 0;
+    }
   }
 
   try {
@@ -430,8 +434,10 @@ void ConfigurableParam::updateFromFile(std::string const& configFile, std::strin
         auto name = subKey.first;
         auto value = subKey.second.get_value<std::string>();
         std::string key = mainKey + "." + name;
-        std::pair<std::string, std::string> pair = std::make_pair(key, trimSpace(value));
-        keyValPairs.push_back(pair);
+        if (!unchangedOnly || getProvenance(key) == kCODE) {
+          std::pair<std::string, std::string> pair = std::make_pair(key, trimSpace(value));
+          keyValPairs.push_back(pair);
+        }
       }
     }
   } catch (std::exception const& error) {
