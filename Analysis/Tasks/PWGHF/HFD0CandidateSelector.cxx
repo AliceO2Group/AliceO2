@@ -159,7 +159,7 @@ struct HFD0CandidateSelector {
   template <typename T>
   bool validTPCPID(const T& track)
   {
-    if (std::abs(track.pt()) < d_pidTPCMinpT || std::abs(track.pt()) >= d_pidTPCMaxpT) {
+    if (track.pt() < d_pidTPCMinpT || track.pt() >= d_pidTPCMaxpT) {
       return false;
     }
     //if (track.TPCNClsFindable() < d_TPCNClsFindablePIDCut) return false;
@@ -173,7 +173,7 @@ struct HFD0CandidateSelector {
   template <typename T>
   bool validTOFPID(const T& track)
   {
-    if (std::abs(track.pt()) < d_pidTOFMinpT || std::abs(track.pt()) >= d_pidTOFMaxpT) {
+    if (track.pt() < d_pidTOFMinpT || track.pt() >= d_pidTOFMaxpT) {
       return false;
     }
     return true;

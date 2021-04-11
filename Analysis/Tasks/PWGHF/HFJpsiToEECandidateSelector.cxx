@@ -94,7 +94,7 @@ struct HFJpsiToEECandidateSelector {
   template <typename T>
   bool validTPCPID(const T& track)
   {
-    if (std::abs(track.pt()) < d_pidTPCMinpT || std::abs(track.pt()) >= d_pidTPCMaxpT) {
+    if (track.pt() < d_pidTPCMinpT || track.pt() >= d_pidTPCMaxpT) {
       return false;
     }
     //if (track.TPCNClsFindable() < d_TPCNClsFindablePIDCut) return false;
