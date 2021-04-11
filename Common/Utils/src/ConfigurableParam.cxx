@@ -313,6 +313,20 @@ void ConfigurableParam::printAllKeyValuePairs()
 
 // ------------------------------------------------------------------
 
+ConfigurableParam::EParamProvenance ConfigurableParam::getProvenance(const std::string& key)
+{
+  if (!sIsFullyInitialized) {
+    initialize();
+  }
+  auto iter = sValueProvenanceMap->find(key);
+  if (iter == sValueProvenanceMap->end()) {
+    throw std::runtime_error(fmt::format("provenace of unknown {:s} parameter is requested", key));
+  }
+  return iter->second;
+}
+
+// ------------------------------------------------------------------
+
 // evidently this could be a local file or an OCDB server
 // ... we need to generalize this ... but ok for demonstration purposes
 void ConfigurableParam::toCCDB(std::string filename)
@@ -612,24 +626,24 @@ bool isMemblockDifferent(void const* block1, void const* block2)
 // copies data from one place to other and returns
 // true of data was actually changed
 template <typename T>
-bool Copy(void const* addr, void* targetaddr)
+ConfigurableParam::EParamUpdateStatus Copy(void const* addr, void* targetaddr)
 {
   if (isMemblockDifferent<T>(addr, targetaddr)) {
     std::memcpy(targetaddr, addr, sizeof(T));
-    return true;
+    return ConfigurableParam::EParamUpdateStatus::Changed;
   }
-  return false;
+  return ConfigurableParam::EParamUpdateStatus::Unchanged;
 }
 
-bool ConfigurableParam::updateThroughStorageMap(std::string mainkey, std::string subkey, std::type_info const& tinfo,
-                                                void* addr)
+ConfigurableParam::EParamUpdateStatus ConfigurableParam::updateThroughStorageMap(std::string mainkey, std::string subkey, std::type_info const& tinfo,
+                                                                                 void* addr)
 {
   // check if key_exists
   auto key = mainkey + "." + subkey;
   auto iter = sKeyToStorageMap->find(key);
   if (iter == sKeyToStorageMap->end()) {
     LOG(WARN) << "Cannot update parameter " << key << " not found";
-    return false;
+    return ConfigurableParam::EParamUpdateStatus::Failed;
   }
 
   // the type we need to convert to
@@ -638,7 +652,7 @@ bool ConfigurableParam::updateThroughStorageMap(std::string mainkey, std::string
   // check that type matches
   if (iter->second.first != tinfo) {
     LOG(WARN) << "Types do not match; cannot update value";
-    return false;
+    return ConfigurableParam::EParamUpdateStatus::Failed;
   }
 
   auto targetaddress = iter->second.second;
@@ -749,72 +763,74 @@ bool ConfigurableParam::updateThroughStorageMap(std::string mainkey, std::string
       break;
     }
   }
-  return false;
+  return ConfigurableParam::EParamUpdateStatus::Failed;
 }
 
 template <typename T>
-bool ConvertAndCopy(std::string const& valuestring, void* targetaddr)
+ConfigurableParam::EParamUpdateStatus ConvertAndCopy(std::string const& valuestring, void* targetaddr)
 {
   auto addr = boost::lexical_cast<T>(valuestring);
   if (isMemblockDifferent<T>(targetaddr, (void*)&addr)) {
     std::memcpy(targetaddr, (void*)&addr, sizeof(T));
-    return true;
+    return ConfigurableParam::EParamUpdateStatus::Changed;
   }
-  return false;
+  return ConfigurableParam::EParamUpdateStatus::Unchanged;
 }
+
 // special version for std::string
 template <>
-bool ConvertAndCopy<std::string>(std::string const& valuestring, void* targetaddr)
+ConfigurableParam::EParamUpdateStatus ConvertAndCopy<std::string>(std::string const& valuestring, void* targetaddr)
 {
   std::string& target = *((std::string*)targetaddr);
   if (target.compare(valuestring) != 0) {
     // the targetaddr is a std::string to which we can simply assign
     // and all the magic will happen internally
     target = valuestring;
-    return true;
+    return ConfigurableParam::EParamUpdateStatus::Changed;
   }
-  return false;
+  return ConfigurableParam::EParamUpdateStatus::Unchanged;
 }
 // special version for char and unsigned char since we are interested in the numeric
 // meaning of char as an 8-bit integer (boost lexical cast is assigning the string as a character i// nterpretation
 template <>
-bool ConvertAndCopy<char>(std::string const& valuestring, void* targetaddr)
+ConfigurableParam::EParamUpdateStatus ConvertAndCopy<char>(std::string const& valuestring, void* targetaddr)
 {
   int intvalue = boost::lexical_cast<int>(valuestring);
   if (intvalue > std::numeric_limits<char>::max() || intvalue < std::numeric_limits<char>::min()) {
     LOG(ERROR) << "Cannot assign " << valuestring << " to a char variable";
-    return false;
+    return ConfigurableParam::EParamUpdateStatus::Failed;
   }
   char addr = intvalue;
   if (isMemblockDifferent<char>(targetaddr, (void*)&addr)) {
     std::memcpy(targetaddr, (void*)&addr, sizeof(char));
-    return true;
+    return ConfigurableParam::EParamUpdateStatus::Changed;
   }
-  return false;
+  return ConfigurableParam::EParamUpdateStatus::Unchanged;
 }
+
 template <>
-bool ConvertAndCopy<unsigned char>(std::string const& valuestring, void* targetaddr)
+ConfigurableParam::EParamUpdateStatus ConvertAndCopy<unsigned char>(std::string const& valuestring, void* targetaddr)
 {
   unsigned int intvalue = boost::lexical_cast<int>(valuestring);
   if (intvalue > std::numeric_limits<unsigned char>::max() || intvalue < std::numeric_limits<unsigned char>::min()) {
     LOG(ERROR) << "Cannot assign " << valuestring << " to an unsigned char variable";
-    return false;
+    return ConfigurableParam::EParamUpdateStatus::Failed;
   }
   unsigned char addr = intvalue;
   if (isMemblockDifferent<unsigned char>(targetaddr, (void*)&addr)) {
     std::memcpy(targetaddr, (void*)&addr, sizeof(unsigned char));
-    return true;
+    return ConfigurableParam::EParamUpdateStatus::Changed;
   }
-  return false;
+  return ConfigurableParam::EParamUpdateStatus::Unchanged;
 }
 
-bool ConfigurableParam::updateThroughStorageMapWithConversion(std::string const& key, std::string const& valuestring)
+ConfigurableParam::EParamUpdateStatus ConfigurableParam::updateThroughStorageMapWithConversion(std::string const& key, std::string const& valuestring)
 {
   // check if key_exists
   auto iter = sKeyToStorageMap->find(key);
   if (iter == sKeyToStorageMap->end()) {
     LOG(WARN) << "Cannot update parameter " << key << " (parameter not found) ";
-    return false;
+    return ConfigurableParam::EParamUpdateStatus::Failed;
   }
 
   auto targetaddress = iter->second.second;
@@ -936,7 +952,7 @@ bool ConfigurableParam::updateThroughStorageMapWithConversion(std::string const&
       break;
     }
   }
-  return false;
+  return ConfigurableParam::EParamUpdateStatus::Failed;
 }
 
 } // namespace conf
