@@ -101,7 +101,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   int nTrackletsCal = 0;
 
   if (mUseTrackletTransform) {
-    cTrklts.emplace(pc.inputs().get<gsl::span<CalibratedTracklet>>("trdctracklets")); // MC labels associated to the input digits
+    cTrklts.emplace(pc.inputs().get<gsl::span<CalibratedTracklet>>("trdctracklets"));
     cTrkltsPtr = &cTrklts.value();
     nTrackletsCal = cTrkltsPtr->size();
     LOGF(INFO, "Got %i calibrated tracklets as input", nTrackletsCal);
