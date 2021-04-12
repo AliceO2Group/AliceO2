@@ -52,7 +52,7 @@ class GRPDPLUpdatedTask
 
     TFile flGRP(mGRPFileName.c_str(), "update");
     if (flGRP.IsZombie()) {
-      LOG(ERROR) << "Failed to open  in update mode " << mGRPFileName;
+      LOG(ERROR) << "Failed to open in update mode " << mGRPFileName;
       return;
     }
     std::unique_ptr<GRP> grp(static_cast<GRP*>(flGRP.GetObjectChecked(grpName.c_str(), GRP::Class())));
@@ -65,6 +65,7 @@ class GRPDPLUpdatedTask
       grp->setDetROMode(det, roMode);
     }
     grp->setFirstOrbit(o2::raw::HBFUtils::Instance().orbitFirst);
+    grp->setNHBFPerTF(o2::raw::HBFUtils::Instance().nHBFPerTF);
     LOG(INFO) << "Updated GRP in " << mGRPFileName << " for detectors RO mode and 1st orbit of the run";
     grp->print();
     flGRP.WriteObjectAny(grp.get(), grp->Class(), grpName.c_str());
