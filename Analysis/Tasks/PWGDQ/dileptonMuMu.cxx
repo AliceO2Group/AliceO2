@@ -72,7 +72,7 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses);
 constexpr static uint32_t gkEventFillMap = VarManager::ObjTypes::ReducedEvent | VarManager::ObjTypes::ReducedEventExtended;
 constexpr static uint32_t gkMuonFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::ReducedMuon;
 
-struct EventSelection {
+struct DQEventSelection {
   Produces<aod::EventCuts> eventSel;
   OutputObj<THashList> fOutputList{"output"};
   HistogramManager* fHistMan;
@@ -125,7 +125,7 @@ struct EventSelection {
   }
 };
 
-struct MuonTrackSelection {
+struct DQMuonTrackSelection {
   Produces<aod::MuonTrackCuts> trackSel;
   OutputObj<THashList> fOutputList{"output"};
   HistogramManager* fHistMan;
@@ -372,7 +372,7 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses)
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<EventSelection>(cfgc),
-    adaptAnalysisTask<MuonTrackSelection>(cfgc),
+    adaptAnalysisTask<DQEventSelection>(cfgc),
+    adaptAnalysisTask<DQMuonTrackSelection>(cfgc),
     adaptAnalysisTask<DileptonMuMu>(cfgc)};
 }

@@ -79,7 +79,7 @@ class VarManager : public TObject
     kRunId,
     kNRunWiseVariables,
 
-    // Event wise variables   // Daria: imedjat ai ziua mja
+    // Event wise variables
     kTimestamp,
     kBC,
     kIsPhysicsSelection,

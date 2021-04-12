@@ -268,9 +268,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   WorkflowSpec workflow;
   const bool isPbPb = cfgc.options().get<bool>("isPbPb");
   if (isPbPb) {
-    workflow.push_back(adaptAnalysisTask<TableMaker<gkEventFillMap, MyEvents>>(cfgc, TaskName{"table-maker-pbpb"}));
+    workflow.push_back(adaptAnalysisTask<TableMaker<gkEventFillMap, MyEvents>>(cfgc, TaskName{"dq-table-maker-pbpb"}));
   } else {
-    workflow.push_back(adaptAnalysisTask<TableMaker<gkEventFillMapNoCent, MyEventsNoCent>>(cfgc, TaskName{"table-maker-pp"}));
+    workflow.push_back(adaptAnalysisTask<TableMaker<gkEventFillMapNoCent, MyEventsNoCent>>(cfgc, TaskName{"dq-table-maker-pp"}));
   }
 
   return workflow;
