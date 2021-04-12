@@ -151,122 +151,6 @@ struct HFD0CandidateSelector {
     return true;
   }
 
-  /// Check if track is ok for TPC PID
-  /// \param track is the track
-  /// \note function to be expanded
-  /// \return true if track is ok for TPC PID
-  template <typename T>
-  bool validTPCPID(const T& track)
-  {
-    if (track.pt() < d_pidTPCMinpT || track.pt() >= d_pidTPCMaxpT) {
-      return false;
-    }
-    //if (track.TPCNClsFindable() < d_TPCNClsFindablePIDCut) return false;
-    return true;
-  }
-
-  /// Check if track is ok for TOF PID
-  /// \param track is the track
-  /// \note function to be expanded
-  /// \return true if track is ok for TOF PID
-  template <typename T>
-  bool validTOFPID(const T& track)
-  {
-    if (track.pt() < d_pidTOFMinpT || track.pt() >= d_pidTOFMaxpT) {
-      return false;
-    }
-    return true;
-  }
-
-  /// Check if track is compatible with given TPC Nsigma cut for a given flavour hypothesis
-  /// \param track is the track
-  /// \param nPDG is the flavour hypothesis PDG number
-  /// \param nSigmaCut is the nsigma threshold to test against
-  /// \return true if track satisfies TPC PID hypothesis for given Nsigma cut
-  template <typename T>
-  bool selectionPIDTPC(const T& track, int nPDG, double nSigmaCut)
-  {
-    double nSigma = 100.0; //arbitarily large value
-    nPDG = std::abs(nPDG);
-    if (nPDG == kPiPlus) {
-      nSigma = track.tpcNSigmaPi();
-    } else if (nPDG == kKPlus) {
-      nSigma = track.tpcNSigmaKa();
-    } else {
-      return false;
-    }
-    return std::abs(nSigma) < nSigmaCut;
-  }
-
-  /// Check if track is compatible with given TOF NSigma cut for a given flavour hypothesis
-  /// \param track is the track
-  /// \param nPDG is the flavour hypothesis PDG number
-  /// \param nSigmaCut is the nSigma threshold to test against
-  /// \return true if track satisfies TOF PID hypothesis for given NSigma cut
-  template <typename T>
-  bool selectionPIDTOF(const T& track, int nPDG, double nSigmaCut)
-  {
-    double nSigma = 100.0; //arbitarily large value
-    nPDG = std::abs(nPDG);
-    if (nPDG == kPiPlus) {
-      nSigma = track.tofNSigmaPi();
-    } else if (nPDG == kKPlus) {
-      nSigma = track.tofNSigmaKa();
-    } else {
-      return false;
-    }
-    return std::abs(nSigma) < nSigmaCut;
-  }
-
-  /// PID selection on daughter track
-  /// \param track is the daughter track
-  /// \param nPDG is the PDG code of the flavour hypothesis
-  /// \return 1 if successful PID match, 0 if successful PID rejection, -1 if no PID info
-  template <typename T>
-  int selectionPID(const T& track, int nPDG)
-  {
-    int statusTPC = -1;
-    int statusTOF = -1;
-
-    if (validTPCPID(track)) {
-      if (!selectionPIDTPC(track, nPDG, d_nSigmaTPC)) {
-        if (!selectionPIDTPC(track, nPDG, d_nSigmaTPCCombined)) {
-          statusTPC = 0; //rejected by PID
-        } else {
-          statusTPC = 1; //potential to be acceepted if combined with TOF
-        }
-      } else {
-        statusTPC = 2; //positive PID
-      }
-    } else {
-      statusTPC = -1; //no PID info
-    }
-
-    if (validTOFPID(track)) {
-      if (!selectionPIDTOF(track, nPDG, d_nSigmaTOF)) {
-        if (!selectionPIDTOF(track, nPDG, d_nSigmaTOFCombined)) {
-          statusTOF = 0; //rejected by PID
-        } else {
-          statusTOF = 1; //potential to be acceepted if combined with TOF
-        }
-      } else {
-        statusTOF = 2; //positive PID
-      }
-    } else {
-      statusTOF = -1; //no PID info
-    }
-
-    if (statusTPC == 2 || statusTOF == 2) {
-      return 1; //what if we have 2 && 0 ?
-    } else if (statusTPC == 1 && statusTOF == 1) {
-      return 1;
-    } else if (statusTPC == 0 || statusTOF == 0) {
-      return 0;
-    } else {
-      return -1;
-    }
-  }
-
   void process(aod::HfCandProng2 const& hfCandProng2s, aod::BigTracksPID const&)
   {
     for (auto& hfCandProng2 : hfCandProng2s) { //looping over 2 prong candidates
@@ -310,10 +194,10 @@ struct HFD0CandidateSelector {
         continue;
       }
 
-      int pionPlus = selectionPID(trackPos, kPiPlus);
-      int kaonMinus = selectionPID(trackNeg, kKPlus);
-      int pionMinus = selectionPID(trackNeg, kPiPlus);
-      int kaonPlus = selectionPID(trackPos, kKPlus);
+      int pionPlus = pid::getStatusTrackPIDAll(trackPos, kPiPlus, d_pidTPCMinpT, d_pidTPCMaxpT, d_nSigmaTPC, d_nSigmaTPCCombined, d_pidTOFMinpT, d_pidTOFMaxpT, d_nSigmaTOF, d_nSigmaTOFCombined);
+      int kaonMinus = pid::getStatusTrackPIDAll(trackNeg, kKPlus, d_pidTPCMinpT, d_pidTPCMaxpT, d_nSigmaTPC, d_nSigmaTPCCombined, d_pidTOFMinpT, d_pidTOFMaxpT, d_nSigmaTOF, d_nSigmaTOFCombined);
+      int pionMinus = pid::getStatusTrackPIDAll(trackNeg, kPiPlus, d_pidTPCMinpT, d_pidTPCMaxpT, d_nSigmaTPC, d_nSigmaTPCCombined, d_pidTOFMinpT, d_pidTOFMaxpT, d_nSigmaTOF, d_nSigmaTOFCombined);
+      int kaonPlus = pid::getStatusTrackPIDAll(trackPos, kKPlus, d_pidTPCMinpT, d_pidTPCMaxpT, d_nSigmaTPC, d_nSigmaTPCCombined, d_pidTOFMinpT, d_pidTOFMaxpT, d_nSigmaTOF, d_nSigmaTOFCombined);
 
       int pidD0 = -1;
       int pidD0bar = -1;

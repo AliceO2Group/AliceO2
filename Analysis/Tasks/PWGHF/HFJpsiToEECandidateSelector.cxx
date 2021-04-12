@@ -87,55 +87,25 @@ struct HFJpsiToEECandidateSelector {
     return true;
   }
 
-  /// Check if track is ok for TPC PID
-  /// \param track is the track
-  /// \note function to be expanded
-  /// \return true if track is ok for TPC PID
-  template <typename T>
-  bool validTPCPID(const T& track)
-  {
-    if (track.pt() < d_pidTPCMinpT || track.pt() >= d_pidTPCMaxpT) {
-      return false;
-    }
-    //if (track.TPCNClsFindable() < d_TPCNClsFindablePIDCut) return false;
-    return true;
-  }
-
-  /// Check if track is compatible with given TPC Nsigma cut for the electron hypothesis
-  /// \param track is the track
-  /// \param nSigmaCut is the nsigma threshold to test against
-  /// \return true if track satisfies TPC PID hypothesis for given Nsigma cut
-  template <typename T>
-  bool selectionPIDTPC(const T& track, int nSigmaCut)
-  {
-    if (nSigmaCut > 999.) {
-      return true;
-    }
-    return std::abs(track.tpcNSigmaEl()) < nSigmaCut;
-  }
-
   /// PID selection on daughter track
   /// \param track is the daughter track
   /// \return 1 if successful PID match, 0 if successful PID rejection, -1 if no PID info
   template <typename T>
-  int selectionPID(const T& track)
+  int getStatusTrackPIDTPC(const T& track)
   {
-
-    if (validTPCPID(track)) {
-      if (!selectionPIDTPC(track, d_nSigmaTPC)) {
-
-        return 0; //rejected by PID
+    if (pid::isValidTrackPIDTPC(track, d_pidTPCMinpT, d_pidTPCMaxpT)) {
+      if (pid::isSelectedTrackPIDTPC(track, kElectron, -d_nSigmaTPC, d_nSigmaTPC)) {
+        return pid::Status::PIDAccepted; // accepted
       } else {
-        return 1; //positive PID
+        return pid::Status::PIDRejected; // rejected
       }
     } else {
-      return -1; //no PID info
+      return pid::Status::PIDUndecided; // no PID info
     }
   }
 
   void process(aod::HfCandProng2 const& hfCandProng2s, aod::BigTracksPID const&)
   {
-
     for (auto& hfCandProng2 : hfCandProng2s) { //looping over 2 prong candidates
 
       auto trackPos = hfCandProng2.index0_as<aod::BigTracksPID>(); //positive daughter
@@ -160,7 +130,7 @@ struct HFJpsiToEECandidateSelector {
         continue;
       }
 
-      if (selectionPID(trackPos) == 0 || selectionPID(trackNeg) == 0) {
+      if (getStatusTrackPIDTPC(trackPos) == pid::Status::PIDRejected || getStatusTrackPIDTPC(trackNeg) == pid::Status::PIDRejected) {
         hfSelJpsiToEECandidate(0);
         continue;
       }
