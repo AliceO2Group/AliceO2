@@ -78,7 +78,7 @@ struct SelectTracks {
 
   void init(InitContext const&)
   {
-    cutsSingleTrack = {cutsTrack2Prong, cutsTrack3Prong};    
+    cutsSingleTrack = {cutsTrack2Prong, cutsTrack3Prong};
   }
 
   /// Single-track cuts for 2-prongs or 3-prongs
