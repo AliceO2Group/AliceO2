@@ -8,6 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+///
+/// \file   pidTPC_split.cxx
+/// \author Nicolo' Jacazio
+/// \brief  Task to produce PID tables for TPC split for each particle.
+///         Only the tables for the mass hypotheses requested are filled, the others are sent empty.
+///
+
 // O2 includes
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
@@ -15,33 +22,7 @@
 #include <CCDB/BasicCCDBManager.h>
 #include "AnalysisDataModel/PID/PIDResponse.h"
 #include "AnalysisDataModel/PID/PIDTPC.h"
-#include "AnalysisDataModel/PID/TPCReso.h"
-#include "AnalysisDataModel/PID/BetheBloch.h"
 #include "AnalysisDataModel/TrackSelectionTables.h"
-
-// Table with the full information for all particles
-namespace o2::aod
-{
-DECLARE_SOA_TABLE(pidRespTPC, "AOD", "pidRespTPC",
-                  // Expected signals
-                  pidtpc::TPCExpSignalDiffEl<pidtpc::TPCNSigmaEl, pidtpc::TPCExpSigmaEl>,
-                  pidtpc::TPCExpSignalDiffMu<pidtpc::TPCNSigmaMu, pidtpc::TPCExpSigmaMu>,
-                  pidtpc::TPCExpSignalDiffPi<pidtpc::TPCNSigmaPi, pidtpc::TPCExpSigmaPi>,
-                  pidtpc::TPCExpSignalDiffKa<pidtpc::TPCNSigmaKa, pidtpc::TPCExpSigmaKa>,
-                  pidtpc::TPCExpSignalDiffPr<pidtpc::TPCNSigmaPr, pidtpc::TPCExpSigmaPr>,
-                  pidtpc::TPCExpSignalDiffDe<pidtpc::TPCNSigmaDe, pidtpc::TPCExpSigmaDe>,
-                  pidtpc::TPCExpSignalDiffTr<pidtpc::TPCNSigmaTr, pidtpc::TPCExpSigmaTr>,
-                  pidtpc::TPCExpSignalDiffHe<pidtpc::TPCNSigmaHe, pidtpc::TPCExpSigmaHe>,
-                  pidtpc::TPCExpSignalDiffAl<pidtpc::TPCNSigmaAl, pidtpc::TPCExpSigmaAl>,
-                  // Expected sigma
-                  pidtpc::TPCExpSigmaEl, pidtpc::TPCExpSigmaMu, pidtpc::TPCExpSigmaPi,
-                  pidtpc::TPCExpSigmaKa, pidtpc::TPCExpSigmaPr, pidtpc::TPCExpSigmaDe,
-                  pidtpc::TPCExpSigmaTr, pidtpc::TPCExpSigmaHe, pidtpc::TPCExpSigmaAl,
-                  // NSigma
-                  pidtpc::TPCNSigmaEl, pidtpc::TPCNSigmaMu, pidtpc::TPCNSigmaPi,
-                  pidtpc::TPCNSigmaKa, pidtpc::TPCNSigmaPr, pidtpc::TPCNSigmaDe,
-                  pidtpc::TPCNSigmaTr, pidtpc::TPCNSigmaHe, pidtpc::TPCNSigmaAl);
-}
 
 using namespace o2;
 using namespace o2::framework;
@@ -51,18 +32,26 @@ using namespace o2::track;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  std::vector<ConfigParamSpec> options{
-    {"use-fast", VariantType::Int, 0, {"Use fast implementation"}},
-    {"add-qa", VariantType::Int, 0, {"Produce TPC PID QA histograms"}}};
+  std::vector<ConfigParamSpec> options{{"add-qa", VariantType::Int, 0, {"Produce TPC PID QA histograms"}}};
   std::swap(workflowOptions, options);
 }
 
 #include "Framework/runDataProcessing.h"
 
-struct pidTPCTask {
+struct pidTPCTaskSplit {
   using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
   using Coll = aod::Collisions;
-  Produces<aod::pidRespTPC> tablePID;
+  // Tables to produce
+  Produces<o2::aod::pidRespTPCEl> tablePIDEl;
+  Produces<o2::aod::pidRespTPCMu> tablePIDMu;
+  Produces<o2::aod::pidRespTPCPi> tablePIDPi;
+  Produces<o2::aod::pidRespTPCKa> tablePIDKa;
+  Produces<o2::aod::pidRespTPCPr> tablePIDPr;
+  Produces<o2::aod::pidRespTPCDe> tablePIDDe;
+  Produces<o2::aod::pidRespTPCTr> tablePIDTr;
+  Produces<o2::aod::pidRespTPCHe> tablePIDHe;
+  Produces<o2::aod::pidRespTPCAl> tablePIDAl;
+  // Detector response and input parameters
   DetectorResponse response;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
   Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
@@ -70,6 +59,16 @@ struct pidTPCTask {
   Configurable<std::string> sigmaname{"param-sigma", "TPCReso", "Name of the parametrization for the expected sigma, used in both file and CCDB mode"};
   Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
   Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
+  // Configuration flags to include and exclude particle hypotheses
+  Configurable<int> pidEl{"pid-el", 0, {"Produce PID information for the Electron mass hypothesis"}};
+  Configurable<int> pidMu{"pid-mu", 0, {"Produce PID information for the Muon mass hypothesis"}};
+  Configurable<int> pidPi{"pid-pi", 0, {"Produce PID information for the Pion mass hypothesis"}};
+  Configurable<int> pidKa{"pid-ka", 0, {"Produce PID information for the Kaon mass hypothesis"}};
+  Configurable<int> pidPr{"pid-pr", 0, {"Produce PID information for the Proton mass hypothesis"}};
+  Configurable<int> pidDe{"pid-de", 0, {"Produce PID information for the Deuterons mass hypothesis"}};
+  Configurable<int> pidTr{"pid-tr", 0, {"Produce PID information for the Triton mass hypothesis"}};
+  Configurable<int> pidHe{"pid-he", 0, {"Produce PID information for the Helium3 mass hypothesis"}};
+  Configurable<int> pidAl{"pid-al", 0, {"Produce PID information for the Alpha mass hypothesis"}};
 
   void init(o2::framework::InitContext&)
   {
@@ -105,105 +104,26 @@ struct pidTPCTask {
     constexpr auto responseHe = ResponseImplementation<PID::Helium3>();
     constexpr auto responseAl = ResponseImplementation<PID::Alpha>();
 
-    tablePID.reserve(tracks.size());
-    for (auto const& trk : tracks) {
-      tablePID(responseEl.GetExpectedSigma(response, trk.collision(), trk),
-               responseMu.GetExpectedSigma(response, trk.collision(), trk),
-               responsePi.GetExpectedSigma(response, trk.collision(), trk),
-               responseKa.GetExpectedSigma(response, trk.collision(), trk),
-               responsePr.GetExpectedSigma(response, trk.collision(), trk),
-               responseDe.GetExpectedSigma(response, trk.collision(), trk),
-               responseTr.GetExpectedSigma(response, trk.collision(), trk),
-               responseHe.GetExpectedSigma(response, trk.collision(), trk),
-               responseAl.GetExpectedSigma(response, trk.collision(), trk),
-               responseEl.GetSeparation(response, trk.collision(), trk),
-               responseMu.GetSeparation(response, trk.collision(), trk),
-               responsePi.GetSeparation(response, trk.collision(), trk),
-               responseKa.GetSeparation(response, trk.collision(), trk),
-               responsePr.GetSeparation(response, trk.collision(), trk),
-               responseDe.GetSeparation(response, trk.collision(), trk),
-               responseTr.GetSeparation(response, trk.collision(), trk),
-               responseHe.GetSeparation(response, trk.collision(), trk),
-               responseAl.GetSeparation(response, trk.collision(), trk));
-    }
-  }
-};
-
-struct pidTPCTaskFast {
-  using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
-  using Coll = aod::Collisions;
-  Produces<aod::pidRespTPC> tablePID;
-  DetectorResponse response;
-  Parameters expParameters;
-  Parameters resoParameters;
-  Service<o2::ccdb::BasicCCDBManager> ccdb;
-  Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
-  Configurable<std::string> signalname{"param-signal", "BetheBloch", "Name of the parametrization for the expected signal, used in both file and CCDB mode"};
-  Configurable<std::string> sigmaname{"param-sigma", "TPCReso", "Name of the parametrization for the expected sigma, used in both file and CCDB mode"};
-  Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
-  Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
-
-  void init(o2::framework::InitContext&)
-  {
-    ccdb->setURL(url.value);
-    ccdb->setTimestamp(timestamp.value);
-    ccdb->setCaching(true);
-    ccdb->setLocalObjectValidityChecking();
-    // Not later than now objects
-    ccdb->setCreatedNotAfter(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
-    //
-    const std::string fname = paramfile.value;
-    if (!fname.empty()) { // Loading the parametrization from file
-      response.LoadParamFromFile(fname.data(), signalname.value, DetectorResponse::kSignal);
-      response.LoadParamFromFile(fname.data(), sigmaname.value, DetectorResponse::kSigma);
-    } else { // Loading it from CCDB
-      const std::string path = "Analysis/PID/TPC";
-      response.LoadParam(DetectorResponse::kSignal, ccdb->getForTimeStamp<Parametrization>(path + "/" + signalname.value, timestamp.value));
-      response.LoadParam(DetectorResponse::kSigma, ccdb->getForTimeStamp<Parametrization>(path + "/" + sigmaname.value, timestamp.value));
-    }
-    expParameters = response.GetParam(DetectorResponse::kSignal)->GetParameters();
-    resoParameters = response.GetParam(DetectorResponse::kSigma)->GetParameters();
-  }
-
-  template <o2::track::PID::ID id>
-  float exp(Trks::iterator track)
-  {
-    return o2::pid::tpc::BetheBlochParamTrack<id>(track, expParameters);
-  }
-  template <o2::track::PID::ID id>
-  float sigma(Trks::iterator track)
-  {
-    return o2::pid::tpc::TPCResoParamTrack<id>(track, resoParameters);
-  }
-  template <o2::track::PID::ID id>
-  float nsigma(Trks::iterator track)
-  {
-    return (track.tpcSignal() - exp<id>(track)) / sigma<id>(track);
-  }
-
-  void process(Coll const& collisions, Trks const& tracks)
-  {
-    tablePID.reserve(tracks.size());
-    for (auto const& trk : tracks) {
-      tablePID(sigma<PID::Electron>(trk),
-               sigma<PID::Muon>(trk),
-               sigma<PID::Pion>(trk),
-               sigma<PID::Kaon>(trk),
-               sigma<PID::Proton>(trk),
-               sigma<PID::Deuteron>(trk),
-               sigma<PID::Triton>(trk),
-               sigma<PID::Helium3>(trk),
-               sigma<PID::Alpha>(trk),
-               nsigma<PID::Electron>(trk),
-               nsigma<PID::Muon>(trk),
-               nsigma<PID::Pion>(trk),
-               nsigma<PID::Kaon>(trk),
-               nsigma<PID::Proton>(trk),
-               nsigma<PID::Deuteron>(trk),
-               nsigma<PID::Triton>(trk),
-               nsigma<PID::Helium3>(trk),
-               nsigma<PID::Alpha>(trk));
-    }
+    // Check and fill enabled tables
+    auto makeTable = [&tracks](const Configurable<int>& flag, auto& table, const DetectorResponse& response, const auto& responsePID) {
+      if (flag.value) {
+        // Prepare memory for enabled tables
+        table.reserve(tracks.size());
+        for (auto const& trk : tracks) { // Loop on Tracks
+          table(responsePID.GetExpectedSigma(response, trk.collision(), trk),
+                responsePID.GetSeparation(response, trk.collision(), trk));
+        }
+      }
+    };
+    makeTable(pidEl, tablePIDEl, response, responseEl);
+    makeTable(pidMu, tablePIDMu, response, responseMu);
+    makeTable(pidPi, tablePIDPi, response, responsePi);
+    makeTable(pidKa, tablePIDKa, response, responseKa);
+    makeTable(pidPr, tablePIDPr, response, responsePr);
+    makeTable(pidDe, tablePIDDe, response, responseDe);
+    makeTable(pidTr, tablePIDTr, response, responseTr);
+    makeTable(pidHe, tablePIDHe, response, responseHe);
+    makeTable(pidAl, tablePIDAl, response, responseAl);
   }
 };
 
@@ -286,7 +206,11 @@ struct pidTPCTaskQA {
     histos.fill(HIST(hnsigma[i]), t.p(), nsigma);
   }
 
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::TrackSelection> const& tracks)
+  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra,
+                                                          aod::pidRespTPCEl, aod::pidRespTPCMu, aod::pidRespTPCPi,
+                                                          aod::pidRespTPCKa, aod::pidRespTPCPr, aod::pidRespTPCDe,
+                                                          aod::pidRespTPCTr, aod::pidRespTPCHe, aod::pidRespTPCAl,
+                                                          aod::TrackSelection> const& tracks)
   {
     histos.fill(HIST("event/vertexz"), collision.posZ());
 
@@ -310,14 +234,9 @@ struct pidTPCTaskQA {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  auto workflow = WorkflowSpec{};
-  if (cfgc.options().get<int>("use-fast")) {
-    workflow.push_back(adaptAnalysisTask<pidTPCTaskFast>(cfgc, TaskName{"pidTPC-task"}));
-  } else {
-    workflow.push_back(adaptAnalysisTask<pidTPCTask>(cfgc, TaskName{"pidTPC-task"}));
-  }
+  auto workflow = WorkflowSpec{adaptAnalysisTask<pidTPCTaskSplit>(cfgc, TaskName{"pidTPC-split-task"})};
   if (cfgc.options().get<int>("add-qa")) {
-    workflow.push_back(adaptAnalysisTask<pidTPCTaskQA>(cfgc, TaskName{"pidTPCQA-task"}));
+    workflow.push_back(adaptAnalysisTask<pidTPCTaskQA>(cfgc, TaskName{"pidTOFQA-task"}));
   }
   return workflow;
 }
