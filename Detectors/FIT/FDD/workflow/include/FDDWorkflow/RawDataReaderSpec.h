@@ -13,6 +13,7 @@
 #ifndef O2_FDD_RAWDATAREADERSPEC_H
 #define O2_FDD_RAWDATAREADERSPEC_H
 
+#include "DataFormatsFDD/LookUpTable.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Framework/CallbackService.h"
@@ -40,7 +41,7 @@ class RawDataReaderSpec : public Task
   RawDataReaderSpec(const RawReader& rawReader) : mRawReader(rawReader) {}
   RawDataReaderSpec() = default;
   ~RawDataReaderSpec() override = default;
-  void init(InitContext& ic) final {}
+  void init(InitContext& ic) final { o2::fdd::SingleLUT::Instance().printFullMap(); }
   void run(ProcessingContext& pc) final
   {
     DPLRawParser parser(pc.inputs());
