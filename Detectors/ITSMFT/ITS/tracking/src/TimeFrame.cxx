@@ -189,17 +189,17 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
     std::vector<ClusterHelper> cHelper;
     for (int rof{0}; rof < mNrof; ++rof) {
       mIndexTables[rof].resize(trkParam.TrackletsPerRoad(), std::vector<int>(trkParam.ZBins * trkParam.PhiBins + 1, 0));
-      std::vector<int> clsPerBin(trkParam.PhiBins * trkParam.ZBins, 0);
       for (int iLayer{0}; iLayer < trkParam.NLayers; ++iLayer) {
+        std::vector<int> clsPerBin(trkParam.PhiBins * trkParam.ZBins, 0);
 
-        const auto currentLayer{getUnsortedClustersOnLayer(rof, iLayer)};
-        const int clustersNum{static_cast<int>(currentLayer.size())};
+        const auto unsortedClusters{getUnsortedClustersOnLayer(rof, iLayer)};
+        const int clustersNum{static_cast<int>(unsortedClusters.size())};
 
         cHelper.clear();
         cHelper.resize(clustersNum);
 
         for (int iCluster{0}; iCluster < clustersNum; ++iCluster) {
-          const Cluster& c = currentLayer[iCluster];
+          const Cluster& c = unsortedClusters[iCluster];
           ClusterHelper& h = cHelper[iCluster];
           float x = c.xCoordinate - mBeamPos[0];
           float y = c.yCoordinate - mBeamPos[1];
@@ -214,18 +214,18 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
           h.bin = bin;
           h.ind = clsPerBin[bin]++;
         }
-
         std::vector<int> lutPerBin(clsPerBin.size());
         lutPerBin[0] = 0;
         for (unsigned int iB{1}; iB < lutPerBin.size(); ++iB) {
           lutPerBin[iB] = lutPerBin[iB - 1] + clsPerBin[iB - 1];
         }
 
-        int startIdx = rof == 0 ? 0 : mROframesClusters[iLayer][rof - 1];
+        auto clusters2beSorted{getClustersOnLayer(rof, iLayer)};
         for (int iCluster{0}; iCluster < clustersNum; ++iCluster) {
           const ClusterHelper& h = cHelper[iCluster];
-          Cluster& c = mClusters[iLayer][startIdx + lutPerBin[h.bin] + h.ind];
-          c = currentLayer[iCluster];
+
+          Cluster& c = clusters2beSorted[lutPerBin[h.bin] + h.ind];
+          c = unsortedClusters[iCluster];
           c.phi = h.phi;
           c.radius = h.r;
           c.indexTableBinIndex = h.bin;
