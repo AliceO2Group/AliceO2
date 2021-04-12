@@ -427,6 +427,9 @@ bool isValidTrackPIDTOF(const T& track, U ptMin, U ptMax)
 template <typename T>
 bool isSelectedTrackPIDTPC(const T& track, int codePDG, double nSigmaMin, double nSigmaMax)
 {
+  if (nSigmaMax > 999.) {
+    return true;
+  }
   double nSigma = 100.; // arbitarily large value
   codePDG = std::abs(codePDG);
   if (codePDG == kProton) {
@@ -450,6 +453,9 @@ bool isSelectedTrackPIDTPC(const T& track, int codePDG, double nSigmaMin, double
 template <typename T>
 bool isSelectedTrackPIDTOF(const T& track, int codePDG, double nSigmaMin, double nSigmaMax)
 {
+  if (nSigmaMax > 999.) {
+    return true;
+  }
   double nSigma = 100.; // arbitarily large value
   codePDG = std::abs(codePDG);
   if (codePDG == kProton) {
