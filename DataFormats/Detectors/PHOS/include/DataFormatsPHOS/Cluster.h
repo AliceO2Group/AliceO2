@@ -64,10 +64,14 @@ class Cluster
 
   float getTime() const { return mTime; }
 
+  char firedTrigger() const { return mFiredTrigger; }
+  void setFiredTrigger(char t) { mFiredTrigger = t; }
+
  protected:
   char mMulDigit = 0;            ///< Digit nultiplicity
   char mModule = 0;              ///< Module number
   char mNExMax = -1;             ///< number of (Ex-)maxima before unfolding
+  char mFiredTrigger = 0;        ///< matched with PHOS trigger: 0 no match, bit 1 with 2x2, bit 2 with 4x4
   float mLocalPosX = 0.;         ///< Center of gravity position in local module coordunates (phi direction)
   float mLocalPosZ = 0.;         ///< Center of gravity position in local module coordunates (z direction)
   float mFullEnergy = 0.;        ///< full energy of a shower
@@ -78,7 +82,7 @@ class Cluster
   float mTime = 0.;              ///< Time of the digit with maximal energy deposition
   float mDistToBadChannel = 999; ///< Distance to nearest bad crystal
 
-  ClassDefNV(Cluster, 2);
+  ClassDefNV(Cluster, 3);
 };
 } // namespace phos
 } // namespace o2
