@@ -550,32 +550,40 @@ Bool_t AliAlgTrack::PropagateParamToPoint(trackParam_t* tr, int nTr, const AliAl
 Bool_t AliAlgTrack::PropagateParamToPoint(trackParam_t& tr, const AliAlgPoint* pnt, double maxStep, double maxSnp, MatCorrType mt)
 {
   // propagate tracks to the point (only parameters, no error matrix)
-  //
-  if (!tr.rotateParam(pnt->GetAlphaSens())) {
-#if DEBUG > 3
-    LOG(error) << "Failed to rotate to alpha=" << pnt->GetAlphaSens();
-    tr.Print();
-    pnt->Print();
-#endif
-    return kFALSE;
-  }
-  return Propagator::Instance()->propagateTo(tr, pnt->GetXPoint(), pnt->GetUseBzOnly(), maxSnp, maxStep, mt);
-  //
+  return Propagate(tr, pnt, maxStep, maxSnp, mt, nullptr);
 }
 
 //______________________________________________________
 Bool_t AliAlgTrack::PropagateToPoint(trackParam_t& tr, const AliAlgPoint* pnt, double maxStep, double maxSnp, MatCorrType mt, track::TrackLTIntegral* tLT)
 {
-  //   // propagate tracks to the point. If matCor is true, then material corrections will be applied.
-  //   // if matPar pointer is provided, it will be filled by total x2x0 and signed xrho
-  if (!tr.rotate(pnt->GetAlphaSens())) {
+  // propagate tracks to the point. If matCor is true, then material corrections will be applied.
+  // if matPar pointer is provided, it will be filled by total x2x0 and signed xrho
+  return Propagate(tr, pnt, maxStep, maxSnp, mt, tLT);
+}
+
+Bool_t AliAlgTrack::Propagate(trackParam_t& track, const AliAlgPoint* pnt, Double_t maxStep, Double_t maxSnp, MatCorrType mt, track::TrackLTIntegral* tLT)
+{
+  if (!track.rotate(pnt->GetAlphaSens())) {
 #if DEBUG > 3
-    LOG(WARNING) << "Failed to rotate to alpha=" << pnt->GetAlphaSens();
+    LOG(error) << "Failed to rotate to alpha=" << pnt->GetAlphaSens();
     tr.print();
+    pnt->Print();
 #endif
     return kFALSE;
   }
-  return Propagator::Instance()->propagateTo(tr, pnt->GetXPoint(), pnt->GetUseBzOnly(), maxSnp, maxStep, mt, tLT);
+  // calculate the sign of the energy loss correction and ensure the upper leg of cosmics is calculated correctly.
+  const Int_t signCorr = [this, &pnt, &track, maxStep] {
+    const Double_t dx = maxStep - track.getX();
+    const Int_t dir = dx > 0.f ? 1 : -1;
+    if (pnt->IsInvDir()) {
+      // upper leg of a cosmic -> inward facing track
+      return dir;
+    } else {
+      // outward facing track
+      return -dir;
+    }
+  }();
+  return Propagator::Instance()->propagateTo(track, pnt->GetXPoint(), pnt->GetUseBzOnly(), maxSnp, maxStep, mt, tLT, signCorr);
 }
 
 /*
