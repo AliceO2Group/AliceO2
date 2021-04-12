@@ -146,6 +146,9 @@ class Parametrization : public TNamed
   /// Getter for the parameters
   Parameters GetParameters() const { return mParameters; }
 
+  /// Getter for the parameters
+  void GetParameters(Parameters*& parameters) { parameters = &mParameters; }
+
  protected:
   /// Parameters of the parametrization
   Parameters mParameters;

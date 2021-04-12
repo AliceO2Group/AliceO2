@@ -38,7 +38,7 @@ struct pidTOFTask {
   using Trks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov>;
   using Coll = aod::Collisions;
   Produces<aod::pidRespTOF> tablePID;
-  Parameters resoParameters;
+  Parameters resoParameters(1);
   Service<o2::ccdb::BasicCCDBManager> ccdb;
   Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
   Configurable<std::string> sigmaname{"param-sigma", "TOFResoALICE3", "Name of the parametrization for the expected sigma, used in both file and CCDB mode"};
