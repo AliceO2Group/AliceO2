@@ -12,4 +12,3 @@
 using namespace o2::fdd;
 
 int DigitBlockFDD::sEventID = 0;
-o2::fdd::LookUpTable DigitBlockFDD::sLookupTable = o2::fdd::LookUpTable::linear();
