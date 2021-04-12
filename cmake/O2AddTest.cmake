@@ -11,22 +11,43 @@
 include_guard()
 
 include(O2AddExecutable)
-include(O2AddTestWrapper)
 
 #
-# o2_add_test(testName SOURCES ...) adds a test. The test itself (in the CTest
-# sense) is a wrapper around an executable. Both the test wrapper and the
-# executable are setup by this function.
+# o2_add_test(testName SOURCES) adds an executable that is also a test.
+#
+# It is a convenience function that groups the actions of cmake intrinsics
+# add_executable and add_test.
 #
 # If BUILD_TESTING if not set this function does nothing at all.
 #
 # The test name is the name of the first source file in SOURCES, unless the NAME
 # parameter is given (see below).
 #
-# This function accepts two sets of parameters : one for the executable and one
-# for the test wrapper.
+# o2_add_test accept the following parameters : 
 #
-# Parameters of the test executable :
+# required 
+#
+# * SOURCES : same meaning as for o2_add_executable
+#
+# recommended/often needed : 
+#
+# * PUBLIC_LINK_LIBRARIES : same meaning as for 
+#   o2_add_executable
+# * COMMAND_LINE_ARGS : the arguments to pass to the executable, if any
+# * COMPONENT_NAME : a short name that will be used to create the 
+#   executable name (if not provided with NAME) : o2-test-[COMPONENT_NAME]-...
+# * LABELS : labels attached to the test, that can then be used to filter
+#   which tests are executed with the `ctest -L` command
+#
+# optional/less frequently used :
+#
+# * NAME: if given, will be used verbatim as the test name
+# * ENVIRONMENT: extra environment needed by the test to run properly
+# * TIMEOUT : the number of seconds allowed for the test to run. Past this time
+#   failure is assumed.
+# * WORKING_DIRECTORY: the directory in which the test will be ran
+#
+# rarely needed/for special cases : 
 #
 # * NO_BOOST_TEST :  we assume most of the tests are using the Boost::Test
 #   framework and thus link the test with the Boost::unit_test_framework target.
@@ -35,16 +56,10 @@ include(O2AddTestWrapper)
 # * INSTALL : by default tests are _not_ installed. If that option is present
 #   then the test is installed (under ${CMAKE_INSTALL_PREFIX}/tests, not in
 #   ${CMAKE_INSTALL_PREFIX}/bin like other binaries)
+# * CONFIGURATIONS : the test will only be ran for those named configurations
+# * TARGETVARNAME : same meaning as for o2_add_executable
 #
-# Parameters of the test wrapper :
-#
-# * NAME: if given, will be used verbatim as the test name
-# * MAX_ATTEMPTS : the number of time the test will be tried (upon failures)
-#   before it is actually considered as failed
-# * TIMEOUT : the number of seconds allowed for the test to run. Past this time
-#   failure is assumed.
-# * ENVIRONMENT: extra environment needed by the test to run properly
-#
+
 function(o2_add_test)
 
   if(NOT BUILD_TESTING)
@@ -56,13 +71,12 @@ function(o2_add_test)
     1
     A
     "INSTALL;NO_BOOST_TEST"
-    "COMPONENT_NAME;MAX_ATTEMPTS;TIMEOUT;WORKING_DIRECTORY;NAME"
+    "COMPONENT_NAME;TIMEOUT;WORKING_DIRECTORY;NAME"
     "SOURCES;PUBLIC_LINK_LIBRARIES;COMMAND_LINE_ARGS;LABELS;CONFIGURATIONS;ENVIRONMENT"
     )
 
   if(A_UNPARSED_ARGUMENTS)
-    message(
-      FATAL_ERROR "Unexpected unparsed arguments: ${A_UNPARSED_ARGUMENTS}")
+    message(FATAL_ERROR "Unexpected unparsed arguments: ${A_UNPARSED_ARGUMENTS}")
   endif()
 
   set(testName ${ARGV0})
@@ -94,7 +108,7 @@ function(o2_add_test)
                     COMPONENT_NAME ${A_COMPONENT_NAME}
                     IS_TEST ${noInstall} TARGETVARNAME targetName)
 
-  # create a test with a script wrapping the executable above
+  # create a test for the executable above
   set(name "")
   if(A_NAME)
     set(name ${A_NAME})
@@ -104,14 +118,14 @@ function(o2_add_test)
     file(RELATIVE_PATH name ${CMAKE_SOURCE_DIR} ${src})
   endif()
 
-  o2_add_test_wrapper(TARGET ${targetName}
-                      NAME ${name}
-                      DONT_FAIL_ON_TIMEOUT
-                      MAX_ATTEMPTS ${A_MAX_ATTEMPTS}
-                      TIMEOUT ${A_TIMEOUT}
-                      WORKING_DIRECTORY ${A_WORKING_DIRECTORY}
-                      COMMAND_LINE_ARGS ${A_COMMAND_LINE_ARGS}
-                      LABELS ${A_LABELS}
-                      CONFIGURATIONS ${A_CONFIGURATIONS}
-                      ENVIRONMENT "${A_ENVIRONMENT}")
+  add_test(NAME ${name} 
+           COMMAND ${targetName} ${A_COMMAND_LINE_ARGS}
+           WORKING_DIRECTORY ${A_WORKING_DIRECTORY}
+           CONFIGURATIONS ${A_CONFIGURATIONS}
+          )
+
+  set_property(TEST ${name} PROPERTY LABELS ${A_LABELS})
+  set_property(TEST ${name} PROPERTY ENVIRONMENT "${A_ENVIRONMENT}")
+  set_property(TEST ${name} PROPERTY TIMEOUT ${A_TIMEOUT})
+
 endfunction()
