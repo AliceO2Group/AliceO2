@@ -168,7 +168,7 @@ inline int TimeFrame::getPrimaryVerticesNum(int rofID) const
 
 inline bool TimeFrame::empty() const { return getTotalClusters() == 0; }
 
-inline int TimeFrame::getSortedIndex(int rof, int layer, int index) const { return mROframesClusters[layer][rof] + index; }
+inline int TimeFrame::getSortedIndex(int rof, int layer, int index) const { return rof == 0 ? index : mROframesClusters[layer][rof - 1] + index; }
 
 inline int TimeFrame::getNrof() const { return mNrof; };
 
