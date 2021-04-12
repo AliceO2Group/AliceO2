@@ -154,7 +154,6 @@ class AliAlgTrack : public trackParam_t, public TObject
   AliAlgTrack& operator=(const AliAlgTrack&);
   //
  protected:
-  //trackParam_t
   Int_t fNLocPar;              // number of local params
   Int_t fNLocExtPar;           // number of local params for the external track param
   Int_t fNGloPar;              // number of free global parameters the track depends on
@@ -178,6 +177,8 @@ class AliAlgTrack : public trackParam_t, public TObject
   Double_t* fDResDGloA[2];     //! fast access to global derivatives
   Int_t* fGloParIDA;           //! fast access to relevant global param IDs
   Double_t* fLocParA;          //! fast access to local params
+ private:
+  Bool_t Propagate(trackParam_t& tr, const AliAlgPoint* pnt, Double_t maxStep, Double_t maxSnp, MatCorrType mt, track::TrackLTIntegral* tLT);
   //
   ClassDef(AliAlgTrack, 2)
 };
