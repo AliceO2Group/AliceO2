@@ -86,7 +86,6 @@ inline void DetectorResponse::LoadParamFromFile(const TString fname, const TStri
   f.GetObject(pname, mParam[ptype]);
   f.Close();
   mParam[ptype]->Print();
-  mParam[ptype]->Print();
 }
 
 inline void DetectorResponse::SetParameters(const DetectorResponse::Param_t ptype, std::vector<pidvar_t> p)

@@ -36,7 +36,7 @@ bool initOptionsAndParse(bpo::options_description& options, int argc, char* argv
     "read-from-file,i", bpo::value<std::string>()->default_value(""), "Option to get parametrization from a file")(
     "reso-name,n", bpo::value<std::string>()->default_value("TOFResoALICE3"), "Name of the parametrization object")(
     "mode,m", bpo::value<unsigned int>()->default_value(1), "Working mode: 0 push 1 pull and test")(
-    "p0", bpo::value<float>()->default_value(20.0f), "Parameter 4 of the TOF resolution: average TOF resolution")(
+    "p0", bpo::value<float>()->default_value(20.0f), "Parameter 0 of the TOF resolution: average TOF resolution")(
     "verbose,v", bpo::value<int>()->default_value(0), "Verbose level 0, 1")(
     "help,h", "Produce help message.");
   try {
@@ -114,7 +114,9 @@ int main(int argc, char* argv[])
         api.truncate(path);
       }
       api.storeAsTFileAny(reso, path + "/" + reso_name, metadata, start, stop);
-      api.storeAsTFileAny(reso->GetParameters(), path + "/Parameters/" + reso_name, metadata, start, stop);
+      o2::pid::Parameters* params;
+      reso->GetParameters(params);
+      api.storeAsTFileAny(params, path + "/Parameters/" + reso_name, metadata, start, stop);
     }
   } else { // Pull and test mode
     LOG(INFO) << "Handling TOF parametrization in test mode";

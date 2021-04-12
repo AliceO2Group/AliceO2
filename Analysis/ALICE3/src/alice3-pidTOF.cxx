@@ -41,7 +41,7 @@ struct pidTOFTask {
   Parameters resoParameters;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
   Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
-  Configurable<std::string> sigmaname{"param-sigma", "TOFReso", "Name of the parametrization for the expected sigma, used in both file and CCDB mode"};
+  Configurable<std::string> sigmaname{"param-sigma", "TOFResoALICE3", "Name of the parametrization for the expected sigma, used in both file and CCDB mode"};
   Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
   Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
 
@@ -55,8 +55,8 @@ struct pidTOFTask {
     ccdb->setCreatedNotAfter(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
     //
     const std::vector<float> p = {24.5};
-    const std::string fname = paramfile.value;
     resoParameters.SetParameters(p);
+    const std::string fname = paramfile.value;
     if (!fname.empty()) { // Loading the parametrization from file
       LOG(INFO) << "Loading parametrization from file" << fname << ", using param: " << sigmaname;
       resoParameters.LoadParamFromFile(fname.data(), sigmaname.value.data());
