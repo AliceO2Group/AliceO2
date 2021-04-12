@@ -11,10 +11,12 @@
 
 include_guard()
 
+include(O2AddTestCommand)
+
 #
 # o2_add_test_root_macro generate a test for a Root macro.
 #
-# That test is trying to load the macro within a root.exe session using 
+# That test is trying to load the macro within a root.exe session using
 # ".L macro.C"
 #
 # * arg COMPILE: if present we generate, in addition to the baseline "load
@@ -95,7 +97,7 @@ function(o2_add_test_root_macro macro)
 
   # baseline test is to try and load the macro
   if (NOT A_COMPILE_ONLY)
-    o2_add_test_wrapper(COMMAND ${CMAKE_BINARY_DIR}/test-root-macro.sh
+    o2_add_test_command(COMMAND ${CMAKE_BINARY_DIR}/test-root-macro.sh
                         NAME ${testName}
                         WORKING_DIRECTORY ${CMAKE_BINARY_DIR} ${nonFatal}
                         COMMAND_LINE_ARGS ${macroFileName} 0 "${includePath}" "${libraryPath}"
@@ -110,8 +112,7 @@ function(o2_add_test_root_macro macro)
 
   # if (and only if) requested, try also to compile the macro
   if(A_COMPILE OR A_COMPILE_ONLY)
-
-    o2_add_test_wrapper(COMMAND ${CMAKE_BINARY_DIR}/test-root-macro.sh
+    o2_add_test_command(COMMAND ${CMAKE_BINARY_DIR}/test-root-macro.sh
                         NAME ${testName}_compiled
                         WORKING_DIRECTORY ${CMAKE_BINARY_DIR} ${nonFatal}
                         COMMAND_LINE_ARGS ${macroFileName} 1 "${includePath}" "${libraryPath}"
