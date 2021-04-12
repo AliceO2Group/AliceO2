@@ -61,6 +61,9 @@ struct SelectTracks {
   Configurable<LabeledArray<double>> cutsTrack3Prong{"cuts_singletrack_3prong", {hf_cuts_single_track::cutsTrack[0], npTBinsTrack, nCutVarsTrack, pTBinLabelsTrack, cutVarLabelsTrack}, "Single-track selections per pT bin for 3-prong candidates"};
   Configurable<double> etamax_3prong{"etamax_3prong", 4., "max. pseudorapidity for 3 prong candidate"};
 
+  // array of 2-prong and 3-prong single-track cuts
+  std::array<Configurable<LabeledArray<double>>, 2> cutsTrack = {cutsTrack2Prong, cutsTrack3Prong};
+
   HistogramRegistry registry{
     "registry",
     {{"hpt_nocuts", "all tracks;#it{p}_{T}^{track} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
@@ -78,14 +81,12 @@ struct SelectTracks {
   /// \param dca is a 2-element array with dca in transverse and longitudinal directions
   /// \return true if track passes all cuts
   template <typename T>
-  bool isSelectedTrack(const T& hfTrack, const array<float, 2>& dca, const int& candType)
+  bool isSelectedTrack(const T& hfTrack, const array<float, 2>& dca, const int candType)
   {
     auto pTBinTrack = findBin(pTBinsTrack, hfTrack.pt());
     if (pTBinTrack == -1) {
       return false;
     }
-
-    std::array<Configurable<LabeledArray<double>>, 2> cutsTrack = {cutsTrack2Prong, cutsTrack3Prong};
 
     if (abs(dca[0]) < cutsTrack[candType]->get(pTBinTrack, "min_dcaxytoprimary")) {
       return false; //minimum DCAxy
