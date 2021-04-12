@@ -117,7 +117,9 @@ int main(int argc, char* argv[])
       LOG(INFO) << "Saving parametrization to file " << fname;
       TFile f(fname.data(), "RECREATE");
       bb->Write();
+      bb->GetParameters().Write();
       reso->Write();
+      reso->GetParameters().Write();
       f.ls();
       f.Close();
     } else { // Saving it to CCDB
@@ -130,7 +132,12 @@ int main(int argc, char* argv[])
         api.truncate(path);
       }
       api.storeAsTFileAny(bb, path + "/" + exp_name, metadata, start, stop);
+      o2::pid::Parameters* params;
+      bb->GetParameters(params);
+      api.storeAsTFileAny(params, path + "/Parameters/" + exp_name, metadata, start, stop);
       api.storeAsTFileAny(reso, path + "/" + reso_name, metadata, start, stop);
+      reso->GetParameters(params);
+      api.storeAsTFileAny(params, path + "/Parameters/" + reso_name, metadata, start, stop);
     }
   } else { // Pull and test mode
     LOG(INFO) << "Handling TPC parametrization in test mode";
