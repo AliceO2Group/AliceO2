@@ -51,7 +51,7 @@ DataProcessorSpec getClusterWriterSpec(bool useMC)
                                   MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with PHOS clusters"},
                                   BranchDefinition<ClusType>{InputSpec{"clus", "PHS", "CLUSTERS", 0},
                                                              "PHOSCluster", ClustersSizeGetter},
-                                  BranchDefinition<TriggerRecordType>{InputSpec{"clusRecs", "PHS", "CLUSTERTRIGRECS", 0},
+                                  BranchDefinition<TriggerRecordType>{InputSpec{"clusRecs", "PHS", "CLUSTERTRIGREC", 0},
                                                                       "PHOSClusterTrigRec"},
                                   BranchDefinition<MCLabelType>{InputSpec{"clusMC", "PHS", "CLUSTERTRUEMC", 0},
                                                                 "PHOSClusterTrueMC"})();
@@ -61,7 +61,7 @@ DataProcessorSpec getClusterWriterSpec(bool useMC)
                                   MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with PHOS clusters"},
                                   BranchDefinition<ClusType>{InputSpec{"clus", "PHS", "CLUSTERS", 0},
                                                              "PHOSCluster", ClustersSizeGetter},
-                                  BranchDefinition<TriggerRecordType>{InputSpec{"clusRecs", "PHS", "CLUSTERTRIGRECS", 0},
+                                  BranchDefinition<TriggerRecordType>{InputSpec{"clusRecs", "PHS", "CLUSTERTRIGREC", 0},
                                                                       "PHOSClusterTrigRec"})();
   }
 }

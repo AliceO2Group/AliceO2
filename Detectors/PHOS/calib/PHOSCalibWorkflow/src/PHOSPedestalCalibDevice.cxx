@@ -19,29 +19,14 @@
 #include "Framework/ControlService.h"
 #include "Framework/WorkflowSpec.h"
 #include "DataFormatsPHOS/TriggerRecord.h"
-#include "DetectorsRaw/RDHUtils.h"
-#include "Framework/InputRecordWalker.h"
+#include "DataFormatsPHOS/Cell.h"
 #include "PHOSBase/Mapping.h"
-#include "PHOSReconstruction/Bunch.h"
-#include "PHOSReconstruction/AltroDecoder.h"
-#include "PHOSReconstruction/RawDecodingError.h"
 #include <TFile.h>
 
 using namespace o2::phos;
 
 void PHOSPedestalCalibDevice::init(o2::framework::InitContext& ic)
 {
-
-  mMapping.reset(new o2::phos::Mapping(""));
-  if (mMapping.get() == nullptr) {
-    LOG(FATAL) << "Failed to initialize mapping";
-  }
-  if (mMapping->setMapping() != o2::phos::Mapping::kOK) {
-    LOG(ERROR) << "Failed to construct mapping";
-  }
-
-  mRawFitter.reset(new o2::phos::CaloRawFitter());
-  mRawFitter->setPedestal(); // work in pedestal evaluation mode
 
   //Create histograms for mean and RMS
   short n = o2::phos::Mapping::NCHANNELS;
@@ -53,83 +38,27 @@ void PHOSPedestalCalibDevice::init(o2::framework::InitContext& ic)
 
 void PHOSPedestalCalibDevice::run(o2::framework::ProcessingContext& ctx)
 {
+  // scan Cells stream, collect mean and RMS then calculateaverage and post
+  if (mRunStartTime == 0) {
+    mRunStartTime = o2::header::get<o2::framework::DataProcessingHeader*>(ctx.inputs().get("cellTriggerRecords").header)->startTime;
+  }
 
-  //Read current padestals for comarison
-  // if (mUseCCDB && mOldPed.get()==nullptr) {
-  //   mOldPed.reset(std::move(ctx.inputs().get<o2::phos::Pedestals*>("oldPedestals")));
-  // }
-
-  //
-  for (const auto& rawData : framework::InputRecordWalker(ctx.inputs())) {
-
-    o2::phos::RawReaderMemory rawreader(o2::framework::DataRefUtils::as<const char>(rawData));
-
-    // loop over all the DMA pages
-    while (rawreader.hasNext()) {
-      try {
-        rawreader.next();
-      } catch (RawDecodingError::ErrorType_t e) {
-        LOG(ERROR) << "Raw decoding error " << (int)e;
-        //if problem in header, abandon this page
-        if (e == RawDecodingError::ErrorType_t::PAGE_NOTFOUND ||
-            e == RawDecodingError::ErrorType_t::HEADER_DECODING ||
-            e == RawDecodingError::ErrorType_t::HEADER_INVALID) {
-          break;
-        }
-        //if problem in payload, try to continue
-        continue;
+  auto cells = ctx.inputs().get<gsl::span<o2::phos::Cell>>("cells");
+  LOG(DEBUG) << "[PHOSPedestalCalibDevice - run]  Received " << cells.size() << " cells, running calibration ...";
+  auto cellsTR = ctx.inputs().get<gsl::span<o2::phos::TriggerRecord>>("cellTriggerRecords");
+  for (const auto& tr : cellsTR) {
+    int firstCellInEvent = tr.getFirstEntry();
+    int lastCellInEvent = firstCellInEvent + tr.getNumberOfObjects();
+    for (int i = firstCellInEvent; i < lastCellInEvent; i++) {
+      const Cell c = cells[i];
+      if (c.getHighGain()) {
+        mMeanHG->Fill(c.getAbsId(), c.getEnergy());
+        mRMSHG->Fill(c.getAbsId(), 1.e+7 * c.getTime());
+      } else {
+        mMeanLG->Fill(c.getAbsId(), c.getEnergy());
+        mRMSLG->Fill(c.getAbsId(), 1.e+7 * c.getTime());
       }
-      auto& header = rawreader.getRawHeader();
-      auto triggerBC = o2::raw::RDHUtils::getTriggerBC(header);
-      auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(header);
-      auto ddl = o2::raw::RDHUtils::getFEEID(header);
-
-      if (mRunStartTime == 0) {
-        o2::InteractionRecord currentIR(triggerBC, triggerOrbit);
-        mRunStartTime = long(currentIR.bc2ns() * 1.e-9);
-      }
-
-      if (ddl > o2::phos::Mapping::NDDL) { //only 14 correct DDLs
-        LOG(ERROR) << "DDL=" << ddl;
-        continue; //skip STU ddl
-      }
-      // use the altro decoder to decode the raw data, and extract the RCU trailer
-      o2::phos::AltroDecoder decoder(rawreader);
-      AltroDecoderError::ErrorType_t err = decoder.decode();
-
-      if (err != AltroDecoderError::kOK) {
-        LOG(ERROR) << "Errror " << err << " in decoding DDL" << ddl;
-      }
-      auto& rcu = decoder.getRCUTrailer();
-      auto& channellist = decoder.getChannels();
-      // Loop over all the channels for this RCU
-      for (auto& chan : channellist) {
-        short absId;
-        Mapping::CaloFlag caloFlag;
-        short fee;
-        Mapping::ErrorStatus s = mMapping->hwToAbsId(ddl, chan.getHardwareAddress(), absId, caloFlag);
-        if (s != Mapping::ErrorStatus::kOK) {
-          LOG(ERROR) << "Error in mapping"
-                     << " ddl=" << ddl << " hwaddress " << chan.getHardwareAddress();
-          continue;
-        }
-        if (caloFlag != Mapping::kTRU) { //HighGain or LowGain
-          CaloRawFitter::FitStatus fitResults = mRawFitter->evaluate(chan.getBunches());
-          if (fitResults == CaloRawFitter::FitStatus::kOK || fitResults == CaloRawFitter::FitStatus::kNoTime) {
-            //TODO: which results should be accepted? full configurable list
-            for (int is = 0; is < mRawFitter->getNsamples(); is++) {
-              if (caloFlag == Mapping::kHighGain) {
-                mMeanHG->Fill(absId, mRawFitter->getAmp(is));
-                mRMSHG->Fill(absId, mRawFitter->getTime(is));
-              } else {
-                mMeanLG->Fill(absId, mRawFitter->getAmp(is));
-                mRMSLG->Fill(absId, mRawFitter->getTime(is));
-              }
-            }
-          }
-        }
-      }
-    } //RawReader::hasNext
+    }
   }
 }
 
@@ -139,32 +68,26 @@ void PHOSPedestalCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
   LOG(INFO) << "[PHOSPedestalCalibDevice - endOfStream]";
   //calculate stuff here
   calculatePedestals();
-
   checkPedestals();
-
   sendOutput(ec.outputs());
 }
 
 void PHOSPedestalCalibDevice::sendOutput(DataAllocator& output)
 {
+
   // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
-  // TODO in principle, this routine is generic, can be moved to Utils.h
-  // using clbUtils = o2::calibration::Utils;
-  if (mUpdateCCDB || mForceUpdate) {
+  if (mUseCCDB && (mUpdateCCDB || mForceUpdate)) {
     // prepare all info to be sent to CCDB
-    o2::ccdb::CcdbObjectInfo info;
+    auto flName = o2::ccdb::CcdbApi::generateFileName("Pedestals");
+    std::map<std::string, std::string> md;
+    o2::ccdb::CcdbObjectInfo info("PHS/Calib/Pedestals", "Pedestals", flName, md, mRunStartTime, 99999999999999);
+    info.setMetaData(md);
     auto image = o2::ccdb::CcdbApi::createObjectImage(mPedestals.get(), &info);
 
-    auto flName = o2::ccdb::CcdbApi::generateFileName("Pedestals");
-    info.setPath("PHOS/Calib/Pedestals");
-    info.setObjectType("Pedestals");
-    info.setFileName(flName);
-    info.setStartValidityTimestamp(mRunStartTime);
-    info.setEndValidityTimestamp(99999999999999);
-    std::map<std::string, std::string> md;
-    info.setMetaData(md);
-
-    LOG(INFO) << "Sending object PHOS/Calib/Pedestals";
+    LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName()
+              << " of size " << image->size()
+              << " bytes, valid for " << info.getStartValidityTimestamp()
+              << " : " << info.getEndValidityTimestamp();
 
     header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)0};
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBPayload, subSpec}, *image.get());
@@ -172,18 +95,10 @@ void PHOSPedestalCalibDevice::sendOutput(DataAllocator& output)
   }
   //Anyway send change to QC
   LOG(INFO) << "[PHOSPedestalCalibDevice - run] Sending QC ";
-  output.snapshot(o2::framework::Output{"PHS", "PEDDIFF", 0, o2::framework::Lifetime::Timeframe}, mPedHGDiff);
-  output.snapshot(o2::framework::Output{"PHS", "PEDDIFF", 0, o2::framework::Lifetime::Timeframe}, mPedLGDiff);
-
-  LOG(INFO) << "[PHOSPedestalCalibDevice - run] Writing ";
-  //Write pedestal distributions to calculate bad map
-  std::string filename = mPath + "PHOSPedestals.root";
-  TFile f(filename.data(), "RECREATE");
-  mMeanHG->Write();
-  mMeanLG->Write();
-  mRMSHG->Write();
-  mRMSLG->Write();
-  f.Close();
+  if (mUseCCDB) { //can get previous calibration
+    output.snapshot(o2::framework::Output{"PHS", "PEDDIFF", 0, o2::framework::Lifetime::Timeframe}, mPedHGDiff);
+    output.snapshot(o2::framework::Output{"PHS", "PEDDIFF", 0, o2::framework::Lifetime::Timeframe}, mPedLGDiff);
+  }
 }
 
 void PHOSPedestalCalibDevice::calculatePedestals()
@@ -201,38 +116,57 @@ void PHOSPedestalCalibDevice::calculatePedestals()
     a = pr->GetMean();
     mPedestals->setLGPedestal(i - 1, std::min(255, int(a)));
     pr->Delete();
+    pr = mRMSHG->ProjectionY(Form("projRMS%d", i), i, i);
+    a = pr->GetMean();
+    mPedestals->setHGRMS(i - 1, a);
+    pr->Delete();
+    pr = mRMSLG->ProjectionY(Form("projRMSLG%d", i), i, i);
+    a = pr->GetMean();
+    mPedestals->setLGRMS(i - 1, a);
+    pr->Delete();
   }
 }
 
 void PHOSPedestalCalibDevice::checkPedestals()
 {
-  //Compare pedestals to current ones stored in CCDB
-  //and send difference to QC to check
   if (!mUseCCDB) {
     mUpdateCCDB = true;
     return;
   }
+  LOG(INFO) << "Retrieving current Pedestals from CCDB";
+  //Read current padestals for comarison
+  o2::ccdb::CcdbApi ccdb;
+  ccdb.init(mCCDBPath); // or http://localhost:8080 for a local installation
+  std::map<std::string, std::string> metadata;
+  auto* currentPedestals = ccdb.retrieveFromTFileAny<Pedestals>("PHS/Calib/Pedestals", metadata, mRunStartTime);
 
-  if (mOldPed.get() == nullptr) { //was not read from CCDB, but expected
-    mUpdateCCDB = false;
+  if (!currentPedestals) { //was not read from CCDB, but expected
+    mUpdateCCDB = true;
     return;
   }
 
+  LOG(INFO) << "Got current Pedestals from CCDB";
+
   //Compare to current
   int nChanged = 0;
-  for (short i = o2::phos::Mapping::NCHANNELS; --i;) {
-    short dp = mPedestals->getHGPedestal(i) - mOldPed->getHGPedestal(i);
+  for (short i = o2::phos::Mapping::NCHANNELS; i > 1792; i--) {
+    short dp = mPedestals->getHGPedestal(i) - currentPedestals->getHGPedestal(i);
     mPedHGDiff[i] = dp;
     if (abs(dp) > 1) { //not a fluctuation
       nChanged++;
     }
-    dp = mPedestals->getLGPedestal(i) - mOldPed->getLGPedestal(i);
+    dp = mPedestals->getLGPedestal(i) - currentPedestals->getLGPedestal(i);
     mPedLGDiff[i] = dp;
     if (abs(dp) > 1) { //not a fluctuation
       nChanged++;
     }
   }
+  LOG(INFO) << nChanged << "channels changed more that 1 ADC channel";
   if (nChanged > kMinorChange) { //serious change, do not update CCDB automatically, use "force" option to overwrite
+    LOG(ERROR) << "too many channels changed: " << nChanged << " (threshold not more than " << kMinorChange << ")";
+    if (!mForceUpdate) {
+      LOG(ERROR) << "you may use --forceupdate option to force updating ccdb";
+    }
     mUpdateCCDB = false;
   } else {
     mUpdateCCDB = true;
@@ -243,16 +177,18 @@ o2::framework::DataProcessorSpec o2::phos::getPedestalCalibSpec(bool useCCDB, bo
 {
 
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("RAWDATA", o2::framework::ConcreteDataTypeMatcher{"PHS", "RAWDATA"}, o2::framework::Lifetime::Timeframe);
+  inputs.emplace_back("cells", o2::header::gDataOriginPHS, "CELLS", 0, o2::framework::Lifetime::Timeframe);
+  inputs.emplace_back("cellTriggerRecords", o2::header::gDataOriginPHS, "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe);
+
+  using clbUtils = o2::calibration::Utils;
+  std::vector<OutputSpec> outputs;
   if (useCCDB) {
-    // inputs.emplace_back("oldPedestals", "PHOS", "Pedestals");
-    inputs.emplace_back("oldPedestals", o2::header::gDataOriginPHS, "Pedestals");
+    outputs.emplace_back(
+      ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload});
+    outputs.emplace_back(
+      ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
+    outputs.emplace_back("PHS", "PEDDIFF", 0, o2::framework::Lifetime::Timeframe);
   }
-
-  std::vector<o2::framework::OutputSpec> outputs;
-  outputs.emplace_back("PHS", "PEDCALIBS", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back("PHS", "PEDDIFF", 0, o2::framework::Lifetime::Timeframe);
-
   return o2::framework::DataProcessorSpec{"PedestalCalibSpec",
                                           inputs,
                                           outputs,

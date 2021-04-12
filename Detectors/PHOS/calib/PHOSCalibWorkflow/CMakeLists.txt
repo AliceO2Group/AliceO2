@@ -11,7 +11,13 @@
 o2_add_library(PHOSCalibWorkflow
                SOURCES src/PHOSPedestalCalibDevice.cxx
                        src/PHOSHGLGRatioCalibDevice.cxx
-                       src/PHOSCalibCollector.cxx
+                       src/PHOSEnergyCalibrator.cxx
+                       src/PHOSEnergyCalibDevice.cxx
+                       src/TurnOnHistos.cxx
+                       src/PHOSTurnonCalibDevice.cxx
+                       src/PHOSTurnonCalibrator.cxx
+                       src/PHOSRunbyrunCalibrator.cxx
+                       src/PHOSRunbyrunCalibDevice.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework 
                                      O2::DataFormatsPHOS
                                      O2::DetectorsRaw
@@ -19,6 +25,20 @@ o2_add_library(PHOSCalibWorkflow
                                      O2::PHOSCalib 
                                      O2::DetectorsCalibration)
 
+o2_target_root_dictionary(PHOSCalibWorkflow
+                          HEADERS include/PHOSCalibWorkflow/PHOSPedestalCalibDevice.h
+                                  include/PHOSCalibWorkflow/PHOSHGLGRatioCalibDevice.h
+                                  include/PHOSCalibWorkflow/PHOSTurnonCalibrator.h
+                                  include/PHOSCalibWorkflow/RingBuffer.h
+                                  include/PHOSCalibWorkflow/ETCalibHistos.h
+                                  include/PHOSCalibWorkflow/PHOSEnergyCalibrator.h
+                                  include/PHOSCalibWorkflow/PHOSEnergyCalibDevice.h
+                                  include/PHOSCalibWorkflow/TurnOnHistos.h
+                                  include/PHOSCalibWorkflow/PHOSTurnonCalibrator.h
+                                  include/PHOSCalibWorkflow/PHOSTurnonCalibDevice.h
+                                  include/PHOSCalibWorkflow/PHOSRunbyrunCalibrator.h
+                                  include/PHOSCalibWorkflow/PHOSRunbyrunCalibDevice.h
+                          LINKDEF src/PHOSCalibWorkflowLinkDef.h)
 
 o2_add_executable(calib-workflow
                   COMPONENT_NAME phos

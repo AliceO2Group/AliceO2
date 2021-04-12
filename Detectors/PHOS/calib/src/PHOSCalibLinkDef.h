@@ -14,12 +14,14 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::phos::CalibDB+;
-#pragma link C++ class o2::phos::BadChannelMap+;
-#pragma link C++ class o2::TObjectWrapper<o2::phos::BadChannelMap>+;
-#pragma link C++ class o2::phos::CalibParams+;
-#pragma link C++ class o2::TObjectWrapper<o2::phos::CalibParams>+;
-#pragma link C++ class o2::phos::Pedestals+;
-#pragma link C++ class o2::TObjectWrapper<o2::phos::Pedestals>+;
+#pragma link C++ class o2::phos::CalibDB + ;
+#pragma link C++ class o2::phos::BadChannelMap + ;
+#pragma link C++ class o2::TObjectWrapper < o2::phos::BadChannelMap> + ;
+#pragma link C++ class o2::phos::CalibParams + ;
+#pragma link C++ class o2::TObjectWrapper < o2::phos::CalibParams> + ;
+#pragma link C++ class o2::phos::Pedestals + ;
+#pragma link C++ class o2::TObjectWrapper < o2::phos::Pedestals> + ;
+#pragma link C++ class o2::phos::TriggerMap + ;
+#pragma link C++ class o2::TObjectWrapper < o2::phos::TriggerMap> + ;
 
 #endif

@@ -14,6 +14,24 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::phos::PHOSPedestalCalibDevice+;
+#pragma link C++ class o2::phos::PHOSPedestalCalibDevice + ;
+#pragma link C++ class o2::phos::PHOSHGLGRatioCalibDevice + ;
+#pragma link C++ class o2::phos::ETCalibHistos + ;
+#pragma link C++ class o2::phos::PHOSEnergySlot + ;
+#pragma link C++ class o2::phos::PHOSEnergyCalibrator + ;
+#pragma link C++ class o2::phos::PHOSEnergyCalibDevice + ;
+#pragma link C++ class o2::calibration::TimeSlot < o2::phos::PHOSEnergySlot> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::phos::FullCluster, o2::phos::PHOSEnergySlot> + ;
+#pragma link C++ class o2::phos::TurnOnHistos + ;
+#pragma link C++ class o2::phos::PHOSTurnonSlot + ;
+#pragma link C++ class o2::phos::PHOSTurnonCalibrator + ;
+#pragma link C++ class o2::phos::PHOSTurnonCalibDevice + ;
+#pragma link C++ class o2::calibration::TimeSlot < o2::phos::PHOSTurnonSlot> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::phos::FullCluster, o2::phos::PHOSTurnonSlot> + ;
+#pragma link C++ class o2::phos::PHOSRunbyrunSlot + ;
+#pragma link C++ class o2::phos::PHOSRunbyrunCalibrator + ;
+#pragma link C++ class o2::phos::PHOSRunbyrunCalibDevice + ;
+#pragma link C++ class o2::calibration::TimeSlot < o2::phos::PHOSRunbyrunSlot> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::phos::FullCluster, o2::phos::PHOSRunbyrunSlot> + ;
 
 #endif

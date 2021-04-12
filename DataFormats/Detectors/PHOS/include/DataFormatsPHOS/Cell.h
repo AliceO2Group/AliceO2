@@ -34,7 +34,8 @@ constexpr float kTime0 = 150.e-9;       //-Minimal time to be digitized
 enum ChannelType_t {
   HIGH_GAIN, ///< High gain channel
   LOW_GAIN,  ///< Low gain channel
-  TRU        ///< TRU channel
+  TRU2x2,    ///< TRU channel, 2x2 trigger
+  TRU4x4     ///< TRU channel, 4x4 trigger
 };
 
 class Cell

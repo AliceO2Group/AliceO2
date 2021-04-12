@@ -54,6 +54,9 @@ struct PHOSSimParams : public o2::conf::ConfigurableParamHelper<PHOSSimParams> {
   float mMinNoiseTime = -200.;   ///< minimum time in noise channels (in ns)
   float mMaxNoiseTime = 2000.;   ///< minimum time in noise channels (in ns)
 
+  float mTrig2x2MinThreshold = 800.; ///< threshold to simulate 2x2 trigger turn-on curve (in ADC counts~0.005 GeV/count!)
+  float mTrig4x4MinThreshold = 900.; ///< threshold to simulate 4x4 trigger turn-on curve (in ADC counts!)
+
   //Parameters used in Raw simulation
   float mSampleDecayTime = 0.091; ///< Time parameter in Gamma2 function (1/tau, 100.e-9/2.1e-6)
 
