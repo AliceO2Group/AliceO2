@@ -22,7 +22,7 @@ using namespace o2::phos;
 
 Cell::Cell(short absId, float energy, float time, ChannelType_t ctype)
 {
-  if (ctype == ChannelType_t::TRU) {
+  if (ctype == ChannelType_t::TRU2x2 || ctype == ChannelType_t::TRU4x4) {
     setTRUId(absId);
   } else {
     setAbsId(absId);
@@ -127,9 +127,11 @@ void Cell::setType(ChannelType_t ctype)
 {
   switch (ctype) {
     case ChannelType_t::HIGH_GAIN:
+    case ChannelType_t::TRU2x2:
       setHighGain();
       break;
     case ChannelType_t::LOW_GAIN:
+    case ChannelType_t::TRU4x4:
       setLowGain();
       break;
     default:;
@@ -138,12 +140,19 @@ void Cell::setType(ChannelType_t ctype)
 
 ChannelType_t Cell::getType() const
 {
-  if (getHighGain()) {
-    return ChannelType_t::HIGH_GAIN;
-  } else if (getTRU()) {
-    return ChannelType_t::TRU;
+  if (getTRU()) {
+    if (getHighGain()) {
+      return ChannelType_t::TRU2x2;
+    } else {
+      return ChannelType_t::TRU4x4;
+    }
+  } else {
+    if (getHighGain()) {
+      return ChannelType_t::HIGH_GAIN;
+    } else {
+      return ChannelType_t::LOW_GAIN;
+    }
   }
-  return ChannelType_t::LOW_GAIN;
 }
 
 void Cell::setLowGain()

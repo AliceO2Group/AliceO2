@@ -46,6 +46,8 @@ class FullCluster : public Cluster
   FullCluster() = default;
   FullCluster(short digitAbsId, float energy, float time, int label, float scale);
 
+  FullCluster(const FullCluster& clu) = default;
+
   ~FullCluster() = default;
 
   /// \brief Method to add digit to a cluster

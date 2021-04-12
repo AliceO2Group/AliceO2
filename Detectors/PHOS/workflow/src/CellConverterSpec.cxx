@@ -84,33 +84,38 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
     for (int i = iFirstDigit; i < iLastDigit; i++) {
       const auto& dig = digits.at(i);
 
-      //apply filter
-      if (!mBadMap->isChannelGood(dig.getAbsId())) {
-        continue;
-      }
-
-      ChannelType_t chantype;
-      if (dig.isHighGain()) {
-        chantype = ChannelType_t::HIGH_GAIN;
-      } else {
-        chantype = ChannelType_t::LOW_GAIN;
-      }
-
-      //    TODO!!! TRU copying...
-      //    if (dig.getTRU())
-      //      chantype = ChannelType_t::TRU;
-
-      mOutputCells.emplace_back(dig.getAbsId(), dig.getAmplitude(), dig.getTime(), chantype);
-      if (mPropagateMC) { //copy MC info,
-        int iLab = dig.getLabel();
-        if (iLab > -1) {
-          mOutputTruthCont.addElements(icell, truthcont->getLabels(iLab));
+      if (dig.isTRU()) {
+        ChannelType_t chantype;
+        if (dig.isHighGain()) {
+          chantype = ChannelType_t::TRU2x2;
         } else {
-          MCLabel label(0, 0, 0, true, 0);
-          label.setNoise();
-          mOutputTruthCont.addElement(icell, label);
+          chantype = ChannelType_t::TRU4x4;
         }
-        icell++;
+        mOutputCells.emplace_back(dig.getAbsId(), dig.getAmplitude(), dig.getTime(), chantype);
+      } else {
+        //apply filter
+        if (!mBadMap->isChannelGood(dig.getAbsId())) {
+          continue;
+        }
+
+        ChannelType_t chantype;
+        if (dig.isHighGain()) {
+          chantype = ChannelType_t::HIGH_GAIN;
+        } else {
+          chantype = ChannelType_t::LOW_GAIN;
+        }
+        mOutputCells.emplace_back(dig.getAbsId(), dig.getAmplitude(), dig.getTime(), chantype);
+        if (mPropagateMC) { //copy MC info,
+          int iLab = dig.getLabel();
+          if (iLab > -1) {
+            mOutputTruthCont.addElements(icell, truthcont->getLabels(iLab));
+          } else {
+            MCLabel label(0, 0, 0, true, 0);
+            label.setNoise();
+            mOutputTruthCont.addElement(icell, label);
+          }
+          icell++;
+        }
       }
     }
     mOutputCellTrigRecs.emplace_back(tr.getBCData(), indexStart, mOutputCells.size() - indexStart);

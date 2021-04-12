@@ -75,6 +75,7 @@ class RawWriter
                       std::vector<char>& trailer, std::vector<char>& header) const;
 
  protected:
+  void createTRUBunches(short truId, const std::vector<o2::phos::Digit*>& channelDigits, std::vector<o2::phos::AltroBunch>& bunchs);
   void createRawBunches(short absId, const std::vector<o2::phos::Digit*>& digits, std::vector<o2::phos::AltroBunch>& bunchHG,
                         std::vector<o2::phos::AltroBunch>& bunchLG, bool& isLGFilled);
 
@@ -92,6 +93,7 @@ class RawWriter
   std::unique_ptr<const CalibParams> mCalibParams;    ///< PHOS calibration
   gsl::span<o2::phos::Digit> mDigits;                 ///< Digits input vector - must be in digitized format including the time response
   std::vector<SRUDigitContainer> mSRUdata;            ///< Internal helper of digits assigned to SRUs
+  std::vector<SRUDigitContainer> mTRUdata;            ///< Internal helper of digits assigned to TRUs
   std::unique_ptr<o2::raw::RawFileWriter> mRawWriter; ///< Raw writer
 
   ClassDefNV(RawWriter, 1);
