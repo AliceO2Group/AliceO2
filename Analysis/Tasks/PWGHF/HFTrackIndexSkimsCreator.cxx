@@ -61,9 +61,6 @@ struct SelectTracks {
   Configurable<LabeledArray<double>> cutsTrack3Prong{"cuts_singletrack_3prong", {hf_cuts_single_track::cutsTrack[0], npTBinsTrack, nCutVarsTrack, pTBinLabelsTrack, cutVarLabelsTrack}, "Single-track selections per pT bin for 3-prong candidates"};
   Configurable<double> etamax_3prong{"etamax_3prong", 4., "max. pseudorapidity for 3 prong candidate"};
 
-  // array of 2-prong and 3-prong single-track cuts
-  std::array<Configurable<LabeledArray<double>>, 2> cutsTrack = {cutsTrack2Prong, cutsTrack3Prong};
-
   HistogramRegistry registry{
     "registry",
     {{"hpt_nocuts", "all tracks;#it{p}_{T}^{track} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
@@ -75,6 +72,14 @@ struct SelectTracks {
      {"hpt_cuts_3prong", "tracks selected for 3-prong vertexing;#it{p}_{T}^{track} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hdcatoprimxy_cuts_3prong", "tracks selected for 3-prong vertexing;DCAxy to prim. vtx. (cm);entries", {HistType::kTH1F, {{400, -2., 2.}}}},
      {"heta_cuts_3prong", "tracks selected for 3-prong vertexing;#it{#eta};entries", {HistType::kTH1F, {{static_cast<int>(1.2 * etamax_3prong * 100), -1.2 * etamax_3prong, 1.2 * etamax_3prong}}}}}};
+
+  // array of 2-prong and 3-prong single-track cuts
+  std::array<LabeledArray<double>, 2> cutsSingleTrack;
+
+  void init(InitContext const&)
+  {
+    cutsSingleTrack = {cutsTrack2Prong, cutsTrack3Prong};    
+  }
 
   /// Single-track cuts for 2-prongs or 3-prongs
   /// \param hfTrack is a track
@@ -88,10 +93,10 @@ struct SelectTracks {
       return false;
     }
 
-    if (abs(dca[0]) < cutsTrack[candType]->get(pTBinTrack, "min_dcaxytoprimary")) {
+    if (abs(dca[0]) < cutsSingleTrack[candType].get(pTBinTrack, "min_dcaxytoprimary")) {
       return false; //minimum DCAxy
     }
-    if (abs(dca[0]) > cutsTrack[candType]->get(pTBinTrack, "max_dcaxytoprimary")) {
+    if (abs(dca[0]) > cutsSingleTrack[candType].get(pTBinTrack, "max_dcaxytoprimary")) {
       return false; //maximum DCAxy
     }
     return true;
