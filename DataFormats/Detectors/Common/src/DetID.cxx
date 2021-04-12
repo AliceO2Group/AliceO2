@@ -45,7 +45,7 @@ DetID::mask_t DetID::getMask(const std::string_view detList)
     return mask;
   }
   if (ss.find(ALL) != std::string::npos) {
-    mask.set();
+    mask = (0x1u << nDetectors) - 1;
     return mask;
   }
   std::replace(ss.begin(), ss.end(), ' ', ',');

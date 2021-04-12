@@ -32,7 +32,7 @@ struct CTFHeader {
   std::string describe() const;
   void print() const;
 
-  ClassDefNV(CTFHeader, 1)
+  ClassDefNV(CTFHeader, 2)
 };
 
 std::ostream& operator<<(std::ostream& stream, const CTFHeader& c);

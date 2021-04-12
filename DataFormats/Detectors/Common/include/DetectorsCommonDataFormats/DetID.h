@@ -84,7 +84,7 @@ class DetID
   static constexpr std::string_view NONE{"none"}; ///< keywork for no-detector
   static constexpr std::string_view ALL{"all"};   ///< keywork for all detectors
 
-  typedef std::bitset<nDetectors> mask_t;
+  typedef std::bitset<32> mask_t;
 
   DetID(ID id) : mID(id) {}
   DetID(const char* name);
@@ -164,7 +164,7 @@ class DetID
 #endif
   };
 
-  ClassDefNV(DetID, 1);
+  ClassDefNV(DetID, 2);
 };
 
 } // namespace detectors
