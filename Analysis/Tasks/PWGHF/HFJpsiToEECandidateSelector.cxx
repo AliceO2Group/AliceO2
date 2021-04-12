@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file HFJpsiToEECandidateSelector.cxx
-/// \brief Jpsi selection task
+/// \brief J/ψ → e+ e− selection task
 ///
 /// \author Biao Zhang <biao.zhang@cern.ch>, CCNU
 /// \author Nima Zardoshti <nima.zardoshti@cern.ch>, CERN
@@ -24,7 +24,7 @@ using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong2;
 using namespace o2::analysis::hf_cuts_jpsi_toee;
 
-/// Struct for applying Jpsi selection cuts
+/// Struct for applying J/ψ → e+ e− selection cuts
 struct HFJpsiToEECandidateSelector {
   Produces<aod::HFSelJpsiToEECandidate> hfSelJpsiToEECandidate;
 
@@ -113,6 +113,7 @@ struct HFJpsiToEECandidateSelector {
     }
     return std::abs(track.tpcNSigmaEl()) < nSigmaCut;
   }
+
   /// PID selection on daughter track
   /// \param track is the daughter track
   /// \return 1 if successful PID match, 0 if successful PID rejection, -1 if no PID info
@@ -131,6 +132,7 @@ struct HFJpsiToEECandidateSelector {
       return -1; //no PID info
     }
   }
+
   void process(aod::HfCandProng2 const& hfCandProng2s, aod::BigTracksPID const&)
   {
 

@@ -176,9 +176,11 @@ struct CandidateTreeWriter {
   Produces<o2::aod::HfCandProng3Full> rowCandidateFull;
   Produces<o2::aod::HfCandProng3FullEvents> rowCandidateFullEvents;
   Produces<o2::aod::HfCandProng3FullParticles> rowCandidateFullParticles;
+
   void init(InitContext const&)
   {
   }
+
   void process(aod::Collisions const& collisions,
                aod::McCollisions const& mccollisions,
                soa::Join<aod::HfCandProng3, aod::HfCandProng3MCRec, aod::HFSelLcCandidate> const& candidates,

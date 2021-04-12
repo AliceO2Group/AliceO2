@@ -26,7 +26,6 @@ using namespace o2::analysis::hf_cuts_lc_topkpi;
 
 /// Struct for applying Lc selection cuts
 struct HFLcCandidateSelector {
-
   Produces<aod::HFSelLcCandidate> hfSelLcCandidate;
 
   Configurable<double> d_pTCandMin{"d_pTCandMin", 0., "Lower bound of candidate pT"};

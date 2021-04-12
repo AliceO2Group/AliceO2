@@ -108,6 +108,7 @@ struct TaskJpsiMC {
 
   Configurable<int> d_selectionFlagJpsi{"d_selectionFlagJpsi", 1, "Selection Flag for Jpsi"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
+
   Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsiToEE >= d_selectionFlagJpsi);
 
   void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiToEECandidate, aod::HfCandProng2MCRec>> const& candidates,

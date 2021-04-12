@@ -149,13 +149,14 @@ struct CandidateTreeWriter {
   Produces<o2::aod::HfCandProng2Full> rowCandidateFull;
   Produces<o2::aod::HfCandProng2FullEvents> rowCandidateFullEvents;
   Produces<o2::aod::HfCandProng2FullParticles> rowCandidateFullParticles;
+
   void init(InitContext const&)
   {
   }
-  using CandType = soa::Join<aod::HfCandProng2, aod::HfCandProng2MCRec, aod::HFSelD0Candidate>;
+
   void process(aod::Collisions const& collisions,
                aod::McCollisions const& mccollisions,
-               CandType const& candidates,
+               soa::Join<aod::HfCandProng2, aod::HfCandProng2MCRec, aod::HFSelD0Candidate> const& candidates,
                soa::Join<aod::McParticles, aod::HfCandProng2MCGen> const& particles,
                aod::BigTracksPID const& tracks)
   {

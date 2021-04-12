@@ -26,7 +26,6 @@ using namespace o2::analysis::hf_cuts_d0_topik;
 /// Struct for applying D0 selection cuts
 
 struct HFD0CandidateSelector {
-
   Produces<aod::HFSelD0Candidate> hfSelD0Candidate;
 
   Configurable<double> d_pTCandMin{"d_pTCandMin", 0., "Lower bound of candidate pT"};

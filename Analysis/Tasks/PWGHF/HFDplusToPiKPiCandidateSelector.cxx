@@ -25,7 +25,6 @@ using namespace o2::analysis::hf_cuts_dplus_topikpi;
 
 /// Struct for applying Dplus to piKpi selection cuts
 struct HFDplusToPiKPiCandidateSelector {
-
   Produces<aod::HFSelDplusToPiKPiCandidate> hfSelDplusToPiKPiCandidate;
 
   Configurable<double> d_pTCandMin{"d_pTCandMin", 1., "Lower bound of candidate pT"};
