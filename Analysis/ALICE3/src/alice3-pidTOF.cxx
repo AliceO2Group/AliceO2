@@ -37,8 +37,17 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 struct pidTOFTask {
   using Trks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov>;
   using Coll = aod::Collisions;
-  Produces<aod::pidRespTOF> tablePID;
-  Parameters resoParameters(1);
+  // Tables to produce
+  Produces<o2::aod::pidRespTOFEl> tablePIDEl;
+  Produces<o2::aod::pidRespTOFMu> tablePIDMu;
+  Produces<o2::aod::pidRespTOFPi> tablePIDPi;
+  Produces<o2::aod::pidRespTOFKa> tablePIDKa;
+  Produces<o2::aod::pidRespTOFPr> tablePIDPr;
+  Produces<o2::aod::pidRespTOFDe> tablePIDDe;
+  Produces<o2::aod::pidRespTOFTr> tablePIDTr;
+  Produces<o2::aod::pidRespTOFHe> tablePIDHe;
+  Produces<o2::aod::pidRespTOFAl> tablePIDAl;
+  Parameters resoParameters{1};
   Service<o2::ccdb::BasicCCDBManager> ccdb;
   Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
   Configurable<std::string> sigmaname{"param-sigma", "TOFResoALICE3", "Name of the parametrization for the expected sigma, used in both file and CCDB mode"};
@@ -79,26 +88,25 @@ struct pidTOFTask {
   }
   void process(Coll const& collisions, Trks const& tracks)
   {
-    tablePID.reserve(tracks.size());
+    tablePIDEl.reserve(tracks.size());
+    tablePIDMu.reserve(tracks.size());
+    tablePIDPi.reserve(tracks.size());
+    tablePIDKa.reserve(tracks.size());
+    tablePIDPr.reserve(tracks.size());
+    tablePIDDe.reserve(tracks.size());
+    tablePIDTr.reserve(tracks.size());
+    tablePIDHe.reserve(tracks.size());
+    tablePIDAl.reserve(tracks.size());
     for (auto const& trk : tracks) {
-      tablePID(sigma<PID::Electron>(trk),
-               sigma<PID::Muon>(trk),
-               sigma<PID::Pion>(trk),
-               sigma<PID::Kaon>(trk),
-               sigma<PID::Proton>(trk),
-               sigma<PID::Deuteron>(trk),
-               sigma<PID::Triton>(trk),
-               sigma<PID::Helium3>(trk),
-               sigma<PID::Alpha>(trk),
-               nsigma<PID::Electron>(trk),
-               nsigma<PID::Muon>(trk),
-               nsigma<PID::Pion>(trk),
-               nsigma<PID::Kaon>(trk),
-               nsigma<PID::Proton>(trk),
-               nsigma<PID::Deuteron>(trk),
-               nsigma<PID::Triton>(trk),
-               nsigma<PID::Helium3>(trk),
-               nsigma<PID::Alpha>(trk));
+      tablePIDEl(sigma<PID::Electron>(trk), nsigma<PID::Electron>(trk));
+      tablePIDMu(sigma<PID::Muon>(trk), nsigma<PID::Muon>(trk));
+      tablePIDPi(sigma<PID::Pion>(trk), nsigma<PID::Pion>(trk));
+      tablePIDKa(sigma<PID::Kaon>(trk), nsigma<PID::Kaon>(trk));
+      tablePIDPr(sigma<PID::Proton>(trk), nsigma<PID::Proton>(trk));
+      tablePIDDe(sigma<PID::Deuteron>(trk), nsigma<PID::Deuteron>(trk));
+      tablePIDTr(sigma<PID::Triton>(trk), nsigma<PID::Triton>(trk));
+      tablePIDHe(sigma<PID::Helium3>(trk), nsigma<PID::Helium3>(trk));
+      tablePIDAl(sigma<PID::Alpha>(trk), nsigma<PID::Alpha>(trk));
     }
   }
 };
@@ -199,7 +207,12 @@ struct pidTOFTaskQA {
     histos.fill(HIST(hnsigma[i]), t.p(), nsigma);
   }
 
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::pidRespTOF, aod::TrackSelection> const& tracks)
+  void process(aod::Collision const& collision,
+               soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov,
+                         aod::pidRespTOFEl, aod::pidRespTOFMu, aod::pidRespTOFPi,
+                         aod::pidRespTOFKa, aod::pidRespTOFPr, aod::pidRespTOFDe,
+                         aod::pidRespTOFTr, aod::pidRespTOFHe, aod::pidRespTOFAl,
+                         aod::TrackSelection> const& tracks)
   {
     const float collisionTime_ps = collision.collisionTime() * 1000.f;
     histos.fill(HIST("event/vertexz"), collision.posZ());

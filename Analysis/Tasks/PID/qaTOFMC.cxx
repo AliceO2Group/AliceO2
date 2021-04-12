@@ -141,7 +141,11 @@ struct pidTOFTaskQA {
   }
 
   void process(aod::Collision const& collision,
-               soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOF, aod::McTrackLabels, aod::pidRespTOFbeta> const& tracks,
+               soa::Join<aod::Tracks, aod::TracksExtra,
+                         aod::pidRespTOFEl, aod::pidRespTOFMu, aod::pidRespTOFPi,
+                         aod::pidRespTOFKa, aod::pidRespTOFPr, aod::pidRespTOFDe,
+                         aod::pidRespTOFTr, aod::pidRespTOFHe, aod::pidRespTOFAl,
+                         aod::McTrackLabels, aod::pidRespTOFbeta> const& tracks,
                aod::McParticles& mcParticles)
   {
     const float collisionTime_ps = collision.collisionTime() * 1000.f;

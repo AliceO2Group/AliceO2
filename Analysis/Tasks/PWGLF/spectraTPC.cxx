@@ -136,7 +136,11 @@ struct TPCPIDQASignalwTOFTask {
   CANDIDATE_SELECTION
 
   Filter trackFilterTOF = (aod::track::tofSignal > 0.f); // Skip tracks without TOF
-  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::pidRespTOF, aod::TrackSelection>>;
+  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC,
+                                                  aod::pidRespTOFEl, aod::pidRespTOFMu, aod::pidRespTOFPi,
+                                                  aod::pidRespTOFKa, aod::pidRespTOFPr, aod::pidRespTOFDe,
+                                                  aod::pidRespTOFTr, aod::pidRespTOFHe, aod::pidRespTOFAl,
+                                                  aod::TrackSelection>>;
   void process(TrackCandidates::iterator const& track)
   {
     // const float mom = track.p();
