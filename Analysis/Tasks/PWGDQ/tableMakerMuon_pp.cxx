@@ -57,7 +57,7 @@ struct TableMakerMuon_pp {
   Produces<ReducedMuons> muonBasic;
   Produces<ReducedMuonsExtra> muonExtended;
   //Produces<ReducedMuonsCov> muonCov;   // TODO: use with fwdtracks
-  
+
   float* fValues;
 
   OutputObj<THashList> fOutputList{"output"};

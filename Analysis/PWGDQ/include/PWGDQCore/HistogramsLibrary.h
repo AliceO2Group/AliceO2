@@ -135,7 +135,7 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
       hm->AddHistogram(histClass, "Chi2MatchTrigger", "", false, 100, 0.0, 20.0, VarManager::kMuonChi2MatchTrigger);
       hm->AddHistogram(histClass, "RAtAbsorberEnd", "", false, 100, 10, 2000, VarManager::kMuonRAtAbsorberEnd);
       hm->AddHistogram(histClass, "pdca", "", false, 100, 0.0, 1000, VarManager::kMuonPDca);
-      
+
       /*hm->AddHistogram(histClass, "MuonNClusters", "", false, 100, 0.0, 10.0, VarManager::kMuonNClusters);
       hm->AddHistogram(histClass, "pdca", "", false, 100, 0.0, 1000., VarManager::kMuonPDca);
       hm->AddHistogram(histClass, "RAtAbsorberEnd", "", false, 100, 10, 2000, VarManager::kMuonRAtAbsorberEnd);

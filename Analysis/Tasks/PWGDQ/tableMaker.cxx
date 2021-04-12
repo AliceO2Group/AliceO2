@@ -80,7 +80,6 @@ struct TableMaker {
   Produces<ReducedMuons> muonBasic;
   Produces<ReducedMuonsExtra> muonExtra;
   //Produces<ReducedMuonsCov> muonCov;   // TODO: use with fwdtracks
-  
 
   float* fValues;
 
@@ -102,13 +101,13 @@ struct TableMaker {
   // TODO: filter on TPC dedx used temporarily until electron PID will be improved
   Filter barrelSelectedTracks = aod::track::trackType == uint8_t(aod::track::Run2Track) && o2::aod::track::pt >= fConfigBarrelTrackPtLow && nabs(o2::aod::track::eta) <= 0.9f && o2::aod::track::tpcSignal >= 70.0f && o2::aod::track::tpcSignal <= 100.0f && o2::aod::track::tpcChi2NCl < 4.0f && o2::aod::track::itsChi2NCl < 36.0f;
   //Filter barrelSelectedTracks = aod::track::trackType == uint8_t(aod::track::Run2GlobalTrack);
-  
+
   //Filter barrelSelectedTracks = o2::aod::track::pt >= fConfigBarrelTrackPtLow && nabs(o2::aod::track::eta) <= 0.9f;
   //Filter trackFilter = aod::track::trackType == aod::track::Run2GlobalTrack;
   // TODO: some of the muon variables which could be used in the filter expression are currently DYNAMIC columns (e.g. eta)
   //       Add more basic muon cuts
   // TODO: Use Partition to avoid the cross-talk between filters which use variables with the same name (e.g. pt for both barrel and muon tracks)
-  
+
   //       Replace by Filter when the bug is fixed
   Partition<MyMuons> selectedMuons = o2::aod::muon::pt >= fConfigMuonPtLow;
   //Partition<MyMuons> selectedMuons = o2::aod::fwdtrack::pt >= fConfigMuonPtLow;
@@ -154,7 +153,7 @@ struct TableMaker {
     }
     uint64_t tag = 0;
     //uint64_t tag = collision.run2bcinfo().eventCuts();   // TODO: get the event cuts
-         
+
     VarManager::ResetValues(0, VarManager::kNEventWiseVariables, fValues);
     VarManager::FillEvent<eventFillMap>(collision, fValues); // extract event information and place it in the fgValues array
     fHistMan->FillHistClass("Event_BeforeCuts", fValues);    // automatically fill all the histograms in the class Event
@@ -203,12 +202,12 @@ struct TableMaker {
                      track.beta(),
                      track.tofNSigmaEl(), track.tofNSigmaMu(),
                      track.tofNSigmaPi(), track.tofNSigmaKa(), track.tofNSigmaPr(),
-                     track.trdSignal());    
+                     track.trdSignal());
     }
 
     muonBasic.reserve(selectedMuons.size());
     muonExtra.reserve(selectedMuons.size());
-    for (auto& muon : selectedMuons) {      
+    for (auto& muon : selectedMuons) {
       if (muon.bcId() != collision.bcId()) {
         continue;
       }
@@ -221,7 +220,7 @@ struct TableMaker {
       muonBasic(event.lastIndex(), trackFilteringTag, muon.pt(), muon.eta(), muon.phi(), muon.sign());
       muonExtra(muon.inverseBendingMomentum(), muon.thetaX(), muon.thetaY(), muon.zMu(), muon.bendingCoor(), muon.nonBendingCoor(), muon.chi2(), muon.chi2MatchTrigger());
     }
-    
+
     // TODO: to be used with the fwdtrack tables
     /*muonBasic.reserve(tracksMuon.size());
     muonExtra.reserve(tracksMuon.size());

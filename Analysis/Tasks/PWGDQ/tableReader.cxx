@@ -623,8 +623,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     adaptAnalysisTask<EventMixing>(cfgc),
     adaptAnalysisTask<MuonTrackSelection>(cfgc),
     adaptAnalysisTask<TableReader>(cfgc),
-    adaptAnalysisTask<DileptonHadronAnalysis>(cfgc)
-  };
+    adaptAnalysisTask<DileptonHadronAnalysis>(cfgc)};
 }
 
 void DefineHistograms(HistogramManager* histMan, TString histClasses)

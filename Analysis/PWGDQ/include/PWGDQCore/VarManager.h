@@ -180,7 +180,7 @@ class VarManager : public TObject
     kMuonPDca,
     kMuonChi2,
     kMuonChi2MatchTrigger,
- /*   kMuonNClusters,
+    /*   kMuonNClusters,
     kMuonPDca,
     kMuonRAtAbsorberEnd,
     kMuonChi2,
@@ -303,7 +303,7 @@ void VarManager::FillEvent(T const& event, float* values)
     values[kRunNo] = event.bc().runNumber(); // accessed via Collisions table
     values[kBC] = event.bc().globalBC();
   }
-  
+
   if constexpr ((fillMap & CollisionTimestamp) > 0) {
     values[kTimestamp] = event.timestamp();
   }
@@ -470,7 +470,7 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kTrackLength] = track.length();
     values[kTPCnclsCR] = track.tpcNClsCrossedRows();
     values[kTRDPattern] = track.trdPattern();
-    
+
     if constexpr ((fillMap & TrackExtra) > 0) {
       if (fgUsedVars[kITSncls]) {
         values[kITSncls] = track.itsNCls(); // dynamic column
@@ -524,16 +524,16 @@ void VarManager::FillTrack(T const& track, float* values)
       // NOTE: this is needed temporarilly for the study of the impact of TPC pid degradation on the quarkonium triggers in high lumi pp
       //     This study involves a degradation from a dE/dx resolution of 5% to one of 6% (20% worsening)
       //     For this we smear the dE/dx and n-sigmas using a gaus distribution with a width of 3.3%
-      //         which is approx the needed amount to get dE/dx to a resolution of 6%  
-      double randomX = gRandom->Gaus(0.0,0.033);  
-      values[kTPCsignalRandomized] = values[kTPCsignal]*(1.0 + randomX);
-      values[kTPCsignalRandomizedDelta] = values[kTPCsignal]*randomX;
-      values[kTPCnSigmaElRandomized] = values[kTPCnSigmaEl]*(1.0 + randomX);
-      values[kTPCnSigmaElRandomizedDelta] = values[kTPCnSigmaEl]*randomX;
-      values[kTPCnSigmaPiRandomized] = values[kTPCnSigmaPi]*(1.0 + randomX);
-      values[kTPCnSigmaPiRandomizedDelta] = values[kTPCnSigmaPi]*randomX;
-      values[kTPCnSigmaPrRandomized] = values[kTPCnSigmaPr]*(1.0 + randomX);
-      values[kTPCnSigmaPrRandomizedDelta] = values[kTPCnSigmaPr]*randomX;
+      //         which is approx the needed amount to get dE/dx to a resolution of 6%
+      double randomX = gRandom->Gaus(0.0, 0.033);
+      values[kTPCsignalRandomized] = values[kTPCsignal] * (1.0 + randomX);
+      values[kTPCsignalRandomizedDelta] = values[kTPCsignal] * randomX;
+      values[kTPCnSigmaElRandomized] = values[kTPCnSigmaEl] * (1.0 + randomX);
+      values[kTPCnSigmaElRandomizedDelta] = values[kTPCnSigmaEl] * randomX;
+      values[kTPCnSigmaPiRandomized] = values[kTPCnSigmaPi] * (1.0 + randomX);
+      values[kTPCnSigmaPiRandomizedDelta] = values[kTPCnSigmaPi] * randomX;
+      values[kTPCnSigmaPrRandomized] = values[kTPCnSigmaPr] * (1.0 + randomX);
+      values[kTPCnSigmaPrRandomizedDelta] = values[kTPCnSigmaPr] * randomX;
     }
   }
 
@@ -549,7 +549,7 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kMuonChi2] = track.chi2();
     values[kMuonChi2MatchTrigger] = track.chi2MatchTrigger();
   }
-  
+
   // TODO: Uncomment when AO2Ds with the new data model are produced
   /*if constexpr ((fillMap & ReducedMuonExtra) > 0 || (fillMap & Muon) > 0) {
     values[kMuonNClusters] = track.nClusters();
@@ -569,7 +569,6 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kMuonCTglTgl] = track.cTglTgl();
     values[kMuonC1Pt21Pt2] = track.c1Pt21Pt2();
   }*/
-  
 
   if constexpr ((fillMap & Pair) > 0) {
     values[kMass] = track.mass();
