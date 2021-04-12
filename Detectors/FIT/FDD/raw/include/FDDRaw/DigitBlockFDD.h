@@ -53,7 +53,6 @@ class DigitBlockFDD : public DigitBlockBase<DigitBlockFDD>
   void setIntRec(o2::InteractionRecord intRec) { mDigit.mIntRecord = intRec; }
   Digit mDigit;
   std::vector<ChannelData> mVecChannelData;
-  static o2::fdd::LookUpTable sLookupTable;
   static int sEventID;
 
   template <class DataBlockType>
@@ -61,7 +60,7 @@ class DigitBlockFDD : public DigitBlockBase<DigitBlockFDD>
   {
     if constexpr (std::is_same<DataBlockType, DataBlockPM>::value) { //Filling data from PM
       for (int iEventData = 0; iEventData < dataBlock.DataBlockWrapper<RawDataPM>::mNelements; iEventData++) {
-        mVecChannelData.emplace_back(int(sLookupTable.getChannel(linkID, dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].channelID)),
+        mVecChannelData.emplace_back(int(o2::fdd::SingleLUT::Instance().getChannel(linkID, dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].channelID)),
                                      int(dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].time),
                                      int(dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].charge),
                                      dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].getFlagWord());
