@@ -12,7 +12,7 @@
 
 #ifndef O2_FT0DATAREADERDPLSPEC_H
 #define O2_FT0DATAREADERDPLSPEC_H
-
+#include "DataFormatsFT0/LookUpTable.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Framework/CallbackService.h"
@@ -23,7 +23,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/SerializationMethods.h"
 #include "DPLUtils/DPLRawParser.h"
-
+#include "Framework/InputRecordWalker.h"
 #include <iostream>
 #include <vector>
 #include <gsl/span>
@@ -40,36 +40,54 @@ class FT0DataReaderDPLSpec : public Task
   FT0DataReaderDPLSpec(const RawReader& rawReader) : mRawReader(rawReader) {}
   FT0DataReaderDPLSpec() = default;
   ~FT0DataReaderDPLSpec() override = default;
-  void init(InitContext& ic) final {}
+  typedef RawReader RawReader_t;
+  void init(InitContext& ic) final { o2::ft0::SingleLUT::Instance().printFullMap(); }
   void run(ProcessingContext& pc) final
   {
-    DPLRawParser parser(pc.inputs());
-    mRawReader.clear();
-    LOG(INFO) << "FT0DataReaderDPLSpec";
-    uint64_t count = 0;
+    // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
+    // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
+    {
+      std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{o2::header::gDataOriginFT0, o2::header::gDataDescriptionRawData, 0xDEADBEEF}}};
+      for (const auto& ref : InputRecordWalker(pc.inputs(), dummy)) {
+        const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+        if (dh->payloadSize == 0) {
+          LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
+               dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
+          return;
+        }
+      }
+    }
+    std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{o2::header::gDataOriginFT0, o2::header::gDataDescriptionRawData}, Lifetime::Timeframe}};
+    DPLRawParser parser(pc.inputs(), filter);
+    std::size_t count = 0;
     for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
       //Proccessing each page
       count++;
       auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
       gsl::span<const uint8_t> payload(it.data(), it.size());
-      mRawReader.process(rdhPtr->linkID, payload);
+      mRawReader.process(rdhPtr->linkID, payload, rdhPtr->endPointID);
     }
     LOG(INFO) << "Pages: " << count;
     mRawReader.accumulateDigits();
     mRawReader.makeSnapshot(pc);
+    mRawReader.clear();
   }
-  RawReader mRawReader;
+  RawReader_t mRawReader;
 };
 
 template <typename RawReader>
-framework::DataProcessorSpec getFT0DataReaderDPLSpec(const RawReader& rawReader)
+framework::DataProcessorSpec getFT0DataReaderDPLSpec(const RawReader& rawReader, bool askSTFDist)
 {
   LOG(INFO) << "DataProcessorSpec initDataProcSpec() for RawReaderFT0";
   std::vector<OutputSpec> outputSpec;
   RawReader::prepareOutputSpec(outputSpec);
+  std::vector<InputSpec> inputSpec{{"STF", ConcreteDataTypeMatcher{o2::header::gDataOriginFT0, "RAWDATA"}, Lifetime::Optional}};
+  if (askSTFDist) {
+    inputSpec.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
+  }
   return DataProcessorSpec{
     "ft0-datareader-dpl",
-    o2::framework::select("TF:FT0/RAWDATA"),
+    inputSpec,
     outputSpec,
     adaptFromTask<FT0DataReaderDPLSpec<RawReader>>(rawReader),
     Options{}};
