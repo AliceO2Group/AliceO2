@@ -37,9 +37,9 @@ class DigitBlockBase //:public DigitBlock
   DigitBlockBase(const DigitBlockBase& other) = default;
   ~DigitBlockBase() = default;
   template <class DataBlockType>
-  void process(DataBlockType& dataBlock, int linkID)
+  void process(DataBlockType& dataBlock, int linkID, int ep)
   {
-    static_cast<DigitBlock*>(this)->processDigits(dataBlock, linkID);
+    static_cast<DigitBlock*>(this)->processDigits(dataBlock, linkID, ep);
   }
   template <class... DigitType>
   void pop(std::vector<DigitType>&... vecDigits)

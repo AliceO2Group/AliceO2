@@ -36,3 +36,10 @@ o2_add_executable(
   COMPONENT_NAME ft0
   SOURCES src/test-raw-conversion.cxx
   PUBLIC_LINK_LIBRARIES O2::FT0Reconstruction)
+
+
+o2_add_executable(
+  test-raw2digit
+  COMPONENT_NAME ft0
+  SOURCES src/test-raw2digit.cxx
+  PUBLIC_LINK_LIBRARIES O2::FT0Reconstruction)

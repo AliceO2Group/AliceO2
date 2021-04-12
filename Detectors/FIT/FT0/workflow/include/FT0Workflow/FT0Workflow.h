@@ -21,7 +21,7 @@ namespace ft0
 {
 framework::WorkflowSpec getFT0Workflow(bool isExtendedMode, bool useProcess,
                                        bool dumpProcessor, bool dumpReader,
-                                       bool disableRootOut);
+                                       bool disableRootOut, bool askSTFDist);
 } // namespace ft0
 } // namespace o2
 #endif

@@ -57,7 +57,7 @@ class DigitBlockFDD : public DigitBlockBase<DigitBlockFDD>
   static int sEventID;
 
   template <class DataBlockType>
-  void processDigits(DataBlockType& dataBlock, int linkID)
+  void processDigits(DataBlockType& dataBlock, int linkID, int ep)
   {
     if constexpr (std::is_same<DataBlockType, DataBlockPM>::value) { //Filling data from PM
       for (int iEventData = 0; iEventData < dataBlock.DataBlockWrapper<RawDataPM>::mNelements; iEventData++) {
