@@ -45,7 +45,10 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 #include "Framework/runDataProcessing.h"
 
-using MyBarrelTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::TracksExtended, aod::TrackSelection, aod::pidRespTPC,
+using MyBarrelTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::TracksExtended, aod::TrackSelection,
+                                 aod::pidRespTPCEl, aod::pidRespTPCMu, aod::pidRespTPCPi,
+                                 aod::pidRespTPCKa, aod::pidRespTPCPr, aod::pidRespTPCDe,
+                                 aod::pidRespTPCTr, aod::pidRespTPCHe, aod::pidRespTPCAl,
                                  aod::pidRespTOFEl, aod::pidRespTOFMu, aod::pidRespTOFPi,
                                  aod::pidRespTOFKa, aod::pidRespTOFPr, aod::pidRespTOFDe,
                                  aod::pidRespTOFTr, aod::pidRespTOFHe, aod::pidRespTOFAl,
