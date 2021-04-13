@@ -34,9 +34,9 @@ namespace align
 
 // RS: this is not good: we define constants outside the class, but it is to
 // bypass the CINT limitations on static arrays initializations
-const Int_t kRichardsonOrd = 1;                // Order of Richardson extrapolation for derivative (min=1)
-const Int_t kRichardsonN = kRichardsonOrd + 1; // N of 2-point symmetric derivatives needed for requested order
-const Int_t kNRDClones = kRichardsonN * 2;     // number of variations for derivative of requested order
+const int kRichardsonOrd = 1;                // Order of Richardson extrapolation for derivative (min=1)
+const int kRichardsonN = kRichardsonOrd + 1; // N of 2-point symmetric derivatives needed for requested order
+const int kNRDClones = kRichardsonN * 2;     // number of variations for derivative of requested order
 
 //____________________________________________________________________________
 AliAlgTrack::AliAlgTrack() : TrackParametrizationWithError<double>(), TObject(), fNLocPar(0), fNLocExtPar(0), fNGloPar(0), fNDF(0), fInnerPointID(0)
@@ -65,7 +65,7 @@ AliAlgTrack::AliAlgTrack() : TrackParametrizationWithError<double>(), TObject(),
     fDResDLocA[i] = 0;
     fDResDGloA[i] = 0;
   }
-  fNeedInv[0] = fNeedInv[1] = kFALSE;
+  fNeedInv[0] = fNeedInv[1] = false;
   //
 }
 
@@ -85,7 +85,7 @@ void AliAlgTrack::Clear(Option_t*)
   fChi2 = fChi2CosmUp = fChi2CosmDn = fChi2Ini = 0;
   fNDF = 0;
   fInnerPointID = -1;
-  fNeedInv[0] = fNeedInv[1] = kFALSE;
+  fNeedInv[0] = fNeedInv[1] = false;
   fNLocPar = fNLocExtPar = fNGloPar = 0;
   //
 }
@@ -145,12 +145,12 @@ void AliAlgTrack::DefineDOFs()
     fDResDLocA[i] = fDResDLoc[i].GetArray();
   }
   //
-  //  memcpy(fLocParA,GetParameter(),fNLocExtPar*sizeof(Double_t));
-  memset(fLocParA, 0, fNLocExtPar * sizeof(Double_t));
+  //  memcpy(fLocParA,GetParameter(),fNLocExtPar*sizeof(double));
+  memset(fLocParA, 0, fNLocExtPar * sizeof(double));
 }
 
 //______________________________________________________
-Bool_t AliAlgTrack::CalcResidDeriv(Double_t* params)
+bool AliAlgTrack::CalcResidDeriv(double* params)
 {
   // Propagate for given local params and calculate residuals and their derivatives.
   // The 1st 4 or 5 elements of params vector should be the reference trackParam_t
@@ -176,7 +176,7 @@ Bool_t AliAlgTrack::CalcResidDeriv(Double_t* params)
 #if DEBUG > 3
     LOG(warn) << "Failed on derivatives calculation 0";
 #endif
-    return kFALSE;
+    return false;
   }
   //
   if (IsCosmic()) { // cosmic upper leg
@@ -188,11 +188,11 @@ Bool_t AliAlgTrack::CalcResidDeriv(Double_t* params)
   }
   //
   SetDerivDone();
-  return kTRUE;
+  return true;
 }
 
 //______________________________________________________
-Bool_t AliAlgTrack::CalcResidDeriv(double* extendedParams, Bool_t invert, int pFrom, int pTo)
+bool AliAlgTrack::CalcResidDeriv(double* extendedParams, bool invert, int pFrom, int pTo)
 {
   // Calculate derivatives of residuals vs params for points pFrom to pT. For cosmic upper leg
   // track parameter may require inversion.
@@ -231,7 +231,7 @@ Bool_t AliAlgTrack::CalcResidDeriv(double* extendedParams, Bool_t invert, int pF
   // 1) derivative wrt trackParam_t parameters
   for (int ipar = fNLocExtPar; ipar--;) {
 
-    SetParams(probD, kNRDClones, getX(), getAlpha(), extendedParams, kTRUE);
+    SetParams(probD, kNRDClones, getX(), getAlpha(), extendedParams, true);
     if (invert)
       for (int ic = kNRDClones; ic--;)
         probD[ic].invert();
@@ -247,10 +247,10 @@ Bool_t AliAlgTrack::CalcResidDeriv(double* extendedParams, Bool_t invert, int pF
     for (int ip = pFrom; ip != pTo; ip += pinc) { // points are ordered against track direction
       AliAlgPoint* pnt = GetPoint(ip);
       if (!PropagateParamToPoint(probD, kNRDClones, pnt))
-        return kFALSE;
+        return false;
       //      if (pnt->ContainsMaterial()) { // apply material corrections
       if (!ApplyMatCorr(probD, kNRDClones, extendedParams, pnt))
-        return kFALSE;
+        return false;
       //      }
       //
       if (pnt->ContainsMeasurement()) {
@@ -275,7 +275,7 @@ Bool_t AliAlgTrack::CalcResidDeriv(double* extendedParams, Bool_t invert, int pF
       AliWarningF("Failed on global derivatives calculation at point %d", ip);
       pnt->print("meas");
 #endif
-      return kFALSE;
+      return false;
     }
     //
     if (!pnt->ContainsMaterial())
@@ -299,7 +299,7 @@ Bool_t AliAlgTrack::CalcResidDeriv(double* extendedParams, Bool_t invert, int pF
       // We will vary the tracks starting from the original parameters propagated to given point
       // and stored there (before applying material corrections for this point)
       //
-      SetParams(probD, kNRDClones, pnt->GetXPoint(), pnt->GetAlphaSens(), pnt->GetTrParamWSB(), kFALSE);
+      SetParams(probD, kNRDClones, pnt->GetXPoint(), pnt->GetAlphaSens(), pnt->GetTrParamWSB(), false);
       // no need for eventual track inversion here: if needed, this is already done in ParamWSB
       //
       int offsIP = offsI + ipar; // parameter entry in the extendedParams array
@@ -312,12 +312,12 @@ Bool_t AliAlgTrack::CalcResidDeriv(double* extendedParams, Bool_t invert, int pF
         //
         // apply varied material effects : incremented by delta
         if (!ApplyMatCorr(probD[(icl << 1) + 0], extendedParams, pnt))
-          return kFALSE;
+          return false;
         //
         // apply varied material effects : decremented by delta
         extendedParams[offsIP] = parOrig - del;
         if (!ApplyMatCorr(probD[(icl << 1) + 1], extendedParams, pnt))
-          return kFALSE;
+          return false;
         //
         extendedParams[offsIP] = parOrig;
         del *= 0.5;
@@ -335,11 +335,11 @@ Bool_t AliAlgTrack::CalcResidDeriv(double* extendedParams, Bool_t invert, int pF
         //	printf("  DerFor:%d ",jp); pntJ->print();
 
         if (!PropagateParamToPoint(probD, kNRDClones, pntJ))
-          return kFALSE;
+          return false;
         //
         if (pntJ->ContainsMaterial()) { // apply material corrections
           if (!ApplyMatCorr(probD, kNRDClones, extendedParams, pntJ))
-            return kFALSE;
+            return false;
         }
         //
         if (pntJ->ContainsMeasurement()) {
@@ -352,11 +352,11 @@ Bool_t AliAlgTrack::CalcResidDeriv(double* extendedParams, Bool_t invert, int pF
     }   // << loop over DOFs related to MS and ELoss are point ip
   }     // << loop over all points of the track
   //
-  return kTRUE;
+  return true;
 }
 
 //______________________________________________________
-Bool_t AliAlgTrack::CalcResidDerivGlo(AliAlgPoint* pnt)
+bool AliAlgTrack::CalcResidDerivGlo(AliAlgPoint* pnt)
 {
   // calculate residuals derivatives over point's sensor and its parents global params
   double deriv[AliAlgVol::kNDOFGeom * 3];
@@ -421,11 +421,11 @@ Bool_t AliAlgTrack::CalcResidDerivGlo(AliAlgPoint* pnt)
   //
   pnt->SetNGloDOFs(fNGloPar - pnt->GetDGloOffs()); // mark number of global derivatives filled
   //
-  return kTRUE;
+  return true;
 }
 
 //______________________________________________________
-Bool_t AliAlgTrack::CalcResiduals(const double* extendedParams)
+bool AliAlgTrack::CalcResiduals(const double* extendedParams)
 {
   // Propagate for given local params and calculate residuals
   // The 1st 4 or 5 elements of extendedParams vector should be the reference trackParam_t
@@ -449,7 +449,7 @@ Bool_t AliAlgTrack::CalcResiduals(const double* extendedParams)
 #if DEBUG > 3
     LOG(warn) << "Failed on residuals calculation 0";
 #endif
-    return kFALSE;
+    return false;
   }
   //
   if (IsCosmic()) { // cosmic upper leg
@@ -457,17 +457,17 @@ Bool_t AliAlgTrack::CalcResiduals(const double* extendedParams)
 #if DEBUG > 3
       LOG(warn) << "Failed on residuals calculation 1";
 #endif
-      return kFALSE;
+      return false;
     }
   }
   //
   fNDF -= fNLocExtPar;
   SetResidDone();
-  return kTRUE;
+  return true;
 }
 
 //______________________________________________________
-Bool_t AliAlgTrack::CalcResiduals(const double* extendedParams, Bool_t invert, int pFrom, int pTo)
+bool AliAlgTrack::CalcResiduals(const double* extendedParams, bool invert, int pFrom, int pTo)
 {
   // Calculate residuals for the single leg from points pFrom to pT
   // The 1st 4 or 5 elements of extendedParams vector should be corrections to
@@ -480,7 +480,7 @@ Bool_t AliAlgTrack::CalcResiduals(const double* extendedParams, Bool_t invert, i
   // increment will be done locally in the ApplyMatCorr routine.
   //
   trackParam_t probe;
-  SetParams(probe, getX(), getAlpha(), extendedParams, kTRUE);
+  SetParams(probe, getX(), getAlpha(), extendedParams, true);
   if (invert)
     probe.invert();
   int pinc;
@@ -495,7 +495,7 @@ Bool_t AliAlgTrack::CalcResiduals(const double* extendedParams, Bool_t invert, i
   for (int ip = pFrom; ip != pTo; ip += pinc) { // points are ordered against track direction
     AliAlgPoint* pnt = GetPoint(ip);
     if (!PropagateParamToPoint(probe, pnt))
-      return kFALSE;
+      return false;
     //
     // store the current track kinematics at the point BEFORE applying eventual material
     // corrections. This kinematics will be later varied around supplied parameters (in the CalcResidDeriv)
@@ -504,7 +504,7 @@ Bool_t AliAlgTrack::CalcResiduals(const double* extendedParams, Bool_t invert, i
     // account for materials
     //    if (pnt->ContainsMaterial()) { // apply material corrections
     if (!ApplyMatCorr(probe, extendedParams, pnt))
-      return kFALSE;
+      return false;
     //    }
     pnt->SetTrParamWSA(probe.getParams());
     //
@@ -524,11 +524,11 @@ Bool_t AliAlgTrack::CalcResiduals(const double* extendedParams, Bool_t invert, i
         fChi2 += corrDiag[i] * corrDiag[i] / corCov[i];
     }
   }
-  return kTRUE;
+  return true;
 }
 
 //______________________________________________________
-Bool_t AliAlgTrack::PropagateParamToPoint(trackParam_t* tr, int nTr, const AliAlgPoint* pnt, double maxStep, double maxSnp, MatCorrType mt)
+bool AliAlgTrack::PropagateParamToPoint(trackParam_t* tr, int nTr, const AliAlgPoint* pnt, double maxStep, double maxSnp, MatCorrType mt)
 {
   // Propagate set of tracks to the point  (only parameters, no error matrix)
   // VECTORIZE this
@@ -540,28 +540,28 @@ Bool_t AliAlgTrack::PropagateParamToPoint(trackParam_t* tr, int nTr, const AliAl
       tr[itr].print();
       pnt->print("meas mat");
 #endif
-      return kFALSE;
+      return false;
     }
   }
-  return kTRUE;
+  return true;
 }
 
 //______________________________________________________
-Bool_t AliAlgTrack::PropagateParamToPoint(trackParam_t& tr, const AliAlgPoint* pnt, double maxStep, double maxSnp, MatCorrType mt)
+bool AliAlgTrack::PropagateParamToPoint(trackParam_t& tr, const AliAlgPoint* pnt, double maxStep, double maxSnp, MatCorrType mt)
 {
   // propagate tracks to the point (only parameters, no error matrix)
   return Propagate(tr, pnt, maxStep, maxSnp, mt, nullptr);
 }
 
 //______________________________________________________
-Bool_t AliAlgTrack::PropagateToPoint(trackParam_t& tr, const AliAlgPoint* pnt, double maxStep, double maxSnp, MatCorrType mt, track::TrackLTIntegral* tLT)
+bool AliAlgTrack::PropagateToPoint(trackParam_t& tr, const AliAlgPoint* pnt, double maxStep, double maxSnp, MatCorrType mt, track::TrackLTIntegral* tLT)
 {
   // propagate tracks to the point. If matCor is true, then material corrections will be applied.
   // if matPar pointer is provided, it will be filled by total x2x0 and signed xrho
   return Propagate(tr, pnt, maxStep, maxSnp, mt, tLT);
 }
 
-Bool_t AliAlgTrack::Propagate(trackParam_t& track, const AliAlgPoint* pnt, Double_t maxStep, Double_t maxSnp, MatCorrType mt, track::TrackLTIntegral* tLT)
+bool AliAlgTrack::Propagate(trackParam_t& track, const AliAlgPoint* pnt, double maxStep, double maxSnp, MatCorrType mt, track::TrackLTIntegral* tLT)
 {
   if (!track.rotate(pnt->GetAlphaSens())) {
 #if DEBUG > 3
@@ -569,12 +569,12 @@ Bool_t AliAlgTrack::Propagate(trackParam_t& track, const AliAlgPoint* pnt, Doubl
     tr.print();
     pnt->Print();
 #endif
-    return kFALSE;
+    return false;
   }
   // calculate the sign of the energy loss correction and ensure the upper leg of cosmics is calculated correctly.
-  const Int_t signCorr = [this, &pnt, &track, maxStep] {
-    const Double_t dx = maxStep - track.getX();
-    const Int_t dir = dx > 0.f ? 1 : -1;
+  const int signCorr = [this, &pnt, &track, maxStep] {
+    const double dx = maxStep - track.getX();
+    const int dir = dx > 0.f ? 1 : -1;
     if (pnt->IsInvDir()) {
       // upper leg of a cosmic -> inward facing track
       return dir;
@@ -588,7 +588,7 @@ Bool_t AliAlgTrack::Propagate(trackParam_t& track, const AliAlgPoint* pnt, Doubl
 
 /*
 //______________________________________________________
-Bool_t AliAlgTrack::ApplyMS(trackParam_t& trPar, double tms,double pms)
+bool AliAlgTrack::ApplyMS(trackParam_t& trPar, double tms,double pms)
 {
   //------------------------------------------------------------------------------
   // Modify track par (e.g. trackParam_t) in the tracking frame
@@ -605,7 +605,7 @@ Bool_t AliAlgTrack::ApplyMS(trackParam_t& trPar, double tms,double pms)
   //
   double *par = (double*) trPar.GetParameter();
   //
-  if (Abs(tms)<1e-7) return kTRUE;
+  if (Abs(tms)<1e-7) return true;
   //
   double snTms = Sin(tms), csTms = Cos(tms);
   double snPms = Sin(pms), csPms = Cos(pms);
@@ -627,12 +627,12 @@ Bool_t AliAlgTrack::ApplyMS(trackParam_t& trPar, double tms,double pms)
   par[3] = pz/pt;
   par[4]*= csLam/pt;
   //
-  return kTRUE;
+  return true;
 }
 */
 
 //______________________________________________________
-Bool_t AliAlgTrack::ApplyMatCorr(trackParam_t& trPar, const Double_t* corrPar, const AliAlgPoint* pnt)
+bool AliAlgTrack::ApplyMatCorr(trackParam_t& trPar, const double* corrPar, const AliAlgPoint* pnt)
 {
   // Modify track param (e.g. trackParam_t) in the tracking frame
   // by delta accounting for material effects
@@ -658,7 +658,7 @@ Bool_t AliAlgTrack::ApplyMatCorr(trackParam_t& trPar, const Double_t* corrPar, c
 }
 
 //______________________________________________________
-Bool_t AliAlgTrack::ApplyMatCorr(trackParam_t& trPar, const Double_t* corr)
+bool AliAlgTrack::ApplyMatCorr(trackParam_t& trPar, const double* corr)
 {
   // Modify track param (e.g. trackParam_t) in the tracking frame
   // by delta accounting for material effects
@@ -675,16 +675,16 @@ Bool_t AliAlgTrack::ApplyMatCorr(trackParam_t& trPar, const Double_t* corr)
     printf("\n");
     trPar.print();
 #endif
-    return kFALSE;
+    return false;
   }
 
   trPar.updateParams(corr);
 
-  return kTRUE;
+  return true;
 }
 
 //______________________________________________________
-Bool_t AliAlgTrack::ApplyMatCorr(trackParam_t* trSet, int ntr, const Double_t* corrDiag, const AliAlgPoint* pnt)
+bool AliAlgTrack::ApplyMatCorr(trackParam_t* trSet, int ntr, const double* corrDiag, const AliAlgPoint* pnt)
 {
   // Modify set of track params (e.g. trackParam_t) in the tracking frame
   // by delta accounting for material effects
@@ -711,14 +711,14 @@ Bool_t AliAlgTrack::ApplyMatCorr(trackParam_t* trSet, int ntr, const Double_t* c
       LOG(error) << "Failed on clone %d materials" << itr;
       trSet[itr].print();
 #endif
-      return kFALSE;
+      return false;
     }
   }
-  return kTRUE;
+  return true;
 }
 
 //______________________________________________
-Double_t AliAlgTrack::RichardsonExtrap(double* val, int ord)
+double AliAlgTrack::RichardsonExtrap(double* val, int ord)
 {
   // Calculate Richardson extrapolation of order ord (starting from 1)
   // The array val should contain estimates ord+1 of derivatives with variations
@@ -735,7 +735,7 @@ Double_t AliAlgTrack::RichardsonExtrap(double* val, int ord)
 }
 
 //______________________________________________
-Double_t AliAlgTrack::RichardsonExtrap(const double* val, int ord)
+double AliAlgTrack::RichardsonExtrap(const double* val, int ord)
 {
   // Calculate Richardson extrapolation of order ord (starting from 1)
   // The array val should contain estimates ord+1 of derivatives with variations
@@ -789,10 +789,10 @@ void AliAlgTrack::Print(Option_t* opt) const
   //
   TString optS = opt;
   optS.ToLower();
-  Bool_t res = optS.Contains("r") && GetResidDone();
-  Bool_t der = optS.Contains("d") && GetDerivDone();
-  Bool_t par = optS.Contains("lc");   // local param corrections
-  Bool_t paru = optS.Contains("lcu"); // local param corrections in track param frame
+  bool res = optS.Contains("r") && GetResidDone();
+  bool der = optS.Contains("d") && GetDerivDone();
+  bool par = optS.Contains("lc");   // local param corrections
+  bool paru = optS.Contains("lcu"); // local param corrections in track param frame
   //
   if (par) {
     printf("Ref.track corr: ");
@@ -859,7 +859,7 @@ void AliAlgTrack::DumpCoordinates() const
 }
 
 //______________________________________________
-Bool_t AliAlgTrack::IniFit()
+bool AliAlgTrack::IniFit()
 {
   // perform initial fit of the track
   //
@@ -879,7 +879,7 @@ Bool_t AliAlgTrack::IniFit()
     LOG(warn) << "Failed FitLeg 0";
     trc.print();
 #endif
-    return kFALSE; // collision track or cosmic lower leg
+    return false; // collision track or cosmic lower leg
   }
   //
   //  printf("Lower leg: %d %d\n",0,GetInnerPointID()); trc.print();
@@ -892,30 +892,30 @@ Bool_t AliAlgTrack::IniFit()
       LOG(warn) << "Failed FitLeg 0";
       trc.print();
 #endif
-      return kFALSE; // collision track or cosmic lower leg
+      return false; // collision track or cosmic lower leg
     }
     //
     // propagate to reference point, which is the inner point of lower leg
     const AliAlgPoint* refP = GetPoint(GetInnerPointID());
     if (!PropagateToPoint(trcU, refP, MaxDefStep, MaxDefSnp, DefMatCorrType))
-      return kFALSE;
+      return false;
     //
     fChi2CosmUp = fChi2 - fChi2CosmDn;
     //    printf("Upper leg: %d %d\n",GetInnerPointID()+1,GetNPoints()-1); trcU.print();
     //
     if (!CombineTracks(trc, trcU))
-      return kFALSE;
+      return false;
     //printf("Combined\n"); trc.print();
   }
   CopyFrom(&trc);
   //
   fChi2Ini = fChi2;
 
-  return kTRUE;
+  return true;
 }
 
 //______________________________________________
-Bool_t AliAlgTrack::CombineTracks(trackParam_t& trcL, const trackParam_t& trcU)
+bool AliAlgTrack::CombineTracks(trackParam_t& trcL, const trackParam_t& trcU)
 {
   // Assign to trcL the combined tracks (Kalman update of trcL by trcU)
   // The trcL and trcU MUST be defined at same X,Alpha
@@ -930,7 +930,7 @@ Bool_t AliAlgTrack::CombineTracks(trackParam_t& trcL, const trackParam_t& trcU)
     LOG(error) << "Tracks must be defined at same reference X and Alpha";
     trcL.print();
     trcU.print();
-    return kFALSE;
+    return false;
   }
   //
   //  const covMat_t& covU = trcU.getCov();
@@ -958,7 +958,7 @@ Bool_t AliAlgTrack::CombineTracks(trackParam_t& trcL, const trackParam_t& trcU)
     LOG(error) << "Failed to invert summed cov.matrix of cosmic track";
     matCLplCU.print();
 #endif
-    return kFALSE; // inversion failed
+    return false; // inversion failed
   }
   TMatrixD matK(matCL, TMatrixD::kMult, matCLplCU); // gain K = Cl*(Cl+Cu)^-1
   TMatrixD matKdotCL(matK, TMatrixD::kMult, matCL); // K*Cl
@@ -978,11 +978,11 @@ Bool_t AliAlgTrack::CombineTracks(trackParam_t& trcL, const trackParam_t& trcU)
   //
   //  printf("Combined: Chi2Tot:%.2f ChiUp:%.2f ChiDn:%.2f ChiCmb:%.2f\n",fChi2,fChi2CosmUp,fChi2CosmDn, chi2);
 
-  return kTRUE;
+  return true;
 }
 
 //______________________________________________
-Bool_t AliAlgTrack::FitLeg(trackParam_t& trc, int pFrom, int pTo, Bool_t& inv)
+bool AliAlgTrack::FitLeg(trackParam_t& trc, int pFrom, int pTo, bool& inv)
 {
   // perform initial fit of the track
   // the fit will always start from the outgoing track in inward direction (i.e. if cosmics - bottom leg)
@@ -1005,7 +1005,7 @@ Bool_t AliAlgTrack::FitLeg(trackParam_t& trc, int pFrom, int pTo, Bool_t& inv)
   BringTo02Pi(alp);
   double dphi = DeltaPhiSmall(phi, alp); // abs delta angle
   if (dphi > Pi() / 2.) {                // need to invert the track to new frame
-    inv = kTRUE;
+    inv = true;
     //    printf("Fit in %d %d Delta: %.3f -> Inverting for\n",pFrom,pTo,dphi);
     //    p0->print("meas");
     //    printf("BeforeInv "); trc.print();
@@ -1017,16 +1017,16 @@ Bool_t AliAlgTrack::FitLeg(trackParam_t& trc, int pFrom, int pTo, Bool_t& inv)
     AliWarningF("Failed on rotateParam to %f", p0->GetAlphaSens());
     trc.print();
 #endif
-    return kFALSE;
+    return false;
   }
   if (!PropagateParamToPoint(trc, p0, MaxDefStep)) {
-    //  if (!PropagateToPoint(trc,p0,5,30,kTRUE)) {
+    //  if (!PropagateToPoint(trc,p0,5,30,true)) {
     //trc.PropagateParamOnlyTo(p0->GetXPoint()+kOverShootX,AliTrackerBase::GetBz())) {
 #if DEBUG > 3
     AliWarningF("Failed on PropagateParamOnlyTo to %f", p0->GetXPoint() + kOverShootX);
     trc.print();
 #endif
-    return kFALSE;
+    return false;
   }
   trc.setCov(kIniErr);
   trc.setCov(trc.getQ2Pt() * trc.getQ2Pt(), 4, 4); // lowest diagonal element (Q2Pt2)
@@ -1046,7 +1046,7 @@ Bool_t AliAlgTrack::FitLeg(trackParam_t& trc, int pFrom, int pTo, Bool_t& inv)
     //    printf("*** FitLeg %d (%d %d)\n",ip,pFrom,pTo);
     //    printf("Before propagate: "); trc.print();
     if (!PropagateToPoint(trc, pnt, MaxDefStep, MaxDefSnp, DefMatCorrType)) {
-      return kFALSE;
+      return false;
     }
     if (pnt->ContainsMeasurement()) {
       if (pnt->GetNeedUpdateFromTrack())
@@ -1062,7 +1062,7 @@ Bool_t AliAlgTrack::FitLeg(trackParam_t& trc, int pFrom, int pTo, Bool_t& inv)
         AliWarningF("Failed on Update %f,%f {%f,%f,%f}", yz[0], yz[1], errYZ[0], errYZ[1], errYZ[2]);
         trc.print();
 #endif
-        return kFALSE;
+        return false;
       }
       fChi2 += chi;
       //      printf("After update: (%f) -> %f\n",chi,fChi2); trc.print();
@@ -1074,16 +1074,16 @@ Bool_t AliAlgTrack::FitLeg(trackParam_t& trc, int pFrom, int pTo, Bool_t& inv)
     trc.invert();
   }
   //
-  return kTRUE;
+  return true;
 }
 
 //______________________________________________
-Bool_t AliAlgTrack::ResidKalman()
+bool AliAlgTrack::ResidKalman()
 {
   // calculate residuals from bi-directional Kalman smoother
   // ATTENTION: this method modifies workspaces of the points!!!
   //
-  Bool_t inv = kFALSE;
+  bool inv = false;
   const int kMinNStep = 3;
   const double MaxDefStep = 3.0;
   const double kErrSpace = 50.;
@@ -1095,7 +1095,7 @@ Bool_t AliAlgTrack::ResidKalman()
                             0, 0, kErrAng * kErrAng,
                             0, 0, 0, kErrAng * kErrAng,
                             0, 0, 0, 0, kErrRelPtI * kErrRelPtI};
-  //  const Double_t kOverShootX = 5;
+  //  const double kOverShootX = 5;
   //
   trackParam_t trc = *this;
   //
@@ -1106,13 +1106,13 @@ Bool_t AliAlgTrack::ResidKalman()
   while (pID < nPnt && !(pnt = GetPoint(pID))->ContainsMeasurement())
     pID++;
   if (!pnt)
-    return kFALSE;
+    return false;
   double phi = trc.getPhi(), alp = pnt->GetAlphaSens();
   BringTo02Pi(phi);
   BringTo02Pi(alp);
   double dphi = DeltaPhiSmall(phi, alp);
   if (dphi > Pi() / 2.) { // need to invert the track to new frame
-    inv = kTRUE;
+    inv = true;
     trc.invert();
   }
   // prepare track seed at 1st valid point
@@ -1121,7 +1121,7 @@ Bool_t AliAlgTrack::ResidKalman()
     AliWarningF("Failed on rotateParam to %f", pnt->GetAlphaSens());
     trc.print();
 #endif
-    return kFALSE;
+    return false;
   }
   if (!PropagateParamToPoint(trc, pnt, MaxDefStep)) {
     //if (!trc.PropagateParamOnlyTo(pnt->GetXPoint()+kOverShootX,AliTrackerBase::GetBz())) {
@@ -1129,7 +1129,7 @@ Bool_t AliAlgTrack::ResidKalman()
     AliWarningF("Failed on PropagateParamOnlyTo to %f", pnt->GetXPoint() + kOverShootX);
     trc.print();
 #endif
-    return kFALSE;
+    return false;
   }
   //
   trc.setCov(kIniErr);
@@ -1147,7 +1147,7 @@ Bool_t AliAlgTrack::ResidKalman()
     //    printf("*** ResidKalm %d (%d %d)\n",ip,0,nPnt);
     //    printf("Before propagate: "); trc.print();
     if (!PropagateToPoint(trc, pnt, MaxDefStep, MaxDefSnp, DefMatCorrType)) {
-      return kFALSE;
+      return false;
     }
     if (!pnt->ContainsMeasurement())
       continue;
@@ -1169,7 +1169,7 @@ Bool_t AliAlgTrack::ResidKalman()
       AliWarningF("Failed on Inward Update %f,%f {%f,%f,%f}", yz[0], yz[1], errYZ[0], errYZ[1], errYZ[2]);
       trc.print();
 #endif
-      return kFALSE;
+      return false;
     }
     //    printf(">>Aft ");trc.print();
     chifwd += chi;
@@ -1188,7 +1188,7 @@ Bool_t AliAlgTrack::ResidKalman()
       inv = !inv;
     }
     if (!PropagateToPoint(trc, pnt, MaxDefStep, MaxDefSnp, DefMatCorrType)) {
-      return kFALSE;
+      return false;
     }
     if (!pnt->ContainsMeasurement())
       continue;
@@ -1209,7 +1209,7 @@ Bool_t AliAlgTrack::ResidKalman()
       AliWarningF("Failed on Outward Update %f,%f {%f,%f,%f}", yz[0], yz[1], errYZ[0], errYZ[1], errYZ[2]);
       trc.print();
 #endif
-      return kFALSE;
+      return false;
     }
     chibwd += chi;
     //    printf("<<Aft ");    trc.print();
@@ -1228,7 +1228,7 @@ Bool_t AliAlgTrack::ResidKalman()
     double sgYY = sgAYY + sgBYY, sgYZ = sgAYZ + sgBYZ, sgZZ = sgAZZ + sgBZZ;
     double detI = sgYY * sgZZ - sgYZ * sgYZ;
     if (TMath::Abs(detI) < constants::math::Almost0)
-      return kFALSE;
+      return false;
     else
       detI = 1. / detI;
     double tmp = sgYY;
@@ -1248,12 +1248,12 @@ Bool_t AliAlgTrack::ResidKalman()
   }
   //
   fChi2 = chifwd;
-  SetKalmanDone(kTRUE);
-  return kTRUE;
+  SetKalmanDone(true);
+  return true;
 }
 
 //______________________________________________
-Bool_t AliAlgTrack::ProcessMaterials()
+bool AliAlgTrack::ProcessMaterials()
 {
   // attach material effect info to alignment points
   trackParam_t trc = *this;
@@ -1266,7 +1266,7 @@ Bool_t AliAlgTrack::ProcessMaterials()
 #if DEBUG > 3
     LOG(error) << "Failed to process materials for leg along the track";
 #endif
-    return kFALSE;
+    return false;
   }
   if (IsCosmic()) {
     // cosmic upper leg: move againg the track direction from middle point (inner) to last one (outer)
@@ -1277,14 +1277,14 @@ Bool_t AliAlgTrack::ProcessMaterials()
 #if DEBUG > 3
       LOG(error) << "Failed to process materials for leg against the track";
 #endif
-      return kFALSE;
+      return false;
     }
   }
-  return kTRUE;
+  return true;
 }
 
 //______________________________________________
-Bool_t AliAlgTrack::ProcessMaterials(trackParam_t& trc, int pFrom, int pTo)
+bool AliAlgTrack::ProcessMaterials(trackParam_t& trc, int pFrom, int pTo)
 {
   // attach material effect info to alignment points
   const int kMinNStep = 3;
@@ -1339,7 +1339,7 @@ Bool_t AliAlgTrack::ProcessMaterials(trackParam_t& trc, int pFrom, int pTo)
       trc.print();
       pnt->print("meas");
 #endif
-      return kFALSE;
+      return false;
     }
     //
     // is there enough material to consider the point as a scatterer?
@@ -1352,7 +1352,7 @@ Bool_t AliAlgTrack::ProcessMaterials(trackParam_t& trc, int pFrom, int pTo)
       tr0.print();
       pnt->print("meas");
 #endif
-      return kFALSE;
+      return false;
     }
     // the difference between the params, covariance of tracks with and  w/o material accounting gives
     // paramets and covariance of material correction. For params ONLY ELoss effect is revealed
@@ -1370,7 +1370,7 @@ Bool_t AliAlgTrack::ProcessMaterials(trackParam_t& trc, int pFrom, int pTo)
     if (pnt->ContainsMaterial()) {
       //
       // MP2 handles only scalar residuals hence correlated matrix of material effect need to be diagonalized
-      Bool_t eLossFree = pnt->GetELossVaried();
+      bool eLossFree = pnt->GetELossVaried();
       int nParFree = eLossFree ? kNKinParBON : kNKinParBOFF;
       TMatrixDSym matCov(nParFree);
       for (int i = nParFree; i--;)
@@ -1383,7 +1383,7 @@ Bool_t AliAlgTrack::ProcessMaterials(trackParam_t& trc, int pFrom, int pTo)
 #if DEBUG > 3
         LOG(error) << "Failed to diagonalize covariance of material correction";
         matCov.print();
-        return kFALSE;
+        return false;
 #endif
       }
       pnt->SetMatCovDiagonalizationMatrix(matEVec); // store diagonalization matrix
@@ -1403,14 +1403,14 @@ Bool_t AliAlgTrack::ProcessMaterials(trackParam_t& trc, int pFrom, int pTo)
         AliWarningF("Failed on Update %f,%f {%f,%f,%f}", yz[0], yz[1], errYZ[0], errYZ[1], errYZ[2]);
         trc.print();
 #endif
-        return kFALSE;
+        return false;
       }
       //
     }
     //
   }
   //
-  return kTRUE;
+  return true;
 }
 
 //______________________________________________

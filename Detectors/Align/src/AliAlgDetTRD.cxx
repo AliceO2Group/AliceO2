@@ -69,14 +69,14 @@ void AliAlgDetTRD::DefineVolumes()
   //
   for (int ilr = 0; ilr < kNLayers; ilr++) {            // layer
     for (int ich = 0; ich < kNStacks * kNSect; ich++) { // chamber
-      Int_t isector = ich / AliTRDgeometry::Nstack();
-      Int_t istack = ich % AliTRDgeometry::Nstack();
-      //Int_t lid       = AliTRDgeometry::GetDetector(ilr,istack,isector);
+      int isector = ich / AliTRDgeometry::Nstack();
+      int istack = ich % AliTRDgeometry::Nstack();
+      //int lid       = AliTRDgeometry::GetDetector(ilr,istack,isector);
       int iid = labDet + (1 + ilr) * 10000 + (1 + isector) * 100 + (1 + istack);
       const char* symname = Form("TRD/sm%02d/st%d/pl%d", isector, istack, ilr);
       if (!gGeoManager->GetAlignableEntry(symname))
         continue;
-      UShort_t vid = AliGeomManager::LayerToVolUID(AliGeomManager::kTRD1 + ilr, ich);
+      uint16_t vid = AliGeomManager::LayerToVolUID(AliGeomManager::kTRD1 + ilr, ich);
       AddVolume(chamb = new AliAlgSensTRD(symname, vid, iid /*lid*/, isector));
       iid = labDet + (1 + isector) * 100;
       if (!sect[isector])
@@ -93,14 +93,14 @@ void AliAlgDetTRD::DefineVolumes()
 }
 
 //____________________________________________
-Bool_t AliAlgDetTRD::AcceptTrack(const AliESDtrack* trc, Int_t trtype) const
+bool AliAlgDetTRD::AcceptTrack(const AliESDtrack* trc, int trtype) const
 {
   // test if detector had seed this track
   if (!CheckFlags(trc, trtype))
-    return kFALSE;
+    return false;
   if (trc->GetTRDntracklets() < fNPointsSel[trtype])
-    return kFALSE;
-  return kTRUE;
+    return false;
+  return true;
 }
 
 //__________________________________________
@@ -143,7 +143,7 @@ void AliAlgDetTRD::WritePedeInfo(FILE* parOut, const Option_t* opt) const
 }
 
 //_______________________________________________________
-Double_t AliAlgDetTRD::GetCalibDOFVal(int id) const
+double AliAlgDetTRD::GetCalibDOFVal(int id) const
 {
   // return preset value of calibration dof
   double val = 0;
@@ -161,7 +161,7 @@ Double_t AliAlgDetTRD::GetCalibDOFVal(int id) const
 }
 
 //_______________________________________________________
-Double_t AliAlgDetTRD::GetCalibDOFValWithCal(int id) const
+double AliAlgDetTRD::GetCalibDOFValWithCal(int id) const
 {
   // return preset value of calibration dof + mp correction
   return GetCalibDOFVal(id) + GetParVal(id);

@@ -75,8 +75,8 @@ AliAlgDet::AliAlgDet()
   fAddError[0] = fAddError[1] = 0;
   //
   for (int i = 0; i < kNTrackTypes; i++) {
-    fDisabled[i] = kFALSE;
-    fObligatory[i] = kFALSE;
+    fDisabled[i] = false;
+    fObligatory[i] = false;
     fTrackFlagSel[i] = 0;
     fNPointsSel[i] = 0;
   }
@@ -94,7 +94,7 @@ AliAlgDet::~AliAlgDet()
 
 //FIXME(milettri): needs AliESDtrack
 ////____________________________________________
-//Int_t AliAlgDet::ProcessPoints(const AliESDtrack* esdTr, AliAlgTrack* algTrack, Bool_t inv)
+//int AliAlgDet::ProcessPoints(const AliESDtrack* esdTr, AliAlgTrack* algTrack, bool inv)
 //{
 //  // Extract the points corresponding to this detector, recalibrate/realign them to the
 //  // level of the "starting point" for the alignment/calibration session.
@@ -125,7 +125,7 @@ AliAlgDet::~AliAlgDet()
 //}
 
 //_________________________________________________________
-void AliAlgDet::AcknowledgeNewRun(Int_t run)
+void AliAlgDet::AcknowledgeNewRun(int run)
 {
   // update parameters needed to process this run
 
@@ -229,7 +229,7 @@ void AliAlgDet::AddVolume(AliAlgVol* vol)
   if (vol->IsSensor()) {
     fSensors.AddLast(vol);
     ((AliAlgSens*)vol)->SetDetector(this);
-    Int_t vid = ((AliAlgSens*)vol)->GetVolID();
+    int vid = ((AliAlgSens*)vol)->GetVolID();
     if (fVolIDMin < 0 || vid < fVolIDMin)
       fVolIDMin = vid;
     if (fVolIDMax < 0 || vid > fVolIDMax)
@@ -278,7 +278,7 @@ void AliAlgDet::SortSensors()
     return;
   }
   fSensors.Sort();
-  fSID2VolID = new Int_t[fNSensors]; // cash id's for fast binary search
+  fSID2VolID = new int[fNSensors]; // cash id's for fast binary search
   for (int i = 0; i < fNSensors; i++) {
     fSID2VolID[i] = GetSensor(i)->GetVolID();
     GetSensor(i)->SetSID(i);
@@ -287,7 +287,7 @@ void AliAlgDet::SortSensors()
 }
 
 //_________________________________________________________
-Int_t AliAlgDet::InitGeom()
+int AliAlgDet::InitGeom()
 {
   // define hiearchy, initialize matrices, return number of global parameters
   if (GetInitGeomDone())
@@ -311,14 +311,14 @@ Int_t AliAlgDet::InitGeom()
 }
 
 //_________________________________________________________
-Int_t AliAlgDet::AssignDOFs()
+int AliAlgDet::AssignDOFs()
 {
   // assign DOFs IDs, parameters
   //
   int gloCount0(fAlgSteer->GetNDOFs()), gloCount(fAlgSteer->GetNDOFs());
-  Float_t* pars = fAlgSteer->GetGloParVal();
-  Float_t* errs = fAlgSteer->GetGloParErr();
-  Int_t* labs = fAlgSteer->GetGloParLab();
+  float* pars = fAlgSteer->GetGloParVal();
+  float* errs = fAlgSteer->GetGloParErr();
+  int* labs = fAlgSteer->GetGloParLab();
   //
   // assign calibration DOFs
   fFirstParGloID = gloCount;
@@ -358,14 +358,14 @@ void AliAlgDet::InitDOFs()
   for (int iv = 0; iv < nvol; iv++)
     GetVolume(iv)->InitDOFs();
   //
-  CalcFree(kTRUE);
+  CalcFree(true);
   //
   SetInitDOFsDone();
   return;
 }
 
 //_________________________________________________________
-Int_t AliAlgDet::VolID2SID(Int_t vid) const
+int AliAlgDet::VolID2SID(int vid) const
 {
   // find SID corresponding to VolID
   int mn(0), mx(fNSensors - 1);
@@ -403,8 +403,7 @@ void AliAlgDet::Print(const Option_t* opt) const
   printf("Obligatory in Collisions: %7s | Cosmic: %7s\n",
          IsObligatory(kColl) ? " YES " : "  NO ", IsObligatory(kCosm) ? " YES " : "  NO ");
   //
-  printf("Sel. flags in Collisions: 0x%05lx | Cosmic: 0x%05lx\n",
-         fTrackFlagSel[kColl], fTrackFlagSel[kCosm]);
+  fmt::printf("Sel. flags in Collisions: {:05#x}%05 | Cosmic: 0x{:05#x}%05\n", fTrackFlagSel[kColl], fTrackFlagSel[kCosm]);
   //
   printf("Min.points in Collisions: %7d | Cosmic: %7d\n",
          fNPointsSel[kColl], fNPointsSel[kCosm]);
@@ -419,7 +418,7 @@ void AliAlgDet::Print(const Option_t* opt) const
 }
 
 //____________________________________________
-void AliAlgDet::SetDetID(UInt_t tp)
+void AliAlgDet::SetDetID(uint32_t tp)
 {
   o2::detectors::DetID detID(tp);
   SetUniqueID(detID);
@@ -439,7 +438,7 @@ void AliAlgDet::SetAddError(double sigy, double sigz)
 }
 
 //____________________________________________
-void AliAlgDet::SetUseErrorParam(Int_t v)
+void AliAlgDet::SetUseErrorParam(int v)
 {
   // set type of points error parameterization
   LOG(FATAL) << "UpdatePointByTrackInfo is not implemented for this detector";
@@ -454,7 +453,7 @@ void AliAlgDet::UpdatePointByTrackInfo(AliAlgPoint* pnt, const trackParam_t* t) 
 }
 
 //____________________________________________
-void AliAlgDet::SetObligatory(Int_t tp, Bool_t v)
+void AliAlgDet::SetObligatory(int tp, bool v)
 {
   // mark detector presence obligatory in the track
   fObligatory[tp] = v;
@@ -514,23 +513,23 @@ void AliAlgDet::WriteAlignmentResults() const
 }
 
 //______________________________________________________
-Bool_t AliAlgDet::OwnsDOFID(Int_t id) const
+bool AliAlgDet::OwnsDOFID(int id) const
 {
   // check if DOF ID belongs to this detector
   for (int iv = GetNVolumes(); iv--;) {
     AliAlgVol* vol = GetVolume(iv); // check only top level volumes
     if (!vol->GetParent() && vol->OwnsDOFID(id))
-      return kTRUE;
+      return true;
   }
   // calibration DOF?
   if (id >= fFirstParGloID && id < fFirstParGloID + fNCalibDOF)
-    return kTRUE;
+    return true;
   //
-  return kFALSE;
+  return false;
 }
 
 //______________________________________________________
-AliAlgVol* AliAlgDet::GetVolOfDOFID(Int_t id) const
+AliAlgVol* AliAlgDet::GetVolOfDOFID(int id) const
 {
   // gets volume owning this DOF ID
   for (int iv = GetNVolumes(); iv--;) {
@@ -608,7 +607,7 @@ int AliAlgDet::SelectVolumes(TObjArray* arr, int lev, const char* match)
 }
 
 //________________________________________
-void AliAlgDet::SetFreeDOFPattern(UInt_t pat, int lev, const char* match)
+void AliAlgDet::SetFreeDOFPattern(uint32_t pat, int lev, const char* match)
 {
   // set free DOFs to volumes matching either to hierarchy level or
   // whose name contains match
@@ -683,7 +682,7 @@ void AliAlgDet::ConstrainOrphans(const double* sigma, const char* match)
 }
 
 //________________________________________
-void AliAlgDet::SetFreeDOF(Int_t dof)
+void AliAlgDet::SetFreeDOF(int dof)
 {
   // set detector free dof
   if (dof >= kNMaxKalibDOF) {
@@ -694,7 +693,7 @@ void AliAlgDet::SetFreeDOF(Int_t dof)
 }
 
 //________________________________________
-void AliAlgDet::FixDOF(Int_t dof)
+void AliAlgDet::FixDOF(int dof)
 {
   // fix detector dof
   if (dof >= kNMaxKalibDOF) {
@@ -705,14 +704,14 @@ void AliAlgDet::FixDOF(Int_t dof)
 }
 
 //__________________________________________________________________
-Bool_t AliAlgDet::IsCondDOF(Int_t i) const
+bool AliAlgDet::IsCondDOF(int i) const
 {
   // is DOF free and conditioned?
   return (!IsZeroAbs(GetParVal(i)) || !IsZeroAbs(GetParErr(i)));
 }
 
 //__________________________________________________________________
-void AliAlgDet::CalcFree(Bool_t condFix)
+void AliAlgDet::CalcFree(bool condFix)
 {
   // calculate free calib dofs. If condFix==true, condition parameter a la pede, i.e. error < 0
   fNCalibDOFFree = 0;

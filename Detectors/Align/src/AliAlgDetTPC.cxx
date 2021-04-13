@@ -66,8 +66,8 @@ void AliAlgDetTPC::DefineVolumes()
           AliErrorF("Did not find alignable %s", symname);
           continue;
         }
-        Int_t iid = side * kNSect + isc;
-        UShort_t vid = AliGeomManager::LayerToVolUID(AliGeomManager::kTPC1 + roc, iid);
+        int iid = side * kNSect + isc;
+        uint16_t vid = AliGeomManager::LayerToVolUID(AliGeomManager::kTPC1 + roc, iid);
         iid = labDet + (1 + side) * 10000 + (1 + isc) * 100 + (1 + roc);
         AliAlgSensTPC* sens = new AliAlgSensTPC(symname, vid, iid, isc);
         sens->SetParent(volTPC);
@@ -79,14 +79,14 @@ void AliAlgDetTPC::DefineVolumes()
 }
 
 //____________________________________________
-Bool_t AliAlgDetTPC::AcceptTrack(const AliESDtrack* trc, Int_t trtype) const
+bool AliAlgDetTPC::AcceptTrack(const AliESDtrack* trc, int trtype) const
 {
   // test if detector had seed this track
   if (!CheckFlags(trc, trtype))
-    return kFALSE;
+    return false;
   if (trc->GetNcls(1) < fNPointsSel[trtype])
-    return kFALSE;
-  return kTRUE;
+    return false;
+  return true;
 }
 
 } // namespace align

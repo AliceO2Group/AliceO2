@@ -30,7 +30,7 @@ class AliAlgDetHMPID : public AliAlgDet
   //
   virtual void DefineVolumes();
   //
-  Bool_t AcceptTrack(const AliESDtrack* trc, Int_t trtype) const;
+  bool AcceptTrack(const AliESDtrack* trc, int trtype) const;
   //
  protected:
   //

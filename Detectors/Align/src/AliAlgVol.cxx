@@ -122,7 +122,7 @@ namespace align
 
 const char* AliAlgVol::fgkFrameName[AliAlgVol::kNVarFrames] = {"LOC", "TRA"};
 //
-UInt_t AliAlgVol::fgDefGeomFree =
+uint32_t AliAlgVol::fgDefGeomFree =
   kDOFBitTX | kDOFBitTY | kDOFBitTZ | kDOFBitPS | kDOFBitTH | kDOFBitPH;
 //
 const char* AliAlgVol::fgkDOFName[AliAlgVol::kNDOFGeom] = {"TX", "TY", "TZ", "PSI", "THT", "PHI"};
@@ -164,7 +164,7 @@ AliAlgVol::~AliAlgVol()
 }
 
 //_________________________________________________________
-void AliAlgVol::Delta2Matrix(TGeoHMatrix& deltaM, const Double_t* delta) const
+void AliAlgVol::Delta2Matrix(TGeoHMatrix& deltaM, const double* delta) const
 {
   // prepare delta matrix for the volume from its
   // local delta vector (AliAlignObj convension): dx,dy,dz,,theta,psi,phi
@@ -182,7 +182,7 @@ void AliAlgVol::Delta2Matrix(TGeoHMatrix& deltaM, const Double_t* delta) const
 }
 
 //__________________________________________________________________
-void AliAlgVol::GetDeltaT2LmodLOC(TGeoHMatrix& matMod, const Double_t* delta) const
+void AliAlgVol::GetDeltaT2LmodLOC(TGeoHMatrix& matMod, const double* delta) const
 {
   // prepare the variation matrix tau in volume TRACKING frame by applying
   // local delta of modification of LOCAL frame:
@@ -195,7 +195,7 @@ void AliAlgVol::GetDeltaT2LmodLOC(TGeoHMatrix& matMod, const Double_t* delta) co
 }
 
 //__________________________________________________________________
-void AliAlgVol::GetDeltaT2LmodLOC(TGeoHMatrix& matMod, const Double_t* delta, const TGeoHMatrix& relMat) const
+void AliAlgVol::GetDeltaT2LmodLOC(TGeoHMatrix& matMod, const double* delta, const TGeoHMatrix& relMat) const
 {
   // prepare the variation matrix tau in volume TRACKING frame by applying
   // local delta of modification of LOCAL frame of its PARENT;
@@ -212,7 +212,7 @@ void AliAlgVol::GetDeltaT2LmodLOC(TGeoHMatrix& matMod, const Double_t* delta, co
 }
 
 //__________________________________________________________________
-void AliAlgVol::GetDeltaT2LmodTRA(TGeoHMatrix& matMod, const Double_t* delta) const
+void AliAlgVol::GetDeltaT2LmodTRA(TGeoHMatrix& matMod, const double* delta) const
 {
   // prepare the variation matrix tau in volume TRACKING frame by applying
   // local delta of modification of the same TRACKING frame:
@@ -221,7 +221,7 @@ void AliAlgVol::GetDeltaT2LmodTRA(TGeoHMatrix& matMod, const Double_t* delta) co
 }
 
 //__________________________________________________________________
-void AliAlgVol::GetDeltaT2LmodTRA(TGeoHMatrix& matMod, const Double_t* delta, const TGeoHMatrix& relMat) const
+void AliAlgVol::GetDeltaT2LmodTRA(TGeoHMatrix& matMod, const double* delta, const TGeoHMatrix& relMat) const
 {
   // prepare the variation matrix tau in volume TRACKING frame by applying
   // local delta of modification of TRACKING frame of its PARENT;
@@ -237,7 +237,7 @@ void AliAlgVol::GetDeltaT2LmodTRA(TGeoHMatrix& matMod, const Double_t* delta, co
 }
 
 //_________________________________________________________
-Int_t AliAlgVol::CountParents() const
+int AliAlgVol::CountParents() const
 {
   // count parents in the chain
   int cnt = 0;
@@ -298,7 +298,7 @@ void AliAlgVol::Print(const Option_t* opt) const
 }
 
 //____________________________________________
-void AliAlgVol::PrepareMatrixL2G(Bool_t reco)
+void AliAlgVol::PrepareMatrixL2G(bool reco)
 {
   // extract from geometry L2G matrix, depending on reco flag, set it as a reco-time
   // or current alignment matrix
@@ -389,7 +389,7 @@ void AliAlgVol::SetTrackingFrame()
 }
 
 //__________________________________________________________________
-void AliAlgVol::AssignDOFs(Int_t& cntDOFs, Float_t* pars, Float_t* errs, Int_t* labs)
+void AliAlgVol::AssignDOFs(int& cntDOFs, float* pars, float* errs, int* labs)
 {
   // Assigns offset of the DOFS of this volume in global array of DOFs, attaches arrays to volumes
   //
@@ -419,12 +419,12 @@ void AliAlgVol::InitDOFs()
   for (int i = 0; i < fNDOFs; i++)
     if (fParErrs[i] < -9999 && IsZeroAbs(fParVals[i]))
       FixDOF(i);
-  CalcFree(kTRUE);
+  CalcFree(true);
   SetInitDOFsDone();
 }
 
 //__________________________________________________________________
-void AliAlgVol::CalcFree(Bool_t condFix)
+void AliAlgVol::CalcFree(bool condFix)
 {
   // calculate free dofs. If condFix==true, condition parameter a la pede, i.e. error < 0
   fNDOFFree = fNDOFGeomFree = 0;
@@ -442,7 +442,7 @@ void AliAlgVol::CalcFree(Bool_t condFix)
 }
 
 //__________________________________________________________________
-void AliAlgVol::SetNDOFs(Int_t n)
+void AliAlgVol::SetNDOFs(int n)
 {
   // book global degrees of freedom
   if (n < kNDOFGeom)
@@ -456,13 +456,13 @@ void AliAlgVol::AddChild(AliAlgVol* ch)
   // add child volume
   if (!fChildren) {
     fChildren = new TObjArray();
-    fChildren->SetOwner(kFALSE);
+    fChildren->SetOwner(false);
   }
   fChildren->AddLast(ch);
 }
 
 //__________________________________________________________________
-void AliAlgVol::SetParVals(Int_t npar, Double_t* vl, Double_t* er)
+void AliAlgVol::SetParVals(int npar, double* vl, double* er)
 {
   // set parameters
   if (npar > fNDOFs)
@@ -474,14 +474,14 @@ void AliAlgVol::SetParVals(Int_t npar, Double_t* vl, Double_t* er)
 }
 
 //__________________________________________________________________
-Bool_t AliAlgVol::IsCondDOF(Int_t i) const
+bool AliAlgVol::IsCondDOF(int i) const
 {
   // is DOF free and conditioned?
   return (!IsZeroAbs(GetParVal(i)) || !IsZeroAbs(GetParErr(i)));
 }
 
 //______________________________________________________
-Int_t AliAlgVol::FinalizeStat(AliAlgDOFStat* st)
+int AliAlgVol::FinalizeStat(AliAlgDOFStat* st)
 {
   // finalize statistics on processed points
   fNProcPoints = 0;
@@ -505,9 +505,9 @@ void AliAlgVol::WritePedeInfo(FILE* parOut, const Option_t* opt) const
   const char* kKeyParam = "parameter";
   TString opts = opt;
   opts.ToLower();
-  Bool_t showDef = opts.Contains("d"); // show free DOF even if not preconditioned
-  Bool_t showFix = opts.Contains("f"); // show DOF even if fixed
-  Bool_t showNam = opts.Contains("n"); // show volume name even if no nothing else is printable
+  bool showDef = opts.Contains("d"); // show free DOF even if not preconditioned
+  bool showFix = opts.Contains("f"); // show DOF even if fixed
+  bool showNam = opts.Contains("n"); // show volume name even if no nothing else is printable
   //
   // is there something to print ?
   int nCond(0), nFix(0), nDef(0);
@@ -522,9 +522,9 @@ void AliAlgVol::WritePedeInfo(FILE* parOut, const Option_t* opt) const
   //
   int cmt = nCond > 0 || nFix > 0 ? kOff : kOn; // do we comment the "parameter" keyword for this volume
   if (!nFix)
-    showFix = kFALSE;
+    showFix = false;
   if (!nDef)
-    showDef = kFALSE;
+    showDef = false;
   //
   if (nCond || showDef || showFix || showNam)
     fprintf(parOut, "%s%s %s\t\tDOF/Free: %d/%d (%s) %s\n", comment[cmt], kKeyParam, comment[kOnOn],
@@ -767,12 +767,12 @@ void AliAlgVol::CreateAlignmentObjects(TClonesArray* arr) const
   TClonesArray& parr = *arr;
   TGeoHMatrix algM;
   CreateAlignmenMatrix(algM);
-  //  new (parr[parr.GetEntriesFast()]) AliAlignObjParams(GetName(), GetVolID(), algM, kTRUE);
-  const Double_t* translation = algM.GetTranslation();
-  const Double_t* rotation = algM.GetRotationMatrix();
+  //  new (parr[parr.GetEntriesFast()]) AliAlignObjParams(GetName(), GetVolID(), algM, true);
+  const double* translation = algM.GetTranslation();
+  const double* rotation = algM.GetRotationMatrix();
   new (parr[parr.GetEntriesFast()]) detectors::AlignParam(GetName(), GetVolID(),
                                                           translation[0], translation[1], translation[2],
-                                                          rotation[0], rotation[1], rotation[2], kTRUE);
+                                                          rotation[0], rotation[1], rotation[2], true);
   int nch = GetNChildren();
   for (int ich = 0; ich < nch; ich++)
     GetChild(ich)->CreateAlignmentObjects(arr);
@@ -813,22 +813,22 @@ void AliAlgVol::UpdateL2GRecoMatrices(const TClonesArray* algArr, const TGeoHMat
 }
 
 //______________________________________________________
-Bool_t AliAlgVol::OwnsDOFID(Int_t id) const
+bool AliAlgVol::OwnsDOFID(int id) const
 {
   // check if DOF ID belongs to this volume or its children
   if (id >= fFirstParGloID && id < fFirstParGloID + fNDOFs)
-    return kTRUE;
+    return true;
   //
   for (int iv = GetNChildren(); iv--;) {
     AliAlgVol* vol = GetChild(iv);
     if (vol->OwnsDOFID(id))
-      return kTRUE;
+      return true;
   }
-  return kFALSE;
+  return false;
 }
 
 //______________________________________________________
-AliAlgVol* AliAlgVol::GetVolOfDOFID(Int_t id) const
+AliAlgVol* AliAlgVol::GetVolOfDOFID(int id) const
 {
   // gets volume owning this DOF ID
   if (id >= fFirstParGloID && id < fFirstParGloID + fNDOFs)
