@@ -39,8 +39,8 @@ struct SelectTracks {
 
   // enum for candidate type
   enum candidateType {
-    k2Prong = 0,
-    k3Prong
+    Cand2Prong = 0,
+    Cand3Prong
   };
 
   Produces<aod::HFSelTrack> rowSelectedTrack;
@@ -149,10 +149,10 @@ struct SelectTracks {
         if (!trackparvar0.propagateParamToDCA(vtxXYZ, d_bz, &dca, 100.)) { // get impact parameters
           status_prong = 0;
         }
-        if ((status_prong & (1 << 0)) && !isSelectedTrack(track, dca, k2Prong)) {
+        if ((status_prong & (1 << 0)) && !isSelectedTrack(track, dca, Cand2Prong)) {
           status_prong = status_prong & ~(1 << 0);
         }
-        if ((status_prong & (1 << 1)) && !isSelectedTrack(track, dca, k3Prong)) {
+        if ((status_prong & (1 << 1)) && !isSelectedTrack(track, dca, Cand3Prong)) {
           status_prong = status_prong & ~(1 << 1);
         }
       }
