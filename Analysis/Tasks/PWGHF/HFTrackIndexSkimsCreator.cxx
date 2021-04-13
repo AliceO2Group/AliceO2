@@ -38,7 +38,7 @@ using namespace o2::analysis::hf_cuts_single_track;
 struct SelectTracks {
 
   // enum for candidate type
-  enum candidateType {
+  enum CandidateType {
     Cand2Prong = 0,
     Cand3Prong
   };
