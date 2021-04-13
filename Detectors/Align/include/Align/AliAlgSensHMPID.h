@@ -31,7 +31,7 @@ namespace align
 class AliAlgSensHMPID : public AliAlgSens
 {
  public:
-  AliAlgSensHMPID(const char* name = 0, Int_t vid = 0, Int_t iid = 0, Int_t isec = 0);
+  AliAlgSensHMPID(const char* name = 0, int vid = 0, int iid = 0, int isec = 0);
   virtual ~AliAlgSensHMPID();
   //
   virtual AliAlgPoint* TrackPoint2AlgPoint(int pntId, const AliTrackPointArray* trpArr, const AliESDtrack* t);

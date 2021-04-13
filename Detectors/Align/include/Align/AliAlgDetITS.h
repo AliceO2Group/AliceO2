@@ -40,25 +40,25 @@ class AliAlgDetITS : public AliAlgDet
   //
   virtual void DefineVolumes();
   //
-  Bool_t AcceptTrack(const AliESDtrack* trc, Int_t trtype) const;
+  bool AcceptTrack(const AliESDtrack* trc, int trtype) const;
 
   void SetAddErrorLr(int ilr, double sigY, double sigZ);
   void SetSkipLr(int ilr);
   //
   virtual void UpdatePointByTrackInfo(AliAlgPoint* pnt, const AliExternalTrackParam* t) const;
-  virtual void SetUseErrorParam(Int_t v = 1);
-  void SetITSSelPattern(Int_t trtype, ITSSel_t sel) { fITSPatt[trtype] = sel; }
+  virtual void SetUseErrorParam(int v = 1);
+  void SetITSSelPattern(int trtype, ITSSel_t sel) { fITSPatt[trtype] = sel; }
   void SetITSSelPatternColl(ITSSel_t sel = kSPDAny) { SetITSSelPattern(AliAlgAux::kColl, sel); }
   void SetITSSelPatternCosm(ITSSel_t sel = kSPDNoSel) { SetITSSelPattern(AliAlgAux::kCosm, sel); }
 
-  Int_t GetITSSelPattern(int tp) const { return fITSPatt[tp]; }
-  Int_t GetITSSelPatternColl() const { return fITSPatt[AliAlgAux::kColl]; }
-  Int_t GetITSSelPatternCosm() const { return fITSPatt[AliAlgAux::kCosm]; }
+  int GetITSSelPattern(int tp) const { return fITSPatt[tp]; }
+  int GetITSSelPatternColl() const { return fITSPatt[AliAlgAux::kColl]; }
+  int GetITSSelPatternCosm() const { return fITSPatt[AliAlgAux::kCosm]; }
   //
   virtual void Print(const Option_t* opt = "") const;
   //
-  static Bool_t CheckHitPattern(const AliESDtrack* trc, Int_t sel);
-  static const char* GetITSPattName(Int_t sel) { return sel < kNSPDSelTypes ? fgkHitsSel[sel] : 0; }
+  static bool CheckHitPattern(const AliESDtrack* trc, int sel);
+  static const char* GetITSPattName(int sel) { return sel < kNSPDSelTypes ? fgkHitsSel[sel] : 0; }
   //
  protected:
   //
@@ -70,9 +70,9 @@ class AliAlgDetITS : public AliAlgDet
   //
  protected:
   //
-  Int_t fITSPatt[AliAlgAux::kNTrackTypes]; // ITS hits selection pattern for coll/cosm tracks
+  int fITSPatt[AliAlgAux::kNTrackTypes]; // ITS hits selection pattern for coll/cosm tracks
   //
-  static const Char_t* fgkHitsSel[kNSPDSelTypes]; // ITS selection names
+  static const char* fgkHitsSel[kNSPDSelTypes]; // ITS selection names
   //
   ClassDef(AliAlgDetITS, 1);
 };

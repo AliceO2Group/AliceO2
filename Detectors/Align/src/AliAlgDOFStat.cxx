@@ -29,13 +29,13 @@ namespace align
 {
 
 //_________________________________________________________
-AliAlgDOFStat::AliAlgDOFStat(Int_t n)
+AliAlgDOFStat::AliAlgDOFStat(int n)
   : TNamed("DOFstat", "DOF statistics"), fNDOFs(n), fNMerges(1), fStat(0)
 {
   // def c-tor
   if (fNDOFs) {
-    fStat = new Int_t[n];
-    memset(fStat, 0, fNDOFs * sizeof(Int_t));
+    fStat = new int[n];
+    memset(fStat, 0, fNDOFs * sizeof(int));
   }
   //
 }
@@ -71,7 +71,7 @@ TH1F* AliAlgDOFStat::CreateHisto(AliAlgSteer* st) const
 }
 
 //______________________________________________________________________________
-Long64_t AliAlgDOFStat::Merge(TCollection* list)
+int64_t AliAlgDOFStat::Merge(TCollection* list)
 {
   // merge statistics
   int nmerged = 0;

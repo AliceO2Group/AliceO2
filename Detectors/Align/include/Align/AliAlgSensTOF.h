@@ -31,19 +31,19 @@ namespace align
 class AliAlgSensTOF : public AliAlgSens
 {
  public:
-  AliAlgSensTOF(const char* name = 0, Int_t vid = 0, Int_t iid = 0, Int_t isec = 0);
+  AliAlgSensTOF(const char* name = 0, int vid = 0, int iid = 0, int isec = 0);
   virtual ~AliAlgSensTOF();
   //
   virtual AliAlgPoint* TrackPoint2AlgPoint(int pntId, const AliTrackPointArray* trpArr, const AliESDtrack* t);
   //  virtual void   SetTrackingFrame();
   virtual void PrepareMatrixT2L();
   //
-  Int_t GetSector() const { return fSector; }
-  void SetSector(UInt_t sc) { fSector = (UChar_t)sc; }
+  int GetSector() const { return fSector; }
+  void SetSector(uint32_t sc) { fSector = (uint8_t)sc; }
   //
  protected:
   //
-  UChar_t fSector; // sector ID
+  uint8_t fSector; // sector ID
   //
   ClassDef(AliAlgSensTOF, 1)
 };

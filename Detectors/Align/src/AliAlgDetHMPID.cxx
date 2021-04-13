@@ -51,13 +51,13 @@ void AliAlgDetHMPID::DefineVolumes()
   //
   int labDet = GetDetLabel();
   AliGeomManager::ELayerID idHMPID = AliGeomManager::kHMPID;
-  for (Int_t iCh = AliHMPIDParam::kMinCh; iCh <= AliHMPIDParam::kMaxCh; iCh++) {
+  for (int iCh = AliHMPIDParam::kMinCh; iCh <= AliHMPIDParam::kMaxCh; iCh++) {
     const char* symname = Form("/HMPID/Chamber%i", iCh);
     if (!gGeoManager->GetAlignableEntry(symname)) {
       AliErrorF("Did not find alignable %s", symname);
       continue;
     }
-    UShort_t vid = AliGeomManager::LayerToVolUID(idHMPID, iCh);
+    uint16_t vid = AliGeomManager::LayerToVolUID(idHMPID, iCh);
     int iid = labDet + (1 + iCh) * 10000;
     AliAlgSensHMPID* sens = new AliAlgSensHMPID(symname, vid, iid);
     AddVolume(sens);
@@ -66,14 +66,14 @@ void AliAlgDetHMPID::DefineVolumes()
 }
 
 //____________________________________________
-Bool_t AliAlgDetHMPID::AcceptTrack(const AliESDtrack* trc, Int_t trtype) const
+bool AliAlgDetHMPID::AcceptTrack(const AliESDtrack* trc, int trtype) const
 {
   // test if detector had seed this track
   if (!CheckFlags(trc, trtype))
-    return kFALSE;
+    return false;
   if (trc->GetNcls(1) < fNPointsSel[trtype])
-    return kFALSE;
-  return kTRUE;
+    return false;
+  return true;
 }
 
 } // namespace align

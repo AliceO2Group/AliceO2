@@ -73,7 +73,7 @@ void AliAlgConstraint::WriteChildrenConstraints(FILE* conOut) const
   const char* comment[3] = {"  ", "! ", "!!"};
   const char* kKeyConstr[2] = {"constraint", "measurement"};
   //
-  Bool_t doJac = !GetNoJacobian(); // do we need jacobian evaluation?
+  bool doJac = !GetNoJacobian(); // do we need jacobian evaluation?
   int nch = GetNChildren();
   float* cstrArr = new float[nch * kNDOFGeom * kNDOFGeom];
   memset(cstrArr, 0, nch * kNDOFGeom * kNDOFGeom * sizeof(float));
@@ -175,7 +175,7 @@ void AliAlgConstraint::CheckConstraint() const
   if (!nch)
     return;
   //
-  Bool_t doJac = !GetNoJacobian(); // do we need jacobian evaluation?
+  bool doJac = !GetNoJacobian(); // do we need jacobian evaluation?
   float* cstrArr = new float[nch * kNDOFGeom * kNDOFGeom];
   memset(cstrArr, 0, nch * kNDOFGeom * kNDOFGeom * sizeof(float));
   // we need for each children the matrix for vector transformation from children frame
@@ -256,7 +256,7 @@ void AliAlgConstraint::CheckConstraint() const
       jac += kNDOFGeom * kNDOFGeom; // matrix for next slot
     } else {
       for (int jc = 0; jc < kNDOFGeom; jc++) {
-        Bool_t acc = child->IsFreeDOF(jc) && child->GetParErr(jc) >= 0;
+        bool acc = child->IsFreeDOF(jc) && child->GetParErr(jc) >= 0;
         if (acc) {
           printf("    %+.3e    ", parsC[jc]);
           parsTotAn[jc] += parsC[jc];

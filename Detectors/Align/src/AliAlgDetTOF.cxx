@@ -76,7 +76,7 @@ void AliAlgDetTOF::DefineVolumes()
 }
 
 //____________________________________________
-Bool_t AliAlgDetTOF::AcceptTrack(const AliESDtrack* trc, Int_t trtype) const
+bool AliAlgDetTOF::AcceptTrack(const AliESDtrack* trc, int trtype) const
 {
   // test if detector had seed this track
   return CheckFlags(trc, trtype);

@@ -32,7 +32,7 @@ namespace align
 {
 
 //_________________________________________________________
-AliAlgSensITS::AliAlgSensITS(const char* name, Int_t vid, Int_t iid)
+AliAlgSensITS::AliAlgSensITS(const char* name, int vid, int iid)
   : AliAlgSens(name, vid, iid)
 {
   // def c-tor
@@ -94,8 +94,8 @@ AliAlgPoint* AliAlgSensITS::TrackPoint2AlgPoint(int pntId, const AliTrackPointAr
   if (!det->GetUseErrorParam()) {
     // convert error
     TGeoHMatrix hcov;
-    Double_t hcovel[9];
-    const Float_t* pntcov = trpArr->GetCov() + pntId * 6; // 6 elements per error matrix
+    double hcovel[9];
+    const float* pntcov = trpArr->GetCov() + pntId * 6; // 6 elements per error matrix
     hcovel[0] = double(pntcov[0]);
     hcovel[1] = double(pntcov[1]);
     hcovel[2] = double(pntcov[2]);
@@ -113,7 +113,7 @@ AliAlgPoint* AliAlgSensITS::TrackPoint2AlgPoint(int pntId, const AliTrackPointAr
     const TGeoHMatrix& t2li = matT2L.Inverse();
     hcov.MultiplyLeft(&t2li); // errors in tracking frame
     //
-    Double_t* hcovscl = hcov.GetRotationMatrix();
+    double* hcovscl = hcov.GetRotationMatrix();
     const double* sysE = GetAddError(); // additional syst error
     pnt->SetYZErrTracking(hcovscl[4] + sysE[0] * sysE[0], hcovscl[5], hcovscl[8] + sysE[1] * sysE[1]);
   } else { // errors will be calculated just before using the point in the fit, using track info

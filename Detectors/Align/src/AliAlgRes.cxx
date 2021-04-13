@@ -63,7 +63,7 @@ AliAlgRes::~AliAlgRes()
 }
 
 //________________________________________________
-void AliAlgRes::Resize(Int_t np)
+void AliAlgRes::Resize(int np)
 {
   // resize container
   if (np > fNBook) {
@@ -87,43 +87,43 @@ void AliAlgRes::Resize(Int_t np)
     delete[] fLabel;
     //
     fNBook = 100 + np;
-    fX = new Float_t[fNBook];
-    fY = new Float_t[fNBook];
-    fZ = new Float_t[fNBook];
-    fSnp = new Float_t[fNBook];
-    fTgl = new Float_t[fNBook];
-    fAlpha = new Float_t[fNBook];
-    fDY = new Float_t[fNBook];
-    fDZ = new Float_t[fNBook];
-    fSigY2 = new Float_t[fNBook];
-    fSigYZ = new Float_t[fNBook];
-    fSigZ2 = new Float_t[fNBook];
-    fDYK = new Float_t[fNBook];
-    fDZK = new Float_t[fNBook];
-    fSigY2K = new Float_t[fNBook];
-    fSigYZK = new Float_t[fNBook];
-    fSigZ2K = new Float_t[fNBook];
-    fVolID = new Int_t[fNBook];
-    fLabel = new Int_t[fNBook];
+    fX = new float[fNBook];
+    fY = new float[fNBook];
+    fZ = new float[fNBook];
+    fSnp = new float[fNBook];
+    fTgl = new float[fNBook];
+    fAlpha = new float[fNBook];
+    fDY = new float[fNBook];
+    fDZ = new float[fNBook];
+    fSigY2 = new float[fNBook];
+    fSigYZ = new float[fNBook];
+    fSigZ2 = new float[fNBook];
+    fDYK = new float[fNBook];
+    fDZK = new float[fNBook];
+    fSigY2K = new float[fNBook];
+    fSigYZK = new float[fNBook];
+    fSigZ2K = new float[fNBook];
+    fVolID = new int[fNBook];
+    fLabel = new int[fNBook];
     //
-    memset(fX, 0, fNBook * sizeof(Float_t));
-    memset(fY, 0, fNBook * sizeof(Float_t));
-    memset(fZ, 0, fNBook * sizeof(Float_t));
-    memset(fSnp, 0, fNBook * sizeof(Float_t));
-    memset(fTgl, 0, fNBook * sizeof(Float_t));
-    memset(fAlpha, 0, fNBook * sizeof(Float_t));
-    memset(fDY, 0, fNBook * sizeof(Float_t));
-    memset(fDZ, 0, fNBook * sizeof(Float_t));
-    memset(fSigY2, 0, fNBook * sizeof(Float_t));
-    memset(fSigYZ, 0, fNBook * sizeof(Float_t));
-    memset(fSigZ2, 0, fNBook * sizeof(Float_t));
-    memset(fDYK, 0, fNBook * sizeof(Float_t));
-    memset(fDZK, 0, fNBook * sizeof(Float_t));
-    memset(fSigY2K, 0, fNBook * sizeof(Float_t));
-    memset(fSigYZK, 0, fNBook * sizeof(Float_t));
-    memset(fSigZ2K, 0, fNBook * sizeof(Float_t));
-    memset(fVolID, 0, fNBook * sizeof(Int_t));
-    memset(fLabel, 0, fNBook * sizeof(Int_t));
+    memset(fX, 0, fNBook * sizeof(float));
+    memset(fY, 0, fNBook * sizeof(float));
+    memset(fZ, 0, fNBook * sizeof(float));
+    memset(fSnp, 0, fNBook * sizeof(float));
+    memset(fTgl, 0, fNBook * sizeof(float));
+    memset(fAlpha, 0, fNBook * sizeof(float));
+    memset(fDY, 0, fNBook * sizeof(float));
+    memset(fDZ, 0, fNBook * sizeof(float));
+    memset(fSigY2, 0, fNBook * sizeof(float));
+    memset(fSigYZ, 0, fNBook * sizeof(float));
+    memset(fSigZ2, 0, fNBook * sizeof(float));
+    memset(fDYK, 0, fNBook * sizeof(float));
+    memset(fDZK, 0, fNBook * sizeof(float));
+    memset(fSigY2K, 0, fNBook * sizeof(float));
+    memset(fSigYZK, 0, fNBook * sizeof(float));
+    memset(fSigZ2K, 0, fNBook * sizeof(float));
+    memset(fVolID, 0, fNBook * sizeof(int));
+    memset(fLabel, 0, fNBook * sizeof(int));
   }
   //
 }
@@ -150,7 +150,7 @@ void AliAlgRes::Print(const Option_t* opt) const
   // print info
   TString opts = opt;
   opts.ToLower();
-  Bool_t lab = opts.Contains("l");
+  bool lab = opts.Contains("l");
   printf("%5sTr.", IsCosmic() ? "Cosm." : "Coll.");
   if (IsCosmic())
     printf("%2d/%2d ", fTrackID >> 16, fTrackID & 0xffff);
@@ -159,7 +159,7 @@ void AliAlgRes::Print(const Option_t* opt) const
   printf("Run:%6d Bz:%+4.1f Np: %3d q/Pt:%+.4f | Chi2: Ini: %6.1f LinSol:%6.1f Kalm:%6.1f |Vtx:%3s| TStamp:%d\n",
          fRun, fBz, fNPoints, fQ2Pt, fChi2Ini, fChi2, fChi2K, HasVertex() ? "ON" : "OFF", fTimeStamp);
   if (opts.Contains("r")) {
-    Bool_t ers = opts.Contains("e");
+    bool ers = opts.Contains("e");
     printf("%5s %7s %s %7s %7s %7s %5s %5s %9s %9s",
            " VID ", " Label ", " Alp ", "   X   ", "   Y   ", "   Z   ", " Snp ", " Tgl ", "    DY   ", "    DZ   ");
     if (ers)
@@ -192,7 +192,7 @@ void AliAlgRes::Print(const Option_t* opt) const
 }
 
 //____________________________________________________________
-Bool_t AliAlgRes::FillTrack(AliAlgTrack* trc, Bool_t doKalman)
+bool AliAlgRes::FillTrack(AliAlgTrack* trc, bool doKalman)
 {
   // fill tracks residuals info
   int nps, np = trc->GetNPoints();
@@ -202,7 +202,7 @@ Bool_t AliAlgRes::FillTrack(AliAlgTrack* trc, Bool_t doKalman)
   } else
     nps = np - 1; // ref point is dummy?
   if (nps < 0)
-    return kTRUE;
+    return true;
   SetCosmic(trc->IsCosmic());
   //
   SetNPoints(nps);
@@ -239,7 +239,7 @@ Bool_t AliAlgRes::FillTrack(AliAlgTrack* trc, Bool_t doKalman)
     LOG(FATAL) << nfill << " residuals were stored instead of " << nps;
   }
   //
-  SetKalmanDone(kFALSE);
+  SetKalmanDone(false);
   int nfilk = 0;
   if (doKalman && trc->ResidKalman()) {
     for (int i = 0; i < np; i++) {
@@ -260,28 +260,28 @@ Bool_t AliAlgRes::FillTrack(AliAlgTrack* trc, Bool_t doKalman)
     }
     //
     fChi2K = trc->GetChi2();
-    SetKalmanDone(kTRUE);
+    SetKalmanDone(true);
   }
 
-  return kTRUE;
+  return true;
 }
 
 //_________________________________________________
-Float_t AliAlgRes::GetXLab(int i) const
+float AliAlgRes::GetXLab(int i) const
 {
   // cluster lab X
   return Abs(fX[i]) * Cos(fAlpha[i]) - fY[i] * Sin(fAlpha[i]);
 }
 
 //_________________________________________________
-Float_t AliAlgRes::GetYLab(int i) const
+float AliAlgRes::GetYLab(int i) const
 {
   // cluster lab Y
   return Abs(fX[i]) * Sin(fAlpha[i]) + fY[i] * Cos(fAlpha[i]);
 }
 
 //_________________________________________________
-Float_t AliAlgRes::GetZLab(int i) const
+float AliAlgRes::GetZLab(int i) const
 {
   // cluster lab Z
   return fZ[i];

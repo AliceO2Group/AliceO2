@@ -221,11 +221,11 @@ void AliAlgPoint::Clear(Option_t*)
 }
 
 //__________________________________________________________________
-Int_t AliAlgPoint::Compare(const TObject* b) const
+int AliAlgPoint::Compare(const TObject* b) const
 {
   // sort points in direction opposite to track propagation, i.e.
   // 1) for tracks from collision: range in decreasing tracking X
-  // 2) for cosmic tracks: upper leg (pnt->IsInvDir()==kTRUE) ranged in increasing X
+  // 2) for cosmic tracks: upper leg (pnt->IsInvDir()==true) ranged in increasing X
   //                       lower leg - in decreasing X
   AliAlgPoint* pnt = (AliAlgPoint*)b;
   double x = GetXPoint();
@@ -245,7 +245,7 @@ Int_t AliAlgPoint::Compare(const TObject* b) const
 }
 
 //__________________________________________________________________
-void AliAlgPoint::GetXYZGlo(Double_t r[3]) const
+void AliAlgPoint::GetXYZGlo(double r[3]) const
 {
   // position in lab frame
   double cs = TMath::Cos(fAlphaSens);
@@ -258,7 +258,7 @@ void AliAlgPoint::GetXYZGlo(Double_t r[3]) const
 }
 
 //__________________________________________________________________
-Double_t AliAlgPoint::GetPhiGlo() const
+double AliAlgPoint::GetPhiGlo() const
 {
   // phi angle (-pi:pi) in global frame
   double xyz[3];
@@ -267,7 +267,7 @@ Double_t AliAlgPoint::GetPhiGlo() const
 }
 
 //__________________________________________________________________
-Int_t AliAlgPoint::GetAliceSector() const
+int AliAlgPoint::GetAliceSector() const
 {
   // get global sector ID corresponding to this point phi
   return Phi2Sector(GetPhiGlo());

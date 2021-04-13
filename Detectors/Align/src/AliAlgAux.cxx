@@ -30,10 +30,10 @@ namespace align
 {
 
 //_______________________________________________________________
-void AliAlgAux::PrintBits(ULong64_t patt, Int_t maxBits)
+void AliAlgAux::PrintBits(size_t patt, int maxBits)
 {
   // print maxBits of the pattern
-  maxBits = Min(64, maxBits);
+  maxBits = std::min(64, maxBits);
   for (int i = 0; i < maxBits; i++)
     printf("%c", ((patt >> i) & 0x1) ? '+' : '-');
 }

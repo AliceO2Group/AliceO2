@@ -30,18 +30,18 @@ class AliAlgSteer;
 class AliAlgDOFStat : public TNamed
 {
  public:
-  AliAlgDOFStat(Int_t n = 0);
+  AliAlgDOFStat(int n = 0);
   virtual ~AliAlgDOFStat();
   //
-  Int_t GetNDOFs() const { return fNDOFs; }
-  Int_t GetStat(int idf) const { return idf < fNDOFs ? fStat[idf] : 0; }
-  Int_t* GetStat() const { return (Int_t*)fStat; };
+  int GetNDOFs() const { return fNDOFs; }
+  int GetStat(int idf) const { return idf < fNDOFs ? fStat[idf] : 0; }
+  int* GetStat() const { return (int*)fStat; };
   void SetStat(int idf, int v) { fStat[idf] = v; }
   void AddStat(int idf, int v) { fStat[idf] += v; }
-  Int_t GetNMerges() const { return fNMerges; }
+  int GetNMerges() const { return fNMerges; }
   TH1F* CreateHisto(AliAlgSteer* st) const;
   virtual void Print(Option_t* opt) const;
-  virtual Long64_t Merge(TCollection* list);
+  virtual int64_t Merge(TCollection* list);
   //
  protected:
   //
@@ -49,9 +49,9 @@ class AliAlgDOFStat : public TNamed
   AliAlgDOFStat& operator=(const AliAlgDOFStat&);
   //
  protected:
-  Int_t fNDOFs;   // number of dofs defined
-  Int_t fNMerges; // number of merges
-  Int_t* fStat;   //[fNDOFs] statistics per DOF
+  int fNDOFs;   // number of dofs defined
+  int fNMerges; // number of merges
+  int* fStat;   //[fNDOFs] statistics per DOF
   //
   ClassDef(AliAlgDOFStat, 1);
 };

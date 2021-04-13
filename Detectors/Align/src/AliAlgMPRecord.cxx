@@ -56,7 +56,7 @@ AliAlgMPRecord::~AliAlgMPRecord()
 }
 
 //_________________________________________________________
-void AliAlgMPRecord::DummyRecord(Float_t res, Float_t err, Float_t dGlo, Int_t labGlo)
+void AliAlgMPRecord::DummyRecord(float res, float err, float dGlo, int labGlo)
 {
   // create dummy residuals record
   if (!fNDGlo)
@@ -82,13 +82,13 @@ void AliAlgMPRecord::DummyRecord(Float_t res, Float_t err, Float_t dGlo, Int_t l
 }
 
 //_________________________________________________________
-Bool_t AliAlgMPRecord::FillTrack(const AliAlgTrack* trc, const Int_t* id2Lab)
+bool AliAlgMPRecord::FillTrack(const AliAlgTrack* trc, const int* id2Lab)
 {
   // fill track info, optionally substitutind glopar par ID by label
   //
   if (!trc->GetDerivDone()) {
     LOG(ERROR) << "Track derivatives are not yet evaluated";
-    return kFALSE;
+    return false;
   }
   fNVarLoc = trc->GetNLocPar(); // number of local degrees of freedom in the track
   fNResid = 0;
@@ -203,13 +203,13 @@ Bool_t AliAlgMPRecord::FillTrack(const AliAlgTrack* trc, const Int_t* id2Lab)
   //
   if (!fNDGloTot) {
     LOG(INFO) << "Track does not depend on free global parameters, discard";
-    return kFALSE;
+    return false;
   }
-  return kTRUE;
+  return true;
 }
 
 //________________________________________________
-void AliAlgMPRecord::Resize(Int_t nresid, Int_t nloc, Int_t nglo)
+void AliAlgMPRecord::Resize(int nresid, int nloc, int nglo)
 {
   // resize container
   if (nresid > fNResidBook) {
@@ -218,35 +218,35 @@ void AliAlgMPRecord::Resize(Int_t nresid, Int_t nloc, Int_t nglo)
     delete[] fVolID;
     delete[] fResid;
     delete[] fResErr;
-    fNDLoc = new Short_t[nresid];
-    fNDGlo = new Int_t[nresid];
-    fVolID = new Int_t[nresid];
-    fResid = new Float_t[nresid];
-    fResErr = new Float_t[nresid];
+    fNDLoc = new int16_t[nresid];
+    fNDGlo = new int[nresid];
+    fVolID = new int[nresid];
+    fResid = new float[nresid];
+    fResErr = new float[nresid];
     fNResidBook = nresid;
-    memset(fNDLoc, 0, nresid * sizeof(Short_t));
-    memset(fNDGlo, 0, nresid * sizeof(Int_t));
-    memset(fVolID, 0, nresid * sizeof(Int_t));
-    memset(fResid, 0, nresid * sizeof(Float_t));
-    memset(fResErr, 0, nresid * sizeof(Float_t));
+    memset(fNDLoc, 0, nresid * sizeof(int16_t));
+    memset(fNDGlo, 0, nresid * sizeof(int));
+    memset(fVolID, 0, nresid * sizeof(int));
+    memset(fResid, 0, nresid * sizeof(float));
+    memset(fResErr, 0, nresid * sizeof(float));
   }
   if (nloc > fNDLocTotBook) {
     delete[] fIDLoc;
     delete[] fDLoc;
-    fIDLoc = new Short_t[nloc];
-    fDLoc = new Float_t[nloc];
+    fIDLoc = new int16_t[nloc];
+    fDLoc = new float[nloc];
     fNDLocTotBook = nloc;
-    memset(fIDLoc, 0, nloc * sizeof(Short_t));
-    memset(fDLoc, 0, nloc * sizeof(Float_t));
+    memset(fIDLoc, 0, nloc * sizeof(int16_t));
+    memset(fDLoc, 0, nloc * sizeof(float));
   }
   if (nglo > fNDGloTotBook) {
     delete[] fIDGlo;
     delete[] fDGlo;
-    fIDGlo = new Int_t[nglo];
-    fDGlo = new Float_t[nglo];
+    fIDGlo = new int[nglo];
+    fDGlo = new float[nglo];
     fNDGloTotBook = nglo;
-    memset(fIDGlo, 0, nglo * sizeof(Int_t));
-    memset(fDGlo, 0, nglo * sizeof(Float_t));
+    memset(fIDGlo, 0, nglo * sizeof(int));
+    memset(fDGlo, 0, nglo * sizeof(float));
   }
   //
 }
@@ -283,15 +283,15 @@ void AliAlgMPRecord::Print(const Option_t*) const
            ir, fResid[ir], fResErr[ir], ndloc, ndglo, GetVolID(ir));
     //
     printf("Local Derivatives:\n");
-    Bool_t eolOK = kTRUE;
+    bool eolOK = true;
     for (int id = 0; id < ndloc; id++) {
       int jd = id + curLoc;
       printf("[%3d] %+.2e  ", fIDLoc[jd], fDLoc[jd]);
       if (((id + 1) % kNColLoc) == 0) {
         printf("\n");
-        eolOK = kTRUE;
+        eolOK = true;
       } else
-        eolOK = kFALSE;
+        eolOK = false;
     }
     if (!eolOK)
       printf("\n");
@@ -299,18 +299,18 @@ void AliAlgMPRecord::Print(const Option_t*) const
     //
     //
     printf("Global Derivatives:\n");
-    //    eolOK = kTRUE;
+    //    eolOK = true;
     //    const int kNColGlo=6;
     int prvID = -1;
     for (int id = 0; id < ndglo; id++) {
       int jd = id + curGlo;
-      //      eolOK==kFALSE;
+      //      eolOK==false;
       if (prvID > fIDGlo[jd] % 100) {
-        printf("\n"); /* eolOK = kTRUE;*/
+        printf("\n"); /* eolOK = true;*/
       }
       printf("[%5d] %+.2e  ", fIDGlo[jd], fDGlo[jd]);
       //      if (((id+1)%kNColGlo)==0)
-      //      else eolOK = kFALSE;
+      //      else eolOK = false;
       prvID = fIDGlo[jd] % 100;
     }
     //    if (!eolOK) printf("\n");

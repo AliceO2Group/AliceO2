@@ -37,24 +37,24 @@ class AliAlgDetTRD : public AliAlgDet
   virtual void DefineVolumes();
   virtual void Print(const Option_t* opt = "") const;
   //
-  Bool_t AcceptTrack(const AliESDtrack* trc, Int_t trtype) const;
+  bool AcceptTrack(const AliESDtrack* trc, int trtype) const;
   //
   virtual const char* GetCalibDOFName(int i) const;
   //
   virtual void WritePedeInfo(FILE* parOut, const Option_t* opt = "") const;
   //
   void SetNonRCCorrDzDtgl(double v = 0) { fNonRCCorrDzDtgl = v; }
-  Double_t GetNonRCCorrDzDtgl() const { return fNonRCCorrDzDtgl; }
-  Double_t GetNonRCCorrDzDtglWithCal() const { return GetNonRCCorrDzDtgl() + GetParVal(kCalibNRCCorrDzDtgl); }
+  double GetNonRCCorrDzDtgl() const { return fNonRCCorrDzDtgl; }
+  double GetNonRCCorrDzDtglWithCal() const { return GetNonRCCorrDzDtgl() + GetParVal(kCalibNRCCorrDzDtgl); }
   //
   void SetCorrDVT(double v = 0) { fCorrDVT = 0; }
-  Double_t GetCorrDVT() const { return fCorrDVT; }
-  Double_t GetCorrDVTWithCal() const { return GetCorrDVT() + GetParVal(kCalibDVT); }
+  double GetCorrDVT() const { return fCorrDVT; }
+  double GetCorrDVTWithCal() const { return GetCorrDVT() + GetParVal(kCalibDVT); }
   //
-  virtual Double_t GetCalibDOFVal(int id) const;
-  virtual Double_t GetCalibDOFValWithCal(int id) const;
+  virtual double GetCalibDOFVal(int id) const;
+  virtual double GetCalibDOFValWithCal(int id) const;
   //
-  const Double_t* GetExtraErrRC() const { return fExtraErrRC; }
+  const double* GetExtraErrRC() const { return fExtraErrRC; }
   void SetExtraErrRC(double y = 0.2, double z = 1.0)
   {
     fExtraErrRC[0] = y;
@@ -69,9 +69,9 @@ class AliAlgDetTRD : public AliAlgDet
   //
  protected:
   //
-  Double_t fNonRCCorrDzDtgl; // correction in Z for non-crossing tracklets
-  Double_t fCorrDVT;         // correction to Vdrift*t
-  Double_t fExtraErrRC[2];   // extra errors for RC tracklets
+  double fNonRCCorrDzDtgl; // correction in Z for non-crossing tracklets
+  double fCorrDVT;         // correction to Vdrift*t
+  double fExtraErrRC[2];   // extra errors for RC tracklets
   //
   static const char* fgkCalibDOFName[kNCalibParams];
   //
