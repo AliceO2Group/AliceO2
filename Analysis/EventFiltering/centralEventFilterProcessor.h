@@ -16,7 +16,10 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
+#include <random>
 #include "filterTables.h"
+
+class TH1D;
 
 namespace o2::aod::filtering
 {
@@ -28,11 +31,15 @@ class CentralEventFilterProcessor : public framework::Task
   ~CentralEventFilterProcessor() override = default;
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;
-  void endOfStream(framework::EndOfStreamContext& ec) final {}
+  void endOfStream(framework::EndOfStreamContext& ec) final;
 
  private:
+  TH1D* mScalers;
+  TH1D* mFiltered;
   std::string mConfigFile;
-  std::unordered_map<std::string, float> mDownscaling;
+  std::unordered_map<std::string, std::unordered_map<std::string,float>> mDownscaling;
+  std::mt19937_64 mGeneratorEngine;
+  std::uniform_real_distribution<double> mUniformGenerator = std::uniform_real_distribution<double>(0.,1.);
 };
 
 /// create a processor spec

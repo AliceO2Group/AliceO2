@@ -79,6 +79,7 @@ struct nucleiFilter {
     spectra.add("fCollZpos", "collision z position", HistType::kTH1F, {{600, -20., +20., "z position (cm)"}});
     spectra.add("fTPCsignal", "Specific energy loss", HistType::kTH2F, {{600, 0., 3, "#it{p} (GeV/#it{c})"}, {1400, 0, 1400, "d#it{E} / d#it{X} (a. u.)"}});
     spectra.add("fTPCcounts", "n-sigma TPC", HistType::kTH2F, {ptAxis, {200, -100., +100., "n#sigma_{He} (a. u.)"}});
+    spectra.add("fProcessedEvents", "Nuclei - event filtered", HistType::kTH1F,{{4 ,-0.5, 3.5, "Event counter"}});
   }
 
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
@@ -125,6 +126,11 @@ struct nucleiFilter {
 
     } // end loop over tracks
     //
+    for (int iDecision{0}; iDecision < 4; ++iDecision) {
+      if (keepEvent[iDecision]) {
+        spectra.fill(HIST("fProcessedEvents"), iDecision);
+      }
+    }
     tags(keepEvent[0], keepEvent[1], keepEvent[2], keepEvent[3]);
   }
 };
