@@ -28,7 +28,7 @@ class AliAlgDetHMPID : public AliAlgDet
   AliAlgDetHMPID(const char* title = "");
   virtual ~AliAlgDetHMPID();
   //
-  virtual void DefineVolumes();
+  virtual void defineVolumes();
   //
   bool AcceptTrack(const AliESDtrack* trc, int trtype) const;
   //

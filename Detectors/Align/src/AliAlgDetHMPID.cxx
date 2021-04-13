@@ -34,8 +34,8 @@ namespace align
 AliAlgDetHMPID::AliAlgDetHMPID(const char* title)
 {
   // default c-tor
-  SetNameTitle(AliAlgSteer::GetDetNameByDetID(AliAlgSteer::kHMPID), title);
-  SetDetID(AliAlgSteer::kHMPID);
+  SetNameTitle(AliAlgSteer::getDetNameByDetID(AliAlgSteer::kHMPID), title);
+  setDetID(AliAlgSteer::kHMPID);
 }
 
 //____________________________________________
@@ -45,11 +45,11 @@ AliAlgDetHMPID::~AliAlgDetHMPID()
 }
 
 //____________________________________________
-void AliAlgDetHMPID::DefineVolumes()
+void AliAlgDetHMPID::defineVolumes()
 {
   // define HMPID volumes
   //
-  int labDet = GetDetLabel();
+  int labDet = getDetLabel();
   AliGeomManager::ELayerID idHMPID = AliGeomManager::kHMPID;
   for (int iCh = AliHMPIDParam::kMinCh; iCh <= AliHMPIDParam::kMaxCh; iCh++) {
     const char* symname = Form("/HMPID/Chamber%i", iCh);
@@ -60,7 +60,7 @@ void AliAlgDetHMPID::DefineVolumes()
     uint16_t vid = AliGeomManager::LayerToVolUID(idHMPID, iCh);
     int iid = labDet + (1 + iCh) * 10000;
     AliAlgSensHMPID* sens = new AliAlgSensHMPID(symname, vid, iid);
-    AddVolume(sens);
+    addVolume(sens);
   } //iCh loop
   //
 }
@@ -71,7 +71,7 @@ bool AliAlgDetHMPID::AcceptTrack(const AliESDtrack* trc, int trtype) const
   // test if detector had seed this track
   if (!CheckFlags(trc, trtype))
     return false;
-  if (trc->GetNcls(1) < fNPointsSel[trtype])
+  if (trc->GetNcls(1) < mNPointsSel[trtype])
     return false;
   return true;
 }

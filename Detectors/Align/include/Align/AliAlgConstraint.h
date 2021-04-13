@@ -45,35 +45,35 @@ class AliAlgConstraint : public TNamed
   AliAlgConstraint(const char* name = 0, const char* title = 0);
   virtual ~AliAlgConstraint();
   //
-  void SetParent(const AliAlgVol* par);
-  const AliAlgVol* GetParent() const { return fParent; }
+  void setParent(const AliAlgVol* par);
+  const AliAlgVol* getParent() const { return mParent; }
   //
-  int GetNChildren() const { return fChildren.GetEntriesFast(); }
-  AliAlgVol* GetChild(int i) const { return (AliAlgVol*)fChildren[i]; }
-  void AddChild(const AliAlgVol* v)
+  int getNChildren() const { return mChildren.GetEntriesFast(); }
+  AliAlgVol* getChild(int i) const { return (AliAlgVol*)mChildren[i]; }
+  void addChild(const AliAlgVol* v)
   {
     if (v)
-      fChildren.AddLast((AliAlgVol*)v);
+      mChildren.AddLast((AliAlgVol*)v);
   }
   //
-  bool IsDOFConstrained(int dof) const { return fConstraint & 0x1 << dof; }
-  uint8_t GetConstraintPattern() const { return fConstraint; }
-  void ConstrainDOF(int dof) { fConstraint |= 0x1 << dof; }
-  void UnConstrainDOF(int dof) { fConstraint &= ~(0x1 << dof); }
-  void SetConstrainPattern(uint32_t pat) { fConstraint = pat; }
-  bool HasConstraint() const { return fConstraint; }
-  double GetSigma(int i) const { return fSigma[i]; }
-  void SetSigma(int i, double s = 0) { fSigma[i] = s; }
+  bool isDOFConstrained(int dof) const { return mConstraint & 0x1 << dof; }
+  uint8_t getConstraintPattern() const { return mConstraint; }
+  void constrainDOF(int dof) { mConstraint |= 0x1 << dof; }
+  void unConstrainDOF(int dof) { mConstraint &= ~(0x1 << dof); }
+  void setConstrainPattern(uint32_t pat) { mConstraint = pat; }
+  bool hasConstraint() const { return mConstraint; }
+  double getSigma(int i) const { return mSigma[i]; }
+  void setSigma(int i, double s = 0) { mSigma[i] = s; }
   //
-  void SetNoJacobian(bool v = true) { SetBit(kNoJacobianBit, v); }
-  bool GetNoJacobian() const { return TestBit(kNoJacobianBit); }
+  void setNoJacobian(bool v = true) { SetBit(kNoJacobianBit, v); }
+  bool getNoJacobian() const { return TestBit(kNoJacobianBit); }
   //
-  void ConstrCoefGeom(const TGeoHMatrix& matRD, float* jac /*[kNDOFGeom][kNDOFGeom]*/) const;
+  void constrCoefGeom(const TGeoHMatrix& matRD, float* jac /*[kNDOFGeom][kNDOFGeom]*/) const;
   //
   virtual void Print(const Option_t* opt = "") const;
-  virtual void WriteChildrenConstraints(FILE* conOut) const;
-  virtual void CheckConstraint() const;
-  virtual const char* GetDOFName(int i) const { return AliAlgVol::GetGeomDOFName(i); }
+  virtual void writeChildrenConstraints(FILE* conOut) const;
+  virtual void checkConstraint() const;
+  virtual const char* getDOFName(int i) const { return AliAlgVol::getGeomDOFName(i); }
   //
  protected:
   // ------- dummies -------
@@ -81,10 +81,10 @@ class AliAlgConstraint : public TNamed
   AliAlgConstraint& operator=(const AliAlgConstraint&);
   //
  protected:
-  uint32_t fConstraint;     // bit pattern of constraint
-  double fSigma[kNDOFGeom]; // optional sigma if constraint is gaussian
-  const AliAlgVol* fParent; // parent volume for contraint, lab if 0
-  TObjArray fChildren;      // volumes subjected to constraints
+  uint32_t mConstraint;     // bit pattern of constraint
+  double mSigma[kNDOFGeom]; // optional sigma if constraint is gaussian
+  const AliAlgVol* mParent; // parent volume for contraint, lab if 0
+  TObjArray mChildren;      // volumes subjected to constraints
   //
   ClassDef(AliAlgConstraint, 2);
 };

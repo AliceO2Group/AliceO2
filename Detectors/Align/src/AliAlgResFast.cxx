@@ -33,59 +33,59 @@ namespace align
 
 //____________________________________
 AliAlgResFast::AliAlgResFast()
-  : fNPoints(0), fNMatSol(0), fNBook(0), fChi2(0), fChi2Ini(0), fD0(0), fD1(0), fSig0(0), fSig1(0), fVolID(0), fLabel(0), fSolMat(0), fMatErr(0)
+  : mNPoints(0), mNMatSol(0), mNBook(0), mChi2(0), mChi2Ini(0), mD0(0), mD1(0), mSig0(0), mSig1(0), mVolID(0), mLabel(0), mSolMat(0), mMatErr(0)
 {
   // def c-tor
   for (int i = 5; i--;)
-    fTrCorr[i] = 0;
+    mTrCorr[i] = 0;
 }
 
 //________________________________________________
 AliAlgResFast::~AliAlgResFast()
 {
   // d-tor
-  delete[] fD0;
-  delete[] fD1;
-  delete[] fSig0;
-  delete[] fSig1;
-  delete[] fVolID;
-  delete[] fLabel;
-  delete[] fSolMat;
-  delete[] fMatErr;
+  delete[] mD0;
+  delete[] mD1;
+  delete[] mSig0;
+  delete[] mSig1;
+  delete[] mVolID;
+  delete[] mLabel;
+  delete[] mSolMat;
+  delete[] mMatErr;
 }
 
 //________________________________________________
-void AliAlgResFast::Resize(int np)
+void AliAlgResFast::resize(int np)
 {
   // resize container
-  if (np > fNBook) {
-    delete[] fD0;
-    delete[] fD1;
-    delete[] fSig0;
-    delete[] fSig1;
-    delete[] fVolID;
-    delete[] fLabel;
-    delete[] fSolMat;
-    delete[] fMatErr;
+  if (np > mNBook) {
+    delete[] mD0;
+    delete[] mD1;
+    delete[] mSig0;
+    delete[] mSig1;
+    delete[] mVolID;
+    delete[] mLabel;
+    delete[] mSolMat;
+    delete[] mMatErr;
     //
-    fNBook = 30 + np;
-    fD0 = new float[fNBook];
-    fD1 = new float[fNBook];
-    fSig0 = new float[fNBook];
-    fSig1 = new float[fNBook];
-    fVolID = new int[fNBook];
-    fLabel = new int[fNBook];
-    fSolMat = new float[fNBook * 4]; // at most 4 material params per point
-    fMatErr = new float[fNBook * 4]; // at most 4 material params per point
+    mNBook = 30 + np;
+    mD0 = new float[mNBook];
+    mD1 = new float[mNBook];
+    mSig0 = new float[mNBook];
+    mSig1 = new float[mNBook];
+    mVolID = new int[mNBook];
+    mLabel = new int[mNBook];
+    mSolMat = new float[mNBook * 4]; // at most 4 material params per point
+    mMatErr = new float[mNBook * 4]; // at most 4 material params per point
     //
-    memset(fD0, 0, fNBook * sizeof(float));
-    memset(fD1, 0, fNBook * sizeof(float));
-    memset(fSig0, 0, fNBook * sizeof(float));
-    memset(fSig1, 0, fNBook * sizeof(float));
-    memset(fVolID, 0, fNBook * sizeof(int));
-    memset(fLabel, 0, fNBook * sizeof(int));
-    memset(fSolMat, 0, 4 * fNBook * sizeof(int));
-    memset(fMatErr, 0, 4 * fNBook * sizeof(int));
+    memset(mD0, 0, mNBook * sizeof(float));
+    memset(mD1, 0, mNBook * sizeof(float));
+    memset(mSig0, 0, mNBook * sizeof(float));
+    memset(mSig1, 0, mNBook * sizeof(float));
+    memset(mVolID, 0, mNBook * sizeof(int));
+    memset(mLabel, 0, mNBook * sizeof(int));
+    memset(mSolMat, 0, 4 * mNBook * sizeof(int));
+    memset(mMatErr, 0, 4 * mNBook * sizeof(int));
   }
   //
 }
@@ -94,9 +94,9 @@ void AliAlgResFast::Resize(int np)
 void AliAlgResFast::Clear(const Option_t*)
 {
   // reset record
-  fNPoints = 0;
-  fNMatSol = 0;
-  fTrCorr[4] = 0; // rest will be 100% overwritten
+  mNPoints = 0;
+  mNMatSol = 0;
+  mTrCorr[4] = 0; // rest will be 100% overwritten
   //
 }
 
@@ -106,26 +106,26 @@ void AliAlgResFast::Print(const Option_t* /*opt*/) const
   // print info
   printf("%3s:%1s (%9s/%5s) %6s | [ %7s:%7s ]\n", "Pnt", "M", "Label",
          "VolID", "Sigma", "resid", "pull/LG");
-  for (int irs = 0; irs < fNPoints; irs++) {
+  for (int irs = 0; irs < mNPoints; irs++) {
     printf("%3d:%1d (%9d/%5d) %6.4f | [%+.2e:%+7.2f]\n",
-           irs, 0, fLabel[irs], fVolID[irs], fSig0[irs], fD0[irs],
-           fSig0[irs] > 0 ? fD0[irs] / fSig0[irs] : -99);
+           irs, 0, mLabel[irs], mVolID[irs], mSig0[irs], mD0[irs],
+           mSig0[irs] > 0 ? mD0[irs] / mSig0[irs] : -99);
     printf("%3d:%1d (%9d/%5d) %6.4f | [%+.2e:%+7.2f]\n",
-           irs, 1, fLabel[irs], fVolID[irs], fSig1[irs], fD1[irs],
-           fSig1[irs] > 0 ? fD1[irs] / fSig1[irs] : -99);
+           irs, 1, mLabel[irs], mVolID[irs], mSig1[irs], mD1[irs],
+           mSig1[irs] > 0 ? mD1[irs] / mSig1[irs] : -99);
   }
   //
   printf("CorrETP: ");
   for (int i = 0; i < 5; i++)
-    printf("%+.3f ", fTrCorr[i]);
+    printf("%+.3f ", mTrCorr[i]);
   printf("\n");
   printf("MatCorr (corr/sig:pull)\n");
-  int nmp = fNMatSol / 4;
+  int nmp = mNMatSol / 4;
   int cnt = 0;
   for (int imp = 0; imp < nmp; imp++) {
     for (int ic = 0; ic < 4; ic++) {
-      printf("%+.2e/%.2e:%+8.3f|", fSolMat[cnt], fMatErr[cnt],
-             fMatErr[cnt] > 0 ? fSolMat[cnt] / fMatErr[cnt] : -99);
+      printf("%+.2e/%.2e:%+8.3f|", mSolMat[cnt], mMatErr[cnt],
+             mMatErr[cnt] > 0 ? mSolMat[cnt] / mMatErr[cnt] : -99);
       cnt++;
     }
     printf("\n");
@@ -134,32 +134,32 @@ void AliAlgResFast::Print(const Option_t* /*opt*/) const
 }
 
 //____________________________________________
-void AliAlgResFast::SetResSigMeas(int ip, int ord, float res, float sig)
+void AliAlgResFast::setResSigMeas(int ip, int ord, float res, float sig)
 {
   // assign residual and error for measurement
   if (ord == 0) {
-    fD0[ip] = res;
-    fSig0[ip] = sig;
+    mD0[ip] = res;
+    mSig0[ip] = sig;
   } else {
-    fD1[ip] = res;
-    fSig1[ip] = sig;
+    mD1[ip] = res;
+    mSig1[ip] = sig;
   }
 }
 
 //____________________________________________
-void AliAlgResFast::SetMatCorr(int id, float res, float sig)
+void AliAlgResFast::setMatCorr(int id, float res, float sig)
 {
   // assign residual and error for material correction
-  fSolMat[id] = res;
-  fMatErr[id] = sig;
+  mSolMat[id] = res;
+  mMatErr[id] = sig;
 }
 
 //____________________________________________
-void AliAlgResFast::SetLabel(int ip, int lab, int vol)
+void AliAlgResFast::setLabel(int ip, int lab, int vol)
 {
   // set label/volid of measured volume
-  fVolID[ip] = vol;
-  fLabel[ip] = lab;
+  mVolID[ip] = vol;
+  mLabel[ip] = lab;
 }
 
 } // namespace align
