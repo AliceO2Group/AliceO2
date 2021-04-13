@@ -122,6 +122,9 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUd() void DoTrackingThread(int iTrk, int threadId = 0);
   GPUd() bool CalculateSpacePoints(int iCollision = 0);
   GPUd() bool FollowProlongation(PROP* prop, TRDTRK* t, int threadId, int collisionId);
+  GPUd() int FillImpactAngleHistograms(PROP* prop, TRDTRK* t);
+  GPUd() void ResetImpactAngleHistograms();
+  GPUd() int PropagateToLayerAndUpdate(PROP* prop, TRDTRK* trkWork, int iLayer, bool doUpdate = true);
   GPUd() int GetDetectorNumber(const float zPos, const float alpha, const int layer) const;
   GPUd() bool AdjustSector(PROP* prop, TRDTRK* t) const;
   GPUd() int GetSector(float alpha) const;
@@ -146,6 +149,7 @@ class GPUTRDTracker_t : public GPUProcessor
   // settings
   GPUd() void SetTrkltTransformNeeded(bool flag) { mTrkltTransfNeeded = flag; }
   GPUd() void SetProcessPerTimeFrame() { mProcessPerTimeFrame = true; }
+  GPUd() void SetDoImpactAngleHistograms(bool flag) { mDoImpactAngleHistograms = flag; }
   GPUd() void SetMCEvent(AliMCEvent* mc) { mMCEvent = mc; }
   GPUd() void EnableDebugOutput() { mDebugOutput = true; }
   GPUd() void SetMaxEta(float maxEta) { mMaxEta = maxEta; }
@@ -164,6 +168,8 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUd() TRDTRK* Tracks() const { return mTracks; }
   GPUd() int NTracklets() const { return mNTracklets; }
   GPUd() GPUTRDSpacePointInternal* SpacePoints() const { return mSpacePoints; }
+  GPUd() float* AngleDiffSums() const { return mAngleDiffSums; }
+  GPUd() short* AngleDiffCounters() const { return mAngleDiffCounters; }
   GPUd() GPUTRDTrackletWord* Tracklets() const { return mTracklets; }
   GPUd() void DumpTracks();
 
@@ -172,6 +178,9 @@ class GPUTRDTracker_t : public GPUProcessor
   bool mIsInitialized;                     // flag is set upon initialization
   bool mTrkltTransfNeeded;                 // if the output of the TRDTrackletTransformer is used we don't need to do the coordinate transformation for the tracklets
   bool mProcessPerTimeFrame;               // if true, tracking is done per time frame instead of on a single events basis
+  bool mDoImpactAngleHistograms;           // if true, impact angle vs angle difference histograms are filled
+  short mNAngleHistogramBins;              // number of bins per chamber for the angular difference histograms
+  float mAngleHistogramRange;              // range of impact angles covered by each histogram
   short mMemoryPermanent;                  // size of permanent memory for the tracker
   short mMemoryTracklets;                  // size of memory for TRD tracklets
   short mMemoryTracks;                     // size of memory for tracks (used for i/o)
@@ -196,6 +205,8 @@ class GPUTRDTracker_t : public GPUProcessor
   Hypothesis* mHypothesis;                 // array with multiple track hypothesis
   TRDTRK* mCandidates;                     // array of tracks for multiple hypothesis tracking
   GPUTRDSpacePointInternal* mSpacePoints;  // array with tracklet coordinates in global tracking frame
+  float* mAngleDiffSums;                   // array with sum of angular differences for a given bin
+  short* mAngleDiffCounters;               // array with number of entries for a given bin
   int* mTrackletLabels;                    // array with MC tracklet labels
   TRD_GEOMETRY_CONST GPUTRDGeometry* mGeo; // TRD geometry
   /// ---- error parametrization depending on magnetic field ----

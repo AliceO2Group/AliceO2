@@ -75,6 +75,8 @@ void* GPUTRDTracker_t<TRDTRK, PROP>::SetPointersBase(void* base)
   computePointerWithAlignment(base, mTrackletIndexArray, (kNChambers + 1) * mNMaxCollisions);
   computePointerWithAlignment(base, mHypothesis, mNCandidates * mMaxThreads);
   computePointerWithAlignment(base, mCandidates, mNCandidates * 2 * mMaxThreads);
+  computePointerWithAlignment(base, mAngleDiffSums, kNChambers * (mNAngleHistogramBins + 1));
+  computePointerWithAlignment(base, mAngleDiffCounters, kNChambers * (mNAngleHistogramBins + 1));
   return base;
 }
 
@@ -103,7 +105,7 @@ void* GPUTRDTracker_t<TRDTRK, PROP>::SetPointersTracks(void* base)
 }
 
 template <class TRDTRK, class PROP>
-GPUTRDTracker_t<TRDTRK, PROP>::GPUTRDTracker_t() : mR(nullptr), mIsInitialized(false), mTrkltTransfNeeded(true), mProcessPerTimeFrame(false), mMemoryPermanent(-1), mMemoryTracklets(-1), mMemoryTracks(-1), mNMaxCollisions(1), mNMaxTracks(0), mNMaxSpacePoints(0), mTracks(nullptr), mNCandidates(1), mNCollisions(1), mNTracks(0), mNEvents(0), mTriggerRecordIndices(nullptr), mTriggerRecordTimes(nullptr), mTracklets(nullptr), mTrackletIndices(nullptr), mMaxThreads(100), mNTracklets(0), mTrackletIndexArray(nullptr), mHypothesis(nullptr), mCandidates(nullptr), mSpacePoints(nullptr), mTrackletLabels(nullptr), mGeo(nullptr), mRPhiA2(0), mRPhiB(0), mRPhiC2(0), mDyA2(0), mDyB(0), mDyC2(0), mAngleToDyA(0), mAngleToDyB(0), mAngleToDyC(0), mDebugOutput(false), mTimeWindow(.1f), mRadialOffset(-0.1), mMaxEta(0.84f), mExtraRoadY(2.f), mRoadZ(18.f), mZCorrCoefNRC(1.4f), mMCEvent(nullptr), mDebug(new GPUTRDTrackerDebug<TRDTRK>())
+GPUTRDTracker_t<TRDTRK, PROP>::GPUTRDTracker_t() : mR(nullptr), mIsInitialized(false), mTrkltTransfNeeded(true), mDoImpactAngleHistograms(false), mProcessPerTimeFrame(false), mMemoryPermanent(-1), mMemoryTracklets(-1), mMemoryTracks(-1), mNMaxCollisions(1), mNMaxTracks(0), mNMaxSpacePoints(0), mTracks(nullptr), mNCandidates(1), mNCollisions(1), mNTracks(0), mNEvents(0), mTriggerRecordIndices(nullptr), mTriggerRecordTimes(nullptr), mTracklets(nullptr), mTrackletIndices(nullptr), mMaxThreads(100), mNTracklets(0), mTrackletIndexArray(nullptr), mHypothesis(nullptr), mNAngleHistogramBins(25), mAngleHistogramRange(50), mCandidates(nullptr), mSpacePoints(nullptr), mAngleDiffSums(nullptr), mAngleDiffCounters(nullptr), mTrackletLabels(nullptr), mGeo(nullptr), mRPhiA2(0), mRPhiB(0), mRPhiC2(0), mDyA2(0), mDyB(0), mDyC2(0), mAngleToDyA(0), mAngleToDyB(0), mAngleToDyC(0), mDebugOutput(false), mTimeWindow(.1f), mRadialOffset(-0.1), mMaxEta(0.84f), mExtraRoadY(2.f), mRoadZ(18.f), mZCorrCoefNRC(1.4f), mMCEvent(nullptr), mDebug(new GPUTRDTrackerDebug<TRDTRK>())
 {
   //--------------------------------------------------------------------
   // Default constructor
@@ -272,6 +274,18 @@ void GPUTRDTracker_t<TRDTRK, PROP>::DoTracking(GPUChainTracking* chainTracking)
 #endif
   }
 
+  if (mDoImpactAngleHistograms) {
+    GPUInfo("Start calculating angular differences");
+    for (int iTrk = 0; iTrk < mNTracks; ++iTrk) {
+      if (mTracks[iTrk].GetNtracklets() > 3) {
+        auto trkCopy = mTracks[iTrk];
+        PROP prop(&Param().polynomialField);
+        prop.setFitInProjections(true);
+        prop.setTrack(&trkCopy);
+        FillImpactAngleHistograms(&prop, &trkCopy);
+      }
+    }
+  }
   auto duration = std::chrono::high_resolution_clock::now() - timeStart;
   (void)duration; // suppress warning about unused variable
   /*
@@ -605,6 +619,125 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::CalculateSpacePoints(int iCollision)
   }
   return result;
 }
+template <class TRDTRK, class PROP>
+GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::ResetImpactAngleHistograms()
+{
+  GPUInfo("Resetting angle histograms");
+  for (int i = 0; i < kNChambers * (mNAngleHistogramBins + 1); i++) {
+    mAngleDiffSums[i] = 0;
+    mAngleDiffCounters[i] = 0;
+  }
+}
+
+template <class TRDTRK, class PROP>
+GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::FillImpactAngleHistograms(PROP* prop, TRDTRK* t)
+{
+  //--------------------------------------------------------------------
+  // To calibrate vDrift and ExB based on the online tracklets this function
+  // collects the differences between TRD-only tracks and their associated
+  // tracklets
+  // returns 0 in case of success
+  //--------------------------------------------------------------------
+  float invBinWidth = mNAngleHistogramBins / mAngleHistogramRange;
+  t->SetChi2(0.f);
+  t->resetCovariance(100);
+
+  // first inward propagation (TRD track fit)
+  for (int iLayer = kNLayers - 1; iLayer >= 0; --iLayer) {
+    if (t->GetTracklet(iLayer) == -1) {
+      continue;
+    }
+    if (PropagateToLayerAndUpdate(prop, t, iLayer)) {
+      return 1;
+    }
+  }
+
+  // outward propagation (smoothing)
+  for (int iLayer = 1; iLayer < kNLayers; ++iLayer) {
+    if (t->GetTracklet(iLayer) == -1) {
+      continue;
+    }
+    if (PropagateToLayerAndUpdate(prop, t, iLayer)) {
+      return 2;
+    }
+  }
+
+  // second inward propagation (collect angular differences between tracklets + TRD track)
+  for (int iLayer = kNLayers - 1; iLayer >= 0; --iLayer) {
+    if (t->GetTracklet(iLayer) == -1) {
+      continue;
+    }
+    if (PropagateToLayerAndUpdate(prop, t, iLayer, false)) {
+      return 3;
+    }
+    float radToDeg = 180.f / CAMath::Pi();
+    float trkAngle = CAMath::ASin(t->getSnp()) * radToDeg;
+    float trkltAngle = CAMath::ATan(mSpacePoints[t->GetTracklet(iLayer)].mDy / 3.) * radToDeg;
+
+    int idxOffsetDet = mTracklets[t->GetTracklet(iLayer)].GetDetector() * (mNAngleHistogramBins + 1);
+    int idxOffsetAngle = (trkAngle + .5 * mAngleHistogramRange) * invBinWidth;
+
+    if (CAMath::Abs(idxOffsetAngle) >= .5 * mAngleHistogramRange) {
+      idxOffsetAngle = mNAngleHistogramBins;
+    }
+
+    mAngleDiffSums[idxOffsetDet + idxOffsetAngle] += trkltAngle - trkAngle;
+    mAngleDiffCounters[idxOffsetDet + idxOffsetAngle]++;
+
+    //GPUInfo("trkAngle(%f), idxOffsetAngle(%i), angleDifference(%f)", trkAngle, idxOffsetAngle, trkltAngle - trkAngle);
+  }
+  return 0;
+}
+
+template <class TRDTRK, class PROP>
+GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::PropagateToLayerAndUpdate(PROP* prop, TRDTRK* trkWork, int iLayer, bool doUpdate)
+{
+  //--------------------------------------------------------------------
+  // Propagates the track to TRD layer iLayer and updates the track
+  // parameters (if requested)
+  // returns 0 in case of success
+  //--------------------------------------------------------------------
+  int trackletID = trkWork->GetTracklet(iLayer);
+  int trackletDet = mTracklets[trackletID].GetDetector();
+  int trackletSector = trackletDet / (kNLayers * kNStacks);
+  int trackletStack = (trackletDet % (kNLayers * kNStacks)) / kNLayers;
+
+  if (trackletSector != GetSector(prop->getAlpha())) {
+    if (!prop->rotate(GetAlphaOfSector(trackletSector))) {
+      GPUInfo("Track could not be rotated in tracklet coordinate system");
+      return 1;
+    }
+  }
+
+  if (!prop->propagateToX(mSpacePoints[trackletID].mR, .8f, 2.f)) {
+    GPUInfo("Track propagation failed in layer %i (pt=%f, xTrk=%f, xToGo=%f)", iLayer, trkWork->getPt(), trkWork->getX(), mSpacePoints[trackletID].mR);
+    return 2;
+  }
+
+  if (!doUpdate) {
+    // nothing more to be done
+    return 0;
+  }
+
+  const GPUTRDpadPlane* pad = mGeo->GetPadPlane(iLayer, trackletStack);
+  float tilt = CAMath::Tan(CAMath::Pi() / 180.f * pad->GetTiltingAngle()); // tilt is signed!
+  float tiltCorrUp = tilt * (mSpacePoints[trackletID].mX[1] - trkWork->getZ());
+  float zPosCorrUp = mSpacePoints[trackletID].mX[1] + mZCorrCoefNRC * trkWork->getTgl();
+  float padLength = pad->GetRowSize(mTracklets[trackletID].GetZbin());
+  if (!((trkWork->getSigmaZ2() < (padLength * padLength / 12.f)) && (CAMath::Abs(mSpacePoints[trackletID].mX[1] - trkWork->getZ()) < padLength))) {
+    tiltCorrUp = 0.f;
+  }
+
+  My_Float trkltPosUp[2] = {mSpacePoints[trackletID].mX[0] - tiltCorrUp, zPosCorrUp};
+  My_Float trkltCovUp[3] = {0.f};
+  RecalcTrkltCov(tilt, trkWork->getSnp(), pad->GetRowSize(mTracklets[trackletID].GetZbin()), trkltCovUp);
+
+  if (!prop->update(trkltPosUp, trkltCovUp)) {
+    GPUWarning("Failed to update track with space point in layer %i", iLayer);
+    return 3;
+  }
+  return 0;
+}
 
 template <class TRDTRK, class PROP>
 GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK* t, int threadId, int collisionId)
@@ -733,6 +866,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
         if (currDet == -1) {
           continue;
         }
+        pad = mGeo->GetPadPlane(currDet);
         int currSec = mGeo->GetSector(currDet);
         if (currSec != GetSector(prop->getAlpha())) {
           if (!prop->rotate(GetAlphaOfSector(currSec))) {
@@ -762,10 +896,10 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
           }
           float projY, projZ;
           prop->getPropagatedYZ(mSpacePoints[trkltIdxGlb].mR, projY, projZ);
-          // correction for tilted pads (only applied if deltaZ < l_pad && track z err << l_pad)
+          // correction for tilted pads (only applied if deltaZ < lPad && track z err << lPad)
           float tiltCorr = tilt * (mSpacePoints[trkltIdxGlb].mX[1] - projZ);
-          float l_pad = pad->GetRowSize(mTracklets[trkltIdxGlb].GetZbin());
-          if (!((CAMath::Abs(mSpacePoints[trkltIdxGlb].mX[1] - projZ) < l_pad) && (trkWork->getSigmaZ2() < (l_pad * l_pad / 12.f)))) {
+          float lPad = pad->GetRowSize(mTracklets[trkltIdxGlb].GetZbin());
+          if (!((CAMath::Abs(mSpacePoints[trkltIdxGlb].mX[1] - projZ) < lPad) && (trkWork->getSigmaZ2() < (lPad * lPad / 12.f)))) {
             tiltCorr = 0.f;
           }
           // correction for mean z position of tracklet (is not the center of the pad if track eta != 0)
@@ -800,6 +934,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
       mDebug->SetNmatchAvail(matchAvailableAll[iLayer].size(), iLayer);
       int realTrkltId = matchAvailableAll[iLayer].at(0);
       int realTrkltDet = mTracklets[realTrkltId].GetDetector();
+      pad = mGeo->GetPadPlane(realTrkltDet);
       prop->rotate(GetAlphaOfSector(mGeo->GetSector(realTrkltDet)));
       if (!prop->propagateToX(mSpacePoints[realTrkltId].mR, .8f, 2.f) || GetSector(prop->getAlpha()) != mGeo->GetSector(realTrkltDet)) {
         if (ENABLE_WARNING) {
@@ -811,8 +946,8 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
         float zPosCorrReal = mSpacePoints[realTrkltId].mX[1] + mZCorrCoefNRC * trkWork->getTgl();
         float deltaZReal = zPosCorrReal - trkWork->getZ();
         float tiltCorrReal = tilt * (mSpacePoints[realTrkltId].mX[1] - trkWork->getZ());
-        float l_padReal = pad->GetRowSize(mTracklets[realTrkltId].GetZbin());
-        if ((trkWork->getSigmaZ2() >= (l_padReal * l_padReal / 12.f)) || (CAMath::Abs(mSpacePoints[realTrkltId].mX[1] - trkWork->getZ()) >= l_padReal)) {
+        float lPadReal = pad->GetRowSize(mTracklets[realTrkltId].GetZbin());
+        if ((trkWork->getSigmaZ2() >= (lPadReal * lPadReal / 12.f)) || (CAMath::Abs(mSpacePoints[realTrkltId].mX[1] - trkWork->getZ()) >= lPadReal)) {
           tiltCorrReal = 0;
         }
         My_Float yzPosReal[2] = {mSpacePoints[realTrkltId].mX[0] - tiltCorrReal, zPosCorrReal};
@@ -890,10 +1025,11 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
         continue;
       }
 
+      pad = mGeo->GetPadPlane(mTracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetDetector());
       float tiltCorrUp = tilt * (mSpacePoints[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].mX[1] - trkWork->getZ());
       float zPosCorrUp = mSpacePoints[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].mX[1] + mZCorrCoefNRC * trkWork->getTgl();
-      float l_padTrklt = pad->GetRowSize(mTracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetZbin());
-      if (!((trkWork->getSigmaZ2() < (l_padTrklt * l_padTrklt / 12.f)) && (CAMath::Abs(mSpacePoints[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].mX[1] - trkWork->getZ()) < l_padTrklt))) {
+      float padLength = pad->GetRowSize(mTracklets[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].GetZbin());
+      if (!((trkWork->getSigmaZ2() < (padLength * padLength / 12.f)) && (CAMath::Abs(mSpacePoints[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].mX[1] - trkWork->getZ()) < padLength))) {
         tiltCorrUp = 0.f;
       }
       My_Float trkltPosUp[2] = {mSpacePoints[mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId].mX[0] - tiltCorrUp, zPosCorrUp};
