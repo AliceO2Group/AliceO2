@@ -598,6 +598,133 @@ void Detector::defineSensitiveVolumes()
   }
 }
 
+
+//_____________________________________________________________________________
+void Detector::addAlignableVolumes() const
+{
+  /// Creates entries for alignable volumes associating the symbolic volume
+  /// name with the corresponding volume path.
+  ///
+  /// Based on ITS, created:  06 Mar 2018  Mario Sitta First version (mainly ported from AliRoot)
+
+  LOG(INFO) << "(!) Add MFT alignable volumes ";
+
+  if (!gGeoManager) {
+    LOG(FATAL) << "TGeoManager doesn't exist !";
+    return;
+  }
+
+  TString path = Form("/cave_1/barrel_1/%s_0", GeometryTGeo::getMFTVolPattern());
+  TString sname = GeometryTGeo::composeSymNameMFT();
+
+  LOG(DEBUG) << sname << " <-> " << path;
+
+  if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data())) {
+    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+  }
+
+  Int_t lastUID = 0;
+  Int_t nHalf = mGeometryTGeo->getNumberOfHalfs();
+
+  for (Int_t hf = 0; hf < nHalf; hf++) {
+    addAlignableVolumesHalf(hf, path, lastUID);
+  }
+    
+}
+
+//_____________________________________________________________________________
+void Detector::addAlignableVolumesHalf(int hf, TString& parent, Int_t& lastUID) const
+{
+  /// Add alignable volumes for a Half MFT and its daughters
+
+  TString path = Form("%s/%s_%d_%d", parent.Data(), GeometryTGeo::getMFTHalfPattern(), hf, hf);
+  TString sname = mGeometryTGeo->composeSymNameHalf(hf);
+
+  LOG(DEBUG) << "Add " << sname << " <-> " << path;
+
+  if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data())) {
+    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+  }
+
+  LOG(DEBUG) << sname << "  <--> "<< path;
+
+  Int_t nDisks = mGeometryTGeo->getNumberOfDisksPerHalf(hf);
+
+  for (int dk = 0; dk < nDisks; dk++) {
+    addAlignableVolumesDisk(hf, dk, path, lastUID);
+  }
+
+}
+
+//_____________________________________________________________________________
+void Detector::addAlignableVolumesDisk(Int_t hf, Int_t dk,
+                                       TString& parent, Int_t& lastUID) const
+{
+  /// Add alignable volumes for a Disk and its daughters
+
+  TString path = Form("%s/%s_%d_%d_%d", parent.Data(), GeometryTGeo::getMFTDiskPattern(), hf, dk, dk);
+  TString sname = mGeometryTGeo->composeSymNameDisk(hf, dk);
+
+  LOG(DEBUG) << "Add " << sname << " <-> " << path;
+
+  if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data())) {
+    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+  }
+
+  Int_t nLadders = 0;
+
+  for (Int_t sensor = mGeometryTGeo->getMinSensorsPerLadder(); sensor < mGeometryTGeo->getMaxSensorsPerLadder() + 1; sensor++) {
+    nLadders += mGeometryTGeo->getNumberOfLaddersPerDisk(hf, dk, sensor);
+  }
+  LOG(INFO) << " Half-disk " << dk << ", nLadders " << nLadders;
+
+  for (Int_t lr = 0; lr < nLadders; lr++) {
+    addAlignableVolumesLadder(hf, dk, lr, path, lastUID);
+  }
+
+}
+
+//_____________________________________________________________________________
+void Detector::addAlignableVolumesLadder(Int_t hf, Int_t dk, Int_t lr,
+                                         TString& parent, Int_t& lastUID) const
+{
+  /// Add alignable volumes for a Ladder and its daughters
+
+  TString path = parent;
+  path = Form("%s/%s_%d_%d_%d_%d", parent.Data(), GeometryTGeo::getMFTLadderPattern(), hf, dk, lr, lr);
+  TString sname = mGeometryTGeo->composeSymNameLadder(hf, dk, lr);
+
+  LOG(DEBUG) << "Add " << sname << " <-> " << path;
+
+  if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data())) {
+    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+  }
+
+  Int_t nSensors = mGeometryTGeo->getNumberOfSensorsPerLadder(hf, dk, lr);
+
+  for (Int_t ms = 0; ms < nSensors; ms++) {
+    addAlignableVolumesChip(hf, dk, lr, ms, path, lastUID);
+  }
+
+}
+
+//_____________________________________________________________________________
+void Detector::addAlignableVolumesChip(Int_t hf, Int_t dk, Int_t lr, Int_t ms,
+                                       TString& parent, Int_t& lastUID) const
+{
+  /// Add alignable volumes for a Chip
+
+  TString path = Form("%s/%s_%d_%d_%d_%d", parent.Data(), GeometryTGeo::getMFTChipPattern(), hf, dk, lr, ms);
+  TString sname = mGeometryTGeo->composeSymNameChip(hf, dk, lr, ms);
+
+  LOG(DEBUG) << "Add " << sname << " <-> " << path;
+
+  if (!gGeoManager->SetAlignableEntry(sname, path.Data(), lastUID++)) {
+    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
+  }
+
+}
+
 //_____________________________________________________________________________
 void Detector::EndOfEvent() { Reset(); }
 
