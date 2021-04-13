@@ -69,47 +69,47 @@ class AliAlgVol : public TNamed
   //
   const char* GetSymName() const { return GetName(); }
   //
-  Int_t GetVolID() const { return (Int_t)GetUniqueID(); }
-  void SetVolID(Int_t v) { SetUniqueID(v); }
-  Int_t GetInternalID() const { return fIntID; }
-  void SetInternalID(Int_t v) { fIntID = v; }
+  int GetVolID() const { return (int)GetUniqueID(); }
+  void SetVolID(int v) { SetUniqueID(v); }
+  int GetInternalID() const { return fIntID; }
+  void SetInternalID(int v) { fIntID = v; }
   //
   //
-  void AssignDOFs(Int_t& cntDOFs, Float_t* pars, Float_t* errs, Int_t* labs);
+  void AssignDOFs(int& cntDOFs, float* pars, float* errs, int* labs);
   void InitDOFs();
   //
   Frame_t GetVarFrame() const { return fVarFrame; }
   void SetVarFrame(Frame_t f) { fVarFrame = f; }
-  Bool_t IsFrameTRA() const { return fVarFrame == kTRA; }
-  Bool_t IsFrameLOC() const { return fVarFrame == kLOC; }
+  bool IsFrameTRA() const { return fVarFrame == kTRA; }
+  bool IsFrameLOC() const { return fVarFrame == kLOC; }
   //
-  void SetFreeDOF(Int_t dof)
+  void SetFreeDOF(int dof)
   {
     fDOF |= 0x1 << dof;
     CalcFree();
   }
-  void FixDOF(Int_t dof)
+  void FixDOF(int dof)
   {
     fDOF &= ~(0x1 << dof);
     CalcFree();
   }
-  void SetFreeDOFPattern(UInt_t pat)
+  void SetFreeDOFPattern(uint32_t pat)
   {
     fDOF = pat;
     CalcFree();
   }
-  Bool_t IsFreeDOF(Int_t dof) const { return (fDOF & (0x1 << dof)) != 0; }
-  Bool_t IsCondDOF(Int_t dof) const;
-  UInt_t GetFreeDOFPattern() const { return fDOF; }
-  UInt_t GetFreeDOFGeomPattern() const { return fDOF & kAllGeomDOF; }
+  bool IsFreeDOF(int dof) const { return (fDOF & (0x1 << dof)) != 0; }
+  bool IsCondDOF(int dof) const;
+  uint32_t GetFreeDOFPattern() const { return fDOF; }
+  uint32_t GetFreeDOFGeomPattern() const { return fDOF & kAllGeomDOF; }
   //
   void AddAutoConstraints(TObjArray* constrArr);
-  Bool_t IsChildrenDOFConstrained(Int_t dof) const { return fConstrChild & 0x1 << dof; }
-  UChar_t GetChildrenConstraintPattern() const { return fConstrChild; }
-  void ConstrainChildrenDOF(Int_t dof) { fConstrChild |= 0x1 << dof; }
-  void UConstrainChildrenDOF(Int_t dof) { fConstrChild &= ~(0x1 << dof); }
-  void SetChildrenConstrainPattern(UInt_t pat) { fConstrChild = pat; }
-  Bool_t HasChildrenConstraint() const { return fConstrChild; }
+  bool IsChildrenDOFConstrained(int dof) const { return fConstrChild & 0x1 << dof; }
+  uint8_t GetChildrenConstraintPattern() const { return fConstrChild; }
+  void ConstrainChildrenDOF(int dof) { fConstrChild |= 0x1 << dof; }
+  void UConstrainChildrenDOF(int dof) { fConstrChild &= ~(0x1 << dof); }
+  void SetChildrenConstrainPattern(uint32_t pat) { fConstrChild = pat; }
+  bool HasChildrenConstraint() const { return fConstrChild; }
   //
   AliAlgVol* GetParent() const { return fParent; }
   void SetParent(AliAlgVol* par)
@@ -118,39 +118,39 @@ class AliAlgVol : public TNamed
     if (par)
       par->AddChild(this);
   }
-  Int_t CountParents() const;
+  int CountParents() const;
   //
-  Int_t GetNChildren() const { return fChildren ? fChildren->GetEntriesFast() : 0; }
+  int GetNChildren() const { return fChildren ? fChildren->GetEntriesFast() : 0; }
   AliAlgVol* GetChild(int i) const { return fChildren ? (AliAlgVol*)fChildren->UncheckedAt(i) : 0; }
   virtual void AddChild(AliAlgVol* ch);
   //
-  Double_t GetXTracking() const { return fX; }
-  Double_t GetAlpTracking() const { return fAlp; }
+  double GetXTracking() const { return fX; }
+  double GetAlpTracking() const { return fAlp; }
   //
-  Int_t GetNProcessedPoints() const { return fNProcPoints; }
-  virtual Int_t FinalizeStat(AliAlgDOFStat* h = 0);
+  int GetNProcessedPoints() const { return fNProcPoints; }
+  virtual int FinalizeStat(AliAlgDOFStat* h = 0);
   void FillDOFStat(AliAlgDOFStat* h) const;
   //
-  Float_t* GetParVals() const { return fParVals; }
-  Double_t GetParVal(int par) const { return fParVals[par]; }
-  Double_t GetParErr(int par) const { return fParErrs[par]; }
-  Int_t GetParLab(int par) const { return fParLabs[par]; }
+  float* GetParVals() const { return fParVals; }
+  double GetParVal(int par) const { return fParVals[par]; }
+  double GetParErr(int par) const { return fParErrs[par]; }
+  int GetParLab(int par) const { return fParLabs[par]; }
   void GetParValGeom(double* delta) const
   {
     for (int i = kNDOFGeom; i--;)
       delta[i] = fParVals[i];
   }
   //
-  void SetParVals(Int_t npar, Double_t* vl, Double_t* er);
-  void SetParVal(Int_t par, Double_t v = 0) { fParVals[par] = v; }
-  void SetParErr(Int_t par, Double_t e = 0) { fParErrs[par] = e; }
+  void SetParVals(int npar, double* vl, double* er);
+  void SetParVal(int par, double v = 0) { fParVals[par] = v; }
+  void SetParErr(int par, double e = 0) { fParErrs[par] = e; }
   //
-  Int_t GetNDOFs() const { return fNDOFs; }
-  Int_t GetNDOFFree() const { return fNDOFFree; }
-  Int_t GetNDOFGeomFree() const { return fNDOFGeomFree; }
-  Int_t GetFirstParGloID() const { return fFirstParGloID; }
-  Int_t GetParGloID(Int_t par) const { return fFirstParGloID + par; }
-  void SetFirstParGloID(Int_t id) { fFirstParGloID = id; }
+  int GetNDOFs() const { return fNDOFs; }
+  int GetNDOFFree() const { return fNDOFFree; }
+  int GetNDOFGeomFree() const { return fNDOFGeomFree; }
+  int GetFirstParGloID() const { return fFirstParGloID; }
+  int GetParGloID(int par) const { return fFirstParGloID + par; }
+  void SetFirstParGloID(int id) { fFirstParGloID = id; }
   //
   virtual void PrepareMatrixT2L();
   virtual void SetTrackingFrame();
@@ -164,7 +164,7 @@ class AliAlgVol : public TNamed
   void SetMatrixL2GReco(const TGeoHMatrix& m) { fMatL2GReco = m; }
   void SetGlobalDeltaRef(TGeoHMatrix& mat) { fMatDeltaRefGlo = mat; }
   //
-  virtual void PrepareMatrixL2G(Bool_t reco = kFALSE);
+  virtual void PrepareMatrixL2G(bool reco = false);
   virtual void PrepareMatrixL2GIdeal();
   virtual void UpdateL2GRecoMatrices(const TClonesArray* algArr, const TGeoHMatrix* cumulDelta);
   //
@@ -173,13 +173,13 @@ class AliAlgVol : public TNamed
   const TGeoHMatrix& GetMatrixT2L() const { return fMatT2L; }
   void SetMatrixT2L(const TGeoHMatrix& m);
   //
-  void Delta2Matrix(TGeoHMatrix& deltaM, const Double_t* delta) const;
+  void Delta2Matrix(TGeoHMatrix& deltaM, const double* delta) const;
   //
   // preparation of variation matrices
-  void GetDeltaT2LmodLOC(TGeoHMatrix& matMod, const Double_t* delta) const;
-  void GetDeltaT2LmodTRA(TGeoHMatrix& matMod, const Double_t* delta) const;
-  void GetDeltaT2LmodLOC(TGeoHMatrix& matMod, const Double_t* delta, const TGeoHMatrix& relMat) const;
-  void GetDeltaT2LmodTRA(TGeoHMatrix& matMod, const Double_t* delta, const TGeoHMatrix& relMat) const;
+  void GetDeltaT2LmodLOC(TGeoHMatrix& matMod, const double* delta) const;
+  void GetDeltaT2LmodTRA(TGeoHMatrix& matMod, const double* delta) const;
+  void GetDeltaT2LmodLOC(TGeoHMatrix& matMod, const double* delta, const TGeoHMatrix& relMat) const;
+  void GetDeltaT2LmodTRA(TGeoHMatrix& matMod, const double* delta, const TGeoHMatrix& relMat) const;
   //
   // creation of global matrices for storage
   void CreateGloDeltaMatrix(TGeoHMatrix& deltaM) const;
@@ -189,31 +189,31 @@ class AliAlgVol : public TNamed
   void CreateAlignmenMatrix(TGeoHMatrix& alg) const;
   void CreateAlignmentObjects(TClonesArray* arr) const;
   //
-  void SetSkip(Bool_t v = kTRUE) { SetBit(kSkipBit, v); }
-  Bool_t GetSkip() const { return TestBit(kSkipBit); }
+  void SetSkip(bool v = true) { SetBit(kSkipBit, v); }
+  bool GetSkip() const { return TestBit(kSkipBit); }
   //
-  void ExcludeFromParentConstraint(Bool_t v = kTRUE) { SetBit(kExclFromParentConstraintBit, v); }
-  Bool_t GetExcludeFromParentConstraint() const { return TestBit(kExclFromParentConstraintBit); }
+  void ExcludeFromParentConstraint(bool v = true) { SetBit(kExclFromParentConstraintBit, v); }
+  bool GetExcludeFromParentConstraint() const { return TestBit(kExclFromParentConstraintBit); }
   //
   void SetInitDOFsDone() { SetBit(kInitDOFsDoneBit); }
-  Bool_t GetInitDOFsDone() const { return TestBit(kInitDOFsDoneBit); }
+  bool GetInitDOFsDone() const { return TestBit(kInitDOFsDoneBit); }
   //
-  Bool_t OwnsDOFID(Int_t id) const;
-  AliAlgVol* GetVolOfDOFID(Int_t id) const;
+  bool OwnsDOFID(int id) const;
+  AliAlgVol* GetVolOfDOFID(int id) const;
   //
-  virtual Bool_t IsSensor() const { return kFALSE; }
+  virtual bool IsSensor() const { return false; }
   //
   virtual const char* GetDOFName(int i) const;
   virtual void Print(const Option_t* opt = "") const;
   virtual void WritePedeInfo(FILE* parOut, const Option_t* opt = "") const;
   //
   static const char* GetGeomDOFName(int i) { return i < kNDOFGeom ? fgkDOFName[i] : 0; }
-  static void SetDefGeomFree(UChar_t patt) { fgDefGeomFree = patt; }
-  static UChar_t GetDefGeomFree() { return fgDefGeomFree; }
+  static void SetDefGeomFree(uint8_t patt) { fgDefGeomFree = patt; }
+  static uint8_t GetDefGeomFree() { return fgDefGeomFree; }
   //
  protected:
-  void SetNDOFs(Int_t n = kNDOFGeom);
-  void CalcFree(Bool_t condFree = kFALSE);
+  void SetNDOFs(int n = kNDOFGeom);
+  void CalcFree(bool condFree = false);
   //
   // ------- dummies -------
   AliAlgVol(const AliAlgVol&);
@@ -222,24 +222,24 @@ class AliAlgVol : public TNamed
  protected:
   //
   Frame_t fVarFrame; // Variation frame for this volume
-  Int_t fIntID;      // internal id within the detector
-  Double_t fX;       // tracking frame X offset
-  Double_t fAlp;     // tracking frame alpa
+  int fIntID;        // internal id within the detector
+  double fX;         // tracking frame X offset
+  double fAlp;       // tracking frame alpa
   //
-  Char_t fNDOFs;        // number of degrees of freedom, including fixed ones
-  UInt_t fDOF;          // bitpattern degrees of freedom
-  Char_t fNDOFGeomFree; // number of free geom degrees of freedom
-  Char_t fNDOFFree;     // number of all free degrees of freedom
-  UChar_t fConstrChild; // bitpattern for constraints on children corrections
+  char fNDOFs;          // number of degrees of freedom, including fixed ones
+  uint32_t fDOF;        // bitpattern degrees of freedom
+  char fNDOFGeomFree;   // number of free geom degrees of freedom
+  char fNDOFFree;       // number of all free degrees of freedom
+  uint8_t fConstrChild; // bitpattern for constraints on children corrections
   //
   AliAlgVol* fParent;   // parent volume
   TObjArray* fChildren; // array of childrens
   //
-  Int_t fNProcPoints;   // n of processed points
-  Int_t fFirstParGloID; // ID of the 1st parameter in the global results array
-  Float_t* fParVals;    //! values of the fitted params
-  Float_t* fParErrs;    //! errors of the fitted params
-  Int_t* fParLabs;      //! labels for parameters
+  int fNProcPoints;   // n of processed points
+  int fFirstParGloID; // ID of the 1st parameter in the global results array
+  float* fParVals;    //! values of the fitted params
+  float* fParErrs;    //! errors of the fitted params
+  int* fParLabs;      //! labels for parameters
   //
   TGeoHMatrix fMatL2GReco;     // local to global matrix used for reco of data being processed
   TGeoHMatrix fMatL2G;         // local to global matrix, including current alignment
@@ -249,7 +249,7 @@ class AliAlgVol : public TNamed
   //
   static const char* fgkDOFName[kNDOFGeom];
   static const char* fgkFrameName[kNVarFrames];
-  static UInt_t fgDefGeomFree;
+  static uint32_t fgDefGeomFree;
   //
   ClassDef(AliAlgVol, 2)
 };

@@ -43,14 +43,14 @@ class AliAlgVtx : public AliAlgSens
   AliAlgVtx();
   //
   void ApplyCorrection(double* vtx) const;
-  virtual Bool_t IsSensor() const { return kTRUE; }
+  virtual bool IsSensor() const { return true; }
   //
   void SetAlpha(double alp)
   {
     fAlp = alp;
     PrepareMatrixT2L();
   }
-  virtual void PrepareMatrixL2G(Bool_t = 0) { fMatL2G.Clear(); } // unit matrix
+  virtual void PrepareMatrixL2G(bool = 0) { fMatL2G.Clear(); }   // unit matrix
   virtual void PrepareMatrixL2GIdeal() { fMatL2GIdeal.Clear(); } // unit matrix
   virtual void PrepareMatrixT2L();
   //

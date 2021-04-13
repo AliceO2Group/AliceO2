@@ -33,7 +33,7 @@ namespace align
 {
 
 //_________________________________________________________
-AliAlgSens::AliAlgSens(const char* name, Int_t vid, Int_t iid)
+AliAlgSens::AliAlgSens(const char* name, int vid, int iid)
   : AliAlgVol(name, iid), fSID(0), fDet(0), fMatClAlg(), fMatClAlgReco()
 {
   // def c-tor
@@ -267,7 +267,7 @@ void AliAlgSens::DPosTraDParGeom(const AliAlgPoint* pnt, double* deriv, const Al
 }
 
 //__________________________________________________________________
-void AliAlgSens::GetModifiedMatrixT2LmodLOC(TGeoHMatrix& matMod, const Double_t* delta) const
+void AliAlgSens::GetModifiedMatrixT2LmodLOC(TGeoHMatrix& matMod, const double* delta) const
 {
   // prepare the sensitive module tracking2local matrix from its current T2L matrix
   // by applying local delta of modification of LOCAL frame:
@@ -277,7 +277,7 @@ void AliAlgSens::GetModifiedMatrixT2LmodLOC(TGeoHMatrix& matMod, const Double_t*
 }
 
 //__________________________________________________________________
-void AliAlgSens::GetModifiedMatrixT2LmodTRA(TGeoHMatrix& matMod, const Double_t* delta) const
+void AliAlgSens::GetModifiedMatrixT2LmodTRA(TGeoHMatrix& matMod, const double* delta) const
 {
   // prepare the sensitive module tracking2local matrix from its current T2L matrix
   // by applying local delta of modification of TRACKING frame:
@@ -293,7 +293,7 @@ void AliAlgSens::AddChild(AliAlgVol*)
 }
 
 //__________________________________________________________________
-Int_t AliAlgSens::Compare(const TObject* b) const
+int AliAlgSens::Compare(const TObject* b) const
 {
   // compare VolIDs
   return GetUniqueID() < b->GetUniqueID() ? -1 : 1;
@@ -421,7 +421,7 @@ void AliAlgSens::DPosTraDParCalib(const AliAlgPoint* pnt, double* deriv, int cal
 }
 
 //______________________________________________________
-Int_t AliAlgSens::FinalizeStat(AliAlgDOFStat* st)
+int AliAlgSens::FinalizeStat(AliAlgDOFStat* st)
 {
   // finalize statistics on processed points
   if (st)

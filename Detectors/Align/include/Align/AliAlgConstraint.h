@@ -48,7 +48,7 @@ class AliAlgConstraint : public TNamed
   void SetParent(const AliAlgVol* par);
   const AliAlgVol* GetParent() const { return fParent; }
   //
-  Int_t GetNChildren() const { return fChildren.GetEntriesFast(); }
+  int GetNChildren() const { return fChildren.GetEntriesFast(); }
   AliAlgVol* GetChild(int i) const { return (AliAlgVol*)fChildren[i]; }
   void AddChild(const AliAlgVol* v)
   {
@@ -56,17 +56,17 @@ class AliAlgConstraint : public TNamed
       fChildren.AddLast((AliAlgVol*)v);
   }
   //
-  Bool_t IsDOFConstrained(Int_t dof) const { return fConstraint & 0x1 << dof; }
-  UChar_t GetConstraintPattern() const { return fConstraint; }
-  void ConstrainDOF(Int_t dof) { fConstraint |= 0x1 << dof; }
-  void UnConstrainDOF(Int_t dof) { fConstraint &= ~(0x1 << dof); }
-  void SetConstrainPattern(UInt_t pat) { fConstraint = pat; }
-  Bool_t HasConstraint() const { return fConstraint; }
-  Double_t GetSigma(int i) const { return fSigma[i]; }
+  bool IsDOFConstrained(int dof) const { return fConstraint & 0x1 << dof; }
+  uint8_t GetConstraintPattern() const { return fConstraint; }
+  void ConstrainDOF(int dof) { fConstraint |= 0x1 << dof; }
+  void UnConstrainDOF(int dof) { fConstraint &= ~(0x1 << dof); }
+  void SetConstrainPattern(uint32_t pat) { fConstraint = pat; }
+  bool HasConstraint() const { return fConstraint; }
+  double GetSigma(int i) const { return fSigma[i]; }
   void SetSigma(int i, double s = 0) { fSigma[i] = s; }
   //
-  void SetNoJacobian(Bool_t v = kTRUE) { SetBit(kNoJacobianBit, v); }
-  Bool_t GetNoJacobian() const { return TestBit(kNoJacobianBit); }
+  void SetNoJacobian(bool v = true) { SetBit(kNoJacobianBit, v); }
+  bool GetNoJacobian() const { return TestBit(kNoJacobianBit); }
   //
   void ConstrCoefGeom(const TGeoHMatrix& matRD, float* jac /*[kNDOFGeom][kNDOFGeom]*/) const;
   //
@@ -81,10 +81,10 @@ class AliAlgConstraint : public TNamed
   AliAlgConstraint& operator=(const AliAlgConstraint&);
   //
  protected:
-  UInt_t fConstraint;         // bit pattern of constraint
-  Double_t fSigma[kNDOFGeom]; // optional sigma if constraint is gaussian
-  const AliAlgVol* fParent;   // parent volume for contraint, lab if 0
-  TObjArray fChildren;        // volumes subjected to constraints
+  uint32_t fConstraint;     // bit pattern of constraint
+  double fSigma[kNDOFGeom]; // optional sigma if constraint is gaussian
+  const AliAlgVol* fParent; // parent volume for contraint, lab if 0
+  TObjArray fChildren;      // volumes subjected to constraints
   //
   ClassDef(AliAlgConstraint, 2);
 };

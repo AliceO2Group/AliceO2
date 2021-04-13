@@ -34,7 +34,7 @@ namespace o2
 namespace align
 {
 
-const Char_t* AliAlgDetITS::fgkHitsSel[AliAlgDetITS::kNSPDSelTypes] =
+const char* AliAlgDetITS::fgkHitsSel[AliAlgDetITS::kNSPDSelTypes] =
   {"SPDNoSel", "SPDBoth", "SPDAny", "SPD0", "SPD1"};
 
 //____________________________________________
@@ -146,17 +146,17 @@ void AliAlgDetITS::Print(const Option_t* opt) const
 }
 
 //____________________________________________
-Bool_t AliAlgDetITS::AcceptTrack(const AliESDtrack* trc, Int_t trtype) const
+bool AliAlgDetITS::AcceptTrack(const AliESDtrack* trc, int trtype) const
 {
   // test if detector had seed this track
   if (!CheckFlags(trc, trtype))
-    return kFALSE;
+    return false;
   if (trc->GetNcls(0) < fNPointsSel[trtype])
-    return kFALSE;
+    return false;
   if (!CheckHitPattern(trc, GetITSSelPattern(trtype)))
-    return kFALSE;
+    return false;
   //
-  return kTRUE;
+  return true;
 }
 
 //____________________________________________
@@ -186,37 +186,37 @@ void AliAlgDetITS::SetSkipLr(int ilr)
 }
 
 //_________________________________________________
-void AliAlgDetITS::SetUseErrorParam(Int_t v)
+void AliAlgDetITS::SetUseErrorParam(int v)
 {
   // set type of points error parameterization
   fUseErrorParam = v;
 }
 
 //_________________________________________________
-Bool_t AliAlgDetITS::CheckHitPattern(const AliESDtrack* trc, Int_t sel)
+bool AliAlgDetITS::CheckHitPattern(const AliESDtrack* trc, int sel)
 {
   // check if track hit pattern is ok
   switch (sel) {
     case kSPDBoth:
       if (!trc->HasPointOnITSLayer(0) || !trc->HasPointOnITSLayer(1))
-        return kFALSE;
+        return false;
       break;
     case kSPDAny:
       if (!trc->HasPointOnITSLayer(0) && !trc->HasPointOnITSLayer(1))
-        return kFALSE;
+        return false;
       break;
     case kSPD0:
       if (!trc->HasPointOnITSLayer(0))
-        return kFALSE;
+        return false;
       break;
     case kSPD1:
       if (!trc->HasPointOnITSLayer(1))
-        return kFALSE;
+        return false;
       break;
     default:
       break;
   }
-  return kTRUE;
+  return true;
 }
 
 //_________________________________________________
@@ -263,17 +263,17 @@ void AliAlgDetITS::GetErrorParamAngle(int layer, double anglePol, double angleAz
   const float kCfSPDResZ[kNcfSPDResZ] = {+9.2384e+01, +3.4352e-01, -2.7317e+01, -1.4642e-01, +2.0868e+00};
   const float kSPDpolMin = 34.358002, kSPDpolMax = 145.000000;
   //
-  const Double_t kMaxSigmaSDDx = 100.;
-  const Double_t kMaxSigmaSDDz = 400.;
-  const Double_t kMaxSigmaSSDx = 100.;
-  const Double_t kMaxSigmaSSDz = 1000.;
+  const double kMaxSigmaSDDx = 100.;
+  const double kMaxSigmaSDDz = 400.;
+  const double kMaxSigmaSSDx = 100.;
+  const double kMaxSigmaSSDz = 1000.;
   //
-  const Double_t kParamSDDx[2] = {30.93, 0.059};
-  const Double_t kParamSDDz[2] = {33.09, 0.011};
-  const Double_t kParamSSDx[2] = {18.64, -0.0046};
-  const Double_t kParamSSDz[2] = {784.4, -0.828};
-  Double_t sigmax = 1000.0, sigmaz = 1000.0;
-  //Double_t biasx = 0.0;
+  const double kParamSDDx[2] = {30.93, 0.059};
+  const double kParamSDDz[2] = {33.09, 0.011};
+  const double kParamSSDx[2] = {18.64, -0.0046};
+  const double kParamSSDz[2] = {784.4, -0.828};
+  double sigmax = 1000.0, sigmaz = 1000.0;
+  //double biasx = 0.0;
 
   angleAzi = Abs(angleAzi);
   anglePol = Abs(anglePol);
@@ -282,8 +282,8 @@ void AliAlgDetITS::GetErrorParamAngle(int layer, double anglePol, double angleAz
     angleAzi = Pi() - angleAzi;
   if (anglePol > 0.5 * Pi())
     anglePol = Pi() - anglePol;
-  Double_t angleAziDeg = angleAzi * RadToDeg();
-  Double_t anglePolDeg = anglePol * RadToDeg();
+  double angleAziDeg = angleAzi * RadToDeg();
+  double anglePolDeg = anglePol * RadToDeg();
   //
   if (layer == 0 || layer == 1) { // SPD
     //

@@ -39,7 +39,7 @@ class AliAlgSens : public AliAlgVol
 {
  public:
   //
-  AliAlgSens(const char* name = 0, Int_t vid = 0, Int_t iid = 0);
+  AliAlgSens(const char* name = 0, int vid = 0, int iid = 0);
   virtual ~AliAlgSens();
   //
   virtual void AddChild(AliAlgVol*);
@@ -47,7 +47,7 @@ class AliAlgSens : public AliAlgVol
   void SetDetector(AliAlgDet* det) { fDet = det; }
   AliAlgDet* GetDetector() const { return fDet; }
   //
-  Int_t GetSID() const { return fSID; }
+  int GetSID() const { return fSID; }
   void SetSID(int s) { fSID = s; }
   //
   void IncrementStat() { fNProcPoints++; }
@@ -61,8 +61,8 @@ class AliAlgSens : public AliAlgVol
   virtual void DPosTraDParGeomLOC(const AliAlgPoint* pnt, double* deriv, const AliAlgVol* parent) const;
   virtual void DPosTraDParGeomTRA(const AliAlgPoint* pnt, double* deriv, const AliAlgVol* parent) const;
   //
-  void GetModifiedMatrixT2LmodLOC(TGeoHMatrix& matMod, const Double_t* delta) const;
-  void GetModifiedMatrixT2LmodTRA(TGeoHMatrix& matMod, const Double_t* delta) const;
+  void GetModifiedMatrixT2LmodLOC(TGeoHMatrix& matMod, const double* delta) const;
+  void GetModifiedMatrixT2LmodTRA(TGeoHMatrix& matMod, const double* delta) const;
   //
   virtual void ApplyAlignmentFromMPSol();
   //
@@ -71,12 +71,12 @@ class AliAlgSens : public AliAlgVol
     fAddError[0] = y;
     fAddError[1] = z;
   }
-  const Double_t* GetAddError() const { return fAddError; }
+  const double* GetAddError() const { return fAddError; }
   //
   virtual void PrepareMatrixT2L();
   //
   virtual void SetTrackingFrame();
-  virtual Bool_t IsSensor() const { return kTRUE; }
+  virtual bool IsSensor() const { return true; }
   virtual void Print(const Option_t* opt = "") const;
   //
   virtual void UpdatePointByTrackInfo(AliAlgPoint* pnt, const trackParam_t* t) const;
@@ -84,7 +84,7 @@ class AliAlgSens : public AliAlgVol
   //
   //  virtual AliAlgPoint* TrackPoint2AlgPoint(int pntId, const AliTrackPointArray* trpArr, const AliESDtrack* t) = 0; TODO(milettri): needs AliTrackPointArray AliESDtrack
   //
-  virtual Int_t FinalizeStat(AliAlgDOFStat* h = 0);
+  virtual int FinalizeStat(AliAlgDOFStat* h = 0);
   //
   virtual void PrepareMatrixClAlg();
   virtual void PrepareMatrixClAlgReco();
@@ -95,8 +95,8 @@ class AliAlgSens : public AliAlgVol
   //
  protected:
   //
-  virtual Bool_t IsSortable() const { return kTRUE; }
-  virtual Int_t Compare(const TObject* a) const;
+  virtual bool IsSortable() const { return true; }
+  virtual int Compare(const TObject* a) const;
   //
   // --------- dummies -----------
   AliAlgSens(const AliAlgSens&);
@@ -104,8 +104,8 @@ class AliAlgSens : public AliAlgVol
   //
  protected:
   //
-  Int_t fSID;                // sensor id in detector
-  Double_t fAddError[2];     // additional error increment for measurement
+  int fSID;                  // sensor id in detector
+  double fAddError[2];       // additional error increment for measurement
   AliAlgDet* fDet;           // pointer on detector
   TGeoHMatrix fMatClAlg;     // reference cluster alignment matrix in tracking frame
   TGeoHMatrix fMatClAlgReco; // reco-time cluster alignment matrix in tracking frame

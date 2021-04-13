@@ -55,7 +55,7 @@ AliAlgResFast::~AliAlgResFast()
 }
 
 //________________________________________________
-void AliAlgResFast::Resize(Int_t np)
+void AliAlgResFast::Resize(int np)
 {
   // resize container
   if (np > fNBook) {
@@ -69,23 +69,23 @@ void AliAlgResFast::Resize(Int_t np)
     delete[] fMatErr;
     //
     fNBook = 30 + np;
-    fD0 = new Float_t[fNBook];
-    fD1 = new Float_t[fNBook];
-    fSig0 = new Float_t[fNBook];
-    fSig1 = new Float_t[fNBook];
-    fVolID = new Int_t[fNBook];
-    fLabel = new Int_t[fNBook];
-    fSolMat = new Float_t[fNBook * 4]; // at most 4 material params per point
-    fMatErr = new Float_t[fNBook * 4]; // at most 4 material params per point
+    fD0 = new float[fNBook];
+    fD1 = new float[fNBook];
+    fSig0 = new float[fNBook];
+    fSig1 = new float[fNBook];
+    fVolID = new int[fNBook];
+    fLabel = new int[fNBook];
+    fSolMat = new float[fNBook * 4]; // at most 4 material params per point
+    fMatErr = new float[fNBook * 4]; // at most 4 material params per point
     //
-    memset(fD0, 0, fNBook * sizeof(Float_t));
-    memset(fD1, 0, fNBook * sizeof(Float_t));
-    memset(fSig0, 0, fNBook * sizeof(Float_t));
-    memset(fSig1, 0, fNBook * sizeof(Float_t));
-    memset(fVolID, 0, fNBook * sizeof(Int_t));
-    memset(fLabel, 0, fNBook * sizeof(Int_t));
-    memset(fSolMat, 0, 4 * fNBook * sizeof(Int_t));
-    memset(fMatErr, 0, 4 * fNBook * sizeof(Int_t));
+    memset(fD0, 0, fNBook * sizeof(float));
+    memset(fD1, 0, fNBook * sizeof(float));
+    memset(fSig0, 0, fNBook * sizeof(float));
+    memset(fSig1, 0, fNBook * sizeof(float));
+    memset(fVolID, 0, fNBook * sizeof(int));
+    memset(fLabel, 0, fNBook * sizeof(int));
+    memset(fSolMat, 0, 4 * fNBook * sizeof(int));
+    memset(fMatErr, 0, 4 * fNBook * sizeof(int));
   }
   //
 }
@@ -155,7 +155,7 @@ void AliAlgResFast::SetMatCorr(int id, float res, float sig)
 }
 
 //____________________________________________
-void AliAlgResFast::SetLabel(int ip, Int_t lab, Int_t vol)
+void AliAlgResFast::SetLabel(int ip, int lab, int vol)
 {
   // set label/volid of measured volume
   fVolID[ip] = vol;
