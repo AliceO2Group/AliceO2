@@ -38,10 +38,10 @@ class AliAlgSensTRD : public AliAlgSens
   //
   virtual AliAlgPoint* TrackPoint2AlgPoint(int pntId, const AliTrackPointArray* trpArr, const AliESDtrack* t);
   //
-  virtual void DPosTraDParCalib(const AliAlgPoint* pnt, double* deriv, int calibID, const AliAlgVol* parent = 0) const;
+  virtual void dPosTraDParCalib(const AliAlgPoint* pnt, double* deriv, int calibID, const AliAlgVol* parent = 0) const;
   //
-  //  virtual void   SetTrackingFrame();
-  virtual void PrepareMatrixT2L();
+  //  virtual void   setTrackingFrame();
+  virtual void prepareMatrixT2L();
   //
  protected:
   //

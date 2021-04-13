@@ -34,32 +34,32 @@ namespace align
 AliAlgVtx::AliAlgVtx() : AliAlgSens("Vertex", 0, 1)
 {
   // def c-tor
-  SetVarFrame(kLOC);
-  SetFreeDOFPattern(BIT(kDOFTX) | BIT(kDOFTY) | BIT(kDOFTZ));
+  setVarFrame(kLOC);
+  setFreeDOFPattern(BIT(kDOFTX) | BIT(kDOFTY) | BIT(kDOFTZ));
   //
 }
 
 //____________________________________________
-void AliAlgVtx::PrepareMatrixT2L()
+void AliAlgVtx::prepareMatrixT2L()
 {
   // T2L matrix for vertex needs to be adjusted for every track
   // in order to have X axis along the track direction.
-  // This method assumes that the fAlp was already set accordingly
+  // This method assumes that the mAlp was already set accordingly
   // fX is fixed to 0
   //
-  fMatT2L.Clear();
-  fMatT2L.RotateZ(fAlp * RadToDeg());
-  //  fMatT2L.MultiplyLeft(&GetMatrixL2GIdeal().Inverse()); L2G=I !!!
+  mMatT2L.Clear();
+  mMatT2L.RotateZ(mAlp * RadToDeg());
+  //  mMatT2L.MultiplyLeft(&getMatrixL2GIdeal().Inverse()); L2G=I !!!
   //
 }
 
 //____________________________________________
-void AliAlgVtx::ApplyCorrection(double* vtx) const
+void AliAlgVtx::applyCorrection(double* vtx) const
 {
   // apply eventual correction to supplied vertex position
-  vtx[kDOFTX] += GetParVal(kDOFTX);
-  vtx[kDOFTY] += GetParVal(kDOFTY);
-  vtx[kDOFTZ] += GetParVal(kDOFTZ);
+  vtx[kDOFTX] += getParVal(kDOFTX);
+  vtx[kDOFTY] += getParVal(kDOFTY);
+  vtx[kDOFTZ] += getParVal(kDOFTZ);
   //
 }
 

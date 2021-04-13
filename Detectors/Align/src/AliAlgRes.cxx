@@ -33,7 +33,7 @@ namespace align
 
 //____________________________________
 AliAlgRes::AliAlgRes()
-  : fRun(0), fBz(0), fTimeStamp(0), fTrackID(0), fNPoints(0), fNBook(0), fChi2(0), fChi2Ini(0), fChi2K(0), fQ2Pt(0), fX(0), fY(0), fZ(0), fSnp(0), fTgl(0), fAlpha(0), fDY(0), fDZ(0), fDYK(0), fDZK(0), fSigY2(0), fSigYZ(0), fSigZ2(0), fSigY2K(0), fSigYZK(0), fSigZ2K(0), fVolID(0), fLabel(0)
+  : mRun(0), mBz(0), mTimeStamp(0), mTrackID(0), mNPoints(0), mNBook(0), mChi2(0), mChi2Ini(0), mChi2K(0), mQ2Pt(0), mX(0), mY(0), mZ(0), mSnp(0), mTgl(0), mAlpha(0), mDY(0), mDZ(0), mDYK(0), mDZK(0), mSigY2(0), mSigYZ(0), mSigZ2(0), mSigY2K(0), mSigYZK(0), mSigZ2K(0), mVolID(0), mLabel(0)
 {
   // def c-tor
 }
@@ -42,88 +42,88 @@ AliAlgRes::AliAlgRes()
 AliAlgRes::~AliAlgRes()
 {
   // d-tor
-  delete[] fX;
-  delete[] fY;
-  delete[] fZ;
-  delete[] fSnp;
-  delete[] fTgl;
-  delete[] fAlpha;
-  delete[] fDY;
-  delete[] fDZ;
-  delete[] fSigY2;
-  delete[] fSigYZ;
-  delete[] fSigZ2;
-  delete[] fDYK;
-  delete[] fDZK;
-  delete[] fSigY2K;
-  delete[] fSigYZK;
-  delete[] fSigZ2K;
-  delete[] fVolID;
-  delete[] fLabel;
+  delete[] mX;
+  delete[] mY;
+  delete[] mZ;
+  delete[] mSnp;
+  delete[] mTgl;
+  delete[] mAlpha;
+  delete[] mDY;
+  delete[] mDZ;
+  delete[] mSigY2;
+  delete[] mSigYZ;
+  delete[] mSigZ2;
+  delete[] mDYK;
+  delete[] mDZK;
+  delete[] mSigY2K;
+  delete[] mSigYZK;
+  delete[] mSigZ2K;
+  delete[] mVolID;
+  delete[] mLabel;
 }
 
 //________________________________________________
-void AliAlgRes::Resize(int np)
+void AliAlgRes::resize(int np)
 {
   // resize container
-  if (np > fNBook) {
-    delete[] fX;
-    delete[] fY;
-    delete[] fZ;
-    delete[] fSnp;
-    delete[] fTgl;
-    delete[] fAlpha;
-    delete[] fDY;
-    delete[] fDZ;
-    delete[] fSigY2;
-    delete[] fSigYZ;
-    delete[] fSigZ2;
-    delete[] fDYK;
-    delete[] fDZK;
-    delete[] fSigY2K;
-    delete[] fSigYZK;
-    delete[] fSigZ2K;
-    delete[] fVolID;
-    delete[] fLabel;
+  if (np > mNBook) {
+    delete[] mX;
+    delete[] mY;
+    delete[] mZ;
+    delete[] mSnp;
+    delete[] mTgl;
+    delete[] mAlpha;
+    delete[] mDY;
+    delete[] mDZ;
+    delete[] mSigY2;
+    delete[] mSigYZ;
+    delete[] mSigZ2;
+    delete[] mDYK;
+    delete[] mDZK;
+    delete[] mSigY2K;
+    delete[] mSigYZK;
+    delete[] mSigZ2K;
+    delete[] mVolID;
+    delete[] mLabel;
     //
-    fNBook = 100 + np;
-    fX = new float[fNBook];
-    fY = new float[fNBook];
-    fZ = new float[fNBook];
-    fSnp = new float[fNBook];
-    fTgl = new float[fNBook];
-    fAlpha = new float[fNBook];
-    fDY = new float[fNBook];
-    fDZ = new float[fNBook];
-    fSigY2 = new float[fNBook];
-    fSigYZ = new float[fNBook];
-    fSigZ2 = new float[fNBook];
-    fDYK = new float[fNBook];
-    fDZK = new float[fNBook];
-    fSigY2K = new float[fNBook];
-    fSigYZK = new float[fNBook];
-    fSigZ2K = new float[fNBook];
-    fVolID = new int[fNBook];
-    fLabel = new int[fNBook];
+    mNBook = 100 + np;
+    mX = new float[mNBook];
+    mY = new float[mNBook];
+    mZ = new float[mNBook];
+    mSnp = new float[mNBook];
+    mTgl = new float[mNBook];
+    mAlpha = new float[mNBook];
+    mDY = new float[mNBook];
+    mDZ = new float[mNBook];
+    mSigY2 = new float[mNBook];
+    mSigYZ = new float[mNBook];
+    mSigZ2 = new float[mNBook];
+    mDYK = new float[mNBook];
+    mDZK = new float[mNBook];
+    mSigY2K = new float[mNBook];
+    mSigYZK = new float[mNBook];
+    mSigZ2K = new float[mNBook];
+    mVolID = new int[mNBook];
+    mLabel = new int[mNBook];
     //
-    memset(fX, 0, fNBook * sizeof(float));
-    memset(fY, 0, fNBook * sizeof(float));
-    memset(fZ, 0, fNBook * sizeof(float));
-    memset(fSnp, 0, fNBook * sizeof(float));
-    memset(fTgl, 0, fNBook * sizeof(float));
-    memset(fAlpha, 0, fNBook * sizeof(float));
-    memset(fDY, 0, fNBook * sizeof(float));
-    memset(fDZ, 0, fNBook * sizeof(float));
-    memset(fSigY2, 0, fNBook * sizeof(float));
-    memset(fSigYZ, 0, fNBook * sizeof(float));
-    memset(fSigZ2, 0, fNBook * sizeof(float));
-    memset(fDYK, 0, fNBook * sizeof(float));
-    memset(fDZK, 0, fNBook * sizeof(float));
-    memset(fSigY2K, 0, fNBook * sizeof(float));
-    memset(fSigYZK, 0, fNBook * sizeof(float));
-    memset(fSigZ2K, 0, fNBook * sizeof(float));
-    memset(fVolID, 0, fNBook * sizeof(int));
-    memset(fLabel, 0, fNBook * sizeof(int));
+    memset(mX, 0, mNBook * sizeof(float));
+    memset(mY, 0, mNBook * sizeof(float));
+    memset(mZ, 0, mNBook * sizeof(float));
+    memset(mSnp, 0, mNBook * sizeof(float));
+    memset(mTgl, 0, mNBook * sizeof(float));
+    memset(mAlpha, 0, mNBook * sizeof(float));
+    memset(mDY, 0, mNBook * sizeof(float));
+    memset(mDZ, 0, mNBook * sizeof(float));
+    memset(mSigY2, 0, mNBook * sizeof(float));
+    memset(mSigYZ, 0, mNBook * sizeof(float));
+    memset(mSigZ2, 0, mNBook * sizeof(float));
+    memset(mDYK, 0, mNBook * sizeof(float));
+    memset(mDZK, 0, mNBook * sizeof(float));
+    memset(mSigY2K, 0, mNBook * sizeof(float));
+    memset(mSigYZK, 0, mNBook * sizeof(float));
+    memset(mSigZ2K, 0, mNBook * sizeof(float));
+    memset(mVolID, 0, mNBook * sizeof(int));
+    memset(mLabel, 0, mNBook * sizeof(int));
   }
   //
 }
@@ -134,13 +134,13 @@ void AliAlgRes::Clear(const Option_t*)
   // reset record
   TObject::Clear();
   ResetBit(0xffffffff);
-  fNPoints = 0;
-  fRun = 0;
-  fTimeStamp = 0;
-  fTrackID = 0;
-  fChi2 = 0;
-  fChi2K = 0;
-  fQ2Pt = 0;
+  mNPoints = 0;
+  mRun = 0;
+  mTimeStamp = 0;
+  mTrackID = 0;
+  mChi2 = 0;
+  mChi2K = 0;
+  mQ2Pt = 0;
   //
 }
 
@@ -151,40 +151,40 @@ void AliAlgRes::Print(const Option_t* opt) const
   TString opts = opt;
   opts.ToLower();
   bool lab = opts.Contains("l");
-  printf("%5sTr.", IsCosmic() ? "Cosm." : "Coll.");
-  if (IsCosmic())
-    printf("%2d/%2d ", fTrackID >> 16, fTrackID & 0xffff);
+  printf("%5sTr.", isCosmic() ? "Cosm." : "Coll.");
+  if (isCosmic())
+    printf("%2d/%2d ", mTrackID >> 16, mTrackID & 0xffff);
   else
-    printf("%5d ", fTrackID);
+    printf("%5d ", mTrackID);
   printf("Run:%6d Bz:%+4.1f Np: %3d q/Pt:%+.4f | Chi2: Ini: %6.1f LinSol:%6.1f Kalm:%6.1f |Vtx:%3s| TStamp:%d\n",
-         fRun, fBz, fNPoints, fQ2Pt, fChi2Ini, fChi2, fChi2K, HasVertex() ? "ON" : "OFF", fTimeStamp);
+         mRun, mBz, mNPoints, mQ2Pt, mChi2Ini, mChi2, mChi2K, hasVertex() ? "ON" : "OFF", mTimeStamp);
   if (opts.Contains("r")) {
     bool ers = opts.Contains("e");
     printf("%5s %7s %s %7s %7s %7s %5s %5s %9s %9s",
            " VID ", " Label ", " Alp ", "   X   ", "   Y   ", "   Z   ", " Snp ", " Tgl ", "    DY   ", "    DZ   ");
     if (ers)
       printf(" %8s %8s %8s", " pSgYY ", " pSgYZ ", " pSgZZ "); // cluster errors
-    if (GetKalmanDone()) {
+    if (getKalmanDone()) {
       printf(" %9s %9s", "    DYK  ", "    DZK  ");
       if (ers)
         printf(" %8s %8s %8s", " tSgYY ", " tSgYZ ", " tSgZZ "); // track errors
     }
     printf("\n");
-    for (int i = 0; i < fNPoints; i++) {
-      float x = fX[i], y = fY[i], z = fZ[i];
+    for (int i = 0; i < mNPoints; i++) {
+      float x = mX[i], y = mY[i], z = mZ[i];
       if (lab) {
-        x = GetXLab(i);
-        y = GetYLab(i);
-        z = GetZLab(i);
+        x = getXLab(i);
+        y = getYLab(i);
+        z = getZLab(i);
       }
       printf("%5d %7d %+5.2f %+7.2f %+7.2f %+7.2f %+5.2f %+5.2f %+9.2e %+9.2e",
-             fVolID[i], fLabel[i], fAlpha[i], x, y, z, fSnp[i], fTgl[i], fDY[i], fDZ[i]);
+             mVolID[i], mLabel[i], mAlpha[i], x, y, z, mSnp[i], mTgl[i], mDY[i], mDZ[i]);
       if (ers)
-        printf(" %.2e %+.1e %.2e", fSigY2[i], fSigYZ[i], fSigZ2[i]);
-      if (GetKalmanDone()) {
-        printf(" %+9.2e %+9.2e", fDYK[i], fDZK[i]);
+        printf(" %.2e %+.1e %.2e", mSigY2[i], mSigYZ[i], mSigZ2[i]);
+      if (getKalmanDone()) {
+        printf(" %+9.2e %+9.2e", mDYK[i], mDZK[i]);
         if (ers)
-          printf(" %.2e %+.1e %.2e", fSigY2K[i], fSigYZK[i], fSigZ2K[i]);
+          printf(" %.2e %+.1e %.2e", mSigY2K[i], mSigYZK[i], mSigZ2K[i]);
       }
       printf("\n");
     }
@@ -192,45 +192,45 @@ void AliAlgRes::Print(const Option_t* opt) const
 }
 
 //____________________________________________________________
-bool AliAlgRes::FillTrack(AliAlgTrack* trc, bool doKalman)
+bool AliAlgRes::fillTrack(AliAlgTrack* trc, bool doKalman)
 {
   // fill tracks residuals info
-  int nps, np = trc->GetNPoints();
-  if (trc->GetInnerPoint()->ContainsMeasurement()) {
-    SetHasVertex();
+  int nps, np = trc->getNPoints();
+  if (trc->getInnerPoint()->containsMeasurement()) {
+    setHasVertex();
     nps = np;
   } else
     nps = np - 1; // ref point is dummy?
   if (nps < 0)
     return true;
-  SetCosmic(trc->IsCosmic());
+  setCosmic(trc->isCosmic());
   //
-  SetNPoints(nps);
-  fQ2Pt = trc->getQ2Pt();
-  fChi2 = trc->GetChi2();
-  fChi2Ini = trc->GetChi2Ini();
+  setNPoints(nps);
+  mQ2Pt = trc->getQ2Pt();
+  mChi2 = trc->getChi2();
+  mChi2Ini = trc->getChi2Ini();
   int nfill = 0;
   for (int i = 0; i < np; i++) {
-    AliAlgPoint* pnt = trc->GetPoint(i);
-    int inv = pnt->IsInvDir() ? -1 : 1; // Flag invertion for cosmic upper leg
-    if (!pnt->ContainsMeasurement())
+    AliAlgPoint* pnt = trc->getPoint(i);
+    int inv = pnt->isInvDir() ? -1 : 1; // Flag invertion for cosmic upper leg
+    if (!pnt->containsMeasurement())
       continue;
-    if (!pnt->IsStatOK())
-      pnt->IncrementStat();
-    fVolID[nfill] = pnt->GetVolID();
-    fLabel[nfill] = pnt->GetSensor()->GetInternalID();
-    fAlpha[nfill] = pnt->GetAlphaSens();
-    fX[nfill] = pnt->GetXPoint() * inv;
-    fY[nfill] = pnt->GetYTracking();
-    fZ[nfill] = pnt->GetZTracking();
-    fDY[nfill] = pnt->GetResidY();
-    fDZ[nfill] = pnt->GetResidZ();
-    fSigY2[nfill] = pnt->GetYZErrTracking()[0];
-    fSigYZ[nfill] = pnt->GetYZErrTracking()[1];
-    fSigZ2[nfill] = pnt->GetYZErrTracking()[2];
+    if (!pnt->isStatOK())
+      pnt->incrementStat();
+    mVolID[nfill] = pnt->getVolID();
+    mLabel[nfill] = pnt->getSensor()->getInternalID();
+    mAlpha[nfill] = pnt->getAlphaSens();
+    mX[nfill] = pnt->getXPoint() * inv;
+    mY[nfill] = pnt->getYTracking();
+    mZ[nfill] = pnt->getZTracking();
+    mDY[nfill] = pnt->getResidY();
+    mDZ[nfill] = pnt->getResidZ();
+    mSigY2[nfill] = pnt->getYZErrTracking()[0];
+    mSigYZ[nfill] = pnt->getYZErrTracking()[1];
+    mSigZ2[nfill] = pnt->getYZErrTracking()[2];
     //
-    fSnp[nfill] = pnt->GetTrParamWSA()[AliAlgPoint::kParSnp];
-    fTgl[nfill] = pnt->GetTrParamWSA()[AliAlgPoint::kParTgl];
+    mSnp[nfill] = pnt->getTrParamWSA()[AliAlgPoint::kParSnp];
+    mTgl[nfill] = pnt->getTrParamWSA()[AliAlgPoint::kParTgl];
     //
     nfill++;
   }
@@ -239,52 +239,52 @@ bool AliAlgRes::FillTrack(AliAlgTrack* trc, bool doKalman)
     LOG(FATAL) << nfill << " residuals were stored instead of " << nps;
   }
   //
-  SetKalmanDone(false);
+  setKalmanDone(false);
   int nfilk = 0;
-  if (doKalman && trc->ResidKalman()) {
+  if (doKalman && trc->residKalman()) {
     for (int i = 0; i < np; i++) {
-      AliAlgPoint* pnt = trc->GetPoint(i);
-      if (!pnt->ContainsMeasurement())
+      AliAlgPoint* pnt = trc->getPoint(i);
+      if (!pnt->containsMeasurement())
         continue;
-      if (fVolID[nfilk] != int(pnt->GetVolID())) {
-        LOG(FATAL) << "Mismatch in Kalman filling for point " << i << ": filled VID:" << fVolID[nfilk] << ", point VID:" << pnt->GetVolID();
+      if (mVolID[nfilk] != int(pnt->getVolID())) {
+        LOG(FATAL) << "Mismatch in Kalman filling for point " << i << ": filled VID:" << mVolID[nfilk] << ", point VID:" << pnt->getVolID();
       }
-      const double* wsA = pnt->GetTrParamWSA();
-      fDYK[nfilk] = pnt->GetResidY();
-      fDZK[nfilk] = pnt->GetResidZ();
-      fSigY2K[nfilk] = wsA[2];
-      fSigYZK[nfilk] = wsA[3];
-      fSigZ2K[nfilk] = wsA[4];
+      const double* wsA = pnt->getTrParamWSA();
+      mDYK[nfilk] = pnt->getResidY();
+      mDZK[nfilk] = pnt->getResidZ();
+      mSigY2K[nfilk] = wsA[2];
+      mSigYZK[nfilk] = wsA[3];
+      mSigZ2K[nfilk] = wsA[4];
       //
       nfilk++;
     }
     //
-    fChi2K = trc->GetChi2();
-    SetKalmanDone(true);
+    mChi2K = trc->getChi2();
+    setKalmanDone(true);
   }
 
   return true;
 }
 
 //_________________________________________________
-float AliAlgRes::GetXLab(int i) const
+float AliAlgRes::getXLab(int i) const
 {
   // cluster lab X
-  return Abs(fX[i]) * Cos(fAlpha[i]) - fY[i] * Sin(fAlpha[i]);
+  return Abs(mX[i]) * Cos(mAlpha[i]) - mY[i] * Sin(mAlpha[i]);
 }
 
 //_________________________________________________
-float AliAlgRes::GetYLab(int i) const
+float AliAlgRes::getYLab(int i) const
 {
   // cluster lab Y
-  return Abs(fX[i]) * Sin(fAlpha[i]) + fY[i] * Cos(fAlpha[i]);
+  return Abs(mX[i]) * Sin(mAlpha[i]) + mY[i] * Cos(mAlpha[i]);
 }
 
 //_________________________________________________
-float AliAlgRes::GetZLab(int i) const
+float AliAlgRes::getZLab(int i) const
 {
   // cluster lab Z
-  return fZ[i];
+  return mZ[i];
 }
 
 } // namespace align

@@ -63,120 +63,120 @@ class AliAlgPoint : public TObject
   AliAlgPoint();
   virtual ~AliAlgPoint() {}
   //
-  void Init();
-  void UpdatePointByTrackInfo(const trackParam_t* t);
+  void init();
+  void updatePointByTrackInfo(const trackParam_t* t);
   //
-  double GetAlphaSens() const { return fAlphaSens; }
-  double GetXSens() const { return fXSens; }
-  double GetXPoint() const { return fXSens + GetXTracking(); }
-  double GetXTracking() const { return fXYZTracking[0]; }
-  double GetYTracking() const { return fXYZTracking[1]; }
-  double GetZTracking() const { return fXYZTracking[2]; }
-  const double* GetYZTracking() const { return &fXYZTracking[1]; }
-  const double* GetXYZTracking() const { return fXYZTracking; }
-  const double* GetYZErrTracking() const { return fErrYZTracking; }
+  double getAlphaSens() const { return mAlphaSens; }
+  double getXSens() const { return mXSens; }
+  double getXPoint() const { return mXSens + getXTracking(); }
+  double getXTracking() const { return mXYZTracking[0]; }
+  double getYTracking() const { return mXYZTracking[1]; }
+  double getZTracking() const { return mXYZTracking[2]; }
+  const double* getYZTracking() const { return &mXYZTracking[1]; }
+  const double* getXYZTracking() const { return mXYZTracking; }
+  const double* getYZErrTracking() const { return mErrYZTracking; }
 
-  const AliAlgSens* GetSensor() const { return fSensor; }
-  uint32_t GetVolID() const { return fSensor->GetVolID(); }
-  void SetSensor(AliAlgSens* s) { fSensor = s; }
+  const AliAlgSens* getSensor() const { return mSensor; }
+  uint32_t getVolID() const { return mSensor->getVolID(); }
+  void setSensor(AliAlgSens* s) { mSensor = s; }
 
-  int GetDetID() const { return fDetID; }
-  int GetSID() const { return fSID; }
-  int GetMinLocVarID() const { return fMinLocVarID; }
-  int GetMaxLocVarID() const { return fMaxLocVarID; }
-  int GetNMatPar() const;
-  bool ContainsMaterial() const { return TestBit(kMaterialBit); }
-  bool ContainsMeasurement() const { return TestBit(kMeasurementBit); }
-  bool GetNeedUpdateFromTrack() const { return TestBit(kUpdateFromTrackBit); }
-  bool GetELossVaried() const { return TestBit(kVaryELossBit); }
-  bool GetUseBzOnly() const { return TestBit(kUseBzOnly); }
-  bool IsInvDir() const { return TestBit(kInvDir); }
-  bool IsStatOK() const { return TestBit(kStatOK); }
+  int getDetID() const { return mDetID; }
+  int getSID() const { return mSID; }
+  int getMinLocVarID() const { return mMinLocVarID; }
+  int getMaxLocVarID() const { return mMaxLocVarID; }
+  int getNMatPar() const;
+  bool containsMaterial() const { return TestBit(kMaterialBit); }
+  bool containsMeasurement() const { return TestBit(kMeasurementBit); }
+  bool getNeedUpdateFromTrack() const { return TestBit(kUpdateFromTrackBit); }
+  bool getELossVaried() const { return TestBit(kVaryELossBit); }
+  bool getUseBzOnly() const { return TestBit(kUseBzOnly); }
+  bool isInvDir() const { return TestBit(kInvDir); }
+  bool isStatOK() const { return TestBit(kStatOK); }
   //
-  double GetXTimesRho() const { return fXTimesRho; }
-  double GetX2X0() const { return fX2X0; }
-  void SetXTimesRho(double v) { fXTimesRho = v; }
-  void SetX2X0(double v) { fX2X0 = v; }
+  double getXTimesRho() const { return mXTimesRho; }
+  double getX2X0() const { return mX2X0; }
+  void setXTimesRho(double v) { mXTimesRho = v; }
+  void setX2X0(double v) { mX2X0 = v; }
   //
-  void SetDetID(int id) { fDetID = (char)id; }
-  void SetSID(int id) { fSID = (int16_t)id; }
+  void setDetID(int id) { mDetID = (char)id; }
+  void setSID(int id) { mSID = (int16_t)id; }
   //
-  void SetMinLocVarID(int id) { fMinLocVarID = id; }
-  void SetMaxLocVarID(int id) { fMaxLocVarID = id; }
-  void SetELossVaried(bool v = true) { SetBit(kVaryELossBit, v); }
-  void SetContainsMaterial(bool v = true) { SetBit(kMaterialBit, v); }
-  void SetContainsMeasurement(bool v = true) { SetBit(kMeasurementBit, v); }
-  void SetNeedUpdateFromTrack(bool v = true) { SetBit(kUpdateFromTrackBit, v); }
-  void SetUseBzOnly(bool v = true) { SetBit(kUseBzOnly, v); }
-  void SetInvDir(bool v = true) { SetBit(kInvDir, v); }
-  void SetStatOK(bool v = true) { SetBit(kStatOK, v); }
+  void setMinLocVarID(int id) { mMinLocVarID = id; }
+  void setMaxLocVarID(int id) { mMaxLocVarID = id; }
+  void setELossVaried(bool v = true) { SetBit(kVaryELossBit, v); }
+  void setContainsMaterial(bool v = true) { SetBit(kMaterialBit, v); }
+  void setContainsMeasurement(bool v = true) { SetBit(kMeasurementBit, v); }
+  void setNeedUpdateFromTrack(bool v = true) { SetBit(kUpdateFromTrackBit, v); }
+  void setUseBzOnly(bool v = true) { SetBit(kUseBzOnly, v); }
+  void setInvDir(bool v = true) { SetBit(kInvDir, v); }
+  void setStatOK(bool v = true) { SetBit(kStatOK, v); }
   //
-  void GetResidualsDiag(const double* pos, double& resU, double& resV) const;
-  void DiagonalizeResiduals(double rY, double rZ, double& resU, double& resV) const;
+  void getResidualsDiag(const double* pos, double& resU, double& resV) const;
+  void diagonalizeResiduals(double rY, double rZ, double& resU, double& resV) const;
   //
-  void SetAlphaSens(double a) { fAlphaSens = a; }
-  void SetXSens(double x) { fXSens = x; }
-  void SetXYZTracking(const double r[3])
+  void setAlphaSens(double a) { mAlphaSens = a; }
+  void setXSens(double x) { mXSens = x; }
+  void setXYZTracking(const double r[3])
   {
     for (int i = 3; i--;)
-      fXYZTracking[i] = r[i];
+      mXYZTracking[i] = r[i];
   }
-  void SetXYZTracking(double x, double y, double z);
-  void SetYZErrTracking(double sy2, double syz, double sz2);
-  void SetYZErrTracking(const double* err)
+  void setXYZTracking(double x, double y, double z);
+  void setYZErrTracking(double sy2, double syz, double sz2);
+  void setYZErrTracking(const double* err)
   {
     for (int i = 3; i--;)
-      fErrYZTracking[i] = err[i];
+      mErrYZTracking[i] = err[i];
   }
-  double GetErrDiag(int i) const { return fErrDiag[i]; }
+  double getErrDiag(int i) const { return mErrDiag[i]; }
   //
-  double* GetTrParamWSA() const { return (double*)fTrParamWSA; }
-  double* GetTrParamWSB() const { return (double*)fTrParamWSB; }
-  double GetTrParamWSA(int ip) const { return fTrParamWSA[ip]; }
-  double GetTrParamWSB(int ip) const { return fTrParamWSB[ip]; }
-  void GetTrWSA(trackParam_t& etp) const;
-  void GetTrWSB(trackParam_t& etp) const;
-  void SetTrParamWSA(const double* param)
+  double* getTrParamWSA() const { return (double*)mTrParamWSA; }
+  double* getTrParamWSB() const { return (double*)mTrParamWSB; }
+  double getTrParamWSA(int ip) const { return mTrParamWSA[ip]; }
+  double getTrParamWSB(int ip) const { return mTrParamWSB[ip]; }
+  void getTrWSA(trackParam_t& etp) const;
+  void getTrWSB(trackParam_t& etp) const;
+  void setTrParamWSA(const double* param)
   {
     for (int i = 5; i--;)
-      fTrParamWSA[i] = param[i];
+      mTrParamWSA[i] = param[i];
   }
-  void SetTrParamWSB(const double* param)
+  void setTrParamWSB(const double* param)
   {
     for (int i = 5; i--;)
-      fTrParamWSB[i] = param[i];
+      mTrParamWSB[i] = param[i];
   }
-  double GetResidY() const { return GetTrParamWSA(kParY) - GetYTracking(); }
-  double GetResidZ() const { return GetTrParamWSA(kParZ) - GetZTracking(); }
+  double getResidY() const { return getTrParamWSA(kParY) - getYTracking(); }
+  double getResidZ() const { return getTrParamWSA(kParZ) - getZTracking(); }
   //
-  void SetMatCovDiagonalizationMatrix(const TMatrixD& d);
-  void SetMatCovDiag(const TVectorD& v);
-  void SetMatCovDiagElem(int i, double err2) { fMatCorrCov[i] = err2; }
-  void UnDiagMatCorr(const double* diag, double* nodiag) const;
-  void DiagMatCorr(const double* nodiag, double* diag) const;
-  void UnDiagMatCorr(const float* diag, float* nodiag) const;
-  void DiagMatCorr(const float* nodiag, float* diag) const;
+  void setMatCovDiagonalizationMatrix(const TMatrixD& d);
+  void setMatCovDiag(const TVectorD& v);
+  void setMatCovDiagElem(int i, double err2) { mMatCorrCov[i] = err2; }
+  void unDiagMatCorr(const double* diag, double* nodiag) const;
+  void diagMatCorr(const double* nodiag, double* diag) const;
+  void unDiagMatCorr(const float* diag, float* nodiag) const;
+  void diagMatCorr(const float* nodiag, float* diag) const;
   //
-  void SetMatCorrExp(double* p)
+  void setMatCorrExp(double* p)
   {
     for (int i = 5; i--;)
-      fMatCorrExp[i] = p[i];
+      mMatCorrExp[i] = p[i];
   }
-  float* GetMatCorrExp() const { return (float*)fMatCorrExp; }
-  float* GetMatCorrCov() const { return (float*)fMatCorrCov; }
+  float* getMatCorrExp() const { return (float*)mMatCorrExp; }
+  float* getMatCorrCov() const { return (float*)mMatCorrCov; }
   //
-  void GetXYZGlo(double r[3]) const;
-  double GetPhiGlo() const;
-  int GetAliceSector() const;
+  void getXYZGlo(double r[3]) const;
+  double getPhiGlo() const;
+  int getAliceSector() const;
   //
-  int GetNGloDOFs() const { return fNGloDOFs; }
-  int GetDGloOffs() const { return fDGloOffs; }
-  void SetNGloDOFs(int n) { fNGloDOFs = n; }
-  void SetDGloOffs(int n) { fDGloOffs = n; }
+  int getNGloDOFs() const { return mNGloDOFs; }
+  int getDGloOffs() const { return mDGloOffs; }
+  void setNGloDOFs(int n) { mNGloDOFs = n; }
+  void setDGloOffs(int n) { mDGloOffs = n; }
   //
-  void IncrementStat();
+  void incrementStat();
   //
-  virtual void DumpCoordinates() const;
+  virtual void dumpCoordinates() const;
   virtual void Print(Option_t* option = "") const;
   virtual void Clear(Option_t* option = "");
   //
@@ -190,87 +190,87 @@ class AliAlgPoint : public TObject
   //
  protected:
   //
-  int fMinLocVarID;         // The residuals/derivatives depend on fNLocExtPar params
-                            // and point params>=fMinLocVarID.
-  int fMaxLocVarID;         // The residuals/derivatives depend on fNLocExtPar params
-                            // and point params<fMaxLocVarID.
-                            // If the point contains materials, fMaxLocVarID also marks
+  int mMinLocVarID;         // The residuals/derivatives depend on fNLocExtPar params
+                            // and point params>=mMinLocVarID.
+  int mMaxLocVarID;         // The residuals/derivatives depend on fNLocExtPar params
+                            // and point params<mMaxLocVarID.
+                            // If the point contains materials, mMaxLocVarID also marks
                             // the parameters associated with this point
-  char fDetID;              // DetectorID
-  int16_t fSID;             // sensor ID in the detector
-  float fAlphaSens;         // Alpha of tracking frame
-  float fXSens;             // X of tracking frame
-  float fCosDiagErr;        // Cos of Phi of rotation in YZ plane which diagonalize errors
-  float fSinDiagErr;        // Sin of Phi of rotation in YZ plane which diagonalize errors
-  float fErrDiag[2];        // diagonalized errors
-  double fXYZTracking[3];   // X,Y,Z in tracking frame
-  double fErrYZTracking[3]; // errors in tracking frame
+  char mDetID;              // DetectorID
+  int16_t mSID;             // sensor ID in the detector
+  float mAlphaSens;         // Alpha of tracking frame
+  float mXSens;             // X of tracking frame
+  float mCosDiagErr;        // Cos of Phi of rotation in YZ plane which diagonalize errors
+  float mSinDiagErr;        // Sin of Phi of rotation in YZ plane which diagonalize errors
+  float mErrDiag[2];        // diagonalized errors
+  double mXYZTracking[3];   // X,Y,Z in tracking frame
+  double mErrYZTracking[3]; // errors in tracking frame
   //
-  float fX2X0;      // X2X0 seen by the track (including inclination)
-  float fXTimesRho; // signed Density*Length seen by the track (including inclination)
+  float mX2X0;      // X2X0 seen by the track (including inclination)
+  float mXTimesRho; // signed Density*Length seen by the track (including inclination)
   //
-  int fNGloDOFs;                        // number of global DOFs this point depends on
-  int fDGloOffs;                        // 1st entry slot of d/dGloPar in the AlgTrack fDResDGlo arrays
-  float fMatCorrExp[kNMatDOFs];         // material correction due to ELoss expectation (non-diagonalized)
-  float fMatCorrCov[kNMatDOFs];         // material correction delta covariance (diagonalized)
-  float fMatDiag[kNMatDOFs][kNMatDOFs]; // matrix for  diagonalization of material effects errors
+  int mNGloDOFs;                        // number of global DOFs this point depends on
+  int mDGloOffs;                        // 1st entry slot of d/dGloPar in the AlgTrack fDResDGlo arrays
+  float mMatCorrExp[kNMatDOFs];         // material correction due to ELoss expectation (non-diagonalized)
+  float mMatCorrCov[kNMatDOFs];         // material correction delta covariance (diagonalized)
+  float mMatDiag[kNMatDOFs][kNMatDOFs]; // matrix for  diagonalization of material effects errors
   //
-  double fTrParamWSA[kNMatDOFs]; // workspace for tracks params at this point AFTER material correction
-  double fTrParamWSB[kNMatDOFs]; // workspace for tracks params at this point BEFORE material correction
+  double mTrParamWSA[kNMatDOFs]; // workspace for tracks params at this point AFTER material correction
+  double mTrParamWSB[kNMatDOFs]; // workspace for tracks params at this point BEFORE material correction
 
-  AliAlgSens* fSensor; // sensor of this point
+  AliAlgSens* mSensor; // sensor of this point
 
   ClassDef(AliAlgPoint, 1)
 };
 
 //____________________________________________________
-inline void AliAlgPoint::SetXYZTracking(double x, double y, double z)
+inline void AliAlgPoint::setXYZTracking(double x, double y, double z)
 {
   // assign tracking coordinates
-  fXYZTracking[0] = x;
-  fXYZTracking[1] = y;
-  fXYZTracking[2] = z;
+  mXYZTracking[0] = x;
+  mXYZTracking[1] = y;
+  mXYZTracking[2] = z;
 }
 
 //____________________________________________________
-inline void AliAlgPoint::SetYZErrTracking(double sy2, double syz, double sz2)
+inline void AliAlgPoint::setYZErrTracking(double sy2, double syz, double sz2)
 {
   // assign tracking coordinates
-  fErrYZTracking[0] = sy2;
-  fErrYZTracking[1] = syz;
-  fErrYZTracking[2] = sz2;
+  mErrYZTracking[0] = sy2;
+  mErrYZTracking[1] = syz;
+  mErrYZTracking[2] = sz2;
 }
 
-inline int AliAlgPoint::GetNMatPar() const
+inline int AliAlgPoint::getNMatPar() const
 {
   // get number of free params for material descriptoin
-  return ContainsMaterial() ? (GetELossVaried() ? kNMSPar + kNELossPar : kNMSPar) : 0;
+  return containsMaterial() ? (getELossVaried() ? kNMSPar + kNELossPar : kNMSPar) : 0;
 }
 
 //_____________________________________
-inline void AliAlgPoint::DiagonalizeResiduals(double rY, double rZ, double& resU, double& resV) const
+inline void AliAlgPoint::diagonalizeResiduals(double rY, double rZ, double& resU, double& resV) const
 {
   // rotate residuals to frame where their error matrix is diagonal
-  resU = fCosDiagErr * rY - fSinDiagErr * rZ;
-  resV = fSinDiagErr * rY + fCosDiagErr * rZ;
+  resU = mCosDiagErr * rY - mSinDiagErr * rZ;
+  resV = mSinDiagErr * rY + mCosDiagErr * rZ;
   //
 }
 
 //_____________________________________
-inline void AliAlgPoint::GetResidualsDiag(const double* pos, double& resU, double& resV) const
+inline void AliAlgPoint::getResidualsDiag(const double* pos, double& resU, double& resV) const
 {
   // calculate residuals in the frame where the errors are diagonal, given the position
   // of the track in the standard tracking frame
-  DiagonalizeResiduals(pos[0] - fXYZTracking[1], pos[1] - fXYZTracking[2], resU, resV);
+  diagonalizeResiduals(pos[0] - mXYZTracking[1], pos[1] - mXYZTracking[2], resU, resV);
   //
 }
 
 //__________________________________________________________________
-inline void AliAlgPoint::IncrementStat()
+inline void AliAlgPoint::incrementStat()
 {
   // increment statistics for detectors this point depends on
-  fSensor->IncrementStat();
-  SetStatOK();
+  mSensor->incrementStat();
+  setStatOK();
 }
 } // namespace align
 } // namespace o2

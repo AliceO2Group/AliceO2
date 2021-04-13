@@ -29,7 +29,7 @@ class AliAlgDetTOF : public AliAlgDet
   AliAlgDetTOF(const char* title = "");
   virtual ~AliAlgDetTOF();
   //
-  virtual void DefineVolumes();
+  virtual void defineVolumes();
   //
   bool AcceptTrack(const AliESDtrack* trc, int trtype) const;
   //

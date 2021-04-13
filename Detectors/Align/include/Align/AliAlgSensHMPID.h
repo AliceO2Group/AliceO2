@@ -35,8 +35,8 @@ class AliAlgSensHMPID : public AliAlgSens
   virtual ~AliAlgSensHMPID();
   //
   virtual AliAlgPoint* TrackPoint2AlgPoint(int pntId, const AliTrackPointArray* trpArr, const AliESDtrack* t);
-  //  virtual void   SetTrackingFrame();
-  virtual void PrepareMatrixT2L();
+  //  virtual void   setTrackingFrame();
+  virtual void prepareMatrixT2L();
   //
  protected:
   //

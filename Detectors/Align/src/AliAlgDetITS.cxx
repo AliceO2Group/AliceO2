@@ -41,9 +41,9 @@ const char* AliAlgDetITS::fgkHitsSel[AliAlgDetITS::kNSPDSelTypes] =
 AliAlgDetITS::AliAlgDetITS(const char* title)
 {
   // default c-tor
-  SetNameTitle(AliAlgSteer::GetDetNameByDetID(AliAlgSteer::kITS), title);
-  SetDetID(AliAlgSteer::kITS);
-  SetUseErrorParam();
+  SetNameTitle(AliAlgSteer::getDetNameByDetID(AliAlgSteer::kITS), title);
+  setDetID(AliAlgSteer::kITS);
+  setUseErrorParam();
   SetITSSelPatternColl();
   SetITSSelPatternCosm();
 }
@@ -55,7 +55,7 @@ AliAlgDetITS::~AliAlgDetITS()
 }
 
 //____________________________________________
-void AliAlgDetITS::DefineVolumes()
+void AliAlgDetITS::defineVolumes()
 {
   // define ITS volumes
   //
@@ -63,15 +63,15 @@ void AliAlgDetITS::DefineVolumes()
   AliAlgVol *volITS = 0, *hstave = 0, *ladd = 0;
   AliAlgSensITS* sens = 0;
   //
-  int labDet = GetDetLabel();
-  AddVolume(volITS = new AliAlgVol("ITS", labDet));
+  int labDet = getDetLabel();
+  addVolume(volITS = new AliAlgVol("ITS", labDet));
   //
   // SPD
   AliAlgVol* sect[kNSPDSect] = {0};
   for (int isc = 0; isc < kNSPDSect; isc++) { // sectors
     int iid = labDet + (10 + isc) * 10000;
-    AddVolume(sect[isc] = new AliAlgVol(Form("ITS/SPD0/Sector%d", isc), iid));
-    sect[isc]->SetParent(volITS);
+    addVolume(sect[isc] = new AliAlgVol(Form("ITS/SPD0/Sector%d", isc), iid));
+    sect[isc]->setParent(volITS);
   }
   for (int ilr = 0; ilr <= 1; ilr++) { // SPD layers
     //
@@ -82,18 +82,18 @@ void AliAlgDetITS::DefineVolumes()
         for (int ihst = 0; ihst < 2; ihst++) {                  // halfstave
           int iid = labDet + (1 + ilr) * 10000 + (1 + staveCnt) * 100;
           staveCnt++;
-          AddVolume(hstave = new AliAlgVol(Form("ITS/SPD%d/Sector%d/Stave%d/HalfStave%d",
+          addVolume(hstave = new AliAlgVol(Form("ITS/SPD%d/Sector%d/Stave%d/HalfStave%d",
                                                 ilr, isc, ist, ihst),
                                            iid));
-          hstave->SetParent(sect[isc]);
-          hstave->SetInternalID(iid);
+          hstave->setParent(sect[isc]);
+          hstave->setInternalID(iid);
           for (int isn = 0; isn < 2; isn++) { // "ladder" (sensor)
             int iids = iid + (1 + isn);
-            AddVolume(sens =
+            addVolume(sens =
                         new AliAlgSensITS(Form("ITS/SPD%d/Sector%d/Stave%d/HalfStave%d/Ladder%d",
                                                ilr, isc, ist, ihst, isn + ihst * 2),
                                           AliGeomManager::LayerToVolUID(ilr + 1, cntVolID++), iids));
-            sens->SetParent(hstave);
+            sens->setParent(hstave);
           }
         }
       } // staves of SPDi
@@ -106,13 +106,13 @@ void AliAlgDetITS::DefineVolumes()
     for (int ist = 0; ist < AliITSgeomTGeo::GetNLadders(ilr + 1); ist++) { // ladder
       int iid = labDet + (1 + ilr) * 10000 + (1 + staveCnt) * 100;
       staveCnt++;
-      AddVolume(ladd = new AliAlgVol(Form("ITS/SDD%d/Ladder%d", ilr, ist), iid));
-      ladd->SetParent(volITS);
+      addVolume(ladd = new AliAlgVol(Form("ITS/SDD%d/Ladder%d", ilr, ist), iid));
+      ladd->setParent(volITS);
       for (int isn = 0; isn < AliITSgeomTGeo::GetNDetectors(ilr + 1); isn++) { // sensor
         int iids = iid + (1 + isn);
-        AddVolume(sens = new AliAlgSensITS(Form("ITS/SDD%d/Ladder%d/Sensor%d", ilr, ist, isn),
+        addVolume(sens = new AliAlgSensITS(Form("ITS/SDD%d/Ladder%d/Sensor%d", ilr, ist, isn),
                                            AliGeomManager::LayerToVolUID(ilr + 1, cntVolID++), iids));
-        sens->SetParent(ladd);
+        sens->setParent(ladd);
       }
     } // ladder
   }   // layer
@@ -123,13 +123,13 @@ void AliAlgDetITS::DefineVolumes()
     for (int ist = 0; ist < AliITSgeomTGeo::GetNLadders(ilr + 1); ist++) { // ladder
       int iid = labDet + (1 + ilr) * 10000 + (1 + staveCnt) * 100;
       staveCnt++;
-      AddVolume(ladd = new AliAlgVol(Form("ITS/SSD%d/Ladder%d", ilr, ist), iid));
-      ladd->SetParent(volITS);
+      addVolume(ladd = new AliAlgVol(Form("ITS/SSD%d/Ladder%d", ilr, ist), iid));
+      ladd->setParent(volITS);
       for (int isn = 0; isn < AliITSgeomTGeo::GetNDetectors(ilr + 1); isn++) { // sensor
         int iids = iid + (1 + isn);
-        AddVolume(sens = new AliAlgSensITS(Form("ITS/SSD%d/Ladder%d/Sensor%d", ilr, ist, isn),
+        addVolume(sens = new AliAlgSensITS(Form("ITS/SSD%d/Ladder%d/Sensor%d", ilr, ist, isn),
                                            AliGeomManager::LayerToVolUID(ilr + 1, cntVolID++), iids));
-        sens->SetParent(ladd);
+        sens->setParent(ladd);
       }
     } // ladder
   }   // layer
@@ -151,7 +151,7 @@ bool AliAlgDetITS::AcceptTrack(const AliESDtrack* trc, int trtype) const
   // test if detector had seed this track
   if (!CheckFlags(trc, trtype))
     return false;
-  if (trc->GetNcls(0) < fNPointsSel[trtype])
+  if (trc->GetNcls(0) < mNPointsSel[trtype])
     return false;
   if (!CheckHitPattern(trc, GetITSSelPattern(trtype)))
     return false;
@@ -163,12 +163,12 @@ bool AliAlgDetITS::AcceptTrack(const AliESDtrack* trc, int trtype) const
 void AliAlgDetITS::SetAddErrorLr(int ilr, double sigY, double sigZ)
 {
   // set syst. errors for specific layer
-  for (int isn = GetNSensors(); isn--;) {
-    AliAlgSensITS* sens = (AliAlgSensITS*)GetSensor(isn);
-    int vid = sens->GetVolID();
+  for (int isn = getNSensors(); isn--;) {
+    AliAlgSensITS* sens = (AliAlgSensITS*)getSensor(isn);
+    int vid = sens->getVolID();
     int lrs = AliGeomManager::VolUIDToLayer(vid);
     if ((lrs - AliGeomManager::kSPD1) == ilr)
-      sens->SetAddError(sigY, sigZ);
+      sens->setAddError(sigY, sigZ);
   }
 }
 
@@ -176,20 +176,20 @@ void AliAlgDetITS::SetAddErrorLr(int ilr, double sigY, double sigZ)
 void AliAlgDetITS::SetSkipLr(int ilr)
 {
   // exclude sensor of the layer from alignment
-  for (int isn = GetNSensors(); isn--;) {
-    AliAlgSensITS* sens = (AliAlgSensITS*)GetSensor(isn);
-    int vid = sens->GetVolID();
+  for (int isn = getNSensors(); isn--;) {
+    AliAlgSensITS* sens = (AliAlgSensITS*)getSensor(isn);
+    int vid = sens->getVolID();
     int lrs = AliGeomManager::VolUIDToLayer(vid);
     if ((lrs - AliGeomManager::kSPD1) == ilr)
-      sens->SetSkip();
+      sens->setSkip();
   }
 }
 
 //_________________________________________________
-void AliAlgDetITS::SetUseErrorParam(int v)
+void AliAlgDetITS::setUseErrorParam(int v)
 {
   // set type of points error parameterization
-  fUseErrorParam = v;
+  mUseErrorParam = v;
 }
 
 //_________________________________________________
@@ -224,17 +224,17 @@ void AliAlgDetITS::UpdatePointByTrackInfo(AliAlgPoint* pnt, const AliExternalTra
 {
   // update point using specific error parameterization
   // the track must be in the detector tracking frame
-  const AliAlgSens* sens = pnt->GetSensor();
-  int vid = sens->GetVolID();
+  const AliAlgSens* sens = pnt->getSensor();
+  int vid = sens->getVolID();
   int lr = AliGeomManager::VolUIDToLayer(vid) - 1;
   double angPol = ATan(t->GetTgl());
   double angAz = ASin(t->GetSnp());
   double errY, errZ;
   GetErrorParamAngle(lr, angPol, angAz, errY, errZ);
-  const double* sysE = sens->GetAddError(); // additional syst error
+  const double* sysE = sens->getAddError(); // additional syst error
   //
-  pnt->SetYZErrTracking(errY * errY + sysE[0] * sysE[0], 0, errZ * errZ + sysE[1] * sysE[1]);
-  pnt->Init();
+  pnt->setYZErrTracking(errY * errY + sysE[0] * sysE[0], 0, errZ * errZ + sysE[1] * sysE[1]);
+  pnt->init();
   //
 }
 //--------------------------------------------------------------------------

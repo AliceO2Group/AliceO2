@@ -39,14 +39,14 @@ AliAlgDetTRD::AliAlgDetTRD(const char* title)
   : AliAlgDet(), fNonRCCorrDzDtgl(0), fCorrDVT(0)
 {
   // default c-tor
-  SetNameTitle(AliAlgSteer::GetDetNameByDetID(AliAlgSteer::kTRD), title);
-  SetDetID(AliAlgSteer::kTRD);
+  SetNameTitle(AliAlgSteer::getDetNameByDetID(AliAlgSteer::kTRD), title);
+  setDetID(AliAlgSteer::kTRD);
   fExtraErrRC[0] = fExtraErrRC[1] = 0;
   //
   // ad hoc correction
   SetNonRCCorrDzDtgl();
   SetExtraErrRC();
-  fNCalibDOF = kNCalibParams;
+  mNCalibDOF = kNCalibParams;
 }
 
 //____________________________________________
@@ -56,14 +56,14 @@ AliAlgDetTRD::~AliAlgDetTRD()
 }
 
 //____________________________________________
-void AliAlgDetTRD::DefineVolumes()
+void AliAlgDetTRD::defineVolumes()
 {
   // define TRD volumes
   //
   const int kNSect = 18, kNStacks = 5, kNLayers = 6;
   AliAlgSensTRD* chamb = 0;
   //
-  int labDet = GetDetLabel();
+  int labDet = getDetLabel();
   //  AddVolume( volTRD = new AliAlgVol("TRD") ); // no main volume, why?
   AliAlgVol* sect[kNSect] = {0};
   //
@@ -77,17 +77,17 @@ void AliAlgDetTRD::DefineVolumes()
       if (!gGeoManager->GetAlignableEntry(symname))
         continue;
       uint16_t vid = AliGeomManager::LayerToVolUID(AliGeomManager::kTRD1 + ilr, ich);
-      AddVolume(chamb = new AliAlgSensTRD(symname, vid, iid /*lid*/, isector));
+      addVolume(chamb = new AliAlgSensTRD(symname, vid, iid /*lid*/, isector));
       iid = labDet + (1 + isector) * 100;
       if (!sect[isector])
         sect[isector] = new AliAlgVol(Form("TRD/sm%02d", isector), iid);
-      chamb->SetParent(sect[isector]);
+      chamb->setParent(sect[isector]);
     } // chamber
   }   // layer
   //
   for (int isc = 0; isc < kNSect; isc++) {
     if (sect[isc])
-      AddVolume(sect[isc]);
+      addVolume(sect[isc]);
   }
   //
 }
@@ -98,7 +98,7 @@ bool AliAlgDetTRD::AcceptTrack(const AliESDtrack* trc, int trtype) const
   // test if detector had seed this track
   if (!CheckFlags(trc, trtype))
     return false;
-  if (trc->GetTRDntracklets() < fNPointsSel[trtype])
+  if (trc->GetTRDntracklets() < mNPointsSel[trtype])
     return false;
   return true;
 }
@@ -112,17 +112,17 @@ void AliAlgDetTRD::Print(const Option_t* opt) const
   printf("Extra error for RC tracklets: Y:%e Z:%e\n", fExtraErrRC[0], fExtraErrRC[1]);
 }
 
-const char* AliAlgDetTRD::GetCalibDOFName(int i) const
+const char* AliAlgDetTRD::getCalibDOFName(int i) const
 {
   // return calibration DOF name
   return i < kNCalibParams ? fgkCalibDOFName[i] : 0;
 }
 
 //______________________________________________________
-void AliAlgDetTRD::WritePedeInfo(FILE* parOut, const Option_t* opt) const
+void AliAlgDetTRD::writePedeInfo(FILE* parOut, const Option_t* opt) const
 {
   // contribute to params and constraints template files for PEDE
-  AliAlgDet::WritePedeInfo(parOut, opt);
+  AliAlgDet::writePedeInfo(parOut, opt);
   //
   // write calibration parameters
   enum { kOff,
@@ -132,18 +132,18 @@ void AliAlgDetTRD::WritePedeInfo(FILE* parOut, const Option_t* opt) const
   const char* kKeyParam = "parameter";
   //
   fprintf(parOut, "%s%s %s\t %d calibraction params for %s\n", comment[kOff], kKeyParam, comment[kOnOn],
-          GetNCalibDOFs(), GetName());
+          getNCalibDOFs(), GetName());
   //
-  for (int ip = 0; ip < GetNCalibDOFs(); ip++) {
-    int cmt = IsCondDOF(ip) ? kOff : kOn;
-    fprintf(parOut, "%s %9d %+e %+e\t%s %s p%d\n", comment[cmt], GetParLab(ip),
-            GetParVal(ip), GetParErr(ip), comment[kOnOn], IsFreeDOF(ip) ? "  " : "FX", ip);
+  for (int ip = 0; ip < getNCalibDOFs(); ip++) {
+    int cmt = isCondDOF(ip) ? kOff : kOn;
+    fprintf(parOut, "%s %9d %+e %+e\t%s %s p%d\n", comment[cmt], getParLab(ip),
+            getParVal(ip), getParErr(ip), comment[kOnOn], isFreeDOF(ip) ? "  " : "FX", ip);
   }
   //
 }
 
 //_______________________________________________________
-double AliAlgDetTRD::GetCalibDOFVal(int id) const
+double AliAlgDetTRD::getCalibDOFVal(int id) const
 {
   // return preset value of calibration dof
   double val = 0;
@@ -161,10 +161,10 @@ double AliAlgDetTRD::GetCalibDOFVal(int id) const
 }
 
 //_______________________________________________________
-double AliAlgDetTRD::GetCalibDOFValWithCal(int id) const
+double AliAlgDetTRD::getCalibDOFValWithCal(int id) const
 {
   // return preset value of calibration dof + mp correction
-  return GetCalibDOFVal(id) + GetParVal(id);
+  return getCalibDOFVal(id) + getParVal(id);
 }
 
 } // namespace align

@@ -63,128 +63,128 @@ class AliAlgTrack : public trackParam_t, public TObject
   };
   AliAlgTrack();
   virtual ~AliAlgTrack();
-  void DefineDOFs();
-  double GetMass() const { return fMass; }
-  double GetMinX2X0Pt2Account() const { return fMinX2X0Pt2Account; }
-  int GetNPoints() const { return fPoints.GetEntriesFast(); }
-  AliAlgPoint* GetPoint(int i) const { return (AliAlgPoint*)fPoints[i]; }
-  void AddPoint(AliAlgPoint* p) { fPoints.AddLast(p); }
-  void SetMass(double m) { fMass = m; }
-  void SetMinX2X0Pt2Account(double v) { fMinX2X0Pt2Account = v; }
-  int GetNLocPar() const { return fNLocPar; }
-  int GetNLocExtPar() const { return fNLocExtPar; }
-  int GetInnerPointID() const { return fInnerPointID; }
-  AliAlgPoint* GetInnerPoint() const { return GetPoint(fInnerPointID); }
+  void defineDOFs();
+  double getMass() const { return mMass; }
+  double getMinX2X0Pt2Account() const { return mMinX2X0Pt2Account; }
+  int getNPoints() const { return mPoints.GetEntriesFast(); }
+  AliAlgPoint* getPoint(int i) const { return (AliAlgPoint*)mPoints[i]; }
+  void addPoint(AliAlgPoint* p) { mPoints.AddLast(p); }
+  void setMass(double m) { mMass = m; }
+  void setMinX2X0Pt2Account(double v) { mMinX2X0Pt2Account = v; }
+  int getNLocPar() const { return mNLocPar; }
+  int getNLocExtPar() const { return mNLocExtPar; }
+  int getInnerPointID() const { return mInnerPointID; }
+  AliAlgPoint* getInnerPoint() const { return getPoint(mInnerPointID); }
   //
   virtual void Clear(Option_t* opt = "");
   virtual void Print(Option_t* opt = "") const;
-  virtual void DumpCoordinates() const;
+  virtual void dumpCoordinates() const;
   //
-  bool PropagateToPoint(trackParam_t& tr, const AliAlgPoint* pnt, double maxStep, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT, track::TrackLTIntegral* tLT = nullptr);
-  bool PropagateParamToPoint(trackParam_t& tr, const AliAlgPoint* pnt, double maxStep = 3, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT);             // param only
-  bool PropagateParamToPoint(trackParam_t* trSet, int nTr, const AliAlgPoint* pnt, double maxStep = 3, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT); // params only
+  bool propagateToPoint(trackParam_t& tr, const AliAlgPoint* pnt, double maxStep, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT, track::TrackLTIntegral* tLT = nullptr);
+  bool propagateParamToPoint(trackParam_t& tr, const AliAlgPoint* pnt, double maxStep = 3, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT);             // param only
+  bool propagateParamToPoint(trackParam_t* trSet, int nTr, const AliAlgPoint* pnt, double maxStep = 3, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT); // params only
   //
-  bool CalcResiduals(const double* params = 0);
-  bool CalcResidDeriv(double* params = 0);
-  bool CalcResidDerivGlo(AliAlgPoint* pnt);
+  bool calcResiduals(const double* params = 0);
+  bool calcResidDeriv(double* params = 0);
+  bool calcResidDerivGlo(AliAlgPoint* pnt);
   //
-  bool IsCosmic() const { return TestBit(kCosmicBit); }
-  void SetCosmic(bool v = true) { SetBit(kCosmicBit, v); }
-  bool GetFieldON() const { return TestBit(kFieldONBit); }
-  void SetFieldON(bool v = true) { SetBit(kFieldONBit, v); }
-  bool GetResidDone() const { return TestBit(kResidDoneBit); }
-  void SetResidDone(bool v = true) { SetBit(kResidDoneBit, v); }
-  bool GetDerivDone() const { return TestBit(kDerivDoneBit); }
-  void SetDerivDone(bool v = true) { SetBit(kDerivDoneBit, v); }
-  bool GetKalmanDone() const { return TestBit(kKalmanDoneBit); }
-  void SetKalmanDone(bool v = true) { SetBit(kKalmanDoneBit, v); }
+  bool isCosmic() const { return TestBit(kCosmicBit); }
+  void setCosmic(bool v = true) { SetBit(kCosmicBit, v); }
+  bool getFieldON() const { return TestBit(kFieldONBit); }
+  void setFieldON(bool v = true) { SetBit(kFieldONBit, v); }
+  bool getResidDone() const { return TestBit(kResidDoneBit); }
+  void setResidDone(bool v = true) { SetBit(kResidDoneBit, v); }
+  bool getDerivDone() const { return TestBit(kDerivDoneBit); }
+  void setDerivDone(bool v = true) { SetBit(kDerivDoneBit, v); }
+  bool getKalmanDone() const { return TestBit(kKalmanDoneBit); }
+  void setKalmanDone(bool v = true) { SetBit(kKalmanDoneBit, v); }
   //
-  void SortPoints();
-  bool IniFit();
-  bool ResidKalman();
-  bool ProcessMaterials();
-  bool CombineTracks(trackParam_t& trcL, const trackParam_t& trcU);
+  void sortPoints();
+  bool iniFit();
+  bool residKalman();
+  bool processMaterials();
+  bool combineTracks(trackParam_t& trcL, const trackParam_t& trcU);
   //
-  void SetChi2(double c) { fChi2 = c; };
-  double GetChi2() const { return fChi2; }
-  void SetChi2Ini(double c) { fChi2Ini = c; };
-  double GetChi2Ini() const { return fChi2Ini; }
-  double GetChi2CosmUp() const { return fChi2CosmUp; }
-  double GetChi2CosmDn() const { return fChi2CosmDn; }
+  void setChi2(double c) { mChi2 = c; };
+  double getChi2() const { return mChi2; }
+  void setChi2Ini(double c) { mChi2Ini = c; };
+  double getChi2Ini() const { return mChi2Ini; }
+  double getChi2CosmUp() const { return mChi2CosmUp; }
+  double getChi2CosmDn() const { return mChi2CosmDn; }
   //
-  void ImposePtBOff(double pt) { setQ2Pt(1. / pt); }
+  void imposePtBOff(double pt) { setQ2Pt(1. / pt); }
   // propagation methods
-  void CopyFrom(const trackParam_t* etp);
-  bool ApplyMatCorr(trackParam_t& trPar, const double* corrDiag, const AliAlgPoint* pnt);
-  bool ApplyMatCorr(trackParam_t* trSet, int ntr, const double* corrDiaf, const AliAlgPoint* pnt);
-  bool ApplyMatCorr(trackParam_t& trPar, const double* corrpar);
+  void copyFrom(const trackParam_t* etp);
+  bool applyMatCorr(trackParam_t& trPar, const double* corrDiag, const AliAlgPoint* pnt);
+  bool applyMatCorr(trackParam_t* trSet, int ntr, const double* corrDiaf, const AliAlgPoint* pnt);
+  bool applyMatCorr(trackParam_t& trPar, const double* corrpar);
   //
-  double GetResidual(int dim, int pntID) const { return fResidA[dim][pntID]; }
-  double* GetDResDLoc(int dim, int pntID) const { return &fDResDLocA[dim][pntID * fNLocPar]; }
-  double* GetDResDGlo(int dim, int id) const { return &fDResDGloA[dim][id]; }
-  int* GetGloParID() const { return fGloParIDA; }
+  double getResidual(int dim, int pntID) const { return mResidA[dim][pntID]; }
+  double* getDResDLoc(int dim, int pntID) const { return &mDResDLocA[dim][pntID * mNLocPar]; }
+  double* getDResDGlo(int dim, int id) const { return &mDResDGloA[dim][id]; }
+  int* getGloParID() const { return mGloParIDA; }
   //
-  void SetParams(trackParam_t& tr, double x, double alp, const double* par, bool add);
-  void SetParams(trackParam_t* trSet, int ntr, double x, double alp, const double* par, bool add);
-  void SetParam(trackParam_t& tr, int par, double val);
-  void SetParam(trackParam_t* trSet, int ntr, int par, double val);
-  void ModParam(trackParam_t& tr, int par, double delta);
-  void ModParam(trackParam_t* trSet, int ntr, int par, double delta);
+  void setParams(trackParam_t& tr, double x, double alp, const double* par, bool add);
+  void setParams(trackParam_t* trSet, int ntr, double x, double alp, const double* par, bool add);
+  void setParam(trackParam_t& tr, int par, double val);
+  void setParam(trackParam_t* trSet, int ntr, int par, double val);
+  void modParam(trackParam_t& tr, int par, double delta);
+  void modParam(trackParam_t* trSet, int ntr, int par, double delta);
   //
-  void RichardsonDeriv(const trackParam_t* trSet, const double* delta,
+  void richardsonDeriv(const trackParam_t* trSet, const double* delta,
                        const AliAlgPoint* pnt, double& derY, double& derZ);
   //
-  const double* GetLocPars() const { return fLocParA; }
-  void SetLocPars(const double* pars);
+  const double* getLocPars() const { return mLocParA; }
+  void setLocPars(const double* pars);
   //
  protected:
   //
-  bool CalcResidDeriv(double* params, bool invert, int pFrom, int pTo);
-  bool CalcResiduals(const double* params, bool invert, int pFrom, int pTo);
-  bool FitLeg(trackParam_t& trc, int pFrom, int pTo, bool& inv);
-  bool ProcessMaterials(trackParam_t& trc, int pFrom, int pTo);
+  bool calcResidDeriv(double* params, bool invert, int pFrom, int pTo);
+  bool calcResiduals(const double* params, bool invert, int pFrom, int pTo);
+  bool fitLeg(trackParam_t& trc, int pFrom, int pTo, bool& inv);
+  bool processMaterials(trackParam_t& trc, int pFrom, int pTo);
   //
-  void CheckExpandDerGloBuffer(int minSize);
+  void checkExpandDerGloBuffer(int minSize);
   //
-  static double RichardsonExtrap(double* val, int ord = 1);
-  static double RichardsonExtrap(const double* val, int ord = 1);
+  static double richardsonExtrap(double* val, int ord = 1);
+  static double richardsonExtrap(const double* val, int ord = 1);
   //
   // ---------- dummies ----------
   AliAlgTrack(const AliAlgTrack&);
   AliAlgTrack& operator=(const AliAlgTrack&);
   //
  protected:
-  int fNLocPar;              // number of local params
-  int fNLocExtPar;           // number of local params for the external track param
-  int fNGloPar;              // number of free global parameters the track depends on
-  int fNDF;                  // number of degrees of freedom
-  int fInnerPointID;         // ID of inner point in sorted track. For 2-leg cosmics - innermost point of lower leg
-  bool fNeedInv[2];          // set if one of cosmic legs need inversion
-  double fMinX2X0Pt2Account; // minimum X2X0/pT accumulated between 2 points worth to account
-  double fMass;              // assumed mass
-  double fChi2;              // chi2 with current residuals
-  double fChi2CosmUp;        // chi2 for cosmic upper leg
-  double fChi2CosmDn;        // chi2 for cosmic down leg
-  double fChi2Ini;           // chi2 with current residuals
-  TObjArray fPoints;         // alignment points
-  TArrayD fResid[2];         // residuals array
-  TArrayD fDResDLoc[2];      // array for derivatives over local params
-  TArrayD fDResDGlo[2];      // array for derivatives over global params
-  TArrayD fLocPar;           // local parameters array
-  TArrayI fGloParID;         // IDs of relevant global params
-  double* fResidA[2];        //! fast access to residuals
-  double* fDResDLocA[2];     //! fast access to local derivatives
-  double* fDResDGloA[2];     //! fast access to global derivatives
-  int* fGloParIDA;           //! fast access to relevant global param IDs
-  double* fLocParA;          //! fast access to local params
+  int mNLocPar;              // number of local params
+  int mNLocExtPar;           // number of local params for the external track param
+  int mNGloPar;              // number of free global parameters the track depends on
+  int mNDF;                  // number of degrees of freedom
+  int mInnerPointID;         // ID of inner point in sorted track. For 2-leg cosmics - innermost point of lower leg
+  bool mNeedInv[2];          // set if one of cosmic legs need inversion
+  double mMinX2X0Pt2Account; // minimum X2X0/pT accumulated between 2 points worth to account
+  double mMass;              // assumed mass
+  double mChi2;              // chi2 with current residuals
+  double mChi2CosmUp;        // chi2 for cosmic upper leg
+  double mChi2CosmDn;        // chi2 for cosmic down leg
+  double mChi2Ini;           // chi2 with current residuals
+  TObjArray mPoints;         // alignment points
+  TArrayD mResid[2];         // residuals array
+  TArrayD mDResDLoc[2];      // array for derivatives over local params
+  TArrayD mDResDGlo[2];      // array for derivatives over global params
+  TArrayD mLocPar;           // local parameters array
+  TArrayI mGloParID;         // IDs of relevant global params
+  double* mResidA[2];        //! fast access to residuals
+  double* mDResDLocA[2];     //! fast access to local derivatives
+  double* mDResDGloA[2];     //! fast access to global derivatives
+  int* mGloParIDA;           //! fast access to relevant global param IDs
+  double* mLocParA;          //! fast access to local params
  private:
-  bool Propagate(trackParam_t& tr, const AliAlgPoint* pnt, double maxStep, double maxSnp, MatCorrType mt, track::TrackLTIntegral* tLT);
+  bool propagate(trackParam_t& tr, const AliAlgPoint* pnt, double maxStep, double maxSnp, MatCorrType mt, track::TrackLTIntegral* tLT);
   //
   ClassDef(AliAlgTrack, 2)
 };
 
 //____________________________________________________________________________________________
-inline void AliAlgTrack::SetParams(trackParam_t& tr, double x, double alp, const double* par, bool add)
+inline void AliAlgTrack::setParams(trackParam_t& tr, double x, double alp, const double* par, bool add)
 {
   // set track params
   const double kDefQ2PtCosm = 1;
@@ -198,9 +198,9 @@ inline void AliAlgTrack::SetParams(trackParam_t& tr, double x, double alp, const
       tr.setParam(val, i);
     }
   }
-  if (!GetFieldON()) {
+  if (!getFieldON()) {
     const double val = [&]() {
-      if (this->IsCosmic()) {
+      if (this->isCosmic()) {
         return kDefQ2PtCosm;
       } else {
         return kDefG2PtColl;
@@ -211,56 +211,56 @@ inline void AliAlgTrack::SetParams(trackParam_t& tr, double x, double alp, const
 }
 
 //____________________________________________________________________________________________
-inline void AliAlgTrack::SetParams(trackParam_t* trSet, int ntr, double x, double alp, const double* par, bool add)
+inline void AliAlgTrack::setParams(trackParam_t* trSet, int ntr, double x, double alp, const double* par, bool add)
 {
   // set parames for multiple tracks (VECTORIZE THIS)
   if (!add) { // full parameter supplied
     for (int itr = ntr; itr--;)
-      SetParams(trSet[itr], x, alp, par, false);
+      setParams(trSet[itr], x, alp, par, false);
     return;
   }
   params_t partr{0}; // par is a correction to reference parameter
-  for (int i = fNLocExtPar; i--;)
+  for (int i = mNLocExtPar; i--;)
     partr[i] = getParam(i) + par[i];
   for (int itr = ntr; itr--;)
-    SetParams(trSet[itr], x, alp, partr.data(), false);
+    setParams(trSet[itr], x, alp, partr.data(), false);
 }
 
 //____________________________________________________________________________________________
-inline void AliAlgTrack::SetParam(trackParam_t& tr, int par, double val)
+inline void AliAlgTrack::setParam(trackParam_t& tr, int par, double val)
 {
   // set track parameter
   tr.setParam(val, par);
 }
 
 //____________________________________________________________________________________________
-inline void AliAlgTrack::SetParam(trackParam_t* trSet, int ntr, int par, double val)
+inline void AliAlgTrack::setParam(trackParam_t* trSet, int ntr, int par, double val)
 {
   // set parames for multiple tracks (VECTORIZE THIS)
   for (int i = 0; i < ntr; ++i) {
-    SetParam(trSet[i], par, val);
+    setParam(trSet[i], par, val);
   }
 }
 
 //____________________________________________________________________________________________
-inline void AliAlgTrack::ModParam(trackParam_t& tr, int par, double delta)
+inline void AliAlgTrack::modParam(trackParam_t& tr, int par, double delta)
 {
   // modify track parameter
   const auto val = tr.getParam(par) + delta;
-  SetParam(tr, par, val);
+  setParam(tr, par, val);
 }
 
 //____________________________________________________________________________________________
-inline void AliAlgTrack::ModParam(trackParam_t* trSet, int ntr, int par, double delta)
+inline void AliAlgTrack::modParam(trackParam_t* trSet, int ntr, int par, double delta)
 {
   // modify track parameter (VECTORIZE THOS)
   for (size_t i = 0; i < ntr; ++i) {
-    ModParam(trSet[i], par, delta);
+    modParam(trSet[i], par, delta);
   }
 }
 
 //______________________________________________
-inline void AliAlgTrack::CopyFrom(const trackParam_t* etp)
+inline void AliAlgTrack::copyFrom(const trackParam_t* etp)
 {
   // assign kinematics
   set(etp->getX(), etp->getAlpha(), etp->getParams(), etp->getCov().data());

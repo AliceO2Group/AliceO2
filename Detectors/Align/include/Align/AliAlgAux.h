@@ -44,48 +44,48 @@ enum { kColl,
        kCosm,
        kNTrackTypes };
 //
-inline double Sector2Alpha(int sect);
-inline int Phi2Sector(double alpha);
-inline double SectorDAlpha() { return constants::math::PI / 9; }
+inline double sector2Alpha(int sect);
+inline int phi2Sector(double alpha);
+inline double sectorDAlpha() { return constants::math::PI / 9; }
 //
 template <typename F>
-void BringTo02Pi(F& phi);
+void bringTo02Pi(F& phi);
 template <typename F>
-void BringToPiPM(F& phi);
+void bringToPiPM(F& phi);
 template <typename F>
-bool OKforPhiMin(F phiMin, F phi);
+bool okForPhiMin(F phiMin, F phi);
 template <typename F>
-bool OKforPhiMax(F phiMax, F phi);
+bool okForPhiMax(F phiMax, F phi);
 template <typename F>
-F MeanPhiSmall(F phi0, F phi1);
+F meanPhiSmall(F phi0, F phi1);
 template <typename F>
-F DeltaPhiSmall(F phi0, F phi1);
+F deltaPhiSmall(F phi0, F phi1);
 template <typename F>
-bool SmallerAbs(F d, F tolD)
+bool smallerAbs(F d, F tolD)
 {
   return std::abs(d) < tolD;
 }
 template <typename F>
-bool Smaller(F d, F tolD)
+bool smaller(F d, F tolD)
 {
   return d < tolD;
 }
 //
-inline int NumberOfBitsSet(uint32_t x);
-inline bool IsZeroAbs(double d) { return SmallerAbs(d, kAlmostZeroD); }
-inline bool IsZeroAbs(float f) { return SmallerAbs(f, kAlmostZeroF); }
-inline bool IsZeroPos(double d) { return Smaller(d, kAlmostZeroD); }
-inline bool IsZeroPos(float f) { return Smaller(f, kAlmostZeroF); }
+inline int numberOfBitsSet(uint32_t x);
+inline bool isZeroAbs(double d) { return smallerAbs(d, kAlmostZeroD); }
+inline bool isZeroAbs(float f) { return smallerAbs(f, kAlmostZeroF); }
+inline bool isZeroPos(double d) { return smaller(d, kAlmostZeroD); }
+inline bool isZeroPos(float f) { return smaller(f, kAlmostZeroF); }
 //
-int FindKeyIndex(int key, const int* arr, int n);
+int findKeyIndex(int key, const int* arr, int n);
 //
-void PrintBits(size_t patt, int maxBits);
+void printBits(size_t patt, int maxBits);
 
 } // namespace AliAlgAux
 
 //_________________________________________________________________________________
 template <typename F>
-inline void AliAlgAux::BringTo02Pi(F& phi)
+inline void AliAlgAux::bringTo02Pi(F& phi)
 {
   // bring phi to 0-2pi range
   if (phi < 0)
@@ -96,7 +96,7 @@ inline void AliAlgAux::BringTo02Pi(F& phi)
 
 //_________________________________________________________________________________
 template <typename F>
-inline void AliAlgAux::BringToPiPM(F& phi)
+inline void AliAlgAux::bringToPiPM(F& phi)
 {
   // bring phi to -pi:pi range
   if (phi > constants::math::PI)
@@ -104,7 +104,7 @@ inline void AliAlgAux::BringToPiPM(F& phi)
 }
 //_________________________________________________________________________________
 template <typename F>
-inline bool AliAlgAux::OKforPhiMin(F phiMin, F phi)
+inline bool AliAlgAux::okForPhiMin(F phiMin, F phi)
 {
   // check if phi is above the phiMin, phi's must be in 0-2pi range
   F dphi = phi - phiMin;
@@ -113,7 +113,7 @@ inline bool AliAlgAux::OKforPhiMin(F phiMin, F phi)
 
 //_________________________________________________________________________________
 template <typename F>
-inline bool AliAlgAux::OKforPhiMax(F phiMax, F phi)
+inline bool AliAlgAux::okForPhiMax(F phiMax, F phi)
 {
   // check if phi is below the phiMax, phi's must be in 0-2pi range
   F dphi = phi - phiMax;
@@ -122,11 +122,11 @@ inline bool AliAlgAux::OKforPhiMax(F phiMax, F phi)
 
 //_________________________________________________________________________________
 template <typename F>
-inline F AliAlgAux::MeanPhiSmall(F phi0, F phi1)
+inline F AliAlgAux::meanPhiSmall(F phi0, F phi1)
 {
   // return mean phi, assume phis in 0:2pi
   F phi;
-  if (!OKforPhiMin(phi0, phi1)) {
+  if (!okForPhiMin(phi0, phi1)) {
     phi = phi0;
     phi0 = phi1;
     phi1 = phi;
@@ -135,17 +135,17 @@ inline F AliAlgAux::MeanPhiSmall(F phi0, F phi1)
     phi = (phi1 - (constants::math::TwoPI - phi0)) / 2; // wrap
   else
     phi = (phi0 + phi1) / 2;
-  BringTo02Pi(phi);
+  bringTo02Pi(phi);
   return phi;
 }
 
 //_________________________________________________________________________________
 template <typename F>
-inline F AliAlgAux::DeltaPhiSmall(F phi0, F phi1)
+inline F AliAlgAux::deltaPhiSmall(F phi0, F phi1)
 {
   // return delta phi, assume phis in 0:2pi
   F del;
-  if (!OKforPhiMin(phi0, phi1)) {
+  if (!okForPhiMin(phi0, phi1)) {
     del = phi0;
     phi0 = phi1;
     phi1 = del;
@@ -157,7 +157,7 @@ inline F AliAlgAux::DeltaPhiSmall(F phi0, F phi1)
 }
 
 //_________________________________________________________________________________
-inline int AliAlgAux::NumberOfBitsSet(uint32_t x)
+inline int AliAlgAux::numberOfBitsSet(uint32_t x)
 {
   // count number of non-0 bits in 32bit word
   x = x - ((x >> 1) & 0x55555555);
@@ -166,16 +166,16 @@ inline int AliAlgAux::NumberOfBitsSet(uint32_t x)
 }
 
 //_________________________________________________________________________________
-inline double AliAlgAux::Sector2Alpha(int sect)
+inline double AliAlgAux::sector2Alpha(int sect)
 {
   // get barrel sector alpha in -pi:pi format
   if (sect > 8)
     sect -= 18;
-  return (sect + 0.5) * SectorDAlpha();
+  return (sect + 0.5) * sectorDAlpha();
 }
 
 //_________________________________________________________________________________
-inline int AliAlgAux::Phi2Sector(double phi)
+inline int AliAlgAux::phi2Sector(double phi)
 {
   // get barrel sector from phi in -pi:pi format
   int sect = math_utils::nintd((phi * constants::math::Rad2Deg - 10) / 20.);

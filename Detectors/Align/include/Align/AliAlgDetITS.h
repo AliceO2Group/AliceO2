@@ -38,7 +38,7 @@ class AliAlgDetITS : public AliAlgDet
   AliAlgDetITS(const char* title = "");
   virtual ~AliAlgDetITS();
   //
-  virtual void DefineVolumes();
+  virtual void defineVolumes();
   //
   bool AcceptTrack(const AliESDtrack* trc, int trtype) const;
 
@@ -46,7 +46,7 @@ class AliAlgDetITS : public AliAlgDet
   void SetSkipLr(int ilr);
   //
   virtual void UpdatePointByTrackInfo(AliAlgPoint* pnt, const AliExternalTrackParam* t) const;
-  virtual void SetUseErrorParam(int v = 1);
+  virtual void setUseErrorParam(int v = 1);
   void SetITSSelPattern(int trtype, ITSSel_t sel) { fITSPatt[trtype] = sel; }
   void SetITSSelPatternColl(ITSSel_t sel = kSPDAny) { SetITSSelPattern(AliAlgAux::kColl, sel); }
   void SetITSSelPatternCosm(ITSSel_t sel = kSPDNoSel) { SetITSSelPattern(AliAlgAux::kCosm, sel); }

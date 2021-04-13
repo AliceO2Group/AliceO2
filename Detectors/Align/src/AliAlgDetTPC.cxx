@@ -33,8 +33,8 @@ namespace align
 AliAlgDetTPC::AliAlgDetTPC(const char* title)
 {
   // default c-tor
-  SetNameTitle(AliAlgSteer::GetDetNameByDetID(AliAlgSteer::kTPC), title);
-  SetDetID(AliAlgSteer::kTPC);
+  SetNameTitle(AliAlgSteer::getDetNameByDetID(AliAlgSteer::kTPC), title);
+  setDetID(AliAlgSteer::kTPC);
 }
 
 //____________________________________________
@@ -44,7 +44,7 @@ AliAlgDetTPC::~AliAlgDetTPC()
 }
 
 //____________________________________________
-void AliAlgDetTPC::DefineVolumes()
+void AliAlgDetTPC::defineVolumes()
 {
   // define TPC volumes
   //
@@ -53,9 +53,9 @@ void AliAlgDetTPC::DefineVolumes()
   const char* kROC[kIOROC] = {"Inner", "Outer"};
   //  AliAlgSensTPC *chamb=0;
   //
-  int labDet = GetDetLabel();
+  int labDet = getDetLabel();
   AliAlgVol* volTPC = new AliAlgVol("ALIC_1/TPC_M_1", labDet);
-  AddVolume(volTPC);
+  addVolume(volTPC);
   //
 
   for (int roc = 0; roc < kIOROC; roc++) {     // inner/outer
@@ -70,8 +70,8 @@ void AliAlgDetTPC::DefineVolumes()
         uint16_t vid = AliGeomManager::LayerToVolUID(AliGeomManager::kTPC1 + roc, iid);
         iid = labDet + (1 + side) * 10000 + (1 + isc) * 100 + (1 + roc);
         AliAlgSensTPC* sens = new AliAlgSensTPC(symname, vid, iid, isc);
-        sens->SetParent(volTPC);
-        AddVolume(sens);
+        sens->setParent(volTPC);
+        addVolume(sens);
       } // sector ID
     }   // A/C
   }     // inner/outer
@@ -84,7 +84,7 @@ bool AliAlgDetTPC::AcceptTrack(const AliESDtrack* trc, int trtype) const
   // test if detector had seed this track
   if (!CheckFlags(trc, trtype))
     return false;
-  if (trc->GetNcls(1) < fNPointsSel[trtype])
+  if (trc->GetNcls(1) < mNPointsSel[trtype])
     return false;
   return true;
 }
