@@ -76,7 +76,7 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses);
 constexpr static uint32_t gkEventFillMap = VarManager::ObjTypes::ReducedEvent | VarManager::ObjTypes::ReducedEventExtended;
 constexpr static uint32_t gkTrackFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::ReducedTrackBarrel | VarManager::ObjTypes::ReducedTrackBarrelCov | VarManager::ObjTypes::ReducedTrackBarrelPID;
 
-struct EventSelection {
+struct DQEventSelection {
   Produces<aod::EventCuts> eventSel;
   Produces<aod::MixingHashes> hash;
   OutputObj<THashList> fOutputList{"output"};
@@ -146,7 +146,7 @@ struct EventSelection {
   }
 };
 
-struct BarrelTrackSelection {
+struct DQBarrelTrackSelection {
   Produces<aod::BarrelTrackCuts> trackSel;
   OutputObj<THashList> fOutputList{"output"};
   HistogramManager* fHistMan;
@@ -344,7 +344,7 @@ struct DileptonEE {
   }
 };
 
-struct EventMixing {
+struct DQEventMixing {
   OutputObj<THashList> fOutputList{"output"};
   HistogramManager* fHistMan;
   float* fValues;
@@ -446,10 +446,10 @@ struct EventMixing {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<EventSelection>(cfgc),
-    adaptAnalysisTask<BarrelTrackSelection>(cfgc),
+    adaptAnalysisTask<DQEventSelection>(cfgc),
+    adaptAnalysisTask<DQBarrelTrackSelection>(cfgc),
     adaptAnalysisTask<DileptonEE>(cfgc),
-    adaptAnalysisTask<EventMixing>(cfgc),
+    adaptAnalysisTask<DQEventMixing>(cfgc),
 
   };
 }

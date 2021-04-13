@@ -10,7 +10,7 @@
 
 #include "PWGDQCore/VarManager.h"
 
-#include <TMath.h>
+#include <cmath>
 
 ClassImp(VarManager);
 
@@ -101,7 +101,7 @@ void VarManager::FillTrackDerived(float* values)
   // Fill track-wise derived quantities (these are all quantities which can be computed just based on the values already filled in the FillTrack() function)
   //
   if (fgUsedVars[kP]) {
-    values[kP] = values[kPt] * TMath::CosH(values[kEta]);
+    values[kP] = values[kPt] * std::cosh(values[kEta]);
   }
 }
 
@@ -120,8 +120,6 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kRunNo] = "";
   fgVariableNames[kRunId] = "Run number";
   fgVariableUnits[kRunId] = "";
-  fgVariableNames[kCollisionTime] = "collision time";
-  fgVariableUnits[kCollisionTime] = "";
   fgVariableNames[kBC] = "Bunch crossing";
   fgVariableUnits[kBC] = "";
   fgVariableNames[kIsPhysicsSelection] = "Physics selection";
@@ -188,8 +186,6 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kTPCsignal] = "";
   fgVariableNames[kTRDsignal] = "TRD dE/dx";
   fgVariableUnits[kTRDsignal] = "";
-  fgVariableNames[kTOFsignal] = "TOF signal";
-  fgVariableUnits[kTOFsignal] = "";
   fgVariableNames[kTOFbeta] = "TOF #beta";
   fgVariableUnits[kTOFbeta] = "";
   fgVariableNames[kTrackLength] = "track length";

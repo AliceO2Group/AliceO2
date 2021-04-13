@@ -29,7 +29,6 @@
 #include "AnalysisDataModel/TrackSelectionTables.h"
 #include <TH1F.h>
 #include <TH2I.h>
-#include <TMath.h>
 #include <THashList.h>
 #include <TString.h>
 #include <iostream>
@@ -68,7 +67,7 @@ constexpr static uint32_t gkTrackFillMap = VarManager::ObjTypes::Track | VarMana
 
 void DefineHistograms(HistogramManager* histMan, TString histClasses);
 
-struct EventSelectionTask {
+struct DQEventSelectionTask {
   Produces<aod::DQEventCuts> eventSel;
   OutputObj<THashList> fOutputList{"output"};
   HistogramManager* fHistMan;
@@ -125,7 +124,7 @@ struct EventSelectionTask {
   }
 };
 
-struct BarrelTrackSelectionTask {
+struct DQBarrelTrackSelectionTask {
   Produces<aod::DQBarrelTrackCuts> trackSel;
   OutputObj<THashList> fOutputList{"output"};
   HistogramManager* fHistMan;
@@ -197,7 +196,7 @@ struct BarrelTrackSelectionTask {
   }
 };
 
-struct FilterPPTask {
+struct DQFilterPPTask {
   Produces<aod::DQEventFilter> eventFilter;
   OutputObj<THashList> fOutputList{"output"};
   OutputObj<TH2I> fStats{"stats"};
@@ -321,9 +320,9 @@ struct FilterPPTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<EventSelectionTask>(cfgc, TaskName{"dq-event-selection"}),
-    adaptAnalysisTask<BarrelTrackSelectionTask>(cfgc, TaskName{"dq-barrel-track-selection"}),
-    adaptAnalysisTask<FilterPPTask>(cfgc, TaskName{"dq-ppFilter"})};
+    adaptAnalysisTask<DQEventSelectionTask>(cfgc),
+    adaptAnalysisTask<DQBarrelTrackSelectionTask>(cfgc),
+    adaptAnalysisTask<DQFilterPPTask>(cfgc)};
 }
 
 void DefineHistograms(HistogramManager* histMan, TString histClasses)
