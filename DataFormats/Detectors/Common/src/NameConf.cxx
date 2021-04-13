@@ -37,6 +37,20 @@ std::string NameConf::getFullPath(const std::string_view p)
   return std::string(real_path.get());
 }
 
+void NameConf::rectifyDirectory(std::string& dir)
+{
+  if (dir.empty() || dir == "none") {
+    dir = "";
+  } else {
+    dir = o2::base::NameConf::getFullPath(dir);
+    if (!o2::base::NameConf::pathIsDirectory(dir)) {
+      throw std::runtime_error(fmt::format("{:s} is not an accessible directory", dir));
+    } else {
+      dir += '/';
+    }
+  }
+}
+
 // Filename to store geometry file
 std::string NameConf::getGeomFileName(const std::string_view prefix)
 {
@@ -87,5 +101,10 @@ std::string NameConf::getMatLUTFileName(const std::string_view prefix)
 
 std::string NameConf::getCTFFileName(uint32_t run, uint32_t orb, uint32_t id, const std::string_view prefix)
 {
-  return o2::utils::concat_string(prefix, "_", fmt::format("run{:08d}_orbit{:010d}_tf{:010d}", run, orb, id), ".root");
+  return o2::utils::concat_string(prefix, '_', fmt::format("run{:08d}_orbit{:010d}_tf{:010d}", run, orb, id), ".root");
+}
+
+std::string NameConf::getCTFDictFileName()
+{
+  return o2::utils::concat_string(CTFDICT, ".root");
 }
