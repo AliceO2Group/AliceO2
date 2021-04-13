@@ -32,49 +32,49 @@ class AliAlgResFast : public TObject
   AliAlgResFast();
   virtual ~AliAlgResFast();
   //
-  void SetNPoints(int n)
+  void setNPoints(int n)
   {
-    fNPoints = n;
-    Resize(n);
+    mNPoints = n;
+    resize(n);
   }
-  void SetNMatSol(int n) { fNMatSol = n; }
+  void setNMatSol(int n) { mNMatSol = n; }
   //
-  void SetChi2(float v) { fChi2 = v; }
-  float GetChi2() const { return fChi2; }
+  void setChi2(float v) { mChi2 = v; }
+  float getChi2() const { return mChi2; }
   //
-  void SetChi2Ini(float v) { fChi2Ini = v; }
-  float GetChi2Ini() const { return fChi2Ini; }
+  void setChi2Ini(float v) { mChi2Ini = v; }
+  float getChi2Ini() const { return mChi2Ini; }
   //
-  bool IsCosmic() const { return TestBit(kCosmicBit); }
-  bool HasVertex() const { return TestBit(kVertexBit); }
-  void SetCosmic(bool v = true) { SetBit(kCosmicBit, v); }
-  void SetHasVertex(bool v = true) { SetBit(kVertexBit, v); }
+  bool isCosmic() const { return TestBit(kCosmicBit); }
+  bool hasVertex() const { return TestBit(kVertexBit); }
+  void setCosmic(bool v = true) { SetBit(kCosmicBit, v); }
+  void setHasVertex(bool v = true) { SetBit(kVertexBit, v); }
   //
-  int GetNPoints() const { return fNPoints; }
-  int GetNMatSol() const { return fNMatSol; }
-  int GetNBook() const { return fNBook; }
-  float GetD0(int i) const { return fD0[i]; }
-  float GetD1(int i) const { return fD1[i]; }
-  float GetSig0(int i) const { return fSig0[i]; }
-  float GetSig1(int i) const { return fSig1[i]; }
-  int GetVolID(int i) const { return fVolID[i]; }
-  int GetLabel(int i) const { return fLabel[i]; }
+  int getNPoints() const { return mNPoints; }
+  int getNMatSol() const { return mNMatSol; }
+  int getNBook() const { return mNBook; }
+  float getD0(int i) const { return mD0[i]; }
+  float getD1(int i) const { return mD1[i]; }
+  float getSig0(int i) const { return mSig0[i]; }
+  float getSig1(int i) const { return mSig1[i]; }
+  int getVolID(int i) const { return mVolID[i]; }
+  int getLabel(int i) const { return mLabel[i]; }
   //
-  float* GetTrCor() const { return (float*)fTrCorr; }
-  float* GetD0() const { return (float*)fD0; }
-  float* GetD1() const { return (float*)fD1; }
-  float* GetSig0() const { return (float*)fSig0; }
-  float* GetSig1() const { return (float*)fSig1; }
-  int* GetVolID() const { return (int*)fVolID; }
-  int* GetLaber() const { return (int*)fLabel; }
-  float* GetSolMat() const { return (float*)fSolMat; }
-  float* GetMatErr() const { return (float*)fMatErr; }
+  float* getTrCor() const { return (float*)mTrCorr; }
+  float* getD0() const { return (float*)mD0; }
+  float* getD1() const { return (float*)mD1; }
+  float* getSig0() const { return (float*)mSig0; }
+  float* getSig1() const { return (float*)mSig1; }
+  int* getVolID() const { return (int*)mVolID; }
+  int* getLaber() const { return (int*)mLabel; }
+  float* getSolMat() const { return (float*)mSolMat; }
+  float* getMatErr() const { return (float*)mMatErr; }
   //
-  void SetResSigMeas(int ip, int ord, float res, float sig);
-  void SetMatCorr(int id, float res, float sig);
-  void SetLabel(int ip, int lab, int vol);
+  void setResSigMeas(int ip, int ord, float res, float sig);
+  void setMatCorr(int id, float res, float sig);
+  void setLabel(int ip, int lab, int vol);
   //
-  void Resize(int n);
+  void resize(int n);
   virtual void Clear(const Option_t* opt = "");
   virtual void Print(const Option_t* opt = "") const;
   //
@@ -86,22 +86,22 @@ class AliAlgResFast : public TObject
   //
  protected:
   //
-  int fNPoints;   // n meas points
-  int fNMatSol;   // n local params - ExtTrPar corrections
-  int fNBook;     //! booked lenfth
-  float fChi2;    // chi2
-  float fChi2Ini; // chi2 before local fit
+  int mNPoints;   // n meas points
+  int mNMatSol;   // n local params - ExtTrPar corrections
+  int mNBook;     //! booked lenfth
+  float mChi2;    // chi2
+  float mChi2Ini; // chi2 before local fit
   //
-  float fTrCorr[5]; //  correction to ExternalTrackParam
-  float* fD0;       //[fNPoints] 1st residual (track - meas)
-  float* fD1;       //[fNPoints] 2ns residual (track - meas)
-  float* fSig0;     //[fNPoints] ort. error 0
-  float* fSig1;     //[fNPoints] ort. errir 1
-  int* fVolID;      //[fNPoints] volume id (0 for vertex constraint)
-  int* fLabel;      //[fNPoints] label of the volume
+  float mTrCorr[5]; //  correction to ExternalTrackParam
+  float* mD0;       //[mNPoints] 1st residual (track - meas)
+  float* mD1;       //[mNPoints] 2ns residual (track - meas)
+  float* mSig0;     //[mNPoints] ort. error 0
+  float* mSig1;     //[mNPoints] ort. errir 1
+  int* mVolID;      //[mNPoints] volume id (0 for vertex constraint)
+  int* mLabel;      //[mNPoints] label of the volume
   //
-  float* fSolMat; //[fNMatSol] // material corrections
-  float* fMatErr; //[fNMatSol] // material corrections errors
+  float* mSolMat; //[mNMatSol] // material corrections
+  float* mMatErr; //[mNMatSol] // material corrections errors
   //
   ClassDef(AliAlgResFast, 1);
 };

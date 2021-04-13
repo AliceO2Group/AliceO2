@@ -34,25 +34,25 @@ class AliAlgDetTRD : public AliAlgDet
   AliAlgDetTRD(const char* title = "");
   virtual ~AliAlgDetTRD();
   //
-  virtual void DefineVolumes();
+  virtual void defineVolumes();
   virtual void Print(const Option_t* opt = "") const;
   //
   bool AcceptTrack(const AliESDtrack* trc, int trtype) const;
   //
-  virtual const char* GetCalibDOFName(int i) const;
+  virtual const char* getCalibDOFName(int i) const;
   //
-  virtual void WritePedeInfo(FILE* parOut, const Option_t* opt = "") const;
+  virtual void writePedeInfo(FILE* parOut, const Option_t* opt = "") const;
   //
   void SetNonRCCorrDzDtgl(double v = 0) { fNonRCCorrDzDtgl = v; }
   double GetNonRCCorrDzDtgl() const { return fNonRCCorrDzDtgl; }
-  double GetNonRCCorrDzDtglWithCal() const { return GetNonRCCorrDzDtgl() + GetParVal(kCalibNRCCorrDzDtgl); }
+  double GetNonRCCorrDzDtglWithCal() const { return GetNonRCCorrDzDtgl() + getParVal(kCalibNRCCorrDzDtgl); }
   //
   void SetCorrDVT(double v = 0) { fCorrDVT = 0; }
   double GetCorrDVT() const { return fCorrDVT; }
-  double GetCorrDVTWithCal() const { return GetCorrDVT() + GetParVal(kCalibDVT); }
+  double GetCorrDVTWithCal() const { return GetCorrDVT() + getParVal(kCalibDVT); }
   //
-  virtual double GetCalibDOFVal(int id) const;
-  virtual double GetCalibDOFValWithCal(int id) const;
+  virtual double getCalibDOFVal(int id) const;
+  virtual double getCalibDOFValWithCal(int id) const;
   //
   const double* GetExtraErrRC() const { return fExtraErrRC; }
   void SetExtraErrRC(double y = 0.2, double z = 1.0)

@@ -30,12 +30,12 @@ namespace align
 
 //_________________________________________________________
 AliAlgDOFStat::AliAlgDOFStat(int n)
-  : TNamed("DOFstat", "DOF statistics"), fNDOFs(n), fNMerges(1), fStat(0)
+  : TNamed("DOFstat", "DOF statistics"), mNDOFs(n), mNMerges(1), mStat(0)
 {
   // def c-tor
-  if (fNDOFs) {
-    fStat = new int[n];
-    memset(fStat, 0, fNDOFs * sizeof(int));
+  if (mNDOFs) {
+    mStat = new int[n];
+    memset(mStat, 0, mNDOFs * sizeof(int));
   }
   //
 }
@@ -44,34 +44,34 @@ AliAlgDOFStat::AliAlgDOFStat(int n)
 AliAlgDOFStat::~AliAlgDOFStat()
 {
   // d-r
-  delete[] fStat;
+  delete[] mStat;
 }
 
 //____________________________________________
 void AliAlgDOFStat::Print(Option_t*) const
 {
   // print info
-  printf("NDOFs: %d, NMerges: %d\n", fNDOFs, fNMerges);
+  printf("NDOFs: %d, NMerges: %d\n", mNDOFs, mNMerges);
   //
 }
 
 //____________________________________________
-TH1F* AliAlgDOFStat::CreateHisto(AliAlgSteer* st) const
+TH1F* AliAlgDOFStat::createHisto(AliAlgSteer* st) const
 {
   // create histo with stat. If steer object is supplied, build labels
-  if (!fNDOFs)
+  if (!mNDOFs)
     return 0;
-  TH1F* h = new TH1F("DOFstat", "statistics per DOF", fNDOFs, 0, fNDOFs);
-  for (int i = fNDOFs; i--;) {
-    h->SetBinContent(i + 1, fStat[i]);
+  TH1F* h = new TH1F("DOFstat", "statistics per DOF", mNDOFs, 0, mNDOFs);
+  for (int i = mNDOFs; i--;) {
+    h->SetBinContent(i + 1, mStat[i]);
     if (st)
-      h->GetXaxis()->SetBinLabel(i + 1, st->GetDOFLabelTxt(i));
+      h->GetXaxis()->SetBinLabel(i + 1, st->getDOFLabelTxt(i));
   }
   return h;
 }
 
 //______________________________________________________________________________
-int64_t AliAlgDOFStat::Merge(TCollection* list)
+int64_t AliAlgDOFStat::merge(TCollection* list)
 {
   // merge statistics
   int nmerged = 0;
@@ -81,13 +81,13 @@ int64_t AliAlgDOFStat::Merge(TCollection* list)
     AliAlgDOFStat* stAdd = dynamic_cast<AliAlgDOFStat*>(obj);
     if (!stAdd)
       continue;
-    if (fNDOFs != stAdd->fNDOFs) {
-      LOG(ERROR) << "Different NDOF: " << fNDOFs << " vs " << stAdd->fNDOFs << ".";
+    if (mNDOFs != stAdd->mNDOFs) {
+      LOG(ERROR) << "Different NDOF: " << mNDOFs << " vs " << stAdd->mNDOFs << ".";
       return 0;
     }
-    for (int i = fNDOFs; i--;)
-      fStat[i] += stAdd->fStat[i];
-    fNMerges += stAdd->fNMerges;
+    for (int i = mNDOFs; i--;)
+      mStat[i] += stAdd->mStat[i];
+    mNMerges += stAdd->mNMerges;
     nmerged++;
   }
   return nmerged;

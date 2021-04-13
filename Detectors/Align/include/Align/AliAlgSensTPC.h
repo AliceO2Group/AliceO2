@@ -38,8 +38,8 @@ class AliAlgSensTPC : public AliAlgSens
   void SetSector(uint32_t sc) { fSector = (uint8_t)sc; }
   //
   virtual AliAlgPoint* TrackPoint2AlgPoint(int pntId, const AliTrackPointArray* trpArr, const AliESDtrack* t);
-  //  virtual void   SetTrackingFrame();
-  virtual void PrepareMatrixT2L();
+  //  virtual void   setTrackingFrame();
+  virtual void prepareMatrixT2L();
   //
  protected:
   //

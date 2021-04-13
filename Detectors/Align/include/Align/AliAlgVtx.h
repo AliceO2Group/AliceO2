@@ -42,17 +42,17 @@ class AliAlgVtx : public AliAlgSens
  public:
   AliAlgVtx();
   //
-  void ApplyCorrection(double* vtx) const;
-  virtual bool IsSensor() const { return true; }
+  void applyCorrection(double* vtx) const;
+  virtual bool isSensor() const { return true; }
   //
-  void SetAlpha(double alp)
+  void setAlpha(double alp)
   {
-    fAlp = alp;
-    PrepareMatrixT2L();
+    mAlp = alp;
+    prepareMatrixT2L();
   }
-  virtual void PrepareMatrixL2G(bool = 0) { fMatL2G.Clear(); }   // unit matrix
-  virtual void PrepareMatrixL2GIdeal() { fMatL2GIdeal.Clear(); } // unit matrix
-  virtual void PrepareMatrixT2L();
+  virtual void prepareMatrixL2G(bool = 0) { mMatL2G.Clear(); }   // unit matrix
+  virtual void prepareMatrixL2GIdeal() { mMatL2GIdeal.Clear(); } // unit matrix
+  virtual void prepareMatrixT2L();
   //
   //  virtual AliAlgPoint* TrackPoint2AlgPoint(int pntId, const AliTrackPointArray* trpArr, const AliESDtrack* t); FIXME(milettri): needs AliTrackPointArray, AliESDtrack
   //

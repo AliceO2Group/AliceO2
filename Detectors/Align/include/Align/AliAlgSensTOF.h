@@ -35,8 +35,8 @@ class AliAlgSensTOF : public AliAlgSens
   virtual ~AliAlgSensTOF();
   //
   virtual AliAlgPoint* TrackPoint2AlgPoint(int pntId, const AliTrackPointArray* trpArr, const AliESDtrack* t);
-  //  virtual void   SetTrackingFrame();
-  virtual void PrepareMatrixT2L();
+  //  virtual void   setTrackingFrame();
+  virtual void prepareMatrixT2L();
   //
   int GetSector() const { return fSector; }
   void SetSector(uint32_t sc) { fSector = (uint8_t)sc; }

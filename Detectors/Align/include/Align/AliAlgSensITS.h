@@ -36,7 +36,7 @@ class AliAlgSensITS : public AliAlgSens
   //
   virtual AliAlgPoint* TrackPoint2AlgPoint(int pntId, const AliTrackPointArray* trpArr, const AliESDtrack* t);
 
-  //  virtual void   SetTrackingFrame();
+  //  virtual void   setTrackingFrame();
   //
  protected:
   //

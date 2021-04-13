@@ -64,113 +64,113 @@ namespace o2
 namespace align
 {
 
-const char* AliAlgSteer::fgkMPDataExt = ".mille";
-const char* AliAlgSteer::fgkDetectorName[AliAlgSteer::kNDetectors] = {"ITS", "TPC", "TRD", "TOF", "HMPID"};
-//const int AliAlgSteer::fgkSkipLayers[AliAlgSteer::kNLrSkip] = {AliGeomManager::kPHOS1, AliGeomManager::kPHOS2,
+const Char_t* AliAlgSteer::sMPDataExt = ".mille";
+const Char_t* AliAlgSteer::sDetectorName[AliAlgSteer::kNDetectors] = {"ITS", "TPC", "TRD", "TOF", "HMPID"};
+//const int AliAlgSteer::mgkSkipLayers[AliAlgSteer::kNLrSkip] = {AliGeomManager::kPHOS1, AliGeomManager::kPHOS2,
 //                                                                 AliGeomManager::kMUON, AliGeomManager::kEMCAL}; TODO(milettri, shahoian): needs detector IDs previously stored in AliGeomManager
-const int AliAlgSteer::fgkSkipLayers[AliAlgSteer::kNLrSkip] = {0, 0, 0, 0}; // TODO(milettri, shahoian): needs AliGeomManager - remove this line after fix.
+const int AliAlgSteer::sSkipLayers[AliAlgSteer::kNLrSkip] = {0, 0, 0, 0}; // TODO(milettri, shahoian): needs AliGeomManager - remove this line after fix.
 
-const char* AliAlgSteer::fgkStatClName[AliAlgSteer::kNStatCl] = {"Inp: ", "Acc: "};
-const char* AliAlgSteer::fgkStatName[AliAlgSteer::kMaxStat] =
+const Char_t* AliAlgSteer::sStatClName[AliAlgSteer::kNStatCl] = {"Inp: ", "Acc: "};
+const Char_t* AliAlgSteer::sStatName[AliAlgSteer::kMaxStat] =
   {"runs", "Ev.Coll", "Ev.Cosm", "Trc.Coll", "Trc.Cosm"};
 
-const char* AliAlgSteer::fgkHStatName[AliAlgSteer::kNHVars] = {
+const Char_t* AliAlgSteer::sHStatName[AliAlgSteer::kNHVars] = {
   "Runs", "Ev.Inp", "Ev.VtxOK", "Tr.Inp", "Tr.2Fit", "Tr.2FitVC", "Tr.2PrMat", "Tr.2ResDer", "Tr.Stored", "Tr.Acc", "Tr.ContRes"};
 
 //________________________________________________________________
 AliAlgSteer::AliAlgSteer(const char* configMacro, int refRun)
-  : fNDet(0), fNDOFs(0), fRunNumber(-1), fFieldOn(false), fTracksType(kColl), fAlgTrack(0), fVtxSens(0), fConstraints(),
+  : mNDet(0), mNDOFs(0), mRunNumber(-1), mFieldOn(false), mTracksType(kColl), mAlgTrack(0), mVtxSens(0), mConstraints(),
     //	fSelEventSpecii(AliRecoParam::kCosmic | AliRecoParam::kLowMult | AliRecoParam::kHighMult | AliRecoParam::kDefault), FIXME(milettri): needs AliRecoParam
-    fSelEventSpecii(0), // FIXME(milettri): needs AliRecoParam
-    fCosmicSelStrict(false),
-    fVtxMinCont(-1),
-    fVtxMaxCont(-1),
-    fVtxMinContVC(10),
-    fMinITSClforVC(3),
-    //    fITSPattforVC(AliAlgDetITS::kSPDAny), FIXME(milettri): needs AliAlgDetITS
-    fITSPattforVC(0), //  FIXME(milettri): needs AliAlgDetITS
-    fMaxChi2forVC(10)
+    mSelEventSpecii(0), // FIXME(milettri): needs AliRecoParam
+    mCosmicSelStrict(false),
+    mVtxMinCont(-1),
+    mVtxMaxCont(-1),
+    mVtxMinContVC(10),
+    mMinITSClforVC(3),
+    //    mITSPattforVC(AliAlgDetITS::kSPDAny), FIXME(milettri): needs AliAlgDetITS
+    mITSPattforVC(0), //  FIXME(milettri): needs AliAlgDetITS
+    mMaxChi2forVC(10)
     //
     ,
-    fGloParVal(0),
-    fGloParErr(0),
-    fGloParLab(0),
-    fOrderedLbl(0),
-    fLbl2ID(0),
-    fRefPoint(0),
-    fESDTree(0),
+    mGloParVal(0),
+    mGloParErr(0),
+    mGloParLab(0),
+    mOrderedLbl(0),
+    mLbl2ID(0),
+    mRefPoint(0),
+    mESDTree(0),
     //    fESDEvent(0), FIXME(milettri): needs AliESDEvent
     //    fVertex(0), FIXME(milettri): needs AliESDVertex
-    fControlFrac(1.0),
-    fMPOutType(kMille | kMPRec | kContR),
-    fMille(0),
-    fMPRecord(0),
-    fCResid(0),
-    fMPRecTree(0),
-    fResidTree(0),
-    fMPRecFile(0),
-    fResidFile(0),
-    fMilleDBuffer(),
-    fMilleIBuffer(),
-    fMPDatFileName("mpData"),
-    fMPParFileName("mpParams.txt"),
-    fMPConFileName("mpConstraints.txt"),
-    fMPSteerFileName("mpSteer.txt"),
-    fResidFileName("mpControlRes.root"),
-    fMilleOutBin(true),
-    fDoKalmanResid(true)
+    mControlFrac(1.0),
+    mMPOutType(kMille | kMPRec | kContR),
+    mMille(0),
+    mMPRecord(0),
+    mCResid(0),
+    mMPRecTree(0),
+    mResidTree(0),
+    mMPRecFile(0),
+    mResidFile(0),
+    mMilleDBuffer(),
+    mMilleIBuffer(),
+    mMPDatFileName("mpData"),
+    mMPParFileName("mpParams.txt"),
+    mMPConFileName("mpConstraints.txt"),
+    mMPSteerFileName("mpSteer.txt"),
+    mResidFileName("mpControlRes.root"),
+    mMilleOutBin(true),
+    mDoKalmanResid(true)
     //
     ,
-    fOutCDBPath("local://outOCDB"),
-    fOutCDBComment("AliAlgSteer"),
-    fOutCDBResponsible("")
+    mOutCDBPath("local://outOCDB"),
+    mOutCDBComment("AliAlgSteer"),
+    mOutCDBResponsible("")
     //
     ,
-    fDOFStat(0),
-    fHistoStat(0)
+    mDOFStat(0),
+    mHistoStat(0)
     //
     ,
-    fConfMacroName(configMacro),
-    fRecoOCDBConf("configRecoOCDB.C"),
-    fRefOCDBConf("configRefOCDB.C"),
-    fRefRunNumber(refRun),
-    fRefOCDBLoaded(0),
-    fUseRecoOCDB(true)
+    mConfMacroName(configMacro),
+    mRecoOCDBConf("configRecoOCDB.C"),
+    mRefOCDBConf("configRefOCDB.C"),
+    mRefRunNumber(refRun),
+    mRefOCDBLoaded(0),
+    mUseRecoOCDB(true)
 {
   // def c-tor
   for (int i = kNDetectors; i--;) {
-    fDetectors[i] = 0;
-    fDetPos[i] = -1;
+    mDetectors[i] = 0;
+    mDetPos[i] = -1;
   }
-  SetPtMinColl();
-  SetPtMinCosm();
-  SetEtaMaxColl();
-  SetEtaMaxCosm();
-  SetMinDetAccColl();
-  SetMinDetAccCosm();
+  setPtMinColl();
+  setPtMinCosm();
+  setEtaMaxColl();
+  setEtaMaxCosm();
+  setMinDetAccColl();
+  setMinDetAccCosm();
   for (int i = 0; i < kNTrackTypes; i++) {
-    fObligatoryDetPattern[i] = 0;
+    mObligatoryDetPattern[i] = 0;
   }
   //
-  SetMinPointsColl();
-  SetMinPointsCosm();
+  setMinPointsColl();
+  setMinPointsCosm();
   //
   for (int i = kNCosmLegs; i--;)
     //    fESDTrack[i] = 0; FIXME(milettri): needs AliESDtrack
-    memset(fStat, 0, kNStatCl * kMaxStat * sizeof(float));
-  SetMaxDCAforVC();
-  SetMaxChi2forVC();
+    memset(mStat, 0, kNStatCl * kMaxStat * sizeof(float));
+  setMaxDCAforVC();
+  setMaxChi2forVC();
   //  SetOutCDBRunRange();   FIXME(milettri): needs OCDB
-  SetDefPtBOffCosm();
-  SetDefPtBOffColl();
+  setDefPtBOffCosm();
+  setDefPtBOffColl();
   //
   // run config macro if provided
-  if (!fConfMacroName.IsNull()) {
-    gROOT->ProcessLine(Form(".x %s+g((AliAlgSteer*)%p)", fConfMacroName.Data(), this));
-    if (!GetInitDOFsDone())
-      InitDOFs();
-    if (!GetNDOFs())
-      LOG(FATAL) << "No DOFs found, initialization with " << fConfMacroName.Data() << " failed";
+  if (!mConfMacroName.IsNull()) {
+    gROOT->ProcessLine(Form(".x %s+g((AliAlgSteer*)%p)", mConfMacroName.Data(), this));
+    if (!getInitDOFsDone())
+      initDOFs();
+    if (!getNDOFs())
+      LOG(FATAL) << "No DOFs found, initialization with " << mConfMacroName.Data() << " failed";
   }
 }
 
@@ -178,172 +178,172 @@ AliAlgSteer::AliAlgSteer(const char* configMacro, int refRun)
 AliAlgSteer::~AliAlgSteer()
 {
   // d-tor
-  if (fMPRecFile)
-    CloseMPRecOutput();
-  if (fMille)
-    CloseMilleOutput();
-  if (fResidFile)
-    CloseResidOutput();
+  if (mMPRecFile)
+    closeMPRecOutput();
+  if (mMille)
+    closeMilleOutput();
+  if (mResidFile)
+    closeResidOutput();
   //
-  delete fAlgTrack;
-  delete[] fGloParVal;
-  delete[] fGloParErr;
-  delete[] fGloParLab;
-  for (int i = 0; i < fNDet; i++)
-    delete fDetectors[i];
-  delete fVtxSens;
-  delete fRefPoint;
-  delete fDOFStat;
-  delete fHistoStat;
+  delete mAlgTrack;
+  delete[] mGloParVal;
+  delete[] mGloParErr;
+  delete[] mGloParLab;
+  for (int i = 0; i < mNDet; i++)
+    delete mDetectors[i];
+  delete mVtxSens;
+  delete mRefPoint;
+  delete mDOFStat;
+  delete mHistoStat;
   //
 }
 
 //________________________________________________________________
-void AliAlgSteer::InitDetectors()
+void AliAlgSteer::initDetectors()
 {
   // init all detectors geometry
   //
-  if (GetInitGeomDone())
+  if (getInitGeomDone())
     return;
   //
 
   //
-  fAlgTrack = new AliAlgTrack();
-  fRefPoint = new AliAlgPoint();
+  mAlgTrack = new AliAlgTrack();
+  mRefPoint = new AliAlgPoint();
   //
   int dofCnt = 0;
   // special fake sensor for vertex constraint point
   // it has special T2L matrix adjusted for each track, no need to init it here
-  fVtxSens = new AliAlgVtx();
-  fVtxSens->SetInternalID(1);
-  fVtxSens->PrepareMatrixL2G();
-  fVtxSens->PrepareMatrixL2GIdeal();
-  dofCnt += fVtxSens->GetNDOFs();
+  mVtxSens = new AliAlgVtx();
+  mVtxSens->setInternalID(1);
+  mVtxSens->prepareMatrixL2G();
+  mVtxSens->prepareMatrixL2GIdeal();
+  dofCnt += mVtxSens->getNDOFs();
   //
-  for (int i = 0; i < fNDet; i++)
-    dofCnt += fDetectors[i]->InitGeom();
+  for (int i = 0; i < mNDet; i++)
+    dofCnt += mDetectors[i]->initGeom();
   if (!dofCnt)
     LOG(FATAL) << "No DOFs found";
   //
   //
   for (int idt = 0; idt < kNDetectors; idt++) {
-    AliAlgDet* det = GetDetectorByDetID(idt);
-    if (!det || det->IsDisabled())
+    AliAlgDet* det = getDetectorByDetID(idt);
+    if (!det || det->isDisabled())
       continue;
-    det->CacheReferenceOCDB();
+    det->cacheReferenceOCDB();
   }
   //
-  fGloParVal = new float[dofCnt];
-  fGloParErr = new float[dofCnt];
-  fGloParLab = new int[dofCnt];
-  fOrderedLbl = new int[dofCnt];
-  fLbl2ID = new int[dofCnt];
-  memset(fGloParVal, 0, dofCnt * sizeof(float));
-  memset(fGloParErr, 0, dofCnt * sizeof(float));
-  memset(fGloParLab, 0, dofCnt * sizeof(int));
-  memset(fOrderedLbl, 0, dofCnt * sizeof(int));
-  memset(fLbl2ID, 0, dofCnt * sizeof(int));
-  AssignDOFs();
+  mGloParVal = new float[dofCnt];
+  mGloParErr = new float[dofCnt];
+  mGloParLab = new int[dofCnt];
+  mOrderedLbl = new int[dofCnt];
+  mLbl2ID = new int[dofCnt];
+  memset(mGloParVal, 0, dofCnt * sizeof(float));
+  memset(mGloParErr, 0, dofCnt * sizeof(float));
+  memset(mGloParLab, 0, dofCnt * sizeof(int));
+  memset(mOrderedLbl, 0, dofCnt * sizeof(int));
+  memset(mLbl2ID, 0, dofCnt * sizeof(int));
+  assignDOFs();
   LOG(INFO) << "Booked " << dofCnt << " global parameters";
   //
-  SetInitGeomDone();
+  setInitGeomDone();
   //
 }
 
 //________________________________________________________________
-void AliAlgSteer::InitDOFs()
+void AliAlgSteer::initDOFs()
 {
   // scan all free global parameters, link detectors to array of params
   //
-  if (GetInitDOFsDone()) {
-    LOG(INFO) << "InitDOFs was already done, just reassigning " << fNDOFs << "DOFs arrays/labels";
-    AssignDOFs();
+  if (getInitDOFsDone()) {
+    LOG(INFO) << "initDOFs was already done, just reassigning " << mNDOFs << "DOFs arrays/labels";
+    assignDOFs();
     return;
   }
   //
-  fNDOFs = 0;
+  mNDOFs = 0;
   int ndfAct = 0;
-  AssignDOFs();
+  assignDOFs();
   //
   int nact = 0;
-  fVtxSens->InitDOFs();
-  for (int i = 0; i < fNDet; i++) {
-    AliAlgDet* det = GetDetector(i);
-    det->InitDOFs();
-    if (det->IsDisabled())
+  mVtxSens->initDOFs();
+  for (int i = 0; i < mNDet; i++) {
+    AliAlgDet* det = getDetector(i);
+    det->initDOFs();
+    if (det->isDisabled())
       continue;
     nact++;
-    ndfAct += det->GetNDOFs();
+    ndfAct += det->getNDOFs();
   }
   for (int i = 0; i < kNTrackTypes; i++)
-    if (nact < fMinDetAcc[i])
-      LOG(FATAL) << nact << " detectors are active, while " << fMinDetAcc[i] << " in track are asked";
+    if (nact < mMinDetAcc[i])
+      LOG(FATAL) << nact << " detectors are active, while " << mMinDetAcc[i] << " in track are asked";
   //
-  LOG(INFO) << fNDOFs << " global parameters " << fNDet << " detectors, " << ndfAct << " in " << nact << " active detectors";
+  LOG(INFO) << mNDOFs << " global parameters " << mNDet << " detectors, " << ndfAct << " in " << nact << " active detectors";
   //
-  AddAutoConstraints();
+  addAutoConstraints();
   //
-  SetInitDOFsDone();
+  setInitDOFsDone();
 }
 
 //________________________________________________________________
-void AliAlgSteer::AssignDOFs()
+void AliAlgSteer::assignDOFs()
 {
   // add parameters/labels arrays to volumes. If the AliAlgSteer is read from the file, this method need
-  // to be called (of InitDOFs should be called)
+  // to be called (of initDOFs should be called)
   //
   int ndfOld = -1;
-  if (fNDOFs > 0)
-    ndfOld = fNDOFs;
-  fNDOFs = 0;
+  if (mNDOFs > 0)
+    ndfOld = mNDOFs;
+  mNDOFs = 0;
   //
-  fVtxSens->AssignDOFs(fNDOFs, fGloParVal, fGloParErr, fGloParLab);
+  mVtxSens->assignDOFs(mNDOFs, mGloParVal, mGloParErr, mGloParLab);
   //
   for (int idt = 0; idt < kNDetectors; idt++) {
-    AliAlgDet* det = GetDetectorByDetID(idt);
+    AliAlgDet* det = getDetectorByDetID(idt);
     if (!det)
       continue;
-    //if (det->IsDisabled()) continue;
-    fNDOFs += det->AssignDOFs();
+    //if (det->isDisabled()) continue;
+    mNDOFs += det->assignDOFs();
   }
-  LOG(INFO) << "Assigned parameters/labels arrays for " << fNDOFs << " DOFs";
-  if (ndfOld > -1 && ndfOld != fNDOFs)
-    LOG(ERROR) << "Recalculated NDOFs=" << fNDOFs << " not equal to saved NDOFs=" << ndfOld;
+  LOG(INFO) << "Assigned parameters/labels arrays for " << mNDOFs << " DOFs";
+  if (ndfOld > -1 && ndfOld != mNDOFs)
+    LOG(ERROR) << "Recalculated NDOFs=" << mNDOFs << " not equal to saved NDOFs=" << ndfOld;
   //
   // build Lbl <-> parID table
-  Sort(fNDOFs, fGloParLab, fLbl2ID, false); // sort in increasing order
-  for (int i = fNDOFs; i--;)
-    fOrderedLbl[i] = fGloParLab[fLbl2ID[i]];
+  Sort(mNDOFs, mGloParLab, mLbl2ID, false); // sort in increasing order
+  for (int i = mNDOFs; i--;)
+    mOrderedLbl[i] = mGloParLab[mLbl2ID[i]];
   //
 }
 
 //________________________________________________________________
-void AliAlgSteer::AddDetector(uint32_t id, AliAlgDet* det)
+void AliAlgSteer::addDetector(uint32_t id, AliAlgDet* det)
 {
   LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
   // add detector participating in the alignment, optionally constructed externally
   //
-  if (!fRefOCDBLoaded)
+  if (!mRefOCDBLoaded)
     //    LoadRefOCDB(); FIXME(milettri): needs OCDB
     //
     if (id >= kNDetectors)
       LOG(FATAL) << "Detector typeID " << id << " exceeds allowed range " << 0 << ":" << (kNDetectors - 1);
   //
-  if (fDetPos[id] != -1)
+  if (mDetPos[id] != -1)
     LOG(FATAL) << "Detector " << id << " was already added";
   if (!det) {
     switch (id) {
         //      case kITS:
-        //        det = new AliAlgDetITS(GetDetNameByDetID(kITS)); FIXME(milettri): needs AliAlgDetITS
+        //        det = new AliAlgDetITS(getDetNameByDetID(kITS)); FIXME(milettri): needs AliAlgDetITS
         //        break;
         //      case kTPC:
-        //        det = new AliAlgDetTPC(GetDetNameByDetID(kTPC)); FIXME(milettri): needs AliAlgDetTPC
+        //        det = new AliAlgDetTPC(getDetNameByDetID(kTPC)); FIXME(milettri): needs AliAlgDetTPC
         //        break;
         //      case kTRD:
-        //        det = new AliAlgDetTRD(GetDetNameByDetID(kTRD)); FIXME(milettri): needs AliAlgDetTRD
+        //        det = new AliAlgDetTRD(getDetNameByDetID(kTRD)); FIXME(milettri): needs AliAlgDetTRD
         //        break;
         //      case kTOF:
-        //        det = new AliAlgDetTOF(GetDetNameByDetID(kTOF)); FIXME(milettri): needs AliAlgDetTOF
+        //        det = new AliAlgDetTOF(getDetNameByDetID(kTOF)); FIXME(milettri): needs AliAlgDetTOF
         //        break;
       default:
         LOG(FATAL) << id << " not implemented yet";
@@ -351,48 +351,48 @@ void AliAlgSteer::AddDetector(uint32_t id, AliAlgDet* det)
     };
   }
   //
-  fDetectors[fNDet] = det;
-  fDetPos[id] = fNDet;
-  det->SetAlgSteer(this);
+  mDetectors[mNDet] = det;
+  mDetPos[id] = mNDet;
+  det->setAlgSteer(this);
   for (int i = 0; i < kNTrackTypes; i++)
-    SetObligatoryDetector(id, i, det->IsObligatory(i));
-  fNDet++;
+    setObligatoryDetector(id, i, det->isObligatory(i));
+  mNDet++;
   //
 }
 
 //_________________________________________________________
-void AliAlgSteer::AddDetector(AliAlgDet* det)
+void AliAlgSteer::addDetector(AliAlgDet* det)
 {
   // add detector constructed externally to alignment framework
-  AddDetector(det->GetDetID(), det);
+  addDetector(det->getDetID(), det);
 }
 
 //_________________________________________________________
-bool AliAlgSteer::CheckDetectorPattern(uint32_t patt) const
+bool AliAlgSteer::checkDetectorPattern(uint32_t patt) const
 {
   //validate detector pattern
-  return ((patt & fObligatoryDetPattern[fTracksType]) ==
-          fObligatoryDetPattern[fTracksType]) &&
-         NumberOfBitsSet(patt) >= fMinDetAcc[fTracksType];
+  return ((patt & mObligatoryDetPattern[mTracksType]) ==
+          mObligatoryDetPattern[mTracksType]) &&
+         numberOfBitsSet(patt) >= mMinDetAcc[mTracksType];
 }
 
 //_________________________________________________________
-bool AliAlgSteer::CheckDetectorPoints(const int* npsel) const
+bool AliAlgSteer::checkDetectorPoints(const int* npsel) const
 {
   //validate detectors pattern according to number of selected points
   int ndOK = 0;
   for (int idt = 0; idt < kNDetectors; idt++) {
-    AliAlgDet* det = GetDetectorByDetID(idt);
-    if (!det || det->IsDisabled(fTracksType))
+    AliAlgDet* det = getDetectorByDetID(idt);
+    if (!det || det->isDisabled(mTracksType))
       continue;
-    if (npsel[idt] < det->GetNPointsSel(fTracksType)) {
-      if (det->IsObligatory(fTracksType))
+    if (npsel[idt] < det->getNPointsSel(mTracksType)) {
+      if (det->isObligatory(mTracksType))
         return false;
       continue;
     }
     ndOK++;
   }
-  return ndOK >= fMinDetAcc[fTracksType];
+  return ndOK >= mMinDetAcc[mTracksType];
 }
 
 //FIXME(milettri): needs AliESDtrack
@@ -402,16 +402,16 @@ bool AliAlgSteer::CheckDetectorPoints(const int* npsel) const
 //  // decide if the track should be processed
 //  AliAlgDet* det = 0;
 //  uint32_t detAcc = 0;
-//  if (fFieldOn && esdTr->Pt() < fPtMin[fTracksType])
+//  if (mFieldOn && esdTr->Pt() < mPtMin[mTracksType])
 //    return 0;
-//  if (Abs(esdTr->Eta()) > fEtaMax[fTracksType])
+//  if (Abs(esdTr->Eta()) > mEtaMax[mTracksType])
 //    return 0;
 //  //
 //  for (int idet = 0; idet < kNDetectors; idet++) {
-//    if (!(det = GetDetectorByDetID(idet)) || det->IsDisabled(fTracksType))
+//    if (!(det = getDetectorByDetID(idet)) || det->isDisabled(mTracksType))
 //      continue;
-//    if (!det->AcceptTrack(esdTr, fTracksType)) {
-//      if (strict && det->IsObligatory(fTracksType))
+//    if (!det->AcceptTrack(esdTr, mTracksType)) {
+//      if (strict && det->isObligatory(mTracksType))
 //        return 0;
 //      else
 //        continue;
@@ -419,7 +419,7 @@ bool AliAlgSteer::CheckDetectorPoints(const int* npsel) const
 //    //
 //    detAcc |= 0x1 << idet;
 //  }
-//  if (NumberOfBitsSet(detAcc) < fMinDetAcc[fTracksType])
+//  if (numberOfBitsSet(detAcc) < mMinDetAcc[mTracksType])
 //    return 0;
 //  return detAcc;
 //  //
@@ -432,16 +432,16 @@ bool AliAlgSteer::CheckDetectorPoints(const int* npsel) const
 //  // decide if the pair of tracks making cosmic track should be processed
 //  uint32_t detAcc = 0, detAccLeg;
 //  for (int i = kNCosmLegs; i--;) {
-//    detAccLeg = AcceptTrack(esdPairCosm[i], fCosmicSelStrict); // missing obligatory detectors in one leg might be allowed
+//    detAccLeg = AcceptTrack(esdPairCosm[i], mCosmicSelStrict); // missing obligatory detectors in one leg might be allowed
 //    if (!detAccLeg)
 //      return 0;
 //    detAcc |= detAccLeg;
 //  }
-//  if (fCosmicSelStrict)
+//  if (mCosmicSelStrict)
 //    return detAcc;
 //  //
 //  // for non-stric selection check convolution of detector presence
-//  if (!CheckDetectorPattern(detAcc))
+//  if (!checkDetectorPattern(detAcc))
 //    return 0;
 //  return detAcc;
 //  //
@@ -456,7 +456,7 @@ bool AliAlgSteer::CheckDetectorPoints(const int* npsel) const
 //  // setup magnetic field if needed
 //  if (fESDEvent &&
 //      (!TGeoGlobalMagField::Instance()->GetField() ||
-//       !SmallerAbs(fESDEvent->GetMagneticField() - AliTrackerBase::GetBz(), 5e-4))) {
+//       !smallerAbs(fESDEvent->GetMagneticField() - AliTrackerBase::GetBz(), 5e-4))) {
 //    fESDEvent->InitMagneticField();
 //  }
 //}
@@ -477,8 +477,8 @@ bool AliAlgSteer::CheckDetectorPoints(const int* npsel) const
 //  //
 //  SetESDEvent(esdEv);
 //  //
-//  if (esdEv->GetRunNumber() != GetRunNumber())
-//    SetRunNumber(esdEv->GetRunNumber());
+//  if (esdEv->getRunNumber() != getRunNumber())
+//    SetRunNumber(esdEv->getRunNumber());
 //  //
 //  if (!(esdEv->GetEventSpecie() & fSelEventSpecii)) {
 //#if DEBUG > 2
@@ -487,53 +487,53 @@ bool AliAlgSteer::CheckDetectorPoints(const int* npsel) const
 //    return false;
 //  }
 //  //
-//  SetCosmic(esdEv->GetEventSpecie() == AliRecoParam::kCosmic ||
+//  setCosmic(esdEv->GetEventSpecie() == AliRecoParam::kCosmic ||
 //            (esdEv->GetNumberOfCosmicTracks() > 0 && !esdEv->GetPrimaryVertexTracks()->GetStatus()));
 //  //
-//  FillStatHisto(kEvInp);
+//  fillStatHisto(kEvInp);
 //  //
 //#if DEBUG > 2
 //  LOG << "Processing event " << esdEv->GetEventNumberInFile() << " of ev.specie " << esdEv->GetEventSpecie() << " -> Ntr: " << esdEv->GetNumberOfTracks() << " NtrCosm: " << esdEv->GetNumberOfCosmicTracks();
 //#endif
 //  //
-//  SetFieldOn(Abs(esdEv->GetMagneticField()) > kAlmost0Field);
-//  if (!IsCosmic() && !CheckSetVertex(esdEv->GetPrimaryVertexTracks()))
+//  setFieldOn(Abs(esdEv->GetMagneticField()) > kAlmost0Field);
+//  if (!isCosmic() && !CheckSetVertex(esdEv->GetPrimaryVertexTracks()))
 //    return false;
-//  FillStatHisto(kEvVtx);
+//  fillStatHisto(kEvVtx);
 //  //
 //  int ntr = 0, accTr = 0;
-//  if (IsCosmic()) {
-//    fStat[kInpStat][kEventCosm]++;
+//  if (isCosmic()) {
+//    mStat[kInpStat][kEventCosm]++;
 //    ntr = esdEv->GetNumberOfCosmicTracks();
-//    FillStatHisto(kTrackInp, ntr);
+//    fillStatHisto(kTrackInp, ntr);
 //    for (int itr = 0; itr < ntr; itr++) {
 //      accTr += ProcessTrack(esdEv->GetCosmicTrack(itr));
 //    }
 //    if (accTr)
-//      fStat[kAccStat][kEventCosm]++;
+//      mStat[kAccStat][kEventCosm]++;
 //  } else {
-//    fStat[kInpStat][kEventColl]++;
+//    mStat[kInpStat][kEventColl]++;
 //    ntr = esdEv->GetNumberOfTracks();
-//    FillStatHisto(kTrackInp, ntr);
+//    fillStatHisto(kTrackInp, ntr);
 //    for (int itr = 0; itr < ntr; itr++) {
 //      //      int accTrOld = accTr;
 //      accTr += ProcessTrack(esdEv->GetTrack(itr));
 //      /*
-//      if (accTr>accTrOld && fCResid) {
-//	int ndf = fCResid->GetNPoints()*2-5;
-//	if (fCResid->GetChi2()/ndf>20 || !fCResid->GetKalmanDone()
-//	    || fCResid->GetChi2K()/ndf>20) {
+//      if (accTr>accTrOld && mCResid) {
+//	int ndf = mCResid->getNPoints()*2-5;
+//	if (mCResid->getChi2()/ndf>20 || !mCResid->getKalmanDone()
+//	    || mCResid->getChi2K()/ndf>20) {
 //	  printf("BAD FIT for %d\n",itr);
 //	}
-//       	fCResid->Print("er");
+//       	mCResid->Print("er");
 //      }
 //      */
 //    }
 //    if (accTr)
-//      fStat[kAccStat][kEventColl]++;
+//      mStat[kAccStat][kEventColl]++;
 //  }
 //  //
-//  FillStatHisto(kTrackAcc, accTr);
+//  fillStatHisto(kTrackAcc, accTr);
 //  //
 //  if (accTr) {
 //    LOG(INFO) << "Processed event " << esdEv->GetEventNumberInFile() << " of ev.specie " << esdEv->GetEventSpecie() << " -> Accepted: " << accTr << " of " << ntr << " tracks";
@@ -547,7 +547,7 @@ bool AliAlgSteer::CheckDetectorPoints(const int* npsel) const
 //{
 //  // process single track
 //  //
-//  fStat[kInpStat][kTrackColl]++;
+//  mStat[kInpStat][kTrackColl]++;
 //  fESDTrack[0] = esdTr;
 //  fESDTrack[1] = 0;
 //  //
@@ -563,78 +563,78 @@ bool AliAlgSteer::CheckDetectorPoints(const int* npsel) const
 //  if (!detAcc)
 //    return false;
 //  //
-//  ResetDetectors();
-//  fAlgTrack->Clear();
+//  resetDetectors();
+//  mAlgTrack->Clear();
 //  //
 //  // process the track points for each detector,
 //  AliAlgDet* det = 0;
 //  for (int idet = 0; idet < kNDetectors; idet++) {
 //    if (!(detAcc & (0x1 << idet)))
 //      continue;
-//    det = GetDetectorByDetID(idet);
-//    if (det->ProcessPoints(esdTr, fAlgTrack) < det->GetNPointsSel(kColl)) {
+//    det = getDetectorByDetID(idet);
+//    if (det->ProcessPoints(esdTr, mAlgTrack) < det->getNPointsSel(kColl)) {
 //      detAcc &= ~(0x1 << idet); // did not survive, suppress detector in the track
-//      if (det->IsObligatory(kColl))
+//      if (det->isObligatory(kColl))
 //        return false;
 //    }
-//    if (NumberOfBitsSet(detAcc) < fMinDetAcc[kColl])
+//    if (numberOfBitsSet(detAcc) < mMinDetAcc[kColl])
 //      return false; // abandon track
 //  }
 //  //
-//  if (fAlgTrack->GetNPoints() < GetMinPoints())
+//  if (mAlgTrack->getNPoints() < getMinPoints())
 //    return false;
-//  // fill needed points (tracking frame) in the fAlgTrack
-//  fRefPoint->SetContainsMeasurement(false);
-//  fRefPoint->SetContainsMaterial(false);
-//  fAlgTrack->AddPoint(fRefPoint); // reference point which the track will refer to
+//  // fill needed points (tracking frame) in the mAlgTrack
+//  mRefPoint->setContainsMeasurement(false);
+//  mRefPoint->setContainsMaterial(false);
+//  mAlgTrack->addPoint(mRefPoint); // reference point which the track will refer to
 //  //
-//  fAlgTrack->CopyFrom(esdTr);
-//  if (!GetFieldOn())
-//    fAlgTrack->ImposePtBOff(fDefPtBOff[AliAlgAux::kColl]);
-//  fAlgTrack->SetFieldON(GetFieldOn());
-//  fAlgTrack->SortPoints();
+//  mAlgTrack->copyFrom(esdTr);
+//  if (!getFieldOn())
+//    mAlgTrack->imposePtBOff(mDefPtBOff[AliAlgAux::kColl]);
+//  mAlgTrack->setFieldON(getFieldOn());
+//  mAlgTrack->sortPoints();
 //  //
 //  // at this stage the points are sorted from maxX to minX, the latter corresponding to
-//  // reference point (e.g. vertex) with X~0. The fAlgTrack->GetInnerPointID() points on it,
-//  // hence fAlgTrack->GetInnerPointID() is the 1st really measured point. We will set the
+//  // reference point (e.g. vertex) with X~0. The mAlgTrack->getInnerPointID() points on it,
+//  // hence mAlgTrack->getInnerPointID() is the 1st really measured point. We will set the
 //  // alpha of the reference point to alpha of the barrel sector corresponding to this
 //  // 1st measured point
-//  int pntMeas = fAlgTrack->GetInnerPointID() - 1;
+//  int pntMeas = mAlgTrack->getInnerPointID() - 1;
 //  if (pntMeas < 0) { // this should not happen
-//    fAlgTrack->Print("p meas");
-//    LOG(FATAL) << "AliAlgTrack->GetInnerPointID() cannot be 0";
+//    mAlgTrack->Print("p meas");
+//    LOG(FATAL) << "AliAlgTrack->getInnerPointID() cannot be 0";
 //  }
 //  // do we want to add the vertex as a measured point ?
-//  if (!AddVertexConstraint()) { // no constrain, just reference point w/o measurement
-//    fRefPoint->SetXYZTracking(0, 0, 0);
-//    fRefPoint->SetAlphaSens(Sector2Alpha(fAlgTrack->GetPoint(pntMeas)->GetAliceSector()));
+//  if (!addVertexConstraint()) { // no constrain, just reference point w/o measurement
+//    mRefPoint->setXYZTracking(0, 0, 0);
+//    mRefPoint->setAlphaSens(sector2Alpha(mAlgTrack->getPoint(pntMeas)->getAliceSector()));
 //  } else
-//    FillStatHisto(kTrackFitInpVC);
+//    fillStatHisto(kTrackFitInpVC);
 //  //
-//  FillStatHisto(kTrackFitInp);
-//  if (!fAlgTrack->IniFit())
+//  fillStatHisto(kTrackFitInp);
+//  if (!mAlgTrack->iniFit())
 //    return false;
-//  FillStatHisto(kTrackProcMatInp);
-//  if (!fAlgTrack->ProcessMaterials())
+//  fillStatHisto(kTrackProcMatInp);
+//  if (!mAlgTrack->processMaterials())
 //    return false;
-//  fAlgTrack->DefineDOFs();
+//  mAlgTrack->defineDOFs();
 //  //
-//  FillStatHisto(kTrackResDerInp);
-//  if (!fAlgTrack->CalcResidDeriv())
+//  fillStatHisto(kTrackResDerInp);
+//  if (!mAlgTrack->calcResidDeriv())
 //    return false;
 //  //
-//  if (!StoreProcessedTrack(fMPOutType & ~kContR))
+//  if (!storeProcessedTrack(mMPOutType & ~kContR))
 //    return false; // store derivatives for MP
 //  //
-//  if (GetProduceControlRes() &&                                   // need control residuals, ignore selection fraction if this is the
-//      (fMPOutType == kContR || gRandom->Rndm() < fControlFrac)) { // output requested
-//    if (!TestLocalSolution() || !StoreProcessedTrack(kContR))
+//  if (getProduceControlRes() &&                                   // need control residuals, ignore selection fraction if this is the
+//      (mMPOutType == kContR || gRandom->Rndm() < mControlFrac)) { // output requested
+//    if (!testLocalSolution() || !storeProcessedTrack(kContR))
 //      return false;
 //  }
 //  //
-//  FillStatHisto(kTrackStore);
+//  fillStatHisto(kTrackStore);
 //  //
-//  fStat[kAccStat][kTrackColl]++;
+//  mStat[kAccStat][kTrackColl]++;
 //  //
 //  return true;
 //}
@@ -649,19 +649,19 @@ bool AliAlgSteer::CheckDetectorPoints(const int* npsel) const
 //    return true;
 //  }
 //  int ncont = vtx->GetNContributors();
-//  if (fVtxMinCont > 0 && fVtxMinCont > ncont) {
+//  if (mVtxMinCont > 0 && mVtxMinCont > ncont) {
 //#if DEBUG > 2
-//    LOG(INFO) << "Rejecting event with " << % d << " vertex contributors (min " << % d << " asked)", ncont, fVtxMinCont);
+//    LOG(INFO) << "Rejecting event with " << % d << " vertex contributors (min " << % d << " asked)", ncont, mVtxMinCont);
 //#endif
 //    return false;
 //  }
-//  if (fVtxMaxCont > 0 && ncont > fVtxMaxCont) {
+//  if (mVtxMaxCont > 0 && ncont > mVtxMaxCont) {
 //#if DEBUG > 2
-//    LOG(INFO) << "Rejecting event with " << % d << " vertex contributors (max " << % d << " asked)", ncont, fVtxMaxCont);
+//    LOG(INFO) << "Rejecting event with " << % d << " vertex contributors (max " << % d << " asked)", ncont, mVtxMaxCont);
 //#endif
 //    return false;
 //  }
-//  fVertex = (ncont >= fVtxMinContVC) ? vtx : 0; // use vertex as a constraint
+//  fVertex = (ncont >= mVtxMinContVC) ? vtx : 0; // use vertex as a constraint
 //  return true;
 //}
 
@@ -671,7 +671,7 @@ bool AliAlgSteer::CheckDetectorPoints(const int* npsel) const
 //{
 //  // process single cosmic track
 //  //
-//  fStat[kInpStat][kTrackCosm]++;
+//  mStat[kInpStat][kTrackCosm]++;
 //  int nPnt = 0;
 //  fESDTrack[0] = 0;
 //  fESDTrack[1] = 0;
@@ -693,15 +693,15 @@ bool AliAlgSteer::CheckDetectorPoints(const int* npsel) const
 //  if (!detAcc)
 //    return false;
 //  //
-//  ResetDetectors();
-//  fAlgTrack->Clear();
-//  fAlgTrack->SetCosmic(true);
+//  resetDetectors();
+//  mAlgTrack->Clear();
+//  mAlgTrack->setCosmic(true);
 //  //
 //  // process the track points for each detector,
-//  // fill needed points (tracking frame) in the fAlgTrack
-//  fRefPoint->SetContainsMeasurement(false);
-//  fRefPoint->SetContainsMaterial(false);
-//  fAlgTrack->AddPoint(fRefPoint); // reference point which the track will refer to
+//  // fill needed points (tracking frame) in the mAlgTrack
+//  mRefPoint->setContainsMeasurement(false);
+//  mRefPoint->setContainsMaterial(false);
+//  mAlgTrack->addPoint(mRefPoint); // reference point which the track will refer to
 //  //
 //  AliAlgDet* det = 0;
 //  int npsel[kNDetectors] = {0};
@@ -709,165 +709,165 @@ bool AliAlgSteer::CheckDetectorPoints(const int* npsel) const
 //    for (int idet = 0; idet < kNDetectors; idet++) {
 //      if (!(detAcc & (0x1 << idet)))
 //        continue;
-//      det = GetDetectorByDetID(idet);
+//      det = getDetectorByDetID(idet);
 //      //
 //      // upper leg points marked as the track going in inverse direction
-//      int np = det->ProcessPoints(fESDTrack[leg], fAlgTrack, leg == kCosmUp);
-//      if (np < det->GetNPointsSel(kCosm) && fCosmicSelStrict &&
-//          det->IsObligatory(kCosm))
+//      int np = det->ProcessPoints(fESDTrack[leg], mAlgTrack, leg == kCosmUp);
+//      if (np < det->getNPointsSel(kCosm) && mCosmicSelStrict &&
+//          det->isObligatory(kCosm))
 //        return false;
 //      npsel[idet] += np;
 //      nPleg += np;
 //    }
-//    if (nPleg < GetMinPoints())
+//    if (nPleg < getMinPoints())
 //      return false;
 //  }
 //  // last check on legs-combined patter
-//  if (!CheckDetectorPoints(npsel))
+//  if (!checkDetectorPoints(npsel))
 //    return false;
 //  //
-//  fAlgTrack->CopyFrom(cosmTr);
-//  if (!GetFieldOn())
-//    fAlgTrack->ImposePtBOff(fDefPtBOff[AliAlgAux::kCosm]);
-//  fAlgTrack->SetFieldON(GetFieldOn());
-//  fAlgTrack->SortPoints();
+//  mAlgTrack->copyFrom(cosmTr);
+//  if (!getFieldOn())
+//    mAlgTrack->imposePtBOff(mDefPtBOff[AliAlgAux::kCosm]);
+//  mAlgTrack->setFieldON(getFieldOn());
+//  mAlgTrack->sortPoints();
 //  //
 //  // at this stage the points are sorted from maxX to minX, the latter corresponding to
-//  // reference point (e.g. vertex) with X~0. The fAlgTrack->GetInnerPointID() points on it,
-//  // hence fAlgTrack->GetInnerPointID() is the 1st really measured point. We will set the
+//  // reference point (e.g. vertex) with X~0. The mAlgTrack->getInnerPointID() points on it,
+//  // hence mAlgTrack->getInnerPointID() is the 1st really measured point. We will set the
 //  // alpha of the reference point to alpha of the barrel sector corresponding to this
 //  // 1st measured point
-//  int pntMeas = fAlgTrack->GetInnerPointID() - 1;
+//  int pntMeas = mAlgTrack->getInnerPointID() - 1;
 //  if (pntMeas < 0) { // this should not happen
-//    fAlgTrack->Print("p meas");
-//    LOG(FATAL) << "AliAlgTrack->GetInnerPointID() cannot be 0";
+//    mAlgTrack->Print("p meas");
+//    LOG(FATAL) << "AliAlgTrack->getInnerPointID() cannot be 0";
 //  }
-//  fRefPoint->SetAlphaSens(Sector2Alpha(fAlgTrack->GetPoint(pntMeas)->GetAliceSector()));
+//  mRefPoint->setAlphaSens(sector2Alpha(mAlgTrack->getPoint(pntMeas)->getAliceSector()));
 //  //
-//  FillStatHisto(kTrackFitInp);
-//  if (!fAlgTrack->IniFit())
+//  fillStatHisto(kTrackFitInp);
+//  if (!mAlgTrack->iniFit())
 //    return false;
 //  //
-//  FillStatHisto(kTrackProcMatInp);
-//  if (!fAlgTrack->ProcessMaterials())
+//  fillStatHisto(kTrackProcMatInp);
+//  if (!mAlgTrack->processMaterials())
 //    return false;
-//  fAlgTrack->DefineDOFs();
+//  mAlgTrack->defineDOFs();
 //  //
-//  FillStatHisto(kTrackResDerInp);
-//  if (!fAlgTrack->CalcResidDeriv())
+//  fillStatHisto(kTrackResDerInp);
+//  if (!mAlgTrack->calcResidDeriv())
 //    return false;
 //  //
-//  if (!StoreProcessedTrack(fMPOutType & ~kContR))
+//  if (!storeProcessedTrack(mMPOutType & ~kContR))
 //    return false; // store derivatives for MP
 //  //
-//  if (GetProduceControlRes() &&                                   // need control residuals, ignore selection fraction if this is the
-//      (fMPOutType == kContR || gRandom->Rndm() < fControlFrac)) { // output requested
-//    if (!TestLocalSolution() || !StoreProcessedTrack(kContR))
+//  if (getProduceControlRes() &&                                   // need control residuals, ignore selection fraction if this is the
+//      (mMPOutType == kContR || gRandom->Rndm() < mControlFrac)) { // output requested
+//    if (!testLocalSolution() || !storeProcessedTrack(kContR))
 //      return false;
 //  }
 //  //
-//  FillStatHisto(kTrackStore);
-//  fStat[kAccStat][kTrackCosm]++;
+//  fillStatHisto(kTrackStore);
+//  mStat[kAccStat][kTrackCosm]++;
 //  return true;
 //}
 
 //_________________________________________________________
-bool AliAlgSteer::StoreProcessedTrack(int what)
+bool AliAlgSteer::storeProcessedTrack(int what)
 {
   // write alignment track
   bool res = true;
   if ((what & kMille))
-    res &= FillMilleData();
+    res &= fillMilleData();
   if ((what & kMPRec))
-    res &= FillMPRecData();
+    res &= fillMPRecData();
   if ((what & kContR))
-    res &= FillControlData();
+    res &= fillControlData();
   //
   return res;
 }
 
 //_________________________________________________________
-bool AliAlgSteer::FillMilleData()
+bool AliAlgSteer::fillMilleData()
 {
   // store MP2 data in Mille format
-  if (!fMille) {
-    TString mo = Form("%s%s", fMPDatFileName.Data(), fgkMPDataExt);
-    fMille = new Mille(mo.Data(), fMilleOutBin);
-    if (!fMille)
+  if (!mMille) {
+    TString mo = Form("%s%s", mMPDatFileName.Data(), sMPDataExt);
+    mMille = new Mille(mo.Data(), mMilleOutBin);
+    if (!mMille)
       LOG(FATAL) << "Failed to create output file " << mo.Data();
   }
   //
-  if (!fAlgTrack->GetDerivDone()) {
+  if (!mAlgTrack->getDerivDone()) {
     LOG(ERROR) << "Track derivatives are not yet evaluated";
     return false;
   }
-  int np(fAlgTrack->GetNPoints()), nDGloTot(0); // total number global derivatives stored
-  int nParETP(fAlgTrack->GetNLocExtPar());      // numnber of local parameters for reference track param
-  int nVarLoc(fAlgTrack->GetNLocPar());         // number of local degrees of freedom in the track
+  int np(mAlgTrack->getNPoints()), nDGloTot(0); // total number global derivatives stored
+  int nParETP(mAlgTrack->getNLocExtPar());      // numnber of local parameters for reference track param
+  int nVarLoc(mAlgTrack->getNLocPar());         // number of local degrees of freedom in the track
   float *buffDL(0), *buffDG(0);                 // faster acces arrays
   int* buffI(0);
   //
-  const int* gloParID(fAlgTrack->GetGloParID()); // IDs of global DOFs this track depends on
+  const int* gloParID(mAlgTrack->getGloParID()); // IDs of global DOFs this track depends on
   for (int ip = 0; ip < np; ip++) {
-    AliAlgPoint* pnt = fAlgTrack->GetPoint(ip);
-    if (pnt->ContainsMeasurement()) {
-      int gloOffs = pnt->GetDGloOffs(); // 1st entry of global derivatives for this point
-      int nDGlo = pnt->GetNGloDOFs();   // number of global derivatives (number of DOFs it depends on)
-      if (!pnt->IsStatOK())
-        pnt->IncrementStat();
+    AliAlgPoint* pnt = mAlgTrack->getPoint(ip);
+    if (pnt->containsMeasurement()) {
+      int gloOffs = pnt->getDGloOffs(); // 1st entry of global derivatives for this point
+      int nDGlo = pnt->getNGloDOFs();   // number of global derivatives (number of DOFs it depends on)
+      if (!pnt->isStatOK())
+        pnt->incrementStat();
       // check buffer sizes
       {
-        if (fMilleDBuffer.GetSize() < nVarLoc + nDGlo)
-          fMilleDBuffer.Set(100 + nVarLoc + nDGlo);
-        if (fMilleIBuffer.GetSize() < nDGlo)
-          fMilleIBuffer.Set(100 + nDGlo);
-        buffDL = fMilleDBuffer.GetArray(); // faster acces
+        if (mMilleDBuffer.GetSize() < nVarLoc + nDGlo)
+          mMilleDBuffer.Set(100 + nVarLoc + nDGlo);
+        if (mMilleIBuffer.GetSize() < nDGlo)
+          mMilleIBuffer.Set(100 + nDGlo);
+        buffDL = mMilleDBuffer.GetArray(); // faster acces
         buffDG = buffDL + nVarLoc;         // faster acces
-        buffI = fMilleIBuffer.GetArray();  // faster acces
+        buffI = mMilleIBuffer.GetArray();  // faster acces
       }
       // local der. array cannot be 0-suppressed by Mille construction, need to reset all to 0
       //
       for (int idim = 0; idim < 2; idim++) { // 2 dimensional orthogonal measurement
         memset(buffDL, 0, nVarLoc * sizeof(float));
-        const double* deriv = fAlgTrack->GetDResDLoc(idim, ip); // array of Dresidual/Dparams_loc
+        const double* deriv = mAlgTrack->getDResDLoc(idim, ip); // array of Dresidual/Dparams_loc
         // derivatives over reference track parameters
         for (int j = 0; j < nParETP; j++)
-          buffDL[j] = (IsZeroAbs(deriv[j])) ? 0 : deriv[j];
+          buffDL[j] = (isZeroAbs(deriv[j])) ? 0 : deriv[j];
         //
         // point may depend on material variables within these limits
-        int lp0 = pnt->GetMinLocVarID(), lp1 = pnt->GetMaxLocVarID();
+        int lp0 = pnt->getMinLocVarID(), lp1 = pnt->getMaxLocVarID();
         for (int j = lp0; j < lp1; j++)
-          buffDL[j] = (IsZeroAbs(deriv[j])) ? 0 : deriv[j];
+          buffDL[j] = (isZeroAbs(deriv[j])) ? 0 : deriv[j];
         //
         // derivatives over global params: this array can be 0-suppressed, no need to reset
         int nGlo(0);
-        deriv = fAlgTrack->GetDResDGlo(idim, gloOffs);
+        deriv = mAlgTrack->getDResDGlo(idim, gloOffs);
         const int* gloIDP(gloParID + gloOffs);
         for (int j = 0; j < nDGlo; j++) {
-          if (!IsZeroAbs(deriv[j])) {
+          if (!isZeroAbs(deriv[j])) {
             buffDG[nGlo] = deriv[j];                 // value of derivative
-            buffI[nGlo++] = GetGloParLab(gloIDP[j]); // global DOF ID + 1 (Millepede needs positive labels)
+            buffI[nGlo++] = getGloParLab(gloIDP[j]); // global DOF ID + 1 (Millepede needs positive labels)
           }
         }
-        fMille->mille(nVarLoc, buffDL, nGlo, buffDG, buffI,
-                      fAlgTrack->GetResidual(idim, ip), Sqrt(pnt->GetErrDiag(idim)));
+        mMille->mille(nVarLoc, buffDL, nGlo, buffDG, buffI,
+                      mAlgTrack->getResidual(idim, ip), Sqrt(pnt->getErrDiag(idim)));
         nDGloTot += nGlo;
         //
       }
     }
-    if (pnt->ContainsMaterial()) { // material point can add 4 or 5 otrhogonal pseudo-measurements
+    if (pnt->containsMaterial()) { // material point can add 4 or 5 otrhogonal pseudo-measurements
       memset(buffDL, 0, nVarLoc * sizeof(float));
-      int nmatpar = pnt->GetNMatPar(); // residuals (correction expectation value)
-      //      const float* expMatCorr = pnt->GetMatCorrExp(); // expected corrections (diagonalized)
-      const float* expMatCov = pnt->GetMatCorrCov(); // their diagonalized error matrix
-      int offs = pnt->GetMaxLocVarID() - nmatpar;    // start of material variables
+      int nmatpar = pnt->getNMatPar(); // residuals (correction expectation value)
+      //      const float* expMatCorr = pnt->getMatCorrExp(); // expected corrections (diagonalized)
+      const float* expMatCov = pnt->getMatCorrCov(); // their diagonalized error matrix
+      int offs = pnt->getMaxLocVarID() - nmatpar;    // start of material variables
       // here all derivatives are 1 = dx/dx
       for (int j = 0; j < nmatpar; j++) { // mat. "measurements" don't depend on global params
         int j1 = j + offs;
         buffDL[j1] = 1.0; // only 1 non-0 derivative
-        //fMille->mille(nVarLoc,buffDL,0,buffDG,buffI,expMatCorr[j],Sqrt(expMatCov[j]));
+        //mMille->mille(nVarLoc,buffDL,0,buffDG,buffI,expMatCorr[j],Sqrt(expMatCov[j]));
         // expectation for MS effect is 0
-        fMille->mille(nVarLoc, buffDL, 0, buffDG, buffI, 0, Sqrt(expMatCov[j]));
+        mMille->mille(nVarLoc, buffDL, 0, buffDG, buffI, 0, Sqrt(expMatCov[j]));
         buffDL[j1] = 0.0; // reset buffer
       }
     } // material "measurement"
@@ -875,77 +875,77 @@ bool AliAlgSteer::FillMilleData()
   //
   if (!nDGloTot) {
     LOG(INFO) << "Track does not depend on free global parameters, discard";
-    fMille->kill();
+    mMille->kill();
     return false;
   }
-  fMille->end(); // store the record
+  mMille->end(); // store the record
   return true;
 }
 
 //_________________________________________________________
-bool AliAlgSteer::FillMPRecData()
+bool AliAlgSteer::fillMPRecData()
 {
   LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
   //FIXME(milettri): needs AliESDEvent
   //  // store MP2 in MPRecord format
-  //  if (!fMPRecord)
-  //    InitMPRecOutput();
+  //  if (!mMPRecord)
+  //    initMPRecOutput();
   //  //
-  //  fMPRecord->Clear();
-  //  if (!fMPRecord->FillTrack(fAlgTrack, fGloParLab))
+  //  mMPRecord->Clear();
+  //  if (!mMPRecord->fillTrack(mAlgTrack, mGloParLab))
   //    return false;
-  //  fMPRecord->SetRun(fRunNumber);
-  //  fMPRecord->SetTimeStamp(fESDEvent->GetTimeStamp());
+  //  mMPRecord->SetRun(mRunNumber);
+  //  mMPRecord->setTimeStamp(fESDEvent->GetTimeStamp());
   //  uint32_t tID = 0xffff & uint(fESDTrack[0]->GetID());
-  //  if (IsCosmic())
+  //  if (isCosmic())
   //    tID |= (0xffff & uint(fESDTrack[1]->GetID())) << 16;
-  //  fMPRecord->SetTrackID(tID);
-  //  fMPRecTree->Fill();
+  //  mMPRecord->setTrackID(tID);
+  //  mMPRecTree->Fill();
   return true;
 }
 
 //_________________________________________________________
-bool AliAlgSteer::FillControlData()
+bool AliAlgSteer::fillControlData()
 {
   LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
   //FIXME(milettri): needs AliESDEvent
   //  // store control residuals
-  //  if (!fCResid)
-  //    InitResidOutput();
+  //  if (!mCResid)
+  //    initResidOutput();
   //  //
-  //  int nps, np = fAlgTrack->GetNPoints();
-  //  nps = (!fRefPoint->ContainsMeasurement()) ? np - 1 : np; // ref point is dummy?
+  //  int nps, np = mAlgTrack->getNPoints();
+  //  nps = (!mRefPoint->containsMeasurement()) ? np - 1 : np; // ref point is dummy?
   //  if (nps < 0)
   //    return true;
   //  //
-  //  fCResid->Clear();
-  //  if (!fCResid->FillTrack(fAlgTrack, fDoKalmanResid))
+  //  mCResid->Clear();
+  //  if (!mCResid->fillTrack(mAlgTrack, mDoKalmanResid))
   //    return false;
-  //  fCResid->SetRun(fRunNumber);
-  //  fCResid->SetTimeStamp(fESDEvent->GetTimeStamp());
-  //  fCResid->SetBz(fESDEvent->GetMagneticField());
+  //  mCResid->setRun(mRunNumber);
+  //  mCResid->setTimeStamp(fESDEvent->GetTimeStamp());
+  //  mCResid->setBz(fESDEvent->GetMagneticField());
   //  uint32_t tID = 0xffff & uint(fESDTrack[0]->GetID());
-  //  if (IsCosmic())
+  //  if (isCosmic())
   //    tID |= (0xffff & uint(fESDTrack[1]->GetID())) << 16;
-  //  fCResid->SetTrackID(tID);
+  //  mCResid->setTrackID(tID);
   //  //
-  //  fResidTree->Fill();
-  //  FillStatHisto(kTrackControl);
+  //  mResidTree->Fill();
+  //  fillStatHisto(kTrackControl);
   //  //
   return true;
 }
 
 //_________________________________________________________
-void AliAlgSteer::SetRunNumber(int run)
+void AliAlgSteer::setRunNumber(int run)
 {
-  if (run == fRunNumber)
+  if (run == mRunNumber)
     return; // nothing to do
   //
-  AcknowledgeNewRun(run);
+  acknowledgeNewRun(run);
 }
 
 //_________________________________________________________
-void AliAlgSteer::AcknowledgeNewRun(int run)
+void AliAlgSteer::acknowledgeNewRun(int run)
 {
   LOG(WARNING) << __PRETTY_FUNCTION__ << " yet incomplete";
 
@@ -955,33 +955,33 @@ void AliAlgSteer::AcknowledgeNewRun(int run)
 
   //FIXME(milettri): needs AliESDEvent
   //  // load needed info for new run
-  //  if (run == fRunNumber)
+  //  if (run == mRunNumber)
   //    return; // nothing to do
   //  if (run > 0) {
-  //    fStat[kAccStat][kRun]++;
+  //    mStat[kAccStat][kRun]++;
   //  }
-  //  if (fRunNumber > 0)
-  //    FillStatHisto(kRunDone);
-  //  fRunNumber = run;
-  //  LOG(INFO) << "Processing new run " << fRunNumber;
+  //  if (mRunNumber > 0)
+  //    fillStatHisto(kRunDone);
+  //  mRunNumber = run;
+  //  LOG(INFO) << "Processing new run " << mRunNumber;
   //  //
   //  // setup magnetic field
   //  if (fESDEvent &&
   //      (!TGeoGlobalMagField::Instance()->GetField() ||
-  //       !SmallerAbs(fESDEvent->GetMagneticField() - AliTrackerBase::GetBz(), 5e-4))) {
+  //       !smallerAbs(fESDEvent->GetMagneticField() - AliTrackerBase::GetBz(), 5e-4))) {
   //    fESDEvent->InitMagneticField();
   //  }
   //  //
-  //  if (!fUseRecoOCDB) {
+  //  if (!mUseRecoOCDB) {
   //    LOG(WARNING) << "Reco-time OCDB will NOT be preloaded";
   //    return;
   //  }
   //  LoadRecoTimeOCDB();
   //  //
-  //  for (int idet = 0; idet < fNDet; idet++) {
-  //    AliAlgDet* det = GetDetector(idet);
-  //    if (!det->IsDisabled())
-  //      det->AcknowledgeNewRun(run);
+  //  for (int idet = 0; idet < mNDet; idet++) {
+  //    AliAlgDet* det = getDetector(idet);
+  //    if (!det->isDisabled())
+  //      det->acknowledgeNewRun(run);
   //  }
   //  //
   //  // bring to virgin state
@@ -989,7 +989,7 @@ void AliAlgSteer::AcknowledgeNewRun(int run)
   //  //
   //  // LoadRefOCDB(); //??? we need to get back reference OCDB ???
   //  //
-  //  fStat[kInpStat][kRun]++;
+  //  mStat[kInpStat][kRun]++;
   //  //
 }
 
@@ -1000,22 +1000,22 @@ void AliAlgSteer::AcknowledgeNewRun(int run)
 //  // Load OCDB paths used for the reconstruction of data being processed
 //  // In order to avoid unnecessary uploads, the objects are not actually
 //  // loaded/cached but just added as specific paths with version
-//  LOG(INFO) << "Preloading Reco-Time OCDB for run " << fRunNumber << " from ESD UserInfo list";
+//  LOG(INFO) << "Preloading Reco-Time OCDB for run " << mRunNumber << " from ESD UserInfo list";
 //  //
 //  CleanOCDB();
 //  //
-//  if (!fRecoOCDBConf.IsNull() && !gSystem->AccessPathName(fRecoOCDBConf.Data(), kFileExists)) {
-//    LOG(INFO) << "Executing reco-time OCDB setup macro " << fRecoOCDBConf.Data();
-//    gROOT->ProcessLine(Form(".x %s(%d)", fRecoOCDBConf.Data(), fRunNumber));
+//  if (!mRecoOCDBConf.IsNull() && !gSystem->AccessPathName(mRecoOCDBConf.Data(), kFileExists)) {
+//    LOG(INFO) << "Executing reco-time OCDB setup macro " << mRecoOCDBConf.Data();
+//    gROOT->ProcessLine(Form(".x %s(%d)", mRecoOCDBConf.Data(), mRunNumber));
 //    if (AliCDBManager::Instance()->IsDefaultStorageSet())
 //      return true;
-//    LOG(FATAL) << "macro " << fRecoOCDBConf.Data() << " failed to configure reco-time OCDB";
+//    LOG(FATAL) << "macro " << mRecoOCDBConf.Data() << " failed to configure reco-time OCDB";
 //  } else
-//    LOG(WARNING) << "No reco-time OCDB config macro" << fRecoOCDBConf.Data() << "  is found, will use ESD:UserInfo";
+//    LOG(WARNING) << "No reco-time OCDB config macro" << mRecoOCDBConf.Data() << "  is found, will use ESD:UserInfo";
 //  //
-//  if (!fESDTree)
+//  if (!mESDTree)
 //    LOG(FATAL) << "Cannot preload Reco-Time OCDB since the ESD tree is not set";
-//  const TTree* tr = fESDTree; // go the the real ESD tree
+//  const TTree* tr = mESDTree; // go the the real ESD tree
 //  while (tr->GetTree() && tr->GetTree() != tr)
 //    tr = tr->GetTree();
 //  //
@@ -1028,16 +1028,16 @@ void AliAlgSteer::AcknowledgeNewRun(int run)
 //    LOG(FATAL) << "Failed to extract cdbMap and cdbList from UserInfo list";
 //  }
 //  //
-//  return PreloadOCDB(fRunNumber, cdbMap, cdbList);
+//  return PreloadOCDB(mRunNumber, cdbMap, cdbList);
 //}
 
 //_________________________________________________________
-AliAlgDet* AliAlgSteer::GetDetectorByVolID(int vid) const
+AliAlgDet* AliAlgSteer::getDetectorByVolID(int vid) const
 {
   // get detector by sensor volid
-  for (int i = fNDet; i--;)
-    if (fDetectors[i]->SensorOfDetector(vid))
-      return fDetectors[i];
+  for (int i = mNDet; i--;)
+    if (mDetectors[i]->sensorOfDetector(vid))
+      return mDetectors[i];
   return 0;
 }
 
@@ -1047,104 +1047,104 @@ void AliAlgSteer::Print(const Option_t* opt) const
   // print info
   TString opts = opt;
   opts.ToLower();
-  printf("%5d DOFs in %d detectors", fNDOFs, fNDet);
-  if (!fConfMacroName.IsNull())
-    printf("(config: %s)", fConfMacroName.Data());
+  printf("%5d DOFs in %d detectors", mNDOFs, mNDet);
+  if (!mConfMacroName.IsNull())
+    printf("(config: %s)", mConfMacroName.Data());
   printf("\n");
-  if (GetMPAlignDone())
+  if (getMPAlignDone())
     printf("ALIGNMENT FROM MILLEPEDE SOLUTION IS APPLIED\n");
   //
   for (int idt = 0; idt < kNDetectors; idt++) {
-    AliAlgDet* det = GetDetectorByDetID(idt);
+    AliAlgDet* det = getDetectorByDetID(idt);
     if (!det)
       continue;
     det->Print(opt);
   }
   if (!opts.IsNull()) {
     printf("\nSpecial sensor for Vertex Constraint\n");
-    fVtxSens->Print(opt);
+    mVtxSens->Print(opt);
   }
   //
   // event selection
   printf("\n");
   printf("%-40s:\t", "Alowed event specii mask");
-  PrintBits((uint64_t)fSelEventSpecii, 5);
+  printBits((uint64_t)mSelEventSpecii, 5);
   printf("\n");
   printf("%-40s:\t%d/%d\n", "Min points per collisions track (BOff/ON)",
-         fMinPoints[kColl][0], fMinPoints[kColl][1]);
+         mMinPoints[kColl][0], mMinPoints[kColl][1]);
   printf("%-40s:\t%d/%d\n", "Min points per cosmic track leg (BOff/ON)",
-         fMinPoints[kCosm][0], fMinPoints[kCosm][1]);
-  printf("%-40s:\t%d\n", "Min detectots per collision track", fMinDetAcc[kColl]);
-  printf("%-40s:\t%d (%s)\n", "Min detectots per cosmic track/leg", fMinDetAcc[kCosm],
-         fCosmicSelStrict ? "STRICT" : "SOFT");
-  printf("%-40s:\t%d/%d\n", "Min/Max vertex contrib. to accept event", fVtxMinCont, fVtxMaxCont);
-  printf("%-40s:\t%d\n", "Min vertex contrib. for constraint", fVtxMinContVC);
-  printf("%-40s:\t%d\n", "Min Ncl ITS for vertex constraint", fMinITSClforVC);
+         mMinPoints[kCosm][0], mMinPoints[kCosm][1]);
+  printf("%-40s:\t%d\n", "Min detectots per collision track", mMinDetAcc[kColl]);
+  printf("%-40s:\t%d (%s)\n", "Min detectots per cosmic track/leg", mMinDetAcc[kCosm],
+         mCosmicSelStrict ? "STRICT" : "SOFT");
+  printf("%-40s:\t%d/%d\n", "Min/Max vertex contrib. to accept event", mVtxMinCont, mVtxMaxCont);
+  printf("%-40s:\t%d\n", "Min vertex contrib. for constraint", mVtxMinContVC);
+  printf("%-40s:\t%d\n", "Min Ncl ITS for vertex constraint", mMinITSClforVC);
   printf("%-40s:\t%s\n", "SPD request for vertex constraint",
-         //         AliAlgDetITS::GetITSPattName(fITSPattforVC)); FIXME(milettri): needs AliAlgDetITS
+         //         AliAlgDetITS::GetITSPattName(mITSPattforVC)); FIXME(milettri): needs AliAlgDetITS
          "ITSNAME"); // FIXME(milettri): needs AliAlgDetITS
   printf("%-40s:\t%.4f/%.4f/%.2f\n", "DCAr/DCAz/Chi2 cut for vertex constraint",
-         fMaxDCAforVC[0], fMaxDCAforVC[1], fMaxChi2forVC);
-  printf("Collision tracks: Min pT: %5.2f |etaMax|: %5.2f\n", fPtMin[kColl], fEtaMax[kColl]);
-  printf("Cosmic    tracks: Min pT: %5.2f |etaMax|: %5.2f\n", fPtMin[kCosm], fEtaMax[kCosm]);
+         mMaxDCAforVC[0], mMaxDCAforVC[1], mMaxChi2forVC);
+  printf("Collision tracks: Min pT: %5.2f |etaMax|: %5.2f\n", mPtMin[kColl], mEtaMax[kColl]);
+  printf("Cosmic    tracks: Min pT: %5.2f |etaMax|: %5.2f\n", mPtMin[kCosm], mEtaMax[kCosm]);
   //
-  printf("%-40s:\t%s", "Config. for reference OCDB", fRefOCDBConf.Data());
-  if (fRefRunNumber >= 0)
-    printf("(%d)", fRefRunNumber);
+  printf("%-40s:\t%s", "Config. for reference OCDB", mRefOCDBConf.Data());
+  if (mRefRunNumber >= 0)
+    printf("(%d)", mRefRunNumber);
   printf("\n");
-  printf("%-40s:\t%s\n", "Config. for reco-time OCDB", fRecoOCDBConf.Data());
+  printf("%-40s:\t%s\n", "Config. for reco-time OCDB", mRecoOCDBConf.Data());
   //
-  printf("%-40s:\t%s\n", "Output OCDB path", fOutCDBPath.Data());
+  printf("%-40s:\t%s\n", "Output OCDB path", mOutCDBPath.Data());
   printf("%-40s:\t%s/%s\n", "Output OCDB comment/responsible",
-         fOutCDBComment.Data(), fOutCDBResponsible.Data());
-  printf("%-40s:\t%6d:%6d\n", "Output OCDB run range", fOutCDBRunRange[0], fOutCDBRunRange[1]);
+         mOutCDBComment.Data(), mOutCDBResponsible.Data());
+  printf("%-40s:\t%6d:%6d\n", "Output OCDB run range", mOutCDBRunRange[0], mOutCDBRunRange[1]);
   //
-  printf("%-40s:\t%s\n", "Filename for MillePede steering", fMPSteerFileName.Data());
-  printf("%-40s:\t%s\n", "Filename for MillePede parameters", fMPParFileName.Data());
-  printf("%-40s:\t%s\n", "Filename for MillePede constraints", fMPConFileName.Data());
-  printf("%-40s:\t%s\n", "Filename for control residuals:", fResidFileName.Data());
-  printf("%-40s:\t%.3f\n", "Fraction of control tracks", fControlFrac);
+  printf("%-40s:\t%s\n", "Filename for MillePede steering", mMPSteerFileName.Data());
+  printf("%-40s:\t%s\n", "Filename for MillePede parameters", mMPParFileName.Data());
+  printf("%-40s:\t%s\n", "Filename for MillePede constraints", mMPConFileName.Data());
+  printf("%-40s:\t%s\n", "Filename for control residuals:", mResidFileName.Data());
+  printf("%-40s:\t%.3f\n", "Fraction of control tracks", mControlFrac);
   printf("MPData output :\t");
-  if (GetProduceMPData())
-    printf("%s%s ", fMPDatFileName.Data(), fgkMPDataExt);
-  if (GetProduceMPRecord())
-    printf("%s%s ", fMPDatFileName.Data(), ".root");
+  if (getProduceMPData())
+    printf("%s%s ", mMPDatFileName.Data(), sMPDataExt);
+  if (getProduceMPRecord())
+    printf("%s%s ", mMPDatFileName.Data(), ".root");
   printf("\n");
   //
   if (opts.Contains("stat"))
-    PrintStatistics();
+    printStatistics();
 }
 
 //________________________________________________________
-void AliAlgSteer::PrintStatistics() const
+void AliAlgSteer::printStatistics() const
 {
   // print processing stat
   printf("\nProcessing Statistics\n");
   printf("Type: ");
   for (int i = 0; i < kMaxStat; i++)
-    printf("%s ", fgkStatName[i]);
+    printf("%s ", sStatName[i]);
   printf("\n");
   for (int icl = 0; icl < kNStatCl; icl++) {
-    printf("%s ", fgkStatClName[icl]);
+    printf("%s ", sStatClName[icl]);
     for (int i = 0; i < kMaxStat; i++)
-      printf(Form("%%%dd ", (int)strlen(fgkStatName[i])), (int)fStat[icl][i]);
+      printf(Form("%%%dd ", (int)strlen(sStatName[i])), (int)mStat[icl][i]);
     printf("\n");
   }
 }
 
 //________________________________________________________
-void AliAlgSteer::ResetDetectors()
+void AliAlgSteer::resetDetectors()
 {
   // reset detectors for next track
-  fRefPoint->Clear();
-  for (int idet = fNDet; idet--;) {
-    AliAlgDet* det = GetDetector(idet);
-    det->ResetPool(); // reset used alignment points
+  mRefPoint->Clear();
+  for (int idet = mNDet; idet--;) {
+    AliAlgDet* det = getDetector(idet);
+    det->resetPool(); // reset used alignment points
   }
 }
 
 //____________________________________________
-bool AliAlgSteer::TestLocalSolution()
+bool AliAlgSteer::testLocalSolution()
 {
   LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
   //FIXME(milettri): needs AliSymMatrix
@@ -1163,17 +1163,17 @@ bool AliAlgSteer::TestLocalSolution()
   //  //
   //  /*
   //  // print solution vector
-  //  int nlocpar = fAlgTrack->GetNLocPar();
-  //  int nlocparETP = fAlgTrack->GetNLocExtPar(); // parameters of external track param
+  //  int nlocpar = mAlgTrack->getNLocPar();
+  //  int nlocparETP = mAlgTrack->getNLocExtPar(); // parameters of external track param
   //  printf("ETP Update: ");
   //  for (int i=0;i<nlocparETP;i++) printf("%+.2e(%+.2e) ",vsl[i],Sqrt((*mat)(i,i))); printf("\n");
   //  //
   //  if (nlocpar>nlocparETP) printf("Mat.Corr. update:\n");
-  //  for (int ip=fAlgTrack->GetNPoints();ip--;) {
-  //    AliAlgPoint* pnt = fAlgTrack->GetPoint(ip);
-  //    int npm = pnt->GetNMatPar();
-  //    const float* expMatCov  = pnt->GetMatCorrCov(); // its error
-  //    int offs  = pnt->GetMaxLocVarID() - npm;
+  //  for (int ip=mAlgTrack->getNPoints();ip--;) {
+  //    AliAlgPoint* pnt = mAlgTrack->getPoint(ip);
+  //    int npm = pnt->getNMatPar();
+  //    const float* expMatCov  = pnt->getMatCorrCov(); // its error
+  //    int offs  = pnt->getMaxLocVarID() - npm;
   //    for (int ipar=0;ipar<npm;ipar++) {
   //      int parI = offs + ipar;
   //      double err = Sqrt(expMatCov[ipar]);
@@ -1184,10 +1184,10 @@ bool AliAlgSteer::TestLocalSolution()
   //  */
   //  //
   //  // increment current params by new solution
-  //  rhs.SetElements(fAlgTrack->GetLocPars());
+  //  rhs.SetElements(mAlgTrack->getLocPars());
   //  vsl += rhs;
-  //  fAlgTrack->SetLocPars(vsl.GetMatrixArray());
-  //  fAlgTrack->CalcResiduals();
+  //  mAlgTrack->setLocPars(vsl.GetMatrixArray());
+  //  mAlgTrack->calcResiduals();
   //  delete mat;
   //  //
   return true;
@@ -1198,8 +1198,8 @@ bool AliAlgSteer::TestLocalSolution()
 //AliSymMatrix* AliAlgSteer::BuildMatrix(TVectorD& vec)
 //{
 //  // build matrix/vector for local track
-//  int npnt = fAlgTrack->GetNPoints();
-//  int nlocpar = fAlgTrack->GetNLocPar();
+//  int npnt = mAlgTrack->getNPoints();
+//  int nlocpar = mAlgTrack->getNLocPar();
 //  //
 //  vec.ResizeTo(nlocpar);
 //  memset(vec.GetMatrixArray(), 0, nlocpar * sizeof(double));
@@ -1207,14 +1207,14 @@ bool AliAlgSteer::TestLocalSolution()
 //  AliSymMatrix& mat = *matp;
 //  //
 //  for (int ip = npnt; ip--;) {
-//    AliAlgPoint* pnt = fAlgTrack->GetPoint(ip);
+//    AliAlgPoint* pnt = mAlgTrack->getPoint(ip);
 //    //
-//    if (pnt->ContainsMeasurement()) {
+//    if (pnt->containsMeasurement()) {
 //      //      pnt->Print("meas");
 //      for (int idim = 2; idim--;) {                       // each point has 2 position residuals
-//        double sigma2 = pnt->GetErrDiag(idim);            // residual error
-//        double resid = fAlgTrack->GetResidual(idim, ip);  // residual
-//        double* deriv = fAlgTrack->GetDResDLoc(idim, ip); // array of Dresidual/Dparams
+//        double sigma2 = pnt->getErrDiag(idim);            // residual error
+//        double resid = mAlgTrack->getResidual(idim, ip);  // residual
+//        double* deriv = mAlgTrack->getDResDLoc(idim, ip); // array of Dresidual/Dparams
 //        //
 //        double sg2inv = 1. / sigma2;
 //        for (int parI = nlocpar; parI--;) {
@@ -1230,12 +1230,12 @@ bool AliAlgSteer::TestLocalSolution()
 //    //
 //    // if the point contains material, consider its expected kinks, eloss
 //    // as measurements
-//    if (pnt->ContainsMaterial()) {
+//    if (pnt->containsMaterial()) {
 //      // at least 4 parameters: 2 spatial + 2 angular kinks with 0 expectaction
-//      int npm = pnt->GetNMatPar();
-//      // const float* expMatCorr = pnt->GetMatCorrExp(); // expected correction (diagonalized)
-//      const float* expMatCov = pnt->GetMatCorrCov(); // its error
-//      int offs = pnt->GetMaxLocVarID() - npm;
+//      int npm = pnt->getNMatPar();
+//      // const float* expMatCorr = pnt->getMatCorrExp(); // expected correction (diagonalized)
+//      const float* expMatCov = pnt->getMatCorrCov(); // its error
+//      int offs = pnt->getMaxLocVarID() - npm;
 //      for (int ipar = 0; ipar < npm; ipar++) {
 //        int parI = offs + ipar;
 //        // expected
@@ -1251,169 +1251,169 @@ bool AliAlgSteer::TestLocalSolution()
 //}
 
 //____________________________________________
-void AliAlgSteer::InitMPRecOutput()
+void AliAlgSteer::initMPRecOutput()
 {
   // prepare MP record output
-  if (!fMPRecord)
-    fMPRecord = new AliAlgMPRecord();
+  if (!mMPRecord)
+    mMPRecord = new AliAlgMPRecord();
   //
-  TString mo = Form("%s%s", fMPDatFileName.Data(), ".root");
-  fMPRecFile = TFile::Open(mo.Data(), "recreate");
-  if (!fMPRecFile)
+  TString mo = Form("%s%s", mMPDatFileName.Data(), ".root");
+  mMPRecFile = TFile::Open(mo.Data(), "recreate");
+  if (!mMPRecFile)
     LOG(FATAL) << "Failed to create output file " << mo.Data();
   //
-  fMPRecTree = new TTree("mpTree", "MPrecord Tree");
-  fMPRecTree->Branch("mprec", "AliAlgMPRecord", &fMPRecord);
+  mMPRecTree = new TTree("mpTree", "MPrecord Tree");
+  mMPRecTree->Branch("mprec", "AliAlgMPRecord", &mMPRecord);
   //
 }
 
 //____________________________________________
-void AliAlgSteer::InitResidOutput()
+void AliAlgSteer::initResidOutput()
 {
   // prepare residual output
-  if (!fCResid)
-    fCResid = new AliAlgRes();
+  if (!mCResid)
+    mCResid = new AliAlgRes();
   //
-  fResidFile = TFile::Open(fResidFileName.Data(), "recreate");
-  if (!fResidFile)
-    LOG(FATAL) << "Failed to create output file " << fResidFileName.Data();
+  mResidFile = TFile::Open(mResidFileName.Data(), "recreate");
+  if (!mResidFile)
+    LOG(FATAL) << "Failed to create output file " << mResidFileName.Data();
   //
-  fResidTree = new TTree("res", "Control Residuals");
-  fResidTree->Branch("t", "AliAlgRes", &fCResid);
+  mResidTree = new TTree("res", "Control Residuals");
+  mResidTree->Branch("t", "AliAlgRes", &mCResid);
   //
 }
 
 //____________________________________________
-void AliAlgSteer::CloseMPRecOutput()
+void AliAlgSteer::closeMPRecOutput()
 {
   // close output
-  if (!fMPRecFile)
+  if (!mMPRecFile)
     return;
-  LOG(INFO) << "Closing " << fMPRecFile->GetName();
-  fMPRecFile->cd();
-  fMPRecTree->Write();
-  delete fMPRecTree;
-  fMPRecTree = 0;
-  fMPRecFile->Close();
-  delete fMPRecFile;
-  fMPRecFile = 0;
-  delete fMPRecord;
-  fMPRecord = 0;
+  LOG(INFO) << "Closing " << mMPRecFile->GetName();
+  mMPRecFile->cd();
+  mMPRecTree->Write();
+  delete mMPRecTree;
+  mMPRecTree = 0;
+  mMPRecFile->Close();
+  delete mMPRecFile;
+  mMPRecFile = 0;
+  delete mMPRecord;
+  mMPRecord = 0;
 }
 
 //____________________________________________
-void AliAlgSteer::CloseResidOutput()
+void AliAlgSteer::closeResidOutput()
 {
   // close output
-  if (!fResidFile)
+  if (!mResidFile)
     return;
-  LOG(INFO) << "Closing " << fResidFile->GetName();
-  fResidFile->cd();
-  fResidTree->Write();
-  delete fResidTree;
-  fResidTree = 0;
-  fResidFile->Close();
-  delete fResidFile;
-  fResidFile = 0;
-  delete fCResid;
-  fCResid = 0;
+  LOG(INFO) << "Closing " << mResidFile->GetName();
+  mResidFile->cd();
+  mResidTree->Write();
+  delete mResidTree;
+  mResidTree = 0;
+  mResidFile->Close();
+  delete mResidFile;
+  mResidFile = 0;
+  delete mCResid;
+  mCResid = 0;
 }
 
 //____________________________________________
-void AliAlgSteer::CloseMilleOutput()
+void AliAlgSteer::closeMilleOutput()
 {
   // close output
-  if (fMille)
-    LOG(INFO) << "Closing " << fMPDatFileName.Data() << fgkMPDataExt;
-  delete fMille;
-  fMille = 0;
+  if (mMille)
+    LOG(INFO) << "Closing " << mMPDatFileName.Data() << sMPDataExt;
+  delete mMille;
+  mMille = 0;
 }
 
 //____________________________________________
-void AliAlgSteer::SetMPDatFileName(const char* name)
+void AliAlgSteer::setMPDatFileName(const char* name)
 {
   // set output file name
-  fMPDatFileName = name;
+  mMPDatFileName = name;
   // strip root or mille extensions, they will be added automatically later
-  if (fMPDatFileName.EndsWith(fgkMPDataExt))
-    fMPDatFileName.Remove(fMPDatFileName.Length() - strlen(fgkMPDataExt));
-  else if (fMPDatFileName.EndsWith(".root"))
-    fMPDatFileName.Remove(fMPDatFileName.Length() - strlen(".root"));
+  if (mMPDatFileName.EndsWith(sMPDataExt))
+    mMPDatFileName.Remove(mMPDatFileName.Length() - strlen(sMPDataExt));
+  else if (mMPDatFileName.EndsWith(".root"))
+    mMPDatFileName.Remove(mMPDatFileName.Length() - strlen(".root"));
   //
-  if (fMPDatFileName.IsNull())
-    fMPDatFileName = "mpData";
+  if (mMPDatFileName.IsNull())
+    mMPDatFileName = "mpData";
   //
 }
 
 //____________________________________________
-void AliAlgSteer::SetMPParFileName(const char* name)
+void AliAlgSteer::setMPParFileName(const char* name)
 {
   // set MP params output file name
-  fMPParFileName = name;
-  if (fMPParFileName.IsNull())
-    fMPParFileName = "mpParams.txt";
+  mMPParFileName = name;
+  if (mMPParFileName.IsNull())
+    mMPParFileName = "mpParams.txt";
   //
 }
 
 //____________________________________________
-void AliAlgSteer::SetMPConFileName(const char* name)
+void AliAlgSteer::setMPConFileName(const char* name)
 {
   // set MP constraints output file name
-  fMPConFileName = name;
-  if (fMPConFileName.IsNull())
-    fMPConFileName = "mpConstraints.txt";
+  mMPConFileName = name;
+  if (mMPConFileName.IsNull())
+    mMPConFileName = "mpConstraints.txt";
   //
 }
 
 //____________________________________________
-void AliAlgSteer::SetMPSteerFileName(const char* name)
+void AliAlgSteer::setMPSteerFileName(const char* name)
 {
   // set MP constraints output file name
-  fMPSteerFileName = name;
-  if (fMPSteerFileName.IsNull())
-    fMPSteerFileName = "mpConstraints.txt";
+  mMPSteerFileName = name;
+  if (mMPSteerFileName.IsNull())
+    mMPSteerFileName = "mpConstraints.txt";
   //
 }
 
 //____________________________________________
-void AliAlgSteer::SetResidFileName(const char* name)
+void AliAlgSteer::setResidFileName(const char* name)
 {
   // set output file name
-  fResidFileName = name;
-  if (fResidFileName.IsNull())
-    fResidFileName = "mpControlRes.root";
+  mResidFileName = name;
+  if (mResidFileName.IsNull())
+    mResidFileName = "mpControlRes.root";
   //
 }
 
 //____________________________________________
-void AliAlgSteer::SetOutCDBPath(const char* name)
+void AliAlgSteer::setOutCDBPath(const char* name)
 {
   // set output storage name
-  fOutCDBPath = name;
-  if (fOutCDBPath.IsNull())
-    fOutCDBPath = "local://outOCDB";
+  mOutCDBPath = name;
+  if (mOutCDBPath.IsNull())
+    mOutCDBPath = "local://outOCDB";
   //
 }
 
 //____________________________________________
-void AliAlgSteer::SetObligatoryDetector(int detID, int trtype, bool v)
+void AliAlgSteer::setObligatoryDetector(int detID, int trtype, bool v)
 {
   // mark detector presence obligatory in the track of given type
-  AliAlgDet* det = GetDetectorByDetID(detID);
+  AliAlgDet* det = getDetectorByDetID(detID);
   if (!det) {
     LOG(ERROR) << "Detector " << detID << " is not defined";
   }
   if (v)
-    fObligatoryDetPattern[trtype] |= 0x1 << detID;
+    mObligatoryDetPattern[trtype] |= 0x1 << detID;
   else
-    fObligatoryDetPattern[trtype] &= ~(0x1 << detID);
-  if (det->IsObligatory(trtype) != v)
-    det->SetObligatory(trtype, v);
+    mObligatoryDetPattern[trtype] &= ~(0x1 << detID);
+  if (det->isObligatory(trtype) != v)
+    det->setObligatory(trtype, v);
   //
 }
 
 //____________________________________________
-bool AliAlgSteer::AddVertexConstraint()
+bool AliAlgSteer::addVertexConstraint()
 {
   LOG(FATAL) << __PRETTY_FUNCTION__ << " is disabled";
   //FIXME(milettri): needs AliESDtrack
@@ -1423,58 +1423,58 @@ bool AliAlgSteer::AddVertexConstraint()
   //  if (!fVertex || !esdTr)
   //    return false;
   //  //
-  //  if (esdTr->GetNcls(0) < fMinITSClforVC)
+  //  if (esdTr->GetNcls(0) < mMinITSClforVC)
   //    return false; // not enough ITS clusters
-  //  if (!AliAlgDetITS::CheckHitPattern(esdTr, fITSPattforVC))
+  //  if (!AliAlgDetITS::CheckHitPattern(esdTr, mITSPattforVC))
   //    return false;
   //  //
   //  AliExternalTrackParam trc = *esdTr;
   //  double dz[2], dzCov[3];
-  //  if (!trc.PropagateToDCA(fVertex, AliTrackerBase::GetBz(), 2 * fMaxDCAforVC[0], dz, dzCov))
+  //  if (!trc.PropagateToDCA(fVertex, AliTrackerBase::GetBz(), 2 * mMaxDCAforVC[0], dz, dzCov))
   //    return false;
   //  //
   //  // check if primary candidate
-  //  if (Abs(dz[0]) > fMaxDCAforVC[0] || Abs(dz[1]) > fMaxDCAforVC[1])
+  //  if (Abs(dz[0]) > mMaxDCAforVC[0] || Abs(dz[1]) > mMaxDCAforVC[1])
   //    return false;
   //  double covar[6];
   //  fVertex->GetCovMatrix(covar);
   //  double p[2] = {trc.GetParameter()[0] - dz[0], trc.GetParameter()[1] - dz[1]};
   //  double c[3] = {0.5 * (covar[0] + covar[2]), 0., covar[5]};
   //  double chi2 = trc.GetPredictedChi2(p, c);
-  //  if (chi2 > fMaxChi2forVC)
+  //  if (chi2 > mMaxChi2forVC)
   //    return false;
   //  //
   //  // assing measured vertex rotated to VtxSens frame as reference point
   //  double xyz[3], xyzT[3];
   //  fVertex->GetXYZ(xyz);
-  //  fVtxSens->SetAlpha(trc.GetAlpha());
+  //  mVtxSens->setAlpha(trc.GetAlpha());
   //  // usually translation from GLO to TRA frame should go via matrix T2G
   //  // but for the VertexSensor Local and Global are the same frames
-  //  fVtxSens->ApplyCorrection(xyz);
-  //  fVtxSens->GetMatrixT2L().MasterToLocal(xyz, xyzT);
-  //  fRefPoint->SetSensor(fVtxSens);
-  //  fRefPoint->SetAlphaSens(fVtxSens->GetAlpTracking());
-  //  fRefPoint->SetXYZTracking(xyzT);
-  //  fRefPoint->SetYZErrTracking(c);
-  //  fRefPoint->SetContainsMeasurement(true);
-  //  fRefPoint->Init();
+  //  mVtxSens->applyCorrection(xyz);
+  //  mVtxSens->getMatrixT2L().MasterToLocal(xyz, xyzT);
+  //  mRefPoint->setSensor(mVtxSens);
+  //  mRefPoint->setAlphaSens(mVtxSens->getAlpTracking());
+  //  mRefPoint->setXYZTracking(xyzT);
+  //  mRefPoint->setYZErrTracking(c);
+  //  mRefPoint->setContainsMeasurement(true);
+  //  mRefPoint->init();
   //  //
   return true;
 }
 
 //FIXME(milettri): needs OCDB
 ////______________________________________________________
-//void AliAlgSteer::WriteCalibrationResults() const
+//void AliAlgSteer::writeCalibrationResults() const
 //{
 //  // writes output calibration
 //  CleanOCDB();
-//  AliCDBManager::Instance()->SetDefaultStorage(fOutCDBPath.Data());
+//  AliCDBManager::Instance()->SetDefaultStorage(mOutCDBPath.Data());
 //  //
 //  AliAlgDet* det;
 //  for (int idet = 0; idet < kNDetectors; idet++) {
-//    if (!(det = GetDetectorByDetID(idet)) || det->IsDisabled())
+//    if (!(det = getDetectorByDetID(idet)) || det->isDisabled())
 //      continue;
-//    det->WriteCalibrationResults();
+//    det->writeCalibrationResults();
 //  }
 //  //
 //}
@@ -1484,8 +1484,8 @@ bool AliAlgSteer::AddVertexConstraint()
 //void AliAlgSteer::SetOutCDBRunRange(int rmin, int rmax)
 //{
 //  // set output run range
-//  fOutCDBRunRange[0] = rmin >= 0 ? rmin : 0;
-//  fOutCDBRunRange[1] = rmax > fOutCDBRunRange[0] ? rmax : AliCDBRunRange::Infinity();
+//  mOutCDBRunRange[0] = rmin >= 0 ? rmin : 0;
+//  mOutCDBRunRange[1] = rmax > mOutCDBRunRange[0] ? rmax : AliCDBRunRange::Infinity();
 //}
 
 //FIXME(milettri): needs OCDB
@@ -1501,14 +1501,14 @@ bool AliAlgSteer::AddVertexConstraint()
 //  CleanOCDB();
 //  AliCDBManager* man = AliCDBManager::Instance();
 //  //
-//  if (!fRefOCDBConf.IsNull() && !gSystem->AccessPathName(fRefOCDBConf.Data(), kFileExists)) {
-//    LOG(INFO) << "Executing reference OCDB setup macro %s", fRefOCDBConf.Data());
-//    if (fRefRunNumber > 0)
-//      gROOT->ProcessLine(Form(".x %s(%d)", fRefOCDBConf.Data(), fRefRunNumber));
+//  if (!mRefOCDBConf.IsNull() && !gSystem->AccessPathName(mRefOCDBConf.Data(), kFileExists)) {
+//    LOG(INFO) << "Executing reference OCDB setup macro %s", mRefOCDBConf.Data());
+//    if (mRefRunNumber > 0)
+//      gROOT->ProcessLine(Form(".x %s(%d)", mRefOCDBConf.Data(), mRefRunNumber));
 //    else
-//      gROOT->ProcessLine(Form(".x %s", fRefOCDBConf.Data()));
+//      gROOT->ProcessLine(Form(".x %s", mRefOCDBConf.Data()));
 //  } else {
-//    LOG(WARNING) << "No reference OCDB config macro "<<fRefOCDBConf.Data()<<" is found, assume raw:// with run " << AliCDBRunRange::Infinity();
+//    LOG(WARNING) << "No reference OCDB config macro "<<mRefOCDBConf.Data()<<" is found, assume raw:// with run " << AliCDBRunRange::Infinity();
 //    man->SetRaw(true);
 //    man->SetRun(AliCDBRunRange::Infinity());
 //  }
@@ -1523,86 +1523,86 @@ bool AliAlgSteer::AddVertexConstraint()
 //  //
 //  TString detList = "";
 //  for (int i = 0; i < kNDetectors; i++) {
-//    detList += GetDetNameByDetID(i);
+//    detList += getDetNameByDetID(i);
 //    detList += " ";
 //  }
 //  AliGeomManager::ApplyAlignObjsFromCDB(detList.Data());
 //  //
-//  fRefOCDBLoaded++;
+//  mRefOCDBLoaded++;
 //  //
 //  return true;
 //}
 
 //________________________________________________________
-AliAlgDet* AliAlgSteer::GetDetOfDOFID(int id) const
+AliAlgDet* AliAlgSteer::getDetOfDOFID(int id) const
 {
   // return detector owning DOF with this ID
-  for (int i = fNDet; i--;) {
-    AliAlgDet* det = GetDetector(i);
-    if (det->OwnsDOFID(id))
+  for (int i = mNDet; i--;) {
+    AliAlgDet* det = getDetector(i);
+    if (det->ownsDOFID(id))
       return det;
   }
   return 0;
 }
 
 //________________________________________________________
-AliAlgVol* AliAlgSteer::GetVolOfDOFID(int id) const
+AliAlgVol* AliAlgSteer::getVolOfDOFID(int id) const
 {
   // return volume owning DOF with this ID
-  for (int i = fNDet; i--;) {
-    AliAlgDet* det = GetDetector(i);
-    if (det->OwnsDOFID(id))
-      return det->GetVolOfDOFID(id);
+  for (int i = mNDet; i--;) {
+    AliAlgDet* det = getDetector(i);
+    if (det->ownsDOFID(id))
+      return det->getVolOfDOFID(id);
   }
-  if (fVtxSens && fVtxSens->OwnsDOFID(id))
-    return fVtxSens;
+  if (mVtxSens && mVtxSens->ownsDOFID(id))
+    return mVtxSens;
   return 0;
 }
 
 //________________________________________________________
-void AliAlgSteer::Terminate(bool doStat)
+void AliAlgSteer::terminate(bool doStat)
 {
   // finalize processing
-  if (fRunNumber > 0)
-    FillStatHisto(kRunDone);
+  if (mRunNumber > 0)
+    fillStatHisto(kRunDone);
   if (doStat) {
-    if (fDOFStat)
-      delete fDOFStat;
-    fDOFStat = new AliAlgDOFStat(fNDOFs);
+    if (mDOFStat)
+      delete mDOFStat;
+    mDOFStat = new AliAlgDOFStat(mNDOFs);
   }
-  if (fVtxSens)
-    fVtxSens->FillDOFStat(fDOFStat);
+  if (mVtxSens)
+    mVtxSens->fillDOFStat(mDOFStat);
   //
-  for (int i = fNDet; i--;)
-    GetDetector(i)->Terminate();
-  CloseMPRecOutput();
-  CloseMilleOutput();
-  CloseResidOutput();
+  for (int i = mNDet; i--;)
+    getDetector(i)->terminate();
+  closeMPRecOutput();
+  closeMilleOutput();
+  closeResidOutput();
   Print("stat");
   //
 }
 
 //________________________________________________________
-char* AliAlgSteer::GetDOFLabelTxt(int idf) const
+Char_t* AliAlgSteer::getDOFLabelTxt(int idf) const
 {
   // get DOF full label
-  AliAlgVol* vol = GetVolOfDOFID(idf);
+  AliAlgVol* vol = getVolOfDOFID(idf);
   if (vol)
-    return Form("%d_%s_%s", GetGloParLab(idf), vol->GetSymName(),
-                vol->GetDOFName(idf - vol->GetFirstParGloID()));
+    return Form("%d_%s_%s", getGloParLab(idf), vol->getSymName(),
+                vol->getDOFName(idf - vol->getFirstParGloID()));
   //
   // this might be detector-specific calibration dof
-  AliAlgDet* det = GetDetOfDOFID(idf);
+  AliAlgDet* det = getDetOfDOFID(idf);
   if (det)
-    return Form("%d_%s_%s", GetGloParLab(idf), det->GetName(),
-                det->GetCalibDOFName(idf - det->GetFirstParGloID()));
+    return Form("%d_%s_%s", getGloParLab(idf), det->GetName(),
+                det->getCalibDOFName(idf - det->getFirstParGloID()));
   return 0;
 }
 
 //********************* interaction with PEDE **********************
 
 //______________________________________________________
-void AliAlgSteer::GenPedeSteerFile(const Option_t* opt) const
+void AliAlgSteer::genPedeSteerFile(const Option_t* opt) const
 {
   // produce steering file template for PEDE + params and constraints
   //
@@ -1616,16 +1616,16 @@ void AliAlgSteer::GenPedeSteerFile(const Option_t* opt) const
   TString opts = opt;
   opts.ToLower();
   LOG(INFO) << "Generating MP2 templates:\n "
-            << "Steering   :\t" << fMPSteerFileName.Data() << "\n"
-            << "Parameters :\t" << fMPParFileName.Data() << "\n"
-            << "Constraints:\t" << fMPConFileName.Data() << "\n";
+            << "Steering   :\t" << mMPSteerFileName.Data() << "\n"
+            << "Parameters :\t" << mMPParFileName.Data() << "\n"
+            << "Constraints:\t" << mMPConFileName.Data() << "\n";
   //
-  FILE* parFl = fopen(fMPParFileName.Data(), "w+");
-  FILE* strFl = fopen(fMPSteerFileName.Data(), "w+");
+  FILE* parFl = fopen(mMPParFileName.Data(), "w+");
+  FILE* strFl = fopen(mMPSteerFileName.Data(), "w+");
   //
   // --- template of steering file
-  fprintf(strFl, "%-20s%s %s\n", fMPParFileName.Data(), cmt[kOnOn], "parameters template");
-  fprintf(strFl, "%-20s%s %s\n", fMPConFileName.Data(), cmt[kOnOn], "constraints template");
+  fprintf(strFl, "%-20s%s %s\n", mMPParFileName.Data(), cmt[kOnOn], "parameters template");
+  fprintf(strFl, "%-20s%s %s\n", mMPConFileName.Data(), cmt[kOnOn], "constraints template");
   //
   fprintf(strFl, "\n\n%s %s\n", cmt[kOnOn], "MUST uncomment 1 solving methods and tune it");
   //
@@ -1651,18 +1651,18 @@ void AliAlgSteer::GenPedeSteerFile(const Option_t* opt) const
   //
   fprintf(strFl, "\n\n\n%s%-20s %s %s\n\n\n", cmt[kOff], "CFiles", cmt[kOnOn], "put below *.mille files list");
   //
-  if (fVtxSens)
-    fVtxSens->WritePedeInfo(parFl, opt);
+  if (mVtxSens)
+    mVtxSens->writePedeInfo(parFl, opt);
   //
   for (int idt = 0; idt < kNDetectors; idt++) {
-    AliAlgDet* det = GetDetectorByDetID(idt);
-    if (!det || det->IsDisabled())
+    AliAlgDet* det = getDetectorByDetID(idt);
+    if (!det || det->isDisabled())
       continue;
-    det->WritePedeInfo(parFl, opt);
+    det->writePedeInfo(parFl, opt);
     //
   }
   //
-  WritePedeConstraints();
+  writePedeConstraints();
   //
   fclose(strFl);
   fclose(parFl);
@@ -1670,20 +1670,20 @@ void AliAlgSteer::GenPedeSteerFile(const Option_t* opt) const
 }
 
 //___________________________________________________________
-bool AliAlgSteer::ReadParameters(const char* parfile, bool useErrors)
+bool AliAlgSteer::readParameters(const char* parfile, bool useErrors)
 {
   // read parameters file (millepede output)
-  if (fNDOFs < 1 || !fGloParVal || !fGloParErr) {
-    LOG(ERROR) << "Something is wrong in init: fNDOFs=" << fNDOFs << " fGloParVal=" << fGloParVal << " fGloParErr=" << fGloParErr;
+  if (mNDOFs < 1 || !mGloParVal || !mGloParErr) {
+    LOG(ERROR) << "Something is wrong in init: mNDOFs=" << mNDOFs << " mGloParVal=" << mGloParVal << " mGloParErr=" << mGloParErr;
   }
   ifstream inpf(parfile);
   if (!inpf.good()) {
     printf("Failed on input filename %s\n", parfile);
     return false;
   }
-  memset(fGloParVal, 0, fNDOFs * sizeof(float));
+  memset(mGloParVal, 0, mNDOFs * sizeof(float));
   if (useErrors)
-    memset(fGloParErr, 0, fNDOFs * sizeof(float));
+    memset(mGloParErr, 0, mNDOFs * sizeof(float));
   int cnt = 0;
   TString fline;
   fline.ReadLine(inpf);
@@ -1709,14 +1709,14 @@ bool AliAlgSteer::ReadParameters(const char* parfile, bool useErrors)
     }
     if (nr == 3)
       asg0++;
-    int parID = Label2ParID(lab);
-    if (parID < 0 || parID >= fNDOFs) {
+    int parID = label2ParID(lab);
+    if (parID < 0 || parID >= mNDOFs) {
       LOG(ERROR) << "Invalid label " << lab << " at line " << cnt << " -> ParID=" << parID;
       return false;
     }
-    fGloParVal[parID] = -v0;
+    mGloParVal[parID] = -v0;
     if (useErrors)
-      fGloParErr[parID] = v1;
+      mGloParErr[parID] = v1;
     asg++;
     //
   };
@@ -1726,25 +1726,25 @@ bool AliAlgSteer::ReadParameters(const char* parfile, bool useErrors)
 }
 
 //______________________________________________________
-void AliAlgSteer::CheckConstraints(const char* params)
+void AliAlgSteer::checkConstraints(const char* params)
 {
   // check how the constraints are satisfied with already uploaded or provided params
   //
-  if (params && !ReadParameters(params)) {
+  if (params && !readParameters(params)) {
     LOG(ERROR) << "Failed to load parameters from " << params;
     return;
   }
   //
-  int ncon = GetNConstraints();
+  int ncon = getNConstraints();
   for (int icon = 0; icon < ncon; icon++) {
-    const AliAlgConstraint* con = GetConstraint(icon);
-    con->CheckConstraint();
+    const AliAlgConstraint* con = getConstraint(icon);
+    con->checkConstraint();
   }
   //
 }
 
 //___________________________________________________________
-void AliAlgSteer::MPRec2Mille(const char* mprecfile, const char* millefile, bool bindata)
+void AliAlgSteer::mPRec2Mille(const char* mprecfile, const char* millefile, bool bindata)
 {
   // converts MPRecord tree to millepede binary format
   TFile* flmpr = TFile::Open(mprecfile);
@@ -1757,14 +1757,14 @@ void AliAlgSteer::MPRec2Mille(const char* mprecfile, const char* millefile, bool
     LOG(ERROR) << "No mpTree in xMPRecord file " << mprecfile;
     return;
   }
-  MPRec2Mille(mprTree, millefile, bindata);
+  mPRec2Mille(mprTree, millefile, bindata);
   delete mprTree;
   flmpr->Close();
   delete flmpr;
 }
 
 //___________________________________________________________
-void AliAlgSteer::MPRec2Mille(TTree* mprTree, const char* millefile, bool bindata)
+void AliAlgSteer::mPRec2Mille(TTree* mprTree, const char* millefile, bool bindata)
 {
   // converts MPRecord tree to millepede binary format
   //
@@ -1779,31 +1779,31 @@ void AliAlgSteer::MPRec2Mille(TTree* mprTree, const char* millefile, bool bindat
   TString mlname = millefile;
   if (mlname.IsNull())
     mlname = "mpRec2mpData";
-  if (!mlname.EndsWith(fgkMPDataExt))
-    mlname += fgkMPDataExt;
+  if (!mlname.EndsWith(sMPDataExt))
+    mlname += sMPDataExt;
   Mille* mille = new Mille(mlname, bindata);
   TArrayF buffDLoc;
   for (int i = 0; i < nent; i++) {
     br->GetEntry(i);
-    int nr = rec->GetNResid(); // number of residual records
-    int nloc = rec->GetNVarLoc();
+    int nr = rec->getNResid(); // number of residual records
+    int nloc = rec->getNVarLoc();
     if (buffDLoc.GetSize() < nloc)
       buffDLoc.Set(nloc + 100);
     float* buffLocV = buffDLoc.GetArray();
-    const float* recDGlo = rec->GetArrGlo();
-    const float* recDLoc = rec->GetArrLoc();
-    const short* recLabLoc = rec->GetArrLabLoc();
-    const int* recLabGlo = rec->GetArrLabGlo();
+    const float* recDGlo = rec->getArrGlo();
+    const float* recDLoc = rec->getArrLoc();
+    const short* recLabLoc = rec->getArrLabLoc();
+    const int* recLabGlo = rec->getArrLabGlo();
     //
     for (int ir = 0; ir < nr; ir++) {
       memset(buffLocV, 0, nloc * sizeof(float));
-      int ndglo = rec->GetNDGlo(ir);
-      int ndloc = rec->GetNDLoc(ir);
+      int ndglo = rec->getNDGlo(ir);
+      int ndloc = rec->getNDLoc(ir);
       // fill 0-suppressed array from MPRecord to non-0-suppressed array of Mille
       for (int l = ndloc; l--;)
         buffLocV[recLabLoc[l]] = recDLoc[l];
       //
-      mille->mille(nloc, buffLocV, ndglo, recDGlo, recLabGlo, rec->GetResid(ir), rec->GetResErr(ir));
+      mille->mille(nloc, buffLocV, ndglo, recDGlo, recLabGlo, rec->getResid(ir), rec->getResErr(ir));
       //
       recLabGlo += ndglo; // next record
       recDGlo += ndglo;
@@ -1818,93 +1818,93 @@ void AliAlgSteer::MPRec2Mille(TTree* mprTree, const char* millefile, bool bindat
 }
 
 //____________________________________________________________
-void AliAlgSteer::FillStatHisto(int type, float w)
+void AliAlgSteer::fillStatHisto(int type, float w)
 {
-  if (!fHistoStat)
-    CreateStatHisto();
-  fHistoStat->Fill((IsCosmic() ? kNHVars : 0) + type, w);
+  if (!mHistoStat)
+    createStatHisto();
+  mHistoStat->Fill((isCosmic() ? kNHVars : 0) + type, w);
 }
 
 //____________________________________________________________
-void AliAlgSteer::CreateStatHisto()
+void AliAlgSteer::createStatHisto()
 {
-  fHistoStat = new TH1F("stat", "stat", 2 * kNHVars, -0.5, 2 * kNHVars - 0.5);
-  fHistoStat->SetDirectory(0);
-  TAxis* xax = fHistoStat->GetXaxis();
+  mHistoStat = new TH1F("stat", "stat", 2 * kNHVars, -0.5, 2 * kNHVars - 0.5);
+  mHistoStat->SetDirectory(0);
+  TAxis* xax = mHistoStat->GetXaxis();
   for (int j = 0; j < 2; j++) {
     for (int i = 0; i < kNHVars; i++) {
-      xax->SetBinLabel(j * kNHVars + i + 1, Form("%s.%s", j ? "CSM" : "COL", fgkHStatName[i]));
+      xax->SetBinLabel(j * kNHVars + i + 1, Form("%s.%s", j ? "CSM" : "COL", sHStatName[i]));
     }
   }
 }
 
 //____________________________________________________________
-void AliAlgSteer::PrintLabels() const
+void AliAlgSteer::printLabels() const
 {
   // print global IDs and Labels
-  for (int i = 0; i < fNDOFs; i++)
-    printf("%5d %s\n", i, GetDOFLabelTxt(i));
+  for (int i = 0; i < mNDOFs; i++)
+    printf("%5d %s\n", i, getDOFLabelTxt(i));
 }
 
 //____________________________________________________________
-int AliAlgSteer::Label2ParID(int lab) const
+int AliAlgSteer::label2ParID(int lab) const
 {
   // convert Mille label to ParID (slow)
-  int ind = FindKeyIndex(lab, fOrderedLbl, fNDOFs);
+  int ind = findKeyIndex(lab, mOrderedLbl, mNDOFs);
   if (ind < 0)
     return -1;
-  return fLbl2ID[ind];
+  return mLbl2ID[ind];
 }
 
 //____________________________________________________________
-void AliAlgSteer::AddAutoConstraints()
+void AliAlgSteer::addAutoConstraints()
 {
   // add default constraints on children cumulative corrections within the volumes
-  for (int idet = 0; idet < fNDet; idet++) {
-    AliAlgDet* det = GetDetector(idet);
-    if (det->IsDisabled())
+  for (int idet = 0; idet < mNDet; idet++) {
+    AliAlgDet* det = getDetector(idet);
+    if (det->isDisabled())
       continue;
-    det->AddAutoConstraints();
+    det->addAutoConstraints();
   }
-  LOG(INFO) << "Added " << GetNConstraints() << " automatic constraints";
+  LOG(INFO) << "Added " << getNConstraints() << " automatic constraints";
 }
 
 //____________________________________________________________
-void AliAlgSteer::WritePedeConstraints() const
+void AliAlgSteer::writePedeConstraints() const
 {
   // write constraints file
-  FILE* conFl = fopen(fMPConFileName.Data(), "w+");
+  FILE* conFl = fopen(mMPConFileName.Data(), "w+");
   //
-  int nconstr = GetNConstraints();
+  int nconstr = getNConstraints();
   for (int icon = 0; icon < nconstr; icon++)
-    GetConstraint(icon)->WriteChildrenConstraints(conFl);
+    getConstraint(icon)->writeChildrenConstraints(conFl);
   //
   fclose(conFl);
 }
 
 //____________________________________________________________
-void AliAlgSteer::FixLowStatFromDOFStat(int thresh)
+void AliAlgSteer::fixLowStatFromDOFStat(int thresh)
 {
   // fix DOFs having stat below threshold
   //
-  if (!fDOFStat) {
+  if (!mDOFStat) {
     LOG(ERROR) << "No object with DOFs statistics";
     return;
   }
-  if (fNDOFs != fDOFStat->GetNDOFs()) {
-    LOG(ERROR) << "Discrepancy between NDOFs=" << fNDOFs << " of and statistics object: " << fDOFStat->GetNDOFs();
+  if (mNDOFs != mDOFStat->getNDOFs()) {
+    LOG(ERROR) << "Discrepancy between NDOFs=" << mNDOFs << " of and statistics object: " << mDOFStat->getNDOFs();
     return;
   }
-  for (int parID = 0; parID < fNDOFs; parID++) {
-    if (fDOFStat->GetStat(parID) >= thresh)
+  for (int parID = 0; parID < mNDOFs; parID++) {
+    if (mDOFStat->getStat(parID) >= thresh)
       continue;
-    fGloParErr[parID] = -999.;
+    mGloParErr[parID] = -999.;
   }
   //
 }
 
 //____________________________________________________________
-void AliAlgSteer::LoadStat(const char* flname)
+void AliAlgSteer::loadStat(const char* flname)
 {
   // load statistics histos from external file produced by alignment task
   TFile* fl = TFile::Open(flname);
@@ -1933,15 +1933,15 @@ void AliAlgSteer::LoadStat(const char* flname)
   if (!hdfO || !(dofSt = dynamic_cast<AliAlgDOFStat*>(hdfO)))
     LOG(WARNING) << "did not find DOFstat object";
   //
-  SetHistoStat(hst);
-  SetDOFStat(dofSt);
+  setHistoStat(hst);
+  setDOFStat(dofSt);
   //
   fl->Close();
   delete fl;
 }
 
 //______________________________________________
-void AliAlgSteer::CheckSol(TTree* mpRecTree, bool store,
+void AliAlgSteer::checkSol(TTree* mpRecTree, bool store,
                            bool verbose, bool loc, const char* outName)
 {
   // do fast check of pede solution with MPRecord tree
@@ -1970,7 +1970,7 @@ void AliAlgSteer::CheckSol(TTree* mpRecTree, bool store,
   int nrec = mpRecTree->GetEntriesFast();
   for (int irec = 0; irec < nrec; irec++) {
     mpRecTree->GetEntry(irec);
-    CheckSol(rec, rLG, rL, verbose, loc);
+    checkSol(rec, rLG, rL, verbose, loc);
     // store even in case of failure, to have the trees aligned with controlRes
     if (trLG)
       trLG->Fill();
@@ -1994,7 +1994,7 @@ void AliAlgSteer::CheckSol(TTree* mpRecTree, bool store,
 }
 
 //______________________________________________
-bool AliAlgSteer::CheckSol(AliAlgMPRecord* rec,
+bool AliAlgSteer::checkSol(AliAlgMPRecord* rec,
                            AliAlgResFast* rLG, AliAlgResFast* rL,
                            bool verbose, bool loc)
 {
@@ -2007,25 +2007,25 @@ bool AliAlgSteer::CheckSol(AliAlgMPRecord* rec,
   //  if (rL)
   //    loc = true; // if local sol. tree asked, always evaluate it
   //  //
-  //  int nres = rec->GetNResid();
+  //  int nres = rec->getNResid();
   //  //
-  //  const float* recDGlo = rec->GetArrGlo();
-  //  const float* recDLoc = rec->GetArrLoc();
-  //  const short* recLabLoc = rec->GetArrLabLoc();
-  //  const int* recLabGlo = rec->GetArrLabGlo();
-  //  int nvloc = rec->GetNVarLoc();
+  //  const float* recDGlo = rec->getArrGlo();
+  //  const float* recDLoc = rec->getArrLoc();
+  //  const short* recLabLoc = rec->getArrLabLoc();
+  //  const int* recLabGlo = rec->getArrLabGlo();
+  //  int nvloc = rec->getNVarLoc();
   //  //
   //  // count number of real measurement duplets and material correction fake 4-plets
   //  int nPoints = 0;
   //  int nMatCorr = 0;
   //  for (int irs = 0; irs < nres; irs++) {
-  //    if (rec->GetNDGlo(irs) > 0) {
-  //      if (irs == nres - 1 || rec->GetNDGlo(irs + 1) == 0)
+  //    if (rec->getNDGlo(irs) > 0) {
+  //      if (irs == nres - 1 || rec->getNDGlo(irs + 1) == 0)
   //        LOG(FATAL) << ("Real coordinate measurements must come in pairs");
   //      nPoints++;
   //      irs++; // skip 2nd
   //      continue;
-  //    } else if (rec->GetResid(irs) == 0 && rec->GetVolID(irs) == -1) { // material corrections have 0 residual
+  //    } else if (rec->getResid(irs) == 0 && rec->getVolID(irs) == -1) { // material corrections have 0 residual
   //      nMatCorr++;
   //    } else { // might be fixed parameter, global derivs are skept
   //      nPoints++;
@@ -2039,15 +2039,15 @@ bool AliAlgSteer::CheckSol(AliAlgMPRecord* rec,
   //  //
   //  if (rLG) {
   //    rLG->Clear();
-  //    rLG->SetNPoints(nPoints);
-  //    rLG->SetNMatSol(nMatCorr);
-  //    rLG->SetCosmic(rec->IsCosmic());
+  //    rLG->setNPoints(nPoints);
+  //    rLG->setNMatSol(nMatCorr);
+  //    rLG->setCosmic(rec->isCosmic());
   //  }
   //  if (rL) {
   //    rL->Clear();
-  //    rL->SetNPoints(nPoints);
-  //    rL->SetNMatSol(nMatCorr);
-  //    rL->SetCosmic(rec->IsCosmic());
+  //    rL->setNPoints(nPoints);
+  //    rL->setNMatSol(nMatCorr);
+  //    rL->setCosmic(rec->isCosmic());
   //  }
   //  //
   //  AliSymMatrix* matpG = new AliSymMatrix(nvloc);
@@ -2062,30 +2062,30 @@ bool AliAlgSteer::CheckSol(AliAlgMPRecord* rec,
   //  double* resid = new double[nres];
   //  int* volID = new int[nres];
   //  for (int irs = 0; irs < nres; irs++) {
-  //    double resOr = rec->GetResid(irs);
+  //    double resOr = rec->getResid(irs);
   //    resid[irs] = resOr;
   //    //
-  //    int ndglo = rec->GetNDGlo(irs);
-  //    int ndloc = rec->GetNDLoc(irs);
+  //    int ndglo = rec->getNDGlo(irs);
+  //    int ndloc = rec->getNDLoc(irs);
   //    volID[irs] = 0;
   //    for (int ig = 0; ig < ndglo; ig++) {
   //      int lbI = recLabGlo[ig];
-  //      int idP = Label2ParID(lbI);
+  //      int idP = label2ParID(lbI);
   //      if (idP < 0)
   //        LOG(FATAL) << "Did not find parameted for label " << lbI;
-  //      double parVal = GetGloParVal()[idP];
+  //      double parVal = getGloParVal()[idP];
   //      //      resid[irs] -= parVal*recDGlo[ig];
   //      resid[irs] += parVal * recDGlo[ig];
   //      if (!ig) {
-  //        AliAlgVol* vol = GetVolOfDOFID(idP);
+  //        AliAlgVol* vol = getVolOfDOFID(idP);
   //        if (vol)
-  //          volID[irs] = vol->GetVolID();
+  //          volID[irs] = vol->getVolID();
   //        else
   //          volID[irs] = -2; // calibration DOF !!! TODO
   //      }
   //    }
   //    //
-  //    double sg2inv = rec->GetResErr(irs);
+  //    double sg2inv = rec->getResErr(irs);
   //    sg2inv = 1. / (sg2inv * sg2inv);
   //    //
   //    chi2Ini += resid[irs] * resid[irs] * sg2inv; // chi accounting for global solution only
@@ -2110,9 +2110,9 @@ bool AliAlgSteer::CheckSol(AliAlgMPRecord* rec,
   //  }
   //  //
   //  if (rL)
-  //    rL->SetChi2Ini(chi2Ini);
+  //    rL->setChi2Ini(chi2Ini);
   //  if (rLG)
-  //    rLG->SetChi2Ini(chi2Ini);
+  //    rLG->setChi2Ini(chi2Ini);
   //  //
   //  TVectorD vecSol(nvloc);
   //  TVectorD vecSolG(nvloc);
@@ -2140,10 +2140,10 @@ bool AliAlgSteer::CheckSol(AliAlgMPRecord* rec,
   //    return false;
   //  }
   //  // check
-  //  recDGlo = rec->GetArrGlo();
-  //  recDLoc = rec->GetArrLoc();
-  //  recLabLoc = rec->GetArrLabLoc();
-  //  recLabGlo = rec->GetArrLabGlo();
+  //  recDGlo = rec->getArrGlo();
+  //  recDLoc = rec->getArrLoc();
+  //  recLabLoc = rec->getArrLabLoc();
+  //  recLabGlo = rec->getArrLabGlo();
   //  //
   //  if (verbose) {
   //    printf(loc ? "Sol L/LG:\n" : "Sol LG:\n");
@@ -2172,14 +2172,14 @@ bool AliAlgSteer::CheckSol(AliAlgMPRecord* rec,
   //  }
   //  int idMeas = -1, pntID = -1, matID = -1;
   //  for (int irs = 0; irs < nres; irs++) {
-  //    double resOr = rec->GetResid(irs);
+  //    double resOr = rec->getResid(irs);
   //    double resL = resOr;
   //    double resLG = resid[irs];
-  //    double sg = rec->GetResErr(irs);
+  //    double sg = rec->getResErr(irs);
   //    double sg2Inv = 1 / (sg * sg);
   //    //
-  //    int ndglo = rec->GetNDGlo(irs);
-  //    int ndloc = rec->GetNDLoc(irs);
+  //    int ndglo = rec->getNDGlo(irs);
+  //    int ndloc = rec->getNDLoc(irs);
   //    //
   //    for (int il = 0; il < ndloc; il++) {
   //      int lbLI = recLabLoc[il]; // id of local variable
@@ -2196,29 +2196,29 @@ bool AliAlgSteer::CheckSol(AliAlgMPRecord* rec,
   //        idMeas = 0;
   //      if (idMeas == 0)
   //        pntID++; // measurements come in pairs
-  //      int lbl = rec->GetVolID(irs);
+  //      int lbl = rec->getVolID(irs);
   //      lbl = ndglo ? recLabGlo[0] : 0; // TMP, until VolID is filled // RS!!!!
   //      if (rLG) {
-  //        rLG->SetResSigMeas(pntID, idMeas, resLG, sg);
+  //        rLG->setResSigMeas(pntID, idMeas, resLG, sg);
   //        if (idMeas == 0)
-  //          rLG->SetLabel(pntID, lbl, volID[irs]);
+  //          rLG->setLabel(pntID, lbl, volID[irs]);
   //      }
   //      if (rL) {
-  //        rL->SetResSigMeas(pntID, idMeas, resL, sg);
+  //        rL->setResSigMeas(pntID, idMeas, resL, sg);
   //        if (idMeas == 0)
-  //          rL->SetLabel(pntID, lbl, volID[irs]);
+  //          rL->setLabel(pntID, lbl, volID[irs]);
   //      }
   //    } else {
   //      matID++; // mat.correcitons come in 4-plets, but we fill each separately
   //      //
   //      if (rLG)
-  //        rLG->SetMatCorr(matID, resLG, sg);
+  //        rLG->setMatCorr(matID, resLG, sg);
   //      if (rL)
-  //        rL->SetMatCorr(matID, resL, sg);
+  //        rL->setMatCorr(matID, resL, sg);
   //    }
   //    //
   //    if (verbose) {
-  //      int lbl = rec->GetVolID(irs);
+  //      int lbl = rec->getVolID(irs);
   //      lbl = ndglo ? recLabGlo[0] : (resOr == 0 ? -1 : 0); // TMP, until VolID is filled // RS!!!!
   //      if (loc)
   //        printf("%3d (%9d) %6.4f | [%+.2e:%+7.2f] [%+.2e:%+7.2f]\n",
@@ -2234,9 +2234,9 @@ bool AliAlgSteer::CheckSol(AliAlgMPRecord* rec,
   //    recDLoc += ndloc;
   //  }
   //  if (rL)
-  //    rL->SetChi2(chi2L);
+  //    rL->setChi2(chi2L);
   //  if (rLG)
-  //    rLG->SetChi2(chi2LG);
+  //    rLG->setChi2(chi2LG);
   //  //
   //  if (verbose) {
   //    printf("Chi: G = %e | LG = %e", chi2Ini, chi2LG);
@@ -2248,9 +2248,9 @@ bool AliAlgSteer::CheckSol(AliAlgMPRecord* rec,
   //  int nTrCor = nvloc - matID - 1;
   //  for (int i = 0; i < nTrCor; i++) {
   //    if (rLG)
-  //      rLG->GetTrCor()[i] = vecSolG[i];
+  //      rLG->getTrCor()[i] = vecSolG[i];
   //    if (rL)
-  //      rL->GetTrCor()[i] = vecSol[i];
+  //      rL->getTrCor()[i] = vecSol[i];
   //  }
   //  //
   //  delete[] resid;
@@ -2259,17 +2259,17 @@ bool AliAlgSteer::CheckSol(AliAlgMPRecord* rec,
 }
 
 //______________________________________________
-void AliAlgSteer::ApplyAlignmentFromMPSol()
+void AliAlgSteer::applyAlignmentFromMPSol()
 {
   // apply alignment from millepede solution array to reference alignment level
   LOG(INFO) << "Applying alignment from Millepede solution";
   for (int idt = 0; idt < kNDetectors; idt++) {
-    AliAlgDet* det = GetDetectorByDetID(idt);
-    if (!det || det->IsDisabled())
+    AliAlgDet* det = getDetectorByDetID(idt);
+    if (!det || det->isDisabled())
       continue;
-    det->ApplyAlignmentFromMPSol();
+    det->applyAlignmentFromMPSol();
   }
-  SetMPAlignDone();
+  setMPAlignDone();
   //
 }
 

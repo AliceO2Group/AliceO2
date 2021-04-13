@@ -120,51 +120,51 @@ namespace o2
 namespace align
 {
 
-const char* AliAlgVol::fgkFrameName[AliAlgVol::kNVarFrames] = {"LOC", "TRA"};
+const char* AliAlgVol::sFrameName[AliAlgVol::kNVarFrames] = {"LOC", "TRA"};
 //
-uint32_t AliAlgVol::fgDefGeomFree =
+uint32_t AliAlgVol::sDefGeomFree =
   kDOFBitTX | kDOFBitTY | kDOFBitTZ | kDOFBitPS | kDOFBitTH | kDOFBitPH;
 //
-const char* AliAlgVol::fgkDOFName[AliAlgVol::kNDOFGeom] = {"TX", "TY", "TZ", "PSI", "THT", "PHI"};
+const char* AliAlgVol::sDOFName[AliAlgVol::kNDOFGeom] = {"TX", "TY", "TZ", "PSI", "THT", "PHI"};
 
 //_________________________________________________________
-AliAlgVol::AliAlgVol(const char* symname, int iid) : TNamed(symname, ""), fVarFrame(kTRA), fIntID(iid), fX(0), fAlp(0), fNDOFs(0), fDOF(0), fNDOFGeomFree(0), fNDOFFree(0), fConstrChild(kDefChildConstr)
+AliAlgVol::AliAlgVol(const char* symname, int iid) : TNamed(symname, ""), mVarFrame(kTRA), mIntID(iid), mX(0), mAlp(0), mNDOFs(0), mDOF(0), mNDOFGeomFree(0), mNDOFFree(0), mConstrChild(kDefChildConstr)
                                                      //
                                                      ,
-                                                     fParent(0),
-                                                     fChildren(0)
+                                                     mParent(0),
+                                                     mChildren(0)
                                                      //
                                                      ,
-                                                     fNProcPoints(0),
-                                                     fFirstParGloID(-1),
-                                                     fParVals(0),
-                                                     fParErrs(0),
-                                                     fParLabs(0)
+                                                     mNProcPoints(0),
+                                                     mFirstParGloID(-1),
+                                                     mParVals(0),
+                                                     mParErrs(0),
+                                                     mParLabs(0)
                                                      //
                                                      ,
-                                                     fMatL2GReco(),
-                                                     fMatL2G(),
-                                                     fMatL2GIdeal(),
-                                                     fMatT2L(),
-                                                     fMatDeltaRefGlo()
+                                                     mMatL2GReco(),
+                                                     mMatL2G(),
+                                                     mMatL2GIdeal(),
+                                                     mMatT2L(),
+                                                     mMatDeltaRefGlo()
 {
   // def c-tor
-  SetVolID(0);   // volumes have no VID, unless it is sensor
+  setVolID(0);   // volumes have no VID, unless it is sensor
   if (symname) { // real volumes have at least geometric degrees of freedom
-    SetNDOFs(kNDOFGeom);
+    setNDOFs(kNDOFGeom);
   }
-  SetFreeDOFPattern(fgDefGeomFree);
+  setFreeDOFPattern(sDefGeomFree);
 }
 
 //_________________________________________________________
 AliAlgVol::~AliAlgVol()
 {
   // d-tor
-  delete fChildren;
+  delete mChildren;
 }
 
 //_________________________________________________________
-void AliAlgVol::Delta2Matrix(TGeoHMatrix& deltaM, const double* delta) const
+void AliAlgVol::delta2Matrix(TGeoHMatrix& deltaM, const double* delta) const
 {
   // prepare delta matrix for the volume from its
   // local delta vector (AliAlignObj convension): dx,dy,dz,,theta,psi,phi
@@ -182,20 +182,20 @@ void AliAlgVol::Delta2Matrix(TGeoHMatrix& deltaM, const double* delta) const
 }
 
 //__________________________________________________________________
-void AliAlgVol::GetDeltaT2LmodLOC(TGeoHMatrix& matMod, const double* delta) const
+void AliAlgVol::getDeltaT2LmodLOC(TGeoHMatrix& matMod, const double* delta) const
 {
   // prepare the variation matrix tau in volume TRACKING frame by applying
   // local delta of modification of LOCAL frame:
   // tra' = tau*tra = tau*T2L^-1*loc = T2L^-1*loc' = T2L^-1*delta*loc
   // tau = T2L^-1*delta*T2L
-  Delta2Matrix(matMod, delta);
-  matMod.Multiply(&GetMatrixT2L());
-  const TGeoHMatrix& t2li = GetMatrixT2L().Inverse();
+  delta2Matrix(matMod, delta);
+  matMod.Multiply(&getMatrixT2L());
+  const TGeoHMatrix& t2li = getMatrixT2L().Inverse();
   matMod.MultiplyLeft(&t2li);
 }
 
 //__________________________________________________________________
-void AliAlgVol::GetDeltaT2LmodLOC(TGeoHMatrix& matMod, const double* delta, const TGeoHMatrix& relMat) const
+void AliAlgVol::getDeltaT2LmodLOC(TGeoHMatrix& matMod, const double* delta, const TGeoHMatrix& relMat) const
 {
   // prepare the variation matrix tau in volume TRACKING frame by applying
   // local delta of modification of LOCAL frame of its PARENT;
@@ -203,25 +203,25 @@ void AliAlgVol::GetDeltaT2LmodLOC(TGeoHMatrix& matMod, const double* delta, cons
   //
   // tra' = tau*tra = tau*T2L^-1*loc = T2L^-1*loc' = T2L^-1*relMat^-1*Delta*relMat*loc
   // tau = (relMat*T2L)^-1*Delta*(relMat*T2L)
-  Delta2Matrix(matMod, delta);
+  delta2Matrix(matMod, delta);
   TGeoHMatrix tmp = relMat;
-  tmp *= GetMatrixT2L();
+  tmp *= getMatrixT2L();
   matMod.Multiply(&tmp);
   const TGeoHMatrix& tmpi = tmp.Inverse();
   matMod.MultiplyLeft(&tmpi);
 }
 
 //__________________________________________________________________
-void AliAlgVol::GetDeltaT2LmodTRA(TGeoHMatrix& matMod, const double* delta) const
+void AliAlgVol::getDeltaT2LmodTRA(TGeoHMatrix& matMod, const double* delta) const
 {
   // prepare the variation matrix tau in volume TRACKING frame by applying
   // local delta of modification of the same TRACKING frame:
   // tra' = tau*tra
-  Delta2Matrix(matMod, delta);
+  delta2Matrix(matMod, delta);
 }
 
 //__________________________________________________________________
-void AliAlgVol::GetDeltaT2LmodTRA(TGeoHMatrix& matMod, const double* delta, const TGeoHMatrix& relMat) const
+void AliAlgVol::getDeltaT2LmodTRA(TGeoHMatrix& matMod, const double* delta, const TGeoHMatrix& relMat) const
 {
   // prepare the variation matrix tau in volume TRACKING frame by applying
   // local delta of modification of TRACKING frame of its PARENT;
@@ -230,19 +230,19 @@ void AliAlgVol::GetDeltaT2LmodTRA(TGeoHMatrix& matMod, const double* delta, cons
   //
   // tra' = tau*tra = tau*relMat^-1*TRA = relMat^-1*TAU*TRA = relMat^-1*TAU*relMat*tra
   // tau = relMat^-1*TAU*relMat
-  Delta2Matrix(matMod, delta); // TAU
+  delta2Matrix(matMod, delta); // TAU
   matMod.Multiply(&relMat);
   const TGeoHMatrix& reli = relMat.Inverse();
   matMod.MultiplyLeft(&reli);
 }
 
 //_________________________________________________________
-int AliAlgVol::CountParents() const
+int AliAlgVol::countParents() const
 {
   // count parents in the chain
   int cnt = 0;
   const AliAlgVol* p = this;
-  while ((p = p->GetParent()))
+  while ((p = p->getParent()))
     cnt++;
   return cnt;
 }
@@ -254,60 +254,60 @@ void AliAlgVol::Print(const Option_t* opt) const
   TString opts = opt;
   opts.ToLower();
   printf("Lev:%2d IntID:%7d %s | %2d nodes | Effective X:%8.4f Alp:%+.4f | Used Points: %d\n",
-         CountParents(), GetInternalID(), GetSymName(), GetNChildren(), fX, fAlp, fNProcPoints);
-  printf("     DOFs: Tot: %d (offs: %5d) Free: %d  Geom: %d {", fNDOFs, fFirstParGloID, fNDOFFree, fNDOFGeomFree);
+         countParents(), getInternalID(), getSymName(), getNChildren(), mX, mAlp, mNProcPoints);
+  printf("     DOFs: Tot: %d (offs: %5d) Free: %d  Geom: %d {", mNDOFs, mFirstParGloID, mNDOFFree, mNDOFGeomFree);
   for (int i = 0; i < kNDOFGeom; i++)
-    printf("%d", IsFreeDOF(i) ? 1 : 0);
-  printf("} in %s frame.", fgkFrameName[fVarFrame]);
-  if (GetNChildren()) {
+    printf("%d", isFreeDOF(i) ? 1 : 0);
+  printf("} in %s frame.", sFrameName[mVarFrame]);
+  if (getNChildren()) {
     printf(" Child.Constr: {");
     for (int i = 0; i < kNDOFGeom; i++)
-      printf("%d", IsChildrenDOFConstrained(i) ? 1 : 0);
+      printf("%d", isChildrenDOFConstrained(i) ? 1 : 0);
     printf("}");
   }
-  if (GetExcludeFromParentConstraint())
+  if (getExcludeFromParentConstraint())
     printf(" Excl.from parent constr.");
   printf("\n");
   //
-  if (opts.Contains("par") && fParVals) {
+  if (opts.Contains("par") && mParVals) {
     printf("     Lb: ");
-    for (int i = 0; i < fNDOFs; i++)
-      printf("%10d  ", GetParLab(i));
+    for (int i = 0; i < mNDOFs; i++)
+      printf("%10d  ", getParLab(i));
     printf("\n");
     printf("     Vl: ");
-    for (int i = 0; i < fNDOFs; i++)
-      printf("%+9.3e  ", GetParVal(i));
+    for (int i = 0; i < mNDOFs; i++)
+      printf("%+9.3e  ", getParVal(i));
     printf("\n");
     printf("     Er: ");
-    for (int i = 0; i < fNDOFs; i++)
-      printf("%+9.3e  ", GetParErr(i));
+    for (int i = 0; i < mNDOFs; i++)
+      printf("%+9.3e  ", getParErr(i));
     printf("\n");
   }
 
   if (opts.Contains("mat")) { // print matrices
     printf("L2G ideal   : ");
-    GetMatrixL2GIdeal().Print();
+    getMatrixL2GIdeal().Print();
     printf("L2G misalign: ");
-    GetMatrixL2G().Print();
+    getMatrixL2G().Print();
     printf("L2G RecoTime: ");
-    GetMatrixL2GReco().Print();
+    getMatrixL2GReco().Print();
     printf("T2L (fake)  : ");
-    GetMatrixT2L().Print();
+    getMatrixT2L().Print();
   }
   //
 }
 
 //____________________________________________
-void AliAlgVol::PrepareMatrixL2G(bool reco)
+void AliAlgVol::prepareMatrixL2G(bool reco)
 {
   // extract from geometry L2G matrix, depending on reco flag, set it as a reco-time
   // or current alignment matrix
-  const char* path = GetSymName();
+  const char* path = getSymName();
   if (gGeoManager->GetAlignableEntry(path)) {
     const TGeoHMatrix* l2g = base::GeometryManager::getMatrix(path);
     if (!l2g)
       LOG(FATAL) << "Failed to find L2G matrix for alignable " << path;
-    reco ? SetMatrixL2GReco(*l2g) : SetMatrixL2G(*l2g);
+    reco ? setMatrixL2GReco(*l2g) : setMatrixL2G(*l2g);
   } else { // extract from path
     if (!gGeoManager->CheckPath(path))
       LOG(FATAL) << "Volume path " << path << " is not valid!";
@@ -321,31 +321,31 @@ void AliAlgVol::PrepareMatrixL2G(bool reco)
     } else {
       l2g = *node->GetMatrix();
     }
-    reco ? SetMatrixL2GReco(l2g) : SetMatrixL2G(l2g);
+    reco ? setMatrixL2GReco(l2g) : setMatrixL2G(l2g);
   }
 }
 
 //____________________________________________
-void AliAlgVol::PrepareMatrixL2GIdeal()
+void AliAlgVol::prepareMatrixL2GIdeal()
 {
   // extract from geometry ideal L2G matrix
   TGeoHMatrix mtmp;
-  if (!base::GeometryManager::getOriginalMatrix(GetSymName(), mtmp))
-    LOG(FATAL) << "Failed to find ideal L2G matrix for " << GetSymName();
-  SetMatrixL2GIdeal(mtmp);
+  if (!base::GeometryManager::getOriginalMatrix(getSymName(), mtmp))
+    LOG(FATAL) << "Failed to find ideal L2G matrix for " << getSymName();
+  setMatrixL2GIdeal(mtmp);
 }
 
 //____________________________________________
-void AliAlgVol::PrepareMatrixT2L()
+void AliAlgVol::prepareMatrixT2L()
 {
   // for non-sensors we define the fake tracking frame with the alpha angle being
   // the average angle of centers of its children
   //
   double tot[3] = {0, 0, 0}, loc[3] = {0, 0, 0}, glo[3];
-  int nch = GetNChildren();
+  int nch = getNChildren();
   for (int ich = nch; ich--;) {
-    AliAlgVol* vol = GetChild(ich);
-    vol->GetMatrixL2GIdeal().LocalToMaster(loc, glo);
+    AliAlgVol* vol = getChild(ich);
+    vol->getMatrixL2GIdeal().LocalToMaster(loc, glo);
     for (int j = 3; j--;)
       tot[j] += glo[j];
   }
@@ -353,34 +353,34 @@ void AliAlgVol::PrepareMatrixT2L()
     for (int j = 3; j--;)
       tot[j] /= nch;
   //
-  fAlp = TMath::ATan2(tot[1], tot[0]);
-  AliAlgAux::BringToPiPM(fAlp);
+  mAlp = TMath::ATan2(tot[1], tot[0]);
+  AliAlgAux::bringToPiPM(mAlp);
   //
-  fX = TMath::Sqrt(tot[0] * tot[0] + tot[1] * tot[1]);
+  mX = TMath::Sqrt(tot[0] * tot[0] + tot[1] * tot[1]);
   //
   // 1st create Tracking to Global matrix
-  fMatT2L.Clear();
-  fMatT2L.SetDx(fX);
-  fMatT2L.RotateZ(fAlp * RadToDeg());
+  mMatT2L.Clear();
+  mMatT2L.SetDx(mX);
+  mMatT2L.RotateZ(mAlp * RadToDeg());
   // then convert it to Tracking to Local  matrix
-  const TGeoHMatrix& l2gi = GetMatrixL2GIdeal().Inverse();
-  fMatT2L.MultiplyLeft(&l2gi);
+  const TGeoHMatrix& l2gi = getMatrixL2GIdeal().Inverse();
+  mMatT2L.MultiplyLeft(&l2gi);
   //
 }
 
 //____________________________________________
-void AliAlgVol::SetMatrixT2L(const TGeoHMatrix& m)
+void AliAlgVol::setMatrixT2L(const TGeoHMatrix& m)
 {
   // set the T2L matrix and define tracking frame
   // Note that this method is used for the externally set matrices
   // (in case of sensors). For other volumes the tracking frame and matrix
-  // is defined in the PrepareMatrixT2L method
-  fMatT2L = m;
-  SetTrackingFrame();
+  // is defined in the prepareMatrixT2L method
+  mMatT2L = m;
+  setTrackingFrame();
 }
 
 //__________________________________________________________________
-void AliAlgVol::SetTrackingFrame()
+void AliAlgVol::setTrackingFrame()
 {
   // Define tracking frame of the sensor
   // This method should be implemented for sensors, which receive the T2L
@@ -389,113 +389,113 @@ void AliAlgVol::SetTrackingFrame()
 }
 
 //__________________________________________________________________
-void AliAlgVol::AssignDOFs(int& cntDOFs, float* pars, float* errs, int* labs)
+void AliAlgVol::assignDOFs(int& cntDOFs, float* pars, float* errs, int* labs)
 {
   // Assigns offset of the DOFS of this volume in global array of DOFs, attaches arrays to volumes
   //
-  fParVals = pars + cntDOFs;
-  fParErrs = errs + cntDOFs;
-  fParLabs = labs + cntDOFs;
-  SetFirstParGloID(cntDOFs);
-  for (int i = 0; i < fNDOFs; i++)
-    fParLabs[i] = GetInternalID() * 100 + i;
-  cntDOFs += fNDOFs; // increment total DOFs count
+  mParVals = pars + cntDOFs;
+  mParErrs = errs + cntDOFs;
+  mParLabs = labs + cntDOFs;
+  setFirstParGloID(cntDOFs);
+  for (int i = 0; i < mNDOFs; i++)
+    mParLabs[i] = getInternalID() * 100 + i;
+  cntDOFs += mNDOFs; // increment total DOFs count
   //
-  int nch = GetNChildren(); // go over childs
+  int nch = getNChildren(); // go over childs
   for (int ich = 0; ich < nch; ich++)
-    GetChild(ich)->AssignDOFs(cntDOFs, pars, errs, labs);
+    getChild(ich)->assignDOFs(cntDOFs, pars, errs, labs);
   //
   return;
 }
 
 //__________________________________________________________________
-void AliAlgVol::InitDOFs()
+void AliAlgVol::initDOFs()
 {
   // initialize degrees of freedom
   //
   // Do we need this strict condition?
-  if (GetInitDOFsDone())
+  if (getInitDOFsDone())
     LOG(FATAL) << "DOFs are already initialized for " << GetName();
-  for (int i = 0; i < fNDOFs; i++)
-    if (fParErrs[i] < -9999 && IsZeroAbs(fParVals[i]))
-      FixDOF(i);
-  CalcFree(true);
-  SetInitDOFsDone();
+  for (int i = 0; i < mNDOFs; i++)
+    if (mParErrs[i] < -9999 && isZeroAbs(mParVals[i]))
+      fixDOF(i);
+  calcFree(true);
+  setInitDOFsDone();
 }
 
 //__________________________________________________________________
-void AliAlgVol::CalcFree(bool condFix)
+void AliAlgVol::calcFree(bool condFix)
 {
   // calculate free dofs. If condFix==true, condition parameter a la pede, i.e. error < 0
-  fNDOFFree = fNDOFGeomFree = 0;
-  for (int i = 0; i < fNDOFs; i++) {
-    if (!IsFreeDOF(i)) {
+  mNDOFFree = mNDOFGeomFree = 0;
+  for (int i = 0; i < mNDOFs; i++) {
+    if (!isFreeDOF(i)) {
       if (condFix)
-        SetParErr(i, -999);
+        setParErr(i, -999);
       continue;
     }
-    fNDOFFree++;
+    mNDOFFree++;
     if (i < kNDOFGeom)
-      fNDOFGeomFree++;
+      mNDOFGeomFree++;
   }
   //
 }
 
 //__________________________________________________________________
-void AliAlgVol::SetNDOFs(int n)
+void AliAlgVol::setNDOFs(int n)
 {
   // book global degrees of freedom
   if (n < kNDOFGeom)
     n = kNDOFGeom;
-  fNDOFs = n;
+  mNDOFs = n;
 }
 
 //__________________________________________________________________
-void AliAlgVol::AddChild(AliAlgVol* ch)
+void AliAlgVol::addChild(AliAlgVol* ch)
 {
   // add child volume
-  if (!fChildren) {
-    fChildren = new TObjArray();
-    fChildren->SetOwner(false);
+  if (!mChildren) {
+    mChildren = new TObjArray();
+    mChildren->SetOwner(false);
   }
-  fChildren->AddLast(ch);
+  mChildren->AddLast(ch);
 }
 
 //__________________________________________________________________
-void AliAlgVol::SetParVals(int npar, double* vl, double* er)
+void AliAlgVol::setParVals(int npar, double* vl, double* er)
 {
   // set parameters
-  if (npar > fNDOFs)
-    LOG(FATAL) << "Volume " << GetName() << " has " << fNDOFs << " dofs";
+  if (npar > mNDOFs)
+    LOG(FATAL) << "Volume " << GetName() << " has " << mNDOFs << " dofs";
   for (int i = 0; i < npar; i++) {
-    fParVals[i] = vl[i];
-    fParErrs[i] = er ? er[i] : 0;
+    mParVals[i] = vl[i];
+    mParErrs[i] = er ? er[i] : 0;
   }
 }
 
 //__________________________________________________________________
-bool AliAlgVol::IsCondDOF(int i) const
+bool AliAlgVol::isCondDOF(int i) const
 {
   // is DOF free and conditioned?
-  return (!IsZeroAbs(GetParVal(i)) || !IsZeroAbs(GetParErr(i)));
+  return (!isZeroAbs(getParVal(i)) || !isZeroAbs(getParErr(i)));
 }
 
 //______________________________________________________
-int AliAlgVol::FinalizeStat(AliAlgDOFStat* st)
+int AliAlgVol::finalizeStat(AliAlgDOFStat* st)
 {
   // finalize statistics on processed points
-  fNProcPoints = 0;
-  for (int ich = GetNChildren(); ich--;) {
-    AliAlgVol* child = GetChild(ich);
-    fNProcPoints += child->FinalizeStat(st);
+  mNProcPoints = 0;
+  for (int ich = getNChildren(); ich--;) {
+    AliAlgVol* child = getChild(ich);
+    mNProcPoints += child->finalizeStat(st);
   }
   if (st)
-    FillDOFStat(st);
-  return fNProcPoints;
+    fillDOFStat(st);
+  return mNProcPoints;
 }
 
 //______________________________________________________
-void AliAlgVol::WritePedeInfo(FILE* parOut, const Option_t* opt) const
+void AliAlgVol::writePedeInfo(FILE* parOut, const Option_t* opt) const
 {
   // contribute to params template file for PEDE
   enum { kOff,
@@ -511,12 +511,12 @@ void AliAlgVol::WritePedeInfo(FILE* parOut, const Option_t* opt) const
   //
   // is there something to print ?
   int nCond(0), nFix(0), nDef(0);
-  for (int i = 0; i < fNDOFs; i++) {
-    if (!IsFreeDOF(i))
+  for (int i = 0; i < mNDOFs; i++) {
+    if (!isFreeDOF(i))
       nFix++;
-    if (IsCondDOF(i))
+    if (isCondDOF(i))
       nCond++;
-    if (!IsCondDOF(i) && IsFreeDOF(i))
+    if (!isCondDOF(i) && isFreeDOF(i))
       nDef++;
   }
   //
@@ -528,42 +528,42 @@ void AliAlgVol::WritePedeInfo(FILE* parOut, const Option_t* opt) const
   //
   if (nCond || showDef || showFix || showNam)
     fprintf(parOut, "%s%s %s\t\tDOF/Free: %d/%d (%s) %s\n", comment[cmt], kKeyParam, comment[kOnOn],
-            GetNDOFs(), GetNDOFFree(), fgkFrameName[fVarFrame], GetName());
+            getNDOFs(), getNDOFFree(), sFrameName[mVarFrame], GetName());
   //
   if (nCond || showDef || showFix) {
-    for (int i = 0; i < fNDOFs; i++) {
+    for (int i = 0; i < mNDOFs; i++) {
       cmt = kOn;
-      if (IsCondDOF(i) || !IsFreeDOF(i))
+      if (isCondDOF(i) || !isFreeDOF(i))
         cmt = kOff; // free-conditioned : MUST print
-      else if (!IsFreeDOF(i)) {
+      else if (!isFreeDOF(i)) {
         if (!showFix)
           continue;
       } // Fixed: print commented if asked
       else if (!showDef)
         continue; // free-unconditioned: print commented if asked
       //
-      fprintf(parOut, "%s %9d %+e %+e\t%s %s p%d\n", comment[cmt], GetParLab(i),
-              GetParVal(i), GetParErr(i), comment[kOnOn], IsFreeDOF(i) ? "  " : "FX", i);
+      fprintf(parOut, "%s %9d %+e %+e\t%s %s p%d\n", comment[cmt], getParLab(i),
+              getParVal(i), getParErr(i), comment[kOnOn], isFreeDOF(i) ? "  " : "FX", i);
     }
     fprintf(parOut, "\n");
   }
   // children volume
-  int nch = GetNChildren();
+  int nch = getNChildren();
   //
   for (int ich = 0; ich < nch; ich++)
-    GetChild(ich)->WritePedeInfo(parOut, opt);
+    getChild(ich)->writePedeInfo(parOut, opt);
   //
 }
 
 //_________________________________________________________________
-void AliAlgVol::CreateGloDeltaMatrix(TGeoHMatrix& deltaM) const
+void AliAlgVol::createGloDeltaMatrix(TGeoHMatrix& deltaM) const
 {
-  // Create global matrix deltaM from fParVals array containing corrections.
+  // Create global matrix deltaM from mParVals array containing corrections.
   // This deltaM does not account for eventual prealignment
   // Volume knows if its variation was done in TRA or LOC frame
   //
-  CreateLocDeltaMatrix(deltaM);
-  const TGeoHMatrix& l2g = GetMatrixL2G();
+  createLocDeltaMatrix(deltaM);
+  const TGeoHMatrix& l2g = getMatrixL2G();
   const TGeoHMatrix& l2gi = l2g.Inverse();
   deltaM.Multiply(&l2gi);
   deltaM.MultiplyLeft(&l2g);
@@ -572,9 +572,9 @@ void AliAlgVol::CreateGloDeltaMatrix(TGeoHMatrix& deltaM) const
 
 /*
 //_________________________________________________________________
-void AliAlgVol::CreateGloDeltaMatrix(TGeoHMatrix &deltaM) const
+void AliAlgVol::createGloDeltaMatrix(TGeoHMatrix &deltaM) const
 {
-  // Create global matrix deltaM from fParVals array containing corrections.
+  // Create global matrix deltaM from mParVals array containing corrections.
   // This deltaM does not account for eventual prealignment
   // Volume knows if its variation was done in TRA or LOC frame
   //
@@ -583,14 +583,14 @@ void AliAlgVol::CreateGloDeltaMatrix(TGeoHMatrix &deltaM) const
   // Z = [ Prod_{k=0}^{j-1} G_k * deltaL_k * G^-1_k ] * G_j
   // with j=being the level of the volume in the hierarchy
   //
-  CreateLocDeltaMatrix(deltaM);
-  TGeoHMatrix zMat = GetMatrixL2G();
+  createLocDeltaMatrix(deltaM);
+  TGeoHMatrix zMat = getMatrixL2G();
   const AliAlgVol* par = this;
-  while( (par=par->GetParent()) ) {
+  while( (par=par->getParent()) ) {
     TGeoHMatrix locP;
-    par->CreateLocDeltaMatrix(locP);
-    locP.MultiplyLeft( &par->GetMatrixL2G() );
-    locP.Multiply( &par->GetMatrixL2G().Inverse() );
+    par->createLocDeltaMatrix(locP);
+    locP.MultiplyLeft( &par->getMatrixL2G() );
+    locP.Multiply( &par->getMatrixL2G().Inverse() );
     zMat.MultiplyLeft( &locP );
   }
   deltaM.MultiplyLeft( &zMat );
@@ -600,7 +600,7 @@ void AliAlgVol::CreateGloDeltaMatrix(TGeoHMatrix &deltaM) const
 */
 
 //_________________________________________________________________
-void AliAlgVol::CreatePreGloDeltaMatrix(TGeoHMatrix& deltaM) const
+void AliAlgVol::createPreGloDeltaMatrix(TGeoHMatrix& deltaM) const
 {
   // Create prealignment global matrix deltaM from prealigned G and
   // original GO local-to-global matrices
@@ -610,12 +610,12 @@ void AliAlgVol::CreatePreGloDeltaMatrix(TGeoHMatrix& deltaM) const
   // we get by induction
   // Delta_j = G_j * GO^-1_j * GO_{j-1} * G^-1_{j-1}
   //
-  deltaM = GetMatrixL2G();
-  deltaM *= GetMatrixL2GIdeal().Inverse();
-  const AliAlgVol* par = GetParent();
+  deltaM = getMatrixL2G();
+  deltaM *= getMatrixL2GIdeal().Inverse();
+  const AliAlgVol* par = getParent();
   if (par) {
-    deltaM *= par->GetMatrixL2GIdeal();
-    deltaM *= par->GetMatrixL2G().Inverse();
+    deltaM *= par->getMatrixL2GIdeal();
+    deltaM *= par->getMatrixL2G().Inverse();
   }
   //
 }
@@ -623,7 +623,7 @@ void AliAlgVol::CreatePreGloDeltaMatrix(TGeoHMatrix& deltaM) const
 /*
   // this is an alternative lengthy way !
 //_________________________________________________________________
-void AliAlgVol::CreatePreGloDeltaMatrix(TGeoHMatrix &deltaM) const
+void AliAlgVol::createPreGloDeltaMatrix(TGeoHMatrix &deltaM) const
 {
   // Create prealignment global matrix deltaM from prealigned G and
   // original GO local-to-global matrices
@@ -633,14 +633,14 @@ void AliAlgVol::CreatePreGloDeltaMatrix(TGeoHMatrix &deltaM) const
   // we get by induction
   // Delta_j = G_j * GO^-1_j * GO_{j-1} * G^-1_{j-1}
   //
-  CreatePreLocDeltaMatrix(deltaM);
-  TGeoHMatrix zMat = GetMatrixL2GIdeal();
+  createPreLocDeltaMatrix(deltaM);
+  TGeoHMatrix zMat = getMatrixL2GIdeal();
   const AliAlgVol* par = this;
-  while( (par=par->GetParent()) ) {
+  while( (par=par->getParent()) ) {
     TGeoHMatrix locP;
-    par->CreatePreLocDeltaMatrix(locP);
-    locP.MultiplyLeft( &par->GetMatrixL2GIdeal() );
-    locP.Multiply( &par->GetMatrixL2GIdeal().Inverse() );
+    par->createPreLocDeltaMatrix(locP);
+    locP.MultiplyLeft( &par->getMatrixL2GIdeal() );
+    locP.Multiply( &par->getMatrixL2GIdeal().Inverse() );
     zMat.MultiplyLeft( &locP );
   }
   deltaM.MultiplyLeft( &zMat );
@@ -650,7 +650,7 @@ void AliAlgVol::CreatePreGloDeltaMatrix(TGeoHMatrix &deltaM) const
 */
 
 //_________________________________________________________________
-void AliAlgVol::CreatePreLocDeltaMatrix(TGeoHMatrix& deltaM) const
+void AliAlgVol::createPreLocDeltaMatrix(TGeoHMatrix& deltaM) const
 {
   // Create prealignment local matrix deltaM from prealigned G and
   // original GO local-to-global matrices
@@ -660,30 +660,30 @@ void AliAlgVol::CreatePreLocDeltaMatrix(TGeoHMatrix& deltaM) const
   // we get by induction
   // delta_j = GO^-1_j * GO_{j-1} * G^-1_{j-1} * G^_{j}
   //
-  const AliAlgVol* par = GetParent();
-  deltaM = GetMatrixL2GIdeal().Inverse();
+  const AliAlgVol* par = getParent();
+  deltaM = getMatrixL2GIdeal().Inverse();
   if (par) {
-    deltaM *= par->GetMatrixL2GIdeal();
-    deltaM *= par->GetMatrixL2G().Inverse();
+    deltaM *= par->getMatrixL2GIdeal();
+    deltaM *= par->getMatrixL2G().Inverse();
   }
-  deltaM *= GetMatrixL2G();
+  deltaM *= getMatrixL2G();
   //
 }
 
 //_________________________________________________________________
-void AliAlgVol::CreateLocDeltaMatrix(TGeoHMatrix& deltaM) const
+void AliAlgVol::createLocDeltaMatrix(TGeoHMatrix& deltaM) const
 {
-  // Create local matrix deltaM from fParVals array containing corrections.
+  // Create local matrix deltaM from mParVals array containing corrections.
   // This deltaM does not account for eventual prealignment
   // Volume knows if its variation was done in TRA or LOC frame
   double corr[kNDOFGeom];
   for (int i = kNDOFGeom; i--;)
-    corr[i] = fParVals[i]; // we need doubles
-  Delta2Matrix(deltaM, corr);
-  if (IsFrameTRA()) { // we need corrections in local frame!
+    corr[i] = mParVals[i]; // we need doubles
+  delta2Matrix(deltaM, corr);
+  if (isFrameTRA()) { // we need corrections in local frame!
     // l' = T2L * delta_t * t = T2L * delta_t * T2L^-1 * l = delta_l * l
     // -> delta_l = T2L * delta_t * T2L^-1
-    const TGeoHMatrix& t2l = GetMatrixT2L();
+    const TGeoHMatrix& t2l = getMatrixT2L();
     const TGeoHMatrix& t2li = t2l.Inverse();
     deltaM.Multiply(&t2li);
     deltaM.MultiplyLeft(&t2l);
@@ -692,7 +692,7 @@ void AliAlgVol::CreateLocDeltaMatrix(TGeoHMatrix& deltaM) const
 }
 
 //_________________________________________________________________
-void AliAlgVol::CreateAlignmenMatrix(TGeoHMatrix& alg) const
+void AliAlgVol::createAlignmenMatrix(TGeoHMatrix& alg) const
 {
   // create final alignment matrix, accounting for eventual prealignment
   //
@@ -706,51 +706,51 @@ void AliAlgVol::CreateAlignmenMatrix(TGeoHMatrix& alg) const
   // but this creates precision problem.
   // Therefore we use explicitly cached Deltas from prealignment object.
   //
-  CreateGloDeltaMatrix(alg);
+  createGloDeltaMatrix(alg);
   //
-  const AliAlgVol* par = GetParent();
+  const AliAlgVol* par = getParent();
   if (par) {
     TGeoHMatrix dchain;
     while (par) {
-      dchain.MultiplyLeft(&par->GetGlobalDeltaRef());
-      par = par->GetParent();
+      dchain.MultiplyLeft(&par->getGlobalDeltaRef());
+      par = par->getParent();
     }
     const TGeoHMatrix& dchaini = dchain.Inverse();
     alg.Multiply(&dchain);
     alg.MultiplyLeft(&dchaini);
   }
-  alg *= GetGlobalDeltaRef();
+  alg *= getGlobalDeltaRef();
 
   /* // bad precision ?
-  alg.Multiply(&GetMatrixL2G());
-  alg.Multiply(&GetMatrixL2GIdeal().Inverse());
+  alg.Multiply(&getMatrixL2G());
+  alg.Multiply(&getMatrixL2GIdeal().Inverse());
   if (par) {
-    alg.MultiplyLeft(&par->GetMatrixL2G().Inverse());
-    alg.MultiplyLeft(&par->GetMatrixL2GIdeal());
+    alg.MultiplyLeft(&par->getMatrixL2G().Inverse());
+    alg.MultiplyLeft(&par->getMatrixL2GIdeal());
   }
   */
 }
 
 /*
 //_________________________________________________________________
-void AliAlgVol::CreateAlignmenMatrix(TGeoHMatrix& alg) const
+void AliAlgVol::createAlignmenMatrix(TGeoHMatrix& alg) const
 {
   // create final alignment matrix, accounting for eventual prealignment
   //
   // deltaGlo_j * X_{j-1} * PdeltaGlo_j * X^-1_{j-1}
   //
   // where deltaGlo_j is global alignment matrix for this volume at level j
-  // of herarchy, obtained from CreateGloDeltaMatrix.
+  // of herarchy, obtained from createGloDeltaMatrix.
   // PdeltaGlo_j is prealignment global matrix and
   // X_i = deltaGlo_i * deltaGlo_{i-1} .. deltaGle_0
   //
   TGeoHMatrix delGloPre,matX;
-  CreateGloDeltaMatrix(alg);
-  CreatePreGloDeltaMatrix(delGloPre);
+  createGloDeltaMatrix(alg);
+  createPreGloDeltaMatrix(delGloPre);
   const AliAlgVol* par = this;
-  while( (par=par->GetParent()) ) {
+  while( (par=par->getParent()) ) {
     TGeoHMatrix parDelGlo;
-    par->CreateGloDeltaMatrix(parDelGlo);
+    par->createGloDeltaMatrix(parDelGlo);
     matX *= parDelGlo;
   }
   alg *= matX;
@@ -761,132 +761,132 @@ void AliAlgVol::CreateAlignmenMatrix(TGeoHMatrix& alg) const
 */
 
 //_________________________________________________________________
-void AliAlgVol::CreateAlignmentObjects(TClonesArray* arr) const
+void AliAlgVol::createAlignmentObjects(TClonesArray* arr) const
 {
   // add to supplied array alignment object for itself and children
   TClonesArray& parr = *arr;
   TGeoHMatrix algM;
-  CreateAlignmenMatrix(algM);
-  //  new (parr[parr.GetEntriesFast()]) AliAlignObjParams(GetName(), GetVolID(), algM, true);
+  createAlignmenMatrix(algM);
+  //  new (parr[parr.GetEntriesFast()]) AliAlignObjParams(GetName(), getVolID(), algM, true);
   const double* translation = algM.GetTranslation();
   const double* rotation = algM.GetRotationMatrix();
-  new (parr[parr.GetEntriesFast()]) detectors::AlignParam(GetName(), GetVolID(),
+  new (parr[parr.GetEntriesFast()]) detectors::AlignParam(GetName(), getVolID(),
                                                           translation[0], translation[1], translation[2],
                                                           rotation[0], rotation[1], rotation[2], true);
-  int nch = GetNChildren();
+  int nch = getNChildren();
   for (int ich = 0; ich < nch; ich++)
-    GetChild(ich)->CreateAlignmentObjects(arr);
+    getChild(ich)->createAlignmentObjects(arr);
 }
 
 //_________________________________________________________________
-void AliAlgVol::UpdateL2GRecoMatrices(const TClonesArray* algArr, const TGeoHMatrix* cumulDelta)
+void AliAlgVol::updateL2GRecoMatrices(const TClonesArray* algArr, const TGeoHMatrix* cumulDelta)
 {
-  // recreate fMatL2GReco matrices from ideal L2G matrix and alignment objects
+  // recreate mMatL2GReco matrices from ideal L2G matrix and alignment objects
   // used during data reconstruction. For the volume at level J we have
   // L2G' = Delta_J * Delta_{J-1} *...* Delta_0 * L2GIdeal
   // cumulDelta is Delta_{J-1} * ... * Delta_0, supplied by the parent
   //
-  fMatL2GReco = fMatL2GIdeal;
+  mMatL2GReco = mMatL2GIdeal;
   // find alignment object for this volume
   int nalg = algArr->GetEntriesFast();
   const detectors::AlignParam* par = nullptr;
   for (int i = 0; i < nalg; i++) {
     par = (detectors::AlignParam*)algArr->At(i);
-    if (!strcmp(par->getSymName(), GetSymName()))
+    if (!strcmp(par->getSymName(), getSymName()))
       break;
     par = 0;
   }
   TGeoHMatrix delta;
   if (!par)
-    LOG(INFO) << "Alignment for " << GetSymName() << " is absent in Reco-Time alignment object";
+    LOG(INFO) << "Alignment for " << getSymName() << " is absent in Reco-Time alignment object";
   else
     delta = par->createMatrix();
   //    par->GetMatrix(delta);
   if (cumulDelta)
     delta *= *cumulDelta;
   //
-  fMatL2GReco.MultiplyLeft(&delta);
+  mMatL2GReco.MultiplyLeft(&delta);
   // propagate to children
-  for (int ich = GetNChildren(); ich--;)
-    GetChild(ich)->UpdateL2GRecoMatrices(algArr, &delta);
+  for (int ich = getNChildren(); ich--;)
+    getChild(ich)->updateL2GRecoMatrices(algArr, &delta);
   //
 }
 
 //______________________________________________________
-bool AliAlgVol::OwnsDOFID(int id) const
+bool AliAlgVol::ownsDOFID(int id) const
 {
   // check if DOF ID belongs to this volume or its children
-  if (id >= fFirstParGloID && id < fFirstParGloID + fNDOFs)
+  if (id >= mFirstParGloID && id < mFirstParGloID + mNDOFs)
     return true;
   //
-  for (int iv = GetNChildren(); iv--;) {
-    AliAlgVol* vol = GetChild(iv);
-    if (vol->OwnsDOFID(id))
+  for (int iv = getNChildren(); iv--;) {
+    AliAlgVol* vol = getChild(iv);
+    if (vol->ownsDOFID(id))
       return true;
   }
   return false;
 }
 
 //______________________________________________________
-AliAlgVol* AliAlgVol::GetVolOfDOFID(int id) const
+AliAlgVol* AliAlgVol::getVolOfDOFID(int id) const
 {
   // gets volume owning this DOF ID
-  if (id >= fFirstParGloID && id < fFirstParGloID + fNDOFs)
+  if (id >= mFirstParGloID && id < mFirstParGloID + mNDOFs)
     return (AliAlgVol*)this;
   //
-  for (int iv = GetNChildren(); iv--;) {
-    AliAlgVol* vol = GetChild(iv);
-    if ((vol = vol->GetVolOfDOFID(id)))
+  for (int iv = getNChildren(); iv--;) {
+    AliAlgVol* vol = getChild(iv);
+    if ((vol = vol->getVolOfDOFID(id)))
       return vol;
   }
   return 0;
 }
 
 //______________________________________________________
-const char* AliAlgVol::GetDOFName(int i) const
+const char* AliAlgVol::getDOFName(int i) const
 {
   // get name of DOF
-  return GetGeomDOFName(i);
+  return getGeomDOFName(i);
 }
 
 //______________________________________________________
-void AliAlgVol::FillDOFStat(AliAlgDOFStat* h) const
+void AliAlgVol::fillDOFStat(AliAlgDOFStat* h) const
 {
   // fill statistics info hist
   if (!h)
     return;
-  int ndf = GetNDOFs();
-  int dof0 = GetFirstParGloID();
-  int stat = GetNProcessedPoints();
+  int ndf = getNDOFs();
+  int dof0 = getFirstParGloID();
+  int stat = getNProcessedPoints();
   for (int idf = 0; idf < ndf; idf++) {
     int dof = idf + dof0;
-    h->AddStat(dof, stat);
+    h->addStat(dof, stat);
   }
 }
 
 //________________________________________
-void AliAlgVol::AddAutoConstraints(TObjArray* constrArr)
+void AliAlgVol::addAutoConstraints(TObjArray* constrArr)
 {
   // adds automatic constraints
-  int nch = GetNChildren();
+  int nch = getNChildren();
   //
-  if (HasChildrenConstraint()) {
+  if (hasChildrenConstraint()) {
     AliAlgConstraint* constr = new AliAlgConstraint();
-    constr->SetConstrainPattern(fConstrChild);
-    constr->SetParent(this);
+    constr->setConstrainPattern(mConstrChild);
+    constr->setParent(this);
     for (int ich = nch; ich--;) {
-      AliAlgVol* child = GetChild(ich);
-      if (child->GetExcludeFromParentConstraint())
+      AliAlgVol* child = getChild(ich);
+      if (child->getExcludeFromParentConstraint())
         continue;
-      constr->AddChild(child);
+      constr->addChild(child);
     }
-    if (constr->GetNChildren())
+    if (constr->getNChildren())
       constrArr->Add(constr);
     else
       delete constr;
   }
   for (int ich = 0; ich < nch; ich++) {
-    GetChild(ich)->AddAutoConstraints(constrArr);
+    getChild(ich)->addAutoConstraints(constrArr);
   }
 }
 

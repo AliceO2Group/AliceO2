@@ -36,71 +36,71 @@ class AliAlgRes : public TObject
   AliAlgRes();
   virtual ~AliAlgRes();
   //
-  void SetRun(int r) { fRun = r; }
-  void SetBz(float v) { fBz = v; }
-  void SetTimeStamp(uint32_t v) { fTimeStamp = v; }
-  void SetTrackID(uint32_t v) { fTrackID = v; }
-  void SetNPoints(int n)
+  void setRun(int r) { mRun = r; }
+  void setBz(float v) { mBz = v; }
+  void setTimeStamp(uint32_t v) { mTimeStamp = v; }
+  void setTrackID(uint32_t v) { mTrackID = v; }
+  void setNPoints(int n)
   {
-    fNPoints = n;
-    Resize(n);
+    mNPoints = n;
+    resize(n);
   }
   //
-  bool IsCosmic() const { return TestBit(kCosmicBit); }
-  bool HasVertex() const { return TestBit(kVertexBit); }
-  void SetCosmic(bool v = true) { SetBit(kCosmicBit, v); }
-  void SetHasVertex(bool v = true) { SetBit(kVertexBit, v); }
+  bool isCosmic() const { return TestBit(kCosmicBit); }
+  bool hasVertex() const { return TestBit(kVertexBit); }
+  void setCosmic(bool v = kTRUE) { SetBit(kCosmicBit, v); }
+  void setHasVertex(bool v = kTRUE) { SetBit(kVertexBit, v); }
   //
-  bool GetKalmanDone() const { return TestBit(kKalmanDoneBit); }
-  void SetKalmanDone(bool v = true) { SetBit(kKalmanDoneBit, v); }
+  bool getKalmanDone() const { return TestBit(kKalmanDoneBit); }
+  void setKalmanDone(bool v = kTRUE) { SetBit(kKalmanDoneBit, v); }
   //
-  int GetRun() const { return fRun; }
-  float GetBz() const { return fBz; }
-  uint32_t GetTimeStamp() const { return fTimeStamp; }
-  uint32_t GetTrackID() const { return fTrackID; }
-  int GetNPoints() const { return fNPoints; }
-  int GetNBook() const { return fNBook; }
-  float GetChi2() const { return fChi2; }
-  float GetChi2Ini() const { return fChi2Ini; }
-  float GetChi2K() const { return fChi2K; }
-  float GetQ2Pt() const { return fQ2Pt; }
-  float GetX(int i) const { return fX[i]; }
-  float GetY(int i) const { return fY[i]; }
-  float GetZ(int i) const { return fZ[i]; }
-  float GetSnp(int i) const { return fSnp[i]; }
-  float GetTgl(int i) const { return fTgl[i]; }
-  float GetAlpha(int i) const { return fAlpha[i]; }
-  float GetDY(int i) const { return fDY[i]; }
-  float GetDZ(int i) const { return fDZ[i]; }
-  float GetDYK(int i) const { return fDYK[i]; }
-  float GetDZK(int i) const { return fDZK[i]; }
+  int getRun() const { return mRun; }
+  float getBz() const { return mBz; }
+  uint32_t getTimeStamp() const { return mTimeStamp; }
+  uint32_t getTrackID() const { return mTrackID; }
+  int getNPoints() const { return mNPoints; }
+  int getNBook() const { return mNBook; }
+  float getChi2() const { return mChi2; }
+  float getChi2Ini() const { return mChi2Ini; }
+  float getChi2K() const { return mChi2K; }
+  float getQ2Pt() const { return mQ2Pt; }
+  float getX(int i) const { return mX[i]; }
+  float getY(int i) const { return mY[i]; }
+  float getZ(int i) const { return mZ[i]; }
+  float getSnp(int i) const { return mSnp[i]; }
+  float getTgl(int i) const { return mTgl[i]; }
+  float getAlpha(int i) const { return mAlpha[i]; }
+  float getDY(int i) const { return mDY[i]; }
+  float getDZ(int i) const { return mDZ[i]; }
+  float getDYK(int i) const { return mDYK[i]; }
+  float getDZK(int i) const { return mDZK[i]; }
   //
-  float GetSigY2K(int i) const { return fSigY2K[i]; }
-  float GetSigYZK(int i) const { return fSigYZK[i]; }
-  float GetSigZ2K(int i) const { return fSigZ2K[i]; }
-  float GetSigmaYK(int i) const { return TMath::Sqrt(fSigY2K[i]); }
-  float GetSigmaZK(int i) const { return TMath::Sqrt(fSigZ2K[i]); }
+  float getSigY2K(int i) const { return mSigY2K[i]; }
+  float getSigYZK(int i) const { return mSigYZK[i]; }
+  float getSigZ2K(int i) const { return mSigZ2K[i]; }
+  float getSigmaYK(int i) const { return TMath::Sqrt(mSigY2K[i]); }
+  float getSigmaZK(int i) const { return TMath::Sqrt(mSigZ2K[i]); }
   //
-  float GetSigY2(int i) const { return fSigY2[i]; }
-  float GetSigYZ(int i) const { return fSigYZ[i]; }
-  float GetSigZ2(int i) const { return fSigZ2[i]; }
-  float GetSigmaY(int i) const { return TMath::Sqrt(fSigY2[i]); }
-  float GetSigmaZ(int i) const { return TMath::Sqrt(fSigZ2[i]); }
+  float getSigY2(int i) const { return mSigY2[i]; }
+  float getSigYZ(int i) const { return mSigYZ[i]; }
+  float getSigZ2(int i) const { return mSigZ2[i]; }
+  float getSigmaY(int i) const { return TMath::Sqrt(mSigY2[i]); }
+  float getSigmaZ(int i) const { return TMath::Sqrt(mSigZ2[i]); }
   //
-  float GetSigY2Tot(int i) const { return fSigY2K[i] + fSigY2[i]; }
-  float GetSigYZTot(int i) const { return fSigYZK[i] + fSigYZ[i]; }
-  float GetSigZ2Tot(int i) const { return fSigZ2K[i] + fSigZ2[i]; }
-  float GetSigmaYTot(int i) const { return TMath::Sqrt(GetSigY2Tot(i)); }
-  float GetSigmaZTot(int i) const { return TMath::Sqrt(GetSigZ2Tot(i)); }
+  float getSigY2Tot(int i) const { return mSigY2K[i] + mSigY2[i]; }
+  float getSigYZTot(int i) const { return mSigYZK[i] + mSigYZ[i]; }
+  float getSigZ2Tot(int i) const { return mSigZ2K[i] + mSigZ2[i]; }
+  float getSigmaYTot(int i) const { return TMath::Sqrt(getSigY2Tot(i)); }
+  float getSigmaZTot(int i) const { return TMath::Sqrt(getSigZ2Tot(i)); }
   //
-  int GetVolID(int i) const { return fVolID[i]; }
+  int getVolID(int i) const { return mVolID[i]; }
   //
-  float GetXLab(int i) const;
-  float GetYLab(int i) const;
-  float GetZLab(int i) const;
+  float getXLab(int i) const;
+  float getYLab(int i) const;
+  float getZLab(int i) const;
   //
-  bool FillTrack(AliAlgTrack* trc, bool doKalman = true);
-  void Resize(int n);
+  bool fillTrack(AliAlgTrack* trc, bool doKalman = kTRUE);
+  void resize(int n);
   virtual void Clear(const Option_t* opt = "");
   virtual void Print(const Option_t* opt = "re") const;
   //
@@ -112,34 +112,34 @@ class AliAlgRes : public TObject
   //
  protected:
   //
-  int fRun;            // run
-  float fBz;           // field
-  uint32_t fTimeStamp; // event time
-  uint32_t fTrackID;   // track ID
-  int fNPoints;        // n meas points
-  int fNBook;          //! booked lenfth
-  float fChi2;         //  chi2 after solution
-  float fChi2Ini;      //  chi2 before solution
-  float fChi2K;        //  chi2 from kalman
-  float fQ2Pt;         //  Q/Pt at reference point
-  float* fX;           //[fNPoints] tracking X of cluster
-  float* fY;           //[fNPoints] tracking Y of cluster
-  float* fZ;           //[fNPoints] tracking Z of cluster
-  float* fSnp;         //[fNPoints] track Snp
-  float* fTgl;         //[fNPoints] track Tgl
-  float* fAlpha;       //[fNPoints] track alpha
-  float* fDY;          //[fNPoints] Y residual (track - meas)
-  float* fDZ;          //[fNPoints] Z residual (track - meas)
-  float* fDYK;         //[fNPoints] Y residual (track - meas) Kalman
-  float* fDZK;         //[fNPoints] Z residual (track - meas) Kalman
-  float* fSigY2;       //[fNPoints] Y err^2
-  float* fSigYZ;       //[fNPoints] YZ err
-  float* fSigZ2;       //[fNPoints] Z err^2
-  float* fSigY2K;      //[fNPoints] Y err^2 of Kalman track smoothing
-  float* fSigYZK;      //[fNPoints] YZ err  of Kalman track smoothing
-  float* fSigZ2K;      //[fNPoints] Z err^2 of Kalman track smoothing
-  int* fVolID;         //[fNPoints] volume id (0 for vertex constraint)
-  int* fLabel;         //[fNPoints] label of the volume
+  int mRun;            // run
+  float mBz;           // field
+  uint32_t mTimeStamp; // event time
+  uint32_t mTrackID;   // track ID
+  int mNPoints;        // n meas points
+  int mNBook;          //! booked lenfth
+  float mChi2;         //  chi2 after solution
+  float mChi2Ini;      //  chi2 before solution
+  float mChi2K;        //  chi2 from kalman
+  float mQ2Pt;         //  Q/Pt at reference point
+  float* mX;           //[mNPoints] tracking X of cluster
+  float* mY;           //[mNPoints] tracking Y of cluster
+  float* mZ;           //[mNPoints] tracking Z of cluster
+  float* mSnp;         //[mNPoints] track Snp
+  float* mTgl;         //[mNPoints] track Tgl
+  float* mAlpha;       //[mNPoints] track alpha
+  float* mDY;          //[mNPoints] Y residual (track - meas)
+  float* mDZ;          //[mNPoints] Z residual (track - meas)
+  float* mDYK;         //[mNPoints] Y residual (track - meas) Kalman
+  float* mDZK;         //[mNPoints] Z residual (track - meas) Kalman
+  float* mSigY2;       //[mNPoints] Y err^2
+  float* mSigYZ;       //[mNPoints] YZ err
+  float* mSigZ2;       //[mNPoints] Z err^2
+  float* mSigY2K;      //[mNPoints] Y err^2 of Kalman track smoothing
+  float* mSigYZK;      //[mNPoints] YZ err  of Kalman track smoothing
+  float* mSigZ2K;      //[mNPoints] Z err^2 of Kalman track smoothing
+  int* mVolID;         //[mNPoints] volume id (0 for vertex constraint)
+  int* mLabel;         //[mNPoints] label of the volume
   //
   ClassDef(AliAlgRes, 2);
 };

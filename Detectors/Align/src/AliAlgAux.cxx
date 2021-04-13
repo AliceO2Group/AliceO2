@@ -30,7 +30,7 @@ namespace align
 {
 
 //_______________________________________________________________
-void AliAlgAux::PrintBits(size_t patt, int maxBits)
+void AliAlgAux::printBits(size_t patt, int maxBits)
 {
   // print maxBits of the pattern
   maxBits = std::min(64, maxBits);
@@ -39,7 +39,7 @@ void AliAlgAux::PrintBits(size_t patt, int maxBits)
 }
 
 //__________________________________________
-int AliAlgAux::FindKeyIndex(int key, const int* arr, int n)
+int AliAlgAux::findKeyIndex(int key, const int* arr, int n)
 {
   // finds index of key in the array
   int imn = 0, imx = n - 1;

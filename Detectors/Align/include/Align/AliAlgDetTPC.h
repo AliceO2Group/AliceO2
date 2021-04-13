@@ -29,7 +29,7 @@ class AliAlgDetTPC : public AliAlgDet
   AliAlgDetTPC(const char* title = "");
   virtual ~AliAlgDetTPC();
   //
-  virtual void DefineVolumes();
+  virtual void defineVolumes();
   //
   bool AcceptTrack(const AliESDtrack* trc, int trtype) const;
   //

@@ -33,41 +33,41 @@ class AliAlgMPRecord : public TObject
   AliAlgMPRecord();
   virtual ~AliAlgMPRecord();
   //
-  int GetRun() const { return GetUniqueID(); }
-  void SetRun(int r) { SetUniqueID(r); }
-  uint32_t GetTimeStamp() const { return fTimeStamp; }
-  void SetTimeStamp(uint32_t t) { fTimeStamp = t; }
-  uint32_t GetTrackID() const { return fTrackID; }
-  void SetTrackID(uint32_t t) { fTrackID = t; }
-  bool IsCosmic() const { return TestBit(kCosmicBit); }
-  void SetCosmic(bool v = true) { SetBit(kCosmicBit, v); }
+  int getRun() const { return GetUniqueID(); }
+  void setRun(int r) { SetUniqueID(r); }
+  uint32_t getTimeStamp() const { return mTimeStamp; }
+  void setTimeStamp(uint32_t t) { mTimeStamp = t; }
+  uint32_t getTrackID() const { return mTrackID; }
+  void setTrackID(uint32_t t) { mTrackID = t; }
+  bool isCosmic() const { return TestBit(kCosmicBit); }
+  void setCosmic(bool v = true) { SetBit(kCosmicBit, v); }
   //
-  int GetNVarGlo() const { return fNVarGlo; }
-  void SetNVarGlo(int n) { fNVarGlo = n; }
+  int getNVarGlo() const { return mNVarGlo; }
+  void setNVarGlo(int n) { mNVarGlo = n; }
   //
-  int GetNResid() const { return fNResid; }
-  int GetNVarLoc() const { return fNVarLoc; }
+  int getNResid() const { return mNResid; }
+  int getNVarLoc() const { return mNVarLoc; }
   //
-  int GetNDLoc(int id) const { return fNDLoc[id]; }
-  int GetNDGlo(int id) const { return fNDGlo[id]; }
-  int GetVolID(int id) const { return fVolID ? fVolID[id] - 1 : -1; }
-  float GetResid(int id) const { return fResid[id]; }
-  float GetResErr(int id) const { return fResErr[id]; }
+  int getNDLoc(int id) const { return mNDLoc[id]; }
+  int getNDGlo(int id) const { return mNDGlo[id]; }
+  int getVolID(int id) const { return mVolID ? mVolID[id] - 1 : -1; }
+  float getResid(int id) const { return mResid[id]; }
+  float getResErr(int id) const { return mResErr[id]; }
   //
-  float GetChi2Ini() const { return fChi2Ini; }
-  float GetQ2Pt() const { return fQ2Pt; }
-  float GetTgl() const { return fTgl; }
-  int GetNDLocTot() const { return fNDLocTot; }
-  int GetNDGloTot() const { return fNDGloTot; }
-  const float* GetArrGlo() const { return fDGlo; }
-  const float* GetArrLoc() const { return fDLoc; }
-  const int16_t* GetArrLabLoc() const { return fIDLoc; }
-  const int* GetArrLabGlo() const { return fIDGlo; }
+  float getChi2Ini() const { return mChi2Ini; }
+  float getQ2Pt() const { return mQ2Pt; }
+  float getTgl() const { return mTgl; }
+  int getNDLocTot() const { return mNDLocTot; }
+  int getNDGloTot() const { return mNDGloTot; }
+  const float* getArrGlo() const { return mDGlo; }
+  const float* getArrLoc() const { return mDLoc; }
+  const int16_t* getArrLabLoc() const { return mIDLoc; }
+  const int* getArrLabGlo() const { return mIDGlo; }
   //
-  bool FillTrack(const AliAlgTrack* trc, const int* id2Lab = 0);
-  void DummyRecord(float res, float err, float dGlo, int labGlo);
+  bool fillTrack(const AliAlgTrack* trc, const int* id2Lab = 0);
+  void dummyRecord(float res, float err, float dGlo, int labGlo);
   //
-  void Resize(int nresid, int nloc, int nglo);
+  void resize(int nresid, int nloc, int nglo);
   //
   virtual void Clear(const Option_t* opt = "");
   virtual void Print(const Option_t* opt = "") const;
@@ -80,33 +80,33 @@ class AliAlgMPRecord : public TObject
   //
  protected:
   //
-  uint32_t fTrackID;   // track in the event
-  uint32_t fTimeStamp; // event time stamp
-  int fNResid;         // number of residuals for the track (=2 npoints)
-  int fNVarLoc;        // number of local variables for the track
-  int fNVarGlo;        // number of global variables defined
-  int fNDLocTot;       // total number of non-zero local derivatives
-  int fNDGloTot;       // total number of non-zero global derivatives
-  int fNMeas;          // number of measured points
-  float fChi2Ini;      // chi2 of initial kalman fit
-  float fQ2Pt;         // q/pt at ref point
-  float fTgl;          // dip angle at ref point
+  uint32_t mTrackID;   // track in the event
+  uint32_t mTimeStamp; // event time stamp
+  int mNResid;         // number of residuals for the track (=2 npoints)
+  int mNVarLoc;        // number of local variables for the track
+  int mNVarGlo;        // number of global variables defined
+  int mNDLocTot;       // total number of non-zero local derivatives
+  int mNDGloTot;       // total number of non-zero global derivatives
+  int mNMeas;          // number of measured points
+  float mChi2Ini;      // chi2 of initial kalman fit
+  float mQ2Pt;         // q/pt at ref point
+  float mTgl;          // dip angle at ref point
   //
-  int16_t* fNDLoc; //[fNResid] number of non-0 local derivatives per residual
-  int* fNDGlo;     //[fNResid] number of non-0 global derivatives per residual
-  int* fVolID;     //[fNResid] volume id + 1 (0 - not a volume)
-  float* fResid;   //[fNResid] residuals
-  float* fResErr;  //[fNResid] error associated to residual
+  int16_t* mNDLoc; //[mNResid] number of non-0 local derivatives per residual
+  int* mNDGlo;     //[mNResid] number of non-0 global derivatives per residual
+  int* mVolID;     //[mNResid] volume id + 1 (0 - not a volume)
+  float* mResid;   //[mNResid] residuals
+  float* mResErr;  //[mNResid] error associated to residual
   //
-  int16_t* fIDLoc; //[fNDLocTot] ID of local variables for non-0 local derivatives
-  int* fIDGlo;     //[fNDGloTot] ID of global variables for non-0 global derivatives
-  float* fDLoc;    //[fNDLocTot] non-0 local derivatives
-  float* fDGlo;    //[fNDGloTot] non-0 global derivatives
+  int16_t* mIDLoc; //[mNDLocTot] ID of local variables for non-0 local derivatives
+  int* mIDGlo;     //[mNDGloTot] ID of global variables for non-0 global derivatives
+  float* mDLoc;    //[mNDLocTot] non-0 local derivatives
+  float* mDGlo;    //[mNDGloTot] non-0 global derivatives
   //
   // aux info
-  int fNResidBook;   //! number of slots booked for residuals
-  int fNDLocTotBook; //! number of slots booked for local derivatives
-  int fNDGloTotBook; //! number of slots booked for global derivatives
+  int mNResidBook;   //! number of slots booked for residuals
+  int mNDLocTotBook; //! number of slots booked for local derivatives
+  int mNDGloTotBook; //! number of slots booked for global derivatives
   //
   ClassDef(AliAlgMPRecord, 4);
 };
