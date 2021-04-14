@@ -78,9 +78,10 @@ class DataRelayer
   /// This invokes the appropriate `InputRoute::danglingChecker` on every
   /// entry in the cache and if it returns true, it creates a new
   /// cache entry by invoking the associated `InputRoute::expirationHandler`.
+  /// @a createNew true if the dangling inputs are allowed to create new slots.
   /// @return true if there were expirations, false if not.
   ActivityStats processDanglingInputs(std::vector<ExpirationHandler> const&,
-                                      ServiceRegistry& context);
+                                      ServiceRegistry& context, bool createNew);
 
   /// This is used to ask for relaying a given (header,payload) pair.
   /// Notice that we expect that the header is an O2 Header Stack

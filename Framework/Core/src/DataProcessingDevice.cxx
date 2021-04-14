@@ -569,6 +569,10 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
     registry->get<ControlService>().notifyStreamingState(state->streaming);
   };
 
+  if (context.state->streaming == StreamingState::Idle) {
+    return;
+  }
+
   context.completed->clear();
   context.completed->reserve(16);
   *context.wasActive |= DataProcessingDevice::tryDispatchComputation(context, *context.completed);
@@ -578,7 +582,7 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
   if (*context.wasActive == false) {
     context.registry->get<CallbackService>()(CallbackService::Id::Idle);
   }
-  auto activity = context.relayer->processDanglingInputs(*context.expirationHandlers, *context.registry);
+  auto activity = context.relayer->processDanglingInputs(*context.expirationHandlers, *context.registry, true);
   *context.wasActive |= activity.expiredSlots > 0;
 
   context.completed->clear();
@@ -600,7 +604,7 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
     // FIXME: not sure this is the correct way to drain the queues, but
     // I guess we will see.
     while (DataProcessingDevice::tryDispatchComputation(context, *context.completed)) {
-      context.relayer->processDanglingInputs(*context.expirationHandlers, *context.registry);
+      context.relayer->processDanglingInputs(*context.expirationHandlers, *context.registry, false);
     }
     EndOfStreamContext eosContext{*context.registry, *context.allocator};
 
