@@ -21,6 +21,7 @@
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisCore/trackUtilities.h"
 #include "AnalysisCore/HFConfigurables.h"
+#include "AnalysisCore/HFSelectorCuts.h"
 //#include "AnalysisDataModel/Centrality.h"
 #include "Framework/HistogramRegistry.h"
 #include <algorithm>
@@ -30,9 +31,18 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 using namespace o2::aod::hf_cand_prong2;
 using namespace o2::aod::hf_cand_prong3;
+using namespace o2::analysis;
+using namespace o2::analysis::hf_cuts_single_track;
 
 /// Track selection
 struct SelectTracks {
+
+  // enum for candidate type
+  enum CandidateType {
+    Cand2Prong = 0,
+    Cand3Prong
+  };
+
   Produces<aod::HFSelTrack> rowSelectedTrack;
 
   Configurable<bool> b_dovalplots{"b_dovalplots", true, "fill histograms"};
@@ -40,17 +50,15 @@ struct SelectTracks {
   // quality cut
   Configurable<bool> doCutQuality{"doCutQuality", true, "apply quality cuts"};
   Configurable<int> d_tpcnclsfound{"d_tpcnclsfound", 70, ">= min. number of TPC clusters needed"};
+  // pT bins for single-track cuts
+  Configurable<std::vector<double>> pTBinsTrack{"ptbins_singletrack", std::vector<double>{hf_cuts_single_track::pTBinsTrack_v}, "track pT bin limits for 2-prong DCAXY pT-depentend cut"};
   // 2-prong cuts
   Configurable<double> ptmintrack_2prong{"ptmintrack_2prong", -1., "min. track pT for 2 prong candidate"};
-  Configurable<double> dcatoprimxy_2prong_maxpt{"dcatoprimxy_2prong_maxpt", 2., "max pt cut for min. DCAXY to prim. vtx. for 2 prong candidate"};
-  Configurable<double> dcatoprimxymin_2prong{"dcatoprimxymin_2prong", 0., "min. DCAXY to prim. vtx. for 2 prong candidate"};
-  Configurable<double> dcatoprimxymax_2prong{"dcatoprimxymax_2prong", 1.0, "max. DCAXY to prim. vtx. for 2 prong candidate"};
+  Configurable<LabeledArray<double>> cutsTrack2Prong{"cuts_singletrack_2prong", {hf_cuts_single_track::cutsTrack[0], npTBinsTrack, nCutVarsTrack, pTBinLabelsTrack, cutVarLabelsTrack}, "Single-track selections per pT bin for 2-prong candidates"};
   Configurable<double> etamax_2prong{"etamax_2prong", 4., "max. pseudorapidity for 2 prong candidate"};
   // 3-prong cuts
   Configurable<double> ptmintrack_3prong{"ptmintrack_3prong", -1., "min. track pT for 3 prong candidate"};
-  Configurable<double> dcatoprimxy_3prong_maxpt{"dcatoprimxy_3prong_maxpt", 2., "max pt cut for min. DCAXY to prim. vtx. for 3 prong candidate"};
-  Configurable<double> dcatoprimxymin_3prong{"dcatoprimxymin_3prong", 0., "min. DCAXY to prim. vtx. for 3 prong candidate"};
-  Configurable<double> dcatoprimxymax_3prong{"dcatoprimxymax_3prong", 1.0, "max. DCAXY to prim. vtx. for 3 prong candidate"};
+  Configurable<LabeledArray<double>> cutsTrack3Prong{"cuts_singletrack_3prong", {hf_cuts_single_track::cutsTrack[0], npTBinsTrack, nCutVarsTrack, pTBinLabelsTrack, cutVarLabelsTrack}, "Single-track selections per pT bin for 3-prong candidates"};
   Configurable<double> etamax_3prong{"etamax_3prong", 4., "max. pseudorapidity for 3 prong candidate"};
 
   HistogramRegistry registry{
@@ -58,12 +66,41 @@ struct SelectTracks {
     {{"hpt_nocuts", "all tracks;#it{p}_{T}^{track} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      // 2-prong histograms
      {"hpt_cuts_2prong", "tracks selected for 2-prong vertexing;#it{p}_{T}^{track} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
-     {"hdcatoprimxy_cuts_2prong", "tracks selected for 2-prong vertexing;DCAxy to prim. vtx. (cm);entries", {HistType::kTH1F, {{static_cast<int>(1.2 * dcatoprimxymax_2prong * 100), -1.2 * dcatoprimxymax_2prong, 1.2 * dcatoprimxymax_2prong}}}},
+     {"hdcatoprimxy_cuts_2prong", "tracks selected for 2-prong vertexing;DCAxy to prim. vtx. (cm);entries", {HistType::kTH1F, {{400, -2., 2.}}}},
      {"heta_cuts_2prong", "tracks selected for 2-prong vertexing;#it{#eta};entries", {HistType::kTH1F, {{static_cast<int>(1.2 * etamax_2prong * 100), -1.2 * etamax_2prong, 1.2 * etamax_2prong}}}},
      // 3-prong histograms
      {"hpt_cuts_3prong", "tracks selected for 3-prong vertexing;#it{p}_{T}^{track} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
-     {"hdcatoprimxy_cuts_3prong", "tracks selected for 3-prong vertexing;DCAxy to prim. vtx. (cm);entries", {HistType::kTH1F, {{static_cast<int>(1.2 * dcatoprimxymax_3prong) * 100, -1.2 * dcatoprimxymax_3prong, 1.2 * dcatoprimxymax_3prong}}}},
+     {"hdcatoprimxy_cuts_3prong", "tracks selected for 3-prong vertexing;DCAxy to prim. vtx. (cm);entries", {HistType::kTH1F, {{400, -2., 2.}}}},
      {"heta_cuts_3prong", "tracks selected for 3-prong vertexing;#it{#eta};entries", {HistType::kTH1F, {{static_cast<int>(1.2 * etamax_3prong * 100), -1.2 * etamax_3prong, 1.2 * etamax_3prong}}}}}};
+
+  // array of 2-prong and 3-prong single-track cuts
+  std::array<LabeledArray<double>, 2> cutsSingleTrack;
+
+  void init(InitContext const&)
+  {
+    cutsSingleTrack = {cutsTrack2Prong, cutsTrack3Prong};
+  }
+
+  /// Single-track cuts for 2-prongs or 3-prongs
+  /// \param hfTrack is a track
+  /// \param dca is a 2-element array with dca in transverse and longitudinal directions
+  /// \return true if track passes all cuts
+  template <typename T>
+  bool isSelectedTrack(const T& hfTrack, const array<float, 2>& dca, const int candType)
+  {
+    auto pTBinTrack = findBin(pTBinsTrack, hfTrack.pt());
+    if (pTBinTrack == -1) {
+      return false;
+    }
+
+    if (abs(dca[0]) < cutsSingleTrack[candType].get(pTBinTrack, "min_dcaxytoprimary")) {
+      return false; //minimum DCAxy
+    }
+    if (abs(dca[0]) > cutsSingleTrack[candType].get(pTBinTrack, "max_dcaxytoprimary")) {
+      return false; //maximum DCAxy
+    }
+    return true;
+  }
 
   void process(aod::Collision const& collision,
                soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra> const& tracks)
@@ -108,16 +145,14 @@ struct SelectTracks {
       // DCA cut
       array<float, 2> dca;
       if (status_prong > 0) {
-        double dcatoprimxymin_2prong_ptdep = dcatoprimxymin_2prong * TMath::Max(0., (1 - TMath::Floor(trackPt / dcatoprimxy_2prong_maxpt)));
-        double dcatoprimxymin_3prong_ptdep = dcatoprimxymin_3prong * TMath::Max(0., (1 - TMath::Floor(trackPt / dcatoprimxy_3prong_maxpt)));
         auto trackparvar0 = getTrackParCov(track);
         if (!trackparvar0.propagateParamToDCA(vtxXYZ, d_bz, &dca, 100.)) { // get impact parameters
           status_prong = 0;
         }
-        if ((status_prong & (1 << 0)) && (abs(dca[0]) < dcatoprimxymin_2prong_ptdep || abs(dca[0]) > dcatoprimxymax_2prong)) {
+        if ((status_prong & (1 << 0)) && !isSelectedTrack(track, dca, Cand2Prong)) {
           status_prong = status_prong & ~(1 << 0);
         }
-        if ((status_prong & (1 << 1)) && (abs(dca[0]) < dcatoprimxymin_3prong_ptdep || abs(dca[0]) > dcatoprimxymax_3prong)) {
+        if ((status_prong & (1 << 1)) && !isSelectedTrack(track, dca, Cand3Prong)) {
           status_prong = status_prong & ~(1 << 1);
         }
       }
