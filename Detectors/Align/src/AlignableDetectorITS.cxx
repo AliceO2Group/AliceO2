@@ -142,7 +142,7 @@ void AlignableDetectorITS::Print(const Option_t* opt) const
 {
   AlignableDetector::Print(opt);
   printf("Sel.pattern   Collisions: %7s | Cosmic: %7s\n",
-         GetITSPattName(fITSPatt[kColl]), GetITSPattName(fITSPatt[kCosm]));
+         GetITSPattName(fITSPatt[Coll]), GetITSPattName(fITSPatt[Cosm]));
 }
 
 //____________________________________________
