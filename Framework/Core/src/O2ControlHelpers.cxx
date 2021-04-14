@@ -216,12 +216,12 @@ std::string findBinder(const std::vector<DeviceSpec>& specs, const std::string& 
   for (const auto& spec : specs) {
     for (const auto& inputChannel : spec.inputChannels) {
       if (inputChannel.method == ChannelMethod::Bind && inputChannel.name == channel) {
-        return spec.name;
+        return spec.id;
       }
     }
     for (const auto& outputChannel : spec.outputChannels) {
       if (outputChannel.method == ChannelMethod::Bind && outputChannel.name == channel) {
-        return spec.name;
+        return spec.id;
       }
     }
   }
