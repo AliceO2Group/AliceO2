@@ -9,29 +9,28 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(Align
-               SOURCES  src/AliAlgAux.cxx
-                        src/AliAlgConstraint.cxx
-                        src/AliAlgDet.cxx
-                        #src/AliAlgDetHMPID.cxx
-                        #src/AliAlgDetITS.cxx
-                        #src/AliAlgDetTOF.cxx
-                        #src/AliAlgDetTPC.cxx
-                        #src/AliAlgDetTRD.cxx
-                        src/AliAlgDOFStat.cxx
-                        src/AliAlgMPRecord.cxx
-                        src/AliAlgPoint.cxx
-                        src/AliAlgRes.cxx
-                        src/AliAlgResFast.cxx
-                        src/AliAlgSens.cxx
-                        #src/AliAlgSensHMPID.cxx
-                        #src/AliAlgSensITS.cxx
-                        #src/AliAlgSensTOF.cxx
-                        #src/AliAlgSensTPC.cxx
-                        #src/AliAlgSensTRD.cxx
-                        src/AliAlgSteer.cxx
-                        src/AliAlgTrack.cxx
-                        src/AliAlgVol.cxx
-                        src/AliAlgVtx.cxx
+               SOURCES  src/GeometricalConstraint.cxx
+                        src/AlignableDetector.cxx
+                        #src/AlignableDetectorHMPID.cxx
+                        #src/AlignableDetectorITS.cxx
+                        #src/AlignableDetectorTOF.cxx
+                        #src/AlignableDetectorTPC.cxx
+                        #src/AlignableDetectorTRD.cxx
+                        src/DOFStatistics.cxx
+                        src/Millepede2Record.cxx
+                        src/AlignmentPoint.cxx
+                        src/ResidualsController.cxx
+                        src/ResidualsControllerFast.cxx
+                        src/AlignableSensor.cxx
+                        #src/AlignableSensorHMPID.cxx
+                        #src/AlignableSensorITS.cxx
+                        #src/AlignableSensorTOF.cxx
+                        #src/AlignableSensorTPC.cxx
+                        #src/AlignableSensorTRD.cxx
+                        src/Controller.cxx
+                        src/AlignmentTrack.cxx
+                        src/AlignableVolume.cxx
+                        src/EventVertex.cxx
                         src/Mille.cxx
                PUBLIC_LINK_LIBRARIES O2::FrameworkLogger
                						 O2::ReconstructionDataFormats
@@ -49,27 +48,27 @@ o2_add_library(Align
 
 o2_target_root_dictionary(
   Align
-  HEADERS include/Align/AliAlgDet.h
-          #include/Align/AliAlgDetITS.h
-          #include/Align/AliAlgDetTOF.h
-          #include/Align/AliAlgDetTPC.h
-          #include/Align/AliAlgDetTRD.h
-          #include/Align/AliAlgDetHMPID.h
-          include/Align/AliAlgMPRecord.h
-          include/Align/AliAlgPoint.h
-          include/Align/AliAlgSens.h
-          #include/Align/AliAlgSensITS.h
-          #include/Align/AliAlgSensTOF.h
-          #include/Align/AliAlgSensTPC.h
-          #include/Align/AliAlgSensTRD.h
-          #include/Align/AliAlgSensHMPID.h
-          include/Align/AliAlgSteer.h
-          include/Align/AliAlgTrack.h
-          include/Align/AliAlgVol.h
-          include/Align/AliAlgVtx.h
-          include/Align/AliAlgRes.h
-          include/Align/AliAlgResFast.h
-          include/Align/AliAlgConstraint.h
-          include/Align/AliAlgDOFStat.h
-          include/Align/AliAlgAux.h
+  HEADERS include/Align/AlignableDetector.h
+          #include/Align/AlignableDetectorITS.h
+          #include/Align/AlignableDetectorTOF.h
+          #include/Align/AlignableDetectorTPC.h
+          #include/Align/AlignableDetectorTRD.h
+          #include/Align/AlignableDetectorHMPID.h
+          include/Align/Millepede2Record.h
+          include/Align/AlignmentPoint.h
+          include/Align/AlignableSensor.h
+          #include/Align/AlignableSensorITS.h
+          #include/Align/AlignableSensorTOF.h
+          #include/Align/AlignableSensorTPC.h
+          #include/Align/AlignableSensorTRD.h
+          #include/Align/AlignableSensorHMPID.h
+          include/Align/Controller.h
+          include/Align/AlignmentTrack.h
+          include/Align/AlignableVolume.h
+          include/Align/EventVertex.h
+          include/Align/ResidualsController.h
+          include/Align/ResidualsControllerFast.h
+          include/Align/GeometricalConstraint.h
+          include/Align/DOFStatistics.h
+          include/Align/utils.h
           )
