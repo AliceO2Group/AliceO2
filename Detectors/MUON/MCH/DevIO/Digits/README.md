@@ -2,6 +2,18 @@
 \page refDetectorsMUONMCHDevIODigits DigitsIO
 /doxy -->
 
+<!-- vim-markdown-toc GFM -->
+
+* [Utilities to read and write MCH Digits in non-CTF formats (mostly for debug)](#utilities-to-read-and-write-mch-digits-in-non-ctf-formats-mostly-for-debug)
+  * [Standalone programs (i.e. not DPL devices)](#standalone-programs-ie-not-dpl-devices)
+    * [Digit file dumper](#digit-file-dumper)
+  * [DPL devices](#dpl-devices)
+    * [Digit file reader (aka sampler) device](#digit-file-reader-aka-sampler-device)
+    * [Digit writer (aka sink) device](#digit-writer-aka-sink-device)
+    * [Digit ID converter (from Run2 to Run3)](#digit-id-converter-from-run2-to-run3)
+    * [Digit random generator](#digit-random-generator)
+
+<!-- vim-markdown-toc -->
 # Utilities to read and write MCH Digits in non-CTF formats (mostly for debug)
 
 The MCH digits can be stored in binary format for debug purpose.
@@ -13,9 +25,9 @@ have the same version (named D0). The file version number changes whenever the
 
 | File version | Digit version | contains ROF | ROF version |  support  |
 |:------------:|:-------------:|:------------:|:-----------:|:---------:|
-|      0       |       0       |     no       |      0      |    yes    |
-|      1       |       0       |     yes      |      0      |    yes    |
-|      2       |       1       |     yes      |      0      |   planned |
+|      0       |       0       |     no       |     (0)     |    yes    |
+|      1       |       0       |     yes      |      1      |    yes    |
+|      2       |       1       |     yes      |      1      |   planned |
 
 ## Standalone programs (i.e. not DPL devices)
 
@@ -47,7 +59,6 @@ it is the V0 version, which might or not might be the case...
 ```
 o2-mch-digits-file-reader-workflow
   --infile arg       input file name
-  [--verbose]        print some basic information while processing
   [--max-nof-tfs]    max number of timeframes to process
   [--first-tf]       first timeframe to process
   [--max-nof-rofs]   max number of ROFs to process
@@ -80,8 +91,56 @@ option is used) or to screen (if `--no-file` option is used)
 
 ```
 o2-mch-digits-r23-workflow
+  [--verbose]        print ids being converted
 ```
 
 A device that reads digits with ids in Run2 convention and outputs digits with
  ids in Run3 convention. Note that expected input spec is `MCH/DIGITSRUN2` and 
  the output one is `MCH/DIGITS`
+
+### Digit random generator
+
+```
+o2-mch-digits-random-generator-workflow
+  [--first-tf] arg (=0)               first timeframe to generate
+  [--max-nof-tfs] arg (=2147483647)   max number of timeframes to generate
+  [--nof-rofs-per-tf]                 number of ROFs to generate in each timeframe
+  [--occupancy]                       fraction of pads to generate digits for
+  [--print-digits]                    print digits
+  [--print-tfs]                       print number of digits and rofs per tf
+```
+
+Generate a fixed number of digits (equal to the total number of MCH pads
+times the occupancy) per ROFRecord for a fixed number of ROFRecord per time frames,
+ for a fixed number of timeframes.
+
+Note that the occupancy **must** be strictly positive and less than or equal to 1.
+
+Example of use : generate digits (with 1% occupancy, 128 ROFs per TF, 10 TFs) and
+dump them into debug binary form :
+
+```
+o2-mch-digits-random-generator-workflow -b
+  --max-nof-tfs 10 
+  --nof-rofs-per-tf 128 
+  --occupancy 0.01 | 
+o2-mch-digits-writer-workflow -b 
+  --print-tfs 
+  --binary-file-format 1 
+  --outfile digits.v1.out
+```
+
+```
+$ ls -alrth digits.v1.out
+-rw-r--r--  1 laurent  staff   258M 15 avr 10:30 digits.v1.out
+
+$ o2-mch-digits-file-dumper --infile digits.v1.out -c -d
+[ file version 1 digit version 0 size 20 rof version 1 size 16 hasRof true run2ids false ] formatWord 1224998065220435759
+nTFs 10 nROFs 1280 nDigits 13506560
+```
+
+The generated digit file can then be injected into other workflows using
+`o2-mch-digits-file-reader-workflow` described above.
+(digits do not _need_ to be written to disc, the `o2-mch-digits-random-generator-workflow`
+ can of course also be used as the first stage of a multi device workflow
+ using pipes).

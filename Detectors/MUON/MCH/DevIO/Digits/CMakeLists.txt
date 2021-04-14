@@ -34,19 +34,31 @@ o2_add_executable(digits-r23-workflow
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH 
                                         O2::MCHBase O2::MCHMappingImpl3)
 
+add_library(MCHDigitIOBaseTask OBJECT)
+add_library(O2::MCHDigitIOBaseTask ALIAS MCHDigitIOBaseTask)
+target_link_libraries(MCHDigitIOBaseTask PUBLIC O2::DataFormatsMCH O2::Framework)
+
+target_sources(MCHDigitIOBaseTask PRIVATE DigitIOBaseTask.cxx)
+
 o2_add_executable(
         digits-writer-workflow
-        SOURCES digits-writer-workflow.cxx DigitIOBaseTask.cxx
+        SOURCES digits-writer-workflow.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils Boost::program_options 
-                              O2::MCHBase O2::MCHRawDecoder O2::DataFormatsMCH
-                              O2::MCHDigitIO)
+        PUBLIC_LINK_LIBRARIES O2::DPLUtils Boost::program_options 
+                              O2::MCHBase O2::MCHRawDecoder 
+                              O2::MCHDigitIO O2::MCHDigitIOBaseTask)
 
 o2_add_executable(
         digits-file-reader-workflow
-        SOURCES digits-file-reader-workflow.cxx DigitIOBaseTask.cxx
+        SOURCES digits-file-reader-workflow.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase O2::MCHDigitIO)
+        PUBLIC_LINK_LIBRARIES O2::MCHBase O2::MCHDigitIO O2::MCHDigitIOBaseTask)
+
+o2_add_executable(
+        digits-random-generator-workflow
+        SOURCES digits-random-generator-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHBase O2::MCHMappingImpl4 O2::MCHDigitIO O2::MCHDigitIOBaseTask)
 
 o2_add_executable(
         digits-file-dumper
