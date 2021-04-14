@@ -16,7 +16,10 @@
 #ifndef DOFStatistics_H
 #define DOFStatistics_H
 
+#include <vector>
 #include <TNamed.h>
+#include <iostream>
+
 class TH1F;
 class TCollection;
 
@@ -30,29 +33,26 @@ class Controller;
 class DOFStatistics : public TNamed
 {
  public:
-  DOFStatistics(int n = 0);
-  virtual ~DOFStatistics();
-  //
-  int getNDOFs() const { return mNDOFs; }
-  int getStat(int idf) const { return idf < mNDOFs ? mStat[idf] : 0; }
-  int* getStat() const { return (int*)mStat; };
-  void setStat(int idf, int v) { mStat[idf] = v; }
-  void addStat(int idf, int v) { mStat[idf] += v; }
-  int getNMerges() const { return mNMerges; }
-  TH1F* createHisto(Controller* st) const;
-  virtual void Print(Option_t* opt) const;
+  explicit DOFStatistics(int n = 0) : TNamed("DOFStatistics", "DOF statistics"), mStat{n, 0} {};
+
+  inline int getNDOFs() const noexcept { return mStat.size(); }
+  inline int getStat(int idf) const noexcept { return idf < getNDOFs() ? mStat[idf] : 0; }
+  inline const int* getStat() const noexcept { return mStat.data(); };
+  inline void setStat(int idf, int v) { mStat[idf] = v; }
+  inline void addStat(int idf, int v) { mStat[idf] += v; }
+  inline int getNMerges() const noexcept { return mNMerges; }
+  std::unique_ptr<TH1F> buildHistogram(Controller* st) const;
+  virtual void Print(Option_t* opt) const { std::cout << "NDOFs: " << mStat.size() << " NMerges: " << mNMerges << "\n"; };
   virtual int64_t merge(TCollection* list);
-  //
+
  protected:
-  //
   DOFStatistics(const DOFStatistics&);
   DOFStatistics& operator=(const DOFStatistics&);
-  //
+
  protected:
-  int mNDOFs;   // number of dofs defined
-  int mNMerges; // number of merges
-  int* mStat;   //[mNDOFs] statistics per DOF
-  //
+  int mNMerges{1};        // number of merges
+  std::vector<int> mStat; // statistics per DOF
+
   ClassDef(DOFStatistics, 1);
 };
 } // namespace align
