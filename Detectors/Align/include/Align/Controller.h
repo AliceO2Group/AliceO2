@@ -156,10 +156,10 @@ class Controller : public TObject
   bool getFieldOn() const { return mFieldOn; }
   void setFieldOn(bool v = true) { mFieldOn = v; }
   int getTracksType() const { return mTracksType; }
-  void setTracksType(int t = utils::kColl) { mTracksType = t; }
-  bool isCosmic() const { return mTracksType == utils::kCosm; }
-  bool isCollision() const { return mTracksType == utils::kColl; }
-  void setCosmic(bool v = true) { mTracksType = v ? utils::kCosm : utils::kColl; }
+  void setTracksType(int t = utils::Coll) { mTracksType = t; }
+  bool isCosmic() const { return mTracksType == utils::Cosm; }
+  bool isCollision() const { return mTracksType == utils::Coll; }
+  void setCosmic(bool v = true) { mTracksType = v ? utils::Cosm : utils::Coll; }
   float getStat(int cls, int tp) const { return mStat[cls][tp]; }
   //
   void setESDTree(const TTree* tr) { mESDTree = tr; }
@@ -185,22 +185,22 @@ class Controller : public TObject
   //
   double getPtMin(bool tp) const { return mPtMin[tp]; }
   void setPtMin(bool tp, double pt) { mPtMin[tp] = pt; }
-  void setPtMinColl(double pt = 0.7) { setPtMin(utils::kColl, pt); }
-  void setPtMinCosm(double pt = 1.0) { setPtMin(utils::kCosm, pt); }
+  void setPtMinColl(double pt = 0.7) { setPtMin(utils::Coll, pt); }
+  void setPtMinCosm(double pt = 1.0) { setPtMin(utils::Cosm, pt); }
   //
   double getEtaMax(bool tp) const { return mEtaMax[tp]; }
   void setEtaMax(bool tp, double eta) { mEtaMax[tp] = eta; }
-  void setEtaMaxColl(double eta = 1.5) { setEtaMax(utils::kColl, eta); }
-  void setEtaMaxCosm(double eta = 1.5) { setEtaMax(utils::kCosm, eta); }
+  void setEtaMaxColl(double eta = 1.5) { setEtaMax(utils::Coll, eta); }
+  void setEtaMaxCosm(double eta = 1.5) { setEtaMax(utils::Cosm, eta); }
   //
-  void setDefPtBOffCosm(double pt = 5.0) { mDefPtBOff[utils::kCosm] = pt > 0.3 ? pt : 0.3; }
-  void setDefPtBOffColl(double pt = 0.6) { mDefPtBOff[utils::kColl] = pt > 0.3 ? pt : 0.3; }
+  void setDefPtBOffCosm(double pt = 5.0) { mDefPtBOff[utils::Cosm] = pt > 0.3 ? pt : 0.3; }
+  void setDefPtBOffColl(double pt = 0.6) { mDefPtBOff[utils::Coll] = pt > 0.3 ? pt : 0.3; }
   double getDefPtBOff(bool tp) { return mDefPtBOff[tp]; }
   //
   int getMinDetAcc(bool tp) const { return mMinDetAcc[tp]; }
   void setMinDetAcc(bool tp, int n) { mMinDetAcc[tp] = n; }
-  void setMinDetAccColl(int n = 1) { setMinDetAcc(utils::kColl, n); }
-  void setMinDetAccCosm(int n = 1) { setMinDetAcc(utils::kCosm, n); }
+  void setMinDetAccColl(int n = 1) { setMinDetAcc(utils::Coll, n); }
+  void setMinDetAccCosm(int n = 1) { setMinDetAcc(utils::Cosm, n); }
   //
   int getVtxMinCont() const { return mVtxMinCont; }
   void setVtxMinCont(int n) { mVtxMinCont = n; }
@@ -395,17 +395,17 @@ class Controller : public TObject
   TObjArray mConstraints;                     // array of constraints
   //
   // Track selection
-  uint32_t mSelEventSpecii;                            // consider only these event specii
-  uint32_t mObligatoryDetPattern[utils::kNTrackTypes]; // pattern of obligatory detectors
-  bool mCosmicSelStrict;                               // if true, each cosmic track leg selected like separate track
-  int mMinPoints[utils::kNTrackTypes][2];              // require min points per leg (case Boff,Bon)
-  int mMinDetAcc[utils::kNTrackTypes];                 // min number of detector required in track
-  double mDefPtBOff[utils::kNTrackTypes];              // nominal pt for tracks in Boff run
-  double mPtMin[utils::kNTrackTypes];                  // min pT of tracks to consider
-  double mEtaMax[utils::kNTrackTypes];                 // eta cut on tracks
-  int mVtxMinCont;                                     // require min number of contributors in Vtx
-  int mVtxMaxCont;                                     // require max number of contributors in Vtx
-  int mVtxMinContVC;                                   // min number of contributors to use as constraint
+  uint32_t mSelEventSpecii;                           // consider only these event specii
+  uint32_t mObligatoryDetPattern[utils::NTrackTypes]; // pattern of obligatory detectors
+  bool mCosmicSelStrict;                              // if true, each cosmic track leg selected like separate track
+  int mMinPoints[utils::NTrackTypes][2];              // require min points per leg (case Boff,Bon)
+  int mMinDetAcc[utils::NTrackTypes];                 // min number of detector required in track
+  double mDefPtBOff[utils::NTrackTypes];              // nominal pt for tracks in Boff run
+  double mPtMin[utils::NTrackTypes];                  // min pT of tracks to consider
+  double mEtaMax[utils::NTrackTypes];                 // eta cut on tracks
+  int mVtxMinCont;                                    // require min number of contributors in Vtx
+  int mVtxMaxCont;                                    // require max number of contributors in Vtx
+  int mVtxMinContVC;                                  // min number of contributors to use as constraint
   //
   int mMinITSClforVC;     // use vertex constraint for tracks with enough points
   int mITSPattforVC;      // optional request on ITS hits to allow vertex constraint
@@ -479,16 +479,16 @@ class Controller : public TObject
 inline void Controller::setMinPointsColl(int vbOff, int vbOn)
 {
   // ask min number of points per track
-  setMinPoints(utils::kColl, false, vbOff);
-  setMinPoints(utils::kColl, true, vbOn);
+  setMinPoints(utils::Coll, false, vbOff);
+  setMinPoints(utils::Coll, true, vbOn);
 }
 
 //__________________________________________________________
 inline void Controller::setMinPointsCosm(int vbOff, int vbOn)
 {
   // ask min number of points per track
-  setMinPoints(utils::kCosm, false, vbOff);
-  setMinPoints(utils::kCosm, true, vbOn);
+  setMinPoints(utils::Cosm, false, vbOff);
+  setMinPoints(utils::Cosm, true, vbOn);
 }
 } // namespace align
 } // namespace o2

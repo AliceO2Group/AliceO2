@@ -73,7 +73,7 @@ AlignableDetector::AlignableDetector()
   SetUniqueID(6);
   mAddError[0] = mAddError[1] = 0;
   //
-  for (int i = 0; i < kNTrackTypes; i++) {
+  for (int i = 0; i < NTrackTypes; i++) {
     mDisabled[i] = false;
     mObligatory[i] = false;
     mTrackFlagSel[i] = 0;
@@ -397,15 +397,15 @@ void AlignableDetector::Print(const Option_t* opt) const
     printf("from TrackPoints\n");
   //
   printf("Allowed    in Collisions: %7s | Cosmic: %7s\n",
-         isDisabled(kColl) ? "  NO " : " YES ", isDisabled(kCosm) ? "  NO " : " YES ");
+         isDisabled(Coll) ? "  NO " : " YES ", isDisabled(Cosm) ? "  NO " : " YES ");
   //
   printf("Obligatory in Collisions: %7s | Cosmic: %7s\n",
-         isObligatory(kColl) ? " YES " : "  NO ", isObligatory(kCosm) ? " YES " : "  NO ");
+         isObligatory(Coll) ? " YES " : "  NO ", isObligatory(Cosm) ? " YES " : "  NO ");
   //
-  fmt::printf("Sel. flags in Collisions: {:05#x}%05 | Cosmic: 0x{:05#x}%05\n", mTrackFlagSel[kColl], mTrackFlagSel[kCosm]);
+  fmt::printf("Sel. flags in Collisions: {:05#x}%05 | Cosmic: 0x{:05#x}%05\n", mTrackFlagSel[Coll], mTrackFlagSel[Cosm]);
   //
   printf("Min.points in Collisions: %7d | Cosmic: %7d\n",
-         mNPointsSel[kColl], mNPointsSel[kCosm]);
+         mNPointsSel[Coll], mNPointsSel[Cosm]);
   //
   if (!(IsDisabledColl() && IsDisabledCosm()) && opts.Contains("long"))
     for (int iv = 0; iv < getNVolumes(); iv++)

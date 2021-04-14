@@ -48,12 +48,12 @@ class AlignableDetectorITS : public AlignableDetector
   virtual void UpdatePointByTrackInfo(AlignmentPoint* pnt, const AliExternalTrackParam* t) const;
   virtual void setUseErrorParam(int v = 1);
   void SetITSSelPattern(int trtype, ITSSel_t sel) { fITSPatt[trtype] = sel; }
-  void SetITSSelPatternColl(ITSSel_t sel = kSPDAny) { SetITSSelPattern(utils::kColl, sel); }
-  void SetITSSelPatternCosm(ITSSel_t sel = kSPDNoSel) { SetITSSelPattern(utils::kCosm, sel); }
+  void SetITSSelPatternColl(ITSSel_t sel = kSPDAny) { SetITSSelPattern(utils::Coll, sel); }
+  void SetITSSelPatternCosm(ITSSel_t sel = kSPDNoSel) { SetITSSelPattern(utils::Cosm, sel); }
 
   int GetITSSelPattern(int tp) const { return fITSPatt[tp]; }
-  int GetITSSelPatternColl() const { return fITSPatt[utils::kColl]; }
-  int GetITSSelPatternCosm() const { return fITSPatt[utils::kCosm]; }
+  int GetITSSelPatternColl() const { return fITSPatt[utils::Coll]; }
+  int GetITSSelPatternCosm() const { return fITSPatt[utils::Cosm]; }
   //
   virtual void Print(const Option_t* opt = "") const;
   //
@@ -70,7 +70,7 @@ class AlignableDetectorITS : public AlignableDetector
   //
  protected:
   //
-  int fITSPatt[utils::kNTrackTypes]; // ITS hits selection pattern for coll/cosm tracks
+  int fITSPatt[utils::NTrackTypes]; // ITS hits selection pattern for coll/cosm tracks
   //
   static const char* fgkHitsSel[kNSPDSelTypes]; // ITS selection names
   //

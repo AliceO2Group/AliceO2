@@ -926,7 +926,7 @@ bool AlignmentTrack::combineTracks(trackParam_t& trcL, const trackParam_t& trcU)
   // CL' = CL - K*CL
   // vL' = vL + K(vU-vL)
   //
-  if (Abs(trcL.getX() - trcU.getX()) > kTinyDist || Abs(trcL.getAlpha() - trcU.getAlpha()) > kTinyDist) {
+  if (Abs(trcL.getX() - trcU.getX()) > TinyDist || Abs(trcL.getAlpha() - trcU.getAlpha()) > TinyDist) {
     LOG(error) << "Tracks must be defined at same reference X and Alpha";
     trcL.print();
     trcU.print();
