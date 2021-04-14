@@ -79,7 +79,7 @@ const Char_t* Controller::sHStatName[Controller::kNHVars] = {
 
 //________________________________________________________________
 Controller::Controller(const char* configMacro, int refRun)
-  : mNDet(0), mNDOFs(0), mRunNumber(-1), mFieldOn(false), mTracksType(kColl), mAlgTrack(0), mVtxSens(0), mConstraints(),
+  : mNDet(0), mNDOFs(0), mRunNumber(-1), mFieldOn(false), mTracksType(Coll), mAlgTrack(0), mVtxSens(0), mConstraints(),
     //	fSelEventSpecii(AliRecoParam::kCosmic | AliRecoParam::kLowMult | AliRecoParam::kHighMult | AliRecoParam::kDefault), FIXME(milettri): needs AliRecoParam
     mSelEventSpecii(0), // FIXME(milettri): needs AliRecoParam
     mCosmicSelStrict(false),
@@ -148,7 +148,7 @@ Controller::Controller(const char* configMacro, int refRun)
   setEtaMaxCosm();
   setMinDetAccColl();
   setMinDetAccCosm();
-  for (int i = 0; i < kNTrackTypes; i++) {
+  for (int i = 0; i < NTrackTypes; i++) {
     mObligatoryDetPattern[i] = 0;
   }
   //
@@ -275,7 +275,7 @@ void Controller::initDOFs()
     nact++;
     ndfAct += det->getNDOFs();
   }
-  for (int i = 0; i < kNTrackTypes; i++)
+  for (int i = 0; i < NTrackTypes; i++)
     if (nact < mMinDetAcc[i])
       LOG(FATAL) << nact << " detectors are active, while " << mMinDetAcc[i] << " in track are asked";
   //
@@ -354,7 +354,7 @@ void Controller::addDetector(uint32_t id, AlignableDetector* det)
   mDetectors[mNDet] = det;
   mDetPos[id] = mNDet;
   det->setAlgSteer(this);
-  for (int i = 0; i < kNTrackTypes; i++)
+  for (int i = 0; i < NTrackTypes; i++)
     setObligatoryDetector(id, i, det->isObligatory(i));
   mNDet++;
   //
@@ -713,8 +713,8 @@ bool Controller::checkDetectorPoints(const int* npsel) const
 //      //
 //      // upper leg points marked as the track going in inverse direction
 //      int np = det->ProcessPoints(fESDTrack[leg], mAlgTrack, leg == kCosmUp);
-//      if (np < det->getNPointsSel(kCosm) && mCosmicSelStrict &&
-//          det->isObligatory(kCosm))
+//      if (np < det->getNPointsSel(Cosm) && mCosmicSelStrict &&
+//          det->isObligatory(Cosm))
 //        return false;
 //      npsel[idet] += np;
 //      nPleg += np;
@@ -728,7 +728,7 @@ bool Controller::checkDetectorPoints(const int* npsel) const
 //  //
 //  mAlgTrack->copyFrom(cosmTr);
 //  if (!getFieldOn())
-//    mAlgTrack->imposePtBOff(mDefPtBOff[utils::kCosm]);
+//    mAlgTrack->imposePtBOff(mDefPtBOff[utils::Cosm]);
 //  mAlgTrack->setFieldON(getFieldOn());
 //  mAlgTrack->sortPoints();
 //  //
@@ -1071,11 +1071,11 @@ void Controller::Print(const Option_t* opt) const
   printBits((uint64_t)mSelEventSpecii, 5);
   printf("\n");
   printf("%-40s:\t%d/%d\n", "Min points per collisions track (BOff/ON)",
-         mMinPoints[kColl][0], mMinPoints[kColl][1]);
+         mMinPoints[Coll][0], mMinPoints[Coll][1]);
   printf("%-40s:\t%d/%d\n", "Min points per cosmic track leg (BOff/ON)",
-         mMinPoints[kCosm][0], mMinPoints[kCosm][1]);
-  printf("%-40s:\t%d\n", "Min detectots per collision track", mMinDetAcc[kColl]);
-  printf("%-40s:\t%d (%s)\n", "Min detectots per cosmic track/leg", mMinDetAcc[kCosm],
+         mMinPoints[Cosm][0], mMinPoints[Cosm][1]);
+  printf("%-40s:\t%d\n", "Min detectots per collision track", mMinDetAcc[Coll]);
+  printf("%-40s:\t%d (%s)\n", "Min detectots per cosmic track/leg", mMinDetAcc[Cosm],
          mCosmicSelStrict ? "STRICT" : "SOFT");
   printf("%-40s:\t%d/%d\n", "Min/Max vertex contrib. to accept event", mVtxMinCont, mVtxMaxCont);
   printf("%-40s:\t%d\n", "Min vertex contrib. for constraint", mVtxMinContVC);
@@ -1085,8 +1085,8 @@ void Controller::Print(const Option_t* opt) const
          "ITSNAME"); // FIXME(milettri): needs AlignableDetectorITS
   printf("%-40s:\t%.4f/%.4f/%.2f\n", "DCAr/DCAz/Chi2 cut for vertex constraint",
          mMaxDCAforVC[0], mMaxDCAforVC[1], mMaxChi2forVC);
-  printf("Collision tracks: Min pT: %5.2f |etaMax|: %5.2f\n", mPtMin[kColl], mEtaMax[kColl]);
-  printf("Cosmic    tracks: Min pT: %5.2f |etaMax|: %5.2f\n", mPtMin[kCosm], mEtaMax[kCosm]);
+  printf("Collision tracks: Min pT: %5.2f |etaMax|: %5.2f\n", mPtMin[Coll], mEtaMax[Coll]);
+  printf("Cosmic    tracks: Min pT: %5.2f |etaMax|: %5.2f\n", mPtMin[Cosm], mEtaMax[Cosm]);
   //
   printf("%-40s:\t%s", "Config. for reference OCDB", mRefOCDBConf.Data());
   if (mRefRunNumber >= 0)

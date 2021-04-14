@@ -144,34 +144,34 @@ class AlignableDetector : public TNamed
     setDisabledColl();
     setDisabledCosm();
   }
-  void setDisabledColl(bool v = true) { setDisabled(utils::kColl, v); }
-  void setDisabledCosm(bool v = true) { setDisabled(utils::kCosm, v); }
+  void setDisabledColl(bool v = true) { setDisabled(utils::Coll, v); }
+  void setDisabledCosm(bool v = true) { setDisabled(utils::Cosm, v); }
   bool isDisabled(int tp) const { return mDisabled[tp]; }
   bool isDisabled() const { return IsDisabledColl() && IsDisabledCosm(); }
-  bool IsDisabledColl() const { return isDisabled(utils::kColl); }
-  bool IsDisabledCosm() const { return isDisabled(utils::kCosm); }
+  bool IsDisabledColl() const { return isDisabled(utils::Coll); }
+  bool IsDisabledCosm() const { return isDisabled(utils::Cosm); }
   //
   void setTrackFlagSel(int tp, uint64_t f) { mTrackFlagSel[tp] = f; }
-  void setTrackFlagSelColl(uint64_t f) { setTrackFlagSel(utils::kColl, f); }
-  void setTrackFlagSelCosm(uint64_t f) { setTrackFlagSel(utils::kCosm, f); }
+  void setTrackFlagSelColl(uint64_t f) { setTrackFlagSel(utils::Coll, f); }
+  void setTrackFlagSelCosm(uint64_t f) { setTrackFlagSel(utils::Cosm, f); }
   uint64_t getTrackFlagSel(int tp) const { return mTrackFlagSel[tp]; }
-  uint64_t getTrackFlagSelColl() const { return getTrackFlagSel(utils::kColl); }
-  uint64_t getTrackFlagSelCosm() const { return getTrackFlagSel(utils::kCosm); }
+  uint64_t getTrackFlagSelColl() const { return getTrackFlagSel(utils::Coll); }
+  uint64_t getTrackFlagSelCosm() const { return getTrackFlagSel(utils::Cosm); }
   //
   void setNPointsSel(int tp, int n) { mNPointsSel[tp] = n; }
-  void setNPointsSelColl(int n) { setNPointsSel(utils::kColl, n); }
-  void setNPointsSelCosm(int n) { setNPointsSel(utils::kCosm, n); }
+  void setNPointsSelColl(int n) { setNPointsSel(utils::Coll, n); }
+  void setNPointsSelCosm(int n) { setNPointsSel(utils::Cosm, n); }
   int getNPointsSel(int tp) const { return mNPointsSel[tp]; }
-  int getNPointsSelColl() const { return getNPointsSel(utils::kColl); }
-  int getNPointsSelCosm() const { return getNPointsSel(utils::kCosm); }
+  int getNPointsSelColl() const { return getNPointsSel(utils::Coll); }
+  int getNPointsSelCosm() const { return getNPointsSel(utils::Cosm); }
   //
   //
   bool isObligatory(int tp) const { return mObligatory[tp]; }
-  bool isObligatoryColl() const { return isObligatory(utils::kColl); }
-  bool isObligatoryCosm() const { return isObligatory(utils::kCosm); }
+  bool isObligatoryColl() const { return isObligatory(utils::Coll); }
+  bool isObligatoryCosm() const { return isObligatory(utils::Cosm); }
   void setObligatory(int tp, bool v = true);
-  void setObligatoryColl(bool v = true) { setObligatory(utils::kColl, v); }
-  void setObligatoryCosm(bool v = true) { setObligatory(utils::kCosm, v); }
+  void setObligatoryColl(bool v = true) { setObligatory(utils::Coll, v); }
+  void setObligatoryCosm(bool v = true) { setObligatory(utils::Cosm, v); }
   //
   void addAutoConstraints() const;
   void constrainOrphans(const double* sigma, const char* match = 0);
@@ -220,10 +220,10 @@ class AlignableDetector : public TNamed
   int* mParLabs;      //! labels for parameters
   //
   // Track selection
-  bool mDisabled[utils::kNTrackTypes];         // detector disabled/enabled in the track
-  bool mObligatory[utils::kNTrackTypes];       // detector must be present in the track
-  uint64_t mTrackFlagSel[utils::kNTrackTypes]; // flag for track selection
-  int mNPointsSel[utils::kNTrackTypes];        // min number of points to require
+  bool mDisabled[utils::NTrackTypes];         // detector disabled/enabled in the track
+  bool mObligatory[utils::NTrackTypes];       // detector must be present in the track
+  uint64_t mTrackFlagSel[utils::NTrackTypes]; // flag for track selection
+  int mNPointsSel[utils::NTrackTypes];        // min number of points to require
   //
   int mUseErrorParam;  // signal that points need to be updated using track info, 0 - no
   double mAddError[2]; // additional error increment for measurement

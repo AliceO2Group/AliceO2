@@ -208,12 +208,12 @@ AlignmentPoint* AlignableSensorTRD::TrackPoint2AlgPoint(int pntId, const AliTrac
   // Correction for DVT, equivalent to shift in X at which Y is evaluated: dY = tg_phi * dvt
   {
     double dvt = det->GetCorrDVTWithCal();
-    if (Abs(dvt) > kAlmostZeroD) {
+    if (Abs(dvt) > AlmostZeroD) {
       AliExternalTrackParam trc = *tr;
       if (!trc.RotateParamOnly(getAlpTracking()))
         return 0;
       double snp = trc.GetSnpAt(pnt->getXPoint(), AliTrackerBase::GetBz());
-      if (Abs(snp) > kAlmostOneD)
+      if (Abs(snp) > AlmostOneD)
         return 0;
       double slpY = snp / Sqrt((1 - snp) * (1 + snp));
       double* pYZ = (double*)pnt->getYZTracking();
