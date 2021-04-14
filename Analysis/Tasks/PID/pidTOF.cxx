@@ -8,15 +8,21 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+///
+/// \file   pidTOF_split.cxx
+/// \author Nicolo' Jacazio
+/// \brief  Task to produce PID tables for TOF split for each particle.
+///         Only the tables for the mass hypotheses requested are filled, the others are sent empty.
+///
+
 // O2 includes
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
-#include "Framework/ASoAHelpers.h"
 #include "Framework/HistogramRegistry.h"
 #include "ReconstructionDataFormats/Track.h"
 #include <CCDB/BasicCCDBManager.h>
 #include "AnalysisDataModel/PID/PIDResponse.h"
 #include "AnalysisDataModel/PID/PIDTOF.h"
+#include "AnalysisDataModel/TrackSelectionTables.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -26,24 +32,42 @@ using namespace o2::track;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  std::vector<ConfigParamSpec> options{
-    {"add-qa", VariantType::Int, 0, {"Produce TOF PID QA histograms"}},
-    {"add-beta", VariantType::Int, 1, {"Produce TOF Beta table"}}};
+  std::vector<ConfigParamSpec> options{{"add-qa", VariantType::Int, 0, {"Produce TOF PID QA histograms"}}};
   std::swap(workflowOptions, options);
 }
 
 #include "Framework/runDataProcessing.h"
 
-struct pidTOFTask {
-  using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
+struct pidTOFTaskSplit {
+  using Trks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov>;
   using Coll = aod::Collisions;
-  Produces<aod::pidRespTOF> tablePID;
+  // Tables to produce
+  Produces<o2::aod::pidRespTOFEl> tablePIDEl;
+  Produces<o2::aod::pidRespTOFMu> tablePIDMu;
+  Produces<o2::aod::pidRespTOFPi> tablePIDPi;
+  Produces<o2::aod::pidRespTOFKa> tablePIDKa;
+  Produces<o2::aod::pidRespTOFPr> tablePIDPr;
+  Produces<o2::aod::pidRespTOFDe> tablePIDDe;
+  Produces<o2::aod::pidRespTOFTr> tablePIDTr;
+  Produces<o2::aod::pidRespTOFHe> tablePIDHe;
+  Produces<o2::aod::pidRespTOFAl> tablePIDAl;
+  // Detector response and input parameters
   DetectorResponse response;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
   Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
   Configurable<std::string> sigmaname{"param-sigma", "TOFReso", "Name of the parametrization for the expected sigma, used in both file and CCDB mode"};
   Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
   Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
+  // Configuration flags to include and exclude particle hypotheses
+  Configurable<int> pidEl{"pid-el", 0, {"Produce PID information for the Electron mass hypothesis"}};
+  Configurable<int> pidMu{"pid-mu", 0, {"Produce PID information for the Muon mass hypothesis"}};
+  Configurable<int> pidPi{"pid-pi", 0, {"Produce PID information for the Pion mass hypothesis"}};
+  Configurable<int> pidKa{"pid-ka", 0, {"Produce PID information for the Kaon mass hypothesis"}};
+  Configurable<int> pidPr{"pid-pr", 0, {"Produce PID information for the Proton mass hypothesis"}};
+  Configurable<int> pidDe{"pid-de", 0, {"Produce PID information for the Deuterons mass hypothesis"}};
+  Configurable<int> pidTr{"pid-tr", 0, {"Produce PID information for the Triton mass hypothesis"}};
+  Configurable<int> pidHe{"pid-he", 0, {"Produce PID information for the Helium3 mass hypothesis"}};
+  Configurable<int> pidAl{"pid-al", 0, {"Produce PID information for the Alpha mass hypothesis"}};
 
   void init(o2::framework::InitContext&)
   {
@@ -79,52 +103,26 @@ struct pidTOFTask {
     constexpr auto responseHe = ResponseImplementation<PID::Helium3>();
     constexpr auto responseAl = ResponseImplementation<PID::Alpha>();
 
-    tablePID.reserve(tracks.size());
-    for (auto const& trk : tracks) {
-      tablePID(responseEl.GetExpectedSigma(response, trk.collision(), trk),
-               responseMu.GetExpectedSigma(response, trk.collision(), trk),
-               responsePi.GetExpectedSigma(response, trk.collision(), trk),
-               responseKa.GetExpectedSigma(response, trk.collision(), trk),
-               responsePr.GetExpectedSigma(response, trk.collision(), trk),
-               responseDe.GetExpectedSigma(response, trk.collision(), trk),
-               responseTr.GetExpectedSigma(response, trk.collision(), trk),
-               responseHe.GetExpectedSigma(response, trk.collision(), trk),
-               responseAl.GetExpectedSigma(response, trk.collision(), trk),
-               responseEl.GetSeparation(response, trk.collision(), trk),
-               responseMu.GetSeparation(response, trk.collision(), trk),
-               responsePi.GetSeparation(response, trk.collision(), trk),
-               responseKa.GetSeparation(response, trk.collision(), trk),
-               responsePr.GetSeparation(response, trk.collision(), trk),
-               responseDe.GetSeparation(response, trk.collision(), trk),
-               responseTr.GetSeparation(response, trk.collision(), trk),
-               responseHe.GetSeparation(response, trk.collision(), trk),
-               responseAl.GetSeparation(response, trk.collision(), trk));
-    }
-  }
-};
-
-struct pidTOFTaskBeta {
-  using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
-  using Coll = aod::Collision;
-  Produces<aod::pidRespTOFbeta> tablePIDBeta;
-  tof::Beta<Coll, Trks::iterator, PID::Electron> responseElectron;
-  Configurable<float> expreso{"tof-expreso", 80, "Expected resolution for the computation of the expected beta"};
-
-  void init(o2::framework::InitContext&)
-  {
-    responseElectron.mExpectedResolution = expreso.value;
-  }
-
-  void process(Coll const& collision, Trks const& tracks)
-  {
-    tablePIDBeta.reserve(tracks.size());
-    for (auto const& trk : tracks) {
-      tablePIDBeta(responseElectron.GetBeta(collision, trk),
-                   responseElectron.GetExpectedSigma(collision, trk),
-                   responseElectron.GetExpectedSignal(collision, trk),
-                   responseElectron.GetExpectedSigma(collision, trk),
-                   responseElectron.GetSeparation(collision, trk));
-    }
+    // Check and fill enabled tables
+    auto makeTable = [&tracks](const Configurable<int>& flag, auto& table, const DetectorResponse& response, const auto& responsePID) {
+      if (flag.value) {
+        // Prepare memory for enabled tables
+        table.reserve(tracks.size());
+        for (auto const& trk : tracks) { // Loop on Tracks
+          table(responsePID.GetExpectedSigma(response, trk.collision(), trk),
+                responsePID.GetSeparation(response, trk.collision(), trk));
+        }
+      }
+    };
+    makeTable(pidEl, tablePIDEl, response, responseEl);
+    makeTable(pidMu, tablePIDMu, response, responseMu);
+    makeTable(pidPi, tablePIDPi, response, responsePi);
+    makeTable(pidKa, tablePIDKa, response, responseKa);
+    makeTable(pidPr, tablePIDPr, response, responsePr);
+    makeTable(pidDe, tablePIDDe, response, responseDe);
+    makeTable(pidTr, tablePIDTr, response, responseTr);
+    makeTable(pidHe, tablePIDHe, response, responseHe);
+    makeTable(pidAl, tablePIDAl, response, responseAl);
   }
 };
 
@@ -189,8 +187,11 @@ struct pidTOFTaskQA {
     histos.add("event/colltime", ";Collision time (ps);Entries", HistType::kTH1F, {{100, -2000, 2000}});
     histos.add("event/tofsignal", ";#it{p} (GeV/#it{c});TOF Signal", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {10000, 0, 2e6}});
     makelogaxis(histos.get<TH2>(HIST("event/tofsignal")));
-    histos.add("event/tofbeta", ";#it{p} (GeV/#it{c});TOF #beta", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 2}});
-    makelogaxis(histos.get<TH2>(HIST("event/tofbeta")));
+    histos.add("event/eta", ";#it{#eta};Entries", HistType::kTH1F, {{100, -2, 2}});
+    histos.add("event/length", ";Track length (cm);Entries", HistType::kTH1F, {{100, 0, 500}});
+    histos.add("event/pt", ";#it{p}_{T} (GeV/#it{c});Entries", HistType::kTH1F, {{nBinsP, MinP, MaxP}});
+    histos.add("event/p", ";#it{p} (GeV/#it{c});Entries", HistType::kTH1F, {{nBinsP, MinP, MaxP}});
+    histos.add("event/ptreso", ";#it{p} (GeV/#it{c});Entries", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {100, 0, 0.1}});
 
     addParticleHistos<0>();
     addParticleHistos<1>();
@@ -211,7 +212,11 @@ struct pidTOFTaskQA {
     histos.fill(HIST(hnsigma[i]), t.p(), nsigma);
   }
 
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOF, aod::pidRespTOFbeta> const& tracks)
+  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov,
+                                                          aod::pidRespTOFEl, aod::pidRespTOFMu, aod::pidRespTOFPi,
+                                                          aod::pidRespTOFKa, aod::pidRespTOFPr, aod::pidRespTOFDe,
+                                                          aod::pidRespTOFTr, aod::pidRespTOFHe, aod::pidRespTOFAl,
+                                                          aod::TrackSelection> const& tracks)
   {
     const float collisionTime_ps = collision.collisionTime() * 1000.f;
     histos.fill(HIST("event/vertexz"), collision.posZ());
@@ -227,7 +232,10 @@ struct pidTOFTaskQA {
 
       //
       histos.fill(HIST("event/tofsignal"), t.p(), t.tofSignal());
-      histos.fill(HIST("event/tofbeta"), t.p(), t.beta());
+      histos.fill(HIST("event/eta"), t.eta());
+      histos.fill(HIST("event/length"), t.length());
+      histos.fill(HIST("event/pt"), t.pt());
+      histos.fill(HIST("event/ptreso"), t.p(), t.sigma1Pt() * t.pt() * t.pt());
       //
       fillParticleHistos<0>(t, tof, t.tofExpSignalDiffEl(), t.tofNSigmaEl());
       fillParticleHistos<1>(t, tof, t.tofExpSignalDiffMu(), t.tofNSigmaMu());
@@ -244,13 +252,8 @@ struct pidTOFTaskQA {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  auto workflow = WorkflowSpec{adaptAnalysisTask<pidTOFTask>(cfgc, TaskName{"pidTOF-task"})};
-  const int add_beta = cfgc.options().get<int>("add-beta");
-  const int add_qa = cfgc.options().get<int>("add-qa");
-  if (add_beta || add_qa) {
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskBeta>(cfgc, TaskName{"pidTOFBeta-task"}));
-  }
-  if (add_qa) {
+  auto workflow = WorkflowSpec{adaptAnalysisTask<pidTOFTaskSplit>(cfgc, TaskName{"pidTOF-split-task"})};
+  if (cfgc.options().get<int>("add-qa")) {
     workflow.push_back(adaptAnalysisTask<pidTOFTaskQA>(cfgc, TaskName{"pidTOFQA-task"}));
   }
   return workflow;

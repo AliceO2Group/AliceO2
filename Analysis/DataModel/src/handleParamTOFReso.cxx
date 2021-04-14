@@ -32,7 +32,12 @@ bool initOptionsAndParse(bpo::options_description& options, int argc, char* argv
     "stop,S", bpo::value<long>()->default_value(4108971600000), "Stop timestamp of object validity")(
     "delete_previous,d", bpo::value<int>()->default_value(0), "Flag to delete previous versions of converter objects in the CCDB before uploading the new one so as to avoid proliferation on CCDB")(
     "file,f", bpo::value<std::string>()->default_value(""), "Option to save parametrization to file instead of uploading to ccdb")(
-    "mode,m", bpo::value<unsigned int>()->default_value(0), "Working mode: 0 push 1 pull and test")(
+    "mode,m", bpo::value<unsigned int>()->default_value(1), "Working mode: 0 push 1 pull and test")(
+    "p0", bpo::value<float>()->default_value(0.008f), "Parameter 0 of the TOF resolution")(
+    "p1", bpo::value<float>()->default_value(0.008f), "Parameter 1 of the TOF resolution")(
+    "p2", bpo::value<float>()->default_value(0.002f), "Parameter 2 of the TOF resolution")(
+    "p3", bpo::value<float>()->default_value(40.0f), "Parameter 3 of the TOF resolution")(
+    "p4", bpo::value<float>()->default_value(60.0f), "Parameter 4 of the TOF resolution: average TOF resolution")(
     "verbose,v", bpo::value<int>()->default_value(0), "Verbose level 0, 1")(
     "help,h", "Produce help message.");
   try {
@@ -74,16 +79,24 @@ int main(int argc, char* argv[])
     return 1;
   }
   if (mode == 0) { // Push mode
-    const std::vector<float> resoparams = {0.008, 0.008, 0.002, 40.0, 60.f};
+    LOG(INFO) << "Handling TOF resolution parametrization in create mode";
+    const std::vector<float> resoparams = {vm["p0"].as<float>(), vm["p1"].as<float>(), vm["p2"].as<float>(), vm["p3"].as<float>(), vm["p4"].as<float>()};
     TOFReso reso;
     reso.SetParameters(resoparams);
+    reso.PrintParametrization();
+    const float x[4] = {1, 1, 1, 1}; // mom, time, ev. reso, mass
+    LOG(INFO) << "TOF expected resolution at p=" << x[0] << " GeV/c "
+              << " and mass " << x[3] << ":" << reso(x);
+
     const std::string fname = vm["file"].as<std::string>();
     if (!fname.empty()) { // Saving it to file
+      LOG(INFO) << "Saving parametrization to file " << fname;
       TFile f(fname.data(), "RECREATE");
       reso.Write();
       f.ls();
       f.Close();
     } else { // Saving it to CCDB
+      LOG(INFO) << "Saving parametrization to CCDB " << path;
 
       long start = vm["start"].as<long>();
       long stop = vm["stop"].as<long>();
@@ -94,10 +107,12 @@ int main(int argc, char* argv[])
       api.storeAsTFileAny(&reso, path + "/TOFReso", metadata, start, stop);
     }
   } else { // Pull and test mode
-    const float x[2] = {1, 1};
+    LOG(INFO) << "Handling TOF resolution parametrization in test mode";
+    const float x[4] = {1, 1, 1, 1}; // mom, time, ev. reso, mass
     TOFReso* reso = api.retrieveFromTFileAny<TOFReso>(path + "/TOFReso", metadata, -1, headers);
     reso->PrintParametrization();
-    LOG(INFO) << "TOFReso " << reso->operator()(x);
+    LOG(INFO) << "TOF expected resolution at p=" << x[0] << " GeV/c "
+              << " and mass " << x[3] << ":" << reso->operator()(x);
   }
 
   return 0;
