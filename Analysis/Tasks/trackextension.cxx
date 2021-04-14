@@ -31,10 +31,13 @@ using namespace o2::framework::expressions;
  */
 //****************************************************************************************
 struct TrackExtensionTask {
+  Configurable<bool> pvMC{"pvMC", false, "option to use mc pv"};
 
   Produces<aod::TracksExtended> extendedTrackQuantities;
 
-  void process(aod::Collision const& collision, aod::FullTracks const& tracks)
+  //aod::McCollision const& mcCollision
+
+  void process(soa::Join<aod::Collisions, aod::McCollisionLabels>::iterator const& collision, aod::McCollisions const& mcCollisions, aod::FullTracks const& tracks)
   {
     for (auto& track : tracks) {
 
@@ -43,7 +46,11 @@ struct TrackExtensionTask {
       if (track.trackType() == o2::aod::track::TrackTypeEnum::Run2Track && track.itsChi2NCl() != 0.f && track.tpcChi2NCl() != 0.f && std::abs(track.x()) < 10.f) {
         float magField = 5.0; // in kG (FIXME: get this from CCDB)
         auto trackPar = getTrackPar(track);
-        trackPar.propagateParamToDCA({collision.posX(), collision.posY(), collision.posZ()}, magField, &dca);
+        if (!pvMC) {
+          trackPar.propagateParamToDCA({collision.posX(), collision.posY(), collision.posZ()}, magField, &dca);
+        } else {
+          trackPar.propagateParamToDCA({collision.mcCollision().posX(), collision.mcCollision().posY(), collision.mcCollision().posZ()}, magField, &dca);
+        }
       }
       extendedTrackQuantities(dca[0], dca[1]);
 
