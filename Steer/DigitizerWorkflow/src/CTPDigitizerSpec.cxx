@@ -50,10 +50,6 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     auto ft0inputs = pc.inputs().get<gsl::span<o2::ft0::DetTrigInput>>("ft0");
     auto fv0inputs = pc.inputs().get<gsl::span<o2::fv0::DetTrigInput>>("fv0");
 
-    // if there is nothing to do ... return
-    if ((ft0inputs.size() == 0) && (fv0inputs.size() == 0)) {
-      return;
-    }
     std::vector<o2::ctp::CTPInputDigit> finputs;
     TStopwatch timer;
     timer.Start();
