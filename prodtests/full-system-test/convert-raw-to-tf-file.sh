@@ -5,8 +5,8 @@ if [ `which StfBuilder 2> /dev/null | wc -l` == "0" ]; then
     echo ERROR: StfBuilder is not in the path
     exit 1
 fi
-if [ `which readout.exe 2> /dev/null | wc -l` == "0" ]; then
-    echo ERROR: readout.exe is not in the path
+if [ `which o2-readout-exe 2> /dev/null | wc -l` == "0" ]; then
+    echo ERROR: o2-readout-exe is not in the path
     exit 1
 fi
 
@@ -29,7 +29,7 @@ sleep 15
 
 echo Starting Readout
 export INFOLOGGER_OPTIONS="floodProtection=0"
-readout.exe file:rdo_TF.cfg &> readout.log &
+o2-readout-exe file:rdo_TF.cfg &> readout.log &
 RD_PID=$!
 echo Readout PID: $RD_PID
 

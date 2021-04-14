@@ -34,4 +34,4 @@ follows:
 
    --readout-proxy '--channel-config "name=readout-proxy,type=pair,method=connect,transport=shmem,address=ipc:///tmp/readout-pipe-0,rateLogging=1"'
 
-These must match appropriately the configuration of `readout.exe`.
+These must match appropriately the configuration of `o2-readout-exe`.
