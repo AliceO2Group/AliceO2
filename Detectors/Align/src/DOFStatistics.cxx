@@ -16,10 +16,7 @@
 #include "Align/DOFStatistics.h"
 #include "Align/Controller.h"
 #include "Framework/Logger.h"
-#include <TMath.h>
 #include <TCollection.h>
-
-using namespace TMath;
 
 ClassImp(o2::align::DOFStatistics);
 
@@ -28,69 +25,39 @@ namespace o2
 namespace align
 {
 
-//_________________________________________________________
-DOFStatistics::DOFStatistics(int n)
-  : TNamed("DOFstat", "DOF statistics"), mNDOFs(n), mNMerges(1), mStat(0)
-{
-  // def c-tor
-  if (mNDOFs) {
-    mStat = new int[n];
-    memset(mStat, 0, mNDOFs * sizeof(int));
-  }
-  //
-}
-
-//_________________________________________________________
-DOFStatistics::~DOFStatistics()
-{
-  // d-r
-  delete[] mStat;
-}
-
 //____________________________________________
-void DOFStatistics::Print(Option_t*) const
-{
-  // print info
-  printf("NDOFs: %d, NMerges: %d\n", mNDOFs, mNMerges);
-  //
-}
-
-//____________________________________________
-TH1F* DOFStatistics::createHisto(Controller* st) const
+std::unique_ptr<TH1F> DOFStatistics::buildHistogram(Controller* controller) const
 {
   // create histo with stat. If steer object is supplied, build labels
-  if (!mNDOFs)
-    return 0;
-  TH1F* h = new TH1F("DOFstat", "statistics per DOF", mNDOFs, 0, mNDOFs);
-  for (int i = mNDOFs; i--;) {
-    h->SetBinContent(i + 1, mStat[i]);
-    if (st)
-      h->GetXaxis()->SetBinLabel(i + 1, st->getDOFLabelTxt(i));
+  auto histogram = std::make_unique<TH1F>("DOFstat", "statistics per DOF", getNDOFs(), 0, getNDOFs());
+  for (size_t i = 0; i < getNDOFs(); ++i) {
+    // Bin 0 is underflow bin
+    histogram->SetBinContent(i + 1, mStat[i]);
+    if (controller != nullptr) {
+      histogram->GetXaxis()->SetBinLabel(i + 1, controller->getDOFLabelTxt(i));
+    }
   }
-  return h;
+  return histogram;
 }
 
 //______________________________________________________________________________
 int64_t DOFStatistics::merge(TCollection* list)
 {
   // merge statistics
-  int nmerged = 0;
-  TIter next(list);
-  TObject* obj;
-  while ((obj = next())) {
-    DOFStatistics* stAdd = dynamic_cast<DOFStatistics*>(obj);
-    if (!stAdd)
+  int nMerged = 0;
+  TIter next{list};
+  TObject* obj = nullptr;
+  while ((obj = next()) != nullptr) {
+    DOFStatistics* otherStats = dynamic_cast<DOFStatistics*>(obj);
+    if (!otherStats) {
       continue;
-    if (mNDOFs != stAdd->mNDOFs) {
-      LOG(ERROR) << "Different NDOF: " << mNDOFs << " vs " << stAdd->mNDOFs << ".";
-      return 0;
     }
-    for (int i = mNDOFs; i--;)
-      mStat[i] += stAdd->mStat[i];
-    mNMerges += stAdd->mNMerges;
-    nmerged++;
+    assert(getNDOFs() == otherStats->getNDOFs());
+    std::transform(std::begin(otherStats->mStat), std::end(otherStats->mStat), std::begin(mStat), std::begin(mStat), std::plus<>{});
+    mNMerges += otherStats->mNMerges;
+    nMerged++;
   }
-  return nmerged;
+  return nMerged;
 }
 
 } // namespace align
