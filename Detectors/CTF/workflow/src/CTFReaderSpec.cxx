@@ -35,6 +35,7 @@
 #include "DataFormatsPHOS/CTF.h"
 #include "DataFormatsCPV/CTF.h"
 #include "DataFormatsZDC/CTF.h"
+#include "DataFormatsHMP/CTF.h"
 #include "Algorithm/RangeTokenizer.h"
 #include <TStopwatch.h>
 
@@ -74,6 +75,7 @@ class CTFReaderSpec : public o2::framework::Task
   std::vector<std::string> mInput; // input files
   uint32_t mTFCounter = 0;
   size_t mNextToProcess = 0;
+  std::string mCTFDir = "./";
   TStopwatch mTimer;
 };
 
@@ -88,6 +90,7 @@ CTFReaderSpec::CTFReaderSpec(DetID::mask_t dm, const std::string& inp) : mDets(d
 ///_______________________________________
 void CTFReaderSpec::init(InitContext& ic)
 {
+  o2::base::NameConf::rectifyDirectory((mCTFDir = ic.options().get<std::string>("ctf-input-dir")));
 }
 
 ///_______________________________________
@@ -99,7 +102,7 @@ void CTFReaderSpec::run(ProcessingContext& pc)
 
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
-  const auto& inputFile = mInput[mNextToProcess];
+  std::string inputFile = o2::utils::concat_string(mCTFDir, mInput[mNextToProcess]);
   LOG(INFO) << "Reading CTF input " << mNextToProcess << ' ' << inputFile;
 
   TFile flIn(inputFile.c_str());
@@ -224,6 +227,13 @@ void CTFReaderSpec::run(ProcessingContext& pc)
     setFirstTFOrbit(det.getName());
   }
 
+  det = DetID::HMP;
+  if (detsTF[det]) {
+    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::hmpid::CTF));
+    o2::hmpid::CTF::readFromTree(bufVec, *(tree.get()), det.getName());
+    setFirstTFOrbit(det.getName());
+  }
+
   mTimer.Stop();
   LOG(INFO) << "Read CTF " << inputFile << " in " << mTimer.CpuTime() - cput << " s";
 
@@ -253,7 +263,7 @@ DataProcessorSpec getCTFReaderSpec(DetID::mask_t dets, const std::string& inp)
     Inputs{},
     outputs,
     AlgorithmSpec{adaptFromTask<CTFReaderSpec>(dets, inp)},
-    Options{}};
+    Options{{"ctf-input-dir", VariantType::String, "./", {"CTF input directory"}}}};
 }
 
 } // namespace ctf

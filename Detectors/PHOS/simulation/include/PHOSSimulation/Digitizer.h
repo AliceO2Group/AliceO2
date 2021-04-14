@@ -14,6 +14,7 @@
 #include "DataFormatsPHOS/Digit.h"
 #include "PHOSBase/Geometry.h"
 #include "PHOSCalib/CalibParams.h"
+#include "PHOSCalib/TriggerMap.h"
 #include "PHOSBase/Hit.h"
 #include "DataFormatsPHOS/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -51,7 +52,10 @@ class Digitizer : public TObject
   static constexpr short NCHANNELS = 12544; ///< Number of channels starting from 56*64*(4-0.5)
   static constexpr short OFFSET = 1793;     ///< Non-existing channels 56*64*0.5+1
   bool mProcessMC = true;
+  bool mTrig2x2 = true;                      ///< simulate 2x2 PHOS trigger
+  bool mTrig4x4 = false;                     ///< simulate 4x4 PHOS trigger
   std::unique_ptr<CalibParams> mCalibParams; /// Calibration coefficients
+  std::unique_ptr<TriggerMap> mTrigUtils;    /// trigger bad map and turn-on curves
   std::array<Digit, NCHANNELS> mArrayD;
 
   ClassDefOverride(Digitizer, 4);

@@ -17,6 +17,7 @@
 #include "Framework/Task.h"
 #include "TStopwatch.h"
 #include "TRDBase/GeometryFlat.h"
+#include "TRDCalibration/CalibVDrift.h"
 #include "GPUO2Interface.h"
 #include "GPUTRDTracker.h"
 
@@ -41,6 +42,7 @@ class TRDGlobalTracking : public o2::framework::Task
   std::unique_ptr<GeometryFlat> mFlatGeo{nullptr};    ///< flat TRD geometry
   bool mUseMC{false};                                 ///< MC flag
   bool mUseTrackletTransform{false};                  ///< if true, output from TrackletTransformer is used instead of uncalibrated Tracklet64 directly
+  CalibVDrift mCalibVDrift{};                         ///< steers the vDrift calibration
   TStopwatch mTimer;
 };
 

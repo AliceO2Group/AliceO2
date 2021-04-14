@@ -78,11 +78,8 @@ class Digit
 
   // Getter & Setters
   uint16_t getCharge() const { return mQ; }
-  void setCharge(uint16_t Q)
-  {
-    mQ = Q;
-    return;
-  };
+  void setCharge(uint16_t Q) { mQ = Q; };
+
   int getPadID() const { return mCh << 24 | mPh << 16 | mX << 8 | mY; }
   void setPadID(uint32_t pad)
   {
@@ -90,7 +87,6 @@ class Digit
     mPh = (pad & 0x00FF0000) >> 16;
     mX = (pad & 0x0000FF00) >> 8;
     mY = (pad & 0x000000FF);
-    return;
   };
 
   bool isValid() { return (mCh == 0xFF ? true : false); };
@@ -117,6 +113,12 @@ class Digit
     }
   }
   void subCharge(float q) { mQ -= q; }
+
+  uint16_t getQ() const { return mQ; }
+  uint8_t getCh() const { return mCh; }
+  uint8_t getPh() const { return mPh; }
+  uint8_t getX() const { return mX; }
+  uint8_t getY() const { return mY; }
 
  public:
   // Members

@@ -45,7 +45,7 @@ class DataDecoderTask : public framework::Task
   ExecutionTimer mExTimer;
 };
 
-o2::framework::DataProcessorSpec getDecodingSpec(std::string inputSpec = "TF:HMP/RAWDATA");
+o2::framework::DataProcessorSpec getDecodingSpec(bool askSTFDist);
 } // end namespace hmpid
 } // end namespace o2
 

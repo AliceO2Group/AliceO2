@@ -24,6 +24,7 @@
 #include "DataFormatsITSMFT/CTF.h"
 #include "DataFormatsTPC/CTF.h"
 #include "DataFormatsTRD/CTF.h"
+#include "DataFormatsHMP/CTF.h"
 #include "DataFormatsFT0/CTF.h"
 #include "DataFormatsFV0/CTF.h"
 #include "DataFormatsFDD/CTF.h"
@@ -94,6 +95,8 @@ class CTFWriterSpec : public o2::framework::Task
   size_t mNTF = 0;
   int mSaveDictAfter = -1; // if positive and mWriteCTF==true, save dictionary after each mSaveDictAfter TFs processed
   uint64_t mRun = 0;
+  std::string mDictDir = "./";
+  std::string mCTFDir = "./";
 
   std::unique_ptr<TFile> mDictFileOut; // file to store dictionary
   std::unique_ptr<TTree> mDictTreeOut; // tree to store dictionary
@@ -194,6 +197,8 @@ CTFWriterSpec::CTFWriterSpec(DetID::mask_t dm, uint64_t r, bool doCTF, bool doDi
 void CTFWriterSpec::init(InitContext& ic)
 {
   mSaveDictAfter = ic.options().get<int>("save-dict-after");
+  o2::base::NameConf::rectifyDirectory((mDictDir = ic.options().get<std::string>("ctf-dict-dir")));
+  o2::base::NameConf::rectifyDirectory((mCTFDir = ic.options().get<std::string>("ctf-output-dir")));
 }
 
 void CTFWriterSpec::run(ProcessingContext& pc)
@@ -205,7 +210,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
   std::unique_ptr<TFile> fileOut;
   std::unique_ptr<TTree> treeOut;
   if (mWriteCTF) {
-    fileOut.reset(TFile::Open(o2::base::NameConf::getCTFFileName(dh->runNumber, dh->firstTForbit, dh->tfCounter).c_str(), "recreate"));
+    fileOut.reset(TFile::Open(o2::utils::concat_string(mCTFDir, o2::base::NameConf::getCTFFileName(dh->runNumber, dh->firstTForbit, dh->tfCounter)).c_str(), "recreate"));
     treeOut = std::make_unique<TTree>(std::string(o2::base::NameConf::CTFTREENAME).c_str(), "O2 CTF tree");
   }
 
@@ -225,6 +230,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
   processDet<o2::phos::CTF>(pc, DetID::PHS, header, treeOut.get());
   processDet<o2::cpv::CTF>(pc, DetID::CPV, header, treeOut.get());
   processDet<o2::zdc::CTF>(pc, DetID::ZDC, header, treeOut.get());
+  processDet<o2::hmpid::CTF>(pc, DetID::HMP, header, treeOut.get());
 
   mTimer.Stop();
 
@@ -277,9 +283,9 @@ std::string CTFWriterSpec::dictionaryFileName(const std::string& detName)
     if (detName.empty()) {
       throw std::runtime_error("Per-detector dictionary files are requested but detector name is not provided");
     }
-    return o2::utils::concat_string(detName, "_", o2::base::NameConf::CTFDICT, ".root");
+    return o2::utils::concat_string(mDictDir, detName, '_', o2::base::NameConf::CTFDICT, ".root");
   } else {
-    return o2::utils::concat_string(o2::base::NameConf::CTFDICT, ".root");
+    return o2::utils::concat_string(mDictDir, o2::base::NameConf::CTFDICT, ".root");
   }
 }
 
@@ -299,6 +305,8 @@ void CTFWriterSpec::storeDictionaries()
   storeDictionary<o2::phos::CTF>(DetID::PHS, header);
   storeDictionary<o2::cpv::CTF>(DetID::CPV, header);
   storeDictionary<o2::zdc::CTF>(DetID::ZDC, header);
+  storeDictionary<o2::hmpid::CTF>(DetID::HMP, header);
+
   // close remnants
   if (mDictTreeOut) {
     closeDictionaryTreeAndFile(header);
@@ -332,7 +340,9 @@ DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, bool doCTF,
     inputs,
     Outputs{},
     AlgorithmSpec{adaptFromTask<CTFWriterSpec>(dets, run, doCTF, doDict, dictPerDet)},
-    Options{{"save-dict-after", VariantType::Int, -1, {"In dictionary generation mode save it dictionary after certain number of TFs processed"}}}};
+    Options{{"save-dict-after", VariantType::Int, -1, {"In dictionary generation mode save it dictionary after certain number of TFs processed"}},
+            {"ctf-dict-dir", VariantType::String, "./", {"CTF dictionary directory"}},
+            {"ctf-output-dir", VariantType::String, "./", {"CTF output directory"}}}};
 }
 
 } // namespace ctf

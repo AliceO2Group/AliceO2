@@ -78,7 +78,7 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
     LOG(INFO) << "Fit quality output will be filled";
   }
 
-  mCombineGHLG = (ctx.options().get<std::string>("keepGHLG").compare("on") != 0);
+  mCombineGHLG = (ctx.options().get<std::string>("keepHGLG").compare("on") != 0);
   if (!mCombineGHLG) {
     LOG(INFO) << "Both HighGain and LowGain will be kept";
   }
@@ -93,7 +93,9 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
 void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 {
   // Cache cells from bunch crossings as the component reads timeframes from many links consecutively
-  std::map<o2::InteractionRecord, std::shared_ptr<std::vector<o2::phos::Cell>>> cellBuffer; // Internal cell buffer/
+  std::map<o2::InteractionRecord, std::shared_ptr<std::vector<o2::phos::Cell>>> cellBuffer;                      // Internal cell buffer/
+  std::map<o2::InteractionRecord, std::shared_ptr<std::vector<o2::phos::Cell>>> truBuffer;                       // trigger cell buffer/
+  std::map<o2::InteractionRecord, std::shared_ptr<std::bitset<Mapping::NTRUReadoutChannels + 2>>> truFlagBuffer; //
   int firstEntry = 0;
   mOutputHWErrors.clear();
   if (mFillChi2) {
@@ -135,6 +137,23 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       } else {
         currentCellContainer = found->second;
       }
+      std::shared_ptr<std::vector<o2::phos::Cell>> currentTRUContainer;
+      auto found2 = truBuffer.find(currentIR);
+      if (found2 == truBuffer.end()) {
+        currentTRUContainer = std::make_shared<std::vector<o2::phos::Cell>>();
+        truBuffer[currentIR] = currentTRUContainer;
+      } else {
+        currentTRUContainer = found2->second;
+      }
+      std::shared_ptr<std::bitset<Mapping::NTRUReadoutChannels + 2>> currentTRUFlags;
+      auto found3 = truFlagBuffer.find(currentIR);
+      if (found3 == truFlagBuffer.end()) {
+        currentTRUFlags = std::make_shared<std::bitset<Mapping::NTRUReadoutChannels + 2>>();
+        truFlagBuffer[currentIR] = currentTRUFlags;
+      } else {
+        currentTRUFlags = found3->second;
+      }
+
       if (ddl > o2::phos::Mapping::NDDL) { //only 14 correct DDLs
         LOG(ERROR) << "DDL=" << ddl;
         mOutputHWErrors.emplace_back(15, 16, char(ddl)); //Add non-existing DDL as DDL 15
@@ -199,6 +218,18 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
               currentCellContainer->emplace_back(absId, mRawFitter->getAmp(0), 1.e-7 * mRawFitter->getTime(0), (ChannelType_t)caloFlag);
             }
           }
+        } else { //decode TRU digits
+          // Channels in TRU:
+          // There are 112 readout channels and 12 channels reserved for production flags:
+          //  Channels 0-111: channel data readout
+          //  Channels 112-123: production flags
+          if (Mapping::isTRUReadoutchannel(chan.getHardwareAddress())) {
+            mMapping->hwToAbsId(ddl, chan.getHardwareAddress(), absId, caloFlag);
+            short timeBin = chan.getBunches().back().getStartTime(); // Find the time bin of the first time step
+            readTRUDigit(chan.getBunches(), absId, timeBin, currentTRUContainer);
+          } else {
+            readTRUFlags(chan.getHardwareAddress(), chan.getBunches(), currentTRUFlags);
+          }
         }
       }
     } //RawReader::hasNext
@@ -245,16 +276,97 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       }
     }
 
+    //Add trigger cells
+    //if trigger cell exists and  the trigger flag true -add it
+    auto found2 = truBuffer.find(bc);
+    auto found3 = truFlagBuffer.find(bc);
+    if (found2 != truBuffer.end() && found3 != truFlagBuffer.end()) {
+      auto currentTRUContainer = found2->second;
+      auto currentTRUFlags = found3->second;
+      bool is4x4Trigger = (*currentTRUFlags)[Mapping::NTRUReadoutChannels];
+      for (Cell c : *currentTRUContainer) {
+        if ((*currentTRUFlags)[c.getAbsId()]) { //there is corresponding flag
+          if (is4x4Trigger) {
+            c.setType(ChannelType_t::TRU4x4);
+          } else {
+            c.setType(ChannelType_t::TRU2x2);
+          }
+          mOutputCells.push_back(c);
+        }
+      }
+    }
+
     mOutputTriggerRecords.emplace_back(bc, prevCellSize, mOutputCells.size() - prevCellSize);
   }
   cellBuffer.clear();
 
-  LOG(INFO) << "[PHOSRawToCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
+  LOG(DEBUG) << "[PHOSRawToCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", 0, o2::framework::Lifetime::Timeframe}, mOutputCells);
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputTriggerRecords);
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);
   if (mFillChi2) {
     ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLFITQA", 0, o2::framework::Lifetime::Timeframe}, mOutputFitChi);
+  }
+}
+void RawToCellConverterSpec::readTRUDigit(const std::vector<Bunch>& bunchlist, short absId, short timebin, std::shared_ptr<std::vector<o2::phos::Cell>>& currentTRUContainer)
+{
+
+  // TRU Channel data:
+  // The channel data is read one channel at a time
+  int smax = 0, tmax = 0;
+  for (auto b : bunchlist) {
+    short timeBin = b.getStartTime();
+    const std::vector<uint16_t>& signal = b.getADC();
+    // Loop over all the time steps in the signal
+    for (std::vector<uint16_t>::const_reverse_iterator it = signal.rbegin(); it != signal.rend(); ++it) {
+      if (*it > smax) {
+        smax = *it;
+        tmax = timeBin;
+      }
+      timeBin++;
+    }
+  }
+  currentTRUContainer->emplace_back(absId, smax, tmax * 1.e-9, TRU2x2); //add TRU cells
+}
+void RawToCellConverterSpec::readTRUFlags(short hwAddress, const std::vector<Bunch>& bunchlist, std::shared_ptr<std::bitset<Mapping::NTRUReadoutChannels + 2>>& currentTRUFlags)
+{
+  // Production flags:
+  // Production flags are supplied in channels 112 - 123
+  // Each of the channels is 10 bit wide
+  // The bits inside the channel (indexing starting from the first bit of channel 112) is as follows:
+  //  Bits 0-111: Trigger flags for corresponding channel index
+  //    If using 4x4 algorithm, only 91 first bits are used of these
+  //  Bit 112: Marker for 4x4 algorithm (1 active, 0 not active)
+  //  Bit 113: Marker for 2x2 algorithm (1 active, 0 not active)
+  //  Bit 114: Global L0 OR of all patches in the TRU
+
+  for (auto b : bunchlist) {
+    short timeBin = b.getStartTime();
+    const std::vector<uint16_t>& signal = b.getADC();
+    // Loop over all the time steps in the signal
+    for (std::vector<uint16_t>::const_reverse_iterator it = signal.rbegin(); it != signal.rend(); ++it, ++timeBin) {
+
+      // If bit 112 is 1, we are considering 4x4 algorithm
+      if (hwAddress == Mapping::TRUFinalProductionChannel) {
+        (*currentTRUFlags)[Mapping::NTRUReadoutChannels] = (*it & (1 << 2)); // Check the bit number 112
+      }
+      const int kWordLength = 10; // Length of one data word in TRU raw data
+
+      // Assign the bits in the words to corresponding channels
+      for (Int_t bitIndex = 0; bitIndex < kWordLength; bitIndex++) {
+        // Find the correct channel number assuming that
+        // hwAddress 112 = bits 0-9 corresponding trigger flags in channels 0-9
+        // hwAddress 113 = bits 10-19 corresponding trigger flags in channels 10-19
+        // and so on
+        short channel;
+        if (hwAddress < 128) {
+          channel = (hwAddress - Mapping::NTRUBranchReadoutChannels) * kWordLength + bitIndex;
+        } else {
+          channel = 112 + (hwAddress - 2048 - Mapping::NTRUBranchReadoutChannels) * kWordLength + bitIndex; //branch 0
+        }
+        (*currentTRUFlags)[channel] = (*currentTRUFlags)[channel] | (*it & (1 << bitIndex));
+      } // Bits in one word
+    }   // Length of signal
   }
 }
 
@@ -300,6 +412,6 @@ o2::framework::DataProcessorSpec o2::phos::reco_workflow::getRawToCellConverterS
                                             {"fitmethod", o2::framework::VariantType::String, "default", {"Fit method (default or fast)"}},
                                             {"mappingpath", o2::framework::VariantType::String, "", {"Path to mapping files"}},
                                             {"fillchi2", o2::framework::VariantType::String, "off", {"Fill sample qualities on/off"}},
-                                            {"keepGHLG", o2::framework::VariantType::String, "off", {"keep HighGain and Low Gain signals on/off"}},
+                                            {"keepHGLG", o2::framework::VariantType::String, "off", {"keep HighGain and Low Gain signals on/off"}},
                                             {"pedestal", o2::framework::VariantType::String, "off", {"Analyze as pedestal run on/off"}}}};
 }

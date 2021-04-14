@@ -160,8 +160,6 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        size_t lastTimestamp = 0;
                        size_t firstTimestamp = -1;
                        size_t lastDecision = 0;
-                       static uint64_t now = 0;
-                       now = uv_hrtime();
                        static std::vector<MetricIndices> allIndices = createDefaultIndices(allDeviceMetrics);
                        for (size_t mi = 0; mi < allDeviceMetrics.size(); ++mi) {
                          auto& deviceMetrics = allDeviceMetrics[mi];
@@ -217,7 +215,9 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        static int stateTransitions = 0;
                        static int signalsCount = 0;
                        static int skippedCount = 0;
+                       static uint64_t now = 0;
                        static uint64_t lastSignal = 0;
+                       now = uv_hrtime();
                        while (!done) {
                          stateMetric(driverMetrics, (uint64_t)(currentState), stateTransitions++);
                          switch (currentState) {
