@@ -48,7 +48,7 @@ See `Detectors/Raw/test/testHBFUtils.cxx` for details of usage of this class (al
 ## RawFileWriter
 
 A class to facilitate writing to files the MC data converted to raw data payload. Payload will be formatted according to CRU data
-specifications and should be simular to produced by the readout.exe (and can be pumped into the DPL workflows)
+specifications and should be simular to produced by the o2-readout-exe (and can be pumped into the DPL workflows)
 
 The detector code for MC to raw conversion should instatiate the RawFileWriter object and:
 
