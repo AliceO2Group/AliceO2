@@ -1880,8 +1880,8 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
                             DeviceSpecs const& specs,
                             DeviceExecutions const& executions,
                             DataProcessorInfos&,
-                            CommandInfo const&) {
-      dumpDeviceSpec2DDS(std::cout, specs, executions);
+                            CommandInfo const& commandInfo) {
+      dumpDeviceSpec2DDS(std::cout, specs, executions, commandInfo);
     }};
     control.forcedTransitions = {
       DriverState::EXIT,                    //
