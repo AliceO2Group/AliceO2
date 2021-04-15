@@ -55,7 +55,7 @@ class CommonParam
  protected:
   void sampleTimeStruct(float vdrift);
 
-  static CommonParam* fgInstance; //  Instance of this class (singleton implementation)
+  static CommonParam* mgInstance; //  Instance of this class (singleton implementation)
   static constexpr int TIMEBIN = 38;
   static constexpr int ZBIN = 11;
   bool mExBOn{true};          // Switch for the ExB effects

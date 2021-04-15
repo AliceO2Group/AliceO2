@@ -30,7 +30,7 @@
 using namespace o2::trd;
 ClassImp(CommonParam);
 
-CommonParam* CommonParam::fgInstance = nullptr;
+CommonParam* CommonParam::mgInstance = nullptr;
 
 //_ singleton implementation __________________________________________________
 CommonParam* CommonParam::instance()
@@ -40,11 +40,11 @@ CommonParam* CommonParam::instance()
   // Returns an instance of this class, it is created if neccessary
   //
 
-  if (fgInstance == nullptr) {
-    fgInstance = new CommonParam();
+  if (mgInstance == nullptr) {
+    mgInstance = new CommonParam();
   }
 
-  return fgInstance;
+  return mgInstance;
 }
 
 
@@ -665,11 +665,11 @@ void CommonParam::sampleTimeStruct(float vdrift)
 void CommonParam::setXenon()
 {
   mGasMixture = kXenon;
-  SimParam::Instance()->ReInit();
+  SimParam::instance()->reInit();
 }
 
 void CommonParam::setArgon()
 {
   mGasMixture = kArgon;
-  SimParam::Instance()->ReInit();
+  SimParam::instance()->reInit();
 }
