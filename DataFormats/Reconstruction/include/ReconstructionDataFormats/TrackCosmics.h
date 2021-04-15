@@ -32,8 +32,8 @@ class TrackCosmics : public o2::track::TrackParCov
   TrackCosmics() = default;
   ~TrackCosmics() = default;
   TrackCosmics(const TrackCosmics& src) = default;
-  TrackCosmics(GlobalTrackID btm, GlobalTrackID top, const o2::track::TrackParCov& srcCent, const o2::track::TrackParCov& srcOut, float chi2Ref, float chi2Match, int ncl)
-    : o2::track::TrackParCov(srcCent), mParamOut(srcOut), mRefBottom(btm), mRefTop(top), mChi2Refit(chi2Ref), mChi2Match(chi2Match), mNClusters(ncl) {}
+  TrackCosmics(GlobalTrackID btm, GlobalTrackID top, const o2::track::TrackParCov& srcCent, const o2::track::TrackParCov& srcOut, float chi2Ref, float chi2Match, int ncl, float t, float tErr)
+    : o2::track::TrackParCov(srcCent), mParamOut(srcOut), mRefBottom(btm), mRefTop(top), mChi2Refit(chi2Ref), mChi2Match(chi2Match), mNClusters(ncl), mTimeMUS{t, tErr} {}
 
   GlobalTrackID getRefBottom() const { return mRefBottom; }
   GlobalTrackID getRefTop() const { return mRefTop; }
