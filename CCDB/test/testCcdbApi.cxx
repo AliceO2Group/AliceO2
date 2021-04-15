@@ -264,7 +264,7 @@ BOOST_AUTO_TEST_CASE(retrieveTMemFile_test, *utf::precondition(if_reachable()))
 {
   test_fixture f;
 
-  TObject* obj = f.api.retrieveFromTFile(basePath + "th1", f.metadata);
+  TObject* obj = f.api.retrieveFromTFileAny<TObject>(basePath + "th1", f.metadata);
   BOOST_CHECK_NE(obj, nullptr);
   BOOST_CHECK_EQUAL(obj->ClassName(), "TH1F");
   auto h1 = dynamic_cast<TH1F*>(obj);
@@ -272,7 +272,7 @@ BOOST_AUTO_TEST_CASE(retrieveTMemFile_test, *utf::precondition(if_reachable()))
   BOOST_CHECK_EQUAL(obj->GetName(), "th1name");
   delete obj;
 
-  obj = f.api.retrieveFromTFile(basePath + "graph", f.metadata);
+  obj = f.api.retrieveFromTFileAny<TObject>(basePath + "graph", f.metadata);
   BOOST_CHECK_NE(obj, nullptr);
   BOOST_CHECK_EQUAL(obj->ClassName(), "TGraph");
   auto graph = dynamic_cast<TGraph*>(obj);
@@ -285,7 +285,7 @@ BOOST_AUTO_TEST_CASE(retrieveTMemFile_test, *utf::precondition(if_reachable()))
   delete graph;
 
   std::map<std::string, std::string> headers;
-  obj = f.api.retrieveFromTFile(basePath + "tree", f.metadata, -1, &headers);
+  obj = f.api.retrieveFromTFileAny<TObject>(basePath + "tree", f.metadata, -1, &headers);
   BOOST_CHECK_NE(obj, nullptr);
   BOOST_CHECK_EQUAL(obj->ClassName(), "TTree");
   auto tree = dynamic_cast<TTree*>(obj);
@@ -297,7 +297,7 @@ BOOST_AUTO_TEST_CASE(retrieveTMemFile_test, *utf::precondition(if_reachable()))
   BOOST_CHECK_EQUAL(headers["Hello"], "World");
 
   // wrong url
-  obj = f.api.retrieveFromTFile("Wrong/wrong", f.metadata);
+  obj = f.api.retrieveFromTFileAny<TObject>("Wrong/wrong", f.metadata);
   BOOST_CHECK_EQUAL(obj, nullptr);
 }
 
@@ -307,10 +307,10 @@ BOOST_AUTO_TEST_CASE(truncate_test, *utf::precondition(if_reachable()))
 
   TH1F h("object1", "object1", 100, 0, 99);
   f.api.storeAsTFile(&h, basePath + "Detector", f.metadata); // test with explicit dates
-  auto h1 = f.api.retrieveFromTFile(basePath + "Detector", f.metadata);
+  auto h1 = f.api.retrieveFromTFileAny<TH1F>(basePath + "Detector", f.metadata);
   BOOST_CHECK(h1 != nullptr);
   f.api.truncate(basePath + "Detector");
-  h1 = f.api.retrieveFromTFile(basePath + "Detector", f.metadata);
+  h1 = f.api.retrieveFromTFileAny<TH1F>(basePath + "Detector", f.metadata);
   BOOST_CHECK(h1 == nullptr);
 }
 
@@ -322,10 +322,10 @@ BOOST_AUTO_TEST_CASE(delete_test, *utf::precondition(if_reachable()))
   long from = o2::ccdb::getCurrentTimestamp();
   long to = o2::ccdb::getFutureTimestamp(60 * 60 * 24 * 365 * 10);
   f.api.storeAsTFile(&h1, basePath + "Detector", f.metadata, from, to); // test with explicit dates
-  auto h2 = f.api.retrieveFromTFile(basePath + "Detector", f.metadata);
+  auto h2 = f.api.retrieveFromTFileAny<TH1F>(basePath + "Detector", f.metadata);
   BOOST_CHECK(h2 != nullptr);
   f.api.deleteObject(basePath + "Detector");
-  h2 = f.api.retrieveFromTFile(basePath + "Detector", f.metadata);
+  h2 = f.api.retrieveFromTFileAny<TH1F>(basePath + "Detector", f.metadata);
   BOOST_CHECK(h2 == nullptr);
 }
 
