@@ -13,40 +13,18 @@
 #ifndef O2_CTFREADER_SPEC
 #define O2_CTFREADER_SPEC
 
-#include "TFile.h"
-#include "TTree.h"
-#include <TStopwatch.h>
-
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-
 #include "DetectorsCommonDataFormats/DetID.h"
+#include <string>
 
 namespace o2
 {
 namespace ctf
 {
 
-using DetID = o2::detectors::DetID;
-
-class CTFReaderSpec : public o2::framework::Task
-{
- public:
-  CTFReaderSpec(DetID::mask_t dm, const std::string& inp);
-  ~CTFReaderSpec() override = default;
-  void init(o2::framework::InitContext& ic) final;
-  void run(o2::framework::ProcessingContext& pc) final;
-
- private:
-  DetID::mask_t mDets;             // detectors
-  std::vector<std::string> mInput; // input files
-  uint32_t mTFCounter = 0;
-  size_t mNextToProcess = 0;
-  TStopwatch mTimer;
-};
-
 /// create a processor spec
-framework::DataProcessorSpec getCTFReaderSpec(DetID::mask_t dets, const std::string& inp);
+framework::DataProcessorSpec getCTFReaderSpec(o2::detectors::DetID::mask_t dets, const std::string& inp);
 
 } // namespace ctf
 } // namespace o2

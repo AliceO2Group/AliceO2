@@ -153,11 +153,11 @@ void Alice3Pipe::ConstructGeometry()
   TGeoTube* berylliumTubeVacuum =
     new TGeoTube("INN_PIPEVACUUMsh", 0., mBeInnerPipeRmin, mInnerIpHLength);
   TGeoVolume* innerBerylliumTubeVacuumVolume = new TGeoVolume("INN_PIPEVACUUM", berylliumTubeVacuum, kMedVac);
-  innerBerylliumTubeVacuumVolume->SetVisibility(0);
+  innerBerylliumTubeVacuumVolume->SetVisibility(1);
   innerBerylliumTubeVacuumVolume->SetLineColor(kGreen);
 
-  innerBeTubeVolume->AddNode(innerBerylliumTubeVacuumVolume, 1, gGeoIdentity);
   barrel->AddNode(innerBeTubeVolume, 1, new TGeoTranslation(0, 30.f, 0));
+  barrel->AddNode(innerBerylliumTubeVacuumVolume, 1, new TGeoTranslation(0, 30.f, 0));
 }
 
 void Alice3Pipe::createMaterials()

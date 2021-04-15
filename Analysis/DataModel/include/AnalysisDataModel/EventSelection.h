@@ -15,6 +15,7 @@
 
 namespace o2::aod
 {
+// collision-joinable event selection decisions
 namespace evsel
 {
 // TODO bool arrays are not supported? Storing in int32 for the moment
@@ -38,12 +39,21 @@ DECLARE_SOA_DYNAMIC_COLUMN(SEL8, sel8, [](bool bbT0A, bool bbT0C, bool bbZNA, bo
 DECLARE_SOA_TABLE(EvSels, "AOD", "EVSEL",
                   evsel::Alias,
                   evsel::BBT0A, evsel::BBT0C,
-                  evsel::BBV0A, evsel::BBV0C, evsel::BGV0A, evsel::BGV0C, evsel::BBZNA, evsel::BBZNC,
+                  evsel::BBV0A, evsel::BBV0C, evsel::BGV0A, evsel::BGV0C,
+                  evsel::BBZNA, evsel::BBZNC,
                   evsel::BBFDA, evsel::BBFDC, evsel::BGFDA, evsel::BGFDC,
                   evsel::SEL7<evsel::BBV0A, evsel::BBV0C, evsel::BBZNA, evsel::BBZNC>,
                   evsel::SEL8<evsel::BBT0A, evsel::BBT0C, evsel::BBZNA, evsel::BBZNC>,
                   evsel::FoundFT0);
 using EvSel = EvSels::iterator;
+
+DECLARE_SOA_TABLE(BcSels, "AOD", "BCSEL",
+                  evsel::Alias,
+                  evsel::BBT0A, evsel::BBT0C,
+                  evsel::BBV0A, evsel::BBV0C, evsel::BGV0A, evsel::BGV0C,
+                  evsel::BBZNA, evsel::BBZNC,
+                  evsel::BBFDA, evsel::BBFDC, evsel::BGFDA, evsel::BGFDC);
+using BcSel = BcSels::iterator;
 } // namespace o2::aod
 
 #endif // O2_ANALYSIS_EVENTSELECTION_H_

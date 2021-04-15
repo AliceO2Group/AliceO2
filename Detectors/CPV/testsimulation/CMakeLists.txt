@@ -21,3 +21,8 @@ o2_add_test_root_macro(plot_hit_cpv.C
 o2_add_test_root_macro(plot_dig_cpv.C
                        PUBLIC_LINK_LIBRARIES FairRoot::Base O2::CPVSimulation
                        LABELS cpv)
+		       
+o2_add_test_root_macro(plot_clu_cpv.C
+                       PUBLIC_LINK_LIBRARIES FairRoot::Base O2::CPVSimulation
+                       LABELS cpv)
+		       

@@ -112,7 +112,6 @@ std::vector<std::byte> createBuffer(gsl::span<std::string> data,
 
   const o2::raw::HBFUtils& hbfutils = o2::raw::HBFUtils::Instance();
   o2::conf::ConfigurableParam::setValue<uint32_t>("HBFUtils", "orbitFirst", orbit);
-  o2::conf::ConfigurableParam::setValue<uint16_t>("HBFUtils", "bcFirst", bc);
   std::vector<std::byte> out = o2::mch::raw::paginate(buffer,
                                                       isUserLogicFormat<FORMAT>::value,
                                                       isChargeSumMode<CHARGESUM>::value,

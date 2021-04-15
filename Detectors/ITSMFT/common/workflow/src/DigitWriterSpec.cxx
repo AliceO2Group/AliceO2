@@ -13,6 +13,7 @@
 #include "ITSMFTWorkflow/DigitWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsITSMFT/Digit.h"
+#include "DataFormatsITSMFT/GBTCalibData.h"
 #include "Headers/DataHeader.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -37,10 +38,11 @@ using MCCont = o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>;
 
 /// create the processor spec
 /// describing a processor receiving digits for ITS/MFT and writing them to file
-DataProcessorSpec getDigitWriterSpec(bool mctruth, o2::header::DataOrigin detOrig, o2::detectors::DetID detId)
+DataProcessorSpec getDigitWriterSpec(bool mctruth, bool dec, bool calib, o2::header::DataOrigin detOrig, o2::detectors::DetID detId)
 {
   std::string detStr = o2::detectors::DetID::getName(detId);
-  std::string detStrL = detStr;
+  std::string detStrL = dec ? "o2_" : ""; // for decoded digits prepend by o2
+  detStrL += detStr;
   std::transform(detStrL.begin(), detStrL.end(), detStrL.begin(), ::tolower);
   auto logger = [](std::vector<o2::itsmft::Digit> const& inDigits) {
     LOG(INFO) << "RECEIVED DIGITS SIZE " << inDigits.size();
@@ -77,7 +79,7 @@ DataProcessorSpec getDigitWriterSpec(bool mctruth, o2::header::DataOrigin detOri
     br->ResetAddress();
   };
 
-  return MakeRootTreeWriterSpec((detStr + "DigitWriter").c_str(),
+  return MakeRootTreeWriterSpec((detStr + "DigitWriter" + (dec ? "_dec" : "")).c_str(),
                                 (detStrL + "digits.root").c_str(),
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Digits tree"},
                                 MakeRootTreeWriterSpec::CustomClose(finishWriting),
@@ -91,18 +93,21 @@ DataProcessorSpec getDigitWriterSpec(bool mctruth, o2::header::DataOrigin detOri
                                 BranchDefinition<std::vector<itsmft::Digit>>{InputSpec{"digits", detOrig, "DIGITS", 0},
                                                                              (detStr + "Digit").c_str(),
                                                                              logger},
+                                BranchDefinition<std::vector<itsmft::GBTCalibData>>{InputSpec{"calib", detOrig, "GBTCALIB", 0},
+                                                                                    (detStr + "Calib").c_str(),
+                                                                                    (calib ? 1 : 0)},
                                 BranchDefinition<std::vector<itsmft::ROFRecord>>{InputSpec{"digitsROF", detOrig, "DIGITSROF", 0},
                                                                                  (detStr + "DigitROF").c_str()})();
 }
 
-DataProcessorSpec getITSDigitWriterSpec(bool mctruth)
+DataProcessorSpec getITSDigitWriterSpec(bool mctruth, bool dec, bool calib)
 {
-  return getDigitWriterSpec(mctruth, o2::header::gDataOriginITS, o2::detectors::DetID::ITS);
+  return getDigitWriterSpec(mctruth, dec, calib, o2::header::gDataOriginITS, o2::detectors::DetID::ITS);
 }
 
-DataProcessorSpec getMFTDigitWriterSpec(bool mctruth)
+DataProcessorSpec getMFTDigitWriterSpec(bool mctruth, bool dec, bool calib)
 {
-  return getDigitWriterSpec(mctruth, o2::header::gDataOriginMFT, o2::detectors::DetID::MFT);
+  return getDigitWriterSpec(mctruth, dec, calib, o2::header::gDataOriginMFT, o2::detectors::DetID::MFT);
 }
 
 } // end namespace itsmft

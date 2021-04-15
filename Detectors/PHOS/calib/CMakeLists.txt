@@ -13,6 +13,7 @@ o2_add_library(PHOSCalib
                        src/CalibParams.cxx
                        src/Pedestals.cxx
                        src/CalibDB.cxx
+                       src/TriggerMap.cxx
 	       PUBLIC_LINK_LIBRARIES O2::CCDB O2::PHOSBase)
 
 o2_target_root_dictionary(PHOSCalib
@@ -20,6 +21,7 @@ o2_target_root_dictionary(PHOSCalib
                                   include/PHOSCalib/CalibParams.h
                                   include/PHOSCalib/Pedestals.h
                                   include/PHOSCalib/CalibDB.h
+                                  include/PHOSCalib/TriggerMap.h
                           LINKDEF src/PHOSCalibLinkDef.h)
 
 add_subdirectory(PHOSCalibWorkflow)

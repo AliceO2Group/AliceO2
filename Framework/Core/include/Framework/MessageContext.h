@@ -217,7 +217,7 @@ class MessageContext
     using value_type = typename T::value_type;
     using return_type = T;
     using buffer_type = return_type;
-    static_assert(std::is_same<typename T::allocator_type, o2::pmr::polymorphic_allocator<value_type>>::value, "container must have polymorphic allocator");
+    static_assert(std::is_base_of<o2::pmr::polymorphic_allocator<value_type>, typename T::allocator_type>::value, "container must have polymorphic allocator");
     /// default contructor forbidden, object always has to control message instances
     ContainerRefObject() = delete;
     /// constructor taking header message by move and creating the paypload message

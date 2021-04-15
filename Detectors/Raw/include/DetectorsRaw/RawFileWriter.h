@@ -86,7 +86,7 @@ class RawFileWriter
     uint8_t packetCounter = 0;                            // running counter
     uint16_t pageCnt = 0;                                 // running counter
     LinkSubSpec_t subspec = 0;                            // subspec according to DataDistribution
-    int counter = 0;                                      //RSREM
+    bool discardData = false;                             // discard data if true (e.g. desired max IR reached)
     //
     size_t nTFWritten = 0;    // number of TFs written
     size_t nRDHWritten = 0;   // number of RDHs written

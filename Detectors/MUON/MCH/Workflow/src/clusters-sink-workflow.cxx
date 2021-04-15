@@ -34,7 +34,7 @@
 #include "Framework/ConfigParamSpec.h"
 
 #include "DataFormatsMCH/ROFRecord.h"
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 #include "MCHBase/ClusterBlock.h"
 #include "MCHMappingInterface/Segmentation.h"
 

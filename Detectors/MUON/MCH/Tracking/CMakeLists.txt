@@ -17,4 +17,4 @@ o2_add_library(MCHTracking
         src/TrackFitter.cxx
         src/TrackFinderOriginal.cxx
         src/TrackFinder.cxx
-        PUBLIC_LINK_LIBRARIES O2::Field O2::MCHBase)
+        PUBLIC_LINK_LIBRARIES O2::Field O2::MCHBase O2::Framework)

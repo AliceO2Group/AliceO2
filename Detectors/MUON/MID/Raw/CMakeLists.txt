@@ -13,6 +13,7 @@ o2_add_library(
   SOURCES src/ColumnDataToLocalBoard.cxx
           src/CrateMapper.cxx
           src/CrateMasks.cxx
+          src/DecodedDataAggregator.cxx
           src/Decoder.cxx
           src/ElectronicsDelay.cxx
           src/ELinkDecoder.cxx
@@ -21,8 +22,6 @@ o2_add_library(
           src/GBTDecoder.cxx
           src/GBTOutputHandler.cxx
           src/GBTUserLogicEncoder.cxx
-          src/LocalBoardRO.cxx
-          src/DecodedDataAggregator.cxx
           src/RawFileReader.cxx
   PUBLIC_LINK_LIBRARIES
     ms_gsl::ms_gsl

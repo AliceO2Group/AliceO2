@@ -22,7 +22,6 @@
 #include "PWGDQCore/HistogramsLibrary.h"
 #include "PWGDQCore/CutsLibrary.h"
 #include <TH1F.h>
-#include <TMath.h>
 #include <THashList.h>
 #include <TString.h>
 #include <iostream>
@@ -68,8 +67,8 @@ using MyEventsVtxCovSelected = soa::Join<aod::ReducedEvents, aod::ReducedEventsE
 using MyBarrelTracks = soa::Join<aod::ReducedTracks, aod::ReducedTracksBarrel, aod::ReducedTracksBarrelCov, aod::ReducedTracksBarrelPID>;
 using MyBarrelTracksSelected = soa::Join<aod::ReducedTracks, aod::ReducedTracksBarrel, aod::ReducedTracksBarrelCov, aod::ReducedTracksBarrelPID, aod::BarrelTrackCuts>;
 
-using MyMuonTracks = soa::Join<aod::ReducedMuons, aod::ReducedMuonsExtended>;
-using MyMuonTracksSelected = soa::Join<aod::ReducedMuons, aod::ReducedMuonsExtended, aod::MuonTrackCuts>;
+using MyMuonTracks = soa::Join<aod::ReducedMuons, aod::ReducedMuonsExtra>;
+using MyMuonTracksSelected = soa::Join<aod::ReducedMuons, aod::ReducedMuonsExtra, aod::MuonTrackCuts>;
 
 void DefineHistograms(HistogramManager* histMan, TString histClasses);
 
@@ -82,13 +81,13 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses);
 //           to automatically detect the object types transmitted to the VarManager
 constexpr static uint32_t gkEventFillMap = VarManager::ObjTypes::ReducedEvent | VarManager::ObjTypes::ReducedEventExtended;
 constexpr static uint32_t gkTrackFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::ReducedTrackBarrel | VarManager::ObjTypes::ReducedTrackBarrelCov | VarManager::ObjTypes::ReducedTrackBarrelPID;
-constexpr static uint32_t gkMuonFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::ReducedTrackMuon;
+constexpr static uint32_t gkMuonFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::ReducedMuon;
 
 // NOTE: hardcoded number of parallel electron cuts for the barrel analysis
 // TODO: make it configurable
 constexpr int gNTrackCuts = 2;
 
-struct EventSelection {
+struct DQEventSelection {
   Produces<aod::EventCuts> eventSel;
   Produces<aod::MixingHashes> hash;
   OutputObj<THashList> fOutputList{"output"};
@@ -153,7 +152,7 @@ struct EventSelection {
   }
 };
 
-struct BarrelTrackSelection {
+struct DQBarrelTrackSelection {
   Produces<aod::BarrelTrackCuts> trackSel;
   OutputObj<THashList> fOutputList{"output"};
   HistogramManager* fHistMan;
@@ -232,7 +231,7 @@ struct BarrelTrackSelection {
   }
 };
 
-struct MuonTrackSelection {
+struct DQMuonTrackSelection {
   Produces<aod::MuonTrackCuts> trackSel;
   OutputObj<THashList> fOutputList{"output"};
   HistogramManager* fHistMan;
@@ -287,7 +286,7 @@ struct MuonTrackSelection {
   }
 };
 
-struct EventMixing {
+struct DQEventMixing {
   OutputObj<THashList> fOutputList{"output"};
   HistogramManager* fHistMan;
   float* fValues;
@@ -432,7 +431,7 @@ struct EventMixing {
   }       // end process()
 };
 
-struct TableReader {
+struct DQTableReader {
   Produces<aod::Dileptons> dileptonList;
   OutputObj<THashList> fOutputList{"output"};
   HistogramManager* fHistMan;
@@ -536,7 +535,7 @@ struct TableReader {
   }
 };
 
-struct DileptonHadronAnalysis {
+struct DQDileptonHadronAnalysis {
   //
   // This task combines dilepton candidates with a track and could be used for example
   //  in analyses with the dilepton as one of the decay products of a higher mass resonance (e.g. B0 -> Jpsi + K)
@@ -619,14 +618,12 @@ struct DileptonHadronAnalysis {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<EventSelection>(cfgc, TaskName{"my-event-selection"}),
-    adaptAnalysisTask<BarrelTrackSelection>(cfgc, TaskName{"barrel-track-selection"}),
-    adaptAnalysisTask<EventMixing>(cfgc, TaskName{"event-mixing"}),
-    adaptAnalysisTask<MuonTrackSelection>(cfgc, TaskName{"muon-track-selection"}),
-    adaptAnalysisTask<TableReader>(cfgc, TaskName{"table-reader"}),
-    adaptAnalysisTask<DileptonHadronAnalysis>(cfgc, TaskName{"dilepton-hadron"})
-
-  };
+    adaptAnalysisTask<DQEventSelection>(cfgc),
+    adaptAnalysisTask<DQBarrelTrackSelection>(cfgc),
+    adaptAnalysisTask<DQEventMixing>(cfgc),
+    adaptAnalysisTask<DQMuonTrackSelection>(cfgc),
+    adaptAnalysisTask<DQTableReader>(cfgc),
+    adaptAnalysisTask<DQDileptonHadronAnalysis>(cfgc)};
 }
 
 void DefineHistograms(HistogramManager* histMan, TString histClasses)

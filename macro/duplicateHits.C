@@ -185,7 +185,7 @@ void duplicateHits(const char* filebase = "o2sim", const char* newfilebase = "o2
   duplicateV<o2::itsmft::Hit>(grp, filebase, DetID::MFT, newfilebase, factor);
   duplicateV<o2::tof::HitType>(grp, filebase, DetID::TOF, newfilebase, factor);
   duplicateV<o2::emcal::Hit>(grp, filebase, DetID::EMC, newfilebase, factor);
-  duplicateV<o2::trd::HitType>(grp, filebase, DetID::TRD, newfilebase, factor);
+  duplicateV<o2::trd::Hit>(grp, filebase, DetID::TRD, newfilebase, factor);
   duplicateV<o2::phos::Hit>(grp, filebase, DetID::PHS, newfilebase, factor);
   duplicateV<o2::cpv::Hit>(grp, filebase, DetID::CPV, newfilebase, factor);
   duplicateV<o2::zdc::Hit>(grp, filebase, DetID::ZDC, newfilebase, factor);

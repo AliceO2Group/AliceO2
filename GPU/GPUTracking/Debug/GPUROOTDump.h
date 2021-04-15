@@ -53,9 +53,14 @@ template <class T>
 class GPUROOTDump : public GPUROOTDumpBase
 {
  public:
-  static GPUROOTDump<T>& get(const char* name)
+  static GPUROOTDump<T>& get(const char* name) // return always the same instance, identified by template
   {
     static GPUROOTDump<T> instance(name);
+    return instance;
+  }
+  static GPUROOTDump<T> getNew(const char* name) // return new individual instance
+  {
+    return GPUROOTDump<T>(name);
   }
 
   void write() override { mTree->Write(); }
@@ -84,6 +89,10 @@ class GPUROOTDump<TNtuple> : public GPUROOTDumpBase
   {
     static GPUROOTDump<TNtuple> instance(name, options);
     return instance;
+  }
+  static GPUROOTDump<TNtuple> getNew(const char* name, const char* options)
+  {
+    return GPUROOTDump<TNtuple>(name, options);
   }
 
   void write() override { mNTuple->Write(); }

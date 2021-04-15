@@ -86,7 +86,8 @@ class SimTraits
       /*FT0*/ VS{ "FT0Hit" },
       /*FV0*/ VS{ "FV0Hit" },
       /*FDD*/ VS{ "FDDHit" },
-      /*ACO*/ VS{ "ACOHit" }
+      /*ACO*/ VS{ "ACOHit" },
+      /*CTP*/ VS{ "CTPHit" }
 #ifdef ENABLE_UPGRADES
       ,
       /*IT3*/ VS{ "IT3Hit" },
@@ -109,7 +110,7 @@ class SimTraits
 // forward declares the HitTypes
 namespace trd
 {
-class HitType;
+class Hit;
 }
 namespace itsmft
 {
@@ -173,7 +174,7 @@ struct DetIDToHitTypes {
 // specialize for detectors
 template <>
 struct DetIDToHitTypes<o2::detectors::DetID::TRD> {
-  using HitType = o2::trd::HitType;
+  using HitType = o2::trd::Hit;
 };
 template <>
 struct DetIDToHitTypes<o2::detectors::DetID::ITS> {

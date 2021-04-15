@@ -41,6 +41,8 @@ HBFUtil::fillHBIRvector(std::vector<IR>& dst, const IR& fromIR, const IR& payLoa
 will fill the provided `dst` vector with the IR's (between `fromIR` and `payLoadIR`) for which the HBFs should be
 generated and flushed to raw data **before** filling the payload of `payLoadIR`.
 
+Extra data member `HBFUtil.maxNOrbits` (= highest possible orbit by default) is used only in the RawFileWriter as a maximum orbit number (with respect to 1st orbit) for which detector payload is considered.
+
 See `Detectors/Raw/test/testHBFUtils.cxx` for details of usage of this class (also check the jira ticket about the [MC->Raw conversion](https://alice.its.cern.ch/jira/browse/O2-972)).
 
 ## RawFileWriter
@@ -88,6 +90,8 @@ writer.addData(rdh, ir, gsl::span( (char*)payload_f, payload_f_size ), <optional
 where <optional arguments> are currently: `bool preformatted = false, uint32_t trigger = 0, uint32_t detField = 0` (see below for the meaning).
 
 By default the data will be written using o2::header::RAWDataHeader. User can request particular RDH version via `writer.useRDHVersion(v)`.
+
+Note that the `addData` will have no effect if its `{bc, orbit}` exceeds the `HBFUtils.getFirstIR()` by more than `HBFUtils.maxNOrbits`.
 
 The `RawFileWriter` will take care of writing created CRU data to file in `super-pages` whose size can be set using
 `writer.setSuperPageSize(size_in_bytes)` (default in 1 MB).
@@ -327,6 +331,7 @@ o2-raw-file-reader-workflow
   --cache-data                          cache data at 1st reading, may require excessive memory!!!
   --detect-tf0                          autodetect HBFUtils start Orbit/BC from 1st TF seen (at SOX)
   --calculate-tf-start                  calculate TF start from orbit instead of using TType
+  --drop-tf arg (=none)                Drop each TFid%(1)==(2) of detector, e.g. ITS,2,4;TPC,4[,0];...
   --configKeyValues arg                 semicolon separated key=value strings
 
   # to suppress various error checks / reporting
@@ -368,6 +373,8 @@ To inject such a data to DPL one should use a parallel process starting with `o2
 ```bash
 [Terminal 2]> o2-raw-file-reader-workflow  --session default --loop 1000 --delay 3 --input-conf raw/rawAll.cfg --raw-channel-config "name=raw-reader,type=push,method=bind,address=ipc://@rr-to-dpl,transport=shmem,rateLogging=1" --shm-segment-size 16000000000
 ```
+
+For testing reason one can request dropping of some fraction of the TFs for particular detector. With option `--drop-tf "ITS,3,2;TPC,10"` the reader will not send the output for ITS in TFs with `(TFid%3)==2` and for TPC in TFs with `(TFid%10)==0`. Note that in order to acknowledge the TF, the message `{FLP/DISTSUBTIMEFRAME/0}` will still be sent even if all detector's data was dropped for a given TF.
 
 ## Raw data file checker (standalone executable)
 

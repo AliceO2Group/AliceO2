@@ -12,13 +12,12 @@
 
 #include <TTree.h>
 #include "MFTWorkflow/RecoWorkflow.h"
-
-#include "MFTWorkflow/DigitReaderSpec.h"
 #include "MFTWorkflow/ClustererSpec.h"
 #include "MFTWorkflow/ClusterWriterSpec.h"
 #include "MFTWorkflow/ClusterReaderSpec.h"
 #include "MFTWorkflow/TrackerSpec.h"
 #include "MFTWorkflow/TrackWriterSpec.h"
+#include "ITSMFTWorkflow/DigitReaderSpec.h"
 
 namespace o2
 {
@@ -33,7 +32,7 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool upstreamDigits, bool upstre
   framework::WorkflowSpec specs;
 
   if (!(upstreamDigits || upstreamClusters)) {
-    specs.emplace_back(o2::mft::getDigitReaderSpec(useMC));
+    specs.emplace_back(o2::itsmft::getMFTDigitReaderSpec(useMC, false, "mftdigits.root"));
   }
   if (!upstreamClusters) {
     specs.emplace_back(o2::mft::getClustererSpec(useMC));

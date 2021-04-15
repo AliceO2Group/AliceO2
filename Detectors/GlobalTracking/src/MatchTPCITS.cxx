@@ -17,7 +17,6 @@
 #include "Field/MagneticField.h"
 #include "Field/MagFieldFast.h"
 #include "ITSBase/GeometryTGeo.h"
-
 #include "CommonUtils/TreeStream.h"
 
 #include "DataFormatsTPC/Defs.h"
@@ -28,6 +27,7 @@
 #include "MathUtils/Utils.h"
 #include "CommonConstants/MathConstants.h"
 #include "CommonConstants/PhysicsConstants.h"
+#include "CommonConstants/GeomConstants.h"
 #include "DetectorsBase/GeometryManager.h"
 
 #include <Math/SMatrix.h>
@@ -36,10 +36,10 @@
 #include <TGeoGlobalMagField.h>
 #include "DataFormatsParameters/GRPObject.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "GlobalTracking/MatchTPCITS.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "ReconstructionDataFormats/Vertex.h"
+#include "GlobalTracking/MatchTPCITS.h"
 
 #include "GPUO2Interface.h" // Needed for propper settings in GPUParam.h
 #include "GPUParam.inc"     // Consider more universal access
@@ -50,8 +50,6 @@ using MatrixDSym4 = ROOT::Math::SMatrix<double, 4, 4, ROOT::Math::MatRepSym<doub
 using MatrixD4 = ROOT::Math::SMatrix<double, 4, 4, ROOT::Math::MatRepStd<double, 4>>;
 using NAMES = o2::base::NameConf;
 
-constexpr float MatchTPCITS::XTPCInnerRef;
-constexpr float MatchTPCITS::XTPCOuterRef;
 constexpr float MatchTPCITS::XMatchingRef;
 constexpr float MatchTPCITS::YMaxAtXMatchingRef;
 constexpr float MatchTPCITS::Tan70, MatchTPCITS::Cos70I2, MatchTPCITS::MaxSnp, MatchTPCITS::MaxTgp;
@@ -290,18 +288,26 @@ void MatchTPCITS::run()
   if (mDBGOut && isDebugFlag(WinnerMatchesTree)) {
     dumpWinnerMatches();
   }
-  mDBGOut.reset();
 #endif
 
   gSystem->GetProcInfo(&procInfoStop);
   mTimer[SWTot].Stop();
 
   for (int i = 0; i < NStopWatches; i++) {
-    LOGF(INFO, "Timing for %15s: Cpu: %.3e Real: %.3e s in %d slots", TimerName[i], mTimer[i].CpuTime(), mTimer[i].RealTime(), mTimer[i].Counter() - 1);
+    LOGF(INFO, "Timing for %15s: Cpu: %.3e Real: %.3e s in %d slots of TF#%d", TimerName[i], mTimer[i].CpuTime(), mTimer[i].RealTime(), mTimer[i].Counter() - 1, mTFCount);
   }
   LOGF(INFO, "Memory (GB) at exit: RSS: %.3f VMem: %.3f", float(procInfoStop.fMemResident) / kMB, float(procInfoStop.fMemVirtual) / kMB);
   LOGF(INFO, "Memory increment: RSS: %.3f VMem: %.3f", float(procInfoStop.fMemResident - procInfoStart.fMemResident) / kMB,
        float(procInfoStop.fMemVirtual - procInfoStart.fMemVirtual) / kMB);
+  mTFCount++;
+}
+
+//______________________________________________
+void MatchTPCITS::end()
+{
+#ifdef _ALLOW_DEBUG_TREES_
+  mDBGOut.reset();
+#endif
 }
 
 //______________________________________________
@@ -532,7 +538,7 @@ bool MatchTPCITS::prepareTPCTracks()
     const auto& trcOrig = mTPCTracksArray[it];
 
     // make sure the track was propagated to inner TPC radius at the ref. radius
-    if (trcOrig.getX() > XTPCInnerRef + 0.1 || std::abs(trcOrig.getQ2Pt()) > mMinTPCTrackPtInv) {
+    if (trcOrig.getX() > o2::constants::geom::XTPCInnerRef + 0.1 || std::abs(trcOrig.getQ2Pt()) > mMinTPCTrackPtInv) {
       continue;
     }
     // discard tracks with too few clusters
@@ -1429,7 +1435,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
 
   {
     float xtogo = 0;
-    if (!tracOut.getXatLabR(XTPCInnerRef, xtogo, mBz, o2::track::DirOutward) ||
+    if (!tracOut.getXatLabR(o2::constants::geom::XTPCInnerRef, xtogo, mBz, o2::track::DirOutward) ||
         !propagator->PropagateToXBxByBz(tracOut, xtogo, MaxSnp, 10., mUseMatCorrFlag, &tofL)) {
       LOG(DEBUG) << "Propagation to inner TPC boundary X=" << xtogo << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp();
       mMatchedTracks.pop_back(); // destroy failed track
@@ -1459,7 +1465,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
     auto lInt = std::sqrt(d2XY + dZ * dZ);
     tofL.addStep(lInt, tracOut.getP2Inv());
     tofL.addX2X0(lInt * mTPCmeanX0Inv);
-    propagator->PropagateToXBxByBz(tracOut, XTPCOuterRef, MaxSnp, 10., mUseMatCorrFlag, &tofL);
+    propagator->PropagateToXBxByBz(tracOut, o2::constants::geom::XTPCOuterRef, MaxSnp, 10., mUseMatCorrFlag, &tofL);
     /*
     LOG(INFO) <<  "TPC " << iTPC << " ITS " << iITS << " Refitted with chi2 = " << chi2Out;
     tracOut.print();
@@ -2601,7 +2607,7 @@ void MatchTPCITS::fillTPCITSmatchTree(int itsID, int tpcID, int rejFlag, float c
   }
   o2::MCCompLabel lblITS, lblTPC;
   (*mDBGOut) << "match"
-             << "chi2Match=" << chi2 << "its=" << trackITS << "tpc=" << trackTPC;
+             << "tf=" << mTFCount << "chi2Match=" << chi2 << "its=" << trackITS << "tpc=" << trackTPC;
   if (mMCTruthON) {
     lblITS = mITSLblWork[itsID];
     lblTPC = mTPCLblWork[tpcID];
@@ -2632,8 +2638,7 @@ void MatchTPCITS::dumpWinnerMatches()
     auto& tTPC = mTPCWork[itpc];
 
     (*mDBGOut) << "matchWin"
-               << "chi2Match=" << itsMatchRec.chi2 << "chi2Refit=" << mWinnerChi2Refit[iits] << "its=" << tITS
-               << "tpc=" << tTPC;
+               << "tf=" << mTFCount << "chi2Match=" << itsMatchRec.chi2 << "chi2Refit=" << mWinnerChi2Refit[iits] << "its=" << tITS << "tpc=" << tTPC;
 
     o2::MCCompLabel lblITS, lblTPC;
     if (mMCTruthON) {

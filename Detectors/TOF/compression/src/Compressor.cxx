@@ -167,19 +167,20 @@ bool Compressor<RDH, verbose>::processHBF()
   }
   mDecoderSaveBufferDataSize = 0;
 
-  /** bring encoder pointer back if fatal error **/
+  /** updated encoder RDH open **/
+  mEncoderRDH->memorySize = reinterpret_cast<char*>(mEncoderPointer) - reinterpret_cast<char*>(mEncoderRDH);
+  mEncoderRDH->offsetToNext = mEncoderRDH->memorySize;
+
+  /** bring encoder pointer back if fatal error and flag it **/
   if (mDecoderFatal) {
     mFatalCounter++;
     mEncoderPointer = mEncoderPointerStart;
+    mEncoderRDH->detectorField |= 0x00010000;
   }
 
   if (mDecoderError) {
     mErrorCounter++;
   }
-
-  /** updated encoder RDH open **/
-  mEncoderRDH->memorySize = reinterpret_cast<char*>(mEncoderPointer) - reinterpret_cast<char*>(mEncoderRDH);
-  mEncoderRDH->offsetToNext = mEncoderRDH->memorySize;
 
   /** copy RDH close to encoder buffer **/
   /** CAREFUL WITH THE PAGE COUNTER **/

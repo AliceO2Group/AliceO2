@@ -38,6 +38,8 @@ class Hit : public o2::BasicXYZQHit<float>
   float locC{-99}; // col direction in amplification or drift volume
   float locR{-99}; // row direction in amplification or drift volume
   float locT{-99}; // time direction in amplification or drift volume
+
+  ClassDefNV(Hit, 1);
 };
 } // namespace o2::trd
 

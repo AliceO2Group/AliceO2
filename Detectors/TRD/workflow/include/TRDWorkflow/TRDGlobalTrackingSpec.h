@@ -17,6 +17,7 @@
 #include "Framework/Task.h"
 #include "TStopwatch.h"
 #include "TRDBase/GeometryFlat.h"
+#include "TRDCalibration/CalibVDrift.h"
 #include "GPUO2Interface.h"
 #include "GPUTRDTracker.h"
 
@@ -28,7 +29,7 @@ namespace trd
 class TRDGlobalTracking : public o2::framework::Task
 {
  public:
-  TRDGlobalTracking(bool useMC) : mUseMC(useMC) {}
+  TRDGlobalTracking(bool useMC, bool useTrkltTransf) : mUseMC(useMC), mUseTrackletTransform(useTrkltTransf) {}
   ~TRDGlobalTracking() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
@@ -40,11 +41,13 @@ class TRDGlobalTracking : public o2::framework::Task
   o2::gpu::GPUChainTracking* mChainTracking{nullptr}; ///< TRD tracker is run in the tracking chain
   std::unique_ptr<GeometryFlat> mFlatGeo{nullptr};    ///< flat TRD geometry
   bool mUseMC{false};                                 ///< MC flag
+  bool mUseTrackletTransform{false};                  ///< if true, output from TrackletTransformer is used instead of uncalibrated Tracklet64 directly
+  CalibVDrift mCalibVDrift{};                         ///< steers the vDrift calibration
   TStopwatch mTimer;
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC);
+framework::DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, bool useTrkltTransf);
 
 } // namespace trd
 } // namespace o2

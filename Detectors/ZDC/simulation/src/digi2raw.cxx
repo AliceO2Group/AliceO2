@@ -60,6 +60,7 @@ int main(int argc, char** argv)
     add_option("ccdb-url,c", bpo::value<std::string>()->default_value(""), "url of the ccdb repository");
     uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(defRDH), "RDH version to use");
+    add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
 
     opt_all.add(opt_general).add(opt_hidden);
@@ -80,6 +81,10 @@ int main(int argc, char** argv)
     std::cerr << e.what() << ", application will now exit" << std::endl;
     exit(2);
   }
+  std::string confDig = vm["hbfutils-config"].as<std::string>();
+  if (!confDig.empty() && confDig != "none") {
+    o2::conf::ConfigurableParam::updateFromFile(confDig, "HBFUtils");
+  }
   o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
 
   std::string ccdb_url = vm["ccdb-url"].as<std::string>();
@@ -96,6 +101,8 @@ int main(int argc, char** argv)
            vm["file-per-link"].as<bool>(),
            vm["rdh-version"].as<uint32_t>(),
            ccdbHost);
+
+  o2::raw::HBFUtils::Instance().print();
 
   return 0;
 }

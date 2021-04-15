@@ -12,6 +12,7 @@
 #include <TGeoCompositeShape.h>
 #include <TGeoShape.h>
 #include <TGeoBBox.h>
+#include <TGeoTube.h>
 #include <TGeoVolume.h>
 #include <TMCManagerStack.h>
 #include "TGeoManager.h" // for TGeoManager
@@ -216,6 +217,10 @@ void Detector::ConstructGeometry()
     TGeoHMatrix* phCable = new TGeoHMatrix(hmCable);
     stlinC->AddNode(cables, itr, comCable[ic]);
   }
+
+  //Add FT0-A support Structure to the geometry
+  stlinA->AddNode(constructFrameGeometry(), 1, new TGeoTranslation(0, 0, -mStartA[2] + mInStart[2]));
+
   TGeoVolume* alice = gGeoManager->GetVolume("barrel");
   alice->AddNode(stlinA, 1, new TGeoTranslation(0, 30., zdetA));
   TGeoRotation* rotC = new TGeoRotation("rotC", 90., 0., 90., 90., 180., 0.);
@@ -265,9 +270,6 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   TVirtualMC::GetMC()->Gsvolu("0RFH", "BOX", getMediumID(kOptAl), prfh, 3); // Optical Air horizontal
   TGeoVolume* rfh = gGeoManager->GetVolume("0RFH");
 
-  TVirtualMC::GetMC()->Gsvolu("0PAL", "BOX", getMediumID(kAl), pal, 3); // 5mm Al on top of the radiator
-  TGeoVolume* altop = gGeoManager->GetVolume("0PAL");
-  altop->Print();
   TVirtualMC::GetMC()->Gsvolu("0REG", "BOX", getMediumID(kOpGlassCathode), preg, 3);
   TGeoVolume* cat = gGeoManager->GetVolume("0REG");
 
@@ -289,7 +291,7 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   for (Int_t ix = 0; ix < 2; ix++) {
     float xin = -mInStart[0] + 0.3 + (ix + 0.5) * 2 * ptopref[0];
     for (Int_t iy = 0; iy < 2; iy++) {
-      z = -mInStart[2] + 2 * pal[2] + ptopref[2];
+      z = -mInStart[2] + ptopref[2];
       float yin = -mInStart[1] + 0.3 + (iy + 0.5) * 2 * ptopref[1];
       ntops++;
       ins->AddNode(topref, ntops, new TGeoTranslation(xin, yin, z));
@@ -298,23 +300,17 @@ void Detector::SetOneMCP(TGeoVolume* ins)
       LOG(INFO) << " n " << ntops << " x " << xin << " y " << yin;
     }
   }
-  //Al top
-  z = -mInStart[2] + pal[2];
-  ins->AddNode(altop, 1, new TGeoTranslation(0, 0, z));
   // MCP
   TVirtualMC::GetMC()->Gsvolu("0MTO", "BOX", getMediumID(kOpGlass), pmcptopglass, 3); //Op  Glass
   TGeoVolume* mcptop = gGeoManager->GetVolume("0MTO");
   mcptop->Print();
-  z = -mInStart[2] + 2 * pal[2] + 2 * ptopref[2] + pmcptopglass[2];
+  z = -mInStart[2] + 2 * ptopref[2] + pmcptopglass[2];
   ins->AddNode(mcptop, 1, new TGeoTranslation(0, 0, z));
 
   TVirtualMC::GetMC()->Gsvolu("0MCP", "BOX", getMediumID(kAir), pmcp, 3); //glass
   TGeoVolume* mcp = gGeoManager->GetVolume("0MCP");
-  z = -mInStart[2] + 2 * pal[2] + 2 * ptopref[2] + 2 * pmcptopglass[2] + 2 * preg[2] + pmcp[2];
+  z = -mInStart[2] + 2 * ptopref[2] + 2 * pmcptopglass[2] + 2 * preg[2] + pmcp[2];
   ins->AddNode(mcp, 1, new TGeoTranslation(0, 0, z));
-  // TVirtualMC::GetMC()->Gsvolu("0MIN", "BOX", getMediumID(kGlass), pmcpinner, 3); //glass
-  // TGeoVolume* mcpinner = gGeoManager->GetVolume("0MIN");
-  //  mcp->AddNode(mcpinner, 1, new TGeoTranslation(0, 0, 0));
 
   TVirtualMC::GetMC()->Gsvolu("0MSI", "BOX", getMediumID(kMCPwalls), pmcpside, 3); //glass
   TGeoVolume* mcpside = gGeoManager->GetVolume("0MSI");
@@ -335,7 +331,7 @@ void Detector::SetOneMCP(TGeoVolume* ins)
   TVirtualMC::GetMC()->Gsvolu("0MBA", "BOX", getMediumID(kCeramic), pmcpbase, 3); //glass
   TGeoVolume* mcpbase = gGeoManager->GetVolume("0MBA");
   mcpbase->Print();
-  z = -mInStart[2] + 2 * pal[2] + 2 * ptopref[2] + pmcptopglass[2] + 2 * pmcp[2] + pmcpbase[2];
+  z = -mInStart[2] + 2 * ptopref[2] + pmcptopglass[2] + 2 * pmcp[2] + pmcpbase[2];
   ins->AddNode(mcpbase, 1, new TGeoTranslation(0, 0, z));
 }
 
@@ -347,7 +343,7 @@ void Detector::SetCablesA(TGeoVolume* stl)
 
   TVirtualMC::GetMC()->Gsvolu("0CAA", "BOX", getMediumID(kAir), pcableplane, 3); //container for cables
   TGeoVolume* cableplane = gGeoManager->GetVolume("0CAA");
-  float zcableplane = -mStartA[2] + 2 * mInStart[2] + pcableplane[2];
+  //  float zcableplane = -mStartA[2] + 2 * mInStart[2] + pcableplane[2];
   int na = 0;
 
   double xcell[24], ycell[24];
@@ -366,7 +362,7 @@ void Detector::SetCablesA(TGeoVolume* stl)
   Float_t* ppcablesextend[] = {pcablesextend, pcablesextend, pcablesextendsmall, pcablesextendsmall};
   //left side
   double xcell_side[] = {-mStartA[0] + pcablesextend[0], mStartA[0] - pcablesextend[0], 0, 0};
-  double ycell_side[] = {0, 0, -mStartA[1] + pcablesextendsmall[1], +mStartA[1] - pcablesextendsmall[1]};
+  double ycell_side[] = {0, 0, -mStartA[1] + pcablesextendsmall[1], mStartA[1] - pcablesextendsmall[1]};
 
   for (int icab = 0; icab < 4; icab++) {
     const std::string volName = Form("CAB%2.i", 52 + icab);
@@ -374,6 +370,7 @@ void Detector::SetCablesA(TGeoVolume* stl)
     TGeoVolume* vol = gGeoManager->GetVolume(volName.c_str());
     cableplane->AddNode(vol, 1, new TGeoTranslation(xcell_side[icab], ycell_side[icab], 0));
   }
+  float zcableplane = mStartA[2] - pcableplane[2] - 3;
   stl->AddNode(cableplane, 1, new TGeoTranslation(0, 0, zcableplane));
 }
 //------------------------------------------
@@ -413,6 +410,492 @@ TGeoVolume* Detector::SetCablesSize(int mod)
   //  vol->Print();
   //  vol->Weight();
   return vol;
+}
+
+// Class wrapper for construction of FT0-A support structure
+// The frame is constructed by defining two aluminum boxes that are placed in an L-shape,
+// with material sequentially removed to re-create the CAD drawings,
+// including sockets defined by the parameters of the sensitive elements that they are placed into
+// Two L-shaped elements form the full support structure, with one reflected about the axes of symmetry
+// First written by Joe Crowley and revised by Jason Pruitt from Cal Poly in 2019-2021
+TGeoVolume* Detector::constructFrameGeometry()
+{
+  // define the media
+  TGeoMedium* Vacuum = gGeoManager->GetMedium("FT0_Vacuum$");
+  TGeoMedium* Al = gGeoManager->GetMedium("FT0_Aluminium$");
+
+  // make a volume assembly for the frame
+  TGeoVolumeAssembly* FT0_Frame = new TGeoVolumeAssembly("FT0_Frame");
+
+  // define translations for the quartz radiator and PMT sockets
+  defineTransformations();
+
+  // frame1 and frame2 are rectangles that approximate the outline of one L
+  // shape of the frame
+  TGeoBBox* frame1 = new TGeoBBox("frame1", sFrame1X / 2, sFrame1Y / 2, sFrameZ / 2);
+  TGeoBBox* frame2 = new TGeoBBox("frame2", sFrame2X / 2, sFrame2Y / 2, sFrameZ / 2);
+
+  // the following elements are subtracted from frame1 and frame2 to better
+  // approximate the CAD shape
+  TGeoBBox* rect1 = new TGeoBBox("rect1", sRect1X / 2, sRect1Y / 2, sFrameZ / 2);
+  TGeoBBox* rect2 = new TGeoBBox("rect2", sRect2X / 2, sRect2Y / 2 + sEps, sFrameZ / 2 - sMountZ / 2);
+  TGeoBBox* rect3 = new TGeoBBox("rect3", sRect3X / 2, sRect3Y / 2, sFrameZ / 2);
+  TGeoBBox* rect4 = new TGeoBBox("rect4", sRect4X / 2, sRect4Y / 2, sFrameZ / 2);
+  TGeoBBox* rect5 = new TGeoBBox("rect5", sRect5X / 2 + sEps, sRect5Y / 2 + sEps, sFrameZ / 2 + sEps);
+  TGeoBBox* rect6 = new TGeoBBox("rect6", sRect6X / 2 + sEps, sRect6Y / 2 + sEps, sFrameZ / 2 + sEps);
+  TGeoBBox* rect7 = new TGeoBBox("rect7", sRect7X / 2 + sEps, sRect7Y / 2 + sEps, sFrameZ / 2 - sMountZ / 2 + sEps);
+  TGeoBBox* rect8 = new TGeoBBox("rect8", sRect8X / 2 + sEps, sRect8Y / 2 + sEps, sFrameZ / 2 + sEps);
+
+  // Define a value to overcut the coincidence between the closure of the tube
+  // and the edge of the rectangle to eliminate artifacts
+  Double_t flopsErr = .00001;
+  // PMT and quartz radiator shapes provide the dimensions of the sockets to be subtracted
+  // from the frame that will make room for a sensitive element to fit
+  TGeoBBox* quartzRadiator = new TGeoBBox("quartzRadiator", sQuartzRadiatorSide / 2, sQuartzRadiatorSide / 2, sQuartzRadiatorZ / 2);
+  TGeoBBox* pmtBox = new TGeoBBox("pmtBox", sPmtSide / 2 + sEps, sPmtSide / 2 + sEps, sPmtZ / 2 + sEps);
+
+  // these two shapes create a subtraction so that the corners of the holes that
+  // seat the sens elements are rounded
+  TGeoBBox* pmtCornerRect = new TGeoBBox("pmtCornerRect", sCornerRadius / 2 - flopsErr, sCornerRadius / 2 - flopsErr, sPmtZ / 2);
+  TGeoTube* pmtCornerTube = new TGeoTube("pmtCornerTube", 0, sCornerRadius, sPmtZ / 2 + sEps);
+  TGeoVolume* PMTCorner = new TGeoVolume("PMTCorner", new TGeoCompositeShape("PMTCorner", pmtCornerCompositeShapeBoolean().c_str()), Al);
+  // TGeoVolume* PMT = new TGeoVolume("PMT", new TGeoCompositeShape("PMT", pmtCompositeShapeBoolean().c_str()), Vacuum);
+  TGeoVolume* PMT = gGeoManager->MakeBox("PMT", Vacuum, sPmtSide / 2 + sEps, sPmtSide / 2 + sEps, sPmtZ / 2 + sEps);
+
+  // add the plates on the bottom of the frame
+  TGeoBBox* basicPlate = new TGeoBBox("basicPlate", sPlateSide / 2, sPlateSide / 2, sBasicPlateZ / 2);
+  TGeoBBox* cablePlate = new TGeoBBox("cablePlate", sPlateSide / 2, sPlateSide / 2, sCablePlateZ / 2);
+  TGeoBBox* opticalFiberHead = new TGeoBBox("opticalFiberHead", sFiberHeadX / 2, sFiberHeadY / 2, sCablePlateZ / 2);
+  TGeoCompositeShape* opticalFiberPlate1 = new TGeoCompositeShape("opticalFiberPlate1", opticalFiberPlateCompositeShapeBoolean1().c_str());
+  TGeoCompositeShape* opticalFiberPlate2 = new TGeoCompositeShape("opticalFiberPlate2", opticalFiberPlateCompositeShapeBoolean2().c_str());
+  TGeoCompositeShape* plateBox = new TGeoCompositeShape("plateBox", plateBoxCompositeShapeBoolean().c_str());
+  // holds 2 basic plates and 2 cable plates
+  TGeoVolume* plateGroup = new TGeoVolume("plateGroup", new TGeoCompositeShape("plateGroup", plateGroupCompositeShapeBoolean().c_str()), Al); // holds 3 plate boxes
+  // remove the material to form the sockets for the quartz radiators and PMTs
+  TGeoCompositeShape* frameRemovedPMTandRadiators1 = new TGeoCompositeShape("frameRemovedPMTandRadiators1", frame1CompositeShapeBoolean().c_str());
+  TGeoCompositeShape* frameRemovedPMTandRadiators2 = new TGeoCompositeShape("frameRemovedPMTandRadiators2", frame2CompositeShapeBoolean().c_str());
+
+  // make the right side frame - L shape
+  TGeoVolume* frame = new TGeoVolume("frame", new TGeoCompositeShape("frame", frameCompositeShapeBoolean().c_str()), Al);
+
+  // reflection for the left side of the frame
+  TGeoRotation* reflect = new TGeoRotation("reflect");
+  reflect->ReflectX(true);
+  reflect->ReflectY(true);
+  reflect->RegisterYourself();
+
+  // add a shift to eliminate overlaps between sens elements and frame sockets
+  // this shift will apply to both sides of the frame
+  TGeoTranslation* xshift = new TGeoTranslation("xshift", .1028, 0, 0);
+
+  // add the right and left sides to top volume
+  FT0_Frame->AddNode(frame, 1, xshift);  // right side
+  FT0_Frame->AddNode(frame, 2, reflect); // left side
+
+  return FT0_Frame;
+}
+
+// the following are continually concatenated strings that ROOT Geometry will
+// read in order to piece together the objects and translations that are
+// defined above (what ROOT Geometry calls Booleans)
+// frame1 is a horizontal aluminum box piece of the L-shape
+std::string Detector::frame1CompositeShapeBoolean()
+{
+  // create a string for the boolean operations for the composite frame shape
+  std::string frame1CompositeShapeBoolean = "";
+  frame1CompositeShapeBoolean += "((frame1";
+
+  // remove the radiator shapes for the sockets
+  // frame1 is the horizontal piece of the right-hand L-shape (looking from back)
+  // with its own internal numbering for the sockets.  To more easily map between
+  // the sensitive elements and their socket locations, we've included the correspondence
+  // between them.  Within the horizontal piece, the sockets are numbered column by column
+  // from left to right
+  // ---------
+  // |       |                 <-----Rectangle 1 removed here
+  // |   1   |----------------- ^
+  // |       |        |       | |
+  // ---------    3   |   5   | |
+  // |       |        |       | | Rectangle 2 removed here
+  // |   2   |----------------- |
+  // |       |        |       | |
+  // --------|    4   |   6   | |
+  //         |        |       | v
+  //    ^    ------------------  <------Rectangle 3 removed here
+  //    |
+  //    |
+  //    Rectangle 4 removed here
+  //
+  // internal numbering for each is mapped to the sensitive element numbering
+  // for ease of comparison and identification
+  // Since one L is reflected about the axes of symmetry, the correspondence with
+  // sensitive element numbering for the left-side L-shape is also included here.
+  frame1CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr1";  //Sens Elmt 2,21
+  frame1CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr2";  //Sens Elmt 7,16
+  frame1CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr3";  //Sens Elmt 3,20
+  frame1CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr4";  //Sens Elmt 8,15
+  frame1CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr5";  //Sens Elmt 4,19
+  frame1CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr6)"; //Sens Elmt 9,14
+
+  // remove the PMT shapes for the sockets
+  frame1CompositeShapeBoolean += " - PMT:PMTTr1";
+  frame1CompositeShapeBoolean += " - PMT:PMTTr2";
+  frame1CompositeShapeBoolean += " - PMT:PMTTr3";
+  frame1CompositeShapeBoolean += " - PMT:PMTTr4";
+  frame1CompositeShapeBoolean += " - PMT:PMTTr5";
+  frame1CompositeShapeBoolean += " - PMT:PMTTr6)";
+
+  return frame1CompositeShapeBoolean;
+}
+
+// frame2 is the vertical aluminum box piece of the L-shape
+std::string Detector::frame2CompositeShapeBoolean()
+{
+  std::string frame2CompositeShapeBoolean = "";
+  frame2CompositeShapeBoolean += "((frame2";
+
+  // remove the radiator shapes for the sockets
+  // frame2 is the vertical piece of the right-hand L-shape (looking from back)
+  // with its own internal numbering for the sockets.  To more easily map between
+  // the sensitive elements and their socket locations, we've included the correspondence
+  // between them.  Within the vertical piece, the sockets are numbered row by row
+  // from right to left
+  //                  -----------------
+  //                  |       |       |
+  //  Rectangle-->    |   8   |   7   |
+  //     8            |       |       |
+  //  removed      --------------------
+  //    here       |       |       | ^
+  //               |  10   |   9   | |
+  //               |       |       | | Rectangle 5 removed here
+  //               ----------------- |
+  //               |       |       | |
+  //               |  12   |  11   | v
+  //               |       |       |  <-----Rectangle 6 removed here
+  //               -----------------
+  //              <---------------->
+  //            Rectangle 7 removed here
+  //
+  // internal numbering for each is mapped to the sensitive element numbering
+  // for ease of comparison and identification
+  // Since one L is reflected about the axes of symmetry, the correspondence with
+  // sensitive element numbering for the left-side L-shape is also included here.
+  frame2CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr7";   //Sens Elmt 13,10
+  frame2CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr8";   //Sens Elmt 12,11
+  frame2CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr9";   //Sens Elmt 18,14
+  frame2CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr10";  //Sens Elmt 17,15
+  frame2CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr11";  //Sens Elmt 23,0
+  frame2CompositeShapeBoolean += " - quartzRadiator:quartzRadiatorTr12)"; //Sens Elmt 22,1
+
+  // remove the PMT shapes for the sockets
+  frame2CompositeShapeBoolean += " - PMT:PMTTr7";
+  frame2CompositeShapeBoolean += " - PMT:PMTTr8";
+  frame2CompositeShapeBoolean += " - PMT:PMTTr9";
+  frame2CompositeShapeBoolean += " - PMT:PMTTr10";
+  frame2CompositeShapeBoolean += " - PMT:PMTTr11";
+  frame2CompositeShapeBoolean += " - PMT:PMTTr12)";
+
+  return frame2CompositeShapeBoolean;
+}
+//Support structure L-shape element definition
+std::string Detector::frameCompositeShapeBoolean()
+{
+  // create a string for the boolean operations for the composite plateGroup shape
+  std::string frameCompositeShapeBoolean = "";
+
+  // add the two pieces called frame 1 and 2 into a single L-shaped element
+  frameCompositeShapeBoolean += "frameRemovedPMTandRadiators1:frameTr1";
+  frameCompositeShapeBoolean += " + frameRemovedPMTandRadiators2:frameTr2";
+
+  // add the plateGroups to the L-shaped elements
+  frameCompositeShapeBoolean += " + plateGroup:plateGroupTr1";
+  frameCompositeShapeBoolean += " + plateGroup:plateGroupTr2";
+
+  // subtract the extra Al from the L-shaped elements
+  frameCompositeShapeBoolean += " - rect1:rectTr1";
+  frameCompositeShapeBoolean += " - rect2:rectTr2";
+  frameCompositeShapeBoolean += " - rect3:rectTr3";
+  frameCompositeShapeBoolean += " - rect4:rectTr4";
+  frameCompositeShapeBoolean += " - rect5:rectTr5";
+  frameCompositeShapeBoolean += " - rect6:rectTr6";
+  frameCompositeShapeBoolean += " - rect7:rectTr7";
+  frameCompositeShapeBoolean += " - rect8:rectTr8";
+
+  return frameCompositeShapeBoolean;
+}
+
+//Plate group elements
+std::string Detector::plateGroupCompositeShapeBoolean()
+{
+  // create a string for the boolean operations for the composite plateGroup shape
+  std::string plateGroupCompositeShapeBoolean = "";
+
+  // add the plateBoxes to the plateGroup
+  plateGroupCompositeShapeBoolean += "plateBox:plateTr1";
+  plateGroupCompositeShapeBoolean += " + plateBox:plateTr2";
+  plateGroupCompositeShapeBoolean += " + plateBox:plateTr3";
+
+  return plateGroupCompositeShapeBoolean;
+}
+
+//Optical fiber plate for the first aluminum box in the L-shaped element
+std::string Detector::opticalFiberPlateCompositeShapeBoolean1()
+{
+  // create a string for the boolean operations for the composite opticalFiberPlate1 shape
+  std::string opticalFiberPlateCompositeShapeBoolean1 = "";
+  opticalFiberPlateCompositeShapeBoolean1 += "cablePlate";
+  opticalFiberPlateCompositeShapeBoolean1 += " - opticalFiberHead:opticalFiberHeadTr1";
+  opticalFiberPlateCompositeShapeBoolean1 += " - opticalFiberHead:opticalFiberHeadTr2";
+  opticalFiberPlateCompositeShapeBoolean1 += " - opticalFiberHead:opticalFiberHeadTr3";
+  opticalFiberPlateCompositeShapeBoolean1 += " - opticalFiberHead:opticalFiberHeadTr4";
+
+  return opticalFiberPlateCompositeShapeBoolean1;
+}
+
+//Optical fiber plate for the second aluminum box in the L-shaped element
+std::string Detector::opticalFiberPlateCompositeShapeBoolean2()
+{
+  // create a string for the boolean operations for the composite opticalFiberPlate2 shape
+  std::string opticalFiberPlateCompositeShapeBoolean2 = "";
+
+  // remove the opticalFiberHead shapes from the cablePlate
+  opticalFiberPlateCompositeShapeBoolean2 += "cablePlate";
+  opticalFiberPlateCompositeShapeBoolean2 += " - opticalFiberHead:opticalFiberHeadTr5";
+  opticalFiberPlateCompositeShapeBoolean2 += " - opticalFiberHead:opticalFiberHeadTr6";
+  opticalFiberPlateCompositeShapeBoolean2 += " - opticalFiberHead:opticalFiberHeadTr7";
+  opticalFiberPlateCompositeShapeBoolean2 += " - opticalFiberHead:opticalFiberHeadTr8";
+
+  return opticalFiberPlateCompositeShapeBoolean2;
+}
+//Create rounded PMT socket corners
+std::string Detector::pmtCornerCompositeShapeBoolean()
+{
+  // create a string for the boolean operations for the composite pmtCorner shape
+  std::string pmtCornerCompositeShapeBoolean = "";
+  pmtCornerCompositeShapeBoolean += "pmtCornerRect:pmtCornerRectTr";
+  pmtCornerCompositeShapeBoolean += " - pmtCornerTube:pmtCornerTubeTr";
+
+  return pmtCornerCompositeShapeBoolean;
+}
+
+//Create PMT socket shape
+std::string Detector::pmtCompositeShapeBoolean()
+{
+  // create a string for the boolean operations for the composite PMT shape
+  std::string pmtCompositeShapeBoolean = "";
+  pmtCompositeShapeBoolean += "pmtBox";
+  pmtCompositeShapeBoolean += " - PMTCorner:PMTCornerTr1";
+  pmtCompositeShapeBoolean += " - PMTCorner:PMTCornerTr2";
+  pmtCompositeShapeBoolean += " - PMTCorner:PMTCornerTr3";
+  pmtCompositeShapeBoolean += " - PMTCorner:PMTCornerTr4";
+
+  return pmtCompositeShapeBoolean;
+}
+//Plate composite structure
+std::string Detector::plateBoxCompositeShapeBoolean()
+{
+  // create a string for the boolean operations for the composite plateBox shape
+  std::string plateBoxCompositeShapeBoolean = "";
+  plateBoxCompositeShapeBoolean += "basicPlate";
+  plateBoxCompositeShapeBoolean += " + basicPlate:basicPlateTr";
+  plateBoxCompositeShapeBoolean += " + opticalFiberPlate1:opticalFiberPlateTr1";
+  plateBoxCompositeShapeBoolean += " + opticalFiberPlate2:opticalFiberPlateTr2";
+
+  return plateBoxCompositeShapeBoolean;
+}
+
+//Wrapper function to define all support structure transformations at once
+void Detector::defineTransformations()
+{
+  defineQuartzRadiatorTransformations();
+  definePmtTransformations();
+  definePlateTransformations();
+  defineFrameTransformations();
+}
+
+//Transformations for quartz radiator sockets
+void Detector::defineQuartzRadiatorTransformations()
+{
+  // translations for quartz radiator shapes to be removed from the frame2 pice of the L-shaped element
+  TGeoTranslation* quartzRadiatorTr1 = new TGeoTranslation("quartzRadiatorTr1", sPos1X[0], sPos1Y[0], sQuartzHeight);
+  quartzRadiatorTr1->RegisterYourself();
+  TGeoTranslation* quartzRadiatorTr2 = new TGeoTranslation("quartzRadiatorTr2", sPos1X[0], sPos1Y[1], sQuartzHeight);
+  quartzRadiatorTr2->RegisterYourself();
+  TGeoTranslation* quartzRadiatorTr3 = new TGeoTranslation("quartzRadiatorTr3", sPos1X[1], sPos1Y[2], sQuartzHeight);
+  quartzRadiatorTr3->RegisterYourself();
+  TGeoTranslation* quartzRadiatorTr4 = new TGeoTranslation("quartzRadiatorTr4", sPos1X[1], sPos1Y[3], sQuartzHeight);
+  quartzRadiatorTr4->RegisterYourself();
+  TGeoTranslation* quartzRadiatorTr5 = new TGeoTranslation("quartzRadiatorTr5", sPos1X[2], sPos1Y[2], sQuartzHeight);
+  quartzRadiatorTr5->RegisterYourself();
+  TGeoTranslation* quartzRadiatorTr6 = new TGeoTranslation("quartzRadiatorTr6", sPos1X[2], sPos1Y[3], sQuartzHeight);
+  quartzRadiatorTr6->RegisterYourself();
+
+  // translations for quartz radiator shapes to be removed from the frame1 piece of the L-shaped element
+  TGeoTranslation* quartzRadiatorTr7 = new TGeoTranslation("quartzRadiatorTr7", sPos2X[0], sPos2Y[0], sQuartzHeight);
+  quartzRadiatorTr7->RegisterYourself();
+  TGeoTranslation* quartzRadiatorTr8 = new TGeoTranslation("quartzRadiatorTr8", sPos2X[1], sPos2Y[0], sQuartzHeight);
+  quartzRadiatorTr8->RegisterYourself();
+  TGeoTranslation* quartzRadiatorTr9 = new TGeoTranslation("quartzRadiatorTr9", sPos2X[2], sPos2Y[1], sQuartzHeight);
+  quartzRadiatorTr9->RegisterYourself();
+  TGeoTranslation* quartzRadiatorTr10 = new TGeoTranslation("quartzRadiatorTr10", sPos2X[3], sPos2Y[1], sQuartzHeight);
+  quartzRadiatorTr10->RegisterYourself();
+  TGeoTranslation* quartzRadiatorTr11 = new TGeoTranslation("quartzRadiatorTr11", sPos2X[2], sPos2Y[2], sQuartzHeight);
+  quartzRadiatorTr11->RegisterYourself();
+  TGeoTranslation* quartzRadiatorTr12 = new TGeoTranslation("quartzRadiatorTr12", sPos2X[3], sPos2Y[2], sQuartzHeight);
+  quartzRadiatorTr12->RegisterYourself();
+}
+//Transformations for PMT sockets, including rounded corners
+void Detector::definePmtTransformations()
+{
+  // translations for PMT shapes to be removed from the frame2 piece in the L-shaped element
+  TGeoTranslation* PMTTr1 = new TGeoTranslation("PMTTr1", sPos1X[0], sPos1Y[0], sPmtHeight);
+  PMTTr1->RegisterYourself();
+  TGeoTranslation* PMTTr2 = new TGeoTranslation("PMTTr2", sPos1X[0], sPos1Y[1], sPmtHeight);
+  PMTTr2->RegisterYourself();
+  TGeoTranslation* PMTTr3 = new TGeoTranslation("PMTTr3", sPos1X[1], sPos1Y[2], sPmtHeight);
+  PMTTr3->RegisterYourself();
+  TGeoTranslation* PMTTr4 = new TGeoTranslation("PMTTr4", sPos1X[1], sPos1Y[3], sPmtHeight);
+  PMTTr4->RegisterYourself();
+  TGeoTranslation* PMTTr5 = new TGeoTranslation("PMTTr5", sPos1X[2], sPos1Y[2], sPmtHeight);
+  PMTTr5->RegisterYourself();
+  TGeoTranslation* PMTTr6 = new TGeoTranslation("PMTTr6", sPos1X[2], sPos1Y[3], sPmtHeight);
+  PMTTr6->RegisterYourself();
+
+  // translations for PMT shapes to be removed from the frame1 piece in the L-shaped element
+  TGeoTranslation* PMTTr7 = new TGeoTranslation("PMTTr7", sPos2X[0], sPos2Y[0], sPmtHeight);
+  PMTTr7->RegisterYourself();
+  TGeoTranslation* PMTTr8 = new TGeoTranslation("PMTTr8", sPos2X[1], sPos2Y[0], sPmtHeight);
+  PMTTr8->RegisterYourself();
+  TGeoTranslation* PMTTr9 = new TGeoTranslation("PMTTr9", sPos2X[2], sPos2Y[1], sPmtHeight);
+  PMTTr9->RegisterYourself();
+  TGeoTranslation* PMTTr10 = new TGeoTranslation("PMTTr10", sPos2X[3], sPos2Y[1], sPmtHeight);
+  PMTTr10->RegisterYourself();
+  TGeoTranslation* PMTTr11 = new TGeoTranslation("PMTTr11", sPos2X[2], sPos2Y[2], sPmtHeight);
+  PMTTr11->RegisterYourself();
+  TGeoTranslation* PMTTr12 = new TGeoTranslation("PMTTr12", sPos2X[3], sPos2Y[2], sPmtHeight);
+  PMTTr12->RegisterYourself();
+
+  // define pmtCorner transformations
+  TGeoTranslation* pmtCornerTubeTr = new TGeoTranslation("pmtCornerTubeTr", sPmtCornerTubePos, sPmtCornerTubePos, 0);
+  pmtCornerTubeTr->RegisterYourself();
+  TGeoTranslation* pmtCornerRectTr = new TGeoTranslation("pmtCornerRectTr", 0, 0, 0);
+  pmtCornerRectTr->RegisterYourself();
+  TGeoTranslation* PMTCornerTr1 = new TGeoTranslation("PMTCornerTr1", sPmtCornerPos, sPmtCornerPos, 0);
+  PMTCornerTr1->RegisterYourself();
+  TGeoRotation* reflect2 = new TGeoRotation();
+  reflect2->ReflectX(true);
+  reflect2->RegisterYourself();
+  TGeoCombiTrans* PMTCornerTr2 = new TGeoCombiTrans("PMTCornerTr2", -sPmtCornerPos, sPmtCornerPos, 0, reflect2);
+  PMTCornerTr2->RegisterYourself();
+  TGeoRotation* reflect3 = new TGeoRotation();
+  reflect3->ReflectX(true);
+  reflect3->ReflectY(true);
+  reflect3->RegisterYourself();
+  TGeoCombiTrans* PMTCornerTr3 = new TGeoCombiTrans("PMTCornerTr3", -sPmtCornerPos, -sPmtCornerPos, 0, reflect3);
+  PMTCornerTr3->RegisterYourself();
+  TGeoRotation* reflect4 = new TGeoRotation();
+  reflect4->ReflectY(true);
+  reflect4->RegisterYourself();
+  TGeoCombiTrans* PMTCornerTr4 = new TGeoCombiTrans("PMTCornerTr4", sPmtCornerPos, -sPmtCornerPos, 0, reflect4);
+  PMTCornerTr4->RegisterYourself();
+  TGeoRotation* reflect5 = new TGeoRotation();
+  reflect5->ReflectX(true);
+  reflect5->ReflectY(true);
+  reflect5->RegisterYourself();
+  TGeoCombiTrans* edgeCornerTr = new TGeoCombiTrans("edgeCornerTr", sEdgeCornerPos[0], sEdgeCornerPos[1], 0, reflect5);
+  edgeCornerTr->RegisterYourself();
+}
+//Transformations for plate elements
+void Detector::definePlateTransformations()
+{
+  // TODO: redefine fiber head transformations
+  // TODO: move hard-coded numbers to be variables in the constants lists
+  // define transformations for the fiber heads in opticalFiberPlate1
+  TGeoTranslation* opticalFiberHeadTr1 = new TGeoTranslation("opticalFiberHeadTr1", 1.7384, 1.36, 0);
+  opticalFiberHeadTr1->RegisterYourself();
+  TGeoTranslation* opticalFiberHeadTr2 = new TGeoTranslation("opticalFiberHeadTr2", 1.7384, -1.36, 0);
+  opticalFiberHeadTr2->RegisterYourself();
+  TGeoCombiTrans* opticalFiberHeadTr3 = new TGeoCombiTrans("opticalFiberHeadTr3", -0.9252, -.9375, 0, new TGeoRotation("rot3", 15, 0, 0));
+  opticalFiberHeadTr3->RegisterYourself();
+  TGeoCombiTrans* opticalFiberHeadTr4 = new TGeoCombiTrans("opticalFiberHeadTr4", -0.9252, .9375, 0, new TGeoRotation("rot4", -15, 0, 0));
+  opticalFiberHeadTr4->RegisterYourself();
+
+  // make the transformations for the fiber heads in opticalFiberPlate2
+  TGeoCombiTrans* opticalFiberHeadTr5 = new TGeoCombiTrans("opticalFiberHeadTr5", 1.6714, 1.525, 0, new TGeoRotation("rot5", 30, 0, 0));
+  opticalFiberHeadTr5->RegisterYourself();
+  TGeoCombiTrans* opticalFiberHeadTr6 = new TGeoCombiTrans("opticalFiberHeadTr6", 1.6714, -1.525, 0, new TGeoRotation("rot6", -30, 0, 0));
+  opticalFiberHeadTr6->RegisterYourself();
+  TGeoCombiTrans* opticalFiberHeadTr7 = new TGeoCombiTrans("opticalFiberHeadTr7", -0.9786, -1.125, 0, new TGeoRotation("rot7", 30, 0, 0));
+  opticalFiberHeadTr7->RegisterYourself();
+  TGeoCombiTrans* opticalFiberHeadTr8 = new TGeoCombiTrans("opticalFiberHeadTr8", -0.9786, 1.125, 0, new TGeoRotation("rot8", -30, 0, 0));
+  opticalFiberHeadTr8->RegisterYourself();
+
+  // define transformations to form a plateBox (2 basicPlates and 2 cablePlates)
+  TGeoCombiTrans* basicPlateTr = new TGeoCombiTrans("basicPlateTr", 0, -sPlateSpacing, 0, new TGeoRotation("basicPlateRot", 90, 0, 0));
+  basicPlateTr->RegisterYourself();
+  TGeoCombiTrans* opticalFiberPlateTr1 = new TGeoCombiTrans("opticalFiberPlateTr1", 0, 0, sOpticalFiberPlateZ, new TGeoRotation("opticalFiberPlateRot1", 90, 0, 0));
+  opticalFiberPlateTr1->RegisterYourself();
+  TGeoCombiTrans* opticalFiberPlateTr2 = new TGeoCombiTrans("opticalFiberPlateTr2", 0, -sPlateSpacing, sOpticalFiberPlateZ, new TGeoRotation("opticalFiberPlateRot2", 90, 0, 0));
+  opticalFiberPlateTr2->RegisterYourself();
+
+  // define transformations to form a plateGroup
+  TGeoTranslation* plateTr1 = new TGeoTranslation("plateTr1", -sPlateSpacing, sPlateDisplacementDeltaY, 0);
+  plateTr1->RegisterYourself();
+  TGeoTranslation* plateTr2 = new TGeoTranslation("plateTr2", 0, 0, 0);
+  plateTr2->RegisterYourself();
+  TGeoTranslation* plateTr3 = new TGeoTranslation("plateTr3", sPlateSpacing, 0, 0);
+  plateTr3->RegisterYourself();
+
+  // TODO: fix plateGroupTr2
+  // TODO: Move hard-coded numbers to variables defined in the constants list
+  // define transformations for the plateGroups (6 basicPlates and 6 cablePlates)
+  TGeoTranslation* plateGroupTr1 = new TGeoTranslation("plateGroupTr1", sPlateDisplacementX, sPlateDisplacementY, sPlateGroupZ);
+  plateGroupTr1->RegisterYourself();
+  TGeoCombiTrans* plateGroupTr2 = new TGeoCombiTrans("plateGroupTr2", 10.4358 + 1.5 * sPlateDisplacementDeltaY, -7.0747, sPlateGroupZ, new TGeoRotation("plateGroup2Rotation", -90, 0, 0));
+  plateGroupTr2->RegisterYourself();
+}
+
+//Transformations for the L-shaped elements
+void Detector::defineFrameTransformations()
+{
+
+  // TODO: Confirm shifts that eliminate internal overlaps do not then cause
+  //       overlaps with FV0 or other elements
+  // TODO: Move these hard-coded numbers to be variables in the list of constants
+  Float_t zshift = .2741;
+  Float_t rectShift = .274101;
+  Float_t frameXshift = -.1009;
+
+  // position of the two rectangles used to approximate the L-shaped frame element
+  TGeoTranslation* frameTr1 = new TGeoTranslation("frameTr1", sFrame1PosX + frameXshift, sFrame1PosY, 0 + zshift);
+  frameTr1->RegisterYourself();
+  TGeoTranslation* frameTr2 = new TGeoTranslation("frameTr2", sFrame2PosX + frameXshift, sFrame2PosY, 0 + zshift);
+  frameTr2->RegisterYourself();
+
+  // remove the two smaller rectangles from the L-shaped frame element
+  TGeoTranslation* rectTr1 = new TGeoTranslation("rectTr1", sFrame1PosX + sXoffset + frameXshift + 3.25, sFrame1PosY + sYoffset + 6.1875, 0 + zshift);
+  rectTr1->RegisterYourself();
+
+  TGeoTranslation* rectTr2 = new TGeoTranslation("rectTr2", sFrame1PosX + sXoffset + frameXshift + 9.3, sFrame1PosY + sYoffset - 0.5775, sMountZ / 2 + zshift);
+  rectTr2->RegisterYourself();
+
+  TGeoTranslation* rectTr3 = new TGeoTranslation("rectTr3", sFrame1PosX + sXoffset + frameXshift + 10.75 - sRect3X / 2, sFrame1PosY + sYoffset - 6.8525 + sRect3Y / 2, 0 + zshift);
+  rectTr3->RegisterYourself();
+
+  TGeoTranslation* rectTr4 = new TGeoTranslation("rectTr4", sFrame1PosX + sXoffset + frameXshift - 7.925, sFrame1PosY + sYoffset - 6.44, 0 + zshift + 10);
+  rectTr4->RegisterYourself();
+
+  TGeoTranslation* rectTr5 = new TGeoTranslation("rectTr5", sFrame2PosX + sXoffset + frameXshift + 6.965 + sRect5X / 2, sFrame2PosY + sYoffset + 4.3625 - sRect5Y / 2, 0 + zshift + rectShift);
+  rectTr5->RegisterYourself();
+
+  TGeoTranslation* rectTr6 = new TGeoTranslation("rectTr6", sFrame2PosX + sXoffset + frameXshift + 6.965 - sRect6X / 2, sFrame2PosY + sYoffset - 10.7375 + sRect6Y / 2, 0 + zshift);
+  rectTr6->RegisterYourself();
+
+  TGeoTranslation* rectTr7 = new TGeoTranslation("rectTr7", sFrame2PosX + sXoffset + frameXshift + 6.965 - sRect6X - sRect7X / 2, sFrame2PosY + sYoffset - 10.7375 + sRect7Y / 2, sMountZ / 2 + zshift);
+  rectTr7->RegisterYourself();
+
+  TGeoTranslation* rectTr8 = new TGeoTranslation("rectTr8", sFrame2PosX + sXoffset + frameXshift - 5.89 - sRect8X / 2, sFrame2PosY + sYoffset + 5.1125 + sRect8Y / 2, 0 + zshift);
+  rectTr8->RegisterYourself();
 }
 
 Bool_t Detector::ProcessHits(FairVolume* v)

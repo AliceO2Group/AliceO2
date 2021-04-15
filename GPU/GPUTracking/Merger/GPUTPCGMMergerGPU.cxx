@@ -202,5 +202,17 @@ GPUdii() void GPUTPCGMMergerFinalize::Thread<2>(int nBlocks, int nThreads, int i
 template <>
 GPUdii() void GPUTPCGMMergerMergeLoopers::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger)
 {
-  merger.MergeLoopers(nBlocks, nThreads, iBlock, iThread);
+  merger.MergeLoopersInit(nBlocks, nThreads, iBlock, iThread);
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerMergeLoopers::Thread<1>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger)
+{
+  merger.MergeLoopersSort(nBlocks, nThreads, iBlock, iThread);
+}
+
+template <>
+GPUdii() void GPUTPCGMMergerMergeLoopers::Thread<2>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger)
+{
+  merger.MergeLoopersMain(nBlocks, nThreads, iBlock, iThread);
 }

@@ -361,13 +361,37 @@ Digitization - the transformation of hits produced in the transport simulation t
 | --sims | Comma separated list of simulation prefixes that should be overlaid/embedded. Example `--sims background,signal` where `background` and `signal` refer to transport simulation productions. Final collisions will be composed from both of them (in a round robin fashion). See separate section about [Embedding](#Embedding) for more details. If just one prefix is given, normal digitization without overlay will be done. |
 | --tpc-lanes | Number of parallel digitizers for TPC, which has a special attention due an increased data rate compared to other detectors. | |
 | --interactionRate | Total hadronic interaction rate (Hz). |
-| --bcPatternFile | Interacting BC pattern file chaning the default bunch crossing pattern. |
+| --bcPatternFile | Interacting BC pattern file chaning the default bunch crossing pattern, see `macro/CreateBCPattern.C` for details. |
 | --onlyDet | Comma separated list of detectors to digitize. (Default is all) |
 | --skipDet | Comma separed list of detectors to exclude. |
 | --incontext | Name of context file. Useful for reusing a context from a previous run when we split the processing detectorwise. |
 | --outcontext | Specify name of contextfile to produce. |
 | --simFileQED | Optional special QED hit file to include effect from QED effects into digitization. |
 
+## Interaction sampling <a name="Interaction sampling"></a>
+
+The files produced by the `o2-sim` contain only a set of separate events, w/o any time stamp. The digitization will sample the vector of non-decreasing `{BC/orbit}` pairs according to bunch filling schema and requested interaction rate and provide it to digitizers.
+The interaction sampling is steered by the `HBFUtils` configurable parameters, e.g.
+
+```o2-sim-digitizer-workflow --configKeyValues "HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=123;HBFUtils.orbitFirstSampled=300"```
+
+The most important here is `HBFUtils.orbitFirstSampled` which tells to `InteractionSampler` the orbit from which the sampling should start. 
+Other parameters, `nHBFPerTF` and `orbitFirst` do not directly affect the digitization but they are stored in the `grp` object (`o2sim_grp.root` file) and the number of orbits per TF and the 1st orbit of the run.
+The full content of the `HBFUtils` is stored in the `o2simdigitizerworkflow_configuration.ini` and can be used in reconstruction and MC->raw-data creation processes.
+Particularly, when creating the raw data (see `...-digi2raw` group of commands in `O2/prodtests/full_system_test.sh`) the content of the `HBFUtils` settings will be loaded from this ini file
+(the name can be changed via `--hbfutils-config <ini-file>` option) and `HBFUtils.orbitFirst` will be used to define the start-of-the-run (`SOX flag in the RDH`) and `HBFUtils.nHBFPerTF` will be used to chop the digitized data to TFs.
+Note that for the detectors in continuous readout mode all empty HBFs will be created for all orbits w/o detector data between the `SOX` and the last orbit of the TF for which data was received.
+In case you want to create raw data starting from the 1st sampled TF, you should override the `HBFUtils.orbitFirst` by the wanted orbit, i.e. for the digitization done as in the example above
+one can request 
+
+```o2-ft0-digi2raw --configKeyValues "HBFUtils.orbitFirst=251" ...```
+
+to start the raw data not from the orbit 123 indicated during digitization but from the orbit 251 (i.e. the 2nd TF of the run). Additional setting `HBFUtils.maxNOrbits` can be provided 
+to limit the number of orbits stored (counted from the `SOX`) in the raw data (i.e. all data with `orbit > HBFUtils.orbitFirst + HBFUtils.maxNOrbits` will be ignored when creating the raw data.
+
+Similarly, when running the reconstruction workflow using the output of the digitization, the `HBFUtils` settings used by `o2-sim-digitizer-workflow` will be loaded (again, they can be overridden
+by either providing `--hbfutils-config <ini-file>` option or by explicit `--configKeyValues "HBFUtils...` setting) and the DPL will make sure that the content of the `DataHeader.firstTForbit` correspond
+to the 1st orbit of the TF containing `HBFUtils.orbitFirstSampled` (then incremented by `HBFUtils.nHBFPerTF` for the following TFs if the digits files contain multiple TF entries).
 
 ## Embedding <a name="Embedding"></a>
 
@@ -416,7 +440,7 @@ for (auto& label : labels_for_digit) {
 ```
 
 
-## Accessing Monte Carlo kinematics after the digitization phase <a name="MCReader"></a>
+## Accessing Monte Carlo kinematics<a name="MCReader"></a>
 
 After digitization is done, one can use the `MCKinematicsReader` class to load and access the Monte Carlo tracks.
 The MCKinematicsReader needs the digitization context file, generated during digitization. Once initialized it can return the tracks associated to a Monte Carlo label.
@@ -442,7 +466,20 @@ for (int pos = 0; pos < alldigits.size(); ++pos) {
 }
 ```
 Note, that one can also access kinematics directly after the transport simulation. 
-In this case, one needs to initialize the MCKinematicsReader in a different mode.
+In this case, one needs to initialize the MCKinematicsReader in a different mode:
+```c++
+// init the reader from the transport kinematics file (assuming here prefix o2sim)
+o2::steer::MCKinematicsReader reader("o2sim", o2::steer::MCKinematicsReader::Mode::kMCKine);
+
+// loop over all events in the file
+for (int event = 0; event < reader.getNEvents(0); ++event) {
+  // get all Monte Carlo tracks for this event
+  std::vector<MCTrack> const& tracks = reader.getTracks(event);
+
+  // analyse tracks
+}
+```
+
 
 # Simulation tutorials/examples <a name="Examples"></a>
 

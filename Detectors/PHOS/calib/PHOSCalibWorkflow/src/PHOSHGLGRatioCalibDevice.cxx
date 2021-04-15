@@ -11,19 +11,16 @@
 #include "PHOSCalibWorkflow/PHOSHGLGRatioCalibDevice.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
+#include <string>
 #include "FairLogger.h"
 #include "CommonDataFormat/InteractionRecord.h"
+#include "DetectorsCalibration/Utils.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/WorkflowSpec.h"
 #include "DataFormatsPHOS/TriggerRecord.h"
-#include "DetectorsRaw/RDHUtils.h"
-#include "Framework/InputRecordWalker.h"
+#include "DataFormatsPHOS/Cell.h"
 #include "PHOSBase/Mapping.h"
-#include "PHOSReconstruction/Bunch.h"
-#include "PHOSReconstruction/AltroDecoder.h"
-#include "PHOSReconstruction/RawDecodingError.h"
-#include <string>
 #include <TFile.h>
 #include <TF1.h>
 
@@ -32,109 +29,51 @@ using namespace o2::phos;
 void PHOSHGLGRatioCalibDevice::init(o2::framework::InitContext& ic)
 {
 
-  mMapping.reset(new o2::phos::Mapping(""));
-  if (!mMapping) {
-    LOG(FATAL) << "Failed to initialize mapping";
-  }
-  if (mMapping->setMapping() != o2::phos::Mapping::kOK) {
-    LOG(ERROR) << "Failed to construct mapping";
-  }
-  mRawFitter.reset(new o2::phos::CaloRawFitter());
-
   //Create histograms for mean and RMS
   short n = o2::phos::Mapping::NCHANNELS;
   mhRatio.reset(new TH2F("HGLGRatio", "HGLGRatio", n, 0.5, n + 0.5, 100, 10., 20.));
+  mCalibParams.reset(new CalibParams());
 }
 
 void PHOSHGLGRatioCalibDevice::run(o2::framework::ProcessingContext& ctx)
 {
 
-  //
-  for (const auto& rawData : framework::InputRecordWalker(ctx.inputs())) {
+  // scan Cells stream, collect HG/LG pairs
+  if (mRunStartTime == 0) {
+    mRunStartTime = o2::header::get<o2::framework::DataProcessingHeader*>(ctx.inputs().get("cellTriggerRecords").header)->startTime;
+  }
 
-    o2::phos::RawReaderMemory rawreader(o2::framework::DataRefUtils::as<const char>(rawData));
+  auto cells = ctx.inputs().get<gsl::span<o2::phos::Cell>>("cells");
+  LOG(DEBUG) << "[PHOSHGLGRatioCalibDevice - run]  Received " << cells.size() << " cells, running calibration ...";
+  auto cellsTR = ctx.inputs().get<gsl::span<o2::phos::TriggerRecord>>("cellTriggerRecords");
+  for (const auto& tr : cellsTR) {
+    int firstCellInEvent = tr.getFirstEntry();
+    int lastCellInEvent = firstCellInEvent + tr.getNumberOfObjects();
+    mMapPairs.clear();
 
-    // loop over all the DMA pages
-    while (rawreader.hasNext()) {
-      mMapPairs.clear();
+    for (int i = firstCellInEvent; i < lastCellInEvent; i++) {
+      const Cell c = cells[i];
 
-      try {
-        rawreader.next();
-      } catch (RawDecodingError::ErrorType_t e) {
-        LOG(ERROR) << "Raw decoding error " << (int)e;
-        //if problem in header, abandon this page
-        if (e == RawDecodingError::ErrorType_t::PAGE_NOTFOUND ||
-            e == RawDecodingError::ErrorType_t::HEADER_DECODING ||
-            e == RawDecodingError::ErrorType_t::HEADER_INVALID) {
-          break;
+      auto search = mMapPairs.find(c.getAbsId());
+      if (search != mMapPairs.end()) { //exist
+        if (c.getHighGain()) {
+          search->second.mHGAmp = c.getEnergy();
         }
-        //if problem in payload, try to continue
-        continue;
-      }
-      auto& header = rawreader.getRawHeader();
-      auto triggerBC = o2::raw::RDHUtils::getTriggerBC(header);
-      auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(header);
-      auto ddl = o2::raw::RDHUtils::getFEEID(header);
-
-      o2::InteractionRecord currentIR(triggerBC, triggerOrbit);
-
-      if (ddl > o2::phos::Mapping::NDDL) { //only 14 correct DDLs
-        LOG(ERROR) << "DDL=" << ddl;
-        continue; //skip STU ddl
-      }
-      // use the altro decoder to decode the raw data, and extract the RCU trailer
-      o2::phos::AltroDecoder decoder(rawreader);
-      AltroDecoderError::ErrorType_t err = decoder.decode();
-
-      if (err != AltroDecoderError::kOK) {
-        LOG(ERROR) << "Errror " << err << " in decoding DDL" << ddl;
-      }
-      auto& rcu = decoder.getRCUTrailer();
-      auto& channellist = decoder.getChannels();
-      // Loop over all the channels for this RCU
-      for (auto& chan : channellist) {
-        short absId;
-        Mapping::CaloFlag caloFlag;
-        short fee;
-        Mapping::ErrorStatus s = mMapping->hwToAbsId(ddl, chan.getHardwareAddress(), absId, caloFlag);
-        if (s != Mapping::ErrorStatus::kOK) {
-          LOG(ERROR) << "Error in mapping"
-                     << " ddl=" << ddl << " hwaddress " << chan.getHardwareAddress();
-          continue;
+        if (c.getLowGain()) {
+          search->second.mLGAmp = c.getEnergy();
         }
-        if (caloFlag != Mapping::kTRU) { //HighGain or LowGain
-          CaloRawFitter::FitStatus fitResults = mRawFitter->evaluate(chan.getBunches());
-          if (fitResults == CaloRawFitter::FitStatus::kOK || fitResults == CaloRawFitter::FitStatus::kNoTime) {
-            for (int is = 0; is < mRawFitter->getNsamples(); is++) {
-              //if map entry already exist, fill second part, otherwise fill first map
-              if (mRawFitter->isOverflow(is)) {
-                continue;
-              }
-              auto search = mMapPairs.find(absId);
-              if (search != mMapPairs.end()) { //exist
-                if (caloFlag == Mapping::kHighGain) {
-                  search->second.mHGAmp = mRawFitter->getAmp(is);
-                }
-                if (caloFlag == Mapping::kLowGain) {
-                  search->second.mLGAmp = mRawFitter->getAmp(is);
-                }
-
-              } else {
-                PairAmp pa = {0};
-                if (caloFlag == Mapping::kHighGain) {
-                  pa.mHGAmp = mRawFitter->getAmp(is);
-                }
-                if (caloFlag == Mapping::kLowGain) {
-                  pa.mLGAmp = mRawFitter->getAmp(is);
-                }
-                mMapPairs.insert({absId, pa});
-              }
-            }
-          }
+      } else {
+        PairAmp pa = {0};
+        if (c.getHighGain()) {
+          pa.mHGAmp = c.getEnergy();
         }
+        if (c.getLowGain()) {
+          pa.mLGAmp = c.getEnergy();
+        }
+        mMapPairs.insert({c.getAbsId(), pa});
       }
-      fillRatios();
-    } //RawReader::hasNext
+    }
+    fillRatios();
   }
 }
 void PHOSHGLGRatioCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
@@ -144,7 +83,6 @@ void PHOSHGLGRatioCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec
   //calculate stuff here
   calculateRatios();
   checkRatios();
-
   sendOutput(ec.outputs());
 }
 
@@ -164,7 +102,6 @@ void PHOSHGLGRatioCalibDevice::calculateRatios()
   // Calculate mean of the ratio
   int n = o2::phos::Mapping::NCHANNELS;
   if (mhRatio->Integral() > 2 * minimalStatistics * n) { //average per channel
-    mCalibParams.reset(new CalibParams());
 
     TF1* fitFunc = new TF1("fitFunc", "gaus", 0., 4000.);
     fitFunc->SetParameters(1., 200., 60.);
@@ -185,83 +122,101 @@ void PHOSHGLGRatioCalibDevice::calculateRatios()
 }
 void PHOSHGLGRatioCalibDevice::checkRatios()
 {
-  //Compare pedestals to current ones stored in CCDB
-  //and send difference to QC to check
+  //Compare ratios to current ones stored in CCDB
   if (!mUseCCDB) {
     mUpdateCCDB = true;
     return;
   }
-  // //TODO:
-  // //Get current map
-  // int nChanged=0;
-  // for(short i=o2::phos::Mapping::NCHANNELS; --i;){
-  //   short dp=2;
-  //   if(oldPed.mCalibParams->setHGLGRatio(i)>0){
-  //     dp = mCalibParams->setHGLGRatio(i)/oldPed.mCalibParams->setHGLGRatio(i);
-  //   }
-  //   mRatioDiff[i]=dp ;
-  //   if(abs(dp-1.)>0.1){ //not a fluctuation
-  //     nChanged++;
-  //   }
-  // if(nChanged>kMinorChange){ //serious change, do not update CCDB automatically, use "force" option to overwrite
-  //   mUpdateCCDB=false;
-  // }
-  // else{
-  //   mUpdateCCDB=true;
-  // }
+  LOG(INFO) << "Retrieving current HG/LG ratio from CCDB";
+  //Read current padestals for comarison
+  o2::ccdb::CcdbApi ccdb;
+  ccdb.init(mCCDBPath); // or http://localhost:8080 for a local installation
+  std::map<std::string, std::string> metadata;
+  auto* currentCalibParams = ccdb.retrieveFromTFileAny<CalibParams>("PHS/Calib/CalibParams", metadata, mRunStartTime);
+
+  if (!currentCalibParams) { //was not read from CCDB, but expected
+    mUpdateCCDB = true;
+    LOG(ERROR) << "Can not read current CalibParams from ccdb";
+    return;
+  }
+
+  LOG(INFO) << "Got current calibration from CCDB";
+
+  //Compare to current
+  int nChanged = 0;
+  for (short i = o2::phos::Mapping::NCHANNELS; i > 1792; i--) {
+    short dp = 2;
+    if (currentCalibParams->getHGLGRatio(i) > 0) {
+      dp = mCalibParams->getHGLGRatio(i) / currentCalibParams->getHGLGRatio(i);
+    }
+    mRatioDiff[i] = dp;
+    if (abs(dp - 1.) > 0.1) { //not a fluctuation
+      nChanged++;
+    }
+    //Copy other stuff from the current CalibParams to new one
+    mCalibParams->setGain(i, currentCalibParams->getGain(i));
+    mCalibParams->setHGTimeCalib(i, currentCalibParams->getHGTimeCalib(i));
+    mCalibParams->setLGTimeCalib(i, currentCalibParams->getLGTimeCalib(i));
+  }
+  LOG(INFO) << nChanged << "channels changed more that 1 ADC channel";
+  if (nChanged > kMinorChange) { //serious change, do not update CCDB automatically, use "force" option to overwrite
+    LOG(ERROR) << "too many channels changed: " << nChanged << " (threshold " << kMinorChange << ")";
+    if (!mForceUpdate) {
+      LOG(ERROR) << "you may use --forceupdate option to force updating ccdb";
+    }
+    mUpdateCCDB = false;
+  } else {
+    mUpdateCCDB = true;
+  }
 }
 
 void PHOSHGLGRatioCalibDevice::sendOutput(DataAllocator& output)
 {
+
   // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
-  // TODO in principle, this routine is generic, can be moved to Utils.h
-  // using clbUtils = o2::calibration::Utils;
-  if (mUpdateCCDB || mForceUpdate) {
+  if (mUseCCDB && (mUpdateCCDB || mForceUpdate)) {
     // prepare all info to be sent to CCDB
-    o2::ccdb::CcdbObjectInfo info;
+    auto flName = o2::ccdb::CcdbApi::generateFileName("CalibParams");
+    std::map<std::string, std::string> md;
+    o2::ccdb::CcdbObjectInfo info("PHS/Calib/CalibParams", "CalibParams", flName, md, mRunStartTime, 99999999999999);
+    info.setMetaData(md);
     auto image = o2::ccdb::CcdbApi::createObjectImage(mCalibParams.get(), &info);
 
-    auto flName = o2::ccdb::CcdbApi::generateFileName("CalibParams");
-    info.setPath("PHOS/Calib/CalibParams");
-    info.setObjectType("CalibParams");
-    info.setFileName(flName);
-    // TODO: should be changed to time of the run
-    const auto now = std::chrono::system_clock::now();
-    long timeStart = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
-    info.setStartValidityTimestamp(timeStart);
-    info.setEndValidityTimestamp(99999999999999);
-    std::map<std::string, std::string> md;
-    info.setMetaData(md);
+    LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName()
+              << " of size " << image->size()
+              << " bytes, valid for " << info.getStartValidityTimestamp()
+              << " : " << info.getEndValidityTimestamp();
 
-    LOG(INFO) << "Sending object PHOS/Calib/CalibParams";
-
-    // header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)0};
-    // output.snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBPayload, subSpec}, *image.get());
-    // output.snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBInfo, subSpec}, info);
+    header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)0};
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBPayload, subSpec}, *image.get());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBInfo, subSpec}, info);
   }
   //Anyway send change to QC
-  LOG(INFO) << "[PHOSPedestalCalibDevice - run] Writing ";
-  output.snapshot(o2::framework::Output{"PHS", "HGLGRATIODIFF", 0, o2::framework::Lifetime::Timeframe}, mRatioDiff);
-
-  //Write pedestal distributions to calculate bad map
-  std::string filename = mPath + "PHOSHGLHRatio.root";
-  TFile f(filename.data(), "RECREATE");
-  mhRatio->Write();
-  f.Close();
+  LOG(INFO) << "[PHOSHGLGRatioCalibDevice - sendOutput] Sending QC ";
+  if (mUseCCDB) { //can get previous calibration
+    output.snapshot(o2::framework::Output{"PHS", "HGLGRATIODIFF", 0, o2::framework::Lifetime::Timeframe}, mRatioDiff);
+  }
 }
 
 DataProcessorSpec o2::phos::getHGLGRatioCalibSpec(bool useCCDB, bool forceUpdate, std::string path)
 {
-  std::vector<o2::framework::InputSpec> inputs;
-  inputs.emplace_back("RAWDATA", o2::framework::ConcreteDataTypeMatcher{"PHS", "RAWDATA"}, o2::framework::Lifetime::Timeframe);
 
-  std::vector<o2::framework::OutputSpec> outputs;
-  outputs.emplace_back("PHS", "HGLGRATIO", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back("PHS", "HGLGRATIODIFF", 0, o2::framework::Lifetime::Timeframe);
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("cells", o2::header::gDataOriginPHS, "CELLS", 0, o2::framework::Lifetime::Timeframe);
+  inputs.emplace_back("cellTriggerRecords", o2::header::gDataOriginPHS, "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe);
 
+  using clbUtils = o2::calibration::Utils;
+  std::vector<OutputSpec> outputs;
+  if (useCCDB) {
+    outputs.emplace_back(
+      ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload});
+    outputs.emplace_back(
+      ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
+    outputs.emplace_back("PHS", "HGLGRATIODIFF", 0, o2::framework::Lifetime::Timeframe);
+  }
   return o2::framework::DataProcessorSpec{"HGLGRatioCalibSpec",
                                           inputs,
                                           outputs,
-                                          o2::framework::adaptFromTask<o2::phos::PHOSHGLGRatioCalibDevice>(useCCDB, forceUpdate, path),
+                                          o2::framework::adaptFromTask<PHOSHGLGRatioCalibDevice>(useCCDB, forceUpdate, path),
                                           o2::framework::Options{}};
 }

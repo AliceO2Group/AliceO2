@@ -94,7 +94,7 @@ int PropagatorImpl<value_T>::initFieldFromGRP(const o2::parameters::GRPObject* g
       delete TGeoGlobalMagField::Instance();
     }
   }
-  auto fld = o2::field::MagneticField::createFieldMap(grp->getL3Current(), grp->getDipoleCurrent());
+  auto fld = o2::field::MagneticField::createFieldMap(grp->getL3Current(), grp->getDipoleCurrent(), o2::field::MagneticField::kConvLHC, grp->getFieldUniformity());
   TGeoGlobalMagField::Instance()->SetField(fld);
   TGeoGlobalMagField::Instance()->Lock();
   if (verbose) {
@@ -160,6 +160,7 @@ GPUd() bool PropagatorImpl<value_T>::PropagateToXBxByBz(TrackParCov_t& track, va
       if (tofInfo) {
         tofInfo->addStep(mb.length, track.getP2Inv()); // fill L,ToF info using already calculated step length
         tofInfo->addX2X0(mb.meanX2X0);
+        tofInfo->addXRho(mb.getXRho(signCorr));
       }
     } else if (tofInfo) { // if tofInfo filling was requested w/o material correction, we need to calculate the step lenght
       auto xyz1 = track.getXYZGlo();

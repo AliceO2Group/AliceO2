@@ -89,6 +89,16 @@ void ConfigParamsHelper::populateBoostProgramOptions(
   }
 }
 
+void ConfigParamsHelper::addOptionIfMissing(std::vector<ConfigParamSpec>& specs, ConfigParamSpec spec)
+{
+  for (auto& old : specs) {
+    if (old.name == spec.name) {
+      return;
+    }
+  }
+  specs.push_back(spec);
+}
+
 /// populate boost program options making all options of type string
 /// this is used for filtering the command line argument
 bool ConfigParamsHelper::dpl2BoostOptions(const std::vector<ConfigParamSpec>& spec,

@@ -38,10 +38,13 @@ class Mapping
                      kWrongAbsId,
                      kWrongCaloFlag,
                      kNotInitialized };
-  static constexpr short NCHANNELS = 14337;    ///< Number of channels starting from 1
-  static constexpr short NHWPERDDL = 2048;     ///< Number of HW addressed per DDL
-  static constexpr short NMaxHWAddress = 3929; ///< Maximal HW address (size of array)
-  static constexpr short NDDL = 14;            ///< Total number of DDLs
+  static constexpr short NCHANNELS = 14337;               ///< Number of channels starting from 1
+  static constexpr short NHWPERDDL = 2048;                ///< Number of HW addressed per DDL
+  static constexpr short NMaxHWAddress = 3929;            ///< Maximal HW address (size of array)
+  static constexpr short NDDL = 14;                       ///< Total number of DDLs
+  static constexpr short NTRUBranchReadoutChannels = 112; ///< Number of TRU readout channels per branch
+  static constexpr short NTRUReadoutChannels = 3136;      ///< Total number of TRU readout channels
+  static constexpr short TRUFinalProductionChannel = 123; // The last channel of production bits, contains markesr to choose between 2x2 and 4x4 algorithm
 
   enum CaloFlag { kHighGain,
                   kLowGain,
@@ -64,6 +67,9 @@ class Mapping
   }
 
   ErrorStatus setMapping();
+
+  //Select TRU readout channels or TRU flag channels
+  static bool isTRUReadoutchannel(short hwAddress) { return (hwAddress < 112) || (hwAddress > 2048 && hwAddress < 2048 + 112); }
 
  protected:
   /// \brief Construct vector for conversion only if necessary

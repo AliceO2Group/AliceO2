@@ -9,6 +9,8 @@
 // or submit itself to any jurisdiction.
 
 #include "TRDBase/Digit.h"
+#include <iostream>
+
 namespace o2::trd
 {
 
@@ -55,6 +57,15 @@ bool Digit::isSharedDigit() const
   } else {
     return 0;
   }
+}
+
+std::ostream& operator<<(std::ostream& stream, const Digit& d)
+{
+  stream << "Digit Det: " << d.getDetector() << " ROB: " << d.getROB() << " MCM: " << d.getMCM() << " Channel: " << d.getChannel() << " ADCs:";
+  for (int i = 0; i < constants::TIMEBINS; i++) {
+    stream << "[" << d.getADC()[i] << "]";
+  }
+  return stream;
 }
 
 } // namespace o2::trd

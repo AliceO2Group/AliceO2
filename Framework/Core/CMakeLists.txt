@@ -16,6 +16,7 @@
 
 o2_add_library(Framework
                SOURCES src/AODReaderHelpers.cxx
+                       src/ArrowSupport.cxx
                        src/ASoA.cxx
                        src/AnalysisHelpers.cxx
                        src/AnalysisDataModelHelpers.cxx
@@ -24,6 +25,7 @@ o2_add_library(Framework
                        src/ChannelMatching.cxx
                        src/ChannelConfigurationPolicyHelpers.cxx
                        src/ChannelSpecHelpers.cxx
+                       src/CommandInfo.cxx
                        src/CommonDataProcessors.cxx
                        src/CommonServices.cxx
                        src/CommonMessageBackends.cxx
@@ -50,7 +52,9 @@ o2_add_library(Framework
                        src/DataSpecUtils.cxx
                        src/DeviceConfigInfo.cxx
                        src/DeviceMetricsInfo.cxx
+                       src/DeviceMetricsHelper.cxx
                        src/DeviceSpec.cxx
+                       src/DeviceController.cxx
                        src/DeviceSpecHelpers.cxx
                        src/DPLMonitoringBackend.cxx
                        src/DriverControl.cxx
@@ -69,6 +73,8 @@ o2_add_library(Framework
                        src/LifetimeHelpers.cxx
                        src/LocalRootFileService.cxx
                        src/RootConfigParamHelpers.cxx
+                       src/RawBufferContext.cxx
+                       src/StringContext.cxx
                        src/LogParsingHelpers.cxx
                        src/MessageContext.cxx
                        src/Metric2DViewIndex.cxx
@@ -162,6 +168,7 @@ foreach(t
         FairMQOptionsRetriever
         FairMQResizableBuffer
         FrameworkDataFlowToDDS
+        FrameworkDataFlowToO2Control
         Graphviz
         GroupSlicer
         HistogramRegistry

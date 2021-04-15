@@ -56,7 +56,7 @@ o2_add_executable(
         digits-reader-workflow
         SOURCES src/DigitSamplerSpec.cxx src/digits-reader-workflow.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase O2::MCHMappingImpl3)
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsRaw O2::DataFormatsMCH O2::MCHBase O2::MCHMappingImpl3)
 
 o2_add_executable(
         preclusters-sink-workflow

@@ -51,6 +51,11 @@ struct CfFragment {
     return CfFragment{index + 1, hasFuture, tpccf::TPCTime(start + length - (hasFuture ? 2 * OverlapTimebins : 0)), totalSliceLength, maxSubSliceLength};
   }
 
+  GPUdi() unsigned int count() const
+  {
+    return (totalSliceLength + maxSubSliceLength - 4 * OverlapTimebins - 1) / (maxSubSliceLength - 2 * OverlapTimebins);
+  }
+
   GPUdi() tpccf::TPCTime first() const
   {
     return start;

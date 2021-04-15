@@ -43,6 +43,8 @@ class Clusters
 
   bool processCluster(const o2::tpc::ClusterNative& cluster, const o2::tpc::Sector sector, const int row);
 
+  void fillADCValue(int cru, int rowInSector, int padInRow, int timeBin, float adcValue);
+
   void analyse();
 
   void dumpToFile(std::string filename);

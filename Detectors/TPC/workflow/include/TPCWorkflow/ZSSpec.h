@@ -16,9 +16,9 @@ namespace tpc
 {
 
 /// create a processor spec
-framework::DataProcessorSpec getZSEncoderSpec(std::vector<int> const& inputIds, bool zs12bit, float threshold, bool outRaw);
+framework::DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool zs12bit, float threshold, bool outRaw, unsigned long tpcSectorMask);
 
-framework::DataProcessorSpec getZStoDigitsSpec(std::vector<int> const& inputIds);
+framework::DataProcessorSpec getZStoDigitsSpec(std::vector<int> const& tpcSectors);
 
 } // end namespace tpc
 } // end namespace o2

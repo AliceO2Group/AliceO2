@@ -332,8 +332,14 @@
   #ifndef GPUCA_LB_GPUTPCGMMergerFinalize_step2
     #define GPUCA_LB_GPUTPCGMMergerFinalize_step2 256
   #endif
-  #ifndef GPUCA_LB_GPUTPCGMMergerMergeLoopers
-    #define GPUCA_LB_GPUTPCGMMergerMergeLoopers 256
+  #ifndef GPUCA_LB_GPUTPCGMMergerMergeLoopers_step0
+    #define GPUCA_LB_GPUTPCGMMergerMergeLoopers_step0 256
+  #endif
+  #ifndef GPUCA_LB_GPUTPCGMMergerMergeLoopers_step1
+    #define GPUCA_LB_GPUTPCGMMergerMergeLoopers_step1 256
+  #endif
+  #ifndef GPUCA_LB_GPUTPCGMMergerMergeLoopers_step2
+    #define GPUCA_LB_GPUTPCGMMergerMergeLoopers_step2 256
   #endif
   #ifndef GPUCA_LB_GPUTPCGMO2Output_prepare
     #define GPUCA_LB_GPUTPCGMO2Output_prepare 256

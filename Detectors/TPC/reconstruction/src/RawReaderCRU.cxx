@@ -52,11 +52,13 @@ RawReaderCRUEventSync::EventInfo& RawReaderCRUEventSync::createEvent(const RDH& 
 
   for (auto& ev : mEventInformation) {
     const auto hbMatch = ev.hasHearbeatOrbit(heartbeatOrbit);
+    const long hbDiff = long(heartbeatOrbit) - long(ev.HeartbeatOrbits.front());
     if (hbMatch) {
       mLastEvent = &ev;
       return ev;
-    } else if (std::abs(long(ev.HeartbeatOrbits.back()) - long(heartbeatOrbit)) < 54) {
+    } else if ((hbDiff >= 0) && (hbDiff < 256)) {
       ev.HeartbeatOrbits.emplace_back(heartbeatOrbit);
+      std::sort(ev.HeartbeatOrbits.begin(), ev.HeartbeatOrbits.end());
       mLastEvent = &ev;
       return ev;
     }

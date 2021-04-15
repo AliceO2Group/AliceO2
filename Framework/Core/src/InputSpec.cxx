@@ -56,6 +56,17 @@ InputSpec::InputSpec(std::string binding_,
 }
 
 InputSpec::InputSpec(std::string binding_,
+                     header::DataOrigin const& origin_,
+                     enum Lifetime lifetime_,
+                     std::vector<ConfigParamSpec> const& metadata_)
+  : binding{binding_},
+    matcher{DataSpecUtils::dataDescriptorMatcherFrom(origin_)},
+    lifetime{lifetime_},
+    metadata{metadata_}
+{
+}
+
+InputSpec::InputSpec(std::string binding_,
                      ConcreteDataTypeMatcher const& dataType,
                      enum Lifetime lifetime_,
                      std::vector<ConfigParamSpec> const& metadata_)

@@ -132,7 +132,7 @@ static void BM_GBTDecoder(benchmark::State& state)
   double num{0};
 
   auto inputData = generateTestData(nTF, nEventPerTF, nFiredPerEvent, 1);
-  std::vector<o2::mid::LocalBoardRO> data;
+  std::vector<o2::mid::ROBoard> data;
   std::vector<o2::mid::ROFRecord> rofs;
 
   for (auto _ : state) {

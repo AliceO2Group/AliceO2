@@ -26,7 +26,7 @@
 #include "MIDRaw/Decoder.h"
 #include "MIDRaw/ElectronicsDelay.h"
 #include "MIDRaw/FEEIdConfig.h"
-#include "MIDRaw/LocalBoardRO.h"
+#include "DataFormatsMID/ROBoard.h"
 #include "MIDRaw/RawFileReader.h"
 
 namespace po = boost::program_options;
@@ -101,7 +101,7 @@ int process(po::variables_map& vm)
     }
     std::cout << "Writing output to: " << outFilename << " ..." << std::endl;
 
-    std::vector<o2::mid::LocalBoardRO> data;
+    std::vector<o2::mid::ROBoard> data;
     std::vector<o2::mid::ROFRecord> rofRecords;
     std::vector<o2::mid::ROFRecord> hbRecords;
 

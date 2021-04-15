@@ -107,10 +107,10 @@ struct AnalysisDataProcessorBuilder {
   {
     using dT = std::decay_t<T>;
     if constexpr (framework::is_specialization<dT, soa::Filtered>::value) {
-      eInfos.push_back({at, o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
+      eInfos.push_back({at, dT::hashes(), o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
     } else if constexpr (soa::is_soa_iterator_t<dT>::value) {
       if constexpr (std::is_same_v<typename dT::policy_t, soa::FilteredIndexPolicy>) {
-        eInfos.push_back({at, o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
+        eInfos.push_back({at, dT::parent_t::hashes(), o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
       }
     }
     doAppendInputWithMetadata(soa::make_originals_from_type<dT>(), inputs);
@@ -677,11 +677,11 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
     if constexpr (has_process_v<T>) {
       /// update configurables in filters
       std::apply(
-        [&ic](auto&&... x) { return (FilterManager<std::decay_t<decltype(x)>>::updatePlaceholders(x, ic), ...); },
+        [&ic](auto&... x) { return (FilterManager<std::decay_t<decltype(x)>>::updatePlaceholders(x, ic), ...); },
         tupledTask);
       /// update configurables in partitions
       std::apply(
-        [&ic](auto&&... x) { return (PartitionManager<std::decay_t<decltype(x)>>::updatePlaceholders(x, ic), ...); },
+        [&ic](auto&... x) { return (PartitionManager<std::decay_t<decltype(x)>>::updatePlaceholders(x, ic), ...); },
         tupledTask);
       /// create for filters gandiva trees matched to schemas and store the pointers into expressionInfos
       std::apply([&expressionInfos](auto&... x) {

@@ -12,7 +12,7 @@
 /// \author Antonio Franco - INFN Bari
 /// \version 1.0
 /// \date 01 feb 2021
-/// \brief Implementation of a data processor to produce raw files from a Digits stream
+/// \brief Implementation of a data processor to produce raw files from a Digits/Trigger root file
 ///
 
 #include <random>
@@ -33,6 +33,8 @@
 #include "Framework/Output.h"
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
+
+#include "FairLogger.h" // for LOG
 #include "Framework/Logger.h"
 #include "Framework/InputRecordWalker.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -45,8 +47,8 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "DPLUtils/DPLRawParser.h"
 
-#include "HMPIDBase/Digit.h"
-#include "HMPIDBase/Trigger.h"
+#include "DataFormatsHMP/Digit.h"
+#include "DataFormatsHMP/Trigger.h"
 #include "HMPIDBase/Geo.h"
 #include "HMPIDSimulation/HmpidCoder2.h"
 #include "HMPIDWorkflow/DigitsToRawSpec.h"
@@ -110,19 +112,17 @@ void DigitsToRawSpec::readRootFile()
 
   // Keeps the Interactions !
   mDigTree->SetBranchAddress("InteractionRecords", &interactionsPtr);
-  LOG(DEBUG) << "Number of Interaction Records vectors in the simulation file :" << mDigTree->GetEntries();
+  LOG(INFO) << "Number of Interaction Records vectors in the simulation file :" << mDigTree->GetEntries();
   for (int ient = 0; ient < mDigTree->GetEntries(); ient++) {
     mDigTree->GetEntry(ient);
     LOG(INFO) << "Interactions records in simulation :" << interactions.size();
     for (auto a : interactions) {
-      LOG(DEBUG) << a;
+      LOG(INFO) << a;
     }
   }
-  sort(interactions.begin(), interactions.end()); // Sort interactions in ascending order
-  int trigPointer = 0;
 
   mDigTree->SetBranchAddress("HMPDigit", &hmpBCDataPtr);
-  LOG(INFO) << "Number of entries in the simulation file :" << mDigTree->GetEntries();
+  LOG(DEBUG) << "Number of entries in the simulation file :" << mDigTree->GetEntries();
 
   // Loops in the Entry of ROOT Branch
   for (int ient = 0; ient < mDigTree->GetEntries(); ient++) {
@@ -132,37 +132,35 @@ void DigitsToRawSpec::readRootFile()
       LOG(INFO) << "The Entry :" << ient << " doesn't have digits !";
       continue;
     }
-    sort(digits.begin(), digits.end(), o2::hmpid::Digit::eventEquipPadsComp);
-    if (mDumpDigits) { // we wand the dump of digits ?
+    if (mDumpDigits) { // we want the dump of digits ?
       std::ofstream dumpfile;
       dumpfile.open("/tmp/hmpDumpDigits.dat");
-      for (int i = 0; i < nbc; i++) {
-        dumpfile << digits[i] << std::endl;
+      for (o2::hmpid::Trigger& e : interactions) {
+        dumpfile << "Trigger  Orbit=" << e.getOrbit() << " BC=" << e.getBc() << std::endl;
+        for (int i = e.getFirstEntry(); i <= e.getLastEntry(); i++) {
+          dumpfile << digits.at(i) << std::endl;
+        }
       }
       dumpfile.close();
     }
     // ready to operate
     LOG(INFO) << "For the entry = " << ient << " there are " << nbc << " DIGITS stored.";
-    for (int i = 0; i < nbc; i++) {
-      if (digits[i].getOrbit() != interactions[trigPointer].getOrbit() || digits[i].getBC() != interactions[trigPointer].getBc()) {
-        do {
-          mEventsReceived++;
-          LOG(DEBUG) << "Orbit =" << interactions[trigPointer].getOrbit() << " BC =" << interactions[trigPointer].getBc();
-          mCod->codeEventChunkDigits(digitsPerEvent, interactions[trigPointer]);
-          digitsPerEvent.clear();
-          trigPointer++;
-        } while ((digits[i].getOrbit() != interactions[trigPointer].getOrbit() || digits[i].getBC() != interactions[trigPointer].getBc()) && trigPointer < interactions.size());
-        if (trigPointer == interactions.size()) {
-          LOG(WARNING) << "Digits without Interaction Record !!!  ABORT";
-          break;
-        }
+    for (o2::hmpid::Trigger& e : interactions) {
+      mEventsReceived++;
+      digitsPerEvent.clear();
+      for (int i = e.getFirstEntry(); i <= e.getLastEntry(); i++) {
+        digitsPerEvent.push_back(digits[i]);
       }
-      digitsPerEvent.push_back(digits[i]);
+      LOG(DEBUG) << "Orbit =" << e.getOrbit() << " BC =" << e.getBc() << "  Digits =" << digitsPerEvent.size();
+      if (digitsPerEvent.size() == 0) {
+        LOG(INFO) << "Empty event !" << e;
+      }
+      mCod->codeEventChunkDigits(digitsPerEvent, e.getIr());
+      mDigitsReceived += digitsPerEvent.size();
     }
-    mEventsReceived++;
-    LOG(DEBUG) << "Orbit =" << interactions[trigPointer].getOrbit() << " BC =" << interactions[trigPointer].getBc();
-    mCod->codeEventChunkDigits(digitsPerEvent, interactions[trigPointer]);
-    mDigitsReceived += nbc;
+    if (mDigitsReceived != digits.size()) {
+      LOG(WARNING) << "Digits outside the events defined !";
+    }
   }
   mExTimer.logMes("End of Write raw file Job !");
   return;

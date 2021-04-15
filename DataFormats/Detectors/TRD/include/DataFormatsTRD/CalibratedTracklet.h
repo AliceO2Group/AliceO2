@@ -11,8 +11,6 @@
 #ifndef O2_TRD_CALIBRATEDTRACKLET_H
 #define O2_TRD_CALIBRATEDTRACKLET_H
 
-#include "DataFormatsTRD/Tracklet64.h"
-
 namespace o2
 {
 namespace trd
@@ -21,18 +19,18 @@ namespace trd
 // The CalibratedTracklet has been calibrated in x and dy according to a calculated Lorentz Angle and Drift Velocity.
 // Tracklet positions in local z direction are reported at the center of the pad-row.
 // Pad-tilting correction is performed after tracking.
-class CalibratedTracklet : public Tracklet64
+class CalibratedTracklet
 {
  public:
   CalibratedTracklet() = default;
-  CalibratedTracklet(uint64_t trackletWord, float x, float y, float z, float dy)
-    : Tracklet64(trackletWord), mx(x), my(y), mz(z), mdy(dy){};
+  CalibratedTracklet(float x, float y, float z, float dy)
+    : mx(x), my(y), mz(z), mdy(dy){};
   ~CalibratedTracklet() = default;
 
-  float getX() { return mx; }
-  float getY() { return my; }
-  float getZ() { return mz; }
-  float getDy() { return mdy; }
+  float getX() const { return mx; }
+  float getY() const { return my; }
+  float getZ() const { return mz; }
+  float getDy() const { return mdy; }
 
   void setX(float x) { mx = x; }
   void setY(float y) { my = y; }

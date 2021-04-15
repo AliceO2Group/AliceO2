@@ -60,7 +60,7 @@ class Tracker : public TrackerConfig
   std::uint32_t getROFrame() const { return mROFrame; }
 
   void initialize();
-  void initConfig(const MFTTrackingParam& trkParam);
+  void initConfig(const MFTTrackingParam& trkParam, bool printConfig = false);
 
  private:
   void findTracks(ROframe&);

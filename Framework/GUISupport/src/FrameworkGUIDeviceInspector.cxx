@@ -17,6 +17,7 @@
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/ChannelSpec.h"
 #include "Framework/Logger.h"
+#include "Framework/DeviceController.h"
 
 #include "DebugGUI/imgui.h"
 #include <csignal>
@@ -243,6 +244,11 @@ void displayDeviceInspector(DeviceSpec const& spec,
     (void)retVal;
   }
 #endif
+  if (control.controller) {
+    if (ImGui::Button("Say hello")) {
+      control.controller->hello();
+    }
+  }
 
   deviceInfoTable(info, metrics);
   for (auto& option : info.currentConfig) {

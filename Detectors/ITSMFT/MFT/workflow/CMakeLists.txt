@@ -11,18 +11,18 @@
 o2_add_library(MFTWorkflow
                TARGETVARNAME targetName
                SOURCES src/RecoWorkflow.cxx
-	               src/DigitReaderSpec.cxx
-	               src/ClustererSpec.cxx
-	               src/ClusterWriterSpec.cxx
-		       src/ClusterReaderSpec.cxx
-		       src/TrackerSpec.cxx
-		       src/TrackWriterSpec.cxx
+	                     src/ClustererSpec.cxx
+	                     src/ClusterWriterSpec.cxx
+		                   src/ClusterReaderSpec.cxx
+		                   src/TrackerSpec.cxx
+		                   src/TrackWriterSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::SimConfig
                                      O2::SimulationDataFormat
 				     O2::ITSMFTReconstruction
                                      O2::MFTTracking
-                                     O2::DataFormatsMFT)
+                                     O2::DataFormatsMFT
+                                     O2::ITSMFTWorkflow)
 
 o2_add_executable(reco-workflow
                   SOURCES src/mft-reco-workflow.cxx

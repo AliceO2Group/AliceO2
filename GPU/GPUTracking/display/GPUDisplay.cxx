@@ -192,7 +192,7 @@ void GPUDisplay::SetCollisionFirstCluster(unsigned int collision, int slice, int
 
 void GPUDisplay::mAnimationCloseAngle(float& newangle, float lastAngle)
 {
-  const float delta = lastAngle > newangle ? (2 * M_PI) : (-2 * M_PI);
+  const float delta = lastAngle > newangle ? (2 * CAMath::Pi()) : (-2 * CAMath::Pi());
   while (fabsf(newangle + delta - lastAngle) < fabsf(newangle - lastAngle)) {
     newangle += delta;
   }
@@ -1039,7 +1039,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
             }
             x = trkParam.X() + 1.f;
             if (!mPropagateLoopers) {
-              float diff = fabsf(alpha - param().Alpha(slice)) / (2. * M_PI);
+              float diff = fabsf(alpha - param().Alpha(slice)) / (2. * CAMath::Pi());
               diff -= floor(diff);
               if (diff > 0.25 && diff < 0.75) {
                 break;
@@ -1135,7 +1135,7 @@ GPUDisplay::vboList GPUDisplay::DrawGridTRD(int sector)
     int trdsector = NSLICES / 2 - 1 - sector;
     float alpha = geo->GetAlpha() / 2.f + geo->GetAlpha() * trdsector;
     if (trdsector >= 9) {
-      alpha -= 2 * M_PI;
+      alpha -= 2 * CAMath::Pi();
     }
     for (int iLy = 0; iLy < GPUTRDTracker::EGPUTRDTracker::kNLayers; ++iLy) {
       for (int iStack = 0; iStack < GPUTRDTracker::EGPUTRDTracker::kNStacks; ++iStack) {
@@ -1433,7 +1433,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     if (mCfg.animationMode != 6) {
       if (mCfg.animationMode & 1) // Rotation from euler angles
       {
-        nextViewMatrix = nextViewMatrix * HMM_Rotate(-vals[4] * 180.f / M_PI, {1, 0, 0}) * HMM_Rotate(vals[5] * 180.f / M_PI, {0, 1, 0}) * HMM_Rotate(-vals[6] * 180.f / M_PI, {0, 0, 1});
+        nextViewMatrix = nextViewMatrix * HMM_Rotate(-vals[4] * 180.f / CAMath::Pi(), {1, 0, 0}) * HMM_Rotate(vals[5] * 180.f / CAMath::Pi(), {0, 1, 0}) * HMM_Rotate(-vals[6] * 180.f / CAMath::Pi(), {0, 0, 1});
       } else { // Rotation from quaternion
         const float mag = sqrtf(vals[4] * vals[4] + vals[5] * vals[5] + vals[6] * vals[6] + vals[7] * vals[7]);
         if (mag < 0.0001) {
@@ -1536,7 +1536,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       phi += moveX * 0.1f;
       float theta = atan2f(mXYZ[1], r2);
       theta -= moveY * 0.1f;
-      const float max_theta = M_PI / 2 - 0.01;
+      const float max_theta = CAMath::Pi() / 2 - 0.01;
       if (theta >= max_theta) {
         theta = max_theta;
       } else if (theta <= -max_theta) {
@@ -1571,7 +1571,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       nextViewMatrix = nextViewMatrix * mViewMatrix; // Apply previous translation / rotation
       if (yUp) {
         calcXYZ(&nextViewMatrix.Elements[0][0]);
-        nextViewMatrix = HMM_Rotate(mAngle[2] * 180.f / M_PI, {0, 0, 1}) * nextViewMatrix;
+        nextViewMatrix = HMM_Rotate(mAngle[2] * 180.f / CAMath::Pi(), {0, 0, 1}) * nextViewMatrix;
       }
       if (rotateModel) {
         if (rotYaw != 0.f) {
@@ -1744,9 +1744,9 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
 
         float alpha = atan2f(mc.y, mc.x);
         if (alpha < 0) {
-          alpha += 2 * M_PI;
+          alpha += 2 * CAMath::Pi();
         }
-        int slice = alpha / (2 * M_PI) * 18;
+        int slice = alpha / (2 * CAMath::Pi()) * 18;
         if (mc.z < 0) {
           slice += 18;
         }
@@ -2124,8 +2124,8 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     sprintf(info,
             "FPS: %6.2f (Slice: %d, 1:Clusters %d, 2:Prelinks %d, 3:Links %d, 4:Seeds %d, 5:Tracklets %d, 6:Tracks %d, 7:GTracks %d, 8:Merger %d) (%d frames, %d draw calls) "
             "(X %1.2f Y %1.2f Z %1.2f / R %1.2f Phi %1.1f Theta %1.1f) / Yaw %1.1f Pitch %1.1f Roll %1.1f)",
-            fps, mCfg.drawSlice, mCfg.drawClusters, mCfg.drawInitLinks, mCfg.drawLinks, mCfg.drawSeeds, mCfg.drawTracklets, mCfg.drawTracks, mCfg.drawGlobalTracks, mCfg.drawFinal, mFramesDone, mNDrawCalls, mXYZ[0], mXYZ[1], mXYZ[2], mRPhiTheta[0], mRPhiTheta[1] * 180 / M_PI,
-            mRPhiTheta[2] * 180 / M_PI, mAngle[1] * 180 / M_PI, mAngle[0] * 180 / M_PI, mAngle[2] * 180 / M_PI);
+            fps, mCfg.drawSlice, mCfg.drawClusters, mCfg.drawInitLinks, mCfg.drawLinks, mCfg.drawSeeds, mCfg.drawTracklets, mCfg.drawTracks, mCfg.drawGlobalTracks, mCfg.drawFinal, mFramesDone, mNDrawCalls, mXYZ[0], mXYZ[1], mXYZ[2], mRPhiTheta[0], mRPhiTheta[1] * 180 / CAMath::Pi(),
+            mRPhiTheta[2] * 180 / CAMath::Pi(), mAngle[1] * 180 / CAMath::Pi(), mAngle[0] * 180 / CAMath::Pi(), mAngle[2] * 180 / CAMath::Pi());
     if (fpstime > 1.) {
       if (mPrintInfoText & 2) {
         GPUInfo("%s", info);

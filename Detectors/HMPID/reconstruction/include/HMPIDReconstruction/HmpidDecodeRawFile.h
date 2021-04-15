@@ -25,7 +25,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "HmpidDecoder.h"
+#include "HMPIDReconstruction/HmpidDecoder.h"
 
 #define MAXFILENAMEBUFFER 512
 #define MAXRAWFILEBUFFER RAWBLOCKDIMENSION_W * 4 + 8

@@ -15,7 +15,8 @@
 #include "Framework/Task.h"
 
 #include "HMPIDBase/Common.h"
-#include "HMPIDReconstruction/HmpidDecodeRawMem.h"
+#include "HMPIDReconstruction/HmpidDecoder2.h"
+//#include "HMPIDReconstruction/HmpidDecodeRawMem.h"
 
 namespace o2
 {
@@ -35,16 +36,16 @@ class DataDecoderTask : public framework::Task
   void endOfStream(framework::EndOfStreamContext& ec) override;
 
  private:
-  HmpidDecodeRawDigit* mDeco;
+  HmpidDecoder2* mDeco;
   long mTotalDigits;
   long mTotalFrames;
   std::string mRootStatFile;
+  bool mFastAlgorithm;
 
   ExecutionTimer mExTimer;
 };
 
-o2::framework::DataProcessorSpec getDecodingSpec(std::string inputSpec = "TF:HMP/RAWDATA");
-//o2::framework::DataProcessorSpec getDecodingSpec();
+o2::framework::DataProcessorSpec getDecodingSpec(bool askSTFDist);
 } // end namespace hmpid
 } // end namespace o2
 

@@ -13,7 +13,7 @@
 
 #include <map>
 #include <vector>
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include <TFile.h>
 

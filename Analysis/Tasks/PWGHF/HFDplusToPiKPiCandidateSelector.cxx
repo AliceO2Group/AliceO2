@@ -18,28 +18,13 @@
 #include "Framework/AnalysisTask.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
+#include "AnalysisCore/HFSelectorCuts.h"
 
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong3;
-
-static const int npTBins = 12;
-static const int nCutVars = 8;
-//temporary until 2D array in configurable is solved - then move to json
-//selections from pp at 5 TeV 2017 analysis https://alice-notes.web.cern.ch/node/808
-//variables: deltaInvMass ptPi ptK DecayLength NormalizedDecayLengthXY CosP CosPXY MaxNormalisedDeltaIP
-constexpr double cuts[npTBins][nCutVars] = {{0.2, 0.3, 0.3, 0.07, 6., 0.96, 0.985, 2.5},  /* 1<pt<2   */
-                                            {0.2, 0.3, 0.3, 0.07, 5., 0.96, 0.985, 2.5},  /* 2<pt<3   */
-                                            {0.2, 0.3, 0.3, 0.10, 5., 0.96, 0.980, 2.5},  /* 3<pt<4   */
-                                            {0.2, 0.3, 0.3, 0.10, 5., 0.96, 0.000, 2.5},  /* 4<pt<5   */
-                                            {0.2, 0.3, 0.3, 0.10, 5., 0.96, 0.000, 2.5},  /* 5<pt<6   */
-                                            {0.2, 0.3, 0.3, 0.10, 5., 0.96, 0.000, 2.5},  /* 6<pt<7   */
-                                            {0.2, 0.3, 0.3, 0.10, 5., 0.96, 0.000, 2.5},  /* 7<pt<8   */
-                                            {0.2, 0.3, 0.3, 0.12, 5., 0.96, 0.000, 2.5},  /* 8<pt<10  */
-                                            {0.2, 0.3, 0.3, 0.12, 5., 0.96, 0.000, 2.5},  /* 10<pt<12 */
-                                            {0.2, 0.3, 0.3, 0.12, 5., 0.96, 0.000, 2.5},  /* 12<pt<16 */
-                                            {0.2, 0.3, 0.3, 0.12, 5., 0.96, 0.000, 2.5},  /* 16<pt<24 */
-                                            {0.2, 0.3, 0.3, 0.20, 5., 0.94, 0.000, 2.5}}; /* 24<pt<36 */
+using namespace o2::analysis;
+using namespace o2::analysis::hf_cuts_dplus_topikpi;
 
 /// Struct for applying Dplus to piKpi selection cuts
 struct HFDplusToPiKPiCandidateSelector {
@@ -59,23 +44,8 @@ struct HFDplusToPiKPiCandidateSelector {
   Configurable<double> d_nSigmaTPC{"d_nSigmaTPC", 3., "Nsigma cut on TPC"};
   Configurable<double> d_nSigmaTOF{"d_nSigmaTOF", 3., "Nsigma cut on TOF"};
 
-  /// Gets corresponding pT bin from cut file array
-  /// \param candpT is the pT of the candidate
-  /// \return corresponding bin number of array
-  template <typename T>
-  int getpTBin(T candpT)
-  {
-    double pTBins[npTBins + 1] = {1., 2., 3., 4., 5., 6., 7., 8., 10., 12., 16., 24., 36.};
-    if (candpT < pTBins[0] || candpT >= pTBins[npTBins]) {
-      return -1;
-    }
-    for (int i = 0; i < npTBins; i++) {
-      if (candpT < pTBins[i + 1]) {
-        return i;
-      }
-    }
-    return -1;
-  }
+  Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_dplus_topikpi::pTBins_v}, "pT bin limits"};
+  Configurable<LabeledArray<double>> cuts{"DPlus_to_Pi_K_Pi_cuts", {hf_cuts_dplus_topikpi::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "Dplus candidate selection per pT bin"};
 
   /// Selection on goodness of daughter tracks
   /// \note should be applied at candidate selection
@@ -100,32 +70,32 @@ struct HFDplusToPiKPiCandidateSelector {
   bool selection(const T1& hfCandProng3, const T2& trackPion1, const T2& trackKaon, const T2& trackPion2)
   {
     auto candpT = hfCandProng3.pt();
-    int pTBin = getpTBin(candpT);
+    int pTBin = findBin(pTBins, candpT);
     if (pTBin == -1) {
       return false;
     }
     if (candpT < d_pTCandMin || candpT > d_pTCandMax) {
       return false; //check that the candidate pT is within the analysis range
     }
-    if (trackPion1.pt() < cuts[pTBin][1] || trackKaon.pt() < cuts[pTBin][2] || trackPion2.pt() < cuts[pTBin][1]) {
+    if (trackPion1.pt() < cuts->get(pTBin, "pT Pi") || trackKaon.pt() < cuts->get(pTBin, "pT K") || trackPion2.pt() < cuts->get(pTBin, "pT Pi")) {
       return false; // cut on daughter pT
     }
-    if (TMath::Abs(InvMassDPlus(hfCandProng3) - RecoDecay::getMassPDG(411)) > cuts[pTBin][0]) {
+    if (TMath::Abs(InvMassDPlus(hfCandProng3) - RecoDecay::getMassPDG(pdg::code::kDPlus)) > cuts->get(pTBin, "deltaM")) {
       return false; // invariant mass cut
     }
-    if (hfCandProng3.decayLength() < cuts[pTBin][3]) {
+    if (hfCandProng3.decayLength() < cuts->get(pTBin, "decay length")) {
       return false;
     }
-    if (hfCandProng3.decayLengthXYNormalised() < cuts[pTBin][4]) {
+    if (hfCandProng3.decayLengthXYNormalised() < cuts->get(pTBin, "normalized decay length XY")) {
       return false;
     }
-    if (hfCandProng3.cpa() < cuts[pTBin][5]) {
+    if (hfCandProng3.cpa() < cuts->get(pTBin, "cos pointing angle")) {
       return false;
     }
-    if (hfCandProng3.cpaXY() < cuts[pTBin][6]) {
+    if (hfCandProng3.cpaXY() < cuts->get(pTBin, "cos pointing angle XY")) {
       return false;
     }
-    if (hfCandProng3.maxNormalisedDeltaIP() > cuts[pTBin][7]) {
+    if (TMath::Abs(hfCandProng3.maxNormalisedDeltaIP()) > cuts->get(pTBin, "max normalized deltaIP")) {
       return false;
     }
     return true;
@@ -171,9 +141,9 @@ struct HFDplusToPiKPiCandidateSelector {
   {
     double nSigma = 100.0; //arbitarily large value
     nPDG = TMath::Abs(nPDG);
-    if (nPDG == 211) {
+    if (nPDG == kPiPlus) {
       nSigma = track.tpcNSigmaPi();
-    } else if (nPDG == 321) {
+    } else if (nPDG == kKPlus) {
       nSigma = track.tpcNSigmaKa();
     } else {
       return false;
@@ -192,9 +162,9 @@ struct HFDplusToPiKPiCandidateSelector {
   {
     double nSigma = 100.0; //arbitarily large value
     nPDG = TMath::Abs(nPDG);
-    if (nPDG == 211) {
+    if (nPDG == kPiPlus) {
       nSigma = track.tofNSigmaPi();
-    } else if (nPDG == 321) {
+    } else if (nPDG == kKPlus) {
       nSigma = track.tofNSigmaKa();
     } else {
       return false;
@@ -239,14 +209,11 @@ struct HFDplusToPiKPiCandidateSelector {
     }
   }
 
-  void process(aod::HfCandProng3 const& hfCandProng3s, aod::BigTracksPID const& tracks)
+  void process(aod::HfCandProng3 const& hfCandProng3s, aod::BigTracksPID const&)
   {
-    int statusDplusToPiKPi; // final selection flag : 0-rejected  1-accepted
-    int pionPlus1, kaonMinus, pionPlus2;
-
     for (auto& hfCandProng3 : hfCandProng3s) { //looping over 3 prong candidates
 
-      statusDplusToPiKPi = 0;
+      auto statusDplusToPiKPi = 0; // final selection flag : 0-rejected  1-accepted
 
       if (!(hfCandProng3.hfflag() & 1 << DPlusToPiKPi)) {
         hfSelDplusToPiKPiCandidate(statusDplusToPiKPi);
@@ -270,9 +237,9 @@ struct HFDplusToPiKPiCandidateSelector {
       }
 
       // pid selection
-      pionPlus1 = selectionPID(trackPos1, 211);
-      kaonMinus = selectionPID(trackNeg1, 321);
-      pionPlus2 = selectionPID(trackPos2, 211);
+      auto pionPlus1 = selectionPID(trackPos1, kPiPlus);
+      auto kaonMinus = selectionPID(trackNeg1, kKPlus);
+      auto pionPlus2 = selectionPID(trackPos2, kPiPlus);
 
       if (pionPlus1 == 0 || kaonMinus == 0 || pionPlus2 == 0) { //exclude Dplus for PID
         hfSelDplusToPiKPiCandidate(statusDplusToPiKPi);

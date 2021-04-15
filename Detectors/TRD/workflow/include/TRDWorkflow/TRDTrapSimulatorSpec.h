@@ -20,6 +20,7 @@
 #include "TRDSimulation/TrapSimulator.h"
 #include "TRDSimulation/TrapConfig.h"
 #include "DataFormatsTRD/Tracklet64.h"
+#include "DataFormatsTRD/Constants.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/ConstMCTruthContainer.h>
 
@@ -41,24 +42,21 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
 
 
  private:
-  std::array<TrapSimulator, 128> mTrapSimulator; //the up to 128 trap simulators for a single chamber
   TrapConfig* mTrapConfig = nullptr;
   unsigned long mRunNumber = 297595; //run number to anchor simulation to.
-  int mShowTrackletStats = 1;        // show some statistics for each run
   bool mEnableOnlineGainCorrection{false};
   bool mUseMC{false}; // whether or not to use MC labels
   bool mEnableTrapConfigDump{false};
-  bool mShareDigitsManually{true};  // duplicate digits connected to shared pads if digitizer did not do so
+  int mNumThreads{-1};              // number of threads used for parallel processing
   std::string mTrapConfigName;      // the name of the config to be used.
   std::string mOnlineGainTableName;
   std::unique_ptr<Calibrations> mCalib; // store the calibrations connection to CCDB. Used primarily for the gaintables in line above.
-  std::chrono::duration<double> mTrapSimTime{0}; // timer for the actual processing in the TRAP chips
 
   TrapConfig* getTrapConfig();
   void loadTrapConfig();
   void loadDefaultTrapConfig();
   void setOnlineGainTables();
-  void processTRAPchips(int currDetector, int& nTrackletsInTrigRec, std::vector<Tracklet64>& trapTrackletsAccum, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& lblTracklets, const o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>* lblDigits);
+  void processTRAPchips(int& nTracklets, std::vector<Tracklet64>& trackletsAccum, std::array<TrapSimulator, constants::NMCMHCMAX>& trapSimulators, std::vector<short>& digitCounts, std::vector<int>& digitIndices);
 };
 
 o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec(bool useMC);

@@ -17,6 +17,7 @@
 #include "TList.h"
 #include "TDirectory.h"
 #include "TObjString.h"
+#include <TGrid.h>
 
 // AOD merger with correct index rewriting
 // No need to know the datamodel because the branch names follow a canonical standard (identified by fIndex)
@@ -29,11 +30,11 @@ int main(int argc, char* argv[])
   int this_option_optind = optind ? optind : 1;
   int option_index = 0;
   static struct option long_options[] = {
-    {"input", required_argument, 0, 0},
-    {"output", required_argument, 0, 1},
-    {"max-size", required_argument, 0, 2},
-    {"help", no_argument, 0, 3},
-    {0, 0, 0, 0}};
+    {"input", required_argument, nullptr, 0},
+    {"output", required_argument, nullptr, 1},
+    {"max-size", required_argument, nullptr, 2},
+    {"help", no_argument, nullptr, 3},
+    {nullptr, 0, nullptr, 0}};
 
   while (true) {
     int c = getopt_long(argc, argv, "", long_options, &option_index);
@@ -71,11 +72,19 @@ int main(int argc, char* argv[])
   std::ifstream in;
   in.open(inputCollection);
   TString line;
+  bool connectedToAliEn = false;
   while (in.good()) {
     in >> line;
 
-    if (line.Length() == 0)
+    if (line.Length() == 0) {
       continue;
+    }
+
+    if (line.BeginsWith("alien:") && !connectedToAliEn) {
+      printf("Connecting to AliEn...");
+      TGrid::Connect("alien:");
+      connectedToAliEn = true; // Only try once
+    }
 
     printf("Processing input file: %s\n", line.Data());
 
@@ -84,8 +93,9 @@ int main(int argc, char* argv[])
     keyList->Sort();
 
     for (auto key1 : *keyList) {
-      if (!((TObjString*)key1)->GetString().BeginsWith("DF_"))
+      if (!((TObjString*)key1)->GetString().BeginsWith("DF_")) {
         continue;
+      }
 
       auto dfName = ((TObjString*)key1)->GetString().Data();
 

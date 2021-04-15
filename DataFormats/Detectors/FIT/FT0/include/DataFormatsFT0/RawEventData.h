@@ -38,8 +38,8 @@ constexpr size_t sizeWord = 16;
 struct EventHeader {
   static constexpr size_t PayloadSize = 16;       //should be equal to 10
   static constexpr size_t PayloadPerGBTword = 16; //should be equal to 10
-  static constexpr int MinNelements = 1;
-  static constexpr int MaxNelements = 1;
+  static constexpr size_t MinNelements = 1;
+  static constexpr size_t MaxNelements = 1;
   union {
     uint64_t word[2] = {};
     struct {
@@ -62,8 +62,8 @@ struct EventHeader {
 struct EventData {
   static constexpr size_t PayloadSize = 5;
   static constexpr size_t PayloadPerGBTword = 10;
-  static constexpr int MinNelements = 1; //additional static field
-  static constexpr int MaxNelements = 12;
+  static constexpr size_t MinNelements = 1; //additional static field
+  static constexpr size_t MaxNelements = 12;
   //
   static constexpr int BitFlagPos = 25; // position of first bit flag(numberADC)
 
@@ -115,14 +115,15 @@ struct EventData {
 struct TCMdata {
   static constexpr size_t PayloadSize = 16;       //should be equal to 10
   static constexpr size_t PayloadPerGBTword = 16; //should be equal to 10
-  static constexpr int MinNelements = 1;
-  static constexpr int MaxNelements = 1;
-  uint64_t orC : 1,     // 0 bit (0 byte)
-    orA : 1,            //1 bit
+  static constexpr size_t MinNelements = 1;
+  static constexpr size_t MaxNelements = 1;
+  uint64_t orA : 1,     // 0 bit (0 byte)
+    orC : 1,            //1 bit
     sCen : 1,           //2 bit
     cen : 1,            //3 bit
     vertex : 1,         //4 bit
-    reservedField1 : 3, //5 bit
+    laser : 1,          //5 bit
+    reservedField1 : 2, //6 bit
     nChanA : 7,         //8 bit(1 byte)
     reservedField2 : 1, //15 bit
     nChanC : 7,         //16 bit(2 byte)
@@ -148,7 +149,8 @@ struct TCMdata {
                          ((bool)orC << Triggers::bitC) |
                          ((bool)vertex << Triggers::bitVertex) |
                          ((bool)cen << Triggers::bitCen) |
-                         ((bool)sCen << Triggers::bitSCen);
+                         ((bool)sCen << Triggers::bitSCen) |
+                         ((bool)laser << Triggers::bitLaser);
     trg.nChanA = (int8_t)nChanA;
     trg.nChanC = (int8_t)nChanC;
     trg.amplA = (int32_t)amplA;
@@ -161,8 +163,8 @@ struct TCMdata {
 struct TCMdataExtended {
   static constexpr size_t PayloadSize = 4;
   static constexpr size_t PayloadPerGBTword = 10;
-  static constexpr int MinNelements = 0;
-  static constexpr int MaxNelements = 20;
+  static constexpr size_t MinNelements = 0;
+  static constexpr size_t MaxNelements = 20;
   union {
     uint32_t word[1] = {};
     uint32_t triggerWord;
@@ -257,6 +259,7 @@ class DataPageWriter
       str.write(reinterpret_cast<const char*>(&mRDH), sizeof(mRDH));
       str.write(mPages[page].data(), mPages[page].size());
       mRDH.pageCnt++;
+      LOG(INFO) << " header " << mRDH.linkID << " end " << mRDH.endPointID;
     }
     if (!mPages.empty()) {
       mRDH.memorySize = mRDH.headerSize;

@@ -48,6 +48,7 @@ class GPUTPCTracker;
 class GPUChainTracking;
 class GPUTPCGMPolynomialField;
 struct GPUTPCGMLoopData;
+struct MergeLooperParam;
 
 /**
  * @class GPUTPCGMMerger
@@ -72,6 +73,7 @@ class GPUTPCGMMerger : public GPUProcessor
     GPUAtomic(unsigned int) nO2ClusRefs;
     const GPUTPCTrack* firstGlobalTracks[NSLICES];
     GPUAtomic(unsigned int) tmpCounter[2 * NSLICES];
+    GPUAtomic(unsigned int) nLooperMatchCandidates;
   };
 
   struct trackCluster {
@@ -127,6 +129,7 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUhdi() uint2* ClusRefTmp() { return mClusRefTmp; }
   GPUhdi() unsigned int* TrackSort() { return mTrackSort; }
   GPUhdi() tmpSort* TrackSortO2() { return mTrackSortO2; }
+  GPUhdi() MergeLooperParam* LooperCandidates() { return mLooperCandidates; }
   GPUhdi() GPUAtomic(unsigned int) * SharedCount() { return mSharedCount; }
   GPUhdi() gputpcgmmergertypes::GPUTPCGMBorderRange* BorderRange(int i) { return mBorderRange[i]; }
   GPUhdi() o2::tpc::TrackTPC* OutputTracksTPCO2() { return mOutputTracksTPCO2; }
@@ -176,7 +179,9 @@ class GPUTPCGMMerger : public GPUProcessor
   GPUd() void ResolveFindConnectedComponentsHookLinks(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void ResolveFindConnectedComponentsMultiJump(int nBlocks, int nThreads, int iBlock, int iThread);
   GPUd() void ResolveMergeSlices(gputpcgmmergertypes::GPUResolveSharedMemory& smem, int nBlocks, int nThreads, int iBlock, int iThread, char useOrigTrackParam, char mergeAll);
-  GPUd() void MergeLoopers(int nBlocks, int nThreads, int iBlock, int iThread);
+  GPUd() void MergeLoopersInit(int nBlocks, int nThreads, int iBlock, int iThread);
+  GPUd() void MergeLoopersSort(int nBlocks, int nThreads, int iBlock, int iThread);
+  GPUd() void MergeLoopersMain(int nBlocks, int nThreads, int iBlock, int iThread);
 
 #ifndef GPUCA_GPUCODE
   void DumpSliceTracks(std::ostream& out);
@@ -231,6 +236,7 @@ class GPUTPCGMMerger : public GPUProcessor
   unsigned int mNMaxSingleSliceTracks;   // max N tracks in one slice
   unsigned int mNMaxOutputTrackClusters; // max number of clusters in output tracks (double-counting shared clusters)
   unsigned int mNMaxClusters;            // max total unique clusters (in event)
+  unsigned int mNMaxLooperMatches;       // Maximum number of candidate pairs for looper matching
 
   unsigned short mMemoryResMemory;
   unsigned short mMemoryResOutput;
@@ -252,6 +258,7 @@ class GPUTPCGMMerger : public GPUProcessor
   o2::tpc::TrackTPC* mOutputTracksTPCO2;
   unsigned int* mOutputClusRefsTPCO2;
   o2::MCCompLabel* mOutputTracksTPCO2MC;
+  MergeLooperParam* mLooperCandidates;
 
   unsigned int* mTrackOrderAttach;
   unsigned int* mTrackOrderProcess;

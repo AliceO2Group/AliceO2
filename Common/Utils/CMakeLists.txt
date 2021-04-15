@@ -21,6 +21,7 @@ o2_target_root_dictionary(CommonUtils
                                   include/CommonUtils/TreeStreamRedirector.h
                                   include/CommonUtils/RootChain.h
                                   include/CommonUtils/BoostSerializer.h
+                                  include/CommonUtils/BoostHistogramUtils.h
                                   include/CommonUtils/ShmManager.h
                                   include/CommonUtils/RngHelper.h
                                   include/CommonUtils/StringUtils.h
@@ -66,3 +67,8 @@ o2_add_test(MemFileHelper
             LABELS utils
             SOURCES test/testMemFileHelper.cxx
             PUBLIC_LINK_LIBRARIES O2::CommonUtils)
+
+o2_add_executable(treemergertool
+            COMPONENT_NAME CommonUtils
+    	    SOURCES src/TreeMergerTool.cxx
+            PUBLIC_LINK_LIBRARIES O2::CommonUtils Boost::program_options ROOT::Core)

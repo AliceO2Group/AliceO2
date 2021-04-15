@@ -20,7 +20,7 @@
 #include <unordered_map>
 
 #include "Headers/RDHAny.h"
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 #include "MCHRawDecoder/OrbitInfo.h"
 #include "MCHRawDecoder/PageDecoder.h"
 

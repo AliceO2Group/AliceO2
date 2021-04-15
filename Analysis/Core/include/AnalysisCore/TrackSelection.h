@@ -184,7 +184,7 @@ class TrackSelection
  private:
   bool FulfillsITSHitRequirements(uint8_t itsClusterMap);
 
-  o2::aod::track::TrackTypeEnum mTrackType{o2::aod::track::TrackTypeEnum::GlobalTrack};
+  o2::aod::track::TrackTypeEnum mTrackType{o2::aod::track::TrackTypeEnum::Track};
 
   // kinematic cuts
   float mMinPt{0.f}, mMaxPt{1e10f};      // range in pT

@@ -13,8 +13,8 @@
  * @author  Andrea Ferrero
  */
 
-#ifndef ALICEO2_MCH_CALIBRATION_PEDESTAL_DIGIT_H_
-#define ALICEO2_MCH_CALIBRATION_PEDESTAL_DIGIT_H_
+#ifndef ALICEO2_MCH_PEDESTAL_DIGIT_H_
+#define ALICEO2_MCH_PEDESTAL_DIGIT_H_
 
 #include <vector>
 #include "Rtypes.h"
@@ -63,4 +63,4 @@ class PedestalDigit
 } //namespace calibration
 } //namespace mch
 } //namespace o2
-#endif // ALICEO2_MCH_CALIBRATION_PEDESTAL_DIGIT_H_
+#endif // ALICEO2_MCH_PEDESTAL_DIGIT_H_

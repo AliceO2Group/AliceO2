@@ -9,10 +9,12 @@
 // or submit itself to any jurisdiction.
 #ifndef O2_FRAMEWORK_CONFIGURABLE_H_
 #define O2_FRAMEWORK_CONFIGURABLE_H_
+#include "Framework/ConfigurableKinds.h"
 #include <string>
+#include <vector>
 namespace o2::framework
 {
-template <typename T>
+template <typename T, ConfigParamKind K>
 struct ConfigurableBase {
   ConfigurableBase(std::string const& name, T&& defaultValue, std::string const& help)
     : name(name), value{std::forward<T>(defaultValue)}, help(help)
@@ -22,12 +24,13 @@ struct ConfigurableBase {
   std::string name;
   T value;
   std::string help;
+  static constexpr ConfigParamKind kind = K;
 };
 
-template <typename T>
-struct ConfigurablePolicyConst : ConfigurableBase<T> {
+template <typename T, ConfigParamKind K>
+struct ConfigurablePolicyConst : ConfigurableBase<T, K> {
   ConfigurablePolicyConst(std::string const& name, T&& defaultValue, std::string const& help)
-    : ConfigurableBase<T>{name, std::forward<T>(defaultValue), help}
+    : ConfigurableBase<T, K>{name, std::forward<T>(defaultValue), help}
   {
   }
   operator T()
@@ -40,10 +43,10 @@ struct ConfigurablePolicyConst : ConfigurableBase<T> {
   }
 };
 
-template <typename T>
-struct ConfigurablePolicyMutable : ConfigurableBase<T> {
+template <typename T, ConfigParamKind K>
+struct ConfigurablePolicyMutable : ConfigurableBase<T, K> {
   ConfigurablePolicyMutable(std::string const& name, T&& defaultValue, std::string const& help)
-    : ConfigurableBase<T>{name, std::forward<T>(defaultValue), help}
+    : ConfigurableBase<T, K>{name, std::forward<T>(defaultValue), help}
   {
   }
   operator T()
@@ -58,7 +61,7 @@ struct ConfigurablePolicyMutable : ConfigurableBase<T> {
 
 /// This helper allows you to create a configurable option associated to a task.
 /// Internally it will be bound to a ConfigParamSpec.
-template <typename T, typename IP = ConfigurablePolicyConst<T>>
+template <typename T, ConfigParamKind K = ConfigParamKind::kGeneric, typename IP = ConfigurablePolicyConst<T, K>>
 struct Configurable : IP {
   Configurable(std::string const& name, T&& defaultValue, std::string const& help)
     : IP{name, std::forward<T>(defaultValue), help}
@@ -66,11 +69,13 @@ struct Configurable : IP {
   }
 };
 
-template <typename T>
-using MutableConfigurable = Configurable<T, ConfigurablePolicyMutable<T>>;
+template <typename T, ConfigParamKind K = ConfigParamKind::kGeneric>
+using MutableConfigurable = Configurable<T, K, ConfigurablePolicyMutable<T, K>>;
 
-template <typename T, typename IP>
-std::ostream& operator<<(std::ostream& os, Configurable<T, IP> const& c)
+using ConfigurableAxis = Configurable<std::vector<double>, ConfigParamKind::kAxisSpec, ConfigurablePolicyConst<std::vector<double>, ConfigParamKind::kAxisSpec>>;
+
+template <typename T, ConfigParamKind K, typename IP>
+std::ostream& operator<<(std::ostream& os, Configurable<T, K, IP> const& c)
 {
   os << c.value;
   return os;

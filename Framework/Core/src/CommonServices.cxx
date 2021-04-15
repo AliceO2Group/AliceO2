@@ -29,6 +29,7 @@
 #include "WSDriverClient.h"
 #include "HTTPParser.h"
 #include "../src/DataProcessingStatus.h"
+#include "ArrowSupport.h"
 #include "DPLMonitoringBackend.h"
 
 #include <Configuration/ConfigurationInterface.h>
@@ -198,7 +199,7 @@ o2::framework::ServiceSpec CommonServices::infologgerSpec()
                        }
                        auto infoLoggerService = new InfoLogger;
                        auto infoLoggerContext = &services.get<InfoLoggerContext>();
-                       infoLoggerContext->setField(InfoLoggerContext::FieldName::Facility, services.get<DeviceSpec const>().name);
+                       infoLoggerContext->setField(InfoLoggerContext::FieldName::Facility, std::string("dpl/") + services.get<DeviceSpec const>().name);
                        infoLoggerService->setContext(*infoLoggerContext);
 
                        auto infoLoggerSeverity = options.GetPropertyAsString("infologger-severity");
@@ -646,7 +647,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     dataRelayer(),
     dataProcessingStats(),
     CommonMessageBackends::fairMQBackendSpec(),
-    CommonMessageBackends::arrowBackendSpec(),
+    ArrowSupport::arrowBackendSpec(),
     CommonMessageBackends::stringBackendSpec(),
     CommonMessageBackends::rawBufferBackendSpec()};
   if (numThreads) {

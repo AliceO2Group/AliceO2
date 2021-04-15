@@ -182,8 +182,8 @@ int GPUTRDTrackerComponent::DoInit(int argc, const char** argv)
 
   iResult = ReadConfigurationString(arguments.Data());
 
-  GPUSettingsEvent cfgEvent;
-  cfgEvent.solenoidBz = GetBz();
+  GPUSettingsGRP cfgGRP;
+  cfgGRP.solenoidBz = GetBz();
   GPUSettingsRec cfgRec;
   GPUSettingsProcessing cfgDeviceProcessing;
   GPURecoStepConfiguration cfgRecoStep;
@@ -191,7 +191,7 @@ int GPUTRDTrackerComponent::DoInit(int argc, const char** argv)
   cfgRecoStep.inputs.clear();
   cfgRecoStep.outputs.clear();
   fRec = GPUReconstruction::CreateInstance("CPU", true);
-  fRec->SetSettings(&cfgEvent, &cfgRec, &cfgDeviceProcessing, &cfgRecoStep);
+  fRec->SetSettings(&cfgGRP, &cfgRec, &cfgDeviceProcessing, &cfgRecoStep);
   fChain = fRec->AddChain<GPUChainTracking>();
 
   fGeo = new GPUTRDGeometry();
@@ -459,11 +459,7 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 
     for (int i = 0; i < nTrackletsTotal; ++i) {
       const GPUTRDTrackerGPU::GPUTRDSpacePointInternal& sp = spacePoints[i];
-      int id = sp.mId;
-      if (id < 0 || id >= nTrackletsTotal) {
-        HLTError("Internal error: wrong space point index %d", id);
-      }
-      GPUTRDTrackPoint* currOutPoint = &outTrackPoints->fPoints[id];
+      GPUTRDTrackPoint* currOutPoint = &outTrackPoints->fPoints[i];
       currOutPoint->fX[0] = sp.mR;    // x in sector coordinates
       currOutPoint->fX[1] = sp.mX[0]; // y in sector coordinates
       currOutPoint->fX[2] = sp.mX[1]; // z in sector coordinates

@@ -39,6 +39,7 @@ xbuild/
 # common editor backups
 *.swp
 *~
+\#*\#
 
 # doxygen stuff
 html-doc/

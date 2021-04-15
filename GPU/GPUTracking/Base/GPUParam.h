@@ -35,7 +35,7 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 struct GPUSettingsRec;
-struct GPUSettingsEvent;
+struct GPUSettingsGTP;
 struct GPURecoStepConfiguration;
 
 struct GPUParamSlice {
@@ -69,8 +69,8 @@ struct GPUParam : public internal::GPUParam_t<GPUSettingsRec, GPUSettingsParam> 
 
 #ifndef GPUCA_GPUCODE
   void SetDefaults(float solenoidBz);
-  void SetDefaults(const GPUSettingsEvent* e, const GPUSettingsRec* r = nullptr, const GPUSettingsProcessing* p = nullptr, const GPURecoStepConfiguration* w = nullptr);
-  void UpdateEventSettings(const GPUSettingsEvent* e, const GPUSettingsProcessing* p = nullptr);
+  void SetDefaults(const GPUSettingsGRP* g, const GPUSettingsRec* r = nullptr, const GPUSettingsProcessing* p = nullptr, const GPURecoStepConfiguration* w = nullptr);
+  void UpdateGRPSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p = nullptr);
   void LoadClusterErrors(bool Print = 0);
   o2::base::Propagator* GetDefaultO2Propagator(bool useGPUField = false) const;
 #endif

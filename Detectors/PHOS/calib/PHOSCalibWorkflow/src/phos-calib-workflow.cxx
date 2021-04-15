@@ -10,7 +10,9 @@
 
 #include "PHOSCalibWorkflow/PHOSPedestalCalibDevice.h"
 #include "PHOSCalibWorkflow/PHOSHGLGRatioCalibDevice.h"
-#include "PHOSCalibWorkflow/PHOSCalibCollector.h"
+#include "PHOSCalibWorkflow/PHOSEnergyCalibDevice.h"
+#include "PHOSCalibWorkflow/PHOSTurnonCalibDevice.h"
+#include "PHOSCalibWorkflow/PHOSRunbyrunCalibDevice.h"
 #include "Framework/DataProcessorSpec.h"
 
 using namespace o2::framework;
@@ -19,13 +21,18 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
-  workflowOptions.push_back(ConfigParamSpec{"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb phos calibration objects"}});
-  workflowOptions.push_back(ConfigParamSpec{"forceupdate", o2::framework::VariantType::Bool, false, {"update ccdb even difference to previous object large"}});
+  // which method should be called
   workflowOptions.push_back(ConfigParamSpec{"pedestals", o2::framework::VariantType::Bool, false, {"do pedestal calculation"}});
   workflowOptions.push_back(ConfigParamSpec{"hglgratio", o2::framework::VariantType::Bool, false, {"do HG/LG ratio calculation"}});
-  workflowOptions.push_back(ConfigParamSpec{"etree", o2::framework::VariantType::Int, -1, {"collect tree for E calib (0: data scan, 1: iteration, 2: CalibParam calculaion)"}});
+  workflowOptions.push_back(ConfigParamSpec{"turnon", o2::framework::VariantType::Bool, false, {"scan trigger turn-on curves"}});
+  workflowOptions.push_back(ConfigParamSpec{"runbyrun", o2::framework::VariantType::Bool, false, {"do run by run correction calculation"}});
+  workflowOptions.push_back(ConfigParamSpec{"energy", o2::framework::VariantType::Bool, false, {"collect tree for E calib"}});
   workflowOptions.push_back(ConfigParamSpec{"badmap", o2::framework::VariantType::Bool, false, {"do bad map calculation"}});
-  workflowOptions.push_back(ConfigParamSpec{"path", o2::framework::VariantType::String, "./", {"path to store temp files"}});
+  //
+  workflowOptions.push_back(ConfigParamSpec{"not-use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb phos calibration objects"}});
+  workflowOptions.push_back(ConfigParamSpec{"forceupdate", o2::framework::VariantType::Bool, false, {"update ccdb even difference to previous object large"}});
+  workflowOptions.push_back(ConfigParamSpec{"ccdbpath", o2::framework::VariantType::String, "http://ccdb-test.cern.ch:8080", {"CCDB address to get current objects"}});
+  workflowOptions.push_back(ConfigParamSpec{"digitspath", o2::framework::VariantType::String, "./CalibDigits.root", {"path and name of file to store calib. digits"}});
 }
 
 // ------------------------------------------------------------------
@@ -35,13 +42,16 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
-  auto useCCDB = configcontext.options().get<bool>("use-ccdb");
-  auto forceUpdate = configcontext.options().get<bool>("forceupdate");
   auto doPedestals = configcontext.options().get<bool>("pedestals");
   auto doHgLgRatio = configcontext.options().get<bool>("hglgratio");
-  auto doEtree = configcontext.options().get<int>("etree");
+  auto doTurnOn = configcontext.options().get<bool>("turnon");
+  auto doRunbyrun = configcontext.options().get<bool>("runbyrun");
+  auto doEnergy = configcontext.options().get<bool>("energy");
   auto doBadMap = configcontext.options().get<bool>("badmap");
-  auto path = configcontext.options().get<std::string>("path");
+  auto useCCDB = !configcontext.options().get<bool>("not-use-ccdb");
+  auto forceUpdate = configcontext.options().get<bool>("forceupdate");
+  auto path = configcontext.options().get<std::string>("ccdbpath");
+  auto dpath = configcontext.options().get<std::string>("digitspath");
   if (doPedestals && doHgLgRatio) {
     LOG(FATAL) << "Can not run pedestal and HG/LG calibration simulteneously";
   }
@@ -57,14 +67,22 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       specs.emplace_back(o2::phos::getHGLGRatioCalibSpec(useCCDB, forceUpdate, path));
     }
   }
+  if (doEnergy) {
+    LOG(INFO) << "Filling tree for energy and time calibration ";
+    specs.emplace_back(o2::phos::getPHOSEnergyCalibDeviceSpec(useCCDB, path, dpath));
+  }
+  if (doTurnOn) {
+    LOG(INFO) << "TurnOn curves calculation";
+    specs.emplace_back(o2::phos::getPHOSTurnonCalibDeviceSpec(useCCDB, path));
+  }
+  if (doRunbyrun) {
+    LOG(INFO) << "Run by run correction calculation on ";
+    specs.emplace_back(o2::phos::getPHOSRunbyrunCalibDeviceSpec(useCCDB, path));
+  }
   if (doBadMap) {
     LOG(INFO) << "bad map calculation ";
     short m = 0;
     // specs.emplace_back(o2::phos::getBadMapCalibSpec(useCCDB,forceUpdate,path,m));
-  }
-  if (doEtree >= 0) {
-    LOG(INFO) << "Filling tree for energy and time calibration ";
-    specs.emplace_back(o2::phos::getPHOSCalibCollectorDeviceSpec(doEtree));
   }
   return specs;
 }

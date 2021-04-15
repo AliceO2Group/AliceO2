@@ -14,6 +14,7 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "ITSMFTReconstruction/RawPixelDecoder.h"
 #include "DPLUtils/DPLRawParser.h"
+#include "Framework/InputRecordWalker.h"
 #include "CommonUtils/StringUtils.h"
 
 #ifdef WITH_OPENMP
@@ -171,6 +172,21 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
   auto origin = (mUserDataOrigin == o2::header::gDataOriginInvalid) ? mMAP.getOrigin() : mUserDataOrigin;
   auto datadesc = (mUserDataDescription == o2::header::gDataDescriptionInvalid) ? o2::header::gDataDescriptionRawData : mUserDataDescription;
   std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{origin, datadesc}, Lifetime::Timeframe}};
+
+  // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
+  // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
+  {
+    std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{origin, datadesc, 0xDEADBEEF}}};
+    for (const auto& ref : InputRecordWalker(inputs, dummy)) {
+      const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+      if (dh->payloadSize == 0) {
+        LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
+             dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
+        return;
+      }
+    }
+  }
+
   DPLRawParser parser(inputs, filter);
   uint32_t currSSpec = 0xffffffff; // dummy starting subspec
   int linksAdded = 0;
@@ -252,7 +268,9 @@ ChipPixelData* RawPixelDecoder<Mapping>::getNextChipData(std::vector<ChipPixelDa
     auto& ru = mRUDecodeVec[mCurRUDecodeID];
     if (ru.lastChipChecked < ru.nChipsFired) {
       auto& chipData = ru.chipsData[ru.lastChipChecked++];
-      assert(mLastReadChipID < chipData.getChipID());
+      if constexpr (std::is_same<Mapping, ChipMappingITS>::value) {
+        assert(mLastReadChipID < chipData.getChipID());
+      }
       mLastReadChipID = chipData.getChipID();
       chipDataVec[mLastReadChipID].swap(chipData);
       return &chipDataVec[mLastReadChipID];
@@ -274,7 +292,9 @@ bool RawPixelDecoder<Mapping>::getNextChipData(ChipPixelData& chipData)
     auto& ru = mRUDecodeVec[mCurRUDecodeID];
     if (ru.lastChipChecked < ru.nChipsFired) {
       auto& ruchip = ru.chipsData[ru.lastChipChecked++];
-      assert(mLastReadChipID < chipData.getChipID());
+      if constexpr (std::is_same<Mapping, ChipMappingITS>::value) {
+        assert(mLastReadChipID < chipData.getChipID());
+      }
       mLastReadChipID = chipData.getChipID();
       chipData.swap(ruchip);
       return true;

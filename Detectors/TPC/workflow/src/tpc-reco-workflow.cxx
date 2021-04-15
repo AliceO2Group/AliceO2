@@ -25,6 +25,7 @@
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 
 #include <string>
 #include <stdexcept>
@@ -37,6 +38,7 @@ o2::framework::Output gDispatchTrigger{"", ""};
 
 // Global variable used to transport data to the completion policy
 o2::tpc::reco_workflow::CompletionPolicyData gPolicyData;
+unsigned long gTpcSectorMask = 0xFFFFFFFFF;
 
 // add workflow options, note that customization needs to be declared before
 // including Framework/runDataProcessing
@@ -49,14 +51,17 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"output-type", VariantType::String, "tracks", {"digits, zsraw, clustershw, clustersnative, tracks, compressed-clusters, encoded-clusters, disable-writer, send-clusters-per-sector, qa, no-shared-cluster-map"}},
     {"no-ca-clusterer", VariantType::Bool, false, {"Use HardwareClusterer instead of clusterer of GPUCATracking"}},
     {"disable-mc", VariantType::Bool, false, {"disable sending of MC information"}},
-    //{"tpc-sectors", VariantType::String, "0-35", {"TPC sector range, e.g. 5-7,8,9"}},
+    {"tpc-sectors", VariantType::String, "0-35", {"TPC sector range, e.g. 5-7,8,9"}},
     {"tpc-lanes", VariantType::Int, 1, {"number of parallel lanes up to the tracker"}},
     {"dispatching-mode", VariantType::String, "prompt", {"determines when to dispatch: prompt, complete"}},
     {"no-tpc-zs-on-the-fly", VariantType::Bool, false, {"Do not use TPC zero suppression on the fly"}},
     {"zs-threshold", VariantType::Float, 2.0f, {"zero suppression threshold"}},
     {"zs-10bit", VariantType::Bool, false, {"use 10 bit ADCs for TPC zero suppression, default = 12 bit ADC"}},
+    {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCHwClusterer.peakChargeThreshold=4;...')"}},
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}}};
+
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
 
   std::swap(workflowOptions, options);
 }
@@ -88,7 +93,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
   policies.push_back(CompletionPolicyHelpers::defineByName("tpc-cluster-decoder.*", CompletionPolicy::CompletionOp::Consume));
   policies.push_back(CompletionPolicyHelpers::defineByName("tpc-clusterer.*", CompletionPolicy::CompletionOp::Consume));
   // the custom completion policy for the tracker
-  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("tpc-tracker.*", o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll, &gPolicyData)());
+  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("tpc-tracker.*", o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll, &gPolicyData, &gTpcSectorMask)());
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
@@ -111,9 +116,7 @@ using namespace o2::framework;
 /// This function hooks up the the workflow specifications into the DPL driver.
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  //auto tpcSectors = o2::RangeTokenizer::tokenize<int>(cfgc.options().get<std::string>("tpc-sectors"));
-  std::vector<int> tpcSectors(36);
-  std::iota(tpcSectors.begin(), tpcSectors.end(), 0);
+  std::vector<int> tpcSectors = o2::RangeTokenizer::tokenize<int>(cfgc.options().get<std::string>("tpc-sectors"));
   // the lane configuration defines the subspecification ids to be distributed among the lanes.
   std::vector<int> laneConfiguration = tpcSectors; // Currently just a copy of the tpcSectors, why?
   auto nLanes = cfgc.options().get<int>("tpc-lanes");
@@ -140,17 +143,29 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   o2::conf::ConfigurableParam::writeINI("o2tpcrecoworkflow_configuration.ini");
 
+  gTpcSectorMask = 0;
+  for (auto s : tpcSectors) {
+    gTpcSectorMask |= (1ul << s);
+  }
+
   bool doMC = not cfgc.options().get<bool>("disable-mc");
-  return o2::tpc::reco_workflow::getWorkflow(&gPolicyData,                                      //
-                                             tpcSectors,                                        // sector configuration
-                                             laneConfiguration,                                 // lane configuration
-                                             doMC,                                              //
-                                             nLanes,                                            //
-                                             inputType,                                         //
-                                             cfgc.options().get<std::string>("output-type"),    //
-                                             !cfgc.options().get<bool>("no-ca-clusterer"),      //
-                                             !cfgc.options().get<bool>("no-tpc-zs-on-the-fly"), //
-                                             cfgc.options().get<bool>("zs-10bit"),              //
-                                             cfgc.options().get<float>("zs-threshold")          //
+  auto wf = o2::tpc::reco_workflow::getWorkflow(&gPolicyData,                                      //
+                                                tpcSectors,                                        // sector configuration
+                                                gTpcSectorMask,                                    // same as bitmask
+                                                laneConfiguration,                                 // lane configuration
+                                                doMC,                                              //
+                                                nLanes,                                            //
+                                                inputType,                                         //
+                                                cfgc.options().get<std::string>("output-type"),    //
+                                                !cfgc.options().get<bool>("no-ca-clusterer"),      //
+                                                !cfgc.options().get<bool>("no-tpc-zs-on-the-fly"), //
+                                                cfgc.options().get<bool>("zs-10bit"),              //
+                                                cfgc.options().get<float>("zs-threshold"),         //
+                                                !cfgc.options().get<bool>("ignore-dist-stf")       //
   );
+
+  // write the configuration used for the digitizer workflow
+  o2::conf::ConfigurableParam::writeINI("o2tpcrecoflow_configuration.ini");
+
+  return std::move(wf);
 }

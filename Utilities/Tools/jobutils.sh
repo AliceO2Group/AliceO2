@@ -178,6 +178,7 @@ taskwrapper() {
              -e \"bus error\"                       \
              -e \"Assertion.*failed\"               \
              -e \"Fatal in\"                        \
+             -e \"libc++abi.*terminating\"          \
              -e \"There was a crash.\""
       
     grepcommand="grep -H ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} >> encountered_exceptions_list 2>/dev/null"

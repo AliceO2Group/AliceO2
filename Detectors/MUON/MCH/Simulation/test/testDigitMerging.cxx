@@ -13,7 +13,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DigitMerging.h"
 #include "boost/format.hpp"

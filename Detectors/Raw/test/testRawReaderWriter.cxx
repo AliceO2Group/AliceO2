@@ -26,6 +26,7 @@
 #include "CommonConstants/Triggers.h"
 #include "Framework/Logger.h"
 #include "Framework/InputRecord.h"
+#include "Headers/DataHeaderHelpers.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "CommonUtils/StringUtils.h"
 
@@ -337,7 +338,7 @@ BOOST_AUTO_TEST_CASE(RawReaderWriter_CRU)
       }
       if (RDHUtils::getCRUID(*rdh) == NCRU - 1) {
         if (newLink) {
-          dh->print();
+          LOGP(INFO, "{}", *dh);
         }
         RDHUtils::printRDH(rdh);
         if (RDHUtils::getMemorySize(*rdh) > sizeof(RDHAny) + RDHUtils::GBTWord) { // special CRU with predefined sizes
