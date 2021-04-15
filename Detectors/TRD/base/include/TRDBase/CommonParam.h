@@ -11,8 +11,8 @@
 #ifndef O2_TRD_COMMONPARAM_H
 #define O2_TRD_COMMONPARAM_H
 
-#include "GPUCommonRtypes.h"
 #include <array>
+#include "Rtypes.h" // for ClassDef
 
 namespace o2
 {
@@ -55,9 +55,7 @@ class CommonParam
  protected:
   void sampleTimeStruct(float vdrift);
 
-#ifndef GPUCA_GPUCODE_DEVICE
   static CommonParam* fgInstance; //  Instance of this class (singleton implementation)
-#endif
   static constexpr int TIMEBIN = 38;
   static constexpr int ZBIN = 11;
   bool mExBOn{true};          // Switch for the ExB effects
