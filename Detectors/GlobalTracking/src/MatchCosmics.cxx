@@ -174,7 +174,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     } else { // just collect NClusters and chi2
       auto gidxListBtm = data.getSingleDetectorRefs(mSeeds[poolEntryID[btm]].origID);
       if (gidxListBtm[GTrackID::TPC].isIndexSet()) {
-        const auto& tpcTrOrig = data.getTPCTrack<o2::its::TrackITS>(gidxListBtm[GTrackID::TPC]);
+        const auto& tpcTrOrig = data.getTPCTrack<o2::tpc::TrackTPC>(gidxListBtm[GTrackID::TPC]);
         nclTot += tpcTrOrig.getNClusters();
         chi2 += tpcTrOrig.getChi2();
       }
@@ -208,11 +208,14 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     } // ITS refit
     //
     if (gidxListTop[GTrackID::TPC].isIndexSet()) { // outward refit in TPC
-      float xtogo = 0;
-      if (!trCosm.getXatLabR(o2::constants::geom::XTPCInnerRef, xtogo, mBz, o2::track::DirOutward) ||
-          !o2::base::Propagator::Instance()->PropagateToXBxByBz(trCosm, xtogo, mMatchParams->maxSnp, mMatchParams->maxStep, mMatchParams->matCorr)) {
-        LOG(DEBUG) << "Propagation to inner TPC boundary X=" << xtogo << " failed";
-        continue;
+      // go to TPC boundary, if needed
+      if (trCosm.getX() * trCosm.getX() + trCosm.getY() * trCosm.getY() <= o2::constants::geom::XTPCInnerRef * o2::constants::geom::XTPCInnerRef) {
+        float xtogo = 0;
+        if (!trCosm.getXatLabR(o2::constants::geom::XTPCInnerRef, xtogo, mBz, o2::track::DirOutward) ||
+            !o2::base::Propagator::Instance()->PropagateToXBxByBz(trCosm, xtogo, mMatchParams->maxSnp, mMatchParams->maxStep, mMatchParams->matCorr)) {
+          LOG(DEBUG) << "Propagation to inner TPC boundary X=" << xtogo << " failed";
+          continue;
+        }
       }
       const auto& tpcTrOrig = data.getTPCTrack<o2::tpc::TrackTPC>(gidxListTop[GTrackID::TPC]);
       int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosm, tpcTrOrig.getClusterRef(), t0 * tpcTBinMUSInv, &chi2, true, false); // outward refit, no reset
