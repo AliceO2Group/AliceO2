@@ -55,27 +55,27 @@ class CommonParam
  protected:
   void sampleTimeStruct(float vdrift);
 
-  static CommonParam* mgInstance; //  Instance of this class (singleton implementation)
-  static constexpr int TIMEBIN = 38;
-  static constexpr int ZBIN = 11;
-  bool mExBOn{true};          // Switch for the ExB effects
-  double mField{-0.5};        // cached magnetic field
-  float mDiffusionT{0.};      // Transverse drift coefficient
-  float mDiffusionL{0.};      // Longitudinal drift coefficient
-  float mDiffLastVdrift{-1.}; // The structures are valid for fLastVdrift (caching)
+  static CommonParam* mgInstance;    ///<  Instance of this class (singleton implementation)
+  static constexpr int TIMEBIN = 38; ///< Number of bins in time direction used for garfield simulation
+  static constexpr int ZBIN = 11;    ///< Number of bins in z direction used for garfield simulation
+  bool mExBOn{true};                 ///< Switch for the ExB effects
+  double mField{-0.5};               ///< Cached magnetic field
+  float mDiffusionT{0.};             ///< Transverse drift coefficient
+  float mDiffusionL{0.};             ///< Longitudinal drift coefficient
+  float mDiffLastVdrift{-1.};        ///< The structures are valid for fLastVdrift (caching)
 
-  std::array<float, TIMEBIN * ZBIN> mTimeStruct1{}; // Time Structure of Drift Cells
-  std::array<float, TIMEBIN * ZBIN> mTimeStruct2{}; // Time Structure of Drift Cells
-  float mVDlo{0.};                                  //  Lower drift velocity, for interpolation
-  float mVDhi{0.};                                  //  Higher drift velocity, for interpolation
-  float mTimeLastVdrift{-1.};                       //  The structures are valid for fLastVdrift (caching)
+  std::array<float, TIMEBIN * ZBIN> mTimeStruct1{}; ///< Time Structure of Drift Cells
+  std::array<float, TIMEBIN * ZBIN> mTimeStruct2{}; ///< Time Structure of Drift Cells
+  float mVDlo{0.};                                  ///< Lower drift velocity, for interpolation
+  float mVDhi{0.};                                  ///< Higher drift velocity, for interpolation
+  float mTimeLastVdrift{-1.};                       ///< The structures are valid for fLastVdrift (caching)
 
-  float mSamplingFrequency{10.}; //  Sampling Frequency in MHz
+  float mSamplingFrequency{10.}; ///< Sampling Frequency in MHz
 
-  int mGasMixture{kXenon}; //  Gas mixture: 0-Xe/C02 1-Ar/CO2.
+  int mGasMixture{kXenon}; ///< Gas mixture: 0-Xe/C02 1-Ar/CO2.
 
  private:
-  // This is a singleton, constructor is private!
+  /// This is a singleton, constructor is private!
   CommonParam() = default;
 
   ClassDef(CommonParam, 1); // The constant parameters common to simulation and reconstruction
