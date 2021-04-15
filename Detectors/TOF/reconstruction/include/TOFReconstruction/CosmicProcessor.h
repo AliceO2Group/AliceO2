@@ -38,11 +38,17 @@ class CosmicProcessor
   CosmicProcessor& operator=(const CosmicProcessor&) = delete;
 
   void process(DigitDataReader& r, bool fill = true);
+  void processTrack();
   void clear();
   std::vector<CosmicInfo>* getCosmicInfo() { return (&mCosmicInfo); }
+  std::vector<CalibInfoTrackCl>* getCosmicTrack() { return (&mCosmicTrack); }
+  std::vector<int>* getCosmicTrackSize() { return (&mSizeTrack); }
 
  private:
   std::vector<CosmicInfo> mCosmicInfo;
+  std::vector<CalibInfoTrackCl> mCosmicTrack;
+  std::vector<CalibInfoTrackCl> mCosmicTrackTemp;
+  std::vector<int> mSizeTrack;
   int mCounters[Geo::NCHANNELS];
 };
 

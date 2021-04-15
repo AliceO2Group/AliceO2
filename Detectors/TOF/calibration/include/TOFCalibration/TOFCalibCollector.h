@@ -14,6 +14,7 @@
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DetectorsCalibration/TimeSlot.h"
 #include "DataFormatsTOF/CalibInfoTOF.h"
+#include "DataFormatsTOF/CalibInfoCluster.h"
 #include "TOFBase/Geo.h"
 #include "DataFormatsTOF/CalibInfoTOFshort.h"
 
@@ -45,6 +46,7 @@ class TOFCalibInfoSlot
   void print() const;
   void printEntries() const;
   void fill(const gsl::span<const o2::dataformats::CalibInfoTOF> data);
+  void fill(const gsl::span<const o2::tof::CalibInfoCluster> data);
   void merge(const TOFCalibInfoSlot* prev);
 
   auto& getEntriesPerChannel() const { return mEntriesSlot; }
