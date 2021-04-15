@@ -11,8 +11,9 @@
 o2_add_library(CommonUtils
                SOURCES src/TreeStream.cxx src/TreeStreamRedirector.cxx
                        src/RootChain.cxx src/CompStream.cxx src/ShmManager.cxx
-	               src/ValueMonitor.cxx
+                       src/ValueMonitor.cxx
                        src/ConfigurableParamHelper.cxx src/ConfigurableParam.cxx src/RootSerializableKeyValueStore.cxx
+                       src/KeyValParam.cxx
                PUBLIC_LINK_LIBRARIES ROOT::Hist ROOT::Tree Boost::iostreams O2::CommonDataFormat O2::Headers
                                      FairLogger::FairLogger)
 
@@ -26,11 +27,12 @@ o2_target_root_dictionary(CommonUtils
                                   include/CommonUtils/RngHelper.h
                                   include/CommonUtils/StringUtils.h
                                   include/CommonUtils/ValueMonitor.h
-				  include/CommonUtils/MemFileHelper.h
+                                  include/CommonUtils/MemFileHelper.h
                                   include/CommonUtils/ConfigurableParam.h
                                   include/CommonUtils/ConfigurableParamHelper.h
                                   include/CommonUtils/ConfigurationMacroHelper.h
-				  include/CommonUtils/RootSerializableKeyValueStore.h)
+                                  include/CommonUtils/RootSerializableKeyValueStore.h
+                                  include/CommonUtils/KeyValParam.h)
 
 o2_add_test(TreeStream
             COMPONENT_NAME CommonUtils
@@ -70,5 +72,5 @@ o2_add_test(MemFileHelper
 
 o2_add_executable(treemergertool
             COMPONENT_NAME CommonUtils
-    	    SOURCES src/TreeMergerTool.cxx
+          SOURCES src/TreeMergerTool.cxx
             PUBLIC_LINK_LIBRARIES O2::CommonUtils Boost::program_options ROOT::Core)

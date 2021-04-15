@@ -24,4 +24,7 @@
 #pragma link C++ class map < string, o2::utils::RootSerializableKeyValueStore::SerializedInfo> + ;
 #pragma link C++ class o2::utils::RootSerializableKeyValueStore + ;
 
+#pragma link C++ class o2::conf::KeyValParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::conf::KeyValParam> + ;
+
 #endif
