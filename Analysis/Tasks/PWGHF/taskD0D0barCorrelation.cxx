@@ -127,9 +127,9 @@ struct TaskD0D0barCorrelation {
 
       //reject entries outside pT ranges of interest
       double minPtAllowed = binsCorrelations->at(0);
-      double maxPtAllowed = binsCorrelations->at(binsCorrelations->size()-1);
+      double maxPtAllowed = binsCorrelations->at(binsCorrelations->size() - 1);
       if (ptD0 < minPtAllowed || ptD0bar < minPtAllowed || ptD0 > maxPtAllowed || ptD0bar > maxPtAllowed) {
-	      continue;
+        continue;
       }
 
       //fill 2D invariant mass plots
@@ -238,9 +238,9 @@ struct TaskD0D0barCorrelationMCRec {
 
       //reject entries outside pT ranges of interest
       double minPtAllowed = binsCorrelations->at(0);
-      double maxPtAllowed = binsCorrelations->at(binsCorrelations->size()-1);
+      double maxPtAllowed = binsCorrelations->at(binsCorrelations->size() - 1);
       if (ptD0 < minPtAllowed || ptD0bar < minPtAllowed || ptD0 > maxPtAllowed || ptD0bar > maxPtAllowed) {
-	      continue;
+        continue;
       }
 
       //fill 2D invariant mass plots
@@ -342,7 +342,7 @@ struct TaskD0D0barCorrelationMCGen {
     // redefinition of pT axes for THnSparse holding correlation entries
     int nBinspTaxis = binsCorrelations->size() - 1;
     const double* valuespTaxis = binsCorrelations->data();
-   
+
     for (int i = 2; i <= 3; i++) {
       registry.get<THnSparse>(HIST("hCorrel2DVsPtMCGen"))->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);
     }
@@ -356,10 +356,10 @@ struct TaskD0D0barCorrelationMCGen {
       double deltaEta = pairEntry.deltaEta();
       double ptD0 = pairEntry.ptD0();
       double ptD0bar = pairEntry.ptD0bar();
-            
+
       //reject entries outside pT ranges of interest
       double minPtAllowed = binsCorrelations->at(0);
-      double maxPtAllowed = binsCorrelations->at(binsCorrelations->size()-1);
+      double maxPtAllowed = binsCorrelations->at(binsCorrelations->size() - 1);
       if (ptD0 < minPtAllowed || ptD0bar < minPtAllowed || ptD0 > maxPtAllowed || ptD0bar > maxPtAllowed) {
         continue;
       }
