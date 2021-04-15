@@ -49,7 +49,10 @@ struct NucleiSpectraProviderTask {
   Filter collisionFilter = nabs(aod::collision::posZ) < vertexZCut;
   Filter trackFilter = (nabs(aod::track::eta) < trackEtaCut) && (aod::track::isGlobalTrack == (uint8_t) true) && (aod::track::pt > trackPtCut);
 
-  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::pidRespTOF, aod::pidRespTOFbeta, aod::TrackSelection>>;
+  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra,
+                                                  aod::pidRespTPCPi, aod::pidRespTPCKa, aod::pidRespTPCPr, aod::pidRespTPCHe,
+                                                  aod::pidRespTOFPi, aod::pidRespTOFKa, aod::pidRespTOFPr, aod::pidRespTOFHe,
+                                                  aod::TrackSelection>>;
   void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision, TrackCandidates const& tracks)
   {
     bool keepEvent = false;
