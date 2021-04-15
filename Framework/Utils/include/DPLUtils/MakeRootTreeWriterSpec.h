@@ -644,7 +644,7 @@ class MakeRootTreeWriterSpec
   std::string mDefaultFileName;
   std::string mDefaultTreeName;
   std::string mDefaultTreeTitle;
-  std::string mDefaultDir = "./";
+  std::string mDefaultDir = "none";
   int mDefaultNofEvents = -1;
   int mDefaultAutoSave = -1;
   std::string mDefaultTerminationPolicy = "process";

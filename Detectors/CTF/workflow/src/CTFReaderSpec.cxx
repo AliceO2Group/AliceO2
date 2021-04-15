@@ -75,7 +75,7 @@ class CTFReaderSpec : public o2::framework::Task
   std::vector<std::string> mInput; // input files
   uint32_t mTFCounter = 0;
   size_t mNextToProcess = 0;
-  std::string mCTFDir = "./";
+  std::string mCTFDir = "";
   TStopwatch mTimer;
 };
 
@@ -90,7 +90,7 @@ CTFReaderSpec::CTFReaderSpec(DetID::mask_t dm, const std::string& inp) : mDets(d
 ///_______________________________________
 void CTFReaderSpec::init(InitContext& ic)
 {
-  o2::base::NameConf::rectifyDirectory((mCTFDir = ic.options().get<std::string>("ctf-input-dir")));
+  mCTFDir = o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir"));
 }
 
 ///_______________________________________
@@ -263,7 +263,7 @@ DataProcessorSpec getCTFReaderSpec(DetID::mask_t dets, const std::string& inp)
     Inputs{},
     outputs,
     AlgorithmSpec{adaptFromTask<CTFReaderSpec>(dets, inp)},
-    Options{{"ctf-input-dir", VariantType::String, "./", {"CTF input directory"}}}};
+    Options{{"input-dir", VariantType::String, "none", {"CTF input directory"}}}};
 }
 
 } // namespace ctf
