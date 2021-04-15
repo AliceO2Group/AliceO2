@@ -62,6 +62,7 @@ namespace framework
 /// \par The processor spec is generated with the following options:
 ///
 ///     --outfile
+///     --output-dir
 ///     --treename
 ///     --nevents
 ///     --autosave
@@ -371,6 +372,7 @@ class MakeRootTreeWriterSpec
       auto filename = ic.options().get<std::string>("outfile");
       auto treename = ic.options().get<std::string>("treename");
       auto treetitle = ic.options().get<std::string>("treetitle");
+      auto outdir = ic.options().get<std::string>("output-dir");
       processAttributes->nEvents = ic.options().get<int>("nevents");
       if (processAttributes->nEvents > 0 && processAttributes->activeInputs.size() != processAttributes->nofBranches) {
         LOG(WARNING) << "the n inputs serve in total m branches with n != m, this means that there will be data for\n"
@@ -394,12 +396,18 @@ class MakeRootTreeWriterSpec
         auto branchName = ic.options().get<std::string>(branchNameOptions[branchIndex].first.c_str());
         processAttributes->writer->setBranchName(branchIndex, branchName.c_str());
       }
+      if (!outdir.empty() && outdir != "none") {
+        if (outdir.back() != '/') {
+          outdir += '/';
+        }
+        filename = outdir + filename;
+      }
       processAttributes->writer->init(filename.c_str(), treename.c_str(), treetitle.c_str());
-
       // the callback to be set as hook at stop of processing for the framework
       auto finishWriting = [processAttributes]() {
         processAttributes->writer->close();
       };
+
       ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishWriting);
 
       auto processingFct = [processAttributes](ProcessingContext& pc) {
@@ -477,6 +485,7 @@ class MakeRootTreeWriterSpec
     Options options{
       // default options
       {"outfile", VariantType::String, mDefaultFileName.c_str(), {"Name of the output file"}},
+      {"output-dir", VariantType::String, mDefaultDir.c_str(), {"Output directory"}},
       {"treename", VariantType::String, mDefaultTreeName.c_str(), {"Name of tree"}},
       {"treetitle", VariantType::String, mDefaultTreeTitle.c_str(), {"Title of tree"}},
       {"nevents", VariantType::Int, mDefaultNofEvents, {"Number of events to execute"}},
@@ -635,6 +644,7 @@ class MakeRootTreeWriterSpec
   std::string mDefaultFileName;
   std::string mDefaultTreeName;
   std::string mDefaultTreeTitle;
+  std::string mDefaultDir = "./";
   int mDefaultNofEvents = -1;
   int mDefaultAutoSave = -1;
   std::string mDefaultTerminationPolicy = "process";
