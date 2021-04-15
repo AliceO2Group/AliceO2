@@ -95,8 +95,8 @@ class CTFWriterSpec : public o2::framework::Task
   size_t mNTF = 0;
   int mSaveDictAfter = -1; // if positive and mWriteCTF==true, save dictionary after each mSaveDictAfter TFs processed
   uint64_t mRun = 0;
-  std::string mDictDir = "./";
-  std::string mCTFDir = "./";
+  std::string mDictDir = "";
+  std::string mCTFDir = "";
 
   std::unique_ptr<TFile> mDictFileOut; // file to store dictionary
   std::unique_ptr<TTree> mDictTreeOut; // tree to store dictionary
@@ -197,8 +197,8 @@ CTFWriterSpec::CTFWriterSpec(DetID::mask_t dm, uint64_t r, bool doCTF, bool doDi
 void CTFWriterSpec::init(InitContext& ic)
 {
   mSaveDictAfter = ic.options().get<int>("save-dict-after");
-  o2::base::NameConf::rectifyDirectory((mDictDir = ic.options().get<std::string>("ctf-dict-dir")));
-  o2::base::NameConf::rectifyDirectory((mCTFDir = ic.options().get<std::string>("ctf-output-dir")));
+  mDictDir = o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("ctf-dict-dir"));
+  mCTFDir = o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("output-dir"));
 }
 
 void CTFWriterSpec::run(ProcessingContext& pc)
@@ -341,8 +341,8 @@ DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, bool doCTF,
     Outputs{},
     AlgorithmSpec{adaptFromTask<CTFWriterSpec>(dets, run, doCTF, doDict, dictPerDet)},
     Options{{"save-dict-after", VariantType::Int, -1, {"In dictionary generation mode save it dictionary after certain number of TFs processed"}},
-            {"ctf-dict-dir", VariantType::String, "./", {"CTF dictionary directory"}},
-            {"ctf-output-dir", VariantType::String, "./", {"CTF output directory"}}}};
+            {"ctf-dict-dir", VariantType::String, "none", {"CTF dictionary directory"}},
+            {"output-dir", VariantType::String, "none", {"CTF output directory"}}}};
 }
 
 } // namespace ctf
