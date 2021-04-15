@@ -18,6 +18,7 @@
 #include "TPCWorkflow/PublisherSpec.h"
 #include "Headers/DataHeader.h"
 #include "TPCBase/Sector.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include <memory> // for make_shared, make_unique, unique_ptr
 #include <array>
@@ -63,7 +64,8 @@ DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagat
 
   auto initFunction = [config, propagateMC, creator](InitContext& ic) {
     // get the option from the init context
-    auto filename = ic.options().get<std::string>("infile");
+    auto filename = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                             ic.options().get<std::string>("infile"));
     auto treename = ic.options().get<std::string>("treename");
     auto clbrName = ic.options().get<std::string>(config.databranch.option.c_str());
     auto mcbrName = ic.options().get<std::string>(config.mcbranch.option.c_str());
@@ -236,6 +238,7 @@ DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagat
                            AlgorithmSpec(initFunction),
                            Options{
                              {"infile", VariantType::String, config.defaultFileName.c_str(), {"Name of the input file"}},
+                             {"input-dir", VariantType::String, "none", {"Input directory"}},
                              {"treename", VariantType::String, config.defaultTreeName.c_str(), {"Name of input tree"}},
                              {dtb.option.c_str(), VariantType::String, dtb.defval.c_str(), {dtb.help.c_str()}},
                              {mcb.option.c_str(), VariantType::String, mcb.defval.c_str(), {mcb.help.c_str()}},

@@ -16,6 +16,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
 #include "GlobalTrackingWorkflow/SecondaryVertexReaderSpec.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 
@@ -26,7 +27,8 @@ namespace vertexing
 
 void SecondaryVertexReader::init(InitContext& ic)
 {
-  mFileName = ic.options().get<std::string>("secondary-vertex-infile");
+  mFileName = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                       ic.options().get<std::string>("secondary-vertex-infile"));
   connectTree();
 }
 
@@ -82,7 +84,8 @@ DataProcessorSpec getSecondaryVertexReaderSpec()
     outputs,
     AlgorithmSpec{adaptFromTask<SecondaryVertexReader>()},
     Options{
-      {"secondary-vertex-infile", VariantType::String, "o2_secondary_vertex.root", {"Name of the input secondary vertex file"}}}};
+      {"secondary-vertex-infile", VariantType::String, "o2_secondary_vertex.root", {"Name of the input secondary vertex file"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
 } // namespace vertexing

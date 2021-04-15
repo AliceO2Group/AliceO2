@@ -20,6 +20,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
 #include "TOFWorkflow/CalibInfoReaderSpec.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 using namespace o2::tof;
@@ -34,9 +35,10 @@ constexpr o2::header::DataDescription ddCalib{"CALIBDATA"}, ddCalib_tpc{"CALIBDA
 void CalibInfoReader::init(InitContext& ic)
 {
   LOG(INFO) << "Init CalibInfo reader!";
-  mFile = fopen(mFileName, "r");
+  auto fname = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")), mFileName);
+  mFile = fopen(fname.c_str(), "r");
   if (!mFile) {
-    LOG(ERROR) << "Cannot open the " << mFileName << " file !";
+    LOG(ERROR) << "Cannot open the " << fname << " file !";
     mState = 0;
     return;
   }
@@ -91,7 +93,7 @@ DataProcessorSpec getCalibInfoReaderSpec(int instance, int ninstances, const cha
     Inputs{},
     outputs,
     AlgorithmSpec{adaptFromTask<CalibInfoReader>(instance, ninstances, filename)},
-    Options{/* for the moment no options */}};
+    Options{{"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 } // namespace tof
 } // namespace o2

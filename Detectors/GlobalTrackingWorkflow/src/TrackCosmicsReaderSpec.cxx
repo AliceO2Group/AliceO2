@@ -17,6 +17,7 @@
 #include "GlobalTrackingWorkflow/TrackCosmicsReaderSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "Framework/SerializationMethods.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
@@ -27,7 +28,8 @@ namespace globaltracking
 {
 void TrackCosmicsReader::init(InitContext& ic)
 {
-  mFileName = ic.options().get<std::string>("cosmics-infile");
+  mFileName = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                       ic.options().get<std::string>("cosmics-infile"));
   connectTree(mFileName);
 }
 
@@ -77,7 +79,8 @@ DataProcessorSpec getTrackCosmicsReaderSpec(bool useMC)
     outputs,
     AlgorithmSpec{adaptFromTask<TrackCosmicsReader>(useMC)},
     Options{
-      {"cosmics-infile", VariantType::String, "cosmics.root", {"Name of the input file"}}}};
+      {"cosmics-infile", VariantType::String, "cosmics.root", {"Name of the input file"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
 } // namespace globaltracking
