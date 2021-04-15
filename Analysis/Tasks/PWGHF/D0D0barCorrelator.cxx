@@ -259,6 +259,10 @@ struct D0D0barCorrelatorMCRec {
         if (cutPtCandMin >= 0. && std::abs(candidate2.pt()) < cutPtCandMin) {
           continue;
         }
+        //Excluding trigger self-correlations (possible in case of both mass hypotheses accepted)
+        if (candidate1.mRowIndex == candidate2.mRowIndex) {
+          continue;
+        }
         //choice of options (D0/D0bar signal/bkg)
         int pairSignalStatus = 0; //0 = bkg/bkg, 1 = bkg/sig, 2 = sig/bkg, 3 = sig/sig
         if (flagD0Signal) {
@@ -303,7 +307,7 @@ struct D0D0barCorrelatorMCGen {
      {"hEtaMCGen", "D0,D0bar particles - MC gen;particle #it{#eta};entries", {HistType::kTH1F, {{100, -5., 5.}}}},
      {"hPhiMCGen", "D0,D0bar particles - MC gen;particle #it{#varphi};entries", {HistType::kTH1F, {{32, 0., 2. * o2::constants::math::PI}}}},
      {"hYMCGen", "D0,D0bar candidates - MC gen;candidate #it{#y};entries", {HistType::kTH1F, {{100, -5., 5.}}}},
-     {"hcountD0D0barPerEvent", "D0,D0bar particles - MC gen;Number per event;entries", {HistType::kTH1F, {{20, 0., 10.}}}},
+     {"hcountD0D0barPerEvent", "D0,D0bar particles - MC gen;Number per event;entries", {HistType::kTH1F, {{20, 0., 20.}}}},
      {"hDDbarVsEtaCut", "D0,D0bar pairs vs #eta cut;#eta_{max};entries", {HistType::kTH2F, {{(int)(maxEtaCut / incrementEtaCut), 0., maxEtaCut}, {(int)(ptThresholdForMaxEtaCut / incrementPtThreshold), 0., ptThresholdForMaxEtaCut}}}}}};
 
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
@@ -321,51 +325,52 @@ struct D0D0barCorrelatorMCGen {
     registry.fill(HIST("hMCEvtCount"), 0);
     //MC gen level
     for (auto& particle1 : particlesMC) {
+      //check if the particle is D0 or D0bar (for general plot filling and selection, so both cases are fine) - NOTE: decay channel is not probed!
+      if (std::abs(particle1.pdgCode()) != 421) {
+        continue;
+      }
       if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode()))) > cutYCandMax) {
         continue;
       }
       if (cutPtCandMin >= 0. && std::abs(particle1.pt()) < cutPtCandMin) {
         continue;
       }
-      //just checking if the particle is D0 or D0bar, for now
-      if (std::abs(particle1.pdgCode()) == 421) {
-        registry.fill(HIST("hPtCandMCGen"), particle1.pt());
-        registry.fill(HIST("hEtaMCGen"), particle1.eta());
-        registry.fill(HIST("hPhiMCGen"), particle1.phi());
-        registry.fill(HIST("hYMCGen"), RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode())));
-        counterD0D0bar++;
+      registry.fill(HIST("hPtCandMCGen"), particle1.pt());
+      registry.fill(HIST("hEtaMCGen"), particle1.eta());
+      registry.fill(HIST("hPhiMCGen"), particle1.phi());
+      registry.fill(HIST("hYMCGen"), RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode())));
+      counterD0D0bar++;
 
-        //D-Dbar correlation dedicated section
-        //if it's a D0 particle, search for D0bar and evaluate correlations
-        if (particle1.pdgCode() == 421) {                                  //just checking the particle PDG, not the decay channel (differently from Reco: you have a BR factor btw such levels!)
-          registry.fill(HIST("hcountD0triggersMCGen"), 0, particle1.pt()); //to count trigger D0 (for normalisation)
-          for (auto& particle2 : particlesMC) {
+      //D-Dbar correlation dedicated section
+      //if it's a D0 particle, search for D0bar and evaluate correlations
+      if (particle1.pdgCode() == 421) {                                  //just checking the particle PDG, not the decay channel (differently from Reco: you have a BR factor btw such levels!)
+        registry.fill(HIST("hcountD0triggersMCGen"), 0, particle1.pt()); //to count trigger D0 (for normalisation)
+        for (auto& particle2 : particlesMC) {
+          if (particle2.pdgCode() == -421) {
             if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle2.px(), particle2.py(), particle2.pz()}, RecoDecay::getMassPDG(particle2.pdgCode()))) > cutYCandMax) {
               continue;
             }
             if (cutPtCandMin >= 0. && std::abs(particle2.pt()) < cutPtCandMin) {
               continue;
             }
-            if (particle2.pdgCode() == -421) {
-              entryD0D0barPair(getDeltaPhi(particle2.phi(), particle1.phi()),
-                               particle2.eta() - particle1.eta(),
-                               particle1.pt(),
-                               particle2.pt());
-              double etaCut = 0.;
-              double ptCut = 0.;
+            entryD0D0barPair(getDeltaPhi(particle2.phi(), particle1.phi()),
+                             particle2.eta() - particle1.eta(),
+                             particle1.pt(),
+                             particle2.pt());
+            double etaCut = 0.;
+            double ptCut = 0.;
+            do { //fill pairs vs etaCut plot
+              ptCut = 0.;
+              etaCut += incrementEtaCut;
               do { //fill pairs vs etaCut plot
-                ptCut = 0.;
-                etaCut += incrementEtaCut;
-                do { //fill pairs vs etaCut plot
-                  if (std::abs(particle1.eta()) < etaCut && std::abs(particle2.eta()) < etaCut && particle1.pt() > ptCut && particle2.pt() > ptCut)
-                    registry.fill(HIST("hDDbarVsEtaCut"), etaCut - epsilon, ptCut + epsilon);
-                  ptCut += incrementPtThreshold;
-                } while (ptCut < ptThresholdForMaxEtaCut - epsilon);
-              } while (etaCut < maxEtaCut - epsilon);
-            } // end D0bar check
-          }   //end inner loop
-        }     //end D0 check
-      }       //end outer if (MC check D0/D0bar)
+                if (std::abs(particle1.eta()) < etaCut && std::abs(particle2.eta()) < etaCut && particle1.pt() > ptCut && particle2.pt() > ptCut)
+                  registry.fill(HIST("hDDbarVsEtaCut"), etaCut - epsilon, ptCut + epsilon);
+                ptCut += incrementPtThreshold;
+              } while (ptCut < ptThresholdForMaxEtaCut - epsilon);
+            } while (etaCut < maxEtaCut - epsilon);
+          } // end D0bar check
+        }   //end inner loop
+      }     //end D0 check
 
     } //end outer loop
     registry.fill(HIST("hcountD0D0barPerEvent"), counterD0D0bar);
@@ -582,7 +587,7 @@ struct D0D0barCorrelatorMCGenLS {
      {"hEtaMCGen", "D0,D0bar particles - MC gen;particle #it{#eta};entries", {HistType::kTH1F, {{100, -5., 5.}}}},
      {"hPhiMCGen", "D0,D0bar particles - MC gen;particle #it{#varphi};entries", {HistType::kTH1F, {{32, 0., 2. * o2::constants::math::PI}}}},
      {"hYMCGen", "D0,D0bar candidates - MC gen;candidate #it{#y};entries", {HistType::kTH1F, {{100, -5., 5.}}}},
-     {"hcountD0D0barPerEvent", "D0,D0bar particles - MC gen;Number per event;entries", {HistType::kTH1F, {{20, 0., 10.}}}}}};
+     {"hcountD0D0barPerEvent", "D0,D0bar particles - MC gen;Number per event;entries", {HistType::kTH1F, {{20, 0., 20.}}}}}};
 
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
   Configurable<double> cutPtCandMin{"cutPtCandMin", -1., "min. cand. pT"};
@@ -599,6 +604,10 @@ struct D0D0barCorrelatorMCGenLS {
     registry.fill(HIST("hMCEvtCount"), 0);
     //MC gen level
     for (auto& particle1 : particlesMC) {
+      //check if the particle is D0 or D0bar (both can be trigger) - NOTE: decay channel is not probed!
+      if (std::abs(particle1.pdgCode()) != 421) {
+        continue;
+      }
       if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode()))) > cutYCandMax) {
         continue;
       }
@@ -608,36 +617,36 @@ struct D0D0barCorrelatorMCGenLS {
 
       double ptParticle1 = particle1.pt(); //trigger particle is the largest pT one
 
-      //Check whether particle is D0 or D0bar (and not the decay chain)
-      if (std::abs(particle1.pdgCode()) == 421) {
-        registry.fill(HIST("hPtCandMCGen"), particle1.pt());
-        registry.fill(HIST("hEtaMCGen"), particle1.eta());
-        registry.fill(HIST("hPhiMCGen"), particle1.phi());
-        registry.fill(HIST("hYMCGen"), RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode())));
-        counterD0D0bar++;
-        //D-Dbar correlation dedicated section
-        //if it's D0, search for D0bar and evaluate correlations.
-        registry.fill(HIST("hcountD0triggersMCGen"), 0, particle1.pt()); //to count trigger D0 (normalisation)
-        for (auto& particle2 : particlesMC) {
-          if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle2.px(), particle2.py(), particle2.pz()}, RecoDecay::getMassPDG(particle2.pdgCode()))) > cutYCandMax) {
+      registry.fill(HIST("hPtCandMCGen"), particle1.pt());
+      registry.fill(HIST("hEtaMCGen"), particle1.eta());
+      registry.fill(HIST("hPhiMCGen"), particle1.phi());
+      registry.fill(HIST("hYMCGen"), RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode())));
+      counterD0D0bar++;
+      //D-Dbar correlation dedicated section
+      //if it's D0, search for D0bar and evaluate correlations.
+      registry.fill(HIST("hcountD0triggersMCGen"), 0, particle1.pt()); //to count trigger D0 (normalisation)
+      for (auto& particle2 : particlesMC) {
+        if (std::abs(particle2.pdgCode()) != 421) { //check that associated is a D0/D0bar (both are fine)
+          continue;
+        }
+        if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle2.px(), particle2.py(), particle2.pz()}, RecoDecay::getMassPDG(particle2.pdgCode()))) > cutYCandMax) {
+          continue;
+        }
+        if (cutPtCandMin >= 0. && std::abs(particle2.pt()) < cutPtCandMin) {
+          continue;
+        }
+        if (particle2.pt() < ptParticle1 && particle2.pdgCode() == particle1.pdgCode()) { //like-sign condition (both 421 or both -421) and pT_Trig>pT_assoc
+          //Excluding self-correlations (in principle not possible due to the '<' condition, but could rounding break it?)
+          if (particle1.mRowIndex == particle2.mRowIndex) {
             continue;
           }
-          if (cutPtCandMin >= 0. && std::abs(particle2.pt()) < cutPtCandMin) {
-            continue;
-          }
-          if (particle2.pt() < ptParticle1 && particle2.pdgCode() == particle1.pdgCode()) { //like-sign condition (both 421 or both -421) and pT_Trig>pT_assoc
-            //Excluding self-correlations (in principle not possible due to the '<' condition, but could rounding break it?)
-            if (particle1.mRowIndex == particle2.mRowIndex) {
-              continue;
-            }
-            entryD0D0barPair(getDeltaPhi(particle2.phi(), particle1.phi()),
-                             particle2.eta() - particle1.eta(),
-                             particle1.pt(),
-                             particle2.pt());
-          }
-        } // end inner loop (Dbars)
-      }   //end outer if (MC check D0)
-    }     //end outer loop
+          entryD0D0barPair(getDeltaPhi(particle2.phi(), particle1.phi()),
+                           particle2.eta() - particle1.eta(),
+                           particle1.pt(),
+                           particle2.pt());
+        }
+      } // end inner loop (Dbars)
+    }   //end outer loop
     registry.fill(HIST("hcountD0D0barPerEvent"), counterD0D0bar);
   }
 };
@@ -654,7 +663,7 @@ struct CCbarCorrelatorMCGen {
      {"hEtaMCGen", "c,cbar particles - MC gen;particle #it{#eta};entries", {HistType::kTH1F, {{100, -5., 5.}}}},
      {"hYMCGen", "c,cbar candidates - MC gen;candidate #it{#y};entries", {HistType::kTH1F, {{100, -5., 5.}}}},
      {"hPhiMCGen", "c,cbar particles - MC gen;particle #it{#varphi};entries", {HistType::kTH1F, {{32, 0., 2. * o2::constants::math::PI}}}},
-     {"hcountD0D0barPerEvent", "D0,cbar particles - MC gen;Number per event;entries", {HistType::kTH1F, {{20, 0., 10.}}}}}};
+     {"hcountD0D0barPerEvent", "D0,cbar particles - MC gen;Number per event;entries", {HistType::kTH1F, {{20, 0., 20.}}}}}};
 
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
   Configurable<double> cutPtCandMin{"cutPtCandMin", -1., "min. cand. pT"};
@@ -736,7 +745,7 @@ struct CCbarCorrelatorMCGenLS {
      {"hEtaMCGen", "c,cbar particles - MC gen;particle #it{#eta};entries", {HistType::kTH1F, {{100, -5., 5.}}}},
      {"hYMCGen", "c,cbar candidates - MC gen;candidate #it{#y};entries", {HistType::kTH1F, {{100, -5., 5.}}}},
      {"hPhiMCGen", "c,cbar particles - MC gen;particle #it{#varphi};entries", {HistType::kTH1F, {{32, 0., 2. * o2::constants::math::PI}}}},
-     {"hcountD0D0barPerEvent", "D0,cbar particles - MC gen;Number per event;entries", {HistType::kTH1F, {{20, 0., 10.}}}}}};
+     {"hcountD0D0barPerEvent", "D0,cbar particles - MC gen;Number per event;entries", {HistType::kTH1F, {{20, 0., 20.}}}}}};
 
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
   Configurable<double> cutPtCandMin{"cutPtCandMin", -1., "min. cand. pT"};
@@ -780,6 +789,9 @@ struct CCbarCorrelatorMCGenLS {
       registry.fill(HIST("hcountD0triggersMCGen"), 0, particle1.pt()); //to count trigger c quark (for normalisation)
 
       for (auto& particle2 : particlesMC) {
+        if (std::abs(particle2.pdgCode()) != 4) { //search c or cbar for associated particles
+          continue;
+        }
         if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle2.px(), particle2.py(), particle2.pz()}, RecoDecay::getMassPDG(particle2.pdgCode()))) > cutYCandMax) {
           continue;
         }
