@@ -12,6 +12,7 @@
 #define O2_TRD_COMMONPARAM_H
 
 #include "GPUCommonRtypes.h"
+#include <array>
 
 namespace o2
 {
@@ -26,58 +27,58 @@ class CommonParam
   enum { kXenon = 0,
          kArgon = 1 };
 
-  CommonParam(const CommonParam& p);
-  CommonParam& operator=(const CommonParam& p);
-  ~CommonParam();
+  CommonParam(const CommonParam&) = delete;
+  CommonParam& operator=(const CommonParam&) = delete;
+  ~CommonParam() = default;
 
-  static CommonParam* Instance();
-  static void Terminate();
+  static CommonParam* instance();
 
-  void SetExB(int exbOn = 1) { mExBOn = exbOn; }
-  void SetSamplingFrequency(float freq) { mSamplingFrequency = freq; }
-  void SetXenon();
-  void SetArgon();
+  void setExB(bool flag = true) { mExBOn = flag; }
+  void setSamplingFrequency(float freq) { mSamplingFrequency = freq; }
+  void setXenon();
+  void setArgon();
 
-  bool ExBOn() const { return mExBOn; }
-  bool IsXenon() const { return (mGasMixture == kXenon); }
-  bool IsArgon() const { return (mGasMixture == kArgon); }
-  int GetGasMixture() const { return mGasMixture; }
-  float GetSamplingFrequency() const { return mSamplingFrequency; }
-  float GetCachedField() const { return mField; }
+  bool isExBOn() const { return mExBOn; }
+  bool isXenon() const { return (mGasMixture == kXenon); }
+  bool isArgon() const { return (mGasMixture == kArgon); }
+  int getGasMixture() const { return mGasMixture; }
+  float getSamplingFrequency() const { return mSamplingFrequency; }
+  float getCachedField() const { return mField; }
 
   // Cached magnetic field, to be called by the user before using GetDiffCoeff or GetOmegaTau
   bool cacheMagField();
-  float GetOmegaTau(float vdrift);
-  bool GetDiffCoeff(float& dl, float& dt, float vdrift);
+  float getOmegaTau(float vdrift);
+  bool getDiffCoeff(float& dl, float& dt, float vdrift);
 
-  double TimeStruct(float vdrift, double xd, double z);
+  double timeStruct(float vdrift, double xd, double z);
 
  protected:
-  void SampleTimeStruct(float vdrift);
+  void sampleTimeStruct(float vdrift);
 
 #ifndef GPUCA_GPUCODE_DEVICE
   static CommonParam* fgInstance; //  Instance of this class (singleton implementation)
-  static bool fgTerminated;       //  Defines if this class has already been terminated
 #endif
-  int mExBOn;            // Switch for the ExB effects
-  double mField;         // cached magnetic field
-  float mDiffusionT;     // Transverse drift coefficient
-  float mDiffusionL;     // Longitudinal drift coefficient
-  float mDiffLastVdrift; // The structures are valid for fLastVdrift (caching)
+  static constexpr int TIMEBIN = 38;
+  static constexpr int ZBIN = 11;
+  bool mExBOn{true};          // Switch for the ExB effects
+  double mField{-0.5};        // cached magnetic field
+  float mDiffusionT{0.};      // Transverse drift coefficient
+  float mDiffusionL{0.};      // Longitudinal drift coefficient
+  float mDiffLastVdrift{-1.}; // The structures are valid for fLastVdrift (caching)
 
-  float* mTimeStruct1;   //! Time Structure of Drift Cells
-  float* mTimeStruct2;   //! Time Structure of Drift Cells
-  float mVDlo;           //  Lower drift velocity, for interpolation
-  float mVDhi;           //  Higher drift velocity, for interpolation
-  float mTimeLastVdrift; //  The structures are valid for fLastVdrift (caching)
+  std::array<float, TIMEBIN * ZBIN> mTimeStruct1{}; // Time Structure of Drift Cells
+  std::array<float, TIMEBIN * ZBIN> mTimeStruct2{}; // Time Structure of Drift Cells
+  float mVDlo{0.};                                  //  Lower drift velocity, for interpolation
+  float mVDhi{0.};                                  //  Higher drift velocity, for interpolation
+  float mTimeLastVdrift{-1.};                       //  The structures are valid for fLastVdrift (caching)
 
-  float mSamplingFrequency; //  Sampling Frequency in MHz
+  float mSamplingFrequency{10.}; //  Sampling Frequency in MHz
 
-  int mGasMixture; //  Gas mixture: 0-Xe/C02 1-Ar/CO2.
+  int mGasMixture{kXenon}; //  Gas mixture: 0-Xe/C02 1-Ar/CO2.
 
  private:
   // This is a singleton, constructor is private!
-  CommonParam();
+  CommonParam() = default;
 
   ClassDef(CommonParam, 1); // The constant parameters common to simulation and reconstruction
 };

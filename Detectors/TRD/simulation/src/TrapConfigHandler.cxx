@@ -478,6 +478,7 @@ void TrapConfigHandler::configureDRange(int det)
   // if pt_min < 0.1 GeV/c the maximal allowed range for the tracklet
   // deflection (-64..63) is used
   //
+  // TODO might need to be updated depending in the FEE configuration for Run 3
 
   if (!mTrapConfig) {
     LOG(error) << "No TRAPconfig given";
