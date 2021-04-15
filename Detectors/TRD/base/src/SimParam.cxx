@@ -18,157 +18,45 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #include "TRDBase/SimParam.h"
-#include <TMath.h>
 #include "TRDBase/CommonParam.h"
 #include <FairLogger.h>
 
 using namespace o2::trd;
 ClassImp(SimParam);
 
-SimParam* SimParam::fgInstance = nullptr;
-bool SimParam::fgTerminated = false;
+SimParam* SimParam::mgInstance = nullptr;
 
 //_ singleton implementation __________________________________________________
-SimParam* SimParam::Instance()
+SimParam* SimParam::instance()
 {
   //
   // Singleton implementation
   // Returns an instance of this class, it is created if neccessary
   //
 
-  if (fgTerminated != false) {
-    return nullptr;
+  if (mgInstance == nullptr) {
+    mgInstance = new SimParam();
   }
 
-  if (fgInstance == nullptr) {
-    fgInstance = new SimParam();
-  }
-
-  return fgInstance;
-}
-
-//_ singleton implementation __________________________________________________
-void SimParam::Terminate()
-{
-  //
-  // Singleton implementation
-  // Deletes the instance of this class and sets the terminated flag,
-  // instances cannot be requested anymore
-  // This function can be called several times.
-  //
-
-  fgTerminated = true;
-
-  if (fgInstance != nullptr) {
-    delete fgInstance;
-    fgInstance = nullptr;
-  }
+  return mgInstance;
 }
 
 //_____________________________________________________________________________
 SimParam::SimParam()
-  : mGasGain(0.0),
-    mNoise(0.0),
-    mChipGain(0.0),
-    mADCoutRange(0.0),
-    mADCinRange(0.0),
-    mADCbaseline(0),
-    mDiffusionOn(false),
-    mElAttachOn(false),
-    mElAttachProp(0.0),
-    mTRFOn(false),
-    mTRFsmp(nullptr),
-    mTRFbin(0),
-    mTRFlo(0.0),
-    mTRFhi(0.0),
-    mInvTRFwid(0.0),
-    mCTOn(false),
-    mCTsmp(nullptr),
-    mPadCoupling(0.0),
-    mTimeCoupling(0.0),
-    mTimeStructOn(false),
-    mPRFOn(false),
-    mNTimeBins(0),
-    mNTBoverwriteOCDB(false)
 {
   //
   // Default constructor
   //
-
-  Init();
+  sampleTRF();
 }
 
-//_____________________________________________________________________________
-void SimParam::Init()
-{
-  //
-  // Default initializiation
-  //
 
-  // The default parameter for the digitization
-  mGasGain = 4000.0;
-  mChipGain = 12.4;
-  mNoise = 1250.0;
-  mADCoutRange = 1023.0; // 10-bit ADC
-  mADCinRange = 2000.0;  // 2V input range
-  mADCbaseline = 10;
-
-  // Diffusion on
-  mDiffusionOn = true;
-
-  // Propability for electron attachment
-  mElAttachOn = false;
-  mElAttachProp = 0.0;
-
-  // The time response function
-  mTRFOn = true;
-
-  // The cross talk
-  mCTOn = true;
-
-  // The pad coupling factor
-  // Use 0.46, instead of the theroetical value 0.3, since it reproduces better
-  // the test beam data, even tough it is not understood why.
-  mPadCoupling = 0.46;
-
-  // The time coupling factor (same number as for the TPC)
-  mTimeCoupling = 0.4;
-
-  // Use drift time maps
-  mTimeStructOn = true;
-
-  // The pad response function
-  mPRFOn = true;
-
-  // The number of time bins
-  mNTimeBins = 22;
-  mNTBoverwriteOCDB = false;
-
-  ReInit();
-}
 
 //_____________________________________________________________________________
-SimParam::~SimParam()
+void SimParam::reInit()
 {
   //
-  // Destructor
-  //
-  if (mTRFsmp) {
-    delete[] mTRFsmp;
-    mTRFsmp = nullptr;
-  }
-
-  if (mCTsmp) {
-    delete[] mCTsmp;
-    mCTsmp = nullptr;
-  }
-}
-
-//_____________________________________________________________________________
-void SimParam::ReInit()
-{
-  //
-  // Reinitializes the parameter class after a change
+  // Reinitializes the parameter class after a change of the gas mixture
   //
 
   if (CommonParam::instance()->isXenon()) {
@@ -195,11 +83,11 @@ void SimParam::ReInit()
   mInvTRFwid = ((float)mTRFbin) / (mTRFhi - mTRFlo); // Inverse of the bin width of the integrated TRF
 
   // Create the sampled TRF
-  SampleTRF();
+  sampleTRF();
 }
 
 //_____________________________________________________________________________
-void SimParam::SampleTRF()
+void SimParam::sampleTRF()
 {
   //
   // Samples the new time response function.
@@ -228,9 +116,7 @@ void SimParam::SampleTRF()
     0.0138, 0.0135, 0.0133, 0.0131, 0.0128, 0.0126, 0.0124, 0.0121, 0.0119, 0.0120, 0.0115, 0.0113, 0.0111, 0.0109,
     0.0107, 0.0105, 0.0103, 0.0101, 0.0100, 0.0098, 0.0096, 0.0094, 0.0092, 0.0091, 0.0089, 0.0088, 0.0086, 0.0084,
     0.0083, 0.0081, 0.0080, 0.0078};
-  signal[0] = 0.0;
-  signal[1] = 0.0;
-  signal[2] = 0.0;
+
   // With undershoot, positive peak corresponds to ~3% of the main signal:
   for (ipasa = 3; ipasa < kNpasa; ipasa++) {
     xtalk[ipasa] = 0.2 * (signal[ipasa - 2] - signal[ipasa - 3]);
@@ -263,25 +149,6 @@ void SimParam::SampleTRF()
   xtalkAr[1] = 0.0;
   xtalkAr[2] = 0.0;
 
-  if (mTRFsmp) {
-    delete[] mTRFsmp;
-  }
-  mTRFsmp = new float[mTRFbin];
-
-  if (mCTsmp) {
-    delete[] mCTsmp;
-  }
-  mCTsmp = new float[mTRFbin];
-
-  if (CommonParam::instance()->isXenon()) {
-    if (mTRFbin != kNpasa) {
-      LOG(ERROR) << "Array mismatch (xenon)\n\n";
-    }
-  } else if (CommonParam::instance()->isArgon()) {
-    if (mTRFbin != kNpasaAr) {
-      LOG(ERROR) << "Array mismatch (argon)\n\n";
-    }
-  }
 
   for (int iBin = 0; iBin < mTRFbin; iBin++) {
     if (CommonParam::instance()->isXenon()) {
