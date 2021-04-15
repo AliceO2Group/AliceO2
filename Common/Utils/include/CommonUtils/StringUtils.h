@@ -92,13 +92,13 @@ std::string concat_string(Ts const&... ts)
   return s.str();
 }
 
-// Check if the path exists  
+// Check if the path exists
 static inline bool pathExists(const std::string_view p)
 {
   struct stat buffer;
   return (stat(p.data(), &buffer) == 0);
 }
-  
+
 // Check if the path is a directory
 static inline bool pathIsDirectory(const std::string_view p)
 {
@@ -128,7 +128,6 @@ static inline std::string rectifyDirectory(const std::string& _dir)
   return dir;
 }
 
-  
 } // namespace utils
 } // namespace o2
 
