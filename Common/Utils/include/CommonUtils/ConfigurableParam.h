@@ -169,6 +169,12 @@ class ConfigurableParam
   static void printAllRegisteredParamNames();
   static void printAllKeyValuePairs();
 
+  static const std::string& getInputDir() { return sInputDir; }
+  static const std::string& getOutputDir() { return sOutputDir; }
+
+  static void setInputDir(const std::string& d) { sInputDir = d; }
+  static void setOutputDir(const std::string& d) { sOutputDir = d; }
+
   static boost::property_tree::ptree readINI(std::string const& filepath);
   static boost::property_tree::ptree readJSON(std::string const& filepath);
   static boost::property_tree::ptree readConfigFile(std::string const& filepath);
@@ -285,6 +291,9 @@ class ConfigurableParam
   // A registry of enum names and their allowed values
   // (stored as a vector of pairs <enumValueLabel, enumValueInt>)
   static EnumRegistry* sEnumRegistry;
+
+  static std::string sInputDir;
+  static std::string sOutputDir;
 
   void setRegisterMode(bool b) { sRegisterMode = b; }
   bool isInitialized() const { return sIsFullyInitialized; }
