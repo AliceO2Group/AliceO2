@@ -12,7 +12,7 @@
 //                                                                           //
 // Class containing parameters common to simulation and reconstruction       //
 //                                                                           //
-// Request an instance with AliTRDCommonParam::Instance()                    //
+// Request an instance with CommonParam::instance()                          //
 // Then request the needed values                                            //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
@@ -31,19 +31,14 @@ using namespace o2::trd;
 ClassImp(CommonParam);
 
 CommonParam* CommonParam::fgInstance = nullptr;
-bool CommonParam::fgTerminated = false;
 
 //_ singleton implementation __________________________________________________
-CommonParam* CommonParam::Instance()
+CommonParam* CommonParam::instance()
 {
   //
   // Singleton implementation
   // Returns an instance of this class, it is created if neccessary
   //
-
-  if (fgTerminated != false) {
-    return nullptr;
-  }
 
   if (fgInstance == nullptr) {
     fgInstance = new CommonParam();
@@ -52,59 +47,6 @@ CommonParam* CommonParam::Instance()
   return fgInstance;
 }
 
-//_____________________________________________________________________________
-void CommonParam::Terminate()
-{
-  //
-  // Singleton implementation
-  // Deletes the instance of this class and sets the terminated flag,
-  // instances cannot be requested anymore
-  // This function can be called several times.
-  //
-
-  fgTerminated = true;
-
-  if (fgInstance != nullptr) {
-    delete fgInstance;
-    fgInstance = nullptr;
-  }
-}
-
-//_____________________________________________________________________________
-CommonParam::CommonParam()
-  : mExBOn(true),
-    mDiffusionT(0.0),
-    mDiffusionL(0.0),
-    mDiffLastVdrift(-1.0),
-    mTimeStruct1(nullptr),
-    mTimeStruct2(nullptr),
-    mVDlo(0.0),
-    mVDhi(0.0),
-    mTimeLastVdrift(-1.0),
-    mSamplingFrequency(10.0),
-    mGasMixture(kXenon),
-    mField(-0.5)
-{
-  //
-  // Default constructor
-  //
-}
-
-//_____________________________________________________________________________
-CommonParam::~CommonParam()
-{
-  //
-  // Destructor
-  //
-  if (mTimeStruct1) {
-    delete[] mTimeStruct1;
-    mTimeStruct1 = nullptr;
-  }
-  if (mTimeStruct2) {
-    delete[] mTimeStruct2;
-    mTimeStruct2 = nullptr;
-  }
-}
 
 //_____________________________________________________________________________
 bool CommonParam::cacheMagField()
@@ -120,7 +62,7 @@ bool CommonParam::cacheMagField()
 }
 
 //_____________________________________________________________________________
-float CommonParam::GetOmegaTau(float vdrift)
+float CommonParam::getOmegaTau(float vdrift)
 {
   /*
   //
@@ -176,7 +118,7 @@ float CommonParam::GetOmegaTau(float vdrift)
 }
 
 //_____________________________________________________________________________
-bool CommonParam::GetDiffCoeff(float& dl, float& dt, float vdrift)
+bool CommonParam::getDiffCoeff(float& dl, float& dt, float vdrift)
 {
   //
   // Calculates the diffusion coefficients in longitudinal <dl> and
@@ -191,7 +133,7 @@ bool CommonParam::GetDiffCoeff(float& dl, float& dt, float vdrift)
   }
   mDiffLastVdrift = vdrift;
 
-  if (IsXenon()) {
+  if (isXenon()) {
     //
     // Vd and B-field dependent diffusion and Lorentz angle
     //
@@ -224,7 +166,7 @@ bool CommonParam::GetDiffCoeff(float& dl, float& dt, float vdrift)
     dl = mDiffusionL;
     dt = mDiffusionT;
     return true;
-  } else if (IsArgon()) {
+  } else if (isArgon()) {
     //
     // Diffusion constants and Lorentz angle only for B = 0.5T
     //
@@ -239,7 +181,7 @@ bool CommonParam::GetDiffCoeff(float& dl, float& dt, float vdrift)
 }
 
 //_____________________________________________________________________________
-double CommonParam::TimeStruct(float vdrift, double dist, double z)
+double CommonParam::timeStruct(float vdrift, double dist, double z)
 {
   //
   // Applies the time structure of the drift cells (by C.Lippmann).
@@ -259,7 +201,7 @@ double CommonParam::TimeStruct(float vdrift, double dist, double z)
   // and fTimeStruct2, calculated for the two mentioned drift velocities.
   //
 
-  SampleTimeStruct(vdrift);
+  sampleTimeStruct(vdrift);
 
   // Indices:
   int r1 = (int)(10 * dist);
@@ -318,7 +260,7 @@ double CommonParam::TimeStruct(float vdrift, double dist, double z)
 }
 
 //_____________________________________________________________________________
-void CommonParam::SampleTimeStruct(float vdrift)
+void CommonParam::sampleTimeStruct(float vdrift)
 {
   //
   // Samples the timing structure of a drift cell
@@ -350,11 +292,8 @@ void CommonParam::SampleTimeStruct(float vdrift)
     vdrift = fVDsmp[7];
   }
 
-  const int ktimebin = 38;
-  const int kZbin = 11;
-
   // Garfield simulation at UD = -1500V; vd = 1.032cm/microsec, <driftfield> = 525V/cm
-  float time1500[ktimebin][kZbin] = {
+  float time1500[TIMEBIN][ZBIN] = {
     {0.09170, 0.09205, 0.09306, 0.09475, 0.09716, 0.10035, 0.10445, 0.10993, 0.11838, 0.13986, 0.37858},
     {0.06588, 0.06626, 0.06739, 0.06926, 0.07186, 0.07524, 0.07951, 0.08515, 0.09381, 0.11601, 0.35673},
     {0.03946, 0.04003, 0.04171, 0.04435, 0.04780, 0.05193, 0.05680, 0.06306, 0.07290, 0.09873, 0.34748},
@@ -395,7 +334,7 @@ void CommonParam::SampleTimeStruct(float vdrift)
     {2.94239, 2.94469, 2.95221, 2.96625, 2.99345, 3.07747, 3.04266, 3.02545, 3.03051, 3.07118, 3.33555}};
 
   // Garfield simulation at UD = -1600V; vd = 1.158cm/microsec, <driftfield> = 558V/cm
-  float time1600[ktimebin][kZbin] = {
+  float time1600[TIMEBIN][ZBIN] = {
     {0.09169, 0.09203, 0.09305, 0.09473, 0.09714, 0.10032, 0.10441, 0.10990, 0.11835, 0.13986, 0.37845},
     {0.06589, 0.06626, 0.06738, 0.06924, 0.07184, 0.07521, 0.07947, 0.08512, 0.09379, 0.11603, 0.35648},
     {0.03947, 0.04003, 0.04171, 0.04434, 0.04778, 0.05190, 0.05678, 0.06304, 0.07292, 0.09876, 0.34759},
@@ -436,7 +375,7 @@ void CommonParam::SampleTimeStruct(float vdrift)
     {2.63456, 2.63660, 2.64304, 2.65555, 2.67938, 2.75739, 2.72629, 2.71064, 2.71688, 2.75671, 3.01886}};
 
   // Garfield simulation at UD = -1700V; vd = 1.299cm/microsec, <driftfield> = 590V/cm
-  float time1700[ktimebin][kZbin] = {
+  float time1700[TIMEBIN][ZBIN] = {
     {0.09167, 0.09201, 0.09302, 0.09471, 0.09712, 0.10029, 0.10438, 0.10986, 0.11832, 0.13986, 0.37824},
     {0.06591, 0.06626, 0.06736, 0.06923, 0.07183, 0.07519, 0.07944, 0.08511, 0.09378, 0.11603, 0.35625},
     {0.03946, 0.04003, 0.04170, 0.04433, 0.04777, 0.05189, 0.05676, 0.06301, 0.07291, 0.09880, 0.34724},
@@ -477,7 +416,7 @@ void CommonParam::SampleTimeStruct(float vdrift)
     {2.36153, 2.36806, 2.36889, 2.37985, 2.40092, 2.47828, 2.44381, 2.43099, 2.43819, 2.47750, 2.73779}};
 
   // Garfield simulation at UD = -1800V; vd = 1.450cm/microsec, <driftfield> = 623V/cm
-  float time1800[ktimebin][kZbin] = {
+  float time1800[TIMEBIN][ZBIN] = {
     {0.09166, 0.09199, 0.09300, 0.09470, 0.09709, 0.10026, 0.10434, 0.10983, 0.11831, 0.13987, 0.37802},
     {0.06585, 0.06623, 0.06735, 0.06921, 0.07180, 0.07520, 0.07941, 0.08507, 0.09376, 0.11604, 0.35624},
     {0.03945, 0.04004, 0.04169, 0.04432, 0.04776, 0.05187, 0.05674, 0.06300, 0.07290, 0.09884, 0.34704},
@@ -518,7 +457,7 @@ void CommonParam::SampleTimeStruct(float vdrift)
     {2.12726, 2.12869, 2.13360, 2.14425, 2.16160, 2.22872, 2.20118, 2.19078, 2.19876, 2.23416, 2.50007}};
 
   // Garfield simulation at UD = -1900V; vd = 1.610cm/microsec, <driftfield> = 655V/cm
-  float time1900[ktimebin][kZbin] = {
+  float time1900[TIMEBIN][ZBIN] = {
     {0.09166, 0.09198, 0.09298, 0.09467, 0.09707, 0.10023, 0.10431, 0.10980, 0.11828, 0.13988, 0.37789},
     {0.06584, 0.06622, 0.06735, 0.06920, 0.07179, 0.07514, 0.07938, 0.08505, 0.09374, 0.11606, 0.35599},
     {0.03945, 0.04002, 0.04169, 0.04432, 0.04775, 0.05185, 0.05672, 0.06298, 0.07290, 0.09888, 0.34695},
@@ -559,7 +498,7 @@ void CommonParam::SampleTimeStruct(float vdrift)
     {1.92700, 1.92783, 1.93197, 1.95049, 1.95649, 2.01668, 1.99217, 1.98486, 1.99352, 2.03143, 2.29358}};
 
   // Garfield simulation at UD = -2000V; vd = 1.783cm/microsec, <driftfield> = 688V/cm
-  float time2000[ktimebin][kZbin] = {
+  float time2000[TIMEBIN][ZBIN] = {
     {0.09176, 0.09196, 0.09296, 0.09465, 0.09704, 0.10020, 0.10427, 0.10977, 0.11825, 0.13988, 0.37774},
     {0.06583, 0.06620, 0.06735, 0.06918, 0.07177, 0.07513, 0.07936, 0.08503, 0.09372, 0.11606, 0.35586},
     {0.03944, 0.04001, 0.04170, 0.04431, 0.04774, 0.05184, 0.05670, 0.06296, 0.07291, 0.09893, 0.34680},
@@ -600,7 +539,7 @@ void CommonParam::SampleTimeStruct(float vdrift)
     {1.75054, 1.75221, 1.75527, 1.76306, 1.77662, 1.83428, 1.81006, 1.81173, 1.81345, 1.85076, 2.10289}};
 
   // Garfield simulation at UD = -2100V; vd = 1.959cm/microsec, <driftfield> = 720V/cm
-  float time2100[ktimebin][kZbin] = {
+  float time2100[TIMEBIN][ZBIN] = {
     {0.09160, 0.09194, 0.09294, 0.09462, 0.09701, 0.10017, 0.10424, 0.10974, 0.11823, 0.13988, 0.37762},
     {0.06585, 0.06619, 0.06731, 0.06916, 0.07174, 0.07509, 0.07933, 0.08500, 0.09370, 0.11609, 0.35565},
     {0.03960, 0.04001, 0.04171, 0.04430, 0.04774, 0.05182, 0.05668, 0.06294, 0.07291, 0.09896, 0.34676},
@@ -641,7 +580,7 @@ void CommonParam::SampleTimeStruct(float vdrift)
     {1.60368, 1.60469, 1.60779, 1.61373, 1.62596, 1.67738, 1.65651, 1.65249, 1.66290, 1.69936, 1.95959}};
 
   // Garfield simulation at UD = -2200V; vd = 2.134cm/microsec, <driftfield> = 753V/cm
-  float time2200[ktimebin][kZbin] = {
+  float time2200[TIMEBIN][ZBIN] = {
     {0.09162, 0.09194, 0.09292, 0.09460, 0.09702, 0.10014, 0.10421, 0.10971, 0.11820, 0.13990, 0.37745},
     {0.06581, 0.06618, 0.06730, 0.06915, 0.07173, 0.07507, 0.07931, 0.08497, 0.09368, 0.11609, 0.35560},
     {0.03947, 0.04001, 0.04167, 0.04429, 0.04772, 0.05183, 0.05667, 0.06293, 0.07292, 0.09900, 0.34673},
@@ -681,50 +620,41 @@ void CommonParam::SampleTimeStruct(float vdrift)
     {1.43524, 1.43533, 1.43796, 1.44310, 1.45371, 1.49305, 1.48224, 1.47941, 1.49034, 1.52601, 1.78552},
     {1.48122, 1.48219, 1.48482, 1.48991, 1.50030, 1.53991, 1.52898, 1.52653, 1.53653, 1.57282, 1.82386}};
 
-  if (!mTimeStruct1) {
-    mTimeStruct1 = new float[ktimebin * kZbin];
-  }
-  if (!mTimeStruct2) {
-    mTimeStruct2 = new float[ktimebin * kZbin];
-  }
-  memset(mTimeStruct1, 0, ktimebin * kZbin * sizeof(float));
-  memset(mTimeStruct2, 0, ktimebin * kZbin * sizeof(float));
-
-  for (int ctrt = 0; ctrt < ktimebin; ctrt++) {
-    for (int ctrz = 0; ctrz < kZbin; ctrz++) {
+  for (int ctrt = 0; ctrt < TIMEBIN; ctrt++) {
+    for (int ctrz = 0; ctrz < ZBIN; ctrz++) {
       if (vdrift > fVDsmp[6]) {
-        mTimeStruct1[ctrt + ctrz * ktimebin] = time2100[ctrt][ctrz];
-        mTimeStruct2[ctrt + ctrz * ktimebin] = time2200[ctrt][ctrz];
+        mTimeStruct1[ctrt + ctrz * TIMEBIN] = time2100[ctrt][ctrz];
+        mTimeStruct2[ctrt + ctrz * TIMEBIN] = time2200[ctrt][ctrz];
         mVDlo = fVDsmp[6];
         mVDhi = fVDsmp[7];
       } else if (vdrift > fVDsmp[5]) {
-        mTimeStruct1[ctrt + ctrz * ktimebin] = time2000[ctrt][ctrz];
-        mTimeStruct2[ctrt + ctrz * ktimebin] = time2100[ctrt][ctrz];
+        mTimeStruct1[ctrt + ctrz * TIMEBIN] = time2000[ctrt][ctrz];
+        mTimeStruct2[ctrt + ctrz * TIMEBIN] = time2100[ctrt][ctrz];
         mVDlo = fVDsmp[5];
         mVDhi = fVDsmp[6];
       } else if (vdrift > fVDsmp[4]) {
-        mTimeStruct1[ctrt + ctrz * ktimebin] = time1900[ctrt][ctrz];
-        mTimeStruct2[ctrt + ctrz * ktimebin] = time2000[ctrt][ctrz];
+        mTimeStruct1[ctrt + ctrz * TIMEBIN] = time1900[ctrt][ctrz];
+        mTimeStruct2[ctrt + ctrz * TIMEBIN] = time2000[ctrt][ctrz];
         mVDlo = fVDsmp[4];
         mVDhi = fVDsmp[5];
       } else if (vdrift > fVDsmp[3]) {
-        mTimeStruct1[ctrt + ctrz * ktimebin] = time1800[ctrt][ctrz];
-        mTimeStruct2[ctrt + ctrz * ktimebin] = time1900[ctrt][ctrz];
+        mTimeStruct1[ctrt + ctrz * TIMEBIN] = time1800[ctrt][ctrz];
+        mTimeStruct2[ctrt + ctrz * TIMEBIN] = time1900[ctrt][ctrz];
         mVDlo = fVDsmp[3];
         mVDhi = fVDsmp[4];
       } else if (vdrift > fVDsmp[2]) {
-        mTimeStruct1[ctrt + ctrz * ktimebin] = time1700[ctrt][ctrz];
-        mTimeStruct2[ctrt + ctrz * ktimebin] = time1800[ctrt][ctrz];
+        mTimeStruct1[ctrt + ctrz * TIMEBIN] = time1700[ctrt][ctrz];
+        mTimeStruct2[ctrt + ctrz * TIMEBIN] = time1800[ctrt][ctrz];
         mVDlo = fVDsmp[2];
         mVDhi = fVDsmp[3];
       } else if (vdrift > fVDsmp[1]) {
-        mTimeStruct1[ctrt + ctrz * ktimebin] = time1600[ctrt][ctrz];
-        mTimeStruct2[ctrt + ctrz * ktimebin] = time1700[ctrt][ctrz];
+        mTimeStruct1[ctrt + ctrz * TIMEBIN] = time1600[ctrt][ctrz];
+        mTimeStruct2[ctrt + ctrz * TIMEBIN] = time1700[ctrt][ctrz];
         mVDlo = fVDsmp[1];
         mVDhi = fVDsmp[2];
       } else if (vdrift > (fVDsmp[0] - 1.0e-5)) {
-        mTimeStruct1[ctrt + ctrz * ktimebin] = time1500[ctrt][ctrz];
-        mTimeStruct2[ctrt + ctrz * ktimebin] = time1600[ctrt][ctrz];
+        mTimeStruct1[ctrt + ctrz * TIMEBIN] = time1500[ctrt][ctrz];
+        mTimeStruct2[ctrt + ctrz * TIMEBIN] = time1600[ctrt][ctrz];
         mVDlo = fVDsmp[0];
         mVDhi = fVDsmp[1];
       }
@@ -732,13 +662,13 @@ void CommonParam::SampleTimeStruct(float vdrift)
   }
 }
 
-void CommonParam::SetXenon()
+void CommonParam::setXenon()
 {
   mGasMixture = kXenon;
   SimParam::Instance()->ReInit();
 }
 
-void CommonParam::SetArgon()
+void CommonParam::setArgon()
 {
   mGasMixture = kArgon;
   SimParam::Instance()->ReInit();
