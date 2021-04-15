@@ -17,7 +17,6 @@
 #include <CCDB/BasicCCDBManager.h>
 #include "CommonDataFormat/InteractionRecord.h"
 #include "Framework/AnalysisDataModel.h"
-#include "Framework/AnalysisHelpers.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataTypes.h"
 #include "Framework/InputRecordWalker.h"
@@ -214,86 +213,109 @@ void AODProducerWorkflowDPL::fillTracksTable(const TTracks& tracks, std::vector<
 template <typename MCParticlesCursorType>
 void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
                                                   gsl::span<const o2::MCCompLabel>& mcTruthITS, gsl::span<const o2::MCCompLabel>& mcTruthTPC,
-                                                  std::vector<std::vector<std::vector<int>>>& toStore)
+                                                  TripletsMap_t& toStore)
 {
-  // mark reconstructed MC tracks to store them into the table
-  if (mFillTracksITS) {
-    for (auto& mcTruth : mcTruthITS) {
-      if (!mcTruth.isValid()) {
-        continue;
-      }
-      int source = mcTruth.getSourceID();
-      int event = mcTruth.getEventID();
-      int track = mcTruth.getTrackID();
-      toStore[source][event][track] = 1;
+  // mark reconstructed MC particles to store them into the table
+  for (auto& mcTruth : mcTruthITS) {
+    if (!mcTruth.isValid()) {
+      continue;
     }
+    int source = mcTruth.getSourceID();
+    int event = mcTruth.getEventID();
+    int particle = mcTruth.getTrackID();
+    toStore[Triplet_t(source, event, particle)] = 1;
   }
-  if (mFillTracksTPC) {
-    for (auto& mcTruth : mcTruthTPC) {
-      if (!mcTruth.isValid()) {
-        continue;
-      }
-      int source = mcTruth.getSourceID();
-      int event = mcTruth.getEventID();
-      int track = mcTruth.getTrackID();
-      toStore[source][event][track] = 1;
+  for (auto& mcTruth : mcTruthTPC) {
+    if (!mcTruth.isValid()) {
+      continue;
     }
+    int source = mcTruth.getSourceID();
+    int event = mcTruth.getEventID();
+    int particle = mcTruth.getTrackID();
+    toStore[Triplet_t(source, event, particle)] = 1;
   }
   int tableIndex = 1;
   for (int source = 0; source < mcReader.getNSources(); source++) {
     for (int event = 0; event < mcReader.getNEvents(source); event++) {
       std::vector<MCTrack> const& mcParticles = mcReader.getTracks(source, event);
       // mark tracks to be stored per event
-      // loop over stack of MC tracks from end to beginning: daughters are stored after mothers
+      // loop over stack of MC particles from end to beginning: daughters are stored after mothers
       if (mRecoOnly) {
-        for (int track = mcParticles.size() - 1; track <= 0; track--) {
-          int mother0 = mcParticles[track].getMotherTrackId();
-          int mother1 = mcParticles[track].getSecondMotherTrackId();
-          if (mother0 == -1 || mother1 == -1) {
-            toStore[source][event][track] = 1;
+        for (int particle = mcParticles.size() - 1; particle >= 0; particle--) {
+          int mother0 = mcParticles[particle].getMotherTrackId();
+          if (mother0 == -1) {
+            toStore[Triplet_t(source, event, particle)] = 1;
           }
-          if (toStore[source][event][track] == 0) {
+          if (toStore.find(Triplet_t(source, event, particle)) == toStore.end()) {
             continue;
           }
           if (mother0 != -1) {
-            toStore[source][event][mother0] = 1;
+            toStore[Triplet_t(source, event, mother0)] = 1;
           }
+          int mother1 = mcParticles[particle].getSecondMotherTrackId();
           if (mother1 != -1) {
-            toStore[source][event][mother1] = 1;
+            toStore[Triplet_t(source, particle, mother1)] = 1;
           }
-          int daughter0 = mcParticles[track].getFirstDaughterTrackId();
-          int daughterL = mcParticles[track].getLastDaughterTrackId();
+          int daughter0 = mcParticles[particle].getFirstDaughterTrackId();
           if (daughter0 != -1) {
-            toStore[source][event][daughter0] = 1;
+            toStore[Triplet_t(source, event, daughter0)] = 1;
           }
+          int daughterL = mcParticles[particle].getLastDaughterTrackId();
           if (daughterL != -1) {
-            toStore[source][event][daughterL] = 1;
+            toStore[Triplet_t(source, event, daughterL)] = 1;
+          }
+        }
+        // enumerate reconstructed mc particles and their relatives to get mother/daughter relations
+        for (int particle = 0; particle < mcParticles.size(); particle++) {
+          auto mapItem = toStore.find(Triplet_t(source, event, particle));
+          if (mapItem != toStore.end()) {
+            mapItem->second = tableIndex;
+            tableIndex++;
           }
         }
       }
-      // enumerate tracks to get mother/daughter relations
-      for (int track = 0; track < toStore[source][event].size(); track++) {
-        if (!toStore[source][event][track] && mRecoOnly) {
-          continue;
+      // if all mc particles are stored, all mc particles will be enumerated
+      if (!mRecoOnly) {
+        for (int particle = 0; particle < mcParticles.size(); particle++) {
+          toStore[Triplet_t(source, event, particle)] = tableIndex;
+          tableIndex++;
         }
-        toStore[source][event][track] = tableIndex;
-        tableIndex++;
       }
       // fill survived mc tracks into the table
-      for (int track = 0; track < mcParticles.size(); track++) {
-        if (!toStore[source][event][track] && mRecoOnly) {
+      for (int particle = 0; particle < mcParticles.size(); particle++) {
+        if (toStore.find(Triplet_t(source, event, particle)) == toStore.end()) {
           continue;
         }
         int statusCode = 0;
         uint8_t flags = 0;
         float weight = 0.f;
-        int mother0 = mcParticles[track].getMotherTrackId() != -1 ? toStore[source][event][mcParticles[track].getMotherTrackId()] - 1 : -1;
-        int mother1 = mcParticles[track].getSecondMotherTrackId() != -1 ? toStore[source][event][mcParticles[track].getSecondMotherTrackId()] - 1 : -1;
-        int daughter0 = mcParticles[track].getFirstDaughterTrackId() != -1 ? toStore[source][event][mcParticles[track].getFirstDaughterTrackId()] - 1 : -1;
-        int daughterL = mcParticles[track].getLastDaughterTrackId() != -1 ? toStore[source][event][mcParticles[track].getLastDaughterTrackId()] - 1 : -1;
+        int mcMother0 = mcParticles[particle].getMotherTrackId();
+        auto item = toStore.find(Triplet_t(source, event, mcMother0));
+        int mother0 = -1;
+        if (item != toStore.end()) {
+          mother0 = item->second;
+        }
+        int mcMother1 = mcParticles[particle].getSecondMotherTrackId();
+        int mother1 = -1;
+        item = toStore.find(Triplet_t(source, event, mcMother1));
+        if (item != toStore.end()) {
+          mother1 = item->second;
+        }
+        int mcDaughter0 = mcParticles[particle].getFirstDaughterTrackId();
+        int daughter0 = -1;
+        item = toStore.find(Triplet_t(source, event, mcDaughter0));
+        if (item != toStore.end()) {
+          daughter0 = item->second;
+        }
+        int mcDaughterL = mcParticles[particle].getLastDaughterTrackId();
+        int daughterL = -1;
+        item = toStore.find(Triplet_t(source, event, mcDaughterL));
+        if (item != toStore.end()) {
+          daughterL = item->second;
+        }
         mcParticlesCursor(0,
                           event,
-                          mcParticles[track].GetPdgCode(),
+                          mcParticles[particle].GetPdgCode(),
                           statusCode,
                           flags,
                           mother0,
@@ -301,14 +323,14 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
                           daughter0,
                           daughterL,
                           truncateFloatFraction(weight, mMcParticleW),
-                          truncateFloatFraction((float)mcParticles[track].Px(), mMcParticleMom),
-                          truncateFloatFraction((float)mcParticles[track].Py(), mMcParticleMom),
-                          truncateFloatFraction((float)mcParticles[track].Pz(), mMcParticleMom),
-                          truncateFloatFraction((float)mcParticles[track].GetEnergy(), mMcParticleMom),
-                          truncateFloatFraction((float)mcParticles[track].Vx(), mMcParticlePos),
-                          truncateFloatFraction((float)mcParticles[track].Vy(), mMcParticlePos),
-                          truncateFloatFraction((float)mcParticles[track].Vz(), mMcParticlePos),
-                          truncateFloatFraction((float)mcParticles[track].T(), mMcParticlePos));
+                          truncateFloatFraction((float)mcParticles[particle].Px(), mMcParticleMom),
+                          truncateFloatFraction((float)mcParticles[particle].Py(), mMcParticleMom),
+                          truncateFloatFraction((float)mcParticles[particle].Pz(), mMcParticleMom),
+                          truncateFloatFraction((float)mcParticles[particle].GetEnergy(), mMcParticleMom),
+                          truncateFloatFraction((float)mcParticles[particle].Vx(), mMcParticlePos),
+                          truncateFloatFraction((float)mcParticles[particle].Vy(), mMcParticlePos),
+                          truncateFloatFraction((float)mcParticles[particle].Vz(), mMcParticlePos),
+                          truncateFloatFraction((float)mcParticles[particle].T(), mMcParticlePos));
       }
       mcReader.releaseTracksForSourceAndEvent(source, event);
     }
@@ -715,15 +737,15 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   uint64_t triggerMask = 1;
   std::sort(BCIDs.begin(), BCIDs.end());
   uint64_t prevBCid = BCIDs.back();
-  for (auto& BCid : BCIDs) {
-    if (BCid == prevBCid) {
+  for (auto& id : BCIDs) {
+    if (id == prevBCid) {
       continue;
     }
     bcCursor(0,
              runNumber,
-             startBCofTF + minGlBC + BCid,
+             startBCofTF + minGlBC + id,
              triggerMask);
-    prevBCid = BCid;
+    prevBCid = id;
   }
 
   BCIDs.clear();
@@ -735,15 +757,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   // filling mc particles table
-  std::vector<std::vector<std::vector<int>>> toStore;
-  for (int source = 0; source < mcReader.getNSources(); source++) {
-    std::vector<std::vector<int>> vEvents;
-    toStore.push_back(vEvents);
-    for (int event = 0; event < mcReader.getNEvents(source); event++) {
-      std::vector<int> vTracks(mcReader.getTracks(source, event).size(), 0);
-      toStore[source].push_back(vTracks);
-    }
-  }
+  TripletsMap_t toStore;
   fillMCParticlesTable(mcReader, mcParticlesCursor, tracksITSMCTruth, tracksTPCMCTruth, toStore);
   if (mIgnoreWriter) {
     std::shared_ptr<arrow::Table> tableMCParticles = mcParticlesBuilder.finalize();
@@ -771,7 +785,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       // TODO: fill label mask
       labelMask = 0;
       if (mcTruthITS.isValid()) {
-        labelID = toStore[mcTruthITS.getSourceID()][mcTruthITS.getEventID()][mcTruthITS.getTrackID()];
+        labelID = toStore.at(Triplet_t(mcTruthITS.getSourceID(), mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
       }
       if (mcTruthITS.isFake()) {
         labelMask |= (0x1 << 15);
@@ -792,7 +806,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       // TODO: fill label mask
       labelMask = 0;
       if (mcTruthTPC.isValid()) {
-        labelID = toStore[mcTruthTPC.getSourceID()][mcTruthTPC.getEventID()][mcTruthTPC.getTrackID()];
+        labelID = toStore.at(Triplet_t(mcTruthTPC.getSourceID(), mcTruthTPC.getEventID(), mcTruthTPC.getTrackID()));
       }
       if (mcTruthTPC.isFake()) {
         labelMask |= (0x1 << 15);
@@ -819,8 +833,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       // currently using label mask to indicate labelITS != labelTPC
       labelMask = 0;
       if (mcTruthITS.isValid() && mcTruthTPC.isValid()) {
-        labelITS = toStore[mcTruthITS.getSourceID()][mcTruthITS.getEventID()][mcTruthITS.getTrackID()];
-        labelTPC = toStore[mcTruthTPC.getSourceID()][mcTruthTPC.getEventID()][mcTruthTPC.getTrackID()];
+        labelITS = toStore.at(Triplet_t(mcTruthITS.getSourceID(), mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
+        labelTPC = toStore.at(Triplet_t(mcTruthTPC.getSourceID(), mcTruthTPC.getEventID(), mcTruthTPC.getTrackID()));
         labelID = labelITS;
       }
       if (mcTruthITS.isFake() || mcTruthTPC.isFake()) {

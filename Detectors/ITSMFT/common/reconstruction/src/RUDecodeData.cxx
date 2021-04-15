@@ -36,6 +36,7 @@ void RUDecodeData::clear()
   }
   nCables = 0;
   nChipsFired = 0;
+  calibData.clear();
 }
 
 ///_________________________________________________________________

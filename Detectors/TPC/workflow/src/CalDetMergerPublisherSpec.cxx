@@ -40,6 +40,7 @@
 using namespace o2::framework;
 using namespace o2::tpc;
 using clbUtils = o2::calibration::Utils;
+using o2::header::gDataOriginTPC;
 
 class CalDetMergerPublisherSpec : public o2::framework::Task
 {
@@ -94,6 +95,10 @@ class CalDetMergerPublisherSpec : public o2::framework::Task
         LOGP(info, "publishing after all data was received");
         dumpCalibData();
         sendOutput(pc.outputs());
+        // reset calibration objects
+        for (auto& [type, object] : mMergedCalDets) {
+          object *= 0;
+        }
         mCalibDumped = false;
       }
       mReceivedLanes.reset();
@@ -170,8 +175,8 @@ o2::framework::DataProcessorSpec o2::tpc::getCalDetMergerPublisherSpec(uint32_t 
   }
 
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("clbPayload", ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, "TPCCLBPART"});
-  inputs.emplace_back("clbInfo", ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, "TPCCLBPARTINFO"});
+  inputs.emplace_back("clbPayload", ConcreteDataTypeMatcher{gDataOriginTPC, "CLBPART"});
+  inputs.emplace_back("clbInfo", ConcreteDataTypeMatcher{gDataOriginTPC, "CLBPARTINFO"});
 
   const std::string id = "calib-tpc-caldet-merger-publisher";
 

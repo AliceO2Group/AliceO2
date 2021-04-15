@@ -24,6 +24,7 @@
 #include "DetectorsBase/BaseDPLDigitizer.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsTRD/TriggerRecord.h"
+#include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/Hit.h"
 #include "TRDBase/Digit.h" // for the Digit type
 #include "TRDBase/Calibrations.h"
@@ -97,7 +98,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         firstEvent = false;
       } else {
         double dT = currentTime.getTimeNS() - triggerTime.getTimeNS();
-        if (dT < o2::trd::Digitizer::BUSY_TIME) {
+        if (dT < o2::trd::constants::BUSY_TIME) {
           // BUSY_TIME = READOUT_TIME + DEAD_TIME, if less than that, pile up the signals and update the last time
           isNewTrigger = false;
           mDigitizer.pileup();

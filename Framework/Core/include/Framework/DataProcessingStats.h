@@ -10,6 +10,7 @@
 #ifndef O2_FRAMEWORK_DATAPROCESSINGSTATS_H_
 #define O2_FRAMEWORK_DATAPROCESSINGSTATS_H_
 
+#include <atomic>
 #include <cstdint>
 
 namespace o2::framework

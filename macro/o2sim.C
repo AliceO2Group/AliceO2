@@ -150,6 +150,11 @@ FairRunSim* o2sim_init(bool asservice)
       }
       grp.addDetReadOut(o2::detectors::DetID(det->GetDetId()));
     }
+    // CTP is not a physical detector, just flag in the GRP if requested
+    if (isActivated("CTP")) {
+      grp.addDetReadOut(o2::detectors::DetID::CTP);
+    }
+
     grp.print();
     printf("VMC: %p\n", TVirtualMC::GetMC());
     auto field = dynamic_cast<o2::field::MagneticField*>(run->GetField());

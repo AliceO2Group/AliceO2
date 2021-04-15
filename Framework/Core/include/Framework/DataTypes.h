@@ -27,9 +27,9 @@ enum CollisionFlagsRun2 : uint16_t {
 namespace o2::aod::track
 {
 enum TrackTypeEnum : uint8_t {
-  GlobalTrack = 0,
+  Track = 0,
   ITSStandaloneTrack,
-  Run2GlobalTrack = 254,
+  Run2Track = 254,
   Run2Tracklet = 255
 };
 enum TrackFlagsRun2Enum {

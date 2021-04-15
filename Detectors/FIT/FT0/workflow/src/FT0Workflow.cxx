@@ -22,14 +22,14 @@ namespace ft0
 
 framework::WorkflowSpec getFT0Workflow(bool isExtendedMode, bool useProcess,
                                        bool dumpProcessor, bool dumpReader,
-                                       bool disableRootOut)
+                                       bool disableRootOut, bool askSTFDist)
 {
   LOG(INFO) << "framework::WorkflowSpec getFT0Workflow";
   framework::WorkflowSpec specs;
   if (isExtendedMode) {
-    specs.emplace_back(o2::ft0::getFT0DataReaderDPLSpec(RawReaderFT0ext{dumpReader}));
+    specs.emplace_back(o2::ft0::getFT0DataReaderDPLSpec(RawReaderFT0ext{dumpReader}, askSTFDist));
   } else {
-    specs.emplace_back(o2::ft0::getFT0DataReaderDPLSpec(RawReaderFT0<false>{dumpReader}));
+    specs.emplace_back(o2::ft0::getFT0DataReaderDPLSpec(RawReaderFT0<false>{dumpReader}, askSTFDist));
   }
   if (useProcess) {
     specs.emplace_back(o2::ft0::getFT0DataProcessDPLSpec(dumpProcessor));

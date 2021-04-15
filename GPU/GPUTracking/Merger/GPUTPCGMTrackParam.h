@@ -181,10 +181,10 @@ class GPUTPCGMTrackParam
   }
   GPUdi() static void NormalizeAlpha(float& alpha)
   {
-    if (alpha > M_PI) {
-      alpha -= 2 * M_PI;
-    } else if (alpha <= -M_PI) {
-      alpha += 2 * M_PI;
+    if (alpha > CAMath::Pi()) {
+      alpha -= CAMath::TwoPi();
+    } else if (alpha <= -CAMath::Pi()) {
+      alpha += CAMath::TwoPi();
     }
   }
 
@@ -244,7 +244,7 @@ struct GPUTPCGMLoopData {
   float toAlpha;
   unsigned char slice;
   unsigned char row;
-  unsigned char toSlice;
+  char toSlice;
   unsigned char toRow;
   unsigned char inFlyDirection;
 };

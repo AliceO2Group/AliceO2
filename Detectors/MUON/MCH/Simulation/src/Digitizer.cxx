@@ -173,7 +173,7 @@ int Digitizer::processHit(const Hit& hit, int detID, int event_time)
       } else {
         q *= chargenon;
       }
-      auto signal = (unsigned long)q * resp.getInverseChargeThreshold();
+      auto signal = (uint32_t)q * resp.getInverseChargeThreshold();
       if (signal > 0) {
         /// FIXME: which time definition is used when calling this function?
         digits.emplace_back(detID, padid, signal, static_cast<int32_t>(time));
@@ -238,7 +238,7 @@ void Digitizer::mergeDigits()
     while (j < indices.size() && (getGlobalDigit(sortedDigits(i).getDetID(), sortedDigits(i).getPadID())) == (getGlobalDigit(sortedDigits(j).getDetID(), sortedDigits(j).getPadID())) && (std::fabs(sortedDigits(i).getTime() - sortedDigits(j).getTime()) < mDeltat)) {
       j++;
     }
-    unsigned long adc{0};
+    uint32_t adc{0};
     float padc{0};
     Response& resp = response(isStation1(sortedDigits(i).getDetID()));
 

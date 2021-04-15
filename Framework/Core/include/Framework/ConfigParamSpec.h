@@ -15,9 +15,7 @@
 
 #include <string>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 /// @class ConfigParamSpec Definition of options for a processor
 /// An option definition consists of a name, a type, a help message, and
@@ -62,7 +60,6 @@ struct ConfigParamSpec {
   ConfigParamKind kind;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif // FRAMEWORK_CONFIGPARAMSPEC_H

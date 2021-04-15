@@ -72,7 +72,7 @@ bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_ut
 
     const int timebin = (int(globalBCoffset) + int(bunchCrossingHeader) - int(syncOffset)) / 8;
     if (timebin < 0) {
-      LOGP(info, "skipping negative time bin with (globalBCoffset ({}) + bunchCrossingHeader ({}) - syncOffset({})) / 8 = {}", globalBCoffset, bunchCrossingHeader, syncOffset, timebin);
+      LOGP(debug, "skipping negative time bin with (globalBCoffset ({}) + bunchCrossingHeader ({}) - syncOffset({})) / 8 = {}", globalBCoffset, bunchCrossingHeader, syncOffset, timebin);
 
       // go to next time bin
       zsdata = zsdata->next();

@@ -19,7 +19,7 @@
 #include <TObject.h>
 #include <TString.h>
 #include <Math/Vector4D.h>
-#include <TMath.h>
+#include <TRandom.h>
 
 #include <vector>
 #include <map>
@@ -38,25 +38,31 @@ class VarManager : public TObject
  public:
   // map the information contained in the objects passed to the Fill functions
   enum ObjTypes {
+    // NOTE: Elements containing "Reduced" in their name refer to skimmed data tables
+    //       and the ones that don't refer to tables from the Framework data model
     BC = BIT(0),
     Collision = BIT(1),
     CollisionCent = BIT(2),
-    ReducedEvent = BIT(3),
-    ReducedEventExtended = BIT(4),
-    ReducedEventVtxCov = BIT(5),
+    CollisionTimestamp = BIT(3),
+    ReducedEvent = BIT(4),
+    ReducedEventExtended = BIT(5),
+    ReducedEventVtxCov = BIT(6),
     Track = BIT(0),
     TrackCov = BIT(1),
     TrackExtra = BIT(2),
     TrackPID = BIT(3),
     TrackDCA = BIT(4),
     TrackSelection = BIT(5),
-    // TODO: Central model MUON variables to be added
     ReducedTrack = BIT(6),
     ReducedTrackBarrel = BIT(7),
     ReducedTrackBarrelCov = BIT(8),
     ReducedTrackBarrelPID = BIT(9),
-    ReducedTrackMuon = BIT(10),
-    Pair = BIT(11)
+    Muon = BIT(10),
+    MuonCov = BIT(11),
+    ReducedMuon = BIT(12),
+    ReducedMuonExtra = BIT(13),
+    ReducedMuonCov = BIT(14),
+    Pair = BIT(15)
   };
 
   enum PairCandidateType {
@@ -73,16 +79,21 @@ class VarManager : public TObject
     kRunId,
     kNRunWiseVariables,
 
-    // Event wise variables   // Daria: imedjat ai ziua mja
-    kCollisionTime,
+    // Event wise variables
+    kTimestamp,
     kBC,
     kIsPhysicsSelection,
     kIsINT7,
     kIsEMC7,
     kIsINT7inMUON,
     kIsMuonSingleLowPt7,
+    kIsMuonSingleHighPt7,
     kIsMuonUnlikeLowPt7,
     kIsMuonLikeLowPt7,
+    kIsCUP8,
+    kIsCUP9,
+    kIsMUP10,
+    kIsMUP11,
     kVtxX,
     kVtxY,
     kVtxZ,
@@ -97,7 +108,7 @@ class VarManager : public TObject
     kCentVZERO,
     kNEventWiseVariables,
 
-    // Basic track(pair) wise variables
+    // Basic track/muon/pair wise variables
     kPt,
     kEta,
     kPhi,
@@ -126,22 +137,31 @@ class VarManager : public TObject
     kTPCnclsCR,
     kTPCchi2,
     kTPCsignal,
+    kTPCsignalRandomized,
+    kTPCsignalRandomizedDelta,
     kTRDsignal,
-    kTOFsignal,
+    kTRDPattern,
     kTOFbeta,
     kTrackLength,
     kTrackDCAxy,
     kTrackDCAz,
+    kIsGoldenChi2,
     kTrackCYY,
     kTrackCZZ,
     kTrackCSnpSnp,
     kTrackCTglTgl,
     kTrackC1Pt21Pt2,
     kTPCnSigmaEl,
+    kTPCnSigmaElRandomized,
+    kTPCnSigmaElRandomizedDelta,
     kTPCnSigmaMu,
     kTPCnSigmaPi,
+    kTPCnSigmaPiRandomized,
+    kTPCnSigmaPiRandomizedDelta,
     kTPCnSigmaKa,
     kTPCnSigmaPr,
+    kTPCnSigmaPrRandomized,
+    kTPCnSigmaPrRandomizedDelta,
     kTOFnSigmaEl,
     kTOFnSigmaMu,
     kTOFnSigmaPi,
@@ -160,6 +180,20 @@ class VarManager : public TObject
     kMuonPDca,
     kMuonChi2,
     kMuonChi2MatchTrigger,
+    /*   kMuonNClusters,
+    kMuonPDca,
+    kMuonRAtAbsorberEnd,
+    kMuonChi2,
+    kMuonChi2MatchMCHMID,
+    kMuonChi2MatchMCHMFT,
+    kMuonMatchScoreMCHMFT,
+    kMuonMatchMFTTrackID,
+    kMuonMatchMCHTrackID,
+    kMuonCXX,
+    kMuonCYY,
+    kMuonCPhiPhi,
+    kMuonCTglTgl,
+    kMuonC1Pt21Pt2,*/
     kNMuonTrackVariables,
 
     // Pair variables
@@ -270,6 +304,10 @@ void VarManager::FillEvent(T const& event, float* values)
     values[kBC] = event.bc().globalBC();
   }
 
+  if constexpr ((fillMap & CollisionTimestamp) > 0) {
+    values[kTimestamp] = event.timestamp();
+  }
+
   if constexpr ((fillMap & Collision) > 0) {
     if (fgUsedVars[kIsINT7]) {
       values[kIsINT7] = (event.alias()[kINT7] > 0);
@@ -283,17 +321,31 @@ void VarManager::FillEvent(T const& event, float* values)
     if (fgUsedVars[kIsMuonSingleLowPt7]) {
       values[kIsMuonSingleLowPt7] = (event.alias()[kMuonSingleLowPt7] > 0);
     }
+    if (fgUsedVars[kIsMuonSingleHighPt7]) {
+      values[kIsMuonSingleHighPt7] = (event.alias()[kMuonSingleHighPt7] > 0);
+    }
     if (fgUsedVars[kIsMuonUnlikeLowPt7]) {
       values[kIsMuonUnlikeLowPt7] = (event.alias()[kMuonUnlikeLowPt7] > 0);
     }
     if (fgUsedVars[kIsMuonLikeLowPt7]) {
       values[kIsMuonLikeLowPt7] = (event.alias()[kMuonLikeLowPt7] > 0);
     }
+    if (fgUsedVars[kIsCUP8]) {
+      values[kIsCUP8] = (event.alias()[kCUP8] > 0);
+    }
+    if (fgUsedVars[kIsCUP9]) {
+      values[kIsCUP9] = (event.alias()[kCUP9] > 0);
+    }
+    if (fgUsedVars[kIsMUP10]) {
+      values[kIsMUP10] = (event.alias()[kMUP10] > 0);
+    }
+    if (fgUsedVars[kIsMUP11]) {
+      values[kIsMUP11] = (event.alias()[kMUP11] > 0);
+    }
     values[kVtxX] = event.posX();
     values[kVtxY] = event.posY();
     values[kVtxZ] = event.posZ();
     values[kVtxNcontrib] = event.numContrib();
-    values[kCollisionTime] = event.collisionTime();
     values[kVtxCovXX] = event.covXX();
     values[kVtxCovXY] = event.covXY();
     values[kVtxCovXZ] = event.covXZ();
@@ -319,6 +371,7 @@ void VarManager::FillEvent(T const& event, float* values)
 
   if constexpr ((fillMap & ReducedEventExtended) > 0) {
     values[kBC] = event.globalBC();
+    values[kTimestamp] = event.timestamp();
     values[kCentVZERO] = event.centV0M();
     if (fgUsedVars[kIsINT7]) {
       values[kIsINT7] = (event.triggerAlias() & (uint32_t(1) << kINT7)) > 0;
@@ -332,11 +385,26 @@ void VarManager::FillEvent(T const& event, float* values)
     if (fgUsedVars[kIsMuonSingleLowPt7]) {
       values[kIsMuonSingleLowPt7] = (event.triggerAlias() & (uint32_t(1) << kMuonSingleLowPt7)) > 0;
     }
+    if (fgUsedVars[kIsMuonSingleHighPt7]) {
+      values[kIsMuonSingleHighPt7] = (event.triggerAlias() & (uint32_t(1) << kMuonSingleHighPt7)) > 0;
+    }
     if (fgUsedVars[kIsMuonUnlikeLowPt7]) {
       values[kIsMuonUnlikeLowPt7] = (event.triggerAlias() & (uint32_t(1) << kMuonUnlikeLowPt7)) > 0;
     }
     if (fgUsedVars[kIsMuonLikeLowPt7]) {
       values[kIsMuonLikeLowPt7] = (event.triggerAlias() & (uint32_t(1) << kMuonLikeLowPt7)) > 0;
+    }
+    if (fgUsedVars[kIsCUP8]) {
+      values[kIsCUP8] = (event.triggerAlias() & (uint32_t(1) << kCUP8)) > 0;
+    }
+    if (fgUsedVars[kIsCUP9]) {
+      values[kIsCUP9] = (event.triggerAlias() & (uint32_t(1) << kCUP9)) > 0;
+    }
+    if (fgUsedVars[kIsMUP10]) {
+      values[kIsMUP10] = (event.triggerAlias() & (uint32_t(1) << kMUP10)) > 0;
+    }
+    if (fgUsedVars[kIsMUP11]) {
+      values[kIsMUP11] = (event.triggerAlias() & (uint32_t(1) << kMUP11)) > 0;
     }
   }
 
@@ -360,7 +428,7 @@ void VarManager::FillTrack(T const& track, float* values)
     values = fgValues;
   }
 
-  if constexpr ((fillMap & Track) > 0 || (fillMap & ReducedTrack) > 0) {
+  if constexpr ((fillMap & Track) > 0 || (fillMap & Muon) > 0 || (fillMap & ReducedTrack) > 0 || (fillMap & ReducedMuon) > 0) {
     values[kPt] = track.pt();
     if (fgUsedVars[kPx]) {
       values[kPx] = track.px();
@@ -379,10 +447,13 @@ void VarManager::FillTrack(T const& track, float* values)
   if constexpr ((fillMap & TrackExtra) > 0 || (fillMap & ReducedTrackBarrel) > 0) {
     values[kPin] = track.tpcInnerParam();
     if (fgUsedVars[kIsITSrefit]) {
-      values[kIsITSrefit] = (track.flags() & (uint32_t(1) << 0)) > 0;
+      values[kIsITSrefit] = (track.flags() & o2::aod::track::ITSrefit) > 0;
     }
     if (fgUsedVars[kIsTPCrefit]) {
-      values[kIsTPCrefit] = (track.flags() & (uint32_t(1) << 1)) > 0;
+      values[kIsTPCrefit] = (track.flags() & o2::aod::track::TPCrefit) > 0;
+    }
+    if (fgUsedVars[kIsGoldenChi2]) {
+      values[kIsGoldenChi2] = (track.flags() & o2::aod::track::GoldenChi2) > 0;
     }
     if (fgUsedVars[kIsSPDfirst]) {
       values[kIsSPDfirst] = (track.itsClusterMap() & uint8_t(1)) > 0;
@@ -398,6 +469,7 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kTPCchi2] = track.tpcChi2NCl();
     values[kTrackLength] = track.length();
     values[kTPCnclsCR] = track.tpcNClsCrossedRows();
+    values[kTRDPattern] = track.trdPattern();
 
     if constexpr ((fillMap & TrackExtra) > 0) {
       if (fgUsedVars[kITSncls]) {
@@ -447,11 +519,25 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kTOFnSigmaPr] = track.tofNSigmaPr();
     values[kTPCsignal] = track.tpcSignal();
     values[kTRDsignal] = track.trdSignal();
-    values[kTOFsignal] = track.tofSignal();
     values[kTOFbeta] = track.beta();
+    if (fgUsedVars[kTPCsignalRandomized] || fgUsedVars[kTPCnSigmaElRandomized] || fgUsedVars[kTPCnSigmaPiRandomized] || fgUsedVars[kTPCnSigmaPrRandomized]) {
+      // NOTE: this is needed temporarilly for the study of the impact of TPC pid degradation on the quarkonium triggers in high lumi pp
+      //     This study involves a degradation from a dE/dx resolution of 5% to one of 6% (20% worsening)
+      //     For this we smear the dE/dx and n-sigmas using a gaus distribution with a width of 3.3%
+      //         which is approx the needed amount to get dE/dx to a resolution of 6%
+      double randomX = gRandom->Gaus(0.0, 0.033);
+      values[kTPCsignalRandomized] = values[kTPCsignal] * (1.0 + randomX);
+      values[kTPCsignalRandomizedDelta] = values[kTPCsignal] * randomX;
+      values[kTPCnSigmaElRandomized] = values[kTPCnSigmaEl] * (1.0 + randomX);
+      values[kTPCnSigmaElRandomizedDelta] = values[kTPCnSigmaEl] * randomX;
+      values[kTPCnSigmaPiRandomized] = values[kTPCnSigmaPi] * (1.0 + randomX);
+      values[kTPCnSigmaPiRandomizedDelta] = values[kTPCnSigmaPi] * randomX;
+      values[kTPCnSigmaPrRandomized] = values[kTPCnSigmaPr] * (1.0 + randomX);
+      values[kTPCnSigmaPrRandomizedDelta] = values[kTPCnSigmaPr] * randomX;
+    }
   }
 
-  if constexpr ((fillMap & ReducedTrackMuon) > 0) {
+  if constexpr ((fillMap & ReducedMuonExtra) > 0) {
     values[kMuonInvBendingMomentum] = track.inverseBendingMomentum();
     values[kMuonThetaX] = track.thetaX();
     values[kMuonThetaY] = track.thetaY();
@@ -463,6 +549,26 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kMuonChi2] = track.chi2();
     values[kMuonChi2MatchTrigger] = track.chi2MatchTrigger();
   }
+
+  // TODO: Uncomment when AO2Ds with the new data model are produced
+  /*if constexpr ((fillMap & ReducedMuonExtra) > 0 || (fillMap & Muon) > 0) {
+    values[kMuonNClusters] = track.nClusters();
+    values[kMuonPDca] = track.pDca();
+    values[kMuonRAtAbsorberEnd] = track.rAtAbsorberEnd();
+    values[kMuonChi2] = track.chi2();
+    values[kMuonChi2MatchMCHMID] = track.chi2MatchMCHMID();
+    values[kMuonChi2MatchMCHMFT] = track.chi2MatchMCHMFT();
+    values[kMuonMatchScoreMCHMFT] = track.matchScoreMCHMFT();
+    values[kMuonMatchMFTTrackID] = track.matchMFTTrackID();
+    values[kMuonMatchMCHTrackID] = track.matchMCHTrackID();
+  }*/
+  /*if constexpr ((fillMap & ReducedMuonCov) > 0 || (fillMap & MuonCov) > 0) {
+    values[kMuonCXX] = track.cXX();
+    values[kMuonCYY] = track.cYY();
+    values[kMuonCPhiPhi] = track.cPhiPhi();
+    values[kMuonCTglTgl] = track.cTglTgl();
+    values[kMuonC1Pt21Pt2] = track.c1Pt21Pt2();
+  }*/
 
   if constexpr ((fillMap & Pair) > 0) {
     values[kMass] = track.mass();
@@ -522,7 +628,7 @@ void VarManager::FillDileptonHadron(T1 const& dilepton, T2 const& hadron, float*
     values[kDeltaPhi] = delta;
   }
   if (fgUsedVars[kDeltaPhiSym]) {
-    double delta = TMath::Abs(dilepton.phi() - hadron.phi());
+    double delta = std::abs(dilepton.phi() - hadron.phi());
     if (delta > M_PI) {
       delta = 2 * M_PI - delta;
     }

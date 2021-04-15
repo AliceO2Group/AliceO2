@@ -107,6 +107,7 @@ void TrapSimulator::reset()
   //clear the adc data
   std::fill(mADCR.begin(), mADCR.end(), 0);
   std::fill(mADCF.begin(), mADCF.end(), 0);
+  std::fill(mADCDigitIndices.begin(), mADCDigitIndices.end(), -1);
 
   for (auto filterreg : mInternalFilterRegisters) {
     filterreg.ClearReg();
@@ -2069,7 +2070,8 @@ void TrapSimulator::fitTracklet()
         }
         bool printoutadcs = false;
         for (int i = 0; i < 21; i++) {
-          if (adchitbp & (1U << i)) {
+          // FIXME it can happen that there is a hit found in a channel where there is no digit provided as input. Is this expected?
+          if ((adchitbp & (1U << i)) && (mADCDigitIndices[i] >= 0)) {
             mTrackletDigitCount.back() += 1;
             mTrackletDigitIndices.push_back(mADCDigitIndices[i]);
           }

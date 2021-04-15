@@ -42,7 +42,6 @@ class Digits2Raw
 
   static constexpr int Nchannels_FT0 = 208;
   static constexpr int Nchannels_PM = 12;
-  static constexpr int LinkTCM = 19;
   static constexpr int NPMs = 20;
   static constexpr int GBTWordSize = 128; // with padding
   static constexpr int Max_Page_size = 8192;
@@ -80,10 +79,11 @@ class Digits2Raw
   uint16_t mCruID = 0;
   uint32_t mEndPointID = 0;
   uint64_t mFeeID = 0;
+  int mLinkTCM;
 
   /////////////////////////////////////////////////
 
-  ClassDefNV(Digits2Raw, 1);
+  ClassDefNV(Digits2Raw, 2);
 };
 
 } // namespace ft0

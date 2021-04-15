@@ -88,6 +88,9 @@ using HistPtr = std::variant<std::shared_ptr<THn>, std::shared_ptr<THnSparse>, s
  * Specification of an Axis.
  */
 //**************************************************************************************************
+// Flag to mark variable bin size in configurable bin edges
+constexpr int VARIABLE_WIDTH = 0;
+
 struct AxisSpec {
   AxisSpec(std::vector<double> binEdges_, std::optional<std::string> title_ = std::nullopt, std::optional<std::string> name_ = std::nullopt)
     : nBins(std::nullopt),
@@ -105,19 +108,18 @@ struct AxisSpec {
   {
   }
 
-  // temporary ctor to allow building axis from double array that we can currently get via Configurables
-  // (first entry is assumed to be the number of bins; in case of variable size binning it must be set to zero)
-  AxisSpec(bool isFromConfig_, std::vector<double> binEdges_, std::optional<std::string> title_ = std::nullopt, std::optional<std::string> name_ = std::nullopt)
+  // first entry is assumed to be the number of bins; in case of variable size binning it must be set to zero
+  AxisSpec(ConfigurableAxis binEdges_, std::optional<std::string> title_ = std::nullopt, std::optional<std::string> name_ = std::nullopt)
     : nBins(std::nullopt),
-      binEdges(binEdges_),
+      binEdges(std::vector<double>(binEdges_)),
       title(title_),
       name(name_)
   {
-    if (!isFromConfig_ || binEdges.empty()) {
-      return; // just treat bin edges vector as bin edges...
+    if (binEdges.empty()) {
+      return;
     }
-    if (binEdges_[0] != 0.) {
-      nBins = static_cast<int>(binEdges_[0]);
+    if (binEdges[0] != VARIABLE_WIDTH) {
+      nBins = static_cast<int>(binEdges[0]);
       binEdges.resize(3); // nBins, lowerBound, upperBound, disregard whatever else is stored in vecotr
     }
     binEdges.erase(binEdges.begin()); // remove first entry that we assume to be number of bins
@@ -127,9 +129,6 @@ struct AxisSpec {
   std::vector<double> binEdges{};
   std::optional<std::string> title{};
   std::optional<std::string> name{}; // optional axis name for ndim histograms
-
-  //AxisSpec() = default;
-  //ClassDef(AxisSpec, 1);
 };
 
 //**************************************************************************************************

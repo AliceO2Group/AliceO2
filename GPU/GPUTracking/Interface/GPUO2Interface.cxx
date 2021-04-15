@@ -37,7 +37,7 @@ int GPUO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
     return (1);
   }
   mConfig.reset(new GPUO2InterfaceConfiguration(config));
-  mContinuous = mConfig->configEvent.continuousMaxTimeBin != 0;
+  mContinuous = mConfig->configGRP.continuousMaxTimeBin != 0;
   mRec.reset(GPUReconstruction::CreateInstance(mConfig->configDeviceBackend));
   if (mRec == nullptr) {
     GPUError("Error obtaining instance of GPUReconstruction");
@@ -47,9 +47,9 @@ int GPUO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
   mChain->mConfigDisplay = &mConfig->configDisplay;
   mChain->mConfigQA = &mConfig->configQA;
   if (mConfig->configWorkflow.inputs.isSet(GPUDataTypes::InOutType::TPCRaw)) {
-    mConfig->configEvent.needsClusterer = 1;
+    mConfig->configGRP.needsClusterer = 1;
   }
-  mRec->SetSettings(&mConfig->configEvent, &mConfig->configReconstruction, &mConfig->configProcessing, &mConfig->configWorkflow);
+  mRec->SetSettings(&mConfig->configGRP, &mConfig->configReconstruction, &mConfig->configProcessing, &mConfig->configWorkflow);
   mChain->SetCalibObjects(mConfig->configCalib);
   mOutputRegions.reset(new GPUTrackingOutputs);
   if (mConfig->configInterface.outputToExternalBuffers) {

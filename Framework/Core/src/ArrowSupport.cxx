@@ -15,6 +15,7 @@
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/Tracing.h"
 #include "Framework/DeviceMetricsInfo.h"
+#include "Framework/DeviceMetricsHelper.h"
 #include "Framework/DeviceInfo.h"
 
 #include "CommonMessageBackendsHelpers.h"
@@ -49,6 +50,13 @@ struct RateLimitConfig {
 
 static int64_t memLimit = 0;
 
+struct MetricIndices {
+  size_t arrowBytesCreated = 0;
+  size_t arrowBytesDestroyed = 0;
+  size_t arrowMessagesCreated = 0;
+  size_t arrowMessagesDestroyed = 0;
+};
+
 /// Service for common handling of rate limiting
 o2::framework::ServiceSpec ArrowSupport::rateLimitingSpec()
 {
@@ -78,6 +86,21 @@ o2::framework::ServiceSpec ArrowSupport::rateLimitingSpec()
                      nullptr,
                      nullptr,
                      ServiceKind::Serial};
+}
+
+std::vector<MetricIndices> createDefaultIndices(std::vector<DeviceMetricsInfo>& allDevicesMetrics)
+{
+  std::vector<MetricIndices> results;
+
+  for (auto& info : allDevicesMetrics) {
+    MetricIndices indices;
+    indices.arrowBytesCreated = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "arrow-bytes-created");
+    indices.arrowBytesDestroyed = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "arrow-bytes-destroyed");
+    indices.arrowMessagesCreated = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "arrow-messages-created");
+    indices.arrowMessagesDestroyed = DeviceMetricsHelper::bookNumericMetric<uint64_t>(info, "arrow-messages-destroyed");
+    results.push_back(indices);
+  }
+  return results;
 }
 
 o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
@@ -137,9 +160,12 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        size_t lastTimestamp = 0;
                        size_t firstTimestamp = -1;
                        size_t lastDecision = 0;
-                       for (auto& deviceMetrics : allDeviceMetrics) {
+                       static std::vector<MetricIndices> allIndices = createDefaultIndices(allDeviceMetrics);
+                       for (size_t mi = 0; mi < allDeviceMetrics.size(); ++mi) {
+                         auto& deviceMetrics = allDeviceMetrics[mi];
+                         auto& indices = allIndices[mi];
                          {
-                           size_t index = DeviceMetricsHelper::metricIdxByName("arrow-bytes-created", deviceMetrics);
+                           size_t index = indices.arrowBytesCreated;
                            if (index < deviceMetrics.metrics.size()) {
                              hasMetrics = true;
                              changed |= deviceMetrics.changed.at(index);
@@ -151,7 +177,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            }
                          }
                          {
-                           size_t index = DeviceMetricsHelper::metricIdxByName("arrow-bytes-destroyed", deviceMetrics);
+                           size_t index = indices.arrowBytesDestroyed;
                            if (index < deviceMetrics.metrics.size()) {
                              hasMetrics = true;
                              changed |= deviceMetrics.changed.at(index);
@@ -162,7 +188,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            }
                          }
                          {
-                           size_t index = DeviceMetricsHelper::metricIdxByName("arrow-messages-created", deviceMetrics);
+                           size_t index = indices.arrowMessagesCreated;
                            if (index < deviceMetrics.metrics.size()) {
                              MetricInfo info = deviceMetrics.metrics.at(index);
                              auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
@@ -170,7 +196,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            }
                          }
                          {
-                           size_t index = DeviceMetricsHelper::metricIdxByName("arrow-messages-destroyed", deviceMetrics);
+                           size_t index = indices.arrowMessagesDestroyed;
                            if (index < deviceMetrics.metrics.size()) {
                              MetricInfo info = deviceMetrics.metrics.at(index);
                              auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);

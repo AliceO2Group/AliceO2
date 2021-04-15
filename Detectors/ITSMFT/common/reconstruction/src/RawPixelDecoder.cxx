@@ -268,7 +268,9 @@ ChipPixelData* RawPixelDecoder<Mapping>::getNextChipData(std::vector<ChipPixelDa
     auto& ru = mRUDecodeVec[mCurRUDecodeID];
     if (ru.lastChipChecked < ru.nChipsFired) {
       auto& chipData = ru.chipsData[ru.lastChipChecked++];
-      assert(mLastReadChipID < chipData.getChipID());
+      if constexpr (std::is_same<Mapping, ChipMappingITS>::value) {
+        assert(mLastReadChipID < chipData.getChipID());
+      }
       mLastReadChipID = chipData.getChipID();
       chipDataVec[mLastReadChipID].swap(chipData);
       return &chipDataVec[mLastReadChipID];
@@ -290,7 +292,9 @@ bool RawPixelDecoder<Mapping>::getNextChipData(ChipPixelData& chipData)
     auto& ru = mRUDecodeVec[mCurRUDecodeID];
     if (ru.lastChipChecked < ru.nChipsFired) {
       auto& ruchip = ru.chipsData[ru.lastChipChecked++];
-      assert(mLastReadChipID < chipData.getChipID());
+      if constexpr (std::is_same<Mapping, ChipMappingITS>::value) {
+        assert(mLastReadChipID < chipData.getChipID());
+      }
       mLastReadChipID = chipData.getChipID();
       chipData.swap(ruchip);
       return true;

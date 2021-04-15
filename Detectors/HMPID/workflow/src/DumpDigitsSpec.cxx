@@ -32,13 +32,14 @@
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Logger.h"
+#include "Framework/DataRefUtils.h"
 #include "Framework/InputRecordWalker.h"
 
 #include "Headers/RAWDataHeader.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "DPLUtils/DPLRawParser.h"
 
-#include "HMPIDBase/Digit.h"
+#include "DataFormatsHMP/Digit.h"
 #include "HMPIDBase/Geo.h"
 #include "HMPIDWorkflow/DumpDigitsSpec.h"
 
@@ -48,6 +49,7 @@ namespace hmpid
 {
 
 using namespace o2;
+using namespace o2::header;
 using namespace o2::framework;
 using RDH = o2::header::RDHAny;
 
@@ -67,10 +69,10 @@ void DumpDigitsTask::init(framework::InitContext& ic)
     }
   }
   if (mPrintDigits) {
-    std::cout << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
+    std::cout << "--- HMP Digits : [Chamb,PhoCat,x,y]=Charge ---" << std::endl;
   }
   if (mIsOutputOnFile) {
-    mOsFile << "--- HMP Digits : [Chamb,PhoCat,x,y]@(Orbit,BC)=Charge ---" << std::endl;
+    mOsFile << "--- HMP Digits : [Chamb,PhoCat,x,y]=Charge ---" << std::endl;
   }
   mOrbit = -1;
   mBc = -1;
@@ -83,27 +85,34 @@ void DumpDigitsTask::init(framework::InitContext& ic)
 void DumpDigitsTask::run(framework::ProcessingContext& pc)
 {
   LOG(DEBUG) << "[HMPID Dump Digits - run() ] Enter Dump ...";
+
   for (auto const& ref : InputRecordWalker(pc.inputs())) {
-    std::vector<o2::hmpid::Digit> digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>(ref);
-    LOG(DEBUG) << "The size of the vector =" << digits.size();
-    mDigitsReceived += digits.size();
-    if (mPrintDigits) {
-      for (o2::hmpid::Digit Dig : digits) {
-        std::cout << Dig << std::endl;
+    if (DataRefUtils::match(ref, {"check", ConcreteDataTypeMatcher{gDataOriginHMP, "INTRECORDS"}})) {
+      o2::InteractionRecord intReco = pc.inputs().get<o2::InteractionRecord>(ref);
+      if (mPrintDigits) {
+        std::cout << "Trigger Event     Orbit = " << intReco.orbit << "  BC = " << intReco.bc << std::endl;
+      }
+      if (mIsOutputOnFile) {
+        mOsFile << "Trigger Event     Orbit = " << intReco.orbit << "  BC = " << intReco.bc << std::endl;
       }
     }
-    if (mIsOutputOnFile) {
-      for (o2::hmpid::Digit Dig : digits) {
-        mOsFile << Dig << std::endl;
-        if (Dig.getOrbit() != mOrbit || Dig.getBC() != mBc) {
-          mOrbit = Dig.getOrbit();
-          mBc = Dig.getBC();
-          //     LOG(INFO) << "Event :" << mOrbit << " / " << mBc;
+    if (DataRefUtils::match(ref, {"check", ConcreteDataTypeMatcher{gDataOriginHMP, "DIGITS"}})) {
+      std::vector<o2::hmpid::Digit> digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>(ref);
+      LOG(DEBUG) << "The size of the vector =" << digits.size();
+      mDigitsReceived += digits.size();
+      if (mPrintDigits) {
+        for (o2::hmpid::Digit Dig : digits) {
+          std::cout << Dig << std::endl;
+        }
+      }
+      if (mIsOutputOnFile) {
+        for (o2::hmpid::Digit Dig : digits) {
+          mOsFile << Dig << std::endl;
         }
       }
     }
   }
-  mExTimer.elapseMes("... Dumping Digits received = " + std::to_string(mDigitsReceived));
+  mExTimer.elapseMes("Dumping Digits received = " + std::to_string(mDigitsReceived));
   return;
 }
 
@@ -123,6 +132,7 @@ o2::framework::DataProcessorSpec getDumpDigitsSpec(std::string inputSpec)
 
   std::vector<o2::framework::InputSpec> inputs;
   inputs.emplace_back("digits", o2::header::gDataOriginHMP, "DIGITS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("intrecord", o2::header::gDataOriginHMP, "INTRECORDS", 0, Lifetime::Timeframe);
 
   std::vector<o2::framework::OutputSpec> outputs;
 

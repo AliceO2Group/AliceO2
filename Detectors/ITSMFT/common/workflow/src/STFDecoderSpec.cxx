@@ -40,8 +40,8 @@ using namespace o2::framework;
 
 ///_______________________________________
 template <class Mapping>
-STFDecoder<Mapping>::STFDecoder(bool doClusters, bool doPatterns, bool doDigits, std::string_view dict, std::string_view noise)
-  : mDoClusters(doClusters), mDoPatterns(doPatterns), mDoDigits(doDigits), mDictName(dict), mNoiseName(noise)
+STFDecoder<Mapping>::STFDecoder(bool doClusters, bool doPatterns, bool doDigits, bool doCalib, std::string_view dict, std::string_view noise)
+  : mDoClusters(doClusters), mDoPatterns(doPatterns), mDoDigits(doDigits), mDoCalibData(doCalib), mDictName(dict), mNoiseName(noise)
 {
   mSelfName = o2::utils::concat_string(Mapping::getName(), "STFDecoder");
   mTimer.Stop();
@@ -60,7 +60,7 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   mDecoder->setNThreads(mNThreads);
   mDecoder->setFormat(ic.options().get<bool>("old-format") ? GBTLink::OldFormat : GBTLink::NewFormat);
   mDecoder->setVerbosity(ic.options().get<int>("decoder-verbosity"));
-
+  mDecoder->setFillCalibData(mDoCalibData);
   std::string noiseFile = o2::base::NameConf::getDictionaryFileName(detID, mNoiseName, ".root");
   if (o2::base::NameConf::pathExists(noiseFile)) {
     TFile* f = TFile::Open(noiseFile.data(), "old");
@@ -112,13 +112,20 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   std::vector<o2::itsmft::CompClusterExt> clusCompVec;
   std::vector<o2::itsmft::ROFRecord> clusROFVec;
   std::vector<unsigned char> clusPattVec;
+
   std::vector<Digit> digVec;
+  std::vector<GBTCalibData> calVec;
   std::vector<ROFRecord> digROFVec;
+
   mDecoder->setDecodeNextAuto(false);
   while (mDecoder->decodeNextTrigger()) {
     if (mDoDigits) {                                    // call before clusterization, since the latter will hide the digits
       mDecoder->fillDecodedDigits(digVec, digROFVec);   // lot of copying involved
+      if (mDoCalibData) {
+        mDecoder->fillCalibData(calVec);
+      }
     }
+
     if (mDoClusters) { // !!! THREADS !!!
       mClusterer->process(mNThreads, *mDecoder.get(), &clusCompVec, mDoPatterns ? &clusPattVec : nullptr, &clusROFVec);
     }
@@ -127,7 +134,11 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   if (mDoDigits) {
     pc.outputs().snapshot(Output{orig, "DIGITS", 0, Lifetime::Timeframe}, digVec);
     pc.outputs().snapshot(Output{orig, "DIGITSROF", 0, Lifetime::Timeframe}, digROFVec);
+    if (mDoCalibData) {
+      pc.outputs().snapshot(Output{orig, "GBTCALIB", 0, Lifetime::Timeframe}, calVec);
+    }
   }
+
   if (mDoClusters) {                                                                  // we are not obliged to create vectors which are not requested, but other devices might not know the options of this one
     pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe}, clusCompVec);
     pc.outputs().snapshot(Output{orig, "PATTERNS", 0, Lifetime::Timeframe}, clusPattVec);
@@ -161,8 +172,7 @@ void STFDecoder<Mapping>::endOfStream(EndOfStreamContext& ec)
   }
 }
 
-DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool doDigits, bool askDISTSTF,
-                                       const std::string& dict, const std::string& noise)
+DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool doDigits, bool doCalib, bool askDISTSTF, const std::string& dict, const std::string& noise)
 {
   std::vector<OutputSpec> outputs;
   auto orig = o2::header::gDataOriginITS;
@@ -170,6 +180,9 @@ DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool do
   if (doDigits) {
     outputs.emplace_back(orig, "DIGITS", 0, Lifetime::Timeframe);
     outputs.emplace_back(orig, "DIGITSROF", 0, Lifetime::Timeframe);
+    if (doCalib) {
+      outputs.emplace_back(orig, "GBTCALIB", 0, Lifetime::Timeframe);
+    }
   }
   if (doClusters) {
     outputs.emplace_back(orig, "COMPCLUSTERS", 0, Lifetime::Timeframe);
@@ -186,21 +199,23 @@ DataProcessorSpec getSTFDecoderITSSpec(bool doClusters, bool doPatterns, bool do
     "its-stf-decoder",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingITS>>(doClusters, doPatterns, doDigits, dict, noise)},
+    AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingITS>>(doClusters, doPatterns, doDigits, doCalib, dict, noise)},
     Options{
       {"nthreads", VariantType::Int, 1, {"Number of decoding/clustering threads"}},
       {"old-format", VariantType::Bool, false, {"Use old format (1 trigger per CRU page)"}},
       {"decoder-verbosity", VariantType::Int, 0, {"Verbosity level (-1: silent, 0: errors, 1: headers, 2: data)"}}}};
 }
 
-DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool doDigits, bool askDISTSTF,
-                                       const std::string& dict, const std::string& noise)
+DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool doDigits, bool doCalib, bool askDISTSTF, const std::string& dict, const std::string& noise)
 {
   std::vector<OutputSpec> outputs;
   auto orig = o2::header::gDataOriginMFT;
   if (doDigits) {
     outputs.emplace_back(orig, "DIGITS", 0, Lifetime::Timeframe);
     outputs.emplace_back(orig, "DIGITSROF", 0, Lifetime::Timeframe);
+    if (doCalib) {
+      outputs.emplace_back(orig, "GBTCALIB", 0, Lifetime::Timeframe);
+    }
   }
   if (doClusters) {
     outputs.emplace_back(orig, "COMPCLUSTERS", 0, Lifetime::Timeframe);
@@ -220,7 +235,7 @@ DataProcessorSpec getSTFDecoderMFTSpec(bool doClusters, bool doPatterns, bool do
     "mft-stf-decoder",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingMFT>>(doClusters, doPatterns, doDigits, dict, noise)},
+    AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingMFT>>(doClusters, doPatterns, doDigits, doCalib, dict, noise)},
     Options{
       {"nthreads", VariantType::Int, 1, {"Number of decoding/clustering threads"}},
       {"old-format", VariantType::Bool, false, {"Use old format (1 trigger per CRU page)"}},

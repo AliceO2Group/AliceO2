@@ -22,7 +22,11 @@
 #include "Framework/CompletionPolicy.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DispatchPolicy.h"
+#include "Framework/ConfigParamSpec.h"
+#include "Framework/Variant.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 
 // customize the completion policy
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
@@ -37,6 +41,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::string keyvaluehelp("Semicolon separated key=value strings ...");
   workflowOptions.push_back(o2::framework::ConfigParamSpec{"configKeyValues", o2::framework::VariantType::String, "", {keyvaluehelp}});
+
+  o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions);
 }
 
 #include "Framework/runDataProcessing.h"
@@ -51,6 +57,9 @@ WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   DataProcessorSpec consumer = o2::hmpid::getDigitsToRawSpec();
   specs.push_back(consumer);
+
+  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
 
   return specs;
 }

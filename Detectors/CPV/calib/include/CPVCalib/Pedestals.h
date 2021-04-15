@@ -22,6 +22,7 @@
 #include "TObject.h"
 
 class TH1;
+class TH1F;
 
 namespace o2
 {
@@ -45,22 +46,26 @@ class Pedestals
   /// \param cellID Absolute ID of cell
   /// \return pedestal for the cell
   short getPedestal(short cellID) const { return short(mPedestals.at(cellID)); }
+  float getPedSigma(short cellID) const { return mPedSigmas.at(cellID); }
 
   /// \brief Set pedestal
   /// \param cellID Absolute ID of cell
   /// \param c is the pedestal (expected to be in range <254)
-  void setPedestal(short cellID, short c) { mPedestals[cellID] = static_cast<unsigned char>(c); }
+  void setPedestal(short cellID, short c) { mPedestals[cellID] = (c > 0 && c < 511) ? c : mPedestals[cellID]; }
+  void setPedSigma(short cellID, float c) { mPedSigmas[cellID] = (c > 0) ? c : mPedSigmas[cellID]; }
 
   /// \brief Set pedestals from 1D histogram with cell absId in x axis
   /// \param 1D(NCHANNELS) histogram with calibration coefficients
   /// \return Is successful
   bool setPedestals(TH1* h);
+  bool setPedSigmas(TH1F* h);
 
  private:
-  static constexpr short NCHANNELS = 23040;        ///< Number of channels in 3 modules starting from 0
-  std::array<unsigned char, NCHANNELS> mPedestals; ///< Container for pedestals
+  static constexpr short NCHANNELS = 23040; ///< Number of channels in 3 modules starting from 0
+  std::array<short, NCHANNELS> mPedestals;  ///< Container for pedestals
+  std::array<float, NCHANNELS> mPedSigmas;  ///< Container for pedestal sigmas
 
-  ClassDefNV(Pedestals, 1);
+  ClassDefNV(Pedestals, 2);
 };
 
 } // namespace cpv

@@ -19,7 +19,9 @@
 #include "Framework/InputSpec.h"
 #include "Framework/DeviceSpec.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
+#include "Headers/DataHeaderHelpers.h"
 #include "TPCBase/Sector.h"
+#include <fmt/ostream.h>
 #include <vector>
 #include <string>
 #include <stdexcept>
@@ -85,7 +87,8 @@ class TPCSectorCompletionPolicy
       return std::regex_match(device.name.begin(), device.name.end(), std::regex(expression.c_str()));
     };
 
-    auto callback = [bRequireAll = mRequireAll, inputMatchers = mInputMatchers, externalInputMatchers = mExternalInputMatchers](framework::CompletionPolicy::InputSet inputs) -> framework::CompletionPolicy::CompletionOp {
+    auto callback = [bRequireAll = mRequireAll, inputMatchers = mInputMatchers, externalInputMatchers = mExternalInputMatchers, pTpcSectorMask = mTpcSectorMask](framework::CompletionPolicy::InputSet inputs) -> framework::CompletionPolicy::CompletionOp {
+      unsigned long tpcSectorMask = pTpcSectorMask ? *pTpcSectorMask : 0xFFFFFFFFF;
       std::bitset<NSectors> validSectors = 0;
       bool haveMatchedInput = false;
       uint64_t activeSectors = 0;
@@ -114,18 +117,18 @@ class TPCSectorCompletionPolicy
                 inputType = idx;
               } else if (inputType != idx) {
                 std::stringstream error;
-                error << "routing error, input messages must all be of the same type previously bound to "
-                      << inputMatchers[inputType]
-                      << dh->dataOrigin.as<std::string>() + "/"
-                      << dh->dataDescription.as<std::string>() + "/" + dh->subSpecification;
+                error << fmt::format("routing error, input messages must all be of the same type previously bound to {} {}/{}/{}",
+                                     inputMatchers[inputType],
+                                     dh->dataOrigin,
+                                     dh->dataDescription, dh->subSpecification);
                 throw std::runtime_error(error.str());
               }
               auto const* sectorHeader = framework::DataRefUtils::getHeader<o2::tpc::TPCSectorHeader*>(ref);
               if (sectorHeader == nullptr) {
                 throw std::runtime_error("TPC sector header missing on header stack");
               }
-              activeSectors |= sectorHeader->activeSectors;
-              validSectors |= sectorHeader->sectorBits;
+              activeSectors |= (sectorHeader->activeSectors & tpcSectorMask);
+              validSectors |= (sectorHeader->sectorBits & tpcSectorMask);
               break;
             }
           }
@@ -139,8 +142,8 @@ class TPCSectorCompletionPolicy
                 if (sectorHeader == nullptr) {
                   throw std::runtime_error("TPC sector header missing on header stack");
                 }
-                activeSectors |= sectorHeader->activeSectors;
-                validSectorsExternal[idx] |= sectorHeader->sectorBits;
+                activeSectors |= (sectorHeader->activeSectors & tpcSectorMask);
+                validSectorsExternal[idx] |= (sectorHeader->sectorBits & tpcSectorMask);
                 break;
               }
             }
@@ -206,6 +209,8 @@ class TPCSectorCompletionPolicy
       }
     } else if constexpr (std::is_same<Type, std::vector<o2::framework::InputSpec>*>::value) {
       mExternalInputMatchers = arg;
+    } else if constexpr (std::is_same<Type, unsigned long*>::value) {
+      mTpcSectorMask = arg;
     } else {
       static_assert(framework::always_static_assert_v<Type>);
     }
@@ -220,6 +225,7 @@ class TPCSectorCompletionPolicy
   // - They are controlled externally and the external entity can modify them, e.g. after parsing command line arguments.
   // - They are all matched independently, it is not sufficient that one of them is present for all sectors
   const std::vector<framework::InputSpec>* mExternalInputMatchers = nullptr;
+  unsigned long* mTpcSectorMask = nullptr;
   bool mRequireAll = false;
 };
 } // namespace tpc

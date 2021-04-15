@@ -218,7 +218,7 @@ EndConfig()
 
 #ifdef BeginConfig
 // Settings concerning the standlone timeframe from run 2 events assembly tool
-BeginSubConfig(GPUSettingsTF, TF, configStandalone, "TF", 't', "Timeframe settings")
+BeginSubConfig(GPUSettingsTFSim, TF, configStandalone, "TF", 't', "Timeframe settings")
 AddOption(nMerge, int, 0, "", 0, "Merge n events in a timeframe", min(0))
 AddOption(averageDistance, float, 50., "", 0, "Average distance in cm of events merged into timeframe", min(0.f))
 AddOption(randomizeDistance, bool, true, "", 0, "Randomize distance around average distance of merged events")
@@ -309,7 +309,7 @@ AddHelp("help", 'h')
 AddHelpAll("helpall", 'H')
 AddSubConfig(GPUSettingsRec, rec)
 AddSubConfig(GPUSettingsProcessing, proc)
-AddSubConfig(GPUSettingsTF, TF)
+AddSubConfig(GPUSettingsTFSim, TF)
 AddSubConfig(GPUSettingsQA, QA)
 AddSubConfig(GPUSettingsDisplay, GL)
 AddSubConfig(GPUSettingsDisplayLight, GLlight)

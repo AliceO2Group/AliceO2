@@ -72,8 +72,7 @@ struct Configurable : IP {
 template <typename T, ConfigParamKind K = ConfigParamKind::kGeneric>
 using MutableConfigurable = Configurable<T, K, ConfigurablePolicyMutable<T, K>>;
 
-template <typename T>
-using ConfigurableAxis = Configurable<std::vector<T>, ConfigParamKind::kAxisSpec, ConfigurablePolicyConst<std::vector<T>, ConfigParamKind::kAxisSpec>>;
+using ConfigurableAxis = Configurable<std::vector<double>, ConfigParamKind::kAxisSpec, ConfigurablePolicyConst<std::vector<double>, ConfigParamKind::kAxisSpec>>;
 
 template <typename T, ConfigParamKind K, typename IP>
 std::ostream& operator<<(std::ostream& os, Configurable<T, K, IP> const& c)

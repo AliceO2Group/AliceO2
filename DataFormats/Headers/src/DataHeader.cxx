@@ -52,21 +52,6 @@ void o2::header::BaseHeader::throwInconsistentStackError() const
 }
 
 //__________________________________________________________________________________________________
-void o2::header::DataHeader::print() const
-{
-  printf("Data header version %u, flags: %u\n", headerVersion, flags);
-  printf("  origin       : %s\n", dataOrigin.str);
-  printf("  serialization: %s\n", payloadSerializationMethod.str);
-  printf("  description  : %s\n", dataDescription.str);
-  printf("  sub spec.    : %llu\n", (long long unsigned int)subSpecification);
-  printf("  header size  : %d\n", headerSize);
-  printf("  payloadSize  : %llu\n", (long long unsigned int)payloadSize);
-  printf("  firstTFOrbit : %u\n", firstTForbit);
-  printf("  tfCounter    : %u\n", tfCounter);
-  printf("  runNumber    : %u\n", runNumber);
-}
-
-//__________________________________________________________________________________________________
 bool o2::header::DataHeader::operator==(const DataOrigin& that) const
 {
   return (that == gDataOriginAny ||
@@ -99,18 +84,6 @@ bool o2::header::DataHeader::operator==(const DataHeader& that) const
 }
 
 //__________________________________________________________________________________________________
-void o2::header::printDataDescription::operator()(const char* str) const
-{
-  printf("Data description  : %s\n", str);
-}
-
-//__________________________________________________________________________________________________
-void o2::header::printDataOrigin::operator()(const char* str) const
-{
-  printf("Data origin  : %s\n", str);
-}
-
-//__________________________________________________________________________________________________
 o2::header::DataIdentifier::DataIdentifier()
   : dataDescription(), dataOrigin()
 {
@@ -127,13 +100,6 @@ bool o2::header::DataIdentifier::operator==(const DataIdentifier& other) const
     return false;
   }
   return true;
-}
-
-//__________________________________________________________________________________________________
-void o2::header::DataIdentifier::print() const
-{
-  dataOrigin.print();
-  dataDescription.print();
 }
 
 //__________________________________________________________________________________________________

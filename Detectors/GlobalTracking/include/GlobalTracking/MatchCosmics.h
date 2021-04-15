@@ -24,7 +24,10 @@
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "GlobalTracking/MatchCosmicsParams.h"
+#include "CommonUtils/TreeStreamRedirector.h"
 #include "TPCFastTransform.h"
+
+#define _ALLOW_DEBUG_TREES_COSM // to allow debug and control tree output
 
 namespace o2
 {
@@ -45,6 +48,18 @@ class MatchCosmics
   static constexpr int MinusTen = -10;
   static constexpr int Validated = -2;
   static constexpr int Reject = MinusTen;
+  enum RejFlag {
+    Accept = 0,
+    RejY,
+    RejZ,
+    RejSnp,
+    RejTgl,
+    RejQ2Pt,
+    RejTime,
+    RejProp,
+    RejChi2,
+    RejOther
+  };
 
   using InfoAccessor = o2d::AbstractRefAccessor<int, GTrackID::NSources>; // there is no unique <Info> structure, so the default return type is dummy (int)
 
@@ -66,13 +81,40 @@ class MatchCosmics
   void process(const o2::globaltracking::RecoContainer& data);
   void setUseMC(bool mc) { mUseMC = mc; }
   void init();
+  void end();
 
   auto getCosmicTracks() const { return mCosmicTracks; }
   auto getCosmicTracksLbl() const { return mCosmicTracksLbl; }
 
+#ifdef _ALLOW_DEBUG_TREES_COSM
+  enum DebugFlagTypes : UInt_t {
+    MatchTreeAll = 0x1,         ///< produce matching candidates tree for all candidates
+    MatchTreeAccOnly = 0x1 << 1 ///< fill the matching candidates tree only once the cut is passed
+  };
+  ///< check if partucular flags are set
+  bool isDebugFlag(UInt_t flags) const { return mDBGFlags & flags; }
+
+  ///< get debug trees flags
+  UInt_t getDebugFlags() const { return mDBGFlags; }
+
+  ///< set or unset debug stream flag
+  void setDebugFlag(UInt_t flag, bool on = true);
+
+  ///< set the name of output debug file
+  void setDebugTreeFileName(std::string name)
+  {
+    if (!name.empty()) {
+      mDebugTreeFileName = name;
+    }
+  }
+
+  ///< get the name of output debug file
+  const std::string& getDebugTreeFileName() const { return mDebugTreeFileName; }
+#endif
+
  private:
   void updateTimeDependentParams();
-  bool checkPair(int i, int j);
+  RejFlag checkPair(int i, int j);
   void registerMatch(int i, int j, float chi2);
   void suppressMatch(int partner0, int partner1);
   void createSeeds(const o2::globaltracking::RecoContainer& data);
@@ -87,6 +129,7 @@ class MatchCosmics
   std::unique_ptr<o2::gpu::TPCFastTransform> mTPCTransform; ///< TPC cluster transformation
   std::unique_ptr<o2::itsmft::TopologyDictionary> mITSDict; // cluster patterns dictionary
 
+  int mTFCount = 0;
   float mTPCTBinMUS = 0.; ///< TPC time bin duration in microseconds
   float mBz = 0;          ///< nominal Bz
   bool mFieldON = true;
@@ -97,6 +140,12 @@ class MatchCosmics
 
   std::vector<o2d::TrackCosmics> mCosmicTracks;
   std::vector<o2::MCCompLabel> mCosmicTracksLbl;
+
+#ifdef _ALLOW_DEBUG_TREES_COSM
+  std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
+  UInt_t mDBGFlags = 0;
+  std::string mDebugTreeFileName = "dbg_cosmics_match.root"; ///< name for the debug tree file
+#endif
 
   ClassDefNV(MatchCosmics, 1);
 };

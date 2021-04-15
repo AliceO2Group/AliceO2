@@ -59,7 +59,6 @@ struct ProcessAttributes {
   std::unique_ptr<unsigned long long int[]> zsoutput;
   std::vector<unsigned int> sizes;
   MCLabelContainer mctruthArray;
-  std::unique_ptr<o2::gpu::GPUReconstructionConvert> zsEncoder;
   std::vector<int> inputIds;
   bool zs12bit = true;
   float zsThreshold = 2.f;
@@ -194,16 +193,15 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
 
 void convert(DigitArray& inputDigits, ProcessAttributes* processAttributes, o2::raw::RawFileWriter& writer)
 {
-  auto& zsEncoder = processAttributes->zsEncoder;
   const auto zsThreshold = processAttributes->zsThreshold;
   const auto zs12bit = processAttributes->zs12bit;
   GPUParam _GPUParam;
   _GPUParam.SetDefaults(5.00668);
   const GPUParam mGPUParam = _GPUParam;
 
-  //o2::InteractionRecord ir = o2::raw::HBFUtils::Instance().getFirstIR();
-  o2::InteractionRecord ir(0, 0); // we start with the time registered in ditigs, w/o extra offset
-  zsEncoder->RunZSEncoder<o2::tpc::Digit>(inputDigits, nullptr, nullptr, &writer, &ir, mGPUParam, zs12bit, false, zsThreshold, processAttributes->padding);
+  o2::InteractionRecord ir = o2::raw::HBFUtils::Instance().getFirstIR();
+  ir.bc = 0; // By convention the TF starts at BC = 0
+  o2::gpu::GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit>(inputDigits, nullptr, nullptr, &writer, &ir, mGPUParam, zs12bit, false, zsThreshold, processAttributes->padding);
 }
 
 int main(int argc, char** argv)
@@ -229,6 +227,7 @@ int main(int argc, char** argv)
     add_option("stop-page,p", bpo::value<bool>()->default_value(false)->implicit_value(true), "HBF stop on separate CRU page");
     add_option("no-padding", bpo::value<bool>()->default_value(false)->implicit_value(true), "Don't pad pages to 8kb");
     uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::gpu::RAWDataHeaderGPU>();
+    add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(defRDH), "RDH version to use");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
 
@@ -250,6 +249,11 @@ int main(int argc, char** argv)
     std::cerr << e.what() << ", application will now exit" << std::endl;
     exit(2);
   }
+
+  std::string confDig = vm["hbfutils-config"].as<std::string>();
+  if (!confDig.empty() && confDig != "none") {
+    o2::conf::ConfigurableParam::updateFromFile(confDig, "HBFUtils");
+  }
   o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
   convertDigitsToZSfinal(
     vm["input-file"].as<std::string>(),
@@ -260,6 +264,8 @@ int main(int argc, char** argv)
     vm["stop-page"].as<bool>(),
     vm["no-padding"].as<bool>(),
     !vm.count("no-parent-directories"));
+
+  o2::raw::HBFUtils::Instance().print();
 
   return 0;
 }

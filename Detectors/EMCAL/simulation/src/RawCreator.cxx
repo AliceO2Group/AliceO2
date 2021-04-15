@@ -27,6 +27,7 @@
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "EMCALBase/Geometry.h"
 #include "EMCALSimulation/RawWriter.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 namespace bpo = boost::program_options;
 
@@ -49,6 +50,7 @@ int main(int argc, const char** argv)
     add_option("file-for,f", bpo::value<std::string>()->default_value("all"), "single file per: all,subdet,link");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
     add_option("debug,d", bpo::value<uint32_t>()->default_value(0), "Select debug output level [0 = no debug output]");
+    add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
 
     opt_all.add(opt_general).add(opt_hidden);
@@ -74,6 +76,10 @@ int main(int argc, const char** argv)
     FairLogger::GetLogger()->SetLogScreenLevel("DEBUG");
   }
 
+  std::string confDig = vm["hbfutils-config"].as<std::string>();
+  if (!confDig.empty() && confDig != "none") {
+    o2::conf::ConfigurableParam::updateFromFile(confDig, "HBFUtils");
+  }
   o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
 
   auto digitfilename = vm["input-file"].as<std::string>(),
@@ -116,4 +122,8 @@ int main(int argc, const char** argv)
     rawwriter.digitsToRaw(*digitbranch, *triggerbranch);
   }
   rawwriter.getWriter().writeConfFile("EMC", "RAWDATA", o2::utils::concat_string(outputdir, "/EMCraw.cfg"));
+
+  o2::raw::HBFUtils::Instance().print();
+
+  return 0;
 }

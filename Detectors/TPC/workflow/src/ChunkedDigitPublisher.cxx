@@ -23,6 +23,8 @@
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include <SimulationDataFormat/ConstMCTruthContainer.h>
+#include "Algorithm/RangeTokenizer.h"
+#include "TPCBase/Sector.h"
 #include <TFile.h>
 #include <TTree.h>
 #include <TBranch.h>
@@ -53,6 +55,11 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::string laneshelp("Number of tpc processing lanes. A lane is a pipeline of algorithms.");
   workflowOptions.push_back(
     ConfigParamSpec{"tpc-lanes", VariantType::Int, defaultlanes, {laneshelp}});
+
+  std::string sectorshelp("List of TPC sectors, comma separated ranges, e.g. 0-3,7,9-15");
+  std::string sectorDefault = "0-" + std::to_string(o2::tpc::Sector::MAXSECTOR - 1);
+  workflowOptions.push_back(
+    ConfigParamSpec{"tpc-sectors", VariantType::String, sectorDefault.c_str(), {sectorshelp}});
 
   // option to disable MC truth
   workflowOptions.push_back(ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"disable  mc-truth"}});
@@ -86,13 +93,9 @@ void copyHelper<MCTruthContainer>(MCTruthContainer const& origin, MCTruthContain
 }
 
 template <typename T>
-auto makePublishBuffer(framework::ProcessingContext& pc, int sector)
+auto makePublishBuffer(framework::ProcessingContext& pc, int sector, uint64_t activeSectors)
 {
   LOG(INFO) << "PUBLISHING SECTOR " << sector;
-  uint64_t activeSectors = 0;
-  for (int i = 0; i < 36; ++i) {
-    activeSectors |= (uint64_t)0x1 << i;
-  }
 
   o2::tpc::TPCSectorHeader header{sector};
   header.activeSectors = activeSectors;
@@ -101,24 +104,20 @@ auto makePublishBuffer(framework::ProcessingContext& pc, int sector)
 }
 
 template <>
-auto makePublishBuffer<MCTruthContainer>(framework::ProcessingContext& pc, int sector)
+auto makePublishBuffer<MCTruthContainer>(framework::ProcessingContext& pc, int sector, uint64_t activeSectors)
 {
   return new MCTruthContainer();
 }
 
 template <typename T>
-void publishBuffer(framework::ProcessingContext& pc, int sector, T* accum)
+void publishBuffer(framework::ProcessingContext& pc, int sector, uint64_t activeSectors, T* accum)
 {
   // nothing by default
 }
 
 template <>
-void publishBuffer<MCTruthContainer>(framework::ProcessingContext& pc, int sector, MCTruthContainer* accum)
+void publishBuffer<MCTruthContainer>(framework::ProcessingContext& pc, int sector, uint64_t activeSectors, MCTruthContainer* accum)
 {
-  uint64_t activeSectors = 0;
-  for (int i = 0; i < 36; ++i) {
-    activeSectors |= (uint64_t)0x1 << i;
-  }
 
   LOG(INFO) << "PUBLISHING MC LABELS " << accum->getNElements();
   o2::tpc::TPCSectorHeader header{sector};
@@ -133,8 +132,13 @@ void publishBuffer<MCTruthContainer>(framework::ProcessingContext& pc, int secto
   delete accum;
 }
 
-void publishMergedTimeframes(std::vector<int> const& lanes, bool domctruth, framework::ProcessingContext& pc)
+void publishMergedTimeframes(std::vector<int> const& lanes, std::vector<int> const& tpcsectors, bool domctruth, framework::ProcessingContext& pc)
 {
+  uint64_t activeSectors = 0;
+  for (auto s : tpcsectors) {
+    activeSectors |= (uint64_t)0x1 << s;
+  }
+
   ROOT::EnableThreadSafety();
 #ifdef WITH_OPENMP
   omp_set_num_threads(lanes.size());
@@ -151,10 +155,16 @@ void publishMergedTimeframes(std::vector<int> const& lanes, bool domctruth, fram
     auto originfile = new TFile(tmp.str().c_str(), "OPEN");
     assert(originfile);
 
-    auto merge = [originfile, &pc](auto data, auto brprefix) {
+    auto merge = [&tpcsectors, activeSectors, originfile, &pc](auto data, auto brprefix) {
       auto keyslist = originfile->GetListOfKeys();
       for (int i = 0; i < keyslist->GetEntries(); ++i) {
         auto key = keyslist->At(i);
+        int sector = atoi(key->GetName());
+        if (std::find(tpcsectors.begin(), tpcsectors.end(), sector) == tpcsectors.end()) {
+          // do nothing if sector not wanted
+          continue;
+        }
+
         auto oldtree = (TTree*)originfile->Get(key->GetName());
         assert(oldtree);
         std::stringstream digitbrname;
@@ -166,11 +176,10 @@ void publishMergedTimeframes(std::vector<int> const& lanes, bool domctruth, fram
         decltype(data)* chunk = nullptr;
         br->SetAddress(&chunk);
 
-        int sector = atoi(key->GetName());
-        using AccumType = std::decay_t<decltype(makePublishBuffer<decltype(data)>(pc, sector))>;
+        using AccumType = std::decay_t<decltype(makePublishBuffer<decltype(data)>(pc, sector, activeSectors))>;
         AccumType accum;
 #pragma omp critical
-        accum = makePublishBuffer<decltype(data)>(pc, sector);
+        accum = makePublishBuffer<decltype(data)>(pc, sector, activeSectors);
 
         for (auto e = 0; e < br->GetEntries(); ++e) {
           br->GetEntry(e);
@@ -183,7 +192,7 @@ void publishMergedTimeframes(std::vector<int> const& lanes, bool domctruth, fram
         delete oldtree;
 
         // some data (labels are published slightly differently)
-        publishBuffer(pc, sector, accum);
+        publishBuffer(pc, sector, activeSectors, accum);
       }
     };
 
@@ -202,7 +211,7 @@ void publishMergedTimeframes(std::vector<int> const& lanes, bool domctruth, fram
 class Task
 {
  public:
-  Task(std::vector<int> laneConfig, bool mctruth) : mLanes(laneConfig), mDoMCTruth(mctruth)
+  Task(std::vector<int> laneConfig, std::vector<int> tpcsectors, bool mctruth) : mLanes(laneConfig), mTPCSectors(tpcsectors), mDoMCTruth(mctruth)
   {
   }
 
@@ -212,7 +221,7 @@ class Task
 
     TStopwatch w;
     w.Start();
-    publishMergedTimeframes(mLanes, mDoMCTruth, pc);
+    publishMergedTimeframes(mLanes, mTPCSectors, mDoMCTruth, pc);
 
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
@@ -228,12 +237,13 @@ class Task
  private:
   bool mDoMCTruth = true;
   std::vector<int> mLanes;
+  std::vector<int> mTPCSectors;
 };
 
 /// create the processor spec
 /// describing a processor aggregating digits for various TPC sectors and writing them to file
 /// MC truth information is also aggregated and written out
-DataProcessorSpec getSpec(std::vector<int> const& laneConfiguration, bool mctruth, bool publish = true)
+DataProcessorSpec getSpec(std::vector<int> const& laneConfiguration, std::vector<int> const& tpcsectors, bool mctruth, bool publish = true)
 {
   //data definitions
   using DigitsOutputType = std::vector<o2::tpc::Digit>;
@@ -252,7 +262,7 @@ DataProcessorSpec getSpec(std::vector<int> const& laneConfiguration, bool mctrut
   }
 
   return DataProcessorSpec{
-    "TPCDigitMerger", {}, outputs, AlgorithmSpec{o2::framework::adaptFromTask<Task>(laneConfiguration, mctruth)}, Options{}};
+    "TPCDigitMerger", {}, outputs, AlgorithmSpec{o2::framework::adaptFromTask<Task>(laneConfiguration, tpcsectors, mctruth)}, Options{}};
 }
 
 } // end namespace tpc
@@ -263,9 +273,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   WorkflowSpec specs;
   auto numlanes = configcontext.options().get<int>("tpc-lanes");
   bool mctruth = !configcontext.options().get<bool>("disable-mc");
+  auto tpcsectors = o2::RangeTokenizer::tokenize<int>(configcontext.options().get<std::string>("tpc-sectors"));
 
   std::vector<int> lanes(numlanes);
   std::iota(lanes.begin(), lanes.end(), 0);
-  specs.emplace_back(o2::tpc::getSpec(lanes, mctruth));
+  specs.emplace_back(o2::tpc::getSpec(lanes, tpcsectors, mctruth));
   return specs;
 }

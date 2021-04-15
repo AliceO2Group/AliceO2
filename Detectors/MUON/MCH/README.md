@@ -15,4 +15,5 @@ This is a top page for the MCH detector documentation.
 \subpage refDetectorsMUONMCHWorkflow
 \subpage refDetectorsMUONMCHGeometry
 \subpage refDetectorsMUONMCHConditions
+\subpage refDetectorsMUONMCHDevIO
 /doxy -->

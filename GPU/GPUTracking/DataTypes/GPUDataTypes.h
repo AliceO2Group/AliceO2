@@ -104,6 +104,7 @@ struct GPUTPCMCInfo;
 struct GPUTPCClusterData;
 struct GPUTRDTrackletLabels;
 struct GPUTPCDigitsMCInput;
+struct GPUSettingsTF;
 
 class GPUDataTypes
 {
@@ -206,7 +207,7 @@ struct GPUTrackingInOutDigits {
   static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;
   const o2::tpc::Digit* tpcDigits[NSLICES] = {nullptr};
   size_t nTPCDigits[NSLICES] = {0};
-  GPUTPCDigitsMCInput* tpcDigitsMC;
+  GPUTPCDigitsMCInput* tpcDigitsMC = nullptr;
 };
 
 struct GPUTrackingInOutPointers {
@@ -248,6 +249,7 @@ struct GPUTrackingInOutPointers {
   unsigned int nTRDTrackletsMC = 0;
   const GPUTRDTrackGPU* trdTracks = nullptr;
   unsigned int nTRDTracks = 0;
+  const GPUSettingsTF* settingsTF = nullptr;
 };
 #else
 struct GPUTrackingInOutPointers {

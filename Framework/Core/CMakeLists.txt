@@ -52,6 +52,7 @@ o2_add_library(Framework
                        src/DataSpecUtils.cxx
                        src/DeviceConfigInfo.cxx
                        src/DeviceMetricsInfo.cxx
+                       src/DeviceMetricsHelper.cxx
                        src/DeviceSpec.cxx
                        src/DeviceController.cxx
                        src/DeviceSpecHelpers.cxx
@@ -72,6 +73,8 @@ o2_add_library(Framework
                        src/LifetimeHelpers.cxx
                        src/LocalRootFileService.cxx
                        src/RootConfigParamHelpers.cxx
+                       src/RawBufferContext.cxx
+                       src/StringContext.cxx
                        src/LogParsingHelpers.cxx
                        src/MessageContext.cxx
                        src/Metric2DViewIndex.cxx
@@ -165,6 +168,7 @@ foreach(t
         FairMQOptionsRetriever
         FairMQResizableBuffer
         FrameworkDataFlowToDDS
+        FrameworkDataFlowToO2Control
         Graphviz
         GroupSlicer
         HistogramRegistry

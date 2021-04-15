@@ -14,10 +14,11 @@
 #include "Framework/ControlService.h"
 #include "Framework/Logger.h"
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/CompletionPolicyHelpers.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "TPCWorkflow/RawToDigitsSpec.h"
-#include "TPCWorkflow/LinkZSToDigitsSpec.h"
 #include "TPCWorkflow/RecoWorkflow.h"
 #include "TPCBase/Sector.h"
 #include <vector>
@@ -26,6 +27,13 @@
 #include <thread> // to detect number of hardware threads
 
 using namespace o2::framework;
+
+// customize the completion policy
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  using o2::framework::CompletionPolicy;
+  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-raw-to-digits-.*", CompletionPolicy::CompletionOp::Consume));
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
@@ -37,7 +45,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   const std::string sectorshelp("List of TPC sectors, comma separated ranges, e.g. 0-3,7,9-15");
   const std::string sectorDefault = "0-" + std::to_string(o2::tpc::Sector::MAXSECTOR - 1);
   const std::string tpcrthelp("Run TPC reco workflow to specified output type, currently supported: 'digits,clusters,tracks'");
-  const std::string decoderHelp("Decoder type to use: 'GBT,LinkZS'");
 
   std::vector<ConfigParamSpec> options{
     {"input-spec", VariantType::String, "A:TPC/RAWDATA", {"selection string input specs"}},

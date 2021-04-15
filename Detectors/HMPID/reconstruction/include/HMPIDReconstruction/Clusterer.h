@@ -15,8 +15,8 @@
 
 #include <utility>
 #include <vector>
-#include "HMPIDBase/Cluster.h"
-#include "HMPIDBase/Digit.h"
+#include "DataFormatsHMP/Cluster.h"
+#include "DataFormatsHMP/Digit.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 

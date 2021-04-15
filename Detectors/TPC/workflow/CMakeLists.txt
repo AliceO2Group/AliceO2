@@ -32,7 +32,7 @@ o2_add_library(TPCWorkflow
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
                                      O2::DPLUtils O2::TPCReconstruction
                                      O2::TPCCalibration O2::TPCSimulation
-                                     O2::DetectorsCalibration)
+                                     O2::TPCQC O2::DetectorsCalibration)
 
 
 o2_add_executable(chunkeddigit-merger

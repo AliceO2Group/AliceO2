@@ -37,8 +37,8 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     auto start = cells.size();
     int n = 1 + gRandom->Poisson(100);
     for (int i = n; i--;) {
-      ChannelType_t tp = gRandom->Rndm() > 0.5 ? TRU : (gRandom->Rndm() > 0.5 ? HIGH_GAIN : LOW_GAIN);
-      uint16_t id = tp == TRU ? 3000 : gRandom->Integer(kNmaxCell);
+      ChannelType_t tp = gRandom->Rndm() > 0.5 ? (gRandom->Rndm() > 0.5 ? TRU2x2 : TRU4x4) : (gRandom->Rndm() > 0.5 ? HIGH_GAIN : LOW_GAIN);
+      uint16_t id = (tp == TRU2x2 || tp == TRU4x4) ? 3000 : gRandom->Integer(kNmaxCell);
       float timeCell = gRandom->Rndm() * 3.00e-07 - 0.3e-9;
       float en = gRandom->Rndm() * 160.;
       cells.emplace_back(id, en, timeCell, tp);
