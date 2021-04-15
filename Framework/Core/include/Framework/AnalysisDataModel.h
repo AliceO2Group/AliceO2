@@ -758,7 +758,7 @@ DECLARE_SOA_COLUMN(SPDClustersL1, spdClustersL1, uint16_t);         //!
 
 DECLARE_SOA_TABLE(Run2BCInfos, "AOD", "RUN2BCINFO", //!
                   run2::EventCuts, run2::TriggerMaskNext50,
-                  run2::SPDClustersL0, run2::SPDClustersL1)
+                  run2::SPDClustersL0, run2::SPDClustersL1);
 
 using Run2BCInfo = Run2BCInfos::iterator;
 
