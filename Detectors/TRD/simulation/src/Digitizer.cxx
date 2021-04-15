@@ -41,7 +41,7 @@ void Digitizer::init()
   mGeo->createClusterMatrixArray();          // Requiered for chamberInGeometry()
   mPRF = new PadResponse();                  // Pad response function initialization
   mSimParam = SimParam::Instance();          // Instance for simulation parameters
-  mCommonParam = CommonParam::Instance();    // Instance for common parameters
+  mCommonParam = CommonParam::instance();    // Instance for common parameters
   if (!mSimParam) {
   }
   if (!mCommonParam) {
@@ -80,11 +80,11 @@ void Digitizer::setSimulationParameters()
 {
   mNpad = mSimParam->getNumberOfPadsInPadResponse(); // Number of pads included in the pad response
   if (mSimParam->TRFOn()) {
-    mTimeBinTRFend = ((int)(mSimParam->GetTRFhi() * mCommonParam->GetSamplingFrequency())) - 1;
+    mTimeBinTRFend = ((int)(mSimParam->GetTRFhi() * mCommonParam->getSamplingFrequency())) - 1;
   }
   mMaxTimeBins = TIMEBINS;     // for signals, usually set at 30 tb = 3 microseconds
   mMaxTimeBinsTRAP = TIMEBINS; // for adcs; should be read from the CCDB or the TRAP config
-  mSamplingRate = mCommonParam->GetSamplingFrequency();
+  mSamplingRate = mCommonParam->getSamplingFrequency();
   mElAttachProp = mSimParam->GetElAttachProp() / 100;
 }
 
@@ -259,7 +259,7 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
     }
 
     double absDriftLength = std::fabs(driftLength); // Normalized drift length
-    if (mCommonParam->ExBOn()) {
+    if (mCommonParam->isExBOn()) {
       absDriftLength /= std::sqrt(1 / (1 + calExBDetValue * calExBDetValue));
     }
 
@@ -286,7 +286,7 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
       }
 
       // Apply E x B effects
-      if (mCommonParam->ExBOn()) {
+      if (mCommonParam->isExBOn()) {
         locCd = locCd + calExBDetValue * driftLength;
       }
       // The electron position after diffusion and ExB in pad coordinates.
@@ -511,7 +511,7 @@ bool Digitizer::diffusion(float vdrift, float absdriftlength, float exbvalue,
     float sigmaT = driftSqrt * diffT;
     float sigmaL = driftSqrt * diffL;
     lRow = drawGaus(mGausRandomRings[thread], lRow0, sigmaT);
-    if (mCommonParam->ExBOn()) {
+    if (mCommonParam->isExBOn()) {
       const float exbfactor = 1.f / (1.f + exbvalue * exbvalue);
       lCol = drawGaus(mGausRandomRings[thread], lCol0, sigmaT * exbfactor);
       lTime = drawGaus(mGausRandomRings[thread], lTime0, sigmaL * exbfactor);

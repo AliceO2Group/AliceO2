@@ -171,7 +171,7 @@ void SimParam::ReInit()
   // Reinitializes the parameter class after a change
   //
 
-  if (CommonParam::Instance()->IsXenon()) {
+  if (CommonParam::instance()->isXenon()) {
     // The range and the binwidth for the sampled TRF
     mTRFbin = 200;
     // Start 0.2 mus before the signal
@@ -180,7 +180,7 @@ void SimParam::ReInit()
     mTRFhi = 3.58;
     // Standard gas gain
     mGasGain = 4000.0;
-  } else if (CommonParam::Instance()->IsArgon()) {
+  } else if (CommonParam::instance()->isArgon()) {
     // The range and the binwidth for the sampled TRF
     mTRFbin = 50;
     // Start 0.2 mus before the signal
@@ -273,21 +273,21 @@ void SimParam::SampleTRF()
   }
   mCTsmp = new float[mTRFbin];
 
-  if (CommonParam::Instance()->IsXenon()) {
+  if (CommonParam::instance()->isXenon()) {
     if (mTRFbin != kNpasa) {
       LOG(ERROR) << "Array mismatch (xenon)\n\n";
     }
-  } else if (CommonParam::Instance()->IsArgon()) {
+  } else if (CommonParam::instance()->isArgon()) {
     if (mTRFbin != kNpasaAr) {
       LOG(ERROR) << "Array mismatch (argon)\n\n";
     }
   }
 
   for (int iBin = 0; iBin < mTRFbin; iBin++) {
-    if (CommonParam::Instance()->IsXenon()) {
+    if (CommonParam::instance()->isXenon()) {
       mTRFsmp[iBin] = signal[iBin];
       mCTsmp[iBin] = xtalk[iBin];
-    } else if (CommonParam::Instance()->IsArgon()) {
+    } else if (CommonParam::instance()->isArgon()) {
       mTRFsmp[iBin] = signalAr[iBin];
       mCTsmp[iBin] = xtalkAr[iBin];
     }
