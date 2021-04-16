@@ -129,7 +129,7 @@ if [ $CTFINPUT == 0 ]; then
   WORKFLOW+="o2-cpv-reco-workflow $ARGS_ALL --input-type raw --output-type clusters --disable-root-input --disable-root-output $DISABLE_MC --pipeline CPVClusterizerSpec:$N_CPV | "
   WORKFLOW+="o2-emcal-reco-workflow $ARGS_ALL --input-type raw --output-type cells --disable-root-output $DISABLE_MC --pipeline EMCALRawToCellConverterSpec:$N_EMC | "
   WORKFLOW+="o2-zdc-raw2digits $ARGS_ALL --disable-root-output | "
-  WORKFLOW+="o2-hmpid-raw-to-digits-workflow $ARGS_ALL | "
+  WORKFLOW+="o2-hmpid-raw-to-digits-stream-workflow $ARGS_ALL | "
 
   WORKFLOW+="o2-itsmft-entropy-encoder-workflow $ARGS_ALL --runmft true | "
   WORKFLOW+="o2-ft0-entropy-encoder-workflow $ARGS_ALL | "
@@ -145,7 +145,7 @@ if [ $CTFINPUT == 0 ]; then
   # Output workflow
   if [ ! -z $CTF_DIR ] ; then mkdir -p $CTF_DIR; fi
   if [ $CREATECTFDICT == 1 ] ; then
-     _DICT_="ctf_dictionary.root" 
+     _DICT_="ctf_dictionary.root"
      if [ ! -z $CTF_DICT_DIR ] ; then
         mkdir -p $CTF_DICT_DIR;
         _DICT_="$CTF_DICT_DIR/$_DICT_"
