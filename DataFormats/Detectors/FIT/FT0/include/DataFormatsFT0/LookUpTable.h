@@ -94,8 +94,6 @@ inline o2::ft0::Topo read_Topo(std::string_view str)
     throw std::invalid_argument("Expected 'Ch'");
   }
   uint8_t pm_ch = std::strtol(ptr + 3, &ptr, 10);
-  // = (str[7] - '0') * 10 + (str[8] - '0') - 1;
-  /* res = std::from_chars(res.ptr+3, res.ptr+3+str.size(), pm_ch); */
   uint8_t ep = side == 'C' ? 1 : 0;
   if (errno) {
     throw std::invalid_argument("Cannot read pm_ch");
@@ -145,11 +143,18 @@ class LookUpTable
 
   int getChannel(int link, int mcp, int ep) const
   {
+    if ((ep == 0 && (link > 7 && link < 11)) ||
+        (ep == 1 && link == 8 && mcp > 8) ||
+        (ep == 1 && link == 9 && mcp > 8)) {
+      LOG(INFO) << " channel is not conneted "
+                << " ep " << ep << " link " << link << " channel " << mcp;
+    }
     return mInvTopo[getIdx(link, mcp, ep)];
   }
 
   int getLink(int channel) const
   {
+
     return mTopoVector[channel].mPM;
   }
   int getMCP(int channel) const
@@ -231,6 +236,12 @@ class LookUpTable
   static int getIdx(int link, int mcp, int ep)
   {
     assert(mcp < NUMBER_OF_MCPs);
+    /* if ((ep == 0 && (link > 7 && link < 11)) || */
+    /*     (ep == 1 && link == 8 && mcp > 8) || */
+    /*     (ep == 1 && link == 9 && mcp > 8)) { */
+    /*   LOG(INFO)<<" channel is not conneted "<<" ep "<<ep<<" link "<<link<<" channel "<<mcp; */
+    /*   return 255; */
+    /* } */
     return (link + ep * 16) * NUMBER_OF_MCPs + mcp;
   }
   static int getLinkFromIdx(int idx)
@@ -264,6 +275,7 @@ class SingleLUT : public LookUpTable
   SingleLUT() : LookUpTable(LookUpTable::readTable()) {}
   SingleLUT(const SingleLUT&) = delete;
   SingleLUT& operator=(SingleLUT&) = delete;
+
  public:
   static SingleLUT& Instance()
   {
