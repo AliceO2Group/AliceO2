@@ -46,6 +46,10 @@ void RawFileWriter::close()
 
   if (!mFirstIRAdded.isDummy()) { // flushing and completing the last HBF makes sense only if data was added.
     auto irmax = getIRMax();
+    // for CRU detectors link.updateIR and hence the irmax points on the last IR with data + 1 orbit
+    if (isCRUDetector()) {
+      irmax.orbit -= 1;
+    }
     for (auto& lnk : mSSpec2Link) {
       lnk.second.close(irmax);
       lnk.second.print();
@@ -172,7 +176,7 @@ void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t e
   if (link.discardData || ir.orbit - mHBFUtils.orbitFirst >= mHBFUtils.maxNOrbits) {
     if (!link.discardData) {
       link.discardData = true;
-      LOG(INFO) << "max. allowed orbit " << mHBFUtils.orbitFirst + mHBFUtils.maxNOrbits - 1 << " exceeded, " << link.describe() << " will discard further data";
+      LOG(INFO) << "Orbit " << ir.orbit << ": max. allowed orbit " << mHBFUtils.orbitFirst + mHBFUtils.maxNOrbits - 1 << " exceeded, " << link.describe() << " will discard further data";
     }
     return;
   }
@@ -501,14 +505,9 @@ void RawFileWriter::LinkData::openHBFPage(const RDHAny& rdhn, uint32_t trigger)
 {
   /// create 1st page of the new HBF
   bool forceNewPage = false;
-
   // for RORC detectors the TF flag is absent, instead the 1st trigger after the start of TF will define the 1st be interpreted as 1st TF
-  auto newTF_RORC = [this, &rdhn]() -> bool {
-    auto tfhbPrev = writer->mHBFUtils.getTFandHBinTF(this->updateIR.bc ? this->updateIR - 1 : this->updateIR); // updateIR was advanced by 1 BC wrt IR of the previous update
-    return this->writer->mHBFUtils.getTFandHBinTF(RDHUtils::getTriggerIR(rdhn)).first > tfhbPrev.first;        // new TF_ID exceeds old one
-  };
-
-  if ((RDHUtils::getTriggerType(rdhn) & o2::trigger::TF) || (writer->isRORCDetector() && newTF_RORC())) {
+  if ((RDHUtils::getTriggerType(rdhn) & o2::trigger::TF) ||
+      (writer->isRORCDetector() && writer->mHBFUtils.getTF(updateIR - 1) < writer->mHBFUtils.getTF(RDHUtils::getTriggerIR(rdhn)))) {
     if (writer->mVerbosity > -10) {
       LOGF(INFO, "Starting new TF for link FEEId 0x%04x", RDHUtils::getFEEID(rdhn));
     }
@@ -569,11 +568,7 @@ void RawFileWriter::LinkData::close(const IR& irf)
     return; // already closed
   }
   if (writer->isCRUDetector()) { // finalize last TF
-    auto irfin = irf;
-    if (irfin < updateIR) {
-      irfin = updateIR;
-    }
-    int tf = writer->mHBFUtils.getTF(irfin);
+    int tf = writer->mHBFUtils.getTF(irf);
     auto finalIR = writer->mHBFUtils.getIRTF(tf + 1) - 1; // last IR of the current TF
     fillEmptyHBHs(finalIR, false);
   }
