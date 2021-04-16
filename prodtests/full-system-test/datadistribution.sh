@@ -26,5 +26,6 @@ StfBuilder --id stfb --transport shmem \
   --data-source-headersize=1024 \
   --data-source-enable \
   --data-source-preread 5 \
+  --shm-no-cleanup on \
   --control=static \
   ${ARGS_ALL}

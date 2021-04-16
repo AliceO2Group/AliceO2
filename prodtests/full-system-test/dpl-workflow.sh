@@ -69,11 +69,11 @@ if [ $HOSTMEMSIZE != "0" ]; then
 fi
 
 if [ $EPNPIPELINES != 0 ]; then
-  N_TPCENT=$(($(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
-  N_TPCITS=$(($(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
+  N_TPCENT=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
+  N_TPCITS=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
   N_ITSDEC=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
-  N_EMC=$(($(expr 2 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 2 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
-  N_CPV=$(($(expr 6 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 6 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
+  N_EMC=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
+  N_CPV=$(($(expr 5 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 5 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
 else
   N_TPCENT=1
   N_TPCITS=1
