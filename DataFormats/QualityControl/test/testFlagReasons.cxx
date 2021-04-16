@@ -27,6 +27,9 @@ BOOST_AUTO_TEST_CASE(FlagReasons)
   static_assert(std::is_constructible<FlagReason, uint16_t, const char*, bool>::value == false,
                 "FlagReason should not be constructible outside of its static methods.");
 
+  FlagReason rDefault;
+  BOOST_CHECK_EQUAL(rDefault, FlagReasonFactory::Invalid());
+
   auto r1 = FlagReasonFactory::Unknown();
   BOOST_CHECK_EQUAL(r1.getID(), 1);
   BOOST_CHECK_EQUAL(r1.getName(), "Unknown");
