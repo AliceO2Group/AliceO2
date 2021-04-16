@@ -16,31 +16,27 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-#ifdef GPUCA_ALIROOT_LIB
-#include "AliHLTExternalTrackParam.h"
-
 template <typename T>
-GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const AliHLTExternalTrackParam& t) : T(t), mChi2(0.f), mMass(0.f), mLabel(-1), mTPCTrackId(0), mNTracklets(0), mNMissingConsecLayers(0), mLabelOffline(-1), mIsStopped(false)
-{
-  //------------------------------------------------------------------
-  // copy constructor from AliHLTExternalTrackParam struct
-  //------------------------------------------------------------------
-  for (int i = 0; i < kNLayers; ++i) {
-    mAttachedTracklets[i] = -1;
-    mIsFindable[i] = 0;
-  }
-  for (int j = 0; j < 4; ++j) {
-    mNTrackletsOffline[j] = 0;
-  }
-}
-#endif
-
-template <typename T>
-GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t() : mChi2(0.f), mMass(0.f), mLabel(-1), mTPCTrackId(0), mNTracklets(0), mNMissingConsecLayers(0), mLabelOffline(-1), mIsStopped(false)
+GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t()
 {
   //------------------------------------------------------------------
   // default constructor
   //------------------------------------------------------------------
+  Initialize();
+}
+
+template <typename T>
+GPUd() void GPUTRDTrack_t<T>::Initialize()
+{
+  // set all members to their default values (needed since in-class initialization not possible with AliRoot)
+  mChi2 = 0.f;
+  mMass = 0.f;
+  mLabel = -1;
+  mTPCTrackId = 0;
+  mNTracklets = 0;
+  mNMissingConsecLayers = 0;
+  mLabelOffline = -1;
+  mIsStopped = false;
   for (int i = 0; i < kNLayers; ++i) {
     mAttachedTracklets[i] = -1;
     mIsFindable[i] = 0;
@@ -49,6 +45,30 @@ GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t() : mChi2(0.f), mMass(0.f), mLabel(-1), m
     mNTrackletsOffline[j] = 0;
   }
 }
+
+#ifdef GPUCA_ALIROOT_LIB
+#include "AliHLTExternalTrackParam.h"
+template <typename T>
+GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const AliHLTExternalTrackParam& t) : T(t)
+{
+  Initialize();
+}
+#endif
+
+#if defined(GPUCA_O2_LIB) && !defined(GPUCA_GPUCODE)
+#include "ReconstructionDataFormats/TrackTPCITS.h"
+#include "DataFormatsTPC/TrackTPC.h"
+template <typename T>
+GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const o2::dataformats::TrackTPCITS& t, float vDrift) : T(t, vDrift)
+{
+  Initialize();
+}
+template <typename T>
+GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const o2::tpc::TrackTPC& t, float tbWidth, float vDrift, unsigned int iTrk) : T(t, tbWidth, vDrift, iTrk)
+{
+  Initialize();
+}
+#endif
 
 template <typename T>
 GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const GPUTRDTrack_t<T>& t)
@@ -67,18 +87,12 @@ GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const GPUTRDTrack_t<T>& t)
 }
 
 template <typename T>
-GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const T& t) : T(t), mChi2(0.f), mMass(0.f), mLabel(-1), mTPCTrackId(0), mNTracklets(0), mNMissingConsecLayers(0), mLabelOffline(-1), mIsStopped(false)
+GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const T& t) : T(t)
 {
   //------------------------------------------------------------------
   // copy constructor from anything
   //------------------------------------------------------------------
-  for (int i = 0; i < kNLayers; ++i) {
-    mAttachedTracklets[i] = -1;
-    mIsFindable[i] = 0;
-  }
-  for (int j = 0; j < 4; ++j) {
-    mNTrackletsOffline[j] = 0;
-  }
+  Initialize();
 }
 
 template <typename T>
@@ -213,7 +227,7 @@ namespace gpu
 template class GPUTRDTrack_t<trackInterface<AliExternalTrackParam>>;
 #endif
 #ifdef GPUCA_O2_LIB // Instantiate O2 track version
-template class GPUTRDTrack_t<trackInterface<o2::dataformats::TrackTPCITS>>;
+template class GPUTRDTrack_t<trackInterface<o2::track::TrackParCov>>;
 #endif
 #endif
 template class GPUTRDTrack_t<trackInterface<GPUTPCGMTrackParam>>; // Always instatiate GM track version

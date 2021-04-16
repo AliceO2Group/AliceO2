@@ -28,9 +28,10 @@ class AliTrackerBase;
 #else
 namespace o2
 {
-namespace dataformats
+namespace track
 {
-class TrackTPCITS;
+template <typename>
+class TrackParametrizationWithError;
 } // namespace dataformats
 namespace base
 {
@@ -56,7 +57,7 @@ typedef AliExternalTrackParam TRDBaseTrack;
 class GPUTPCGMTrackParam;
 typedef GPUTPCGMTrackParam TRDBaseTrackGPU;
 #elif defined(TRD_TRACK_TYPE_O2)
-typedef o2::dataformats::TrackTPCITS TRDBaseTrack;
+typedef o2::track::TrackParametrizationWithError<float> TRDBaseTrack;
 class GPUTPCGMTrackParam;
 typedef GPUTPCGMTrackParam TRDBaseTrackGPU;
 #endif

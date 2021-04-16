@@ -20,8 +20,11 @@ namespace o2
 namespace trd
 {
 
-/// create a processor spec
-framework::DataProcessorSpec getTRDTrackWriterSpec(bool useMC);
+/// writer for matches to ITS-TPC tracks
+framework::DataProcessorSpec getTRDGlobalTrackWriterSpec(bool useMC);
+
+/// writer for matches with TPC-only tracks
+framework::DataProcessorSpec getTRDTPCTrackWriterSpec(bool useMC);
 
 } // namespace trd
 } // namespace o2

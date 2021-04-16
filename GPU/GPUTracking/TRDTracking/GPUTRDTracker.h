@@ -118,7 +118,7 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUd() bool CheckTrackTRDCandidate(const TRDTRK& trk) const;
   GPUd() int LoadTrack(const TRDTRK& trk, const int label = -1, const int* nTrkltsOffline = nullptr, const int labelOffline = -1, int tpcTrackId = -1, bool checkTrack = true);
 
-  GPUd() int GetCollisionID(float trkTime) const;
+  GPUd() int GetCollisionIDs(TRDTRK& trk, int* collisionIds) const;
   GPUd() void DoTrackingThread(int iTrk, int threadId = 0);
   static GPUd() bool ConvertTrkltToSpacePoint(const GPUTRDGeometry& geo, GPUTRDTrackletWord& trklt, GPUTRDSpacePointInternal& sp);
   GPUd() bool CalculateSpacePoints(int iCollision = 0);
@@ -156,6 +156,7 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUd() void SetMaxEta(float maxEta) { mMaxEta = maxEta; }
   GPUd() void SetExtraRoadY(float extraRoadY) { mExtraRoadY = extraRoadY; }
   GPUd() void SetRoadZ(float roadZ) { mRoadZ = roadZ; }
+  GPUd() void SetTPCVdrift(float vDrift) { mTPCVdrift = vDrift; }
 
   GPUd() AliMCEvent* GetMCEvent() const { return mMCEvent; }
   GPUd() bool GetIsDebugOutputOn() const { return mDebugOutput; }
@@ -222,12 +223,12 @@ class GPUTRDTracker_t : public GPUProcessor
   float mAngleToDyC; // parameterization for conversion track angle -> tracklet deflection
   /// ---- end error parametrization ----
   bool mDebugOutput;                  // store debug output
-  float mTimeWindow;                  // max. deviation of the ITS-TPC track time w.r.t. TRD trigger record time stamp (in us, default is 100 ns)
   static CONSTEXPR float sRadialOffset GPUCA_CPP11_INIT(= -0.1f); // due to (possible) mis-calibration of t0 -> will become obsolete when tracklet conversion is done outside of the tracker
   float mMaxEta;                      // TPC tracks with higher eta are ignored
   float mExtraRoadY;                  // addition to search road in r-phi to account for not exact radial match of tracklets and tracks in first iteration
   float mRoadZ;                       // in z, a constant search road is used
   float mZCorrCoefNRC;                // tracklet z-position depends linearly on track dip angle
+  float mTPCVdrift;                   // TPC drift velocity used for shifting TPC tracks along Z
   AliMCEvent* mMCEvent;               //! externaly supplied optional MC event
   GPUTRDTrackerDebug<TRDTRK>* mDebug; // debug output
 };
