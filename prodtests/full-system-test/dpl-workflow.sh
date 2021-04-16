@@ -69,11 +69,11 @@ if [ $HOSTMEMSIZE != "0" ]; then
 fi
 
 if [ $EPNPIPELINES != 0 ]; then
-  N_TPCENT=$(($(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
-  N_TPCITS=$(($(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
+  N_TPCENT=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
+  N_TPCITS=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
   N_ITSDEC=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
-  N_EMC=$(($(expr 2 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 2 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
-  N_CPV=$(($(expr 6 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 6 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
+  N_EMC=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
+  N_CPV=$(($(expr 5 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 5 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
 else
   N_TPCENT=1
   N_TPCITS=1
@@ -91,7 +91,7 @@ if [ $CTFINPUT == 1 ]; then
   if [ ! -z $CTF_DICT_DIR ] ; then CTF_DICT=" --ctf-dict ${CTF_DICT_DIR}/ctf_dictionary.root"; fi
   WORKFLOW="o2-ctf-reader-workflow --ctf-input ${CTFName}  ${CTF_DICT} --onlyDet $CTF_DETECTORS $ARGS_ALL  | "
 elif [ $EXTINPUT == 1 ]; then
-  WORKFLOW="o2-dpl-raw-proxy $ARGS_ALL --dataspec \"FLP:FLP/DISTSUBTIMEFRAME/0;B:TPC/RAWDATA;C:ITS/RAWDATA;D:TOF/RAWDATA;D:MFT/RAWDATA;E:FT0/RAWDATA;F:MID/RAWDATA;G:EMC/RAWDATA;H:PHS/RAWDATA;I:CPV/RAWDATA;J:ZDC/RAWDATA;K:HMP/RAWDATA;L:FDD/RAWDATA\" --channel-config \"name=readout-proxy,type=pull,method=connect,address=ipc://@stfb-to-dpl,transport=shmem,rateLogging=0\" | "
+  WORKFLOW="o2-dpl-raw-proxy $ARGS_ALL --dataspec \"FLP:FLP/DISTSUBTIMEFRAME/0;B:TPC/RAWDATA;C:ITS/RAWDATA;D:TOF/RAWDATA;D:MFT/RAWDATA;E:FT0/RAWDATA;F:MID/RAWDATA;G:EMC/RAWDATA;H:PHS/RAWDATA;I:CPV/RAWDATA;J:ZDC/RAWDATA;K:HMP/RAWDATA;L:FDD/RAWDATA\" --channel-config \"name=readout-proxy,type=pull,method=connect,address=ipc://@$INRAWCHANNAME,transport=shmem,rateLogging=0\" | "
 else
   WORKFLOW="o2-raw-file-reader-workflow --detect-tf0 $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=$NHBPERTF;\" --delay $TFDELAY --loop $NTIMEFRAMES --max-tf 0 --input-conf rawAll.cfg | "
 fi
