@@ -54,6 +54,9 @@ class TimeRangeFlagCollection
   collection_t::const_iterator begin() const;
   collection_t::const_iterator end() const;
 
+  const std::string& getName() const;
+  const std::string& getDetector() const;
+
   /// write data to ostream
   void streamTo(std::ostream& output) const;
 
