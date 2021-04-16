@@ -91,7 +91,6 @@ class ClusterFinderOriginal
   double mlem(const std::vector<double>& coef, const std::vector<double>& prob, int nIter);
   void findCOG(const TH2D& histMLEM, double xy[2]) const;
   void refinePixelArray(const double xyCOG[2], size_t nPixMax, double& xMin, double& xMax, double& yMin, double& yMax);
-  void shiftPixelsToKeep(double charge);
   void cleanPixelArray(double threshold, std::vector<double>& prob);
 
   int fit(const std::vector<const std::vector<int>*>& clustersOfPixels, const double fitRange[2][2], double fitParam[SNFitParamMax + 1]);
