@@ -1,0 +1,55 @@
+#include "style.macro"
+
+int rebinx = 10;
+int rebiny = 10;
+
+void plot_secondary(const char *fname, int pdg);
+
+void plot_secondary(const char *fname)
+{
+
+  std::vector<int> pdgs = {11, 13, 22, 211, 321, 2112, 2212};
+  for (int pdg : pdgs)
+    plot_secondary(fname, pdg);
+  
+}
+
+
+void
+plot_secondary(const char *fname, int pdg)
+{
+
+  style();
+  gStyle->SetPalette(1);
+  
+  auto c = new TCanvas("c", "c", 800, 400);
+  c->Divide(2, 1);
+
+  auto fin = TFile::Open(fname);
+  auto hgen = (TH2*)fin->Get(Form("hZRGen_%d", pdg));
+  hgen->SetTitle(";z (cm);R (cm)");
+  hgen->RebinX(rebinx);
+  hgen->RebinY(rebiny);
+  auto hhit = (TH2*)fin->Get(Form("hZRHit_%d", pdg));
+  hhit->SetTitle(";z (cm);R (cm)");
+  hhit->RebinX(rebinx);
+  hhit->RebinY(rebiny);
+  
+  c->cd(1)->SetLogz();
+  hgen->Draw("col");
+  c->cd(2)->SetLogz();
+  hhit->Draw("col");
+
+  c->cd(2)->SetLogz();
+  auto heff = (TH2*)hhit->Clone("heff");
+  heff->Divide(hhit, hgen, 1., 1., "B");
+  heff->SetMinimum(1.e-3);
+  heff->SetMaximum(1.);
+  heff->Draw("col");
+  
+  std::string fnameout = fname;
+  fnameout.erase(fnameout.find("root"), 4);
+  fnameout += std::to_string(pdg) + ".png";
+  c->SaveAs(fnameout.c_str());
+  
+}
