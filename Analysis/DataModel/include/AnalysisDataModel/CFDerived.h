@@ -16,19 +16,22 @@
 
 namespace o2::aod
 {
-DECLARE_SOA_TABLE(CFCollisions, "AOD", "CFCOLLISION", o2::soa::Index<>,
-                  bc::RunNumber, collision::PosZ, cent::CentV0M, timestamp::Timestamp);
+DECLARE_SOA_TABLE(CFCollisions, "AOD", "CFCOLLISION", //!
+                  o2::soa::Index<>,
+                  bc::RunNumber, collision::PosZ,
+                  cent::CentV0M, timestamp::Timestamp);
 using CFCollision = CFCollisions::iterator;
 
 namespace cftrack
 {
-DECLARE_SOA_INDEX_COLUMN(CFCollision, cfCollision);
-DECLARE_SOA_COLUMN(Pt, pt, float);
-DECLARE_SOA_COLUMN(Eta, eta, float);
-DECLARE_SOA_COLUMN(Phi, phi, float);
-DECLARE_SOA_COLUMN(Sign, sign, int8_t);
+DECLARE_SOA_INDEX_COLUMN(CFCollision, cfCollision); //!
+DECLARE_SOA_COLUMN(Pt, pt, float);                  //!
+DECLARE_SOA_COLUMN(Eta, eta, float);                //!
+DECLARE_SOA_COLUMN(Phi, phi, float);                //!
+DECLARE_SOA_COLUMN(Sign, sign, int8_t);             //!
 } // namespace cftrack
-DECLARE_SOA_TABLE(CFTracks, "AOD", "CFTRACK", o2::soa::Index<>,
+DECLARE_SOA_TABLE(CFTracks, "AOD", "CFTRACK", //!
+                  o2::soa::Index<>,
                   cftrack::CFCollisionId,
                   cftrack::Pt, cftrack::Eta, cftrack::Phi,
                   cftrack::Sign, track::TrackType);
