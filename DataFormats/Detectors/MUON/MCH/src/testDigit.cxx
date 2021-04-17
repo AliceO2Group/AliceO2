@@ -50,7 +50,7 @@ BOOST_DATA_TEST_CASE(DefaultConstructorNofSamplesIsInvariant,
                      boost::unit_test::data::make(nsamples), nofSamples)
 {
   o2::mch::Digit d(dummyDetId, dummyPadId, dummyADC, dummyTime, nofSamples);
-  BOOST_CHECK_EQUAL(d.nofSamples(), nofSamples);
+  BOOST_CHECK_EQUAL(d.getNofSamples(), nofSamples);
 }
 
 BOOST_DATA_TEST_CASE(SetSaturatedDoesNotAffectPublicNofSamples,
@@ -60,9 +60,9 @@ BOOST_DATA_TEST_CASE(SetSaturatedDoesNotAffectPublicNofSamples,
 
   BOOST_TEST_INFO("setting saturation to true");
   d.setSaturated(true);
-  BOOST_CHECK_EQUAL(d.nofSamples(), nofSamples);
+  BOOST_CHECK_EQUAL(d.getNofSamples(), nofSamples);
 
   BOOST_TEST_INFO("setting saturation to false");
   d.setSaturated(false);
-  BOOST_CHECK_EQUAL(d.nofSamples(), nofSamples);
+  BOOST_CHECK_EQUAL(d.getNofSamples(), nofSamples);
 }
