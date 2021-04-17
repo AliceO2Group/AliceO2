@@ -176,6 +176,7 @@ struct HFTrackIndexSkimsCreator {
      {"hNCand2ProngVsNTracks", "2-prong candidates preselected;# of selected tracks;# of candidates;entries", {HistType::kTH2F, {{2500, 0., 25000.}, {2000, 0., 200000.}}}},
      {"hmassD0ToPiK", "D0 candidates;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
      {"hmassJpsiToEE", "Jpsi candidates;inv. mass (e+ e-) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
+     {"hmassJpsiToMuMu", "Jpsi candidates;inv. mass (mu+ mu-) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
      //3prong histograms
      {"hvtx3_x", "3-prong candidates;#it{x}_{sec. vtx.} (cm);entries", {HistType::kTH1F, {{1000, -2., 2.}}}},
      {"hvtx3_y", "3-prong candidates;#it{y}_{sec. vtx.} (cm);entries", {HistType::kTH1F, {{1000, -2., 2.}}}},
@@ -198,6 +199,7 @@ struct HFTrackIndexSkimsCreator {
   double massK = RecoDecay::getMassPDG(kKPlus);
   double massProton = RecoDecay::getMassPDG(kProton);
   double massElectron = RecoDecay::getMassPDG(kElectron);
+  double massMu = RecoDecay::getMassPDG(kMuonMinus);
 
   // int nColls{0}; //can be added to run over limited collisions per file - for tesing purposes
 
@@ -255,6 +257,12 @@ struct HFTrackIndexSkimsCreator {
     cut2ProngCPACandMin[JpsiToEE] = configs->mCPAJpsiToEEMin;
     cut2ProngImpParProductCandMax[JpsiToEE] = configs->mImpParProductJpsiToEEMax;
 
+    cut2ProngPtCandMin[JpsiToMuMu] = configs->mPtJpsiToMuMuMin;
+    cut2ProngInvMassCandMin[JpsiToMuMu] = configs->mInvMassJpsiToMuMuMin;
+    cut2ProngInvMassCandMax[JpsiToMuMu] = configs->mInvMassJpsiToMuMuMax;
+    cut2ProngCPACandMin[JpsiToMuMu] = configs->mCPAJpsiToMuMuMin;
+    cut2ProngImpParProductCandMax[JpsiToMuMu] = configs->mImpParProductJpsiToMuMuMax;
+
     const int nCuts3Prong = 4; //how many different selections are made on 3-prongs
     double cut3ProngPtCandMin[n3ProngDecays];
     double cut3ProngInvMassCandMin[n3ProngDecays];
@@ -294,10 +302,12 @@ struct HFTrackIndexSkimsCreator {
     array<array<double, 2>, n2ProngDecays> arr2Mass1;
     arr2Mass1[D0ToPiK] = array{massPi, massK};
     arr2Mass1[JpsiToEE] = array{massElectron, massElectron};
+    arr2Mass1[JpsiToMuMu] = array{massMu, massMu};
 
     array<array<double, 2>, n2ProngDecays> arr2Mass2;
     arr2Mass2[D0ToPiK] = array{massK, massPi};
     arr2Mass2[JpsiToEE] = array{massElectron, massElectron};
+    arr2Mass2[JpsiToMuMu] = array{massMu, massMu};
 
     array<array<double, 3>, n3ProngDecays> arr3Mass1;
     arr3Mass1[DPlusToPiKPi] = array{massPi, massK, massPi};
@@ -473,7 +483,7 @@ struct HFTrackIndexSkimsCreator {
                     }
                   }
                 }
-                rowProng2CutStatus(Prong2CutStatus[0], Prong2CutStatus[1]); //FIXME when we can do this by looping over n2ProngDecays
+                rowProng2CutStatus(Prong2CutStatus[0], Prong2CutStatus[1], Prong2CutStatus[2]); //FIXME when we can do this by looping over n2ProngDecays
               }
 
               // fill histograms
@@ -492,6 +502,9 @@ struct HFTrackIndexSkimsCreator {
                       }
                       if (n2 == JpsiToEE) {
                         registry.get<TH1>(HIST("hmassJpsiToEE"))->Fill(mass2ProngHypo1[n2]);
+                      }
+		      if (n2 == JpsiToMuMu) {
+                        registry.get<TH1>(HIST("hmassJpsiToMuMu"))->Fill(mass2ProngHypo1[n2]);
                       }
                     }
                     if ((cut2ProngInvMassCandMin[n2] < 0. && cut2ProngInvMassCandMax[n2] <= 0.) || (mass2ProngHypo2[n2] >= cut2ProngInvMassCandMin[n2] && mass2ProngHypo2[n2] < cut2ProngInvMassCandMax[n2])) {

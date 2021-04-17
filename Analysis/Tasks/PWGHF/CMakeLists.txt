@@ -68,6 +68,11 @@ o2_add_dpl_workflow(hf-jpsi-toee-candidate-selector
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
+o2_add_dpl_workflow(hf-jpsi-toMuMu-candidate-selector
+                    SOURCES HFJpsiToMuMuCandidateSelector.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
+                    COMPONENT_NAME Analysis)
+
 o2_add_dpl_workflow(hf-xic-topkpi-candidate-selector
                     SOURCES HFXicToPKPiCandidateSelector.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
@@ -88,8 +93,13 @@ o2_add_dpl_workflow(hf-task-lc
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(hf-task-jpsi
-                    SOURCES taskJpsi.cxx
+o2_add_dpl_workflow(hf-task-jpsi-toee
+                    SOURCES taskJpsiToEE.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(hf-task-jpsi-toMuMu
+                    SOURCES taskJpsiToMuMu.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
@@ -103,8 +113,13 @@ o2_add_dpl_workflow(hf-task-xic
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(hf-task-x
-                    SOURCES taskX.cxx
+o2_add_dpl_workflow(hf-task-x-toPiPiEE
+                    SOURCES taskXToPiPiEE.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(hf-task-x-toPiPiMuMu
+                    SOURCES taskXToPiPiMuMu.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 

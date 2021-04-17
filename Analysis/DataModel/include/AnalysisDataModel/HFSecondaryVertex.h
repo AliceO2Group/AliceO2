@@ -51,6 +51,7 @@ DECLARE_SOA_COLUMN(HFflag, hfflag, uint8_t);
 
 DECLARE_SOA_COLUMN(D0ToKPiFlag, d0ToKPiFlag, uint8_t);
 DECLARE_SOA_COLUMN(JpsiToEEFlag, jpsiToEEFlag, uint8_t);
+DECLARE_SOA_COLUMN(JpsiToMuMuFlag, jpsiToMuMuFlag, uint8_t);
 
 DECLARE_SOA_COLUMN(DPlusPiKPiFlag, dPlusPiKPiFlag, uint8_t);
 DECLARE_SOA_COLUMN(LcPKPiFlag, lcPKPiFlag, uint8_t);
@@ -65,7 +66,8 @@ DECLARE_SOA_TABLE(HfTrackIndexProng2, "AOD", "HFTRACKIDXP2",
 
 DECLARE_SOA_TABLE(HfCutStatusProng2, "AOD", "HFCUTSTATUSP2",
                   hf_track_index::D0ToKPiFlag,
-                  hf_track_index::JpsiToEEFlag);
+                  hf_track_index::JpsiToEEFlag,
+		  hf_track_index::JpsiToMuMuFlag);
 
 DECLARE_SOA_TABLE(HfTrackIndexProng3, "AOD", "HFTRACKIDXP3",
                   hf_track_index::Index0Id,
@@ -166,6 +168,7 @@ DECLARE_SOA_COLUMN(OriginMCGen, originMCGen, int8_t);       // particle origin, 
 // mapping of decay types
 enum DecayType { D0ToPiK = 0,
                  JpsiToEE,
+		 JpsiToMuMu,
                  N2ProngDecays }; //always keep N2ProngDecays at the end
 
 // functions for specific particles
@@ -214,7 +217,7 @@ auto CosThetaStarD0bar(const T& candidate)
   return candidate.cosThetaStar(array{RecoDecay::getMassPDG(kKPlus), RecoDecay::getMassPDG(kPiPlus)}, RecoDecay::getMassPDG(421), 0);
 }
 
-// Jpsi → e+e-
+// Jpsi
 template <typename T>
 auto CtJpsi(const T& candidate)
 {
@@ -233,10 +236,18 @@ auto EJpsi(const T& candidate)
   return candidate.e(RecoDecay::getMassPDG(443));
 }
 
+// Jpsi → e+e-
 template <typename T>
 auto InvMassJpsiToEE(const T& candidate)
 {
   return candidate.m(array{RecoDecay::getMassPDG(kElectron), RecoDecay::getMassPDG(kElectron)});
+}
+
+// Jpsi → mu+mu-
+template <typename T>
+auto InvMassJpsiToMuMu(const T& candidate)
+{
+  return candidate.m(array{RecoDecay::getMassPDG(kMuonMinus), RecoDecay::getMassPDG(kMuonMinus)});
 }
 } // namespace hf_cand_prong2
 

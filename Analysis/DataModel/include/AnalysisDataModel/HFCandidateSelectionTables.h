@@ -33,11 +33,18 @@ DECLARE_SOA_COLUMN(IsSelLcpiKp, isSelLcpiKp, int);
 } // namespace hf_selcandidate_lc
 DECLARE_SOA_TABLE(HFSelLcCandidate, "AOD", "HFSELLCCAND", hf_selcandidate_lc::IsSelLcpKpi, hf_selcandidate_lc::IsSelLcpiKp);
 
-namespace hf_selcandidate_jpsi
+namespace hf_selcandidate_jpsitoee
 {
 DECLARE_SOA_COLUMN(IsSelJpsiToEE, isSelJpsiToEE, int);
-} // namespace hf_selcandidate_jpsi
-DECLARE_SOA_TABLE(HFSelJpsiToEECandidate, "AOD", "HFSELJPSICAND", hf_selcandidate_jpsi::IsSelJpsiToEE);
+} // namespace hf_selcandidate_jpsitoee
+DECLARE_SOA_TABLE(HFSelJpsiToEECandidate, "AOD", "HFSELJPSIEECAND", hf_selcandidate_jpsitoee::IsSelJpsiToEE);
+
+namespace hf_selcandidate_jpsitomumu
+{
+DECLARE_SOA_COLUMN(IsSelJpsiToMuMu, isSelJpsiToMuMu, int);
+} // namespace hf_selcandidate_jpsitomumu
+DECLARE_SOA_TABLE(HFSelJpsiToMuMuCandidate, "AOD", "HFSELJPSIMMCAND", hf_selcandidate_jpsitomumu::IsSelJpsiToMuMu);
+
 } // namespace o2::aod
 
 namespace o2::aod

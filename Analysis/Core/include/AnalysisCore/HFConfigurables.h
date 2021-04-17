@@ -36,6 +36,12 @@ class HFTrackIndexSkimsCreatorConfigs
   double mInvMassJpsiToEEMax = 4.1;
   double mCPAJpsiToEEMin = -2;
   double mImpParProductJpsiToEEMax = 1000.;
+  // 2-prong cuts JpsiToMuMu
+  double mPtJpsiToMuMuMin = 4.; //original value 0.
+  double mInvMassJpsiToMuMuMin = 2.5;
+  double mInvMassJpsiToMuMuMax = 4.1;
+  double mCPAJpsiToMuMuMin = -2;
+  double mImpParProductJpsiToMuMuMax = 1000.;
   // 3-prong cuts - DPlusToPiKPi
   double mPtDPlusToPiKPiMin = 4.;        //original value 0.
   double mInvMassDPlusToPiKPiMin = 1.75; //original value 1.7

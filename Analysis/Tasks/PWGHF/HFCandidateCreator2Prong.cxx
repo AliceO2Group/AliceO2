@@ -178,6 +178,15 @@ struct HFCandidateCreator2ProngMC {
         }
       }
 
+      // J/ψ → mu+ mu-
+      if (flag == 0) {
+        //Printf("Checking J/ψ → mu+ mu-");
+        indexRec = RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), 443, array{+kMuonMinus, -kMuonMinus}, true);
+        if (indexRec > -1) {
+          flag = 1 << JpsiToMuMu;
+        }
+      }
+      
       // Check whether the particle is non-prompt (from a b quark).
       if (flag != 0) {
         auto particle = particlesMC.iteratorAt(indexRec);
@@ -206,6 +215,14 @@ struct HFCandidateCreator2ProngMC {
           flag = 1 << JpsiToEE;
         }
       }
+
+      // J/ψ → mu+ mu-
+      if (flag == 0) {
+        //Printf("Checking J/ψ → mu+ mu-");
+        if (RecoDecay::isMatchedMCGen(particlesMC, particle, 443, array{+kMuonMinus, -kMuonMinus}, true)) {
+          flag = 1 << JpsiToMuMu;
+        }
+      }      
 
       // Check whether the particle is non-prompt (from a b quark).
       if (flag != 0) {
