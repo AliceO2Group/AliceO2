@@ -18,6 +18,7 @@
 #include <fmt/format.h>
 #include "DigitFileFormat.h"
 #include "CommonDataFormat/InteractionRecord.h"
+#include "IOStruct.h"
 
 //
 // V0 was prior to the introduction of rofs, so the file format is
@@ -50,7 +51,7 @@ bool DigitReaderV0::read(std::istream& in,
   // note the input vectors are not cleared as this is the responsability
   // of the calling class, if need be.
   std::vector<DigitD0> digitsd0;
-  bool ok = readBinary(in, digitsd0, "digits");
+  bool ok = readBinaryStruct(in, digitsd0, "digits");
   if (!ok) {
     return false;
   }
@@ -84,7 +85,7 @@ bool DigitWriterV0::write(std::ostream& out,
       digitsd0.back().setSaturated(d.isSaturated());
     }
     gsl::span<const DigitD0> d0(digitsd0);
-    bool ok = binary(out, d0);
+    bool ok = writeBinaryStruct(out, d0);
     if (!ok) {
       return false;
     }

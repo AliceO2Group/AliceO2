@@ -12,6 +12,8 @@ o2_add_library(MCHDigitIO
             SOURCES DigitWriter.cxx DigitReader.cxx DigitFileFormat.cxx 
                     DigitReaderImpl.cxx DigitWriterImpl.cxx
                     DigitIOV0.cxx DigitIOV1.cxx
+                    DigitIOV2.cxx DigitIOV3.cxx
+                    IO.cxx
             PUBLIC_LINK_LIBRARIES ms_gsl::ms_gsl fmt::fmt O2::DataFormatsMCH)
 
 o2_add_test(digits-io

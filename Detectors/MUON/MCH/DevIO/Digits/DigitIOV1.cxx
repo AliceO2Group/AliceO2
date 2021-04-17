@@ -15,6 +15,7 @@
 #include "DigitFileFormat.h"
 #include "DigitReader.h"
 #include <iostream>
+#include "IOStruct.h"
 
 namespace
 {
@@ -55,13 +56,13 @@ bool DigitReaderV1::read(std::istream& in,
   // note the input vectors are not cleared as this is the responsability
   // of the calling class, if need be.
 
-  bool ok = readBinary(in, rofs, "rofs");
+  bool ok = readBinaryStruct(in, rofs, "rofs");
   if (!ok) {
     return false;
   }
   std::vector<DigitD0> digitsd0;
 
-  ok = readBinary(in, digitsd0, "digits");
+  ok = readBinaryStruct(in, digitsd0, "digits");
   if (!ok) {
     return false;
   }
@@ -85,7 +86,7 @@ bool DigitWriterV1::write(std::ostream& out,
   if (rofs.empty()) {
     return false;
   }
-  bool ok = impl::binary(out, rofs);
+  bool ok = writeBinaryStruct(out, rofs);
 
   std::vector<DigitD0> digitsd0;
   for (const auto& d : digits) {
@@ -93,7 +94,7 @@ bool DigitWriterV1::write(std::ostream& out,
     digitsd0.back().setSaturated(d.isSaturated());
   }
   gsl::span<const DigitD0> d0(digitsd0);
-  ok &= impl::binary(out, d0);
+  ok &= writeBinaryStruct(out, d0);
   return ok;
 }
 

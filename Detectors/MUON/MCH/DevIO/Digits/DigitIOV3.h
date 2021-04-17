@@ -10,31 +10,33 @@
 
 #pragma once
 
-#include <ostream>
-#include <gsl/span>
-#include <memory>
-
-namespace o2::mch
-{
-class Digit;
-class ROFRecord;
-} // namespace o2::mch
+#include "DigitReaderImpl.h"
+#include <vector>
+#include "DataFormatsMCH/ROFRecord.h"
+#include <utility>
+#include "DigitWriterImpl.h"
 
 namespace o2::mch::io::impl
 {
+class DigitReaderV3 : public DigitReaderImpl
+{
+ public:
+  void count(std::istream& in, size_t& ntfs, size_t& nrofs, size_t& ndigits) override;
+  bool read(std::istream& in,
+            std::vector<Digit>& digits,
+            std::vector<ROFRecord>& rofs) override;
+  void rewind(std::istream& in);
+};
 
-struct DigitWriterImpl {
-  virtual ~DigitWriterImpl() = default;
-
+struct DigitWriterV3 : public DigitWriterImpl {
   /** write rofs, digits at the current position in the output stream
   * @param digits vector of Digits, must not be empty
   * @param rofs vector of ROFRecord, might be empty
   * @returns true if writing was successull, false otherwise
   */
-  virtual bool write(std::ostream& out,
-                     gsl::span<const Digit> digits,
-                     gsl::span<const ROFRecord> rofs) = 0;
+  bool write(std::ostream& out,
+             gsl::span<const Digit> digits,
+             gsl::span<const ROFRecord> rofs) override;
 };
 
-std::unique_ptr<DigitWriterImpl> createDigitWriterImpl(int version);
 } // namespace o2::mch::io::impl

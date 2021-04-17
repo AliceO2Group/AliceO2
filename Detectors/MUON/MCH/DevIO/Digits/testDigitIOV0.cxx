@@ -29,6 +29,8 @@
 #include "DigitReaderImpl.h"
 #include "TestFileV0.h"
 #include "DigitD0.h"
+#include "IO.h"
+
 using namespace o2::mch;
 using namespace o2::mch::io;
 
