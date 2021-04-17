@@ -408,6 +408,5 @@ static const std::vector<std::string> pTBinLabels = {
 static const std::vector<std::string> cutVarLabels = {"m", "DCA_xy", "DCA_z", "pT Mu"};
 } // namespace hf_cuts_jpsi_toMuMu
 
-
 } // namespace o2::analysis
 #endif

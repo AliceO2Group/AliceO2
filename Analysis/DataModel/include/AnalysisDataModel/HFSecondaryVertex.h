@@ -69,7 +69,7 @@ DECLARE_SOA_TABLE(HfTrackIndexProng2, "AOD", "HFTRACKIDXP2", //!
 DECLARE_SOA_TABLE(HfCutStatusProng2, "AOD", "HFCUTSTATUSP2", //!
                   hf_track_index::D0ToKPiFlag,
                   hf_track_index::JpsiToEEFlag,
-		  hf_track_index::JpsiToMuMuFlag);
+                  hf_track_index::JpsiToMuMuFlag);
 
 DECLARE_SOA_TABLE(HfTrackIndexProng3, "AOD", "HFTRACKIDXP3", //!
                   hf_track_index::Index0Id,
@@ -210,7 +210,7 @@ DECLARE_SOA_COLUMN(OriginMCGen, originMCGen, int8_t);       //! particle origin,
 // mapping of decay types
 enum DecayType { D0ToPiK = 0,
                  JpsiToEE,
-		 JpsiToMuMu,
+                 JpsiToMuMu,
                  N2ProngDecays }; //always keep N2ProngDecays at the end
 
 // functions for specific particles

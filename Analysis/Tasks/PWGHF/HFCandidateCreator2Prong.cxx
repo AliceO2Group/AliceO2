@@ -186,7 +186,7 @@ struct HFCandidateCreator2ProngMC {
           flag = 1 << JpsiToMuMu;
         }
       }
-      
+
       // Check whether the particle is non-prompt (from a b quark).
       if (flag != 0) {
         auto particle = particlesMC.iteratorAt(indexRec);
@@ -222,7 +222,7 @@ struct HFCandidateCreator2ProngMC {
         if (RecoDecay::isMatchedMCGen(particlesMC, particle, 443, array{+kMuonMinus, -kMuonMinus}, true)) {
           flag = 1 << JpsiToMuMu;
         }
-      }      
+      }
 
       // Check whether the particle is non-prompt (from a b quark).
       if (flag != 0) {
