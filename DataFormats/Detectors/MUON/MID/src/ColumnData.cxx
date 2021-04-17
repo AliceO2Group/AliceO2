@@ -51,6 +51,23 @@ bool ColumnData::isStripFired(int istrip, int cathode, int line) const
   return (cathode == 0) ? isBPStripFired(istrip, line) : isNBPStripFired(istrip);
 }
 
+bool ColumnData::operator==(const ColumnData& right) const
+{
+  /// Comparison operator
+  if (deId != right.deId) {
+    return false;
+  }
+  if (columnId != right.columnId) {
+    return false;
+  }
+  for (size_t ipat = 0; ipat < 5; ++ipat) {
+    if (patterns[ipat] != right.patterns[ipat]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 ColumnData& operator|=(ColumnData& col1, const ColumnData& col2)
 {
   /// Merge operator for ColumnData
