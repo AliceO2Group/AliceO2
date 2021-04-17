@@ -9,6 +9,7 @@
 # submit itself to any jurisdiction.
 
 add_subdirectory(base)
+add_subdirectory(calibration)
 add_subdirectory(simulation)
 add_subdirectory(reconstruction)
 add_subdirectory(macros)

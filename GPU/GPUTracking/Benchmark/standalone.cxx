@@ -20,6 +20,7 @@
 #include "GPUQA.h"
 #include "GPUDisplayBackend.h"
 #include "genEvents.h"
+#include "GPUMemorySizeScalers.h"
 
 #include <iostream>
 #include <fstream>
@@ -482,6 +483,7 @@ int SetupReconstruction()
   if (configStandalone.proc.debugLevel >= 4) {
     rec->PrintKernelOccupancies();
   }
+  rec->MemoryScalers()->factor *= configStandalone.memoryBufferScaleFactor;
   return (0);
 }
 

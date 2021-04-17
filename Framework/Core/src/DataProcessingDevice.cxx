@@ -569,6 +569,10 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
     registry->get<ControlService>().notifyStreamingState(state->streaming);
   };
 
+  if (context.state->streaming == StreamingState::Idle) {
+    return;
+  }
+
   context.completed->clear();
   context.completed->reserve(16);
   *context.wasActive |= DataProcessingDevice::tryDispatchComputation(context, *context.completed);
@@ -578,7 +582,7 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
   if (*context.wasActive == false) {
     context.registry->get<CallbackService>()(CallbackService::Id::Idle);
   }
-  auto activity = context.relayer->processDanglingInputs(*context.expirationHandlers, *context.registry);
+  auto activity = context.relayer->processDanglingInputs(*context.expirationHandlers, *context.registry, true);
   *context.wasActive |= activity.expiredSlots > 0;
 
   context.completed->clear();
@@ -600,7 +604,7 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
     // FIXME: not sure this is the correct way to drain the queues, but
     // I guess we will see.
     while (DataProcessingDevice::tryDispatchComputation(context, *context.completed)) {
-      context.relayer->processDanglingInputs(*context.expirationHandlers, *context.registry);
+      context.relayer->processDanglingInputs(*context.expirationHandlers, *context.registry, false);
     }
     EndOfStreamContext eosContext{*context.registry, *context.allocator};
 
@@ -838,6 +842,10 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     return InputRecord{spec->inputs, std::move(span)};
   };
 
+  auto markInputsAsDone = [&relayer = context.relayer](TimesliceSlot slot) -> void {
+    relayer->updateCacheStatus(slot, CacheEntryStatus::RUNNING, CacheEntryStatus::DONE);
+  };
+
   // I need a preparation step which gets the current timeslice id and
   // propagates it to the various contextes (i.e. the actual entities which
   // create messages) because the messages need to have the timeslice id into
@@ -1025,6 +1033,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         continue;
       }
     }
+    markInputsAsDone(action.slot);
 
     uint64_t tStart = uv_hrtime();
     preUpdateStats(action, record, tStart);

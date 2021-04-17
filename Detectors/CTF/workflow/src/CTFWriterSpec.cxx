@@ -95,6 +95,8 @@ class CTFWriterSpec : public o2::framework::Task
   size_t mNTF = 0;
   int mSaveDictAfter = -1; // if positive and mWriteCTF==true, save dictionary after each mSaveDictAfter TFs processed
   uint64_t mRun = 0;
+  std::string mDictDir = "";
+  std::string mCTFDir = "";
 
   std::unique_ptr<TFile> mDictFileOut; // file to store dictionary
   std::unique_ptr<TTree> mDictTreeOut; // tree to store dictionary
@@ -195,6 +197,8 @@ CTFWriterSpec::CTFWriterSpec(DetID::mask_t dm, uint64_t r, bool doCTF, bool doDi
 void CTFWriterSpec::init(InitContext& ic)
 {
   mSaveDictAfter = ic.options().get<int>("save-dict-after");
+  mDictDir = o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("ctf-dict-dir"));
+  mCTFDir = o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("output-dir"));
 }
 
 void CTFWriterSpec::run(ProcessingContext& pc)
@@ -206,7 +210,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
   std::unique_ptr<TFile> fileOut;
   std::unique_ptr<TTree> treeOut;
   if (mWriteCTF) {
-    fileOut.reset(TFile::Open(o2::base::NameConf::getCTFFileName(dh->runNumber, dh->firstTForbit, dh->tfCounter).c_str(), "recreate"));
+    fileOut.reset(TFile::Open(o2::utils::concat_string(mCTFDir, o2::base::NameConf::getCTFFileName(dh->runNumber, dh->firstTForbit, dh->tfCounter)).c_str(), "recreate"));
     treeOut = std::make_unique<TTree>(std::string(o2::base::NameConf::CTFTREENAME).c_str(), "O2 CTF tree");
   }
 
@@ -279,9 +283,9 @@ std::string CTFWriterSpec::dictionaryFileName(const std::string& detName)
     if (detName.empty()) {
       throw std::runtime_error("Per-detector dictionary files are requested but detector name is not provided");
     }
-    return o2::utils::concat_string(detName, "_", o2::base::NameConf::CTFDICT, ".root");
+    return o2::utils::concat_string(mDictDir, detName, '_', o2::base::NameConf::CTFDICT, ".root");
   } else {
-    return o2::utils::concat_string(o2::base::NameConf::CTFDICT, ".root");
+    return o2::utils::concat_string(mDictDir, o2::base::NameConf::CTFDICT, ".root");
   }
 }
 
@@ -336,7 +340,9 @@ DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, bool doCTF,
     inputs,
     Outputs{},
     AlgorithmSpec{adaptFromTask<CTFWriterSpec>(dets, run, doCTF, doDict, dictPerDet)},
-    Options{{"save-dict-after", VariantType::Int, -1, {"In dictionary generation mode save it dictionary after certain number of TFs processed"}}}};
+    Options{{"save-dict-after", VariantType::Int, -1, {"In dictionary generation mode save it dictionary after certain number of TFs processed"}},
+            {"ctf-dict-dir", VariantType::String, "none", {"CTF dictionary directory"}},
+            {"output-dir", VariantType::String, "none", {"CTF output directory"}}}};
 }
 
 } // namespace ctf

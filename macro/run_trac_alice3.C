@@ -69,6 +69,7 @@ void run_trac_alice3(const string hitsFileName = "o2sim_HitsTRK.root")
 
   o2::its::Tracker tracker(new o2::its::TrackerTraitsCPU());
   tracker.setBz(5.f);
+  tracker.setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrTGeo);
 
   std::uint32_t roFrame;
   std::vector<Hit>* hits = nullptr;

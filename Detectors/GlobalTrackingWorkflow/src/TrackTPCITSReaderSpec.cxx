@@ -17,6 +17,7 @@
 #include "GlobalTrackingWorkflow/TrackTPCITSReaderSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "Framework/SerializationMethods.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
@@ -27,7 +28,8 @@ namespace globaltracking
 {
 void TrackTPCITSReader::init(InitContext& ic)
 {
-  mFileName = ic.options().get<std::string>("itstpc-track-infile");
+  mFileName = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                       ic.options().get<std::string>("itstpc-track-infile"));
   connectTree(mFileName);
 }
 
@@ -77,7 +79,8 @@ DataProcessorSpec getTrackTPCITSReaderSpec(bool useMC)
     outputs,
     AlgorithmSpec{adaptFromTask<TrackTPCITSReader>(useMC)},
     Options{
-      {"itstpc-track-infile", VariantType::String, "o2match_itstpc.root", {"Name of the input file"}}}};
+      {"itstpc-track-infile", VariantType::String, "o2match_itstpc.root", {"Name of the input file"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
 } // namespace globaltracking

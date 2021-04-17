@@ -115,6 +115,21 @@ class LookUpTable
   ClassDefNV(LookUpTable, 1);
 };
 
+//Singleton for LookUpTable
+class SingleLUT : public LookUpTable
+{
+ private:
+  SingleLUT() : LookUpTable(LookUpTable::linear()) {}
+  SingleLUT(const SingleLUT&) = delete;
+  SingleLUT& operator=(SingleLUT&) = delete;
+
+ public:
+  static SingleLUT& Instance()
+  {
+    static SingleLUT instanceLUT;
+    return instanceLUT;
+  }
+};
 } // namespace fdd
 } // namespace o2
 #endif

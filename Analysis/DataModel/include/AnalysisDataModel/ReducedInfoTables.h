@@ -30,7 +30,8 @@ namespace dqppfilter
 DECLARE_SOA_COLUMN(EventFilter, eventFilter, uint64_t);
 }
 // Table to be used for storing event-level decisions (DQ high level triggers)
-DECLARE_SOA_TABLE(DQEventFilter, "AOD", "EVENTFILTER", dqppfilter::EventFilter);
+DECLARE_SOA_TABLE(DQEventFilter, "AOD", "EVENTFILTER", //!
+                  dqppfilter::EventFilter);
 
 namespace reducedevent
 {
@@ -41,14 +42,15 @@ DECLARE_SOA_COLUMN(TriggerAlias, triggerAlias, uint32_t);
 
 } // namespace reducedevent
 
-DECLARE_SOA_TABLE(ReducedEvents, "AOD", "REDUCEDEVENT", o2::soa::Index<>,
+DECLARE_SOA_TABLE(ReducedEvents, "AOD", "REDUCEDEVENT", //!
+                  o2::soa::Index<>,
                   reducedevent::Tag, bc::RunNumber,
                   collision::PosX, collision::PosY, collision::PosZ, collision::NumContrib);
 
-DECLARE_SOA_TABLE(ReducedEventsExtended, "AOD", "REEXTENDED",
-                  bc::GlobalBC, bc::TriggerMask, reducedevent::TriggerAlias, cent::CentV0M);
+DECLARE_SOA_TABLE(ReducedEventsExtended, "AOD", "REEXTENDED", //!
+                  bc::GlobalBC, bc::TriggerMask, timestamp::Timestamp, reducedevent::TriggerAlias, cent::CentV0M);
 
-DECLARE_SOA_TABLE(ReducedEventsVtxCov, "AOD", "REVTXCOV",
+DECLARE_SOA_TABLE(ReducedEventsVtxCov, "AOD", "REVTXCOV", //!
                   collision::CovXX, collision::CovXY, collision::CovXZ,
                   collision::CovYY, collision::CovYZ, collision::CovZZ, collision::Chi2);
 
@@ -59,27 +61,30 @@ using ReducedEventVtxCov = ReducedEventsVtxCov::iterator;
 namespace reducedtrack
 {
 // basic track information
-DECLARE_SOA_INDEX_COLUMN(ReducedEvent, reducedevent);
-DECLARE_SOA_COLUMN(Idx, idx, uint16_t);
+DECLARE_SOA_INDEX_COLUMN(ReducedEvent, reducedevent); //!
+DECLARE_SOA_COLUMN(Idx, idx, uint16_t);               //!
 // ----  flags reserved for storing various information during filtering
-DECLARE_SOA_COLUMN(FilteringFlags, filteringFlags, uint64_t);
-// BIT 0: track is from MUON arm      (if not toggled then this is a barrel track)
+DECLARE_SOA_COLUMN(FilteringFlags, filteringFlags, uint64_t); //!
 // -----------------------------------------------------
-DECLARE_SOA_COLUMN(Pt, pt, float);
-DECLARE_SOA_COLUMN(Eta, eta, float);
-DECLARE_SOA_COLUMN(Phi, phi, float);
-DECLARE_SOA_COLUMN(Sign, sign, int);
-DECLARE_SOA_COLUMN(DcaXY, dcaXY, float);
-DECLARE_SOA_COLUMN(DcaZ, dcaZ, float);
-DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float pt, float phi) -> float { return pt * std::cos(phi); });
-DECLARE_SOA_DYNAMIC_COLUMN(Py, py, [](float pt, float phi) -> float { return pt * std::sin(phi); });
-DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, [](float pt, float eta) -> float { return pt * std::sinh(eta); });
-DECLARE_SOA_DYNAMIC_COLUMN(Pmom, pmom, [](float pt, float eta) -> float { return pt * std::cosh(eta); });
+DECLARE_SOA_COLUMN(Pt, pt, float);       //!
+DECLARE_SOA_COLUMN(Eta, eta, float);     //!
+DECLARE_SOA_COLUMN(Phi, phi, float);     //!
+DECLARE_SOA_COLUMN(Sign, sign, int);     //!
+DECLARE_SOA_COLUMN(DcaXY, dcaXY, float); //!
+DECLARE_SOA_COLUMN(DcaZ, dcaZ, float);   //!
+DECLARE_SOA_DYNAMIC_COLUMN(Px, px,       //!
+                           [](float pt, float phi) -> float { return pt * std::cos(phi); });
+DECLARE_SOA_DYNAMIC_COLUMN(Py, py, //!
+                           [](float pt, float phi) -> float { return pt * std::sin(phi); });
+DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, //!
+                           [](float pt, float eta) -> float { return pt * std::sinh(eta); });
+DECLARE_SOA_DYNAMIC_COLUMN(Pmom, pmom, //!
+                           [](float pt, float eta) -> float { return pt * std::cosh(eta); });
 
 } //namespace reducedtrack
 
 // basic track information
-DECLARE_SOA_TABLE(ReducedTracks, "AOD", "REDUCEDTRACK",
+DECLARE_SOA_TABLE(ReducedTracks, "AOD", "REDUCEDTRACK", //!
                   o2::soa::Index<>, reducedtrack::ReducedEventId, reducedtrack::Idx, reducedtrack::FilteringFlags,
                   reducedtrack::Pt, reducedtrack::Eta, reducedtrack::Phi, reducedtrack::Sign,
                   reducedtrack::Px<reducedtrack::Pt, reducedtrack::Phi>,
@@ -88,49 +93,52 @@ DECLARE_SOA_TABLE(ReducedTracks, "AOD", "REDUCEDTRACK",
                   reducedtrack::Pmom<reducedtrack::Pt, reducedtrack::Eta>);
 
 // barrel track information
-DECLARE_SOA_TABLE(ReducedTracksBarrel, "AOD", "RTBARREL",
-                  track::TPCInnerParam, track::Flags, // tracking status flags
+DECLARE_SOA_TABLE(ReducedTracksBarrel, "AOD", "RTBARREL", //!
+                  track::TPCInnerParam, track::Flags,     // tracking status flags
                   track::ITSClusterMap, track::ITSChi2NCl,
                   track::TPCNClsFindable, track::TPCNClsFindableMinusFound, track::TPCNClsFindableMinusCrossedRows,
                   track::TPCNClsShared, track::TPCChi2NCl,
-                  track::TRDChi2, track::TOFChi2, track::Length, reducedtrack::DcaXY, reducedtrack::DcaZ,
+                  track::TRDChi2, track::TRDPattern, track::TOFChi2, track::Length, reducedtrack::DcaXY, reducedtrack::DcaZ,
                   track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                   track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>);
 
-// barrel covariance matrix
-DECLARE_SOA_TABLE(ReducedTracksBarrelCov, "AOD", "RTBARRELCOV",
+// barrel covariance matrix  TODO: add all the elements required for secondary vertexing
+DECLARE_SOA_TABLE(ReducedTracksBarrelCov, "AOD", "RTBARRELCOV", //!
                   track::CYY, track::CZZ, track::CSnpSnp,
                   track::CTglTgl, track::C1Pt21Pt2);
 
 // barrel PID information
-DECLARE_SOA_TABLE(ReducedTracksBarrelPID, "AOD", "RTBARRELPID",
+DECLARE_SOA_TABLE(ReducedTracksBarrelPID, "AOD", "RTBARRELPID", //!
                   track::TPCSignal,
                   pidtpc::TPCNSigmaEl, pidtpc::TPCNSigmaMu,
                   pidtpc::TPCNSigmaPi, pidtpc::TPCNSigmaKa, pidtpc::TPCNSigmaPr,
-                  pidtpc::TPCNSigmaDe, pidtpc::TPCNSigmaTr, pidtpc::TPCNSigmaHe, pidtpc::TPCNSigmaAl,
-                  track::TOFSignal, pidtofbeta::Beta,
+                  pidtofbeta::Beta,
                   pidtof::TOFNSigmaEl, pidtof::TOFNSigmaMu,
                   pidtof::TOFNSigmaPi, pidtof::TOFNSigmaKa, pidtof::TOFNSigmaPr,
-                  pidtof::TOFNSigmaDe, pidtof::TOFNSigmaTr, pidtof::TOFNSigmaHe, pidtof::TOFNSigmaAl,
                   track::TRDSignal);
 
 // muon quantities
 namespace reducedmuon
 {
-DECLARE_SOA_INDEX_COLUMN(ReducedEvent, reducedevent);
-DECLARE_SOA_COLUMN(FilteringFlags, filteringFlags, uint64_t);
-// the (pt,eta,phi,sign) will be computed in the skimming task
-DECLARE_SOA_COLUMN(Pt, pt, float);
-DECLARE_SOA_COLUMN(Eta, eta, float);
-DECLARE_SOA_COLUMN(Phi, phi, float);
-DECLARE_SOA_COLUMN(Sign, sign, int);
-DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float pt, float phi) -> float { return pt * std::cos(phi); });
-DECLARE_SOA_DYNAMIC_COLUMN(Py, py, [](float pt, float phi) -> float { return pt * std::sin(phi); });
-DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, [](float pt, float eta) -> float { return pt * std::sinh(eta); });
-DECLARE_SOA_DYNAMIC_COLUMN(Pmom, pmom, [](float pt, float eta) -> float { return pt * std::cosh(eta); });
+DECLARE_SOA_INDEX_COLUMN(ReducedEvent, reducedevent);        //!
+DECLARE_SOA_COLUMN(FilteringFlags, filteringFlags, uint8_t); //!
+// the (pt,eta,phi,sign) will be computed in the skimming task //!
+DECLARE_SOA_COLUMN(Pt, pt, float);   //!
+DECLARE_SOA_COLUMN(Eta, eta, float); //!
+DECLARE_SOA_COLUMN(Phi, phi, float); //!
+DECLARE_SOA_COLUMN(Sign, sign, int); //!
+DECLARE_SOA_DYNAMIC_COLUMN(Px, px,   //!
+                           [](float pt, float phi) -> float { return pt * std::cos(phi); });
+DECLARE_SOA_DYNAMIC_COLUMN(Py, py, //!
+                           [](float pt, float phi) -> float { return pt * std::sin(phi); });
+DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, //!
+                           [](float pt, float eta) -> float { return pt * std::sinh(eta); });
+DECLARE_SOA_DYNAMIC_COLUMN(Pmom, pmom, //!
+                           [](float pt, float eta) -> float { return pt * std::cosh(eta); });
 } // namespace reducedmuon
 
-DECLARE_SOA_TABLE(ReducedMuons, "AOD", "RTMUON",
+// Muon track kinematics
+DECLARE_SOA_TABLE(ReducedMuons, "AOD", "RTMUON", //!
                   o2::soa::Index<>, reducedmuon::ReducedEventId, reducedmuon::FilteringFlags,
                   reducedmuon::Pt, reducedmuon::Eta, reducedmuon::Phi, reducedmuon::Sign,
                   reducedmuon::Px<reducedmuon::Pt, reducedmuon::Phi>,
@@ -138,31 +146,43 @@ DECLARE_SOA_TABLE(ReducedMuons, "AOD", "RTMUON",
                   reducedmuon::Pz<reducedmuon::Pt, reducedmuon::Eta>,
                   reducedmuon::Pmom<reducedmuon::Pt, reducedmuon::Eta>);
 
-DECLARE_SOA_TABLE(ReducedMuonsExtended, "AOD", "RTMUONEXTENDED",
-                  muon::InverseBendingMomentum,
-                  muon::ThetaX, muon::ThetaY, muon::ZMu,
-                  muon::BendingCoor, muon::NonBendingCoor,
-                  muon::Chi2, muon::Chi2MatchTrigger,
-                  muon::RAtAbsorberEnd<muon::BendingCoor, muon::NonBendingCoor, muon::ThetaX, muon::ThetaY, muon::ZMu>,
-                  muon::PDca<muon::InverseBendingMomentum, muon::ThetaX, muon::ThetaY, muon::BendingCoor, muon::NonBendingCoor, muon::ZMu>);
+// Muon track quality details
+DECLARE_SOA_TABLE(ReducedMuonsExtra, "AOD", "RTMUONEXTRA", //!
+                  muon::InverseBendingMomentum, muon::ThetaX, muon::ThetaY, muon::ZMu, muon::BendingCoor, muon::NonBendingCoor,
+                  muon::Chi2, muon::Chi2MatchTrigger);
+
+// TODO: tables to be used once new AO2Ds are created
+/*DECLARE_SOA_TABLE(ReducedMuonsExtra, "AOD", "RTMUONEXTRA", //!
+                  fwdtrack::NClusters, fwdtrack::PDca, fwdtrack::RAtAbsorberEnd,
+                  fwdtrack::Chi2, fwdtrack::Chi2MatchMCHMID, fwdtrack::Chi2MatchMCHMFT,
+                  fwdtrack::MatchScoreMCHMFT, fwdtrack::MatchMFTTrackID, fwdtrack::MatchMCHTrackID);
+// Muon covariance, TODO: the rest of the matrix should be added when needed
+DECLARE_SOA_TABLE(ReducedMuonsCov, "AOD", "RTMUONCOV",
+                  aod::fwdtrack::CXX, aod::fwdtrack::CYY, aod::fwdtrack::CPhiPhi,
+                  aod::fwdtrack::CTglTgl, aod::fwdtrack::C1Pt21Pt2);
+*/
 
 // pair information
 namespace reducedpair
 {
-DECLARE_SOA_INDEX_COLUMN(ReducedEvent, reducedevent);
-DECLARE_SOA_COLUMN(Mass, mass, float);
-DECLARE_SOA_COLUMN(Pt, pt, float);
-DECLARE_SOA_COLUMN(Eta, eta, float);
-DECLARE_SOA_COLUMN(Phi, phi, float);
-DECLARE_SOA_COLUMN(Sign, sign, int);
-DECLARE_SOA_COLUMN(FilterMap, filterMap, uint16_t);
-DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float pt, float phi) -> float { return pt * std::cos(phi); });
-DECLARE_SOA_DYNAMIC_COLUMN(Py, py, [](float pt, float phi) -> float { return pt * std::sin(phi); });
-DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, [](float pt, float eta) -> float { return pt * std::sinh(eta); });
-DECLARE_SOA_DYNAMIC_COLUMN(Pmom, pmom, [](float pt, float eta) -> float { return pt * std::cosh(eta); });
+DECLARE_SOA_INDEX_COLUMN(ReducedEvent, reducedevent); //!
+DECLARE_SOA_COLUMN(Mass, mass, float);                //!
+DECLARE_SOA_COLUMN(Pt, pt, float);                    //!
+DECLARE_SOA_COLUMN(Eta, eta, float);                  //!
+DECLARE_SOA_COLUMN(Phi, phi, float);                  //!
+DECLARE_SOA_COLUMN(Sign, sign, int);                  //!
+DECLARE_SOA_COLUMN(FilterMap, filterMap, uint16_t);   //!
+DECLARE_SOA_DYNAMIC_COLUMN(Px, px,                    //!
+                           [](float pt, float phi) -> float { return pt * std::cos(phi); });
+DECLARE_SOA_DYNAMIC_COLUMN(Py, py, //!
+                           [](float pt, float phi) -> float { return pt * std::sin(phi); });
+DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, //!
+                           [](float pt, float eta) -> float { return pt * std::sinh(eta); });
+DECLARE_SOA_DYNAMIC_COLUMN(Pmom, pmom, //!
+                           [](float pt, float eta) -> float { return pt * std::cosh(eta); });
 } // namespace reducedpair
 
-DECLARE_SOA_TABLE(Dileptons, "AOD", "RTDILEPTON",
+DECLARE_SOA_TABLE(Dileptons, "AOD", "RTDILEPTON", //!
                   reducedpair::ReducedEventId, reducedpair::Mass,
                   reducedpair::Pt, reducedpair::Eta, reducedpair::Phi, reducedpair::Sign,
                   reducedpair::FilterMap,
@@ -177,7 +197,8 @@ using ReducedTrackBarrel = ReducedTracksBarrel::iterator;
 using ReducedTrackBarrelCov = ReducedTracksBarrelCov::iterator;
 using ReducedTrackBarrelPID = ReducedTracksBarrelPID::iterator;
 using ReducedMuon = ReducedMuons::iterator;
-using ReducedMuonExtended = ReducedMuonsExtended::iterator;
+using ReducedMuonExtra = ReducedMuonsExtra::iterator;
+//using ReducedMuonCov = ReducedMuonsCov::iterator;
 using Dilepton = Dileptons::iterator;
 } // namespace o2::aod
 

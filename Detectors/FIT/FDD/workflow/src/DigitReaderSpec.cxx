@@ -20,6 +20,7 @@
 #include "FDDWorkflow/DigitReaderSpec.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/IOMCTruthContainerView.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include <vector>
 
 using namespace o2::framework;
@@ -37,7 +38,8 @@ DigitReader::DigitReader(bool useMC)
 
 void DigitReader::init(InitContext& ic)
 {
-  mInputFileName = ic.options().get<std::string>("fdd-digits-infile");
+  mInputFileName = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                            ic.options().get<std::string>("fdd-digits-infile"));
 }
 
 void DigitReader::run(ProcessingContext& pc)
@@ -113,7 +115,8 @@ DataProcessorSpec getFDDDigitReaderSpec(bool useMC)
     outputSpec,
     AlgorithmSpec{adaptFromTask<DigitReader>()},
     Options{
-      {"fdd-digits-infile", VariantType::String, "fdddigits.root", {"Name of the input file"}}}};
+      {"fdd-digits-infile", VariantType::String, "fdddigits.root", {"Name of the input file"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
 } // namespace fdd

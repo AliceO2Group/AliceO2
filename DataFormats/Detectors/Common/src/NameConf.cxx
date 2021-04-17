@@ -9,8 +9,6 @@
 // or submit itself to any jurisdiction.
 
 #include "DetectorsCommonDataFormats/NameConf.h"
-#include <sys/stat.h>
-#include <cstdlib>
 #include <fmt/format.h>
 #include <memory>
 
@@ -20,21 +18,23 @@ using DId = o2::detectors::DetID;
 // Check if the path exists
 bool NameConf::pathExists(const std::string_view p)
 {
-  struct stat buffer;
-  return (stat(p.data(), &buffer) == 0);
+  return o2::utils::pathExists(p);
 }
 
 // Check if the path is a directory
 bool NameConf::pathIsDirectory(const std::string_view p)
 {
-  struct stat buffer;
-  return (stat(p.data(), &buffer) == 0) && S_ISDIR(buffer.st_mode);
+  return o2::utils::pathIsDirectory(p);
 }
 
 std::string NameConf::getFullPath(const std::string_view p)
 {
-  std::unique_ptr<char[]> real_path(realpath(p.data(), nullptr));
-  return std::string(real_path.get());
+  return o2::utils::getFullPath(p);
+}
+
+std::string NameConf::rectifyDirectory(const std::string& _dir)
+{
+  return o2::utils::rectifyDirectory(_dir);
 }
 
 // Filename to store geometry file
@@ -87,5 +87,10 @@ std::string NameConf::getMatLUTFileName(const std::string_view prefix)
 
 std::string NameConf::getCTFFileName(uint32_t run, uint32_t orb, uint32_t id, const std::string_view prefix)
 {
-  return o2::utils::concat_string(prefix, "_", fmt::format("run{:08d}_orbit{:010d}_tf{:010d}", run, orb, id), ".root");
+  return o2::utils::concat_string(prefix, '_', fmt::format("run{:08d}_orbit{:010d}_tf{:010d}", run, orb, id), ".root");
+}
+
+std::string NameConf::getCTFDictFileName()
+{
+  return o2::utils::concat_string(CTFDICT, ".root");
 }
