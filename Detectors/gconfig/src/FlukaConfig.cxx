@@ -61,7 +61,7 @@ void Config()
   if (isAct) {
     LOG(INFO) << "Set special FLUKA parameters for activation simulation";
     auto hadronCut = params.activationHadronCut;
-    auto inpFile   = params.scoringFile;
+    auto inpFile = params.scoringFile;
     fluka->SetActivationSimulation(true, hadronCut);
     fluka->SetUserScoringFileName(inpFile.c_str());
   }
