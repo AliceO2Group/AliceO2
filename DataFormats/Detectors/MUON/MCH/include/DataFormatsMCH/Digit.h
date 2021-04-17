@@ -41,7 +41,7 @@ class Digit
   int32_t getTime() const { return mTFtime; }
 
   void setNofSamples(uint16_t n);
-  uint16_t nofSamples() const;
+  uint16_t getNofSamples() const;
 
   void setSaturated(bool sat);
   bool isSaturated() const;

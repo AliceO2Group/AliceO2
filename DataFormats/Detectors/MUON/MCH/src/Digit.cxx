@@ -19,7 +19,7 @@ namespace o2::mch
 std::ostream& operator<<(std::ostream& os, const o2::mch::Digit& d)
 {
   os << fmt::format("DetID {:4d} PadId {:6d} ADC {:10d} TFtime {:10d} NofSamples {:5d} {}",
-                    d.getDetID(), d.getPadID(), d.getADC(), d.getTime(), d.nofSamples(),
+                    d.getDetID(), d.getPadID(), d.getADC(), d.getTime(), d.getNofSamples(),
                     d.isSaturated() ? "(S)" : "");
   return os;
 }
@@ -35,7 +35,7 @@ Digit::Digit(int detid, int pad, uint32_t adc, int32_t time, uint16_t nSamples, 
   setNofSamples(nSamples);
 }
 
-uint16_t Digit::nofSamples() const
+uint16_t Digit::getNofSamples() const
 {
   return mNofSamples;
 }

@@ -14,6 +14,6 @@ o2_add_library(MCHCTF
                                      O2::MCHBase
                                      O2::DetectorsBase
                                      O2::CommonDataFormat
-				                     O2::DetectorsCommonDataFormats
+                                     O2::DetectorsCommonDataFormats
                                      O2::rANS
                                      ms_gsl::ms_gsl)

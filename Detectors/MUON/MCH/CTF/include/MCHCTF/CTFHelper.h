@@ -142,7 +142,7 @@ class CTFHelper
   {
    public:
     using _Iter<Iter_nSamples, Digit, uint16_t>::_Iter;
-    value_type operator*() const { return mData[mIndex].nofSamples(); }
+    value_type operator*() const { return mData[mIndex].getNofSamples(); }
   };
 
   //_______________________________________________
