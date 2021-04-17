@@ -31,6 +31,7 @@
 #include "DataFormatsFDD/CTF.h"
 #include "DataFormatsTOF/CTF.h"
 #include "DataFormatsMID/CTF.h"
+#include "DataFormatsMCH/CTF.h"
 #include "DataFormatsEMCAL/CTF.h"
 #include "DataFormatsPHOS/CTF.h"
 #include "DataFormatsCPV/CTF.h"
@@ -196,6 +197,13 @@ void CTFReaderSpec::run(ProcessingContext& pc)
   if (detsTF[det]) {
     auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::mid::CTF));
     o2::mid::CTF::readFromTree(bufVec, *(tree.get()), det.getName());
+    setFirstTFOrbit(det.getName());
+  }
+
+  det = DetID::MCH;
+  if (detsTF[det]) {
+    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({det.getName()}, sizeof(o2::mch::CTF));
+    o2::mch::CTF::readFromTree(bufVec, *(tree.get()), det.getName());
     setFirstTFOrbit(det.getName());
   }
 
