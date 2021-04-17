@@ -22,3 +22,10 @@ o2_add_executable(convert-bad-channels
                   SOURCES src/convert-bad-channels.cxx
                   COMPONENT_NAME mch
                   PUBLIC_LINK_LIBRARIES O2::DataFormatsMCH Boost::program_options)
+
+o2_add_test(digit
+            SOURCES src/testDigit.cxx
+            PUBLIC_LINK_LIBRARIES O2::MCHBase
+            COMPONENT_NAME mch
+            LABELS muon;mch)
+
