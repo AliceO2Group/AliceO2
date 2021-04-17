@@ -11,6 +11,8 @@
 #include "DigitWriterImpl.h"
 #include "DigitIOV0.h"
 #include "DigitIOV1.h"
+#include "DigitIOV2.h"
+#include "DigitIOV3.h"
 #include <fmt/format.h>
 
 namespace o2::mch::io::impl
@@ -22,6 +24,10 @@ std::unique_ptr<DigitWriterImpl> createDigitWriterImpl(int version)
       return std::make_unique<DigitWriterV0>();
     case 1:
       return std::make_unique<DigitWriterV1>();
+    case 2:
+      return std::make_unique<DigitWriterV2>();
+    case 3:
+      return std::make_unique<DigitWriterV3>();
     default:
       break;
   };
@@ -29,4 +35,5 @@ std::unique_ptr<DigitWriterImpl> createDigitWriterImpl(int version)
                                           version));
   return nullptr;
 }
+
 } // namespace o2::mch::io::impl

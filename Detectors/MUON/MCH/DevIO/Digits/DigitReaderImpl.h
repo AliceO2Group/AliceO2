@@ -34,30 +34,6 @@ struct DigitReaderImpl {
   void rewind(std::istream& in);
 };
 
-int readNofItems(std::istream& in, const char* itemName);
-
-int advance(std::istream& in, size_t itemByteSize, const char* itemName);
-
-template <typename T>
-bool readBinary(std::istream& in, std::vector<T>& items, const char* itemName)
-{
-  if (in.peek() == EOF) {
-    return false;
-  }
-  // get the number of items
-  int nitems = readNofItems(in, itemName);
-  // get the items if any
-  if (nitems > 0) {
-    auto offset = items.size();
-    items.resize(offset + nitems);
-    in.read(reinterpret_cast<char*>(&items[offset]), nitems * sizeof(T));
-    if (in.fail()) {
-      throw std::length_error(fmt::format("invalid input : cannot read {} {}", nitems, itemName));
-    }
-  }
-  return true;
-}
-
 std::unique_ptr<DigitReaderImpl> createDigitReaderImpl(int version);
 
 } // namespace o2::mch::io::impl
