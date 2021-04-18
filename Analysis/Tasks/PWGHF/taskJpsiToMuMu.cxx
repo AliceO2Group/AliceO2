@@ -99,7 +99,7 @@ struct TaskJpsiToMuMu {
 struct TaskJpsiToMuMuMC {
 
   Configurable<std::vector<double>> bins{"pTBins", std::vector<double>{hf_cuts_jpsi_toMuMu::pTBins_v}, "pT bin limits"};
-  
+
   HistogramRegistry registry{
     "registry",
     {{"hMassVsPtGenSig", "2-prong candidates (gen. matched);inv. mass (#mu^{#plus} #mu^{#minus}) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{500, 0., 5.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}}},
@@ -112,7 +112,7 @@ struct TaskJpsiToMuMuMC {
      {"hCPARecBg", "2-prong candidates (rec. unmatched);cosine of pointing angle;entries", {HistType::kTH1F, {{110, -1.1, 1.1}}}},
      {"hEtaRecSig", "2-prong candidates (rec. matched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}},
      {"hEtaRecBg", "2-prong candidates (rec. unmatched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}},
-    {"hEtaGen", "2-prong candidates (gen. matched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}}}};
+     {"hEtaGen", "2-prong candidates (gen. matched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}}}};
 
   Configurable<int> d_selectionFlagJpsiToMuMu{"d_selectionFlagJpsiToMuMu", 1, "Selection Flag for JpsiToMuMu"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
@@ -137,8 +137,8 @@ struct TaskJpsiToMuMuMC {
         auto particleMother = particlesMC.iteratorAt(indexMother);
         registry.fill(HIST("hMassVsPtGenSig"), InvMassJpsiToMuMu(candidate), particleMother.pt()); // gen. level pT
         registry.fill(HIST("hMassVsPtRecSig"), InvMassJpsiToMuMu(candidate), candidate.pt());      // rec. level pT
-        registry.fill(HIST("hPtGenSig"), particleMother.pt()); //gen. level pT
-        registry.fill(HIST("hPtRecSig"), candidate.pt());      //rec. level pT
+        registry.fill(HIST("hPtGenSig"), particleMother.pt());                                     //gen. level pT
+        registry.fill(HIST("hPtRecSig"), candidate.pt());                                          //rec. level pT
         registry.fill(HIST("hCPARecSig"), candidate.cpa());
         registry.fill(HIST("hEtaRecSig"), candidate.eta());
       } else {
