@@ -102,8 +102,7 @@ struct TaskJpsiToMuMuMC {
 
   HistogramRegistry registry{
     "registry",
-    {{"hMassVsPtGenSig", "2-prong candidates (gen. matched);inv. mass (#mu^{#plus} #mu^{#minus}) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{500, 0., 5.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}}},
-     {"hMassVsPtRecSig", "2-prong candidates (rec. matched);inv. mass (#mu^{#plus} #mu^{#minus}) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{500, 0., 5.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}}},
+    {{"hMassVsPtRecSig", "2-prong candidates (rec. matched);inv. mass (#mu^{#plus} #mu^{#minus}) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{500, 0., 5.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}}},
      {"hPtRecSig", "2-prong candidates (rec. matched);#it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hPtRecBg", "2-prong candidates (rec. unmatched);#it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hPtGen", "2-prong candidates (gen. matched);#it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
@@ -135,7 +134,6 @@ struct TaskJpsiToMuMuMC {
         //Get the corresponding MC particle.
         auto indexMother = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandProng2MCGen>>(), 443, true);
         auto particleMother = particlesMC.iteratorAt(indexMother);
-        registry.fill(HIST("hMassVsPtGenSig"), InvMassJpsiToMuMu(candidate), particleMother.pt()); // gen. level pT
         registry.fill(HIST("hMassVsPtRecSig"), InvMassJpsiToMuMu(candidate), candidate.pt());      // rec. level pT
         registry.fill(HIST("hPtGenSig"), particleMother.pt());                                     //gen. level pT
         registry.fill(HIST("hPtRecSig"), candidate.pt());                                          //rec. level pT
