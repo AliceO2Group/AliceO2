@@ -134,9 +134,9 @@ struct TaskJpsiToMuMuMC {
         //Get the corresponding MC particle.
         auto indexMother = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandProng2MCGen>>(), 443, true);
         auto particleMother = particlesMC.iteratorAt(indexMother);
-        registry.fill(HIST("hMassVsPtRecSig"), InvMassJpsiToMuMu(candidate), candidate.pt());      // rec. level pT
-        registry.fill(HIST("hPtGenSig"), particleMother.pt());                                     //gen. level pT
-        registry.fill(HIST("hPtRecSig"), candidate.pt());                                          //rec. level pT
+        registry.fill(HIST("hMassVsPtRecSig"), InvMassJpsiToMuMu(candidate), candidate.pt()); // rec. level pT
+        registry.fill(HIST("hPtGenSig"), particleMother.pt());                                //gen. level pT
+        registry.fill(HIST("hPtRecSig"), candidate.pt());                                     //rec. level pT
         registry.fill(HIST("hCPARecSig"), candidate.cpa());
         registry.fill(HIST("hEtaRecSig"), candidate.eta());
       } else {
