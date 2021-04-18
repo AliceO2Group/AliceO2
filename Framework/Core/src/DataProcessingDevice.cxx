@@ -78,15 +78,15 @@ void idle_timer(uv_timer_t* handle)
   ZoneScopedN("Idle timer");
 }
 
-DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegistry& registry, DeviceState& state)
-  : mSpec{spec},
+DataProcessingDevice::DataProcessingDevice(RunningWorkflowInfo const& runningWorkflow, RunningDeviceRef ref, ServiceRegistry& registry, DeviceState& state)
+  : mSpec{runningWorkflow.devices[ref.index]},
     mState{state},
-    mInit{spec.algorithm.onInit},
+    mInit{mSpec.algorithm.onInit},
     mStatefulProcess{nullptr},
-    mStatelessProcess{spec.algorithm.onProcess},
-    mError{spec.algorithm.onError},
+    mStatelessProcess{mSpec.algorithm.onProcess},
+    mError{mSpec.algorithm.onError},
     mConfigRegistry{nullptr},
-    mAllocator{&mTimingInfo, &registry, spec.outputs},
+    mAllocator{&mTimingInfo, &registry, mSpec.outputs},
     mServiceRegistry{registry}
 {
   /// FIXME: move erro handling to a service?

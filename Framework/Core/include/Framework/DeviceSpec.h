@@ -7,8 +7,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_DEVICESPEC_H
-#define FRAMEWORK_DEVICESPEC_H
+#ifndef O2_FRAMEWORK_DEVICESPEC_H_
+#define O2_FRAMEWORK_DEVICESPEC_H_
 
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ComputingResource.h"
@@ -30,9 +30,7 @@
 #include <map>
 #include <utility>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// Concrete description of the device which will actually run
@@ -65,6 +63,5 @@ struct DeviceSpec {
   unsigned short resourceMonitoringInterval;
 };
 
-} // namespace framework
-} // namespace o2
-#endif
+} // namespace o2::framework
+#endif // O2_FRAMEWORK_DEVICESPEC_H_

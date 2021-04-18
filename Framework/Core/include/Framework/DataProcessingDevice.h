@@ -23,6 +23,7 @@
 #include "Framework/TimingInfo.h"
 #include "Framework/TerminationPolicy.h"
 #include "Framework/Tracing.h"
+#include "Framework/RunningWorkflowInfo.h"
 
 #include <fairmq/FairMQDevice.h>
 #include <fairmq/FairMQParts.h>
@@ -81,7 +82,7 @@ struct DataProcessorContext {
 class DataProcessingDevice : public FairMQDevice
 {
  public:
-  DataProcessingDevice(DeviceSpec const& spec, ServiceRegistry&, DeviceState& state);
+  DataProcessingDevice(RunningWorkflowInfo const& runningWorkflow, RunningDeviceRef ref, ServiceRegistry&, DeviceState& state);
   void Init() final;
   void InitTask() final;
   void PreRun() final;
