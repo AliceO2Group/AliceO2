@@ -50,7 +50,7 @@ struct TaskJpsiToMuMu {
 
   void init(o2::framework::InitContext&)
   {
-    registry.add("hmass", "2-prong candidates;inv. mass (#mu^{#plus} #mu^{#minus}) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{500, 0., 5.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hMassVsPt", "2-prong candidates;inv. mass (#mu^{#plus} #mu^{#minus}) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{500, 0., 5.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
     registry.add("hdeclength", "2-prong candidates;decay length (cm);entries", {HistType::kTH2F, {{200, 0., 2.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
     registry.add("hdeclengthxy", "2-prong candidates;decay length xy (cm);entries", {HistType::kTH2F, {{200, 0., 2.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
     registry.add("hd0Prong0", "2-prong candidates;prong 0 DCAxy to prim. vertex (cm);entries", {HistType::kTH2F, {{100, -1., 1.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
@@ -76,7 +76,7 @@ struct TaskJpsiToMuMu {
         continue;
       }
 
-      registry.fill(HIST("hmass"), InvMassJpsiToMuMu(candidate), candidate.pt());
+      registry.fill(HIST("hMassVsPt"), InvMassJpsiToMuMu(candidate), candidate.pt());
       registry.fill(HIST("hptcand"), candidate.pt());
       registry.fill(HIST("hptprong0"), candidate.ptProng0());
       registry.fill(HIST("hptprong1"), candidate.ptProng1());
@@ -97,9 +97,14 @@ struct TaskJpsiToMuMu {
 
 /// Fills MC histograms.
 struct TaskJpsiToMuMuMC {
+
+  Configurable<std::vector<double>> bins{"pTBins", std::vector<double>{hf_cuts_jpsi_toMuMu::pTBins_v}, "pT bin limits"};
+  
   HistogramRegistry registry{
     "registry",
-    {{"hPtRecSig", "2-prong candidates (rec. matched);#it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
+    {{"hMassVsPtGenSig", "2-prong candidates (gen. matched);inv. mass (#mu^{#plus} #mu^{#minus}) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{500, 0., 5.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}}},
+     {"hMassVsPtRecSig", "2-prong candidates (rec. matched);inv. mass (#mu^{#plus} #mu^{#minus}) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{500, 0., 5.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}}},
+     {"hPtRecSig", "2-prong candidates (rec. matched);#it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hPtRecBg", "2-prong candidates (rec. unmatched);#it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hPtGen", "2-prong candidates (gen. matched);#it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hPtGenSig", "2-prong candidates (rec. matched);#it{p}_{T}^{gen.} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
@@ -107,7 +112,7 @@ struct TaskJpsiToMuMuMC {
      {"hCPARecBg", "2-prong candidates (rec. unmatched);cosine of pointing angle;entries", {HistType::kTH1F, {{110, -1.1, 1.1}}}},
      {"hEtaRecSig", "2-prong candidates (rec. matched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}},
      {"hEtaRecBg", "2-prong candidates (rec. unmatched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}},
-     {"hEtaGen", "2-prong candidates (gen. matched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}}}};
+    {"hEtaGen", "2-prong candidates (gen. matched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}}}};
 
   Configurable<int> d_selectionFlagJpsiToMuMu{"d_selectionFlagJpsiToMuMu", 1, "Selection Flag for JpsiToMuMu"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
@@ -130,6 +135,8 @@ struct TaskJpsiToMuMuMC {
         //Get the corresponding MC particle.
         auto indexMother = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandProng2MCGen>>(), 443, true);
         auto particleMother = particlesMC.iteratorAt(indexMother);
+        registry.fill(HIST("hMassVsPtGenSig"), InvMassJpsiToMuMu(candidate), particleMother.pt()); // gen. level pT
+        registry.fill(HIST("hMassVsPtRecSig"), InvMassJpsiToMuMu(candidate), candidate.pt());      // rec. level pT
         registry.fill(HIST("hPtGenSig"), particleMother.pt()); //gen. level pT
         registry.fill(HIST("hPtRecSig"), candidate.pt());      //rec. level pT
         registry.fill(HIST("hCPARecSig"), candidate.cpa());
