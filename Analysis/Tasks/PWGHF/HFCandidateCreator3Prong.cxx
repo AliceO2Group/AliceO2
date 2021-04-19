@@ -162,8 +162,8 @@ struct HFCandidateCreator3ProngMC {
     int8_t channel = 0;
     std::vector<int> arrDaughIndex;
     std::array<int, 2> arrPDGDaugh;
-    std::array<int, 2> arrPDGResonant1 = {kProton, 313}; // Λc± → p± K*
-    std::array<int, 2> arrPDGResonant2 = {2224, kKPlus}; // Λc± → Δ(1232)±± K∓
+    std::array<int, 2> arrPDGResonant1 = {kProton, 313};  // Λc± → p± K*
+    std::array<int, 2> arrPDGResonant2 = {2224, kKPlus};  // Λc± → Δ(1232)±± K∓
     std::array<int, 2> arrPDGResonant3 = {3124, kPiPlus}; // Λc± → Λ(1520) π±
 
     // Match reconstructed candidates.

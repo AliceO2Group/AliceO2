@@ -264,10 +264,10 @@ struct HFTrackIndexSkimsCreator {
     }
 
     //FIXME move above process function
-    const int n2ProngDecays = hf_cand_prong2::DecayType::N2ProngDecays;             // number of 2-prong hadron types
-    const int n3ProngDecays = hf_cand_prong3::DecayType::N3ProngDecays;             // number of 3-prong hadron types
-    int n2ProngBit = (1 << n2ProngDecays) - 1; // bit value for 2-prong candidates where each candidiate is one bit and they are all set to 1
-    int n3ProngBit = (1 << n3ProngDecays) - 1; // bit value for 3-prong candidates where each candidiate is one bit and they are all set to 1
+    const int n2ProngDecays = hf_cand_prong2::DecayType::N2ProngDecays; // number of 2-prong hadron types
+    const int n3ProngDecays = hf_cand_prong3::DecayType::N3ProngDecays; // number of 3-prong hadron types
+    int n2ProngBit = (1 << n2ProngDecays) - 1;                          // bit value for 2-prong candidates where each candidiate is one bit and they are all set to 1
+    int n3ProngBit = (1 << n3ProngDecays) - 1;                          // bit value for 3-prong candidates where each candidiate is one bit and they are all set to 1
 
     //retrieve cuts from json - to be made pT dependent when option appears in json
     const int nCuts2Prong = 4; // how many different selections are made on 2-prongs
