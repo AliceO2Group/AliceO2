@@ -135,7 +135,8 @@ DataProcessorSpec getITSDigitReaderSpec(bool useMC, bool useCalib, std::string d
     outputSpec,
     AlgorithmSpec{adaptFromTask<ITSDigitReader>(useMC, useCalib)},
     Options{
-      {"its-digit-infile", VariantType::String, defname, {"Name of the input digit file"}}}};
+      {"its-digit-infile", VariantType::String, defname, {"Name of the input digit file"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
 DataProcessorSpec getMFTDigitReaderSpec(bool useMC, bool useCalib, std::string defname)
