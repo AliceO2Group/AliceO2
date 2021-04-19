@@ -119,6 +119,12 @@ constexpr auto make_originals_from_type()
   }
 }
 
+template <typename... T>
+constexpr auto make_originals_from_type(framework::pack<T...>)
+{
+  return make_originals_from_type<T...>();
+}
+
 /// Policy class for columns which are chunked. This
 /// will make the compiler take the most generic (and
 /// slow approach).
@@ -1531,6 +1537,7 @@ constexpr auto is_binding_compatible_v()
     using Key = _Key_;                                                                                                           \
     using index_pack_t = framework::pack<__VA_ARGS__>;                                                                           \
     using originals = decltype(soa::extractBindings(index_pack_t{}));                                                            \
+    using sources = typename _Name_::sources_t;                                                                                  \
     static constexpr char const* mLabel = #_Name_;                                                                               \
     static constexpr char const mOrigin[4] = _Origin_;                                                                           \
     static constexpr char const mDescription[16] = _Description_;                                                                \
@@ -1932,7 +1939,7 @@ struct IndexTable : Table<soa::Index<>, H, Ts...> {
   using indexing_t = Key;
   using first_t = typename H::binding_t;
   using rest_t = framework::pack<typename Ts::binding_t...>;
-  using sources_t = framework::pack<Key, typename H::binding_t, typename Ts::binding_t...>;
+  using sources_t = originals_pack_t<Key, first_t, typename Ts::binding_t...>;
 
   IndexTable(std::shared_ptr<arrow::Table> table, uint64_t offset = 0)
     : base_t{table, offset}
