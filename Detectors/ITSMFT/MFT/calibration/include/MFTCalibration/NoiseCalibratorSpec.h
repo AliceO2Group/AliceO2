@@ -21,10 +21,10 @@
 //#define TIME_SLOT_CALIBRATION
 #ifdef TIME_SLOT_CALIBRATION
 #include "MFTCalibration/NoiseSlotCalibrator.h"
-using CALIBRATOR = o2::its::NoiseSlotCalibrator;
+using CALIBRATOR = o2::mft::NoiseSlotCalibrator;
 #else
 #include "MFTCalibration/NoiseCalibrator.h"
-using CALIBRATOR = o2::its::NoiseCalibrator;
+using CALIBRATOR = o2::mft::NoiseCalibrator;
 #endif
 
 #include "DataFormatsITSMFT/NoiseMap.h"
