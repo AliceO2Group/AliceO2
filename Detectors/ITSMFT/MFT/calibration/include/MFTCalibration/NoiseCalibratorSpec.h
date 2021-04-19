@@ -20,10 +20,10 @@
 
 //#define TIME_SLOT_CALIBRATION
 #ifdef TIME_SLOT_CALIBRATION
-#include "ITSCalibration/NoiseSlotCalibrator.h"
+#include "MFTCalibration/NoiseSlotCalibrator.h"
 using CALIBRATOR = o2::its::NoiseSlotCalibrator;
 #else
-#include "ITSCalibration/NoiseCalibrator.h"
+#include "MFTCalibration/NoiseCalibrator.h"
 using CALIBRATOR = o2::its::NoiseCalibrator;
 #endif
 
