@@ -47,12 +47,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 using MyBarrelTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::TracksExtended, aod::TrackSelection,
                                  aod::pidRespTPCEl, aod::pidRespTPCMu, aod::pidRespTPCPi,
-                                 aod::pidRespTPCKa, aod::pidRespTPCPr, aod::pidRespTPCDe,
-                                 aod::pidRespTPCTr, aod::pidRespTPCHe, aod::pidRespTPCAl,
+                                 aod::pidRespTPCKa, aod::pidRespTPCPr,
                                  aod::pidRespTOFEl, aod::pidRespTOFMu, aod::pidRespTOFPi,
-                                 aod::pidRespTOFKa, aod::pidRespTOFPr, aod::pidRespTOFDe,
-                                 aod::pidRespTOFTr, aod::pidRespTOFHe, aod::pidRespTOFAl,
-                                 aod::pidRespTOFbeta>;
+                                 aod::pidRespTOFKa, aod::pidRespTOFPr, aod::pidRespTOFbeta>;
 using MyEvents = soa::Join<aod::Collisions, aod::EvSels, aod::Cents>;
 using MyEventsNoCent = soa::Join<aod::Collisions, aod::EvSels>;
 using MyMuons = aod::Muons;
@@ -107,17 +104,9 @@ struct TableMaker {
 
   // TODO: filter on TPC dedx used temporarily until electron PID will be improved
   Filter barrelSelectedTracks = aod::track::trackType == uint8_t(aod::track::Run2Track) && o2::aod::track::pt >= fConfigBarrelTrackPtLow && nabs(o2::aod::track::eta) <= 0.9f && o2::aod::track::tpcSignal >= 70.0f && o2::aod::track::tpcSignal <= 100.0f && o2::aod::track::tpcChi2NCl < 4.0f && o2::aod::track::itsChi2NCl < 36.0f;
-  //Filter barrelSelectedTracks = aod::track::trackType == uint8_t(aod::track::Run2GlobalTrack);
 
-  //Filter barrelSelectedTracks = o2::aod::track::pt >= fConfigBarrelTrackPtLow && nabs(o2::aod::track::eta) <= 0.9f;
-  //Filter trackFilter = aod::track::trackType == aod::track::Run2GlobalTrack;
-  // TODO: some of the muon variables which could be used in the filter expression are currently DYNAMIC columns (e.g. eta)
-  //       Add more basic muon cuts
-  // TODO: Use Partition to avoid the cross-talk between filters which use variables with the same name (e.g. pt for both barrel and muon tracks)
-
-  //       Replace by Filter when the bug is fixed
-  Partition<MyMuons> selectedMuons = o2::aod::muon::pt >= fConfigMuonPtLow;
-  //Partition<MyMuons> selectedMuons = o2::aod::fwdtrack::pt >= fConfigMuonPtLow;
+  Filter muonFilter = o2::aod::muon::pt >= fConfigMuonPtLow;
+  //Filter muonFilter = o2::aod::fwdtrack::pt >= fConfigMuonPtLow;
 
   void init(o2::framework::InitContext&)
   {
@@ -150,7 +139,7 @@ struct TableMaker {
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
 
-  void process(MyEvent const& collision, MyMuons const& tracksMuon, aod::BCs const& bcs, soa::Filtered<MyBarrelTracks> const& tracksBarrel)
+  void process(MyEvent const& collision, soa::Filtered<MyMuons> const& tracksMuon, aod::BCs const& bcs, soa::Filtered<MyBarrelTracks> const& tracksBarrel)
   {
     uint32_t triggerAliases = 0;
     for (int i = 0; i < kNaliases; i++) {
@@ -212,9 +201,9 @@ struct TableMaker {
                      track.trdSignal());
     }
 
-    muonBasic.reserve(selectedMuons.size());
-    muonExtra.reserve(selectedMuons.size());
-    for (auto& muon : selectedMuons) {
+    muonBasic.reserve(tracksMuon.size());
+    muonExtra.reserve(tracksMuon.size());
+    for (auto& muon : tracksMuon) {
       if (muon.bcId() != collision.bcId()) {
         continue;
       }
@@ -261,7 +250,7 @@ struct TableMaker {
       }
 
       if (classStr.Contains("Track")) {
-        dqhistograms::DefineHistograms(fHistMan, objArray->At(iclass)->GetName(), "track", "dca,its,tpcpid");
+        dqhistograms::DefineHistograms(fHistMan, objArray->At(iclass)->GetName(), "track", "dca,its,tpcpid,tofpid");
       }
       if (classStr.Contains("Muons")) {
         dqhistograms::DefineHistograms(fHistMan, objArray->At(iclass)->GetName(), "track", "muon");
