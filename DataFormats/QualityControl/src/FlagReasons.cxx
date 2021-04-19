@@ -16,6 +16,11 @@
 namespace o2::quality_control
 {
 
+FlagReason::FlagReason()
+{
+  *this = FlagReasonFactory::Invalid();
+}
+
 std::ostream& operator<<(std::ostream& os, FlagReason const& my)
 {
   os << "Flag Reason: id - " << my.mId << ", name - " << my.mName << ", bad - " << (my.mBad ? "true" : "false");

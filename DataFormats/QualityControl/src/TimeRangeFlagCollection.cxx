@@ -73,4 +73,13 @@ std::ostream& operator<<(std::ostream& output, const TimeRangeFlagCollection& da
   return output;
 }
 
+const std::string& TimeRangeFlagCollection::getName() const
+{
+  return mName;
+}
+const std::string& TimeRangeFlagCollection::getDetector() const
+{
+  return mDetID;
+}
+
 } // namespace o2::quality_control
