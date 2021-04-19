@@ -43,6 +43,7 @@ class FlagReason
   FlagReason(uint16_t id, const char* name, bool bad) : mId(id), mName(name), mBad(bad) {}
 
  public:
+  FlagReason();
   FlagReason& operator=(const FlagReason&) = default;
   FlagReason(const FlagReason&) = default;
   bool operator==(const FlagReason& rhs) const;
