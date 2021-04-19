@@ -68,7 +68,7 @@ using MyBarrelTracksSelected = soa::Join<aod::Tracks, aod::TracksExtra, aod::Tra
                                          aod::pidRespTPCEl, aod::pidRespTPCMu, aod::pidRespTPCPi,
                                          aod::pidRespTPCKa, aod::pidRespTPCPr,
                                          aod::pidRespTOFEl, aod::pidRespTOFMu, aod::pidRespTOFPi,
-                                         aod::pidRespTOFKa, aod::pidRespTOFPr, aod::pidRespTOFbeta, 
+                                         aod::pidRespTOFKa, aod::pidRespTOFPr, aod::pidRespTOFbeta,
                                          aod::DQBarrelTrackCuts>;
 
 constexpr static uint32_t gkEventFillMap = VarManager::ObjTypes::BC | VarManager::ObjTypes::Collision;
