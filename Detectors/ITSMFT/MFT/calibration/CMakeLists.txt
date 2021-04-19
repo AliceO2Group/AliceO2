@@ -19,7 +19,7 @@ o2_add_library(MFTCalibration
                                      O2::CCDB)
 
 o2_target_root_dictionary(MFTCalibration
-                          HEADERS include/ITSCalibration/NoiseSlotCalibrator.h
+                          HEADERS include/MFTCalibration/NoiseSlotCalibrator.h
 			  HEADERS include/MFTCalibration/NoiseCalibrator.h
 			  HEADERS include/MFTCalibration/NoiseCalibratorDigits.h
 			  LINKDEF src/MFTCalibrationLinkDef.h)
