@@ -40,7 +40,6 @@ std::string trimSpace(std::string const& src)
   return ltrimSpace(rtrimSpace(src));
 }
 
-
 std::vector<std::string> splitString(const std::string& src, char delim, bool trim = false)
 {
   std::stringstream ss(src);
@@ -104,7 +103,7 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
     tend = o2::ccdb::getFutureTimestamp(SECONDSPERYEAR);
   }
 
-    auto toKeyValPairs = [](std::vector<std::string> const& tokens) {
+  auto toKeyValPairs = [](std::vector<std::string> const& tokens) {
     std::vector<std::pair<std::string, std::string>> pairs;
 
     for (auto& token : tokens) {
@@ -127,7 +126,6 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
   for (auto& p : keyvalues) {
     meta[p.first] = p.second;
   }
-
 
 #ifdef TIME_SLOT_CALIBRATION
   const auto& payload = mCalibrator->getNoiseMap(tstart, tend);
@@ -179,11 +177,10 @@ DataProcessorSpec getNoiseCalibratorSpec()
     Options{
       {"1pix-only", VariantType::Bool, false, {"Fast 1-pixel calibration only"}},
       {"prob-threshold", VariantType::Float, 3.e-6f, {"Probability threshold for noisy pixels"}},
-      {"tstart",VariantType::Int64,-1ll,{"Start of validity timestamp"}},
-      {"tend",VariantType::Int64,-1ll,{"End of validity timestamp"}},
-      {"path", VariantType::String, "/MFT/Calib/NoiseMap",{"Path to write to in CCDB"}},
-      {"meta", VariantType::String, "",{"meta data to write in CCDB"}}
-    }};
+      {"tstart", VariantType::Int64, -1ll, {"Start of validity timestamp"}},
+      {"tend", VariantType::Int64, -1ll, {"End of validity timestamp"}},
+      {"path", VariantType::String, "/MFT/Calib/NoiseMap", {"Path to write to in CCDB"}},
+      {"meta", VariantType::String, "", {"meta data to write in CCDB"}}}};
 }
 
 } // namespace mft
