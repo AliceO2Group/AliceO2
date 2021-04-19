@@ -18,8 +18,14 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
-#include "MFTCalibration/NoiseCalibrator.h"
-using CALIBRATOR = o2::mft::NoiseCalibrator;
+//#define TIME_SLOT_CALIBRATION
+#ifdef TIME_SLOT_CALIBRATION
+#include "ITSCalibration/NoiseSlotCalibrator.h"
+using CALIBRATOR = o2::its::NoiseSlotCalibrator;
+#else
+#include "ITSCalibration/NoiseCalibrator.h"
+using CALIBRATOR = o2::its::NoiseCalibrator;
+#endif
 
 #include "DataFormatsITSMFT/NoiseMap.h"
 

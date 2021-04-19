@@ -94,8 +94,6 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
 {
   mCalibrator->finalize();
 
-  const auto& payload = mCalibrator->getNoiseMap();
-
   long tstart = mStart;
   if (tstart == -1) {
     tstart = o2::ccdb::getCurrentTimestamp();
@@ -130,6 +128,12 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
     meta[p.first] = p.second;
   }
 
+
+#ifdef TIME_SLOT_CALIBRATION
+  const auto& payload = mCalibrator->getNoiseMap(tstart, tend);
+#else
+  const auto& payload = mCalibrator->getNoiseMap();
+#endif
 
   o2::ccdb::CcdbObjectInfo info(mPath, "NoiseMap", "noise.root", meta, tstart, tend);
   auto flName = o2::ccdb::CcdbApi::generateFileName("noise");
