@@ -9,11 +9,11 @@
 // or submit itself to any jurisdiction.
 
 /// \file DataReaderITS.h
-/// \brief ITS Detector-specific reading from file(s)
+/// \brief JSON specific reading from file(s)
 /// \author julian.myrcha@cern.ch
 
-#ifndef O2EVE_EVENTVISUALISATION_DETECTORS_DATAREADERITS_H
-#define O2EVE_EVENTVISUALISATION_DETECTORS_DATAREADERITS_H
+#ifndef O2EVE_EVENTVISUALISATION_DETECTORS_DATAREADERJSON_H
+#define O2EVE_EVENTVISUALISATION_DETECTORS_DATAREADERJSON_H
 
 #include <TFile.h>
 #include "EventVisualisationBase/DataReader.h"
@@ -23,23 +23,22 @@ namespace o2
 namespace event_visualisation
 {
 
-class DataReaderITS : public DataReader
+class DataReaderJSON : public DataReader
 {
  private:
   Int_t mMaxEv;
-  TFile* mClusFile;
-  TFile* mTracFile;
+  std::string mFileName;
 
  public:
-  DataReaderITS(DataInterpreter* interpreter) : DataReader(interpreter) {}
+  DataReaderJSON(DataInterpreter* interpreter) : DataReader(interpreter) {}
 
   void open() override;
   int GetEventCount() const override { return mMaxEv; }
-
-  TObject* getEventData(int no) override;
+  virtual VisualisationEvent getEvent(int no, EVisualisationDataType dataType) override;
+  //TObject* getEventData(int no) override;
 };
 
 } // namespace event_visualisation
 } // namespace o2
 
-#endif //O2EVE_DATAREADERITS_H
+#endif //O2EVE_DATAREADERJSON_H

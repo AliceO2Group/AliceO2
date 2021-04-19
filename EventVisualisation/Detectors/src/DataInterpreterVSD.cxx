@@ -41,7 +41,7 @@ DataInterpreterVSD::~DataInterpreterVSD()
   }
 }
 
-std::unique_ptr<VisualisationEvent> DataInterpreterVSD::interpretDataForType(TObject* data, EVisualisationDataType type)
+VisualisationEvent DataInterpreterVSD::interpretDataForType(TObject* data, EVisualisationDataType type)
 {
   if (mVSD == nullptr) {
     mVSD = new TEveVSD;
@@ -54,7 +54,20 @@ std::unique_ptr<VisualisationEvent> DataInterpreterVSD::interpretDataForType(TOb
 
   this->AttachEvent();
 
-  auto ret_event = std::make_unique<VisualisationEvent>(0, 0, 0, 0, "", 0);
+  int eventNumber;
+  int runNumber;
+  double energy;
+  int multiplicity;
+  std::string collidingSystem;
+  time_t timeStamp;
+
+  VisualisationEvent ret_event({.eventNumber = 0,
+                                .runNumber = 0,
+                                .energy = 0,
+                                .multiplicity = 0,
+                                .collidingSystem = "",
+                                .timeStamp = 0});
+
   // Load event data into visualization structures.
 
   //        this->LoadClusters(this->fITSClusters, "ITS", 0);
@@ -63,7 +76,7 @@ std::unique_ptr<VisualisationEvent> DataInterpreterVSD::interpretDataForType(TOb
   //        this->LoadClusters(this->fTOFClusters, "TOF", 3);
 
   if (type == ESD) {
-    LoadEsdTracks(*ret_event);
+    LoadEsdTracks(ret_event);
   }
 
   return ret_event;

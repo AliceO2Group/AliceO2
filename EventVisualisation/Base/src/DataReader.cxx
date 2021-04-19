@@ -8,38 +8,30 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file DataReaderITS.h
-/// \brief ITS Detector-specific reading from file(s)
+///
+/// \file    DataInterpreter.cxx
 /// \author julian.myrcha@cern.ch
 
-#ifndef O2EVE_EVENTVISUALISATION_DETECTORS_DATAREADERITS_H
-#define O2EVE_EVENTVISUALISATION_DETECTORS_DATAREADERITS_H
-
-#include <TFile.h>
 #include "EventVisualisationBase/DataReader.h"
+#include "FairLogger.h"
+
+using namespace std;
 
 namespace o2
 {
 namespace event_visualisation
 {
 
-class DataReaderITS : public DataReader
+DataReader::DataReader(DataInterpreter* interpreter) : mInterpreter(interpreter)
 {
- private:
-  Int_t mMaxEv;
-  TFile* mClusFile;
-  TFile* mTracFile;
+}
 
- public:
-  DataReaderITS(DataInterpreter* interpreter) : DataReader(interpreter) {}
-
-  void open() override;
-  int GetEventCount() const override { return mMaxEv; }
-
-  TObject* getEventData(int no) override;
-};
+VisualisationEvent DataReader::getEvent(int no, EVisualisationDataType dataType)
+{
+  TObject* data = this->getEventData(no);
+  VisualisationEvent event = mInterpreter->interpretDataForType(data, dataType);
+  return event;
+}
 
 } // namespace event_visualisation
 } // namespace o2
-
-#endif //O2EVE_DATAREADERITS_H
