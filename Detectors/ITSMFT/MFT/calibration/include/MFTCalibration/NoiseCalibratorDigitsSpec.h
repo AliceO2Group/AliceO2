@@ -50,7 +50,6 @@ class NoiseCalibratorDigitsSpec : public Task
   double mThresh;
   int64_t mStart;
   int64_t mEnd;
-
 };
 
 /// create a processor spec

@@ -22,7 +22,7 @@ namespace o2
 namespace mft
 {
 bool NoiseCalibratorDigits::processTimeFrame(gsl::span<const o2::itsmft::Digit> const& digits,
-                                       gsl::span<const o2::itsmft::ROFRecord> const& rofs)
+                                             gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {
   static int nTF = 0;
   LOG(INFO) << "Processing TF# " << nTF++;

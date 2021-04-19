@@ -11,14 +11,13 @@
 #include "Framework/ConfigParamSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 
-
 using namespace o2::framework;
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
-    workflowOptions.push_back(ConfigParamSpec{"useDigits",VariantType::Bool,false,{"Use decoded digits"}});
+  workflowOptions.push_back(ConfigParamSpec{"useDigits", VariantType::Bool, false, {"Use decoded digits"}});
 }
 
 // ------------------------------------------------------------------
@@ -39,7 +38,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   if (useDigits) {
     specs.emplace_back(o2::mft::getNoiseCalibratorDigitsSpec());
-  }else{
+  } else {
     specs.emplace_back(o2::mft::getNoiseCalibratorSpec());
   }
 

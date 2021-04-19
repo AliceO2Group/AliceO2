@@ -45,7 +45,6 @@ std::string trimSpaceStream(std::string const& src)
   return ltrimSpaceStream(rtrimSpaceStream(src));
 }
 
-
 std::vector<std::string> splitStringStream(const std::string& src, char delim, bool trim = false)
 {
   std::stringstream ss(src);
@@ -81,7 +80,6 @@ void NoiseCalibratorDigitsSpec::run(ProcessingContext& pc)
   const auto digits = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("digits");
   const auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("digitsROF");
 
-
   if (mCalibrator->processTimeFrame(digits, rofs)) {
     LOG(INFO) << "Minimum number of noise counts has been reached !";
     sendOutput(pc.outputs());
@@ -105,7 +103,7 @@ void NoiseCalibratorDigitsSpec::sendOutput(DataAllocator& output)
     tend = o2::ccdb::getFutureTimestamp(SECONDSPERYEAR);
   }
 
-    auto toKeyValPairs = [](std::vector<std::string> const& tokens) {
+  auto toKeyValPairs = [](std::vector<std::string> const& tokens) {
     std::vector<std::pair<std::string, std::string>> pairs;
 
     for (auto& token : tokens) {
@@ -128,7 +126,6 @@ void NoiseCalibratorDigitsSpec::sendOutput(DataAllocator& output)
   for (auto& p : keyvalues) {
     meta[p.first] = p.second;
   }
-
 
   o2::ccdb::CcdbObjectInfo info(mPath, "NoiseMap", "noise.root", meta, tstart, tend);
   auto flName = o2::ccdb::CcdbApi::generateFileName("noise");
@@ -158,7 +155,6 @@ DataProcessorSpec getNoiseCalibratorDigitsSpec()
   inputs.emplace_back("digits", detOrig, "DIGITS", 0, Lifetime::Timeframe);
   inputs.emplace_back("digitsROF", detOrig, "DIGITSROF", 0, Lifetime::Timeframe);
 
-
   using clbUtils = o2::calibration::Utils;
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(
@@ -174,11 +170,10 @@ DataProcessorSpec getNoiseCalibratorDigitsSpec()
     Options{
       {"1pix-only", VariantType::Bool, false, {"Fast 1-pixel calibration only"}},
       {"prob-threshold", VariantType::Float, 3.e-6f, {"Probability threshold for noisy pixels"}},
-      {"tstart",VariantType::Int64,-1ll,{"Start of validity timestamp"}},
-      {"tend",VariantType::Int64,-1ll,{"End of validity timestamp"}},
-      {"path", VariantType::String, "/MFT/Calib/NoiseMap",{"Path to write to in CCDB"}},
-      {"meta", VariantType::String, "",{"meta data to write in CCDB"}}
-    }};
+      {"tstart", VariantType::Int64, -1ll, {"Start of validity timestamp"}},
+      {"tend", VariantType::Int64, -1ll, {"End of validity timestamp"}},
+      {"path", VariantType::String, "/MFT/Calib/NoiseMap", {"Path to write to in CCDB"}},
+      {"meta", VariantType::String, "", {"meta data to write in CCDB"}}}};
 }
 
 } // namespace mft
