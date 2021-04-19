@@ -33,31 +33,43 @@ void ELinkManager::init(uint16_t feeId, bool isDebugMode, bool isBare, const Ele
       auto uniqueId = raw::makeUniqueLocID(crateId, ilink % 8 + offset);
       ELinkDataShaper shaper(isDebugMode, isLoc, uniqueId);
       shaper.setElectronicsDelay(electronicsDelay);
-      // mDataShapers.emplace_back(shaper);
+#if defined(MID_RAW_VECTORS)
+      mDataShapers.emplace_back(shaper);
+#else
       auto uniqueRegLocId = makeUniqueId(isLoc, uniqueId);
       mDataShapers.emplace(uniqueRegLocId, shaper);
+#endif
 
       if (isBare) {
         ELinkDecoder decoder;
         decoder.setBareDecoder(true);
-        // mDecoders.emplace_back(decoder);
+#if defined(MID_RAW_VECTORS)
+        mDecoders.emplace_back(decoder);
+#else
         mDecoders.emplace(uniqueRegLocId, decoder);
+#endif
       }
     }
   }
 
-  // if (isBare) {
-  //   mIndex = [](uint8_t, uint8_t locId, bool isLoc) { return 8 * (1 - static_cast<size_t>(isLoc)) + (locId % 8); };
-  // } else {
-  //   mIndex = [](uint8_t crateId, uint8_t locId, bool isLoc) { return 10 * (2 * (crateId % 4) + (locId / 8)) + 8 * (1 - static_cast<size_t>(isLoc)) + (locId % 8); };
+#if defined(MID_RAW_VECTORS)
+  if (isBare) {
+    mIndex = [](uint8_t, uint8_t locId, bool isLoc) { return 8 * (1 - static_cast<size_t>(isLoc)) + (locId % 8); };
+  } else {
+    mIndex = [](uint8_t crateId, uint8_t locId, bool isLoc) { return 10 * (2 * (crateId % 4) + (locId / 8)) + 8 * (1 - static_cast<size_t>(isLoc)) + (locId % 8); };
+  }
+#endif
 }
 
 void ELinkManager::set(uint32_t orbit)
 {
   /// Setup the orbit
   for (auto& shaper : mDataShapers) {
-    // shaper.set(orbit);
+#if defined(MID_RAW_VECTORS)
+    shaper.set(orbit);
+#else
     shaper.second.set(orbit);
+#endif
   }
 }
 

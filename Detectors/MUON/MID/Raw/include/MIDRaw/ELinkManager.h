@@ -16,8 +16,11 @@
 #define O2_MID_ELINKMANAGER_H
 
 #include <cstdint>
+#if defined(MID_RAW_VECTORS)
 #include <vector>
-// #include <unordered_map>
+#else
+#include <unordered_map>
+#endif
 #include "MIDRaw/ELinkDataShaper.h"
 #include "MIDRaw/ELinkDecoder.h"
 #include "MIDRaw/ElectronicsDelay.h"
@@ -40,19 +43,22 @@ class ELinkManager
   /// Main function to be executed when decoding is done
   inline void onDone(const ELinkDecoder& decoder, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs) { return onDone(decoder, decoder.getCrateId(), decoder.getId(), data, rofs); }
 
-  // Use vectors
+#if defined(MID_RAW_VECTORS)
+  /// Returns the decoder
+  inline ELinkDecoder& getDecoder(uint8_t boardUniqueId, bool isLoc) { return mDecoders[mIndex(raw::getCrateId(boardUniqueId), raw::getLocId(boardUniqueId), isLoc)]; }
 
-  // /// Returns the decoder
-  // inline ELinkDecoder& getDecoder(uint8_t boardUniqueId, bool isLoc) { return mDecoders[mIndex(raw::getCrateId(boardUniqueId), raw::getLocId(boardUniqueId), isLoc)]; }
+  /// Main function to be executed when decoding is done
+  inline void onDone(const ELinkDecoder& decoder, uint8_t crateId, uint8_t locId, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
+  {
+    return mDataShapers[mIndex(crateId, locId, raw::isLoc(decoder.getStatusWord()))].onDone(decoder, data, rofs);
+  }
 
-  // /// Main function to be executed when decoding is done
-  // inline void onDone(const ELinkDecoder& decoder, uint8_t crateId, uint8_t locId, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
-  // {
-  //   return mDataShapers[mIndex(crateId, locId, raw::isLoc(decoder.getStatusWord()))].onDone(decoder, data, rofs);
-  // }
+ private:
+  std::function<size_t(uint8_t, uint8_t, bool)> mIndex{}; ///! Function that returns the index in the vector
+  std::vector<ELinkDataShaper> mDataShapers;              /// Vector with data shapers for each loc and reg board
+  std::vector<ELinkDecoder> mDecoders;                    /// Vector with decoders for each loc and reg board
 
-  // Use unordered maps
-
+#else
   /// Returns the decoder
   inline ELinkDecoder& getDecoder(uint8_t boardUniqueId, bool isLoc) { return mDecoders.find(makeUniqueId(isLoc, boardUniqueId))->second; }
 
@@ -63,16 +69,12 @@ class ELinkManager
   }
 
  private:
-  // Use unordered maps
   /// Makes a ID which is unique for local and regional board
   inline uint16_t makeUniqueId(bool isLoc, uint8_t uniqueId) { return (isLoc ? 0 : (1 << 8)) | uniqueId; }
-  std::unordered_map<uint16_t, ELinkDataShaper> mDataShapers; /// Vector with data shapers
-  std::unordered_map<uint16_t, ELinkDecoder> mDecoders;       /// Vector with decoders
+  std::unordered_map<uint16_t, ELinkDataShaper> mDataShapers; /// Data shapers for each loc and reg board
+  std::unordered_map<uint16_t, ELinkDecoder> mDecoders;       /// Decoders for each loc and reg board
 
-  // Use vectors
-  // std::function<size_t(uint8_t, uint8_t, bool)> mIndex{};     ///! Function that returns the index in the vector
-  // std::vector<ELinkDataShaper> mDataShapers; /// Vector with data shapers
-  // std::vector<ELinkDecoder> mDecoders;       /// Vector with decoders
+#endif
 };
 } // namespace mid
 } // namespace o2

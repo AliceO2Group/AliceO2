@@ -29,8 +29,11 @@ Decoder::Decoder(bool isDebugMode, bool isBare, const ElectronicsDelay& electron
   auto feeIds = isBare ? feeIdConfig.getConfiguredGBTUniqueIDs() : feeIdConfig.getConfiguredFEEIDs();
 
   for (auto& feeId : feeIds) {
-    // mLinkDecoders.emplace_back(createLinkDecoder(feeId, isBare, isDebugMode, crateMasks.getMask(feeId), electronicsDelay, feeIdConfig));
+#if defined(MID_RAW_VECTORS)
+    mLinkDecoders.emplace_back(createLinkDecoder(feeId, isBare, isDebugMode, crateMasks.getMask(feeId), electronicsDelay, feeIdConfig));
+#else
     mLinkDecoders.emplace(feeId, createLinkDecoder(feeId, isBare, isDebugMode, crateMasks.getMask(feeId), electronicsDelay, feeIdConfig));
+#endif
   }
 }
 

@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file   MID/Raw/src/ELinkDataShaper.cxx
-/// \brief  MID e-link data shaper
+/// \brief  Properly formats and sets the absolute timestamp of the raw data
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   18 March 2021
 
@@ -87,7 +87,7 @@ void ELinkDataShaper::processOrbitTrigger(uint16_t localClock, uint8_t triggerWo
   /// Processes the orbit trigger event
 
   // The local clock is reset: we are now in synch with the new HB
-  // We have to way to account for the orbit change:
+  // We have two ways to account for the orbit change:
   // - increase the orbit counter by 1 for this e-link
   //   (CAVEAT: synch is lost if we lose some orbit)
   // - set the orbit to the one found in RDH

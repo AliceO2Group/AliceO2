@@ -32,7 +32,9 @@ o2_add_library(
     O2::DPLUtils
     O2::CommonConstants
     O2::DetectorsRaw
-    O2::MIDBase)
+    O2::MIDBase
+  TARGETVARNAME midrawtarget)
+# target_compile_definitions(${midrawtarget} PRIVATE "MID_RAW_VECTORS")
 
 add_subdirectory(exe)
 

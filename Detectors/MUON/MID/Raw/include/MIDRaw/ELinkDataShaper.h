@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file   MIDRaw/ELinkDataShaper.h
-/// \brief  MID e-link data shaper
+/// \brief  Properly formats and sets the absolute timestamp of the raw data
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   18 March 2021
 #ifndef O2_MID_ELINKDATASHAPER_H

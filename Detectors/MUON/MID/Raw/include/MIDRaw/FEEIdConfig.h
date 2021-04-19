@@ -34,7 +34,7 @@ class FEEIdConfig
 
   inline const std::vector<uint16_t>& getGBTUniqueIdsInLink(uint16_t feeId) const { return mGBTUniqueIdsInLink.find(feeId)->second; }
 
-  /// Gets the FEE ID from the physical ID of the link
+  /// Gets the GBT unique ID from the physical ID of the link
   uint16_t getGBTUniqueId(uint8_t linkId, uint8_t endPointId, uint16_t cruId) const { return getGBTUniqueId(getLinkUniqueId(linkId, endPointId, cruId)); }
 
   /// Gets a uniqueID from the combination of linkId, endPointId and cruId;

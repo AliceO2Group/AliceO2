@@ -16,7 +16,9 @@
 #define O2_MID_DECODER_H
 
 #include <cstdint>
+#if !defined(MID_RAW_VECTORS)
 #include <unordered_map>
+#endif
 #include <vector>
 #include <gsl/gsl>
 #include "DataFormatsMID/ROFRecord.h"
@@ -45,8 +47,11 @@ class Decoder
   {
     /// Processes the page
     auto feeId = o2::raw::RDHUtils::getFEEID(rdh);
-    // mLinkDecoders[feeId]->process(payload, o2::raw::RDHUtils::getHeartBeatOrbit(rdh), mData, mROFRecords);
+#if defined(MID_RAW_VECTORS)
+    mLinkDecoders[feeId]->process(payload, o2::raw::RDHUtils::getHeartBeatOrbit(rdh), mData, mROFRecords);
+#else
     mLinkDecoders.find(feeId)->second->process(payload, o2::raw::RDHUtils::getHeartBeatOrbit(rdh), mData, mROFRecords);
+#endif
   }
   /// Gets the vector of data
   const std::vector<ROBoard>& getData() const { return mData; }
@@ -57,8 +62,11 @@ class Decoder
   void clear();
 
  protected:
-  // std::vector<std::unique_ptr<LinkDecoder>> mLinkDecoders{}; /// GBT decoders
+#if defined(MID_RAW_VECTORS)
+  std::vector<std::unique_ptr<LinkDecoder>> mLinkDecoders{}; /// GBT decoders
+#else
   std::unordered_map<uint16_t, std::unique_ptr<LinkDecoder>> mLinkDecoders{}; /// GBT decoders
+#endif
 
  private:
   std::vector<ROBoard> mData{};         /// Vector of output data
