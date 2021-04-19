@@ -537,7 +537,7 @@ void VarManager::FillTrack(T const& track, float* values)
     }
   }
 
-  if constexpr ((fillMap & ReducedMuonExtra) > 0) {
+  if constexpr ((fillMap & ReducedMuonExtra) > 0 || (fillMap & Muon) > 0) {
     values[kMuonInvBendingMomentum] = track.inverseBendingMomentum();
     values[kMuonThetaX] = track.thetaX();
     values[kMuonThetaY] = track.thetaY();
