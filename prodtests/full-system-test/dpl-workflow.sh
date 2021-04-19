@@ -22,6 +22,8 @@ fi
 
 # Set some individual workflow arguments depending on configuration
 CTF_DETECTORS=ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS,CPV,ZDC,FDD
+CTF_DIR=
+CTF_DICT_DIR=
 TPC_INPUT=zsraw
 TPC_OUTPUT=tracks,clusters,disable-writer
 TPC_CONFIG=
@@ -67,11 +69,11 @@ if [ $HOSTMEMSIZE != "0" ]; then
 fi
 
 if [ $EPNPIPELINES != 0 ]; then
-  N_TPCENT=$(($(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
-  N_TPCITS=$(($(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
+  N_TPCENT=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
+  N_TPCITS=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
   N_ITSDEC=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
-  N_EMC=$(($(expr 2 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 2 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
-  N_CPV=$(($(expr 6 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 6 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
+  N_EMC=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
+  N_CPV=$(($(expr 5 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 5 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
 else
   N_TPCENT=1
   N_TPCITS=1
@@ -85,9 +87,11 @@ if [ $CTFINPUT == 1 ]; then
   TPC_INPUT=compressed-clusters-ctf
   TOF_INPUT=digits
   CTFName=`ls -t o2_ctf_*.root | head -n1`
-  WORKFLOW="o2-ctf-reader-workflow --ctf-input ${CTFName} --onlyDet $CTF_DETECTORS $ARGS_ALL | "
+  CTF_DICT=
+  if [ ! -z $CTF_DICT_DIR ] ; then CTF_DICT=" --ctf-dict ${CTF_DICT_DIR}/ctf_dictionary.root"; fi
+  WORKFLOW="o2-ctf-reader-workflow --ctf-input ${CTFName}  ${CTF_DICT} --onlyDet $CTF_DETECTORS $ARGS_ALL  | "
 elif [ $EXTINPUT == 1 ]; then
-  WORKFLOW="o2-dpl-raw-proxy $ARGS_ALL --dataspec \"FLP:FLP/DISTSUBTIMEFRAME/0;B:TPC/RAWDATA;C:ITS/RAWDATA;D:TOF/RAWDATA;D:MFT/RAWDATA;E:FT0/RAWDATA;F:MID/RAWDATA;G:EMC/RAWDATA;H:PHS/RAWDATA;I:CPV/RAWDATA;J:ZDC/RAWDATA;K:HMP/RAWDATA;L:FDD/RAWDATA\" --channel-config \"name=readout-proxy,type=pull,method=connect,address=ipc://@stfb-to-dpl,transport=shmem,rateLogging=0\" | "
+  WORKFLOW="o2-dpl-raw-proxy $ARGS_ALL --dataspec \"FLP:FLP/DISTSUBTIMEFRAME/0;B:TPC/RAWDATA;C:ITS/RAWDATA;D:TOF/RAWDATA;D:MFT/RAWDATA;E:FT0/RAWDATA;F:MID/RAWDATA;G:EMC/RAWDATA;H:PHS/RAWDATA;I:CPV/RAWDATA;J:ZDC/RAWDATA;K:HMP/RAWDATA;L:FDD/RAWDATA\" --channel-config \"name=readout-proxy,type=pull,method=connect,address=ipc://@$INRAWCHANNAME,transport=shmem,rateLogging=0\" | "
 else
   WORKFLOW="o2-raw-file-reader-workflow --detect-tf0 $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=$NHBPERTF;\" --delay $TFDELAY --loop $NTIMEFRAMES --max-tf 0 --input-conf rawAll.cfg | "
 fi
@@ -125,7 +129,7 @@ if [ $CTFINPUT == 0 ]; then
   WORKFLOW+="o2-cpv-reco-workflow $ARGS_ALL --input-type raw --output-type clusters --disable-root-input --disable-root-output $DISABLE_MC --pipeline CPVClusterizerSpec:$N_CPV | "
   WORKFLOW+="o2-emcal-reco-workflow $ARGS_ALL --input-type raw --output-type cells --disable-root-output $DISABLE_MC --pipeline EMCALRawToCellConverterSpec:$N_EMC | "
   WORKFLOW+="o2-zdc-raw2digits $ARGS_ALL --disable-root-output | "
-  WORKFLOW+="o2-hmpid-raw-to-digits-workflow $ARGS_ALL | "
+  WORKFLOW+="o2-hmpid-raw-to-digits-stream-workflow $ARGS_ALL | "
 
   WORKFLOW+="o2-itsmft-entropy-encoder-workflow $ARGS_ALL --runmft true | "
   WORKFLOW+="o2-ft0-entropy-encoder-workflow $ARGS_ALL | "
@@ -139,14 +143,23 @@ if [ $CTFINPUT == 0 ]; then
   WORKFLOW+="o2-tpc-scdcalib-interpolation-workflow $ARGS_ALL --disable-root-output --disable-root-input | "
 
   # Output workflow
+  if [ ! -z $CTF_DIR ] ; then mkdir -p $CTF_DIR; fi
+  if [ $CREATECTFDICT == 1 ] ; then
+     _DICT_="ctf_dictionary.root"
+     if [ ! -z $CTF_DICT_DIR ] ; then
+        mkdir -p $CTF_DICT_DIR;
+        _DICT_="$CTF_DICT_DIR/$_DICT_"
+     fi
+     if [ -e $_DICT_ ] ; then rm -f $_DICT_; fi
+  fi
   CTF_OUTPUT_TYPE="none"
   if [ $CREATECTFDICT == 1 ] && [ $SAVECTF == 1 ]; then CTF_OUTPUT_TYPE="both"; fi
   if [ $CREATECTFDICT == 1 ] && [ $SAVECTF == 0 ]; then CTF_OUTPUT_TYPE="dict"; fi
   if [ $CREATECTFDICT == 0 ] && [ $SAVECTF == 1 ]; then CTF_OUTPUT_TYPE="ctf"; fi
   CMD_CTF="o2-ctf-writer-workflow $ARGS_ALL --output-type $CTF_OUTPUT_TYPE --onlyDet $CTF_DETECTORS"
-  if [ $CREATECTFDICT == 1 ] && [ $EXTINPUT == 1 ]; then
-    CMD_CTF+=" --save-dict-after $NTIMEFRAMES"
-  fi
+  if [ $CREATECTFDICT == 1 ] && [ $EXTINPUT == 1 ]; then CMD_CTF+=" --save-dict-after $NTIMEFRAMES"; fi
+  if [ ! -z $CTF_DICT_DIR ]; then CMD_CTF+=" --ctf-dict-dir $CTF_DICT_DIR"; fi
+  if [ ! -z $CTF_DIR ]; then CMD_CTF+=" --ctf-output-dir $CTF_DIR"; fi
   WORKFLOW+="$CMD_CTF | "
 fi
 

@@ -49,6 +49,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::string keyvaluehelp("Semicolon separated key=value strings ...");
   workflowOptions.push_back(o2::framework::ConfigParamSpec{"configKeyValues", o2::framework::VariantType::String, "", {keyvaluehelp}});
+  workflowOptions.push_back(o2::framework::ConfigParamSpec{"ignore-dist-stf", o2::framework::VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -61,7 +62,8 @@ WorkflowSpec defineDataProcessing(const ConfigContext& cx)
 {
   WorkflowSpec specs;
   o2::conf::ConfigurableParam::updateFromString(cx.options().get<std::string>("configKeyValues"));
-  DataProcessorSpec producer = o2::hmpid::getDecodingSpec();
+  auto askSTFDist = !cx.options().get<bool>("ignore-dist-stf");
+  DataProcessorSpec producer = o2::hmpid::getDecodingSpec(askSTFDist);
   specs.push_back(producer);
   return specs;
 }

@@ -56,6 +56,7 @@ constexpr float GRANULARITYTRKLSLOPE = 1.f / PADGRANULARITYTRKLSLOPE; // granula
 
 // OS: Should this not be flexible for example in case of Kr calib?
 constexpr int TIMEBINS = 30; // the number of time bins
+constexpr int NBINSANGLEDIFF = 26; // the number of bins for the track angle used for the vDrift and ExB calibration based on the tracking (last bin is for under-/overflow entries)
 
 // Trigger parameters
 constexpr double READOUT_TIME = 3000;                  // the time the readout takes, as 30 TB = 3 micro-s.

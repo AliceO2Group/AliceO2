@@ -140,9 +140,9 @@ void RawToDigitsTask::run(framework::ProcessingContext& pc)
           }
           int first = mAccumulateDigits.size();
           mAccumulateDigits.insert(mAccumulateDigits.end(), mDecod->mDigits.begin(), mDecod->mDigits.end());
-          int last = mAccumulateDigits.size() - 1;
-          if (last >= first) {
-            mEvents.push_back(o2::hmpid::Event(mDecod->mIntReco, (uint32_t)first, (uint32_t)last));
+          int last = mAccumulateDigits.size();
+          if (last > first) {
+            mEvents.emplace_back(o2::hmpid::Trigger{mDecod->mIntReco, first, last - first});
             mDigitsReceived += mDecod->mDigits.size();
           }
           mFramesReceived++;
@@ -200,9 +200,9 @@ void RawToDigitsTask::parseNoTF()
       }
       int first = mAccumulateDigits.size();
       mAccumulateDigits.insert(mAccumulateDigits.end(), mDecod->mDigits.begin(), mDecod->mDigits.end());
-      int last = mAccumulateDigits.size() - 1;
-      if (last >= first) {
-        mEvents.push_back(o2::hmpid::Event(mDecod->mIntReco, (uint32_t)first, (uint32_t)last));
+      int last = mAccumulateDigits.size();
+      if (last > first) {
+        mEvents.emplace_back(mDecod->mIntReco, first, last - first);
         mDigitsReceived += mDecod->mDigits.size();
       }
       mFramesReceived++;
@@ -236,7 +236,7 @@ void RawToDigitsTask::writeResults()
 
   /* ------ ROOT file version 1 ----------
   o2::hmpid::Digit digit;
-  o2::hmpid::Event event;
+  o2::hmpid::Trigger event;
   TString filename;
   TString tit;
 
@@ -250,23 +250,22 @@ void RawToDigitsTask::writeResults()
   theTree = new TTree("o2hmp", tit);
 
   theDigits = theTree->Branch("HMPDigit", &digit, sizeof(o2::hmpid::Digit), 1);
-  theEvents = theTree->Branch("InteractionRecords", &event, sizeof(o2::hmpid::Event), 1);
+  theEvents = theTree->Branch("InteractionRecords", &event, sizeof(o2::hmpid::Trigger), 1);
 
-  o2::hmpid::Event prevEvent = mEvents[0];
+  o2::hmpid::Trigger prevEvent = mEvents[0];
   uint32_t theFirstDigit = 0;
   uint32_t theLastDigit = 0;
   for (int e = 0; e < mEvents.size(); e++) {
     LOG(INFO) << "Manage event " << mEvents[e];
     if (prevEvent != mEvents[e]) { // changes the event Flush It
       event = prevEvent;
-      event.mFirstDigit = theFirstDigit;
-      event.mLastDigit = theLastDigit-1;
+      event.setDataRange(theFirstDigit, theLastDigit-theFirstDigit);
       theEvents->Fill();
       theFirstDigit = theLastDigit;
       prevEvent = mEvents[e];
     }
-    int first = mEvents[e].mFirstDigit;
-    int last = mEvents[e].mLastDigit;
+    int first = mEvents[e].getFirstEntry();
+    int last = mEvents[e].getLastEntry();
     for(int idx = first; idx <= last; idx++) {
       digit = mAccumulateDigits[idx];
       theDigits->Fill();
@@ -274,8 +273,7 @@ void RawToDigitsTask::writeResults()
     }
   }
   event = prevEvent;
-  event.mFirstDigit = theFirstDigit;
-  event.mLastDigit = theLastDigit-1;
+  event.setDataRange(theFirstDigit, theLastDigit-theFirstDigit);
   theEvents->Fill();
   theTree->Write();
   mfileOut.Close();
@@ -286,7 +284,7 @@ void RawToDigitsTask::writeResults()
   TString tit;
 
   std::vector<o2::hmpid::Digit> digitVec;
-  std::vector<o2::hmpid::Event> eventVec;
+  std::vector<o2::hmpid::Trigger> eventVec;
 
   filename = TString::Format("%s", mOutRootFileName.c_str());
   LOG(INFO) << "Create the ROOT file " << filename.Data();
@@ -298,24 +296,24 @@ void RawToDigitsTask::writeResults()
   theTree->Branch("HMPIDDigits", &digitVec);
 
   // builds the two arranged vectors of objects
-  o2::hmpid::Event prevEvent = mEvents[0];
+  o2::hmpid::Trigger prevEvent = mEvents[0];
   uint32_t theFirstDigit = 0;
   uint32_t theLastDigit = 0;
   for (int e = 0; e < mEvents.size(); e++) {
     LOG(DEBUG) << "Manage event " << mEvents[e];
     if (prevEvent != mEvents[e]) { // changes the event Flush It
-      eventVec.push_back(o2::hmpid::Event(o2::InteractionRecord(prevEvent.getBc(), prevEvent.getOrbit()), theFirstDigit, theLastDigit - 1));
+      eventVec.emplace_back(o2::InteractionRecord(prevEvent.getBc(), prevEvent.getOrbit()), theFirstDigit, theLastDigit - theFirstDigit);
       theFirstDigit = theLastDigit;
       prevEvent = mEvents[e];
     }
-    int first = mEvents[e].mFirstDigit;
-    int last = mEvents[e].mLastDigit;
+    int first = mEvents[e].getFirstEntry();
+    int last = mEvents[e].getLastEntry();
     for (int idx = first; idx <= last; idx++) {
       digitVec.push_back(mAccumulateDigits[idx]);
       theLastDigit++;
     }
   }
-  eventVec.push_back(o2::hmpid::Event(o2::InteractionRecord(prevEvent.getBc(), prevEvent.getOrbit()), theFirstDigit, theLastDigit - 1));
+  eventVec.emplace_back(o2::InteractionRecord(prevEvent.getBc(), prevEvent.getOrbit()), theFirstDigit, theLastDigit - theFirstDigit);
   theTree->Fill();
   theTree->Write();
   mfileOut.Close();

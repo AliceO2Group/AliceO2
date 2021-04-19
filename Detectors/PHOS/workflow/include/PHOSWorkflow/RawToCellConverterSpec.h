@@ -60,6 +60,8 @@ class RawToCellConverterSpec : public framework::Task
  protected:
   /// \brief simple check of HW address
   char CheckHWAddress(short ddl, short hwAddress, short& fee);
+  void readTRUDigit(const std::vector<Bunch>& bunchlist, short absId, short timebin, std::shared_ptr<std::vector<o2::phos::Cell>>& currentTRUContainer);
+  void readTRUFlags(short hwAddress, const std::vector<Bunch>& bunchlist, std::shared_ptr<std::bitset<Mapping::NTRUReadoutChannels + 2>>& currentTRUFlags);
 
  private:
   bool mFillChi2 = false;                                     ///< Fill output with quality of samples

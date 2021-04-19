@@ -11,6 +11,8 @@
 //first version 8/2018, Sandro Wenzel
 
 #include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/StringUtils.h"
+#include "CommonUtils/KeyValParam.h"
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
@@ -43,6 +45,8 @@ std::vector<ConfigurableParam*>* ConfigurableParam::sRegisteredParamClasses = nu
 boost::property_tree::ptree* ConfigurableParam::sPtree = nullptr;
 std::map<std::string, std::pair<std::type_info const&, void*>>* ConfigurableParam::sKeyToStorageMap = nullptr;
 std::map<std::string, ConfigurableParam::EParamProvenance>* ConfigurableParam::sValueProvenanceMap = nullptr;
+std::string ConfigurableParam::sInputDir = "";
+std::string ConfigurableParam::sOutputDir = "";
 EnumRegistry* ConfigurableParam::sEnumRegistry = nullptr;
 
 bool ConfigurableParam::sIsFullyInitialized = false;
@@ -203,17 +207,18 @@ int EnumLegalValues::getIntValue(const std::string& value) const
 
 void ConfigurableParam::writeINI(std::string const& filename, std::string const& keyOnly)
 {
+  auto outfilename = o2::utils::concat_string(sOutputDir, filename);
   initPropertyTree();     // update the boost tree before writing
   if (!keyOnly.empty()) { // write ini for selected key only
     try {
       boost::property_tree::ptree kTree;
       kTree.add_child(keyOnly, sPtree->get_child(keyOnly));
-      boost::property_tree::write_ini(filename, kTree);
+      boost::property_tree::write_ini(outfilename, kTree);
     } catch (const boost::property_tree::ptree_bad_path& err) {
       LOG(FATAL) << "non-existing key " << keyOnly << " provided to writeINI";
     }
   } else {
-    boost::property_tree::write_ini(filename, *sPtree);
+    boost::property_tree::write_ini(outfilename, *sPtree);
   }
 }
 
@@ -221,16 +226,17 @@ void ConfigurableParam::writeINI(std::string const& filename, std::string const&
 
 boost::property_tree::ptree ConfigurableParam::readConfigFile(std::string const& filepath)
 {
-  if (!boost::filesystem::exists(filepath)) {
-    LOG(FATAL) << filepath << " : config file does not exist!";
+  auto inpfilename = o2::utils::concat_string(sInputDir, filepath);
+  if (!boost::filesystem::exists(inpfilename)) {
+    LOG(FATAL) << inpfilename << " : config file does not exist!";
   }
 
   boost::property_tree::ptree pt;
 
-  if (boost::iends_with(filepath, ".ini")) {
-    pt = readINI(filepath);
-  } else if (boost::iends_with(filepath, ".json")) {
-    pt = readJSON(filepath);
+  if (boost::iends_with(inpfilename, ".ini")) {
+    pt = readINI(inpfilename);
+  } else if (boost::iends_with(inpfilename, ".json")) {
+    pt = readJSON(inpfilename);
   } else {
     LOG(FATAL) << "Configuration file must have either .ini or .json extension";
   }
@@ -274,16 +280,17 @@ boost::property_tree::ptree ConfigurableParam::readJSON(std::string const& filep
 void ConfigurableParam::writeJSON(std::string const& filename, std::string const& keyOnly)
 {
   initPropertyTree();     // update the boost tree before writing
+  auto outfilename = o2::utils::concat_string(sOutputDir, filename);
   if (!keyOnly.empty()) { // write ini for selected key only
     try {
       boost::property_tree::ptree kTree;
       kTree.add_child(keyOnly, sPtree->get_child(keyOnly));
-      boost::property_tree::write_json(filename, kTree);
+      boost::property_tree::write_json(outfilename, kTree);
     } catch (const boost::property_tree::ptree_bad_path& err) {
       LOG(FATAL) << "non-existing key " << keyOnly << " provided to writeJSON";
     }
   } else {
-    boost::property_tree::write_json(filename, *sPtree);
+    boost::property_tree::write_json(outfilename, *sPtree);
   }
 }
 
@@ -533,6 +540,14 @@ void ConfigurableParam::updateFromString(std::string const& configString)
   auto keyValues = toKeyValPairs(params);
 
   setValues(keyValues);
+
+  const auto& kv = o2::conf::KeyValParam::Instance();
+  if (getProvenance("keyval.input_dir") != kCODE) {
+    sInputDir = o2::utils::concat_string(o2::utils::rectifyDirectory(kv.input_dir));
+  }
+  if (getProvenance("keyval.output_dir") != kCODE) {
+    sOutputDir = o2::utils::concat_string(o2::utils::rectifyDirectory(kv.output_dir));
+  }
 }
 
 // setValues takes a vector of pairs where each pair is a key and value

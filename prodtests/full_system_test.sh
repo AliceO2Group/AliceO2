@@ -18,6 +18,8 @@
 # --> utilities to query CPU count
 . ${O2_ROOT}/share/scripts/jobutils.sh
 
+# make sure that correct format will be used irrespecive of the locale
+LC_NUMERIC=C
 
 NEvents=${NEvents:-10} #550 for full TF (the number of PbPb events)
 NEventsQED=${NEventsQED:-1000} #35000 for full TF
@@ -141,7 +143,6 @@ for STAGE in $STAGES; do
     export HOSTMEMSIZE=$TPCTRACKERSCRATCHMEMORY
     export CTFINPUT=0
     export SAVECTF=1
-    JOBUTILS_JOB_SKIPCREATEDONE=1 taskwrapper ${logfile} "rm -f ctf_dictionary.root"
     unset JOBUTILS_JOB_SKIPCREATEDONE
   fi
   export SHMSIZE

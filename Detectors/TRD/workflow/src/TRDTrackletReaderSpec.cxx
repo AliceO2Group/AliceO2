@@ -16,6 +16,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "fairlogger/Logger.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 
@@ -28,8 +29,10 @@ void TRDTrackletReader::init(InitContext& ic)
 {
   // get the option from the init context
   LOG(INFO) << "Init TRD tracklet reader!";
-  mInFileNameTrklt = ic.options().get<std::string>("trd-tracklet-infile");
-  mInTreeNameTrklt = ic.options().get<std::string>("treename");
+  mInFileNameTrklt = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                              ic.options().get<std::string>("trd-tracklet-infile"));
+  mInTreeNameTrklt = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                              ic.options().get<std::string>("treename"));
   connectTree();
   if (mUseTrackletTransform) {
     connectTreeCTracklet();
@@ -107,6 +110,7 @@ DataProcessorSpec getTRDTrackletReaderSpec(bool useMC, bool useCalibratedTrackle
     AlgorithmSpec{adaptFromTask<TRDTrackletReader>(useMC, useCalibratedTracklets)},
     Options{
       {"trd-tracklet-infile", VariantType::String, "trdtracklets.root", {"Name of the input file"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}},
       {"treename", VariantType::String, "o2sim", {"Name of top-level TTree"}},
     }};
 }
