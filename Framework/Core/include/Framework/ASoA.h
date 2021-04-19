@@ -1508,6 +1508,7 @@ constexpr auto is_binding_compatible_v()
     using base_table_t = typename _Table_::table_t;                                                                             \
     using expression_pack_t = framework::pack<__VA_ARGS__>;                                                                     \
     using originals = soa::originals_pack_t<_Table_>;                                                                           \
+    using sources = originals;                                                                                                  \
     static constexpr char const* mLabel = #_Name_ "Extension";                                                                  \
     static constexpr char const mOrigin[4] = _Origin_;                                                                          \
     static constexpr char const mDescription[16] = _Description_;                                                               \
