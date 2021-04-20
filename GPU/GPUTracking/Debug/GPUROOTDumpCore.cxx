@@ -24,7 +24,7 @@ std::weak_ptr<GPUROOTDumpCore> GPUROOTDumpCore::sInstance;
 
 GPUROOTDumpCore::GPUROOTDumpCore()
 {
-  mFile.reset(new TFile("debug.root", "recreate"));
+  mFile.reset(new TFile("gpudebug.root", "recreate"));
 }
 
 GPUROOTDumpCore::~GPUROOTDumpCore()
