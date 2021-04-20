@@ -23,7 +23,7 @@
 #include "MIDBase/DetectorParameters.h"
 #include "MIDRaw/Decoder.h"
 #include "MIDRaw/Encoder.h"
-#include "MIDRaw/GBTDecoder.h"
+#include "MIDRaw/LinkDecoder.h"
 
 o2::mid::ColumnData getColData(uint8_t deId, uint8_t columnId, uint16_t nbp = 0, uint16_t bp1 = 0, uint16_t bp2 = 0, uint16_t bp3 = 0, uint16_t bp4 = 0)
 {
@@ -122,9 +122,9 @@ static void BM_Decoder(benchmark::State& state)
   state.counters["num"] = benchmark::Counter(num, benchmark::Counter::kIsRate);
 }
 
-static void BM_GBTDecoder(benchmark::State& state)
+static void BM_LinkDecoder(benchmark::State& state)
 {
-  auto decoder = o2::mid::createGBTDecoder(0);
+  auto decoder = o2::mid::createLinkDecoder(0);
 
   int nTF = state.range(0);
   int nEventPerTF = state.range(1);
@@ -164,7 +164,7 @@ static void CustomArguments(benchmark::internal::Benchmark* bench)
   bench->Args({1, 100, 4});
 }
 
-BENCHMARK(BM_GBTDecoder)->Apply(CustomArguments)->Unit(benchmark::kNanosecond);
+BENCHMARK(BM_LinkDecoder)->Apply(CustomArguments)->Unit(benchmark::kNanosecond);
 BENCHMARK(BM_Decoder)->Apply(CustomArguments)->Unit(benchmark::kNanosecond);
 
 BENCHMARK_MAIN();

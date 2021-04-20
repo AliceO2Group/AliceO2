@@ -23,27 +23,17 @@ namespace o2
 namespace mid
 {
 
-// namespace impl
-// {
-class FEEIDGetterImpl
-{
- public:
-  FEEIDGetterImpl(const FEEIdConfig& feeIdConfig) : mFeeIdConfig(feeIdConfig) {}
-  uint16_t operator()(const o2::header::RDHAny& rdh) { return mFeeIdConfig.getFeeId(o2::raw::RDHUtils::getLinkID(rdh), o2::raw::RDHUtils::getEndPointID(rdh), o2::raw::RDHUtils::getCRUID(rdh)); }
-
- private:
-  FEEIdConfig mFeeIdConfig{};
-};
-// } // namespace impl
-
-Decoder::Decoder(bool isDebugMode, bool isBare, const ElectronicsDelay& electronicsDelay, const CrateMasks& crateMasks, const FEEIdConfig& feeIdConfig) : mData(), mROFRecords(), mGBTDecoders()
+Decoder::Decoder(bool isDebugMode, bool isBare, const ElectronicsDelay& electronicsDelay, const CrateMasks& crateMasks, const FEEIdConfig& feeIdConfig) : mData(), mROFRecords(), mLinkDecoders()
 {
   /// Constructor
-  for (uint16_t igbt = 0; igbt < crateparams::sNGBTs; ++igbt) {
-    mGBTDecoders[igbt] = createGBTDecoder(igbt, isBare, isDebugMode, crateMasks.getMask(igbt), electronicsDelay);
-  }
-  if (isBare) {
-    mGetFEEID = FEEIDGetterImpl(feeIdConfig);
+  auto feeIds = isBare ? feeIdConfig.getConfiguredGBTUniqueIDs() : feeIdConfig.getConfiguredFEEIDs();
+
+  for (auto& feeId : feeIds) {
+#if defined(MID_RAW_VECTORS)
+    mLinkDecoders.emplace_back(createLinkDecoder(feeId, isBare, isDebugMode, crateMasks.getMask(feeId), electronicsDelay, feeIdConfig));
+#else
+    mLinkDecoders.emplace(feeId, createLinkDecoder(feeId, isBare, isDebugMode, crateMasks.getMask(feeId), electronicsDelay, feeIdConfig));
+#endif
   }
 }
 
@@ -69,10 +59,10 @@ void Decoder::process(gsl::span<const uint8_t> bytes)
   }
 }
 
-std::unique_ptr<Decoder> createDecoder(const o2::header::RDHAny& rdh, bool isDebugMode, ElectronicsDelay& electronicsDelay, const CrateMasks& crateMasks, const FEEIdConfig& feeIdConfig)
+std::unique_ptr<Decoder> createDecoder(const o2::header::RDHAny& rdh, bool isDebugMode, const ElectronicsDelay& electronicsDelay, const CrateMasks& crateMasks, const FEEIdConfig& feeIdConfig)
 {
   /// Creates the decoder from the RDH info
-  bool isBare = (o2::raw::RDHUtils::getLinkID(rdh) != raw::sUserLogicLinkID);
+  bool isBare = raw::isBare(rdh);
   return std::make_unique<Decoder>(isDebugMode, isBare, electronicsDelay, crateMasks, feeIdConfig);
 }
 std::unique_ptr<Decoder> createDecoder(const o2::header::RDHAny& rdh, bool isDebugMode, const char* electronicsDelayFile, const char* crateMasksFile, const char* feeIdConfigFile)
