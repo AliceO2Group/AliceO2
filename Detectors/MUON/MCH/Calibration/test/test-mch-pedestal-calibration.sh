@@ -1,6 +1,6 @@
 #! /bin/bash
 
-export INFOLOGGER_MODE=stdout
+export O2_INFOLOGGER_MODE=stdout
 export SCRIPTDIR=$(readlink -f $(dirname $0))
 
 INPUT="$1"

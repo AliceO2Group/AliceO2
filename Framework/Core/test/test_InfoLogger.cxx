@@ -20,7 +20,7 @@ BOOST_AUTO_TEST_CASE(InfoLoggerTest)
 {
 
   // define infologger output to stdout, as we don't want to use the default infoLoggerD pipe which might not be running here
-  setenv("INFOLOGGER_MODE", "stdout", 1);
+  setenv("O2_INFOLOGGER_MODE", "stdout", 1);
 
   // create the infologger interface
   InfoLogger theLog;
