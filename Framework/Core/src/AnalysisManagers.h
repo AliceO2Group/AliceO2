@@ -259,11 +259,20 @@ struct OutputManager<Spawns<T>> {
 };
 
 /// Builds specialization
+template <typename... Os>
+static inline auto extractOriginalsVector(framework::pack<Os...>, ProcessingContext& pc)
+{
+  return std::vector{extractOriginal<Os>(pc)...};
+}
+
 template <typename O>
 static inline auto extractTypedOriginal(ProcessingContext& pc)
 {
-  ///FIXME: this should be done in invokeProcess() as some of the originals may be compound tables
-  return O{pc.inputs().get<TableConsumer>(aod::MetadataTrait<O>::metadata::tableLabel())->asArrowTable()};
+  if constexpr (soa::is_type_with_originals_v<O>) {
+    return O{extractOriginalsVector(soa::originals_pack_t<O>{}, pc)};
+  } else {
+    return O{pc.inputs().get<TableConsumer>(aod::MetadataTrait<O>::metadata::tableLabel())->asArrowTable()};
+  }
 }
 
 template <typename... Os>
@@ -284,7 +293,7 @@ struct OutputManager<Builds<T, P>> {
   {
     return what.build(what.pack(),
                       extractTypedOriginal<typename Builds<T, P>::Key>(pc),
-                      extractOriginalsTuple(what.sources_pack(), pc));
+                      extractOriginalsTuple(what.originals_pack(), pc));
   }
 
   static bool finalize(ProcessingContext& pc, Builds<T, P>& what)
