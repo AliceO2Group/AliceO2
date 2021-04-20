@@ -77,12 +77,15 @@ void Mille::mille(int NLC, const float* derLc,
                   int NGL, const float* derGl, const int* label,
                   float rMeas, float sigma)
 {
-  if (sigma <= 0.)
+  if (sigma <= 0.) {
     return;
-  if (myBufferPos == -1)
-    this->newSet(); // start, e.g. new track
-  if (!this->checkBufferSize(NLC, NGL))
+  }
+  if (myBufferPos == -1) {
+    this->newSet();
+  } // start, e.g. new track
+  if (!this->checkBufferSize(NLC, NGL)) {
     return;
+  }
 
   // first store measurement
   ++myBufferPos;
@@ -129,17 +132,20 @@ void Mille::mille(int NLC, const float* derLc,
  */
 void Mille::special(int nSpecial, const float* floatings, const int* integers)
 {
-  if (nSpecial == 0)
+  if (nSpecial == 0) {
     return;
-  if (myBufferPos == -1)
-    this->newSet(); // start, e.g. new track
+  }
+  if (myBufferPos == -1) {
+    this->newSet();
+  } // start, e.g. new track
   if (myHasSpecial) {
     std::cerr << "Mille::special: Special values already stored for this record."
               << std::endl;
     return;
   }
-  if (!this->checkBufferSize(nSpecial, 0))
+  if (!this->checkBufferSize(nSpecial, 0)) {
     return;
+  }
   myHasSpecial = true; // after newSet() (Note: MILLSP sets to buffer position...)
 
   //  myBufferFloat[.]  | myBufferInt[.]

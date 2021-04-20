@@ -108,7 +108,7 @@
 #include <TGeoPhysicalNode.h>
 #include <TH1.h>
 #include <TAxis.h>
-#include <stdio.h>
+#include <cstdio>
 
 ClassImp(o2::align::AlignableVolume);
 
@@ -131,15 +131,15 @@ const char* AlignableVolume::sDOFName[AlignableVolume::kNDOFGeom] = {"TX", "TY",
 AlignableVolume::AlignableVolume(const char* symname, int iid) : TNamed(symname, ""), mVarFrame(kTRA), mIntID(iid), mX(0), mAlp(0), mNDOFs(0), mDOF(0), mNDOFGeomFree(0), mNDOFFree(0), mConstrChild(kDefChildConstr)
                                                                  //
                                                                  ,
-                                                                 mParent(0),
-                                                                 mChildren(0)
+                                                                 mParent(nullptr),
+                                                                 mChildren(nullptr)
                                                                  //
                                                                  ,
                                                                  mNProcPoints(0),
                                                                  mFirstParGloID(-1),
-                                                                 mParVals(0),
-                                                                 mParErrs(0),
-                                                                 mParLabs(0)
+                                                                 mParVals(nullptr),
+                                                                 mParErrs(nullptr),
+                                                                 mParLabs(nullptr)
                                                                  //
                                                                  ,
                                                                  mMatL2GReco(),
@@ -242,8 +242,9 @@ int AlignableVolume::countParents() const
   // count parents in the chain
   int cnt = 0;
   const AlignableVolume* p = this;
-  while ((p = p->getParent()))
+  while ((p = p->getParent())) {
     cnt++;
+  }
   return cnt;
 }
 
@@ -256,31 +257,37 @@ void AlignableVolume::Print(const Option_t* opt) const
   printf("Lev:%2d IntID:%7d %s | %2d nodes | Effective X:%8.4f Alp:%+.4f | Used Points: %d\n",
          countParents(), getInternalID(), getSymName(), getNChildren(), mX, mAlp, mNProcPoints);
   printf("     DOFs: Tot: %d (offs: %5d) Free: %d  Geom: %d {", mNDOFs, mFirstParGloID, mNDOFFree, mNDOFGeomFree);
-  for (int i = 0; i < kNDOFGeom; i++)
+  for (int i = 0; i < kNDOFGeom; i++) {
     printf("%d", isFreeDOF(i) ? 1 : 0);
+  }
   printf("} in %s frame.", sFrameName[mVarFrame]);
   if (getNChildren()) {
     printf(" Child.Constr: {");
-    for (int i = 0; i < kNDOFGeom; i++)
+    for (int i = 0; i < kNDOFGeom; i++) {
       printf("%d", isChildrenDOFConstrained(i) ? 1 : 0);
+    }
     printf("}");
   }
-  if (getExcludeFromParentConstraint())
+  if (getExcludeFromParentConstraint()) {
     printf(" Excl.from parent constr.");
+  }
   printf("\n");
   //
   if (opts.Contains("par") && mParVals) {
     printf("     Lb: ");
-    for (int i = 0; i < mNDOFs; i++)
+    for (int i = 0; i < mNDOFs; i++) {
       printf("%10d  ", getParLab(i));
+    }
     printf("\n");
     printf("     Vl: ");
-    for (int i = 0; i < mNDOFs; i++)
+    for (int i = 0; i < mNDOFs; i++) {
       printf("%+9.3e  ", getParVal(i));
+    }
     printf("\n");
     printf("     Er: ");
-    for (int i = 0; i < mNDOFs; i++)
+    for (int i = 0; i < mNDOFs; i++) {
       printf("%+9.3e  ", getParErr(i));
+    }
     printf("\n");
   }
 
@@ -305,12 +312,14 @@ void AlignableVolume::prepareMatrixL2G(bool reco)
   const char* path = getSymName();
   if (gGeoManager->GetAlignableEntry(path)) {
     const TGeoHMatrix* l2g = base::GeometryManager::getMatrix(path);
-    if (!l2g)
+    if (!l2g) {
       LOG(FATAL) << "Failed to find L2G matrix for alignable " << path;
+    }
     reco ? setMatrixL2GReco(*l2g) : setMatrixL2G(*l2g);
   } else { // extract from path
-    if (!gGeoManager->CheckPath(path))
+    if (!gGeoManager->CheckPath(path)) {
       LOG(FATAL) << "Volume path " << path << " is not valid!";
+    }
     TGeoPhysicalNode* node = (TGeoPhysicalNode*)gGeoManager->GetListOfPhysicalNodes()->FindObject(path);
     TGeoHMatrix l2g;
     if (!node) {
@@ -330,8 +339,9 @@ void AlignableVolume::prepareMatrixL2GIdeal()
 {
   // extract from geometry ideal L2G matrix
   TGeoHMatrix mtmp;
-  if (!base::GeometryManager::getOriginalMatrix(getSymName(), mtmp))
+  if (!base::GeometryManager::getOriginalMatrix(getSymName(), mtmp)) {
     LOG(FATAL) << "Failed to find ideal L2G matrix for " << getSymName();
+  }
   setMatrixL2GIdeal(mtmp);
 }
 
@@ -346,12 +356,15 @@ void AlignableVolume::prepareMatrixT2L()
   for (int ich = nch; ich--;) {
     AlignableVolume* vol = getChild(ich);
     vol->getMatrixL2GIdeal().LocalToMaster(loc, glo);
-    for (int j = 3; j--;)
+    for (int j = 3; j--;) {
       tot[j] += glo[j];
+    }
   }
-  if (nch)
-    for (int j = 3; j--;)
+  if (nch) {
+    for (int j = 3; j--;) {
       tot[j] /= nch;
+    }
+  }
   //
   mAlp = TMath::ATan2(tot[1], tot[0]);
   utils::bringToPiPM(mAlp);
@@ -397,13 +410,15 @@ void AlignableVolume::assignDOFs(int& cntDOFs, float* pars, float* errs, int* la
   mParErrs = errs + cntDOFs;
   mParLabs = labs + cntDOFs;
   setFirstParGloID(cntDOFs);
-  for (int i = 0; i < mNDOFs; i++)
+  for (int i = 0; i < mNDOFs; i++) {
     mParLabs[i] = getInternalID() * 100 + i;
+  }
   cntDOFs += mNDOFs; // increment total DOFs count
   //
   int nch = getNChildren(); // go over childs
-  for (int ich = 0; ich < nch; ich++)
+  for (int ich = 0; ich < nch; ich++) {
     getChild(ich)->assignDOFs(cntDOFs, pars, errs, labs);
+  }
   //
   return;
 }
@@ -414,11 +429,14 @@ void AlignableVolume::initDOFs()
   // initialize degrees of freedom
   //
   // Do we need this strict condition?
-  if (getInitDOFsDone())
+  if (getInitDOFsDone()) {
     LOG(FATAL) << "DOFs are already initialized for " << GetName();
-  for (int i = 0; i < mNDOFs; i++)
-    if (mParErrs[i] < -9999 && isZeroAbs(mParVals[i]))
+  }
+  for (int i = 0; i < mNDOFs; i++) {
+    if (mParErrs[i] < -9999 && isZeroAbs(mParVals[i])) {
       fixDOF(i);
+    }
+  }
   calcFree(true);
   setInitDOFsDone();
 }
@@ -430,13 +448,15 @@ void AlignableVolume::calcFree(bool condFix)
   mNDOFFree = mNDOFGeomFree = 0;
   for (int i = 0; i < mNDOFs; i++) {
     if (!isFreeDOF(i)) {
-      if (condFix)
+      if (condFix) {
         setParErr(i, -999);
+      }
       continue;
     }
     mNDOFFree++;
-    if (i < kNDOFGeom)
+    if (i < kNDOFGeom) {
       mNDOFGeomFree++;
+    }
   }
   //
 }
@@ -445,8 +465,9 @@ void AlignableVolume::calcFree(bool condFix)
 void AlignableVolume::setNDOFs(int n)
 {
   // book global degrees of freedom
-  if (n < kNDOFGeom)
+  if (n < kNDOFGeom) {
     n = kNDOFGeom;
+  }
   mNDOFs = n;
 }
 
@@ -465,8 +486,9 @@ void AlignableVolume::addChild(AlignableVolume* ch)
 void AlignableVolume::setParVals(int npar, double* vl, double* er)
 {
   // set parameters
-  if (npar > mNDOFs)
+  if (npar > mNDOFs) {
     LOG(FATAL) << "Volume " << GetName() << " has " << mNDOFs << " dofs";
+  }
   for (int i = 0; i < npar; i++) {
     mParVals[i] = vl[i];
     mParErrs[i] = er ? er[i] : 0;
@@ -489,8 +511,9 @@ int AlignableVolume::finalizeStat(DOFStatistics* st)
     AlignableVolume* child = getChild(ich);
     mNProcPoints += child->finalizeStat(st);
   }
-  if (st)
+  if (st) {
     fillDOFStat(st);
+  }
   return mNProcPoints;
 }
 
@@ -512,35 +535,44 @@ void AlignableVolume::writePedeInfo(FILE* parOut, const Option_t* opt) const
   // is there something to print ?
   int nCond(0), nFix(0), nDef(0);
   for (int i = 0; i < mNDOFs; i++) {
-    if (!isFreeDOF(i))
+    if (!isFreeDOF(i)) {
       nFix++;
-    if (isCondDOF(i))
+    }
+    if (isCondDOF(i)) {
       nCond++;
-    if (!isCondDOF(i) && isFreeDOF(i))
+    }
+    if (!isCondDOF(i) && isFreeDOF(i)) {
       nDef++;
+    }
   }
   //
   int cmt = nCond > 0 || nFix > 0 ? kOff : kOn; // do we comment the "parameter" keyword for this volume
-  if (!nFix)
+  if (!nFix) {
     showFix = false;
-  if (!nDef)
+  }
+  if (!nDef) {
     showDef = false;
+  }
   //
-  if (nCond || showDef || showFix || showNam)
+  if (nCond || showDef || showFix || showNam) {
     fprintf(parOut, "%s%s %s\t\tDOF/Free: %d/%d (%s) %s\n", comment[cmt], kKeyParam, comment[kOnOn],
             getNDOFs(), getNDOFFree(), sFrameName[mVarFrame], GetName());
+  }
   //
   if (nCond || showDef || showFix) {
     for (int i = 0; i < mNDOFs; i++) {
       cmt = kOn;
-      if (isCondDOF(i) || !isFreeDOF(i))
-        cmt = kOff; // free-conditioned : MUST print
+      if (isCondDOF(i) || !isFreeDOF(i)) {
+        cmt = kOff;
+      } // free-conditioned : MUST print
       else if (!isFreeDOF(i)) {
-        if (!showFix)
+        if (!showFix) {
           continue;
+        }
       } // Fixed: print commented if asked
-      else if (!showDef)
-        continue; // free-unconditioned: print commented if asked
+      else if (!showDef) {
+        continue;
+      } // free-unconditioned: print commented if asked
       //
       fprintf(parOut, "%s %9d %+e %+e\t%s %s p%d\n", comment[cmt], getParLab(i),
               getParVal(i), getParErr(i), comment[kOnOn], isFreeDOF(i) ? "  " : "FX", i);
@@ -550,8 +582,9 @@ void AlignableVolume::writePedeInfo(FILE* parOut, const Option_t* opt) const
   // children volume
   int nch = getNChildren();
   //
-  for (int ich = 0; ich < nch; ich++)
+  for (int ich = 0; ich < nch; ich++) {
     getChild(ich)->writePedeInfo(parOut, opt);
+  }
   //
 }
 
@@ -677,8 +710,9 @@ void AlignableVolume::createLocDeltaMatrix(TGeoHMatrix& deltaM) const
   // This deltaM does not account for eventual prealignment
   // Volume knows if its variation was done in TRA or LOC frame
   double corr[kNDOFGeom];
-  for (int i = kNDOFGeom; i--;)
-    corr[i] = mParVals[i]; // we need doubles
+  for (int i = kNDOFGeom; i--;) {
+    corr[i] = mParVals[i];
+  } // we need doubles
   delta2Matrix(deltaM, corr);
   if (isFrameTRA()) { // we need corrections in local frame!
     // l' = T2L * delta_t * t = T2L * delta_t * T2L^-1 * l = delta_l * l
@@ -774,8 +808,9 @@ void AlignableVolume::createAlignmentObjects(TClonesArray* arr) const
                                                           translation[0], translation[1], translation[2],
                                                           rotation[0], rotation[1], rotation[2], true);
   int nch = getNChildren();
-  for (int ich = 0; ich < nch; ich++)
+  for (int ich = 0; ich < nch; ich++) {
     getChild(ich)->createAlignmentObjects(arr);
+  }
 }
 
 //_________________________________________________________________
@@ -792,23 +827,27 @@ void AlignableVolume::updateL2GRecoMatrices(const TClonesArray* algArr, const TG
   const detectors::AlignParam* par = nullptr;
   for (int i = 0; i < nalg; i++) {
     par = (detectors::AlignParam*)algArr->At(i);
-    if (!strcmp(par->getSymName(), getSymName()))
+    if (!strcmp(par->getSymName(), getSymName())) {
       break;
-    par = 0;
+    }
+    par = nullptr;
   }
   TGeoHMatrix delta;
-  if (!par)
+  if (!par) {
     LOG(INFO) << "Alignment for " << getSymName() << " is absent in Reco-Time alignment object";
-  else
+  } else {
     delta = par->createMatrix();
+  }
   //    par->GetMatrix(delta);
-  if (cumulDelta)
+  if (cumulDelta) {
     delta *= *cumulDelta;
+  }
   //
   mMatL2GReco.MultiplyLeft(&delta);
   // propagate to children
-  for (int ich = getNChildren(); ich--;)
+  for (int ich = getNChildren(); ich--;) {
     getChild(ich)->updateL2GRecoMatrices(algArr, &delta);
+  }
   //
 }
 
@@ -816,13 +855,15 @@ void AlignableVolume::updateL2GRecoMatrices(const TClonesArray* algArr, const TG
 bool AlignableVolume::ownsDOFID(int id) const
 {
   // check if DOF ID belongs to this volume or its children
-  if (id >= mFirstParGloID && id < mFirstParGloID + mNDOFs)
+  if (id >= mFirstParGloID && id < mFirstParGloID + mNDOFs) {
     return true;
+  }
   //
   for (int iv = getNChildren(); iv--;) {
     AlignableVolume* vol = getChild(iv);
-    if (vol->ownsDOFID(id))
+    if (vol->ownsDOFID(id)) {
       return true;
+    }
   }
   return false;
 }
@@ -831,15 +872,17 @@ bool AlignableVolume::ownsDOFID(int id) const
 AlignableVolume* AlignableVolume::getVolOfDOFID(int id) const
 {
   // gets volume owning this DOF ID
-  if (id >= mFirstParGloID && id < mFirstParGloID + mNDOFs)
+  if (id >= mFirstParGloID && id < mFirstParGloID + mNDOFs) {
     return (AlignableVolume*)this;
+  }
   //
   for (int iv = getNChildren(); iv--;) {
     AlignableVolume* vol = getChild(iv);
-    if ((vol = vol->getVolOfDOFID(id)))
+    if ((vol = vol->getVolOfDOFID(id))) {
       return vol;
+    }
   }
-  return 0;
+  return nullptr;
 }
 
 //______________________________________________________
@@ -853,8 +896,9 @@ const char* AlignableVolume::getDOFName(int i) const
 void AlignableVolume::fillDOFStat(DOFStatistics* h) const
 {
   // fill statistics info hist
-  if (!h)
+  if (!h) {
     return;
+  }
   int ndf = getNDOFs();
   int dof0 = getFirstParGloID();
   int stat = getNProcessedPoints();
@@ -876,14 +920,16 @@ void AlignableVolume::addAutoConstraints(TObjArray* constrArr)
     constr->setParent(this);
     for (int ich = nch; ich--;) {
       AlignableVolume* child = getChild(ich);
-      if (child->getExcludeFromParentConstraint())
+      if (child->getExcludeFromParentConstraint()) {
         continue;
+      }
       constr->addChild(child);
     }
-    if (constr->getNChildren())
+    if (constr->getNChildren()) {
       constrArr->Add(constr);
-    else
+    } else {
       delete constr;
+    }
   }
   for (int ich = 0; ich < nch; ich++) {
     getChild(ich)->addAutoConstraints(constrArr);

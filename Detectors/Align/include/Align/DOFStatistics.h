@@ -42,8 +42,8 @@ class DOFStatistics : public TNamed
   inline void addStat(int idf, int v) { mStat[idf] += v; }
   inline int getNMerges() const noexcept { return mNMerges; }
   std::unique_ptr<TH1F> buildHistogram(Controller* st) const;
-  virtual void Print(Option_t* opt) const { std::cout << "NDOFs: " << mStat.size() << " NMerges: " << mNMerges << "\n"; };
-  virtual int64_t merge(TCollection* list);
+  void Print(Option_t* opt) const final { std::cout << "NDOFs: " << mStat.size() << " NMerges: " << mNMerges << "\n"; };
+  int64_t merge(TCollection* list);
 
  protected:
   DOFStatistics(const DOFStatistics&);

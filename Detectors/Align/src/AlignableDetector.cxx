@@ -32,7 +32,7 @@
 #include <TH1.h>
 #include <TTree.h>
 #include <TFile.h>
-#include <stdio.h>
+#include <cstdio>
 
 ClassImp(o2::align::AlignableDetector);
 
@@ -45,16 +45,16 @@ namespace align
 
 //____________________________________________
 AlignableDetector::AlignableDetector()
-  : mNDOFs(0), mVolIDMin(-1), mVolIDMax(-1), mNSensors(0), mSID2VolID(0), mNProcPoints(0)
+  : mNDOFs(0), mVolIDMin(-1), mVolIDMax(-1), mNSensors(0), mSID2VolID(nullptr), mNProcPoints(0)
     //
     ,
     mNCalibDOF(0),
     mNCalibDOFFree(0),
     mCalibDOF(0),
     mFirstParGloID(-1),
-    mParVals(0),
-    mParErrs(0),
-    mParLabs(0)
+    mParVals(nullptr),
+    mParErrs(nullptr),
+    mParLabs(nullptr)
     //
     ,
     mUseErrorParam(0),
@@ -66,7 +66,7 @@ AlignableDetector::AlignableDetector()
     mPoolNPoints(0),
     mPoolFreePointID(0),
     mPointsPool(),
-    mAlgSteer(0)
+    mAlgSteer(nullptr)
 {
   // def c-tor
   SetUniqueID(Controller::kUndefined); // derived detectors must override this
@@ -108,14 +108,14 @@ AlignableDetector::~AlignableDetector()
 //  AlignmentPoint* apnt(0);
 //  for (int ip = 0; ip < np; ip++) {
 //    int vid = trP->GetVolumeID()[ip];
-//    if (!sensorOfDetector(vid))
-//      continue;
+//    if (!sensorOfDetector(vid)){
+//      continue;}
 //    apnt = getSensorByVolId(vid)->TrackPoint2AlgPoint(ip, trP, esdTr);
-//    if (!apnt)
-//      continue;
+//    if (!apnt){
+//      continue;}
 //    algTrack->addPoint(apnt);
-//    if (inv)
-//      apnt->setInvDir();
+//    if (inv){
+//      apnt->setInvDir();}
 //    npSel++;
 //    mNPoints++;
 //  }
@@ -147,8 +147,8 @@ void AlignableDetector::updateL2GRecoMatrices()
   //  for (int iv = 0; iv < nvol; iv++) {
   //    AlignableVolume* vol = getVolume(iv);
   //    // call init for root level volumes, they will take care of their children
-  //    if (!vol->getParent())
-  //      vol->updateL2GRecoMatrices(algArr, 0);
+  //    if (!vol->getParent()){
+  //      vol->updateL2GRecoMatrices(algArr, 0);}
   //  }
   //  //
 }
@@ -158,8 +158,9 @@ void AlignableDetector::applyAlignmentFromMPSol()
 {
   // apply alignment from millepede solution array to reference alignment level
   LOG(INFO) << "Applying alignment from Millepede solution";
-  for (int isn = getNSensors(); isn--;)
+  for (int isn = getNSensors(); isn--;) {
     getSensor(isn)->applyAlignmentFromMPSol();
+  }
 }
 
 //_________________________________________________________
@@ -229,10 +230,12 @@ void AlignableDetector::addVolume(AlignableVolume* vol)
     mSensors.AddLast(vol);
     ((AlignableSensor*)vol)->setDetector(this);
     int vid = ((AlignableSensor*)vol)->getVolID();
-    if (mVolIDMin < 0 || vid < mVolIDMin)
+    if (mVolIDMin < 0 || vid < mVolIDMin) {
       mVolIDMin = vid;
-    if (mVolIDMax < 0 || vid > mVolIDMax)
+    }
+    if (mVolIDMax < 0 || vid > mVolIDMax) {
       mVolIDMax = vid;
+    }
   }
   //
 }
@@ -245,7 +248,7 @@ void AlignableDetector::defineMatrices()
   TGeoHMatrix mtmp;
   //
   TIter next(&mVolumes);
-  AlignableVolume* vol(0);
+  AlignableVolume* vol(nullptr);
   while ((vol = (AlignableVolume*)next())) {
     // modified global-local matrix
     vol->prepareMatrixL2G();
@@ -261,8 +264,9 @@ void AlignableDetector::defineMatrices()
   next.Reset();
   while ((vol = (AlignableVolume*)next())) {
     vol->prepareMatrixT2L();
-    if (vol->isSensor())
-      ((AlignableSensor*)vol)->prepareMatrixClAlg(); // alignment matrix
+    if (vol->isSensor()) {
+      ((AlignableSensor*)vol)->prepareMatrixClAlg();
+    } // alignment matrix
   }
   //
 }
@@ -289,8 +293,9 @@ void AlignableDetector::sortSensors()
 int AlignableDetector::initGeom()
 {
   // define hiearchy, initialize matrices, return number of global parameters
-  if (getInitGeomDone())
+  if (getInitGeomDone()) {
     return 0;
+  }
   //
   defineVolumes();
   sortSensors(); // VolID's must be in increasing order
@@ -333,11 +338,13 @@ int AlignableDetector::assignDOFs()
   for (int iv = 0; iv < nvol; iv++) {
     AlignableVolume* vol = getVolume(iv);
     // call init for root level volumes, they will take care of their children
-    if (!vol->getParent())
+    if (!vol->getParent()) {
       vol->assignDOFs(gloCount, pars, errs, labs);
+    }
   }
-  if (mNDOFs != gloCount - gloCount0)
+  if (mNDOFs != gloCount - gloCount0) {
     LOG(FATAL) << "Mismatch between declared " << mNDOFs << " and initialized " << (gloCount - gloCount0) << " DOFs for " << GetName();
+  }
   return mNDOFs;
 }
 
@@ -345,17 +352,21 @@ int AlignableDetector::assignDOFs()
 void AlignableDetector::initDOFs()
 {
   // initialize free parameters
-  if (getInitDOFsDone())
+  if (getInitDOFsDone()) {
     LOG(FATAL) << "DOFs are already initialized for " << GetName();
+  }
   //
   // process calibration DOFs
-  for (int i = 0; i < mNCalibDOF; i++)
-    if (mParErrs[i] < -9999 && isZeroAbs(mParVals[i]))
+  for (int i = 0; i < mNCalibDOF; i++) {
+    if (mParErrs[i] < -9999 && isZeroAbs(mParVals[i])) {
       fixDOF(i);
+    }
+  }
   //
   int nvol = getNVolumes();
-  for (int iv = 0; iv < nvol; iv++)
+  for (int iv = 0; iv < nvol; iv++) {
     getVolume(iv)->initDOFs();
+  }
   //
   calcFree(true);
   //
@@ -370,12 +381,13 @@ int AlignableDetector::volID2SID(int vid) const
   int mn(0), mx(mNSensors - 1);
   while (mx >= mn) {
     int md((mx + mn) >> 1), vids(getSensor(md)->getVolID());
-    if (vid < vids)
+    if (vid < vids) {
       mx = md - 1;
-    else if (vid > vids)
+    } else if (vid > vids) {
       mn = md + 1;
-    else
+    } else {
       return md;
+    }
   }
   return -1;
 }
@@ -391,10 +403,11 @@ void AlignableDetector::Print(const Option_t* opt) const
          getVolIDMax(), mAddError[0], mAddError[1], mNProcPoints);
   //
   printf("Errors assignment: ");
-  if (mUseErrorParam)
+  if (mUseErrorParam) {
     printf("param %d\n", mUseErrorParam);
-  else
+  } else {
     printf("from TrackPoints\n");
+  }
   //
   printf("Allowed    in Collisions: %7s | Cosmic: %7s\n",
          isDisabled(Coll) ? "  NO " : " YES ", isDisabled(Cosm) ? "  NO " : " YES ");
@@ -407,9 +420,11 @@ void AlignableDetector::Print(const Option_t* opt) const
   printf("Min.points in Collisions: %7d | Cosmic: %7d\n",
          mNPointsSel[Coll], mNPointsSel[Cosm]);
   //
-  if (!(IsDisabledColl() && IsDisabledCosm()) && opts.Contains("long"))
-    for (int iv = 0; iv < getNVolumes(); iv++)
+  if (!(IsDisabledColl() && IsDisabledCosm()) && opts.Contains("long")) {
+    for (int iv = 0; iv < getNVolumes(); iv++) {
       getVolume(iv)->Print(opt);
+    }
+  }
   //
   for (int i = 0; i < getNCalibDOFs(); i++) {
     printf("CalibDOF%2d: %-20s\t%e\n", i, getCalibDOFName(i), getCalibDOFValWithCal(i));
@@ -431,8 +446,9 @@ void AlignableDetector::setAddError(double sigy, double sigz)
   LOG(INFO) << "Adding sys.error " << std::fixed << std::setprecision(4) << sigy << " " << sigz << " to all sensors";
   mAddError[0] = sigy;
   mAddError[1] = sigz;
-  for (int isn = getNSensors(); isn--;)
+  for (int isn = getNSensors(); isn--;) {
     getSensor(isn)->setAddError(sigy, sigz);
+  }
   //
 }
 
@@ -469,8 +485,9 @@ void AlignableDetector::writePedeInfo(FILE* parOut, const Option_t* opt) const
   int nvol = getNVolumes();
   for (int iv = 0; iv < nvol; iv++) { // call for root level volumes, they will take care of their children
     AlignableVolume* vol = getVolume(iv);
-    if (!vol->getParent())
+    if (!vol->getParent()) {
       vol->writePedeInfo(parOut, opt);
+    }
   }
   //
 }
@@ -496,8 +513,8 @@ void AlignableDetector::writeAlignmentResults() const
   //  for (int iv = 0; iv < nvol; iv++) {
   //    AlignableVolume* vol = getVolume(iv);
   //    // call only for top level objects, they will take care of children
-  //    if (!vol->getParent())
-  //      vol->createAlignmentObjects(arr);
+  //    if (!vol->getParent()){
+  //      vol->createAlignmentObjects(arr);}
   //  }
   //  //
   //  AliCDBManager* man = AliCDBManager::Instance();
@@ -517,12 +534,14 @@ bool AlignableDetector::ownsDOFID(int id) const
   // check if DOF ID belongs to this detector
   for (int iv = getNVolumes(); iv--;) {
     AlignableVolume* vol = getVolume(iv); // check only top level volumes
-    if (!vol->getParent() && vol->ownsDOFID(id))
+    if (!vol->getParent() && vol->ownsDOFID(id)) {
       return true;
+    }
   }
   // calibration DOF?
-  if (id >= mFirstParGloID && id < mFirstParGloID + mNCalibDOF)
+  if (id >= mFirstParGloID && id < mFirstParGloID + mNCalibDOF) {
     return true;
+  }
   //
   return false;
 }
@@ -533,12 +552,14 @@ AlignableVolume* AlignableDetector::getVolOfDOFID(int id) const
   // gets volume owning this DOF ID
   for (int iv = getNVolumes(); iv--;) {
     AlignableVolume* vol = getVolume(iv);
-    if (vol->getParent())
-      continue; // check only top level volumes
-    if ((vol = vol->getVolOfDOFID(id)))
+    if (vol->getParent()) {
+      continue;
+    } // check only top level volumes
+    if ((vol = vol->getVolOfDOFID(id))) {
       return vol;
+    }
   }
-  return 0;
+  return nullptr;
 }
 
 //______________________________________________________
@@ -552,8 +573,9 @@ void AlignableDetector::terminate()
   for (int iv = 0; iv < nvol; iv++) {
     AlignableVolume* vol = getVolume(iv);
     // call init for root level volumes, they will take care of their children
-    if (!vol->getParent())
+    if (!vol->getParent()) {
       mNProcPoints += vol->finalizeStat(st);
+    }
   }
   fillDOFStat(st); // fill stat for calib dofs
 }
@@ -565,8 +587,9 @@ void AlignableDetector::addAutoConstraints() const
   int nvol = getNVolumes();
   for (int iv = 0; iv < nvol; iv++) { // call for root level volumes, they will take care of their children
     AlignableVolume* vol = getVolume(iv);
-    if (!vol->getParent())
+    if (!vol->getParent()) {
       vol->addAutoConstraints((TObjArray*)mAlgSteer->getConstraints());
+    }
   }
 }
 
@@ -576,8 +599,9 @@ void AlignableDetector::fixNonSensors()
   // fix all non-sensor volumes
   for (int i = getNVolumes(); i--;) {
     AlignableVolume* vol = getVolume(i);
-    if (vol->isSensor())
+    if (vol->isSensor()) {
       continue;
+    }
     vol->setFreeDOFPattern(0);
     vol->setChildrenConstrainPattern(0);
   }
@@ -588,16 +612,19 @@ int AlignableDetector::selectVolumes(TObjArray* arr, int lev, const char* match)
 {
   // select volumes matching to pattern and/or hierarchy level
   //
-  if (!arr)
+  if (!arr) {
     return 0;
+  }
   int nadd = 0;
   TString mts = match, syms;
   for (int i = getNVolumes(); i--;) {
     AlignableVolume* vol = getVolume(i);
-    if (lev >= 0 && vol->countParents() != lev)
-      continue; // wrong level
-    if (!mts.IsNull() && !(syms = vol->getSymName()).Contains(mts))
-      continue; //wrong name
+    if (lev >= 0 && vol->countParents() != lev) {
+      continue;
+    } // wrong level
+    if (!mts.IsNull() && !(syms = vol->getSymName()).Contains(mts)) {
+      continue;
+    } //wrong name
     arr->AddLast(vol);
     nadd++;
   }
@@ -614,10 +641,12 @@ void AlignableDetector::setFreeDOFPattern(uint32_t pat, int lev, const char* mat
   TString mts = match, syms;
   for (int i = getNVolumes(); i--;) {
     AlignableVolume* vol = getVolume(i);
-    if (lev >= 0 && vol->countParents() != lev)
-      continue; // wrong level
-    if (!mts.IsNull() && !(syms = vol->getSymName()).Contains(mts))
-      continue; //wrong name
+    if (lev >= 0 && vol->countParents() != lev) {
+      continue;
+    } // wrong level
+    if (!mts.IsNull() && !(syms = vol->getSymName()).Contains(mts)) {
+      continue;
+    } //wrong name
     vol->setFreeDOFPattern(pat);
   }
   //
@@ -632,15 +661,19 @@ void AlignableDetector::setDOFCondition(int dof, float condErr, int lev, const c
   TString mts = match, syms;
   for (int i = getNVolumes(); i--;) {
     AlignableVolume* vol = getVolume(i);
-    if (lev >= 0 && vol->countParents() != lev)
-      continue; // wrong level
-    if (!mts.IsNull() && !(syms = vol->getSymName()).Contains(mts))
-      continue; //wrong name
-    if (dof >= vol->getNDOFs())
+    if (lev >= 0 && vol->countParents() != lev) {
       continue;
+    } // wrong level
+    if (!mts.IsNull() && !(syms = vol->getSymName()).Contains(mts)) {
+      continue;
+    } //wrong name
+    if (dof >= vol->getNDOFs()) {
+      continue;
+    }
     vol->setParErr(dof, condErr);
-    if (condErr >= 0 && !vol->isFreeDOF(dof))
+    if (condErr >= 0 && !vol->isFreeDOF(dof)) {
       vol->setFreeDOF(dof);
+    }
     //if (condErr<0  && vol->isFreeDOF(dof)) vol->fixDOF(dof);
   }
   //
@@ -657,18 +690,21 @@ void AlignableDetector::constrainOrphans(const double* sigma, const char* match)
   TString mts = match, syms;
   GeometricalConstraint* constr = new GeometricalConstraint();
   for (int i = 0; i < AlignableVolume::kNDOFGeom; i++) {
-    if (sigma[i] >= 0)
+    if (sigma[i] >= 0) {
       constr->constrainDOF(i);
-    else
+    } else {
       constr->unConstrainDOF(i);
+    }
     constr->setSigma(i, sigma[i]);
   }
   for (int i = getNVolumes(); i--;) {
     AlignableVolume* vol = getVolume(i);
-    if (vol->getParent())
-      continue; // wrong level
-    if (!mts.IsNull() && !(syms = vol->getSymName()).Contains(mts))
-      continue; //wrong name
+    if (vol->getParent()) {
+      continue;
+    } // wrong level
+    if (!mts.IsNull() && !(syms = vol->getSymName()).Contains(mts)) {
+      continue;
+    } //wrong name
     constr->addChild(vol);
   }
   //
@@ -716,8 +752,9 @@ void AlignableDetector::calcFree(bool condFix)
   mNCalibDOFFree = 0;
   for (int i = 0; i < mNCalibDOF; i++) {
     if (!isFreeDOF(i)) {
-      if (condFix)
+      if (condFix) {
         setParErr(i, -999);
+      }
       continue;
     }
     mNCalibDOFFree++;
@@ -729,8 +766,9 @@ void AlignableDetector::calcFree(bool condFix)
 void AlignableDetector::fillDOFStat(DOFStatistics* st) const
 {
   // fill statistics info hist
-  if (!st)
+  if (!st) {
     return;
+  }
   int ndf = getNCalibDOFs();
   int dof0 = getFirstParGloID();
   int stat = getNProcessedPoints();

@@ -118,8 +118,8 @@ class Controller : public TObject
   };
 
   //
-  Controller(const char* configMacro = 0, int refRun = -1);
-  virtual ~Controller();
+  Controller(const char* configMacro = nullptr, int refRun = -1);
+  ~Controller() final;
   //  bool LoadRefOCDB(); FIXME(milettri): needs OCDB
   //  bool LoadRecoTimeOCDB(); FIXME(milettri): needs OCDB
   bool getUseRecoOCDB() const { return mUseRecoOCDB; }
@@ -141,7 +141,7 @@ class Controller : public TObject
 
   void assignDOFs();
   //
-  void addDetector(uint32_t id, AlignableDetector* det = 0);
+  void addDetector(uint32_t id, AlignableDetector* det = nullptr);
   void addDetector(AlignableDetector* det);
   //
   void addConstraint(const GeometricalConstraint* cs) { mConstraints.AddLast((TObject*)cs); }
@@ -258,7 +258,14 @@ class Controller : public TObject
   bool addVertexConstraint();
   int getNDetectors() const { return mNDet; }
   AlignableDetector* getDetector(int i) const { return mDetectors[i]; }
-  AlignableDetector* getDetectorByDetID(int i) const { return mDetPos[i] < 0 ? 0 : mDetectors[mDetPos[i]]; }
+  AlignableDetector* getDetectorByDetID(int i) const
+  {
+    if (mDetPos[i] < 0) {
+      return nullptr;
+    } else {
+      return mDetectors[mDetPos[i]];
+    }
+  }
   AlignableDetector* getDetectorByVolID(int id) const;
   EventVertex* getVertexSensor() const { return mVtxSens; }
   //
@@ -274,8 +281,8 @@ class Controller : public TObject
   void setMPSteerFileName(const char* name = "mpSteer.txt");
   void setResidFileName(const char* name = "mpControlRes.root");
   void setOutCDBPath(const char* name = "local://outOCDB");
-  void setOutCDBComment(const char* cm = 0) { mOutCDBComment = cm; }
-  void setOutCDBResponsible(const char* v = 0) { mOutCDBResponsible = v; }
+  void setOutCDBComment(const char* cm = nullptr) { mOutCDBComment = cm; }
+  void setOutCDBResponsible(const char* v = nullptr) { mOutCDBResponsible = v; }
   //  void SetOutCDBRunRange(int rmin = 0, int rmax = 999999999); FIXME(milettri): needs OCDB
   int* getOutCDBRunRange() const { return (int*)mOutCDBRunRange; }
   int getOutCDBRunMin() const { return mOutCDBRunRange[0]; }
@@ -300,24 +307,27 @@ class Controller : public TObject
   void setMPOutType(int t) { mMPOutType = t; }
   void produceMPData(bool v = true)
   {
-    if (v)
+    if (v) {
       mMPOutType |= kMille;
-    else
+    } else {
       mMPOutType &= ~kMille;
+    }
   }
   void produceMPRecord(bool v = true)
   {
-    if (v)
+    if (v) {
       mMPOutType |= kMPRec;
-    else
+    } else {
       mMPOutType &= ~kMPRec;
+    }
   }
   void produceControlRes(bool v = true)
   {
-    if (v)
+    if (v) {
       mMPOutType |= kContR;
-    else
+    } else {
       mMPOutType &= ~kContR;
+    }
   }
   int getMPOutType() const { return mMPOutType; }
   bool getDoKalmanResid() const { return mDoKalmanResid; }
@@ -337,12 +347,12 @@ class Controller : public TObject
   //
   void genPedeSteerFile(const Option_t* opt = "") const;
   void writePedeConstraints() const;
-  void checkConstraints(const char* params = 0);
+  void checkConstraints(const char* params = nullptr);
   DOFStatistics* GetDOFStat() const { return mDOFStat; }
   void setDOFStat(DOFStatistics* st) { mDOFStat = st; }
-  void detachDOFStat() { setDOFStat(0); }
+  void detachDOFStat() { setDOFStat(nullptr); }
   TH1* getHistoStat() const { return mHistoStat; }
-  void detachHistoStat() { setHistoStat(0); }
+  void detachHistoStat() { setHistoStat(nullptr); }
   void setHistoStat(TH1F* h) { mHistoStat = h; }
   void fillStatHisto(int type, float w = 1);
   void createStatHisto();
@@ -360,7 +370,7 @@ class Controller : public TObject
   const char* getRecoOCDBConfigMacro() const { return mRecoOCDBConf.Data(); }
   int getRefOCDBLoaded() const { return mRefOCDBLoaded; }
   //
-  virtual void Print(const Option_t* opt = "") const;
+  void Print(const Option_t* opt = "") const final;
   void printLabels() const;
   Char_t* getDOFLabelTxt(int idf) const;
   //
@@ -373,7 +383,7 @@ class Controller : public TObject
   //
   // fast check of solution using derivatives
   void checkSol(TTree* mpRecTree, bool store = true, bool verbose = false, bool loc = true, const char* outName = "resFast");
-  bool checkSol(Millepede2Record* rec, ResidualsControllerFast* rLG = 0, ResidualsControllerFast* rL = 0, bool verbose = true, bool loc = true);
+  bool checkSol(Millepede2Record* rec, ResidualsControllerFast* rLG = nullptr, ResidualsControllerFast* rL = nullptr, bool verbose = true, bool loc = true);
   //
  protected:
   //
