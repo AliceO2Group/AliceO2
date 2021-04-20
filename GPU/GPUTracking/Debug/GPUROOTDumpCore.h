@@ -41,12 +41,15 @@ class GPUROOTDumpCore
 #if !defined(GPUCA_NO_ROOT) && !defined(GPUCA_GPUCODE)
   friend class GPUReconstruction;
   friend class GPUROOTDumpBase;
-  //template <class T> friend class GPUROOTDump;
+
+ private:
+  struct GPUROOTDumpCorePrivate {
+  };
 
  public:
   GPUROOTDumpCore(const GPUROOTDumpCore&) = delete;
   GPUROOTDumpCore operator=(const GPUROOTDumpCore&) = delete;
-  GPUROOTDumpCore(); // Public since used with new, but should not be created manually.
+  GPUROOTDumpCore(GPUROOTDumpCorePrivate); // Cannot be declared private directly since used with new
   ~GPUROOTDumpCore();
 
  private:
