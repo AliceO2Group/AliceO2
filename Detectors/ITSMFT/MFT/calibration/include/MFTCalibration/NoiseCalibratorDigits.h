@@ -52,7 +52,7 @@ class NoiseCalibratorDigits
   const o2::itsmft::NoiseMap& getNoiseMap() const { return mNoiseMap; }
 
  private:
-  o2::itsmft::NoiseMap mNoiseMap{926};
+  o2::itsmft::NoiseMap mNoiseMap{936};
   float mProbabilityThreshold = 3e-6f;
   unsigned int mThreshold = 100;
   unsigned int mNumberOfStrobes = 0;
