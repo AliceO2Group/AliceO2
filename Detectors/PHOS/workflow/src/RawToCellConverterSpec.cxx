@@ -285,7 +285,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       auto currentTRUFlags = found3->second;
       bool is4x4Trigger = (*currentTRUFlags)[Mapping::NTRUReadoutChannels];
       for (Cell c : *currentTRUContainer) {
-        if ((*currentTRUFlags)[c.getAbsId()]) { //there is corresponding flag
+        if ((*currentTRUFlags)[c.getTRUId()]) { //there is corresponding flag
           if (is4x4Trigger) {
             c.setType(ChannelType_t::TRU4x4);
           } else {
@@ -326,7 +326,7 @@ void RawToCellConverterSpec::readTRUDigit(const std::vector<Bunch>& bunchlist, s
       timeBin++;
     }
   }
-  currentTRUContainer->emplace_back(absId, smax, tmax * 1.e-9, TRU2x2); //add TRU cells
+  currentTRUContainer->emplace_back(absId + 14337 + 1, smax, tmax * 1.e-9, TRU2x2); //add TRU cells
 }
 void RawToCellConverterSpec::readTRUFlags(short hwAddress, const std::vector<Bunch>& bunchlist, std::shared_ptr<std::bitset<Mapping::NTRUReadoutChannels + 2>>& currentTRUFlags)
 {
@@ -344,7 +344,7 @@ void RawToCellConverterSpec::readTRUFlags(short hwAddress, const std::vector<Bun
     short timeBin = b.getStartTime();
     const std::vector<uint16_t>& signal = b.getADC();
     // Loop over all the time steps in the signal
-    for (std::vector<uint16_t>::const_reverse_iterator it = signal.rbegin(); it != signal.rend(); ++it, ++timeBin) {
+    for (std::vector<uint16_t>::const_reverse_iterator it = signal.rbegin(); it != signal.rend(); it++, timeBin++) {
 
       // If bit 112 is 1, we are considering 4x4 algorithm
       if (hwAddress == Mapping::TRUFinalProductionChannel) {
