@@ -34,18 +34,12 @@ namespace align
 
 //_________________________________________________________
 AlignableSensor::AlignableSensor(const char* name, int vid, int iid)
-  : AlignableVolume(name, iid), mSID(0), mDet(0), mMatClAlg(), mMatClAlgReco()
+  : AlignableVolume(name, iid), mSID(0), mDet(nullptr), mMatClAlg(), mMatClAlgReco()
 {
   // def c-tor
   setVolID(vid);
   mAddError[0] = mAddError[1] = 0;
   mConstrChild = 0; // sensors don't have children
-}
-
-//_________________________________________________________
-AlignableSensor::~AlignableSensor()
-{
-  // d-tor
 }
 
 //_________________________________________________________
@@ -64,8 +58,9 @@ void AlignableSensor::dPosTraDParGeomLOC(const AlignmentPoint* pnt, double* deri
   //
   for (int ip = kNDOFGeom; ip--;) {
     //
-    if (!isFreeDOF(ip))
+    if (!isFreeDOF(ip)) {
       continue;
+    }
     //
     double var = kDelta[ip];
     delta[ip] -= var;
@@ -87,8 +82,9 @@ void AlignableSensor::dPosTraDParGeomLOC(const AlignmentPoint* pnt, double* deri
     //
     delta[ip] = 0;
     double* curd = deriv + ip * 3;
-    for (int i = 3; i--;)
+    for (int i = 3; i--;) {
       curd[i] = (8. * (pos2[i] - pos1[i]) - (pos3[i] - pos0[i])) / 6. / var;
+    }
   }
   //
 }
@@ -112,8 +108,9 @@ void AlignableSensor::dPosTraDParGeomLOC(const AlignmentPoint* pnt, double* deri
   //
   for (int ip = kNDOFGeom; ip--;) {
     //
-    if (!isFreeDOF(ip))
+    if (!isFreeDOF(ip)) {
       continue;
+    }
     //
     double var = kDelta[ip];
     delta[ip] -= var;
@@ -134,8 +131,9 @@ void AlignableSensor::dPosTraDParGeomLOC(const AlignmentPoint* pnt, double* deri
     //
     delta[ip] = 0;
     double* curd = deriv + ip * 3;
-    for (int i = 3; i--;)
+    for (int i = 3; i--;) {
       curd[i] = (8. * (pos2[i] - pos1[i]) - (pos3[i] - pos0[i])) / 6. / var;
+    }
   }
   //
 }
@@ -158,8 +156,9 @@ void AlignableSensor::dPosTraDParGeomTRA(const AlignmentPoint* pnt, double* deri
   //
   for (int ip = kNDOFGeom; ip--;) {
     //
-    if (!isFreeDOF(ip))
+    if (!isFreeDOF(ip)) {
       continue;
+    }
     //
     double var = kDelta[ip];
     delta[ip] -= var;
@@ -180,8 +179,9 @@ void AlignableSensor::dPosTraDParGeomTRA(const AlignmentPoint* pnt, double* deri
     //
     delta[ip] = 0;
     double* curd = deriv + ip * 3;
-    for (int i = 3; i--;)
+    for (int i = 3; i--;) {
       curd[i] = (8. * (pos2[i] - pos1[i]) - (pos3[i] - pos0[i])) / 6. / var;
+    }
   }
   //
 }
@@ -219,8 +219,9 @@ void AlignableSensor::dPosTraDParGeomTRA(const AlignmentPoint* pnt, double* deri
   //
   for (int ip = kNDOFGeom; ip--;) {
     //
-    if (!isFreeDOF(ip))
+    if (!isFreeDOF(ip)) {
       continue;
+    }
     //
     double var = kDelta[ip];
     delta[ip] -= var;
@@ -241,8 +242,9 @@ void AlignableSensor::dPosTraDParGeomTRA(const AlignmentPoint* pnt, double* deri
     //
     delta[ip] = 0;
     double* curd = deriv + ip * 3;
-    for (int i = 3; i--;)
+    for (int i = 3; i--;) {
       curd[i] = (8. * (pos2[i] - pos1[i]) - (pos3[i] - pos0[i])) / 6. / var;
+    }
   }
   //
 }
@@ -324,24 +326,28 @@ void AlignableSensor::Print(const Option_t* opt) const
          countParents(), getInternalID(), getSymName(), getVolID(), mX, mAlp,
          mAddError[0], mAddError[1], mNProcPoints);
   printf("     DOFs: Tot: %d (offs: %5d) Free: %d  Geom: %d {", mNDOFs, mFirstParGloID, mNDOFFree, mNDOFGeomFree);
-  for (int i = 0; i < kNDOFGeom; i++)
+  for (int i = 0; i < kNDOFGeom; i++) {
     printf("%d", isFreeDOF(i) ? 1 : 0);
+  }
   printf("} in %s frame\n", sFrameName[mVarFrame]);
   //
   //
   //
   if (opts.Contains("par") && mParVals) {
     printf("     Lb: ");
-    for (int i = 0; i < mNDOFs; i++)
+    for (int i = 0; i < mNDOFs; i++) {
       printf("%10d  ", getParLab(i));
+    }
     printf("\n");
     printf("     Vl: ");
-    for (int i = 0; i < mNDOFs; i++)
+    for (int i = 0; i < mNDOFs; i++) {
       printf("%+9.3e  ", getParVal(i));
+    }
     printf("\n");
     printf("     Er: ");
-    for (int i = 0; i < mNDOFs; i++)
+    for (int i = 0; i < mNDOFs; i++) {
       printf("%+9.3e  ", getParErr(i));
+    }
     printf("\n");
   }
   //
@@ -424,8 +430,9 @@ void AlignableSensor::dPosTraDParCalib(const AlignmentPoint* pnt, double* deriv,
 int AlignableSensor::finalizeStat(DOFStatistics* st)
 {
   // finalize statistics on processed points
-  if (st)
+  if (st) {
     fillDOFStat(st);
+  }
   return mNProcPoints;
 }
 

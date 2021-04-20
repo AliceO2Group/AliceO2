@@ -20,7 +20,7 @@
 #include "Framework/Logger.h"
 #include <TString.h>
 #include <TMath.h>
-#include <stdio.h>
+#include <cstdio>
 
 using namespace TMath;
 
@@ -33,11 +33,12 @@ namespace align
 
 //____________________________________
 ResidualsControllerFast::ResidualsControllerFast()
-  : mNPoints(0), mNMatSol(0), mNBook(0), mChi2(0), mChi2Ini(0), mD0(0), mD1(0), mSig0(0), mSig1(0), mVolID(0), mLabel(0), mSolMat(0), mMatErr(0)
+  : mNPoints(0), mNMatSol(0), mNBook(0), mChi2(0), mChi2Ini(0), mD0(nullptr), mD1(nullptr), mSig0(nullptr), mSig1(nullptr), mVolID(nullptr), mLabel(nullptr), mSolMat(nullptr), mMatErr(nullptr)
 {
   // def c-tor
-  for (int i = 5; i--;)
+  for (int i = 0; i < 5; ++i) {
     mTrCorr[i] = 0;
+  }
 }
 
 //________________________________________________
@@ -116,8 +117,9 @@ void ResidualsControllerFast::Print(const Option_t* /*opt*/) const
   }
   //
   printf("CorrETP: ");
-  for (int i = 0; i < 5; i++)
+  for (int i = 0; i < 5; i++) {
     printf("%+.3f ", mTrCorr[i]);
+  }
   printf("\n");
   printf("MatCorr (corr/sig:pull)\n");
   int nmp = mNMatSol / 4;

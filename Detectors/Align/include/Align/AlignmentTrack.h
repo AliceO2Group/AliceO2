@@ -62,7 +62,7 @@ class AlignmentTrack : public trackParam_t, public TObject
          kParQ2Pt
   };
   AlignmentTrack();
-  virtual ~AlignmentTrack();
+  ~AlignmentTrack() override = default;
   void defineDOFs();
   double getMass() const { return mMass; }
   double getMinX2X0Pt2Account() const { return mMinX2X0Pt2Account; }
@@ -76,16 +76,16 @@ class AlignmentTrack : public trackParam_t, public TObject
   int getInnerPointID() const { return mInnerPointID; }
   AlignmentPoint* getInnerPoint() const { return getPoint(mInnerPointID); }
   //
-  virtual void Clear(Option_t* opt = "");
-  virtual void Print(Option_t* opt = "") const;
+  void Clear(Option_t* opt = "") final;
+  void Print(Option_t* opt = "") const final;
   virtual void dumpCoordinates() const;
   //
   bool propagateToPoint(trackParam_t& tr, const AlignmentPoint* pnt, double maxStep, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT, track::TrackLTIntegral* tLT = nullptr);
   bool propagateParamToPoint(trackParam_t& tr, const AlignmentPoint* pnt, double maxStep = 3, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT);             // param only
   bool propagateParamToPoint(trackParam_t* trSet, int nTr, const AlignmentPoint* pnt, double maxStep = 3, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT); // params only
   //
-  bool calcResiduals(const double* params = 0);
-  bool calcResidDeriv(double* params = 0);
+  bool calcResiduals(const double* params = nullptr);
+  bool calcResidDeriv(double* params = nullptr);
   bool calcResidDerivGlo(AlignmentPoint* pnt);
   //
   bool isCosmic() const { return TestBit(kCosmicBit); }
@@ -215,15 +215,18 @@ inline void AlignmentTrack::setParams(trackParam_t* trSet, int ntr, double x, do
 {
   // set parames for multiple tracks (VECTORIZE THIS)
   if (!add) { // full parameter supplied
-    for (int itr = ntr; itr--;)
+    for (int itr = ntr; itr--;) {
       setParams(trSet[itr], x, alp, par, false);
+    }
     return;
   }
   params_t partr{0}; // par is a correction to reference parameter
-  for (int i = mNLocExtPar; i--;)
+  for (int i = mNLocExtPar; i--;) {
     partr[i] = getParam(i) + par[i];
-  for (int itr = ntr; itr--;)
+  }
+  for (int itr = ntr; itr--;) {
     setParams(trSet[itr], x, alp, partr.data(), false);
+  }
 }
 
 //____________________________________________________________________________________________

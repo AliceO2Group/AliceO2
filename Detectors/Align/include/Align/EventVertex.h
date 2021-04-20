@@ -43,18 +43,18 @@ class EventVertex : public AlignableSensor
   EventVertex();
   //
   void applyCorrection(double* vtx) const;
-  virtual bool isSensor() const { return true; }
+  bool isSensor() const final { return true; }
   //
   void setAlpha(double alp)
   {
     mAlp = alp;
     prepareMatrixT2L();
   }
-  virtual void prepareMatrixL2G(bool = 0) { mMatL2G.Clear(); }   // unit matrix
-  virtual void prepareMatrixL2GIdeal() { mMatL2GIdeal.Clear(); } // unit matrix
-  virtual void prepareMatrixT2L();
+  void prepareMatrixL2G(bool = 0) final { mMatL2G.Clear(); }   // unit matrix
+  void prepareMatrixL2GIdeal() final { mMatL2GIdeal.Clear(); } // unit matrix
+  void prepareMatrixT2L() final;
   //
-  //  virtual AlignmentPoint* TrackPoint2AlgPoint(int pntId, const AliTrackPointArray* trpArr, const AliESDtrack* t); FIXME(milettri): needs AliTrackPointArray, AliESDtrack
+  //  AlignmentPoint* TrackPoint2AlgPoint(int pntId, const AliTrackPointArray* trpArr, const AliESDtrack* t); FIXME(milettri): needs AliTrackPointArray, AliESDtrack
   //
  protected:
   EventVertex(const EventVertex&);

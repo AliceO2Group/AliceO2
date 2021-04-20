@@ -34,7 +34,7 @@ class ResidualsController : public TObject
          kKalmanDoneBit = BIT(16) };
   //
   ResidualsController();
-  virtual ~ResidualsController();
+  ~ResidualsController() final;
   //
   void setRun(int r) { mRun = r; }
   void setBz(float v) { mBz = v; }
@@ -101,8 +101,8 @@ class ResidualsController : public TObject
   //
   bool fillTrack(AlignmentTrack* trc, bool doKalman = kTRUE);
   void resize(int n);
-  virtual void Clear(const Option_t* opt = "");
-  virtual void Print(const Option_t* opt = "re") const;
+  void Clear(const Option_t* opt = "") final;
+  void Print(const Option_t* opt = "re") const final;
   //
  protected:
   //

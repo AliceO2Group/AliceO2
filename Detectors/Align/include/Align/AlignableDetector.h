@@ -18,7 +18,7 @@
 
 #include <TNamed.h>
 #include <TObjArray.h>
-#include <stdio.h>
+#include <cstdio>
 #include "Align/utils.h"
 #include "Align/AlignmentTrack.h"
 #include "Align/DOFStatistics.h"
@@ -46,7 +46,7 @@ class AlignableDetector : public TNamed
   //
   AlignableDetector();
   AlignableDetector(const char* name, const char* title = "", int id = -1) : TNamed(name, title) { SetUniqueID(id); };
-  virtual ~AlignableDetector();
+  ~AlignableDetector() override;
   int getDetID() const { return GetUniqueID(); }
   detectors::DetID getO2DetID() const { return detectors::DetID(GetUniqueID()); };
   void setDetID(uint32_t tp);
@@ -74,7 +74,7 @@ class AlignableDetector : public TNamed
   AlignableSensor* getSensorByVolId(int vid) const
   {
     int sid = volID2SID(vid);
-    return sid < 0 ? 0 : getSensor(sid);
+    return sid < 0 ? nullptr : getSensor(sid);
   }
   AlignableSensor* getSensor(const char* symname) const { return (AlignableSensor*)mSensors.FindObject(symname); }
   AlignableVolume* getVolume(int id) const { return (AlignableVolume*)mVolumes.UncheckedAt(id); }
@@ -95,7 +95,7 @@ class AlignableDetector : public TNamed
   bool isCondDOF(int dof) const;
   uint64_t getFreeDOFPattern() const { return mCalibDOF; }
   int getNProcessedPoints() const { return mNProcPoints; }
-  virtual const char* getCalibDOFName(int) const { return 0; }
+  virtual const char* getCalibDOFName(int) const { return nullptr; }
   virtual double getCalibDOFVal(int) const { return 0; }
   virtual double getCalibDOFValWithCal(int) const { return 0; }
   //
@@ -103,11 +103,11 @@ class AlignableDetector : public TNamed
   virtual int assignDOFs();
   virtual void initDOFs();
   virtual void terminate();
-  void fillDOFStat(DOFStatistics* dofst = 0) const;
+  void fillDOFStat(DOFStatistics* dofst = nullptr) const;
   virtual void addVolume(AlignableVolume* vol);
   virtual void defineVolumes();
   virtual void defineMatrices();
-  virtual void Print(const Option_t* opt = "") const;
+  void Print(const Option_t* opt = "") const override;
   //  virtual int ProcessPoints(const AliESDtrack* esdTr, AlignmentTrack* algTrack, bool inv = false); FIXME(milettri): needs AliESDtrack
   virtual void updatePointByTrackInfo(AlignmentPoint* pnt, const trackParam_t* t) const;
   virtual void setUseErrorParam(int v = 0);
@@ -126,9 +126,9 @@ class AlignableDetector : public TNamed
   void setInitDOFsDone() { SetBit(kInitDOFsDone); }
   bool getInitDOFsDone() const { return TestBit(kInitDOFsDone); }
   void fixNonSensors();
-  void setFreeDOFPattern(uint32_t pat = 0xffffffff, int lev = -1, const char* match = 0);
-  void setDOFCondition(int dof, float condErr, int lev = -1, const char* match = 0);
-  int selectVolumes(TObjArray* arr, int lev = -1, const char* match = 0);
+  void setFreeDOFPattern(uint32_t pat = 0xffffffff, int lev = -1, const char* match = nullptr);
+  void setDOFCondition(int dof, float condErr, int lev = -1, const char* match = nullptr);
+  int selectVolumes(TObjArray* arr, int lev = -1, const char* match = nullptr);
   //
   int getNDOFs() const { return mNDOFs; }
   int getNCalibDOFs() const { return mNCalibDOF; }
@@ -174,7 +174,7 @@ class AlignableDetector : public TNamed
   void setObligatoryCosm(bool v = true) { setObligatory(utils::Cosm, v); }
   //
   void addAutoConstraints() const;
-  void constrainOrphans(const double* sigma, const char* match = 0);
+  void constrainOrphans(const double* sigma, const char* match = nullptr);
 
   virtual void writePedeInfo(FILE* parOut, const Option_t* opt = "") const;
   virtual void writeCalibrationResults() const;

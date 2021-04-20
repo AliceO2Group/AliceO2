@@ -28,7 +28,7 @@ namespace align
 
 //_____________________________________
 AlignmentPoint::AlignmentPoint()
-  : mMinLocVarID(0), mMaxLocVarID(0), mDetID(-1), mSID(-1), mAlphaSens(0), mXSens(0), mCosDiagErr(0), mSinDiagErr(0), mX2X0(0), mXTimesRho(0), mNGloDOFs(0), mDGloOffs(0), mSensor(0)
+  : mMinLocVarID(0), mMaxLocVarID(0), mDetID(-1), mSID(-1), mAlphaSens(0), mXSens(0), mCosDiagErr(0), mSinDiagErr(0), mX2X0(0), mXTimesRho(0), mNGloDOFs(0), mDGloOffs(0), mSensor(nullptr)
 {
   // def c-tor
   for (int i = 3; i--;) {
@@ -64,10 +64,11 @@ void AlignmentPoint::init()
       double dfd = 0.5 * (mErrYZTracking[2] - mErrYZTracking[0]);
       double phi = 0;
       // special treatment if errors are equal
-      if (Abs(dfd) < kDiagToler)
+      if (Abs(dfd) < kDiagToler) {
         phi = mErrYZTracking[1] > 0 ? (Pi() * 0.25) : (Pi() * 0.75);
-      else
+      } else {
         phi = 0.5 * ATan2(mErrYZTracking[1], dfd);
+      }
       //
       mCosDiagErr = Cos(phi);
       mSinDiagErr = Sin(phi);
@@ -102,10 +103,11 @@ void AlignmentPoint::Print(Option_t* opt) const
   opts.ToLower();
   printf("%cDet%d SID:%4d Alp:%+.3f X:%+9.4f Meas:%s Mat: ", isInvDir() ? '*' : ' ',
          getDetID(), getSID(), getAlphaSens(), getXSens(), containsMeasurement() ? "ON" : "OFF");
-  if (!containsMaterial())
+  if (!containsMaterial()) {
     printf("OFF\n");
-  else
+  } else {
     printf("x2X0: %.4f x*rho: %.4f | pars:[%3d:%3d)\n", getX2X0(), getXTimesRho(), getMinLocVarID(), getMaxLocVarID());
+  }
   //
   if (opts.Contains("meas") && containsMeasurement()) {
     printf("  MeasPnt: Xtr: %+9.4f Ytr: %+8.4f Ztr: %+9.4f | ErrYZ: %+e %+e %+e | %d DOFglo\n",
@@ -127,14 +129,16 @@ void AlignmentPoint::Print(Option_t* opt) const
       for (int i = 0; i < np; i++) {
         for (int j = 0; j <= i; j++) {
           double val = 0;
-          for (int k = np; k--;)
+          for (int k = np; k--;) {
             val += mMatDiag[i][k] * mMatDiag[j][k] * mMatCorrCov[k];
+          }
           int ij = (i * (i + 1) / 2) + j;
           covUndiag[ij] = val;
         }
       }
-      if (np < kNMatDOFs)
-        covUndiag[14] = mMatCorrCov[4]; // eloss was fixed
+      if (np < kNMatDOFs) {
+        covUndiag[14] = mMatCorrCov[4];
+      } // eloss was fixed
       printf("  MatCorr Cov in normal form:\n");
       printf("  %+e\n", covUndiag[0]);
       printf("  %+e %+e\n", covUndiag[1], covUndiag[2]);
@@ -148,22 +152,25 @@ void AlignmentPoint::Print(Option_t* opt) const
     printf("  Matrix for Mat.corr.errors diagonalization:\n");
     int npar = getNMatPar();
     for (int i = 0; i < npar; i++) {
-      for (int j = 0; j < npar; j++)
+      for (int j = 0; j < npar; j++) {
         printf("%+.4e ", mMatDiag[i][j]);
+      }
       printf("\n");
     }
   }
   //
   if (opts.Contains("wsa")) { // printf track state at this point stored during residuals calculation
     printf("  Local Track (A): ");
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 5; i++) {
       printf("%+.3e ", mTrParamWSA[i]);
+    }
     printf("\n");
   }
   if (opts.Contains("wsb")) { // printf track state at this point stored during residuals calculation
     printf("  Local Track (B): ");
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < 5; i++) {
       printf("%+.3e ", mTrParamWSB[i]);
+    }
     printf("\n");
   }
   //
@@ -217,7 +224,7 @@ void AlignmentPoint::Clear(Option_t*)
   mSID = -1;
   mNGloDOFs = 0;
   mDGloOffs = 0;
-  mSensor = 0;
+  mSensor = nullptr;
 }
 
 //__________________________________________________________________
@@ -233,13 +240,15 @@ int AlignmentPoint::Compare(const TObject* b) const
   if (!isInvDir()) {        // track propagates from low to large X via this point
     if (!pnt->isInvDir()) { // via this one also
       return x > xp ? -1 : 1;
-    } else
-      return -1;           // range points of lower leg 1st
+    } else {
+      return -1;
+    }                      // range points of lower leg 1st
   } else {                 // this point is from upper cosmic leg: track propagates from large to low X
     if (pnt->isInvDir()) { // this one also
       return x > xp ? 1 : -1;
-    } else
-      return 1; // other point is from lower leg
+    } else {
+      return 1;
+    } // other point is from lower leg
   }
   //
 }
@@ -279,9 +288,11 @@ void AlignmentPoint::setMatCovDiagonalizationMatrix(const TMatrixD& d)
   // save non-sym matrix for material corrections cov.matrix diagonalization
   // (actually, the eigenvectors are stored)
   int sz = d.GetNrows();
-  for (int i = sz; i--;)
-    for (int j = sz; j--;)
+  for (int i = sz; i--;) {
+    for (int j = sz; j--;) {
       mMatDiag[i][j] = d(i, j);
+    }
+  }
 }
 
 //__________________________________________________________________
@@ -290,8 +301,9 @@ void AlignmentPoint::setMatCovDiag(const TVectorD& v)
   // save material correction diagonalized matrix
   // (actually, the eigenvalues are stored w/o reordering them to correspond to the
   // AliExternalTrackParam variables)
-  for (int i = v.GetNrows(); i--;)
+  for (int i = v.GetNrows(); i--;) {
     mMatCorrCov[i] = v(i);
+  }
 }
 
 //__________________________________________________________________
@@ -302,8 +314,9 @@ void AlignmentPoint::unDiagMatCorr(const double* diag, double* nodiag) const
   int np = getNMatPar();
   for (int ip = np; ip--;) {
     double v = 0;
-    for (int jp = np; jp--;)
+    for (int jp = np; jp--;) {
       v += mMatDiag[ip][jp] * diag[jp];
+    }
     nodiag[ip] = v;
   }
   //
@@ -317,8 +330,9 @@ void AlignmentPoint::unDiagMatCorr(const float* diag, float* nodiag) const
   int np = getNMatPar();
   for (int ip = np; ip--;) {
     double v = 0;
-    for (int jp = np; jp--;)
+    for (int jp = np; jp--;) {
       v += double(mMatDiag[ip][jp]) * diag[jp];
+    }
     nodiag[ip] = v;
   }
   //
@@ -333,8 +347,9 @@ void AlignmentPoint::diagMatCorr(const double* nodiag, double* diag) const
   int np = getNMatPar();
   for (int ip = np; ip--;) {
     double v = 0;
-    for (int jp = np; jp--;)
+    for (int jp = np; jp--;) {
       v += mMatDiag[jp][ip] * nodiag[jp];
+    }
     diag[ip] = v;
   }
   //
@@ -349,8 +364,9 @@ void AlignmentPoint::diagMatCorr(const float* nodiag, float* diag) const
   int np = getNMatPar();
   for (int ip = np; ip--;) {
     double v = 0;
-    for (int jp = np; jp--;)
+    for (int jp = np; jp--;) {
       v += double(mMatDiag[jp][ip]) * nodiag[jp];
+    }
     diag[ip] = v;
   }
   //
