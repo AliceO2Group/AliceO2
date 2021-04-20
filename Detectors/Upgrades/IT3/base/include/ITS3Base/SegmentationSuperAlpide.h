@@ -105,7 +105,7 @@ class SegmentationSuperAlpide
 
   void print();
 
-  // ClassDefNV(SegmentationSuperAlpide, 1); // Segmentation class upgrade pixels
+  ClassDefNV(SegmentationSuperAlpide, 1); // Segmentation class upgrade pixels
 };
 
 inline void SegmentationSuperAlpide::localToDetectorUnchecked(float xRow, float zCol, int& iRow, int& iCol)
