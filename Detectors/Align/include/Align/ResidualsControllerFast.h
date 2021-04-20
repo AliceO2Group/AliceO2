@@ -30,7 +30,7 @@ class ResidualsControllerFast : public TObject
          kVertexBit = BIT(15) };
   //
   ResidualsControllerFast();
-  virtual ~ResidualsControllerFast();
+  ~ResidualsControllerFast() final;
   //
   void setNPoints(int n)
   {
@@ -75,8 +75,8 @@ class ResidualsControllerFast : public TObject
   void setLabel(int ip, int lab, int vol);
   //
   void resize(int n);
-  virtual void Clear(const Option_t* opt = "");
-  virtual void Print(const Option_t* opt = "") const;
+  void Clear(const Option_t* opt = "") final;
+  void Print(const Option_t* opt = "") const final;
   //
  protected:
   //

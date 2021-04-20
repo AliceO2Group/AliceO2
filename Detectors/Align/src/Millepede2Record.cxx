@@ -18,7 +18,7 @@
 #include "Align/AlignmentTrack.h"
 #include "Framework/Logger.h"
 #include <TMath.h>
-#include <stdio.h>
+#include <cstdio>
 
 using namespace TMath;
 using namespace o2::align::utils;
@@ -30,7 +30,7 @@ namespace align
 
 //_________________________________________________________
 Millepede2Record::Millepede2Record()
-  : mTrackID(0), mTimeStamp(0), mNResid(0), mNVarLoc(0), mNVarGlo(0), mNDLocTot(0), mNDGloTot(0), mNMeas(0), mChi2Ini(0), mQ2Pt(0), mTgl(0), mNDLoc(0), mNDGlo(0), mVolID(0), mResid(0), mResErr(0), mIDLoc(0), mIDGlo(0), mDLoc(0), mDGlo(0)
+  : mTrackID(0), mTimeStamp(0), mNResid(0), mNVarLoc(0), mNVarGlo(0), mNDLocTot(0), mNDGloTot(0), mNMeas(0), mChi2Ini(0), mQ2Pt(0), mTgl(0), mNDLoc(nullptr), mNDGlo(nullptr), mVolID(nullptr), mResid(nullptr), mResErr(nullptr), mIDLoc(nullptr), mIDGlo(nullptr), mDLoc(nullptr), mDGlo(nullptr)
     //
     ,
     mNResidBook(0),
@@ -59,8 +59,9 @@ Millepede2Record::~Millepede2Record()
 void Millepede2Record::dummyRecord(float res, float err, float dGlo, int labGlo)
 {
   // create dummy residuals record
-  if (!mNDGlo)
+  if (!mNDGlo) {
     resize(1, 1, 1);
+  }
   mChi2Ini = 0;
   mNMeas = 1;
   mNResid = 1;
@@ -129,8 +130,9 @@ bool Millepede2Record::fillTrack(const AlignmentTrack* trc, const int* id2Lab)
     if (pnt->containsMeasurement()) {
       int gloOffs = pnt->getDGloOffs(); // 1st entry of global derivatives for this point
       int nDGlo = pnt->getNGloDOFs();   // number of global derivatives (number of DOFs it depends on)
-      if (!pnt->isStatOK())
+      if (!pnt->isStatOK()) {
         pnt->incrementStat();
+      }
       //
       for (int idim = 0; idim < 2; idim++) { // 2 dimensional orthogonal measurement
         mNDGlo[mNResid] = 0;
@@ -144,8 +146,9 @@ bool Millepede2Record::fillTrack(const AlignmentTrack* trc, const int* id2Lab)
         const double* deriv = trc->getDResDLoc(idim, ip); // array of Dresidual/Dparams_loc
         int nnon0 = 0;
         for (int j = 0; j < nParETP; j++) { // derivatives over reference track parameters
-          if (isZeroAbs(deriv[j]))
+          if (isZeroAbs(deriv[j])) {
             continue;
+          }
           nnon0++;
           mDLoc[mNDLocTot] = deriv[j]; // store non-0 derivative
           mIDLoc[mNDLocTot] = j;       // and variable id
@@ -154,8 +157,9 @@ bool Millepede2Record::fillTrack(const AlignmentTrack* trc, const int* id2Lab)
         int lp0 = pnt->getMinLocVarID();  // point may depend on material variables starting from this one
         int lp1 = pnt->getMaxLocVarID();  // and up to this one (exclusive)
         for (int j = lp0; j < lp1; j++) { // derivatives over material variables
-          if (isZeroAbs(deriv[j]))
+          if (isZeroAbs(deriv[j])) {
             continue;
+          }
           nnon0++;
           mDLoc[mNDLocTot] = deriv[j]; // store non-0 derivative
           mIDLoc[mNDLocTot] = j;       // and variable id
@@ -169,8 +173,9 @@ bool Millepede2Record::fillTrack(const AlignmentTrack* trc, const int* id2Lab)
         deriv = trc->getDResDGlo(idim, gloOffs);
         const int* gloIDP = gloParID + gloOffs;
         for (int j = 0; j < nDGlo; j++) {
-          if (isZeroAbs(deriv[j]))
+          if (isZeroAbs(deriv[j])) {
             continue;
+          }
           nnon0++;
           mDGlo[mNDGloTot] = deriv[j];                                    // value of derivative
           mIDGlo[mNDGloTot] = id2Lab ? id2Lab[gloIDP[j]] : gloIDP[j] + 1; // global DOF ID
@@ -290,11 +295,13 @@ void Millepede2Record::Print(const Option_t*) const
       if (((id + 1) % kNColLoc) == 0) {
         printf("\n");
         eolOK = true;
-      } else
+      } else {
         eolOK = false;
+      }
     }
-    if (!eolOK)
+    if (!eolOK) {
       printf("\n");
+    }
     curLoc += ndloc;
     //
     //

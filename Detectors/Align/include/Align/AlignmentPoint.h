@@ -61,7 +61,7 @@ class AlignmentPoint : public TObject
          kZ };
   //
   AlignmentPoint();
-  virtual ~AlignmentPoint() {}
+  ~AlignmentPoint() override = default;
   //
   void init();
   void updatePointByTrackInfo(const trackParam_t* t);
@@ -118,15 +118,17 @@ class AlignmentPoint : public TObject
   void setXSens(double x) { mXSens = x; }
   void setXYZTracking(const double r[3])
   {
-    for (int i = 3; i--;)
+    for (int i = 3; i--;) {
       mXYZTracking[i] = r[i];
+    }
   }
   void setXYZTracking(double x, double y, double z);
   void setYZErrTracking(double sy2, double syz, double sz2);
   void setYZErrTracking(const double* err)
   {
-    for (int i = 3; i--;)
+    for (int i = 3; i--;) {
       mErrYZTracking[i] = err[i];
+    }
   }
   double getErrDiag(int i) const { return mErrDiag[i]; }
   //
@@ -138,13 +140,15 @@ class AlignmentPoint : public TObject
   void getTrWSB(trackParam_t& etp) const;
   void setTrParamWSA(const double* param)
   {
-    for (int i = 5; i--;)
+    for (int i = 5; i--;) {
       mTrParamWSA[i] = param[i];
+    }
   }
   void setTrParamWSB(const double* param)
   {
-    for (int i = 5; i--;)
+    for (int i = 5; i--;) {
       mTrParamWSB[i] = param[i];
+    }
   }
   double getResidY() const { return getTrParamWSA(kParY) - getYTracking(); }
   double getResidZ() const { return getTrParamWSA(kParZ) - getZTracking(); }
@@ -159,8 +163,9 @@ class AlignmentPoint : public TObject
   //
   void setMatCorrExp(double* p)
   {
-    for (int i = 5; i--;)
+    for (int i = 5; i--;) {
       mMatCorrExp[i] = p[i];
+    }
   }
   float* getMatCorrExp() const { return (float*)mMatCorrExp; }
   float* getMatCorrCov() const { return (float*)mMatCorrCov; }
@@ -177,12 +182,12 @@ class AlignmentPoint : public TObject
   void incrementStat();
   //
   virtual void dumpCoordinates() const;
-  virtual void Print(Option_t* option = "") const;
-  virtual void Clear(Option_t* option = "");
+  void Print(Option_t* option = "") const final;
+  void Clear(Option_t* option = "") final;
   //
  protected:
-  virtual bool IsSortable() const { return true; }
-  virtual int Compare(const TObject* a) const;
+  bool IsSortable() const final { return true; }
+  int Compare(const TObject* a) const final;
   //
   // ---------- dummies ----------
   AlignmentPoint(const AlignmentPoint&);

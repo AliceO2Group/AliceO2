@@ -31,7 +31,7 @@ class Millepede2Record : public TObject
   enum { kCosmicBit = BIT(14) };
   //
   Millepede2Record();
-  virtual ~Millepede2Record();
+  ~Millepede2Record() final;
   //
   int getRun() const { return GetUniqueID(); }
   void setRun(int r) { SetUniqueID(r); }
@@ -64,13 +64,13 @@ class Millepede2Record : public TObject
   const int16_t* getArrLabLoc() const { return mIDLoc; }
   const int* getArrLabGlo() const { return mIDGlo; }
   //
-  bool fillTrack(const AlignmentTrack* trc, const int* id2Lab = 0);
+  bool fillTrack(const AlignmentTrack* trc, const int* id2Lab = nullptr);
   void dummyRecord(float res, float err, float dGlo, int labGlo);
   //
   void resize(int nresid, int nloc, int nglo);
   //
-  virtual void Clear(const Option_t* opt = "");
-  virtual void Print(const Option_t* opt = "") const;
+  void Clear(const Option_t* opt = "") final;
+  void Print(const Option_t* opt = "") const final;
   //
  protected:
   //

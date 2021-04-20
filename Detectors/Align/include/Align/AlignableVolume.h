@@ -64,8 +64,8 @@ class AlignableVolume : public TNamed
          kExclFromParentConstraintBit = BIT(16) };
   enum { kDefChildConstr = 0xff };
   //
-  AlignableVolume(const char* symname = 0, int iid = 0);
-  virtual ~AlignableVolume();
+  AlignableVolume(const char* symname = nullptr, int iid = 0);
+  ~AlignableVolume() override;
   //
   const char* getSymName() const { return GetName(); }
   //
@@ -115,20 +115,21 @@ class AlignableVolume : public TNamed
   void setParent(AlignableVolume* par)
   {
     mParent = par;
-    if (par)
+    if (par) {
       par->addChild(this);
+    }
   }
   int countParents() const;
   //
   int getNChildren() const { return mChildren ? mChildren->GetEntriesFast() : 0; }
-  AlignableVolume* getChild(int i) const { return mChildren ? (AlignableVolume*)mChildren->UncheckedAt(i) : 0; }
+  AlignableVolume* getChild(int i) const { return mChildren ? (AlignableVolume*)mChildren->UncheckedAt(i) : nullptr; }
   virtual void addChild(AlignableVolume* ch);
   //
   double getXTracking() const { return mX; }
   double getAlpTracking() const { return mAlp; }
   //
   int getNProcessedPoints() const { return mNProcPoints; }
-  virtual int finalizeStat(DOFStatistics* h = 0);
+  virtual int finalizeStat(DOFStatistics* h = nullptr);
   void fillDOFStat(DOFStatistics* h) const;
   //
   float* getParVals() const { return mParVals; }
@@ -137,8 +138,9 @@ class AlignableVolume : public TNamed
   int getParLab(int par) const { return mParLabs[par]; }
   void getParValGeom(double* delta) const
   {
-    for (int i = kNDOFGeom; i--;)
+    for (int i = kNDOFGeom; i--;) {
       delta[i] = mParVals[i];
+    }
   }
   //
   void setParVals(int npar, double* vl, double* er);
@@ -204,10 +206,10 @@ class AlignableVolume : public TNamed
   virtual bool isSensor() const { return false; }
   //
   virtual const char* getDOFName(int i) const;
-  virtual void Print(const Option_t* opt = "") const;
+  void Print(const Option_t* opt = "") const override;
   virtual void writePedeInfo(FILE* parOut, const Option_t* opt = "") const;
   //
-  static const char* getGeomDOFName(int i) { return i < kNDOFGeom ? sDOFName[i] : 0; }
+  static const char* getGeomDOFName(int i) { return i < kNDOFGeom ? sDOFName[i] : nullptr; }
   static void setDefGeomFree(uint8_t patt) { sDefGeomFree = patt; }
   static uint8_t getDefGeomFree() { return sDefGeomFree; }
   //

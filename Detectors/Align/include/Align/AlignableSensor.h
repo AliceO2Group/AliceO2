@@ -39,10 +39,10 @@ class AlignableSensor : public AlignableVolume
 {
  public:
   //
-  AlignableSensor(const char* name = 0, int vid = 0, int iid = 0);
-  virtual ~AlignableSensor();
+  AlignableSensor(const char* name = nullptr, int vid = 0, int iid = 0);
+  ~AlignableSensor() override = default;
   //
-  virtual void addChild(AlignableVolume*);
+  void addChild(AlignableVolume*) override;
   //
   void setDetector(AlignableDetector* det) { mDet = det; }
   AlignableDetector* getDetector() const { return mDet; }
@@ -53,8 +53,8 @@ class AlignableSensor : public AlignableVolume
   void incrementStat() { mNProcPoints++; }
   //
   // derivatives calculation
-  virtual void dPosTraDParCalib(const AlignmentPoint* pnt, double* deriv, int calibID, const AlignableVolume* parent = 0) const;
-  virtual void dPosTraDParGeom(const AlignmentPoint* pnt, double* deriv, const AlignableVolume* parent = 0) const;
+  virtual void dPosTraDParCalib(const AlignmentPoint* pnt, double* deriv, int calibID, const AlignableVolume* parent = nullptr) const;
+  virtual void dPosTraDParGeom(const AlignmentPoint* pnt, double* deriv, const AlignableVolume* parent = nullptr) const;
   //
   virtual void dPosTraDParGeomLOC(const AlignmentPoint* pnt, double* deriv) const;
   virtual void dPosTraDParGeomTRA(const AlignmentPoint* pnt, double* deriv) const;
@@ -73,18 +73,18 @@ class AlignableSensor : public AlignableVolume
   }
   const double* getAddError() const { return mAddError; }
   //
-  virtual void prepareMatrixT2L();
+  void prepareMatrixT2L() override;
   //
-  virtual void setTrackingFrame();
-  virtual bool isSensor() const { return true; }
-  virtual void Print(const Option_t* opt = "") const;
+  void setTrackingFrame() override;
+  bool isSensor() const override { return true; }
+  void Print(const Option_t* opt = "") const override;
   //
   virtual void updatePointByTrackInfo(AlignmentPoint* pnt, const trackParam_t* t) const;
-  virtual void updateL2GRecoMatrices(const TClonesArray* algArr, const TGeoHMatrix* cumulDelta);
+  void updateL2GRecoMatrices(const TClonesArray* algArr, const TGeoHMatrix* cumulDelta) override;
   //
   //  virtual AlignmentPoint* TrackPoint2AlgPoint(int pntId, const AliTrackPointArray* trpArr, const AliESDtrack* t) = 0; TODO(milettri): needs AliTrackPointArray AliESDtrack
   //
-  virtual int finalizeStat(DOFStatistics* h = 0);
+  int finalizeStat(DOFStatistics* h = nullptr) override;
   //
   virtual void prepareMatrixClAlg();
   virtual void prepareMatrixClAlgReco();
@@ -95,8 +95,8 @@ class AlignableSensor : public AlignableVolume
   //
  protected:
   //
-  virtual bool IsSortable() const { return true; }
-  virtual int Compare(const TObject* a) const;
+  bool IsSortable() const override { return true; }
+  int Compare(const TObject* a) const override;
   //
   // --------- dummies -----------
   AlignableSensor(const AlignableSensor&);

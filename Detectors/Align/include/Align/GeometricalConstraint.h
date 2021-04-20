@@ -26,7 +26,7 @@
 #ifndef GEOMETRICALCONSTRAINT_H
 #define GEOMETRICALCONSTRAINT_H
 
-#include <stdio.h>
+#include <cstdio>
 #include <TNamed.h>
 #include <TObjArray.h>
 #include "Align/AlignableVolume.h"
@@ -42,8 +42,8 @@ class GeometricalConstraint : public TNamed
   enum { kNDOFGeom = AlignableVolume::kNDOFGeom };
   enum { kNoJacobianBit = BIT(14) };
   //
-  GeometricalConstraint(const char* name = 0, const char* title = 0);
-  virtual ~GeometricalConstraint();
+  GeometricalConstraint(const char* name = nullptr, const char* title = nullptr);
+  ~GeometricalConstraint() override;
   //
   void setParent(const AlignableVolume* par);
   const AlignableVolume* getParent() const { return mParent; }
@@ -52,8 +52,9 @@ class GeometricalConstraint : public TNamed
   AlignableVolume* getChild(int i) const { return (AlignableVolume*)mChildren[i]; }
   void addChild(const AlignableVolume* v)
   {
-    if (v)
+    if (v) {
       mChildren.AddLast((AlignableVolume*)v);
+    }
   }
   //
   bool isDOFConstrained(int dof) const { return mConstraint & 0x1 << dof; }
@@ -70,7 +71,7 @@ class GeometricalConstraint : public TNamed
   //
   void constrCoefGeom(const TGeoHMatrix& matRD, float* jac /*[kNDOFGeom][kNDOFGeom]*/) const;
   //
-  virtual void Print(const Option_t* opt = "") const;
+  void Print(const Option_t* opt = "") const final;
   virtual void writeChildrenConstraints(FILE* conOut) const;
   virtual void checkConstraint() const;
   virtual const char* getDOFName(int i) const { return AlignableVolume::getGeomDOFName(i); }

@@ -19,7 +19,7 @@
 #include "Framework/Logger.h"
 #include <TGeoMatrix.h>
 #include <TMath.h>
-#include <stdio.h>
+#include <cstdio>
 
 ClassImp(o2::align::GeometricalConstraint);
 
@@ -33,11 +33,12 @@ namespace align
 
 //___________________________________________________________________
 GeometricalConstraint::GeometricalConstraint(const char* name, const char* title)
-  : TNamed(name, title), mConstraint(0), mParent(0), mChildren(2)
+  : TNamed(name, title), mConstraint(0), mParent(nullptr), mChildren(2)
 {
   // def. c-tor
-  for (int i = kNDOFGeom; i--;)
+  for (int i = kNDOFGeom; i--;) {
     mSigma[i] = 0;
+  }
 }
 
 //___________________________________________________________________
@@ -53,10 +54,11 @@ void GeometricalConstraint::setParent(const AlignableVolume* par)
   mParent = par;
   TString nm = GetName();
   if (nm.IsNull()) {
-    if (par)
+    if (par) {
       SetNameTitle(par->getSymName(), "Automatic");
-    else
+    } else {
       SetNameTitle("GLOBAL", "Automatic");
+    }
   }
 }
 
@@ -85,10 +87,12 @@ void GeometricalConstraint::writeChildrenConstraints(FILE* conOut) const
   // in case of parent assigned use its matrix,
   // otherwise Alice global frame is assumed to be the parent -> Unit matrix
   if (mParent && doJac) {
-    if (mParent->isFrameTRA())
-      mParent->getMatrixT2G(mPar); // tracking to global
-    else
-      mPar = mParent->getMatrixL2GIdeal(); // local to global
+    if (mParent->isFrameTRA()) {
+      mParent->getMatrixT2G(mPar);
+    } // tracking to global
+    else {
+      mPar = mParent->getMatrixL2GIdeal();
+    } // local to global
     mPar = mPar.Inverse();
   }
   //
@@ -99,25 +103,29 @@ void GeometricalConstraint::writeChildrenConstraints(FILE* conOut) const
     //
     if (doJac) { // calculate jacobian
       TGeoHMatrix matRel;
-      if (child->isFrameTRA())
-        child->getMatrixT2G(matRel); // tracking to global
-      else
-        matRel = child->getMatrixL2GIdeal(); // local to global
+      if (child->isFrameTRA()) {
+        child->getMatrixT2G(matRel);
+      } // tracking to global
+      else {
+        matRel = child->getMatrixL2GIdeal();
+      } // local to global
       matRel.MultiplyLeft(&mPar);
       constrCoefGeom(matRel, jac);
       //
       for (int ics = 0; ics < kNDOFGeom; ics++) { // DOF of parent to be constrained
         for (int ip = 0; ip < kNDOFGeom; ip++) {  // count contributing DOFs
           float jv = jac[ics * kNDOFGeom + ip];
-          if (!isZeroAbs(jv) && child->isFreeDOF(ip) && child->getParErr(ip) >= 0)
+          if (!isZeroAbs(jv) && child->isFreeDOF(ip) && child->getParErr(ip) >= 0) {
             nContCh[ip]++;
+          }
         }
       }
     } else { // simple constraint on the sum of requested DOF
       //
       for (int ip = 0; ip < kNDOFGeom; ip++) {
-        if (child->isFreeDOF(ip) && child->getParErr(ip) >= 0)
+        if (child->isFreeDOF(ip) && child->getParErr(ip) >= 0) {
           nContCh[ip]++;
+        }
         jac[ip * kNDOFGeom + ip] = 1.;
       }
     }
@@ -125,8 +133,9 @@ void GeometricalConstraint::writeChildrenConstraints(FILE* conOut) const
   }
   //
   for (int ics = 0; ics < kNDOFGeom; ics++) {
-    if (!isDOFConstrained(ics))
+    if (!isDOFConstrained(ics)) {
       continue;
+    }
     int cmtStatus = nContCh[ics] > 0 ? kOff : kOn; // do we comment this constraint?
     //
     if (cmtStatus) {
@@ -142,21 +151,24 @@ void GeometricalConstraint::writeChildrenConstraints(FILE* conOut) const
     for (int ich = 0; ich < nch; ich++) { // contribution from this children DOFs to constraint
       AlignableVolume* child = getChild(ich);
       jac = cstrArr + kNDOFGeom * kNDOFGeom * ich;
-      if (cmtStatus)
-        fprintf(conOut, "%s", comment[cmtStatus]); // comment out contribution
+      if (cmtStatus) {
+        fprintf(conOut, "%s", comment[cmtStatus]);
+      } // comment out contribution
       // first write real constraints
       for (int ip = 0; ip < kNDOFGeom; ip++) {
         float jv = jac[ics * kNDOFGeom + ip];
-        if (child->isFreeDOF(ip) && !isZeroAbs(jv) && child->getParErr(ip) >= 0)
+        if (child->isFreeDOF(ip) && !isZeroAbs(jv) && child->getParErr(ip) >= 0) {
           fprintf(conOut, "%9d %+.3e\t", child->getParLab(ip), jv);
+        }
       } // loop over DOF's of children contributing to this constraint
       // now, after comment, write disabled constraints
       fprintf(conOut, "%s ", comment[kOn]);
       if (doJac) {
         for (int ip = 0; ip < kNDOFGeom; ip++) {
           float jv = jac[ics * kNDOFGeom + ip];
-          if (child->isFreeDOF(ip) && !isZeroAbs(jv) && child->getParErr(ip) >= 0)
+          if (child->isFreeDOF(ip) && !isZeroAbs(jv) && child->getParErr(ip) >= 0) {
             continue;
+          }
           fprintf(conOut, "%9d %+.3e\t", child->getParLab(ip), jv);
         } // loop over DOF's of children contributing to this constraint
       }
@@ -172,8 +184,9 @@ void GeometricalConstraint::checkConstraint() const
 {
   // check how the constraints are satysfied
   int nch = getNChildren();
-  if (!nch)
+  if (!nch) {
     return;
+  }
   //
   bool doJac = !getNoJacobian(); // do we need jacobian evaluation?
   float* cstrArr = new float[nch * kNDOFGeom * kNDOFGeom];
@@ -185,10 +198,12 @@ void GeometricalConstraint::checkConstraint() const
   // in case of parent assigned use its matrix,
   // otherwise Alice global frame is assumed to be the parent -> Unit matrix
   if (mParent && doJac) {
-    if (mParent->isFrameTRA())
-      mParent->getMatrixT2G(mPar); // tracking to global
-    else
-      mPar = mParent->getMatrixL2GIdeal(); // local to global
+    if (mParent->isFrameTRA()) {
+      mParent->getMatrixT2G(mPar);
+    } // tracking to global
+    else {
+      mPar = mParent->getMatrixL2GIdeal();
+    } // local to global
     mPar = mPar.Inverse();
   }
   //
@@ -198,25 +213,30 @@ void GeometricalConstraint::checkConstraint() const
   //
   printf("\n\n ----- Constraints Validation for %s %s ------\n", GetName(), GetTitle());
   printf(" chld| ");
-  for (int jp = 0; jp < kNDOFGeom; jp++)
+  for (int jp = 0; jp < kNDOFGeom; jp++) {
     printf("  %3s:%3s An/Ex  |", getDOFName(jp), isDOFConstrained(jp) ? "ON " : "OFF");
+  }
   printf(" | ");
-  for (int jp = 0; jp < kNDOFGeom; jp++)
+  for (int jp = 0; jp < kNDOFGeom; jp++) {
     printf("  D%3s   ", getDOFName(jp));
+  }
   printf(" ! %s\n", GetName());
   for (int ich = 0; ich < nch; ich++) {
     AlignableVolume* child = getChild(ich);
     double parsC[kNDOFGeom] = {0}, parsPAn[kNDOFGeom] = {0}, parsPEx[kNDOFGeom] = {0};
-    for (int jc = kNDOFGeom; jc--;)
-      parsC[jc] = child->getParVal(jc); // child params in child frame
+    for (int jc = kNDOFGeom; jc--;) {
+      parsC[jc] = child->getParVal(jc);
+    } // child params in child frame
     printf("#%3d | ", ich);
     //
     if (doJac) {
       TGeoHMatrix matRel;
-      if (child->isFrameTRA())
-        child->getMatrixT2G(matRel); // tracking to global
-      else
-        matRel = child->getMatrixL2GIdeal(); // local to global
+      if (child->isFrameTRA()) {
+        child->getMatrixT2G(matRel);
+      } // tracking to global
+      else {
+        matRel = child->getMatrixL2GIdeal();
+      } // local to global
       //
       matRel.MultiplyLeft(&mPar);
       constrCoefGeom(matRel, jac); // Jacobian for analytical constraint used by MillePeded
@@ -244,8 +264,9 @@ void GeometricalConstraint::checkConstraint() const
       //
       // analytically calculated child params in parent frame
       for (int jp = 0; jp < kNDOFGeom; jp++) {
-        for (int jc = 0; jc < kNDOFGeom; jc++)
+        for (int jc = 0; jc < kNDOFGeom; jc++) {
           parsPAn[jp] += jac[jp * kNDOFGeom + jc] * parsC[jc];
+        }
         parsTotAn[jp] += parsPAn[jp]; // analyticaly calculated total modification
         parsTotEx[jp] += parsPEx[jp]; // explicitly calculated total modification
         //
@@ -260,41 +281,48 @@ void GeometricalConstraint::checkConstraint() const
         if (acc) {
           printf("    %+.3e    ", parsC[jc]);
           parsTotAn[jc] += parsC[jc];
-        } else
-          printf(" /* %+.3e */ ", parsC[jc]); // just for info, not in the constraint
+        } else {
+          printf(" /* %+.3e */ ", parsC[jc]);
+        } // just for info, not in the constraint
       }
     }
     printf(" | ");
-    for (int jc = 0; jc < kNDOFGeom; jc++)
-      printf("%+.1e ", parsC[jc]); // child proper corrections
+    for (int jc = 0; jc < kNDOFGeom; jc++) {
+      printf("%+.1e ", parsC[jc]);
+    } // child proper corrections
     printf(" ! %s\n", child->getSymName());
   }
   //
   printf(" Tot | ");
   for (int jp = 0; jp < kNDOFGeom; jp++) {
-    if (doJac)
+    if (doJac) {
       printf("%+.1e/%+.1e ", parsTotAn[jp], parsTotEx[jp]);
-    else {
-      if (isDOFConstrained(jp))
+    } else {
+      if (isDOFConstrained(jp)) {
         printf("    %+.3e    ", parsTotAn[jp]);
-      else
+      } else {
         printf(" /* %+.3e */ ", parsTotAn[jp]);
+      }
     }
   }
   printf(" | ");
-  if (mParent)
-    for (int jp = 0; jp < kNDOFGeom; jp++)
-      printf("%+.1e ", mParent->getParVal(jp)); // parent proper corrections
-  else
+  if (mParent) {
+    for (int jp = 0; jp < kNDOFGeom; jp++) {
+      printf("%+.1e ", mParent->getParVal(jp));
+    }
+  } // parent proper corrections
+  else {
     printf(" no parent -> %s ", doJac ? "Global" : "Simple");
+  }
   printf(" ! <----- %s\n", GetName());
   //
   printf(" Sig | ");
   for (int jp = 0; jp < kNDOFGeom; jp++) {
-    if (isDOFConstrained(jp))
+    if (isDOFConstrained(jp)) {
       printf("    %+.3e    ", mSigma[jp]);
-    else
+    } else {
       printf(" /* %+.3e */ ", mSigma[jp]);
+    }
   }
   printf(" ! <----- \n");
 
@@ -378,12 +406,15 @@ void GeometricalConstraint::Print(const Option_t*) const
 {
   // print info
   printf("Constraint on ");
-  for (int i = 0; i < kNDOFGeom; i++)
-    if (isDOFConstrained(i))
+  for (int i = 0; i < kNDOFGeom; i++) {
+    if (isDOFConstrained(i)) {
       printf("%3s (Sig:%+e) ", getDOFName(i), getSigma(i));
+    }
+  }
   printf(" | %s %s\n", GetName(), GetTitle());
-  if (getNoJacobian())
+  if (getNoJacobian()) {
     printf("!!! This is explicit constraint on sum of DOFs (no Jacobian)!!!\n");
+  }
   for (int i = 0; i < getNChildren(); i++) {
     const AlignableVolume* child = getChild(i);
     printf("%3d %s\n", i, child->GetName());
