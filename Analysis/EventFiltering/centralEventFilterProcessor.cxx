@@ -143,8 +143,12 @@ void CentralEventFilterProcessor::run(ProcessingContext& pc)
 void CentralEventFilterProcessor::endOfStream(EndOfStreamContext& ec)
 {
   TFile output("trigger.root","recreate");
-  mScalers->Write();
-  mFiltered->Write();
+  mScalers->Write("Scalers");
+  mFiltered->Write("FilteredScalers");
+  mScalers->Scale(1./mScalers->GetBinContent(1));
+  mFiltered->Scale(1./mFiltered->GetBinContent(1));
+  mScalers->Write("Fractions");
+  mFiltered->Write("FractionsDownscaled");
   output.Close();
 }
 
