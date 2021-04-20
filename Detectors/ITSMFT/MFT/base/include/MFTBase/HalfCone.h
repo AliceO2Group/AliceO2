@@ -28,6 +28,10 @@ class HalfCone
 
  public:
   HalfCone();
+  void makeAirVentilation(TGeoVolumeAssembly* HalfConeVolume, Int_t half, Int_t signe);
+  void makeMotherBoards(TGeoVolumeAssembly* HalfConeVolume, Int_t half, Int_t signe, Double_t tyMB0, Double_t tyMB0_3, Double_t tzMB0);
+  void makeFlexCables(TGeoVolumeAssembly* HalfConeVolume, Int_t half, Int_t signe);
+  void makeReadoutCables(TGeoVolumeAssembly* HalfConeVolume, Int_t half, Int_t signe);
 
   ~HalfCone();
 
