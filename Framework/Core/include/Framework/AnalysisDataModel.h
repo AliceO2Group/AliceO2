@@ -490,6 +490,7 @@ DECLARE_SOA_COLUMN(HMPIDQMip, hmpidQMip, short);         //!
 } // namespace hmpid
 
 DECLARE_SOA_TABLE(HMPIDs, "AOD", "HMPID", //!
+                  o2::soa::Index<>,
                   hmpid::TrackId,
                   hmpid::HMPIDSignal,
                   hmpid::HMPIDDistance,
