@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file taskXic.cxx
-/// \brief Xic± analysis task
+/// \brief Ξc± analysis task
 /// \note Inspired from taskLc.cxx
 ///
 /// \author Mattia Faggin <mattia.faggin@cern.ch>, University and INFN PADOVA
@@ -18,13 +18,11 @@
 #include "Framework/HistogramRegistry.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
-#include "AnalysisCore/HFSelectorCuts.h"
 
 using namespace o2;
 using namespace o2::framework;
-using namespace o2::aod::hf_cand_prong3;
 using namespace o2::framework::expressions;
-using namespace o2::analysis;
+using namespace o2::aod::hf_cand_prong3;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
@@ -34,7 +32,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 #include "Framework/runDataProcessing.h"
 
-/// Xic± analysis task
+/// Ξc± analysis task
 struct TaskXic {
   HistogramRegistry registry{
     "registry",
@@ -45,7 +43,6 @@ struct TaskXic {
 
   Configurable<int> d_selectionFlagXic{"d_selectionFlagXic", 1, "Selection Flag for Xic"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
-
   Configurable<std::vector<double>> bins{"pTBins", std::vector<double>{hf_cuts_d0_topik::pTBins_v}, "pT bin limits"};
 
   void init(o2::framework::InitContext&)
@@ -67,15 +64,13 @@ struct TaskXic {
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_xic::isSelXicToPKPi >= d_selectionFlagXic || aod::hf_selcandidate_xic::isSelXicToPiKP >= d_selectionFlagXic);
 
-  //void process(aod::HfCandProng3 const& candidates)
   void process(soa::Filtered<soa::Join<aod::HfCandProng3, aod::HFSelXicToPKPiCandidate>> const& candidates)
   {
     for (auto& candidate : candidates) {
-      if (!(candidate.hfflag() & 1 << XicToPKPi)) {
+      if (!(candidate.hfflag() & 1 << DecayType::XicToPKPi)) {
         continue;
       }
       if (cutYCandMax >= 0. && std::abs(YXic(candidate)) > cutYCandMax) {
-        //Printf("Candidate: Y rejection: %g", YXic(candidate));
         continue;
       }
       if (candidate.isSelXicToPKPi() >= d_selectionFlagXic) {
@@ -131,19 +126,18 @@ struct TaskXicMC {
     // MC rec.
     //Printf("MC Candidates: %d", candidates.size());
     for (auto& candidate : candidates) {
-      if (!(candidate.hfflag() & 1 << XicToPKPi)) {
+      if (!(candidate.hfflag() & 1 << DecayType::XicToPKPi)) {
         continue;
       }
       if (cutYCandMax >= 0. && std::abs(YXic(candidate)) > cutYCandMax) {
-        //Printf("MC Rec.: Y rejection: %g", YXic(candidate));
         continue;
       }
-      if (std::abs(candidate.flagMCMatchRec()) == 1 << XicToPKPi) {
+      if (std::abs(candidate.flagMCMatchRec()) == 1 << DecayType::XicToPKPi) {
         // Get the corresponding MC particle.
-        auto indexMother = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandProng3MCGen>>(), pdg::code::kXiCPlus, true);
+        auto indexMother = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandProng3MCGen>>(), pdg::Code::kXiCPlus, true);
         auto particleMother = particlesMC.iteratorAt(indexMother);
-        registry.fill(HIST("hPtGenSig"), particleMother.pt()); //gen. level pT
-        registry.fill(HIST("hPtRecSig"), candidate.pt());      //rec. level pT
+        registry.fill(HIST("hPtGenSig"), particleMother.pt()); // gen. level pT
+        registry.fill(HIST("hPtRecSig"), candidate.pt());      // rec. level pT
         registry.fill(HIST("hCPARecSig"), candidate.cpa());
         registry.fill(HIST("hEtaRecSig"), candidate.eta());
       } else {
@@ -155,9 +149,8 @@ struct TaskXicMC {
     // MC gen.
     //Printf("MC Particles: %d", particlesMC.size());
     for (auto& particle : particlesMC) {
-      if (std::abs(particle.flagMCMatchGen()) == 1 << XicToPKPi) {
+      if (std::abs(particle.flagMCMatchGen()) == 1 << DecayType::XicToPKPi) {
         if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(particle.pdgCode()))) > cutYCandMax) {
-          //Printf("MC Gen.: Y rejection: %g", RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(particle.pdgCode())));
           continue;
         }
         registry.fill(HIST("hPtGen"), particle.pt());

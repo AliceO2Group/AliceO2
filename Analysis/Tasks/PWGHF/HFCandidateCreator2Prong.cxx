@@ -164,24 +164,24 @@ struct HFCandidateCreator2ProngMC {
 
       // D0(bar) → π± K∓
       //Printf("Checking D0(bar) → π± K∓");
-      indexRec = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, 421, array{+kPiPlus, -kKPlus}, true, &sign);
+      indexRec = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, pdg::Code::kD0, array{+kPiPlus, -kKPlus}, true, &sign);
       if (indexRec > -1) {
-        flag = sign * (1 << D0ToPiK);
+        flag = sign * (1 << DecayType::D0ToPiK);
       }
 
-      // J/ψ → e+ e-
+      // J/ψ → e+ e−
       if (flag == 0) {
-        //Printf("Checking J/ψ → e+ e-");
-        indexRec = RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), 443, array{+kElectron, -kElectron}, true);
+        //Printf("Checking J/ψ → e+ e−");
+        indexRec = RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), pdg::Code::kJpsi, array{+kElectron, -kElectron}, true);
         if (indexRec > -1) {
-          flag = 1 << JpsiToEE;
+          flag = 1 << DecayType::JpsiToEE;
         }
       }
 
       // Check whether the particle is non-prompt (from a b quark).
       if (flag != 0) {
         auto particle = particlesMC.iteratorAt(indexRec);
-        origin = (RecoDecay::getMother(particlesMC, particle, 5, true) > -1 ? NonPrompt : Prompt);
+        origin = (RecoDecay::getMother(particlesMC, particle, kBottom, true) > -1 ? OriginType::NonPrompt : OriginType::Prompt);
       }
 
       rowMCMatchRec(flag, origin);
@@ -195,21 +195,21 @@ struct HFCandidateCreator2ProngMC {
 
       // D0(bar) → π± K∓
       //Printf("Checking D0(bar) → π± K∓");
-      if (RecoDecay::isMatchedMCGen(particlesMC, particle, 421, array{+kPiPlus, -kKPlus}, true, &sign)) {
-        flag = sign * (1 << D0ToPiK);
+      if (RecoDecay::isMatchedMCGen(particlesMC, particle, pdg::Code::kD0, array{+kPiPlus, -kKPlus}, true, &sign)) {
+        flag = sign * (1 << DecayType::D0ToPiK);
       }
 
-      // J/ψ → e+ e-
+      // J/ψ → e+ e−
       if (flag == 0) {
-        //Printf("Checking J/ψ → e+ e-");
-        if (RecoDecay::isMatchedMCGen(particlesMC, particle, 443, array{+kElectron, -kElectron}, true)) {
-          flag = 1 << JpsiToEE;
+        //Printf("Checking J/ψ → e+ e−");
+        if (RecoDecay::isMatchedMCGen(particlesMC, particle, pdg::Code::kJpsi, array{+kElectron, -kElectron}, true)) {
+          flag = 1 << DecayType::JpsiToEE;
         }
       }
 
       // Check whether the particle is non-prompt (from a b quark).
       if (flag != 0) {
-        origin = (RecoDecay::getMother(particlesMC, particle, 5, true) > -1 ? NonPrompt : Prompt);
+        origin = (RecoDecay::getMother(particlesMC, particle, kBottom, true) > -1 ? OriginType::NonPrompt : OriginType::Prompt);
       }
 
       rowMCMatchGen(flag, origin);
