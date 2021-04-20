@@ -89,7 +89,7 @@ bool DigitWriterV1::write(std::ostream& out,
 
   std::vector<DigitD0> digitsd0;
   for (const auto& d : digits) {
-    digitsd0.push_back(DigitD0{d.getTime(), d.nofSamples(), d.getDetID(), d.getPadID(), d.getADC()});
+    digitsd0.push_back(DigitD0{d.getTime(), d.getNofSamples(), d.getDetID(), d.getPadID(), d.getADC()});
     digitsd0.back().setSaturated(d.isSaturated());
   }
   gsl::span<const DigitD0> d0(digitsd0);

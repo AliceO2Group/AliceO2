@@ -9,8 +9,6 @@
 // or submit itself to any jurisdiction.
 
 #include "DetectorsCommonDataFormats/NameConf.h"
-#include <sys/stat.h>
-#include <cstdlib>
 #include <fmt/format.h>
 #include <memory>
 
@@ -20,35 +18,23 @@ using DId = o2::detectors::DetID;
 // Check if the path exists
 bool NameConf::pathExists(const std::string_view p)
 {
-  struct stat buffer;
-  return (stat(p.data(), &buffer) == 0);
+  return o2::utils::pathExists(p);
 }
 
 // Check if the path is a directory
 bool NameConf::pathIsDirectory(const std::string_view p)
 {
-  struct stat buffer;
-  return (stat(p.data(), &buffer) == 0) && S_ISDIR(buffer.st_mode);
+  return o2::utils::pathIsDirectory(p);
 }
 
 std::string NameConf::getFullPath(const std::string_view p)
 {
-  std::unique_ptr<char[]> real_path(realpath(p.data(), nullptr));
-  return std::string(real_path.get());
+  return o2::utils::getFullPath(p);
 }
 
-void NameConf::rectifyDirectory(std::string& dir)
+std::string NameConf::rectifyDirectory(const std::string& _dir)
 {
-  if (dir.empty() || dir == "none") {
-    dir = "";
-  } else {
-    dir = o2::base::NameConf::getFullPath(dir);
-    if (!o2::base::NameConf::pathIsDirectory(dir)) {
-      throw std::runtime_error(fmt::format("{:s} is not an accessible directory", dir));
-    } else {
-      dir += '/';
-    }
-  }
+  return o2::utils::rectifyDirectory(_dir);
 }
 
 // Filename to store geometry file

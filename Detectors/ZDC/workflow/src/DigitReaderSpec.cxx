@@ -23,6 +23,7 @@
 #include "DataFormatsZDC/OrbitData.h"
 #include "DataFormatsZDC/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 
@@ -33,7 +34,8 @@ namespace zdc
 
 void DigitReader::init(InitContext& ic)
 {
-  auto filename = ic.options().get<std::string>("zdc-digit-infile");
+  auto filename = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                           ic.options().get<std::string>("zdc-digit-infile"));
   mFile = std::make_unique<TFile>(filename.c_str());
   if (!mFile->IsOpen()) {
     LOG(ERROR) << "Cannot open the " << filename.c_str() << " file !";
@@ -89,7 +91,8 @@ DataProcessorSpec getDigitReaderSpec(bool useMC)
     outputs,
     AlgorithmSpec{adaptFromTask<DigitReader>(useMC)},
     Options{
-      {"zdc-digit-infile", VariantType::String, "zdcdigits.root", {"Name of the input file"}}}};
+      {"zdc-digit-infile", VariantType::String, "zdcdigits.root", {"Name of the input file"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
 } // namespace zdc

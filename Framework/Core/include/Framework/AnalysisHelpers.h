@@ -117,7 +117,8 @@ struct Produces<soa::Table<C...>> : WritingCursor<typename soa::PackToTable<type
 /// Helper template for table transformations
 template <typename METADATA>
 struct TableTransform {
-  using SOURCES = typename METADATA::originals;
+  using SOURCES = typename METADATA::sources;
+  using ORIGINALS = typename METADATA::originals;
 
   using metadata = METADATA;
   using sources = SOURCES;
@@ -125,6 +126,11 @@ struct TableTransform {
   constexpr auto sources_pack() const
   {
     return SOURCES{};
+  }
+
+  constexpr auto originals_pack() const
+  {
+    return ORIGINALS{};
   }
 
   template <typename Oi>
@@ -283,8 +289,7 @@ struct IndexSparse {
 
     using rest_it_t = decltype(pack_from_tuple(iterators));
 
-    int32_t idx = -1;
-    auto setValue = [&](auto& x) -> bool {
+    auto setValue = [&](auto& x, int idx) -> bool {
       using type = std::decay_t<decltype(x)>;
       constexpr auto position = framework::has_type_at_v<type>(rest_it_t{});
 
@@ -309,10 +314,15 @@ struct IndexSparse {
 
     auto first = std::get<first_t>(tables);
     for (auto& row : first) {
-      idx = row.template getId<Key>();
+      auto idx = -1;
+      if constexpr (std::is_same_v<first_t, Key>) {
+        idx = row.globalIndex();
+      } else {
+        idx = row.template getId<Key>();
+      }
       std::apply(
         [&](auto&... x) {
-          (setValue(x), ...);
+          (setValue(x, idx), ...);
         },
         iterators);
 

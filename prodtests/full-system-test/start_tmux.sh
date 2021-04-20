@@ -12,7 +12,7 @@ source $MYDIR/setenv.sh
 export NGPUS=4
 export GPUTYPE=HIP
 export SHMSIZE=$(( 128 << 30 ))
-export DDSHMSIZE=$(( 64 << 10 ))
+export DDSHMSIZE=$(( 128 << 10 ))
 export GPUMEMSIZE=$(( 24 << 30 ))
 export NUMAGPUIDS=1
 export EXTINPUT=1

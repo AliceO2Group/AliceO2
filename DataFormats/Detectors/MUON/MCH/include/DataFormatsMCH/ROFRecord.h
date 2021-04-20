@@ -18,6 +18,9 @@
 
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/RangeReference.h"
+#include <ostream>
+
+#include <iosfwd>
 
 namespace o2
 {
@@ -51,12 +54,20 @@ class ROFRecord
   /// set the number of associated objects and the index of the first one
   void setDataRef(int firstIdx, int nEntries) { mDataRef.set(firstIdx, nEntries); }
 
+  bool operator==(const ROFRecord& other) const
+  {
+    return mBCData == other.mBCData &&
+           mDataRef == other.mDataRef;
+  }
+
  private:
   BCData mBCData{};   ///< interaction record
   DataRef mDataRef{}; ///< reference to the associated objects
 
   ClassDefNV(ROFRecord, 1);
 };
+
+std::ostream& operator<<(std::ostream& os, const ROFRecord& rof);
 
 } // namespace mch
 } // namespace o2

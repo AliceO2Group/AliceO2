@@ -16,8 +16,8 @@ if [ `which StfBuilder 2> /dev/null | wc -l` == "0" ]; then
   echo ERROR: StfBuilder is not in the path
   exit 1
 fi
-if [ `which readout.exe 2> /dev/null | wc -l` == "0" ]; then
-  echo ERROR: readout.exe is not in the path
+if [ `which o2-readout-exe 2> /dev/null | wc -l` == "0" ]; then
+  echo ERROR: o2-readout-exe is not in the path
   exit 1
 fi
 if [ "0$O2_ROOT" == "0" ]; then

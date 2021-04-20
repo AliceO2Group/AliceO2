@@ -14,6 +14,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "TPCWorkflow/TrackReaderSpec.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 
@@ -29,7 +30,8 @@ TrackReader::TrackReader(bool useMC)
 
 void TrackReader::init(InitContext& ic)
 {
-  mInputFileName = ic.options().get<std::string>("infile");
+  mInputFileName = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                            ic.options().get<std::string>("infile"));
   connectTree(mInputFileName);
 }
 
@@ -131,7 +133,8 @@ DataProcessorSpec getTPCTrackReaderSpec(bool useMC)
     outputSpec,
     AlgorithmSpec{adaptFromTask<TrackReader>(useMC)},
     Options{
-      {"infile", VariantType::String, "tpctracks.root", {"Name of the input track file"}}}};
+      {"infile", VariantType::String, "tpctracks.root", {"Name of the input track file"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
 } // namespace tpc
