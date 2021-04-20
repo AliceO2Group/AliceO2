@@ -12,7 +12,7 @@ fi
 
 pushd raw
 
-rm -Rf timeframe rdo_TF.cfg
+rm -Rf timeframe rdo_TF.cfg *.log
 if [ `ls | grep -v "^[A-Z0-9]\{3\}\$" | wc -l` != "0" ]; then
     echo Unexpected data in raw folder
     exit 1
@@ -56,7 +56,7 @@ if [ -d /proc/$STF_PID ]; then
 fi
 
 mv 20* timeframe
-rm -f readout.log stfbuilder.log
+rm -f *.log rdo_TF.cfg
 
 echo Done
 
