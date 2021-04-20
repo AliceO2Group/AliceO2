@@ -14,6 +14,7 @@
 #include "DigitFileFormat.h"
 #include <fmt/format.h>
 #include <memory>
+#include <vector>
 
 namespace o2::mch
 {
