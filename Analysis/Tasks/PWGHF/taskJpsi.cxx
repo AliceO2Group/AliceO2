@@ -14,18 +14,17 @@
 /// \author Gian Michele Innocenti <gian.michele.innocenti@cern.ch>, CERN
 /// \author Vít Kučera <vit.kucera@cern.ch>, CERN
 /// \author Biao Zhang <biao.zhang@cern.ch>, CCNU
+
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
-#include "AnalysisCore/HFSelectorCuts.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
 
 using namespace o2;
-using namespace o2::analysis;
-using namespace o2::analysis::hf_cuts_jpsi_toee;
 using namespace o2::framework;
-using namespace o2::aod::hf_cand_prong2;
 using namespace o2::framework::expressions;
+using namespace o2::aod::hf_cand_prong2;
+using namespace o2::analysis::hf_cuts_jpsi_toee;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
@@ -65,10 +64,9 @@ struct TaskJpsi {
   Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsiToEE >= d_selectionFlagJpsi);
 
   void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiToEECandidate>> const& candidates)
-  //  void process(aod::HfCandProng2 const& candidates)
   {
     for (auto& candidate : candidates) {
-      if (!(candidate.hfflag() & 1 << JpsiToEE)) {
+      if (!(candidate.hfflag() & 1 << DecayType::JpsiToEE)) {
         continue;
       }
       if (cutYCandMax >= 0. && std::abs(YJpsi(candidate)) > cutYCandMax) {
@@ -110,6 +108,7 @@ struct TaskJpsiMC {
 
   Configurable<int> d_selectionFlagJpsi{"d_selectionFlagJpsi", 1, "Selection Flag for Jpsi"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
+
   Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsiToEE >= d_selectionFlagJpsi);
 
   void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiToEECandidate, aod::HfCandProng2MCRec>> const& candidates,
@@ -118,19 +117,18 @@ struct TaskJpsiMC {
     // MC rec.
     //Printf("MC Candidates: %d", candidates.size());
     for (auto& candidate : candidates) {
-      if (!(candidate.hfflag() & 1 << JpsiToEE)) {
+      if (!(candidate.hfflag() & 1 << DecayType::JpsiToEE)) {
         continue;
       }
       if (cutYCandMax >= 0. && std::abs(YJpsi(candidate)) > cutYCandMax) {
-        //Printf("MC Rec.: Y rejection: %g", YJpsi(candidate));
         continue;
       }
-      if (candidate.flagMCMatchRec() == 1 << JpsiToEE) {
+      if (candidate.flagMCMatchRec() == 1 << DecayType::JpsiToEE) {
         //Get the corresponding MC particle.
         auto indexMother = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandProng2MCGen>>(), 443, true);
         auto particleMother = particlesMC.iteratorAt(indexMother);
-        registry.fill(HIST("hPtGenSig"), particleMother.pt()); //gen. level pT
-        registry.fill(HIST("hPtRecSig"), candidate.pt());      //rec. level pT
+        registry.fill(HIST("hPtGenSig"), particleMother.pt()); // gen. level pT
+        registry.fill(HIST("hPtRecSig"), candidate.pt());      // rec. level pT
         registry.fill(HIST("hCPARecSig"), candidate.cpa());
         registry.fill(HIST("hEtaRecSig"), candidate.eta());
       } else {
@@ -142,9 +140,8 @@ struct TaskJpsiMC {
     // MC gen.
     //Printf("MC Particles: %d", particlesMC.size());
     for (auto& particle : particlesMC) {
-      if (particle.flagMCMatchGen() == 1 << JpsiToEE) {
+      if (particle.flagMCMatchGen() == 1 << DecayType::JpsiToEE) {
         if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(particle.pdgCode()))) > cutYCandMax) {
-          //Printf("MC Gen.: Y rejection: %g", RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(particle.pdgCode())));
           continue;
         }
         registry.fill(HIST("hPtGen"), particle.pt());

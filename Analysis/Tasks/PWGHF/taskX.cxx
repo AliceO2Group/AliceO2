@@ -21,8 +21,8 @@
 
 using namespace o2;
 using namespace o2::framework;
-using namespace o2::aod::hf_cand_prong2;
 using namespace o2::framework::expressions;
+using namespace o2::aod::hf_cand_prong2;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
@@ -48,7 +48,7 @@ struct TaskX {
   void process(aod::Collision const&, aod::BigTracks const& tracks, soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiToEECandidate>> const& candidates)
   {
     for (auto& candidate : candidates) {
-      if (!(candidate.hfflag() & 1 << JpsiToEE)) {
+      if (!(candidate.hfflag() & 1 << DecayType::JpsiToEE)) {
         continue;
       }
       if (cutYCandMax >= 0. && std::abs(YJpsi(candidate)) > cutYCandMax) {

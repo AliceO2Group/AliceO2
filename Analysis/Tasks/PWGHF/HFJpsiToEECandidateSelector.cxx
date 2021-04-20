@@ -9,25 +9,23 @@
 // or submit itself to any jurisdiction.
 
 /// \file HFJpsiToEECandidateSelector.cxx
-/// \brief Jpsi selection task.
+/// \brief J/ψ → e+ e− selection task
+///
 /// \author Biao Zhang <biao.zhang@cern.ch>, CCNU
 /// \author Nima Zardoshti <nima.zardoshti@cern.ch>, CERN
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "AnalysisCore/HFSelectorCuts.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
+
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong2;
-using namespace o2::analysis;
 using namespace o2::analysis::hf_cuts_jpsi_toee;
 
-/// Struct for applying Jpsi selection cuts
-
+/// Struct for applying J/ψ → e+ e− selection cuts
 struct HFJpsiToEECandidateSelector {
-
   Produces<aod::HFSelJpsiToEECandidate> hfSelJpsiToEECandidate;
 
   Configurable<double> d_pTCandMin{"d_pTCandMin", 0., "Lower bound of candidate pT"};
@@ -54,7 +52,7 @@ struct HFJpsiToEECandidateSelector {
     return true;
   }
 
-  /// Conjugate independent toplogical cuts
+  /// Conjugate-independent topological cuts
   /// \param hfCandProng2 is candidate
   /// \param trackPositron is the track with the positron hypothesis
   /// \param trackElectron is the track with the electron hypothesis
@@ -72,17 +70,17 @@ struct HFJpsiToEECandidateSelector {
       return false; //check that the candidate pT is within the analysis range
     }
 
-    if (TMath::Abs(InvMassJpsiToEE(hfCandProng2) - RecoDecay::getMassPDG(pdg::code::kJpsi)) > cuts->get(pTBin, "m")) {
+    if (std::abs(InvMassJpsiToEE(hfCandProng2) - RecoDecay::getMassPDG(pdg::Code::kJpsi)) > cuts->get(pTBin, "m")) {
       return false;
     }
 
     if (trackElectron.pt() < cuts->get(pTBin, "pT El") || trackPositron.pt() < cuts->get(pTBin, "pT El")) {
       return false; //cut on daughter pT
     }
-    if (TMath::Abs(trackElectron.dcaPrim0()) > cuts->get(pTBin, "DCA_xy") || TMath::Abs(trackPositron.dcaPrim0()) > cuts->get(pTBin, "DCA_xy")) {
+    if (std::abs(trackElectron.dcaPrim0()) > cuts->get(pTBin, "DCA_xy") || std::abs(trackPositron.dcaPrim0()) > cuts->get(pTBin, "DCA_xy")) {
       return false; //cut on daughter dca - need to add secondary vertex constraint here
     }
-    if (TMath::Abs(trackElectron.dcaPrim1()) > cuts->get(pTBin, "DCA_z") || TMath::Abs(trackPositron.dcaPrim1()) > cuts->get(pTBin, "DCA_z")) {
+    if (std::abs(trackElectron.dcaPrim1()) > cuts->get(pTBin, "DCA_z") || std::abs(trackPositron.dcaPrim1()) > cuts->get(pTBin, "DCA_z")) {
       return false; //cut on daughter dca - need to add secondary vertex constraint here
     }
 
@@ -96,7 +94,7 @@ struct HFJpsiToEECandidateSelector {
   template <typename T>
   bool validTPCPID(const T& track)
   {
-    if (TMath::Abs(track.pt()) < d_pidTPCMinpT || TMath::Abs(track.pt()) >= d_pidTPCMaxpT) {
+    if (track.pt() < d_pidTPCMinpT || track.pt() >= d_pidTPCMaxpT) {
       return false;
     }
     //if (track.TPCNClsFindable() < d_TPCNClsFindablePIDCut) return false;
@@ -113,8 +111,9 @@ struct HFJpsiToEECandidateSelector {
     if (nSigmaCut > 999.) {
       return true;
     }
-    return track.tpcNSigmaEl() < nSigmaCut;
+    return std::abs(track.tpcNSigmaEl()) < nSigmaCut;
   }
+
   /// PID selection on daughter track
   /// \param track is the daughter track
   /// \return 1 if successful PID match, 0 if successful PID rejection, -1 if no PID info
@@ -133,6 +132,7 @@ struct HFJpsiToEECandidateSelector {
       return -1; //no PID info
     }
   }
+
   void process(aod::HfCandProng2 const& hfCandProng2s, aod::BigTracksPID const&)
   {
 
@@ -141,7 +141,7 @@ struct HFJpsiToEECandidateSelector {
       auto trackPos = hfCandProng2.index0_as<aod::BigTracksPID>(); //positive daughter
       auto trackNeg = hfCandProng2.index1_as<aod::BigTracksPID>(); //negative daughter
 
-      if (!(hfCandProng2.hfflag() & 1 << JpsiToEE)) {
+      if (!(hfCandProng2.hfflag() & 1 << DecayType::JpsiToEE)) {
         hfSelJpsiToEECandidate(0);
         continue;
       }

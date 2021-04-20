@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file HFXicToPKPiCandidateSelector.cxx
-/// \brief Xic->pKpi selection task.
+/// \brief Ξc± → p± K∓ π± selection task
 /// \note Inspired from HFLcCandidateSelector.cxx
 ///
 /// \author Mattia Faggin <mattia.faggin@cern.ch>, University and INFN PADOVA
@@ -23,7 +23,6 @@
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong3;
-using namespace o2::analysis;
 using namespace o2::analysis::hf_cuts_xic_topkpi;
 
 /// Struct for applying Xic selection cuts
@@ -63,7 +62,7 @@ struct HFXicToPKPiCandidateSelector {
     return true;
   }
 
-  /// Conjugate independent toplogical cuts
+  /// Conjugate-independent topological cuts
   /// \param hfCandProng3 is candidate
   /// \return true if candidate passes all cuts
   template <typename T>
@@ -93,7 +92,7 @@ struct HFXicToPKPiCandidateSelector {
     return true;
   }
 
-  /// Conjugate dependent toplogical cuts
+  /// Conjugate-dependent topological cuts
   /// \param hfCandProng3 is candidate
   /// \param trackProton is the track with the proton hypothesis
   /// \param trackPion is the track with the pion hypothesis
@@ -114,11 +113,11 @@ struct HFXicToPKPiCandidateSelector {
     }
 
     if (trackProton.globalIndex() == hfCandProng3.index0Id()) {
-      if (TMath::Abs(InvMassXicToPKPi(hfCandProng3) - RecoDecay::getMassPDG(pdg::code::kXiCPlus)) > cuts->get(pTBin, "m")) {
+      if (std::abs(InvMassXicToPKPi(hfCandProng3) - RecoDecay::getMassPDG(pdg::Code::kXiCPlus)) > cuts->get(pTBin, "m")) {
         return false;
       }
     } else {
-      if (TMath::Abs(InvMassXicToPiKP(hfCandProng3) - RecoDecay::getMassPDG(pdg::code::kXiCPlus)) > cuts->get(pTBin, "m")) {
+      if (std::abs(InvMassXicToPiKP(hfCandProng3) - RecoDecay::getMassPDG(pdg::Code::kXiCPlus)) > cuts->get(pTBin, "m")) {
         return false;
       }
     }
@@ -133,7 +132,7 @@ struct HFXicToPKPiCandidateSelector {
   template <typename T>
   bool validTPCPID(const T& track)
   {
-    if (TMath::Abs(track.pt()) < d_pidTPCMinpT || TMath::Abs(track.pt()) >= d_pidTPCMaxpT) {
+    if (track.pt() < d_pidTPCMinpT || track.pt() >= d_pidTPCMaxpT) {
       return false;
     }
     //if (track.TPCNClsFindable() < d_TPCNClsFindablePIDCut) return false;
@@ -147,7 +146,7 @@ struct HFXicToPKPiCandidateSelector {
   template <typename T>
   bool validTOFPID(const T& track)
   {
-    if (TMath::Abs(track.pt()) < d_pidTOFMinpT || TMath::Abs(track.pt()) >= d_pidTOFMaxpT) {
+    if (track.pt() < d_pidTOFMinpT || track.pt() >= d_pidTOFMaxpT) {
       return false;
     }
     return true;
@@ -163,7 +162,7 @@ struct HFXicToPKPiCandidateSelector {
   bool selectionPIDTPC(const T& track, int nPDG, int nSigmaCut)
   {
     double nSigma = 99.; //arbitarily large value
-    nPDG = TMath::Abs(nPDG);
+    nPDG = std::abs(nPDG);
     if (nPDG == kProton) {
       nSigma = track.tpcNSigmaPr();
     } else if (nPDG == kKPlus) {
@@ -174,7 +173,7 @@ struct HFXicToPKPiCandidateSelector {
       return false;
     }
 
-    return nSigma < nSigmaCut;
+    return std::abs(nSigma) < nSigmaCut;
   }
 
   /// Check if track is compatible with given TOF NSigma cut for a given flavour hypothesis
@@ -187,7 +186,7 @@ struct HFXicToPKPiCandidateSelector {
   bool selectionPIDTOF(const T& track, int nPDG, int nSigmaCut)
   {
     double nSigma = 99.; //arbitarily large value
-    nPDG = TMath::Abs(nPDG);
+    nPDG = std::abs(nPDG);
     if (nPDG == kProton) {
       nSigma = track.tofNSigmaPr();
     } else if (nPDG == kKPlus) {
@@ -198,7 +197,7 @@ struct HFXicToPKPiCandidateSelector {
       return false;
     }
 
-    return nSigma < nSigmaCut;
+    return std::abs(nSigma) < nSigmaCut;
   }
 
   /// PID selection on daughter track
@@ -260,11 +259,11 @@ struct HFXicToPKPiCandidateSelector {
       } else {
         statusTPC = 2; //positive PID
       }
-    } 
+    }
     else{
       statusTPC = -1; //no PID info
     }
-    
+
     /// TOF
     if (validTOFPID(track)) {
       if (!selectionPIDTOF(track, nPDG, d_nSigmaTOF)) {
@@ -300,7 +299,7 @@ struct HFXicToPKPiCandidateSelector {
       auto statusXicToPKPi = 0;
       auto statusXicToPiKP = 0;
 
-      if (!(hfCandProng3.hfflag() & 1 << XicToPKPi)) {
+      if (!(hfCandProng3.hfflag() & 1 << DecayType::XicToPKPi)) {
         hfSelXicToPKPiCandidate(statusXicToPKPi, statusXicToPiKP);
         continue;
       }
@@ -330,13 +329,13 @@ struct HFXicToPKPiCandidateSelector {
 
       //implement filter bit 4 cut - should be done before this task at the track selection level
 
-      //conjugate independent topological selection
+      //conjugate-independent topological selection
       if (!selectionTopol(hfCandProng3)) {
         hfSelXicToPKPiCandidate(statusXicToPKPi, statusXicToPiKP);
         continue;
       }
 
-      //conjugate dependent topplogical selection for Xic
+      //conjugate-dependent topplogical selection for Xic
 
       topolXicToPKPi = selectionTopolConjugate(hfCandProng3, trackPos1, trackNeg1, trackPos2);
       topolXicToPiKP = selectionTopolConjugate(hfCandProng3, trackPos2, trackNeg1, trackPos1);
