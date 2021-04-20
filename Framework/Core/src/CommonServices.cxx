@@ -195,7 +195,7 @@ o2::framework::ServiceSpec CommonServices::infologgerSpec()
                      [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
                        auto infoLoggerMode = options.GetPropertyAsString("infologger-mode");
                        if (infoLoggerMode != "") {
-                         setenv("INFOLOGGER_MODE", infoLoggerMode.c_str(), 1);
+                         setenv("O2_INFOLOGGER_MODE", infoLoggerMode.c_str(), 1);
                        }
                        auto infoLoggerService = new InfoLogger;
                        auto infoLoggerContext = &services.get<InfoLoggerContext>();
