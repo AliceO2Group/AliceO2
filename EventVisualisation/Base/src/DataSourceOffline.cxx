@@ -38,7 +38,12 @@ DataReader* DataSourceOffline::instance[EVisualisationGroup::NvisualisationGroup
 VisualisationEvent DataSourceOffline::getEventData(int no, EVisualisationGroup purpose, EVisualisationDataType dataType)
 {
   if (instance[purpose] == nullptr) {
-    return VisualisationEvent({.eventNumber = -1});
+    return VisualisationEvent({.eventNumber = -1,
+                               .runNumber = -1,
+                               .energy = -1,
+                               .multiplicity = -1,
+                               .collidingSystem = "",
+                               .timeStamp = 0});
   }
   return instance[purpose]->getEvent(no, dataType);
 }

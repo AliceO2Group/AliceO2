@@ -16,7 +16,6 @@
 #include "EventVisualisationDetectors/DataReaderJSON.h"
 
 #include <TTree.h>
-#include <TVector2.h>
 
 namespace o2
 {
@@ -36,7 +35,7 @@ void DataReaderJSON::open()
   }
 }
 
-VisualisationEvent DataReaderJSON::getEvent(int no, EVisualisationDataType dataType)
+VisualisationEvent DataReaderJSON::getEvent(int no, EVisualisationDataType /*dataType*/)
 {
   VisualisationEvent vEvent;
   vEvent.fromFile(VisualisationEvent::fileNameIndexed(this->mFileName, no));

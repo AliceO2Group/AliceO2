@@ -25,8 +25,6 @@
 #include <TEveTrackPropagator.h>
 #include <TGListTree.h>
 
-using namespace std;
-
 namespace o2
 {
 namespace event_visualisation
@@ -54,13 +52,6 @@ VisualisationEvent DataInterpreterVSD::interpretDataForType(TObject* data, EVisu
 
   this->AttachEvent();
 
-  int eventNumber;
-  int runNumber;
-  double energy;
-  int multiplicity;
-  std::string collidingSystem;
-  time_t timeStamp;
-
   VisualisationEvent ret_event({.eventNumber = 0,
                                 .runNumber = 0,
                                 .energy = 0,
@@ -69,11 +60,6 @@ VisualisationEvent DataInterpreterVSD::interpretDataForType(TObject* data, EVisu
                                 .timeStamp = 0});
 
   // Load event data into visualization structures.
-
-  //        this->LoadClusters(this->fITSClusters, "ITS", 0);
-  //        this->LoadClusters(this->fTPCClusters, "TPC", 1);
-  //        this->LoadClusters(this->fTRDClusters, "TRD", 2);
-  //        this->LoadClusters(this->fTOFClusters, "TOF", 3);
 
   if (type == ESD) {
     LoadEsdTracks(ret_event);

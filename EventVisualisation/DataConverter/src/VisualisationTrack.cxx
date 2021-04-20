@@ -123,7 +123,7 @@ rapidjson::Value VisualisationTrack::jsonTree(rapidjson::Document::AllocatorType
   source.SetInt(this->mSource);
   tree.AddMember("source", source, allocator);
 
-  for (int i = 0; i < this->getPointCount(); i++) {
+  for (size_t i = 0; i < this->getPointCount(); i++) {
     jsonPolyX.PushBack((float)mPolyX[i], allocator);
     jsonPolyY.PushBack((float)mPolyY[i], allocator);
     jsonPolyZ.PushBack((float)mPolyZ[i], allocator);

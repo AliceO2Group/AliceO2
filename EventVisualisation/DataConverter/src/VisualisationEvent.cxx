@@ -18,6 +18,9 @@
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
+
+#include <string>
+#include <sstream>
 #include <fstream>
 #include <iostream>
 #include <iomanip>
@@ -51,7 +54,7 @@ std::string VisualisationEvent::toJson()
   trackCount.SetInt(this->getTrackCount());
   tree.AddMember("trackCount", trackCount, allocator);
   Value jsonTracks(kArrayType);
-  for (int i = 0; i < this->getTrackCount(); i++)
+  for (size_t i = 0; i < this->getTrackCount(); i++)
     jsonTracks.PushBack(this->mTracks[i].jsonTree(allocator), allocator);
   tree.AddMember("mTracks", jsonTracks, allocator);
 
@@ -60,7 +63,7 @@ std::string VisualisationEvent::toJson()
   clusterCount.SetInt(this->getClusterCount());
   tree.AddMember("clusterCount", clusterCount, allocator);
   Value jsonClusters(kArrayType);
-  for (int i = 0; i < this->getClusterCount(); i++)
+  for (size_t i = 0; i < this->getClusterCount(); i++)
     jsonClusters.PushBack(this->mClusters[i].jsonTree(allocator), allocator);
   tree.AddMember("mClusters", jsonClusters, allocator);
 

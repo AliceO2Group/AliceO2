@@ -31,11 +31,6 @@ namespace o2
 namespace event_visualisation
 {
 
-enum ETrackSource {
-  CosmicSource,
-  TPCSource
-};
-
 /// Minimalistic description of particles track
 ///
 /// This class is used mainly for visualisation purpose.

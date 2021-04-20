@@ -28,7 +28,7 @@ namespace event_visualisation
 class DataReader
 {
   DataInterpreter* mInterpreter;
-  virtual TObject* getEventData(int no){};
+  virtual TObject* getEventData(int /*no*/) { return nullptr; };
 
  public:
   DataReader(DataInterpreter* interpreter);

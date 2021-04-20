@@ -19,8 +19,8 @@
 #include "FairLogger.h"
 #include <unistd.h>
 #include <iostream>
-
-using namespace std;
+#include <string>
+#include <sstream>
 
 namespace o2
 {
@@ -32,7 +32,7 @@ Options Options::instance;
 std::string Options::printOptions()
 {
   static const char* str[2] = {"false", "true"};
-  stringstream ss;
+  std::stringstream ss;
   ss << "fileName    : " << this->fileName() << std::endl;
   ss << "randomTracks: " << str[this->randomTracks()] << std::endl;
   ss << "itc         : " << str[this->its()] << std::endl;
@@ -44,7 +44,7 @@ std::string Options::printOptions()
 
 std::string Options::usage()
 {
-  stringstream ss;
+  std::stringstream ss;
   ss << "usage:" << std::endl;
   ss << "\t"
      << "o2eve <options>" << std::endl;
@@ -177,7 +177,7 @@ bool Options::saveToJSON(std::string filename)
   return true;
 }
 
-bool Options::readFromJSON(std::string filename)
+bool Options::readFromJSON(std::string /*filename*/)
 {
   return false;
 }

@@ -34,8 +34,6 @@
 #include <iostream>
 #include <gsl/span>
 
-using namespace std;
-
 namespace o2
 {
 namespace event_visualisation
@@ -129,7 +127,8 @@ VisualisationEvent DataInterpreterTPC::interpretDataForType(TObject* data, EVisu
                                                       .phi = 0.0,
                                                       .theta = 0.0,
                                                       .helixCurvature = 0.0,
-                                                      .type = 0});
+                                                      .type = 0,
+                                                      .source = TPCSource});
 
       for (Int_t i = 0; i < eve_track->GetN(); ++i) {
         Float_t x, y, z;
