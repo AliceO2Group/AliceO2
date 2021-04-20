@@ -28,37 +28,39 @@
 using namespace o2::framework;
 using namespace rapidjson;
 
-namespace {
-  Document readJsonFile(std::string& config) {
-    FILE* fp = fopen(config.data(), "rb");
+namespace
+{
+Document readJsonFile(std::string& config)
+{
+  FILE* fp = fopen(config.data(), "rb");
 
-    char readBuffer[65536];
-    FileReadStream is(fp, readBuffer, sizeof(readBuffer));
+  char readBuffer[65536];
+  FileReadStream is(fp, readBuffer, sizeof(readBuffer));
 
-    Document d;
-    d.ParseStream(is);
-    fclose(fp);
-    return d;
-  }
+  Document d;
+  d.ParseStream(is);
+  fclose(fp);
+  return d;
 }
+} // namespace
 
 namespace o2::aod::filtering
 {
 
 void CentralEventFilterProcessor::init(framework::InitContext& ic)
 {
-    // JSON example
-    // {
-    //   "subwagon_name" : "CentralEventFilterProcessor",
-    //   "configuration" : {
-    //     "NucleiFilters" : {
-    //       "H2" : 0.1,
-    //       "H3" : 0.3,
-    //       "HE3" : 1.,
-    //       "HE4" : 1.
-    //     }
-    //   }
-    // }
+  // JSON example
+  // {
+  //   "subwagon_name" : "CentralEventFilterProcessor",
+  //   "configuration" : {
+  //     "NucleiFilters" : {
+  //       "H2" : 0.1,
+  //       "H3" : 0.3,
+  //       "HE3" : 1.,
+  //       "HE4" : 1.
+  //     }
+  //   }
+  // }
   std::cout << "Start init" << std::endl;
   Document d = readJsonFile(mConfigFile);
   int nCols{0};
@@ -80,12 +82,11 @@ void CentralEventFilterProcessor::init(framework::InitContext& ic)
     }
   }
   std::cout << "Middle init" << std::endl;
-  mScalers = new TH1D("mScalers",";;Number of events", nCols + 1, -0.5, 0.5 + nCols);
+  mScalers = new TH1D("mScalers", ";;Number of events", nCols + 1, -0.5, 0.5 + nCols);
   mScalers->GetXaxis()->SetBinLabel(1, "Total number of events");
 
-  mFiltered = new TH1D("mFiltered",";;Number of filtered events", nCols + 1, -0.5, 0.5 + nCols);
+  mFiltered = new TH1D("mFiltered", ";;Number of filtered events", nCols + 1, -0.5, 0.5 + nCols);
   mFiltered->GetXaxis()->SetBinLabel(1, "Total number of events");
-
 
   int bin{2};
   for (auto& table : mDownscaling) {
@@ -94,8 +95,8 @@ void CentralEventFilterProcessor::init(framework::InitContext& ic)
       mFiltered->GetXaxis()->SetBinLabel(bin++, column.first.data());
     }
   }
-  
-  TFile test("test.root","recreate");
+
+  TFile test("test.root", "recreate");
   mScalers->Clone()->Write();
   test.Close();
 }
@@ -119,7 +120,7 @@ void CentralEventFilterProcessor::run(ProcessingContext& pc)
       double binCenter{mScalers->GetXaxis()->GetBinCenter(bin)};
       auto column{tablePtr->GetColumnByName(colName.first)};
       double downscaling{colName.second};
-      if (column) {        
+      if (column) {
         for (int64_t iC{0}; iC < column->num_chunks(); ++iC) {
           auto chunk{column->chunk(iC)};
           auto boolArray = std::static_pointer_cast<arrow::BooleanArray>(chunk);
@@ -137,16 +138,15 @@ void CentralEventFilterProcessor::run(ProcessingContext& pc)
   }
   mScalers->SetBinContent(1, mScalers->GetBinContent(1) + nEvents);
   mFiltered->SetBinContent(1, mFiltered->GetBinContent(1) + nEvents);
-
 }
 
 void CentralEventFilterProcessor::endOfStream(EndOfStreamContext& ec)
 {
-  TFile output("trigger.root","recreate");
+  TFile output("trigger.root", "recreate");
   mScalers->Write("Scalers");
   mFiltered->Write("FilteredScalers");
-  mScalers->Scale(1./mScalers->GetBinContent(1));
-  mFiltered->Scale(1./mFiltered->GetBinContent(1));
+  mScalers->Scale(1. / mScalers->GetBinContent(1));
+  mFiltered->Scale(1. / mFiltered->GetBinContent(1));
   mScalers->Write("Fractions");
   mFiltered->Write("FractionsDownscaled");
   output.Close();
@@ -157,7 +157,7 @@ DataProcessorSpec getCentralEventFilterProcessorSpec(std::string& config)
 
   std::vector<InputSpec> inputs;
   Document d = readJsonFile(config);
-  
+
   for (auto& workflow : d["workflows"].GetArray()) {
     for (unsigned int iFilter{0}; iFilter < AvailableFilters.size(); ++iFilter) {
       if (std::string_view(workflow["subwagon_name"].GetString()) == std::string_view(AvailableFilters[iFilter])) {
@@ -178,7 +178,7 @@ DataProcessorSpec getCentralEventFilterProcessorSpec(std::string& config)
     AlgorithmSpec{adaptFromTask<CentralEventFilterProcessor>(config)},
     Options{
       {"filtering-config", VariantType::String, "", {"Path to the filtering json config file"}}}};
-} 
+}
 
 } // namespace o2::aod::filtering
 

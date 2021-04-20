@@ -29,29 +29,29 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-namespace {
-  float rapidity(float pt, float eta, float m) {
-    return std::asinh(pt / std::hypot(m, pt) * std::sinh(eta));
-  }
-
-  static constexpr int nNuclei{4};
-  static constexpr int nCutsPID{5};
-  static constexpr std::array<float, nNuclei> masses{
-    constants::physics::MassDeuteron,  constants::physics::MassTriton,
-    constants::physics::MassHelium3, constants::physics::MassAlpha
-  };
-  static constexpr std::array<int, nNuclei> charges{1, 1, 2, 2};
-  static const std::vector<std::string> nucleiNames{"H2", "H3", "He3", "He4"};
-  static const std::vector<std::string> cutsNames{
-    "TPCnSigmaMin", "TPCnSigmaMax", "TOFnSigmaMin", "TOFnSigmaMax", "TOFpidStartPt"
-  };
-  static constexpr float cutsPID[nNuclei][nCutsPID]{
-    {-3.f, +3.f, -4.f, +4.f, 1.0f}, /*H2*/
-    {-3.f, +3.f, -4.f, +4.f, 1.6f}, /*H3*/
-    {-5.f, +5.f, -4.f, +4.f, 14000.f}, /*He3*/
-    {-5.f, +5.f, -4.f, +4.f, 14000.f} /*He4*/
-  };
+namespace
+{
+float rapidity(float pt, float eta, float m)
+{
+  return std::asinh(pt / std::hypot(m, pt) * std::sinh(eta));
 }
+
+static constexpr int nNuclei{4};
+static constexpr int nCutsPID{5};
+static constexpr std::array<float, nNuclei> masses{
+  constants::physics::MassDeuteron, constants::physics::MassTriton,
+  constants::physics::MassHelium3, constants::physics::MassAlpha};
+static constexpr std::array<int, nNuclei> charges{1, 1, 2, 2};
+static const std::vector<std::string> nucleiNames{"H2", "H3", "He3", "He4"};
+static const std::vector<std::string> cutsNames{
+  "TPCnSigmaMin", "TPCnSigmaMax", "TOFnSigmaMin", "TOFnSigmaMax", "TOFpidStartPt"};
+static constexpr float cutsPID[nNuclei][nCutsPID]{
+  {-3.f, +3.f, -4.f, +4.f, 1.0f},    /*H2*/
+  {-3.f, +3.f, -4.f, +4.f, 1.6f},    /*H3*/
+  {-5.f, +5.f, -4.f, +4.f, 14000.f}, /*He3*/
+  {-5.f, +5.f, -4.f, +4.f, 14000.f}  /*He4*/
+};
+} // namespace
 
 struct nucleiFilter {
 
@@ -79,7 +79,7 @@ struct nucleiFilter {
     spectra.add("fCollZpos", "collision z position", HistType::kTH1F, {{600, -20., +20., "z position (cm)"}});
     spectra.add("fTPCsignal", "Specific energy loss", HistType::kTH2F, {{600, 0., 3, "#it{p} (GeV/#it{c})"}, {1400, 0, 1400, "d#it{E} / d#it{X} (a. u.)"}});
     spectra.add("fTPCcounts", "n-sigma TPC", HistType::kTH2F, {ptAxis, {200, -100., +100., "n#sigma_{He} (a. u.)"}});
-    spectra.add("fProcessedEvents", "Nuclei - event filtered", HistType::kTH1F,{{4 ,-0.5, 3.5, "Event counter"}});
+    spectra.add("fProcessedEvents", "Nuclei - event filtered", HistType::kTH1F, {{4, -0.5, 3.5, "Event counter"}});
   }
 
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
@@ -97,11 +97,9 @@ struct nucleiFilter {
     for (auto track : tracks) { // start loop over tracks
 
       const float nSigmaTPC[nNuclei]{
-        track.tpcNSigmaDe(), track.tpcNSigmaTr(), track.tpcNSigmaHe(), track.tpcNSigmaAl()}
-      ;
+        track.tpcNSigmaDe(), track.tpcNSigmaTr(), track.tpcNSigmaHe(), track.tpcNSigmaAl()};
       const float nSigmaTOF[nNuclei]{
-        track.tofNSigmaDe(), track.tofNSigmaTr(), track.tofNSigmaHe(), track.tofNSigmaAl()
-      };
+        track.tofNSigmaDe(), track.tofNSigmaTr(), track.tofNSigmaHe(), track.tofNSigmaAl()};
 
       for (int iN{0}; iN < nNuclei; ++iN) {
         float y{rapidity(track.pt() * charges[iN], track.eta(), masses[iN])};

@@ -27,7 +27,7 @@ namespace o2::aod::filtering
 class CentralEventFilterProcessor : public framework::Task
 {
  public:
-  CentralEventFilterProcessor(const std::string &config) : mConfigFile{config} {}
+  CentralEventFilterProcessor(const std::string& config) : mConfigFile{config} {}
   ~CentralEventFilterProcessor() override = default;
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;
@@ -37,13 +37,13 @@ class CentralEventFilterProcessor : public framework::Task
   TH1D* mScalers;
   TH1D* mFiltered;
   std::string mConfigFile;
-  std::unordered_map<std::string, std::unordered_map<std::string,float>> mDownscaling;
+  std::unordered_map<std::string, std::unordered_map<std::string, float>> mDownscaling;
   std::mt19937_64 mGeneratorEngine;
-  std::uniform_real_distribution<double> mUniformGenerator = std::uniform_real_distribution<double>(0.,1.);
+  std::uniform_real_distribution<double> mUniformGenerator = std::uniform_real_distribution<double>(0., 1.);
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getCentralEventFilterProcessorSpec(std::string &config);
+framework::DataProcessorSpec getCentralEventFilterProcessorSpec(std::string& config);
 
 } // namespace o2::aod::filtering
 
