@@ -8,12 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file taskBplus.cxx
+/// \file taskBPlus.cxx
 /// \brief B+ analysis task
 ///
 /// \author Gian Michele Innocenti <gian.michele.innocenti@cern.ch>, CERN
-/// \author Vít Kučera <vit.kucera@cern.ch>, CERN
-/// \author Nima Zardoshti <nima.zardoshti@cern.ch>, CERN
+/// \author Antonio Palasciano <antonio.palasciano@cern.ch>,
+/// \author Deepa Thomas <deepa.thomas@cern.ch>, UT Austin
 
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
@@ -21,9 +21,10 @@
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
 
 using namespace o2;
+using namespace o2::aod;
 using namespace o2::framework;
-using namespace o2::framework::expressions;
 using namespace o2::aod::hf_cand_prong2;
+using namespace o2::framework::expressions;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
@@ -34,47 +35,138 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h"
 
 /// B+ analysis task
-struct TaskBplus {
+struct TaskBPlus {
   HistogramRegistry registry{
     "registry",
-    {{"hmassD0", "2-prong candidates;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
-     {"hptcand", "B+ candidates;candidate #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}}}};
+    {{"hMass", "2-prong candidates;inv. mass (D0(bar) #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 10.}}}},
+     {"hPtProng0", "2-prong candidates;prong 0 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
+     {"hPtProng1", "2-prong candidates;prong 1 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
+     {"hdeclength", "2-prong candidates;decay length (cm);entries", {HistType::kTH1F, {{200, 0., 2.}}}},
+     {"hdeclengthxy", "2-prong candidates;decay length xy (cm);entries", {HistType::kTH1F, {{200, 0., 2.}}}},
+     {"hd0Prong0", "2-prong candidates;prong 0 DCAxy to prim. vertex (cm);entries", {HistType::kTH1F, {{100, -1., 1.}}}},
+     {"hd0Prong1", "2-prong candidates;prong 1 DCAxy to prim. vertex (cm);entries", {HistType::kTH1F, {{100, -1., 1.}}}},
+     {"hCPA", "2-prong candidates;cosine of pointing angle;entries", {HistType::kTH1F, {{110, -1.1, 1.1}}}},
+     {"hEta", "2-prong candidates;candidate #it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}},
+     {"hImpParErr", "2-prong candidates;impact parameter error (cm);entries", {HistType::kTH1F, {{100, -1., 1.}}}},
+     {"hDecLenErr", "2-prong candidates;decay length error (cm);entries", {HistType::kTH1F, {{100, 0., 1.}}}},
+     {"hDecLenXYErr", "2-prong candidates;decay length xy error (cm);entries", {HistType::kTH1F, {{100, 0., 1.}}}},
+     {"hPtCand", "2-prong candidates;candidate #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}}}};
 
-  Configurable<int> d_selectionFlagD0{"d_selectionFlagD0", 1, "Selection Flag for D0"};
-  Configurable<int> d_selectionFlagD0bar{"d_selectionFlagD0bar", 1, "Selection Flag for D0bar"};
-  Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
+  // Configurable<int> selectionFlagBPlus{"selectionFlagBPlus", 1, "Selection Flag for BPlus"};
+  Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
+  // Filter filterSelectCandidates = (aod::hf_selcandidate_bplus::isSelBPlusToD0Pi >= selectionFlagBPlus);
 
-  Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0 >= d_selectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= d_selectionFlagD0bar);
-
-  Partition<aod::BigTracks> positiveTracks = aod::track::signed1Pt >= 0.f;
-
-  void process(aod::Collision const&, aod::BigTracks const&, soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate>> const& candidates)
+  // To be Filtered once selector ready
+  void process(aod::HfCandBPlus const& candidates)
   {
     for (auto& candidate : candidates) {
-      if (!(candidate.hfflag() & 1 << DecayType::D0ToPiK)) {
+      if (!(candidate.hfflag() & 1)) { // << BPlusToD0Pi
         continue;
       }
-      if (cutEtaCandMax >= 0. && std::abs(candidate.eta()) > cutEtaCandMax) {
+
+      registry.fill(HIST("hMass"), InvMassBplus(candidate));
+      registry.fill(HIST("hPtCand"), candidate.pt());
+      registry.fill(HIST("hPtProng0"), candidate.ptProng0());
+      registry.fill(HIST("hPtProng1"), candidate.ptProng1());
+      registry.fill(HIST("hdeclength"), candidate.decayLength());
+      registry.fill(HIST("hdeclengthxy"), candidate.decayLengthXY());
+      registry.fill(HIST("hd0Prong0"), candidate.impactParameter0());
+      registry.fill(HIST("hd0Prong1"), candidate.impactParameter1());
+      registry.fill(HIST("hCPA"), candidate.cpa());
+      registry.fill(HIST("hEta"), candidate.eta());
+      registry.fill(HIST("hImpParErr"), candidate.errorImpactParameter0());
+      registry.fill(HIST("hImpParErr"), candidate.errorImpactParameter1());
+      registry.fill(HIST("hDecLenErr"), candidate.errorDecayLength());
+      registry.fill(HIST("hDecLenXYErr"), candidate.errorDecayLengthXY());
+    } // candidate loop
+  }   // process
+};    // struct
+
+struct TaskBPlusMC {
+  HistogramRegistry registry{
+    "registry",
+    {{"hPtRecSig", "2-prong candidates (rec. matched);#it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
+     {"hPtRecBg", "2-prong candidates (rec. unmatched);#it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
+     {"hPtGen", "2-prong candidates (gen. matched);#it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
+     {"hPtGenProng0", "2-prong candidates (gen. matched);prong 0 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
+     {"hPtGenProng1", "2-prong candidates (gen. matched);prong 1 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
+     {"hPtGenSig", "2-prong candidates (rec. matched);#it{p}_{T}^{gen.} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
+     {"hCPARecSig", "2-prong candidates (rec. matched);cosine of pointing angle;entries", {HistType::kTH1F, {{110, -1.1, 1.1}}}},
+     {"hCPARecBg", "2-prong candidates (rec. unmatched);cosine of pointing angle;entries", {HistType::kTH1F, {{110, -1.1, 1.1}}}},
+     {"hEtaRecSig", "2-prong candidates (rec. matched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}},
+     {"hEtaRecBg", "2-prong candidates (rec. unmatched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}},
+     {"hEtaGen", "2-prong candidates (gen. matched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}},
+     {"hMassRecSig", "2-prong candidates (rec. matched);inv. mass (D0bar #pi+) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 10.}}}},
+     {"hMassRecBg", "2-prong candidates (rec. unmatched);inv. mass (D0bar #pi+) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 10.}}}},
+     {"hDecLengthRecSig", "2-prong candidates (rec. matched);decay length (cm);entries", {HistType::kTH1F, {{200, 0., 2.}}}},
+     {"hDecLengthRecBg", "2-prong candidates (rec. unmatched);decay length (cm);entries", {HistType::kTH1F, {{200, 0., 2.}}}}}};
+
+  // Configurable<int> selectionFlagB{"selectionFlagB", 1, "Selection Flag for B"};
+  Configurable<double> cutYCandMax{"cutYCandMax", -1., "Upper cut rap."};
+  // Filter filterSelectCandidates = (aod::hf_selcandidate_bplus::isSelBplusToD0Pi >= selectionFlagB);
+
+  void process(soa::Join<aod::HfCandBPlus, aod::HfCandBPMCRec> const& candidates, soa::Join<aod::McParticles, aod::HfCandBPMCGen> const& particlesMC, aod::BigTracksMC const& tracks)
+  {
+    // MC rec.
+    for (auto& candidate : candidates) {
+      if (!(candidate.hfflag() & 1)) { // << BPlusToD0Pi
         continue;
       }
-      if (candidate.isSelD0bar() >= d_selectionFlagD0bar) {
-        registry.fill(HIST("hmassD0"), InvMassD0bar(candidate));
-        auto count = 0;
-        for (auto& track : positiveTracks) {
-          if (count % 100 == 0) {
-            LOGF(INFO, "Col: %d (cand); %d (track)", candidate.collisionId(), track.collisionId());
-            count++;
-          }
-          registry.fill(HIST("hptcand"), candidate.pt() + track.pt());
+      if (cutYCandMax >= 0. && std::abs(YBplus(candidate)) > cutYCandMax) {
+        continue;
+      }
+      if (std::abs(candidate.flagMCMatchRec()) == 1) { // << BPlusToD0Pi
+        // Get the corresponding MC particle.
+        auto indexMother = RecoDecay::getMother(particlesMC, candidate.index1_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandBPMCGen>>(), 521, true);
+        auto particleMother = particlesMC.iteratorAt(indexMother);
+        registry.fill(HIST("hPtGenSig"), particleMother.pt());
+        registry.fill(HIST("hPtRecSig"), candidate.pt());
+        registry.fill(HIST("hCPARecSig"), candidate.cpa());
+        registry.fill(HIST("hEtaRecSig"), candidate.eta());
+        registry.fill(HIST("hDecLengthRecSig"), candidate.decayLength());
+        if (candidate.flagMCMatchRec() == 1) {
+          registry.fill(HIST("hMassRecSig"), InvMassBplus(candidate));
+        } else {
+          registry.fill(HIST("hMassRecSig"), InvMassBminus(candidate));
+        }
+      } else {
+        registry.fill(HIST("hPtRecBg"), candidate.pt());
+        registry.fill(HIST("hCPARecBg"), candidate.cpa());
+        registry.fill(HIST("hEtaRecBg"), candidate.eta());
+        registry.fill(HIST("hDecLengthRecBg"), candidate.decayLength());
+        if (candidate.flagMCMatchRec() == 1) {
+          registry.fill(HIST("hMassRecBg"), InvMassBplus(candidate));
+        } else {
+          registry.fill(HIST("hMassRecBg"), InvMassBminus(candidate));
         }
       }
-    }
-  }
-};
+    } // rec
+    // MC gen. level
+    //Printf("MC Particles: %d", particlesMC.size());
+    for (auto& particle : particlesMC) {
+      if (std::abs(particle.flagMCMatchGen()) == 1) { // << BPlusToD0Pi)
+        registry.fill(HIST("hPtGen"), particle.pt());
+        float ptProngs[2];
+        int counter = 0;
+        for (int iD = particle.daughter0(); iD <= particle.daughter1(); ++iD) {
+          ptProngs[counter] = particlesMC.iteratorAt(iD).pt();
+          counter++;
+        }
+        registry.fill(HIST("hPtGenProng0"), ptProngs[0]);
+        registry.fill(HIST("hPtGenProng1"), ptProngs[1]);
+        registry.fill(HIST("hEtaGen"), particle.eta());
+      }
+    } //gen
+  }   // process
+};    // struct
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<TaskBplus>(cfgc, TaskName{"hf-task-bplus"})};
+    adaptAnalysisTask<TaskBPlus>(cfgc, TaskName{"hf-task-bplus"})};
+  const bool doMC = cfgc.options().get<bool>("doMC");
+  if (doMC) {
+    workflow.push_back(adaptAnalysisTask<TaskBPlusMC>(cfgc, TaskName{"hf-task-bplus-mc"}));
+  }
   return workflow;
 }
