@@ -48,7 +48,7 @@ Mapping::ErrorStatus Mapping::hwToAbsId(short ddl, short hwAddr, short& absId, C
   absId = mAbsId[ddl][hwAddr];
   caloFlag = mCaloFlag[ddl][hwAddr];
 
-  if (absId > NCHANNELS) {
+  if (absId > NCHANNELS || absId <= 1792) {
     absId = 0;
     return kWrongHWAddress;
   }
@@ -58,15 +58,23 @@ Mapping::ErrorStatus Mapping::hwToAbsId(short ddl, short hwAddr, short& absId, C
 Mapping::ErrorStatus Mapping::absIdTohw(short absId, short caloFlag, short& ddl, short& hwAddr)
 {
 
-  if (absId < 0 || absId > NCHANNELS) {
-    ddl = 0;
-    hwAddr = 0;
-    return kWrongAbsId;
-  }
   if (caloFlag < 0 || caloFlag > 2) {
     ddl = 0;
     hwAddr = 0;
     return kWrongCaloFlag;
+  }
+  if (caloFlag < 2) {
+    if (absId <= 1792 || absId > NCHANNELS) {
+      ddl = 0;
+      hwAddr = 0;
+      return kWrongAbsId;
+    }
+  } else {
+    if (absId < 0 || absId > NTRUReadoutChannels) {
+      ddl = 0;
+      hwAddr = 0;
+      return kWrongAbsId;
+    }
   }
 
   if (!mInitialized) {
@@ -82,8 +90,6 @@ Mapping::ErrorStatus Mapping::absIdTohw(short absId, short caloFlag, short& ddl,
 Mapping::ErrorStatus Mapping::setMapping()
 {
   //Read mapping from data files a-la Run2
-
-  o2::phos::Geometry* geom = o2::phos::Geometry::GetInstance();
 
   std::string p;
   if (mPath.empty()) { //use default path
@@ -158,8 +164,8 @@ Mapping::ErrorStatus Mapping::setMapping()
 
         short absId;
         if (caloFlag < 2) { //readout channels
-          char relid[3] = {static_cast<char>(m), static_cast<char>(row + 1), static_cast<char>(col + 1)};
-          geom->relToAbsNumbering(relid, absId);
+          char relid[3] = {static_cast<char>(m + 1), static_cast<char>(row + 1), static_cast<char>(col + 1)};
+          Geometry::relToAbsNumbering(relid, absId);
         } else { //TRU channels
           if (isTRUReadoutchannel(hwAddress)) {
             if (hwAddress < 2048) { //branch 28<=z<56

@@ -109,7 +109,7 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
       short ddl, hwAddr;
       //get ddl and High Gain hw addresses
       if (mMapping->absIdTohw(absId, Mapping::kTRU, ddl, hwAddr) != o2::phos::Mapping::kOK) {
-        LOG(ERROR) << "Wrong truId" << absId;
+        LOG(ERROR) << "Wrong truId=" << absId;
       }
       //Collect possible several digits (signal+pileup) into one map record
       auto celldata = mTRUdata[ddl].mChannels.find(absId);
@@ -150,9 +150,9 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
     short trmask[2 * Mapping::NTRUBranchReadoutChannels] = {0}; //Time bin in which trigger was fired.
     for (auto ch = mTRUdata[ddl].mChannels.cbegin(); ch != mTRUdata[ddl].mChannels.cend(); ch++) {
       short truId = ch->first;
-      short hwAddr, iddl; //High gain always filled
+      short hwAddr, iddl;
       if ((mMapping->absIdTohw(truId, Mapping::kTRU, iddl, hwAddr) != o2::phos::Mapping::kOK) || iddl != ddl) {
-        LOG(ERROR) << "Wrong truId" << truId << "iDDL=" << iddl << "!=" << ddl;
+        LOG(ERROR) << "Wrong truId=" << truId << ", iDDL=" << iddl << "!=" << ddl;
       }
       rawbunchesTRU.clear();
       createTRUBunches(truId, ch->second, rawbunchesTRU);
@@ -184,7 +184,6 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
       }
     }
     if (mTRUdata[ddl].mChannels.size()) { // if there are TRU digits, fill trigger flags
-      short chan = 0;
       std::vector<uint32_t> a;
       for (short chan = 0; chan < Mapping::NTRUBranchReadoutChannels; chan++) {
         if (trmask[chan] > 0) {
@@ -362,13 +361,16 @@ void RawWriter::createRawBunches(short absId, const std::vector<o2::phos::Digit*
   float hglgratio = mCalibParams->getHGLGRatio(absId);
   for (auto dig : channelDigits) {
     //Convert energy and time to ADC counts and time ticks
-    float ampADC = dig->getAmplitude();                             // Digits amplitude already in ADC channels
-    if (ampADC > o2::phos::PHOSSimParams::Instance().mMCOverflow) { //High Gain in saturation, fill also Low Gain
+    float ampADC = dig->getAmplitude();                                                   // Digits amplitude already in ADC channels
+    if (!dig->isHighGain() || ampADC > o2::phos::PHOSSimParams::Instance().mMCOverflow) { //High Gain in saturation, fill also Low Gain
       isLGFilled = true;
     }
     float timeTicks = dig->getTime();                           //time in ns
     timeTicks /= o2::phos::PHOSSimParams::Instance().mTimeTick; //time in PHOS ticks
     //Add to current sample contribution from digit
+    if (!dig->isHighGain()) {
+      ampADC *= hglgratio;
+    }
     fillGamma2(ampADC, timeTicks, samples);
   }
 

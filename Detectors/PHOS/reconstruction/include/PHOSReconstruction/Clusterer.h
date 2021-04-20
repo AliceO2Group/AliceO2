@@ -60,7 +60,14 @@ class Clusterer
   void convertCellsToDigits(gsl::span<const Cell> cells, int firstCellInEvent, int lastCellInEvent);
 
   //Calibrate energy
-  inline float calibrate(float amp, short absId) { return amp * mCalibParams->getGain(absId); }
+  inline float calibrate(float amp, short absId, bool isHighGain)
+  {
+    if (isHighGain) {
+      return amp * mCalibParams->getGain(absId);
+    } else {
+      return amp * mCalibParams->getGain(absId) * mCalibParams->getHGLGRatio(absId);
+    }
+  }
   //Calibrate time
   inline float calibrateT(float time, short absId, bool isHighGain)
   {

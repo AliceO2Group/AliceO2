@@ -126,6 +126,8 @@ class Geometry
 
   const std::string& GetName() const { return mGeoName; }
 
+  const TGeoHMatrix* getAlignmentMatrix(int mod) const { return &(mPHOS[mod]); }
+
  private:
   static Geometry* sGeom;           // Pointer to the unique instance of the singleton
   std::array<TGeoHMatrix, 5> mPHOS; //Rotation/shift matrices

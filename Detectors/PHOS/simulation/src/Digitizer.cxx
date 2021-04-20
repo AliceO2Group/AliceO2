@@ -94,21 +94,25 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
     if (o2::phos::PHOSSimParams::Instance().mApplyNonLinearity) {
       energy = nonLinearity(energy);
     }
-    energy = uncalibrate(energy, absId);
     float time = h.GetTime() + dt * 1.e-9;
     if (o2::phos::PHOSSimParams::Instance().mApplyTimeResolution) {
       time = uncalibrateT(timeResolution(time, energy), absId);
     }
+    energy = uncalibrate(energy, absId);
     if (mArrayD[i].getAmplitude() > 0) {
       //update energy and time
-      mArrayD[i].addEnergyTime(energy, time);
-      //if overflow occured?
       if (mArrayD[i].isHighGain()) {
+        mArrayD[i].addEnergyTime(energy, time);
+        //if overflow occured?
         if (mArrayD[i].getAmplitude() > o2::phos::PHOSSimParams::Instance().mMCOverflow) { //10bit ADC
           float hglgratio = mCalibParams->getHGLGRatio(absId);
           mArrayD[i].setAmplitude(mArrayD[i].getAmplitude() / hglgratio);
           mArrayD[i].setHighGain(false);
         }
+      } else { //digit already in LG
+        float hglgratio = mCalibParams->getHGLGRatio(absId);
+        energy /= hglgratio;
+        mArrayD[i].addEnergyTime(energy, time);
       }
     } else {
       mArrayD[i].setHighGain(energy < o2::phos::PHOSSimParams::Instance().mMCOverflow); //10bit ADC
