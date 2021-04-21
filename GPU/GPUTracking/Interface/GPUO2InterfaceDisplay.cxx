@@ -23,13 +23,13 @@ using namespace o2::tpc;
 
 GPUO2InterfaceDisplay::GPUO2InterfaceDisplay(const GPUO2InterfaceConfiguration* config)
 {
+  mConfig.reset(new GPUO2InterfaceConfiguration(*config));
   mBackend.reset(new GPUDisplayBackendGlfw);
-  //config.configProcessing.eventDisplay = processAttributes->displayBackend.get();
+  mConfig->configProcessing.eventDisplay = mBackend.get();
   mParam.reset(new GPUParam);
   mParam->SetDefaults(&config->configGRP, &config->configReconstruction, &config->configProcessing, nullptr);
-
-  //mDisplay.reset(new GPUDisplay(nullptr, &config->configDisplay, mParam.get()));
-  mDisplay.reset(new GPUDisplay(mBackend.get(), nullptr, nullptr));
+  mParam->par.earlyTpcTransform = 0;
+  mDisplay.reset(new GPUDisplay(mBackend.get(), nullptr, nullptr, mParam.get(), (const GPUCalibObjectsConst*)&mConfig->configCalib));
 }
 
 GPUO2InterfaceDisplay::~GPUO2InterfaceDisplay() = default;

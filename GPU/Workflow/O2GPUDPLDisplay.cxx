@@ -14,16 +14,24 @@
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "TRDBase/GeometryFlat.h"
+#include "TRDBase/Geometry.h"
 #include "DetectorsBase/Propagator.h"
 #include "GPUO2InterfaceDisplay.h"
 #include "GPUO2InterfaceConfiguration.h"
+#include "TPCFastTransform.h"
+#include "TPCReconstruction/TPCFastTransformHelperO2.h"
 
 using namespace o2::framework;
 using namespace o2::dataformats;
 using namespace o2::gpu;
+using namespace o2::tpc;
+using namespace o2::trd;
 
 static std::unique_ptr<GPUO2InterfaceDisplay> display;
 std::unique_ptr<GPUO2InterfaceConfiguration> config;
+std::unique_ptr<TPCFastTransform> fastTransform;
+std::unique_ptr<o2::trd::GeometryFlat> trdGeo;
 
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
@@ -51,6 +59,16 @@ void O2GPUDPLDisplaySpec::init(InitContext& ic)
   config->configGRP.solenoidBz = 5.00668f * grp->getL3Current() / 30000.;
   config->configGRP.continuousMaxTimeBin = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC) ? -1 : 0; // Number of timebins in timeframe if continuous, 0 otherwise
   config->ReadConfigurableParam();
+
+  fastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
+  config->configCalib.fastTransform = fastTransform.get();
+
+  auto gm = o2::trd::Geometry::instance();
+  gm->createPadPlaneArray();
+  gm->createClusterMatrixArray();
+  trdGeo.reset(new o2::trd::GeometryFlat(*gm));
+  config->configCalib.trdGeometry = trdGeo.get();
+
   display.reset(new GPUO2InterfaceDisplay(config.get()));
 }
 

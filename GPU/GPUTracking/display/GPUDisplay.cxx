@@ -86,13 +86,15 @@ static const GPUSettingsDisplay& GPUDisplay_GetConfig(GPUChainTracking* chain)
   }
 }
 
-GPUDisplay::GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param) : mBackend(backend), mChain(chain), mConfig(GPUDisplay_GetConfig(chain)), mQA(qa), mMerger(chain->GetTPCMerger())
+GPUDisplay::GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param, const GPUCalibObjectsConst* calib) : mBackend(backend), mChain(chain), mConfig(GPUDisplay_GetConfig(chain)), mQA(qa), mMerger(chain->GetTPCMerger())
 {
   backend->mDisplay = this;
   mOpenGLCore = GPUCA_DISPLAY_OPENGL_CORE_FLAGS;
   mParam = param ? param : &mChain->GetParam();
+  mCalib = calib;
 }
 
+inline const GPUTRDGeometry& GPUDisplay::trdGeometry() { return *(GPUTRDGeometry*)mCalib->trdGeometry; }
 const GPUTPCTracker& GPUDisplay::sliceTracker(int iSlice) { return mChain->GetTPCSliceTrackers()[iSlice]; }
 const GPUTRDTrackerGPU& GPUDisplay::trdTracker() { return *mChain->GetTRDTracker(); }
 inline int GPUDisplay::getNumThreads()
@@ -696,7 +698,7 @@ GPUDisplay::vboList GPUDisplay::DrawSpacePointsTRD(int iSlice, int select, int i
 
   if (iCol == 0) {
     for (unsigned int i = 0; i < mIOPtrs->nTRDTracklets; i++) {
-      int iSec = mChain->GetTRDGeometry()->GetSector(mIOPtrs->trdTracklets[i].GetDetector());
+      int iSec = trdGeometry().GetSector(mIOPtrs->trdTracklets[i].GetDetector());
       bool draw = iSlice == iSec && mGlobalPosTRD[i].w == select;
       if (draw) {
         mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD[i].x, mGlobalPosTRD[i].y, mProjectXY ? 0 : mGlobalPosTRD[i].z);
@@ -989,7 +991,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
             const auto& cln = mIOPtrs->clustersNative->clustersLinear[cl.num];
             float y, z;
             GPUTPCConvertImpl::convert(*mMerger.GetConstantMem(), cl.slice, cl.row, cln.getPad(), cln.getTime(), x, y, z);
-            ZOffset = mMerger.GetConstantMem()->calibObjects.fastTransform->convTimeToZinTimeFrame(slice, track->GetParam().GetTZOffset(), mParam->par.continuousMaxTimeBin);
+            ZOffset = mCalib->fastTransform->convTimeToZinTimeFrame(slice, track->GetParam().GetTZOffset(), mParam->par.continuousMaxTimeBin);
           }
         } else {
           const GPUTPCMCInfo& mc = mIOPtrs->mcInfosTPC[i];
@@ -1144,7 +1146,7 @@ GPUDisplay::vboList GPUDisplay::DrawGridTRD(int sector)
   size_t startCount = mVertexBufferStart[sector].size();
   size_t startCountInner = mVertexBuffer[sector].size();
 #ifdef HAVE_O2HEADERS
-  auto* geo = mChain->GetTRDGeometry();
+  auto* geo = &trdGeometry();
   if (geo) {
     int trdsector = NSLICES / 2 - 1 - sector;
     float alpha = geo->GetAlpha() / 2.f + geo->GetAlpha() * trdsector;
@@ -1209,8 +1211,9 @@ GPUDisplay::vboList GPUDisplay::DrawGridTRD(int sector)
 
 int GPUDisplay::DrawGLScene(bool mixAnimation, float mAnimateTime)
 {
-  if (mIOPtrs == nullptr && mChain) {
+  if (mChain) {
     mIOPtrs = &mChain->mIOPtrs;
+    mCalib = &mChain->calib();
   }
   try {
     if (DrawGLScene_internal(mixAnimation, mAnimateTime)) {
@@ -1330,7 +1333,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     GPUCA_OPENMP(parallel for num_threads(getNumThreads()) reduction(max : mMaxClusterZ))
     for (int i = 0; i < mCurrentSpacePointsTRD; i++) {
       const auto& sp = trdTracker().SpacePoints()[i];
-      int iSec = mChain->GetTRDGeometry()->GetSector(mIOPtrs->trdTracklets[i].GetDetector());
+      int iSec = trdGeometry().GetSector(mIOPtrs->trdTracklets[i].GetDetector());
       float4* ptr = &mGlobalPosTRD[i];
       mParam->Slice2Global(iSec, sp.mR + mXadd, sp.mX[0], sp.mX[1], &ptr->x, &ptr->y, &ptr->z);
       ptr->x /= GL_SCALE_FACTOR;
