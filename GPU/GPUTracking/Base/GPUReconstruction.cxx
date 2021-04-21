@@ -275,6 +275,12 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (mProcessingSettings.debugLevel || !mProcessingSettings.fullMergerOnGPU) {
     mProcessingSettings.delayedOutput = false;
   }
+  if (!mProcessingSettings.fullMergerOnGPU && GetRecoStepsGPU() & RecoStep::TPCMerging) {
+    param().rec.loopInterpolationInExtraPass = 0;
+    if (param().rec.retryRefit == 1) {
+      param().rec.retryRefit = 2;
+    }
+  }
 
   UpdateSettings();
   GPUCA_GPUReconstructionUpdateDefailts();
