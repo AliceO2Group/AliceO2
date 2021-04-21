@@ -53,7 +53,7 @@ namespace gpu
 class GPUDisplay
 {
  public:
-  GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* chain, GPUQA* qa) {}
+  GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param = nullptr) {}
   ~GPUDisplay() = default;
   GPUDisplay(const GPUDisplay&) = delete;
 
@@ -94,7 +94,7 @@ struct GPUParam;
 class GPUDisplay
 {
  public:
-  GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* chain, GPUQA* qa);
+  GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param = nullptr);
   ~GPUDisplay() = default;
   GPUDisplay(const GPUDisplay&) = delete;
 
@@ -261,6 +261,7 @@ class GPUDisplay
 
   GPUDisplayBackend* mBackend;
   GPUChainTracking* mChain;
+  const GPUParam* mParam;
   const GPUSettingsDisplay& mConfig;
   GPUSettingsDisplayLight mCfg;
   GPUQA* mQA;
