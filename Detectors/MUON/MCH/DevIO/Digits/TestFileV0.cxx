@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include <array>
+#include <cstdint>
 
 std::array<uint8_t, 1276> v0_buffer = {
   0x2F, 0x3F, 0x00, 0x00, 0x40, 0x01, 0x00, 0x20,
