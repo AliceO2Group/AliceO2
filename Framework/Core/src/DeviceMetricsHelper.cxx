@@ -110,35 +110,59 @@ bool DeviceMetricsHelper::parseMetric(std::string_view const s, ParsedMetricMatc
   return true;
 }
 
-size_t DeviceMetricsHelper::bookMetricInfo(DeviceMetricsInfo& metrics, char const* name)
+size_t DeviceMetricsHelper::bookMetricInfo(DeviceMetricsInfo& info, char const* name)
 {
-  // Add the the actual Metric info to the store
-  auto metricIndex = metrics.metrics.size();
-  metrics.metrics.push_back(MetricInfo{});
-  // Create a new metric
-  auto& metricInfo = metrics.metrics.back();
-  metricInfo.pos = 0;
-  metricInfo.filledMetrics = 0;
-
-  // Add the timestamp buffer for it
-  metrics.timestamps.emplace_back(std::array<size_t, 1024>{});
-  metrics.max.push_back(std::numeric_limits<float>::lowest());
-  metrics.min.push_back(std::numeric_limits<float>::max());
-  metrics.maxDomain.push_back(std::numeric_limits<size_t>::lowest());
-  metrics.minDomain.push_back(std::numeric_limits<size_t>::max());
-  metrics.changed.push_back(true);
-
   // Add the index by name in the correct position
   // this will require moving the tail of the index,
   // but inserting should happen only once for each metric,
   // so who cares.
   // Add the the actual Metric info to the store
-  MetricLabelIndex metricLabelIdx;
-  strncpy(metricLabelIdx.label, name, MetricLabelIndex::MAX_METRIC_LABEL_SIZE - 1);
-  metricLabelIdx.label[MetricLabelIndex::MAX_METRIC_LABEL_SIZE - 1] = '\0';
-  metricLabelIdx.index = metricIndex;
-  metricLabelIdx.size = strlen(metricLabelIdx.label);
-  metrics.metricLabelsIdx.push_back(metricLabelIdx);
+  MetricLabel metricLabel;
+  strncpy(metricLabel.label, name, MetricLabel::MAX_METRIC_LABEL_SIZE - 1);
+  metricLabel.label[MetricLabel::MAX_METRIC_LABEL_SIZE - 1] = '\0';
+  metricLabel.size = strlen(metricLabel.label);
+
+  // Find the insertion point for the sorted index
+  auto cmpFn = [namePtr = metricLabel.label,
+                &labels = info.metricLabels,
+                nameSize = metricLabel.size](MetricLabelIndex const& a, MetricLabelIndex const& b)
+    -> bool {
+    return strncmp(labels[a.index].label, namePtr, nameSize) < 0;
+  };
+
+  auto mi = std::lower_bound(info.metricLabelsAlphabeticallySortedIdx.begin(),
+                             info.metricLabelsAlphabeticallySortedIdx.end(),
+                             MetricLabelIndex{},
+                             cmpFn);
+
+  // If it was already there, return the old index.
+  if (mi != info.metricLabelsAlphabeticallySortedIdx.end() && (strncmp(info.metricLabels[mi->index].label, metricLabel.label, std::min((size_t)metricLabel.size, (size_t)MetricLabel::MAX_METRIC_LABEL_SIZE - 1)) == 0)) {
+    return mi->index;
+  }
+
+  // Add the the actual Metric info to the store
+  auto metricIndex = info.metrics.size();
+
+  // Insert the sorted location where it belongs to.
+  MetricLabelIndex metricLabelIdx{metricIndex};
+  info.metricLabelsAlphabeticallySortedIdx.insert(mi, metricLabelIdx);
+  info.metrics.push_back(MetricInfo{});
+
+  // Create a new metric
+  auto& metricInfo = info.metrics.back();
+  metricInfo.pos = 0;
+  metricInfo.filledMetrics = 0;
+
+  // Add the timestamp buffer for it
+  info.timestamps.emplace_back(std::array<size_t, 1024>{});
+  info.max.push_back(std::numeric_limits<float>::lowest());
+  info.min.push_back(std::numeric_limits<float>::max());
+  info.maxDomain.push_back(std::numeric_limits<size_t>::lowest());
+  info.minDomain.push_back(std::numeric_limits<size_t>::max());
+  info.changed.push_back(true);
+
+  info.metricLabels.push_back(metricLabel);
+
   return metricIndex;
 }
 
@@ -167,17 +191,19 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
 
   // Find the metric based on the label. Create it if not found.
   auto cmpFn = [namePtr = match.beginKey,
+                &labels = info.metricLabels,
                 nameSize = match.endKey - match.beginKey](MetricLabelIndex const& a, MetricLabelIndex const& b)
     -> bool {
-    return strncmp(a.label, namePtr, nameSize) < 0;
+    return strncmp(labels[a.index].label, namePtr, nameSize) < 0;
   };
-  auto mi = std::lower_bound(info.metricLabelsIdx.begin(),
-                             info.metricLabelsIdx.end(),
+  auto mi = std::lower_bound(info.metricLabelsAlphabeticallySortedIdx.begin(),
+                             info.metricLabelsAlphabeticallySortedIdx.end(),
                              MetricLabelIndex{},
                              cmpFn);
 
   // We could not find the metric, lets insert a new one.
-  if (mi == info.metricLabelsIdx.end() || (strncmp(mi->label, match.beginKey, std::min(match.endKey - match.beginKey, (long)MetricLabelIndex::MAX_METRIC_LABEL_SIZE - 1)) != 0)) {
+  auto matchSize = match.endKey - match.beginKey;
+  if (mi == info.metricLabelsAlphabeticallySortedIdx.end() || (strncmp(info.metricLabels[mi->index].label, match.beginKey, std::min(matchSize, (long)MetricLabel::MAX_METRIC_LABEL_SIZE - 1)) != 0)) {
     // Create a new metric
     MetricInfo metricInfo;
     metricInfo.pos = 0;
@@ -217,19 +243,21 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
     // this will require moving the tail of the index,
     // but inserting should happen only once for each metric,
     // so who cares.
+    MetricLabel metricLabel;
+    auto lastChar = std::min(match.endKey - match.beginKey, (ptrdiff_t)MetricLabel::MAX_METRIC_LABEL_SIZE - 1);
+    memcpy(metricLabel.label, match.beginKey, lastChar);
+    metricLabel.label[lastChar] = '\0';
+    metricLabel.size = lastChar;
     MetricLabelIndex metricLabelIdx;
-    auto lastChar = std::min(match.endKey - match.beginKey, (ptrdiff_t)MetricLabelIndex::MAX_METRIC_LABEL_SIZE - 1);
-    memcpy(metricLabelIdx.label, match.beginKey, lastChar);
-    metricLabelIdx.label[lastChar] = '\0';
-    metricLabelIdx.size = lastChar;
     metricLabelIdx.index = info.metrics.size();
-    info.metricLabelsIdx.insert(mi, metricLabelIdx);
+    info.metricLabels.push_back(metricLabel);
+    info.metricLabelsAlphabeticallySortedIdx.insert(mi, metricLabelIdx);
     // Add the the actual Metric info to the store
     metricIndex = info.metrics.size();
     assert(metricInfo.storeIdx != -1);
-    assert(metricLabelIdx.label[0] != '\0');
+    assert(metricLabel.label[0] != '\0');
     if (newMetricsCallback != nullptr) {
-      newMetricsCallback(metricLabelIdx.label, metricInfo, match.intValue, metricIndex);
+      newMetricsCallback(metricLabel.label, metricInfo, match.intValue, metricIndex);
     }
     info.metrics.push_back(metricInfo);
   } else {
@@ -297,12 +325,12 @@ bool DeviceMetricsHelper::processMetric(ParsedMetricMatch& match,
 size_t DeviceMetricsHelper::metricIdxByName(const std::string& name, const DeviceMetricsInfo& info)
 {
   size_t i = 0;
-  while (i < info.metricLabelsIdx.size()) {
-    auto& metricName = info.metricLabelsIdx[i];
+  while (i < info.metricLabels.size()) {
+    auto& metricName = info.metricLabels[i];
     // We check the size first and then the last character because that's
     // likely to be different for multi-index metrics
     if (metricName.size == name.size() && metricName.label[metricName.size - 1] == name[metricName.size - 1] && memcmp(metricName.label, name.c_str(), metricName.size) == 0) {
-      return metricName.index;
+      return i;
     }
     ++i;
   }

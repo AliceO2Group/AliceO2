@@ -484,11 +484,11 @@ void updateMetricsNames(DriverInfo& driverInfo, std::vector<DeviceMetricsInfo> c
   // Calculate the unique set of metrics, as available in the metrics service
   static std::unordered_set<std::string> allMetricsNames;
   for (const auto& metricsInfo : metricsInfos) {
-    for (const auto& labelsPairs : metricsInfo.metricLabelsIdx) {
+    for (const auto& labelsPairs : metricsInfo.metricLabels) {
       allMetricsNames.insert(std::string(labelsPairs.label));
     }
   }
-  for (const auto& labelsPairs : driverInfo.metrics.metricLabelsIdx) {
+  for (const auto& labelsPairs : driverInfo.metrics.metricLabels) {
     allMetricsNames.insert(std::string(labelsPairs.label));
   }
   std::vector<std::string> result(allMetricsNames.begin(), allMetricsNames.end());
