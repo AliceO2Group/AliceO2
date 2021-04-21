@@ -22,6 +22,10 @@
 
 using namespace o2::framework;
 
+namespace o2
+{
+namespace mft
+{
 // Remove leading whitespace
 std::string ltrimSpace(std::string src)
 {
@@ -55,11 +59,6 @@ std::vector<std::string> splitString(const std::string& src, char delim, bool tr
 
   return tokens;
 }
-
-namespace o2
-{
-namespace mft
-{
 
 void NoiseCalibratorSpec::init(InitContext& ic)
 {
@@ -127,11 +126,7 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
     meta[p.first] = p.second;
   }
 
-#ifdef TIME_SLOT_CALIBRATION
-  const auto& payload = mCalibrator->getNoiseMap(tstart, tend);
-#else
   const auto& payload = mCalibrator->getNoiseMap();
-#endif
 
   o2::ccdb::CcdbObjectInfo info(mPath, "NoiseMap", "noise.root", meta, tstart, tend);
   auto flName = o2::ccdb::CcdbApi::generateFileName("noise");
