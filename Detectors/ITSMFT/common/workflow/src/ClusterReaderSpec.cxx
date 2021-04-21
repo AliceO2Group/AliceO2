@@ -116,7 +116,8 @@ DataProcessorSpec getITSClusterReaderSpec(bool useMC, bool usePatterns)
     outputSpec,
     AlgorithmSpec{adaptFromTask<ITSClusterReader>(useMC, usePatterns)},
     Options{
-      {"its-cluster-infile", VariantType::String, "o2clus_its.root", {"Name of the input cluster file"}}}};
+      {"its-cluster-infile", VariantType::String, "o2clus_its.root", {"Name of the input cluster file"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
 DataProcessorSpec getMFTClusterReaderSpec(bool useMC, bool usePatterns)

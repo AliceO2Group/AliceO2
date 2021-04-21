@@ -36,18 +36,5 @@ struct DigitWriterImpl {
                      gsl::span<const ROFRecord> rofs) = 0;
 };
 
-template <typename T>
-bool binary(std::ostream& os,
-            gsl::span<const T> items)
-{
-  int nofItems = items.size();
-  if (!nofItems) {
-    return !os.bad();
-  }
-  os.write(reinterpret_cast<char*>(&nofItems), sizeof(int));
-  os.write(reinterpret_cast<const char*>(items.data()), items.size_bytes());
-  return !os.bad();
-}
-
 std::unique_ptr<DigitWriterImpl> createDigitWriterImpl(int version);
 } // namespace o2::mch::io::impl

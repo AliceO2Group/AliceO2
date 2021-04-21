@@ -9,26 +9,23 @@
 // or submit itself to any jurisdiction.
 
 /// \file HFD0CandidateSelector.cxx
-/// \brief D0 selection task.
+/// \brief D0 selection task
 ///
 /// \author Nima Zardoshti <nima.zardoshti@cern.ch>, CERN
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "AnalysisCore/HFSelectorCuts.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
 
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong2;
-using namespace o2::analysis;
 using namespace o2::analysis::hf_cuts_d0_topik;
 
 /// Struct for applying D0 selection cuts
 
 struct HFD0CandidateSelector {
-
   Produces<aod::HFSelD0Candidate> hfSelD0Candidate;
 
   Configurable<double> d_pTCandMin{"d_pTCandMin", 0., "Lower bound of candidate pT"};
@@ -64,7 +61,7 @@ struct HFD0CandidateSelector {
     return true;
   }
 
-  /// Conjugate independent toplogical cuts
+  /// Conjugate-independent topological cuts
   /// \param hfCandProng2 is candidate
   /// \return true if candidate passes all cuts
   template <typename T>
@@ -96,10 +93,10 @@ struct HFD0CandidateSelector {
 
     //decay exponentail law, with tau = beta*gamma*ctau
     //decay length > ctau retains (1-1/e)
-    if (TMath::Abs(hfCandProng2.impactParameterNormalised0()) < 0.5 || TMath::Abs(hfCandProng2.impactParameterNormalised1()) < 0.5) {
+    if (std::abs(hfCandProng2.impactParameterNormalised0()) < 0.5 || std::abs(hfCandProng2.impactParameterNormalised1()) < 0.5) {
       return false;
     }
-    double decayLengthCut = TMath::Min((hfCandProng2.p() * 0.0066) + 0.01, 0.06);
+    double decayLengthCut = std::min((hfCandProng2.p() * 0.0066) + 0.01, 0.06);
     if (hfCandProng2.decayLength() * hfCandProng2.decayLength() < decayLengthCut * decayLengthCut) {
       return false;
     }
@@ -109,7 +106,7 @@ struct HFD0CandidateSelector {
     return true;
   }
 
-  /// Conjugate dependent toplogical cuts
+  /// Conjugate-dependent topological cuts
   /// \param hfCandProng2 is candidate
   /// \param trackPion is the track with the pion hypothesis
   /// \param trackKaon is the track with the kaon hypothesis
@@ -125,11 +122,11 @@ struct HFD0CandidateSelector {
     }
 
     if (trackPion.sign() > 0) { //invariant mass cut
-      if (TMath::Abs(InvMassD0(hfCandProng2) - RecoDecay::getMassPDG(pdg::code::kD0)) > cuts->get(pTBin, "m")) {
+      if (std::abs(InvMassD0(hfCandProng2) - RecoDecay::getMassPDG(pdg::Code::kD0)) > cuts->get(pTBin, "m")) {
         return false;
       }
     } else {
-      if (TMath::Abs(InvMassD0bar(hfCandProng2) - RecoDecay::getMassPDG(pdg::code::kD0)) > cuts->get(pTBin, "m")) {
+      if (std::abs(InvMassD0bar(hfCandProng2) - RecoDecay::getMassPDG(pdg::Code::kD0)) > cuts->get(pTBin, "m")) {
         return false;
       }
     }
@@ -137,16 +134,16 @@ struct HFD0CandidateSelector {
     if (trackPion.pt() < cuts->get(pTBin, "pT Pi") || trackKaon.pt() < cuts->get(pTBin, "pT K")) {
       return false; //cut on daughter pT
     }
-    if (TMath::Abs(trackPion.dcaPrim0()) > cuts->get(pTBin, "d0pi") || TMath::Abs(trackKaon.dcaPrim0()) > cuts->get(pTBin, "d0K")) {
+    if (std::abs(trackPion.dcaPrim0()) > cuts->get(pTBin, "d0pi") || std::abs(trackKaon.dcaPrim0()) > cuts->get(pTBin, "d0K")) {
       return false; //cut on daughter dca - need to add secondary vertex constraint here
     }
 
     if (trackPion.sign() > 0) { //cut on cos(theta *)
-      if (TMath::Abs(CosThetaStarD0(hfCandProng2)) > cuts->get(pTBin, "cos theta*")) {
+      if (std::abs(CosThetaStarD0(hfCandProng2)) > cuts->get(pTBin, "cos theta*")) {
         return false;
       }
     } else {
-      if (TMath::Abs(CosThetaStarD0bar(hfCandProng2)) > cuts->get(pTBin, "cos theta*")) {
+      if (std::abs(CosThetaStarD0bar(hfCandProng2)) > cuts->get(pTBin, "cos theta*")) {
         return false;
       }
     }
@@ -161,7 +158,7 @@ struct HFD0CandidateSelector {
   template <typename T>
   bool validTPCPID(const T& track)
   {
-    if (TMath::Abs(track.pt()) < d_pidTPCMinpT || TMath::Abs(track.pt()) >= d_pidTPCMaxpT) {
+    if (track.pt() < d_pidTPCMinpT || track.pt() >= d_pidTPCMaxpT) {
       return false;
     }
     //if (track.TPCNClsFindable() < d_TPCNClsFindablePIDCut) return false;
@@ -175,7 +172,7 @@ struct HFD0CandidateSelector {
   template <typename T>
   bool validTOFPID(const T& track)
   {
-    if (TMath::Abs(track.pt()) < d_pidTOFMinpT || TMath::Abs(track.pt()) >= d_pidTOFMaxpT) {
+    if (track.pt() < d_pidTOFMinpT || track.pt() >= d_pidTOFMaxpT) {
       return false;
     }
     return true;
@@ -185,13 +182,12 @@ struct HFD0CandidateSelector {
   /// \param track is the track
   /// \param nPDG is the flavour hypothesis PDG number
   /// \param nSigmaCut is the nsigma threshold to test against
-  /// \note nPDG=211 pion  nPDG=321 kaon
   /// \return true if track satisfies TPC PID hypothesis for given Nsigma cut
   template <typename T>
   bool selectionPIDTPC(const T& track, int nPDG, double nSigmaCut)
   {
     double nSigma = 100.0; //arbitarily large value
-    nPDG = TMath::Abs(nPDG);
+    nPDG = std::abs(nPDG);
     if (nPDG == kPiPlus) {
       nSigma = track.tpcNSigmaPi();
     } else if (nPDG == kKPlus) {
@@ -199,20 +195,19 @@ struct HFD0CandidateSelector {
     } else {
       return false;
     }
-    return nSigma < nSigmaCut;
+    return std::abs(nSigma) < nSigmaCut;
   }
 
   /// Check if track is compatible with given TOF NSigma cut for a given flavour hypothesis
   /// \param track is the track
   /// \param nPDG is the flavour hypothesis PDG number
   /// \param nSigmaCut is the nSigma threshold to test against
-  /// \note nPDG=211 pion  nPDG=321 kaon
   /// \return true if track satisfies TOF PID hypothesis for given NSigma cut
   template <typename T>
   bool selectionPIDTOF(const T& track, int nPDG, double nSigmaCut)
   {
     double nSigma = 100.0; //arbitarily large value
-    nPDG = TMath::Abs(nPDG);
+    nPDG = std::abs(nPDG);
     if (nPDG == kPiPlus) {
       nSigma = track.tofNSigmaPi();
     } else if (nPDG == kKPlus) {
@@ -220,13 +215,12 @@ struct HFD0CandidateSelector {
     } else {
       return false;
     }
-    return nSigma < nSigmaCut;
+    return std::abs(nSigma) < nSigmaCut;
   }
 
   /// PID selection on daughter track
   /// \param track is the daughter track
   /// \param nPDG is the PDG code of the flavour hypothesis
-  /// \note nPDG=211 pion  nPDG=321 kaon
   /// \return 1 if successful PID match, 0 if successful PID rejection, -1 if no PID info
   template <typename T>
   int selectionPID(const T& track, int nPDG)
@@ -281,7 +275,7 @@ struct HFD0CandidateSelector {
       int statusD0 = 0;
       int statusD0bar = 0;
 
-      if (!(hfCandProng2.hfflag() & 1 << D0ToPiK)) {
+      if (!(hfCandProng2.hfflag() & 1 << DecayType::D0ToPiK)) {
         hfSelD0Candidate(statusD0, statusD0bar);
         continue;
       }
@@ -297,7 +291,7 @@ struct HFD0CandidateSelector {
         continue;
       }
 
-      //conjugate independent topological selection
+      //conjugate-independent topological selection
       if (!selectionTopol(hfCandProng2)) {
         hfSelD0Candidate(statusD0, statusD0bar);
         continue;
@@ -306,9 +300,9 @@ struct HFD0CandidateSelector {
       //implement filter bit 4 cut - should be done before this task at the track selection level
       //need to add special cuts (additional cuts on decay length and d0 norm)
 
-      //conjugate dependent toplogical selection for D0
+      //conjugate-dependent topological selection for D0
       bool topolD0 = selectionTopolConjugate(hfCandProng2, trackPos, trackNeg);
-      //conjugate dependent toplogical selection for D0bar
+      //conjugate-dependent topological selection for D0bar
       bool topolD0bar = selectionTopolConjugate(hfCandProng2, trackNeg, trackPos);
 
       if (!topolD0 && !topolD0bar) {

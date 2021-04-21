@@ -31,7 +31,7 @@ template <>
 std::string asString(o2::mch::Digit d)
 {
   return fmt::format("DetID {:4d} PadId {:10d} ADC {:10d} TFtime {:10d} NofSamples {:5d} {}",
-                     d.getDetID(), d.getPadID(), d.getADC(), d.getTime(), d.nofSamples(),
+                     d.getDetID(), d.getPadID(), d.getADC(), d.getTime(), d.getNofSamples(),
                      d.isSaturated() ? "(S)" : "");
 }
 template <typename T>

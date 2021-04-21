@@ -32,9 +32,9 @@
 #include "MIDRaw/CrateParameters.h"
 #include "MIDRaw/DecodedDataAggregator.h"
 #include "MIDRaw/Decoder.h"
-#include "MIDRaw/GBTDecoder.h"
-#include "MIDRaw/GBTUserLogicEncoder.h"
 #include "MIDRaw/Encoder.h"
+#include "MIDRaw/GBTUserLogicEncoder.h"
+#include "MIDRaw/LinkDecoder.h"
 
 BOOST_AUTO_TEST_SUITE(o2_mid_raw)
 
@@ -193,9 +193,9 @@ BOOST_AUTO_TEST_CASE(GBTUserLogicDecoder)
 
   uint8_t crateId = 5;
   uint8_t linkInCrate = 0;
-  uint16_t feeId = o2::mid::crateparams::makeGBTUniqueId(crateId, linkInCrate);
+  uint16_t gbtUniqueId = o2::mid::crateparams::makeGBTUniqueId(crateId, linkInCrate);
   o2::mid::GBTUserLogicEncoder encoder;
-  encoder.setFeeId(feeId);
+  encoder.setGBTUniqueId(gbtUniqueId);
   for (auto& item : inData) {
     encoder.process(item.second, o2::InteractionRecord(item.first, 0));
   }
@@ -204,9 +204,10 @@ BOOST_AUTO_TEST_CASE(GBTUserLogicDecoder)
   o2::header::RAWDataHeader rdh;
   auto memSize = buf.size() + 64;
   rdh.word1 |= (memSize | (memSize << 16));
-  // Sets the feeId
-  rdh.word0 |= ((5 * 2) << 16);
-  auto decoder = o2::mid::createGBTDecoder(feeId);
+  // Sets the linkId
+  uint16_t feeId = gbtUniqueId / 8;
+  rdh.word0 |= (feeId << 16);
+  auto decoder = o2::mid::createLinkDecoder(feeId);
   std::vector<o2::mid::ROBoard> data;
   std::vector<o2::mid::ROFRecord> rofs;
   std::vector<uint8_t> convertedBuffer(buf.size());

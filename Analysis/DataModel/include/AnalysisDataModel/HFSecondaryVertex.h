@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file HFSecondaryVertex.h
-/// \brief Definitions of tables of heavy-flavour decay candidates.
+/// \brief Definitions of tables of heavy-flavour decay candidates
 ///
 /// \author Gian Michele Innocenti <gian.michele.innocenti@cern.ch>, CERN
 /// \author Vít Kučera <vit.kucera@cern.ch>, CERN
@@ -19,7 +19,10 @@
 
 #include "Framework/AnalysisDataModel.h"
 #include "AnalysisCore/RecoDecay.h"
+#include "AnalysisCore/HFSelectorCuts.h"
 #include "AnalysisDataModel/PID/PIDResponse.h"
+
+using namespace o2::analysis;
 
 namespace o2::aod
 {
@@ -220,19 +223,19 @@ enum DecayType { D0ToPiK = 0,
 template <typename T>
 auto CtD0(const T& candidate)
 {
-  return candidate.ct(RecoDecay::getMassPDG(421));
+  return candidate.ct(RecoDecay::getMassPDG(pdg::Code::kD0));
 }
 
 template <typename T>
 auto YD0(const T& candidate)
 {
-  return candidate.y(RecoDecay::getMassPDG(421));
+  return candidate.y(RecoDecay::getMassPDG(pdg::Code::kD0));
 }
 
 template <typename T>
 auto ED0(const T& candidate)
 {
-  return candidate.e(RecoDecay::getMassPDG(421));
+  return candidate.e(RecoDecay::getMassPDG(pdg::Code::kD0));
 }
 
 template <typename T>
@@ -250,32 +253,33 @@ auto InvMassD0bar(const T& candidate)
 template <typename T>
 auto CosThetaStarD0(const T& candidate)
 {
-  return candidate.cosThetaStar(array{RecoDecay::getMassPDG(kPiPlus), RecoDecay::getMassPDG(kKPlus)}, RecoDecay::getMassPDG(421), 1);
+  return candidate.cosThetaStar(array{RecoDecay::getMassPDG(kPiPlus), RecoDecay::getMassPDG(kKPlus)}, RecoDecay::getMassPDG(pdg::Code::kD0), 1);
 }
 
 template <typename T>
 auto CosThetaStarD0bar(const T& candidate)
 {
-  return candidate.cosThetaStar(array{RecoDecay::getMassPDG(kKPlus), RecoDecay::getMassPDG(kPiPlus)}, RecoDecay::getMassPDG(421), 0);
+  return candidate.cosThetaStar(array{RecoDecay::getMassPDG(kKPlus), RecoDecay::getMassPDG(kPiPlus)}, RecoDecay::getMassPDG(pdg::Code::kD0), 0);
 }
 
 // Jpsi
+
 template <typename T>
 auto CtJpsi(const T& candidate)
 {
-  return candidate.ct(RecoDecay::getMassPDG(443));
+  return candidate.ct(RecoDecay::getMassPDG(pdg::Code::kJpsi));
 }
 
 template <typename T>
 auto YJpsi(const T& candidate)
 {
-  return candidate.y(RecoDecay::getMassPDG(443));
+  return candidate.y(RecoDecay::getMassPDG(pdg::Code::kJpsi));
 }
 
 template <typename T>
 auto EJpsi(const T& candidate)
 {
-  return candidate.e(RecoDecay::getMassPDG(443));
+  return candidate.e(RecoDecay::getMassPDG(pdg::Code::kJpsi));
 }
 
 // Jpsi → e+e-
@@ -403,19 +407,19 @@ enum DecayType { DPlusToPiKPi = 0,
 template <typename T>
 auto CtDPlus(const T& candidate)
 {
-  return candidate.ct(RecoDecay::getMassPDG(411));
+  return candidate.ct(RecoDecay::getMassPDG(pdg::Code::kDPlus));
 }
 
 template <typename T>
 auto YDPlus(const T& candidate)
 {
-  return candidate.y(RecoDecay::getMassPDG(411));
+  return candidate.y(RecoDecay::getMassPDG(pdg::Code::kDPlus));
 }
 
 template <typename T>
 auto EDPlus(const T& candidate)
 {
-  return candidate.e(RecoDecay::getMassPDG(411));
+  return candidate.e(RecoDecay::getMassPDG(pdg::Code::kDPlus));
 }
 
 template <typename T>
@@ -429,19 +433,19 @@ auto InvMassDPlus(const T& candidate)
 template <typename T>
 auto CtLc(const T& candidate)
 {
-  return candidate.ct(RecoDecay::getMassPDG(4122));
+  return candidate.ct(RecoDecay::getMassPDG(pdg::Code::kLambdaCPlus));
 }
 
 template <typename T>
 auto YLc(const T& candidate)
 {
-  return candidate.y(RecoDecay::getMassPDG(4122));
+  return candidate.y(RecoDecay::getMassPDG(pdg::Code::kLambdaCPlus));
 }
 
 template <typename T>
 auto ELc(const T& candidate)
 {
-  return candidate.e(RecoDecay::getMassPDG(4122));
+  return candidate.e(RecoDecay::getMassPDG(pdg::Code::kLambdaCPlus));
 }
 
 template <typename T>
@@ -461,19 +465,19 @@ auto InvMassLcpiKp(const T& candidate)
 template <typename T>
 auto CtXic(const T& candidate)
 {
-  return candidate.ct(RecoDecay::getMassPDG(4232));
+  return candidate.ct(RecoDecay::getMassPDG(pdg::Code::kXiCPlus));
 }
 
 template <typename T>
 auto YXic(const T& candidate)
 {
-  return candidate.y(RecoDecay::getMassPDG(4232));
+  return candidate.y(RecoDecay::getMassPDG(pdg::Code::kXiCPlus));
 }
 
 template <typename T>
 auto EXic(const T& candidate)
 {
-  return candidate.e(RecoDecay::getMassPDG(4232));
+  return candidate.e(RecoDecay::getMassPDG(pdg::Code::kXiCPlus));
 }
 
 template <typename T>

@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file RecoDecay.h
-/// \brief Implementation of the RecoDecay class.
+/// \brief Implementation of the RecoDecay class
 ///
 /// \author Vít Kučera <vit.kucera@cern.ch>, CERN
 
