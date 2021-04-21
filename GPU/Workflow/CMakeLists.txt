@@ -12,4 +12,8 @@ o2_add_executable(display
         COMPONENT_NAME gpu
         TARGETVARNAME targetName
         SOURCES O2GPUDPLDisplay.cxx
-        PUBLIC_LINK_LIBRARIES O2::GPUO2Interface O2::DataFormatsGlobalTracking)
+        PUBLIC_LINK_LIBRARIES O2::GPUO2Interface
+                              O2::DataFormatsGlobalTracking
+                              O2::TPCFastTransformation
+                              O2::TRDBase
+                              O2::TPCReconstruction)

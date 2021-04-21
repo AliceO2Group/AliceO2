@@ -53,7 +53,7 @@ namespace gpu
 class GPUDisplay
 {
  public:
-  GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param = nullptr) {}
+  GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param = nullptr, const GPUCalibObjectsConst* calib = nullptr) {}
   ~GPUDisplay() = default;
   GPUDisplay(const GPUDisplay&) = delete;
 
@@ -94,7 +94,7 @@ struct GPUParam;
 class GPUDisplay
 {
  public:
-  GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param = nullptr);
+  GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param = nullptr, const GPUCalibObjectsConst* calib = nullptr);
   ~GPUDisplay() = default;
   GPUDisplay(const GPUDisplay&) = delete;
 
@@ -194,6 +194,7 @@ class GPUDisplay
   int getNumThreads();
   const GPUTPCTracker& sliceTracker(int iSlice);
   const GPUTRDTrackerGPU& trdTracker();
+  const GPUTRDGeometry& trdGeometry();
   const GPUTrackingInOutPointers* mIOPtrs = nullptr;
   void drawVertices(const vboList& v, const GLenum t);
   void insertVertexList(std::pair<vecpod<GLint>*, vecpod<GLsizei>*>& vBuf, size_t first, size_t last);
@@ -262,6 +263,7 @@ class GPUDisplay
   GPUDisplayBackend* mBackend;
   GPUChainTracking* mChain;
   const GPUParam* mParam;
+  const GPUCalibObjectsConst* mCalib;
   const GPUSettingsDisplay& mConfig;
   GPUSettingsDisplayLight mCfg;
   GPUQA* mQA;
