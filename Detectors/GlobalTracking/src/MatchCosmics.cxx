@@ -141,9 +141,8 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     const auto& rec = mRecords[winRID];
     int poolEntryID[2] = {rec.id0, rec.id1};
     const o2::track::TrackParCov outerLegs[2] = {data.getTrackParamOut(mSeeds[rec.id0].origID), data.getTrackParamOut(mSeeds[rec.id1].origID)};
-    auto tmin = std::max(mSeeds[rec.id0].tBracket.getMin(), mSeeds[rec.id1].tBracket.getMin());
-    auto tmax = std::min(mSeeds[rec.id0].tBracket.getMax(), mSeeds[rec.id1].tBracket.getMax());
-    auto t0 = 0.5 * (tmin + tmax);
+    auto tOverlap = mSeeds[rec.id0].tBracket.getOverlap(mSeeds[rec.id1].tBracket);
+    float t0 = tOverlap.mean(), dt = tOverlap.delta() * 0.5;
     auto pnt0 = outerLegs[0].getXYZGlo(), pnt1 = outerLegs[1].getXYZGlo();
     int btm = 0, top = 1;
     // we fit topward from bottom
@@ -154,7 +153,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     LOG(DEBUG) << "Winner " << count++ << " Record " << winRID << " Partners:"
                << " B: " << mSeeds[poolEntryID[btm]].origID << "/" << mSeeds[poolEntryID[btm]].origID.getSourceName()
                << " U: " << mSeeds[poolEntryID[top]].origID << "/" << mSeeds[poolEntryID[top]].origID.getSourceName()
-               << " | T[" << tmin << ":" << tmax << "]";
+               << " | T:" << tOverlap.asString();
 
     float chi2 = 0;
     int nclTot = 0;
@@ -175,7 +174,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     } else { // just collect NClusters and chi2
       auto gidxListBtm = data.getSingleDetectorRefs(mSeeds[poolEntryID[btm]].origID);
       if (gidxListBtm[GTrackID::TPC].isIndexSet()) {
-        const auto& tpcTrOrig = data.getTPCTrack<o2::its::TrackITS>(gidxListBtm[GTrackID::TPC]);
+        const auto& tpcTrOrig = data.getTPCTrack<o2::tpc::TrackTPC>(gidxListBtm[GTrackID::TPC]);
         nclTot += tpcTrOrig.getNClusters();
         chi2 += tpcTrOrig.getChi2();
       }
@@ -209,11 +208,14 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     } // ITS refit
     //
     if (gidxListTop[GTrackID::TPC].isIndexSet()) { // outward refit in TPC
-      float xtogo = 0;
-      if (!trCosm.getXatLabR(o2::constants::geom::XTPCInnerRef, xtogo, mBz, o2::track::DirOutward) ||
-          !o2::base::Propagator::Instance()->PropagateToXBxByBz(trCosm, xtogo, mMatchParams->maxSnp, mMatchParams->maxStep, mMatchParams->matCorr)) {
-        LOG(DEBUG) << "Propagation to inner TPC boundary X=" << xtogo << " failed";
-        continue;
+      // go to TPC boundary, if needed
+      if (trCosm.getX() * trCosm.getX() + trCosm.getY() * trCosm.getY() <= o2::constants::geom::XTPCInnerRef * o2::constants::geom::XTPCInnerRef) {
+        float xtogo = 0;
+        if (!trCosm.getXatLabR(o2::constants::geom::XTPCInnerRef, xtogo, mBz, o2::track::DirOutward) ||
+            !o2::base::Propagator::Instance()->PropagateToXBxByBz(trCosm, xtogo, mMatchParams->maxSnp, mMatchParams->maxStep, mMatchParams->matCorr)) {
+          LOG(DEBUG) << "Propagation to inner TPC boundary X=" << xtogo << " failed";
+          continue;
+        }
       }
       const auto& tpcTrOrig = data.getTPCTrack<o2::tpc::TrackTPC>(gidxListTop[GTrackID::TPC]);
       int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosm, tpcTrOrig.getClusterRef(), t0 * tpcTBinMUSInv, &chi2, true, false); // outward refit, no reset
@@ -258,7 +260,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
       continue;
     }
     // create final track
-    mCosmicTracks.emplace_back(mSeeds[poolEntryID[btm]].origID, mSeeds[poolEntryID[top]].origID, trCosmBtm, trCosmTop, chi2, chi2Match, nclTot);
+    mCosmicTracks.emplace_back(mSeeds[poolEntryID[btm]].origID, mSeeds[poolEntryID[top]].origID, trCosmBtm, trCosmTop, chi2, chi2Match, nclTot, t0, dt);
     if (mUseMC) {
       o2::MCCompLabel lbl[2] = {data.getTrackMCLabel(mSeeds[poolEntryID[btm]].origID), data.getTrackMCLabel(mSeeds[poolEntryID[top]].origID)};
       auto& tlb = mCosmicTracksLbl.emplace_back((nclBtm > nclTot - nclBtm ? lbl[0] : lbl[1]));

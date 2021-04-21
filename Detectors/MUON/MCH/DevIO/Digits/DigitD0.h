@@ -16,11 +16,11 @@
 namespace o2::mch::io::impl
 {
 struct DigitD0 {
-  int32_t tfTime;      /// time since the beginning of the time frame, in bunch crossing units
-  uint16_t nofSamples; /// number of samples in the signal + saturated bit
-  int detID;           /// ID of the Detection Element to which the digit corresponds to
-  int padID;           /// PadIndex to which the digit corresponds to
-  uint32_t adc;        /// Amplitude of signal
+  int32_t tfTime{0};      /// time since the beginning of the time frame, in bunch crossing units
+  uint16_t nofSamples{0}; /// number of samples in the signal + saturated bit
+  int detID{0};           /// ID of the Detection Element to which the digit corresponds to
+  int padID{0};           /// PadIndex to which the digit corresponds to
+  uint32_t adc{0};        /// Amplitude of signal
 
   void setNofSamples(uint16_t n) { nofSamples = (nofSamples & 0x8000) + (n & 0x7FFF); }
   uint16_t getNofSamples() const { return (nofSamples & 0x7FFF); }

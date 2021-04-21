@@ -23,6 +23,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
 #include "CommonUtils/StringUtils.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 
@@ -37,7 +38,8 @@ void TOFMatchedReader::init(InitContext& ic)
 {
   // get the option from the init context
   LOG(INFO) << "Init TOF matching info reader!";
-  mInFileName = ic.options().get<std::string>("tof-matched-infile");
+  mInFileName = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                         ic.options().get<std::string>("tof-matched-infile"));
   mInTreeName = ic.options().get<std::string>("treename");
   connectTree(mInFileName);
 }
@@ -102,6 +104,7 @@ DataProcessorSpec getTOFMatchedReaderSpec(bool useMC, bool tpcmatch, bool readTr
     AlgorithmSpec{adaptFromTask<TOFMatchedReader>(useMC, tpcmatch, readTracks)},
     Options{
       {"tof-matched-infile", VariantType::String, tpcmatch ? "o2match_toftpc.root" : "o2match_tof.root", {"Name of the input file"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}},
       {"treename", VariantType::String, "matchTOF", {"Name of top-level TTree"}},
     }};
 }

@@ -12,7 +12,6 @@
 #define O2_TRD_GEOMETRYBASE_H
 
 #include "GPUCommonDef.h"
-#include "TRDBase/CommonParam.h"
 #include "DataFormatsTRD/Constants.h"
 #include "TRDBase/PadPlane.h"
 

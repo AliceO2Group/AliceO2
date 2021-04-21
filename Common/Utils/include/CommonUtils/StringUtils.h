@@ -17,6 +17,9 @@
 #define ALICEO2_STRINGUTILS_H
 
 #include <sstream>
+#include <sys/stat.h>
+#include <cstdlib>
+#include <fmt/format.h>
 
 namespace o2
 {
@@ -87,6 +90,42 @@ std::string concat_string(Ts const&... ts)
   std::stringstream s;
   (s << ... << ts);
   return s.str();
+}
+
+// Check if the path exists
+static inline bool pathExists(const std::string_view p)
+{
+  struct stat buffer;
+  return (stat(p.data(), &buffer) == 0);
+}
+
+// Check if the path is a directory
+static inline bool pathIsDirectory(const std::string_view p)
+{
+  struct stat buffer;
+  return (stat(p.data(), &buffer) == 0) && S_ISDIR(buffer.st_mode);
+}
+
+static inline std::string getFullPath(const std::string_view p)
+{
+  std::unique_ptr<char[]> real_path(realpath(p.data(), nullptr));
+  return std::string(real_path.get());
+}
+
+static inline std::string rectifyDirectory(const std::string& _dir)
+{
+  std::string dir = _dir;
+  if (dir.empty() || dir == "none") {
+    dir = "";
+  } else {
+    dir = getFullPath(dir);
+    if (!pathIsDirectory(dir)) {
+      throw std::runtime_error(fmt::format("{:s} is not an accessible directory", dir));
+    } else {
+      dir += '/';
+    }
+  }
+  return dir;
 }
 
 } // namespace utils

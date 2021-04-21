@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file HFLcCandidateSelector.cxx
-/// \brief Lc->pKpi selection task.
+/// \brief Λc± → p± K∓ π± selection task
 ///
 /// \author Luigi Dello Stritto <luigi.dello.stritto@cern.ch>, University and INFN SALERNO
 /// \author Nima Zardoshti <nima.zardoshti@cern.ch>, CERN
@@ -18,17 +18,14 @@
 #include "Framework/AnalysisTask.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
-#include "AnalysisCore/HFSelectorCuts.h"
 
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong3;
-using namespace o2::analysis;
 using namespace o2::analysis::hf_cuts_lc_topkpi;
 
 /// Struct for applying Lc selection cuts
 struct HFLcCandidateSelector {
-
   Produces<aod::HFSelLcCandidate> hfSelLcCandidate;
 
   Configurable<double> d_pTCandMin{"d_pTCandMin", 0., "Lower bound of candidate pT"};
@@ -65,7 +62,7 @@ struct HFLcCandidateSelector {
     return true;
   }
 
-  /// Conjugate independent toplogical cuts
+  /// Conjugate-independent topological cuts
   /// \param hfCandProng3 is candidate
   /// \return true if candidate passes all cuts
   template <typename T>
@@ -96,7 +93,7 @@ struct HFLcCandidateSelector {
     return true;
   }
 
-  /// Conjugate dependent toplogical cuts
+  /// Conjugate-dependent topological cuts
   /// \param hfCandProng3 is candidate
   /// \param trackProton is the track with the proton hypothesis
   /// \param trackPion is the track with the pion hypothesis
@@ -117,11 +114,11 @@ struct HFLcCandidateSelector {
     }
 
     if (trackProton.globalIndex() == hfCandProng3.index0Id()) {
-      if (TMath::Abs(InvMassLcpKpi(hfCandProng3) - RecoDecay::getMassPDG(pdg::code::kLambdaCPlus)) > cuts->get(pTBin, "m")) {
+      if (std::abs(InvMassLcpKpi(hfCandProng3) - RecoDecay::getMassPDG(pdg::Code::kLambdaCPlus)) > cuts->get(pTBin, "m")) {
         return false;
       }
     } else {
-      if (TMath::Abs(InvMassLcpiKp(hfCandProng3) - RecoDecay::getMassPDG(pdg::code::kLambdaCPlus)) > cuts->get(pTBin, "m")) {
+      if (std::abs(InvMassLcpiKp(hfCandProng3) - RecoDecay::getMassPDG(pdg::Code::kLambdaCPlus)) > cuts->get(pTBin, "m")) {
         return false;
       }
     }
@@ -136,7 +133,7 @@ struct HFLcCandidateSelector {
   template <typename T>
   bool validTPCPID(const T& track)
   {
-    if (TMath::Abs(track.pt()) < d_pidTPCMinpT || TMath::Abs(track.pt()) >= d_pidTPCMaxpT) {
+    if (track.pt() < d_pidTPCMinpT || track.pt() >= d_pidTPCMaxpT) {
       return false;
     }
     //if (track.TPCNClsFindable() < d_TPCNClsFindablePIDCut) return false;
@@ -150,7 +147,7 @@ struct HFLcCandidateSelector {
   template <typename T>
   bool validTOFPID(const T& track)
   {
-    if (TMath::Abs(track.pt()) < d_pidTOFMinpT || TMath::Abs(track.pt()) >= d_pidTOFMaxpT) {
+    if (track.pt() < d_pidTOFMinpT || track.pt() >= d_pidTOFMaxpT) {
       return false;
     }
     return true;
@@ -160,13 +157,12 @@ struct HFLcCandidateSelector {
   /// \param track is the track
   /// \param nPDG is the flavour hypothesis PDG number
   /// \param nSigmaCut is the nsigma threshold to test against
-  /// \note nPDG=2212 proton  nPDG=211 pion  nPDG=321 kaon
   /// \return true if track satisfies TPC PID hypothesis for given Nsigma cut
   template <typename T>
   bool selectionPIDTPC(const T& track, int nPDG, int nSigmaCut)
   {
     double nSigma = 100.; //arbitarily large value
-    nPDG = TMath::Abs(nPDG);
+    nPDG = std::abs(nPDG);
     if (nPDG == kProton) {
       nSigma = track.tpcNSigmaPr();
     } else if (nPDG == kKPlus) {
@@ -176,20 +172,19 @@ struct HFLcCandidateSelector {
     } else {
       return false;
     }
-    return nSigma < nSigmaCut;
+    return std::abs(nSigma) < nSigmaCut;
   }
 
   /// Check if track is compatible with given TOF NSigma cut for a given flavour hypothesis
   /// \param track is the track
   /// \param nPDG is the flavour hypothesis PDG number
   /// \param nSigmaCut is the nSigma threshold to test against
-  /// \note nPDG=2212 proton  nPDG=211 pion  nPDG=321 kaon
   /// \return true if track satisfies TOF PID hypothesis for given NSigma cut
   template <typename T>
   bool selectionPIDTOF(const T& track, int nPDG, int nSigmaCut)
   {
     double nSigma = 100.; //arbitarily large value
-    nPDG = TMath::Abs(nPDG);
+    nPDG = std::abs(nPDG);
     if (nPDG == kProton) {
       nSigma = track.tofNSigmaPr();
     } else if (nPDG == kKPlus) {
@@ -199,7 +194,7 @@ struct HFLcCandidateSelector {
     } else {
       return false;
     }
-    return nSigma < nSigmaCut;
+    return std::abs(nSigma) < nSigmaCut;
   }
 
   /// PID selection on daughter track
@@ -259,7 +254,7 @@ struct HFLcCandidateSelector {
       auto statusLcpKpi = 0;
       auto statusLcpiKp = 0;
 
-      if (!(hfCandProng3.hfflag() & 1 << LcToPKPi)) {
+      if (!(hfCandProng3.hfflag() & 1 << DecayType::LcToPKPi)) {
         hfSelLcCandidate(statusLcpKpi, statusLcpiKp);
         continue;
       }
@@ -278,13 +273,13 @@ struct HFLcCandidateSelector {
 
       //implement filter bit 4 cut - should be done before this task at the track selection level
 
-      //conjugate independent topological selection
+      //conjugate-independent topological selection
       if (!selectionTopol(hfCandProng3)) {
         hfSelLcCandidate(statusLcpKpi, statusLcpiKp);
         continue;
       }
 
-      //conjugate dependent toplogical selection for Lc
+      //conjugate-dependent topological selection for Lc
 
       bool topolLcpKpi = selectionTopolConjugate(hfCandProng3, trackPos1, trackNeg1, trackPos2);
       bool topolLcpiKp = selectionTopolConjugate(hfCandProng3, trackPos2, trackNeg1, trackPos1);

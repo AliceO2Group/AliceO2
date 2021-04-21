@@ -18,6 +18,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "DataFormatsTOF/CalibInfoTOF.h"
+#include <string>
 
 class TTree;
 
@@ -40,7 +41,7 @@ class CalibInfoReader : public Task
   int mState = 0;
   int mInstance;
   int mNinstances;
-  const char* mFileName = nullptr;
+  std::string mFileName{};
   FILE* mFile = nullptr;
   TTree* mTree = nullptr;
   bool mTOFTPC = false;

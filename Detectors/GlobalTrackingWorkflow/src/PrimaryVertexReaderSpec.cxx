@@ -16,6 +16,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
 #include "GlobalTrackingWorkflow/PrimaryVertexReaderSpec.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 
@@ -26,7 +27,8 @@ namespace vertexing
 
 void PrimaryVertexReader::init(InitContext& ic)
 {
-  mFileName = ic.options().get<std::string>("primary-vertex-infile");
+  mFileName = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                       ic.options().get<std::string>("primary-vertex-infile"));
   connectTree();
 }
 
@@ -121,7 +123,8 @@ DataProcessorSpec getPrimaryVertexReaderSpec(bool useMC)
     AlgorithmSpec{adaptFromTask<PrimaryVertexReader>(useMC)},
     Options{
       {"primary-vertex-infile", VariantType::String, "o2_primary_vertex.root", {"Name of the input primary vertex file"}},
-      {"vertex-track-matches-infile", VariantType::String, "o2_pvertex_track_matches.root", {"Name of the input file with primary vertex - tracks matches"}}}};
+      {"vertex-track-matches-infile", VariantType::String, "o2_pvertex_track_matches.root", {"Name of the input file with primary vertex - tracks matches"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
 } // namespace vertexing

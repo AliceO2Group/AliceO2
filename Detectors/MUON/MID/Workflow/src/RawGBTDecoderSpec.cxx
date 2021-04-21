@@ -28,9 +28,9 @@
 #include "Framework/Task.h"
 #include "Headers/RDHAny.h"
 #include "DetectorsRaw/RDHUtils.h"
-#include "DataFormatsMID/ROFRecord.h"
-#include "MIDRaw/GBTDecoder.h"
 #include "DataFormatsMID/ROBoard.h"
+#include "DataFormatsMID/ROFRecord.h"
+#include "MIDRaw/LinkDecoder.h"
 
 namespace o2
 {
@@ -89,7 +89,7 @@ class RawGBTDecoderDeviceDPL
   }
 
  private:
-  std::unique_ptr<GBTDecoder> mDecoder{nullptr};
+  std::unique_ptr<LinkDecoder> mDecoder{nullptr};
   bool mIsDebugMode{false};
   std::vector<uint16_t> mFeeIds{};
   CrateMasks mCrateMasks{};

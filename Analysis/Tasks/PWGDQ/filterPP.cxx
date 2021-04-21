@@ -59,8 +59,17 @@ DECLARE_SOA_TABLE(DQBarrelTrackCuts, "AOD", "DQBARRELCUTS", dqppfilter::IsBarrel
 
 using MyEvents = soa::Join<aod::Collisions, aod::EvSels>;
 using MyEventsSelected = soa::Join<aod::Collisions, aod::EvSels, aod::DQEventCuts>;
-using MyBarrelTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::TracksExtended, aod::TrackSelection, aod::pidRespTPC, aod::pidRespTOF, aod::pidRespTOFbeta>;
-using MyBarrelTracksSelected = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::TracksExtended, aod::TrackSelection, aod::pidRespTPC, aod::pidRespTOF, aod::pidRespTOFbeta, aod::DQBarrelTrackCuts>;
+using MyBarrelTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::TracksExtended, aod::TrackSelection,
+                                 aod::pidRespTPCEl, aod::pidRespTPCMu, aod::pidRespTPCPi,
+                                 aod::pidRespTPCKa, aod::pidRespTPCPr,
+                                 aod::pidRespTOFEl, aod::pidRespTOFMu, aod::pidRespTOFPi,
+                                 aod::pidRespTOFKa, aod::pidRespTOFPr, aod::pidRespTOFbeta>;
+using MyBarrelTracksSelected = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::TracksExtended, aod::TrackSelection,
+                                         aod::pidRespTPCEl, aod::pidRespTPCMu, aod::pidRespTPCPi,
+                                         aod::pidRespTPCKa, aod::pidRespTPCPr,
+                                         aod::pidRespTOFEl, aod::pidRespTOFMu, aod::pidRespTOFPi,
+                                         aod::pidRespTOFKa, aod::pidRespTOFPr, aod::pidRespTOFbeta,
+                                         aod::DQBarrelTrackCuts>;
 
 constexpr static uint32_t gkEventFillMap = VarManager::ObjTypes::BC | VarManager::ObjTypes::Collision;
 constexpr static uint32_t gkTrackFillMap = VarManager::ObjTypes::Track | VarManager::ObjTypes::TrackExtra | VarManager::ObjTypes::TrackDCA | VarManager::ObjTypes::TrackSelection | VarManager::ObjTypes::TrackCov | VarManager::ObjTypes::TrackPID;
