@@ -335,13 +335,13 @@ struct HFTrackIndexSkimsCreator {
     int nCutStatus3ProngBit = (1 << nCuts3Prong) - 1; // bit value for selection status for each 3-prong candidate where each selection is one bit and they are all set to 1
 
     array<array<double, 2>, n2ProngDecays> arr2Mass1;
-    arr2Mass1[hf_cand_prong2::D0ToPiK]    = array{massPi, massK};
-    arr2Mass1[hf_cand_prong2::JpsiToEE]   = array{massElectron, massElectron};
+    arr2Mass1[hf_cand_prong2::D0ToPiK] = array{massPi, massK};
+    arr2Mass1[hf_cand_prong2::JpsiToEE] = array{massElectron, massElectron};
     arr2Mass1[hf_cand_prong2::JpsiToMuMu] = array{massMu, massMu};
 
     array<array<double, 2>, n2ProngDecays> arr2Mass2;
-    arr2Mass2[hf_cand_prong2::D0ToPiK]    = array{massK, massPi};
-    arr2Mass2[hf_cand_prong2::JpsiToEE]   = array{massElectron, massElectron};
+    arr2Mass2[hf_cand_prong2::D0ToPiK] = array{massK, massPi};
+    arr2Mass2[hf_cand_prong2::JpsiToEE] = array{massElectron, massElectron};
     arr2Mass2[hf_cand_prong2::JpsiToMuMu] = array{massMu, massMu};
 
     array<array<double, 3>, n3ProngDecays> arr3Mass1;
