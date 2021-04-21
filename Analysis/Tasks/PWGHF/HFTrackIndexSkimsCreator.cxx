@@ -291,11 +291,11 @@ struct HFTrackIndexSkimsCreator {
     cut2ProngCPACandMin[hf_cand_prong2::DecayType::JpsiToEE] = configs->mCPAJpsiToEEMin;
     cut2ProngImpParProductCandMax[hf_cand_prong2::DecayType::JpsiToEE] = configs->mImpParProductJpsiToEEMax;
 
-    cut2ProngPtCandMin[JpsiToMuMu] = configs->mPtJpsiToMuMuMin;
-    cut2ProngInvMassCandMin[JpsiToMuMu] = configs->mInvMassJpsiToMuMuMin;
-    cut2ProngInvMassCandMax[JpsiToMuMu] = configs->mInvMassJpsiToMuMuMax;
-    cut2ProngCPACandMin[JpsiToMuMu] = configs->mCPAJpsiToMuMuMin;
-    cut2ProngImpParProductCandMax[JpsiToMuMu] = configs->mImpParProductJpsiToMuMuMax;
+    cut2ProngPtCandMin[hf_cand_prong2::DecayType::JpsiToMuMu] = configs->mPtJpsiToMuMuMin;
+    cut2ProngInvMassCandMin[hf_cand_prong2::DecayType::JpsiToMuMu] = configs->mInvMassJpsiToMuMuMin;
+    cut2ProngInvMassCandMax[hf_cand_prong2::DecayType::JpsiToMuMu] = configs->mInvMassJpsiToMuMuMax;
+    cut2ProngCPACandMin[hf_cand_prong2::DecayType::JpsiToMuMu] = configs->mCPAJpsiToMuMuMin;
+    cut2ProngImpParProductCandMax[hf_cand_prong2::DecayType::JpsiToMuMu] = configs->mImpParProductJpsiToMuMuMax;
 
     const int nCuts3Prong = 4; // how many different selections are made on 3-prongs
 
@@ -538,7 +538,7 @@ struct HFTrackIndexSkimsCreator {
                       if (n2 == hf_cand_prong2::DecayType::JpsiToEE) {
                         registry.get<TH1>(HIST("hmassJpsiToEE"))->Fill(mass2ProngHypo1[n2]);
                       }
-                      if (n2 == JpsiToMuMu) {
+                      if (n2 == hf_cand_prong2::DecayType::JpsiToMuMu) {
                         registry.get<TH1>(HIST("hmassJpsiToMuMu"))->Fill(mass2ProngHypo1[n2]);
                       }
                     }

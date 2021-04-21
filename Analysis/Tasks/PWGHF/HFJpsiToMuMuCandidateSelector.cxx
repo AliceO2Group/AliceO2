@@ -73,7 +73,7 @@ struct HFJpsiToMuMuCandidateSelector {
       return false; //check that the candidate pT is within the analysis range
     }
 
-    if (TMath::Abs(InvMassJpsiToMuMu(hfCandProng2) - RecoDecay::getMassPDG(pdg::code::kJpsi)) > cuts->get(pTBin, "m")) {
+    if (TMath::Abs(InvMassJpsiToMuMu(hfCandProng2) - RecoDecay::getMassPDG(pdg::Code::kJpsi)) > cuts->get(pTBin, "m")) {
       return false;
     }
 

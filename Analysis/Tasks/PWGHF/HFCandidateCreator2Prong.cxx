@@ -183,7 +183,7 @@ struct HFCandidateCreator2ProngMC {
         //Printf("Checking J/ψ → mu+ mu-");
         indexRec = RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), 443, array{+kMuonMinus, -kMuonMinus}, true);
         if (indexRec > -1) {
-          flag = 1 << JpsiToMuMu;
+          flag = 1 << DecayType::JpsiToMuMu;
         }
       }
 
@@ -220,7 +220,7 @@ struct HFCandidateCreator2ProngMC {
       if (flag == 0) {
         //Printf("Checking J/ψ → mu+ mu-");
         if (RecoDecay::isMatchedMCGen(particlesMC, particle, 443, array{+kMuonMinus, -kMuonMinus}, true)) {
-          flag = 1 << JpsiToMuMu;
+          flag = 1 << DecayType::JpsiToMuMu;
         }
       }
 
