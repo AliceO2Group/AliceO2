@@ -74,7 +74,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #define SEPERATE_GLOBAL_TRACKS_LIMIT (mSeparateGlobalTracks ? tGLOBALTRACK : TRACK_TYPE_ID_LIMIT)
 
-#define GET_CID(slice, i) (tracker.Param().par.earlyTpcTransform ? tracker.ClusterData()[i].id : (mIOPtrs.clustersNative->clusterOffset[slice][0] + i))
+#define GET_CID(slice, i) (mParam->par.earlyTpcTransform ? tracker.ClusterData()[i].id : (mIOPtrs->clustersNative->clusterOffset[slice][0] + i))
 
 static const GPUSettingsDisplay& GPUDisplay_GetConfig(GPUChainTracking* chain)
 {
@@ -86,13 +86,13 @@ static const GPUSettingsDisplay& GPUDisplay_GetConfig(GPUChainTracking* chain)
   }
 }
 
-GPUDisplay::GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* chain, GPUQA* qa) : mBackend(backend), mChain(chain), mConfig(GPUDisplay_GetConfig(chain)), mQA(qa), mMerger(chain->GetTPCMerger())
+GPUDisplay::GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param) : mBackend(backend), mChain(chain), mConfig(GPUDisplay_GetConfig(chain)), mQA(qa), mMerger(chain->GetTPCMerger())
 {
   backend->mDisplay = this;
   mOpenGLCore = GPUCA_DISPLAY_OPENGL_CORE_FLAGS;
+  mParam = param ? param : &mChain->GetParam();
 }
 
-const GPUParam& GPUDisplay::param() { return mChain->GetParam(); }
 const GPUTPCTracker& GPUDisplay::sliceTracker(int iSlice) { return mChain->GetTPCSliceTrackers()[iSlice]; }
 const GPUTRDTrackerGPU& GPUDisplay::trdTracker() { return *mChain->GetTRDTracker(); }
 
@@ -727,14 +727,14 @@ GPUDisplay::vboList GPUDisplay::DrawClusters(const GPUTPCTracker& tracker, int s
         } else if ((mMarkAdjacentClusters & 16) && (attach & gputpcgmmergertypes::attachHighIncl)) {
           draw = select == tMARKED;
         } else if (mMarkAdjacentClusters & 8) {
-          if (fabsf(mIOPtrs.mergedTracks[attach & gputpcgmmergertypes::attachTrackMask].GetParam().GetQPt()) > 20.f) {
+          if (fabsf(mIOPtrs->mergedTracks[attach & gputpcgmmergertypes::attachTrackMask].GetParam().GetQPt()) > 20.f) {
             draw = select == tMARKED;
           }
         }
       }
     } else if (mMarkClusters) {
       short flags;
-      if (tracker.Param().par.earlyTpcTransform) {
+      if (mParam->par.earlyTpcTransform) {
         flags = tracker.ClusterData()[cidInSlice].flags;
       } else {
         flags = mIOPtrs->clustersNative->clustersLinear[cid].getFlags();
@@ -962,10 +962,10 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
         float ZOffset = 0;
         float x = 0;
         int slice = iSlice;
-        float alpha = param().Alpha(slice);
+        float alpha = mParam->Alpha(slice);
         if (iMC == 0) {
           trkParam.Set(track->GetParam());
-          if (mMerger.Param().par.earlyTpcTransform) {
+          if (mParam->par.earlyTpcTransform) {
             auto cl = mMerger.ClustersXYZ()[track->FirstClusterRef() + lastCluster]; // Todo: Remove direct usage of merger
             x = cl.x;
             ZOffset = track->GetParam().GetTZOffset();
@@ -974,7 +974,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
             const auto& cln = mIOPtrs->clustersNative->clustersLinear[cl.num];
             float y, z;
             GPUTPCConvertImpl::convert(*mMerger.GetConstantMem(), cl.slice, cl.row, cln.getPad(), cln.getTime(), x, y, z);
-            ZOffset = mMerger.GetConstantMem()->calibObjects.fastTransform->convTimeToZinTimeFrame(slice, track->GetParam().GetTZOffset(), mMerger.Param().par.continuousMaxTimeBin);
+            ZOffset = mMerger.GetConstantMem()->calibObjects.fastTransform->convTimeToZinTimeFrame(slice, track->GetParam().GetTZOffset(), mParam->par.continuousMaxTimeBin);
           }
         } else {
           const GPUTPCMCInfo& mc = mIOPtrs->mcInfosTPC[i];
@@ -1016,7 +1016,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
         if (fabsf(trkParam.SinPhi()) > 1) {
           break;
         }
-        alpha = param().Alpha(slice);
+        alpha = mParam->Alpha(slice);
         vecpod<GLvertex>& useBuffer = iMC && inFlyDirection == 0 ? buffer : mVertexBuffer[iSlice];
         int nPoints = 0;
 
@@ -1038,7 +1038,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
             }
             x = trkParam.X() + 1.f;
             if (!mPropagateLoopers) {
-              float diff = fabsf(alpha - param().Alpha(slice)) / (2. * CAMath::Pi());
+              float diff = fabsf(alpha - mParam->Alpha(slice)) / (2. * CAMath::Pi());
               diff -= floor(diff);
               if (diff > 0.25 && diff < 0.75) {
                 break;
@@ -1088,8 +1088,8 @@ GPUDisplay::vboList GPUDisplay::DrawGrid(const GPUTPCTracker& tracker)
       float x = row.X() + mXadd;
       float y = row.Grid().YMin() + (float)j / row.Grid().StepYInv();
       float zz1, zz2, yy1, yy2, xx1, xx2;
-      tracker.Param().Slice2Global(tracker.ISlice(), x, y, z1, &xx1, &yy1, &zz1);
-      tracker.Param().Slice2Global(tracker.ISlice(), x, y, z2, &xx2, &yy2, &zz2);
+      mParam->Slice2Global(tracker.ISlice(), x, y, z1, &xx1, &yy1, &zz1);
+      mParam->Slice2Global(tracker.ISlice(), x, y, z2, &xx2, &yy2, &zz2);
       if (iSlice < 18) {
         zz1 += mZadd;
         zz2 += mZadd;
@@ -1106,8 +1106,8 @@ GPUDisplay::vboList GPUDisplay::DrawGrid(const GPUTPCTracker& tracker)
       float x = row.X() + mXadd;
       float z = row.Grid().ZMin() + (float)j / row.Grid().StepZInv();
       float zz1, zz2, yy1, yy2, xx1, xx2;
-      tracker.Param().Slice2Global(tracker.ISlice(), x, y1, z, &xx1, &yy1, &zz1);
-      tracker.Param().Slice2Global(tracker.ISlice(), x, y2, z, &xx2, &yy2, &zz2);
+      mParam->Slice2Global(tracker.ISlice(), x, y1, z, &xx1, &yy1, &zz1);
+      mParam->Slice2Global(tracker.ISlice(), x, y2, z, &xx2, &yy2, &zz2);
       if (iSlice < 18) {
         zz1 += mZadd;
         zz2 += mZadd;
@@ -1258,11 +1258,11 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
         continue;
       }
       int row = 0;
-      unsigned int nCls = mMerger.Param().par.earlyTpcTransform ? ioptrs().nClusterData[iSlice] : ioptrs().clustersNative->nClustersSector[iSlice];
+      unsigned int nCls = mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSlice] : mIOPtrs->clustersNative->nClustersSector[iSlice];
       for (unsigned int i = 0; i < nCls; i++) {
         int cid;
-        if (mMerger.Param().par.earlyTpcTransform) {
-          const auto& cl = ioptrs().clusterData[iSlice][i];
+        if (mParam->par.earlyTpcTransform) {
+          const auto& cl = mIOPtrs->clusterData[iSlice][i];
           cid = cl.id;
           row = cl.row;
         } else {
@@ -1277,14 +1277,14 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
           break;
         }
         float4* ptr = &mGlobalPos[cid];
-        if (mMerger.Param().par.earlyTpcTransform) {
-          const auto& cl = ioptrs().clusterData[iSlice][i];
-          mChain->GetParam().Slice2Global(iSlice, (mConfig.clustersOnNominalRow ? mMerger.Param().tpcGeometry.Row2X(row) : cl.x) + mXadd, cl.y, cl.z, &ptr->x, &ptr->y, &ptr->z);
+        if (mParam->par.earlyTpcTransform) {
+          const auto& cl = mIOPtrs->clusterData[iSlice][i];
+          mParam->Slice2Global(iSlice, (mConfig.clustersOnNominalRow ? mParam->tpcGeometry.Row2X(row) : cl.x) + mXadd, cl.y, cl.z, &ptr->x, &ptr->y, &ptr->z);
         } else {
           float x, y, z;
           const auto& cln = mIOPtrs->clustersNative->clusters[iSlice][0][i];
           GPUTPCConvertImpl::convert(*mMerger.GetConstantMem(), iSlice, row, cln.getPad(), cln.getTime(), x, y, z);
-          mChain->GetParam().Slice2Global(iSlice, x + mXadd, y, z, &ptr->x, &ptr->y, &ptr->z);
+          mParam->Slice2Global(iSlice, x + mXadd, y, z, &ptr->x, &ptr->y, &ptr->z);
         }
 
         if (fabsf(ptr->z) > mMaxClusterZ) {
@@ -1313,7 +1313,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       const auto& sp = trdTracker().SpacePoints()[i];
       int iSec = mChain->GetTRDGeometry()->GetSector(trdTracker().Tracklets()[i].GetDetector());
       float4* ptr = &mGlobalPosTRD[i];
-      mChain->GetParam().Slice2Global(iSec, sp.mR + mXadd, sp.mX[0], sp.mX[1], &ptr->x, &ptr->y, &ptr->z);
+      mParam->Slice2Global(iSec, sp.mR + mXadd, sp.mX[0], sp.mX[1], &ptr->x, &ptr->y, &ptr->z);
       ptr->x /= GL_SCALE_FACTOR;
       ptr->y /= GL_SCALE_FACTOR;
       ptr->z /= GL_SCALE_FACTOR;
@@ -1322,7 +1322,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       }
       ptr->w = tTRDCLUSTER;
       ptr = &mGlobalPosTRD2[i];
-      mChain->GetParam().Slice2Global(iSec, sp.mR + mXadd + 4.5f, sp.mX[0] + 1.5f * sp.mDy, sp.mX[1], &ptr->x, &ptr->y, &ptr->z);
+      mParam->Slice2Global(iSec, sp.mR + mXadd + 4.5f, sp.mX[0] + 1.5f * sp.mDy, sp.mX[1], &ptr->x, &ptr->y, &ptr->z);
       ptr->x /= GL_SCALE_FACTOR;
       ptr->y /= GL_SCALE_FACTOR;
       ptr->z /= GL_SCALE_FACTOR;
@@ -1473,7 +1473,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       nextViewMatrix = nextViewMatrix * HMM_Translate({-vals[0], -vals[1], -vals[2]});
     }
   } else if (mResetScene) {
-    nextViewMatrix = nextViewMatrix * HMM_Translate({0, 0, param().par.ContinuousTracking ? (-mMaxClusterZ / GL_SCALE_FACTOR - 8) : -8});
+    nextViewMatrix = nextViewMatrix * HMM_Translate({0, 0, mParam->par.ContinuousTracking ? (-mMaxClusterZ / GL_SCALE_FACTOR - 8) : -8});
     mViewMatrix = MY_HMM_IDENTITY;
     mModelMatrix = MY_HMM_IDENTITY;
 
@@ -1681,8 +1681,8 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       GPUTPCGMPropagator prop;
       prop.SetMaxSinPhi(.999);
       prop.SetMaterialTPC();
-      prop.SetPolynomialField(&mMerger.Param().polynomialField);
-      prop.SetToyMCEventsFlag(mMerger.Param().par.ToyMCEventsFlag);
+      prop.SetPolynomialField(&mParam->polynomialField);
+      prop.SetToyMCEventsFlag(mParam->par.ToyMCEventsFlag);
 
       GPUCA_OPENMP(barrier)
       GPUCA_OPENMP(for)
@@ -1862,7 +1862,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
   }
 
   {
-    const float zFar = ((param().par.ContinuousTracking ? (mMaxClusterZ / GL_SCALE_FACTOR) : 8.f) + 50.f) * 2.f;
+    const float zFar = ((mParam->par.ContinuousTracking ? (mMaxClusterZ / GL_SCALE_FACTOR) : 8.f) + 50.f) * 2.f;
     const hmm_mat4 proj = HMM_Perspective(mFOV, (GLfloat)mScreenwidth / (GLfloat)mScreenheight, 0.1f, zFar);
     nextViewMatrix = nextViewMatrix * mModelMatrix;
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
