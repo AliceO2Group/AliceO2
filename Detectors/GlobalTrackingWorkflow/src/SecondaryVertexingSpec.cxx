@@ -11,7 +11,7 @@
 /// @file  SecondaryVertexingSpec.cxx
 
 #include <vector>
-#include "GlobalTracking/RecoContainer.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsITS/TrackITS.h"

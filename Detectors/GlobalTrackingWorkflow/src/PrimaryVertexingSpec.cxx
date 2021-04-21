@@ -11,8 +11,7 @@
 /// @file  PrimaryVertexingSpec.cxx
 
 #include <vector>
-#include "GlobalTracking/RecoContainer.h"
-
+#include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsBase/Propagator.h"

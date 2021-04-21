@@ -23,7 +23,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DetectorsVertexing/PVertexerParams.h"
 #include "MathUtils/Primitive2D.h"
-#include "GlobalTracking/RecoContainer.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
 
 namespace o2
 {

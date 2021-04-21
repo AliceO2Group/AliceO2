@@ -41,7 +41,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
-#include "GlobalTracking/RecoContainer.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "Framework/Task.h"
 
 using namespace o2::framework;
