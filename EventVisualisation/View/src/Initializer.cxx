@@ -62,12 +62,15 @@ void Initializer::setup(EventManager::EDataSource defaultDataSource)
   eventManager.setDataSourceType(defaultDataSource);
   eventManager.setCdbPath(ocdbStorage);
 
-  if (Options::Instance()->tpc())
+  if (Options::Instance()->tpc()) {
     eventManager.registerDetector(new DataReaderTPC(new DataInterpreterTPC()), EVisualisationGroup::TPC);
-  if (Options::Instance()->its())
+  }
+  if (Options::Instance()->its()) {
     eventManager.registerDetector(new DataReaderITS(new DataInterpreterITS()), EVisualisationGroup::ITS);
-  if (Options::Instance()->json())
+  }
+  if (Options::Instance()->json()) {
     eventManager.registerDetector(new DataReaderJSON(nullptr), EVisualisationGroup::JSON);
+  }
 
   eventManager.setDataSourceType(EventManager::EDataSource::SourceOffline);
   eventManager.Open();

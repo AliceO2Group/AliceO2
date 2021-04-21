@@ -36,8 +36,9 @@ int main(int argc, char** argv)
 {
   LOG(INFO) << "Welcome in O2 event visualisation tool";
 
-  if (!Options::Instance()->processCommandLine(argc, argv))
+  if (!Options::Instance()->processCommandLine(argc, argv)) {
     exit(-1);
+  }
 
   srand(static_cast<unsigned int>(time(nullptr)));
 

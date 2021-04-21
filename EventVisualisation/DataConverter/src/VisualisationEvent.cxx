@@ -54,8 +54,9 @@ std::string VisualisationEvent::toJson()
   trackCount.SetInt(this->getTrackCount());
   tree.AddMember("trackCount", trackCount, allocator);
   Value jsonTracks(kArrayType);
-  for (size_t i = 0; i < this->getTrackCount(); i++)
+  for (size_t i = 0; i < this->getTrackCount(); i++) {
     jsonTracks.PushBack(this->mTracks[i].jsonTree(allocator), allocator);
+  }
   tree.AddMember("mTracks", jsonTracks, allocator);
 
   // Clusters
@@ -63,8 +64,9 @@ std::string VisualisationEvent::toJson()
   clusterCount.SetInt(this->getClusterCount());
   tree.AddMember("clusterCount", clusterCount, allocator);
   Value jsonClusters(kArrayType);
-  for (size_t i = 0; i < this->getClusterCount(); i++)
+  for (size_t i = 0; i < this->getClusterCount(); i++) {
     jsonClusters.PushBack(this->mClusters[i].jsonTree(allocator), allocator);
+  }
   tree.AddMember("mClusters", jsonClusters, allocator);
 
   // stringify
@@ -90,14 +92,16 @@ void VisualisationEvent::fromJson(std::string json)
   rapidjson::Value& trackCount = tree["trackCount"];
   this->mTracks.reserve(trackCount.GetInt());
   rapidjson::Value& jsonTracks = tree["mTracks"];
-  for (auto& v : jsonTracks.GetArray())
+  for (auto& v : jsonTracks.GetArray()) {
     mTracks.emplace_back(v);
+  }
 
   rapidjson::Value& clusterCount = tree["clusterCount"];
   this->mClusters.reserve(clusterCount.GetInt());
   rapidjson::Value& jsonClusters = tree["mClusters"];
-  for (auto& v : jsonClusters.GetArray())
+  for (auto& v : jsonClusters.GetArray()) {
     mClusters.emplace_back(v);
+  }
 }
 
 void VisualisationEvent::toFile(std::string fileName)
@@ -117,10 +121,11 @@ std::string VisualisationEvent::fileNameIndexed(const std::string fileName, cons
 
 bool VisualisationEvent::fromFile(std::string fileName)
 {
-  if (FILE* file = fopen(fileName.c_str(), "r"))
+  if (FILE* file = fopen(fileName.c_str(), "r")) {
     fclose(file); // file exists
-  else
+  } else {
     return false;
+  }
   std::ifstream inFile;
   inFile.open(fileName);
 

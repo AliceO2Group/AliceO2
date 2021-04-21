@@ -28,8 +28,9 @@ void DataReaderJSON::open()
   this->mMaxEv = 0;
   while (true) {
     FILE* file = fopen(VisualisationEvent::fileNameIndexed(this->mFileName, this->mMaxEv).c_str(), "r");
-    if (file == nullptr)
+    if (file == nullptr) {
       break;
+    }
     fclose(file);
     this->mMaxEv++;
   }

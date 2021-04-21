@@ -101,12 +101,15 @@ VisualisationTrack::VisualisationTrack(rapidjson::Value& tree)
   mPolyX.reserve(count.GetInt());
   mPolyY.reserve(count.GetInt());
   mPolyZ.reserve(count.GetInt());
-  for (auto& v : jsonPolyX.GetArray())
+  for (auto& v : jsonPolyX.GetArray()) {
     mPolyX.push_back(v.GetDouble());
-  for (auto& v : jsonPolyY.GetArray())
+  }
+  for (auto& v : jsonPolyY.GetArray()) {
     mPolyY.push_back(v.GetDouble());
-  for (auto& v : jsonPolyZ.GetArray())
+  }
+  for (auto& v : jsonPolyZ.GetArray()) {
     mPolyZ.push_back(v.GetDouble());
+  }
 }
 
 rapidjson::Value VisualisationTrack::jsonTree(rapidjson::Document::AllocatorType& allocator)

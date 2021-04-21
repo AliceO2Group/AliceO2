@@ -34,8 +34,7 @@ class DataReaderJSON : public DataReader
 
   void open() override;
   int GetEventCount() const override { return mMaxEv; }
-  virtual VisualisationEvent getEvent(int no, EVisualisationDataType dataType) override;
-  //TObject* getEventData(int no) override;
+  VisualisationEvent getEvent(int no, EVisualisationDataType dataType) override;
 };
 
 } // namespace event_visualisation
