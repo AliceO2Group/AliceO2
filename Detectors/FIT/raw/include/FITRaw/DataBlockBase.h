@@ -329,21 +329,21 @@ struct DataBlockWrapper {
                 << std::get<kNSTEPS>(sReadingLookupTable[i]) << "|"
                 << std::get<kISPARTED>(sReadingLookupTable[i]);
     }
-    LOG(INFO)<< "-------------------------------------------";
+    LOG(INFO) << "-------------------------------------------";
     LOG(INFO) << "kELEMENTINDEX|kWORDINDEX|kNBYTES|kSRCBYTEPOS|kDESTBYTEPOS";
     for (int i = 0; i < getNsteps(); i++) {
       LOG(INFO) << std::get<kELEMENTINDEX>(sByteLookupTable[i]) << "|"
-           << std::get<kWORDINDEX>(sByteLookupTable[i]) << "|"
-           << std::get<kNBYTES>(sByteLookupTable[i]) << "|"
-           << std::get<kSRCBYTEPOS>(sByteLookupTable[i]) << "|"
-           << std::get<kDESTBYTEPOS>(sByteLookupTable[i]);
+                << std::get<kWORDINDEX>(sByteLookupTable[i]) << "|"
+                << std::get<kNBYTES>(sByteLookupTable[i]) << "|"
+                << std::get<kSRCBYTEPOS>(sByteLookupTable[i]) << "|"
+                << std::get<kDESTBYTEPOS>(sByteLookupTable[i]);
     }
   }
   void print() const
   {
     assert(mNelements <= T::MaxNelements);
     for (int i = 0; i < mNelements; i++) {
-      LOG(INFO) << "Printing element number: " << i ;
+      LOG(INFO) << "Printing element number: " << i;
       mData[i].print();
     }
   }
