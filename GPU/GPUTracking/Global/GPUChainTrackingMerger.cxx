@@ -313,6 +313,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   mIOPtrs.mergedTracks = Merger.OutputTracks();
   mIOPtrs.nMergedTracks = Merger.NOutputTracks();
   mIOPtrs.mergedTrackHits = Merger.Clusters();
+  mIOPtrs.mergedTrackHitsXYZ = Merger.ClustersXYZ();
   mIOPtrs.nMergedTrackHits = Merger.NOutputTrackClusters();
   mIOPtrs.mergedTrackHitAttachment = Merger.ClusterAttachment();
   mIOPtrs.mergedTrackHitStates = Merger.ClusterStateExt();
@@ -326,6 +327,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     processorsShadow()->ioPtrs.mergedTracks = MergerShadow.OutputTracks();
     processorsShadow()->ioPtrs.nMergedTracks = Merger.NOutputTracks();
     processorsShadow()->ioPtrs.mergedTrackHits = MergerShadow.Clusters();
+    processorsShadow()->ioPtrs.mergedTrackHitsXYZ = MergerShadow.ClustersXYZ();
     processorsShadow()->ioPtrs.nMergedTrackHits = Merger.NOutputTrackClusters();
     processorsShadow()->ioPtrs.mergedTrackHitAttachment = MergerShadow.ClusterAttachment();
     processorsShadow()->ioPtrs.mergedTrackHitStates = MergerShadow.ClusterStateExt();
