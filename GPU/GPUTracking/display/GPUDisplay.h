@@ -267,7 +267,6 @@ class GPUDisplay
   const GPUSettingsDisplay& mConfig;
   GPUSettingsDisplayLight mCfg;
   GPUQA* mQA;
-  const GPUTPCGMMerger& mMerger;
   qSem mSemLockDisplay;
 
   GLfb mMixBuffer;

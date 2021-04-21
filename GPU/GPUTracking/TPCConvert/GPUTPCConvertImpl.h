@@ -34,6 +34,14 @@ class GPUTPCConvertImpl
       cm.calibObjects.fastTransform->Transform(slice, row, pad, time, x, y, z);
     }
   }
+  GPUd() static void convert(const TPCFastTransform& GPUrestrict() transform, const GPUParam& GPUrestrict() param, int slice, int row, float pad, float time, float& GPUrestrict() x, float& GPUrestrict() y, float& GPUrestrict() z)
+  {
+    if (param.par.ContinuousTracking) {
+      transform.TransformInTimeFrame(slice, row, pad, time, x, y, z, param.par.continuousMaxTimeBin);
+    } else {
+      transform.Transform(slice, row, pad, time, x, y, z);
+    }
+  }
 };
 
 } // namespace gpu
