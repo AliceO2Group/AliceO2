@@ -8,21 +8,22 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_FITCALIBRATIONALGORITHMGETTER_H
-#define O2_FITCALIBRATIONALGORITHMGETTER_H
+#ifndef O2_FITCALIBRATIONOBJECTPRODUCER_H
+#define O2_FITCALIBRATIONOBJECTPRODUCER_H
 
-#include "FT0Calibration/FT0CalibrationObject.h"
-#include "FT0Calibration/FT0ChannelDataTimeSlotContainer.h"
+#include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
+#include "FT0Calibration/FT0ChannelTimeTimeSlotContainer.h"
 
 namespace o2::fit
 {
-class FITCalibrationAlgorithmGetter
+class FITCalibrationObjectProducer
 {
  public:
   template <typename CalibrationObjectType, typename TimeSlotContainerType>
-  static void doCalibrationAndUpdateCalibrationObject(CalibrationObjectType& calibrationObject, const TimeSlotContainerType& container);
+  static CalibrationObjectType generateCalibrationObject(const TimeSlotContainerType& container);
 };
+
 
 } // namespace o2::fit
 
-#endif //O2_FITCALIBRATIONALGORITHMGETTER_H
+#endif //O2_FITCALIBRATIONOBJECTPRODUCER_H

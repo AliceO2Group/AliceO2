@@ -18,7 +18,7 @@ namespace o2::ft0
 class FT0CalibrationInfoObject
 {
  public:
-  FT0CalibrationInfoObject(uint8_t channel, uint16_t time) : mChannelIndex(channel), mTime(time){};
+  FT0CalibrationInfoObject(uint8_t channel, int16_t time) : mChannelIndex(channel), mTime(time){};
   FT0CalibrationInfoObject() = default;
   ~FT0CalibrationInfoObject() = default;
 
