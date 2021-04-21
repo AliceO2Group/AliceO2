@@ -81,6 +81,7 @@ class trackInterface<AliExternalTrackParam> : public AliExternalTrackParam
   const My_Float* getPar() const { return GetParameter(); }
   const My_Float* getCov() const { return GetCovariance(); }
   float getTime() const { return -1.f; }
+  GPUd() void resetCovariance(float s) { ResetCovariance(10.); }
   bool CheckNumericalQuality() const { return true; }
 
   // parameter manipulation
