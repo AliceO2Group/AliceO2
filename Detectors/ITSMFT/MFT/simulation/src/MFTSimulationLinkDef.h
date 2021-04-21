@@ -18,6 +18,4 @@
 #pragma link C++ class o2::base::DetImpl < o2::mft::Detector> + ;
 #pragma link C++ class o2::mft::DigitizerTask + ;
 
-#pragma link C++ function o2::mft::test::addAlignableVolumes;
-
 #endif

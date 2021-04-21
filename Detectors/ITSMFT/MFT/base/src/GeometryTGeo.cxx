@@ -569,7 +569,6 @@ Int_t GeometryTGeo::getSensorIndex(Int_t halfID, Int_t diskID, Int_t ladderID, I
 //__________________________________________________________________________
 Int_t GeometryTGeo::getLayer(Int_t index) const { return mSensorIndexToLayer[index]; }
 
-
 //__________________________________________________________________________
 const char* GeometryTGeo::composeSymNameHalf(int hf)
 {
