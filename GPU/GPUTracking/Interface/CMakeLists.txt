@@ -12,6 +12,15 @@ set(MODULE GPUO2Interface)
 
 set(SRCS GPUO2Interface.cxx GPUO2InterfaceRefit.cxx GPUO2InterfaceQA.cxx GPUO2InterfaceConfiguration.cxx)
 
+if(OPENGL_FOUND
+   AND GLFW_FOUND
+   AND TARGET AliceO2::DebugGUI
+   AND OPENGL_GLU_FOUND
+   AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin"
+)
+  set(SRCS ${SRCS} GPUO2InterfaceDisplay.cxx)
+endif()
+
 string(REPLACE ".cxx" ".h" HDRS_TMP "${SRCS}")
 set(HDRS ${HDRS_TMP})
 
