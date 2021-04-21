@@ -15,7 +15,7 @@
 #include <fmt/format.h>
 #include <chrono>
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "GlobalTracking/RecoContainer.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
@@ -25,8 +25,6 @@
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/TrackTPCTOF.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
-// RSTODO to remove once the framework will start propagating the header.firstTForbit
-#include "DetectorsRaw/HBFUtils.h"
 
 using namespace o2::globaltracking;
 using namespace o2::framework;

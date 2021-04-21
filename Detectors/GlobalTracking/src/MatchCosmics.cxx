@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "GlobalTracking/MatchCosmics.h"
-#include "GlobalTracking/RecoContainer.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "GPUO2InterfaceRefit.h"
 #include "ReconstructionDataFormats/GlobalTrackAccessor.h"
 #include "DataFormatsITSMFT/CompCluster.h"

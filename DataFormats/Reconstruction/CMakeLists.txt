@@ -26,7 +26,7 @@ o2_add_library(ReconstructionDataFormats
                        src/VtxTrackIndex.cxx
                        src/VtxTrackRef.cxx
                        src/TrackTPCTOF.cxx
-		       src/TrackCosmics.cxx
+                       src/TrackCosmics.cxx
                PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                      O2::FrameworkLogger
                                      O2::DetectorsCommonDataFormats
@@ -50,8 +50,8 @@ o2_target_root_dictionary(
           include/ReconstructionDataFormats/VtxTrackIndex.h
           include/ReconstructionDataFormats/VtxTrackRef.h
           include/ReconstructionDataFormats/TrackTPCTOF.h
-	  include/ReconstructionDataFormats/TrackCosmics.h
-	  )
+          include/ReconstructionDataFormats/TrackCosmics.h
+  )
 
 o2_add_test(Vertex
             SOURCES test/testVertex.cxx
