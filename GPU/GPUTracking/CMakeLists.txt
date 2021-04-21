@@ -327,7 +327,7 @@ endif()
 # Main CMake part for AliRoot
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   set(HDRS_CINT_ALIROOT ${HDRS_CINT_ALIROOT}
-                        Base/GPUO2DataTypes.h)
+                        DataTypes/GPUO2DataTypes.h)
   add_definitions(-DGPUCA_ALIROOT_LIB)
   include_directories(display qa)
   include_directories(SYSTEM ${ROOT_INCLUDE_DIR})
