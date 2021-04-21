@@ -86,7 +86,7 @@ static const GPUSettingsDisplay& GPUDisplay_GetConfig(GPUChainTracking* chain)
   }
 }
 
-GPUDisplay::GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param, const GPUCalibObjectsConst* calib) : mBackend(backend), mChain(chain), mConfig(GPUDisplay_GetConfig(chain)), mQA(qa), mMerger(chain->GetTPCMerger())
+GPUDisplay::GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param, const GPUCalibObjectsConst* calib) : mBackend(backend), mChain(chain), mConfig(GPUDisplay_GetConfig(chain)), mQA(qa)
 {
   backend->mDisplay = this;
   mOpenGLCore = GPUCA_DISPLAY_OPENGL_CORE_FLAGS;
@@ -990,7 +990,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
             auto cl = mIOPtrs->mergedTrackHits[track->FirstClusterRef() + lastCluster];
             const auto& cln = mIOPtrs->clustersNative->clustersLinear[cl.num];
             float y, z;
-            GPUTPCConvertImpl::convert(*mMerger.GetConstantMem(), cl.slice, cl.row, cln.getPad(), cln.getTime(), x, y, z);
+            GPUTPCConvertImpl::convert(*mCalib->fastTransform, *mParam, cl.slice, cl.row, cln.getPad(), cln.getTime(), x, y, z);
             ZOffset = mCalib->fastTransform->convTimeToZinTimeFrame(slice, track->GetParam().GetTZOffset(), mParam->par.continuousMaxTimeBin);
           }
         } else {
@@ -1305,7 +1305,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
         } else {
           float x, y, z;
           const auto& cln = mIOPtrs->clustersNative->clusters[iSlice][0][i];
-          GPUTPCConvertImpl::convert(*mMerger.GetConstantMem(), iSlice, row, cln.getPad(), cln.getTime(), x, y, z);
+          GPUTPCConvertImpl::convert(*mCalib->fastTransform, *mParam, iSlice, row, cln.getPad(), cln.getTime(), x, y, z);
           mParam->Slice2Global(iSlice, x + mXadd, y, z, &ptr->x, &ptr->y, &ptr->z);
         }
 
