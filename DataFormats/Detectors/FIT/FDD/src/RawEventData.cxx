@@ -16,81 +16,81 @@ using namespace o2::fdd;
 
 void EventHeader::print() const
 {
-  std::cout << std::hex;
-  std::cout << "################EventHeader###############" << std::endl;
-  std::cout << "startDescriptor: " << startDescriptor << std::endl;
-  std::cout << "nGBTWords: " << nGBTWords << std::endl;
-  std::cout << "BC: " << bc << std::endl;
-  std::cout << "Orbit: " << orbit << std::endl;
-  std::cout << "##########################################" << std::endl;
-  std::cout << std::dec;
+  LOG(INFO) << std::hex;
+  LOG(INFO) << "################EventHeader###############";
+  LOG(INFO) << "startDescriptor: " << startDescriptor;
+  LOG(INFO) << "nGBTWords: " << nGBTWords;
+  LOG(INFO) << "BC: " << bc;
+  LOG(INFO) << "Orbit: " << orbit;
+  LOG(INFO) << "##########################################";
+  LOG(INFO) << std::dec;
 }
 
 void EventData::print() const
 {
-  std::cout << std::hex;
-  std::cout << "###############EventData(PM)##############" << std::endl;
-  std::cout << "------------Channel " << channelID << "------------" << std::endl;
-  std::cout << "Charge: " << charge << std::endl;
-  std::cout << "Time: " << time << std::endl;
-  std::cout << "numberADC: " << numberADC << std::endl;
-  std::cout << "isDoubleEvent: " << isDoubleEvent << std::endl;
-  std::cout << "is1TimeLostEvent: " << is1TimeLostEvent << std::endl;
-  std::cout << "is2TimeLostEvent: " << is2TimeLostEvent << std::endl;
-  std::cout << "isADCinGate : " << isADCinGate << std::endl;
-  std::cout << "isTimeInfoLate: " << isTimeInfoLate << std::endl;
-  std::cout << "isAmpHigh: " << isAmpHigh << std::endl;
-  std::cout << "isEventInTVDC: " << isEventInTVDC << std::endl;
-  std::cout << "isTimeInfoLost: " << isTimeInfoLost << std::endl;
-  std::cout << "channelID: " << channelID << std::endl;
-  std::cout << "##########################################" << std::endl;
-  std::cout << std::dec;
+  LOG(INFO) << std::hex;
+  LOG(INFO) << "###############EventData(PM)##############";
+  LOG(INFO) << "------------Channel " << channelID << "------------";
+  LOG(INFO) << "Charge: " << charge;
+  LOG(INFO) << "Time: " << time;
+  LOG(INFO) << "numberADC: " << numberADC;
+  LOG(INFO) << "isDoubleEvent: " << isDoubleEvent;
+  LOG(INFO) << "is1TimeLostEvent: " << is1TimeLostEvent;
+  LOG(INFO) << "is2TimeLostEvent: " << is2TimeLostEvent;
+  LOG(INFO) << "isADCinGate : " << isADCinGate;
+  LOG(INFO) << "isTimeInfoLate: " << isTimeInfoLate;
+  LOG(INFO) << "isAmpHigh: " << isAmpHigh;
+  LOG(INFO) << "isEventInTVDC: " << isEventInTVDC;
+  LOG(INFO) << "isTimeInfoLost: " << isTimeInfoLost;
+  LOG(INFO) << "channelID: " << channelID;
+  LOG(INFO) << "##########################################";
+  LOG(INFO) << std::dec;
 }
 
 void TCMdata::print() const
 {
-  std::cout << std::hex;
-  std::cout << "################TCMdata###################" << std::endl;
-  std::cout << "orC: " << orC << std::endl;
-  std::cout << "orA: " << orA << std::endl;
-  std::cout << "sCen: " << sCen << std::endl;
-  std::cout << "cen: " << cen << std::endl;
-  std::cout << "vertex: " << vertex << std::endl;
-  std::cout << "nChanA: " << nChanA << std::endl;
-  std::cout << "nChanC: " << nChanC << std::endl;
-  std::cout << "amplA: " << amplA << std::endl;
-  std::cout << "amplC: " << amplC << std::endl;
-  std::cout << "timeA: " << timeA << std::endl;
-  std::cout << "timeC: " << timeC << std::endl;
-  std::cout << "##########################################" << std::endl;
-  std::cout << std::dec;
+  LOG(INFO) << std::hex;
+  LOG(INFO) << "################TCMdata###################";
+  LOG(INFO) << "orC: " << orC;
+  LOG(INFO) << "orA: " << orA;
+  LOG(INFO) << "sCen: " << sCen;
+  LOG(INFO) << "cen: " << cen;
+  LOG(INFO) << "vertex: " << vertex;
+  LOG(INFO) << "nChanA: " << nChanA;
+  LOG(INFO) << "nChanC: " << nChanC;
+  LOG(INFO) << "amplA: " << amplA;
+  LOG(INFO) << "amplC: " << amplC;
+  LOG(INFO) << "timeA: " << timeA;
+  LOG(INFO) << "timeC: " << timeC;
+  LOG(INFO) << "##########################################";
+  LOG(INFO) << std::dec;
 }
 
 void RawEventData::print() const
 {
-  std::cout << "==================Raw event data==================" << std::endl;
-  std::cout << "##################Header##################" << std::endl;
-  std::cout << "startDescriptor: " << mEventHeader.startDescriptor << std::endl;
-  std::cout << "Nchannels: " << mEventHeader.nGBTWords * 2 << std::endl;
-  std::cout << "BC: " << mEventHeader.bc << std::endl;
-  std::cout << "Orbit: " << mEventHeader.orbit << std::endl;
-  std::cout << "##########################################" << std::endl;
-  std::cout << "###################DATA###################" << std::endl;
+  LOG(INFO) << "==================Raw event data==================";
+  LOG(INFO) << "##################Header##################";
+  LOG(INFO) << "startDescriptor: " << mEventHeader.startDescriptor;
+  LOG(INFO) << "Nchannels: " << mEventHeader.nGBTWords * 2;
+  LOG(INFO) << "BC: " << mEventHeader.bc;
+  LOG(INFO) << "Orbit: " << mEventHeader.orbit;
+  LOG(INFO) << "##########################################";
+  LOG(INFO) << "###################DATA###################";
   for (int iCh = 0; iCh < mEventHeader.nGBTWords * 2; iCh++) {
-    std::cout << "------------Channel " << mEventData[iCh].channelID << "------------" << std::endl;
-    std::cout << "Charge: " << mEventData[iCh].charge << std::endl;
-    std::cout << "Time: " << mEventData[iCh].time << std::endl;
-    std::cout << "1TimeLostEvent: " << mEventData[iCh].is1TimeLostEvent << std::endl;
-    std::cout << "2TimeLostEvent: " << mEventData[iCh].is2TimeLostEvent << std::endl;
-    std::cout << "ADCinGate: " << mEventData[iCh].isADCinGate << std::endl;
-    std::cout << "AmpHigh: " << mEventData[iCh].isAmpHigh << std::endl;
-    std::cout << "DoubleEvent: " << mEventData[iCh].isDoubleEvent << std::endl;
-    std::cout << "EventInTVDC: " << mEventData[iCh].isEventInTVDC << std::endl;
-    std::cout << "TimeInfoLate: " << mEventData[iCh].isTimeInfoLate << std::endl;
-    std::cout << "TimeInfoLost: " << mEventData[iCh].isTimeInfoLost << std::endl;
-    std::cout << "numberADC: " << mEventData[iCh].numberADC << std::endl;
+    LOG(INFO) << "------------Channel " << mEventData[iCh].channelID << "------------";
+    LOG(INFO) << "Charge: " << mEventData[iCh].charge;
+    LOG(INFO) << "Time: " << mEventData[iCh].time;
+    LOG(INFO) << "1TimeLostEvent: " << mEventData[iCh].is1TimeLostEvent;
+    LOG(INFO) << "2TimeLostEvent: " << mEventData[iCh].is2TimeLostEvent;
+    LOG(INFO) << "ADCinGate: " << mEventData[iCh].isADCinGate;
+    LOG(INFO) << "AmpHigh: " << mEventData[iCh].isAmpHigh;
+    LOG(INFO) << "DoubleEvent: " << mEventData[iCh].isDoubleEvent;
+    LOG(INFO) << "EventInTVDC: " << mEventData[iCh].isEventInTVDC;
+    LOG(INFO) << "TimeInfoLate: " << mEventData[iCh].isTimeInfoLate;
+    LOG(INFO) << "TimeInfoLost: " << mEventData[iCh].isTimeInfoLost;
+    LOG(INFO) << "numberADC: " << mEventData[iCh].numberADC;
   }
-  std::cout << "##########################################" << std::endl;
+  LOG(INFO) << "##########################################";
 }
 
 void RawEventData::printHexEventHeader() const
