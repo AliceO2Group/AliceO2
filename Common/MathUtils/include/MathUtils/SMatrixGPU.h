@@ -259,14 +259,6 @@ struct meta_matrix_dot<0> {
 
 namespace row_offsets_utils
 {
-template <unsigned int D>
-struct proxy_offset {
-  static constexpr int off0(int i) { return i == 0 ? 0 : off0(i - 1) + i; }
-  static constexpr int off2(int i, int j) { return j < i ? off0(i) + j : off0(j) + i; }
-  static constexpr int off1(int i) { return off2(i / D, i % D); }
-  int operator()(int i) const { return off1(i); }
-};
-
 template <int...>
 struct indices {
 };
@@ -361,10 +353,13 @@ class MatRepSymGPU
     kSize = D * (D + 1) / 2 // rows*columns
   };
 
+  static constexpr int off0(int i) { return i == 0 ? 0 : off0(i - 1) + i; }
+  static constexpr int off2(int i, int j) { return j < i ? off0(i) + j : off0(j) + i; }
+  static constexpr int off1(int i) { return off2(i / D, i % D); }
+
   static GPUdi() int off(int i)
   {
-    row_offsets_utils::proxy_offset<D> proxy;
-    static constexpr auto v = row_offsets_utils::make<D * D>(proxy);
+    static constexpr auto v = row_offsets_utils::make<D * D>(off1);
     return v[i];
   }
 
