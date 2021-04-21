@@ -58,6 +58,30 @@ using MyTracks = soa::Join<aod::FullTracks, aod::HFSelTrack, aod::TracksExtended
 #define MY_DEBUG_MSG(condition, cmd)
 #endif
 
+/// Event selection 
+struct SelectCollisions {
+
+  Produces<aod::HFSelCollision> rowSelectedCollision;
+
+  Configurable<std::string> s_trigger_class{"trigger_class", "kINT7", "trigger class"};
+  int trigger_class = std::distance(aliasLabels, std::find(aliasLabels, aliasLabels + kNaliases, s_trigger_class.value.data()));
+
+  // event selection
+  void process(soa::Join<aod::Collisions, aod::EvSels>::iterator const& collision)
+  {
+    int status_collision = 0;
+
+    if (!collision.alias()[trigger_class]) {
+      status_collision |= BIT(0);
+    }
+
+    //TODO: add more event selection criteria
+
+    // fill table row
+    rowSelectedCollision(status_collision);
+  };
+};
+
 /// Track selection
 struct SelectTracks {
 
@@ -308,7 +332,11 @@ struct HFTrackIndexSkimsCreator {
      {"hmassDsToPiKK", "D_{s} candidates;inv. mass (K K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
      {"hmassXicToPKPi", "#Xi_{c} candidates;inv. mass (p K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}}}};
 
+
   Filter filterSelectTracks = (aod::hf_seltrack::isSelProng > 0 && aod::hf_seltrack::isSelProng < 4);
+  Filter filterSelectTracks = (aod::hf_seltrack::isSelProng > 0);
+
+  using SelectedCollisions = soa::Filtered<soa::Join<aod::Collisions, aod::HFSelCollision>>;
   using SelectedTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::HFSelTrack>>;
 
   // FIXME
@@ -323,7 +351,7 @@ struct HFTrackIndexSkimsCreator {
   // int nColls{0}; //can be added to run over limited collisions per file - for tesing purposes
 
   void process( //soa::Join<aod::Collisions, aod::Cents>::iterator const& collision, //FIXME add centrality when option for variations to the process function appears
-    aod::Collision const& collision,
+    SelectedCollisions::iterator const& collision,
     aod::BCs const& bcs,
     SelectedTracks const& tracks)
   {
@@ -1264,7 +1292,8 @@ struct HFTrackIndexSkimsCreatorCascades {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec workflow{
+  return WorkflowSpec{
+    adaptAnalysisTask<SelectCollisions>(cfgc, TaskName{"hf-produce-sel-collision"}),
     adaptAnalysisTask<SelectTracks>(cfgc, TaskName{"hf-produce-sel-track"}),
     adaptAnalysisTask<HFTrackIndexSkimsCreator>(cfgc, TaskName{"hf-track-index-skims-creator"})};
 

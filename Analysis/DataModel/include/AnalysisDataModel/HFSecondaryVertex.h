@@ -27,6 +27,14 @@ using namespace o2::analysis;
 
 namespace o2::aod
 {
+namespace hf_selcollision
+{
+DECLARE_SOA_COLUMN(WhyRejectColl, whyRejectColl, int); //!
+} // namespace hf_selcollisions
+
+DECLARE_SOA_TABLE(HFSelCollision, "AOD", "HFSELCOLLISION", //!
+                  hf_selcollision::WhyRejectColl);
+
 namespace hf_seltrack
 {
 DECLARE_SOA_COLUMN(IsSelProng, isSelProng, int); //!
