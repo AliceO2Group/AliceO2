@@ -74,12 +74,12 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #define SEPERATE_GLOBAL_TRACKS_LIMIT (mSeparateGlobalTracks ? tGLOBALTRACK : TRACK_TYPE_ID_LIMIT)
 
-#define GET_CID(slice, i) (mParam->par.earlyTpcTransform ? tracker.ClusterData()[i].id : (mIOPtrs->clustersNative->clusterOffset[slice][0] + i))
+#define GET_CID(slice, i) (mParam->par.earlyTpcTransform ? mIOPtrs->clusterData[slice][i].id : (mIOPtrs->clustersNative->clusterOffset[slice][0] + i))
 
 static const GPUSettingsDisplay& GPUDisplay_GetConfig(GPUChainTracking* chain)
 {
   static GPUSettingsDisplay defaultConfig;
-  if (chain->mConfigDisplay) {
+  if (chain && chain->mConfigDisplay) {
     return *chain->mConfigDisplay;
   } else {
     return defaultConfig;
@@ -95,6 +95,18 @@ GPUDisplay::GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* chain, GPUQ
 
 const GPUTPCTracker& GPUDisplay::sliceTracker(int iSlice) { return mChain->GetTPCSliceTrackers()[iSlice]; }
 const GPUTRDTrackerGPU& GPUDisplay::trdTracker() { return *mChain->GetTRDTracker(); }
+inline int GPUDisplay::getNumThreads()
+{
+  if (mChain) {
+    return mChain->GetProcessingSettings().ompThreads;
+  } else {
+#ifdef WITH_OPENMP
+    return omp_get_max_threads();
+#else
+    return 1;
+#endif
+  }
+}
 
 inline void GPUDisplay::drawVertices(const vboList& v, const GLenum t)
 {
@@ -641,8 +653,8 @@ int GPUDisplay::InitGL_internal()
   setDepthBuffer();
   setQuality();
   ReSizeGLScene(GPUDisplayBackend::INIT_WIDTH, GPUDisplayBackend::INIT_HEIGHT, true);
-  mThreadBuffers.resize(mChain->GetProcessingSettings().ompThreads);
-  mThreadTracks.resize(mChain->GetProcessingSettings().ompThreads);
+  mThreadBuffers.resize(getNumThreads());
+  mThreadTracks.resize(getNumThreads());
   CHKERR(mVertexShader = glCreateShader(GL_VERTEX_SHADER));
   CHKERR(glShaderSource(mVertexShader, 1, &GPUDisplayShaders::vertexShader, nullptr));
   CHKERR(glCompileShader(mVertexShader));
@@ -683,8 +695,8 @@ GPUDisplay::vboList GPUDisplay::DrawSpacePointsTRD(int iSlice, int select, int i
   size_t startCountInner = mVertexBuffer[iSlice].size();
 
   if (iCol == 0) {
-    for (int i = 0; i < trdTracker().NTracklets(); i++) {
-      int iSec = mChain->GetTRDGeometry()->GetSector(trdTracker().Tracklets()[i].GetDetector());
+    for (unsigned int i = 0; i < mIOPtrs->nTRDTracklets; i++) {
+      int iSec = mChain->GetTRDGeometry()->GetSector(mIOPtrs->trdTracklets[i].GetDetector());
       bool draw = iSlice == iSec && mGlobalPosTRD[i].w == select;
       if (draw) {
         mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD[i].x, mGlobalPosTRD[i].y, mProjectXY ? 0 : mGlobalPosTRD[i].z);
@@ -697,13 +709,12 @@ GPUDisplay::vboList GPUDisplay::DrawSpacePointsTRD(int iSlice, int select, int i
   return (vboList(startCount, mVertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
-GPUDisplay::vboList GPUDisplay::DrawClusters(const GPUTPCTracker& tracker, int select, int iCol)
+GPUDisplay::vboList GPUDisplay::DrawClusters(int iSlice, int select, int iCol)
 {
-  int iSlice = tracker.ISlice();
   size_t startCount = mVertexBufferStart[iSlice].size();
   size_t startCountInner = mVertexBuffer[iSlice].size();
   const int firstCluster = (mNCollissions > 1 && iCol > 0) ? mCollisionClusters[iCol - 1][iSlice] : 0;
-  const int lastCluster = (mNCollissions > 1 && iCol + 1 < mNCollissions) ? mCollisionClusters[iCol][iSlice] : tracker.Data().NumberOfHits();
+  const int lastCluster = (mNCollissions > 1 && iCol + 1 < mNCollissions) ? mCollisionClusters[iCol][iSlice] : (mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSlice] : mIOPtrs->clustersNative->nClustersSector[iSlice]);
   for (int cidInSlice = firstCluster; cidInSlice < lastCluster; cidInSlice++) {
     const int cid = GET_CID(iSlice, cidInSlice);
     if (mHideUnmatchedClusters && mQA && mQA->SuppressHit(cid)) {
@@ -735,7 +746,7 @@ GPUDisplay::vboList GPUDisplay::DrawClusters(const GPUTPCTracker& tracker, int s
     } else if (mMarkClusters) {
       short flags;
       if (mParam->par.earlyTpcTransform) {
-        flags = tracker.ClusterData()[cidInSlice].flags;
+        flags = mIOPtrs->clusterData[iSlice][cidInSlice].flags;
       } else {
         flags = mIOPtrs->clustersNative->clustersLinear[cid].getFlags();
       }
@@ -887,7 +898,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
       size_t startCountInner = mVertexBuffer[iSlice].size();
       bool drawing = false;
 
-      if (mTrackFilter) {
+      if (mTrackFilter && mChain) {
         if (mTrackFilter == 2 && (!trdTracker().PreCheckTrackTRDCandidate(*track) || !trdTracker().CheckTrackTRDCandidate((GPUTRDTrackGPU)*track))) {
           break;
         }
@@ -897,7 +908,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
       }
 
       if (mTRDTrackIds[i] != -1) {
-        auto& trk = trdTracker().Tracks()[mTRDTrackIds[i]];
+        auto& trk = mIOPtrs->trdTracks[mTRDTrackIds[i]];
         for (int k = 5; k >= 0; k--) {
           int cid = trk.GetTrackletIndex(k);
           if (cid < 0) {
@@ -941,6 +952,10 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
       break;
     }
 
+    if (!mChain) {
+      continue;
+    }
+
     for (int iMC = 0; iMC < 2; iMC++) {
       if (iMC) {
         if (ii >= trackList[1].size()) {
@@ -966,7 +981,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
         if (iMC == 0) {
           trkParam.Set(track->GetParam());
           if (mParam->par.earlyTpcTransform) {
-            auto cl = mMerger.ClustersXYZ()[track->FirstClusterRef() + lastCluster]; // Todo: Remove direct usage of merger
+            auto cl = mIOPtrs->mergedTrackHitsXYZ[track->FirstClusterRef() + lastCluster]; // Todo: Remove direct usage of merger
             x = cl.x;
             ZOffset = track->GetParam().GetTZOffset();
           } else {
@@ -1220,9 +1235,13 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
   if (!mixAnimation && (mUpdateDLList || mResetScene)) {
     showTimer = true;
     mTimerDraw.ResetStart();
-    mCurrentClusters = 0;
-    for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-      mCurrentClusters += sliceTracker(iSlice).NHitsTotal();
+    if (mIOPtrs->clustersNative) {
+      mCurrentClusters = mIOPtrs->clustersNative->nClustersTotal;
+    } else {
+      mCurrentClusters = 0;
+      for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
+        mCurrentClusters += mIOPtrs->nClusterData[iSlice];
+      }
     }
     if (mNMaxClusters < mCurrentClusters) {
       mNMaxClusters = mCurrentClusters;
@@ -1230,7 +1249,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       mGlobalPos = mGlobalPosPtr.get();
     }
 
-    mCurrentSpacePointsTRD = trdTracker().NTracklets();
+    mCurrentSpacePointsTRD = mIOPtrs->nTRDTracklets;
     if (mCurrentSpacePointsTRD > mNMaxSpacePointsTRD) {
       mNMaxSpacePointsTRD = mCurrentSpacePointsTRD;
       mGlobalPosPtrTRD.reset(new float4[mNMaxSpacePointsTRD]);
@@ -1244,15 +1263,15 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     for (unsigned int i = 0; i < mIOPtrs->nMergedTracks; i++) {
       mTRDTrackIds[i] = -1;
     }
-    for (int i = 0; i < trdTracker().NTracks(); i++) {
-      if (trdTracker().Tracks()[i].GetNtracklets()) {
-        mTRDTrackIds[trdTracker().Tracks()[i].GetTPCtrackId()] = i;
+    for (unsigned int i = 0; i < mIOPtrs->nTRDTracks; i++) {
+      if (mIOPtrs->trdTracks[i].GetNtracklets()) {
+        mTRDTrackIds[mIOPtrs->trdTracks[i].GetTPCtrackId()] = i;
       }
     }
 
     mMaxClusterZ = 0;
     bool error = false;
-    GPUCA_OPENMP(parallel for num_threads(mChain->GetProcessingSettings().ompThreads) reduction(max : mMaxClusterZ))
+    GPUCA_OPENMP(parallel for num_threads(getNumThreads()) reduction(max : mMaxClusterZ))
     for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
       if (error) {
         continue;
@@ -1308,10 +1327,10 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       return (1);
     }
 
-    GPUCA_OPENMP(parallel for num_threads(mChain->GetProcessingSettings().ompThreads) reduction(max : mMaxClusterZ))
+    GPUCA_OPENMP(parallel for num_threads(getNumThreads()) reduction(max : mMaxClusterZ))
     for (int i = 0; i < mCurrentSpacePointsTRD; i++) {
       const auto& sp = trdTracker().SpacePoints()[i];
-      int iSec = mChain->GetTRDGeometry()->GetSector(trdTracker().Tracklets()[i].GetDetector());
+      int iSec = mChain->GetTRDGeometry()->GetSector(mIOPtrs->trdTracklets[i].GetDetector());
       float4* ptr = &mGlobalPosTRD[i];
       mParam->Slice2Global(iSec, sp.mR + mXadd, sp.mX[0], sp.mX[1], &ptr->x, &ptr->y, &ptr->z);
       ptr->x /= GL_SCALE_FACTOR;
@@ -1663,7 +1682,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
         mGlDLFinal[iSlice].resize(mNCollissions);
       }
     }
-    GPUCA_OPENMP(parallel num_threads(mChain->GetProcessingSettings().ompThreads))
+    GPUCA_OPENMP(parallel num_threads(getNumThreads()))
     {
 #ifdef WITH_OPENMP
       int numThread = omp_get_thread_num();
@@ -1671,42 +1690,38 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
 #else
       int numThread = 0, numThreads = 1;
 #endif
-      GPUCA_OPENMP(for)
-      for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-        GPUTPCTracker& tracker = (GPUTPCTracker&)sliceTracker(iSlice);
-        tracker.SetPointersDataLinks(tracker.LinkTmpMemory());
-        mGlDLLines[iSlice][tINITLINK] = DrawLinks(tracker, tINITLINK, true);
-        tracker.SetPointersDataLinks(mChain->rec()->Res(tracker.MemoryResLinks()).Ptr());
-      }
-      GPUTPCGMPropagator prop;
-      prop.SetMaxSinPhi(.999);
-      prop.SetMaterialTPC();
-      prop.SetPolynomialField(&mParam->polynomialField);
-      prop.SetToyMCEventsFlag(mParam->par.ToyMCEventsFlag);
-
-      GPUCA_OPENMP(barrier)
-      GPUCA_OPENMP(for)
-      for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-        const GPUTPCTracker& tracker = sliceTracker(iSlice);
-
-        mGlDLLines[iSlice][tLINK] = DrawLinks(tracker, tLINK);
-        mGlDLLines[iSlice][tSEED] = DrawSeeds(tracker);
-        mGlDLLines[iSlice][tTRACKLET] = DrawTracklets(tracker);
-        mGlDLLines[iSlice][tSLICETRACK] = DrawTracks(tracker, 0);
-        mGlDLGrid[iSlice] = DrawGrid(tracker);
-        if (iSlice < NSLICES / 2) {
-          mGlDLGridTRD[iSlice] = DrawGridTRD(iSlice);
+      if (mChain) {
+        GPUCA_OPENMP(for)
+        for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
+          GPUTPCTracker& tracker = (GPUTPCTracker&)sliceTracker(iSlice);
+          tracker.SetPointersDataLinks(tracker.LinkTmpMemory());
+          mGlDLLines[iSlice][tINITLINK] = DrawLinks(tracker, tINITLINK, true);
+          tracker.SetPointersDataLinks(mChain->rec()->Res(tracker.MemoryResLinks()).Ptr());
         }
-      }
+        GPUCA_OPENMP(barrier)
 
-      GPUCA_OPENMP(barrier)
-      GPUCA_OPENMP(for)
-      for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-        const GPUTPCTracker& tracker = sliceTracker(iSlice);
-        mGlDLLines[iSlice][tGLOBALTRACK] = DrawTracks(tracker, 1);
-      }
+        GPUCA_OPENMP(for)
+        for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
+          const GPUTPCTracker& tracker = sliceTracker(iSlice);
 
-      GPUCA_OPENMP(barrier)
+          mGlDLLines[iSlice][tLINK] = DrawLinks(tracker, tLINK);
+          mGlDLLines[iSlice][tSEED] = DrawSeeds(tracker);
+          mGlDLLines[iSlice][tTRACKLET] = DrawTracklets(tracker);
+          mGlDLLines[iSlice][tSLICETRACK] = DrawTracks(tracker, 0);
+          mGlDLGrid[iSlice] = DrawGrid(tracker);
+          if (iSlice < NSLICES / 2) {
+            mGlDLGridTRD[iSlice] = DrawGridTRD(iSlice);
+          }
+        }
+        GPUCA_OPENMP(barrier)
+
+        GPUCA_OPENMP(for)
+        for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
+          const GPUTPCTracker& tracker = sliceTracker(iSlice);
+          mGlDLLines[iSlice][tGLOBALTRACK] = DrawTracks(tracker, 1);
+        }
+        GPUCA_OPENMP(barrier)
+      }
       mThreadTracks[numThread].resize(mNCollissions);
       for (int i = 0; i < mNCollissions; i++) {
         for (int j = 0; j < NSLICES; j++) {
@@ -1761,6 +1776,13 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
         mThreadTracks[numThread][col][slice][1].emplace_back(i);
       }
       GPUCA_OPENMP(barrier)
+
+      GPUTPCGMPropagator prop;
+      prop.SetMaxSinPhi(.999);
+      prop.SetMaterialTPC();
+      prop.SetPolynomialField(&mParam->polynomialField);
+      prop.SetToyMCEventsFlag(mParam->par.ToyMCEventsFlag);
+
       GPUCA_OPENMP(for)
       for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
         for (int iCol = 0; iCol < mNCollissions; iCol++) {
@@ -1783,10 +1805,9 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       GPUCA_OPENMP(barrier)
       GPUCA_OPENMP(for)
       for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-        const GPUTPCTracker& tracker = sliceTracker(iSlice);
         for (int i = 0; i < N_POINTS_TYPE_TPC; i++) {
           for (int iCol = 0; iCol < mNCollissions; iCol++) {
-            mGlDLPoints[iSlice][i][iCol] = DrawClusters(tracker, i, iCol);
+            mGlDLPoints[iSlice][i][iCol] = DrawClusters(iSlice, i, iCol);
           }
         }
       }

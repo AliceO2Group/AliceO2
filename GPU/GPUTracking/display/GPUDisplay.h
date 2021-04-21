@@ -191,7 +191,7 @@ class GPUDisplay
 
   int DrawGLScene_internal(bool mixAnimation, float mAnimateTime);
   int InitGL_internal();
-  const GPUParam& param();
+  int getNumThreads();
   const GPUTPCTracker& sliceTracker(int iSlice);
   const GPUTRDTrackerGPU& trdTracker();
   const GPUTrackingInOutPointers* mIOPtrs = nullptr;
@@ -238,7 +238,7 @@ class GPUDisplay
   void UpdateOffscreenBuffers(bool clean = false);
   void updateConfig();
   void drawPointLinestrip(int iSlice, int cid, int id, int id_limit = TRACK_TYPE_ID_LIMIT);
-  vboList DrawClusters(const GPUTPCTracker& tracker, int select, int iCol);
+  vboList DrawClusters(int iSlice, int select, int iCol);
   vboList DrawSpacePointsTRD(int iSlice, int select, int iCol);
   vboList DrawSpacePointsTRD(const GPUTPCTracker& tracker, int select, int iCol);
   vboList DrawLinks(const GPUTPCTracker& tracker, int id, bool dodown = false);
