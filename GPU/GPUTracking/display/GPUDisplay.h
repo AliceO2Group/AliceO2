@@ -192,6 +192,7 @@ class GPUDisplay
   int DrawGLScene_internal(bool mixAnimation, float mAnimateTime);
   int InitGL_internal();
   int getNumThreads();
+  void disableUnsupportedOptions();
   const GPUTPCTracker& sliceTracker(int iSlice);
   const GPUTRDTrackerGPU& trdTracker();
   const GPUTRDGeometry& trdGeometry();
