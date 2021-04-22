@@ -27,8 +27,8 @@ namespace o2
 namespace event_visualisation
 {
 
-DataReaderVSD::DataReaderVSD()
-  : DataReader(),
+DataReaderVSD::DataReaderVSD(DataInterpreter* interpreter)
+  : DataReader(interpreter),
     mFile(nullptr),
     mMaxEv(-1),
     mCurEv(-1)

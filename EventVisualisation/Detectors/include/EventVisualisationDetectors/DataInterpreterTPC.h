@@ -39,7 +39,7 @@ class DataInterpreterTPC final : public DataInterpreter
   ~DataInterpreterTPC() final;
 
   // Returns a visualisation Event for this data type
-  std::unique_ptr<VisualisationEvent> interpretDataForType(TObject* data, EVisualisationDataType type) final;
+  VisualisationEvent interpretDataForType(TObject* data, EVisualisationDataType type) final;
 };
 
 } // namespace event_visualisation

@@ -31,7 +31,7 @@ class DataReaderTPC : public DataReader
   TFile* mTracFile;
 
  public:
-  DataReaderTPC();
+  DataReaderTPC(DataInterpreter* interpreter);
   void open() override;
   Int_t GetEventCount() const override { return mMaxEv; };
   TObject* getEventData(int no) override;

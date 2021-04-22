@@ -52,9 +52,6 @@ EventManager& EventManager::getInstance()
 EventManager::EventManager() : TEveEventManager("Event", "")
 {
   LOG(INFO) << "Initializing TEveManager";
-  for (unsigned int i = 0; i < elemof(dataInterpreters); i++) {
-    dataInterpreters[i] = nullptr;
-  }
   for (unsigned int i = 0; i < elemof(dataReaders); i++) {
     dataReaders[i] = nullptr;
   }
@@ -71,7 +68,7 @@ void EventManager::Open()
     case SourceOffline: {
       DataSourceOffline* source = new DataSourceOffline();
       for (int i = 0; i < EVisualisationGroup::NvisualisationGroups; i++) {
-        if (dataInterpreters[i] != nullptr) {
+        if (dataReaders[i] != nullptr) {
           dataReaders[i]->open();
           source->registerReader(dataReaders[i], static_cast<EVisualisationGroup>(i));
         }
@@ -98,12 +95,13 @@ void EventManager::GotoEvent(Int_t no)
   }
 
   for (int i = 0; i < EVisualisationGroup::NvisualisationGroups; ++i) {
-    for (int dataType = 0; dataType < EVisualisationDataType::NdataTypes; ++dataType) {
-      DataInterpreter* interpreter = dataInterpreters[i];
-      if (interpreter) {
-        TObject* data = getDataSource()->getEventData(no, (EVisualisationGroup)i);
-        std::unique_ptr<VisualisationEvent> event = interpreter->interpretDataForType(data, (EVisualisationDataType)dataType);
-        displayVisualisationEvent(*event, gVisualisationGroupName[i]);
+    DataReader* reader = dataReaders[i];
+    if (reader) {
+      for (int dataType = 0; dataType < EVisualisationDataType::NdataTypes; ++dataType) {
+        //TObject* data = getDataSource()->getEventData(no, (EVisualisationGroup)i);
+        //std::unique_ptr<VisualisationEvent> event = interpreter->interpretDataForType(data, (EVisualisationDataType)dataType);
+        VisualisationEvent event = getDataSource()->getEventData(no, (EVisualisationGroup)i, (EVisualisationDataType)dataType);
+        displayVisualisationEvent(event, gVisualisationGroupName[i]);
       }
     }
   }
@@ -206,10 +204,9 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
   }
 }
 
-void EventManager::registerDetector(DataReader* reader, DataInterpreter* interpreter, EVisualisationGroup type)
+void EventManager::registerDetector(DataReader* reader, EVisualisationGroup type)
 {
   dataReaders[type] = reader;
-  dataInterpreters[type] = interpreter;
 }
 
 } // namespace event_visualisation

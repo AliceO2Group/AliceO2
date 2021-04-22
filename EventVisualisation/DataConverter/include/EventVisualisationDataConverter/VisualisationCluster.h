@@ -17,6 +17,7 @@
 #define ALICE_O2_DATACONVERTER_VISUALISATIONCLUSTER_H
 
 #include "EventVisualisationDataConverter/VisualisationTrack.h"
+#include "rapidjson/document.h"
 
 #include <vector>
 #include <ctime>
@@ -35,6 +36,9 @@ namespace event_visualisation
 class VisualisationCluster
 {
  public:
+  VisualisationCluster(rapidjson::Value& tree);
+  rapidjson::Value jsonTree(rapidjson::Document::AllocatorType& allocator);
+
   // Default constructor
   VisualisationCluster(double XYZ[]);
 
