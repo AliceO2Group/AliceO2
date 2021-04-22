@@ -51,7 +51,6 @@ class FITCalibrationDevice : public o2::framework::Task
   std::unique_ptr<CalibratorType> mCalibrator;
 };
 
-
 FIT_CALIBRATION_DEVICE_TEMPLATES
 void FIT_CALIBRATION_DEVICE_TYPE::init(o2::framework::InitContext& context)
 {

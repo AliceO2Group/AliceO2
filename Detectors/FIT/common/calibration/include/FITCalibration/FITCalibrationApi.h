@@ -11,7 +11,6 @@
 #ifndef O2_FITCALIBRATIONAPI_H
 #define O2_FITCALIBRATIONAPI_H
 
-
 #include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
 #include "FT0Calibration/FT0ChannelTimeTimeSlotContainer.h"
 
@@ -20,10 +19,9 @@ namespace o2::fit
 class FITCalibrationApi
 {
  private:
-
   static constexpr const char* DEFAULT_CCDB_URL = "http://localhost:8080";
- public:
 
+ public:
   static void init();
 
   template <typename CalibrationObjectType>
@@ -31,11 +29,8 @@ class FITCalibrationApi
 
   template <typename CalibrationObjectType>
   [[nodiscard]] static const CalibrationObjectType& getMostRecentCalibrationObject();
-
 };
 
 } // namespace o2::fit
-
-
 
 #endif //O2_FITCALIBRATIONAPI_H

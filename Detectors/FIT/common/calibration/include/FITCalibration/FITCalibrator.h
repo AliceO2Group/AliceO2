@@ -28,7 +28,6 @@ namespace o2::fit
 #define FIT_CALIBRATOR_TYPE \
   FITCalibrator<InputCalibrationInfoType, TimeSlotStorageType, CalibrationObjectType>
 
-
 FIT_CALIBRATOR_TEMPLATES
 class FITCalibrator final : public o2::calibration::TimeSlotCalibration<InputCalibrationInfoType, TimeSlotStorageType>
 {
@@ -65,10 +64,7 @@ class FITCalibrator final : public o2::calibration::TimeSlotCalibration<InputCal
   std::vector<CalibrationObjectType> mCalibrationObjectVector;
   const unsigned int mMinEntries;
   const bool mTestMode;
-
 };
-
-
 
 FIT_CALIBRATOR_TEMPLATES
 FIT_CALIBRATOR_TYPE::FITCalibrator(unsigned int minimumEntries, bool testMode)
@@ -79,10 +75,10 @@ FIT_CALIBRATOR_TYPE::FITCalibrator(unsigned int minimumEntries, bool testMode)
 FIT_CALIBRATOR_TEMPLATES
 bool FIT_CALIBRATOR_TYPE::hasEnoughData(const Slot& slot) const
 {
-  if(_isTestModeEnabled()){
+  if (_isTestModeEnabled()) {
     static unsigned int testCounter = 0;
     ++testCounter;
-    if(!(testCounter % 1000)){
+    if (!(testCounter % 1000)) {
       return true;
     }
   }
@@ -120,7 +116,6 @@ typename FIT_CALIBRATOR_TYPE::Slot& FIT_CALIBRATOR_TYPE::emplaceNewSlot(
   slot.setContainer(std::make_unique<TimeSlotStorageType>(mMinEntries));
   return slot;
 }
-
 
 #undef FIT_CALIBRATOR_TEMPLATES
 #undef FIT_CALIBRATOR_TYPE

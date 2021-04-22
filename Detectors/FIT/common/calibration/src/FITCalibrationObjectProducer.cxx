@@ -23,9 +23,7 @@ CalibrationObjectType FITCalibrationObjectProducer::generateCalibrationObject(co
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 template <>
-o2::ft0::FT0ChannelTimeCalibrationObject FITCalibrationObjectProducer::generateCalibrationObject
-  <o2::ft0::FT0ChannelTimeCalibrationObject, o2::ft0::FT0ChannelTimeTimeSlotContainer>
-  (const o2::ft0::FT0ChannelTimeTimeSlotContainer& container)
+o2::ft0::FT0ChannelTimeCalibrationObject FITCalibrationObjectProducer::generateCalibrationObject<o2::ft0::FT0ChannelTimeCalibrationObject, o2::ft0::FT0ChannelTimeTimeSlotContainer>(const o2::ft0::FT0ChannelTimeTimeSlotContainer& container)
 {
   return o2::ft0::FT0TimeChannelOffsetCalibrationObjectAlgorithm::generateCalibrationObject(container);
 }

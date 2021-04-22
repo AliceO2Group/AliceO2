@@ -26,7 +26,7 @@ FT0ChannelTimeTimeSlotContainer::FT0ChannelTimeTimeSlotContainer(std::size_t min
 bool FT0ChannelTimeTimeSlotContainer::hasEnoughEntries() const
 {
 
-    return *std::min_element(mEntriesPerChannel.begin(), mEntriesPerChannel.end()) > mMinEntries;
+  return *std::min_element(mEntriesPerChannel.begin(), mEntriesPerChannel.end()) > mMinEntries;
 }
 void FT0ChannelTimeTimeSlotContainer::fill(const gsl::span<const FT0CalibrationInfoObject>& data)
 {
@@ -66,19 +66,18 @@ int16_t FT0ChannelTimeTimeSlotContainer::getMeanGaussianFitValue(std::size_t cha
 
   std::vector<double> channelHistogramData(NUMBER_OF_HISTOGRAM_BINS);
   std::vector<double> outputGaussianFitValues;
-  for(int iBin = 0; iBin < NUMBER_OF_HISTOGRAM_BINS; ++iBin){
+  for (int iBin = 0; iBin < NUMBER_OF_HISTOGRAM_BINS; ++iBin) {
     channelHistogramData[iBin] = mHistogram.at(iBin, channelID);
   }
 
   double returnCode = math_utils::fitGaus<double>(NUMBER_OF_HISTOGRAM_BINS, channelHistogramData.data(),
                                                   -HISTOGRAM_RANGE, HISTOGRAM_RANGE, outputGaussianFitValues);
-  if(returnCode < 0){
+  if (returnCode < 0) {
     //something went wrong during gaussian fit procedure
     return 0;
   }
 
   return static_cast<int16_t>(std::round(outputGaussianFitValues[MEAN_VALUE_INDEX_IN_OUTPUT_VECTOR]));
-
 }
 void FT0ChannelTimeTimeSlotContainer::print() const
 {

@@ -14,14 +14,10 @@
 #include <array>
 #include <vector>
 #include <gsl/span>
-#include "TH1F.h"
-#include "TGraph.h"
-#include <chrono>
 #include "FT0Calibration/FT0CalibrationInfoObject.h"
 #include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
 #include "DataFormatsFT0/RawEventData.h"
 #include "Rtypes.h"
-#include "TH2D.h"
 #include <boost/histogram.hpp>
 
 namespace o2::ft0
@@ -47,7 +43,6 @@ class FT0ChannelTimeTimeSlotContainer final
   void print() const;
 
  private:
-
   std::size_t mMinEntries;
   std::array<uint64_t, o2::ft0::Nchannels_FT0> mEntriesPerChannel{};
   BoostHistogramType mHistogram;

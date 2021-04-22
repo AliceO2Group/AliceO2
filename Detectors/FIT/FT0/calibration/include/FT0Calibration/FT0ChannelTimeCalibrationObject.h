@@ -14,8 +14,6 @@
 #include <array>
 #include "Rtypes.h"
 #include "DataFormatsFT0/RawEventData.h"
-#include "CommonUtils/MemFileHelper.h"
-#include "TGraph.h"
 
 namespace o2::ft0
 {

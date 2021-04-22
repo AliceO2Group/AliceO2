@@ -29,7 +29,7 @@ const char* FITCalibrationApi::getObjectPath()
 template <typename CalibrationObjectType>
 const CalibrationObjectType& FITCalibrationApi::getMostRecentCalibrationObject()
 {
-  static_assert(sizeof(CalibrationObjectType) == 0,"[FITCalibrationApi] Cannot find specialization provided Calibration Object Type" );
+  static_assert(sizeof(CalibrationObjectType) == 0, "[FITCalibrationApi] Cannot find specialization provided Calibration Object Type");
   return {};
 }
 

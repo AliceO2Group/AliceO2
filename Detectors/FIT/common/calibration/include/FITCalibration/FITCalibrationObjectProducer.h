@@ -23,7 +23,6 @@ class FITCalibrationObjectProducer
   static CalibrationObjectType generateCalibrationObject(const TimeSlotContainerType& container);
 };
 
-
 } // namespace o2::fit
 
 #endif //O2_FITCALIBRATIONOBJECTPRODUCER_H
