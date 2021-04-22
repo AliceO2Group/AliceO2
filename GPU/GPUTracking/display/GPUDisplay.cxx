@@ -2290,8 +2290,12 @@ void GPUDisplay::showInfo(const char* info)
 #endif
 }
 
-void GPUDisplay::ShowNextEvent()
+void GPUDisplay::ShowNextEvent(const GPUTrackingInOutPointers* ptrs)
 {
+  if (ptrs) {
+    mIOPtrs = ptrs;
+    mNCollissions = 1;
+  }
   mSemLockDisplay.Unlock();
   mBackend->mNeedUpdate = 1;
   mUpdateDLList = true;

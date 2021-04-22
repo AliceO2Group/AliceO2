@@ -31,8 +31,9 @@
 namespace o2::gpu
 {
 class GPUDisplay;
-class GPUParam;
-class GPUO2InterfaceConfiguration;
+struct GPUParam;
+struct GPUTrackingInOutPointers;
+struct GPUO2InterfaceConfiguration;
 class GPUDisplayBackend;
 class GPUO2InterfaceDisplay
 {
@@ -41,7 +42,7 @@ class GPUO2InterfaceDisplay
   ~GPUO2InterfaceDisplay();
 
   int startDisplay();
-  int show();
+  int show(const GPUTrackingInOutPointers* ptrs);
   int endDisplay();
 
  private:

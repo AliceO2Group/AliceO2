@@ -58,7 +58,7 @@ class GPUDisplay
   GPUDisplay(const GPUDisplay&) = delete;
 
   int StartDisplay() { return 1; }
-  void ShowNextEvent() {}
+  void ShowNextEvent(const GPUTrackingInOutPointers* ptrs = nullptr) {}
   void WaitForNextEvent() {}
   void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster) {}
 
@@ -99,7 +99,7 @@ class GPUDisplay
   GPUDisplay(const GPUDisplay&) = delete;
 
   int StartDisplay();
-  void ShowNextEvent();
+  void ShowNextEvent(const GPUTrackingInOutPointers* ptrs = nullptr);
   void WaitForNextEvent();
   void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster);
 

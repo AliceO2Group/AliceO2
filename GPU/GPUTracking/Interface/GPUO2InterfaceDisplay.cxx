@@ -36,12 +36,17 @@ GPUO2InterfaceDisplay::~GPUO2InterfaceDisplay() = default;
 
 int GPUO2InterfaceDisplay::startDisplay()
 {
-  return mDisplay->StartDisplay();
+  int retVal = mDisplay->StartDisplay();
+  if (retVal) {
+    return retVal;
+  }
+  mDisplay->WaitForNextEvent();
+  return 0;
 }
 
-int GPUO2InterfaceDisplay::show()
+int GPUO2InterfaceDisplay::show(const GPUTrackingInOutPointers* ptrs)
 {
-  mDisplay->ShowNextEvent();
+  mDisplay->ShowNextEvent(ptrs);
   do {
     usleep(10000);
   } while (mBackend->mDisplayControl == 0);
