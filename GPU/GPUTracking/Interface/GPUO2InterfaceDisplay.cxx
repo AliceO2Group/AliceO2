@@ -29,7 +29,7 @@ GPUO2InterfaceDisplay::GPUO2InterfaceDisplay(const GPUO2InterfaceConfiguration* 
   mParam.reset(new GPUParam);
   mParam->SetDefaults(&config->configGRP, &config->configReconstruction, &config->configProcessing, nullptr);
   mParam->par.earlyTpcTransform = 0;
-  mDisplay.reset(new GPUDisplay(mBackend.get(), nullptr, nullptr, mParam.get(), (const GPUCalibObjectsConst*)&mConfig->configCalib));
+  mDisplay.reset(new GPUDisplay(mBackend.get(), nullptr, nullptr, mParam.get(), (const GPUCalibObjectsConst*)&mConfig->configCalib, &mConfig->configDisplay));
 }
 
 GPUO2InterfaceDisplay::~GPUO2InterfaceDisplay() = default;
