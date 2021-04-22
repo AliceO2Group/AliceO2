@@ -37,6 +37,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
+#include "TPCWorkflow/ClusterReaderSpec.h"
 
 #include <string>
 #include <stdexcept>
@@ -191,18 +192,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
                                                    &hook},
                                                  propagateMC));
   } else if (inputType == InputType::Clusters) {
-    specs.emplace_back(o2::tpc::getPublisherSpec(PublisherConf{
-                                                   "tpc-native-cluster-reader",
-                                                   "tpc-native-clusters.root",
-                                                   "tpcrec",
-                                                   {"clusterbranch", "TPCClusterNative", "Branch with TPC native clusters"},
-                                                   {"clustermcbranch", "TPCClusterNativeMCTruth", "MC label branch"},
-                                                   OutputSpec{"TPC", "CLUSTERNATIVE"},
-                                                   OutputSpec{"TPC", "CLNATIVEMCLBL"},
-                                                   tpcSectors,
-                                                   laneConfiguration,
-                                                   &hook},
-                                                 propagateMC));
+    specs.emplace_back(o2::tpc::getClusterReaderSpec(propagateMC, &tpcSectors, &laneConfiguration));
   } else if (inputType == InputType::CompClusters) {
     // TODO: need to check if we want to store the MC labels alongside with compressed clusters
     // for the moment reading of labels is disabled (last parameter is false)

@@ -14,7 +14,7 @@
 #include "ITSWorkflow/TrackReaderSpec.h"
 #include "ITSMFTWorkflow/ClusterReaderSpec.h"
 #include "TPCWorkflow/TrackReaderSpec.h"
-#include "TPCWorkflow/PublisherSpec.h"
+#include "TPCWorkflow/ClusterReaderSpec.h"
 #include "TPCWorkflow/ClusterSharingMapSpec.h"
 #include "TOFWorkflowUtils/ClusterReaderSpec.h"
 #include "TOFWorkflow/TOFMatchedReaderSpec.h"
@@ -78,9 +78,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
 
-  std::vector<int> tpcClusSectors = o2::RangeTokenizer::tokenize<int>("0-35");
-  std::vector<int> tpcClusLanes = tpcClusSectors;
-
   GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
 
   if (!disableRootInp) {
@@ -111,17 +108,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       specs.emplace_back(o2::itsmft::getITSClusterReaderSpec(false, true)); // mc not neaded
     }
     if (GID::includesDet(DetID::TPC, src)) {
-      specs.emplace_back(o2::tpc::getPublisherSpec(o2::tpc::PublisherConf{
-                                                     "tpc-native-cluster-reader",
-                                                     "tpc-native-clusters.root",
-                                                     "tpcrec",
-                                                     {"clusterbranch", "TPCClusterNative", "Branch with TPC native clusters"},
-                                                     {"clustermcbranch", "TPCClusterNativeMCTruth", "MC label branch"},
-                                                     OutputSpec{"TPC", "CLUSTERNATIVE"},
-                                                     OutputSpec{"TPC", "CLNATIVEMCLBL"},
-                                                     tpcClusSectors,
-                                                     tpcClusLanes},
-                                                   false));
+      specs.emplace_back(o2::tpc::getClusterReaderSpec(false));
       specs.emplace_back(o2::tpc::getClusterSharingMapSpec());
     }
   }

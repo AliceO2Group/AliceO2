@@ -79,7 +79,7 @@ void TPCInterpolationDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTPCInterpolationSpec(bool useMC, const std::vector<int>& tpcClusLanes)
+DataProcessorSpec getTPCInterpolationSpec(bool useMC)
 {
   std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
