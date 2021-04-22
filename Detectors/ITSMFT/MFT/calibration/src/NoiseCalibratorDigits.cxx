@@ -16,6 +16,8 @@
 #include "TFile.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
+#include "ITSMFTReconstruction/ChipMappingMFT.h"
+
 
 namespace o2
 {
@@ -24,6 +26,9 @@ namespace mft
 bool NoiseCalibratorDigits::processTimeFrame(gsl::span<const o2::itsmft::Digit> const& digits,
                                              gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {
+  const o2::itsmft::ChipMappingMFT maping;
+  auto chipMap = maping.getChipMappingData();
+
   static int nTF = 0;
   LOG(INFO) << "Processing TF# " << nTF++;
 
@@ -34,7 +39,19 @@ bool NoiseCalibratorDigits::processTimeFrame(gsl::span<const o2::itsmft::Digit> 
       auto row = d.getRow();
       auto col = d.getColumn();
 
-      mNoiseMap.increaseNoiseCount(id, row, col);
+     Int_t half = chipMap[id].disk;
+     Int_t layer = chipMap[id].layer;
+     Int_t face = layer % 2;
+
+      if (half==0 && face==0){
+         mNoiseMapH0F0.increaseNoiseCount(id, row, col);
+      }else if (half==0 && face==1){
+         mNoiseMapH0F1.increaseNoiseCount(id, row, col);
+      }else if (half==1 && face==0){
+         mNoiseMapH1F0.increaseNoiseCount(id, row, col);
+      }else if (half==1 && face==1){
+         mNoiseMapH1F1.increaseNoiseCount(id, row, col);
+      }
     }
   }
   mNumberOfStrobes += rofs.size();
@@ -44,7 +61,10 @@ bool NoiseCalibratorDigits::processTimeFrame(gsl::span<const o2::itsmft::Digit> 
 void NoiseCalibratorDigits::finalize()
 {
   LOG(INFO) << "Number of processed strobes is " << mNumberOfStrobes;
-  mNoiseMap.applyProbThreshold(mProbabilityThreshold, mNumberOfStrobes);
+  mNoiseMapH0F0.applyProbThreshold(mProbabilityThreshold, mNumberOfStrobes);
+  mNoiseMapH0F1.applyProbThreshold(mProbabilityThreshold, mNumberOfStrobes);
+  mNoiseMapH1F0.applyProbThreshold(mProbabilityThreshold, mNumberOfStrobes);
+  mNoiseMapH1F1.applyProbThreshold(mProbabilityThreshold, mNumberOfStrobes);
 }
 
 } // namespace mft

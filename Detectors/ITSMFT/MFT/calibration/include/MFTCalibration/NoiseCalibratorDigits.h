@@ -49,10 +49,16 @@ class NoiseCalibratorDigits
 
   void finalize();
 
-  const o2::itsmft::NoiseMap& getNoiseMap() const { return mNoiseMap; }
+  const o2::itsmft::NoiseMap& getNoiseMapH0F0() const { return mNoiseMapH0F0; }
+  const o2::itsmft::NoiseMap& getNoiseMapH0F1() const { return mNoiseMapH0F1; }
+  const o2::itsmft::NoiseMap& getNoiseMapH1F0() const { return mNoiseMapH1F0; }
+  const o2::itsmft::NoiseMap& getNoiseMapH1F1() const { return mNoiseMapH1F1; }
 
  private:
-  o2::itsmft::NoiseMap mNoiseMap{936};
+  o2::itsmft::NoiseMap mNoiseMapH0F0{936};
+  o2::itsmft::NoiseMap mNoiseMapH0F1{936};
+  o2::itsmft::NoiseMap mNoiseMapH1F0{936};
+  o2::itsmft::NoiseMap mNoiseMapH1F1{936};
   float mProbabilityThreshold = 3e-6f;
   unsigned int mThreshold = 100;
   unsigned int mNumberOfStrobes = 0;
