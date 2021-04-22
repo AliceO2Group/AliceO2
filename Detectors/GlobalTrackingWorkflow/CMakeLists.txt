@@ -67,3 +67,4 @@ o2_add_executable(vertexing-workflow
 
 add_subdirectory(tofworkflow)
 add_subdirectory(tpcinterpolationworkflow)
+add_subdirectory(helpers)
