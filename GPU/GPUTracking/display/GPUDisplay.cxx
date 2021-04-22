@@ -2376,6 +2376,9 @@ void GPUDisplay::ShowNextEvent(const GPUTrackingInOutPointers* ptrs)
     mIOPtrs = ptrs;
     mNCollissions = 1;
   }
+  if (mMaxClusterZ <= 0) {
+    mResetScene = true;
+  }
   mSemLockDisplay.Unlock();
   mBackend->mNeedUpdate = 1;
   mUpdateDLList = true;

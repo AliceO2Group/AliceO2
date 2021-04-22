@@ -302,7 +302,7 @@ class GPUDisplay
   float mFOV = 45.f;
 
   float mAngleRollOrigin = -1e9;
-  float mMaxClusterZ = 0;
+  float mMaxClusterZ = -1;
 
   int screenshot_scale = 1;
 
