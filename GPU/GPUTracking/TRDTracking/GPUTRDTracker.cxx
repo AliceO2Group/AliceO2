@@ -565,6 +565,38 @@ GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::DoTrackingThread(int iTrk, int thread
 }
 
 template <class TRDTRK, class PROP>
+GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::ConvertTrkltToSpacePoint(const GPUTRDGeometry& geo, GPUTRDTrackletWord& trklt, GPUTRDSpacePointInternal& sp)
+{
+  // converts a single GPUTRDTrackletWord into GPUTRDSpacePointInternal
+  // returns true if successfull
+  int det = trklt.GetDetector();
+  if (!geo.ChamberInGeometry(det)) {
+    return false;
+  }
+  auto* matrix = geo.GetClusterMatrix(det);
+  if (!matrix) {
+    return false;
+  }
+  const GPUTRDpadPlane* pp = geo.GetPadPlane(det);
+  int trkltZbin = trklt.GetZbin();
+  My_Float xTrkltDet[3] = {0.f};        // trklt position in chamber coordinates
+  My_Float xTrkltSec[3] = {0.f};        // trklt position in sector coordinates
+  xTrkltDet[0] = geo.AnodePos() - 0.1f; // mRadialOffset = -0.1f is fix
+  xTrkltDet[1] = trklt.GetY();
+  xTrkltDet[2] = pp->GetRowPos(trkltZbin) - pp->GetRowSize(trkltZbin) / 2.f - pp->GetRowPos(pp->GetNrows() / 2);
+  matrix->LocalToMaster(xTrkltDet, xTrkltSec);
+  sp.mR = xTrkltSec[0];
+  sp.mX[0] = xTrkltSec[1];
+  sp.mX[1] = xTrkltSec[2];
+  sp.mDy = trklt.GetdY();
+
+  int modId = geo.GetSector(det) * GPUTRDGeometry::kNstack + geo.GetStack(det); // global TRD stack number
+  unsigned short volId = geo.GetGeomManagerVolUID(det, modId);
+  sp.mVolumeId = volId;
+  return true;
+}
+
+template <class TRDTRK, class PROP>
 GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::CalculateSpacePoints(int iCollision)
 {
   //--------------------------------------------------------------------
