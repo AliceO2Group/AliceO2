@@ -110,6 +110,19 @@ inline int GPUDisplay::getNumThreads()
   }
 }
 
+void GPUDisplay::disableUnsupportedOptions()
+{
+  if (!mIOPtrs->mergedTrackHitAttachment) {
+    mMarkAdjacentClusters = 0;
+  }
+  if (!mQA) {
+    mMarkFakeClusters = 0;
+  }
+  if (!mChain) {
+    mCfg.excludeClusters = mCfg.drawInitLinks = mCfg.drawLinks = mCfg.drawSeeds = mCfg.drawTracklets = mCfg.drawTracks = mCfg.drawGlobalTracks = 0;
+  }
+}
+
 inline void GPUDisplay::drawVertices(const vboList& v, const GLenum t)
 {
   auto first = std::get<0>(v);
@@ -755,7 +768,7 @@ GPUDisplay::vboList GPUDisplay::DrawClusters(int iSlice, int select, int iCol)
       const bool match = flags & mMarkClusters;
       draw = (select == tMARKED) ? (match) : (draw && !match);
     } else if (mMarkFakeClusters) {
-      const bool fake = (mQA && mQA->HitAttachStatus(cid));
+      const bool fake = (mQA->HitAttachStatus(cid));
       draw = (select == tMARKED) ? (fake) : (draw && !fake);
     }
     if (draw) {
@@ -1236,6 +1249,9 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
 
   if (!mIOPtrs) {
     mNCollissions = 0;
+  }
+  if (!mixAnimation && (mUpdateDLList || mResetScene || !mGlDLrecent) && mIOPtrs) {
+    disableUnsupportedOptions();
   }
 
   // Extract global cluster information
