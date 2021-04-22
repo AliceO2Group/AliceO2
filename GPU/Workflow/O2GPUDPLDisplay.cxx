@@ -78,9 +78,15 @@ void O2GPUDPLDisplaySpec::run(ProcessingContext& pc)
   recoData.collectData(pc, dataRequest);
   static bool first = false;
   if (first == false) {
-    display->startDisplay();
+    if (display->startDisplay()) {
+      throw std::runtime_error("Error starting event display");
+    }
   }
-  display->show();
+  GPUTrackingInOutPointers ptrs;
+  recoData.addTPCClusters(pc, false);
+  recoData.addTPCTracks(pc, mUseMC);
+  ptrs.clustersNative = &recoData.inputsTPCclusters->clusterIndex;
+  display->show(&ptrs);
 }
 
 void O2GPUDPLDisplaySpec::endOfStream(EndOfStreamContext& ec)
