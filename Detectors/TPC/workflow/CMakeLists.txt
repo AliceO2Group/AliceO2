@@ -12,6 +12,7 @@
 # FIXME: do we really need a library here ? Is the exe not enough ?
 o2_add_library(TPCWorkflow
                SOURCES src/RecoWorkflow.cxx
+                       src/ClusterReaderSpec.cxx
                        src/PublisherSpec.cxx
                        src/ClustererSpec.cxx
                        src/ClusterDecoderRawSpec.cxx
