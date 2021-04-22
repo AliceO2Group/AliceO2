@@ -44,7 +44,11 @@ const char* FITCalibrationApi::getObjectPath<o2::ft0::FT0ChannelTimeCalibrationO
 template <>
 const o2::ft0::FT0ChannelTimeCalibrationObject& FITCalibrationApi::getMostRecentCalibrationObject<o2::ft0::FT0ChannelTimeCalibrationObject>()
 {
-  return *(o2::ccdb::BasicCCDBManager::instance().get<o2::ft0::FT0ChannelTimeCalibrationObject>(getObjectPath<o2::ft0::FT0ChannelTimeCalibrationObject>()));
+  auto calibObjectPtr = o2::ccdb::BasicCCDBManager::instance().get<o2::ft0::FT0ChannelTimeCalibrationObject>(getObjectPath<o2::ft0::FT0ChannelTimeCalibrationObject>());
+  if (nullptr == calibObjectPtr) {
+    throw std::runtime_error("Cannot read requested calibration object");
+  }
+  return *calibObjectPtr;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////

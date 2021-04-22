@@ -12,12 +12,13 @@
 
 using namespace o2::fit;
 
-//One can extract needed CalibrationObject from FITCalibrationApi and send to proper function from lower module
+//One can extract needed CalibrationObject from FITCalibrationApi and send it to proper function from lower module (ft0, fv0, fdd)
 
 template <typename CalibrationObjectType, typename TimeSlotContainerType>
 CalibrationObjectType FITCalibrationObjectProducer::generateCalibrationObject(const TimeSlotContainerType& container)
 {
-  throw std::runtime_error("Cannot find proper overload for provided calibration object type");
+  static_assert(sizeof(CalibrationObjectType) == 0, "[FITCalibrationObjectProducer] Cannot find specialization provided Calibration Object Type");
+  return {};
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
