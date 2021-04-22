@@ -19,6 +19,7 @@ o2_add_executable(digitizer-workflow
                           src/GRPUpdaterSpec.cxx
                           src/HMPIDDigitizerSpec.cxx
                           src/ITSMFTDigitizerSpec.cxx
+                          src/ITS3DigitizerSpec.cxx
                           src/MCHDigitizerSpec.cxx
                           src/MIDDigitizerSpec.cxx
                           src/PHOSDigitizerSpec.cxx
@@ -43,6 +44,7 @@ o2_add_executable(digitizer-workflow
                                         O2::ITSMFTSimulation
                                         O2::ITSSimulation
                                         O2::ITSMFTWorkflow
+                                        O2::ITS3Simulation
                                         O2::MCHSimulation
                                         O2::MCHBase
                                         O2::MFTSimulation

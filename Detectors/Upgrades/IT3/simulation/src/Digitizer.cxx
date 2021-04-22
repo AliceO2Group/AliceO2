@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file Digitizer.cxx
-/// \brief Implementation of the ITS/MFT digitizer
+/// \brief Implementation of the ITS3 digitizer
 
 #include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
@@ -28,8 +28,9 @@ using o2::itsmft::Digit;
 using o2::itsmft::Hit;
 using Segmentation = o2::itsmft::SegmentationAlpide;
 using SuperSegmentation = o2::its3::SegmentationSuperAlpide;
+using o2::itsmft::AlpideRespSimMat;
+using o2::itsmft::PreDigit;
 
-using namespace o2::itsmft;
 using namespace o2::its3;
 // using namespace o2::base;
 

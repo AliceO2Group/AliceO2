@@ -32,7 +32,7 @@ namespace its3
 class SegmentationSuperAlpide
 {
  public:
-  SegmentationSuperAlpide(int layer) : 
+  SegmentationSuperAlpide(int layer = 0) : 
     mLayer{layer},
     NRows{static_cast<int>(Radii[layer] * constants::math::TwoPI / 30e-4)},
     NPixels{NRows * NCols},
