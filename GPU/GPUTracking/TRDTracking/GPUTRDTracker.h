@@ -223,7 +223,7 @@ class GPUTRDTracker_t : public GPUProcessor
   /// ---- end error parametrization ----
   bool mDebugOutput;                  // store debug output
   float mTimeWindow;                  // max. deviation of the ITS-TPC track time w.r.t. TRD trigger record time stamp (in us, default is 100 ns)
-  float mRadialOffset;                // due to mis-calibration of t0
+  static CONSTEXPR float sRadialOffset GPUCA_CPP11_INIT(= -0.1f); // due to (possible) mis-calibration of t0 -> will become obsolete when tracklet conversion is done outside of the tracker
   float mMaxEta;                      // TPC tracks with higher eta are ignored
   float mExtraRoadY;                  // addition to search road in r-phi to account for not exact radial match of tracklets and tracks in first iteration
   float mRoadZ;                       // in z, a constant search road is used
