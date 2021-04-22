@@ -11,10 +11,11 @@
 o2_add_executable(display
         COMPONENT_NAME gpu
         TARGETVARNAME targetName
-        SOURCES O2GPUDPLDisplay.cxx
+        SOURCES src/O2GPUDPLDisplay.cxx
         PUBLIC_LINK_LIBRARIES O2::GPUO2Interface
                               O2::DataFormatsGlobalTracking
                               O2::TPCFastTransformation
                               O2::TRDBase
                               O2::TPCReconstruction
                               O2::GlobalTrackingWorkflowHelpers)
+target_include_directories(${targetName} PUBLIC "include")
