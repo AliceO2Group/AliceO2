@@ -432,7 +432,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     cfg.outputCompClustersFlat = runClusterEncoder;
     cfg.outputCAClusters = isEnabled(OutputType::Clusters) && (caClusterer || decompressTPC);
     cfg.outputQA = isEnabled(OutputType::QA);
-    cfg.outputSharedClusterMap = isEnabled(OutputType::Clusters) && isEnabled(OutputType::Tracks) && !isEnabled(OutputType::NoSharedClusterMap);
+    cfg.outputSharedClusterMap = (isEnabled(OutputType::Clusters) || inputType == InputType::Clusters) && isEnabled(OutputType::Tracks) && !isEnabled(OutputType::NoSharedClusterMap);
     cfg.processMC = propagateMC;
     cfg.sendClustersPerSector = isEnabled(OutputType::SendClustersPerSector);
     cfg.askDISTSTF = askDISTSTF;
