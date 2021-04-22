@@ -48,7 +48,6 @@ class NoiseCalibratorDigitsSpec : public Task
   o2::itsmft::NoiseMap mNoiseMapH1F0{936};
   o2::itsmft::NoiseMap mNoiseMapH1F1{936};
   std::unique_ptr<CALIBRATORDIGITS> mCalibrator = nullptr;
-  std::string mPath;
   std::string mMeta;
   double mThresh;
   int64_t mStart;

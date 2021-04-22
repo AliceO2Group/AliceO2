@@ -67,7 +67,7 @@ void NoiseCalibratorDigitsSpec::init(InitContext& ic)
   auto probT = ic.options().get<float>("prob-threshold");
   LOG(INFO) << "Setting the probability threshold to " << probT;
 
-  mPath = ic.options().get<std::string>("path");
+//  mPath = ic.options().get<std::string>("path");
   mMeta = ic.options().get<std::string>("meta");
   mStart = ic.options().get<int64_t>("tstart");
   mEnd = ic.options().get<int64_t>("tend");
@@ -130,10 +130,10 @@ void NoiseCalibratorDigitsSpec::sendOutput(DataAllocator& output)
     meta[p.first] = p.second;
   }
 
-  o2::ccdb::CcdbObjectInfo infoH0F0("/MFT/Calib/NoiseMap/H0F0", "NoiseMap", "noise.root", meta, tstart, tend);
-  o2::ccdb::CcdbObjectInfo infoH0F1("/MFT/Calib/NoiseMap/H0F1", "NoiseMap", "noise.root", meta, tstart, tend);
-  o2::ccdb::CcdbObjectInfo infoH1F0("/MFT/Calib/NoiseMap/H1F0", "NoiseMap", "noise.root", meta, tstart, tend);
-  o2::ccdb::CcdbObjectInfo infoH1F1("/MFT/Calib/NoiseMap/H1F1", "NoiseMap", "noise.root", meta, tstart, tend);
+  o2::ccdb::CcdbObjectInfo infoH0F0(mCalibrator->getPathH0F0(), "NoiseMap", "noise.root", meta, tstart, tend);
+  o2::ccdb::CcdbObjectInfo infoH0F1(mCalibrator->getPathH0F1(), "NoiseMap", "noise.root", meta, tstart, tend);
+  o2::ccdb::CcdbObjectInfo infoH1F0(mCalibrator->getPathH1F0(), "NoiseMap", "noise.root", meta, tstart, tend);
+  o2::ccdb::CcdbObjectInfo infoH1F1(mCalibrator->getPathH1F1(), "NoiseMap", "noise.root", meta, tstart, tend);
   auto flNameH0F0 = o2::ccdb::CcdbApi::generateFileName("noiseH0F0");
   auto flNameH0F1 = o2::ccdb::CcdbApi::generateFileName("noiseH0F1");
   auto flNameH1F0 = o2::ccdb::CcdbApi::generateFileName("noiseH1F0");
@@ -203,7 +203,7 @@ DataProcessorSpec getNoiseCalibratorDigitsSpec()
       {"prob-threshold", VariantType::Float, 3.e-6f, {"Probability threshold for noisy pixels"}},
       {"tstart", VariantType::Int64, -1ll, {"Start of validity timestamp"}},
       {"tend", VariantType::Int64, -1ll, {"End of validity timestamp"}},
-      {"path", VariantType::String, "/MFT/Calib/NoiseMap", {"Path to write to in CCDB"}},
+//      {"path", VariantType::String, "/MFT/Calib/NoiseMap", {"Path to write to in CCDB"}},
       {"meta", VariantType::String, "", {"meta data to write in CCDB"}}}};
 }
 

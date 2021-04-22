@@ -54,11 +54,20 @@ class NoiseCalibratorDigits
   const o2::itsmft::NoiseMap& getNoiseMapH1F0() const { return mNoiseMapH1F0; }
   const o2::itsmft::NoiseMap& getNoiseMapH1F1() const { return mNoiseMapH1F1; }
 
+  const std::string getPathH0F0() const { return mPathH0F0; }
+  const std::string getPathH0F1() const { return mPathH0F1; }
+  const std::string getPathH1F0() const { return mPathH1F0; }
+  const std::string getPathH1F1() const { return mPathH1F1; }
+
  private:
   o2::itsmft::NoiseMap mNoiseMapH0F0{936};
   o2::itsmft::NoiseMap mNoiseMapH0F1{936};
   o2::itsmft::NoiseMap mNoiseMapH1F0{936};
   o2::itsmft::NoiseMap mNoiseMapH1F1{936};
+  std::string mPathH0F0 = "/MFT/Calib/NoiseMap/H0F0";
+  std::string mPathH0F1 = "/MFT/Calib/NoiseMap/H0F1";
+  std::string mPathH1F0 = "/MFT/Calib/NoiseMap/H1F0";
+  std::string mPathH1F1 = "/MFT/Calib/NoiseMap/H1F1";
   float mProbabilityThreshold = 3e-6f;
   unsigned int mThreshold = 100;
   unsigned int mNumberOfStrobes = 0;
