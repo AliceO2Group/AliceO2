@@ -21,6 +21,7 @@
 #include "GPUO2InterfaceConfiguration.h"
 #include "TPCFastTransform.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
+#include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 
 using namespace o2::framework;
 using namespace o2::dataformats;
@@ -39,6 +40,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"enable-mc", o2::framework::VariantType::Bool, false, {"enable visualization of MC data"}},
     {"display-clusters", VariantType::String, "TPC", {"comma-separated list of clusters to display"}},
     {"display-tracks", VariantType::String, "TPC", {"comma-separated list of tracks to display"}},
+    {"read-from-files", o2::framework::VariantType::Bool, false, {"comma-separated list of tracks to display"}},
+    {"disable-root-input", o2::framework::VariantType::Bool, false, {"Disable root input overriding read-from-files"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 
   std::swap(workflowOptions, options);
@@ -115,6 +118,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   GlobalTrackID::mask_t srcCl = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-clusters"));
   dataRequest.requestTracks(srcTrk, useMC);
   dataRequest.requestClusters(srcCl, useMC);
+
+  if (cfgc.options().get<bool>("read-from-files")) {
+    InputHelper::addInputSpecs(cfgc, specs, srcCl, srcTrk, srcTrk, useMC);
+  }
 
   specs.emplace_back(DataProcessorSpec{
     "o2-gpu-display",

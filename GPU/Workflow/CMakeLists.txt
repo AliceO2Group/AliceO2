@@ -16,4 +16,5 @@ o2_add_executable(display
                               O2::DataFormatsGlobalTracking
                               O2::TPCFastTransformation
                               O2::TRDBase
-                              O2::TPCReconstruction)
+                              O2::TPCReconstruction
+                              O2::GlobalTrackingWorkflowHelpers)
