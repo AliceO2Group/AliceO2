@@ -139,6 +139,7 @@ set(HDRS_INSTALL
     qconfigoptions.h
     qa/GPUQAHelper.h
     DataCompression/GPUTPCClusterRejection.h
+    Refit/GPUTrackParamConvert.h
     Definitions/GPUDef.h
     Definitions/GPUDefConstantsAndSettings.h
     Definitions/GPUDefGPUParameters.h
