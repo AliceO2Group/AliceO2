@@ -88,7 +88,7 @@ const std::unordered_map<std::string, OutputType> OutputMap{
   {"no-shared-cluster-map", OutputType::NoSharedClusterMap}};
 
 framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vector<int> const& tpcSectors, unsigned long tpcSectorMask, std::vector<int> const& laneConfiguration,
-                                    bool propagateMC, unsigned nLanes, std::string const& cfgInput, std::string const& cfgOutput,
+                                    bool propagateMC, unsigned nLanes, std::string const& cfgInput, std::string const& cfgOutput, bool disableRootInput,
                                     int caClusterer, int zsOnTheFly, int zs10bit, float zsThreshold, bool askDISTSTF)
 {
   InputType inputType;
@@ -159,57 +159,59 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     return false;
   }};
 
-  // The OutputSpec of the PublisherSpec is configured depending on the input
-  // type. Note that the configuration of the dispatch trigger in the main file
-  // needs to be done in accordance. This means, if a new input option is added
-  // also the dispatch trigger needs to be updated.
-  if (inputType == InputType::Digits) {
-    using Type = std::vector<o2::tpc::Digit>;
+  if (!disableRootInput) {
+    // The OutputSpec of the PublisherSpec is configured depending on the input
+    // type. Note that the configuration of the dispatch trigger in the main file
+    // needs to be done in accordance. This means, if a new input option is added
+    // also the dispatch trigger needs to be updated.
+    if (inputType == InputType::Digits) {
+      using Type = std::vector<o2::tpc::Digit>;
 
-    specs.emplace_back(o2::tpc::getPublisherSpec<Type>(PublisherConf{
-                                                         "tpc-digit-reader",
-                                                         "tpcdigits.root",
-                                                         "o2sim",
-                                                         {"digitbranch", "TPCDigit", "Digit branch"},
-                                                         {"mcbranch", "TPCDigitMCTruth", "MC label branch"},
-                                                         OutputSpec{"TPC", "DIGITS"},
-                                                         OutputSpec{"TPC", "DIGITSMCTR"},
-                                                         tpcSectors,
-                                                         laneConfiguration,
-                                                         &hook},
-                                                       propagateMC));
-  } else if (inputType == InputType::ClustersHardware) {
-    specs.emplace_back(o2::tpc::getPublisherSpec(PublisherConf{
-                                                   "tpc-clusterhardware-reader",
-                                                   "tpc-clusterhardware.root",
-                                                   "tpcclustershardware",
-                                                   {"databranch", "TPCClusterHw", "Branch with TPC ClustersHardware"},
-                                                   {"mcbranch", "TPCClusterHwMCTruth", "MC label branch"},
-                                                   OutputSpec{"TPC", "CLUSTERHW"},
-                                                   OutputSpec{"TPC", "CLUSTERHWMCLBL"},
-                                                   tpcSectors,
-                                                   laneConfiguration,
-                                                   &hook},
-                                                 propagateMC));
-  } else if (inputType == InputType::Clusters) {
-    specs.emplace_back(o2::tpc::getClusterReaderSpec(propagateMC, &tpcSectors, &laneConfiguration));
-  } else if (inputType == InputType::CompClusters) {
-    // TODO: need to check if we want to store the MC labels alongside with compressed clusters
-    // for the moment reading of labels is disabled (last parameter is false)
-    // TODO: make a different publisher spec for only one output spec, for now using the
-    // PublisherSpec with only sector 0, '_0' is thus appended to the branch name
-    specs.emplace_back(o2::tpc::getPublisherSpec(PublisherConf{
-                                                   "tpc-compressed-cluster-reader",
-                                                   "tpc-compclusters.root",
-                                                   "tpcrec",
-                                                   {"clusterbranch", "TPCCompClusters", "Branch with TPC compressed clusters"},
-                                                   {"", "", ""}, // No MC labels
-                                                   OutputSpec{"TPC", "COMPCLUSTERS"},
-                                                   OutputSpec{"", ""}, // No MC labels
-                                                   std::vector<int>(1, 0),
-                                                   std::vector<int>(1, 0),
-                                                   &hook},
-                                                 false));
+      specs.emplace_back(o2::tpc::getPublisherSpec<Type>(PublisherConf{
+                                                           "tpc-digit-reader",
+                                                           "tpcdigits.root",
+                                                           "o2sim",
+                                                           {"digitbranch", "TPCDigit", "Digit branch"},
+                                                           {"mcbranch", "TPCDigitMCTruth", "MC label branch"},
+                                                           OutputSpec{"TPC", "DIGITS"},
+                                                           OutputSpec{"TPC", "DIGITSMCTR"},
+                                                           tpcSectors,
+                                                           laneConfiguration,
+                                                           &hook},
+                                                         propagateMC));
+    } else if (inputType == InputType::ClustersHardware) {
+      specs.emplace_back(o2::tpc::getPublisherSpec(PublisherConf{
+                                                     "tpc-clusterhardware-reader",
+                                                     "tpc-clusterhardware.root",
+                                                     "tpcclustershardware",
+                                                     {"databranch", "TPCClusterHw", "Branch with TPC ClustersHardware"},
+                                                     {"mcbranch", "TPCClusterHwMCTruth", "MC label branch"},
+                                                     OutputSpec{"TPC", "CLUSTERHW"},
+                                                     OutputSpec{"TPC", "CLUSTERHWMCLBL"},
+                                                     tpcSectors,
+                                                     laneConfiguration,
+                                                     &hook},
+                                                   propagateMC));
+    } else if (inputType == InputType::Clusters) {
+      specs.emplace_back(o2::tpc::getClusterReaderSpec(propagateMC, &tpcSectors, &laneConfiguration));
+    } else if (inputType == InputType::CompClusters) {
+      // TODO: need to check if we want to store the MC labels alongside with compressed clusters
+      // for the moment reading of labels is disabled (last parameter is false)
+      // TODO: make a different publisher spec for only one output spec, for now using the
+      // PublisherSpec with only sector 0, '_0' is thus appended to the branch name
+      specs.emplace_back(o2::tpc::getPublisherSpec(PublisherConf{
+                                                     "tpc-compressed-cluster-reader",
+                                                     "tpc-compclusters.root",
+                                                     "tpcrec",
+                                                     {"clusterbranch", "TPCCompClusters", "Branch with TPC compressed clusters"},
+                                                     {"", "", ""}, // No MC labels
+                                                     OutputSpec{"TPC", "COMPCLUSTERS"},
+                                                     OutputSpec{"", ""}, // No MC labels
+                                                     std::vector<int>(1, 0),
+                                                     std::vector<int>(1, 0),
+                                                     &hook},
+                                                   false));
+    }
   }
 
   // output matrix
