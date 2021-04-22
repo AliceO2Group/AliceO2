@@ -8,13 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   TrackCosmicsReaderSpec.cxx
+/// @file   TrackTPCITSReaderSpec.cxx
 
 #include <vector>
 
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
-#include "GlobalTrackingWorkflow/TrackCosmicsReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "Framework/SerializationMethods.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
@@ -26,23 +26,23 @@ namespace o2
 {
 namespace globaltracking
 {
-void TrackCosmicsReader::init(InitContext& ic)
+void TrackTPCITSReader::init(InitContext& ic)
 {
   mFileName = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
-                                       ic.options().get<std::string>("cosmics-infile"));
+                                       ic.options().get<std::string>("itstpc-track-infile"));
   connectTree(mFileName);
 }
 
-void TrackCosmicsReader::run(ProcessingContext& pc)
+void TrackTPCITSReader::run(ProcessingContext& pc)
 {
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(INFO) << "Pushing " << mTracks.size() << " Cosmic Tracks at entry " << ent;
+  LOG(INFO) << "Pushing " << mTracks.size() << " TPC-ITS matches at entry " << ent;
 
-  pc.outputs().snapshot(Output{"GLO", "COSMICTRC", 0, Lifetime::Timeframe}, mTracks);
+  pc.outputs().snapshot(Output{"GLO", "TPCITS", 0, Lifetime::Timeframe}, mTracks);
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"GLO", "COSMICTRC_MC", 0, Lifetime::Timeframe}, mLabels);
+    pc.outputs().snapshot(Output{"GLO", "TPCITS_MC", 0, Lifetime::Timeframe}, mLabels);
   }
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
@@ -51,35 +51,35 @@ void TrackCosmicsReader::run(ProcessingContext& pc)
   }
 }
 
-void TrackCosmicsReader::connectTree(const std::string& filename)
+void TrackTPCITSReader::connectTree(const std::string& filename)
 {
   mTree.reset(nullptr); // in case it was already loaded
   mFile.reset(TFile::Open(filename.c_str()));
   assert(mFile && !mFile->IsZombie());
-  mTree.reset((TTree*)mFile->Get("cosmics"));
+  mTree.reset((TTree*)mFile->Get("matchTPCITS"));
   assert(mTree);
-  mTree->SetBranchAddress("tracks", &mTracksPtr);
+  mTree->SetBranchAddress("TPCITS", &mTracksPtr);
   if (mUseMC) {
-    mTree->SetBranchAddress("MCTruth", &mLabelsPtr);
+    mTree->SetBranchAddress("MatchMCTruth", &mLabelsPtr);
   }
   LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
-DataProcessorSpec getTrackCosmicsReaderSpec(bool useMC)
+DataProcessorSpec getTrackTPCITSReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("GLO", "COSMICTRC", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "TPCITS", 0, Lifetime::Timeframe);
   if (useMC) {
-    outputs.emplace_back("GLO", "COSMICTRC_MC", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "TPCITS_MC", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{
-    "cosmic-track-reader",
+    "itstpc-track-reader",
     Inputs{},
     outputs,
-    AlgorithmSpec{adaptFromTask<TrackCosmicsReader>(useMC)},
+    AlgorithmSpec{adaptFromTask<TrackTPCITSReader>(useMC)},
     Options{
-      {"cosmics-infile", VariantType::String, "cosmics.root", {"Name of the input file"}},
+      {"itstpc-track-infile", VariantType::String, "o2match_itstpc.root", {"Name of the input file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 

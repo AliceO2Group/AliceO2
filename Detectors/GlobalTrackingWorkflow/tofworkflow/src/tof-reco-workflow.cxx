@@ -14,7 +14,7 @@
 /// @brief  Basic DPL workflow for TOF reconstruction starting from digits
 
 #include "DetectorsBase/Propagator.h"
-#include "GlobalTrackingWorkflow/TrackTPCITSReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "TOFWorkflowUtils/DigitReaderSpec.h"
 #include "TOFWorkflowUtils/TOFDigitWriterSpec.h"
 #include "TOFWorkflowUtils/ClusterReaderSpec.h"

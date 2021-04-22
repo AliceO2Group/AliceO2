@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file  SecondaryVertexingSpec.cxx
+/// @file  InputHelper.cxx
 
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -17,7 +17,7 @@
 #include "TPCWorkflow/TrackReaderSpec.h"
 #include "TPCWorkflow/ClusterReaderSpec.h"
 #include "TPCWorkflow/ClusterSharingMapSpec.h"
-#include "GlobalTrackingWorkflow/TrackTPCITSReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "TOFWorkflowUtils/ClusterReaderSpec.h"
 #include "TOFWorkflow/TOFMatchedReaderSpec.h"
 

@@ -10,8 +10,8 @@
 
 #include "GlobalTrackingWorkflow/SecondaryVertexingSpec.h"
 #include "GlobalTrackingWorkflow/SecondaryVertexWriterSpec.h"
-#include "GlobalTrackingWorkflow/TrackTPCITSReaderSpec.h"
-#include "GlobalTrackingWorkflow/PrimaryVertexReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/PrimaryVertexReaderSpec.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
 #include "TPCWorkflow/TrackReaderSpec.h"
 #include "TOFWorkflow/TOFMatchedReaderSpec.h"

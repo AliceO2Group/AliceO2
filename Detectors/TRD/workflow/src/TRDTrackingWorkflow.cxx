@@ -13,7 +13,7 @@
 #include <vector>
 
 #include "Framework/WorkflowSpec.h"
-#include "GlobalTrackingWorkflow/TrackTPCITSReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "TRDWorkflow/TRDTrackletReaderSpec.h"
 #include "TRDWorkflow/TRDGlobalTrackingSpec.h"
 #include "TRDWorkflow/TRDTrackWriterSpec.h"
