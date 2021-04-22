@@ -1234,8 +1234,12 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     mSemLockDisplay.Lock();
   }
 
+  if (!mIOPtrs) {
+    mNCollissions = 0;
+  }
+
   // Extract global cluster information
-  if (!mixAnimation && (mUpdateDLList || mResetScene)) {
+  if (!mixAnimation && (mUpdateDLList || mResetScene) && mIOPtrs) {
     showTimer = true;
     mTimerDraw.ResetStart();
     if (mIOPtrs->clustersNative) {
@@ -1663,7 +1667,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
   CHKERR(glLineWidth(mCfg.lineWidth * (mDrawQualityDownsampleFSAA > 1 ? mDrawQualityDownsampleFSAA : 1)));
 
   // Prepare Event
-  if (!mGlDLrecent) {
+  if (!mGlDLrecent && mIOPtrs) {
     for (int i = 0; i < NSLICES; i++) {
       mVertexBuffer[i].clear();
       mVertexBufferStart[i].clear();
