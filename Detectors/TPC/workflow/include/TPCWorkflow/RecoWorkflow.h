@@ -74,6 +74,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,           
                                     bool propagateMC = true, unsigned nLanes = 1, //
                                     std::string const& cfgInput = "digitizer",    //
                                     std::string const& cfgOutput = "tracks",      //
+                                    bool disableRootInput = false,                //
                                     int caClusterer = 0,                          //
                                     int zsOnTheFly = 0,
                                     int zs10bit = 0,

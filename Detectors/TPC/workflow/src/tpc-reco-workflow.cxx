@@ -49,6 +49,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::vector<ConfigParamSpec> options{
     {"input-type", VariantType::String, "digits", {"digitizer, digits, zsraw, clustershw, clustersnative, compressed-clusters, compressed-clusters-ctf"}},
     {"output-type", VariantType::String, "tracks", {"digits, zsraw, clustershw, clustersnative, tracks, compressed-clusters, encoded-clusters, disable-writer, send-clusters-per-sector, qa, no-shared-cluster-map"}},
+    {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"no-ca-clusterer", VariantType::Bool, false, {"Use HardwareClusterer instead of clusterer of GPUCATracking"}},
     {"disable-mc", VariantType::Bool, false, {"disable sending of MC information"}},
     {"tpc-sectors", VariantType::String, "0-35", {"TPC sector range, e.g. 5-7,8,9"}},
@@ -157,6 +158,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                                 nLanes,                                            //
                                                 inputType,                                         //
                                                 cfgc.options().get<std::string>("output-type"),    //
+                                                cfgc.options().get<bool>("disable-root-input"),    //
                                                 !cfgc.options().get<bool>("no-ca-clusterer"),      //
                                                 !cfgc.options().get<bool>("no-tpc-zs-on-the-fly"), //
                                                 cfgc.options().get<bool>("zs-10bit"),              //
