@@ -15,7 +15,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
-#include "GlobalTrackingWorkflow/PrimaryVertexReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/PrimaryVertexReaderSpec.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
