@@ -791,7 +791,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(GPUWorkflow::CompletionPolicyData* poli
     return std::move(outputSpecs);
   };
 
-  return DataProcessorSpec{"tpc-tracker", // process id
+  return DataProcessorSpec{"gpu-reconstruction", // process id
                            {createInputSpecs()},
                            {createOutputSpecs()},
                            AlgorithmSpec(initFunction)};
