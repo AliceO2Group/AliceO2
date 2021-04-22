@@ -21,7 +21,7 @@
 #include "TOFWorkflowUtils/ClusterReaderSpec.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "GlobalTrackingWorkflow/TrackTPCITSReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "GlobalTrackingWorkflow/CosmicsMatchingSpec.h"
 #include "GlobalTrackingWorkflow/TrackCosmicsWriterSpec.h"
 #include "Algorithm/RangeTokenizer.h"
