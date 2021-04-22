@@ -12,7 +12,6 @@
 /// \brief Implementation of the ITS/MFT digitizer
 
 #include "DataFormatsITSMFT/Digit.h"
-#include "ITS3Base/SegmentationSuperAlpide.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITS3Simulation/Digitizer.h"
 #include "MathUtils/Cartesian.h"
@@ -36,6 +35,10 @@ using namespace o2::its3;
 
 void Digitizer::init()
 {
+  for (int iLayer{0}; iLayer < SegmentationSuperAlpide::NLayers; ++iLayer) {
+    mSuperSegmentations.push_back(SegmentationSuperAlpide(iLayer));
+  }
+
   const Int_t numOfChips = mGeometry->getNumberOfChips();
   mChips.resize(numOfChips);
   for (int i = numOfChips; i--;) {
@@ -135,8 +138,13 @@ void Digitizer::fillOutputContainer(uint32_t frameLast)
     rcROF.setFirstEntry(mDigits->size()); // start of current ROF in digits
 
     auto& extra = *(mExtraBuff.front().get());
-    for (auto& chip : mChips) {
-      chip.addNoise(mROFrameMin, mROFrameMin, &mParams);
+    for (int iChip{0}; iChip < mChips.size(); ++iChip) {
+      auto& chip = mChips[iChip];
+      if (iChip < SegmentationSuperAlpide::NLayers) {
+        chip.addNoise(mROFrameMin, mROFrameMin, &mParams, mSuperSegmentations[iChip].NRows, mSuperSegmentations[iChip].NCols);
+      } else {
+        chip.addNoise(mROFrameMin, mROFrameMin, &mParams);
+      }
       auto& buffer = chip.getPreDigits();
       if (buffer.empty()) {
         continue;
@@ -213,9 +221,21 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   // here we start stepping in the depth of the sensor to generate charge diffision
   float nStepsInv = mParams.getNSimStepsInv();
   int nSteps = mParams.getNSimSteps();
-  const auto& matrix = mGeometry->getMatrixL2G(hit.GetDetectorID());
-  math_utils::Vector3D<float> xyzLocS(matrix ^ (hit.GetPosStart())); // start position in sensor frame
-  math_utils::Vector3D<float> xyzLocE(matrix ^ (hit.GetPos()));      // end position in sensor frame
+  short detID{hit.GetDetectorID()};
+  const auto& matrix = mGeometry->getMatrixL2G(detID);
+  bool innerBarrel{detID < SegmentationSuperAlpide::NLayers};
+  auto startPos = hit.GetPosStart();
+  float startPhi{std::atan2(-startPos.Y(), -startPos.X()) + constants::math::PI};
+  auto endPos = hit.GetPos();
+  float endPhi{std::atan2(-endPos.Y(), -endPos.X()) + constants::math::PI};
+  math_utils::Vector3D<float> xyzLocS, xyzLocE;
+  if (innerBarrel) {
+    xyzLocS = {SegmentationSuperAlpide::Radii[detID] * startPhi, 0.f, startPos.Z()};
+    xyzLocE = {SegmentationSuperAlpide::Radii[detID] * endPhi, 0.f, endPos.Z()};
+  } else {
+    xyzLocS = matrix ^ (hit.GetPosStart());
+    xyzLocE = matrix ^ (hit.GetPos());
+  }
 
   math_utils::Vector3D<float> step(xyzLocE);
   step -= xyzLocS;
@@ -225,22 +245,37 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   xyzLocS += stepH;
   xyzLocE -= stepH;
 
-  //std::array<SuperSegmentation<int>::NLayers> 
-
   int rowS = -1, colS = -1, rowE = -1, colE = -1, nSkip = 0;
-  // get entrance pixel row and col
-  while (!Segmentation::localToDetector(xyzLocS.X(), xyzLocS.Z(), rowS, colS)) { // guard-ring ?
-    if (++nSkip >= nSteps) {
-      return; // did not enter to sensitive matrix
+  if (innerBarrel) {
+    // get entrance pixel row and col
+    while (!mSuperSegmentations[detID].localToDetector(xyzLocS.X(), xyzLocS.Z(), rowS, colS)) { // guard-ring ?
+      if (++nSkip >= nSteps) {
+        return; // did not enter to sensitive matrix
+      }
+      xyzLocS += step;
     }
-    xyzLocS += step;
-  }
-  // get exit pixel row and col
-  while (!Segmentation::localToDetector(xyzLocE.X(), xyzLocE.Z(), rowE, colE)) { // guard-ring ?
-    if (++nSkip >= nSteps) {
-      return; // did not enter to sensitive matrix
+    // get exit pixel row and col
+    while (!mSuperSegmentations[detID].localToDetector(xyzLocE.X(), xyzLocE.Z(), rowE, colE)) { // guard-ring ?
+      if (++nSkip >= nSteps) {
+        return; // did not enter to sensitive matrix
+      }
+      xyzLocE -= step;
     }
-    xyzLocE -= step;
+  } else {
+    // get entrance pixel row and col
+    while (!Segmentation::localToDetector(xyzLocS.X(), xyzLocS.Z(), rowS, colS)) { // guard-ring ?
+      if (++nSkip >= nSteps) {
+        return; // did not enter to sensitive matrix
+      }
+      xyzLocS += step;
+    }
+    // get exit pixel row and col
+    while (!Segmentation::localToDetector(xyzLocE.X(), xyzLocE.Z(), rowE, colE)) { // guard-ring ?
+      if (++nSkip >= nSteps) {
+        return; // did not enter to sensitive matrix
+      }
+      xyzLocE -= step;
+    }
   }
   // estimate the limiting min/max row and col where the non-0 response is possible
   if (rowS > rowE) {
@@ -254,16 +289,19 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   if (rowS < 0) {
     rowS = 0;
   }
-  if (rowE >= Segmentation::NRows) {
-    rowE = Segmentation::NRows - 1;
+
+  int maxNrows{innerBarrel ? mSuperSegmentations[detID].NRows : Segmentation::NRows};
+  int maxNcols{innerBarrel ? mSuperSegmentations[detID].NCols : Segmentation::NCols};
+  if (rowE >= maxNrows) {
+    rowE = maxNrows - 1;
   }
   colS -= AlpideRespSimMat::NPix / 2;
   colE += AlpideRespSimMat::NPix / 2;
   if (colS < 0) {
     colS = 0;
   }
-  if (colE >= Segmentation::NCols) {
-    colE = Segmentation::NCols - 1;
+  if (colE >= maxNcols) {
+    colE = maxNcols - 1;
   }
   int rowSpan = rowE - rowS + 1, colSpan = colE - colS + 1; // size of plaquet where some response is expected
 
@@ -324,7 +362,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
 
   // fire the pixels assuming Poisson(n_response_electrons)
   o2::MCCompLabel lbl(hit.GetTrackID(), evID, srcID, false);
-  auto& chip = mChips[hit.GetDetectorID()];
+  auto& chip = mChips[detID];
   auto roFrameAbs = mNewROFrame + roFrameRel;
   for (int irow = rowSpan; irow--;) {
     uint16_t rowIS = irow + rowS;
