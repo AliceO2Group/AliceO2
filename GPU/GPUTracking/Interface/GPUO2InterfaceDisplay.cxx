@@ -26,6 +26,7 @@ GPUO2InterfaceDisplay::GPUO2InterfaceDisplay(const GPUO2InterfaceConfiguration* 
   mConfig.reset(new GPUO2InterfaceConfiguration(*config));
   mBackend.reset(new GPUDisplayBackendGlfw);
   mConfig->configProcessing.eventDisplay = mBackend.get();
+  mConfig->configDisplay.showTPCTracksFromO2Format = true;
   mParam.reset(new GPUParam);
   mParam->SetDefaults(&config->configGRP, &config->configReconstruction, &config->configProcessing, nullptr);
   mParam->par.earlyTpcTransform = 0;
