@@ -83,7 +83,7 @@ using namespace o2::tpc;
 
 namespace o2::gpu
 {
-DataProcessorSpec getGPURecoWorkflowSpec(GPUWorkflow::CompletionPolicyData* policyData, GPUWorkflow::Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask)
+DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* policyData, gpuworkflow::Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask, std::string processorName)
 {
   if (specconfig.outputCAClusters && !specconfig.caClusterer && !specconfig.decompressTPC) {
     throw std::runtime_error("inconsistent configuration: cluster output is only possible if CA clusterer is activated");
@@ -791,7 +791,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(GPUWorkflow::CompletionPolicyData* poli
     return std::move(outputSpecs);
   };
 
-  return DataProcessorSpec{"gpu-reconstruction", // process id
+  return DataProcessorSpec{processorName, // process id
                            {createInputSpecs()},
                            {createOutputSpecs()},
                            AlgorithmSpec(initFunction)};
