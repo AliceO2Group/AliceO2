@@ -27,3 +27,10 @@ o2_add_executable(display
                               O2::TPCReconstruction
                               O2::GlobalTrackingWorkflowHelpers)
 target_include_directories(${targetName} PUBLIC "include")
+
+o2_add_executable(reco-workflow
+        COMPONENT_NAME gpu
+        TARGETVARNAME targetName
+        SOURCES src/gpu-reco-workflow.cxx
+        PUBLIC_LINK_LIBRARIES O2::GPUWorkflow
+                              O2::GlobalTrackingWorkflowHelpers)

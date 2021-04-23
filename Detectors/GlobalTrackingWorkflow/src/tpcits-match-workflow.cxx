@@ -11,7 +11,7 @@
 #include "GlobalTrackingWorkflow/MatchTPCITSWorkflow.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/CompletionPolicy.h"
-#include "TPCWorkflow/TPCSectorCompletionPolicy.h"
+#include "GPUWorkflow/TPCSectorCompletionPolicy.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 
 using namespace o2::framework;

@@ -17,7 +17,8 @@
 #define O2_GPU_WORKFLOW_SPEC_H
 
 #include "Framework/DataProcessorSpec.h"
-#include <utility> // std::forward
+#include <string>
+#include <vector>
 
 namespace o2
 {
@@ -28,7 +29,7 @@ struct CompletionPolicy;
 
 namespace gpu
 {
-namespace GPUWorkflow
+namespace gpuworkflow
 {
 struct Config {
   bool decompressTPC = false;
@@ -47,7 +48,7 @@ struct Config {
   bool askDISTSTF = true;
 };
 using CompletionPolicyData = std::vector<framework::InputSpec>;
-} // namespace GPUWorkflow
+} // namespace gpuworkflow
 
 /// create a processor spec for the CATracker
 /// The CA tracker is actually much more than the tracker it has evolved to a
@@ -65,7 +66,7 @@ using CompletionPolicyData = std::vector<framework::InputSpec>;
 ///
 /// @param specconfig configuration options for the processor spec
 /// @param tpcsectors list of sector numbers
-framework::DataProcessorSpec getGPURecoWorkflowSpec(GPUWorkflow::CompletionPolicyData* policyData, GPUWorkflow::Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask);
+framework::DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* policyData, gpuworkflow::Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask, std::string processorName);
 
 o2::framework::CompletionPolicy getCATrackerCompletionPolicy();
 } // end namespace gpu

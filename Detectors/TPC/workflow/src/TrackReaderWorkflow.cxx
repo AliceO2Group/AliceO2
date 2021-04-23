@@ -18,7 +18,6 @@
 #include "Framework/PartRef.h"
 #include "Framework/ConcreteDataMatcher.h"
 #include "TPCWorkflow/RecoWorkflow.h"
-#include "TPCWorkflow/TPCSectorCompletionPolicy.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "CommonUtils/ConfigurableParam.h"

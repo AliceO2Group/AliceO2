@@ -10,7 +10,7 @@
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/CompletionPolicy.h"
-#include "TPCWorkflow/TPCSectorCompletionPolicy.h"
+#include "GPUWorkflow/TPCSectorCompletionPolicy.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
 #include "ITSMFTWorkflow/ClusterReaderSpec.h"
 #include "TPCWorkflow/TrackReaderSpec.h"
