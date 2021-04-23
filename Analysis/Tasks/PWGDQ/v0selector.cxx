@@ -115,13 +115,13 @@ struct v0selector {
     //}
 
     for (auto& v0 : fullV0s) {
-      if (v0.negTrack_as<FullTracksExt>().tpcChi2NCl() > 4.0 || v0.posTrack_as<FullTracksExt>().tpcChi2NCl() > 4.0){
+      if (v0.negTrack_as<FullTracksExt>().tpcChi2NCl() > 4.0 || v0.posTrack_as<FullTracksExt>().tpcChi2NCl() > 4.0) {
         continue;
       }
-      if (v0.negTrack_as<FullTracksExt>().tpcNClsCrossedRows() < 70 || v0.posTrack_as<FullTracksExt>().tpcNClsCrossedRows() < 70){
+      if (v0.negTrack_as<FullTracksExt>().tpcNClsCrossedRows() < 70 || v0.posTrack_as<FullTracksExt>().tpcNClsCrossedRows() < 70) {
         continue;
       }
-      if (!(v0.negTrack_as<FullTracksExt>().trackType() & o2::aod::track::TPCrefit) || !(v0.posTrack_as<FullTracksExt>().trackType() & o2::aod::track::TPCrefit)){
+      if (!(v0.negTrack_as<FullTracksExt>().trackType() & o2::aod::track::TPCrefit) || !(v0.posTrack_as<FullTracksExt>().trackType() & o2::aod::track::TPCrefit)) {
         continue;
       }
 
@@ -184,33 +184,33 @@ struct v0selector {
     //loop for pi0/eta->gamma gamma
     for (auto& [t1, t2] : combinations(fullV0s, fullV0s)) {
 
-      if (t1.negTrack_as<FullTracksExt>().tpcSignal() < 70.0 || 90.0 < t1.negTrack_as<FullTracksExt>().tpcSignal()){
+      if (t1.negTrack_as<FullTracksExt>().tpcSignal() < 70.0 || 90.0 < t1.negTrack_as<FullTracksExt>().tpcSignal()) {
         continue;
       }
-      if (t1.posTrack_as<FullTracksExt>().tpcSignal() < 70.0 || 90.0 < t1.posTrack_as<FullTracksExt>().tpcSignal()){
+      if (t1.posTrack_as<FullTracksExt>().tpcSignal() < 70.0 || 90.0 < t1.posTrack_as<FullTracksExt>().tpcSignal()) {
         continue;
       }
-      if (t2.negTrack_as<FullTracksExt>().tpcSignal() < 70.0 || 90.0 < t2.negTrack_as<FullTracksExt>().tpcSignal()){
+      if (t2.negTrack_as<FullTracksExt>().tpcSignal() < 70.0 || 90.0 < t2.negTrack_as<FullTracksExt>().tpcSignal()) {
         continue;
       }
-      if (t2.posTrack_as<FullTracksExt>().tpcSignal() < 70.0 || 90.0 < t2.posTrack_as<FullTracksExt>().tpcSignal()){
+      if (t2.posTrack_as<FullTracksExt>().tpcSignal() < 70.0 || 90.0 < t2.posTrack_as<FullTracksExt>().tpcSignal()) {
         continue;
       }
-      if (t1.negTrack_as<FullTracksExt>().tpcChi2NCl() > 4.0 || t1.posTrack_as<FullTracksExt>().tpcChi2NCl() > 4.0){
+      if (t1.negTrack_as<FullTracksExt>().tpcChi2NCl() > 4.0 || t1.posTrack_as<FullTracksExt>().tpcChi2NCl() > 4.0) {
         continue;
       }
-      if (t2.negTrack_as<FullTracksExt>().tpcChi2NCl() > 4.0 || t2.posTrack_as<FullTracksExt>().tpcChi2NCl() > 4.0){
+      if (t2.negTrack_as<FullTracksExt>().tpcChi2NCl() > 4.0 || t2.posTrack_as<FullTracksExt>().tpcChi2NCl() > 4.0) {
         continue;
       }
 
       //if(TMath::Abs(t1.alpha()) > 0.35 || TMath::Abs(t2.alpha()) > 0.35) continue;
-      if (t1.qtarm() > 0.03 || t2.qtarm() > 0.03){
+      if (t1.qtarm() > 0.03 || t2.qtarm() > 0.03) {
         continue;
       }
-      if (t1.mGamma() > 0.01 || t2.mGamma() > 0.01){
+      if (t1.mGamma() > 0.01 || t2.mGamma() > 0.01) {
         continue;
       }
-      if (t1.v0radius() > 50 || t2.v0radius() > 50){
+      if (t1.v0radius() > 50 || t2.v0radius() > 50) {
         continue;
       }
 
