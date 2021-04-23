@@ -35,15 +35,6 @@
 #include "GPUSettings.h"
 #include "GPUDisplayBackend.h"
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
-{
-class GPUChainTracking;
-class GPUQA;
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
-
 #ifndef GPUCA_BUILD_EVENT_DISPLAY
 
 namespace GPUCA_NAMESPACE
@@ -53,7 +44,7 @@ namespace gpu
 class GPUDisplay
 {
  public:
-  GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param = nullptr, const GPUCalibObjectsConst* calib = nullptr, const GPUSettingsDisplay* config = nullptr) {}
+  GPUDisplay(void* backend, void* chain, void* qa, const void* param = nullptr, const void* calib = nullptr, const void* config = nullptr) {}
   ~GPUDisplay() = default;
   GPUDisplay(const GPUDisplay&) = delete;
 
@@ -90,6 +81,7 @@ namespace gpu
 {
 class GPUTPCTracker;
 struct GPUParam;
+class GPUQA;
 
 class GPUDisplay
 {
