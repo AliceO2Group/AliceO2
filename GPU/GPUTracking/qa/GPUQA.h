@@ -35,12 +35,10 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-class GPUChainTracking;
-
 class GPUQA
 {
  public:
-  GPUQA(GPUChainTracking* chain) {}
+  GPUQA(void* chain) {}
   ~GPUQA() = default;
 
   int InitQA(int tasks = 0) { return 1; }
