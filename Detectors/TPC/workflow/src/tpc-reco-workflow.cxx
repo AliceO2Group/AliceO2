@@ -166,8 +166,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                                 !cfgc.options().get<bool>("ignore-dist-stf")       //
   );
 
-  // write the configuration used for the digitizer workflow
-  o2::conf::ConfigurableParam::writeINI("o2tpcrecoflow_configuration.ini");
+  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(cfgc, wf);
 
   return std::move(wf);
 }
