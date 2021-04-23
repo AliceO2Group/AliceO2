@@ -8,13 +8,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   CATrackerSpec.h
+/// @file   GPURecoWorkflowSpec.h
 /// @author Matthias Richter
 /// @since  2018-04-18
 /// @brief  Processor spec for running TPC CA tracking
 
+#ifndef O2_GPU_WORKFLOW_SPEC_H
+#define O2_GPU_WORKFLOW_SPEC_H
+
 #include "Framework/DataProcessorSpec.h"
-#include "RecoWorkflow.h"
 #include <utility> // std::forward
 
 namespace o2
@@ -24,10 +26,9 @@ namespace framework
 struct CompletionPolicy;
 }
 
-namespace tpc
+namespace gpu
 {
-
-namespace ca
+namespace GPUWorkflow
 {
 struct Config {
   bool decompressTPC = false;
@@ -45,7 +46,8 @@ struct Config {
   bool sendClustersPerSector = false;
   bool askDISTSTF = true;
 };
-} // namespace ca
+using CompletionPolicyData = std::vector<framework::InputSpec>;
+} // namespace GPUWorkflow
 
 /// create a processor spec for the CATracker
 /// The CA tracker is actually much more than the tracker it has evolved to a
@@ -63,8 +65,10 @@ struct Config {
 ///
 /// @param specconfig configuration options for the processor spec
 /// @param tpcsectors list of sector numbers
-framework::DataProcessorSpec getCATrackerSpec(o2::tpc::reco_workflow::CompletionPolicyData* policyData, ca::Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask);
+framework::DataProcessorSpec getGPURecoWorkflowSpec(GPUWorkflow::CompletionPolicyData* policyData, GPUWorkflow::Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask);
 
 o2::framework::CompletionPolicy getCATrackerCompletionPolicy();
-} // end namespace tpc
+} // end namespace gpu
 } // end namespace o2
+
+#endif // O2_GPU_WORKFLOW_SPEC_H

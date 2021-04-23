@@ -8,12 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   CATrackerSpec.cxx
+/// @file   GPUWorkflowSpec.cxx
 /// @author Matthias Richter
 /// @since  2018-04-18
 /// @brief  Processor spec for running TPC CA tracking
 
-#include "TPCWorkflow/CATrackerSpec.h"
+#include "GPUWorkflow/GPUWorkflowSpec.h"
 #include "Headers/DataHeader.h"
 #include "Framework/WorkflowSpec.h" // o2::framework::mergeInputs
 #include "Framework/DataRefUtils.h"
@@ -79,14 +79,11 @@ using namespace o2::header;
 using namespace o2::gpu;
 using namespace o2::base;
 using namespace o2::dataformats;
-using namespace o2::tpc::reco_workflow;
+using namespace o2::tpc;
 
-namespace o2
+namespace o2::gpu
 {
-namespace tpc
-{
-
-DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask)
+DataProcessorSpec getGPURecoWorkflowSpec(GPUWorkflow::CompletionPolicyData* policyData, GPUWorkflow::Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask)
 {
   if (specconfig.outputCAClusters && !specconfig.caClusterer && !specconfig.decompressTPC) {
     throw std::runtime_error("inconsistent configuration: cluster output is only possible if CA clusterer is activated");
@@ -157,7 +154,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
       }
 
       if (config.configGRP.continuousMaxTimeBin == -1) {
-        config.configGRP.continuousMaxTimeBin = (o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCMaxBunches + 2 * constants::LHCBCPERTIMEBIN - 2) / constants::LHCBCPERTIMEBIN;
+        config.configGRP.continuousMaxTimeBin = (o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
       }
       if (config.configProcessing.deviceNum == -2) {
         int myId = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
@@ -657,7 +654,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
               char* buffer = pc.outputs().make<char>({gDataOriginTPC, "CLUSTERNATIVE", subspec, Lifetime::Timeframe, {clusterOutputSectorHeader}}, accessIndex.nClustersSector[i] * sizeof(*accessIndex.clustersLinear) + sizeof(ClusterCountIndex)).data();
               ClusterCountIndex* outIndex = reinterpret_cast<ClusterCountIndex*>(buffer);
               memset(outIndex, 0, sizeof(*outIndex));
-              for (int j = 0; j < constants::MAXGLOBALPADROW; j++) {
+              for (int j = 0; j < o2::tpc::constants::MAXGLOBALPADROW; j++) {
                 outIndex->nClusters[i][j] = accessIndex.nClusters[i][j];
               }
               memcpy(buffer + sizeof(*outIndex), accessIndex.clusters[i][0], accessIndex.nClustersSector[i] * sizeof(*accessIndex.clustersLinear));
@@ -709,7 +706,7 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
   auto createInputSpecs = [&tpcsectors, &specconfig, policyData]() {
     Inputs inputs;
     if (specconfig.decompressTPC) {
-      inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, specconfig.decompressTPCFromROOT ? header::DataDescription("COMPCLUSTERS") : header::DataDescription("COMPCLUSTERSFLAT")}, Lifetime::Timeframe});
+      inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, specconfig.decompressTPCFromROOT ? o2::header::DataDescription("COMPCLUSTERS") : o2::header::DataDescription("COMPCLUSTERSFLAT")}, Lifetime::Timeframe});
     } else if (specconfig.caClusterer) {
       // We accept digits and MC labels also if we run on ZS Raw data, since they are needed for MC label propagation
       if ((!specconfig.zsOnTheFly || specconfig.processMC) && !specconfig.zsDecoder) {
@@ -799,6 +796,4 @@ DataProcessorSpec getCATrackerSpec(CompletionPolicyData* policyData, ca::Config 
                            {createOutputSpecs()},
                            AlgorithmSpec(initFunction)};
 }
-
-} // namespace tpc
-} // namespace o2
+} // namespace o2::gpu
