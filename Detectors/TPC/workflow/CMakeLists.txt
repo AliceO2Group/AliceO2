@@ -19,7 +19,6 @@ o2_add_library(TPCWorkflow
                        src/TrackReaderSpec.cxx
                        src/RawToDigitsSpec.cxx
                        src/LinkZSToDigitsSpec.cxx
-                       src/TPCSectorCompletionPolicy.cxx
                        src/ZSSpec.cxx
                        src/CalibProcessingHelper.cxx
                        src/ClusterSharingMapSpec.cxx

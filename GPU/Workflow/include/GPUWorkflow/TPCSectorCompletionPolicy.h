@@ -199,17 +199,17 @@ class TPCSectorCompletionPolicy
   void init(Arg&& arg, Args&&... args)
   {
     using Type = std::decay_t<Arg>;
-    if constexpr (std::is_same<Type, framework::InputSpec>::value) {
+    if constexpr (std::is_same_v<Type, framework::InputSpec>) {
       mInputMatchers.emplace_back(std::move(arg));
-    } else if constexpr (std::is_same<Type, TPCSectorCompletionPolicy::Config>::value) {
+    } else if constexpr (std::is_same_v<Type, TPCSectorCompletionPolicy::Config>) {
       switch (arg) {
         case Config::RequireAll:
           mRequireAll = true;
           break;
       }
-    } else if constexpr (std::is_same<Type, std::vector<o2::framework::InputSpec>*>::value) {
+    } else if constexpr (std::is_same_v<Type, std::vector<o2::framework::InputSpec>*>) {
       mExternalInputMatchers = arg;
-    } else if constexpr (std::is_same<Type, unsigned long*>::value) {
+    } else if constexpr (std::is_same_v<Type, unsigned long*> || std::is_same_v<Type, const unsigned long*>) {
       mTpcSectorMask = arg;
     } else {
       static_assert(framework::always_static_assert_v<Type>);
@@ -225,7 +225,7 @@ class TPCSectorCompletionPolicy
   // - They are controlled externally and the external entity can modify them, e.g. after parsing command line arguments.
   // - They are all matched independently, it is not sufficient that one of them is present for all sectors
   const std::vector<framework::InputSpec>* mExternalInputMatchers = nullptr;
-  unsigned long* mTpcSectorMask = nullptr;
+  const unsigned long* mTpcSectorMask = nullptr;
   bool mRequireAll = false;
 };
 } // namespace tpc
