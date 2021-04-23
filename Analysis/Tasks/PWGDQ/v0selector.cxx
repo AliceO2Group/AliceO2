@@ -34,13 +34,9 @@
 #include "AnalysisDataModel/Centrality.h"
 
 #include <cstdio>
-#include <TFile.h>
+#include <TH1F.h>
 #include <TH2F.h>
-#include <TProfile.h>
-#include <TLorentzVector.h>
 #include <Math/Vector4D.h>
-#include <TPDGCode.h>
-#include <TDatabasePDG.h>
 #include <cmath>
 #include <array>
 #include <cstdlib>
