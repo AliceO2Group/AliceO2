@@ -46,16 +46,16 @@ bool NoiseCalibratorDigits::processTimeFrame(gsl::span<const o2::itsmft::Digit> 
 
       if (half==0 && face==0){
          mNoiseMapH0F0.increaseNoiseCount(id, row, col);
-	 mPathH0F0="/MFT/Calib/NoiseMap/h"+std::to_string(half)+"-f"+std::to_string(face)+"-d"+std::to_string(disk);
+	 mPath[0]="/MFT/Calib/NoiseMap/h"+std::to_string(half)+"-f"+std::to_string(face)+"-d"+std::to_string(disk);
       }else if (half==0 && face==1){
          mNoiseMapH0F1.increaseNoiseCount(id, row, col);
-	 mPathH0F1="/MFT/Calib/NoiseMap/h"+std::to_string(half)+"-f"+std::to_string(face)+"-d"+std::to_string(disk);
+	 mPath[1]="/MFT/Calib/NoiseMap/h"+std::to_string(half)+"-f"+std::to_string(face)+"-d"+std::to_string(disk);
       }else if (half==1 && face==0){
          mNoiseMapH1F0.increaseNoiseCount(id, row, col);
-	 mPathH1F0="/MFT/Calib/NoiseMap/h"+std::to_string(half)+"-f"+std::to_string(face)+"-d"+std::to_string(disk);
+	 mPath[2]="/MFT/Calib/NoiseMap/h"+std::to_string(half)+"-f"+std::to_string(face)+"-d"+std::to_string(disk);
       }else if (half==1 && face==1){
          mNoiseMapH1F1.increaseNoiseCount(id, row, col);
-	 mPathH1F1="/MFT/Calib/NoiseMap/h"+std::to_string(half)+"-f"+std::to_string(face)+"-d"+std::to_string(disk);
+	 mPath[3]="/MFT/Calib/NoiseMap/h"+std::to_string(half)+"-f"+std::to_string(face)+"-d"+std::to_string(disk);
       }
     }
   }

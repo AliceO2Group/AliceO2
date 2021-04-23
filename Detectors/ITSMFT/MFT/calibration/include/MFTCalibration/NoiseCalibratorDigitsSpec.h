@@ -43,10 +43,6 @@ class NoiseCalibratorDigitsSpec : public Task
 
  private:
   void sendOutput(DataAllocator& output);
-  o2::itsmft::NoiseMap mNoiseMapH0F0{936};
-  o2::itsmft::NoiseMap mNoiseMapH0F1{936};
-  o2::itsmft::NoiseMap mNoiseMapH1F0{936};
-  o2::itsmft::NoiseMap mNoiseMapH1F1{936};
   std::unique_ptr<CALIBRATORDIGITS> mCalibrator = nullptr;
   std::string mMeta;
   double mThresh;

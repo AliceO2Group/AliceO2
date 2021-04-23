@@ -91,11 +91,6 @@ void NoiseCalibratorDigitsSpec::sendOutput(DataAllocator& output)
 {
   mCalibrator->finalize();
 
-  const auto& payloadH0F0 = mCalibrator->getNoiseMapH0F0();
-  const auto& payloadH0F1 = mCalibrator->getNoiseMapH0F1();
-  const auto& payloadH1F0 = mCalibrator->getNoiseMapH1F0();
-  const auto& payloadH1F1 = mCalibrator->getNoiseMapH1F1();
-
   long tstart = mStart;
   if (tstart == -1) {
     tstart = o2::ccdb::getCurrentTimestamp();
@@ -130,48 +125,33 @@ void NoiseCalibratorDigitsSpec::sendOutput(DataAllocator& output)
     meta[p.first] = p.second;
   }
 
-  o2::ccdb::CcdbObjectInfo infoH0F0(mCalibrator->getPathH0F0(), "NoiseMap", "noise.root", meta, tstart, tend);
-  o2::ccdb::CcdbObjectInfo infoH0F1(mCalibrator->getPathH0F1(), "NoiseMap", "noise.root", meta, tstart, tend);
-  o2::ccdb::CcdbObjectInfo infoH1F0(mCalibrator->getPathH1F0(), "NoiseMap", "noise.root", meta, tstart, tend);
-  o2::ccdb::CcdbObjectInfo infoH1F1(mCalibrator->getPathH1F1(), "NoiseMap", "noise.root", meta, tstart, tend);
   auto flNameH0F0 = o2::ccdb::CcdbApi::generateFileName("noiseH0F0");
   auto flNameH0F1 = o2::ccdb::CcdbApi::generateFileName("noiseH0F1");
   auto flNameH1F0 = o2::ccdb::CcdbApi::generateFileName("noiseH1F0");
   auto flNameH1F1 = o2::ccdb::CcdbApi::generateFileName("noiseH1F1");
-  auto imageH0F0 = o2::ccdb::CcdbApi::createObjectImage(&payloadH0F0, &infoH0F0);
-  auto imageH0F1 = o2::ccdb::CcdbApi::createObjectImage(&payloadH0F1, &infoH0F1);
-  auto imageH1F0 = o2::ccdb::CcdbApi::createObjectImage(&payloadH1F0, &infoH1F0);
-  auto imageH1F1 = o2::ccdb::CcdbApi::createObjectImage(&payloadH1F1, &infoH1F1);
-  infoH0F0.setFileName(flNameH0F0);
-  infoH0F1.setFileName(flNameH0F1);
-  infoH1F0.setFileName(flNameH1F0);
-  infoH1F1.setFileName(flNameH1F1);
-  LOG(INFO) << "Sending object " << infoH0F0.getPath() << "/" << infoH0F0.getFileName()
-            << " of size " << imageH0F0->size()
-            << " bytes, valid for " << infoH0F0.getStartValidityTimestamp()
-            << " : " << infoH0F0.getEndValidityTimestamp();
-  LOG(INFO) << "Sending object " << infoH0F1.getPath() << "/" << infoH0F1.getFileName()
-            << " of size " << imageH0F1->size()
-            << " bytes, valid for " << infoH0F1.getStartValidityTimestamp()
-            << " : " << infoH0F1.getEndValidityTimestamp();
-  LOG(INFO) << "Sending object " << infoH1F0.getPath() << "/" << infoH1F0.getFileName()
-            << " of size " << imageH1F0->size()
-            << " bytes, valid for " << infoH1F0.getStartValidityTimestamp()
-            << " : " << infoH1F0.getEndValidityTimestamp();
-  LOG(INFO) << "Sending object " << infoH1F1.getPath() << "/" << infoH1F1.getFileName()
-            << " of size " << imageH1F1->size()
-            << " bytes, valid for " << infoH1F1.getStartValidityTimestamp()
-            << " : " << infoH1F1.getEndValidityTimestamp();
 
   using clbUtils = o2::calibration::Utils;
-  output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, 0}, *imageH0F0.get());
-  output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, 0}, infoH0F0);
-  output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, 1}, *imageH0F1.get());
-  output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, 1}, infoH0F1);
-  output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, 2}, *imageH1F0.get());
-  output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, 2}, infoH1F0);
-  output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, 3}, *imageH1F1.get());
-  output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, 3}, infoH1F1);
+
+  for (unsigned int i=0; i<4; i++){
+  	o2::ccdb::CcdbObjectInfo info(mCalibrator->getPath(i), "NoiseMap", "noise.root", meta, tstart, tend);
+  	const auto& payload = mCalibrator->getNoiseMap(i);
+  	auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
+	if (i==0){
+  		info.setFileName(flNameH0F0);
+	}else if (i==1){
+  		info.setFileName(flNameH0F1);
+	}else if (i==2){
+  		info.setFileName(flNameH1F0);
+	}else if (i==3){
+  		info.setFileName(flNameH1F1);
+	}
+  	LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName()
+            << " of size " << image->size()
+            << " bytes, valid for " << info.getStartValidityTimestamp()
+            << " : " << info.getEndValidityTimestamp();
+  	output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, i}, *image.get());
+  	output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, i}, info);
+  }
 }
 
 void NoiseCalibratorDigitsSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
