@@ -59,32 +59,32 @@ o2_add_dpl_workflow(nuclei-spectra
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(lambdakzerobuilder
-                    SOURCES lambdakzerobuilder
+                    SOURCES lambdakzerobuilder.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(lambdakzeroanalysis
-                    SOURCES lambdakzeroanalysis
+                    SOURCES lambdakzeroanalysis.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(lambdakzerofinder
-                    SOURCES lambdakzerofinder
+                    SOURCES lambdakzerofinder.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(cascadebuilder
-                    SOURCES cascadebuilder
+                    SOURCES cascadebuilder.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(cascadeanalysis
-                    SOURCES cascadeanalysis
+                    SOURCES cascadeanalysis.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(cascadefinder
-                    SOURCES cascadefinder
+                    SOURCES cascadefinder.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
