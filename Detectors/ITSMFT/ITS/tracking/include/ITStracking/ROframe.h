@@ -117,7 +117,7 @@ inline const MCCompLabel& ROframe::getClusterFirstLabel(int layerId, const int c
 
 inline const gsl::span<const MCCompLabel> ROframe::getClusterLabels(int layerId, const int clId) const
 {
-  gsl::span<const MCCompLabel> sp{mClusterLabels[layerId].data() + mMaxNClusterLabels * clId, mMaxNClusterLabels};
+  gsl::span<const MCCompLabel> sp{mClusterLabels[layerId].data() + mMaxNClusterLabels * clId, static_cast<size_t>(mMaxNClusterLabels)};
   return sp;
 }
 

@@ -78,7 +78,8 @@ struct FakeTrackInfo {
           mcLabels[iCluster].emplace_back(label);
         }
       }
-
+      bool found = false;
+      // Lookup if any of the labels has already an entry in the occurrences
       for (size_t iOcc{0}; iOcc < occurrences.size(); ++iOcc) {
         std::pair<o2::MCCompLabel, int>& occurrence = occurrences[iOcc];
         for (auto& label : labels) {
