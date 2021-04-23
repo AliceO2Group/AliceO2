@@ -230,7 +230,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   runHWDecoder &= runClusterer || inputType == InputType::ClustersHardware;
   runTracker &= caClusterer || runHWDecoder || inputType == InputType::Clusters || decompressTPC;
 
-  bool outRaw = inputType == InputType::Digits && isEnabled(OutputType::ZSRaw);
+  bool outRaw = inputType == InputType::Digits && isEnabled(OutputType::ZSRaw) && !isEnabled(OutputType::DisableWriter);
   //bool runZSDecode = inputType == InputType::ZSRaw;
   bool zsToDigit = inputType == InputType::ZSRaw && isEnabled(OutputType::Digits);
 
