@@ -67,7 +67,9 @@ void Tracker::clustersToTracks(std::ostream& timeBenchmarkOutputStream)
     total += evaluateTask(&Tracker::initialiseTimeFrame, "Context initialisation",
                           timeBenchmarkOutputStream, iteration, mMemParams[iteration], mTrkParams[iteration]);
     total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", timeBenchmarkOutputStream);
+    mTimeFrame->printTrackletLUTs();
     total += evaluateTask(&Tracker::computeCells, "Cell finding", timeBenchmarkOutputStream);
+    mTimeFrame->printCellLUTs();
     total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", timeBenchmarkOutputStream, iteration);
     total += evaluateTask(&Tracker::findRoads, "Road finding", timeBenchmarkOutputStream, iteration);
     total += evaluateTask(&Tracker::findTracks, "Track finding", timeBenchmarkOutputStream);
@@ -111,40 +113,37 @@ void Tracker::findCellsNeighbours(int& iteration)
 
       const Cell& currentCell{mTimeFrame->getCells()[iLayer][iCell]};
       const int nextLayerTrackletIndex{currentCell.getSecondTrackletIndex()};
+      std::cout << iLayer << "\t" << mTimeFrame->getCellsLookupTable()[iLayer].size() << "\t" << nextLayerTrackletIndex << std::endl;
       const int nextLayerFirstCellIndex{mTimeFrame->getCellsLookupTable()[iLayer][nextLayerTrackletIndex]};
-      if (nextLayerFirstCellIndex != constants::its::UnusedIndex &&
-          mTimeFrame->getCells()[iLayer + 1][nextLayerFirstCellIndex].getFirstTrackletIndex() ==
-            nextLayerTrackletIndex) {
+      const int nextLayerLastCellIndex{mTimeFrame->getCellsLookupTable()[iLayer][nextLayerTrackletIndex + 1]};
+      for (int iNextLayerCell{nextLayerFirstCellIndex}; iNextLayerCell < nextLayerLastCellIndex; ++iNextLayerCell) {
 
-        for (int iNextLayerCell{nextLayerFirstCellIndex}; iNextLayerCell < nextLayerCellsNum; ++iNextLayerCell) {
+        Cell& nextCell{mTimeFrame->getCells()[iLayer + 1][iNextLayerCell]};
+        if (nextCell.getFirstTrackletIndex() != nextLayerTrackletIndex) {
+          std::cout << "Problem with the Cell LUT" << std::endl;
+          break;
+        }
 
-          Cell& nextCell{mTimeFrame->getCells()[iLayer + 1][iNextLayerCell]};
-          if (nextCell.getFirstTrackletIndex() != nextLayerTrackletIndex) {
-            break;
-          }
+        const float3 currentCellNormalVector{currentCell.getNormalVectorCoordinates()};
+        const float3 nextCellNormalVector{nextCell.getNormalVectorCoordinates()};
+        const float3 normalVectorsDeltaVector{currentCellNormalVector.x - nextCellNormalVector.x,
+                                              currentCellNormalVector.y - nextCellNormalVector.y,
+                                              currentCellNormalVector.z - nextCellNormalVector.z};
 
-          const float3 currentCellNormalVector{currentCell.getNormalVectorCoordinates()};
-          const float3 nextCellNormalVector{nextCell.getNormalVectorCoordinates()};
-          const float3 normalVectorsDeltaVector{currentCellNormalVector.x - nextCellNormalVector.x,
-                                                currentCellNormalVector.y - nextCellNormalVector.y,
-                                                currentCellNormalVector.z - nextCellNormalVector.z};
+        const float deltaNormalVectorsModulus{(normalVectorsDeltaVector.x * normalVectorsDeltaVector.x) +
+                                              (normalVectorsDeltaVector.y * normalVectorsDeltaVector.y) +
+                                              (normalVectorsDeltaVector.z * normalVectorsDeltaVector.z)};
+        const float deltaCurvature{std::abs(currentCell.getCurvature() - nextCell.getCurvature())};
 
-          const float deltaNormalVectorsModulus{(normalVectorsDeltaVector.x * normalVectorsDeltaVector.x) +
-                                                (normalVectorsDeltaVector.y * normalVectorsDeltaVector.y) +
-                                                (normalVectorsDeltaVector.z * normalVectorsDeltaVector.z)};
-          const float deltaCurvature{std::abs(currentCell.getCurvature() - nextCell.getCurvature())};
+        if (deltaNormalVectorsModulus < mTrkParams[iteration].NeighbourMaxDeltaN[iLayer] &&
+            deltaCurvature < mTrkParams[iteration].NeighbourMaxDeltaCurvature[iLayer]) {
 
-          if (deltaNormalVectorsModulus < mTrkParams[iteration].NeighbourMaxDeltaN[iLayer] &&
-              deltaCurvature < mTrkParams[iteration].NeighbourMaxDeltaCurvature[iLayer]) {
+          mTimeFrame->getCellsNeighbours()[iLayer][iNextLayerCell].push_back(iCell);
 
-            mTimeFrame->getCellsNeighbours()[iLayer][iNextLayerCell].push_back(iCell);
+          const int currentCellLevel{currentCell.getLevel()};
 
-            const int currentCellLevel{currentCell.getLevel()};
-
-            if (currentCellLevel >= nextCell.getLevel()) {
-
-              nextCell.setLevel(currentCellLevel + 1);
-            }
+          if (currentCellLevel >= nextCell.getLevel()) {
+            nextCell.setLevel(currentCellLevel + 1);
           }
         }
       }
@@ -212,6 +211,7 @@ void Tracker::findRoads(int& iteration)
     std::cout << "+++ Roads with " << iLevel + 2 << " clusters: " << nRoads << " / " << mTimeFrame->getRoads().size() << std::endl;
 #endif
   }
+  std::cout << "Number of roads: " << mTimeFrame->getRoads().size() << std::endl;
 }
 
 void Tracker::findTracks()
@@ -321,6 +321,7 @@ void Tracker::findTracks()
     tracks.emplace_back(temporaryTrack);
     CA_DEBUGGER(assert(nClusters == temporaryTrack.getNumberOfClusters()));
   }
+  std::cout << "Fitted tracks: " << tracks.size() << std::endl;
   //mTraits->refitTracks(event.getTrackingFrameInfo(), tracks);
 
   std::sort(tracks.begin(), tracks.end(),

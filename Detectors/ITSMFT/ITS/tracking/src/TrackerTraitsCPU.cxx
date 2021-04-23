@@ -56,12 +56,8 @@ void TrackerTraitsCPU::computeLayerTracklets()
         for (auto& primaryVertex : primaryVertices) {
           const float tanLambda{(currentCluster.zCoordinate - primaryVertex.z) / currentCluster.radius};
 
-          const float zAtRmin{tanLambda * (tf->getMinR(iLayer + 1) -
-                                           currentCluster.radius) +
-                              currentCluster.zCoordinate};
-          const float zAtRmax{tanLambda * (tf->getMaxR(iLayer + 1) -
-                                           currentCluster.radius) +
-                              currentCluster.zCoordinate};
+          const float zAtRmin{tanLambda * (tf->getMinR(iLayer + 1) - currentCluster.radius) + currentCluster.zCoordinate};
+          const float zAtRmax{tanLambda * (tf->getMaxR(iLayer + 1) - currentCluster.radius) + currentCluster.zCoordinate};
 
           const int4 selectedBinsRect{getBinsRect(currentCluster, iLayer, zAtRmin, zAtRmax,
                                                   mTrkParams.TrackletMaxDeltaZ[iLayer], mTrkParams.TrackletMaxDeltaPhi)};
@@ -88,6 +84,11 @@ void TrackerTraitsCPU::computeLayerTracklets()
                  iPhiBin = (++iPhiBin == tf->mIndexTableUtils.getNphiBins()) ? 0 : iPhiBin, iPhiCount++) {
               const int firstBinIndex{tf->mIndexTableUtils.getBinIndex(selectedBinsRect.x, iPhiBin)};
               const int maxBinIndex{firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1};
+              if (firstBinIndex < 0 || firstBinIndex > tf->getIndexTables(rof1)[iLayer].size() ||
+                  maxBinIndex < 0 || maxBinIndex > tf->getIndexTables(rof1)[iLayer].size()) {
+                std::cout << "Illegal access to IndexTable " << firstBinIndex << "\t" << maxBinIndex << std::endl;
+                exit(1);
+              }
               const int firstRowClusterIndex = tf->getIndexTables(rof1)[iLayer][firstBinIndex];
               const int maxRowClusterIndex = tf->getIndexTables(rof1)[iLayer][maxBinIndex];
 
@@ -112,10 +113,8 @@ void TrackerTraitsCPU::computeLayerTracklets()
                   if (iLayer > 0)
                     if (currentSortedIndex > tf->getTrackletsLookupTable()[iLayer - 1].size())
                       std::cout << "Issue with the tracklet LUT" << std::endl;
-                  if (iLayer > 0 &&
-                      tf->getTrackletsLookupTable()[iLayer - 1][currentSortedIndex] == constants::its::UnusedIndex) {
-                    tf->getTrackletsLookupTable()[iLayer - 1][currentSortedIndex] =
-                      tf->getTracklets()[iLayer].size();
+                  if (iLayer > 0 && tf->getTrackletsLookupTable()[iLayer - 1].size() <= currentSortedIndex) {
+                    tf->getTrackletsLookupTable()[iLayer - 1].resize(currentSortedIndex + 1, tf->getTracklets()[iLayer].size());
                   }
 
                   tf->getTracklets()[iLayer].emplace_back(currentSortedIndex, tf->getSortedIndex(rof1, iLayer + 1, iNextCluster), currentCluster,
@@ -125,6 +124,9 @@ void TrackerTraitsCPU::computeLayerTracklets()
             }
           }
         }
+      }
+      if (iLayer > 0) {
+        tf->getTrackletsLookupTable()[iLayer - 1].resize(currentLayerClustersNum + 1, tf->getTracklets()[iLayer].size());
       }
     }
     // if (iLayer > 0 && iLayer < mTrkParams.TrackletsPerRoad() - 1 &&
@@ -163,29 +165,28 @@ void TrackerTraitsCPU::computeLayerCells()
       const int nextLayerClusterIndex{currentTracklet.secondClusterIndex};
       const int nextLayerFirstTrackletIndex{
         tf->getTrackletsLookupTable()[iLayer][nextLayerClusterIndex]};
+      const int nextLayerLastTrackletIndex{
+        tf->getTrackletsLookupTable()[iLayer][nextLayerClusterIndex + 1]};
 
-      if (nextLayerFirstTrackletIndex == constants::its::UnusedIndex) {
+      if (nextLayerFirstTrackletIndex == nextLayerLastTrackletIndex) {
         continue;
       }
 
-      const Cluster& firstCellCluster{tf->getClusters()[iLayer][currentTracklet.firstClusterIndex]};
-      const Cluster& secondCellCluster{
+      const Cluster& cellClus0{tf->getClusters()[iLayer][currentTracklet.firstClusterIndex]};
+      const Cluster& cellClus1{
         tf->getClusters()[iLayer + 1][currentTracklet.secondClusterIndex]};
-      const float firstCellClusterQuadraticRCoordinate{firstCellCluster.radius * firstCellCluster.radius};
-      const float secondCellClusterQuadraticRCoordinate{secondCellCluster.radius *
-                                                        secondCellCluster.radius};
-      const float3 firstDeltaVector{secondCellCluster.xCoordinate - firstCellCluster.xCoordinate,
-                                    secondCellCluster.yCoordinate - firstCellCluster.yCoordinate,
-                                    secondCellClusterQuadraticRCoordinate - firstCellClusterQuadraticRCoordinate};
-      const int nextLayerTrackletsNum{static_cast<int>(tf->getTracklets()[iLayer + 1].size())};
+      const float cellClus0R2{cellClus0.radius * cellClus0.radius};
+      const float cellClus1R2{cellClus1.radius * cellClus1.radius};
+      const float3 firstDeltaVector{cellClus1.xCoordinate - cellClus0.xCoordinate,
+                                    cellClus1.yCoordinate - cellClus0.yCoordinate,
+                                    cellClus1R2 - cellClus0R2};
 
-      for (int iNextLayerTracklet{nextLayerFirstTrackletIndex};
-           iNextLayerTracklet < nextLayerTrackletsNum &&
-           tf->getTracklets()[iLayer + 1][iNextLayerTracklet].firstClusterIndex ==
-             nextLayerClusterIndex;
-           ++iNextLayerTracklet) {
-
-        const Tracklet& nextTracklet{tf->getTracklets()[iLayer + 1][iNextLayerTracklet]};
+      for (int iNextTracklet{nextLayerFirstTrackletIndex}; iNextTracklet < nextLayerLastTrackletIndex; ++iNextTracklet) {
+        
+        if (tf->getTracklets()[iLayer + 1][iNextTracklet].firstClusterIndex != nextLayerClusterIndex) {
+          std::cout << "The Tracklet LUT " << iLayer << " is broken" << std::endl;
+        }
+        const Tracklet& nextTracklet{tf->getTracklets()[iLayer + 1][iNextTracklet]};
         const float deltaTanLambda{std::abs(currentTracklet.tanLambda - nextTracklet.tanLambda)};
         const float deltaPhi{std::abs(currentTracklet.phi - nextTracklet.phi)};
 
@@ -194,8 +195,8 @@ void TrackerTraitsCPU::computeLayerCells()
              std::abs(deltaPhi - constants::math::TwoPi) < mTrkParams.CellMaxDeltaPhi)) {
 
           const float averageTanLambda{0.5f * (currentTracklet.tanLambda + nextTracklet.tanLambda)};
-          const float directionZIntersection{-averageTanLambda * firstCellCluster.radius +
-                                             firstCellCluster.zCoordinate};
+          const float directionZIntersection{-averageTanLambda * cellClus0.radius +
+                                             cellClus0.zCoordinate};
 
           unsigned short romin = std::min(std::min(currentTracklet.rof[0], currentTracklet.rof[1]), nextTracklet.rof[1]);
           unsigned short romax = std::max(std::max(currentTracklet.rof[0], currentTracklet.rof[1]), nextTracklet.rof[1]);
@@ -209,13 +210,13 @@ void TrackerTraitsCPU::computeLayerCells()
             const Cluster& thirdCellCluster{
               tf->getClusters()[iLayer + 2][nextTracklet.secondClusterIndex]};
 
-            const float thirdCellClusterQuadraticRCoordinate{thirdCellCluster.radius *
+            const float thirdCellClusterR2{thirdCellCluster.radius *
                                                              thirdCellCluster.radius};
 
-            const float3 secondDeltaVector{thirdCellCluster.xCoordinate - firstCellCluster.xCoordinate,
-                                           thirdCellCluster.yCoordinate - firstCellCluster.yCoordinate,
-                                           thirdCellClusterQuadraticRCoordinate -
-                                             firstCellClusterQuadraticRCoordinate};
+            const float3 secondDeltaVector{thirdCellCluster.xCoordinate - cellClus0.xCoordinate,
+                                           thirdCellCluster.yCoordinate - cellClus0.yCoordinate,
+                                           thirdCellClusterR2 -
+                                             cellClus0R2};
 
             float3 cellPlaneNormalVector{math_utils::crossProduct(firstDeltaVector, secondDeltaVector)};
 
@@ -230,9 +231,9 @@ void TrackerTraitsCPU::computeLayerCells()
             const float3 normVect{cellPlaneNormalVector.x * inverseVectorNorm,
                                   cellPlaneNormalVector.y * inverseVectorNorm,
                                   cellPlaneNormalVector.z * inverseVectorNorm};
-            const float planeDistance{-normVect.x * (secondCellCluster.xCoordinate - tf->getBeamX()) -
-                                      (normVect.y * secondCellCluster.yCoordinate - tf->getBeamY()) -
-                                      normVect.z * secondCellClusterQuadraticRCoordinate};
+            const float planeDistance{-normVect.x * (cellClus1.xCoordinate - tf->getBeamX()) -
+                                      (normVect.y * cellClus1.yCoordinate - tf->getBeamY()) -
+                                      normVect.z * cellClus1R2};
             const float normVectZsquare{normVect.z * normVect.z};
             const float cellRadius{std::sqrt(
               (1.0f - normVectZsquare - 4.0f * planeDistance * normVect.z) /
@@ -246,19 +247,19 @@ void TrackerTraitsCPU::computeLayerCells()
             }
 
             const float cellTrajectoryCurvature{1.0f / cellRadius};
-            if (iLayer > 0 &&
-                tf->getCellsLookupTable()[iLayer - 1][iTracklet] == constants::its::UnusedIndex) {
-
-              tf->getCellsLookupTable()[iLayer - 1][iTracklet] =
-                tf->getCells()[iLayer].size();
+            if (iLayer > 0 && tf->getCellsLookupTable()[iLayer - 1].size() <= iTracklet) {
+              tf->getCellsLookupTable()[iLayer - 1].resize(iTracklet + 1, tf->getCells()[iLayer].size());
             }
 
             tf->getCells()[iLayer].emplace_back(
               currentTracklet.firstClusterIndex, nextTracklet.firstClusterIndex, nextTracklet.secondClusterIndex,
-              iTracklet, iNextLayerTracklet, normVect, cellTrajectoryCurvature);
+              iTracklet, iNextTracklet, normVect, cellTrajectoryCurvature);
           }
         }
       }
+    }
+    if (iLayer > 0) {
+      tf->getCellsLookupTable()[iLayer - 1].resize(currentLayerTrackletsNum + 1, currentLayerTrackletsNum);
     }
   }
   std::cout << "Number of cells " << std::endl;

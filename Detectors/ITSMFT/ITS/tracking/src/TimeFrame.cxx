@@ -261,12 +261,10 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
 
     if (iLayer < mCells.size() - 1) {
       mCellsLookupTable[iLayer].clear();
-      mCellsLookupTable[iLayer].resize(
+      mCellsLookupTable[iLayer].reserve(
         std::max(mUnsortedClusters[iLayer + 1].size(), mUnsortedClusters[iLayer + 2].size()) +
           std::ceil((memParam.TrackletsMemoryCoefficients[iLayer + 1] *
-                     mUnsortedClusters[iLayer + 1].size()) *
-                    mUnsortedClusters[iLayer + 2].size()),
-        constants::its::UnusedIndex);
+                     mUnsortedClusters[iLayer + 1].size()) * mUnsortedClusters[iLayer + 2].size()));
       mCellsNeighbours[iLayer].clear();
     }
   }
@@ -283,8 +281,36 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
 
     if (iLayer < mCells.size()) {
       mTrackletsLookupTable[iLayer].clear();
-      mTrackletsLookupTable[iLayer].resize(mUnsortedClusters[iLayer + 1].size(), constants::its::UnusedIndex);
+      mTrackletsLookupTable[iLayer].reserve(mUnsortedClusters[iLayer + 1].size());
     }
+  }
+}
+
+void TimeFrame::printTrackletLUTonLayer(int i) {
+  std::cout << "--------" << std::endl << "Tracklet LUT " << i << std::endl;
+  for (int j : mTrackletsLookupTable[i]) {
+    std::cout << j << "\t";
+  }
+  std::cout << "\n--------" << std::endl << std::endl;
+}
+
+void TimeFrame::printCellLUTonLayer(int i) {
+  std::cout << "--------" << std::endl << "Cell LUT " << i << std::endl;
+  for (int j : mCellsLookupTable[i]) {
+    std::cout << j << "\t";
+  }
+  std::cout << "\n--------" << std::endl << std::endl;
+}
+
+void TimeFrame::printTrackletLUTs() {
+  for (unsigned int i{0}; i < mTrackletsLookupTable.size(); ++i) {
+    printTrackletLUTonLayer(i);
+  }
+}
+
+void TimeFrame::printCellLUTs() {
+  for (unsigned int i{0}; i < mCellsLookupTable.size(); ++i) {
+    printCellLUTonLayer(i);
   }
 }
 

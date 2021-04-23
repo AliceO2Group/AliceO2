@@ -78,6 +78,7 @@ class TimeFrame final
   float getMaxR(int layer) const { return mMaxR[layer]; }
   
   gsl::span<Cluster> getClustersOnLayer(int rofId, int layerId);
+  gsl::span<const Cluster> getClustersOnLayer(int rofId, int layerId) const;
   gsl::span<const Cluster> getUnsortedClustersOnLayer(int rofId, int layerId) const;
   index_table_t& getIndexTables(int tf);
   const std::vector<TrackingFrameInfo>& getTrackingFrameInfoOnLayer(int layerId) const;
@@ -109,6 +110,12 @@ class TimeFrame final
   bool isRoadFake(int i) const;
 
   void clear();
+
+  /// Debug and printing
+  void printTrackletLUTonLayer(int i);
+  void printCellLUTonLayer(int i);
+  void printTrackletLUTs();
+  void printCellLUTs();
 
   IndexTableUtils mIndexTableUtils;
 
@@ -186,6 +193,20 @@ inline gsl::span<Cluster> TimeFrame::getClustersOnLayer(int rofId, int layerId)
   gsl::span<Cluster>::size_type extent{mROframesClusters[layerId][rofId] - startIdx};
 #else
   gsl::span<Cluster>::index_type extent{mROframesClusters[layerId][rofId] - startIdx};
+#endif
+  return {&mClusters[layerId][startIdx], extent};
+}
+
+inline gsl::span<const Cluster> TimeFrame::getClustersOnLayer(int rofId, int layerId) const
+{
+  if (rofId < 0 || rofId >= mNrof) {
+    return gsl::span<const Cluster>();
+  }
+  int startIdx{rofId == 0 ? 0 : mROframesClusters[layerId][rofId - 1]};
+#ifdef MS_GSL_V3
+  gsl::span<const Cluster>::size_type extent{mROframesClusters[layerId][rofId] - startIdx};
+#else
+  gsl::span<const Cluster>::index_type extent{mROframesClusters[layerId][rofId] - startIdx};
 #endif
   return {&mClusters[layerId][startIdx], extent};
 }
