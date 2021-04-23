@@ -63,6 +63,11 @@ constexpr int ADCMin = -2048, ADCMax = 2047, ADCRange = 4096; // 12 bit ADC
 
 constexpr int MaxTDCValues = 5;  // max number of TDC values to store in reconstructed event
 constexpr int NTDCChannels = 10; // max number of TDC values to store in reconstructed event
+// Parameters of interpolating function
+constexpr int TSL = 6;    // number of zeros on the right (and on the left) of central peak
+constexpr int TSN = 200;  // Number of interpolated points between each pair = TSN-1
+constexpr int TSNS = 96;  // Number of interpolated points per ns
+constexpr int NTS = 2 * TSL * TSN + 1; //Tapered sinc function array size
 enum TDCChannelID {
   TDCZNAC,
   TDCZNAS,
@@ -154,6 +159,19 @@ constexpr std::string_view ChannelNames[] = {
   "ZPC3",
   "ZPC4",
   "ZPCS"};
+
+const int TDCSignal[NTDCChannels] = {
+  IdZNAC,   // TDCZNAC
+  IdZNASum, // TDCZNAS
+  IdZPAC,   // TDCZPAC
+  IdZPASum, // TDCZPAS
+  IdZEM1,   // TDCZEM1
+  IdZEM2,   // TDCZEM2
+  IdZNCC,   // TDCZNCC
+  IdZNCSum, // TDCZNCS
+  IdZPCC,   // TDCZPCC
+  IdZPCSum  // TDCZPCS
+};
 
 // paths to CCDB objects
 // TODO: eventually these paths should be retrieved from NameConfigurator class

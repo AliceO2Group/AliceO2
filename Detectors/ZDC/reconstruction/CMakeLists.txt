@@ -11,8 +11,12 @@
 o2_add_library(ZDCReconstruction
                SOURCES src/CTFCoder.cxx
 		       src/CTFHelper.cxx
+		       src/DigiReco.cxx
+		       src/RecoParamZDC.cxx
+		       src/ZDCTDCParam.cxx
                PUBLIC_LINK_LIBRARIES O2::ZDCBase
                                      O2::DataFormatsZDC
+				     O2::ZDCSimulation
                                      O2::DetectorsRaw
                                      AliceO2::InfoLogger
 				     O2::rANS
