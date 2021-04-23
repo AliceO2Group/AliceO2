@@ -33,7 +33,7 @@
 #include "AnalysisDataModel/EventSelection.h"
 #include "AnalysisDataModel/Centrality.h"
 
-#include <stdio.h>
+#include <cstdio>
 #include <TFile.h>
 #include <TH2F.h>
 #include <TProfile.h>
