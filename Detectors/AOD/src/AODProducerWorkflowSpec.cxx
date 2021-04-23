@@ -14,7 +14,7 @@
 #include "DataFormatsFT0/RecPoints.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
-#include <CCDB/BasicCCDBManager.h>
+#include "CCDB/BasicCCDBManager.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -29,6 +29,7 @@
 #include "SimulationDataFormat/DigitizationContext.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCEventLabel.h"
 #include "TMath.h"
 #include "MathUtils/Utils.h"
 #include <map>
@@ -414,6 +415,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto primVer2TRefs = pc.inputs().get<gsl::span<o2::vertexing::V2TRef>>("primVer2TRefs");
   auto primVerGIs = pc.inputs().get<gsl::span<o2::vertexing::GIndex>>("primVerGIs");
   auto primVertices = pc.inputs().get<gsl::span<o2::vertexing::PVertex>>("primVertices");
+  auto primVerLabels = pc.inputs().get<gsl::span<o2::MCEventLabel>>("primVerLabels");
   auto tracksITS = pc.inputs().get<gsl::span<o2::its::TrackITS>>("trackITS");
   auto tracksITSTPC = pc.inputs().get<gsl::span<o2::dataformats::TrackTPCITS>>("tracksITSTPC");
   auto tracksTPC = pc.inputs().get<gsl::span<o2::tpc::TrackTPC>>("trackTPC");
@@ -426,6 +428,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   TableBuilder bcBuilderS;
   TableBuilder collisionsBuilderS;
+  TableBuilder mcColLabelsBuilderS;
   TableBuilder ft0BuilderS;
   TableBuilder mcCollisionsBuilderS;
   TableBuilder tracksBuilderS;
@@ -440,6 +443,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   auto& bcBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "BC"}) : bcBuilderS;
   auto& collisionsBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"}) : collisionsBuilderS;
+  auto& mcColLabelsBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISLABEL"}) : mcColLabelsBuilderS;
   auto& ft0Builder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "FT0"}) : ft0BuilderS;
   auto& mcCollisionsBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISION"}) : mcCollisionsBuilderS;
   auto& tracksBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "TRACK"}) : tracksBuilderS;
@@ -454,6 +458,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   auto bcCursor = bcBuilder.cursor<o2::aod::BCs>();
   auto collisionsCursor = collisionsBuilder.cursor<o2::aod::Collisions>();
+  auto mcColLabelsCursor = mcColLabelsBuilder.cursor<o2::aod::McCollisionLabels>();
   auto ft0Cursor = ft0Builder.cursor<o2::aod::FT0s>();
   auto mcCollisionsCursor = mcCollisionsBuilder.cursor<o2::aod::McCollisions>();
   auto tracksCursor = tracksBuilder.cursor<o2::aodproducer::TracksTable>();
@@ -669,6 +674,19 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   std::vector<int> vCollRefsITS(tracksITS.size(), -1);
   std::vector<int> vCollRefsTPC(tracksTPC.size(), -1);
   std::vector<int> vCollRefsTPCITS(tracksITSTPC.size(), -1);
+
+  // filling MC collision labels
+  for (auto& label : primVerLabels) {
+    int32_t mcCollisionID = label.getEventID();
+    uint16_t mcMask = 0; // todo: set mask using normalized weights?
+    mcColLabelsCursor(0, mcCollisionID, mcMask);
+  }
+
+  if (mIgnoreWriter) {
+    std::shared_ptr<arrow::Table> tableMCColLabels = mcColLabelsBuilder.finalize();
+    std::string tableName("O2mccollisionlabel");
+    writeTableToFile(outfile, tableMCColLabels, tableName, tfNumber);
+  }
 
   // filling collisions table
   int collisionID = 0;
@@ -897,6 +915,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(int mIgnoreWriter)
   inputs.emplace_back("primVer2TRefs", "GLO", "PVTX_TRMTCREFS", 0, Lifetime::Timeframe);
   inputs.emplace_back("primVerGIs", "GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe);
   inputs.emplace_back("primVertices", "GLO", "PVTX", 0, Lifetime::Timeframe);
+  inputs.emplace_back("primVerLabels", "GLO", "PVTX_MCTR", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackITS", "ITS", "TRACKS", 0, Lifetime::Timeframe);
   inputs.emplace_back("tracksITSTPC", "GLO", "TPCITS", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackTPC", "TPC", "TRACKS", 0, Lifetime::Timeframe);
@@ -908,6 +927,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(int mIgnoreWriter)
     outputs.emplace_back(OutputLabel{"O2collision"}, "AOD", "COLLISION", 0, Lifetime::Timeframe);
     outputs.emplace_back(OutputLabel{"O2ft0"}, "AOD", "FT0", 0, Lifetime::Timeframe);
     outputs.emplace_back(OutputLabel{"O2mccollision"}, "AOD", "MCCOLLISION", 0, Lifetime::Timeframe);
+    outputs.emplace_back(OutputLabel{"O2mccollisionlabel"}, "AOD", "MCCOLLISLABEL", 0, Lifetime::Timeframe);
     outputs.emplace_back(OutputLabel{"O2track"}, "AOD", "TRACK", 0, Lifetime::Timeframe);
     outputs.emplace_back(OutputLabel{"O2trackcov"}, "AOD", "TRACKCOV", 0, Lifetime::Timeframe);
     outputs.emplace_back(OutputLabel{"O2trackextra"}, "AOD", "TRACKEXTRA", 0, Lifetime::Timeframe);
