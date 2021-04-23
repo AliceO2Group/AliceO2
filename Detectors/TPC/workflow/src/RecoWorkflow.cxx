@@ -72,7 +72,8 @@ const std::unordered_map<std::string, InputType> InputMap{
   {"clusters", InputType::Clusters},
   {"zsraw", InputType::ZSRaw},
   {"compressed-clusters", InputType::CompClusters},
-  {"compressed-clusters-ctf", InputType::CompClustersCTF}};
+  {"compressed-clusters-ctf", InputType::CompClustersCTF},
+  {"compressed-clusters-flat", InputType::CompClustersFlat}};
 
 const std::unordered_map<std::string, OutputType> OutputMap{
   {"digits", OutputType::Digits},
@@ -114,7 +115,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     zsOnTheFly = false;
     propagateMC = false;
   }
-  if (inputType == InputType::ZSRaw) {
+  if (inputType == InputType::ZSRaw || inputType == InputType::CompClustersFlat) {
     caClusterer = true;
     zsOnTheFly = false;
     propagateMC = false;
@@ -219,7 +220,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   // ClusterDecoderRawSpec
   bool produceCompClusters = isEnabled(OutputType::CompClusters);
   bool produceTracks = isEnabled(OutputType::Tracks);
-  bool runTracker = produceTracks || produceCompClusters || (isEnabled(OutputType::Clusters) && caClusterer);
+  bool runTracker = (produceTracks || produceCompClusters || (isEnabled(OutputType::Clusters) && caClusterer)) && inputType != InputType::CompClustersFlat;
   bool runHWDecoder = !caClusterer && (runTracker || isEnabled(OutputType::Clusters));
   bool runClusterer = !caClusterer && (runHWDecoder || isEnabled(OutputType::ClustersHardware));
   bool zsDecoder = inputType == InputType::ZSRaw;
@@ -437,7 +438,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   //
   // selected by output type 'encoded-clusters'
   if (runClusterEncoder) {
-    specs.emplace_back(o2::tpc::getEntropyEncoderSpec(!runTracker));
+    specs.emplace_back(o2::tpc::getEntropyEncoderSpec(!runTracker && inputType != InputType::CompClustersFlat));
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////
